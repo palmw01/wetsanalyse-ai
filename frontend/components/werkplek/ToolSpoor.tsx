@@ -3,7 +3,7 @@ import { duurTekst, heeftInhoud, toolDoelLabel, type ToolExecution } from "@/lib
 export function ToolSpoor({ events }: { events?: ToolExecution[] }) {
   if (!events?.length) return null;
   return <details className="my-2 rounded border border-line p-2 text-xs text-muted">
-    <summary className="cursor-pointer">Graaf geraadpleegd · {events.length} aanroepen</summary>
+    <summary className="cursor-pointer">Bronnen geraadpleegd · {events.length} aanroepen</summary>
     <ol className="mt-2 space-y-2">{events.map((e) => <li key={`${e.run_id}:${e.call_id}`}>
       {/* De tool zelf, en waarover: de `actie` ("bron_lezen") is een categorie en zei niet welke
           aanroep het was. */}

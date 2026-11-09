@@ -68,7 +68,7 @@ def test_wat_niet_klopt_gaat_terug_naar_het_model(aanwijzing, reden):
 
 def test_zonder_aanwijzing_geen_eigen_sjabloon():
     with pytest.raises(Onvulbaar, match="minstens één passage"):
-        sjablonen.vul("antwoord_extern", {"kort_antwoord": "x", "extern": [], "twijfel": []}, TRACE)
+        sjablonen.vul("antwoord_extern", {"kort_antwoord": "x", "extern": [], "stukken": [], "twijfel": []}, TRACE)
 
 
 def test_het_subsjabloon_staat_achter_de_uitleg_en_voor_de_twijfel(monkeypatch):
@@ -89,6 +89,7 @@ def test_zonder_connector_zijn_de_schemas_gelijk_aan_voor_adr_013():
     for s in met:
         invoer = s["input_schema"]
         assert "extern" in invoer["properties"] and "extern" in invoer["required"]
+        assert "stukken" in invoer["properties"] and "stukken" in invoer["required"]
         assert invoer["additionalProperties"] is False and s["strict"] is True
     # Het origineel blijft ongemoeid.
     assert sjablonen.sjabloon_schemas(namen) == zonder
@@ -99,6 +100,7 @@ def test_het_veld_is_plat():
     item = extern.ITEMS["items"]
     assert {v["type"] for v in item["properties"].values()} <= {"string", "integer"}
     assert set(item["required"]) == set(item["properties"]) and item["additionalProperties"] is False
+    assert extern.STUKKEN_ITEMS["items"] == {"type": "string"}, "een lijst ids, niets anders"
 
 
 def test_een_stuk_dat_alleen_gevonden_is_is_onbevestigd():
@@ -213,3 +215,96 @@ def test_een_voetnoot_in_het_blok_draagt_zijn_verwijzing_met_label_en_link():
     assert noot.soort == "voetnoot" and [v.id for v in noot.verwijst_naar] == ["kst-33410-15"]
     assert noot.verwijst_naar[0].label == "Kamerstukken 33410, nr. 15"
     assert noot.verwijst_naar[0].link == "https://zoek.officielebekendmakingen.nl/kst-33410-15"
+
+
+# ── Een lijst gevonden stukken (het blok `stukken`) ──────────────────────────────────────────────────────────────────
+# Gesprek e906567a op acceptatie: 44 Kamerstukken als vrije tekst, 31 keer "alleen gevonden, niet gelezen", en datums uit
+# de tekst van het model. Nu wijst het model de ids aan en komt elk feit uit de zoekrijen.
+
+def _zoek(args: dict, bron=None) -> tuple[str, str]:
+    return "zoek_kamerstukken", tools.dispatch("zoek_kamerstukken", None, args, AAN, kamerstukken=bron or NepBron(DOSSIER))
+
+
+def test_de_lijst_neemt_elk_feit_uit_de_zoekrijen():
+    trace = [_zoek({"dossier": "99001", "volgorde": "nieuwste", "aantal": 2})]
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "Dit zijn de nieuwste stukken.", "extern": [],
+                                          "stukken": ["kst-99001-10", "kst-99001-3"], "twijfel": []}, trace)
+    blok = next(b for b in a.blokken if b.soort == "stukken")
+    rijen = {r["id"]: r for r in json.loads(trace[0][1])["resultaten"]}
+    # De volgorde van het zoekresultaat, niet die van het model.
+    assert [x.id for x in blok.items] == [i for i in rijen if i in {"kst-99001-10", "kst-99001-3"}]
+    assert all(x.datum == rijen[x.id]["datum"] and x.label == rijen[x.id]["label"] for x in blok.items)
+    # Het totaal van de dienst (de nepbron telt een bijlage mee, zoals KOOP zijn records telt).
+    assert blok.kop == "Gevonden Kamerstukken" and blok.door == "bron" and blok.totaal == 4
+    assert blok.zoekvraag == "Gezocht op dossier 99001, nieuwste eerst."
+    Antwoord.model_validate(a.model_dump())
+    tekst = antwoord_tekst(a)
+    assert "**Gevonden Kamerstukken**" in tekst and "2 van de 4 stukken." in tekst
+
+
+def test_een_lijst_is_niet_onbevestigd():
+    """De ids in een lijst zijn gevonden, niet gelezen; dat is geen signaal, want de lijst zegt niets over de inhoud."""
+    from bronmodel.antwoord import NIET_GETOETST
+
+    trace = [_zoek({"dossier": "99001"})]
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "Het dossier telt drie stukken.", "extern": [],
+                                          "stukken": ["kst-99001-2", "kst-99001-3", "kst-99001-10"], "twijfel": []}, trace)
+    rapport = check_grounding(antwoord_tekst(a, zonder=NIET_GETOETST), trace)
+    assert not rapport.onbevestigd
+
+
+def test_een_stuk_dat_niet_gevonden_is_gaat_terug_naar_het_model():
+    with pytest.raises(Onvulbaar, match="staat in geen zoekresultaat"):
+        sjablonen.vul("antwoord_extern", {"kort_antwoord": "x", "extern": [], "stukken": ["kst-99001-77"], "twijfel": []},
+                      [_zoek({"dossier": "99001"})])
+    with pytest.raises(Onvulbaar, match="hoogstens 25"):
+        sjablonen.vul("antwoord_extern", {"kort_antwoord": "x", "extern": [],
+                                          "stukken": [f"kst-99001-{i}" for i in range(26)], "twijfel": []}, TRACE)
+
+
+def test_een_stuk_met_alleen_een_pdf_kan_in_de_lijst():
+    from test_kamerstuk_tools import Koop, _koop, _record_xml
+
+    pdf = _record_xml("kst-1278484", dossiers=("32140",), datum="2026-10-16", gepubliceerd="2026-10-16")
+    trace = [("get_kamerstuk", tools.dispatch("get_kamerstuk", None, {"id": "kst-32140-342"}, AAN,
+                                              kamerstukken=_koop(Koop({}, {("32140", "342"): [pdf]}))))]
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "Nr. 342 is nog onopgemaakt.", "extern": [],
+                                          "stukken": ["kst-1278484"], "twijfel": []}, trace)
+    [x] = next(b for b in a.blokken if b.soort == "stukken").items
+    assert x.label == "Kamerstukken 32140, nr. 342" and x.datum == "2026-10-16" and x.leesbaar is False
+    assert "(onopgemaakt, alleen PDF)" in antwoord_tekst(a)
+
+
+def test_het_subsjabloon_zet_de_lijst_voor_de_passages():
+    from bronmodel.antwoord import Toelichting, Twijfel
+
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "k", "extern": [{"id": ID, "van_nr": 1, "tot_nr": 1}],
+                                          "stukken": [ID], "twijfel": ["p"]}, TRACE)
+    assert [b.soort for b in a.blokken] == ["toelichting", "stukken", "extern", "twijfel"]
+    assert isinstance(a.blokken[0], Toelichting) and isinstance(a.blokken[-1], Twijfel)
+
+
+def test_het_blok_extern_noemt_datum_en_soort_uit_het_stuk():
+    from test_kamerstuk_tools import Koop, _koop, _record_xml
+
+    leesbaar = _record_xml("kst-99001-3", nummer="3", xml=True, status="Opgemaakt na onopgemaakt")
+    trace = [("get_kamerstuk", tools.dispatch("get_kamerstuk", None, {"id": ID}, AAN,
+                                              kamerstukken=_koop(Koop({ID: leesbaar}))))]
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "k", "extern": [{"id": ID, "van_nr": 1, "tot_nr": 1}],
+                                          "stukken": [], "twijfel": []}, trace)
+    blok = next(b for b in a.blokken if b.soort == "extern")
+    assert (blok.datum, blok.soort_stuk) == ("2026-09-25", "Brief regering")
+    assert "(Brief regering, 2026-09-25)" in antwoord_tekst(a)
+
+
+@pytest.mark.parametrize("zoekvraag,verwacht", [
+    ({"volgorde": "nieuwste", "aantal": 10}, "Nieuwste eerst."),
+    ({"soort": "motie", "vanaf": "2024-01-01", "tot": "2024-12-31", "volgorde": "oudste"},
+     "Gezocht op soort stuk motie, documentdatum vanaf 2024-01-01, documentdatum tot en met 2024-12-31, oudste eerst."),
+    ({"woorden": "Invorderingswet", "volgorde": "relevantie"}, "Gezocht op „Invorderingswet” in de titel, op relevantie."),
+    ({}, ""),
+])
+def test_de_zoekvraag_in_woorden(zoekvraag, verwacht):
+    from bronmodel.connectors import KAMERSTUKKEN
+
+    assert extern.zoekvraag_tekst(KAMERSTUKKEN, zoekvraag) == verwacht

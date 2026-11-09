@@ -115,7 +115,9 @@ zoektool is. Wat de SRU van KOOP levert en wat niet, is live getoetst (9 nov 202
 parameter `sortKeys` wordt stil genegeerd; documentdatum (`dt.date`) en publicatiedatum (`dt.available`) lopen soms
 weken uiteen, en "nieuwste" ordent op de documentdatum (besluit gebruiker). Het vervolg (de adapter leest alle velden,
 filters en volgorde in de zoektool, een lijstblok in het antwoord, zoeken in de tekst, een vaste route voor lijstvragen)
-volgt in aparte PR's.
+volgt in aparte PR's. In het antwoord staat een lijst als blok `stukken` (ADR-008): het model wijst de ids aan, de
+code neemt elk feit uit de zoekrijen, met de zoekvraag in woorden en het totaal; het blok `extern` noemt de datum en het
+soort van het gelezen stuk.
 
 ### Review van de Kamerstuk-connector (8 nov 2026)
 

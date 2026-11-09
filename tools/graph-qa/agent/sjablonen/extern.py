@@ -20,11 +20,11 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-from bronmodel.antwoord import Antwoord, Extern, ExternePassage, ExterneVerwijzing, Toelichting, Twijfel
-from bronmodel.connectors import ConnectorBeschrijving, van_id
+from bronmodel.antwoord import Antwoord, Extern, ExternePassage, ExterneVerwijzing, Stuk, Stukken, Toelichting, Twijfel
+from bronmodel.connectors import CONNECTORS, ConnectorBeschrijving, van_id
 from bronmodel.extern import externe_vindplaats
 
-from .vullen import Onvulbaar, Trace, resultaten
+from .vullen import Onvulbaar, Trace, _data, resultaten
 
 #: Zo veel passages mag één aanwijzing omvatten: meer is een samenvatting, en die schrijft Lex in eigen woorden.
 MAX_PASSAGES = 6
@@ -32,6 +32,10 @@ MAX_PASSAGES = 6
 MAX_STUKKEN = 4
 
 VELD = "extern"
+#: Het veld voor een lijst gevonden stukken (`Stukken`): alleen de ids, de rest komt uit de zoekrijen.
+STUKKEN = "stukken"
+#: Zo veel stukken per lijst; meer is geen antwoord maar een zoekresultaat.
+MAX_LIJST = 25
 
 ITEMS: dict[str, Any] = {
     "type": "array",
@@ -51,6 +55,16 @@ ITEMS: dict[str, Any] = {
     },
 }
 
+STUKKEN_ITEMS: dict[str, Any] = {
+    "type": "array",
+    "items": {"type": "string"},
+    "description": (
+        "Een lijst stukken die een zoektool van een bron naast de wet in dit gesprek vond, zoals 'de tien nieuwste "
+        "Kamerstukken' of 'het laatste stuk van dossier 32140': alleen hun ids (kst-…), in de volgorde van het "
+        f"zoekresultaat, hoogstens {MAX_LIJST}. De code toont per stuk het label, soort, datum en titel uit de bron, met "
+        "de zoekvraag en het totaal. Schrijf de lijst of hun datums niet zelf uit. Leeg als het antwoord geen lijst geeft."),
+}
+
 SCHEMA: dict[str, Any] = {
     "name": "antwoord_extern",
     "description": (
@@ -65,10 +79,11 @@ SCHEMA: dict[str, Any] = {
         "properties": {
             "kort_antwoord": {"type": "string", "description": "Het antwoord in twee tot vier zinnen, in eigen woorden en zonder citaten."},
             VELD: ITEMS,
+            STUKKEN: STUKKEN_ITEMS,
             "twijfel": {"type": "array", "items": {"type": "string"},
                         "description": "Aannames en wat de opgehaalde tekst open laat, elk als één punt. Leeg als die er niet zijn."},
         },
-        "required": ["kort_antwoord", VELD, "twijfel"],
+        "required": ["kort_antwoord", VELD, STUKKEN, "twijfel"],
         "additionalProperties": False,
     },
 }
@@ -78,9 +93,10 @@ def met_veld(schema: dict[str, Any]) -> dict[str, Any]:
     """Een sjabloonschema met het veld `extern` erbij: het subsjabloon. Het origineel blijft ongemoeid."""
     uit = copy.deepcopy(schema)
     invoer = uit["input_schema"]
-    invoer["properties"][VELD] = copy.deepcopy(ITEMS)
-    if VELD not in invoer["required"]:
-        invoer["required"].append(VELD)
+    for veld, items in ((VELD, ITEMS), (STUKKEN, STUKKEN_ITEMS)):
+        invoer["properties"][veld] = copy.deepcopy(items)
+        if veld not in invoer["required"]:
+            invoer["required"].append(veld)
     return uit
 
 
@@ -156,7 +172,8 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
         blok = per_stuk.setdefault(vp.id, Extern(
             brontype=vp.brontype, id=vp.id, label=str(stuk.get("label") or vp.label),
             link=str(stuk.get("link") or vp.uri), kop=c.kop_in_antwoord, passages=[],
-            bron_hash=str(stuk.get("bron_hash") or ""), gewijzigd=str(stuk.get("gewijzigd") or "")))
+            bron_hash=str(stuk.get("bron_hash") or ""), gewijzigd=str(stuk.get("gewijzigd") or ""),
+            datum=str(stuk.get("datum") or ""), soort_stuk=str(stuk.get("soort") or "")))
         al = {p.nr for p in blok.passages}
         blok.passages += [ExternePassage(nr=n, tekst=rijen[n]["tekst"], kop=str(rijen[n].get("kop") or ""),
                                          soort=str(rijen[n].get("soort") or "alinea"),
@@ -170,13 +187,100 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
     return list(per_stuk.values())
 
 
+#: De volgordes in de woorden van de jurist, voor de zoekvraag onder een lijst.
+_VOLGORDE_TEKST = {"nieuwste": "nieuwste eerst", "oudste": "oudste eerst", "nummer": "op nummer",
+                   "relevantie": "op relevantie"}
+
+
+def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any]) -> str:
+    """"Gezocht op dossier 32140, nieuwste eerst." uit de zoekvraag van het resultaat, met de labels uit de metadata van
+    de beschrijving (`ConnectorBeschrijving.filters`). Uit de code: de jurist ziet wat er doorzocht is."""
+    delen: list[str] = []
+    for arg, waarde in zoekvraag.items():
+        if arg in {"volgorde", "aantal"} or waarde in ("", None):
+            continue
+        veld = c.filters.get(arg)
+        label = veld.label if veld else arg
+        if arg == "vanaf":
+            delen.append(f"{label} vanaf {waarde}")
+        elif arg == "tot":
+            delen.append(f"{label} tot en met {waarde}")
+        elif arg == "woorden":
+            delen.append(f"„{waarde}” in de titel")
+        else:
+            delen.append(f"{label} {waarde}")
+    volgorde = _VOLGORDE_TEKST.get(str(zoekvraag.get("volgorde") or ""), "")
+    if not delen and not volgorde:
+        return ""
+    return ("Gezocht op " + ", ".join(delen) + (f", {volgorde}" if delen and volgorde else "") if delen
+            else volgorde[:1].upper() + volgorde[1:]) + "."
+
+
+def _gevonden(trace: Trace, c: ConnectorBeschrijving) -> dict[str, tuple[dict[str, Any], dict[str, Any] | None, int]]:
+    """Per id de rij met haar metadata, het resultaat waar ze in stond (voor de zoekvraag en het totaal) en haar plek
+    in de trace. Uit de zoektools, en uit het `stuk` van de leestool, ook bij een stuk dat alleen als PDF bestaat
+    (`alleen_pdf`): dat is gevonden, met zijn metadata. De laatste vermelding wint."""
+    uit: dict[str, tuple[dict[str, Any], dict[str, Any] | None, int]] = {}
+    zoeken = c.tools - {c.leestool}
+    for plek, (naam, tekst) in enumerate(trace):
+        if naam not in c.tools or (data := _data(tekst)) is None:
+            continue
+        if naam in zoeken and data.get("status") in ("ok", "partial"):
+            for i, r in enumerate(data.get("resultaten") or []):
+                if isinstance(r, dict) and isinstance(r.get("id"), str):
+                    uit[r["id"]] = (r, data, plek * 1000 + i)
+        elif naam == c.leestool and isinstance(data.get("stuk"), dict) and isinstance(data["stuk"].get("id"), str):
+            uit[data["stuk"]["id"]] = (data["stuk"], None, plek * 1000)
+    return uit
+
+
+def lijsten(items: Any, trace: Trace) -> list[Stukken]:
+    """De lijsten `stukken` uit de ids die het model aanwees, één per connector. Elk feit uit de zoekrijen, in hun
+    volgorde; een id dat niet gevonden is, is `Onvulbaar` (zoek het eerst)."""
+    if not items:
+        return []
+    if not isinstance(items, list) or len(items) > MAX_LIJST:
+        raise Onvulbaar(f"'{STUKKEN}' is een lijst van hoogstens {MAX_LIJST} ids.")
+    per: dict[str, list[tuple[int, dict[str, Any], dict[str, Any] | None]]] = {}
+    gevonden: dict[str, dict[str, tuple[dict[str, Any], dict[str, Any] | None, int]]] = {}
+    for item in items:
+        ident = str(item or "").strip()
+        vp, c = externe_vindplaats(ident), van_id(ident)
+        if vp is None or c is None:
+            raise Onvulbaar(f"'{ident}' is geen id van een bron naast de wet die hier aanstaat.")
+        bij = gevonden.setdefault(c.naam, _gevonden(trace, c))
+        if vp.id not in bij:
+            zoektool = next(iter(sorted(c.tools - {c.leestool})), c.leestool)
+            raise Onvulbaar(f"{vp.label} staat in geen zoekresultaat van dit gesprek: zoek het eerst met {zoektool}, en "
+                            "wijs dan de ids uit het resultaat aan.")
+        rij, data, plek = bij[vp.id]
+        if all(p != plek for p, _, _ in per.get(c.naam, [])):
+            per.setdefault(c.naam, []).append((plek, rij, data))
+    uit: list[Stukken] = []
+    for naam, rijen in per.items():
+        c = CONNECTORS[naam]
+        rijen.sort(key=lambda x: x[0])
+        bronnen = {id(d) for _, _, d in rijen}
+        data = rijen[0][2] if len(bronnen) == 1 else None
+        zoekvraag = data.get("zoekvraag") if data and isinstance(data.get("zoekvraag"), dict) else {}
+        totaal = data.get("totaal") if data and isinstance(data.get("totaal"), int) else None
+        velden = set(Stuk.model_fields)
+        uit.append(Stukken(
+            brontype=c.brontype, kop=f"Gevonden {c.label}",
+            items=[Stuk(**{k: v for k, v in r.items() if k in velden}) for _, r, _ in rijen],
+            zoekvraag=zoekvraag_tekst(c, zoekvraag), totaal=totaal))
+    return uit
+
+
 def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
-    """Het sjabloon `antwoord_extern`: kort antwoord, de passages en de twijfel."""
+    """Het sjabloon `antwoord_extern`: kort antwoord, de lijst en de passages, en de twijfel."""
+    lijst = lijsten(invoer.get(STUKKEN), trace)
     gevonden = blokken(invoer.get(VELD), trace)
-    if not gevonden:
-        raise Onvulbaar("Wijs minstens één passage aan, of antwoord in tekst als je niets vond.")
+    if not gevonden and not lijst:
+        raise Onvulbaar("Wijs minstens één passage of één gevonden stuk aan, of antwoord in tekst als je niets vond.")
     kort = str(invoer.get("kort_antwoord") or "").strip()
     if not kort:
         raise Onvulbaar("Schrijf een kort antwoord in eigen woorden.")
     punten = [str(p).strip() for p in invoer.get("twijfel") or [] if str(p).strip()]
-    return Antwoord(sjabloon="extern", blokken=[Toelichting(tekst=kort), *gevonden, *([Twijfel(punten=punten)] if punten else [])])
+    return Antwoord(sjabloon="extern", blokken=[Toelichting(tekst=kort), *lijst, *gevonden,
+                                                 *([Twijfel(punten=punten)] if punten else [])])

@@ -115,7 +115,13 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   tot_nr}]`, en als eigen sjabloon is er `antwoord_extern`, allebei alleen als er een connector aanstaat die de rol bedient
   (`agent_node`); zonder connector zijn de schema's byte-gelijk. De tekst komt uit de rijen van de leestool (contract:
   `stuk: {id, label, link, bron_hash, gewijzigd?}`, rijen `{nr, tekst, kop?}`). `check_grounding` noemt een stuk dat alleen in een zoekresultaat
-  stond `onbevestigd` ("alleen gevonden, niet gelezen"). `tests/test_extern_sjabloon.py`.
+  stond `onbevestigd` ("alleen gevonden, niet gelezen"). **Een lijst gevonden stukken** is het blok `stukken` (veld
+  `stukken: [id]` naast `extern`, in het subsjabloon en in `antwoord_extern`): het model wijst ids uit een zoekresultaat
+  aan, `extern.lijsten` neemt label, soort, datum, titel en de rest uit de zoekrijen (of uit het `stuk` van de leestool,
+  ook bij `alleen_pdf`), in de volgorde van het resultaat, met de zoekvraag in woorden (`zoekvraag_tekst`, uit
+  `ConnectorBeschrijving.filters`) en het totaal. Het blok staat in `NIET_GETOETST`: gevonden is daar geen signaal. Het
+  blok `extern` draagt `datum` en `soort_stuk` uit het `stuk`. Een ISO-datum uit een bron telt in de controle als dezelfde
+  datum voluit (`hoeveelheden`). `tests/test_extern_sjabloon.py`.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
   keurt **twee** dingen af en `correct_node` moet ze allebei benoemen: `unsupported` (een vindplaats die

@@ -71,6 +71,15 @@ describe("parseAntwoord", () => {
     expect(parseAntwoord({ sjabloon: "extern", blokken: [metVersie] })?.blokken[0]).toEqual(metVersie);
   });
 
+  it("leest een lijst gevonden stukken en weigert er een zonder id of label", () => {
+    const blok = { soort: "stukken", door: "bron", brontype: "kamerstuk", kop: "Gevonden Kamerstukken",
+      zoekvraag: "Gezocht op dossier 32140, nieuwste eerst.", totaal: 405,
+      items: [{ id: "kst-1278484", label: "Kamerstukken 32140, nr. 342", soort: "Brief regering", datum: "2026-10-16", leesbaar: false }] };
+    expect(parseAntwoord({ sjabloon: "extern", blokken: [blok] })?.blokken[0]).toEqual(blok);
+    expect(parseAntwoord({ sjabloon: "extern", blokken: [{ ...blok, items: [{ id: "kst-1" }] }] })).toBeUndefined();
+    expect(alleenNietGetoetst({ sjabloon: "extern", versie: 1, blokken: [blok as never], doelen: [] })).toBe(true);
+  });
+
   it("deelt de passages van een bron naast de wet in: alinea, voetnoot en tabel met haar rijen", () => {
     const p = (nr: number, soort: string, extra: object = {}) => ({ nr, tekst: `t${nr}`, kop: "", soort, ...extra }) as never;
     const g = externGroepen([p(1, "alinea"), p(2, "voetnoot"), p(3, "tabel", { cellen: ["", "2014"] }),

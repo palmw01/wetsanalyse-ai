@@ -15,6 +15,7 @@ import { externGroepen, groepeerWettekst, type Antwoord as AntwoordData, type An
 import { bronHref } from "@/lib/url";
 import { BRONTYPE_NAAM } from "@/lib/bronnen";
 import { begripPad, generiekPad } from "@/lib/werkgebiedPaden";
+import { datumTekst } from "@/lib/datum";
 import type { Bron } from "@/lib/types";
 
 function Sectie({ kop, children }: { kop: string; children: React.ReactNode }) {
@@ -128,7 +129,38 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
         {blok.link
           ? <a href={blok.link} target="_blank" rel="noopener noreferrer" className="focus-ring rounded underline underline-offset-2">{blok.label}</a>
           : blok.label}
+        {/* De datum en het soort uit de metadata van het stuk, niet uit de tekst van Lex. */}
+        {(blok.soort_stuk || blok.datum) && <span data-extern-meta> · {[blok.soort_stuk, datumTekst(blok.datum)].filter(Boolean).join(", ")}</span>}
       </p>
+    </Sectie>
+  ),
+  // Een lijst gevonden stukken: elk feit uit de zoekrijen, met wat er gezocht is. Gevonden, niet gelezen.
+  stukken: ({ blok }) => (
+    <Sectie kop={blok.kop}>
+      <ul className="space-y-2" data-stukken={blok.brontype}>
+        {blok.items.map((s) => (
+          <li key={s.id} className="space-y-0.5" data-stuk={s.id}>
+            <p className="flex flex-wrap items-center gap-2">
+              {s.link
+                ? <a href={s.link} target="_blank" rel="noopener noreferrer" className="focus-ring rounded font-medium text-lint underline underline-offset-2">{s.label}</a>
+                : <span className="font-medium">{s.label}</span>}
+              {s.leesbaar === false && <StatusLabel toon="geel" klein uitleg="De tekst staat bij de bron nog alleen als PDF en is niet te lezen.">alleen PDF</StatusLabel>}
+            </p>
+            <p className="text-xs text-muted">
+              {[s.soort, datumTekst(s.datum), s.orgaan].filter(Boolean).join(" · ")}
+              {s.gepubliceerd && <> · gepubliceerd {datumTekst(s.gepubliceerd)}</>}
+            </p>
+            {s.titel && <p>{s.titel}</p>}
+            {!!s.indieners?.length && <p className="text-xs text-muted">Ingediend door {s.indieners.join(", ")}</p>}
+          </li>
+        ))}
+      </ul>
+      {(blok.zoekvraag || (blok.totaal ?? 0) > blok.items.length) && (
+        <p className="text-xs text-muted" data-stukken-zoekvraag>
+          {[blok.zoekvraag, (blok.totaal ?? 0) > blok.items.length ? `${blok.items.length} van de ${blok.totaal} stukken.` : ""].filter(Boolean).join(" ")}
+        </p>
+      )}
+      <p className="text-xs text-muted">Gevonden, niet gelezen: de lijst zegt niets over wat er in de stukken staat.</p>
     </Sectie>
   ),
   leemte: ({ blok }) => <p className="text-muted" data-leemte>{blok.tekst}</p>,

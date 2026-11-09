@@ -301,7 +301,7 @@ try {
   const advice = requests.find((r) => r.path === "/api/annotatie/run").body;
   assert.equal(advice.modus, "advies"); assert.equal(advice.context.element_id, "e1");
   assert.equal(advice.context.bron_iri, "urn:lid1");
-  await page.getByText("Graaf geraadpleegd · 1 aanroepen", { exact: true }).last().click();
+  await page.getByText("Bronnen geraadpleegd · 1 aanroepen", { exact: true }).last().click();
   await page.getByText("get_annotatie", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Sluiten", exact: true }).last().click();
   await page.getByText("Invorderingswet – artikel 9 lid 2", { exact: true }).last().click();
@@ -311,7 +311,7 @@ try {
   await page.getByRole("button", { name: "Kies een klasse" }).first().waitFor();
   assert.equal(await page.getByRole("button", { name: "Akkoord", exact: true }).first().isDisabled(), true);
   await page.reload();
-  await page.getByText("Graaf geraadpleegd · 1 aanroepen", { exact: true }).first().click();
+  await page.getByText("Bronnen geraadpleegd · 1 aanroepen", { exact: true }).first().click();
   await page.getByText("search_annotaties", { exact: true }).first().waitFor();
   assert.equal(await page.getByText("meer resultaten beschikbaar", { exact: false }).count() >= 1, true);
 
