@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actieveConnectors, beurtBronnen, heeftOnbekend, herkomstVan, menuNaam, menuRegel, metBeschikbaarheid, wissel, zelfAanTeZetten, type ConnectorStand } from "./connectorsMenu";
+import { actieveConnectors, beurtBronnen, herkomstVan, menuMelding, menuNaam, menuRegel, metBeschikbaarheid, moetVerversen, toonMenu, uitBronstand, wissel, zelfAanTeZetten, type ConnectorStand } from "./connectorsMenu";
 
 const KST = { naam: "kamerstukken", label: "Kamerstukken", brontype: "kamerstuk" };
 const ECLI = { naam: "rechtspraak", label: "Rechtspraak", brontype: "uitspraak" };
@@ -20,17 +20,68 @@ describe("connectorsMenu", () => {
     expect(beurtBronnen({ beschikbaar: [KST] })).toEqual({ bronnen: ["kamerstukken"], bronnen_herkomst: "standaard" });
   });
 
-  it("het menu toont alleen wat de straat aanbiedt, met de beschikbaarheid erbij", () => {
+  it("wat de straat niet aanbiedt staat er, als niet aangeboden: nooit stil weg, nooit aan", () => {
     expect(metBeschikbaarheid([KST, ECLI], [{ naam: "kamerstukken", straat: false }, { naam: "rechtspraak", straat: true }]))
-      .toEqual([{ ...ECLI, beschikbaarheid: "aan" }]);
-    expect(metBeschikbaarheid([KST], [])).toEqual([]);
+      .toEqual([{ ...KST, beschikbaarheid: "niet_aangeboden" }, { ...ECLI, beschikbaarheid: "aan" }]);
+    expect(metBeschikbaarheid([KST], [])).toEqual([{ ...KST, beschikbaarheid: "niet_aangeboden" }]);
+    const stand: ConnectorStand = { beschikbaar: metBeschikbaarheid([KST, ECLI], [{ naam: "rechtspraak", straat: true }]) };
+    expect(toonMenu(stand)).toBe(true);
+    // Incident 8 nov 2026: nooit aan, en dus niet in de beurt.
+    expect(actieveConnectors(stand)).toEqual(["rechtspraak"]);
+    expect(beurtBronnen(stand)).toEqual({ bronnen: ["rechtspraak"], bronnen_herkomst: "standaard" });
+    expect(wissel(stand, "kamerstukken")).toEqual(["kamerstukken", "rechtspraak"]);
+    expect(zelfAanTeZetten([{ naam: "kamerstukken", label: "Kamerstukken", reden: "gesprek" }], stand)).toEqual([]);
+    expect(menuRegel(stand)).toEqual([{ label: "Wetgeving", stand: "aan" }, { label: "Kamerstukken", stand: "niet_aangeboden" },
+      { label: "Rechtspraak", stand: "aan" }]);
+    expect(menuNaam(stand)).toBe("Bronnen: Wetgeving aan, Kamerstukken niet beschikbaar, Rechtspraak aan");
+    expect(menuMelding(stand)).toBe("Kamerstukken staat aan, maar is op deze omgeving niet beschikbaar.");
+    // Een vaste stand van de omgeving: geen reden om te blijven peilen.
+    expect(moetVerversen(stand)).toBe(false);
+  });
+
+  it("een keuze voor een niet-aangeboden bron blijft bewaard als je een andere omzet", () => {
+    const stand: ConnectorStand = {
+      beschikbaar: [{ ...KST, beschikbaarheid: "niet_aangeboden" }, { ...ECLI, beschikbaarheid: "aan" }],
+      gesprek: ["kamerstukken", "rechtspraak"],
+    };
+    expect(wissel(stand, "rechtspraak")).toEqual(["kamerstukken"]);
+    expect(wissel(stand, "kamerstukken")).toEqual(["kamerstukken", "rechtspraak"]);
+  });
+
+  it("mislukt ophalen: het menu blijft, met de laatst bekende stand en een melding", () => {
+    expect(toonMenu({ beschikbaar: [] })).toBe(false);
+    const leeg: ConnectorStand = { beschikbaar: [], laden: "mislukt" };
+    expect(toonMenu(leeg)).toBe(true);
+    expect(moetVerversen(leeg)).toBe(true);
+    expect(menuRegel(leeg)).toEqual([{ label: "Wetgeving", stand: "aan" }]);
+    expect(menuMelding(leeg)).toBe("De bronnen zijn nu niet te controleren.");
+    expect(menuNaam(leeg)).toBe("Bronnen: Wetgeving aan (nu niet te controleren)");
+    const oud: ConnectorStand = { beschikbaar: [{ ...KST, beschikbaarheid: "aan" }], laden: "mislukt" };
+    expect(menuMelding(oud)).toBe("De bronnen zijn nu niet te controleren. Dit is de laatst bekende stand.");
+    // De laatst bekende keuze gaat gewoon mee met de beurt.
+    expect(beurtBronnen(oud)).toEqual({ bronnen: ["kamerstukken"], bronnen_herkomst: "standaard" });
+  });
+
+  it("de bronstand van een beurt werkt de beschikbaarheid bij, generiek per connector", () => {
+    const NEP = { naam: "nep", label: "Nepbron", brontype: "nep" };
+    const lijst = [{ ...KST, beschikbaarheid: "aan" as const }, { ...ECLI, beschikbaarheid: "onbekend" as const }, NEP];
+    const na = uitBronstand(lijst, [
+      { naam: "kamerstukken", reden: "straat" },
+      { naam: "rechtspraak", reden: "aan" },
+      { naam: "nep", reden: "register_onleesbaar" },
+    ]);
+    expect(na.map((c) => c.beschikbaarheid)).toEqual(["niet_aangeboden", "aan", "onbekend"]);
+    // Uitgezet in gesprek, werkgebied of door de beheerder zegt niets over de omgeving.
+    const zelfde = uitBronstand(lijst, [{ naam: "kamerstukken", reden: "gesprek" }, { naam: "rechtspraak", reden: "beheerder" }]);
+    expect(zelfde[0]).toBe(lijst[0]);
+    expect(zelfde[1]).toBe(lijst[1]);
   });
 
   it("zonder graph-qa is de beschikbaarheid onbekend, en dan is er geen schakelaar (review ADR-013, punt 2)", () => {
     const beschikbaar = metBeschikbaarheid([KST, ECLI], null);
     expect(beschikbaar.map((c) => c.beschikbaarheid)).toEqual(["onbekend", "onbekend"]);
     const stand: ConnectorStand = { beschikbaar, gesprek: ["kamerstukken"] };
-    expect(heeftOnbekend(stand)).toBe(true);
+    expect(moetVerversen(stand)).toBe(true);
     // Omzetten doet niets: een schakelaar die niets doet is erger dan geen.
     expect(wissel(stand, "rechtspraak")).toEqual(["kamerstukken"]);
     expect(wissel(stand, "kamerstukken")).toEqual(["kamerstukken"]);
@@ -38,13 +89,15 @@ describe("connectorsMenu", () => {
     expect(beurtBronnen(stand)).toEqual({ bronnen: ["kamerstukken"], bronnen_herkomst: "gesprek" });
     // *Zet … aan* na een bron_uit biedt hem niet aan.
     expect(zelfAanTeZetten([{ naam: "kamerstukken", label: "Kamerstukken", reden: "gesprek" }], stand)).toEqual([]);
-    expect(menuRegel(stand)).toEqual([{ label: "Wetgeving", aan: true }, { label: "Kamerstukken", aan: false, onbekend: true },
-      { label: "Rechtspraak", aan: false, onbekend: true }]);
+    expect(menuRegel(stand)).toEqual([{ label: "Wetgeving", stand: "aan" }, { label: "Kamerstukken", stand: "onbekend" },
+      { label: "Rechtspraak", stand: "onbekend" }]);
+    expect(menuMelding(stand)).toBe("Of Kamerstukken en Rechtspraak nu bereikbaar zijn, is niet te controleren.");
     expect(menuNaam(stand)).toBe("Bronnen: Wetgeving aan, Kamerstukken onbekend, Rechtspraak onbekend");
   });
 
   it("een oudere BFF zonder beschikbaarheid telt als aan", () => {
-    expect(heeftOnbekend({ beschikbaar: [KST] })).toBe(false);
+    expect(moetVerversen({ beschikbaar: [KST] })).toBe(false);
+    expect(menuMelding({ beschikbaar: [KST] })).toBeNull();
     expect(wissel({ beschikbaar: [KST] }, "kamerstukken")).toEqual([]);
   });
 
@@ -66,8 +119,8 @@ describe("connectorsMenu", () => {
 
   it("de regel op de knop", () => {
     const stand = { beschikbaar: [KST, ECLI], gesprek: ["kamerstukken"] };
-    expect(menuRegel(stand)).toEqual([{ label: "Wetgeving", aan: true }, { label: "Kamerstukken", aan: true },
-      { label: "Rechtspraak", aan: false }]);
+    expect(menuRegel(stand)).toEqual([{ label: "Wetgeving", stand: "aan" }, { label: "Kamerstukken", stand: "aan" },
+      { label: "Rechtspraak", stand: "uit" }]);
     expect(menuNaam(stand)).toBe("Bronnen: Wetgeving aan, Kamerstukken aan, Rechtspraak uit");
   });
 });

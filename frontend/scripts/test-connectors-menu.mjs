@@ -12,7 +12,11 @@
  *  - een beurt draagt de herkomst van de stand (`bronnen_herkomst`), en na een `bron_uit` zet *Zet … aan* de bron aan in
  *    het gesprek; een bron die de beheerder uitzette krijgt geen knop;
  *  - was graph-qa niet te lezen (beschikbaarheid `onbekend`), dan staat de bron er zonder schakelaar, gaat de keuze
- *    ongewijzigd mee met de beurt, en komt de schakelaar terug zodra de stand bij het openen weer bekend is.
+ *    ongewijzigd mee met de beurt, en komt de schakelaar terug zodra de stand bij het openen weer bekend is;
+ *  - het menu verdwijnt nooit stil: faalt `/api/connectors`, dan staat het er met een melding en *Opnieuw proberen*;
+ *    een wissel van gesprek of *Nieuw gesprek* (een remount) toont meteen de laatst bekende stand, ook als het
+ *    ophalen traag is; een bron die de omgeving niet aanbiedt staat er als "niet beschikbaar", zonder schakelaar en
+ *    zonder `bronnen`; en het `bronstand`-event van een beurt werkt de beschikbaarheid bij.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -26,10 +30,12 @@ const KST = { naam: "kamerstukken", label: "Kamerstukken", brontype: "kamerstuk"
 
 const GOED = [{ type: "token", content: "Goed." }, { type: "done" }];
 
-async function open({ beschikbaar = [KST], gesprekConnectors, wgStandaard = null, url = "/workbench", events = GOED } = {}) {
+// `connectorsAntwoord(n)` (n = het hoeveelste verzoek) kan een fout of vertraging geven: `{ status, vertraging }`.
+async function open({ beschikbaar = [KST], gesprekConnectors, wgStandaard = null, url = "/workbench", events = GOED,
+  connectorsAntwoord = () => ({}), gesprekken = [] } = {}) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
-  const errors = [], runs = [], patches = [], wgPatches = [];
+  const errors = [], runs = [], patches = [], wgPatches = [], connectorVerzoeken = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await context.addCookies(await sessieCookies(base));
   await context.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true })));
@@ -40,8 +46,12 @@ async function open({ beschikbaar = [KST], gesprekConnectors, wgStandaard = null
     const req = route.request(), p = new URL(req.url()).pathname, m = req.method();
     if (p.startsWith("/api/auth/")) return route.continue();
     if (p === "/api/connectors") {
+      connectorVerzoeken.push(Date.now());
+      const { status, vertraging } = connectorsAntwoord(connectorVerzoeken.length);
+      if (vertraging) await new Promise((r) => setTimeout(r, vertraging));
+      if (status) return route.fulfill({ status, json: { detail: "De lijst met bronnen is nu niet te lezen." } }).catch(() => {});
       const lijst = typeof beschikbaar === "function" ? beschikbaar() : beschikbaar;
-      return route.fulfill({ json: { aan: lijst.map((c) => c.naam), connectors: lijst } });
+      return route.fulfill({ json: { aan: lijst.map((c) => c.naam), connectors: lijst } }).catch(() => {});
     }
     if (p === "/api/annotatie/run") {
       if (m === "GET") return route.fulfill({ json: null });
@@ -49,7 +59,7 @@ async function open({ beschikbaar = [KST], gesprekConnectors, wgStandaard = null
       return route.fulfill({ json: { run_id: "live", conversation_id: req.postDataJSON().conversation_id, status: "loopt" } });
     }
     if (p === "/api/annotatie/run/live/events")
-      return route.fulfill({ contentType: "text/event-stream", body: sse(events) });
+      return route.fulfill({ contentType: "text/event-stream", body: sse(typeof events === "function" ? events() : events) });
     if (p === "/api/werkgebieden/wg1" && m === "PATCH") {
       const body = req.postDataJSON();
       wgPatches.push(body);
@@ -64,8 +74,9 @@ async function open({ beschikbaar = [KST], gesprekConnectors, wgStandaard = null
       return route.fulfill({ json: { id: "g1", titel: "Test", connectors: stand.connectors, berichten: [] } });
     }
     if (p === "/api/gesprekken/g1") return route.fulfill({ json: { id: "g1", titel: "Test", connectors: stand.connectors, berichten: [] } });
+    if (p === "/api/gesprekken/g2") return route.fulfill({ json: { id: "g2", titel: "Tweede", connectors: null, berichten: [] } });
     if (p === "/api/gesprekken" && m === "POST") return route.fulfill({ status: 201, json: { id: "g1", titel: "", berichten: [] } });
-    if (p === "/api/gesprekken") return route.fulfill({ json: [] });
+    if (p === "/api/gesprekken") return route.fulfill({ json: gesprekken });
     if (p.endsWith("/berichten") && m === "POST") return route.fulfill({ json: { id: 1 } });
     if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
     if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
@@ -73,7 +84,7 @@ async function open({ beschikbaar = [KST], gesprekConnectors, wgStandaard = null
   });
   await page.goto(`${base}${url}`);
   await page.getByRole("textbox").last().waitFor();
-  return { page, context, errors, runs, patches, wgPatches, stand };
+  return { page, context, errors, runs, patches, wgPatches, stand, connectorVerzoeken };
 }
 
 const wachtOp = async (page, lijst, n) => {
@@ -205,6 +216,101 @@ const menu = (page) => page.locator("[data-connectors-menu]");
   bekend = true;
   await menu(page).click();
   await page.getByRole("menuitemradio", { name: "Kamerstukken" }).waitFor();
+  assert.deepEqual(errors, []);
+  await context.close();
+}
+
+
+// 7. `/api/connectors` faalt: het menu staat er met de melding, en *Opnieuw proberen* haalt de stand terug.
+{
+  let stuk = true;
+  const { page, context, errors, connectorVerzoeken } = await open({ connectorsAntwoord: () => (stuk ? { status: 503 } : {}) });
+  await menu(page).waitFor();
+  assert.equal(await menu(page).getAttribute("data-laden"), "mislukt");
+  assert.equal(await menu(page).getAttribute("aria-label"), "Bronnen: Wetgeving aan (nu niet te controleren)");
+  await menu(page).click();
+  await page.locator("[data-connectors-melding]").getByText("De bronnen zijn nu niet te controleren.").waitFor();
+  stuk = false;
+  const voor = connectorVerzoeken.length;
+  await page.getByRole("menuitem", { name: "Opnieuw proberen" }).click();
+  await page.getByRole("menuitemradio", { name: "Kamerstukken" }).waitFor();
+  assert.ok(connectorVerzoeken.length > voor);
+  assert.equal(await page.locator("[data-connectors-melding]").count(), 0, "de melding is weg zodra de stand bekend is");
+  assert.equal(await menu(page).getAttribute("data-laden"), null);
+  // Een 503 telt in de console als netwerkfout, niet als paginafout.
+  assert.deepEqual(errors, []);
+  await context.close();
+}
+
+// 8. Traag laden: na een wissel van gesprek (remount) staat het menu er meteen, met de laatst bekende stand.
+// 9. *Nieuw gesprek* (ook een remount): het menu blijft staan. Faalt het verversen daarna, dan blijft de lijst staan.
+{
+  const gesprekken = [
+    { id: "g1", titel: "Test", aantal_berichten: 0, updated: nu },
+    { id: "g2", titel: "Tweede", aantal_berichten: 0, updated: nu },
+  ];
+  let traag = false, stuk = false;
+  const { page, context, errors } = await open({ gesprekken, url: "/workbench?gesprek=g1",
+    connectorsAntwoord: () => (stuk ? { status: 504 } : traag ? { vertraging: 4000 } : {}) });
+  await menu(page).waitFor();
+  await page.waitForFunction(() => document.querySelector("[data-connectors-menu]")?.getAttribute("aria-label") === "Bronnen: Wetgeving aan, Kamerstukken aan");
+  traag = true;
+  await page.locator("aside[data-tour=sidebar] [data-gesprek-rij=g2]").getByRole("button", { name: /^Tweede/ }).click();
+  await page.waitForFunction(() => new URL(location.href).searchParams.get("gesprek") === "g2");
+  // Binnen de vertraging van 4 s: het menu moet er al staan.
+  await page.waitForTimeout(300);
+  assert.equal(await menu(page).count(), 1, "het menu staat er direct na de wissel");
+  assert.equal(await menu(page).getAttribute("aria-label"), "Bronnen: Wetgeving aan, Kamerstukken aan");
+
+  // Het trage verzoek loopt nog; een nieuwe mount sluit daarop aan (één verzoek tegelijk). Wacht het af.
+  traag = false;
+  await page.waitForTimeout(4200);
+  stuk = true;
+  await page.getByRole("button", { name: "Nieuw gesprek" }).first().click();
+  await page.waitForTimeout(300);
+  assert.equal(await menu(page).count(), 1, "het menu staat er direct na Nieuw gesprek");
+  await page.waitForFunction(() => document.querySelector("[data-connectors-menu]")?.getAttribute("data-laden") === "mislukt");
+  assert.equal(await menu(page).getAttribute("aria-label"), "Bronnen: Wetgeving aan, Kamerstukken aan (nu niet te controleren)");
+  await menu(page).click();
+  await page.getByText("Dit is de laatst bekende stand.").waitFor();
+  assert.deepEqual(errors, []);
+  await context.close();
+}
+
+// 10. De omgeving biedt een aangezette bron niet aan: hij staat er als niet beschikbaar, zonder schakelaar en zonder `bronnen`.
+{
+  const ECLI = { naam: "rechtspraak", label: "Rechtspraak", brontype: "uitspraak", beschikbaarheid: "aan" };
+  const { page, context, errors, runs } = await open({ beschikbaar: [{ ...KST, beschikbaarheid: "niet_aangeboden" }, ECLI] });
+  await menu(page).waitFor();
+  assert.equal(await menu(page).getAttribute("aria-label"), "Bronnen: Wetgeving aan, Kamerstukken niet beschikbaar, Rechtspraak aan");
+  assert.equal(await page.locator("[data-bron=Kamerstukken]").getAttribute("data-stand"), "niet_aangeboden");
+  await menu(page).click();
+  await page.locator("[data-connector-niet-aangeboden=kamerstukken]").waitFor();
+  await page.getByText("Kamerstukken staat aan, maar is op deze omgeving niet beschikbaar.").waitFor();
+  assert.equal(await page.getByRole("menuitemradio", { name: "Kamerstukken" }).count(), 0, "geen schakelaar");
+  await page.keyboard.press("Escape");
+  await vraag(page, "Een vraag");
+  await wachtOp(page, runs, 1);
+  assert.deepEqual(runs[0].bronnen, ["rechtspraak"]);
+  assert.deepEqual(errors, []);
+  await context.close();
+}
+
+// 11. De bronstand van een beurt: de straat biedt hem niet (meer) aan → niet beschikbaar; de volgende beurt zegt aan →
+// hersteld. (Bij `register_onleesbaar` haalt de werkplek na de beurt meteen de stand opnieuw op, en die wint.)
+{
+  let reden = "straat";
+  const events = () => [{ type: "bronstand", bronnen: [{ naam: "kamerstukken", label: "Kamerstukken", aan: reden === "aan", reden }] },
+    ...GOED];
+  const { page, context, errors, runs } = await open({ events });
+  await menu(page).waitFor();
+  await vraag(page, "Eerste vraag");
+  await wachtOp(page, runs, 1);
+  await page.waitForFunction(() => document.querySelector("[data-connectors-menu]")?.getAttribute("aria-label")?.includes("Kamerstukken niet beschikbaar"));
+  reden = "aan";
+  await vraag(page, "Tweede vraag");
+  await wachtOp(page, runs, 2);
+  await page.waitForFunction(() => document.querySelector("[data-connectors-menu]")?.getAttribute("aria-label") === "Bronnen: Wetgeving aan, Kamerstukken aan");
   assert.deepEqual(errors, []);
   await context.close();
 }
