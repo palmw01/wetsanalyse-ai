@@ -86,7 +86,8 @@ de wettekst en vult nooit een `doel`.
    de leestool levert en niet levert; `brontype` uit `extern.BRONTYPEN`, eventueel een nieuw
    soort id in `extern.py` met vectoren). Daarbij de **metadata** per stuk (`metadata`, `MetadataVeld`): in de vaste
    sleutels van `METADATA_SLEUTELS` (minstens `datum`, `titel` en `leesbaar`), per veld waar het bij de dienst
-   vandaan komt, wat het betekent en op welk zoekargument het filtert, en de `standaard_datum` voor "nieuwste".
+   vandaan komt, wat het betekent en op welke zoekargumenten het filtert (`filters`), de `standaard_datum` voor
+   "nieuwste" en de `volgordes` (uit `VOLGORDES`), die het argument `volgorde` van de zoektool als enum draagt.
    Alleen velden die de dienst echt levert: toets dat met de live-proef;
 2. de tools in `tools/graph-qa/agent/tools/`, met het resultaatcontract; de leestool levert `stuk: {id, label, link, bron_hash, gewijzigd?}` en
    rijen `{nr, tekst, kop?, soort?}` (één nummering per stuk; `soort` is `alinea`, `voetnoot`, `tabel` of `tabelrij`, een

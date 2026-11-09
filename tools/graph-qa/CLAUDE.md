@@ -233,8 +233,14 @@ bruikbaar is.
   en waarvoor hij staat, of waarom hij uit staat en wie hem aanzet. Zonder aangeboden connector en zonder genoemde bron
   is dat blok leeg. `tests/test_bronprompt.py`. `tests/test_bronschakelaar.py`.
   **Kamerstukken** (`tools/kamerstuk_tools.py`, transport `adapters/sru_kamerstukken.py`): `zoek_kamerstukken`
-  (een dossier of subdossier, `w.dossiernummer=="36200-IX"`; tot `MAX_DOSSIER` stukken op nummer, daarboven op datum met
-  een exact vervolg en `volgorde: "datum"` – nooit afgekapt; of woorden in de titel; zonder bijlagen, `dt.type==Kamerstuk`) en `get_kamerstuk` (per alinea, met de kop, in documentvolgorde;
+  (filters, te combineren: een dossier of subdossier, `w.dossiernummer=="36200-IX"`, met `nummer` voor één stuk; woorden in
+  de titel; `soort` in `w.subrubriek` óf de titel, want oudere stukken hebben de rubriek "Overig"; `vanaf`/`tot` op de
+  documentdatum, ook `JJJJ` of `JJJJ-MM`; `vergaderjaar`; `kamer`. De `volgorde` is de enum uit
+  `KAMERSTUKKEN.volgordes`: `nieuwste`/`oudste` op `dt.date` met het id als tweede sleutel (alleen `sortBy` in de CQL
+  sorteert, `sortKeys` negeert de dienst), `nummer` binnen een dossier (tot `MAX_DOSSIER` op nummer, daarboven de oudste
+  eerst met een exact vervolg – nooit afgekapt), `relevantie` bij woorden; zonder volgorde een dossier op nummer, woorden
+  op relevantie, de rest nieuwste. `aantal` begrenst de pagina. Elk resultaat draagt `zoekvraag` (filters en volgorde) en
+  `totaal`; zonder bijlagen, `dt.type==Kamerstuk`) en `get_kamerstuk` (per alinea, met de kop, in documentvolgorde;
   een CALS-tabel als één rij (`soort: "tabel"`, titel, omvang, `tot_nr`) met `openen` naar `get_kamerstuk(tabel=)`: de kop met
   de kolommen als `cellen`, per rij `{soort: "tabelrij", cellen, tekst: "a | b"}`, de tabelnoten, en `samengevoegd` (een
   overspannende cel staat in haar eerste kolom); illustraties geteld in `overgeslagen`, de eigen inhoudsopgave apart; een voetnoot is een rij direct

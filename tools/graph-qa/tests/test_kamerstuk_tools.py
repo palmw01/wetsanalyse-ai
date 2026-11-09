@@ -173,16 +173,16 @@ def test_een_dossier_tot_de_grens_staat_op_nummer_en_is_compleet():
     assert all(p["volgorde"] == "nummer" and p["totaal"] == MAX_DOSSIER for p in paginas)
 
 
-def test_een_groot_dossier_wordt_niet_afgekapt_maar_staat_op_datum():
+def test_een_groot_dossier_wordt_niet_afgekapt_maar_staat_op_de_oudste_eerst():
     """Review ADR-013, punt 1: een dossier boven de grens heette volledig na de eerste 300 stukken."""
     n = MAX_DOSSIER + 1
     bron = NepBron(_veel(n))
     rijen, paginas = _alle({"dossier": "99001"}, bron)
     assert len(rijen) == n and len({r["id"] for r in rijen}) == n, "alle stukken, elk één keer"
-    assert all(p["volgorde"] == "datum" and p["totaal"] == n for p in paginas)
-    assert not paginas[0]["volledig"] and "datum" in paginas[0]["toelichting"]
-    # Per pagina één telvraag (zonder records) en één pagina op datum.
-    assert sum(v.endswith(" sortBy dt.available/sort.ascending") for v in bron.vragen) == len(paginas)
+    assert all(p["volgorde"] == "oudste" and p["totaal"] == n for p in paginas)
+    assert not paginas[0]["volledig"] and "oudste" in paginas[0]["toelichting"]
+    # Per pagina één telvraag (zonder records) en één pagina op de documentdatum, met het id als tweede sleutel.
+    assert sum(v.endswith(" sortBy dt.date/sort.ascending dt.identifier/sort.ascending") for v in bron.vragen) == len(paginas)
 
 
 def test_een_subdossier_zoekt_op_zijn_eigen_nummer():
@@ -638,3 +638,64 @@ def test_het_soort_uit_de_titel_als_de_rubriek_overig_is(titel, dossiertitel, do
     r = dataclasses.replace(rec("kst-99001-3", titel, "3"), soort="Overig", dossiertitel=dossiertitel,
                             documenttitel=documenttitel)
     assert roep("zoek_kamerstukken", {"dossier": "99001"}, NepBron([r]))["resultaten"][0]["soort"] == verwacht
+
+
+# ── Filters en volgorde (PR 3 van metadata in het connectorcontract) ─────────────────────────────────────────────────
+
+BASIS = "c.product-area==officielepublicaties AND w.publicatienaam==Kamerstuk AND dt.type==Kamerstuk"
+
+
+@pytest.mark.parametrize("args,verwacht", [
+    ({"volgorde": "nieuwste"}, " sortBy dt.date/sort.descending dt.identifier/sort.ascending"),
+    ({"dossier": "32140", "volgorde": "nieuwste", "aantal": 1},
+     ' AND w.dossiernummer=="32140" sortBy dt.date/sort.descending dt.identifier/sort.ascending'),
+    ({"dossier": "32140", "nummer": "342"},
+     ' AND w.dossiernummer=="32140" AND w.ondernummer=="342" sortBy dt.date/sort.descending dt.identifier/sort.ascending'),
+    ({"soort": "Memorie van toelichting", "vanaf": "2024", "tot": "2024-06"},
+     ' AND (w.subrubriek all "memorie van toelichting" OR dt.title all "memorie van toelichting")'
+     " AND dt.date>=2024-01-01 AND dt.date<=2024-06-30 sortBy dt.date/sort.descending dt.identifier/sort.ascending"),
+    ({"vergaderjaar": "2025/26", "kamer": "Eerste Kamer", "volgorde": "oudste"},
+     ' AND w.vergaderjaar=="2025-2026" AND dt.creator=="Eerste Kamer der Staten-Generaal"'
+     " sortBy dt.date/sort.ascending dt.identifier/sort.ascending"),
+    ({"woorden": "Invorderingswet"}, ' AND dt.title any "invorderingswet"'),
+])
+def test_de_filters_worden_cql_uit_de_code(args, verwacht):
+    bron = NepBron(DOSSIER)
+    d = roep("zoek_kamerstukken", args, bron)
+    assert d["status"] == "ok", d
+    assert bron.vragen[-1] == BASIS + verwacht
+    assert d["zoekvraag"]["volgorde"] == (args.get("volgorde") or ("relevantie" if "woorden" in args else "nieuwste"))
+
+
+def test_het_aantal_begrenst_de_pagina_en_het_vervolg_houdt_de_zoekvraag():
+    bron = NepBron(_veel(30))
+    d = roep("zoek_kamerstukken", {"volgorde": "nieuwste", "aantal": 10}, bron)
+    assert d["aantal"] == 10 and not d["volledig"] and d["totaal"] == 30
+    assert d["vervolg"]["args"] == {"volgorde": "nieuwste", "aantal": 10, "offset": 10}
+    assert d["zoekvraag"] == {"aantal": 10, "volgorde": "nieuwste"}
+
+
+def test_een_dossier_alleen_staat_nog_op_nummer():
+    d = roep("zoek_kamerstukken", {"dossier": "99001"})
+    assert d["volgorde"] == "nummer" and d["zoekvraag"] == {"dossier": "99001", "volgorde": "nummer"}
+
+
+@pytest.mark.parametrize("args,reden", [
+    ({"nummer": "342"}, "ongeldig_nummer"),
+    ({"dossier": "32140", "nummer": "3/4"}, "ongeldig_nummer"),
+    ({"vanaf": "vorig jaar"}, "ongeldige_datum"),
+    ({"vanaf": "2024-13"}, "ongeldige_datum"),
+    ({"vanaf": "2025", "tot": "2024"}, "ongeldige_datum"),
+    ({"vergaderjaar": "2025-2027"}, "ongeldig_vergaderjaar"),
+    ({"kamer": "Senaat", "volgorde": "nieuwste"}, "ongeldige_kamer"),
+    ({"volgorde": "willekeurig"}, "ongeldige_volgorde"),
+    ({"volgorde": "nummer"}, "ongeldige_volgorde"),
+    ({"soort": "motie", "volgorde": "relevantie"}, "ongeldige_volgorde"),
+    ({"volgorde": "nieuwste", "aantal": 0}, "ongeldig_aantal"),
+    ({"volgorde": "nieuwste", "aantal": 26}, "ongeldig_aantal"),
+    ({"dossier": "99001", "volgorde": "nummer", "aantal": 5}, "ongeldig_aantal"),
+    ({}, "ongeldige_argumenten"),
+])
+def test_een_invoerfout_zegt_wat_wel_kan(args, reden):
+    d = roep("zoek_kamerstukken", args)
+    assert d["status"] == "error" and d["reden"] == reden and "bijvoorbeeld" in d["melding"], d
