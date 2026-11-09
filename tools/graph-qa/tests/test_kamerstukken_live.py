@@ -38,7 +38,11 @@ MVT = "kst-33755-3"
 KLEIN, GROOT, SUB = "33755", "31066", "36200-IX"
 #: Wat de connector gebruikt om te zoeken en te sorteren; elk moet in de explain staan, doorzoekbaar en sorteerbaar.
 INDEXEN = ("dt.identifier", "dt.available", "dt.modified", "dt.type", "dt.title", "w.publicatienaam",
-           "w.dossiernummer", "w.ondernummer", "w.documentstatus", "w.versieinformatie", "w.versienummer")
+           "w.dossiernummer", "w.ondernummer", "w.documentstatus", "w.versieinformatie", "w.versienummer",
+           # De metadata uit de beschrijving (`KAMERSTUKKEN.metadata`, 9 nov 2026).
+           "dt.date", "dt.creator", "w.vergaderjaar", "w.subrubriek", "w.documenttitel", "w.dossiertitel", "w.indiener")
+#: Een herdruk: kst-32740-1 bestaat niet bij KOOP, kst-32740-1-n1 wel (de Fiscale agenda van april 2011).
+HERDRUK = ("kst-32740-1", "kst-32740-1-n1")
 
 
 def _haal(params: dict) -> bytes:
@@ -103,6 +107,41 @@ def test_documentstatus_staat_op_het_record():
     statussen = {_veld(r, ".//ow:documentstatus") for r in recs}
     assert statussen - {""}, "geen w.documentstatus op de records"
     assert all(s.lower().startswith(("opgemaakt", "onopgemaakt")) for s in statussen - {""}), statussen
+
+
+def test_de_metadata_van_de_beschrijving_staat_op_het_record():
+    """De velden die `KAMERSTUKKEN.metadata` belooft, op een echt record; en de twee datums apart."""
+    from agent.adapters.sru_kamerstukken import lees_records
+
+    _, [rec] = lees_records(_haal({"query": f"{BASIS} AND dt.identifier=={MVT}", "maximumRecords": 1}))
+    assert rec.datum and rec.gepubliceerd, "dt.date of dt.available ontbreekt"
+    assert rec.soort, "w.subrubriek ontbreekt"  # bij dit oudere stuk "Overig"; de tool neemt dan de titel
+    assert rec.dossiertitel and rec.kamer and rec.vergaderjaar and rec.leesbaar
+    rij = next(r for r in json.loads(tools.dispatch("zoek_kamerstukken", None, {"dossier": KLEIN}, AAN))["resultaten"]
+               if r["id"] == MVT)
+    assert rij["soort"].lower() == "memorie van toelichting" and rij["datum"] == rec.datum
+
+
+def test_sorteren_op_documentdatum_gaat_met_sortby():
+    """`sortBy` in de CQL sorteert; de parameter `sortKeys` negeert de dienst stil (live, 9 nov 2026)."""
+    _, recs = _records(f"{BASIS} AND dt.type==Kamerstuk AND w.dossiernummer=={KLEIN} sortBy dt.date/sort.descending",
+                       maximum=20)
+    datums = [_veld(r, ".//dcterms:date") for r in recs]
+    assert datums == sorted(datums, reverse=True), datums
+
+
+def test_een_herdruk_wordt_gevonden_op_dossier_en_nummer():
+    gevraagd, echt = HERDRUK
+    totaal, _ = _records(f"{BASIS} AND dt.identifier=={gevraagd}", maximum=1)
+    assert totaal == 0, f"{gevraagd} staat nu zelf bij KOOP: kies een andere herdruk voor deze proef"
+    rec = SruKamerstukken().record(gevraagd)
+    assert rec.id == echt and "herdruk" in rec.versie.lower()
+
+
+def test_meer_dan_duizend_records_is_een_diagnose():
+    with pytest.raises(KamerstukFout) as fout:
+        SruKamerstukken().zoek(BASIS, maximum=1001)
+    assert fout.value.code == "geweigerd"
 
 
 def test_een_ongeldige_query_is_een_diagnose():

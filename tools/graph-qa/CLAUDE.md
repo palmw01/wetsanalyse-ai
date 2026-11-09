@@ -240,13 +240,22 @@ bruikbaar is.
   overspannende cel staat in haar eerste kolom); illustraties geteld in `overgeslagen`, de eigen inhoudsopgave apart; een voetnoot is een rij direct
   na zijn alinea (`soort: "voetnoot"`, `verwijst_naar` uit een `extref` naar een document), en de alinea noemt haar `noten`; een `tussenkop` hoort bij de alinea's erna, zodat
   de artikelsgewijze toelichting haar artikel noemt; de eerste pagina draagt `inhoud`, per kop de offset, om te springen). De CQL bouwt de tool, de document-URL komt uit het
-  SRU-record en alleen `repository.overheid.nl` over https; een SRU-diagnose of storing is een foutresultaat
-  (`bron_onbereikbaar`), nooit een lege lijst. Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
+  SRU-record en alleen `repository.overheid.nl` over https; een fout is een foutresultaat, nooit een lege lijst, met de
+  oorzaak als reden (`KamerstukFout.code` → `FOUTREDEN`): `bron_onbereikbaar` (storing), `zoekvraag_geweigerd` (een
+  SRU-diagnose), `niet_gevonden` en `alleen_pdf` (het stuk bestaat, maar KOOP heeft nog alleen een PDF – vaak bij een
+  onopgemaakt stuk; het resultaat draagt dan `stuk` met de metadata en de link). **Metadata uit KOOP**
+  (`KAMERSTUKKEN.metadata`, sleutels uit `bronmodel.connectors.METADATA_SLEUTELS`): `Record` leest elk veld apart (de
+  documentdatum `dt.date` en de publicatiedatum `dt.available` lopen soms weken uiteen), en `kamerstuk_tools.metadata`
+  zet ze in de rij en in `stuk` (`label`, `soort`, `titel`, `datum`, `jaar`, `orgaan`, `indieners`; `gepubliceerd`,
+  `reeks`, `status`, `leesbaar` alleen in de uitzondering). Het label komt uit dossier en nummer, niet uit het id; een
+  `w.subrubriek` "Overig" (oudere stukken) wordt het soort uit de titel. **Een id dat KOOP niet kent** zoekt
+  `SruKamerstukken.record` op dossier en nummer in het hoofddossier: een herdruk (`kst-32740-1` → `kst-32740-1-n1`) en
+  een onopgemaakt stuk (32140 nr. 342 = `kst-1278484`); het `stuk` noemt het echte id en de toelichting zegt het. Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
   sjabloon citeert er dus niet uit als passage van een bepaling. **Cache met versiecontrole** (een Kamerstuk verandert
   na publicatie: onopgemaakt → opgemaakt, herdruk, rectificatie): binnen `VERS_S` geen aanroep, daarna een lichte
   metadatavraag op `dt.modified`/documentstatus/versie en alleen bij een verschil de XML opnieuw (log
-  `kamerstuk_gewijzigd`); bij een storing de bewaarde versie met `gevalideerd: false`; grenzen `MAX_CACHE` en
-  `MAX_CACHE_BYTES`. Het `stuk` noemt `bron_hash`, `gewijzigd`, `documentstatus` en `versie`, en het blok `extern`
+  `kamerstuk_gewijzigd`); bij een storing (alleen `onbereikbaar`, niet een stuk dat verdween) de bewaarde versie met `gevalideerd: false`; grenzen `MAX_CACHE` en
+  `MAX_CACHE_BYTES`. Het `stuk` noemt `bron_hash`, `gewijzigd`, `status` en `versie`, en het blok `extern`
   bewaart `bron_hash` en `gewijzigd`; `_gelezen` neemt de passages uit één lezing (dezelfde hash). Het contract met de echte dienst (indexen, sortering, recordvorm, documentstatus) toetst
   `tests/test_kamerstukken_live.py`: dagelijks in `bronnenwacht.yml`, lokaal met `BRONNEN_LIVE=1 uv run pytest -m live`
   (marker `live`; elke connector heeft er een, `test_connectorbeschrijving.py`). Niet in de poort.

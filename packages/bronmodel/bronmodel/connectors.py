@@ -217,7 +217,8 @@ KAMERSTUKKEN = ConnectorBeschrijving(
                      "wanneer KOOP de publicatie het laatst bijwerkte, niet wanneer het stuk zelf veranderde"),
         MetadataVeld("titel", "titel", "w.documenttitel", "de titel van het stuk, zonder de dossiertitel"),
         MetadataVeld("soort", "soort stuk", "w.subrubriek",
-                     "het soort Kamerstuk, zoals 'Memorie van toelichting', 'Motie' of 'Brief regering'"),
+                     "het soort Kamerstuk, zoals 'Memorie van toelichting', 'Motie' of 'Brief regering'; bij oudere "
+                     "stukken staat er 'Overig', en dan komt het soort uit de titel"),
         MetadataVeld("reeks", "dossier", "w.dossiernummer",
                      "de dossiers waar het stuk bij hoort; het eerste is het hoofddossier", filter="dossier"),
         MetadataVeld("reekstitel", "dossiertitel", "w.dossiertitel", "de titel van het hoofddossier"),

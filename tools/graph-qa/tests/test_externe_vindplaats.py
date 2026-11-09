@@ -18,6 +18,9 @@ VECTOREN = [
     # (verwijzing, brontype, id, label)
     ("kst-36123-3", "kamerstuk", "kst-36123-3", "Kamerstukken 36123, nr. 3"),
     ("kst-36200-VII-2", "kamerstuk", "kst-36200-VII-2", "Kamerstukken 36200 VII, nr. 2"),
+    # Een herdruk: het achtervoegsel is de versie, geen nummer (was "Kamerstukken 32740 1, nr. n1").
+    ("kst-32740-1-n1", "kamerstuk", "kst-32740-1-n1", "Kamerstukken 32740, nr. 1 (versie n1)"),
+    ("kst-21501-08-525", "kamerstuk", "kst-21501-08-525", "Kamerstukken 21501 08, nr. 525"),
     ("h-tk-20232024-12-3", "kamerstuk", "h-tk-20232024-12-3", "Handelingen II 2023/24, nr. 12, item 3"),
     ("ah-ek-20232024-5", "kamerstuk", "ah-ek-20232024-5", "Aanhangsel Handelingen I 2023/24, nr. 5"),
     ("stb-2023-123", "bekendmaking", "stb-2023-123", "Stb. 2023, 123"),

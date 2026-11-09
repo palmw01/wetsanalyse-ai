@@ -72,8 +72,11 @@ KAMERSTUK_TOOLS: list[dict[str, Any]] = [
             "advies van de Raad van State en het nader rapport) in de officiële publicaties. Met 'dossier' alle "
             "stukken van dat dossier op volgorde van nummer; met 'woorden' Kamerstukken waarvan de titel elk woord "
             "draagt (bijvoorbeeld de naam van een wet)." + _UITLEG + "\n"
-            "GEEFT TERUG per stuk: id (kst-…), label, stuk (het soort, zoals 'Memorie van toelichting' of 'MvT'), "
-            "datum, vergaderjaar en link; bij een dossier ook de dossiertitel en de volgorde: 'nummer' (tot "
+            "GEEFT TERUG per stuk: id (kst-…), label, soort (zoals 'Memorie van toelichting', 'Motie' of 'Brief "
+            "regering'), titel, datum (van het stuk zelf), jaar (het vergaderjaar), orgaan (de Kamer), indieners en "
+            "link; gepubliceerd alleen als dat later was dan de datum, reeks als het stuk in meer dossiers staat, status "
+            "'Onopgemaakt' en leesbaar: false als er nog alleen een PDF is. Bij een dossier ook de dossiertitel en de "
+            "volgorde: 'nummer' (tot "
             f"{MAX_DOSSIER} stukken) of 'datum' (een groter dossier). Zoek in een groot dossier gericht met dossier "
             "én woorden, bijvoorbeeld 'memorie van toelichting'." + _CONTRACT
         ),
@@ -96,10 +99,11 @@ KAMERSTUK_TOOLS: list[dict[str, Any]] = [
             "'inhoud': per kop de offset waar dat deel begint. Ga met die offset naar het deel dat de vraag raakt (in de "
             "memorie van toelichting bijvoorbeeld de artikelsgewijze toelichting bij een artikel) in plaats van alles te "
             "lezen.\n"
-            "GEEFT TERUG: het stuk (id, label, titel, link, bron_hash en de stand bij KOOP: gewijzigd, documentstatus, "
-            "versie) en per alinea nr, kop en tekst. Een voetnoot staat als eigen rij direct na zijn alinea (soort "
+            "GEEFT TERUG: het stuk (id, label, soort, titel, datum, jaar, orgaan, indieners, link, bron_hash en de stand "
+            "bij KOOP: gewijzigd, status, versie) en per alinea nr, kop en tekst. Noem de datum en het soort uit 'stuk', "
+            "niet uit de tekst. Een voetnoot staat als eigen rij direct na zijn alinea (soort "
             "'voetnoot', met noot en verwijst_naar: een ander stuk dat je met get_kamerstuk kunt lezen). Is de "
-            "documentstatus 'Onopgemaakt', zeg dan dat de opgemaakte versie kan afwijken; staat er gevalideerd: false, "
+            "status 'Onopgemaakt', zeg dan dat de opgemaakte versie kan afwijken; staat er gevalideerd: false, "
             "dan kon de nieuwste versie niet worden gecontroleerd. Een tabel staat als één rij (soort 'tabel', met de titel "
             "en de omvang) met 'openen': haal hem op met tabel=<nr> om eruit te citeren; dan komen de kolommen en per rij "
             "de cellen. Illustraties staan er niet in; de telling staat in 'overgeslagen'." + _CONTRACT
@@ -123,19 +127,74 @@ def _ondersleutel(nummer: str) -> tuple:
     return tuple((0, int(x)) if x.isdigit() else (1, x) for x in re.findall(r"\d+|\D+", nummer or ""))
 
 
+def _kamer(creator: str) -> str:
+    """"Tweede Kamer der Staten-Generaal" → "Tweede Kamer"; iets anders blijft staan."""
+    return next((k for k in ("Tweede Kamer", "Eerste Kamer") if k.lower() in (creator or "").lower()), creator or "")
+
+
+def label_van(rec: Any, vp: Any) -> str:
+    """Het label uit de metadata van KOOP, niet uit het id: een onopgemaakt stuk heeft een eigen id (kst-1278484 is
+    32140 nr. 342) en een herdruk een achtervoegsel (kst-32740-1-n1). Zonder dossier en nummer het label van het id."""
+    dossiers, nummer = tuple(getattr(rec, "dossiers", ()) or ()), getattr(rec, "ondernummer", "") or ""
+    if not dossiers or not nummer:
+        return vp.label
+    versie = (getattr(rec, "versie", "") or "").strip()
+    return (f"Kamerstukken {' '.join(dossiers[0].split('-')).upper()}, nr. {nummer}"
+            + (f" ({versie.lower()})" if versie else ""))
+
+
+def _soort_uit_titel(rec: Any) -> str:
+    """Het soort uit de titel van KOOP: "<dossiertitel>; <soort>; <documenttitel>", of zonder documenttitel
+    "<dossiertitel>; <soort>". Met de eigen velden afgeknipt, want ook een dossiertitel kan een puntkomma dragen."""
+    titel = (rec.titel or "").strip()
+    dossiertitel = (getattr(rec, "dossiertitel", "") or "").strip()
+    documenttitel = (getattr(rec, "documenttitel", "") or "").strip()
+    if dossiertitel and titel.startswith(dossiertitel + "; "):
+        rest = titel[len(dossiertitel) + 2:]
+        if documenttitel and rest.endswith("; " + documenttitel):
+            rest = rest[:-len(documenttitel) - 2]
+        return rest.strip()
+    delen = titel.split("; ")
+    return delen[1] if len(delen) >= 3 else delen[-1]
+
+
+def _soort_en_titel(rec: Any) -> tuple[str, str]:
+    """(soort, titel) uit de eigen velden van KOOP. Bij oudere stukken is `w.subrubriek` vaak "Overig" (kst-33755-3, de
+    memorie van toelichting; live, 9 nov 2026): dan het soort uit de titel."""
+    rubriek = (getattr(rec, "soort", "") or "").strip()
+    soort = rubriek if rubriek.lower() not in {"", "overig"} else _soort_uit_titel(rec)
+    eigen = (getattr(rec, "documenttitel", "") or "").strip()
+    return soort, ("" if not eigen or eigen.lower() == soort.lower() else eigen)
+
+
+def metadata(rec: Any, vp: Any) -> dict[str, Any]:
+    """De metadata van een stuk in de vaste sleutels (`bronmodel.connectors.METADATA_SLEUTELS`), uit het record van
+    KOOP. Wat de jurist alleen in een uitzondering nodig heeft, staat er alleen dan: de publicatiedatum als die afwijkt,
+    het dossier als het stuk in meer dossiers staat, de status bij een onopgemaakt stuk, `leesbaar` als het niet kan."""
+    soort, titel = _soort_en_titel(rec)
+    dossiers = tuple(getattr(rec, "dossiers", ()) or ())
+    datum, gepubliceerd = rec.datum or "", getattr(rec, "gepubliceerd", "") or ""
+    status = getattr(rec, "documentstatus", "") or ""
+    return compact({
+        "label": label_van(rec, vp), "soort": soort, "titel": titel, "datum": datum,
+        "gepubliceerd": gepubliceerd if gepubliceerd != datum else "", "jaar": rec.vergaderjaar,
+        "orgaan": _kamer(getattr(rec, "kamer", "")), "indieners": list(getattr(rec, "indieners", ()) or ()),
+        "reeks": list(dossiers) if len(dossiers) > 1 else [], "status": status if status == "Onopgemaakt" else "",
+        "versie": getattr(rec, "versie", ""),
+        **({"leesbaar": False} if getattr(rec, "xml_url", "x") == "" else {})})
+
+
 def _rij(rec: Any) -> dict[str, Any] | None:
     vp = externe_vindplaats(rec.id)
     if vp is None or vp.brontype != "kamerstuk" or not rec.id.startswith("kst-"):
         return None
-    # Het soort stuk staat achteraan de titel ("<dossiertitel>; Memorie van toelichting"); de dossiertitel herhaalt
-    # zich per stuk en gaat één keer mee (`dossiertitel`).
-    stuk = rec.titel.rsplit("; ", 1)[-1] if "; " in rec.titel else rec.titel
-    return compact({"id": vp.id, "label": vp.label, "stuk": stuk, "datum": rec.datum,
-                    "vergaderjaar": rec.vergaderjaar, "link": vp.uri, "versie": getattr(rec, "versie", "")})
+    # De dossiertitel herhaalt zich per stuk en gaat één keer mee (`dossiertitel`).
+    return {"id": vp.id, **metadata(rec, vp), "link": vp.uri}
 
 
 def _dossiertitel(records: list[Any]) -> str:
-    return next((r.titel.rsplit("; ", 1)[0] for r in records if "; " in r.titel), "")
+    return next((getattr(r, "dossiertitel", "") or r.titel.rsplit("; ", 1)[0] for r in records
+                 if getattr(r, "dossiertitel", "") or "; " in r.titel), "")
 
 
 def _cql_woorden(woorden: str) -> str:
@@ -422,12 +481,19 @@ def _get(bron: KamerstukBron, a: dict[str, Any]) -> str:
         kop, rijen, overgeslagen, tabellen = lees(doc.xml)
     except (ET.ParseError, ValueError) as exc:
         return fout("onleesbaar_document", f"{vp.id} kon niet worden gelezen: {exc}")
+    # Het id van KOOP: wie kst-32740-1 vraagt, leest de herdruk kst-32740-1-n1 (`SruKamerstukken.record`).
+    echt = externe_vindplaats(getattr(doc, "id", "") or vp.id) or vp
+    rec = getattr(doc, "record", None)
+    meta = {k: v for k, v in metadata(rec, echt).items() if k != "leesbaar"} if rec is not None else {"label": echt.label}
     # De versie die Lex las (review ADR-013, punt 3): de hash van de XML en de stand bij KOOP. Een onopgemaakte versie
     # wordt later vervangen door de opgemaakte; `gevalideerd: false` als de dienst bij het valideren niet te bereiken was.
-    stuk = compact({"id": vp.id, "label": vp.label, "titel": kop["documenttitel"], "link": vp.uri,
+    stuk = compact({"id": echt.id, **meta, "titel": kop["documenttitel"] or meta.get("titel", ""), "link": echt.uri,
                     "bron_hash": doc.hash, "gewijzigd": getattr(doc, "gewijzigd", ""),
-                    "documentstatus": getattr(doc, "documentstatus", ""), "versie": getattr(doc, "versie", ""),
+                    "status": getattr(doc, "documentstatus", ""), "versie": getattr(doc, "versie", ""),
                     **({"gevalideerd": False} if getattr(doc, "gevalideerd", True) is False else {})})
+    toelichting = (f"{vp.id} staat bij KOOP als {echt.id} ({stuk['label']}): noem en citeer dat id."
+                   if echt.id != vp.id else "")
+    vp = echt
     offset = max(int(a.get("offset") or 0), 0)
     if a.get("tabel") is not None:
         gevonden = tabellen.get(int(a["tabel"])) if str(a["tabel"]).lstrip("-").isdigit() else None
@@ -449,8 +515,33 @@ def _get(bron: KamerstukBron, a: dict[str, Any]) -> str:
             extra["inhoud"] = inh
         if not alle:
             extra["inhoud_ingekort"] = True
-    return per_eenheid(rijen, tool="get_kamerstuk", args={"id": vp.id}, offset=offset,
-                       extra=extra, toelichting="" if rijen else "Dit stuk heeft geen lopende tekst in de XML.")
+    return per_eenheid(rijen, tool="get_kamerstuk", args={"id": vp.id}, offset=offset, extra=extra,
+                       toelichting=toelichting or ("" if rijen else "Dit stuk heeft geen lopende tekst in de XML."))
+
+
+#: De reden in het foutresultaat per code van de adapter (`KamerstukFout.code`).
+FOUTREDEN = {"onbereikbaar": "bron_onbereikbaar", "geweigerd": "zoekvraag_geweigerd", "niet_gevonden": "niet_gevonden",
+             "alleen_pdf": "alleen_pdf"}
+
+
+def fout_van(exc: Any) -> str:
+    """Het foutresultaat bij een `KamerstukFout`, met de reden en wat Lex ermee doet. Een stuk dat alleen als PDF
+    bestaat, bestaat: het resultaat noemt zijn metadata uit KOOP, zodat Lex datum en soort uit de code noemt in plaats
+    van "bestaat mogelijk niet" (acceptatie 9 nov 2026)."""
+    code = getattr(exc, "code", "onbereikbaar")
+    rec = getattr(exc, "record", None)
+    if code == "alleen_pdf" and rec is not None and (vp := externe_vindplaats(rec.id)) is not None:
+        meta = metadata(rec, vp)
+        wat = ", ".join(x for x in (meta.get("soort"), meta.get("datum")) if x)
+        return fout("alleen_pdf", (
+            f"{meta['label']} ({vp.id}{', ' + wat if wat else ''}) bestaat, maar staat bij KOOP "
+            f"{'nog onopgemaakt en ' if rec.documentstatus == 'Onopgemaakt' else ''}alleen als PDF: de tekst kan ik niet "
+            f"lezen. Zeg dat, met de datum en de link {vp.uri}, en citeer er niet uit."),
+            stuk={"id": vp.id, **meta, "link": vp.uri})
+    if code == "niet_gevonden":
+        return fout("niet_gevonden", f"{exc}, ook niet op dossier en nummer. Controleer het id, of zoek het stuk met "
+                    "zoek_kamerstukken, bijvoorbeeld {\"dossier\": \"33755\"}.")
+    return fout(FOUTREDEN.get(code, "bron_onbereikbaar"), str(exc))
 
 
 def dispatch_kamerstuk(name: str, args: dict[str, Any], bron: KamerstukBron | None) -> str:
