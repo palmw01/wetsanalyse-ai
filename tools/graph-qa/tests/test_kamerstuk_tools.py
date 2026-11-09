@@ -67,7 +67,7 @@ def test_dossier_op_nummer_zonder_bijlagen():
     d = roep("zoek_kamerstukken", {"dossier": "99001"})
     assert d["status"] == "ok" and d["volledig"]
     assert [r["id"] for r in d["resultaten"]] == ["kst-99001-2", "kst-99001-3", "kst-99001-10"]
-    assert d["resultaten"][1]["stuk"] == "Memorie van toelichting" and d["dossiertitel"] == "Wet x"
+    assert d["resultaten"][1]["soort"] == "Memorie van toelichting" and d["dossiertitel"] == "Wet x"
     assert d["resultaten"][1]["link"] == "https://zoek.officielebekendmakingen.nl/kst-99001-3"
 
 
@@ -173,16 +173,16 @@ def test_een_dossier_tot_de_grens_staat_op_nummer_en_is_compleet():
     assert all(p["volgorde"] == "nummer" and p["totaal"] == MAX_DOSSIER for p in paginas)
 
 
-def test_een_groot_dossier_wordt_niet_afgekapt_maar_staat_op_datum():
+def test_een_groot_dossier_wordt_niet_afgekapt_maar_staat_op_de_oudste_eerst():
     """Review ADR-013, punt 1: een dossier boven de grens heette volledig na de eerste 300 stukken."""
     n = MAX_DOSSIER + 1
     bron = NepBron(_veel(n))
     rijen, paginas = _alle({"dossier": "99001"}, bron)
     assert len(rijen) == n and len({r["id"] for r in rijen}) == n, "alle stukken, elk één keer"
-    assert all(p["volgorde"] == "datum" and p["totaal"] == n for p in paginas)
-    assert not paginas[0]["volledig"] and "datum" in paginas[0]["toelichting"]
-    # Per pagina één telvraag (zonder records) en één pagina op datum.
-    assert sum(v.endswith(" sortBy dt.available/sort.ascending") for v in bron.vragen) == len(paginas)
+    assert all(p["volgorde"] == "oudste" and p["totaal"] == n for p in paginas)
+    assert not paginas[0]["volledig"] and "oudste" in paginas[0]["toelichting"]
+    # Per pagina één telvraag (zonder records) en één pagina op de documentdatum, met het id als tweede sleutel.
+    assert sum(v.endswith(" sortBy dt.date/sort.ascending dt.identifier/sort.ascending") for v in bron.vragen) == len(paginas)
 
 
 def test_een_subdossier_zoekt_op_zijn_eigen_nummer():
@@ -283,7 +283,7 @@ def test_de_bytegrens_zet_de_oudste_eruit(monkeypatch):
     bron = SruKamerstukken(client=httpx.Client(transport=httpx.MockTransport(Dienst())))
     nep = Record(id="", titel="", datum="", vergaderjaar="", dossiers=(), ondernummer="",
                  xml_url="https://repository.overheid.nl/frbr/x.xml")
-    monkeypatch.setattr(bron, "_record", lambda ident: dataclasses.replace(nep, id=ident))
+    monkeypatch.setattr(bron, "record", lambda ident: dataclasses.replace(nep, id=ident))
     for i in range(1, 4):
         bron.document(f"kst-99001-{i}")
     assert list(bron._cache) == ["kst-99001-2", "kst-99001-3"]
@@ -293,7 +293,7 @@ def test_het_stuk_noemt_zijn_versie():
     dienst = Dienst()
     d = json.loads(tools.dispatch("get_kamerstuk", None, {"id": "kst-99001-3"}, AAN,
                                   kamerstukken=_adapter(dienst, [0.0])))
-    assert d["stuk"]["documentstatus"] == "Onopgemaakt" and d["stuk"]["gewijzigd"] == "2026-01-02"
+    assert d["stuk"]["status"] == "Onopgemaakt" and d["stuk"]["gewijzigd"] == "2026-01-02"
     assert d["stuk"]["bron_hash"] and "gevalideerd" not in d["stuk"]
 
 
@@ -483,3 +483,228 @@ def test_de_capaciteit_in_de_beschrijving_is_wat_de_leestool_levert():
     for soort in set(overgeslagen) - {"inhoudsopgave"} - soorten:
         assert soort[:6] in niet, f"de leestool slaat {soort} over, de beschrijving zegt het niet"
     assert not any(s[:6] in niet for s in soorten), "de beschrijving zegt dat iets ontbreekt wat de leestool levert"
+
+
+# ── Metadata uit KOOP (9 nov 2026: gesprek e906567a op acceptatie) ──────────────────────────────────────────────────
+# Records in de vorm die de SRU werkelijk teruggaf (live, 9 nov 2026); de waarden zijn verzonnen.
+
+def _sru(*records: str) -> bytes:
+    return (f"""<sru:searchRetrieveResponse xmlns:sru="http://docs.oasis-open.org/ns/search-ws/sruResponse"
+        xmlns:dcterms="http://purl.org/dc/terms/" xmlns:ow="http://standaarden.overheid.nl/wetgeving/"
+        xmlns:gzd="http://standaarden.overheid.nl/sru"><sru:numberOfRecords>{len(records)}</sru:numberOfRecords>
+        <sru:records>{''.join(f'<sru:record>{r}</sru:record>' for r in records)}</sru:records>
+        </sru:searchRetrieveResponse>""").encode()
+
+
+def _record_xml(ident: str, *, dossiers=("99001",), nummer="342", status="Onopgemaakt", xml=False, versie="",
+                datum="2026-09-25", gepubliceerd="2026-11-09") -> str:
+    url = f"https://repository.overheid.nl/frbr/officielepublicaties/kst/{ident}/1"
+    return (f"<dcterms:identifier>{ident}</dcterms:identifier><dcterms:title>Wet x; Brief regering; Stand van zaken"
+            f"</dcterms:title><dcterms:creator>Tweede Kamer der Staten-Generaal</dcterms:creator>"
+            f"<dcterms:modified>2026-11-09</dcterms:modified><dcterms:available>{gepubliceerd}</dcterms:available>"
+            f"<dcterms:date>{datum}</dcterms:date><ow:documentstatus>{status}</ow:documentstatus>"
+            f"<ow:documenttitel>Stand van zaken</ow:documenttitel><ow:dossiertitel>Wet x</ow:dossiertitel>"
+            f"<ow:indiener>A.B. de Vries</ow:indiener><ow:indiener>C.D. Jansen</ow:indiener>"
+            f"<ow:ondernummer>{nummer}</ow:ondernummer><ow:vergaderjaar>2026-2027</ow:vergaderjaar>"
+            + "".join(f"<ow:dossiernummer>{d}</ow:dossiernummer>" for d in dossiers)
+            + f"<ow:subrubriek>Brief regering</ow:subrubriek>"
+            + (f"<ow:versieinformatie>{versie}</ow:versieinformatie>" if versie else "")
+            + f'<gzd:itemUrl manifestation="pdf">{url}/pdf/{ident}.pdf</gzd:itemUrl>'
+            + (f'<gzd:itemUrl manifestation="xml">{url}/xml/{ident}.xml</gzd:itemUrl>' if xml else ""))
+
+
+def test_het_record_leest_elk_veld_apart():
+    _, [r] = lees_records(_sru(_record_xml("kst-1278484", dossiers=("32140", "32141"))))
+    # Eerst stond hier `available or date`: twee datums door elkaar.
+    assert (r.datum, r.gepubliceerd) == ("2026-09-25", "2026-11-09")
+    assert r.dossiers == ("32140", "32141") and r.ondernummer == "342" and r.vergaderjaar == "2026-2027"
+    assert (r.soort, r.documenttitel, r.dossiertitel) == ("Brief regering", "Stand van zaken", "Wet x")
+    assert r.indieners == ("A.B. de Vries", "C.D. Jansen") and r.kamer.startswith("Tweede Kamer")
+    assert not r.leesbaar and r.pdf_url.endswith(".pdf") and r.documentstatus == "Onopgemaakt"
+
+
+def test_de_rij_draagt_de_metadata_uit_koop():
+    _, [r] = lees_records(_sru(_record_xml("kst-1278484", dossiers=("32140", "32141"))))
+    rij = roep("zoek_kamerstukken", {"dossier": "32140"}, NepBron([r]))["resultaten"][0]
+    # Het label komt uit dossier en nummer, niet uit het id van het onopgemaakte stuk.
+    assert rij["label"] == "Kamerstukken 32140, nr. 342" and rij["id"] == "kst-1278484"
+    assert rij["datum"] == "2026-09-25" and rij["gepubliceerd"] == "2026-11-09" and rij["jaar"] == "2026-2027"
+    assert rij["soort"] == "Brief regering" and rij["titel"] == "Stand van zaken" and rij["orgaan"] == "Tweede Kamer"
+    assert rij["indieners"] == ["A.B. de Vries", "C.D. Jansen"] and rij["reeks"] == ["32140", "32141"]
+    assert rij["status"] == "Onopgemaakt" and rij["leesbaar"] is False
+
+
+def test_een_gewone_rij_noemt_geen_uitzonderingen():
+    _, [r] = lees_records(_sru(_record_xml("kst-99001-3", nummer="3", status="Opgemaakt na onopgemaakt", xml=True,
+                                           gepubliceerd="2026-09-25")))
+    rij = roep("zoek_kamerstukken", {"dossier": "99001"}, NepBron([r]))["resultaten"][0]
+    assert not {"gepubliceerd", "reeks", "status", "leesbaar"} & set(rij)
+
+
+@pytest.mark.parametrize("ident,verwacht", [
+    ("kst-32140-342", ("32140", "342")), ("kst-36200-IX-2", ("36200-IX", "2")), ("kst-32740-1-n1", ("32740", "1")),
+    ("kst-21501-08-525", ("21501-08", "525")), ("kst-35348-E", ("35348", "E")), ("kst-1278484", None)])
+def test_dossier_en_nummer_uit_het_id(ident, verwacht):
+    assert sru.dossier_en_nummer(ident) == verwacht
+
+
+class Koop:
+    """De SRU van KOOP: `per_id` antwoordt op dt.identifier, `per_nummer` op dossier en nummer."""
+
+    def __init__(self, per_id: dict[str, str], per_nummer: dict[tuple[str, str], list[str]] | None = None, weg=False):
+        self.per_id, self.per_nummer, self.weg, self.vragen = per_id, per_nummer or {}, weg, []
+
+    def __call__(self, r: httpx.Request) -> httpx.Response:
+        if self.weg:
+            raise httpx.ConnectError("weg")
+        if r.url.path.endswith(".xml"):
+            return httpx.Response(200, content=XML)
+        q = r.url.params["query"]
+        self.vragen.append(q)
+        if "dt.identifier==" in q:
+            ident = q.rsplit("==", 1)[1]
+            return httpx.Response(200, content=_sru(*([self.per_id[ident]] if ident in self.per_id else [])))
+        d, n = q.split('w.dossiernummer=="')[1].split('"')[0], q.split('w.ondernummer=="')[1].split('"')[0]
+        return httpx.Response(200, content=_sru(*self.per_nummer.get((d, n), [])))
+
+
+def _koop(dienst: Koop) -> SruKamerstukken:
+    return SruKamerstukken(client=httpx.Client(transport=httpx.MockTransport(dienst)))
+
+
+def test_een_herdruk_wordt_gevonden_op_dossier_en_nummer():
+    # kst-32740-1 bestaat niet bij KOOP; de herdruk heet kst-32740-1-n1.
+    herdruk = _record_xml("kst-32740-1-n1", dossiers=("32740",), nummer="1", status="Opgemaakt na onopgemaakt",
+                          xml=True, versie="Herdruk")
+    dienst = Koop({}, {("32740", "1"): [herdruk]})
+    d = roep("get_kamerstuk", {"id": "kst-32740-1"}, _koop(dienst))
+    assert d["status"] == "ok" and d["stuk"]["id"] == "kst-32740-1-n1"
+    assert d["stuk"]["label"] == "Kamerstukken 32740, nr. 1 (herdruk)" and d["stuk"]["versie"] == "Herdruk"
+    assert "kst-32740-1-n1" in d["toelichting"]
+    assert d["stuk"]["datum"] == "2026-09-25" and d["stuk"]["soort"] == "Brief regering"
+
+
+def test_een_motie_in_meer_dossiers_telt_alleen_in_haar_hoofddossier():
+    elders = _record_xml("kst-33752-L", dossiers=("33752", "33755"), nummer="1", xml=True)
+    dienst = Koop({}, {("33755", "1"): [elders]})
+    d = roep("get_kamerstuk", {"id": "kst-33755-1"}, _koop(dienst))
+    assert d["status"] == "error" and d["reden"] == "niet_gevonden" and "bijvoorbeeld" in d["melding"]
+
+
+def test_een_stuk_met_alleen_een_pdf_bestaat():
+    # 32140 nr. 342 heette "bron_onbereikbaar", en Lex zei dat het misschien niet bestond.
+    pdf = _record_xml("kst-1278484", dossiers=("32140",), datum="2026-10-16", gepubliceerd="2026-10-16")
+    d = roep("get_kamerstuk", {"id": "kst-32140-342"}, _koop(Koop({}, {("32140", "342"): [pdf]})))
+    assert d["status"] == "error" and d["reden"] == "alleen_pdf"
+    assert d["stuk"]["id"] == "kst-1278484" and d["stuk"]["label"] == "Kamerstukken 32140, nr. 342"
+    assert d["stuk"]["datum"] == "2026-10-16" and d["stuk"]["leesbaar"] is False
+    assert "2026-10-16" in d["melding"] and "https://zoek.officielebekendmakingen.nl/kst-1278484" in d["melding"]
+
+
+def test_de_foutcode_zegt_de_oorzaak():
+    d = roep("get_kamerstuk", {"id": "kst-99001-7"}, _koop(Koop({})))
+    assert d["reden"] == "niet_gevonden"
+    d = roep("get_kamerstuk", {"id": "kst-99001-7"}, _koop(Koop({}, weg=True)))
+    assert d["reden"] == "bron_onbereikbaar"
+
+    class Weigert(NepBron):
+        def zoek(self, cql, **_):
+            return lees_records(b'<r xmlns:diag="http://docs.oasis-open.org/ns/search-ws/diagnostic"><diag:diagnostic>'
+                                b'<diag:message>Unsupported index</diag:message></diag:diagnostic></r>')
+    assert roep("zoek_kamerstukken", {"dossier": "99001"}, Weigert(DOSSIER))["reden"] == "zoekvraag_geweigerd"
+
+
+def test_alleen_een_storing_geeft_de_bewaarde_versie(monkeypatch):
+    # Een stuk dat bij KOOP verdween, is geen storing: dan geen oude tekst met gevalideerd: false.
+    leesbaar = _record_xml("kst-99001-3", nummer="3", xml=True)
+    dienst = Koop({"kst-99001-3": leesbaar})
+    nu = [0.0]
+    bron = SruKamerstukken(client=httpx.Client(transport=httpx.MockTransport(dienst)), klok=lambda: nu[0])
+    bron.document("kst-99001-3")
+    dienst.per_id, nu[0] = {}, sru.VERS_S + 1
+    with pytest.raises(KamerstukFout) as fout:
+        bron.document("kst-99001-3")
+    assert fout.value.code == "niet_gevonden"
+
+
+@pytest.mark.parametrize("titel,dossiertitel,documenttitel,verwacht", [
+    # kst-33755-3 (live): subrubriek "Overig", het soort staat midden in de titel.
+    ("Wet x (y; z); Memorie van toelichting; 33755 MvT inzake Wet x", "Wet x (y; z)", "33755 MvT inzake Wet x",
+     "Memorie van toelichting"),
+    ("Wet x; Verslag", "Wet x", "", "Verslag"),
+    ("Wet x; Brief regering; Stand van zaken", "", "", "Brief regering"),
+])
+def test_het_soort_uit_de_titel_als_de_rubriek_overig_is(titel, dossiertitel, documenttitel, verwacht):
+    r = dataclasses.replace(rec("kst-99001-3", titel, "3"), soort="Overig", dossiertitel=dossiertitel,
+                            documenttitel=documenttitel)
+    assert roep("zoek_kamerstukken", {"dossier": "99001"}, NepBron([r]))["resultaten"][0]["soort"] == verwacht
+
+
+# ── Filters en volgorde (PR 3 van metadata in het connectorcontract) ─────────────────────────────────────────────────
+
+BASIS = "c.product-area==officielepublicaties AND w.publicatienaam==Kamerstuk AND dt.type==Kamerstuk"
+
+
+@pytest.mark.parametrize("args,verwacht", [
+    ({"volgorde": "nieuwste"}, " sortBy dt.date/sort.descending dt.identifier/sort.ascending"),
+    ({"dossier": "32140", "volgorde": "nieuwste", "aantal": 1},
+     ' AND w.dossiernummer=="32140" sortBy dt.date/sort.descending dt.identifier/sort.ascending'),
+    ({"dossier": "32140", "nummer": "342"},
+     ' AND w.dossiernummer=="32140" AND w.ondernummer=="342" sortBy dt.date/sort.descending dt.identifier/sort.ascending'),
+    ({"soort": "Memorie van toelichting", "vanaf": "2024", "tot": "2024-06"},
+     ' AND (w.subrubriek all "memorie van toelichting" OR dt.title all "memorie van toelichting")'
+     " AND dt.date>=2024-01-01 AND dt.date<=2024-06-30 sortBy dt.date/sort.descending dt.identifier/sort.ascending"),
+    ({"vergaderjaar": "2025/26", "kamer": "Eerste Kamer", "volgorde": "oudste"},
+     ' AND w.vergaderjaar=="2025-2026" AND dt.creator=="Eerste Kamer der Staten-Generaal"'
+     " sortBy dt.date/sort.ascending dt.identifier/sort.ascending"),
+    ({"woorden": "Invorderingswet"}, ' AND dt.title any "invorderingswet"'),
+    # Zoeken in de hele tekst: een zinsdeel tussen aanhalingstekens als zinsdeel, losse woorden allemaal.
+    ({"tekst": '"één bankrekeningnummer" toeslagen'},
+     ' AND cql.textAndIndexes adj "één bankrekeningnummer" AND cql.textAndIndexes all "toeslagen"'),
+    ({"tekst": "POBR1", "vanaf": "2011", "tot": "2016", "volgorde": "oudste"},
+     ' AND cql.textAndIndexes all "pobr1" AND dt.date>=2011-01-01 AND dt.date<=2016-12-31'
+     " sortBy dt.date/sort.ascending dt.identifier/sort.ascending"),
+])
+def test_de_filters_worden_cql_uit_de_code(args, verwacht):
+    bron = NepBron(DOSSIER)
+    d = roep("zoek_kamerstukken", args, bron)
+    assert d["status"] == "ok", d
+    assert bron.vragen[-1] == BASIS + verwacht
+    assert d["zoekvraag"]["volgorde"] == (args.get("volgorde") or ("relevantie" if {"woorden", "tekst"} & set(args)
+                                                                   else "nieuwste"))
+
+
+def test_het_aantal_begrenst_de_pagina_en_het_vervolg_houdt_de_zoekvraag():
+    bron = NepBron(_veel(30))
+    d = roep("zoek_kamerstukken", {"volgorde": "nieuwste", "aantal": 10}, bron)
+    assert d["aantal"] == 10 and not d["volledig"] and d["totaal"] == 30
+    assert d["vervolg"]["args"] == {"volgorde": "nieuwste", "aantal": 10, "offset": 10}
+    assert d["zoekvraag"] == {"aantal": 10, "volgorde": "nieuwste"}
+
+
+def test_een_dossier_alleen_staat_nog_op_nummer():
+    d = roep("zoek_kamerstukken", {"dossier": "99001"})
+    assert d["volgorde"] == "nummer" and d["zoekvraag"] == {"dossier": "99001", "volgorde": "nummer"}
+
+
+@pytest.mark.parametrize("args,reden", [
+    ({"nummer": "342"}, "ongeldig_nummer"),
+    ({"dossier": "32140", "nummer": "3/4"}, "ongeldig_nummer"),
+    ({"vanaf": "vorig jaar"}, "ongeldige_datum"),
+    ({"vanaf": "2024-13"}, "ongeldige_datum"),
+    ({"vanaf": "2025", "tot": "2024"}, "ongeldige_datum"),
+    ({"vergaderjaar": "2025-2027"}, "ongeldig_vergaderjaar"),
+    ({"kamer": "Senaat", "volgorde": "nieuwste"}, "ongeldige_kamer"),
+    ({"volgorde": "willekeurig"}, "ongeldige_volgorde"),
+    ({"volgorde": "nummer"}, "ongeldige_volgorde"),
+    ({"soort": "motie", "volgorde": "relevantie"}, "ongeldige_volgorde"),
+    ({"volgorde": "nieuwste", "aantal": 0}, "ongeldig_aantal"),
+    ({"volgorde": "nieuwste", "aantal": 26}, "ongeldig_aantal"),
+    ({"dossier": "99001", "volgorde": "nummer", "aantal": 5}, "ongeldig_aantal"),
+    ({}, "ongeldige_argumenten"),
+    ({"tekst": "a b"}, "ongeldige_tekst"),
+    ({"tekst": '"een twee drie vier vijf" zes zeven'}, "ongeldige_tekst"),
+])
+def test_een_invoerfout_zegt_wat_wel_kan(args, reden):
+    d = roep("zoek_kamerstukken", args)
+    assert d["status"] == "error" and d["reden"] == reden and "bijvoorbeeld" in d["melding"], d

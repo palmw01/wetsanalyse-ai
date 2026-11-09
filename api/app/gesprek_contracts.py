@@ -277,7 +277,7 @@ class Bericht(BaseModel):
     antwoord: Antwoord | None = None
     # Bronnode-annotatie (contract 2): de verwijzing die `annotatie_slug` voor een artikeldocument is.
     annotatie_doel: AnnotatieDoel | None = None
-    # Het uitvoeringsspoor van de beurt ("Graaf geraadpleegd · N aanroepen"), ook na herladen.
+    # Het uitvoeringsspoor van de beurt ("Bronnen geraadpleegd · N aanroepen"), ook na herladen.
     tool_executions: list[dict] = []
     # Van welke agent-run deze beurt de uitkomst is. Dient als idempotentiesleutel: dezelfde run mag
     # maar één assistent-bericht opleveren, ook als er twee tabbladen meekeken.

@@ -45,3 +45,14 @@ def test_een_datum_zonder_bron_maakt_het_antwoord_onbepaald():
 def test_een_termijn_uit_de_bron_is_geen_signaal():
     trace = [("get_lid", json.dumps({"status": "ok", "resultaten": [{"iri": "urn:bwb:BWBR0004770:artikel:9:lid:1", "tekst": IW9}]}))]
     assert "6 week" not in check_grounding("Je hebt 6 weken de tijd.", trace).onbevestigd
+
+
+def test_een_iso_datum_in_de_bron_is_dezelfde_datum():
+    """De metadata van een Kamerstuk draagt "2024-10-31"; Lex schrijft "31 oktober 2024" (gesprek e906567a)."""
+    from agent.hoeveelheden import buiten, hoeveelheden
+
+    assert hoeveelheden('{"datum": "2024-10-31"}') == {"31 oktober 2024"}
+    assert buiten("Het stuk is van 31 oktober 2024.", '{"datum": "2024-10-31"}') == []
+    assert buiten("Het stuk is van 1 november 2024.", '{"datum": "2024-10-31"}') == ["1 november 2024"]
+    # Geen datum: een dossiernummer met streepjes of een onmogelijke maand.
+    assert hoeveelheden("kst-2024-10-31-x 2024-13-01") == set()

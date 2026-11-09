@@ -77,7 +77,8 @@ de wettekst en vult nooit een `doel`.
 | antwoord | het blok `extern` als subsjabloon en het sjabloon `antwoord_extern` | `sjablonen/extern.py` |
 | verificatie | een stuk dat alleen gevonden is, is `onbevestigd` | `grounding.check_grounding`, `connectors.leestools` |
 | werkplek | het menu toont wat straat én register aanzetten; *Zet … aan* na `bron_uit` | `GET /v1/bronnen`, `connectorsMenu` |
-| genoemd stuk | een id in de vraag leest de code vooraf met de leestool; een zoekresultaat is geen bron | `nodes/bron_lezen.py`, `grounding.alleen_gelezen_extern` |
+| genoemd stuk | een id in de vraag leest de code vooraf met de leestool, ook een citeervorm ("Kamerstuk 32140, nr. 342", `citeervormen`); een zoekresultaat is geen bron | `nodes/bron_lezen.py`, `grounding.alleen_gelezen_extern` |
+| lijstvraag | "het laatste stuk van dossier X", "de 10 nieuwste": de code leest volgorde, aantal en filters (`soorten`, `organen`, de metadata) en zoekt één keer, zonder model | `agent/bron_lijst.py`, `nodes/bron_lijst.py` |
 | denkproces | de werkwoorden per tool ("leest Kamerstuk kst-…"), en de algemene stappen noemen de bronnen van de beurt | `narratie._toolregel`, `bronstand.waar` |
 
 **Een nieuwe connector toevoegen (checklist):**
@@ -86,7 +87,8 @@ de wettekst en vult nooit een `doel`.
    de leestool levert en niet levert; `brontype` uit `extern.BRONTYPEN`, eventueel een nieuw
    soort id in `extern.py` met vectoren). Daarbij de **metadata** per stuk (`metadata`, `MetadataVeld`): in de vaste
    sleutels van `METADATA_SLEUTELS` (minstens `datum`, `titel` en `leesbaar`), per veld waar het bij de dienst
-   vandaan komt, wat het betekent en op welk zoekargument het filtert, en de `standaard_datum` voor "nieuwste".
+   vandaan komt, wat het betekent en op welke zoekargumenten het filtert (`filters`), de `standaard_datum` voor
+   "nieuwste" en de `volgordes` (uit `VOLGORDES`), die het argument `volgorde` van de zoektool als enum draagt.
    Alleen velden die de dienst echt levert: toets dat met de live-proef;
 2. de tools in `tools/graph-qa/agent/tools/`, met het resultaatcontract; de leestool levert `stuk: {id, label, link, bron_hash, gewijzigd?}` en
    rijen `{nr, tekst, kop?, soort?}` (één nummering per stuk; `soort` is `alinea`, `voetnoot`, `tabel` of `tabelrij`, een
@@ -114,7 +116,9 @@ zoektool is. Wat de SRU van KOOP levert en wat niet, is live getoetst (9 nov 202
 parameter `sortKeys` wordt stil genegeerd; documentdatum (`dt.date`) en publicatiedatum (`dt.available`) lopen soms
 weken uiteen, en "nieuwste" ordent op de documentdatum (besluit gebruiker). Het vervolg (de adapter leest alle velden,
 filters en volgorde in de zoektool, een lijstblok in het antwoord, zoeken in de tekst, een vaste route voor lijstvragen)
-volgt in aparte PR's.
+volgt in aparte PR's. In het antwoord staat een lijst als blok `stukken` (ADR-008): het model wijst de ids aan, de
+code neemt elk feit uit de zoekrijen, met de zoekvraag in woorden en het totaal; het blok `extern` noemt de datum en het
+soort van het gelezen stuk.
 
 ### Review van de Kamerstuk-connector (8 nov 2026)
 

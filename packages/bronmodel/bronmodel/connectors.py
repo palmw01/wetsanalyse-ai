@@ -49,6 +49,11 @@ METADATA_SLEUTELS: dict[str, str] = {
 }
 
 
+#: Hoe een zoektool kan ordenen: op relevantie (de rangschikking van de dienst, bij woorden), op de standaarddatum
+#: (`nieuwste`, `oudste`) of op het nummer binnen de reeks.
+VOLGORDES = ("relevantie", "nieuwste", "oudste", "nummer")
+
+
 @dataclass(frozen=True)
 class MetadataVeld:
     """Eén metadataveld dat een connector per stuk levert."""
@@ -60,8 +65,8 @@ class MetadataVeld:
     bron: str
     #: Wat het veld betekent, in één zin; ook wat het níet is, als dat verwarring voorkomt.
     betekenis: str
-    #: Het argument van de zoektool dat op dit veld filtert; leeg als dat (nog) niet kan.
-    filter: str = ""
+    #: De argumenten van de zoektool die op dit veld filteren (een datum heeft er twee: vanaf en tot); leeg als het niet kan.
+    filters: tuple[str, ...] = ()
     #: Of Lex de stukken op dit veld kan ordenen (bij de dienst of in de tool).
     sorteerbaar: bool = False
 
@@ -125,10 +130,40 @@ class ConnectorBeschrijving:
     metadata: tuple[MetadataVeld, ...] = ()
     #: De datum waar "nieuwste" en "oudste" op ordenen: een sleutel van het type `datum` uit `metadata`.
     standaard_datum: str = ""
+    #: De volgordes die de zoektool kent (uit `VOLGORDES`); het argument `volgorde` van de zoektool is precies deze enum.
+    volgordes: tuple[str, ...] = ()
+    #: Hoe een jurist een stuk noemt zonder id ("Kamerstuk 32140, nr. 342"): per vorm een patroon met benoemde groepen
+    #: en het id dat eruit volgt ("kst-{dossier}-{nummer}"). De leestool lost dat id op bij de bron, ook als het stuk
+    #: daar een ander id draagt (een herdruk, een onopgemaakt stuk). Zo leest de code een genoemd stuk direct, net als
+    #: een id (gesprek e906567a: "Kamerstuk 32140, nr. 342" ging langs het model en heette onbereikbaar).
+    citeervormen: tuple[tuple[str, str], ...] = ()
+    #: De soorten stukken in de woorden van de jurist, met een patroon dat ook het meervoud vindt; voor de vaste route
+    #: van een lijstvraag ("de laatste vijf moties"). De waarde gaat als filter `soort` naar de zoektool.
+    soorten: tuple[tuple[str, str], ...] = ()
+    #: Wie een stuk uitbrengt, zoals de zoektool het filter `orgaan` kent ("Eerste Kamer").
+    organen: tuple[str, ...] = ()
     _patronen: tuple[re.Pattern[str], ...] = field(init=False, repr=False, compare=False)
+    _citeer: tuple[tuple[re.Pattern[str], str], ...] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "_patronen", tuple(re.compile(s, re.IGNORECASE) for s in self.signalen))
+        object.__setattr__(self, "_citeer", tuple((re.compile(p, re.IGNORECASE), v) for p, v in self.citeervormen))
+
+    def geciteerd(self, tekst: str) -> list[tuple[int, str]]:
+        """(plek, id) van elk stuk dat de tekst in een citeervorm noemt, zonder id ("Kamerstuk 32140, nr. 342"). Een
+        groep wordt hoofdletters zonder spaties ("36200 ix" → "36200-IX"); een id dat geen vindplaats is, telt niet."""
+        uit: list[tuple[int, str]] = []
+        for patroon, vorm in self._citeer:
+            for m in patroon.finditer(tekst or ""):
+                delen = {k: re.sub(r"\s+", "-", v.strip()).upper() for k, v in m.groupdict().items() if v}
+                try:
+                    ident = vorm.format(**delen)
+                except KeyError:
+                    continue
+                vp = externe_vindplaats(ident)
+                if vp is not None and vp.brontype == self.brontype and vp.id.startswith(self.id_prefixen):
+                    uit.append((m.start(), vp.id))
+        return uit
 
     @property
     def capaciteit(self) -> str:
@@ -155,7 +190,7 @@ class ConnectorBeschrijving:
     @property
     def filters(self) -> dict[str, MetadataVeld]:
         """Per argument van de zoektool het metadataveld waarop het filtert."""
-        return {v.filter: v for v in self.metadata if v.filter}
+        return {arg: v for v in self.metadata for arg in v.filters}
 
     @property
     def env(self) -> str:
@@ -189,12 +224,15 @@ KAMERSTUKKEN = ConnectorBeschrijving(
     rol_in_antwoord=("een Kamerstuk laat zien wat de wetgever bedoelde; het onderbouwt nooit wat de wet zegt – dat "
                      "doet alleen de opgehaalde bepaling"),
     kop_in_antwoord="Uit de parlementaire geschiedenis",
-    grenzen="zoeken gaat op dossiernummer of op woorden uit de titel, niet in de volle tekst",
+    grenzen=("zoeken gaat op dossier en nummer, woorden uit de titel of de hele tekst, soort, documentdatum, "
+             "vergaderjaar en Kamer, en ordent op nummer, op datum of op relevantie. Een stuk dat alleen als PDF bestaat "
+             "(nog onopgemaakt) wordt gevonden, maar de tekst is niet te lezen; zoeken in de tekst gaat op de index van "
+             "KOOP, niet op wat Lex las"),
     levert=("alinea's", "voetnoten", "tabellen (op te halen met hun rijen)"),
     niet_in_tekst=("illustraties",),
     werkwoorden={
         "zoek_kamerstukken": ("zoekt de Kamerstukken van dossier {dossier}", "zoekt Kamerstukken over „{woorden}”",
-                              "zoekt Kamerstukken"),
+                              "zoekt in de tekst van Kamerstukken naar „{tekst}”", "zoekt Kamerstukken"),
         "get_kamerstuk": ("leest tabel {tabel} van Kamerstuk {id}", "leest Kamerstuk {id}", "leest een Kamerstuk"),
     },
     beheer=("Wetsgeschiedenis uit de officiële publicaties: memorie van toelichting, nota's, verslagen en het advies "
@@ -210,21 +248,28 @@ KAMERSTUKKEN = ConnectorBeschrijving(
     # en `w.datumBrief` bestaan als index, maar stonden in geen enkel Kamerstukrecord: die bieden we niet aan.
     metadata=(
         MetadataVeld("datum", "documentdatum", "dt.date",
-                     "de datum van het stuk zelf; daarop ordenen 'nieuwste' en 'oudste'", sorteerbaar=True),
+                     "de datum van het stuk zelf; daarop ordenen 'nieuwste' en 'oudste'", filters=("vanaf", "tot"),
+                     sorteerbaar=True),
         MetadataVeld("gepubliceerd", "gepubliceerd", "dt.available",
                      "wanneer KOOP het stuk publiceerde; dat kan weken na de documentdatum zijn", sorteerbaar=True),
         MetadataVeld("gewijzigd", "gewijzigd", "dt.modified",
                      "wanneer KOOP de publicatie het laatst bijwerkte, niet wanneer het stuk zelf veranderde"),
-        MetadataVeld("titel", "titel", "w.documenttitel", "de titel van het stuk, zonder de dossiertitel"),
+        MetadataVeld("titel", "titel", "w.documenttitel", "de titel van het stuk, zonder de dossiertitel; 'woorden' "
+                     "zoekt in de hele titel (dt.title), met de dossiertitel", filters=("woorden",)),
         MetadataVeld("soort", "soort stuk", "w.subrubriek",
-                     "het soort Kamerstuk, zoals 'Memorie van toelichting', 'Motie' of 'Brief regering'"),
+                     "het soort Kamerstuk, zoals 'Memorie van toelichting', 'Motie' of 'Brief regering'; bij oudere "
+                     "stukken staat er 'Overig', en dan komt het soort uit de titel; daarom zoekt 'soort' in allebei",
+                     filters=("soort",)),
         MetadataVeld("reeks", "dossier", "w.dossiernummer",
-                     "de dossiers waar het stuk bij hoort; het eerste is het hoofddossier", filter="dossier"),
+                     "de dossiers waar het stuk bij hoort; het eerste is het hoofddossier", filters=("dossier",)),
         MetadataVeld("reekstitel", "dossiertitel", "w.dossiertitel", "de titel van het hoofddossier"),
         MetadataVeld("nummer", "nummer", "w.ondernummer",
-                     "het nummer binnen het dossier; letters zijn stukken van de Eerste Kamer", sorteerbaar=True),
-        MetadataVeld("jaar", "vergaderjaar", "w.vergaderjaar", "het vergaderjaar, zoals '2025-2026'"),
-        MetadataVeld("orgaan", "Kamer", "dt.creator", "de Tweede of de Eerste Kamer der Staten-Generaal"),
+                     "het nummer binnen het dossier; letters zijn stukken van de Eerste Kamer", filters=("nummer",),
+                     sorteerbaar=True),
+        MetadataVeld("jaar", "vergaderjaar", "w.vergaderjaar", "het vergaderjaar, zoals '2025-2026'",
+                     filters=("vergaderjaar",)),
+        MetadataVeld("orgaan", "Kamer", "dt.creator", "de Tweede of de Eerste Kamer der Staten-Generaal",
+                     filters=("kamer",)),
         MetadataVeld("indieners", "indieners", "w.indiener", "wie het stuk indiende, bij een motie of amendement"),
         MetadataVeld("status", "documentstatus", "w.documentstatus",
                      "Onopgemaakt, Opgemaakt of Opgemaakt na onopgemaakt; een onopgemaakt stuk wordt later vervangen "
@@ -235,6 +280,24 @@ KAMERSTUKKEN = ConnectorBeschrijving(
                      "of de tekst te lezen is; een onopgemaakt stuk heeft vaak alleen een PDF"),
     ),
     standaard_datum="datum",
+    volgordes=VOLGORDES,
+    # "Kamerstuk 32140, nr. 342", "Kamerstukken II 2013/14, 33754, nr. 7", "kamerstuk 36200 IX nummer 2".
+    citeervormen=((r"\bkamerstuk(?:ken)?\s+(?:I{1,2}\s+)?(?:\d{4}\s*/\s*\d{2,4},?\s+)?"
+                   r"(?P<dossier>\d{4,6}(?:[- ](?:[IVXLC]{1,6}|[A-Z]|\d{1,2})\b)?),?\s*(?:nr\.?|nummer)\s*"
+                   r"(?P<nummer>[0-9A-Z]{1,6})\b", "kst-{dossier}-{nummer}"),),
+    soorten=(
+        ("memorie van toelichting", r"\bmemorie(?:s)?\s+van\s+toelichting\b|\bmvt'?s?\b"),
+        ("voorstel van wet", r"\b(?:wets)?voorstel(?:len)?\s+van\s+wet\b|\bwetsvoorstel(?:len)?\b"),
+        ("nota van wijziging", r"\bnota'?s\s+van\s+wijziging\b|\bnota\s+van\s+wijziging\b"),
+        ("nota naar aanleiding van het verslag", r"\bnota'?s?\s+naar\s+aanleiding\s+van\s+het\s+verslag\b"),
+        ("advies raad van state", r"\badvie(?:s|zen)\s+van\s+de\s+raad\s+van\s+state\b"),
+        ("nader rapport", r"\bnader(?:e)?\s+rapport(?:en)?\b"),
+        ("motie", r"\bmotie(?:s)?\b"),
+        ("amendement", r"\bamendement(?:en)?\b"),
+        ("verslag", r"\bverslag(?:en)?\b"),
+        ("brief", r"\bbrie(?:f|ven)\b"),
+    ),
+    organen=("Tweede Kamer", "Eerste Kamer"),
 )
 
 #: De bronconnectors, in de volgorde van het menu en de beheertab.
@@ -263,9 +326,16 @@ def leestools() -> frozenset[str]:
 
 
 def genoemde_stukken(tekst: str) -> list[tuple[ConnectorBeschrijving, str]]:
-    """De ids van een connector die de tekst letterlijk noemt (`kst-35496-F`), in de volgorde van de tekst."""
-    uit: list[tuple[ConnectorBeschrijving, str]] = []
+    """De stukken van een connector die de tekst noemt, in de volgorde van de tekst: bij id (`kst-35496-F`) of in een
+    citeervorm van de connector ("Kamerstuk 32140, nr. 342" → `kst-32140-342`). Ontdubbeld op id."""
+    gevonden: list[tuple[int, ConnectorBeschrijving, str]] = []
     for e in externe_verwijzingen(tekst or ""):
         if (c := van_id(e.id)) is not None:
-            uit.append((c, e.id))
+            gevonden.append(((tekst or "").find(e.id.split("-", 1)[-1]), c, e.id))
+    for c in CONNECTORS.values():
+        gevonden += [(plek, c, ident) for plek, ident in c.geciteerd(tekst)]
+    uit: list[tuple[ConnectorBeschrijving, str]] = []
+    for _, c, ident in sorted(gevonden, key=lambda x: x[0]):
+        if all(ident != i for _, i in uit):
+            uit.append((c, ident))
     return uit
