@@ -456,7 +456,8 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
             sources = curate_sources(sources, state.get("answer", ""))
     if not state.get("overzicht"):
         # Een bron naast de wet alleen als ze gelezen en genoemd is; een zoekresultaat is geen bron (ADR-013).
-        sources = alleen_gelezen_extern(sources, controletrace(state), state.get("answer", ""))
+        sources = alleen_gelezen_extern(sources, controletrace(state), state.get("answer", ""),
+                                        state.get("question", ""))
     # Na het cureren: alleen de namen van regelingen die in de lijst blijven (één query per beurt).
     sources = met_regelingnamen(b.graph, sources)
     src_dicts = [s.model_dump() for s in sources]

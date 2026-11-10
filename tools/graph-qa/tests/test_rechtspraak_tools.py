@@ -16,6 +16,7 @@ from agent import tools
 from agent.adapters import lido_rechtspraak as L
 from agent.adapters.lido_rechtspraak import Koppelingen, Link, LidoRechtspraak, RechtspraakFout
 from agent.tools import rechtspraak_tools as R
+from agent.tools.stuk_tekst import aangevuld
 from tests.fakes import FakeGraph, make_settings
 
 AAN = make_settings(connector_rechtspraak=True)
@@ -368,7 +369,10 @@ def _lees(xml: str) -> dict:
 
 def test_een_rechtsoverweging_draagt_haar_nummer_en_de_kop_het_nummer_van_de_sectie():
     uit = _lees(_GENUMMERD)
-    rijen = uit["resultaten"]
+    rijen = aangevuld(uit)
+    assert [r.get("kop") for r in uit["resultaten"]] == [
+        "Uitspraak › 2 Uitgangspunten in cassatie", None, None, "Uitspraak › 3 Beoordeling van de middelen"], (
+        "de kop staat alleen waar hij verandert")
     assert [(r["kop"], r.get("plek")) for r in rijen] == [
         ("Uitspraak › 2 Uitgangspunten in cassatie", "r.o. 2.1"), ("Uitspraak › 2 Uitgangspunten in cassatie", "r.o. 2.1"),
         ("Uitspraak › 2 Uitgangspunten in cassatie", "r.o. 2.2"), ("Uitspraak › 3 Beoordeling van de middelen", "r.o. 3.1")]
@@ -380,10 +384,11 @@ def test_een_rechtsoverweging_draagt_haar_nummer_en_de_kop_het_nummer_van_de_sec
 
 def test_een_vlakke_uitspraak_en_een_uitspraak_zonder_tekst():
     vlak = _lees(_VLAK)
-    assert [r["kop"] for r in vlak["resultaten"]] == ["Uitspraak"] * 5 and "inhoud" not in vlak
+    assert [r["kop"] for r in aangevuld(vlak)] == ["Uitspraak"] * 5 and "inhoud" not in vlak
     assert not any(r.get("plek") for r in vlak["resultaten"])
     leeg = _lees(_ALLEEN_META)
     assert leeg["status"] == "ok" and leeg["resultaten"] == [] and "geen tekst" in leeg["toelichting"]
+    assert leeg["stuk"]["leesbaar"] is False, "een stuk zonder tekst is niet leesbaar"
     assert leeg["stuk"]["label"].startswith("Hoge Raad 21 januari 2022")
 
 
@@ -535,3 +540,21 @@ def test_een_uitspraak_zonder_tekst_is_een_melding_uit_code_zonder_model(monkeyp
     assert leemte["soort"] == "leemte" and "staat niet bij de bron" in leemte["tekst"]
     assert lijst["soort"] == "stukken" and lijst["kop"] == "Uit de rechtspraak"
     assert lijst["items"][0]["label"].startswith("Hoge Raad 21 januari 2022")
+
+
+def test_het_gelezen_stuk_staat_in_de_bronnen_als_de_vraag_het_noemt():
+    """Derde meting 10 nov 2026: een vrije samenvatting van ECLI:NL:HR:2022:50 noemde die ECLI niet meer, en de
+    bronnenlijst noemde alleen de uitspraken waar de tekst naar verwijst. Het gelezen stuk zelf hoort erin."""
+    from agent.grounding import alleen_gelezen_extern
+    from agent.models import Source
+    hr = Source(uri="ECLI:NL:HR:2022:50", label="x", brontype="uitspraak", origin_tool="get_uitspraak")
+    oud = Source(uri="ECLI:NL:HR:1996:AA2050", label="y", brontype="uitspraak", origin_tool="get_uitspraak")
+    trace = [("get_uitspraak", json.dumps({"status": "ok", "volledig": True, "aantal": 1,
+                                           "stuk": {"id": "ECLI:NL:HR:2022:50"},
+                                           "resultaten": [{"nr": 1, "tekst": "zie ECLI:NL:HR:1996:AA2050"}]}))]
+    antwoord = "De Hoge Raad oordeelt dat de rente mag (r.o. 3.2)."
+    assert alleen_gelezen_extern([hr, oud], trace, antwoord) == []
+    assert [s.uri for s in alleen_gelezen_extern([hr, oud], trace, antwoord,
+                                                 "Wat staat er in ECLI:NL:HR:2022:50?")] == [hr.uri]
+    # Een stuk dat alleen genoemd wordt in de tekst van het gelezen stuk, is niet gelezen: de vraag maakt het geen bron.
+    assert alleen_gelezen_extern([oud], trace, antwoord, "Wat staat er in ECLI:NL:HR:1996:AA2050?") == []
