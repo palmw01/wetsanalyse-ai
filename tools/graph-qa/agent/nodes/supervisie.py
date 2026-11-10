@@ -8,6 +8,7 @@ toe leidt. `advance` bepaalt daarna of er nog een worker volgt.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from bronmodel.connectors import genoemde_stukken, herkende as bronnen_in_vraag
@@ -145,13 +146,32 @@ def _begrip_keuze(writer, state: State) -> dict[str, Any]:
 MAX_GENOEMD = 3
 
 
+#: Het artikel dat de vraag noemt ("wat veranderde … aan artikel 1.1.5"). Niet `lees_aanwijzing`: die leest "1.1.5" als
+#: artikel 1, lid 1.5.
+_GENOEMD_ARTIKEL_RE = re.compile(r"\bartikel\s+(?P<nr>[0-9][0-9A-Za-z:.]{0,19}?)(?=[\s,;?!]|\.(?:\s|$)|$)", re.IGNORECASE)
+
+
+def _met_filter(leestool: str) -> frozenset[str]:
+    """De argumenten van de leestool, uit haar schema."""
+    from ..tools import TOOLS
+    schema = next((t for t in TOOLS if t["name"] == leestool), {})
+    return frozenset((schema.get("input_schema") or {}).get("properties") or {})
+
+
 def _te_lezen(state: State, vraag: str) -> list[dict[str, Any]]:
     """De leestool-aanroepen voor de stukken die de vraag bij id noemt, van connectors die in deze beurt aanstaan
-    (uit de beschrijving: `leestool`, `lees_argument`). Leeg als er niets genoemd is of de connector uit staat."""
+    (uit de beschrijving: `leestool`, `lees_argument`). Leeg als er niets genoemd is of de connector uit staat.
+
+    Kent de leestool een argument `artikel` en noemt de vraag precies één artikel, dan gaat dat mee: zo staat het
+    wijzigingsonderdeel op de eerste pagina, ook als het achteraan het stuk staat (meting bekendmakingen B08). Geeft dat
+    niets, dan leest `bron_lezen` het hele stuk."""
     stand = state.get("bronstand") or {}
+    artikelen = {m.group("nr").rstrip(".") for m in _GENOEMD_ARTIKEL_RE.finditer(vraag or "")}
     uit: list[dict[str, Any]] = []
     for c, ident in genoemde_stukken(vraag):
         aanroep = {"name": c.leestool, "input": {c.lees_argument: ident}}
+        if len(artikelen) == 1 and "artikel" in _met_filter(c.leestool):
+            aanroep["input"]["artikel"] = next(iter(artikelen))
         if (stand.get(c.naam) or {}).get("aan") and aanroep not in uit:
             uit.append(aanroep)
     return uit[:MAX_GENOEMD]
@@ -198,7 +218,8 @@ def _bron_lijst(writer, lijst) -> dict[str, Any]:
 
     _stap(writer, "Lex", f"maakt een lijst uit de {CONNECTORS[lijst.connector].label}", route="bron_lijst")
     return {"specialist": "algemeen", "worker_plan": ["algemeen"], "worker_idx": 0, "afwijzen": False,
-            "annotaties_lezen": False, "bron_lijst": {"connector": lijst.connector, "tool": lijst.tool, "args": lijst.args},
+            "annotaties_lezen": False, "bron_lijst": {"connector": lijst.connector, "tool": lijst.tool, "args": lijst.args,
+                                                       "gevraagd": lijst.gevraagd},
             "plan": "Een lijst stukken uit een bron naast de wet; de zoekvraag staat in de historie."}
 
 

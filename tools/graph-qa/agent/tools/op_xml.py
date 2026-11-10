@@ -180,7 +180,8 @@ def lees(xml: bytes, *, met_onderdeel: bool = False) -> tuple[dict[str, str], li
         nr = " ".join(_platte_tekst(lid.find("lidnr"), {}).split()) if lid.find("lidnr") is not None else ""
         if not nr:
             return ""
-        return nr if lid.tag == "wijzig-lid" else f"lid {nr.rstrip('.')}"
+        # "C." in de bron is onderdeel C: zonder punt in de kop ("Artikel XI › C", meting bekendmakingen B03).
+        return nr.rstrip(".") if lid.tag == "wijzig-lid" else f"lid {nr.rstrip('.')}"
 
     def loop(e: ET.Element, koppen: tuple[str, ...]) -> None:
         # Een `tussenkop` ("Artikel I (artikel 30hb …)") geldt voor de alinea's die erna komen in dezelfde divisie: in de

@@ -10,6 +10,10 @@ from ..resultaat import BUDGET, per_eenheid
 
 #: Zo veel koppen staan hoogstens in `inhoud` op de eerste pagina; meer en alleen de bovenste twee niveaus.
 MAX_INHOUD = 40
+#: Een kop op het bovenste niveau draagt zijn eerste alinea mee als die zo kort is: de aanhef van een wijzigingsartikel
+#: ("De Invorderingswet 1990 wordt als volgt gewijzigd:"). Zonder die regel opende het model elk artikel van een
+#: verzamelwet om te zien welke regeling het wijzigt (meting bekendmakingen B16: negen pagina's, 338k tokens).
+MAX_BEGIN = 160
 
 #: Velden die een rij alleen draagt als ze anders zijn dan op de rij ervoor op dezelfde pagina. De kop staat anders op
 #: elke alinea van een sectie: bij ECLI:NL:HR:2022:50 ~900 van de ~8500 tekens, en dan past de uitspraak niet op één
@@ -22,14 +26,18 @@ def inhoud(rijen: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], bool]:
     Lex naar het deel dat de vraag raakt in plaats van het stuk pagina voor pagina te lezen (acceptatie 8 nov 2026: twee
     pagina's gelezen, de artikelsgewijze toelichting niet). Het diepste niveau dat helemaal past (hoogstens `MAX_INHOUD`
     koppen en een kwart van de begroting: de inhoud wijst de weg, de alinea's zijn de inhoud); past zelfs het bovenste
-    niveau niet, dan het begin ervan, en dat zegt het resultaat (`inhoud_ingekort`). Leeg bij één kop."""
+    niveau niet, dan het begin ervan, en dat zegt het resultaat (`inhoud_ingekort`). Leeg bij één kop. Een kop op het
+    bovenste niveau draagt een korte eerste alinea als `begint` (`MAX_BEGIN`)."""
     def koppen(diepte: int | None) -> list[dict[str, Any]]:
         uit: list[dict[str, Any]] = []
         for i, r in enumerate(rijen):
             delen = r.get("kop", "").split(" › ")
             kop = " › ".join(delen[:diepte] if diepte else delen)
             if kop and all(u["kop"] != kop for u in uit):
-                uit.append({"kop": kop, "offset": i})
+                tekst = " ".join(str(r.get("tekst") or "").split())
+                begin = ({"begint": tekst} if " › " not in kop and tekst and len(tekst) <= MAX_BEGIN
+                         and r.get("kop") == kop else {})
+                uit.append({"kop": kop, "offset": i, **begin})
         return uit
 
     def past(lijst: list[dict[str, Any]]) -> bool:

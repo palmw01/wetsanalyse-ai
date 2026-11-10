@@ -38,6 +38,11 @@ def bron_lezen_node(b, state: State) -> dict[str, Any]:
         tool = {"id": uuid4().hex, "name": aanroep["name"], "input": dict(aanroep.get("input") or {})}
         _stap(writer, "Lex", _toolregel(tool))
         raw = execute_tool(b, state, writer, tool)
+        if "artikel" in tool["input"] and _leeg(raw):
+            # Het genoemde artikel staat in geen wijzigingsonderdeel ("wat staat er in Stb. 2010, 176 over artikel 36"
+            # noemt het in de toelichting): dan het hele stuk, zodat de agent geen extra ronde nodig heeft.
+            tool = {**tool, "id": uuid4().hex, "input": {k: v for k, v in tool["input"].items() if k != "artikel"}}
+            raw = execute_tool(b, state, writer, tool)
         gebruik.append({"type": "tool_use", **tool})
         resultaten.append({"type": "tool_result", "tool_use_id": tool["id"], "content": raw})
         trace.append((tool["name"], raw))
@@ -55,6 +60,15 @@ def bron_lezen_node(b, state: State) -> dict[str, Any]:
         "messages": [{"role": "assistant", "content": gebruik},
                      {"role": "user", "content": [*resultaten, {"type": "text", "text": TOELICHTING}]}],
     }
+
+
+def _leeg(raw: str) -> bool:
+    """Een geslaagde lezing zonder rijen."""
+    try:
+        data = json.loads(raw)
+    except ValueError:
+        return False
+    return isinstance(data, dict) and data.get("status") == "ok" and not data.get("resultaten")
 
 
 def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]) -> Antwoord | None:
