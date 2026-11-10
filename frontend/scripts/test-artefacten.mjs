@@ -362,9 +362,11 @@ try {
   assert.equal(await onderbouwing.getByRole("link").first().getAttribute("href"),
     "/bronnen?bron_iri=urn%3Abwb%3ABWBR0004770%3Aartikel%3A9%3Alid%3A1&werkgebied=wg1");
   await onderbouwing.getByText("Lex duidt dit als een begrip (algemeen)").waitFor();
-  // Spoor I2: er is nu een definitie maar nog geen uitleg; in het paneel staat daar geen Vraag Lex (spoor K).
+  // Spoor I2: er is nu een definitie maar nog geen uitleg; in het paneel staat *Vraag Lex* alleen in de kop (ontdubbelen
+  // PR 5), niet bij het veld.
   await begripPaneel.getByText("Nog geen uitleg.").waitFor();
-  assert.equal(await begripPaneel.locator("[data-vraag-lex]").count(), 0, "geen Vraag Lex naast het gesprek");
+  assert.equal(await begripPaneel.locator("[data-vraag-lex]").count(), 1, "één Vraag Lex, in de kop");
+  assert.equal(await begripPaneel.locator('[data-paneel-kop] [data-vraag-lex="begrip"]').count(), 1);
   // Een eigen bewerking: sluiten vraagt eerst, net als een tabwissel in het werkgebied.
   await begripPaneel.getByRole("button", { name: "Betekenis bewerken" }).click();
   await begripPaneel.getByLabel(/^Uitleg/).fill("Nog niet bewaard");

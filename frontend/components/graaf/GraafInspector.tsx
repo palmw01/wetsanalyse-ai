@@ -1,5 +1,7 @@
 "use client";
 
+import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
+import type { Onderwerp } from "@/lib/vraagLex";
 import { useState, type ReactNode } from "react";
 import { ChevronOmlaag, Kruis, Richten } from "@/components/ui/Icoon";
 import { LIFECYCLE_LABEL } from "@/lib/annotatie";
@@ -35,7 +37,7 @@ const GELDT: Record<string, string> = {
 };
 
 export function GraafInspector({ model, id, detail, info, element, ongedekt, hoofdactie, laadt, groepen, telling, doelen, smal,
-  onCentreer, onSluit, onHoofdactie, onVraag, onKies, doelenKop = "Dit antwoord", extra }: {
+  onCentreer, onSluit, onHoofdactie, vraag, onKies, doelenKop = "Dit antwoord", extra }: {
   model: GraafModel;
   id: string | null;
   /** De wettekst van de gekozen bepaling, of voor een markering die van haar anker. */
@@ -52,7 +54,9 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
   groepen: { naam: RelatieGroepNaam; regels: RelatieRegel[] }[];
   telling: Telling;
   smal: boolean;
-  onCentreer: () => void; onSluit: () => void; onHoofdactie: () => void; onVraag?: () => void;
+  onCentreer: () => void; onSluit: () => void; onHoofdactie: () => void;
+  /** Waar *Vraag Lex* over gaat: de gekozen knoop als onderwerp (`VraagLexKnop`); zonder geen knop. */
+  vraag?: Onderwerp;
   onKies: (id: string) => void;
   doelenKop?: string;
   /** Een extra handeling naast de hoofdactie, van de pagina die de graaf toont. */
@@ -105,10 +109,10 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
       <button type="button" className={ICOON} onClick={onSluit} aria-label="Selectie opheffen" title="Selectie opheffen"><Kruis /></button>
     </div>
 
-    {(hoofdactie || onVraag || extra) && <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pb-3">
+    {(hoofdactie || vraag || extra) && <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pb-3">
       {hoofdactie === "laden" && <button type="button" className={HOOFD} onClick={onHoofdactie} disabled={laadt}>{laadt ? "Laden…" : "In de graaf laden"}</button>}
       {tekstLabel && <button type="button" className={TEKSTKNOP} onClick={onHoofdactie}>{tekstLabel}</button>}
-      {onVraag && <button type="button" className={TEKSTKNOP} onClick={onVraag}>Vraag Lex</button>}
+      {vraag && <VraagLexKnop onderwerp={vraag} />}
       {extra}
     </div>}
 

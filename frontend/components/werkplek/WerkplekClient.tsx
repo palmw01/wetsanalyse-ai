@@ -928,23 +928,7 @@ export function WerkplekClient({
     // vraag te stellen, en de graaf heeft niets om te tonen.
     opslag={demo?.opslag}
     onBeslist={demo ? onDemoBeslissing : undefined}
-    onVraag={demo ? undefined : (element, view) => {
-      // Geen klaargezette vraag in het veld: de drie suggesties (per klasse) staan erboven als chips.
-      setOnderwerp({ soort: "markering", element, view });
-      setInvoer("");
-      if (!breed) setSheetVerborgen(true);
-      taRef.current?.focus();
-    }}
-    onVraagOverBron={demo ? undefined : (knoop) => {
-      // Een gewone vraag: de bepaling staat met haar vindplaats in de tekst, zodat Lex haar in de
-      // graaf terugvindt. Geen nieuw agentcontract.
-      const plek = knoop.bwb_id && knoop.artikel
-        ? ` (${knoop.bwb_id}, artikel ${knoop.artikel}${knoop.lid ? `, lid ${knoop.lid}` : ""})` : "";
-      setOnderwerp(undefined);
-      setInvoer(`Hoe hangt ${knoop.naam}${plek} samen met de bepalingen waarnaar het verwijst of die ernaar verwijzen?`);
-      if (!breed) setSheetVerborgen(true);
-      requestAnimationFrame(() => taRef.current?.focus());
-    }} /> : (wgArtefact && (
+    /> : (wgArtefact && (
     <WerkgebiedArtefactPaneel
       key={`${artefactSleutel(wgArtefact)}:${wgLading}`}
       doel={wgArtefact}
@@ -1318,7 +1302,7 @@ export function WerkplekClient({
                   klein
                   className="shrink-0 whitespace-nowrap"
                   disabled={geblokkeerd}
-                  data-actie={s.actie}
+                  data-actie={s.actie ?? (s.doel ? "annoteren" : undefined)}
                   data-invullen={s.invullen ? "" : undefined}
                   title={geblokkeerd ? "Je tokenbudget is op" : undefined}
                   onClick={() => {
@@ -1329,7 +1313,9 @@ export function WerkplekClient({
                       requestAnimationFrame(() => taRef.current?.setSelectionRange(s.tekst.length, s.tekst.length));
                       return;
                     }
-                    void verstuur({ prompt: s.tekst, actie: s.actie });
+                    // Annoteren van één bepaling: de annotatieweg met het doel (`startOpties`), niet een actie.
+                    void verstuur({ prompt: s.tekst, actie: s.actie,
+                      ...(s.doel ? { doel: s.doel, ...(s.hergebruik ? { hergebruik: s.hergebruik } : {}) } : {}) });
                   }}
                 >
                   {s.tekst}

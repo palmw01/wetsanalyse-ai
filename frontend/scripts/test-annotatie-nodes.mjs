@@ -292,7 +292,8 @@ try {
   assert.equal(await wettekst().getByText("UITSLUITEND TWEE", { exact: false }).count(), 0);
   // Een kaart kiezen (met een klik; er zijn geen sneltoetsen), dan Vraag Lex.
   await page.locator("[data-review-kaart]").first().click();
-  await page.getByRole("button", { name: "Vraag Lex", exact: true }).click();
+  // De ene knop (ontdubbelen PR 5): `VraagLexKnop` met de markering als onderwerp.
+  await page.locator('[data-review-kaart] [data-vraag-lex="markering"]').first().click();
   // Drie vragen per klasse als chips, het invoerveld blijft leeg; één klik verstuurt.
   const suggesties = page.getByTestId("vraag-suggesties").getByRole("button");
   assert.deepEqual(await suggesties.allTextContents(), ["Waarom is dit een Rechtssubject?",

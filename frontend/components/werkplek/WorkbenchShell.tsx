@@ -74,7 +74,7 @@ export function WorkbenchShell({
   useEffect(() => {
     if (beginOnderwerp === null && beginInvoer === null && !beginRondleiding) return;
     const url = new URL(window.location.href);
-    for (const naam of ["vraag", "vraag_label", "vraag_veld", "start", START_PARAMETER]) url.searchParams.delete(naam);
+    for (const naam of ["vraag", "vraag_label", "vraag_veld", "vraag_bron", "vraag_connector", "vraag_stuk", "start", START_PARAMETER]) url.searchParams.delete(naam);
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
   }, [beginOnderwerp, beginInvoer, beginRondleiding]);
   const [mountKey, setMountKey] = useState(0);

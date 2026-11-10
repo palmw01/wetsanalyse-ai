@@ -1,5 +1,7 @@
 "use client";
 
+import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
+import type { Onderwerp } from "@/lib/vraagLex";
 import { ExportRegels, type ExportKnop } from "@/components/werkplek/ExportKnop";
 import { EXPORT_FORMATEN } from "@/lib/begrippen";
 import { exporteerBegrippen, exporteerWerkgebied, haalBegrip, haalBronselectie, haalWerkgebied, lijstBegrippen } from "@/lib/api";
@@ -148,11 +150,19 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", bewaker, onOn
   // het paneel alleen-lezend toont. Zonder versie op de chip is het gewoon *Nu*.
   const metVersie = doel.versie;
   const [opname, setOpname] = useState<Opname | null | undefined>(metVersie ? undefined : null);
+  const vraagOver: Onderwerp | undefined = doel.soort === "werkgebied"
+    ? { soort: "werkgebied", werkgebied_id: doel.werkgebied_id, id: "", label: titel }
+    : doel.soort === "begrip" && doel.begrip_id ? { soort: "begrip", werkgebied_id: doel.werkgebied_id, id: doel.begrip_id, label: titel }
+    : doel.soort === "deelvraag" && doel.deelvraag_id
+      ? { soort: "deelvraag", werkgebied_id: doel.werkgebied_id, id: doel.deelvraag_id, label: titel } : undefined;
   return (
     <Dialog label={soort ? `${soort}: ${titel}` : titel} variant={variant} onSluit={sluit} onEscape={onVerberg}>
       <PaneelKopVuller>
       <div data-artefact data-artefact-soort={doel.soort} className="flex min-h-0 flex-1 flex-col">
         <PaneelKop soort={soort} titel={titel} pagina={naarWerkgebied} onSluit={sluit}
+          // *Vraag Lex* over wat het paneel toont (besluit gebruiker 10 nov 2026, vervangt spoor K): het onderwerp met de
+          // suggesties van zijn soort boven het invoerveld. Alleen op de versie van nu.
+          vraag={vraagOver && opname === null && <VraagLexKnop onderwerp={vraagOver} />}
           // Pas als de versie vaststaat: anders gaat de export over de stand van nu in plaats van over wat je zo ziet. De
           // stand en de handelingen van de inhoud (verwijderen, de begripsregels) komen via `usePaneelKopVulling` erbij.
           menu={opname !== undefined ? (afsluit) => <ExportRegels sluit={afsluit} onFout={setExportFout} titel={titel} {...exportVan(doel, opname)} /> : undefined}

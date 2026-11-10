@@ -275,7 +275,7 @@ Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` no
       `KleineActies` (Exporteren en ⋯ op één rij): daar is ruimte.
     `app/paneelKop.test.ts` bewaakt het; `scripts/test-paneelkop.mjs` meet elk paneel op 375, 400, 800 en 1280 px en
     op touch (44 px). Geen paneel bouwt een eigen kop of sluitknop. Het
-    `lex`-slot gebruikt alleen nog het annotatiepaneel; de werkgebiedpanelen hebben geen *Vraag Lex* (spoor K).
+    `lex`-slot gebruikt alleen nog het annotatiepaneel; de werkgebiedpanelen hebben *Vraag Lex* in de kop (`vraag`, ontdubbelen PR 5).
 - **Symbolen zijn iconen, geen tekens.** `components/ui/Icoon.tsx` levert chevron, waarschuwing,
   vinkje, ruit en cirkel als inline SVG (`1em`, `currentColor`). Het font laadt alleen de
   latin-subset van Fira Sans (`app/fonts.ts`), dus tekens als `▾ ◇ ▸ ⚠ ✓ ← ○` vallen terug op het
@@ -805,12 +805,24 @@ begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`
   zodat de bewaker van niet-bewaarde wijzigingen hem ziet. `WorkbenchShell` leest `vraag` één keer
   (`onderwerpUitUrl`, streng op soort en id's), haalt de parameters uit de URL en geeft
   `beginOnderwerp` alleen aan het venster waarmee de pagina opende. Hij staat als *Bespreek met Lex* (`primair`)
-  in de kop van een detailpagina, en als *Vraag Lex* alleen nog op een markering (de adviesroute). **Niet in de
-  panelen naast het gesprek** (spoor K, besluit 27 okt 2026): je zit al in het gesprek en de suggesties boven het
-  invoerveld doen het werk. Daar zet een klik op een deelvraag in de `WerkgebiedSamenvatting` haar als onderwerp
+  in de kop van een detailpagina, en als *Vraag Lex* in de kop van elk paneel naast het gesprek (`PaneelKop.vraag`:
+  het bronvenster van een bepaling of stuk, de annotatie, het werkgebied, een begrip, een deelvraag), op de reviewkaart
+  (een markering) en in de graafinspector (een bepaling of markering). **Dit vervangt de regel van spoor K** ("geen
+  Vraag Lex naast het gesprek"; besluit gebruiker 10 nov 2026): één knop overal, en de suggesties van de soort staan
+  daarna boven het invoerveld. Daar zet ook een klik op een deelvraag in de `WerkgebiedSamenvatting` haar als onderwerp
   (`VraagLexContext`, `data-deelvraag-onderwerp`), en *Ga verder met deelvraag n* in de bronselectie is een
   `VraagLexKnop` met eigen `tekst`. `annoteer=`/`meedenk=`
   bestaan niet meer (F3e): de bevestiging komt in het gesprek; `app/geenRunRoutes.test.ts` bewaakt dat.
+- **Een bepaling en een stuk** (ontdubbelen PR 5): de soorten `bepaling` (`bron_iri`, werkgebied optioneel, `annotatie`
+  als er een laag op ligt) en `stuk` (`connector`, `stuk_id`) maken *Vraag Lex* mogelijk buiten een werkgebied – in het
+  bronvenster, op `/bronnen` en op `/annotaties/node`. De link heet `vraag=bepaling&vraag_bron=<urn:bwb:…>` of
+  `vraag=stuk&vraag_connector=…&vraag_stuk=…` (streng in `onderwerpUitUrl`). graph-qa kent dezelfde soorten
+  (`models.Onderwerp`) en haalt de tekst zelf met zijn tools. *Annoteer dit onderdeel* (en *… opnieuw* met
+  `hergebruik`) is een suggestie met een `doel`: hij neemt de bestaande annotatieweg (`startOpties` stuurt het doel en
+  geen onderwerp), geen actie. *Neem op in een werkgebied* is geen suggestie: opnemen is een besluit, en dat staat als
+  *Opnemen in werkgebied* bij de pagina.
+- **Eén knop** (`app/vraagLex.test.ts`): de tekst *Vraag Lex*/*Bespreek met Lex* op een knop alleen in `VraagLexKnop`,
+  geen `onVraagOverBron`/`onVraagLex`/`onVraag={…}`, een vraag-URL alleen uit `vraagUrl`.
 - Browserregressie: `scripts/test-vraaglex.mjs`.
 
 **De markering in het bijzonder:**
@@ -1073,8 +1085,8 @@ bestaat los van de gesprekken.
   verbeteren, bepalingen zoeken, de dekking, annoteren, begrippen voorstellen, meedenken, een begrip
   uitwerken – vraag je in het gesprek: met **één *Bespreek met Lex* in de kop van een detailpagina**
   (`VraagLexKnop primair`; spoor G2 verving *Vraag Lex* per rij, besluit 26 okt 2026), of *Nieuw gesprek* in
-  de kop van het project, en dan een suggestie of een eigen vraag (§*Eén gesprek*). Geen knop in een rij,
-  ook niet naast het gesprek (spoor K). Op de
+  de kop van het project, en dan een suggestie of een eigen vraag (§*Eén gesprek*). Geen knop in een rij;
+  naast het gesprek één *Vraag Lex* in de kop van het paneel (ontdubbelen PR 5). Op de
   pagina staan geen knoppen die Lex starten, en de werkplek start niets vanuit de URL. De pagina toont
   wat Lex opleverde en draagt de handmatige besluiten erover. Er is daardoor geen BFF-route meer die een
   run start: de vier statische routes (`deelvragen-run`, `kaart-run`, `bronnen-run`, `begrippen-run`)

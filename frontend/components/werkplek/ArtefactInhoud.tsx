@@ -14,6 +14,7 @@ import { VERWIJDER_UITLEG, verwijderLabel } from "@/lib/verwijderen";
 import { Melding } from "@/components/ui/Melding";
 import { AnnotatieTekst } from "@/components/werkplek/AnnotatieTekst";
 import type { SegmentPlek } from "@/lib/annotatieNodeAdapter";
+import type { Onderwerp } from "@/lib/vraagLex";
 import { ExportRegels } from "@/components/werkplek/ExportKnop";
 import { ReviewQueue, type OpenRij } from "@/components/werkplek/ReviewQueue";
 import { SelectiePopover, type SelectieDoel } from "@/components/werkplek/SelectiePopover";
@@ -33,6 +34,8 @@ export interface ArtefactInhoudProps {
   /** De slots van de paneelkop (`PaneelKop.onder`/`balk`): de schil geeft de reeks of versie en de tabs mee. */
   kopOnder?: React.ReactNode;
   kopBalk?: React.ReactNode;
+  /** *Vraag Lex* over de bepaling, in de kop. */
+  kopVraag?: React.ReactNode;
   /** Een oude versie (de versiekiezer): vergrendeld zoals een afgeronde annotatie, zonder de uitleg over heropenen. */
   alleenLezen?: boolean;
   doc: AnnotatieDocument;
@@ -54,7 +57,8 @@ export interface ArtefactInhoudProps {
   onWisEigenMarkering?: (elementId: string) => Promise<void>;
   /** Zet een vraag over een element klaar in het centrale chatvenster. Bestaat alleen in de
    *  werkplek; op de eigen pagina van een annotatie is er geen chat om iets in klaar te zetten. */
-  onVraag?: (el: AnnotatieElement) => void;
+  /** Een markering als onderwerp van *Vraag Lex* (de knop op de reviewkaart). */
+  vraagOnderwerp?: (el: AnnotatieElement) => Onderwerp | undefined;
   /** Afronden of heropenen. Weglaten verbergt de knop (bv. in een alleen-lezen weergave). */
   onStatus?: (status: "geaccordeerd" | "in_review") => Promise<void>;
   /** De hele annotatie van deze bepaling verwijderen, uit de database én de graaf. Weglaten
@@ -86,7 +90,7 @@ export interface ArtefactInhoudProps {
  *  schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
   doc, info, plekken, actiefId, onKies, onBeslissing, onAkkoordGroen, onEigenMarkering,
-  onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, onEscapeEinde, pagina, onExport, extra, elementExtra, ongedekt, kopOnder, kopBalk, alleenLezen = false,
+  onWisEigenMarkering, vraagOnderwerp, onStatus, onVerwijder, onSluiten, onEscapeEinde, pagina, onExport, extra, elementExtra, ongedekt, kopOnder, kopBalk, kopVraag, alleenLezen = false,
 }: ArtefactInhoudProps) {
   // Eén bron voor de bewoording (`lib/herkomst.ts`): `bepalingKort` weet uit het graaf-`soort` of dit een artikel
   // met leden is of een bepaling van een beleidsregel. Hier raden op puntjes in het nummer zou bij
@@ -304,7 +308,7 @@ export function ArtefactInhoud({
             afronden rechts. Exporteren en verwijderen staan in het menu ⋯: in een paneel van 360 px braken ze anders
             af naar een derde rij. Elke gebruiker mag verwijderen, ook op een afgeronde annotatie; de audit legt vast
             wie het deed, en de tweede klik bevestigt. */}
-        <AnnotatieKop doc={doc} opschrift={opschrift} pagina={pagina} onSluiten={onSluiten} onder={kopOnder} balk={kopBalk}
+        <AnnotatieKop doc={doc} opschrift={opschrift} pagina={pagina} onSluiten={onSluiten} onder={kopOnder} balk={kopBalk} vraag={kopVraag}
           onStatus={onStatus} onVerwijder={onVerwijder} onExport={onExport} onFout={setFout} />
 
         {/* Twee zones met een EIGEN scroll. Eén gedeelde scroller liet de wettekst uit beeld lopen
@@ -369,7 +373,7 @@ export function ArtefactInhoud({
               onBeslissing={beslis}
               onAkkoordGroen={onAkkoordGroen && !vergrendeld ? akkoordGroen : undefined}
               onVerwijder={onWisEigenMarkering && !vergrendeld ? wis : undefined}
-              onVraag={onVraag}
+              vraagOnderwerp={vraagOnderwerp}
               elementExtra={elementExtra}
               docVergrendeld={vergrendeld}
               // Alleen als het document méér dan één lid beslaat. Is het tot één lid afgebakend, dan
@@ -377,7 +381,10 @@ export function ArtefactInhoud({
               toonLid={!doc.lid}
             />
           ) : (
-            <p className="text-sm text-muted">Geen elementen.</p>
+            // De lege stand wijst de weg (ontdubbelen PR 5): *Vraag Lex* in de kop biedt *Annoteer dit …* aan.
+            <p className="text-sm text-muted" data-leeg-annotatie>
+              Nog geen markeringen. {kopVraag ? "Vraag Lex (in de kop) om dit te annoteren, of selecteer zelf tekst." : "Selecteer tekst om zelf te markeren."}
+            </p>
           )}
           {historie.length > 0 && <Historie elementen={historie} />}
           {extra}
@@ -418,13 +425,14 @@ export function focusBijArtefact(doel: EventTarget | null): boolean {
 /** De kop van een annotatie (`PaneelKop`): de status links, afronden rechts, exporteren en verwijderen in het menu ⋯.
  *  Eén component voor de tab Tekst (hier) en de tab Graaf (`NodeAnnotatiePaneel`), zodat de kop bij een tabwissel
  *  niet springt. Een fout landt via `onFout` in de melding van de tab die openstaat. */
-export function AnnotatieKop({ doc, opschrift, pagina, onSluiten, onder, balk, onStatus, onVerwijder, onExport, onFout }: {
+export function AnnotatieKop({ doc, opschrift, pagina, onSluiten, onder, balk, vraag, onStatus, onVerwijder, onExport, onFout }: {
   doc: AnnotatieDocument;
   opschrift: string;
   pagina?: string;
   onSluiten?: () => void;
   onder?: ReactNode;
   balk?: ReactNode;
+  vraag?: ReactNode;
   onStatus?: (status: "geaccordeerd" | "in_review") => Promise<void>;
   onVerwijder?: () => Promise<void>;
   onExport?: (formaat: ExportFormaat) => Promise<void>;
@@ -470,7 +478,7 @@ export function AnnotatieKop({ doc, opschrift, pagina, onSluiten, onder, balk, o
     // De vaste kop (8 nov 2026): titel met ↗ ⋯ ✕ rechtsboven, daaronder de status links en afronden rechts. Exporteren
     // en verwijderen staan in het menu ⋯: in een paneel van 360 px braken ze anders af naar een derde rij. Elke
     // gebruiker mag verwijderen, ook op een afgeronde annotatie; de audit legt vast wie het deed, de tweede klik bevestigt.
-    <PaneelKop soort={ARTEFACT_SOORT_LABEL.annotatie} titel={opschrift} pagina={pagina} onSluit={onSluiten} onder={onder} balk={balk}
+    <PaneelKop soort={ARTEFACT_SOORT_LABEL.annotatie} titel={opschrift} pagina={pagina} onSluit={onSluiten} onder={onder} balk={balk} vraag={vraag}
       status={<StatusLabel toon={stand.toon} uitleg={stand.uitleg}>{stand.label}</StatusLabel>}
       hoofdactie={onStatus && <StatusKnop status={doc.status} bezig={statusBezig} onZet={zetStatus} />}
       menu={(sluit) => <>

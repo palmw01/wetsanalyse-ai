@@ -8,7 +8,7 @@
 import type { startRun } from "./api";
 import type { AgentDoelInvoer } from "./types";
 import { antwoordOp, type IntakeActie } from "./vraagkaart";
-import { actieVerzoek, verzoekVan, type Onderwerp, type VraagLexActie } from "./vraagLex";
+import { actieVerzoek, verzoekVan, type Onderwerp, type VraagLexActie, isObjectOnderwerp } from "./vraagLex";
 
 /** De knop bij een voorstel van Lex (fase B en C): het werkgebied en wat de analist bevestigde. */
 export interface WerkgebiedAnnoteren {
@@ -67,7 +67,7 @@ export function startOpties(
   // Een klik op een vraagkaartje: geen context en geen doel; het werkgebied van het gesprek mag mee.
   if (intake) return { intake_actie: intake, ...(werkgebiedId ? { werkgebied_id: werkgebiedId } : {}) };
   // Een suggestie met een actie: een vaste route op het werkgebied van het onderwerp, zonder model.
-  if (actie && onderwerp && onderwerp.soort !== "markering") {
+  if (actie && isObjectOnderwerp(onderwerp)) {
     return { ...actieVerzoek(onderwerp, actie), werkgebied_id: onderwerp.werkgebied_id };
   }
   // Een werkgebiedsuggestie: dezelfde vaste handeling, op het werkgebied van het gesprek.
@@ -78,7 +78,9 @@ export function startOpties(
   const extra = doelen?.length && !onderwerp
     // Meerdere onderdelen van één artikel: één run, elk onderdeel een eigen laag.
     ? { ...basis, doelen }
-    : doel && !onderwerp ? { ...basis, doel, ...(hergebruik ? { hergebruik } : {}) } : basis;
+    : doel && !onderwerp ? { ...basis, doel, ...(hergebruik ? { hergebruik } : {}) }
+      // *Annoteer dit onderdeel* bij een bepaling (ontdubbelen PR 5): de annotatieweg met het doel, zonder het onderwerp.
+      : doel && onderwerp?.soort === "bepaling" ? { doel, ...(hergebruik ? { hergebruik } : {}) } : basis;
   return werkgebiedId ? { ...extra, werkgebied_id: werkgebiedId } : extra;
 }
 

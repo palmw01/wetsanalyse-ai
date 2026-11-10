@@ -4,7 +4,7 @@ import type { NodeElement, NodeWeergave } from "./annotatieNode";
 import { bevestigt, startOpties, userVelden, type BeurtVerzoek, type WerkgebiedAnnoteren } from "./beurtVerzoek";
 import type { AgentDoelInvoer } from "./types";
 import { antwoordOp, type IntakeActie } from "./vraagkaart";
-import { actieVerzoek, verzoekVan, type Onderwerp, type VraagLexActie } from "./vraagLex";
+import { actieVerzoek, isObjectOnderwerp, verzoekVan, type Onderwerp, type VraagLexActie } from "./vraagLex";
 
 // Letterlijk de constructie die in `WerkplekClient.verstuur` stond (vóór E4 PR 3), als orakel.
 function oud(vraagOver: Onderwerp | undefined, werkgebiedId: string | null, doel?: AgentDoelInvoer, hergebruik?: "opnieuw",
@@ -20,7 +20,7 @@ function oud(vraagOver: Onderwerp | undefined, werkgebiedId: string | null, doel
         ...(annoteren.deelvraagId ? { deelvraag_id: annoteren.deelvraagId } : {}),
         ...(annoteren.werkvoorraadId ? { werkvoorraad_id: annoteren.werkvoorraadId } : {}) }
     : intake ? { intake_actie: intake, ...(werkgebiedId ? { werkgebied_id: werkgebiedId } : {}) }
-    : actie && vraagOver && vraagOver.soort !== "markering"
+    : actie && isObjectOnderwerp(vraagOver)
       ? { ...actieVerzoek(vraagOver, actie), werkgebied_id: vraagOver.werkgebied_id }
     : actie && werkgebiedId ? { actie, werkgebied_id: werkgebiedId }
     : werkgebiedId ? { ...extra, werkgebied_id: werkgebiedId } : extra;
@@ -73,6 +73,14 @@ describe("startOpties is gelijk aan de oude constructie", () => {
 });
 
 describe("userVelden", () => {
+  it("annoteer dit onderdeel bij een bepaling: het doel, zonder onderwerp (ontdubbelen PR 5)", () => {
+    const k: Onderwerp = { soort: "bepaling", bron_iri: "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k", label: "Onderdeel k" };
+    const doel = { bron_iri: k.bron_iri, bwbId: "BWBR0004770" };
+    expect(startOpties({ prompt: "Annoteer dit onderdeel", doel }, { onderwerp: k })).toEqual({ doel });
+    expect(startOpties({ prompt: "Wat betekent dit onderdeel?" }, { onderwerp: k }))
+      .toEqual({ onderwerp: { soort: "bepaling", bron_iri: k.bron_iri, label: "Onderdeel k" } });
+  });
+
   it("zet de contextregel in de tekst", () => {
     expect(userVelden({}, "Waarom?", "Artikel 9: de aanslag")).toEqual({ tekst: "Bij Artikel 9: de aanslag: Waarom?" });
     expect(userVelden({}, "Waarom?", "")).toEqual({ tekst: "Waarom?" });

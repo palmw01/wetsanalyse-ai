@@ -1,6 +1,8 @@
 "use client";
 
 import { knopKlasse } from "@/components/ui/Button";
+import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
+import type { Onderwerp } from "@/lib/vraagLex";
 import { HerkomstRegel } from "@/components/ui/HerkomstRegel";
 import { BronVenster } from "@/components/wettekst/BronVenster";
 import { PaneelKop } from "@/components/ui/PaneelKop";
@@ -160,6 +162,11 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
   const lezing = useBepaling(metGraaf && bronIri ? bronIri : null);
   const opGraaf = metGraaf && weergave === "graaf";
 
+  // *Vraag Lex* over wat het venster toont (ontdubbelen PR 5): de bepaling of het stuk, met het werkgebied van het gesprek.
+  const vraagOver: Onderwerp | undefined = doel.soort === "bron"
+    ? { soort: "bepaling", bron_iri: doel.bron_iri, label: herkomst?.bepaling ?? doel.titel, ...(werkgebiedId ? { werkgebied_id: werkgebiedId } : {}) }
+    : doel.soort === "stuk" ? { soort: "stuk", connector: doel.brontype, stuk_id: doel.id, label: doel.titel } : undefined;
+
   /** *Bekijk in de tekst*: terug naar de tekst, de markering gekozen en het segment in beeld. */
   function naarTekst(knoop: { id: string; element_id?: string }, anker?: string) {
     setWeergave("tekst");
@@ -176,6 +183,7 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
       <div data-context-paneel={doel.soort} className="flex min-h-0 flex-1 flex-col">
         <PaneelKop soort={kop.soort} titel={kop.titel} pagina={paginaVanContext(doel)} onSluit={onSluit}
           status={herkomst && <HerkomstRegel herkomst={herkomst} />}
+          vraag={vraagOver && <VraagLexKnop onderwerp={vraagOver} />}
           hoofdactie={doel.soort === "bron" && onBeoordelen && (
             <button type="button" data-beoordelen onClick={() => onBeoordelen(doel, opGraaf ? "graaf" : "tekst")}
               className={knopKlasse("secondary", "xs")}>Beoordelen</button>
@@ -185,6 +193,8 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
         {graafDoel && (
           <BronGraaf graaf={graaf} zichtbaar={opGraaf} benaming={samenhang.van === "antwoord" ? ANTWOORD : BEPALING}
             weergave={lezing.view} actiefElementId={gekozen} onKiesElement={setGekozen} onOpenTekst={naarTekst}
+            vraagOnderwerp={(k) => (k.id.startsWith("urn:bwb:") && !k.element_id
+              ? { soort: "bepaling", bron_iri: k.id, label: k.naam, ...(werkgebiedId ? { werkgebied_id: werkgebiedId } : {}) } : undefined)}
             onWisselArtikel={(d, g) => onWissel({ soort: "bron", bron_iri: d.bron_iri, werkgebied_id: werkgebiedId,
               titel: vindplaatsTekst({ iri: d.bron_iri, label: "" }), weergave: "graaf",
               samenhang: { extra: [graafDoel, ...samenhang.extra].filter((x) => x.bron_iri !== d.bron_iri),

@@ -19,7 +19,7 @@ import { AnnotatieKop, ArtefactInhoud } from "@/components/werkplek/ArtefactInho
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 import {
   apiOpslag, bepalingRevisies, dragerRevisies, momentopnameOpslag, nodeLink, nogNietInWerking, verwachteRevisies,
-  type NodeDoel, type NodeElement, type NodeImpliciet, type NodeOpslag, type NodeRelatie, type NodeWeergave, type RelatieInvoer,
+  type NodeDoel, type NodeImpliciet, type NodeOpslag, type NodeRelatie, type NodeWeergave, type RelatieInvoer,
 } from "@/lib/annotatieNode";
 import {
   beslissingNaarNode, documentVanNode, nodeAnkersUitSelectie, nodeBronVan, nogOngedekt, ongedektVanNode, tekstVanAnkers,
@@ -33,6 +33,8 @@ import type { Anker, ArtefactVersie, BeslissingInvoer } from "@/lib/types";
 import { NOG_NIET_IN_WERKING, annotatieKopTekst } from "@/lib/herkomst";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import { BronGraaf, WeergaveBalk, useBronGraaf, type Weergave } from "@/components/wettekst/BronGraaf";
+import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
+import type { Onderwerp } from "@/lib/vraagLex";
 
 // sigma zit in `GraafTekenaar`, dat `Graaf` zelf lui laadt: pas als de tab opengaat.
 export type PaneelTab = Weergave;
@@ -46,7 +48,7 @@ export type PaneelTab = Weergave;
  *
  *  Met `onSluit` staat hij in dezelfde `Dialog`-schil als `ArtefactPaneel` (werkplek); zonder is
  *  het de kale inhoud voor een eigen pagina. */
-export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, onSluit, onVerberg, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks, beginElement, opslag: basisOpslag = apiOpslag, onBeslist }: {
+export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, onSluit, onVerberg, variant = "side", beginTab = "tekst", reeks, beginElement, opslag: basisOpslag = apiOpslag, onBeslist }: {
   doel: NodeDoel; onSluit?: () => void; variant?: DialogVariant;
   /** De laatste laag van Escape: het paneel verbergen zonder de tab te sluiten (het bronvenster, PR 3b). */
   onVerberg?: () => void;
@@ -58,9 +60,6 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
   /** Het paneel op een ander artikel openen, vanuit een knoop in de graaf die niet bij `doel` hoort;
    *  `graaf` draagt het bereik van nu (en een actuele kennisgraaf) naar het nieuwe paneel. */
   onWisselDoel?: (doel: NodeDoel, graaf: GraafOpties) => void;
-  onVraag?: (element: NodeElement, view: NodeWeergave) => void;
-  /** Een vraag over een bron- of randknoop uit de graaf; markeringen gaan via `onVraag`. */
-  onVraagOverBron?: (knoop: KnoopData) => void;
   beginTab?: PaneelTab;
   /** Dit lid hoort bij een reeks: bladeren naar het vorige of volgende lid. Beoordelen, afronden en
    *  verwijderen blijven per lid – het paneel toont nooit meer lagen dan het ene lid. */
@@ -250,12 +249,21 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
     if (knoop.lid) requestAnimationFrame(() => document.querySelector(`[data-artefact] [data-lid="${CSS.escape(knoop.lid)}"]`)
       ?.scrollIntoView({ block: "center" }));
   }
-  function vraagOverKnoop(knoop: KnoopData) {
-    const el = view?.elementen.find((e) => e.id === knoop.element_id);
-    setGroot(false);
-    if (el && view && onVraag) onVraag(el, view);
-    else onVraagOverBron?.(knoop);
+  /** *Vraag Lex* (ontdubbelen PR 5): een markering als onderwerp, anders de bepaling van de knoop. De knop is overal
+   *  `VraagLexKnop`; in de werkplek zet hij het onderwerp boven het invoerveld, daarbuiten opent hij het gesprek (een
+   *  markering heeft daar geen weg, en dan geen knop). */
+  function vraagOverElement(id?: string): Onderwerp | undefined {
+    const el = view?.elementen.find((e) => e.id === id);
+    return el && view ? { soort: "markering", element: el, view } : undefined;
   }
+  function vraagOverKnoop(knoop: KnoopData): Onderwerp | undefined {
+    if (knoop.element_id) return vraagOverElement(knoop.element_id);
+    return knoop.id.startsWith("urn:bwb:") ? { soort: "bepaling", bron_iri: knoop.id, label: knoop.naam } : undefined;
+  }
+  const kopVraag = view && !opname && (
+    <VraagLexKnop onderwerp={{ soort: "bepaling", bron_iri: view.doel.bron_iri, label: view.doel.label || doel.label || "",
+      annotatie: view.lagen.length > 0 }} />
+  );
   // Een oude versie heeft geen graaf: de kaart toont de stand van nu.
   const toonTabs = samenhang && !!view && !opname;
   // De tabs en *Vergroten* staan in de balk van de ene paneelkop (`PaneelKop.balk`), op beide tabs.
@@ -284,7 +292,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
       {/* Eén kop voor beide tabs: op de tab Tekst draagt de inhoud hem (met de acties), op de graaf het paneel. */}
       {toonTabs && tab === "graaf" && (
         <>
-          <AnnotatieKop doc={doc} opschrift={annotatieKopTekst(nb.info, doc)} pagina={pagina} onSluiten={onSluit} onder={reeksBalk} balk={tabs}
+          <AnnotatieKop doc={doc} opschrift={annotatieKopTekst(nb.info, doc)} pagina={pagina} onSluiten={onSluit} onder={reeksBalk} balk={tabs} vraag={kopVraag}
             onStatus={view.lagen.length && !opname ? status : undefined}
             onVerwijder={view.lagen.length && !opname ? verwijder : undefined}
             onExport={opname ? undefined : exporteer} onFout={setKopFout} />
@@ -296,7 +304,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
           herkomst={(doel as NodeDoel & { herkomst?: string }).herkomst} actiefElementId={actiefId}
           weergave={view} dekking={dekkingPerKnoop} onKiesElement={setActiefId} onOpenTekst={openTekst}
           onWisselArtikel={onWisselDoel}
-          onVraag={onVraag || onVraagOverBron ? vraagOverKnoop : undefined} />
+          vraagOnderwerp={vraagOverKnoop} />
       )}
       {(!toonTabs || tab === "tekst") && view?.segmenten.some(nogNietInWerking) && <div className="px-4 pt-3"><StandMelding meldingen={[NOG_NIET_IN_WERKING]} /></div>}
       {(!toonTabs || tab === "tekst") && <ArtefactInhoud
@@ -309,10 +317,8 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
         onAkkoordGroen={opslag.levend ? akkoordGroen : undefined}
         onEigenMarkering={eigenMarkering}
         onWisEigenMarkering={wisEigenMarkering}
-        onVraag={onVraag ? (el) => {
-          const node = view.elementen.find((e) => e.id === el.id);
-          if (node) onVraag(node, view);
-        } : undefined}
+        vraagOnderwerp={(el) => vraagOverElement(el.id)}
+        kopVraag={kopVraag}
         onStatus={view.lagen.length && !opname ? status : undefined}
         onVerwijder={view.lagen.length && !opname ? verwijder : undefined}
         alleenLezen={!!opname}

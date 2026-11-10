@@ -9,6 +9,7 @@ import { TabRij } from "@/components/ui/Tabs";
 import { ZijpaneelContext } from "@/components/ui/Zijpaneel";
 import type { NodeDoel, NodeWeergave } from "@/lib/annotatieNode";
 import type { KnoopData } from "@/lib/graaf/model";
+import type { Onderwerp } from "@/lib/vraagLex";
 
 /** Wat het venster van een bron toont: de tekst of de samenhang in de graaf. */
 export type Weergave = "tekst" | "graaf";
@@ -72,7 +73,7 @@ export type BronGraafStand = ReturnType<typeof useBronGraaf>;
 
 /** De graaf in het venster. `pagina`: op een eigen pagina, altijd groot. */
 export function BronGraaf({ graaf, zichtbaar, pagina = false, herkomst, weergave, dekking, actiefElementId, onKiesElement,
-  onOpenTekst, onWisselArtikel, onVraag, benaming, bijKnoop }: {
+  onOpenTekst, onWisselArtikel, vraagOnderwerp, benaming, bijKnoop }: {
   graaf: BronGraafStand;
   zichtbaar: boolean;
   pagina?: boolean;
@@ -84,7 +85,7 @@ export function BronGraaf({ graaf, zichtbaar, pagina = false, herkomst, weergave
   onKiesElement?: (id?: string) => void;
   onOpenTekst: (knoop: KnoopData, anker?: string) => void;
   onWisselArtikel?: (doel: NodeDoel, graaf: GraafOpties) => void;
-  onVraag?: (knoop: KnoopData) => void;
+  vraagOnderwerp?: (knoop: KnoopData) => Onderwerp | undefined;
   benaming?: GraafContext;
   bijKnoop?: (knoop: KnoopData & { id: string }) => ReactNode;
 }) {
@@ -93,7 +94,7 @@ export function BronGraaf({ graaf, zichtbaar, pagina = false, herkomst, weergave
     <div className={zichtbaar ? "flex min-h-0 flex-1 flex-col" : "hidden"} data-bron-graaf>
       <Graaf stand={graaf.stand as GraafStand} herkomst={herkomst} zichtbaar={zichtbaar} groot={graaf.groot || pagina}
         actiefElementId={actiefElementId} weergave={weergave} dekking={dekking} onKiesElement={onKiesElement ?? (() => {})}
-        onOpenTekst={onOpenTekst} onWisselArtikel={onWisselArtikel} onVraag={onVraag} benaming={benaming} bijKnoop={bijKnoop} />
+        onOpenTekst={onOpenTekst} onWisselArtikel={onWisselArtikel} vraagOnderwerp={vraagOnderwerp} benaming={benaming} bijKnoop={bijKnoop} />
     </div>
   );
 }

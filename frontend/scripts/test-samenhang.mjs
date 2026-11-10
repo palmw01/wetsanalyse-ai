@@ -663,10 +663,13 @@ async function wachtGereed(page) {
   // 10. Beeldknoppen.
   for (const naam of ["Inzoomen", "Uitzoomen", "Alles in beeld"]) await page.getByRole("button", { name: naam }).click();
 
-  // 11. Vraag Lex over een bron zet de vraag klaar, zonder iets te versturen.
+  // 11. Vraag Lex over een bron zet de bepaling als onderwerp met haar suggesties, zonder iets te versturen (ontdubbelen
+  // PR 5: geen voorgevulde vraag meer naast het register).
   await zoekEnKies(page, "lid 1", A10L1);
-  await page.getByRole("button", { name: "Vraag Lex" }).click();
-  assert.match(await page.locator("textarea").inputValue(), /Hoe hangt Artikel 10 · lid 1 \(BWBR0004770, artikel 10, lid 1\)/);
+  await page.getByTestId("graaf-zijbalk").locator('[data-vraag-lex="bepaling"]').click();
+  await page.locator('[data-onderwerp="bepaling"]').waitFor();
+  assert.equal(await page.locator("textarea").inputValue(), "");
+  assert.ok((await page.getByTestId("vraag-suggesties").getByRole("button").allTextContents()).includes("Annoteer dit lid"));
   assert.deepEqual(log.mutaties, [], "de graaf muteert niets");
 
   // 12. Een annotatiewijziging werkt de graaf bij zonder herladen, en de kaart verschuift niet. Zolang

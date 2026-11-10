@@ -1,5 +1,7 @@
 "use client";
 
+import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
+import type { Onderwerp } from "@/lib/vraagLex";
 import { BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
 import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import Link from "next/link";
@@ -161,7 +163,7 @@ function DecisionCard({
   open,
   onOpen,
   onAkkoord,
-  onVraag,
+  vraag,
   extra,
   docVergrendeld,
   toonLid,
@@ -183,7 +185,8 @@ function DecisionCard({
    *  inclusief het doorspringen naar het volgende element dat nog aandacht vraagt. */
   onAkkoord: () => Promise<void>;
   /** Zet een vraag over dít element klaar in het centrale chatvenster. Weglaten verbergt de knop. */
-  onVraag?: () => void;
+  /** De markering als onderwerp van *Vraag Lex* (`VraagLexKnop`); zonder geen knop. */
+  vraag?: Onderwerp;
   /** Een blok in de uitgeklapte kaart, onder de alternatieven: de relaties van het element (ADR-011). */
   extra?: ReactNode;
   /** De hele annotatie is afgerond: dan ligt ook het opmerkingveld stil, want de api weigert élke
@@ -522,24 +525,10 @@ function DecisionCard({
 
       {uitgeklapt && extra && <div onClick={(e) => e.stopPropagation()}>{extra}</div>}
 
-      {/* Vragen doe je in het centrale gespreksvenster, niet in een tweede chatje hier. Deze knop zet
-          de vraag daar klaar mét de context van dit element; het antwoord komt in de thread – inclusief
-          bronnen en grounding, die een draadje in de kaart nooit toonde. */}
-      {uitgeklapt && onVraag && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onVraag();
-          }}
-          className="focus-ring mt-2 inline-flex min-h-[24px] items-center gap-1.5 rounded-knop-xs border border-line px-2 py-1 text-xs text-lint transition hover:border-lint hover:bg-surface coarse:min-h-[44px]"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-          Vraag Lex
-        </button>
-      )}
+      {/* Vragen doe je in het centrale gespreksvenster, niet in een tweede chatje hier: de ene knop (`VraagLexKnop`) zet de
+          markering daar als onderwerp, met de suggesties erbij; het antwoord komt in de thread – inclusief bronnen en
+          grounding. Buiten de werkplek heeft een markering geen weg, en dan geen knop. */}
+      {uitgeklapt && vraag && <div className="mt-2" onClick={(e) => e.stopPropagation()}><VraagLexKnop onderwerp={vraag} /></div>}
 
       <div className="mt-2 flex items-center justify-between gap-2 border-t border-line/60 pt-1.5 text-[0.65rem] text-muted">
         <span className="min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>
@@ -594,7 +583,7 @@ export function ReviewQueue({
   onBeslissing,
   onAkkoordGroen,
   onVerwijder,
-  onVraag,
+  vraagOnderwerp,
   elementExtra,
   docVergrendeld,
   toonLid,
@@ -619,7 +608,7 @@ export function ReviewQueue({
   /** Eigen markering wissen. Weglaten maakt de lijst alleen-beoordeelbaar. */
   onVerwijder?: (elementId: string) => Promise<void>;
   /** Zet een vraag over een element klaar in het centrale chatvenster. */
-  onVraag?: (el: AnnotatieElement) => void;
+  vraagOnderwerp?: (el: AnnotatieElement) => Onderwerp | undefined;
   /** Een blok in de uitgeklapte kaart van een element (`DecisionCard.extra`). */
   elementExtra?: (el: AnnotatieElement) => ReactNode;
   /** De annotatie is afgerond: de hele lijst staat op slot tot hij heropend wordt. */
@@ -716,7 +705,7 @@ export function ReviewQueue({
           onKies={() => onKies(el.id)}
           onBeslissing={(req) => onBeslissing(el.id, req)}
           onVerwijder={onVerwijder && el.herkomst === "mens" ? () => onVerwijder(el.id) : undefined}
-          onVraag={onVraag ? () => onVraag(el) : undefined}
+          vraag={vraagOnderwerp?.(el)}
           extra={el.id === actiefId ? elementExtra?.(el) : undefined}
           docVergrendeld={docVergrendeld}
           toonLid={toonLid}
