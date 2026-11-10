@@ -1499,6 +1499,12 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
     het antwoordblok `extern` en in het venster. Wat Lex citeerde staat gemarkeerd (`data-geciteerd`).
   - In het antwoord opent het label van een stuk (in `extern` en `stukken`) de tab via `StukVindplaats`; met Ctrl/⌘ gaat
     het naar de bron. Een stuk dat alleen een PDF is, blijft een link naar de bron.
+  - **Bij welke tekst een stuk hoort** (review ADR-013, 10 nov 2026). Een uitspraak bij een eerdere versie van het
+    artikel heeft een geel label in de lijst ("eerdere tekst", "niet op de peildatum") en de periode in de metaregel
+    (`tekstPeriode`). In het blok `extern` en in het venster staat dezelfde melding. De zinnen komen uit
+    `tekstBijMeldingen` in `lib/herkomst.ts`, een eigen zin elders faalt in `app/herkomst.test.ts`. Het venster krijgt de
+    stand van de lijst mee (`ContextDoel.tekst`, buiten de tabsleutel); vanuit een ander blok weet het hem niet en zegt
+    het niets.
   - Browserregressie: `scripts/test-bronvenster-stuk.mjs`.
 - **De bronpagina is het bronvenster als pagina** (PR 5): `BronPagina` zet `BronVenster variant="pagina"` (tekst groot,
   markeringen als rijen naar hun pagina) onder de `PaginaKop` met de herkomstregel en de meldingen over de stand

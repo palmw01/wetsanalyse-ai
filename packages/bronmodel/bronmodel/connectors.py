@@ -37,6 +37,10 @@ METADATA_SLEUTELS: dict[str, str] = {
     "gewijzigd": "datum",      # wanneer de dienst de publicatie het laatst bijwerkte
     "ondertekend": "datum",    # wanneer het besluit is ondertekend
     "inwerking": "datum",      # wanneer de tekst waar het stuk bij hoort in werking trad
+    "tekst_vanaf": "datum",    # sinds wanneer de tekst van de bepaling gold waaraan het stuk gekoppeld is
+    "tekst_tot": "datum",      # tot wanneer die tekst gold; leeg: hij geldt nog, of het is onbekend
+    "tekststand": "tekst",     # die tekst tegenover de tekst in de graaf: huidige tekst, eerdere tekst of onbekend
+    "op_peildatum": "waarheid",  # of die tekst gold op de peildatum van de vraag of het werkgebied
     "publicatie": "tekst",     # waarin het stuk verscheen (Staatsblad, Staatscourant)
     "titel": "tekst",          # de titel van het stuk zelf
     "soort": "tekst",          # het soort stuk ("Memorie van toelichting", "Motie", "Uitspraak")
@@ -383,7 +387,9 @@ RECHTSPRAAK = ConnectorBeschrijving(
              "Linked Data Overheid koppelt een uitspraak aan een "
              "artikel als de tekst het noemt (automatisch herkend of redactioneel), op artikelniveau en niet per lid. "
              "Een vermelding is geen uitleg; de lijst is 'ten minste deze', want LiDO loopt achter op de wetgeving en "
-             "kan versies missen. De divisies van een beleidsregel kent LiDO niet. Alleen Nederlandse uitspraken zijn "
+             "kan versies missen. LiDO hangt een uitspraak aan de tekst van het artikel die gold op de datum van de "
+             "uitspraak; welke tekst de rechter toepaste (een eerder belastingjaar, overgangsrecht) staat pas in de "
+             "uitspraak zelf. De divisies van een beleidsregel kent LiDO niet. Alleen Nederlandse uitspraken zijn "
              "te lezen, één tegelijk: de Rechtspraak vraagt hoogstens 10 verzoeken per seconde en geen volledige download"),
     levert=("alinea's (de inhoudsindicatie en de uitspraak of conclusie)",),
     niet_in_tekst=("vindplaatsen in tijdschriften",),
@@ -424,6 +430,16 @@ RECHTSPRAAK = ConnectorBeschrijving(
         MetadataVeld("wetsverwijzing", "bepaling", "de koppeling in LiDO",
                      "de bepaling waarbij gezocht is; een uitspraak die haar noemt, gaat er niet altijd over",
                      filters=("bwb_id", "artikel")),
+        MetadataVeld("tekst_vanaf", "tekst geldig vanaf", "de versie van het artikel in LiDO (de geldigheid in de id)",
+                     "sinds wanneer de tekst van het artikel gold waaraan LiDO de uitspraak koppelde; LiDO koppelt naar "
+                     "de datum van de uitspraak, niet naar de tekst die de rechter toepaste. Alleen bij een artikel"),
+        MetadataVeld("tekst_tot", "tekst geldig tot", "de begindatum van de volgende versie in LiDO",
+                     "tot wanneer die tekst gold; leeg als hij nog geldt. Alleen bij een artikel"),
+        MetadataVeld("tekststand", "tekst", "de versie in LiDO tegenover bwb:inwerking van het artikel in de graaf",
+                     "'huidige tekst' (de tekst in de graaf), 'eerdere tekst' (het artikel is daarna gewijzigd) of "
+                     "'onbekend'; alleen bij een artikel", filters=("tekststand",)),
+        MetadataVeld("op_peildatum", "op de peildatum", "de versie in LiDO tegenover de meegegeven peildatum",
+                     "of die tekst gold op de peildatum; alleen met 'peildatum'", filters=("peildatum",)),
         MetadataVeld("procedure", "procedure", "psi:procedure (Rechtspraak)",
                      "de procedure, zoals 'Cassatie' of 'Hoger beroep'; alleen bij het lezen"),
         MetadataVeld("rechtsgebied", "rechtsgebied", "dcterms:subject (Rechtspraak)",

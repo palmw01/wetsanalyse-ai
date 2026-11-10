@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   annotatieKopTekst, bepalingKort, herkomstKop, herkomstLabel, herkomstRegel, herkomstVan, plaatsKort, plaatsZin, standMeldingen,
+  tekstBijMeldingen, tekstPeriode,
   vindplaatsTekst,
 } from "./herkomst";
 
@@ -64,6 +65,19 @@ describe("herkomst", () => {
     expect(standMeldingen({ geldig_vanaf: "2026-07-01", peildatum: "2026-03-01" }).map((m) => m.soort)).toEqual(["na-peildatum"]);
     expect(standMeldingen({ geldig_vanaf: "2026-07-01", peildatum: "2026-08-01", gelezenJci: "" })).toEqual([]);
     expect(standMeldingen({ nogNietInWerking: true }).map((m) => m.soort)).toEqual(["nog-niet-in-werking"]);
+  });
+
+  it("zegt bij welke tekst van de bepaling een stuk hoort, en niets als de bron het niet zegt", () => {
+    const oud = { tekst_vanaf: "2016-05-01", tekst_tot: "2022-12-31", tekststand: "eerdere tekst", op_peildatum: false };
+    expect(tekstPeriode(oud)).toBe("de tekst van 1 mei 2016 tot en met 31 december 2022");
+    expect(tekstBijMeldingen(oud).map((m) => m.soort)).toEqual(["eerdere-tekst", "buiten-peildatum"]);
+    expect(tekstBijMeldingen(oud)[0].tekst).toContain("van 1 mei 2016 tot en met 31 december 2022");
+    expect(tekstPeriode({ tekst_vanaf: "2023-01-01", tekststand: "huidige tekst" })).toBe("de huidige tekst (sinds 1 januari 2023)");
+    expect(tekstBijMeldingen({ tekst_vanaf: "2023-01-01", tekststand: "huidige tekst", op_peildatum: true })).toEqual([]);
+    expect(tekstBijMeldingen({ tekststand: "onbekend" }).map((m) => m.soort)).toEqual(["tekststand-onbekend"]);
+    // Een Kamerstuk of een ouder bericht zonder deze velden: geen melding, geen gok.
+    expect(tekstBijMeldingen({})).toEqual([]);
+    expect(tekstPeriode({})).toBe("");
   });
 
   it("houdt de korte vindplaats van een annotatie", () => {

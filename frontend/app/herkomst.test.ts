@@ -36,6 +36,9 @@ describe("de herkomst van een bepaling komt uit één plek", () => {
   it("de stand meldt zich via StandMelding, niet met een eigen zin", () => {
     expect(CODE.filter((p) => /nog niet in werking getreden/.test(bron(p)))).toEqual([join("lib", "herkomst.ts")]);
     expect(CODE.some((p) => /NogNietInWerking/.test(bron(p)))).toBe(false);
+    // De tekst waarbij een stuk hoort (een uitspraak bij een eerdere versie van het artikel) ook: één zin, in herkomst.ts.
+    expect(CODE.filter((p) => !p.endsWith(".test.ts") && /daarna gewijzigd|andere tekst dan die op de peildatum/.test(bron(p))))
+      .toEqual([join("lib", "herkomst.ts")]);
   });
 
   it("het paneel van een bepaling krijgt zijn kop van de herkomst", () => {

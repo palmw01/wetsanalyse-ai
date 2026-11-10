@@ -7,7 +7,7 @@
 import Link from "next/link";
 
 import { StandMelding } from "@/components/ui/StandMelding";
-import { NOG_NIET_IN_WERKING } from "@/lib/herkomst";
+import { NOG_NIET_IN_WERKING, TEKSTSTAND_LABEL, tekstBijMeldingen, tekstPeriode } from "@/lib/herkomst";
 import { Citaat } from "@/components/ui/Citaat";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { StukVindplaats, Vindplaats } from "./Vindplaats";
@@ -127,13 +127,15 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
   extern: ({ blok }) => (
     <Sectie kop={blok.kop}>
       <p className="text-xs text-muted">{BRONTYPE_NAAM[blok.brontype] ?? "Bron naast de wet"}, geen wettekst: het onderbouwt een uitleg, niet wat de wet zegt.</p>
+      {/* Bij welke tekst van de bepaling het stuk hoort (een uitspraak bij een eerdere versie van het artikel). */}
+      <StandMelding meldingen={tekstBijMeldingen(blok)} />
       <div data-extern={blok.id}>
         <ConnectorTekst passages={blok.passages} />
       </div>
       <p className="text-xs text-muted">
         {/* Het stuk opent als tab naast het gesprek, met de passages die Lex citeerde gemarkeerd (het bronvenster, PR 6). */}
         <StukVindplaats brontype={blok.brontype} id={blok.id} label={blok.label} link={blok.link} voorbeeld={blok.passages}
-          gelezen={blok.bron_hash ? { bron_hash: blok.bron_hash, passages: blok.passages.map((p) => p.nr) } : undefined} />
+          tekst={blok} gelezen={blok.bron_hash ? { bron_hash: blok.bron_hash, passages: blok.passages.map((p) => p.nr) } : undefined} />
         {/* De datum en het soort uit de metadata van het stuk, niet uit de tekst van Lex. */}
         {(blok.soort_stuk || blok.datum) && <span data-extern-meta> · {[blok.soort_stuk, datumTekst(blok.datum)].filter(Boolean).join(", ")}</span>}
       </p>
@@ -150,12 +152,19 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
               {s.leesbaar === false
                 ? (bronHref(s.link) ? <a href={bronHref(s.link)} target="_blank" rel="noopener noreferrer" className="focus-ring rounded font-medium text-lint underline underline-offset-2">{s.label}</a>
                   : <span className="font-medium">{s.label}</span>)
-                : <StukVindplaats brontype={blok.brontype} id={s.id} label={s.label} link={s.link} className="font-medium text-lint" />}
+                : <StukVindplaats brontype={blok.brontype} id={s.id} label={s.label} link={s.link} tekst={s} className="font-medium text-lint" />}
               {s.leesbaar === false && <StatusLabel toon="geel" klein uitleg="De tekst van dit stuk is bij de bron niet te lezen; open het via de link.">{s.zonder_tekst || "geen tekst bij de bron"}</StatusLabel>}
+              {/* Een eerdere tekst van de bepaling, of een andere dan op de peildatum: de zin van `tekstBijMeldingen`. */}
+              {tekstBijMeldingen(s).map((m) => (
+                <StatusLabel key={m.soort} toon={m.soort === "tekststand-onbekend" ? "neutraal" : "geel"} klein uitleg={m.tekst}>
+                  <span data-tekststand={m.soort}>{TEKSTSTAND_LABEL[m.soort]}</span>
+                </StatusLabel>
+              ))}
             </p>
             <p className="text-xs text-muted">
               {[s.soort, datumTekst(s.datum), s.orgaan].filter(Boolean).join(" · ")}
               {s.gepubliceerd && <> · gepubliceerd {datumTekst(s.gepubliceerd)}</>}
+              {tekstPeriode(s) && <span data-tekst-periode> · bij {tekstPeriode(s)}</span>}
             </p>
             {s.titel && <p>{s.titel}</p>}
             {!!s.indieners?.length && <p className="text-xs text-muted">Ingediend door {s.indieners.join(", ")}</p>}
