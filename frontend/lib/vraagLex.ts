@@ -1,5 +1,6 @@
 import { vraagSuggesties as markeringSuggesties } from "./annotatie";
 import type { NodeElement, NodeWeergave } from "./annotatieNode";
+import { bronDoel } from "./samenhang";
 import type { AgentContext } from "./types";
 import type { DossierVeld } from "./werkgebied";
 
@@ -28,11 +29,21 @@ import type { DossierVeld } from "./werkgebied";
  *    toevoegen, met de treffers en hun tekst als kaartje. Zoeken in de graaf hoort bij het gesprek, niet bij een
  *    artefact: daarop lees, bewerk en besluit je. */
 
-export type OnderwerpSoort = "markering" | "deelvraag" | "bron" | "kandidaat" | "begrip" | "werkgebied";
-export type ObjectSoort = Exclude<OnderwerpSoort, "markering">;
+export type OnderwerpSoort = "markering" | "deelvraag" | "bron" | "kandidaat" | "begrip" | "werkgebied" | "bepaling" | "stuk";
+/** De objecten uit een werkgebied: ze dragen altijd een werkgebied en een id daarin. */
+export type ObjectSoort = Exclude<OnderwerpSoort, "markering" | "bepaling" | "stuk">;
+
+/** Een bepaling en een stuk uit een bronconnector (ontdubbelen PR 5): *Vraag Lex* in het bronvenster, op de bronpagina en
+ *  de annotatiepagina, ook buiten een werkgebied. graph-qa haalt de tekst zelf met zijn tools (`agent/onderwerp.py`). */
+export type BronOnderwerp =
+  | { soort: "bepaling"; bron_iri: string; label: string; werkgebied_id?: string;
+      /** Er ligt een annotatie op (de laag is aan): andere suggesties. */
+      annotatie?: boolean }
+  | { soort: "stuk"; connector: string; stuk_id: string; label: string; werkgebied_id?: string };
 
 export type Onderwerp =
   | { soort: "markering"; element: NodeElement; view: NodeWeergave }
+  | BronOnderwerp
   | { soort: ObjectSoort; werkgebied_id: string; id: string; label: string;
       /** Het lege veld waarvoor de analist *Vraag Lex* koos: een dossierveld bij het werkgebied, de uitleg
        *  bij een begrip (spoor I2). */
@@ -63,6 +74,9 @@ export type VraagLexActie = (typeof ACTIES)[number];
 export interface Suggestie {
   tekst: string;
   actie?: VraagLexActie;
+  /** Annoteren van één bepaling: de bestaande annotatieweg (`doel` op `startRun`), geen actie en geen onderwerp. */
+  doel?: { bron_iri: string; bwbId: string };
+  hergebruik?: "opnieuw";
   /** Niet versturen, maar in het invoerveld zetten: de analist maakt de vraag af. */
   invullen?: true;
 }
@@ -70,11 +84,13 @@ export interface Suggestie {
 /** Wat er bij een gewone vraag over het onderwerp naar `startRun` gaat. */
 export type OnderwerpVerzoek =
   | { modus: "advies"; context: AgentContext }
-  | { onderwerp: { soort: ObjectSoort; werkgebied_id: string; id?: string; label?: string } };
+  | { onderwerp: { soort: ObjectSoort; werkgebied_id: string; id?: string; label?: string } }
+  | { onderwerp: { soort: "bepaling"; bron_iri: string; label?: string; werkgebied_id?: string } }
+  | { onderwerp: { soort: "stuk"; connector: string; stuk_id: string; label?: string; werkgebied_id?: string } };
 
 export const SOORT_LABEL: Record<OnderwerpSoort, string> = {
   markering: "Markering", deelvraag: "Deelvraag", bron: "Bron", kandidaat: "Kandidaat", begrip: "Begrip",
-  werkgebied: "Werkgebied",
+  werkgebied: "Werkgebied", bepaling: "Bepaling", stuk: "Stuk",
 };
 
 interface Module<O> {
@@ -88,6 +104,49 @@ interface Module<O> {
 
 type Markering = Extract<Onderwerp, { soort: "markering" }>;
 type Object_ = Extract<Onderwerp, { soort: ObjectSoort }>;
+type Bepaling = Extract<Onderwerp, { soort: "bepaling" }>;
+type Stuk = Extract<Onderwerp, { soort: "stuk" }>;
+
+/** "dit onderdeel", "dit lid", "dit artikel" of "deze bepaling": uit de vorm van de bronnode. */
+function ditDeel(iri: string): string {
+  if (/:o:[^:]+$/.test(iri)) return "dit onderdeel";
+  if (/:lid:[^:]+$/.test(iri)) return "dit lid";
+  if (/:artikel:[^:]+$/.test(iri)) return "dit artikel";
+  return "deze bepaling";
+}
+
+const BEPALING: Module<Bepaling> = {
+  chip: (o) => o.label || SOORT_LABEL.bepaling,
+  suggesties: (o) => {
+    const deel = ditDeel(o.bron_iri);
+    const doel = { bron_iri: o.bron_iri, bwbId: bronDoel(o.bron_iri)?.bwb_id ?? "" };
+    return o.annotatie ? [
+      { tekst: `Annoteer ${deel} opnieuw`, doel, hergebruik: "opnieuw" },
+      { tekst: "Welke markeringen vragen nog aandacht?" },
+      { tekst: `Wat betekent ${deel}?` },
+      { tekst: `Naar welke bepalingen verwijst ${deel}?` },
+    ] : [
+      { tekst: `Annoteer ${deel}`, doel },
+      { tekst: `Wat betekent ${deel}?` },
+      { tekst: `Naar welke bepalingen verwijst ${deel}?` },
+    ];
+  },
+  verzoek: (o) => ({ onderwerp: { soort: "bepaling", bron_iri: o.bron_iri, ...(o.label ? { label: o.label.slice(0, 300) } : {}),
+    ...(o.werkgebied_id ? { werkgebied_id: o.werkgebied_id } : {}) } }),
+  over: (o) => `bepaling ${o.label || o.bron_iri}`,
+};
+
+const STUK: Module<Stuk> = {
+  chip: (o) => o.label || SOORT_LABEL.stuk,
+  suggesties: () => [
+    { tekst: "Vat dit stuk samen" },
+    { tekst: "Wat zegt dit stuk over de wet?" },
+    { tekst: "Welke bepalingen noemt dit stuk?" },
+  ],
+  verzoek: (o) => ({ onderwerp: { soort: "stuk", connector: o.connector, stuk_id: o.stuk_id,
+    ...(o.label ? { label: o.label.slice(0, 300) } : {}), ...(o.werkgebied_id ? { werkgebied_id: o.werkgebied_id } : {}) } }),
+  over: (o) => `stuk ${o.label || o.stuk_id}`,
+};
 
 const MARKERING: Module<Markering> = {
   chip: (o) => o.element.tekst,
@@ -168,8 +227,11 @@ const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
   ],
 };
 
-export const MODULES: { markering: Module<Markering> } & Record<ObjectSoort, Module<Object_>> = {
+export const MODULES: { markering: Module<Markering>; bepaling: Module<Bepaling>; stuk: Module<Stuk> }
+  & Record<ObjectSoort, Module<Object_>> = {
   markering: MARKERING,
+  bepaling: BEPALING,
+  stuk: STUK,
   deelvraag: objectModule(() => SUGGESTIES.deelvraag),
   bron: objectModule(() => SUGGESTIES.bron),
   kandidaat: objectModule(() => SUGGESTIES.kandidaat),
@@ -185,6 +247,11 @@ export const MODULES: { markering: Module<Markering> } & Record<ObjectSoort, Mod
 
 /** De suggesties van het werkgebied, voor de werkplek in een werkgebied zonder ander onderwerp. */
 export const werkgebiedSuggesties = (): Suggestie[] => SUGGESTIES.werkgebied;
+
+/** Een object uit een werkgebied (geen markering, bepaling of stuk): alleen dat kent een actie. */
+export function isObjectOnderwerp(o: Onderwerp | undefined): o is Object_ {
+  return !!o && o.soort !== "markering" && o.soort !== "bepaling" && o.soort !== "stuk";
+}
 
 function module(o: Onderwerp): Module<Onderwerp> {
   return MODULES[o.soort] as Module<Onderwerp>;
@@ -206,9 +273,24 @@ export function actieVerzoek(o: Object_, actie: VraagLexActie) {
 const SOORTEN: ObjectSoort[] = ["deelvraag", "bron", "kandidaat", "begrip", "werkgebied"];
 const ID = /^[A-Za-z0-9-]{1,64}$/;
 
+const BRON_IRI = /^urn:bwb:[A-Za-z0-9:._-]{1,200}$/;
+const CONNECTOR = /^[a-z_]{1,40}$/;
+const STUK_ID = /^[A-Za-z0-9:._-]{1,120}$/;
+
 /** `/workbench?werkgebied=<id>&vraag=<soort>:<id>&vraag_label=<label>`: een vers gesprek in het
- *  werkgebied, met de chip al gezet. Een markering heeft hier geen weg: daarvoor is het paneel. */
-export function vraagUrl(o: Object_): string {
+ *  werkgebied, met de chip al gezet. Een bepaling heet daar `vraag=bepaling&vraag_bron=<urn:bwb:…>`, een stuk
+ *  `vraag=stuk&vraag_connector=…&vraag_stuk=…`, met het werkgebied alleen als ze erin staan. Een markering heeft hier
+ *  geen weg: daarvoor is het paneel (`null`). */
+export function vraagUrl(o: Onderwerp): string | null {
+  if (o.soort === "markering") return null;
+  if (o.soort === "bepaling" || o.soort === "stuk") {
+    const qs = new URLSearchParams(o.werkgebied_id ? { werkgebied: o.werkgebied_id } : {});
+    qs.set("vraag", o.soort);
+    if (o.soort === "bepaling") qs.set("vraag_bron", o.bron_iri);
+    else { qs.set("vraag_connector", o.connector); qs.set("vraag_stuk", o.stuk_id); }
+    if (o.label) qs.set("vraag_label", o.label.slice(0, 200));
+    return `/workbench?${qs}`;
+  }
   const qs = new URLSearchParams({ werkgebied: o.werkgebied_id, vraag: `${o.soort}:${o.id || o.werkgebied_id}` });
   if (o.label) qs.set("vraag_label", o.label.slice(0, 200));
   if ((o.soort === "werkgebied" || o.soort === "begrip") && o.veld) qs.set("vraag_veld", o.veld);
@@ -218,9 +300,20 @@ export function vraagUrl(o: Object_): string {
 const VELDEN = new Set<string>(Object.keys(VELD_ZIN));
 
 /** Het onderwerp uit de URL van de werkplek, of `null` als het er niet (geldig) staat. */
-export function onderwerpUitUrl(zoek: { get(naam: string): string | null }): Object_ | null {
-  const [soort, id] = (zoek.get("vraag") ?? "").split(":");
+export function onderwerpUitUrl(zoek: { get(naam: string): string | null }): Exclude<Onderwerp, Markering> | null {
+  const vraag = zoek.get("vraag") ?? "";
   const werkgebied = zoek.get("werkgebied") ?? "";
+  const label = (zoek.get("vraag_label") ?? "").slice(0, 200);
+  const wg = werkgebied && ID.test(werkgebied) ? { werkgebied_id: werkgebied } : {};
+  if (vraag === "bepaling") {
+    const bron = zoek.get("vraag_bron") ?? "";
+    return BRON_IRI.test(bron) ? { soort: "bepaling", bron_iri: bron, label, ...wg } : null;
+  }
+  if (vraag === "stuk") {
+    const connector = zoek.get("vraag_connector") ?? "", stuk = zoek.get("vraag_stuk") ?? "";
+    return CONNECTOR.test(connector) && STUK_ID.test(stuk) ? { soort: "stuk", connector, stuk_id: stuk, label, ...wg } : null;
+  }
+  const [soort, id] = vraag.split(":");
   if (!SOORTEN.includes(soort as ObjectSoort) || !ID.test(id ?? "") || !ID.test(werkgebied)) return null;
   const veld = zoek.get("vraag_veld") ?? "";
   return {

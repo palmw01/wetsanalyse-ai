@@ -5,6 +5,7 @@ import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from 
 import { Melding } from "@/components/ui/Melding";
 import { Meter } from "@/components/ui/Meter";
 import type { NodeDoel, NodeWeergave } from "@/lib/annotatieNode";
+import type { Onderwerp } from "@/lib/vraagLex";
 import { hoofdactie as bepaalHoofdactie, knopenInWeergave, paneelDoel, relatieGroepen, telling, tellingTekst } from "@/lib/graaf/bediening";
 import { ankerVan, bouwModel, type KnoopData } from "@/lib/graaf/model";
 import { ketenZin } from "@/lib/graaf/ketenZin";
@@ -61,7 +62,7 @@ export interface GraafContext {
 }
 export const ANTWOORD: GraafContext = { naam: "Dit antwoord", kort: "Antwoord", terug: "het antwoord", focus: "wat het antwoord noemt" };
 
-export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekking, onKiesElement, onOpenTekst, onWisselArtikel, onVraag,
+export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekking, onKiesElement, onOpenTekst, onWisselArtikel, vraagOnderwerp,
   benaming = ANTWOORD, bijKnoop, herkomst }: {
   stand: GraafStand; zichtbaar: boolean; groot: boolean;
   /** Hoe het doel gekozen is: `eerste_bron` = Lex noemde geen bepaling (`antwoordDoelen`). */
@@ -79,7 +80,8 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
    *  en – als die actueel is – de kennisgraaf die al geladen is. Zonder deze haak is elke knoop "Toon
    *  in tekst". */
   onWisselArtikel?: (doel: NodeDoel, graaf: GraafOpties) => void;
-  onVraag?: (knoop: KnoopData) => void;
+  /** Waar *Vraag Lex* bij de gekozen knoop over gaat (een bepaling, een markering); zonder of `undefined` geen knop. */
+  vraagOnderwerp?: (knoop: KnoopData) => Onderwerp | undefined;
   /** Hoe de graaf zijn doelen noemt: standaard het antwoord, op de werkgebiedpagina het werkgebied. */
   benaming?: GraafContext;
   /** Een extra handeling bij de gekozen knoop, naast de hoofdactie – bv. opnemen in een werkgebied. */
@@ -141,7 +143,9 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
   // De knopen die het paneel als tekst kan tonen: wat in zijn weergave staat (vaak één lid), niet het
   // hele artikel dat de graaf laadt. Al het andere opent in het paneel in plaats van naar een tekst te
   // springen die het niet bevat.
-  const inPaneel = useMemo(() => (onWisselArtikel && weergave ? knopenInWeergave(model, weergave) : undefined),
+  // Met een wissel en zonder tekst (een overzicht) staat niets van de kaart als tekst in het venster: elke bepaling opent
+  // dan als eigen tab.
+  const inPaneel = useMemo(() => (onWisselArtikel ? (weergave ? knopenInWeergave(model, weergave) : new Set<string>()) : undefined),
     [model, weergave, onWisselArtikel]);
   const gekozenData = gekozen ? model.getNodeAttributes(gekozen) : undefined;
   const heeftBegrippen = useMemo(() => model.someNode((_, a) => a.soort === "begrip"), [model]);
@@ -314,7 +318,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
           onCentreer={() => gekozen && bediening.current?.focus(gekozen)}
           onSluit={() => kies(null)}
           onHoofdactie={doeHoofdactie}
-          onVraag={onVraag && gekozenData && gekozenData.soort !== "klasse" && gekozenData.soort !== "begrip" && gekozenData.soort !== "impliciet" ? () => onVraag(gekozenData) : undefined}
+          vraag={vraagOnderwerp && gekozenData && gekozenData.soort !== "klasse" && gekozenData.soort !== "begrip" && gekozenData.soort !== "impliciet" ? vraagOnderwerp(gekozenData) : undefined}
           doelenKop={benaming.naam} extra={bijKnoop && gekozen && gekozenData ? bijKnoop({ ...gekozenData, id: gekozen }) : undefined}
           onKies={(id) => kies(id)} />
         </div>

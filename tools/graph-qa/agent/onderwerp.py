@@ -24,7 +24,7 @@ from .agent_common import truncate
 logger = logging.getLogger("graph_qa.onderwerp")
 
 SOORT_NAAM = {"deelvraag": "Deelvraag", "bron": "Bronselectie", "kandidaat": "Kandidaat van Lex",
-              "begrip": "Begrip", "werkgebied": "Werkgebied"}
+              "begrip": "Begrip", "werkgebied": "Werkgebied", "bepaling": "Bepaling", "stuk": "Stuk"}
 STAND = {"met_bron": "gedekt (er hoort een bron bij)", "geen_bron": "nog geen bron"}
 MAX_REGELS = 12
 MAX_TEKENS = 4000
@@ -127,7 +127,17 @@ async def haal(api: Any, onderwerp: dict[str, Any]) -> str:
     label = onderwerp.get("label", "")
     regels: list[str] | None
     try:
-        if soort == "werkgebied":
+        if soort == "bepaling":
+            # Een bepaling buiten een bronselectie (het bronvenster, de bron- of annotatiepagina): de tekst haalt Lex
+            # zelf uit de graaf, met zijn tools; hier alleen wélke bepaling het is.
+            regels = [f"Bepaling: {label or onderwerp.get('bron_iri', '')}",
+                      f"Bronnode in de kennisgraaf: {onderwerp.get('bron_iri', '')}",
+                      "Haal de tekst en de samenhang zelf op met de tools; citeer letterlijk."]
+        elif soort == "stuk":
+            regels = [f"Stuk uit de bron '{onderwerp.get('connector', '')}': {label or onderwerp.get('stuk_id', '')}",
+                      f"Id van het stuk: {onderwerp.get('stuk_id', '')}",
+                      "Lees het stuk zelf met de leestool van die bron; citeer letterlijk."]
+        elif soort == "werkgebied":
             # Het dossier staat al in het werkgebiedblok; hier alleen dát het het onderwerp is.
             regels = [f"Werkgebied: {label or wid} – het werkgebied zelf (het dossier staat hieronder of erboven)."]
         elif soort == "deelvraag":

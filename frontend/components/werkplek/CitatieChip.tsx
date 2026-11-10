@@ -1,11 +1,11 @@
 "use client";
 
-import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { HerkomstRegel } from "@/components/ui/HerkomstRegel";
 import { BepalingTekst } from "@/components/wettekst/WettekstBlok";
-import { ContextPaneelContext } from "@/components/werkplek/ContextPaneel";
+import { useOpenBron } from "@/components/werkplek/ContextPaneel";
 import type { NodeDoel } from "@/lib/annotatieNode";
 import { herkomstLabel, herkomstVan } from "@/lib/herkomst";
 import { plaatsPopover } from "@/lib/popover";
@@ -46,7 +46,7 @@ function BronKaart({ doel, bron, rect, onSluit }: {
 }) {
   const ref = useRef<HTMLDivElement>(null);
   // In de werkplek: de bepaling naast het gesprek openen (spoor G4), met haar markeringen en elementen.
-  const openContext = useContext(ContextPaneelContext);
+  const openContext = useOpenBron();
   useEffect(() => {
     ref.current?.focus();
     const opToets = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onSluit(); } };
@@ -68,7 +68,7 @@ function BronKaart({ doel, bron, rect, onSluit }: {
     <div className="mt-2 flex flex-wrap items-center gap-3">
       {href && <a href={href} target="_blank" rel="noopener noreferrer" className="text-lint underline underline-offset-2">wetten.overheid.nl</a>}
       {openContext && <button type="button" data-naast-gesprek
-        onClick={() => { onSluit(); openContext({ soort: "bron", bron_iri: doel.bron_iri, titel: herkomstLabel(herkomst) }); }}
+        onClick={() => { onSluit(); openContext({ soort: "bron", bron_iri: doel.bron_iri, titel: herkomstLabel(herkomst), jci: bron.jci || undefined }); }}
         className="focus-ring inline-flex items-center gap-1 rounded text-lint underline underline-offset-2 hover:no-underline">
         Openen</button>}
     </div>

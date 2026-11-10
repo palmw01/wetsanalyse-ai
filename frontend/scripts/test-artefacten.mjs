@@ -362,9 +362,11 @@ try {
   assert.equal(await onderbouwing.getByRole("link").first().getAttribute("href"),
     "/bronnen?bron_iri=urn%3Abwb%3ABWBR0004770%3Aartikel%3A9%3Alid%3A1&werkgebied=wg1");
   await onderbouwing.getByText("Lex duidt dit als een begrip (algemeen)").waitFor();
-  // Spoor I2: er is nu een definitie maar nog geen uitleg; in het paneel staat daar geen Vraag Lex (spoor K).
+  // Spoor I2: er is nu een definitie maar nog geen uitleg; in het paneel staat *Vraag Lex* alleen in de kop (ontdubbelen
+  // PR 5), niet bij het veld.
   await begripPaneel.getByText("Nog geen uitleg.").waitFor();
-  assert.equal(await begripPaneel.locator("[data-vraag-lex]").count(), 0, "geen Vraag Lex naast het gesprek");
+  assert.equal(await begripPaneel.locator("[data-vraag-lex]").count(), 1, "één Vraag Lex, in de kop");
+  assert.equal(await begripPaneel.locator('[data-paneel-kop] [data-vraag-lex="begrip"]').count(), 1);
   // Een eigen bewerking: sluiten vraagt eerst, net als een tabwissel in het werkgebied.
   await begripPaneel.getByRole("button", { name: "Betekenis bewerken" }).click();
   await begripPaneel.getByLabel(/^Uitleg/).fill("Nog niet bewaard");
@@ -488,16 +490,16 @@ try {
   await ap.locator("[data-versiekiezer]").getByText("Versie 1 van 2").waitFor();
   await ap.getByText("De oude tekst van de opname.").waitFor();
   assert.equal(await inKopMenu(ap, (m) => m.getByRole("menuitem", { name: "Annotatie verwijderen" }).count()), 0, "een oude annotatie is niet te verwijderen");
-  assert.equal(await ap.getByRole("button", { name: "Graaf", exact: true }).count(), 0, "een oude annotatie heeft geen graaf");
+  assert.equal(await ap.getByRole("tab", { name: "Graaf", exact: true }).count(), 0, "een oude annotatie heeft geen graaf");
   assert.equal(await ap.getByText("op slot", { exact: false }).count(), 0, "geen uitleg over heropenen");
   await ap.locator("[data-oude-versie]").getByRole("button", { name: "Ga naar de huidige versie" }).click();
   await ap.locator('[data-versiekiezer][data-versie-plek="nu"]').waitFor();
   await inKopMenu(ap, (m) => m.getByRole("menuitem", { name: "Annotatie verwijderen" }).waitFor());
   await ap.getByText("De ontvanger stelt de belastingschuldige in kennis.").waitFor();
   // Op Nu naar de graaf en terug: de kiezer blijft op Nu (hij wordt daar opnieuw gemonteerd).
-  await ap.getByRole("button", { name: "Graaf", exact: true }).click();
+  await ap.getByRole("tab", { name: "Graaf", exact: true }).click();
   await ap.locator('[data-versiekiezer][data-versie-plek="nu"]').waitFor();
-  await ap.getByRole("button", { name: "Tekst", exact: true }).click();
+  await ap.getByRole("tab", { name: "Tekst", exact: true }).click();
   await ap.locator('[data-versiekiezer][data-versie-plek="nu"]').waitFor();
   metGraaf = false;
   await page.locator('button[data-artefact-soort="begrip"]', { hasText: "Termijn" }).click();

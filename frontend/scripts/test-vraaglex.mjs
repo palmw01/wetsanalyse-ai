@@ -109,8 +109,9 @@ try {
   await page.locator('button[data-artefact-soort="werkgebied"]').click();
   const paneel = page.locator('[data-artefact-soort="werkgebied"][data-artefact]');
   await paneel.locator("[data-werkgebied-samenvatting]").waitFor();
-  assert.equal(await paneel.locator("[data-vraag-lex]").count(), 0, "geen Vraag Lex naast het gesprek");
-  assert.equal(await paneel.getByText("Vraag Lex").count(), 0);
+  // Ook naast het gesprek de ene knop in de kop (besluit gebruiker 10 nov 2026, vervangt spoor K).
+  assert.equal(await paneel.locator('[data-paneel-kop] [data-vraag-lex="werkgebied"]').count(), 1, "Vraag Lex in de kop van het paneel");
+  assert.equal(await paneel.getByText("Vraag Lex").count(), 1, "één knop, geen tweede");
   await paneel.locator('[data-deelvraag-onderwerp="d1"]').click();
   await chip().getByText("Wanneer vervalt de termijn?").waitFor();
   await invoer().fill("Wat ontbreekt er nog?");
@@ -132,8 +133,25 @@ try {
   await page.waitForTimeout(300);
   assert.equal(runs.length, voor, "de werkplek start niets vanuit de URL");
 
+  // Een bepaling buiten een werkgebied (ontdubbelen PR 5): de link van de bron- of annotatiepagina zet de bepaling als
+  // onderwerp; *Annoteer dit onderdeel* stuurt het doel (de annotatieweg), een gewone vraag het onderwerp.
+  const K = "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k";
+  await page.goto(`${base}/workbench?vraag=bepaling&vraag_bron=${encodeURIComponent(K)}&vraag_label=${encodeURIComponent("Artikel 2, lid 1, onderdeel k")}`);
+  await page.locator('[data-onderwerp="bepaling"]').waitFor();
+  for (let i = 0; i < 30 && new URL(page.url()).searchParams.has("vraag"); i++) await page.waitForTimeout(100);
+  assert.ok(!new URL(page.url()).searchParams.has("vraag_bron"), "de parameters gaan uit de URL");
+  const bepSuggesties = page.getByTestId("vraag-suggesties").getByRole("button");
+  assert.deepEqual(await bepSuggesties.allTextContents(), ["Annoteer dit onderdeel", "Wat betekent dit onderdeel?",
+    "Naar welke bepalingen verwijst dit onderdeel?"]);
+  const vanaf = runs.length;
+  await bepSuggesties.first().click();
+  await wachtOp(vanaf + 1);
+  assert.deepEqual(runs[vanaf].doel, { bron_iri: K, bwbId: "BWBR0004770" }, "annoteren gaat met het doel");
+  assert.equal(runs[vanaf].onderwerp, undefined, "zonder onderwerp: de annotatieweg");
+  assert.equal(runs[vanaf].actie, undefined);
+
   assert.deepEqual(errors, []);
-  console.log("Browser OK: Vraag Lex als link buiten de werkplek, chip uit de URL (één keer), suggestie met actie, geen Vraag Lex in het paneel, een deelvraag als onderwerp, de startvraag voor een werkgebied.");
+  console.log("Browser OK: Vraag Lex als link buiten de werkplek, chip uit de URL (één keer), suggestie met actie, Vraag Lex in de kop van het paneel, een deelvraag als onderwerp, de startvraag voor een werkgebied, een bepaling buiten een werkgebied met Annoteer dit onderdeel als doel.");
 } finally {
   await browser.close();
 }

@@ -69,7 +69,7 @@ export function usePaneelKopVulling(vulling: KopVulling | null, sleutel: string)
  *  staat er geen zijpaneel met een balk, dus de tabs staan boven de kop van wat er open is. Alleen de werkplek geeft ze. */
 export const PaneelTabsContext = createContext<React.ReactNode>(null);
 
-export function PaneelKop({ soort, titel, pagina, status, hoofdactie, menu, onSluit, onder, balk }: {
+export function PaneelKop({ soort, titel, pagina, status, hoofdactie, vraag, menu, onSluit, onder, balk }: {
   /** De soort, klein boven de titel; weg als de titel de soortnaam al is (`artefactKop` in `lib/artefact.ts`). */
   soort?: string;
   titel: string;
@@ -79,6 +79,8 @@ export function PaneelKop({ soort, titel, pagina, status, hoofdactie, menu, onSl
   status?: React.ReactNode;
   /** Hoogstens één handeling, rechts op de tweede rij (`knopKlasse("secondary", "xs")`). */
   hoofdactie?: React.ReactNode;
+  /** *Vraag Lex* over wat het paneel toont (`VraagLexKnop`, ontdubbelen PR 5): op de tweede rij, vóór de hoofdactie. */
+  vraag?: React.ReactNode;
   /** De regels van het menu ⋯ (`MenuKnop`, `ExportRegels`, `MenuVerwijder`). */
   menu?: (sluit: () => void) => React.ReactNode;
   onSluit?: () => void;
@@ -117,10 +119,10 @@ export function PaneelKop({ soort, titel, pagina, status, hoofdactie, menu, onSl
           {onSluit && <SluitKnop onSluit={onSluit} />}
         </div>
       </div>
-      {(stand || actie) && (
+      {(stand || actie || vraag) && (
         <div data-kop-rij="stand" className="flex min-h-[24px] items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">{stand}</div>
-          {actie && <div className="flex shrink-0 items-center">{actie}</div>}
+          {(actie || vraag) && <div className="flex shrink-0 items-center gap-2">{vraag}{actie}</div>}
         </div>
       )}
     </div>

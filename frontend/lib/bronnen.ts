@@ -5,7 +5,7 @@
 // bepaling als graaf-IRI én als jci kan staan. Daarom normaliseert de werkplek zelf ook, met dezelfde
 // regels (`vindplaatsVan`, de spiegel van bronmodel): één weergave voor oud en nieuw.
 
-import type { Antwoord } from "./antwoord";
+import { bepalingenVan, type Antwoord, type AntwoordVindplaats } from "./antwoord";
 import type { NodeDoel } from "./annotatieNode";
 import { koppelVermelding, vindVermeldingen } from "./citaties";
 import { bronHref } from "./url";
@@ -189,13 +189,47 @@ export function antwoordDoelen(item: AntwoordBron, max = MAX_SAMENHANG_DOELEN): 
   return { doelen: alle.slice(0, max), totaal: alle.length };
 }
 
-function knopTekst({ doelen, totaal }: { doelen: NodeDoel[]; totaal: number }, meervoud: string): string {
-  if (doelen.length === 1) {
-    const d = doelen[0];
-    return `Bekijk samenhang van ${d.label ?? "de bepaling"}${d.citeertitel ? ` ${d.citeertitel}` : ""}`;
+
+/** De kaarten onder een antwoord (ontdubbelen PR 2): per bepaling die het bericht aanwijst één kaart, en de doelen van de
+ *  graaf van die kaarten (wat de tab Graaf als "Dit antwoord" toont). Eén regel voor elk soort antwoord:
+ *  - een sjabloon draagt zijn bepalingen zelf (`bepalingenVan`); de doelen zijn die bepalingen, zo diep als ze zijn;
+ *  - vrije tekst: de bepalingen die de tekst éénduidig noemt (`antwoordDoelen`, herkomst `vermelding`). Noemt de tekst er
+ *    geen, dan is er geen kaart: de eerste bron is een gok, en die staat al in de bronnenlijst;
+ *  - een overzicht heeft zijn eigen kaartje, en geen kaarten hier.
+ *  De bronnenlijst eronder laat weg wat een kaart heeft (`zonderKaarten`). */
+export function kaartenVan(item: { tekst: string; bronnen?: readonly Bron[]; antwoord?: Antwoord; overzicht?: unknown }):
+  { bepalingen: AntwoordVindplaats[]; doelen: NodeDoel[] } {
+  if (item.overzicht) return { bepalingen: [], doelen: [] };
+  const genoemd = antwoordDoelen({ type: "antwoord", tekst: item.tekst, bronnen: item.bronnen, antwoord: item.antwoord }).doelen
+    .filter((d) => d.herkomst === "vermelding");
+  if (item.antwoord) {
+    const bepalingen = bepalingenVan(item.antwoord);
+    const doelen = genoemd.length ? genoemd
+      : bepalingen.flatMap((v) => { const d = bronDoel(v.iri); return d ? [{ ...d, label: v.label }] : []; });
+    return { bepalingen, doelen: doelen.map(zonderHerkomst) };
   }
-  return `Bekijk samenhang van de ${totaal} genoemde ${meervoud}${totaal > doelen.length ? ` (${doelen.length} getoond)` : ""}`;
+  const bronnen = item.bronnen ?? [];
+  const bepalingen = genoemd.map((d): AntwoordVindplaats => {
+    const bron = bronnen.find((b) => vindplaatsVan(b.bron_iri || b.uri)?.bron_iri === d.bron_iri && b.jci);
+    return { iri: d.bron_iri, label: d.label ?? "", jci: bron?.jci ?? "", regeling: d.citeertitel ?? "" };
+  });
+  return { bepalingen, doelen: genoemd.map(zonderHerkomst) };
 }
 
-/** De tekst op de knop: wat hij opent, niet alleen dát hij iets opent. Een doel is een bepaling, geen artikel. */
-export const antwoordKnopTekst = (keuze: { doelen: NodeDoel[]; totaal: number }) => knopTekst(keuze, "bepalingen");
+function zonderHerkomst(d: NodeDoel & { herkomst?: string }): NodeDoel {
+  const { herkomst: _h, ...rest } = d;
+  void _h;
+  return rest;
+}
+
+/** De bronnen zonder de bepalingen die al een kaart hebben: één ingang per bepaling. Regelingen, stukken uit een
+ *  bronconnector en externe bronnen blijven. */
+export function zonderKaarten(bronnen: readonly Bron[], kaarten: readonly AntwoordVindplaats[]): Bron[] {
+  if (!kaarten.length) return [...bronnen];
+  const weg = new Set(kaarten.map((k) => vindplaatsVan(k.iri)?.bron_iri ?? k.iri));
+  return bronnen.filter((b) => {
+    if (b.brontype && b.brontype !== "wettekst") return true;
+    const vp = vindplaatsVan(b.bron_iri || b.uri) ?? vindplaatsVan(b.uri);
+    return !vp || vp.soort === "regeling" || !weg.has(vp.bron_iri);
+  });
+}

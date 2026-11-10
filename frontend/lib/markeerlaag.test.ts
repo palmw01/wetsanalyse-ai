@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { markeringVan, segmenteer, segmentenVanBlok } from "./DocumentPaneel";
+import { markeringVan, segmenteer, segmentenVanBlok } from "./markeerlaag";
 import { blokkenVan } from "@/lib/wetstructuur";
 import { maakAnker } from "@/lib/selectie";
 

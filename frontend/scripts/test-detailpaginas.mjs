@@ -90,8 +90,11 @@ try {
   await bron.getByRole("link", { name: /^Invorderbaarheid/ }).waitFor();
   assert.ok(requests.some((r) => r.p === "/api/werkgebieden" && r.q === `?bron_iri=${encodeURIComponent(LID)}`));
   await bron.getByText("Artikel 9, lid 1", { exact: false }).first().waitFor();
-  // Zonder werkgebied: kruimelpad via de annotaties, geen *Bespreek met Lex* (er is geen bronselectie).
-  assert.equal(await page.locator("[data-paginakop] [data-vraag-lex]").count(), 0);
+  // Zonder werkgebied: kruimelpad via de annotaties, en *Bespreek met Lex* over de bepaling zelf (ontdubbelen PR 5): een
+  // link naar het gesprek met de bepaling als onderwerp.
+  const bespreek = page.locator('[data-paginakop] [data-vraag-lex="bepaling"]');
+  assert.equal(await bespreek.count(), 1);
+  assert.match(await bespreek.getAttribute("href"), /^\/workbench\?vraag=bepaling&vraag_bron=/);
 
   // Met het werkgebied als context.
   await page.goto(`${base}/bronnen?bron_iri=${encodeURIComponent(LID)}&werkgebied=wg1`);

@@ -81,7 +81,7 @@ def _blok(onderwerp: dict, api: NepApi | None = None) -> str:
 
 def test_een_onderwerp_draagt_soort_en_ids_en_een_object_heeft_een_id():
     o = Onderwerp(soort="deelvraag", werkgebied_id="wg1", id="dv1", label="Wanneer?")
-    assert o.model_dump() == {"soort": "deelvraag", "werkgebied_id": "wg1", "id": "dv1", "label": "Wanneer?"}
+    assert o.model_dump(exclude_defaults=True) == {"soort": "deelvraag", "werkgebied_id": "wg1", "id": "dv1", "label": "Wanneer?"}
     assert Onderwerp(soort="werkgebied", werkgebied_id="wg1").id == ""
     with pytest.raises(ValidationError):
         Onderwerp(soort="begrip", werkgebied_id="wg1")
@@ -226,6 +226,32 @@ def test_het_werkgebied_zelf_vraagt_niets_extra_bij_de_api():
 def test_onbekend_of_een_storing_is_geen_leeg_blok(onderwerp, faal):
     blok = _blok(onderwerp, NepApi(faal))
     assert onderwerp["label"] in blok and "konden niet worden opgehaald" in blok
+
+
+def test_een_bepaling_of_stuk_kan_zonder_werkgebied_en_vraagt_niets_van_de_api():
+    """Ontdubbelen PR 5: *Vraag Lex* in het bronvenster, op de bron- en de annotatiepagina."""
+    b = Onderwerp(soort="bepaling", bron_iri="urn:bwb:BWBR0004770:artikel:2:lid:1:o:k", label="Artikel 2, lid 1, onderdeel k")
+    assert b.werkgebied_id == "" and b.id == ""
+    s = Onderwerp(soort="stuk", connector="kamerstukken", stuk_id="kst-32140-342", label="Kamerstuk 32140, nr. 342")
+    assert s.stuk_id == "kst-32140-342"
+    assert Onderwerp(soort="stuk", connector="rechtspraak", stuk_id="ECLI:NL:HR:2020:123").stuk_id.startswith("ECLI")
+    with pytest.raises(ValidationError):
+        Onderwerp(soort="bepaling")
+    with pytest.raises(ValidationError):
+        Onderwerp(soort="bepaling", bron_iri="http://elders/x")
+    with pytest.raises(ValidationError):
+        Onderwerp(soort="stuk", connector="kamerstukken")
+    with pytest.raises(ValidationError):
+        Onderwerp(soort="deelvraag", id="d1")  # zonder werkgebied
+    api = NepApi()
+    blok = _blok({"soort": "bepaling", "bron_iri": "urn:bwb:BWBR0004770:artikel:9", "label": "Artikel 9"}, api)
+    assert "Bepaling: Artikel 9" in blok and "urn:bwb:BWBR0004770:artikel:9" in blok and api.calls == []
+    blok = _blok({"soort": "stuk", "connector": "kamerstukken", "stuk_id": "kst-1-2", "label": "Kamerstuk 1, nr. 2"}, api)
+    assert "Kamerstuk 1, nr. 2" in blok and "kst-1-2" in blok and api.calls == []
+    # Een actie op een bepaling zonder werkgebied heeft geen werkgebied om in te werken.
+    with pytest.raises(ValidationError):
+        ChatRequest(question="Annoteer", actie="dekking",
+                    onderwerp=Onderwerp(soort="bepaling", bron_iri="urn:bwb:BWBR0004770:artikel:9"))
 
 
 def test_zonder_api_noemt_het_blok_het_label():

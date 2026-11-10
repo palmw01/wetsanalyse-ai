@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { antwoordDoelen, antwoordKnopTekst, normaliseerBronnen } from "./bronnen";
+import { antwoordDoelen, kaartenVan, normaliseerBronnen, zonderKaarten } from "./bronnen";
 import type { Bron } from "./types";
 
 const IW = "BWBR0004770", AWB = "BWBR0005537", AWR = "BWBR0002320", AWIR = "BWBR0018472";
@@ -174,11 +174,18 @@ describe("antwoordDoelen", () => {
     expect([doelen.length, totaal]).toEqual([2, 3]);
   });
 
-  it("noemt op de knop bepalingen, of de ene bepaling", () => {
-    const twee = uit("Artikel 9, eerste lid, en artikel 9, derde lid.", [iw("artikel", "9")]);
-    expect(antwoordKnopTekst(twee)).toBe("Bekijk samenhang van de 2 genoemde bepalingen");
-    expect(antwoordKnopTekst({ doelen: twee.doelen.slice(0, 1), totaal: 2 })).toBe("Bekijk samenhang van Artikel 9, lid 1 Invorderingswet 1990");
-    expect(antwoordKnopTekst(uit("Artikel 2, eerste lid, onderdeel m.", [iw("artikel", "2")])))
-      .toBe("Bekijk samenhang van Artikel 2, lid 1, onderdeel m Invorderingswet 1990");
+  it("kaarten onder vrije tekst: wat de tekst noemt, geen gok; de bronnenlijst laat ze weg", () => {
+    const bronnen = [iw("artikel", "9"), iw("artikel", "10")];
+    const { bepalingen, doelen } = kaartenVan({ tekst: "Artikel 9, eerste lid, en artikel 9, derde lid.", bronnen });
+    expect(bepalingen.map((b) => b.iri)).toEqual(doelen.map((d) => d.bron_iri));
+    expect(doelen).toHaveLength(2);
+    expect(doelen.every((d) => !("herkomst" in d))).toBe(true);
+    // Noemt de tekst niets, dan geen kaart (de eerste bron is een gok).
+    expect(kaartenVan({ tekst: "Dat staat in de wet.", bronnen }).bepalingen).toEqual([]);
+    // Een overzicht heeft zijn eigen kaartje.
+    expect(kaartenVan({ tekst: "Artikel 9.", bronnen, overzicht: {} }).bepalingen).toEqual([]);
+    // De bronnenlijst: artikel 9 heeft een kaart, artikel 10 niet.
+    const een = kaartenVan({ tekst: "Artikel 9.", bronnen });
+    expect(zonderKaarten(bronnen, een.bepalingen).map((b) => b.uri)).toEqual([bronnen[1].uri]);
   });
 });

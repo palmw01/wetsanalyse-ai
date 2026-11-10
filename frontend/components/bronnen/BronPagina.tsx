@@ -87,10 +87,12 @@ export function BronPagina({ bronIri, werkgebiedId }: { bronIri: string; werkgeb
             </>}
             acties={<>
               <OpnemenInWerkgebied bronIri={bronIri} />
-              {wg && selectie && (
-                <VraagLexKnop primair onderwerp={{ soort: "bron", werkgebied_id: wg.id, id: selectie.id, label: naam }}
-                  naam={`Bespreek ${naam} met Lex`} />
-              )}
+              {/* Eén *Bespreek met Lex*, ook buiten een werkgebied (ontdubbelen PR 5): in een werkgebied de bronselectie
+                  (met haar rol en reden), anders de bepaling zelf. */}
+              <VraagLexKnop primair naam={`Bespreek ${naam} met Lex`}
+                onderwerp={wg && selectie ? { soort: "bron", werkgebied_id: wg.id, id: selectie.id, label: naam }
+                  : { soort: "bepaling", bron_iri: bronIri, label: naam, ...(wg ? { werkgebied_id: wg.id } : {}),
+                    annotatie: actueel.length > 0 }} />
             </>}
           />
           <SplitDetail

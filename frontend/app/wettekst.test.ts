@@ -51,4 +51,25 @@ describe("één wettekstweergave", () => {
     expect(pagina).toMatch(/<BronVenster variant="pagina"/);
     expect(pagina).not.toMatch(/<WettekstBlok|<Kaart titel="Wettekst"|<Kaart titel="JAS-elementen"/);
   });
+
+  it("de graaf van een bron staat alleen in BronGraaf, met één keuze Tekst | Graaf (ontdubbelen PR 1)", () => {
+    const graven = CODE.filter((p) => /\buseGraafStand\(/.test(bron(p)) && !p.endsWith("useGraafStand.ts"));
+    expect(graven.sort()).toEqual([join("components", "werkgebieden", "SamenhangTab.tsx"), join("components", "wettekst", "BronGraaf.tsx")]);
+    // Geen eigen Tekst/Graaf-knoppen met aria-pressed, en geen losse samenhangknop in de kop van het venster.
+    for (const p of CODE) {
+      expect(bron(p), p).not.toMatch(/\(\["tekst", "graaf"\] as const\)\.map/);
+      expect(bron(p), p).not.toMatch(/data-bron-samenhang/);
+    }
+  });
+
+  it("de annotatie tekent dezelfde wettekst, met de markeerlaag erop (ontdubbelen PR 4)", () => {
+    // Geen tweede tekstweergave: geen DocumentPaneel, `data-offset` (de selectie-ankers) alleen in WettekstBlok, en de
+    // blokken uit de nummervorm (`blokkenVan`) niet meer in een component.
+    expect(CODE.filter((p) => /DocumentPaneel/.test(p))).toEqual([]);
+    const offsets = CODE.filter((p) => /data-offset=/.test(bron(p)));
+    expect(offsets).toEqual([join("components", "wettekst", "WettekstBlok.tsx")]);
+    const blokken = CODE.filter((p) => p.startsWith("components") && /\bblokkenVan\(/.test(bron(p)));
+    expect(blokken).toEqual([]);
+    expect(bron(join("components", "werkplek", "AnnotatieTekst.tsx"))).toMatch(/<WettekstBlok groot laag=/);
+  });
 });

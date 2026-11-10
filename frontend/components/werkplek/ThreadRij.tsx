@@ -13,9 +13,10 @@ import { memo, useEffect, useMemo, useState } from "react";
 
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { Antwoord } from "@/components/antwoord/Antwoord";
-import { BepalingChips, SamenhangChip } from "@/components/antwoord/BepalingChip";
+import { BepalingChips } from "@/components/antwoord/BepalingChip";
+import { BerichtSamenhangContext, type BerichtSamenhang } from "@/components/werkplek/ContextPaneel";
 import { Vindplaats } from "@/components/antwoord/Vindplaats";
-import { alleenNietGetoetst, bepalingenVan } from "@/lib/antwoord";
+import { alleenNietGetoetst } from "@/lib/antwoord";
 import { Button } from "@/components/ui/Button";
 import { ChevronOmlaag, Cirkel, Waarschuwing } from "@/components/ui/Icoon";
 import { HergebruikMelding } from "@/components/werkplek/HergebruikMelding";
@@ -30,9 +31,8 @@ import {
 import type { NodeDoel } from "@/lib/annotatieNode";
 import { ARTEFACT_SOORT_LABEL, artefactKop, isTeOpenen, type Artefact } from "@/lib/artefact";
 import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
-import { antwoordDoelen, antwoordKnopTekst, normaliseerBronnen } from "@/lib/bronnen";
-import { overzichtAlsMarkdown, overzichtDefinities, overzichtDoelen, overzichtFocus, overzichtKnopTekst, telling } from "@/lib/overzicht";
-import type { GraafOpties } from "@/components/graaf/useGraafStand";
+import { kaartenVan, normaliseerBronnen, zonderKaarten } from "@/lib/bronnen";
+import { overzichtAlsMarkdown, telling } from "@/lib/overzicht";
 import { beurtSamenvatting } from "@/lib/waarom";
 import type { ThreadItem } from "@/lib/threadItem";
 import { ANNOTEER_PROMPT, PLAFOND, bepalingen, deelgesprekken, regiePrompt, type BevestigingKeuze } from "@/lib/werkgebiedAnnoteren";
@@ -58,7 +58,6 @@ export interface ThreadActies {
   /** De samenhang van een bron onder een antwoord in de graaf; `extra` zijn de andere genoemde
    *  artikelen, of de andere delen van een overzicht. `graaf`: met welk bereik hij opent en wat de
    *  nadruk krijgt (een overzicht: de hele kennisgraaf, met alles uit het overzicht). */
-  openSamenhang: (doel: NodeDoel, extra?: NodeDoel[], graaf?: GraafOpties) => void;
   /** Eén lid uit een reeksblok openen, met bladeren door de rest van de reeks. */
   openReeksLid: (runId: string, doel: NodeDoel) => void;
   stop: () => void;
@@ -78,7 +77,6 @@ interface Props {
   bezig: boolean;
   geblokkeerd: boolean;
   demo: boolean;
-  samenhangAan: boolean;
   /** Een reeksblok: loopt déze reeks nu? */
   loopt: boolean;
   /** Het eerste item van een reeks vragen (activiteit 1): de Vragen-kaart die het draagt. */
@@ -89,8 +87,15 @@ interface Props {
 }
 
 export const ThreadRij = memo(function ThreadRij({
-  item, streamt, bezig, geblokkeerd, demo, samenhangAan, loopt, vragen, keuze, acties,
+  item, streamt, bezig, geblokkeerd, demo, loopt, vragen, keuze, acties,
 }: Props) {
+  // De kaarten onder een antwoord (ontdubbelen PR 2): per bepaling één, en de samenhang van het bericht voor elke ingang
+  // erin (kaart, vindplaats, citatie). De bronnenlijst laat weg wat een kaart heeft.
+  const kaarten = useMemo(() => (item.type === "antwoord" ? kaartenVan(item) : null), [item]);
+  const bericht = useMemo<BerichtSamenhang | null>(() => (kaarten?.doelen.length
+    ? { doelen: kaarten.doelen, graaf: { keten: true } } : null), [kaarten]);
+  const restBronnen = useMemo(() => (item.type === "antwoord" && item.bronnen
+    ? zonderKaarten(item.bronnen, kaarten?.bepalingen ?? []) : []), [item, kaarten]);
   if (vragen) {
     // Het samenstellen van een werkgebied: wat Lex bij de eerste vraag zei, en de vragen met je antwoorden.
     return (
@@ -121,6 +126,7 @@ export const ThreadRij = memo(function ThreadRij({
       )}
     </div>
   ) : item.type === "antwoord" ? (
+    <BerichtSamenhangContext.Provider value={bericht}>
     <div className="group flex animate-rise gap-3">
       <LexAvatar />
       <div className="min-w-0 flex-1 text-sm text-ink">
@@ -140,7 +146,7 @@ export const ThreadRij = memo(function ThreadRij({
           <Punten />
         )}
         {/* Wat het antwoord aanwijst, naast het gesprek te openen met wat de graaf er verder over weet (ADR-008). */}
-        {item.antwoord && !demo && <BepalingChips bepalingen={bepalingenVan(item.antwoord)} />}
+        {!demo && kaarten && <BepalingChips bepalingen={kaarten.bepalingen} />}
         <BeurtUitkomstBlok uitkomst={item.uitkomst} />
         {/* Het overzicht uit de graaf staat naast het gesprek: hier de samenvatting en een kaartje. */}
         {item.overzicht && item.overzicht.regelingen.length > 0 && !demo && (
@@ -148,20 +154,7 @@ export const ThreadRij = memo(function ThreadRij({
         )}
         {/* Bij een overzicht linkt het paneel elke vindplaats: een bronnenlijst van 40–90 regels ernaast
             zegt niets nieuws. De bronnen blijven in het bericht (herkomst, eval). */}
-        {!item.overzicht && !item.antwoord?.doelen.length && item.bronnen && item.bronnen.length > 0 && <Bronnen bronnen={item.bronnen} />}
-        {samenhangAan && !demo && (item.overzicht || !!item.bronnen?.length || !!item.antwoord?.doelen.length) && (() => {
-          // Met een overzicht: de delen daarvan, in zijn eigen volgorde – los van hoe Lex formuleerde.
-          // Anders: de bepalingen die het antwoord noemt, tot de diepste (`antwoordDoelen`).
-          const ov = item.overzicht;
-          const keuze = ov ? overzichtDoelen(ov) : antwoordDoelen(item);
-          const tekst = ov ? overzichtKnopTekst(ov) : `${antwoordKnopTekst(keuze)} in de graaf`;
-          const [doel, ...extra] = keuze.doelen;
-          // Eén chip naast de bepalingen (het bronvenster, PR 4): de samenhang opent als tab naast het gesprek.
-          const titel = tekst.replace(/^Bekijk /, "").replace(/ in de (kennis)?graaf$/, "");
-          return doel && <SamenhangChip label={tekst} titel={`Samenhang: ${titel.replace(/^samenhang van /, "")}`}
-            onClick={() => acties.openSamenhang(doel, ov ? [...extra, ...overzichtDefinities(ov)] : extra,
-              ov ? { bereik: "kennisgraaf", focus: overzichtFocus(ov), keten: true } : undefined)} />;
-        })()}
+        {!item.overzicht && !item.antwoord?.doelen.length && restBronnen.length > 0 && <Bronnen bronnen={restBronnen} />}
         {/* Lex begint niet zonder akkoord: het voorstel noemt aantal en kosten, de knop start. */}
         {item.bevestiging && item.bevestiging.aantal > 0 && !demo && keuze && (
           <p className="mt-3 text-xs text-muted" data-bevestiging-keuze={keuze}>
@@ -208,6 +201,7 @@ export const ThreadRij = memo(function ThreadRij({
         {item.tekst && <KopieerKnop tekst={item.overzicht ? `${item.tekst}\n\n${overzichtAlsMarkdown(item.overzicht)}` : item.tekst} />}
       </div>
     </div>
+    </BerichtSamenhangContext.Provider>
   ) : item.type === "kandidaten" ? (
     <div className="group flex animate-rise gap-3">
       <LexAvatar />
