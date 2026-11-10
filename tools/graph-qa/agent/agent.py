@@ -305,6 +305,7 @@ async def answer_stream(
         "bronnen": beurtbronnen,
         "bronstand": bronstand_nu,
         "bron_lezen": [],
+        "bron_lijst": {},
         # Het dossier van dat werkgebied, per beurt vers uit de api: elke bewaarde wijziging telt meteen.
         "werkgebied_context": await _werkgebied_blok(settings, user_id, werkgebied_id) if werkgebied_id else "",
         # Waar de analist *Vraag Lex* op koos: alleen deze beurt; het object blijft in de focus.

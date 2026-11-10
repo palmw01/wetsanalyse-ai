@@ -28,6 +28,8 @@ class State(TypedDict, total=False):
     bronstand: dict[str, dict[str, Any]]
     # De leestool-aanroepen voor stukken die de vraag bij id noemt (`nodes/bron_lezen.py`); per beurt, één keer.
     bron_lezen: list[dict[str, Any]]
+    # Een lijstvraag over een bron naast de wet (`agent/bron_lijst.py`): {connector, tool, args}; per beurt.
+    bron_lijst: dict[str, Any]
     # Het dossier van dat werkgebied als contextblok (`werkgebied_context.als_blok`), per beurt opgehaald;
     # `memory_context` zet het naast de focus. Context, geen filter.
     werkgebied_context: str

@@ -36,6 +36,7 @@ ankerlogica die de api en de agent delen staat in `packages/bronmodel` (`wetsana
 | `nodes/annotatie.py` | annoteer (voorbereiding + `jas_pipeline.keten.analyseer`) en emit |
 | `nodes/annotatie_lezen.py` | de leesroute: eerst zoeken in de opgeslagen annotaties, dan formuleren |
 | `nodes/bron_lezen.py` | een stuk dat de vraag bij id noemt (ADR-013): de leestool van de connector in code, dan formuleren |
+| `nodes/bron_lijst.py` | een lijstvraag over een bron naast de wet ("het laatste stuk van dossier 32140"): de zoektool in code, het blok `stukken`, zonder model |
 | `nodes/overzicht.py` | de overzichtsroute: overzicht en tekst uit de graaf, zonder model |
 | `nodes/bepaling.py` | de bepalingsroute (ADR-010, laag 2): de tekst van een bepaling uit `bepaling_workflow`, zonder toollus |
 | `nodes/werkgebied.py` | de werkgebied-worker: één stap van het samenstellen van een werkgebied (activiteit 1) |
@@ -51,6 +52,7 @@ supervisor ─┬─ antwoord-worker:  agent ⇄ tools → verify → (correct) 
             ├─ annotatie-worker: [agent ⇄ tools als ophaal-agent] → annoteer → emit → advance
             ├─ leesroute:        annotaties_zoeken → agent ⇄ tools → verify → finalize
             ├─ genoemd stuk:     bron_lezen → agent ⇄ tools → verify → finalize   (een id als kst-35496-F, ADR-013)
+            ├─ lijstvraag:       bron_lijst → verify → finalize   (zoektool in code, geen model; bij een fout → agent)
             ├─ begrippen lezen:  begrippen_zoeken → agent ⇄ tools → verify → finalize
             ├─ overzichtsroute:  overzicht_bouwen → verify → finalize   (geen model; bij een bouwfout → agent)
             ├─ bepalingsroute:   bepaling_lezen → verify → finalize     (tekst uit code, één aanroep voor de toelichting; anders → agent)
@@ -115,7 +117,13 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   tot_nr}]`, en als eigen sjabloon is er `antwoord_extern`, allebei alleen als er een connector aanstaat die de rol bedient
   (`agent_node`); zonder connector zijn de schema's byte-gelijk. De tekst komt uit de rijen van de leestool (contract:
   `stuk: {id, label, link, bron_hash, gewijzigd?}`, rijen `{nr, tekst, kop?}`). `check_grounding` noemt een stuk dat alleen in een zoekresultaat
-  stond `onbevestigd` ("alleen gevonden, niet gelezen"). `tests/test_extern_sjabloon.py`.
+  stond `onbevestigd` ("alleen gevonden, niet gelezen"). **Een lijst gevonden stukken** is het blok `stukken` (veld
+  `stukken: [id]` naast `extern`, in het subsjabloon en in `antwoord_extern`): het model wijst ids uit een zoekresultaat
+  aan, `extern.lijsten` neemt label, soort, datum, titel en de rest uit de zoekrijen (of uit het `stuk` van de leestool,
+  ook bij `alleen_pdf`), in de volgorde van het resultaat, met de zoekvraag in woorden (`zoekvraag_tekst`, uit
+  `ConnectorBeschrijving.filters`) en het totaal. Het blok staat in `NIET_GETOETST`: gevonden is daar geen signaal. Het
+  blok `extern` draagt `datum` en `soort_stuk` uit het `stuk`. Een ISO-datum uit een bron telt in de controle als dezelfde
+  datum voluit (`hoeveelheden`). `tests/test_extern_sjabloon.py`.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
   keurt **twee** dingen af en `correct_node` moet ze allebei benoemen: `unsupported` (een vindplaats die
@@ -233,20 +241,37 @@ bruikbaar is.
   en waarvoor hij staat, of waarom hij uit staat en wie hem aanzet. Zonder aangeboden connector en zonder genoemde bron
   is dat blok leeg. `tests/test_bronprompt.py`. `tests/test_bronschakelaar.py`.
   **Kamerstukken** (`tools/kamerstuk_tools.py`, transport `adapters/sru_kamerstukken.py`): `zoek_kamerstukken`
-  (een dossier of subdossier, `w.dossiernummer=="36200-IX"`; tot `MAX_DOSSIER` stukken op nummer, daarboven op datum met
-  een exact vervolg en `volgorde: "datum"` – nooit afgekapt; of woorden in de titel; zonder bijlagen, `dt.type==Kamerstuk`) en `get_kamerstuk` (per alinea, met de kop, in documentvolgorde;
+  (filters, te combineren: een dossier of subdossier, `w.dossiernummer=="36200-IX"`, met `nummer` voor één stuk; woorden in
+  de titel; `soort` in `w.subrubriek` óf de titel, want oudere stukken hebben de rubriek "Overig"; `tekst` in de hele tekst
+  (`cql.textAndIndexes`: een zinsdeel tussen aanhalingstekens als `adj`, losse woorden als `all`, hoogstens zes; meting
+  `kamerstukken-tekstzoeken-2026-11-09`: 8 van 8 tegen 3 in de titel); `vanaf`/`tot` op de
+  documentdatum, ook `JJJJ` of `JJJJ-MM`; `vergaderjaar`; `kamer`. De `volgorde` is de enum uit
+  `KAMERSTUKKEN.volgordes`: `nieuwste`/`oudste` op `dt.date` met het id als tweede sleutel (alleen `sortBy` in de CQL
+  sorteert, `sortKeys` negeert de dienst), `nummer` binnen een dossier (tot `MAX_DOSSIER` op nummer, daarboven de oudste
+  eerst met een exact vervolg – nooit afgekapt), `relevantie` bij woorden; zonder volgorde een dossier op nummer, woorden
+  op relevantie, de rest nieuwste. `aantal` begrenst de pagina. Elk resultaat draagt `zoekvraag` (filters en volgorde) en
+  `totaal`; zonder bijlagen, `dt.type==Kamerstuk`) en `get_kamerstuk` (per alinea, met de kop, in documentvolgorde;
   een CALS-tabel als één rij (`soort: "tabel"`, titel, omvang, `tot_nr`) met `openen` naar `get_kamerstuk(tabel=)`: de kop met
   de kolommen als `cellen`, per rij `{soort: "tabelrij", cellen, tekst: "a | b"}`, de tabelnoten, en `samengevoegd` (een
   overspannende cel staat in haar eerste kolom); illustraties geteld in `overgeslagen`, de eigen inhoudsopgave apart; een voetnoot is een rij direct
   na zijn alinea (`soort: "voetnoot"`, `verwijst_naar` uit een `extref` naar een document), en de alinea noemt haar `noten`; een `tussenkop` hoort bij de alinea's erna, zodat
   de artikelsgewijze toelichting haar artikel noemt; de eerste pagina draagt `inhoud`, per kop de offset, om te springen). De CQL bouwt de tool, de document-URL komt uit het
-  SRU-record en alleen `repository.overheid.nl` over https; een SRU-diagnose of storing is een foutresultaat
-  (`bron_onbereikbaar`), nooit een lege lijst. Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
+  SRU-record en alleen `repository.overheid.nl` over https; een fout is een foutresultaat, nooit een lege lijst, met de
+  oorzaak als reden (`KamerstukFout.code` → `FOUTREDEN`): `bron_onbereikbaar` (storing), `zoekvraag_geweigerd` (een
+  SRU-diagnose), `niet_gevonden` en `alleen_pdf` (het stuk bestaat, maar KOOP heeft nog alleen een PDF – vaak bij een
+  onopgemaakt stuk; het resultaat draagt dan `stuk` met de metadata en de link). **Metadata uit KOOP**
+  (`KAMERSTUKKEN.metadata`, sleutels uit `bronmodel.connectors.METADATA_SLEUTELS`): `Record` leest elk veld apart (de
+  documentdatum `dt.date` en de publicatiedatum `dt.available` lopen soms weken uiteen), en `kamerstuk_tools.metadata`
+  zet ze in de rij en in `stuk` (`label`, `soort`, `titel`, `datum`, `jaar`, `orgaan`, `indieners`; `gepubliceerd`,
+  `reeks`, `status`, `leesbaar` alleen in de uitzondering). Het label komt uit dossier en nummer, niet uit het id; een
+  `w.subrubriek` "Overig" (oudere stukken) wordt het soort uit de titel. **Een id dat KOOP niet kent** zoekt
+  `SruKamerstukken.record` op dossier en nummer in het hoofddossier: een herdruk (`kst-32740-1` → `kst-32740-1-n1`) en
+  een onopgemaakt stuk (32140 nr. 342 = `kst-1278484`); het `stuk` noemt het echte id en de toelichting zegt het. Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
   sjabloon citeert er dus niet uit als passage van een bepaling. **Cache met versiecontrole** (een Kamerstuk verandert
   na publicatie: onopgemaakt → opgemaakt, herdruk, rectificatie): binnen `VERS_S` geen aanroep, daarna een lichte
   metadatavraag op `dt.modified`/documentstatus/versie en alleen bij een verschil de XML opnieuw (log
-  `kamerstuk_gewijzigd`); bij een storing de bewaarde versie met `gevalideerd: false`; grenzen `MAX_CACHE` en
-  `MAX_CACHE_BYTES`. Het `stuk` noemt `bron_hash`, `gewijzigd`, `documentstatus` en `versie`, en het blok `extern`
+  `kamerstuk_gewijzigd`); bij een storing (alleen `onbereikbaar`, niet een stuk dat verdween) de bewaarde versie met `gevalideerd: false`; grenzen `MAX_CACHE` en
+  `MAX_CACHE_BYTES`. Het `stuk` noemt `bron_hash`, `gewijzigd`, `status` en `versie`, en het blok `extern`
   bewaart `bron_hash` en `gewijzigd`; `_gelezen` neemt de passages uit één lezing (dezelfde hash). Het contract met de echte dienst (indexen, sortering, recordvorm, documentstatus) toetst
   `tests/test_kamerstukken_live.py`: dagelijks in `bronnenwacht.yml`, lokaal met `BRONNEN_LIVE=1 uv run pytest -m live`
   (marker `live`; elke connector heeft er een, `test_connectorbeschrijving.py`). Niet in de poort.
@@ -1523,8 +1548,15 @@ noemt elke bekende connector uit de beschrijving (`_scope_bronnen`), en de code 
 connector raakt (`bronmodel.connectors.herkende`). Gaat de vraag alleen over bronnen die in deze beurt uit staan (en noemt
 ze geen artikel), dan zegt Lex zonder model waarom en wie ze aanzet (`_bron_uit`, `bronstand.melding_uit`; route
 `bron_uit`, met een `bron_uit`-event waarmee de werkplek *Zet aan* aanbiedt). **Noemt de vraag een stuk bij id** van een
-connector die aanstaat (`connectors.genoemde_stukken`), dan leest de code het vooraf (`_te_lezen`, `nodes/bron_lezen.py`, de
-`leestool` met `lees_argument`); zonder artikel in de vraag zonder supervisorcall. Een vraag over een bron naast de wet start
+connector die aanstaat (`connectors.genoemde_stukken`, ook in een citeervorm van de beschrijving: "Kamerstuk 32140, nr.
+342" → `kst-32140-342`, dat de leestool bij de bron oplost), dan leest de code het vooraf (`_te_lezen`,
+`nodes/bron_lezen.py`, de `leestool` met `lees_argument`); zonder artikel in de vraag zonder supervisorcall. **Een
+lijstvraag** ("geef de 10 meest recente Kamerstukken", "de laatste vijf moties van de Eerste Kamer") leest
+`agent/bron_lijst.py` helemaal in code – volgorde, aantal, dossier, soort (`ConnectorBeschrijving.soorten`), periode,
+vergaderjaar, Kamer (`organen`) en een onderwerp van hoogstens vier woorden ("over …") als `tekst` – en dan zoekt
+`nodes/bron_lijst.py` één keer, zonder model, met het blok `stukken` (leeg: een leemte met de zoekvraag; een fout: de
+agent). Blijft er een woord over dat de code niet plaatst, of vraagt de vraag naar de inhoud, dan geen route. Ook in een
+gesprek vóór het model, en daarna op de herschreven vraag. `tests/test_bron_lijst.py`, `eval/golden_routering.jsonl`. Een vraag over een bron naast de wet start
 nooit een werkgebied (het model koos dat in een lang gesprek). In de bronnenlijst staat een bron naast de wet alleen als ze
 gelezen en genoemd is (`grounding.alleen_gelezen_extern`). `GET /v1/bronnen` zegt per connector of de
 straat hem aanbiedt; de BFF (`/api/connectors`) toont in het menu alleen wat straat én register aanzetten. De vlag hoort in de per-beurt-reset van `answer_stream`,

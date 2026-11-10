@@ -193,6 +193,41 @@ try {
   await page.screenshot({ path: `${shots}/extern-tabel-mobiel.png` });
   await page.setViewportSize({ width: 1280, height: 900 });
 
+  // Een lijst gevonden Kamerstukken (gesprek e906567a): elk feit uit de zoekrijen, met de zoekvraag en het totaal, en een
+  // onopgemaakt stuk met alleen een PDF zichtbaar als zodanig. De datum van een gelezen stuk staat in de kop van `extern`.
+  const lijst = { sjabloon: "extern", versie: 1, doelen: [], blokken: [
+    { soort: "toelichting", door: "lex", kop: "Toelichting van Lex", tekst: "Het nieuwste stuk is een brief." },
+    { soort: "stukken", door: "bron", brontype: "kamerstuk", kop: "Gevonden Kamerstukken", totaal: 405,
+      zoekvraag: "Gezocht op dossier 32140, nieuwste eerst.", items: [
+        { id: "kst-1278484", label: "Kamerstukken 32140, nr. 342", link: "https://zoek.officielebekendmakingen.nl/kst-1278484",
+          soort: "Brief regering", titel: "Informatie implementatie FASTER richtlijn", datum: "2026-10-16",
+          gepubliceerd: "2026-11-05", orgaan: "Tweede Kamer", indieners: ["E. Eerenberg"], status: "Onopgemaakt", leesbaar: false },
+        { id: "kst-32140-AR", label: "Kamerstukken 32140, nr. AR", link: "https://zoek.officielebekendmakingen.nl/kst-32140-AR",
+          soort: "Brief", datum: "2026-07-01", orgaan: "Eerste Kamer" }] },
+    { soort: "extern", door: "bron", brontype: "kamerstuk", id: "kst-32140-AR", label: "Kamerstukken 32140, nr. AR",
+      link: "https://zoek.officielebekendmakingen.nl/kst-32140-AR", kop: "Uit de parlementaire geschiedenis",
+      datum: "2026-07-01", soort_stuk: "Brief", passages: [{ nr: 1, soort: "alinea", kop: "", tekst: "Hierbij informeer ik u." }] }] };
+  huidige = sjabloonStroom(lijst);
+  bewaar(lijst);
+  await page.goto(`${base}/workbench`);
+  await vraag.fill("Wat is het laatste stuk van dossier 32140?");
+  await vraag.press("Enter");
+  const stukken = page.locator("[data-stukken=kamerstuk]");
+  await stukken.waitFor();
+  const eerste = stukken.locator("[data-stuk=kst-1278484]");
+  assert.equal(await eerste.getByRole("link", { name: "Kamerstukken 32140, nr. 342" }).getAttribute("href"),
+    "https://zoek.officielebekendmakingen.nl/kst-1278484");
+  assert.match(await eerste.innerText(), /alleen PDF/);
+  assert.match(await eerste.innerText(), /Brief regering · 16 oktober 2026 · Tweede Kamer · gepubliceerd 5 november 2026/);
+  assert.match(await eerste.innerText(), /Ingediend door E\. Eerenberg/);
+  assert.equal(await page.locator("[data-stukken-zoekvraag]").innerText(), "Gezocht op dossier 32140, nieuwste eerst. 2 van de 405 stukken.");
+  assert.equal(await page.locator("[data-extern-meta]").innerText(), " · Brief, 1 juli 2026");
+  await page.screenshot({ path: `${shots}/stukken.png` });
+  await page.setViewportSize({ width: 375, height: 800 });
+  assert.ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), "de lijst past op een telefoon");
+  await page.screenshot({ path: `${shots}/stukken-mobiel.png` });
+  await page.setViewportSize({ width: 1280, height: 900 });
+
   // Klopt het sjabloon niet, dan is `tekst` het antwoord.
   huidige = sjabloonStroom({ sjabloon: "begrip", blokken: [{ soort: "onbekend" }] });
   bewaar({ sjabloon: "begrip", blokken: [{ soort: "onbekend" }] });

@@ -162,6 +162,45 @@ class Extern(BaseModel):
     #: een nieuwe versie publiceert.
     bron_hash: str = ""
     gewijzigd: str = ""
+    #: Uit de metadata van het gelezen stuk (`ConnectorBeschrijving.metadata`): de datum van het stuk en zijn soort
+    #: ("Motie"). Uit de bron, niet uit de tekst van het model; leeg bij een ouder bericht.
+    datum: str = ""
+    soort_stuk: str = ""
+
+
+class Stuk(BaseModel):
+    """Eén gevonden stuk in een lijst, met de metadata uit de zoektool van de connector (de sleutels van
+    `bronmodel.connectors.METADATA_SLEUTELS`). Gevonden, niet gelezen: over de inhoud zegt de lijst niets."""
+
+    id: str
+    label: str
+    link: str = ""
+    soort: str = ""
+    titel: str = ""
+    datum: str = ""
+    gepubliceerd: str = ""
+    jaar: str = ""
+    orgaan: str = ""
+    indieners: list[str] = []
+    reeks: list[str] = []
+    status: str = ""
+    versie: str = ""
+    leesbaar: bool = True
+
+
+class Stukken(BaseModel):
+    """Een lijst stukken uit een bron naast de wet (ADR-013), zoals de zoektool ze teruggaf: "de tien nieuwste
+    Kamerstukken", "de stukken van dossier 33755". Het model wees de stukken aan; alles hier komt uit de zoekrijen, ook
+    de volgorde. `zoekvraag` zegt in woorden wat er gezocht is en `totaal` hoeveel er bij de bron aan voldoen, zodat een
+    lijst nooit volledig lijkt als hij dat niet is."""
+
+    soort: Literal["stukken"] = "stukken"
+    door: Literal["bron"] = "bron"
+    brontype: str
+    kop: str
+    items: list[Stuk]
+    zoekvraag: str = ""
+    totaal: int | None = None
 
 
 class Leemte(BaseModel):
@@ -174,7 +213,8 @@ class Leemte(BaseModel):
 
 
 Blok = Annotated[
-    Definities | Begrippen | Wettekst | Citaten | Verwijzingen | Annotaties | Toelichting | Twijfel | Extern | Leemte,
+    Definities | Begrippen | Wettekst | Citaten | Verwijzingen | Annotaties | Toelichting | Twijfel | Extern | Stukken
+    | Leemte,
     Field(discriminator="soort"),
 ]
 
@@ -193,7 +233,8 @@ NIET_ALLES = "Dit zijn niet alle markeringen; ontbrekende treffers zijn niet uit
 
 #: Wat de brongetrouwheidscontrole niet leest. Annotaties en begrippen zijn afgeleide duiding die niet als bron telt, en
 #: een leemte is tekst van de code: alle drie komen niet van het model, en hun BWB-id's of citaten staan niet in de bron.
-NIET_GETOETST = frozenset({"annotaties", "begrippen", "leemte"})
+#: Een lijst stukken komt helemaal uit de zoekrijen; haar ids zijn gevonden, niet gelezen, en dat is geen signaal.
+NIET_GETOETST = frozenset({"annotaties", "begrippen", "leemte", "stukken"})
 
 
 def _vindplaats_regel(v: Vindplaats) -> str:
@@ -226,8 +267,18 @@ def _blok_tekst(b: BaseModel) -> str:
     if isinstance(b, Twijfel):
         return "\n".join(f"- {p}" for p in b.punten)
     if isinstance(b, Extern):
-        regel = f"[{b.label}]({b.link})" if b.link else b.label
+        regel = (f"[{b.label}]({b.link})" if b.link else b.label) + (
+            f" ({', '.join(x for x in (b.soort_stuk, b.datum) if x)})" if b.soort_stuk or b.datum else "")
         return "\n\n".join(f'> "{p.tekst}"' for p in b.passages) + f"\n\n{regel}"
+    if isinstance(b, Stukken):
+        def regel(x: Stuk) -> str:
+            naam = f"[{x.label}]({x.link})" if x.link else x.label
+            wat = " · ".join(v for v in (x.soort, x.datum) if v)
+            pdf = " (onopgemaakt, alleen PDF)" if not x.leesbaar else ""
+            return f"- {naam}{' · ' + wat if wat else ''}{': ' + x.titel if x.titel else ''}{pdf}"
+        voet = " ".join(v for v in (
+            b.zoekvraag, f"{len(b.items)} van de {b.totaal} stukken." if b.totaal and b.totaal > len(b.items) else "") if v)
+        return "\n".join(regel(x) for x in b.items) + (f"\n\n{voet}" if voet else "")
     if isinstance(b, Leemte):
         return b.tekst
     return ""
@@ -244,6 +295,6 @@ def antwoord_tekst(antwoord: Antwoord, zonder: frozenset[str] = frozenset()) -> 
         tekst = "" if b.soort in zonder else _blok_tekst(b)
         if not tekst:
             continue
-        kop = b.kop if isinstance(b, (Toelichting, Extern)) else KOPPEN.get(b.soort, "")
+        kop = b.kop if isinstance(b, (Toelichting, Extern, Stukken)) else KOPPEN.get(b.soort, "")
         delen.append(f"**{kop}**\n\n{tekst}" if kop else tekst)
     return "\n\n".join(delen)
