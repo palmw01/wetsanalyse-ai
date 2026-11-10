@@ -30,6 +30,9 @@ _EENHEID = "|".join(sorted((re.escape(e) for e in _EENHEDEN), key=len, reverse=T
 _HOEVEELHEID = re.compile(rf"(?<![\w€])(?:€\s*(?P<bedrag>\d+(?:[.,]\d+)*)|(?P<getal>{_GETAL})\s*(?P<eenheid>{_EENHEID}))(?![\w])",
                           re.IGNORECASE)
 _DATUM = re.compile(rf"(?<!\d)(\d{{1,2}})\s+({'|'.join(_MAANDEN)})\s+(\d{{4}})(?!\d)", re.IGNORECASE)
+#: Een datum zoals een bron hem levert ("2024-10-31", de metadata van een Kamerstuk): dezelfde datum als "31 oktober 2024".
+#: Zonder dit telde een datum uit een zoekresultaat als onbevestigd (gesprek e906567a, 9 nov 2026).
+_ISO_DATUM = re.compile(r"(?<![\d-])(\d{4})-(\d{2})-(\d{2})(?![\d-])")
 
 
 def _getal(woord: str) -> str:
@@ -49,6 +52,9 @@ def hoeveelheden(tekst: str) -> set[str]:
             uit.add(f"{_getal(m.group('getal'))} {_EENHEDEN[m.group('eenheid').casefold()]}")
     for dag, maand, jaar in _DATUM.findall(tekst or ""):
         uit.add(f"{int(dag)} {maand.casefold()} {jaar}")
+    for jaar, maand, dag in _ISO_DATUM.findall(tekst or ""):
+        if 1 <= int(maand) <= 12 and 1 <= int(dag) <= 31:
+            uit.add(f"{int(dag)} {_MAANDEN[int(maand) - 1]} {jaar}")
     return uit
 
 

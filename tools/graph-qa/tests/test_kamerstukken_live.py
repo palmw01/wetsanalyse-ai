@@ -38,7 +38,11 @@ MVT = "kst-33755-3"
 KLEIN, GROOT, SUB = "33755", "31066", "36200-IX"
 #: Wat de connector gebruikt om te zoeken en te sorteren; elk moet in de explain staan, doorzoekbaar en sorteerbaar.
 INDEXEN = ("dt.identifier", "dt.available", "dt.modified", "dt.type", "dt.title", "w.publicatienaam",
-           "w.dossiernummer", "w.ondernummer", "w.documentstatus", "w.versieinformatie", "w.versienummer")
+           "w.dossiernummer", "w.ondernummer", "w.documentstatus", "w.versieinformatie", "w.versienummer",
+           # De metadata uit de beschrijving (`KAMERSTUKKEN.metadata`, 9 nov 2026).
+           "dt.date", "dt.creator", "w.vergaderjaar", "w.subrubriek", "w.documenttitel", "w.dossiertitel", "w.indiener")
+#: Een herdruk: kst-32740-1 bestaat niet bij KOOP, kst-32740-1-n1 wel (de Fiscale agenda van april 2011).
+HERDRUK = ("kst-32740-1", "kst-32740-1-n1")
 
 
 def _haal(params: dict) -> bytes:
@@ -105,6 +109,74 @@ def test_documentstatus_staat_op_het_record():
     assert all(s.lower().startswith(("opgemaakt", "onopgemaakt")) for s in statussen - {""}), statussen
 
 
+def test_de_metadata_van_de_beschrijving_staat_op_het_record():
+    """De velden die `KAMERSTUKKEN.metadata` belooft, op een echt record; en de twee datums apart."""
+    from agent.adapters.sru_kamerstukken import lees_records
+
+    _, [rec] = lees_records(_haal({"query": f"{BASIS} AND dt.identifier=={MVT}", "maximumRecords": 1}))
+    assert rec.datum and rec.gepubliceerd, "dt.date of dt.available ontbreekt"
+    assert rec.soort, "w.subrubriek ontbreekt"  # bij dit oudere stuk "Overig"; de tool neemt dan de titel
+    assert rec.dossiertitel and rec.kamer and rec.vergaderjaar and rec.leesbaar
+    rij = next(r for r in json.loads(tools.dispatch("zoek_kamerstukken", None, {"dossier": KLEIN}, AAN))["resultaten"]
+               if r["id"] == MVT)
+    assert rij["soort"].lower() == "memorie van toelichting" and rij["datum"] == rec.datum
+
+
+def test_sorteren_op_documentdatum_gaat_met_sortby():
+    """`sortBy` in de CQL sorteert; de parameter `sortKeys` negeert de dienst stil (live, 9 nov 2026)."""
+    _, recs = _records(f"{BASIS} AND dt.type==Kamerstuk AND w.dossiernummer=={KLEIN} sortBy dt.date/sort.descending",
+                       maximum=20)
+    datums = [_veld(r, ".//dcterms:date") for r in recs]
+    assert datums == sorted(datums, reverse=True), datums
+
+
+def test_een_herdruk_wordt_gevonden_op_dossier_en_nummer():
+    gevraagd, echt = HERDRUK
+    totaal, _ = _records(f"{BASIS} AND dt.identifier=={gevraagd}", maximum=1)
+    assert totaal == 0, f"{gevraagd} staat nu zelf bij KOOP: kies een andere herdruk voor deze proef"
+    rec = SruKamerstukken().record(gevraagd)
+    assert rec.id == echt and "herdruk" in rec.versie.lower()
+
+
+def test_de_nieuwste_stukken_in_een_aanroep():
+    """De vraag uit gesprek e906567a: het laatste stuk van een dossier is het nieuwste, niet het hoogste nummer."""
+    d = json.loads(tools.dispatch("zoek_kamerstukken", None, {"volgorde": "nieuwste", "aantal": 10}, AAN))
+    assert d["status"] == "ok" and d["aantal"] == 10 and d["totaal"] > 100000
+    datums = [r["datum"] for r in d["resultaten"]]
+    assert datums == sorted(datums, reverse=True) and d["zoekvraag"] == {"aantal": 10, "volgorde": "nieuwste"}
+    d = json.loads(tools.dispatch("zoek_kamerstukken", None, {"dossier": "32140", "volgorde": "nieuwste", "aantal": 1},
+                                  AAN))
+    assert d["resultaten"][0]["datum"] >= "2026-10-16", d["resultaten"][0]  # nr. 342, of iets nieuwers
+
+
+def test_filters_op_soort_periode_vergaderjaar_en_kamer():
+    d = json.loads(tools.dispatch("zoek_kamerstukken", None, {"dossier": KLEIN, "soort": "memorie van toelichting"},
+                                  AAN))
+    assert MVT in [r["id"] for r in d["resultaten"]], "het soort in de titel (rubriek 'Overig') wordt gevonden"
+    d = json.loads(tools.dispatch("zoek_kamerstukken", None, {"kamer": "Eerste Kamer", "vergaderjaar": "2025-2026",
+                                                               "vanaf": "2026-01", "tot": "2026-03", "aantal": 5}, AAN))
+    assert d["status"] == "ok" and d["resultaten"]
+    assert all(r["orgaan"] == "Eerste Kamer" and "2026-01-01" <= r["datum"] <= "2026-03-31" for r in d["resultaten"])
+
+
+def test_zoeken_in_de_tekst_vindt_wat_de_titel_niet_draagt():
+    """Meting kamerstukken-tekstzoeken-2026-11-09: de Fiscale agenda van 2011 heet 'Brief regering', maar gaat over één
+    bankrekeningnummer. In de titel vindt de dienst haar niet, in de tekst wel, en op de oudste eerst staat ze bovenaan."""
+    d = json.loads(tools.dispatch("zoek_kamerstukken", None, {"tekst": '"één bankrekeningnummer"', "vanaf": "2011",
+                                                               "tot": "2016", "volgorde": "oudste", "aantal": 10}, AAN))
+    assert d["status"] == "ok" and d["resultaten"][0]["id"] == "kst-32740-1-n1", [r["id"] for r in d["resultaten"]]
+    assert "kst-33004-3" in [r["id"] for r in d["resultaten"]], "de memorie van toelichting bij Overige fiscale maatregelen 2012"
+    titel = json.loads(tools.dispatch("zoek_kamerstukken", None, {"woorden": "bankrekeningnummer", "vanaf": "2011",
+                                                                   "tot": "2011"}, AAN))
+    assert "kst-32740-1-n1" not in [r["id"] for r in titel.get("resultaten") or []]
+
+
+def test_meer_dan_duizend_records_is_een_diagnose():
+    with pytest.raises(KamerstukFout) as fout:
+        SruKamerstukken().zoek(BASIS, maximum=1001)
+    assert fout.value.code == "geweigerd"
+
+
 def test_een_ongeldige_query_is_een_diagnose():
     with pytest.raises(KamerstukFout, match="weigerde"):
         SruKamerstukken().zoek("dt.bestaatniet==1 AND (")
@@ -136,15 +208,17 @@ def test_een_subdossier_staat_in_de_index_van_het_dossiernummer():
 
 
 def test_een_groot_dossier_sorteert_op_datum_en_pagineert_stabiel():
-    cql = f"{BASIS} AND dt.type==Kamerstuk AND w.dossiernummer=={GROOT} sortBy dt.available/sort.ascending"
+    # Dezelfde sortering als de tool (`_OP_VOLGORDE["oudste"]`): de documentdatum, met het id als tweede sleutel.
+    from agent.tools.kamerstuk_tools import _OP_DATUM
+    cql = f"{BASIS} AND dt.type==Kamerstuk AND w.dossiernummer=={GROOT}{_OP_DATUM}"
     totaal, p1 = _records(cql, maximum=25)
     assert totaal > 1000, f"{GROOT} telt {totaal} stukken; kies een groter dossier voor deze proef"
     _, p2 = _records(cql, maximum=25, start=26)
     _, p1_opnieuw = _records(cql, maximum=25)
     assert _ids(p1) == _ids(p1_opnieuw), "dezelfde pagina geeft een andere volgorde"
     assert not set(_ids(p1)) & set(_ids(p2)), "twee pagina's overlappen"
-    datums = [_veld(r, ".//dcterms:available") for r in p1 + p2]
-    assert datums == sorted(datums), "sortBy dt.available/sort.ascending sorteert niet op datum"
+    datums = [_veld(r, ".//dcterms:date") for r in p1 + p2]
+    assert datums == sorted(datums), f"'{_OP_DATUM.strip()}' sorteert niet op de documentdatum"
 
 
 def test_het_type_kamerstuk_laat_de_bijlagen_weg():
@@ -169,7 +243,7 @@ def test_de_tool_zet_een_klein_dossier_op_nummer():
 
 def test_de_tool_pagineert_een_groot_dossier_op_datum_met_het_echte_totaal():
     d = json.loads(tools.dispatch("zoek_kamerstukken", None, {"dossier": GROOT}, AAN))
-    assert d["status"] == "ok" and d["volgorde"] == "datum" and not d["volledig"] and d["totaal"] > 1000
+    assert d["status"] == "ok" and d["volgorde"] == "oudste" and not d["volledig"] and d["totaal"] > 1000
     v = json.loads(tools.dispatch("zoek_kamerstukken", None, d["vervolg"]["args"], AAN))
     assert not {r["id"] for r in d["resultaten"]} & {r["id"] for r in v["resultaten"]}
 

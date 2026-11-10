@@ -55,7 +55,10 @@ def _koop(ident: str) -> ExterneVindplaats:
     ident = f"{soort}-{rest}"
     delen = rest.split("-")
     if soort == "kst" and len(delen) >= 2:
-        label = f"Kamerstukken {' '.join(delen[:-1]).upper()}, nr. {delen[-1]}"
+        # Een herdruk of rectificatie heeft een achtervoegsel (kst-32740-1-n1): dat is de versie, geen nummer. Het label
+        # was eerst "Kamerstukken 32740 1, nr. n1".
+        versie = delen.pop() if len(delen) >= 3 and re.fullmatch(r"n\d+", delen[-1]) else ""
+        label = f"Kamerstukken {' '.join(delen[:-1]).upper()}, nr. {delen[-1]}" + (f" (versie {versie})" if versie else "")
     elif soort in {"stb", "stcrt"} and len(delen) == 2:
         label = f"{'Stb.' if soort == 'stb' else 'Stcrt.'} {delen[0]}, {delen[1]}"
     elif soort.startswith(("h-", "ah-")):
