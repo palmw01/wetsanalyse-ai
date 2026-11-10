@@ -59,6 +59,14 @@ await page.route("**/api/**", async (route) => {
 
 const zijpaneel = page.locator("[data-zijpaneel]");
 const scheiding = page.locator("[data-paneel-scheiding]");
+/** Wacht tot het zijpaneel in deze stand staat: de stand volgt een klik of toets een render later. */
+const stand = async (verwacht, melding = `het zijpaneel is ${verwacht}`) => {
+  try {
+    await page.locator(`[data-zijpaneel="${verwacht}"]`).waitFor({ timeout: 5000 });
+  } catch {
+    assert.equal(await zijpaneel.getAttribute("data-zijpaneel"), verwacht, melding);
+  }
+};
 const breedte = async () => (await zijpaneel.boundingBox()).width;
 async function openBibliotheek() {
   await page.locator("[data-chatkop-bronnen]").click();
@@ -76,7 +84,7 @@ async function geenScroll(width) {
 try {
   await page.goto(`${base}/workbench?gesprek=g1`);
   await openBibliotheek();
-  assert.equal(await zijpaneel.getAttribute("data-zijpaneel"), "open");
+  await stand("open");
   const standaard = await breedte();
   const ouder = await zijpaneel.evaluate((el) => el.parentElement.clientWidth);
   assert.ok(Math.abs(standaard - Math.min(544, ouder * 0.46)) <= 2, `standaardbreedte ${standaard} (werkplek ${ouder})`);
@@ -116,24 +124,24 @@ try {
 
   // --- Inklappen tot een strook, en weer uitklappen ---
   await page.getByRole("button", { name: "Paneel inklappen" }).click();
-  assert.equal(await zijpaneel.getAttribute("data-zijpaneel"), "ingeklapt");
+  await stand("ingeklapt");
   assert.ok((await breedte()) <= 44, "ingeklapt is een strook");
   assert.equal(await page.locator("[data-context-paneel=bibliotheek]").count(), 1, "de inhoud blijft staan");
   await page.getByRole("button", { name: "Paneel uitklappen" }).click();
-  assert.equal(await zijpaneel.getAttribute("data-zijpaneel"), "open");
+  await stand("open");
   await page.locator("[data-context-paneel=bibliotheek]").getByText("De afwijking").waitFor();
   // Iets anders openen terwijl het paneel ingeklapt is: het klapt uit (een klik op een ingang doet altijd iets zichtbaars).
   await page.getByRole("button", { name: "Paneel inklappen" }).click();
   await page.locator("[data-context-bron=s1]").evaluate((el) => el.click());
   await page.locator("[data-context-paneel=bron]").waitFor();
-  assert.equal(await zijpaneel.getAttribute("data-zijpaneel"), "open", "een nieuwe inhoud klapt het paneel uit");
+  await stand("open", "een nieuwe inhoud klapt het paneel uit");
 
   // --- Vergroten over het gesprek; Escape verkleint eerst ---
   await page.getByRole("button", { name: "Vergroten", exact: true }).click();
-  assert.equal(await zijpaneel.getAttribute("data-zijpaneel"), "vergroot");
+  await stand("vergroot");
   assert.ok((await breedte()) >= ouder - 2, "vergroot ligt het paneel over het gesprek");
   await page.keyboard.press("Escape");
-  assert.equal(await zijpaneel.getAttribute("data-zijpaneel"), "open", "Escape verkleint");
+  await stand("open", "Escape verkleint");
   assert.equal(await page.locator("[data-context-paneel=bron]").count(), 1, "en sluit het paneel niet");
 
   // --- Tabs (PR 3b): wat er open was staat als tab ernaast; wisselen, sluiten, en Escape verbergt ---
@@ -148,9 +156,11 @@ try {
   await bronTab.click();
   await page.locator("[data-context-paneel=bron]").getByText("invorderbaar op de dagtekening", { exact: false }).waitFor();
   // Escape verbergt: het paneel klapt in, de tabs blijven.
-  await page.locator("[data-context-paneel=bron]").click();
+  // De focus op de kop: een klik midden in het paneel kan op een markering landen, die een element als nieuwe tab
+  // opent – en een nieuwe opening klapt het paneel juist uit (CI, bundel 28).
+  await page.locator("[data-context-paneel=bron] [data-paneel-kop] h2").click();
   await page.keyboard.press("Escape");
-  assert.equal(await zijpaneel.getAttribute("data-zijpaneel"), "ingeklapt", "Escape klapt het paneel in");
+  await stand("ingeklapt", "Escape klapt het paneel in");
   await page.getByRole("button", { name: "Paneel uitklappen" }).click();
   assert.equal(await tabs.count(), 2, "de tabs staan er nog");
   // Een tab sluiten: de buur wordt actief.
