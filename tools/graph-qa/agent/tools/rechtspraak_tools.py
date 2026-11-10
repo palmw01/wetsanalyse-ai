@@ -27,6 +27,7 @@ from bronmodel.extern import externe_vindplaats
 from ..graph import queries
 from ..graph.results import parse_select
 from ..resultaat import compact, fout, pagina, per_eenheid
+from .stuk_tekst import inhoud
 
 RECHTSPRAAK_TOOL_NAMEN = RECHTSPRAAK.tools
 CONNECTOR = RECHTSPRAAK.naam
@@ -101,9 +102,11 @@ RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
             "De tekst van één Nederlandse uitspraak of conclusie uit de open data van de Rechtspraak, per alinea in "
             "documentvolgorde, met de inhoudsindicatie eerst. Gebruik de ECLI uit zoek_uitspraken." + _UITLEG +
             " Citeer letterlijk uit 'tekst'.\n"
-            "GEEFT TERUG: het stuk (id, label, soort, titel, datum, orgaan, nummer, gepubliceerd, link, bron_hash, "
-            "gewijzigd) en per alinea nr, kop en tekst; een lange alinea staat in delen ('deel'). Noem de datum en "
-            "de instantie uit 'stuk', niet uit de tekst." + _CONTRACT
+            "GEEFT TERUG: het stuk (id, label, soort, titel, datum, orgaan, nummer, procedure, rechtsgebied, "
+            "gepubliceerd, link, bron_hash, gewijzigd) en per alinea nr, kop en tekst, met 'ro' als de alinea in een "
+            "genummerde rechtsoverweging staat (noem die als 'r.o. 2.1'); een lange alinea staat in delen ('deel'). De "
+            "eerste pagina draagt 'inhoud': per kop de offset waar dat deel begint; ga met die offset naar het deel dat "
+            "de vraag raakt. Noem de datum en de instantie uit 'stuk', niet uit de tekst." + _CONTRACT
         ),
         "input_schema": {
             "type": "object",
@@ -297,45 +300,90 @@ def _knip(tekst: str) -> list[str]:
     return delen
 
 
+def _titel(e: ET.Element) -> str:
+    """De tekst van een `title`, met haar `nr` ervoor en een spatie ertussen ("2 Uitgangspunten in cassatie"; zonder die
+    spatie plakte het nummer aan de kop)."""
+    nr = next((_tekst(c) for c in e if c.tag.replace(_R, "") == "nr"), "")
+    delen = [e.text or ""]
+    for c in e:
+        if c.tag.replace(_R, "") != "nr":
+            delen.append(_tekst(c))
+        delen.append(c.tail or "")
+    rest = " ".join(" ".join(delen).split())
+    return f"{nr} {rest}".strip() if nr else rest
+
+
+#: De metadata die `lees` uit de RDF neemt; meer waarden van één veld (twee rechtsgebieden) worden "a; b".
+_META = {"identifier", "date", "issued", "modified", "creator", "type", "zaaknummer", "title", "procedure", "subject"}
+
+
 def lees(xml: bytes) -> tuple[dict[str, str], list[dict[str, Any]]]:
     """(metadata, rijen) uit een document van de Rechtspraak. Rijen in documentvolgorde: de inhoudsindicatie, dan de
-    uitspraak of conclusie; een `title` is de kop van de alinea's erna. Lege alinea's tellen niet."""
+    uitspraak of conclusie. De kop is het deel en de titel van de sectie ("Uitspraak › 2 Uitgangspunten in cassatie");
+    een rij in een genummerde rechtsoverweging (`paragroup` met `nr`) draagt dat nummer als `ro` ("2.1"), zodat een
+    citaat naar r.o. 2.1 herleidbaar is. Lege alinea's tellen niet."""
     root = ET.fromstring(xml)
     meta: dict[str, str] = {}
     beschrijving = next((d for d in root.iter("{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Description")), None)
     if beschrijving is not None:
         for c in beschrijving:
             naam = c.tag.rsplit("}", 1)[-1]
-            if naam in {"identifier", "date", "issued", "modified", "creator", "type", "zaaknummer", "title"} \
-                    and naam not in meta:
-                meta[naam] = (c.text or "").strip()
+            waarde = " ".join((c.text or "").split())
+            if naam not in _META or not waarde:
+                continue
+            if naam in {"procedure", "subject"} and naam in meta:
+                if waarde not in meta[naam].split("; "):
+                    meta[naam] = f"{meta[naam]}; {waarde}"
+            elif naam not in meta:
+                meta[naam] = waarde
     rijen: list[dict[str, Any]] = []
 
-    def voeg(tekst: str, kop: str) -> None:
+    def voeg(tekst: str, kop: str, ro: str) -> None:
         delen = _knip(tekst)
         for i, deel in enumerate(delen, 1):
-            rijen.append(compact({"nr": len(rijen) + 1, "kop": kop, "tekst": deel,
+            rijen.append(compact({"nr": len(rijen) + 1, "kop": kop, "ro": ro, "tekst": deel,
                                   "deel": f"{i}/{len(delen)}" if len(delen) > 1 else ""}))
 
-    def loop(e: ET.Element, kop: str) -> str:
+    def loop(e: ET.Element, top: str, kop: str, ro: str) -> str:
         for c in e:
             naam = c.tag.replace(_R, "")
             if naam == "title":
-                kop = _tekst(c) or kop
+                titel = _titel(c)
+                kop = f"{top} › {titel}" if titel else kop
             elif naam == "para":
                 if t := _tekst(c):
-                    voeg(t, kop)
-            else:
-                kop = loop(c, kop)
+                    voeg(t, kop, ro)
+            elif naam == "paragroup":
+                nr = next((_tekst(x) for x in c if x.tag.replace(_R, "") == "nr"), "")
+                kop = loop(c, top, kop, nr or ro)
+            elif naam != "nr":
+                kop = loop(c, top, kop, ro)
         return kop
 
     for deel in root:
         naam = deel.tag.replace(_R, "")
         if naam == "inhoudsindicatie":
-            loop(deel, "Inhoudsindicatie")
+            loop(deel, "Inhoudsindicatie", "Inhoudsindicatie", "")
         elif naam in {"uitspraak", "conclusie"}:
-            loop(deel, "Conclusie" if naam == "conclusie" else "Uitspraak")
+            top = "Conclusie" if naam == "conclusie" else "Uitspraak"
+            loop(deel, top, top, "")
     return meta, rijen
+
+
+_MAANDEN = ("januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober",
+            "november", "december")
+
+
+def label_van(ecli: str, meta: dict[str, str]) -> str:
+    """"Hoge Raad 21 januari 2022, ECLI:NL:HR:2022:50": het gerecht en de datum uit de metadata, zoals een jurist een
+    uitspraak noemt; zonder metadata alleen de ECLI."""
+    datum = meta.get("date", "")
+    voluit = ""
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", datum):
+        j, m, d = datum.split("-")
+        voluit = f"{int(d)} {_MAANDEN[int(m) - 1]} {j}"
+    voor = " ".join(x for x in (meta.get("creator", ""), voluit) if x)
+    return f"{voor}, {ecli}" if voor else ecli
 
 
 def _get(bron: RechtspraakBron, a: dict[str, Any]) -> str:
@@ -348,16 +396,25 @@ def _get(bron: RechtspraakBron, a: dict[str, Any]) -> str:
     except ET.ParseError as exc:
         return fout("onleesbaar_document", f"{vp.id} kon niet worden gelezen: {exc}")
     stuk = compact({
-        "id": vp.id, "label": vp.label, "soort": meta.get("type") or soort_van(vp.id),
+        "id": vp.id, "label": label_van(vp.id, meta), "soort": meta.get("type") or soort_van(vp.id),
         "titel": meta.get("title", ""), "datum": meta.get("date", ""), "orgaan": meta.get("creator", ""),
         "nummer": meta.get("zaaknummer", ""), "gepubliceerd": meta.get("issued", ""), "link": vp.uri,
+        "procedure": meta.get("procedure", ""), "rechtsgebied": meta.get("subject", ""),
         "bron_hash": doc.hash, "gewijzigd": getattr(doc, "gewijzigd", "") or meta.get("modified", "")})
     if getattr(doc, "gevalideerd", True) is False:
         # De Rechtspraak was niet te bereiken: de bewaarde versie, en dat zegt het stuk (het bronvenster toont het).
         stuk["gevalideerd"] = False
     offset = max(int(a.get("offset") or 0), 0)
-    return per_eenheid(rijen, tool="get_uitspraak", args={"id": vp.id}, offset=offset,
-                       extra={"stuk": stuk, "totaal": len(rijen)},
+    extra: dict[str, Any] = {"stuk": stuk, "totaal": len(rijen)}
+    if offset == 0:
+        # De koppen met hun offset, zoals bij Kamerstukken: een lange uitspraak (de Raad van State, honderden alinea's)
+        # leest Lex vanaf het deel dat de vraag raakt, en het bronvenster toont er de inhoudsopgave mee.
+        inh, alle = inhoud(rijen)
+        if inh:
+            extra["inhoud"] = inh
+        if not alle:
+            extra["inhoud_ingekort"] = True
+    return per_eenheid(rijen, tool="get_uitspraak", args={"id": vp.id}, offset=offset, extra=extra,
                        toelichting="" if rijen else "Deze uitspraak heeft geen tekst in de open data.")
 
 

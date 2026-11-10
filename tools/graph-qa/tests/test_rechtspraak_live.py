@@ -95,8 +95,10 @@ def test_een_uitspraak_heeft_metadata_en_alineas(bron):
     assert meta.get("identifier") == HR
     assert meta.get("date") == "2022-01-21" and meta.get("creator") == "Hoge Raad", meta
     assert meta.get("type") == "Uitspraak"
-    assert rijen and rijen[0]["kop"] == "Inhoudsindicatie" and any(r["kop"] == "Uitspraak" for r in rijen)
+    assert rijen and rijen[0]["kop"] == "Inhoudsindicatie" and any(r["kop"].startswith("Uitspraak") for r in rijen)
     assert any("Invorderingswet" in r["tekst"] for r in rijen), "de tekst noemt de wet niet meer"
+    assert any(r.get("ro") == "2.1" for r in rijen), "de rechtsoverwegingen dragen hun nummer niet meer"
+    assert meta.get("procedure") and meta.get("subject"), meta
 
 
 def test_de_metadata_alleen_draagt_dezelfde_wijzigingsdatum(bron):

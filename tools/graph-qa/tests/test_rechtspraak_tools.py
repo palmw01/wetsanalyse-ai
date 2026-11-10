@@ -331,9 +331,66 @@ def test_de_uitspraak_per_alinea_met_kop_en_metadata():
     assert uit["stuk"]["orgaan"] == "Hoge Raad" and uit["stuk"]["nummer"] == "21/00733" and uit["stuk"]["bron_hash"]
     koppen = [(r["kop"], r["tekst"][:20]) for r in uit["resultaten"]]
     assert koppen[0] == ("Inhoudsindicatie", "Invorderingsrente; a")
-    assert ("1 Geding in cassatie", "Belanghebbende heeft") in koppen
-    assert ("2 Beoordeling", "Artikel 9 van de Inv") in koppen, "een para in een parablock telt mee"
+    assert ("Uitspraak › 1 Geding in cassatie", "Belanghebbende heeft") in koppen
+    assert ("Uitspraak › 2 Beoordeling", "Artikel 9 van de Inv") in koppen, "een para in een parablock telt mee"
     assert len(uit["resultaten"]) == 3, "een lege alinea telt niet"
+    assert uit["stuk"]["label"] == "Hoge Raad 21 januari 2022, ECLI:NL:HR:2022:50", "het label uit de metadata"
+
+
+#: De drie vormen die de Rechtspraak levert (live, 10 nov 2026): genummerde rechtsoverwegingen met een `nr` in de titel
+#: (Hoge Raad, CRvB), losse alinea's zonder secties (Raad van State), en alleen metadata (GHARL:2023:5000).
+_GENUMMERD = """<open-rechtspraak xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:dcterms="http://purl.org/dc/terms/" xmlns:psi="http://psi.rechtspraak.nl/"
+  xmlns="http://www.rechtspraak.nl/schema/rechtspraak-1.0">
+<rdf:RDF><rdf:Description>
+  <dcterms:identifier>ECLI:NL:HR:2022:50</dcterms:identifier><dcterms:creator>Hoge Raad</dcterms:creator>
+  <dcterms:date>2022-01-21</dcterms:date><dcterms:type>Uitspraak</dcterms:type>
+  <psi:procedure>Cassatie</psi:procedure>
+  <dcterms:subject>Bestuursrecht; Belastingrecht</dcterms:subject>
+</rdf:Description></rdf:RDF>
+<uitspraak><section><title>
+      <nr>2</nr>Uitgangspunten in cassatie</title>
+<paragroup><nr>2.1</nr><para>Aan belanghebbende zijn navorderingsaanslagen opgelegd.</para>
+<para>In bezwaar heeft hij die bestreden.</para></paragroup>
+<paragroup><nr>2.2</nr><para>Het Hof heeft geoordeeld.</para></paragroup></section>
+<section><title><nr>3</nr>Beoordeling van de middelen</title>
+<paragroup><nr>3.1</nr><parablock><para>Het middel faalt.</para></parablock></paragroup></section></uitspraak>
+</open-rechtspraak>"""
+_VLAK = _GENUMMERD.split("<uitspraak>")[0] + "<uitspraak>" + "".join(
+    f"<para>Overweging {i}.</para>" for i in range(1, 6)) + "</uitspraak></open-rechtspraak>"
+_ALLEEN_META = _GENUMMERD.split("<uitspraak>")[0] + "</open-rechtspraak>"
+
+
+def _lees(xml: str) -> dict:
+    return json.loads(tools.dispatch("get_uitspraak", None, {"id": "ECLI:NL:HR:2022:50"}, AAN,
+                                     rechtspraak=NepBron([], docs={"ECLI:NL:HR:2022:50": xml.encode()})))
+
+
+def test_een_rechtsoverweging_draagt_haar_nummer_en_de_kop_het_nummer_van_de_sectie():
+    uit = _lees(_GENUMMERD)
+    rijen = uit["resultaten"]
+    assert [(r["kop"], r.get("ro")) for r in rijen] == [
+        ("Uitspraak › 2 Uitgangspunten in cassatie", "2.1"), ("Uitspraak › 2 Uitgangspunten in cassatie", "2.1"),
+        ("Uitspraak › 2 Uitgangspunten in cassatie", "2.2"), ("Uitspraak › 3 Beoordeling van de middelen", "3.1")]
+    assert all("2.1" not in r["tekst"] for r in rijen), "het nummer is geen tekst van de alinea"
+    assert uit["stuk"]["procedure"] == "Cassatie" and uit["stuk"]["rechtsgebied"] == "Bestuursrecht; Belastingrecht"
+    assert uit["inhoud"] == [{"kop": "Uitspraak › 2 Uitgangspunten in cassatie", "offset": 0},
+                             {"kop": "Uitspraak › 3 Beoordeling van de middelen", "offset": 3}]
+
+
+def test_een_vlakke_uitspraak_en_een_uitspraak_zonder_tekst():
+    vlak = _lees(_VLAK)
+    assert [r["kop"] for r in vlak["resultaten"]] == ["Uitspraak"] * 5 and "inhoud" not in vlak
+    assert not any(r.get("ro") for r in vlak["resultaten"])
+    leeg = _lees(_ALLEEN_META)
+    assert leeg["status"] == "ok" and leeg["resultaten"] == [] and "geen tekst" in leeg["toelichting"]
+    assert leeg["stuk"]["label"].startswith("Hoge Raad 21 januari 2022")
+
+
+def test_inhoud_staat_alleen_op_de_eerste_pagina():
+    uit = json.loads(tools.dispatch("get_uitspraak", None, {"id": "ECLI:NL:HR:2022:50", "offset": 1}, AAN,
+                                    rechtspraak=NepBron([], docs={"ECLI:NL:HR:2022:50": _GENUMMERD.encode()})))
+    assert "inhoud" not in uit
 
 
 def test_een_lange_alinea_komt_in_delen_binnen_de_begroting():

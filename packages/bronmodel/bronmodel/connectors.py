@@ -45,6 +45,8 @@ METADATA_SLEUTELS: dict[str, str] = {
     "indieners": "lijst",      # wie het stuk indiende of ondertekende
     "status": "tekst",         # de stand van de publicatie (onopgemaakt, opgemaakt)
     "versie": "tekst",         # herdruk, rectificatie
+    "procedure": "tekst",      # de procedure waarin het stuk tot stand kwam (cassatie, hoger beroep)
+    "rechtsgebied": "tekst",   # het rechtsgebied of de rechtsgebieden ("Bestuursrecht; Belastingrecht")
     "leesbaar": "waarheid",    # of de leestool de tekst kan lezen
 }
 
@@ -374,6 +376,10 @@ RECHTSPRAAK = ConnectorBeschrijving(
                      "het gerecht dat de uitspraak deed; het filter 'instantie' kiest een soort gerecht",
                      filters=("instantie",)),
         MetadataVeld("nummer", "zaaknummer", "titel in LiDO; psi:zaaknummer", "het zaaknummer bij het gerecht"),
+        MetadataVeld("procedure", "procedure", "psi:procedure (Rechtspraak)",
+                     "de procedure, zoals 'Cassatie' of 'Hoger beroep'; alleen bij het lezen"),
+        MetadataVeld("rechtsgebied", "rechtsgebied", "dcterms:subject (Rechtspraak)",
+                     "het rechtsgebied of de rechtsgebieden van de uitspraak; alleen bij het lezen"),
         MetadataVeld("leesbaar", "leesbaar", "de vorm van de ECLI",
                      "of de tekst te lezen is: alleen een Nederlandse ECLI staat bij de open data van de Rechtspraak"),
     ),

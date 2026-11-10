@@ -278,7 +278,13 @@ bruikbaar is.
   **Rechtspraak** (`tools/rechtspraak_tools.py`, transport `adapters/lido_rechtspraak.py`, ADR-013 fase 1c):
   `zoek_uitspraken` (bwb-id + artikel; de uitspraken die Linked Data Overheid aan het artikel koppelt, **verenigd over
   alle versies**, want een link hangt aan de versie die gold op de datum van de uitspraak) en `get_uitspraak` (de tekst
-  van een Nederlandse ECLI bij de Rechtspraak, per alinea met kop; een alinea boven `MAX_ALINEA` in delen). De zoektool
+  van een Nederlandse ECLI bij de Rechtspraak, per alinea met kop – het deel en de titel van de sectie, "Uitspraak › 2
+  Uitgangspunten in cassatie" – en `ro` als de alinea in een genummerde rechtsoverweging staat; een alinea boven
+  `MAX_ALINEA` in delen; de eerste pagina draagt `inhoud` (`tools/stuk_tekst.py`, gedeeld met Kamerstukken); het label
+  komt uit gerecht en datum, met procedure en rechtsgebied in `stuk`). **Begrensd** op `PER_SECONDE` (5) per host: de
+  Rechtspraak vraagt hoogstens 10 per seconde en geen volledige download. **Cache met versiecontrole** zoals Kamerstukken:
+  na `VERS_S` alleen de metadata (`return=META`), de tekst opnieuw als `dcterms:modified` verschilt
+  (`uitspraak_gewijzigd`), bij een storing de bewaarde versie met `gevalideerd: false`. De zoektool
   leest jci en label-id van het artikel uit de graaf (`_q_artikel`); zonder graaf zoekt LiDO op bwb-id en nummer. De
   versies: eerst `get-id` met `juriconnect-ref` (bwb-id + artikel + datum, de vorige versie op de dag vóór de
   begindatum), en als die niets geeft (de Awb) de jci met de datum van een bestaande toestand uit de BWB-zoekdienst,

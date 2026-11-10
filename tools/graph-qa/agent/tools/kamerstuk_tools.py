@@ -25,6 +25,7 @@ from bronmodel.connectors import KAMERSTUKKEN
 from bronmodel.extern import externe_vindplaats
 
 from ..resultaat import BUDGET, TeGroot, compact, fout, per_eenheid, resultaat
+from .stuk_tekst import MAX_INHOUD, inhoud  # noqa: F401 – gedeeld met elke leestool
 
 #: Uit de beschrijving (`bronmodel.connectors`); de poorttest toetst dat `KAMERSTUK_TOOLS` precies deze namen heeft.
 KAMERSTUK_TOOL_NAMEN = KAMERSTUKKEN.tools
@@ -57,8 +58,6 @@ _DATUM_RE = re.compile(r"^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$")
 #: de inhoudsopgave en de cijfers van een budgettabel zonder hun kolommen (acceptatie 8 nov 2026: 43 van de 63 alinea's
 #: van kst-33755-3).
 _OVERGESLAGEN = {"tabel": "tabel", "table": "tabel", "illustratie": "illustratie", "noot": "voetnoot"}
-#: Zo veel koppen staan hoogstens in `inhoud` op de eerste pagina; meer en alleen de bovenste twee niveaus.
-MAX_INHOUD = 40
 
 
 class KamerstukBron(Protocol):
@@ -596,33 +595,6 @@ def lees(xml: bytes) -> tuple[dict[str, str], list[dict[str, Any]], dict[str, in
     loop(stuk, ())
     titel = " ".join(_platte_tekst(stuk.find("titel"), {}).split()) if stuk.find("titel") is not None else ""
     return {"documenttitel": titel}, uit, overgeslagen, tabellen
-
-
-def inhoud(rijen: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], bool]:
-    """De koppen van het stuk met de offset waar ze beginnen, voor de eerste pagina, en of dat alle koppen zijn. Zo springt
-    Lex naar het deel dat de vraag raakt in plaats van het stuk pagina voor pagina te lezen (acceptatie 8 nov 2026: twee
-    pagina's gelezen, de artikelsgewijze toelichting niet). Het diepste niveau dat helemaal past (hoogstens `MAX_INHOUD`
-    koppen en een kwart van de begroting: de inhoud wijst de weg, de alinea's zijn de inhoud); past zelfs het bovenste
-    niveau niet, dan het begin ervan, en dat zegt het resultaat (`inhoud_ingekort`). Leeg bij één kop."""
-    def koppen(diepte: int | None) -> list[dict[str, Any]]:
-        uit: list[dict[str, Any]] = []
-        for i, r in enumerate(rijen):
-            delen = r.get("kop", "").split(" › ")
-            kop = " › ".join(delen[:diepte] if diepte else delen)
-            if kop and all(u["kop"] != kop for u in uit):
-                uit.append({"kop": kop, "offset": i})
-        return uit
-
-    def past(lijst: list[dict[str, Any]]) -> bool:
-        return len(lijst) <= MAX_INHOUD and len(json.dumps(lijst, ensure_ascii=False)) <= BUDGET // 4
-
-    for diepte in (None, 2, 1):
-        if past(lijst := koppen(diepte)):
-            return (lijst, True) if len(lijst) > 1 else ([], True)
-    lijst = koppen(1)
-    while lijst and not past(lijst):
-        lijst = lijst[:-1]
-    return lijst, False
 
 
 def _get(bron: KamerstukBron, a: dict[str, Any]) -> str:
