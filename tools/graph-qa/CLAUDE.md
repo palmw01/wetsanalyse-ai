@@ -116,12 +116,15 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   `kop_in_antwoord`, letterlijke passages). Als subsjabloon krijgt elk sjabloon het platte veld `extern: [{id, van_nr,
   tot_nr}]`, en als eigen sjabloon is er `antwoord_extern`, allebei alleen als er een connector aanstaat die de rol bedient
   (`agent_node`); zonder connector zijn de schema's byte-gelijk. De tekst komt uit de rijen van de leestool (contract:
-  `stuk: {id, label, link, bron_hash, gewijzigd?}`, rijen `{nr, tekst, kop?}`). `check_grounding` noemt een stuk dat alleen in een zoekresultaat
-  stond `onbevestigd` ("alleen gevonden, niet gelezen"). **Een lijst gevonden stukken** is het blok `stukken` (veld
+  `stuk: {id, label, link, bron_hash, gewijzigd?}`, rijen `{nr, tekst, kop?}`). Een stuk dat alleen in een zoekresultaat stond, is
+  voor `check_grounding` geen signaal meer (10 nov 2026: een lijst opvolgende stukken gaf 13 keer "alleen gevonden");
+  het zoekresultaat draagt label, soort, datum en titel, en in de bronnenlijst komt het pas als het gelezen is. De prompt
+  (BRONNEN IN DEZE BEURT) en de zoektool vragen zo'n lijst in het veld `stukken`. **Een lijst gevonden stukken** is het blok `stukken` (veld
   `stukken: [id]` naast `extern`, in het subsjabloon en in `antwoord_extern`): het model wijst ids uit een zoekresultaat
   aan, `extern.lijsten` neemt label, soort, datum, titel en de rest uit de zoekrijen (of uit het `stuk` van de leestool,
   ook bij `alleen_pdf`), in de volgorde van het resultaat, met de zoekvraag in woorden (`zoekvraag_tekst`, uit
-  `ConnectorBeschrijving.filters`) en het totaal. Het blok staat in `NIET_GETOETST`: gevonden is daar geen signaal. Het
+  `ConnectorBeschrijving.filters`) en het totaal (`zoekvraag_tekst`: per soort metadataveld een eigen vorm – "van de Eerste Kamer", een periode voluit
+  – en de volgorde als eigen zin). Het blok staat in `NIET_GETOETST`: gevonden is daar geen signaal. Het
   blok `extern` draagt `datum` en `soort_stuk` uit het `stuk`. Een ISO-datum uit een bron telt in de controle als dezelfde
   datum voluit (`hoeveelheden`). `tests/test_extern_sjabloon.py`.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
@@ -1551,15 +1554,21 @@ ze geen artikel), dan zegt Lex zonder model waarom en wie ze aanzet (`_bron_uit`
 connector die aanstaat (`connectors.genoemde_stukken`, ook in een citeervorm van de beschrijving: "Kamerstuk 32140, nr.
 342" → `kst-32140-342`, dat de leestool bij de bron oplost), dan leest de code het vooraf (`_te_lezen`,
 `nodes/bron_lezen.py`, de `leestool` met `lees_argument`); zonder artikel in de vraag zonder supervisorcall. **Een
-lijstvraag** ("geef de 10 meest recente Kamerstukken", "de laatste vijf moties van de Eerste Kamer") leest
-`agent/bron_lijst.py` helemaal in code – volgorde, aantal, dossier, soort (`ConnectorBeschrijving.soorten`), periode,
+lijstvraag** ("geef de 10 meest recente Kamerstukken", "de laatste vijf moties van de Eerste Kamer", ook zonder volgorde
+"Kamerstukken uit vergaderjaar 2025-2026 over invorderingsrente": dan kiest de zoektool, en een orgaan als "Eerste Kamer"
+is nooit een volgorde) leest `agent/bron_lijst.py` helemaal in code – volgorde, aantal, dossier, soort (`ConnectorBeschrijving.soorten`), periode,
 vergaderjaar, Kamer (`organen`) en een onderwerp van hoogstens vier woorden ("over …") als `tekst` – en dan zoekt
 `nodes/bron_lijst.py` één keer, zonder model, met het blok `stukken` (leeg: een leemte met de zoekvraag; een fout: de
 agent). Blijft er een woord over dat de code niet plaatst, of vraagt de vraag naar de inhoud, dan geen route. Ook in een
 gesprek vóór het model, en daarna op de herschreven vraag. `tests/test_bron_lijst.py`, `eval/golden_routering.jsonl`. Een vraag over een bron naast de wet start
 nooit een werkgebied (het model koos dat in een lang gesprek). In de bronnenlijst staat een bron naast de wet alleen als ze
 gelezen en genoemd is (`grounding.alleen_gelezen_extern`). `GET /v1/bronnen` zegt per connector of de
-straat hem aanbiedt; de BFF (`/api/connectors`) toont in het menu alleen wat straat én register aanzetten. De vlag hoort in de per-beurt-reset van `answer_stream`,
+straat hem aanbiedt; de BFF (`/api/connectors`) toont in het menu alleen wat straat én register aanzetten. **`GET /v1/bronnen/{connector}/stukken/{id}`**
+(het bronvenster van de werkplek, PR 6) leest één stuk voor de jurist: de connector is een naam of een brontype, de
+leestool en haar argument komen uit de beschrijving (geen code per connector), de adaptercache wordt gedeeld met Lex,
+`offset` volgt het `vervolg`, `tabel` opent een tabel. Het antwoord is `{connector: {naam, label, groep, brontype,
+id_prefixen, metadata[{sleutel, label}]}, resultaat: <leesresultaat>}`; 404 als de straat de connector niet aanbiedt, 422
+bij een id dat niet bij de connector hoort. De schakelaar per gesprek telt hier niet: die gaat over wat Lex gebruikt. De vlag hoort in de per-beurt-reset van `answer_stream`,
 anders wijst één afgewezen vraag de hele thread af. De workerlijst is een **allowlist**
 (`antwoord`/`annotatie`/`werkgebied`/`deelvragen`/`begrippen`; de laatste drie staan altijd alleen) met een cap van twee: een onbekende naam zou anders een extra antwoord-worker
 worden.

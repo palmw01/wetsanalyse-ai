@@ -176,3 +176,28 @@ def test_een_id_als_zoekterm_wijst_naar_de_leestool():
     for args in ({"dossier": "kst-35496-F"}, {"woorden": "kst-35496-F"}):
         d = __import__("json").loads(t.dispatch("zoek_kamerstukken", None, args, AAN, kamerstukken=NepBron(DOSSIER)))
         assert d["reden"] == "is_een_id" and "get_kamerstuk(id='kst-35496-F')" in d["melding"]
+
+
+def test_het_bronvenster_leest_een_stuk_via_de_leestool_uit_de_beschrijving(monkeypatch):
+    """Het bronvenster (PR 6): één generieke route; de leestool en haar argument komen uit de beschrijving."""
+    from fastapi.testclient import TestClient
+
+    import api.main as main
+
+    _nep_kamerstukken(monkeypatch)
+    monkeypatch.setattr(main.settings, "qa_api_token", "", raising=False)
+    monkeypatch.setattr(main.settings, "connector_kamerstukken", True, raising=False)
+    r = TestClient(main.app).get("/v1/bronnen/kamerstukken/stukken/kst-99001-3")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["connector"]["naam"] == "kamerstukken"
+    assert {m["sleutel"] for m in data["connector"]["metadata"]} >= {"datum", "soort"}
+    assert data["resultaat"]["stuk"]["id"] == "kst-99001-3"
+    assert data["resultaat"]["resultaten"] and data["resultaat"]["inhoud"]
+    # Ook op het brontype: een blok in een antwoord kent alleen dat.
+    assert TestClient(main.app).get("/v1/bronnen/kamerstuk/stukken/kst-99001-3").json()["connector"]["naam"] == "kamerstukken"
+    # Een id dat niet bij de connector hoort, en een connector die de straat niet aanbiedt.
+    assert TestClient(main.app).get("/v1/bronnen/kamerstukken/stukken/ECLI:NL:HR:2020:1").status_code == 422
+    assert TestClient(main.app).get("/v1/bronnen/onbekend/stukken/x").status_code == 404
+    monkeypatch.setattr(main.settings, "connector_kamerstukken", False, raising=False)
+    assert TestClient(main.app).get("/v1/bronnen/kamerstukken/stukken/kst-99001-3").status_code == 404

@@ -212,9 +212,11 @@ export function Groep({ kop, sub, telling, status, label, children, leeg, ...res
 /** Eén rij in een `Groep` (de `itemrow` van de mock-up): titel, subregel, status en een chevron naar de pagina
  *  van het object. `eind` staat buiten de link (een menu ⋯, `MeerMenu`), `onder` eronder (de wettekst, uitgeklapt). Geen
  *  `overflow-hidden` op de lijst: dat knipt het menu van de onderste rij af; de hoeken rondt de rij zelf af. */
-export function GroepRij({ href, uitklap, titel, sub, status, eind, onder, ...rest }: {
+export function GroepRij({ href, onOpen, uitklap, titel, sub, status, eind, onder, ...rest }: {
   /** De rij opent een pagina … */
   href?: string;
+  /** … of iets naast het gesprek (een bepaling als tab, het bronvenster PR 4), met deze voorleesnaam … */
+  onOpen?: { doe: () => void; label: string };
   /** … of klapt uit op haar plek (naast het gesprek: lezen zonder weg te gaan, 3 nov 2026). */
   uitklap?: { open: boolean; onWissel: () => void; label: string };
   titel: React.ReactNode;
@@ -245,6 +247,8 @@ export function GroepRij({ href, uitklap, titel, sub, status, eind, onder, ...re
           <button type="button" onClick={uitklap.onWissel} aria-expanded={uitklap.open} aria-label={uitklap.label} className={klasse}>
             {binnen}
           </button>
+        ) : onOpen ? (
+          <button type="button" onClick={onOpen.doe} aria-label={onOpen.label} className={klasse}>{binnen}</button>
         ) : <Link href={href ?? "#"} className={klasse}>{binnen}</Link>}
         {eind}
       </div>

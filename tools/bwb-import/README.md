@@ -140,6 +140,12 @@ waarde niet als segmentgrens leest.
   `bwb:nummer/tekst/jci/refKey/labelId/voetnoot/definieertBegrip/aanhef/considerans/
   terugwerkendTot/…` (illustratie: `naam/formaat/breedte/hoogte/alt`; ondertekenaar:
   `functie/naam/voornaam/achternaam/plaats`). Datums zijn `xsd:date`, tekst `@nl`.
+- **Brondata per tekstdeel** (artikel, divisie, bijlage; uit het eigen `meta-data/brondata`):
+  naast `bwb:bron` en `bwb:inwerking` (uit de attributen) ook `bwb:dossier` (meerwaardig: het
+  Kamerdossier van de wet die de tekst zijn huidige inhoud gaf, plus dat van een `<juncto>`),
+  `bwb:inwerkingtredingsbron` (de Stb van het inwerkingtredingsbesluit) en `bwb:opmerking`
+  (redactioneel, vaak over overgangsrecht). Art. 9 Iw → dossier 35910. Een ministeriële regeling of
+  beleidsregel heeft geen Kamerdossier; dat veld blijft dan leeg.
 - **WTI-relaties** (met `BWB_IMPORT_WTI`): naast de bestaande verrijking
   (citeertitels, rechtsgebieden als `skos:Concept`, `bwb:heeftGrondslag`) ook
   `bwb:uitgegevenDoor` (→ `bwb:Organisatie` uit `owms:kern/overheid:authority`),

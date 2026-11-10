@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { BEPALING_DETAIL_VELDEN, aantalTekst, afwijkendeToestand, meerTekst, parseBepalingDetail, plaatsZin } from "./bepalingDetail";
+import { BEPALING_DETAIL_VELDEN, aantalTekst, meerTekst, parseBepalingDetail } from "./bepalingDetail";
+import { afwijkendeToestand, plaatsZin } from "./herkomst";
 
 const VP = { iri: "urn:bwb:BWBR0004770:artikel:36", label: "Artikel 36", jci: "", regeling: "Invorderingswet 1990" };
 const LEEG = { aantal: 0, volledig: true, items: [] };

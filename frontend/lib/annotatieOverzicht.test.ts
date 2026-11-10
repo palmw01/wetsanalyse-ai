@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   groepeerPerRegeling, inWeergave, isKlaarOmAfTeRonden, isTeBeoordelen, kleurstrip, legeWeergave, sorteerTeBeoordelen,
-  uitlegWeergave, vindplaatsLabel, weergaveUitParam, WEERGAVEN, zoek,
+  uitlegWeergave, weergaveUitParam, WEERGAVEN, zoek,
 } from "./annotatieOverzicht";
 import { JAS_KLASSEN } from "./jas";
 import type { DocumentSamenvatting } from "./types";
+import { bepalingKort } from "./herkomst";
 
 function doc(over: Partial<DocumentSamenvatting> = {}): DocumentSamenvatting {
   return {
@@ -174,10 +175,10 @@ describe("weergave", () => {
 
 describe("vindplaats", () => {
   it("noemt het lid alleen als het er is", () => {
-    expect(vindplaatsLabel(doc())).toBe("art. 9");
-    expect(vindplaatsLabel(doc({ lid: "2" }))).toBe("art. 9 lid 2");
-    expect(vindplaatsLabel(doc({ lid: "1", soort: "Onderdeel", label: "Onderdeel c." }))).toBe("art. 9 lid 1, onderdeel c");
-    expect(vindplaatsLabel(doc({ lid: "1", soort: "Lid", label: "Lid 1" }))).toBe("art. 9 lid 1");
+    expect(bepalingKort(doc())).toBe("art. 9");
+    expect(bepalingKort(doc({ lid: "2" }))).toBe("art. 9 lid 2");
+    expect(bepalingKort(doc({ lid: "1", soort: "Onderdeel", label: "Onderdeel c." }))).toBe("art. 9 lid 1, onderdeel c");
+    expect(bepalingKort(doc({ lid: "1", soort: "Lid", label: "Lid 1" }))).toBe("art. 9 lid 1");
   });
 });
 
@@ -204,9 +205,9 @@ describe("decimale bepalingnummers", () => {
   });
 
   it("noemt een divisie een bepaling en geen artikel met leden", () => {
-    expect(vindplaatsLabel({ artikel: "9", lid: "2" })).toBe("art. 9 lid 2");
-    expect(vindplaatsLabel({ artikel: "25", lid: "", soort: "Divisie" })).toBe("bepaling 25");
-    expect(vindplaatsLabel({ artikel: "25", lid: "25.1", soort: "Divisie" })).toBe(
+    expect(bepalingKort({ artikel: "9", lid: "2" })).toBe("art. 9 lid 2");
+    expect(bepalingKort({ artikel: "25", lid: "", soort: "Divisie" })).toBe("bepaling 25");
+    expect(bepalingKort({ artikel: "25", lid: "25.1", soort: "Divisie" })).toBe(
       "bepaling 25, 25.1",
     );
   });

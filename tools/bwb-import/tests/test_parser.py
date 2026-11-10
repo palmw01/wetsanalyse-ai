@@ -376,3 +376,43 @@ def test_niet_elke_onder_zin_is_een_definitie() -> None:
 
 def test_alleen_de_eerste_alinea_telt() -> None:
     assert ToestandParser._definities(_met_tekst("Gewone tekst.", "Onder aanvraag wordt verstaan: een verzoek.")) == []
+
+
+def _alle_artikelen(wet: Wet):
+    def onder(deel):
+        yield from deel.artikelen
+        for sub in deel.subdelen:
+            yield from onder(sub)
+
+    for deel in wet.structuurdelen:
+        yield from onder(deel)
+
+
+def test_brondata_per_artikel_dossier_inwerkingtreding_en_opmerking() -> None:
+    """Uit het eigen brondata-blok van een artikel (echte Iw-toestand van 1 okt 2026, ingekort).
+
+    Art. 9 kreeg zijn huidige inhoud uit Stb. 2022, 330 (dossier 35910); art. 7d uit Stb. 2019, 512
+    mét een juncto-publicatie, dus twee dossiers in brondatavolgorde; art. 25 heeft geen opmerking.
+    """
+    artikelen = {a.nummer: a for a in _alle_artikelen(_parse(Path(__file__).parent / "fixtures" / "brondata_iw1990.xml"))}
+
+    art9 = artikelen["9"]
+    assert art9.dossiers == ["35910"]
+    assert art9.inwerkingtredingsbron == "Stb.2026-119"
+    assert art9.opmerking == "Artikel 35 van Stb. 2022/330 bevat overgangsrecht m.b.t. deze wijziging."
+    # Wat al uit de attributen kwam, blijft gelijk.
+    assert (art9.bron, art9.inwerking, art9.label_id) == ("Stb.2022-330", "2026-07-01", "2910654")
+
+    assert artikelen["7d"].dossiers == ["35303", "36735"]
+    assert artikelen["7d"].inwerkingtredingsbron == "Stb.2026-293"
+
+    assert artikelen["25"].dossiers == ["36735"]
+    assert artikelen["25"].opmerking is None
+
+
+def test_brondata_ontbreekt_dan_leeg(sample_bijlage_xml: Path) -> None:
+    """Zonder dossierref of opmerking in de bron geen verzonnen waarde."""
+    wet = _parse(sample_bijlage_xml)
+    bijlage = wet.bijlagen[0]
+    assert bijlage.dossiers == []
+    assert bijlage.opmerking is None

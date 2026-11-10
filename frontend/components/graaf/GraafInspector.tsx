@@ -12,7 +12,7 @@ import type { NodeElement } from "@/lib/annotatieNode";
 import { WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
 import { verwijzingTekst, verwijzingVoor, type KnoopInfo } from "@/lib/graaf/knoopinfo";
 import { KnoopFeiten } from "./KnoopFeiten";
-import { KnoopTekst } from "./KnoopTekst";
+import { WettekstBlok } from "@/components/wettekst/WettekstBlok";
 import type { DetailStand } from "./useKnoopDetail";
 import { knopKlasse } from "@/components/ui/Button";
 import { StatusLabel } from "@/components/ui/Lijst";
@@ -141,7 +141,7 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
         <p className="text-[11px] text-muted">Impliciete partij · de tekst noemt haar niet; vastgelegd door een jurist.</p>
         {knoop.toelichting && <p className="border-l-2 border-line pl-2 text-ink">{knoop.toelichting}</p>}
       </div>}
-      {knoop.begrip_bron !== "wet" && <Wettekst detail={detail} knoop={knoop} gekozen={knoop.soort === "markering" ? knoop.element_id : undefined}
+      {knoop.begrip_bron !== "wet" && <KnoopWettekst detail={detail} knoop={knoop} gekozen={knoop.soort === "markering" ? knoop.element_id : undefined}
         kiesbaar={(e) => model.hasNode(`element:${e}`)} onKies={(e) => onKies(`element:${e}`)} />}
       {knoop.soort === "markering" && element === "laden" && <p className="text-xs text-faint">Details ophalen…</p>}
       {knoop.soort === "markering" && element === "fout" && <p className="text-xs text-faint">De details van deze markering konden niet worden opgehaald.</p>}
@@ -215,12 +215,12 @@ function markeringenOp(g: GraafModel, id: string): number {
 const BEGRIP_STATUS: Record<string, string> = { geaccordeerd: "Geaccordeerd", concept: "Concept", vervangen: "Vervangen" };
 
 /** De wettekst bij de keuze: met de markeringen erin als die er is, anders wat het model weet. */
-function Wettekst({ detail, knoop, gekozen, kiesbaar, onKies }: {
+function KnoopWettekst({ detail, knoop, gekozen, kiesbaar, onKies }: {
   detail: DetailStand; knoop: KnoopData; gekozen?: string; kiesbaar: (elementId: string) => boolean; onKies: (elementId: string) => void;
 }) {
   if (detail === "laden") return <p className="border-l-2 border-lint/20 pl-3 text-xs text-faint">Tekst ophalen…</p>;
   if (detail && detail !== "fout" && detail.segmenten.some((s) => s.tekst.trim())) {
-    return <KnoopTekst segmenten={detail.segmenten} elementen={detail.elementen} gekozen={gekozen} kiesbaar={kiesbaar} onKies={onKies} />;
+    return <WettekstBlok segmenten={detail.segmenten} elementen={detail.elementen} gekozen={gekozen} kiesbaar={kiesbaar} onKies={onKies} />;
   }
   // Een markering zonder tekst eromheen: het fragment zelf, letterlijk.
   if (knoop.soort === "markering") return knoop.tekst ? <blockquote className="border-l-2 border-lint/20 pl-3 text-xs leading-relaxed text-ink">“{knoop.tekst}”</blockquote> : null;

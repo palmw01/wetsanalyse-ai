@@ -5,18 +5,17 @@ import { useEffect, useState } from "react";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { AntwoordVindplaats } from "@/lib/antwoord";
-import { aantalTekst, afwijkendeToestand, haalBepalingDetail, meerTekst, plaatsZin, type BepalingDetail, type Telling } from "@/lib/bepalingDetail";
+import { aantalTekst, haalBepalingDetail, meerTekst, type BepalingDetail, type Telling } from "@/lib/bepalingDetail";
 import { datumTekst } from "@/lib/graaf/knoopinfo";
+import { plaatsZin, vindplaatsTekst } from "@/lib/herkomst";
 
 /** Wat de graaf verder over de bepaling weet, onder de wettekst in het paneel naast het gesprek (ADR-008, *Detail bij een
  *  antwoord*): de plek in de opbouw, de geldigheid, de verwijzingen in beide richtingen, grondslag en bevoegdheid, waar ze
  *  genoemd wordt en welke begrippen ze definieert. Alleen lezen; de gegevens komen uit de graaf via de api, nooit uit wat
  *  Lex schreef. Een bepaling in de graaf opent in hetzelfde paneel. De ouder geeft een `key` per bepaling: een andere bepaling
  *  begint met een lege stand. */
-export function BepalingFeiten({ bronIri, gelezenJci, onOpen }: {
+export function BepalingFeiten({ bronIri, onOpen }: {
   bronIri: string;
-  /** De jci die Lex in de beurt las (met `&g=`): wijkt de toestand nu af, dan zegt het paneel dat. */
-  gelezenJci?: string;
   onOpen: (v: AntwoordVindplaats) => void;
 }) {
   const [d, setD] = useState<BepalingDetail | null | "fout">(null);
@@ -31,7 +30,6 @@ export function BepalingFeiten({ bronIri, gelezenJci, onOpen }: {
     return <Melding type="uitleg" compact><span data-bepaling-feiten="niet-beschikbaar">Wat de kennisgraaf verder over deze bepaling weet, is nu niet te lezen. De wettekst hierboven staat er wel.</span></Melding>;
   }
   const plek = plaatsZin(d.plaats);
-  const toestand = afwijkendeToestand(gelezenJci, d.geldig_vanaf);
   return (
     <div className="space-y-4" data-bepaling-feiten="gereed">
       {(plek || d.vindplaats.regeling) && (
@@ -47,11 +45,6 @@ export function BepalingFeiten({ bronIri, gelezenJci, onOpen }: {
           {d.geldig_vanaf && <li data-feit="toestand">Tekst in de graaf geldt vanaf {datumTekst(d.geldig_vanaf)}</li>}
           {!d.inwerking && !d.gewijzigd_bij && !d.geldig_vanaf && <li className="text-muted">De graaf noemt geen datums.</li>}
         </ul>
-        {toestand && (
-          <p className="mt-1.5 text-xs text-muted" data-feit="toestand-afwijkend">
-            Lex las de tekst die gold vanaf {datumTekst(toestand)}. De graaf draagt nu een nieuwere toestand: de tekst kan zijn veranderd.
-          </p>
-        )}
       </Blok>
       {d.verwijst_naar.length > 0 && (
         // Het aantal is wat de api telde (`verwijst_naar_aantal`), niet wat er geladen is.
@@ -85,7 +78,7 @@ function Blok({ kop, children }: { kop: string; children: React.ReactNode }) {
 }
 
 function Doel({ v, open, onOpen }: { v: AntwoordVindplaats; open: boolean; onOpen: (v: AntwoordVindplaats) => void }) {
-  const tekst = v.regeling ? `${v.label}, ${v.regeling}` : v.label;
+  const tekst = vindplaatsTekst(v);
   if (!open || !v.iri.startsWith("urn:bwb:")) return <span className="text-ink">{tekst}</span>;
   return (
     <button type="button" onClick={() => onOpen(v)} className="focus-ring rounded text-left text-lint hover:underline">{tekst}</button>

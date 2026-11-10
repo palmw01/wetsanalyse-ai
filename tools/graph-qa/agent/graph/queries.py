@@ -1020,12 +1020,26 @@ def geldigheid(bwb_id: str, aanduiding: str | None = None, lid: str | None = Non
 
     De regelinggegevens komen altijd mee, ook als je naar één bepaling vraagt: een inwerkingsdatum
     zonder het geldigheidsvenster van de toestand waarin hij staat is geen antwoord.
+
+    Uit de brondata van het artikel (bij een lid: het artikel erboven) komen het Kamerdossier van de
+    wet die de tekst zijn huidige inhoud gaf (`dossiersBepaling`, meerwaardig en dus samengevoegd: anders
+    vermenigvuldigen de rijen zich), de Stb van het inwerkingtredingsbesluit en de redactionele
+    opmerking (vaak: waar het overgangsrecht staat). Met dat dossier vindt de Kamerstukken-connector de
+    toelichting bij déze bepaling; `?dossier` blijft het dossier van de oorspronkelijke regeling.
     """
     node = node_patroon(bwb_id, aanduiding, lid) if aanduiding else f'BIND(<{regeling_iri(bwb_id)}> AS ?node)'
     reg = regeling_iri(bwb_id)
     return PREFIXES + f"""SELECT ?bepalingInwerking ?terugwerkendTot ?bron ?effect ?status ?wijzigingsbron
+       ?dossiersBepaling ?inwerkingtredingsbron ?opmerking
        ?geldigVanaf ?geldigTot ?toestandUrl ?ondertekeningsdatum ?uitgiftedatum ?dossier WHERE {{
   {node}
+  OPTIONAL {{ ?artikel (bwb:heeftLid|bwb:heeftOnderdeel)+ ?node . ?artikel a bwb:Artikel . }}
+  BIND(COALESCE(?artikel, ?node) AS ?drager)
+  OPTIONAL {{ SELECT ?drager (GROUP_CONCAT(DISTINCT ?ds; separator=" | ") AS ?dossiersBepaling) WHERE {{
+    ?drager bwb:dossier ?ds . FILTER(STRSTARTS(STR(?drager), "{NS}"))
+  }} GROUP BY ?drager }}
+  OPTIONAL {{ ?drager bwb:inwerkingtredingsbron ?inwerkingtredingsbron }}
+  OPTIONAL {{ ?drager bwb:opmerking ?opmerking }}
   OPTIONAL {{ ?node bwb:inwerking ?bepalingInwerking }}
   OPTIONAL {{ ?node bwb:terugwerkendTot ?terugwerkendTot }}
   OPTIONAL {{ ?node bwb:bron ?bron }}
@@ -1038,7 +1052,7 @@ def geldigheid(bwb_id: str, aanduiding: str | None = None, lid: str | None = Non
   OPTIONAL {{ <{reg}> bwb:ondertekeningsdatum ?ondertekeningsdatum }}
   OPTIONAL {{ <{reg}> bwb:uitgiftedatum ?uitgiftedatum }}
   OPTIONAL {{ <{reg}> bwb:dossier ?dossier }}
-}} ORDER BY ?wijzigingsbron ?bron ?effect ?status ?bepalingInwerking ?terugwerkendTot {_pagina(max(1, min(int(limit), 200)), offset, meer)}"""
+}} ORDER BY ?wijzigingsbron ?bron ?effect ?status ?bepalingInwerking ?terugwerkendTot ?dossiersBepaling {_pagina(max(1, min(int(limit), 200)), offset, meer)}"""
 
 
 def bijlagen(bwb_id: str, sleutel: str | None = None, limit: int = 50, offset: int = 0,
