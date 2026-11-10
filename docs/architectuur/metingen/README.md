@@ -1,6 +1,6 @@
 # Meetlogboek
 
-Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 9 november 2026
+Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 10 november 2026
 
 Hier staat per datum wat er gemeten is, op welke code, wat eruit kwam en waar de gegevens staan.
 Nieuwste bovenaan. De meetbestanden zelf zijn bewijs: **wijzig ze niet achteraf**. Een correctie
@@ -17,6 +17,7 @@ of herhaling krijgt een eigen map of rij. Hoe de keten nu werkt, staat in
 
 | Datum | Meting | Code | Uitkomst in één regel | Gegevens |
 |---|---|---|---|---|
+| 10 nov | **Rechtspraak op acceptatie** (bundel 29: #1170–#1172): vijf vragen × drie runs via de acceptatie-MCP, `claude-sonnet-4-6` | `1c1a6366` | ECLI lezen 3/3 (2 rondes, 47k, gegrond); lijst "10 nieuwste van de HR in het belastingrecht" 3/3 zonder model (0,3–1,6 s); "uitspraak op bezwaar" raakt Rechtspraak niet 3/3; ECLI zonder tekst 3/3 eerlijk. "Welke uitspraken noemen art. 36 Iw" maar 1/3 met het blok *Gevonden Rechtspraak* (2× vrije tekst, 1× zelf overgetypte tabel; 93–178k). Verder: label zoekrij = kale ECLI, spaties weg bij `<?linebreak?>`, `ro` niet in het blok. 0 onbevestigd in 15 runs | [`rechtspraak-2026-11-10/`](rechtspraak-2026-11-10/README.md) |
 | 10 nov | **LiDO-spike: uitspraken per artikel over versies** (Iw 1990 geheel, Awb 30 artikelen, Leidraad gepeild), publieke LiDO-services en Rechtspraak, alleen lezend, 0 modelcalls | scripts in de map, geen productcode | Iw: 394 versies, 5.332 paren, 3.068 ECLI, 103/128 artikelen; huidige versie alleen 53 %. Vermelding klopt 30/30, grond of geschilpunt 25/30 (eigen lezing, geen jurist). Versies vinden is onvolledig (twee ingangen: 394 tegen 240), `get-links` breekt stil af bij 4 % (RDF redt het; anders 12 % paren weg), nieuwste toestand nog niet in LiDO, Leidraad onbruikbaar, Awb ~12k aanroepen. Go voor live per bepaling, no-go voor bulkimport via de services | [`lido-spike-2026-11-10/`](lido-spike-2026-11-10/README.md) |
 | 9 nov | **Zoeken in de tekst van Kamerstukken** (`cql.textAndIndexes`) tegen zoeken in de titel, op de acht stukken uit een onderzoek naar één bankrekeningnummer, live tegen de SRU van KOOP, 0 modelcalls | branch `claude/kamerstuk-tekstzoeken` | Titel 3 van 8, tekst als zinsdeel 8 van 8 (plekken 1–50 van 117); met 2011–2016 en de oudste eerst staan de Fiscale agenda en de MvT op 1 en 6. Eén onderwerp, een ontwikkelset | [`kamerstukken-tekstzoeken-2026-11-09/`](kamerstukken-tekstzoeken-2026-11-09/README.md) |
 | 8 nov | **Regie binnen een werkgebied** (ADR-012): bronnenronde en annoteerronde met 2 deelgesprekken tegelijk, op acceptatie, via de acceptatie-MCP | `c53dd3f5` (bundel 17) | Bronnen 52 s en 0 tokens; annoteren 80 s en 37.026 tokens tegen een schatting van 30.996 (bovenkant 46.494), geen dubbele laag. Het plan noemt al geannoteerde bepalingen niet, en de schatting kent de lengte van een lid niet. *Stop alles* en de trace niet gemeten | [`regie-2026-11-08/`](regie-2026-11-08/README.md) |
