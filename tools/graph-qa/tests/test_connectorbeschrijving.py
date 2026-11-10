@@ -35,6 +35,13 @@ WETSVRAGEN = (
     "Annoteer artikel 36 lid 2 van de Invorderingswet 1990",
     "Hoe verhoudt artikel 25 zich tot de Leidraad Invordering 2008?",
     "Wat voor weer wordt het morgen?",
+    # Fiscale en procestaal met "uitspraak" en "rechter" die niet over rechtspraak gaat (bevinding bij #1170: op een
+    # straat zonder de connector nam `_bron_uit` zo'n vraag over met "Rechtspraak staat uit").
+    "Wat is een uitspraak op bezwaar?",
+    "Binnen welke termijn moet de inspecteur uitspraak doen op het bezwaarschrift?",
+    "Kan ik tegen de aansprakelijkstelling beroep instellen bij de rechter?",
+    "Wat doet de rechter-commissaris bij een faillissement?",
+    "Wanneer is de rechter bevoegd om de dwangbevelprocedure te schorsen?",
 )
 
 

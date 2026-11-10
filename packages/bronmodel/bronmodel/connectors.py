@@ -305,6 +305,10 @@ INSTANTIES = ("Hoge Raad", "Parket bij de Hoge Raad", "Raad van State", "Central
               "College van Beroep voor het bedrijfsleven", "gerechtshof", "rechtbank",
               "Europees Hof voor de Rechten van de Mens", "Hof van Justitie van de EU", "overig")
 
+#: Een gerecht in de woorden van de jurist, voor de signalen hierboven.
+_GERECHT = (r"(?:rechter|rechtbank|(?:gerechts)?hof|hoge\s+raad|raad\s+van\s+state|centrale\s+raad(?:\s+van\s+beroep)?|"
+            r"crvb|cbb|college\s+van\s+beroep(?:\s+voor\s+het\s+bedrijfsleven)?|gerecht)\b")
+
 RECHTSPRAAK = ConnectorBeschrijving(
     naam="rechtspraak",
     label="Rechtspraak",
@@ -312,8 +316,15 @@ RECHTSPRAAK = ConnectorBeschrijving(
     groep="Uitspraken",
     dekt=("uitspraken en conclusies die een wetsartikel noemen (de koppelingen van Linked Data Overheid), en de tekst "
           "van een Nederlandse uitspraak uit de open data van de Rechtspraak"),
-    signalen=(r"\buitspra(?:ak|ken)\b", r"\bjurisprudentie\b", r"\brechtspraak\b", r"\brechters?\b",
-              r"\brechterlijke\b", r"\barrest(?:en)?\b", r"\bhoge\s+raad\b", r"\bgerechtshof\b", r"\brechtbank\b",
+    # Niet het kale "uitspraak" of "rechter": "uitspraak op bezwaar", "de inspecteur doet uitspraak" en "beroep bij de
+    # rechter" zijn gewone wetstaal, en op een straat zonder deze connector nam de melding "staat uit" ze dan over.
+    # Een uitspraak telt als ze van een gerecht is, of als rechterlijke uitspraak; een gerecht als het iets oordeelde.
+    signalen=(r"\b(?:rechterlijke|gerechtelijke)\s+uitspra(?:ak|ken)\b",
+              rf"\buitspra(?:ak|ken)\s+(?:van|door|bij)\s+(?:de\s+|het\s+)?{_GERECHT}",
+              r"\buitspraken\b(?!\s+(?:op|in)\s+(?:het\s+|de\s+)?(?:bezwaar|beroep|administratief))",
+              rf"\b{_GERECHT}[^.?!]{{0,40}}?\b(?:geoordeeld|oordeelt|oordeelde|gezegd|zegt|zei|beslist|overwogen|uitgemaakt)\b",
+              r"\bjurisprudentie\b", r"\brechtspraak\b", r"\barrest(?:en)?\b", r"\bvonnis(?:sen)?\b",
+              r"\bafdeling\s+bestuursrechtspraak\b",
               r"\bconclusie\s+(?:van\s+de\s+)?a(?:dvocaat)?[.-]?\s*g(?:eneraal)?\b", r"\becli\b"),
     tools=frozenset({"zoek_uitspraken", "get_uitspraak"}),
     leestool="get_uitspraak",
