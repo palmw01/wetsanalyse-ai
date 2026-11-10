@@ -16,7 +16,10 @@
  *  - het menu verdwijnt nooit stil: faalt `/api/connectors`, dan staat het er met een melding en *Opnieuw proberen*;
  *    een wissel van gesprek of *Nieuw gesprek* (een remount) toont meteen de laatst bekende stand, ook als het
  *    ophalen traag is; een bron die de omgeving niet aanbiedt staat er als "niet beschikbaar", zonder schakelaar en
- *    zonder `bronnen`; en het `bronstand`-event van een beurt werkt de beschikbaarheid bij.
+ *    zonder `bronnen`; en het `bronstand`-event van een beurt werkt de beschikbaarheid bij;
+ *  - laden is geen oordeel: een `onbekend` (koude graph-qa) staat eerst als "wordt gecontroleerd" en herstelt vanzelf
+ *    met een korte reeks herpogingen; pas daarna "onbekend" met de melding. Terugkomen in het venster en een beurt
+ *    proberen het opnieuw. De herpogingen zijn hier kort (`window.__connectorHerpogingen`).
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -32,13 +35,14 @@ const GOED = [{ type: "token", content: "Goed." }, { type: "done" }];
 
 // `connectorsAntwoord(n)` (n = het hoeveelste verzoek) kan een fout of vertraging geven: `{ status, vertraging }`.
 async function open({ beschikbaar = [KST], gesprekConnectors, wgStandaard = null, url = "/workbench", events = GOED,
-  connectorsAntwoord = () => ({}), gesprekken = [] } = {}) {
+  connectorsAntwoord = () => ({}), gesprekken = [], herpogingen = [150, 150] } = {}) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   const errors = [], runs = [], patches = [], wgPatches = [], connectorVerzoeken = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await context.addCookies(await sessieCookies(base));
   await context.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true })));
+  await context.addInitScript((h) => { window.__connectorHerpogingen = h; }, herpogingen);
   const stand = { connectors: gesprekConnectors ?? null, wg: { id: "wg1", naam: "Invordering", status: "in_voorbereiding", revisie: 3,
     peildatum: null, aangemaakt_door: "t", aangemaakt: nu, gewijzigd: nu, analysevraag: "", afbakening: "", aanleiding: "",
     context: "", doel: "", praktijkvoorbeeld: "", bronnen: [], deelvragen: [], standaard_connectors: wgStandaard } };
@@ -314,6 +318,71 @@ const menu = (page) => page.locator("[data-connectors-menu]");
   await vraag(page, "Tweede vraag");
   await wachtOp(page, runs, 2);
   await page.waitForFunction(() => document.querySelector("[data-connectors-menu]")?.getAttribute("aria-label") === "Bronnen: Wetgeving aan, Kamerstukken aan");
+  assert.deepEqual(errors, []);
+  await context.close();
+}
+
+// 12. Een koude graph-qa: de eerste twee antwoorden zijn onbekend, het derde aan. Er staat nooit "onbekend" op de knop:
+// eerst "wordt gecontroleerd", daarna het vinkje, zonder klik.
+{
+  const KOUD = [KST, { ...KST, naam: "rechtspraak", label: "Rechtspraak", brontype: "uitspraak" }];
+  let n = 0;
+  const beschikbaar = () => KOUD.map((c) => ({ ...c, beschikbaarheid: n > 2 ? "aan" : "onbekend" }));
+  const { page, context, errors } = await open({ beschikbaar, herpogingen: [400, 400],
+    connectorsAntwoord: () => { n++; return {}; } });
+  // Leg elke naam van de knop vast, ook de kortstondige.
+  await page.evaluate(() => {
+    window.__namen = [];
+    const kijk = () => { const n = document.querySelector("[data-connectors-menu]")?.getAttribute("aria-label"); if (n) window.__namen.push(n); };
+    new MutationObserver(kijk).observe(document.body, { subtree: true, childList: true, attributes: true });
+    kijk();
+  });
+  await page.waitForFunction(() => document.querySelector("[data-connectors-menu]")?.getAttribute("aria-label") ===
+    "Bronnen: Wetgeving aan, Kamerstukken aan, Rechtspraak aan");
+  const namen = await page.evaluate(() => window.__namen);
+  assert.ok(namen.some((x) => x.includes("Kamerstukken wordt gecontroleerd")), "eerst wordt gecontroleerd");
+  assert.ok(!namen.some((x) => x.includes("onbekend")), `nooit onbekend: ${namen.join(" | ")}`);
+  assert.equal(await page.locator("[data-connectors-menu] [data-stand=laden]").count(), 0);
+  assert.deepEqual(errors, []);
+  await context.close();
+}
+
+// 13. Blijft het onbekend, dan pas na de reeks "onbekend" met de melding; terugkomen in het venster probeert opnieuw.
+{
+  let bekend = false;
+  const beschikbaar = () => [{ ...KST, beschikbaarheid: bekend ? "aan" : "onbekend" }];
+  const { page, context, errors, connectorVerzoeken } = await open({ beschikbaar });
+  await page.waitForFunction(() => document.querySelector("[data-connectors-menu]")?.getAttribute("aria-label") ===
+    "Bronnen: Wetgeving aan, Kamerstukken onbekend");
+  const na = connectorVerzoeken.length;
+  assert.ok(na >= 3, "één verzoek en twee herpogingen");
+  // Geen timer meer: zonder handeling komt er geen verzoek bij.
+  await page.waitForTimeout(800);
+  assert.equal(connectorVerzoeken.length, na, "geen polling na de reeks");
+  // Het menu openen probeert het opnieuw (een nieuwe reeks); daarna staat de melding er.
+  await menu(page).click();
+  await page.getByText("Lex kan nu niet nagaan of Kamerstukken bereikbaar is.").waitFor();
+  assert.ok(connectorVerzoeken.length > na, "openen van het menu probeert opnieuw");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(800);
+  bekend = true;
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await page.waitForFunction(() => document.querySelector("[data-connectors-menu]")?.getAttribute("aria-label") ===
+    "Bronnen: Wetgeving aan, Kamerstukken aan");
+  assert.deepEqual(errors, []);
+  await context.close();
+}
+
+// 14. Vóór een beurt: was de stand niet vast te stellen, dan gaat er een verversverzoek uit, en de beurt wacht er niet op.
+{
+  const { page, context, errors, runs, connectorVerzoeken } = await open({
+    beschikbaar: () => [{ ...KST, beschikbaarheid: "onbekend" }] });
+  await page.waitForFunction(() => document.querySelector("[data-connectors-menu]")?.getAttribute("aria-label")?.includes("Kamerstukken onbekend"));
+  const voor = connectorVerzoeken.length;
+  await vraag(page, "Een vraag");
+  await wachtOp(page, runs, 1);
+  assert.ok(connectorVerzoeken.length > voor, "verversen vóór de beurt");
+  assert.deepEqual(runs[0].bronnen, ["kamerstukken"], "de beurt houdt de opgeslagen keuze");
   assert.deepEqual(errors, []);
   await context.close();
 }

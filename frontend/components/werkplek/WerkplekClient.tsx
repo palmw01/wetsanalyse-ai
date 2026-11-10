@@ -161,6 +161,7 @@ export function WerkplekClient({
   const connectorStand: ConnectorStand = {
     beschikbaar: connectorLijst.beschikbaar,
     laden: connectorLijst.laden ?? undefined,
+    controleert: connectorLijst.controleert,
     gesprek: gesprekConnectors,
     werkgebied: werkgebiedId && wgConnectors?.id === werkgebiedId ? wgConnectors.connectors : null,
   };
@@ -503,7 +504,8 @@ export function WerkplekClient({
 
   /** Start een beurt. Zonder `verzoek.prompt` geldt wat er in het invoerveld staat (`lib/beurtVerzoek.ts`). */
   // Wat de beheerder aanzette en wat de omgeving aanbiedt: de laatst bekende stand van dit venster, ververst bij elke
-  // mount. Mislukte het ophalen, of was graph-qa niet te lezen, dan opnieuw bij het openen van het menu en na een beurt.
+  // mount, met een korte reeks herpogingen als de stand niet vast te stellen was (`lib/connectorLijst.ts`). Daarna
+  // opnieuw bij het openen van het menu, vóór en na een beurt, en bij terugkomst in het venster.
   const verversAlsOnbekend = () => { if (moetVerversen(connectorRef.current)) connectorLijst.ververs(); };
 
   // De standaard van het werkgebied, alleen als er een menu is.
@@ -554,6 +556,9 @@ export function WerkplekClient({
     if (!prompt || !beurt.claim()) return;
     setInvoer("");
     setBronUit([]);
+    // Was de bronstand niet vast te stellen, dan nu opnieuw, op de achtergrond: de beurt wacht er niet op en draagt de
+    // opgeslagen keuze (graph-qa toetst de straat zelf).
+    verversAlsOnbekend();
 
     // Een vraag bij een markering gaat als ADVIES: dezelfde thread, maar met contextblok en langs de
     // antwoordroute – die kan topologisch geen annotatie wijzigen. Een ander object gaat als

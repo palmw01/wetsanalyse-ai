@@ -62,6 +62,34 @@ describe("connectorsMenu", () => {
     expect(beurtBronnen(oud)).toEqual({ bronnen: ["kamerstukken"], bronnen_herkomst: "standaard" });
   });
 
+  it("laden is geen oordeel: onbekend tijdens het controleren is neutraal, zonder melding", () => {
+    const NEP = { naam: "nep", label: "Nepbron", brontype: "nep", beschikbaarheid: "onbekend" as const };
+    const bezig: ConnectorStand = { beschikbaar: [{ ...KST, beschikbaarheid: "onbekend" }, NEP], controleert: true };
+    expect(menuRegel(bezig)).toEqual([{ label: "Wetgeving", stand: "aan" }, { label: "Kamerstukken", stand: "laden" },
+      { label: "Nepbron", stand: "laden" }]);
+    expect(menuNaam(bezig)).toBe("Bronnen: Wetgeving aan, Kamerstukken wordt gecontroleerd, Nepbron wordt gecontroleerd");
+    expect(menuMelding(bezig)).toBeNull();
+    // Geen schakelaar zolang het niet vaststaat; de beurt houdt de opgeslagen keuze.
+    expect(wissel({ ...bezig, gesprek: ["kamerstukken"] }, "nep")).toEqual(["kamerstukken"]);
+    expect(beurtBronnen(bezig)).toEqual({ bronnen: ["kamerstukken", "nep"], bronnen_herkomst: "standaard" });
+    // Na de reeks: wel het oordeel, met de melding.
+    const klaar: ConnectorStand = { ...bezig, controleert: false };
+    expect(menuRegel(klaar)[1]).toEqual({ label: "Kamerstukken", stand: "onbekend" });
+    expect(menuMelding(klaar)).toBe("Lex kan nu niet nagaan of Kamerstukken en Nepbron bereikbaar zijn.");
+    // Een vaste stand wacht niet op de reeks.
+    const weg: ConnectorStand = { beschikbaar: [{ ...KST, beschikbaarheid: "niet_aangeboden" }], controleert: true };
+    expect(menuRegel(weg)[1]).toEqual({ label: "Kamerstukken", stand: "niet_aangeboden" });
+  });
+
+  it("een mislukte lijst tijdens een nieuwe reeks: menu blijft, maar zonder melding", () => {
+    const opnieuw: ConnectorStand = { beschikbaar: [], laden: "mislukt", controleert: true };
+    expect(toonMenu(opnieuw)).toBe(true);
+    expect(menuMelding(opnieuw)).toBeNull();
+    expect(menuNaam(opnieuw)).toBe("Bronnen: Wetgeving aan");
+    // Zonder eerdere lijst en zonder uitkomst (eerste reeks) is er geen menu.
+    expect(toonMenu({ beschikbaar: [], controleert: true })).toBe(false);
+  });
+
   it("de bronstand van een beurt werkt de beschikbaarheid bij, generiek per connector", () => {
     const NEP = { naam: "nep", label: "Nepbron", brontype: "nep" };
     const lijst = [{ ...KST, beschikbaarheid: "aan" as const }, { ...ECLI, beschikbaarheid: "onbekend" as const }, NEP];

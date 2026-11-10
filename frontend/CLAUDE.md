@@ -523,14 +523,23 @@ per connector aan of uit (`MenuKeuze`), en in een werkgebied *Maak dit de standa
   - `niet_aangeboden`: de beheerder zette hem aan, maar deze omgeving biedt hem niet aan. Hij staat er met "hier niet
     beschikbaar" (`data-connector-niet-aangeboden`) en een melding, gaat nooit aan en nooit mee in `bronnen`
     (incident 8 nov 2026); een opgeslagen keuze blijft bewaard;
-  - `onbekend`: graph-qa was niet te lezen (8 s, `STRAAT_TIMEOUT_MS`: een koude start houdt het menu niet de volle 30 s
-    op). Zonder schakelaar ("nu niet te controleren", `data-connector-onbekend`) en zonder *Zet … aan*
-    (review ADR-013, punt 2); de beurt houdt de opgeslagen keuze (graph-qa toetst de straat zelf).
+  - `onbekend`: graph-qa was niet te lezen (3 s, `STRAAT_TIMEOUT_MS`). Zonder schakelaar en zonder *Zet … aan* (review
+    ADR-013, punt 2); de beurt houdt de opgeslagen keuze (graph-qa toetst de straat zelf).
 
-  Faalt het register, dan geeft de BFF een 503 met een reden. De werkplek haalt de stand opnieuw op bij het openen van het
-  menu en na een beurt als hij mislukt of onbekend was (`moetVerversen`), zonder timer.
+  Faalt het register, dan geeft de BFF een 503 met een reden.
+- **Laden is geen oordeel** (melding gebruiker 10 nov 2026: op acceptatie stond vaak *Kamerstukken [onbekend]*, na een
+  refresh goed; oorzaak: graph-qa staat op `minReplicas: 0` en start koud langer dan de time-out). Is de stand niet vast
+  te stellen (een fout of `onbekend`), dan volgt in `lib/connectorLijst.ts` een korte reeks herpogingen (`HERPOGINGEN`:
+  2, 4, 8 en 16 s, één reeks per venster) en staat `controleert` aan. De knop toont zo'n bron dan als `laden`: gedempt,
+  zonder woord of kleur, `aria-busy` en "wordt gecontroleerd" in de naam en in het menu; geen melding, geen waarschuwing.
+  Pas als de reeks op is, volgt het oordeel: `onbekend` met de melding uit `menuMelding`, of `laden: "mislukt"`. Een vaste
+  stand (`niet_aangeboden`) wacht niet op de reeks. Daarna geen timer: een nieuwe reeks begint bij het openen van het
+  menu, vóór en na een beurt (`verstuur`, `onBeurtKlaar`; de beurt wacht er niet op) en bij terugkomst in het venster
+  (`focus`/`visibilitychange` in `useConnectorLijst`, hoogstens eens per 15 s), alleen als `moetVerversen` geldt. De
+  browserregressie zet kortere wachttijden met `window.__connectorHerpogingen`.
 - **De beurt werkt de stand bij**: het `bronstand`-event van graph-qa (`onBronstand`, `uitBronstand`) legt per connector
-  `straat` → `niet_aangeboden`, `register_onleesbaar` → `onbekend` en `aan` → `aan` over de lijst. Uitgezet in gesprek,
+  `straat` → `niet_aangeboden`, `register_onleesbaar` → `onbekend` (en start een reeks, dus eerst `laden`) en `aan` → `aan`
+  over de lijst. Uitgezet in gesprek,
   werkgebied of door de beheerder zegt niets over de omgeving.
 - Het menu omzetten zet een gesprek niet bovenaan de lijst (geen `updated`).
 - Browserregressie: `scripts/test-connectors-menu.mjs`.
