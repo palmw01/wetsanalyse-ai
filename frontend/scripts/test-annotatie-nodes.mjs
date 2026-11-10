@@ -154,8 +154,8 @@ await page.route("**/api/**", async (route) => {
   if (url.pathname.endsWith("/weergave/export")) return route.fulfill({ contentType: "application/json", body: "{}" });
   return route.fulfill({ status: 200, json: body });
 });
-// De wettekst staat in `DocumentPaneel` als blokken met `data-offset`; per lid is de tweede
-// tekstknoop de lidtekst zelf (de eerste is het lidnummer "1.").
+// De wettekst is `WettekstBlok` met de markeerlaag (ontdubbelen PR 4): per segment een blok met `data-offset`; de eerste
+// tekstknoop is het nummer ("1.", buiten de tekst), de tweede de tekst van het segment zelf.
 const wettekst = () => page.locator('[data-tour="wettekst"]');
 async function selecteer(van, tot) {
   await page.evaluate(([van, tot]) => {
@@ -223,8 +223,9 @@ try {
   await page.getByRole("button", { name: "“A😀 ontvanger”", exact: true }).click();
   const grens = await verzoek((r) => r.path.endsWith("/beslissing") && r.body?.type === "grens");
   assert.deepEqual(grens.body.wijziging, { optie: 0 });
-  // Zelf markeren via de selectiepopover: " A😀 ontvanger", de emoji op UTF-16 2..4 = codepoint 1..2.
-  await selecteer([0, 2], [0, 4]);
+  // Zelf markeren via de selectiepopover: "A😀 ontvanger", de emoji op UTF-16 1..3 = codepoint 1..2. De ankers zijn
+  // dezelfde als met de oude tekstweergave: dat is de toets dat de markeerlaag dezelfde posities geeft.
+  await selecteer([0, 1], [0, 3]);
   await page.getByRole("dialog", { name: "Markering toevoegen" }).getByRole("button", { name: "Rechtssubject", exact: true }).click();
   const creation = await verzoek(isNieuw);
   assert.deepEqual(creation.body.element.ankers, [{ bron_iri: "urn:lid1", start: 1, eind: 2, tekst: "😀", bron_hash: "hash1" }]);
@@ -242,7 +243,7 @@ try {
   // Een selectie over twee leden wordt twee bronankers, zonder lidnummer ertussen.
   await page.goto(`${base}/annotaties/node?bron_iri=urn:artikel9`);
   await wettekst().getByText("UITSLUITEND TWEE", { exact: false }).waitFor();
-  await selecteer([0, 2], [1, 5]);
+  await selecteer([0, 1], [1, 4]);
   await page.getByRole("dialog", { name: "Markering toevoegen" }).getByRole("button", { name: "Rechtssubject", exact: true }).click();
   const multi = (await verzoek(isNieuw, 2)).body;
   assert.equal(multi.element.ankers.length, 2);

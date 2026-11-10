@@ -85,7 +85,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **`components/`**:
   - `werkplek/` – de hele chat-werkruimte: schil, sidebar, thread (`ThreadRij`,
     `KeuzeKaart`, `VraagDock`, `VragenKaart`, `ReeksBlok`, `HergebruikMelding`, `Markdown`) en het annotatiegereedschap in het
-    artefactpaneel (`ArtefactInhoud`, `DocumentPaneel`, `ReviewQueue`,
+    artefactpaneel (`ArtefactInhoud`, `AnnotatieTekst`, `ReviewQueue`,
     `SelectiePopover`, `ExportKnop`).
   - `annotaties/` – het overzicht en de losse annotatiepagina (`AnnotatiesClient`, `AnnotatieKaart`,
     `NodeAnnotatiePaneel`, `AnnotatiePaginaSchil`).
@@ -138,7 +138,9 @@ stand komt uit `lib/herkomst.ts`.
   annotatieopslag die `haalNodeWeergave` aanroept: wat bewaard is staat er meteen, de lezing ernaast houdt de
   markeringen bij (`maakWeergaveCache` in `lib/bronWeergave.ts`). `actueleElementen` is de ene filter op de markeringen
   in de lopende tekst.
-- Geen eigen component `Wettekst`, geen `KnoopTekst`; het annotatiepaneel (`DocumentPaneel`) blijft tot de annoteerfase.
+- Geen eigen component `Wettekst`, geen `KnoopTekst`, en geen tweede weergave voor de annotatie (ontdubbelen PR 4):
+  `AnnotatieTekst` is `WettekstBlok` met de **markeerlaag** (`laag`: de ene gekozen markering, de ongedekte zinsdelen, zelf
+  selecteren), dezelfde tekst als het leesvenster. De rekenkern van die laag staat in `lib/markeerlaag.ts`.
 
 **De graaf van een bron** (ontdubbelen PR 1): één `useBronGraaf` + `BronGraaf` (`components/wettekst/BronGraaf.tsx`) voor
 het venster naast het gesprek, de bronpagina en de annotatie, met één keuze Tekst | Graaf (`WeergaveBalk`). Alleen de tab
@@ -339,7 +341,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     `aria-label`; het werkgebied staat al in `ChatKop`. Een Markdown-download heet naar zijn eigen kop (`kopVan`), die het
     werkgebied wel noemt. `app/artefactTitels.test.ts` bewaakt het.
   - **annotatie** – het `annotatie`-item met `AnnotatieChip`, dat **`NodeAnnotatiePaneel`** opent
-    `DocumentPaneel` toont de wettekst met de **letterlijke** fragmenten
+    `AnnotatieTekst` toont de wettekst met de **letterlijke** fragmenten
     (`segmenteer` + `lib/jas.ts:jasStyle`), `ReviewQueue` de beslissingskaarten.
   - **begrippen** – het `artefact`-item met `ArtefactChip`, dat
     **`WerkgebiedArtefactPaneel`** opent: dezelfde `BegripVoorstellen` (`inklapbaar={false}`) als op de tab
@@ -1473,7 +1475,7 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
 
 Wettekst en reviewlijst hebben **elk een eigen scroll** (tekst `max-h-[45%]` bovenin), zodat de tekst
 niet uit beeld loopt als je verderop in de lijst bent. Selecteren scrolt **beide kanten** in beeld:
-de markering (`DocumentPaneel`) en de kaart (`ReviewQueue`), met respect voor
+de markering (`WettekstBlok`, markeerlaag) en de kaart (`ReviewQueue`), met respect voor
 `prefers-reduced-motion`.
 
 - **De kaart is compact**; toelichting, uitleg van de review, alternatieven en opmerking vouwen open
@@ -1564,7 +1566,7 @@ is dubbelop. Bij **verwerpen** blijft de reden een vraag aan de jurist; die staa
   element; `edited` vergrendelt niet (anders wringt er een heropening tussen klasse en toelichting);
   een **eigen markering** vergrendelt niet, want die is `human_approved` bij het aanmaken.
 - **Verworpen markeringen tellen niet als "inmiddels gemarkeerd"** (`alGemarkeerd` in
-  `lib/annotatie.ts`, voor de ongedekte zinsdelen uit de dekking), net zoals `DocumentPaneel`
+  `lib/annotatie.ts`, voor de ongedekte zinsdelen uit de dekking), net zoals de markeerlaag
   verworpen markeringen niet oplicht.
 - **Fragment inkorten/uitbreiden**: klik de markering aan en selecteer opnieuw. Overlapt de selectie
   de actieve markering (`overlaptSelectie` + `vindPositie`), dan biedt `SelectiePopover` bovenaan
@@ -1577,7 +1579,7 @@ draaiden en welke zinsdelen geen enkele kandidaat opleverden; de api geeft dat m
 - `ongedektVanNode` (`lib/annotatieNodeAdapter.ts`) vertaalt de zinsdelen naar de samengestelde bron
   en laat een deel weg als de tekst daar niet letterlijk staat; `nogOngedekt` haalt weg wat een
   actueel, niet-verworpen element al raakt.
-- `DocumentPaneel` onderstreept ze gestippeld (standaard aan, *Verbergen* in de balk erboven).
+- De markeerlaag onderstreept ze gestippeld (standaard aan, *Verbergen* in de balk erboven).
   `segmentenVanBlok` knipt erop, de actieve markering gaat voor, en de segmenten blijven samen
   exact de regel. Een klik op een onderstreept zinsdeel opent dezelfde `SelectiePopover` met het
   hele deel: zelf markeren zonder de grenzen te trekken.
@@ -1589,28 +1591,28 @@ draaiden en welke zinsdelen geen enkele kandidaat opleverden; de api geeft dat m
 
 ### Zelf annoteren (tekstselectie)
 
-De jurist selecteert tekst in `DocumentPaneel` en markeert die zelf. Eigen markeringen gaan via
+De jurist selecteert tekst in de markeerlaag (`WettekstBlok` via `AnnotatieTekst`) en markeert die zelf. Eigen markeringen gaan via
 `POST elementen` (`NodeAnnotatiePaneel.eigenMarkering`; niet de batch, dat is de uitkomst van een
 agent-ronde) en zijn meteen `human_approved`.
 
-- **Een selectie eindigt niet altijd met een muisklik.** Naast `onMouseUp` luistert `DocumentPaneel`
+- **Een selectie eindigt niet altijd met een muisklik.** Naast `onMouseUp` luistert de markeerlaag
   op documentniveau naar `keyup` (Shift+pijltjes, WCAG 2.1.1) en `touchend` (selectiegrepen op een
   aanraakscherm). `ArtefactInhoud.sluitSelectie` ruimt de DOM-selectie op bij het sluiten van de
   popover, anders klapt die bij de volgende tik weer open.
 - **De rekenkern staat in `lib/selectie.ts`**; het component doet alleen de `TreeWalker`-wandeling
   (`offsetVanGrens`) en geeft knooplengtes door aan `offsetInBlok`.
-- **De tekst staat in blokken, en elk blok draagt `data-offset`.** `offsetVanGrens` telt alleen binnen
-  het blok vanaf die startpositie, zodat de weergave (inspringing van leden en onderdelen) los staat
-  van de offsets. **Haal `data-offset` niet weg** – dan landt elke markering stil op de verkeerde
-  tekst.
+- **Elk segment is een blok, en elk blok draagt `data-offset`** (zijn begin in de samengestelde bron, `SegmentPlek`).
+  `offsetVanGrens` telt alleen binnen het blok vanaf die startpositie, zonder het nummer (`data-buiten-tekst`), zodat de
+  weergave (inspringing, nummer) los staat van de offsets. **Haal `data-offset` niet weg** en zet geen tekst naast de
+  segmenten – dan landt elke markering stil op de verkeerde tekst. `test-annotatie-nodes` toetst de ankers (ook emoji en
+  over twee leden).
 - **Een markering wordt op de blokgrens geknipt** (`segmentenVanBlok`): een `<mark>` kan niet over
   twee blokken, dus het worden twee `<mark>`s met dezelfde klasse en hetzelfde id, optisch verbonden
   door `box-decoration-clone`.
-- **De structuur komt uit `lib/wetstructuur.ts`** (`ontleed` + `blokkenVan`). Het nestingniveau is
-  **afgeleid uit de nummervorm**: de echte nesting staat in de graaf, maar het artefact krijgt de tekst
-  als `leden_teksten` (`{lid, tekst}[]`, door `lib/annotatieNodeAdapter.ts`). Een fout geeft hooguit een scheve marge, nooit een scheve
-  markering. `blokkenVan` vangt af dat het lidvoorvoegsel `"1. "` dezelfde vorm heeft als een
-  onderdeelnummer. De testvectoren staan in `wetstructuur.vectoren.json`.
+- **De structuur komt uit de graaf** (ontdubbelen PR 4): de inspringing volgt `parent_iri` van de segmenten (`diepteVan`
+  in `WettekstBlok`), net als bij lezen; een los onderdeel staat op de marge, zonder lege lidregel erboven. De
+  samengestelde bron (`leden_teksten`, `lib/annotatieNodeAdapter.ts`) bestaat nog voor de posities en de reviewlijst;
+  `blokkenVan` (`lib/wetstructuur.ts`) wordt in geen component meer gebruikt.
 - **De brontekst is een lijst `LidRegel`, geen lijst strings** (`regelsVan`/`bronVan` in
   `lib/annotatie.ts`). Het lidnummer reist mee omdat het **niet uit de volgorde af te leiden** is: bij
   een op één lid afgebakend document is index 0 bijvoorbeeld lid 3, en ingevoegde leden heten 2a.

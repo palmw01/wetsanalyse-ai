@@ -536,6 +536,9 @@ async function wachtGereed(page) {
   await page.getByRole("button", { name: "Open in het paneel" }).waitFor();
   await page.getByRole("tab", { name: "Tekst", exact: true }).click();
   await page.locator("[data-artefact]").waitFor();
+  // De annotatie tekent dezelfde wettekst als het leesvenster, met de markeerlaag (ontdubbelen PR 4).
+  await page.locator('[data-artefact] [data-testid="wettekst-markeerlaag"]').waitFor();
+  await page.screenshot({ path: `${shots}/1d-annotatie-tekst.png` });
   await page.getByRole("tab", { name: "Graaf", exact: true }).click();
   assert.match(await detail(page).innerText(), /ontvanger/, "keuze blijft na terugkeren");
 

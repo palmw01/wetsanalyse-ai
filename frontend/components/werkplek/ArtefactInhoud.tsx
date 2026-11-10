@@ -12,7 +12,8 @@ import { MenuVerwijder } from "@/components/ui/MeerMenu";
 import { knopKlasse } from "@/components/ui/Button";
 import { VERWIJDER_UITLEG, verwijderLabel } from "@/lib/verwijderen";
 import { Melding } from "@/components/ui/Melding";
-import { DocumentPaneel } from "@/components/werkplek/DocumentPaneel";
+import { AnnotatieTekst } from "@/components/werkplek/AnnotatieTekst";
+import type { SegmentPlek } from "@/lib/annotatieNodeAdapter";
 import { ExportRegels } from "@/components/werkplek/ExportKnop";
 import { ReviewQueue, type OpenRij } from "@/components/werkplek/ReviewQueue";
 import { SelectiePopover, type SelectieDoel } from "@/components/werkplek/SelectiePopover";
@@ -36,6 +37,9 @@ export interface ArtefactInhoudProps {
   alleenLezen?: boolean;
   doc: AnnotatieDocument;
   info: GraafArtikel;
+  /** Waar elk segment in de samengestelde bron begint (`nodeBronVan`): de tekst is die van het leesvenster, met de
+   *  markeerlaag erop (`AnnotatieTekst`). */
+  plekken: readonly SegmentPlek[];
   actiefId?: string;
   onKies: (id?: string) => void;
   onBeslissing: (elementId: string, req: BeslissingInvoer) => Promise<void>;
@@ -81,7 +85,7 @@ export interface ArtefactInhoudProps {
  *  werkplek zit hij in een `Dialog`, op `/annotaties/node` in een gewone pagina. Eén inhoud, twee
  *  schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
-  doc, info, actiefId, onKies, onBeslissing, onAkkoordGroen, onEigenMarkering,
+  doc, info, plekken, actiefId, onKies, onBeslissing, onAkkoordGroen, onEigenMarkering,
   onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, onEscapeEinde, pagina, onExport, extra, elementExtra, ongedekt, kopOnder, kopBalk, alleenLezen = false,
 }: ArtefactInhoudProps) {
   // Eén bron voor de bewoording (`lib/herkomst.ts`): `bepalingKort` weet uit het graaf-`soort` of dit een artikel
@@ -307,9 +311,9 @@ export function ArtefactInhoud({
             zodra je verderop in de lijst kwam – precies de context die je nodig hebt om te oordelen. */}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4">
           <div className="max-h-[45%] overflow-y-auto pb-3">
-          <DocumentPaneel
-            opschrift=""
+          <AnnotatieTekst
             regels={regels}
+            plekken={plekken}
             // Verworpen markeringen niet in de tekst oplichten (de reviewer keurde ze net af); ze
             // blijven wél in de ReviewQueue zichtbaar met hun "verworpen"-status.
             elementen={actueel

@@ -302,6 +302,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
       {(!toonTabs || tab === "tekst") && <ArtefactInhoud
         doc={doc}
         info={nb.info}
+        plekken={nb.plekken}
         actiefId={actiefId}
         onKies={(id) => setActiefId((huidig) => (id && id === huidig ? undefined : id))}
         onBeslissing={beslissing}

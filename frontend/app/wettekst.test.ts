@@ -61,4 +61,15 @@ describe("één wettekstweergave", () => {
       expect(bron(p), p).not.toMatch(/data-bron-samenhang/);
     }
   });
+
+  it("de annotatie tekent dezelfde wettekst, met de markeerlaag erop (ontdubbelen PR 4)", () => {
+    // Geen tweede tekstweergave: geen DocumentPaneel, `data-offset` (de selectie-ankers) alleen in WettekstBlok, en de
+    // blokken uit de nummervorm (`blokkenVan`) niet meer in een component.
+    expect(CODE.filter((p) => /DocumentPaneel/.test(p))).toEqual([]);
+    const offsets = CODE.filter((p) => /data-offset=/.test(bron(p)));
+    expect(offsets).toEqual([join("components", "wettekst", "WettekstBlok.tsx")]);
+    const blokken = CODE.filter((p) => p.startsWith("components") && /\bblokkenVan\(/.test(bron(p)));
+    expect(blokken).toEqual([]);
+    expect(bron(join("components", "werkplek", "AnnotatieTekst.tsx"))).toMatch(/<WettekstBlok groot laag=/);
+  });
 });
