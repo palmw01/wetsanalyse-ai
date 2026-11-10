@@ -84,12 +84,9 @@ def main() -> None:
     p.add_argument("--api-token-login", action="store_true", default=None,
                    help="Inloggen met een accounttoken toestaan (alleen acceptatie; zie "
                         "main.bicep:apiTokenLogin).")
-    p.add_argument("--connector-rechtspraak", action="store_true", default=None,
-                   help="De bronconnector Rechtspraak aanbieden (alleen acceptatie; zie "
-                        "main.bicep:connectorRechtspraak).")
-    p.add_argument("--connector-kamerstukken", action="store_true", default=None,
-                   help="De bronconnector Kamerstukken aanbieden (alleen acceptatie; zie "
-                        "main.bicep:connectorKamerstukken).")
+    p.add_argument("--connectoren", default=None,
+                   help="De bronconnectors die de straat aanbiedt, komma-gescheiden bij naam uit bronmodel.connectors "
+                        "(alleen acceptatie; zie main.bicep:connectoren). Weglaten laat de bicep-default (geen).")
     p.add_argument("--relatie-voorstellen", action="store_true", default=None,
                    help="De annotatieketen relaties laten voorstellen (proefvlag, alleen acceptatie; zie "
                         "main.bicep:relatieVoorstellen).")
@@ -179,8 +176,8 @@ def main() -> None:
         (args.min_replicas_api, "minReplicasApi"),
         (args.api_extern, "apiExtern"),
         (args.api_token_login, "apiTokenLogin"),
-        (args.connector_kamerstukken, "connectorKamerstukken"),
-        (args.connector_rechtspraak, "connectorRechtspraak"),
+        (None if args.connectoren is None else [n.strip() for n in args.connectoren.split(",") if n.strip()],
+         "connectoren"),
         (args.relatie_voorstellen, "relatieVoorstellen"),
         (args.graphdb_proxy_extern, "graphdbProxyExtern"),
         (args.api_image, "apiImage"),

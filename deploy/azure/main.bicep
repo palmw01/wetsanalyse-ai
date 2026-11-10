@@ -77,11 +77,8 @@ param apiExtern bool = false
 @description('Mag een accounttoken inloggen (de acceptatie-MCP, tools/wetsanalyse-acceptatie-mcp)? Alleen acceptatie; de frontend is op elke straat publiek, dus de default false houdt die inlogweg op productie weg.')
 param apiTokenLogin bool = false
 
-@description('Biedt graph-qa de bronconnector Kamerstukken aan (ADR-013)? Alleen acceptatie; default false. Aan of uit per gesprek bepalen daarna het register in de beheertab en het menu Bronnen en tools.')
-param connectorKamerstukken bool = false
-
-@description('Biedt graph-qa de bronconnector Rechtspraak aan (ADR-013: uitspraken bij een artikel uit LiDO, de tekst uit de open data van de Rechtspraak)? Alleen acceptatie; default false. Aan of uit per gesprek bepalen daarna het register in de beheertab en het menu Bronnen en tools.')
-param connectorRechtspraak bool = false
+@description('De bronconnectors (ADR-013) die graph-qa op deze straat aanbiedt, bij naam uit bronmodel.connectors (bijvoorbeeld kamerstukken, rechtspraak). Alleen acceptatie; default leeg. Elke naam wordt CONNECTOR_<NAAM>=true voor graph-qa en de eval-job; aan of uit per gesprek bepalen daarna het register in de beheertab en het menu Bronnen en tools.')
+param connectoren array = []
 
 @description('Stelt de annotatieketen van graph-qa relaties tussen markeringen voor (ADR-011, RELATIE_VOORSTELLEN)? Een proefvlag, alleen acceptatie; default false. Uit is de uitkomst van de keten gelijk aan zonder deze code.')
 param relatieVoorstellen bool = false
@@ -383,6 +380,9 @@ var collectorEndpoint = 'http://${collectorApp.name}'
 //     De importer bouwt hem zelf opnieuw (`ensure_similarity_index`), net als de FTS-connector;
 //     zonder die index degradeert de tool stil naar search_wetgeving.
 //   • Herstel van de graaf zelf loopt via de graafwacht-job (4b), niet via de hand.
+// Eén env-variabele per aangeboden connector; een connector die er niet in staat, staat uit (Settings: default false).
+var connectorEnv = [for c in connectoren: { name: 'CONNECTOR_${toUpper(c)}', value: 'true' }]
+
 var heeftLicentie = !empty(graphdbLicenseBase64)
 
 resource graphdbApp 'Microsoft.App/containerApps@2024-03-01' = {
@@ -968,7 +968,7 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
               mountPath: '/run/secrets'
             }
           ]
-          env: [
+          env: concat([
             // Telemetrie naar de collector in deze omgeving, die het doorschrijft naar Application
             // Insights. Leeg laten = uit.
             { name: 'OTEL_EXPORTER_OTLP_ENDPOINT', value: collectorEndpoint }
@@ -991,15 +991,13 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'WETSANALYSE_API_URL', value: apiInternalUrl }
             { name: 'WETSANALYSE_API_TOKEN_FILE', value: '/run/secrets/wetsanalyse_api_token' }
             { name: 'SIMILARITY_INDEX', value: 'bwb_similarity' }
-            { name: 'CONNECTOR_KAMERSTUKKEN', value: connectorKamerstukken ? 'true' : 'false' }
-            { name: 'CONNECTOR_RECHTSPRAAK', value: connectorRechtspraak ? 'true' : 'false' }
             { name: 'RELATIE_VOORSTELLEN', value: relatieVoorstellen ? 'true' : 'false' }
             // Gespreksgeheugen in Postgres, NIET op schijf: het filesystem van een container-app is
             // ephemeer en de app kan schalen, dus een SQLite-bestand verliest het geheugen bij
             // elke herstart en is per-replica verschillend.
             { name: 'CHECKPOINT_DB_URL_FILE', value: '/run/secrets/checkpoint_db_url' }
             { name: 'HOME', value: '/tmp' }
-          ]
+          ], connectorEnv)
           probes: [
             {
               type: 'Liveness'
@@ -1112,7 +1110,7 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
           ]
           // De gesprekken (vervolgvragen in één thread) zijn een trendmeting, geen garantie: ze tellen
           // niet mee in de exitcode. Zie eval/gesprek.py.
-          env: [
+          env: concat([
             { name: 'AZURE_FOUNDRY_BASE_URL', value: '${llmApiBase}/anthropic' }
             { name: 'AZURE_FOUNDRY_API_KEY_FILE', value: '/run/secrets/llm_api_key' }
             { name: 'LLM_MODEL', value: llmModel }
@@ -1120,8 +1118,6 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
             { name: 'GRAPHDB_TOKEN_FILE', value: '/run/secrets/graphdb_token' }
             { name: 'GRAPHDB_REPOSITORY_ID', value: 'inning' }
             { name: 'SIMILARITY_INDEX', value: 'bwb_similarity' }
-            { name: 'CONNECTOR_KAMERSTUKKEN', value: connectorKamerstukken ? 'true' : 'false' }
-            { name: 'CONNECTOR_RECHTSPRAAK', value: connectorRechtspraak ? 'true' : 'false' }
             { name: 'RELATIE_VOORSTELLEN', value: relatieVoorstellen ? 'true' : 'false' }
             // Korter wachten dan de werkplek (120 s). Een jurist die zit te wachten heeft baat bij
             // doorwachten; een meting die tien cases achter elkaar draait niet. Geeft de provider
@@ -1154,7 +1150,7 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
             // juristen in staan; eval-gesprekken horen daar niet tussen. Let op: weglaten geeft
             // GEEN in-memory checkpointer (dat dacht ik eerst) maar de SQLite-terugval — vandaar
             // de expliciete CHECKPOINT_DB_PATH hierboven.
-          ]
+          ], connectorEnv)
         }
       ]
     }

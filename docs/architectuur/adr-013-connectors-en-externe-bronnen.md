@@ -146,7 +146,19 @@ Uit de connectorarchitectuur van Claude/MCP (specificatie 2025-11-25) komt de bu
   services niet volledig te krijgen is en voor de Awb te groot is; LiDO is daarom de zoekkant van de connector
   Rechtspraak, live per bepaling met een cache. Er kwam niets per connector bij buiten de beschrijving, de tools, de
   vlag en de tests; wel een eigen tak in `dispatch` (zoals Kamerstukken), omdat de zoektool de graaf nodig heeft voor de
-  jci van het artikel.
+  jci van het artikel. *Daarna (10 nov 2026)* is dat handwerk generiek geworden, zodat de derde connector de checklist
+  hieronder volgt:
+  1. een beschrijving in `bronmodel.connectors` (met `metadata`, `voorbeeld_id`, en zo nodig `MetadataVeld.waarden` voor de
+     lijstvraag);
+  2. een module in `agent/tools/` met zijn tools, een `fout_van` en een `FOUTREDEN`-tabel, en één `ConnectorModule` in
+     `agent/tools/connectortools.py` (de dispatch, de bron per proces en de foutafhandeling komen daaruit; elke reden heeft
+     een zin in `REDEN_ZIN`);
+  3. `connector_<naam>: bool = False` in `Settings` (en `config.py` leest `CONNECTOR_<NAAM>`);
+  4. een live-proef `tests/test_<naam>_live.py`.
+
+  De straat volgt vanzelf: de bicep kent één lijst `connectoren` (standaard leeg), en `azure-infra.yml` geeft op
+  acceptatie alle namen uit `bronmodel.connectors` mee. Rechtspraak kreeg naast LiDO (per artikel) de zoekfeed van de
+  Rechtspraak als tweede ingang (zonder artikel: gerecht, rechtsgebied, periode).
 
 ### Toestemming per handeling
 

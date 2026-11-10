@@ -226,27 +226,23 @@ jobs:
               if "--api-token-login" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
                   fout.append(f"azure-infra.yml: `--api-token-login` zonder acceptatie-conditie: {regel.strip()}")
 
-          # De bronconnector Kamerstukken haalt tekst van buiten de graaf: alleen acceptatie, tot de eigenaar anders besluit.
-          m = re.search(r"^param connectorKamerstukken bool = (\w+)$", bicep, re.M)
-          if not m or m.group(1) != "false":
-              fout.append("main.bicep: `param connectorKamerstukken bool = false` niet gevonden")
-          for regel in re.findall(r".*name: 'CONNECTOR_KAMERSTUKKEN'.*", bicep):
-              if "value: connectorKamerstukken ?" not in regel:
-                  fout.append(f"main.bicep: CONNECTOR_KAMERSTUKKEN zonder de parameter: {regel.strip()}")
+          # De bronconnectors halen tekst van buiten de graaf: alleen acceptatie, tot de eigenaar anders besluit. Eén
+          # parameter voor allemaal (`connectoren`, standaard leeg), één weg naar de env (`connectorEnv`), en de lijst gaat
+          # alleen op acceptatie mee.
+          m = re.search(r"^param connectoren array = (.+)$", bicep, re.M)
+          if not m or m.group(1).strip() != "[]":
+              fout.append("main.bicep: `param connectoren array = []` niet gevonden")
+          for regel in re.findall(r".*name: 'CONNECTOR_.*", bicep):
+              if "connectorEnv" not in regel and "for c in connectoren" not in regel:
+                  fout.append(f"main.bicep: een CONNECTOR_-variabele buiten `connectorEnv`: {regel.strip()}")
+          if bicep.count("], connectorEnv)") != 2:
+              fout.append("main.bicep: `connectorEnv` hoort in de env van graph-qa én de eval-job (`concat([...], connectorEnv)`)")
+          if re.search(r"^param connector[A-Z]\w* bool", bicep, re.M):
+              fout.append("main.bicep: een losse connectorvlag; een connector hoort in `connectoren`")
           for regel in flow.splitlines():
-              if "--connector-kamerstukken" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
-                  fout.append(f"azure-infra.yml: `--connector-kamerstukken` zonder acceptatie-conditie: {regel.strip()}")
-
-          # De bronconnector Rechtspraak haalt ook tekst van buiten de graaf: dezelfde regel.
-          m = re.search(r"^param connectorRechtspraak bool = (\w+)$", bicep, re.M)
-          if not m or m.group(1) != "false":
-              fout.append("main.bicep: `param connectorRechtspraak bool = false` niet gevonden")
-          for regel in re.findall(r".*name: 'CONNECTOR_RECHTSPRAAK'.*", bicep):
-              if "value: connectorRechtspraak ?" not in regel:
-                  fout.append(f"main.bicep: CONNECTOR_RECHTSPRAAK zonder de parameter: {regel.strip()}")
-          for regel in flow.splitlines():
-              if "--connector-rechtspraak" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
-                  fout.append(f"azure-infra.yml: `--connector-rechtspraak` zonder acceptatie-conditie: {regel.strip()}")
+              if ("--connectoren" in regel or "--connector-" in regel) and not regel.strip().startswith("#") \
+                      and "acceptatie" not in regel:
+                  fout.append(f"azure-infra.yml: `--connectoren` zonder acceptatie-conditie: {regel.strip()}")
 
           # Relatievoorstellen uit de annotatieketen (ADR-011) zijn een proefvlag: alleen acceptatie, tot een meting beslist.
           m = re.search(r"^param relatieVoorstellen bool = (\w+)$", bicep, re.M)

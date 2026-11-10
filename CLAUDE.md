@@ -396,7 +396,7 @@ alleen lokaal bestaan. Daarvóór staan structurele guards:
 - alle Trivy-poorten hebben één beleid en falen minstens op HIGH;
 - `apiExtern` staat default op `false` en wordt alleen op acceptatie gezet;
 - inloggen met een accounttoken (`apiTokenLogin`) staat default uit en alleen op acceptatie aan;
-- de bronconnector Kamerstukken (`connectorKamerstukken`, ADR-013) staat default uit en alleen op acceptatie aan;
+- de bronconnectors (`connectoren`, ADR-013: één lijst, één weg naar de env) staan default uit en alleen op acceptatie aan;
 - de relatievoorstellen uit de annotatieketen (`relatieVoorstellen`, ADR-011, een proefvlag) staan default uit en alleen op
   acceptatie aan;
 - GraphDB blijft `external: false`; de proxy staat default uit, alleen op acceptatie, alleen mét
