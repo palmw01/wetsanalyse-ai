@@ -151,11 +151,14 @@ try {
   assert.ok(klaar.y > beoordelen.y + beoordelen.height, "Klaar staat onder de nevenknop");
   assert.ok(Math.abs(klaar.x + klaar.width - (beoordelen.x + beoordelen.width)) <= 1, "Klaar sluit rechts aan");
 
-  // Het paneel (vanaf 800px open het vanzelf): de kandidaat openklappen en de tekst lezen, zonder weg te gaan.
+  // Het paneel (vanaf 800px open het vanzelf): de kandidaat opent als tab ernaast (het bronvenster, PR 4), en de
+  // bronselectie staat als tab klaar om terug te gaan – zonder de werkplek te verlaten.
   await paneel().waitFor();
-  await paneel().getByRole("button", { name: "Tekst van Artikel 9, lid 1 – Invorderingswet 1990" }).click();
-  await paneel().locator(`[data-wettekst="${A9}"]`).getByText("zes weken na de dagtekening", { exact: false }).waitFor();
+  await paneel().getByRole("button", { name: "Open Artikel 9, lid 1 – Invorderingswet 1990" }).click();
+  await page.locator(`[data-bronvenster="${A9}"]`).getByText("zes weken na de dagtekening", { exact: false }).waitFor();
   assert.ok(new URL(page.url()).pathname.startsWith("/workbench"), "de werkplek blijft staan");
+  await page.getByRole("tab", { name: "Bronselectie" }).click();
+  await paneel().waitFor();
   await foto("bronselectie-paneel");
 
   // Opnemen in het paneel; de telling op het kaartje volgt.
@@ -220,7 +223,7 @@ try {
   for (let i = 0; i < 100 && besluiten.at(-1)?.kid !== "K10"; i++) await page.waitForTimeout(50);
   assert.deepEqual([besluiten.at(-1).kid, besluiten.at(-1).besluit, besluiten.at(-1).bron_iri], ["K10", "opnemen", `${A10}:lid:2`]);
 
-  console.log("Browser OK: compact kaartje zonder vinkjes, paneel met uitklapbare wettekst, opnemen werkt de telling live bij, zelf bepalingen noemen per regel (geen venster), Klaar in het paneel (actie klaar), het paneel als sheet op een telefoon, opnemen met reden via het menu ⋯, een lid apart opnemen.");
+  console.log("Browser OK: compact kaartje zonder vinkjes, een kandidaat opent als tab naast de bronselectie, opnemen werkt de telling live bij, zelf bepalingen noemen per regel (geen venster), Klaar in het paneel (actie klaar), het paneel als sheet op een telefoon, opnemen met reden via het menu ⋯, een lid apart opnemen.");
 } finally {
   await browser.close();
 }

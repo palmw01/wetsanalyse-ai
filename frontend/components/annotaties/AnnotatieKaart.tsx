@@ -7,7 +7,8 @@ import { knopKlasse } from "@/components/ui/Button";
 import { KaartActies } from "@/components/ui/Pagina";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { documentStand } from "@/lib/annotatie";
-import { naamVan, vindplaatsLabel } from "@/lib/annotatieOverzicht";
+import { naamVan } from "@/lib/annotatieOverzicht";
+import { bepalingKort } from "@/lib/herkomst";
 import type { DocumentSamenvatting } from "@/lib/types";
 import { nodeLink } from "@/lib/annotatieNode";
 import { StatusLabel } from "@/components/ui/Lijst";
@@ -45,7 +46,7 @@ export function AnnotatieKaart({ doc, onVerwijder }: {
             </Link>
           </h3>
           <p className="text-xs text-muted">
-            {vindplaatsLabel(doc)} · {doc.bwbId}
+            {bepalingKort(doc)} · {doc.bwbId}
           </p>
         </div>
         <StatusLabel toon={stand.toon} uitleg={stand.uitleg}>{stand.label}</StatusLabel>

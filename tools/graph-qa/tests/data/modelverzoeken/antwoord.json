@@ -458,7 +458,7 @@
      "name": "grondslagen"
     },
     {
-     "description": "Welke TOESTAND is dit, en sinds wanneer geldt deze tekst?\nGEEFT TERUG voor de bepaling: inwerkingtredingsdatum, terugwerkende kracht, wijzigingsbron(nen), effect en status; voor de regeling: geldig vanaf/tot, toestand-URL, ondertekenings- en uitgiftedatum en dossiernummer.\nGebruik dit bij vragen over peildatum, versies of terugwerkende kracht, en om te melden op welke toestand een analyse berust.\nRESULTAAT: JSON met 'resultaten' en 'volledig'. Is 'volledig' false, dan staat in 'vervolg' de exacte aanroep voor het volgende deel – vul niets aan dat je niet hebt opgehaald.",
+     "description": "Welke TOESTAND is dit, en sinds wanneer geldt deze tekst?\nGEEFT TERUG voor de bepaling: inwerkingtredingsdatum, terugwerkende kracht, wijzigingsbron(nen), effect en status, en uit de brondata van het artikel het Kamerdossier van de wet die de tekst zijn huidige inhoud gaf (dossiersBepaling), de Stb van het inwerkingtredingsbesluit en een redactionele opmerking (vaak over overgangsrecht); voor de regeling: geldig vanaf/tot, toestand-URL, ondertekenings- en uitgiftedatum en het dossier van de oorspronkelijke wet.\nZoek je de toelichting van de wetgever bij déze bepaling, gebruik dan dossiersBepaling met de Kamerstukken-connector als die aanstaat.\nGebruik dit bij vragen over peildatum, versies of terugwerkende kracht, en om te melden op welke toestand een analyse berust.\nRESULTAAT: JSON met 'resultaten' en 'volledig'. Is 'volledig' false, dan staat in 'vervolg' de exacte aanroep voor het volgende deel – vul niets aan dat je niet hebt opgehaald.",
      "input_schema": {
       "additionalProperties": false,
       "properties": {
@@ -1183,7 +1183,7 @@
      "name": "grondslagen"
     },
     {
-     "description": "Welke TOESTAND is dit, en sinds wanneer geldt deze tekst?\nGEEFT TERUG voor de bepaling: inwerkingtredingsdatum, terugwerkende kracht, wijzigingsbron(nen), effect en status; voor de regeling: geldig vanaf/tot, toestand-URL, ondertekenings- en uitgiftedatum en dossiernummer.\nGebruik dit bij vragen over peildatum, versies of terugwerkende kracht, en om te melden op welke toestand een analyse berust.\nRESULTAAT: JSON met 'resultaten' en 'volledig'. Is 'volledig' false, dan staat in 'vervolg' de exacte aanroep voor het volgende deel – vul niets aan dat je niet hebt opgehaald.",
+     "description": "Welke TOESTAND is dit, en sinds wanneer geldt deze tekst?\nGEEFT TERUG voor de bepaling: inwerkingtredingsdatum, terugwerkende kracht, wijzigingsbron(nen), effect en status, en uit de brondata van het artikel het Kamerdossier van de wet die de tekst zijn huidige inhoud gaf (dossiersBepaling), de Stb van het inwerkingtredingsbesluit en een redactionele opmerking (vaak over overgangsrecht); voor de regeling: geldig vanaf/tot, toestand-URL, ondertekenings- en uitgiftedatum en het dossier van de oorspronkelijke wet.\nZoek je de toelichting van de wetgever bij déze bepaling, gebruik dan dossiersBepaling met de Kamerstukken-connector als die aanstaat.\nGebruik dit bij vragen over peildatum, versies of terugwerkende kracht, en om te melden op welke toestand een analyse berust.\nRESULTAAT: JSON met 'resultaten' en 'volledig'. Is 'volledig' false, dan staat in 'vervolg' de exacte aanroep voor het volgende deel – vul niets aan dat je niet hebt opgehaald.",
      "input_schema": {
       "additionalProperties": false,
       "properties": {

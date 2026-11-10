@@ -85,14 +85,15 @@ KAMERSTUK_TOOLS: list[dict[str, Any]] = [
             "'tekst' als het onderwerp niet in de titel hoeft te staan: een brief over 'één bankrekeningnummer' heet "
             "vaak alleen 'Brief regering'. Kies de 'volgorde': 'nieuwste' of 'oudste' (op de datum van het stuk), "
             "'nummer' (binnen een dossier) of 'relevantie' (bij woorden of tekst); voor een tijdlijn 'oudste' met een "
-            "periode. Zonder volgorde: een dossier op nummer, woorden of tekst op relevantie, de rest nieuwste eerst. Voor 'de laatste stukken van een "
+            "periode. Zonder volgorde: een dossier op nummer (met een aantal de nieuwste), woorden of tekst op relevantie, de rest nieuwste eerst. Voor 'de laatste stukken van een "
             "dossier' of 'de 10 meest recente': volgorde 'nieuwste' met 'aantal', in één aanroep; blader niet door "
             "het hele dossier." + _UITLEG + "\n"
             "GEEFT TERUG per stuk: id (kst-…), label, soort (zoals 'Memorie van toelichting', 'Motie' of 'Brief "
             "regering'), titel, datum (van het stuk zelf), jaar (het vergaderjaar), orgaan (de Kamer), indieners en "
             "link; gepubliceerd alleen als dat later was dan de datum, reeks als het stuk in meer dossiers staat, status "
             "'Onopgemaakt' en leesbaar: false als er nog alleen een PDF is. Daarnaast 'zoekvraag' (de filters en de "
-            "volgorde) en 'totaal' (hoeveel stukken er bij KOOP aan voldoen): noem die als je een lijst geeft. Bij een "
+            "volgorde) en 'totaal' (hoeveel stukken er bij KOOP aan voldoen). Geef gevonden stukken als lijst in het "
+            "veld 'stukken' van je antwoordsjabloon, niet in je eigen tekst: de code toont ze dan met de zoekvraag. Bij een "
             "dossier ook de dossiertitel. Op nummer staan letters (stukken van de Eerste Kamer) na de cijfers, dus "
             "'het laatste nummer' is niet 'het nieuwste stuk'. Een dossier boven "
             f"{MAX_DOSSIER} stukken staat op de oudste eerst." + _CONTRACT
@@ -408,7 +409,10 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
                     "{\"volgorde\": \"nieuwste\", \"aantal\": 10}")
     alleen_dossier = bool(dossier) and not any(v for k, v in filters.items() if k != "dossier")
     gezocht = bool(woorden or tekst)
-    volgorde = volgorde or ("nummer" if alleen_dossier else "relevantie" if gezocht and not dossier else "nieuwste")
+    # Een dossier met een aantal ("de 10 stukken van dossier 31066") is de nieuwste tien, geen pagina op nummer: op
+    # acceptatie gaf dat eerst een invoerfout (9 nov 2026).
+    volgorde = volgorde or ("nummer" if alleen_dossier and aantal is None
+                            else "relevantie" if gezocht and not dossier else "nieuwste")
     if volgorde == "relevantie" and not gezocht:
         return fout("ongeldige_volgorde", "relevantie gaat over woorden: geef 'woorden' of 'tekst', of kies een datum, "
                     "bijvoorbeeld {\"volgorde\": \"nieuwste\"}.")

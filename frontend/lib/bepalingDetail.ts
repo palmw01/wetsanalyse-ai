@@ -14,7 +14,11 @@ export interface BepalingDetail {
   schema_versie: number;
   bron_iri: string;
   beschikbaar: boolean;
+  /** Met `jci` mét de toestand die de graaf draagt. */
   vindplaats: AntwoordVindplaats;
+  bwb_id: string;
+  /** De bepaling op wetten.overheid.nl. */
+  url: string;
   plaats: Structuurdeel[];
   status: string;
   inwerking: string | null;
@@ -35,7 +39,7 @@ export interface BepalingDetail {
 
 /** De velden van `BepalingDetail`, in de volgorde van het contract: de drifttest vergelijkt ze met de Python-bron. */
 export const BEPALING_DETAIL_VELDEN = [
-  "schema_versie", "bron_iri", "beschikbaar", "vindplaats", "plaats", "status", "inwerking", "terugwerkend_tot", "gewijzigd_bij",
+  "schema_versie", "bron_iri", "beschikbaar", "vindplaats", "bwb_id", "url", "plaats", "status", "inwerking", "terugwerkend_tot", "gewijzigd_bij",
   "geldig_vanaf", "geldig_tot", "toestand_url", "verwijst_naar", "verwijst_naar_aantal", "verwijst_naar_volledig", "verwezen_door", "grondslag_voor",
   "bevoegdheid_voor", "genoemd_in", "definieert",
 ] as const satisfies readonly (keyof BepalingDetail)[];
@@ -55,24 +59,19 @@ export function parseBepalingDetail(v: unknown): BepalingDetail | undefined {
   return v as unknown as BepalingDetail;
 }
 
-export async function haalBepalingDetail(iri: string): Promise<BepalingDetail | undefined> {
-  return parseBepalingDetail(await nodeRequest(`bepaling?${new URLSearchParams({ bron_iri: iri })}`));
-}
+/** Eén lezing per bepaling per sessie: de kop en het blok *Wat de graaf weet* vragen hetzelfde detail, en een tab die
+ *  terugkomt laadt niet opnieuw. Een mislukte lezing gaat uit de cache, zodat opnieuw proberen echt opnieuw vraagt. */
+const CACHE = new Map<string, Promise<BepalingDetail | undefined>>();
+const MAX_CACHE = 64;
 
-/** "Hoofdstuk VI – Aansprakelijkheid › Afdeling 1": de plek in gewone woorden, zonder het artikel zelf. */
-export function plaatsZin(plaats: readonly Structuurdeel[]): string {
-  const soortnaam = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  return plaats
-    .filter((p) => p.soort !== "artikel" && p.soort !== "lid" && p.soort !== "onderdeel")
-    .map((p) => [soortnaam(p.soort), p.nummer].filter(Boolean).join(" ") + (p.titel ? ` – ${p.titel}` : ""))
-    .join(" › ");
-}
-
-/** De toestand die Lex las (`&g=` in de jci van de beurt), als de graaf nu een latere draagt; anders niets. Dan kan de tekst
- *  die het antwoord citeert intussen veranderd zijn, en het paneel zegt dat in plaats van het weg te poetsen. */
-export function afwijkendeToestand(gelezenJci: string | undefined, geldigVanaf: string | null): string | undefined {
-  const gelezen = /[&?]g=(\d{4}-\d{2}-\d{2})/.exec(gelezenJci ?? "")?.[1];
-  return gelezen && geldigVanaf && geldigVanaf > gelezen ? gelezen : undefined;
+export function haalBepalingDetail(iri: string): Promise<BepalingDetail | undefined> {
+  const bewaard = CACHE.get(iri);
+  if (bewaard) return bewaard;
+  const lezing = nodeRequest(`bepaling?${new URLSearchParams({ bron_iri: iri })}`).then(parseBepalingDetail);
+  lezing.then((d) => { if (!d || !d.beschikbaar) CACHE.delete(iri); }, () => CACHE.delete(iri));
+  if (CACHE.size >= MAX_CACHE) CACHE.delete(CACHE.keys().next().value as string);
+  CACHE.set(iri, lezing);
+  return lezing;
 }
 
 /** Een aantal zoals het paneel het noemt: exact als de api het telde, anders "minstens n". Een begrensde lijst rijen is

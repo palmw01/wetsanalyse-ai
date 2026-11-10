@@ -1068,3 +1068,15 @@ def test_de_regeling_draagt_een_inhoudshash() -> None:
     wet.citeertitel += " (anders)"
     assert list(_writer().build_graph(wet)[0].objects(None, V.ns.inhoudHash)) != hashes
     assert isinstance(hashes[0], Literal)
+
+
+def test_brondata_per_artikel_in_de_graaf() -> None:
+    """Dossier (meerwaardig), inwerkingtredingsbron en opmerking komen als `bwb:`-predicaten op het artikel."""
+    g, _ = _writer().build_graph(ToestandParser().parse(FIXTURES / "brondata_iw1990.xml"))
+    art9 = URIRef("urn:bwb:BWBR0004770:artikel:9")
+    art7d = URIRef("urn:bwb:BWBR0004770:artikel:7d")
+    assert {str(o) for o in g.objects(art9, V.ns.dossier)} == {"35910"}
+    assert {str(o) for o in g.objects(art7d, V.ns.dossier)} == {"35303", "36735"}
+    assert str(g.value(art9, V.ns.inwerkingtredingsbron)) == "Stb.2026-119"
+    assert "overgangsrecht" in str(g.value(art9, V.ns.opmerking))
+    assert str(g.value(art9, V.ns.labelId)) == "2910654"

@@ -35,6 +35,12 @@ KST = frozenset({"kamerstukken"})
      {"volgorde": "oudste", "aantal": 10, "vanaf": "2011", "tekst": '"één bankrekeningnummer"'}),
     ("de nieuwste kamerstukken over invorderingsrente in 2024",
      {"volgorde": "nieuwste", "aantal": 10, "vanaf": "2024", "tot": "2024", "tekst": "invorderingsrente"}),
+    # Zonder volgorde: de zoektool kiest (relevantie bij tekst, een dossier op nummer). "Eerste Kamer" is geen volgorde
+    # (acceptatie 9 nov 2026: dat werd "oudste eerst").
+    ("Kamerstukken uit vergaderjaar 2025-2026 van de Eerste Kamer over invorderingsrente",
+     {"kamer": "Eerste Kamer", "vergaderjaar": "2025-2026", "tekst": "invorderingsrente"}),
+    ("welke kamerstukken gaan over de invorderingsrente", {"tekst": "invorderingsrente"}),
+    ("Kamerstukken van dossier 32140", {"dossier": "32140"}),
 ])
 def test_de_code_leest_de_lijstvraag(vraag, args):
     lijst = bron_lijst.lees(vraag, KST)
@@ -51,7 +57,9 @@ def test_de_code_leest_de_lijstvraag(vraag, args):
     # Geen bron naast de wet, of geen volgorde.
     "Wat is de laatste wijziging van artikel 9 Invorderingswet 1990?",
     "Wat zijn de nieuwste uitspraken over aansprakelijkheid?",
-    "welke kamerstukken gaan over de invorderingsrente",
+    "welke wetten en kamerstukken gaan over de invorderingsrente",
+    # Alleen de bron, zonder filter of volgorde.
+    "Kamerstukken",
     # Een genoemd stuk wordt gelezen, geen lijst.
     "Wat is de laatste alinea van Kamerstuk 32140, nr. 342?",
     # Een onderwerp van meer dan vier woorden: de zoekterm kiest het model.
@@ -108,7 +116,7 @@ def test_de_route_roept_de_zoektool_een_keer_aan_zonder_model(monkeypatch):
     assert [e["tool"] for e in starts] == ["zoek_kamerstukken"]
     assert bron.vragen[-1].endswith(' AND w.dossiernummer=="99001" sortBy dt.date/sort.descending dt.identifier/sort.ascending')
     tekst = "".join(e.get("content", "") for e in events if e["type"] == "token")
-    assert "**Gevonden Kamerstukken**" in tekst and "Gezocht op dossier 99001, nieuwste eerst." in tekst
+    assert "**Gevonden Kamerstukken**" in tekst and "Gezocht op dossier 99001. Nieuwste eerst." in tekst
     assert "1 van de 30 stukken." in tekst
     grounding, = [e for e in events if e["type"] == "grounding"]
     assert not grounding.get("onbevestigd") and not grounding.get("unsupported")
@@ -123,7 +131,7 @@ def test_niets_gevonden_is_een_leemte(monkeypatch):
                                 graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
     tekst = "".join(e.get("content", "") for e in events if e["type"] == "token")
     assert tekst.startswith("Geen Kamerstukken gevonden die aan de zoekvraag voldoen.")
-    assert "soort stuk motie" in tekst and "Kamer Eerste Kamer" in tekst
+    assert "soort stuk „motie”" in tekst and "van de Eerste Kamer" in tekst and "Kamer Eerste" not in tekst
 
 
 def test_een_fout_gaat_naar_de_agent_met_het_resultaat(monkeypatch):
@@ -159,3 +167,28 @@ def test_een_citeervorm_wordt_vooraf_gelezen(monkeypatch):
     gelezen = [b for m in llm.calls[0]["messages"] for b in (m["content"] if isinstance(m["content"], list) else [])
                if b.get("type") == "tool_use"]
     assert [(g["name"], g["input"]) for g in gelezen] == [("get_kamerstuk", {"id": "kst-99001-3"})]
+
+
+def test_een_dossier_op_nummer_toont_het_begin_van_de_lijst(monkeypatch):
+    """Een dossier zonder volgorde staat op nummer, en een pagina kan langer zijn dan het blok draagt: dan het begin,
+    met "N van de M stukken", en niet "geen gevonden"."""
+    from agent import tools as t
+    from agent.sjablonen.extern import MAX_LIJST
+    from test_kamerstuk_tools import _veel, NepBron
+
+    monkeypatch.setattr(t, "_KAMERSTUKBRON", NepBron(_veel(60)))
+    events = _run(answer_stream("Kamerstukken van dossier 99001", settings=AAN, llm=FakeLLM([]),
+                                graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
+    tekst = "".join(e.get("content", "") for e in events if e["type"] == "token")
+    assert tekst.count("\n- [") + tekst.startswith("- [") <= MAX_LIJST and "van de 60 stukken." in tekst
+    assert "Op nummer." in tekst
+
+
+def test_een_dossier_met_een_aantal_is_de_nieuwste():
+    """Acceptatie 9 nov 2026: {dossier, aantal} gaf `ongeldig_aantal`; nu is dat de nieuwste stukken."""
+    from test_kamerstuk_tools import DOSSIER, NepBron, roep
+
+    bron = NepBron(DOSSIER)
+    d = roep("zoek_kamerstukken", {"dossier": "99001", "aantal": 2}, bron)
+    assert d["status"] == "ok" and d["zoekvraag"]["volgorde"] == "nieuwste"
+    assert bron.vragen[-1].endswith("sortBy dt.date/sort.descending dt.identifier/sort.ascending")

@@ -316,8 +316,13 @@ try {
   await page.locator('[data-tour="wettekst"]').waitFor();
   assert.equal(await begrippenPaneel().count(), 0, "het begrippenpaneel hoort dicht te gaan");
 
-  // --- Dicht: de balk brengt het laatste artefact terug (de begrippen staan het laatst) ---
+  // De begrippen staan als tab ernaast (het bronvenster, PR 3b): de annotatie sluiten brengt de buur terug.
+  assert.equal(await page.locator("[data-paneel-tab]").count(), 2, "twee tabs: begrippen en de annotatie");
   await page.getByRole("button", { name: "Sluiten" }).first().click();
+  await begrippenPaneel().waitFor();
+
+  // --- Alles dicht: de balk brengt het laatste artefact terug (de begrippen staan het laatst) ---
+  await begrippenPaneel().getByRole("button", { name: "Sluiten" }).click();
   const balk = page.locator("button", { hasText: /^Begripsvoorstellen\s*Openen$/ });
   await balk.waitFor();
   assert.doesNotMatch(await balk.innerText(), /Invordering|· begripsvoorstellen/, "geen werkgebiednaam en geen dubbele soort in de balk");

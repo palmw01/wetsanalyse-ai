@@ -77,7 +77,11 @@ class BepalingDetail(_Deel):
     bron_iri: str
     #: Onwaar als de graaf niet te lezen was: dan staat er niets, en zegt het paneel dat. Nooit een stille leegte.
     beschikbaar: bool = True
+    #: Met `jci` mét de toestand die de graaf draagt (`&z=…&g=…`): de link opent de versie die het paneel toont.
     vindplaats: Vindplaats
+    #: Het BWB-id van de regeling, en de bepaling op wetten.overheid.nl (`bwb:bronUrl`, anders `owl:sameAs`).
+    bwb_id: str = ""
+    url: str = ""
     plaats: list[Structuurdeel] = []
     status: str = ""
     inwerking: str | None = None

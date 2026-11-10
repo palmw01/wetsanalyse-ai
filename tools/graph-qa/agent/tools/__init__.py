@@ -778,8 +778,13 @@ TOOLS: list[dict[str, Any]] = [
         "description": (
             "Welke TOESTAND is dit, en sinds wanneer geldt deze tekst?\n"
             "GEEFT TERUG voor de bepaling: inwerkingtredingsdatum, terugwerkende kracht, "
-            "wijzigingsbron(nen), effect en status; voor de regeling: geldig vanaf/tot, "
-            "toestand-URL, ondertekenings- en uitgiftedatum en dossiernummer.\n"
+            "wijzigingsbron(nen), effect en status, en uit de brondata van het artikel het "
+            "Kamerdossier van de wet die de tekst zijn huidige inhoud gaf (dossiersBepaling), de "
+            "Stb van het inwerkingtredingsbesluit en een redactionele opmerking (vaak over "
+            "overgangsrecht); voor de regeling: geldig vanaf/tot, toestand-URL, ondertekenings- en "
+            "uitgiftedatum en het dossier van de oorspronkelijke wet.\n"
+            "Zoek je de toelichting van de wetgever bij déze bepaling, gebruik dan dossiersBepaling "
+            "met de Kamerstukken-connector als die aanstaat.\n"
             "Gebruik dit bij vragen over peildatum, versies of terugwerkende kracht, en om te "
             "melden op welke toestand een analyse berust." + _CONTRACT
         ),

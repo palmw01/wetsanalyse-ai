@@ -5,6 +5,7 @@
 // documentpaneel. Het component eromheen doet alleen nog weergave.
 
 import type { DocumentSamenvatting } from "./types";
+import { bepalingKort } from "./herkomst";
 
 export type Weergave = "te-beoordelen" | "af-te-ronden" | "afgerond" | "alles";
 
@@ -19,19 +20,6 @@ export const WEERGAVEN: { waarde: Weergave; label: string }[] = [
 
 export function weergaveUitParam(param: string | null | undefined): Weergave {
   return WEERGAVEN.find((w) => w.waarde === param)?.waarde ?? "te-beoordelen";
-}
-
-/** De vindplaats zoals hij in beeld komt: `art. 9 lid 2`, of `bepaling 25.1` bij een beleidsregel.
- *  Werkt op zowel een samenvatting als een volledig document – beide dragen artikel en lid.
- *
- *  Het `soort` komt uit de bronboom van de api en wordt niet uit het nummer geraden: een
- *  heel getal als "25" is bij de Invorderingswet een artikel en bij de Leidraad een divisie. Zonder
- *  soort blijft het "art.", wat het bij de zes wet-achtige regelingen ook is. */
-export function vindplaatsLabel(d: { artikel: string; lid: string; soort?: string; label?: string }): string {
-  if (d.soort === "Divisie") return `bepaling ${d.artikel}${d.lid ? `, ${d.lid}` : ""}`;
-  const basis = `art. ${d.artikel}${d.lid ? ` lid ${d.lid}` : ""}`;
-  // Het label van een onderdeel is alleen "Onderdeel c.": zonder artikel en lid zegt dat niets.
-  return d.soort === "Onderdeel" && d.label ? `${basis}, ${d.label.replace(/\.$/, "").toLowerCase()}` : basis;
 }
 
 /** De naam waaronder een annotatie in beeld komt, met dezelfde terugval als de server hanteert:
@@ -178,7 +166,7 @@ export function zoek(docs: DocumentSamenvatting[], term: string): DocumentSamenv
   if (woorden.length === 0) return docs;
   return docs.filter((d) => {
     const hooiberg = [
-      d.citeertitel, d.werkgebied, d.bwbId, `artikel ${d.artikel}`, d.lid, vindplaatsLabel(d),
+      d.citeertitel, d.werkgebied, d.bwbId, `artikel ${d.artikel}`, d.lid, bepalingKort(d),
     ]
       .join(" ")
       .toLowerCase();
