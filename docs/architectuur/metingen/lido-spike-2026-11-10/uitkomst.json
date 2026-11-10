@@ -1,0 +1,1778 @@
+{
+ "iw_juriconnect_ref": {
+  "stat": {
+   "aanroepen": 48,
+   "cache": 883,
+   "seconden": 74.50708849990042,
+   "fouten": 16,
+   "rdf_terugval": 16
+  },
+  "artikelen": 128,
+  "zonder_lido_id": [
+   "7d",
+   "57a"
+  ],
+  "versies": 394,
+  "paren_alle_versies": 5332,
+  "paren_huidige_versie": 2813,
+  "unieke_ecli": 3068,
+  "per_artikel": {
+   "1": {
+    "label_id": "2910564",
+    "versies": 2,
+    "uitspraken": 79,
+    "uitspraken_huidig": 70
+   },
+   "2": {
+    "label_id": "2910574",
+    "versies": 14,
+    "uitspraken": 88,
+    "uitspraken_huidig": 32
+   },
+   "3": {
+    "label_id": "2910584",
+    "versies": 7,
+    "uitspraken": 98,
+    "uitspraken_huidig": 49
+   },
+   "3a": {
+    "label_id": "8495004",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "4": {
+    "label_id": "2910594",
+    "versies": 1,
+    "uitspraken": 5,
+    "uitspraken_huidig": 5
+   },
+   "5": {
+    "label_id": "2910604",
+    "versies": 3,
+    "uitspraken": 18,
+    "uitspraken_huidig": 14
+   },
+   "6": {
+    "label_id": "2910614",
+    "versies": 3,
+    "uitspraken": 4,
+    "uitspraken_huidig": 0
+   },
+   "7": {
+    "label_id": "2910624",
+    "versies": 5,
+    "uitspraken": 50,
+    "uitspraken_huidig": 1
+   },
+   "7a": {
+    "label_id": "6976164",
+    "versies": 5,
+    "uitspraken": 4,
+    "uitspraken_huidig": 3
+   },
+   "7b": {
+    "label_id": "12466474",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "7c": {
+    "label_id": "13255234",
+    "versies": 3,
+    "uitspraken": 2,
+    "uitspraken_huidig": 1
+   },
+   "7d": {
+    "label_id": "15232144",
+    "versies": 0,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "8": {
+    "label_id": "2910644",
+    "versies": 3,
+    "uitspraken": 201,
+    "uitspraken_huidig": 71
+   },
+   "9": {
+    "label_id": "2910654",
+    "versies": 8,
+    "uitspraken": 196,
+    "uitspraken_huidig": 12
+   },
+   "10": {
+    "label_id": "2910664",
+    "versies": 3,
+    "uitspraken": 121,
+    "uitspraken_huidig": 46
+   },
+   "11": {
+    "label_id": "2910684",
+    "versies": 2,
+    "uitspraken": 113,
+    "uitspraken_huidig": 96
+   },
+   "12": {
+    "label_id": "2910694",
+    "versies": 2,
+    "uitspraken": 109,
+    "uitspraken_huidig": 89
+   },
+   "13": {
+    "label_id": "2910704",
+    "versies": 6,
+    "uitspraken": 40,
+    "uitspraken_huidig": 22
+   },
+   "14": {
+    "label_id": "2910714",
+    "versies": 5,
+    "uitspraken": 23,
+    "uitspraken_huidig": 17
+   },
+   "15": {
+    "label_id": "2910724",
+    "versies": 6,
+    "uitspraken": 61,
+    "uitspraken_huidig": 13
+   },
+   "16": {
+    "label_id": "2910734",
+    "versies": 3,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "17": {
+    "label_id": "2910744",
+    "versies": 6,
+    "uitspraken": 161,
+    "uitspraken_huidig": 24
+   },
+   "18": {
+    "label_id": "2910754",
+    "versies": 1,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "18a": {
+    "label_id": "15714174",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "19": {
+    "label_id": "2910764",
+    "versies": 11,
+    "uitspraken": 56,
+    "uitspraken_huidig": 7
+   },
+   "20": {
+    "label_id": "2910774",
+    "versies": 2,
+    "uitspraken": 10,
+    "uitspraken_huidig": 6
+   },
+   "21": {
+    "label_id": "2910794",
+    "versies": 1,
+    "uitspraken": 88,
+    "uitspraken_huidig": 88
+   },
+   "22": {
+    "label_id": "2910804",
+    "versies": 7,
+    "uitspraken": 103,
+    "uitspraken_huidig": 46
+   },
+   "22bis": {
+    "label_id": "11977834",
+    "versies": 2,
+    "uitspraken": 18,
+    "uitspraken_huidig": 13
+   },
+   "22a": {
+    "label_id": "2917434",
+    "versies": 2,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "23": {
+    "label_id": "2910814",
+    "versies": 2,
+    "uitspraken": 3,
+    "uitspraken_huidig": 3
+   },
+   "23a": {
+    "label_id": "10314634",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "24": {
+    "label_id": "2910834",
+    "versies": 10,
+    "uitspraken": 155,
+    "uitspraken_huidig": 34
+   },
+   "25": {
+    "label_id": "2910854",
+    "versies": 21,
+    "uitspraken": 225,
+    "uitspraken_huidig": 10
+   },
+   "25a": {
+    "label_id": "12243544",
+    "versies": 2,
+    "uitspraken": 1,
+    "uitspraken_huidig": 0
+   },
+   "25b": {
+    "label_id": "14878914",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "25c": {
+    "label_id": "16550114",
+    "versies": 2,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "26": {
+    "label_id": "2910864",
+    "versies": 17,
+    "uitspraken": 118,
+    "uitspraken_huidig": 3
+   },
+   "26a": {
+    "label_id": "16476694",
+    "versies": 1,
+    "uitspraken": 7,
+    "uitspraken_huidig": 7
+   },
+   "27": {
+    "label_id": "2910874",
+    "versies": 3,
+    "uitspraken": 73,
+    "uitspraken_huidig": 21
+   },
+   "27bis": {
+    "label_id": "13458094",
+    "versies": 1,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "27ter": {
+    "label_id": "13458104",
+    "versies": 2,
+    "uitspraken": 4,
+    "uitspraken_huidig": 2
+   },
+   "27quater": {
+    "label_id": "13458124",
+    "versies": 2,
+    "uitspraken": 11,
+    "uitspraken_huidig": 7
+   },
+   "27quinquies": {
+    "label_id": "16111244",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "28": {
+    "label_id": "2910904",
+    "versies": 10,
+    "uitspraken": 133,
+    "uitspraken_huidig": 10
+   },
+   "28a": {
+    "label_id": "11564314",
+    "versies": 2,
+    "uitspraken": 18,
+    "uitspraken_huidig": 13
+   },
+   "28b": {
+    "label_id": "11564324",
+    "versies": 1,
+    "uitspraken": 22,
+    "uitspraken_huidig": 22
+   },
+   "28c": {
+    "label_id": "12879714",
+    "versies": 1,
+    "uitspraken": 365,
+    "uitspraken_huidig": 365
+   },
+   "29": {
+    "label_id": "2910914",
+    "versies": 10,
+    "uitspraken": 47,
+    "uitspraken_huidig": 25
+   },
+   "30": {
+    "label_id": "2910924",
+    "versies": 3,
+    "uitspraken": 240,
+    "uitspraken_huidig": 23
+   },
+   "31": {
+    "label_id": "2910934",
+    "versies": 2,
+    "uitspraken": 11,
+    "uitspraken_huidig": 1
+   },
+   "31a": {
+    "label_id": "2911514",
+    "versies": 1,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "32": {
+    "label_id": "2910954",
+    "versies": 1,
+    "uitspraken": 220,
+    "uitspraken_huidig": 220
+   },
+   "33": {
+    "label_id": "2910964",
+    "versies": 1,
+    "uitspraken": 83,
+    "uitspraken_huidig": 83
+   },
+   "33a": {
+    "label_id": "14882964",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "34": {
+    "label_id": "2910974",
+    "versies": 5,
+    "uitspraken": 191,
+    "uitspraken_huidig": 159
+   },
+   "35": {
+    "label_id": "2910984",
+    "versies": 5,
+    "uitspraken": 112,
+    "uitspraken_huidig": 87
+   },
+   "35a": {
+    "label_id": "5013974",
+    "versies": 2,
+    "uitspraken": 3,
+    "uitspraken_huidig": 3
+   },
+   "35b": {
+    "label_id": "5013984",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "36": {
+    "label_id": "2910994",
+    "versies": 3,
+    "uitspraken": 623,
+    "uitspraken_huidig": 470
+   },
+   "36a": {
+    "label_id": "2911004",
+    "versies": 5,
+    "uitspraken": 3,
+    "uitspraken_huidig": 1
+   },
+   "36b": {
+    "label_id": "9215904",
+    "versies": 2,
+    "uitspraken": 25,
+    "uitspraken_huidig": 25
+   },
+   "37": {
+    "label_id": "2911014",
+    "versies": 2,
+    "uitspraken": 13,
+    "uitspraken_huidig": 11
+   },
+   "38": {
+    "label_id": "2911024",
+    "versies": 1,
+    "uitspraken": 9,
+    "uitspraken_huidig": 9
+   },
+   "39": {
+    "label_id": "2911034",
+    "versies": 3,
+    "uitspraken": 16,
+    "uitspraken_huidig": 6
+   },
+   "40": {
+    "label_id": "2911044",
+    "versies": 2,
+    "uitspraken": 110,
+    "uitspraken_huidig": 46
+   },
+   "41": {
+    "label_id": "2911054",
+    "versies": 1,
+    "uitspraken": 23,
+    "uitspraken_huidig": 23
+   },
+   "41a": {
+    "label_id": "16885704",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "42": {
+    "label_id": "2911064",
+    "versies": 1,
+    "uitspraken": 9,
+    "uitspraken_huidig": 9
+   },
+   "42a": {
+    "label_id": "2911074",
+    "versies": 2,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "42c": {
+    "label_id": "2917524",
+    "versies": 1,
+    "uitspraken": 13,
+    "uitspraken_huidig": 13
+   },
+   "42d": {
+    "label_id": "14426124",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "43": {
+    "label_id": "2911094",
+    "versies": 4,
+    "uitspraken": 88,
+    "uitspraken_huidig": 42
+   },
+   "43a": {
+    "label_id": "9326544",
+    "versies": 5,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "44": {
+    "label_id": "2911104",
+    "versies": 2,
+    "uitspraken": 3,
+    "uitspraken_huidig": 3
+   },
+   "44a": {
+    "label_id": "2911114",
+    "versies": 9,
+    "uitspraken": 4,
+    "uitspraken_huidig": 0
+   },
+   "44b": {
+    "label_id": "2917464",
+    "versies": 7,
+    "uitspraken": 5,
+    "uitspraken_huidig": 0
+   },
+   "45": {
+    "label_id": "2911124",
+    "versies": 3,
+    "uitspraken": 3,
+    "uitspraken_huidig": 1
+   },
+   "46": {
+    "label_id": "2911134",
+    "versies": 2,
+    "uitspraken": 7,
+    "uitspraken_huidig": 5
+   },
+   "47": {
+    "label_id": "2911144",
+    "versies": 4,
+    "uitspraken": 7,
+    "uitspraken_huidig": 6
+   },
+   "48": {
+    "label_id": "2911154",
+    "versies": 4,
+    "uitspraken": 5,
+    "uitspraken_huidig": 1
+   },
+   "48a": {
+    "label_id": "12466864",
+    "versies": 2,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "49": {
+    "label_id": "2911174",
+    "versies": 10,
+    "uitspraken": 348,
+    "uitspraken_huidig": 47
+   },
+   "51": {
+    "label_id": "2911194",
+    "versies": 2,
+    "uitspraken": 22,
+    "uitspraken_huidig": 22
+   },
+   "52": {
+    "label_id": "2911204",
+    "versies": 3,
+    "uitspraken": 11,
+    "uitspraken_huidig": 8
+   },
+   "53": {
+    "label_id": "2911214",
+    "versies": 3,
+    "uitspraken": 12,
+    "uitspraken_huidig": 10
+   },
+   "54": {
+    "label_id": "2911224",
+    "versies": 2,
+    "uitspraken": 3,
+    "uitspraken_huidig": 3
+   },
+   "55": {
+    "label_id": "2911244",
+    "versies": 5,
+    "uitspraken": 5,
+    "uitspraken_huidig": 3
+   },
+   "56": {
+    "label_id": "2911254",
+    "versies": 4,
+    "uitspraken": 6,
+    "uitspraken_huidig": 2
+   },
+   "57": {
+    "label_id": "2911264",
+    "versies": 2,
+    "uitspraken": 12,
+    "uitspraken_huidig": 12
+   },
+   "57a": {
+    "label_id": "10085594",
+    "versies": 0,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "58": {
+    "label_id": "2911294",
+    "versies": 4,
+    "uitspraken": 33,
+    "uitspraken_huidig": 15
+   },
+   "59": {
+    "label_id": "2911304",
+    "versies": 2,
+    "uitspraken": 3,
+    "uitspraken_huidig": 3
+   },
+   "60": {
+    "label_id": "2911314",
+    "versies": 1,
+    "uitspraken": 10,
+    "uitspraken_huidig": 10
+   },
+   "61": {
+    "label_id": "2911324",
+    "versies": 2,
+    "uitspraken": 1,
+    "uitspraken_huidig": 0
+   },
+   "62": {
+    "label_id": "2911334",
+    "versies": 2,
+    "uitspraken": 18,
+    "uitspraken_huidig": 18
+   },
+   "62bis": {
+    "label_id": "12879724",
+    "versies": 2,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "62a": {
+    "label_id": "11310904",
+    "versies": 1,
+    "uitspraken": 38,
+    "uitspraken_huidig": 38
+   },
+   "63": {
+    "label_id": "2911344",
+    "versies": 3,
+    "uitspraken": 5,
+    "uitspraken_huidig": 1
+   },
+   "63a": {
+    "label_id": "2911354",
+    "versies": 1,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "63aa": {
+    "label_id": "14521014",
+    "versies": 2,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "63ab": {
+    "label_id": "14521024",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "63b": {
+    "label_id": "10327224",
+    "versies": 4,
+    "uitspraken": 2,
+    "uitspraken_huidig": 0
+   },
+   "63c": {
+    "label_id": "10327234",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "64": {
+    "label_id": "2911374",
+    "versies": 3,
+    "uitspraken": 13,
+    "uitspraken_huidig": 10
+   },
+   "65": {
+    "label_id": "2911384",
+    "versies": 4,
+    "uitspraken": 15,
+    "uitspraken_huidig": 10
+   },
+   "65a": {
+    "label_id": "2911674",
+    "versies": 1,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "66": {
+    "label_id": "2911394",
+    "versies": 1,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "67": {
+    "label_id": "2911414",
+    "versies": 2,
+    "uitspraken": 74,
+    "uitspraken_huidig": 65
+   },
+   "67a": {
+    "label_id": "13339784",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "68": {
+    "label_id": "2911424",
+    "versies": 2,
+    "uitspraken": 9,
+    "uitspraken_huidig": 8
+   },
+   "69": {
+    "label_id": "2911434",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "70": {
+    "label_id": "2911444",
+    "versies": 3,
+    "uitspraken": 4,
+    "uitspraken_huidig": 2
+   },
+   "70a": {
+    "label_id": "11875444",
+    "versies": 2,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "70aa": {
+    "label_id": "12379874",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "70b": {
+    "label_id": "11977844",
+    "versies": 5,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "70ba": {
+    "label_id": "12379884",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "70c": {
+    "label_id": "11977854",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "70ca": {
+    "label_id": "13925154",
+    "versies": 2,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "70cc": {
+    "label_id": "13925174",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "70d": {
+    "label_id": "12379894",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "70e": {
+    "label_id": "12470174",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "70ea": {
+    "label_id": "13333704",
+    "versies": 2,
+    "uitspraken": 3,
+    "uitspraken_huidig": 3
+   },
+   "70f": {
+    "label_id": "12879804",
+    "versies": 1,
+    "uitspraken": 3,
+    "uitspraken_huidig": 3
+   },
+   "70g": {
+    "label_id": "16903674",
+    "versies": 2,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "70h": {
+    "label_id": "16904254",
+    "versies": 2,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "71": {
+    "label_id": "2911464",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "72": {
+    "label_id": "2911474",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   }
+  }
+ },
+ "iw_jci_toestand": {
+  "stat": {
+   "aanroepen": 365,
+   "cache": 426,
+   "seconden": 285.46605843422003,
+   "fouten": 14,
+   "rdf_terugval": 14
+  },
+  "artikelen": 128,
+  "zonder_lido_id": [
+   "7d",
+   "57a"
+  ],
+  "versies": 240,
+  "paren_alle_versies": 4388,
+  "paren_huidige_versie": 2813,
+  "unieke_ecli": 2701,
+  "per_artikel": {
+   "1": {
+    "label_id": "2910564",
+    "versies": 1,
+    "uitspraken": 70,
+    "uitspraken_huidig": 70
+   },
+   "2": {
+    "label_id": "2910574",
+    "versies": 2,
+    "uitspraken": 40,
+    "uitspraken_huidig": 32
+   },
+   "3": {
+    "label_id": "2910584",
+    "versies": 3,
+    "uitspraken": 67,
+    "uitspraken_huidig": 49
+   },
+   "3a": {
+    "label_id": "8495004",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "4": {
+    "label_id": "2910594",
+    "versies": 1,
+    "uitspraken": 5,
+    "uitspraken_huidig": 5
+   },
+   "5": {
+    "label_id": "2910604",
+    "versies": 3,
+    "uitspraken": 18,
+    "uitspraken_huidig": 14
+   },
+   "6": {
+    "label_id": "2910614",
+    "versies": 3,
+    "uitspraken": 4,
+    "uitspraken_huidig": 0
+   },
+   "7": {
+    "label_id": "2910624",
+    "versies": 3,
+    "uitspraken": 36,
+    "uitspraken_huidig": 1
+   },
+   "7a": {
+    "label_id": "6976164",
+    "versies": 1,
+    "uitspraken": 3,
+    "uitspraken_huidig": 3
+   },
+   "7b": {
+    "label_id": "12466474",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "7c": {
+    "label_id": "13255234",
+    "versies": 3,
+    "uitspraken": 2,
+    "uitspraken_huidig": 1
+   },
+   "7d": {
+    "label_id": "15232144",
+    "versies": 0,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "8": {
+    "label_id": "2910644",
+    "versies": 1,
+    "uitspraken": 71,
+    "uitspraken_huidig": 71
+   },
+   "9": {
+    "label_id": "2910654",
+    "versies": 3,
+    "uitspraken": 149,
+    "uitspraken_huidig": 12
+   },
+   "10": {
+    "label_id": "2910664",
+    "versies": 3,
+    "uitspraken": 121,
+    "uitspraken_huidig": 46
+   },
+   "11": {
+    "label_id": "2910684",
+    "versies": 1,
+    "uitspraken": 96,
+    "uitspraken_huidig": 96
+   },
+   "12": {
+    "label_id": "2910694",
+    "versies": 1,
+    "uitspraken": 89,
+    "uitspraken_huidig": 89
+   },
+   "13": {
+    "label_id": "2910704",
+    "versies": 2,
+    "uitspraken": 29,
+    "uitspraken_huidig": 22
+   },
+   "14": {
+    "label_id": "2910714",
+    "versies": 1,
+    "uitspraken": 17,
+    "uitspraken_huidig": 17
+   },
+   "15": {
+    "label_id": "2910724",
+    "versies": 2,
+    "uitspraken": 36,
+    "uitspraken_huidig": 13
+   },
+   "16": {
+    "label_id": "2910734",
+    "versies": 2,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "17": {
+    "label_id": "2910744",
+    "versies": 6,
+    "uitspraken": 161,
+    "uitspraken_huidig": 24
+   },
+   "18": {
+    "label_id": "2910754",
+    "versies": 1,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "18a": {
+    "label_id": "15714174",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "19": {
+    "label_id": "2910764",
+    "versies": 5,
+    "uitspraken": 30,
+    "uitspraken_huidig": 7
+   },
+   "20": {
+    "label_id": "2910774",
+    "versies": 2,
+    "uitspraken": 10,
+    "uitspraken_huidig": 6
+   },
+   "21": {
+    "label_id": "2910794",
+    "versies": 1,
+    "uitspraken": 88,
+    "uitspraken_huidig": 88
+   },
+   "22": {
+    "label_id": "2910804",
+    "versies": 3,
+    "uitspraken": 74,
+    "uitspraken_huidig": 46
+   },
+   "22bis": {
+    "label_id": "11977834",
+    "versies": 2,
+    "uitspraken": 18,
+    "uitspraken_huidig": 13
+   },
+   "22a": {
+    "label_id": "2917434",
+    "versies": 1,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "23": {
+    "label_id": "2910814",
+    "versies": 2,
+    "uitspraken": 3,
+    "uitspraken_huidig": 3
+   },
+   "23a": {
+    "label_id": "10314634",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "24": {
+    "label_id": "2910834",
+    "versies": 2,
+    "uitspraken": 96,
+    "uitspraken_huidig": 34
+   },
+   "25": {
+    "label_id": "2910854",
+    "versies": 11,
+    "uitspraken": 147,
+    "uitspraken_huidig": 10
+   },
+   "25a": {
+    "label_id": "12243544",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "25b": {
+    "label_id": "14878914",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "25c": {
+    "label_id": "16550114",
+    "versies": 2,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "26": {
+    "label_id": "2910864",
+    "versies": 7,
+    "uitspraken": 74,
+    "uitspraken_huidig": 3
+   },
+   "26a": {
+    "label_id": "16476694",
+    "versies": 1,
+    "uitspraken": 7,
+    "uitspraken_huidig": 7
+   },
+   "27": {
+    "label_id": "2910874",
+    "versies": 1,
+    "uitspraken": 21,
+    "uitspraken_huidig": 21
+   },
+   "27bis": {
+    "label_id": "13458094",
+    "versies": 1,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "27ter": {
+    "label_id": "13458104",
+    "versies": 1,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "27quater": {
+    "label_id": "13458124",
+    "versies": 1,
+    "uitspraken": 7,
+    "uitspraken_huidig": 7
+   },
+   "27quinquies": {
+    "label_id": "16111244",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "28": {
+    "label_id": "2910904",
+    "versies": 9,
+    "uitspraken": 118,
+    "uitspraken_huidig": 10
+   },
+   "28a": {
+    "label_id": "11564314",
+    "versies": 2,
+    "uitspraken": 18,
+    "uitspraken_huidig": 13
+   },
+   "28b": {
+    "label_id": "11564324",
+    "versies": 1,
+    "uitspraken": 22,
+    "uitspraken_huidig": 22
+   },
+   "28c": {
+    "label_id": "12879714",
+    "versies": 1,
+    "uitspraken": 365,
+    "uitspraken_huidig": 365
+   },
+   "29": {
+    "label_id": "2910914",
+    "versies": 1,
+    "uitspraken": 25,
+    "uitspraken_huidig": 25
+   },
+   "30": {
+    "label_id": "2910924",
+    "versies": 2,
+    "uitspraken": 235,
+    "uitspraken_huidig": 23
+   },
+   "31": {
+    "label_id": "2910934",
+    "versies": 2,
+    "uitspraken": 11,
+    "uitspraken_huidig": 1
+   },
+   "31a": {
+    "label_id": "2911514",
+    "versies": 1,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "32": {
+    "label_id": "2910954",
+    "versies": 1,
+    "uitspraken": 220,
+    "uitspraken_huidig": 220
+   },
+   "33": {
+    "label_id": "2910964",
+    "versies": 1,
+    "uitspraken": 83,
+    "uitspraken_huidig": 83
+   },
+   "33a": {
+    "label_id": "14882964",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "34": {
+    "label_id": "2910974",
+    "versies": 3,
+    "uitspraken": 182,
+    "uitspraken_huidig": 159
+   },
+   "35": {
+    "label_id": "2910984",
+    "versies": 3,
+    "uitspraken": 103,
+    "uitspraken_huidig": 87
+   },
+   "35a": {
+    "label_id": "5013974",
+    "versies": 2,
+    "uitspraken": 3,
+    "uitspraken_huidig": 3
+   },
+   "35b": {
+    "label_id": "5013984",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "36": {
+    "label_id": "2910994",
+    "versies": 3,
+    "uitspraken": 623,
+    "uitspraken_huidig": 470
+   },
+   "36a": {
+    "label_id": "2911004",
+    "versies": 5,
+    "uitspraken": 3,
+    "uitspraken_huidig": 1
+   },
+   "36b": {
+    "label_id": "9215904",
+    "versies": 2,
+    "uitspraken": 25,
+    "uitspraken_huidig": 25
+   },
+   "37": {
+    "label_id": "2911014",
+    "versies": 1,
+    "uitspraken": 11,
+    "uitspraken_huidig": 11
+   },
+   "38": {
+    "label_id": "2911024",
+    "versies": 1,
+    "uitspraken": 9,
+    "uitspraken_huidig": 9
+   },
+   "39": {
+    "label_id": "2911034",
+    "versies": 1,
+    "uitspraken": 6,
+    "uitspraken_huidig": 6
+   },
+   "40": {
+    "label_id": "2911044",
+    "versies": 2,
+    "uitspraken": 110,
+    "uitspraken_huidig": 46
+   },
+   "41": {
+    "label_id": "2911054",
+    "versies": 1,
+    "uitspraken": 23,
+    "uitspraken_huidig": 23
+   },
+   "41a": {
+    "label_id": "16885704",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "42": {
+    "label_id": "2911064",
+    "versies": 1,
+    "uitspraken": 9,
+    "uitspraken_huidig": 9
+   },
+   "42a": {
+    "label_id": "2911074",
+    "versies": 2,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "42c": {
+    "label_id": "2917524",
+    "versies": 1,
+    "uitspraken": 13,
+    "uitspraken_huidig": 13
+   },
+   "42d": {
+    "label_id": "14426124",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "43": {
+    "label_id": "2911094",
+    "versies": 1,
+    "uitspraken": 42,
+    "uitspraken_huidig": 42
+   },
+   "43a": {
+    "label_id": "9326544",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "44": {
+    "label_id": "2911104",
+    "versies": 2,
+    "uitspraken": 3,
+    "uitspraken_huidig": 3
+   },
+   "44a": {
+    "label_id": "2911114",
+    "versies": 3,
+    "uitspraken": 2,
+    "uitspraken_huidig": 0
+   },
+   "44b": {
+    "label_id": "2917464",
+    "versies": 6,
+    "uitspraken": 5,
+    "uitspraken_huidig": 0
+   },
+   "45": {
+    "label_id": "2911124",
+    "versies": 3,
+    "uitspraken": 3,
+    "uitspraken_huidig": 1
+   },
+   "46": {
+    "label_id": "2911134",
+    "versies": 2,
+    "uitspraken": 7,
+    "uitspraken_huidig": 5
+   },
+   "47": {
+    "label_id": "2911144",
+    "versies": 1,
+    "uitspraken": 6,
+    "uitspraken_huidig": 6
+   },
+   "48": {
+    "label_id": "2911154",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "48a": {
+    "label_id": "12466864",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "49": {
+    "label_id": "2911174",
+    "versies": 2,
+    "uitspraken": 215,
+    "uitspraken_huidig": 47
+   },
+   "51": {
+    "label_id": "2911194",
+    "versies": 2,
+    "uitspraken": 22,
+    "uitspraken_huidig": 22
+   },
+   "52": {
+    "label_id": "2911204",
+    "versies": 1,
+    "uitspraken": 8,
+    "uitspraken_huidig": 8
+   },
+   "53": {
+    "label_id": "2911214",
+    "versies": 1,
+    "uitspraken": 10,
+    "uitspraken_huidig": 10
+   },
+   "54": {
+    "label_id": "2911224",
+    "versies": 2,
+    "uitspraken": 3,
+    "uitspraken_huidig": 3
+   },
+   "55": {
+    "label_id": "2911244",
+    "versies": 1,
+    "uitspraken": 3,
+    "uitspraken_huidig": 3
+   },
+   "56": {
+    "label_id": "2911254",
+    "versies": 1,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "57": {
+    "label_id": "2911264",
+    "versies": 1,
+    "uitspraken": 12,
+    "uitspraken_huidig": 12
+   },
+   "57a": {
+    "label_id": "10085594",
+    "versies": 0,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "58": {
+    "label_id": "2911294",
+    "versies": 1,
+    "uitspraken": 15,
+    "uitspraken_huidig": 15
+   },
+   "59": {
+    "label_id": "2911304",
+    "versies": 2,
+    "uitspraken": 3,
+    "uitspraken_huidig": 3
+   },
+   "60": {
+    "label_id": "2911314",
+    "versies": 1,
+    "uitspraken": 10,
+    "uitspraken_huidig": 10
+   },
+   "61": {
+    "label_id": "2911324",
+    "versies": 2,
+    "uitspraken": 1,
+    "uitspraken_huidig": 0
+   },
+   "62": {
+    "label_id": "2911334",
+    "versies": 2,
+    "uitspraken": 18,
+    "uitspraken_huidig": 18
+   },
+   "62bis": {
+    "label_id": "12879724",
+    "versies": 2,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "62a": {
+    "label_id": "11310904",
+    "versies": 1,
+    "uitspraken": 38,
+    "uitspraken_huidig": 38
+   },
+   "63": {
+    "label_id": "2911344",
+    "versies": 3,
+    "uitspraken": 5,
+    "uitspraken_huidig": 1
+   },
+   "63a": {
+    "label_id": "2911354",
+    "versies": 1,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "63aa": {
+    "label_id": "14521014",
+    "versies": 2,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "63ab": {
+    "label_id": "14521024",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "63b": {
+    "label_id": "10327224",
+    "versies": 4,
+    "uitspraken": 2,
+    "uitspraken_huidig": 0
+   },
+   "63c": {
+    "label_id": "10327234",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "64": {
+    "label_id": "2911374",
+    "versies": 2,
+    "uitspraken": 12,
+    "uitspraken_huidig": 10
+   },
+   "65": {
+    "label_id": "2911384",
+    "versies": 4,
+    "uitspraken": 15,
+    "uitspraken_huidig": 10
+   },
+   "65a": {
+    "label_id": "2911674",
+    "versies": 1,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "66": {
+    "label_id": "2911394",
+    "versies": 1,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "67": {
+    "label_id": "2911414",
+    "versies": 2,
+    "uitspraken": 74,
+    "uitspraken_huidig": 65
+   },
+   "67a": {
+    "label_id": "13339784",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "68": {
+    "label_id": "2911424",
+    "versies": 2,
+    "uitspraken": 9,
+    "uitspraken_huidig": 8
+   },
+   "69": {
+    "label_id": "2911434",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "70": {
+    "label_id": "2911444",
+    "versies": 2,
+    "uitspraken": 2,
+    "uitspraken_huidig": 2
+   },
+   "70a": {
+    "label_id": "11875444",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "70aa": {
+    "label_id": "12379874",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "70b": {
+    "label_id": "11977844",
+    "versies": 5,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "70ba": {
+    "label_id": "12379884",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "70c": {
+    "label_id": "11977854",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "70ca": {
+    "label_id": "13925154",
+    "versies": 2,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "70cc": {
+    "label_id": "13925174",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "70d": {
+    "label_id": "12379894",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "70e": {
+    "label_id": "12470174",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "70ea": {
+    "label_id": "13333704",
+    "versies": 2,
+    "uitspraken": 3,
+    "uitspraken_huidig": 3
+   },
+   "70f": {
+    "label_id": "12879804",
+    "versies": 1,
+    "uitspraken": 3,
+    "uitspraken_huidig": 3
+   },
+   "70g": {
+    "label_id": "16903674",
+    "versies": 2,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   },
+   "70h": {
+    "label_id": "16904254",
+    "versies": 2,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "71": {
+    "label_id": "2911464",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "72": {
+    "label_id": "2911474",
+    "versies": 1,
+    "uitspraken": 1,
+    "uitspraken_huidig": 1
+   }
+  }
+ },
+ "awb_steekproef_30_jci_toestand": {
+  "stat": {
+   "aanroepen": 158,
+   "cache": 496,
+   "seconden": 117.87183635053225,
+   "fouten": 4,
+   "rdf_terugval": 2,
+   "versies_onvolledig": 2
+  },
+  "artikelen": 30,
+  "zonder_lido_id": [
+   "2"
+  ],
+  "versies": 53,
+  "paren_alle_versies": 26169,
+  "paren_huidige_versie": 21939,
+  "unieke_ecli": 24180,
+  "per_artikel": {
+   "8:7": {
+    "label_id": "2815634",
+    "versies": 5,
+    "uitspraken": 651,
+    "uitspraken_huidig": 219
+   },
+   "4:76": {
+    "label_id": "2819854",
+    "versies": 1,
+    "uitspraken": 38,
+    "uitspraken_huidig": 38
+   },
+   "8:55f": {
+    "label_id": "10274684",
+    "versies": 2,
+    "uitspraken": 129,
+    "uitspraken_huidig": 127
+   },
+   "3:13": {
+    "label_id": "2814344",
+    "versies": 3,
+    "uitspraken": 131,
+    "uitspraken_huidig": 53
+   },
+   "3:48": {
+    "label_id": "2819144",
+    "versies": 1,
+    "uitspraken": 91,
+    "uitspraken_huidig": 91
+   },
+   "11:2": {
+    "label_id": "2820834",
+    "versies": 5,
+    "uitspraken": 34,
+    "uitspraken_huidig": 33
+   },
+   "4:20b": {
+    "label_id": "10274624",
+    "versies": 1,
+    "uitspraken": 310,
+    "uitspraken_huidig": 310
+   },
+   "8:37": {
+    "label_id": "2815994",
+    "versies": 3,
+    "uitspraken": 169,
+    "uitspraken_huidig": 92
+   },
+   "3:23": {
+    "label_id": "2814484",
+    "versies": 1,
+    "uitspraken": 31,
+    "uitspraken_huidig": 31
+   },
+   "10:16": {
+    "label_id": "2820494",
+    "versies": 1,
+    "uitspraken": 38,
+    "uitspraken_huidig": 38
+   },
+   "5:9": {
+    "label_id": "10067304",
+    "versies": 1,
+    "uitspraken": 145,
+    "uitspraken_huidig": 145
+   },
+   "3:3": {
+    "label_id": "2814214",
+    "versies": 1,
+    "uitspraken": 690,
+    "uitspraken_huidig": 690
+   },
+   "4:13": {
+    "label_id": "2814854",
+    "versies": 1,
+    "uitspraken": 933,
+    "uitspraken_huidig": 933
+   },
+   "8:90": {
+    "label_id": "12082494",
+    "versies": 1,
+    "uitspraken": 301,
+    "uitspraken_huidig": 301
+   },
+   "8:76": {
+    "label_id": "2816464",
+    "versies": 3,
+    "uitspraken": 74,
+    "uitspraken_huidig": 72
+   },
+   "3:45": {
+    "label_id": "2814684",
+    "versies": 1,
+    "uitspraken": 340,
+    "uitspraken_huidig": 340
+   },
+   "5:32": {
+    "label_id": "2820214",
+    "versies": 2,
+    "uitspraken": 660,
+    "uitspraken_huidig": 0
+   },
+   "4:18": {
+    "label_id": "2814914",
+    "versies": 1,
+    "uitspraken": 2808,
+    "uitspraken_huidig": 2808
+   },
+   "2": {
+    "label_id": null,
+    "versies": 0,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "8:80b": {
+    "label_id": "10321884",
+    "versies": 2,
+    "uitspraken": 140,
+    "uitspraken_huidig": 130
+   },
+   "3:24": {
+    "label_id": "2814494",
+    "versies": 1,
+    "uitspraken": 57,
+    "uitspraken_huidig": 57
+   },
+   "4:46": {
+    "label_id": "2819484",
+    "versies": 1,
+    "uitspraken": 966,
+    "uitspraken_huidig": 966
+   },
+   "5:16a": {
+    "label_id": "5935334",
+    "versies": 1,
+    "uitspraken": 44,
+    "uitspraken_huidig": 44
+   },
+   "3:27": {
+    "label_id": "2814524",
+    "versies": 1,
+    "uitspraken": 36,
+    "uitspraken_huidig": 36
+   },
+   "8:57": {
+    "label_id": "2816254",
+    "versies": 4,
+    "uitspraken": 11728,
+    "uitspraken_huidig": 10043
+   },
+   "3:14": {
+    "label_id": "2814364",
+    "versies": 2,
+    "uitspraken": 70,
+    "uitspraken_huidig": 46
+   },
+   "5:15": {
+    "label_id": "2820024",
+    "versies": 1,
+    "uitspraken": 0,
+    "uitspraken_huidig": 0
+   },
+   "3:11": {
+    "label_id": "2814324",
+    "versies": 4,
+    "uitspraken": 1517,
+    "uitspraken_huidig": 258
+   },
+   "4:58": {
+    "label_id": "2819634",
+    "versies": 1,
+    "uitspraken": 29,
+    "uitspraken_huidig": 29
+   },
+   "7:2": {
+    "label_id": "2815264",
+    "versies": 1,
+    "uitspraken": 4009,
+    "uitspraken_huidig": 4009
+   }
+  }
+ }
+}
