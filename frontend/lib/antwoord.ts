@@ -17,14 +17,25 @@ export type AntwoordBlok =
       passages: { nr: number; tekst: string; kop: string; soort?: "alinea" | "voetnoot" | "tabel" | "tabelrij"; cellen?: string[] | null;
         verwijst_naar?: { id: string; label: string; link: string }[] | null }[];
       /** De versie die Lex las: de hash van het document en de stand bij de bron. Leeg bij een ouder bericht. */
-      bron_hash?: string; gewijzigd?: string }
+      bron_hash?: string; gewijzigd?: string;
+      /** Uit de metadata van het gelezen stuk: de datum en het soort ("Motie"). Leeg bij een ouder bericht. */
+      datum?: string; soort_stuk?: string }
+  | { soort: "stukken"; door: "bron"; brontype: string; kop: string; items: StukRij[];
+      /** Wat er gezocht is, in woorden van de code; en hoeveel stukken er bij de bron aan voldoen. */
+      zoekvraag?: string; totaal?: number | null }
   | { soort: "leemte"; door: "bron"; tekst: string }
+
+/** Eén gevonden stuk in een lijst, met de metadata uit de zoektool (de sleutels van `METADATA_SLEUTELS`). */
+export interface StukRij {
+  id: string; label: string; link?: string; soort?: string; titel?: string; datum?: string; gepubliceerd?: string;
+  jaar?: string; orgaan?: string; indieners?: string[]; reeks?: string[]; status?: string; versie?: string; leesbaar?: boolean;
+}
 
 export type BlokSoort = AntwoordBlok["soort"];
 
 export interface Antwoord { sjabloon: string; versie: number; blokken: AntwoordBlok[]; doelen: AntwoordVindplaats[] }
 
-export const BLOK_SOORTEN: readonly BlokSoort[] = ["definities", "begrippen", "wettekst", "citaten", "verwijzingen", "annotaties", "toelichting", "twijfel", "extern", "leemte"];
+export const BLOK_SOORTEN: readonly BlokSoort[] = ["definities", "begrippen", "wettekst", "citaten", "verwijzingen", "annotaties", "toelichting", "twijfel", "extern", "stukken", "leemte"];
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
@@ -45,6 +56,8 @@ function isBlok(b: unknown): b is AntwoordBlok {
     case "twijfel": return Array.isArray(b.punten) && b.punten.every((p) => typeof p === "string");
     case "extern": return typeof b.id === "string" && typeof b.label === "string" && typeof b.kop === "string" &&
       Array.isArray(b.passages) && b.passages.every((p) => isObject(p) && typeof p.tekst === "string");
+    case "stukken": return typeof b.kop === "string" &&
+      lijst((x) => isObject(x) && typeof x.id === "string" && typeof x.label === "string");
   }
 }
 
@@ -57,7 +70,7 @@ export function parseAntwoord(v: unknown): Antwoord | undefined {
 
 /** Wat de controle in graph-qa niet leest (`NIET_GETOETST` in `bronmodel/antwoord.py`): afgeleide duiding en tekst van de code.
  *  Bestaat een antwoord alleen hieruit, dan is "niets te controleren" geen melding waard: er staat niets van het model. */
-export const NIET_GETOETST: readonly BlokSoort[] = ["annotaties", "begrippen", "leemte"];
+export const NIET_GETOETST: readonly BlokSoort[] = ["annotaties", "begrippen", "leemte", "stukken"];
 
 export function alleenNietGetoetst(a: Antwoord | undefined): boolean {
   return !!a && a.blokken.every((b) => NIET_GETOETST.includes(b.soort));
