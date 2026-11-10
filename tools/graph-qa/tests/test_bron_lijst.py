@@ -176,7 +176,7 @@ def test_een_dossier_op_nummer_toont_het_begin_van_de_lijst(monkeypatch):
     from agent.sjablonen.extern import MAX_LIJST
     from test_kamerstuk_tools import _veel, NepBron
 
-    monkeypatch.setattr(t, "_KAMERSTUKBRON", NepBron(_veel(60)))
+    monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", NepBron(_veel(60)))
     events = _run(answer_stream("Kamerstukken van dossier 99001", settings=AAN, llm=FakeLLM([]),
                                 graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
     tekst = "".join(e.get("content", "") for e in events if e["type"] == "token")
