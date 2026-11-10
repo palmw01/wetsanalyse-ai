@@ -30,6 +30,15 @@ describe("één ingang naar een bron", () => {
     expect(bron("components/werkplek/Markdown.tsx")).not.toMatch(/onOpenSamenhang/);
   });
 
+  it("de kaart met de telling opent de lijst van het antwoord, niet de eerste bepaling (melding gebruiker 10 nov 2026)", () => {
+    const chips = bron("components/antwoord/BepalingChip.tsx");
+    expect(chips).not.toMatch(/bepalingen\[0\]/);
+    expect(chips).toMatch(/soort: "bepalingen"/);
+    // Eén vorm voor een lijst bronnen in het paneel: de bronnen van het werkgebied en de bepalingen van een antwoord.
+    const paneel = bron("components/werkplek/ContextPaneel.tsx");
+    expect(paneel.match(/<BronRijen /g)).toHaveLength(2);
+  });
+
   it("elke ingang opent via useOpenBron; alleen de werkplek kent de context zelf", () => {
     const lezers = CODE.filter((p) => /useContext\(ContextPaneelContext\)/.test(bron(p)));
     expect(lezers).toEqual([join("components", "werkplek", "ContextPaneel.tsx")]);

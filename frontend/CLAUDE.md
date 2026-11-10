@@ -1471,7 +1471,12 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   `ContextPaneelContext`):
   - **onder een antwoord per bepaling één kaart** (ontdubbelen PR 3; `BronChip`/`BepalingChips`, `kaartenVan` in
     `lib/bronnen.ts`): bij een sjabloon de bepalingen die het draagt, bij vrije tekst de bepalingen die de tekst
-    éénduidig noemt (geen kaart voor een gok). Er is geen tweede kaart voor de graaf: die is de tab Graaf van het venster,
+    éénduidig noemt (geen kaart voor een gok). Bij meer dan drie (`MAX_BEPALINGCHIPS`) staat er één kaart met de telling
+    ("6 bepalingen", `data-bepaling-lijst`), die de bepalingen als lijst in het paneel opent (`ContextDoel` soort
+    `bepalingen`, zoals *Bronnen* in de chatkop; melding gebruiker 10 nov 2026: de telling opende er één). Eén tab per lijst,
+    dus een tweede klik opent geen tweede; per regeling een kop, een rij opent de bepaling als eigen tab met "Dit antwoord"
+    op Graaf, en de tab Graaf van de lijst toont ze samen. De lijst en de bronnen van het werkgebied delen `BronRijen`.
+    Er is geen tweede kaart voor de graaf: die is de tab Graaf van het venster,
     met "Dit antwoord" – elke ingang in het bericht (kaart, vindplaats, citatie) neemt de samenhang van het bericht mee
     (`BerichtSamenhangContext` in `ThreadRij`). De bronnenlijst toont alleen wat geen kaart heeft (`zonderKaarten`):
     regelingen, connectorstukken, externe bronnen. Een overzicht heeft zijn kaartje, en de overzichttab heeft zelf
