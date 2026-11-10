@@ -73,8 +73,27 @@ function vergelijkPad(a: [string, string][], b: [string, string][]): number {
   return 0;
 }
 
-/** Structuur vóór artikelen, binnen de structuur in de volgorde van de boom. */
+const BIJLAGE_DELEN = ["bijlage", ...STRUCTUUR, "artikel", "lid", "o"];
+
+/** De plek van een jci in een bijlage ("Bijlage 2, hoofdstuk 2, artikel 5"), of null. De volgorde is die van de jci;
+ *  `z` en `g` (de stand) horen er niet bij. */
+export function bijlagePlek(ref: string): { bwb_id: string; label: string } | null {
+  const m = ref.trim().match(/^jci[\d.]+:c:(BWB[RV]\d+)&(.*)$/i);
+  if (!m) return null;
+  const delen = m[2].split("&").map((d) => d.split("=")).filter(([k, v]) => k && v && BIJLAGE_DELEN.includes(k.toLowerCase()));
+  if (!delen.length || delen[0][0].toLowerCase() !== "bijlage") return null;
+  let tekst: string;
+  try {
+    tekst = delen.map(([k, v]) => `${k.toLowerCase() === "o" ? "onderdeel" : k.toLowerCase()} ${decodeURIComponent(v)}`).join(", ");
+  } catch {
+    return null;
+  }
+  return { bwb_id: m[1].toUpperCase(), label: tekst[0].toUpperCase() + tekst.slice(1) };
+}
+
+/** Structuur vóór artikelen, binnen de structuur in de volgorde van de boom; een bijlage staat achteraan, zoals in de wet. */
 function rang(sleutel: string): number {
+  if (sleutel === "bijlage") return STRUCTUUR.length + 1;
   const i = STRUCTUUR.indexOf(sleutel);
   return i >= 0 ? i : STRUCTUUR.length;
 }
@@ -100,6 +119,23 @@ export function normaliseerBronnen(bronnen: readonly Bron[]): Bronnenlijst {
     const vp = vindplaatsVan(b.bron_iri || b.uri) ?? vindplaatsVan(b.uri);
     const href = bronHref(b.jci || b.uri) ?? bronHref(b.uri);
     if (!vp) {
+      // Een plek in een bijlage wijst geen bronnode aan (`bronmodel.vindplaats`), maar heeft wél een plek in de regeling:
+      // die staat leesbaar onder haar regeling, met de link naar de bron en zonder tab.
+      const bijlage = bijlagePlek(b.jci || b.uri);
+      if (bijlage) {
+        const sleutel = b.jci || b.uri;
+        if (gezien.has(sleutel)) continue;
+        gezien.add(sleutel);
+        let groep = groepen.get(bijlage.bwb_id);
+        if (!groep) {
+          groep = { bwb_id: bijlage.bwb_id, naam: bijlage.bwb_id, items: [], paden: new Map() };
+          groepen.set(bijlage.bwb_id, groep);
+        }
+        if (b.regeling && groep.naam === bijlage.bwb_id) groep.naam = b.regeling;
+        groep.items.push({ sleutel, label: bijlage.label, soort: "bijlage", href });
+        groep.paden.set(sleutel, [["bijlage", bijlage.label]]);
+        continue;
+      }
       if (gezien.has(b.uri)) continue;
       gezien.add(b.uri);
       overig.push({ sleutel: b.uri, label: b.label || b.uri, soort: "", href });
