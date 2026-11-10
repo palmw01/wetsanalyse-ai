@@ -115,6 +115,13 @@ def koop_id_uit_bron(bron: str) -> str | None:
     return f"{m.group(1).lower()}-{m.group(2)}-{int(m.group(3))}" if m else None
 
 
+def bwb_bron_van(ident: str) -> str | None:
+    """De vorm van de BWB-brondata bij een id: "stb-2009-610" → "Stb.2009-610" (de omkering van `koop_id_uit_bron`).
+    Een herdruk, een oud Stcrt-id of iets anders geeft None: die vorm schrijft de BWB niet."""
+    m = re.fullmatch(r"(stb|stcrt)-(\d{4})-(\d{1,6})", (ident or "").strip())
+    return f"{'Stb' if m.group(1) == 'stb' else 'Stcrt'}.{m.group(2)}-{m.group(3)}" if m else None
+
+
 def externe_vindplaats(ref: str) -> ExterneVindplaats | None:
     """De externe vindplaats van een verwijzing die precies één identifier is, of None."""
     ref = (ref or "").strip().rstrip(",;\\")

@@ -121,3 +121,14 @@ def test_een_onbekend_id_valt_terug_op_blad_jaargang_en_nummer():
     nummer zonder achtervoegsel bestaat, met een verzonnen achtervoegsel niet, en dan vindt de adapter het origineel."""
     rec = SruBekendmakingen().record(f"{IWT}-n9")
     assert rec.id == IWT
+
+
+def test_de_staatscourant_geeft_alleen_regelgevende_soorten():
+    """De witte lijst (`REGELGEVENDE_SOORTEN`) is een geldige zoekvraag, en de nieuwste publicaties bevatten geen
+    aankondigingen over personen (deurwaardersexploten, faillissementen, curatele)."""
+    from agent.tools.bekendmaking_tools import REGELGEVENDE_SOORTEN
+
+    d = json.loads(tools.dispatch("zoek_bekendmakingen", None, {"publicatie": "Staatscourant", "volgorde": "nieuwste",
+                                                                 "aantal": 25}, AAN))
+    assert d["status"] == "ok" and d["aantal"] >= 5 and d["totaal"] > 10000, d  # de begroting kan eerder knippen
+    assert {r["soort"] for r in d["resultaten"]} <= set(REGELGEVENDE_SOORTEN)

@@ -81,6 +81,7 @@ GEVALLEN: list[tuple[str, str]] = [
     ("tools.rechtspraak_tools._q_artikel", rechtspraak_tools._q_artikel(IW, "36")),
     ("tools.bekendmaking_tools._q_bij_artikel", bekendmaking_tools._q_bij_artikel(IW, "36")),
     ("tools.bekendmaking_tools._q_bij_regeling", bekendmaking_tools._q_bij_regeling(IW)),
+    ("tools.bekendmaking_tools._q_regelingen_bij", bekendmaking_tools._q_regelingen_bij(["Stb.2009-610", "Stb.2010-176"])),
     ("begrip_kaart.q_brondefinities", begrip_kaart.q_brondefinities(["bestuurder"])),
     ("begrip_kaart.q_onder", begrip_kaart.q_onder(["bestuurder"])),
     ("begrip_kaart.q_verwijzingen", begrip_kaart.q_verwijzingen(f"urn:bwb:{IW}:artikel:4")),

@@ -20,7 +20,7 @@ import xml.etree.ElementTree as ET
 from typing import Any, Protocol
 
 from bronmodel.connectors import BEKENDMAKINGEN
-from bronmodel.extern import externe_vindplaats, koop_id_uit_bron
+from bronmodel.extern import bwb_bron_van, externe_vindplaats, koop_id_uit_bron
 
 from ..graph import queries
 from ..graph.results import parse_select
@@ -36,7 +36,6 @@ CONNECTOR = BEKENDMAKINGEN.naam
 
 _BLADEN = {"Staatsblad": "stb", "Staatscourant": "stcrt"}
 _BASIS = "c.product-area==officielepublicaties"
-_ALLE_BLADEN = f"{_BASIS} AND (w.publicatienaam==Staatsblad OR w.publicatienaam==Staatscourant)"
 _DOSSIER_RE = re.compile(r"^\d{4,6}(?:-[A-Z0-9]{1,6})?$")
 _JAAR_RE = re.compile(r"^(?:18|19|20)\d{2}$")
 _BWB_RE = re.compile(r"^BWB[RV]\d{7}$")
@@ -45,6 +44,34 @@ _ARTIKEL_RE = re.compile(r"^[0-9A-Za-z:.]{1,20}$")
 _PER_VRAAG = 40
 #: Hoogstens zo veel publicaties per regeling; daarboven zegt de tool dat het er meer zijn.
 MAX_BIJ_REGELING = 200
+#: De soorten in de Staatscourant die regelgeving, beleid of de wetgevingsprocedure zijn (`dt.type`, live 10 nov 2026).
+#: De Staatscourant draagt ook deurwaardersexploten, faillissementen, curatele en vergunningen, met namen van
+#: particulieren: die zoekt Lex niet en leest hij niet. "Overig" (vóór 2009 had de Staatscourant geen fijnere soorten,
+#: ook de Leidraad Invordering 2008 niet) telt alleen bij een gerichte zoekvraag (woorden, tekst of dossier).
+REGELGEVENDE_SOORTEN = ("algemeen verbindend voorschrift (ministeriële regeling)", "beleidsregel",
+                        "ander besluit van algemene strekking", "circulaire", "interne regeling", "advies Raad van State")
+_OUDE_SOORT = "Overig"
+
+
+def _blad_cql(publicatie: str, gericht: bool) -> str:
+    """Het filter op het blad: het Staatsblad helemaal, de Staatscourant alleen in de regelgevende soorten."""
+    soorten = [*REGELGEVENDE_SOORTEN, *((_OUDE_SOORT,) if gericht else ())]
+    stcrt = "(w.publicatienaam==Staatscourant AND (" + " OR ".join(f'dt.type=="{t}"' for t in soorten) + "))"
+    if publicatie == "Staatsblad":
+        return f"{_BASIS} AND w.publicatienaam==Staatsblad"
+    if publicatie == "Staatscourant":
+        return f"{_BASIS} AND {stcrt}"
+    return f"{_BASIS} AND (w.publicatienaam==Staatsblad OR {stcrt})"
+
+
+def binnen_bereik(rec: Any) -> bool:
+    """Valt dit record binnen de bron? Het Staatsblad altijd; de Staatscourant alleen in de regelgevende soorten of
+    "Overig" (`REGELGEVENDE_SOORTEN`)."""
+    if getattr(rec, "publicatienaam", "") != "Staatscourant":
+        return True
+    return getattr(rec, "type", "") in (*REGELGEVENDE_SOORTEN, _OUDE_SOORT, "")
+
+
 #: Een soort dat niet in `dt.type` staat maar in de titel ("tot vaststelling van het tijdstip van inwerkingtreding").
 _SOORT_IN_TITEL = {"inwerkingtredingsbesluit": "inwerkingtreding"}
 #: Hoe de BWB een publicatie aan een tekstdeel koppelt, in de woorden van de jurist.
@@ -78,7 +105,8 @@ BEKENDMAKING_TOOLS: list[dict[str, Any]] = [
             "ZONDER bwb_id: combineer 'publicatie' (Staatsblad of Staatscourant), 'woorden' in de titel, 'tekst' in de "
             "hele tekst, 'soort', 'orgaan' (het ministerie), 'dossier' (het Kamerdossier van een wet), een periode "
             "('vanaf', 'tot') of 'jaar' (de jaargang). Kies de 'volgorde': 'nieuwste' of 'oudste' (op de datum), of "
-            "'relevantie' bij woorden of tekst." + _UITLEG + "\n"
+            "'relevantie' bij woorden of tekst. Uit de Staatscourant komen alleen regelgeving, beleid en adviezen van de Raad "
+            "van State, geen aankondigingen over personen." + _UITLEG + "\n"
             "GEEFT TERUG per publicatie: id, label (zoals 'Stb. 2010, 176'), publicatie, soort (zoals 'Wet', 'AMvB' of "
             "'beleidsregel'), titel, datum, ondertekend, jaar, nummer, orgaan, reeks (het Kamerdossier), samenvatting "
             "en link, en leesbaar: false als er alleen een PDF is. Met bwb_id ook 'wetsverwijzing' (laatste wijziging of "
@@ -179,9 +207,11 @@ def _vp(ident: str) -> Any:
     return vp if vp is not None and vp.brontype == "bekendmaking" and vp.id.startswith(BEKENDMAKINGEN.id_prefixen) else None
 
 
-def _rij(rec: Any) -> dict[str, Any] | None:
+def _rij(rec: Any, bij: dict[str, str] | None = None) -> dict[str, Any] | None:
     vp = _vp(rec.id)
-    return {"id": vp.id, **metadata(rec, vp), "link": vp.uri} if vp is not None else None
+    if vp is None or not binnen_bereik(rec):
+        return None
+    return compact({"id": vp.id, **metadata(rec, vp), "link": vp.uri, "wetsverwijzing": (bij or {}).get(vp.id, "")})
 
 
 # --- zoeken bij een bepaling (de graaf) ----------------------------------------------------------------------------
@@ -237,6 +267,53 @@ def _wetsverwijzing(k: dict[str, Any], bepaling: str | None) -> str:
     return f"{rol} van {n} {'bepaling' if n == 1 else 'bepalingen'}"
 
 
+def _q_regelingen_bij(bronnen: list[str]) -> str:
+    """Bij welke regelingen de BWB deze publicaties noemt (in de vorm "Stb.2009-610"), met hoeveel tekstdelen."""
+    waarden = " ".join(queries._lit(b) for b in bronnen)
+    return queries.PREFIXES + f"""SELECT ?waarde ?rol ?bwb (SAMPLE(?ct) AS ?titel) (COUNT(DISTINCT ?node) AS ?aantal) WHERE {{
+  VALUES ?waarde {{ {waarden} }}
+  VALUES (?p ?rol) {{ (bwb:bron "wijziging") (bwb:inwerkingtredingsbron "inwerkingtreding") }}
+  ?node ?p ?waarde . FILTER(STRSTARTS(STR(?node), "{queries.NS}"))
+  BIND(REPLACE(STR(?node), "^{queries.NS}(BWB[RV][0-9]+).*$", "$1") AS ?bwb)
+  OPTIONAL {{ ?reg a bwb:Regeling ; bwb:bwbId ?bwb ; bwb:citeertitel ?ct }}
+}} GROUP BY ?waarde ?rol ?bwb ORDER BY ?waarde ?rol ?bwb LIMIT 200"""
+
+
+def regelingen_bij(graph: Any, ids: list[str]) -> dict[str, str]:
+    """Per publicatie wat ze volgens de BWB aan de regelingen in de graaf doet: "wijzigt Invorderingswet 1990 (3
+    bepalingen)", "inwerkingtreding van …". Alleen de toestand die Lex leest; zonder graaf of bij een storing leeg
+    (de metadata van KOOP blijft dan staan, alleen deze regel ontbreekt)."""
+    bronnen = {b: i for i in ids if (b := bwb_bron_van(i))}
+    if graph is None or not bronnen:
+        return {}
+    try:
+        rijen = parse_select(graph.sparql(_q_regelingen_bij(list(bronnen))))
+    except Exception:  # noqa: BLE001 – een haperende graaf kost alleen deze regel
+        return {}
+    delen: dict[str, list[str]] = {}
+    for r in rijen:
+        ident = bronnen.get(r.get("waarde", ""))
+        if ident is None:
+            continue
+        n = int(r.get("aantal") or 0)
+        naam = r.get("titel") or r.get("bwb", "")
+        wat = "wijzigt" if r.get("rol") == "wijziging" else "inwerkingtreding van"
+        delen.setdefault(ident, []).append(f"{wat} {naam} ({n} {'bepaling' if n == 1 else 'bepalingen'})")
+    return {i: "; ".join(d) for i, d in delen.items()}
+
+
+class _MetRegelingen:
+    """De bron, met per opgehaalde pagina de koppeling naar de regelingen uit de graaf (één query per pagina)."""
+
+    def __init__(self, bron: BekendmakingBron, graph: Any) -> None:
+        self._bron, self._graph, self.bij = bron, graph, {}
+
+    def zoek(self, cql: str, *, start: int = 1, maximum: int = 50) -> tuple[int, list[Any]]:
+        totaal, records = self._bron.zoek(cql, start=start, maximum=maximum)
+        self.bij = regelingen_bij(self._graph, [r.id for r in records])
+        return totaal, records
+
+
 def _records(bron: BekendmakingBron, ids: list[str]) -> dict[str, Any]:
     """De records van KOOP voor deze ids, in vragen van hoogstens `_PER_VRAAG`."""
     uit: dict[str, Any] = {}
@@ -248,8 +325,17 @@ def _records(bron: BekendmakingBron, ids: list[str]) -> dict[str, Any]:
     return uit
 
 
+def _past(rij: dict[str, Any], na: dict[str, str]) -> bool:
+    """Valt een rij bij een bepaling binnen blad, soort, jaargang en periode (op de datum van KOOP of de inwerking)?"""
+    datum_ = rij.get("datum") or rij.get("inwerking") or ""
+    return ((not na.get("publicatie") or rij.get("publicatie") == na["publicatie"])
+            and (not na.get("soort") or na["soort"].lower()[:12] in (rij.get("soort", "") + " " + rij.get("titel", "")).lower())
+            and (not na.get("jaar") or rij.get("jaar") == na["jaar"])
+            and (not na.get("vanaf") or datum_ >= na["vanaf"]) and (not na.get("tot") or datum_[:10] <= na["tot"]))
+
+
 def _bij_bepaling(bron: BekendmakingBron, graph: Any, bwb_id: str, artikel: str, args: dict[str, Any], offset: int,
-                  volgorde: str) -> str:
+                  volgorde: str, na: dict[str, str] | None = None) -> str:
     if graph is None:
         return fout("graaf_onbereikbaar", "Zonder de kennisgraaf weet ik niet welke publicaties bij deze bepaling horen. "
                     "Zoek op woorden, bijvoorbeeld {\"woorden\": \"Invorderingswet 1990\"}.")
@@ -271,8 +357,10 @@ def _bij_bepaling(bron: BekendmakingBron, graph: Any, bwb_id: str, artikel: str,
         rijen.append(compact({"id": vp.id, **meta, "link": vp.uri,
                               "wetsverwijzing": _wetsverwijzing(k, wat if artikel else None),
                               "inwerking": k["inwerking"]}))
-    if volgorde in {"nieuwste", "oudste"}:
-        rijen.sort(key=lambda r: (r.get("datum") or r.get("inwerking") or "", r["id"]), reverse=volgorde == "nieuwste")
+    if na:
+        rijen = [r for r in rijen if _past(r, na)]
+    if volgorde in {"nieuwste", "oudste"} or not artikel:
+        rijen.sort(key=lambda r: (r.get("datum") or r.get("inwerking") or "", r["id"]), reverse=volgorde != "oudste")
     elif artikel:
         rijen.sort(key=lambda r: (not r.get("wetsverwijzing", "").startswith("laatste wijziging"), r["id"]))
     onbekend = [r["id"] for r in rijen if r["id"] not in records]
@@ -283,6 +371,9 @@ def _bij_bepaling(bron: BekendmakingBron, graph: Any, bwb_id: str, artikel: str,
         toelichting += f" Niet gevonden bij KOOP: {', '.join(onbekend)}."
     if meer:
         toelichting += f" De regeling noemt meer dan {MAX_BIJ_REGELING} publicaties; zoek per artikel."
+    if not artikel:
+        toelichting += (" Een wijziging die bij geen bepaling meer de laatste is, staat hier niet: zoek daarvoor ook op de "
+                        "citeertitel in de titel, bijvoorbeeld {\"woorden\": \"Invorderingswet 1990\", \"vanaf\": \"2024\"}.")
     return per_eenheid(rijen, tool="zoek_bekendmakingen", args=args, offset=offset, toelichting=toelichting,
                        extra={"totaal": len(rijen), "zoekvraag": zoekvraag(args, volgorde or "koppeling"),
                               **({"volledig_bij_koop": False} if onbekend else {})})
@@ -341,14 +432,16 @@ def _zoek(bron: BekendmakingBron, graph: Any, a: dict[str, Any]) -> str:
     filters = {k: w[k] for k in ("publicatie", "woorden", "tekst", "soort", "orgaan", "dossier", "jaar")}
     filters.update(vanaf=vanaf, tot=tot)
     if w["bwb_id"]:
-        if any(filters.values()):
-            return fout("ongeldige_argumenten", "zoeken bij een bepaling gaat zonder andere filters; laat ze weg, "
-                        "bijvoorbeeld {\"bwb_id\": \"BWBR0004770\", \"artikel\": \"36\"}.")
+        if any(filters[k] for k in ("woorden", "tekst", "orgaan", "dossier")):
+            return fout("ongeldige_argumenten", "bij een bepaling filtert alleen op blad, soort, jaar en periode; zoek "
+                        "anders zonder bwb_id, bijvoorbeeld {\"bwb_id\": \"BWBR0004770\", \"vanaf\": \"2024\"}.")
         if volgorde == "relevantie":
             return fout("ongeldige_volgorde", "relevantie gaat over woorden; kies bij een bepaling nieuwste of oudste, "
                         "bijvoorbeeld {\"bwb_id\": \"BWBR0004770\", \"volgorde\": \"nieuwste\"}.")
-        args = {k: v for k, v in (("bwb_id", w["bwb_id"]), ("artikel", w["artikel"]), ("volgorde", volgorde)) if v}
-        return _bij_bepaling(bron, graph, w["bwb_id"], w["artikel"], args, offset, volgorde)
+        na = {k: filters[k] for k in ("publicatie", "soort", "jaar", "vanaf", "tot") if filters[k]}
+        args = {k: v for k, v in (("bwb_id", w["bwb_id"]), ("artikel", w["artikel"]), *na.items(),
+                                  ("volgorde", volgorde)) if v}
+        return _bij_bepaling(bron, graph, w["bwb_id"], w["artikel"], args, offset, volgorde, na)
     if not any(filters.values()) and volgorde not in {"nieuwste", "oudste"}:
         return fout("ongeldige_argumenten", "geef een bepaling, woorden, een soort, een blad of een periode, of vraag de "
                     "nieuwste, bijvoorbeeld {\"bwb_id\": \"BWBR0004770\", \"artikel\": \"36\"} of "
@@ -361,7 +454,7 @@ def _zoek(bron: BekendmakingBron, graph: Any, a: dict[str, Any]) -> str:
     args = {**{k: v for k, v in filters.items() if v}, **({"volgorde": a["volgorde"]} if a.get("volgorde") else {}),
             **({"aantal": aantal} if aantal is not None else {})}
     try:
-        cql = (f"{_BASIS} AND w.publicatienaam=={w['publicatie']}" if w["publicatie"] else _ALLE_BLADEN)
+        cql = _blad_cql(w["publicatie"], gericht=bool(w["woorden"] or w["tekst"] or w["dossier"]))
         cql += (" AND " + cql_woorden(w["woorden"])) if w["woorden"] else ""
         cql += tekst_cql(w["tekst"]) if w["tekst"] else ""
         titelsoort = next((t for k, t in _SOORT_IN_TITEL.items() if k[:12] in w["soort"].lower()), "")
@@ -374,7 +467,9 @@ def _zoek(bron: BekendmakingBron, graph: Any, a: dict[str, Any]) -> str:
     cql += f' AND w.behandeldDossier=="{w["dossier"]}"' if w["dossier"] else ""
     cql += f' AND w.jaargang=="{w["jaar"]}"' if w["jaar"] else ""
     cql += (f" AND dt.date>={vanaf}" if vanaf else "") + (f" AND dt.date<={tot}" if tot else "")
-    return per_record(bron, cql + OP_VOLGORDE.get(volgorde, ""), args, offset, tool="zoek_bekendmakingen", rij=_rij,
+    verrijkt = _MetRegelingen(bron, graph)
+    return per_record(verrijkt, cql + OP_VOLGORDE.get(volgorde, ""), args, offset, tool="zoek_bekendmakingen",
+                      rij=lambda rec: _rij(rec, verrijkt.bij),
                       maximum=aantal or LIMIT, extra={"volgorde": volgorde, "zoekvraag": zoekvraag(args, volgorde)},
                       leeg="Geen bekendmakingen die aan de zoekvraag voldoen.")
 
@@ -389,7 +484,7 @@ def _noemt_artikel(tekst: str, artikel: str) -> bool:
                           rf"(?![0-9A-Za-z]|\.[0-9A-Za-z])", tekst, re.IGNORECASE))
 
 
-def _get(bron: BekendmakingBron, a: dict[str, Any]) -> str:
+def _get(bron: BekendmakingBron, a: dict[str, Any], graph: Any = None) -> str:
     vp = _vp(a.get("id") or "")
     if vp is None:
         return fout("ongeldig_id", "geef het id van een bekendmaking, bijvoorbeeld 'stb-2010-176' of 'stcrt-2026-37344'")
@@ -403,8 +498,14 @@ def _get(bron: BekendmakingBron, a: dict[str, Any]) -> str:
         return fout("onleesbaar_document", f"{vp.id} kon niet worden gelezen: {exc}")
     echt = _vp(getattr(doc, "id", "") or vp.id) or vp
     rec = getattr(doc, "record", None)
+    if rec is not None and not binnen_bereik(rec):
+        return fout("buiten_bereik", f"{echt.id} is een {rec.type or 'publicatie'} in de Staatscourant: een aankondiging "
+                    "die over personen of één geval kan gaan, geen regelgeving of beleid. Die lees ik niet; noem alleen "
+                    f"de link {echt.uri}. Zoek regelgeving, bijvoorbeeld {{\"publicatie\": \"Staatscourant\", "
+                    "\"soort\": \"beleidsregel\"}.")
     meta = {k: v for k, v in metadata(rec, echt).items() if k != "leesbaar"} if rec is not None else {"label": echt.label}
     stuk = compact({"id": echt.id, **meta, "titel": kop["documenttitel"] or meta.get("titel", ""), "link": echt.uri,
+                    "wetsverwijzing": regelingen_bij(graph, [echt.id]).get(echt.id, ""),
                     "bron_hash": doc.hash, "gewijzigd": getattr(doc, "gewijzigd", ""),
                     "versie": getattr(doc, "versie", ""),
                     **({"gevalideerd": False} if getattr(doc, "gevalideerd", True) is False else {})})
@@ -475,5 +576,5 @@ def dispatch_bekendmaking(name: str, args: dict[str, Any], bron: BekendmakingBro
     if name == "zoek_bekendmakingen":
         return _zoek(bron, graph, args)
     if name == "get_bekendmaking":
-        return _get(bron, args)
+        return _get(bron, args, graph)
     raise KeyError(name)

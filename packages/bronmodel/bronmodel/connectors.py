@@ -473,7 +473,8 @@ BEKENDMAKINGEN = ConnectorBeschrijving(
           "en inwerkingtredingsbesluiten) en ministeriële regelingen, beleidsregels en besluiten in de Staatscourant (zoals "
           "de wijzigingen van de Leidraad Invordering); per bepaling de publicatie die haar huidige tekst gaf en het "
           "besluit waarmee die in werking trad"),
-    signalen=(r"\bstaatsblad(?:en)?\b", r"\bstaatscourant(?:en)?\b", r"\bstb\.", r"\bstcrt\.",
+    # "publicaties" ook: "wat zijn de 10 meest recente publicaties?" (vraag van de gebruiker, 10 nov 2026).
+    signalen=(r"\bstaatsblad(?:en)?\b", r"\bstaatscourant(?:en)?\b", r"\bpublicaties\b", r"\bstb\.", r"\bstcrt\.",
               r"\b(?:officiële\s+)?bekendmaking(?:en)?\b", r"\binwerkingtredingsbesluit(?:en)?\b",
               r"\bwijzigingsbesluit(?:en)?\b"),
     tools=frozenset({"zoek_bekendmakingen", "get_bekendmaking"}),
@@ -489,7 +490,9 @@ BEKENDMAKINGEN = ConnectorBeschrijving(
     zonder_tekst="alleen als PDF",
     grenzen=("zoeken gaat per bepaling (de publicaties die de BWB bij haar huidige tekst noemt: de laatste wijziging en "
              "het inwerkingtredingsbesluit, niet eerdere toestanden), op woorden in de titel of de hele tekst, soort, "
-             "Staatsblad of Staatscourant, datum, jaargang, ministerie en Kamerdossier. Stukken van vóór ongeveer 1995 "
+             "Staatsblad of Staatscourant, datum, jaargang, ministerie en Kamerdossier. Uit de Staatscourant alleen "
+             "regelgeving, beleid en adviezen van de Raad van State: aankondigingen over personen (deurwaardersexploten, "
+             "faillissementen, curatele) zoekt en leest Lex niet. Stukken van vóór ongeveer 1995 "
              "staan bij KOOP meestal alleen als PDF: ze worden gevonden, maar de tekst is niet te lezen. Een "
              "wijzigingsbesluit geeft de wijzigingsopdrachten, niet de geconsolideerde tekst"),
     levert=("alinea's (de aanhef, de artikelen en wijzigingsonderdelen, de toelichting)", "voetnoten",
@@ -540,9 +543,10 @@ BEKENDMAKINGEN = ConnectorBeschrijving(
         MetadataVeld("reeks", "Kamerdossier", "w.behandeldDossier",
                      "het Kamerdossier van de wet die het Staatsblad bekendmaakt; daar staat de wetsgeschiedenis",
                      filters=("dossier",)),
-        MetadataVeld("wetsverwijzing", "bepaling", "bwb:bron en bwb:inwerkingtredingsbron in de graaf",
-                     "hoe de publicatie bij de bepaling hoort waarbij gezocht is: de laatste wijziging van haar huidige "
-                     "tekst, of het besluit waarmee die in werking trad", filters=("bwb_id", "artikel")),
+        MetadataVeld("wetsverwijzing", "regeling", "bwb:bron en bwb:inwerkingtredingsbron in de graaf",
+                     "welke regeling de publicatie volgens de BWB wijzigt of in werking zet, en hoeveel bepalingen; bij "
+                     "zoeken per bepaling: de laatste wijziging van haar huidige tekst of het besluit waarmee die in "
+                     "werking trad. Alleen de toestand die Lex leest", filters=("bwb_id", "artikel")),
         MetadataVeld("inwerking", "in werking", "bwb:inwerking in de graaf",
                      "wanneer de huidige tekst van de bepaling in werking trad, volgens de BWB; alleen bij zoeken per "
                      "bepaling"),

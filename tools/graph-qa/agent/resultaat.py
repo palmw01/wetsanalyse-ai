@@ -62,6 +62,7 @@ REDEN_ZIN: dict[str, str] = {
     "zoekvraag_geweigerd": "de bron weigerde de zoekvraag",
     "niet_gevonden": "het stuk is niet gevonden",
     "alleen_pdf": "het stuk is er alleen als pdf",
+    "buiten_bereik": "dit stuk valt buiten de bron",
     "onleesbaar_document": "het stuk is niet te lezen",
     "overzicht_niet_opgebouwd": "het overzicht kon niet worden opgebouwd",
     "onvolledig_antwoord": "gaf een onvolledig antwoord",

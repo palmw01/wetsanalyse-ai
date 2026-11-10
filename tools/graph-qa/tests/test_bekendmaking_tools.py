@@ -176,7 +176,9 @@ def test_de_zoekvraag_bouwt_de_tool():
 def test_zonder_blad_beide_bladen_en_het_kamerdossier():
     dienst = Koop()
     roep("zoek_bekendmakingen", {"dossier": "33755"}, _bron(dienst))
-    assert "(w.publicatienaam==Staatsblad OR w.publicatienaam==Staatscourant)" in dienst.vragen[-1]
+    cql = dienst.vragen[-1]
+    assert "(w.publicatienaam==Staatsblad OR (w.publicatienaam==Staatscourant AND (" in cql
+    assert 'dt.type=="beleidsregel"' in cql and 'dt.type=="Overig"' in cql, "een gerichte vraag telt ook Overig"
     assert 'w.behandeldDossier=="33755"' in dienst.vragen[-1]
 
 

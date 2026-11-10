@@ -15,6 +15,14 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { readFileSync } from "node:fs";
+
+// De vragenset van de connector (ook de adaptertoets en de meting): de ids komen eruit, zodat de drie plekken
+// dezelfde publicaties toetsen.
+const SET = JSON.parse(readFileSync(new URL("../../tools/graph-qa/tests/data/bekendmakingen_vragenset.json", import.meta.url))).vragen;
+const vraag = (id) => SET.find((v) => v.id === id) ?? assert.fail(`vraag ${id} ontbreekt in de vragenset`);
+const PDF_ID = vraag("B07").args.id;
+assert.equal(vraag("B16").args.id, "stb-2009-610", "de publicatie van dit scenario staat in de set");
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -36,7 +44,7 @@ const blok = (id, label, passages) => ({ soort: "extern", door: "bron", brontype
 const antwoord = { sjabloon: "extern", versie: 1, doelen: [], blokken: [
   { soort: "toelichting", door: "lex", kop: "Toelichting van Lex", tekst: "Zo is artikel 36 gewijzigd." },
   blok("stb-2009-610", "Stb. 2009, 610", PASSAGES),
-  blok("stb-1990-222", "Stb. 1990, 222", []),
+  blok(PDF_ID, "Stb. 1990, 222", []),
 ] };
 const bewaard = [{ id: 1, rol: "user", tekst: "Wat veranderde Stb. 2009, 610 aan artikel 36?" },
   { id: 2, rol: "assistant", tekst: "Zo is artikel 36 gewijzigd.", run_id: "r2", antwoord,
@@ -61,7 +69,7 @@ await context.route("**/api/**", async (route) => {
     verzoeken.push(p);
     const [, , , brontype, id] = p.split("/");
     assert.equal(brontype, "bekendmaking", "de werkplek vraagt de publicatie op het brontype");
-    if (id === "stb-1990-222")
+    if (id === PDF_ID)
       return route.fulfill({ json: { connector: BESCHRIJVING, resultaat: { status: "fout", reden: "alleen_pdf", melding: "alleen pdf",
         stuk: { id, label: "Stb. 1990, 222", link: LINK(id), datum: "1990-05-31", soort: "Wet", leesbaar: false } } } });
     return route.fulfill({ json: { connector: BESCHRIJVING, resultaat: { status: "ok", volledig: true, stuk: STUK,
@@ -100,7 +108,7 @@ try {
   await geenScroll(1280);
 
   // De Invorderingswet 1990 zelf staat bij KOOP alleen als PDF.
-  await page.locator("[data-stuk-link='stb-1990-222']").click();
+  await page.locator(`[data-stuk-link='${PDF_ID}']`).click();
   await page.locator("[data-stand-melding=alleen-pdf]").waitFor();
   assert.equal(await page.locator("[data-paneel-tab]").count(), 2, "twee publicaties als twee tabs");
   assert.ok(verzoeken.every((v) => v.startsWith("/api/bronnen/bekendmaking/")), "geen connector bij naam in de route");

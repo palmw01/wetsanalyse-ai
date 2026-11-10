@@ -303,8 +303,18 @@ bruikbaar is.
   de opdracht dat artikel noemt (`_noemt_artikel`: 1.1.5 is niet 1.1.5b). Een oud stuk heeft vaak alleen een PDF
   (`alleen_pdf`, met de metadata); een id dat KOOP niet kent zoekt de adapter op blad, jaargang en nummer. `geldigheid`
   noemt naast de BWB-vorm het id (`bekendmakingen`). Citeervormen "Stb. 2010, 176", "Stb.2009-610", "Staatscourant 2026,
-  nr. 37344". Tests met opgenomen antwoorden van KOOP (`tests/fixtures/koop/`): `tests/test_bekendmaking_tools.py`; live
-  `tests/test_bekendmakingen_live.py`.
+  nr. 37344". **Uit de Staatscourant alleen regelgeving en beleid** (`REGELGEVENDE_SOORTEN`, een witte lijst op `dt.type`;
+  "Overig" alleen bij een gerichte zoekvraag): de Staatscourant draagt ook deurwaardersexploten, faillissementen en
+  curatele met namen van particulieren, en die zoekt of leest Lex niet (`binnen_bereik`, reden `buiten_bereik`).
+  **Welke regeling een publicatie wijzigt** komt uit de graaf (`regelingen_bij`: `bwb:bron`/`bwb:inwerkingtredingsbron`
+  terug naar de regeling, één query per pagina, in `wetsverwijzing`; zonder graaf ontbreekt alleen die regel). Met
+  `bwb_id` filteren `publicatie`, `soort`, `jaar`, `vanaf` en `tot` de publicaties van die bepaling; zonder artikel zegt
+  de toelichting dat een wijziging die bij geen bepaling meer de laatste is, er niet bij staat. Tests met opgenomen
+  antwoorden van KOOP (`tests/fixtures/koop/`): `tests/test_bekendmaking_tools.py`, en de **vragenset**
+  (`tests/data/bekendmakingen_vragenset.json`, zestien vragen uit het belastingdomein, ook voor de browsertoets en de meting)
+  in `tests/test_bekendmakingen_vragenset.py`: route en argumenten per vraag, en het resultaat tegen een opname per verzoek
+  (`tests/fixtures/koop/vragenset/`, opnieuw opnemen met `BEKENDMAKINGEN_OPNEMEN=1`; een verzoek dat niet is opgenomen
+  faalt). Live `tests/test_bekendmakingen_live.py`.
   **Rechtspraak** (`tools/rechtspraak_tools.py`, transport `adapters/lido_rechtspraak.py`, ADR-013 fase 1c):
   `zoek_uitspraken` (bwb-id + artikel; de uitspraken die Linked Data Overheid aan het artikel koppelt, **verenigd over
   alle versies**, want een link hangt aan de versie die gold op de datum van de uitspraak) en `get_uitspraak` (de tekst

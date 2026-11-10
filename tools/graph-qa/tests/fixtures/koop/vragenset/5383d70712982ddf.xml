@@ -1,0 +1,122 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE officiele-publicatie PUBLIC "-//Overheid//Officiele publicaties 1.0//NL" "http://standaarden.overheid.nl/op/dtd/offpublicatie.dtd"[]>
+<officiele-publicatie>
+  <metadata>
+    <meta name="OVERHEIDop.externMetadataRecord" scheme="" content="https://zoek.officielebekendmakingen.nl/stb-2010-185-n1/metadata.xml" />
+  </metadata>
+  <kop>
+    <titel status="officieel">Staatsblad</titel>
+    <subtitel>van het Koninkrijk der Nederlanden</subtitel>
+  </kop>
+  <staatsblad>
+    <intitule>Wet van 29 april 2010 tot wijziging van de Wet op het voortgezet onderwijs en de Wet op het hoger onderwijs en wetenschappelijk onderzoek in verband met het uitbreiden van de mogelijkheden om tot leraar te worden benoemd in het voortgezet onderwijs</intitule>
+    <wet-besluit>
+      <aanhef>
+        <wij>Wij Beatrix, bij de gratie Gods, Koningin der Nederlanden, Prinses van Oranje-Nassau, enz. enz. enz.</wij>
+        <considerans>
+          <considerans.al>Allen, die deze zullen zien of horen lezen, saluut! doen te weten:</considerans.al>
+          <considerans.al>Alzo Wij in overweging genomen hebben, dat het wenselijk is de mogelijkheden om tot leraar te worden benoemd in het voortgezet onderwijs uit te breiden en in verband daarmee de Wet op het voortgezet onderwijs en de Wet op het hoger onderwijs en wetenschappelijk onderzoek te wijzigen;</considerans.al>
+        </considerans>
+        <afkondiging>
+          <al>Zo is het, dat Wij, de Raad van State gehoord, en met gemeen overleg der Staten-Generaal, hebben goedgevonden en verstaan, gelijk Wij goedvinden en verstaan bij deze:</al>
+        </afkondiging>
+      </aanhef>
+      <wettekst>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">I.</nr>
+            <titel status="officieel">WIJZIGING VAN DE WET OP HET VOORTGEZET ONDERWIJS</titel>
+          </kop>
+          <wat type="wijziging">In artikel 33 van de Wet op het voortgezet onderwijs worden na het eerste lid twee leden ingevoegd, luidende:</wat>
+          <wijziging>
+            <artikeltekst>
+              <lid>
+                <lidnr status="officieel">1a.</lidnr>
+                <al>Indien het bevoegd gezag een leraar benoemt of tewerkstelt zonder benoeming voor uitsluitend het geven van middelbaar algemeen voortgezet onderwijs of het geven van onderwijs in de eerste drie leerjaren van het hoger algemeen voortgezet onderwijs of van het voorbereidend wetenschappelijk onderwijs, is het eerste lid, onderdeel b, onder 3°, niet van toepassing en volstaat in afwijking van het eerste lid, onderdeel b, onder 1°, het bezit van het getuigschrift van een bacheloropleiding als bedoeld in artikel 7.3a, eerste lid, onderdeel a, van de Wet op het hoger onderwijs en wetenschappelijk onderzoek, waaruit blijkt dat:</al>
+                <lijst type="expliciet" start="1" level="single" nr-sluiting=".">
+                  <li>
+                    <li.nr>1°.</li.nr>
+                    <al>de betrokkene in het kader van die opleiding met goed gevolg ten minste 30 studiepunten als bedoeld in artikel 7.4, eerste lid, van de Wet op het hoger onderwijs en wetenschappelijk onderzoek, heeft besteed aan voorbereiding op het geven van onderwijs in een met zijn opleiding inhoudelijk overeenkomend vak in die leerjaren, en</al>
+                  </li>
+                  <li>
+                    <li.nr>2°.</li.nr>
+                    <al>is voldaan aan de bekwaamheidseisen, bedoeld in artikel 36, eerste lid, voor zover die van toepassing zijn op dat onderwijs.</al>
+                  </li>
+                </lijst>
+              </lid>
+              <lid>
+                <lidnr status="officieel">1b.</lidnr>
+                <al>Bij ministeriële regeling bepaalt Onze Minister op grond van welke bacheloropleidingen als bedoeld in lid 1a onderwijs verzorgd kan worden in daarbij aan te wijzen vakken.</al>
+              </lid>
+            </artikeltekst>
+          </wijziging>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">II.</nr>
+            <titel status="officieel">WIJZIGING VAN DE WET OP HET HOGER ONDERWIJS EN WETENSCHAPPELIJK ONDERZOEK</titel>
+          </kop>
+          <wat type="wijziging">Aan artikel 7.6 van de Wet op het hoger onderwijs en wetenschappelijk onderzoek wordt een lid toegevoegd, luidende:</wat>
+          <wijziging>
+            <artikeltekst>
+              <lid>
+                <lidnr status="officieel">4.</lidnr>
+                <al>Het eerste en derde lid zijn van overeenkomstige toepassing ten aanzien van opleidingen die leiden tot een getuigschrift als bedoeld in artikel 33, lid 1a, van de Wet op het voortgezet onderwijs.</al>
+              </lid>
+            </artikeltekst>
+          </wijziging>
+        </wijzig-artikel>
+        <artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">III.</nr>
+            <titel status="officieel">INWERKINGTREDING</titel>
+          </kop>
+          <al>Deze wet treedt in werking op een bij koninklijk besluit te bepalen tijdstip.</al>
+        </artikel>
+      </wettekst>
+      <wetsluiting status="goed">
+        <slotformulering>
+          <al>Lasten en bevelen dat deze in het Staatsblad zal worden geplaatst en dat alle ministeries, autoriteiten, colleges en ambtenaren wie zulks aangaat, aan de nauwkeurige uitvoering de hand zullen houden.</al>
+        </slotformulering>
+        <histnoot type="parlementair">
+          <al>Kamerstuk 32 270</al>
+        </histnoot>
+        <gegeven>
+          <label>Gegeven te </label>
+          <dagtekening>
+            <plaats>’s-Gravenhage,</plaats>
+            <datum isodatum="2010-04-29">29 april 2010</datum>
+          </dagtekening>
+          <koning>Beatrix</koning>
+        </gegeven>
+        <ondertekening>
+          <functie>De Staatssecretaris van Onderwijs, Cultuur en Wetenschap,</functie>
+          <naam>
+            <voornaam>J. M. van</voornaam>
+            <achternaam>Bijsterveldt-Vliegenthart</achternaam>
+          </naam>
+        </ondertekening>
+        <ondertekening>
+          <functie>De Minister van Landbouw, Natuur en Voedselkwaliteit,</functie>
+          <naam>
+            <voornaam>G.</voornaam>
+            <achternaam>Verburg</achternaam>
+          </naam>
+        </ondertekening>
+        <uitgifte>
+          <datum isodatum="2010-05-26">Uitgegeven de <nadruk type="cur">zesentwintigste</nadruk> mei 2010</datum>
+          <ondertekening>
+            <functie>De Minister van Justitie,</functie>
+            <naam>
+              <voornaam>E. M. H.</voornaam>
+              <achternaam>Hirsch Ballin</achternaam>
+            </naam>
+          </ondertekening>
+        </uitgifte>
+      </wetsluiting>
+    </wet-besluit>
+  </staatsblad>
+</officiele-publicatie>
