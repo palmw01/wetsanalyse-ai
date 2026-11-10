@@ -171,14 +171,21 @@ def rij_van(ecli: str, titel: str) -> dict[str, Any]:
 # --- zoeken --------------------------------------------------------------------------------------------------------
 
 def _q_artikel(bwb_id: str, artikel: str) -> str:
-    """De jci, de label-id en het soort van de bepaling, uit de graaf."""
-    return queries.PREFIXES + f"""SELECT ?node ?jci ?labelId ?label ?soort WHERE {{
+    """De jci, de label-id, het soort van de bepaling en de citeertitel van haar regeling, uit de graaf."""
+    return queries.PREFIXES + f"""SELECT ?node ?jci ?labelId ?label ?soort ?citeertitel WHERE {{
   {queries.node_patroon(bwb_id, artikel)}
   ?node a ?soort . FILTER(?soort IN (bwb:Artikel, bwb:Divisie))
   OPTIONAL {{ ?node bwb:jci ?jci }}
   OPTIONAL {{ ?node bwb:labelId ?labelId }}
   OPTIONAL {{ ?node rdfs:label ?label }}
+  OPTIONAL {{ ?reg a bwb:Regeling ; bwb:bwbId {queries._lit(bwb_id)} ; bwb:citeertitel ?citeertitel }}
 }} LIMIT 2"""
+
+
+def _in_woorden(label: str, regeling: str) -> str:
+    """"artikel 36 van de Invorderingswet 1990": de bepaling waarbij gezocht is, voor de zoekvraag in woorden."""
+    label = label[:1].lower() + label[1:] if label[:1].isupper() and not label[1:2].isupper() else label
+    return f"{label} van {regeling}" if regeling else label
 
 
 def _datum(waarde: str, *, eind: bool) -> str:
@@ -267,7 +274,7 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
         "per_instantie": dict(sorted(per_instantie.items(), key=lambda x: _RANG.get(x[0], 99))),
         "koppelingen": koppelingen,
         "zoekvraag": {**{x: v for x, v in a.items() if x not in {"offset"} and v not in ("", None)},
-                      "volgorde": volgorde},
+                      "volgorde": volgorde, "bepaling": _in_woorden(label, kop.get("citeertitel") or bwb_id)},
     })
     return pagina(lijst[offset:offset + aantal + 1], tool="zoek_uitspraken", args={**a, "aantal": aantal},
                   limit=aantal, offset=offset, toelichting=toelichting, extra=extra)

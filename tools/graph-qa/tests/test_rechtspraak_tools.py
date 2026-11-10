@@ -464,3 +464,14 @@ def test_een_verdwenen_uitspraak_is_geen_storing():
     with pytest.raises(RechtspraakFout) as exc:
         bron.document("ECLI:NL:HR:2022:50")
     assert exc.value.code == "niet_gevonden"
+
+
+def test_de_zoekvraag_in_woorden_noemt_de_bepaling():
+    """Een lijst uitspraken zegt bij wélke bepaling er gezocht is, in woorden: niet "bwb_id BWBR0004770, artikel 36"."""
+    from bronmodel.connectors import RECHTSPRAAK
+    from agent.sjablonen.extern import zoekvraag_tekst
+    zin = zoekvraag_tekst(RECHTSPRAAK, {"bwb_id": IW, "artikel": "36", "volgorde": "nieuwste",
+                                        "bepaling": "artikel 36 van Invorderingswet 1990", "instantie": "Hoge Raad"})
+    assert zin.startswith("Gezocht bij artikel 36 van Invorderingswet 1990"), zin
+    assert "BWBR" not in zin and "bwb_id" not in zin
+    assert R._in_woorden("Artikel 36", "Invorderingswet 1990") == "artikel 36 van Invorderingswet 1990"

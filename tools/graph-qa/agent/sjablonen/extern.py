@@ -197,10 +197,18 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any]) -> str:
     """"Gezocht op dossier 32140, nieuwste eerst." uit de zoekvraag van het resultaat, met de labels uit de metadata van
     de beschrijving (`ConnectorBeschrijving.filters`). Uit de code: de jurist ziet wat er doorzocht is."""
     delen: list[str] = []
+    bepaling = False
     for arg, waarde in zoekvraag.items():
-        if arg in {"volgorde", "aantal"} or waarde in ("", None):
+        if arg in {"volgorde", "aantal", "bepaling"} or waarde in ("", None):
             continue
         veld = c.filters.get(arg)
+        if veld is not None and veld.sleutel == "wetsverwijzing":
+            # Eén bepaling, ook al zijn het twee argumenten (regeling en artikel): in woorden, zoals de tool haar noemt.
+            if not bepaling:
+                bepaling = True
+                delen.append("bij " + str(zoekvraag.get("bepaling") or
+                                          f"artikel {zoekvraag.get('artikel', '')} van {zoekvraag.get('bwb_id', '')}"))
+            continue
         label = veld.label if veld else arg
         if arg == "vanaf":
             delen.append(f"{label} vanaf {waarde}")
@@ -216,7 +224,7 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any]) -> str:
     volgorde = _VOLGORDE_TEKST.get(str(zoekvraag.get("volgorde") or ""), "")
     if not delen and not volgorde:
         return ""
-    return ("Gezocht op " + ", ".join(delen) + (f", {volgorde}" if delen and volgorde else "") if delen
+    return (("Gezocht " if delen[0].startswith("bij ") else "Gezocht op ") + ", ".join(delen) + (f", {volgorde}" if delen and volgorde else "") if delen
             else volgorde[:1].upper() + volgorde[1:]) + "."
 
 

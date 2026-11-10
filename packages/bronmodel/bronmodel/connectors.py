@@ -47,6 +47,7 @@ METADATA_SLEUTELS: dict[str, str] = {
     "versie": "tekst",         # herdruk, rectificatie
     "procedure": "tekst",      # de procedure waarin het stuk tot stand kwam (cassatie, hoger beroep)
     "rechtsgebied": "tekst",   # het rechtsgebied of de rechtsgebieden ("Bestuursrecht; Belastingrecht")
+    "wetsverwijzing": "tekst", # de bepaling die het stuk noemt ("artikel 36 van de Invorderingswet 1990")
     "leesbaar": "waarheid",    # of de leestool de tekst kan lezen
 }
 
@@ -376,6 +377,9 @@ RECHTSPRAAK = ConnectorBeschrijving(
                      "het gerecht dat de uitspraak deed; het filter 'instantie' kiest een soort gerecht",
                      filters=("instantie",)),
         MetadataVeld("nummer", "zaaknummer", "titel in LiDO; psi:zaaknummer", "het zaaknummer bij het gerecht"),
+        MetadataVeld("wetsverwijzing", "bepaling", "de koppeling in LiDO",
+                     "de bepaling waarbij gezocht is; een uitspraak die haar noemt, gaat er niet altijd over",
+                     filters=("bwb_id", "artikel")),
         MetadataVeld("procedure", "procedure", "psi:procedure (Rechtspraak)",
                      "de procedure, zoals 'Cassatie' of 'Hoger beroep'; alleen bij het lezen"),
         MetadataVeld("rechtsgebied", "rechtsgebied", "dcterms:subject (Rechtspraak)",
