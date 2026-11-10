@@ -107,7 +107,7 @@ def test_de_route_roept_de_zoektool_een_keer_aan_zonder_model(monkeypatch):
     from test_kamerstuk_tools import _veel, NepBron
 
     bron = NepBron(list(reversed(_veel(30))))
-    monkeypatch.setattr(t, "_KAMERSTUKBRON", bron)
+    monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", bron)
     llm = FakeLLM([])  # elke modelaanroep faalt
     events = _run(answer_stream("Wat is het laatste stuk van dossier 99001?", settings=AAN, llm=llm,
                                 graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
@@ -126,7 +126,7 @@ def test_niets_gevonden_is_een_leemte(monkeypatch):
     from agent import tools as t
     from test_kamerstuk_tools import NepBron
 
-    monkeypatch.setattr(t, "_KAMERSTUKBRON", NepBron([]))
+    monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", NepBron([]))
     events = _run(answer_stream("de laatste vijf moties van de Eerste Kamer", settings=AAN, llm=FakeLLM([]),
                                 graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
     tekst = "".join(e.get("content", "") for e in events if e["type"] == "token")
@@ -144,7 +144,7 @@ def test_een_fout_gaat_naar_de_agent_met_het_resultaat(monkeypatch):
         def zoek(self, cql, **_):
             raise KamerstukFout("de officiële publicaties zijn niet bereikbaar: ConnectError")
 
-    monkeypatch.setattr(t, "_KAMERSTUKBRON", Weg(DOSSIER))
+    monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", Weg(DOSSIER))
     llm = FakeLLM([response([text_block("De officiële publicaties zijn nu niet bereikbaar.")], "end_turn")])
     events = _run(answer_stream("Geef mij de 10 meest recente kamerstukken", settings=AAN, llm=llm,
                                 graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
@@ -159,7 +159,7 @@ def test_een_citeervorm_wordt_vooraf_gelezen(monkeypatch):
     from fakes import response, text_block
     from test_kamerstuk_tools import DOSSIER, NepBron
 
-    monkeypatch.setattr(t, "_KAMERSTUKBRON", NepBron(DOSSIER))
+    monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", NepBron(DOSSIER))
     llm = FakeLLM([response([text_block("Kst-99001-3 legt het doel uit.")], "end_turn")])
     _run(answer_stream("Kamerstuk 99001, nr. 3", settings=AAN, llm=llm, graph=FakeGraph(result=""),
                        bronnen=["kamerstukken"]))
@@ -176,7 +176,7 @@ def test_een_dossier_op_nummer_toont_het_begin_van_de_lijst(monkeypatch):
     from agent.sjablonen.extern import MAX_LIJST
     from test_kamerstuk_tools import _veel, NepBron
 
-    monkeypatch.setattr(t, "_KAMERSTUKBRON", NepBron(_veel(60)))
+    monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", NepBron(_veel(60)))
     events = _run(answer_stream("Kamerstukken van dossier 99001", settings=AAN, llm=FakeLLM([]),
                                 graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
     tekst = "".join(e.get("content", "") for e in events if e["type"] == "token")

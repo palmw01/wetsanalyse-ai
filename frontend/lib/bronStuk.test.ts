@@ -42,4 +42,27 @@ describe("bronStuk", () => {
     expect(hoortBij(BESCHRIJVING, "kst-32140-1")).toBe(true);
     expect(hoortBij(BESCHRIJVING, "ECLI:NL:HR:2020:1")).toBe(false);
   });
+
+  it("past een uitspraak zonder eigen code: kop, gegevens, inhoud en stand uit hetzelfde contract", () => {
+    // De vorm die graph-qa `get_uitspraak` geeft (tools/graph-qa/agent/tools/rechtspraak_tools.py) en de beschrijving
+    // die de stukkenroute meestuurt: niets hier kent Rechtspraak bij naam.
+    const rs = { naam: "rechtspraak", label: "Rechtspraak", groep: "Uitspraken", brontype: "uitspraak", id_prefixen: ["ECLI:NL:"],
+      metadata: [{ sleutel: "datum", label: "datum uitspraak" }, { sleutel: "soort", label: "soort" }, { sleutel: "orgaan", label: "instantie" },
+        { sleutel: "nummer", label: "zaaknummer" }, { sleutel: "procedure", label: "procedure" }, { sleutel: "rechtsgebied", label: "rechtsgebied" }] };
+    const stuk = { id: "ECLI:NL:HR:2022:50", label: "Hoge Raad 21 januari 2022, ECLI:NL:HR:2022:50", soort: "Uitspraak",
+      datum: "2022-01-21", orgaan: "Hoge Raad", nummer: "21/00733", procedure: "Cassatie", rechtsgebied: "Bestuursrecht; Belastingrecht",
+      link: "https://uitspraken.rechtspraak.nl/details?id=ECLI:NL:HR:2022:50", bron_hash: "h", gevalideerd: false };
+    const a = parseStuk({ connector: rs, resultaat: { status: "ok", stuk, volledig: false, vervolg: { tool: "get_uitspraak", args: { id: stuk.id, offset: 40 } },
+      inhoud: [{ kop: "Uitspraak › 2 Uitgangspunten in cassatie", offset: 4 }],
+      resultaten: [{ nr: 1, kop: "Uitspraak › 2 Uitgangspunten in cassatie", ro: "2.1", tekst: "Aan belanghebbende zijn aanslagen opgelegd." }] } });
+    expect(a).toBeDefined();
+    const h = stukHerkomst(a!.beschrijving, a!.deel.stuk, stuk.id);
+    expect([h.bepaling, h.regeling, h.plek]).toEqual([stuk.label, "Uitspraken", "Uitspraak · 21 januari 2022"]);
+    expect(stukGegevens(a!.beschrijving, a!.deel.stuk).map((g) => g.label)).toEqual(
+      ["datum uitspraak", "soort", "instantie", "zaaknummer", "procedure", "rechtsgebied"]);
+    expect(a!.deel.inhoud?.[0].offset).toBe(4);
+    expect(volgendeOffset(a!.deel)).toBe(40);
+    expect(stukMeldingen(a!.deel).map((m) => m.soort)).toEqual(["bewaarde-versie"]);
+    expect(hoortBij(a!.beschrijving, stuk.id)).toBe(true);
+  });
 });

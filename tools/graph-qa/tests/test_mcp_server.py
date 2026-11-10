@@ -176,7 +176,7 @@ def test_een_gelezen_kamerstuk_is_een_resource_link_met_zijn_versie(monkeypatch)
     instellingen = make_settings(graphdb_mcp_url="http://x/mcp", graphdb_token="t", connector_kamerstukken=True)
     monkeypatch.setattr(mcp_server.Settings, "from_env", classmethod(lambda cls: instellingen))
     monkeypatch.setattr(mcp_server, "make_graph", lambda s: FakeGraph(result=""))
-    monkeypatch.setattr(tools, "_kamerstukbron", lambda s: Versie(DOSSIER, XML))
+    monkeypatch.setattr(tools.CONNECTORMODULES["kamerstukken"], "_bron", Versie(DOSSIER, XML))
     server, _, _ = mcp_server._bouw_server()
     uit = asyncio.run(_handler(server, "tools/call")(None, CallToolRequestParams(name="get_kamerstuk",
                                                                                  arguments={"id": "kst-99001-3"})))

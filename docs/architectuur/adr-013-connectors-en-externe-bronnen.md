@@ -141,9 +141,24 @@ Uit de connectorarchitectuur van Claude/MCP (specificatie 2025-11-25) komt de bu
 - **Een snapshot bij de bronselectie.** Wat in een bronselectie wordt opgenomen, bevriest de api (onderzoek §4.4). Een
   externe bron kan nog niet in een bronselectie; als dat komt, draagt de snapshot `bron_hash` en `gewijzigd` uit het
   leestoolcontract.
-- **De tweede connector.** Rechtspraak is de beste proef van herbruikbaarheid (dezelfde vorm, een andere id en XML),
-  maar wacht op de toets van endpoint en licentie (fase 1c). EUR-Lex is de terugval zonder licentieblokkade. LiDO hoort
-  als graafverrijking, niet als connector. Open keuze voor de eigenaar.
+- **De tweede connector.** Rechtspraak is de beste proef van herbruikbaarheid (dezelfde vorm, een andere id en XML).
+  ~~LiDO hoort als graafverrijking, niet als connector.~~ *Herzien 10 nov 2026*: de spike liet zien dat een import via de
+  services niet volledig te krijgen is en voor de Awb te groot is; LiDO is daarom de zoekkant van de connector
+  Rechtspraak, live per bepaling met een cache. Er kwam niets per connector bij buiten de beschrijving, de tools, de
+  vlag en de tests; wel een eigen tak in `dispatch` (zoals Kamerstukken), omdat de zoektool de graaf nodig heeft voor de
+  jci van het artikel. *Daarna (10 nov 2026)* is dat handwerk generiek geworden, zodat de derde connector de checklist
+  hieronder volgt:
+  1. een beschrijving in `bronmodel.connectors` (met `metadata`, `voorbeeld_id`, en zo nodig `MetadataVeld.waarden` voor de
+     lijstvraag);
+  2. een module in `agent/tools/` met zijn tools, een `fout_van` en een `FOUTREDEN`-tabel, en één `ConnectorModule` in
+     `agent/tools/connectortools.py` (de dispatch, de bron per proces en de foutafhandeling komen daaruit; elke reden heeft
+     een zin in `REDEN_ZIN`);
+  3. `connector_<naam>: bool = False` in `Settings` (en `config.py` leest `CONNECTOR_<NAAM>`);
+  4. een live-proef `tests/test_<naam>_live.py`.
+
+  De straat volgt vanzelf: de bicep kent één lijst `connectoren` (standaard leeg), en `azure-infra.yml` geeft op
+  acceptatie alle namen uit `bronmodel.connectors` mee. Rechtspraak kreeg naast LiDO (per artikel) de zoekfeed van de
+  Rechtspraak als tweede ingang (zonder artikel: gerecht, rechtsgebied, periode).
 
 ### Toestemming per handeling
 
@@ -198,7 +213,7 @@ Die geldt voor beide soorten. Voor contextconnectors is hij de voorwaarde.
 |---|---|---|
 | **1a** | het soort vindplaats in `packages/bronmodel` (`extern.py`) + `provenance`/`grounding`/werkplek (PR 1); de bronconnector Kamerstukken achter `CONNECTOR_KAMERSTUKKEN` (PR 2). Een Kamerstuk komt niet in een sjabloonblok (de rij draagt `id`, geen `iri`); het staat in de uitleg en de bronnenlijst, en `verify` toetst het citaat. `door` met brontype volgt pas als een blok externe tekst draagt; bronconnector **Kamerstukken** (`zoek_kamerstukken`, `get_kamerstuk`) achter een vlag | dit ADR |
 | **1b** | register `/v1/admin/connectors` + beheertab; het menu *Bronnen en tools* per gesprek, de standaard per werkgebied, de stand op het gesprek (`Gesprek.connectors`, `standaard_connectors`) – gebouwd in PR 3–5 | 1a |
-| **1c** | LiDO-koppelingen jci↔ECLI in de graaf (importer), bronconnector **rechtspraak**; daarna **EUR-Lex** | endpoint en licentie getoetst |
+| **1c** | bronconnector **rechtspraak**: `zoek_uitspraken` (de koppelingen van LiDO, live per artikel, over alle versies) en `get_uitspraak` (de tekst bij de Rechtspraak), achter `CONNECTOR_RECHTSPRAAK`; daarna **EUR-Lex**. *Herzien 10 nov 2026 na de spike* (`metingen/lido-spike-2026-11-10`): de koppelingen komen **niet** als import in de graaf. Via de services is volledigheid niet aan te tonen (twee ingangen, 394 tegen 240 versies), `get-links` breekt bij 4 % van de versies af, LiDO loopt achter, en de Awb alleen kost ~12.000 aanroepen. Live per bepaling kost een Iw-artikel zo'n 7 aanroepen | endpoint en licentie getoetst: LiDO CC0, Rechtspraak Public Domain Mark (data.overheid.nl); voorwaarden van de Rechtspraak: hoogstens 10 verzoeken per seconde en geen volledige download (de adapter houdt 5 per host aan en leest per uitspraak), de uitspraken zijn gepseudonimiseerd (Lex herleidt geen partij) |
 | **2a** | contextconnectors die de gebruiker toevoegt, alleen lezen: MCP-URL + OAuth, goedkeuring per tool, de vertrouwensgrens | **besluit ADR-007** |
 | **2b** | contextconnectors die schrijven, met toestemming per handeling | 2a + aparte toets |
 

@@ -19,6 +19,8 @@ from tests.fakes import FakeGraph, FakeLLM, make_settings, response, text_block
 
 AAN = make_settings(connector_kamerstukken=True)
 UIT = make_settings()
+#: De tools van de connector die AAN aanbiedt; de andere connectors staan in deze straat uit.
+KST = tools.CONNECTORS["kamerstukken"]
 
 
 def test_connector_literal_is_het_register():
@@ -33,7 +35,7 @@ def test_connector_literal_is_het_register():
     (UIT, None, False),
 ])
 def test_een_regel(settings, bronnen, verwacht):
-    assert (tools.CONNECTOR_TOOLS <= tools.toegestane_tools(None, settings, bronnen)) is verwacht
+    assert (KST <= tools.toegestane_tools(None, settings, bronnen)) is verwacht
     assert (tools.actieve_connectors(settings, bronnen) == {"kamerstukken"}) is verwacht
 
 
@@ -62,7 +64,7 @@ def _tools_van_de_agent(settings, bronnen):
 
 
 def test_het_model_krijgt_een_uitgezette_bron_niet_aangeboden():
-    assert tools.CONNECTOR_TOOLS <= _tools_van_de_agent(AAN, ["kamerstukken"])
+    assert KST <= _tools_van_de_agent(AAN, ["kamerstukken"])
     assert not (tools.CONNECTOR_TOOLS & _tools_van_de_agent(AAN, []))
     # Uit is byte-gelijk aan vóór de connector: dezelfde toolset als een straat zonder connectors.
     assert _tools_van_de_agent(AAN, []) == _tools_van_de_agent(UIT, None)
@@ -148,9 +150,11 @@ def test_de_beurt_meldt_haar_bronstand_en_de_meting_leest_hem(monkeypatch):
     gelogd = []
     monkeypatch.setattr(beurtmeting.logger, "info", lambda msg, extra=None: gelogd.append(extra))
     events = asyncio.run(loop())
+    # Een connector die de straat niet aanbiedt, staat erbij met de reden `straat`.
     assert events[0] == {"type": "bronstand", "bronnen": [
-        {"naam": "kamerstukken", "label": "Kamerstukken", "aan": False, "reden": "werkgebied"}]}
-    assert gelogd[-1]["bronnen"] == "kamerstukken:werkgebied"
+        {"naam": "kamerstukken", "label": "Kamerstukken", "aan": False, "reden": "werkgebied"},
+        {"naam": "rechtspraak", "label": "Rechtspraak", "aan": False, "reden": "straat"}]}
+    assert gelogd[-1]["bronnen"] == "kamerstukken:werkgebied,rechtspraak:straat"
 
 
 def test_chatrequest_kent_de_herkomst():

@@ -43,8 +43,9 @@ async def client(monkeypatch):
 async def test_een_bekende_connector_staat_uit_tot_de_beheerder_hem_aanzet(client):
     r = await client.get("/v1/admin/connectors", headers=_ADMIN)
     assert r.status_code == 200
-    [kst] = r.json()
-    assert (kst["naam"], kst["brontype"], kst["aan"]) == ("kamerstukken", "kamerstuk", False)
+    # Elke connector uit de beschrijving, in haar volgorde, en elk staat uit tot de beheerder hem aanzet.
+    assert [(c["naam"], c["brontype"], c["aan"]) for c in r.json()] == [
+        ("kamerstukken", "kamerstuk", False), ("rechtspraak", "uitspraak", False)]
     assert (await client.get("/v1/connectors")).json()["aan"] == []
 
     r = await client.put("/v1/admin/connectors/kamerstukken", json={"aan": True}, headers=_BEHEERDER)

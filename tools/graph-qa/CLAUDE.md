@@ -220,9 +220,9 @@ bruikbaar is.
 
 ## Toollaag & queries
 
-- **`tools/__init__.py`** – `TOOLS` (29 declaraties: 21 graaftools, de vier annotatieleestools uit
-  `tools/annotatie_tools.py`, de twee begrippenleestools uit `tools/begrip_tools.py` en de twee Kamerstuktools uit
-  `tools/kamerstuk_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
+- **`tools/__init__.py`** – `TOOLS` (31 declaraties: 21 graaftools, de vier annotatieleestools uit
+  `tools/annotatie_tools.py`, de twee begrippenleestools uit `tools/begrip_tools.py`, de twee Kamerstuktools uit
+  `tools/kamerstuk_tools.py` en de twee Rechtspraaktools uit `tools/rechtspraak_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
   `ValueError`/`MCPError`/`KeyError` als tekst). Een tool met `needs_settings` krijgt `settings` mee.
   `tools/jas_tools.py` (`JAS_TOOLS`) is dispatchbaar maar wordt in de draaiende keten niet aangeroepen.
 - **Bronconnectors** (ADR-013): **de beschrijving in `bronmodel.connectors` is de enige bron** (naam, label, brontype,
@@ -278,6 +278,33 @@ bruikbaar is.
   bewaart `bron_hash` en `gewijzigd`; `_gelezen` neemt de passages uit één lezing (dezelfde hash). Het contract met de echte dienst (indexen, sortering, recordvorm, documentstatus) toetst
   `tests/test_kamerstukken_live.py`: dagelijks in `bronnenwacht.yml`, lokaal met `BRONNEN_LIVE=1 uv run pytest -m live`
   (marker `live`; elke connector heeft er een, `test_connectorbeschrijving.py`). Niet in de poort.
+  **Rechtspraak** (`tools/rechtspraak_tools.py`, transport `adapters/lido_rechtspraak.py`, ADR-013 fase 1c):
+  `zoek_uitspraken` (bwb-id + artikel; de uitspraken die Linked Data Overheid aan het artikel koppelt, **verenigd over
+  alle versies**, want een link hangt aan de versie die gold op de datum van de uitspraak) en `get_uitspraak` (de tekst
+  van een Nederlandse ECLI bij de Rechtspraak, per alinea met kop – het deel en de titel van de sectie, "Uitspraak › 2
+  Uitgangspunten in cassatie" – en `ro` als de alinea in een genummerde rechtsoverweging staat; een alinea boven
+  `MAX_ALINEA` in delen; de eerste pagina draagt `inhoud` (`tools/stuk_tekst.py`, gedeeld met Kamerstukken); het label
+  komt uit gerecht en datum, met procedure en rechtsgebied in `stuk`). **Begrensd** op `PER_SECONDE` (5) per host: de
+  Rechtspraak vraagt hoogstens 10 per seconde en geen volledige download. **Cache met versiecontrole** zoals Kamerstukken:
+  na `VERS_S` alleen de metadata (`return=META`), de tekst opnieuw als `dcterms:modified` verschilt
+  (`uitspraak_gewijzigd`), bij een storing de bewaarde versie met `gevalideerd: false`. **Zonder artikel** zoekt
+  `zoek_uitspraken` in de zoekfeed van de Rechtspraak (`_zoek_feed`): instantie en rechtsgebied als URI uit de
+  waardelijsten (cache 24 uur; een onleesbare lijst is een storing, geen onbekend gerecht), "nieuwste"/"oudste" via een
+  datumvenster (`_venster`: de feed sorteert alleen op wijzigingsdatum), `totaal` over de hele periode; een
+  rechtsgebied met artikel is een invoerfout. De lijstroute leest ook "de 10 nieuwste uitspraken van de Hoge Raad in het
+  belastingrecht" (`MetadataVeld.waarden`, het eerste orgaan dat past). `tests/test_rechtspraak_zoeken.py`. De zoektool
+  leest jci en label-id van het artikel uit de graaf (`_q_artikel`); zonder graaf zoekt LiDO op bwb-id en nummer. De
+  versies: eerst `get-id` met `juriconnect-ref` (bwb-id + artikel + datum, de vorige versie op de dag vóór de
+  begindatum), en als die niets geeft (de Awb) de jci met de datum van een bestaande toestand uit de BWB-zoekdienst,
+  vanaf de nieuwste die LiDO kent. Een `get-links`-antwoord dat halverwege afbreekt (HTTP 200 met een JSON-fout in de
+  XML) valt terug op RDF; lukt dat niet, of raakt een versie `MAX_PAGINAS` of het artikel `MAX_AANROEPEN`, dan staat die
+  versie in `onvolledig` en zegt de toelichting het – nooit stil korter. Eén herhaling bij een 400/5xx van LiDO; een 406
+  van de BWB-zoekdienst met een geldig antwoord telt als antwoord (zoals in de importer). Per uitspraak alleen de vaste
+  metadatasleutels (datum, gerecht en zaaknummer uit de titel); de soort gerecht voor het filter (`INSTANTIES`) komt uit de
+  ECLI. Het resultaat draagt altijd `dekking: "ten minste"`, `versies`, `per_instantie` en `koppelingen` (automatisch
+  herkend of redactioneel). **Een vermelding is geen uitleg**: de toolbeschrijving zegt "noemt", en een uitspraak is pas
+  bron als ze gelezen is. De divisies van een beleidsregel kent LiDO niet; dat zegt de tool. `tests/test_rechtspraak_tools.py`,
+  live `tests/test_rechtspraak_live.py`, meting `docs/architectuur/metingen/lido-spike-2026-11-10/`.
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION).
   **`graph/schema.py`** – schema-introspectie met een cache van een uur. **`graph/results.py`** –
   `parse_select`: de MCP levert SELECT als JSON-string-gewrapte TSV.

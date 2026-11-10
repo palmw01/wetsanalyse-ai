@@ -56,6 +56,19 @@ def test_een_uitgezette_bron_krijgt_een_eerlijke_melding_zonder_model(settings, 
     assert events[-1]["type"] == "done"
 
 
+@pytest.mark.parametrize("vraag", ["Wat is een uitspraak op bezwaar?",
+                                   "Kan ik tegen de aansprakelijkstelling beroep instellen bij de rechter?"])
+def test_procestaal_is_geen_vraag_naar_een_uitgezette_bron(vraag):
+    """"Uitspraak op bezwaar" en "de rechter" zijn gewone wetstaal: op een straat zonder Rechtspraak hoort die vraag bij
+    de supervisor, niet bij de melding dat de bron uit staat (bevinding bij #1170)."""
+    llm = FakeLLM([response([text_block("WORKERS: antwoord\nSPECIALIST: algemeen\nTAAK:\nPLAN: AFWIJZEN")],
+                            "end_turn")])
+    events = _run(answer_stream(vraag, settings=UIT, llm=llm, graph=FakeGraph(result="")))
+    assert not any(e["type"] == "bron_uit" for e in events)
+    assert "staat uit" not in _tekst(events) and "niet beschikbaar" not in _tekst(events)
+    assert llm.calls, "de supervisor beslist"
+
+
 def test_een_vraag_over_een_bron_wordt_nooit_afgewezen_en_krijgt_de_tools():
     # Zonder citeervorm: "Kamerstuk 33755, nummer 3" (INCIDENT_2) leest de code sinds 9 nov 2026 direct, zonder supervisor
     # (`tests/test_bron_lijst.py`). Hier gaat het om een AFWIJZEN van het model dat de code terugdraait.
@@ -133,7 +146,8 @@ def test_het_endpoint_noemt_elke_connector_met_de_straat(monkeypatch):
 
     monkeypatch.setattr(main.settings, "qa_api_token", "", raising=False)
     for aan in (False, True):
-        monkeypatch.setattr(main.settings, "connector_kamerstukken", aan, raising=False)
+        for c in bm.CONNECTORS.values():
+            monkeypatch.setattr(main.settings, f"connector_{c.naam}", aan, raising=False)
         # Zonder `with`: de lifespan (graaf, api) hoort niet bij deze lichte route.
         r = TestClient(main.app).get("/v1/bronnen")
         assert r.status_code == 200
@@ -145,7 +159,7 @@ def _nep_kamerstukken(monkeypatch):
     from agent import tools as t
     from test_kamerstuk_tools import DOSSIER, NepBron
 
-    monkeypatch.setattr(t, "_KAMERSTUKBRON", NepBron(DOSSIER))
+    monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", NepBron(DOSSIER))
 
 
 def test_een_genoemd_stuk_wordt_vooraf_gelezen_en_alleen_het_gelezen_stuk_is_een_bron(monkeypatch):

@@ -109,13 +109,20 @@ def externe_vindplaats(ref: str) -> ExterneVindplaats | None:
     return None
 
 
-def externe_verwijzingen(tekst: str) -> list[ExterneVindplaats]:
-    """Elke externe vindplaats in een tekst, ontdubbeld op `id`, in de volgorde van de tekst."""
+def externe_verwijzingen_met_plek(tekst: str) -> list[tuple[int, ExterneVindplaats]]:
+    """(plek, vindplaats) van elke externe vindplaats in een tekst, ontdubbeld op `id` (de eerste plek telt), in de
+    volgorde van de tekst. De plek komt uit het patroon, niet uit een zoekopdracht naar het id: een ECLI in kleine
+    letters staat in de tekst anders dan zijn canonieke vorm."""
     gevonden: list[tuple[int, ExterneVindplaats]] = []
     for patroon, maak in ((_KOOP_RE, _koop), (_ECLI_RE, _ecli), (_ELI_RE, _eli)):
         gevonden += [(m.start(), maak(m.group(0).rstrip("."))) for m in patroon.finditer(tekst or "")]
     gevonden += [(m.start(), _celex(m.group(1))) for m in _CELEX_RE.finditer(tekst or "")]
-    uit: dict[str, ExterneVindplaats] = {}
-    for _, vp in sorted(gevonden, key=lambda p: p[0]):
-        uit.setdefault(vp.id, vp)
+    uit: dict[str, tuple[int, ExterneVindplaats]] = {}
+    for plek, vp in sorted(gevonden, key=lambda p: p[0]):
+        uit.setdefault(vp.id, (plek, vp))
     return list(uit.values())
+
+
+def externe_verwijzingen(tekst: str) -> list[ExterneVindplaats]:
+    """Elke externe vindplaats in een tekst, ontdubbeld op `id`, in de volgorde van de tekst."""
+    return [vp for _, vp in externe_verwijzingen_met_plek(tekst)]

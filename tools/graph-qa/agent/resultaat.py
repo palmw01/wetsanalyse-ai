@@ -59,6 +59,7 @@ REDEN_ZIN: dict[str, str] = {
     "ongeldig_vergaderjaar": _VRAAG_KLOPTE_NIET, "ongeldige_datum": _VRAAG_KLOPTE_NIET,
     "ongeldige_kamer": _VRAAG_KLOPTE_NIET, "ongeldige_tekst": _VRAAG_KLOPTE_NIET,
     "ongeldige_volgorde": _VRAAG_KLOPTE_NIET,
+    "zoekvraag_geweigerd": "de bron weigerde de zoekvraag",
     "niet_gevonden": "het stuk is niet gevonden",
     "alleen_pdf": "het stuk is er alleen als pdf",
     "onleesbaar_document": "het stuk is niet te lezen",
