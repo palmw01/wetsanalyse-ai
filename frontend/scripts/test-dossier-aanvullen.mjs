@@ -157,9 +157,12 @@ try {
   await paneel.locator("[data-dossier-veld=analysevraag]").getByText(NIEUWE_VRAAG).waitFor();
   assert.equal(await page.locator("[data-vraagdock]").count(), 0, "geen open vraag meer");
 
-  // --- Een leeg veld in het paneel: geen Vraag Lex (spoor K); aanvullen gaat via de suggestie ---
+  // --- Een leeg veld in het paneel: geen Vraag Lex bij het veld; aanvullen gaat via de suggestie. Naast het gesprek staat
+  // één Vraag Lex in de kop van het paneel (besluit gebruiker 10 nov 2026, ontdubbelen PR 5; vervangt spoor K). ---
   await paneel.locator("[data-dossier-veld=doel]").getByText("Nog geen doel.").waitFor();
-  assert.equal(await paneel.locator("[data-vraag-lex]").count(), 0, "geen Vraag Lex naast het gesprek");
+  assert.equal(await paneel.locator("[data-dossier-veld] [data-vraag-lex]").count(), 0, "geen Vraag Lex bij een veld");
+  assert.equal(await paneel.locator("[data-vraag-lex]").count(), 1, "één Vraag Lex, in de kop");
+  assert.equal(await paneel.locator('[data-paneel-kop] [data-vraag-lex="werkgebied"]').count(), 1);
   const aanvullen = suggesties().getByRole("button", { name: "Vul het dossier aan" });
   assert.equal(await aanvullen.getAttribute("data-actie"), "dossier_aanvullen");
   await aanvullen.click();
