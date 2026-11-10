@@ -63,10 +63,12 @@ export function paginaVanContext(d: ContextDoel): string | undefined {
 /** Het contextpaneel (spoor G4, mock-up v4 `sideRail`): dezelfde schil als de artefacten – een kolom vanaf
  *  1280px, anders een sheet –, met bovenaan *Open volledige pagina*. Het paneel is om te raadplegen, niet
  *  om in te werken: beoordelen gebeurt op de pagina. Een paneel is geen vervanging van die pagina. */
-export function ContextPaneel({ doel, variant, onSluit, onWissel, onMaakWerkgebied }: {
+export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onMaakWerkgebied }: {
   doel: ContextDoel;
   variant: DialogVariant;
   onSluit: () => void;
+  /** Escape: het paneel verbergen (inklappen, of de sheet weg) zonder de tab te sluiten. Zonder: Escape sluit. */
+  onVerberg?: () => void;
   /** Iets anders in hetzelfde paneel openen (een element uit de bepaling, een bron uit de lijst). */
   onWissel: (doel: ContextDoel) => void;
   /** *Maak hier een werkgebied van* bij een overzicht. */
@@ -76,7 +78,7 @@ export function ContextPaneel({ doel, variant, onSluit, onWissel, onMaakWerkgebi
   const bron = useBronHerkomst(doel.soort === "bron" ? doel : undefined);
   const kop = bron.herkomst ? herkomstKop(bron.herkomst) : { soort: KOP[doel.soort], titel: doel.titel || KOP[doel.soort] };
   return (
-    <Dialog label={`${kop.soort}: ${kop.titel}`} variant={variant} onSluit={onSluit}>
+    <Dialog label={`${kop.soort}: ${kop.titel}`} variant={variant} onSluit={onSluit} onEscape={onVerberg}>
       <div data-context-paneel={doel.soort} className="flex min-h-0 flex-1 flex-col">
         <PaneelKop soort={kop.soort} titel={kop.titel} pagina={paginaVanContext(doel)} onSluit={onSluit}
           status={bron.herkomst && <HerkomstRegel herkomst={bron.herkomst} />} />

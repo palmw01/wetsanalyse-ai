@@ -29,6 +29,11 @@ describe("herkomst", () => {
       .toBe("Artikel 9, lid 2, Invorderingswet 1990");
   });
 
+  it("leest het volle label van een chip terug: het pad, en de rest is de regeling", () => {
+    const h = herkomstVan({ iri: IW9, label: "Artikel 9, lid 2, Invorderingswet 1990" });
+    expect([h.bepaling, h.regeling]).toEqual(["Artikel 9, lid 2", "Invorderingswet 1990"]);
+  });
+
   it("houdt een eigen naam waar de IRI er geen heeft (een Leidraad-divisie)", () => {
     const iri = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie36";
     expect(herkomstVan({ iri, label: "Artikel 36.8", regeling: "Leidraad Invordering 2008" }).bepaling).toBe("Artikel 36.8");

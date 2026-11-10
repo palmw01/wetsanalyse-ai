@@ -58,6 +58,8 @@ export interface ArtefactInhoudProps {
   onVerwijder?: () => Promise<void>;
   /** Meegeven in de dialoogschil (het kruisje, en de laatste laag van Escape); weglaten op de
    *  eigen pagina, die niets te sluiten heeft. */
+  /** De laatste laag van Escape, als dat niet sluiten is: het paneel verbergen (het bronvenster, PR 3b). */
+  onEscapeEinde?: () => void;
   onSluiten?: () => void;
   /** *Open volledige pagina* in de kop (alleen in de dialoogschil naast het gesprek). */
   pagina?: string;
@@ -80,7 +82,7 @@ export interface ArtefactInhoudProps {
  *  schillen – anders gaan de twee weergaven uit elkaar lopen. */
 export function ArtefactInhoud({
   doc, info, actiefId, onKies, onBeslissing, onAkkoordGroen, onEigenMarkering,
-  onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, pagina, onExport, extra, elementExtra, ongedekt, kopOnder, kopBalk, alleenLezen = false,
+  onWisEigenMarkering, onVraag, onStatus, onVerwijder, onSluiten, onEscapeEinde, pagina, onExport, extra, elementExtra, ongedekt, kopOnder, kopBalk, alleenLezen = false,
 }: ArtefactInhoudProps) {
   // Eén bron voor de bewoording (`lib/herkomst.ts`): `bepalingKort` weet uit het graaf-`soort` of dit een artikel
   // met leden is of een bepaling van een beleidsregel. Hier raden op puntjes in het nummer zou bij
@@ -163,8 +165,8 @@ export function ArtefactInhoud({
     if (selectie) sluitSelectie();
     else if (open !== "geen") setOpen("geen");
     else if (actiefId) onKies(undefined);
-    else onSluiten?.();
-  }, [selectie, open, actiefId, onKies, onSluiten, sluitSelectie]);
+    else (onEscapeEinde ?? onSluiten)?.();
+  }, [selectie, open, actiefId, onKies, onSluiten, onEscapeEinde, sluitSelectie]);
 
   /** Een afgerond document is bevroren. De api weigert elke mutatie met een 409; hier leggen we de
    *  bediening stil zodat de jurist die fout nooit tegenkomt – een knop die alleen nog een

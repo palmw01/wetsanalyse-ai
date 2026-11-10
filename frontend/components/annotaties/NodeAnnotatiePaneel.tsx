@@ -48,8 +48,10 @@ export type PaneelTab = "tekst" | "graaf";
  *
  *  Met `onSluit` staat hij in dezelfde `Dialog`-schil als `ArtefactPaneel` (werkplek); zonder is
  *  het de kale inhoud voor een eigen pagina. */
-export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks, beginElement, opslag: basisOpslag = apiOpslag, onBeslist }: {
+export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, onSluit, onVerberg, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks, beginElement, opslag: basisOpslag = apiOpslag, onBeslist }: {
   doel: NodeDoel; onSluit?: () => void; variant?: DialogVariant;
+  /** De laatste laag van Escape: het paneel verbergen zonder de tab te sluiten (het bronvenster, PR 3b). */
+  onVerberg?: () => void;
   /** Andere bepalingen of delen die de graaf meeopent (wat een antwoord noemt). Tekst en annotatie
    *  blijven over `doel`. */
   extraDoelen?: NodeDoel[];
@@ -335,6 +337,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
         onVerwijder={view.lagen.length && !opname ? verwijder : undefined}
         alleenLezen={!!opname}
         onSluiten={onSluit}
+        onEscapeEinde={onVerberg}
         pagina={pagina}
         kopOnder={reeksBalk}
         kopBalk={tabs || undefined}
@@ -376,7 +379,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
         if (graafStand.lagenOpen) graafStand.setLagenOpen(false);
         else if (graafStand.selectie || actiefId) { graafStand.setSelectie(null); setActiefId(undefined); }
         else if (groot) setGroot(false);
-        else onSluit();
+        else (onVerberg ?? onSluit)();
       } : undefined}>
       {inhoud}
     </Dialog>

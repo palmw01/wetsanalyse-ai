@@ -24,7 +24,7 @@ export const ZijpaneelContext = createContext<{
  *  De inhoud blijft gemount als het paneel ingeklapt is: wat je half had gelezen of ingevuld, staat er nog als je
  *  uitklapt. Escape verkleint een vergroot paneel eerst. Geen sneltoetsen: alleen de pijltjes op de scheiding als die
  *  de focus heeft, en Escape. */
-export function Zijpaneel({ label, sleutel, hersteld = false, vast = false, children }: {
+export function Zijpaneel({ label, sleutel, hersteld = false, vast = false, balk, inklapSignaal = 0, children }: {
   /** Waar het paneel over gaat, voor de strook en de knoppen ("Bepaling", "Begrip"). */
   label: string;
   /** Wat er openstaat. Iets anders openen is een expliciete handeling: dan klapt het paneel uit, ook als het ingeklapt was
@@ -34,6 +34,10 @@ export function Zijpaneel({ label, sleutel, hersteld = false, vast = false, chil
   hersteld?: boolean;
   /** In de rondleiding: altijd uitgeklapt, niets bewaard (de stappen wijzen in het paneel). */
   vast?: boolean;
+  /** Links in de balk boven de inhoud: de tabs van het paneel. */
+  balk?: ReactNode;
+  /** Verhoogt als het paneel moet inklappen (Escape in de inhoud verbergt het paneel, het sluit geen tab). */
+  inklapSignaal?: number;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -53,6 +57,17 @@ export function Zijpaneel({ label, sleutel, hersteld = false, vast = false, chil
     // Alleen bij het mounten: daarna beslist de kijker zelf.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vast]);
+
+  // Escape in de inhoud: verbergen, niet sluiten. Een teller, omdat de inhoud dit paneel niet kent.
+  const vorigSignaal = useRef(inklapSignaal);
+  useEffect(() => {
+    if (vorigSignaal.current === inklapSignaal) return;
+    vorigSignaal.current = inklapSignaal;
+    if (vast) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIngeklapt(true);
+    setVergroot(false);
+  }, [inklapSignaal, vast]);
 
   // Iets anders geopend: uitklappen (de eerste keer telt het mounten al als opening).
   const vorige = useRef(sleutel);
@@ -155,7 +170,8 @@ export function Zijpaneel({ label, sleutel, hersteld = false, vast = false, chil
       )}
       <div className={open ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
         {!vast && (
-          <div data-zijpaneel-balk className="flex h-9 shrink-0 items-center justify-end gap-1.5 border-b border-l border-line bg-paper px-3">
+          <div data-zijpaneel-balk className="flex h-10 shrink-0 items-center justify-end gap-1.5 border-b border-l border-line bg-paper px-2">
+            {balk}
             {!vergroot && (
               <IcoonKnop aria-label={`${label} inklappen`} title={`${label} inklappen`} onClick={() => klap(true)} data-paneel-inklappen>
                 <PijlRechts />

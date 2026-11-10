@@ -326,7 +326,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
   stream. De graph-qa `conversation_id` (thread_id) is het `gesprekId`.
 - **Wat Lex oplevert is een artefact** (`Bericht.artefact`, `lib/artefact.ts`): `{soort, ref, titel}`
   met soort `annotatie`, `begrippen`, `werkgebied`, `deelvraag`, `begrip`, `bronselectie` of `regels`. Elke soort heeft een chip in de thread en een paneel
-  in dezelfde schil (kolom vanaf 800px, anders een sheet); er staat er hoogstens één open.
+  in dezelfde schil (kolom vanaf 800px, anders een sheet); er staat er één in beeld, de rest als tab ernaast (§*De artefact-werkbank*).
   - **De titel noemt het object zelf, nooit het werkgebied waar het in staat** (besluit gebruiker 7 nov 2026, `artefactKop`
     in `lib/artefact.ts`): een object met een eigen naam (bepaling, begrip, deelvraag, het werkgebied zelf) heeft die naam als
     titel en de soort klein erboven; een verzameling (`VERZAMELING`: begripsvoorstellen, bronselectie, afleidingsregels) heeft
@@ -401,7 +401,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     paneel zelf (`onWissel`). Een bron krijgt het werkgebied van het gesprek mee. **Om te raadplegen, niet om
     in te werken**: geen beoordelingsknoppen; elk paneel – ook het artefact- en het annotatiepaneel – heeft
     bovenaan *Open volledige pagina* (`paginaVanContext`, `paginaVan`, `nodeLink`). Weg uit de werkplek is het
-    paneel weg: het is lokale state. Browserregressie: `scripts/test-contextpaneel.mjs`.
+    paneel weg; terug in het gesprek staan zijn tabs er weer (per browser bewaard). Browserregressie: `scripts/test-contextpaneel.mjs`.
   - `artefactVanBericht` maakt van een ouder bericht met alleen `annotatie_doel` een
     annotatie-artefact; `parseArtefact` is streng (onbekende soort of ref zonder verplichte sleutels:
     geen chip). Het `opgeslagen`-event draagt het artefact, `toonVastgelegdeBeurt` opent het.
@@ -1365,6 +1365,29 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
 - **Per browser bewaard** (`lib/opslag.ts`, in try/catch, na het mounten): `lex.paneel.breedte`, en
   `lex.paneel.ingeklapt`, dat alleen telt bij een herstelde inhoud (`hersteld`, de tabs per gesprek).
 - In de rondleiding is het paneel `vast`: altijd uitgeklapt, niets bewaard. Browserregressie: `scripts/test-zijpaneel.mjs`.
+
+**De tabs** (het bronvenster, PR 3b; rekenkern `lib/paneelTabs.ts`, tabrij `TabRij` in `components/ui/Tabs`).
+- **Eén paneel, veel tabs.** De slots in `WerkplekClient` (`ctx`, `nodeDoel` met zijn tab, extra doelen, graaf en reeks, en
+  `wgArtefact`) zijn de actieve tab; `tabStand` is de lijst ernaast. Elke wijziging van de slots werkt de lijst bij
+  (`openTab`, in de render bijgesteld). Wisselen laadt een tab in de slots (`laad`), altijd via `wisselPaneel`, dus met de
+  bewaker. Een inactieve tab is een beschrijving, geen gemount paneel: de wettekst staat er bij terugkomen meteen
+  (`lib/useBron.ts`), een annotatie laadt opnieuw.
+- **Leestabs kunnen er meer zijn** (een bepaling, een element, de bronnen, een overzicht; de sleutel is `contextSleutelVan`).
+  De annotatie en het werkgebied-artefact hebben elk één tab: een tweede vervangt de eerste, via de bewaker. Hoogstens
+  `MAX_TABS` (8); de oudste niet-actieve valt af.
+- **Sluiten** (✕ op de tab, of ✕ in de kop van wat open is) gaat via `sluitPaneelTab`: de buur wordt actief.
+  **Escape verbergt** en sluit geen tab (`verbergPaneel`): breed klapt het zijpaneel in (`inklapSignaal`), op een telefoon
+  gaat de sheet weg (via de bewaker, want de inhoud wordt ontkoppeld), en *Paneel · n open* (`data-paneel-terug`) haalt
+  hem terug. Elk paneel krijgt daarvoor `onVerberg` (de `onEscape` van zijn `Dialog`; bij de annotatie de laatste laag van
+  Escape, `onEscapeEinde`). *Vraag Lex* en een gekozen onderwerp verbergen op een telefoon de sheet in plaats van te sluiten.
+- **De tabrij** staat breed in de balk van het zijpaneel en op een telefoon boven de kop van de sheet (`PaneelTabsContext`
+  in `PaneelKop`). De tooltip noemt het volle label en waar de tab geopend werd (`tabLabel`, `volgendeVanuit`: "het
+  gesprek", "een antwoord", "Bronnen in de chatkop", "het paneel"). De sluitknop heet *Sluit tab …*: een knop met
+  "Sluiten" in de naam zou in de browsertests op de sluitknop van een paneel lijken.
+- **Per gesprek bewaard** (`lex.paneel.tabs.<gesprek>`, `bewaarVorm`/`leesBewaard`, streng): alleen de beschrijvingen,
+  zonder de kennisgraaf. Een nieuw gesprek begint leeg; er wordt pas bewaard zodra het gesprek een id heeft. Breed komt
+  de actieve tab na herladen terug (met de bewaarde ingeklapte stand); op een telefoon staat hij klaar achter
+  *Paneel · Openen*, zodat herladen niet vanzelf een sheet opent.
 
 Wettekst en reviewlijst hebben **elk een eigen scroll** (tekst `max-h-[45%]` bovenin), zodat de tekst
 niet uit beeld loopt als je verderop in de lijst bent. Selecteren scrolt **beide kanten** in beeld:

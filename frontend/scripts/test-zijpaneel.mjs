@@ -9,7 +9,9 @@
  *  - inklappen tot een strook en weer uitklappen, met de inhoud nog op zijn plek;
  *  - vergroten over het gesprek, en Escape verkleint eerst (het paneel blijft open);
  *  - na herladen dezelfde breedte (per browser bewaard); iets anders openen klapt een ingeklapt paneel uit;
- *  - geen horizontale scroll op 375, 800 en 1280 px; onder 800 px geen zijpaneel maar de sheet.
+ *  - de tabs (PR 3b): elke opening een tab, met de tooltip waar hij vandaan kwam; wisselen, sluiten (de buur wordt actief),
+ *    Escape verbergt in plaats van sluit, herladen herstelt de tabs van het gesprek, een nieuw gesprek begint leeg;
+ *  - geen horizontale scroll op 375, 800 en 1280 px; onder 800 px geen zijpaneel maar de sheet, met de tabs boven de kop.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -61,6 +63,10 @@ const breedte = async () => (await zijpaneel.boundingBox()).width;
 async function openBibliotheek() {
   await page.locator("[data-chatkop-bronnen]").click();
   await page.locator("[data-context-paneel=bibliotheek]").waitFor();
+}
+async function bronTabOpnieuw() {
+  await page.locator("[data-context-bron=s1]").click();
+  await page.locator("[data-context-paneel=bron]").waitFor();
 }
 async function geenScroll(width) {
   const breed = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
@@ -130,6 +136,40 @@ try {
   assert.equal(await zijpaneel.getAttribute("data-zijpaneel"), "open", "Escape verkleint");
   assert.equal(await page.locator("[data-context-paneel=bron]").count(), 1, "en sluit het paneel niet");
 
+  // --- Tabs (PR 3b): wat er open was staat als tab ernaast; wisselen, sluiten, en Escape verbergt ---
+  const tabs = page.locator("[data-paneel-tab]");
+  await page.locator("[data-chatkop-bronnen]").click();
+  await page.locator("[data-context-paneel=bibliotheek]").waitFor();
+  assert.deepEqual(await tabs.evaluateAll((els) => els.map((e) => e.getAttribute("data-paneel-tab"))),
+    ["bibliotheek:wg1", `bron:${LID}:wg1`], "de bronnen en de bron staan als twee tabs");
+  assert.equal(await page.getByRole("tab", { name: "Bronnen", exact: true }).getAttribute("aria-selected"), "true");
+  const bronTab = page.getByRole("tab", { name: "Artikel 9, lid 2" });
+  assert.match(await bronTab.getAttribute("title"), /geopend vanuit het paneel$/, "de tooltip zegt waar de tab geopend werd");
+  await bronTab.click();
+  await page.locator("[data-context-paneel=bron]").getByText("invorderbaar op de dagtekening", { exact: false }).waitFor();
+  // Escape verbergt: het paneel klapt in, de tabs blijven.
+  await page.locator("[data-context-paneel=bron]").click();
+  await page.keyboard.press("Escape");
+  assert.equal(await zijpaneel.getAttribute("data-zijpaneel"), "ingeklapt", "Escape klapt het paneel in");
+  await page.getByRole("button", { name: "Paneel uitklappen" }).click();
+  assert.equal(await tabs.count(), 2, "de tabs staan er nog");
+  // Een tab sluiten: de buur wordt actief.
+  await page.getByRole("button", { name: "Sluit tab Artikel 9, lid 2" }).click();
+  await page.locator("[data-context-paneel=bibliotheek]").waitFor();
+  assert.equal(await tabs.count(), 1);
+  // Herladen: de tabs van dit gesprek komen terug, de actieve open.
+  await bronTabOpnieuw();
+  await page.reload();
+  await page.locator("[data-context-paneel=bron]").waitFor();
+  assert.equal(await tabs.count(), 2, "na herladen dezelfde tabs");
+  // Een nieuw gesprek begint leeg.
+  await page.goto(`${base}/workbench`);
+  await page.getByRole("textbox").last().waitFor();
+  assert.equal(await tabs.count(), 0, "een nieuw gesprek heeft geen tabs");
+  assert.equal(await zijpaneel.count(), 0);
+  await page.goto(`${base}/workbench?gesprek=g1`);
+  await page.locator("[data-context-paneel=bron]").waitFor();
+
   // --- Breedtes: geen horizontale scroll; onder 800 px de sheet ---
   for (const width of [1280, 800]) {
     await page.setViewportSize({ width, height: 800 });
@@ -139,9 +179,17 @@ try {
   await page.setViewportSize({ width: 375, height: 800 });
   await geenScroll(375);
   assert.equal(await zijpaneel.count(), 0, "op een telefoon geen zijpaneel");
+  // Op een telefoon: de tabs boven de kop van de sheet; Escape verbergt de sheet, *Paneel · Openen* haalt hem terug.
+  await page.locator("[data-paneel-tabs] [data-paneel-tab]").first().waitFor();
+  await page.keyboard.press("Escape");
+  await page.locator("[data-paneel-terug]").waitFor();
+  assert.equal(await page.locator("[data-context-paneel]").count(), 0, "de sheet is weg");
+  await page.locator("[data-paneel-terug]").click();
+  await page.locator("[data-context-paneel=bron]").waitFor();
+  await geenScroll(375);
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: zijpaneel met scheiding (slepen binnen 320 px–60%, pijltjes, dubbelklik), inklappen tot een strook, vergroten met Escape terug, breedte bewaard na herladen, een nieuwe inhoud klapt uit, geen horizontale scroll op 375/800/1280, op een telefoon de sheet.");
+  console.log("Browser OK: zijpaneel met scheiding (slepen binnen 320 px–60%, pijltjes, dubbelklik), inklappen tot een strook, vergroten met Escape terug, breedte bewaard na herladen, een nieuwe inhoud klapt uit, geen horizontale scroll op 375/800/1280, op een telefoon de sheet; tabs openen, wisselen, sluiten, herstellen per gesprek, Escape verbergt.");
 } finally {
   await browser.close();
 }

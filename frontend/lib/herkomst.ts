@@ -83,8 +83,12 @@ export function herkomstVan(b: HerkomstBron): Herkomst {
   const bwb = vp?.bwb_id ?? "";
   // Een label dat de regeling al draagt ("Invorderingswet 1990 – Artikel 9, Lid 1"): splitsen, niet herhalen.
   const gesplitst = bepalingEnRegeling((b.label ?? "").trim());
-  const regeling = (b.regeling ?? "").trim() || gesplitst.regeling || bwb;
-  const eigen = eigenLabel(gesplitst.bepaling, vp?.label ?? "");
+  // Of het volle label van een chip ("Artikel 9, lid 2, Invorderingswet 1990"): het pad uit de IRI, en de rest is de regeling.
+  const uitIri = vp?.label ?? "";
+  const staart = uitIri && gesplitst.bepaling.toLowerCase().startsWith(`${uitIri.toLowerCase()}, `)
+    ? gesplitst.bepaling.slice(uitIri.length + 2).trim() : "";
+  const regeling = (b.regeling ?? "").trim() || gesplitst.regeling || staart || bwb;
+  const eigen = staart ? uitIri : eigenLabel(gesplitst.bepaling, uitIri);
   const bepaling = eigen || regeling || b.iri;
   const jci = b.jci ? normaliseerJci(b.jci) : "";
   return {
