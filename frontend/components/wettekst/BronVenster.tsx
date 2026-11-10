@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { Sectie, StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
+import { ObjectRij, ObjectRijen } from "@/components/ui/Pagina";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { StandMelding } from "@/components/ui/StandMelding";
 import { BepalingFeiten } from "@/components/werkplek/BepalingFeiten";
@@ -15,6 +17,7 @@ import type { StandMeldingData } from "@/lib/herkomst";
 import { jasStyle, klasseLabel } from "@/lib/jas";
 import type { Lifecycle } from "@/lib/types";
 import { useBepaling } from "@/lib/useBron";
+import { elementPad } from "@/lib/werkgebiedPaden";
 
 /** Het bronvenster van een bepaling (het bronvenster, PR 4): wat er onder de herkomstkop staat, in vaste blokken.
  *  1. de stand (alleen als er iets te melden is);
@@ -22,9 +25,13 @@ import { useBepaling } from "@/lib/useBron";
  *  3. de markeringen als lijst, met *Beoordelen in de annotatie*;
  *  4. wat de graaf weet: plek, geldigheid, verwijzingen in beide richtingen, grondslag, bevoegdheid, genoemd in, en de
  *     begrippen die ze definieert (`BepalingFeiten`). Een verwijzing opent als eigen tab.
- *  De kop (herkomst, *Samenhang*, ↗ naar de bronpagina) zet de schil (`ContextPaneel`). Alleen lezen. */
-export function BronVenster({ bronIri, meldingen, onOpenElement, onOpenBron }: {
+ *  De kop (herkomst, *Samenhang*, ↗ naar de bronpagina) zet de schil: `ContextPaneel` naast het gesprek, `BronPagina` op
+ *  de volledige pagina (`variant="pagina"`: de tekst groot, de markeringen als rijen naar hun pagina). Alleen lezen. */
+export function BronVenster({ bronIri, meldingen, onOpenElement, onOpenBron, variant = "paneel", naGraaf }: {
   bronIri: string;
+  variant?: "paneel" | "pagina";
+  /** Op de pagina: wat er onder *Wat de graaf weet* nog bij hoort (alle gegevens uit de kennisgraaf, ingeklapt). */
+  naGraaf?: ReactNode;
   meldingen: readonly StandMeldingData[];
   onOpenElement: (id: string, titel: string) => void;
   onOpenBron: (v: AntwoordVindplaats) => void;
@@ -40,12 +47,21 @@ export function BronVenster({ bronIri, meldingen, onOpenElement, onOpenBron }: {
     <div className="space-y-5" data-bronvenster={bronIri}>
       <StandMelding meldingen={meldingen} />
       <Sectie titel="Wettekst" niveau={3} data-blok="wettekst">
-        <WettekstBlok segmenten={view.segmenten} elementen={actueel} kiesbaar={() => true} onKies={openElement} />
+        <WettekstBlok groot={variant === "pagina"} segmenten={view.segmenten} elementen={actueel} kiesbaar={() => true} onKies={openElement} />
       </Sectie>
       <Sectie titel="Markeringen" telling={actueel.length} niveau={3} data-blok="markeringen"
         acties={<Link href={nodeLink({ bron_iri: bronIri })} className="focus-ring rounded text-xs font-medium text-lint hover:underline">
           Beoordelen in de annotatie</Link>}>
-        {actueel.length === 0 ? <p className="text-sm text-muted">Nog niet geannoteerd.</p> : (
+        {variant === "pagina" ? (
+          <ObjectRijen label="JAS-elementen" leeg="Deze bepaling is nog niet geannoteerd. Vraag Lex in het gesprek om haar te annoteren.">
+            {actueel.map((e) => (
+              <ObjectRij key={e.id} href={elementPad(e.id)} data-element-rij={e.id} titel={<>“{e.tekst}”</>}
+                sub={<span className={`inline-block rounded border px-1.5 text-[0.7rem] ${jasStyle(e.klasse)}`}>{klasseLabel(e.klasse)}</span>}
+                status={<StatusLabel toon={e.lifecycle === "human_approved" ? "groen" : "neutraal"}>
+                  {LIFECYCLE_LABEL[e.lifecycle as Lifecycle] ?? e.lifecycle}</StatusLabel>} />
+            ))}
+          </ObjectRijen>
+        ) : actueel.length === 0 ? <p className="text-sm text-muted">Nog niet geannoteerd.</p> : (
           <ul className="divide-y divide-line">
             {actueel.map((e) => (
               <li key={e.id}>
@@ -62,6 +78,7 @@ export function BronVenster({ bronIri, meldingen, onOpenElement, onOpenBron }: {
       </Sectie>
       <Sectie titel="Wat de graaf weet" niveau={3} data-blok="graaf">
         <BepalingFeiten key={bronIri} bronIri={bronIri} onOpen={onOpenBron} />
+        {naGraaf}
       </Sectie>
     </div>
   );

@@ -45,4 +45,10 @@ describe("één wettekstweergave", () => {
       && /!e\.verouderd && e\.lifecycle !== "rejected"/.test(bron(p)));
     expect(filters).toEqual([join("lib", "bronWeergave.ts")]);
   });
+
+  it("de bronpagina is het bronvenster als pagina, zonder eigen tekstkaart (PR 5)", () => {
+    const pagina = bron(join("components", "bronnen", "BronPagina.tsx"));
+    expect(pagina).toMatch(/<BronVenster variant="pagina"/);
+    expect(pagina).not.toMatch(/<WettekstBlok|<Kaart titel="Wettekst"|<Kaart titel="JAS-elementen"/);
+  });
 });

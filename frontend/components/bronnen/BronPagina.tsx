@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { KnoopFeiten } from "@/components/graaf/KnoopFeiten";
-import { WettekstBlok } from "@/components/wettekst/WettekstBlok";
+import { BronVenster } from "@/components/wettekst/BronVenster";
 import { Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
 import { HerkomstRegel } from "@/components/ui/HerkomstRegel";
 import { Melding } from "@/components/ui/Melding";
@@ -14,17 +14,17 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { OpnemenInWerkgebied } from "@/components/werkgebieden/OpnemenInWerkgebied";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
-import { BEOORDEELD_LIFECYCLES, LIFECYCLE_LABEL } from "@/lib/annotatie";
+import { BEOORDEELD_LIFECYCLES } from "@/lib/annotatie";
 import { nodeLink, type NodeWeergave } from "@/lib/annotatieNode";
 import { actueleElementen } from "@/lib/bronWeergave";
 import { haalBepalingWeergave } from "@/lib/useBron";
 import { foutTekst, haalWerkgebied, lijstWerkgebieden } from "@/lib/api";
 import { haalKnoopInfo, type KnoopInfo } from "@/lib/graaf/knoopinfo";
 import { herkomstVan } from "@/lib/herkomst";
-import { jasStyle, klasseLabel } from "@/lib/jas";
-import type { Lifecycle, Werkgebied, WerkgebiedSamenvatting } from "@/lib/types";
+import { useBronHerkomst } from "@/lib/useBronHerkomst";
+import type { Werkgebied, WerkgebiedSamenvatting } from "@/lib/types";
 import { ROL_LABEL } from "@/lib/werkgebied";
-import { elementPad, projectPad } from "@/lib/werkgebiedPaden";
+import { bronPad, elementPad, projectPad } from "@/lib/werkgebiedPaden";
 
 /** Eén bepaling op een eigen pagina (spoor G3, mock-up v4 `sourcePage`): de letterlijke wettekst met alle
  *  JAS-markeringen erin (een klik opent het element), de elementen als rijen, wat de kennisgraaf over de
@@ -51,8 +51,10 @@ export function BronPagina({ bronIri, werkgebiedId }: { bronIri: string; werkgeb
 
   const doel = view?.segmenten.find((s) => s.bron_iri === bronIri);
   // De herkomst uit de IRI en de citeertitel: nooit een kaal "Lid 2" of een BWB-id zonder naam.
-  const herkomst = herkomstVan({ iri: bronIri, label: doel?.label, regeling: view?.doel.citeertitel,
-    jci: view?.doel.jci, url: view?.doel.url });
+  // Met het detail uit de graaf ook de plek en de stand, en in een werkgebied de peildatum (dezelfde kop als het paneel).
+  const bronH = useBronHerkomst({ bron_iri: bronIri, werkgebied_id: werkgebiedId });
+  const herkomst = bronH.detail && bronH.herkomst ? bronH.herkomst : herkomstVan({ iri: bronIri, label: doel?.label,
+    regeling: view?.doel.citeertitel, jci: view?.doel.jci, url: view?.doel.url });
   const naam = herkomst.bepaling;
   const actueel = actueleElementen(view);
   const beoordeeld = actueel.filter((e) => BEOORDEELD_LIFECYCLES.includes(e.lifecycle)).length;
@@ -92,29 +94,14 @@ export function BronPagina({ bronIri, werkgebiedId }: { bronIri: string; werkgeb
             </>}
           />
           <SplitDetail
-            hoofd={<>
-              <Kaart titel="Wettekst" toelichting="Letterlijk uit de BWB-graaf. De markeringen hebben de kleur van hun JAS-klasse; een klik opent het element.">
-                <WettekstBlok groot segmenten={view.segmenten} elementen={actueel} kiesbaar={() => true}
-                  onKies={(id) => router.push(elementPad(id))} />
-              </Kaart>
-              <Kaart titel="JAS-elementen" telling={actueel.length}
-                meer={{ href: nodeLink({ bron_iri: bronIri }), label: "Beoordelen in de annotatie" }}>
-                <ObjectRijen label="JAS-elementen" leeg="Deze bepaling is nog niet geannoteerd. Vraag Lex in het gesprek om haar te annoteren.">
-                  {actueel.map((e) => (
-                    <ObjectRij key={e.id} href={elementPad(e.id)} data-element-rij={e.id}
-                      titel={<>“{e.tekst}”</>}
-                      sub={<span className={`inline-block rounded border px-1.5 text-[0.7rem] ${jasStyle(e.klasse)}`}>{klasseLabel(e.klasse)}</span>}
-                      status={<StatusLabel toon={e.lifecycle === "human_approved" ? "groen" : "neutraal"}>
-                        {LIFECYCLE_LABEL[e.lifecycle as Lifecycle] ?? e.lifecycle}
-                      </StatusLabel>} />
-                  ))}
-                </ObjectRijen>
-              </Kaart>
-              {/* `KnoopFeiten` draagt zijn eigen kop "Uit de kennisgraaf". */}
-              <Kaart>
-                <KnoopFeiten info={info} opKaart={() => false} onKies={() => {}} />
-              </Kaart>
-            </>}
+            // Hetzelfde bronvenster als naast het gesprek (het bronvenster, PR 5), als volledige pagina.
+            hoofd={<BronVenster variant="pagina" bronIri={bronIri} meldingen={bronH.meldingen}
+              onOpenElement={(id) => router.push(elementPad(id))}
+              onOpenBron={(v) => router.push(bronPad(v.iri, werkgebiedId))}
+              naGraaf={<details className="mt-3 text-sm" data-alle-gegevens>
+                <summary className="focus-ring cursor-pointer rounded text-xs font-medium text-muted">Alle gegevens uit de kennisgraaf</summary>
+                <div className="mt-2"><KnoopFeiten info={info} opKaart={() => false} onKies={() => {}} /></div>
+              </details>} />}
             zij={<>
               <Kaart titel="Werkgebieden" telling={werkgebieden?.length}
                 toelichting="Waar deze bepaling, of het artikel erboven, is opgenomen.">

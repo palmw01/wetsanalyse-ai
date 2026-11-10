@@ -1000,7 +1000,7 @@ bestaat los van de gesprekken.
 - **Elk juridisch object heeft een eigen pagina** (spoor G3; paden in `lib/werkgebiedPaden.ts`):
   - **Bepaling** `/bronnen?bron_iri=…[&werkgebied=]` (`components/bronnen/BronPagina`): de letterlijke
     wettekst met álle markeringen in hun JAS-kleur (`WettekstBlok groot`; een klik opent het element), de
-    elementen als rijen, wat de kennisgraaf weet (`KnoopFeiten`), de werkgebieden met deze bepaling
+    elementen als rijen, wat de kennisgraaf weet (`BepalingFeiten`, met alle gegevens uit de kennisgraaf ingeklapt via `KnoopFeiten`), de werkgebieden met deze bepaling
     (`lijstWerkgebieden({bronIri})`) en *Opnemen in werkgebied*. Met `werkgebied` gaat het kruimelpad via
     dat werkgebied en staat *Bespreek met Lex* over de bronselectie in de kop. Het bronregister linkt hierheen.
   - **JAS-element** `/annotaties/element/[id]` (`components/annotaties/ElementPagina`, `haalElementDetail`):
@@ -1406,6 +1406,10 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   - in het overzicht en in de bronselectie naast het gesprek opent een bepaling als tab (`GroepRij onOpen`, via
     `ContextPaneelContext`) in plaats van een eigen uitklap met de wettekst. Buiten de werkplek blijft de rij een link
     naar de bronpagina.
+- **De bronpagina is het bronvenster als pagina** (PR 5): `BronPagina` zet `BronVenster variant="pagina"` (tekst groot,
+  markeringen als rijen naar hun pagina) onder de `PaginaKop` met de herkomstregel en de meldingen over de stand
+  (`useBronHerkomst`, ook de peildatum met `?werkgebied=`); de zijkolom houdt Werkgebieden en Herleidbaarheid. ↗ in het
+  paneel opent deze pagina. Geen eigen tekstkaart meer (`app/wettekst.test.ts`).
 
 Wettekst en reviewlijst hebben **elk een eigen scroll** (tekst `max-h-[45%]` bovenin), zodat de tekst
 niet uit beeld loopt als je verderop in de lijst bent. Selecteren scrolt **beide kanten** in beeld:
