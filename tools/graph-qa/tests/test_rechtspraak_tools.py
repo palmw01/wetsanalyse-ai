@@ -369,9 +369,9 @@ def _lees(xml: str) -> dict:
 def test_een_rechtsoverweging_draagt_haar_nummer_en_de_kop_het_nummer_van_de_sectie():
     uit = _lees(_GENUMMERD)
     rijen = uit["resultaten"]
-    assert [(r["kop"], r.get("ro")) for r in rijen] == [
-        ("Uitspraak › 2 Uitgangspunten in cassatie", "2.1"), ("Uitspraak › 2 Uitgangspunten in cassatie", "2.1"),
-        ("Uitspraak › 2 Uitgangspunten in cassatie", "2.2"), ("Uitspraak › 3 Beoordeling van de middelen", "3.1")]
+    assert [(r["kop"], r.get("plek")) for r in rijen] == [
+        ("Uitspraak › 2 Uitgangspunten in cassatie", "r.o. 2.1"), ("Uitspraak › 2 Uitgangspunten in cassatie", "r.o. 2.1"),
+        ("Uitspraak › 2 Uitgangspunten in cassatie", "r.o. 2.2"), ("Uitspraak › 3 Beoordeling van de middelen", "r.o. 3.1")]
     assert all("2.1" not in r["tekst"] for r in rijen), "het nummer is geen tekst van de alinea"
     assert uit["stuk"]["procedure"] == "Cassatie" and uit["stuk"]["rechtsgebied"] == "Bestuursrecht; Belastingrecht"
     assert uit["inhoud"] == [{"kop": "Uitspraak › 2 Uitgangspunten in cassatie", "offset": 0},
@@ -381,7 +381,7 @@ def test_een_rechtsoverweging_draagt_haar_nummer_en_de_kop_het_nummer_van_de_sec
 def test_een_vlakke_uitspraak_en_een_uitspraak_zonder_tekst():
     vlak = _lees(_VLAK)
     assert [r["kop"] for r in vlak["resultaten"]] == ["Uitspraak"] * 5 and "inhoud" not in vlak
-    assert not any(r.get("ro") for r in vlak["resultaten"])
+    assert not any(r.get("plek") for r in vlak["resultaten"])
     leeg = _lees(_ALLEEN_META)
     assert leeg["status"] == "ok" and leeg["resultaten"] == [] and "geen tekst" in leeg["toelichting"]
     assert leeg["stuk"]["label"].startswith("Hoge Raad 21 januari 2022")
@@ -498,3 +498,40 @@ def test_het_label_van_een_zoekrij_noemt_gerecht_en_datum():
     feed = R.rij_van("ECLI:NL:RBGEL:2026:1", "ECLI:NL:RBGEL:2026:1, Rechtbank Gelderland, 02-10-2026, 26/1")
     assert feed["label"] == "Rechtbank Gelderland 2 oktober 2026, ECLI:NL:RBGEL:2026:1"
     assert R.rij_van("ECLI:NL:HR:2026:1", "")["label"] == "ECLI:NL:HR:2026:1", "zonder titel de ECLI"
+
+
+def test_een_ehrm_uitspraak_waar_de_tekst_naar_verwijst_is_geen_bron_tenzij_het_antwoord_haar_noemt():
+    """Nameting 10 nov 2026: de bronnenlijst bij ECLI:NL:HR:2022:50 noemde ECLI:CE:ECHR:2002:…, die het antwoord niet
+    noemde. Een extern id zonder connector staat er alleen als het antwoord het noemt."""
+    from agent.grounding import alleen_gelezen_extern
+    from agent.models import Source
+    hr = Source(uri="ECLI:NL:HR:2022:50", label="x", brontype="uitspraak", origin_tool="get_uitspraak")
+    ehrm = Source(uri="ECLI:CE:ECHR:2002:0723JUD003698597", label="y", brontype="uitspraak", origin_tool="get_uitspraak")
+    trace = [("get_uitspraak", json.dumps({"stuk": {"id": "ECLI:NL:HR:2022:50"},
+                                           "resultaten": [{"tekst": "zie ECLI:CE:ECHR:2002:0723JUD003698597"}]}))]
+    assert [s.uri for s in alleen_gelezen_extern([hr, ehrm], trace, "In ECLI:NL:HR:2022:50 oordeelt de HR")] == [hr.uri]
+    assert len(alleen_gelezen_extern([hr, ehrm], trace, "ECLI:NL:HR:2022:50 volgt ECLI:CE:ECHR:2002:0723JUD003698597")) == 2
+
+
+def test_een_uitspraak_zonder_tekst_is_een_melding_uit_code_zonder_model(monkeypatch):
+    """Nameting 10 nov 2026: bij een ECLI met alleen metadata duidde het model zelf ("dus een verkeersboete") en zei het
+    "Het systeem meldt". De code zegt nu dat de tekst niet bij de bron staat, met het stuk en zijn gegevens."""
+    import asyncio
+    from agent import tools as t
+    from agent.agent import answer_stream
+    from tests.fakes import FakeGraph, FakeLLM
+
+    monkeypatch.setattr(t.CONNECTORMODULES["rechtspraak"], "_bron", NepBron([], docs={"ECLI:NL:HR:2022:50": _ALLEEN_META.encode()}))
+    llm = FakeLLM([])
+
+    async def verzamel():
+        return [e async for e in answer_stream("Wat staat er in ECLI:NL:HR:2022:50?", settings=AAN, llm=llm,
+                                               graph=FakeGraph(result=""), bronnen=["rechtspraak"])]
+
+    events = asyncio.run(verzamel())
+    assert llm.calls == [], "geen model"
+    antwoord, = [e["antwoord"] for e in events if e["type"] == "antwoord"]
+    leemte, lijst = antwoord["blokken"]
+    assert leemte["soort"] == "leemte" and "staat niet bij de bron" in leemte["tekst"]
+    assert lijst["soort"] == "stukken" and lijst["kop"] == "Uit de rechtspraak"
+    assert lijst["items"][0]["label"].startswith("Hoge Raad 21 januari 2022")

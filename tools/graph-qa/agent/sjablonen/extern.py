@@ -281,8 +281,17 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any]) -> str:
         delen.append(f"vanaf {periode['vanaf']}")
     elif periode.get("tot"):
         delen.append(f"tot en met {periode['tot']}")
-    begin = f"Gezocht bij {bepaling}" + (f", op {_opsomming(delen)}" if delen else "") + "." if bepaling else (
-        f"Gezocht op {_opsomming(delen)}." if delen else "")
+    # Wat met "van" begint (een orgaan, een periode) staat achteraan: "Gezocht op van de Hoge Raad" liep niet (nameting
+    # 10 nov 2026). Is er verder niets, dan is het "Gezocht naar stukken van de Hoge Raad".
+    delen.sort(key=lambda d: d.startswith(("van ", "vanaf ", "tot en met ")))
+    alleen_van = bool(delen) and all(d.startswith(("van ", "vanaf ", "tot en met ")) for d in delen)
+    if bepaling:
+        begin = f"Gezocht bij {bepaling}" + (f", {_opsomming(delen)}" if alleen_van else
+                                              f", op {_opsomming(delen)}" if delen else "") + "."
+    elif alleen_van:
+        begin = f"Gezocht naar stukken {_opsomming(delen)}."
+    else:
+        begin = f"Gezocht op {_opsomming(delen)}." if delen else ""
     zinnen = [begin,
               _VOLGORDE_TEKST.get(str(zoekvraag.get("volgorde") or ""), "")]
     return " ".join(z for z in zinnen if z)
