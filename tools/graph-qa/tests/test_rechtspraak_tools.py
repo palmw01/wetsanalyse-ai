@@ -351,3 +351,59 @@ def test_een_ongeldige_of_onbekende_ecli():
     assert ongeldig["reden"] == "ongeldig_id" and "bijvoorbeeld" in ongeldig["melding"]
     onbekend = json.loads(tools.dispatch("get_uitspraak", None, {"id": "ECLI:NL:HR:1900:1"}, AAN, rechtspraak=nep))
     assert onbekend["reden"] == "niet_gevonden" and "zoek_uitspraken" in onbekend["melding"]
+
+
+def test_de_cache_toetst_na_vers_s_alleen_de_metadata_en_meldt_een_storing(monkeypatch):
+    """Het patroon van Kamerstukken: binnen `VERS_S` geen aanroep; daarna `return=META`, en de tekst alleen opnieuw als
+    `dcterms:modified` verschilt; bij een storing de bewaarde versie met `gevalideerd: false`, nooit stil."""
+    nu = [0.0]
+    stand = {"xml": _uitspraak().decode(), "storing": False}
+    gezien: list[dict] = []
+
+    def dienst(request: httpx.Request) -> httpx.Response:
+        p = dict(request.url.params)
+        gezien.append(p)
+        if stand["storing"]:
+            raise httpx.ConnectError("weg")
+        return httpx.Response(200, text=stand["xml"])
+
+    bron = LidoRechtspraak(client=httpx.Client(transport=httpx.MockTransport(dienst)), klok=lambda: nu[0],
+                           slaap=lambda _s: None)
+    eerste = bron.document("ECLI:NL:HR:2022:50")
+    bron.document("ECLI:NL:HR:2022:50")
+    assert len(gezien) == 1, "binnen VERS_S geen aanroep"
+
+    nu[0] += L.VERS_S + 1
+    assert bron.document("ECLI:NL:HR:2022:50") is eerste
+    assert gezien[-1].get("return") == "META" and len(gezien) == 2, "ongewijzigd: alleen de metadata"
+
+    nu[0] += L.VERS_S + 1
+    stand["xml"] = stand["xml"].replace("2022-02-01T10:00:00", "2022-03-01T09:00:00").replace(
+        "de termijn.", "de termijn, en meer.")
+    nieuw = bron.document("ECLI:NL:HR:2022:50")
+    assert nieuw.hash != eerste.hash and nieuw.gewijzigd == "2022-03-01T09:00:00"
+    assert [g.get("return") for g in gezien[-2:]] == ["META", None], "gewijzigd: de tekst opnieuw"
+
+    nu[0] += L.VERS_S + 1
+    stand["storing"] = True
+    bewaard = bron.document("ECLI:NL:HR:2022:50")
+    assert bewaard.gevalideerd is False and bewaard.hash == nieuw.hash
+    uit = json.loads(tools.dispatch("get_uitspraak", None, {"id": "ECLI:NL:HR:2022:50"}, AAN, rechtspraak=bron))
+    assert uit["status"] == "ok" and uit["stuk"]["gevalideerd"] is False
+
+
+def test_een_verdwenen_uitspraak_is_geen_storing():
+    nu = [0.0]
+    stand = {"status": 200}
+
+    def dienst(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(stand["status"], text=_uitspraak().decode() if stand["status"] == 200 else "")
+
+    bron = LidoRechtspraak(client=httpx.Client(transport=httpx.MockTransport(dienst)), klok=lambda: nu[0],
+                           slaap=lambda _s: None)
+    bron.document("ECLI:NL:HR:2022:50")
+    nu[0] += L.VERS_S + 1
+    stand["status"] = 404
+    with pytest.raises(RechtspraakFout) as exc:
+        bron.document("ECLI:NL:HR:2022:50")
+    assert exc.value.code == "niet_gevonden"

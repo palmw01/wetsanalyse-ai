@@ -352,6 +352,9 @@ def _get(bron: RechtspraakBron, a: dict[str, Any]) -> str:
         "titel": meta.get("title", ""), "datum": meta.get("date", ""), "orgaan": meta.get("creator", ""),
         "nummer": meta.get("zaaknummer", ""), "gepubliceerd": meta.get("issued", ""), "link": vp.uri,
         "bron_hash": doc.hash, "gewijzigd": getattr(doc, "gewijzigd", "") or meta.get("modified", "")})
+    if getattr(doc, "gevalideerd", True) is False:
+        # De Rechtspraak was niet te bereiken: de bewaarde versie, en dat zegt het stuk (het bronvenster toont het).
+        stuk["gevalideerd"] = False
     offset = max(int(a.get("offset") or 0), 0)
     return per_eenheid(rijen, tool="get_uitspraak", args={"id": vp.id}, offset=offset,
                        extra={"stuk": stuk, "totaal": len(rijen)},

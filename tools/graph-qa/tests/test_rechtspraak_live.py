@@ -99,6 +99,15 @@ def test_een_uitspraak_heeft_metadata_en_alineas(bron):
     assert any("Invorderingswet" in r["tekst"] for r in rijen), "de tekst noemt de wet niet meer"
 
 
+def test_de_metadata_alleen_draagt_dezelfde_wijzigingsdatum(bron):
+    """De versiecontrole van de cache vraagt `return=META` en vergelijkt `dcterms:modified` met het document."""
+    from agent.adapters.lido_rechtspraak import RECHTSPRAAK_URL, _gewijzigd
+    doc = _of_storing(lambda: bron.document(HR))
+    meta = _of_storing(lambda: bron._get(RECHTSPRAAK_URL, id=HR, **{"return": "META"}))
+    assert "<uitspraak" not in meta, "return=META gaf de hele uitspraak"
+    assert _gewijzigd(meta) and _gewijzigd(meta) == doc.gewijzigd
+
+
 def test_een_onbekende_ecli_is_niet_gevonden(bron):
     with pytest.raises(RechtspraakFout) as exc:
         bron.document("ECLI:NL:HR:1900:1")

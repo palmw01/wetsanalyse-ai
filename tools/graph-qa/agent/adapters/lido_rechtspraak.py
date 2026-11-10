@@ -24,7 +24,11 @@ Wat de spike van 10 nov 2026 liet zien (`docs/architectuur/metingen/lido-spike-2
 - **Begrensd**: hoogstens `MAX_AANROEPEN` per artikel en `MAX_PAGINAS` per versie. Wat daarbuiten valt, staat in
   `onvolledig`, met de telling van LiDO zelf (`totaal_lido`).
 
-Gecachet per artikel (`VERS_S`) en per ECLI, begrensd op aantal; een citaat blijft herleidbaar via de teksthash.
+Gecachet per artikel (`VERS_S`) en per ECLI, begrensd op aantal en (uitspraken) op bytes. Een uitspraak verandert na
+publicatie (een inhoudsindicatie of relatie komt erbij): na `VERS_S` vraagt de adapter alleen de metadata
+(`return=META`) en haalt de tekst pas opnieuw als `dcterms:modified` verschilt (log `uitspraak_gewijzigd`). Is de
+Rechtspraak dan niet bereikbaar, dan de bewaarde versie met `gevalideerd=False`, nooit stil. Een citaat blijft
+herleidbaar via de teksthash.
 """
 from __future__ import annotations
 
@@ -36,7 +40,7 @@ import time
 import xml.etree.ElementTree as ET
 from collections import OrderedDict
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from urllib.parse import urlparse
 
 import httpx
@@ -53,6 +57,8 @@ _HOSTS = {"linkeddata.overheid.nl", "zoekservice.overheid.nl", "data.rechtspraak
 #: bij (de laatste was 2 jul 2026), dus een paar uur is ruim veilig.
 VERS_S = 6 * 3600
 MAX_CACHE = 64
+#: Hoogstens zoveel XML aan uitspraken in de cache; een uitspraak van de Raad van State is al gauw een halve MB.
+MAX_CACHE_BYTES = 32 * 1024 * 1024
 #: Per artikel hoogstens zoveel aanroepen naar LiDO (versies vinden plus links ophalen). Iw art. 36 kostte er 15.
 MAX_AANROEPEN = 80
 #: Per versie hoogstens zoveel pagina's van `get-links` (50 per pagina). Awb art. 8:57 noemt er meer dan 10.000.
@@ -113,6 +119,8 @@ class Document:
     xml: bytes
     hash: str
     gewijzigd: str = ""
+    #: False als de bewaarde versie niet opnieuw getoetst kon worden (de Rechtspraak was niet bereikbaar).
+    gevalideerd: bool = True
 
 
 def _ids(tekst: str) -> list[str]:
@@ -139,6 +147,19 @@ def _met_datum(jci: str, datum: str) -> str:
     if "&g=" not in jci:
         jci += f"&z={datum}&g={datum}"
     return jci
+
+
+def _gewijzigd_in(root: ET.Element) -> str:
+    return next(((e.text or "").strip() for e in root.iter() if e.tag.endswith("modified")), "")
+
+
+def _gewijzigd(tekst: str) -> str:
+    """`dcterms:modified` uit een antwoord met alleen de metadata (`return=META`); leeg als het niet te lezen is, en dan
+    haalt de adapter de tekst opnieuw – liever een aanroep te veel dan een verouderde uitspraak."""
+    try:
+        return _gewijzigd_in(ET.fromstring(tekst))
+    except ET.ParseError:
+        return ""
 
 
 def _groep(uri: str) -> str:
@@ -266,7 +287,8 @@ class LidoRechtspraak:
         with self._lock:
             self._cache[sleutel] = _Plek(waarde, self._klok())
             self._cache.move_to_end(sleutel)
-            while len(self._cache) > MAX_CACHE:
+            while len(self._cache) > MAX_CACHE or (len(self._cache) > 1 and sum(
+                    len(p.waarde.xml) for p in self._cache.values() if isinstance(p.waarde, Document)) > MAX_CACHE_BYTES):
                 self._cache.popitem(last=False)
 
     # --- versies ---------------------------------------------------------------------------------------------------
@@ -362,8 +384,26 @@ class LidoRechtspraak:
 
     def document(self, ecli: str) -> Document:
         sleutel = f"d|{ecli}"
-        if (bewaard := self._uit_cache(sleutel)) is not None:
-            return bewaard  # type: ignore[return-value]
+        with self._lock:
+            plek = self._cache.get(sleutel)
+            if plek is not None:
+                self._cache.move_to_end(sleutel)
+                if self._klok() - plek.gezien < VERS_S:
+                    return plek.waarde  # type: ignore[return-value]
+        bewaard: Document | None = plek.waarde if plek is not None else None  # type: ignore[assignment]
+        if bewaard is not None:
+            try:
+                gewijzigd = _gewijzigd(self._get(self._rs, id=ecli, **{"return": "META"}))
+            except RechtspraakFout as exc:
+                # Alleen een storing mag de bewaarde versie geven; een uitspraak die er niet meer is, is geen storing.
+                if exc.code != "onbereikbaar":
+                    raise
+                logger.warning("uitspraak niet gevalideerd", extra={"ecli": ecli, "bron_hash": bewaard.hash})
+                return replace(bewaard, gevalideerd=False)
+            if gewijzigd and gewijzigd == bewaard.gewijzigd:
+                with self._lock:
+                    plek.gezien = self._klok()  # type: ignore[union-attr]
+                return bewaard
         tekst = self._get(self._rs, id=ecli)
         try:
             root = ET.fromstring(tekst)
@@ -371,8 +411,10 @@ class LidoRechtspraak:
             raise RechtspraakFout(f"de Rechtspraak gaf geen leesbare XML voor {ecli}", code="geweigerd") from exc
         if not any(e.tag.endswith("identifier") and (e.text or "").strip() == ecli for e in root.iter()):
             raise RechtspraakFout(f"{ecli} staat niet in de open data van de Rechtspraak", code="niet_gevonden")
-        gewijzigd = next(((e.text or "").strip() for e in root.iter() if e.tag.endswith("modified")), "")
-        doc = Document(ecli, tekst.encode("utf-8"), tekst_hash(tekst), gewijzigd)
+        doc = Document(ecli, tekst.encode("utf-8"), tekst_hash(tekst), _gewijzigd_in(root))
+        if bewaard is not None and bewaard.hash != doc.hash:
+            logger.info("uitspraak_gewijzigd", extra={"ecli": ecli, "oude_hash": bewaard.hash, "bron_hash": doc.hash,
+                                                      "gewijzigd": doc.gewijzigd})
         logger.info("uitspraak opgehaald", extra={"ecli": ecli, "bron_hash": doc.hash, "omvang": len(doc.xml)})
         self._in_cache(sleutel, doc)
         return doc
