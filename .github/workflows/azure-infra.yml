@@ -350,6 +350,8 @@ jobs:
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--api-token-login)
           # De bronconnector Kamerstukken (ADR-013): de straat biedt hem aan, het register zet hem aan.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--connector-kamerstukken)
+          # De bronconnector Rechtspraak (ADR-013, fase 1c): idem, alleen acceptatie.
+          [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--connector-rechtspraak)
           # Relatievoorstellen uit de annotatieketen (ADR-011, 4C): een proefvlag, gemeten op acceptatie.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--relatie-voorstellen)
           # De GraphDB-MCP-proxy: standaard NIET, en net als de api-ingress alleen op acceptatie.
@@ -390,6 +392,8 @@ jobs:
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--api-token-login)
           # De bronconnector Kamerstukken (ADR-013): de straat biedt hem aan, het register zet hem aan.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--connector-kamerstukken)
+          # De bronconnector Rechtspraak (ADR-013, fase 1c): idem, alleen acceptatie.
+          [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--connector-rechtspraak)
           # Relatievoorstellen uit de annotatieketen (ADR-011, 4C): een proefvlag, gemeten op acceptatie.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--relatie-voorstellen)
           # De GraphDB-MCP-proxy: standaard NIET, en net als de api-ingress alleen op acceptatie.

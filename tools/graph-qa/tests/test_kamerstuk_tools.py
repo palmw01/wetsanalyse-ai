@@ -128,7 +128,7 @@ def test_lang_stuk_pagineert_op_hele_alineas():
 def test_uit_is_uit():
     assert json.loads(tools.dispatch("get_kamerstuk", None, {"id": "kst-99001-3"}, Settings()))["reden"] == "connector_uit"
     assert not (tools.toegestane_tools(None, Settings()) & tools.CONNECTOR_TOOLS)
-    assert tools.CONNECTOR_TOOLS <= tools.toegestane_tools(None, AAN)
+    assert tools.CONNECTORS["kamerstukken"] <= tools.toegestane_tools(None, AAN)
 
 
 def test_een_storing_is_zichtbaar():

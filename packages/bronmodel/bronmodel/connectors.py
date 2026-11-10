@@ -300,8 +300,86 @@ KAMERSTUKKEN = ConnectorBeschrijving(
     organen=("Tweede Kamer", "Eerste Kamer"),
 )
 
+#: De instanties waarop `zoek_uitspraken` filtert, in de woorden van de jurist; uit de code in de ECLI.
+INSTANTIES = ("Hoge Raad", "Parket bij de Hoge Raad", "Raad van State", "Centrale Raad van Beroep",
+              "College van Beroep voor het bedrijfsleven", "gerechtshof", "rechtbank",
+              "Europees Hof voor de Rechten van de Mens", "Hof van Justitie van de EU", "overig")
+
+RECHTSPRAAK = ConnectorBeschrijving(
+    naam="rechtspraak",
+    label="Rechtspraak",
+    brontype="uitspraak",
+    groep="Uitspraken",
+    dekt=("uitspraken en conclusies die een wetsartikel noemen (de koppelingen van Linked Data Overheid), en de tekst "
+          "van een Nederlandse uitspraak uit de open data van de Rechtspraak"),
+    signalen=(r"\buitspra(?:ak|ken)\b", r"\bjurisprudentie\b", r"\brechtspraak\b", r"\brechters?\b",
+              r"\brechterlijke\b", r"\barrest(?:en)?\b", r"\bhoge\s+raad\b", r"\bgerechtshof\b", r"\brechtbank\b",
+              r"\bconclusie\s+(?:van\s+de\s+)?a(?:dvocaat)?[.-]?\s*g(?:eneraal)?\b", r"\becli\b"),
+    tools=frozenset({"zoek_uitspraken", "get_uitspraak"}),
+    leestool="get_uitspraak",
+    lees_argument="id",
+    id_prefixen=("ECLI:NL:",),
+    specialisten=frozenset({"definitie", "duiding", "algemeen"}),
+    rol_in_antwoord=("een uitspraak laat zien hoe een rechter een bepaling toepaste of uitlegde; ze onderbouwt nooit "
+                     "wat de wet zegt – dat doet alleen de opgehaalde bepaling. Een uitspraak die een artikel noemt, "
+                     "gaat er niet altijd over"),
+    kop_in_antwoord="Uit de rechtspraak",
+    grenzen=("zoeken gaat per wetsartikel, niet op vrije tekst: Linked Data Overheid koppelt een uitspraak aan een "
+             "artikel als de tekst het noemt (automatisch herkend of redactioneel), op artikelniveau en niet per lid. "
+             "Een vermelding is geen uitleg; de lijst is 'ten minste deze', want LiDO loopt achter op de wetgeving en "
+             "kan versies missen. De divisies van een beleidsregel kent LiDO niet. Alleen Nederlandse uitspraken zijn "
+             "te lezen"),
+    levert=("alinea's (de inhoudsindicatie en de uitspraak of conclusie)",),
+    niet_in_tekst=("vindplaatsen in tijdschriften",),
+    werkwoorden={
+        "zoek_uitspraken": ("zoekt uitspraken bij artikel {artikel} van {bwb_id}", "zoekt uitspraken bij {bwb_id}",
+                            "zoekt uitspraken"),
+        "get_uitspraak": ("leest uitspraak {id}", "leest een uitspraak"),
+    },
+    beheer=("Uitspraken die een wetsartikel noemen (Linked Data Overheid, KOOP) en de tekst van een Nederlandse "
+            "uitspraak (open data van de Rechtspraak). Openbaar, zonder sleutel."),
+    voorbeeldvragen=(
+        "Welke uitspraken noemen artikel 36 van de Invorderingswet 1990?",
+        "Is er jurisprudentie over artikel 25 van de Invorderingswet 1990?",
+        "Wat heeft de Hoge Raad gezegd over de bestuurdersaansprakelijkheid in artikel 36 Iw?",
+        "Wat staat er in ECLI:NL:HR:2022:50?",
+    ),
+    # De datum, het orgaan en het zaaknummer komen bij het zoeken uit de titel die LiDO van de Rechtspraak overneemt
+    # ("ECLI:NL:HR:2022:50 - Hoge Raad, 21-01-2022 / 21/00733"), bij het lezen uit de metadata van de Rechtspraak zelf.
+    # Live getoetst op 10 nov 2026 (docs/architectuur/metingen/lido-spike-2026-11-10).
+    metadata=(
+        MetadataVeld("datum", "datum uitspraak", "titel in LiDO; dcterms:date bij de Rechtspraak",
+                     "de datum waarop de uitspraak is gedaan; daarop ordenen 'nieuwste' en 'oudste'",
+                     filters=("vanaf", "tot"), sorteerbaar=True),
+        MetadataVeld("gepubliceerd", "gepubliceerd", "dcterms:issued (Rechtspraak)",
+                     "wanneer de Rechtspraak de uitspraak publiceerde; alleen bij het lezen"),
+        MetadataVeld("gewijzigd", "gewijzigd", "dcterms:modified",
+                     "wanneer de publicatie het laatst werd bijgewerkt, niet wanneer de uitspraak veranderde"),
+        MetadataVeld("titel", "titel", "dcterms:title", "de titel zoals LiDO en de Rechtspraak die geven: ECLI, "
+                     "instantie, datum en zaaknummer"),
+        MetadataVeld("soort", "soort", "de code in de ECLI (PHR = conclusie); dcterms:type bij de Rechtspraak",
+                     "'Uitspraak' of 'Conclusie' (van de advocaat-generaal bij de Hoge Raad)", filters=("soort",)),
+        MetadataVeld("orgaan", "instantie", "titel in LiDO; dcterms:creator bij de Rechtspraak",
+                     "het gerecht dat de uitspraak deed; het filter 'instantie' kiest een soort gerecht",
+                     filters=("instantie",)),
+        MetadataVeld("nummer", "zaaknummer", "titel in LiDO; psi:zaaknummer", "het zaaknummer bij het gerecht"),
+        MetadataVeld("leesbaar", "leesbaar", "de vorm van de ECLI",
+                     "of de tekst te lezen is: alleen een Nederlandse ECLI staat bij de open data van de Rechtspraak"),
+    ),
+    standaard_datum="datum",
+    volgordes=("nieuwste", "oudste"),
+    # "ecli nl hr 2022 50", "ECLI: NL: HR: 2022: 50": een ECLI die niet in de vaste vorm staat.
+    citeervormen=((r"\becli\s*[: ]\s*nl\s*[: ]\s*(?P<gerecht>[a-z]{2,7})\s*[: ]\s*(?P<jaar>\d{4})\s*[: ]\s*"
+                   r"(?P<nummer>[0-9a-z.]{1,25})\b", "ECLI:NL:{gerecht}:{jaar}:{nummer}"),),
+    soorten=(
+        ("conclusie", r"\bconclusie(?:s)?\b"),
+        ("uitspraak", r"\buitspra(?:ak|ken)\b|\barrest(?:en)?\b"),
+    ),
+    organen=INSTANTIES,
+)
+
 #: De bronconnectors, in de volgorde van het menu en de beheertab.
-CONNECTORS: dict[str, ConnectorBeschrijving] = {c.naam: c for c in (KAMERSTUKKEN,)}
+CONNECTORS: dict[str, ConnectorBeschrijving] = {c.naam: c for c in (KAMERSTUKKEN, RECHTSPRAAK)}
 
 #: De namen, als tuple voor een `Literal[NAMEN]` in de contracten.
 NAMEN: tuple[str, ...] = tuple(CONNECTORS)

@@ -84,6 +84,9 @@ def main() -> None:
     p.add_argument("--api-token-login", action="store_true", default=None,
                    help="Inloggen met een accounttoken toestaan (alleen acceptatie; zie "
                         "main.bicep:apiTokenLogin).")
+    p.add_argument("--connector-rechtspraak", action="store_true", default=None,
+                   help="De bronconnector Rechtspraak aanbieden (alleen acceptatie; zie "
+                        "main.bicep:connectorRechtspraak).")
     p.add_argument("--connector-kamerstukken", action="store_true", default=None,
                    help="De bronconnector Kamerstukken aanbieden (alleen acceptatie; zie "
                         "main.bicep:connectorKamerstukken).")
@@ -177,6 +180,7 @@ def main() -> None:
         (args.api_extern, "apiExtern"),
         (args.api_token_login, "apiTokenLogin"),
         (args.connector_kamerstukken, "connectorKamerstukken"),
+        (args.connector_rechtspraak, "connectorRechtspraak"),
         (args.relatie_voorstellen, "relatieVoorstellen"),
         (args.graphdb_proxy_extern, "graphdbProxyExtern"),
         (args.api_image, "apiImage"),

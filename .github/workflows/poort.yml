@@ -237,6 +237,17 @@ jobs:
               if "--connector-kamerstukken" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
                   fout.append(f"azure-infra.yml: `--connector-kamerstukken` zonder acceptatie-conditie: {regel.strip()}")
 
+          # De bronconnector Rechtspraak haalt ook tekst van buiten de graaf: dezelfde regel.
+          m = re.search(r"^param connectorRechtspraak bool = (\w+)$", bicep, re.M)
+          if not m or m.group(1) != "false":
+              fout.append("main.bicep: `param connectorRechtspraak bool = false` niet gevonden")
+          for regel in re.findall(r".*name: 'CONNECTOR_RECHTSPRAAK'.*", bicep):
+              if "value: connectorRechtspraak ?" not in regel:
+                  fout.append(f"main.bicep: CONNECTOR_RECHTSPRAAK zonder de parameter: {regel.strip()}")
+          for regel in flow.splitlines():
+              if "--connector-rechtspraak" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
+                  fout.append(f"azure-infra.yml: `--connector-rechtspraak` zonder acceptatie-conditie: {regel.strip()}")
+
           # Relatievoorstellen uit de annotatieketen (ADR-011) zijn een proefvlag: alleen acceptatie, tot een meting beslist.
           m = re.search(r"^param relatieVoorstellen bool = (\w+)$", bicep, re.M)
           if not m or m.group(1) != "false":

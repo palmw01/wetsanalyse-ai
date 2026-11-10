@@ -133,7 +133,8 @@ def test_het_endpoint_noemt_elke_connector_met_de_straat(monkeypatch):
 
     monkeypatch.setattr(main.settings, "qa_api_token", "", raising=False)
     for aan in (False, True):
-        monkeypatch.setattr(main.settings, "connector_kamerstukken", aan, raising=False)
+        for c in bm.CONNECTORS.values():
+            monkeypatch.setattr(main.settings, f"connector_{c.naam}", aan, raising=False)
         # Zonder `with`: de lifespan (graaf, api) hoort niet bij deze lichte route.
         r = TestClient(main.app).get("/v1/bronnen")
         assert r.status_code == 200

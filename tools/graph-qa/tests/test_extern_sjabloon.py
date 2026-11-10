@@ -59,7 +59,8 @@ def test_het_eigen_sjabloon_neemt_de_tekst_uit_de_bron():
     ({"id": ID, "van_nr": 2, "tot_nr": 4}, "niet opgehaald"),
     ({"id": ID, "van_nr": 1, "tot_nr": 9}, "hoogstens 6"),
     ({"id": ID, "van_nr": 2, "tot_nr": 1}, "van_nr ≤ tot_nr"),
-    ({"id": "ECLI:NL:HR:2020:1", "van_nr": 1, "tot_nr": 1}, "geen id van een bron"),
+    # Een ECLI heeft sinds de connector Rechtspraak wel een bron; EU-recht (nog) niet.
+    ({"id": "CELEX:32016R0679", "van_nr": 1, "tot_nr": 1}, "geen id van een bron"),
 ])
 def test_wat_niet_klopt_gaat_terug_naar_het_model(aanwijzing, reden):
     with pytest.raises(Onvulbaar, match=reden):

@@ -16,6 +16,7 @@ EXPECTED = {
     "resolve_begrip", "graph_schema", "raw_sparql", "zoek_opbouw", "overzicht_onderwerp",
     "search_begrippen", "get_begrip",
     "zoek_kamerstukken", "get_kamerstuk",  # bronconnector (ADR-013)
+    "zoek_uitspraken", "get_uitspraak",  # bronconnector Rechtspraak (ADR-013, fase 1c)
 }
 
 

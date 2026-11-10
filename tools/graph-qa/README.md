@@ -110,6 +110,25 @@ wetsanalyse-API; de Kamerstuktools staan achter een vlag (hieronder).
 
 `jas_klasse_opvragen` staat daarbuiten en is opt-in per specialist.
 
+### Bronnen naast de wet: Rechtspraak (ADR-013, fase 1c)
+
+Achter `CONNECTOR_RECHTSPRAAK` krijgt Lex twee tools, met de transportlaag in `agent/adapters/lido_rechtspraak.py`
+(alleen lezen, alleen `linkeddata.overheid.nl`, `zoekservice.overheid.nl` en `data.rechtspraak.nl`):
+
+- **`zoek_uitspraken`** (bwb-id en artikel): de uitspraken en conclusies die Linked Data Overheid (KOOP, CC0) aan het
+  artikel koppelt, **over alle versies** – een link hangt aan de versie die gold op de datum van de uitspraak (art. 9
+  Iw: 12 op de huidige versie, 196 over alle). De versies vindt de adapter met `get-id` via de ref (bwb-id + artikel +
+  datum) en, als die niets geeft (de Awb), via de jci uit de graaf met een toestanddatum uit de BWB-zoekdienst. Per
+  uitspraak ECLI, gerecht, datum en zaaknummer (uit de titel), te filteren op instantie, soort en periode; nieuwste of
+  oudste eerst. Altijd `dekking: "ten minste"`: LiDO loopt achter en kent geen relatie "vorige versie". Een afgebroken
+  XML-antwoord van `get-links` valt terug op RDF; een plafond (`MAX_AANROEPEN`, `MAX_PAGINAS`) staat zichtbaar in de
+  toelichting. De divisies van een beleidsregel kent LiDO niet.
+- **`get_uitspraak`** (ECLI): de tekst van een Nederlandse uitspraak (Public Domain Mark), per alinea met de kop, de
+  inhoudsindicatie eerst; een alinea boven `MAX_ALINEA` in delen.
+
+Een vermelding is geen uitleg: de tool zegt "noemt". De meting staat in
+`docs/architectuur/metingen/lido-spike-2026-11-10/`; de live-proef in `tests/test_rechtspraak_live.py`.
+
 ### Bronnen naast de wet: Kamerstukken (ADR-013)
 
 Achter `CONNECTOR_KAMERSTUKKEN` krijgt Lex `zoek_kamerstukken` en `get_kamerstuk`, op de SRU 2.0-zoekdienst van KOOP
@@ -238,6 +257,7 @@ Secrets kunnen ook als `<NAAM>_FILE` (pad naar een bestand) worden gezet: `GRAPH
 | `GRAPHDB_SPARQL_TOOL` | `sparql_query` | Naam van de SPARQL-tool op de MCP-server. |
 | `SIMILARITY_INDEX` | leeg | GraphDB-similarity-index voor `semantic_search` (op Azure `bwb_similarity`). Leeg → de tool degradeert naar `search_wetgeving`. Zie [`docs/embeddings-runbook.md`](docs/embeddings-runbook.md). |
 | `CONNECTOR_KAMERSTUKKEN` | `false` | De bronconnector Kamerstukken (ADR-013): `zoek_kamerstukken` en `get_kamerstuk` op de officiële publicaties van KOOP. Uit = niet aangeboden. |
+| `CONNECTOR_RECHTSPRAAK` | `false` | De bronconnector Rechtspraak (ADR-013, fase 1c): `zoek_uitspraken` (uitspraken die een artikel noemen, uit Linked Data Overheid) en `get_uitspraak` (de tekst, uit de open data van de Rechtspraak). Uit = niet aangeboden. |
 | `KAMERSTUKKEN_SRU_URL` | de SRU-dienst van KOOP | Alleen voor een andere SRU-dienst; de documenten komen altijd uit `repository.overheid.nl`. |
 | `AZURE_FOUNDRY_API_KEY` *(verplicht)* | – | Azure-AI-Foundry-key. |
 | `AZURE_FOUNDRY_BASE_URL` *(verplicht)* | – | Foundry-endpoint **met** `/anthropic`-suffix. |
