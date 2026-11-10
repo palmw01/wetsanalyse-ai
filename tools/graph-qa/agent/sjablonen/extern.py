@@ -360,7 +360,9 @@ def lijsten(items: Any, trace: Trace) -> list[Stukken]:
         velden = set(Stuk.model_fields)
         uit.append(Stukken(
             brontype=c.brontype, kop=f"Gevonden {c.label}",
-            items=[Stuk(**{k: v for k, v in r.items() if k in velden}) for _, r, _ in rijen],
+            items=[Stuk(**{k: v for k, v in r.items() if k in velden},
+                        **({"zonder_tekst": c.zonder_tekst} if r.get("leesbaar") is False else {}))
+                   for _, r, _ in rijen],
             zoekvraag=zoekvraag_tekst(c, zoekvraag), totaal=totaal))
     return uit
 
