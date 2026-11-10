@@ -170,6 +170,10 @@ def toolregel(call: dict[str, Any]) -> str:
     if bron is None:
         return "raadpleegt de kennisgraaf"
     waarden = dict(inp) if bron.connector is not None else {**inp, **_afgeleid(inp)}
+    if bron.connector is not None and str(inp.get("bwb_id") or "").strip():
+        # Ook bij een connector de naam van de regeling, als die in dit proces bekend is: "bij artikel 36 van
+        # Invorderingswet 1990" in plaats van "van BWBR0004770" (nameting 10 nov 2026).
+        waarden["bwb_id"] = _regeling(str(inp["bwb_id"]).strip())
     return (bron.werkwoord(naam, waarden) or "raadpleegt de kennisgraaf").strip()
 
 

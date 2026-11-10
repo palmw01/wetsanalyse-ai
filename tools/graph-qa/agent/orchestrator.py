@@ -47,7 +47,7 @@ from .nodes.annotatie import annoteer_node, emit_node
 from .nodes.sjabloon import route_na_sjabloon, sjabloon_node
 from .nodes.context import Bouw
 from .nodes.annotatie_lezen import zoek_annotaties_node
-from .nodes.bron_lezen import bron_lezen_node
+from .nodes.bron_lezen import bron_lezen_node, route_na_bron_lezen
 from .nodes.bron_lijst import bron_lijst_node, route_na_bron_lijst
 from .nodes.begrippen_lezen import zoek_begrippen_node
 from .nodes.bepaling import bepaling_node, route_na_bepaling
@@ -270,7 +270,7 @@ def build_graph(
     add("annotaties_zoeken", functools.partial(zoek_annotaties_node, b))
     g.add_edge("annotaties_zoeken", "agent")
     add("bron_lezen", functools.partial(bron_lezen_node, b))
-    g.add_edge("bron_lezen", "agent")
+    g.add_conditional_edges("bron_lezen", functools.partial(route_na_bron_lezen, b), {"verify": "verify", "agent": "agent"})
     # Een lijstvraag over een bron naast de wet: de zoektool in code, het blok `stukken`, dan de controle.
     add("bron_lijst", functools.partial(bron_lijst_node, b))
     g.add_conditional_edges("bron_lijst", functools.partial(route_na_bron_lijst, b), {"verify": "verify", "agent": "agent"})

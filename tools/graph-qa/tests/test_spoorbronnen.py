@@ -150,3 +150,12 @@ def test_geen_toolnaam_json_of_code_in_een_regel():
               for t in sorted(_alle_tools()) for s, f in (("ok", ""), ("error", "bron_onbereikbaar"), ("error", "x_y"))]
     for regel in regels:
         assert not re.search(r"[{}\[\]_]|\bms\b", regel), regel
+
+
+def test_een_connector_noemt_de_regeling_bij_naam_als_die_bekend_is(monkeypatch):
+    from agent import overzicht
+    monkeypatch.setattr(overzicht, "_REGELINGEN_CACHE", [{"bwb_id": "BWBR0004770", "citeertitel": "Invorderingswet 1990"}])
+    regel = sb.toolregel({"name": "zoek_uitspraken", "input": {"bwb_id": "BWBR0004770", "artikel": "36"}})
+    assert regel == "zoekt uitspraken bij artikel 36 van Invorderingswet 1990"
+    monkeypatch.setattr(overzicht, "_REGELINGEN_CACHE", [])
+    assert "BWBR0004770" in sb.toolregel({"name": "zoek_uitspraken", "input": {"bwb_id": "BWBR0004770", "artikel": "36"}})

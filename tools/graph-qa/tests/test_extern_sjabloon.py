@@ -313,7 +313,7 @@ def test_het_blok_extern_noemt_datum_en_soort_uit_het_stuk():
     # Acceptatie 9 nov 2026: "Kamer Eerste Kamer". Een waarde die zegt wat ze is, krijgt geen label.
     ({"tekst": "invorderingsrente", "vergaderjaar": "2025-2026", "kamer": "Eerste Kamer", "volgorde": "relevantie"},
      "Gezocht op „invorderingsrente” in de tekst, vergaderjaar 2025-2026 en van de Eerste Kamer. Meest relevante eerst."),
-    ({"vanaf": "2011-01-01"}, "Gezocht op vanaf 1 januari 2011."),
+    ({"vanaf": "2011-01-01"}, "Gezocht naar stukken vanaf 1 januari 2011."),
     ({}, ""),
 ])
 def test_de_zoekvraag_in_woorden(zoekvraag, verwacht):

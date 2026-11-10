@@ -56,7 +56,9 @@ def test_planning_is_de_standaardvorm():
         ("annotaties_zoeken", "agent", "", False),
         # Een stuk dat de vraag bij id noemt (ADR-013): eerst lezen in code (nodes/bron_lezen.py), dan formuleren.
         ("supervisor", "bron_lezen", "", True),
-        ("bron_lezen", "agent", "", False),
+        ("bron_lezen", "agent", "", True),
+        # Een stuk zonder tekst bij de bron: de melding uit code, zonder model (nameting 10 nov 2026).
+        ("bron_lezen", "verify", "", True),
         # Een lijstvraag over een bron naast de wet: de zoektool in code en het blok `stukken`, dan de controle; na een
         # fout de agent (nodes/bron_lijst.py).
         ("supervisor", "bron_lijst", "", True),

@@ -119,8 +119,8 @@ RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
             "documentvolgorde, met de inhoudsindicatie eerst. Gebruik de ECLI uit zoek_uitspraken." + _UITLEG +
             " Citeer letterlijk uit 'tekst'.\n"
             "GEEFT TERUG: het stuk (id, label, soort, titel, datum, orgaan, nummer, procedure, rechtsgebied, "
-            "gepubliceerd, link, bron_hash, gewijzigd) en per alinea nr, kop en tekst, met 'ro' als de alinea in een "
-            "genummerde rechtsoverweging staat (en 'plek': 'r.o. 2.1'; noem haar zo); een lange alinea staat in delen ('deel'). De "
+            "gepubliceerd, link, bron_hash, gewijzigd) en per alinea nr, kop en tekst, met 'plek' als de alinea in een "
+            "genummerde rechtsoverweging staat ('r.o. 2.1'; noem haar zo); een lange alinea staat in delen ('deel'). De "
             "eerste pagina draagt 'inhoud': per kop de offset waar dat deel begint; ga met die offset naar het deel dat "
             "de vraag raakt. Noem de datum en de instantie uit 'stuk', niet uit de tekst." + _CONTRACT
         ),
@@ -480,7 +480,7 @@ _META = {"identifier", "date", "issued", "modified", "creator", "type", "zaaknum
 def lees(xml: bytes) -> tuple[dict[str, str], list[dict[str, Any]]]:
     """(metadata, rijen) uit een document van de Rechtspraak. Rijen in documentvolgorde: de inhoudsindicatie, dan de
     uitspraak of conclusie. De kop is het deel en de titel van de sectie ("Uitspraak › 2 Uitgangspunten in cassatie");
-    een rij in een genummerde rechtsoverweging (`paragroup` met `nr`) draagt dat nummer als `ro` ("2.1"), zodat een
+    een rij in een genummerde rechtsoverweging (`paragroup` met `nr`) draagt dat nummer als `plek` ("r.o. 2.1"; één veld, want elke byte telt in de begroting van een pagina), zodat een
     citaat naar r.o. 2.1 herleidbaar is. Lege alinea's tellen niet."""
     # Een regelafbreking in de bron (`<?linebreak?>`) is een processing instruction die de parser weggooit, en dan plakken
     # de zinnen aan elkaar ("bankrekeningen.In bezwaar", meting 10 nov 2026). Een spatie houdt de tekst leesbaar.
@@ -503,7 +503,7 @@ def lees(xml: bytes) -> tuple[dict[str, str], list[dict[str, Any]]]:
     def voeg(tekst: str, kop: str, ro: str) -> None:
         delen = _knip(tekst)
         for i, deel in enumerate(delen, 1):
-            rijen.append(compact({"nr": len(rijen) + 1, "kop": kop, "ro": ro, "plek": f"r.o. {ro}" if ro else "",
+            rijen.append(compact({"nr": len(rijen) + 1, "kop": kop, "plek": f"r.o. {ro}" if ro else "",
                                   "tekst": deel,
                                   "deel": f"{i}/{len(delen)}" if len(delen) > 1 else ""}))
 

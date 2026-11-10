@@ -282,7 +282,7 @@ bruikbaar is.
   `zoek_uitspraken` (bwb-id + artikel; de uitspraken die Linked Data Overheid aan het artikel koppelt, **verenigd over
   alle versies**, want een link hangt aan de versie die gold op de datum van de uitspraak) en `get_uitspraak` (de tekst
   van een Nederlandse ECLI bij de Rechtspraak, per alinea met kop – het deel en de titel van de sectie, "Uitspraak › 2
-  Uitgangspunten in cassatie" – en `ro` als de alinea in een genummerde rechtsoverweging staat (en `plek` "r.o. 2.1", dat het blok `extern` toont, `ExternePassage.plek`); een `<?linebreak?>` in de bron is een spatie; een alinea boven
+  Uitgangspunten in cassatie" – en `plek` ("r.o. 2.1") als de alinea in een genummerde rechtsoverweging staat, dat het blok `extern` toont (`ExternePassage.plek`); een `<?linebreak?>` in de bron is een spatie; een alinea boven
   `MAX_ALINEA` in delen; de eerste pagina draagt `inhoud` (`tools/stuk_tekst.py`, gedeeld met Kamerstukken); het label
   komt uit gerecht en datum, met procedure en rechtsgebied in `stuk`). **Begrensd** op `PER_SECONDE` (5) per host: de
   Rechtspraak vraagt hoogstens 10 per seconde en geen volledige download. **Cache met versiecontrole** zoals Kamerstukken:
