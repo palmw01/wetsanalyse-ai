@@ -17,7 +17,12 @@ export function HerkomstRegel({ herkomst: h, link = true, className = "" }: {
       title={[h.regeling, h.plekVoluit].filter(Boolean).join(" › ") || undefined}>
       {delen.join(" · ")}
       {link && h.href && <>{delen.length ? " · " : ""}<a href={h.href} target="_blank" rel="noopener noreferrer"
-        className="focus-ring rounded text-lint underline-offset-2 hover:underline" data-herkomst-link>wetten.overheid.nl</a></>}
+        className="focus-ring rounded text-lint underline-offset-2 hover:underline" data-herkomst-link>{host(h.href)}</a></>}
     </span>
   );
+}
+
+/** De link noemt waar hij heen gaat: wetten.overheid.nl, zoek.officielebekendmakingen.nl. */
+function host(href: string): string {
+  try { return new URL(href).hostname.replace(/^www\./, ""); } catch { return "de bron"; }
 }

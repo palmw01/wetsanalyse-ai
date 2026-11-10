@@ -1559,7 +1559,12 @@ agent). Blijft er een woord over dat de code niet plaatst, of vraagt de vraag na
 gesprek vóór het model, en daarna op de herschreven vraag. `tests/test_bron_lijst.py`, `eval/golden_routering.jsonl`. Een vraag over een bron naast de wet start
 nooit een werkgebied (het model koos dat in een lang gesprek). In de bronnenlijst staat een bron naast de wet alleen als ze
 gelezen en genoemd is (`grounding.alleen_gelezen_extern`). `GET /v1/bronnen` zegt per connector of de
-straat hem aanbiedt; de BFF (`/api/connectors`) toont in het menu alleen wat straat én register aanzetten. De vlag hoort in de per-beurt-reset van `answer_stream`,
+straat hem aanbiedt; de BFF (`/api/connectors`) toont in het menu alleen wat straat én register aanzetten. **`GET /v1/bronnen/{connector}/stukken/{id}`**
+(het bronvenster van de werkplek, PR 6) leest één stuk voor de jurist: de connector is een naam of een brontype, de
+leestool en haar argument komen uit de beschrijving (geen code per connector), de adaptercache wordt gedeeld met Lex,
+`offset` volgt het `vervolg`, `tabel` opent een tabel. Het antwoord is `{connector: {naam, label, groep, brontype,
+id_prefixen, metadata[{sleutel, label}]}, resultaat: <leesresultaat>}`; 404 als de straat de connector niet aanbiedt, 422
+bij een id dat niet bij de connector hoort. De schakelaar per gesprek telt hier niet: die gaat over wat Lex gebruikt. De vlag hoort in de per-beurt-reset van `answer_stream`,
 anders wijst één afgewezen vraag de hele thread af. De workerlijst is een **allowlist**
 (`antwoord`/`annotatie`/`werkgebied`/`deelvragen`/`begrippen`; de laatste drie staan altijd alleen) met een cap van twee: een onbekende naam zou anders een extra antwoord-worker
 worden.

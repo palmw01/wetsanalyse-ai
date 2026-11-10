@@ -10,9 +10,10 @@ import { StandMelding } from "@/components/ui/StandMelding";
 import { NOG_NIET_IN_WERKING } from "@/lib/herkomst";
 import { Citaat } from "@/components/ui/Citaat";
 import { StatusLabel } from "@/components/ui/Lijst";
-import { Vindplaats } from "./Vindplaats";
+import { StukVindplaats, Vindplaats } from "./Vindplaats";
+import { ConnectorTekst } from "@/components/wettekst/ConnectorTekst";
 import { Markdown } from "@/components/werkplek/Markdown";
-import { externGroepen, groepeerWettekst, type Antwoord as AntwoordData, type AntwoordBlok, type BlokSoort, type ExternGroep } from "@/lib/antwoord";
+import { groepeerWettekst, type Antwoord as AntwoordData, type AntwoordBlok, type BlokSoort } from "@/lib/antwoord";
 import { bronHref } from "@/lib/url";
 import { BRONTYPE_NAAM } from "@/lib/bronnen";
 import { begripPad, generiekPad } from "@/lib/werkgebiedPaden";
@@ -123,13 +124,13 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
   extern: ({ blok }) => (
     <Sectie kop={blok.kop}>
       <p className="text-xs text-muted">{BRONTYPE_NAAM[blok.brontype] ?? "Bron naast de wet"}, geen wettekst: het onderbouwt een uitleg, niet wat de wet zegt.</p>
-      <div className="space-y-3" data-extern={blok.id}>
-        {externGroepen(blok.passages).map((g, i) => <ExternGroepWeergave key={i} groep={g} />)}
+      <div data-extern={blok.id}>
+        <ConnectorTekst passages={blok.passages} />
       </div>
       <p className="text-xs text-muted">
-        {blok.link
-          ? <a href={blok.link} target="_blank" rel="noopener noreferrer" className="focus-ring rounded underline underline-offset-2">{blok.label}</a>
-          : blok.label}
+        {/* Het stuk opent als tab naast het gesprek, met de passages die Lex citeerde gemarkeerd (het bronvenster, PR 6). */}
+        <StukVindplaats brontype={blok.brontype} id={blok.id} label={blok.label} link={blok.link} voorbeeld={blok.passages}
+          gelezen={blok.bron_hash ? { bron_hash: blok.bron_hash, passages: blok.passages.map((p) => p.nr) } : undefined} />
         {/* De datum en het soort uit de metadata van het stuk, niet uit de tekst van Lex. */}
         {(blok.soort_stuk || blok.datum) && <span data-extern-meta> · {[blok.soort_stuk, datumTekst(blok.datum)].filter(Boolean).join(", ")}</span>}
       </p>
@@ -142,9 +143,11 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
         {blok.items.map((s) => (
           <li key={s.id} className="space-y-0.5" data-stuk={s.id}>
             <p className="flex flex-wrap items-center gap-2">
-              {s.link
-                ? <a href={s.link} target="_blank" rel="noopener noreferrer" className="focus-ring rounded font-medium text-lint underline underline-offset-2">{s.label}</a>
-                : <span className="font-medium">{s.label}</span>}
+              {/* Een leesbaar stuk opent als tab (het venster haalt het op); alleen een PDF: de bron zelf. */}
+              {s.leesbaar === false
+                ? (bronHref(s.link) ? <a href={bronHref(s.link)} target="_blank" rel="noopener noreferrer" className="focus-ring rounded font-medium text-lint underline underline-offset-2">{s.label}</a>
+                  : <span className="font-medium">{s.label}</span>)
+                : <StukVindplaats brontype={blok.brontype} id={s.id} label={s.label} link={s.link} className="font-medium text-lint" />}
               {s.leesbaar === false && <StatusLabel toon="geel" klein uitleg="De tekst staat bij de bron nog alleen als PDF en is niet te lezen.">alleen PDF</StatusLabel>}
             </p>
             <p className="text-xs text-muted">
@@ -167,51 +170,6 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
   leemte: ({ blok }) => <p className="text-muted" data-leemte>{blok.tekst}</p>,
 };
 
-/** Een groep uit een bron naast de wet: een alinea als citaat, een voetnoot klein met de stukken waar ze naar verwijst,
- *  een tabel als tabel. De tekst blijft letterlijk; de tabel zet de cellen alleen in hun kolom. */
-function ExternGroepWeergave({ groep }: { groep: ExternGroep }) {
-  if (groep.soort === "tabel") {
-    const kolommen = groep.kop?.cellen ?? [];
-    return (
-      <div className="space-y-1" data-extern-tabel>
-        {groep.kop?.kop && <p className="text-xs font-medium text-muted">{groep.kop.kop}</p>}
-        <div className="max-w-full overflow-x-auto">
-          <table className="min-w-full border-collapse text-xs">
-            {groep.kop && <caption className="pb-1 text-left font-medium text-ink">{groep.kop.tekst}</caption>}
-            {kolommen.some(Boolean) && (
-              <thead><tr>{kolommen.map((k, i) => <th key={i} scope="col" className="border-b border-line px-2 py-1 text-left font-medium">{k}</th>)}</tr></thead>
-            )}
-            <tbody>
-              {groep.rijen.map((r) => (
-                <tr key={r.nr} className="border-b border-line last:border-0">
-                  {(r.cellen ?? [r.tekst]).map((c, i) => <td key={i} className="px-2 py-1 align-top">{c}</td>)}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  }
-  const p = groep.passage;
-  if (groep.soort === "voetnoot") {
-    return (
-      <p className="text-xs text-muted" data-extern-voetnoot>
-        <span className="font-medium">Voetnoot:</span> {p.tekst}
-        {p.verwijst_naar?.map((v) => {
-          const href = bronHref(v.link);
-          return <span key={v.id}> · {href ? <a href={href} target="_blank" rel="noopener noreferrer" className="focus-ring rounded underline underline-offset-2">{v.label}</a> : v.label}</span>;
-        })}
-      </p>
-    );
-  }
-  return (
-    <div className="space-y-1">
-      {p.kop && <p className="text-xs font-medium text-muted">{p.kop}</p>}
-      <Citaat>{p.tekst}</Citaat>
-    </div>
-  );
-}
 
 function BlokWeergave({ blok, ...rest }: { blok: AntwoordBlok; bronnen?: readonly Bron[]; nietLetterlijk?: readonly string[] }) {
   const Teken = BLOKKEN[blok.soort] as (p: Props<BlokSoort>) => React.ReactNode;

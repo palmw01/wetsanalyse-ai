@@ -140,7 +140,9 @@ export function annotatieKopTekst(info: { citeertitel?: string; artikel: string;
 
 // ── De stand ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-export type StandSoort = "nog-niet-in-werking" | "gelezen-ouder" | "na-peildatum" | "peildatum-onbekend";
+export type StandSoort = "nog-niet-in-werking" | "gelezen-ouder" | "na-peildatum" | "peildatum-onbekend"
+  // Een stuk uit een bronconnector (`lib/bronStuk.ts`).
+  | "stuk-gewijzigd" | "bewaarde-versie" | "alleen-pdf";
 export interface StandMeldingData { soort: StandSoort; tekst: string }
 
 export const NOG_NIET_IN_WERKING: StandMeldingData = {

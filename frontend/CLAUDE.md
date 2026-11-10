@@ -1406,6 +1406,25 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   - in het overzicht en in de bronselectie naast het gesprek opent een bepaling als tab (`GroepRij onOpen`, via
     `ContextPaneelContext`) in plaats van een eigen uitklap met de wettekst. Buiten de werkplek blijft de rij een link
     naar de bronpagina.
+- **Een stuk uit een bronconnector** (PR 6, ADR-013; `app/connectorTekst.test.ts`) opent als tab (`ContextDoel` soort
+  `stuk`: brontype en id, met `gelezen` en `voorbeeld` uit het antwoord). Niets in `components/` kent een connector bij naam.
+  - De BFF `app/api/bronnen/[connector]/[id]` leidt door naar graph-qa `GET /v1/bronnen/{connector}/stukken/{id}`, en
+    stuurt `offset` en `tabel` mee. De rekenkern staat in `lib/bronStuk.ts`, de stand per sessie in `lib/useStuk.ts`.
+  - De kop komt uit de beschrijving van de connector en de metadata (`stukHerkomst`): het label, en daaronder groep ·
+    soort · datum · vindplaats. `HerkomstRegel` noemt de host van de link.
+  - `components/wettekst/StukVenster` heeft deze blokken:
+    - stand (`stukMeldingen`: een andere versie dan Lex las, de bewaarde versie, alleen een PDF);
+    - inhoud;
+    - tekst per deel, met *Volgende deel laden*;
+    - gegevens (`stukGegevens`, in de volgorde van de beschrijving);
+    - verwijzingen uit de voetnoten (een stuk van dezelfde bron opent als tab).
+
+    Is de bron niet te bereiken, dan toont het venster wat Lex las.
+  - `components/wettekst/ConnectorTekst` tekent de rijsoorten van het contract (alinea, voetnoot, tabel met `cellen`), in
+    het antwoordblok `extern` en in het venster. Wat Lex citeerde staat gemarkeerd (`data-geciteerd`).
+  - In het antwoord opent het label van een stuk (in `extern` en `stukken`) de tab via `StukVindplaats`; met Ctrl/⌘ gaat
+    het naar de bron. Een stuk dat alleen een PDF is, blijft een link naar de bron.
+  - Browserregressie: `scripts/test-bronvenster-stuk.mjs`.
 - **De bronpagina is het bronvenster als pagina** (PR 5): `BronPagina` zet `BronVenster variant="pagina"` (tekst groot,
   markeringen als rijen naar hun pagina) onder de `PaginaKop` met de herkomstregel en de meldingen over de stand
   (`useBronHerkomst`, ook de peildatum met `?werkgebied=`); de zijkolom houdt Werkgebieden en Herleidbaarheid. ↗ in het

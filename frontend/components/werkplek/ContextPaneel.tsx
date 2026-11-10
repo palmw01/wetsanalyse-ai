@@ -19,6 +19,10 @@ import { WettekstBlok } from "@/components/wettekst/WettekstBlok";
 import { foutTekst, haalWerkgebied } from "@/lib/api";
 import { jasStyle, klasseLabel } from "@/lib/jas";
 import { herkomstKop, vindplaatsTekst } from "@/lib/herkomst";
+import { stukHerkomst, type StukPassage } from "@/lib/bronStuk";
+import { useStuk } from "@/lib/useStuk";
+import { StukVenster } from "@/components/wettekst/StukVenster";
+import { contextSleutelVan } from "@/lib/paneelTabs";
 import type { Lifecycle, Overzicht, Werkgebied } from "@/lib/types";
 import { useBronHerkomst } from "@/lib/useBronHerkomst";
 import { ROL_LABEL } from "@/lib/werkgebied";
@@ -31,7 +35,11 @@ export type ContextDoel =
   | { soort: "bron"; bron_iri: string; werkgebied_id?: string; titel: string; /** De jci die Lex las, met de toestand. */ jci?: string }
   | { soort: "element"; element_id: string; titel: string }
   | { soort: "bibliotheek"; werkgebied_id: string; titel: string }
-  | { soort: "overzicht"; overzicht: Overzicht; titel: string };
+  | { soort: "overzicht"; overzicht: Overzicht; titel: string }
+  /** Een stuk uit een bronconnector (ADR-013, het bronvenster PR 6): het brontype (of de naam) van de connector en het
+   *  id. `gelezen` en `voorbeeld` komen uit het antwoord: wat Lex las, en wat het venster toont als de bron weg is. */
+  | { soort: "stuk"; brontype: string; id: string; titel: string;
+      gelezen?: { bron_hash: string; passages: number[] }; voorbeeld?: StukPassage[] };
 
 /** Opent een context naast het gesprek. Alleen binnen de werkplek (`WerkplekClient`); daarbuiten is er
  *  geen gesprek om naast te staan en tonen de aanroepers deze handeling niet. */
@@ -39,12 +47,12 @@ export const ContextPaneelContext = createContext<((doel: ContextDoel) => void) 
 
 const KOP: Record<ContextDoel["soort"], string> = {
   bron: "Bepaling", element: "JAS-element", bibliotheek: "Bronnen van dit werkgebied", overzicht: "Overzicht uit de kennisgraaf",
+  stuk: "Stuk",
 };
 
+/** De sleutel van een context: één plek (`lib/paneelTabs.ts`), ook voor de tabs. */
 export function contextSleutel(d: ContextDoel): string {
-  return d.soort === "bron" ? `bron:${d.bron_iri}:${d.werkgebied_id ?? ""}`
-    : d.soort === "element" ? `element:${d.element_id}`
-    : d.soort === "overzicht" ? `overzicht:${d.overzicht.gevraagd}` : `bibliotheek:${d.werkgebied_id}`;
+  return contextSleutelVan(d);
 }
 
 export function overzichtContext(overzicht: Overzicht): ContextDoel {
@@ -56,7 +64,7 @@ export function overzichtContext(overzicht: Overzicht): ContextDoel {
 export function paginaVanContext(d: ContextDoel): string | undefined {
   return d.soort === "bron" ? bronPad(d.bron_iri, d.werkgebied_id)
     : d.soort === "element" ? elementPad(d.element_id)
-    : d.soort === "overzicht" ? undefined : projectPad(d.werkgebied_id, "bronnen");
+    : d.soort === "overzicht" || d.soort === "stuk" ? undefined : projectPad(d.werkgebied_id, "bronnen");
 }
 
 /** Het contextpaneel (spoor G4, mock-up v4 `sideRail`): dezelfde schil als de artefacten – een kolom vanaf
@@ -78,12 +86,17 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
 }) {
   // Een bepaling krijgt de kop van haar herkomst: de bepaling als titel, regeling · plek · stand · bron eronder.
   const bron = useBronHerkomst(doel.soort === "bron" ? doel : undefined);
-  const kop = bron.herkomst ? herkomstKop(bron.herkomst) : { soort: KOP[doel.soort], titel: doel.titel || KOP[doel.soort] };
+  // Een stuk uit een bronconnector: dezelfde kop, uit de beschrijving van de connector en de metadata van het stuk.
+  const stuk = useStuk(doel.soort === "stuk" ? doel : null);
+  const herkomst = bron.herkomst ?? (doel.soort === "stuk"
+    ? stukHerkomst(stuk.stand?.antwoord.beschrijving, stuk.stand?.antwoord.deel.stuk, doel.titel) : undefined);
+  const kop = herkomst ? { soort: doel.soort === "stuk" ? stuk.stand?.antwoord.beschrijving.label ?? KOP.stuk : herkomstKop(herkomst).soort,
+    titel: herkomst.bepaling } : { soort: KOP[doel.soort], titel: doel.titel || KOP[doel.soort] };
   return (
     <Dialog label={`${kop.soort}: ${kop.titel}`} variant={variant} onSluit={onSluit} onEscape={onVerberg}>
       <div data-context-paneel={doel.soort} className="flex min-h-0 flex-1 flex-col">
         <PaneelKop soort={kop.soort} titel={kop.titel} pagina={paginaVanContext(doel)} onSluit={onSluit}
-          status={bron.herkomst && <HerkomstRegel herkomst={bron.herkomst} />}
+          status={herkomst && <HerkomstRegel herkomst={herkomst} />}
           hoofdactie={doel.soort === "bron" && onSamenhang && (
             <button type="button" onClick={() => onSamenhang(doel.bron_iri)} data-bron-samenhang
               className={`${knopKlasse("secondary", "xs")} gap-1`}><GraafIcoon />Samenhang</button>
@@ -94,6 +107,8 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
               onOpenBron={(v) => onWissel({ soort: "bron", bron_iri: v.iri, werkgebied_id: doel.werkgebied_id, titel: vindplaatsTekst(v) })} />
             : doel.soort === "element" ? <ElementInhoud id={doel.element_id} />
             : doel.soort === "overzicht" ? <OverzichtPaneel overzicht={doel.overzicht} onMaakWerkgebied={onMaakWerkgebied} />
+            : doel.soort === "stuk" ? <StukVenster stuk={stuk} gelezen={doel.gelezen} voorbeeld={doel.voorbeeld}
+              onOpenStuk={(v) => onWissel({ soort: "stuk", brontype: doel.brontype, id: v.id, titel: v.label })} />
             : <BibliotheekInhoud werkgebiedId={doel.werkgebied_id} onWissel={onWissel} />}
         </div>
       </div>

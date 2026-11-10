@@ -33,7 +33,8 @@ export const MAX_TABS = 8;
 export function contextSleutelVan(c: ContextDoel): string {
   return c.soort === "bron" ? `bron:${c.bron_iri}:${c.werkgebied_id ?? ""}`
     : c.soort === "element" ? `element:${c.element_id}`
-    : c.soort === "overzicht" ? `overzicht:${c.overzicht.gevraagd}` : `bibliotheek:${c.werkgebied_id}`;
+    : c.soort === "overzicht" ? `overzicht:${c.overzicht.gevraagd}`
+    : c.soort === "stuk" ? `stuk:${c.id}` : `bibliotheek:${c.werkgebied_id}`;
 }
 
 export function sleutelVan(i: PaneelInhoud): string {
@@ -78,6 +79,7 @@ export function tabLabel(t: PaneelTab): { kort: string; vol: string } {
       vol = c.titel || h.bepaling;
     } else if (c.soort === "element") { kort = "Element"; vol = c.titel || "JAS-element"; }
     else if (c.soort === "bibliotheek") { kort = "Bronnen"; vol = "Bronnen van dit werkgebied"; }
+    else if (c.soort === "stuk") { kort = c.titel || c.id; vol = c.titel || c.id; }
     else { kort = c.titel || "Overzicht"; vol = `Overzicht: ${c.titel}`; }
   } else if (i.soort === "annotatie") {
     const h = herkomstVan({ iri: i.doel.bron_iri, label: i.doel.label, regeling: i.doel.citeertitel });
@@ -116,6 +118,7 @@ function geldigeInhoud(v: unknown): v is PaneelInhoud {
     if (c.soort === "bron") return typeof c.bron_iri === "string";
     if (c.soort === "element") return typeof c.element_id === "string";
     if (c.soort === "bibliotheek") return typeof c.werkgebied_id === "string";
+    if (c.soort === "stuk") return typeof c.brontype === "string" && typeof c.id === "string";
     return c.soort === "overzicht" && isObject(c.overzicht) && typeof (c.overzicht as Record<string, unknown>).gevraagd === "string";
   }
   if (v.soort === "annotatie") {
