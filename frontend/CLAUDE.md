@@ -400,7 +400,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     bepaling (`bron`), één JAS-element (`element`) of de bronnen van het werkgebied van het gesprek
     (`bibliotheek`). Zelfde schil (kolom vanaf 800px, anders een sheet) en hoogstens één paneel: een
     artefact of annotatie sluit de context, een context sluit die (`ctx` in `WerkplekClient`, bijgesteld in de
-    render). Ingangen: *Openen* op de bronkaart van een citatie-chip (via `ContextPaneelContext`,
+    render). Ingangen: *Openen* op de bronkaart van een citatie-chip (via `useOpenBron`,
     alleen in de werkplek), *Bronnen* in de chatkop (`bronnenSignaal`) en een markering of elementrij in het
     paneel zelf (`onWissel`). Een bron krijgt het werkgebied van het gesprek mee. **Om te raadplegen, niet om
     in te werken**: geen beoordelingsknoppen; elk paneel – ook het artefact- en het annotatiepaneel – heeft
@@ -1433,13 +1433,19 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   niet in de tabsleutel, bewaard zonder kennisgraaf) wat het antwoord noemt. *Bekijk in de tekst* gaat terug naar Tekst op
   dat segment (`data-segment`), *Open in het paneel* opent de andere bepaling als eigen tab op Graaf. Escape pelt op de
   graaf eerst lagen, keuze en vergroten af (`escape`), dan verbergt het paneel.
-- **Eén ingang per plek:**
-  - onder een antwoord de chips (`BronChip`: `BepalingChips` per bepaling en `SamenhangChip`, ook bij vrije tekst en
-    een overzicht); de losse knop "Bekijk samenhang … in de graaf" bestaat niet meer;
+- **Eén ingang per plek** (`useOpenBron` in `ContextPaneel.tsx` is de enige opener; geen andere plek leest
+  `ContextPaneelContext`):
+  - **onder een antwoord per bepaling één kaart** (ontdubbelen PR 3; `BronChip`/`BepalingChips`, `kaartenVan` in
+    `lib/bronnen.ts`): bij een sjabloon de bepalingen die het draagt, bij vrije tekst de bepalingen die de tekst
+    éénduidig noemt (geen kaart voor een gok). Er is geen tweede kaart voor de graaf: die is de tab Graaf van het venster,
+    met "Dit antwoord" – elke ingang in het bericht (kaart, vindplaats, citatie) neemt de samenhang van het bericht mee
+    (`BerichtSamenhangContext` in `ThreadRij`). De bronnenlijst toont alleen wat geen kaart heeft (`zonderKaarten`):
+    regelingen, connectorstukken, externe bronnen. Een overzicht heeft zijn kaartje, en de overzichttab heeft zelf
+    Tekst | Graaf (de hele kennisgraaf met de nadruk op het overzicht); een artikel uit die graaf opent als eigen tab;
   - de citatiekaart heeft *Openen*, zonder eigen graafknop;
   - in de bronnenlijst opent een bepaling als tab (`Vindplaats kort`; met Ctrl/⌘ de bron zelf);
   - in het overzicht en in de bronselectie naast het gesprek opent een bepaling als tab (`GroepRij onOpen`, via
-    `ContextPaneelContext`) in plaats van een eigen uitklap met de wettekst. Buiten de werkplek blijft de rij een link
+    `useOpenBron`) in plaats van een eigen uitklap met de wettekst. Buiten de werkplek blijft de rij een link
     naar de bronpagina.
 - **Een stuk uit een bronconnector** (PR 6, ADR-013; `app/connectorTekst.test.ts`) opent als tab (`ContextDoel` soort
   `stuk`: brontype en id, met `gelezen` en `voorbeeld` uit het antwoord). Niets in `components/` kent een connector bij naam.
@@ -1649,9 +1655,9 @@ gaat over de stand van nu en staat daarom niet op een oude versie. De route krij
 
 ## De samenhangsgraaf (sigma.js)
 
-`NodeAnnotatiePaneel` heeft naast *Tekst* een tab **Graaf** (`components/graaf/Graaf.tsx`), en onder een
-antwoord met een bron naar een BWB-bepaling staat de chip *Samenhang* (`SamenhangChip`, voorleesnaam "Bekijk samenhang van … in de
-graaf") die hetzelfde paneel op die tab opent; in het bronvenster van een bepaling staat *Samenhang* in de kop (het bronvenster, PR 4). Een
+Het venster van een bepaling (lezen én annoteren) en van een overzicht heeft naast *Tekst* een tab **Graaf**
+(`components/wettekst/BronGraaf.tsx` om `components/graaf/Graaf.tsx`); de kaart van een bepaling onder een antwoord opent
+het venster, en daar staat de graaf (ontdubbelen PR 1–3). Een
 2D-graaf op **sigma.js v4 + graphology**: WebGL 2 (ook de labels), gebouwd om de hele kennisgraaf (~6.500
 knopen, ~10.000 lijnen) vloeiend te tekenen. De overstap van v3 (okt 2026) raakte alleen `GraafTekenaar`.
 
@@ -1763,14 +1769,14 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   geladen; `ketenZin` zegt boven de graaf wat je ziet en wat er niet bij staat. De ketting krijgt de vorm van de hele kennisgraaf:
   een rond sterrenstel, geen boom met knopen onder elkaar (`layoutSterrenstel`, besluit gebruiker 6 nov 2026). `ketenFocus` geeft de nadruk: in de hele
   kennisgraaf licht de ketting op. *Toon het hele artikel* laadt het artikel erbij (`laadErbij`); de ketting telt daarbij niet
-  als geladen. De knop onder een antwoord, een annotatie in het gesprek en de
+  als geladen. Een bepaling uit een antwoord, een annotatie in het gesprek en de
   doelen van `doel` uit de werkplek gebruiken de ketting; de tab Samenhang van een werkgebied en de annotatiepagina niet.
   Een overzicht opent in de kennisgraaf met zijn eigen focus (`eigenFocus`); zijn *Dit antwoord* is de ketting van de delen
   en de definities (`overzichtDefinities`).
   Een wettelijk begrip (`begrip_bron: "wet"`) heeft een eigen kleur (`WETBEGRIPKLEUR`) en toont in de inspector zijn
   definities met vindplaats en geldingsbereik. Browserregressie: scenario 0 in `scripts/test-samenhang.mjs`; de rest van dat
   script draait op het hele artikel, zodat de bediening getoetst blijft.
-- **De knop opent wat het antwoord noemt** (`antwoordDoelen` in `lib/bronnen.ts`, max.
+- **De graaf van een antwoord opent wat het antwoord noemt** (`antwoordDoelen` in `lib/bronnen.ts`, max.
   `MAX_SAMENHANG_DOELEN`) of de delen van een overzicht (`overzichtDoelen` in `lib/overzicht.ts`, max.
   `MAX_OVERZICHT_DOELEN`, uit het overzicht en niet uit de tekst: dezelfde vraag geeft dezelfde kaart).
   Meer dan één doel gaat in **één** verzoek (`/samenhang/meer`, één bronboom per regeling) – in

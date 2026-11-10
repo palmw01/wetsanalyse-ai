@@ -4,11 +4,12 @@ import { knopKlasse } from "@/components/ui/Button";
 import { HerkomstRegel } from "@/components/ui/HerkomstRegel";
 import { BronVenster } from "@/components/wettekst/BronVenster";
 import { PaneelKop } from "@/components/ui/PaneelKop";
-import { createContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import { ANTWOORD, type GraafContext } from "@/components/graaf/Graaf";
 import { BronGraaf, WeergaveBalk, useBronGraaf, type Samenhang, type Weergave } from "@/components/wettekst/BronGraaf";
 import type { NodeDoel } from "@/lib/annotatieNode";
+import { overzichtDefinities, overzichtDoelen, overzichtFocus } from "@/lib/overzicht";
 import { bronDoel, samenhangBeschikbaar } from "@/lib/samenhang";
 import { useBepaling } from "@/lib/useBron";
 
@@ -54,6 +55,26 @@ export type ContextDoel =
 /** Opent een context naast het gesprek. Alleen binnen de werkplek (`WerkplekClient`); daarbuiten is er
  *  geen gesprek om naast te staan en tonen de aanroepers deze handeling niet. */
 export const ContextPaneelContext = createContext<((doel: ContextDoel) => void) | null>(null);
+
+/** De samenhang van het bericht waar een ingang in staat (`ThreadRij`): alles wat het antwoord aanwijst, zodat elke
+ *  ingang in dat antwoord – kaart, vindplaats, citatie – de bepaling opent met "Dit antwoord" op de tab Graaf. */
+export interface BerichtSamenhang { doelen: NodeDoel[]; graaf: Samenhang["graaf"] }
+export const BerichtSamenhangContext = createContext<BerichtSamenhang | null>(null);
+
+/** Dé opener van een bron naast het gesprek (ontdubbelen PR 2): elke ingang gaat hierlangs, en geen andere plek leest
+ *  `ContextPaneelContext`. Binnen een bericht neemt een bepaling de samenhang van dat bericht mee. `null` buiten de
+ *  werkplek: dan is er geen gesprek om naast te staan, en de aanroeper toont een link. */
+export function useOpenBron(): ((doel: ContextDoel) => void) | null {
+  const opener = useContext(ContextPaneelContext);
+  const bericht = useContext(BerichtSamenhangContext);
+  return useMemo(() => opener && ((d: ContextDoel) => opener(d.soort === "bron" && bericht && !d.samenhang
+    ? { ...d, samenhang: metSamenhang(bericht, d.bron_iri) } : d)), [opener, bericht]);
+}
+
+/** De samenhang van een bericht, gezien vanuit één bepaling: die is het doel, de rest gaat mee. */
+export function metSamenhang(b: BerichtSamenhang, bronIri: string): Samenhang {
+  return { extra: b.doelen.filter((d) => d.bron_iri !== bronIri), graaf: b.graaf, van: "antwoord" };
+}
 
 const KOP: Record<ContextDoel["soort"], string> = {
   bron: "Bepaling", element: "JAS-element", bibliotheek: "Bronnen van dit werkgebied", overzicht: "Overzicht uit de kennisgraaf",
@@ -107,15 +128,26 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
   const kop = herkomst ? { soort: doel.soort === "stuk" ? stuk.stand?.antwoord.beschrijving.label ?? KOP.stuk : herkomstKop(herkomst).soort,
     titel: herkomst.bepaling } : { soort: KOP[doel.soort], titel: doel.titel || KOP[doel.soort] };
 
-  // Tekst | Graaf (ontdubbelen PR 1): de samenhang is een weergave van het venster, geen eigen paneel.
+  // Tekst | Graaf (ontdubbelen PR 1): de samenhang is een weergave van het venster, geen eigen paneel. Een bepaling
+  // tekent haar eigen ketting (of die van het antwoord waaruit ze kwam); een overzicht zijn delen in de hele kennisgraaf,
+  // met zijn eigen nadruk – wat de losse samenhangkaart onder het antwoord deed (ontdubbelen PR 2).
   const bronIri = doel.soort === "bron" ? doel.bron_iri : "";
   const jci = doel.soort === "bron" ? doel.jci : undefined;
+  const ov = doel.soort === "overzicht" ? doel.overzicht : undefined;
+  const overzichtGraaf = useMemo(() => {
+    if (!ov) return undefined;
+    const [eerste, ...rest] = overzichtDoelen(ov).doelen;
+    const samenhang: Samenhang = { extra: [...rest, ...overzichtDefinities(ov)],
+      graaf: { bereik: "kennisgraaf", focus: overzichtFocus(ov), keten: true }, van: "antwoord" };
+    return eerste && { doel: eerste, samenhang };
+  }, [ov]);
   const graafDoel = useMemo<NodeDoel | undefined>(() => (bronIri
-    ? { ...(bronDoel(bronIri) ?? { bron_iri: bronIri }), ...(jci ? { jci } : {}) } : undefined), [bronIri, jci]);
+    ? { ...(bronDoel(bronIri) ?? { bron_iri: bronIri }), ...(jci ? { jci } : {}) } : overzichtGraaf?.doel), [bronIri, jci, overzichtGraaf]);
   const werkgebiedId = doel.soort === "bron" ? doel.werkgebied_id : undefined;
-  const meegegeven = doel.soort === "bron" ? doel.samenhang : undefined;
+  const meegegeven = doel.soort === "bron" ? doel.samenhang : overzichtGraaf?.samenhang;
   const samenhang = useMemo<Samenhang>(() => meegegeven
-    ?? { extra: [], graaf: { keten: true, werkgebiedId: werkgebiedId ?? null } }, [meegegeven, werkgebiedId]);
+    ? { ...meegegeven, graaf: { ...meegegeven.graaf, werkgebiedId: meegegeven.graaf.werkgebiedId ?? werkgebiedId ?? null } }
+    : { extra: [], graaf: { keten: true, werkgebiedId: werkgebiedId ?? null } }, [meegegeven, werkgebiedId]);
   const [graafAan, setGraafAan] = useState(false);
   useEffect(() => {
     if (graafDoel) void samenhangBeschikbaar().then(setGraafAan);
@@ -125,7 +157,7 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
   const graaf = useBronGraaf({ doel: graafDoel ?? GEEN_DOEL, samenhang, aan: metGraaf, weergave: metGraaf ? weergave : "tekst", claim: true });
   const [gekozen, setGekozen] = useState<string>();
   // Dezelfde lezing als de tekst (`useBepaling`, gedeeld per sessie): de inspector haalt er tekst en markeringen uit.
-  const lezing = useBepaling(metGraaf ? bronIri : null);
+  const lezing = useBepaling(metGraaf && bronIri ? bronIri : null);
   const opGraaf = metGraaf && weergave === "graaf";
 
   /** *Bekijk in de tekst*: terug naar de tekst, de markering gekozen en het segment in beeld. */
@@ -150,10 +182,10 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
           )}
           balk={metGraaf && <WeergaveBalk weergave={weergave} graaf={graaf}
             onKies={(w) => { setWeergave(w); if (w === "tekst" && !graaf.inZijpaneel) graaf.setGroot(false); }} />} />
-        {doel.soort === "bron" && graafDoel && (
+        {graafDoel && (
           <BronGraaf graaf={graaf} zichtbaar={opGraaf} benaming={samenhang.van === "antwoord" ? ANTWOORD : BEPALING}
             weergave={lezing.view} actiefElementId={gekozen} onKiesElement={setGekozen} onOpenTekst={naarTekst}
-            onWisselArtikel={(d, g) => onWissel({ soort: "bron", bron_iri: d.bron_iri, werkgebied_id: doel.werkgebied_id,
+            onWisselArtikel={(d, g) => onWissel({ soort: "bron", bron_iri: d.bron_iri, werkgebied_id: werkgebiedId,
               titel: vindplaatsTekst({ iri: d.bron_iri, label: "" }), weergave: "graaf",
               samenhang: { extra: [graafDoel, ...samenhang.extra].filter((x) => x.bron_iri !== d.bron_iri),
                 graaf: { ...samenhang.graaf, ...g }, van: samenhang.van ?? "bepaling" } })} />

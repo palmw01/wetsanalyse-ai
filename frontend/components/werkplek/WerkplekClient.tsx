@@ -1,7 +1,8 @@
 "use client";
 
 import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
-import { bronDoel, samenhangBeschikbaar } from "@/lib/samenhang";
+import { bronDoel } from "@/lib/samenhang";
+import { vindplaatsTekst } from "@/lib/herkomst";
 import { ThreadRij, type ThreadActies } from "@/components/werkplek/ThreadRij";
 import { reeksNavigatie } from "@/lib/reeks";
 import { afronding } from "@/lib/beurtStroom";
@@ -327,8 +328,6 @@ export function WerkplekClient({
     schrijfOpslag(opslagSleutel(gesprekId), tabStand.tabs.length ? bewaarVorm(tabStand) : undefined);
   }, [tabStand, gesprekId, demo, tabsGeladen]);
 
-  const [samenhangAan, setSamenhangAan] = useState(false);
-  useEffect(() => { void samenhangBeschikbaar().then(setSamenhangAan); }, []);
   // Waar de volgende vraag over gaat (*Vraag Lex*, F3b): een markering, of een object uit een werkgebied.
   // Een chip boven het invoerveld zolang het geldt; na het versturen weg.
   const [onderwerp, setOnderwerp] = useState<Onderwerp | undefined>(beginOnderwerp ?? undefined);
@@ -820,13 +819,6 @@ export function WerkplekClient({
         if (!ref) return;
         wisselPaneel(ref, { ook: () => setNodeDoel(undefined) });
       },
-      // Zonder eigen opties opent een antwoord op de ketting; een overzicht geeft zijn bereik zelf mee.
-      openSamenhang: (doel, extra = [], graaf = { keten: true }) => { setVolgendeVanuit("een antwoord"); wisselPaneel(undefined, { ook: () => {
-        setNodeTab("graaf");
-        setNodeExtra(extra);
-        setNodeGraaf(graaf);
-        setNodeDoel(doel);
-      } }); },
       openReeksLid: (reeksRun, doel) => {
         setNodeReeks(reeksRun);
         void openArtefact(doel.bron_iri, doel);
@@ -841,7 +833,6 @@ export function WerkplekClient({
     verstuur: (verzoek) => actiesRef.current?.verstuur(verzoek),
     openArtefact: (slug, doel) => actiesRef.current?.openArtefact(slug, doel),
     openArtefactVan: (artefact) => actiesRef.current?.openArtefactVan(artefact),
-    openSamenhang: (doel, extra, graaf) => actiesRef.current?.openSamenhang(doel, extra, graaf),
     openReeksLid: (reeksRun, doel) => actiesRef.current?.openReeksLid(reeksRun, doel),
     stop: () => actiesRef.current?.stop(),
     annuleer: () => actiesRef.current?.annuleer(),
@@ -926,12 +917,11 @@ export function WerkplekClient({
     extraDoelen={nodeExtra} graaf={nodeGraaf.keten ? { ...nodeGraaf, werkgebiedId } : nodeGraaf}
     // Een knoop uit een ander artikel (meegeopend, of uit de hele kennisgraaf): het paneel op dát
     // artikel; de rest van de kaart, het bereik en de nadruk blijven mee.
-    onWisselDoel={(nieuw, graaf) => {
-      setNodeExtra([nodeDoel, ...nodeExtra].filter((d) => d.bron_iri !== nieuw.bron_iri));
-      setNodeGraaf({ ...nodeGraaf, ...graaf });
-      setNodeTab("tekst");
-      setNodeDoel(nieuw);
-    }}
+    // *Open in het paneel* in de graaf: de andere bepaling als eigen tab, op de graaf, met dezelfde samenhang (ontdubbelen
+    // PR 3) – niet deze tab overschrijven.
+    onWisselDoel={(nieuw, graaf) => openContext({ soort: "bron", bron_iri: nieuw.bron_iri, titel: vindplaatsTekst({ iri: nieuw.bron_iri, label: "" }),
+      weergave: "graaf", samenhang: { extra: [nodeDoel, ...nodeExtra].filter((d) => d.bron_iri !== nieuw.bron_iri),
+        graaf: { ...nodeGraaf, ...graaf }, van: "antwoord" } }, "het paneel")}
     variant={breed ? "kolom" : "side"} onSluit={() => sluitPaneelTab(tabStand.actief)} onVerberg={verbergPaneel} beginTab={nodeTab}
     reeks={nodeReeksNav}
     // De rondleiding draait op een voorbeeld in het geheugen, met het invoerveld stil: daar is geen
@@ -1248,7 +1238,6 @@ export function WerkplekClient({
                 bezig={bezig}
                 geblokkeerd={geblokkeerd}
                 demo={!!demo}
-                samenhangAan={samenhangAan}
                 loopt={item.type === "reeks" && !!runId && runId === item.reeks.runId}
                 acties={acties}
               />

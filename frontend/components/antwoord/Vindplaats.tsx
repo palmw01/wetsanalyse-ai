@@ -1,8 +1,7 @@
 "use client";
 
-import { useContext } from "react";
 
-import { ContextPaneelContext } from "@/components/werkplek/ContextPaneel";
+import { useOpenBron } from "@/components/werkplek/ContextPaneel";
 import type { AntwoordVindplaats } from "@/lib/antwoord";
 import type { StukPassage } from "@/lib/bronStuk";
 import { vindplaatsTekst } from "@/lib/herkomst";
@@ -15,7 +14,7 @@ export function Vindplaats({ vindplaats: v, kort = false }: {
   /** Onder een kop die de bepaling al noemt (de leden van één artikel): alleen het eigen label, "lid 2". */
   kort?: boolean;
 }) {
-  const opener = useContext(ContextPaneelContext);
+  const opener = useOpenBron();
   const label = kort ? v.label : vindplaatsTekst(v);
   const href = bronHref(v.jci || v.iri);
   if (!href) return <span>{label}</span>;
@@ -40,7 +39,7 @@ export function StukVindplaats({ brontype, id, label, link, gelezen, voorbeeld, 
   voorbeeld?: StukPassage[];
   className?: string;
 }) {
-  const opener = useContext(ContextPaneelContext);
+  const opener = useOpenBron();
   const href = bronHref(link);
   const open = (e: React.MouseEvent) => {
     if (!opener || e.metaKey || e.ctrlKey || e.shiftKey) return;

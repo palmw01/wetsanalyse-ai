@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseOverzicht } from "./agentEvents";
-import { bepalingNaam, bepalingenVanOverzicht, deelKop, overzichtAlsMarkdown, overzichtDoelen, overzichtFocus, overzichtKnopTekst, telling, zoekverantwoording } from "./overzicht";
+import { bepalingNaam, bepalingenVanOverzicht, deelKop, overzichtAlsMarkdown, overzichtDoelen, overzichtFocus, telling, zoekverantwoording } from "./overzicht";
 import type { Overzicht } from "./types";
 
 const IW = "urn:bwb:BWBR0004770", AWB = "urn:bwb:BWBR0005537", LEIDRAAD = "urn:bwb:BWBR0024096";
@@ -55,7 +55,6 @@ describe("overzicht", () => {
       `${IW}:hoofdstuk:II`, `${IW}:hoofdstuk:V`, `${AWB}:hoofdstuk:4:titeldeel:4.4:afdeling:4.4.4`, `${LEIDRAAD}:artikel:28`,
     ]);
     expect(keuze.doelen[0].citeertitel).toBe("Invorderingswet 1990");
-    expect(overzichtKnopTekst(invordering())).toBe("Bekijk de 4 delen in de kennisgraaf");
   });
 
   it("de focus in de kennisgraaf is alles uit het overzicht, zonder grens en zonder dubbelen", () => {
@@ -74,7 +73,6 @@ describe("overzicht", () => {
   it("zonder delen: de bepalingen die het onderwerp noemen", () => {
     const ov = { ...invordering(), regelingen: [{ ...invordering().regelingen[0], delen: [] }] };
     expect(overzichtDoelen(ov).doelen.map((d) => d.bron_iri)).toEqual([`${IW}:artikel:4`]);
-    expect(overzichtKnopTekst(ov)).toBe("Bekijk art. 4 in de kennisgraaf");
   });
 
   it("noemt artikelen en divisies elk op hun eigen manier, zonder bereik", () => {

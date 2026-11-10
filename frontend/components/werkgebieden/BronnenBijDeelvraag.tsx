@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
@@ -10,7 +10,7 @@ import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
 import { SkeletonCard } from "@/components/ui/Skeleton";
-import { ContextPaneelContext } from "@/components/werkplek/ContextPaneel";
+import { useOpenBron } from "@/components/werkplek/ContextPaneel";
 import { PeildatumRegel } from "@/components/werkgebieden/Peildatum";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
@@ -272,7 +272,7 @@ function BronRij({ werkgebiedId, bronIri, label, rol, selectie, beheer, ook, sta
   ook: number[];
   stand: string;
 }) {
-  const opener = useContext(ContextPaneelContext);
+  const opener = useOpenBron();
   const { bepaling, regeling } = bepalingEnRegeling(label);
   const sub = [regeling, ROL_LABEL[rol].toLowerCase(), stand.toLowerCase(), ookBijZin(ook)].filter(Boolean).join(" · ");
   const s = selectie;
@@ -342,7 +342,7 @@ function Voorstel({ o, d, k, beslis, inGesprek = false, alleenLezen = false }: {
   const [metReden, setMetReden] = useState<"uitsluiten" | "opnemen" | null>(null);
   const uitsluiten = metReden !== null;
   const setUitsluiten = (aan: boolean) => setMetReden(aan ? "uitsluiten" : null);
-  const opener = useContext(ContextPaneelContext);
+  const opener = useOpenBron();
   const [reden, setReden] = useState("");
   const [bezig, setBezig] = useState(false);
   const doe = async (b: BronselectieBesluit) => {

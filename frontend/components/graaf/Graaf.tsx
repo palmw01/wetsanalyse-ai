@@ -141,7 +141,9 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
   // De knopen die het paneel als tekst kan tonen: wat in zijn weergave staat (vaak één lid), niet het
   // hele artikel dat de graaf laadt. Al het andere opent in het paneel in plaats van naar een tekst te
   // springen die het niet bevat.
-  const inPaneel = useMemo(() => (onWisselArtikel && weergave ? knopenInWeergave(model, weergave) : undefined),
+  // Met een wissel en zonder tekst (een overzicht) staat niets van de kaart als tekst in het venster: elke bepaling opent
+  // dan als eigen tab.
+  const inPaneel = useMemo(() => (onWisselArtikel ? (weergave ? knopenInWeergave(model, weergave) : new Set<string>()) : undefined),
     [model, weergave, onWisselArtikel]);
   const gekozenData = gekozen ? model.getNodeAttributes(gekozen) : undefined;
   const heeftBegrippen = useMemo(() => model.someNode((_, a) => a.soort === "begrip"), [model]);
