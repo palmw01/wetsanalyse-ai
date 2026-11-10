@@ -66,10 +66,31 @@ describe("normaliseerBronnen", () => {
   });
 
   it("laat een verwijzing zonder bronnode staan, één keer", () => {
-    const vreemd = "jci1.3:c:BWBR0005537&bijlage=1&o=a";
+    const vreemd = "https://example.org/iets";
     const lijst = normaliseerBronnen([oud(vreemd), oud(vreemd)]);
     expect(lijst.overig.map((i) => i.label)).toEqual([vreemd]);
     expect(lijst.aantal).toBe(1);
+  });
+
+  it("zet een plek in een bijlage leesbaar onder haar regeling, met de link naar de bron", () => {
+    // Acceptatie, 10 nov 2026: de bijlage stond als kale jci in de lijst.
+    const bijlage = "jci1.3:c:BWBR0018472&bijlage=2&hoofdstuk=2&artikel=5&z=2026-08-15&g=2026-08-15";
+    const lijst = normaliseerBronnen([
+      { label: bijlage, uri: bijlage, jci: bijlage, regeling: "Uitvoeringsregeling Awir" }, oud(bijlage),
+      { label: "Artikel 2", uri: iri(AWIR, "artikel", "2"), bron_iri: iri(AWIR, "artikel", "2"), regeling: "Uitvoeringsregeling Awir" },
+    ]);
+    expect(lijst.overig).toEqual([]);
+    expect(lijst.groepen).toHaveLength(1);
+    const [groep] = lijst.groepen;
+    expect(groep.naam).toBe("Uitvoeringsregeling Awir");
+    expect(groep.items.map((i) => i.label)).toEqual(["Artikel 2", "Bijlage 2, hoofdstuk 2, artikel 5"]);
+    expect(groep.items[1]).toMatchObject({ soort: "bijlage", href: `https://wetten.overheid.nl/${bijlage}` });
+    expect(lijst.aantal).toBe(2);
+  });
+
+  it("maakt van een bijlage met een onderdeel een leesbare plek", () => {
+    const lijst = normaliseerBronnen([oud("jci1.3:c:BWBR0005537&bijlage=1&o=a")]);
+    expect(lijst.groepen[0].items.map((i) => i.label)).toEqual(["Bijlage 1, onderdeel a"]);
   });
 
   it("zet externe bronnen (ADR-013) in een groep per brontype, na de regelingen", () => {
