@@ -102,6 +102,10 @@ class Artikel:
     terugwerkend_tot: str | None = None  # retroactieve ingangsdatum (ISO), indien aanwezig
     definieert_begrippen: list[str] = field(default_factory=list)
     wijzigingsbronnen: list[str] = field(default_factory=list)  # <juncto> Stb-refs
+    # Uit het eigen brondata-blok (``meta-data/brondata``), via `_bronverwijzingen` in de parser.
+    dossiers: list[str] = field(default_factory=list)  # Kamerdossier(s) van de laatste wijziging
+    inwerkingtredingsbron: str | None = None  # bv. "Stb.2026-119"
+    opmerking: str | None = None  # redactionele opmerking, vaak over overgangsrecht
     leden: list[Lid] = field(default_factory=list)
     verwijzingen: list[Verwijzing] = field(default_factory=list)
     onderdelen: list[Onderdeel] = field(default_factory=list)
@@ -131,6 +135,10 @@ class Divisie:
     status: str | None = None
     terugwerkend_tot: str | None = None  # retroactieve ingangsdatum (ISO), indien aanwezig
     wijzigingsbronnen: list[str] = field(default_factory=list)
+    # Uit het eigen brondata-blok (``meta-data/brondata``), via `_bronverwijzingen` in de parser.
+    dossiers: list[str] = field(default_factory=list)  # Kamerdossier(s) van de laatste wijziging
+    inwerkingtredingsbron: str | None = None  # bv. "Stb.2026-119"
+    opmerking: str | None = None  # redactionele opmerking, vaak over overgangsrecht
     verwijzingen: list[Verwijzing] = field(default_factory=list)
     onderdelen: list[Onderdeel] = field(default_factory=list)
     subdivisies: list[Divisie] = field(default_factory=list)
@@ -164,6 +172,10 @@ class Bijlage:
     status: str | None = None
     terugwerkend_tot: str | None = None  # retroactieve ingangsdatum (ISO), indien aanwezig
     wijzigingsbronnen: list[str] = field(default_factory=list)
+    # Uit het eigen brondata-blok (``meta-data/brondata``), via `_bronverwijzingen` in de parser.
+    dossiers: list[str] = field(default_factory=list)  # Kamerdossier(s) van de laatste wijziging
+    inwerkingtredingsbron: str | None = None  # bv. "Stb.2026-119"
+    opmerking: str | None = None  # redactionele opmerking, vaak over overgangsrecht
     verwijzingen: list[Verwijzing] = field(default_factory=list)
     artikelen: list[Artikel] = field(default_factory=list)
     # Hoofdstukken e.d. in de bijlage; in de bron meestal `<divisie>` met een koplabel.

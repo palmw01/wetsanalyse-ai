@@ -241,6 +241,9 @@ class _Collector:
                     "status": artikel.status,
                     "terugwerkend_tot": artikel.terugwerkend_tot,
                     "wijzigingsbronnen": artikel.wijzigingsbronnen,
+                    "dossier": artikel.dossiers,
+                    "inwerkingtredingsbron": artikel.inwerkingtredingsbron,
+                    "opmerking": artikel.opmerking,
                     "voetnoot": artikel.voetnoten,
                 },
             )
@@ -278,6 +281,9 @@ class _Collector:
                     "status": divisie.status,
                     "terugwerkend_tot": divisie.terugwerkend_tot,
                     "wijzigingsbronnen": divisie.wijzigingsbronnen,
+                    "dossier": divisie.dossiers,
+                    "inwerkingtredingsbron": divisie.inwerkingtredingsbron,
+                    "opmerking": divisie.opmerking,
                     "voetnoot": divisie.voetnoten,
                 },
             )
@@ -317,6 +323,9 @@ class _Collector:
                     "status": bijlage.status,
                     "terugwerkend_tot": bijlage.terugwerkend_tot,
                     "wijzigingsbronnen": bijlage.wijzigingsbronnen,
+                    "dossier": bijlage.dossiers,
+                    "inwerkingtredingsbron": bijlage.inwerkingtredingsbron,
+                    "opmerking": bijlage.opmerking,
                     "voetnoot": bijlage.voetnoten,
                 },
             )

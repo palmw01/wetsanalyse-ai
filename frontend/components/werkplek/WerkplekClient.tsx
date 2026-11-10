@@ -1,13 +1,13 @@
 "use client";
 
 import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
-import { samenhangBeschikbaar } from "@/lib/samenhang";
+import { bronDoel, samenhangBeschikbaar } from "@/lib/samenhang";
 import { ThreadRij, type ThreadActies } from "@/components/werkplek/ThreadRij";
 import { reeksNavigatie } from "@/lib/reeks";
 import { afronding } from "@/lib/beurtStroom";
 import { useBeurt, type BeurtScherm } from "@/lib/useBeurt";
 import { type NodeDoel } from "@/lib/annotatieNode";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { VraagLexContext } from "@/components/werkplek/VraagLexKnop";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 
@@ -18,13 +18,17 @@ import { annotatieDoelVan, artefactSleutel, bronselectieVanKaart, artefactKop, w
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Suggestie, SuggestieRij } from "@/components/ui/Suggestie";
 import { Melding } from "@/components/ui/Melding";
+import { Zijpaneel } from "@/components/ui/Zijpaneel";
+import { PaneelTabsContext } from "@/components/ui/PaneelKop";
+import { TabRij } from "@/components/ui/Tabs";
+import { leesOpslag, schrijfOpslag } from "@/lib/opslag";
+import { bewaarVorm, leesBewaard, openTab, opslagSleutel, sluitTab, tabLabel, type PaneelInhoud, type TabStand } from "@/lib/paneelTabs";
 import {
   foutTekst,
   startRun,
   haalGesprek,
   maakGesprek,
   voegBerichtToe,
-  haalConnectors,
   haalWerkgebied,
   wijzigGesprek,
   wijzigWerkgebied,
@@ -47,11 +51,12 @@ import {
 import { VraagDock } from "@/components/werkplek/VraagDock";
 import { BronselectieKaart } from "@/components/werkplek/BronselectieKaart";
 import { ConnectorsMenu } from "@/components/werkplek/ConnectorsMenu";
-import { actieveConnectors, beurtBronnen, heeftOnbekend, wissel as wisselConnector, zelfAanTeZetten, type BronUit, type ConnectorStand } from "@/lib/connectorsMenu";
+import { actieveConnectors, beurtBronnen, moetVerversen, toonMenu, wissel as wisselConnector, zelfAanTeZetten, type BronUit, type ConnectorStand } from "@/lib/connectorsMenu";
+import { useConnectorLijst } from "@/lib/useConnectorLijst";
 import {
   doelInvoerVan, isVerwijderd,
 } from "@/lib/annotatie";
-import { useBreedScherm } from "@/lib/useBreedScherm";
+import { BREED, useBreedScherm } from "@/lib/useBreedScherm";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
 import { bewaarConcept, leesConcept } from "@/lib/conceptVraag";
 import { jasStyle, klasseLabel } from "@/lib/jas";
@@ -148,11 +153,16 @@ export function WerkplekClient({
   const [gesprekId, setGesprekId] = useState<string | null>(initialGesprekId);
   // ADR-013, *Bronnen en tools*: wat de beheerder aanzette, de stand van dit gesprek en de standaard van het werkgebied.
   // De ref volgt de stand, zodat `verstuur` de stand van nu leest; `connectorsTeBewaren` = gekozen vóór er een gesprek was.
-  const [connectorBasis, setConnectorStand] = useState<ConnectorStand>({ beschikbaar: [] });
+  // De lijst is van het venster (`lib/connectorLijst.ts`): een nieuwe mount (ander gesprek) toont meteen de laatst bekende.
+  const connectorLijst = useConnectorLijst(!demo);
+  const [gesprekConnectors, setGesprekConnectors] = useState<string[] | null>(null);
   // De standaard van het werkgebied hoort bij dát werkgebied: na een wissel telt de oude niet meer.
   const [wgConnectors, setWgConnectors] = useState<{ id: string; connectors: string[] | null } | null>(null);
   const connectorStand: ConnectorStand = {
-    ...connectorBasis, werkgebied: werkgebiedId && wgConnectors?.id === werkgebiedId ? wgConnectors.connectors : null,
+    beschikbaar: connectorLijst.beschikbaar,
+    laden: connectorLijst.laden ?? undefined,
+    gesprek: gesprekConnectors,
+    werkgebied: werkgebiedId && wgConnectors?.id === werkgebiedId ? wgConnectors.connectors : null,
   };
   const connectorRef = useRef(connectorStand);
   connectorRef.current = connectorStand;
@@ -183,6 +193,17 @@ export function WerkplekClient({
   // gesprek niet bewaard wordt, en dat is hier onwaar – er is alleen niets verstuurd.
   const [budgetGeweigerd, setBudgetGeweigerd] = useState(false);
   const [nodeDoel, setNodeDoel] = useState<NodeDoel>();
+  const [tabStand, setTabStand] = useState<TabStand>({ tabs: [] });
+  // Waar de volgende opening vandaan komt ("een antwoord"): alleen voor de tooltip van de tab.
+  const [volgendeVanuit, setVolgendeVanuit] = useState<string>();
+  // Op een telefoon is het paneel een sheet; Escape (of *Vraag Lex*) verbergt hem, de tabs blijven.
+  const [sheetVerborgen, setSheetVerborgen] = useState(false);
+  // Op een breed scherm klapt Escape het zijpaneel in.
+  const [inklapSignaal, setInklapSignaal] = useState(0);
+  // Telt elke opening: het zijpaneel klapt dan uit.
+  const [openTeller, setOpenTeller] = useState(0);
+  const [tabsHersteld, setTabsHersteld] = useState(false);
+  const [tabsGeladen, setTabsGeladen] = useState(false);
   /** Het open artefact van een werkgebied (begripsvoorstellen of gevonden bepalingen). Er staat
    *  hoogstens één artefact open: wie een annotatie opent, sluit dit, en andersom. */
   const [wgArtefact, zetWgArtefactOnbewaakt] = useState<WerkgebiedArtefact>();
@@ -207,6 +228,7 @@ export function WerkplekClient({
     setVorigBronnenSignaal(bronnenSignaal);
     if (werkgebiedId) {
       const bibliotheek: ContextDoel = { soort: "bibliotheek", werkgebied_id: werkgebiedId, titel: "" };
+      setVolgendeVanuit("Bronnen in de chatkop");
       wisselPaneel(undefined, { ook: () => { setNodeDoel(undefined); setCtx(bibliotheek); } });
     }
   }
@@ -224,6 +246,37 @@ export function WerkplekClient({
       ook?.();
     }, handeling);
   }
+  /** Een tab in de slots laden (of alles leeg met `undefined`). Altijd via `wisselPaneel`, dus met de bewaker: staat er
+   *  onbewaard werk in het artefact, dan vraagt het eerst. `ook` draait binnen dezelfde vraag mee. */
+  function laad(i: PaneelInhoud | undefined, ook?: () => void) {
+    if (!i) {
+      wisselPaneel(undefined, { handeling: "sluiten", ook: () => {
+        setCtx(undefined); setNodeDoel(undefined); setNodeReeks(undefined); setNodeExtra([]); setNodeGraaf({}); ook?.();
+      } });
+    } else if (i.soort === "context") {
+      wisselPaneel(undefined, { ook: () => { setNodeDoel(undefined); setCtx(i.ctx); ook?.(); } });
+    } else if (i.soort === "annotatie") {
+      wisselPaneel(undefined, { ook: () => {
+        setCtx(undefined); setNodeTab(i.tab); setNodeExtra(i.extra); setNodeGraaf(i.graaf); setNodeReeks(i.reeks); setNodeDoel(i.doel); ook?.();
+      } });
+    } else {
+      wisselPaneel(i.artefact, { ook: () => { setCtx(undefined); setNodeDoel(undefined); ook?.(); } });
+    }
+  }
+  /** Een tab sluiten (✕ op de tab, of ✕ in de kop van wat er open is). Was hij actief, dan komt de buur. */
+  function sluitPaneelTab(sleutel: string | undefined) {
+    if (!sleutel) return laad(undefined);
+    const na = sluitTab(tabStand, sleutel);
+    if (tabStand.actief !== sleutel) return setTabStand({ tabs: na.tabs, actief: na.actief });
+    laad(na.buur?.inhoud, () => setTabStand({ tabs: na.tabs, actief: na.actief }));
+  }
+  /** Escape: verbergen, niet sluiten. Breed klapt het zijpaneel in (de inhoud blijft gemount); op een telefoon gaat de sheet
+   *  weg, en dan loopt het door de bewaker – de inhoud wordt ontkoppeld. */
+  function verbergPaneel() {
+    if (breed) setInklapSignaal((n) => n + 1);
+    else wgBewaker.bewaak(() => setSheetVerborgen(true), "sluiten");
+  }
+
   /** Het overzicht waaruit de jurist een werkgebied maakt (de dialoog staat open). */
   const [wgUitOverzicht, setWgUitOverzicht] = useState<Overzicht>();
   /** Wat er bij het maken misging (een bepaling die de api niet kon opnemen): zichtbaar, niet stil. */
@@ -237,6 +290,51 @@ export function WerkplekClient({
   const [nodeExtra, setNodeExtra] = useState<NodeDoel[]>([]);
   // Met welk bereik de graaf opent en wat de nadruk krijgt (een overzicht: de hele kennisgraaf).
   const [nodeGraaf, setNodeGraaf] = useState<GraafOpties>({});
+
+  // ── De tabs van het paneel (het bronvenster, PR 3b) ──────────────────────────────────────────────────────────────
+  // De slots hierboven zijn de actieve tab; dit is de lijst ernaast (`lib/paneelTabs.ts`). Wisselen laadt een tab in de
+  // slots, altijd via `wisselPaneel` (de bewaker); per gesprek bewaard in deze browser.
+  const huidig = useMemo<PaneelInhoud | undefined>(() => ctx ? { soort: "context", ctx }
+    : nodeDoel ? { soort: "annotatie", doel: nodeDoel, tab: nodeTab, extra: nodeExtra, graaf: nodeGraaf, reeks: nodeReeks }
+      : wgArtefact ? { soort: "artefact", artefact: wgArtefact } : undefined,
+  [ctx, nodeDoel, nodeTab, nodeExtra, nodeGraaf, nodeReeks, wgArtefact]);
+  const [vorigHuidig, setVorigHuidig] = useState<PaneelInhoud | undefined>();
+  if (vorigHuidig !== huidig) {
+    setVorigHuidig(huidig);
+    if (huidig) {
+      setTabStand((st) => openTab(st, huidig, volgendeVanuit));
+      setVolgendeVanuit(undefined);
+      setSheetVerborgen(false);
+      setOpenTeller((n) => n + 1);
+    } else if (vorigHuidig) {
+      // Dicht zonder dat een tab gesloten werd (een paneel dat zichzelf sloot): de actieve tab vervalt.
+      setTabStand((st) => (st.actief ? { tabs: st.tabs.filter((t) => t.sleutel !== st.actief), actief: undefined } : st));
+    }
+  }
+
+  // De tabs van dit gesprek terughalen, één keer na het mounten (de server kent geen opslag). Een nieuw gesprek begint
+  // leeg: zonder id is er niets te halen, en er wordt pas bewaard zodra het gesprek een id heeft. Op een breed scherm komt
+  // de actieve tab meteen terug, met de bewaarde ingeklapte stand; op een telefoon staat hij klaar achter *Paneel · Openen*.
+  useEffect(() => {
+    // Opslag lezen kan pas na het mounten; de setState is hier het doel van het effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (demo || !gesprekId) { setTabsGeladen(true); return; }
+    const bewaard = leesOpslag(opslagSleutel(gesprekId), leesBewaard);
+    setTabsGeladen(true);
+    if (!bewaard) return;
+    setTabStand(bewaard);
+    const actief = bewaard.tabs.find((t) => t.sleutel === bewaard.actief);
+    let isBreed = false;
+    try { isBreed = window.matchMedia(BREED).matches; } catch { /* geen matchMedia */ }
+    if (actief && isBreed) { setTabsHersteld(true); laad(actief.inhoud); }
+    // Alleen bij het mounten (de werkplek remount per gesprek); `laad` is elke render een nieuwe functie.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (demo || !tabsGeladen || !gesprekId) return;
+    schrijfOpslag(opslagSleutel(gesprekId), tabStand.tabs.length ? bewaarVorm(tabStand) : undefined);
+  }, [tabStand, gesprekId, demo, tabsGeladen]);
+
   const [samenhangAan, setSamenhangAan] = useState(false);
   useEffect(() => { void samenhangBeschikbaar().then(setSamenhangAan); }, []);
   // Waar de volgende vraag over gaat (*Vraag Lex*, F3b): een markering, of een object uit een werkgebied.
@@ -289,7 +387,7 @@ export function WerkplekClient({
       .then((g) => {
         if (!geldt()) return;
         onGesprekGeladen?.(g);
-        setConnectorStand((s) => ({ ...s, gesprek: g.connectors ?? null }));
+        setGesprekConnectors(g.connectors ?? null);
         const { items: geschiedenis, runIds } = itemsUitGesprek(g.berichten, uid);
         // VÓÓR wat er al staat, niet in plaats daarvan. Verstuurde de jurist een vraag terwijl dit nog
         // laadde (een koude start duurt seconden), dan staan zijn vraag en het lopende antwoord al in
@@ -404,17 +502,12 @@ export function WerkplekClient({
   }
 
   /** Start een beurt. Zonder `verzoek.prompt` geldt wat er in het invoerveld staat (`lib/beurtVerzoek.ts`). */
-  // Wat de beheerder aanzette: één keer per venster, stil falend (dan geen menu en beslist graph-qa zelf). Was de
-  // beschikbaarheid onbekend (graph-qa niet te lezen), dan opnieuw bij het openen van het menu en na een beurt.
-  const verversConnectors = useCallback(() => {
-    if (demo) return;
-    haalConnectors().then((c) => setConnectorStand((s) => ({ ...s, beschikbaar: c.connectors ?? [] }))).catch(() => {});
-  }, [demo]);
-  useEffect(() => { verversConnectors(); }, [verversConnectors]);
-  const verversAlsOnbekend = () => { if (heeftOnbekend(connectorRef.current)) verversConnectors(); };
+  // Wat de beheerder aanzette en wat de omgeving aanbiedt: de laatst bekende stand van dit venster, ververst bij elke
+  // mount. Mislukte het ophalen, of was graph-qa niet te lezen, dan opnieuw bij het openen van het menu en na een beurt.
+  const verversAlsOnbekend = () => { if (moetVerversen(connectorRef.current)) connectorLijst.ververs(); };
 
   // De standaard van het werkgebied, alleen als er een menu is.
-  const heeftConnectors = connectorBasis.beschikbaar.length > 0;
+  const heeftConnectors = connectorLijst.beschikbaar.length > 0;
   useEffect(() => {
     if (!werkgebiedId || !heeftConnectors) return;
     let levend = true;
@@ -425,7 +518,7 @@ export function WerkplekClient({
   }, [werkgebiedId, heeftConnectors]);
 
   function zetGesprekConnectors(connectors: string[] | null) {
-    setConnectorStand((s) => ({ ...s, gesprek: connectors }));
+    setGesprekConnectors(connectors);
     if (gesprekId) void wijzigGesprek(gesprekId, { connectors }).catch(() => {});
     else connectorsTeBewaren.current = connectors != null;
   }
@@ -613,6 +706,7 @@ export function WerkplekClient({
         onOpgeslagen: (uitkomst) => p.pas({ type: "opgeslagen", uitkomst }),
         onWaarschuwing: (bericht) => setMelding(bericht),
         onBronUit: (bronnen) => setBronUit(bronnen),
+        onBronstand: (regels) => connectorLijst.legBronstandOver(regels),
         onRegieTaak: () => onGewijzigd(),
       }),
       opKlaar: async (antId, stand) => {
@@ -735,12 +829,12 @@ export function WerkplekClient({
         wisselPaneel(ref, { ook: () => setNodeDoel(undefined) });
       },
       // Zonder eigen opties opent een antwoord op de ketting; een overzicht geeft zijn bereik zelf mee.
-      openSamenhang: (doel, extra = [], graaf = { keten: true }) => wisselPaneel(undefined, { ook: () => {
+      openSamenhang: (doel, extra = [], graaf = { keten: true }) => { setVolgendeVanuit("een antwoord"); wisselPaneel(undefined, { ook: () => {
         setNodeTab("graaf");
         setNodeExtra(extra);
         setNodeGraaf(graaf);
         setNodeDoel(doel);
-      } }),
+      } }); },
       openReeksLid: (reeksRun, doel) => {
         setNodeReeks(reeksRun);
         void openArtefact(doel.bron_iri, doel);
@@ -846,7 +940,7 @@ export function WerkplekClient({
       setNodeTab("tekst");
       setNodeDoel(nieuw);
     }}
-    variant={breed ? "kolom" : "side"} onSluit={() => { setNodeDoel(undefined); setNodeReeks(undefined); setNodeExtra([]); setNodeGraaf({}); }} beginTab={nodeTab}
+    variant={breed ? "kolom" : "side"} onSluit={() => sluitPaneelTab(tabStand.actief)} onVerberg={verbergPaneel} beginTab={nodeTab}
     reeks={nodeReeksNav}
     // De rondleiding draait op een voorbeeld in het geheugen, met het invoerveld stil: daar is geen
     // vraag te stellen, en de graaf heeft niets om te tonen.
@@ -856,7 +950,7 @@ export function WerkplekClient({
       // Geen klaargezette vraag in het veld: de drie suggesties (per klasse) staan erboven als chips.
       setOnderwerp({ soort: "markering", element, view });
       setInvoer("");
-      if (!breed) setNodeDoel(undefined);
+      if (!breed) setSheetVerborgen(true);
       taRef.current?.focus();
     }}
     onVraagOverBron={demo ? undefined : (knoop) => {
@@ -866,7 +960,7 @@ export function WerkplekClient({
         ? ` (${knoop.bwb_id}, artikel ${knoop.artikel}${knoop.lid ? `, lid ${knoop.lid}` : ""})` : "";
       setOnderwerp(undefined);
       setInvoer(`Hoe hangt ${knoop.naam}${plek} samen met de bepalingen waarnaar het verwijst of die ernaar verwijzen?`);
-      if (!breed) setNodeDoel(undefined);
+      if (!breed) setSheetVerborgen(true);
       requestAnimationFrame(() => taRef.current?.focus());
     }} /> : (wgArtefact && (
     <WerkgebiedArtefactPaneel
@@ -883,7 +977,8 @@ export function WerkplekClient({
       variant={breed ? "kolom" : "side"}
       bewaker={wgBewaker}
       onOnbewaard={setWgOnbewaard}
-      onSluit={() => wisselPaneel(undefined, { handeling: "sluiten" })}
+      onSluit={() => sluitPaneelTab(tabStand.actief)}
+      onVerberg={verbergPaneel}
       onWissel={(d) => wisselPaneel(d)}
       onVerwijderd={(id) => { if (id === werkgebiedId) onVerlaatWerkgebied?.(); }}
     />
@@ -893,12 +988,22 @@ export function WerkplekClient({
    *  van het gesprek mee, zodat *Open volledige pagina* in dat werkgebied landt. */
   function openContext(d: ContextDoel) {
     const naar = d.soort === "bron" && !d.werkgebied_id && werkgebiedId ? { ...d, werkgebied_id: werkgebiedId } : d;
+    setVolgendeVanuit("het gesprek");
     wisselPaneel(undefined, { ook: () => { setNodeDoel(undefined); setCtx(naar); } });
   }
 
+  // Wat er in het paneel staat: iets anders openen klapt een ingeklapt zijpaneel uit.
+  // De tabrij: in de balk van het zijpaneel, en op een telefoon boven de kop van de sheet (`PaneelTabsContext`).
+  const tabRij = tabStand.tabs.length > 0 && (
+    <TabRij label="Open in het paneel" active={tabStand.actief}
+      tabs={tabStand.tabs.map((t) => { const l = tabLabel(t); return { key: t.sleutel, label: l.kort, title: l.vol, onSluit: () => sluitPaneelTab(t.sleutel) }; })}
+      onChange={(k) => { const t = tabStand.tabs.find((x) => x.sleutel === k); if (t && k !== tabStand.actief) laad(t.inhoud); }} />
+  );
   const paneel = ctx ? (
     <ContextPaneel key={contextSleutel(ctx)} doel={ctx} variant={breed ? "kolom" : "side"}
-      onSluit={() => setCtx(undefined)} onWissel={setCtx} onMaakWerkgebied={setWgUitOverzicht} />
+      onSluit={() => sluitPaneelTab(tabStand.actief)} onVerberg={verbergPaneel}
+      onWissel={(d) => { setVolgendeVanuit("het paneel"); setCtx(d); }} onMaakWerkgebied={setWgUitOverzicht}
+      onSamenhang={samenhangAan && !demo ? (iri) => acties.openSamenhang(bronDoel(iri) ?? { bron_iri: iri }) : undefined} />
   ) : artefact;
 
   /** *Vraag Lex* vanuit een object in een paneel (`VraagLexKnop`): de chip boven het invoerveld. Op een smal
@@ -910,14 +1015,14 @@ export function WerkplekClient({
     // Een open vraagkaart staat op de plek van het invoerveld: klap hem weg (niets beantwoord), anders zie je
     // de chip en de suggesties niet. *Een vraag stellen ›* haalt hem terug (spoor J: van deelvraag wisselen).
     if (open?.openId) setWeggeklikt(open.openId);
-    if (!breed) wisselPaneel(undefined, { ook: () => { setNodeDoel(undefined); setCtx(undefined); } });
+    if (!breed) wgBewaker.bewaak(() => setSheetVerborgen(true), "sluiten");
     taRef.current?.focus();
   }
 
   return (
     <VraagLexContext.Provider value={demo ? null : kiesOnderwerp}>
     <ContextPaneelContext.Provider value={demo ? null : openContext}>
-    <div className="flex min-h-0 min-w-0 flex-1">
+    <div className="relative flex min-h-0 min-w-0 flex-1">
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
       {/* Beknopte statusmelding voor schermlezers (niet de hele thread live maken → geen token-spam). */}
       <p className="sr-only" aria-live="polite">
@@ -948,6 +1053,19 @@ export function WerkplekClient({
             </button>
           </Melding>
         </div>
+      )}
+      {/* Op een telefoon: de sheet is verborgen (Escape, Vraag Lex) of er staan herstelde tabs klaar. Eén tik haalt hem terug. */}
+      {!breed && !demo && tabStand.tabs.length > 0 && (sheetVerborgen || !huidig) && (
+        <button type="button" data-paneel-terug
+          onClick={() => {
+            if (huidig) return setSheetVerborgen(false);
+            const t = tabStand.tabs.find((x) => x.sleutel === tabStand.actief) ?? tabStand.tabs.at(-1);
+            if (t) laad(t.inhoud);
+          }}
+          className="focus-ring flex w-full shrink-0 items-center gap-2 border-b border-line bg-surface px-4 py-2 text-left text-xs text-muted transition hover:bg-surface-2">
+          <span className="truncate"><span className="font-medium text-ink">Paneel</span> · {tabStand.tabs.length === 1 ? "1 open" : `${tabStand.tabs.length} open`}</span>
+          <span className="ml-auto shrink-0 font-medium text-lint">Openen</span>
+        </button>
       )}
       {!nodeDoel && !wgArtefact && !ctx && laatsteWgArtefact && (
         <button
@@ -1218,9 +1336,10 @@ export function WerkplekClient({
               ))}
             </div>
           )}
-          {!demo && connectorStand.beschikbaar.length > 0 && (
+          {!demo && toonMenu(connectorStand) && (
             <div className="mb-1 flex min-w-0">
               <ConnectorsMenu stand={connectorStand} onWissel={kiesConnector} onOpen={verversAlsOnbekend}
+                onOpnieuw={connectorLijst.ververs}
                 onAlsStandaard={werkgebiedId ? () => void maakConnectorStandaard() : undefined}
                 onTerugNaarStandaard={() => zetGesprekConnectors(null)} />
             </div>
@@ -1284,13 +1403,12 @@ export function WerkplekClient({
       </div>
 
       {/* Op een smal scherm schuift het artefact als overlay over de chat heen. */}
-      {!breed && paneel}
+      {!breed && !sheetVerborgen && paneel && <PaneelTabsContext.Provider value={tabRij}>{paneel}</PaneelTabsContext.Provider>}
     </div>
 
     {/* Op een breed scherm staat het ernaast: chat en review tegelijk in beeld. */}
-    {breed && paneel && (
-      <div className="hidden w-[min(34rem,46%)] shrink-0 min-[800px]:block">{paneel}</div>
-    )}
+    {breed && paneel && <Zijpaneel label="Paneel" sleutel={String(openTeller)} hersteld={tabsHersteld} vast={Boolean(demo)} balk={tabRij}
+      inklapSignaal={inklapSignaal}>{paneel}</Zijpaneel>}
     </div>
     </ContextPaneelContext.Provider>
     </VraagLexContext.Provider>

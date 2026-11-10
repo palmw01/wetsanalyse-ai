@@ -13,7 +13,8 @@ import { memo, useEffect, useMemo, useState } from "react";
 
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { Antwoord } from "@/components/antwoord/Antwoord";
-import { BepalingChips } from "@/components/antwoord/BepalingChip";
+import { BepalingChips, SamenhangChip } from "@/components/antwoord/BepalingChip";
+import { Vindplaats } from "@/components/antwoord/Vindplaats";
 import { alleenNietGetoetst, bepalingenVan } from "@/lib/antwoord";
 import { Button } from "@/components/ui/Button";
 import { ChevronOmlaag, Cirkel, Waarschuwing } from "@/components/ui/Icoon";
@@ -133,8 +134,7 @@ export const ThreadRij = memo(function ThreadRij({
           ) : (
             // De afgekeurde citaten worden in de tekst zelf aangewezen; het blok eronder
             // blijft staan voor wat níét in de weergave terug te vinden was.
-            <Markdown tekst={item.tekst} nietLetterlijk={item.grounding?.niet_letterlijk} bronnen={item.bronnen}
-              onOpenSamenhang={samenhangAan && !demo ? acties.openSamenhang : undefined} />
+            <Markdown tekst={item.tekst} nietLetterlijk={item.grounding?.niet_letterlijk} bronnen={item.bronnen} />
           )
         ) : item.denk || item.overzicht || !streamt ? null : (
           <Punten />
@@ -156,12 +156,11 @@ export const ThreadRij = memo(function ThreadRij({
           const keuze = ov ? overzichtDoelen(ov) : antwoordDoelen(item);
           const tekst = ov ? overzichtKnopTekst(ov) : `${antwoordKnopTekst(keuze)} in de graaf`;
           const [doel, ...extra] = keuze.doelen;
-          return doel && <button type="button"
+          // Eén chip naast de bepalingen (het bronvenster, PR 4): de samenhang opent als tab naast het gesprek.
+          const titel = tekst.replace(/^Bekijk /, "").replace(/ in de (kennis)?graaf$/, "");
+          return doel && <SamenhangChip label={tekst} titel={`Samenhang: ${titel.replace(/^samenhang van /, "")}`}
             onClick={() => acties.openSamenhang(doel, ov ? [...extra, ...overzichtDefinities(ov)] : extra,
-              ov ? { bereik: "kennisgraaf", focus: overzichtFocus(ov), keten: true } : undefined)}
-            className="focus-ring mt-3 flex items-center gap-2 rounded-lg border border-lint/20 bg-lint/[0.03] px-3 py-2 text-left text-xs font-medium text-lint transition-colors hover:bg-lint/10">
-            <GraafIcoon />{tekst}
-          </button>;
+              ov ? { bereik: "kennisgraaf", focus: overzichtFocus(ov), keten: true } : undefined)} />;
         })()}
         {/* Lex begint niet zonder akkoord: het voorstel noemt aantal en kosten, de knop start. */}
         {item.bevestiging && item.bevestiging.aantal > 0 && !demo && keuze && (
@@ -668,7 +667,10 @@ function Bronnen({ bronnen }: { bronnen: Bron[] }) {
             <li key={g.bwb_id}>
               <span className="font-medium text-ink">{link({ label: g.naam, href: g.href })}</span>
               {g.items.length > 0 && <>{" – "}{g.items.map((item, i) => (
-                <span key={item.sleutel}>{i > 0 && ", "}{link(item)}</span>
+                // Een bepaling opent als tab naast het gesprek (het bronvenster, PR 4); met Ctrl/⌘ de bron zelf.
+                <span key={item.sleutel}>{i > 0 && ", "}{item.sleutel.startsWith("urn:bwb:") && item.soort !== "regeling"
+                  ? <Vindplaats vindplaats={{ iri: item.sleutel, label: item.label, jci: "", regeling: g.naam }} kort />
+                  : link(item)}</span>
               ))}</>}
             </li>
           ))}

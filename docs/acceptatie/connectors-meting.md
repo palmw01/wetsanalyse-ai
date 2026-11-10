@@ -47,8 +47,10 @@ register laat het zien.
 - route (uit de `status`-regels), afgewezen ja/nee;
 - de aanroepen van connectortools (`tool_execution`);
 - de bronstand (`bronstand`-event) en, bij uit, het `bron_uit`-event met de reden;
-- grounding: niveau, `niet_letterlijk`, `onbevestigd` (ook "alleen gevonden, niet gelezen");
-- het sjabloon en de blokken (bestaat er een `extern`, met welk id en welke alinea's);
+- grounding: niveau, `niet_letterlijk`, `onbevestigd` (een stuk dat alleen gevonden is, telt sinds 10 nov 2026 niet
+  meer als onbevestigd; de logregel `alleen gevonden genoemd` telt het);
+- het sjabloon en de blokken (bestaat er een `extern`, met welk id en welke alinea's; staat een lijst gevonden stukken
+  in het blok `stukken` of in lopende tekst);
 - de bronnenlijst: staat het Kamerstuk erin met brontype `kamerstuk`;
 - tokens (delta verbruik) en duur.
 

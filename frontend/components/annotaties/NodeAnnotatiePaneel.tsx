@@ -3,7 +3,7 @@
 import { ARTEFACT_SOORT_LABEL } from "@/lib/artefact";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { DekkingOverzicht } from "@/components/annotaties/DekkingOverzicht";
 import { ImplicietePartijen, RelatieBlok, type RelatieBediening } from "@/components/annotaties/Relaties";
@@ -14,8 +14,9 @@ import { Melding } from "@/components/ui/Melding";
 import { PaneelKop } from "@/components/ui/PaneelKop";
 import { VersieKiezer } from "@/components/ui/VersieKiezer";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { NogNietInWerking } from "@/components/bronnen/NogNietInWerking";
-import { AnnotatieKop, ArtefactInhoud, annotatieOpschrift } from "@/components/werkplek/ArtefactInhoud";
+import { StandMelding } from "@/components/ui/StandMelding";
+import { ZijpaneelContext } from "@/components/ui/Zijpaneel";
+import { AnnotatieKop, ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 import {
   apiOpslag, bepalingRevisies, dragerRevisies, momentopnameOpslag, nodeLink, nogNietInWerking, verwachteRevisies,
@@ -30,6 +31,7 @@ import { metSpoor } from "@/lib/uiSpoor";
 import { samenhangBeschikbaar } from "@/lib/samenhang";
 import type { KnoopData } from "@/lib/graaf/model";
 import type { Anker, ArtefactVersie, BeslissingInvoer } from "@/lib/types";
+import { NOG_NIET_IN_WERKING, annotatieKopTekst } from "@/lib/herkomst";
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { Graaf } from "@/components/graaf/Graaf";
 import { useGraafStand, type GraafOpties } from "@/components/graaf/useGraafStand";
@@ -46,8 +48,10 @@ export type PaneelTab = "tekst" | "graaf";
  *
  *  Met `onSluit` staat hij in dezelfde `Dialog`-schil als `ArtefactPaneel` (werkplek); zonder is
  *  het de kale inhoud voor een eigen pagina. */
-export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, onSluit, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks, beginElement, opslag: basisOpslag = apiOpslag, onBeslist }: {
+export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, onSluit, onVerberg, variant = "side", onVraag, onVraagOverBron, beginTab = "tekst", reeks, beginElement, opslag: basisOpslag = apiOpslag, onBeslist }: {
   doel: NodeDoel; onSluit?: () => void; variant?: DialogVariant;
+  /** De laatste laag van Escape: het paneel verbergen zonder de tab te sluiten (het bronvenster, PR 3b). */
+  onVerberg?: () => void;
   /** Andere bepalingen of delen die de graaf meeopent (wat een antwoord noemt). Tekst en annotatie
    *  blijven over `doel`. */
   extraDoelen?: NodeDoel[];
@@ -79,7 +83,11 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
   const [samenhang, setSamenhang] = useState(false);
   const [tab, setTab] = useState<PaneelTab>(beginTab);
   const [graafGeopend, setGraafGeopend] = useState(beginTab === "graaf");
-  const [groot, setGroot] = useState(false);
+  // In het zijpaneel is er één *Vergroten*: die van het paneel. Daarbuiten (de sheet) houdt de graaf zijn eigen knop.
+  const zijpaneel = useContext(ZijpaneelContext);
+  const [grootLokaal, setGrootLokaal] = useState(false);
+  const groot = zijpaneel ? zijpaneel.vergroot : grootLokaal;
+  const setGroot = zijpaneel ? zijpaneel.zetVergroot : setGrootLokaal;
   useEffect(() => {
     if (basisOpslag.levend) void samenhangBeschikbaar().then(setSamenhang);
   }, [basisOpslag]);
@@ -260,15 +268,15 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
     <div className="flex shrink-0 items-center gap-2 border-b border-line px-4 py-2" data-paneel-balk>
       <div className="flex rounded-lg bg-surface p-1" role="group" aria-label="Weergave kiezen">
         {(["tekst", "graaf"] as const).map((waarde) => (
-          <button key={waarde} type="button" aria-pressed={tab === waarde} onClick={() => { setTab(waarde); if (waarde === "tekst") setGroot(false); }}
+          <button key={waarde} type="button" aria-pressed={tab === waarde} onClick={() => { setTab(waarde); if (waarde === "tekst" && !zijpaneel) setGroot(false); }}
             className={`focus-ring flex min-h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium ${tab === waarde ? "bg-paper text-lint shadow-zacht" : "text-muted hover:text-lint"}`}>
             {waarde === "graaf" && <GraafIcoon />}{waarde === "tekst" ? "Tekst" : "Graaf"}
           </button>
         ))}
       </div>
       <div className="flex-1" />
-      {tab === "graaf" && onSluit && (
-        <button type="button" className="focus-ring rounded-knop p-2 text-muted hover:bg-surface" onClick={() => setGroot((v) => !v)}
+      {tab === "graaf" && onSluit && !zijpaneel && (
+        <button type="button" className="focus-ring rounded-knop p-2 text-muted hover:bg-surface" onClick={() => setGroot(!groot)}
           aria-label={groot ? "Verkleinen" : "Vergroten"} title={groot ? "Terug naar zijpaneel" : "Graaf vergroten"}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d={groot ? "M9 3v6H3m18 6h-6v6M3 9l6-6m6 18 6-6" : "M8 3H3v5m13 13h5v-5M3 3l6 6m6 6 6 6"} /></svg>
         </button>
@@ -296,7 +304,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
       {/* Eén kop voor beide tabs: op de tab Tekst draagt de inhoud hem (met de acties), op de graaf het paneel. */}
       {toonTabs && tab === "graaf" && (
         <>
-          <AnnotatieKop doc={doc} opschrift={annotatieOpschrift(doc, nb.info)} pagina={pagina} onSluiten={onSluit} onder={reeksBalk} balk={tabs}
+          <AnnotatieKop doc={doc} opschrift={annotatieKopTekst(nb.info, doc)} pagina={pagina} onSluiten={onSluit} onder={reeksBalk} balk={tabs}
             onStatus={view.lagen.length && !opname ? status : undefined}
             onVerwijder={view.lagen.length && !opname ? verwijder : undefined}
             onExport={opname ? undefined : exporteer} onFout={setKopFout} />
@@ -311,7 +319,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
             onVraag={onVraag || onVraagOverBron ? vraagOverKnoop : undefined} />
         </div>
       )}
-      {(!toonTabs || tab === "tekst") && view?.segmenten.some(nogNietInWerking) && <div className="px-4 pt-3"><NogNietInWerking /></div>}
+      {(!toonTabs || tab === "tekst") && view?.segmenten.some(nogNietInWerking) && <div className="px-4 pt-3"><StandMelding meldingen={[NOG_NIET_IN_WERKING]} /></div>}
       {(!toonTabs || tab === "tekst") && <ArtefactInhoud
         doc={doc}
         info={nb.info}
@@ -329,6 +337,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
         onVerwijder={view.lagen.length && !opname ? verwijder : undefined}
         alleenLezen={!!opname}
         onSluiten={onSluit}
+        onEscapeEinde={onVerberg}
         pagina={pagina}
         kopOnder={reeksBalk}
         kopBalk={tabs || undefined}
@@ -349,11 +358,20 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
     </div>
   );
 
+  // Op de graaf pelt het paneel Escape zelf af (en verkleint op zijn beurt): het zijpaneel vangt hem dan niet eerst.
+  const claimt = Boolean(zijpaneel && onSluit && view && tab === "graaf");
+  const claim = zijpaneel?.claimEscape;
+  useEffect(() => {
+    if (!claim) return;
+    claim(claimt);
+    return () => claim(false);
+  }, [claim, claimt]);
+
   if (!onSluit) return inhoud;
   // `onEscape` is een no-op om dezelfde reden als in `ArtefactPaneel`: de inhoud pelt Escape zelf
   // laag voor laag af.
   return (
-    <Dialog label={`Annotatie: ${view?.doel.label || doel.label || "bepaling"}`} variant={groot ? "fullscreen" : variant}
+    <Dialog label={`Annotatie: ${view?.doel.label || doel.label || "bepaling"}`} variant={groot && !zijpaneel ? "fullscreen" : variant}
       onSluit={onSluit} onEscape={view ? () => {
         // In de tekst pelt de inhoud Escape zelf af; in de graaf doet het paneel dat, van binnen naar
         // buiten: lagen dicht → selectie op → verkleinen → sluiten. (De zoeklijst vangt haar eigen Escape.)
@@ -361,7 +379,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
         if (graafStand.lagenOpen) graafStand.setLagenOpen(false);
         else if (graafStand.selectie || actiefId) { graafStand.setSelectie(null); setActiefId(undefined); }
         else if (groot) setGroot(false);
-        else onSluit();
+        else (onVerberg ?? onSluit)();
       } : undefined}>
       {inhoud}
     </Dialog>

@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
+from typing import Any
 
 from lxml import etree
 
@@ -287,6 +288,7 @@ class ToestandParser:
             status=element.get("status"),
             terugwerkend_tot=self._terugwerkend(element),
             wijzigingsbronnen=self._wijzigingsbronnen(element),
+            **self._bronverwijzingen(element),
             verwijzingen=self._verwijzingen_scope(
                 element, bwb_id, base="./tekst//*", extra_excl=f" and not(ancestor::li){_GEEN_SLOT}"
             ),
@@ -338,6 +340,7 @@ class ToestandParser:
             status=element.get("status"),
             terugwerkend_tot=self._terugwerkend(element),
             wijzigingsbronnen=self._wijzigingsbronnen(element),
+            **self._bronverwijzingen(element),
             verwijzingen=self._verwijzingen_scope(element, bwb_id, extra_excl=excl),
             onderdelen=self._parse_onderdelen(element, bwb_id),
             voetnoten=self._noten(element, excl),
@@ -366,6 +369,7 @@ class ToestandParser:
             terugwerkend_tot=self._terugwerkend(element),
             definieert_begrippen=self._definities(element),
             wijzigingsbronnen=self._wijzigingsbronnen(element),
+            **self._bronverwijzingen(element),
             verwijzingen=self._verwijzingen_scope(element, bwb_id, extra_excl=excl),
             onderdelen=self._parse_onderdelen(
                 element, bwb_id, self._leidt_definities_in(element)
@@ -699,6 +703,37 @@ class ToestandParser:
             if jaar and nr:
                 bronnen.append(f"{pub.get('soort', 'Stb')}.{jaar}-{nr}")
         return bronnen
+
+    @staticmethod
+    def _bronverwijzingen(element: etree._Element) -> dict[str, Any]:
+        """Kamerdossier, inwerkingtredingsbron en opmerking uit het eigen brondata-blok.
+
+        De attributen van een tekstdeel noemen de Stb van de laatste wijziging (`bron`) en de datum
+        (`inwerking`), maar niet het Kamerdossier van die wijziging. Dat staat alleen in
+        ``meta-data/brondata``: ``oorspronkelijk/publicatie/dossierref`` (de wet die de tekst zijn
+        huidige inhoud gaf) en de ``dossierref`` van de ``<juncto>``-publicaties ernaast. Daarmee
+        vindt Lex de memorie van toelichting bij déze bepaling, zonder te raden. De
+        inwerkingtredingsbron is de Stb van het inwerkingtredingsbesluit; de opmerking is
+        redactioneel (vaak: waar het overgangsrecht staat). Alles wat er niet staat, blijft leeg.
+        """
+        dossiers: list[str] = []
+        for d in element.xpath(
+            "./meta-data/brondata/oorspronkelijk/publicatie/dossierref/@dossier"
+            " | ./meta-data/brondata/oorspronkelijk/juncto/publicatie/dossierref/@dossier"
+        ):
+            d = d.strip()
+            if d and d not in dossiers:
+                dossiers.append(d)
+        iwt = None
+        pub = element.find("meta-data/brondata/inwerkingtreding/publicatie")
+        if pub is not None and pub.findtext("publicatiejaar") and pub.findtext("publicatienr"):
+            iwt = f"{pub.get('soort', 'Stb')}.{pub.findtext('publicatiejaar')}-{pub.findtext('publicatienr')}"
+        alineas = [
+            " ".join("".join(al.itertext()).split())
+            for al in element.xpath("./meta-data/brondata/opmerkingen-inhoud/al")
+        ]
+        opmerking = "\n".join(a for a in alineas if a) or None
+        return {"dossiers": dossiers, "inwerkingtredingsbron": iwt, "opmerking": opmerking}
 
     @staticmethod
     def _wet_brondata(wetgeving: etree._Element) -> dict[str, str | None]:

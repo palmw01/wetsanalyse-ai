@@ -17,6 +17,7 @@ schijnzekerheid, en juist die wil dit platform bestrijden.
 """
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 from urllib.parse import unquote
@@ -30,6 +31,8 @@ from bronmodel.extern import externe_verwijzingen, externe_vindplaats
 from .provenance import _BWB_RE, citations_in, first_bwb
 from .resultaat import waarden
 from .tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
+
+logger = logging.getLogger(__name__)
 
 # Citaten in de vormen die een model gebruikt: rechte, typografische en Nederlandse dubbele aanhalingstekens, ook
 # gemengd. De ene tabel voor de herkenning én het herstel: een vorm die er maar op één plek bijkomt, wordt wel
@@ -221,17 +224,17 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
 
     # De overzichtsroute heeft hierboven elke genoemde bepaling al hard getoetst.
     onbevestigd = [] if overzicht else _onbevestigd(answer_text, source_trace, trace_text)
-    # Een stuk van een bronconnector (ADR-013) dat het antwoord noemt, maar dat alleen in een zoekresultaat stond: de
-    # titel is gevonden, de tekst niet gelezen. Geen afkeuring – het id bestaat – maar wat het antwoord erover zegt,
-    # rust niet op de bron. De leestool komt uit de beschrijving.
+    # Een stuk van een bronconnector (ADR-013) dat het antwoord noemt en dat alleen in een zoekresultaat stond, is
+    # gevonden, niet gelezen. Dat is geen signaal: het id bestaat en het zoekresultaat draagt zijn label, soort, datum
+    # en titel uit de bron. Tot 10 nov 2026 telde zo'n stuk als onbevestigd; op acceptatie gaf een lijst opvolgende
+    # stukken zo 13 waarschuwingen die er niet hoorden. Een citaat uit zo'n stuk blijft getoetst (`niet_letterlijk`),
+    # en in de bronnenlijst komt het pas als het gelezen is (`alleen_gelezen_extern`). Gelogd, zodat het te meten is.
     lees = leestools()
     gelezen = {e.id for name, t in source_trace if t and name in lees for e in externe_verwijzingen(waarden(t))}
-    for c in cited:
-        if (ext := externe_vindplaats(c)) is not None and van_id(ext.id) is not None and ext.id in trace_extern \
-                and ext.id not in gelezen:
-            regel = f"{ext.label}: alleen gevonden, niet gelezen"
-            if regel not in onbevestigd:
-                onbevestigd.append(regel)
+    gevonden = {ext.id for c in cited if (ext := externe_vindplaats(c)) is not None and van_id(ext.id) is not None
+                and ext.id in trace_extern and ext.id not in gelezen}
+    if gevonden:
+        logger.info("alleen gevonden genoemd", extra={"categorie": "functioneel", "aantal": len(gevonden)})
 
     if unsupported:
         niveau = "ongegrond"

@@ -3,7 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // De BFF combineert het register (api) en de straat (graph-qa) tot één leesmodel (review ADR-013, punt 2).
 const antwoorden: Record<string, Response> = {};
 vi.mock("@/app/api/_lib/session", () => ({ sessionUserId: async () => "u1", geenSessie: () => new Response(null, { status: 401 }) }));
-vi.mock("@/app/api/_lib/proxy", () => ({ proxy: async (pad: string) => antwoorden[pad].clone() }));
+const opties: Record<string, unknown> = {};
+vi.mock("@/app/api/_lib/proxy", () => ({
+  proxy: async (pad: string, init?: unknown) => { opties[pad] = init; return antwoorden[pad].clone(); },
+}));
 
 const { GET } = await import("./route");
 
@@ -22,9 +25,24 @@ describe("/api/connectors", () => {
     expect((await (await GET()).json()).connectors).toEqual([{ ...KST, beschikbaarheid: "onbekend" }]);
   });
 
-  it("de straat biedt hem niet aan: hij valt weg", async () => {
+  it("de straat biedt hem niet aan: hij staat er, als niet aangeboden", async () => {
     zet(Response.json({ bronnen: [{ naam: "kamerstukken", straat: false }] }));
-    expect((await (await GET()).json()).connectors).toEqual([]);
+    expect((await (await GET()).json()).connectors).toEqual([{ ...KST, beschikbaarheid: "niet_aangeboden" }]);
+  });
+
+  it("het register faalt: 503 met een reden, niet de kale upstreamstatus", async () => {
+    zet(Response.json({ bronnen: [] }));
+    antwoorden["/v1/connectors"] = Response.json({ detail: "Upstream onbereikbaar" }, { status: 502 });
+    const res = await GET();
+    expect(res.status).toBe(503);
+    expect((await res.json()).detail).toMatch(/niet te lezen/);
+  });
+
+  it("een koude graph-qa houdt het menu niet de volle proxygrens op", async () => {
+    zet(Response.json({ bronnen: [{ naam: "kamerstukken", straat: true }] }));
+    await GET();
+    const t = (opties["/v1/bronnen"] as { timeoutMs?: number }).timeoutMs;
+    expect(t).toBeLessThanOrEqual(10_000);
   });
 
   it("de straat biedt hem aan: aan", async () => {

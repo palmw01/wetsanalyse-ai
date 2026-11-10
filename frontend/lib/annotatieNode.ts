@@ -6,6 +6,8 @@ import { pathSegment } from "./url";
 export interface NodeDoel {
   bron_iri: string; type?: string; label?: string; bwb_id?: string;
   artikel?: string; lid?: string; snapshot_id?: string; citeertitel?: string;
+  /** Uit de bronboom (`doel` van de weergave): de jci en de publieke vindplaats. */
+  jci?: string; url?: string;
   /** De versie van de chip (`artefact.ref.versie`): de stand van de annotatie direct na die beurt van Lex. Geen
    *  onderdeel van de bronnode; alleen de versiekiezer leest hem. */
   versie?: string;

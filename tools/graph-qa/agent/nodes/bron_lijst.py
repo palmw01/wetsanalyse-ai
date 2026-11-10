@@ -20,7 +20,7 @@ from bronmodel.connectors import CONNECTORS
 from langgraph.config import get_stream_writer
 
 from ..narratie import _stap, _toolregel
-from ..sjablonen.extern import lijsten, zoekvraag_tekst
+from ..sjablonen.extern import MAX_LIJST, lijsten, zoekvraag_tekst
 from ..sjablonen.vullen import Onvulbaar
 from ..state import State
 from ..tool_execution import execute_tool
@@ -43,7 +43,10 @@ def bron_lijst_node(b, state: State) -> dict[str, Any]:
     if data.get("status") not in ("ok", "partial"):
         # Een fout: de agent krijgt het resultaat en zegt wat er misging, met de tools voor een tweede poging.
         return {"bron_lijst": {}, "messages": paar, "source_trace": [*state.get("source_trace", []), *trace]}
-    ids = [r["id"] for r in data.get("resultaten") or [] if isinstance(r, dict) and isinstance(r.get("id"), str)]
+    # Hoogstens wat het blok draagt (`MAX_LIJST`); een langere pagina (een dossier op nummer) toont dan het begin, en
+    # "N van de M stukken" zegt dat er meer is. Anders weigerde het blok de lijst en stond er "geen gevonden".
+    ids = [r["id"] for r in data.get("resultaten") or []
+           if isinstance(r, dict) and isinstance(r.get("id"), str)][:MAX_LIJST]
     try:
         blokken: list[Any] = lijsten(ids, trace) if ids else []
     except Onvulbaar:

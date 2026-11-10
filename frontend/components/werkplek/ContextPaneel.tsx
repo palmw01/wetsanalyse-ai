@@ -1,11 +1,12 @@
 "use client";
 
+import { GraafIcoon } from "@/components/graaf/GraafIcoon";
+import { knopKlasse } from "@/components/ui/Button";
+import { HerkomstRegel } from "@/components/ui/HerkomstRegel";
+import { BronVenster } from "@/components/wettekst/BronVenster";
 import { PaneelKop } from "@/components/ui/PaneelKop";
-import Link from "next/link";
 import { createContext, useEffect, useState } from "react";
 
-import { KnoopTekst } from "@/components/graaf/KnoopTekst";
-import { BepalingFeiten } from "@/components/werkplek/BepalingFeiten";
 import { WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
 import { OverzichtPaneel } from "@/components/werkplek/OverzichtPaneel";
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
@@ -13,10 +14,17 @@ import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { LIFECYCLE_LABEL } from "@/lib/annotatie";
-import { haalElementDetail, haalNodeWeergave, nodeLink, type ElementDetail, type NodeWeergave } from "@/lib/annotatieNode";
+import { haalElementDetail, type ElementDetail } from "@/lib/annotatieNode";
+import { WettekstBlok } from "@/components/wettekst/WettekstBlok";
 import { foutTekst, haalWerkgebied } from "@/lib/api";
 import { jasStyle, klasseLabel } from "@/lib/jas";
+import { herkomstKop, vindplaatsTekst } from "@/lib/herkomst";
+import { stukHerkomst, type StukPassage } from "@/lib/bronStuk";
+import { useStuk } from "@/lib/useStuk";
+import { StukVenster } from "@/components/wettekst/StukVenster";
+import { contextSleutelVan } from "@/lib/paneelTabs";
 import type { Lifecycle, Overzicht, Werkgebied } from "@/lib/types";
+import { useBronHerkomst } from "@/lib/useBronHerkomst";
 import { ROL_LABEL } from "@/lib/werkgebied";
 import { bronPad, elementPad, projectPad } from "@/lib/werkgebiedPaden";
 
@@ -27,7 +35,11 @@ export type ContextDoel =
   | { soort: "bron"; bron_iri: string; werkgebied_id?: string; titel: string; /** De jci die Lex las, met de toestand. */ jci?: string }
   | { soort: "element"; element_id: string; titel: string }
   | { soort: "bibliotheek"; werkgebied_id: string; titel: string }
-  | { soort: "overzicht"; overzicht: Overzicht; titel: string };
+  | { soort: "overzicht"; overzicht: Overzicht; titel: string }
+  /** Een stuk uit een bronconnector (ADR-013, het bronvenster PR 6): het brontype (of de naam) van de connector en het
+   *  id. `gelezen` en `voorbeeld` komen uit het antwoord: wat Lex las, en wat het venster toont als de bron weg is. */
+  | { soort: "stuk"; brontype: string; id: string; titel: string;
+      gelezen?: { bron_hash: string; passages: number[] }; voorbeeld?: StukPassage[] };
 
 /** Opent een context naast het gesprek. Alleen binnen de werkplek (`WerkplekClient`); daarbuiten is er
  *  geen gesprek om naast te staan en tonen de aanroepers deze handeling niet. */
@@ -35,12 +47,12 @@ export const ContextPaneelContext = createContext<((doel: ContextDoel) => void) 
 
 const KOP: Record<ContextDoel["soort"], string> = {
   bron: "Bepaling", element: "JAS-element", bibliotheek: "Bronnen van dit werkgebied", overzicht: "Overzicht uit de kennisgraaf",
+  stuk: "Stuk",
 };
 
+/** De sleutel van een context: één plek (`lib/paneelTabs.ts`), ook voor de tabs. */
 export function contextSleutel(d: ContextDoel): string {
-  return d.soort === "bron" ? `bron:${d.bron_iri}:${d.werkgebied_id ?? ""}`
-    : d.soort === "element" ? `element:${d.element_id}`
-    : d.soort === "overzicht" ? `overzicht:${d.overzicht.gevraagd}` : `bibliotheek:${d.werkgebied_id}`;
+  return contextSleutelVan(d);
 }
 
 export function overzichtContext(overzicht: Overzicht): ContextDoel {
@@ -52,30 +64,51 @@ export function overzichtContext(overzicht: Overzicht): ContextDoel {
 export function paginaVanContext(d: ContextDoel): string | undefined {
   return d.soort === "bron" ? bronPad(d.bron_iri, d.werkgebied_id)
     : d.soort === "element" ? elementPad(d.element_id)
-    : d.soort === "overzicht" ? undefined : projectPad(d.werkgebied_id, "bronnen");
+    : d.soort === "overzicht" || d.soort === "stuk" ? undefined : projectPad(d.werkgebied_id, "bronnen");
 }
 
 /** Het contextpaneel (spoor G4, mock-up v4 `sideRail`): dezelfde schil als de artefacten – een kolom vanaf
  *  1280px, anders een sheet –, met bovenaan *Open volledige pagina*. Het paneel is om te raadplegen, niet
  *  om in te werken: beoordelen gebeurt op de pagina. Een paneel is geen vervanging van die pagina. */
-export function ContextPaneel({ doel, variant, onSluit, onWissel, onMaakWerkgebied }: {
+export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onMaakWerkgebied, onSamenhang }: {
   doel: ContextDoel;
   variant: DialogVariant;
   onSluit: () => void;
+  /** Escape: het paneel verbergen (inklappen, of de sheet weg) zonder de tab te sluiten. Zonder: Escape sluit. */
+  onVerberg?: () => void;
   /** Iets anders in hetzelfde paneel openen (een element uit de bepaling, een bron uit de lijst). */
   onWissel: (doel: ContextDoel) => void;
+  /** *Samenhang* in de kop van een bepaling: haar plek in de graaf, als tab naast deze (de werkplek, als de api de
+   *  samenhang kent). */
+  onSamenhang?: (bronIri: string) => void;
   /** *Maak hier een werkgebied van* bij een overzicht. */
   onMaakWerkgebied?: (overzicht: Overzicht) => void;
 }) {
-  const titel = doel.titel || KOP[doel.soort];
+  // Een bepaling krijgt de kop van haar herkomst: de bepaling als titel, regeling · plek · stand · bron eronder.
+  const bron = useBronHerkomst(doel.soort === "bron" ? doel : undefined);
+  // Een stuk uit een bronconnector: dezelfde kop, uit de beschrijving van de connector en de metadata van het stuk.
+  const stuk = useStuk(doel.soort === "stuk" ? doel : null);
+  const herkomst = bron.herkomst ?? (doel.soort === "stuk"
+    ? stukHerkomst(stuk.stand?.antwoord.beschrijving, stuk.stand?.antwoord.deel.stuk, doel.titel) : undefined);
+  const kop = herkomst ? { soort: doel.soort === "stuk" ? stuk.stand?.antwoord.beschrijving.label ?? KOP.stuk : herkomstKop(herkomst).soort,
+    titel: herkomst.bepaling } : { soort: KOP[doel.soort], titel: doel.titel || KOP[doel.soort] };
   return (
-    <Dialog label={`${KOP[doel.soort]}: ${titel}`} variant={variant} onSluit={onSluit}>
+    <Dialog label={`${kop.soort}: ${kop.titel}`} variant={variant} onSluit={onSluit} onEscape={onVerberg}>
       <div data-context-paneel={doel.soort} className="flex min-h-0 flex-1 flex-col">
-        <PaneelKop soort={KOP[doel.soort]} titel={titel} pagina={paginaVanContext(doel)} onSluit={onSluit} />
+        <PaneelKop soort={kop.soort} titel={kop.titel} pagina={paginaVanContext(doel)} onSluit={onSluit}
+          status={herkomst && <HerkomstRegel herkomst={herkomst} />}
+          hoofdactie={doel.soort === "bron" && onSamenhang && (
+            <button type="button" onClick={() => onSamenhang(doel.bron_iri)} data-bron-samenhang
+              className={`${knopKlasse("secondary", "xs")} gap-1`}><GraafIcoon />Samenhang</button>
+          )} />
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          {doel.soort === "bron" ? <BronInhoud doel={doel} onWissel={onWissel} />
+          {doel.soort === "bron" ? <BronVenster bronIri={doel.bron_iri} meldingen={bron.meldingen}
+              onOpenElement={(id, titel) => onWissel({ soort: "element", element_id: id, titel })}
+              onOpenBron={(v) => onWissel({ soort: "bron", bron_iri: v.iri, werkgebied_id: doel.werkgebied_id, titel: vindplaatsTekst(v) })} />
             : doel.soort === "element" ? <ElementInhoud id={doel.element_id} />
             : doel.soort === "overzicht" ? <OverzichtPaneel overzicht={doel.overzicht} onMaakWerkgebied={onMaakWerkgebied} />
+            : doel.soort === "stuk" ? <StukVenster stuk={stuk} gelezen={doel.gelezen} voorbeeld={doel.voorbeeld}
+              onOpenStuk={(v) => onWissel({ soort: "stuk", brontype: doel.brontype, id: v.id, titel: v.label })} />
             : <BibliotheekInhoud werkgebiedId={doel.werkgebied_id} onWissel={onWissel} />}
         </div>
       </div>
@@ -89,53 +122,6 @@ function Laden() {
 
 function Kop({ children }: { children: React.ReactNode }) {
   return <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-faint">{children}</h3>;
-}
-
-function BronInhoud({ doel, onWissel }: { doel: Extract<ContextDoel, { soort: "bron" }>; onWissel: (d: ContextDoel) => void }) {
-  const [view, setView] = useState<NodeWeergave | null>(null);
-  const [fout, setFout] = useState<string | null>(null);
-  useEffect(() => {
-    let levend = true;
-    haalNodeWeergave({ bron_iri: doel.bron_iri })
-      .then((v) => levend && setView(v))
-      .catch((e) => levend && setFout(foutTekst(e, "De bepaling kon niet worden geladen.")));
-    return () => { levend = false; };
-  }, [doel.bron_iri]);
-  if (fout) return <Melding type="fout" compact>{fout}</Melding>;
-  if (!view) return <Laden />;
-  const actueel = view.elementen.filter((e) => !e.verouderd && e.lifecycle !== "rejected");
-  const openElement = (id: string) => {
-    const e = actueel.find((x) => x.id === id);
-    onWissel({ soort: "element", element_id: id, titel: e ? `${klasseLabel(e.klasse)} · “${e.tekst}”` : "" });
-  };
-  return <>
-    <section>
-      <Kop>Wettekst</Kop>
-      <KnoopTekst segmenten={view.segmenten} elementen={actueel} kiesbaar={() => true} onKies={openElement} />
-    </section>
-    <section>
-      <Kop>JAS-elementen ({actueel.length})</Kop>
-      {actueel.length === 0 ? <p className="text-sm text-muted">Nog niet geannoteerd.</p> : (
-        <ul className="divide-y divide-line">
-          {actueel.map((e) => (
-            <li key={e.id}>
-              <button type="button" onClick={() => openElement(e.id)} data-context-element={e.id}
-                className="focus-ring flex w-full items-center gap-2 rounded-md px-1 py-2 text-left hover:bg-surface">
-                <span className={`shrink-0 rounded border px-1.5 text-[0.7rem] ${jasStyle(e.klasse)}`}>{klasseLabel(e.klasse)}</span>
-                <span className="min-w-0 flex-1 truncate text-sm text-ink">“{e.tekst}”</span>
-                <span className="shrink-0 text-xs text-muted">{LIFECYCLE_LABEL[e.lifecycle as Lifecycle] ?? e.lifecycle}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <Link href={nodeLink({ bron_iri: doel.bron_iri })} className="focus-ring mt-2 inline-block rounded text-xs font-medium text-lint hover:underline">
-        Beoordelen in de annotatie
-      </Link>
-    </section>
-    <BepalingFeiten key={doel.bron_iri} bronIri={doel.bron_iri} gelezenJci={doel.jci}
-      onOpen={(v) => onWissel({ soort: "bron", bron_iri: v.iri, werkgebied_id: doel.werkgebied_id, titel: v.regeling ? `${v.label}, ${v.regeling}` : v.label })} />
-  </>;
 }
 
 function ElementInhoud({ id }: { id: string }) {
@@ -160,7 +146,7 @@ function ElementInhoud({ id }: { id: string }) {
     </div>
     <section>
       <Kop>Bronvoorkomen</Kop>
-      <KnoopTekst segmenten={d.bronnen} elementen={[el]} kiesbaar={() => false} onKies={() => {}} />
+      <WettekstBlok segmenten={d.bronnen} elementen={[el]} />
     </section>
     {el.toelichting?.trim() && <section><Kop>Toelichting</Kop><p className="text-sm text-ink">{el.toelichting}</p></section>}
     {el.review_uitleg && <section><Kop>Review</Kop><p className="text-sm text-ink">{el.review_uitleg}</p></section>}
@@ -192,9 +178,9 @@ function BibliotheekInhoud({ werkgebiedId, onWissel }: { werkgebiedId: string; o
             {lijst.map((b) => (
               <li key={b.id}>
                 <button type="button" data-context-bron={b.id}
-                  onClick={() => onWissel({ soort: "bron", bron_iri: b.bron_iri, werkgebied_id: werkgebiedId, titel: b.label || "Bepaling" })}
+                  onClick={() => onWissel({ soort: "bron", bron_iri: b.bron_iri, werkgebied_id: werkgebiedId, titel: vindplaatsTekst({ iri: b.bron_iri, label: b.label }) })}
                   className="focus-ring block w-full rounded-md px-1 py-2 text-left hover:bg-surface">
-                  <span className="block text-sm font-medium text-ink">{b.label || "Bepaling"}</span>
+                  <span className="block text-sm font-medium text-ink">{vindplaatsTekst({ iri: b.bron_iri, label: b.label })}</span>
                   {b.reden && <span className="block text-xs text-muted">{b.reden}</span>}
                 </button>
               </li>

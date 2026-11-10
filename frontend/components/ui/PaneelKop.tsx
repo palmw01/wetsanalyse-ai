@@ -65,6 +65,10 @@ export function usePaneelKopVulling(vulling: KopVulling | null, sleutel: string)
  *  schil geeft, dan wat de inhoud via `usePaneelKopVulling` toevoegt; *Verwijderen* onderaan): in een paneel van 360 px
  *  passen ze niet naast de status. Twee slots onder de kop: `onder` (één regel: de reeks of de versie) en `balk` (tabs
  *  en *Vergroten*), zodat geen paneel een eigen kop of sluitknop nodig heeft. `app/paneelKop.test.ts` bewaakt het. */
+/** De tabs van het paneel naast het gesprek, op een telefoon (het bronvenster, PR 3b): daar is het paneel een sheet en
+ *  staat er geen zijpaneel met een balk, dus de tabs staan boven de kop van wat er open is. Alleen de werkplek geeft ze. */
+export const PaneelTabsContext = createContext<React.ReactNode>(null);
+
 export function PaneelKop({ soort, titel, pagina, status, hoofdactie, menu, onSluit, onder, balk }: {
   /** De soort, klein boven de titel; weg als de titel de soortnaam al is (`artefactKop` in `lib/artefact.ts`). */
   soort?: string;
@@ -88,8 +92,10 @@ export function PaneelKop({ soort, titel, pagina, status, hoofdactie, menu, onSl
   const actie = hoofdactie ?? vulling?.hoofdactie;
   const eigenMenu = vulling?.menu;
   const heeftMenu = Boolean(menu || eigenMenu);
+  const tabs = useContext(PaneelTabsContext);
   return (
     <div data-paneel-kop className="shrink-0">
+    {tabs && <div data-paneel-tabs className="flex border-b border-line px-3 py-1.5">{tabs}</div>}
     <div data-tour="artefact-acties" className="flex flex-col gap-2 border-b border-line px-5 py-3.5 pt-[max(0.875rem,env(safe-area-inset-top))]">
       <div data-kop-rij="titel" className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
