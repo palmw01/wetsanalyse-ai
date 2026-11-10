@@ -1329,7 +1329,7 @@ export function WerkplekClient({
             </div>
           )}
           {!demo && toonMenu(connectorStand) && (
-            <div className="mb-1 flex min-w-0">
+            <div className="mb-1 flex min-w-0" data-connectors-ruimte>
               <ConnectorsMenu stand={connectorStand} onWissel={kiesConnector} onOpen={verversAlsOnbekend}
                 onOpnieuw={connectorLijst.ververs}
                 onAlsStandaard={werkgebiedId ? () => void maakConnectorStandaard() : undefined}

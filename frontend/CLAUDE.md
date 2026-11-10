@@ -558,6 +558,7 @@ per connector aan of uit (`MenuKeuze`), en in een werkgebied *Maak dit de standa
   over de lijst. Uitgezet in gesprek,
   werkgebied of door de beheerder zegt niets over de omgeving.
 - Het menu omzetten zet een gesprek niet bovenaan de lijst (geen `updated`).
+- **Past de regel niet, dan de korte vorm** (melding gebruiker 10 nov 2026: op een telefoon liep de knop uit beeld): "Bronnen: alle 4 aan" of "3 van 4 aan" (`menuKort`), met één geel label als een bron niet beschikbaar of onbekend is, en zonder aantal zolang er gecontroleerd wordt. De knop meet het zelf tegen `[data-connectors-ruimte]` (`useTePast`), niet op een breakpoint, dus ook naast een open zijpaneel. Het menu en de toegankelijke naam blijven volledig.
 - Browserregressie: `scripts/test-connectors-menu.mjs`.
 
 ### Brongetrouwheid onder en in het antwoord

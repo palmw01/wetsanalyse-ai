@@ -1,5 +1,6 @@
 "use client";
 
+import { useLayoutEffect, useRef, useState } from "react";
 import { knopKlasse } from "@/components/ui/Button";
 import { ChevronOmlaag, Vinkje, Waarschuwing } from "@/components/ui/Icoon";
 import { StatusLabel } from "@/components/ui/Lijst";
@@ -8,7 +9,7 @@ import { MenuKeuze, MenuKnop, MenuLijst } from "@/components/ui/MeerMenu";
 import { MENU_PANEEL } from "@/components/ui/Menu";
 import { Popover } from "@/components/ui/Popover";
 import { MENU_RIJ } from "@/components/ui/Menu";
-import { herkomstVan, menuMelding, menuNaam, menuRegel, actieveConnectors, schakelbaar, STAND_WOORD, toonMenu, type ConnectorStand } from "@/lib/connectorsMenu";
+import { herkomstVan, menuKort, menuMelding, menuNaam, menuRegel, actieveConnectors, schakelbaar, STAND_WOORD, toonMenu, type ConnectorStand } from "@/lib/connectorsMenu";
 
 const HERKOMST = {
   gesprek: "Je koos dit voor dit gesprek.",
@@ -36,18 +37,30 @@ export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarSta
   /** *Opnieuw proberen* in de melding: de stand opnieuw ophalen. */
   onOpnieuw?: () => void;
 }) {
+  const volRef = useRef<HTMLSpanElement>(null);
+  const kort = useTePast(volRef);
   if (!toonMenu(stand)) return null;
   const aan = actieveConnectors(stand);
+  const samenvatting = menuKort(stand);
   const herkomst = herkomstVan(stand);
   const melding = menuMelding(stand);
   return (
     <Popover ariaLabel="Bronnen en tools" positie="left-0 bottom-full mb-1" className={`w-72 ${MENU_PANEEL}`}
       trigger={(open, toggle) => (
         <button type="button" onClick={() => { if (!open) onOpen?.(); toggle(); }} aria-expanded={open} aria-haspopup="menu" aria-label={menuNaam(stand)}
-          data-connectors-menu data-laden={stand.controleert ? "controleert" : stand.laden === "mislukt" ? "mislukt" : undefined}
+          data-connectors-menu data-kort={kort ? "" : undefined} data-laden={stand.controleert ? "controleert" : stand.laden === "mislukt" ? "mislukt" : undefined}
           aria-busy={stand.controleert || undefined}
-          className={`${knopKlasse("ghost", "sm")} max-w-full gap-1.5 text-xs`}>
+          className={`${knopKlasse("ghost", "sm")} relative max-w-full gap-1.5 text-xs ${kort ? "overflow-hidden" : ""}`}>
           {stand.laden === "mislukt" && !stand.controleert && <Waarschuwing className="text-aandacht-geel-tekst" />}
+          {kort && (
+            <span className="inline-flex items-center gap-1.5 text-ink" data-connectors-kort>
+              {samenvatting.tekst}
+              {samenvatting.aandacht && <StatusLabel toon="geel" klein aria-hidden>{STAND_WOORD[samenvatting.aandacht]}</StatusLabel>}
+            </span>
+          )}
+          {/* De volle regel staat er altijd: zo meet de knop of hij past. Past hij niet, dan is hij onzichtbaar en buiten de flow. */}
+          <span ref={volRef} aria-hidden={kort || undefined}
+            className={kort ? "pointer-events-none invisible absolute left-0 top-0 inline-flex items-center gap-1.5" : "inline-flex items-center gap-1.5"}>
           {menuRegel(stand).map((d, i) => (
             <span key={d.label} className={`inline-flex items-center gap-1 ${d.stand === "aan" ? "text-ink" : "text-muted"}`}
               data-bron={d.label} data-aan={d.stand === "aan" ? "" : undefined} data-stand={d.stand}>
@@ -60,6 +73,7 @@ export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarSta
                 : <StatusLabel toon="geel" klein aria-hidden>{STAND_WOORD[d.stand]}</StatusLabel>}
             </span>
           ))}
+          </span>
           <ChevronOmlaag className="text-muted" />
         </button>
       )}>
@@ -101,4 +115,25 @@ export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarSta
       )}
     </Popover>
   );
+}
+
+/** Wat de knop naast de regel nodig heeft: de opvulling, de chevron en de tussenruimte. */
+const KNOP_EXTRA_PX = 48;
+
+/** Of de volle regel niet past in de ruimte die de werkplek het menu geeft (`[data-connectors-ruimte]`, anders de
+ *  ouder). Gemeten, niet op een breakpoint: naast een open zijpaneel is de kolom op een breed scherm ook smal. */
+function useTePast(volRef: React.RefObject<HTMLSpanElement | null>): boolean {
+  const [kort, setKort] = useState(false);
+  useLayoutEffect(() => {
+    const vol = volRef.current;
+    const ruimte = vol?.closest<HTMLElement>("[data-connectors-ruimte]") ?? vol?.parentElement?.parentElement;
+    if (!vol || !ruimte || typeof ResizeObserver === "undefined") return;
+    const meet = () => setKort(vol.scrollWidth + KNOP_EXTRA_PX > ruimte.clientWidth);
+    meet();
+    const waarnemer = new ResizeObserver(meet);
+    waarnemer.observe(ruimte);
+    waarnemer.observe(vol);
+    return () => waarnemer.disconnect();
+  });
+  return kort;
 }

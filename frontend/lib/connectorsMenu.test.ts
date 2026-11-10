@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actieveConnectors, beurtBronnen, herkomstVan, menuMelding, menuNaam, menuRegel, metBeschikbaarheid, moetVerversen, toonMenu, uitBronstand, wissel, zelfAanTeZetten, type ConnectorStand } from "./connectorsMenu";
+import { actieveConnectors, beurtBronnen, herkomstVan, menuMelding, menuKort, menuNaam, menuRegel, metBeschikbaarheid, moetVerversen, toonMenu, uitBronstand, wissel, zelfAanTeZetten, type ConnectorStand } from "./connectorsMenu";
 
 const KST = { naam: "kamerstukken", label: "Kamerstukken", brontype: "kamerstuk" };
 const ECLI = { naam: "rechtspraak", label: "Rechtspraak", brontype: "uitspraak" };
@@ -157,5 +157,29 @@ describe("connectorsMenu", () => {
     expect(menuRegel(stand)).toEqual([{ label: "Wetgeving", stand: "aan" }, { label: "Kamerstukken", stand: "aan" },
       { label: "Rechtspraak", stand: "uit" }]);
     expect(menuNaam(stand)).toBe("Bronnen: Wetgeving aan, Kamerstukken aan, Rechtspraak uit");
+  });
+});
+
+describe("menuKort", () => {
+  const met = (beschikbaar: ConnectorStand["beschikbaar"], extra: Partial<ConnectorStand> = {}): ConnectorStand =>
+    ({ beschikbaar, gesprek: null, werkgebied: null, laden: "ok", controleert: false, ...extra }) as ConnectorStand;
+  const c = (naam: string, label: string, beschikbaarheid: "aan" | "onbekend" | "niet_aangeboden" = "aan") =>
+    ({ naam, label, brontype: naam, beschikbaarheid });
+
+  it("telt de bronnen die aan staan, Wetgeving meegerekend", () => {
+    const stand = met([c("kamerstukken", "Kamerstukken"), c("bekendmakingen", "Staatsblad en Staatscourant"), c("rechtspraak", "Rechtspraak")]);
+    expect(menuKort(stand)).toEqual({ tekst: "Bronnen: alle 4 aan", aandacht: null });
+    expect(menuKort({ ...stand, gesprek: ["kamerstukken"] })).toEqual({ tekst: "Bronnen: 2 van 4 aan", aandacht: null });
+  });
+
+  it("noemt een bron die niet beschikbaar of onbekend is met één label", () => {
+    expect(menuKort(met([c("kamerstukken", "Kamerstukken", "niet_aangeboden"), c("rechtspraak", "Rechtspraak")])).aandacht)
+      .toBe("niet_aangeboden");
+    expect(menuKort(met([c("kamerstukken", "Kamerstukken", "onbekend")])).aandacht).toBe("onbekend");
+  });
+
+  it("zegt niets over aantallen zolang er gecontroleerd wordt", () => {
+    expect(menuKort(met([c("kamerstukken", "Kamerstukken", "onbekend")], { controleert: true })))
+      .toEqual({ tekst: "Bronnen", aandacht: null });
   });
 });
