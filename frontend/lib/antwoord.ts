@@ -15,7 +15,7 @@ export type AntwoordBlok =
   | { soort: "twijfel"; door: "lex"; punten: string[] }
   | { soort: "extern"; door: "bron"; brontype: string; id: string; label: string; link: string; kop: string;
       passages: { nr: number; tekst: string; kop: string; soort?: "alinea" | "voetnoot" | "tabel" | "tabelrij"; cellen?: string[] | null;
-        verwijst_naar?: { id: string; label: string; link: string }[] | null }[];
+        verwijst_naar?: { id: string; label: string; link: string }[] | null; plek?: string }[];
       /** De versie die Lex las: de hash van het document en de stand bij de bron. Leeg bij een ouder bericht. */
       bron_hash?: string; gewijzigd?: string;
       /** Uit de metadata van het gelezen stuk: de datum en het soort ("Motie"). Leeg bij een ouder bericht. */

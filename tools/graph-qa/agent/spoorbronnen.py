@@ -184,7 +184,8 @@ def uitkomstregel(tool: str, invoer: dict[str, Any], eind: dict[str, Any], data:
 
     - een fout: in woorden (`resultaat.REDEN_ZIN`), nooit de code;
     - een zoekaanroep: "niets gevonden", "16 gevonden", "10 van 1.218 gevonden";
-    - niet alles opgehaald: "er is meer dan dit", bij een leestool "kst-33755-3 deels gelezen, er is meer dan dit".
+    - niet alles opgehaald: "er is meer dan dit", bij een leestool "kst-33755-3 deels gelezen, er is meer dan dit";
+    - een leestool zonder één rij: "ECLI:NL:GHARL:2023:5000 heeft geen tekst om te lezen".
 
     Een leestool krijgt geen aantal: dat telt rijen, geen inhoud. Het `peilmoment` van de annotatiedekking ook niet: dat
     is het moment van opvragen, dus "nu", en zei bij elke annotatie hetzelfde.
@@ -205,6 +206,10 @@ def uitkomstregel(tool: str, invoer: dict[str, Any], eind: dict[str, Any], data:
             meer = False
         else:
             delen.append(f"{_getal(aantal)} gevonden")
+    if bron is not None and not zoekt and tool in bron.lees_id and aantal == 0 and not meer:
+        # Een stuk zonder tekst bij de bron (een uitspraak met alleen metadata): anders zweeg het denkproces (meting 10 nov).
+        stuk = str((invoer or {}).get(bron.lees_id[tool]) or "").strip()
+        delen.append(f"{stuk + ' ' if stuk else ''}heeft geen tekst om te lezen")
     if meer:
         arg = bron.lees_id.get(tool) if bron is not None and not zoekt else None
         stuk = str((invoer or {}).get(arg) or "").strip() if arg else ""
