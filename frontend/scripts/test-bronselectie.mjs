@@ -253,11 +253,12 @@ try {
   assert.equal(stand.d2.status, "in_behandeling", "de voortgang van deelvraag 2 blijft");
   assert.deepEqual(stand.d2.open_punten, [{ tekst: "Onderzoek ook de bijzondere invorderbaarheid." }]);
 
-  // --- Herladen: de open vraag van deelvraag 4, de Vragen-kaart en het paneel via de balk ---
+  // --- Herladen: de open vraag van deelvraag 4, de Vragen-kaart en het paneel uit de bewaarde tabs ---
   await page.goto(`${base}/workbench?gesprek=g1`);
   await dock("bs_bepalingen").getByText("4 van 4").waitFor();
   assert.ok(await page.locator("[data-vragenkaart]").count() >= 1, "de antwoorden staan in een Vragen-kaart");
-  await page.getByRole("button", { name: /Bronselectie.*Openen/ }).click();
+  // De tabs van het gesprek komen terug (het bronvenster, PR 3b): de bronselectie staat weer open, zonder de balk.
+  await paneel().waitFor();
   await deelvraagInPaneel("d2").getByText("In behandeling").waitFor();
   await deelvraagInPaneel("d1").getByText("Voorlopig afgerond").waitFor();
 

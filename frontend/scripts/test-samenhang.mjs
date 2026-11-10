@@ -363,7 +363,9 @@ async function wachtGereed(page) {
   // "artikel 10" heeft geen bron en blijft gewone tekst.
   await page.getByRole("button", { name: "Artikel 9 lid 2", exact: true }).click();
   await page.getByTestId("bronkaart").getByText("Artikel 9, lid 2", { exact: true }).waitFor();
-  await page.getByTestId("bronkaart").getByRole("button", { name: "Bekijk in de graaf" }).waitFor();
+  // Het bronvenster (PR 4): de kaart opent de bepaling als tab; de samenhang is één chip onder het antwoord.
+  await page.getByTestId("bronkaart").getByRole("button", { name: "Openen", exact: true }).waitFor();
+  assert.equal(await page.getByTestId("bronkaart").getByRole("button", { name: "Bekijk in de graaf" }).count(), 0);
   await page.screenshot({ path: `${shots}/0-bronkaart.png` });
   assert.equal(await page.getByRole("button", { name: "artikel 10", exact: true }).count(), 0);
   await page.keyboard.press("Escape");

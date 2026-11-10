@@ -116,7 +116,7 @@ function paginaVan(doel: WerkgebiedArtefact): string {
  *  niet-bewaarde wijzigingen draagt: bij sluiten (kruisje, Escape, achtergrond), bij een link weg en bij elke
  *  wissel vanuit de werkplek (FB-05). De bewaker hoort daarom bij de werkplek (`WerkplekClient`,
  *  `wisselPaneel`): die wisselt het paneel, dit paneel toont alleen zijn vraag. */
-export function WerkgebiedArtefactPaneel({ doel, variant = "side", bewaker, onOnbewaard, onSluit, onWissel, onVerwijderd, onKlaar, klaarVoor }: {
+export function WerkgebiedArtefactPaneel({ doel, variant = "side", bewaker, onOnbewaard, onSluit, onVerberg, onWissel, onVerwijderd, onKlaar, klaarVoor }: {
   doel: WerkgebiedArtefact;
   /** De bewaker van de werkplek; `onOnbewaard` meldt hem wat er onbewaard openstaat. */
   bewaker: ReturnType<typeof useOnbewaardBewaker>;
@@ -126,6 +126,8 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", bewaker, onOn
   klaarVoor?: string;
   variant?: DialogVariant;
   onSluit: () => void;
+  /** Escape: het paneel verbergen zonder de tab te sluiten (het bronvenster, PR 3b). Zonder: Escape sluit. */
+  onVerberg?: () => void;
   /** Het werkgebied is vanuit dit paneel verwijderd: de werkplek verlaat het dan, als ze erin stond. */
   onVerwijderd?: (werkgebiedId: string) => void;
   /** Een ander artefact in hetzelfde paneel (de opvolger van een vervangen deelvraag of begrip). */
@@ -147,7 +149,7 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", bewaker, onOn
   const metVersie = doel.versie;
   const [opname, setOpname] = useState<Opname | null | undefined>(metVersie ? undefined : null);
   return (
-    <Dialog label={soort ? `${soort}: ${titel}` : titel} variant={variant} onSluit={sluit}>
+    <Dialog label={soort ? `${soort}: ${titel}` : titel} variant={variant} onSluit={sluit} onEscape={onVerberg}>
       <PaneelKopVuller>
       <div data-artefact data-artefact-soort={doel.soort} className="flex min-h-0 flex-1 flex-col">
         <PaneelKop soort={soort} titel={titel} pagina={naarWerkgebied} onSluit={sluit}

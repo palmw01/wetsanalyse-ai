@@ -25,7 +25,7 @@ from . import bepaling_graaf
 from .bepaling_graaf import _IN
 from .bepaling_graaf_contract import MAX_UITGAAND, MAX_VOORBEELDEN, BepalingDetail, Structuurdeel, Telling, Verwijzing
 from .graaf_client import sparql_select
-from .knoopinfo import BWB, MAX_TRIPLES, _regeling_geldigheid, _uitgaand
+from .knoopinfo import BWB, MAX_TRIPLES, OWL_SAMEAS, _regeling_geldigheid, _uitgaand
 from .samenhang import _IRI, _PREFIXES
 
 log = logging.getLogger(__name__)
@@ -75,6 +75,20 @@ def _vindplaats(iri: str, label: str, titels: dict[str, str]) -> Vindplaats:
     if eigen == regeling:  # een verwijzing naar de regeling zelf: geen "Invorderingswet 1990, Invorderingswet 1990"
         regeling = ""
     return Vindplaats(iri=iri, label=eigen, regeling=regeling)
+
+
+_WETTEN = "https://wetten.overheid.nl/"
+
+
+def _jci_met_toestand(url: str, geldig_vanaf: str | None) -> str:
+    """De jci uit de canonieke URL (`owl:sameAs`), met de toestand die de graaf draagt. Zonder jci-vorm (een `id:`-divisie
+    heeft alleen een `bronUrl`) blijft hij leeg: een verzonnen jci wijst naar de verkeerde tekst (`rdf_vocab.bron_url`)."""
+    if not url.startswith(_WETTEN + "jci"):
+        return ""
+    jci = url[len(_WETTEN):]
+    if geldig_vanaf and "&z=" not in jci and re.fullmatch(r"\d{4}-\d{2}-\d{2}", geldig_vanaf):
+        jci += f"&z={geldig_vanaf}&g={geldig_vanaf}"
+    return jci
 
 
 def _telling(rijen: list[dict], predicaat: str, aantal: int | None, afgekapt: bool) -> Telling:
@@ -136,15 +150,21 @@ def detail_uit(iri: str, uit: list[dict], reg: list[dict], inkomend_rijen: list[
     triples_afgekapt = len(uit) >= MAX_TRIPLES
     in_lijst = sorted(inkomend.items(), key=volgorde_in)
     regeling_iri = f"urn:bwb:{eigen_bwb}" if eigen_bwb else ""
+    geldig_vanaf = _eerste(reg if iri != regeling_iri else uit, BWB + "geldigVanaf") or None
+    canoniek = _eerste(uit, OWL_SAMEAS)
+    vindplaats = _vindplaats(iri, _eerste(uit, BWB + "vindplaats"), citeertitels)
+    vindplaats.jci = _jci_met_toestand(canoniek, geldig_vanaf)
     return BepalingDetail(
         bron_iri=iri,
-        vindplaats=_vindplaats(iri, _eerste(uit, BWB + "vindplaats"), citeertitels),
+        vindplaats=vindplaats,
+        bwb_id=eigen_bwb,
+        url=_eerste(uit, BWB + "bronUrl") or canoniek,
         plaats=structuur,
         status=_eerste(uit, BWB + "status"),
         inwerking=_eerste(uit, BWB + "inwerking") or None,
         terugwerkend_tot=_eerste(uit, BWB + "terugwerkendTot") or None,
         gewijzigd_bij=_eerste(uit, BWB + "bron"),
-        geldig_vanaf=_eerste(reg if iri != regeling_iri else uit, BWB + "geldigVanaf") or None,
+        geldig_vanaf=geldig_vanaf,
         geldig_tot=_eerste(reg if iri != regeling_iri else uit, BWB + "geldigTot") or None,
         toestand_url=_eerste(reg if iri != regeling_iri else uit, BWB + "toestandUrl"),
         verwijst_naar=uit_lijst[:MAX_UITGAAND],

@@ -4,6 +4,7 @@ import { KNOP_XS } from "@/components/ui/Button";
 import Link from "next/link";
 import { useState } from "react";
 
+import { WettekstBlok } from "@/components/wettekst/WettekstBlok";
 import { Input } from "@/components/ui/Field";
 import type { BegripMutatie } from "@/lib/useBegrip";
 import { bevestigKoppeling, herkoppel } from "@/lib/api";
@@ -71,7 +72,7 @@ export function Herbeoordeling({ id, begrip, geraakt: g, muteer }: {
         </div>
       </div>
 
-      {wetGewijzigd.map((b) => <Wettekst key={b.bron_iri} bron={b} />)}
+      {wetGewijzigd.map((b) => <TekstNu key={b.bron_iri} bron={b} />)}
 
       {g.opvolgers.length > 0 && (
         <div className="space-y-1.5">
@@ -153,23 +154,17 @@ function Stand({ tekst, klasse, extra }: { tekst: string; klasse: string; extra?
   );
 }
 
-/** De wettekst van nu, met het gemarkeerde fragment aangewezen als het er nog staat. */
-function Wettekst({ bron: b }: { bron: BronSignaal }) {
+/** De wettekst van nu, met het gemarkeerde fragment aangewezen als het er nog staat (`WettekstBlok`). */
+function TekstNu({ bron: b }: { bron: BronSignaal }) {
   const plek = b.vindplaats || b.bron_iri;
   if (b.stand === "weg") return <p className="text-xs text-ink">{plek} staat niet meer in de wettekst.</p>;
   if (b.stand === "onbekend") return <p className="text-xs text-muted">De wettekst van {plek} was niet op te halen.</p>;
-  const delen = markeer(b.tekst_nu ?? "", b.fragment);
+  const staat = Boolean(markeer(b.tekst_nu ?? "", b.fragment));
   return (
     <div>
       <p className="text-[11px] font-medium uppercase tracking-wide text-muted">Wettekst nu · {plek}</p>
-      <p className="mt-0.5 whitespace-pre-line text-sm text-ink">
-        {delen ? (
-          <>{delen[0]}<mark className="rounded bg-aandacht-geel-bg px-0.5 text-ink">{delen[1]}</mark>{delen[2]}</>
-        ) : (
-          b.tekst_nu
-        )}
-      </p>
-      {!delen && <p className="text-[11px] text-aandacht-geel-tekst">Het gemarkeerde fragment “{b.fragment}” staat er niet meer.</p>}
+      <div className="mt-0.5"><WettekstBlok groot tekst={b.tekst_nu ?? ""} markeer={b.fragment} /></div>
+      {!staat && <p className="text-[11px] text-aandacht-geel-tekst">Het gemarkeerde fragment “{b.fragment}” staat er niet meer.</p>}
     </div>
   );
 }

@@ -511,6 +511,40 @@ async def bronnen(_auth: None = Depends(_check_auth)) -> dict:
                          "straat": c.naam in aan} for c in CONNECTORS.values()]}
 
 
+@app.get("/v1/bronnen/{connector}/stukken/{stuk_id}")
+async def bron_stuk(connector: str, stuk_id: str, offset: int = 0, tabel: int | None = None,
+                    _auth: None = Depends(_check_auth)) -> dict:
+    """Eén stuk uit een bronconnector, voor het bronvenster van de werkplek (het bronvenster-plan, PR 6). Generiek: de
+    leestool en haar argument komen uit de beschrijving (`ConnectorBeschrijving.leestool`/`lees_argument`), dus geen code
+    per connector, en de cache van de adapter wordt gedeeld met Lex. `offset` volgt het `vervolg` van het leesresultaat
+    (een lang stuk komt per deel), `tabel` opent een tabel. 404 als de straat de connector niet aanbiedt: lezen van een
+    stuk uit het gesprek mag zolang de straat het aanbiedt; de schakelaar per gesprek gaat over wat Lex gebruikt."""
+    from bronmodel.connectors import CONNECTORS
+    from starlette.concurrency import run_in_threadpool
+
+    from agent.tools import connectors_aan, dispatch
+
+    # De naam van de connector, of zijn brontype: een blok of bron in een antwoord kent alleen dat laatste.
+    c = CONNECTORS.get(connector) or next((x for x in CONNECTORS.values() if x.brontype == connector), None)
+    if c is None or c.naam not in connectors_aan(settings):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail={"reden": "connector_onbekend" if c is None else "connector_uit"})
+    if len(stuk_id) > 200 or not any(stuk_id.lower().startswith(p.lower()) for p in c.id_prefixen):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={"reden": "ongeldig_id"})
+    args: dict = {c.lees_argument: stuk_id, "offset": max(offset, 0)}
+    if tabel is not None:
+        args["tabel"] = tabel
+    ruw = await run_in_threadpool(dispatch, c.leestool, None, args, settings, bronnen=[c.naam])
+    try:
+        resultaat = json.loads(ruw)
+    except ValueError:
+        resultaat = {"status": "fout", "reden": "onleesbaar", "melding": str(ruw)[:500]}
+    return {"connector": {"naam": c.naam, "label": c.label, "groep": c.groep, "brontype": c.brontype,
+                          "id_prefixen": list(c.id_prefixen),
+                          "metadata": [{"sleutel": m.sleutel, "label": m.label} for m in c.metadata]},
+            "resultaat": resultaat}
+
+
 @app.get("/v1/runs")
 async def runs_van_gebruiker(
     actief: bool = False,

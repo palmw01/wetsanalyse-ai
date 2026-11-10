@@ -144,3 +144,60 @@ export function Tabs({
     </div>
   );
 }
+
+export interface TabRijItem {
+  key: string;
+  label: string;
+  /** De tooltip: het volle label, en waar de tab geopend werd. */
+  title?: string;
+  icoon?: ReactNode;
+  /** Een ✕ achter de tab; zonder is de tab niet los te sluiten. */
+  onSluit?: () => void;
+}
+
+/** Alleen de tabrij, voor een paneel waarvan de inhoud elders staat (de tabs van het zijpaneel, het bronvenster PR 3b):
+ *  dezelfde tablist als `Tabs` (`TABRIJ`, scrollt horizontaal, pijltjestoetsen verplaatsen de focus), compact van hoogte
+ *  en met een ✕ per tab. Een tab sluiten is een eigen knop naast de tab, niet erin: een knop in een knop kan niet. */
+export function TabRij({ tabs, active, onChange, label }: {
+  tabs: readonly TabRijItem[];
+  active?: string;
+  onChange: (key: string) => void;
+  label: string;
+}) {
+  const refs = useRef<Record<string, HTMLButtonElement | null>>({});
+  useEffect(() => {
+    if (active) refs.current[active]?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  }, [active]);
+  function onKeyDown(e: React.KeyboardEvent, index: number) {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault();
+    const next = (index + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+    onChange(tabs[next].key);
+    refs.current[tabs[next].key]?.focus();
+  }
+  return (
+    <div role="tablist" aria-label={label} className={`${TABRIJ} min-w-0 flex-1 shadow-none`}>
+      {tabs.map((t, i) => {
+        const gekozen = t.key === active;
+        return (
+          <div key={t.key} role="presentation" data-paneel-tab={t.key} data-actief={gekozen || undefined}
+            className={`flex max-w-[14rem] shrink-0 items-center rounded-knop-xs border ${gekozen ? "border-lint/40 bg-surface text-lint" : "border-transparent text-muted hover:bg-surface hover:text-lint"}`}>
+            <button ref={(el) => { refs.current[t.key] = el; }} type="button" role="tab" aria-selected={gekozen}
+              tabIndex={gekozen || (!active && i === 0) ? 0 : -1} title={t.title ?? t.label}
+              onClick={() => onChange(t.key)} onKeyDown={(e) => onKeyDown(e, i)}
+              className="focus-ring flex min-h-7 min-w-0 items-center gap-1.5 rounded-knop-xs px-2 text-xs font-medium coarse:min-h-11">
+              {t.icoon && <span aria-hidden className="shrink-0">{t.icoon}</span>}
+              <span className="truncate">{t.label}</span>
+            </button>
+            {t.onSluit && (
+              <button type="button" aria-label={`Sluit tab ${t.label}`} title={`Sluit tab ${t.label}`} onClick={t.onSluit} data-tab-sluiten
+                className="focus-ring mr-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-knop-xs text-faint hover:bg-paper hover:text-lint coarse:h-11 coarse:w-11">
+                <svg width="10" height="10" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M5 5l10 10M15 5L5 15" /></svg>
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}

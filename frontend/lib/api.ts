@@ -678,6 +678,9 @@ export type AgentHandlers = {
   onWaarschuwing?: (bericht: string) => void;
   /** De vraag ging over een bron naast de wet die uit stond (ADR-013): de werkplek biedt *Zet aan* aan. */
   onBronUit?: (bronnen: import("./connectorsMenu").BronUit[]) => void;
+  /** De bronstand van de beurt (ADR-013, graph-qa `agent/bronstand.py`): per connector of hij aanstaat, en zo niet,
+   *  waarom. De werkplek legt hem over het menu *Bronnen en tools*. */
+  onBronstand?: (regels: import("./connectorsMenu").BronstandRegel[]) => void;
   /** Een regie (ADR-012) startte of sloot een deelgesprek: de sidebar haalt de lijst opnieuw, zodat het deelgesprek
    *  onder het regiegesprek verschijnt en zijn stand toont. */
   onRegieTaak?: (fase: "start" | "eind") => void;
@@ -998,6 +1001,12 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
           if (Array.isArray(lijst)) handlers.onBronUit?.(lijst.filter((b): b is import("./connectorsMenu").BronUit =>
             typeof b === "object" && b !== null && typeof (b as { naam?: unknown }).naam === "string" &&
             typeof (b as { label?: unknown }).label === "string" && typeof (b as { reden?: unknown }).reden === "string"));
+        }
+        else if (ev.type === "bronstand") {
+          const lijst = (ev as { bronnen?: unknown }).bronnen;
+          if (Array.isArray(lijst)) handlers.onBronstand?.(lijst.filter((b): b is import("./connectorsMenu").BronstandRegel =>
+            typeof b === "object" && b !== null && typeof (b as { naam?: unknown }).naam === "string" &&
+            typeof (b as { reden?: unknown }).reden === "string"));
         }
         else if (ev.type === "regie_taak") handlers.onRegieTaak?.((ev as { fase?: unknown }).fase === "eind" ? "eind" : "start");
         // `agentFout` onderscheidt dit van een 502 die zegt "de BFF kon graph-qa niet bereiken":

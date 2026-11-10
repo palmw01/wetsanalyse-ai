@@ -4,7 +4,6 @@ import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CitatieChip } from "@/components/werkplek/CitatieChip";
-import type { NodeDoel } from "@/lib/annotatieNode";
 import { markeerCitaties } from "@/lib/citaties";
 import { markeerPassages } from "@/lib/markering";
 import type { Bron } from "@/lib/types";
@@ -50,7 +49,6 @@ export const Markdown = memo(function Markdown({
   tekst,
   nietLetterlijk,
   bronnen,
-  onOpenSamenhang,
   links = "bron",
 }: {
   /** Modeltekst (`links="bron"`) gaat zonder emoji in beeld (`zonderEmoji`); wat een mens schreef blijft zoals het is. */
@@ -59,7 +57,6 @@ export const Markdown = memo(function Markdown({
   nietLetterlijk?: readonly string[];
   /** De bronnen van de beurt: een vindplaats die er éénduidig bij hoort wordt een citatie-chip. */
   bronnen?: readonly Bron[];
-  onOpenSamenhang?: (doel: NodeDoel) => void;
   links?: "bron" | "vrij";
 }) {
   const weergave = links === "bron" ? zonderEmoji(tekst) : tekst;
@@ -111,7 +108,7 @@ export const Markdown = memo(function Markdown({
             const data = props as Record<string, unknown>;
             const bron = bronnen?.[Number(data["data-bron"])];
             const doelIri = typeof data["data-doel"] === "string" ? data["data-doel"] : undefined;
-            return bron ? <CitatieChip bron={bron} doelIri={doelIri} onOpenSamenhang={onOpenSamenhang}>{children}</CitatieChip> : <>{children}</>;
+            return bron ? <CitatieChip bron={bron} doelIri={doelIri}>{children}</CitatieChip> : <>{children}</>;
           },
           code: ({ children }) => <code className="rounded bg-surface px-1 py-0.5 font-mono text-xs">{children}</code>,
           pre: ({ children }) => (

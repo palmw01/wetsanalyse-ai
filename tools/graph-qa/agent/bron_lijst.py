@@ -40,7 +40,7 @@ _OVER_RE = re.compile(r"\bover\s+(?:de\s+|het\s+)?(?P<o>[^?.!,;]+)", re.IGNORECA
 #: Woorden die in een lijstvraag staan zonder iets te zoeken.
 _VULWOORDEN = frozenset("""geef mij me toon noem laat zien lijst wat welke wie is zijn de het een van uit bij in op
     met en of er nu ook alle stuk stukken kamerstuk kamerstukken parlementaire publicaties dossier dossiernummer
-    kamerstukdossier staan zit zitten gaan graag alsjeblieft aub kun kan je u""".split())
+    kamerstukdossier staan zit zitten gaan gaat graag alsjeblieft aub kun kan je u""".split())
 MAX_ONDERWERP = 4
 
 
@@ -66,23 +66,29 @@ def lees(vraag: str, aan: frozenset[str]) -> Lijstvraag | None:
     """De lijstvraag in de vraag, voor een connector die aanstaat en de vraag herkent; None als het geen lijstvraag is
     of de code haar niet helemaal kan lezen."""
     tekst = " ".join((vraag or "").split())
-    if not (m := _VOLGORDE_RE.search(tekst)) or _INHOUD_RE.search(tekst):
+    if _INHOUD_RE.search(tekst):
         return None
     c = next((c for c in CONNECTORS.values() if c.naam in aan and c.volgordes and _herkent(c, tekst)), None)
     if c is None or c.geciteerd(tekst) or not (zoektool := sorted(c.tools - {c.leestool})):
         return None
-    volgorde = "nieuwste" if m.group("nieuw") else "oudste"
-    if volgorde not in c.volgordes:
-        return None
-    args: dict[str, Any] = {"volgorde": volgorde}
+    # Een orgaan is geen volgorde: "Eerste Kamer" las als "eerste", dus oudste eerst (acceptatie 9 nov 2026).
+    zonder_organen = _zonder_organen(c, tekst)
+    args: dict[str, Any] = {}
     rest = tekst
-    if (a := _AANTAL_RE.search(tekst)) is not None:
-        args["aantal"] = min(max(_getal(a.group("voor") or a.group("na")), 1), 25)
-        rest = rest.replace(a.group(0), " ")
-    elif (een := _EEN_RE.search(tekst)) and not _meervoud(c, een.group(0).split()[-1]):
-        args["aantal"] = 1
-    else:
-        args["aantal"] = 10
+    if (m := _VOLGORDE_RE.search(zonder_organen)) is not None:
+        volgorde = "nieuwste" if m.group("nieuw") else "oudste"
+        if volgorde not in c.volgordes:
+            return None
+        args["volgorde"] = volgorde
+        if (a := _AANTAL_RE.search(zonder_organen)) is not None:
+            args["aantal"] = min(max(_getal(a.group("voor") or a.group("na")), 1), 25)
+            rest = rest.replace(a.group(0), " ")
+        elif (een := _EEN_RE.search(zonder_organen)) and not _meervoud(c, een.group(0).split()[-1]):
+            args["aantal"] = 1
+        args.setdefault("aantal", 10)
+    # Zonder volgorde ("Kamerstukken uit vergaderjaar 2025-2026 over invorderingsrente") kiest de zoektool de volgorde en
+    # de pagina: relevantie bij woorden of tekst, een dossier op nummer, anders de nieuwste. Dan moet er wel een filter
+    # zijn.
     if (d := _DOSSIER_RE.search(tekst)) and (arg := _arg(c, "reeks")):
         args[arg] = re.sub(r"\s+", "-", d.group("d")).upper()
         rest = rest.replace(d.group(0), " ")
@@ -125,6 +131,8 @@ def lees(vraag: str, aan: frozenset[str]) -> Lijstvraag | None:
     rest = _VOLGORDE_RE.sub(" ", rest)
     # Een woord dat de bron aanwijst ("jurisprudentie", "rechtspraak") zoekt niets.
     rest = " ".join(w for w in rest.split() if not _bronwoord(c, w))
+    if not args:
+        return None
     # Wat er overblijft, moet leeg zijn: een woord dat de code niet plaatst, is een vraag die het model beter leest.
     over = [w for w in re.findall(r"[0-9A-Za-zÀ-ÿ]+", rest) if w.lower() not in _VULWOORDEN and not w.isdigit()]
     if over:
@@ -144,8 +152,14 @@ def _meervoud(c: ConnectorBeschrijving, woord: str) -> bool:
     w = woord.lower()
     if w in {"stukken", "kamerstukken", "jurisprudentie", "rechtspraak"}:  # meervoud of verzamelnaam
         return True
-    return w.endswith(("en", "s")) and any(re.fullmatch(p, w, re.IGNORECASE) or re.search(p, w, re.IGNORECASE)
-                                           for _, p in c.soorten) and all(w != label.lower() for label, _ in c.soorten)
+    return w.endswith(("en", "s")) and any(re.search(p, w, re.IGNORECASE) for _, p in c.soorten) and all(
+        w != label.lower() for label, _ in c.soorten)
+
+
+def _zonder_organen(c: ConnectorBeschrijving, tekst: str) -> str:
+    for orgaan in c.organen:
+        tekst = re.sub(rf"\b{re.escape(orgaan)}\b", " ", tekst, flags=re.IGNORECASE)
+    return tekst
 
 
 def _herkent(c: ConnectorBeschrijving, tekst: str) -> bool:
