@@ -3,7 +3,6 @@
 import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
-import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { HerkomstRegel } from "@/components/ui/HerkomstRegel";
 import { BepalingTekst } from "@/components/wettekst/WettekstBlok";
 import { ContextPaneelContext } from "@/components/werkplek/ContextPaneel";
@@ -21,9 +20,9 @@ const BREEDTE = 320;
  *
  *  Een knop en geen `Popover`: die is een `div`, en een vermelding staat midden in een alinea. De
  *  kaart hangt daarom via een portal aan de body, geplaatst zoals de selectiepopover. */
-export function CitatieChip({ bron, doelIri, children, onOpenSamenhang }: {
+export function CitatieChip({ bron, doelIri, children }: {
   /** De bepaling onder de bron die de vermelding aanwijst (`koppelVermelding`); anders de bron zelf. */
-  bron: Bron; doelIri?: string; children: ReactNode; onOpenSamenhang?: (doel: NodeDoel) => void;
+  bron: Bron; doelIri?: string; children: ReactNode;
 }) {
   const [rect, setRect] = useState<DOMRect | null>(null);
   const knop = useRef<HTMLButtonElement>(null);
@@ -36,14 +35,14 @@ export function CitatieChip({ bron, doelIri, children, onOpenSamenhang }: {
       {children}
     </button>
     {rect && doel && createPortal(
-      <BronKaart doel={doel} bron={bron} rect={rect} onOpenSamenhang={onOpenSamenhang}
+      <BronKaart doel={doel} bron={bron} rect={rect}
         onSluit={() => { setRect(null); knop.current?.focus(); }} />,
       document.body)}
   </>;
 }
 
-function BronKaart({ doel, bron, rect, onSluit, onOpenSamenhang }: {
-  doel: NodeDoel; bron: Bron; rect: DOMRect; onSluit: () => void; onOpenSamenhang?: (doel: NodeDoel) => void;
+function BronKaart({ doel, bron, rect, onSluit }: {
+  doel: NodeDoel; bron: Bron; rect: DOMRect; onSluit: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   // In de werkplek: de bepaling naast het gesprek openen (spoor G4), met haar markeringen en elementen.
@@ -71,10 +70,7 @@ function BronKaart({ doel, bron, rect, onSluit, onOpenSamenhang }: {
       {openContext && <button type="button" data-naast-gesprek
         onClick={() => { onSluit(); openContext({ soort: "bron", bron_iri: doel.bron_iri, titel: herkomstLabel(herkomst) }); }}
         className="focus-ring inline-flex items-center gap-1 rounded text-lint underline underline-offset-2 hover:no-underline">
-        Naast het gesprek</button>}
-      {onOpenSamenhang && <button type="button" onClick={() => { onSluit(); onOpenSamenhang(doel); }}
-        className="focus-ring inline-flex items-center gap-1 rounded text-lint underline underline-offset-2 hover:no-underline">
-        <GraafIcoon />Bekijk in de graaf</button>}
+        Openen</button>}
     </div>
   </div>;
 }

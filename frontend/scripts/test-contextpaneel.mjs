@@ -4,7 +4,7 @@
  * en draai `node scripts/test-contextpaneel.mjs`.
  *
  * Bewaakt:
- *  - de bronkaart van een citatie biedt *Naast het gesprek*: de bepaling opent rechts, met haar wettekst en
+ *  - de bronkaart van een citatie biedt *Openen*: de bepaling opent rechts als tab, met haar wettekst en
  *    markeringen; *Open volledige pagina* gaat naar de bronpagina in het werkgebied van het gesprek;
  *  - een markering of elementrij opent het element in hetzelfde paneel, met *Open volledige pagina*;
  *  - *Bronnen* in de chatkop toont de bronnen van het werkgebied; een klik opent er één;
@@ -95,7 +95,7 @@ try {
 
   // --- Een bron uit het antwoord, naast het gesprek ---
   await page.getByRole("button", { name: "Artikel 9 lid 2", exact: true }).click();
-  await page.getByTestId("bronkaart").getByRole("button", { name: "Naast het gesprek" }).click();
+  await page.getByTestId("bronkaart").getByRole("button", { name: "Openen", exact: true }).click();
   await paneel("bron").waitFor();
   await paneel("bron").getByText("invorderbaar op de dagtekening", { exact: false }).waitFor();
   assert.equal(await paneel("bron").locator("mark[data-element=e1]").count(), 1, "de markering staat in de tekst");
@@ -140,7 +140,7 @@ try {
   await page.reload();
   await page.getByRole("button", { name: "Artikel 9 lid 2", exact: true }).waitFor();
   await page.getByRole("button", { name: "Artikel 9 lid 2", exact: true }).click();
-  await page.getByTestId("bronkaart").getByRole("button", { name: "Naast het gesprek" }).click();
+  await page.getByTestId("bronkaart").getByRole("button", { name: "Openen", exact: true }).click();
   await paneel("bron").locator("[data-bepaling-feiten=niet-beschikbaar]").waitFor();
   await paneel("bron").getByText("invorderbaar op de dagtekening", { exact: false }).waitFor();
   graafWeg = false;

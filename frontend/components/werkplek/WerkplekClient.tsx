@@ -1,7 +1,7 @@
 "use client";
 
 import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
-import { samenhangBeschikbaar } from "@/lib/samenhang";
+import { bronDoel, samenhangBeschikbaar } from "@/lib/samenhang";
 import { ThreadRij, type ThreadActies } from "@/components/werkplek/ThreadRij";
 import { reeksNavigatie } from "@/lib/reeks";
 import { afronding } from "@/lib/beurtStroom";
@@ -1001,7 +1001,8 @@ export function WerkplekClient({
   const paneel = ctx ? (
     <ContextPaneel key={contextSleutel(ctx)} doel={ctx} variant={breed ? "kolom" : "side"}
       onSluit={() => sluitPaneelTab(tabStand.actief)} onVerberg={verbergPaneel}
-      onWissel={(d) => { setVolgendeVanuit("het paneel"); setCtx(d); }} onMaakWerkgebied={setWgUitOverzicht} />
+      onWissel={(d) => { setVolgendeVanuit("het paneel"); setCtx(d); }} onMaakWerkgebied={setWgUitOverzicht}
+      onSamenhang={samenhangAan && !demo ? (iri) => acties.openSamenhang(bronDoel(iri) ?? { bron_iri: iri }) : undefined} />
   ) : artefact;
 
   /** *Vraag Lex* vanuit een object in een paneel (`VraagLexKnop`): de chip boven het invoerveld. Op een smal

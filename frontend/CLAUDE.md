@@ -396,7 +396,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     bepaling (`bron`), één JAS-element (`element`) of de bronnen van het werkgebied van het gesprek
     (`bibliotheek`). Zelfde schil (kolom vanaf 800px, anders een sheet) en hoogstens één paneel: een
     artefact of annotatie sluit de context, een context sluit die (`ctx` in `WerkplekClient`, bijgesteld in de
-    render). Ingangen: *Naast het gesprek* op de bronkaart van een citatie-chip (via `ContextPaneelContext`,
+    render). Ingangen: *Openen* op de bronkaart van een citatie-chip (via `ContextPaneelContext`,
     alleen in de werkplek), *Bronnen* in de chatkop (`bronnenSignaal`) en een markering of elementrij in het
     paneel zelf (`onWissel`). Een bron krijgt het werkgebied van het gesprek mee. **Om te raadplegen, niet om
     in te werken**: geen beoordelingsknoppen; elk paneel – ook het artefact- en het annotatiepaneel – heeft
@@ -560,7 +560,7 @@ en reist mee in het bericht (`Bericht.overzicht`), ook als de werkplek het beric
 Het staat **naast het gesprek** (besluit gebruiker 6 nov 2026, in de lijn van de bronselectie): in het gesprek de
 samenvatting met een kaartje (`OverzichtKaartje`), en **`OverzichtPaneel`** in het `ContextPaneel` (`soort: "overzicht"`,
 de inhoud uit het bericht, zonder pagina). Het paneel opent vanzelf vanaf 800px; daaronder met het kaartje of de balk
-boven de chat. Het toont, naast de samenvatting die graph-qa uit dezelfde data schrijft, zonder model: per regeling de delen als uitklapbare rijen met **al** hun bepalingen, één tegelijk met de wettekst (`BepalingTekst`) eronder (`kop`/`naam` uit de data via `deelKop` en
+boven de chat. Het toont, naast de samenvatting die graph-qa uit dezelfde data schrijft, zonder model: per regeling de delen als uitklapbare rijen met **al** hun bepalingen, als knoppen die de bepaling als tab openen (het bronvenster, PR 4) (`kop`/`naam` uit de data via `deelKop` en
 `bepalingNaam` – nooit een bereik; de naam zoals de bron hem geeft, ook waar de Leidraad wisselt), wat het onderwerp verder noemt met zijn
 plek in de opbouw (ingeklapt; open als de regeling geen deel heeft), de wettelijke definitie met haar
 `vindplaats`, het redactionele trefwoord en waarop er gezocht is (`zoekverantwoording`). **Bij een
@@ -575,8 +575,8 @@ Een vindplaats die Lex in gewone taal noemt ("artikel 9 lid 2", "art. 10a, derde
 artikelbron bij "artikel 9, eerste lid" opent dat lid via `data-doel`). De rehype-plugin `markeerCitaties` wikkelt de
 vermelding in een `cite` – de tekst zelf verandert niet, net als bij `markeerPassages`. Een klik
 opent `CitatieChip` → een bronkaart via een portal (een `Popover` is een `div` en mag niet in een
-alinea), met de wettekst (lui via `BepalingTekst`, de gedeelde weergave), een link naar wetten.overheid.nl en *Bekijk
-in de graaf*. Geen chip bij twijfel: liever een vermelding zonder kaart dan een kaart bij de
+alinea), met de wettekst (lui via `BepalingTekst`, de gedeelde weergave), een link naar wetten.overheid.nl en
+*Openen* (de bepaling als tab). Geen chip bij twijfel: liever een vermelding zonder kaart dan een kaart bij de
 verkeerde bepaling. Werkt ook na herladen, want alleen `tekst` en `bronnen` zijn nodig. De lijst
 *Bronnen (n)* is **één bron per bepaling, gegroepeerd per regeling** (`normaliseerBronnen` in
 `lib/bronnen.ts`): sleutel is de bronnode uit `vindplaatsVan` (`lib/samenhang.ts`, de spiegel van
@@ -681,8 +681,8 @@ heeft *Verzend* (`isLaatsteVraag`), want wat erna komt hangt af van het antwoord
   bij `weergave: "paneel"` toont de werkplek `BronselectieKaart` in plaats van `VraagDock`. Die toont de telling (live,
   via `paneelTelling` en het venster-event `BRONSELECTIE_GEWIJZIGD`) met *Bronnen beoordelen* (opent het paneel),
   *Klaar* (`klaarActie`) en regels om zelf bepalingen te noemen (`MeerRegels`, `typActie` met `teksten`; ze worden
-  voorstellen in het paneel). In het paneel (`inGesprek`) klappen kandidaten en bronnen uit met
-  de wettekst (`GroepRij uitklap`, `BepalingTekst`), in plaats van naar de bronpagina te gaan. Onder de actieve
+  voorstellen in het paneel). In het paneel (`inGesprek`) opent een kandidaat of bron als tab
+  ernaast (`GroepRij onOpen`), in plaats van naar de bronpagina te gaan; de bronselectie blijft als tab staan. Onder de actieve
   deelvraag staat *Klaar met deze deelvraag*; die stuurt de actie van het open
   kaartje (`onKlaar`/`klaarVoor` vanuit `WerkplekClient`). Browserregressie: `scripts/test-bronselectie-paneel.mjs`.
 - **Een bronselectiebeurt blijft een antwoord met kaartje**: het artefact `bronselectie` maakt er geen
@@ -1389,6 +1389,24 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   de actieve tab na herladen terug (met de bewaarde ingeklapte stand); op een telefoon staat hij klaar achter
   *Paneel · Openen*, zodat herladen niet vanzelf een sheet opent.
 
+**Het bronvenster en de ingangen** (PR 4; `app/ingangen.test.ts`).
+- **Het venster van een bepaling** is `components/wettekst/BronVenster`, in vaste blokken onder de herkomstkop:
+  - de stand;
+  - de wettekst;
+  - de markeringen, met *Beoordelen in de annotatie*;
+  - *Wat de graaf weet* (`BepalingFeiten`: plek, geldigheid, verwijzingen, tellingen, definieert). Een verwijzing opent
+    als eigen tab.
+
+  *Samenhang* in de kop opent de graaf van de bepaling als tab (de annotatietab op Graaf).
+- **Eén ingang per plek:**
+  - onder een antwoord de chips (`BronChip`: `BepalingChips` per bepaling en `SamenhangChip`, ook bij vrije tekst en
+    een overzicht); de losse knop "Bekijk samenhang … in de graaf" bestaat niet meer;
+  - de citatiekaart heeft *Openen*, zonder eigen graafknop;
+  - in de bronnenlijst opent een bepaling als tab (`Vindplaats kort`; met Ctrl/⌘ de bron zelf);
+  - in het overzicht en in de bronselectie naast het gesprek opent een bepaling als tab (`GroepRij onOpen`, via
+    `ContextPaneelContext`) in plaats van een eigen uitklap met de wettekst. Buiten de werkplek blijft de rij een link
+    naar de bronpagina.
+
 Wettekst en reviewlijst hebben **elk een eigen scroll** (tekst `max-h-[45%]` bovenin), zodat de tekst
 niet uit beeld loopt als je verderop in de lijst bent. Selecteren scrolt **beide kanten** in beeld:
 de markering (`DocumentPaneel`) en de kaart (`ReviewQueue`), met respect voor
@@ -1574,8 +1592,8 @@ gaat over de stand van nu en staat daarom niet op een oude versie. De route krij
 ## De samenhangsgraaf (sigma.js)
 
 `NodeAnnotatiePaneel` heeft naast *Tekst* een tab **Graaf** (`components/graaf/Graaf.tsx`), en onder een
-antwoord met een bron naar een BWB-bepaling staat een knop die hetzelfde paneel op die tab opent
-("Bekijk samenhang van … in de graaf"; in de bronkaart van een citatie-chip *Bekijk in de graaf*). Een
+antwoord met een bron naar een BWB-bepaling staat de chip *Samenhang* (`SamenhangChip`, voorleesnaam "Bekijk samenhang van … in de
+graaf") die hetzelfde paneel op die tab opent; in het bronvenster van een bepaling staat *Samenhang* in de kop (het bronvenster, PR 4). Een
 2D-graaf op **sigma.js v4 + graphology**: WebGL 2 (ook de labels), gebouwd om de hele kennisgraaf (~6.500
 knopen, ~10.000 lijnen) vloeiend te tekenen. De overstap van v3 (okt 2026) raakte alleen `GraafTekenaar`.
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
@@ -10,7 +10,7 @@ import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
 import { SkeletonCard } from "@/components/ui/Skeleton";
-import { BepalingTekst } from "@/components/wettekst/WettekstBlok";
+import { ContextPaneelContext } from "@/components/werkplek/ContextPaneel";
 import { PeildatumRegel } from "@/components/werkgebieden/Peildatum";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
@@ -272,13 +272,14 @@ function BronRij({ werkgebiedId, bronIri, label, rol, selectie, beheer, ook, sta
   ook: number[];
   stand: string;
 }) {
-  const [tekst, setTekst] = useState(false);
+  const opener = useContext(ContextPaneelContext);
   const { bepaling, regeling } = bepalingEnRegeling(label);
   const sub = [regeling, ROL_LABEL[rol].toLowerCase(), stand.toLowerCase(), ookBijZin(ook)].filter(Boolean).join(" · ");
   const s = selectie;
   return (
     <GroepRij data-bron={s?.id} data-bron-hier={bronIri} titel={bepaling} sub={sub}
-      {...(inGesprek ? { uitklap: { open: tekst, onWissel: () => setTekst((t) => !t), label: `Tekst van ${label}` } }
+      // Naast het gesprek opent de bepaling als tab in hetzelfde paneel (het bronvenster, PR 4); elders haar pagina.
+      {...(inGesprek && opener ? { onOpen: { label: `Open ${label}`, doe: () => opener({ soort: "bron", bron_iri: bronIri, werkgebied_id: werkgebiedId, titel: label }) } }
         : { href: bronPad(bronIri, werkgebiedId) })}
       status={rol === "context" ? <StatusLabel>Context</StatusLabel> : <StatusLabel toon="groen">Geselecteerd</StatusLabel>}
       eind={beheer && s && (
@@ -307,7 +308,7 @@ function BronRij({ werkgebiedId, bronIri, label, rol, selectie, beheer, ook, sta
           }}
         </MeerMenu>
       )}
-      onder={tekst && <BepalingTekst bronIri={bronIri} werkgebiedId={werkgebiedId} link className={"rounded-kaart border border-line bg-surface/60 px-3 py-2.5 mx-4 mb-2"} />} />
+      />
   );
 }
 
@@ -341,7 +342,7 @@ function Voorstel({ o, d, k, beslis, inGesprek = false, alleenLezen = false }: {
   const [metReden, setMetReden] = useState<"uitsluiten" | "opnemen" | null>(null);
   const uitsluiten = metReden !== null;
   const setUitsluiten = (aan: boolean) => setMetReden(aan ? "uitsluiten" : null);
-  const [tekst, setTekst] = useState(false);
+  const opener = useContext(ContextPaneelContext);
   const [reden, setReden] = useState("");
   const [bezig, setBezig] = useState(false);
   const doe = async (b: BronselectieBesluit) => {
@@ -370,11 +371,11 @@ function Voorstel({ o, d, k, beslis, inGesprek = false, alleenLezen = false }: {
   const label = k.stand === "voorgesteld" ? "Ter beoordeling" : STAND_LABEL[k.stand].charAt(0).toUpperCase() + STAND_LABEL[k.stand].slice(1);
   return (
     <GroepRij data-kandidaat-hier={k.id} data-stand={k.stand} titel={bepaling} sub={sub}
-      {...(inGesprek ? { uitklap: { open: tekst, onWissel: () => setTekst((t) => !t), label: `Tekst van ${k.label || bepaling}` } }
+      {...(inGesprek && opener ? { onOpen: { label: `Open ${k.label || bepaling}`,
+        doe: () => opener({ soort: "bron", bron_iri: k.bron_iri, werkgebied_id: o.werkgebied_id, titel: k.label || bepaling }) } }
         : { href: bronPad(k.bron_iri, o.werkgebied_id) })}
       status={<StatusLabel toon={k.stand === "voorgesteld" ? "geel" : "neutraal"}>{label}</StatusLabel>}
       onder={(<>
-        {tekst && <BepalingTekst bronIri={k.bron_iri} werkgebiedId={o.werkgebied_id} link className={"rounded-kaart border border-line bg-surface/60 px-3 py-2.5 mx-4 mb-2"} />}
         {!alleenLezen && <div className="flex flex-col gap-2 px-4 pb-3 sm:flex-row sm:items-center">
           {uitsluiten ? (
             <form className="flex w-full flex-col gap-2 sm:flex-row" onSubmit={(e) => {
