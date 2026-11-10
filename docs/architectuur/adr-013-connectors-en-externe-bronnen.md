@@ -75,7 +75,7 @@ de wettekst en vult nooit een `doel`.
 | tools | de rollen uit `specialisten` krijgen de tools; `toegestane_tools` blijft het ene filter | `specialists._met_connectors` |
 | prompt | BRONSOORTEN generiek in het stabiele deel; BRONNEN IN DEZE BEURT na het cachepunt | `prompts.py`, `bronstand.prompt_blok` |
 | antwoord | het blok `extern` als subsjabloon en het sjabloon `antwoord_extern` | `sjablonen/extern.py` |
-| verificatie | een stuk dat alleen gevonden is, is `onbevestigd` | `grounding.check_grounding`, `connectors.leestools` |
+| verificatie | een citaat uit een stuk moet letterlijk in de gelezen tekst staan; een stuk dat alleen gevonden is, is geen signaal (het zoekresultaat draagt label, soort, datum en titel; tot 10 nov 2026 telde het als `onbevestigd`), maar het komt pas in de bronnenlijst als het gelezen is | `grounding.check_grounding`, `grounding.alleen_gelezen_extern` |
 | werkplek | het menu toont wat straat én register aanzetten; *Zet … aan* na `bron_uit` | `GET /v1/bronnen`, `connectorsMenu` |
 | genoemd stuk | een id in de vraag leest de code vooraf met de leestool, ook een citeervorm ("Kamerstuk 32140, nr. 342", `citeervormen`); een zoekresultaat is geen bron | `nodes/bron_lezen.py`, `grounding.alleen_gelezen_extern` |
 | lijstvraag | "het laatste stuk van dossier X", "de 10 nieuwste": de code leest volgorde, aantal en filters (`soorten`, `organen`, de metadata) en zoekt één keer, zonder model | `agent/bron_lijst.py`, `nodes/bron_lijst.py` |

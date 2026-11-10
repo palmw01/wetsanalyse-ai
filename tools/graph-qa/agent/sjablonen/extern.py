@@ -188,36 +188,63 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
     return list(per_stuk.values())
 
 
-#: De volgordes in de woorden van de jurist, voor de zoekvraag onder een lijst.
-_VOLGORDE_TEKST = {"nieuwste": "nieuwste eerst", "oudste": "oudste eerst", "nummer": "op nummer",
-                   "relevantie": "op relevantie"}
+#: De volgordes in de woorden van de jurist: een eigen zin onder de lijst.
+_VOLGORDE_TEKST = {"nieuwste": "Nieuwste eerst.", "oudste": "Oudste eerst.", "nummer": "Op nummer.",
+                   "relevantie": "Meest relevante eerst."}
+
+
+_AANHALING = re.compile(r'["„”]')
+
+
+def _voluit(datum: str) -> str:
+    """'2024-01-01' → '1 januari 2024'; iets anders blijft staan."""
+    from ..hoeveelheden import _MAANDEN
+
+    m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", str(datum))
+    return f"{int(m.group(3))} {_MAANDEN[int(m.group(2)) - 1]} {m.group(1)}" if m and 1 <= int(m.group(2)) <= 12 else str(datum)
+
+
+def _opsomming(delen: list[str]) -> str:
+    return delen[0] if len(delen) == 1 else ", ".join(delen[:-1]) + " en " + delen[-1]
 
 
 def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any]) -> str:
-    """"Gezocht op dossier 32140, nieuwste eerst." uit de zoekvraag van het resultaat, met de labels uit de metadata van
-    de beschrijving (`ConnectorBeschrijving.filters`). Uit de code: de jurist ziet wat er doorzocht is."""
+    """De zoekvraag onder een lijst, in gewone zinnen: "Gezocht op „invorderingsrente” in de tekst, vergaderjaar
+    2025-2026 en van de Eerste Kamer. Meest relevante eerst." Uit de code, met de labels uit de metadata van de
+    beschrijving (`ConnectorBeschrijving.filters`); de vorm per soort veld (`MetadataVeld.sleutel`), dus voor elke
+    connector. Een waarde die al zegt wat ze is ("Eerste Kamer") krijgt geen label ervoor (acceptatie 9 nov 2026:
+    "Kamer Eerste Kamer")."""
     delen: list[str] = []
+    periode: dict[str, str] = {}
     for arg, waarde in zoekvraag.items():
-        if arg in {"volgorde", "aantal"} or waarde in ("", None):
+        if arg in {"volgorde", "aantal", "offset"} or waarde in ("", None):
             continue
         veld = c.filters.get(arg)
-        label = veld.label if veld else arg
-        if arg == "vanaf":
-            delen.append(f"{label} vanaf {waarde}")
-        elif arg == "tot":
-            delen.append(f"{label} tot en met {waarde}")
-        elif arg == "woorden":
-            delen.append(f"„{waarde}” in de titel")
-        elif arg == "tekst":
-            kaal = " ".join(re.sub(r'["„”]', " ", str(waarde)).split())
+        sleutel = veld.sleutel if veld else ""
+        if arg == "tekst":
+            kaal = " ".join(_AANHALING.sub(" ", str(waarde)).split())
             delen.append(f"„{kaal}” in de tekst")
+        elif sleutel == "titel":
+            delen.append(f"„{waarde}” in de titel")
+        elif veld is not None and veld.type == "datum":
+            periode["vanaf" if arg == veld.filters[0] else "tot"] = _voluit(str(waarde))
+        elif sleutel == "orgaan":
+            delen.append(f"van de {waarde}")
+        elif sleutel == "soort":
+            delen.append(f"{veld.label} „{waarde}”")
+        elif veld is not None:
+            delen.append(f"{veld.label} {waarde}")
         else:
-            delen.append(f"{label} {waarde}")
-    volgorde = _VOLGORDE_TEKST.get(str(zoekvraag.get("volgorde") or ""), "")
-    if not delen and not volgorde:
-        return ""
-    return ("Gezocht op " + ", ".join(delen) + (f", {volgorde}" if delen and volgorde else "") if delen
-            else volgorde[:1].upper() + volgorde[1:]) + "."
+            delen.append(f"{arg} {waarde}")
+    if periode.get("vanaf") and periode.get("tot"):
+        delen.append(f"van {periode['vanaf']} tot en met {periode['tot']}")
+    elif periode.get("vanaf"):
+        delen.append(f"vanaf {periode['vanaf']}")
+    elif periode.get("tot"):
+        delen.append(f"tot en met {periode['tot']}")
+    zinnen = [f"Gezocht op {_opsomming(delen)}." if delen else "",
+              _VOLGORDE_TEKST.get(str(zoekvraag.get("volgorde") or ""), "")]
+    return " ".join(z for z in zinnen if z)
 
 
 def _gevonden(trace: Trace, c: ConnectorBeschrijving) -> dict[str, tuple[dict[str, Any], dict[str, Any] | None, int]]:
