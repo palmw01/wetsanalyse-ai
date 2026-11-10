@@ -99,6 +99,8 @@ def test_een_nieuwe_connector_komt_er_zonder_code_bij(monkeypatch):
     ("get_lid", {}, {"status": "unavailable", "foutcode": "tool_mislukt"}, {}, "mislukt"),
     ("get_lid", {}, {"status": "error", "foutcode": "iets_onbekends"}, {}, "gaf een fout"),
     ("get_annotatiedekking", {}, {"status": "ok"}, {"peilmoment": "2026-11-09T19:31:08Z"}, ""),
+    ("get_uitspraak", {"id": "ECLI:NL:GHARL:2023:5000"}, {"status": "ok", "aantal": 0}, {},
+     "ECLI:NL:GHARL:2023:5000 heeft geen tekst om te lezen"),
 ])
 def test_wat_de_bron_opleverde(tool, invoer, eind, data, regel):
     assert sb.uitkomstregel(tool, invoer, eind, data) == regel

@@ -211,7 +211,8 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
         blok.passages += [ExternePassage(nr=n, tekst=rijen[n]["tekst"], kop=str(rijen[n].get("kop") or ""),
                                          soort=str(rijen[n].get("soort") or "alinea"),
                                          cellen=[str(x) for x in rijen[n]["cellen"]] if isinstance(rijen[n].get("cellen"), list)
-                                         else None, verwijst_naar=_verwijzingen(rijen[n]))
+                                         else None, verwijst_naar=_verwijzingen(rijen[n]),
+                                         plek=str(rijen[n].get("plek") or ""))
                           for n in range(van, tot + 1) if n not in al and n in rijen]
     if len(per_stuk) > MAX_STUKKEN:
         raise Onvulbaar(f"Hoogstens {MAX_STUKKEN} stukken per antwoord.")
@@ -317,6 +318,12 @@ def lijsten(items: Any, trace: Trace) -> list[Stukken]:
     for item in items:
         ident = str(item or "").strip()
         vp, c = externe_vindplaats(ident), van_id(ident)
+        if vp is not None and c is None:
+            # Een stuk dat de zoektool van een connector vond maar dat buiten zijn id-vorm valt (een uitspraak van het
+            # EHRM in de koppelingen van LiDO, `ECLI:CE:…`): het hoort bij die connector, als niet leesbaar stuk. Anders
+            # weigerde één zo'n id het hele blok (meting 10 nov 2026).
+            c = next((k for k in CONNECTORS.values() if k.brontype == vp.brontype
+                      and vp.id in gevonden.setdefault(k.naam, _gevonden(trace, k))), None)
         if vp is None or c is None:
             raise Onvulbaar(f"'{ident}' is geen id van een bron naast de wet die hier aanstaat.")
         bij = gevonden.setdefault(c.naam, _gevonden(trace, c))
