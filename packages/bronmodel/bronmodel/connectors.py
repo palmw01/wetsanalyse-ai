@@ -48,6 +48,7 @@ METADATA_SLEUTELS: dict[str, str] = {
     "procedure": "tekst",      # de procedure waarin het stuk tot stand kwam (cassatie, hoger beroep)
     "rechtsgebied": "tekst",   # het rechtsgebied of de rechtsgebieden ("Bestuursrecht; Belastingrecht")
     "wetsverwijzing": "tekst", # de bepaling die het stuk noemt ("artikel 36 van de Invorderingswet 1990")
+    "samenvatting": "tekst",   # een korte samenvatting van de bron zelf (de inhoudsindicatie), geen tekst van Lex
     "leesbaar": "waarheid",    # of de leestool de tekst kan lezen
 }
 
@@ -72,6 +73,9 @@ class MetadataVeld:
     filters: tuple[str, ...] = ()
     #: Of Lex de stukken op dit veld kan ordenen (bij de dienst of in de tool).
     sorteerbaar: bool = False
+    #: De waarden die een jurist in een lijstvraag noemt, met een patroon: "in het belastingrecht" → het filter van dit veld
+    #: krijgt "belastingrecht" (`agent/bron_lijst.py`). Leeg: de lijstvraag leest dit veld niet.
+    waarden: tuple[tuple[str, str], ...] = ()
 
     @property
     def type(self) -> str:
@@ -308,6 +312,21 @@ INSTANTIES = ("Hoge Raad", "Parket bij de Hoge Raad", "Raad van State", "Central
               "College van Beroep voor het bedrijfsleven", "gerechtshof", "rechtbank",
               "Europees Hof voor de Rechten van de Mens", "Hof van Justitie van de EU", "overig")
 
+#: De rechtsgebieden uit de waardelijst van de Rechtspraak die een jurist in een lijstvraag noemt ("de nieuwste
+#: uitspraken van de Hoge Raad in het belastingrecht"); de tool zoekt de URI in de waardelijst zelf.
+_RECHTSGEBIEDEN = tuple((g, r"\b" + g.replace(" ", r"\s+") + r"\b") for g in (
+    "belastingrecht", "bestuursrecht", "bestuursprocesrecht", "bestuursstrafrecht", "ambtenarenrecht", "omgevingsrecht",
+    "socialezekerheidsrecht", "vreemdelingenrecht", "mededingingsrecht", "civiel recht", "arbeidsrecht",
+    "insolventierecht", "ondernemingsrecht", "verbintenissenrecht", "goederenrecht", "aanbestedingsrecht", "strafrecht",
+    "strafprocesrecht"))
+#: De gerechten van nu bij naam, voor de lijstvraag ("de laatste uitspraken van Rechtbank Gelderland"); een naam gaat
+#: vóór de soort gerecht die erin zit, want de lijstvraag neemt de eerste die past.
+_GERECHTEN = ("Rechtbank Amsterdam", "Rechtbank Den Haag", "Rechtbank Gelderland", "Rechtbank Limburg",
+              "Rechtbank Midden-Nederland", "Rechtbank Noord-Holland", "Rechtbank Noord-Nederland",
+              "Rechtbank Oost-Brabant", "Rechtbank Overijssel", "Rechtbank Rotterdam", "Rechtbank Zeeland-West-Brabant",
+              "Gerechtshof Amsterdam", "Gerechtshof Arnhem-Leeuwarden", "Gerechtshof Den Haag",
+              "Gerechtshof 's-Hertogenbosch", "CRvB", "CBb")
+
 #: Een gerecht in de woorden van de jurist, voor de signalen hierboven.
 _GERECHT = (r"(?:rechter|rechtbank|(?:gerechts)?hof|hoge\s+raad|raad\s+van\s+state|centrale\s+raad(?:\s+van\s+beroep)?|"
             r"crvb|cbb|college\s+van\s+beroep(?:\s+voor\s+het\s+bedrijfsleven)?|gerecht)\b")
@@ -317,8 +336,9 @@ RECHTSPRAAK = ConnectorBeschrijving(
     label="Rechtspraak",
     brontype="uitspraak",
     groep="Uitspraken",
-    dekt=("uitspraken en conclusies die een wetsartikel noemen (de koppelingen van Linked Data Overheid), en de tekst "
-          "van een Nederlandse uitspraak uit de open data van de Rechtspraak"),
+    dekt=("uitspraken en conclusies die een wetsartikel noemen (de koppelingen van Linked Data Overheid), de uitspraken "
+          "van een gerecht of rechtsgebied in een periode (de zoekfeed van de Rechtspraak), en de tekst van een "
+          "Nederlandse uitspraak uit de open data van de Rechtspraak"),
     # Niet het kale "uitspraak" of "rechter": "uitspraak op bezwaar", "de inspecteur doet uitspraak" en "beroep bij de
     # rechter" zijn gewone wetstaal, en op een straat zonder deze connector nam de melding "staat uit" ze dan over.
     # Een uitspraak telt als ze van een gerecht is, of als rechterlijke uitspraak; een gerecht als het iets oordeelde.
@@ -338,7 +358,8 @@ RECHTSPRAAK = ConnectorBeschrijving(
                      "wat de wet zegt – dat doet alleen de opgehaalde bepaling. Een uitspraak die een artikel noemt, "
                      "gaat er niet altijd over. De uitspraken zijn gepseudonimiseerd: herleid nooit wie een partij is"),
     kop_in_antwoord="Uit de rechtspraak",
-    grenzen=("zoeken gaat per wetsartikel, niet op vrije tekst: Linked Data Overheid koppelt een uitspraak aan een "
+    grenzen=("zoeken gaat per wetsartikel of op gerecht, rechtsgebied, soort en periode, nooit op woorden in de tekst. "
+             "Linked Data Overheid koppelt een uitspraak aan een "
              "artikel als de tekst het noemt (automatisch herkend of redactioneel), op artikelniveau en niet per lid. "
              "Een vermelding is geen uitleg; de lijst is 'ten minste deze', want LiDO loopt achter op de wetgeving en "
              "kan versies missen. De divisies van een beleidsregel kent LiDO niet. Alleen Nederlandse uitspraken zijn "
@@ -347,6 +368,7 @@ RECHTSPRAAK = ConnectorBeschrijving(
     niet_in_tekst=("vindplaatsen in tijdschriften",),
     werkwoorden={
         "zoek_uitspraken": ("zoekt uitspraken bij artikel {artikel} van {bwb_id}", "zoekt uitspraken bij {bwb_id}",
+                            "zoekt uitspraken van {instantie}", "zoekt uitspraken in het {rechtsgebied}",
                             "zoekt uitspraken"),
         "get_uitspraak": ("leest uitspraak {id}", "leest een uitspraak"),
     },
@@ -357,6 +379,7 @@ RECHTSPRAAK = ConnectorBeschrijving(
         "Is er jurisprudentie over artikel 25 van de Invorderingswet 1990?",
         "Wat heeft de Hoge Raad gezegd over de bestuurdersaansprakelijkheid in artikel 36 Iw?",
         "Wat staat er in ECLI:NL:HR:2022:50?",
+        "Geef de 10 nieuwste uitspraken van de Hoge Raad in het belastingrecht",
     ),
     # De datum, het orgaan en het zaaknummer komen bij het zoeken uit de titel die LiDO van de Rechtspraak overneemt
     # ("ECLI:NL:HR:2022:50 - Hoge Raad, 21-01-2022 / 21/00733"), bij het lezen uit de metadata van de Rechtspraak zelf.
@@ -383,7 +406,10 @@ RECHTSPRAAK = ConnectorBeschrijving(
         MetadataVeld("procedure", "procedure", "psi:procedure (Rechtspraak)",
                      "de procedure, zoals 'Cassatie' of 'Hoger beroep'; alleen bij het lezen"),
         MetadataVeld("rechtsgebied", "rechtsgebied", "dcterms:subject (Rechtspraak)",
-                     "het rechtsgebied of de rechtsgebieden van de uitspraak; alleen bij het lezen"),
+                     "het rechtsgebied of de rechtsgebieden van de uitspraak (waardelijst Rechtsgebieden); het filter "
+                     "werkt alleen in de zoekfeed, zonder artikel", filters=("rechtsgebied",), waarden=_RECHTSGEBIEDEN),
+        MetadataVeld("samenvatting", "samenvatting", "atom:summary (zoekfeed)",
+                     "de ingekorte inhoudsindicatie van de Rechtspraak zelf; alleen bij zoeken zonder artikel"),
         MetadataVeld("leesbaar", "leesbaar", "de vorm van de ECLI",
                      "of de tekst te lezen is: alleen een Nederlandse ECLI staat bij de open data van de Rechtspraak"),
     ),
@@ -396,7 +422,7 @@ RECHTSPRAAK = ConnectorBeschrijving(
         ("conclusie", r"\bconclusie(?:s)?\b"),
         ("uitspraak", r"\buitspra(?:ak|ken)\b|\barrest(?:en)?\b"),
     ),
-    organen=INSTANTIES,
+    organen=("Parket bij de Hoge Raad", *_GERECHTEN, *(i for i in INSTANTIES if i != "Parket bij de Hoge Raad")),
 )
 
 #: De bronconnectors, in de volgorde van het menu en de beheertab.

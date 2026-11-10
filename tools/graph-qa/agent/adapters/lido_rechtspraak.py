@@ -51,6 +51,8 @@ logger = logging.getLogger("graph_qa.rechtspraak")
 LIDO_URL = "https://linkeddata.overheid.nl/service"
 BWB_SRU_URL = "https://zoekservice.overheid.nl/sru/Search"
 RECHTSPRAAK_URL = "https://data.rechtspraak.nl/uitspraken/content"
+ZOEK_URL = "https://data.rechtspraak.nl/uitspraken/zoeken"
+WAARDELIJST_URL = "https://data.rechtspraak.nl/Waardelijst"
 _HOSTS = {"linkeddata.overheid.nl", "zoekservice.overheid.nl", "data.rechtspraak.nl"}
 
 #: Zo lang geldt een opgehaalde lijst of uitspraak zonder nieuwe vraag aan de dienst. LiDO werkt de links per import
@@ -73,6 +75,12 @@ HERHAAL_S = 1.0
 #: Hoe ver terug: het BWB begint in 2002, LiDO ook.
 BEGIN = "2002-01-01"
 MAX_VERSIES = 40
+#: Zo lang geldt een zoekresultaat van de feed (er komen per dag uitspraken bij) en een waardelijst (die verandert bijna
+#: nooit: een nieuw gerecht na een herindeling).
+VERS_FEED_S = 15 * 60
+VERS_WAARDELIJST_S = 24 * 3600
+#: Zoveel treffers geeft de feed hoogstens per verzoek (ook de standaard).
+FEED_MAX = 1000
 
 FOUTCODES = ("onbereikbaar", "geweigerd", "niet_gevonden")
 
@@ -111,6 +119,40 @@ class Koppelingen:
     route: str = ""
     #: Per versie hoeveel jurisprudentie LiDO zelf telt (facet van de eerste pagina).
     totaal_lido: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class Treffer:
+    """Eén uitspraak uit de zoekfeed: de ECLI, de titel ("ECLI:…, Hoge Raad, 02-10-2026, 26/01026") en de ingekorte
+    inhoudsindicatie."""
+    ecli: str
+    titel: str
+    samenvatting: str = ""
+
+
+@dataclass(frozen=True)
+class Feed:
+    """Een pagina van de zoekfeed en het totaal dat de Rechtspraak noemt ("Aantal gevonden ECLI's")."""
+    treffers: tuple[Treffer, ...]
+    totaal: int
+
+
+@dataclass(frozen=True)
+class Instantie:
+    """Een gerecht uit de waardelijst Instanties: de URI waarop de feed filtert, de naam, de afkorting (de code in de
+    ECLI), het type ("Rechtbank", "Gerechtshof", "TypeHr") en of het nog bestaat."""
+    uri: str
+    naam: str
+    afkorting: str
+    type: str
+    actief: bool
+
+
+@dataclass(frozen=True)
+class Rechtsgebied:
+    uri: str
+    naam: str
+    ouder: str = ""
 
 
 @dataclass(frozen=True)
@@ -160,6 +202,41 @@ def _gewijzigd(tekst: str) -> str:
         return _gewijzigd_in(ET.fromstring(tekst))
     except ET.ParseError:
         return ""
+
+
+_ATOM = "{http://www.w3.org/2005/Atom}"
+
+
+def feed_van(tekst: str) -> Feed:
+    """De treffers en het totaal uit een Atom-antwoord van de zoekfeed."""
+    root = ET.fromstring(tekst.lstrip("\ufeff"))
+    m = re.search(r"(\d+)", root.findtext(f"{_ATOM}subtitle") or "")
+    treffers = tuple(Treffer((e.findtext(f"{_ATOM}id") or "").strip(), " ".join((e.findtext(f"{_ATOM}title") or "").split()),
+                             " ".join((e.findtext(f"{_ATOM}summary") or "").split()))
+                     for e in root.iter(f"{_ATOM}entry"))
+    return Feed(tuple(t for t in treffers if t.ecli and t.ecli != "-"), int(m.group(1)) if m else len(treffers))
+
+
+def instanties_van(tekst: str) -> tuple[Instantie, ...]:
+    root = ET.fromstring(tekst.lstrip("\ufeff"))
+    return tuple(Instantie((i.findtext("Identifier") or "").strip(), (i.findtext("Naam") or "").strip(),
+                           (i.findtext("Afkorting") or "").strip(), (i.findtext("Type") or "").strip(),
+                           not (i.findtext("EndDate") or "").strip())
+                 for i in root.iter("Instantie") if (i.findtext("Identifier") or "").strip())
+
+
+def rechtsgebieden_van(tekst: str) -> tuple[Rechtsgebied, ...]:
+    """De rechtsgebieden, plat: een deelgebied ("Belastingrecht") noemt zijn ouder ("Bestuursrecht")."""
+    uit: list[Rechtsgebied] = []
+
+    def loop(e: ET.Element, ouder: str) -> None:
+        for r in e.findall("Rechtsgebied"):
+            naam = (r.findtext("Naam") or "").strip()
+            uit.append(Rechtsgebied((r.findtext("Identifier") or "").strip(), naam, ouder))
+            loop(r, naam)
+
+    loop(ET.fromstring(tekst.lstrip("\ufeff")), "")
+    return tuple(r for r in uit if r.uri)
 
 
 def _groep(uri: str) -> str:
@@ -247,14 +324,16 @@ class LidoRechtspraak:
         if start > nu:
             self._slaap(start - nu)
 
-    def _get(self, url: str, **params) -> str:
+    def _get(self, url: str, _lijst: list[tuple[str, str]] | None = None, **params) -> str:
+        """GET op een vaste host. `_lijst` voor een parameter die vaker voorkomt (de feed: twee keer `date` voor een
+        periode, meer `creator`s voor "of"); anders de gewone `params`."""
         u = urlparse(url)
         if u.scheme != "https" or u.hostname not in _HOSTS:
             raise RechtspraakFout(f"host buiten de allowlist: {u.hostname}", code="geweigerd")
         for poging in range(2):
             self._wacht(u.hostname)
             try:
-                r = self._client.get(url, params=params or None)
+                r = self._client.get(url, params=_lijst if _lijst is not None else (params or None))
             except httpx.HTTPError as exc:
                 if poging == 0:
                     self._slaap(HERHAAL_S)
@@ -379,6 +458,48 @@ class LidoRechtspraak:
                                                 "onvolledig": len(onvolledig)})
         self._in_cache(sleutel, uit)
         return uit
+
+    # --- de zoekfeed en de waardelijsten -------------------------------------------------------------------------
+
+    def _bewaard(self, sleutel: str, vers_s: float, haal: Callable[[], object]) -> object:
+        with self._lock:
+            plek = self._cache.get(sleutel)
+            if plek is not None and self._klok() - plek.gezien < vers_s:
+                self._cache.move_to_end(sleutel)
+                return plek.waarde
+        waarde = haal()
+        self._in_cache(sleutel, waarde)
+        return waarde
+
+    def zoek(self, *, instanties: tuple[str, ...] = (), rechtsgebieden: tuple[str, ...] = (), soort: str = "",
+             vanaf: str = "", tot: str = "", maximum: int = FEED_MAX) -> Feed:
+        """De zoekfeed van de Rechtspraak, altijd met `return=DOC` (alleen uitspraken met tekst). Meer instanties of
+        rechtsgebieden zijn "of" (zo werkt de feed), verschillende filters "en". Een periode is twee keer `date`."""
+        lijst: list[tuple[str, str]] = [("return", "DOC"), ("max", str(max(1, min(maximum, FEED_MAX))))]
+        lijst += [("creator", i) for i in instanties] + [("subject", r) for r in rechtsgebieden]
+        if soort:
+            lijst.append(("type", soort))
+        if vanaf or tot:
+            lijst += [("date", vanaf or "1913-01-01"), ("date", tot or dt.date.today().isoformat())]
+        sleutel = "f|" + "&".join(f"{k}={v}" for k, v in lijst)
+
+        def haal() -> Feed:
+            tekst = self._get(ZOEK_URL, lijst)
+            try:
+                return feed_van(tekst)
+            except ET.ParseError as exc:
+                raise RechtspraakFout("de zoekfeed van de Rechtspraak gaf geen leesbare XML", code="geweigerd") from exc
+        uit = self._bewaard(sleutel, VERS_FEED_S, haal)
+        logger.info("rechtspraak_feed", extra={"filters": sleutel[2:], "totaal": uit.totaal})  # type: ignore[union-attr]
+        return uit  # type: ignore[return-value]
+
+    def instanties(self) -> tuple[Instantie, ...]:
+        return self._bewaard("w|instanties", VERS_WAARDELIJST_S,  # type: ignore[return-value]
+                             lambda: instanties_van(self._get(f"{WAARDELIJST_URL}/Instanties")))
+
+    def rechtsgebieden(self) -> tuple[Rechtsgebied, ...]:
+        return self._bewaard("w|rechtsgebieden", VERS_WAARDELIJST_S,  # type: ignore[return-value]
+                             lambda: rechtsgebieden_van(self._get(f"{WAARDELIJST_URL}/Rechtsgebieden")))
 
     # --- de uitspraak zelf -----------------------------------------------------------------------------------------
 

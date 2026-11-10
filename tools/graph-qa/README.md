@@ -126,6 +126,11 @@ Achter `CONNECTOR_RECHTSPRAAK` krijgt Lex twee tools, met de transportlaag in `a
 - **Voorwaarden**: de Rechtspraak vraagt hoogstens 10 verzoeken per seconde en geen volledige download; de adapter
   houdt per host 5 per seconde aan (`PER_SECONDE`) en leest per uitspraak. De uitspraken zijn gepseudonimiseerd: Lex
   herleidt geen partij (`rol_in_antwoord`).
+- **`zoek_uitspraken` zonder artikel**: de zoekfeed van de Rechtspraak (`data.rechtspraak.nl/uitspraken/zoeken`), op
+  instantie (een soort gerecht of één gerecht, als URI uit de waardelijst Instanties), rechtsgebied (waardelijst
+  Rechtsgebieden), soort en periode, altijd `return=DOC`. De feed sorteert alleen op wijzigingsdatum en geeft hoogstens
+  1000 per verzoek: "nieuwste" en "oudste" op de datum van de uitspraak kiest de code met een datumvenster dat groeit of
+  krimpt tot het genoeg uitspraken bevat en op één pagina past. `totaal` is het aantal in de hele gevraagde periode.
 - **`get_uitspraak`** (ECLI): de tekst van een Nederlandse uitspraak (Public Domain Mark), per alinea met de kop, de
   inhoudsindicatie eerst; een alinea boven `MAX_ALINEA` in delen.
 

@@ -17,7 +17,10 @@ Het artikel zoekt de tool zelf op in de graaf (jci en label-id), zodat het model
 """
 from __future__ import annotations
 
+import calendar
+import datetime as dt
 import re
+from dataclasses import dataclass
 import xml.etree.ElementTree as ET
 from typing import Any, Protocol
 
@@ -38,8 +41,10 @@ STANDAARD = 10
 #: begroting blijft. Een deel draagt `deel` ("2/3").
 MAX_ALINEA = 3000
 _DATUM_RE = re.compile(r"^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$")
-_TITEL_RE = re.compile(r"^\s*(ECLI:\S+)\s*-\s*(?P<orgaan>.+?),\s*(?P<d>\d{2})-(?P<m>\d{2})-(?P<j>\d{4})"
-                       r"(?:\s*/\s*(?P<zaak>.+?))?\s*$")
+#: De titel zoals LiDO hem overneemt ("ECLI:… - Hoge Raad, 21-01-2022 / 21/00733") en zoals de zoekfeed van de
+#: Rechtspraak hem geeft ("ECLI:…, Hoge Raad, 02-10-2026, 26/01026").
+_TITEL_RE = re.compile(r"^\s*(ECLI:[^\s,]+)\s*[-,]\s*(?P<orgaan>.+?),\s*(?P<d>\d{2})-(?P<m>\d{2})-(?P<j>\d{4})"
+                       r"(?:\s*[/,]\s*(?P<zaak>.+?))?\s*$")
 _R = "{http://www.rechtspraak.nl/schema/rechtspraak-1.0}"
 _RANG = {n: i for i, n in enumerate(INSTANTIES)}
 
@@ -47,6 +52,10 @@ _RANG = {n: i for i, n in enumerate(INSTANTIES)}
 class RechtspraakBron(Protocol):
     def koppelingen(self, bwb_id: str, artikel: str, jci: str = "") -> Any: ...
     def document(self, ecli: str) -> Any: ...
+    def zoek(self, *, instanties: tuple[str, ...] = (), rechtsgebieden: tuple[str, ...] = (), soort: str = "",
+             vanaf: str = "", tot: str = "", maximum: int = 1000) -> Any: ...
+    def instanties(self) -> Any: ...
+    def rechtsgebieden(self) -> Any: ...
 
 
 _CONTRACT = (
@@ -62,12 +71,16 @@ RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
     {
         "name": "zoek_uitspraken",
         "description": (
-            "De uitspraken en conclusies die een wetsartikel noemen, volgens Linked Data Overheid (KOOP): over alle "
-            "versies van het artikel, ook de oudere. Geef de regeling ('bwb_id') en het artikel; een lid kan niet, LiDO "
-            "koppelt per artikel. Filter op 'instantie' (bijvoorbeeld 'Hoge Raad'), 'soort' (uitspraak of conclusie) en "
-            "een periode ('vanaf', 'tot'). Volgorde 'nieuwste' (standaard) of 'oudste'." + _UITLEG + "\n"
+            "Uitspraken en conclusies zoeken, langs twee wegen. MET 'bwb_id' en 'artikel': de uitspraken die dat "
+            "wetsartikel noemen, volgens Linked Data Overheid (KOOP), over alle versies van het artikel; een lid kan "
+            "niet, LiDO koppelt per artikel. ZONDER artikel: de zoekfeed van de Rechtspraak zelf, op 'instantie', "
+            "'rechtsgebied' (bijvoorbeeld 'belastingrecht'), 'soort' en periode – zo vind je 'de nieuwste uitspraken van "
+            "de Hoge Raad in het belastingrecht'. Zoeken op woorden in de tekst kan langs geen van beide. Filter op "
+            "'instantie' (een soort gerecht als 'Hoge Raad' of 'rechtbank', of één gerecht als 'Rechtbank Gelderland' of "
+            "'CRvB'), 'soort' (uitspraak of conclusie) en een periode ('vanaf', 'tot'). Volgorde 'nieuwste' (standaard) "
+            "of 'oudste', op de datum van de uitspraak." + _UITLEG + "\n"
             "GEEFT TERUG per uitspraak: id (de ECLI), label, soort, titel, datum (van de uitspraak), orgaan (het "
-            "gerecht), nummer (het zaaknummer) en link; leesbaar: false als de tekst niet bij de Rechtspraak staat (een "
+            "gerecht), nummer (het zaaknummer), link en, zonder artikel, samenvatting (de ingekorte inhoudsindicatie); leesbaar: false als de tekst niet bij de Rechtspraak staat (een "
             "buitenlandse of Europese ECLI). Daarnaast 'bepaling', 'zoekvraag', 'totaal', 'per_instantie' (hoeveel "
             "uitspraken per soort gerecht), 'koppelingen' (hoeveel LiDO automatisch herkende en hoeveel een redactie "
             "legde) en 'dekking': "
@@ -78,10 +91,14 @@ RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "bwb_id": {"type": "string", "description": "BWB-id van de regeling, bijvoorbeeld 'BWBR0004770'."},
+                "bwb_id": {"type": "string", "description": "BWB-id van de regeling, bijvoorbeeld 'BWBR0004770'; "
+                                                            "samen met 'artikel', of allebei weg."},
                 "artikel": {"type": "string", "description": "Het artikelnummer, bijvoorbeeld '36' of '8:57'."},
-                "instantie": {"type": "string", "enum": list(INSTANTIES),
-                              "description": "Alleen uitspraken van dit soort gerecht."},
+                "instantie": {"type": "string",
+                              "description": ("Een soort gerecht (" + ", ".join(INSTANTIES[:7]) + ") of één gerecht "
+                                              "met naam of afkorting, bijvoorbeeld 'Rechtbank Gelderland' of 'CRvB'.")},
+                "rechtsgebied": {"type": "string", "description": "Alleen zonder artikel: een rechtsgebied uit de "
+                                 "waardelijst van de Rechtspraak, bijvoorbeeld 'belastingrecht' of 'bestuursrecht'."},
                 "soort": {"type": "string", "enum": ["uitspraak", "conclusie"],
                           "description": "Een uitspraak of een conclusie van de advocaat-generaal."},
                 "vanaf": {"type": "string", "description": "Vanaf deze datum van de uitspraak: JJJJ-MM-DD, JJJJ-MM of "
@@ -92,7 +109,6 @@ RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
                 "aantal": {"type": "integer", "description": f"Hoeveel per pagina, 1 tot {LIMIT}."},
                 "offset": {"type": "integer", "description": "Voor het vervolg; begin bij 0."},
             },
-            "required": ["bwb_id", "artikel"],
             "additionalProperties": False,
         },
     },
@@ -200,18 +216,149 @@ def _datum(waarde: str, *, eind: bool) -> str:
     return f"{j}-12-31" if eind else f"{j}-01-01"
 
 
+@dataclass(frozen=True)
+class _Keuze:
+    """Een instantie zoals de jurist haar noemt: een soort gerecht ("rechtbank") of één gerecht ("Rechtbank
+    Gelderland", "CRvB"). Voor LiDO de toets op de ECLI, voor de feed de URI's uit de waardelijst."""
+    label: str
+    soort: str = ""
+    codes: frozenset[str] = frozenset()
+    uris: tuple[str, ...] = ()
+
+    def past(self, ecli: str) -> bool:
+        if self.soort:
+            return instantie(ecli) == self.soort
+        return ecli.upper().split(":")[2:3] and ecli.upper().split(":")[2] in self.codes  # type: ignore[return-value]
+
+
+#: De soort gerecht (`INSTANTIES`) naar het type in de waardelijst Instanties; de laatste drie kent de feed niet.
+_TYPE_VAN = {"Hoge Raad": ("TypeHr",), "Parket bij de Hoge Raad": ("Parket",), "Raad van State": ("TypeRvS",),
+             "Centrale Raad van Beroep": ("TypeCRvB",), "College van Beroep voor het bedrijfsleven": ("TypeCBb",),
+             "gerechtshof": ("Gerechtshof",), "rechtbank": ("Rechtbank",)}
+#: Afkortingen die een jurist gebruikt naast die van de waardelijst (daar heet de CRvB "CRVB").
+_AFKORTINGEN = {"crvb": "CRVB", "cbb": "CBB", "rvs": "RVS", "abrvs": "RVS", "hr": "HR", "phr": "PHR"}
+
+
+def _instantie_keuze(bron: RechtspraakBron, waarde: str) -> "_Keuze | str":
+    """De instantie uit de woorden van de jurist; een foutresultaat met een voorbeeld als ze niet bestaat."""
+    w = " ".join(waarde.split())
+    soort = next((i for i in INSTANTIES if i.lower() == w.lower()), "")
+    if soort:
+        # Een soort gerecht: LiDO toetst de ECLI, de feed krijgt de gerechten van dat type (`_feed_uris`).
+        return _Keuze(soort, soort=soort)
+    code = _AFKORTINGEN.get(w.lower(), w.upper())
+    # Eén gerecht: de waardelijst. Is die niet te lezen, dan is dat een storing (`RechtspraakFout`), geen onbekend gerecht.
+    gevonden = [i for i in bron.instanties() if i.naam.lower() == w.lower() or i.afkorting.upper() == code]
+    if not gevonden:
+        return fout("ongeldige_argumenten", f"de instantie {waarde!r} ken ik niet; geef een soort gerecht ("
+                    f"{', '.join(INSTANTIES[:7])}) of de naam van één gerecht uit de waardelijst van de Rechtspraak, "
+                    "bijvoorbeeld 'Rechtbank Gelderland' of 'CRvB'")
+    return _Keuze(gevonden[0].naam, codes=frozenset(i.afkorting.upper() for i in gevonden),
+                  uris=tuple(i.uri for i in gevonden))
+
+
+def _rechtsgebied_uris(bron: RechtspraakBron, waarde: str) -> "tuple[str, ...] | str":
+    w = " ".join(waarde.split()).lower()
+    gebieden = tuple(bron.rechtsgebieden())
+    gevonden = [r for r in gebieden if r.naam.lower() == w] or [r for r in gebieden if r.naam.lower() == w + "recht"]
+    if not gevonden:
+        return fout("ongeldige_argumenten", f"het rechtsgebied {waarde!r} staat niet in de waardelijst van de "
+                    "Rechtspraak; geef bijvoorbeeld 'belastingrecht', 'bestuursrecht' of 'strafrecht'")
+    return tuple(r.uri for r in gevonden)
+
+
+def _laatste_dag(datum: str) -> str:
+    """'2026-02-31' (het einde van een maand uit `_datum`) als echte datum, voor de feed."""
+    j, m, d = (int(x) for x in datum.split("-"))
+    return dt.date(j, m, min(d, calendar.monthrange(j, m)[1])).isoformat()
+
+
+#: Het venster van de feed begint zo breed en groeit (×4) of krimpt (÷2) tot het genoeg uitspraken bevat en op één
+#: pagina past. De feed sorteert alleen op wijzigingsdatum, dus "nieuwste" op de datum van de uitspraak doet de code.
+_START_DAGEN = 31
+_MAX_STAPPEN = 12
+BEGIN_FEED = "1913-01-01"
+
+
+def _venster(bron: RechtspraakBron, filters: dict[str, Any], *, nieuwste: bool, nodig: int, vanaf: str, tot: str):
+    """(treffers in het venster, het venster, of het venster het hele gevraagde bereik dekt). Eerst het hele bereik: past
+    dat op één pagina, dan is dat het venster."""
+    van, tm = dt.date.fromisoformat(vanaf), dt.date.fromisoformat(tot)
+    alles = bron.zoek(**filters, vanaf=vanaf, tot=tot)
+    if alles.totaal <= len(alles.treffers):
+        return alles.treffers, (vanaf, tot), True, alles.totaal
+    dagen = _START_DAGEN
+    for _ in range(_MAX_STAPPEN):
+        lo, hi = (max(van, tm - dt.timedelta(days=dagen)), tm) if nieuwste else (van, min(tm, van + dt.timedelta(days=dagen)))
+        feed = bron.zoek(**filters, vanaf=lo.isoformat(), tot=hi.isoformat())
+        heel = lo == van and hi == tm
+        if feed.totaal > len(feed.treffers):
+            if dagen <= 1:
+                return feed.treffers, (lo.isoformat(), hi.isoformat()), False, alles.totaal
+            dagen = max(1, dagen // 2)
+        elif feed.totaal >= nodig or heel:
+            return feed.treffers, (lo.isoformat(), hi.isoformat()), heel, alles.totaal
+        else:
+            dagen *= 4
+    return feed.treffers, (lo.isoformat(), hi.isoformat()), False, alles.totaal
+
+
+def _zoek_feed(bron: RechtspraakBron, a: dict[str, Any], keuze: "_Keuze | None", *, volgorde: str, vanaf: str, tot: str,
+               aantal: int, offset: int) -> str:
+    """Zonder artikel: de zoekfeed van de Rechtspraak (instantie, rechtsgebied, soort, periode)."""
+    if keuze is not None and keuze.soort in _TYPE_VAN:
+        keuze = _Keuze(keuze.label, soort=keuze.soort,
+                       uris=tuple(i.uri for i in bron.instanties() if i.actief and i.type in _TYPE_VAN[keuze.soort]))
+    if keuze is not None and not keuze.uris:
+        return fout("ongeldige_argumenten", f"de zoekfeed van de Rechtspraak kent {keuze.label!r} niet als gerecht; "
+                    "zoek die uitspraken bij een artikel, bijvoorbeeld {\"bwb_id\": \"BWBR0004770\", \"artikel\": \"36\"}")
+    rechtsgebieden: tuple[str, ...] = ()
+    if a.get("rechtsgebied"):
+        r = _rechtsgebied_uris(bron, str(a["rechtsgebied"]))
+        if isinstance(r, str):
+            return r
+        rechtsgebieden = r
+    soort = {"uitspraak": "Uitspraak", "conclusie": "Conclusie"}.get(str(a.get("soort") or "").lower(), "")
+    filters = {"instanties": keuze.uris if keuze else (), "rechtsgebieden": rechtsgebieden, "soort": soort}
+    van = vanaf or BEGIN_FEED
+    tm = _laatste_dag(tot) if tot else dt.date.today().isoformat()
+    treffers, venster, heel, totaal = _venster(bron, filters, nieuwste=volgorde == "nieuwste", nodig=offset + aantal + 1,
+                                               vanaf=_laatste_dag(van), tot=tm)
+    lijst = [{**rij_van(t.ecli, t.titel), **({"samenvatting": t.samenvatting} if t.samenvatting else {})}
+             for t in treffers]
+    lijst = [r for r in lijst if keuze is None or not keuze.codes or keuze.past(r["id"])]
+    lijst.sort(key=lambda r: (_RANG.get(instantie(r["id"]), 99), r["id"]))
+    lijst.sort(key=lambda r: r["datum"], reverse=volgorde == "nieuwste")
+    toelichting = ""
+    if not heel and len(lijst) <= offset + aantal:
+        toelichting = (f"Op één dag ({venster[0]}) staan meer uitspraken dan de feed in één keer geeft; de lijst "
+                       "toont een deel daarvan. Verfijn met een instantie of rechtsgebied.")
+    elif not lijst:
+        toelichting = "De Rechtspraak heeft geen uitspraken met tekst die aan de filters voldoen."
+    extra = compact({
+        "totaal": totaal, "bron": "zoekfeed van de Rechtspraak",
+        "zoekvraag": {**{x: v for x, v in a.items() if x not in {"offset"} and v not in ("", None)}, "volgorde": volgorde,
+                      **({"instantie": keuze.label} if keuze else {})},
+    })
+    return pagina(lijst[offset:offset + aantal + 1], tool="zoek_uitspraken", args={**a, "aantal": aantal},
+                  limit=aantal, offset=offset, toelichting=toelichting, extra=extra)
+
+
 def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
     bwb_id, artikel = (a.get("bwb_id") or "").strip(), (a.get("artikel") or "").strip()
-    if not re.fullmatch(r"BWB[RV]\d{7}", bwb_id) or not artikel:
-        return fout("ongeldige_argumenten", "geef de regeling en het artikel, bijvoorbeeld "
-                    "{\"bwb_id\": \"BWBR0004770\", \"artikel\": \"36\"}")
+    if (bwb_id or artikel) and (not re.fullmatch(r"BWB[RV]\d{7}", bwb_id) or not artikel):
+        return fout("ongeldige_argumenten", "geef de regeling en het artikel samen, bijvoorbeeld "
+                    "{\"bwb_id\": \"BWBR0004770\", \"artikel\": \"36\"}, of laat ze allebei weg om in de zoekfeed van "
+                    "de Rechtspraak te zoeken, bijvoorbeeld {\"instantie\": \"Hoge Raad\"}")
     volgorde = a.get("volgorde") or "nieuwste"
     if volgorde not in RECHTSPRAAK.volgordes:
         return fout("ongeldige_volgorde", f"de volgorde is 'nieuwste' of 'oudste', bijvoorbeeld "
                     f"{{\"volgorde\": \"oudste\"}}, niet {volgorde!r}")
-    if a.get("instantie") and a["instantie"] not in INSTANTIES:
-        return fout("ongeldige_argumenten", f"de instantie is een van {', '.join(INSTANTIES)}, bijvoorbeeld "
-                    "'Hoge Raad'")
+    keuze = None
+    if a.get("instantie"):
+        keuze = _instantie_keuze(bron, str(a["instantie"]))
+        if isinstance(keuze, str):
+            return keuze
     try:
         vanaf = _datum(a["vanaf"], eind=False) if a.get("vanaf") else ""
         tot = _datum(a["tot"], eind=True) if a.get("tot") else ""
@@ -224,6 +371,11 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
     if not 1 <= aantal <= LIMIT:
         return fout("ongeldig_aantal", f"het aantal is 1 tot {LIMIT}, bijvoorbeeld {{\"aantal\": 10}}")
     offset = max(int(a.get("offset") or 0), 0)
+    if not bwb_id:
+        return _zoek_feed(bron, a, keuze, volgorde=volgorde, vanaf=vanaf, tot=tot, aantal=aantal, offset=offset)
+    if a.get("rechtsgebied"):
+        return fout("ongeldige_argumenten", "een rechtsgebied kan alleen zonder artikel (de koppelingen van LiDO kennen "
+                    "het niet): laat 'bwb_id' en 'artikel' weg, bijvoorbeeld {\"rechtsgebied\": \"belastingrecht\"}")
 
     # Uit de graaf: de jci (de terugvalroute van LiDO, nodig voor de Awb), het label en of het een artikel is. Zonder
     # graaf (een MCP-client, de contractharnas) zoekt LiDO het artikel op bwb-id en nummer.
@@ -254,7 +406,7 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
         per_instantie[instantie(e)] = per_instantie.get(instantie(e), 0) + 1
         koppelingen[koppeling_van(soorten)] = koppelingen.get(koppeling_van(soorten), 0) + 1
     lijst = [r for r in alle
-             if (not a.get("instantie") or instantie(r["id"]) == a["instantie"])
+             if (keuze is None or keuze.past(r["id"]))
              and (not a.get("soort") or r["soort"].lower() == a["soort"])
              and (not vanaf or r["datum"] >= vanaf) and (not tot or r["datum"][:10] <= tot)]
     # Op datum; bij dezelfde datum de hoogste instantie eerst, dan de ECLI (vast, dus dezelfde vraag dezelfde lijst).

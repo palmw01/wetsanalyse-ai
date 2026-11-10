@@ -121,3 +121,35 @@ def test_de_leestool_tegen_de_echte_dienst():
     assert uit["status"] == "ok", uit
     assert uit["stuk"]["datum"] == "2022-01-21" and uit["stuk"]["bron_hash"]
     assert uit["resultaten"] and all("iri" not in r for r in uit["resultaten"])
+
+
+def test_de_feed_filtert_en_telt(bron):
+    """De zoekfeed: een instantie-URI uit de waardelijst, een periode als twee keer `date`, en het totaal in de subtitel."""
+    hr = next(i for i in _of_storing(bron.instanties) if i.afkorting == "HR")
+    feed = _of_storing(lambda: bron.zoek(instanties=(hr.uri,), vanaf="2026-10-01", tot="2026-10-31"))
+    assert 0 < len(feed.treffers) <= feed.totaal <= 1000, feed.totaal
+    assert all(t.ecli.startswith("ECLI:NL:HR:") or t.ecli.startswith("ECLI:NL:PHR:") for t in feed.treffers)
+    assert all(", Hoge Raad, " in t.titel for t in feed.treffers if t.ecli.startswith("ECLI:NL:HR:"))
+
+
+def test_de_vaste_namen_staan_in_de_waardelijsten(bron):
+    """De gerechten en rechtsgebieden die de lijstvraag kent (`RECHTSPRAAK.organen`, de waarden van `rechtsgebied`)
+    bestaan bij de Rechtspraak: een herindeling of een nieuwe naam maakt dit rood."""
+    from bronmodel.connectors import INSTANTIES as SOORTEN, RECHTSPRAAK
+    from agent.tools.rechtspraak_tools import _AFKORTINGEN
+    namen = {i.naam.lower() for i in _of_storing(bron.instanties) if i.actief}
+    afk = {i.afkorting.upper() for i in _of_storing(bron.instanties) if i.actief}
+    for o in RECHTSPRAAK.organen:
+        if o not in SOORTEN:
+            assert o.lower() in namen or _AFKORTINGEN.get(o.lower(), o.upper()) in afk, o
+    gebieden = {r.naam.lower() for r in _of_storing(bron.rechtsgebieden)}
+    for waarde, _ in RECHTSPRAAK.veld("rechtsgebied").waarden:
+        assert waarde in gebieden, waarde
+
+
+def test_de_nieuwste_uitspraken_van_de_hoge_raad_tegen_de_echte_feed():
+    uit = json.loads(tools.dispatch("zoek_uitspraken", None, {"instantie": "Hoge Raad", "rechtsgebied": "belastingrecht",
+                                                              "aantal": 5}, AAN))
+    assert uit["status"] == "ok" and uit["aantal"] == 5, uit
+    datums = [r["datum"] for r in uit["resultaten"]]
+    assert datums == sorted(datums, reverse=True) and uit["totaal"] > 100

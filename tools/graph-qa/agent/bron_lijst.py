@@ -79,7 +79,7 @@ def lees(vraag: str, aan: frozenset[str]) -> Lijstvraag | None:
     if (a := _AANTAL_RE.search(tekst)) is not None:
         args["aantal"] = min(max(_getal(a.group("voor") or a.group("na")), 1), 25)
         rest = rest.replace(a.group(0), " ")
-    elif _EEN_RE.search(tekst) and not re.search(r"\bstukken\b|\bkamerstukken\b", tekst, re.IGNORECASE):
+    elif (een := _EEN_RE.search(tekst)) and not _meervoud(c, een.group(0).split()[-1]):
         args["aantal"] = 1
     else:
         args["aantal"] = 10
@@ -92,9 +92,18 @@ def lees(vraag: str, aan: frozenset[str]) -> Lijstvraag | None:
             rest = rest.replace(s.group(0), " ")
             break
     for orgaan in c.organen:
+        # Het eerste dat past: een gerecht bij naam ("Rechtbank Gelderland") staat vóór de soort gerecht erin.
         if re.search(rf"\b{re.escape(orgaan)}\b", rest, re.IGNORECASE) and (arg := _arg(c, "orgaan")):
             args[arg] = orgaan
             rest = re.sub(rf"\b{re.escape(orgaan)}\b", " ", rest, flags=re.IGNORECASE)
+            break
+    for veld in c.metadata:
+        # Een veld met vaste waarden ("in het belastingrecht"): het filter krijgt de waarde.
+        for waarde, patroon in veld.waarden:
+            if veld.filters and (w := re.search(patroon, rest, re.IGNORECASE)):
+                args[veld.filters[0]] = waarde
+                rest = rest.replace(w.group(0), " ")
+                break
     if (v := _VERGADERJAAR_RE.search(rest)) and (arg := _arg(c, "jaar")):
         args[arg] = f"{v.group('a')}-{v.group('b')}"
         rest = rest.replace(v.group(0), " ")
@@ -114,11 +123,29 @@ def lees(vraag: str, aan: frozenset[str]) -> Lijstvraag | None:
         args["tekst"] = f'"{" ".join(woorden)}"' if len(woorden) > 1 else woorden[0]
         rest = rest.replace(o.group(0), " ")
     rest = _VOLGORDE_RE.sub(" ", rest)
+    # Een woord dat de bron aanwijst ("jurisprudentie", "rechtspraak") zoekt niets.
+    rest = " ".join(w for w in rest.split() if not _bronwoord(c, w))
     # Wat er overblijft, moet leeg zijn: een woord dat de code niet plaatst, is een vraag die het model beter leest.
     over = [w for w in re.findall(r"[0-9A-Za-zÀ-ÿ]+", rest) if w.lower() not in _VULWOORDEN and not w.isdigit()]
     if over:
         return None
     return Lijstvraag(c.naam, zoektool[0], args)
+
+
+def _bronwoord(c: ConnectorBeschrijving, woord: str) -> bool:
+    """Een los woord dat de bron zelf aanwijst ("jurisprudentie", "rechtspraak", "kamerstukken"): een verzamelnaam."""
+    w = re.sub(r"[^\w-]", "", woord)
+    return bool(w) and any(re.search(p, w, re.IGNORECASE) for p in c.signalen)
+
+
+def _meervoud(c: ConnectorBeschrijving, woord: str) -> bool:
+    """Is het woord na "de laatste" een meervoud ("de laatste moties", "de nieuwste uitspraken")? Dan geen aantal 1. Een
+    woord op -en of -s dat een soort van de connector is, maar niet de soort zelf; en "stukken"."""
+    w = woord.lower()
+    if w in {"stukken", "kamerstukken", "jurisprudentie", "rechtspraak"}:  # meervoud of verzamelnaam
+        return True
+    return w.endswith(("en", "s")) and any(re.fullmatch(p, w, re.IGNORECASE) or re.search(p, w, re.IGNORECASE)
+                                           for _, p in c.soorten) and all(w != label.lower() for label, _ in c.soorten)
 
 
 def _herkent(c: ConnectorBeschrijving, tekst: str) -> bool:

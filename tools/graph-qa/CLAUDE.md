@@ -284,7 +284,12 @@ bruikbaar is.
   komt uit gerecht en datum, met procedure en rechtsgebied in `stuk`). **Begrensd** op `PER_SECONDE` (5) per host: de
   Rechtspraak vraagt hoogstens 10 per seconde en geen volledige download. **Cache met versiecontrole** zoals Kamerstukken:
   na `VERS_S` alleen de metadata (`return=META`), de tekst opnieuw als `dcterms:modified` verschilt
-  (`uitspraak_gewijzigd`), bij een storing de bewaarde versie met `gevalideerd: false`. De zoektool
+  (`uitspraak_gewijzigd`), bij een storing de bewaarde versie met `gevalideerd: false`. **Zonder artikel** zoekt
+  `zoek_uitspraken` in de zoekfeed van de Rechtspraak (`_zoek_feed`): instantie en rechtsgebied als URI uit de
+  waardelijsten (cache 24 uur; een onleesbare lijst is een storing, geen onbekend gerecht), "nieuwste"/"oudste" via een
+  datumvenster (`_venster`: de feed sorteert alleen op wijzigingsdatum), `totaal` over de hele periode; een
+  rechtsgebied met artikel is een invoerfout. De lijstroute leest ook "de 10 nieuwste uitspraken van de Hoge Raad in het
+  belastingrecht" (`MetadataVeld.waarden`, het eerste orgaan dat past). `tests/test_rechtspraak_zoeken.py`. De zoektool
   leest jci en label-id van het artikel uit de graaf (`_q_artikel`); zonder graaf zoekt LiDO op bwb-id en nummer. De
   versies: eerst `get-id` met `juriconnect-ref` (bwb-id + artikel + datum, de vorige versie op de dag vóór de
   begindatum), en als die niets geeft (de Awb) de jci met de datum van een bestaande toestand uit de BWB-zoekdienst,
