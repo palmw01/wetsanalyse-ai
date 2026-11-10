@@ -311,3 +311,14 @@ def test_de_zoekvraag_in_woorden(zoekvraag, verwacht):
     from bronmodel.connectors import KAMERSTUKKEN
 
     assert extern.zoekvraag_tekst(KAMERSTUKKEN, zoekvraag) == verwacht
+
+
+def test_de_velden_noemen_de_voorbeelden_van_de_connectors_die_aanstaan():
+    """Geen vaste "kst-…" in het schema: met alleen Kamerstukken alleen dat voorbeeld, met Rechtspraak erbij ook een ECLI."""
+    alleen = json.dumps(sjablonen.sjabloon_schemas(frozenset({"antwoord_duiding", sjablonen.EXTERN}), extern=("kamerstukken",)),
+                        ensure_ascii=False)
+    beide = json.dumps(sjablonen.sjabloon_schemas(frozenset({"antwoord_duiding", sjablonen.EXTERN}),
+                                                  extern=("kamerstukken", "rechtspraak")), ensure_ascii=False)
+    assert "kst-33755-3" in alleen and "ECLI" not in alleen and "Rechtspraak" not in alleen
+    assert "kst-33755-3" in beide and "ECLI:NL:HR:2022:50" in beide and "ECLI:NL:…" in beide
+    assert "later" not in beide, "geen belofte over een bron die er al is"

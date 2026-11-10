@@ -38,64 +38,96 @@ STUKKEN = "stukken"
 #: Zo veel stukken per lijst; meer is geen antwoord maar een zoekresultaat.
 MAX_LIJST = 25
 
-ITEMS: dict[str, Any] = {
-    "type": "array",
-    "description": (
-        "Passages uit een bron naast de wet (een Kamerstuk, later een uitspraak) die je in dit gesprek met de leestool "
-        "ophaalde: per stuk het id en het eerste en laatste alineanummer. Schrijf de tekst niet uit, de code neemt hem "
-        "uit de bron. Leeg als het antwoord zo'n bron niet gebruikt. Een bron naast de wet onderbouwt nooit wat de wet zegt."),
-    "items": {
-        "type": "object",
-        "properties": {
-            "id": {"type": "string", "description": "Het id van het stuk uit het toolresultaat, bijvoorbeeld 'kst-33755-3'."},
-            "van_nr": {"type": "integer", "description": "Het nummer (nr) van de eerste alinea."},
-            "tot_nr": {"type": "integer", "description": "Het nummer (nr) van de laatste alinea; gelijk aan van_nr voor één alinea."},
+def _connectors(namen: Any = None) -> list[ConnectorBeschrijving]:
+    """De beschrijvingen van de connectors in de beurt (namen), of alle bekende; in de volgorde van `CONNECTORS`."""
+    if namen is None or namen is True:
+        return list(CONNECTORS.values())
+    return [c for n, c in CONNECTORS.items() if n in set(namen)] or list(CONNECTORS.values())
+
+
+def _opsomming(delen: list[str]) -> str:
+    return delen[0] if len(delen) == 1 else ", ".join(delen[:-1]) + " of " + delen[-1]
+
+
+def items(namen: Any = None) -> dict[str, Any]:
+    """Het veld `extern`, met de voorbeelden van de connectors die aanstaan (`ConnectorBeschrijving.voorbeeld_id`)."""
+    cs = _connectors(namen)
+    return {
+        "type": "array",
+        "description": (
+            f"Passages uit een bron naast de wet ({_opsomming([f'een {c.brontype}' for c in cs])}) die je in dit gesprek "
+            "met de leestool ophaalde: per stuk het id en het eerste en laatste alineanummer. Schrijf de tekst niet uit, de "
+            "code neemt hem uit de bron. Leeg als het antwoord zo'n bron niet gebruikt. Een bron naast de wet onderbouwt "
+            "nooit wat de wet zegt."),
+        "items": {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string", "description": "Het id van het stuk uit het toolresultaat, bijvoorbeeld "
+                       + _opsomming([f"'{c.voorbeeld_id}'" for c in cs]) + "."},
+                "van_nr": {"type": "integer", "description": "Het nummer (nr) van de eerste alinea."},
+                "tot_nr": {"type": "integer", "description": "Het nummer (nr) van de laatste alinea; gelijk aan van_nr voor één alinea."},
+            },
+            "required": ["id", "van_nr", "tot_nr"],
+            "additionalProperties": False,
         },
-        "required": ["id", "van_nr", "tot_nr"],
-        "additionalProperties": False,
-    },
-}
+    }
 
-STUKKEN_ITEMS: dict[str, Any] = {
-    "type": "array",
-    "items": {"type": "string"},
-    "description": (
-        "Een lijst stukken die een zoektool van een bron naast de wet in dit gesprek vond, zoals 'de tien nieuwste "
-        "Kamerstukken' of 'het laatste stuk van dossier 32140': alleen hun ids (kst-…), in de volgorde van het "
-        f"zoekresultaat, hoogstens {MAX_LIJST}. De code toont per stuk het label, soort, datum en titel uit de bron, met "
-        "de zoekvraag en het totaal. Schrijf de lijst of hun datums niet zelf uit. Leeg als het antwoord geen lijst geeft."),
-}
 
-SCHEMA: dict[str, Any] = {
-    "name": "antwoord_extern",
-    "description": (
-        "Rond een vraag af die alleen over een bron naast de wet gaat (wetsgeschiedenis, later rechtspraak): wat staat er in "
-        "dit stuk, wat zegt de memorie van toelichting hierover. Roep deze tool aan nadat je het stuk hebt opgehaald, en "
-        "schrijf geen antwoord ernaast. Jij schrijft het korte antwoord in eigen woorden en wijst de passages aan; de code "
-        "toont ze letterlijk met hun vindplaats. Gaat de vraag (ook) over wat de wet zegt, gebruik dan het sjabloon voor "
-        "de bepaling of de uitleg, met de passages in hun veld 'extern'."),
-    "strict": True,
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "kort_antwoord": {"type": "string", "description": "Het antwoord in twee tot vier zinnen, in eigen woorden en zonder citaten."},
-            VELD: ITEMS,
-            STUKKEN: STUKKEN_ITEMS,
-            "twijfel": {"type": "array", "items": {"type": "string"},
-                        "description": "Aannames en wat de opgehaalde tekst open laat, elk als één punt. Leeg als die er niet zijn."},
+def stukken_items(namen: Any = None) -> dict[str, Any]:
+    cs = _connectors(namen)
+    vormen = ", ".join(f"{p}…" for c in cs for p in c.id_prefixen)
+    return {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": (
+            "Een lijst stukken die een zoektool van een bron naast de wet in dit gesprek vond, zoals 'de tien nieuwste "
+            f"stukken' of 'het laatste stuk van een reeks': alleen hun ids ({vormen}), in de volgorde van het "
+            f"zoekresultaat, hoogstens {MAX_LIJST}. De code toont per stuk het label, soort, datum en titel uit de bron, "
+            "met de zoekvraag en het totaal. Schrijf de lijst of hun datums niet zelf uit. Leeg als het antwoord geen "
+            "lijst geeft."),
+    }
+
+
+def schema(namen: Any = None) -> dict[str, Any]:
+    """Het eigen sjabloon `antwoord_extern`, voor de connectors die aanstaan."""
+    cs = _connectors(namen)
+    return {
+        "name": "antwoord_extern",
+        "description": (
+            f"Rond een vraag af die alleen over een bron naast de wet gaat ({_opsomming([c.label for c in cs])}): wat "
+            "staat er in dit stuk, wat zegt het hierover. Roep deze tool aan nadat je het stuk hebt opgehaald, en schrijf "
+            "geen antwoord ernaast. Jij schrijft het korte antwoord in eigen woorden en wijst de passages aan; de code "
+            "toont ze letterlijk met hun vindplaats. Gaat de vraag (ook) over wat de wet zegt, gebruik dan het sjabloon "
+            "voor de bepaling of de uitleg, met de passages in hun veld 'extern'."),
+        "strict": True,
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "kort_antwoord": {"type": "string", "description": "Het antwoord in twee tot vier zinnen, in eigen woorden en zonder citaten."},
+                VELD: items(namen),
+                STUKKEN: stukken_items(namen),
+                "twijfel": {"type": "array", "items": {"type": "string"},
+                            "description": "Aannames en wat de opgehaalde tekst open laat, elk als één punt. Leeg als die er niet zijn."},
+            },
+            "required": ["kort_antwoord", VELD, STUKKEN, "twijfel"],
+            "additionalProperties": False,
         },
-        "required": ["kort_antwoord", VELD, STUKKEN, "twijfel"],
-        "additionalProperties": False,
-    },
-}
+    }
 
 
-def met_veld(schema: dict[str, Any]) -> dict[str, Any]:
-    """Een sjabloonschema met het veld `extern` erbij: het subsjabloon. Het origineel blijft ongemoeid."""
-    uit = copy.deepcopy(schema)
+#: Met alle bekende connectors; de schema's van een beurt bouwt `sjablonen.sjabloon_schemas` met de connectors die aanstaan.
+ITEMS: dict[str, Any] = items()
+STUKKEN_ITEMS: dict[str, Any] = stukken_items()
+SCHEMA: dict[str, Any] = schema()
+
+
+def met_veld(basis: dict[str, Any], namen: Any = None) -> dict[str, Any]:
+    """Een sjabloonschema met het veld `extern` erbij: het subsjabloon, met de voorbeelden van de connectors die aanstaan
+    (`namen`; zonder: alle). Het origineel blijft ongemoeid."""
+    uit = copy.deepcopy(basis)
     invoer = uit["input_schema"]
-    for veld, items in ((VELD, ITEMS), (STUKKEN, STUKKEN_ITEMS)):
-        invoer["properties"][veld] = copy.deepcopy(items)
+    for veld, waarde in ((VELD, items(namen)), (STUKKEN, stukken_items(namen))):
+        invoer["properties"][veld] = waarde
         if veld not in invoer["required"]:
             invoer["required"].append(veld)
     return uit

@@ -30,9 +30,7 @@ from ..ports import GraphPort
 from .jas_tools import JAS_TOOL_NAMEN, JAS_TOOLS  # noqa: F401 – re-exporteerd voor orchestrator
 from .annotatie_tools import ANNOTATIE_TOOLS, ANNOTATIE_TOOL_NAMEN, dispatch_annotatie
 from .begrip_tools import BEGRIP_TOOLS, BEGRIP_TOOL_NAMEN, dispatch_begrip
-from .kamerstuk_tools import CONNECTOR as _KST, KAMERSTUK_TOOLS, KAMERSTUK_TOOL_NAMEN, dispatch_kamerstuk, fout_van
-from .rechtspraak_tools import CONNECTOR as _RS, RECHTSPRAAK_TOOLS, RECHTSPRAAK_TOOL_NAMEN, dispatch_rechtspraak
-from .rechtspraak_tools import fout_van as rechtspraak_fout_van
+from .connectortools import MODULES as CONNECTORMODULES, module_van
 from ..resultaat import BUDGET, TeGroot, compact, fout, geheel, pagina, per_eenheid, voorproef
 from ..graph.structuur import natuurlijke_sleutel
 from .. import overzicht
@@ -863,8 +861,8 @@ TOOLS: list[dict[str, Any]] = [
 
 TOOLS += ANNOTATIE_TOOLS
 TOOLS += BEGRIP_TOOLS
-TOOLS += KAMERSTUK_TOOLS
-TOOLS += RECHTSPRAAK_TOOLS
+for _module in CONNECTORMODULES.values():  # de tools van elke connector, uit het register
+    TOOLS += _module.tools
 _BY_NAME: dict[str, dict[str, Any]] = {t["name"]: t for t in TOOLS + JAS_TOOLS}
 
 #: De bronconnectors (ADR-013): per connector zijn tools, uit de gedeelde beschrijving (`bronmodel.connectors`).
@@ -895,35 +893,6 @@ def toegestane_tools(tools: frozenset[str] | set[str] | None, settings: Any,
     return frozenset(tools) - uit
 
 
-_KAMERSTUKBRON: Any = None
-
-
-def _kamerstukbron(settings: Any) -> Any:
-    """Eén bron per proces, zodat de cache per identifier gedeeld wordt."""
-    global _KAMERSTUKBRON
-    if _KST not in connectors_aan(settings):
-        return None
-    if _KAMERSTUKBRON is None:
-        from ..adapters.sru_kamerstukken import SruKamerstukken
-        _KAMERSTUKBRON = SruKamerstukken(sru_url=getattr(settings, "kamerstukken_sru_url", "") or
-                                         "https://repository.overheid.nl/sru")
-    return _KAMERSTUKBRON
-
-
-_RECHTSPRAAKBRON: Any = None
-
-
-def _rechtspraakbron(settings: Any) -> Any:
-    """Eén bron per proces, zodat de cache per artikel en per ECLI gedeeld wordt."""
-    global _RECHTSPRAAKBRON
-    if _RS not in connectors_aan(settings):
-        return None
-    if _RECHTSPRAAKBRON is None:
-        from ..adapters.lido_rechtspraak import LidoRechtspraak
-        _RECHTSPRAAKBRON = LidoRechtspraak()
-    return _RECHTSPRAAKBRON
-
-
 def anthropic_schemas(only: set[str] | frozenset[str] | None = None) -> list[dict[str, Any]]:
     """Model-facing tool-schema's; filter op een toegestane set (None = alle).
 
@@ -952,7 +921,9 @@ def _graaf_is_weg(exc: Exception) -> bool:
 
 
 def dispatch(name: str, graph: GraphPort, args: dict[str, Any] | None, settings: Any = None,
-             *, annotaties=None, begrippen=None, kamerstukken=None, rechtspraak=None, bronnen=None) -> str:
+             *, annotaties=None, begrippen=None, bronnen=None, **connectorbronnen: Any) -> str:
+    """Voer een tool uit. Een bron van een connector mag als argument met de naam van de connector meekomen
+    (`kamerstukken=`, `rechtspraak=`: tests, de harnas); anders de ene bron per proces uit het register."""
     tool = _BY_NAME.get(name)
     if tool is None:
         return f"Onbekende tool: {name}"
@@ -960,26 +931,16 @@ def dispatch(name: str, graph: GraphPort, args: dict[str, Any] | None, settings:
         # Ook een workflow die een tool in code aanroept, komt hier langs: dezelfde regel als de schema's.
         return fout("connector_uit", "Deze bron staat uit in dit gesprek. Zeg dat, en antwoord niet uit eigen kennis.")
     try:
-        if name in KAMERSTUK_TOOL_NAMEN:
-            from ..adapters.sru_kamerstukken import KamerstukFout
-            bron = kamerstukken if kamerstukken is not None else _kamerstukbron(settings)
+        if (module := module_van(name)) is not None:
+            bron = connectorbronnen.get(module.naam)
+            if bron is None and module.naam in connectors_aan(settings):
+                bron = module.bron(settings)
             try:
-                return dispatch_kamerstuk(name, args or {}, bron)
+                return module.dispatch(name, args or {}, bron, graph)
             except TeGroot:
                 raise
-            except KamerstukFout as exc:
-                return fout_van(exc)
-            except (ValueError, TypeError) as exc:
-                return fout("ongeldige_argumenten", str(exc))
-        if name in RECHTSPRAAK_TOOL_NAMEN:
-            from ..adapters.lido_rechtspraak import RechtspraakFout
-            bron = rechtspraak if rechtspraak is not None else _rechtspraakbron(settings)
-            try:
-                return dispatch_rechtspraak(name, args or {}, bron, graph)
-            except TeGroot:
-                raise
-            except RechtspraakFout as exc:
-                return rechtspraak_fout_van(exc)
+            except module.fout as exc:
+                return module.fout_van(exc)
             except (ValueError, TypeError) as exc:
                 return fout("ongeldige_argumenten", str(exc))
         if name in ANNOTATIE_TOOL_NAMEN:

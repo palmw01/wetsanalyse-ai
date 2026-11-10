@@ -14,7 +14,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from .extern import externe_verwijzingen, externe_vindplaats
+from .extern import externe_verwijzingen, externe_verwijzingen_met_plek, externe_vindplaats
 
 
 def _opsomming(delen: tuple[str, ...]) -> str:
@@ -132,6 +132,9 @@ class ConnectorBeschrijving:
     beheer: str
     #: Vragen die binnen scope vallen en deze bron raken; routering, tests en de meting gebruiken ze.
     voorbeeldvragen: tuple[str, ...]
+    #: Een echt id van een stuk, als voorbeeld in de sjabloonvelden (`sjablonen/extern.py`) en de meldingen: zo noemt een
+    #: schema de ids van de connectors die aanstaan, niet een vaste vorm.
+    voorbeeld_id: str = ""
     #: Wat de connector per stuk aan metadata levert (`MetadataVeld`, sleutels uit `METADATA_SLEUTELS`). Leeg mag alleen
     #: voor een nep in een test; de poorttest eist het voor elke echte connector.
     metadata: tuple[MetadataVeld, ...] = ()
@@ -227,6 +230,7 @@ KAMERSTUKKEN = ConnectorBeschrijving(
     leestool="get_kamerstuk",
     lees_argument="id",
     id_prefixen=("kst-",),
+    voorbeeld_id="kst-33755-3",
     specialisten=frozenset({"definitie", "duiding", "algemeen"}),
     rol_in_antwoord=("een Kamerstuk laat zien wat de wetgever bedoelde; het onderbouwt nooit wat de wet zegt – dat "
                      "doet alleen de opgehaalde bepaling"),
@@ -353,6 +357,7 @@ RECHTSPRAAK = ConnectorBeschrijving(
     leestool="get_uitspraak",
     lees_argument="id",
     id_prefixen=("ECLI:NL:",),
+    voorbeeld_id="ECLI:NL:HR:2022:50",
     specialisten=frozenset({"definitie", "duiding", "algemeen"}),
     rol_in_antwoord=("een uitspraak laat zien hoe een rechter een bepaling toepaste of uitlegde; ze onderbouwt nooit "
                      "wat de wet zegt – dat doet alleen de opgehaalde bepaling. Een uitspraak die een artikel noemt, "
@@ -454,9 +459,9 @@ def genoemde_stukken(tekst: str) -> list[tuple[ConnectorBeschrijving, str]]:
     """De stukken van een connector die de tekst noemt, in de volgorde van de tekst: bij id (`kst-35496-F`) of in een
     citeervorm van de connector ("Kamerstuk 32140, nr. 342" → `kst-32140-342`). Ontdubbeld op id."""
     gevonden: list[tuple[int, ConnectorBeschrijving, str]] = []
-    for e in externe_verwijzingen(tekst or ""):
+    for plek, e in externe_verwijzingen_met_plek(tekst or ""):
         if (c := van_id(e.id)) is not None:
-            gevonden.append(((tekst or "").find(e.id.split("-", 1)[-1]), c, e.id))
+            gevonden.append((plek, c, e.id))
     for c in CONNECTORS.values():
         gevonden += [(plek, c, ident) for plek, ident in c.geciteerd(tekst)]
     uit: list[tuple[ConnectorBeschrijving, str]] = []

@@ -73,8 +73,9 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     # ADR-013: staat er een connector aan die deze rol bedient, dan krijgt elk sjabloon het veld voor bronnen naast de
     # wet (het subsjabloon) en is er het eigen sjabloon `antwoord_extern`. Anders blijven de schema's gelijk.
     rol = spec_naam or DEFAULT_SPECIALIST
-    extern_aan = bool(spec.sjablonen) and any(
-        s.get("aan") and n in CONNECTORS and rol in CONNECTORS[n].specialisten for n, s in (state.get("bronstand") or {}).items())
+    extern_namen = tuple(n for n, s in (state.get("bronstand") or {}).items()
+                         if s.get("aan") and n in CONNECTORS and rol in CONNECTORS[n].specialisten) if spec.sjablonen else ()
+    extern_aan = bool(extern_namen)
     sjablonen = spec.sjablonen | {EXTERN} if extern_aan else spec.sjablonen
     # Twee delen, en de volgorde is betekenisdragend: het stabiele deel (identiteit +
     # specialist) is bij elke tool-ronde van elke beurt hetzelfde en draagt daarom het
@@ -113,7 +114,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         model=b.model_ophaal if spec_naam == "retrieval" else b.model,
         max_tokens=MAX_TOKENS_OPHALEN if spec_naam == "retrieval" else MAX_TOKENS_ANTWOORD,
         system=[stabiel, variabel],
-        tools=anthropic_schemas(only=toegestane_tools(spec.tools, b.settings, state.get("bronnen"))) + sjabloon_schemas(sjablonen, extern=extern_aan),
+        tools=anthropic_schemas(only=toegestane_tools(spec.tools, b.settings, state.get("bronnen"))) + sjabloon_schemas(sjablonen, extern=extern_namen),
         messages=venster,
         # Elke toolronde stuurt de hele historie opnieuw: een cache-punt aan het eind maakt die de volgende ronde goedkoop.
         historie_cache=True,

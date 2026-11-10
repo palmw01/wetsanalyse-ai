@@ -51,10 +51,13 @@ SJABLONEN: dict[str, Sjabloon] = {
 EXTERN = _extern.SCHEMA["name"]
 
 
-def sjabloon_schemas(namen: frozenset[str], *, extern: bool = False) -> list[dict[str, Any]]:
-    """De schema's voor het model. Met `extern` krijgt elk sjabloon het veld voor bronnen naast de wet (het subsjabloon,
-    `sjablonen/extern.py`); zonder is het schema gelijk aan vóór ADR-013."""
-    return [SJABLONEN[n].schema if not extern or n == EXTERN else _extern.met_veld(SJABLONEN[n].schema)
+def sjabloon_schemas(namen: frozenset[str], *, extern: Any = False) -> list[dict[str, Any]]:
+    """De schema's voor het model. Met `extern` (True, of de namen van de connectors die aanstaan) krijgt elk sjabloon
+    het veld voor bronnen naast de wet (het subsjabloon, `sjablonen/extern.py`), met de voorbeelden van die connectors;
+    zonder is het schema gelijk aan vóór ADR-013."""
+    if not extern:
+        return [SJABLONEN[n].schema for n in sorted(namen)]
+    return [_extern.schema(extern) if n == EXTERN else _extern.met_veld(SJABLONEN[n].schema, extern)
             for n in sorted(namen)]
 
 

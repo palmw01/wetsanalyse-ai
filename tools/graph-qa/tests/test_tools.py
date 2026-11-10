@@ -8,6 +8,8 @@ from agent.graph import schema
 from agent.mcp_client import MCPError
 from fakes import FakeGraph, make_settings
 
+from bronmodel.connectors import CONNECTORS  # noqa: E402
+
 EXPECTED = {
     "search_annotaties", "overzicht_annotaties", "get_annotatie", "get_annotatiedekking",
     "search_wetgeving", "semantic_search", "get_artikel", "get_lid", "get_bepaling", "list_regelingen",
@@ -15,9 +17,7 @@ EXPECTED = {
     "inhoudsopgave", "zoek_definitie", "grondslagen", "geldigheid", "bijlagen", "get_context",
     "resolve_begrip", "graph_schema", "raw_sparql", "zoek_opbouw", "overzicht_onderwerp",
     "search_begrippen", "get_begrip",
-    "zoek_kamerstukken", "get_kamerstuk",  # bronconnector (ADR-013)
-    "zoek_uitspraken", "get_uitspraak",  # bronconnector Rechtspraak (ADR-013, fase 1c)
-}
+} | {t for c in CONNECTORS.values() for t in c.tools}  # de bronconnectors (ADR-013), uit hun beschrijving
 
 
 def test_schemas_compleet_en_welgevormd():

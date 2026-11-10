@@ -159,7 +159,7 @@ def _nep_kamerstukken(monkeypatch):
     from agent import tools as t
     from test_kamerstuk_tools import DOSSIER, NepBron
 
-    monkeypatch.setattr(t, "_KAMERSTUKBRON", NepBron(DOSSIER))
+    monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", NepBron(DOSSIER))
 
 
 def test_een_genoemd_stuk_wordt_vooraf_gelezen_en_alleen_het_gelezen_stuk_is_een_bron(monkeypatch):
