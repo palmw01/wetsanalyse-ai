@@ -59,7 +59,8 @@ def test_het_eigen_sjabloon_neemt_de_tekst_uit_de_bron():
     ({"id": ID, "van_nr": 2, "tot_nr": 4}, "niet opgehaald"),
     ({"id": ID, "van_nr": 1, "tot_nr": 9}, "hoogstens 6"),
     ({"id": ID, "van_nr": 2, "tot_nr": 1}, "van_nr ≤ tot_nr"),
-    ({"id": "ECLI:NL:HR:2020:1", "van_nr": 1, "tot_nr": 1}, "geen id van een bron"),
+    # Een ECLI heeft sinds de connector Rechtspraak wel een bron; EU-recht (nog) niet.
+    ({"id": "CELEX:32016R0679", "van_nr": 1, "tot_nr": 1}, "geen id van een bron"),
 ])
 def test_wat_niet_klopt_gaat_terug_naar_het_model(aanwijzing, reden):
     with pytest.raises(Onvulbaar, match=reden):
@@ -319,3 +320,14 @@ def test_de_zoekvraag_in_woorden(zoekvraag, verwacht):
     from bronmodel.connectors import KAMERSTUKKEN
 
     assert extern.zoekvraag_tekst(KAMERSTUKKEN, zoekvraag) == verwacht
+
+
+def test_de_velden_noemen_de_voorbeelden_van_de_connectors_die_aanstaan():
+    """Geen vaste "kst-…" in het schema: met alleen Kamerstukken alleen dat voorbeeld, met Rechtspraak erbij ook een ECLI."""
+    alleen = json.dumps(sjablonen.sjabloon_schemas(frozenset({"antwoord_duiding", sjablonen.EXTERN}), extern=("kamerstukken",)),
+                        ensure_ascii=False)
+    beide = json.dumps(sjablonen.sjabloon_schemas(frozenset({"antwoord_duiding", sjablonen.EXTERN}),
+                                                  extern=("kamerstukken", "rechtspraak")), ensure_ascii=False)
+    assert "kst-33755-3" in alleen and "ECLI" not in alleen and "Rechtspraak" not in alleen
+    assert "kst-33755-3" in beide and "ECLI:NL:HR:2022:50" in beide and "ECLI:NL:…" in beide
+    assert "later" not in beide, "geen belofte over een bron die er al is"

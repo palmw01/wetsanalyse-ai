@@ -286,12 +286,47 @@ class NepSru:
         return Document(ident, self.xml, "h", record=rec)
 
 
+class NepRechtspraak:
+    """LiDO en de Rechtspraak: `n` uitspraken bij een artikel, verspreid over drie versies en met de langste titels die
+    LiDO geeft, en een uitspraak met `alineas` lange alinea's."""
+
+    def __init__(self, n: int, alineas: int = 400) -> None:
+        from agent.adapters.lido_rechtspraak import Link
+        versies = tuple(f"http://linkeddata.overheid.nl/terms/bwb/id/BWBR0004770/1/{j}-01-01/{j}-01-01"
+                        for j in (2026, 2016, 2010))
+        gerechten = ("Gerechtshof 's-Hertogenbosch", "Rechtbank Zeeland-West-Brabant", "Hoge Raad")
+        codes = ("GHSHE", "RBZWB", "HR")
+        self.links = tuple(Link(f"ECLI:NL:{codes[i % 3]}:2020:{i}",
+                                f"ECLI:NL:{codes[i % 3]}:2020:{i} - {gerechten[i % 3]}, {(i % 28) + 1:02d}-0{(i % 9) + 1}-2020"
+                                f" / {i}/0{i}, {i}/1{i} en {i}/2{i}", "Door computer herkende referentie", versies[i % 3])
+                           for i in range(1, n + 1))
+        self.versies = versies
+        paras = "".join(f"<para>{i}. {_LANG[:1500]}</para>" for i in range(alineas))
+        self.xml = ('<open-rechtspraak xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" '
+                    'xmlns:dcterms="http://purl.org/dc/terms/" xmlns="http://www.rechtspraak.nl/schema/rechtspraak-1.0">'
+                    '<rdf:RDF><rdf:Description><dcterms:identifier>ECLI:NL:HR:2020:1</dcterms:identifier>'
+                    '<dcterms:date>2020-01-02</dcterms:date><dcterms:creator>Hoge Raad</dcterms:creator>'
+                    '<dcterms:type>Uitspraak</dcterms:type></rdf:Description></rdf:RDF>'
+                    f'<uitspraak><section><title>Beoordeling</title>{paras}</section></uitspraak></open-rechtspraak>').encode()
+
+    def koppelingen(self, bwb_id, artikel, jci=""):
+        from agent.adapters.lido_rechtspraak import Koppelingen
+        return Koppelingen(self.links, self.versies, (), "ref", {})
+
+    def document(self, ecli):
+        from agent.adapters.lido_rechtspraak import Document as Uitspraak
+        return Uitspraak(ecli, self.xml, "h", "2020-02-01")
+
+
 #: Per connector: een nepbron per omvang, en per tool de argumenten en de omvang van de dataset die terug moet komen.
-NEPBRONNEN = {"kamerstukken": NepSru}
+NEPBRONNEN = {"kamerstukken": NepSru, "rechtspraak": NepRechtspraak}
 CONNECTOR_ARGS: dict[str, list[tuple[dict, str]]] = {
     "zoek_kamerstukken": [({"dossier": "99001"}, "dossier"), ({"woorden": "Invorderingswet"}, "dossier"),
                           ({"dossier": "99001", "woorden": "stuk"}, "dossier")],
     "get_kamerstuk": [({"id": "kst-99001-1"}, "alineas")],
+    "zoek_uitspraken": [({"bwb_id": "BWBR0004770", "artikel": "9"}, "dossier"),
+                        ({"bwb_id": "BWBR0004770", "artikel": "9", "volgorde": "oudste", "aantal": 25}, "dossier")],
+    "get_uitspraak": [({"id": "ECLI:NL:HR:2020:1"}, "alineas")],
 }
 OMVANGEN = (1, 40, 300, 301, 1000, 1001, 1200)
 

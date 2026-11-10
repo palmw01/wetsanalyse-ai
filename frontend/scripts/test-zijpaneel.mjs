@@ -187,6 +187,8 @@ try {
     assert.equal(await zijpaneel.count(), 1, `op ${width}px een zijpaneel`);
   }
   await page.setViewportSize({ width: 375, height: 800 });
+  // De sheet wisselt na het verkleinen pas bij de volgende render: wacht op de stand in plaats van direct te tellen.
+  await zijpaneel.first().waitFor({ state: "detached", timeout: 5000 }).catch(() => {});
   await geenScroll(375);
   assert.equal(await zijpaneel.count(), 0, "op een telefoon geen zijpaneel");
   // Op een telefoon: de tabs boven de kop van de sheet; Escape verbergt de sheet, *Paneel · Openen* haalt hem terug.

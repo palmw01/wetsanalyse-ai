@@ -35,6 +35,13 @@ WETSVRAGEN = (
     "Annoteer artikel 36 lid 2 van de Invorderingswet 1990",
     "Hoe verhoudt artikel 25 zich tot de Leidraad Invordering 2008?",
     "Wat voor weer wordt het morgen?",
+    # Fiscale en procestaal met "uitspraak" en "rechter" die niet over rechtspraak gaat (bevinding bij #1170: op een
+    # straat zonder de connector nam `_bron_uit` zo'n vraag over met "Rechtspraak staat uit").
+    "Wat is een uitspraak op bezwaar?",
+    "Binnen welke termijn moet de inspecteur uitspraak doen op het bezwaarschrift?",
+    "Kan ik tegen de aansprakelijkstelling beroep instellen bij de rechter?",
+    "Wat doet de rechter-commissaris bij een faillissement?",
+    "Wanneer is de rechter bevoegd om de dwangbevelprocedure te schorsen?",
 )
 
 
@@ -184,6 +191,36 @@ def test_een_nieuwe_connector_komt_er_zonder_code_bij(monkeypatch):
     afgeleid = specialists._met_connectors(dict(specialists.SPECIALISTS))
     assert "zoek_testbron" in afgeleid["duiding"].tools
     assert "zoek_testbron" not in afgeleid["definitie"].tools
+    # De dispatch: een module in het register, en `dispatch` voert de tool uit met de bron van die connector – zonder
+    # één regel in `tools/__init__.py` (vroeger een tak, een singleton en een argument per connector).
+    from agent.tools.connectortools import ConnectorModule
+
+    class NepFout(RuntimeError):
+        pass
+
+    module = ConnectorModule(
+        naam="testbron", tools=[{"name": "zoek_testbron", "description": "x", "input_schema": {"type": "object"}}],
+        maak_bron=lambda _s: "de bron van het proces",
+        dispatch=lambda n, a, bron, _g: (_ for _ in ()).throw(NepFout("weg")) if a.get("stuk") else f"{n}:{bron}",
+        fout=NepFout, fout_van=lambda exc: f"fout:{exc}", foutredenen={})
+    monkeypatch.setitem(tools.CONNECTORMODULES, "testbron", module)
+    monkeypatch.setitem(tools._BY_NAME, "zoek_testbron", module.tools[0])
+    monkeypatch.setattr(tools, "TOOLS", tools.TOOLS + module.tools)  # wat het register bij het importeren doet
+    assert tools.dispatch("zoek_testbron", None, {}, aan, bronnen=["testbron"]) == "zoek_testbron:de bron van het proces"
+    assert tools.dispatch("zoek_testbron", None, {}, aan, bronnen=["testbron"], testbron="nep") == "zoek_testbron:nep"
+    assert tools.dispatch("zoek_testbron", None, {"stuk": 1}, aan, bronnen=["testbron"]) == "fout:weg"
+    assert '"connector_uit"' in tools.dispatch("zoek_testbron", None, {}, aan, bronnen=[])
+
+
+def test_het_register_kent_elke_connector_en_elke_reden_heeft_een_zin():
+    """Eén module per beschrijving, met precies haar tools; en elke reden die een module uit een fout van zijn bron
+    maakt, heeft een zin in het denkproces (`REDEN_ZIN`) – anders heet hij "gaf een fout"."""
+    from agent.resultaat import REDEN_ZIN
+
+    assert set(tools.CONNECTORMODULES) == set(bm.CONNECTORS)
+    for naam, m in tools.CONNECTORMODULES.items():
+        assert m.tool_namen == bm.CONNECTORS[naam].tools, naam
+        assert set(m.foutredenen.values()) <= set(REDEN_ZIN), (naam, set(m.foutredenen.values()) - set(REDEN_ZIN))
 
 
 @pytest.mark.parametrize("c", BESCHRIJVINGEN, ids=IDS)
@@ -245,3 +282,9 @@ def test_de_algemene_stappen_noemen_de_bronnen_van_de_beurt():
     assert bronstand.waar(stand) == "de kennisgraaf"
     stand["kamerstukken"].update(aan=True, reden="aan")
     assert bronstand.waar(stand) == "de wetgeving en Kamerstukken"
+
+
+def test_genoemde_stukken_staan_in_de_volgorde_van_de_tekst_ook_in_kleine_letters():
+    """De plek komt uit het patroon: `find` op de canonieke vorm vond "ecli:nl:hr:2022:50" niet (-1) en zette hem vooraan."""
+    gevonden = bm.genoemde_stukken("Vergelijk kst-33755-3 met ecli:nl:hr:2022:50")
+    assert [i for _, i in gevonden] == ["kst-33755-3", "ECLI:NL:HR:2022:50"]
