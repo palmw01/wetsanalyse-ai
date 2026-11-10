@@ -488,16 +488,16 @@ try {
   await ap.locator("[data-versiekiezer]").getByText("Versie 1 van 2").waitFor();
   await ap.getByText("De oude tekst van de opname.").waitFor();
   assert.equal(await inKopMenu(ap, (m) => m.getByRole("menuitem", { name: "Annotatie verwijderen" }).count()), 0, "een oude annotatie is niet te verwijderen");
-  assert.equal(await ap.getByRole("button", { name: "Graaf", exact: true }).count(), 0, "een oude annotatie heeft geen graaf");
+  assert.equal(await ap.getByRole("tab", { name: "Graaf", exact: true }).count(), 0, "een oude annotatie heeft geen graaf");
   assert.equal(await ap.getByText("op slot", { exact: false }).count(), 0, "geen uitleg over heropenen");
   await ap.locator("[data-oude-versie]").getByRole("button", { name: "Ga naar de huidige versie" }).click();
   await ap.locator('[data-versiekiezer][data-versie-plek="nu"]').waitFor();
   await inKopMenu(ap, (m) => m.getByRole("menuitem", { name: "Annotatie verwijderen" }).waitFor());
   await ap.getByText("De ontvanger stelt de belastingschuldige in kennis.").waitFor();
   // Op Nu naar de graaf en terug: de kiezer blijft op Nu (hij wordt daar opnieuw gemonteerd).
-  await ap.getByRole("button", { name: "Graaf", exact: true }).click();
+  await ap.getByRole("tab", { name: "Graaf", exact: true }).click();
   await ap.locator('[data-versiekiezer][data-versie-plek="nu"]').waitFor();
-  await ap.getByRole("button", { name: "Tekst", exact: true }).click();
+  await ap.getByRole("tab", { name: "Tekst", exact: true }).click();
   await ap.locator('[data-versiekiezer][data-versie-plek="nu"]').waitFor();
   metGraaf = false;
   await page.locator('button[data-artefact-soort="begrip"]', { hasText: "Termijn" }).click();

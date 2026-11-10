@@ -102,10 +102,24 @@ export const opslagSleutel = (gesprekId: string | null | undefined) => `lex.pane
 export function bewaarVorm(stand: TabStand): TabStand {
   return {
     actief: stand.actief,
-    tabs: stand.tabs.map((t) => (t.inhoud.soort === "annotatie"
-      ? { ...t, inhoud: { ...t.inhoud, graaf: { bereik: t.inhoud.graaf.bereik, keten: t.inhoud.graaf.keten } } }
-      : t)),
+    tabs: stand.tabs.map((t) => {
+      const i = t.inhoud;
+      if (i.soort === "annotatie") return { ...t, inhoud: { ...i, graaf: zonderKennisgraaf(i.graaf) } };
+      if (i.soort === "context" && i.ctx.soort === "bron" && i.ctx.samenhang) {
+        return { ...t, inhoud: { ...i, ctx: { ...i.ctx, samenhang: { ...i.ctx.samenhang, graaf: zonderKennisgraaf(i.ctx.samenhang.graaf) } } } };
+      }
+      return t;
+    }),
   };
+}
+
+/** Wat een graaf meekrijgt, zonder de kennisgraaf zelf (groot, en na een beurt niet meer actueel): het bereik, de
+ *  ketting, de nadruk en het werkgebied. */
+export function zonderKennisgraaf(g: GraafOpties): GraafOpties {
+  if (!g.kennisgraaf) return g;
+  const { kennisgraaf: _weg, ...rest } = g;
+  void _weg;
+  return rest;
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);

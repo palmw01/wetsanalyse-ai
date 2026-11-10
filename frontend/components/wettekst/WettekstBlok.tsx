@@ -50,7 +50,7 @@ export function WettekstBlok(props: Bron & { groot?: boolean }) {
     <div className={`space-y-1.5 border-l-2 border-lint/20 pl-3 ${maat} text-ink`} data-testid="graaf-knooptekst">
       {metTekst.map((s) => {
         const nummer = s.nummer?.trim();
-        return <p key={s.bron_iri} className={s.type === "Onderdeel" ? "pl-3" : ""}>
+        return <p key={s.bron_iri} data-segment={s.bron_iri} className={s.type === "Onderdeel" ? "pl-3" : ""}>
           {nummer && <span className="mr-1 text-faint">{nummer.endsWith(".") ? nummer : `${nummer}.`}</span>}
           {spansVan(s, elementen).map((stuk, i) => {
             const el = stuk.element ? perId.get(stuk.element) : undefined;

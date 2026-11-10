@@ -1,11 +1,15 @@
 "use client";
 
-import { GraafIcoon } from "@/components/graaf/GraafIcoon";
-import { knopKlasse } from "@/components/ui/Button";
 import { HerkomstRegel } from "@/components/ui/HerkomstRegel";
 import { BronVenster } from "@/components/wettekst/BronVenster";
 import { PaneelKop } from "@/components/ui/PaneelKop";
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useMemo, useState } from "react";
+
+import { ANTWOORD, type GraafContext } from "@/components/graaf/Graaf";
+import { BronGraaf, WeergaveBalk, useBronGraaf, type Samenhang, type Weergave } from "@/components/wettekst/BronGraaf";
+import type { NodeDoel } from "@/lib/annotatieNode";
+import { bronDoel, samenhangBeschikbaar } from "@/lib/samenhang";
+import { useBepaling } from "@/lib/useBron";
 
 import { WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
 import { OverzichtPaneel } from "@/components/werkplek/OverzichtPaneel";
@@ -32,7 +36,12 @@ import { bronPad, elementPad, projectPad } from "@/lib/werkgebiedPaden";
  *  bepaling, één JAS-element, de bronnen van het werkgebied van het gesprek, of het overzicht van een
  *  onderwerp. Dat laatste komt uit het bericht zelf: het hoort bij een antwoord, niet bij een werkgebied. */
 export type ContextDoel =
-  | { soort: "bron"; bron_iri: string; werkgebied_id?: string; titel: string; /** De jci die Lex las, met de toestand. */ jci?: string }
+  | { soort: "bron"; bron_iri: string; werkgebied_id?: string; titel: string; /** De jci die Lex las, met de toestand. */ jci?: string;
+      /** Waarmee het venster opent: de tekst (standaard) of de graaf. */
+      weergave?: Weergave;
+      /** De samenhang van waar het geopend werd (wat het antwoord noemt); zonder: de bepaling zelf. Hoort niet bij de
+       *  sleutel van de tab. */
+      samenhang?: Samenhang }
   | { soort: "element"; element_id: string; titel: string }
   | { soort: "bibliotheek"; werkgebied_id: string; titel: string }
   | { soort: "overzicht"; overzicht: Overzicht; titel: string }
@@ -70,7 +79,11 @@ export function paginaVanContext(d: ContextDoel): string | undefined {
 /** Het contextpaneel (spoor G4, mock-up v4 `sideRail`): dezelfde schil als de artefacten – een kolom vanaf
  *  1280px, anders een sheet –, met bovenaan *Open volledige pagina*. Het paneel is om te raadplegen, niet
  *  om in te werken: beoordelen gebeurt op de pagina. Een paneel is geen vervanging van die pagina. */
-export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onMaakWerkgebied, onSamenhang }: {
+/** Hoe de graaf een bepaling noemt die zonder antwoord geopend is. */
+const BEPALING: GraafContext = { naam: "Deze bepaling", kort: "Bepaling", terug: "de bepaling", focus: "de bepaling" };
+const GEEN_DOEL: NodeDoel = { bron_iri: "" };
+
+export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onMaakWerkgebied }: {
   doel: ContextDoel;
   variant: DialogVariant;
   onSluit: () => void;
@@ -78,9 +91,6 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
   onVerberg?: () => void;
   /** Iets anders in hetzelfde paneel openen (een element uit de bepaling, een bron uit de lijst). */
   onWissel: (doel: ContextDoel) => void;
-  /** *Samenhang* in de kop van een bepaling: haar plek in de graaf, als tab naast deze (de werkplek, als de api de
-   *  samenhang kent). */
-  onSamenhang?: (bronIri: string) => void;
   /** *Maak hier een werkgebied van* bij een overzicht. */
   onMaakWerkgebied?: (overzicht: Overzicht) => void;
 }) {
@@ -92,17 +102,56 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
     ? stukHerkomst(stuk.stand?.antwoord.beschrijving, stuk.stand?.antwoord.deel.stuk, doel.titel) : undefined);
   const kop = herkomst ? { soort: doel.soort === "stuk" ? stuk.stand?.antwoord.beschrijving.label ?? KOP.stuk : herkomstKop(herkomst).soort,
     titel: herkomst.bepaling } : { soort: KOP[doel.soort], titel: doel.titel || KOP[doel.soort] };
+
+  // Tekst | Graaf (ontdubbelen PR 1): de samenhang is een weergave van het venster, geen eigen paneel.
+  const bronIri = doel.soort === "bron" ? doel.bron_iri : "";
+  const jci = doel.soort === "bron" ? doel.jci : undefined;
+  const graafDoel = useMemo<NodeDoel | undefined>(() => (bronIri
+    ? { ...(bronDoel(bronIri) ?? { bron_iri: bronIri }), ...(jci ? { jci } : {}) } : undefined), [bronIri, jci]);
+  const werkgebiedId = doel.soort === "bron" ? doel.werkgebied_id : undefined;
+  const meegegeven = doel.soort === "bron" ? doel.samenhang : undefined;
+  const samenhang = useMemo<Samenhang>(() => meegegeven
+    ?? { extra: [], graaf: { keten: true, werkgebiedId: werkgebiedId ?? null } }, [meegegeven, werkgebiedId]);
+  const [graafAan, setGraafAan] = useState(false);
+  useEffect(() => {
+    if (graafDoel) void samenhangBeschikbaar().then(setGraafAan);
+  }, [graafDoel]);
+  const [weergave, setWeergave] = useState<Weergave>(doel.soort === "bron" ? doel.weergave ?? "tekst" : "tekst");
+  const metGraaf = !!graafDoel && graafAan;
+  const graaf = useBronGraaf({ doel: graafDoel ?? GEEN_DOEL, samenhang, aan: metGraaf, weergave: metGraaf ? weergave : "tekst", claim: true });
+  const [gekozen, setGekozen] = useState<string>();
+  // Dezelfde lezing als de tekst (`useBepaling`, gedeeld per sessie): de inspector haalt er tekst en markeringen uit.
+  const lezing = useBepaling(metGraaf ? bronIri : null);
+  const opGraaf = metGraaf && weergave === "graaf";
+
+  /** *Bekijk in de tekst*: terug naar de tekst, de markering gekozen en het segment in beeld. */
+  function naarTekst(knoop: { id: string; element_id?: string }, anker?: string) {
+    setWeergave("tekst");
+    if (!graaf.inZijpaneel) graaf.setGroot(false);
+    if (knoop.element_id) setGekozen(knoop.element_id);
+    const iri = anker ?? knoop.id;
+    requestAnimationFrame(() => document.querySelector(`[data-bronvenster] [data-segment="${CSS.escape(iri)}"]`)
+      ?.scrollIntoView({ block: "center" }));
+  }
+
   return (
-    <Dialog label={`${kop.soort}: ${kop.titel}`} variant={variant} onSluit={onSluit} onEscape={onVerberg}>
+    <Dialog label={`${kop.soort}: ${kop.titel}`} variant={graaf.groot && !graaf.inZijpaneel ? "fullscreen" : variant} onSluit={onSluit}
+      onEscape={() => { if (!graaf.escape({ id: gekozen, wis: () => setGekozen(undefined) })) (onVerberg ?? onSluit)(); }}>
       <div data-context-paneel={doel.soort} className="flex min-h-0 flex-1 flex-col">
         <PaneelKop soort={kop.soort} titel={kop.titel} pagina={paginaVanContext(doel)} onSluit={onSluit}
           status={herkomst && <HerkomstRegel herkomst={herkomst} />}
-          hoofdactie={doel.soort === "bron" && onSamenhang && (
-            <button type="button" onClick={() => onSamenhang(doel.bron_iri)} data-bron-samenhang
-              className={`${knopKlasse("secondary", "xs")} gap-1`}><GraafIcoon />Samenhang</button>
-          )} />
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          {doel.soort === "bron" ? <BronVenster bronIri={doel.bron_iri} meldingen={bron.meldingen}
+          balk={metGraaf && <WeergaveBalk weergave={weergave} graaf={graaf}
+            onKies={(w) => { setWeergave(w); if (w === "tekst" && !graaf.inZijpaneel) graaf.setGroot(false); }} />} />
+        {doel.soort === "bron" && graafDoel && (
+          <BronGraaf graaf={graaf} zichtbaar={opGraaf} benaming={samenhang.van === "antwoord" ? ANTWOORD : BEPALING}
+            weergave={lezing.view} actiefElementId={gekozen} onKiesElement={setGekozen} onOpenTekst={naarTekst}
+            onWisselArtikel={(d, g) => onWissel({ soort: "bron", bron_iri: d.bron_iri, werkgebied_id: doel.werkgebied_id,
+              titel: vindplaatsTekst({ iri: d.bron_iri, label: "" }), weergave: "graaf",
+              samenhang: { extra: [graafDoel, ...samenhang.extra].filter((x) => x.bron_iri !== d.bron_iri),
+                graaf: { ...samenhang.graaf, ...g }, van: samenhang.van ?? "bepaling" } })} />
+        )}
+        <div className={opGraaf ? "hidden" : "min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4"}>
+          {doel.soort === "bron" ? <BronVenster bronIri={doel.bron_iri} meldingen={bron.meldingen} gekozen={gekozen}
               onOpenElement={(id, titel) => onWissel({ soort: "element", element_id: id, titel })}
               onOpenBron={(v) => onWissel({ soort: "bron", bron_iri: v.iri, werkgebied_id: doel.werkgebied_id, titel: vindplaatsTekst(v) })} />
             : doel.soort === "element" ? <ElementInhoud id={doel.element_id} />

@@ -3,7 +3,7 @@
 import { ARTEFACT_SOORT_LABEL } from "@/lib/artefact";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DekkingOverzicht } from "@/components/annotaties/DekkingOverzicht";
 import { ImplicietePartijen, RelatieBlok, type RelatieBediening } from "@/components/annotaties/Relaties";
@@ -15,7 +15,6 @@ import { PaneelKop } from "@/components/ui/PaneelKop";
 import { VersieKiezer } from "@/components/ui/VersieKiezer";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { StandMelding } from "@/components/ui/StandMelding";
-import { ZijpaneelContext } from "@/components/ui/Zijpaneel";
 import { AnnotatieKop, ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
 import {
@@ -32,12 +31,11 @@ import { samenhangBeschikbaar } from "@/lib/samenhang";
 import type { KnoopData } from "@/lib/graaf/model";
 import type { Anker, ArtefactVersie, BeslissingInvoer } from "@/lib/types";
 import { NOG_NIET_IN_WERKING, annotatieKopTekst } from "@/lib/herkomst";
-import { GraafIcoon } from "@/components/graaf/GraafIcoon";
-import { Graaf } from "@/components/graaf/Graaf";
-import { useGraafStand, type GraafOpties } from "@/components/graaf/useGraafStand";
+import type { GraafOpties } from "@/components/graaf/useGraafStand";
+import { BronGraaf, WeergaveBalk, useBronGraaf, type Weergave } from "@/components/wettekst/BronGraaf";
 
 // sigma zit in `GraafTekenaar`, dat `Graaf` zelf lui laadt: pas als de tab opengaat.
-export type PaneelTab = "tekst" | "graaf";
+export type PaneelTab = Weergave;
 
 /** Een annotatie op een bronnode (contract 2), in het vertrouwde annotatiepaneel.
  *
@@ -79,20 +77,17 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
   const [opname, setOpname] = useState<ArtefactVersie | null | undefined>(doel.versie ? undefined : null);
   const opslag = useMemo(() => (opname ? momentopnameOpslag(opname.inhoud.weergave as NodeWeergave) : basisOpslag),
     [opname, basisOpslag]);
-  const [view, setView] = useState<NodeWeergave>();
   const [samenhang, setSamenhang] = useState(false);
   const [tab, setTab] = useState<PaneelTab>(beginTab);
-  const [graafGeopend, setGraafGeopend] = useState(beginTab === "graaf");
-  // In het zijpaneel is er één *Vergroten*: die van het paneel. Daarbuiten (de sheet) houdt de graaf zijn eigen knop.
-  const zijpaneel = useContext(ZijpaneelContext);
-  const [grootLokaal, setGrootLokaal] = useState(false);
-  const groot = zijpaneel ? zijpaneel.vergroot : grootLokaal;
-  const setGroot = zijpaneel ? zijpaneel.zetVergroot : setGrootLokaal;
   useEffect(() => {
     if (basisOpslag.levend) void samenhangBeschikbaar().then(setSamenhang);
   }, [basisOpslag]);
-  if (tab === "graaf" && !graafGeopend) setGraafGeopend(true);
-  const graafStand = useGraafStand(doel, graafGeopend && samenhang, tab === "graaf", extraDoelen, graaf);
+  const [view, setView] = useState<NodeWeergave>();
+  // De graaf van het venster (`useBronGraaf`): één *Vergroten*, en Escape laag voor laag.
+  const bronGraaf = useBronGraaf({ doel, samenhang: { extra: extraDoelen ?? [], graaf: graaf ?? {} },
+    aan: samenhang && !!view, weergave: tab, claim: !!onSluit });
+  const graafStand = bronGraaf.stand;
+  const { groot, setGroot } = bronGraaf;
   const [laadFout, setLaadFout] = useState("");
   const [actiefId, setActiefId] = useState<string | undefined>(beginElement);
   const [melding, setMelding] = useState("");
@@ -265,23 +260,8 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
   const toonTabs = samenhang && !!view && !opname;
   // De tabs en *Vergroten* staan in de balk van de ene paneelkop (`PaneelKop.balk`), op beide tabs.
   const tabs = toonTabs && (
-    <div className="flex shrink-0 items-center gap-2 border-b border-line px-4 py-2" data-paneel-balk>
-      <div className="flex rounded-lg bg-surface p-1" role="group" aria-label="Weergave kiezen">
-        {(["tekst", "graaf"] as const).map((waarde) => (
-          <button key={waarde} type="button" aria-pressed={tab === waarde} onClick={() => { setTab(waarde); if (waarde === "tekst" && !zijpaneel) setGroot(false); }}
-            className={`focus-ring flex min-h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium ${tab === waarde ? "bg-paper text-lint shadow-zacht" : "text-muted hover:text-lint"}`}>
-            {waarde === "graaf" && <GraafIcoon />}{waarde === "tekst" ? "Tekst" : "Graaf"}
-          </button>
-        ))}
-      </div>
-      <div className="flex-1" />
-      {tab === "graaf" && onSluit && !zijpaneel && (
-        <button type="button" className="focus-ring rounded-knop p-2 text-muted hover:bg-surface" onClick={() => setGroot(!groot)}
-          aria-label={groot ? "Verkleinen" : "Vergroten"} title={groot ? "Terug naar zijpaneel" : "Graaf vergroten"}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d={groot ? "M9 3v6H3m18 6h-6v6M3 9l6-6m6 18 6-6" : "M8 3H3v5m13 13h5v-5M3 3l6 6m6 6 6 6"} /></svg>
-        </button>
-      )}
-    </div>
+    <WeergaveBalk weergave={tab} onKies={(w) => { setTab(w); if (w === "tekst" && !bronGraaf.inZijpaneel) setGroot(false); }}
+      graaf={onSluit ? bronGraaf : undefined} />
   );
 
   // Bladeren door de reeks gaat met ‹ › in de balk; Lex heeft geen sneltoetsen (besluit 26 okt 2026).
@@ -311,13 +291,12 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
           {kopFout && <div className="px-4 pt-3"><Melding type="fout" compact>{kopFout}</Melding></div>}
         </>
       )}
-      {toonTabs && graafGeopend && (
-        <div className={tab === "graaf" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-          <Graaf stand={graafStand} herkomst={(doel as NodeDoel & { herkomst?: string }).herkomst} zichtbaar={tab === "graaf"} groot={groot || !onSluit} actiefElementId={actiefId}
-            weergave={view} dekking={dekkingPerKnoop} onKiesElement={setActiefId} onOpenTekst={openTekst}
-            onWisselArtikel={onWisselDoel}
-            onVraag={onVraag || onVraagOverBron ? vraagOverKnoop : undefined} />
-        </div>
+      {toonTabs && (
+        <BronGraaf graaf={bronGraaf} zichtbaar={tab === "graaf"} pagina={!onSluit}
+          herkomst={(doel as NodeDoel & { herkomst?: string }).herkomst} actiefElementId={actiefId}
+          weergave={view} dekking={dekkingPerKnoop} onKiesElement={setActiefId} onOpenTekst={openTekst}
+          onWisselArtikel={onWisselDoel}
+          onVraag={onVraag || onVraagOverBron ? vraagOverKnoop : undefined} />
       )}
       {(!toonTabs || tab === "tekst") && view?.segmenten.some(nogNietInWerking) && <div className="px-4 pt-3"><StandMelding meldingen={[NOG_NIET_IN_WERKING]} /></div>}
       {(!toonTabs || tab === "tekst") && <ArtefactInhoud
@@ -358,28 +337,16 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
     </div>
   );
 
-  // Op de graaf pelt het paneel Escape zelf af (en verkleint op zijn beurt): het zijpaneel vangt hem dan niet eerst.
-  const claimt = Boolean(zijpaneel && onSluit && view && tab === "graaf");
-  const claim = zijpaneel?.claimEscape;
-  useEffect(() => {
-    if (!claim) return;
-    claim(claimt);
-    return () => claim(false);
-  }, [claim, claimt]);
-
   if (!onSluit) return inhoud;
   // `onEscape` is een no-op om dezelfde reden als in `ArtefactPaneel`: de inhoud pelt Escape zelf
   // laag voor laag af.
   return (
-    <Dialog label={`Annotatie: ${view?.doel.label || doel.label || "bepaling"}`} variant={groot && !zijpaneel ? "fullscreen" : variant}
+    <Dialog label={`Annotatie: ${view?.doel.label || doel.label || "bepaling"}`} variant={groot && !bronGraaf.inZijpaneel ? "fullscreen" : variant}
       onSluit={onSluit} onEscape={view ? () => {
-        // In de tekst pelt de inhoud Escape zelf af; in de graaf doet het paneel dat, van binnen naar
+        // In de tekst pelt de inhoud Escape zelf af; in de graaf doet het venster dat, van binnen naar
         // buiten: lagen dicht → selectie op → verkleinen → sluiten. (De zoeklijst vangt haar eigen Escape.)
         if (tab !== "graaf") return;
-        if (graafStand.lagenOpen) graafStand.setLagenOpen(false);
-        else if (graafStand.selectie || actiefId) { graafStand.setSelectie(null); setActiefId(undefined); }
-        else if (groot) setGroot(false);
-        else (onVerberg ?? onSluit)();
+        if (!bronGraaf.escape({ id: actiefId, wis: () => setActiefId(undefined) })) (onVerberg ?? onSluit)();
       } : undefined}>
       {inhoud}
     </Dialog>

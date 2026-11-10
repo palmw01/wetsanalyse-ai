@@ -61,4 +61,14 @@ describe("paneelTabs", () => {
     expect(leesBewaard({ tabs: [{ inhoud: { soort: "context", ctx: { soort: "bron" } } }] })).toBeUndefined();
     expect(leesBewaard("kapot")).toBeUndefined();
   });
+
+  it("een bepaling met de samenhang van een antwoord: zelfde tab, bewaard zonder de kennisgraaf", () => {
+    const metGraaf: PaneelInhoud = { soort: "context", ctx: { soort: "bron", bron_iri: "urn:bwb:BWBR0004770:artikel:9", titel: "Artikel 9",
+      weergave: "graaf", samenhang: { extra: [{ bron_iri: "urn:bwb:BWBR0004770:artikel:10" }],
+        graaf: { keten: true, bereik: "kennisgraaf", kennisgraaf: { groot: true } as never } } } };
+    expect(sleutelVan(metGraaf)).toBe(sleutelVan(bron(9)));
+    const bewaard = JSON.parse(JSON.stringify(bewaarVorm(openTab({ tabs: [] }, metGraaf))));
+    expect(bewaard.tabs[0].inhoud.ctx.samenhang.graaf).toEqual({ keten: true, bereik: "kennisgraaf" });
+    expect(leesBewaard(bewaard)?.tabs[0].inhoud).toMatchObject({ ctx: { weergave: "graaf" } });
+  });
 });

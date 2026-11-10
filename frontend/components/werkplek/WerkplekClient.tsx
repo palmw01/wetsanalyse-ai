@@ -1,7 +1,7 @@
 "use client";
 
 import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
-import { bronDoel, samenhangBeschikbaar } from "@/lib/samenhang";
+import { samenhangBeschikbaar } from "@/lib/samenhang";
 import { ThreadRij, type ThreadActies } from "@/components/werkplek/ThreadRij";
 import { reeksNavigatie } from "@/lib/reeks";
 import { afronding } from "@/lib/beurtStroom";
@@ -22,7 +22,7 @@ import { Zijpaneel } from "@/components/ui/Zijpaneel";
 import { PaneelTabsContext } from "@/components/ui/PaneelKop";
 import { TabRij } from "@/components/ui/Tabs";
 import { leesOpslag, schrijfOpslag } from "@/lib/opslag";
-import { bewaarVorm, leesBewaard, openTab, opslagSleutel, sluitTab, tabLabel, type PaneelInhoud, type TabStand } from "@/lib/paneelTabs";
+import { bewaarVorm, leesBewaard, openTab, opslagSleutel, sluitTab, tabLabel, zonderKennisgraaf, type PaneelInhoud, type TabStand } from "@/lib/paneelTabs";
 import {
   foutTekst,
   startRun,
@@ -72,14 +72,6 @@ import {
 // De thread-items staan in `lib/threadItem.ts`, zodat de rondleiding er een voorbeeldbeurt
 // mee kan opbouwen zonder dit component te importeren.
 type Item = ThreadItem;
-
-/** De graafopties zonder een doorgegeven kennisgraaf: die geldt alleen voor het paneel direct na een
- *  wissel, niet als er intussen annotaties veranderden. */
-function zonderKennisgraaf(g: GraafOpties): GraafOpties {
-  if (!g.kennisgraaf) return g;
-  const { kennisgraaf: _weg, ...rest } = g;
-  return rest;
-}
 
 function uid(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -1002,8 +994,7 @@ export function WerkplekClient({
   const paneel = ctx ? (
     <ContextPaneel key={contextSleutel(ctx)} doel={ctx} variant={breed ? "kolom" : "side"}
       onSluit={() => sluitPaneelTab(tabStand.actief)} onVerberg={verbergPaneel}
-      onWissel={(d) => { setVolgendeVanuit("het paneel"); setCtx(d); }} onMaakWerkgebied={setWgUitOverzicht}
-      onSamenhang={samenhangAan && !demo ? (iri) => acties.openSamenhang(bronDoel(iri) ?? { bron_iri: iri }) : undefined} />
+      onWissel={(d) => { setVolgendeVanuit("het paneel"); setCtx(d); }} onMaakWerkgebied={setWgUitOverzicht} />
   ) : artefact;
 
   /** *Vraag Lex* vanuit een object in een paneel (`VraagLexKnop`): de chip boven het invoerveld. Op een smal

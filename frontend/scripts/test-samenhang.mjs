@@ -354,6 +354,51 @@ async function wachtGereed(page) {
   echteKetting = false;
 }
 
+// 0b. De bepaling in het bronvenster heeft zelf Tekst | Graaf (ontdubbelen PR 1): geen losse knop *Samenhang* in de kop,
+// de graaf is een weergave van het venster. *Bekijk in de tekst* gaat terug met de markering gekozen; Escape pelt af.
+{
+  bijgewerkt = false;
+  const { page, log } = await nieuwePagina();
+  await page.goto(`${base}/workbench?gesprek=g1`);
+  await page.getByRole("button", { name: "Artikel 9 lid 2", exact: true }).click();
+  await page.getByTestId("bronkaart").getByRole("button", { name: "Openen", exact: true }).click();
+  const venster = page.locator('[data-context-paneel="bron"]');
+  await venster.locator("[data-bronvenster]").waitFor();
+  assert.equal(await venster.locator("[data-bron-samenhang]").count(), 0, "geen losse samenhangknop in de kop");
+  assert.equal(await venster.getByRole("tab", { name: "Tekst", exact: true }).getAttribute("aria-selected"), "true");
+  await venster.getByRole("tab", { name: "Graaf", exact: true }).click();
+  await wachtGereed(page);
+  assert.equal(await venster.locator("[data-bronvenster]").isVisible(), false, "de tekst staat weg op de graaf");
+  assert.ok(log.keten.length >= 1, "de graaf van de bepaling is de ketting");
+  await page.getByRole("button", { name: "Deze bepaling" }).waitFor();
+  // Een knoop van deze bepaling: *Bekijk in de tekst* gaat terug naar de tekst, op die plek.
+  await zoekEnKies(page, "lid 2", L2);
+  await detailsOpen(page);
+  await page.getByRole("button", { name: "Bekijk in de tekst" }).click();
+  assert.equal(await venster.getByRole("tab", { name: "Tekst", exact: true }).getAttribute("aria-selected"), "true");
+  await venster.locator(`[data-bronvenster] [data-segment="${L2}"]`).waitFor();
+  await venster.getByRole("tab", { name: "Graaf", exact: true }).click();
+  await wachtGereed(page);
+  // Een markering op een ander lid: *Open in het paneel* opent die bepaling als eigen tab, op de graaf.
+  await zoekEnKies(page, "ontvanger", "element:e1");
+  await detailsOpen(page);
+  await page.getByRole("button", { name: "Open in het paneel" }).click();
+  for (let i = 0; i < 40 && await page.locator("[data-paneel-tab]").count() < 2; i++) await page.waitForTimeout(100);
+  assert.equal(await page.locator("[data-paneel-tab]").count(), 2, "de andere bepaling is een eigen tab");
+  await wachtGereed(page);
+  assert.equal(await page.locator('[data-context-paneel="bron"]').getByRole("tab", { name: "Graaf", exact: true }).getAttribute("aria-selected"), "true");
+  await page.screenshot({ path: `${shots}/0d-bronvenster-graaf.png` });
+  // Escape: eerst de keuze, dan verbergt het paneel (de tab blijft).
+  await zoekEnKies(page, "lid 1", L1);
+  await page.keyboard.press("Escape");
+  assert.equal(await gekozen(page), "", "Escape heft eerst de keuze op");
+  assert.equal(await venster.isVisible(), true, "het paneel staat er nog");
+  await page.keyboard.press("Escape");
+  await page.locator("[data-paneel-ingeklapt]").waitFor();
+  assert.deepEqual(log.errors, [], "geen fouten");
+  await page.close();
+}
+
 // 1. Breed scherm: chatknop opent het paneel op de graaf; sigma tekent, de hint staat er.
 {
   bijgewerkt = false;
@@ -373,7 +418,7 @@ async function wachtGereed(page) {
   await page.getByRole("button", { name: /^Bekijk samenhang van .* in de graaf$/ }).first().click();
   await graaf(page).waitFor();
   assert.deepEqual([...new Set(log.samenhang)], [L2], "de graaf vraagt de samenhang van de geciteerde bepaling");
-  assert.equal(await page.getByRole("button", { name: "Graaf", exact: true }).getAttribute("aria-pressed"), "true");
+  assert.equal(await page.getByRole("tab", { name: "Graaf", exact: true }).getAttribute("aria-selected"), "true");
   await wachtGereed(page);
   assert.equal(await page.getByTestId("graaf-tekenaar").getAttribute("data-knopen"), "8");
   assert.match(await page.getByTestId("graaf-telling").innerText(), /1 regeling · 3 bepalingen · 1 markering · 3 verwijzingen/);
@@ -464,14 +509,14 @@ async function wachtGereed(page) {
   await page.screenshot({ path: `${shots}/1c-markering.png` });
   await detail(page).getByText("Technisch detail", { exact: true }).click();
   await detail(page).getByText("Nog niet in de graaf bijgewerkt", { exact: false }).waitFor();
-  assert.equal(await page.getByRole("button", { name: "Tekst", exact: true }).getAttribute("aria-pressed"), "false", "je blijft in de graaf");
+  assert.equal(await page.getByRole("tab", { name: "Tekst", exact: true }).getAttribute("aria-selected"), "false", "je blijft in de graaf");
   // Het paneel toont lid 2; e1 staat op lid 1. Naar de tekst springen zou niets tonen: dan opent het
   // paneel op lid 1 in plaats daarvan.
   assert.equal(await page.getByRole("button", { name: "Beoordeel in de tekst" }).count(), 0, "e1 staat niet in de tekst van het paneel");
   await page.getByRole("button", { name: "Open in het paneel" }).waitFor();
-  await page.getByRole("button", { name: "Tekst", exact: true }).click();
+  await page.getByRole("tab", { name: "Tekst", exact: true }).click();
   await page.locator("[data-artefact]").waitFor();
-  await page.getByRole("button", { name: "Graaf", exact: true }).click();
+  await page.getByRole("tab", { name: "Graaf", exact: true }).click();
   assert.match(await detail(page).innerText(), /ontvanger/, "keuze blijft na terugkeren");
 
   // 6b. Een JAS-klasse kiezen vanuit de inspector.
@@ -604,11 +649,11 @@ async function wachtGereed(page) {
   // 12. Een annotatiewijziging werkt de graaf bij zonder herladen, en de kaart verschuift niet. Zolang
   // de Tekst-tab openstaat, haalt de graaf niets op; terug op de graaf precies één ronde.
   const voor = log.samenhangMeer.length;
-  await page.getByRole("button", { name: "Tekst", exact: true }).click();
+  await page.getByRole("tab", { name: "Tekst", exact: true }).click();
   await page.getByRole("button", { name: /afronden/i }).first().click();
   await page.waitForTimeout(800);
   assert.equal(log.samenhangMeer.length, voor, "met de graaf onzichtbaar wordt er niets opgehaald");
-  await page.getByRole("button", { name: "Graaf", exact: true }).click();
+  await page.getByRole("tab", { name: "Graaf", exact: true }).click();
   for (let i = 0; i < 40 && !(await zoekStand(page, "Rechtsobject", "element:e2")).er; i++) await page.waitForTimeout(250);
   assert.ok((await zoekStand(page, "Rechtsobject", "element:e2")).er, "de nieuwe markering staat in de graaf");
   assert.equal(log.samenhangMeer.length, voor + 1, "terug op de graaf: één verversing");
@@ -767,7 +812,7 @@ async function wachtGereed(page) {
   const ver = "urn:bwb:BWBR9000060:artikel:8.44";
   await zoekEnKies(page, "Artikel 8.44", ver);
   await page.getByRole("button", { name: "Open in het paneel" }).click();
-  await page.getByRole("button", { name: "Graaf", exact: true }).click();
+  await page.getByRole("tab", { name: "Graaf", exact: true }).click();
   await page.locator('[data-testid="samenhang-graaf"][data-gereed="true"]').waitFor({ timeout: 60000 });
   assert.equal(await graaf(page).getAttribute("data-bereik"), "kennisgraaf", "het bereik gaat mee naar het nieuwe paneel");
   assert.equal(log.graaf.length, 1, "de kennisgraaf gaat mee en wordt niet opnieuw opgehaald");

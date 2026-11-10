@@ -140,6 +140,10 @@ stand komt uit `lib/herkomst.ts`.
   in de lopende tekst.
 - Geen eigen component `Wettekst`, geen `KnoopTekst`; het annotatiepaneel (`DocumentPaneel`) blijft tot de annoteerfase.
 
+**De graaf van een bron** (ontdubbelen PR 1): één `useBronGraaf` + `BronGraaf` (`components/wettekst/BronGraaf.tsx`) voor
+het venster naast het gesprek, de bronpagina en de annotatie, met één keuze Tekst | Graaf (`WeergaveBalk`). Alleen de tab
+Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` nog zelf aan.
+
 ### Vormgeving (Rijkshuisstijl, Belastingdienst-stijlvak)
 
 - **Tokens, geen hex-waarden.** Kleur en typografie lopen via CSS-variabelen in `app/globals.css` →
@@ -1418,7 +1422,13 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   - *Wat de graaf weet* (`BepalingFeiten`: plek, geldigheid, verwijzingen, tellingen, definieert). Een verwijzing opent
     als eigen tab.
 
-  *Samenhang* in de kop opent de graaf van de bepaling als tab (de annotatietab op Graaf).
+  Het venster heeft twee weergaven, **Tekst | Graaf** (`WeergaveBalk` in de balk van de kop, dezelfde `TabRij` als de tabs
+  van het paneel, `aria-selected`; ontdubbelen PR 1). De graaf is een weergave van het venster, geen eigen paneel en geen
+  knop in de kop: `components/wettekst/BronGraaf` (`useBronGraaf` + `BronGraaf`) tekent hem, ook onder de annotatie. Zonder
+  samenhang van een antwoord toont hij de ketting van de bepaling zelf ("Deze bepaling"); met (`ContextDoel.samenhang`,
+  niet in de tabsleutel, bewaard zonder kennisgraaf) wat het antwoord noemt. *Bekijk in de tekst* gaat terug naar Tekst op
+  dat segment (`data-segment`), *Open in het paneel* opent de andere bepaling als eigen tab op Graaf. Escape pelt op de
+  graaf eerst lagen, keuze en vergroten af (`escape`), dan verbergt het paneel.
 - **Eén ingang per plek:**
   - onder een antwoord de chips (`BronChip`: `BepalingChips` per bepaling en `SamenhangChip`, ook bij vrije tekst en
     een overzicht); de losse knop "Bekijk samenhang … in de graaf" bestaat niet meer;

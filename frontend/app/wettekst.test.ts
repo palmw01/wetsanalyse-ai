@@ -51,4 +51,14 @@ describe("één wettekstweergave", () => {
     expect(pagina).toMatch(/<BronVenster variant="pagina"/);
     expect(pagina).not.toMatch(/<WettekstBlok|<Kaart titel="Wettekst"|<Kaart titel="JAS-elementen"/);
   });
+
+  it("de graaf van een bron staat alleen in BronGraaf, met één keuze Tekst | Graaf (ontdubbelen PR 1)", () => {
+    const graven = CODE.filter((p) => /\buseGraafStand\(/.test(bron(p)) && !p.endsWith("useGraafStand.ts"));
+    expect(graven.sort()).toEqual([join("components", "werkgebieden", "SamenhangTab.tsx"), join("components", "wettekst", "BronGraaf.tsx")]);
+    // Geen eigen Tekst/Graaf-knoppen met aria-pressed, en geen losse samenhangknop in de kop van het venster.
+    for (const p of CODE) {
+      expect(bron(p), p).not.toMatch(/\(\["tekst", "graaf"\] as const\)\.map/);
+      expect(bron(p), p).not.toMatch(/data-bron-samenhang/);
+    }
+  });
 });

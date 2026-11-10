@@ -27,8 +27,10 @@ import { elementPad } from "@/lib/werkgebiedPaden";
  *     begrippen die ze definieert (`BepalingFeiten`). Een verwijzing opent als eigen tab.
  *  De kop (herkomst, *Samenhang*, ↗ naar de bronpagina) zet de schil: `ContextPaneel` naast het gesprek, `BronPagina` op
  *  de volledige pagina (`variant="pagina"`: de tekst groot, de markeringen als rijen naar hun pagina). Alleen lezen. */
-export function BronVenster({ bronIri, meldingen, onOpenElement, onOpenBron, variant = "paneel", naGraaf }: {
+export function BronVenster({ bronIri, meldingen, onOpenElement, onOpenBron, variant = "paneel", naGraaf, gekozen }: {
   bronIri: string;
+  /** De markering die in de graaf gekozen was (*Bekijk in de tekst*): extra nadruk in de wettekst. */
+  gekozen?: string;
   variant?: "paneel" | "pagina";
   /** Op de pagina: wat er onder *Wat de graaf weet* nog bij hoort (alle gegevens uit de kennisgraaf, ingeklapt). */
   naGraaf?: ReactNode;
@@ -47,7 +49,7 @@ export function BronVenster({ bronIri, meldingen, onOpenElement, onOpenBron, var
     <div className="space-y-5" data-bronvenster={bronIri}>
       <StandMelding meldingen={meldingen} />
       <Sectie titel="Wettekst" niveau={3} data-blok="wettekst">
-        <WettekstBlok groot={variant === "pagina"} segmenten={view.segmenten} elementen={actueel} kiesbaar={() => true} onKies={openElement} />
+        <WettekstBlok groot={variant === "pagina"} segmenten={view.segmenten} elementen={actueel} gekozen={gekozen} kiesbaar={() => true} onKies={openElement} />
       </Sectie>
       <Sectie titel="Markeringen" telling={actueel.length} niveau={3} data-blok="markeringen"
         acties={<Link href={nodeLink({ bron_iri: bronIri })} className="focus-ring rounded text-xs font-medium text-lint hover:underline">
