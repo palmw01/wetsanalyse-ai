@@ -5,9 +5,11 @@
  *  beheerder (of de straat) niet aanbiedt, gaat nooit aan, ook niet als een oud gesprek het noemt. graph-qa krijgt de
  *  stand per beurt als `bronnen` en toetst hem zelf ook. */
 
-/** Of de straat de connector aanbiedt: `aan`, of `onbekend` als graph-qa niet te lezen was (`GET /v1/bronnen`). Een
- *  onbekende connector staat in het menu zonder schakelaar: een schakelaar die niets doet, is erger dan geen. */
-export type Beschikbaarheid = "aan" | "onbekend";
+/** Of de straat de connector aanbiedt: `aan`; `onbekend` als graph-qa niet te lezen was (`GET /v1/bronnen`); of
+ *  `niet_aangeboden` als de beheerder hem aanzette maar deze omgeving hem niet aanbiedt. Alleen `aan` krijgt een
+ *  schakelaar: een schakelaar die niets doet, is erger dan geen. De andere twee staan er wél, met de reden: het menu
+ *  verdwijnt nooit stil. */
+export type Beschikbaarheid = "aan" | "onbekend" | "niet_aangeboden";
 
 export interface BeschikbareConnector {
   naam: string;
@@ -24,29 +26,81 @@ export interface ConnectorStand {
   gesprek?: string[] | null;
   /** De standaard van het werkgebied van het gesprek; `null`/`undefined` = alles wat beschikbaar is. */
   werkgebied?: string[] | null;
+  /** `mislukt`: de laatste poging om de lijst op te halen faalde. `beschikbaar` is dan de laatst bekende lijst. */
+  laden?: "ok" | "mislukt";
 }
 
 /** Het ene leesmodel van het menu, in de BFF: wat de beheerder aanzette (het register), met per connector of de straat
- *  hem aanbiedt (graph-qa `GET /v1/bronnen`). Wat de straat niet aanbiedt, valt weg: incident van 8 nov 2026,
- *  Kamerstukken ✓ terwijl de straat hem niet aanbood. Kan graph-qa niet worden gelezen (`straat` null), dan is elke
- *  connector `onbekend` (review ADR-013, punt 2): zichtbaar, maar niet te schakelen, tot de stand weer bekend is. */
+ *  hem aanbiedt (graph-qa `GET /v1/bronnen`). Wat de straat niet aanbiedt, is `niet_aangeboden`: zichtbaar, nooit aan
+ *  (incident van 8 nov 2026: Kamerstukken ✓ terwijl de straat hem niet aanbood). Kan graph-qa niet worden gelezen
+ *  (`straat` null), dan is elke connector `onbekend` (review ADR-013, punt 2). */
 export function metBeschikbaarheid<T extends { naam: string }>(
   register: T[],
   straat: { naam: string; straat: boolean }[] | null,
 ): (T & { beschikbaarheid: Beschikbaarheid })[] {
   if (!straat) return register.map((c) => ({ ...c, beschikbaarheid: "onbekend" as const }));
   const aan = new Set(straat.filter((b) => b.straat).map((b) => b.naam));
-  return register.filter((c) => aan.has(c.naam)).map((c) => ({ ...c, beschikbaarheid: "aan" as const }));
+  return register.map((c) => ({ ...c, beschikbaarheid: aan.has(c.naam) ? "aan" as const : "niet_aangeboden" as const }));
 }
 
 /** Kan de jurist deze connector nu aan- of uitzetten? Niet als de beschikbaarheid onbekend is. */
 export function schakelbaar(c: BeschikbareConnector): boolean {
-  return c.beschikbaarheid !== "onbekend";
+  return (c.beschikbaarheid ?? "aan") === "aan";
 }
 
-/** Staat er een connector met een onbekende beschikbaarheid in het menu? Dan haalt de werkplek de stand opnieuw op. */
-export function heeftOnbekend(stand: ConnectorStand): boolean {
-  return stand.beschikbaar.some((c) => !schakelbaar(c));
+/** Staat het menu er? Met een connector bij de beheerder, of als het ophalen mislukte: dan zegt het menu dát, in plaats
+ *  van stil te verdwijnen. Zonder connector en zonder storing is er alleen wetgeving, en dus geen menu. */
+export function toonMenu(stand: ConnectorStand): boolean {
+  return stand.beschikbaar.length > 0 || stand.laden === "mislukt";
+}
+
+/** Moet de werkplek de stand opnieuw ophalen (bij het openen van het menu, na een beurt)? Als het ophalen mislukte, of
+ *  als graph-qa niet te lezen was. `niet_aangeboden` is een vaste stand van de omgeving: geen reden om te peilen. */
+export function moetVerversen(stand: ConnectorStand): boolean {
+  return stand.laden === "mislukt" || stand.beschikbaar.some((c) => c.beschikbaarheid === "onbekend");
+}
+
+/** Eén regel uit het `bronstand`-event van graph-qa (`agent/bronstand.py`): per connector of hij aanstaat, en zo niet,
+ *  waarom. */
+export interface BronstandRegel {
+  naam: string;
+  reden: string;
+}
+
+/** Wat graph-qa in een beurt over de omgeving vaststelde, over de stand van het menu gelegd. Alleen de redenen die over
+ *  de omgeving gaan, tellen: `straat` (niet aangeboden), `register_onleesbaar` (onbekend) en `aan`. Een bron die het
+ *  gesprek, het werkgebied of de beheerder uitzette, zegt niets over de beschikbaarheid. */
+export function uitBronstand(beschikbaar: BeschikbareConnector[], regels: BronstandRegel[]): BeschikbareConnector[] {
+  const per = new Map(regels.map((r) => [r.naam, r.reden]));
+  const nieuw = (c: BeschikbareConnector): Beschikbaarheid | undefined => {
+    const reden = per.get(c.naam);
+    return reden === "straat" ? "niet_aangeboden" : reden === "register_onleesbaar" ? "onbekend" : reden === "aan" ? "aan" : undefined;
+  };
+  return beschikbaar.map((c) => {
+    const b = nieuw(c);
+    return b && b !== c.beschikbaarheid ? { ...c, beschikbaarheid: b } : c;
+  });
+}
+
+/** Wat het menu boven de lijst meldt, of niets. Een mislukte lijst gaat voor: dan is alles onzeker. */
+export function menuMelding(stand: ConnectorStand): string | null {
+  if (stand.laden === "mislukt") {
+    return stand.beschikbaar.length
+      ? "Lex kan de bronnen nu niet controleren. Je ziet de laatst bekende stand."
+      : "Lex kan de bronnen nu niet controleren.";
+  }
+  const weg = stand.beschikbaar.filter((c) => c.beschikbaarheid === "niet_aangeboden").map((c) => c.label);
+  const onbekend = stand.beschikbaar.filter((c) => c.beschikbaarheid === "onbekend").map((c) => c.label);
+  const meer = (xs: string[], een: string, twee: string) => (xs.length > 1 ? twee : een);
+  const zinnen = [
+    weg.length ? `${opsomming(weg)} ${meer(weg, "staat", "staan")} aan, maar ${meer(weg, "is", "zijn")} hier niet beschikbaar. Lex gebruikt ${meer(weg, "deze bron", "deze bronnen")} dan niet.` : "",
+    onbekend.length ? `Lex kan nu niet nagaan of ${opsomming(onbekend)} bereikbaar ${meer(onbekend, "is", "zijn")}.` : "",
+  ].filter(Boolean);
+  return zinnen.length ? zinnen.join(" ") : null;
+}
+
+function opsomming(xs: string[]): string {
+  return xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} en ${xs[xs.length - 1]}`;
 }
 
 /** Een bron die een beurt nodig had maar die uit stond (graph-qa-event `bron_uit`). */
@@ -64,9 +118,14 @@ export function zelfAanTeZetten(bronnen: BronUit[], stand: ConnectorStand): Bron
 }
 
 /** De connectors die in deze beurt aanstaan, in de volgorde van `beschikbaar`. */
-export function actieveConnectors({ beschikbaar, gesprek, werkgebied }: ConnectorStand): string[] {
-  const gekozen = gesprek ?? werkgebied ?? beschikbaar.map((c) => c.naam);
-  return beschikbaar.map((c) => c.naam).filter((n) => gekozen.includes(n));
+export function actieveConnectors(stand: ConnectorStand): string[] {
+  const gekozen = gekozenNamen(stand);
+  return stand.beschikbaar.filter((c) => c.beschikbaarheid !== "niet_aangeboden" && gekozen.includes(c.naam)).map((c) => c.naam);
+}
+
+/** Wat het gesprek, het werkgebied of de standaard kiest, ongeacht of de omgeving het nu aanbiedt. */
+function gekozenNamen({ beschikbaar, gesprek, werkgebied }: ConnectorStand): string[] {
+  return gesprek ?? werkgebied ?? beschikbaar.map((c) => c.naam);
 }
 
 /** Waar de stand vandaan komt, voor de toelichting in het menu. */
@@ -89,19 +148,35 @@ export function beurtBronnen(stand: ConnectorStand): {
 export function wissel(stand: ConnectorStand, naam: string): string[] {
   const nu = actieveConnectors(stand);
   const c = stand.beschikbaar.find((b) => b.naam === naam);
-  if (!c || !schakelbaar(c)) return nu;
-  return nu.includes(naam) ? nu.filter((n) => n !== naam) : actieveConnectors({ ...stand, gesprek: [...nu, naam] });
+  // Een keuze voor een bron die de omgeving nu niet aanbiedt, blijft bewaard: komt hij terug, dan staat hij weer aan.
+  const bewaard = stand.beschikbaar
+    .filter((b) => b.beschikbaarheid === "niet_aangeboden" && gekozenNamen(stand).includes(b.naam)).map((b) => b.naam);
+  const volgende = !c || !schakelbaar(c) ? nu : nu.includes(naam) ? nu.filter((n) => n !== naam) : [...nu, naam];
+  const blijft = new Set([...volgende, ...bewaard]);
+  return stand.beschikbaar.map((b) => b.naam).filter((n) => blijft.has(n));
 }
 
-/** De onderdelen van de regel op de knop: Wetgeving · Kamerstukken · Rechtspraak, elk aan of uit. De werkplek tekent het
- *  vinkje als icoon (`components/ui/Icoon`), niet als teken: dat valt buiten de subset van het font. */
-export function menuRegel(stand: ConnectorStand): { label: string; aan: boolean; onbekend?: true }[] {
+/** Hoe één bron op de knop staat. */
+export type BronWeergave = "aan" | "uit" | "onbekend" | "niet_aangeboden";
+
+/** Het woord bij een stand op de knop (de vinkje-stand tekent de werkplek als icoon). */
+export const STAND_WOORD: Record<Exclude<BronWeergave, "aan">, string> = {
+  uit: "uit",
+  onbekend: "onbekend",
+  niet_aangeboden: "niet beschikbaar",
+};
+
+/** De onderdelen van de regel op de knop: Wetgeving · Kamerstukken · Rechtspraak, elk met zijn stand. De werkplek tekent
+ *  het vinkje als icoon (`components/ui/Icoon`), niet als teken: dat valt buiten de subset van het font. */
+export function menuRegel(stand: ConnectorStand): { label: string; stand: BronWeergave }[] {
   const aan = actieveConnectors(stand);
-  return [{ label: "Wetgeving", aan: true }, ...stand.beschikbaar.map((c) =>
-    schakelbaar(c) ? { label: c.label, aan: aan.includes(c.naam) } : { label: c.label, aan: false, onbekend: true as const })];
+  const standVan = (c: BeschikbareConnector): BronWeergave =>
+    schakelbaar(c) ? (aan.includes(c.naam) ? "aan" : "uit") : c.beschikbaarheid === "niet_aangeboden" ? "niet_aangeboden" : "onbekend";
+  return [{ label: "Wetgeving", stand: "aan" }, ...stand.beschikbaar.map((c) => ({ label: c.label, stand: standVan(c) }))];
 }
 
 /** De toegankelijke naam van de knop: "Bronnen: Wetgeving aan, Kamerstukken aan, Rechtspraak uit". */
 export function menuNaam(stand: ConnectorStand): string {
-  return `Bronnen: ${menuRegel(stand).map((d) => `${d.label} ${d.onbekend ? "onbekend" : d.aan ? "aan" : "uit"}`).join(", ")}`;
+  const delen = menuRegel(stand).map((d) => `${d.label} ${d.stand === "aan" ? "aan" : STAND_WOORD[d.stand]}`).join(", ");
+  return `Bronnen: ${delen}${stand.laden === "mislukt" ? " (nu niet te controleren)" : ""}`;
 }

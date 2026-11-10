@@ -7,7 +7,7 @@ import { reeksNavigatie } from "@/lib/reeks";
 import { afronding } from "@/lib/beurtStroom";
 import { useBeurt, type BeurtScherm } from "@/lib/useBeurt";
 import { type NodeDoel } from "@/lib/annotatieNode";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { VraagLexContext } from "@/components/werkplek/VraagLexKnop";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 
@@ -29,7 +29,6 @@ import {
   haalGesprek,
   maakGesprek,
   voegBerichtToe,
-  haalConnectors,
   haalWerkgebied,
   wijzigGesprek,
   wijzigWerkgebied,
@@ -52,7 +51,8 @@ import {
 import { VraagDock } from "@/components/werkplek/VraagDock";
 import { BronselectieKaart } from "@/components/werkplek/BronselectieKaart";
 import { ConnectorsMenu } from "@/components/werkplek/ConnectorsMenu";
-import { actieveConnectors, beurtBronnen, heeftOnbekend, wissel as wisselConnector, zelfAanTeZetten, type BronUit, type ConnectorStand } from "@/lib/connectorsMenu";
+import { actieveConnectors, beurtBronnen, moetVerversen, toonMenu, wissel as wisselConnector, zelfAanTeZetten, type BronUit, type ConnectorStand } from "@/lib/connectorsMenu";
+import { useConnectorLijst } from "@/lib/useConnectorLijst";
 import {
   doelInvoerVan, isVerwijderd,
 } from "@/lib/annotatie";
@@ -153,11 +153,16 @@ export function WerkplekClient({
   const [gesprekId, setGesprekId] = useState<string | null>(initialGesprekId);
   // ADR-013, *Bronnen en tools*: wat de beheerder aanzette, de stand van dit gesprek en de standaard van het werkgebied.
   // De ref volgt de stand, zodat `verstuur` de stand van nu leest; `connectorsTeBewaren` = gekozen vóór er een gesprek was.
-  const [connectorBasis, setConnectorStand] = useState<ConnectorStand>({ beschikbaar: [] });
+  // De lijst is van het venster (`lib/connectorLijst.ts`): een nieuwe mount (ander gesprek) toont meteen de laatst bekende.
+  const connectorLijst = useConnectorLijst(!demo);
+  const [gesprekConnectors, setGesprekConnectors] = useState<string[] | null>(null);
   // De standaard van het werkgebied hoort bij dát werkgebied: na een wissel telt de oude niet meer.
   const [wgConnectors, setWgConnectors] = useState<{ id: string; connectors: string[] | null } | null>(null);
   const connectorStand: ConnectorStand = {
-    ...connectorBasis, werkgebied: werkgebiedId && wgConnectors?.id === werkgebiedId ? wgConnectors.connectors : null,
+    beschikbaar: connectorLijst.beschikbaar,
+    laden: connectorLijst.laden ?? undefined,
+    gesprek: gesprekConnectors,
+    werkgebied: werkgebiedId && wgConnectors?.id === werkgebiedId ? wgConnectors.connectors : null,
   };
   const connectorRef = useRef(connectorStand);
   connectorRef.current = connectorStand;
@@ -382,7 +387,7 @@ export function WerkplekClient({
       .then((g) => {
         if (!geldt()) return;
         onGesprekGeladen?.(g);
-        setConnectorStand((s) => ({ ...s, gesprek: g.connectors ?? null }));
+        setGesprekConnectors(g.connectors ?? null);
         const { items: geschiedenis, runIds } = itemsUitGesprek(g.berichten, uid);
         // VÓÓR wat er al staat, niet in plaats daarvan. Verstuurde de jurist een vraag terwijl dit nog
         // laadde (een koude start duurt seconden), dan staan zijn vraag en het lopende antwoord al in
@@ -497,17 +502,12 @@ export function WerkplekClient({
   }
 
   /** Start een beurt. Zonder `verzoek.prompt` geldt wat er in het invoerveld staat (`lib/beurtVerzoek.ts`). */
-  // Wat de beheerder aanzette: één keer per venster, stil falend (dan geen menu en beslist graph-qa zelf). Was de
-  // beschikbaarheid onbekend (graph-qa niet te lezen), dan opnieuw bij het openen van het menu en na een beurt.
-  const verversConnectors = useCallback(() => {
-    if (demo) return;
-    haalConnectors().then((c) => setConnectorStand((s) => ({ ...s, beschikbaar: c.connectors ?? [] }))).catch(() => {});
-  }, [demo]);
-  useEffect(() => { verversConnectors(); }, [verversConnectors]);
-  const verversAlsOnbekend = () => { if (heeftOnbekend(connectorRef.current)) verversConnectors(); };
+  // Wat de beheerder aanzette en wat de omgeving aanbiedt: de laatst bekende stand van dit venster, ververst bij elke
+  // mount. Mislukte het ophalen, of was graph-qa niet te lezen, dan opnieuw bij het openen van het menu en na een beurt.
+  const verversAlsOnbekend = () => { if (moetVerversen(connectorRef.current)) connectorLijst.ververs(); };
 
   // De standaard van het werkgebied, alleen als er een menu is.
-  const heeftConnectors = connectorBasis.beschikbaar.length > 0;
+  const heeftConnectors = connectorLijst.beschikbaar.length > 0;
   useEffect(() => {
     if (!werkgebiedId || !heeftConnectors) return;
     let levend = true;
@@ -518,7 +518,7 @@ export function WerkplekClient({
   }, [werkgebiedId, heeftConnectors]);
 
   function zetGesprekConnectors(connectors: string[] | null) {
-    setConnectorStand((s) => ({ ...s, gesprek: connectors }));
+    setGesprekConnectors(connectors);
     if (gesprekId) void wijzigGesprek(gesprekId, { connectors }).catch(() => {});
     else connectorsTeBewaren.current = connectors != null;
   }
@@ -706,6 +706,7 @@ export function WerkplekClient({
         onOpgeslagen: (uitkomst) => p.pas({ type: "opgeslagen", uitkomst }),
         onWaarschuwing: (bericht) => setMelding(bericht),
         onBronUit: (bronnen) => setBronUit(bronnen),
+        onBronstand: (regels) => connectorLijst.legBronstandOver(regels),
         onRegieTaak: () => onGewijzigd(),
       }),
       opKlaar: async (antId, stand) => {
@@ -1335,9 +1336,10 @@ export function WerkplekClient({
               ))}
             </div>
           )}
-          {!demo && connectorStand.beschikbaar.length > 0 && (
+          {!demo && toonMenu(connectorStand) && (
             <div className="mb-1 flex min-w-0">
               <ConnectorsMenu stand={connectorStand} onWissel={kiesConnector} onOpen={verversAlsOnbekend}
+                onOpnieuw={connectorLijst.ververs}
                 onAlsStandaard={werkgebiedId ? () => void maakConnectorStandaard() : undefined}
                 onTerugNaarStandaard={() => zetGesprekConnectors(null)} />
             </div>

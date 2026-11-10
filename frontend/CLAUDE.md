@@ -498,19 +498,40 @@ eval en audit; de werkplek leest ze niet. `app/eenSpoor.test.ts` bewaakt dat het
 ### Bronnen en tools boven het invoerveld (ADR-013)
 
 `ConnectorsMenu` (rekenkern `lib/connectorsMenu.ts`) staat boven het invoerveld zodra de beheerder een bronconnector
-aanzette (`GET /api/connectors` → api `/v1/connectors`, één keer per venster, stil falend: dan geen menu). De knop noemt
-*Wetgeving · Kamerstukken …* met een vinkje of *uit* (een icoon, geen teken: dat valt buiten het font); het menu zet per
-connector aan of uit (`MenuKeuze`), en in een werkgebied *Maak dit de standaard van het werkgebied*.
+aanzette (`GET /api/connectors` → api `/v1/connectors`). De knop noemt *Wetgeving · Kamerstukken …* met een vinkje, *uit*,
+of een geel `StatusLabel` *onbekend* / *niet beschikbaar* (een icoon, geen teken: dat valt buiten het font); het menu zet
+per connector aan of uit (`MenuKeuze`), en in een werkgebied *Maak dit de standaard van het werkgebied*.
+
+- **Nooit stil weg** (melding gebruiker 9 nov 2026: het menu ontbrak soms bij het openen van een gesprek). De lijst is
+  van het venster, niet van de mount (`lib/connectorLijst.ts`, hook `useConnectorLijst`): `WorkbenchShell` mount de
+  werkplek opnieuw bij elk gesprek (`mountKey`), en een eigen state begon dan leeg tot de BFF antwoordde – bij een koude
+  graph-qa seconden lang. Nu toont een nieuwe mount meteen de laatst bekende stand en ververst hij op de achtergrond
+  (één verzoek tegelijk). Mislukt het ophalen, dan blijft het menu staan (`laden: "mislukt"`, `toonMenu`) met de laatst
+  bekende stand, of alleen Wetgeving, en een `Melding` met *Opnieuw proberen* (`menuMelding`).
+- **De teksten in het menu volgen `docs/schrijfrichtlijn-lex.md`** (verzoek gebruiker 9 nov 2026): je-vorm, gewone taal,
+  wat het voor de jurist betekent, geen beheer- of systeemtaal (geen beheerder, omgeving, register of connector). De
+  toelichting onderaan zegt waar de stand vandaan komt: *Je koos dit voor dit gesprek.*, *Zoals ingesteld voor dit
+  werkgebied.* of *Standaard: alle beschikbare bronnen staan aan.* `connectorsMenu.test.ts` toetst de meldingen.
 
 - **De stand**: het gesprek (`Gesprek.connectors`, PATCH via `wijzigGesprek`) gaat voor het werkgebied
   (`standaard_connectors`, PATCH met de revisie), en dat voor alles wat de beheerder aanzette. Wat de beheerder niet
   aanbiedt, gaat nooit aan. Gekozen vóór er een gesprek was, wordt na het aanmaken bewaard (`connectorsTeBewaren`).
 - **De beurt draagt `bronnen`** (`startRun`) alleen met een menu; zonder connector bij de beheerder beslist graph-qa.
 - **Eén leesmodel, in de BFF** (`app/api/connectors/route.ts`, `metBeschikbaarheid`): het register met per connector
-  `beschikbaarheid`. Wat de straat niet aanbiedt valt weg; is graph-qa niet te lezen, dan is hij `onbekend` en staat hij in
-  het menu zonder schakelaar ("beschikbaarheid nu onbekend", `data-connector-onbekend`) en zonder *Zet … aan* (review
-  ADR-013, punt 2). De beurt houdt dan de opgeslagen keuze (graph-qa toetst de straat zelf); de werkplek haalt de stand
-  opnieuw op bij het openen van het menu en na een beurt (`heeftOnbekend`), zonder timer.
+  `beschikbaarheid`, één van drie, generiek voor elke connector:
+  - `aan`: de straat biedt hem aan; alleen dan een schakelaar;
+  - `niet_aangeboden`: de beheerder zette hem aan, maar deze omgeving biedt hem niet aan. Hij staat er met "hier niet
+    beschikbaar" (`data-connector-niet-aangeboden`) en een melding, gaat nooit aan en nooit mee in `bronnen`
+    (incident 8 nov 2026); een opgeslagen keuze blijft bewaard;
+  - `onbekend`: graph-qa was niet te lezen (8 s, `STRAAT_TIMEOUT_MS`: een koude start houdt het menu niet de volle 30 s
+    op). Zonder schakelaar ("nu niet te controleren", `data-connector-onbekend`) en zonder *Zet … aan*
+    (review ADR-013, punt 2); de beurt houdt de opgeslagen keuze (graph-qa toetst de straat zelf).
+
+  Faalt het register, dan geeft de BFF een 503 met een reden. De werkplek haalt de stand opnieuw op bij het openen van het
+  menu en na een beurt als hij mislukt of onbekend was (`moetVerversen`), zonder timer.
+- **De beurt werkt de stand bij**: het `bronstand`-event van graph-qa (`onBronstand`, `uitBronstand`) legt per connector
+  `straat` → `niet_aangeboden`, `register_onleesbaar` → `onbekend` en `aan` → `aan` over de lijst. Uitgezet in gesprek,
+  werkgebied of door de beheerder zegt niets over de omgeving.
 - Het menu omzetten zet een gesprek niet bovenaan de lijst (geen `updated`).
 - Browserregressie: `scripts/test-connectors-menu.mjs`.
 
