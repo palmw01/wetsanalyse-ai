@@ -12,6 +12,7 @@ antwoorden. Hier is het één toolaanroep en nul modelrondes.
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 from uuid import uuid4
 
@@ -24,6 +25,8 @@ from ..sjablonen.extern import MAX_LIJST, lijsten, zoekvraag_tekst
 from ..sjablonen.vullen import Onvulbaar
 from ..state import State
 from ..tool_execution import execute_tool
+
+logger = logging.getLogger(__name__)
 
 
 def bron_lijst_node(b, state: State) -> dict[str, Any]:
@@ -50,7 +53,9 @@ def bron_lijst_node(b, state: State) -> dict[str, Any]:
     try:
         blokken: list[Any] = lijsten(ids, trace) if ids else []
     except Onvulbaar:
-        blokken = []
+        # Er is iets gevonden dat het blok niet draagt: dat is geen "niets gevonden". De agent krijgt het resultaat.
+        logger.warning("bron_lijst_onvulbaar", extra={"connector": c.naam, "aantal": len(ids)})
+        return {"bron_lijst": {}, "messages": paar, "source_trace": [*state.get("source_trace", []), *trace]}
     if not blokken:
         zoekvraag = zoekvraag_tekst(c, data.get("zoekvraag") or {})
         blokken = [Leemte(tekst=f"Geen {c.label} gevonden die aan de zoekvraag voldoen. {zoekvraag}".strip())]

@@ -166,12 +166,30 @@ def _lees_genoemd(writer, aanroepen: list[dict[str, Any]], vraag: str) -> dict[s
             "plan": "Beantwoord de vraag uit de tekst van het genoemde stuk, die al is opgehaald." + _herschreven(vraag)}
 
 
-def _lijst(state: State, vraag: str):
-    """De lijstvraag in de vraag (`agent/bron_lijst.py`), voor de connectors die in deze beurt aanstaan."""
+def _lijst(state: State, vraag: str, graph: Any = None):
+    """De lijstvraag in de vraag (`agent/bron_lijst.py`), voor de connectors die in deze beurt aanstaan. Met de graaf
+    leest de code ook een genoemde regeling ("uitspraken bij artikel 36 van de Invorderingswet 1990"), met dezelfde namen
+    als het overzicht (`overzicht.regelingen_in_vraag`)."""
     from .. import bron_lijst
 
     aan = frozenset(n for n, s in (state.get("bronstand") or {}).items() if (s or {}).get("aan"))
-    return bron_lijst.lees(vraag, aan) if aan else None
+    if not aan:
+        return None
+    return bron_lijst.lees(vraag, aan, regelingen=_regelingen_genoemd(graph) if graph is not None else None)
+
+
+def _regelingen_genoemd(graph: Any):
+    """De regelingen die een tekst bij naam noemt, als (bwb-id, namen): voor de lijstvraag bij een artikel."""
+    from .. import overzicht
+
+    def genoemd(tekst: str) -> list[tuple[str, set[str]]]:
+        ids = overzicht.regelingen_in_vraag(graph, tekst)
+        try:
+            namen = {r["bwb_id"]: set(r["namen"]) for r in overzicht._regelingen(graph)}
+        except Exception:  # noqa: BLE001 – zonder namenlijst geen route; de agent leest de vraag dan
+            return []
+        return [(i, namen.get(i, set())) for i in ids]
+    return genoemd
 
 
 def _bron_lijst(writer, lijst) -> dict[str, Any]:
@@ -331,7 +349,7 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # De vraag noemt een stuk bij zijn id: lezen in code, zoals een genoemd artikel (acceptatie 8 nov 2026: zes
         # rondes zoeken voor kst-35496-F). Ook in een lopend gesprek: het id staat er letterlijk.
         return _lees_genoemd(writer, aanroepen, "")
-    if modus == "auto" and (lijst := _lijst(state, vraag_nu)):
+    if modus == "auto" and (lijst := _lijst(state, vraag_nu, b.graph)):
         # "Wat is het laatste stuk van dossier 32140?": een zoekvraag met een volgorde, die de code helemaal leest. Ook in
         # een gesprek: de vraag noemt zelf wat er gezocht wordt (acceptatie 9 nov 2026: elf rondes, twee foute antwoorden).
         return _bron_lijst(writer, lijst)
@@ -387,7 +405,7 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # acceptatie ging hij de open lus in: 188 s en 7 rondes voor wat de api zonder model weet.
         return {**upd, **_agent(writer, state, "deelvragen", "dekking", zelfstandig)}
 
-    if modus == "auto" and vraag and (lijst := _lijst(state, zelfstandig)):
+    if modus == "auto" and vraag and (lijst := _lijst(state, zelfstandig, b.graph)):
         # "Wat is het laatste stuk?" na een vraag over dossier 32140: pas de herschreven vraag noemt het dossier.
         return {**upd, **_bron_lijst(writer, lijst)}
 

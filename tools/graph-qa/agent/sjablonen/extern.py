@@ -317,6 +317,12 @@ def lijsten(items: Any, trace: Trace) -> list[Stukken]:
     for item in items:
         ident = str(item or "").strip()
         vp, c = externe_vindplaats(ident), van_id(ident)
+        if vp is not None and c is None:
+            # Een stuk dat de zoektool van een connector vond maar dat buiten zijn id-vorm valt (een uitspraak van het
+            # EHRM in de koppelingen van LiDO, `ECLI:CE:…`): het hoort bij die connector, als niet leesbaar stuk. Anders
+            # weigerde één zo'n id het hele blok (meting 10 nov 2026).
+            c = next((k for k in CONNECTORS.values() if k.brontype == vp.brontype
+                      and vp.id in gevonden.setdefault(k.naam, _gevonden(trace, k))), None)
         if vp is None or c is None:
             raise Onvulbaar(f"'{ident}' is geen id van een bron naast de wet die hier aanstaat.")
         bij = gevonden.setdefault(c.naam, _gevonden(trace, c))

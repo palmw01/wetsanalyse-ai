@@ -149,11 +149,12 @@ def test_een_dag_met_meer_dan_een_pagina_zegt_dat_de_lijst_een_deel_is(monkeypat
 
 @pytest.mark.parametrize("vraag,args", [
     ("Geef de 10 nieuwste uitspraken van de Hoge Raad in het belastingrecht",
-     {"volgorde": "nieuwste", "aantal": 10, "soort": "uitspraak", "instantie": "Hoge Raad", "rechtsgebied": "belastingrecht"}),
+     {"volgorde": "nieuwste", "aantal": 10, "instantie": "Hoge Raad", "rechtsgebied": "belastingrecht"}),
     ("de laatste uitspraak van Rechtbank Gelderland",
-     {"volgorde": "nieuwste", "aantal": 1, "soort": "uitspraak", "instantie": "Rechtbank Gelderland"}),
+     {"volgorde": "nieuwste", "aantal": 1, "instantie": "Rechtbank Gelderland"}),
     ("de nieuwste uitspraken van de CRvB sinds 2026",
-     {"volgorde": "nieuwste", "aantal": 10, "soort": "uitspraak", "instantie": "CRvB", "vanaf": "2026"}),
+     {"volgorde": "nieuwste", "aantal": 10, "instantie": "CRvB", "vanaf": "2026"}),
+    ("de oudste conclusies van de Hoge Raad", {"volgorde": "oudste", "aantal": 10, "soort": "conclusie", "instantie": "Hoge Raad"}),
     ("de nieuwste jurisprudentie van de Raad van State", {"volgorde": "nieuwste", "aantal": 10, "instantie": "Raad van State"}),
 ])
 def test_de_lijstvraag_leest_een_uitspraakvraag_zonder_model(vraag, args):
@@ -164,3 +165,66 @@ def test_de_lijstvraag_leest_een_uitspraakvraag_zonder_model(vraag, args):
 @pytest.mark.parametrize("vraag", ["de laatste uitspraak op bezwaar", "wat staat er in de laatste uitspraak van de Hoge Raad"])
 def test_geen_lijstvraag(vraag):
     assert lijstvraag(vraag, frozenset({"rechtspraak"})) is None
+
+
+def _iw(tekst):
+    return [("BWBR0004770", {"Invorderingswet 1990", "Invorderingswet", "IW", "Iw 1990"})] if (
+        "nvorderingswet" in tekst or "Iw" in tekst) else []
+
+
+@pytest.mark.parametrize("vraag,args", [
+    ("Welke uitspraken noemen artikel 36 van de Invorderingswet 1990?", {"bwb_id": "BWBR0004770", "artikel": "36"}),
+    ("Welke uitspraken van de Hoge Raad gaan over artikel 36 Iw?",
+     {"bwb_id": "BWBR0004770", "artikel": "36", "instantie": "Hoge Raad"}),
+    ("de 5 nieuwste uitspraken bij artikel 25 van de Invorderingswet",
+     {"volgorde": "nieuwste", "aantal": 5, "bwb_id": "BWBR0004770", "artikel": "25"}),
+])
+def test_uitspraken_bij_een_artikel_zijn_een_lijstvraag(vraag, args):
+    """Meting 10 nov 2026: "Welke uitspraken noemen artikel 36 Iw?" gaf in 2 van 3 runs geen lijstblok (het model schreef
+    de lijst zelf, of verwees naar een lijst die er niet stond) en kostte 93–178k tokens. Artikel en regeling leest de
+    code (`lees_aanwijzing`, de namen uit de graaf), dus het is de vaste route."""
+    v = lijstvraag(vraag, frozenset({"rechtspraak", "kamerstukken"}), _iw)
+    assert v is not None and v.connector == "rechtspraak" and v.args == args
+
+
+@pytest.mark.parametrize("vraag", ["Welke uitspraken noemen artikel 36?", "Welke uitspraken noemen artikel 36 en 37 Iw?",
+                                   "Welke uitspraken noemen artikel 36 lid 2 Iw?"])
+def test_een_artikel_dat_de_code_niet_plaatst_gaat_naar_de_agent(vraag):
+    assert lijstvraag(vraag, frozenset({"rechtspraak"}), _iw) is None
+    assert lijstvraag("Welke uitspraken noemen artikel 36 Iw?", frozenset({"rechtspraak"})) is None, "zonder graaf"
+
+
+def test_uitspraken_bij_een_artikel_lopen_door_de_route_zonder_model(monkeypatch):
+    """De hele beurt: de regeling uit de graaf, één zoekaanroep bij LiDO, het blok *Gevonden Rechtspraak* met de bepaling
+    in de zoekvraag, en geen modelaanroep."""
+    import asyncio
+    from agent import overzicht, tools as t
+    from agent.agent import answer_stream
+    from tests.fakes import FakeGraph, FakeLLM
+    from tests.test_rechtspraak_tools import LINKS, NepBron, _tsv
+
+    namen = ("?regeling\t?citeertitel\t?soort\t?afkortingen\n"
+             "<urn:bwb:BWBR0004770>\t\"Invorderingswet 1990\"\t\"wet\"\t\"IW | Iw 1990\"\n")
+    artikel = _tsv(["node", "jci", "labelId", "label", "soort", "citeertitel"],
+                   [["urn:bwb:BWBR0004770:artikel:36", "jci1.3:c:BWBR0004770&artikel=36", "x", "Artikel 36",
+                     "urn:bwb-ns:Artikel", "Invorderingswet 1990"]])
+    graaf = FakeGraph(results=lambda q: artikel if "?labelId" in q else namen)
+    overzicht._REGELINGEN_CACHE.clear()
+    bron = NepBron(LINKS)
+    monkeypatch.setattr(t.CONNECTORMODULES["rechtspraak"], "_bron", bron)
+    llm = FakeLLM([])
+
+    async def verzamel():
+        return [ev async for ev in answer_stream("Welke uitspraken noemen artikel 36 van de Invorderingswet 1990?",
+                                                 settings=AAN, llm=llm, graph=graaf, bronnen=["rechtspraak"])]
+
+    events = asyncio.run(verzamel())
+    overzicht._REGELINGEN_CACHE.clear()
+    assert llm.calls == [], "geen supervisor en geen specialist"
+    assert [e["tool"] for e in events if e["type"] == "tool_execution" and e.get("phase") == "start"] == ["zoek_uitspraken"]
+    antwoord, = [e["antwoord"] for e in events if e["type"] == "antwoord"]
+    blok, = [b for b in antwoord["blokken"] if b["soort"] == "stukken"]
+    assert blok["kop"] == "Gevonden Rechtspraak" and blok["items"]
+    assert blok["zoekvraag"].startswith("Gezocht bij artikel 36 van Invorderingswet 1990"), blok["zoekvraag"]
+    ehrm, = [s for s in blok["items"] if s["id"].startswith("ECLI:CE:")]
+    assert ehrm["leesbaar"] is False, "een uitspraak van het EHRM staat erin, als niet leesbaar stuk"

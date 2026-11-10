@@ -13,10 +13,13 @@ connector met naam.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
 from bronmodel.connectors import CONNECTORS, ConnectorBeschrijving
+
+from .aanwijzing import _ARTIKEL, lees_aanwijzing
 
 _TELWOORDEN = {"een": 1, "één": 1, "twee": 2, "drie": 3, "vier": 4, "vijf": 5, "zes": 6, "zeven": 7, "acht": 8,
                "negen": 9, "tien": 10, "twaalf": 12, "vijftien": 15, "twintig": 20, "vijfentwintig": 25}
@@ -40,7 +43,7 @@ _OVER_RE = re.compile(r"\bover\s+(?:de\s+|het\s+)?(?P<o>[^?.!,;]+)", re.IGNORECA
 #: Woorden die in een lijstvraag staan zonder iets te zoeken.
 _VULWOORDEN = frozenset("""geef mij me toon noem laat zien lijst wat welke wie is zijn de het een van uit bij in op
     met en of er nu ook alle stuk stukken kamerstuk kamerstukken parlementaire publicaties dossier dossiernummer
-    kamerstukdossier staan zit zitten gaan gaat graag alsjeblieft aub kun kan je u""".split())
+    kamerstukdossier staan zit zitten gaan gaat graag alsjeblieft aub kun kan je u noemen noemt genoemd over""".split())
 MAX_ONDERWERP = 4
 
 
@@ -62,7 +65,8 @@ def _arg(c: ConnectorBeschrijving, sleutel: str, index: int = 0) -> str:
     return veld.filters[index] if veld is not None and len(veld.filters) > index else ""
 
 
-def lees(vraag: str, aan: frozenset[str]) -> Lijstvraag | None:
+def lees(vraag: str, aan: frozenset[str],
+         regelingen: Callable[[str], list[tuple[str, set[str]]]] | None = None) -> Lijstvraag | None:
     """De lijstvraag in de vraag, voor een connector die aanstaat en de vraag herkent; None als het geen lijstvraag is
     of de code haar niet helemaal kan lezen."""
     tekst = " ".join((vraag or "").split())
@@ -94,9 +98,17 @@ def lees(vraag: str, aan: frozenset[str]) -> Lijstvraag | None:
         rest = rest.replace(d.group(0), " ")
     for label, patroon in c.soorten:
         if (s := re.search(patroon, rest, re.IGNORECASE)) and (arg := _arg(c, "soort")):
-            args[arg] = label
+            # De soort die het brontype zelf is ("uitspraken" bij Rechtspraak) is de algemene naam van een stuk, geen
+            # filter: anders sloot "de nieuwste uitspraken van de Hoge Raad" de conclusies stil uit (meting 10 nov 2026).
+            if label != c.brontype:
+                args[arg] = label
             rest = rest.replace(s.group(0), " ")
             break
+    if (wv := _wetsverwijzing(c, rest, regelingen)) is not None:
+        if not wv:
+            return None
+        args.update(wv[0])
+        rest = wv[1]
     for orgaan in c.organen:
         # Het eerste dat past: een gerecht bij naam ("Rechtbank Gelderland") staat vóór de soort gerecht erin.
         if re.search(rf"\b{re.escape(orgaan)}\b", rest, re.IGNORECASE) and (arg := _arg(c, "orgaan")):
@@ -124,9 +136,11 @@ def lees(vraag: str, aan: frozenset[str]) -> Lijstvraag | None:
         rest = rest.replace(j.group(0), " ")
     if (o := _OVER_RE.search(rest)) is not None:
         woorden = [w for w in re.findall(r"[0-9A-Za-zÀ-ÿ'-]+", o.group("o")) if w.lower() not in _VULWOORDEN]
-        if not woorden or len(woorden) > MAX_ONDERWERP or "tekst" not in _zoekargumenten(c):
+        if woorden and (len(woorden) > MAX_ONDERWERP or "tekst" not in _zoekargumenten(c)):
             return None
-        args["tekst"] = f'"{" ".join(woorden)}"' if len(woorden) > 1 else woorden[0]
+        if woorden:
+            args["tekst"] = f'"{" ".join(woorden)}"' if len(woorden) > 1 else woorden[0]
+        # Zonder woorden ging het "over" iets dat de code al plaatste ("gaan over artikel 36 Iw").
         rest = rest.replace(o.group(0), " ")
     rest = _VOLGORDE_RE.sub(" ", rest)
     # Een woord dat de bron aanwijst ("jurisprudentie", "rechtspraak") zoekt niets.
@@ -138,6 +152,28 @@ def lees(vraag: str, aan: frozenset[str]) -> Lijstvraag | None:
     if over:
         return None
     return Lijstvraag(c.naam, zoektool[0], args)
+
+
+def _wetsverwijzing(c: ConnectorBeschrijving, tekst: str,
+                    regelingen: Callable[[str], list[tuple[str, set[str]]]] | None):
+    """Een genoemde bepaling als filter, voor een connector met het metadataveld `wetsverwijzing` (Rechtspraak: de
+    uitspraken die een artikel noemen): (argumenten, de rest van de tekst). None als de tekst geen artikel noemt; een lege
+    tuple als hij er een noemt dat de code niet eenduidig kan plaatsen (meer artikelen, geen of meer regelingen, of geen
+    graaf): dan leest de agent de vraag."""
+    veld = c.veld("wetsverwijzing")
+    aw = lees_aanwijzing(tekst)
+    if veld is None or len(veld.filters) < 2 or not aw.artikelen:
+        return None
+    if len(aw.artikelen) != 1 or aw.leden or regelingen is None:
+        return ()
+    genoemd = regelingen(tekst)
+    if len(genoemd) != 1:
+        return ()
+    bwb_id, namen = genoemd[0]
+    rest = _ARTIKEL.sub(" ", tekst)
+    for naam in sorted(namen, key=len, reverse=True):
+        rest = re.sub(rf"(?<![\w.]){re.escape(naam)}(?![\w])", " ", rest, flags=re.IGNORECASE)
+    return {veld.filters[0]: bwb_id, veld.filters[1]: aw.artikelen[0]}, rest
 
 
 def _bronwoord(c: ConnectorBeschrijving, woord: str) -> bool:
