@@ -19,7 +19,9 @@
  *    zonder `bronnen`; en het `bronstand`-event van een beurt werkt de beschikbaarheid bij;
  *  - laden is geen oordeel: een `onbekend` (koude graph-qa) staat eerst als "wordt gecontroleerd" en herstelt vanzelf
  *    met een korte reeks herpogingen; pas daarna "onbekend" met de melding. Terugkomen in het venster en een beurt
- *    proberen het opnieuw. De herpogingen zijn hier kort (`window.__connectorHerpogingen`).
+ *    proberen het opnieuw. De herpogingen zijn hier kort (`window.__connectorHerpogingen`);
+ *  - past de regel niet (een telefoon), dan staat er "Bronnen: alle 4 aan" binnen beeld, met een geel label als een bron
+ *    niet beschikbaar is; een klik opent hetzelfde menu. Op een breed scherm staat de volle regel.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -35,8 +37,8 @@ const GOED = [{ type: "token", content: "Goed." }, { type: "done" }];
 
 // `connectorsAntwoord(n)` (n = het hoeveelste verzoek) kan een fout of vertraging geven: `{ status, vertraging }`.
 async function open({ beschikbaar = [KST], gesprekConnectors, wgStandaard = null, url = "/workbench", events = GOED,
-  connectorsAntwoord = () => ({}), gesprekken = [], herpogingen = [150, 150] } = {}) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  connectorsAntwoord = () => ({}), gesprekken = [], herpogingen = [150, 150], viewport = { width: 1280, height: 900 } } = {}) {
+  const context = await browser.newContext({ viewport });
   const page = await context.newPage();
   const errors = [], runs = [], patches = [], wgPatches = [], connectorVerzoeken = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -388,4 +390,36 @@ const menu = (page) => page.locator("[data-connectors-menu]");
 }
 
 console.log("ok - Bronnen en tools");
+// Smal scherm: de korte vorm, binnen beeld, en hetzelfde menu.
+{
+  const VIER = [KST, { naam: "bekendmakingen", label: "Staatsblad en Staatscourant", brontype: "bekendmaking" },
+    { naam: "rechtspraak", label: "Rechtspraak", brontype: "uitspraak" }];
+  const smal = await open({ beschikbaar: VIER, viewport: { width: 375, height: 812 } });
+  await menu(smal.page).waitFor();
+  await smal.page.waitForFunction(() => document.querySelector("[data-connectors-menu]")?.hasAttribute("data-kort"));
+  assert.equal((await smal.page.locator("[data-connectors-kort]").innerText()).trim(), "Bronnen: alle 4 aan");
+  const vak = await menu(smal.page).boundingBox();
+  assert.ok(vak && vak.x >= 0 && vak.x + vak.width <= 375, `de knop past op 375 px (${JSON.stringify(vak)})`);
+  assert.equal(await smal.page.evaluate(() => document.documentElement.scrollWidth <= 375), true, "geen horizontale scroll");
+  assert.equal(await menu(smal.page).getAttribute("aria-label"),
+    "Bronnen: Wetgeving aan, Kamerstukken aan, Staatsblad en Staatscourant aan, Rechtspraak aan");
+  await menu(smal.page).click();
+  await smal.page.getByRole("menuitemradio", { name: /Staatsblad en Staatscourant/ }).waitFor();
+  assert.deepEqual(smal.errors, []);
+  await smal.context.close();
+
+  const zorg = await open({ beschikbaar: [KST, { ...VIER[1], beschikbaarheid: "niet_aangeboden" }, VIER[2]],
+    viewport: { width: 375, height: 812 } });
+  await zorg.page.waitForFunction(() => document.querySelector("[data-connectors-kort]"));
+  assert.match(await zorg.page.locator("[data-connectors-kort]").innerText(), /niet beschikbaar/);
+  await zorg.context.close();
+
+  const breed = await open({ beschikbaar: VIER });
+  await menu(breed.page).waitFor();
+  await breed.page.waitForTimeout(300);
+  assert.equal(await menu(breed.page).getAttribute("data-kort"), null, "op 1280 px de volle regel");
+  assert.equal(await breed.page.locator("[data-connectors-kort]").count(), 0);
+  await breed.context.close();
+}
+
 await browser.close();

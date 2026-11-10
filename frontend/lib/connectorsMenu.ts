@@ -182,6 +182,20 @@ export function menuRegel(stand: ConnectorStand): { label: string; stand: BronWe
   return [{ label: "Wetgeving", stand: "aan" }, ...stand.beschikbaar.map((c) => ({ label: c.label, stand: standVan(c) }))];
 }
 
+/** De korte vorm van de knop, als de regel niet past (een telefoon, of een smalle kolom naast het paneel): het aantal
+ *  bronnen dat aan staat, en één geel label als een bron niet beschikbaar of onbekend is. Zolang er een bron wordt
+ *  gecontroleerd, zegt hij niets over aantallen: laden is geen oordeel. Het menu zelf is hetzelfde. */
+export function menuKort(stand: ConnectorStand): { tekst: string; aandacht: "onbekend" | "niet_aangeboden" | null } {
+  const regel = menuRegel(stand);
+  const zorg = regel.find((d) => d.stand === "niet_aangeboden" || d.stand === "onbekend");
+  const aandacht = zorg ? (zorg.stand as "onbekend" | "niet_aangeboden")
+    : stand.laden === "mislukt" && !stand.controleert ? "onbekend" : null;
+  if (regel.some((d) => d.stand === "laden")) return { tekst: "Bronnen", aandacht };
+  const aan = regel.filter((d) => d.stand === "aan").length;
+  const tekst = aan === regel.length ? `Bronnen: alle ${aan} aan` : `Bronnen: ${aan} van ${regel.length} aan`;
+  return { tekst, aandacht };
+}
+
 /** De toegankelijke naam van de knop: "Bronnen: Wetgeving aan, Kamerstukken aan, Rechtspraak uit". */
 export function menuNaam(stand: ConnectorStand): string {
   const delen = menuRegel(stand).map((d) => `${d.label} ${d.stand === "aan" ? "aan" : STAND_WOORD[d.stand]}`).join(", ");
