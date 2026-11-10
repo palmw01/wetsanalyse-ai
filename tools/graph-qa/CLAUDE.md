@@ -116,7 +116,11 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   `kop_in_antwoord`, letterlijke passages). Als subsjabloon krijgt elk sjabloon het platte veld `extern: [{id, van_nr,
   tot_nr}]`, en als eigen sjabloon is er `antwoord_extern`, allebei alleen als er een connector aanstaat die de rol bedient
   (`agent_node`); zonder connector zijn de schema's byte-gelijk. De tekst komt uit de rijen van de leestool (contract:
-  `stuk: {id, label, link, bron_hash, gewijzigd?}`, rijen `{nr, tekst, kop?}`). Een stuk dat alleen in een zoekresultaat stond, is
+  `stuk: {id, label, link, bron_hash, gewijzigd?}`, rijen `{nr, tekst, kop?}`). De pagina komt uit `tools/stuk_tekst.tekstpagina`, voor elke
+  leestool dezelfde: de kop alleen waar hij verandert (`zonder_herhaling` op de pagina; `extern` vult hem aan met `aangevuld`),
+  `inhoud` alleen als het stuk zonder niet op één pagina past, en `leesbaar: false` in `stuk` bij een stuk zonder tekst (derde
+  meting 10 nov 2026: ECLI:NL:HR:2022:50 paste net niet, en het vervolg kostte een ronde). Na een weigering vraagt
+  `sjabloon_node` het sjabloon opnieuw aan te roepen (`OPNIEUW`), en het gelezen stuk staat in de bronnenlijst als de vraag het noemt. Een stuk dat alleen in een zoekresultaat stond, is
   voor `check_grounding` geen signaal meer (10 nov 2026: een lijst opvolgende stukken gaf 13 keer "alleen gevonden");
   het zoekresultaat draagt label, soort, datum en titel, en in de bronnenlijst komt het pas als het gelezen is. De prompt
   (BRONNEN IN DEZE BEURT) en de zoektool vragen zo'n lijst in het veld `stukken`. **Een lijst gevonden stukken** is het blok `stukken` (veld

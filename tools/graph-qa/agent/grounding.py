@@ -29,7 +29,7 @@ from bronmodel.connectors import leestools, van_id
 from bronmodel.extern import externe_verwijzingen, externe_vindplaats
 
 from .provenance import _BWB_RE, citations_in, first_bwb
-from .resultaat import waarden
+from .resultaat import is_contract, waarden
 from .tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
 
 logger = logging.getLogger(__name__)
@@ -338,15 +338,31 @@ def curate_sources(sources: list[Source], answer_text: str) -> list[Source]:
     return [*(fijn or kept), *extern]
 
 
-def alleen_gelezen_extern(sources: list[Source], trace: list[tuple[str, str]], answer_text: str) -> list[Source]:
+def alleen_gelezen_extern(sources: list[Source], trace: list[tuple[str, str]], answer_text: str,
+                          vraag: str = "") -> list[Source]:
     """Een bron naast de wet (ADR-013) staat alleen in de bronnenlijst als ze gelezen is (in een resultaat van de
     leestool van haar connector) én het antwoord haar noemt. Wat alleen gevonden is, is geen bron: dat staat al als
     "alleen gevonden, niet gelezen" in `onbevestigd` (acceptatie 8 nov 2026: "Klaar · 32 bronnen" voor één gelezen
     Kamerstuk, omdat `curate_sources` zonder BWB-id in het antwoord niets snoeit). Een extern id zonder connector (een
     EHRM-uitspraak waar een gelezen uitspraak naar verwijst, `ECLI:CE:…`) staat er alleen als het antwoord het noemt
-    (nameting 10 nov 2026). Wettekst blijft ongemoeid."""
+    (nameting 10 nov 2026). Wettekst blijft ongemoeid.
+
+    Het gelezen stuk zelf (het `stuk` van de leestool) staat er ook als de vraag het noemt: een antwoord óver
+    ECLI:NL:HR:2022:50 noemt die ECLI vaak niet meer, en dan miste de bronnenlijst precies het stuk dat gelezen is
+    (derde meting 10 nov 2026)."""
     lees = leestools()
-    gelezen = {e.id for name, t in trace if t and name in lees for e in externe_verwijzingen(waarden(t))}
+    in_tekst: set[str] = set()
+    stukken: set[str] = set()
+    for name, t in trace:
+        if not t or name not in lees:
+            continue
+        in_tekst |= {e.id for e in externe_verwijzingen(waarden(t))}
+        data = is_contract(t) or {}
+        if isinstance(data.get("stuk"), dict) and (vp := externe_vindplaats(str(data["stuk"].get("id") or ""))):
+            stukken.add(vp.id)
     genoemd = {e.id for e in externe_verwijzingen(answer_text or "")}
+    gevraagd = {e.id for e in externe_verwijzingen(vraag or "")}
     return [s for s in sources
-            if s.brontype in (None, "wettekst") or (s.uri in genoemd and (van_id(s.uri) is None or s.uri in gelezen))]
+            if s.brontype in (None, "wettekst")
+            or (s.uri in genoemd and (van_id(s.uri) is None or s.uri in in_tekst | stukken))
+            or (s.uri in gevraagd and s.uri in stukken)]

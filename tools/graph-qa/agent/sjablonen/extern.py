@@ -25,6 +25,7 @@ from bronmodel.antwoord import Antwoord, Extern, ExternePassage, ExterneVerwijzi
 from bronmodel.connectors import CONNECTORS, ConnectorBeschrijving, van_id
 from bronmodel.extern import externe_vindplaats
 
+from ..tools.stuk_tekst import aangevuld
 from .vullen import Onvulbaar, Trace, _data, resultaten
 
 #: Zo veel passages mag één aanwijzing omvatten: meer is een samenvatting, en die schrijft Lex in eigen woorden.
@@ -142,8 +143,9 @@ def _gelezen(trace: Trace, c: ConnectorBeschrijving, ident: str
     for data in resultaten(trace, [c.leestool]):
         s = data.get("stuk") or {}
         if s.get("id") == ident:
-            lezingen.append((s, [r for r in data.get("resultaten") or []
-                                 if isinstance(r, dict) and isinstance(r.get("nr"), int) and isinstance(r.get("tekst"), str)]))
+            # Een pagina laat de kop weg waar hij gelijk is aan die erboven (`stuk_tekst.tekstpagina`): eerst aanvullen.
+            lezingen.append((s, [r for r in aangevuld(data)
+                                 if isinstance(r.get("nr"), int) and isinstance(r.get("tekst"), str)]))
     if not lezingen:
         return {}, {}, set(), set()
     laatste = lezingen[-1][0]
@@ -184,16 +186,20 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
         vp = externe_vindplaats(ident)
         c = van_id(ident)
         if vp is None or c is None:
-            raise Onvulbaar(f"'{ident}' is geen id van een bron naast de wet die hier aanstaat.")
+            raise Onvulbaar(f"'{ident}' is geen id van een bron naast de wet die hier aanstaat. Een stuk waar de tekst alleen "
+                            f"naar verwijst, hoort niet in '{VELD}': noem het in je eigen woorden of in de twijfel.")
         stuk, rijen, alleen_eerder, in_tabel = _gelezen(trace, c, vp.id)
         if not stuk:
-            raise Onvulbaar(f"{vp.label} is in dit gesprek niet gelezen: haal het stuk eerst op met {c.leestool}, en wijs "
-                            "dan de passages aan.")
+            raise Onvulbaar(f"{vp.label} is in dit gesprek niet gelezen: haal het stuk eerst op met {c.leestool} en wijs "
+                            f"dan de passages aan, of laat het weg uit '{VELD}' en noem het in je eigen woorden of in de "
+                            "twijfel (niet gelezen).")
         van, tot = item.get("van_nr"), item.get("tot_nr")
         if not isinstance(van, int) or not isinstance(tot, int) or van > tot:
             raise Onvulbaar(f"{vp.label}: van_nr en tot_nr zijn alineanummers, met van_nr ≤ tot_nr.")
         if sum(1 for n in range(van, tot + 1) if n not in in_tabel) > MAX_PASSAGES:
-            raise Onvulbaar(f"{vp.label}: hoogstens {MAX_PASSAGES} alinea's per aanwijzing; vat de rest in eigen woorden samen.")
+            raise Onvulbaar(f"{vp.label}: hoogstens {MAX_PASSAGES} alinea's per aanwijzing. Wijs de alinea's aan die het "
+                            "antwoord dragen (meer aanwijzingen voor hetzelfde stuk mag) en vat de rest samen in het korte "
+                            "antwoord.")
         ontbreekt = [n for n in range(van, tot + 1) if n not in rijen and n not in in_tabel]
         if ontbreekt and set(ontbreekt) & alleen_eerder:
             raise Onvulbaar(f"{vp.label} is veranderd sinds alinea {', '.join(map(str, sorted(set(ontbreekt) & alleen_eerder)))} "
