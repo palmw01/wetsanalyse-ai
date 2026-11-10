@@ -61,10 +61,11 @@ def sjabloon_schemas(namen: frozenset[str], *, extern: bool = False) -> list[dic
 def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:
     """Vul het sjabloon uit de trace. Draagt de aanroep het veld `extern` (het subsjabloon), dan komen de blokken met
     de bronnen naast de wet ná de wettekst en de uitleg, vóór de twijfel."""
-    if naam == EXTERN or _extern.VELD not in invoer:
+    if naam == EXTERN or not ({_extern.VELD, _extern.STUKKEN} & set(invoer)):
         return SJABLONEN[naam].vul(invoer, trace)
-    rest = {k: v for k, v in invoer.items() if k != _extern.VELD}
-    extra = _extern.blokken(invoer[_extern.VELD], trace)
+    rest = {k: v for k, v in invoer.items() if k not in {_extern.VELD, _extern.STUKKEN}}
+    # Een lijst gevonden stukken vóór de passages: eerst wat er is, dan wat erin staat.
+    extra = [*_extern.lijsten(invoer.get(_extern.STUKKEN), trace), *_extern.blokken(invoer.get(_extern.VELD), trace)]
     antwoord = SJABLONEN[naam].vul(rest, trace)
     if extra:
         plek = next((i for i, b in enumerate(antwoord.blokken) if b.soort in ("twijfel", "leemte")), len(antwoord.blokken))

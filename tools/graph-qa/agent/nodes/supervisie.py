@@ -166,6 +166,24 @@ def _lees_genoemd(writer, aanroepen: list[dict[str, Any]], vraag: str) -> dict[s
             "plan": "Beantwoord de vraag uit de tekst van het genoemde stuk, die al is opgehaald." + _herschreven(vraag)}
 
 
+def _lijst(state: State, vraag: str):
+    """De lijstvraag in de vraag (`agent/bron_lijst.py`), voor de connectors die in deze beurt aanstaan."""
+    from .. import bron_lijst
+
+    aan = frozenset(n for n, s in (state.get("bronstand") or {}).items() if (s or {}).get("aan"))
+    return bron_lijst.lees(vraag, aan) if aan else None
+
+
+def _bron_lijst(writer, lijst) -> dict[str, Any]:
+    """Een lijstvraag: de zoektool in code, zonder model (`nodes/bron_lijst.py`)."""
+    from bronmodel.connectors import CONNECTORS
+
+    _stap(writer, "Lex", f"maakt een lijst uit de {CONNECTORS[lijst.connector].label}", route="bron_lijst")
+    return {"specialist": "algemeen", "worker_plan": ["algemeen"], "worker_idx": 0, "afwijzen": False,
+            "annotaties_lezen": False, "bron_lijst": {"connector": lijst.connector, "tool": lijst.tool, "args": lijst.args},
+            "plan": "Een lijst stukken uit een bron naast de wet; de zoekvraag staat in de historie."}
+
+
 def _bron_uit(writer, state: State, vraag: str) -> dict[str, Any] | None:
     """Een vraag die alleen over bronnen naast de wet gaat (ADR-013, `bronmodel.connectors.herkende`), terwijl die
     bronnen in deze beurt uit staan: een eerlijke melding met wie ze aanzet, zonder model en zonder tools. Noemt de
@@ -313,6 +331,10 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # De vraag noemt een stuk bij zijn id: lezen in code, zoals een genoemd artikel (acceptatie 8 nov 2026: zes
         # rondes zoeken voor kst-35496-F). Ook in een lopend gesprek: het id staat er letterlijk.
         return _lees_genoemd(writer, aanroepen, "")
+    if modus == "auto" and (lijst := _lijst(state, vraag_nu)):
+        # "Wat is het laatste stuk van dossier 32140?": een zoekvraag met een volgorde, die de code helemaal leest. Ook in
+        # een gesprek: de vraag noemt zelf wat er gezocht wordt (acceptatie 9 nov 2026: elf rondes, twee foute antwoorden).
+        return _bron_lijst(writer, lijst)
 
     resp = aanroep(
         b.llm, Rol.SUPERVISOR,
@@ -364,6 +386,10 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # "Welke bronnen horen daarbij?" is pas herschreven een vraag naar de stand ("… bij de deelvraag '…'"). Op
         # acceptatie ging hij de open lus in: 188 s en 7 rondes voor wat de api zonder model weet.
         return {**upd, **_agent(writer, state, "deelvragen", "dekking", zelfstandig)}
+
+    if modus == "auto" and vraag and (lijst := _lijst(state, zelfstandig)):
+        # "Wat is het laatste stuk?" na een vraag over dossier 32140: pas de herschreven vraag noemt het dossier.
+        return {**upd, **_bron_lijst(writer, lijst)}
 
     plan += _herschreven(vraag)
     if vraag and modus == "auto" and (uit := _bron_uit(writer, state, zelfstandig)):
@@ -433,6 +459,9 @@ def _entry_node(b: Bouw, state: State) -> str:
         return "agent_taak"
     if state.get("bepalingsvraag"):
         return "bepaling_lezen"
+    if state.get("bron_lijst"):
+        # Een lijstvraag over een bron naast de wet: de zoektool in code (`nodes/bron_lijst.py`), dan de controle.
+        return "bron_lijst"
     if state.get("bron_lezen"):
         # Een stuk dat de vraag bij id noemt: eerst lezen (`nodes/bron_lezen.py`), dan formuleren.
         return "bron_lezen"
