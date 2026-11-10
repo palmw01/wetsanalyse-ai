@@ -1,4 +1,4 @@
-// Verwijderen werkt voor een annotatie, een werkgebied en een begrip op dezelfde manier: echt wissen,
+// Verwijderen werkt voor een annotatie, een werkgebied, een begrip en een groep gesprekken op dezelfde manier: echt wissen,
 // met de audit als bewijs (api), één knop (`components/ui/VerwijderKnop`) op dezelfde plekken – het
 // paneel naast het gesprek, de pagina en de lijst – en daarna een toestand in plaats van een fout.
 //
@@ -7,16 +7,20 @@
 
 import type { ApiError } from "./types";
 
-export type VerwijderSoort = "annotatie" | "werkgebied" | "begrip";
+export type VerwijderSoort = "annotatie" | "werkgebied" | "begrip" | "gesprekken";
 
 /** Wat de knop als tooltip draagt: wat er weggaat en wat blijft. */
 export const VERWIJDER_UITLEG: Record<VerwijderSoort, string> = {
   annotatie: "Verwijdert alle markeringen en beoordelingen van deze bepaling, ook uit de kennisgraaf",
   werkgebied: "Verwijdert het werkgebied met zijn bronselecties, deelvragen en begrippen, ook uit de kennisgraaf. De annotaties blijven staan.",
   begrip: "Verwijdert het begrip met zijn koppelingen en relaties, ook uit de kennisgraaf. De annotaties blijven staan.",
+  // Een groep gesprekken in één keer (instellingen → Gesprekken).
+  gesprekken: "Verwijdert de gesprekken en het geheugen van Lex erover. Annotaties, begrippen en werkgebieden blijven bestaan.",
 };
 
-const NAAM: Record<VerwijderSoort, string> = { annotatie: "Annotatie", werkgebied: "Werkgebied", begrip: "Begrip" };
+const NAAM: Record<VerwijderSoort, string> = {
+  annotatie: "Annotatie", werkgebied: "Werkgebied", begrip: "Begrip", gesprekken: "Gesprekken",
+};
 
 /** De toegankelijke naam van de knop: "Werkgebied verwijderen". */
 export const verwijderLabel = (soort: VerwijderSoort) => `${NAAM[soort]} verwijderen`;

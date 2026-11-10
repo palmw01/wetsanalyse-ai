@@ -1,0 +1,111 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<officiele-publicatie xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://technische-documentatie.oep.overheid.nl/schema/op-xsd-2012-2">
+  <metadata>
+    <meta name="OVERHEIDop.externMetadataRecord" scheme="" content="https://zoek.officielebekendmakingen.nl/stb-2013-568/metadata.xml" />
+  </metadata>
+  <kop>
+    <titel>Staatsblad</titel>
+    <subtitel>van het Koninkrijk der Nederlanden</subtitel>
+  </kop>
+  <staatsblad>
+    <intitule>Wet van 18 december 2013 tot wijziging van de Algemene wet inzake rijksbelastingen en van de Invorderingswet 1990 in verband met de wijziging van de percentages belasting- en invorderingsrente (Wet wijziging percentages belasting- en invorderingsrente)</intitule>
+    <wet-besluit>
+      <aanhef>
+        <wij>Wij Willem-Alexander, bij de gratie Gods, Koning der Nederlanden, Prins van Oranje-Nassau, enz. enz. enz.</wij>
+        <considerans>
+          <considerans.al>Allen, die deze zullen zien of horen lezen, saluut! doen te weten:</considerans.al>
+          <considerans.al>Alzo Wij in overweging genomen hebben, dat het wenselijk is de belastingrente voor de vennootschapsbelasting te koppelen aan de wettelijke rente voor handelstransacties, met een minimum van 8%, en voor de belastingrente voor de overige belastingmiddelen en de invorderingsrente een minimum van 4% in te voeren;</considerans.al>
+        </considerans>
+        <afkondiging>
+          <al>Zo is het, dat Wij, de Afdeling advisering van de Raad van State gehoord, en met gemeen overleg der Staten-Generaal, hebben goedgevonden en verstaan, gelijk Wij goedvinden en verstaan bij deze:</al>
+        </afkondiging>
+      </aanhef>
+      <wettekst>
+        <wijzig-artikel status="goed">
+          <kop kopopmaak="vet">
+            <label>ARTIKEL</label>
+            <nr status="officieel">I</nr>
+          </kop>
+          <wat type="wijziging">In de Algemene wet inzake rijksbelastingen komt artikel 30hb te luiden:</wat>
+          <wijziging>
+            <artikel status="goed">
+              <kop kopopmaak="vet">
+                <label>Artikel</label>
+                <nr status="officieel">30hb</nr>
+              </kop>
+              <lid>
+                <lidnr status="officieel">1.</lidnr>
+                <al>Het percentage van de belastingrente voor de inkomstenbelasting, de erfbelasting, de loonbelasting, de omzetbelasting, de overdrachtsbelasting, de belasting van personenauto’s en motorrijwielen, de accijns, de verbruiksbelasting van alcoholvrije dranken en de in artikel 1 van de Wet belastingen op milieugrondslag genoemde belastingen is gelijk aan het percentage van de ingevolge artikel 120, eerste lid, van Boek 6 van het Burgerlijk Wetboek bij algemene maatregel van bestuur vastgestelde wettelijke rente, bedoeld in artikel 119 van Boek 6 van dat wetboek, met dien verstande dat het eerstgenoemde percentage ten minste 4 bedraagt.</al>
+              </lid>
+              <lid>
+                <lidnr status="officieel">2.</lidnr>
+                <al>Het percentage van de belastingrente voor de vennootschapsbelasting is gelijk aan het ingevolge artikel 120, tweede lid, van Boek 6 van het Burgerlijk Wetboek bepaalde percentage van de wettelijke rente, bedoeld in de artikelen 119a en 119b van Boek 6 van dat wetboek, met dien verstande dat een wijziging van de wettelijke rente eerst twee maanden na die wijziging leidt tot een aanpassing van de belastingrente en het eerstgenoemde percentage ten minste 8 bedraagt.</al>
+              </lid>
+            </artikel>
+          </wijziging>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop kopopmaak="vet">
+            <label>ARTIKEL</label>
+            <nr status="officieel">II</nr>
+          </kop>
+          <wat type="wijziging">In de Invorderingswet 1990 wordt vóór de punt aan het slot van artikel 29 ingevoegd: , met dien verstande dat het eerstgenoemde percentage ten minste 4 bedraagt.</wat>
+        </wijzig-artikel>
+        <artikel status="goed">
+          <kop kopopmaak="vet">
+            <label>ARTIKEL</label>
+            <nr status="officieel">III</nr>
+          </kop>
+          <al>Artikel 30hb van de Algemene wet inzake rijksbelastingen en artikel 29 van de Invorderingswet 1990, zoals die artikelen luidden op 31 december 2013, blijven van toepassing bij de renteberekening over renteperiodes gelegen voor 1 april 2014.</al>
+        </artikel>
+        <artikel status="goed">
+          <kop kopopmaak="vet">
+            <label>ARTIKEL</label>
+            <nr status="officieel">IV</nr>
+          </kop>
+          <al>Deze wet treedt in werking met ingang van 1 januari 2014.</al>
+        </artikel>
+        <artikel status="goed">
+          <kop kopopmaak="vet">
+            <label>ARTIKEL</label>
+            <nr status="officieel">V</nr>
+          </kop>
+          <al>Deze wet wordt aangehaald als: Wet wijziging percentages belasting- en invorderingsrente.</al>
+        </artikel>
+      </wettekst>
+      <wetsluiting status="goed">
+        <slotformulering>
+          <al>Lasten en bevelen dat deze in het Staatsblad zal worden geplaatst en dat alle ministeries, autoriteiten, colleges en ambtenaren die zulks aangaat, aan de nauwkeurige uitvoering de hand zullen houden.</al>
+        </slotformulering>
+        <histnoot type="parlementair">
+          <al>Kamerstuk <dossierref dossier="33755">33 755</dossierref></al>
+        </histnoot>
+        <gegeven>
+          <label>Gegeven te </label>
+          <dagtekening>
+            <plaats>Wassenaar,</plaats>
+            <datum isodatum="2013-12-18">18 december 2013</datum>
+          </dagtekening>
+          <koning>Willem-Alexander</koning>
+        </gegeven>
+        <ondertekening>
+          <functie>De Staatssecretaris van Financiën,</functie>
+          <naam>
+            <voornaam>F.H.H.</voornaam>
+            <achternaam>Weekers</achternaam>
+          </naam>
+        </ondertekening>
+        <uitgifte>
+          <datum isodatum="2013-12-23">Uitgegeven de <nadruk type="cur">drieëntwintigste</nadruk> december 2013</datum>
+          <ondertekening>
+            <functie>De Minister van Veiligheid en Justitie,</functie>
+            <naam>
+              <voornaam>I.W.</voornaam>
+              <achternaam>Opstelten</achternaam>
+            </naam>
+          </ondertekening>
+        </uitgifte>
+      </wetsluiting>
+    </wet-besluit>
+  </staatsblad>
+</officiele-publicatie>

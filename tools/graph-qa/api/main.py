@@ -59,14 +59,14 @@ from sse_starlette.sse import EventSourceResponse  # noqa: E402
 load_dotenv()  # laad .env als die naast de server staat
 
 from agent import observability  # noqa: E402
-from agent.agent import answer_stream, delete_conversation  # noqa: E402
+from agent.agent import answer_stream, delete_conversation, delete_conversations  # noqa: E402
 from agent.beurt import leg_afbraak_vast, voer_beurt_uit  # noqa: E402
 from agent.beurtmeting import gemeten  # noqa: E402
 from agent.reeks import reeks_run  # noqa: E402
 from agent.werkgebied_annotatie import werkgebied_annotatie_beurt, zonder_api  # noqa: E402
 from agent.config import Settings  # noqa: E402
 from agent.models import (  # noqa: E402
-    ChatRequest, RunStand, RunStart,
+    ChatRequest, GesprekkenWissen, RunStand, RunStart,
     Verbruiksmeter,
 )
 from agent.runstore import Run, RunBestaatAl, RunStore  # noqa: E402
@@ -280,6 +280,39 @@ async def verwijder_conversation(
     await delete_conversation(conversation_id, settings=settings)
     # De runs dragen de vraag en het antwoord ook. Een lopende run ruimt zichzelf op als hij afrondt.
     await runs.wis_gesprek(conversation_id)
+
+
+@app.post("/v1/conversations/verwijderen", status_code=status.HTTP_204_NO_CONTENT)
+async def verwijder_conversations(
+    req: GesprekkenWissen,
+    gebruiker: str = Depends(_aanroeper),
+    _rl: None = Depends(_rate_limit),
+    _auth: None = Depends(_check_auth),
+) -> None:
+    """Hetzelfde als `verwijder_conversation`, voor een reeks gesprekken in één verzoek (opruimen in de instellingen).
+
+    Eén verzoek telt één keer voor de rate-limit, en het geheugen gaat in één checkpointer-context weg. Een lopende
+    beurt van jezelf stopt; een gesprek waarop de run van een ander loopt, slaat deze route over in plaats van het
+    hele verzoek te weigeren: de api wist dat id dan ook niet, want hij wist alleen eigen gesprekken."""
+    gevraagd = list(dict.fromkeys(req.ids))
+    te_wissen: list[str] = []
+    for conversation_id in gevraagd:
+        lopend = await runs.actief_voor(conversation_id)
+        if lopend is not None and gebruiker and lopend.user_id and lopend.user_id != gebruiker:
+            continue
+        if lopend is not None and lopend.loopt:
+            await stop_met_kinderen(lopend)
+            logger.info(
+                "run gestopt: gesprek verwijderd",
+                extra={"categorie": "functioneel", "run_id": lopend.run_id,
+                       "chat_session_id": conversation_id},
+            )
+        te_wissen.append(conversation_id)
+    await delete_conversations(te_wissen, settings=settings)
+    for conversation_id in te_wissen:
+        await runs.wis_gesprek(conversation_id)
+    logger.info("gesprekken verwijderd", extra={"categorie": "functioneel", "aantal": len(te_wissen),
+                                                "overgeslagen": len(gevraagd) - len(te_wissen)})
 
 
 # --- Runs: de beurt is van de server ---------------------------------------------------------

@@ -630,6 +630,30 @@ export async function verwijderGesprek(id: string): Promise<void> {
   if (!res.ok && res.status !== 404) throw await parseError(res);
 }
 
+/** Gesprekken opruimen per groep (instellingen → Gesprekken). **Recent** = actief en los, **archief** = alles wat
+ *  gearchiveerd is, ook uit een werkgebied. */
+export type GesprekGroep = "recent" | "archief";
+
+/** Na een bulkhandeling: wat er wegging of verhuisde. */
+export interface GesprekkenBulkUitkomst {
+  aantal: number;
+  ids: string[];
+}
+
+export async function gesprekkenTelling(): Promise<Record<GesprekGroep, number>> {
+  return json<Record<GesprekGroep, number>>(await fetch(`/api/gesprekken/telling`, { cache: "no-store" }));
+}
+
+/** Verwijder alle eigen gesprekken in een groep, met het geheugen van Lex erover. Een lopende beurt stopt. */
+export async function verwijderGesprekkenGroep(groep: GesprekGroep): Promise<GesprekkenBulkUitkomst> {
+  return json<GesprekkenBulkUitkomst>(await fetch(`/api/gesprekken/groep/${groep}`, { method: "DELETE" }));
+}
+
+/** Zet alle recente gesprekken in het archief. */
+export async function archiveerGesprekkenGroep(groep: "recent"): Promise<GesprekkenBulkUitkomst> {
+  return json<GesprekkenBulkUitkomst>(await fetch(`/api/gesprekken/groep/${groep}/archiveren`, { method: "POST" }));
+}
+
 /** De callbacks waarmee een beurt binnenkomt. Gedeeld door het starten van een run (`startRun`) en
  *  het aanhaken bij een lopende (`volgRun`) – één contract, twee ingangen. */
 export type AgentHandlers = {

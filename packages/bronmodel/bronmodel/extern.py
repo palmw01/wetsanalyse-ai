@@ -59,8 +59,14 @@ def _koop(ident: str) -> ExterneVindplaats:
         # was eerst "Kamerstukken 32740 1, nr. n1".
         versie = delen.pop() if len(delen) >= 3 and re.fullmatch(r"n\d+", delen[-1]) else ""
         label = f"Kamerstukken {' '.join(delen[:-1]).upper()}, nr. {delen[-1]}" + (f" (versie {versie})" if versie else "")
-    elif soort in {"stb", "stcrt"} and len(delen) == 2:
-        label = f"{'Stb.' if soort == 'stb' else 'Stcrt.'} {delen[0]}, {delen[1]}"
+    elif soort in {"stb", "stcrt"} and len(delen) >= 2 and delen[0].isdigit():
+        afk = "Stb." if soort == "stb" else "Stcrt."
+        versie = delen.pop() if len(delen) >= 3 and re.fullmatch(r"n\d+", delen[-1]) else ""
+        # Een Staatscourant van vóór 2009 is één uitgave met veel items: stcrt-2008-122-p18-SC86213 staat op pagina 18
+        # van nummer 122. Het label noemt de pagina; het id blijft de sleutel.
+        pagina = next((d[1:] for d in delen[2:] if re.fullmatch(r"p\d+", d)), "")
+        label = (f"{afk} {delen[0]}, {delen[1]}" + (f", p. {pagina}" if pagina else "")
+                 + (f" (versie {versie})" if versie else ""))
     elif soort.startswith(("h-", "ah-")):
         kamer = _KAMER[soort.rsplit("-", 1)[1]]
         naam = "Aanhangsel Handelingen" if soort.startswith("ah") else "Handelingen"
@@ -96,6 +102,24 @@ def _eli(uri: str) -> ExterneVindplaats:
     label = f"{_EU_SOORT.get(soort, soort.capitalize())} {jaar}/{nummer}"
     # De id is de canonieke ELI (http); de link gaat over https.
     return ExterneVindplaats("eu", uri, "https://" + uri.split("://", 1)[1], label)
+
+
+_BWB_BRON_RE = re.compile(r"^(Stb|Stcrt)\.?\s*(\d{4})\s*[-,]\s*(?:nr\.?\s*)?(\d{1,6})$", re.I)
+
+
+def koop_id_uit_bron(bron: str) -> str | None:
+    """Het id van een bekendmaking uit de vorm van de BWB-brondata: "Stb.2009-610" → "stb-2009-610",
+    "Stcrt.2016-69107" → "stcrt-2016-69107". De importer schrijft die vorm in `bwb:bron` en
+    `bwb:inwerkingtredingsbron`; een andere vorm (een Tractatenblad, een lege waarde) geeft None."""
+    m = _BWB_BRON_RE.fullmatch((bron or "").strip())
+    return f"{m.group(1).lower()}-{m.group(2)}-{int(m.group(3))}" if m else None
+
+
+def bwb_bron_van(ident: str) -> str | None:
+    """De vorm van de BWB-brondata bij een id: "stb-2009-610" → "Stb.2009-610" (de omkering van `koop_id_uit_bron`).
+    Een herdruk, een oud Stcrt-id of iets anders geeft None: die vorm schrijft de BWB niet."""
+    m = re.fullmatch(r"(stb|stcrt)-(\d{4})-(\d{1,6})", (ident or "").strip())
+    return f"{'Stb' if m.group(1) == 'stb' else 'Stcrt'}.{m.group(2)}-{m.group(3)}" if m else None
 
 
 def externe_vindplaats(ref: str) -> ExterneVindplaats | None:

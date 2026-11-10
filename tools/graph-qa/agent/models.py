@@ -181,6 +181,13 @@ REGIE_ACTIES = ("regie_bronnen", "regie_annoteren")
 BEVESTIG_ACTIES = ("werkgebied_annoteren", "deelvragen_annoteren", "begrippen_meedenken")
 
 
+class GesprekkenWissen(BaseModel):
+    """`POST /v1/conversations/verwijderen`: de gesprekken die de werkplek in één keer opruimt. De grens volgt
+    `MAX_BULK` van de api (`gesprek_contracts.py`)."""
+
+    ids: list[str] = Field(default_factory=list, max_length=2000)
+
+
 class ChatRequest(BaseModel):
     question: str
     conversation_id: str | None = None  # stuur mee voor gespreksgeheugen

@@ -224,9 +224,9 @@ bruikbaar is.
 
 ## Toollaag & queries
 
-- **`tools/__init__.py`** – `TOOLS` (31 declaraties: 21 graaftools, de vier annotatieleestools uit
+- **`tools/__init__.py`** – `TOOLS` (33 declaraties: 21 graaftools, de vier annotatieleestools uit
   `tools/annotatie_tools.py`, de twee begrippenleestools uit `tools/begrip_tools.py`, de twee Kamerstuktools uit
-  `tools/kamerstuk_tools.py` en de twee Rechtspraaktools uit `tools/rechtspraak_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
+  `tools/kamerstuk_tools.py`, de twee bekendmakingtools uit `tools/bekendmaking_tools.py` en de twee Rechtspraaktools uit `tools/rechtspraak_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
   `ValueError`/`MCPError`/`KeyError` als tekst). Een tool met `needs_settings` krijgt `settings` mee.
   `tools/jas_tools.py` (`JAS_TOOLS`) is dispatchbaar maar wordt in de draaiende keten niet aangeroepen.
 - **Bronconnectors** (ADR-013): **de beschrijving in `bronmodel.connectors` is de enige bron** (naam, label, brontype,
@@ -282,6 +282,39 @@ bruikbaar is.
   bewaart `bron_hash` en `gewijzigd`; `_gelezen` neemt de passages uit één lezing (dezelfde hash). Het contract met de echte dienst (indexen, sortering, recordvorm, documentstatus) toetst
   `tests/test_kamerstukken_live.py`: dagelijks in `bronnenwacht.yml`, lokaal met `BRONNEN_LIVE=1 uv run pytest -m live`
   (marker `live`; elke connector heeft er een, `test_connectorbeschrijving.py`). Niet in de poort.
+  **De SRU van KOOP is gedeeld** (10 nov 2026): Kamerstukken en Staatsblad en Staatscourant gebruiken één transport,
+  cache en recordvorm (`adapters/sru_koop.py`: `SruKoop`, `Record`, `KoopFout`; een subklasse zet alleen het filter,
+  de terugval voor een id dat KOOP niet kent en de naam in de logregels), één bouwer van de CQL (`tools/sru_zoeken.py`:
+  woorden in de titel, `cql.textAndIndexes`, `sortBy`, `per_record`) en één lezer van het OP-schema (`tools/op_xml.py`:
+  wortel `stuk`, `staatsblad` of `staatscourant`; koppen per divisie, artikel – "Artikel I – Wijziging" –, lid en
+  wijzigingsonderdeel; een `nr`/`li.nr` vóór de tekst die volgt; `wat`, `considerans.al` en de dagtekening als rij;
+  ondertekeningen in `overgeslagen`). Een datum vóór 1800 in de metadata telt als onbekend (stb-2019-129 draagt
+  0004-03-01). De datum van de jurist (`vanaf`/`tot`) komt voor elke connector uit `tools/zoekfilters.py`. Maak er
+  geen kopie van per connector.
+  **Staatsblad en Staatscourant** (`tools/bekendmaking_tools.py`, transport `adapters/sru_bekendmakingen.py`):
+  `zoek_bekendmakingen` heeft twee wegen. Met `bwb_id` (en `artikel`) leest hij uit de graaf de publicaties die de BWB
+  bij de huidige tekst noemt (`bwb:bron` = de laatste wijziging, `bwb:inwerkingtredingsbron`, met `bwb:inwerking`; bij
+  een lid op het artikel erboven, zoals `queries.geldigheid`), zet "Stb.2009-610" om met `bronmodel.extern.koop_id_uit_bron`
+  en haalt de records in één CQL (`dt.identifier==… OR …`); de rij zegt de koppeling in `wetsverwijzing`, de datum in
+  `inwerking`, en de toelichting de grens (één toestand, eerdere wijzigingen niet). Zonder `bwb_id`: `publicatie`
+  (Staatsblad/Staatscourant), `woorden`, `tekst`, `soort` (`dt.type all`; een inwerkingtredingsbesluit in de titel),
+  `orgaan` (`dt.creator all`), `dossier` (`w.behandeldDossier`: de brug naar Kamerstukken), `vanaf`/`tot`, `jaar`
+  (`w.jaargang`). `get_bekendmaking` leest per alinea; met `artikel` alleen de wijzigingsonderdelen (`wijzig-lid`) waarvan
+  de opdracht dat artikel noemt (`_noemt_artikel`: 1.1.5 is niet 1.1.5b). Een oud stuk heeft vaak alleen een PDF
+  (`alleen_pdf`, met de metadata); een id dat KOOP niet kent zoekt de adapter op blad, jaargang en nummer. `geldigheid`
+  noemt naast de BWB-vorm het id (`bekendmakingen`). Citeervormen "Stb. 2010, 176", "Stb.2009-610", "Staatscourant 2026,
+  nr. 37344". **Uit de Staatscourant alleen regelgeving en beleid** (`REGELGEVENDE_SOORTEN`, een witte lijst op `dt.type`;
+  "Overig" alleen bij een gerichte zoekvraag): de Staatscourant draagt ook deurwaardersexploten, faillissementen en
+  curatele met namen van particulieren, en die zoekt of leest Lex niet (`binnen_bereik`, reden `buiten_bereik`).
+  **Welke regeling een publicatie wijzigt** komt uit de graaf (`regelingen_bij`: `bwb:bron`/`bwb:inwerkingtredingsbron`
+  terug naar de regeling, één query per pagina, in `wetsverwijzing`; zonder graaf ontbreekt alleen die regel). Met
+  `bwb_id` filteren `publicatie`, `soort`, `jaar`, `vanaf` en `tot` de publicaties van die bepaling; zonder artikel zegt
+  de toelichting dat een wijziging die bij geen bepaling meer de laatste is, er niet bij staat. Tests met opgenomen
+  antwoorden van KOOP (`tests/fixtures/koop/`): `tests/test_bekendmaking_tools.py`, en de **vragenset**
+  (`tests/data/bekendmakingen_vragenset.json`, zestien vragen uit het belastingdomein, ook voor de browsertoets en de meting)
+  in `tests/test_bekendmakingen_vragenset.py`: route en argumenten per vraag, en het resultaat tegen een opname per verzoek
+  (`tests/fixtures/koop/vragenset/`, opnieuw opnemen met `BEKENDMAKINGEN_OPNEMEN=1`; een verzoek dat niet is opgenomen
+  faalt). Live `tests/test_bekendmakingen_live.py`.
   **Rechtspraak** (`tools/rechtspraak_tools.py`, transport `adapters/lido_rechtspraak.py`, ADR-013 fase 1c):
   `zoek_uitspraken` (bwb-id + artikel; de uitspraken die Linked Data Overheid aan het artikel koppelt, **verenigd over
   alle versies**, want een link hangt aan de versie die gold op de datum van de uitspraak) en `get_uitspraak` (de tekst

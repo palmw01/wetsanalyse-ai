@@ -153,8 +153,9 @@ def test_de_beurt_meldt_haar_bronstand_en_de_meting_leest_hem(monkeypatch):
     # Een connector die de straat niet aanbiedt, staat erbij met de reden `straat`.
     assert events[0] == {"type": "bronstand", "bronnen": [
         {"naam": "kamerstukken", "label": "Kamerstukken", "aan": False, "reden": "werkgebied"},
+        {"naam": "bekendmakingen", "label": "Staatsblad en Staatscourant", "aan": False, "reden": "straat"},
         {"naam": "rechtspraak", "label": "Rechtspraak", "aan": False, "reden": "straat"}]}
-    assert gelogd[-1]["bronnen"] == "kamerstukken:werkgebied,rechtspraak:straat"
+    assert gelogd[-1]["bronnen"] == "kamerstukken:werkgebied,bekendmakingen:straat,rechtspraak:straat"
 
 
 def test_chatrequest_kent_de_herkomst():

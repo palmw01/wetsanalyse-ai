@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AccountClient } from "@/components/account/AccountClient";
+import { GesprekkenPanel } from "@/components/account/GesprekkenPanel";
 import { PasswordPanel } from "@/components/account/PasswordPanel";
 import { RondleidingPanel } from "@/components/account/RondleidingPanel";
 import { VerbruikPanel } from "@/components/account/VerbruikPanel";
@@ -24,6 +25,7 @@ const PANEEL: Record<TabKey, React.ReactNode> = {
   account: <PasswordPanel />,
   beveiliging: <AccountClient />,
   verbruik: <VerbruikPanel />,
+  gesprekken: <GesprekkenPanel />,
   rondleiding: <RondleidingPanel />,
   modelprofielen: <ProfielenPanel />,
   gebruikers: <UsersPanel />,

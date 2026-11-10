@@ -14,6 +14,12 @@ GET    /v1/gesprekken/{id}                  – volledig gesprek (met berichten)
 POST   /v1/gesprekken/{id}/berichten        – bericht toevoegen
 PATCH  /v1/gesprekken/{id}                  – titel, werkgebied (koppelen/loskoppelen), archief
 DELETE /v1/gesprekken/{id}                  – verwijder eigen gesprek
+
+Opruimen per groep (instellingen → Gesprekken; `recent` of `archief`, zie `GesprekGroep`):
+GET    /v1/gesprekken/telling                – aantal per groep
+GET    /v1/gesprekken/groep/{groep}          – de ids in een groep
+POST   /v1/gesprekken/verwijderen            – {groep, ids}: wist de eigen ids die nog in de groep staan
+POST   /v1/gesprekken/archiveren             – {groep, ids}: archiveert ze
 """
 from __future__ import annotations
 
@@ -26,7 +32,8 @@ from ..agent_toegang import AGENT_CLIENT
 from ..auth import huidige_client, require_client
 from ..deps import get_gesprek_store
 from ..gesprek_contracts import (
-    Bericht, BerichtInvoer, Gesprek, GesprekCreate, GesprekPatch, GesprekSamenvatting, Rol,
+    Bericht, BerichtInvoer, Gesprek, GesprekCreate, GesprekGroep, GesprekIds, GesprekkenBulk,
+    GesprekkenBulkUitkomst, GesprekPatch, GesprekSamenvatting, GesprekTelling, Rol,
 )
 from ..gesprek_store import GesprekStore
 from .. import artefact_versies, werkgebied_store
@@ -123,6 +130,54 @@ async def lijst_gesprekken(
 ):
     return await store.lijst_samenvattingen(user_id, limit, offset, werkgebied_id, gearchiveerd, zoek=q,
                                             ouder_id=ouder_id)
+
+
+# ── Opruimen per groep ───────────────────────────────────────────────────────────────────────────
+# Vóór `/{gesprek_id}`: anders leest FastAPI `telling` als een gespreks-id. Het agent-token komt hier niet
+# (`agent_toegang.TOEGESTAAN`): opruimen is een handeling van de gebruiker zelf.
+
+@router.get("/telling", response_model=GesprekTelling)
+async def telling_gesprekken(
+    user_id: str = Depends(actieve_userid),
+    store: GesprekStore = Depends(get_gesprek_store),
+):
+    return await store.telling(user_id)
+
+
+@router.get("/groep/{groep}", response_model=GesprekIds)
+async def ids_in_groep(
+    groep: GesprekGroep,
+    user_id: str = Depends(actieve_userid),
+    store: GesprekStore = Depends(get_gesprek_store),
+):
+    return GesprekIds(ids=await store.ids_in_groep(user_id, groep))
+
+
+@router.post("/verwijderen", response_model=GesprekkenBulkUitkomst)
+async def verwijder_gesprekken(
+    req: GesprekkenBulk,
+    user_id: str = Depends(actieve_userid),
+    store: GesprekStore = Depends(get_gesprek_store),
+):
+    weg = await store.verwijder_gesprekken(user_id, req.groep, req.ids)
+    # Geen titels in de log (AVG): de groep en het aantal zijn genoeg om het terug te vinden.
+    logger.info("gesprekken verwijderd", extra={"categorie": "functioneel", "groep": req.groep,
+                                                "aantal": len(weg), "gevraagd": len(req.ids)})
+    return GesprekkenBulkUitkomst(aantal=len(weg), ids=weg)
+
+
+@router.post("/archiveren", response_model=GesprekkenBulkUitkomst)
+async def archiveer_gesprekken(
+    req: GesprekkenBulk,
+    user_id: str = Depends(actieve_userid),
+    store: GesprekStore = Depends(get_gesprek_store),
+):
+    if req.groep != "recent":
+        raise HTTPException(422, {"fout": "al_gearchiveerd", "melding": "Alleen de recente gesprekken gaan naar het archief."})
+    gedaan = await store.archiveer_gesprekken(user_id, req.groep, req.ids)
+    logger.info("gesprekken gearchiveerd", extra={"categorie": "functioneel", "groep": req.groep,
+                                                  "aantal": len(gedaan), "gevraagd": len(req.ids)})
+    return GesprekkenBulkUitkomst(aantal=len(gedaan), ids=gedaan)
 
 
 @router.get("/{gesprek_id}", response_model=Gesprek)
