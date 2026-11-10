@@ -25,7 +25,7 @@ from bronmodel.connectors import KAMERSTUKKEN
 from bronmodel.extern import externe_vindplaats
 
 from ..resultaat import BUDGET, TeGroot, compact, fout, per_eenheid, resultaat
-from .stuk_tekst import MAX_INHOUD, inhoud  # noqa: F401 – gedeeld met elke leestool
+from .stuk_tekst import MAX_INHOUD, inhoud, tekstpagina  # noqa: F401 – gedeeld met elke leestool
 
 #: Uit de beschrijving (`bronmodel.connectors`); de poorttest toetst dat `KAMERSTUK_TOOLS` precies deze namen heeft.
 KAMERSTUK_TOOL_NAMEN = KAMERSTUKKEN.tools
@@ -131,12 +131,13 @@ KAMERSTUK_TOOLS: list[dict[str, Any]] = [
         "name": "get_kamerstuk",
         "description": (
             "De tekst van één Kamerstuk, per alinea in documentvolgorde, met de kop van het deel erboven. Gebruik "
-            "het id uit zoek_kamerstukken." + _UITLEG + " Citeer letterlijk uit 'tekst'. Op de eerste pagina staat "
-            "'inhoud': per kop de offset waar dat deel begint. Ga met die offset naar het deel dat de vraag raakt (in de "
+            "het id uit zoek_kamerstukken." + _UITLEG + " Citeer letterlijk uit 'tekst'. Op de eerste pagina van een "
+            "stuk dat niet op één pagina past staat 'inhoud': per kop de offset waar dat deel begint. Ga met die offset naar het deel dat de vraag raakt (in de "
             "memorie van toelichting bijvoorbeeld de artikelsgewijze toelichting bij een artikel) in plaats van alles te "
             "lezen.\n"
             "GEEFT TERUG: het stuk (id, label, soort, titel, datum, jaar, orgaan, indieners, link, bron_hash en de stand "
-            "bij KOOP: gewijzigd, status, versie) en per alinea nr, kop en tekst. Noem de datum en het soort uit 'stuk', "
+            "bij KOOP: gewijzigd, status, versie) en per alinea nr, kop en tekst (de kop alleen waar hij verandert; hij "
+            "geldt tot de volgende). Noem de datum en het soort uit 'stuk', "
             "niet uit de tekst. Een voetnoot staat als eigen rij direct na zijn alinea (soort "
             "'voetnoot', met noot en verwijst_naar: een ander stuk dat je met get_kamerstuk kunt lezen). Is de "
             "status 'Onopgemaakt', zeg dan dat de opgemaakte versie kan afwijken; staat er gevalideerd: false, "
@@ -637,14 +638,8 @@ def _get(bron: KamerstukBron, a: dict[str, Any]) -> str:
     # Een tabel is één rij met `openen`: verdieping buiten de scope van deze pagina, geen onvolledigheid.
     rijen = [{**r, "openen": {"tool": "get_kamerstuk", "args": {"id": vp.id, "tabel": r["nr"]}}}
              if r.get("soort") == "tabel" else r for r in rijen]
-    extra = {"stuk": stuk, **({"overgeslagen": overgeslagen} if overgeslagen else {}), "totaal": len(rijen)}
-    if offset == 0:
-        inh, alle = inhoud(rijen)
-        if inh:
-            extra["inhoud"] = inh
-        if not alle:
-            extra["inhoud_ingekort"] = True
-    return per_eenheid(rijen, tool="get_kamerstuk", args={"id": vp.id}, offset=offset, extra=extra,
+    return tekstpagina(rijen, tool="get_kamerstuk", args={"id": vp.id}, offset=offset, stuk=stuk,
+                       extra={"overgeslagen": overgeslagen} if overgeslagen else None,
                        toelichting=toelichting or ("" if rijen else "Dit stuk heeft geen lopende tekst in de XML."))
 
 

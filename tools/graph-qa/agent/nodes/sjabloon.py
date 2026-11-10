@@ -62,6 +62,11 @@ def _lees_wat_genoemd_is(b: Bouw, state: State, fout: Onvulbaar) -> tuple[str, l
     return "\n\n".join(delen), trace
 
 
+#: Achter elke weigering: verbeter de aanroep, geen vrije tekst (behalve waar de weigering zelf tekst toestaat).
+OPNIEUW = ("\n\nVerbeter de aanroep en roep {naam} opnieuw aan: het antwoord hoort in het sjabloon. Schrijf alleen "
+           "tekst als de melding hierboven dat zegt.")
+
+
 def sjabloon_node(b: Bouw, state: State) -> dict[str, Any]:
     tu = state["pending_tools"][0]
     def resultaat(tekst: str, **extra: Any) -> dict[str, Any]:
@@ -74,6 +79,9 @@ def sjabloon_node(b: Bouw, state: State) -> dict[str, Any]:
                                                          "sjabloon": tu["name"], "reden": str(fout),
                                                          "opgehaald": len(fout.ophalen)})
         tekst, trace = _lees_wat_genoemd_is(b, state, fout)
+        # Na een weigering schreef het model vaak vrije tekst (derde meting Rechtspraak, 10 nov 2026: 2 van 6 runs na een
+        # tweede pagina, met afgeronde bedragen en een eigen blokcitaat). Het sjabloon hoort het antwoord te dragen.
+        tekst += OPNIEUW.format(naam=tu["name"])
         return {"messages": [{"role": "user", "content": [resultaat(tekst, is_error=True)]}], "pending_tools": [],
                 **({"source_trace": trace} if fout.ophalen else {})}
     _met_regelingen(b, antwoord)

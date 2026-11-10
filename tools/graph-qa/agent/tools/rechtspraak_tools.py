@@ -30,7 +30,7 @@ from bronmodel.extern import externe_vindplaats
 from ..graph import queries
 from ..graph.results import parse_select
 from ..resultaat import compact, fout, pagina, per_eenheid
-from .stuk_tekst import inhoud
+from .stuk_tekst import tekstpagina
 
 RECHTSPRAAK_TOOL_NAMEN = RECHTSPRAAK.tools
 CONNECTOR = RECHTSPRAAK.naam
@@ -119,9 +119,10 @@ RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
             "documentvolgorde, met de inhoudsindicatie eerst. Gebruik de ECLI uit zoek_uitspraken." + _UITLEG +
             " Citeer letterlijk uit 'tekst'.\n"
             "GEEFT TERUG: het stuk (id, label, soort, titel, datum, orgaan, nummer, procedure, rechtsgebied, "
-            "gepubliceerd, link, bron_hash, gewijzigd) en per alinea nr, kop en tekst, met 'plek' als de alinea in een "
+            "gepubliceerd, link, bron_hash, gewijzigd) en per alinea nr, kop en tekst (de kop alleen waar hij verandert; "
+            "hij geldt tot de volgende), met 'plek' als de alinea in een "
             "genummerde rechtsoverweging staat ('r.o. 2.1'; noem haar zo); een lange alinea staat in delen ('deel'). De "
-            "eerste pagina draagt 'inhoud': per kop de offset waar dat deel begint; ga met die offset naar het deel dat "
+            "eerste pagina van een stuk dat niet op één pagina past draagt 'inhoud': per kop de offset waar dat deel begint; ga met die offset naar het deel dat "
             "de vraag raakt. Noem de datum en de instantie uit 'stuk', niet uit de tekst." + _CONTRACT
         ),
         "input_schema": {
@@ -567,18 +568,10 @@ def _get(bron: RechtspraakBron, a: dict[str, Any]) -> str:
     if getattr(doc, "gevalideerd", True) is False:
         # De Rechtspraak was niet te bereiken: de bewaarde versie, en dat zegt het stuk (het bronvenster toont het).
         stuk["gevalideerd"] = False
-    offset = max(int(a.get("offset") or 0), 0)
-    extra: dict[str, Any] = {"stuk": stuk, "totaal": len(rijen)}
-    if offset == 0:
-        # De koppen met hun offset, zoals bij Kamerstukken: een lange uitspraak (de Raad van State, honderden alinea's)
-        # leest Lex vanaf het deel dat de vraag raakt, en het bronvenster toont er de inhoudsopgave mee.
-        inh, alle = inhoud(rijen)
-        if inh:
-            extra["inhoud"] = inh
-        if not alle:
-            extra["inhoud_ingekort"] = True
-    return per_eenheid(rijen, tool="get_uitspraak", args={"id": vp.id}, offset=offset, extra=extra,
-                       toelichting="" if rijen else "Deze uitspraak heeft geen tekst in de open data.")
+    # De koppen met hun offset, zoals bij Kamerstukken: een lange uitspraak (de Raad van State, honderden alinea's)
+    # leest Lex vanaf het deel dat de vraag raakt, en het bronvenster toont er de inhoudsopgave mee (`tekstpagina`).
+    return tekstpagina(rijen, tool="get_uitspraak", args={"id": vp.id}, offset=max(int(a.get("offset") or 0), 0),
+                       stuk=stuk, toelichting="" if rijen else "Deze uitspraak heeft geen tekst in de open data.")
 
 
 #: De reden in het foutresultaat per code van de adapter (`RechtspraakFout.code`).

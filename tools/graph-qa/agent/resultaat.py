@@ -132,16 +132,22 @@ def pagina(
     toelichting: str = "",
     extra: dict[str, Any] | None = None,
     budget: int = BUDGET,
+    zonder_herhaling: Sequence[str] = (),
 ) -> str:
     """Een pagina van een gerangschikte lijst. De query vraagt `limit + 1` rijen op: de extra rij
-    bewijst dat er meer is, zonder een tweede telquery."""
+    bewijst dat er meer is, zonder een tweede telquery.
+
+    `zonder_herhaling`: velden die een rij alleen draagt als ze anders zijn dan op de rij ervoor op déze pagina (de kop
+    van een alinea in een lang stuk). De eerste rij van elke pagina draagt ze altijd, dus een lezer vult ze per pagina
+    aan (`stuk_tekst.aangevuld`)."""
     meer = len(rijen_plus_een) > limit
     rijen = [compact(r) for r in rijen_plus_een[:limit]]
 
     def maak(deel: Sequence[dict[str, Any]]) -> str:
         volledig = not meer and len(deel) == len(rijen)
         vervolg = None if volledig else {"tool": tool, "args": {**args, "offset": offset + len(deel)}}
-        return resultaat(deel, volledig=volledig, vervolg=vervolg, toelichting=toelichting, extra=extra)
+        return resultaat(_zonder_herhaling(deel, zonder_herhaling), volledig=volledig, vervolg=vervolg,
+                         toelichting=toelichting, extra=extra)
 
     k, tekst = passend(rijen, maak, budget)
     if rijen and k == 0:
@@ -150,6 +156,24 @@ def pagina(
         raise TeGroot(f"{tool}: één rij is groter dan de begroting van {budget} tekens",
                       omvang=len(maak(rijen[:1])))
     return tekst
+
+
+def _zonder_herhaling(rijen: Sequence[dict[str, Any]], velden: Sequence[str]) -> list[dict[str, Any]]:
+    if not velden:
+        return list(rijen)
+    uit: list[dict[str, Any]] = []
+    vorige: dict[str, Any] = {}
+    for r in rijen:
+        r = dict(r)
+        for v in velden:
+            if v in r and r[v] == vorige.get(v):
+                del r[v]
+            elif v in r:
+                vorige[v] = r[v]
+            else:
+                vorige.pop(v, None)
+        uit.append(r)
+    return uit
 
 
 def per_eenheid(
@@ -161,12 +185,13 @@ def per_eenheid(
     toelichting: str = "",
     extra: dict[str, Any] | None = None,
     budget: int = BUDGET,
+    zonder_herhaling: Sequence[str] = (),
 ) -> str:
     """Pagineer over eenheden die al compleet zijn opgehaald (de leden van één artikel, de onderdelen
     van één lid): vanaf `offset` zoveel hele eenheden als passen, met `vervolg` naar de volgende."""
     rest = list(eenheden[offset:])
     return pagina(rest, tool=tool, args=args, limit=len(rest), offset=offset, toelichting=toelichting,
-                  extra=extra, budget=budget)
+                  extra=extra, budget=budget, zonder_herhaling=zonder_herhaling)
 
 
 def geheel(
