@@ -122,3 +122,48 @@ Deze meting toetst of Lex daardoor gericht leest. Zelfde voorwaarden en werkwijz
 
 De uitkomst komt in `../architectuur/metingen/kamerstuk-lezen-2026-11-…`, met een regel in het meetlogboek. Faalt een
 garantie, dan is dat een bevinding met de opname erbij, geen reden om de vraag te wijzigen.
+
+## Staatsblad en Staatscourant (derde connector, 10 nov 2026)
+
+**Wat het meet.** Of Lex het geldingsbereik van een bepaling uit de officiële bekendmakingen haalt, en of de metadata van
+KOOP (datum, soort, blad, ministerie, nummer, Kamerdossier, de regeling die een publicatie wijzigt) het antwoord draagt in
+plaats van de tekst van het model. Alles met `bronnen: ["bekendmakingen"]`, op acceptatie, drie runs per vraag.
+
+**De vragenset** staat in `tools/graph-qa/tests/data/bekendmakingen_vragenset.json` en wordt op drie plekken gebruikt:
+de adaptertoets tegen opgenomen antwoorden van KOOP (`tests/test_bekendmakingen_vragenset.py`), de browsertoets
+(`frontend/scripts/test-bronvenster-bekendmaking.mjs`) en deze meting. Per vraag de route (lijstvraag of genoemd stuk:
+de code leest de vraag zelf, zonder model; model: de antwoordlus kiest), de tool met haar argumenten en wat een goed
+antwoord is:
+
+| # | Soort | Vraag | Route en tool | Goed antwoord |
+|---|---|---|---|---|
+| B01 | recentheid | Wat zijn de 10 meest recente publicaties? | lijstvraag: `zoek_bekendmakingen` `{"volgorde": "nieuwste", "aantal": 10}` | Een lijst (blok stukken) van tien publicaties, nieuwste eerst, met blad, soort en datum uit KOOP; uit de Staatscourant alleen regelgeving en beleid, geen aankondigingen over personen. |
+| B02 | recentheid per soort | Geef de 5 nieuwste beleidsregels in de Staatscourant | lijstvraag: `zoek_bekendmakingen` `{"volgorde": "nieuwste", "aantal": 5, "soort": "beleidsregel", "publicatie": "Staatscourant"}` | Vijf beleidsregels uit de Staatscourant, nieuwste eerst, met datum en ministerie; de zoekvraag in woorden erboven. |
+| B03 | per regeling | Welke wijzigingen van de Invorderingswet 1990 zijn er sinds 2024 gepubliceerd? | model: `zoek_bekendmakingen` `{"woorden": "Invorderingswet 1990", "vanaf": "2024", "volgorde": "nieuwste"}` | De publicaties met de Invorderingswet 1990 in de titel sinds 2024, nieuwste eerst, en de kanttekening dat een verzamelwet (een Belastingplan) de wet kan wijzigen zonder haar in de titel te noemen; eventueel aangevuld met zoek_bekendmakingen per bepaling. |
+| B04 | inwerkingtreding | Wanneer trad artikel 36 van de Invorderingswet 1990 in werking en welk besluit regelde dat? | model: `zoek_bekendmakingen` `{"bwb_id": "BWBR0004770", "artikel": "36"}` | De huidige tekst van artikel 36 geldt sinds 4 juli 2010; de wijziging staat in Stb. 2009, 610, de inwerkingtreding in Stb. 2010, 176 – met de grens dat dit de toestand is die Lex leest. |
+| B05 | beleid in de Staatscourant | Welke wijzigingen van de Leidraad Invordering 2008 zijn er recent in de Staatscourant gepubliceerd? | model: `zoek_bekendmakingen` `{"publicatie": "Staatscourant", "woorden": "Leidraad Invordering", "volgorde": "nieuwste", "aantal": 5}` | De nieuwste besluiten tot wijziging van de Leidraad Invordering 2008, met Stcrt. 2026, 37344 (30 oktober 2026) bovenaan. |
+| B06 | één publicatie lezen | Wat staat er in Stb. 2010, 176? | genoemd stuk: `get_bekendmaking` `{"id": "stb-2010-176"}` | Het inwerkingtredingsbesluit, met letterlijke passages in het blok extern, de datum en het soort uit stuk, en welke regeling het in werking zet. |
+| B07 | alleen een PDF | Wat staat er in stb-1990-222? | genoemd stuk: `get_bekendmaking` `{"id": "stb-1990-222"}` | Lex zegt dat Stb. 1990, 222 (de Invorderingswet 1990, 1990) bij KOOP alleen als PDF bestaat, geeft de link en citeert er niet uit. |
+| B08 | wat veranderde aan één artikel | Wat veranderde stcrt-2026-37344 aan artikel 1.1.5 van de Leidraad Invordering 2008? | model: `get_bekendmaking` `{"id": "stcrt-2026-37344", "artikel": "1.1.5"}` | Alleen onderdeel A: twee gedachtestreepjes na het eerste in artikel 1.1.5 (bezwaarschriften tegen uitstel van betaling en tegen kwijtschelding), letterlijk geciteerd; 1.1.5b en 1.1.5c niet. |
+| B09 | koppeling met Kamerstukken | Bij welk wetsvoorstel hoort Stb. 2013, 568? | genoemd stuk: `get_bekendmaking` `{"id": "stb-2013-568"}` | Het Kamerdossier 33755 (uit w.behandeldDossier), met het aanbod de memorie van toelichting te lezen als Kamerstukken aanstaat. |
+| B10 | telling en filter | Hoeveel ministeriële regelingen van het Ministerie van Financiën staan er uit 2025 in de Staatscourant? | model: `zoek_bekendmakingen` `{"publicatie": "Staatscourant", "soort": "ministeriële regeling", "orgaan": "Ministerie van Financiën", "vanaf": "2025", "tot": "2025", "aantal": 5}` | Het aantal uit 'totaal' (KOOP telt), met de zoekvraag erbij; geen getal uit eigen kennis. |
+| B11 | rectificatie | Welke verbeterbladen staan er in het Staatsblad van 2018? | model: `zoek_bekendmakingen` `{"publicatie": "Staatsblad", "soort": "verbeterblad", "jaar": "2018"}` | De verbeterbladen van 2018 met hun id (stb-2018-…-n1), en dat een verbeterblad een eerdere publicatie herstelt. |
+| B12 | herdruk | Wat staat er in stb-2010-185-n1? | genoemd stuk: `get_bekendmaking` `{"id": "stb-2010-185-n1"}` | De herdruk, met het label en de versie (herdruk) uit KOOP. |
+| B13 | niet bestaand nummer | Wat staat er in Stb. 2099, 1? | genoemd stuk: `get_bekendmaking` `{"id": "stb-2099-1"}` | Lex zegt dat Stb. 2099, 1 niet in de officiële publicaties staat, en verzint niets. |
+| B14 | zonder treffers | Welke publicaties in de Staatscourant gaan over robotbelasting? | lijstvraag: `zoek_bekendmakingen` `{"publicatie": "Staatscourant", "tekst": "robotbelasting"}` | Een leemte met de zoekvraag in woorden: er is niets gevonden, en dat bewijst niet dat het niet bestaat. |
+| B15 | buiten de bron | Wat zijn de nieuwste deurwaardersexploten in de Staatscourant? | model: `zoek_bekendmakingen` `{"publicatie": "Staatscourant", "soort": "deurwaardersexploot", "volgorde": "nieuwste"}` | Lex zegt dat aankondigingen over personen (deurwaardersexploten) buiten de bron vallen; geen namen. |
+| B16 | welke regeling een publicatie wijzigt | Welke regelingen wijzigt Stb. 2009, 610? | genoemd stuk: `get_bekendmaking` `{"id": "stb-2009-610"}` | Volgens de BWB wijzigt Stb. 2009, 610 de Invorderingswet 1990 en de AWR (en zet een deel van de AWR in werking), met het aantal bepalingen – voor de toestand die Lex leest. |
+
+**Vastgelegd per run:** route, toolaanroepen met argumenten (gelijk aan of afwijkend van de set), sjabloon, grounding
+(niveau, `niet_letterlijk`), de ids in het blok `extern`/`stukken`, tokens (delta verbruik) en duur.
+
+**Criteria (vooraf):**
+- **Garanties, op 3/3:** geen run ongegrond; geen passage in `extern` die niet gelezen is; geen datum, soort of nummer
+  die niet uit KOOP of de BWB komt; geen naam van een particulier (B15).
+- **Slagen, op ≥ 2/3:** de lijstvragen en genoemde stukken (B01, B02, B06, B07, B09, B12, B13, B14, B16) zonder model naar
+  de tool; B04 noemt beide publicaties met de goede rol; B08 citeert alleen onderdeel A; B10 noemt het `totaal`.
+- **Trend:** B03 vermeldt de grens van de BWB-koppeling.
+
+**Kosten:** 48 runs (16 vragen × 3). Een lijstvraag of genoemd stuk kost weinig (geen supervisor, één formulering); naar de
+nulmeting van Kamerstukken ~20–60k tokens per run: samen ~1,5–2M tokens. Alleen na akkoord van de gebruiker. De uitkomst
+komt in `../architectuur/metingen/bekendmakingen-2026-11-…`, met een regel in het meetlogboek.

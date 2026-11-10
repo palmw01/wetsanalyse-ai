@@ -30,6 +30,7 @@ from bronmodel.extern import externe_vindplaats
 from ..graph import queries
 from ..graph.results import parse_select
 from ..resultaat import compact, fout, pagina, per_eenheid
+from .zoekfilters import datum as _datum
 from .stuk_tekst import tekstpagina
 
 RECHTSPRAAK_TOOL_NAMEN = RECHTSPRAAK.tools
@@ -40,7 +41,6 @@ STANDAARD = 10
 #: Een alinea groter dan dit wordt op zinsgrenzen in delen geknipt (elk deel een eigen rij), zodat één rij binnen de
 #: begroting blijft. Een deel draagt `deel` ("2/3").
 MAX_ALINEA = 3000
-_DATUM_RE = re.compile(r"^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$")
 #: De titel zoals LiDO hem overneemt ("ECLI:… - Hoge Raad, 21-01-2022 / 21/00733") en zoals de zoekfeed van de
 #: Rechtspraak hem geeft ("ECLI:…, Hoge Raad, 02-10-2026, 26/01026").
 _TITEL_RE = re.compile(r"^\s*(ECLI:[^\s,]+)\s*[-,]\s*(?P<orgaan>.+?),\s*(?P<d>\d{2})-(?P<m>\d{2})-(?P<j>\d{4})"
@@ -204,18 +204,6 @@ def _in_woorden(label: str, regeling: str) -> str:
     """"artikel 36 van de Invorderingswet 1990": de bepaling waarbij gezocht is, voor de zoekvraag in woorden."""
     label = label[:1].lower() + label[1:] if label[:1].isupper() and not label[1:2].isupper() else label
     return f"{label} van {regeling}" if regeling else label
-
-
-def _datum(waarde: str, *, eind: bool) -> str:
-    m = _DATUM_RE.match((waarde or "").strip())
-    if not m:
-        raise ValueError(waarde)
-    j, mnd, d = m.group(1), m.group(2), m.group(3)
-    if d:
-        return f"{j}-{mnd}-{d}"
-    if mnd:
-        return f"{j}-{mnd}-31" if eind else f"{j}-{mnd}-01"
-    return f"{j}-12-31" if eind else f"{j}-01-01"
 
 
 @dataclass(frozen=True)

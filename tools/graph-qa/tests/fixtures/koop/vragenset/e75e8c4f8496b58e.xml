@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE officiele-publicatie PUBLIC "-//Overheid//Officiele publicaties 1.0//NL" "http://standaarden.overheid.nl/op/dtd/offpublicatie.dtd"[]>
+<officiele-publicatie>
+  <metadata>
+    <meta name="OVERHEIDop.externMetadataRecord" scheme="" content="https://zoek.officielebekendmakingen.nl/stb-2010-176/metadata.xml" />
+  </metadata>
+  <kop>
+    <titel status="officieel">Staatsblad</titel>
+    <subtitel>van het Koninkrijk der Nederlanden</subtitel>
+  </kop>
+  <staatsblad>
+    <intitule>Besluit van 28 april 2010 tot vaststelling van het tijdstip van inwerkingtreding van artikel XVII, onderdeel C, van Overige fiscale maatregelen 2010</intitule>
+    <wet-besluit>
+      <aanhef>
+        <wij>Wij Beatrix, bij de gratie Gods, Koningin der Nederlanden, Prinses van Oranje-Nassau, enz. enz. enz.</wij>
+        <considerans>
+          <considerans.al bevat="voordracht">Op de voordracht van Onze Minister van Financiën van 22 april 2010, nr. DB/2010/83U, Directoraat-Generaal voor Fiscale Zaken, Directie Directe Belastingen;</considerans.al>
+          <considerans.al bevat="grondslag">Gelet op artikel XXI, achtste lid, van Overige fiscale maatregelen 2010;</considerans.al>
+        </considerans>
+        <afkondiging>
+          <al>Hebben goedgevonden en verstaan:</al>
+        </afkondiging>
+      </aanhef>
+      <wettekst>
+        <artikel status="goed">
+          <kop>
+            <label>Enig</label>
+            <titel status="officieel">artikel</titel>
+          </kop>
+          <al>Artikel XVII, onderdeel C, van Overige fiscale maatregelen 2010 treedt in werking met ingang van 4 juli 2010.</al>
+        </artikel>
+      </wettekst>
+      <wetsluiting status="goed">
+        <slotformulering>
+          <al>Onze Minister van Financiën is belast met de uitvoering van dit besluit dat met de daarbij behorende nota van toelichting in het Staatsblad zal worden geplaatst.</al>
+        </slotformulering>
+        <gegeven>
+          <dagtekening>
+            <plaats>’s-Gravenhage,</plaats>
+            <datum isodatum="2010-04-28">28 april 2010</datum>
+          </dagtekening>
+          <koning>Beatrix</koning>
+        </gegeven>
+        <ondertekening>
+          <functie>De Minister van Financiën,</functie>
+          <naam>
+            <voornaam>J. C. de</voornaam>
+            <achternaam>Jager</achternaam>
+          </naam>
+        </ondertekening>
+        <uitgifte>
+          <datum isodatum="2010-05-11">Uitgegeven de <nadruk type="cur">elfde</nadruk> mei 2010</datum>
+          <ondertekening>
+            <functie>De Minister van Justitie a.i.,</functie>
+            <naam>
+              <voornaam>J. P.</voornaam>
+              <achternaam>Balkenende</achternaam>
+            </naam>
+          </ondertekening>
+        </uitgifte>
+      </wetsluiting>
+      <nota-toelichting>
+        <kop>
+          <titel status="officieel">NOTA VAN TOELICHTING</titel>
+        </kop>
+        <al-groep>
+          <al>In Overige fiscale maatregelen 2010 is in artikel XVII, onderdeel C, een wijziging opgenomen van artikel 36, tweede lid, van de Invorderingswet 1990. Op grond van die bepaling dient de bestuurder van een lichaam dat niet tot betaling van de verschuldigde belasting, bedoeld in die bepaling, in staat is, deze betalingsonmacht te melden bij de ontvanger. De wijzi<?xpp afbm?>ging van artikel 36, tweede lid, van de Invorderingswet 1990 bewerkstelligt dat de melding van de betalingsonmacht voortaan schriftelijk moet plaatsvinden, met dien verstande dat deze melding niet alleen op papier maar ook door middel van een elektronisch bericht kan worden gedaan.</al>
+          <al>De datum van inwerkingtreding van de wijziging hangt samen met het moment dat het webformulier voor de melding betalingsonmacht in het persoonlijk domein voor bedrijven gebruiksklaar is. De bestuurder kan dan ook een digitale melding doen. Op 4 juli 2010 is de automatisering van de Belastingdienst zover.</al>
+          <al>Inwerkingtreding met ingang van 4 juli 2010 houdt in dat de bestuurder vanaf die datum de betalingsonmacht uitsluitend schriftelijk kan melden, met de mogelijkheid om dit te doen via het persoonlijk domein voor bedrijven.</al>
+        </al-groep>
+        <al>Met inwerkingtreding op 4 juli 2010 wordt afgeweken van de vaste data voor inwerkingtreding van wetten. De reden voor de afwijking is gelegen in de aanpassing van de automatisering van de Belastingdienst die met ingang van die datum gereed is. Overigens wordt de invoeringstermijn van twee maanden wel in acht genomen en wordt – zoals toegezegd – de wijziging door middel van voorlichting vanaf de maand mei onder de aandacht van de doelgroep gebracht.</al>
+        <ondertekening>
+          <functie>De Minister van Financiën,</functie>
+          <naam>
+            <voornaam>J. C. de</voornaam>
+            <achternaam>Jager</achternaam>
+          </naam>
+        </ondertekening>
+      </nota-toelichting>
+    </wet-besluit>
+  </staatsblad>
+</officiele-publicatie>

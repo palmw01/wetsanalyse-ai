@@ -42,8 +42,9 @@ _VERGADERJAAR_RE = re.compile(r"\bvergaderjaar\s+(?P<a>\d{4})\s*[-/]\s*(?P<b>\d{
 _OVER_RE = re.compile(r"\bover\s+(?:de\s+|het\s+)?(?P<o>[^?.!,;]+)", re.IGNORECASE)
 #: Woorden die in een lijstvraag staan zonder iets te zoeken.
 _VULWOORDEN = frozenset("""geef mij me toon noem laat zien lijst wat welke wie is zijn de het een van uit bij in op
-    met en of er nu ook alle stuk stukken kamerstuk kamerstukken parlementaire publicaties dossier dossiernummer
-    kamerstukdossier staan zit zitten gaan gaat graag alsjeblieft aub kun kan je u noemen noemt genoemd over""".split())
+    met en of er nu ook alle stuk stukken publicaties staan zit zitten gaan gaat graag alsjeblieft aub kun kan je u
+    noemen noemt genoemd over horen hoort""".split()) | frozenset(
+    w for c in CONNECTORS.values() for w in (*c.verzamelnamen, *c.vulwoorden))
 MAX_ONDERWERP = 4
 
 
@@ -186,7 +187,7 @@ def _meervoud(c: ConnectorBeschrijving, woord: str) -> bool:
     """Is het woord na "de laatste" een meervoud ("de laatste moties", "de nieuwste uitspraken")? Dan geen aantal 1. Een
     woord op -en of -s dat een soort van de connector is, maar niet de soort zelf; en "stukken"."""
     w = woord.lower()
-    if w in {"stukken", "kamerstukken", "jurisprudentie", "rechtspraak"}:  # meervoud of verzamelnaam
+    if w == "stukken" or w in c.verzamelnamen:  # meervoud of verzamelnaam
         return True
     return w.endswith(("en", "s")) and any(re.search(p, w, re.IGNORECASE) for _, p in c.soorten) and all(
         w != label.lower() for label, _ in c.soorten)

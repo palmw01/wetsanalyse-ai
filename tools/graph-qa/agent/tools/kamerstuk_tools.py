@@ -14,17 +14,18 @@ De query bouwt deze module, het model kiest alleen dossier, woorden en het stuk.
 """
 from __future__ import annotations
 
-import calendar
-import json
 import re
-from datetime import date
 import xml.etree.ElementTree as ET
 from typing import Any, Protocol
 
 from bronmodel.connectors import KAMERSTUKKEN
 from bronmodel.extern import externe_vindplaats
 
-from ..resultaat import BUDGET, TeGroot, compact, fout, per_eenheid, resultaat
+from ..resultaat import compact, fout, per_eenheid
+from .op_xml import alineas, lees  # noqa: F401 – de lezer van elke officiële publicatie
+from .sru_zoeken import LIMIT, MAX_WOORDEN, OP_VOLGORDE, WOORD_RE as _WOORD_RE, per_record, tekst_cql as _tekst_cql
+from .sru_zoeken import cql_woorden, tekst_woorden, zoekvraag as _zoekvraag
+from .zoekfilters import datum as _datum
 from .stuk_tekst import MAX_INHOUD, inhoud, tekstpagina  # noqa: F401 – gedeeld met elke leestool
 
 #: Uit de beschrijving (`bronmodel.connectors`); de poorttest toetst dat `KAMERSTUK_TOOLS` precies deze namen heeft.
@@ -32,9 +33,6 @@ KAMERSTUK_TOOL_NAMEN = KAMERSTUKKEN.tools
 CONNECTOR = KAMERSTUKKEN.naam
 
 _DOSSIER_RE = re.compile(r"^\d{4,6}(?:-[A-Z0-9]{1,6})?$")
-_WOORD_RE = re.compile(r"[0-9A-Za-zÀ-ÿ]{3,}")
-MAX_WOORDEN = 6
-LIMIT = 25
 #: Tot zo veel stukken zet de tool een dossier zelf op nummer: ze haalt ze allemaal op. De zoekdienst sorteert
 #: `w.ondernummer` als tekst ("10" vóór "2"), dus dat kan hij niet zelf. Een groter dossier staat op documentdatum
 #: (`oudste`), per record gepagineerd met een exact vervolg: nooit afgekapt.
@@ -46,18 +44,11 @@ _BASIS = "c.product-area==officielepublicaties AND w.publicatienaam==Kamerstuk A
 #: De volgordes op de documentdatum (`KAMERSTUKKEN.standaard_datum`, dt.date). Alleen `sortBy` in de CQL sorteert: de
 #: parameter `sortKeys` negeert de dienst zonder melding (live, 9 nov 2026). Het id als tweede sleutel maakt de
 #: volgorde bij dezelfde datum vast, zodat pagineren stabiel is.
-_OP_VOLGORDE = {"nieuwste": " sortBy dt.date/sort.descending dt.identifier/sort.ascending",
-                "oudste": " sortBy dt.date/sort.ascending dt.identifier/sort.ascending"}
+_OP_VOLGORDE = OP_VOLGORDE
 _OP_DATUM = _OP_VOLGORDE["oudste"]
 _KAMERS = {"Tweede Kamer": "Tweede Kamer der Staten-Generaal", "Eerste Kamer": "Eerste Kamer der Staten-Generaal"}
 _NUMMER_RE = re.compile(r"^[0-9A-Z]{1,6}$")
 _JAAR_RE = re.compile(r"^(\d{4})\s*[-/]\s*(\d{4}|\d{2})$")
-_DATUM_RE = re.compile(r"^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$")
-#: Elementen die geen lopende tekst zijn; ze worden geteld en genoemd, nooit stil weggelaten.
-#: De XML van KOOP gebruikt CALS-tabellen (`table`): zonder die sleutel kwamen tabelcellen als losse alinea's mee, zoals
-#: de inhoudsopgave en de cijfers van een budgettabel zonder hun kolommen (acceptatie 8 nov 2026: 43 van de 63 alinea's
-#: van kst-33755-3).
-_OVERGESLAGEN = {"tabel": "tabel", "table": "tabel", "illustratie": "illustratie", "noot": "voetnoot"}
 
 
 class KamerstukBron(Protocol):
@@ -235,35 +226,15 @@ def _dossiertitel(records: list[Any]) -> str:
 
 
 def _cql_woorden(woorden: str) -> str:
-    gevonden = list(dict.fromkeys(w.lower() for w in _WOORD_RE.findall(woorden or "")))[:MAX_WOORDEN]
-    if not gevonden:
-        raise ValueError("geef woorden van minstens drie letters, of een dossiernummer")
-    return " AND ".join(f'dt.title any "{w}"' for w in gevonden)
+    return cql_woorden(woorden, zonder="geef woorden van minstens drie letters, of een dossiernummer")
 
 
 def _per_record(bron: KamerstukBron, cql: str, args: dict[str, Any], offset: int, *, toelichting: str = "",
                 leeg: str = "", extra: dict[str, Any] | None = None, dossier: bool = False, maximum: int = LIMIT) -> str:
-    """Een pagina in de volgorde van de zoekdienst. Per record één rij of niets; het vervolg telt in records, zoals de
-    zoekdienst, en `totaal` is het aantal records van de hele zoekvraag."""
-    totaal, deel = bron.zoek(cql, start=offset + 1, maximum=maximum)
-    paren = [(i, r) for i, r in enumerate(_rij(rec) for rec in deel) if r]
-    titel = _dossiertitel(deel) if dossier else ""
-
-    def maak(k: int) -> str:
-        gelezen = paren[k][0] if k < len(paren) else len(deel)
-        meer = offset + gelezen < totaal
-        return resultaat([r for _, r in paren[:k]], volledig=not meer, totaal=totaal,
-                         vervolg={"tool": "zoek_kamerstukken", "args": {**args, "offset": offset + gelezen}}
-                         if meer else None,
-                         toelichting=toelichting if paren else (leeg or toelichting),
-                         extra=compact({**(extra or {}), "dossiertitel": titel}) or None)
-
-    k = len(paren)
-    while k > 0 and len(maak(k)) > BUDGET:
-        k -= 1
-    if paren and k == 0:
-        raise TeGroot("zoek_kamerstukken: één rij is groter dan de begroting", omvang=len(maak(1)))
-    return maak(k)
+    """Een pagina in de volgorde van de zoekdienst (`sru_zoeken.per_record`), met de dossiertitel bij een dossier."""
+    return per_record(bron, cql, args, offset, tool="zoek_kamerstukken", rij=_rij, toelichting=toelichting, leeg=leeg,
+                      extra=extra, maximum=maximum,
+                      extra_van=(lambda deel: {"dossiertitel": _dossiertitel(deel)}) if dossier else None)
 
 
 def _dossier(bron: KamerstukBron, dossier: str, cql: str, args: dict[str, Any], offset: int) -> str:
@@ -295,24 +266,6 @@ def _dossier(bron: KamerstukBron, dossier: str, cql: str, args: dict[str, Any], 
                        extra=extra if lijst else None)
 
 
-def _zoekvraag(args: dict[str, Any], volgorde: str) -> dict[str, Any]:
-    """Wat er gezocht is, voor bij een lijst: de filters en de volgorde, zonder het vervolg."""
-    return {**{k: v for k, v in args.items() if k not in {"offset", "volgorde"}}, "volgorde": volgorde}
-
-
-def _datum(waarde: str, *, eind: bool) -> str:
-    """'2024' → 2024-01-01 (of 2024-12-31 als eind), '2024-06' → de eerste of laatste dag, '2024-06-01' blijft."""
-    m = _DATUM_RE.fullmatch(waarde)
-    if not m:
-        raise ValueError(waarde)
-    jaar, maand, dag = int(m.group(1)), m.group(2), m.group(3)
-    if dag:
-        return date(jaar, int(maand), int(dag)).isoformat()
-    if maand:
-        return date(jaar, int(maand), calendar.monthrange(jaar, int(maand))[1] if eind else 1).isoformat()
-    return date(jaar, 12, 31).isoformat() if eind else date(jaar, 1, 1).isoformat()
-
-
 def _vergaderjaar(waarde: str) -> str | None:
     """'2025-2026', '2025/2026' of '2025-26' → '2025-2026'; None als het geen opeenvolgend paar jaren is."""
     m = _JAAR_RE.fullmatch(waarde)
@@ -321,29 +274,6 @@ def _vergaderjaar(waarde: str) -> str | None:
     begin = int(m.group(1))
     eind = int(m.group(2)) if len(m.group(2)) == 4 else begin // 100 * 100 + int(m.group(2))
     return f"{begin}-{eind}" if eind == begin + 1 else None
-
-
-_ZINSDEEL_RE = re.compile(r'"([^"]*)"|„([^”]*)”')
-
-
-def _tekst_cql(tekst: str) -> str:
-    """De hele tekst van het stuk (`cql.textAndIndexes`): een zinsdeel tussen aanhalingstekens als zinsdeel (`adj`), de
-    losse woorden allemaal (`all`). Live getoetst op 9 nov 2026: 'één bankrekeningnummer' vond de acht stukken uit het
-    onderzoek naar één bankrekeningnummer, in de titel drie (meting kamerstukken-tekstzoeken-2026-11-09)."""
-    zinsdelen = [" ".join(_WOORD_RE.findall(a or b)).lower() for a, b in _ZINSDEEL_RE.findall(tekst)]
-    los = list(dict.fromkeys(w.lower() for w in _WOORD_RE.findall(_ZINSDEEL_RE.sub(" ", tekst))))
-    delen, aantal = [], 0
-    for z in (z for z in dict.fromkeys(zinsdelen) if z):
-        delen.append(f'cql.textAndIndexes adj "{z}"')
-        aantal += len(z.split())
-    if aantal + len(los) > MAX_WOORDEN:
-        # `_zoek` weigert dit al met een invoerfout: hier nooit stil inkorten.
-        raise ValueError(f"tekst: hoogstens {MAX_WOORDEN} woorden")
-    if los:
-        delen.append(f'cql.textAndIndexes all "{" ".join(los)}"')
-    if not delen:
-        raise ValueError("tekst")
-    return " AND " + " AND ".join(delen)
 
 
 def _soort_cql(soort: str) -> str:
@@ -396,7 +326,7 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
     aantal = a.get("aantal")
     if aantal is not None and (not isinstance(aantal, int) or isinstance(aantal, bool) or not 1 <= aantal <= LIMIT):
         return fout("ongeldig_aantal", f"'aantal' is een getal van 1 tot {LIMIT}, bijvoorbeeld {{\"aantal\": 10}}.")
-    if tekst and not 0 < len(set(_WOORD_RE.findall(tekst.lower()))) <= MAX_WOORDEN:
+    if tekst and not 0 < tekst_woorden(tekst) <= MAX_WOORDEN:
         return fout("ongeldige_tekst", f"geef één tot {MAX_WOORDEN} woorden van minstens drie letters, bijvoorbeeld "
                     "{\"tekst\": \"bankrekeningnummer toeslagen\"}.")
     filters = {"dossier": dossier, "nummer": nummer, "woorden": woorden, "tekst": tekst, "soort": soort,
@@ -435,171 +365,6 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
     return _per_record(bron, cql + _OP_VOLGORDE.get(volgorde, ""), args, offset, dossier=bool(dossier),
                        maximum=aantal or LIMIT, extra={"volgorde": volgorde, "zoekvraag": _zoekvraag(args, volgorde)},
                        leeg="Geen Kamerstukken die aan de zoekvraag voldoen.")
-
-
-def _platte_tekst(e: ET.Element, overgeslagen: dict[str, int], noten: list[ET.Element] | None = None) -> str:
-    """De tekst van een element zonder opmaak. Een voetnoot gaat naar `noten` (als die er is), anders telt hij mee in
-    `overgeslagen`: hij hoort niet in de lopende tekst, maar valt ook niet stil weg."""
-    delen: list[str] = [e.text or ""]
-    for kind in e:
-        if kind.tag == "noot" and noten is not None:
-            noten.append(kind)
-        elif kind.tag in _OVERGESLAGEN:
-            overgeslagen[_OVERGESLAGEN[kind.tag]] = overgeslagen.get(_OVERGESLAGEN[kind.tag], 0) + 1
-        else:
-            delen.append(_platte_tekst(kind, overgeslagen, noten))
-        delen.append(kind.tail or "")
-    return "".join(delen)
-
-
-def _voetnoot(noot: ET.Element) -> tuple[str, str, list[str]]:
-    """(nummer, tekst, verwijst_naar) van een `<noot>`. Alleen een `extref soort="document"` met een geldige externe
-    vindplaats wordt een verwijzing (Lex kan die met de leestool volgen); een URL blijft tekst."""
-    nr = " ".join((noot.findtext("noot.nr") or "").split())
-    delen = list(noot.iter("noot.al")) or [k for k in noot if k.tag != "noot.nr"]
-    tekst = " ".join(" ".join(_platte_tekst(a, {}).split()) for a in delen).strip()
-    naar: list[str] = []
-    for ref in noot.iter("extref"):
-        vp = externe_vindplaats(ref.get("doc") or "") if ref.get("soort") == "document" else None
-        if vp is not None and vp.id not in naar:
-            naar.append(vp.id)
-    return nr, tekst, naar
-
-
-def _is_inhoudsopgave(tabel: ET.Element) -> bool:
-    """De eigen inhoudsopgave van een stuk: een tabel zonder titel die met de cel "Inhoudsopgave" begint. Ze telt apart:
-    `inhoud` doet hetzelfde werk, en haar regels zijn geen tekst van het stuk."""
-    if tabel.find("title") is not None:
-        return False
-    eerste = next((" ".join(_platte_tekst(a, {}).split()) for a in tabel.iter("al")), "")
-    return eerste.lower() == "inhoudsopgave"
-
-
-def _cals(tabel: ET.Element, noten: list[ET.Element]) -> tuple[list[str], list[list[str]], int]:
-    """(kolomkoppen, rijen met cellen, aantal samengevoegde cellen) van een CALS-tabel, zoals KOOP ze schrijft.
-
-    Een cel die meer kolommen beslaat (`namest`/`nameend`) staat in haar eerste kolom, de rest blijft leeg; een cel die
-    meer rijen beslaat (`morerows`) staat alleen in haar eerste rij. Een weergavekeuze, geen herinterpretatie: elke
-    waarde staat er letterlijk en één keer, en het aantal samengevoegde cellen zegt het resultaat. Noten in een cel gaan
-    naar `noten` (de tabelnoten komen na de rijen)."""
-    kolommen: list[str] = []
-    rijen: list[list[str]] = []
-    samen = 0
-    for groep in tabel.iter("tgroup"):
-        specs = [c for c in groep if c.tag == "colspec"]
-        n = max(int(groep.get("cols") or 0), len(specs))
-        index = {c.get("colname"): i for i, c in enumerate(specs) if c.get("colname")}
-
-        def rij_van(rij: ET.Element) -> list[str]:
-            nonlocal samen
-            cellen, vrij = [""] * n, 0
-            for cel in (e for e in rij if e.tag == "entry"):
-                begin = index.get(cel.get("namest") or cel.get("colname") or "", vrij)
-                eind = index.get(cel.get("nameend") or "", begin)
-                if eind > begin or (cel.get("morerows") or "0") != "0":
-                    samen += 1
-                if begin < n:
-                    cellen[begin] = " ".join(_platte_tekst(cel, {}, noten).split())
-                vrij = eind + 1
-            return cellen
-
-        kop = [rij_van(r) for d in groep if d.tag == "thead" for r in d if r.tag == "row"]
-        if kop and not kolommen:
-            kolommen = [" ".join(c for c in kolom if c) for kolom in zip(*kop)]
-        rijen += [c for d in groep if d.tag == "tbody" for r in d if r.tag == "row" if any(c := rij_van(r))]
-    return kolommen, rijen, samen
-
-
-def alineas(xml: bytes) -> tuple[dict[str, str], list[dict[str, Any]], dict[str, int]]:
-    """(kop van het stuk, rijen in documentvolgorde, overgeslagen per soort) uit de XML van een Kamerstuk."""
-    kop, rijen, overgeslagen, _ = lees(xml)
-    return kop, rijen, overgeslagen
-
-
-def lees(xml: bytes) -> tuple[dict[str, str], list[dict[str, Any]], dict[str, int], dict[int, tuple[list[dict[str, Any]], int]]]:
-    """(kop van het stuk, rijen in documentvolgorde, overgeslagen per soort, tabellen) uit de XML van een Kamerstuk.
-
-    Een rij is een alinea, of een voetnoot direct na de alinea waar hij in staat (`soort: "voetnoot"`, met `noot` en
-    `verwijst_naar`); de alinea zelf houdt haar letterlijke tekst en noemt haar noten (`noten`). Een tabel is één rij
-    (`soort: "tabel"`, de titel als tekst, met de omvang); haar inhoud staat in `tabellen[nr]`: de kop (de titel met de
-    kolommen als `cellen`), per tabelrij `{soort: "tabelrij", cellen, tekst}` en de tabelnoten, met het aantal
-    samengevoegde cellen. Eén nummering per stuk (`nr`), want het blok `extern` voegt pagina's samen op `nr`."""
-    root = ET.fromstring(xml)
-    stuk = root.find(".//stuk")
-    if stuk is None:
-        raise ValueError("geen stuk in het document")
-    overgeslagen: dict[str, int] = {}
-    uit: list[dict[str, Any]] = []
-    tabellen: dict[int, tuple[list[dict[str, Any]], int]] = {}
-    teller = [0]
-
-    def volgende() -> int:
-        teller[0] += 1
-        return teller[0]
-
-    def voetnootrijen(noten: list[ET.Element], kop: str) -> list[dict[str, Any]]:
-        rijen: list[dict[str, Any]] = []
-        for nr, ntekst, naar in (_voetnoot(n) for n in noten):
-            if not ntekst:  # een lege noot valt niet stil weg
-                overgeslagen["voetnoot"] = overgeslagen.get("voetnoot", 0) + 1
-            else:
-                rijen.append(compact({"nr": volgende(), "soort": "voetnoot", "noot": nr, "kop": kop, "tekst": ntekst,
-                                      "verwijst_naar": naar}))
-        return rijen
-
-    def kop_van(divisie: ET.Element) -> str:
-        kop = divisie.find("kop")
-        if kop is None:
-            return ""
-        return " ".join(" ".join(_platte_tekst(k, {}).split()) for k in kop if k.tag in {"nr", "titel"}).strip()
-
-    def loop(e: ET.Element, koppen: tuple[str, ...]) -> None:
-        # Een `tussenkop` ("Artikel I (artikel 30hb …)") geldt voor de alinea's die erna komen in dezelfde divisie: in de
-        # artikelsgewijze toelichting zegt juist die kop bij welk artikel een alinea hoort. Eerst viel hij stil weg.
-        tussen = ""
-        for kind in e:
-            hier = (*koppen, tussen) if tussen else koppen
-            if kind.tag in {"table", "tabel"} and _is_inhoudsopgave(kind):
-                overgeslagen["inhoudsopgave"] = overgeslagen.get("inhoudsopgave", 0) + 1
-            elif kind.tag in {"table", "tabel"} and kind.find(".//tgroup") is not None:
-                # Alleen een CALS-tabel (met `tgroup`) is te lezen als tabel; iets anders telt in `overgeslagen`.
-                kop, nr, noten = " › ".join(hier), volgende(), []
-                titel = (" ".join(_platte_tekst(kind.find("title"), {}).split()) if kind.find("title") is not None
-                         else "") or "Tabel zonder titel"
-                kolommen, cellen, samen = _cals(kind, noten)
-                inhoud_t = [compact({"nr": nr, "soort": "tabel", "kop": kop, "tekst": titel, "cellen": kolommen})]
-                inhoud_t += [{"nr": volgende(), "soort": "tabelrij", "cellen": c, "tekst": " | ".join(c)} for c in cellen]
-                inhoud_t += voetnootrijen(noten, kop)
-                tabellen[nr] = (inhoud_t, samen)
-                breed = max([len(kolommen), *(len(c) for c in cellen)], default=0)
-                # `tot_nr`: het laatste nr van de tabel; een passage over de tabel heen toont dan de titel, en wie de
-                # rijen wil, opent de tabel.
-                uit.append({"nr": nr, "soort": "tabel", **({"kop": kop} if kop else {}), "tekst": titel,
-                            "tot_nr": teller[0],
-                            "omvang": f"{len(cellen)} {'rij' if len(cellen) == 1 else 'rijen'}, {breed} "
-                                      f"{'kolom' if breed == 1 else 'kolommen'}"})
-            elif kind.tag in _OVERGESLAGEN:
-                overgeslagen[_OVERGESLAGEN[kind.tag]] = overgeslagen.get(_OVERGESLAGEN[kind.tag], 0) + 1
-            elif kind.tag == "tussenkop":
-                tussen = " ".join(_platte_tekst(kind, overgeslagen).split())
-            elif kind.tag == "divisie":
-                kop = kop_van(kind)
-                loop(kind, (*hier, kop) if kop else hier)
-            elif kind.tag == "al":
-                noten: list[ET.Element] = []
-                tekst = " ".join(_platte_tekst(kind, overgeslagen, noten).split())
-                kop = " › ".join(hier)
-                gelezen = [_voetnoot(n) for n in noten]
-                if tekst:
-                    uit.append(compact({"nr": volgende(), "kop": kop, "tekst": tekst,
-                                        "noten": [nr for nr, _, _ in gelezen if nr]}))
-                uit.extend(voetnootrijen(noten, kop))
-            elif kind.tag not in {"kop", "stuknr", "titel"}:
-                loop(kind, hier)
-
-    loop(stuk, ())
-    titel = " ".join(_platte_tekst(stuk.find("titel"), {}).split()) if stuk.find("titel") is not None else ""
-    return {"documenttitel": titel}, uit, overgeslagen, tabellen
 
 
 def _get(bron: KamerstukBron, a: dict[str, Any]) -> str:

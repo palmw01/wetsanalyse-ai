@@ -21,6 +21,7 @@ from typing import Any
 import httpx
 from bronmodel import NOG_NIET
 from bronmodel.connectors import CONNECTORS as _BESCHRIJVINGEN
+from bronmodel.extern import koop_id_uit_bron
 
 from ..graph import queries, schema
 from ..graph.results import parse_select
@@ -289,10 +290,22 @@ def _h_grondslagen(g: GraphPort, a: dict[str, Any]) -> str:
     return _lijst(g, a, "grondslagen", lambda **p: queries.grondslagen(a["bwb_id"], aanduiding, **p), 50, 200)
 
 
+#: De velden van `geldigheid` met een publicatie in de vorm van de BWB ("Stb.2009-610").
+_BWB_BRONVELDEN = ("bron", "wijzigingsbron", "inwerkingtredingsbron")
+
+
 def _h_geldigheid(g: GraphPort, a: dict[str, Any]) -> str:
     aanduiding = a.get("artikel") or a.get("nummer") or None
-    return _lijst(g, a, "geldigheid",
-                  lambda **p: queries.geldigheid(a["bwb_id"], aanduiding, a.get("lid") or None, **p), 50, 200)
+    limit, offset = _geheel(a.get("limit"), 50, 1, 200), _offset(a)
+    rijen = parse_select(g.sparql(queries.geldigheid(a["bwb_id"], aanduiding, a.get("lid") or None, limit=limit,
+                                                     offset=offset, meer=True)))
+    # Naast "Stb.2009-610" het id van de bekendmaking (stb-2009-610): daarmee leest Lex haar met de connector
+    # Staatsblad en Staatscourant, als die aanstaat (ADR-013).
+    for r in rijen:
+        ids = list(dict.fromkeys(i for v in _BWB_BRONVELDEN if (i := koop_id_uit_bron(r.get(v, "")))))
+        if ids:
+            r["bekendmakingen"] = ids
+    return pagina(rijen, tool="geldigheid", args={**a, "limit": limit}, limit=limit, offset=offset)
 
 
 def _h_bijlagen(g: GraphPort, a: dict[str, Any]) -> str:
@@ -784,7 +797,8 @@ TOOLS: list[dict[str, Any]] = [
             "overgangsrecht); voor de regeling: geldig vanaf/tot, toestand-URL, ondertekenings- en "
             "uitgiftedatum en het dossier van de oorspronkelijke wet.\n"
             "Zoek je de toelichting van de wetgever bij déze bepaling, gebruik dan dossiersBepaling "
-            "met de Kamerstukken-connector als die aanstaat.\n"
+            "met de Kamerstukken-connector als die aanstaat; 'bekendmakingen' noemt de ids van die publicaties "
+            "(stb-…, stcrt-…), te lezen met de connector Staatsblad en Staatscourant als die aanstaat.\n"
             "Gebruik dit bij vragen over peildatum, versies of terugwerkende kracht, en om te "
             "melden op welke toestand een analyse berust." + _CONTRACT
         ),

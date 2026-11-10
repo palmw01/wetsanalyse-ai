@@ -110,6 +110,17 @@ wetsanalyse-API; de Kamerstuktools staan achter een vlag (hieronder).
 
 `jas_klasse_opvragen` staat daarbuiten en is opt-in per specialist.
 
+### Bronnen naast de wet: Staatsblad en Staatscourant (ADR-013, fase 1d)
+
+Achter `CONNECTOR_BEKENDMAKINGEN` krijgt Lex twee tools, op dezelfde SRU van KOOP als Kamerstukken (gedeelde laag in
+`agent/adapters/sru_koop.py`; alleen lezen, alleen `repository.overheid.nl`; de dataset is CC0):
+
+- **`zoek_bekendmakingen`**: met bwb-id en artikel de publicaties die de BWB bij de huidige tekst noemt (de laatste
+  wijziging en het inwerkingtredingsbesluit, uit de graaf), anders op titel, tekst, soort, blad, datum, jaargang,
+  ministerie en Kamerdossier, nieuwste, oudste of op relevantie.
+- **`get_bekendmaking`**: de tekst per alinea met de kop van artikel en wijzigingsonderdeel; met `artikel` alleen de
+  onderdelen die dat artikel wijzigen. Een oud stuk staat vaak alleen als PDF: dat zegt het resultaat, met de metadata.
+
 ### Bronnen naast de wet: Rechtspraak (ADR-013, fase 1c)
 
 Achter `CONNECTOR_RECHTSPRAAK` krijgt Lex twee tools, met de transportlaag in `agent/adapters/lido_rechtspraak.py`
@@ -265,6 +276,7 @@ Secrets kunnen ook als `<NAAM>_FILE` (pad naar een bestand) worden gezet: `GRAPH
 | `GRAPHDB_SPARQL_TOOL` | `sparql_query` | Naam van de SPARQL-tool op de MCP-server. |
 | `SIMILARITY_INDEX` | leeg | GraphDB-similarity-index voor `semantic_search` (op Azure `bwb_similarity`). Leeg → de tool degradeert naar `search_wetgeving`. Zie [`docs/embeddings-runbook.md`](docs/embeddings-runbook.md). |
 | `CONNECTOR_KAMERSTUKKEN` | `false` | De bronconnector Kamerstukken (ADR-013): `zoek_kamerstukken` en `get_kamerstuk` op de officiële publicaties van KOOP. Uit = niet aangeboden. |
+| `CONNECTOR_BEKENDMAKINGEN` | `false` | De bronconnector Staatsblad en Staatscourant (ADR-013, fase 1d): `zoek_bekendmakingen` en `get_bekendmaking`, op de SRU van KOOP. Uit = niet aangeboden. |
 | `CONNECTOR_RECHTSPRAAK` | `false` | De bronconnector Rechtspraak (ADR-013, fase 1c): `zoek_uitspraken` (uitspraken die een artikel noemen, uit Linked Data Overheid) en `get_uitspraak` (de tekst, uit de open data van de Rechtspraak). Uit = niet aangeboden. |
 | `KAMERSTUKKEN_SRU_URL` | de SRU-dienst van KOOP | Alleen voor een andere SRU-dienst; de documenten komen altijd uit `repository.overheid.nl`. |
 | `AZURE_FOUNDRY_API_KEY` *(verplicht)* | – | Azure-AI-Foundry-key. |

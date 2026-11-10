@@ -24,7 +24,7 @@ import pytest
 import agent
 from agent import begrip_kaart, bronnen_vinden, plekken, regelingnamen, zoekvragen
 from agent.graph import queries as q
-from agent.tools import begrip_tools, rechtspraak_tools
+from agent.tools import begrip_tools, bekendmaking_tools, rechtspraak_tools
 
 rdflib = pytest.importorskip("rdflib", reason="rdflib is een dev-only parser-afhankelijkheid")
 from rdflib.plugins.sparql import prepareQuery  # noqa: E402
@@ -79,6 +79,9 @@ GEVALLEN: list[tuple[str, str]] = [
     # De bouwers buiten `queries.py` horen bij hun domein; `test_elke_bouwer_buiten_queries_wordt_getoetst`
     # ontdekt ze zelf.
     ("tools.rechtspraak_tools._q_artikel", rechtspraak_tools._q_artikel(IW, "36")),
+    ("tools.bekendmaking_tools._q_bij_artikel", bekendmaking_tools._q_bij_artikel(IW, "36")),
+    ("tools.bekendmaking_tools._q_bij_regeling", bekendmaking_tools._q_bij_regeling(IW)),
+    ("tools.bekendmaking_tools._q_regelingen_bij", bekendmaking_tools._q_regelingen_bij(["Stb.2009-610", "Stb.2010-176"])),
     ("begrip_kaart.q_brondefinities", begrip_kaart.q_brondefinities(["bestuurder"])),
     ("begrip_kaart.q_onder", begrip_kaart.q_onder(["bestuurder"])),
     ("begrip_kaart.q_verwijzingen", begrip_kaart.q_verwijzingen(f"urn:bwb:{IW}:artikel:4")),

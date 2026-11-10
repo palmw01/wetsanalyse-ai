@@ -286,6 +286,25 @@ class NepSru:
         return Document(ident, self.xml, "h", record=rec)
 
 
+class NepKoopBekendmakingen(NepSru):
+    """De zoekdienst van KOOP voor het Staatsblad en de Staatscourant: `n` publicaties, elke vierde alleen een PDF, met de
+    langste metadata die KOOP geeft, en een publicatie met `alineas` lange alinea's in artikelen."""
+
+    def __init__(self, n: int, alineas: int = 400, tabel: int = 0) -> None:
+        self.records = [Record(
+            id=f"stb-2099-{i}", titel=f"Besluit van 1 januari 2099 tot wijziging {i} " + _LANG[:200], datum="2099-01-02",
+            gepubliceerd="2099-01-05", vergaderjaar="", dossiers=(), ondernummer="",
+            xml_url="" if i % 4 == 0 else f"https://repository.overheid.nl/x/stb-2099-{i}.xml",
+            pdf_url=f"https://repository.overheid.nl/x/stb-2099-{i}.pdf", kamer="Ministerie van Financiën",
+            publicatienaam="Staatsblad", jaargang="2099", publicatienummer=str(i), ondertekend="2098-12-20",
+            behandeld_dossiers=("99001", "99002"), type="Klein Koninklijk Besluit", samenvatting=_LANG[:200],
+            gewijzigd="2099-01-05") for i in range(1, n + 1)]
+        als = "".join(f"<al>{i}. {_LANG[:1500]}</al>" for i in range(alineas))
+        self.xml = (f"<officiele-publicatie><staatsblad><intitule>Besluit</intitule><wet-besluit><wettekst>"
+                    f"<artikel><kop><label>Artikel</label><nr>1</nr></kop>{als}</artikel>"
+                    f"</wettekst></wet-besluit></staatsblad></officiele-publicatie>").encode()
+
+
 class NepRechtspraak:
     """LiDO en de Rechtspraak: `n` uitspraken bij een artikel, verspreid over drie versies en met de langste titels die
     LiDO geeft, en een uitspraak met `alineas` lange alinea's."""
@@ -319,7 +338,7 @@ class NepRechtspraak:
 
 
 #: Per connector: een nepbron per omvang, en per tool de argumenten en de omvang van de dataset die terug moet komen.
-NEPBRONNEN = {"kamerstukken": NepSru, "rechtspraak": NepRechtspraak}
+NEPBRONNEN = {"kamerstukken": NepSru, "rechtspraak": NepRechtspraak, "bekendmakingen": NepKoopBekendmakingen}
 CONNECTOR_ARGS: dict[str, list[tuple[dict, str]]] = {
     "zoek_kamerstukken": [({"dossier": "99001"}, "dossier"), ({"woorden": "Invorderingswet"}, "dossier"),
                           ({"dossier": "99001", "woorden": "stuk"}, "dossier")],
@@ -327,6 +346,9 @@ CONNECTOR_ARGS: dict[str, list[tuple[dict, str]]] = {
     "zoek_uitspraken": [({"bwb_id": "BWBR0004770", "artikel": "9"}, "dossier"),
                         ({"bwb_id": "BWBR0004770", "artikel": "9", "volgorde": "oudste", "aantal": 25}, "dossier")],
     "get_uitspraak": [({"id": "ECLI:NL:HR:2020:1"}, "alineas")],
+    "zoek_bekendmakingen": [({"woorden": "Invorderingswet"}, "dossier"),
+                            ({"publicatie": "Staatsblad", "volgorde": "nieuwste", "aantal": 25}, "dossier")],
+    "get_bekendmaking": [({"id": "stb-2099-1"}, "alineas")],
 }
 OMVANGEN = (1, 40, 300, 301, 1000, 1001, 1200)
 
