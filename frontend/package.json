@@ -15,7 +15,7 @@
     "iconen": "node scripts/genereer-iconen.mjs"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/api": "^1.10.0",
     "@sigma/node-border": "^4.0.0",
     "@vercel/otel": "^2.3.0",
     "graphology": "^0.26.0",
