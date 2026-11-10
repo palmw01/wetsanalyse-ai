@@ -444,7 +444,11 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
         # leemte) rust de toelichting op wat er verder is opgehaald, en dat moet herleidbaar blijven.
         # Een vervolgvraag kan op een eerdere beurt rusten, dus de doelen zoek je in de hele controletrace.
         # Een regeling opzoeken is geen bron: daarmee vond Lex alleen het BWB-id.
-        doelen = {d["iri"] for d in state["antwoord"].get("doelen") or []}
+        # Een stuk waaruit het blok `extern` citeert, is ook een vindplaats van het antwoord: met doelen viel het anders
+        # weg (meting bekendmakingen B04: alleen art. 36 lid 2, niet het gelezen Stb. 2010, 176).
+        doelen = ({d["iri"] for d in state["antwoord"].get("doelen") or []}
+                  | ({b["id"] for b in state["antwoord"].get("blokken") or []
+                      if b.get("soort") == "extern" and b.get("id")} if state["antwoord"].get("doelen") else set()))
         sources = ([s for s in collect_sources(controletrace(state)) if s.uri in doelen] if doelen
                    else collect_sources([(n, t) for n, t in state.get("source_trace", []) if n not in _OPZOEKTOOLS]))
     else:
@@ -456,8 +460,10 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
             sources = curate_sources(sources, state.get("answer", ""))
     if not state.get("overzicht"):
         # Een bron naast de wet alleen als ze gelezen en genoemd is; een zoekresultaat is geen bron (ADR-013).
+        geciteerd = frozenset(b["id"] for b in (state.get("antwoord") or {}).get("blokken") or []
+                              if b.get("soort") == "extern" and b.get("id"))
         sources = alleen_gelezen_extern(sources, controletrace(state), state.get("answer", ""),
-                                        state.get("question", ""))
+                                        state.get("question", ""), geciteerd)
     # Na het cureren: alleen de namen van regelingen die in de lijst blijven (één query per beurt).
     sources = met_regelingnamen(b.graph, sources)
     src_dicts = [s.model_dump() for s in sources]

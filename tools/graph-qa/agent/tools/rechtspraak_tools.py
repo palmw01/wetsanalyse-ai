@@ -27,6 +27,7 @@ from typing import Any, Protocol
 from bronmodel.connectors import INSTANTIES, RECHTSPRAAK
 from bronmodel.extern import externe_vindplaats
 
+from ..adapters.lido_rechtspraak import begindatum
 from ..graph import queries
 from ..graph.results import parse_select
 from ..resultaat import compact, fout, pagina, per_eenheid
@@ -66,6 +67,19 @@ _UITLEG = (
     " Een uitspraak is rechtspraak, geen wettekst: noem haar met haar ECLI, zeg wat de wet zelf zegt alleen op grond "
     "van de opgehaalde bepaling, en zeg 'noemt het artikel', niet 'legt het uit', tot je de uitspraak hebt gelezen."
 )
+#: De regel over de versie van het artikel (review ADR-013, 10 nov 2026): LiDO koppelt een uitspraak aan de tekst die
+#: gold op haar datum, en een artikel verandert.
+_VERSIE = (
+    " Een uitspraak bij een 'eerdere tekst' presenteer je niet als uitleg van de huidige norm zonder dat te zeggen, met "
+    "de periode erbij ('over de tekst die gold van … tot …'). Ook bij 'huidige tekst' koppelt LiDO alleen naar de datum "
+    "van de uitspraak: welke tekst de rechter toepaste (een eerder belastingjaar, overgangsrecht) staat pas in de "
+    "uitspraak. Geef 'peildatum' mee als het werkgebied een peildatum heeft of de vraag een datum noemt."
+)
+#: De standen van de tekst waarbij een uitspraak hoort, en het filter erop.
+HUIDIG, EERDER, ONBEKEND = "huidige tekst", "eerdere tekst", "onbekend"
+TEKSTSTANDEN = (HUIDIG, EERDER, "op peildatum")
+#: Hoogstens zoveel versies in `tekstversies` (de begroting van een pagina is klein; de nieuwste eerst).
+MAX_TEKSTVERSIES = 8
 
 RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
     {
@@ -78,12 +92,16 @@ RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
             "de Hoge Raad in het belastingrecht'. Zoeken op woorden in de tekst kan langs geen van beide. Filter op "
             "'instantie' (een soort gerecht als 'Hoge Raad' of 'rechtbank', of één gerecht als 'Rechtbank Gelderland' of "
             "'CRvB'), 'soort' (uitspraak of conclusie) en een periode ('vanaf', 'tot'). Volgorde 'nieuwste' (standaard) "
-            "of 'oudste', op de datum van de uitspraak." + _UITLEG + "\n"
+            "of 'oudste', op de datum van de uitspraak. Met artikel ook 'tekststand' (huidige tekst, eerdere tekst, op "
+            "peildatum) en 'peildatum'." + _UITLEG + _VERSIE + "\n"
             "GEEFT TERUG per uitspraak: id (de ECLI), label, soort, titel, datum (van de uitspraak), orgaan (het "
-            "gerecht), nummer (het zaaknummer), link en, zonder artikel, samenvatting (de ingekorte inhoudsindicatie); leesbaar: false als de tekst niet bij de Rechtspraak staat (een "
+            "gerecht), nummer (het zaaknummer), link, met artikel tekst_vanaf en tekst_tot (de tekst van het artikel "
+            "waaraan LiDO de uitspraak koppelde), tekststand ('huidige tekst', 'eerdere tekst' of 'onbekend', tegenover "
+            "de tekst in de graaf) en met een peildatum op_peildatum, en, zonder artikel, samenvatting (de ingekorte inhoudsindicatie); leesbaar: false als de tekst niet bij de Rechtspraak staat (een "
             "buitenlandse of Europese ECLI). Daarnaast 'bepaling', 'zoekvraag', 'totaal', 'per_instantie' (hoeveel "
             "uitspraken per soort gerecht), 'koppelingen' (hoeveel LiDO automatisch herkende en hoeveel een redactie "
-            "legde) en 'dekking': "
+            "legde), 'huidige_tekst' (sinds wanneer de tekst in de graaf geldt), 'per_tekststand', 'tekstversies' (per "
+            "versie van het artikel vanaf, tot en hoeveel uitspraken) en 'dekking': "
             "altijd 'ten minste', met 'versies' (hoeveel versies van het artikel LiDO kende). Noem bij een lijst het "
             "totaal en dat het om vermeldingen gaat. Lees een uitspraak met get_uitspraak voor je zegt wat ze inhoudt."
             + _CONTRACT
@@ -104,6 +122,12 @@ RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
                 "vanaf": {"type": "string", "description": "Vanaf deze datum van de uitspraak: JJJJ-MM-DD, JJJJ-MM of "
                                                            "JJJJ, bijvoorbeeld '2020'."},
                 "tot": {"type": "string", "description": "Tot en met deze datum, in dezelfde vorm."},
+                "tekststand": {"type": "string", "enum": list(TEKSTSTANDEN),
+                               "description": "Alleen met artikel: de uitspraken bij de huidige tekst, bij een eerdere "
+                                              "tekst, of bij de tekst die gold op de 'peildatum'."},
+                "peildatum": {"type": "string", "description": "Alleen met artikel: de datum waarop de tekst moet "
+                              "gelden (JJJJ-MM-DD), bijvoorbeeld de peildatum van het werkgebied; elke uitspraak zegt "
+                              "dan of haar tekst toen gold (op_peildatum)."},
                 "volgorde": {"type": "string", "enum": list(RECHTSPRAAK.volgordes),
                              "description": "nieuwste of oudste (op de datum van de uitspraak)."},
                 "aantal": {"type": "integer", "description": f"Hoeveel per pagina, 1 tot {LIMIT}."},
@@ -190,14 +214,82 @@ def rij_van(ecli: str, titel: str) -> dict[str, Any]:
 
 def _q_artikel(bwb_id: str, artikel: str) -> str:
     """De jci, de label-id, het soort van de bepaling en de citeertitel van haar regeling, uit de graaf."""
-    return queries.PREFIXES + f"""SELECT ?node ?jci ?labelId ?label ?soort ?citeertitel WHERE {{
+    return queries.PREFIXES + f"""SELECT ?node ?jci ?labelId ?label ?soort ?citeertitel ?inwerking ?terugwerkendTot WHERE {{
   {queries.node_patroon(bwb_id, artikel)}
   ?node a ?soort . FILTER(?soort IN (bwb:Artikel, bwb:Divisie))
   OPTIONAL {{ ?node bwb:jci ?jci }}
+  OPTIONAL {{ ?node bwb:inwerking ?inwerking }}
+  OPTIONAL {{ ?node bwb:terugwerkendTot ?terugwerkendTot }}
   OPTIONAL {{ ?node bwb:labelId ?labelId }}
   OPTIONAL {{ ?node rdfs:label ?label }}
   OPTIONAL {{ ?reg a bwb:Regeling ; bwb:bwbId {queries._lit(bwb_id)} ; bwb:citeertitel ?citeertitel }}
 }} LIMIT 2"""
+
+
+@dataclass(frozen=True)
+class Tekstversie:
+    """Eén versie van het artikel in LiDO: sinds wanneer en tot wanneer die tekst gold, en of het de tekst in de graaf
+    is (`huidig`: True, False, of None als dat niet vast te stellen is)."""
+    versie: str
+    vanaf: str
+    tot: str
+    huidig: bool | None
+
+
+def _dag_ervoor(datum: str) -> str:
+    try:
+        return (dt.date.fromisoformat(datum) - dt.timedelta(days=1)).isoformat()
+    except ValueError:
+        return ""
+
+
+def tekstversies(versies: tuple[str, ...] | list[str], huidig: tuple[str, ...] = ()) -> tuple[list[Tekstversie], bool]:
+    """(de versies met hun periode, nieuwste eerst; of LiDO de huidige tekst nog niet kent).
+
+    `huidig` zijn de datums waarop de tekst in de graaf ging gelden (`bwb:inwerking`, en `bwb:terugwerkendTot` als die er
+    is). Een LiDO-versie begint op de inwerkingtreding van haar tekst (dump 10 nov 2026: elke wijziging een versie, geen
+    versie zonder wijziging), dus de versie met die begindatum is de tekst in de graaf. Een versie die daarvóór begint
+    is een eerdere tekst; een die daarna begint kent de graaf nog niet (onbekend). Begint de nieuwste versie vóór de
+    tekst in de graaf, dan kent LiDO die tekst nog niet: alles is dan een eerdere tekst, en de nieuwste gold tot de dag
+    vóór de huidige. Zonder `huidig` is de stand onbekend, maar de perioden staan er wel."""
+    met = sorted({(b, v) for v in versies if (b := begindatum(v))}, reverse=True)
+    uit: list[Tekstversie] = []
+    huidig = tuple(sorted(d for d in huidig if d))
+    loopt_achter = bool(huidig and met and met[0][0] < huidig[0])
+    for i, (begin, v) in enumerate(met):
+        tot = _dag_ervoor(met[i - 1][0]) if i else (_dag_ervoor(max(huidig)) if loopt_achter else "")
+        if not huidig:
+            stand = None
+        elif begin in huidig:
+            stand = True
+        elif begin < huidig[0]:
+            stand = False
+        else:
+            stand = None
+        uit.append(Tekstversie(v, begin, tot, stand))
+    return uit, loopt_achter
+
+
+def _tekst_van(versies: list[Tekstversie], peildatum: str) -> dict[str, Any]:
+    """De velden van een rij uit de versies waaraan LiDO de uitspraak koppelde: de vroegste vanaf, de laatste tot (leeg
+    als een versie nog geldt), de stand (huidig als een versie de tekst in de graaf is) en met een peildatum of een van
+    die teksten toen gold."""
+    if not versies:
+        return {}
+    standen = {t.huidig for t in versies}
+    uit: dict[str, Any] = {
+        "tekst_vanaf": min(t.vanaf for t in versies),
+        "tekst_tot": "" if any(not t.tot for t in versies) else max(t.tot for t in versies),
+        "tekststand": HUIDIG if True in standen else EERDER if standen == {False} else ONBEKEND,
+    }
+    if peildatum:
+        uit["op_peildatum"] = any(t.vanaf <= peildatum and (not t.tot or peildatum <= t.tot) for t in versies)
+    return uit
+
+
+def _voluit(datum: str) -> str:
+    m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", datum or "")
+    return f"{int(m[3])} {_MAANDEN[int(m[2]) - 1]} {m[1]}" if m else datum
 
 
 def _in_woorden(label: str, regeling: str) -> str:
@@ -334,6 +426,26 @@ def _zoek_feed(bron: RechtspraakBron, a: dict[str, Any], keuze: "_Keuze | None",
                   limit=aantal, offset=offset, toelichting=toelichting, extra=extra)
 
 
+def _stand_zin(label: str, versies: list[Tekstversie], huidig: tuple[str, ...], loopt_achter: bool,
+               per_tekststand: dict[str, int], totaal: int) -> str:
+    """Wat de lijst zegt over de tekst van het artikel, in één zin, uit de versies en de graaf. Nooit een zin die meer
+    weet dan LiDO: een uitspraak bij de huidige tekst kan nog over een eerder belastingjaar gaan."""
+    if not versies or not totaal:
+        return ""
+    lab = label[:1].lower() + label[1:] if label[:1].isupper() and not label[1:2].isupper() else label
+    if not huidig:
+        return (f"Sinds wanneer de huidige tekst van {lab} geldt, staat niet in de graaf; bij welke tekst een uitspraak "
+                "hoort, is daarom niet vast te stellen.")
+    if loopt_achter:
+        return (f"LiDO kent de huidige tekst van {lab} (geldig vanaf {_voluit(min(huidig))}) nog niet: alle uitspraken "
+                "hieronder noemen een eerdere tekst.")
+    eerder = per_tekststand.get(EERDER, 0)
+    if not eerder:
+        return ""
+    return (f"{eerder} van de {totaal} uitspraken noemen een eerdere tekst van {lab}, die gold vóór "
+            f"{_voluit(min(huidig))}.")
+
+
 def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
     bwb_id, artikel = (a.get("bwb_id") or "").strip(), (a.get("artikel") or "").strip()
     if (bwb_id or artikel) and (not re.fullmatch(r"BWB[RV]\d{7}", bwb_id) or not artikel):
@@ -361,6 +473,21 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
     if not 1 <= aantal <= LIMIT:
         return fout("ongeldig_aantal", f"het aantal is 1 tot {LIMIT}, bijvoorbeeld {{\"aantal\": 10}}")
     offset = max(int(a.get("offset") or 0), 0)
+    stand = str(a.get("tekststand") or "").strip().lower()
+    if stand and stand not in TEKSTSTANDEN:
+        return fout("ongeldige_argumenten", "de tekststand is 'huidige tekst', 'eerdere tekst' of 'op peildatum', "
+                    "bijvoorbeeld {\"tekststand\": \"huidige tekst\"}")
+    try:
+        peildatum = _datum(a["peildatum"], eind=False) if a.get("peildatum") else ""
+    except ValueError as exc:
+        return fout("ongeldige_datum", f"de peildatum is JJJJ-MM-DD, bijvoorbeeld '2015-01-01', niet {exc}")
+    if stand == "op peildatum" and not peildatum:
+        return fout("ongeldige_argumenten", "'op peildatum' vraagt een peildatum, bijvoorbeeld "
+                    "{\"tekststand\": \"op peildatum\", \"peildatum\": \"2015-01-01\"}")
+    if not bwb_id and (stand or peildatum):
+        return fout("ongeldige_argumenten", "de tekststand en de peildatum gaan over de tekst van een artikel: geef "
+                    "ook 'bwb_id' en 'artikel', bijvoorbeeld {\"bwb_id\": \"BWBR0004770\", \"artikel\": \"36\", "
+                    "\"peildatum\": \"2015-01-01\"}")
     if not bwb_id:
         return _zoek_feed(bron, a, keuze, volgorde=volgorde, vanaf=vanaf, tot=tot, aantal=aantal, offset=offset)
     if a.get("rechtsgebied"):
@@ -384,21 +511,33 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
                       extra={"bepaling": bepaling, "dekking": "ten minste", "totaal": 0})
     k = bron.koppelingen(bwb_id, artikel, kop.get("jci") or "")
 
+    # De versies van het artikel met hun periode, tegenover de tekst in de graaf (review ADR-013: een uitspraak over
+    # een eerdere rechtsstand hoort niet ongemerkt bij de huidige norm).
+    huidig = tuple(d for d in (str(kop.get("inwerking") or "")[:10], str(kop.get("terugwerkendTot") or "")[:10]) if d)
+    versies, loopt_achter = tekstversies(k.versies, huidig)
+    per_versie = {t.versie: t for t in versies}
+
     # Eén rij per uitspraak, verenigd over de versies; de koppelingen (automatisch, redactioneel) samen.
-    per: dict[str, tuple[str, set[str]]] = {}
+    per: dict[str, tuple[str, set[str], set[str]]] = {}
     for ln in k.links:
-        titel, soorten = per.get(ln.ecli, ("", set()))
-        per[ln.ecli] = (titel or ln.titel, soorten | {ln.soort_link})
-    alle = [rij_van(e, t) for e, (t, _) in per.items()]
+        titel, soorten, vs = per.get(ln.ecli, ("", set(), set()))
+        per[ln.ecli] = (titel or ln.titel, soorten | {ln.soort_link}, vs | {ln.versie})
+    alle = [{**rij_van(e, t), **_tekst_van([per_versie[v] for v in sorted(vs) if v in per_versie], peildatum)}
+            for e, (t, _, vs) in per.items()]
     per_instantie: dict[str, int] = {}
     koppelingen: dict[str, int] = {}
-    for e, (_, soorten) in per.items():
+    for e, (_, soorten, _vs) in per.items():
         per_instantie[instantie(e)] = per_instantie.get(instantie(e), 0) + 1
         koppelingen[koppeling_van(soorten)] = koppelingen.get(koppeling_van(soorten), 0) + 1
     lijst = [r for r in alle
              if (keuze is None or keuze.past(r["id"]))
              and (not a.get("soort") or r["soort"].lower() == a["soort"])
-             and (not vanaf or r["datum"] >= vanaf) and (not tot or r["datum"][:10] <= tot)]
+             and (not vanaf or r["datum"] >= vanaf) and (not tot or r["datum"][:10] <= tot)
+             and (not stand or (r.get("op_peildatum") is True if stand == "op peildatum" else r.get("tekststand") == stand))]
+    per_tekststand: dict[str, int] = {}
+    for r in alle:
+        if r.get("tekststand"):
+            per_tekststand[r["tekststand"]] = per_tekststand.get(r["tekststand"], 0) + 1
     # Op datum; bij dezelfde datum de hoogste instantie eerst, dan de ECLI (vast, dus dezelfde vraag dezelfde lijst).
     lijst.sort(key=lambda r: (_RANG.get(instantie(r["id"]), 99), r["id"]))
     lijst.sort(key=lambda r: r["datum"], reverse=volgorde == "nieuwste")
@@ -411,8 +550,19 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
                        "eventueel via een andere bron.")
     elif not lijst:
         toelichting = "LiDO noemt bij dit artikel geen uitspraken die aan de filters voldoen."
+    if (stand_zin := _stand_zin(label, versies, huidig, loopt_achter, per_tekststand, len(alle))):
+        toelichting = f"{toelichting} {stand_zin}".strip()
+    per_tv: dict[str, int] = {}
+    for _, (_, _, vs) in per.items():
+        for v in vs:
+            per_tv[v] = per_tv.get(v, 0) + 1
     extra = compact({
         "bepaling": bepaling, "totaal": len(lijst), "dekking": "ten minste", "versies": len(k.versies),
+        "huidige_tekst": {"vanaf": min(huidig)} if huidig else {},
+        "per_tekststand": per_tekststand,
+        "tekstversies": [compact({"vanaf": t.vanaf, "tot": t.tot, "uitspraken": per_tv.get(t.versie, 0)})
+                         for t in versies[:MAX_TEKSTVERSIES]],
+        "peildatum": peildatum,
         "per_instantie": dict(sorted(per_instantie.items(), key=lambda x: _RANG.get(x[0], 99))),
         "koppelingen": koppelingen,
         "zoekvraag": {**{x: v for x, v in a.items() if x not in {"offset"} and v not in ("", None)},

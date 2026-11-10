@@ -168,6 +168,11 @@ class Extern(BaseModel):
     #: ("Motie"). Uit de bron, niet uit de tekst van het model; leeg bij een ouder bericht.
     datum: str = ""
     soort_stuk: str = ""
+    #: Bij welke tekst van de bepaling het stuk hoort, uit de zoekrij (zie `Stuk`); leeg als het stuk niet gezocht is.
+    tekst_vanaf: str = ""
+    tekst_tot: str = ""
+    tekststand: str = ""
+    op_peildatum: bool | None = None
 
 
 class Stuk(BaseModel):
@@ -187,6 +192,13 @@ class Stuk(BaseModel):
     reeks: list[str] = []
     status: str = ""
     versie: str = ""
+    #: Bij welke tekst van de bepaling het stuk hoort (een uitspraak bij een eerdere versie van het artikel), uit de bron:
+    #: `tekststand` is "huidige tekst", "eerdere tekst" of "onbekend" tegenover de tekst in de graaf.
+    tekst_vanaf: str = ""
+    tekst_tot: str = ""
+    tekststand: str = ""
+    #: Of die tekst gold op de peildatum (alleen als er een peildatum is meegegeven).
+    op_peildatum: bool | None = None
     leesbaar: bool = True
     #: Waarom er geen tekst is, bij `leesbaar: false`: de tekst van de connector (`ConnectorBeschrijving.zonder_tekst`).
     zonder_tekst: str = ""

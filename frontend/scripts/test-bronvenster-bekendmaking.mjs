@@ -9,7 +9,7 @@
  *    "Staatsblad en Staatscourant", het soort en de datum) met de vindplaats;
  *  - de koppen van de artikelen en wijzigingsonderdelen ("Artikel I – Wijziging › A") staan bij de tekst, de citaten
  *    van Lex zijn gemarkeerd, en de gegevens tonen de velden uit de beschrijving (publicatieblad, ondertekend);
- *  - een publicatie die alleen als PDF bestaat (de Invorderingswet 1990 zelf) geeft de melding;
+ *  - een publicatie die alleen als PDF bestaat (de Invoeringswet Invorderingswet 1990) geeft de melding;
  *  - geen horizontale scroll op 375 en 1280 px.
  */
 import assert from "node:assert/strict";
@@ -107,7 +107,7 @@ try {
     /publicatieblad\s*Staatsblad[\s\S]*ondertekend\s*17 december 2009[\s\S]*ministerie\s*Ministerie van Financiën/);
   await geenScroll(1280);
 
-  // De Invorderingswet 1990 zelf staat bij KOOP alleen als PDF.
+  // De Invoeringswet Invorderingswet 1990 staat bij KOOP alleen als PDF.
   await page.locator(`[data-stuk-link='${PDF_ID}']`).click();
   await page.locator("[data-stand-melding=alleen-pdf]").waitFor();
   assert.equal(await page.locator("[data-paneel-tab]").count(), 2, "twee publicaties als twee tabs");

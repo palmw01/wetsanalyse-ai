@@ -1471,7 +1471,12 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   `ContextPaneelContext`):
   - **onder een antwoord per bepaling één kaart** (ontdubbelen PR 3; `BronChip`/`BepalingChips`, `kaartenVan` in
     `lib/bronnen.ts`): bij een sjabloon de bepalingen die het draagt, bij vrije tekst de bepalingen die de tekst
-    éénduidig noemt (geen kaart voor een gok). Er is geen tweede kaart voor de graaf: die is de tab Graaf van het venster,
+    éénduidig noemt (geen kaart voor een gok). Bij meer dan drie (`MAX_BEPALINGCHIPS`) staat er één kaart met de telling
+    ("6 bepalingen", `data-bepaling-lijst`), die de bepalingen als lijst in het paneel opent (`ContextDoel` soort
+    `bepalingen`, zoals *Bronnen* in de chatkop; melding gebruiker 10 nov 2026: de telling opende er één). Eén tab per lijst,
+    dus een tweede klik opent geen tweede; per regeling een kop, een rij opent de bepaling als eigen tab met "Dit antwoord"
+    op Graaf, en de tab Graaf van de lijst toont ze samen. De lijst en de bronnen van het werkgebied delen `BronRijen`.
+    Er is geen tweede kaart voor de graaf: die is de tab Graaf van het venster,
     met "Dit antwoord" – elke ingang in het bericht (kaart, vindplaats, citatie) neemt de samenhang van het bericht mee
     (`BerichtSamenhangContext` in `ThreadRij`). De bronnenlijst toont alleen wat geen kaart heeft (`zonderKaarten`):
     regelingen, connectorstukken, externe bronnen. Een overzicht heeft zijn kaartje, en de overzichttab heeft zelf
@@ -1499,6 +1504,12 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
     het antwoordblok `extern` en in het venster. Wat Lex citeerde staat gemarkeerd (`data-geciteerd`).
   - In het antwoord opent het label van een stuk (in `extern` en `stukken`) de tab via `StukVindplaats`; met Ctrl/⌘ gaat
     het naar de bron. Een stuk dat alleen een PDF is, blijft een link naar de bron.
+  - **Bij welke tekst een stuk hoort** (review ADR-013, 10 nov 2026). Een uitspraak bij een eerdere versie van het
+    artikel heeft een geel label in de lijst ("eerdere tekst", "niet op de peildatum") en de periode in de metaregel
+    (`tekstPeriode`). In het blok `extern` en in het venster staat dezelfde melding. De zinnen komen uit
+    `tekstBijMeldingen` in `lib/herkomst.ts`, een eigen zin elders faalt in `app/herkomst.test.ts`. Het venster krijgt de
+    stand van de lijst mee (`ContextDoel.tekst`, buiten de tabsleutel); vanuit een ander blok weet het hem niet en zegt
+    het niets.
   - Browserregressie: `scripts/test-bronvenster-stuk.mjs`.
 - **De bronpagina is het bronvenster als pagina** (PR 5): `BronPagina` zet `BronVenster variant="pagina"` (tekst groot,
   markeringen als rijen naar hun pagina) onder de `PaginaKop` met de herkomstregel en de meldingen over de stand

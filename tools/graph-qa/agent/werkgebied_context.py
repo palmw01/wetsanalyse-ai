@@ -31,6 +31,10 @@ def context_tekst(werkgebied: dict[str, Any], *, deelvragen: bool = True, bronne
     # Spoor I6: het TOOI-thema (tooitop) met zijn naam, als het gekozen is.
     if (thema := (werkgebied.get("thema_label") or "").strip()):
         regels.append(f"Thema (TOOI): {thema} <{werkgebied.get('thema', '')}>")
+    # De peildatum (review ADR-013, 10 nov 2026): de datum waarop de tekst moet gelden. Lex geeft hem mee aan een tool
+    # die over de tekst van een artikel in de tijd gaat (zoek_uitspraken).
+    if (peildatum := (werkgebied.get("peildatum") or "").strip()):
+        regels.append(f"Peildatum: {peildatum}")
     # Het zoekbereik (4 nov 2026): de regelingen waarin het werkgebied zoekt, vóór de bronnen.
     if (regelingen := [r.get("label") or r.get("bwb_id") for r in werkgebied.get("regelingen") or []
                        if isinstance(r, dict) and (r.get("label") or r.get("bwb_id"))]):

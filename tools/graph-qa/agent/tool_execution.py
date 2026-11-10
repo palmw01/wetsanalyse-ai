@@ -7,6 +7,8 @@ from uuid import uuid4
 
 import logging
 
+from bronmodel.connectors import CONNECTORS
+
 from .annotatie_read import AnnotatieReadApi
 from .begrip_read import BegripReadApi
 from .tools import dispatch
@@ -29,6 +31,16 @@ def begrip_port(b, state):
         b.settings, state.get("user_id", "") or b.settings.annotatie_read_user_id, state.get("werkgebied_id", "") or "")
 
 
+#: De argumenten die het spoor als filter toont. Naast die van de annotatie- en begriptools de filters van elke
+#: bronconnector uit haar beschrijving (`MetadataVeld.filters`): eerst stonden alleen `tekst` en `offset` erin, en was niet
+#: te zien op welk blad, soort of jaar er gezocht was (meting bekendmakingen, bevinding 6).
+FILTERS = frozenset({"klasse", "jas_klassen", "tekst", "lifecycle", "laagstatus", "tekstveld", "match", "scope",
+                     "bronversie", "inclusief_verouderd", "limit", "offset", "cursor", "herkomst", "aandacht", "subtype",
+                     "beslist_door", "met_twijfel", "zoekterm", "status", "werkgebied_id", "volgorde", "aantal",
+                     "regeling", "tabel"}) | frozenset(
+    f for c in CONNECTORS.values() for veld in c.metadata for f in veld.filters) - {"bwb_id", "artikel", "id"}
+
+
 def execute_tool(b, state, writer, tool, *, operation=None):
     name, args = tool["name"], tool.get("input") or {}
     leesroute = "annotaties_lezen" if state.get("annotaties_lezen") else "begrippen_lezen" if state.get("begrippen_lezen") else ""
@@ -41,7 +53,7 @@ def execute_tool(b, state, writer, tool, *, operation=None):
              "call_id": tool.get("id") or uuid4().hex, "tool": name,
              "actie": ("annotaties_lezen" if name in ANNOTATIE_TOOL_NAMEN or name == "get_annotatieweergave" else
                        "begrippen_lezen" if name in BEGRIP_TOOL_NAMEN else "bron_lezen"),
-             "filters": {k: v for k, v in args.items() if k in {"klasse", "jas_klassen", "tekst", "lifecycle", "laagstatus", "tekstveld", "match", "scope", "bronversie", "inclusief_verouderd", "limit", "offset", "cursor", "herkomst", "aandacht", "subtype", "beslist_door", "met_twijfel", "zoekterm", "status", "werkgebied_id"}},
+             "filters": {k: v for k, v in args.items() if k in FILTERS},
              "doel": {k: v for k, v in args.items() if k in {"bron_iri", "bwb_id", "artikel", "lid", "id"}}}
     bron = bron_van(name)
     if bron is not None:

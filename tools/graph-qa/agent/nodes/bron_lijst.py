@@ -58,7 +58,18 @@ def bron_lijst_node(b, state: State) -> dict[str, Any]:
         return {"bron_lijst": {}, "messages": paar, "source_trace": [*state.get("source_trace", []), *trace]}
     if not blokken:
         zoekvraag = zoekvraag_tekst(c, data.get("zoekvraag") or {})
-        blokken = [Leemte(tekst=f"Geen {c.label} gevonden die aan de zoekvraag voldoen. {zoekvraag}".strip())]
+        # De verzamelnaam uit de beschrijving ("bekendmakingen"): "Geen Staatsblad en Staatscourant gevonden" las
+        # krom (meting bekendmakingen B14). Niets gevonden is geen bewijs dat het niet bestaat.
+        stukken = c.verzamelnamen[0] if c.verzamelnamen else "stukken"
+        blokken = [Leemte(tekst=f"Geen {stukken} gevonden die aan de zoekvraag voldoen. {zoekvraag} Dat ik niets vond, "
+                                "betekent niet dat het niet bestaat.".replace("  ", " ").strip())]
+    if (gevraagd := int(v.get("gevraagd") or 0)) and blokken and getattr(blokken[0], "soort", "") == "stukken":
+        # Begrensd mag, stil niet: "de 100 nieuwste" gaf 25 zonder dat te zeggen (externe review, 10 nov 2026). De
+        # slotzin noemt het totaal ("25 van de 874 stukken"); de volgende pagina haalt de agent (`vervolg`).
+        getoond = len(blokken[0].items)
+        blokken[0] = blokken[0].model_copy(update={"zoekvraag": " ".join(filter(None, [
+            blokken[0].zoekvraag, f"Je vroeg om {gevraagd}; per keer toon ik er hoogstens {getoond}. Vraag om de "
+            "volgende als je meer wilt zien."]))})
     antwoord = Antwoord(sjabloon="extern", blokken=blokken)
     uit = antwoord_tekst(antwoord)
     return {

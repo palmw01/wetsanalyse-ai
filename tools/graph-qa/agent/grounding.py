@@ -339,7 +339,7 @@ def curate_sources(sources: list[Source], answer_text: str) -> list[Source]:
 
 
 def alleen_gelezen_extern(sources: list[Source], trace: list[tuple[str, str]], answer_text: str,
-                          vraag: str = "") -> list[Source]:
+                          vraag: str = "", geciteerd: frozenset[str] = frozenset()) -> list[Source]:
     """Een bron naast de wet (ADR-013) staat alleen in de bronnenlijst als ze gelezen is (in een resultaat van de
     leestool van haar connector) én het antwoord haar noemt. Wat alleen gevonden is, is geen bron: dat staat al als
     "alleen gevonden, niet gelezen" in `onbevestigd` (acceptatie 8 nov 2026: "Klaar · 32 bronnen" voor één gelezen
@@ -349,7 +349,9 @@ def alleen_gelezen_extern(sources: list[Source], trace: list[tuple[str, str]], a
 
     Het gelezen stuk zelf (het `stuk` van de leestool) staat er ook als de vraag het noemt: een antwoord óver
     ECLI:NL:HR:2022:50 noemt die ECLI vaak niet meer, en dan miste de bronnenlijst precies het stuk dat gelezen is
-    (derde meting 10 nov 2026)."""
+    (derde meting 10 nov 2026). Net zo een gelezen stuk waaruit het sjabloon citeert (`geciteerd`: de blokken `extern`):
+    de tekst noemt het dan in een citeervorm ("Stb. 2010, 176"), en die herkent `externe_verwijzingen` niet (meting
+    bekendmakingen B04)."""
     lees = leestools()
     in_tekst: set[str] = set()
     stukken: set[str] = set()
@@ -365,4 +367,4 @@ def alleen_gelezen_extern(sources: list[Source], trace: list[tuple[str, str]], a
     return [s for s in sources
             if s.brontype in (None, "wettekst")
             or (s.uri in genoemd and (van_id(s.uri) is None or s.uri in in_tekst | stukken))
-            or (s.uri in gevraagd and s.uri in stukken)]
+            or (s.uri in gevraagd | geciteerd and s.uri in stukken)]

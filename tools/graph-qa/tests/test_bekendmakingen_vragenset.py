@@ -162,7 +162,7 @@ def test_de_set_dekt_het_geheel():
     """Elke soort vraag uit de opdracht staat erin, en elke vraag noemt een tool, argumenten en een goed antwoord."""
     soorten = {v["soort"] for v in SET}
     for nodig in ("recentheid", "per regeling", "inwerkingtreding", "beleid in de Staatscourant", "één publicatie lezen",
-                  "alleen een PDF", "koppeling met Kamerstukken", "telling en filter", "rectificatie", "herdruk",
+                  "alleen een PDF", "koppeling met Kamerstukken", "telling en filter", "rectificatie", "tweede versie",
                   "niet bestaand nummer", "zonder treffers"):
         assert nodig in soorten, nodig
     for v in SET:

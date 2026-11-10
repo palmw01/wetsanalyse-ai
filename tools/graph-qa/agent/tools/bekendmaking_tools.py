@@ -124,13 +124,19 @@ BEKENDMAKING_TOOLS: list[dict[str, Any]] = [
                 "publicatie": {"type": "string", "enum": list(_BLADEN),
                                "description": "Alleen het Staatsblad of alleen de Staatscourant."},
                 "woorden": {"type": "string", "description": "Woorden uit de titel, bijvoorbeeld 'Leidraad "
-                                                             "Invordering'."},
+                                                             "Invordering'. Een verzamelwet (Belastingplan, Overige "
+                                                             "fiscale maatregelen) noemt de wetten die ze wijzigt niet "
+                                                             "in de titel: zoek die met 'bwb_id' of 'tekst'."},
                 "tekst": {"type": "string", "description": "Waar de publicatie over gaat, gezocht in de hele tekst. Zet "
                                                            "een vaste term tussen dubbele aanhalingstekens; hoogstens "
                                                            "zes woorden."},
                 "soort": {"type": "string", "description": "Het soort, bijvoorbeeld 'wet', 'amvb', 'klein koninklijk "
                                                            "besluit', 'beleidsregel', 'verbeterblad' of "
-                                                           "'inwerkingtredingsbesluit'."},
+                                                           "'inwerkingtredingsbesluit'. Een besluit van een "
+                                                           "bewindspersoon dat beleid wijzigt (zoals de Leidraad "
+                                                           "Invordering) heet bij KOOP meestal 'ander besluit van "
+                                                           "algemene strekking', geen 'beleidsregel': laat 'soort' dan "
+                                                           "weg."},
                 "orgaan": {"type": "string", "description": "Het ministerie, bijvoorbeeld 'Financiën'."},
                 "dossier": {"type": "string", "description": "Het Kamerdossier van de wet, bijvoorbeeld '33755'."},
                 "vanaf": {"type": "string", "description": "Vanaf deze datum: JJJJ-MM-DD, JJJJ-MM of JJJJ."},
@@ -151,8 +157,11 @@ BEKENDMAKING_TOOLS: list[dict[str, Any]] = [
             "De tekst van één bekendmaking, per alinea in documentvolgorde, met de kop erboven (het artikel, het lid of "
             "het wijzigingsonderdeel, zoals 'Artikel I – Wijziging › A'). Gebruik het id uit zoek_bekendmakingen of uit "
             "geldigheid. Met 'artikel' alleen de wijzigingsonderdelen die dat artikel wijzigen (\"In artikel 1.1.5 "
-            "worden …\"): zo lees je wat een wijzigingsbesluit aan één bepaling veranderde." + _UITLEG + " Citeer "
-            "letterlijk uit 'tekst'. Op de eerste pagina van een lange publicatie staat 'inhoud': per kop de offset.\n"
+            "worden …\"): zo lees je wat een wijzigingsbesluit aan één bepaling veranderde. Met 'regeling' alleen de "
+            "artikelen die die regeling wijzigen: zo lees je wat een verzamelwet aan één wet veranderde, zonder haar door "
+            "te bladeren." + _UITLEG + " Citeer letterlijk uit 'tekst'. Op de eerste pagina van een lange publicatie "
+            "staat 'inhoud': per kop de offset, en bij een artikel zijn korte aanhef ('begint'); daaruit lees je welke "
+            "regelingen een verzamelwet wijzigt.\n"
             "GEEFT TERUG: het stuk (id, label, publicatie, soort, titel, datum, ondertekend, jaar, nummer, orgaan, reeks, "
             "link, bron_hash en de stand bij KOOP) en per alinea nr, kop en tekst (de kop alleen waar hij verandert). "
             "Noem de datum en het soort uit 'stuk', niet uit de tekst. Een voetnoot is een eigen rij na zijn alinea; een "
@@ -166,6 +175,11 @@ BEKENDMAKING_TOOLS: list[dict[str, Any]] = [
                 "id": {"type": "string", "description": "Het id, bijvoorbeeld 'stb-2010-176' of 'stcrt-2026-37344'."},
                 "artikel": {"type": "string", "description": "Alleen de wijzigingsonderdelen die dit artikel wijzigen, "
                                                              "bijvoorbeeld '1.1.5' of '25'."},
+                "regeling": {"type": "string", "description": "Alleen de artikelen van een wijzigingswet of verzamelwet "
+                                                              "die deze regeling wijzigen (hun aanhef noemt haar: \"De "
+                                                              "Invorderingswet 1990 wordt als volgt gewijzigd:\"), "
+                                                              "bijvoorbeeld 'Invorderingswet 1990'. Samen met 'artikel' "
+                                                              "kan ook."},
                 "offset": {"type": "integer", "description": "Voor het vervolg; begin bij 0."},
                 "tabel": {"type": "integer", "description": "Het nr van een rij met soort 'tabel': dan de tabel zelf."},
             },
@@ -184,6 +198,8 @@ def label_van(rec: Any, vp: Any) -> str:
     if blad in _BLADEN and jaar and nr and vp.id.split("-")[1:3] == [jaar, nr]:
         afk = "Stb." if blad == "Staatsblad" else "Stcrt."
         versie = (getattr(rec, "versie", "") or "").strip()
+        # Een kale versie ("n1") is "versie n1", zoals het label uit het id; "Herdruk" en "Verbeterblad n1" zeggen het zelf.
+        versie = f"versie {versie}" if re.fullmatch(r"n\d+", versie) else versie
         return f"{afk} {jaar}, {nr}" + (f" ({versie.lower()})" if versie else "")
     return vp.label
 
@@ -490,7 +506,9 @@ def _get(bron: BekendmakingBron, a: dict[str, Any], graph: Any = None) -> str:
         return fout("ongeldig_id", "geef het id van een bekendmaking, bijvoorbeeld 'stb-2010-176' of 'stcrt-2026-37344'")
     artikel = str(a.get("artikel") or "").strip()
     if artikel and not _ARTIKEL_RE.fullmatch(artikel):
-        return fout("ongeldige_argumenten", "geef het nummer van het artikel, bijvoorbeeld {\"artikel\": \"1.1.5\"}.")
+        return fout("ongeldige_argumenten", "geef het nummer van het artikel, bijvoorbeeld {\"artikel\": \"1.1.5\"}; "
+                    "een wet geef je als {\"regeling\": \"Invorderingswet 1990\"}.")
+    regeling = " ".join(str(a.get("regeling") or "").split())
     doc = bron.document(vp.id)
     try:
         kop, rijen, overgeslagen, tabellen = lees(doc.xml, met_onderdeel=bool(artikel))
@@ -522,6 +540,20 @@ def _get(bron: BekendmakingBron, a: dict[str, Any], graph: Any = None) -> str:
                            offset=offset, extra={"stuk": stuk, "totaal": len(tabelrijen),
                                                  **({"samengevoegd": samen} if samen else {})})
     args: dict[str, Any] = {"id": echt.id}
+    if regeling:
+        # Per artikel van de wijzigingswet (het eerste deel van de kop) telt de eerste rij: de aanhef.
+        aanhef: dict[str, str] = {}
+        for r in rijen:
+            aanhef.setdefault(str(r.get("kop") or "").split(" › ")[0], str(r.get("tekst") or ""))
+        naam = re.compile(rf"(?<![0-9A-Za-zÀ-ÿ]){re.escape(regeling)}(?![0-9A-Za-zÀ-ÿ])", re.IGNORECASE)
+        raak = {k for k, t in aanhef.items() if k and naam.search(t)}
+        rijen = [r for r in rijen if str(r.get("kop") or "").split(" › ")[0] in raak]
+        args["regeling"] = regeling
+        toelichting = (toelichting + " " if toelichting else "") + (
+            ("Alleen het artikel" if len(raak) == 1 else f"Alleen de {len(raak)} artikelen")
+            + f" waarvan de aanhef {regeling} noemt; de rest van de publicatie staat er niet bij." if raak else
+            f"Geen artikel van {echt.id} noemt {regeling} in zijn aanhef. Kijk in 'inhoud' van de hele publicatie, "
+            f"bijvoorbeeld {{\"id\": \"{echt.id}\"}}.")
     if artikel:
         # Per wijzigingsonderdeel telt de eerste rij: daar staat de opdracht ("In artikel 1.1.5 worden …").
         eerste: dict[str, str] = {}

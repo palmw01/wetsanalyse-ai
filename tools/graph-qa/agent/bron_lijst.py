@@ -23,7 +23,7 @@ from .aanwijzing import _ARTIKEL, lees_aanwijzing
 
 _TELWOORDEN = {"een": 1, "één": 1, "twee": 2, "drie": 3, "vier": 4, "vijf": 5, "zes": 6, "zeven": 7, "acht": 8,
                "negen": 9, "tien": 10, "twaalf": 12, "vijftien": 15, "twintig": 20, "vijfentwintig": 25}
-_GETAL = r"\d{1,2}|" + "|".join(sorted(_TELWOORDEN, key=len, reverse=True))
+_GETAL = r"\d{1,4}|" + "|".join(sorted(_TELWOORDEN, key=len, reverse=True))
 _NIEUWSTE = r"meest\s+recente?|recentste|nieuwste|laatste|jongste"
 _OUDSTE = r"oudste|eerste"
 _VOLGORDE_RE = re.compile(rf"\b(?:(?P<nieuw>{_NIEUWSTE})|(?P<oud>{_OUDSTE}))\b", re.IGNORECASE)
@@ -36,16 +36,26 @@ _INHOUD_RE = re.compile(r"\b(?:staat\s+er|zegt|zeggen|samenvat\w*|inhoud|uitleg|
                         r"lees|citeer|wat\s+vind)\b", re.IGNORECASE)
 _DOSSIER_RE = re.compile(r"\b(?:dossier(?:nummer)?|kamerstukdossier)\s+(?P<d>\d{4,6}(?:[- ](?:[IVXLC]{1,6}|[A-Z]))?)\b",
                          re.IGNORECASE)
-_JAAR_RE = re.compile(r"\b(?:(?P<sinds>sinds|vanaf|na)\s+(?P<j1>(?:19|20)\d{2})|(?P<in>in|uit)\s+(?P<j2>(?:19|20)\d{2})"
-                      r"|(?P<tot>tot|voor)\s+(?P<j3>(?:19|20)\d{2}))\b", re.IGNORECASE)
+_JAAR = r"(?:19|20)\d{2}"
+#: Een periode: "uit 2023 en 2024", "2023-2024", "tussen 2020 en 2022", "van 2020 tot en met 2022". Vóór de losse jaren,
+#: anders werd "uit 2023 en 2024" alleen 2023 (analyse meting bekendmakingen, 10 nov 2026).
+_PERIODE_RE = re.compile(rf"\b(?:(?:tussen|in|uit|van)\s+)?(?P<a>{_JAAR})\s*(?:-|–|/|\ben\b|\bt/m\b|\btot\s+en\s+met\b)\s*"
+                         rf"(?P<b>{_JAAR})\b", re.IGNORECASE)
+#: Eén jaar met een voorzetsel. "van 2018" is "in 2018": "de verbeterbladen in het Staatsblad van 2018" verloor het jaar
+#: (meting bekendmakingen B11, 10 nov 2026).
+_JAAR_RE = re.compile(rf"\b(?:(?P<sinds>sinds|vanaf|na)\s+(?P<j1>{_JAAR})|(?P<in>in|uit|van)\s+(?P<j2>{_JAAR})"
+                      rf"|(?P<tot>tot|voor)\s+(?P<j3>{_JAAR}))\b", re.IGNORECASE)
 _VERGADERJAAR_RE = re.compile(r"\bvergaderjaar\s+(?P<a>\d{4})\s*[-/]\s*(?P<b>\d{2,4})\b", re.IGNORECASE)
 _OVER_RE = re.compile(r"\bover\s+(?:de\s+|het\s+)?(?P<o>[^?.!,;]+)", re.IGNORECASE)
 #: Woorden die in een lijstvraag staan zonder iets te zoeken.
 _VULWOORDEN = frozenset("""geef mij me toon noem laat zien lijst wat welke wie is zijn de het een van uit bij in op
     met en of er nu ook alle stuk stukken publicaties staan zit zitten gaan gaat graag alsjeblieft aub kun kan je u
-    noemen noemt genoemd over horen hoort""".split()) | frozenset(
+    noemen noemt genoemd over horen hoort hoeveel""".split()) | frozenset(
     w for c in CONNECTORS.values() for w in (*c.verzamelnamen, *c.vulwoorden))
 MAX_ONDERWERP = 4
+#: Zo veel stukken toont één pagina van de lijstroute: wat het blok `stukken` draagt (`sjablonen.extern.MAX_LIJST`) en wat
+#: de zoektools per pagina geven.
+MAX_AANTAL = 25
 
 
 @dataclass(frozen=True)
@@ -54,6 +64,9 @@ class Lijstvraag:
     connector: str
     tool: str
     args: dict[str, Any] = field(default_factory=dict)
+    #: Het aantal dat de vraag noemde als dat boven wat een pagina draagt lag ("de 100 nieuwste"): het antwoord zegt dan
+    #: dat het er minder toont, in plaats van stil te kappen (externe review, 10 nov 2026).
+    gevraagd: int = 0
 
 
 def _getal(woord: str) -> int:
@@ -79,6 +92,7 @@ def lees(vraag: str, aan: frozenset[str],
     # Een orgaan is geen volgorde: "Eerste Kamer" las als "eerste", dus oudste eerst (acceptatie 9 nov 2026).
     zonder_organen = _zonder_organen(c, tekst)
     args: dict[str, Any] = {}
+    gevraagd = 0
     rest = tekst
     if (m := _VOLGORDE_RE.search(zonder_organen)) is not None:
         volgorde = "nieuwste" if m.group("nieuw") else "oudste"
@@ -86,7 +100,8 @@ def lees(vraag: str, aan: frozenset[str],
             return None
         args["volgorde"] = volgorde
         if (a := _AANTAL_RE.search(zonder_organen)) is not None:
-            args["aantal"] = min(max(_getal(a.group("voor") or a.group("na")), 1), 25)
+            gevraagd = _getal(a.group("voor") or a.group("na"))
+            args["aantal"] = min(max(gevraagd, 1), MAX_AANTAL)
             rest = rest.replace(a.group(0), " ")
         elif (een := _EEN_RE.search(zonder_organen)) and not _meervoud(c, een.group(0).split()[-1]):
             args["aantal"] = 1
@@ -126,6 +141,12 @@ def lees(vraag: str, aan: frozenset[str],
     if (v := _VERGADERJAAR_RE.search(rest)) and (arg := _arg(c, "jaar")):
         args[arg] = f"{v.group('a')}-{v.group('b')}"
         rest = rest.replace(v.group(0), " ")
+    if (p := _PERIODE_RE.search(rest)) and int(p.group("a")) <= int(p.group("b")):
+        vanaf, tot = _arg(c, "datum", 0), _arg(c, "datum", 1)
+        if not (vanaf and tot):
+            return None
+        args[vanaf], args[tot] = p.group("a"), p.group("b")
+        rest = rest.replace(p.group(0), " ")
     for j in _JAAR_RE.finditer(rest):
         vanaf, tot = _arg(c, "datum", 0), _arg(c, "datum", 1)
         if j.group("sinds") and vanaf:
@@ -149,10 +170,12 @@ def lees(vraag: str, aan: frozenset[str],
     if not args:
         return None
     # Wat er overblijft, moet leeg zijn: een woord dat de code niet plaatst, is een vraag die het model beter leest.
-    over = [w for w in re.findall(r"[0-9A-Za-zÀ-ÿ]+", rest) if w.lower() not in _VULWOORDEN and not w.isdigit()]
+    # Ook een getal: een jaartal of nummer dat de code niet plaatste, is een filter dat anders stil wegvalt ("uit 2023 en
+    # 2024" werd alleen 2023, meting bekendmakingen 10 nov 2026). Aantal, dossier en vergaderjaar zijn al uit `rest`.
+    over = [w for w in re.findall(r"[0-9A-Za-zÀ-ÿ]+", rest) if w.lower() not in _VULWOORDEN]
     if over:
         return None
-    return Lijstvraag(c.naam, zoektool[0], args)
+    return Lijstvraag(c.naam, zoektool[0], args, gevraagd if gevraagd > MAX_AANTAL else 0)
 
 
 def _wetsverwijzing(c: ConnectorBeschrijving, tekst: str,

@@ -101,6 +101,11 @@ def _labels(text: str) -> dict[str, str]:
     bronnenlijst als `urn:bwb:BWBR0024096:id:…divisie26.5`."""
     data = is_contract(text)
     uit: dict[str, str] = {}
+    # Het gelezen stuk van een leestool draagt het label van de bron zelf ("Stb. 2010, 185 (herdruk)"); het label uit het
+    # id kent alleen "versie n1" (meting bekendmakingen B12).
+    stuk = (data or {}).get("stuk")
+    if isinstance(stuk, dict) and isinstance(stuk.get("id"), str) and isinstance(stuk.get("label"), str) and stuk["label"]:
+        uit[stuk["id"]] = stuk["label"]
     for rij in (data or {}).get("resultaten", []):
         if isinstance(rij, dict) and isinstance(rij.get("label"), str) and rij["label"]:
             for veld in ("node", "iri", "id"):

@@ -26,12 +26,14 @@ import { haalElementDetail, type ElementDetail } from "@/lib/annotatieNode";
 import { WettekstBlok } from "@/components/wettekst/WettekstBlok";
 import { foutTekst, haalWerkgebied } from "@/lib/api";
 import { jasStyle, klasseLabel } from "@/lib/jas";
-import { herkomstKop, vindplaatsTekst } from "@/lib/herkomst";
+import { herkomstKop, herkomstVan, vindplaatsTekst } from "@/lib/herkomst";
+import type { AntwoordVindplaats } from "@/lib/antwoord";
 import { stukHerkomst, type StukPassage } from "@/lib/bronStuk";
 import { useStuk } from "@/lib/useStuk";
 import { StukVenster } from "@/components/wettekst/StukVenster";
 import { contextSleutelVan } from "@/lib/paneelTabs";
 import type { Lifecycle, Overzicht, Werkgebied } from "@/lib/types";
+import type { TekstBij } from "@/lib/antwoord";
 import { useBronHerkomst } from "@/lib/useBronHerkomst";
 import { ROL_LABEL } from "@/lib/werkgebied";
 import { bronPad, elementPad, projectPad } from "@/lib/werkgebiedPaden";
@@ -48,11 +50,16 @@ export type ContextDoel =
       samenhang?: Samenhang }
   | { soort: "element"; element_id: string; titel: string }
   | { soort: "bibliotheek"; werkgebied_id: string; titel: string }
+  /** De bepalingen van één antwoord, als lijst (melding gebruiker 10 nov 2026): de kaart "6 bepalingen" opent ze hier,
+   *  zoals *Bronnen* in de chatkop de bronnen van het werkgebied; een rij opent de bepaling als eigen tab. */
+  | { soort: "bepalingen"; bepalingen: AntwoordVindplaats[]; titel: string }
   | { soort: "overzicht"; overzicht: Overzicht; titel: string }
   /** Een stuk uit een bronconnector (ADR-013, het bronvenster PR 6): het brontype (of de naam) van de connector en het
    *  id. `gelezen` en `voorbeeld` komen uit het antwoord: wat Lex las, en wat het venster toont als de bron weg is. */
   | { soort: "stuk"; brontype: string; id: string; titel: string;
-      gelezen?: { bron_hash: string; passages: number[] }; voorbeeld?: StukPassage[] };
+      gelezen?: { bron_hash: string; passages: number[] }; voorbeeld?: StukPassage[];
+      /** Bij welke tekst van de bepaling het stuk hoort, uit de lijst waar het geopend werd; hoort niet bij de sleutel. */
+      tekst?: TekstBij };
 
 /** Opent een context naast het gesprek. Alleen binnen de werkplek (`WerkplekClient`); daarbuiten is er
  *  geen gesprek om naast te staan en tonen de aanroepers deze handeling niet. */
@@ -80,7 +87,7 @@ export function metSamenhang(b: BerichtSamenhang, bronIri: string): Samenhang {
 
 const KOP: Record<ContextDoel["soort"], string> = {
   bron: "Bepaling", element: "JAS-element", bibliotheek: "Bronnen van dit werkgebied", overzicht: "Overzicht uit de kennisgraaf",
-  stuk: "Stuk",
+  stuk: "Stuk", bepalingen: "Bepalingen in dit antwoord",
 };
 
 /** De sleutel van een context: één plek (`lib/paneelTabs.ts`), ook voor de tabs. */
@@ -97,7 +104,7 @@ export function overzichtContext(overzicht: Overzicht): ContextDoel {
 export function paginaVanContext(d: ContextDoel): string | undefined {
   return d.soort === "bron" ? bronPad(d.bron_iri, d.werkgebied_id)
     : d.soort === "element" ? elementPad(d.element_id)
-    : d.soort === "overzicht" || d.soort === "stuk" ? undefined : projectPad(d.werkgebied_id, "bronnen");
+    : d.soort === "overzicht" || d.soort === "stuk" || d.soort === "bepalingen" ? undefined : projectPad(d.werkgebied_id, "bronnen");
 }
 
 /** Het contextpaneel (spoor G4, mock-up v4 `sideRail`): dezelfde schil als de artefacten – een kolom vanaf
@@ -143,10 +150,19 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
       graaf: { bereik: "kennisgraaf", focus: overzichtFocus(ov), keten: true }, van: "antwoord" };
     return eerste && { doel: eerste, samenhang };
   }, [ov]);
+  // De bepalingen van een antwoord: de graaf toont ze samen ("Dit antwoord"), zoals de tab Graaf van één ervan.
+  const lijst = doel.soort === "bepalingen" ? doel.bepalingen : undefined;
+  const lijstGraaf = useMemo(() => {
+    if (!lijst?.length) return undefined;
+    const [eerste, ...rest] = lijst.map(antwoordDoel);
+    const samenhang: Samenhang = { extra: rest, graaf: { keten: true }, van: "antwoord" };
+    return { doel: eerste, samenhang };
+  }, [lijst]);
   const graafDoel = useMemo<NodeDoel | undefined>(() => (bronIri
-    ? { ...(bronDoel(bronIri) ?? { bron_iri: bronIri }), ...(jci ? { jci } : {}) } : overzichtGraaf?.doel), [bronIri, jci, overzichtGraaf]);
+    ? { ...(bronDoel(bronIri) ?? { bron_iri: bronIri }), ...(jci ? { jci } : {}) } : (overzichtGraaf ?? lijstGraaf)?.doel),
+  [bronIri, jci, overzichtGraaf, lijstGraaf]);
   const werkgebiedId = doel.soort === "bron" ? doel.werkgebied_id : undefined;
-  const meegegeven = doel.soort === "bron" ? doel.samenhang : overzichtGraaf?.samenhang;
+  const meegegeven = doel.soort === "bron" ? doel.samenhang : (overzichtGraaf ?? lijstGraaf)?.samenhang;
   const samenhang = useMemo<Samenhang>(() => meegegeven
     ? { ...meegegeven, graaf: { ...meegegeven.graaf, werkgebiedId: meegegeven.graaf.werkgebiedId ?? werkgebiedId ?? null } }
     : { extra: [], graaf: { keten: true, werkgebiedId: werkgebiedId ?? null } }, [meegegeven, werkgebiedId]);
@@ -206,8 +222,9 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
               onOpenBron={(v) => onWissel({ soort: "bron", bron_iri: v.iri, werkgebied_id: doel.werkgebied_id, titel: vindplaatsTekst(v) })} />
             : doel.soort === "element" ? <ElementInhoud id={doel.element_id} />
             : doel.soort === "overzicht" ? <OverzichtPaneel overzicht={doel.overzicht} onMaakWerkgebied={onMaakWerkgebied} />
-            : doel.soort === "stuk" ? <StukVenster stuk={stuk} gelezen={doel.gelezen} voorbeeld={doel.voorbeeld}
+            : doel.soort === "stuk" ? <StukVenster stuk={stuk} gelezen={doel.gelezen} voorbeeld={doel.voorbeeld} tekst={doel.tekst}
               onOpenStuk={(v) => onWissel({ soort: "stuk", brontype: doel.brontype, id: v.id, titel: v.label })} />
+            : doel.soort === "bepalingen" ? <BepalingenInhoud bepalingen={doel.bepalingen} onWissel={onWissel} />
             : <BibliotheekInhoud werkgebiedId={doel.werkgebied_id} onWissel={onWissel} />}
         </div>
       </div>
@@ -265,29 +282,68 @@ function BibliotheekInhoud({ werkgebiedId, onWissel }: { werkgebiedId: string; o
   }, [werkgebiedId]);
   if (fout) return <Melding type="fout" compact>{fout}</Melding>;
   if (!wg) return <Laden />;
+  if (!wg.bronnen.length) return <p className="text-sm text-muted">Nog geen bronnen in dit werkgebied.</p>;
+  return <BronRijen intro="Open een bron naast het gesprek; je blijft in hetzelfde gesprek." onWissel={onWissel}
+    groepen={(["analyseren", "context"] as const).map((rol) => ({
+      kop: rol === "analyseren" ? "Om te analyseren" : ROL_LABEL.context,
+      rijen: wg.bronnen.filter((b) => b.rol === rol).map((b) => ({
+        sleutel: b.id, titel: vindplaatsTekst({ iri: b.bron_iri, label: b.label }), sub: b.reden || undefined, data: { "data-context-bron": b.id },
+        doel: { soort: "bron", bron_iri: b.bron_iri, werkgebied_id: werkgebiedId, titel: vindplaatsTekst({ iri: b.bron_iri, label: b.label }) } as ContextDoel,
+      })),
+    }))} />;
+}
+
+/** De bepalingen van een antwoord, per regeling. Een rij opent de bepaling als eigen tab, met de samenhang van het hele
+ *  antwoord op de tab Graaf – dezelfde als bij een kaart onder het antwoord. */
+function BepalingenInhoud({ bepalingen, onWissel }: { bepalingen: AntwoordVindplaats[]; onWissel: (d: ContextDoel) => void }) {
+  const doelen = useMemo(() => bepalingen.map(antwoordDoel), [bepalingen]);
+  const groepen = useMemo(() => {
+    const per = new Map<string, AntwoordVindplaats[]>();
+    for (const v of bepalingen) {
+      const kop = herkomstVan(v).regeling || v.regeling || "Bepalingen";
+      per.set(kop, [...(per.get(kop) ?? []), v]);
+    }
+    return [...per].map(([kop, lijst]) => ({
+      kop,
+      rijen: lijst.map((v) => ({
+        sleutel: v.iri, titel: herkomstVan(v).bepaling, data: { "data-bepalingen-rij": v.iri },
+        doel: { soort: "bron", bron_iri: v.iri, titel: vindplaatsTekst(v), jci: v.jci || undefined,
+          samenhang: { extra: doelen.filter((d) => d.bron_iri !== v.iri), graaf: { keten: true }, van: "antwoord" } } as ContextDoel,
+      })),
+    }));
+  }, [bepalingen, doelen]);
+  return <BronRijen intro="Open een bepaling naast het gesprek; je blijft in hetzelfde gesprek." groepen={groepen} onWissel={onWissel} />;
+}
+
+/** Een lijst bronnen in het paneel, in groepen met een kop: één vorm voor de bronnen van het werkgebied en de bepalingen
+ *  van een antwoord. Een rij opent zijn doel in hetzelfde paneel, als eigen tab. */
+function BronRijen({ intro, groepen, onWissel }: {
+  intro: string;
+  groepen: { kop: string; rijen: { sleutel: string; titel: string; sub?: string; doel: ContextDoel; data?: Record<`data-${string}`, string> }[] }[];
+  onWissel: (d: ContextDoel) => void;
+}) {
   return <>
-    <p className="text-xs text-muted">Open een bron naast het gesprek; je blijft in hetzelfde gesprek.</p>
-    {(["analyseren", "context"] as const).map((rol) => {
-      const lijst = wg.bronnen.filter((b) => b.rol === rol);
-      if (!lijst.length) return null;
-      return (
-        <section key={rol}>
-          <Kop>{rol === "analyseren" ? "Om te analyseren" : ROL_LABEL.context}</Kop>
-          <ul className="divide-y divide-line">
-            {lijst.map((b) => (
-              <li key={b.id}>
-                <button type="button" data-context-bron={b.id}
-                  onClick={() => onWissel({ soort: "bron", bron_iri: b.bron_iri, werkgebied_id: werkgebiedId, titel: vindplaatsTekst({ iri: b.bron_iri, label: b.label }) })}
-                  className="focus-ring block w-full rounded-md px-1 py-2 text-left hover:bg-surface">
-                  <span className="block text-sm font-medium text-ink">{vindplaatsTekst({ iri: b.bron_iri, label: b.label })}</span>
-                  {b.reden && <span className="block text-xs text-muted">{b.reden}</span>}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      );
-    })}
-    {wg.bronnen.length === 0 && <p className="text-sm text-muted">Nog geen bronnen in dit werkgebied.</p>}
+    <p className="text-xs text-muted">{intro}</p>
+    {groepen.filter((g) => g.rijen.length).map((g) => (
+      <section key={g.kop}>
+        <Kop>{g.kop}</Kop>
+        <ul className="divide-y divide-line">
+          {g.rijen.map((r) => (
+            <li key={r.sleutel}>
+              <button type="button" {...r.data} onClick={() => onWissel(r.doel)}
+                className="focus-ring block w-full rounded-md px-1 py-2 text-left hover:bg-surface">
+                <span className="block text-sm font-medium text-ink">{r.titel}</span>
+                {r.sub && <span className="block text-xs text-muted">{r.sub}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
   </>;
+}
+
+/** Een vindplaats uit een antwoord als doel van de graaf. */
+function antwoordDoel(v: AntwoordVindplaats): NodeDoel {
+  return { ...(bronDoel(v.iri) ?? { bron_iri: v.iri }), label: v.label, ...(v.jci ? { jci: v.jci } : {}) };
 }
