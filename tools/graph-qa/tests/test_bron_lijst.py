@@ -192,3 +192,44 @@ def test_een_dossier_met_een_aantal_is_de_nieuwste():
     d = roep("zoek_kamerstukken", {"dossier": "99001", "aantal": 2}, bron)
     assert d["status"] == "ok" and d["zoekvraag"]["volgorde"] == "nieuwste"
     assert bron.vragen[-1].endswith("sortBy dt.date/sort.descending dt.identifier/sort.ascending")
+
+
+ALLE = frozenset({"kamerstukken", "bekendmakingen", "rechtspraak"})
+
+
+@pytest.mark.parametrize("vraag,connector,args", [
+    # Meting bekendmakingen (10 nov 2026, B11): "van 2018" viel stil weg, en de lijst toonde 2025–2026.
+    ("Welke verbeterbladen staan er in het Staatsblad van 2018?", "bekendmakingen",
+     {"soort": "verbeterblad", "publicatie": "Staatsblad", "vanaf": "2018", "tot": "2018"}),
+    ("Welke verbeterbladen van 2018 staan in het Staatsblad?", "bekendmakingen",
+     {"soort": "verbeterblad", "publicatie": "Staatsblad", "vanaf": "2018", "tot": "2018"}),
+    ("Welke verbeterbladen staan er in het Staatsblad uit 2018?", "bekendmakingen",
+     {"soort": "verbeterblad", "publicatie": "Staatsblad", "vanaf": "2018", "tot": "2018"}),
+    # Een periode: eerst werd alleen het eerste jaar gelezen.
+    ("Geef de nieuwste uitspraken uit 2023 en 2024", "rechtspraak",
+     {"volgorde": "nieuwste", "aantal": 10, "vanaf": "2023", "tot": "2024"}),
+    ("Geef de nieuwste uitspraken uit 2023-2024", "rechtspraak",
+     {"volgorde": "nieuwste", "aantal": 10, "vanaf": "2023", "tot": "2024"}),
+    ("de nieuwste kamerstukken tussen 2020 en 2022", "kamerstukken",
+     {"volgorde": "nieuwste", "aantal": 10, "vanaf": "2020", "tot": "2022"}),
+    ("de oudste kamerstukken van 2020 tot en met 2022", "kamerstukken",
+     {"volgorde": "oudste", "aantal": 10, "vanaf": "2020", "tot": "2022"}),
+    # Een telling is een lijstvraag: het totaal komt uit de bron, met de zoekvraag erbij (B10).
+    ("Hoeveel ministeriële regelingen van het Ministerie van Financiën staan er uit 2025 in de Staatscourant?",
+     "bekendmakingen", {"soort": "ministeriële regeling", "orgaan": "Ministerie van Financiën",
+                        "publicatie": "Staatscourant", "vanaf": "2025", "tot": "2025"}),
+])
+def test_jaren_en_perioden(vraag, connector, args):
+    lijst = bron_lijst.lees(vraag, ALLE)
+    assert lijst is not None and lijst.connector == connector
+    assert lijst.args == args
+
+
+@pytest.mark.parametrize("vraag", [
+    # Een getal dat de code niet plaatst, gaat naar het model in plaats van stil weg te vallen.
+    "Geef de 3 nieuwste Kamerstukken 2021",
+    "Geef de nieuwste uitspraken 2023",
+    "Welke publicaties in de Staatscourant staan er onder nummer 37344?",
+])
+def test_een_getal_dat_de_code_niet_plaatst_gaat_naar_het_model(vraag):
+    assert bron_lijst.lees(vraag, ALLE) is None
