@@ -142,6 +142,16 @@ stand komt uit `lib/herkomst.ts`.
   `AnnotatieTekst` is `WettekstBlok` met de **markeerlaag** (`laag`: de ene gekozen markering, de ongedekte zinsdelen, zelf
   selecteren), dezelfde tekst als het leesvenster. De rekenkern van die laag staat in `lib/markeerlaag.ts`.
 
+**Eén ingang, één venster, één Vraag Lex** (ontdubbelen PR 1–5, besluit gebruiker 10 nov 2026, naar het voorbeeld van
+Claude: een citaat in de tekst, één kaart per object, en het object opent in één paneel):
+- **Eén ingang per bron** (`app/ingangen.test.ts`): onder een antwoord per bepaling één kaart (`BepalingChips`,
+  `kaartenVan`), inline citaten (`Vindplaats`, `CitatieChip`) openen dezelfde tab, en elke opener gaat via `useOpenBron`.
+  Er is geen tweede kaart voor de graaf.
+- **Eén venster** (`app/wettekst.test.ts`): een bepaling is één tab met Tekst | Graaf (`WeergaveBalk`, `BronGraaf`);
+  annoteren is een laag op die tab (*Beoordelen*), met dezelfde wettekst (`WettekstBlok` met `laag`).
+- **Eén Vraag Lex** (`app/vraagLex.test.ts`): `VraagLexKnop` met een onderwerp, de suggesties uit één register per soort
+  (`lib/vraagLex.ts`).
+
 **De graaf van een bron** (ontdubbelen PR 1): één `useBronGraaf` + `BronGraaf` (`components/wettekst/BronGraaf.tsx`) voor
 het venster naast het gesprek, de bronpagina en de annotatie, met één keuze Tekst | Graaf (`WeergaveBalk`). Alleen de tab
 Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` nog zelf aan.
