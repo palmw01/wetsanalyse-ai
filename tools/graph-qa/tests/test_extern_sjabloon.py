@@ -331,3 +331,56 @@ def test_de_velden_noemen_de_voorbeelden_van_de_connectors_die_aanstaan():
     assert "kst-33755-3" in alleen and "ECLI" not in alleen and "Rechtspraak" not in alleen
     assert "kst-33755-3" in beide and "ECLI:NL:HR:2022:50" in beide and "ECLI:NL:…" in beide
     assert "later" not in beide, "geen belofte over een bron die er al is"
+
+
+# --- de tekst van het artikel waarbij een uitspraak hoort (review ADR-013, 10 nov 2026) ----------------------------
+
+def _rechtspraak_trace(lezen: bool):
+    from test_rechtspraak_tools import DRIE, IW, VERSIELINKS, NepBron, _artikel, _uitspraak
+
+    aan = make_settings(connector_rechtspraak=True)
+    bron = NepBron(VERSIELINKS, versies=DRIE, docs={"ECLI:NL:HR:2018:2": _uitspraak()})
+    trace = [("zoek_uitspraken", tools.dispatch("zoek_uitspraken", FakeGraph(result=_artikel("2023-01-01")),
+                                                {"bwb_id": IW, "artikel": "9", "peildatum": "2017-01-01"}, aan,
+                                                rechtspraak=bron))]
+    if lezen:
+        trace.append(("get_uitspraak", tools.dispatch("get_uitspraak", None, {"id": "ECLI:NL:HR:2018:2"}, aan,
+                                                      rechtspraak=bron)))
+    return trace
+
+
+def test_de_lijst_en_het_blok_noemen_de_tekst_waarbij_de_uitspraak_hoort():
+    trace = _rechtspraak_trace(lezen=True)
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "k", "extern": [{"id": "ECLI:NL:HR:2018:2", "van_nr": 1,
+                                                                             "tot_nr": 1}],
+                                          "stukken": ["ECLI:NL:HR:2018:2", "ECLI:NL:HR:2024:1"], "twijfel": []}, trace)
+    lijst = next(b for b in a.blokken if b.soort == "stukken")
+    oud, nieuw = (next(s for s in lijst.items if s.id == e) for e in ("ECLI:NL:HR:2018:2", "ECLI:NL:HR:2024:1"))
+    assert (oud.tekst_vanaf, oud.tekst_tot, oud.tekststand, oud.op_peildatum) == (
+        "2016-05-01", "2022-12-31", "eerdere tekst", True)
+    assert (nieuw.tekststand, nieuw.tekst_tot, nieuw.op_peildatum) == ("huidige tekst", "", False)
+    blok = next(b for b in a.blokken if b.soort == "extern")
+    assert (blok.tekst_vanaf, blok.tekst_tot, blok.tekststand) == ("2016-05-01", "2022-12-31", "eerdere tekst")
+
+
+def test_een_uitspraak_die_alleen_gelezen_is_draagt_geen_tekststand():
+    from test_rechtspraak_tools import NepBron, _uitspraak
+
+    aan = make_settings(connector_rechtspraak=True)
+    trace = [("get_uitspraak", tools.dispatch("get_uitspraak", None, {"id": "ECLI:NL:HR:2018:2"}, aan,
+                                              rechtspraak=NepBron([], docs={"ECLI:NL:HR:2018:2": _uitspraak()})))]
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "k", "extern": [{"id": "ECLI:NL:HR:2018:2", "van_nr": 1,
+                                                                             "tot_nr": 1}], "stukken": [], "twijfel": []},
+                      trace)
+    blok = next(b for b in a.blokken if b.soort == "extern")
+    assert (blok.tekststand, blok.op_peildatum) == ("", None), "de leestool kent het artikel niet: geen gok"
+
+
+def test_de_zoekvraag_noemt_de_peildatum_en_de_tekststand():
+    from bronmodel.connectors import RECHTSPRAAK
+
+    tekst = extern.zoekvraag_tekst(RECHTSPRAAK, {"bwb_id": "BWBR0004770", "artikel": "9", "bepaling": "artikel 9 van "
+                                                 "Invorderingswet 1990", "peildatum": "2015-01-01",
+                                                 "tekststand": "op peildatum", "volgorde": "nieuwste"})
+    assert tekst.startswith("Gezocht bij artikel 9 van Invorderingswet 1990, op ")
+    assert "peildatum 1 januari 2015" in tekst and "de tekst op de peildatum" in tekst

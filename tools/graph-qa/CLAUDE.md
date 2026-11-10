@@ -345,7 +345,15 @@ bruikbaar is.
   metadatasleutels (datum, gerecht en zaaknummer uit de titel); de soort gerecht voor het filter (`INSTANTIES`) komt uit de
   ECLI. Het resultaat draagt altijd `dekking: "ten minste"`, `versies`, `per_instantie` en `koppelingen` (automatisch
   herkend of redactioneel). **Een vermelding is geen uitleg**: de toolbeschrijving zegt "noemt", en een uitspraak is pas
-  bron als ze gelezen is. De divisies van een beleidsregel kent LiDO niet; dat zegt de tool. `tests/test_rechtspraak_tools.py`,
+  bron als ze gelezen is. De divisies van een beleidsregel kent LiDO niet; dat zegt de tool. **Elke rij zegt bij welke tekst ze hoort**
+  (review, 10 nov 2026). `tekstversies` geeft de periode per LiDO-versie en vergelijkt die met `bwb:inwerking` en
+  `terugwerkendTot` uit `_q_artikel`. De rij krijgt `tekst_vanaf`, `tekst_tot`, `tekststand` (huidige tekst, eerdere
+  tekst, onbekend) en met het argument `peildatum` ook `op_peildatum`. Een ECLI aan meer versies telt als huidig zodra
+  een van die versies de huidige is. Het resultaat draagt `huidige_tekst`, `per_tekststand` en `tekstversies`, en het
+  filter `tekststand` kiest. Kent LiDO de huidige tekst nog niet, dan zegt de toelichting dat. LiDO koppelt naar de
+  datum van de uitspraak, niet naar de tekst die de rechter toepaste: dat zegt de toolregel (`_VERSIE`). De peildatum
+  van het werkgebied staat in `werkgebied_context`. Het blok `extern` neemt de tekstvelden uit de zoekrij
+  (`extern._tekst_bij`, `TEKSTVELDEN`), want de leestool kent het artikel niet. `tests/test_rechtspraak_tools.py`,
   live `tests/test_rechtspraak_live.py`, meting `docs/architectuur/metingen/lido-spike-2026-11-10/`.
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION).
   **`graph/schema.py`** – schema-introspectie met een cache van een uur. **`graph/results.py`** –

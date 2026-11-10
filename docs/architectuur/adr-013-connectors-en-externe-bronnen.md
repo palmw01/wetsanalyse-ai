@@ -141,6 +141,32 @@ Uit de connectorarchitectuur van Claude/MCP (specificatie 2025-11-25) komt de bu
 - **Een snapshot bij de bronselectie.** Wat in een bronselectie wordt opgenomen, bevriest de api (onderzoek §4.4). Een
   externe bron kan nog niet in een bronselectie; als dat komt, draagt de snapshot `bron_hash` en `gewijzigd` uit het
   leestoolcontract.
+- **De versie van een artikel bij een uitspraak** (review, 10 nov 2026). `zoek_uitspraken` voegt de koppelingen van LiDO
+  samen over alle versies van een artikel. Dat helpt de vindbaarheid, maar een uitspraak over een eerdere rechtsstand
+  mag niet ongemerkt bij de huidige norm staan. Daarom draagt elke rij nu bij welke tekst ze hoort.
+  - **De velden.** Generieke metadatasleutels, zodat elke connector ze kan dragen:
+    - `tekst_vanaf` en `tekst_tot`: de periode van de LiDO-versie, uit de geldigheid in haar id en de begindatum van de
+      volgende versie;
+    - `tekststand`: `huidige tekst`, `eerdere tekst` of `onbekend`, tegenover `bwb:inwerking` (en `bwb:terugwerkendTot`)
+      van het artikel in de graaf;
+    - `op_peildatum`: of die tekst gold op de peildatum, alleen als die is meegegeven.
+  - **Het resultaat.** Daarnaast staan er `huidige_tekst`, `per_tekststand` en `tekstversies` (per versie de periode en
+    het aantal uitspraken). Kent LiDO de huidige tekst nog niet, dan is alles een eerdere tekst en zegt de toelichting
+    dat.
+  - **Filteren.** Het filter `tekststand` kiest de huidige tekst, een eerdere tekst of de tekst op de peildatum.
+  - **De regel voor het model.** De toolbeschrijving zegt: een uitspraak bij een eerdere tekst presenteer je niet als
+    uitleg van de huidige norm zonder dat te zeggen, met de periode erbij.
+  - **De werkplek.** Die toont het met de taal van `StandMelding` (`tekstBijMeldingen` in `lib/herkomst.ts`): een label
+    in de lijst, dezelfde melding in het blok `extern` en in het venster.
+  - **Wat LiDO niet levert.** LiDO hangt een uitspraak aan de versie die gold op de datum van de uitspraak. Welke tekst de
+    rechter toepaste (een eerder belastingjaar, overgangsrecht) staat pas in de uitspraak zelf. "Huidige tekst" betekent
+    dus: het artikel is sinds de uitspraak niet gewijzigd. Het betekent niet dat de uitspraak over de huidige norm gaat.
+    Een relatie "vorige versie" kent LiDO niet. De grens staat in de beschrijving (`grenzen`) en in de toolregel.
+  - **De peildatum.** Die is een argument van de tool, geen state. Het model geeft hem mee uit het werkgebied (de
+    peildatum staat nu in de werkgebiedcontext) of uit de vraag. Injecteren uit de state volgt pas als de meting laat
+    zien dat het model hem vergeet.
+  - **De andere connectors.** Staatsblad en Staatscourant koppelt alleen aan de huidige tekst en zegt die grens al.
+    Kamerstukken koppelt niet per versie. Beide kunnen de sleutels later dragen zonder nieuwe vorm.
 - **De tweede connector.** Rechtspraak is de beste proef van herbruikbaarheid (dezelfde vorm, een andere id en XML).
   ~~LiDO hoort als graafverrijking, niet als connector.~~ *Herzien 10 nov 2026*: de spike liet zien dat een import via de
   services niet volledig te krijgen is en voor de Awb te groot is; LiDO is daarom de zoekkant van de connector

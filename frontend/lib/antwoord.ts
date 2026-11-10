@@ -19,14 +19,21 @@ export type AntwoordBlok =
       /** De versie die Lex las: de hash van het document en de stand bij de bron. Leeg bij een ouder bericht. */
       bron_hash?: string; gewijzigd?: string;
       /** Uit de metadata van het gelezen stuk: de datum en het soort ("Motie"). Leeg bij een ouder bericht. */
-      datum?: string; soort_stuk?: string }
+      datum?: string; soort_stuk?: string } & TekstBij
   | { soort: "stukken"; door: "bron"; brontype: string; kop: string; items: StukRij[];
       /** Wat er gezocht is, in woorden van de code; en hoeveel stukken er bij de bron aan voldoen. */
       zoekvraag?: string; totaal?: number | null }
   | { soort: "leemte"; door: "bron"; tekst: string }
 
+/** Bij welke tekst van de bepaling een stuk hoort (een uitspraak bij een eerdere versie van het artikel), uit de bron.
+ *  `tekststand` staat tegenover de tekst in de graaf; `op_peildatum` alleen als Lex met een peildatum zocht. */
+export interface TekstBij {
+  tekst_vanaf?: string; tekst_tot?: string; tekststand?: "huidige tekst" | "eerdere tekst" | "onbekend" | string;
+  op_peildatum?: boolean | null;
+}
+
 /** Eén gevonden stuk in een lijst, met de metadata uit de zoektool (de sleutels van `METADATA_SLEUTELS`). */
-export interface StukRij {
+export interface StukRij extends TekstBij {
   id: string; label: string; link?: string; soort?: string; titel?: string; datum?: string; gepubliceerd?: string;
   jaar?: string; orgaan?: string; indieners?: string[]; reeks?: string[]; status?: string; versie?: string; leesbaar?: boolean;
   /** Waarom er geen tekst is (`leesbaar: false`), in de woorden van de connector: "onopgemaakt, alleen PDF", "geen tekst in de open data". */

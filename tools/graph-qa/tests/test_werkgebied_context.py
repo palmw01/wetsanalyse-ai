@@ -82,3 +82,10 @@ def test_het_tooi_thema_staat_in_de_context():
     uri = "https://identifier.overheid.nl/tooi/def/thes/top/c_25e30d03"
     assert f"Thema (TOOI): belasting <{uri}>" in context_tekst({"naam": "W", "thema": uri, "thema_label": "belasting"})
     assert "Thema" not in context_tekst({"naam": "W", "thema": "", "thema_label": ""})
+
+
+def test_de_peildatum_staat_in_de_context():
+    """Review ADR-013 (10 nov 2026): Lex geeft de peildatum mee aan zoek_uitspraken, dus hij moet hem zien."""
+    from agent.werkgebied_context import context_tekst
+    assert "Peildatum: 2015-01-01" in context_tekst({"naam": "W", "peildatum": "2015-01-01"})
+    assert "Peildatum" not in context_tekst({"naam": "W", "peildatum": None})

@@ -174,6 +174,17 @@ def _verwijzingen(rij: dict[str, Any]) -> list[ExterneVerwijzing] | None:
     return uit or None
 
 
+#: De velden over de tekst van de bepaling waarbij een stuk hoort (een uitspraak bij een eerdere versie van het artikel).
+#: Ze staan in de zoekrij, niet in het gelezen stuk: de leestool kent het artikel niet.
+TEKSTVELDEN = ("tekst_vanaf", "tekst_tot", "tekststand", "op_peildatum")
+
+
+def _tekst_bij(trace: Trace, c: ConnectorBeschrijving, ident: str) -> dict[str, Any]:
+    """De tekstvelden uit de zoekrij van dit stuk, als het in een zoekresultaat van dit gesprek stond."""
+    rij = _gevonden(trace, c).get(ident, ({}, None, 0))[0]
+    return {k: rij[k] for k in TEKSTVELDEN if rij.get(k) not in ("", None)}
+
+
 def blokken(items: Any, trace: Trace) -> list[Extern]:
     """De blokken `extern` uit de aanwijzingen van het model; elk feit uit de trace."""
     if not items:
@@ -212,7 +223,8 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
             brontype=vp.brontype, id=vp.id, label=str(stuk.get("label") or vp.label),
             link=str(stuk.get("link") or vp.uri), kop=c.kop_in_antwoord, passages=[],
             bron_hash=str(stuk.get("bron_hash") or ""), gewijzigd=str(stuk.get("gewijzigd") or ""),
-            datum=str(stuk.get("datum") or ""), soort_stuk=str(stuk.get("soort") or "")))
+            datum=str(stuk.get("datum") or ""), soort_stuk=str(stuk.get("soort") or ""),
+            **_tekst_bij(trace, c, vp.id)))
         al = {p.nr for p in blok.passages}
         blok.passages += [ExternePassage(nr=n, tekst=rijen[n]["tekst"], kop=str(rijen[n].get("kop") or ""),
                                          soort=str(rijen[n].get("soort") or "alinea"),
@@ -275,6 +287,11 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any]) -> str:
             periode["vanaf" if arg == veld.filters[0] else "tot"] = _voluit(str(waarde))
         elif sleutel == "orgaan":
             delen.append(f"van de {waarde}")
+        elif sleutel == "op_peildatum":
+            delen.append(f"peildatum {_voluit(str(waarde))}")
+        elif sleutel == "tekststand":
+            delen.append({"huidige tekst": "de huidige tekst", "eerdere tekst": "een eerdere tekst",
+                          "op peildatum": "de tekst op de peildatum"}.get(str(waarde), str(waarde)))
         elif sleutel == "soort":
             delen.append(f"{veld.label} „{waarde}”")
         elif veld is not None:
@@ -317,7 +334,10 @@ def _gevonden(trace: Trace, c: ConnectorBeschrijving) -> dict[str, tuple[dict[st
                 if isinstance(r, dict) and isinstance(r.get("id"), str):
                     uit[r["id"]] = (r, data, plek * 1000 + i)
         elif naam == c.leestool and isinstance(data.get("stuk"), dict) and isinstance(data["stuk"].get("id"), str):
-            uit[data["stuk"]["id"]] = (data["stuk"], None, plek * 1000)
+            # Wat alleen de zoekrij weet (de tekst van het artikel waarbij een uitspraak hoort) blijft staan.
+            eerder = uit.get(data["stuk"]["id"], ({}, None, 0))[0]
+            uit[data["stuk"]["id"]] = ({**{k: eerder[k] for k in TEKSTVELDEN if k in eerder}, **data["stuk"]}, None,
+                                       plek * 1000)
     return uit
 
 

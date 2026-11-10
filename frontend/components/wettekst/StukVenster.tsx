@@ -10,6 +10,8 @@ import { StandMelding } from "@/components/ui/StandMelding";
 import { ConnectorTekst, STUK_EENHEID } from "@/components/wettekst/ConnectorTekst";
 import { hoortBij, stukGegevens, stukMeldingen, stukVerwijzingen, type StukPassage } from "@/lib/bronStuk";
 import type { useStuk } from "@/lib/useStuk";
+import type { TekstBij } from "@/lib/antwoord";
+import { tekstBijMeldingen } from "@/lib/herkomst";
 
 /** Het bronvenster van een stuk uit een bronconnector (ADR-013, het bronvenster PR 6), in vaste blokken onder de kop:
  *  1. de stand (een andere versie dan Lex las, een bewaarde versie, alleen een PDF);
@@ -19,8 +21,10 @@ import type { useStuk } from "@/lib/useStuk";
  *  4. de gegevens uit de beschrijving van de connector (`metadata`);
  *  5. de verwijzingen uit de voetnoten: een stuk van dezelfde bron opent als eigen tab.
  *  Is de bron niet te bereiken, dan staat er wat Lex las (`voorbeeld`), met een melding. Geen graaf: die kent geen stukken. */
-export function StukVenster({ stuk: { stand, fout, laadt, meer }, gelezen, voorbeeld, onOpenStuk }: {
+export function StukVenster({ stuk: { stand, fout, laadt, meer }, gelezen, voorbeeld, tekst: bij, onOpenStuk }: {
   stuk: ReturnType<typeof useStuk>;
+  /** Bij welke tekst van de bepaling het stuk hoort (uit de lijst waar het geopend werd). */
+  tekst?: TekstBij;
   gelezen?: { bron_hash: string; passages: number[] };
   voorbeeld?: StukPassage[];
   onOpenStuk: (v: { id: string; label: string; link: string }) => void;
@@ -39,6 +43,7 @@ export function StukVenster({ stuk: { stand, fout, laadt, meer }, gelezen, voorb
   if (fout && !stand) {
     return (
       <div className="space-y-4">
+        <StandMelding meldingen={tekstBijMeldingen(bij ?? {})} />
         <Melding type="waarschuwing" compact><span data-stand-melding="bron-onbereikbaar">{fout}{voorbeeld?.length ? " Hieronder staat wat Lex las." : ""}</span></Melding>
         {!!voorbeeld?.length && <ConnectorTekst passages={voorbeeld} geciteerd={geciteerd} />}
       </div>
@@ -46,7 +51,7 @@ export function StukVenster({ stuk: { stand, fout, laadt, meer }, gelezen, voorb
   }
   if (!stand) return <div className="space-y-2"><Skeleton className="h-4 w-48" /><Skeleton className="h-16 w-full" /></div>;
   const { beschrijving, deel } = stand.antwoord;
-  const meldingen = stukMeldingen(deel, gelezen);
+  const meldingen = [...tekstBijMeldingen(bij ?? {}), ...stukMeldingen(deel, gelezen)];
   const gegevens = stukGegevens(beschrijving, deel.stuk);
   const verwijzingen = stukVerwijzingen(passages);
   const naarKop = (offset: number) => {

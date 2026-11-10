@@ -2,7 +2,7 @@
 
 
 import { useOpenBron } from "@/components/werkplek/ContextPaneel";
-import type { AntwoordVindplaats } from "@/lib/antwoord";
+import type { AntwoordVindplaats, TekstBij } from "@/lib/antwoord";
 import type { StukPassage } from "@/lib/bronStuk";
 import { vindplaatsTekst } from "@/lib/herkomst";
 import { bronHref } from "@/lib/url";
@@ -31,8 +31,10 @@ export function Vindplaats({ vindplaats: v, kort = false }: {
 
 /** Een stuk uit een bronconnector (ADR-013), zoals `Vindplaats` een bepaling: in de werkplek opent een klik het stuk als
  *  tab naast het gesprek (het bronvenster, PR 6), met wat Lex las; daarbuiten, of met Ctrl/⌘/Shift, de bron zelf. */
-export function StukVindplaats({ brontype, id, label, link, gelezen, voorbeeld, className = "" }: {
+export function StukVindplaats({ brontype, id, label, link, gelezen, voorbeeld, tekst, className = "" }: {
   brontype: string; id: string; label: string; link?: string;
+  /** Bij welke tekst van de bepaling het stuk hoort (uit de zoekrij): het venster zegt het met dezelfde melding. */
+  tekst?: TekstBij;
   /** De versie die Lex las en de passages die hij citeerde: het venster markeert ze en meldt een andere versie. */
   gelezen?: { bron_hash: string; passages: number[] };
   /** Wat in het bericht staat: het venster toont het als de bron niet te bereiken is. */
@@ -44,7 +46,10 @@ export function StukVindplaats({ brontype, id, label, link, gelezen, voorbeeld, 
   const open = (e: React.MouseEvent) => {
     if (!opener || e.metaKey || e.ctrlKey || e.shiftKey) return;
     e.preventDefault();
-    opener({ soort: "stuk", brontype, id, titel: label, gelezen, voorbeeld });
+    const bij = tekst && (tekst.tekststand || tekst.op_peildatum != null)
+      ? { tekst_vanaf: tekst.tekst_vanaf, tekst_tot: tekst.tekst_tot, tekststand: tekst.tekststand, op_peildatum: tekst.op_peildatum }
+      : undefined;
+    opener({ soort: "stuk", brontype, id, titel: label, gelezen, voorbeeld, ...(bij ? { tekst: bij } : {}) });
   };
   if (!href && !opener) return <span className={className}>{label}</span>;
   return (

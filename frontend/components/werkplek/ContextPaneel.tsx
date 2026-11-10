@@ -32,6 +32,7 @@ import { useStuk } from "@/lib/useStuk";
 import { StukVenster } from "@/components/wettekst/StukVenster";
 import { contextSleutelVan } from "@/lib/paneelTabs";
 import type { Lifecycle, Overzicht, Werkgebied } from "@/lib/types";
+import type { TekstBij } from "@/lib/antwoord";
 import { useBronHerkomst } from "@/lib/useBronHerkomst";
 import { ROL_LABEL } from "@/lib/werkgebied";
 import { bronPad, elementPad, projectPad } from "@/lib/werkgebiedPaden";
@@ -52,7 +53,9 @@ export type ContextDoel =
   /** Een stuk uit een bronconnector (ADR-013, het bronvenster PR 6): het brontype (of de naam) van de connector en het
    *  id. `gelezen` en `voorbeeld` komen uit het antwoord: wat Lex las, en wat het venster toont als de bron weg is. */
   | { soort: "stuk"; brontype: string; id: string; titel: string;
-      gelezen?: { bron_hash: string; passages: number[] }; voorbeeld?: StukPassage[] };
+      gelezen?: { bron_hash: string; passages: number[] }; voorbeeld?: StukPassage[];
+      /** Bij welke tekst van de bepaling het stuk hoort, uit de lijst waar het geopend werd; hoort niet bij de sleutel. */
+      tekst?: TekstBij };
 
 /** Opent een context naast het gesprek. Alleen binnen de werkplek (`WerkplekClient`); daarbuiten is er
  *  geen gesprek om naast te staan en tonen de aanroepers deze handeling niet. */
@@ -206,7 +209,7 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
               onOpenBron={(v) => onWissel({ soort: "bron", bron_iri: v.iri, werkgebied_id: doel.werkgebied_id, titel: vindplaatsTekst(v) })} />
             : doel.soort === "element" ? <ElementInhoud id={doel.element_id} />
             : doel.soort === "overzicht" ? <OverzichtPaneel overzicht={doel.overzicht} onMaakWerkgebied={onMaakWerkgebied} />
-            : doel.soort === "stuk" ? <StukVenster stuk={stuk} gelezen={doel.gelezen} voorbeeld={doel.voorbeeld}
+            : doel.soort === "stuk" ? <StukVenster stuk={stuk} gelezen={doel.gelezen} voorbeeld={doel.voorbeeld} tekst={doel.tekst}
               onOpenStuk={(v) => onWissel({ soort: "stuk", brontype: doel.brontype, id: v.id, titel: v.label })} />
             : <BibliotheekInhoud werkgebiedId={doel.werkgebied_id} onWissel={onWissel} />}
         </div>

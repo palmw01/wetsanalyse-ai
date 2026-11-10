@@ -580,3 +580,98 @@ def test_het_totaal_van_een_lijst_heeft_een_punt_voor_de_duizendtallen():
     blok = Stukken(brontype="uitspraak", kop="Gevonden Rechtspraak", totaal=19523,
                    items=[Stuk(id=f"ECLI:NL:HR:2026:{i}", label=str(i)) for i in range(10)])
     assert "10 van de 19.523 stukken." in antwoord_tekst(Antwoord(sjabloon="extern", blokken=[blok]))
+
+
+# --- de versie van het artikel (review ADR-013, 10 nov 2026) -------------------------------------------------------
+
+V_2010, V_2023 = f"{V}/2010-01-01/2010-01-01", f"{V}/2023-01-01/2023-01-01"
+DRIE = (V_2023, V_2016, V_2010)
+
+
+def _artikel(inwerking: str = "", terugwerkend: str = "") -> str:
+    kop = ["node", "jci", "labelId", "label", "soort", "inwerking", "terugwerkendTot"]
+    return _tsv(kop, [["urn:bwb:BWBR0004770:artikel:9", "", "2910654", "Artikel 9", "urn:bwb-ns:Artikel",
+                       inwerking, terugwerkend]])
+
+
+VERSIELINKS = [
+    Link("ECLI:NL:HR:2024:1", "ECLI:NL:HR:2024:1 - Hoge Raad, 12-03-2024 / 23/001", "Door computer herkende referentie", V_2023),
+    Link("ECLI:NL:HR:2018:2", "ECLI:NL:HR:2018:2 - Hoge Raad, 05-06-2018 / 17/002", "Door computer herkende referentie", V_2016),
+    Link("ECLI:NL:RBGEL:2012:3", "ECLI:NL:RBGEL:2012:3 - Rechtbank Gelderland, 01-02-2012 / 11/3", "Redactionele referentie", V_2010),
+    # Een uitspraak die LiDO aan twee versies hangt: ze telt bij de huidige tekst, met de vroegste begindatum.
+    Link("ECLI:NL:GHARL:2023:4", "ECLI:NL:GHARL:2023:4 - Gerechtshof Arnhem-Leeuwarden, 20-12-2022 / 22/4",
+         "Door computer herkende referentie", V_2016),
+    Link("ECLI:NL:GHARL:2023:4", "", "Door computer herkende referentie", V_2023),
+]
+
+
+def _rij(uit: dict, ecli: str) -> dict:
+    return next(r for r in uit["resultaten"] if r["id"] == ecli)
+
+
+def test_tekstversies_lopen_van_nieuw_naar_oud_met_een_periode():
+    versies, achter = R.tekstversies(DRIE, ("2023-01-01",))
+    assert not achter
+    assert [(t.vanaf, t.tot, t.huidig) for t in versies] == [
+        ("2023-01-01", "", True), ("2016-05-01", "2022-12-31", False), ("2010-01-01", "2016-04-30", False)]
+
+
+def test_elke_uitspraak_noemt_de_tekst_van_het_artikel_waaraan_lido_haar_koppelde():
+    uit = _zoek({"bwb_id": IW, "artikel": "9"}, links=VERSIELINKS, graaf=_artikel("2023-01-01"), versies=DRIE)
+    hr24 = _rij(uit, "ECLI:NL:HR:2024:1")
+    assert (hr24["tekst_vanaf"], hr24["tekststand"]) == ("2023-01-01", "huidige tekst")
+    assert "tekst_tot" not in _rij(uit, "ECLI:NL:HR:2024:1"), "een tekst die nog geldt heeft geen einde"
+    hr18 = _rij(uit, "ECLI:NL:HR:2018:2")
+    assert (hr18["tekst_vanaf"], hr18["tekst_tot"], hr18["tekststand"]) == ("2016-05-01", "2022-12-31", "eerdere tekst")
+    twee = _rij(uit, "ECLI:NL:GHARL:2023:4")
+    assert (twee["tekst_vanaf"], twee.get("tekst_tot"), twee["tekststand"]) == ("2016-05-01", None, "huidige tekst")
+    assert uit["huidige_tekst"] == {"vanaf": "2023-01-01"}
+    assert uit["per_tekststand"] == {"huidige tekst": 2, "eerdere tekst": 2}
+    assert uit["tekstversies"][0] == {"vanaf": "2023-01-01", "uitspraken": 2}
+    assert uit["tekstversies"][1] == {"vanaf": "2016-05-01", "tot": "2022-12-31", "uitspraken": 2}
+    assert "2 van de 4 uitspraken noemen een eerdere tekst van artikel 9, die gold vóór 1 januari 2023" in uit["toelichting"]
+
+
+def test_filter_op_tekststand_en_peildatum():
+    args = {"bwb_id": IW, "artikel": "9"}
+    kw = {"links": VERSIELINKS, "graaf": _artikel("2023-01-01"), "versies": DRIE}
+    huidig = _zoek({**args, "tekststand": "huidige tekst"}, **kw)
+    assert {r["id"] for r in huidig["resultaten"]} == {"ECLI:NL:HR:2024:1", "ECLI:NL:GHARL:2023:4"}
+    eerder = _zoek({**args, "tekststand": "eerdere tekst"}, **kw)
+    assert {r["id"] for r in eerder["resultaten"]} == {"ECLI:NL:HR:2018:2", "ECLI:NL:RBGEL:2012:3"}
+    peil = _zoek({**args, "peildatum": "2015-01-01"}, **kw)
+    assert peil["peildatum"] == "2015-01-01"
+    assert _rij(peil, "ECLI:NL:RBGEL:2012:3")["op_peildatum"] is True
+    assert _rij(peil, "ECLI:NL:HR:2024:1")["op_peildatum"] is False
+    op = _zoek({**args, "tekststand": "op peildatum", "peildatum": "2015"}, **kw)
+    assert [r["id"] for r in op["resultaten"]] == ["ECLI:NL:RBGEL:2012:3"]
+
+
+def test_lido_kent_de_huidige_tekst_nog_niet():
+    uit = _zoek({"bwb_id": IW, "artikel": "9"}, links=VERSIELINKS, graaf=_artikel("2026-10-01"), versies=DRIE)
+    assert {r["tekststand"] for r in uit["resultaten"]} == {"eerdere tekst"}
+    assert _rij(uit, "ECLI:NL:HR:2024:1")["tekst_tot"] == "2026-09-30"
+    assert "LiDO kent de huidige tekst van artikel 9 (geldig vanaf 1 oktober 2026) nog niet" in uit["toelichting"]
+
+
+def test_zonder_inwerking_in_de_graaf_is_de_stand_onbekend_maar_de_periode_staat_er():
+    uit = _zoek({"bwb_id": IW, "artikel": "9"}, links=VERSIELINKS, graaf=_artikel(), versies=DRIE)
+    assert {r["tekststand"] for r in uit["resultaten"]} == {"onbekend"}
+    assert _rij(uit, "ECLI:NL:HR:2018:2")["tekst_tot"] == "2022-12-31"
+    assert "niet vast te stellen" in uit["toelichting"] and "huidige_tekst" not in uit
+
+
+def test_terugwerkende_kracht_telt_als_de_huidige_tekst():
+    versies, _ = R.tekstversies((f"{V}/2022-07-01/2023-01-15", V_2016), ("2023-01-15", "2022-07-01"))
+    assert versies[0].huidig is True
+
+
+@pytest.mark.parametrize("args,reden", [
+    ({"bwb_id": IW, "artikel": "9", "tekststand": "op peildatum"}, "ongeldige_argumenten"),
+    ({"bwb_id": IW, "artikel": "9", "tekststand": "oud"}, "ongeldige_argumenten"),
+    ({"bwb_id": IW, "artikel": "9", "peildatum": "morgen"}, "ongeldige_datum"),
+    ({"instantie": "Hoge Raad", "peildatum": "2015-01-01"}, "ongeldige_argumenten"),
+])
+def test_een_invoerfout_bij_de_tekststand(args, reden):
+    uit = _zoek(args, links=VERSIELINKS, graaf=_artikel("2023-01-01"), versies=DRIE)
+    assert uit["status"] == "error" and uit["reden"] == reden and "bijvoorbeeld" in uit["melding"]

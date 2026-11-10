@@ -4,7 +4,7 @@
  *
  *  Puur: de data komt van de aanroeper (een vindplaats uit het antwoord, `BepalingDetail` uit de api, de toestanden van een
  *  werkgebied). Wat er niet is, blijft weg; er wordt niets geraden. */
-import type { AntwoordVindplaats } from "@/lib/antwoord";
+import type { AntwoordVindplaats, TekstBij } from "@/lib/antwoord";
 import type { BronDoel } from "@/lib/bronDoel";
 import { bepalingEnRegeling } from "@/lib/bronnenPerDeelvraag";
 import { datumTekst } from "@/lib/graaf/knoopinfo";
@@ -142,7 +142,9 @@ export function annotatieKopTekst(info: { citeertitel?: string; artikel: string;
 
 export type StandSoort = "nog-niet-in-werking" | "gelezen-ouder" | "na-peildatum" | "peildatum-onbekend"
   // Een stuk uit een bronconnector (`lib/bronStuk.ts`).
-  | "stuk-gewijzigd" | "bewaarde-versie" | "alleen-pdf";
+  | "stuk-gewijzigd" | "bewaarde-versie" | "alleen-pdf"
+  // Bij welke tekst van de bepaling een stuk hoort (`tekstBijMeldingen`).
+  | "eerdere-tekst" | "buiten-peildatum" | "tekststand-onbekend";
 export interface StandMeldingData { soort: StandSoort; tekst: string }
 
 export const NOG_NIET_IN_WERKING: StandMeldingData = {
@@ -174,6 +176,37 @@ export function standMeldingen(s: {
   }
   if (s.peildatum && s.geldig_vanaf && s.geldig_vanaf > s.peildatum) {
     uit.push({ soort: "na-peildatum", tekst: `De tekst in de kennisgraaf geldt vanaf ${datumTekst(s.geldig_vanaf)}, na de peildatum van het werkgebied (${datumTekst(s.peildatum)}). Hij kan afwijken van wat op de peildatum gold; een oudere versie heeft de graaf niet.` });
+  }
+  return uit;
+}
+
+/** De periode van de tekst waarbij een stuk hoort, in woorden: "de tekst van 1 mei 2016 tot en met 31 december 2022",
+ *  of "de huidige tekst (sinds 1 januari 2023)". Leeg als de bron het niet zegt. */
+export function tekstPeriode(t: TekstBij): string {
+  if (!t.tekst_vanaf) return "";
+  if (t.tekststand === "huidige tekst") return `de huidige tekst (sinds ${datumTekst(t.tekst_vanaf)})`;
+  return t.tekst_tot ? `de tekst van ${datumTekst(t.tekst_vanaf)} tot en met ${datumTekst(t.tekst_tot)}`
+    : `de tekst sinds ${datumTekst(t.tekst_vanaf)}`;
+}
+
+/** Het korte label bij een melding over de tekst, voor een rij in een lijst. */
+export const TEKSTSTAND_LABEL: Partial<Record<StandSoort, string>> = {
+  "eerdere-tekst": "eerdere tekst", "buiten-peildatum": "niet op de peildatum", "tekststand-onbekend": "tekst onbekend",
+};
+
+/** Wat er te zeggen valt over de tekst van de bepaling waarbij een stuk hoort (review ADR-013, 10 nov 2026): een
+ *  eerdere tekst dan die in de graaf, een andere dan op de peildatum, of niet vast te stellen. De graaf draagt één
+ *  toestand per regeling; de zin suggereert nooit dat de oudere tekst er is. */
+export function tekstBijMeldingen(t: TekstBij): StandMeldingData[] {
+  const uit: StandMeldingData[] = [];
+  if (t.tekststand === "eerdere tekst") {
+    const periode = tekstPeriode(t);
+    uit.push({ soort: "eerdere-tekst", tekst: `Dit stuk noemt ${periode || "een eerdere tekst van de bepaling"}. De bepaling is daarna gewijzigd: als uitleg van de huidige tekst geldt het niet zonder meer.` });
+  } else if (t.tekststand === "onbekend") {
+    uit.push({ soort: "tekststand-onbekend", tekst: "Bij welke tekst van de bepaling dit stuk hoort, is niet vast te stellen." });
+  }
+  if (t.op_peildatum === false) {
+    uit.push({ soort: "buiten-peildatum", tekst: "Dit stuk noemt een andere tekst dan die op de peildatum gold." });
   }
   return uit;
 }
