@@ -107,15 +107,32 @@ class Onderwerp(BaseModel):
     Een markering is hier geen soort: die vraag blijft de adviesvraag (`modus: "advies"` met
     `context`), byte-gelijk aan wat de werkplek al stuurde."""
 
-    soort: Literal["deelvraag", "bron", "kandidaat", "begrip", "werkgebied"]
-    werkgebied_id: str = Field(pattern=_ID)
-    # Het id van het object binnen het werkgebied; bij soort `werkgebied` leeg.
+    soort: Literal["deelvraag", "bron", "kandidaat", "begrip", "werkgebied", "bepaling", "stuk"]
+    # Het werkgebied van het object; een bepaling of een stuk kan ook zonder (ontdubbelen PR 5: *Vraag Lex* in het
+    # bronvenster, op de bronpagina en de annotatiepagina).
+    werkgebied_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
+    # Het id van het object binnen het werkgebied; bij soort `werkgebied`, `bepaling` en `stuk` leeg.
     id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
     # Hoe de werkplek het object noemt; alleen voor wanneer de api het niet (meer) kent.
     label: str = Field(default="", max_length=300)
+    # Een bepaling: haar bronnode in de graaf.
+    bron_iri: str = Field(default="", max_length=300, pattern=r"^(urn:bwb:[A-Za-z0-9:._-]+)?$")
+    # Een stuk uit een bronconnector (ADR-013): de connector en het id van het stuk daarin.
+    connector: str = Field(default="", pattern=r"^[a-z_]{0,40}$")
+    stuk_id: str = Field(default="", max_length=120, pattern=r"^[A-Za-z0-9:._-]{0,120}$")
 
     @model_validator(mode="after")
     def _id_hoort_bij_de_soort(self) -> "Onderwerp":
+        if self.soort == "bepaling":
+            if not self.bron_iri:
+                raise ValueError("een onderwerp van soort 'bepaling' vraagt een bron_iri")
+            return self
+        if self.soort == "stuk":
+            if not (self.connector and self.stuk_id):
+                raise ValueError("een onderwerp van soort 'stuk' vraagt een connector en een stuk_id")
+            return self
+        if not self.werkgebied_id:
+            raise ValueError(f"een onderwerp van soort '{self.soort}' vraagt een werkgebied_id")
         if self.soort != "werkgebied" and not self.id:
             raise ValueError(f"een onderwerp van soort '{self.soort}' vraagt een id")
         return self

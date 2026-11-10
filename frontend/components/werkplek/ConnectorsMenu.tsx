@@ -44,15 +44,18 @@ export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarSta
     <Popover ariaLabel="Bronnen en tools" positie="left-0 bottom-full mb-1" className={`w-72 ${MENU_PANEEL}`}
       trigger={(open, toggle) => (
         <button type="button" onClick={() => { if (!open) onOpen?.(); toggle(); }} aria-expanded={open} aria-haspopup="menu" aria-label={menuNaam(stand)}
-          data-connectors-menu data-laden={stand.laden === "mislukt" ? "mislukt" : undefined}
+          data-connectors-menu data-laden={stand.controleert ? "controleert" : stand.laden === "mislukt" ? "mislukt" : undefined}
+          aria-busy={stand.controleert || undefined}
           className={`${knopKlasse("ghost", "sm")} max-w-full gap-1.5 text-xs`}>
-          {stand.laden === "mislukt" && <Waarschuwing className="text-aandacht-geel-tekst" />}
+          {stand.laden === "mislukt" && !stand.controleert && <Waarschuwing className="text-aandacht-geel-tekst" />}
           {menuRegel(stand).map((d, i) => (
             <span key={d.label} className={`inline-flex items-center gap-1 ${d.stand === "aan" ? "text-ink" : "text-muted"}`}
               data-bron={d.label} data-aan={d.stand === "aan" ? "" : undefined} data-stand={d.stand}>
               {i > 0 && <span aria-hidden className="text-muted">·</span>}
               {d.label}
               {d.stand === "aan" ? <Vinkje className="text-lint" />
+                // Laden is geen oordeel: geen kleur en geen woord, alleen een gedempt label tot de stand er is.
+                : d.stand === "laden" ? null
                 : d.stand === "uit" ? <span aria-hidden className="text-muted">{STAND_WOORD.uit}</span>
                 : <StatusLabel toon="geel" klein aria-hidden>{STAND_WOORD[d.stand]}</StatusLabel>}
             </span>
@@ -78,7 +81,8 @@ export function ConnectorsMenu({ stand, onWissel, onAlsStandaard, onTerugNaarSta
               <li key={c.naam} role="none" data-connector-onbekend={c.beschikbaarheid === "onbekend" ? c.naam : undefined}
                 data-connector-niet-aangeboden={c.beschikbaarheid === "niet_aangeboden" ? c.naam : undefined}>
                 <span role="menuitem" aria-disabled="true" className={`${MENU_RIJ} cursor-default text-muted hover:bg-transparent`}>
-                  {c.label} · {REDEN[c.beschikbaarheid === "niet_aangeboden" ? "niet_aangeboden" : "onbekend"]}
+                  {c.label} · {c.beschikbaarheid === "niet_aangeboden" ? REDEN.niet_aangeboden
+                    : stand.controleert ? STAND_WOORD.laden : REDEN.onbekend}
                 </span>
               </li>
             ))}

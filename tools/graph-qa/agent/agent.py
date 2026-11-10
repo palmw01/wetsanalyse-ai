@@ -199,6 +199,9 @@ async def _onderwerp_blok(settings: Settings, user_id: str, onderwerp: dict[str,
     from .onderwerp import als_blok, haal
     from .wetsanalyse_api import WetsanalyseApi
 
+    # Een bepaling of stuk vraagt niets van de api: het blok zegt alleen wélk object het is (`onderwerp.haal`).
+    if onderwerp.get("soort") in ("bepaling", "stuk"):
+        return await haal(None, onderwerp)
     if not settings.legt_zelf_vast:
         return als_blok(onderwerp.get("soort", ""), None, onderwerp.get("label", ""))
     api = WetsanalyseApi(settings, user_id)

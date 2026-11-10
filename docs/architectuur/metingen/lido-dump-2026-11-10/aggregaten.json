@@ -1,0 +1,2980 @@
+{
+ "dump": {
+  "url": "https://linkeddata.overheid.nl/export/lido-export.nt.gz",
+  "last_modified": "2026-11-01T14:18:15Z",
+  "bytes_gz": 5662706901,
+  "download_s": 260,
+  "licentie": "CC0 1.0 (data.overheid.nl, dataset linked-data-overheid)",
+  "formaat": "N-Triples (gz), Blazegraph-export met afgeleide triples (_TC)"
+ },
+ "filter_doorgang_1": {
+  "regels": 385213623,
+  "bytes_uitgepakt": 127662052985,
+  "seconden": 890.1,
+  "piek_rss_mb": 15.6,
+  "regels_per_id": {
+   "BWBR0005537": 13536368,
+   "BWBR0004770": 287142,
+   "BWBR0024096": 63932
+  },
+  "bytes_gefilterd": {
+   "BWBR0004770": 2804375,
+   "BWBR0005537": 288336652,
+   "BWBR0024096": 438751
+  }
+ },
+ "filter_doorgang_2": {
+  "regels": 385213623,
+  "bytes_uitgepakt": 127662052985,
+  "seconden": 786.6,
+  "piek_rss_mb": 17.8,
+  "regels_per_id": {
+   "BWBR0002320": 1158876,
+   "BWBR0018472": 195349,
+   "BWBR0004766": 103541,
+   "BWBR0019237": 24061
+  },
+  "bytes_gefilterd": {
+   "BWBR0002320": 13827617,
+   "BWBR0004766": 812780,
+   "BWBR0018472": 1999197,
+   "BWBR0019237": 214338
+  }
+ },
+ "predicaten_top": {
+  "<http://linkeddata.overheid.nl/terms/geimporteerdDoor>": 27286210,
+  "<http://purl.org/dc/terms/identifier>": 22122373,
+  "<http://linkeddata.overheid.nl/terms/heeftBron>": 21669898,
+  "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>": 21629951,
+  "<http://purl.org/dc/terms/hasVersion>": 19952065,
+  "<http://linkeddata.overheid.nl/terms/heeftJuriconnect>": 18604803,
+  "<http://purl.org/dc/terms/modified>": 13292545,
+  "<http://linkeddata.overheid.nl/terms/refereertAan>": 12803291,
+  "<http://www.w3.org/ns/prov#wasDerivedFrom>": 12703026,
+  "<http://www.w3.org/ns/prov#generatedAtTime>": 12094249,
+  "<http://purl.org/dc/terms/title>": 11936091,
+  "<http://www.w3.org/2000/01/rdf-schema#label>": 11927624,
+  "<http://purl.org/dc/terms/type>": 11896004,
+  "<http://linkeddata.overheid.nl/terms/heeftLinktype>": 10665555,
+  "<http://purl.org/dc/terms/creator>": 10325395,
+  "<http://linkeddata.overheid.nl/terms/linktNaar>": 9974596,
+  "<http://linkeddata.overheid.nl/terms/linktVan>": 9974596,
+  "<http://linkeddata.overheid.nl/terms/heeftSolrDocs>": 9973186,
+  "<http://linkeddata.overheid.nl/terms/linkt>": 9899772,
+  "<http://linkeddata.overheid.nl/terms/isOnderdeelVanTC>": 9839020,
+  "<http://linkeddata.overheid.nl/terms/opschrift>": 9063336,
+  "<http://linkeddata.overheid.nl/terms/isOnderdeelVanRegeling>": 7696654,
+  "<http://purl.org/dc/terms/available>": 6350438,
+  "<http://linkeddata.overheid.nl/lx/publicatienummer>": 5899358,
+  "<http://linkeddata.overheid.nl/lx/publicatiejaar>": 5837452,
+  "<http://purl.org/dc/terms/issued>": 4312164,
+  "<http://linkeddata.overheid.nl/terms/heeftZaaknummer>": 3995490,
+  "<http://linkeddata.overheid.nl/lx/heeftZaaknummer>": 3983605,
+  "<http://linkeddata.overheid.nl/terms/heeftUitspraakdatum>": 3911718,
+  "<http://linkeddata.overheid.nl/lx/creator>": 3884826,
+  "<http://purl.org/dc/terms/accessRights>": 3846907,
+  "<http://purl.org/dc/terms/publisher>": 3845215,
+  "<http://purl.org/dc/terms/language>": 3781464,
+  "<http://purl.org/dc/terms/coverage>": 3781464,
+  "<http://linkeddata.overheid.nl/terms/heeftRechtsgebied>": 3511788,
+  "<http://purl.org/dc/terms/spatial>": 2035971,
+  "<http://linkeddata.overheid.nl/terms/isOnderdeelVan>": 1845434,
+  "<http://linkeddata.overheid.nl/lx/date>": 1374455,
+  "<http://standaarden.overheid.nl/owms/terms/authority>": 1137106,
+  "<http://linkeddata.overheid.nl/terms/heeftProceduresoort>": 1126493
+ },
+ "iw": {
+  "bwb": "BWBR0004770",
+  "artikelen_label_ids": 132,
+  "artikelversies": 412,
+  "paren_alle_versies": 5449,
+  "paren_huidige_versie": 2905,
+  "unieke_ecli": 3095,
+  "artikelen_met_uitspraak": 106,
+  "linkacts_gelezen": 12890,
+  "linkt_direct_naar_artikelversie": {
+   "bwb": 2670,
+   "overig": 4,
+   "jurisprudentie": 7960,
+   "_paren": 0
+  },
+  "linktypen": {
+   "inkomend | Jurisprudentie | lx-referentie": 5309,
+   "inkomend | Wet | bwb-externe-referentie": 2213,
+   "uitgaand | Wet | bwb-externe-referentie": 1501,
+   "inkomend | Jurisprudentie | rvr-referentie": 560,
+   "uitgaand | Officiele overheidspublicatie | bwb-ontstaansbron": 414,
+   "uitgaand | Officiele overheidspublicatie | bwb-inwerkingtredingsbron": 411,
+   "uitgaand | Overig | bwb-externe-referentie": 23,
+   "inkomend | Overig | puc-opendata-referentie": 3
+  },
+  "nieuwste_geldig": "2026-10-01",
+  "imports_bwb_laatste": [
+   "bwb-2026-01-05",
+   "bwb-2026-07-02",
+   "bwb-2026-09-10",
+   "bwb-2026-10-07",
+   "bwb-2026-10-08"
+  ],
+  "imports_links_per_maand": {
+   "links-2024-03": 2371,
+   "links-2024-04": 1647,
+   "links-2024-05": 1749,
+   "links-2024-06": 389,
+   "links-2024-07": 1346,
+   "links-2024-08": 16,
+   "links-2024-09": 36,
+   "links-2024-10": 9,
+   "links-2024-11": 22,
+   "links-2024-12": 11,
+   "links-2025-01": 45,
+   "links-2025-02": 1,
+   "links-2025-03": 24,
+   "links-2025-04": 38,
+   "links-2025-05": 20,
+   "links-2025-06": 15,
+   "links-2025-07": 32,
+   "links-2025-08": 3,
+   "links-2025-09": 13,
+   "links-2025-10": 8,
+   "links-2025-11": 20,
+   "links-2025-12": 5,
+   "links-2026-01": 60,
+   "links-2026-02": 13,
+   "links-2026-03": 11,
+   "links-2026-04": 18,
+   "links-2026-05": 21,
+   "links-2026-06": 4,
+   "links-2026-07": 82,
+   "links-2026-08": 18,
+   "links-2026-09": 18,
+   "links-2026-10": 19
+  },
+  "seconden": 0.9,
+  "piek_rss_mb": 45.3
+ },
+ "awb": {
+  "bwb": "BWBR0005537",
+  "artikelen_label_ids": 570,
+  "artikelversies": 1050,
+  "paren_alle_versies": 666015,
+  "paren_huidige_versie": 483363,
+  "unieke_ecli": 281560,
+  "artikelen_met_uitspraak": 570,
+  "linkacts_gelezen": 983540,
+  "linkt_direct_naar_artikelversie": {
+   "bwb": 21566,
+   "overig": 1079,
+   "jurisprudentie": 857458,
+   "_paren": 0
+  },
+  "linktypen": {
+   "inkomend | Jurisprudentie | lx-referentie": 657959,
+   "inkomend | Jurisprudentie | rvr-referentie": 22284,
+   "inkomend | Wet | bwb-externe-referentie": 16658,
+   "uitgaand | Officiele overheidspublicatie | bwb-ontstaansbron": 908,
+   "uitgaand | Officiele overheidspublicatie | bwb-inwerkingtredingsbron": 902,
+   "uitgaand | Wet | bwb-externe-referentie": 339,
+   "inkomend | Overig | lx-referentie": 234,
+   "inkomend | Overig | puc-opendata-referentie": 199,
+   "inkomend | Overig | uwv-referentie": 91,
+   "inkomend | Overig | svb-grondslag": 82,
+   "uitgaand | Overig | bwb-externe-referentie": 1
+  },
+  "nieuwste_geldig": "2026-06-04",
+  "imports_bwb_laatste": [
+   "bwb-2026-08-14",
+   "bwb-2026-08-17",
+   "bwb-2026-09-10",
+   "bwb-2026-09-29",
+   "bwb-2026-10-01"
+  ],
+  "imports_links_per_maand": {
+   "links-2024-03": 57746,
+   "links-2024-04": 175234,
+   "links-2024-05": 118284,
+   "links-2024-06": 35924,
+   "links-2024-07": 142912,
+   "links-2024-08": 6182,
+   "links-2024-09": 4723,
+   "links-2024-10": 5913,
+   "links-2024-11": 5219,
+   "links-2024-12": 5244,
+   "links-2025-01": 5573,
+   "links-2025-02": 42,
+   "links-2025-03": 7514,
+   "links-2025-04": 7563,
+   "links-2025-05": 5125,
+   "links-2025-06": 5109,
+   "links-2025-07": 5798,
+   "links-2025-08": 6137,
+   "links-2025-09": 3693,
+   "links-2025-10": 4094,
+   "links-2025-11": 8028,
+   "links-2025-12": 3352,
+   "links-2026-01": 9397,
+   "links-2026-02": 5542,
+   "links-2026-03": 4060,
+   "links-2026-04": 16965,
+   "links-2026-05": 5363,
+   "links-2026-06": 158,
+   "links-2026-07": 17757,
+   "links-2026-08": 4446,
+   "links-2026-09": 7743,
+   "links-2026-10": 6602
+  },
+  "seconden": 55.6,
+  "piek_rss_mb": 2416.8
+ },
+ "leidraad": {
+  "bwb": "BWBR0024096",
+  "artikelen_label_ids": 125,
+  "artikelversies": 201,
+  "paren_alle_versies": 295,
+  "paren_huidige_versie": 213,
+  "unieke_ecli": 218,
+  "artikelen_met_uitspraak": 43,
+  "linkacts_gelezen": 727,
+  "linkt_direct_naar_artikelversie": {
+   "jurisprudentie": 568,
+   "_paren": 0,
+   "overig": 2
+  },
+  "linktypen": {
+   "inkomend | Jurisprudentie | lx-referentie": 294,
+   "uitgaand | Officiele overheidspublicatie | bwb-inwerkingtredingsbron": 75,
+   "uitgaand | Officiele overheidspublicatie | bwb-ontstaansbron": 75,
+   "uitgaand | Wet | bwb-externe-referentie": 15,
+   "inkomend | Overig | avb-grondslag": 2,
+   "inkomend | Jurisprudentie | rvr-referentie": 1
+  },
+  "nieuwste_geldig": "2026-07-01",
+  "imports_bwb_laatste": [
+   "bwb-2025-07-08",
+   "bwb-2026-01-09",
+   "bwb-2026-07-03",
+   "bwb-2026-07-06",
+   "bwb-2026-09-10"
+  ],
+  "imports_links_per_maand": {
+   "links-2024-03": 3,
+   "links-2024-04": 26,
+   "links-2024-05": 132,
+   "links-2024-06": 31,
+   "links-2024-07": 70,
+   "links-2024-09": 1,
+   "links-2024-11": 2,
+   "links-2025-03": 2,
+   "links-2025-06": 2,
+   "links-2025-08": 1,
+   "links-2025-09": 2,
+   "links-2025-11": 2,
+   "links-2025-12": 1,
+   "links-2026-01": 2,
+   "links-2026-03": 1,
+   "links-2026-04": 11,
+   "links-2026-05": 1,
+   "links-2026-07": 3,
+   "links-2026-08": 4
+  },
+  "seconden": 0.2,
+  "piek_rss_mb": 15.6
+ },
+ "overige_regelingen": {
+  "BWBR0002320": {
+   "artikelen_label_ids": 238,
+   "artikelversies": 631,
+   "paren_alle_versies": 49536,
+   "paren_huidige_versie": 28258,
+   "unieke_ecli": 24500,
+   "artikelen_met_uitspraak": 224,
+   "linkacts_gelezen": 72997,
+   "nieuwste_geldig": "2026-10-01"
+  },
+  "BWBR0004766": {
+   "artikelen_label_ids": 93,
+   "artikelversies": 325,
+   "paren_alle_versies": 370,
+   "paren_huidige_versie": 220,
+   "unieke_ecli": 201,
+   "artikelen_met_uitspraak": 50,
+   "linkacts_gelezen": 2500,
+   "nieuwste_geldig": "2026-01-01"
+  },
+  "BWBR0018472": {
+   "artikelen_label_ids": 87,
+   "artikelversies": 340,
+   "paren_alle_versies": 5683,
+   "paren_huidige_versie": 1178,
+   "unieke_ecli": 3120,
+   "artikelen_met_uitspraak": 66,
+   "linkacts_gelezen": 11070,
+   "nieuwste_geldig": "2026-10-01"
+  },
+  "BWBR0019237": {
+   "artikelen_label_ids": 26,
+   "artikelversies": 119,
+   "paren_alle_versies": 146,
+   "paren_huidige_versie": 18,
+   "unieke_ecli": 138,
+   "artikelen_met_uitspraak": 9,
+   "linkacts_gelezen": 1073,
+   "nieuwste_geldig": "2026-07-01"
+  }
+ },
+ "iw_per_artikel_tegen_spike_ref": [
+  {
+   "artikel": "1",
+   "label_id": "2910564",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 79,
+   "dump_uitspraken": 81,
+   "spike_huidig": 70,
+   "dump_huidig": 72,
+   "dump_import_na_2026_07_02": 2
+  },
+  {
+   "artikel": "2",
+   "label_id": "2910574",
+   "spike_versies": 14,
+   "dump_versies": 14,
+   "spike_uitspraken": 88,
+   "dump_uitspraken": 88,
+   "spike_huidig": 32,
+   "dump_huidig": 32,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "3",
+   "label_id": "2910584",
+   "spike_versies": 7,
+   "dump_versies": 7,
+   "spike_uitspraken": 98,
+   "dump_uitspraken": 99,
+   "spike_huidig": 49,
+   "dump_huidig": 50,
+   "dump_import_na_2026_07_02": 1
+  },
+  {
+   "artikel": "3a",
+   "label_id": "8495004",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "4",
+   "label_id": "2910594",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 5,
+   "dump_uitspraken": 5,
+   "spike_huidig": 5,
+   "dump_huidig": 5,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "5",
+   "label_id": "2910604",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 18,
+   "dump_uitspraken": 18,
+   "spike_huidig": 14,
+   "dump_huidig": 14,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "6",
+   "label_id": "2910614",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 4,
+   "dump_uitspraken": 4,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "7",
+   "label_id": "2910624",
+   "spike_versies": 5,
+   "dump_versies": 5,
+   "spike_uitspraken": 50,
+   "dump_uitspraken": 50,
+   "spike_huidig": 1,
+   "dump_huidig": 1,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "7a",
+   "label_id": "6976164",
+   "spike_versies": 5,
+   "dump_versies": 5,
+   "spike_uitspraken": 4,
+   "dump_uitspraken": 4,
+   "spike_huidig": 3,
+   "dump_huidig": 3,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "7b",
+   "label_id": "12466474",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 1,
+   "dump_uitspraken": 1,
+   "spike_huidig": 1,
+   "dump_huidig": 1,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "7c",
+   "label_id": "13255234",
+   "spike_versies": 3,
+   "dump_versies": 4,
+   "spike_uitspraken": 2,
+   "dump_uitspraken": 2,
+   "spike_huidig": 1,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "7d",
+   "label_id": "15232144",
+   "spike_versies": 0,
+   "dump_versies": 1,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "8",
+   "label_id": "2910644",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 201,
+   "dump_uitspraken": 205,
+   "spike_huidig": 71,
+   "dump_huidig": 75,
+   "dump_import_na_2026_07_02": 7
+  },
+  {
+   "artikel": "9",
+   "label_id": "2910654",
+   "spike_versies": 8,
+   "dump_versies": 8,
+   "spike_uitspraken": 196,
+   "dump_uitspraken": 198,
+   "spike_huidig": 12,
+   "dump_huidig": 12,
+   "dump_import_na_2026_07_02": 19
+  },
+  {
+   "artikel": "10",
+   "label_id": "2910664",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 121,
+   "dump_uitspraken": 121,
+   "spike_huidig": 46,
+   "dump_huidig": 46,
+   "dump_import_na_2026_07_02": 2
+  },
+  {
+   "artikel": "11",
+   "label_id": "2910684",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 113,
+   "dump_uitspraken": 115,
+   "spike_huidig": 96,
+   "dump_huidig": 98,
+   "dump_import_na_2026_07_02": 3
+  },
+  {
+   "artikel": "12",
+   "label_id": "2910694",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 109,
+   "dump_uitspraken": 110,
+   "spike_huidig": 89,
+   "dump_huidig": 90,
+   "dump_import_na_2026_07_02": 6
+  },
+  {
+   "artikel": "13",
+   "label_id": "2910704",
+   "spike_versies": 6,
+   "dump_versies": 6,
+   "spike_uitspraken": 40,
+   "dump_uitspraken": 40,
+   "spike_huidig": 22,
+   "dump_huidig": 22,
+   "dump_import_na_2026_07_02": 1
+  },
+  {
+   "artikel": "14",
+   "label_id": "2910714",
+   "spike_versies": 5,
+   "dump_versies": 5,
+   "spike_uitspraken": 23,
+   "dump_uitspraken": 23,
+   "spike_huidig": 17,
+   "dump_huidig": 17,
+   "dump_import_na_2026_07_02": 1
+  },
+  {
+   "artikel": "15",
+   "label_id": "2910724",
+   "spike_versies": 6,
+   "dump_versies": 6,
+   "spike_uitspraken": 61,
+   "dump_uitspraken": 61,
+   "spike_huidig": 13,
+   "dump_huidig": 13,
+   "dump_import_na_2026_07_02": 2
+  },
+  {
+   "artikel": "16",
+   "label_id": "2910734",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 2,
+   "dump_uitspraken": 2,
+   "spike_huidig": 2,
+   "dump_huidig": 2,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "17",
+   "label_id": "2910744",
+   "spike_versies": 6,
+   "dump_versies": 6,
+   "spike_uitspraken": 161,
+   "dump_uitspraken": 161,
+   "spike_huidig": 24,
+   "dump_huidig": 24,
+   "dump_import_na_2026_07_02": 5
+  },
+  {
+   "artikel": "18",
+   "label_id": "2910754",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 2,
+   "dump_uitspraken": 2,
+   "spike_huidig": 2,
+   "dump_huidig": 2,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "18a",
+   "label_id": "15714174",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 1,
+   "dump_uitspraken": 1,
+   "spike_huidig": 1,
+   "dump_huidig": 1,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "19",
+   "label_id": "2910764",
+   "spike_versies": 11,
+   "dump_versies": 11,
+   "spike_uitspraken": 56,
+   "dump_uitspraken": 57,
+   "spike_huidig": 7,
+   "dump_huidig": 8,
+   "dump_import_na_2026_07_02": 1
+  },
+  {
+   "artikel": "20",
+   "label_id": "2910774",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 10,
+   "dump_uitspraken": 10,
+   "spike_huidig": 6,
+   "dump_huidig": 6,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "21",
+   "label_id": "2910794",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 88,
+   "dump_uitspraken": 89,
+   "spike_huidig": 88,
+   "dump_huidig": 89,
+   "dump_import_na_2026_07_02": 1
+  },
+  {
+   "artikel": "22",
+   "label_id": "2910804",
+   "spike_versies": 7,
+   "dump_versies": 7,
+   "spike_uitspraken": 103,
+   "dump_uitspraken": 103,
+   "spike_huidig": 46,
+   "dump_huidig": 46,
+   "dump_import_na_2026_07_02": 3
+  },
+  {
+   "artikel": "22bis",
+   "label_id": "11977834",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 18,
+   "dump_uitspraken": 19,
+   "spike_huidig": 13,
+   "dump_huidig": 14,
+   "dump_import_na_2026_07_02": 2
+  },
+  {
+   "artikel": "22a",
+   "label_id": "2917434",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 2,
+   "dump_uitspraken": 2,
+   "spike_huidig": 2,
+   "dump_huidig": 2,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "23",
+   "label_id": "2910814",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 3,
+   "dump_uitspraken": 3,
+   "spike_huidig": 3,
+   "dump_huidig": 3,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "23a",
+   "label_id": "10314634",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "24",
+   "label_id": "2910834",
+   "spike_versies": 10,
+   "dump_versies": 10,
+   "spike_uitspraken": 155,
+   "dump_uitspraken": 159,
+   "spike_huidig": 34,
+   "dump_huidig": 38,
+   "dump_import_na_2026_07_02": 7
+  },
+  {
+   "artikel": "25",
+   "label_id": "2910854",
+   "spike_versies": 21,
+   "dump_versies": 21,
+   "spike_uitspraken": 225,
+   "dump_uitspraken": 225,
+   "spike_huidig": 10,
+   "dump_huidig": 10,
+   "dump_import_na_2026_07_02": 5
+  },
+  {
+   "artikel": "25a",
+   "label_id": "12243544",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 1,
+   "dump_uitspraken": 1,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "25b",
+   "label_id": "14878914",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 1,
+   "dump_uitspraken": 1,
+   "spike_huidig": 1,
+   "dump_huidig": 1,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "25c",
+   "label_id": "16550114",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "26",
+   "label_id": "2910864",
+   "spike_versies": 17,
+   "dump_versies": 17,
+   "spike_uitspraken": 118,
+   "dump_uitspraken": 121,
+   "spike_huidig": 3,
+   "dump_huidig": 3,
+   "dump_import_na_2026_07_02": 2
+  },
+  {
+   "artikel": "26a",
+   "label_id": "16476694",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 7,
+   "dump_uitspraken": 8,
+   "spike_huidig": 7,
+   "dump_huidig": 8,
+   "dump_import_na_2026_07_02": 3
+  },
+  {
+   "artikel": "27",
+   "label_id": "2910874",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 73,
+   "dump_uitspraken": 73,
+   "spike_huidig": 21,
+   "dump_huidig": 21,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "27bis",
+   "label_id": "13458094",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 2,
+   "dump_uitspraken": 2,
+   "spike_huidig": 2,
+   "dump_huidig": 2,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "27ter",
+   "label_id": "13458104",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 4,
+   "dump_uitspraken": 4,
+   "spike_huidig": 2,
+   "dump_huidig": 2,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "27quater",
+   "label_id": "13458124",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 11,
+   "dump_uitspraken": 14,
+   "spike_huidig": 7,
+   "dump_huidig": 10,
+   "dump_import_na_2026_07_02": 1
+  },
+  {
+   "artikel": "27quinquies",
+   "label_id": "16111244",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 1,
+   "dump_uitspraken": 1,
+   "spike_huidig": 1,
+   "dump_huidig": 1,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "28",
+   "label_id": "2910904",
+   "spike_versies": 10,
+   "dump_versies": 10,
+   "spike_uitspraken": 133,
+   "dump_uitspraken": 133,
+   "spike_huidig": 10,
+   "dump_huidig": 10,
+   "dump_import_na_2026_07_02": 1
+  },
+  {
+   "artikel": "28a",
+   "label_id": "11564314",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 18,
+   "dump_uitspraken": 18,
+   "spike_huidig": 13,
+   "dump_huidig": 13,
+   "dump_import_na_2026_07_02": 5
+  },
+  {
+   "artikel": "28b",
+   "label_id": "11564324",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 22,
+   "dump_uitspraken": 23,
+   "spike_huidig": 22,
+   "dump_huidig": 23,
+   "dump_import_na_2026_07_02": 1
+  },
+  {
+   "artikel": "28c",
+   "label_id": "12879714",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 365,
+   "dump_uitspraken": 368,
+   "spike_huidig": 365,
+   "dump_huidig": 368,
+   "dump_import_na_2026_07_02": 7
+  },
+  {
+   "artikel": "29",
+   "label_id": "2910914",
+   "spike_versies": 10,
+   "dump_versies": 10,
+   "spike_uitspraken": 47,
+   "dump_uitspraken": 48,
+   "spike_huidig": 25,
+   "dump_huidig": 26,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "30",
+   "label_id": "2910924",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 240,
+   "dump_uitspraken": 241,
+   "spike_huidig": 23,
+   "dump_huidig": 24,
+   "dump_import_na_2026_07_02": 8
+  },
+  {
+   "artikel": "31",
+   "label_id": "2910934",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 11,
+   "dump_uitspraken": 11,
+   "spike_huidig": 1,
+   "dump_huidig": 1,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "31a",
+   "label_id": "2911514",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 2,
+   "dump_uitspraken": 2,
+   "spike_huidig": 2,
+   "dump_huidig": 2,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "32",
+   "label_id": "2910954",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 220,
+   "dump_uitspraken": 221,
+   "spike_huidig": 220,
+   "dump_huidig": 221,
+   "dump_import_na_2026_07_02": 1
+  },
+  {
+   "artikel": "33",
+   "label_id": "2910964",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 83,
+   "dump_uitspraken": 83,
+   "spike_huidig": 83,
+   "dump_huidig": 83,
+   "dump_import_na_2026_07_02": 1
+  },
+  {
+   "artikel": "33a",
+   "label_id": "14882964",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 1,
+   "dump_uitspraken": 1,
+   "spike_huidig": 1,
+   "dump_huidig": 1,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "34",
+   "label_id": "2910974",
+   "spike_versies": 5,
+   "dump_versies": 5,
+   "spike_uitspraken": 191,
+   "dump_uitspraken": 191,
+   "spike_huidig": 159,
+   "dump_huidig": 159,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "35",
+   "label_id": "2910984",
+   "spike_versies": 5,
+   "dump_versies": 5,
+   "spike_uitspraken": 112,
+   "dump_uitspraken": 112,
+   "spike_huidig": 87,
+   "dump_huidig": 87,
+   "dump_import_na_2026_07_02": 1
+  },
+  {
+   "artikel": "35a",
+   "label_id": "5013974",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 3,
+   "dump_uitspraken": 4,
+   "spike_huidig": 3,
+   "dump_huidig": 4,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "35b",
+   "label_id": "5013984",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "36",
+   "label_id": "2910994",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 623,
+   "dump_uitspraken": 627,
+   "spike_huidig": 470,
+   "dump_huidig": 474,
+   "dump_import_na_2026_07_02": 4
+  },
+  {
+   "artikel": "36a",
+   "label_id": "2911004",
+   "spike_versies": 5,
+   "dump_versies": 5,
+   "spike_uitspraken": 3,
+   "dump_uitspraken": 3,
+   "spike_huidig": 1,
+   "dump_huidig": 1,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "36b",
+   "label_id": "9215904",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 25,
+   "dump_uitspraken": 25,
+   "spike_huidig": 25,
+   "dump_huidig": 25,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "37",
+   "label_id": "2911014",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 13,
+   "dump_uitspraken": 13,
+   "spike_huidig": 11,
+   "dump_huidig": 11,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "38",
+   "label_id": "2911024",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 9,
+   "dump_uitspraken": 9,
+   "spike_huidig": 9,
+   "dump_huidig": 9,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "39",
+   "label_id": "2911034",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 16,
+   "dump_uitspraken": 16,
+   "spike_huidig": 6,
+   "dump_huidig": 6,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "40",
+   "label_id": "2911044",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 110,
+   "dump_uitspraken": 110,
+   "spike_huidig": 46,
+   "dump_huidig": 46,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "41",
+   "label_id": "2911054",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 23,
+   "dump_uitspraken": 23,
+   "spike_huidig": 23,
+   "dump_huidig": 23,
+   "dump_import_na_2026_07_02": 1
+  },
+  {
+   "artikel": "41a",
+   "label_id": "16885704",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "42",
+   "label_id": "2911064",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 9,
+   "dump_uitspraken": 9,
+   "spike_huidig": 9,
+   "dump_huidig": 9,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "42a",
+   "label_id": "2911074",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "42c",
+   "label_id": "2917524",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 13,
+   "dump_uitspraken": 13,
+   "spike_huidig": 13,
+   "dump_huidig": 13,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "42d",
+   "label_id": "14426124",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 1,
+   "dump_uitspraken": 1,
+   "spike_huidig": 1,
+   "dump_huidig": 1,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "43",
+   "label_id": "2911094",
+   "spike_versies": 4,
+   "dump_versies": 4,
+   "spike_uitspraken": 88,
+   "dump_uitspraken": 88,
+   "spike_huidig": 42,
+   "dump_huidig": 42,
+   "dump_import_na_2026_07_02": 1
+  },
+  {
+   "artikel": "43a",
+   "label_id": "9326544",
+   "spike_versies": 5,
+   "dump_versies": 5,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "44",
+   "label_id": "2911104",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 3,
+   "dump_uitspraken": 3,
+   "spike_huidig": 3,
+   "dump_huidig": 3,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "44a",
+   "label_id": "2911114",
+   "spike_versies": 9,
+   "dump_versies": 9,
+   "spike_uitspraken": 4,
+   "dump_uitspraken": 4,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "44b",
+   "label_id": "2917464",
+   "spike_versies": 7,
+   "dump_versies": 7,
+   "spike_uitspraken": 5,
+   "dump_uitspraken": 5,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "45",
+   "label_id": "2911124",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 3,
+   "dump_uitspraken": 3,
+   "spike_huidig": 1,
+   "dump_huidig": 1,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "46",
+   "label_id": "2911134",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 7,
+   "dump_uitspraken": 7,
+   "spike_huidig": 5,
+   "dump_huidig": 5,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "47",
+   "label_id": "2911144",
+   "spike_versies": 4,
+   "dump_versies": 4,
+   "spike_uitspraken": 7,
+   "dump_uitspraken": 7,
+   "spike_huidig": 6,
+   "dump_huidig": 6,
+   "dump_import_na_2026_07_02": 1
+  },
+  {
+   "artikel": "48",
+   "label_id": "2911154",
+   "spike_versies": 4,
+   "dump_versies": 4,
+   "spike_uitspraken": 5,
+   "dump_uitspraken": 5,
+   "spike_huidig": 1,
+   "dump_huidig": 1,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "48a",
+   "label_id": "12466864",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "49",
+   "label_id": "2911174",
+   "spike_versies": 10,
+   "dump_versies": 10,
+   "spike_uitspraken": 348,
+   "dump_uitspraken": 348,
+   "spike_huidig": 47,
+   "dump_huidig": 47,
+   "dump_import_na_2026_07_02": 7
+  },
+  {
+   "artikel": "51",
+   "label_id": "2911194",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 22,
+   "dump_uitspraken": 22,
+   "spike_huidig": 22,
+   "dump_huidig": 22,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "52",
+   "label_id": "2911204",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 11,
+   "dump_uitspraken": 11,
+   "spike_huidig": 8,
+   "dump_huidig": 8,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "53",
+   "label_id": "2911214",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 12,
+   "dump_uitspraken": 12,
+   "spike_huidig": 10,
+   "dump_huidig": 10,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "54",
+   "label_id": "2911224",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 3,
+   "dump_uitspraken": 3,
+   "spike_huidig": 3,
+   "dump_huidig": 3,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "55",
+   "label_id": "2911244",
+   "spike_versies": 5,
+   "dump_versies": 5,
+   "spike_uitspraken": 5,
+   "dump_uitspraken": 5,
+   "spike_huidig": 3,
+   "dump_huidig": 3,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "56",
+   "label_id": "2911254",
+   "spike_versies": 4,
+   "dump_versies": 4,
+   "spike_uitspraken": 6,
+   "dump_uitspraken": 6,
+   "spike_huidig": 2,
+   "dump_huidig": 2,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "57",
+   "label_id": "2911264",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 12,
+   "dump_uitspraken": 12,
+   "spike_huidig": 12,
+   "dump_huidig": 12,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "57a",
+   "label_id": "10085594",
+   "spike_versies": 0,
+   "dump_versies": 0,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "58",
+   "label_id": "2911294",
+   "spike_versies": 4,
+   "dump_versies": 4,
+   "spike_uitspraken": 33,
+   "dump_uitspraken": 33,
+   "spike_huidig": 15,
+   "dump_huidig": 15,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "59",
+   "label_id": "2911304",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 3,
+   "dump_uitspraken": 3,
+   "spike_huidig": 3,
+   "dump_huidig": 3,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "60",
+   "label_id": "2911314",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 10,
+   "dump_uitspraken": 10,
+   "spike_huidig": 10,
+   "dump_huidig": 10,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "61",
+   "label_id": "2911324",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 1,
+   "dump_uitspraken": 1,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "62",
+   "label_id": "2911334",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 18,
+   "dump_uitspraken": 18,
+   "spike_huidig": 18,
+   "dump_huidig": 18,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "62bis",
+   "label_id": "12879724",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "62a",
+   "label_id": "11310904",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 38,
+   "dump_uitspraken": 38,
+   "spike_huidig": 38,
+   "dump_huidig": 38,
+   "dump_import_na_2026_07_02": 4
+  },
+  {
+   "artikel": "63",
+   "label_id": "2911344",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 5,
+   "dump_uitspraken": 5,
+   "spike_huidig": 1,
+   "dump_huidig": 1,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "63a",
+   "label_id": "2911354",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 2,
+   "dump_uitspraken": 2,
+   "spike_huidig": 2,
+   "dump_huidig": 2,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "63aa",
+   "label_id": "14521014",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "63ab",
+   "label_id": "14521024",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "63b",
+   "label_id": "10327224",
+   "spike_versies": 4,
+   "dump_versies": 4,
+   "spike_uitspraken": 2,
+   "dump_uitspraken": 2,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "63c",
+   "label_id": "10327234",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "64",
+   "label_id": "2911374",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 13,
+   "dump_uitspraken": 13,
+   "spike_huidig": 10,
+   "dump_huidig": 10,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "65",
+   "label_id": "2911384",
+   "spike_versies": 4,
+   "dump_versies": 4,
+   "spike_uitspraken": 15,
+   "dump_uitspraken": 15,
+   "spike_huidig": 10,
+   "dump_huidig": 10,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "65a",
+   "label_id": "2911674",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 2,
+   "dump_uitspraken": 2,
+   "spike_huidig": 2,
+   "dump_huidig": 2,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "66",
+   "label_id": "2911394",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 2,
+   "dump_uitspraken": 2,
+   "spike_huidig": 2,
+   "dump_huidig": 2,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "67",
+   "label_id": "2911414",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 74,
+   "dump_uitspraken": 74,
+   "spike_huidig": 65,
+   "dump_huidig": 65,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "67a",
+   "label_id": "13339784",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "68",
+   "label_id": "2911424",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 9,
+   "dump_uitspraken": 9,
+   "spike_huidig": 8,
+   "dump_huidig": 8,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "69",
+   "label_id": "2911434",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "70",
+   "label_id": "2911444",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 4,
+   "dump_uitspraken": 4,
+   "spike_huidig": 2,
+   "dump_huidig": 2,
+   "dump_import_na_2026_07_02": 1
+  },
+  {
+   "artikel": "70a",
+   "label_id": "11875444",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "70aa",
+   "label_id": "12379874",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "70b",
+   "label_id": "11977844",
+   "spike_versies": 5,
+   "dump_versies": 5,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "70ba",
+   "label_id": "12379884",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 1,
+   "dump_uitspraken": 1,
+   "spike_huidig": 1,
+   "dump_huidig": 1,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "70c",
+   "label_id": "11977854",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 1,
+   "dump_uitspraken": 1,
+   "spike_huidig": 1,
+   "dump_huidig": 1,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "70ca",
+   "label_id": "13925154",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "70cc",
+   "label_id": "13925174",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "70d",
+   "label_id": "12379894",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "70e",
+   "label_id": "12470174",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "70ea",
+   "label_id": "13333704",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 3,
+   "dump_uitspraken": 3,
+   "spike_huidig": 3,
+   "dump_huidig": 3,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "70f",
+   "label_id": "12879804",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 3,
+   "dump_uitspraken": 3,
+   "spike_huidig": 3,
+   "dump_huidig": 3,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "70g",
+   "label_id": "16903674",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 1,
+   "dump_uitspraken": 1,
+   "spike_huidig": 1,
+   "dump_huidig": 1,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "70h",
+   "label_id": "16904254",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "71",
+   "label_id": "2911464",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "72",
+   "label_id": "2911474",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 1,
+   "dump_uitspraken": 1,
+   "spike_huidig": 1,
+   "dump_huidig": 1,
+   "dump_import_na_2026_07_02": 0
+  }
+ ],
+ "iw_artikelen_niet_in_spike": {
+  "2911084": {
+   "nr": [
+    "42b"
+   ],
+   "versies": 2,
+   "uitspraken": 1,
+   "uitspraken_huidig": 0,
+   "uitspraken_import_na_2026_07_02": 0,
+   "eerste": "1995-12-29",
+   "laatste": "2016-01-01",
+   "vervangt_relaties": 0
+  },
+  "2911184": {
+   "nr": [
+    "50"
+   ],
+   "versies": 2,
+   "uitspraken": 60,
+   "uitspraken_huidig": 58,
+   "uitspraken_import_na_2026_07_02": 1,
+   "eerste": "2002-01-01",
+   "laatste": "2002-12-01",
+   "vervangt_relaties": 0
+  },
+  "2911534": {
+   "nr": [
+    "27a"
+   ],
+   "versies": 6,
+   "uitspraken": 18,
+   "uitspraken_huidig": 2,
+   "uitspraken_import_na_2026_07_02": 0,
+   "eerste": "1998-01-01",
+   "laatste": "2024-01-01",
+   "vervangt_relaties": 0
+  },
+  "2917474": {
+   "nr": [
+    "44c"
+   ],
+   "versies": 4,
+   "uitspraken": 0,
+   "uitspraken_huidig": 0,
+   "uitspraken_import_na_2026_07_02": 0,
+   "eerste": "2001-01-01",
+   "laatste": "2013-01-01",
+   "vervangt_relaties": 0
+  },
+  "13925164": {
+   "nr": [
+    "70cb"
+   ],
+   "versies": 2,
+   "uitspraken": 0,
+   "uitspraken_huidig": 0,
+   "uitspraken_import_na_2026_07_02": 0,
+   "eerste": "2017-04-01",
+   "laatste": "2020-01-01",
+   "vervangt_relaties": 0
+  }
+ },
+ "awb_steekproef_tegen_spike_jci": [
+  {
+   "artikel": "8:7",
+   "label_id": "2815634",
+   "spike_versies": 5,
+   "dump_versies": 5,
+   "spike_uitspraken": 651,
+   "dump_uitspraken": 661,
+   "spike_huidig": 219,
+   "dump_huidig": 229,
+   "dump_import_na_2026_07_02": 40
+  },
+  {
+   "artikel": "4:76",
+   "label_id": "2819854",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 38,
+   "dump_uitspraken": 38,
+   "spike_huidig": 38,
+   "dump_huidig": 38,
+   "dump_import_na_2026_07_02": 2
+  },
+  {
+   "artikel": "8:55f",
+   "label_id": "10274684",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 129,
+   "dump_uitspraken": 132,
+   "spike_huidig": 127,
+   "dump_huidig": 130,
+   "dump_import_na_2026_07_02": 4
+  },
+  {
+   "artikel": "3:13",
+   "label_id": "2814344",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 131,
+   "dump_uitspraken": 132,
+   "spike_huidig": 53,
+   "dump_huidig": 54,
+   "dump_import_na_2026_07_02": 6
+  },
+  {
+   "artikel": "3:48",
+   "label_id": "2819144",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 91,
+   "dump_uitspraken": 91,
+   "spike_huidig": 91,
+   "dump_huidig": 91,
+   "dump_import_na_2026_07_02": 2
+  },
+  {
+   "artikel": "11:2",
+   "label_id": "2820834",
+   "spike_versies": 5,
+   "dump_versies": 5,
+   "spike_uitspraken": 34,
+   "dump_uitspraken": 34,
+   "spike_huidig": 33,
+   "dump_huidig": 33,
+   "dump_import_na_2026_07_02": 2
+  },
+  {
+   "artikel": "4:20b",
+   "label_id": "10274624",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 310,
+   "dump_uitspraken": 312,
+   "spike_huidig": 310,
+   "dump_huidig": 312,
+   "dump_import_na_2026_07_02": 9
+  },
+  {
+   "artikel": "8:37",
+   "label_id": "2815994",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 169,
+   "dump_uitspraken": 174,
+   "spike_huidig": 92,
+   "dump_huidig": 97,
+   "dump_import_na_2026_07_02": 6
+  },
+  {
+   "artikel": "3:23",
+   "label_id": "2814484",
+   "spike_versies": 1,
+   "dump_versies": 4,
+   "spike_uitspraken": 31,
+   "dump_uitspraken": 37,
+   "spike_huidig": 31,
+   "dump_huidig": 32,
+   "dump_import_na_2026_07_02": 3
+  },
+  {
+   "artikel": "10:16",
+   "label_id": "2820494",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 38,
+   "dump_uitspraken": 39,
+   "spike_huidig": 38,
+   "dump_huidig": 39,
+   "dump_import_na_2026_07_02": 2
+  },
+  {
+   "artikel": "5:9",
+   "label_id": "10067304",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 145,
+   "dump_uitspraken": 147,
+   "spike_huidig": 145,
+   "dump_huidig": 147,
+   "dump_import_na_2026_07_02": 8
+  },
+  {
+   "artikel": "3:3",
+   "label_id": "2814214",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 690,
+   "dump_uitspraken": 699,
+   "spike_huidig": 690,
+   "dump_huidig": 699,
+   "dump_import_na_2026_07_02": 22
+  },
+  {
+   "artikel": "4:13",
+   "label_id": "2814854",
+   "spike_versies": 1,
+   "dump_versies": 2,
+   "spike_uitspraken": 933,
+   "dump_uitspraken": 1047,
+   "spike_huidig": 933,
+   "dump_huidig": 942,
+   "dump_import_na_2026_07_02": 28
+  },
+  {
+   "artikel": "8:90",
+   "label_id": "12082494",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 301,
+   "dump_uitspraken": 311,
+   "spike_huidig": 301,
+   "dump_huidig": 311,
+   "dump_import_na_2026_07_02": 19
+  },
+  {
+   "artikel": "8:76",
+   "label_id": "2816464",
+   "spike_versies": 3,
+   "dump_versies": 3,
+   "spike_uitspraken": 74,
+   "dump_uitspraken": 75,
+   "spike_huidig": 72,
+   "dump_huidig": 73,
+   "dump_import_na_2026_07_02": 3
+  },
+  {
+   "artikel": "3:45",
+   "label_id": "2814684",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 340,
+   "dump_uitspraken": 343,
+   "spike_huidig": 340,
+   "dump_huidig": 343,
+   "dump_import_na_2026_07_02": 9
+  },
+  {
+   "artikel": "5:32",
+   "label_id": "2820214",
+   "spike_versies": 2,
+   "dump_versies": 3,
+   "spike_uitspraken": 660,
+   "dump_uitspraken": 2114,
+   "spike_huidig": 0,
+   "dump_huidig": 645,
+   "dump_import_na_2026_07_02": 34
+  },
+  {
+   "artikel": "4:18",
+   "label_id": "2814914",
+   "spike_versies": 1,
+   "dump_versies": 2,
+   "spike_uitspraken": 2808,
+   "dump_uitspraken": 2922,
+   "spike_huidig": 2808,
+   "dump_huidig": 2922,
+   "dump_import_na_2026_07_02": 177
+  },
+  {
+   "artikel": "2",
+   "label_id": null,
+   "spike_versies": 0,
+   "dump_versies": 0,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 0,
+   "spike_huidig": 0,
+   "dump_huidig": 0,
+   "dump_import_na_2026_07_02": 0
+  },
+  {
+   "artikel": "8:80b",
+   "label_id": "10321884",
+   "spike_versies": 2,
+   "dump_versies": 2,
+   "spike_uitspraken": 140,
+   "dump_uitspraken": 144,
+   "spike_huidig": 130,
+   "dump_huidig": 134,
+   "dump_import_na_2026_07_02": 4
+  },
+  {
+   "artikel": "3:24",
+   "label_id": "2814494",
+   "spike_versies": 1,
+   "dump_versies": 4,
+   "spike_uitspraken": 57,
+   "dump_uitspraken": 137,
+   "spike_huidig": 57,
+   "dump_huidig": 57,
+   "dump_import_na_2026_07_02": 2
+  },
+  {
+   "artikel": "4:46",
+   "label_id": "2819484",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 966,
+   "dump_uitspraken": 982,
+   "spike_huidig": 966,
+   "dump_huidig": 982,
+   "dump_import_na_2026_07_02": 20
+  },
+  {
+   "artikel": "5:16a",
+   "label_id": "5935334",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 44,
+   "dump_uitspraken": 44,
+   "spike_huidig": 44,
+   "dump_huidig": 44,
+   "dump_import_na_2026_07_02": 2
+  },
+  {
+   "artikel": "3:27",
+   "label_id": "2814524",
+   "spike_versies": 1,
+   "dump_versies": 4,
+   "spike_uitspraken": 36,
+   "dump_uitspraken": 107,
+   "spike_huidig": 36,
+   "dump_huidig": 36,
+   "dump_import_na_2026_07_02": 3
+  },
+  {
+   "artikel": "8:57",
+   "label_id": "2816254",
+   "spike_versies": 4,
+   "dump_versies": 4,
+   "spike_uitspraken": 11728,
+   "dump_uitspraken": 12629,
+   "spike_huidig": 10043,
+   "dump_huidig": 10944,
+   "dump_import_na_2026_07_02": 819
+  },
+  {
+   "artikel": "3:14",
+   "label_id": "2814364",
+   "spike_versies": 2,
+   "dump_versies": 3,
+   "spike_uitspraken": 70,
+   "dump_uitspraken": 92,
+   "spike_huidig": 46,
+   "dump_huidig": 46,
+   "dump_import_na_2026_07_02": 3
+  },
+  {
+   "artikel": "5:15",
+   "label_id": "2820024",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 0,
+   "dump_uitspraken": 182,
+   "spike_huidig": 0,
+   "dump_huidig": 182,
+   "dump_import_na_2026_07_02": 10
+  },
+  {
+   "artikel": "3:11",
+   "label_id": "2814324",
+   "spike_versies": 4,
+   "dump_versies": 4,
+   "spike_uitspraken": 1517,
+   "dump_uitspraken": 1533,
+   "spike_huidig": 258,
+   "dump_huidig": 274,
+   "dump_import_na_2026_07_02": 22
+  },
+  {
+   "artikel": "4:58",
+   "label_id": "2819634",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 29,
+   "dump_uitspraken": 29,
+   "spike_huidig": 29,
+   "dump_huidig": 29,
+   "dump_import_na_2026_07_02": 2
+  },
+  {
+   "artikel": "7:2",
+   "label_id": "2815264",
+   "spike_versies": 1,
+   "dump_versies": 1,
+   "spike_uitspraken": 4009,
+   "dump_uitspraken": 4111,
+   "spike_huidig": 4009,
+   "dump_huidig": 4111,
+   "dump_import_na_2026_07_02": 182
+  }
+ ],
+ "awb_top10": [
+  {
+   "nr": [
+    "8:75"
+   ],
+   "versies": 4,
+   "uitspraken": 53328,
+   "uitspraken_huidig": 15963
+  },
+  {
+   "nr": [
+    "8:54"
+   ],
+   "versies": 2,
+   "uitspraken": 45342,
+   "uitspraken_huidig": 42304
+  },
+  {
+   "nr": [
+    "8:81"
+   ],
+   "versies": 2,
+   "uitspraken": 32671,
+   "uitspraken_huidig": 20130
+  },
+  {
+   "nr": [
+    "8:72"
+   ],
+   "versies": 4,
+   "uitspraken": 23835,
+   "uitspraken_huidig": 15803
+  },
+  {
+   "nr": [
+    "3:2"
+   ],
+   "versies": 1,
+   "uitspraken": 22604,
+   "uitspraken_huidig": 22604
+  },
+  {
+   "nr": [
+    "6:12"
+   ],
+   "versies": 3,
+   "uitspraken": 22306,
+   "uitspraken_huidig": 22106
+  },
+  {
+   "nr": [
+    "7:12"
+   ],
+   "versies": 2,
+   "uitspraken": 20069,
+   "uitspraken_huidig": 11819
+  },
+  {
+   "nr": [
+    "8:55d"
+   ],
+   "versies": 3,
+   "uitspraken": 19360,
+   "uitspraken_huidig": 19276
+  },
+  {
+   "nr": [
+    "6:19"
+   ],
+   "versies": 3,
+   "uitspraken": 13757,
+   "uitspraken_huidig": 6823
+  },
+  {
+   "nr": [
+    "6:2"
+   ],
+   "versies": 1,
+   "uitspraken": 13108,
+   "uitspraken_huidig": 13108
+  }
+ ],
+ "iw_live_controle_10_nov": {
+  "stat": {
+   "aanroepen": 164,
+   "cache": 0,
+   "seconden": 74.78154398634797,
+   "fouten": 10,
+   "rdf_terugval": 10
+  },
+  "artikelen": [
+   {
+    "artikel": "7d",
+    "label_id": "15232144",
+    "live_versies": 1,
+    "dump_versies": 1,
+    "live": 0,
+    "dump": 0,
+    "beide": 0,
+    "alleen_live": [],
+    "alleen_dump_aantal": 0
+   },
+   {
+    "artikel": "7c",
+    "label_id": "13255234",
+    "live_versies": 4,
+    "dump_versies": 4,
+    "live": 2,
+    "dump": 2,
+    "beide": 2,
+    "alleen_live": [],
+    "alleen_dump_aantal": 0
+   },
+   {
+    "artikel": "9",
+    "label_id": "2910654",
+    "live_versies": 8,
+    "dump_versies": 8,
+    "live": 196,
+    "dump": 198,
+    "beide": 196,
+    "alleen_live": [],
+    "alleen_dump_aantal": 2
+   },
+   {
+    "artikel": "25",
+    "label_id": "2910854",
+    "live_versies": 21,
+    "dump_versies": 21,
+    "live": 225,
+    "dump": 225,
+    "beide": 225,
+    "alleen_live": [],
+    "alleen_dump_aantal": 0
+   },
+   {
+    "artikel": "36",
+    "label_id": "2910994",
+    "live_versies": 3,
+    "dump_versies": 3,
+    "live": 623,
+    "dump": 627,
+    "beide": 623,
+    "alleen_live": [],
+    "alleen_dump_aantal": 4
+   },
+   {
+    "artikel": "49",
+    "label_id": "2911174",
+    "live_versies": 10,
+    "dump_versies": 10,
+    "live": 348,
+    "dump": 348,
+    "beide": 348,
+    "alleen_live": [],
+    "alleen_dump_aantal": 0
+   },
+   {
+    "artikel": "2",
+    "label_id": "2910574",
+    "live_versies": 14,
+    "dump_versies": 14,
+    "live": 88,
+    "dump": 88,
+    "beide": 88,
+    "alleen_live": [],
+    "alleen_dump_aantal": 0
+   }
+  ]
+ },
+ "iw_toestand_controle": [
+  {
+   "toestand": "2002-07-01",
+   "vorige": "2002-01-01",
+   "artikelen_gewijzigd": 2,
+   "lido_versies": 2,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2002-12-01",
+   "vorige": "2002-07-01",
+   "artikelen_gewijzigd": 6,
+   "lido_versies": 6,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2003-01-01",
+   "vorige": "2002-12-01",
+   "artikelen_gewijzigd": 10,
+   "lido_versies": 10,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2003-09-04",
+   "vorige": "2003-01-01",
+   "artikelen_gewijzigd": 2,
+   "lido_versies": 0,
+   "gewijzigd_zonder_lido_versie": [
+    [
+     "5013974",
+     "nogniet"
+    ],
+    [
+     "5013984",
+     "nogniet"
+    ]
+   ],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2003-10-01",
+   "vorige": "2003-09-04",
+   "artikelen_gewijzigd": 9,
+   "lido_versies": 9,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2004-01-01",
+   "vorige": "2003-10-01",
+   "artikelen_gewijzigd": 6,
+   "lido_versies": 6,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2004-03-01",
+   "vorige": "2004-01-01",
+   "artikelen_gewijzigd": 5,
+   "lido_versies": 5,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2004-03-11",
+   "vorige": "2004-03-01",
+   "artikelen_gewijzigd": 0,
+   "lido_versies": 0,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2005-01-01",
+   "vorige": "2004-03-11",
+   "artikelen_gewijzigd": 11,
+   "lido_versies": 11,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2005-03-01",
+   "vorige": "2005-01-01",
+   "artikelen_gewijzigd": 1,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2005-03-11",
+   "vorige": "2005-03-01",
+   "artikelen_gewijzigd": 0,
+   "lido_versies": 0,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2005-06-01",
+   "vorige": "2005-03-11",
+   "artikelen_gewijzigd": 1,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2005-12-02",
+   "vorige": "2005-06-01",
+   "artikelen_gewijzigd": 4,
+   "lido_versies": 4,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2006-01-01",
+   "vorige": "2005-12-02",
+   "artikelen_gewijzigd": 9,
+   "lido_versies": 9,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2006-08-18",
+   "vorige": "2006-01-01",
+   "artikelen_gewijzigd": 2,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [
+    [
+     "8495004",
+     "nogniet"
+    ]
+   ],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2007-01-01",
+   "vorige": "2006-08-18",
+   "artikelen_gewijzigd": 4,
+   "lido_versies": 4,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2007-11-01",
+   "vorige": "2007-01-01",
+   "artikelen_gewijzigd": 2,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [
+    [
+     "9215904",
+     "nogniet"
+    ]
+   ],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2008-01-01",
+   "vorige": "2007-11-01",
+   "artikelen_gewijzigd": 17,
+   "lido_versies": 17,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2008-07-11",
+   "vorige": "2008-01-01",
+   "artikelen_gewijzigd": 6,
+   "lido_versies": 6,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2008-08-01",
+   "vorige": "2008-07-11",
+   "artikelen_gewijzigd": 6,
+   "lido_versies": 6,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2008-09-01",
+   "vorige": "2008-08-01",
+   "artikelen_gewijzigd": 1,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2008-12-30",
+   "vorige": "2008-09-01",
+   "artikelen_gewijzigd": 7,
+   "lido_versies": 7,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2009-01-01",
+   "vorige": "2008-12-30",
+   "artikelen_gewijzigd": 2,
+   "lido_versies": 2,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2009-03-25",
+   "vorige": "2009-01-01",
+   "artikelen_gewijzigd": 1,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2009-06-29",
+   "vorige": "2009-03-25",
+   "artikelen_gewijzigd": 0,
+   "lido_versies": 0,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2009-07-01",
+   "vorige": "2009-06-29",
+   "artikelen_gewijzigd": 16,
+   "lido_versies": 16,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2009-07-16",
+   "vorige": "2009-07-01",
+   "artikelen_gewijzigd": 2,
+   "lido_versies": 2,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2009-11-01",
+   "vorige": "2009-07-16",
+   "artikelen_gewijzigd": 1,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2010-01-01",
+   "vorige": "2009-11-01",
+   "artikelen_gewijzigd": 18,
+   "lido_versies": 18,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2010-04-01",
+   "vorige": "2010-01-01",
+   "artikelen_gewijzigd": 1,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2010-07-04",
+   "vorige": "2010-04-01",
+   "artikelen_gewijzigd": 1,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2010-10-10",
+   "vorige": "2010-07-04",
+   "artikelen_gewijzigd": 3,
+   "lido_versies": 3,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2011-01-01",
+   "vorige": "2010-10-10",
+   "artikelen_gewijzigd": 8,
+   "lido_versies": 8,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2011-07-01",
+   "vorige": "2011-01-01",
+   "artikelen_gewijzigd": 3,
+   "lido_versies": 3,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2011-11-29",
+   "vorige": "2011-07-01",
+   "artikelen_gewijzigd": 0,
+   "lido_versies": 0,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2012-01-01",
+   "vorige": "2011-11-29",
+   "artikelen_gewijzigd": 11,
+   "lido_versies": 9,
+   "gewijzigd_zonder_lido_versie": [
+    [
+     "11564314",
+     "nogniet"
+    ],
+    [
+     "11564324",
+     "nogniet"
+    ]
+   ],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2013-01-01",
+   "vorige": "2012-01-01",
+   "artikelen_gewijzigd": 12,
+   "lido_versies": 12,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2013-05-30",
+   "vorige": "2013-01-01",
+   "artikelen_gewijzigd": 1,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2013-10-10",
+   "vorige": "2013-05-30",
+   "artikelen_gewijzigd": 1,
+   "lido_versies": 0,
+   "gewijzigd_zonder_lido_versie": [
+    [
+     "10085594",
+     "nogniet"
+    ]
+   ],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2013-12-01",
+   "vorige": "2013-10-10",
+   "artikelen_gewijzigd": 5,
+   "lido_versies": 2,
+   "gewijzigd_zonder_lido_versie": [
+    [
+     "12379874",
+     "nogniet"
+    ],
+    [
+     "12379884",
+     "nogniet"
+    ],
+    [
+     "12379894",
+     "nogniet"
+    ]
+   ],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2014-01-01",
+   "vorige": "2013-12-01",
+   "artikelen_gewijzigd": 20,
+   "lido_versies": 19,
+   "gewijzigd_zonder_lido_versie": [
+    [
+     "10085594",
+     "nogniet"
+    ]
+   ],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2014-04-01",
+   "vorige": "2014-01-01",
+   "artikelen_gewijzigd": 0,
+   "lido_versies": 0,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2015-01-01",
+   "vorige": "2014-04-01",
+   "artikelen_gewijzigd": 13,
+   "lido_versies": 13,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2015-04-01",
+   "vorige": "2015-01-01",
+   "artikelen_gewijzigd": 1,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2015-09-15",
+   "vorige": "2015-04-01",
+   "artikelen_gewijzigd": 0,
+   "lido_versies": 0,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2015-10-29",
+   "vorige": "2015-09-15",
+   "artikelen_gewijzigd": 1,
+   "lido_versies": 0,
+   "gewijzigd_zonder_lido_versie": [
+    [
+     "13255234",
+     "nogniet"
+    ]
+   ],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2015-11-01",
+   "vorige": "2015-10-29",
+   "artikelen_gewijzigd": 2,
+   "lido_versies": 2,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2016-01-01",
+   "vorige": "2015-11-01",
+   "artikelen_gewijzigd": 8,
+   "lido_versies": 8,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2016-05-01",
+   "vorige": "2016-01-01",
+   "artikelen_gewijzigd": 12,
+   "lido_versies": 12,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2016-10-25",
+   "vorige": "2016-05-01",
+   "artikelen_gewijzigd": 0,
+   "lido_versies": 0,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2016-12-09",
+   "vorige": "2016-10-25",
+   "artikelen_gewijzigd": 2,
+   "lido_versies": 2,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2017-01-01",
+   "vorige": "2016-12-09",
+   "artikelen_gewijzigd": 1,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2017-04-01",
+   "vorige": "2017-01-01",
+   "artikelen_gewijzigd": 8,
+   "lido_versies": 8,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2017-09-01",
+   "vorige": "2017-04-01",
+   "artikelen_gewijzigd": 1,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2018-01-01",
+   "vorige": "2017-09-01",
+   "artikelen_gewijzigd": 4,
+   "lido_versies": 4,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2018-07-01",
+   "vorige": "2018-01-01",
+   "artikelen_gewijzigd": 2,
+   "lido_versies": 2,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2018-09-18",
+   "vorige": "2018-07-01",
+   "artikelen_gewijzigd": 0,
+   "lido_versies": 0,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2019-01-01",
+   "vorige": "2018-09-18",
+   "artikelen_gewijzigd": 9,
+   "lido_versies": 9,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2020-01-01",
+   "vorige": "2019-01-01",
+   "artikelen_gewijzigd": 7,
+   "lido_versies": 6,
+   "gewijzigd_zonder_lido_versie": [
+    [
+     "15232144",
+     "nogniet"
+    ]
+   ],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2020-06-01",
+   "vorige": "2020-01-01",
+   "artikelen_gewijzigd": 0,
+   "lido_versies": 0,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2020-06-23",
+   "vorige": "2020-06-01",
+   "artikelen_gewijzigd": 2,
+   "lido_versies": 2,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2020-07-01",
+   "vorige": "2020-06-23",
+   "artikelen_gewijzigd": 2,
+   "lido_versies": 2,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2021-01-01",
+   "vorige": "2020-07-01",
+   "artikelen_gewijzigd": 5,
+   "lido_versies": 5,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2021-06-02",
+   "vorige": "2021-01-01",
+   "artikelen_gewijzigd": 0,
+   "lido_versies": 0,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2022-01-01",
+   "vorige": "2021-06-02",
+   "artikelen_gewijzigd": 4,
+   "lido_versies": 4,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2022-11-05",
+   "vorige": "2022-01-01",
+   "artikelen_gewijzigd": 1,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2023-01-01",
+   "vorige": "2022-11-05",
+   "artikelen_gewijzigd": 7,
+   "lido_versies": 7,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2023-05-01",
+   "vorige": "2023-01-01",
+   "artikelen_gewijzigd": 1,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2023-07-01",
+   "vorige": "2023-05-01",
+   "artikelen_gewijzigd": 0,
+   "lido_versies": 0,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2023-11-16",
+   "vorige": "2023-07-01",
+   "artikelen_gewijzigd": 0,
+   "lido_versies": 0,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2023-12-31",
+   "vorige": "2023-11-16",
+   "artikelen_gewijzigd": 2,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [
+    [
+     "16903674",
+     "nogniet"
+    ]
+   ],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2024-01-01",
+   "vorige": "2023-12-31",
+   "artikelen_gewijzigd": 14,
+   "lido_versies": 14,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2025-01-01",
+   "vorige": "2024-01-01",
+   "artikelen_gewijzigd": 7,
+   "lido_versies": 7,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2026-01-01",
+   "vorige": "2025-01-01",
+   "artikelen_gewijzigd": 7,
+   "lido_versies": 7,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2026-07-01",
+   "vorige": "2026-01-01",
+   "artikelen_gewijzigd": 2,
+   "lido_versies": 1,
+   "gewijzigd_zonder_lido_versie": [
+    [
+     "15232144",
+     "nogniet"
+    ]
+   ],
+   "lido_versie_zonder_wijziging": []
+  },
+  {
+   "toestand": "2026-10-01",
+   "vorige": "2026-07-01",
+   "artikelen_gewijzigd": 2,
+   "lido_versies": 2,
+   "gewijzigd_zonder_lido_versie": [],
+   "lido_versie_zonder_wijziging": []
+  }
+ ]
+}

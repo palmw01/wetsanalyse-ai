@@ -149,7 +149,7 @@ try {
   await page.locator("[data-chatkop-bronnen]").click();
   await page.locator("[data-context-paneel=bibliotheek]").waitFor();
   assert.deepEqual(await tabs.evaluateAll((els) => els.map((e) => e.getAttribute("data-paneel-tab"))),
-    ["bibliotheek:wg1", `bron:${LID}:wg1`], "de bronnen en de bron staan als twee tabs");
+    ["bibliotheek:wg1", `bron:${LID}`], "de bronnen en de bron staan als twee tabs");
   assert.equal(await page.getByRole("tab", { name: "Bronnen", exact: true }).getAttribute("aria-selected"), "true");
   const bronTab = page.getByRole("tab", { name: "Artikel 9, lid 2" });
   assert.match(await bronTab.getAttribute("title"), /geopend vanuit het paneel$/, "de tooltip zegt waar de tab geopend werd");
@@ -200,8 +200,23 @@ try {
   await page.locator("[data-context-paneel=bron]").waitFor();
   await geenScroll(375);
 
+  // --- Eén tab per bepaling (ontdubbelen PR 2): *Beoordelen* zet de annotatie aan in dezelfde tab; een ingang naar
+  // dezelfde bepaling gaat daarna naar die tab, niet naar een tweede. ---
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.locator("[data-context-paneel=bron]").waitFor();
+  const voor = await tabs.count();
+  await page.locator("[data-context-paneel=bron] [data-beoordelen]").click();
+  await page.locator("[data-artefact]").waitFor();
+  assert.equal(await tabs.count(), voor, "beoordelen opent geen tweede tab");
+  assert.equal(await page.locator("[data-context-paneel=bron]").count(), 0, "de laag vervangt de leesweergave op die tab");
+  await page.locator("[data-chatkop-bronnen]").click();
+  await page.locator("[data-context-paneel=bibliotheek]").waitFor();
+  await page.locator("[data-context-paneel=bibliotheek] [data-context-bron]").first().click();
+  await page.locator("[data-artefact]").waitFor();
+  assert.equal(await tabs.count(), voor, "dezelfde bepaling opnieuw openen gaat naar de tab in beoordeling");
+
   assert.deepEqual(errors, []);
-  console.log("Browser OK: zijpaneel met scheiding (slepen binnen 320 px–60%, pijltjes, dubbelklik), inklappen tot een strook, vergroten met Escape terug, breedte bewaard na herladen, een nieuwe inhoud klapt uit, geen horizontale scroll op 375/800/1280, op een telefoon de sheet; tabs openen, wisselen, sluiten, herstellen per gesprek, Escape verbergt.");
+  console.log("Browser OK: zijpaneel met scheiding (slepen binnen 320 px–60%, pijltjes, dubbelklik), inklappen tot een strook, vergroten met Escape terug, breedte bewaard na herladen, een nieuwe inhoud klapt uit, geen horizontale scroll op 375/800/1280, op een telefoon de sheet; tabs openen, wisselen, sluiten, herstellen per gesprek, Escape verbergt; één tab per bepaling, ook in beoordeling.");
 } finally {
   await browser.close();
 }

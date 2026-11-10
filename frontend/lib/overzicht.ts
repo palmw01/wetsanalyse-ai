@@ -58,15 +58,6 @@ export function bepalingenVanOverzicht(ov: Overzicht): { iri: string; naam: stri
   return uit;
 }
 
-/** "Bekijk de 4 delen in de kennisgraaf" – zegt wat de knop opent. */
-export function overzichtKnopTekst(ov: Overzicht): string {
-  const delen = ov.regelingen.flatMap((r) => r.delen);
-  if (delen.length === 1) return `Bekijk ${deelKop(delen[0])} in de kennisgraaf`;
-  if (delen.length) return `Bekijk de ${delen.length} delen in de kennisgraaf`;
-  const bepalingen = ov.regelingen.flatMap((r) => r.ook_genoemd);
-  return bepalingen.length === 1 ? `Bekijk ${bepalingNaam(bepalingen[0])} in de kennisgraaf` : `Bekijk de ${bepalingen.length} bepalingen in de kennisgraaf`;
-}
-
 /** Een bepaling zoals de jurist haar leest: "art. 9" voor een artikel, "28.3a" voor een divisie. graph-qa
  *  zet de naam; een ouder bericht heeft hem niet, en dan dezelfde regel: op het nummer (een punt is een
  *  divisie), niet op de IRI-vorm – een deel van de Leidraad-divisies heeft een `:artikel:`-IRI. */

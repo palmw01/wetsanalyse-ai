@@ -95,7 +95,8 @@ def bij_onderwerp(oud: dict[str, Any] | None, onderwerp: dict[str, Any] | None) 
     o = onderwerp or {}
     focus = dict(oud or {})
     focus.pop("element", None)
-    focus["onderwerp"] = {k: truncate(str(o[k]), 160) for k in ("soort", "werkgebied_id", "id", "label") if o.get(k)}
+    focus["onderwerp"] = {k: truncate(str(o[k]), 160) for k in ("soort", "werkgebied_id", "id", "label", "bron_iri", "connector", "stuk_id")
+                          if o.get(k)}
     return focus
 
 

@@ -158,11 +158,14 @@ export interface TabRijItem {
 /** Alleen de tabrij, voor een paneel waarvan de inhoud elders staat (de tabs van het zijpaneel, het bronvenster PR 3b):
  *  dezelfde tablist als `Tabs` (`TABRIJ`, scrollt horizontaal, pijltjestoetsen verplaatsen de focus), compact van hoogte
  *  en met een ✕ per tab. Een tab sluiten is een eigen knop naast de tab, niet erin: een knop in een knop kan niet. */
-export function TabRij({ tabs, active, onChange, label }: {
+export function TabRij({ tabs, active, onChange, label, soort = "paneel" }: {
   tabs: readonly TabRijItem[];
   active?: string;
   onChange: (key: string) => void;
   label: string;
+  /** `paneel`: de tabs van het zijpaneel (`data-paneel-tab`); `weergave`: Tekst | Graaf in een venster
+   *  (`data-weergave-tab`, `WeergaveBalk`). Dezelfde rij, een ander anker. */
+  soort?: "paneel" | "weergave";
 }) {
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
   useEffect(() => {
@@ -180,7 +183,8 @@ export function TabRij({ tabs, active, onChange, label }: {
       {tabs.map((t, i) => {
         const gekozen = t.key === active;
         return (
-          <div key={t.key} role="presentation" data-paneel-tab={t.key} data-actief={gekozen || undefined}
+          <div key={t.key} role="presentation" data-paneel-tab={soort === "paneel" ? t.key : undefined}
+            data-weergave-tab={soort === "weergave" ? t.key : undefined} data-actief={gekozen || undefined}
             className={`flex max-w-[14rem] shrink-0 items-center rounded-knop-xs border ${gekozen ? "border-lint/40 bg-surface text-lint" : "border-transparent text-muted hover:bg-surface hover:text-lint"}`}>
             <button ref={(el) => { refs.current[t.key] = el; }} type="button" role="tab" aria-selected={gekozen}
               tabIndex={gekozen || (!active && i === 0) ? 0 : -1} title={t.title ?? t.label}

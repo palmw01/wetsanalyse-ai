@@ -201,7 +201,8 @@ try {
       zoekvraag: "Gezocht op dossier 32140, nieuwste eerst.", items: [
         { id: "kst-1278484", label: "Kamerstukken 32140, nr. 342", link: "https://zoek.officielebekendmakingen.nl/kst-1278484",
           soort: "Brief regering", titel: "Informatie implementatie FASTER richtlijn", datum: "2026-10-16",
-          gepubliceerd: "2026-11-05", orgaan: "Tweede Kamer", indieners: ["E. Eerenberg"], status: "Onopgemaakt", leesbaar: false },
+          gepubliceerd: "2026-11-05", orgaan: "Tweede Kamer", indieners: ["E. Eerenberg"], status: "Onopgemaakt", leesbaar: false,
+          zonder_tekst: "onopgemaakt, alleen PDF" },
         { id: "kst-32140-AR", label: "Kamerstukken 32140, nr. AR", link: "https://zoek.officielebekendmakingen.nl/kst-32140-AR",
           soort: "Brief", datum: "2026-07-01", orgaan: "Eerste Kamer" }] },
     { soort: "extern", door: "bron", brontype: "kamerstuk", id: "kst-32140-AR", label: "Kamerstukken 32140, nr. AR",
@@ -217,7 +218,8 @@ try {
   const eerste = stukken.locator("[data-stuk=kst-1278484]");
   assert.equal(await eerste.getByRole("link", { name: "Kamerstukken 32140, nr. 342" }).getAttribute("href"),
     "https://zoek.officielebekendmakingen.nl/kst-1278484");
-  assert.match(await eerste.innerText(), /alleen PDF/);
+  // De tekst bij een stuk zonder tekst komt van de connector (`zonder_tekst`, #1190), niet vast uit de werkplek.
+  assert.match(await eerste.innerText(), /onopgemaakt, alleen PDF/);
   assert.match(await eerste.innerText(), /Brief regering · 16 oktober 2026 · Tweede Kamer · gepubliceerd 5 november 2026/);
   assert.match(await eerste.innerText(), /Ingediend door E\. Eerenberg/);
   assert.equal(await page.locator("[data-stukken-zoekvraag]").innerText(), "Gezocht op dossier 32140, nieuwste eerst. 2 van de 405 stukken.");

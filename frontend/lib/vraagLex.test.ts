@@ -88,7 +88,26 @@ describe("een object stuurt alleen soort en id's", () => {
   });
 
   it("elke soort heeft een module", () => {
-    expect(Object.keys(MODULES).sort()).toEqual(["begrip", "bron", "deelvraag", "kandidaat", "markering", "werkgebied"]);
+    expect(Object.keys(MODULES).sort()).toEqual(["begrip", "bepaling", "bron", "deelvraag", "kandidaat", "markering", "stuk", "werkgebied"]);
+  });
+
+  it("een bepaling of stuk, ook zonder werkgebied (ontdubbelen PR 5)", () => {
+    const k: Onderwerp = { soort: "bepaling", bron_iri: "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k", label: "Artikel 2, lid 1, onderdeel k" };
+    expect(verzoekVan(k)).toEqual({ onderwerp: { soort: "bepaling", bron_iri: k.bron_iri, label: k.label } });
+    const [annoteer, ...rest] = suggestiesVan(k);
+    expect(annoteer).toEqual({ tekst: "Annoteer dit onderdeel", doel: { bron_iri: k.bron_iri, bwbId: "BWBR0004770" } });
+    expect(rest.every((x) => !x.actie && !x.doel)).toBe(true);
+    expect(suggestiesVan({ ...k, annotatie: true })[0]).toMatchObject({ tekst: "Annoteer dit onderdeel opnieuw", hergebruik: "opnieuw" });
+    const stuk: Onderwerp = { soort: "stuk", connector: "kamerstukken", stuk_id: "kst-32140-342", label: "Kamerstuk 32140, nr. 342" };
+    expect(verzoekVan(stuk)).toEqual({ onderwerp: { soort: "stuk", connector: "kamerstukken", stuk_id: "kst-32140-342", label: stuk.label } });
+    for (const o of [k, { ...stuk, stuk_id: "ECLI:NL:HR:2020:123", connector: "rechtspraak" } as Onderwerp]) {
+      expect(onderwerpUitUrl(new URL(`http://x${vraagUrl(o)!}`).searchParams)).toEqual(o);
+    }
+    // Streng: geen andere IRI, geen rare id.
+    expect(onderwerpUitUrl(new URLSearchParams("vraag=bepaling&vraag_bron=http://elders"))).toBeNull();
+    expect(onderwerpUitUrl(new URLSearchParams("vraag=stuk&vraag_connector=Kamer&vraag_stuk=x"))).toBeNull();
+    // Een markering heeft buiten de werkplek geen weg.
+    expect(vraagUrl({ soort: "markering" } as Onderwerp)).toBeNull();
   });
 });
 
@@ -120,16 +139,16 @@ describe("contract met graph-qa", () => {
 
 describe("buiten de werkplek", () => {
   it("de url draagt het onderwerp, en terug", () => {
-    const url = vraagUrl(deelvraag as Extract<Onderwerp, { soort: "deelvraag" }>);
+    const url = vraagUrl(deelvraag as Extract<Onderwerp, { soort: "deelvraag" }>)!;
     expect(url).toBe("/workbench?werkgebied=wg1&vraag=deelvraag%3Adv1&vraag_label=Wanneer+is+een+aanslag+invorderbaar%3F");
     expect(onderwerpUitUrl(new URL(url, "http://x").searchParams)).toEqual(deelvraag);
-    const wg = vraagUrl(werkgebied as Extract<Onderwerp, { soort: "werkgebied" }>);
+    const wg = vraagUrl(werkgebied as Extract<Onderwerp, { soort: "werkgebied" }>)!;
     expect(onderwerpUitUrl(new URL(wg, "http://x").searchParams)).toEqual(werkgebied);
   });
 
   it("een leeg dossierveld reist mee en geeft eerst de suggestie voor dat veld", () => {
     const leeg = { ...werkgebied, veld: "praktijkvoorbeeld" } as Extract<Onderwerp, { soort: "werkgebied" }>;
-    const url = vraagUrl(leeg);
+    const url = vraagUrl(leeg)!;
     expect(url).toContain("vraag_veld=praktijkvoorbeeld");
     expect(onderwerpUitUrl(new URL(url, "http://x").searchParams)).toEqual(leeg);
     expect(suggestiesVan(leeg)[0]).toEqual({ tekst: "Vul het praktijkvoorbeeld aan", actie: "dossier_aanvullen" });
@@ -141,7 +160,7 @@ describe("buiten de werkplek", () => {
 
   it("een lege uitleg bij een begrip geeft eerst de suggestie voor de uitleg in B1 (spoor I2)", () => {
     const leeg = { ...begrip, veld: "uitleg" } as Extract<Onderwerp, { soort: "begrip" }>;
-    const url = vraagUrl(leeg);
+    const url = vraagUrl(leeg)!;
     expect(url).toContain("vraag_veld=uitleg");
     expect(onderwerpUitUrl(new URL(url, "http://x").searchParams)).toEqual(leeg);
     expect(suggestiesVan(leeg)[0]).toEqual({ tekst: "Schrijf de uitleg in B1", actie: "uitleg" });

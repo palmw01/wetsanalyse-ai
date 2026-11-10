@@ -1,17 +1,16 @@
 "use client";
 
-import { useContext, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
-import { GraafIcoon } from "@/components/graaf/GraafIcoon";
-import { ContextPaneelContext } from "@/components/werkplek/ContextPaneel";
+import { useOpenBron } from "@/components/werkplek/ContextPaneel";
 import type { AntwoordVindplaats } from "@/lib/antwoord";
 import { vindplaatsTekst } from "@/lib/herkomst";
 
 /** Hoeveel bepalingen een eigen chip krijgen; daarboven één chip die de eerste opent. De andere staan als link in de blokken. */
 export const MAX_BEPALINGCHIPS = 3;
 
-/** De chip onder een antwoord (het bronvenster, PR 4): de enige ingang naar wat het antwoord aanwijst – een bepaling als
- *  tab naast het gesprek, of de samenhang ervan in de graaf. Dezelfde vorm als de chip na een annotatie. */
+/** De kaart onder een antwoord (het bronvenster, PR 4; ontdubbelen PR 2): de enige ingang naar wat het antwoord aanwijst,
+ *  een bepaling als tab naast het gesprek, met Tekst | Graaf. Dezelfde vorm als de chip na een annotatie. */
 export function BronChip({ titel, sub, icoon, onClick, label, ...data }: {
   titel: string;
   sub: string;
@@ -41,10 +40,12 @@ const TEKSTICOON = (
   </svg>
 );
 
-/** De chips onder een sjabloonantwoord (ADR-008, *Detail bij een antwoord*): een klik opent de bepaling als tab naast het
- *  gesprek, met wat de graaf er verder over weet. Buiten de werkplek is er geen gesprek om naast te staan, en dan geen chip. */
+/** De kaarten onder een antwoord (ADR-008, *Detail bij een antwoord*; ontdubbelen PR 2, ook bij vrije tekst): per bepaling
+ *  één, die de bepaling als tab naast het gesprek opent, met de samenhang van het hele antwoord op de tab Graaf
+ *  (`useOpenBron` in een `BerichtSamenhangContext`). Er is geen tweede kaart voor de graaf. Buiten de werkplek is er geen
+ *  gesprek om naast te staan, en dan geen kaart. */
 export function BepalingChips({ bepalingen }: { bepalingen: readonly AntwoordVindplaats[] }) {
-  const opener = useContext(ContextPaneelContext);
+  const opener = useOpenBron();
   if (!opener || !bepalingen.length) return null;
   const open = (v: AntwoordVindplaats) =>
     opener({ soort: "bron", bron_iri: v.iri, titel: vindplaatsTekst(v), jci: v.jci || undefined });
@@ -56,16 +57,6 @@ export function BepalingChips({ bepalingen }: { bepalingen: readonly AntwoordVin
       {chips.map(({ v, titel, sub }) => (
         <BronChip key={v.iri} titel={titel} sub={sub} icoon={TEKSTICOON} onClick={() => open(v)} data-bepaling-chip={v.iri} />
       ))}
-    </div>
-  );
-}
-
-/** De samenhang van wat een antwoord of overzicht noemt, in de graaf (de tab *Samenhang*). Eén chip naast de bepalingen,
- *  in plaats van een losse knop eronder; de voorleesnaam blijft wat de knop zei. */
-export function SamenhangChip({ titel, label, onClick }: { titel: string; label: string; onClick: () => void }) {
-  return (
-    <div className="mt-2">
-      <BronChip titel={titel} sub="Graaf · bekijken" label={label} icoon={<GraafIcoon />} onClick={onClick} data-samenhang-chip="" />
     </div>
   );
 }

@@ -15,6 +15,9 @@ import { ConnectorTekst } from "@/components/wettekst/ConnectorTekst";
 import { Markdown } from "@/components/werkplek/Markdown";
 import { groepeerWettekst, type Antwoord as AntwoordData, type AntwoordBlok, type BlokSoort } from "@/lib/antwoord";
 import { bronHref } from "@/lib/url";
+
+/** "19.523", zoals de statusregel van Lex en de Markdown van het antwoord (`bronmodel.antwoord.getal`). */
+const getal = (n: number) => new Intl.NumberFormat("nl-NL").format(n);
 import { BRONTYPE_NAAM } from "@/lib/bronnen";
 import { begripPad, generiekPad } from "@/lib/werkgebiedPaden";
 import { datumTekst } from "@/lib/datum";
@@ -143,12 +146,12 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
         {blok.items.map((s) => (
           <li key={s.id} className="space-y-0.5" data-stuk={s.id}>
             <p className="flex flex-wrap items-center gap-2">
-              {/* Een leesbaar stuk opent als tab (het venster haalt het op); alleen een PDF: de bron zelf. */}
+              {/* Een leesbaar stuk opent als tab (het venster haalt het op); zonder tekst: de bron zelf. */}
               {s.leesbaar === false
                 ? (bronHref(s.link) ? <a href={bronHref(s.link)} target="_blank" rel="noopener noreferrer" className="focus-ring rounded font-medium text-lint underline underline-offset-2">{s.label}</a>
                   : <span className="font-medium">{s.label}</span>)
                 : <StukVindplaats brontype={blok.brontype} id={s.id} label={s.label} link={s.link} className="font-medium text-lint" />}
-              {s.leesbaar === false && <StatusLabel toon="geel" klein uitleg="De tekst staat bij de bron nog alleen als PDF en is niet te lezen.">alleen PDF</StatusLabel>}
+              {s.leesbaar === false && <StatusLabel toon="geel" klein uitleg="De tekst van dit stuk is bij de bron niet te lezen; open het via de link.">{s.zonder_tekst || "geen tekst bij de bron"}</StatusLabel>}
             </p>
             <p className="text-xs text-muted">
               {[s.soort, datumTekst(s.datum), s.orgaan].filter(Boolean).join(" · ")}
@@ -161,7 +164,7 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
       </ul>
       {(blok.zoekvraag || (blok.totaal ?? 0) > blok.items.length) && (
         <p className="text-xs text-muted" data-stukken-zoekvraag>
-          {[blok.zoekvraag, (blok.totaal ?? 0) > blok.items.length ? `${blok.items.length} van de ${blok.totaal} stukken.` : ""].filter(Boolean).join(" ")}
+          {[blok.zoekvraag, (blok.totaal ?? 0) > blok.items.length ? `${blok.items.length} van de ${getal(blok.totaal ?? 0)} stukken.` : ""].filter(Boolean).join(" ")}
         </p>
       )}
       <p className="text-xs text-muted">Gevonden, niet gelezen: de lijst zegt niets over wat er in de stukken staat.</p>

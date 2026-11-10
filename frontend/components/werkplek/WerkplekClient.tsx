@@ -1,7 +1,8 @@
 "use client";
 
 import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
-import { bronDoel, samenhangBeschikbaar } from "@/lib/samenhang";
+import { bronDoel } from "@/lib/samenhang";
+import { vindplaatsTekst } from "@/lib/herkomst";
 import { ThreadRij, type ThreadActies } from "@/components/werkplek/ThreadRij";
 import { reeksNavigatie } from "@/lib/reeks";
 import { afronding } from "@/lib/beurtStroom";
@@ -22,7 +23,7 @@ import { Zijpaneel } from "@/components/ui/Zijpaneel";
 import { PaneelTabsContext } from "@/components/ui/PaneelKop";
 import { TabRij } from "@/components/ui/Tabs";
 import { leesOpslag, schrijfOpslag } from "@/lib/opslag";
-import { bewaarVorm, leesBewaard, openTab, opslagSleutel, sluitTab, tabLabel, type PaneelInhoud, type TabStand } from "@/lib/paneelTabs";
+import { bepalingSleutel, bewaarVorm, leesBewaard, openTab, opslagSleutel, sleutelVan, sluitTab, tabLabel, zonderKennisgraaf, type PaneelInhoud, type TabStand } from "@/lib/paneelTabs";
 import {
   foutTekst,
   startRun,
@@ -72,14 +73,6 @@ import {
 // De thread-items staan in `lib/threadItem.ts`, zodat de rondleiding er een voorbeeldbeurt
 // mee kan opbouwen zonder dit component te importeren.
 type Item = ThreadItem;
-
-/** De graafopties zonder een doorgegeven kennisgraaf: die geldt alleen voor het paneel direct na een
- *  wissel, niet als er intussen annotaties veranderden. */
-function zonderKennisgraaf(g: GraafOpties): GraafOpties {
-  if (!g.kennisgraaf) return g;
-  const { kennisgraaf: _weg, ...rest } = g;
-  return rest;
-}
 
 function uid(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -161,6 +154,7 @@ export function WerkplekClient({
   const connectorStand: ConnectorStand = {
     beschikbaar: connectorLijst.beschikbaar,
     laden: connectorLijst.laden ?? undefined,
+    controleert: connectorLijst.controleert,
     gesprek: gesprekConnectors,
     werkgebied: werkgebiedId && wgConnectors?.id === werkgebiedId ? wgConnectors.connectors : null,
   };
@@ -335,8 +329,6 @@ export function WerkplekClient({
     schrijfOpslag(opslagSleutel(gesprekId), tabStand.tabs.length ? bewaarVorm(tabStand) : undefined);
   }, [tabStand, gesprekId, demo, tabsGeladen]);
 
-  const [samenhangAan, setSamenhangAan] = useState(false);
-  useEffect(() => { void samenhangBeschikbaar().then(setSamenhangAan); }, []);
   // Waar de volgende vraag over gaat (*Vraag Lex*, F3b): een markering, of een object uit een werkgebied.
   // Een chip boven het invoerveld zolang het geldt; na het versturen weg.
   const [onderwerp, setOnderwerp] = useState<Onderwerp | undefined>(beginOnderwerp ?? undefined);
@@ -503,7 +495,8 @@ export function WerkplekClient({
 
   /** Start een beurt. Zonder `verzoek.prompt` geldt wat er in het invoerveld staat (`lib/beurtVerzoek.ts`). */
   // Wat de beheerder aanzette en wat de omgeving aanbiedt: de laatst bekende stand van dit venster, ververst bij elke
-  // mount. Mislukte het ophalen, of was graph-qa niet te lezen, dan opnieuw bij het openen van het menu en na een beurt.
+  // mount, met een korte reeks herpogingen als de stand niet vast te stellen was (`lib/connectorLijst.ts`). Daarna
+  // opnieuw bij het openen van het menu, vóór en na een beurt, en bij terugkomst in het venster.
   const verversAlsOnbekend = () => { if (moetVerversen(connectorRef.current)) connectorLijst.ververs(); };
 
   // De standaard van het werkgebied, alleen als er een menu is.
@@ -554,6 +547,9 @@ export function WerkplekClient({
     if (!prompt || !beurt.claim()) return;
     setInvoer("");
     setBronUit([]);
+    // Was de bronstand niet vast te stellen, dan nu opnieuw, op de achtergrond: de beurt wacht er niet op en draagt de
+    // opgeslagen keuze (graph-qa toetst de straat zelf).
+    verversAlsOnbekend();
 
     // Een vraag bij een markering gaat als ADVIES: dezelfde thread, maar met contextblok en langs de
     // antwoordroute – die kan topologisch geen annotatie wijzigen. Een ander object gaat als
@@ -828,13 +824,6 @@ export function WerkplekClient({
         if (!ref) return;
         wisselPaneel(ref, { ook: () => setNodeDoel(undefined) });
       },
-      // Zonder eigen opties opent een antwoord op de ketting; een overzicht geeft zijn bereik zelf mee.
-      openSamenhang: (doel, extra = [], graaf = { keten: true }) => { setVolgendeVanuit("een antwoord"); wisselPaneel(undefined, { ook: () => {
-        setNodeTab("graaf");
-        setNodeExtra(extra);
-        setNodeGraaf(graaf);
-        setNodeDoel(doel);
-      } }); },
       openReeksLid: (reeksRun, doel) => {
         setNodeReeks(reeksRun);
         void openArtefact(doel.bron_iri, doel);
@@ -849,7 +838,6 @@ export function WerkplekClient({
     verstuur: (verzoek) => actiesRef.current?.verstuur(verzoek),
     openArtefact: (slug, doel) => actiesRef.current?.openArtefact(slug, doel),
     openArtefactVan: (artefact) => actiesRef.current?.openArtefactVan(artefact),
-    openSamenhang: (doel, extra, graaf) => actiesRef.current?.openSamenhang(doel, extra, graaf),
     openReeksLid: (reeksRun, doel) => actiesRef.current?.openReeksLid(reeksRun, doel),
     stop: () => actiesRef.current?.stop(),
     annuleer: () => actiesRef.current?.annuleer(),
@@ -934,35 +922,18 @@ export function WerkplekClient({
     extraDoelen={nodeExtra} graaf={nodeGraaf.keten ? { ...nodeGraaf, werkgebiedId } : nodeGraaf}
     // Een knoop uit een ander artikel (meegeopend, of uit de hele kennisgraaf): het paneel op dát
     // artikel; de rest van de kaart, het bereik en de nadruk blijven mee.
-    onWisselDoel={(nieuw, graaf) => {
-      setNodeExtra([nodeDoel, ...nodeExtra].filter((d) => d.bron_iri !== nieuw.bron_iri));
-      setNodeGraaf({ ...nodeGraaf, ...graaf });
-      setNodeTab("tekst");
-      setNodeDoel(nieuw);
-    }}
+    // *Open in het paneel* in de graaf: de andere bepaling als eigen tab, op de graaf, met dezelfde samenhang (ontdubbelen
+    // PR 3) – niet deze tab overschrijven.
+    onWisselDoel={(nieuw, graaf) => openContext({ soort: "bron", bron_iri: nieuw.bron_iri, titel: vindplaatsTekst({ iri: nieuw.bron_iri, label: "" }),
+      weergave: "graaf", samenhang: { extra: [nodeDoel, ...nodeExtra].filter((d) => d.bron_iri !== nieuw.bron_iri),
+        graaf: { ...nodeGraaf, ...graaf }, van: "antwoord" } }, "het paneel")}
     variant={breed ? "kolom" : "side"} onSluit={() => sluitPaneelTab(tabStand.actief)} onVerberg={verbergPaneel} beginTab={nodeTab}
     reeks={nodeReeksNav}
     // De rondleiding draait op een voorbeeld in het geheugen, met het invoerveld stil: daar is geen
     // vraag te stellen, en de graaf heeft niets om te tonen.
     opslag={demo?.opslag}
     onBeslist={demo ? onDemoBeslissing : undefined}
-    onVraag={demo ? undefined : (element, view) => {
-      // Geen klaargezette vraag in het veld: de drie suggesties (per klasse) staan erboven als chips.
-      setOnderwerp({ soort: "markering", element, view });
-      setInvoer("");
-      if (!breed) setSheetVerborgen(true);
-      taRef.current?.focus();
-    }}
-    onVraagOverBron={demo ? undefined : (knoop) => {
-      // Een gewone vraag: de bepaling staat met haar vindplaats in de tekst, zodat Lex haar in de
-      // graaf terugvindt. Geen nieuw agentcontract.
-      const plek = knoop.bwb_id && knoop.artikel
-        ? ` (${knoop.bwb_id}, artikel ${knoop.artikel}${knoop.lid ? `, lid ${knoop.lid}` : ""})` : "";
-      setOnderwerp(undefined);
-      setInvoer(`Hoe hangt ${knoop.naam}${plek} samen met de bepalingen waarnaar het verwijst of die ernaar verwijzen?`);
-      if (!breed) setSheetVerborgen(true);
-      requestAnimationFrame(() => taRef.current?.focus());
-    }} /> : (wgArtefact && (
+    /> : (wgArtefact && (
     <WerkgebiedArtefactPaneel
       key={`${artefactSleutel(wgArtefact)}:${wgLading}`}
       doel={wgArtefact}
@@ -986,10 +957,30 @@ export function WerkplekClient({
 
   /** Een context naast het gesprek (`ContextPaneelContext`): een bron uit een antwoord krijgt het werkgebied
    *  van het gesprek mee, zodat *Open volledige pagina* in dat werkgebied landt. */
-  function openContext(d: ContextDoel) {
+  function openContext(d: ContextDoel, vanuit = "het gesprek") {
     const naar = d.soort === "bron" && !d.werkgebied_id && werkgebiedId ? { ...d, werkgebied_id: werkgebiedId } : d;
-    setVolgendeVanuit("het gesprek");
+    setVolgendeVanuit(vanuit);
+    // Eén tab per bepaling (ontdubbelen PR 2): staat ze al in beoordeling open, dan gaat de ingang naar die tab, met de
+    // weergave (en samenhang) die de ingang vraagt. Anders opent ze om te lezen.
+    const inBeoordeling = naar.soort === "bron" ? [...tabStand.tabs, ...(huidig ? [{ sleutel: sleutelVan(huidig), inhoud: huidig }] : [])]
+      .find((t) => t.sleutel === bepalingSleutel(naar.bron_iri) && t.inhoud.soort === "annotatie") : undefined;
+    if (naar.soort === "bron" && inBeoordeling?.inhoud.soort === "annotatie") {
+      const a = inBeoordeling.inhoud;
+      return laad({ ...a, tab: naar.weergave ?? a.tab,
+        ...(naar.samenhang ? { extra: naar.samenhang.extra, graaf: naar.samenhang.graaf } : {}) });
+    }
     wisselPaneel(undefined, { ook: () => { setNodeDoel(undefined); setCtx(naar); } });
+  }
+
+  /** *Beoordelen* in de kop van een bepaling: de annotatie als laag op dezelfde tab (dezelfde sleutel), op de weergave
+   *  waar je was. */
+  function beoordeel(c: Extract<ContextDoel, { soort: "bron" }>, weergave: "tekst" | "graaf") {
+    setVolgendeVanuit("het paneel");
+    const doel: NodeDoel = { ...(bronDoel(c.bron_iri) ?? { bron_iri: c.bron_iri }), ...(c.jci ? { jci: c.jci } : {}) };
+    wisselPaneel(undefined, { ook: () => {
+      setCtx(undefined); setNodeTab(weergave); setNodeExtra(c.samenhang?.extra ?? []);
+      setNodeGraaf(c.samenhang?.graaf ?? { keten: true }); setNodeReeks(undefined); setNodeDoel(doel);
+    } });
   }
 
   // Wat er in het paneel staat: iets anders openen klapt een ingeklapt zijpaneel uit.
@@ -1002,8 +993,8 @@ export function WerkplekClient({
   const paneel = ctx ? (
     <ContextPaneel key={contextSleutel(ctx)} doel={ctx} variant={breed ? "kolom" : "side"}
       onSluit={() => sluitPaneelTab(tabStand.actief)} onVerberg={verbergPaneel}
-      onWissel={(d) => { setVolgendeVanuit("het paneel"); setCtx(d); }} onMaakWerkgebied={setWgUitOverzicht}
-      onSamenhang={samenhangAan && !demo ? (iri) => acties.openSamenhang(bronDoel(iri) ?? { bron_iri: iri }) : undefined} />
+      onWissel={(d) => openContext(d, "het paneel")} onMaakWerkgebied={setWgUitOverzicht}
+      onBeoordelen={demo ? undefined : beoordeel} />
   ) : artefact;
 
   /** *Vraag Lex* vanuit een object in een paneel (`VraagLexKnop`): de chip boven het invoerveld. Op een smal
@@ -1236,7 +1227,6 @@ export function WerkplekClient({
                 bezig={bezig}
                 geblokkeerd={geblokkeerd}
                 demo={!!demo}
-                samenhangAan={samenhangAan}
                 loopt={item.type === "reeks" && !!runId && runId === item.reeks.runId}
                 acties={acties}
               />
@@ -1317,7 +1307,7 @@ export function WerkplekClient({
                   klein
                   className="shrink-0 whitespace-nowrap"
                   disabled={geblokkeerd}
-                  data-actie={s.actie}
+                  data-actie={s.actie ?? (s.doel ? "annoteren" : undefined)}
                   data-invullen={s.invullen ? "" : undefined}
                   title={geblokkeerd ? "Je tokenbudget is op" : undefined}
                   onClick={() => {
@@ -1328,7 +1318,9 @@ export function WerkplekClient({
                       requestAnimationFrame(() => taRef.current?.setSelectionRange(s.tekst.length, s.tekst.length));
                       return;
                     }
-                    void verstuur({ prompt: s.tekst, actie: s.actie });
+                    // Annoteren van één bepaling: de annotatieweg met het doel (`startOpties`), niet een actie.
+                    void verstuur({ prompt: s.tekst, actie: s.actie,
+                      ...(s.doel ? { doel: s.doel, ...(s.hergebruik ? { hergebruik: s.hergebruik } : {}) } : {}) });
                   }}
                 >
                   {s.tekst}

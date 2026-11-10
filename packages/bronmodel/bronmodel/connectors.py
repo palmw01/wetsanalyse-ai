@@ -152,6 +152,10 @@ class ConnectorBeschrijving:
     soorten: tuple[tuple[str, str], ...] = ()
     #: Wie een stuk uitbrengt, zoals de zoektool het filter `orgaan` kent ("Eerste Kamer").
     organen: tuple[str, ...] = ()
+    #: Kort, in de woorden van de jurist: waarom een stuk geen tekst heeft om te lezen (`leesbaar: false`). Het staat
+    #: naast het stuk in een lijst en in het blok; zonder eigen tekst de algemene. Een uitspraak zonder tekst heette
+    #: "onopgemaakt, alleen PDF", de vorm van Kamerstukken (vierde meting Rechtspraak, 10 nov 2026).
+    zonder_tekst: str = "geen tekst bij de bron"
     _patronen: tuple[re.Pattern[str], ...] = field(init=False, repr=False, compare=False)
     _citeer: tuple[tuple[re.Pattern[str], str], ...] = field(init=False, repr=False, compare=False)
 
@@ -235,6 +239,7 @@ KAMERSTUKKEN = ConnectorBeschrijving(
     rol_in_antwoord=("een Kamerstuk laat zien wat de wetgever bedoelde; het onderbouwt nooit wat de wet zegt – dat "
                      "doet alleen de opgehaalde bepaling"),
     kop_in_antwoord="Uit de parlementaire geschiedenis",
+    zonder_tekst="onopgemaakt, alleen PDF",
     grenzen=("zoeken gaat op dossier en nummer, woorden uit de titel of de hele tekst, soort, documentdatum, "
              "vergaderjaar en Kamer, en ordent op nummer, op datum of op relevantie. Een stuk dat alleen als PDF bestaat "
              "(nog onopgemaakt) wordt gevonden, maar de tekst is niet te lezen; zoeken in de tekst gaat op de index van "
@@ -363,6 +368,7 @@ RECHTSPRAAK = ConnectorBeschrijving(
                      "wat de wet zegt – dat doet alleen de opgehaalde bepaling. Een uitspraak die een artikel noemt, "
                      "gaat er niet altijd over. De uitspraken zijn gepseudonimiseerd: herleid nooit wie een partij is"),
     kop_in_antwoord="Uit de rechtspraak",
+    zonder_tekst="geen tekst in de open data",
     grenzen=("zoeken gaat per wetsartikel of op gerecht, rechtsgebied, soort en periode, nooit op woorden in de tekst. "
              "Linked Data Overheid koppelt een uitspraak aan een "
              "artikel als de tekst het noemt (automatisch herkend of redactioneel), op artikelniveau en niet per lid. "

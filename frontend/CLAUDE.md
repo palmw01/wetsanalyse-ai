@@ -85,7 +85,7 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
 - **`components/`**:
   - `werkplek/` – de hele chat-werkruimte: schil, sidebar, thread (`ThreadRij`,
     `KeuzeKaart`, `VraagDock`, `VragenKaart`, `ReeksBlok`, `HergebruikMelding`, `Markdown`) en het annotatiegereedschap in het
-    artefactpaneel (`ArtefactInhoud`, `DocumentPaneel`, `ReviewQueue`,
+    artefactpaneel (`ArtefactInhoud`, `AnnotatieTekst`, `ReviewQueue`,
     `SelectiePopover`, `ExportKnop`).
   - `annotaties/` – het overzicht en de losse annotatiepagina (`AnnotatiesClient`, `AnnotatieKaart`,
     `NodeAnnotatiePaneel`, `AnnotatiePaginaSchil`).
@@ -138,7 +138,23 @@ stand komt uit `lib/herkomst.ts`.
   annotatieopslag die `haalNodeWeergave` aanroept: wat bewaard is staat er meteen, de lezing ernaast houdt de
   markeringen bij (`maakWeergaveCache` in `lib/bronWeergave.ts`). `actueleElementen` is de ene filter op de markeringen
   in de lopende tekst.
-- Geen eigen component `Wettekst`, geen `KnoopTekst`; het annotatiepaneel (`DocumentPaneel`) blijft tot de annoteerfase.
+- Geen eigen component `Wettekst`, geen `KnoopTekst`, en geen tweede weergave voor de annotatie (ontdubbelen PR 4):
+  `AnnotatieTekst` is `WettekstBlok` met de **markeerlaag** (`laag`: de ene gekozen markering, de ongedekte zinsdelen, zelf
+  selecteren), dezelfde tekst als het leesvenster. De rekenkern van die laag staat in `lib/markeerlaag.ts`.
+
+**Eén ingang, één venster, één Vraag Lex** (ontdubbelen PR 1–5, besluit gebruiker 10 nov 2026, naar het voorbeeld van
+Claude: een citaat in de tekst, één kaart per object, en het object opent in één paneel):
+- **Eén ingang per bron** (`app/ingangen.test.ts`): onder een antwoord per bepaling één kaart (`BepalingChips`,
+  `kaartenVan`), inline citaten (`Vindplaats`, `CitatieChip`) openen dezelfde tab, en elke opener gaat via `useOpenBron`.
+  Er is geen tweede kaart voor de graaf.
+- **Eén venster** (`app/wettekst.test.ts`): een bepaling is één tab met Tekst | Graaf (`WeergaveBalk`, `BronGraaf`);
+  annoteren is een laag op die tab (*Beoordelen*), met dezelfde wettekst (`WettekstBlok` met `laag`).
+- **Eén Vraag Lex** (`app/vraagLex.test.ts`): `VraagLexKnop` met een onderwerp, de suggesties uit één register per soort
+  (`lib/vraagLex.ts`).
+
+**De graaf van een bron** (ontdubbelen PR 1): één `useBronGraaf` + `BronGraaf` (`components/wettekst/BronGraaf.tsx`) voor
+het venster naast het gesprek, de bronpagina en de annotatie, met één keuze Tekst | Graaf (`WeergaveBalk`). Alleen de tab
+Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` nog zelf aan.
 
 ### Vormgeving (Rijkshuisstijl, Belastingdienst-stijlvak)
 
@@ -269,7 +285,7 @@ stand komt uit `lib/herkomst.ts`.
       `KleineActies` (Exporteren en ⋯ op één rij): daar is ruimte.
     `app/paneelKop.test.ts` bewaakt het; `scripts/test-paneelkop.mjs` meet elk paneel op 375, 400, 800 en 1280 px en
     op touch (44 px). Geen paneel bouwt een eigen kop of sluitknop. Het
-    `lex`-slot gebruikt alleen nog het annotatiepaneel; de werkgebiedpanelen hebben geen *Vraag Lex* (spoor K).
+    `lex`-slot gebruikt alleen nog het annotatiepaneel; de werkgebiedpanelen hebben *Vraag Lex* in de kop (`vraag`, ontdubbelen PR 5).
 - **Symbolen zijn iconen, geen tekens.** `components/ui/Icoon.tsx` levert chevron, waarschuwing,
   vinkje, ruit en cirkel als inline SVG (`1em`, `currentColor`). Het font laadt alleen de
   latin-subset van Fira Sans (`app/fonts.ts`), dus tekens als `▾ ◇ ▸ ⚠ ✓ ← ○` vallen terug op het
@@ -335,7 +351,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     `aria-label`; het werkgebied staat al in `ChatKop`. Een Markdown-download heet naar zijn eigen kop (`kopVan`), die het
     werkgebied wel noemt. `app/artefactTitels.test.ts` bewaakt het.
   - **annotatie** – het `annotatie`-item met `AnnotatieChip`, dat **`NodeAnnotatiePaneel`** opent
-    `DocumentPaneel` toont de wettekst met de **letterlijke** fragmenten
+    `AnnotatieTekst` toont de wettekst met de **letterlijke** fragmenten
     (`segmenteer` + `lib/jas.ts:jasStyle`), `ReviewQueue` de beslissingskaarten.
   - **begrippen** – het `artefact`-item met `ArtefactChip`, dat
     **`WerkgebiedArtefactPaneel`** opent: dezelfde `BegripVoorstellen` (`inklapbaar={false}`) als op de tab
@@ -396,7 +412,7 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
     bepaling (`bron`), één JAS-element (`element`) of de bronnen van het werkgebied van het gesprek
     (`bibliotheek`). Zelfde schil (kolom vanaf 800px, anders een sheet) en hoogstens één paneel: een
     artefact of annotatie sluit de context, een context sluit die (`ctx` in `WerkplekClient`, bijgesteld in de
-    render). Ingangen: *Openen* op de bronkaart van een citatie-chip (via `ContextPaneelContext`,
+    render). Ingangen: *Openen* op de bronkaart van een citatie-chip (via `useOpenBron`,
     alleen in de werkplek), *Bronnen* in de chatkop (`bronnenSignaal`) en een markering of elementrij in het
     paneel zelf (`onWissel`). Een bron krijgt het werkgebied van het gesprek mee. **Om te raadplegen, niet om
     in te werken**: geen beoordelingsknoppen; elk paneel – ook het artefact- en het annotatiepaneel – heeft
@@ -523,14 +539,23 @@ per connector aan of uit (`MenuKeuze`), en in een werkgebied *Maak dit de standa
   - `niet_aangeboden`: de beheerder zette hem aan, maar deze omgeving biedt hem niet aan. Hij staat er met "hier niet
     beschikbaar" (`data-connector-niet-aangeboden`) en een melding, gaat nooit aan en nooit mee in `bronnen`
     (incident 8 nov 2026); een opgeslagen keuze blijft bewaard;
-  - `onbekend`: graph-qa was niet te lezen (8 s, `STRAAT_TIMEOUT_MS`: een koude start houdt het menu niet de volle 30 s
-    op). Zonder schakelaar ("nu niet te controleren", `data-connector-onbekend`) en zonder *Zet … aan*
-    (review ADR-013, punt 2); de beurt houdt de opgeslagen keuze (graph-qa toetst de straat zelf).
+  - `onbekend`: graph-qa was niet te lezen (3 s, `STRAAT_TIMEOUT_MS`). Zonder schakelaar en zonder *Zet … aan* (review
+    ADR-013, punt 2); de beurt houdt de opgeslagen keuze (graph-qa toetst de straat zelf).
 
-  Faalt het register, dan geeft de BFF een 503 met een reden. De werkplek haalt de stand opnieuw op bij het openen van het
-  menu en na een beurt als hij mislukt of onbekend was (`moetVerversen`), zonder timer.
+  Faalt het register, dan geeft de BFF een 503 met een reden.
+- **Laden is geen oordeel** (melding gebruiker 10 nov 2026: op acceptatie stond vaak *Kamerstukken [onbekend]*, na een
+  refresh goed; oorzaak: graph-qa staat op `minReplicas: 0` en start koud langer dan de time-out). Is de stand niet vast
+  te stellen (een fout of `onbekend`), dan volgt in `lib/connectorLijst.ts` een korte reeks herpogingen (`HERPOGINGEN`:
+  2, 4, 8 en 16 s, één reeks per venster) en staat `controleert` aan. De knop toont zo'n bron dan als `laden`: gedempt,
+  zonder woord of kleur, `aria-busy` en "wordt gecontroleerd" in de naam en in het menu; geen melding, geen waarschuwing.
+  Pas als de reeks op is, volgt het oordeel: `onbekend` met de melding uit `menuMelding`, of `laden: "mislukt"`. Een vaste
+  stand (`niet_aangeboden`) wacht niet op de reeks. Daarna geen timer: een nieuwe reeks begint bij het openen van het
+  menu, vóór en na een beurt (`verstuur`, `onBeurtKlaar`; de beurt wacht er niet op) en bij terugkomst in het venster
+  (`focus`/`visibilitychange` in `useConnectorLijst`, hoogstens eens per 15 s), alleen als `moetVerversen` geldt. De
+  browserregressie zet kortere wachttijden met `window.__connectorHerpogingen`.
 - **De beurt werkt de stand bij**: het `bronstand`-event van graph-qa (`onBronstand`, `uitBronstand`) legt per connector
-  `straat` → `niet_aangeboden`, `register_onleesbaar` → `onbekend` en `aan` → `aan` over de lijst. Uitgezet in gesprek,
+  `straat` → `niet_aangeboden`, `register_onleesbaar` → `onbekend` (en start een reeks, dus eerst `laden`) en `aan` → `aan`
+  over de lijst. Uitgezet in gesprek,
   werkgebied of door de beheerder zegt niets over de omgeving.
 - Het menu omzetten zet een gesprek niet bovenaan de lijst (geen `updated`).
 - Browserregressie: `scripts/test-connectors-menu.mjs`.
@@ -799,12 +824,24 @@ begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`
   zodat de bewaker van niet-bewaarde wijzigingen hem ziet. `WorkbenchShell` leest `vraag` één keer
   (`onderwerpUitUrl`, streng op soort en id's), haalt de parameters uit de URL en geeft
   `beginOnderwerp` alleen aan het venster waarmee de pagina opende. Hij staat als *Bespreek met Lex* (`primair`)
-  in de kop van een detailpagina, en als *Vraag Lex* alleen nog op een markering (de adviesroute). **Niet in de
-  panelen naast het gesprek** (spoor K, besluit 27 okt 2026): je zit al in het gesprek en de suggesties boven het
-  invoerveld doen het werk. Daar zet een klik op een deelvraag in de `WerkgebiedSamenvatting` haar als onderwerp
+  in de kop van een detailpagina, en als *Vraag Lex* in de kop van elk paneel naast het gesprek (`PaneelKop.vraag`:
+  het bronvenster van een bepaling of stuk, de annotatie, het werkgebied, een begrip, een deelvraag), op de reviewkaart
+  (een markering) en in de graafinspector (een bepaling of markering). **Dit vervangt de regel van spoor K** ("geen
+  Vraag Lex naast het gesprek"; besluit gebruiker 10 nov 2026): één knop overal, en de suggesties van de soort staan
+  daarna boven het invoerveld. Daar zet ook een klik op een deelvraag in de `WerkgebiedSamenvatting` haar als onderwerp
   (`VraagLexContext`, `data-deelvraag-onderwerp`), en *Ga verder met deelvraag n* in de bronselectie is een
   `VraagLexKnop` met eigen `tekst`. `annoteer=`/`meedenk=`
   bestaan niet meer (F3e): de bevestiging komt in het gesprek; `app/geenRunRoutes.test.ts` bewaakt dat.
+- **Een bepaling en een stuk** (ontdubbelen PR 5): de soorten `bepaling` (`bron_iri`, werkgebied optioneel, `annotatie`
+  als er een laag op ligt) en `stuk` (`connector`, `stuk_id`) maken *Vraag Lex* mogelijk buiten een werkgebied – in het
+  bronvenster, op `/bronnen` en op `/annotaties/node`. De link heet `vraag=bepaling&vraag_bron=<urn:bwb:…>` of
+  `vraag=stuk&vraag_connector=…&vraag_stuk=…` (streng in `onderwerpUitUrl`). graph-qa kent dezelfde soorten
+  (`models.Onderwerp`) en haalt de tekst zelf met zijn tools. *Annoteer dit onderdeel* (en *… opnieuw* met
+  `hergebruik`) is een suggestie met een `doel`: hij neemt de bestaande annotatieweg (`startOpties` stuurt het doel en
+  geen onderwerp), geen actie. *Neem op in een werkgebied* is geen suggestie: opnemen is een besluit, en dat staat als
+  *Opnemen in werkgebied* bij de pagina.
+- **Eén knop** (`app/vraagLex.test.ts`): de tekst *Vraag Lex*/*Bespreek met Lex* op een knop alleen in `VraagLexKnop`,
+  geen `onVraagOverBron`/`onVraagLex`/`onVraag={…}`, een vraag-URL alleen uit `vraagUrl`.
 - Browserregressie: `scripts/test-vraaglex.mjs`.
 
 **De markering in het bijzonder:**
@@ -1067,8 +1104,8 @@ bestaat los van de gesprekken.
   verbeteren, bepalingen zoeken, de dekking, annoteren, begrippen voorstellen, meedenken, een begrip
   uitwerken – vraag je in het gesprek: met **één *Bespreek met Lex* in de kop van een detailpagina**
   (`VraagLexKnop primair`; spoor G2 verving *Vraag Lex* per rij, besluit 26 okt 2026), of *Nieuw gesprek* in
-  de kop van het project, en dan een suggestie of een eigen vraag (§*Eén gesprek*). Geen knop in een rij,
-  ook niet naast het gesprek (spoor K). Op de
+  de kop van het project, en dan een suggestie of een eigen vraag (§*Eén gesprek*). Geen knop in een rij;
+  naast het gesprek één *Vraag Lex* in de kop van het paneel (ontdubbelen PR 5). Op de
   pagina staan geen knoppen die Lex starten, en de werkplek start niets vanuit de URL. De pagina toont
   wat Lex opleverde en draagt de handmatige besluiten erover. Er is daardoor geen BFF-route meer die een
   run start: de vier statische routes (`deelvragen-run`, `kaart-run`, `bronnen-run`, `begrippen-run`)
@@ -1394,8 +1431,12 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   bewaker. Een inactieve tab is een beschrijving, geen gemount paneel: de wettekst staat er bij terugkomen meteen
   (`lib/useBron.ts`), een annotatie laadt opnieuw.
 - **Leestabs kunnen er meer zijn** (een bepaling, een element, de bronnen, een overzicht; de sleutel is `contextSleutelVan`).
-  De annotatie en het werkgebied-artefact hebben elk één tab: een tweede vervangt de eerste, via de bewaker. Hoogstens
-  `MAX_TABS` (8); de oudste niet-actieve valt af.
+  **Een bepaling is één tab, of je haar leest of annoteert** (ontdubbelen PR 2, besluit gebruiker 10 nov 2026): de
+  annotatie is een laag op de tab van die bepaling, met dezelfde sleutel (`bepalingSleutel`). *Beoordelen* in de kop
+  (rij 2, `data-beoordelen`) zet hem aan in dezelfde tab, op de weergave waar je was; een ingang naar een bepaling die in
+  beoordeling openstaat (`openContext`) gaat naar die tab. Er kunnen dus meer bepalingen tegelijk in beoordeling
+  openstaan. Het werkgebied-artefact heeft één tab: een tweede vervangt de eerste, via de bewaker. Hoogstens `MAX_TABS`
+  (8); de oudste niet-actieve valt af.
 - **Sluiten** (✕ op de tab, of ✕ in de kop van wat open is) gaat via `sluitPaneelTab`: de buur wordt actief.
   **Escape verbergt** en sluit geen tab (`verbergPaneel`): breed klapt het zijpaneel in (`inklapSignaal`), op een telefoon
   gaat de sheet weg (via de bewaker, want de inhoud wordt ontkoppeld), en *Paneel · n open* (`data-paneel-terug`) haalt
@@ -1418,14 +1459,26 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   - *Wat de graaf weet* (`BepalingFeiten`: plek, geldigheid, verwijzingen, tellingen, definieert). Een verwijzing opent
     als eigen tab.
 
-  *Samenhang* in de kop opent de graaf van de bepaling als tab (de annotatietab op Graaf).
-- **Eén ingang per plek:**
-  - onder een antwoord de chips (`BronChip`: `BepalingChips` per bepaling en `SamenhangChip`, ook bij vrije tekst en
-    een overzicht); de losse knop "Bekijk samenhang … in de graaf" bestaat niet meer;
+  Het venster heeft twee weergaven, **Tekst | Graaf** (`WeergaveBalk` in de balk van de kop, dezelfde `TabRij` als de tabs
+  van het paneel, `aria-selected`; ontdubbelen PR 1). De graaf is een weergave van het venster, geen eigen paneel en geen
+  knop in de kop: `components/wettekst/BronGraaf` (`useBronGraaf` + `BronGraaf`) tekent hem, ook onder de annotatie. Zonder
+  samenhang van een antwoord toont hij de ketting van de bepaling zelf ("Deze bepaling"); met (`ContextDoel.samenhang`,
+  niet in de tabsleutel, bewaard zonder kennisgraaf) wat het antwoord noemt. *Bekijk in de tekst* gaat terug naar Tekst op
+  dat segment (`data-segment`), *Open in het paneel* opent de andere bepaling als eigen tab op Graaf. Escape pelt op de
+  graaf eerst lagen, keuze en vergroten af (`escape`), dan verbergt het paneel.
+- **Eén ingang per plek** (`useOpenBron` in `ContextPaneel.tsx` is de enige opener; geen andere plek leest
+  `ContextPaneelContext`):
+  - **onder een antwoord per bepaling één kaart** (ontdubbelen PR 3; `BronChip`/`BepalingChips`, `kaartenVan` in
+    `lib/bronnen.ts`): bij een sjabloon de bepalingen die het draagt, bij vrije tekst de bepalingen die de tekst
+    éénduidig noemt (geen kaart voor een gok). Er is geen tweede kaart voor de graaf: die is de tab Graaf van het venster,
+    met "Dit antwoord" – elke ingang in het bericht (kaart, vindplaats, citatie) neemt de samenhang van het bericht mee
+    (`BerichtSamenhangContext` in `ThreadRij`). De bronnenlijst toont alleen wat geen kaart heeft (`zonderKaarten`):
+    regelingen, connectorstukken, externe bronnen. Een overzicht heeft zijn kaartje, en de overzichttab heeft zelf
+    Tekst | Graaf (de hele kennisgraaf met de nadruk op het overzicht); een artikel uit die graaf opent als eigen tab;
   - de citatiekaart heeft *Openen*, zonder eigen graafknop;
   - in de bronnenlijst opent een bepaling als tab (`Vindplaats kort`; met Ctrl/⌘ de bron zelf);
   - in het overzicht en in de bronselectie naast het gesprek opent een bepaling als tab (`GroepRij onOpen`, via
-    `ContextPaneelContext`) in plaats van een eigen uitklap met de wettekst. Buiten de werkplek blijft de rij een link
+    `useOpenBron`) in plaats van een eigen uitklap met de wettekst. Buiten de werkplek blijft de rij een link
     naar de bronpagina.
 - **Een stuk uit een bronconnector** (PR 6, ADR-013; `app/connectorTekst.test.ts`) opent als tab (`ContextDoel` soort
   `stuk`: brontype en id, met `gelezen` en `voorbeeld` uit het antwoord). Niets in `components/` kent een connector bij naam.
@@ -1453,7 +1506,7 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
 
 Wettekst en reviewlijst hebben **elk een eigen scroll** (tekst `max-h-[45%]` bovenin), zodat de tekst
 niet uit beeld loopt als je verderop in de lijst bent. Selecteren scrolt **beide kanten** in beeld:
-de markering (`DocumentPaneel`) en de kaart (`ReviewQueue`), met respect voor
+de markering (`WettekstBlok`, markeerlaag) en de kaart (`ReviewQueue`), met respect voor
 `prefers-reduced-motion`.
 
 - **De kaart is compact**; toelichting, uitleg van de review, alternatieven en opmerking vouwen open
@@ -1544,7 +1597,7 @@ is dubbelop. Bij **verwerpen** blijft de reden een vraag aan de jurist; die staa
   element; `edited` vergrendelt niet (anders wringt er een heropening tussen klasse en toelichting);
   een **eigen markering** vergrendelt niet, want die is `human_approved` bij het aanmaken.
 - **Verworpen markeringen tellen niet als "inmiddels gemarkeerd"** (`alGemarkeerd` in
-  `lib/annotatie.ts`, voor de ongedekte zinsdelen uit de dekking), net zoals `DocumentPaneel`
+  `lib/annotatie.ts`, voor de ongedekte zinsdelen uit de dekking), net zoals de markeerlaag
   verworpen markeringen niet oplicht.
 - **Fragment inkorten/uitbreiden**: klik de markering aan en selecteer opnieuw. Overlapt de selectie
   de actieve markering (`overlaptSelectie` + `vindPositie`), dan biedt `SelectiePopover` bovenaan
@@ -1557,7 +1610,7 @@ draaiden en welke zinsdelen geen enkele kandidaat opleverden; de api geeft dat m
 - `ongedektVanNode` (`lib/annotatieNodeAdapter.ts`) vertaalt de zinsdelen naar de samengestelde bron
   en laat een deel weg als de tekst daar niet letterlijk staat; `nogOngedekt` haalt weg wat een
   actueel, niet-verworpen element al raakt.
-- `DocumentPaneel` onderstreept ze gestippeld (standaard aan, *Verbergen* in de balk erboven).
+- De markeerlaag onderstreept ze gestippeld (standaard aan, *Verbergen* in de balk erboven).
   `segmentenVanBlok` knipt erop, de actieve markering gaat voor, en de segmenten blijven samen
   exact de regel. Een klik op een onderstreept zinsdeel opent dezelfde `SelectiePopover` met het
   hele deel: zelf markeren zonder de grenzen te trekken.
@@ -1569,28 +1622,28 @@ draaiden en welke zinsdelen geen enkele kandidaat opleverden; de api geeft dat m
 
 ### Zelf annoteren (tekstselectie)
 
-De jurist selecteert tekst in `DocumentPaneel` en markeert die zelf. Eigen markeringen gaan via
+De jurist selecteert tekst in de markeerlaag (`WettekstBlok` via `AnnotatieTekst`) en markeert die zelf. Eigen markeringen gaan via
 `POST elementen` (`NodeAnnotatiePaneel.eigenMarkering`; niet de batch, dat is de uitkomst van een
 agent-ronde) en zijn meteen `human_approved`.
 
-- **Een selectie eindigt niet altijd met een muisklik.** Naast `onMouseUp` luistert `DocumentPaneel`
+- **Een selectie eindigt niet altijd met een muisklik.** Naast `onMouseUp` luistert de markeerlaag
   op documentniveau naar `keyup` (Shift+pijltjes, WCAG 2.1.1) en `touchend` (selectiegrepen op een
   aanraakscherm). `ArtefactInhoud.sluitSelectie` ruimt de DOM-selectie op bij het sluiten van de
   popover, anders klapt die bij de volgende tik weer open.
 - **De rekenkern staat in `lib/selectie.ts`**; het component doet alleen de `TreeWalker`-wandeling
   (`offsetVanGrens`) en geeft knooplengtes door aan `offsetInBlok`.
-- **De tekst staat in blokken, en elk blok draagt `data-offset`.** `offsetVanGrens` telt alleen binnen
-  het blok vanaf die startpositie, zodat de weergave (inspringing van leden en onderdelen) los staat
-  van de offsets. **Haal `data-offset` niet weg** – dan landt elke markering stil op de verkeerde
-  tekst.
+- **Elk segment is een blok, en elk blok draagt `data-offset`** (zijn begin in de samengestelde bron, `SegmentPlek`).
+  `offsetVanGrens` telt alleen binnen het blok vanaf die startpositie, zonder het nummer (`data-buiten-tekst`), zodat de
+  weergave (inspringing, nummer) los staat van de offsets. **Haal `data-offset` niet weg** en zet geen tekst naast de
+  segmenten – dan landt elke markering stil op de verkeerde tekst. `test-annotatie-nodes` toetst de ankers (ook emoji en
+  over twee leden).
 - **Een markering wordt op de blokgrens geknipt** (`segmentenVanBlok`): een `<mark>` kan niet over
   twee blokken, dus het worden twee `<mark>`s met dezelfde klasse en hetzelfde id, optisch verbonden
   door `box-decoration-clone`.
-- **De structuur komt uit `lib/wetstructuur.ts`** (`ontleed` + `blokkenVan`). Het nestingniveau is
-  **afgeleid uit de nummervorm**: de echte nesting staat in de graaf, maar het artefact krijgt de tekst
-  als `leden_teksten` (`{lid, tekst}[]`, door `lib/annotatieNodeAdapter.ts`). Een fout geeft hooguit een scheve marge, nooit een scheve
-  markering. `blokkenVan` vangt af dat het lidvoorvoegsel `"1. "` dezelfde vorm heeft als een
-  onderdeelnummer. De testvectoren staan in `wetstructuur.vectoren.json`.
+- **De structuur komt uit de graaf** (ontdubbelen PR 4): de inspringing volgt `parent_iri` van de segmenten (`diepteVan`
+  in `WettekstBlok`), net als bij lezen; een los onderdeel staat op de marge, zonder lege lidregel erboven. De
+  samengestelde bron (`leden_teksten`, `lib/annotatieNodeAdapter.ts`) bestaat nog voor de posities en de reviewlijst;
+  `blokkenVan` (`lib/wetstructuur.ts`) wordt in geen component meer gebruikt.
 - **De brontekst is een lijst `LidRegel`, geen lijst strings** (`regelsVan`/`bronVan` in
   `lib/annotatie.ts`). Het lidnummer reist mee omdat het **niet uit de volgorde af te leiden** is: bij
   een op één lid afgebakend document is index 0 bijvoorbeeld lid 3, en ingevoegde leden heten 2a.
@@ -1635,9 +1688,9 @@ gaat over de stand van nu en staat daarom niet op een oude versie. De route krij
 
 ## De samenhangsgraaf (sigma.js)
 
-`NodeAnnotatiePaneel` heeft naast *Tekst* een tab **Graaf** (`components/graaf/Graaf.tsx`), en onder een
-antwoord met een bron naar een BWB-bepaling staat de chip *Samenhang* (`SamenhangChip`, voorleesnaam "Bekijk samenhang van … in de
-graaf") die hetzelfde paneel op die tab opent; in het bronvenster van een bepaling staat *Samenhang* in de kop (het bronvenster, PR 4). Een
+Het venster van een bepaling (lezen én annoteren) en van een overzicht heeft naast *Tekst* een tab **Graaf**
+(`components/wettekst/BronGraaf.tsx` om `components/graaf/Graaf.tsx`); de kaart van een bepaling onder een antwoord opent
+het venster, en daar staat de graaf (ontdubbelen PR 1–3). Een
 2D-graaf op **sigma.js v4 + graphology**: WebGL 2 (ook de labels), gebouwd om de hele kennisgraaf (~6.500
 knopen, ~10.000 lijnen) vloeiend te tekenen. De overstap van v3 (okt 2026) raakte alleen `GraafTekenaar`.
 
@@ -1749,14 +1802,14 @@ api /samenhang, /samenhang/meer, /graaf ─► lib/graaf/model ─► layout (wo
   geladen; `ketenZin` zegt boven de graaf wat je ziet en wat er niet bij staat. De ketting krijgt de vorm van de hele kennisgraaf:
   een rond sterrenstel, geen boom met knopen onder elkaar (`layoutSterrenstel`, besluit gebruiker 6 nov 2026). `ketenFocus` geeft de nadruk: in de hele
   kennisgraaf licht de ketting op. *Toon het hele artikel* laadt het artikel erbij (`laadErbij`); de ketting telt daarbij niet
-  als geladen. De knop onder een antwoord, een annotatie in het gesprek en de
+  als geladen. Een bepaling uit een antwoord, een annotatie in het gesprek en de
   doelen van `doel` uit de werkplek gebruiken de ketting; de tab Samenhang van een werkgebied en de annotatiepagina niet.
   Een overzicht opent in de kennisgraaf met zijn eigen focus (`eigenFocus`); zijn *Dit antwoord* is de ketting van de delen
   en de definities (`overzichtDefinities`).
   Een wettelijk begrip (`begrip_bron: "wet"`) heeft een eigen kleur (`WETBEGRIPKLEUR`) en toont in de inspector zijn
   definities met vindplaats en geldingsbereik. Browserregressie: scenario 0 in `scripts/test-samenhang.mjs`; de rest van dat
   script draait op het hele artikel, zodat de bediening getoetst blijft.
-- **De knop opent wat het antwoord noemt** (`antwoordDoelen` in `lib/bronnen.ts`, max.
+- **De graaf van een antwoord opent wat het antwoord noemt** (`antwoordDoelen` in `lib/bronnen.ts`, max.
   `MAX_SAMENHANG_DOELEN`) of de delen van een overzicht (`overzichtDoelen` in `lib/overzicht.ts`, max.
   `MAX_OVERZICHT_DOELEN`, uit het overzicht en niet uit de tekst: dezelfde vraag geeft dezelfde kaart).
   Meer dan één doel gaat in **één** verzoek (`/samenhang/meer`, één bronboom per regeling) – in

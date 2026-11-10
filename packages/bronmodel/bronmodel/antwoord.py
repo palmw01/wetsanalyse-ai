@@ -188,6 +188,8 @@ class Stuk(BaseModel):
     status: str = ""
     versie: str = ""
     leesbaar: bool = True
+    #: Waarom er geen tekst is, bij `leesbaar: false`: de tekst van de connector (`ConnectorBeschrijving.zonder_tekst`).
+    zonder_tekst: str = ""
 
 
 class Stukken(BaseModel):
@@ -276,10 +278,11 @@ def _blok_tekst(b: BaseModel) -> str:
         def regel(x: Stuk) -> str:
             naam = f"[{x.label}]({x.link})" if x.link else x.label
             wat = " · ".join(v for v in (x.soort, x.datum) if v)
-            pdf = " (onopgemaakt, alleen PDF)" if not x.leesbaar else ""
-            return f"- {naam}{' · ' + wat if wat else ''}{': ' + x.titel if x.titel else ''}{pdf}"
+            geen = f" ({x.zonder_tekst or 'geen tekst bij de bron'})" if not x.leesbaar else ""
+            return f"- {naam}{' · ' + wat if wat else ''}{': ' + x.titel if x.titel else ''}{geen}"
         voet = " ".join(v for v in (
-            b.zoekvraag, f"{len(b.items)} van de {b.totaal} stukken." if b.totaal and b.totaal > len(b.items) else "") if v)
+            b.zoekvraag, f"{len(b.items)} van de {getal(b.totaal)} stukken." if b.totaal and b.totaal > len(b.items) else "")
+            if v)
         return "\n".join(regel(x) for x in b.items) + (f"\n\n{voet}" if voet else "")
     if isinstance(b, Leemte):
         return b.tekst
@@ -288,6 +291,11 @@ def _blok_tekst(b: BaseModel) -> str:
 
 KOPPEN = {"definities": "Wettelijke definitie", "begrippen": "Vastgelegd begrip", "wettekst": "Wettekst", "citaten": "Onderbouwing",
           "verwijzingen": "Verwijzingen", "annotaties": "Markeringen", "twijfel": "Twijfel en aannames"}
+
+
+def getal(n: int) -> str:
+    """Een aantal met een punt voor de duizendtallen ("19.523"), zoals de statusregels het schrijven."""
+    return f"{n:,}".replace(",", ".")
 
 
 def antwoord_tekst(antwoord: Antwoord, zonder: frozenset[str] = frozenset()) -> str:

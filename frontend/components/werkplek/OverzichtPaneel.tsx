@@ -8,10 +8,10 @@
 // mee in het bericht: elk nummer staat er zoals de graaf het heeft, nooit als bereik, en dezelfde vraag
 // geeft hetzelfde paneel. De rekenkern staat in `lib/overzicht.ts`.
 
-import { useContext, useState } from "react";
+import { useState } from "react";
 
 import { Vindplaats } from "@/components/antwoord/Vindplaats";
-import { ContextPaneelContext } from "@/components/werkplek/ContextPaneel";
+import { useOpenBron } from "@/components/werkplek/ContextPaneel";
 import { Button } from "@/components/ui/Button";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
 import { bepalingNaam, deelKop, telling, zoekverantwoording } from "@/lib/overzicht";
@@ -34,7 +34,7 @@ function RegelingLink({ label, iri, jci }: { label: string; iri: string; jci?: s
 function Bepalingen({ bepalingen, naam, regeling }: {
   bepalingen: OverzichtBepaling[]; naam?: (b: OverzichtBepaling) => string; regeling?: string;
 }) {
-  const opener = useContext(ContextPaneelContext);
+  const opener = useOpenBron();
   return (
     <div className="px-4 pb-3">
       <ul className="flex flex-wrap gap-x-3 gap-y-1">

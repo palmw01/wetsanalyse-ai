@@ -166,10 +166,10 @@ for (const breedte of [375, 400, 800, 1280]) {
       await page.locator("[data-paneel-kop]").last().screenshot({ path: `${process.env.SCHERMAFDRUK}/kop-${paneel.naam}-${breedte}.png` });
     if (paneel.naam === "annotatie") {
       // Op de tab Graaf dezelfde kop: status en afronden springen niet weg.
-      await page.getByRole("button", { name: "Graaf", exact: true }).click();
+      await page.getByRole("tab", { name: "Graaf", exact: true }).click();
       const g = await meetKop(page, `${naam} (graaf)`);
       assert.ok(g.stand?.rechts, `${naam}: de tab Graaf houdt status en afronden`);
-      await page.getByRole("button", { name: "Tekst", exact: true }).click();
+      await page.getByRole("tab", { name: "Tekst", exact: true }).click();
     }
   }
   // De annotatiepagina gebruikt dezelfde kop.

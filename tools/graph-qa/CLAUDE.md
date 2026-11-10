@@ -1334,7 +1334,10 @@ weglaten van wat buiten de afbakening valt. Meer vraagt eerst een meting (PLAN s
 ### Vraag Lex op een object (`agent/onderwerp.py`, F3b)
 
 Vanuit een deelvraag, bronselectie, kandidaat, begrip of het werkgebied leidt één *Vraag Lex* naar het
-gesprek. Het verzoek draagt alleen `onderwerp: {soort, werkgebied_id, id?, label?}` (`models.Onderwerp`);
+gesprek, en ook vanuit een **bepaling** (`bron_iri`) of een **stuk uit een bronconnector** (`connector`, `stuk_id`),
+die geen werkgebied nodig hebben (ontdubbelen PR 5). Voor die twee haalt `onderwerp.haal` niets bij de api: het blok
+noemt wélk object het is, en Lex haalt de tekst zelf met zijn tools. Een actie op een bepaling zonder werkgebied
+blijft een fout (geen werkgebied om in te werken). Het verzoek draagt alleen `onderwerp: {soort, werkgebied_id, id?, label?}` (`models.Onderwerp`);
 `answer_stream` haalt het object per beurt bij de api (`onderwerp.haal`: het werkgebied, de dekking, de
 kandidaten, het begrip met zijn open kaartvoorstellen) en zet het blok in `State.onderwerp_context`.
 `memory_context` geeft het vóór het werkgebiedblok aan supervisor en elke specialist, ook met
