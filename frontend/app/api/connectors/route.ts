@@ -8,10 +8,10 @@ import { metBeschikbaarheid } from "@/lib/connectorsMenu";
 
 export const dynamic = "force-dynamic";
 
-/** graph-qa staat op `minReplicas: 0`. Een koude start mag het menu niet de volle proxygrens (30 s) ophouden: na deze
- *  wachttijd is de beschikbaarheid `onbekend`, en de werkplek vraagt het opnieuw bij het openen van het menu en na een
- *  beurt. */
-const STRAAT_TIMEOUT_MS = 8_000;
+/** graph-qa staat op `minReplicas: 0` en start na een stille periode koud (langer dan 8 s). Het menu wacht daar niet
+ *  op: na deze wachttijd is de beschikbaarheid `onbekend` en probeert de werkplek het zelf opnieuw met een korte reeks
+ *  (`lib/connectorLijst.ts`, `HERPOGINGEN`). Dit verzoek heeft de koude start dan al in gang gezet. */
+const STRAAT_TIMEOUT_MS = 3_000;
 
 export async function GET() {
   if (!(await sessionUserId())) return geenSessie();

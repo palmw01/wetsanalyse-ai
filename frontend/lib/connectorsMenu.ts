@@ -28,6 +28,8 @@ export interface ConnectorStand {
   werkgebied?: string[] | null;
   /** `mislukt`: de laatste poging om de lijst op te halen faalde. `beschikbaar` is dan de laatst bekende lijst. */
   laden?: "ok" | "mislukt";
+  /** De werkplek controleert de stand nog (een herpoging loopt of komt): `onbekend` is dan nog geen oordeel. */
+  controleert?: boolean;
 }
 
 /** Het ene leesmodel van het menu, in de BFF: wat de beheerder aanzette (het register), met per connector of de straat
@@ -84,6 +86,7 @@ export function uitBronstand(beschikbaar: BeschikbareConnector[], regels: Bronst
 
 /** Wat het menu boven de lijst meldt, of niets. Een mislukte lijst gaat voor: dan is alles onzeker. */
 export function menuMelding(stand: ConnectorStand): string | null {
+  if (stand.controleert) return null;
   if (stand.laden === "mislukt") {
     return stand.beschikbaar.length
       ? "Lex kan de bronnen nu niet controleren. Je ziet de laatst bekende stand."
@@ -156,11 +159,13 @@ export function wissel(stand: ConnectorStand, naam: string): string[] {
   return stand.beschikbaar.map((b) => b.naam).filter((n) => blijft.has(n));
 }
 
-/** Hoe één bron op de knop staat. */
-export type BronWeergave = "aan" | "uit" | "onbekend" | "niet_aangeboden";
+/** Hoe één bron op de knop staat. `laden`: nog niet vastgesteld, er loopt of komt een poging (geen oordeel, geen kleur).
+ *  `onbekend`: ook na de herpogingen niet vast te stellen (niet bereikbaar). */
+export type BronWeergave = "laden" | "aan" | "uit" | "onbekend" | "niet_aangeboden";
 
 /** Het woord bij een stand op de knop (de vinkje-stand tekent de werkplek als icoon). */
 export const STAND_WOORD: Record<Exclude<BronWeergave, "aan">, string> = {
+  laden: "wordt gecontroleerd",
   uit: "uit",
   onbekend: "onbekend",
   niet_aangeboden: "niet beschikbaar",
@@ -171,12 +176,14 @@ export const STAND_WOORD: Record<Exclude<BronWeergave, "aan">, string> = {
 export function menuRegel(stand: ConnectorStand): { label: string; stand: BronWeergave }[] {
   const aan = actieveConnectors(stand);
   const standVan = (c: BeschikbareConnector): BronWeergave =>
-    schakelbaar(c) ? (aan.includes(c.naam) ? "aan" : "uit") : c.beschikbaarheid === "niet_aangeboden" ? "niet_aangeboden" : "onbekend";
+    schakelbaar(c) ? (aan.includes(c.naam) ? "aan" : "uit")
+      : c.beschikbaarheid === "niet_aangeboden" ? "niet_aangeboden"
+      : stand.controleert ? "laden" : "onbekend";
   return [{ label: "Wetgeving", stand: "aan" }, ...stand.beschikbaar.map((c) => ({ label: c.label, stand: standVan(c) }))];
 }
 
 /** De toegankelijke naam van de knop: "Bronnen: Wetgeving aan, Kamerstukken aan, Rechtspraak uit". */
 export function menuNaam(stand: ConnectorStand): string {
   const delen = menuRegel(stand).map((d) => `${d.label} ${d.stand === "aan" ? "aan" : STAND_WOORD[d.stand]}`).join(", ");
-  return `Bronnen: ${delen}${stand.laden === "mislukt" ? " (nu niet te controleren)" : ""}`;
+  return `Bronnen: ${delen}${stand.laden === "mislukt" && !stand.controleert ? " (nu niet te controleren)" : ""}`;
 }
