@@ -29,6 +29,8 @@ export type AntwoordBlok =
 export interface StukRij {
   id: string; label: string; link?: string; soort?: string; titel?: string; datum?: string; gepubliceerd?: string;
   jaar?: string; orgaan?: string; indieners?: string[]; reeks?: string[]; status?: string; versie?: string; leesbaar?: boolean;
+  /** Waarom er geen tekst is (`leesbaar: false`), in de woorden van de connector: "onopgemaakt, alleen PDF", "geen tekst in de open data". */
+  zonder_tekst?: string;
 }
 
 export type BlokSoort = AntwoordBlok["soort"];

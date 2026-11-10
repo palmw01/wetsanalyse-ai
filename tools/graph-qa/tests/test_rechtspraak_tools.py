@@ -558,3 +558,25 @@ def test_het_gelezen_stuk_staat_in_de_bronnen_als_de_vraag_het_noemt():
                                                  "Wat staat er in ECLI:NL:HR:2022:50?")] == [hr.uri]
     # Een stuk dat alleen genoemd wordt in de tekst van het gelezen stuk, is niet gelezen: de vraag maakt het geen bron.
     assert alleen_gelezen_extern([oud], trace, antwoord, "Wat staat er in ECLI:NL:HR:1996:AA2050?") == []
+
+
+def test_een_uitspraak_zonder_tekst_zegt_dat_in_haar_eigen_woorden():
+    """Vierde meting 10 nov 2026: de lijstregel zei "(onopgemaakt, alleen PDF)", de vorm van Kamerstukken. De tekst komt
+    uit de beschrijving van de connector (`zonder_tekst`)."""
+    from bronmodel.antwoord import antwoord_tekst
+    from agent import sjablonen
+    trace = [("get_uitspraak", tools.dispatch("get_uitspraak", None, {"id": "ECLI:NL:HR:2022:50"}, AAN,
+                                              rechtspraak=NepBron([], docs={"ECLI:NL:HR:2022:50": _ALLEEN_META.encode()})))]
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "Er is geen tekst.", "extern": [],
+                                          "stukken": ["ECLI:NL:HR:2022:50"], "twijfel": []}, trace)
+    [x] = next(b for b in a.blokken if b.soort == "stukken").items
+    assert x.leesbaar is False and x.zonder_tekst == "geen tekst in de open data"
+    tekst = antwoord_tekst(a)
+    assert "(geen tekst in de open data)" in tekst and "PDF" not in tekst
+
+
+def test_het_totaal_van_een_lijst_heeft_een_punt_voor_de_duizendtallen():
+    from bronmodel.antwoord import Antwoord, Stuk, Stukken, antwoord_tekst
+    blok = Stukken(brontype="uitspraak", kop="Gevonden Rechtspraak", totaal=19523,
+                   items=[Stuk(id=f"ECLI:NL:HR:2026:{i}", label=str(i)) for i in range(10)])
+    assert "10 van de 19.523 stukken." in antwoord_tekst(Antwoord(sjabloon="extern", blokken=[blok]))

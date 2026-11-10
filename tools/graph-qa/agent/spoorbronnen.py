@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from bronmodel import connectors as _connectors
+from bronmodel.antwoord import getal
 
 from .agent_common import truncate
 from .resultaat import REDEN_ZIN
@@ -179,8 +180,7 @@ def toolregel(call: dict[str, Any]) -> str:
 
 # --- wat de bron opleverde ---------------------------------------------------------------------------------------
 
-def _getal(n: int) -> str:
-    return f"{n:,}".replace(",", ".")
+_getal = getal
 
 
 def uitkomstregel(tool: str, invoer: dict[str, Any], eind: dict[str, Any], data: dict[str, Any] | None = None) -> str:
