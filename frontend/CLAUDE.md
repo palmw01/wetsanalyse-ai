@@ -1398,8 +1398,12 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   bewaker. Een inactieve tab is een beschrijving, geen gemount paneel: de wettekst staat er bij terugkomen meteen
   (`lib/useBron.ts`), een annotatie laadt opnieuw.
 - **Leestabs kunnen er meer zijn** (een bepaling, een element, de bronnen, een overzicht; de sleutel is `contextSleutelVan`).
-  De annotatie en het werkgebied-artefact hebben elk één tab: een tweede vervangt de eerste, via de bewaker. Hoogstens
-  `MAX_TABS` (8); de oudste niet-actieve valt af.
+  **Een bepaling is één tab, of je haar leest of annoteert** (ontdubbelen PR 2, besluit gebruiker 10 nov 2026): de
+  annotatie is een laag op de tab van die bepaling, met dezelfde sleutel (`bepalingSleutel`). *Beoordelen* in de kop
+  (rij 2, `data-beoordelen`) zet hem aan in dezelfde tab, op de weergave waar je was; een ingang naar een bepaling die in
+  beoordeling openstaat (`openContext`) gaat naar die tab. Er kunnen dus meer bepalingen tegelijk in beoordeling
+  openstaan. Het werkgebied-artefact heeft één tab: een tweede vervangt de eerste, via de bewaker. Hoogstens `MAX_TABS`
+  (8); de oudste niet-actieve valt af.
 - **Sluiten** (✕ op de tab, of ✕ in de kop van wat open is) gaat via `sluitPaneelTab`: de buur wordt actief.
   **Escape verbergt** en sluit geen tab (`verbergPaneel`): breed klapt het zijpaneel in (`inklapSignaal`), op een telefoon
   gaat de sheet weg (via de bewaker, want de inhoud wordt ontkoppeld), en *Paneel · n open* (`data-paneel-terug`) haalt

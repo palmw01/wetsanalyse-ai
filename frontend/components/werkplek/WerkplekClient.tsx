@@ -1,7 +1,7 @@
 "use client";
 
 import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
-import { samenhangBeschikbaar } from "@/lib/samenhang";
+import { bronDoel, samenhangBeschikbaar } from "@/lib/samenhang";
 import { ThreadRij, type ThreadActies } from "@/components/werkplek/ThreadRij";
 import { reeksNavigatie } from "@/lib/reeks";
 import { afronding } from "@/lib/beurtStroom";
@@ -22,7 +22,7 @@ import { Zijpaneel } from "@/components/ui/Zijpaneel";
 import { PaneelTabsContext } from "@/components/ui/PaneelKop";
 import { TabRij } from "@/components/ui/Tabs";
 import { leesOpslag, schrijfOpslag } from "@/lib/opslag";
-import { bewaarVorm, leesBewaard, openTab, opslagSleutel, sluitTab, tabLabel, zonderKennisgraaf, type PaneelInhoud, type TabStand } from "@/lib/paneelTabs";
+import { bepalingSleutel, bewaarVorm, leesBewaard, openTab, opslagSleutel, sleutelVan, sluitTab, tabLabel, zonderKennisgraaf, type PaneelInhoud, type TabStand } from "@/lib/paneelTabs";
 import {
   foutTekst,
   startRun,
@@ -978,10 +978,30 @@ export function WerkplekClient({
 
   /** Een context naast het gesprek (`ContextPaneelContext`): een bron uit een antwoord krijgt het werkgebied
    *  van het gesprek mee, zodat *Open volledige pagina* in dat werkgebied landt. */
-  function openContext(d: ContextDoel) {
+  function openContext(d: ContextDoel, vanuit = "het gesprek") {
     const naar = d.soort === "bron" && !d.werkgebied_id && werkgebiedId ? { ...d, werkgebied_id: werkgebiedId } : d;
-    setVolgendeVanuit("het gesprek");
+    setVolgendeVanuit(vanuit);
+    // Eén tab per bepaling (ontdubbelen PR 2): staat ze al in beoordeling open, dan gaat de ingang naar die tab, met de
+    // weergave (en samenhang) die de ingang vraagt. Anders opent ze om te lezen.
+    const inBeoordeling = naar.soort === "bron" ? [...tabStand.tabs, ...(huidig ? [{ sleutel: sleutelVan(huidig), inhoud: huidig }] : [])]
+      .find((t) => t.sleutel === bepalingSleutel(naar.bron_iri) && t.inhoud.soort === "annotatie") : undefined;
+    if (naar.soort === "bron" && inBeoordeling?.inhoud.soort === "annotatie") {
+      const a = inBeoordeling.inhoud;
+      return laad({ ...a, tab: naar.weergave ?? a.tab,
+        ...(naar.samenhang ? { extra: naar.samenhang.extra, graaf: naar.samenhang.graaf } : {}) });
+    }
     wisselPaneel(undefined, { ook: () => { setNodeDoel(undefined); setCtx(naar); } });
+  }
+
+  /** *Beoordelen* in de kop van een bepaling: de annotatie als laag op dezelfde tab (dezelfde sleutel), op de weergave
+   *  waar je was. */
+  function beoordeel(c: Extract<ContextDoel, { soort: "bron" }>, weergave: "tekst" | "graaf") {
+    setVolgendeVanuit("het paneel");
+    const doel: NodeDoel = { ...(bronDoel(c.bron_iri) ?? { bron_iri: c.bron_iri }), ...(c.jci ? { jci: c.jci } : {}) };
+    wisselPaneel(undefined, { ook: () => {
+      setCtx(undefined); setNodeTab(weergave); setNodeExtra(c.samenhang?.extra ?? []);
+      setNodeGraaf(c.samenhang?.graaf ?? { keten: true }); setNodeReeks(undefined); setNodeDoel(doel);
+    } });
   }
 
   // Wat er in het paneel staat: iets anders openen klapt een ingeklapt zijpaneel uit.
@@ -994,7 +1014,8 @@ export function WerkplekClient({
   const paneel = ctx ? (
     <ContextPaneel key={contextSleutel(ctx)} doel={ctx} variant={breed ? "kolom" : "side"}
       onSluit={() => sluitPaneelTab(tabStand.actief)} onVerberg={verbergPaneel}
-      onWissel={(d) => { setVolgendeVanuit("het paneel"); setCtx(d); }} onMaakWerkgebied={setWgUitOverzicht} />
+      onWissel={(d) => openContext(d, "het paneel")} onMaakWerkgebied={setWgUitOverzicht}
+      onBeoordelen={demo ? undefined : beoordeel} />
   ) : artefact;
 
   /** *Vraag Lex* vanuit een object in een paneel (`VraagLexKnop`): de chip boven het invoerveld. Op een smal

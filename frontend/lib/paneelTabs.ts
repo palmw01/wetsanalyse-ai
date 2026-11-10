@@ -5,8 +5,10 @@
  *  stond, zodat je wisselt zonder het opnieuw te zoeken, per gesprek bewaard. Een inactieve tab is een beschrijving, geen
  *  gemount paneel; terugkomen laadt hem in de slots, en de wettekst staat er meteen (`lib/useBron.ts`).
  *
- *  Leestabs (een bepaling, een element, de bronnen, een overzicht) kunnen er meer zijn. De annotatie en het artefact van
- *  een werkgebied hebben één tab: beoordelen en bewerken doe je in één tegelijk (besluit 11 van het plan). */
+ *  Leestabs (een bepaling, een element, de bronnen, een overzicht) kunnen er meer zijn. Een bepaling is één tab, of je
+ *  haar leest of annoteert (ontdubbelen PR 2, besluit gebruiker 10 nov 2026): de annotatie is een laag op de tab van
+ *  die bepaling, met dezelfde sleutel, dus *Beoordelen* zet hem in dezelfde tab aan en er kunnen meer bepalingen tegelijk
+ *  in beoordeling openstaan. Het artefact van een werkgebied heeft één tab: bewerken doe je in één tegelijk. */
 import type { ContextDoel } from "@/components/werkplek/ContextPaneel";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 import type { NodeDoel } from "@/lib/annotatieNode";
@@ -30,15 +32,18 @@ export interface TabStand { tabs: PaneelTab[]; actief?: string }
 /** Hoeveel tabs er open kunnen staan; daarboven valt de oudste af die niet actief is. */
 export const MAX_TABS = 8;
 
+/** De sleutel van de tab van een bepaling: dezelfde voor lezen en annoteren. */
+export const bepalingSleutel = (bronIri: string) => `bron:${bronIri}`;
+
 export function contextSleutelVan(c: ContextDoel): string {
-  return c.soort === "bron" ? `bron:${c.bron_iri}:${c.werkgebied_id ?? ""}`
+  return c.soort === "bron" ? bepalingSleutel(c.bron_iri)
     : c.soort === "element" ? `element:${c.element_id}`
     : c.soort === "overzicht" ? `overzicht:${c.overzicht.gevraagd}`
     : c.soort === "stuk" ? `stuk:${c.id}` : `bibliotheek:${c.werkgebied_id}`;
 }
 
 export function sleutelVan(i: PaneelInhoud): string {
-  return i.soort === "context" ? contextSleutelVan(i.ctx) : i.soort;
+  return i.soort === "context" ? contextSleutelVan(i.ctx) : i.soort === "annotatie" ? bepalingSleutel(i.doel.bron_iri) : i.soort;
 }
 
 /** Opent of werkt bij: dezelfde sleutel vervangt de inhoud op haar plek (een andere versie, een ander lid van de reeks),
@@ -83,8 +88,9 @@ export function tabLabel(t: PaneelTab): { kort: string; vol: string } {
     else { kort = c.titel || "Overzicht"; vol = `Overzicht: ${c.titel}`; }
   } else if (i.soort === "annotatie") {
     const h = herkomstVan({ iri: i.doel.bron_iri, label: i.doel.label, regeling: i.doel.citeertitel });
-    kort = i.tab === "graaf" ? `Samenhang · ${h.bepaling}` : `Annotatie · ${h.bepaling}`;
-    vol = `${i.tab === "graaf" ? "Samenhang" : "Annotatie"}: ${h.regeling ? `${h.bepaling}, ${h.regeling}` : h.bepaling}`;
+    // Dezelfde tab als bij lezen: de bepaling zelf. De tooltip zegt dat ze in beoordeling openstaat.
+    kort = h.bepaling;
+    vol = `${h.regeling ? `${h.bepaling}, ${h.regeling}` : h.bepaling} · annotatie`;
   } else {
     const k = artefactKop(i.artefact);
     kort = k.titel;

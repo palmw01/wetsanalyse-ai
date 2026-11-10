@@ -17,11 +17,17 @@ describe("paneelTabs", () => {
     expect(s.tabs[0].vanuit).toBe("een antwoord");
   });
 
-  it("heeft één tab voor het artefact van een werkgebied en één voor de annotatie", () => {
+  it("heeft één tab voor het artefact van een werkgebied; een bepaling is één tab, of je haar leest of annoteert", () => {
     let s = openTab({ tabs: [] }, artefact("r1"));
     s = openTab(s, artefact("r2"));
+    const lezen: PaneelInhoud = { soort: "context", ctx: { soort: "bron", bron_iri: "urn:bwb:BWBR0004770:artikel:9:lid:2", titel: "Lid 2" } };
+    s = openTab(s, lezen);
     s = openTab(s, annotatie);
-    expect(s.tabs.map((t) => t.sleutel)).toEqual(["artefact", "annotatie"]);
+    expect(s.tabs.map((t) => t.sleutel)).toEqual(["artefact", "bron:urn:bwb:BWBR0004770:artikel:9:lid:2"]);
+    expect(s.tabs[1].inhoud.soort).toBe("annotatie");
+    // Meer bepalingen tegelijk in beoordeling: elk een eigen tab.
+    s = openTab(s, { ...annotatie, doel: { bron_iri: "urn:bwb:BWBR0004770:artikel:10" } } as PaneelInhoud);
+    expect(s.tabs).toHaveLength(3);
     expect((s.tabs[0].inhoud as Extract<PaneelInhoud, { soort: "artefact" }>).artefact.run_id).toBe("r2");
   });
 
@@ -48,7 +54,7 @@ describe("paneelTabs", () => {
   it("noemt de tab kort en de tooltip voluit, met waar hij geopend werd", () => {
     const [t] = openTab({ tabs: [] }, bron(9), "een antwoord").tabs;
     expect(tabLabel(t)).toEqual({ kort: "Artikel 9", vol: "Artikel 9, Invorderingswet 1990 · geopend vanuit een antwoord" });
-    expect(tabLabel(openTab({ tabs: [] }, annotatie).tabs[0]).kort).toBe("Samenhang · Artikel 9, lid 2");
+    expect(tabLabel(openTab({ tabs: [] }, annotatie).tabs[0])).toEqual({ kort: "Artikel 9, lid 2", vol: "Artikel 9, lid 2, BWBR0004770 · annotatie" });
   });
 
   it("bewaart zonder de kennisgraaf en leest streng terug", () => {
@@ -56,8 +62,8 @@ describe("paneelTabs", () => {
     const bewaard = JSON.parse(JSON.stringify(bewaarVorm(s)));
     expect(bewaard.tabs[1].inhoud.graaf).toEqual({ keten: true });
     const terug = leesBewaard(bewaard);
-    expect(terug?.tabs.map((t) => t.sleutel)).toEqual(["bron:urn:bwb:BWBR0004770:artikel:9:", "annotatie"]);
-    expect(terug?.actief).toBe("annotatie");
+    expect(terug?.tabs.map((t) => t.sleutel)).toEqual(["bron:urn:bwb:BWBR0004770:artikel:9", "bron:urn:bwb:BWBR0004770:artikel:9:lid:2"]);
+    expect(terug?.actief).toBe("bron:urn:bwb:BWBR0004770:artikel:9:lid:2");
     expect(leesBewaard({ tabs: [{ inhoud: { soort: "context", ctx: { soort: "bron" } } }] })).toBeUndefined();
     expect(leesBewaard("kapot")).toBeUndefined();
   });

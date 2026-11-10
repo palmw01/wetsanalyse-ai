@@ -1,5 +1,6 @@
 "use client";
 
+import { knopKlasse } from "@/components/ui/Button";
 import { HerkomstRegel } from "@/components/ui/HerkomstRegel";
 import { BronVenster } from "@/components/wettekst/BronVenster";
 import { PaneelKop } from "@/components/ui/PaneelKop";
@@ -83,7 +84,7 @@ export function paginaVanContext(d: ContextDoel): string | undefined {
 const BEPALING: GraafContext = { naam: "Deze bepaling", kort: "Bepaling", terug: "de bepaling", focus: "de bepaling" };
 const GEEN_DOEL: NodeDoel = { bron_iri: "" };
 
-export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onMaakWerkgebied }: {
+export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onMaakWerkgebied, onBeoordelen }: {
   doel: ContextDoel;
   variant: DialogVariant;
   onSluit: () => void;
@@ -91,6 +92,9 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
   onVerberg?: () => void;
   /** Iets anders in hetzelfde paneel openen (een element uit de bepaling, een bron uit de lijst). */
   onWissel: (doel: ContextDoel) => void;
+  /** *Beoordelen* in de kop van een bepaling: de annotatie als laag op dezelfde tab (ontdubbelen PR 2), op de weergave
+   *  die openstaat. Zonder (de rondleiding) geen knop. */
+  onBeoordelen?: (doel: Extract<ContextDoel, { soort: "bron" }>, weergave: Weergave) => void;
   /** *Maak hier een werkgebied van* bij een overzicht. */
   onMaakWerkgebied?: (overzicht: Overzicht) => void;
 }) {
@@ -140,6 +144,10 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
       <div data-context-paneel={doel.soort} className="flex min-h-0 flex-1 flex-col">
         <PaneelKop soort={kop.soort} titel={kop.titel} pagina={paginaVanContext(doel)} onSluit={onSluit}
           status={herkomst && <HerkomstRegel herkomst={herkomst} />}
+          hoofdactie={doel.soort === "bron" && onBeoordelen && (
+            <button type="button" data-beoordelen onClick={() => onBeoordelen(doel, opGraaf ? "graaf" : "tekst")}
+              className={knopKlasse("secondary", "xs")}>Beoordelen</button>
+          )}
           balk={metGraaf && <WeergaveBalk weergave={weergave} graaf={graaf}
             onKies={(w) => { setWeergave(w); if (w === "tekst" && !graaf.inZijpaneel) graaf.setGroot(false); }} />} />
         {doel.soort === "bron" && graafDoel && (
@@ -151,7 +159,7 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
                 graaf: { ...samenhang.graaf, ...g }, van: samenhang.van ?? "bepaling" } })} />
         )}
         <div className={opGraaf ? "hidden" : "min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4"}>
-          {doel.soort === "bron" ? <BronVenster bronIri={doel.bron_iri} meldingen={bron.meldingen} gekozen={gekozen}
+          {doel.soort === "bron" ? <BronVenster bronIri={doel.bron_iri} meldingen={bron.meldingen} gekozen={gekozen} beoordelenInKop={!!onBeoordelen}
               onOpenElement={(id, titel) => onWissel({ soort: "element", element_id: id, titel })}
               onOpenBron={(v) => onWissel({ soort: "bron", bron_iri: v.iri, werkgebied_id: doel.werkgebied_id, titel: vindplaatsTekst(v) })} />
             : doel.soort === "element" ? <ElementInhoud id={doel.element_id} />
