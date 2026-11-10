@@ -48,6 +48,17 @@ def _kamerstukken() -> ConnectorModule:
         foutredenen=k.FOUTREDEN)
 
 
+def _bekendmakingen() -> ConnectorModule:
+    from ..adapters.sru_bekendmakingen import SruBekendmakingen
+    from ..adapters.sru_koop import KoopFout
+    from . import bekendmaking_tools as b
+
+    return ConnectorModule(
+        naam=b.CONNECTOR, tools=b.BEKENDMAKING_TOOLS,
+        maak_bron=lambda s: SruBekendmakingen(sru_url=getattr(s, "kamerstukken_sru_url", "") or "https://repository.overheid.nl/sru"),
+        dispatch=b.dispatch_bekendmaking, fout=KoopFout, fout_van=b.fout_van, foutredenen=b.FOUTREDEN)
+
+
 def _rechtspraak() -> ConnectorModule:
     from ..adapters.lido_rechtspraak import LidoRechtspraak, RechtspraakFout
     from . import rechtspraak_tools as r
@@ -58,7 +69,7 @@ def _rechtspraak() -> ConnectorModule:
 
 
 #: Per connector (de naam uit `bronmodel.connectors`) zijn module.
-MODULES: dict[str, ConnectorModule] = {m.naam: m for m in (_kamerstukken(), _rechtspraak())}
+MODULES: dict[str, ConnectorModule] = {m.naam: m for m in (_kamerstukken(), _bekendmakingen(), _rechtspraak())}
 
 
 def module_van(tool: str) -> ConnectorModule | None:

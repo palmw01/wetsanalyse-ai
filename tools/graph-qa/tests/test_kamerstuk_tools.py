@@ -209,6 +209,7 @@ def test_een_onvolledig_antwoord_van_de_dienst_is_een_fout():
 # herdruk en rectificatie. De adapter valideert een hit daarom na VERS_S met een lichte metadatavraag.
 
 from agent.adapters import sru_kamerstukken as sru  # noqa: E402
+from agent.adapters import sru_koop  # noqa: E402
 
 
 class Dienst:
@@ -279,7 +280,7 @@ def test_een_storing_bij_het_valideren_geeft_de_bewaarde_versie_met_de_vlag():
 
 
 def test_de_bytegrens_zet_de_oudste_eruit(monkeypatch):
-    monkeypatch.setattr(sru, "MAX_CACHE_BYTES", len(XML) * 2 + 1)
+    monkeypatch.setattr(sru_koop, "MAX_CACHE_BYTES", len(XML) * 2 + 1)
     bron = SruKamerstukken(client=httpx.Client(transport=httpx.MockTransport(Dienst())))
     nep = Record(id="", titel="", datum="", vergaderjaar="", dossiers=(), ondernummer="",
                  xml_url="https://repository.overheid.nl/frbr/x.xml")

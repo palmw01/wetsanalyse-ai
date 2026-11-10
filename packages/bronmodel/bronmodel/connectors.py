@@ -35,6 +35,9 @@ METADATA_SLEUTELS: dict[str, str] = {
     "datum": "datum",          # de datum van het stuk zelf
     "gepubliceerd": "datum",   # wanneer de dienst het publiceerde
     "gewijzigd": "datum",      # wanneer de dienst de publicatie het laatst bijwerkte
+    "ondertekend": "datum",    # wanneer het besluit is ondertekend
+    "inwerking": "datum",      # wanneer de tekst waar het stuk bij hoort in werking trad
+    "publicatie": "tekst",     # waarin het stuk verscheen (Staatsblad, Staatscourant)
     "titel": "tekst",          # de titel van het stuk zelf
     "soort": "tekst",          # het soort stuk ("Memorie van toelichting", "Motie", "Uitspraak")
     "reeks": "lijst",          # waar het stuk bij hoort (een dossier, een zaak); de eerste is de hoofdreeks
@@ -156,6 +159,11 @@ class ConnectorBeschrijving:
     #: naast het stuk in een lijst en in het blok; zonder eigen tekst de algemene. Een uitspraak zonder tekst heette
     #: "onopgemaakt, alleen PDF", de vorm van Kamerstukken (vierde meting Rechtspraak, 10 nov 2026).
     zonder_tekst: str = "geen tekst bij de bron"
+    #: Hoe de jurist de stukken van deze bron als geheel noemt ("kamerstukken", "jurisprudentie"): in een lijstvraag
+    #: zoeken ze niets, en na "de laatste" zijn ze een meervoud (geen aantal 1). Kleine letters.
+    verzamelnamen: tuple[str, ...] = ()
+    #: Andere woorden die in een lijstvraag naar deze bron staan zonder iets te zoeken ("dossier" bij Kamerstukken).
+    vulwoorden: tuple[str, ...] = ()
     _patronen: tuple[re.Pattern[str], ...] = field(init=False, repr=False, compare=False)
     _citeer: tuple[tuple[re.Pattern[str], str], ...] = field(init=False, repr=False, compare=False)
 
@@ -314,6 +322,8 @@ KAMERSTUKKEN = ConnectorBeschrijving(
         ("brief", r"\bbrie(?:f|ven)\b"),
     ),
     organen=("Tweede Kamer", "Eerste Kamer"),
+    verzamelnamen=("kamerstukken",),
+    vulwoorden=("kamerstuk", "parlementaire", "dossier", "dossiernummer", "kamerstukdossier"),
 )
 
 #: De instanties waarop `zoek_uitspraken` filtert, in de woorden van de jurist; uit de code in de ECLI.
@@ -434,10 +444,135 @@ RECHTSPRAAK = ConnectorBeschrijving(
         ("uitspraak", r"\buitspra(?:ak|ken)\b|\barrest(?:en)?\b"),
     ),
     organen=("Parket bij de Hoge Raad", *_GERECHTEN, *(i for i in INSTANTIES if i != "Parket bij de Hoge Raad")),
+    verzamelnamen=("jurisprudentie", "rechtspraak"),
+    vulwoorden=("gerechten", "instanties", "rechters"),
+)
+
+
+#: De soorten bekendmaking die een jurist in een lijstvraag noemt, zoals `dt.type` ze kent (live, 10 nov 2026). "Wet"
+#: staat er bewust niet in: "de wet" staat in bijna elke vraag.
+_BEKENDMAKINGSOORTEN = (
+    # Geen `dt.type`: een inwerkingtredingsbesluit is een AMvB of KB met "inwerkingtreding" in de titel (5.466 in het
+    # Staatsblad, live 10 nov 2026); de zoektool zoekt het in de titel.
+    ("inwerkingtredingsbesluit", r"\binwerkingtredingsbesl(?:uit|uiten)\b"),
+    ("amvb", r"\bamvb'?s?\b|\balgemene\s+maatregel(?:en)?\s+van\s+bestuur\b"),
+    ("klein koninklijk besluit", r"\b(?:klein(?:e)?\s+)?koninklijk(?:e)?\s+besl(?:uit|uiten)\b"),
+    ("ministeriële regeling", r"\bministeriële\s+regeling(?:en)?\b"),
+    ("beleidsregel", r"\bbeleidsregel(?:s)?\b"),
+    ("circulaire", r"\bcirculaire(?:s)?\b"),
+    ("rijkswet", r"\brijkswet(?:ten)?\b"),
+    ("verbeterblad", r"\bverbeterblad(?:en)?\b|\brectificatie(?:s)?\b"),
+)
+
+BEKENDMAKINGEN = ConnectorBeschrijving(
+    naam="bekendmakingen",
+    label="Staatsblad en Staatscourant",
+    brontype="bekendmaking",
+    groep="Staatsblad en Staatscourant",
+    dekt=("de officiële bekendmakingen: wetten, AMvB's en koninklijke besluiten in het Staatsblad (ook wijzigingswetten "
+          "en inwerkingtredingsbesluiten) en ministeriële regelingen, beleidsregels en besluiten in de Staatscourant (zoals "
+          "de wijzigingen van de Leidraad Invordering); per bepaling de publicatie die haar huidige tekst gaf en het "
+          "besluit waarmee die in werking trad"),
+    signalen=(r"\bstaatsblad(?:en)?\b", r"\bstaatscourant(?:en)?\b", r"\bstb\.", r"\bstcrt\.",
+              r"\b(?:officiële\s+)?bekendmaking(?:en)?\b", r"\binwerkingtredingsbesluit(?:en)?\b",
+              r"\bwijzigingsbesluit(?:en)?\b"),
+    tools=frozenset({"zoek_bekendmakingen", "get_bekendmaking"}),
+    leestool="get_bekendmaking",
+    lees_argument="id",
+    id_prefixen=("stb-", "stcrt-"),
+    voorbeeld_id="stb-2010-176",
+    specialisten=frozenset({"definitie", "duiding", "algemeen"}),
+    rol_in_antwoord=("een bekendmaking laat zien wanneer en hoe een tekst is vastgesteld, gewijzigd of in werking trad; "
+                     "wat de wet nu zegt, onderbouwt alleen de opgehaalde bepaling. Een wijzigingsbesluit geeft de "
+                     "wijzigingsopdracht, niet de geldende tekst"),
+    kop_in_antwoord="Uit de officiële bekendmakingen",
+    zonder_tekst="alleen als PDF",
+    grenzen=("zoeken gaat per bepaling (de publicaties die de BWB bij haar huidige tekst noemt: de laatste wijziging en "
+             "het inwerkingtredingsbesluit, niet eerdere toestanden), op woorden in de titel of de hele tekst, soort, "
+             "Staatsblad of Staatscourant, datum, jaargang, ministerie en Kamerdossier. Stukken van vóór ongeveer 1995 "
+             "staan bij KOOP meestal alleen als PDF: ze worden gevonden, maar de tekst is niet te lezen. Een "
+             "wijzigingsbesluit geeft de wijzigingsopdrachten, niet de geconsolideerde tekst"),
+    levert=("alinea's (de aanhef, de artikelen en wijzigingsonderdelen, de toelichting)", "voetnoten",
+            "tabellen (op te halen met hun rijen)"),
+    niet_in_tekst=("illustraties", "ondertekeningen"),
+    werkwoorden={
+        "zoek_bekendmakingen": ("zoekt de bekendmakingen bij artikel {artikel} van {bwb_id}",
+                                "zoekt de bekendmakingen bij {bwb_id}", "zoekt bekendmakingen over „{woorden}”",
+                                "zoekt in de tekst van bekendmakingen naar „{tekst}”",
+                                "zoekt de bekendmakingen van dossier {dossier}", "zoekt bekendmakingen"),
+        "get_bekendmaking": ("leest wat {id} aan artikel {artikel} wijzigt", "leest tabel {tabel} van {id}",
+                             "leest bekendmaking {id}", "leest een bekendmaking"),
+    },
+    beheer=("De officiële bekendmakingen van KOOP: het Staatsblad (wetten, AMvB's, inwerkingtredingsbesluiten) en de "
+            "Staatscourant (ministeriële regelingen, beleidsregels). Openbaar, zonder sleutel."),
+    voorbeeldvragen=(
+        "Welke bekendmakingen horen bij artikel 36 van de Invorderingswet 1990?",
+        "Wat staat er in Stb. 2010, 176?",
+        "Welke wijzigingen van de Leidraad Invordering 2008 staan in de Staatscourant?",
+        "Wat veranderde stcrt-2026-37344 aan artikel 1.1.5 van de Leidraad?",
+        "Geef de 5 nieuwste beleidsregels in de Staatscourant",
+    ),
+    # Uit de SRU-records van KOOP, live getoetst op 10 nov 2026 (dezelfde dienst als Kamerstukken). De koppeling met een
+    # bepaling komt uit de graaf: de importer schrijft per tekstdeel `bwb:bron` en `bwb:inwerkingtredingsbron`.
+    metadata=(
+        MetadataVeld("datum", "datum", "dt.date",
+                     "de datum van de publicatie zelf (bij een Staatsblad de uitgifte); daarop ordenen 'nieuwste' en "
+                     "'oudste'", filters=("vanaf", "tot"), sorteerbaar=True),
+        MetadataVeld("gepubliceerd", "gepubliceerd", "dt.available", "wanneer KOOP het stuk beschikbaar stelde"),
+        MetadataVeld("ondertekend", "ondertekend", "w.datumOndertekening",
+                     "de datum waarop het besluit of de wet is ondertekend; niet de datum van inwerkingtreding"),
+        MetadataVeld("gewijzigd", "gewijzigd", "dt.modified",
+                     "wanneer KOOP de publicatie het laatst bijwerkte, niet wanneer het besluit veranderde"),
+        MetadataVeld("titel", "titel", "dt.title", "de titel van het besluit of de wet", filters=("woorden",)),
+        MetadataVeld("soort", "soort", "dt.type",
+                     "het soort bekendmaking, zoals 'Wet', 'AMvB', 'Klein Koninklijk Besluit', 'beleidsregel' of 'ander "
+                     "besluit van algemene strekking'; een 'Verbeterblad' herstelt een eerdere publicatie. Het soort "
+                     "'inwerkingtredingsbesluit' zoekt de tool in de titel",
+                     filters=("soort",)),
+        MetadataVeld("publicatie", "publicatieblad", "w.publicatienaam", "het Staatsblad of de Staatscourant",
+                     filters=("publicatie",),
+                     waarden=(("Staatsblad", r"\bstaatsblad(?:en)?\b|\bstb\b"),
+                              ("Staatscourant", r"\bstaatscourant(?:en)?\b|\bstcrt\b"))),
+        MetadataVeld("jaar", "jaargang", "w.jaargang", "het jaar van het publicatieblad", filters=("jaar",)),
+        MetadataVeld("nummer", "nummer", "w.publicatienummer", "het nummer in de jaargang"),
+        MetadataVeld("orgaan", "ministerie", "dt.creator", "het ministerie of het orgaan dat het besluit nam",
+                     filters=("orgaan",)),
+        MetadataVeld("reeks", "Kamerdossier", "w.behandeldDossier",
+                     "het Kamerdossier van de wet die het Staatsblad bekendmaakt; daar staat de wetsgeschiedenis",
+                     filters=("dossier",)),
+        MetadataVeld("wetsverwijzing", "bepaling", "bwb:bron en bwb:inwerkingtredingsbron in de graaf",
+                     "hoe de publicatie bij de bepaling hoort waarbij gezocht is: de laatste wijziging van haar huidige "
+                     "tekst, of het besluit waarmee die in werking trad", filters=("bwb_id", "artikel")),
+        MetadataVeld("inwerking", "in werking", "bwb:inwerking in de graaf",
+                     "wanneer de huidige tekst van de bepaling in werking trad, volgens de BWB; alleen bij zoeken per "
+                     "bepaling"),
+        MetadataVeld("samenvatting", "samenvatting", "dcterms:abstract",
+                     "de korte omschrijving die de publicatie zelf draagt; alleen bij een deel van de Staatscourant"),
+        MetadataVeld("versie", "versie", "w.versieinformatie, w.versienummer",
+                     "herdruk of herplaatsing; een herdruk heeft een eigen id"),
+        MetadataVeld("leesbaar", "leesbaar", "itemUrl manifestation=xml",
+                     "of de tekst te lezen is; een oud stuk heeft vaak alleen een PDF"),
+    ),
+    standaard_datum="datum",
+    volgordes=("relevantie", "nieuwste", "oudste"),
+    # "Stb. 2010, 176", "Stb.2009-610" (de vorm van de BWB), "Staatsblad 2010, nr. 176", "Stcrt. 2026, 37344".
+    citeervormen=((r"\b(?:stb\.?|staatsblad)\s*(?P<jaar>(?:18|19|20)\d{2})\s*[,-]\s*(?:nr\.?|nummer)?\s*"
+                   r"(?P<nummer>\d{1,6})\b", "stb-{jaar}-{nummer}"),
+                  (r"\b(?:stcrt\.?|staatscourant)\s*(?P<jaar>(?:19|20)\d{2})\s*[,-]\s*(?:nr\.?|nummer)?\s*"
+                   r"(?P<nummer>\d{1,6})\b", "stcrt-{jaar}-{nummer}")),
+    soorten=_BEKENDMAKINGSOORTEN,
+    # Zoals `dt.creator` ze noemt; de zoektool zoekt de woorden (`dt.creator all`), dus "Financiën" vindt ook het
+    # Ministerie van Financiën.
+    organen=("Ministerie van Financiën", "Ministerie van Justitie en Veiligheid",
+             "Ministerie van Binnenlandse Zaken en Koninkrijksrelaties", "Ministerie van Sociale Zaken en Werkgelegenheid",
+             "Ministerie van Volksgezondheid, Welzijn en Sport", "Ministerie van Infrastructuur en Waterstaat",
+             "Ministerie van Economische Zaken", "Ministerie van Onderwijs, Cultuur en Wetenschap"),
+    verzamelnamen=("bekendmakingen", "publicaties", "staatsbladen", "staatscouranten"),
+    vulwoorden=("bekendmaking", "officiële", "staatsblad", "staatscourant", "publicatie", "publicatieblad"),
 )
 
 #: De bronconnectors, in de volgorde van het menu en de beheertab.
-CONNECTORS: dict[str, ConnectorBeschrijving] = {c.naam: c for c in (KAMERSTUKKEN, RECHTSPRAAK)}
+CONNECTORS: dict[str, ConnectorBeschrijving] = {c.naam: c for c in (KAMERSTUKKEN, BEKENDMAKINGEN, RECHTSPRAAK)}
 
 #: De namen, als tuple voor een `Literal[NAMEN]` in de contracten.
 NAMEN: tuple[str, ...] = tuple(CONNECTORS)

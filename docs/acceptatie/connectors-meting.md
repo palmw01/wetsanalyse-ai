@@ -122,3 +122,28 @@ Deze meting toetst of Lex daardoor gericht leest. Zelfde voorwaarden en werkwijz
 
 De uitkomst komt in `../architectuur/metingen/kamerstuk-lezen-2026-11-…`, met een regel in het meetlogboek. Faalt een
 garantie, dan is dat een bevinding met de opname erbij, geen reden om de vraag te wijzigen.
+
+## Staatsblad en Staatscourant (derde connector, 10 nov 2026)
+
+**Wat het meet.** Of Lex het geldingsbereik van een bepaling uit de officiële bekendmakingen haalt: de publicatie die
+haar huidige tekst gaf, het besluit waarmee die in werking trad, en wat een wijzigingsbesluit aan één artikel
+veranderde. Alles met `bronnen: ["bekendmakingen"]`, op acceptatie, drie runs per vraag.
+
+| # | Vraag | Verwacht na |
+|---|---|---|
+| B1 | Sinds wanneer geldt artikel 36 van de Invorderingswet 1990 in deze vorm, en waar staat dat? | `zoek_bekendmakingen` met `bwb_id` + `artikel` (of `geldigheid`); Stb. 2009, 610 als laatste wijziging en Stb. 2010, 176 als inwerkingtreding, met de datum uit de BWB |
+| B2 | Wat staat er in Stb. 2010, 176? | route `bron_lezen` (citeervorm), zonder supervisorcall; een blok `extern` met letterlijke passages |
+| B3 | Welke wijzigingen van de Leidraad Invordering 2008 staan sinds 2024 in de Staatscourant? | één zoekaanroep met `publicatie` en `vanaf`; het blok `stukken` met ids uit het zoekresultaat |
+| B4 | Wat veranderde stcrt-2026-37344 aan artikel 1.1.5 van de Leidraad Invordering 2008? | `get_bekendmaking` met `artikel: "1.1.5"`; alleen onderdeel A in het blok `extern` |
+
+**Vastgelegd per run:** route, toolaanroepen met argumenten, sjabloon, grounding (niveau, `niet_letterlijk`), de ids in
+het blok `extern`/`stukken`, tokens (delta verbruik) en duur.
+
+**Criteria (vooraf):**
+- **Garanties, op 3/3:** geen run ongegrond; geen passage in `extern` die niet gelezen is; geen datum van inwerkingtreding
+  die niet uit de BWB of de gelezen tekst komt.
+- **Slagen, op ≥ 2/3:** B1 noemt beide publicaties met de goede rol; B2 leest vooraf; B4 citeert alleen onderdeel A.
+
+**Kosten:** 12 runs, naar de nulmeting van Kamerstukken ~40–60k tokens per run: samen ~0,6M tokens. Alleen na akkoord
+van de gebruiker. De uitkomst komt in `../architectuur/metingen/bekendmakingen-2026-11-…`, met een regel in het
+meetlogboek.
