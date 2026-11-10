@@ -475,3 +475,26 @@ def test_de_zoekvraag_in_woorden_noemt_de_bepaling():
     assert zin.startswith("Gezocht bij artikel 36 van Invorderingswet 1990"), zin
     assert "BWBR" not in zin and "bwb_id" not in zin
     assert R._in_woorden("Artikel 36", "Invorderingswet 1990") == "artikel 36 van Invorderingswet 1990"
+
+
+def test_een_regelafbreking_in_de_bron_blijft_een_spatie():
+    """Meting 10 nov 2026: "bankrekeningen.In bezwaar" – de parser gooit `<?linebreak?>` weg en plakte de zinnen."""
+    xml = _GENUMMERD.replace("navorderingsaanslagen opgelegd.", "navorderingsaanslagen opgelegd.<?linebreak?>In bezwaar ging het mis.")
+    rijen = _lees(xml)["resultaten"]
+    assert "opgelegd. In bezwaar ging het mis." in rijen[0]["tekst"]
+
+
+def test_de_rechtsoverweging_staat_als_plek_in_het_antwoordblok():
+    from agent.sjablonen.extern import blokken
+    uit = tools.dispatch("get_uitspraak", None, {"id": "ECLI:NL:HR:2022:50"}, AAN,
+                         rechtspraak=NepBron([], docs={"ECLI:NL:HR:2022:50": _GENUMMERD.encode()}))
+    blok, = blokken([{"id": "ECLI:NL:HR:2022:50", "van_nr": 1, "tot_nr": 1}], [("get_uitspraak", uit)])
+    assert blok.passages[0].plek == "r.o. 2.1" and blok.passages[0].kop == "Uitspraak › 2 Uitgangspunten in cassatie"
+
+
+def test_het_label_van_een_zoekrij_noemt_gerecht_en_datum():
+    rij = R.rij_van("ECLI:NL:HR:2026:586", "ECLI:NL:HR:2026:586 - Hoge Raad, 10-04-2026 / 25/01557")
+    assert rij["label"] == "Hoge Raad 10 april 2026, ECLI:NL:HR:2026:586"
+    feed = R.rij_van("ECLI:NL:RBGEL:2026:1", "ECLI:NL:RBGEL:2026:1, Rechtbank Gelderland, 02-10-2026, 26/1")
+    assert feed["label"] == "Rechtbank Gelderland 2 oktober 2026, ECLI:NL:RBGEL:2026:1"
+    assert R.rij_van("ECLI:NL:HR:2026:1", "")["label"] == "ECLI:NL:HR:2026:1", "zonder titel de ECLI"

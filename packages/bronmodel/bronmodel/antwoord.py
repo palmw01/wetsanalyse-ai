@@ -141,6 +141,8 @@ class ExternePassage(BaseModel):
     cellen: list[str] | None = None
     #: Bij een voetnoot: de stukken waar hij naar verwijst.
     verwijst_naar: list[ExterneVerwijzing] | None = None
+    #: Waar de passage staat binnen haar kop, zoals de bron nummert ("r.o. 2.1"); leeg als de bron niet nummert.
+    plek: str = ""
 
 
 class Extern(BaseModel):
@@ -269,7 +271,7 @@ def _blok_tekst(b: BaseModel) -> str:
     if isinstance(b, Extern):
         regel = (f"[{b.label}]({b.link})" if b.link else b.label) + (
             f" ({', '.join(x for x in (b.soort_stuk, b.datum) if x)})" if b.soort_stuk or b.datum else "")
-        return "\n\n".join(f'> "{p.tekst}"' for p in b.passages) + f"\n\n{regel}"
+        return "\n\n".join(f'> "{p.tekst}"' + (f" ({p.plek})" if p.plek else "") for p in b.passages) + f"\n\n{regel}"
     if isinstance(b, Stukken):
         def regel(x: Stuk) -> str:
             naam = f"[{x.label}]({x.link})" if x.link else x.label

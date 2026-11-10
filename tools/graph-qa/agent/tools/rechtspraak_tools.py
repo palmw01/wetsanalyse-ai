@@ -120,7 +120,7 @@ RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
             " Citeer letterlijk uit 'tekst'.\n"
             "GEEFT TERUG: het stuk (id, label, soort, titel, datum, orgaan, nummer, procedure, rechtsgebied, "
             "gepubliceerd, link, bron_hash, gewijzigd) en per alinea nr, kop en tekst, met 'ro' als de alinea in een "
-            "genummerde rechtsoverweging staat (noem die als 'r.o. 2.1'); een lange alinea staat in delen ('deel'). De "
+            "genummerde rechtsoverweging staat (en 'plek': 'r.o. 2.1'; noem haar zo); een lange alinea staat in delen ('deel'). De "
             "eerste pagina draagt 'inhoud': per kop de offset waar dat deel begint; ga met die offset naar het deel dat "
             "de vraag raakt. Noem de datum en de instantie uit 'stuk', niet uit de tekst." + _CONTRACT
         ),
@@ -176,7 +176,8 @@ def rij_van(ecli: str, titel: str) -> dict[str, Any]:
     m = _TITEL_RE.match(titel or "")
     datum = f"{m['j']}-{m['m']}-{m['d']}" if m else ""
     return compact({
-        "id": ident, "label": vp.label if vp is not None else ident, "soort": soort_van(ident), "titel": titel,
+        "id": ident, "label": label_van(ident, {"creator": m["orgaan"].strip(), "date": f"{m['j']}-{m['m']}-{m['d']}"})
+        if m else (vp.label if vp is not None else ident), "soort": soort_van(ident), "titel": titel,
         "datum": datum or (ident.split(":")[3] if ident.count(":") >= 3 else ""),
         "orgaan": (m["orgaan"].strip() if m else "") or instantie(ident),
         "nummer": (m["zaak"] or "").strip() if m else "",
@@ -481,7 +482,9 @@ def lees(xml: bytes) -> tuple[dict[str, str], list[dict[str, Any]]]:
     uitspraak of conclusie. De kop is het deel en de titel van de sectie ("Uitspraak › 2 Uitgangspunten in cassatie");
     een rij in een genummerde rechtsoverweging (`paragroup` met `nr`) draagt dat nummer als `ro` ("2.1"), zodat een
     citaat naar r.o. 2.1 herleidbaar is. Lege alinea's tellen niet."""
-    root = ET.fromstring(xml)
+    # Een regelafbreking in de bron (`<?linebreak?>`) is een processing instruction die de parser weggooit, en dan plakken
+    # de zinnen aan elkaar ("bankrekeningen.In bezwaar", meting 10 nov 2026). Een spatie houdt de tekst leesbaar.
+    root = ET.fromstring(re.sub(rb"<\?linebreak\s*\?>", b" ", xml))
     meta: dict[str, str] = {}
     beschrijving = next((d for d in root.iter("{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Description")), None)
     if beschrijving is not None:
@@ -500,7 +503,8 @@ def lees(xml: bytes) -> tuple[dict[str, str], list[dict[str, Any]]]:
     def voeg(tekst: str, kop: str, ro: str) -> None:
         delen = _knip(tekst)
         for i, deel in enumerate(delen, 1):
-            rijen.append(compact({"nr": len(rijen) + 1, "kop": kop, "ro": ro, "tekst": deel,
+            rijen.append(compact({"nr": len(rijen) + 1, "kop": kop, "ro": ro, "plek": f"r.o. {ro}" if ro else "",
+                                  "tekst": deel,
                                   "deel": f"{i}/{len(delen)}" if len(delen) > 1 else ""}))
 
     def loop(e: ET.Element, top: str, kop: str, ro: str) -> str:

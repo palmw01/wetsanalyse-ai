@@ -211,7 +211,8 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
         blok.passages += [ExternePassage(nr=n, tekst=rijen[n]["tekst"], kop=str(rijen[n].get("kop") or ""),
                                          soort=str(rijen[n].get("soort") or "alinea"),
                                          cellen=[str(x) for x in rijen[n]["cellen"]] if isinstance(rijen[n].get("cellen"), list)
-                                         else None, verwijst_naar=_verwijzingen(rijen[n]))
+                                         else None, verwijst_naar=_verwijzingen(rijen[n]),
+                                         plek=str(rijen[n].get("plek") or ""))
                           for n in range(van, tot + 1) if n not in al and n in rijen]
     if len(per_stuk) > MAX_STUKKEN:
         raise Onvulbaar(f"Hoogstens {MAX_STUKKEN} stukken per antwoord.")

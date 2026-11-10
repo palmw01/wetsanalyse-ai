@@ -74,7 +74,7 @@ function Groep({ groep, geciteerd, onOpen }: { groep: ExternGroep; geciteerd?: R
   }
   return (
     <div className={`space-y-1 ${markering}`} data-passage={p.nr} data-geciteerd={gemarkeerd || undefined}>
-      {p.kop && <p className="text-xs font-medium text-muted">{p.kop}</p>}
+      {(p.kop || p.plek) && <p className="text-xs font-medium text-muted">{[p.kop, p.plek].filter(Boolean).join(" · ")}</p>}
       <Citaat>{p.tekst}</Citaat>
     </div>
   );
