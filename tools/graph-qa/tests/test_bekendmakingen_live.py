@@ -33,7 +33,7 @@ AAN = Settings(connector_bekendmakingen=True)
 BASIS = "c.product-area==officielepublicaties"
 #: Het inwerkingtredingsbesluit van Iw art. 36 (Stb. 2010, 176) en een wijziging van de Leidraad Invordering 2008.
 IWT, LEIDRAAD = "stb-2010-176", "stcrt-2026-37344"
-#: De Invorderingswet 1990 zelf: bij KOOP alleen een PDF.
+#: De Invoeringswet Invorderingswet 1990: bij KOOP alleen een PDF.
 PDF = "stb-1990-222"
 INDEXEN = ("dt.identifier", "dt.date", "dt.available", "dt.modified", "dt.type", "dt.title", "dt.creator",
            "w.publicatienaam", "w.jaargang", "w.publicatienummer", "w.datumOndertekening", "w.behandeldDossier")

@@ -130,7 +130,8 @@ def test_niets_gevonden_is_een_leemte(monkeypatch):
     events = _run(answer_stream("de laatste vijf moties van de Eerste Kamer", settings=AAN, llm=FakeLLM([]),
                                 graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
     tekst = "".join(e.get("content", "") for e in events if e["type"] == "token")
-    assert tekst.startswith("Geen Kamerstukken gevonden die aan de zoekvraag voldoen.")
+    assert tekst.startswith("Geen kamerstukken gevonden die aan de zoekvraag voldoen.")
+    assert tekst.endswith("Dat ik niets vond, betekent niet dat het niet bestaat.")
     assert "soort stuk „motie”" in tekst and "van de Eerste Kamer" in tekst and "Kamer Eerste" not in tekst
 
 
@@ -233,3 +234,28 @@ def test_jaren_en_perioden(vraag, connector, args):
 ])
 def test_een_getal_dat_de_code_niet_plaatst_gaat_naar_het_model(vraag):
     assert bron_lijst.lees(vraag, ALLE) is None
+
+
+@pytest.mark.parametrize("vraag,connector", [
+    ("Geef de 100 nieuwste kamerstukken", "kamerstukken"),
+    ("de 100 nieuwste uitspraken van de Hoge Raad", "rechtspraak"),
+    ("Wat zijn de 100 meest recente publicaties?", "bekendmakingen"),
+])
+def test_meer_dan_een_pagina_wordt_begrensd_maar_niet_stil(vraag, connector):
+    """Externe review (10 nov 2026): "de 100 nieuwste" gaf stil 25."""
+    lijst = bron_lijst.lees(vraag, ALLE)
+    assert lijst is not None and lijst.connector == connector
+    assert lijst.args["aantal"] == bron_lijst.MAX_AANTAL and lijst.gevraagd == 100
+    assert bron_lijst.lees(vraag.replace("100", "10"), ALLE).gevraagd == 0
+
+
+def test_het_antwoord_zegt_dat_het_minder_toont_dan_gevraagd(monkeypatch):
+    from agent import tools as t
+    from test_kamerstuk_tools import _veel, NepBron
+
+    monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", NepBron(list(reversed(_veel(60)))))
+    events = _run(answer_stream("Geef de 100 nieuwste kamerstukken", settings=AAN, llm=FakeLLM([]),
+                                graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
+    tekst = "".join(e.get("content", "") for e in events if e["type"] == "token")
+    assert "Je vroeg om 100; per keer toon ik er hoogstens 25. Vraag om de volgende als je meer wilt zien." in tekst
+    assert "25 van de 60 stukken." in tekst

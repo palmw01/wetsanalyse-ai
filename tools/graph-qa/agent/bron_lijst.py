@@ -23,7 +23,7 @@ from .aanwijzing import _ARTIKEL, lees_aanwijzing
 
 _TELWOORDEN = {"een": 1, "één": 1, "twee": 2, "drie": 3, "vier": 4, "vijf": 5, "zes": 6, "zeven": 7, "acht": 8,
                "negen": 9, "tien": 10, "twaalf": 12, "vijftien": 15, "twintig": 20, "vijfentwintig": 25}
-_GETAL = r"\d{1,2}|" + "|".join(sorted(_TELWOORDEN, key=len, reverse=True))
+_GETAL = r"\d{1,4}|" + "|".join(sorted(_TELWOORDEN, key=len, reverse=True))
 _NIEUWSTE = r"meest\s+recente?|recentste|nieuwste|laatste|jongste"
 _OUDSTE = r"oudste|eerste"
 _VOLGORDE_RE = re.compile(rf"\b(?:(?P<nieuw>{_NIEUWSTE})|(?P<oud>{_OUDSTE}))\b", re.IGNORECASE)
@@ -53,6 +53,9 @@ _VULWOORDEN = frozenset("""geef mij me toon noem laat zien lijst wat welke wie i
     noemen noemt genoemd over horen hoort hoeveel""".split()) | frozenset(
     w for c in CONNECTORS.values() for w in (*c.verzamelnamen, *c.vulwoorden))
 MAX_ONDERWERP = 4
+#: Zo veel stukken toont één pagina van de lijstroute: wat het blok `stukken` draagt (`sjablonen.extern.MAX_LIJST`) en wat
+#: de zoektools per pagina geven.
+MAX_AANTAL = 25
 
 
 @dataclass(frozen=True)
@@ -61,6 +64,9 @@ class Lijstvraag:
     connector: str
     tool: str
     args: dict[str, Any] = field(default_factory=dict)
+    #: Het aantal dat de vraag noemde als dat boven wat een pagina draagt lag ("de 100 nieuwste"): het antwoord zegt dan
+    #: dat het er minder toont, in plaats van stil te kappen (externe review, 10 nov 2026).
+    gevraagd: int = 0
 
 
 def _getal(woord: str) -> int:
@@ -86,6 +92,7 @@ def lees(vraag: str, aan: frozenset[str],
     # Een orgaan is geen volgorde: "Eerste Kamer" las als "eerste", dus oudste eerst (acceptatie 9 nov 2026).
     zonder_organen = _zonder_organen(c, tekst)
     args: dict[str, Any] = {}
+    gevraagd = 0
     rest = tekst
     if (m := _VOLGORDE_RE.search(zonder_organen)) is not None:
         volgorde = "nieuwste" if m.group("nieuw") else "oudste"
@@ -93,7 +100,8 @@ def lees(vraag: str, aan: frozenset[str],
             return None
         args["volgorde"] = volgorde
         if (a := _AANTAL_RE.search(zonder_organen)) is not None:
-            args["aantal"] = min(max(_getal(a.group("voor") or a.group("na")), 1), 25)
+            gevraagd = _getal(a.group("voor") or a.group("na"))
+            args["aantal"] = min(max(gevraagd, 1), MAX_AANTAL)
             rest = rest.replace(a.group(0), " ")
         elif (een := _EEN_RE.search(zonder_organen)) and not _meervoud(c, een.group(0).split()[-1]):
             args["aantal"] = 1
@@ -167,7 +175,7 @@ def lees(vraag: str, aan: frozenset[str],
     over = [w for w in re.findall(r"[0-9A-Za-zÀ-ÿ]+", rest) if w.lower() not in _VULWOORDEN]
     if over:
         return None
-    return Lijstvraag(c.naam, zoektool[0], args)
+    return Lijstvraag(c.naam, zoektool[0], args, gevraagd if gevraagd > MAX_AANTAL else 0)
 
 
 def _wetsverwijzing(c: ConnectorBeschrijving, tekst: str,

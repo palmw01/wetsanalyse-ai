@@ -3,7 +3,7 @@
 De fixtures in `tests/fixtures/koop/` zijn echte antwoorden van de SRU en echte publicaties (opgehaald op 10 nov 2026;
 wetten en besluiten zijn vrij van auteursrecht, Auteurswet art. 11): het inwerkingtredingsbesluit Stb. 2010, 176, de
 wijzigingswet Stb. 2009, 610 (Iw art. 36), een wijziging van de Leidraad Invordering 2008 (Stcrt. 2026, 37344) en de
-Invorderingswet 1990 zelf (Stb. 1990, 222), die bij KOOP alleen als PDF staat. Wat de echte dienst nu doet, toetst
+Invoeringswet Invorderingswet 1990 (Stb. 1990, 222), die bij KOOP alleen als PDF staat. Wat de echte dienst nu doet, toetst
 `test_bekendmakingen_live.py`.
 """
 from __future__ import annotations
@@ -15,6 +15,8 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 import pytest
+
+from bronmodel import connectors as bm
 
 from agent import tools
 from agent.adapters.sru_bekendmakingen import SruBekendmakingen, blad_jaar_nummer
@@ -226,6 +228,28 @@ def test_met_een_artikel_alleen_de_onderdelen_die_het_wijzigen():
     assert niets["resultaten"] == [] and "noemt artikel 99.9" in niets["toelichting"]
 
 
+def test_met_een_regeling_alleen_de_artikelen_die_haar_wijzigen():
+    """Een verzamelwet lezen zonder haar door te bladeren (meting bekendmakingen B03/B16: 338–376k tokens)."""
+    d = roep("get_bekendmaking", {"id": "stb-2009-610", "regeling": "Invorderingswet 1990"})
+    assert d["status"] == "ok" and d["resultaten"] and d["totaal"] == 30, "30 van de 490 rijen"
+    assert {r.get("kop", "").split(" › ")[0] for r in d["resultaten"] if r.get("kop")} == {"Artikel XVII"}
+    assert d["resultaten"][0]["tekst"] == "De Invorderingswet 1990 wordt als volgt gewijzigd:"
+    assert d["toelichting"].startswith("Alleen het artikel waarvan de aanhef Invorderingswet 1990 noemt")
+    # Zonder hoofdletters vindt hij hetzelfde.
+    assert roep("get_bekendmaking", {"id": "stb-2009-610", "regeling": "invorderingswet 1990"})["totaal"] == 30
+    niets = roep("get_bekendmaking", {"id": "stb-2009-610", "regeling": "Wet op de omzetbelasting 1968"})
+    assert niets["resultaten"] == [] and "noemt Wet op de omzetbelasting 1968" in niets["toelichting"]
+
+
+def test_de_inhoud_van_een_verzamelwet_noemt_per_artikel_de_aanhef():
+    d = roep("get_bekendmaking", {"id": "stb-2009-610"})
+    assert not d["volledig"], "de wet past niet op één pagina"
+    aanhef = {i["kop"]: i.get("begint", "") for i in d["inhoud"]}
+    assert aanhef["Artikel XVI"] == "De Algemene wet inzake rijksbelastingen wordt als volgt gewijzigd:"
+    assert aanhef["Artikel XVII"] == "De Invorderingswet 1990 wordt als volgt gewijzigd:"
+    assert all(len(b) <= 160 for b in aanhef.values())
+
+
 @pytest.mark.parametrize("tekst,artikel,ja", [
     ("In artikel 1.1.5 worden …", "1.1.5", True), ("In artikel 1.1.5b. wordt …", "1.1.5", False),
     ("Artikel 25 wordt als volgt gewijzigd:", "25", True), ("In artikel 25a vervalt …", "25", False),
@@ -292,3 +316,94 @@ def test_een_lijstvraag_leest_de_code(vraag, args):
         return [(IW, {"Invorderingswet 1990"})] if "Invorderingswet" in t else []
     uit = lijst(vraag, frozenset({"bekendmakingen"}), regelingen)
     assert uit is not None and uit.connector == "bekendmakingen" and uit.args == args
+
+
+def _stream(vraag, monkeypatch, llm):
+    import asyncio
+
+    from agent.agent import answer_stream
+    from fakes import FakeGraph, make_settings
+
+    monkeypatch.setattr(tools.CONNECTORMODULES["bekendmakingen"], "_bron", _bron())
+
+    async def verzamel():
+        return [e async for e in answer_stream(vraag, settings=make_settings(connector_bekendmakingen=True), llm=llm,
+                                               graph=FakeGraph(result=""),
+                                               bronnen=["bekendmakingen"])]
+    return asyncio.run(verzamel())
+
+
+def _gelezen(llm):
+    return [(b["name"], b["input"]) for m in llm.calls[-1]["messages"]
+            for b in (m["content"] if isinstance(m["content"], list) else []) if b.get("type") == "tool_use"]
+
+
+def test_de_voorlezing_neemt_het_genoemde_artikel_mee(monkeypatch):
+    """Meting bekendmakingen B08: de code las het stuk zonder het artikel uit de vraag, dus bij een artikel achteraan
+    moest het model verder lezen."""
+    from fakes import FakeLLM, response, text_block
+
+    llm = FakeLLM([response([text_block("duiding")], "end_turn"),
+                   response([text_block("Onderdeel A voegt twee gedachtestreepjes in.")], "end_turn")])
+    _stream("Wat veranderde stcrt-2026-37344 aan artikel 1.1.5 van de Leidraad Invordering 2008?", monkeypatch, llm)
+    assert _gelezen(llm) == [("get_bekendmaking", {"id": "stcrt-2026-37344", "artikel": "1.1.5"})]
+
+
+def test_raakt_het_artikel_geen_onderdeel_dan_het_hele_stuk(monkeypatch):
+    from fakes import FakeLLM, response, text_block
+
+    llm = FakeLLM([response([text_block("duiding")], "end_turn"),
+                   response([text_block("Het besluit zet de wijziging in werking.")], "end_turn")])
+    _stream("Wat staat er in Stb. 2010, 176 over artikel 36?", monkeypatch, llm)
+    assert _gelezen(llm) == [("get_bekendmaking", {"id": "stb-2010-176"})], "één lezing in de historie, zonder filter"
+
+
+def test_een_stuk_waaruit_extern_citeert_staat_in_de_bronnen():
+    """Meting bekendmakingen B04: met doelen in het sjabloon hield de bronnenlijst alleen de doelen, en het gelezen
+    inwerkingtredingsbesluit viel weg."""
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from agent.nodes.antwoord import finalize_node
+    from fakes import FakeGraph, make_settings
+
+    gelezen = json.dumps(roep("get_bekendmaking", {"id": "stb-2010-176"}), ensure_ascii=False)
+    antwoord = {"sjabloon": "duiding", "versie": 1,
+                "doelen": [{"iri": "urn:bwb:BWBR0004770:artikel:36:lid:2", "label": "Artikel 36, lid 2"}],
+                "blokken": [{"soort": "extern", "door": "bron", "brontype": "bekendmaking", "id": "stb-2010-176",
+                             "label": "Stb. 2010, 176", "passages": []}]}
+    state = {"answer": "De datum staat in Stb. 2010, 176.", "antwoord": antwoord, "question": "Sinds wanneer?",
+             "source_trace": [("get_bekendmaking", gelezen)]}
+    b = SimpleNamespace(graph=FakeGraph(result=""), settings=make_settings(connector_bekendmakingen=True))
+    with patch("agent.nodes.antwoord.get_stream_writer", return_value=lambda _: None):
+        uit = finalize_node(b, state)
+    assert "stb-2010-176" in [s["uri"] for s in uit["sources"]]
+
+
+def test_het_spoor_toont_de_filters_van_elke_connector():
+    """Bevinding 6 van de meting: alleen `tekst` en `offset` stonden in het `tool_execution`-event."""
+    from agent.tool_execution import FILTERS
+
+    for c in bm.CONNECTORS.values():
+        for veld in c.metadata:
+            assert set(veld.filters) - {"bwb_id", "artikel", "id"} <= FILTERS, (c.naam, veld.sleutel)
+    assert {"publicatie", "soort", "woorden", "vanaf", "tot", "orgaan", "volgorde", "regeling"} <= FILTERS
+
+
+@pytest.mark.parametrize("versie,label", [("Herdruk", "Stb. 2010, 185 (herdruk)"), ("n1", "Stb. 2010, 185 (versie n1)"),
+                                          ("Verbeterblad n1", "Stb. 2010, 185 (verbeterblad n1)"), ("", "Stb. 2010, 185")])
+def test_het_label_noemt_de_versie_van_koop(versie, label):
+    from types import SimpleNamespace
+
+    from agent.tools.bekendmaking_tools import _vp, label_van
+
+    rec = SimpleNamespace(publicatienaam="Staatsblad", jaargang="2010", publicatienummer="185", versie=versie)
+    assert label_van(rec, _vp("stb-2010-185-n1")) == label
+
+
+def test_de_bron_draagt_het_label_van_het_gelezen_stuk():
+    from agent.provenance import collect_sources
+
+    tekst = json.dumps({"status": "ok", "volledig": True, "aantal": 0, "resultaten": [],
+                        "stuk": {"id": "stb-2010-185-n1", "label": "Stb. 2010, 185 (herdruk)"}})
+    assert [s.label for s in collect_sources([("get_bekendmaking", tekst)])] == ["Stb. 2010, 185 (herdruk)"]

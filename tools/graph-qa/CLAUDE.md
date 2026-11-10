@@ -300,7 +300,12 @@ bruikbaar is.
   (Staatsblad/Staatscourant), `woorden`, `tekst`, `soort` (`dt.type all`; een inwerkingtredingsbesluit in de titel),
   `orgaan` (`dt.creator all`), `dossier` (`w.behandeldDossier`: de brug naar Kamerstukken), `vanaf`/`tot`, `jaar`
   (`w.jaargang`). `get_bekendmaking` leest per alinea; met `artikel` alleen de wijzigingsonderdelen (`wijzig-lid`) waarvan
-  de opdracht dat artikel noemt (`_noemt_artikel`: 1.1.5 is niet 1.1.5b). Een oud stuk heeft vaak alleen een PDF
+  de opdracht dat artikel noemt (`_noemt_artikel`: 1.1.5 is niet 1.1.5b); met `regeling` alleen de artikelen van een
+  verzamelwet waarvan de aanhef die regeling noemt ("De Invorderingswet 1990 wordt als volgt gewijzigd:"). De `inhoud` van
+  de eerste pagina (`stuk_tekst.inhoud`, voor elke connector) draagt bij een kop op het bovenste niveau een korte eerste
+  alinea (`begint`), zodat te zien is welke wetten een verzamelwet wijzigt zonder haar door te bladeren (meting 10 nov
+  2026: B16 338k tokens). Een genoemd stuk leest de code vooraf mét het genoemde artikel als de leestool `artikel` kent
+  (`supervisie._te_lezen`), en zonder als dat niets oplevert (`bron_lezen`). Een oud stuk heeft vaak alleen een PDF
   (`alleen_pdf`, met de metadata); een id dat KOOP niet kent zoekt de adapter op blad, jaargang en nummer. `geldigheid`
   noemt naast de BWB-vorm het id (`bekendmakingen`). Citeervormen "Stb. 2010, 176", "Stb.2009-610", "Staatscourant 2026,
   nr. 37344". **Uit de Staatscourant alleen regelgeving en beleid** (`REGELGEVENDE_SOORTEN`, een witte lijst op `dt.type`;
@@ -1626,7 +1631,10 @@ lijstvraag** ("geef de 10 meest recente Kamerstukken", "de laatste vijf moties v
 is nooit een volgorde) leest `agent/bron_lijst.py` helemaal in code – volgorde, aantal, dossier, soort (`ConnectorBeschrijving.soorten`), periode,
 vergaderjaar, Kamer (`organen`) en een onderwerp van hoogstens vier woorden ("over …") als `tekst` – en dan zoekt
 `nodes/bron_lijst.py` één keer, zonder model, met het blok `stukken` (leeg: een leemte met de zoekvraag; een fout: de
-agent). Blijft er een woord over dat de code niet plaatst, of vraagt de vraag naar de inhoud, dan geen route. Ook in een
+agent). Periodes: "uit/van/in 2018", "sinds 2011", "uit 2023 en 2024", "2023-2024", "tussen 2020 en 2022"; "hoeveel …" is
+een lijstvraag (het blok zegt "N van de M stukken"). Blijft er een woord **of getal** over dat de code niet plaatst, of
+vraagt de vraag naar de inhoud, dan geen route: een getal telde eerst niet mee, en dan viel een jaartal stil weg (meting
+bekendmakingen B11, 10 nov 2026). Ook in een
 gesprek vóór het model, en daarna op de herschreven vraag. `tests/test_bron_lijst.py`, `eval/golden_routering.jsonl`. Een vraag over een bron naast de wet start
 nooit een werkgebied (het model koos dat in een lang gesprek). In de bronnenlijst staat een bron naast de wet alleen als ze
 gelezen en genoemd is (`grounding.alleen_gelezen_extern`). `GET /v1/bronnen` zegt per connector of de

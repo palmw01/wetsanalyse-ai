@@ -491,8 +491,8 @@ BEKENDMAKINGEN = ConnectorBeschrijving(
     grenzen=("zoeken gaat per bepaling (de publicaties die de BWB bij haar huidige tekst noemt: de laatste wijziging en "
              "het inwerkingtredingsbesluit, niet eerdere toestanden), op woorden in de titel of de hele tekst, soort, "
              "Staatsblad of Staatscourant, datum, jaargang, ministerie en Kamerdossier. Uit de Staatscourant alleen "
-             "regelgeving, beleid en adviezen van de Raad van State: aankondigingen over personen (deurwaardersexploten, "
-             "faillissementen, curatele) zoekt en leest Lex niet. Stukken van vóór ongeveer 1995 "
+             "regelgeving, beleid en adviezen van de Raad van State; aankondigingen over personen (deurwaardersexploten, "
+             "faillissementen, curatele) staan er niet in. Stukken van vóór ongeveer 1995 "
              "staan bij KOOP meestal alleen als PDF: ze worden gevonden, maar de tekst is niet te lezen. Een "
              "wijzigingsbesluit geeft de wijzigingsopdrachten, niet de geconsolideerde tekst"),
     levert=("alinea's (de aanhef, de artikelen en wijzigingsonderdelen, de toelichting)", "voetnoten",
