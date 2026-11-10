@@ -123,6 +123,9 @@ Achter `CONNECTOR_RECHTSPRAAK` krijgt Lex twee tools, met de transportlaag in `a
   oudste eerst. Altijd `dekking: "ten minste"`: LiDO loopt achter en kent geen relatie "vorige versie". Een afgebroken
   XML-antwoord van `get-links` valt terug op RDF; een plafond (`MAX_AANROEPEN`, `MAX_PAGINAS`) staat zichtbaar in de
   toelichting. De divisies van een beleidsregel kent LiDO niet.
+- **Voorwaarden**: de Rechtspraak vraagt hoogstens 10 verzoeken per seconde en geen volledige download; de adapter
+  houdt per host 5 per seconde aan (`PER_SECONDE`) en leest per uitspraak. De uitspraken zijn gepseudonimiseerd: Lex
+  herleidt geen partij (`rol_in_antwoord`).
 - **`get_uitspraak`** (ECLI): de tekst van een Nederlandse uitspraak (Public Domain Mark), per alinea met de kop, de
   inhoudsindicatie eerst; een alinea boven `MAX_ALINEA` in delen.
 

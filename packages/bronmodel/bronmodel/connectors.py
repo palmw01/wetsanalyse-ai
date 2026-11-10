@@ -333,13 +333,13 @@ RECHTSPRAAK = ConnectorBeschrijving(
     specialisten=frozenset({"definitie", "duiding", "algemeen"}),
     rol_in_antwoord=("een uitspraak laat zien hoe een rechter een bepaling toepaste of uitlegde; ze onderbouwt nooit "
                      "wat de wet zegt – dat doet alleen de opgehaalde bepaling. Een uitspraak die een artikel noemt, "
-                     "gaat er niet altijd over"),
+                     "gaat er niet altijd over. De uitspraken zijn gepseudonimiseerd: herleid nooit wie een partij is"),
     kop_in_antwoord="Uit de rechtspraak",
     grenzen=("zoeken gaat per wetsartikel, niet op vrije tekst: Linked Data Overheid koppelt een uitspraak aan een "
              "artikel als de tekst het noemt (automatisch herkend of redactioneel), op artikelniveau en niet per lid. "
              "Een vermelding is geen uitleg; de lijst is 'ten minste deze', want LiDO loopt achter op de wetgeving en "
              "kan versies missen. De divisies van een beleidsregel kent LiDO niet. Alleen Nederlandse uitspraken zijn "
-             "te lezen"),
+             "te lezen, één tegelijk: de Rechtspraak vraagt hoogstens 10 verzoeken per seconde en geen volledige download"),
     levert=("alinea's (de inhoudsindicatie en de uitspraak of conclusie)",),
     niet_in_tekst=("vindplaatsen in tijdschriften",),
     werkwoorden={

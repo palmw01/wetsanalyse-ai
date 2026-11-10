@@ -109,6 +109,26 @@ def _bron(dienst: Dienst) -> LidoRechtspraak:
 @pytest.fixture(autouse=True)
 def _geen_wachten(monkeypatch):
     monkeypatch.setattr(L, "HERHAAL_S", 0)
+    monkeypatch.setattr(L, "PER_SECONDE", 10**9)
+
+
+def test_de_begrenzer_geeft_elk_verzoek_per_host_een_eigen_tijdvak(monkeypatch):
+    """Hoogstens `PER_SECONDE` per host (de Rechtspraak vraagt er hoogstens 10): tien verzoeken achter elkaar kosten
+    ruim anderhalve seconde wachten, en een andere host wacht niet op de eerste."""
+    monkeypatch.setattr(L, "PER_SECONDE", 5)
+    nu, geslapen = [100.0], []
+
+    def slaap(s):
+        geslapen.append(round(s, 3))
+        nu[0] += s
+
+    bron = LidoRechtspraak(client=httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200, text="x"))),
+                           klok=lambda: nu[0], slaap=slaap)
+    for _ in range(10):
+        bron._get(L.RECHTSPRAAK_URL, id="ECLI:NL:HR:2022:50")
+    assert geslapen == [0.2] * 9
+    bron._get(L.LIDO_URL + "/get-id")
+    assert len(geslapen) == 9, "een andere host heeft een eigen tijdvak"
 
 
 def test_de_versies_lopen_terug_en_de_links_worden_verenigd():

@@ -58,6 +58,10 @@ MAX_AANROEPEN = 80
 #: Per versie hoogstens zoveel pagina's van `get-links` (50 per pagina). Awb art. 8:57 noemt er meer dan 10.000.
 MAX_PAGINAS = 20
 RIJEN = 50
+#: Hoogstens zoveel verzoeken per seconde per host. De open data van de Rechtspraak vraagt er hoogstens 10 en "houd
+#: rekening met andere gebruikers"; LiDO en de BWB-zoekdienst zijn gedeelde diensten van KOOP. Eén artikel kan tot
+#: `MAX_AANROEPEN` aanroepen kosten, dus zonder begrenzer gingen die in één ademteug.
+PER_SECONDE = 5
 #: Wachttijd voor de ene herhaling na een storing.
 HERHAAL_S = 1.0
 #: Hoe ver terug: het BWB begint in 2002, LiDO ook.
@@ -200,32 +204,45 @@ class LidoRechtspraak:
 
     def __init__(self, *, lido_url: str = LIDO_URL, bwb_sru_url: str = BWB_SRU_URL,
                  rechtspraak_url: str = RECHTSPRAAK_URL, timeout: float = 20.0, client: httpx.Client | None = None,
-                 klok: Callable[[], float] = time.monotonic):
+                 klok: Callable[[], float] = time.monotonic, slaap: Callable[[float], None] = time.sleep):
         self._lido, self._sru, self._rs = lido_url.rstrip("/"), bwb_sru_url, rechtspraak_url
         self._client = client or httpx.Client(timeout=timeout, follow_redirects=False,
                                               headers={"User-Agent": "wetsanalyse-graph-qa (alleen lezen)"})
         self._cache: OrderedDict[str, _Plek] = OrderedDict()
         self._lock = threading.Lock()
         self._klok = klok
+        self._slaap = slaap
+        self._beurt: dict[str, float] = {}
+        self._beurt_lock = threading.Lock()
 
     # --- transport -------------------------------------------------------------------------------------------------
+
+    def _wacht(self, host: str) -> None:
+        """Hoogstens `PER_SECONDE` verzoeken per host, over threads heen: elk verzoek krijgt een eigen tijdvak."""
+        with self._beurt_lock:
+            nu = self._klok()
+            start = max(nu, self._beurt.get(host, 0.0))
+            self._beurt[host] = start + 1.0 / PER_SECONDE
+        if start > nu:
+            self._slaap(start - nu)
 
     def _get(self, url: str, **params) -> str:
         u = urlparse(url)
         if u.scheme != "https" or u.hostname not in _HOSTS:
             raise RechtspraakFout(f"host buiten de allowlist: {u.hostname}", code="geweigerd")
         for poging in range(2):
+            self._wacht(u.hostname)
             try:
                 r = self._client.get(url, params=params or None)
             except httpx.HTTPError as exc:
                 if poging == 0:
-                    time.sleep(HERHAAL_S)
+                    self._slaap(HERHAAL_S)
                     continue
                 raise RechtspraakFout(f"{u.hostname} is niet bereikbaar: {type(exc).__name__}") from exc
             # LiDO geeft soms even een 400 of 5xx op een verzoek dat een tel later lukt (live, 10 nov 2026): één keer
             # opnieuw, zodat één hik geen gat in de lijst wordt.
             if poging == 0 and (r.status_code >= 500 or (r.status_code == 400 and u.hostname == "linkeddata.overheid.nl")):
-                time.sleep(HERHAAL_S)
+                self._slaap(HERHAAL_S)
                 continue
             break
         if r.status_code == 404:
