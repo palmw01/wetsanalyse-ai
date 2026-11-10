@@ -231,7 +231,25 @@ _DATA_PROPS: dict[str, tuple[str, str, tuple[URIRef, ...], URIRef | None]] = {
         XSD.date,
     ),
     "uitgiftedatum": ("uitgiftedatum", "Datum van uitgifte.", (ELI.date_publication,), XSD.date),
-    "dossier": ("dossier", "Kamerdossiernummer.", (), None),
+    "dossier": (
+        "dossier",
+        "Kamerdossiernummer. Op de regeling: het dossier van de oorspronkelijke wet. Op een tekstdeel: "
+        "het dossier (of de dossiers) van de wet die het zijn huidige inhoud gaf, uit zijn eigen brondata.",
+        (),
+        None,
+    ),
+    "inwerkingtredingsbron": (
+        "inwerkingtredingsbron",
+        "Stb-bron van het inwerkingtredingsbesluit van de laatste wijziging van dit tekstdeel.",
+        (),
+        None,
+    ),
+    "opmerking": (
+        "opmerking",
+        "Redactionele opmerking bij dit tekstdeel uit de brondata (vaak: waar het overgangsrecht staat).",
+        (),
+        None,
+    ),
     "nummer": ("nummer", "Nummer binnen de ouder (artikel-/lid-/onderdeelnummer).", (), None),
     "volgnummer": (
         "volgnummer",
