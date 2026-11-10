@@ -39,7 +39,10 @@ export function contextSleutelVan(c: ContextDoel): string {
   return c.soort === "bron" ? bepalingSleutel(c.bron_iri)
     : c.soort === "element" ? `element:${c.element_id}`
     : c.soort === "overzicht" ? `overzicht:${c.overzicht.gevraagd}`
-    : c.soort === "stuk" ? `stuk:${c.id}` : `bibliotheek:${c.werkgebied_id}`;
+    : c.soort === "stuk" ? `stuk:${c.id}`
+    // De bepalingen van een antwoord: dezelfde lijst is dezelfde tab, dus een tweede klik opent geen tweede.
+    : c.soort === "bepalingen" ? `bepalingen:${c.bepalingen.map((v) => v.iri).join("|")}`
+    : `bibliotheek:${c.werkgebied_id}`;
 }
 
 export function sleutelVan(i: PaneelInhoud): string {
@@ -85,6 +88,7 @@ export function tabLabel(t: PaneelTab): { kort: string; vol: string } {
     } else if (c.soort === "element") { kort = "Element"; vol = c.titel || "JAS-element"; }
     else if (c.soort === "bibliotheek") { kort = "Bronnen"; vol = "Bronnen van dit werkgebied"; }
     else if (c.soort === "stuk") { kort = c.titel || c.id; vol = c.titel || c.id; }
+    else if (c.soort === "bepalingen") { kort = c.titel || "Bepalingen"; vol = `Bepalingen in dit antwoord: ${c.titel}`; }
     else { kort = c.titel || "Overzicht"; vol = `Overzicht: ${c.titel}`; }
   } else if (i.soort === "annotatie") {
     const h = herkomstVan({ iri: i.doel.bron_iri, label: i.doel.label, regeling: i.doel.citeertitel });
@@ -139,6 +143,8 @@ function geldigeInhoud(v: unknown): v is PaneelInhoud {
     if (c.soort === "element") return typeof c.element_id === "string";
     if (c.soort === "bibliotheek") return typeof c.werkgebied_id === "string";
     if (c.soort === "stuk") return typeof c.brontype === "string" && typeof c.id === "string";
+    if (c.soort === "bepalingen") return Array.isArray(c.bepalingen) && c.bepalingen.length > 0
+      && c.bepalingen.every((v) => isObject(v) && typeof v.iri === "string" && typeof v.label === "string");
     return c.soort === "overzicht" && isObject(c.overzicht) && typeof (c.overzicht as Record<string, unknown>).gevraagd === "string";
   }
   if (v.soort === "annotatie") {

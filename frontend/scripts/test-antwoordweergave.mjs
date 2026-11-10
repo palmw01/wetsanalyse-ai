@@ -7,6 +7,7 @@
  *    lijst met een gat en een lijst die na een alinea verdergaat;
  *  - een vermelding die een andere regeling noemt dan de bron, krijgt geen citatie-chip; de juiste wel, ook
  *    live: `parseBronnen` moet de naam van de regeling en de afkortingen doorlaten;
+ *  - meer dan drie bepalingen onder een antwoord: één kaart met de telling die de lijst in het paneel opent;
  *  - een sjabloon staat als blokken in de tekst, zonder kaart en zonder bronnenlijst; een ongeldig sjabloon valt terug
  *    op `tekst`;
  *  - een bron naast de wet: een tabel als tabel met kolommen (scrolt op een telefoon in haar eigen vak), een voetnoot
@@ -119,6 +120,53 @@ try {
   await page.locator(`[data-bepaling-chip="${K}"]`).click();
   await page.locator("[data-context-paneel=bron]").waitFor();
   await page.keyboard.press("Escape");
+
+  // Meer dan drie bepalingen (melding gebruiker 10 nov 2026, "6 bepalingen" opende er één): de kaart met de telling opent
+  // de lijst in het paneel, zoals *Bronnen* in de chatkop; een rij opent de bepaling als eigen tab. De doelen zijn die van
+  // het bewaarde antwoord op acceptatie.
+  const iw = (staart, label, hoofdstuk, jci) => ({ iri: `urn:bwb:BWBR0004770:${staart}`, label, regeling: "Invorderingswet 1990",
+    jci: `jci1.3:c:BWBR0004770&hoofdstuk=${hoofdstuk}&${jci}&z=2026-10-01&g=2026-10-01` });
+  const ZES = [iw("artikel:9:lid:1", "Artikel 9, lid 1", "II", "artikel=9&lid=1"),
+    iw("artikel:2:lid:1:o:m", "Artikel 2, lid 1, onderdeel m", "I", "artikel=2&lid=1&o=m"),
+    iw("artikel:2:lid:2:o:d", "Artikel 2, lid 2, onderdeel d", "I", "artikel=2&lid=2&o=d"),
+    iw("artikel:9:lid:2", "Artikel 9, lid 2", "II", "artikel=9&lid=2"), iw("artikel:9:lid:10", "Artikel 9, lid 10", "II", "artikel=9&lid=10"),
+    iw("artikel:9:lid:12", "Artikel 9, lid 12", "II", "artikel=9&lid=12")];
+  const duiding = { sjabloon: "duiding", versie: 1, doelen: ZES, blokken: [
+    { soort: "toelichting", door: "lex", kop: "Kort antwoord", tekst: "De aanslag is invorderbaar zes weken na de dagtekening." },
+    { soort: "citaten", door: "bron", items: ZES.map((v) => ({ tekst: `Tekst van ${v.label}.`, vindplaats: v, waarom: "Omdat." })) }] };
+  huidige = sjabloonStroom(duiding);
+  bewaar(duiding);
+  await page.goto(`${base}/workbench`);
+  await vraag.fill("Wat betekent dit lid?");
+  await vraag.press("Enter");
+  const telling = page.locator("[data-bepaling-lijst]");
+  await telling.waitFor();
+  assert.match(await telling.innerText(), /6 bepalingen/);
+  assert.equal(await page.locator("[data-bepaling-chip]").count(), 0, "één kaart met de telling, geen kaart per bepaling");
+  await telling.click();
+  await page.locator("[data-context-paneel=bepalingen]").waitFor();
+  assert.deepEqual(await page.locator("[data-bepalingen-rij]").evaluateAll((els) => els.map((e) => e.getAttribute("data-bepalingen-rij"))),
+    ZES.map((v) => v.iri), "de lijst noemt alle zes, in de volgorde van het antwoord");
+  await page.screenshot({ path: `${shots}/zes-bepalingen-lijst.png` });
+  await telling.click();
+  assert.equal(await page.getByRole("tab", { name: "6 bepalingen" }).count(), 1, "een tweede klik opent geen tweede lijst");
+  await page.locator(`[data-bepalingen-rij="${ZES[3].iri}"]`).click();
+  await page.locator("[data-context-paneel=bron]").waitFor();
+  await page.getByRole("tab", { name: /Artikel 9, lid 2/ }).first().waitFor();
+  assert.equal(await page.getByRole("tab", { name: "6 bepalingen" }).count(), 1, "de lijst blijft als tab staan");
+  await page.getByRole("tab", { name: "6 bepalingen" }).click();
+  await page.locator("[data-context-paneel=bepalingen]").waitFor();
+  await page.keyboard.press("Escape");
+  // Op een telefoon: dezelfde lijst in de sheet, zonder horizontale scroll.
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto(`${base}/workbench?gesprek=g9`);
+  await page.locator("[data-bepaling-lijst]").click();
+  await page.locator("[data-context-paneel=bepalingen]").waitFor();
+  assert.ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), "geen horizontale scroll op 375px");
+  await page.waitForTimeout(500); // de sheet schuift in beeld
+  await page.screenshot({ path: `${shots}/zes-bepalingen-mobiel.png` });
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 1280, height: 900 });
 
   // Een bepaling met leden: één kop voor het artikel, "lid N" bij elke tekst.
   const lid = (n, tekst) => ({ tekst, vindplaats: { iri: `${IRI}:lid:${n}`, label: `Artikel 9, lid ${n}`,

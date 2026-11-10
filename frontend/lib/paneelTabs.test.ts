@@ -77,4 +77,16 @@ describe("paneelTabs", () => {
     expect(bewaard.tabs[0].inhoud.ctx.samenhang.graaf).toEqual({ keten: true, bereik: "kennisgraaf" });
     expect(leesBewaard(bewaard)?.tabs[0].inhoud).toMatchObject({ ctx: { weergave: "graaf" } });
   });
+
+  it("de bepalingen van een antwoord: één tab per lijst, een tweede klik opent geen tweede, en hij blijft bewaard", () => {
+    const v = (n: string) => ({ iri: `urn:bwb:BWBR0004770:artikel:9:lid:${n}`, label: `Artikel 9, lid ${n}`, jci: "", regeling: "Invorderingswet 1990" });
+    const lijst: PaneelInhoud = { soort: "context", ctx: { soort: "bepalingen", bepalingen: [v("1"), v("2"), v("10"), v("12")], titel: "4 bepalingen" } };
+    const een = openTab({ tabs: [] }, lijst, "een antwoord");
+    const twee = openTab(een, lijst, "een antwoord");
+    expect(twee.tabs).toHaveLength(1);
+    expect(sleutelVan(lijst)).not.toBe(sleutelVan({ soort: "context", ctx: { soort: "bepalingen", bepalingen: [v("1"), v("2"), v("3"), v("4")], titel: "4 bepalingen" } }));
+    expect(tabLabel(twee.tabs[0])).toEqual({ kort: "4 bepalingen", vol: "Bepalingen in dit antwoord: 4 bepalingen · geopend vanuit een antwoord" });
+    expect(leesBewaard(JSON.parse(JSON.stringify(bewaarVorm(twee))))?.tabs[0].inhoud).toEqual(lijst);
+    expect(leesBewaard({ tabs: [{ inhoud: { soort: "context", ctx: { soort: "bepalingen", bepalingen: [] } } }] })).toBeUndefined();
+  });
 });
