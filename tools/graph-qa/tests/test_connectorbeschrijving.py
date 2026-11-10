@@ -74,6 +74,19 @@ def test_elk_filter_is_een_argument_van_een_zoektool(c: bm.ConnectorBeschrijving
 
 
 @pytest.mark.parametrize("c", BESCHRIJVINGEN, ids=IDS)
+def test_de_volgordes_zijn_de_enum_van_de_zoektool(c: bm.ConnectorBeschrijving):
+    """"De laatste stukken" is een volgorde, geen bladeren door het hele dossier (gesprek e906567a: elf rondes voor een
+    fout antwoord). De zoektool kent precies de volgordes uit de beschrijving, en 'nummer' alleen met een reeks."""
+    assert c.volgordes and set(c.volgordes) <= set(bm.VOLGORDES)
+    zoektools = [t for t in tools.TOOLS if t["name"] in c.tools - {c.leestool}]
+    enums = [t["input_schema"]["properties"]["volgorde"].get("enum") for t in zoektools
+             if "volgorde" in t["input_schema"]["properties"]]
+    assert enums and all(e == list(c.volgordes) for e in enums), f"{c.naam}: volgorde-enum {enums} ≠ {c.volgordes}"
+    if "nummer" in c.volgordes:
+        assert c.veld("nummer") is not None and c.veld("reeks") is not None
+
+
+@pytest.mark.parametrize("c", BESCHRIJVINGEN, ids=IDS)
 def test_de_tools_bestaan_en_horen_bij_een_connector(c: bm.ConnectorBeschrijving):
     bestaand = {t["name"] for t in tools.TOOLS}
     assert c.tools <= bestaand, f"{c.naam}: tools zonder implementatie: {c.tools - bestaand}"

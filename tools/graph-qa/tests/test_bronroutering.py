@@ -57,8 +57,11 @@ def test_een_uitgezette_bron_krijgt_een_eerlijke_melding_zonder_model(settings, 
 
 
 def test_een_vraag_over_een_bron_wordt_nooit_afgewezen_en_krijgt_de_tools():
+    # Zonder citeervorm: "Kamerstuk 33755, nummer 3" (INCIDENT_2) leest de code sinds 9 nov 2026 direct, zonder supervisor
+    # (`tests/test_bron_lijst.py`). Hier gaat het om een AFWIJZEN van het model dat de code terugdraait.
+    vraag = "Wat zegt de memorie van toelichting bij de Invorderingswet 1990 over de aansprakelijkheid?"
     llm = FakeLLM([AFWIJZEN, response([text_block("Ik zocht het stuk op.")], "end_turn")])
-    events = _run(answer_stream(INCIDENT_2, settings=AAN, llm=llm, graph=FakeGraph(result=""),
+    events = _run(answer_stream(vraag, settings=AAN, llm=llm, graph=FakeGraph(result=""),
                                 bronnen=["kamerstukken"], bronnen_herkomst="gesprek"))
     assert len(llm.calls) == 2, "het model zei AFWIJZEN, de code liet de worker toch zoeken"
     namen = {t["name"] for t in llm.calls[1]["tools"]}

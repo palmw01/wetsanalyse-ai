@@ -30,7 +30,7 @@ from ..ports import GraphPort
 from .jas_tools import JAS_TOOL_NAMEN, JAS_TOOLS  # noqa: F401 – re-exporteerd voor orchestrator
 from .annotatie_tools import ANNOTATIE_TOOLS, ANNOTATIE_TOOL_NAMEN, dispatch_annotatie
 from .begrip_tools import BEGRIP_TOOLS, BEGRIP_TOOL_NAMEN, dispatch_begrip
-from .kamerstuk_tools import CONNECTOR as _KST, KAMERSTUK_TOOLS, KAMERSTUK_TOOL_NAMEN, dispatch_kamerstuk
+from .kamerstuk_tools import CONNECTOR as _KST, KAMERSTUK_TOOLS, KAMERSTUK_TOOL_NAMEN, dispatch_kamerstuk, fout_van
 from ..resultaat import BUDGET, TeGroot, compact, fout, geheel, pagina, per_eenheid, voorproef
 from ..graph.structuur import natuurlijke_sleutel
 from .. import overzicht
@@ -951,7 +951,7 @@ def dispatch(name: str, graph: GraphPort, args: dict[str, Any] | None, settings:
             except TeGroot:
                 raise
             except KamerstukFout as exc:
-                return fout("bron_onbereikbaar", str(exc))
+                return fout_van(exc)
             except (ValueError, TypeError) as exc:
                 return fout("ongeldige_argumenten", str(exc))
         if name in ANNOTATIE_TOOL_NAMEN:
