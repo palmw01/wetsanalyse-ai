@@ -340,6 +340,37 @@ class GesprekPatch(BaseModel):
     connectors: list[ConnectorNaam] | None = Field(default=None, max_length=8)
 
 
+#: De groepen die je in één keer opruimt (instellingen → Gesprekken). **Recent** = actief en los, zoals de sidebar
+#: ze toont; **archief** = alles wat gearchiveerd is, ook uit een werkgebied. Actieve gesprekken in een werkgebied
+#: vallen er bewust buiten: die horen bij het werk aan dat werkgebied.
+GesprekGroep = Literal["recent", "archief"]
+
+#: Hoeveel ids één bulkverzoek hooguit draagt: ruim boven een opruimbeurt, en een grens op de body.
+MAX_BULK = 2000
+
+
+class GesprekTelling(BaseModel):
+    recent: int
+    archief: int
+
+
+class GesprekIds(BaseModel):
+    ids: list[str]
+
+
+class GesprekkenBulk(BaseModel):
+    """Een opruimbeurt: de groep én de ids die de BFF net ophaalde. De api wist alleen de doorsnede (eigen, in de groep,
+    in de lijst), zodat een gesprek dat tussendoor ontstond niet meegaat zonder dat het geheugen van Lex gewist is."""
+
+    groep: GesprekGroep
+    ids: list[str] = Field(default_factory=list, max_length=MAX_BULK)
+
+
+class GesprekkenBulkUitkomst(BaseModel):
+    aantal: int
+    ids: list[str]
+
+
 class BerichtInvoer(BaseModel):
     rol: Rol
     tekst: str = ""

@@ -266,3 +266,38 @@ def test_stoppen_is_een_verzoek(client):
     # 202, niet 204: de nodes zijn synchroon, dus de run eindigt pas op de eerstvolgende grens.
     assert antwoord.status_code == 202
     assert antwoord.json()["run_id"] == run_id
+
+
+# ── Opruimen: een reeks gesprekken in één verzoek ────────────────────────────────────────────────
+
+def test_bulk_verwijderen_stopt_eigen_beurt_en_laat_die_van_een_ander(client, monkeypatch):
+    """De bulkroute volgt de regels van de enkele delete, per gesprek: de eigen lopende beurt stopt, die van een
+    ander loopt door (en dat gesprek gaat er stil uit, in plaats van het hele verzoek te weigeren). Het geheugen gaat
+    in één aanroep weg."""
+    gewist: list[list[str]] = []
+
+    async def nep_wissen(ids, *, settings=None):
+        gewist.append(list(ids))
+
+    monkeypatch.setattr(main, "delete_conversations", nep_wissen)
+    eigen = client.post("/v1/runs", json={"question": "v", "conversation_id": "g-a"}, headers=A).json()["run_id"]
+    vreemd = client.post("/v1/runs", json={"question": "v", "conversation_id": "g-b"}, headers=B).json()["run_id"]
+
+    r = client.post("/v1/conversations/verwijderen", json={"ids": ["g-a", "g-b", "zonder-run", "g-a"]}, headers=A)
+    assert r.status_code == 204
+    assert gewist == [["g-a", "zonder-run"]]
+    # De stand van een run is per gebruiker: kijk als A, en wacht op de toestand in plaats van een vaste tijd.
+    eind, stand = time.monotonic() + 5, {}
+    while time.monotonic() < eind:
+        stand = client.get("/v1/conversations/g-a/run", headers=A).json() or {}
+        if stand.get("status") not in ("", None, "loopt"):
+            break
+        time.sleep(0.05)
+    assert (stand.get("run_id"), stand.get("status")) == (eigen, "gestopt")
+    assert client.get("/v1/conversations/g-b/run", headers=B).json()["run_id"] == vreemd
+
+
+def test_bulk_verwijderen_is_idempotent_en_begrensd(client):
+    assert client.post("/v1/conversations/verwijderen", json={"ids": []}).status_code == 204
+    assert client.post("/v1/conversations/verwijderen", json={"ids": ["bestaat-niet"]}).status_code == 204
+    assert client.post("/v1/conversations/verwijderen", json={"ids": ["x"] * 2001}).status_code == 422

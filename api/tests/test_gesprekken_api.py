@@ -625,3 +625,94 @@ async def test_actief_en_archief_hebben_elk_hun_eigen_pagina(client):
 async def test_een_te_lange_zoekterm_wordt_geweigerd(client):
     r = await client.get(BASIS, params={"q": "x" * 201}, headers=A)
     assert r.status_code == 422
+
+
+# ── Opruimen per groep (instellingen → Gesprekken) ──────────────────────────────────────────────
+
+async def _zet(gid: str, **velden) -> None:
+    """Rechtstreeks in de tabel: een werkgebied of ouder aanmaken hoort niet bij wat deze tests toetsen."""
+    from sqlalchemy import update
+
+    from app import db
+    async with db.get_engine().begin() as conn:
+        await conn.execute(update(db.gesprekken).where(db.gesprekken.c.id == gid).values(**velden))
+
+
+async def _opruimset(client) -> dict[str, str]:
+    """Vier gesprekken van A, één per plek, plus `andermans` (van B, uit de fixture)."""
+    from app import db
+    ids = {naam: await _maak(client, titel=naam) for naam in ("los", "los_archief", "wg", "wg_archief")}
+    await _zet(ids["los_archief"], gearchiveerd=db.utcnow())
+    await _zet(ids["wg"], werkgebied_id="wg-1")
+    await _zet(ids["wg_archief"], werkgebied_id="wg-1", gearchiveerd=db.utcnow())
+    return ids
+
+
+async def test_telling_en_ids_per_groep(client):
+    ids = await _opruimset(client)
+    assert (await client.get(f"{BASIS}/telling", headers=A)).json() == {"recent": 1, "archief": 2}
+    assert (await client.get(f"{BASIS}/groep/recent", headers=A)).json() == {"ids": [ids["los"]]}
+    archief = (await client.get(f"{BASIS}/groep/archief", headers=A)).json()["ids"]
+    assert sorted(archief) == sorted([ids["los_archief"], ids["wg_archief"]])
+    # B telt alleen zijn eigen gesprek. Via de store: een eerdere test deactiveert B, en die stand blijft in de
+    # actief-cache van het proces hangen.
+    from app.gesprek_store import GesprekStore
+    assert (await GesprekStore().telling("gebruiker-b")).model_dump() == {"recent": 1, "archief": 0}
+    assert (await client.get(f"{BASIS}/groep/iets", headers=A)).status_code == 422
+
+
+async def test_recent_verwijderen_laat_werkgebied_en_archief_staan(client):
+    ids = await _opruimset(client)
+    r = await client.post(f"{BASIS}/verwijderen", json={"groep": "recent", "ids": [ids["los"]]}, headers=A)
+    assert r.status_code == 200 and r.json() == {"aantal": 1, "ids": [ids["los"]]}
+    over = {g["id"] for g in (await client.get(BASIS, headers=A)).json()}
+    assert over == {ids["los_archief"], ids["wg"], ids["wg_archief"]}
+
+
+async def test_archief_leegmaken_neemt_ook_werkgebied_mee(client):
+    ids = await _opruimset(client)
+    await client.post(f"{BASIS}/{ids['wg_archief']}/berichten", json={"rol": "user", "tekst": "hoi"}, headers=A)
+    lijst = (await client.get(f"{BASIS}/groep/archief", headers=A)).json()["ids"]
+    r = await client.post(f"{BASIS}/verwijderen", json={"groep": "archief", "ids": lijst}, headers=A)
+    assert r.json()["aantal"] == 2
+    assert {g["id"] for g in (await client.get(BASIS, headers=A)).json()} == {ids["los"], ids["wg"]}
+    assert (await client.get(f"{BASIS}/{ids['wg_archief']}", headers=A)).status_code == 404
+
+
+async def test_bulk_wist_alleen_eigen_ids_in_de_groep(client):
+    """Andermans id, een id uit een andere groep en een onbekend id vallen eruit, zonder fout."""
+    ids = await _opruimset(client)
+    r = await client.post(f"{BASIS}/verwijderen", json={
+        "groep": "recent", "ids": [ids["los"], ids["wg"], ids["los_archief"], "andermans", "bestaat-niet"],
+    }, headers=A)
+    assert r.json() == {"aantal": 1, "ids": [ids["los"]]}
+    from app.gesprek_store import GesprekStore
+    assert await GesprekStore().eigenaar_van("andermans") == "gebruiker-b"
+    assert (await client.get(f"{BASIS}/{ids['wg']}", headers=A)).status_code == 200
+
+
+async def test_bulk_maakt_deelgesprekken_los(client):
+    ids = await _opruimset(client)
+    kind = await _maak(client, titel="kind")
+    await _zet(kind, werkgebied_id="wg-1", ouder_id=ids["wg_archief"], regie_id="r-1")
+    await client.post(f"{BASIS}/verwijderen", json={"groep": "archief", "ids": [ids["wg_archief"]]}, headers=A)
+    doc = (await client.get(f"{BASIS}/{kind}", headers=A)).json()
+    assert (doc["ouder_id"], doc["regie_id"], doc["werkgebied_id"]) == ("", "", "wg-1")
+
+
+async def test_recent_archiveren(client):
+    ids = await _opruimset(client)
+    voor = (await client.get(f"{BASIS}/{ids['los']}", headers=A)).json()["updated"]
+    r = await client.post(f"{BASIS}/archiveren", json={"groep": "recent", "ids": [ids["los"], ids["wg"]]}, headers=A)
+    assert r.json() == {"aantal": 1, "ids": [ids["los"]]}
+    doc = (await client.get(f"{BASIS}/{ids['los']}", headers=A)).json()
+    assert doc["gearchiveerd"] is not None and doc["updated"] == voor
+    assert (await client.get(f"{BASIS}/telling", headers=A)).json() == {"recent": 0, "archief": 3}
+    assert (await client.post(f"{BASIS}/archiveren", json={"groep": "archief", "ids": []},
+                              headers=A)).status_code == 422
+
+
+async def test_bulk_grens_op_aantal_ids(client):
+    from app.gesprek_contracts import MAX_BULK
+    r = await client.post(f"{BASIS}/verwijderen", json={"groep": "recent", "ids": ["x"] * (MAX_BULK + 1)}, headers=A)
+    assert r.status_code == 422

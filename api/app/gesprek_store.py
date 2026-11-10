@@ -11,11 +11,13 @@ from __future__ import annotations
 import logging
 
 from pydantic import ValidationError
-from sqlalchemy import delete, exists, func, insert, or_, select, update
+from sqlalchemy import and_, delete, exists, func, insert, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import db
-from .gesprek_contracts import Bericht, BerichtInvoer, Gesprek, GesprekSamenvatting
+from .gesprek_contracts import (
+    Bericht, BerichtInvoer, Gesprek, GesprekGroep, GesprekSamenvatting, GesprekTelling,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -302,10 +304,76 @@ class GesprekStore:
 
     async def verwijder_gesprek(self, gesprek_id: str) -> None:
         async with db.get_engine().begin() as conn:
-            await conn.execute(
-                delete(db.gesprek_berichten).where(db.gesprek_berichten.c.gesprek_id == gesprek_id)
-            )
-            await conn.execute(delete(db.gesprekken).where(db.gesprekken.c.id == gesprek_id))
-            # De deelgesprekken blijven: het zijn verslagen. Ze worden los, zoals bij een gewist werkgebied.
-            await conn.execute(update(db.gesprekken).where(db.gesprekken.c.ouder_id == gesprek_id)
-                               .values(ouder_id="", regie_id=""))
+            await self._wis(conn, [gesprek_id])
+
+    @staticmethod
+    async def _wis(conn, ids: list[str]) -> None:
+        """Berichten en gesprekken weg, in de transactie van de aanroeper. De deelgesprekken blijven: het zijn
+        verslagen. Ze worden los, zoals bij een gewist werkgebied."""
+        g, b = db.gesprekken, db.gesprek_berichten
+        for stuk in _stukken(ids):
+            await conn.execute(delete(b).where(b.c.gesprek_id.in_(stuk)))
+            await conn.execute(delete(g).where(g.c.id.in_(stuk)))
+            await conn.execute(update(g).where(g.c.ouder_id.in_(stuk)).values(ouder_id="", regie_id=""))
+
+    # ── Opruimen per groep (instellingen → Gesprekken) ────────────────────────────────────────────
+
+    async def telling(self, user_id: str) -> GesprekTelling:
+        g = db.gesprekken
+        async with db.get_engine().connect() as conn:
+            aantallen = {
+                groep: (await conn.execute(
+                    select(func.count()).select_from(g).where(g.c.user_id == user_id, _groep_filter(groep))
+                )).scalar_one()
+                for groep in ("recent", "archief")
+            }
+        return GesprekTelling(**aantallen)
+
+    async def ids_in_groep(self, user_id: str, groep: GesprekGroep) -> list[str]:
+        g = db.gesprekken
+        async with db.get_engine().connect() as conn:
+            return list((await conn.execute(
+                select(g.c.id).where(g.c.user_id == user_id, _groep_filter(groep)).order_by(g.c.id)
+            )).scalars())
+
+    async def _doorsnede(self, conn, user_id: str, groep: GesprekGroep, ids: list[str]) -> list[str]:
+        """De ids uit de lijst die van deze gebruiker zijn en nú in de groep staan. Andermans id of een gesprek
+        dat intussen verhuisde, valt eruit zonder fout: opruimen is geen plek om te raden."""
+        g = db.gesprekken
+        gevonden: list[str] = []
+        for stuk in _stukken(list(dict.fromkeys(ids))):
+            gevonden += (await conn.execute(
+                select(g.c.id).where(g.c.id.in_(stuk), g.c.user_id == user_id, _groep_filter(groep))
+            )).scalars()
+        return sorted(gevonden)
+
+    async def verwijder_gesprekken(self, user_id: str, groep: GesprekGroep, ids: list[str]) -> list[str]:
+        """Wis in één transactie de eigen gesprekken uit `ids` die in de groep staan; geeft terug wat wegging."""
+        async with db.get_engine().begin() as conn:
+            weg = await self._doorsnede(conn, user_id, groep, ids)
+            await self._wis(conn, weg)
+        return weg
+
+    async def archiveer_gesprekken(self, user_id: str, groep: GesprekGroep, ids: list[str]) -> list[str]:
+        """Archiveer in één keer; `updated` blijft staan, net als bij één gesprek (de volgorde verschuift niet)."""
+        g = db.gesprekken
+        nu = db.utcnow()
+        async with db.get_engine().begin() as conn:
+            doel = await self._doorsnede(conn, user_id, groep, ids)
+            for stuk in _stukken(doel):
+                await conn.execute(update(g).where(g.c.id.in_(stuk)).values(gearchiveerd=nu))
+        return doel
+
+
+def _groep_filter(groep: GesprekGroep):
+    """De afbakening van een groep, op één plek: telling, ids en wissen gebruiken dezelfde."""
+    g = db.gesprekken
+    if groep == "recent":
+        return and_(g.c.gearchiveerd.is_(None), g.c.werkgebied_id == "")
+    return g.c.gearchiveerd.is_not(None)
+
+
+def _stukken(ids: list[str], grootte: int = 500):
+    """Per 500: een `IN` met duizenden parameters loopt op SQLite tegen zijn limiet aan."""
+    for i in range(0, len(ids), grootte):
+        yield ids[i:i + grootte]

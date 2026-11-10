@@ -8,8 +8,10 @@ import { VERWIJDER_UITLEG, verwijderLabel, type VerwijderSoort } from "@/lib/ver
  *  gesprek, op de pagina en per rij in de lijst (`lib/verwijderen.ts`). Altijd *Verwijderen*, de
  *  tweede klik bevestigt (*Verwijderen?*), de tooltip zegt wat er weggaat en wat blijft. In de maat van de knoppen
  *  ernaast (`knopVorm`): `xs` tussen de kleine gereedschappen van een paneelkop, `sm` in `KaartActies`. */
-export function VerwijderKnop({ soort, onBevestig, disabled, maat = "xs", className = "" }: {
+export function VerwijderKnop({ soort, onBevestig, disabled, maat = "xs", bevestigTekst = "Verwijderen?", className = "" }: {
   soort: VerwijderSoort;
+  /** De tweede stand. Bij een groep zegt hij hoeveel er weggaat: *71 gesprekken verwijderen?*. */
+  bevestigTekst?: string;
   maat?: "xs" | "sm";
   onBevestig: () => void | Promise<void>;
   disabled?: boolean;
@@ -18,7 +20,7 @@ export function VerwijderKnop({ soort, onBevestig, disabled, maat = "xs", classN
   return (
     <BevestigKnop
       onBevestig={onBevestig}
-      bevestigTekst="Verwijderen?"
+      bevestigTekst={bevestigTekst}
       ariaLabel={verwijderLabel(soort)}
       titel={VERWIJDER_UITLEG[soort]}
       disabled={disabled}

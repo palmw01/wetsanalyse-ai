@@ -19,6 +19,7 @@ import { WerkplekClient } from "@/components/werkplek/WerkplekClient";
 import { foutTekst, getAccount, getVerbruik, verwijderGesprek, wijzigGesprek, zetRondleiding } from "@/lib/api";
 import { metSpoor } from "@/lib/uiSpoor";
 import { useRunStanden } from "@/lib/runStanden";
+import { GESPREKKEN_GEWIJZIGD, gevolgVoorWerkplek, type GesprekkenGewijzigd } from "@/lib/gesprekkenGewijzigd";
 import { kaleTitel, tabTitel } from "@/lib/tabTitel";
 import { resetdatum, tokensKort } from "@/lib/tokenbudget";
 import type { BeslissingType, Gesprek, GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
@@ -207,6 +208,43 @@ export function WorkbenchShell({
     zetGesprekInUrl(id, gesprekken.find((g) => g.id === id)?.werkgebied_id || null);
   }
 
+  // Gesprekken die in de instellingen in één keer weggingen of naar het archief verhuisden: de sidebar haalt zijn lijst
+  // opnieuw, en was het open gesprek erbij, dan blijft de werkplek leeg achter (zoals bij `onVerwijderd`). Via een ref,
+  // zodat de luisteraar één keer hangt en toch het open gesprek van nu ziet.
+  const bijGesprekkenGewijzigd = useRef<(d: GesprekkenGewijzigd) => void>(() => {});
+  useEffect(() => {
+    bijGesprekkenGewijzigd.current = (d) => {
+      setVerversSignaal((s) => s + 1);
+      if (gevolgVoorWerkplek(d, activeId).sluit) nieuwGesprek();
+    };
+  });
+  useEffect(() => {
+    const bij = (e: Event) => bijGesprekkenGewijzigd.current((e as CustomEvent<GesprekkenGewijzigd>).detail);
+    window.addEventListener(GESPREKKEN_GEWIJZIGD, bij);
+    return () => window.removeEventListener(GESPREKKEN_GEWIJZIGD, bij);
+  }, []);
+
+  // Wat de werkplek als laatste in de URL zette (`schrijfUrl`). Het instellingenvenster sluit met Terug
+  // (`sluitInstellingen`), en dan komt het adres van vóór het openen terug: met een gesprek dat je intussen in het
+  // venster verwijderde. Bij `popstate` zet de werkplek daarom haar eigen stand terug, zodat herladen niet een gesprek
+  // probeert te openen dat er niet meer is. Alleen op de werkplek zelf: Terug naar een andere pagina blijft ongemoeid.
+  const urlStand = useRef<{ gesprek: string | null; werkgebied: string | null } | null>(null);
+  useEffect(() => {
+    const bij = () => {
+      const stand = urlStand.current;
+      if (!stand || window.location.pathname !== "/workbench") return;
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("gesprek") === stand.gesprek && url.searchParams.get("werkgebied") === stand.werkgebied) return;
+      for (const [naam, waarde] of [["gesprek", stand.gesprek], ["werkgebied", stand.werkgebied]] as const) {
+        if (waarde) url.searchParams.set(naam, waarde);
+        else url.searchParams.delete(naam);
+      }
+      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    };
+    window.addEventListener("popstate", bij);
+    return () => window.removeEventListener("popstate", bij);
+  }, []);
+
   /** Het open gesprek archiveren, verplaatsen of verwijderen vanuit de chatkop. Daarna haalt de
    *  sidebar zijn lijst opnieuw; een fout landt in dezelfde strook als die van de sidebar. */
   async function archiveerActief(a: boolean) {
@@ -288,7 +326,13 @@ export function WorkbenchShell({
     const url = new URL(window.location.href);
     if (id) url.searchParams.set("werkgebied", id);
     else url.searchParams.delete("werkgebied");
+    schrijfUrl(url);
+  }
+
+  /** De ene schrijver van het adres van de werkplek: `replace`, en onthouden wat er staat (`urlStand`). */
+  function schrijfUrl(url: URL) {
     window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    urlStand.current = { gesprek: url.searchParams.get("gesprek"), werkgebied: url.searchParams.get("werkgebied") };
   }
 
   /** Het actieve gesprek hoort in de URL: anders opende herladen een leeg gesprek (of weer het
@@ -308,7 +352,7 @@ export function WorkbenchShell({
       if (werkgebied) url.searchParams.set("werkgebied", werkgebied);
       else url.searchParams.delete("werkgebied");
     }
-    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    schrijfUrl(url);
   }
 
   // Uit de lijst, anders uit het geladen gesprek: een gearchiveerd gesprek staat pas in de lijst als het archief open is.

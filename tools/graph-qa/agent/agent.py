@@ -136,6 +136,14 @@ async def delete_conversation(conversation_id: str, *, settings: Settings | None
     """Wis het volledige agent-geheugen (checkpointer-thread) van één gesprek. Idempotent: een
     onbekende `conversation_id` is geen fout. Aangeroepen als de werkplek een gesprek verwijdert, zodat
     de inhoud niet in de checkpointer-DB achterblijft (privacy – parallel aan de API-berichten-delete)."""
+    await delete_conversations([conversation_id], settings=settings)
+
+
+async def delete_conversations(conversation_ids: list[str], *, settings: Settings | None = None) -> None:
+    """Hetzelfde voor een reeks gesprekken (opruimen in de instellingen), in **één** checkpointer-context: per
+    gesprek een nieuwe verbinding openen maakte 71 losse rondes van wat één ronde is."""
+    if not conversation_ids:
+        return
     settings = settings or Settings.from_env()
     async with _checkpointer_ctx(settings) as saver:
         # Zorg dat de checkpoint-tabellen bestaan (SQLite maakt ze anders pas bij de eerste write →
@@ -146,7 +154,8 @@ async def delete_conversation(conversation_id: str, *, settings: Settings | None
                 await setup()
             except Exception:  # noqa: BLE001 – MemorySaver e.d. hebben geen tabellen
                 pass
-        await saver.adelete_thread(conversation_id)
+        for conversation_id in conversation_ids:
+            await saver.adelete_thread(conversation_id)
 
 
 async def _werkgebied_blok(settings: Settings, user_id: str, werkgebied_id: str) -> str:
