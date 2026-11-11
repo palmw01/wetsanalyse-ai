@@ -136,17 +136,32 @@ def _met_inhoud(rijen: list[dict[str, Any]], tool: str, args: dict[str, Any], *,
             **(openen if ingekort or zonder_begin else {})}
 
 
+#: Zo lang mag de eerste alinea van een deel zijn om op de inhoudpagina helemaal te staan, als rij met haar `nr`: dan is
+#: ze citeerbaar in het blok `extern` (controle 11 nov 2026, B16: de aanhef per artikel stond alleen als begin in de inhoud,
+#: en het model citeerde de hele eerste pagina). Een langere alinea staat er als begin (`begint`), en Lex leest haar vanaf
+#: de offset.
+MAX_AANHEF = BUDGET // 8
+
+
 def inhoudpagina(rijen: list[dict[str, Any]], *, tool: str, args: dict[str, Any], offset: int,
                  stuk: dict[str, Any]) -> str:
-    """Alleen de inhoud van een stuk: de koppen op het bovenste niveau (`koppen`) met hun offset en `begint`, per pagina –
-    het niveau waarop een ingekorte inhoud stopt (`inhoud`), en bij een verzamelwet de artikelen met de regeling die ze
-    wijzigen. De offsets wijzen in de tekst (een aanroep zonder `inhoud`), de paginering van deze aanroep loopt over de
-    koppen. Een dieper deel staat in de tekst vanaf de offset van zijn bovenste kop."""
-    lijst = koppen(rijen, 1)
+    """Alleen de inhoud van een stuk: de koppen op het bovenste niveau (`koppen`) met hun offset, per pagina – het niveau
+    waarop een ingekorte inhoud stopt (`inhoud`), en bij een verzamelwet de artikelen met de regeling die ze wijzigen.
+    Per kop de eerste alinea als rij (`nr`, `tekst`, letterlijk en dus te citeren) als die hoogstens `MAX_AANHEF` tekens
+    telt, anders haar begin (`begint`, `begint_afgekapt`). De offsets wijzen in de tekst (een aanroep zonder `inhoud`), de
+    paginering van deze aanroep loopt over de koppen. Een dieper deel staat in de tekst vanaf de offset van zijn kop."""
+    lijst = []
+    for k in koppen(rijen, 1):
+        r = rijen[k["offset"]]
+        tekst = str(r.get("tekst") or "")
+        if "begint" in k and isinstance(r.get("nr"), int) and len(tekst) <= MAX_AANHEF:
+            k = {"nr": r["nr"], "kop": k["kop"], "offset": k["offset"], "tekst": tekst}
+        lijst.append(k)
     return per_eenheid(lijst, tool=tool, args={"id": args["id"], "inhoud": True}, offset=offset,
                        extra={"stuk": stuk, "totaal": len(lijst)},
-                       toelichting="De koppen van het stuk; 'offset' is de plek in de tekst: lees vanaf daar met "
-                                   f"{{\"id\": \"{args['id']}\", \"offset\": <offset>}}.")
+                       toelichting="De koppen van het stuk met hun eerste alinea; 'offset' is de plek in de tekst: lees "
+                                   f"vanaf daar met {{\"id\": \"{args['id']}\", \"offset\": <offset>}}. Een rij met nr "
+                                   "en tekst kun je citeren.")
 
 
 def tekstpagina(rijen: list[dict[str, Any]], *, tool: str, args: dict[str, Any], offset: int, stuk: dict[str, Any],

@@ -309,8 +309,11 @@ bruikbaar is.
   en de sprong hebben ze nodig): eerst alle koppen zonder `begint` (`inhoud_zonder_begin`), en pas daarna een ingekorte
   lijst (`inhoud_ingekort`); in beide gevallen noemt de pagina `inhoud_openen` (`stuk_tekst.inhoud_van`, `_met_inhoud`).
   Elke leestool leest met `inhoud: true` (`INHOUD_ARG`, `stuk_tekst.inhoudpagina`) alleen de koppen op het
-  bovenste niveau, per pagina (hermeting 11 nov 2026: 11 van de 30 artikelen van Stb. 2009, 610 op de eerste pagina, en
-  een aanhef boven 160 tekens viel weg). **Een gefilterde lezing** (`artikel`, `regeling`) draagt `inhoud_publicatie`: de
+  bovenste niveau, per pagina, elk met zijn eerste alinea als rij (`nr`, `tekst`: te citeren in `extern`) tot
+  `MAX_AANHEF` tekens, en anders het begin (hermeting 11 nov 2026: 11 van de 30 artikelen van Stb. 2009, 610 op de eerste
+  pagina, en een aanhef boven 160 tekens viel weg; controle: zonder `nr` citeerde het model de hele eerste pagina). Het
+  spoor noemt `inhoud` bij de filters, en elk argument van een connectortool buiten `doel` staat daar
+  (`test_het_spoor_toont_de_filters_van_elke_connector`). **Een gefilterde lezing** (`artikel`, `regeling`) draagt `inhoud_publicatie`: de
   koppen van de hele publicatie met hun offset in een lezing zonder filter (`tekstpagina(publicatie=)`), zodat Lex gericht
   doorleest naar de inwerkingtreding of de toelichting (hermeting B08: anders las het model het hele stuk, 86k tegen 24k).
   Een genoemd stuk leest de code vooraf mét het genoemde artikel als de leestool `artikel` kent

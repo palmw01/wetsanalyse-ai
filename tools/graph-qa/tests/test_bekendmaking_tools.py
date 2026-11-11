@@ -252,15 +252,27 @@ def test_de_inhoud_van_een_verzamelwet_noemt_per_artikel_de_aanhef():
     alles = roep(d["inhoud_openen"]["tool"], d["inhoud_openen"]["args"])
     assert alles["status"] == "ok" and alles["volledig"] and alles["totaal"] == 30
     aanhef = {i["kop"]: i for i in alles["resultaten"]}
-    assert aanhef["Artikel XVI"]["begint"] == "De Algemene wet inzake rijksbelastingen wordt als volgt gewijzigd:"
-    assert aanhef["Artikel XVII"]["begint"] == "De Invorderingswet 1990 wordt als volgt gewijzigd:"
-    assert "begint_afgekapt" not in aanhef["Artikel XVII"]
+    assert aanhef["Artikel XVI"]["tekst"] == "De Algemene wet inzake rijksbelastingen wordt als volgt gewijzigd:"
+    assert aanhef["Artikel XVII"]["tekst"] == "De Invorderingswet 1990 wordt als volgt gewijzigd:"
     vii = aanhef["Artikel VII"]
-    assert vii["begint"].startswith("Aan artikel 15, eerste lid, van de Wet op belastingen van rechtsverkeer wordt")
-    assert vii["begint_afgekapt"] and len(vii["begint"]) <= 160, "een lange aanhef: het begin, en dat het een begin is"
+    assert len(vii["tekst"]) > 160 and vii["tekst"].startswith(
+        "Aan artikel 15, eerste lid, van de Wet op belastingen van rechtsverkeer wordt"), "ook een lange aanhef, helemaal"
     _, rijen, _, _ = lees((FIX / "stb-2009-610.xml").read_bytes())
-    assert rijen[vii["offset"]]["tekst"].startswith(vii["begint"]), "letterlijk het begin, en de offset klopt"
+    assert all(rijen[i["offset"]]["nr"] == i["nr"] and rijen[i["offset"]]["tekst"] == i["tekst"]
+               for i in alles["resultaten"] if "tekst" in i), "letterlijk de rij, met haar nr, op de offset"
     assert all(" › " not in i["kop"] for i in alles["resultaten"]), "het bovenste niveau, zoals een ingekorte inhoud"
+
+
+def test_de_aanhef_op_de_inhoudpagina_is_te_citeren():
+    """Controle 11 nov 2026, B16: de aanhef per artikel stond alleen in de inhoud, en het blok extern citeerde de hele
+    eerste pagina. Een rij van de inhoudpagina draagt nr en tekst, dus het model wijst haar aan."""
+    from agent.sjablonen import extern
+
+    alles = roep("get_bekendmaking", {"id": "stb-2009-610", "inhoud": True})
+    xvii = next(i for i in alles["resultaten"] if i["kop"] == "Artikel XVII")
+    trace = [("get_bekendmaking", json.dumps(alles, ensure_ascii=False))]
+    [blok] = extern.blokken([{"id": "stb-2009-610", "van_nr": xvii["nr"], "tot_nr": xvii["nr"]}], trace)
+    assert [(p.kop, p.tekst) for p in blok.passages] == [("Artikel XVII", "De Invorderingswet 1990 wordt als volgt gewijzigd:")]
 
 
 def test_een_gefilterde_lezing_wijst_de_rest_van_de_publicatie_aan():
@@ -418,6 +430,12 @@ def test_het_spoor_toont_de_filters_van_elke_connector():
         for veld in c.metadata:
             assert set(veld.filters) - {"bwb_id", "artikel", "id"} <= FILTERS, (c.naam, veld.sleutel)
     assert {"publicatie", "soort", "woorden", "vanaf", "tot", "orgaan", "volgorde", "regeling"} <= FILTERS
+    # Elk argument van een connectortool staat in het spoor, behalve wat in `doel` staat (controle 11 nov 2026: `inhoud`
+    # ontbrak, en dan was niet te zien dat Lex de inhoudpagina las).
+    for c in bm.CONNECTORS.values():
+        for naam in c.tools:
+            schema = next(t for t in tools.TOOLS if t["name"] == naam)["input_schema"]
+            assert set(schema["properties"]) - {"id", "bwb_id", "artikel"} <= FILTERS, naam
 
 
 @pytest.mark.parametrize("versie,label", [("Herdruk", "Stb. 2010, 185 (herdruk)"), ("n1", "Stb. 2010, 185 (versie n1)"),
