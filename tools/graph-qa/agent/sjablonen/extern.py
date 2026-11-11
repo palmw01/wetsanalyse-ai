@@ -33,9 +33,11 @@ from .vullen import Onvulbaar, Trace, _data, resultaten
 MAX_PASSAGES = 6
 #: Zo veel stukken per antwoord.
 MAX_STUKKEN = 4
-#: Zo veel alinea's citeert één antwoord hoogstens, over alle aanwijzingen samen: de aanwijzingen die het model mag geven
-#: (`MAX_STUKKEN * 2`) maal `MAX_PASSAGES`. Een langere reeks splitst de code zelf. Een grens per aanwijzing liet het
-#: model in stappen splitsen, één weigering per stap (iteratie 11 nov 2026: Kamerstukken K15 vijf keer, 450k tokens).
+#: Zo veel alinea's citeert één antwoord hoogstens, over alle aanwijzingen samen. Een langere reeks splitst de code zelf.
+#: Een grens per aanwijzing liet het model in stappen splitsen, één weigering per stap (iteratie 11 nov 2026: Kamerstukken
+#: K15 vijf keer, 450k tokens). Het aantal aanwijzingen heeft geen eigen grens: elke aanwijzing draagt minstens één alinea,
+#: dus dit totaal begrenst ze al. Een grens van acht aanwijzingen weigerde losse alinea's verspreid over een stuk, zoals de
+#: aanhef van zeventien artikelen van een verzamelwet (iteratie bekendmakingen ronde 3, B16: zeven rondes, 187k tokens).
 MAX_ALINEAS = MAX_PASSAGES * MAX_STUKKEN * 2
 
 VELD = "extern"
@@ -209,8 +211,9 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
     antwoord opnieuw schreef (iteratie bekendmakingen ronde 1, 11 nov 2026: B16 vijf rondes, ~120k tokens)."""
     if not items:
         return []
-    if not isinstance(items, list) or len(items) > MAX_STUKKEN * 2:
-        raise Onvulbaar(f"'{VELD}' is een lijst van hoogstens {MAX_STUKKEN * 2} aanwijzingen.")
+    if not isinstance(items, list) or len(items) > MAX_ALINEAS:
+        raise Onvulbaar(f"'{VELD}' is een lijst van hoogstens {MAX_ALINEAS} aanwijzingen. Wijs alleen de alinea's aan die "
+                        "het antwoord dragen, en vat de rest samen in het korte antwoord.")
     per_stuk: dict[str, Extern] = {}
     fouten: list[str] = []
     for item in items:
@@ -299,9 +302,11 @@ _AANHALING = re.compile(r'["„”]')
 
 
 def _voluit(datum: str) -> str:
-    """'2024-01-01' → '1 januari 2024'; iets anders blijft staan."""
+    """'2024-01-01' → '1 januari 2024', '2024-03' → 'maart 2024'; iets anders blijft staan."""
     from ..hoeveelheden import _MAANDEN
 
+    if (m := re.fullmatch(r"(\d{4})-(\d{2})", str(datum))) and 1 <= int(m.group(2)) <= 12:
+        return f"{_MAANDEN[int(m.group(2)) - 1]} {m.group(1)}"
     m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", str(datum))
     return f"{int(m.group(3))} {_MAANDEN[int(m.group(2)) - 1]} {m.group(1)}" if m and 1 <= int(m.group(2)) <= 12 else str(datum)
 
@@ -318,11 +323,15 @@ _HET = frozenset({"college", "ministerie", "parket", "gerechtshof", "hof", "open
 
 def van_orgaan(naam: str) -> str:
     """'van de Hoge Raad', 'van het College van Beroep voor het bedrijfsleven'; een soort in kleine letters (een
-    categorie, geen naam) krijgt 'een': 'van een gerechtshof'."""
+    categorie, geen naam) in het meervoud: 'van gerechtshoven' (meting Rechtspraak ronde 2, R06: "van een
+    gerechtshoven")."""
+    from bronmodel.connectors import INSTANTIE_MEERVOUD
+
     naam = " ".join(str(naam).split())
     eerste = naam.split(" ", 1)[0] if naam else ""
     if eerste[:1].islower():
-        return f"van een {naam}"
+        meervoud = next((m for m, e in INSTANTIE_MEERVOUD.items() if e == naam.lower()), "")
+        return f"van {naam}" if naam.lower() in INSTANTIE_MEERVOUD else f"van {meervoud}" if meervoud else f"van een {naam}"
     return f"van {'het' if eerste.lower() in _HET else 'de'} {naam}"
 
 
@@ -365,7 +374,10 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any], *, volg
             delen.append(f"{veld.label} {waarde}")
         else:
             delen.append(f"{arg} {waarde}")
-    if periode.get("vanaf") and periode.get("tot"):
+    if periode.get("vanaf") and periode.get("tot") and periode["vanaf"] == periode["tot"]:
+        # Eén maand of één jaar: "in maart 2025", niet "van 2025-03 tot en met 2025-03" (meting Rechtspraak ronde 2, R04).
+        delen.append(f"in {periode['vanaf']}")
+    elif periode.get("vanaf") and periode.get("tot"):
         delen.append(f"van {periode['vanaf']} tot en met {periode['tot']}")
     elif periode.get("vanaf"):
         delen.append(f"vanaf {periode['vanaf']}")
@@ -373,13 +385,15 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any], *, volg
         delen.append(f"tot en met {periode['tot']}")
     # Wat met "van" begint (een orgaan, een periode) staat achteraan: "Gezocht op van de Hoge Raad" liep niet (nameting
     # 10 nov 2026). Is er verder niets, dan is het "Gezocht naar stukken van de Hoge Raad".
-    delen.sort(key=lambda d: d.startswith(("van ", "vanaf ", "tot en met ")))
-    alleen_van = bool(delen) and all(d.startswith(("van ", "vanaf ", "tot en met ")) for d in delen)
+    delen.sort(key=lambda d: d.startswith(("van ", "vanaf ", "tot en met ", "in ")))
+    alleen_van = bool(delen) and all(d.startswith(("van ", "vanaf ", "tot en met ", "in ")) for d in delen)
+    # Delen die met een voorzetsel beginnen, lopen zonder "en" door: "van de Centrale Raad van Beroep in maart 2025"
+    # (meting Rechtspraak ronde 2, R04: "… en in maart 2025").
     if bepaling:
-        begin = f"Gezocht bij {bepaling}" + (f", {_opsomming(delen)}" if alleen_van else
+        begin = f"Gezocht bij {bepaling}" + (f", {' '.join(delen)}" if alleen_van else
                                               f", op {_opsomming(delen)}" if delen else "") + "."
     elif alleen_van:
-        begin = f"Gezocht naar stukken {_opsomming(delen)}."
+        begin = f"Gezocht naar stukken {' '.join(delen)}."
     else:
         begin = f"Gezocht op {_opsomming(delen)}." if delen else ""
     # Bij niets gevonden zegt een volgorde niets ("Meest relevante eerst." onder 0 treffers, meting Staatsblad B14).

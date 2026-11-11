@@ -432,7 +432,7 @@ def test_een_artikel_van_overheid_in_extern_is_onderbouwd_in_de_duiding():
     raw = tools.dispatch("get_wettekst", _graaf(), {"bwb_id": "BWBR0003045", "artikel": "9"}, AAN, wetgeving_live=_bron())
     ident = json.loads(raw)["stuk"]["id"]
     trace = [("get_wettekst", raw)]
-    assert duiding.live_artikelen(trace) == {"9": ident, "2:9": ident}
+    assert duiding.live_artikelen(trace) == {"9": (ident,), "2:9": (ident,)}
     uitleg = "Artikel 2:9 BW legt de aansprakelijkheid bij de rechtspersoon."
     assert duiding._niet_onderbouwd(uitleg, [], frozenset({ident}), trace) == []
     # Zonder aanwijzing in 'extern' zegt de weigering hoe het wél moet: het id, niet get_artikel.
@@ -440,6 +440,32 @@ def test_een_artikel_van_overheid_in_extern_is_onderbouwd_in_de_duiding():
     assert los == ["artikel 2:9"]
     melding = str(duiding._genoemd_is_gelezen(los, {}, trace))
     assert ident in melding and "'extern'" in melding and "get_artikel" not in melding
+    # Ronde 2: een apart gelezen lid is een eigen stuk, en het artikel is onderbouwd als één daarvan aangewezen is.
+    lid2 = tools.dispatch("get_wettekst", _graaf(), {"bwb_id": "BWBR0003045", "artikel": "9", "lid": "2"}, AAN,
+                          wetgeving_live=_bron())
+    lid2_id = json.loads(lid2)["stuk"]["id"]
+    assert lid2_id == f"{ident}:lid:2"
+    trace = [("get_wettekst", raw), ("get_wettekst", lid2)]
+    assert duiding.live_artikelen(trace)["2:9"] == (ident, lid2_id)
+    assert duiding._niet_onderbouwd(uitleg, [], frozenset({lid2_id}), trace) == []
+
+
+def test_de_opbouw_van_een_regeling_van_overheid_onderbouwt_de_indeling_in_de_duiding():
+    """Ronde 2, I13: het overzicht van de Wet IB 2001 noemde per hoofdstuk het eerste en laatste artikel uit de opbouw,
+    en het sjabloon weigerde vier keer omdat die artikelen niet gelezen waren. De opbouw komt uit de bron; een artikel
+    dat er niet in staat, blijft geweigerd."""
+    from agent.sjablonen import duiding
+
+    raw = tools.dispatch("zoek_artikelen", _graaf(), {"bwb_id": PW}, AAN, wetgeving_live=_bron())
+    data = json.loads(raw)
+    eerste = data["opbouw"][0]
+    trace = [("zoek_artikelen", raw)]
+    nummers = [d[k].removeprefix("Artikel ") for d in data["opbouw"][:2] for k in ("van", "tot")]
+    uitleg = "Hoofdstuk 1 loopt van artikel {} tot en met artikel {}; hoofdstuk 2 van artikel {} tot artikel {}.".format(
+        *nummers)
+    assert eerste["van"] == "Artikel 1"
+    assert duiding._niet_onderbouwd(uitleg, [], frozenset(), trace) == []
+    assert duiding._niet_onderbouwd("Artikel 999 regelt de rest.", [], frozenset(), trace) == ["artikel 999"]
 
 
 def test_een_interne_weigering_komt_nooit_bij_de_jurist():
@@ -450,6 +476,23 @@ def test_een_interne_weigering_komt_nooit_bij_de_jurist():
              "hieronder.\n\n**Vergelijking**\n\nDe bepalingen verschillen op vier punten.")
     assert zonder_interne_taal(tekst) == "Ik geef het antwoord hieronder.\n\n**Vergelijking**\n\nDe bepalingen verschillen op vier punten."
     assert zonder_interne_taal("De wet gebruikt geen modelbepaling.") == "De wet gebruikt geen modelbepaling."
+
+
+def test_een_zin_over_de_vorm_van_het_antwoord_komt_niet_bij_de_jurist():
+    """Ronde 2, I13: na vier geweigerde sjablonen begon het antwoord met "Ik geef de uitleg daarom in tekst, met
+    verwijzing naar de gelezen stukken." Dat gaat over de werking van Lex, niet over de wet."""
+    from agent.nodes.antwoord import zonder_interne_taal
+
+    assert zonder_interne_taal("Ik geef de uitleg daarom in tekst, met verwijzing naar de gelezen stukken.\n\n---\n\n"
+                               "De wet kent drie boxen.") == "---\n\nDe wet kent drie boxen."
+    assert zonder_interne_taal("Ik geef de vergelijking daarom in tekst weer. Lid 2 eist een ernstig verwijt.") == (
+        "Lid 2 eist een ernstig verwijt.")
+    assert zonder_interne_taal("De bepalingen zijn opgehaald maar de code herkent ze niet als gelezen. Lid 1 geldt.") == (
+        "Lid 1 geldt.")
+    # Wat over de wet gaat, blijft.
+    for zin in ("Ik geef het antwoord hieronder.", "De wet geeft de regel in tekst en tabel.",
+                "Artikel 3 geeft de definitie in de tekst van lid 1."):
+        assert zonder_interne_taal(zin) == zin
 
 
 def test_systeemtaal_komt_nooit_bij_de_jurist_ook_niet_in_een_sjabloon():

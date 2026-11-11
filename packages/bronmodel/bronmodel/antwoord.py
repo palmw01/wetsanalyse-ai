@@ -291,7 +291,7 @@ def _blok_tekst(b: BaseModel) -> str:
             naam = f"[{x.label}]({x.link})" if x.link else x.label
             wat = " · ".join(v for v in (x.soort, x.datum) if v)
             geen = f" ({x.zonder_tekst or 'geen tekst bij de bron'})" if not x.leesbaar else ""
-            return f"- {naam}{' · ' + wat if wat else ''}{': ' + x.titel if x.titel else ''}{geen}"
+            return f"- {naam}{' · ' + wat if wat else ''}{': ' + x.titel if x.titel else ''}{geen}{reeks_tekst(x.reeks)}"
         # Het totaal staat er ook als alles getoond is: "hoeveel stukken zitten er in dossier 33755?" kreeg anders een
         # lijst zonder getal (ronde 1 Kamerstukken, 11 nov 2026, K25).
         aantal = ("" if not b.totaal else f"{len(b.items)} van de {getal(b.totaal)} stukken." if b.totaal > len(b.items)
@@ -305,6 +305,15 @@ def _blok_tekst(b: BaseModel) -> str:
 
 KOPPEN = {"definities": "Wettelijke definitie", "begrippen": "Vastgelegd begrip", "wettekst": "Wettekst", "citaten": "Onderbouwing",
           "verwijzingen": "Verwijzingen", "annotaties": "Markeringen", "twijfel": "Twijfel en aannames"}
+
+
+def reeks_tekst(reeks: list[str]) -> str:
+    """Een stuk uit een gezamenlijke behandeling van dossiers: " (gezamenlijk behandeld: 33752–33755)". Zonder die zin
+    stonden in de lijst van dossier 33755 tien stukken als "Kamerstukken 33752, nr. B" zonder uitleg (ronde 2
+    Kamerstukken, 11 nov 2026: K04, K21, K25). De frontend zegt hetzelfde (`reeksTekst` in `lib/antwoord.ts`)."""
+    if len(reeks) < 2:
+        return ""
+    return f" (gezamenlijk behandeld: {reeks[0]}–{reeks[-1]})" if len(reeks) > 2 else f" (gezamenlijk behandeld: {reeks[0]} en {reeks[1]})"
 
 
 def getal(n: int) -> str:

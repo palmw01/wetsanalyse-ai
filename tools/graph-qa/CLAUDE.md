@@ -281,7 +281,9 @@ bruikbaar is.
   (`KAMERSTUKKEN.metadata`, sleutels uit `bronmodel.connectors.METADATA_SLEUTELS`): `Record` leest elk veld apart (de
   documentdatum `dt.date` en de publicatiedatum `dt.available` lopen soms weken uiteen), en `kamerstuk_tools.metadata`
   zet ze in de rij en in `stuk` (`label`, `soort`, `titel`, `datum`, `jaar`, `orgaan`, `indieners`; `gepubliceerd`,
-  `reeks`, `status`, `leesbaar` alleen in de uitzondering). Het label komt uit dossier en nummer, niet uit het id; een
+  `reeks`, `status`, `leesbaar` alleen in de uitzondering; een stuk met een `reeks` heet in de lijst "(gezamenlijk
+  behandeld: 33752–33755)", `bronmodel.antwoord.reeks_tekst`, ronde 2). Een lege uitkomst noemt de grens van de
+  zoekdienst (`GRENS`: Kamerstukken vanaf het vergaderjaar 1994-1995, ouder staat er niet in). Het label komt uit dossier en nummer, niet uit het id; een
   `w.subrubriek` "Overig" (oudere stukken) wordt het soort uit de titel. **Een id dat KOOP niet kent** zoekt
   `SruKamerstukken.record` op dossier en nummer in het hoofddossier: een herdruk (`kst-32740-1` → `kst-32740-1-n1`) en
   een onopgemaakt stuk (32140 nr. 342 = `kst-1278484`); het `stuk` noemt het echte id en de toelichting zegt het. Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
@@ -407,7 +409,13 @@ bruikbaar is.
   zoekvraag; `van_orgaan` kiest het lidwoord ("van het College"); `provenance.collect_sources` slaat een foutresultaat over
   (`is_fout`: het voorbeeld in een foutmelding is geen bron); `bron_lijst` leest een maand, laat een werkwoord achter het
   onderwerp weg (`_WERKWOORDEN`), kent "kamerdossier" en telt een naam binnen een langere regelingnaam niet
-  (`_zonder_ingesloten`). `tests/test_rechtspraak_tools.py`,
+  (`_zonder_ingesloten`). **Na ronde 2**: `zoek_uitspraken` met alleen `bwb_id` zoekt de uitspraken die de regeling als
+  geheel noemen (LiDO op `juriconnect-ref=<bwb>`; de Leidraad Invordering 2008: 204); een regeling buiten de graaf krijgt haar
+  titel uit de BWB-zoekdienst (`LidoRechtspraak.titel`); een buitenlandse of Europese ECLI is `buiten_bereik` met een `stuk`
+  (`leesbaar: false`), zodat het antwoord haar mag noemen; `bron_lijst` geeft bij "alle" een volle pagina; de zoekvraag zegt
+  "in maart 2025" en "van gerechtshoven". Gedeeld (Kamerstukken ronde 2): `grounding.genoemd_extern` herkent een stuk ook in
+  de citeervorm van een connector ("Stb. 2013, 568"), zodat een gelezen stuk dat het antwoord zo noemt in de bronnenlijst
+  blijft (`curate_sources`, `alleen_gelezen_extern`), en "Zoek …"/"Vind …" is een lijstvraag. `tests/test_rechtspraak_tools.py`,
   live `tests/test_rechtspraak_live.py`, meting `docs/architectuur/metingen/lido-spike-2026-11-10/`.
 - **Wetgeving buiten de kennisgraaf** (`tools/wetgeving_tools.py`, transport `adapters/sru_bwb.py`, ADR-013 fase 1e):
   wettekst van het BWB die niet in de graaf staat, live bij overheid.nl. **De graaf blijft de bron voor wat erin staat**,
@@ -1725,7 +1733,8 @@ ze geen artikel), dan zegt Lex zonder model waarom en wie ze aanzet (`_bron_uit`
 `bron_uit`, met een `bron_uit`-event waarmee de werkplek *Zet aan* aanbiedt). **Noemt de vraag een stuk bij id** van een
 connector die aanstaat (`connectors.genoemde_stukken`, ook in een citeervorm van de beschrijving: "Kamerstuk 32140, nr.
 342" → `kst-32140-342`, dat de leestool bij de bron oplost), dan leest de code het vooraf (`_te_lezen`,
-`nodes/bron_lezen.py`, de `leestool` met `lees_argument`); zonder artikel in de vraag zonder supervisorcall. **Een
+`nodes/bron_lezen.py`, de `leestool` met `lees_argument`; een kort stuk, hoogstens `MAX_RIJEN_KORT` rijen en `MAX_PAGINAS`
+pagina's, helemaal, ongefilterd: anders bladerde het model met één ronde per pagina, ronde 2 bekendmakingen B21); zonder artikel in de vraag zonder supervisorcall. **Een
 lijstvraag** ("geef de 10 meest recente Kamerstukken", "de laatste vijf moties van de Eerste Kamer", ook zonder volgorde
 "Kamerstukken uit vergaderjaar 2025-2026 over invorderingsrente": dan kiest de zoektool, en een orgaan als "Eerste Kamer"
 is nooit een volgorde) leest `agent/bron_lijst.py` helemaal in code – volgorde, aantal, dossier, soort (`ConnectorBeschrijving.soorten`), periode,

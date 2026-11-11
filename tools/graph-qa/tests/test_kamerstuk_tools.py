@@ -20,7 +20,7 @@ from agent.grounding import check_grounding
 from agent.provenance import collect_sources
 from agent.resultaat import BUDGET
 from agent.sjablonen.vullen import bron_rijen
-from agent.tools.kamerstuk_tools import MAX_DOSSIER, alineas
+from agent.tools.kamerstuk_tools import EERSTE_VERGADERJAAR, MAX_DOSSIER, alineas
 
 AAN = Settings(connector_kamerstukken=True)
 
@@ -776,7 +776,7 @@ def test_een_genoemd_stuk_met_alleen_een_pdf_is_een_melding_uit_code(monkeypatch
     """K12 (ronde 1, 11 nov 2026): het model formuleerde zelf wat de code al wist."""
     pdf = _record_xml("kst-1278484", dossiers=("32140",), datum="2026-10-16", gepubliceerd="2026-10-16")
     leemte, lijst = _beurt("Wat staat er in kst-32140-342?", _koop(Koop({}, {("32140", "342"): [pdf]})), monkeypatch)
-    assert leemte["soort"] == "leemte" and "alleen als PDF (onopgemaakt, alleen PDF)" in leemte["tekst"]
+    assert leemte["soort"] == "leemte" and "alleen als PDF (onopgemaakt):" in leemte["tekst"]
     assert lijst["soort"] == "stukken" and lijst["kop"] == "Uit de parlementaire geschiedenis"
     assert lijst["items"][0]["id"] == "kst-1278484" and lijst["items"][0]["label"] == "Kamerstukken 32140, nr. 342"
 
@@ -785,3 +785,37 @@ def test_een_genoemd_stuk_dat_niet_bestaat_is_een_melding_uit_code(monkeypatch):
     """K27: "kst-99999-99" ging langs het model en stond daarna in de bronnen."""
     [leemte] = _beurt("Wat staat er in kst-99001-7?", _koop(Koop({})), monkeypatch)
     assert leemte["soort"] == "leemte" and leemte["tekst"].startswith("kst-99001-7 is bij Kamerstukken niet gevonden.")
+
+
+@pytest.mark.parametrize("args", [{"dossier": "20588"}, {"tekst": "xyzzyquux"}])
+def test_een_lege_uitkomst_noemt_de_grens_van_de_zoekdienst(args):
+    """Ronde 2 Kamerstukken (11 nov 2026, K16 en K17): dossier 20588 (de Invorderingswet 1990) gaf niets, en het model
+    schreef twee keer dat die stukken "alleen als PDF" bij KOOP staan. Ze staan er helemaal niet in."""
+    d = roep("zoek_kamerstukken", args, NepBron([]))
+    assert d["status"] == "ok" and d["aantal"] == 0
+    assert EERSTE_VERGADERJAAR in d["toelichting"] and "ook niet als PDF" in d["toelichting"]
+
+
+def test_een_stuk_uit_een_gezamenlijke_behandeling_zegt_dat_in_de_lijst():
+    """Ronde 2 Kamerstukken (K04, K21, K25): in de lijst van dossier 33755 stond "Kamerstukken 33752, nr. L" zonder uitleg."""
+    from bronmodel.antwoord import Antwoord, Stuk, Stukken, antwoord_tekst
+    blok = Stukken(brontype="kamerstuk", kop="Gevonden Kamerstukken", totaal=2, items=[
+        Stuk(id="kst-33755-3", label="Kamerstukken 33755, nr. 3"),
+        Stuk(id="kst-33752-L", label="Kamerstukken 33752, nr. L", reeks=["33752", "33753", "33754", "33755"])])
+    regels = [r for r in antwoord_tekst(Antwoord(sjabloon="extern", blokken=[blok])).splitlines() if r.startswith("- ")]
+    assert regels[0] == "- Kamerstukken 33755, nr. 3"
+    assert regels[1] == "- Kamerstukken 33752, nr. L (gezamenlijk behandeld: 33752–33755)"
+
+
+@pytest.mark.parametrize("connector,verwacht", [
+    ("kamerstukken", " (onopgemaakt)"),     # "onopgemaakt, alleen PDF": alleen wat nieuw is
+    ("bekendmakingen", ""),                 # "alleen als PDF": niets nieuws, dus geen haakjes (B07, Staatsblad ronde 3)
+    ("rechtspraak", " (geen tekst in de open data)"),
+    ("wetgeving_live", " (niet volledig te lezen)"),
+])
+def test_de_vaste_pdf_zin_herhaalt_de_connector_niet(connector, verwacht):
+    from agent.nodes.bron_lezen import _wat_nieuw
+    from bronmodel.connectors import CONNECTORS
+    c = CONNECTORS[connector]
+    extra = _wat_nieuw(c.zonder_tekst, "alleen als PDF")
+    assert (f" ({extra})" if extra else "") == verwacht

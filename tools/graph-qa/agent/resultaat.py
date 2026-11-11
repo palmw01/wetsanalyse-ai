@@ -147,11 +147,19 @@ def pagina(
     meer = len(rijen_plus_een) > limit
     rijen = [compact(r) for r in rijen_plus_een[:limit]]
 
+    gevraagd = args.get("aantal") if isinstance(args.get("aantal"), int) and not isinstance(args.get("aantal"), bool) else None
+
     def maak(deel: Sequence[dict[str, Any]]) -> str:
         volledig = not meer and len(deel) == len(rijen)
         vervolg = None if volledig else {"tool": tool, "args": {**args, "offset": offset + len(deel)}}
+        uitleg = toelichting
+        # Minder rijen dan `aantal` door de begroting van één antwoord is zo bedoeld, maar het moet er staan: zonder die
+        # zin las het model 18 van de 25 als een fout en bladerde het (ronde 2 Kamerstukken, 11 nov 2026: K10, K20).
+        if gevraagd is not None and len(deel) < min(gevraagd, len(rijen)):
+            uitleg = " ".join(v for v in (toelichting, f"Je vroeg {gevraagd}; in één antwoord passen er {len(deel)}. "
+                                          "De rest staat in 'vervolg'.") if v)
         return resultaat(_zonder_herhaling(deel, zonder_herhaling), volledig=volledig, vervolg=vervolg,
-                         toelichting=toelichting, extra=extra)
+                         toelichting=uitleg, extra=extra)
 
     k, tekst = passend(rijen, maak, budget)
     if rijen and k == 0:

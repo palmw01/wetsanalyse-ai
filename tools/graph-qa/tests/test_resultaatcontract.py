@@ -505,3 +505,14 @@ def test_openen_van_een_connectortool_haalt_hetzelfde_contract(rijen: int):
     assert [r["soort"] for r in gezien] == ["tabel"] + ["tabelrij"] * rijen
     assert len(gezien[0]["cellen"]) == 4 and len({r["nr"] for r in gezien}) == len(gezien)
     assert gezien[-1]["nr"] == tabel["tot_nr"]
+
+
+def test_minder_rijen_dan_aantal_door_de_begroting_staat_in_de_toelichting():
+    """Ronde 2 Kamerstukken (11 nov 2026, K10 en K20): `aantal: 25` gaf 18 rijen, en zonder uitleg bladerde het model."""
+    from agent.resultaat import per_eenheid
+    rijen = [{"id": f"kst-1-{i}", "titel": "x" * 400} for i in range(25)]
+    d = json.loads(per_eenheid(rijen, tool="zoek_kamerstukken", args={"aantal": 25}, offset=0))
+    assert 0 < d["aantal"] < 25
+    assert f"Je vroeg 25; in één antwoord passen er {d['aantal']}." in d["toelichting"]
+    klein = json.loads(per_eenheid(rijen[:3], tool="zoek_kamerstukken", args={"aantal": 25}, offset=0))
+    assert "toelichting" not in klein, "alles past: geen zin"

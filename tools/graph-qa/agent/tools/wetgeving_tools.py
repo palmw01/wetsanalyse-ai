@@ -252,6 +252,17 @@ def tekststand(t: Toestand, vandaag: str) -> str:
     return "huidige tekst"
 
 
+def tekst_periode(t: Toestand, vandaag: str) -> str:
+    """Welke tekst het is, voor het label: "tekst geldig vanaf 2026-07-01" bij de huidige, en bij een andere ook dat het
+    die is, met het einde: "eerdere tekst, geldig van 2020-01-01 tot en met 2020-05-31". Dat stond alleen in de metadata,
+    niet in het antwoord dat de jurist kopieert (meting ronde 2, I15 en I16)."""
+    stand = tekststand(t, vandaag)
+    if stand == "huidige tekst":
+        return f"tekst geldig vanaf {t.geldig_vanaf}"
+    tot = "" if (t.geldig_tot or OPEN_EIND) == OPEN_EIND else t.geldig_tot
+    return f"{stand}, geldig " + (f"van {t.geldig_vanaf} tot en met {tot}" if tot else f"vanaf {t.geldig_vanaf}")
+
+
 # --- invoer -----------------------------------------------------------------------------------------------------------
 
 def _peildatum(a: dict[str, Any]) -> str | None:
@@ -392,8 +403,24 @@ def _zoek(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
     args["aantal"] = aantal
     return pagina([_regelingrij(t, peil, vandaag, in_graaf) for t in deel], tool="zoek_regelingen", args=args,
                   limit=aantal, offset=offset,
-                  extra={"zoekvraag": _zoekvraag_tekst(a, peil), "totaal": max(totaal, len(regelingen))},
+                  extra={**zoekvraag_van(args, volgorde), "totaal": max(totaal, len(regelingen))},
                   toelichting=" ".join(toelichting))
+
+
+def zoekvraag_van(args: dict[str, Any], volgorde: str = "", *, regeling: str = "") -> dict[str, Any]:
+    """De zoekvraag onder een lijst in de vorm van de andere connectors: de filters als dict (`zoekvraag`, de code zet
+    ze in zinnen met de labels uit de beschrijving) en wat daar geen filter voor heeft als `kanttekening`: het BWB-id en
+    de regeling waarin gezocht is. Een zin als zoekvraag maakte het blok `stukken` leeg: geen zoekvraag en geen totaal
+    (meting ronde 2: I01, I14, I30)."""
+    zoekvraag = {k: v for k, v in args.items() if k in {"naam", "soort", "orgaan", "rechtsgebied", "peildatum"} and v}
+    if args.get("woorden"):
+        zoekvraag["tekst"] = args["woorden"]
+    if volgorde:
+        zoekvraag["volgorde"] = volgorde
+    kant = (f"In {regeling}." if regeling and args.get("woorden") else
+            f"De artikelen van {regeling}, in de volgorde van de regeling." if regeling else
+            f"BWB-id {args['bwb_id']}." if args.get("bwb_id") else "")
+    return {"zoekvraag": zoekvraag, **({"kanttekening": kant} if kant else {})}
 
 
 def _buiten_de_peildatum(bron: WetgevingBron, naam: str, peil: str) -> str:
@@ -428,6 +455,7 @@ def _buiten_de_peildatum(bron: WetgevingBron, naam: str, peil: str) -> str:
 def _regelingrij(t: Toestand, peil: str, vandaag: str, in_graaf: dict[str, Any] | None) -> dict[str, Any]:
     """Eén regeling in de vaste metadatasleutels (`bronmodel.connectors.METADATA_SLEUTELS`)."""
     rij = compact({"id": f"bwbt:{t.bwb_id}:{t.versie}", "label": t.titel, "titel": t.titel, "nummer": t.bwb_id,
+                   "link": t.link,
                    "soort": t.soort, "orgaan": t.ministerie, "rechtsgebied": "; ".join(t.rechtsgebieden),
                    "datum": t.geldig_vanaf, "tekst_vanaf": t.geldig_vanaf,
                    "tekst_tot": "" if t.geldig_tot == OPEN_EIND else t.geldig_tot, "gewijzigd": t.gewijzigd,
@@ -536,6 +564,7 @@ def _opbouw(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
         if woorden and not _bevat(_volledige_tekst(b), woorden):
             continue
         rijen.append(compact({"id": _id(t, staart), "label": _label(b), "titel": (b.titel or "").strip(),
+                              "link": f"https://wetten.overheid.nl/{b.jci}" if getattr(b, "jci", None) else t.link,
                               "datum": getattr(b, "inwerking", "") or t.geldig_vanaf,
                               "reeks": list(plek.koppen()) if plek else [], "status": _werking(b)}))
     kop = _regeling_kop(g, vandaag, peil)
@@ -546,7 +575,8 @@ def _opbouw(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
                        "zegt alleen iets over deze woorden: zoek eventueel met een ander woord.")
     args = {"bwb_id": bwb_id, **({"peildatum": peil} if peil else {}), **({"woorden": a["woorden"]} if woorden else {})}
     offset = _geheel(a.get("offset"), 0, 0, 10_000)
-    extra: dict[str, Any] = {"regeling": kop, "totaal": len(rijen)}
+    extra: dict[str, Any] = {"regeling": kop, "totaal": len(rijen),
+                             **zoekvraag_van(args, regeling=f"{kop['titel']} (tekst geldig vanaf {t.geldig_vanaf})")}
     if not woorden and offset == 0:
         # De opbouw en de telling in één keer: zonder deze velden bladerde het model door alle artikelen om de
         # hoofdstukken of de vervallen artikelen te tellen (meting 11 nov 2026, I13: 21 rondes en 1,0M tokens voor de
@@ -639,6 +669,24 @@ def _rijen(b: Bepaling, lid_nr: str, o_nr: str, plek: Plek | None = None) -> lis
     return uit
 
 
+def _deel_jci(b: Bepaling, lid: str, o_nr: str) -> str | None:
+    """De jci van het gelezen lid (of onderdeel daarin), voor de link; None als de bepaling dat lid niet heeft."""
+    for l in getattr(b, "leden", []) or []:
+        if l.nummer.strip().rstrip(".") != lid:
+            continue
+        if o_nr:
+            o = next((o for o in onderdelen(l.onderdelen) if o.nummer.strip().rstrip(".").casefold() == o_nr.casefold()),
+                     None)
+            return (o.jci if o is not None and o.jci else l.jci) or None
+        return l.jci or None
+    return None
+
+
+def _deel_label(b: Bepaling, lid: str, o_nr: str) -> str:
+    """"Artikel 9, lid 2" en "Artikel 31, lid 2, onderdeel c", zoals de graaf een deel van een artikel noemt."""
+    return ", ".join(filter(None, [_label(b), f"lid {lid}" if lid else "", f"onderdeel {o_nr}" if o_nr else ""]))
+
+
 def _get(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
     ident = str(a.get("id") or "").strip()
     versie, paren = "", ()
@@ -698,17 +746,24 @@ def _get(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
     if not (g.artikel_volledig(b) if isinstance(b, Artikel) else g.volledig):
         raise BwbFout(f"de toestand {t.versie} van {bwb_id} is niet volledig te lezen (dekking {g.dekking:.1%}), en "
                       f"{_label(b)} ook niet", code="onvolledig")
-    stuk_id = _id(t, staart)
+    rijen = _rijen(b, lid, o_nr, plek)
+    # Eén lid of onderdeel is een eigen stuk, zoals in de graaf: een eigen id, label en link. Met het id van het artikel
+    # waren twee apart gelezen leden twee lezingen van één stuk, allebei vanaf nr 1, en kon het model lid 2 niet aanwijzen
+    # (meting ronde 2, I28: artikel 2:9 BW, vijf sjabloonpogingen). Zonder rijen blijft het het artikel.
+    deel_jci = _deel_jci(b, lid, o_nr) if rijen else None
+    deel = (f":lid:{quote(lid, safe='')}" if lid and deel_jci else "") + (
+        f":o:{quote(o_nr, safe='')}" if o_nr and deel_jci and any(r.get("plek") for r in rijen) else "")
+    stuk_id = _id(t, staart + deel)
     titel = g.wet.citeertitel or t.titel
     werking = _werking(b)
     kop = _regeling_kop(g, vandaag, peil)
-    stuk = compact({"id": stuk_id, "label": f"{titel}, {_label(b)} (tekst geldig vanaf {t.geldig_vanaf})",
-                    "link": f"https://wetten.overheid.nl/{b.jci}" if b.jci else t.link,
+    stuk = compact({"id": stuk_id, "label": f"{titel}, {_deel_label(b, lid if deel else '', o_nr if ':o:' in deel else '')}"
+                             f" ({tekst_periode(t, vandaag)})",
+                    "link": f"https://wetten.overheid.nl/{deel_jci or b.jci}" if (deel_jci or b.jci) else t.link,
                     **{k: v for k, v in kop.items() if k != "bwb_id"}, "titel": titel, "nummer": bwb_id,
                     "inwerking": getattr(b, "inwerking", "") or "", "status": werking,
                     "publicatie": publicatie(getattr(b, "bron", None)),
                     "reeks": list(plek.koppen()) if plek else [], "leesbaar": True})
-    rijen = _rijen(b, lid, o_nr, plek)
     offset = _geheel(a.get("offset"), 0, 0, 10_000)
     args = {"id": stuk_id, **({"lid": lid} if lid else {}), **({"onderdeel": o_nr} if o_nr and a.get("onderdeel") else {})}
     if a.get("inhoud"):

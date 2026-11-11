@@ -209,8 +209,17 @@ function meet() {
 
 async function openVenster(page) {
   await page.goto(`${base}/workbench`);
-  if (page.viewportSize().width < 1024) await page.getByRole("button", { name: "Menu openen" }).click({ timeout: 60_000 });
-  await page.getByRole("button", { name: /· instellingen|% gebruikt/ }).last().click({ timeout: 60_000 });
+  const gebruiker = page.getByRole("button", { name: /· instellingen|% gebruikt/ }).last();
+  if (page.viewportSize().width < 1024) {
+    // Een klik vóór de hydratatie gaat verloren (koude dev-server): klik tot de drawer echt open is.
+    const menu = page.getByRole("button", { name: "Menu openen" });
+    for (let poging = 0; ; poging++) {
+      await menu.click({ timeout: 60_000 });
+      if (await gebruiker.waitFor({ state: "visible", timeout: 5_000 }).then(() => true, () => false)) break;
+      if (poging >= 10) throw new Error("de drawer gaat niet open na 'Menu openen'");
+    }
+  }
+  await gebruiker.click({ timeout: 60_000 });
   await page.getByRole("link", { name: "Account & instellingen" }).click();
   await page.getByRole("dialog", { name: "Instellingen" }).waitFor();
 }

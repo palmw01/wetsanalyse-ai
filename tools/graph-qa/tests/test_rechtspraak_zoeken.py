@@ -124,7 +124,10 @@ def test_een_soort_gerecht_zijn_alle_gerechten_van_nu_en_een_rechtsgebied_een_ur
 @pytest.mark.parametrize("args,woord", [
     ({"instantie": "Rechtbank Atlantis"}, "Rechtbank Gelderland"),
     ({"rechtsgebied": "sterrenkunde"}, "belastingrecht"),
-    ({"bwb_id": "BWBR0004770"}, "artikel"),
+    # Een regeling zonder artikel is geen invoerfout meer: de uitspraken bij de regeling als geheel (ronde 2, R26;
+    # test_rechtspraak_tools.test_een_regeling_zonder_artikel_zoekt_de_uitspraken_bij_de_regeling). Een artikel zonder
+    # regeling wel.
+    ({"artikel": "36"}, "regeling"),
     # Een rechtsgebied naast een artikel is geen invoerfout meer: de tool zoekt zonder en zegt het in de kanttekening
     # (ronde 1 van de iteratie, R24; test_extern_sjabloon.test_een_rechtsgebied_naast_een_artikel_zoekt_zonder_en_zegt_het).
     ({"instantie": "Europees Hof voor de Rechten van de Mens"}, "bij een artikel"),

@@ -133,3 +133,23 @@ def test_een_gewoon_resultaat_blijft_een_bron():
     raw = _json.dumps({"status": "ok", "volledig": True, "aantal": 1,
                        "resultaten": [{"iri": "urn:bwb:BWBR0004770:artikel:9"}]})
     assert [s.bwb_id for s in collect_sources([("get_artikel", raw)])] == ["BWBR0004770"]
+
+
+# --- een stuk dat het antwoord in een citeervorm noemt (meting Kamerstukken ronde 2, K18) ---------------------------
+
+@_pytest.mark.parametrize("leestool,ident,brontype,tekst", [
+    ("get_bekendmaking", "stb-2013-568", "bekendmaking", "Het wetsvoorstel staat in Stb. 2013, 568."),
+    ("get_bekendmaking", "stcrt-2026-37344", "bekendmaking", "De wijziging staat in Staatscourant 2026, nr. 37344."),
+    ("get_kamerstuk", "kst-32140-342", "kamerstuk", "Zie Kamerstuk 32140, nr. 342."),
+    ("get_uitspraak", "ECLI:NL:HR:2022:50", "uitspraak", "Zo oordeelde de Hoge Raad (ecli nl hr 2022 50)."),
+])
+def test_een_gelezen_stuk_in_een_citeervorm_blijft_een_bron(leestool, ident, brontype, tekst):
+    from agent.grounding import alleen_gelezen_extern, curate_sources, genoemd_extern
+    from agent.models import Source
+
+    assert ident in genoemd_extern(tekst)
+    bron = Source(uri=ident, label=ident, brontype=brontype, origin_tool=leestool)
+    trace = [(leestool, _json.dumps({"status": "ok", "stuk": {"id": ident}, "resultaten": []}))]
+    assert alleen_gelezen_extern([bron], trace, tekst) == [bron]
+    wet = Source(uri="urn:bwb:BWBR0004770", label="Iw", origin_tool="get_artikel")
+    assert bron in curate_sources([wet, bron], f"{tekst} Zie ook BWBR0004770.")

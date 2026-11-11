@@ -37,6 +37,8 @@ _INHOUD_RE = re.compile(r"\b(?:staat\s+er|zegt|zeggen|samenvat\w*|inhoud|uitleg|
 #: Een vraag naar wat iets is ("Wat is een inwerkingtredingsbesluit?"): met alleen een soort stuk en verder niets is dat
 #: een begripsvraag, geen lijst (meting Staatsblad en Staatscourant, 11 nov 2026). "Wat is het laatste …" en "Wat zijn de
 #: moties van de Eerste Kamer?" hebben een volgorde of filter en blijven een lijst.
+#: "Geef alle …": een volle pagina, niet de standaard tien (meting Rechtspraak ronde 2, R23: 10 van de 11).
+_ALLE_RE = re.compile(r"\balle\b", re.IGNORECASE)
 _BEGRIP_RE = re.compile(r"^\s*wat\s+(?:is|zijn|was|waren)\b", re.IGNORECASE)
 _DOSSIER_RE = re.compile(r"\b(?:dossier(?:nummer)?|kamerstukdossier|kamerdossier)\s+(?P<d>\d{4,6}(?:[- ](?:[IVXLC]{1,6}|[A-Z]))?)\b",
                          re.IGNORECASE)
@@ -60,7 +62,7 @@ _OVER_RE = re.compile(r"\bover\s+(?:de\s+|het\s+)?(?P<o>[^?.!,;]+)", re.IGNORECA
 #: Woorden die in een lijstvraag staan zonder iets te zoeken.
 _VULWOORDEN = frozenset("""geef mij me toon noem laat zien lijst wat welke wie is zijn de het een van uit bij in op
     met en of er nu ook alle stuk stukken publicaties staan zit zitten gaan gaat graag alsjeblieft aub kun kan je u
-    noemen noemt genoemd over horen hoort hoeveel""".split()) | frozenset(
+    noemen noemt genoemd over horen hoort hoeveel zoek zoeken vind vinden""".split()) | frozenset(
     w for c in CONNECTORS.values() for w in (*c.verzamelnamen, *c.vulwoorden))
 #: Werkwoorden die achter het onderwerp staan zonder iets te zoeken: "memories van toelichting over de inkomstenbelasting
 #: die in 2024 zijn verschenen" zocht op "inkomstenbelasting verschenen" en vond niets (meting Kamerstukken K09).
@@ -120,7 +122,9 @@ def lees(vraag: str, aan: frozenset[str],
             rest = rest.replace(a.group(0), " ")
         elif (een := _EEN_RE.search(zonder_organen)) and not _meervoud(c, een.group(0).split()[-1]):
             args["aantal"] = 1
-        args.setdefault("aantal", 10)
+        args.setdefault("aantal", MAX_AANTAL if _ALLE_RE.search(tekst) else 10)
+    elif _ALLE_RE.search(tekst) and "aantal" in _zoekargumenten(c):
+        args["aantal"] = MAX_AANTAL
     # Zonder volgorde ("Kamerstukken uit vergaderjaar 2025-2026 over invorderingsrente") kiest de zoektool de volgorde en
     # de pagina: relevantie bij woorden of tekst, een dossier op nummer, anders de nieuwste. Dan moet er wel een filter
     # zijn.
