@@ -45,6 +45,9 @@ def test_planning_is_de_standaardvorm():
     }
     assert edges == {
         ("agent", "sjabloon", "", True),
+        # Antwoordt de agent in tekst na een zoekresultaat van een bronconnector, dan één keer terug naar zichzelf met de
+        # vraag om het sjabloon (nodes/antwoord._gevonden_zonder_sjabloon).
+        ("agent", "agent", "", True),
         ("sjabloon", "verify", "", True),
         ("sjabloon", "agent", "", True),
         (START, "supervisor", "", False),

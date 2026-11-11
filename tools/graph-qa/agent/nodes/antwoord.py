@@ -173,6 +173,16 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         "turns": state.get("turns", 0) + 1,
         "afgekapt": afgekapt,
     }
+    upd["sjabloon_nu"] = False
+    if not tool_uses and sjablonen and (zoektools := _gevonden_zonder_sjabloon(b, state)):
+        # Eén keer per beurt: een lijst gevonden stukken in tekst mist de links, de zoekvraag en het totaal uit de code.
+        logger.info("sjabloon gevraagd", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
+                                                "specialist": spec_naam, "zoektools": sorted(zoektools)})
+        upd["messages"] = [{"role": "assistant", "content": assistant_content},
+                           {"role": "user", "content": SJABLOON_GEVRAAGD.format(
+                               tools=", ".join(sorted(zoektools)), sjablonen=", ".join(sorted(sjablonen)))}]
+        upd.update(sjabloon_gevraagd=True, sjabloon_nu=True)
+        return upd
     if not tool_uses:
         if sjablonen and not state.get("corrected"):
             logger.info("sjabloon gemist", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""), "specialist": spec_naam})
@@ -213,7 +223,36 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         upd["answer"] = antwoord
     return upd
 
+#: Wat de agent hoort als hij na een zoekresultaat van een bronconnector in tekst antwoordt (`_gevonden_zonder_sjabloon`).
+SJABLOON_GEVRAAGD = ("Je antwoordde in tekst, terwijl deze beurt stukken vond met {tools}. Roep het sjabloon aan "
+                     "({sjablonen}): wijs de gevonden stukken aan in 'stukken' en de gelezen passages in 'extern', dan "
+                     "staan ze erbij met hun link, de zoekvraag en het totaal. Zet je uitleg in het korte antwoord; "
+                     "herhaal de lijst niet in tekst.")
+
+
+def _gevonden_zonder_sjabloon(b: Bouw, state: State) -> set[str]:
+    """De zoektools van een bronconnector die deze beurt iets vonden, als de agent het sjabloon nog niet gevraagd is en
+    er nog een ronde over is; anders leeg. Zonder sjabloon kwam een lijst gevonden stukken als tekst, zonder links,
+    zoekvraag of totaal, soms als markdown-tabel (iteratie 11 nov 2026: bekendmakingen B03, B05, B18, B20; rechtspraak R06,
+    R17, R18, R22, R23). Hoogstens één keer per beurt (`sjabloon_gevraagd`), en niet na een correctieronde."""
+    if state.get("sjabloon_gevraagd") or state.get("corrected") or state.get("turns", 0) + 1 >= b.settings.max_turns:
+        return set()
+    zoektools = {t for c in CONNECTORS.values() for t in c.tools if t != c.leestool}
+    gevonden = set()
+    for naam, resultaat in state.get("source_trace", []):
+        if naam in zoektools and not is_fout(resultaat):
+            try:
+                data = json.loads(resultaat)
+            except (TypeError, ValueError):
+                continue
+            if isinstance(data, dict) and data.get("resultaten"):
+                gevonden.add(naam)
+    return gevonden
+
+
 def route_after_agent(b: Bouw, state: State) -> str:
+    if state.get("sjabloon_nu"):
+        return "agent"  # één keer terug: om het sjabloon gevraagd (`_gevonden_zonder_sjabloon`)
     pending = state.get("pending_tools") or []
     if pending and pending[0]["name"] in SJABLONEN:
         return "sjabloon"

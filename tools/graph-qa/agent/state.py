@@ -104,6 +104,10 @@ class State(TypedDict, total=False):
     pending_tools: list[dict[str, Any]]
     turns: int
     corrected: bool
+    # Om het sjabloon gevraagd na een zoekresultaat van een bronconnector (`nodes/antwoord._gevonden_zonder_sjabloon`):
+    # één keer per beurt, en `sjabloon_nu` stuurt de agent dan één keer naar zichzelf terug. Per beurt gereset.
+    sjabloon_gevraagd: bool
+    sjabloon_nu: bool
     # Het doel dat de AANROEPER meegaf ({bwbId, artikel, lid?, citeertitel?}). Weet de werkplek de
     # bepaling al – een open document, een item uit de werkvoorraad, een gekozen kandidaat – dan
     # hoeft niemand hem meer te zoeken: de supervisor doet geen LLM-call en de ophaal-agent draait

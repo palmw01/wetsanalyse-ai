@@ -169,11 +169,14 @@ def test_een_genoemd_stuk_wordt_vooraf_gelezen_en_alleen_het_gelezen_stuk_is_een
     _nep_kamerstukken(monkeypatch)
     llm = FakeLLM([
         response([tool_block("t1", "zoek_kamerstukken", {"dossier": "99001"})], "tool_use"),
+        response([text_block("In kst-99001-3 staat het doel; het dossier bevat ook kst-99001-10.")], "end_turn"),
+        # Tekst na een zoekresultaat: de code vraagt één keer om het sjabloon (nodes/antwoord._gevonden_zonder_sjabloon).
         response([text_block("In kst-99001-3 staat het doel; het dossier bevat ook kst-99001-10.")], "end_turn")])
     events = _run(answer_stream("Wat staat er in kst-99001-3?", settings=AAN, llm=llm, graph=FakeGraph(result=""),
                                 bronnen=["kamerstukken"]))
     eerste = llm.calls[0]
-    assert len(llm.calls) == 2, "geen supervisorcall: het id bepaalt de route"
+    assert len(llm.calls) == 3, "geen supervisorcall: het id bepaalt de route (de derde is de vraag om het sjabloon)"
+    assert not any("SUPERVISOR" in str(c.get("system", ""))[:400].upper() for c in llm.calls)
     gelezen = [b for m in eerste["messages"] for b in (m["content"] if isinstance(m["content"], list) else [])
                if b.get("type") == "tool_use"]
     assert [(g["name"], g["input"]) for g in gelezen] == [("get_kamerstuk", {"id": "kst-99001-3"})]
