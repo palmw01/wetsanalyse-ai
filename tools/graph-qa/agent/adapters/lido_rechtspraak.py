@@ -66,6 +66,10 @@ MAX_AANROEPEN = 80
 #: Per versie hoogstens zoveel pagina's van `get-links` (50 per pagina). Awb art. 8:57 noemt er meer dan 10.000.
 MAX_PAGINAS = 20
 RIJEN = 50
+#: Het filter op `get-links` dat alleen de inkomende jurisprudentie laat staan (het facet `obj_type`). Zonder filter
+#: komen ook wetten en regelingen mee, met per toestand een identifier, en dan breekt LiDO het antwoord halverwege af
+#: (HTTP 200 met een JSON-fout in de XML, ook bij tien rijen).
+ALLEEN_JURISPRUDENTIE = "obj_type:Jurisprudentie"
 #: Hoogstens zoveel verzoeken per seconde per host. De open data van de Rechtspraak vraagt er hoogstens 10 en "houd
 #: rekening met andere gebruikers"; LiDO en de BWB-zoekdienst zijn gedeelde diensten van KOOP. Eén artikel kan tot
 #: `MAX_AANROEPEN` aanroepen kosten, dus zonder begrenzer gingen die in één ademteug.
@@ -434,7 +438,10 @@ class LidoRechtspraak:
                     break
                 teller[0] += 1
                 paginas += 1
-                tekst = self._get(f"{self._lido}/get-links", id=v, output="xml", rows=str(RIJEN), start=str(start))
+                # Alleen jurisprudentie (`ALLEEN_JURISPRUDENTIE`): een veelgebruikt artikel noemt ook wetten met
+                # honderden identifiers, en daarop brak het antwoord af (Awb 6:7, meting 11 nov 2026: 0 van 6772).
+                tekst = self._get(f"{self._lido}/get-links", id=v, output="xml", rows=str(RIJEN), start=str(start),
+                                  fq=ALLEEN_JURISPRUDENTIE)
                 try:
                     deel, items, telling = links_xml(tekst, v)
                 except ET.ParseError:

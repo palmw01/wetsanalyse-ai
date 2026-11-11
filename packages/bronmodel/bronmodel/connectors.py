@@ -335,6 +335,9 @@ KAMERSTUKKEN = ConnectorBeschrijving(
 INSTANTIES = ("Hoge Raad", "Parket bij de Hoge Raad", "Raad van State", "Centrale Raad van Beroep",
               "College van Beroep voor het bedrijfsleven", "gerechtshof", "rechtbank",
               "Europees Hof voor de Rechten van de Mens", "Hof van Justitie van de EU", "overig")
+#: Het meervoud waarin een jurist een soort gerecht noemt ("de uitspraken van gerechtshoven"), naar die soort. De lijstroute
+#: leest het als orgaan en de zoektool zet het om (meting 11 nov 2026, R06: "gerechtshoven" ging naar het model).
+INSTANTIE_MEERVOUD = {"gerechtshoven": "gerechtshof", "hoven": "gerechtshof", "rechtbanken": "rechtbank"}
 
 #: De rechtsgebieden uit de waardelijst van de Rechtspraak die een jurist in een lijstvraag noemt ("de nieuwste
 #: uitspraken van de Hoge Raad in het belastingrecht"); de tool zoekt de URI in de waardelijst zelf.
@@ -457,10 +460,13 @@ RECHTSPRAAK = ConnectorBeschrijving(
     citeervormen=((r"\becli\s*[: ]\s*nl\s*[: ]\s*(?P<gerecht>[a-z]{2,7})\s*[: ]\s*(?P<jaar>\d{4})\s*[: ]\s*"
                    r"(?P<nummer>[0-9a-z.]{1,25})\b", "ECLI:NL:{gerecht}:{jaar}:{nummer}"),),
     soorten=(
-        ("conclusie", r"\bconclusie(?:s)?\b"),
+        # "conclusies van de advocaat-generaal" is één soort: de rest is geen woord dat de lijstroute moet plaatsen
+        # (meting 11 nov 2026, R05).
+        ("conclusie", r"\bconclusie(?:s)?(?:\s+van\s+(?:de\s+)?a(?:dvocaat)?[.-]?\s*g(?:eneraal)?)?\b"),
         ("uitspraak", r"\buitspra(?:ak|ken)\b|\barrest(?:en)?\b"),
     ),
-    organen=("Parket bij de Hoge Raad", *_GERECHTEN, *(i for i in INSTANTIES if i != "Parket bij de Hoge Raad")),
+    organen=("Parket bij de Hoge Raad", *_GERECHTEN, *INSTANTIE_MEERVOUD,
+             *(i for i in INSTANTIES if i != "Parket bij de Hoge Raad")),
     verzamelnamen=("jurisprudentie", "rechtspraak"),
     vulwoorden=("gerechten", "instanties", "rechters"),
 )

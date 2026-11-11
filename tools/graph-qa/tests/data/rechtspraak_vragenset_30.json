@@ -1,0 +1,525 @@
+{
+ "uitleg": "De vragenset van de connector Rechtspraak voor de iteratieve verbeterrondes (11 nov 2026). Dertig vragen uit het domein belastingen, invordering, toeslagen en bestuursrecht, gespreid over vraagtype, wet, instantie en jaar. Per vraag: de route die de code kiest (`lijstvraag` en `genoemd stuk` gaan zonder model; `model` laat het model de tools kiezen), de tool met de argumenten die horen, wat de code van het resultaat eist (`verwacht`) en wat een goed antwoord van Lex is (`goed`). `gesprek` geeft een vervolgvraag: dezelfde letter is hetzelfde gesprek, in volgorde. `werkgebied` vraagt een werkgebied met die peildatum. tests/test_rechtspraak_vragenset.py toetst de route en de argumenten van de vragen zonder model; de rondes op acceptatie staan in docs/architectuur/metingen/rechtspraak-iteratie-2026-11-11/. De wetten Iw 1990, AWR, Awb, Awir, de Uitvoeringsregeling Iw 2008 en de Leidraad Invordering 2008 staan in de kennisgraaf; de Wet IB 2001 en de Wet OB 1968 niet.",
+ "vragen": [
+  {
+   "id": "R01",
+   "soort": "lijst bij een artikel",
+   "vraag": "Welke uitspraken noemen artikel 9 van de Invorderingswet 1990?",
+   "route": "lijstvraag",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0004770",
+    "artikel": "9"
+   },
+   "verwacht": {
+    "nieuwste_eerst": true,
+    "aantal_max": 10,
+    "tekststand_gevuld": true
+   },
+   "goed": "Een lijst (blok stukken) van de tien nieuwste uitspraken met ECLI, gerecht en datum, het totaal uit LiDO, en per rij bij welke tekst van artikel 9 ze horen."
+  },
+  {
+   "id": "R02",
+   "soort": "de n meest recente",
+   "vraag": "Geef de 5 meest recente uitspraken over artikel 36 Invorderingswet 1990",
+   "route": "lijstvraag",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "volgorde": "nieuwste",
+    "aantal": 5,
+    "bwb_id": "BWBR0004770",
+    "artikel": "36"
+   },
+   "verwacht": {
+    "aantal": 5,
+    "nieuwste_eerst": true
+   },
+   "goed": "Precies vijf uitspraken, nieuwste eerst, met het totaal erbij."
+  },
+  {
+   "id": "R03",
+   "soort": "zonder artikel: instantie en rechtsgebied",
+   "vraag": "Wat zijn de nieuwste uitspraken van de Hoge Raad in het belastingrecht?",
+   "route": "lijstvraag",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "volgorde": "nieuwste",
+    "aantal": 10,
+    "instantie": "Hoge Raad",
+    "rechtsgebied": "belastingrecht"
+   },
+   "verwacht": {
+    "nieuwste_eerst": true,
+    "alle": {
+     "orgaan": "Hoge Raad"
+    }
+   },
+   "goed": "De nieuwste uitspraken van de Hoge Raad (niet van het Parket) in het belastingrecht, uit de zoekfeed van de Rechtspraak, met datum en een korte inhoudsindicatie."
+  },
+  {
+   "id": "R04",
+   "soort": "zonder artikel: instantie en periode",
+   "vraag": "Welke uitspraken deed de Centrale Raad van Beroep in maart 2025?",
+   "route": "lijstvraag",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "instantie": "Centrale Raad van Beroep",
+    "vanaf": "2025-03",
+    "tot": "2025-03"
+   },
+   "verwacht": {
+    "alle": {
+     "orgaan": "Centrale Raad van Beroep"
+    },
+    "datum_vanaf": "2025-03-01",
+    "datum_tot": "2025-03-31"
+   },
+   "goed": "Uitspraken van de CRvB met een datum in maart 2025, het totaal, en geen uitspraken van daarbuiten.",
+   "open": "de lijstroute leest geen maand ('in maart 2025'): gedeelde code (agent/bron_lijst.py), gemeld aan de hoofdsessie"
+  },
+  {
+   "id": "R05",
+   "soort": "oudste conclusies bij een artikel",
+   "vraag": "Geef de 10 oudste conclusies van de advocaat-generaal over artikel 25 Invorderingswet 1990",
+   "route": "lijstvraag",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "volgorde": "oudste",
+    "aantal": 10,
+    "soort": "conclusie",
+    "bwb_id": "BWBR0004770",
+    "artikel": "25"
+   },
+   "verwacht": {
+    "oudste_eerst": true,
+    "alle": {
+     "soort": "Conclusie"
+    }
+   },
+   "goed": "Conclusies van het Parket bij de Hoge Raad, oudste eerst, met de tekst van artikel 25 die toen gold."
+  },
+  {
+   "id": "R06",
+   "soort": "instantiesoort bij een AWR-artikel",
+   "vraag": "Welke uitspraken van gerechtshoven noemen artikel 67f van de Algemene wet inzake rijksbelastingen?",
+   "route": "lijstvraag",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0002320",
+    "artikel": "67f",
+    "instantie": "gerechtshoven"
+   },
+   "verwacht": {
+    "alle_orgaan_begint": "Gerechtshof"
+   },
+   "goed": "Alleen uitspraken van gerechtshoven (alle hoven), met het totaal en per rij de tekststand."
+  },
+  {
+   "id": "R07",
+   "soort": "Awb-artikel met dubbele punt",
+   "vraag": "Welke uitspraken van de Raad van State noemen artikel 6:7 van de Algemene wet bestuursrecht?",
+   "route": "lijstvraag",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0005537",
+    "artikel": "6:7",
+    "instantie": "Raad van State"
+   },
+   "verwacht": {
+    "alle": {
+     "orgaan": "Raad van State"
+    }
+   },
+   "goed": "Uitspraken van de Afdeling bestuursrechtspraak van de Raad van State bij artikel 6:7 Awb (de bezwaartermijn), met het totaal."
+  },
+  {
+   "id": "R08",
+   "soort": "toeslagen",
+   "vraag": "Welke uitspraken noemen artikel 26 van de Algemene wet inkomensafhankelijke regelingen?",
+   "route": "lijstvraag",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0018472",
+    "artikel": "26"
+   },
+   "verwacht": {
+    "nieuwste_eerst": true
+   },
+   "goed": "De nieuwste uitspraken bij artikel 26 Awir (terugvordering van een toeslag), met het totaal."
+  },
+  {
+   "id": "R09",
+   "soort": "wet buiten de kennisgraaf (IB)",
+   "vraag": "Welke rechtspraak is er over artikel 3.111 van de Wet inkomstenbelasting 2001?",
+   "route": "model",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0011353",
+    "artikel": "3.111"
+   },
+   "verwacht": {
+    "nieuwste_eerst": true
+   },
+   "goed": "De uitspraken bij artikel 3.111 Wet IB 2001 uit LiDO, ook al staat de wet niet in de kennisgraaf; de tekststand is dan onbekend en Lex zegt dat, zonder te gokken. De lijstroute kent alleen regelingen in de graaf bij naam; het model zoekt het BWB-id."
+  },
+  {
+   "id": "R10",
+   "soort": "wet buiten de kennisgraaf (OB)",
+   "vraag": "Welke uitspraken van de Hoge Raad noemen artikel 15 van de Wet op de omzetbelasting 1968?",
+   "route": "model",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0002629",
+    "artikel": "15",
+    "instantie": "Hoge Raad"
+   },
+   "verwacht": {
+    "alle": {
+     "orgaan": "Hoge Raad"
+    }
+   },
+   "goed": "Arresten van de Hoge Raad bij artikel 15 Wet OB 1968 (aftrek van voorbelasting), met het totaal. De lijstroute kent alleen regelingen in de graaf bij naam; het model zoekt het BWB-id."
+  },
+  {
+   "id": "R11",
+   "soort": "een genoemde ECLI lezen",
+   "vraag": "Wat staat er in ECLI:NL:HR:2023:1371?",
+   "route": "genoemd stuk",
+   "tool": "get_uitspraak",
+   "args": {
+    "id": "ECLI:NL:HR:2023:1371"
+   },
+   "verwacht": {
+    "stuk": {
+     "orgaan": "Hoge Raad"
+    }
+   },
+   "goed": "Een samenvatting van het arrest met letterlijke passages in het blok extern, de datum en de instantie uit het stuk, en de artikelen die het noemt."
+  },
+  {
+   "id": "R12",
+   "soort": "een rechtsoverweging",
+   "vraag": "Wat zegt de Hoge Raad in r.o. 3.1 van ECLI:NL:HR:2023:1371?",
+   "route": "genoemd stuk",
+   "tool": "get_uitspraak",
+   "args": {
+    "id": "ECLI:NL:HR:2023:1371"
+   },
+   "verwacht": {
+    "plek": "r.o. 3.1"
+   },
+   "goed": "De tekst van r.o. 3.1 letterlijk, met die plek genoemd, en niet een andere overweging."
+  },
+  {
+   "id": "R13",
+   "soort": "een conclusie lezen",
+   "vraag": "Wat concludeert de advocaat-generaal in ECLI:NL:PHR:2015:354?",
+   "route": "genoemd stuk",
+   "tool": "get_uitspraak",
+   "args": {
+    "id": "ECLI:NL:PHR:2015:354"
+   },
+   "verwacht": {
+    "stuk": {
+     "soort": "Conclusie"
+    }
+   },
+   "goed": "De conclusie (het advies aan de Hoge Raad) uit de slotalinea's, letterlijk, met de datum uit het stuk."
+  },
+  {
+   "id": "R14",
+   "soort": "onbekende ECLI",
+   "vraag": "Wat staat er in ECLI:NL:HR:2099:1?",
+   "route": "genoemd stuk",
+   "tool": "get_uitspraak",
+   "args": {
+    "id": "ECLI:NL:HR:2099:1"
+   },
+   "verwacht": {
+    "reden": "niet_gevonden"
+   },
+   "goed": "Lex zegt dat de Rechtspraak deze ECLI niet kent en verzint niets."
+  },
+  {
+   "id": "R15",
+   "soort": "niet-Nederlandse ECLI",
+   "vraag": "Wat staat er in ECLI:EU:C:2019:123?",
+   "route": "genoemd stuk",
+   "tool": "get_uitspraak",
+   "args": {
+    "id": "ECLI:EU:C:2019:123"
+   },
+   "verwacht": {
+    "leesbaar": false
+   },
+   "goed": "Lex zegt dat dit een Europese ECLI is waarvan de tekst niet bij de open data van de Rechtspraak staat, en citeert niets.",
+   "open": "een niet-Nederlandse ECLI is geen genoemd stuk (id_prefixen ECLI:NL:), dus het model leest de vraag"
+  },
+  {
+   "id": "R16",
+   "soort": "ECLI in losse vorm",
+   "vraag": "Wat staat er in ecli nl rbgel 2026 7933?",
+   "route": "genoemd stuk",
+   "tool": "get_uitspraak",
+   "args": {
+    "id": "ECLI:NL:RBGEL:2026:7933"
+   },
+   "verwacht": {
+    "stuk": {
+     "orgaan": "Rechtbank Gelderland"
+    }
+   },
+   "goed": "Lex herkent ECLI:NL:RBGEL:2026:7933 en vat de uitspraak samen met letterlijke passages."
+  },
+  {
+   "id": "R17",
+   "soort": "huidige tekst",
+   "vraag": "Is er jurisprudentie over artikel 36 Invorderingswet 1990 die over de huidige tekst van het artikel gaat?",
+   "route": "model",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0004770",
+    "artikel": "36",
+    "tekststand": "huidige tekst"
+   },
+   "verwacht": {
+    "alle": {
+     "tekststand": "huidige tekst"
+    }
+   },
+   "goed": "De uitspraken bij de huidige tekst (vanaf 4 juli 2010) met het aantal, het aantal bij eerdere teksten, en de grens: LiDO koppelt op de datum van de uitspraak, welke tekst de rechter toepaste staat in de uitspraak."
+  },
+  {
+   "id": "R18",
+   "soort": "peildatum in de vraag",
+   "vraag": "Welke uitspraken horen bij artikel 25 Invorderingswet 1990 op peildatum 1 januari 2015?",
+   "route": "model",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0004770",
+    "artikel": "25",
+    "peildatum": "2015-01-01",
+    "tekststand": "op peildatum"
+   },
+   "verwacht": {
+    "alle": {
+     "op_peildatum": true
+    }
+   },
+   "goed": "De uitspraken bij de tekst die op 1 januari 2015 gold, met de periode van die tekst, datum en gerecht per rij."
+  },
+  {
+   "id": "R19",
+   "soort": "peildatum van het werkgebied",
+   "vraag": "Welke uitspraken zijn er over artikel 25 Invorderingswet 1990?",
+   "werkgebied": {
+    "peildatum": "2015-01-01"
+   },
+   "route": "lijstvraag",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0004770",
+    "artikel": "25"
+   },
+   "verwacht": {
+    "op_peildatum_gevuld": true
+   },
+   "goed": "De nieuwste uitspraken, met per rij of haar tekst op de peildatum van het werkgebied gold, en de peildatum in de zoekvraag. De lijstroute leest de vraag zonder peildatum; de peildatum komt uit het werkgebied (bron_lijst.met_peildatum)."
+  },
+  {
+   "id": "R20",
+   "soort": "eerdere tekst",
+   "vraag": "Welke uitspraken bij artikel 9 Invorderingswet 1990 gaan over een eerdere tekst van het artikel?",
+   "route": "model",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0004770",
+    "artikel": "9",
+    "tekststand": "eerdere tekst"
+   },
+   "verwacht": {
+    "alle": {
+     "tekststand": "eerdere tekst"
+    }
+   },
+   "goed": "Uitspraken bij een eerdere tekst, met de periode per rij, en het voorbehoud dat ze niet de huidige norm uitleggen."
+  },
+  {
+   "id": "R21",
+   "soort": "telling",
+   "vraag": "Hoeveel uitspraken noemen artikel 36 van de Invorderingswet 1990?",
+   "route": "lijstvraag",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0004770",
+    "artikel": "36"
+   },
+   "verwacht": {
+    "totaal_min": 100
+   },
+   "goed": "Het totaal uit LiDO (geen getal uit eigen kennis), als 'ten minste' en als vermeldingen, niet als uitspraken die het artikel uitleggen."
+  },
+  {
+   "id": "R22",
+   "soort": "verdeling per instantie",
+   "vraag": "Hoe verdelen de uitspraken over artikel 36 Invorderingswet 1990 zich over de instanties?",
+   "route": "model",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0004770",
+    "artikel": "36"
+   },
+   "verwacht": {
+    "per_instantie": true
+   },
+   "goed": "De verdeling uit per_instantie (Hoge Raad, Parket, hoven, rechtbanken), met het totaal; niet geteld uit één pagina."
+  },
+  {
+   "id": "R23",
+   "soort": "alle uitspraken, klein artikel",
+   "vraag": "Geef alle uitspraken die artikel 2 van de Uitvoeringsregeling Invorderingswet 1990 noemen",
+   "route": "lijstvraag",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0004766",
+    "artikel": "2"
+   },
+   "verwacht": {},
+   "goed": "De uitspraken bij artikel 2 Uitvoeringsregeling Iw 1990, met het totaal; zijn het er meer dan op een pagina past, dan zegt Lex dat en hoe je de rest krijgt, zonder stille begrenzing.",
+   "open": "de vraag noemt de Uitvoeringsregeling én (erin) de Invorderingswet: twee regelingen, dus het model; de langste naam hoort te winnen (gedeelde code, gemeld)"
+  },
+  {
+   "id": "R24",
+   "soort": "rechtsgebied met artikel",
+   "vraag": "Welke uitspraken in het belastingrecht noemen artikel 36 van de Invorderingswet 1990?",
+   "route": "lijstvraag",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0004770",
+    "artikel": "36"
+   },
+   "verwacht": {},
+   "goed": "De uitspraken bij artikel 36 (LiDO kent geen rechtsgebied); Lex filtert niet stil en zegt niet dat ze op rechtsgebied gefilterd zijn.",
+   "open": "de lijstroute geeft een rechtsgebied mee naast een artikel; de tool weigert dat en het model neemt het over (gedeelde code, gemeld)"
+  },
+  {
+   "id": "R25",
+   "soort": "niets gevonden",
+   "vraag": "Welke uitspraken van het College van Beroep voor het bedrijfsleven noemen artikel 9 Invorderingswet 1990?",
+   "route": "lijstvraag",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0004770",
+    "artikel": "9",
+    "instantie": "College van Beroep voor het bedrijfsleven"
+   },
+   "verwacht": {
+    "aantal": 0
+   },
+   "goed": "Lex zegt dat LiDO geen uitspraken van het CBb bij artikel 9 kent (ten minste: LiDO kan achterlopen) en verzint niets."
+  },
+  {
+   "id": "R26",
+   "soort": "beleidsregel",
+   "vraag": "Welke uitspraken noemen de Leidraad Invordering 2008?",
+   "route": "model",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0024096"
+   },
+   "verwacht": {},
+   "goed": "Lex zegt eerlijk wat LiDO bij een beleidsregel zonder artikel levert (een artikel of onderdeel is nodig, of koppelingen zijn er niet), en vraagt naar een onderdeel zoals 25.6 in plaats van iets te verzinnen."
+  },
+  {
+   "id": "R27",
+   "soort": "combinatie met wetgeving",
+   "vraag": "Wat regelt artikel 36 van de Invorderingswet 1990 en hoe heeft de Hoge Raad het toegepast?",
+   "route": "model",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0004770",
+    "artikel": "36",
+    "instantie": "Hoge Raad"
+   },
+   "verwacht": {},
+   "goed": "De tekst van artikel 36 letterlijk uit de graaf, en een of meer arresten die Lex heeft gelezen, met letterlijke passages en hun ECLI; geen uitleg van een arrest dat niet gelezen is."
+  },
+  {
+   "id": "R28a",
+   "gesprek": "A",
+   "soort": "vervolg: lijst",
+   "vraag": "Welke uitspraken van de Hoge Raad noemen artikel 36 Invorderingswet 1990?",
+   "route": "lijstvraag",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0004770",
+    "artikel": "36",
+    "instantie": "Hoge Raad"
+   },
+   "verwacht": {
+    "alle": {
+     "orgaan": "Hoge Raad"
+    }
+   },
+   "goed": "Arresten van de Hoge Raad bij artikel 36, nieuwste eerst, met het totaal."
+  },
+  {
+   "id": "R28b",
+   "gesprek": "A",
+   "soort": "vervolg: de nieuwste lezen",
+   "vraag": "Wat zegt de nieuwste daarvan?",
+   "route": "model",
+   "tool": "get_uitspraak",
+   "args": {},
+   "verwacht": {},
+   "goed": "Lex leest de bovenste ECLI uit de vorige lijst en vat die samen met letterlijke passages; niet een andere uitspraak."
+  },
+  {
+   "id": "R29a",
+   "gesprek": "B",
+   "soort": "vervolg: eerste pagina",
+   "vraag": "Geef de 5 nieuwste uitspraken over artikel 9 Invorderingswet 1990",
+   "route": "lijstvraag",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "volgorde": "nieuwste",
+    "aantal": 5,
+    "bwb_id": "BWBR0004770",
+    "artikel": "9"
+   },
+   "verwacht": {
+    "aantal": 5
+   },
+   "goed": "Vijf uitspraken, nieuwste eerst."
+  },
+  {
+   "id": "R29b",
+   "gesprek": "B",
+   "soort": "vervolg: volgende pagina",
+   "vraag": "En de volgende 5?",
+   "route": "model",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0004770",
+    "artikel": "9",
+    "aantal": 5,
+    "offset": 5
+   },
+   "verwacht": {},
+   "goed": "De uitspraken 6 tot en met 10, zonder overlap met de eerste vijf."
+  },
+  {
+   "id": "R30",
+   "soort": "combinatie met Kamerstukken, lid",
+   "vraag": "Welke uitspraken en welke Kamerstukken zijn er over artikel 25 lid 2 Invorderingswet 1990?",
+   "route": "model",
+   "tool": "zoek_uitspraken",
+   "args": {
+    "bwb_id": "BWBR0004770",
+    "artikel": "25"
+   },
+   "verwacht": {},
+   "goed": "Uitspraken bij artikel 25 met de grens dat LiDO per artikel koppelt (niet per lid), en Kamerstukken bij het artikel uit de Kamerstukken-connector; beide met hun bron in de bronnenlijst."
+  }
+ ]
+}

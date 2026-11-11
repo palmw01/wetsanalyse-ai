@@ -25,7 +25,7 @@ from dataclasses import dataclass
 import xml.etree.ElementTree as ET
 from typing import Any, Protocol
 
-from bronmodel.connectors import INSTANTIES, RECHTSPRAAK
+from bronmodel.connectors import INSTANTIE_MEERVOUD, INSTANTIES, RECHTSPRAAK
 from bronmodel.extern import externe_vindplaats
 
 from ..adapters.lido_rechtspraak import RechtspraakFout, begindatum
@@ -106,7 +106,10 @@ RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
             "uitspraken per soort gerecht), 'koppelingen' (hoeveel LiDO automatisch herkende en hoeveel een redactie "
             "legde), 'huidige_tekst' (sinds wanneer de tekst in de graaf geldt), 'per_tekststand', 'tekstversies' (per "
             "versie van het artikel vanaf, tot en hoeveel uitspraken) en 'dekking': "
-            "altijd 'ten minste', met 'versies' (hoeveel versies van het artikel LiDO kende). Noem bij een lijst het "
+            "altijd 'ten minste', met 'versies' (hoeveel versies van het artikel LiDO kende). 'totaal' telt wat aan alle "
+            "filters voldoet; per_instantie, per_tekststand en tekstversies tellen binnen de andere filters (per_instantie "
+            "negeert alleen 'instantie', per_tekststand alleen 'tekststand'), en 'bij_het_artikel' is het aantal zonder "
+            "filters. Noem bij een lijst het "
             "totaal en dat het om vermeldingen gaat. Lees een uitspraak met get_uitspraak voor je zegt wat ze inhoudt."
             + _CONTRACT
         ),
@@ -353,6 +356,7 @@ _AFKORTINGEN = {"crvb": "CRVB", "cbb": "CBB", "rvs": "RVS", "abrvs": "RVS", "hr"
 def _instantie_keuze(bron: RechtspraakBron, waarde: str) -> "_Keuze | str":
     """De instantie uit de woorden van de jurist; een foutresultaat met een voorbeeld als ze niet bestaat."""
     w = " ".join(waarde.split())
+    w = INSTANTIE_MEERVOUD.get(w.lower(), w)
     soort = next((i for i in INSTANTIES if i.lower() == w.lower()), "")
     if soort:
         # Een soort gerecht: LiDO toetst de ECLI, de feed krijgt de gerechten van dat type (`_feed_uris`).
@@ -456,12 +460,15 @@ def _zoek_feed(bron: RechtspraakBron, a: dict[str, Any], keuze: "_Keuze | None",
 
 
 def _stand_zin(label: str, versies: list[Tekstversie], huidig: tuple[str, ...], loopt_achter: bool,
-               per_tekststand: dict[str, int], totaal: int) -> str:
+               per_tekststand: dict[str, int], totaal: int, buiten_graaf: bool = False) -> str:
     """Wat de lijst zegt over de tekst van het artikel, in één zin, uit de versies en de graaf. Nooit een zin die meer
     weet dan LiDO: een uitspraak bij de huidige tekst kan nog over een eerder belastingjaar gaan."""
     if not versies or not totaal:
         return ""
     lab = label[:1].lower() + label[1:] if label[:1].isupper() and not label[1:2].isupper() else label
+    if buiten_graaf:
+        return (f"De regeling van {lab} staat niet in de kennisgraaf; bij welke tekst van het artikel een uitspraak "
+                "hoort, is daarom niet vast te stellen.")
     if not huidig:
         return (f"Sinds wanneer de huidige tekst van {lab} geldt, staat niet in de graaf; bij welke tekst een uitspraak "
                 "hoort, is daarom niet vast te stellen.")
@@ -473,6 +480,17 @@ def _stand_zin(label: str, versies: list[Tekstversie], huidig: tuple[str, ...], 
         return ""
     return (f"{eerder} van de {totaal} uitspraken noemen een eerdere tekst van {lab}, die gold vóór "
             f"{_voluit(min(huidig))}.")
+
+
+def _regeling_buiten_graaf(graph: Any, bwb_id: str) -> bool:
+    """Staat de regeling niet in de kennisgraaf? Alleen waar als de graaf dat zegt; een graaf die niet antwoordt is
+    geen "staat er niet in"."""
+    from .wetgeving_tools import GraafOnbekend, graaftoestanden
+
+    try:
+        return graaftoestanden(graph, [bwb_id]).get(bwb_id) is None
+    except GraafOnbekend:
+        return False
 
 
 def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
@@ -525,11 +543,17 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
 
     # Uit de graaf: de jci (de terugvalroute van LiDO, nodig voor de Awb), het label en of het een artikel is. Zonder
     # graaf (een MCP-client, de contractharnas) zoekt LiDO het artikel op bwb-id en nummer.
-    rijen = (parse_select(graph.sparql(_q_artikel(bwb_id, artikel))) if graph is not None
-             else [{"label": f"artikel {artikel}", "soort": "Artikel"}])
+    zonder_graaf = [{"label": f"artikel {artikel}", "soort": "Artikel"}]
+    rijen = parse_select(graph.sparql(_q_artikel(bwb_id, artikel))) if graph is not None else zonder_graaf
+    buiten_graaf = False
     if not rijen:
-        return fout("niet_gevonden", f"artikel {artikel} van {bwb_id} staat niet in de graaf. Controleer het nummer, "
-                    "bijvoorbeeld met get_artikel.")
+        # Een regeling die niet in de kennisgraaf staat (de Wet IB 2001, de Wet OB 1968) kent LiDO wel: zoek dan op
+        # bwb-id en nummer, zoals zonder graaf (meting 11 nov 2026, R09/R10: "staat niet in de graaf" bij een artikel
+        # met honderden uitspraken). Staat de regeling er wel in, dan bestaat het artikel niet: een tikfout.
+        if not _regeling_buiten_graaf(graph, bwb_id):
+            return fout("niet_gevonden", f"artikel {artikel} van {bwb_id} staat niet in de graaf. Controleer het "
+                        "nummer, bijvoorbeeld met get_artikel.")
+        rijen, buiten_graaf = zonder_graaf, True
     kop = rijen[0]
     label = kop.get("label") or f"artikel {artikel}"
     bepaling = {"bwb_id": bwb_id, "artikel": artikel, "label": label}
@@ -553,18 +577,31 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
         per[ln.ecli] = (titel or ln.titel, soorten | {ln.soort_link}, vs | {ln.versie})
     alle = [{**rij_van(e, t), **_tekst_van([per_versie[v] for v in sorted(vs) if v in per_versie], peildatum)}
             for e, (t, _, vs) in per.items()]
+    # De filters als losse toetsen, zodat elke telling binnen de andere filters telt (zoals een facet): "487 van de
+    # gerechtshoven" naast tellingen over alle 623 uitspraken bij het artikel was tegenstrijdig (meting 11 nov 2026, R06).
+    toetsen = {
+        "instantie": lambda r: keuze is None or keuze.past(r["id"]),
+        "soort": lambda r: not a.get("soort") or r["soort"].lower() == a["soort"],
+        "periode": lambda r: (not vanaf or r["datum"] >= vanaf) and (not tot or r["datum"][:10] <= tot),
+        "tekststand": lambda r: not stand or (r.get("op_peildatum") is True if stand == "op peildatum"
+                                              else r.get("tekststand") == stand),
+    }
+
+    def binnen(r: dict[str, Any], behalve: str = "") -> bool:
+        return all(t(r) for n, t in toetsen.items() if n != behalve)
+
+    lijst = [r for r in alle if binnen(r)]
     per_instantie: dict[str, int] = {}
-    koppelingen: dict[str, int] = {}
-    for e, (_, soorten, _vs) in per.items():
-        per_instantie[instantie(e)] = per_instantie.get(instantie(e), 0) + 1
-        koppelingen[koppeling_van(soorten)] = koppelingen.get(koppeling_van(soorten), 0) + 1
-    lijst = [r for r in alle
-             if (keuze is None or keuze.past(r["id"]))
-             and (not a.get("soort") or r["soort"].lower() == a["soort"])
-             and (not vanaf or r["datum"] >= vanaf) and (not tot or r["datum"][:10] <= tot)
-             and (not stand or (r.get("op_peildatum") is True if stand == "op peildatum" else r.get("tekststand") == stand))]
-    per_tekststand: dict[str, int] = {}
     for r in alle:
+        if binnen(r, "instantie"):
+            per_instantie[instantie(r["id"])] = per_instantie.get(instantie(r["id"]), 0) + 1
+    koppelingen: dict[str, int] = {}
+    for r in lijst:
+        soort_k = koppeling_van(per[r["id"]][1])
+        koppelingen[soort_k] = koppelingen.get(soort_k, 0) + 1
+    zonder_stand = [r for r in alle if binnen(r, "tekststand")]
+    per_tekststand: dict[str, int] = {}
+    for r in zonder_stand:
         if r.get("tekststand"):
             per_tekststand[r["tekststand"]] = per_tekststand.get(r["tekststand"], 0) + 1
     # Rijen zonder titel krijgen hun datum uit de metadata, vóór het sorteren, zodat de volgorde op de dag klopt. Zijn
@@ -579,19 +616,28 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
     if k.onvolledig:
         toelichting = (f"Van {len(k.onvolledig)} van de {len(k.versies)} versies kwam niet alles binnen (plafond of een "
                        "afgebroken antwoord van LiDO); de lijst is daar korter dan wat LiDO kent.")
+        # LiDO telt zelf hoeveel uitspraken een versie noemt (het facet van de eerste pagina): noem dat, zodat "ten
+        # minste" een getal heeft.
+        telling = sum(k.totaal_lido.get(v, 0) for v, _ in k.onvolledig)
+        binnen_v = sum(1 for _, (_, _, vs) in per.items() if vs & {v for v, _ in k.onvolledig})
+        if telling > binnen_v:
+            toelichting += (f" LiDO telt bij die versie{'s' if len(k.onvolledig) > 1 else ''} {telling} uitspraken; "
+                            f"hiervan kwamen er {binnen_v} binnen.")
     elif not k.versies:
         toelichting = (f"LiDO kent {label} van {bwb_id} niet; dat zegt niet dat er geen uitspraken over zijn. Zoek "
                        "eventueel via een andere bron.")
     elif not lijst:
         toelichting = "LiDO noemt bij dit artikel geen uitspraken die aan de filters voldoen."
-    if (stand_zin := _stand_zin(label, versies, huidig, loopt_achter, per_tekststand, len(alle))):
+    if (stand_zin := _stand_zin(label, versies, huidig, loopt_achter, per_tekststand, len(zonder_stand),
+                                buiten_graaf)):
         toelichting = f"{toelichting} {stand_zin}".strip()
     per_tv: dict[str, int] = {}
-    for _, (_, _, vs) in per.items():
-        for v in vs:
+    for r in zonder_stand:
+        for v in per[r["id"]][2]:
             per_tv[v] = per_tv.get(v, 0) + 1
     extra = compact({
         "bepaling": bepaling, "totaal": len(lijst), "dekking": "ten minste", "versies": len(k.versies),
+        "bij_het_artikel": len(alle) if len(alle) != len(lijst) else None,
         "huidige_tekst": {"vanaf": min(huidig)} if huidig else {},
         "per_tekststand": per_tekststand,
         "tekstversies": [compact({"vanaf": t.vanaf, "tot": t.tot, "uitspraken": per_tv.get(t.versie, 0)})
