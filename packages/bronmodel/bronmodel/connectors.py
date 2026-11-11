@@ -666,7 +666,7 @@ WETGEVING_LIVE = ConnectorBeschrijving(
     metadata=(
         MetadataVeld("datum", "geldig vanaf", "overheidbwb:geldigheidsperiode_startdatum; inwerking (artikel)",
                      "sinds wanneer de tekst geldt: bij een regeling de toestand, bij een artikel zijn inwerkingtreding; "
-                     "niet de datum van de regeling zelf", filters=("peildatum",)),
+                     "niet de datum van de regeling zelf"),
         MetadataVeld("nummer", "BWB-id", "dcterms:identifier",
                      "het BWB-id van de regeling (BWBR…): daarmee lees je de opbouw en de artikelen"),
         MetadataVeld("reeks", "plek in de regeling", "de structuur van de toestand (hoofdstuk, afdeling, paragraaf)",
@@ -687,7 +687,10 @@ WETGEVING_LIVE = ConnectorBeschrijving(
                      "huidige tekst, eerdere tekst of toekomstige tekst; bij een regeling die niet in de graaf staat: de "
                      "tekst op de peildatum"),
         MetadataVeld("op_peildatum", "op de peildatum", "de gekozen toestand",
-                     "of de gelezen tekst gold op de peildatum (de toestand is erop gekozen, dus altijd waar)"),
+                     "of de gelezen tekst gold op de peildatum (de toestand is erop gekozen, dus altijd waar)",
+                     # De peildatum kiest de toestand die dan gold; ze is geen begindatum ("vanaf 1 januari 1995" onder
+                     # de lijst, meting ronde 2).
+                     filters=("peildatum",)),
         MetadataVeld("inwerking", "in werking", "inwerking (artikel)",
                      "wanneer deze tekst van het artikel in werking trad; bij 'nog niet in werking' de datum waarop het "
                      "gaat gelden"),

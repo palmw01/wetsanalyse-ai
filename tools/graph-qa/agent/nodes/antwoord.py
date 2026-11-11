@@ -456,7 +456,12 @@ def hergebruikte_bronnen(register, antwoord: str, al) -> list:
 _INTERN = re.compile(
     r"\b(?:sjablo(?:on|nen)\w*|antwoord_(?:bepaling|duiding|extern|begrip|annotaties)|brongetrouwheidscontrole"
     # Systeemtaal over de eigen werking (Bekendmakingen B15, 11 nov 2026: "de regels van deze werkplek").
-    r"|(?:de\s+)?regels\s+van\s+(?:deze|de)\s+werkplek|systeemprompt|mijn\s+instructies|toolaanroep\w*)\b",
+    r"|(?:de\s+)?regels\s+van\s+(?:deze|de)\s+werkplek|systeemprompt|mijn\s+instructies|toolaanroep\w*"
+    # Wat het model zegt als het vaste antwoord niet lukte, over de vorm in plaats van over de wet (wetgeving_live ronde
+    # 2, I13: "Ik geef de uitleg daarom in tekst, met verwijzing naar de gelezen stukken."; I28: "Ik geef de vergelijking
+    # daarom in tekst weer").
+    r"|(?:ik\s+geef|geef\s+ik)\s+(?:de|het|mijn|deze)\s+\w+\s+(?:daarom\s+|dus\s+|hier\s+)?in\s+(?:gewone\s+|vrije\s+)?tekst"
+    r"|(?:de\s+)?code\s+herkent\s+(?:ze|het|dit|deze)\b)\b",
     re.IGNORECASE)
 _ZIN = re.compile(r"[^.!?\n]*[.!?]?[ \t]*")
 

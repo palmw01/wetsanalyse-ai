@@ -153,13 +153,14 @@ def _kort(tekst: str) -> str:
     return tekst[:60] + ("…" if len(tekst) > 60 else "")
 
 
-def live_artikelen(trace: Trace) -> dict[str, str]:
+def live_artikelen(trace: Trace) -> dict[str, tuple[str, ...]]:
     """De artikelen die in dit gesprek met `get_wettekst` (wettekst van overheid.nl) gelezen zijn: hun nummer ("9", en bij
-    een boek van het BW ook "2:9") naar het id van het stuk."""
+    een boek van het BW ook "2:9") naar de ids van de stukken. Eén artikel kan meer stukken hebben: het hele artikel, of
+    elk apart gelezen lid (`…:artikel:9:lid:2`)."""
     import json
     import re as _re
 
-    uit: dict[str, str] = {}
+    uit: dict[str, tuple[str, ...]] = {}
     for naam, tekst in trace:
         if naam != "get_wettekst":
             continue
@@ -168,12 +169,39 @@ def live_artikelen(trace: Trace) -> dict[str, str]:
         except (ValueError, AttributeError):
             continue
         ident = str(stuk.get("id") or "")
-        if not (m := _re.search(r":artikel:([^:]+)$", ident)):
+        if not (m := _re.search(r":artikel:([^:]+)(?::lid:[^:]+)?(?::o:[^:]+)?$", ident)):
             continue
-        nummer = m.group(1).casefold()
-        uit[nummer] = ident
+        nummers = [m.group(1).casefold()]
         if boek := _re.search(r"\bBoek\s+(\d+)\b", str(stuk.get("label") or "")):
-            uit[f"{boek.group(1)}:{nummer}"] = ident
+            nummers.append(f"{boek.group(1)}:{nummers[0]}")
+        for nummer in nummers:
+            if ident not in uit.get(nummer, ()):
+                uit[nummer] = (*uit.get(nummer, ()), ident)
+    return uit
+
+
+def live_opbouw(trace: Trace) -> set[str]:
+    """De artikelnummers die de opbouw van een regeling van overheid.nl in dit gesprek noemt (`zoek_artikelen`: de rijen
+    en per deel het eerste en laatste artikel). Daarmee noemt de uitleg de indeling van de regeling uit de bron ("hoofdstuk
+    3, artikel 3.1 tot en met 3.157"); wat een artikel inhoudelijk zegt, vraagt nog steeds een gelezen passage. Zonder
+    dit weigerde het sjabloon vier keer het overzicht van de Wet IB 2001 (meting ronde 2, I13)."""
+    import json
+    import re as _re
+
+    uit: set[str] = set()
+    for naam, tekst in trace:
+        if naam != "zoek_artikelen":
+            continue
+        try:
+            data = json.loads(tekst)
+        except ValueError:
+            continue
+        if not isinstance(data, dict) or data.get("status") not in ("ok", "partial"):
+            continue
+        labels = [r.get("label") for r in data.get("resultaten") or [] if isinstance(r, dict)]
+        labels += [d.get(k) for d in data.get("opbouw") or [] if isinstance(d, dict) for k in ("van", "tot")]
+        uit |= {m.group(1).casefold() for x in labels if isinstance(x, str)
+                and (m := _re.fullmatch(r"Artikel\s+(\S+)", x.strip()))}
     return uit
 
 
@@ -181,8 +209,9 @@ def _niet_onderbouwd(uitleg: str, citaten: list[Citaat], extern: frozenset[str] 
                      trace: Trace = ()) -> list[str]:
     """De artikelen die de uitleg noemt en die geen enkele passage draagt of vermeldt. Een artikel van overheid.nl
     (`wettekst_live`) dat het blok `extern` aanwijst, is onderbouwd (iteratie ronde 1, I28: "artikel 2:9 BW" werd zes keer
-    geweigerd, terwijl het gelezen en aangewezen was)."""
-    live = {n for n, i in live_artikelen(trace).items() if i in extern}
+    geweigerd, terwijl het gelezen en aangewezen was), en zo ook een artikel dat de opbouw van zo'n regeling noemt
+    (`live_opbouw`)."""
+    live = {n for n, ids in live_artikelen(trace).items() if any(i in extern for i in ids)} | live_opbouw(trace)
     bekend = _bekende_artikelen([("", f"{c.vindplaats.iri} {c.vindplaats.label} {c.tekst}") for c in citaten]) | live
     return [v for v in vermeldingen(uitleg) if v.startswith("artikel ") and v.removeprefix("artikel ").casefold() not in bekend]
 
@@ -216,7 +245,8 @@ def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace:
     zinnen = []
     if live:
         zinnen.append("Je noemt " + ", ".join(v for v, _ in live) + " zonder passage. Die tekst is van overheid.nl gelezen: "
-                      "wijs de passages aan in 'extern' met het id (" + ", ".join(i for _, i in live) + "), of laat de "
+                      "wijs de passages aan in 'extern' met het id (" + ", ".join(i for _, ids in live for i in ids) +
+                      "), of laat de "
                       "vermelding weg.")
     if gelezen:
         zinnen.append(f"Je noemt {', '.join(gelezen)} zonder passage, terwijl de tekst al is opgehaald. Wijs er een passage uit "

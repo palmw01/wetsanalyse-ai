@@ -83,6 +83,10 @@
   "bestand": "3fc99eedbe741c22.xml.gz",
   "status": 406
  },
+ "query=overheidbwb.afkorting=\"Participatiewet\" and overheidbwb.geldigheidsdatum=2015-01-15 | startRecord=1 | maximumRecords=100": {
+  "bestand": "79f60b7c5ca3c5fa.xml.gz",
+  "status": 406
+ },
  "query=overheidbwb.afkorting=\"Participatiewet\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=100": {
   "bestand": "09fa593162c8ab62.xml.gz",
   "status": 406
@@ -113,6 +117,10 @@
  },
  "query=overheidbwb.titel adj \"Burgerlijk Wetboek Boek 7\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=50": {
   "bestand": "ea8c7fd150cbd6f9.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.titel adj \"Participatiewet\" and overheidbwb.geldigheidsdatum=2015-01-15 | startRecord=1 | maximumRecords=100": {
+  "bestand": "ffde3e578ceb8f22.xml.gz",
   "status": 406
  },
  "query=overheidbwb.titel adj \"Participatiewet\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=100": {

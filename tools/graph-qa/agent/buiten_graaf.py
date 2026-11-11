@@ -45,6 +45,7 @@ _TITEL_RES = (
     re.compile(r"(?<![\w-])(?P<naam>(?:Besluit|Regeling)(?:\s+(?:[A-Z][a-zà-ÿ]+|en|op|van|de|het|inzake)){0,6}"
                r"\s+[A-Z][a-zà-ÿ]+)(?![\w-])"),
 )
+_BW_BOEK = re.compile(r"Burgerlijk Wetboek Boek (\d+)", re.IGNORECASE)
 _BW_RE = re.compile(r"(?<![\w:])(?P<boek>[1-8]|10):(?P<artikel>\d+[a-z]*)(?:\s*,?\s*lid\s+\d+[a-z]*)?\s*"
                     r"(?:van\s+het\s+)?(?:BW|Burgerlijk\s+Wetboek)\b", re.IGNORECASE)
 _AFK_RE = re.compile(r"\bart(?:ikel|\.)\s*(?P<artikel>\d+[a-z]*(?:\.\d+[a-z]*)*)(?:\s*,?\s*(?:lid|eerste|tweede)\s*\w*)?"
@@ -171,9 +172,21 @@ def genoemd(vraag: str, graph: Any, bron: Any, *, vandaag: str) -> list[Genoemd]
         g = zonder_dubbel[0]
         eigen = next((k[2] for k in kandidaten if k[0] == g.naam and k[2]), "")
         artikel = eigen or (next(iter(artikelen)) if len(artikelen) == 1 else "")
-        uit = [Genoemd(g.naam, g.bwb_id, g.titel, artikel.split(":")[-1] if artikel else "",
+        uit = [Genoemd(g.naam, g.bwb_id, g.titel, artikel_in_regeling(artikel, g.titel),
                        next(iter(leden)) if len(leden) == 1 and artikel else "") if x is g else x for x in uit]
     return uit
+
+
+def artikel_in_regeling(artikel: str, titel: str) -> str:
+    """Het artikelnummer zoals de regeling het zelf voert. Alleen een boek van het BW draagt het boek niet in zijn eigen
+    nummering ("artikel 7:610 BW" is artikel 610 van Boek 7); elke andere regeling met een dubbele punt in het nummer
+    (de Awb, de Algemene douanewet: "artikel 1:1") voert het nummer zoals het er staat (meting ronde 2, I03: "1:1"
+    werd artikel 1, dat niet bestaat)."""
+    boek = _BW_BOEK.fullmatch(titel or "")
+    voor, dubbel, na = artikel.partition(":")
+    if boek and dubbel and voor == boek.group(1):
+        return na
+    return artikel
 
 
 def plan_regel(genoemde: list[Genoemd]) -> str:
