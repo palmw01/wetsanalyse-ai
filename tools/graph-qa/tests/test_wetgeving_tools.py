@@ -310,6 +310,64 @@ def test_zoeken_op_woorden_in_de_tekst():
                       "Artikel 53a"]
 
 
+def test_de_lijst_onder_het_antwoord_draagt_zoekvraag_totaal_en_links():
+    """Ronde 2 (I01, I14, I30): de zoekvraag was een zin, dus het blok `stukken` toonde geen zoekvraag en geen totaal,
+    en de rijen hadden geen link. Nu dezelfde vorm als de andere connectors."""
+    from agent.sjablonen.extern import lijsten
+
+    woorden = _roep("zoek_artikelen", {"bwb_id": PW, "woorden": "kostendelende medebewoner"})
+    assert woorden["zoekvraag"] == {"tekst": "kostendelende medebewoner"}
+    assert all(r["link"].startswith("https://wetten.overheid.nl/jci1.3:c:BWBR0015703") for r in woorden["resultaten"])
+    trace = [("zoek_artikelen", json.dumps(woorden))]
+    blok = lijsten([r["id"] for r in woorden["resultaten"]], trace)[0]
+    assert blok.totaal == 7
+    assert blok.zoekvraag.startswith("Gezocht op „kostendelende medebewoner” in de tekst. In Participatiewet")
+
+    alles = _roep("zoek_artikelen", {"bwb_id": PW})
+    blok = lijsten([r["id"] for r in alles["resultaten"][:3]], [("zoek_artikelen", json.dumps(alles))])[0]
+    assert blok.totaal == alles["totaal"] and blok.totaal > 100
+    assert blok.zoekvraag.startswith("De artikelen van Participatiewet")
+
+    regelingen = _roep("zoek_regelingen", {"naam": "Participatiewet", "peildatum": "2015-01-15"})
+    assert regelingen["zoekvraag"] == {"naam": "Participatiewet", "peildatum": "2015-01-15", "volgorde": "relevantie"}
+    assert regelingen["resultaten"][0]["link"].startswith(f"https://wetten.overheid.nl/{PW}/")
+    blok = lijsten([regelingen["resultaten"][0]["id"]], [("zoek_regelingen", json.dumps(regelingen))])[0]
+    assert "„Participatiewet” in de titel" in blok.zoekvraag and "peildatum 15 januari 2015" in blok.zoekvraag
+    assert "vanaf" not in blok.zoekvraag
+
+
+def test_een_gelezen_lid_is_een_eigen_stuk():
+    """Ronde 2, I28: twee apart gelezen leden van één artikel hadden hetzelfde id en allebei nr 1, dus het antwoord kon
+    lid 2 niet aanwijzen. Nu heeft een lid (en een onderdeel daarin) een eigen id, label en link, zoals in de graaf."""
+    from agent.sjablonen.extern import heel_stuk
+
+    een = _roep("get_wettekst", {"bwb_id": PW, "artikel": "31", "lid": "1"})
+    twee = _roep("get_wettekst", {"bwb_id": PW, "artikel": "31", "lid": "2"})
+    assert een["stuk"]["id"] == f"bwbt:{PW}:2026-07-01_0:artikel:31:lid:1"
+    assert twee["stuk"]["id"] == f"bwbt:{PW}:2026-07-01_0:artikel:31:lid:2"
+    assert twee["stuk"]["label"].startswith("Participatiewet, Artikel 31, lid 2 (")
+    assert "&lid=2" in twee["stuk"]["link"]
+    # Op het id gelezen geeft hetzelfde stuk.
+    weer = _roep("get_wettekst", {"id": twee["stuk"]["id"]})
+    assert weer["stuk"]["id"] == twee["stuk"]["id"] and weer["resultaten"][0]["tekst"] == twee["resultaten"][0]["tekst"]
+    trace = [("get_wettekst", json.dumps(een)), ("get_wettekst", json.dumps(twee))]
+    assert heel_stuk(trace, een["stuk"]["id"]).passages[0].tekst.startswith("Tot de middelen worden alle")
+    assert heel_stuk(trace, twee["stuk"]["id"]).passages[0].tekst.startswith("Niet tot de middelen")
+    c = _roep("get_wettekst", {"bwb_id": PW, "artikel": "31", "lid": "2", "onderdeel": "c"})
+    assert c["stuk"]["id"].endswith(":artikel:31:lid:2:o:c") and "onderdeel c" in c["stuk"]["label"]
+    # Het hele artikel blijft het artikel.
+    assert _roep("get_wettekst", {"bwb_id": PW, "artikel": "31"})["stuk"]["id"].endswith(":artikel:31")
+
+
+def test_het_label_zegt_dat_het_een_eerdere_tekst_is():
+    """Ronde 2, I15/I16: 'eerdere tekst' stond alleen in de metadata; het label in het antwoord zei 'tekst geldig vanaf
+    2015-01-01', alsof het de huidige was."""
+    oud = _roep("get_wettekst", {"bwb_id": PW, "artikel": "8", "peildatum": "2015-01-15"})["stuk"]
+    assert oud["label"] == "Participatiewet, Artikel 8 (eerdere tekst, geldig van 2015-01-01 tot en met 2015-01-31)"
+    nu = _roep("get_wettekst", {"bwb_id": PW, "artikel": "8"})["stuk"]
+    assert nu["label"] == "Participatiewet, Artikel 8 (tekst geldig vanaf 2026-07-01)"
+
+
 # --- herkomst: nooit een graafbron ------------------------------------------------------------------------------------
 
 def test_de_bronnenlijst_kent_alleen_het_gelezen_stuk_geen_graafbron():

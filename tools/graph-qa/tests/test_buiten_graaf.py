@@ -51,6 +51,20 @@ def test_een_artikel_van_een_boek_van_het_bw_met_lid():
     assert [(g.titel, g.artikel, g.lid) for g in uit] == [("Burgerlijk Wetboek Boek 7", "610", "1")]
 
 
+@pytest.mark.parametrize(("artikel", "titel", "nummer"), [
+    ("1:1", "Algemene douanewet", "1:1"),
+    ("3:40", "Algemene wet bestuursrecht", "3:40"),
+    ("7:610", "Burgerlijk Wetboek Boek 7", "610"),
+    ("6:162", "Burgerlijk Wetboek Boek 7", "6:162"),
+    ("31", "Participatiewet", "31"),
+    ("", "Participatiewet", ""),
+])
+def test_een_nummer_met_dubbele_punt_blijft_heel_behalve_het_boek_van_het_bw(artikel, titel, nummer):
+    """Ronde 2, I03: "artikel 1:1 van de Algemene douanewet" werd artikel 1. Alleen een boek van het BW draagt het boek
+    niet in zijn eigen nummering."""
+    assert bg.artikel_in_regeling(artikel, titel) == nummer
+
+
 def test_een_afkorting_die_bij_meer_regelingen_past_laat_kiezen():
     uit = _genoemd("Wat staat er in artikel 1 Pw?")
     assert len(uit) == 1 and uit[0].dubbelzinnig
