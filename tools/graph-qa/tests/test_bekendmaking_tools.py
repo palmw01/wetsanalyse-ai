@@ -589,12 +589,13 @@ def test_tekst_na_een_gelezen_stuk_vraagt_een_keer_om_het_sjabloon(monkeypatch):
     bereik) telt niet."""
     from fakes import FakeLLM, response, text_block
 
-    llm = FakeLLM([response([text_block("duiding")], "end_turn"),
-                   response([text_block("| onderdeel | artikel |\n|---|---|\n| A | 1.1.5 |")], "end_turn"),
+    # Een vraag die een stuk aanwijst, routeert de code zonder model (R28b), dus geen routeringsaanroep vooraf.
+    llm = FakeLLM([response([text_block("| onderdeel | artikel |\n|---|---|\n| A | 1.1.5 |")], "end_turn"),
                    response([text_block("Onderdeel A wijzigt artikel 1.1.5.")], "end_turn")])
     _stream("Wat veranderde stcrt-2026-37344 aan artikel 1.1.5 van de Leidraad Invordering 2008?", monkeypatch, llm)
-    assert len(llm.calls) == 3 and _gevraagd(llm) == 1
+    assert len(llm.calls) == 2 and _gevraagd(llm) == 1
 
     pdf = FakeLLM([response([text_block("Alleen als PDF.")], "end_turn")])
     _stream("Wat staat er in stb-1990-222?", monkeypatch, pdf)
-    assert len(pdf.calls) == 1 and _gevraagd(pdf) == 0, "na een fout geen vraag om het sjabloon"
+    # Alleen een PDF: de code antwoordt met een vaste melding, zonder model (`bron_lezen._zonder_tekst`, Kamerstukken K12).
+    assert pdf.calls == [], "na een fout geen modelaanroep, dus ook geen vraag om het sjabloon"
