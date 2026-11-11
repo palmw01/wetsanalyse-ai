@@ -26,7 +26,7 @@ from bronmodel.extern import ExterneVindplaats, externe_verwijzingen, externe_vi
 from bronmodel.vindplaats import vindplaats
 
 from .models import Source
-from .resultaat import is_contract, waarden
+from .resultaat import is_contract, is_fout, waarden
 from .namespace import vindplaats_patroon
 from .tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
 
@@ -154,7 +154,9 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
     per_node: dict[str, Source] = {}
 
     for tool, text in entries:
-        if not text or tool in AFGELEIDE_TOOL_NAMEN:
+        # Een foutresultaat is geen bron: zijn voorbeeld ({"bwb_id": "BWBR0004770", …}) zette de Invorderingswet in de
+        # bronnenlijst bij een ECLI die niet bestaat (meting Rechtspraak R14, 11 nov 2026).
+        if not text or tool in AFGELEIDE_TOOL_NAMEN or is_fout(text):
             continue
         labels = _labels(text)
         if tool in LIVE_WETTEKST_TOOLS:

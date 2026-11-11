@@ -21,7 +21,7 @@ from bronmodel.connectors import CONNECTORS
 from langgraph.config import get_stream_writer
 
 from ..narratie import _stap, _toolregel
-from ..sjablonen.extern import MAX_LIJST, lijsten, zoekvraag_tekst
+from ..sjablonen.extern import MAX_LIJST, leemte_tekst, lijsten
 from ..sjablonen.vullen import Onvulbaar
 from ..state import State
 from ..tool_execution import execute_tool
@@ -75,12 +75,9 @@ def bron_lijst_node(b, state: State) -> dict[str, Any]:
         logger.warning("bron_lijst_onvulbaar", extra={"connector": c.naam, "aantal": len(ids)})
         return {"bron_lijst": {}, "messages": paar, "source_trace": [*state.get("source_trace", []), *trace]}
     if not blokken:
-        zoekvraag = zoekvraag_tekst(c, data.get("zoekvraag") or {})
         # De verzamelnaam uit de beschrijving ("bekendmakingen"): "Geen Staatsblad en Staatscourant gevonden" las
-        # krom (meting bekendmakingen B14). Niets gevonden is geen bewijs dat het niet bestaat.
-        stukken = c.verzamelnamen[0] if c.verzamelnamen else "stukken"
-        blokken = [Leemte(tekst=f"Geen {stukken} gevonden die aan de zoekvraag voldoen. {zoekvraag} Dat ik niets vond, "
-                                "betekent niet dat het niet bestaat.".replace("  ", " ").strip())]
+        # krom (meting bekendmakingen B14). Zonder volgorde, met de kanttekening van de tool (`leemte_tekst`).
+        blokken = [Leemte(tekst=leemte_tekst(c, data))]
     if (gevraagd := int(v.get("gevraagd") or 0)) and blokken and getattr(blokken[0], "soort", "") == "stukken":
         # Begrensd mag, stil niet: "de 100 nieuwste" gaf 25 zonder dat te zeggen (externe review, 10 nov 2026). De
         # slotzin noemt het totaal ("25 van de 874 stukken"); de volgende pagina haalt de agent (`vervolg`).

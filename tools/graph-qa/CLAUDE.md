@@ -385,7 +385,25 @@ bruikbaar is.
   datum, gerecht, titel en zaaknummer uit de metadata van de Rechtspraak (`LidoRechtspraak.metadata`, `return=META`,
   gecachet als de waardelijsten), vóór het sorteren tot `MAX_AANVULLEN` rijen, daarboven alleen voor de getoonde pagina;
   lukt dat niet, dan blijft het jaar uit de ECLI staan (vraag 3). Het blok `extern` neemt de tekstvelden uit de zoekrij
-  (`extern._tekst_bij`, `TEKSTVELDEN`), want de leestool kent het artikel niet. `tests/test_rechtspraak_tools.py`,
+  (`extern._tekst_bij`, `TEKSTVELDEN`), want de leestool kent het artikel niet. **Na ronde 1 van de iteratie**
+  (`docs/architectuur/metingen/rechtspraak-iteratie-2026-11-11/`): `get-links` vraagt alleen jurisprudentie
+  (`ALLEEN_JURISPRUDENTIE`, het facet `obj_type`), want de wetten die een veelgebruikt artikel noemen braken het antwoord af
+  (Awb 6:7: 0 van 6772); bij een plafond noemt de toelichting wat LiDO zelf telt (`totaal_lido`). Een regeling die niet in de
+  kennisgraaf staat (`graaftoestanden`; een haperende graaf telt niet) zoekt LiDO op bwb-id en nummer, met een stand die niet
+  vast te stellen is; staat de regeling er wel in en het artikel niet, dan `niet_gevonden`. `per_instantie`,
+  `per_tekststand` en `tekstversies` tellen binnen de andere filters (een facet), `bij_het_artikel` zonder filters. Een soort
+  gerecht in het meervoud ("gerechtshoven", `bronmodel.connectors.INSTANTIE_MEERVOUD`) leest de lijstroute en zet de tool om.
+  De vragenset `tests/data/rechtspraak_vragenset_30.json` met de routetoets `tests/test_rechtspraak_vragenset.py` (een bekende
+  afwijking in gedeelde code staat als `open`, `xfail(strict=True)`). Een rechtsgebied naast een artikel past de tool niet
+  toe, en dat zegt de **`kanttekening`**: een veld van het resultaatcontract (`resultaat.CONTRACT_SCHEMA`) met een zin voor
+  de jurist over de grens van de zoekvraag (onvolledig, LiDO kent het artikel niet, een regeling buiten de graaf, een filter
+  dat niet kon). `extern.lijsten` zet hem achter de zoekvraag van het blok `stukken`, `extern.leemte_tekst` in de leemte
+  (zonder volgorde: "Bij deze zoekvraag vond ik geen …"). Voor elke connector, ook in de ronde gedeeld gebouwd:
+  `extern.lijsten` neemt pagina's van dezelfde zoekvraag (`_zoeksleutel`) als één lijst en houdt een gelezen stuk bij zijn
+  zoekvraag; `van_orgaan` kiest het lidwoord ("van het College"); `provenance.collect_sources` slaat een foutresultaat over
+  (`is_fout`: het voorbeeld in een foutmelding is geen bron); `bron_lijst` leest een maand, laat een werkwoord achter het
+  onderwerp weg (`_WERKWOORDEN`), kent "kamerdossier" en telt een naam binnen een langere regelingnaam niet
+  (`_zonder_ingesloten`). `tests/test_rechtspraak_tools.py`,
   live `tests/test_rechtspraak_live.py`, meting `docs/architectuur/metingen/lido-spike-2026-11-10/`.
 - **Wetgeving buiten de kennisgraaf** (`tools/wetgeving_tools.py`, transport `adapters/sru_bwb.py`, ADR-013 fase 1e):
   wettekst van het BWB die niet in de graaf staat, live bij overheid.nl. **De graaf blijft de bron voor wat erin staat**,

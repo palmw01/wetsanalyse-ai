@@ -298,6 +298,8 @@ CONTRACT_SCHEMA: dict[str, Any] = {
                     "description": "De aanroep die dezelfde set aanvult; alleen als volledig onwaar is."},
         "resultaten": {"type": "array", "items": {"type": "object"}},
         "toelichting": {"type": "string"},
+        "kanttekening": {"type": "string", "description": "Een zin voor de jurist over de grens van deze zoekvraag "
+                         "(onvolledig, een filter dat niet kon); het blok stukken toont hem."},
         "reden": {"type": "string"},
     },
     "required": ["status"],

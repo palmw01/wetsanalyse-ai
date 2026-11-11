@@ -104,3 +104,32 @@ def test_structuurdeel_krijgt_zijn_titel_uit_het_toolresultaat():
     assert labels[hfd] == "Hoofdstuk II – Invordering in eerste aanleg"
     assert labels[afd] == "Hoofdstuk 4, titeldeel 4.4, afdeling 4.4.4 – Aanmaning en invordering bij dwangbevel"
     assert labels["urn:bwb:BWBR0004770:hoofdstuk:III"] == "Hoofdstuk III"
+
+
+# --- een foutresultaat is geen bron (meting Rechtspraak R14, 11 nov 2026) ------------------------------------------
+
+import json as _json  # noqa: E402
+
+import pytest as _pytest  # noqa: E402
+
+
+@_pytest.mark.parametrize("tool,args", [
+    ("zoek_uitspraken", {"artikel": "9"}),                      # Rechtspraak: het voorbeeld BWBR0004770
+    ("zoek_bekendmakingen", {"artikel": "36"}),                 # Staatsblad en Staatscourant: idem
+    ("zoek_regelingen", {"bwb_id": "geen-id"}),                 # Wetgeving buiten de graaf: BWBR0015703
+])
+def test_het_voorbeeld_in_een_foutmelding_is_geen_bron(tool, args):
+    from agent import tools
+    from fakes import FakeGraph, make_settings
+
+    aan = make_settings(connector_rechtspraak=True, connector_bekendmakingen=True, connector_wetgeving_live=True)
+    raw = tools.dispatch(tool, FakeGraph(result=""), args, aan)
+    data = _json.loads(raw)
+    assert data["status"] == "error" and "BWBR" in data["melding"], data
+    assert collect_sources([(tool, raw)]) == []
+
+
+def test_een_gewoon_resultaat_blijft_een_bron():
+    raw = _json.dumps({"status": "ok", "volledig": True, "aantal": 1,
+                       "resultaten": [{"iri": "urn:bwb:BWBR0004770:artikel:9"}]})
+    assert [s.bwb_id for s in collect_sources([("get_artikel", raw)])] == ["BWBR0004770"]
