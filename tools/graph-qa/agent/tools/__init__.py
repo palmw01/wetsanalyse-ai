@@ -188,10 +188,12 @@ def _niet_in_graaf(g: GraphPort, bwb_id: str, lezen: dict[str, Any]) -> str | No
     vindplaats telde, en gooiden `get_bepaling` en `inhoudsopgave` een kale fouttekst. Het model kon dan doen alsof de
     wet niet bestaat, of de iri als bron noemen. Een storing bij deze vraag is geen bewijs: dan None."""
     try:
-        bestaat = parse_select(g.sparql(_q_regeling_bestaat(bwb_id)))
+        ruw = g.sparql(_q_regeling_bestaat(bwb_id))
     except Exception:  # noqa: BLE001 – onbekend is geen "staat er niet in"
         return None
-    if bestaat:
+    # Alleen een geldig leeg antwoord (de kop `?r` zonder rij) bewijst dat de regeling er niet in staat; een antwoord
+    # zonder kop is onleesbaar, en dus geen bewijs.
+    if parse_select(ruw) or "?r" not in str(ruw or ""):
         return None
     return fout("niet_in_graaf", (
         f"{bwb_id} staat niet in de kennisgraaf. Staat de bron Wetgeving buiten de kennisgraaf in deze beurt aan (zie "

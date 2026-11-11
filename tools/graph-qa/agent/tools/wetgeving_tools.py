@@ -193,9 +193,13 @@ def graaftoestanden(graph: Any, bwb_ids: Iterable[str]) -> dict[str, tuple[str, 
     open_ = [b for b in ids if b not in bekend]
     if open_:
         try:
-            rijen = parse_select(graph.sparql(q_in_graaf(open_)))
+            ruw = graph.sparql(q_in_graaf(open_))
         except Exception as exc:  # noqa: BLE001 – elke storing betekent: onbekend
             raise GraafOnbekend(str(exc)[:200]) from exc
+        if "?r" not in str(ruw or ""):
+            # Geen SELECT-kop: een onleesbaar antwoord, geen bewijs dat de regeling er niet in staat.
+            raise GraafOnbekend("onleesbaar antwoord van de graaf")
+        rijen = parse_select(ruw)
         gevonden = {r.get("r", "").strip("<>").removeprefix(_URN): (str(r.get("van") or "")[:10],
                                                                      str(r.get("tot") or "")[:10] or OPEN_EIND)
                     for r in rijen}
