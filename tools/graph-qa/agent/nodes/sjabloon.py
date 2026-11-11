@@ -64,7 +64,8 @@ def _lees_wat_genoemd_is(b: Bouw, state: State, fout: Onvulbaar) -> tuple[str, l
 
 #: Achter elke weigering: verbeter de aanroep, geen vrije tekst (behalve waar de weigering zelf tekst toestaat).
 OPNIEUW = ("\n\nVerbeter de aanroep en roep {naam} opnieuw aan: het antwoord hoort in het sjabloon. Schrijf alleen "
-           "tekst als de melding hierboven dat zegt.")
+           "tekst als de melding hierboven dat zegt. Deze melding komt van de code, niet van de jurist: noem haar, het "
+           "sjabloon of deze tool nooit in je antwoord.")
 
 
 def sjabloon_node(b: Bouw, state: State) -> dict[str, Any]:

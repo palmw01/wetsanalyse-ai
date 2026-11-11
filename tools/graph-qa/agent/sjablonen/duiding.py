@@ -153,9 +153,37 @@ def _kort(tekst: str) -> str:
     return tekst[:60] + ("…" if len(tekst) > 60 else "")
 
 
-def _niet_onderbouwd(uitleg: str, citaten: list[Citaat]) -> list[str]:
-    """De artikelen die de uitleg noemt en die geen enkele passage draagt of vermeldt."""
-    bekend = _bekende_artikelen([("", f"{c.vindplaats.iri} {c.vindplaats.label} {c.tekst}") for c in citaten])
+def live_artikelen(trace: Trace) -> dict[str, str]:
+    """De artikelen die in dit gesprek met `get_wettekst` (wettekst van overheid.nl) gelezen zijn: hun nummer ("9", en bij
+    een boek van het BW ook "2:9") naar het id van het stuk."""
+    import json
+    import re as _re
+
+    uit: dict[str, str] = {}
+    for naam, tekst in trace:
+        if naam != "get_wettekst":
+            continue
+        try:
+            stuk = json.loads(tekst).get("stuk") or {}
+        except (ValueError, AttributeError):
+            continue
+        ident = str(stuk.get("id") or "")
+        if not (m := _re.search(r":artikel:([^:]+)$", ident)):
+            continue
+        nummer = m.group(1).casefold()
+        uit[nummer] = ident
+        if boek := _re.search(r"\bBoek\s+(\d+)\b", str(stuk.get("label") or "")):
+            uit[f"{boek.group(1)}:{nummer}"] = ident
+    return uit
+
+
+def _niet_onderbouwd(uitleg: str, citaten: list[Citaat], extern: frozenset[str] = frozenset(),
+                     trace: Trace = ()) -> list[str]:
+    """De artikelen die de uitleg noemt en die geen enkele passage draagt of vermeldt. Een artikel van overheid.nl
+    (`wettekst_live`) dat het blok `extern` aanwijst, is onderbouwd (iteratie ronde 1, I28: "artikel 2:9 BW" werd zes keer
+    geweigerd, terwijl het gelezen en aangewezen was)."""
+    live = {n for n, i in live_artikelen(trace).items() if i in extern}
+    bekend = _bekende_artikelen([("", f"{c.vindplaats.iri} {c.vindplaats.label} {c.tekst}") for c in citaten]) | live
     return [v for v in vermeldingen(uitleg) if v.startswith("artikel ") and v.removeprefix("artikel ").casefold() not in bekend]
 
 
@@ -172,17 +200,24 @@ def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace:
     - het staat nergens in wat er is opgehaald: dan komt het uit het geheugen van het model. Ophalen of weglaten.
 
     Een markering "niet opgehaald" bestaat niet: een artikel staat in beeld met een passage, of niet."""
-    gelezen, ophalen, onbekend = [], [], []
+    gelezen, ophalen, onbekend, live = [], [], [], []
+    live_ids = live_artikelen(trace)
     for vermelding in los:
         nummer = vermelding.removeprefix("artikel ")
         iri = artikel_in_trace(nummer, trace)
-        if iri and any(_binnen(k, iri) for k in rijen):
+        if nummer.casefold() in live_ids:
+            live.append((vermelding, live_ids[nummer.casefold()]))
+        elif iri and any(_binnen(k, iri) for k in rijen):
             gelezen.append(vermelding)
         elif iri and len(ophalen) < MAX_OPHALEN:
             ophalen.append({"bwb_id": iri.split(":")[2], "artikel": nummer, "vermelding": vermelding})
         else:
             onbekend.append(vermelding)
     zinnen = []
+    if live:
+        zinnen.append("Je noemt " + ", ".join(v for v, _ in live) + " zonder passage. Die tekst is van overheid.nl gelezen: "
+                      "wijs de passages aan in 'extern' met het id (" + ", ".join(i for _, i in live) + "), of laat de "
+                      "vermelding weg.")
     if gelezen:
         zinnen.append(f"Je noemt {', '.join(gelezen)} zonder passage, terwijl de tekst al is opgehaald. Wijs er een passage uit "
                       "aan, of laat de vermelding weg.")
@@ -197,6 +232,11 @@ def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace:
                      ophalen=[{"bwb_id": o["bwb_id"], "artikel": o["artikel"]} for o in ophalen])
 
 
+#: De ids die het subsjabloon `extern` in dezelfde aanroep aanwees (`sjablonen.vul` geeft ze mee): een artikel van
+#: overheid.nl daaruit telt als onderbouwd.
+EXTERN_IDS = "_extern_ids"
+
+
 def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
     kort = _lex(invoer.get("kort_antwoord"), trace)
     if not kort:
@@ -209,7 +249,8 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
     if fouten:
         raise Onvulbaar("Niet te tonen, dus er wordt niets getoond. " + "; ".join(fouten) + ". Rond daarna opnieuw af.")
     twijfel = list(dict.fromkeys(t for x in invoer.get("twijfel") or [] if (t := _lex(x, trace))))
-    if los := _niet_onderbouwd("\n".join([kort, *(c.waarom for c in citaten), *twijfel]), citaten):
+    extern = frozenset(str(i) for i in invoer.get(EXTERN_IDS) or [])
+    if los := _niet_onderbouwd("\n".join([kort, *(c.waarom for c in citaten), *twijfel]), citaten, extern, trace):
         raise _genoemd_is_gelezen(los, rijen, trace)
     blokken: list[Any] = [Toelichting(kop="Kort antwoord", tekst=kort), Citaten(items=citaten)]
     if twijfel:

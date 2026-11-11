@@ -6,6 +6,8 @@ bronnen uit de tool-trace, nooit uit de prozatekst van het model.
 """
 from __future__ import annotations
 
+import re
+
 from dataclasses import replace
 
 import json
@@ -447,6 +449,28 @@ def hergebruikte_bronnen(register, antwoord: str, al) -> list:
             if s.uri not in bekend and (m := _BWB_RE.search(s.uri)) and m.group(0) in bwbs]
 
 
+#: Woorden die alleen in de werking van Lex bestaan, nooit in een antwoord aan de jurist: het sjabloon en zijn tools.
+_INTERN = re.compile(r"\b(?:sjablo(?:on|nen)\w*|antwoord_(?:bepaling|duiding|extern|begrip|annotaties)|brongetrouwheidscontrole)\b",
+                     re.IGNORECASE)
+_ZIN = re.compile(r"[^.!?\n]*[.!?]?[ \t]*")
+
+
+def zonder_interne_taal(tekst: str) -> str:
+    """De tekst zonder de zinnen die over de interne werking gaan (het sjabloon, de tool, de controle). Per regel en per
+    zin, zodat de rest van het antwoord blijft staan; een regel die zo leeg wordt, vervalt."""
+    if not _INTERN.search(tekst or ""):
+        return tekst
+    regels = []
+    for regel in tekst.split("\n"):
+        if not _INTERN.search(regel):
+            regels.append(regel)
+            continue
+        rest = "".join(z for z in _ZIN.findall(regel) if z and not _INTERN.search(z)).strip()
+        if rest:
+            regels.append(rest)
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(regels)).strip()
+
+
 def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
 
@@ -456,6 +480,13 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
     # "(geen antwoord)" – zonder spoor in de logs. Liever een eerlijke melding, en altijd een
     # logregel zodat het volgende geval terug te vinden is.
     antwoord = state.get("answer", "") or ""
+    if not state.get("antwoord") and (schoon := zonder_interne_taal(antwoord)) != antwoord:
+        # Na een geweigerd sjabloon schreef het model de weigering naar de jurist ("Het sjabloon detecteert elke
+        # verwijzing …", iteratie ronde 1, I28). Interne taal hoort nooit in het antwoord; de zin gaat eruit, met een spoor.
+        logger.warning("interne taal uit het antwoord gehaald", extra={"categorie": "functioneel",
+                                                                         "run_id": state.get("run_id", "")})
+        antwoord = schoon
+        state = {**state, "answer": antwoord}
     if not antwoord.strip():
         reden = "grounding-correctie leverde geen antwoord" if state.get("corrected") else "lege antwoordbeurt"
         logger.warning(

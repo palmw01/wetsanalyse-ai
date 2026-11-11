@@ -423,3 +423,30 @@ def test_een_volledig_gelezen_artikel_uit_een_onvolledige_toestand_is_te_lezen()
     assert "niet volledig te lezen" in r["toelichting"] and "volledig en te citeren" in r["toelichting"]
     opbouw = json.loads(tools.dispatch("zoek_artikelen", _graaf(), {"bwb_id": adw}, AAN, wetgeving_live=_bron()))
     assert opbouw["status"] == "error" and opbouw["reden"] == "toestand_onvolledig"
+
+
+def test_een_artikel_van_overheid_in_extern_is_onderbouwd_in_de_duiding():
+    """I28: het duiding-sjabloon weigerde "artikel 2:9 BW" zes keer, terwijl het met get_wettekst gelezen was."""
+    from agent.sjablonen import duiding
+
+    raw = tools.dispatch("get_wettekst", _graaf(), {"bwb_id": "BWBR0003045", "artikel": "9"}, AAN, wetgeving_live=_bron())
+    ident = json.loads(raw)["stuk"]["id"]
+    trace = [("get_wettekst", raw)]
+    assert duiding.live_artikelen(trace) == {"9": ident, "2:9": ident}
+    uitleg = "Artikel 2:9 BW legt de aansprakelijkheid bij de rechtspersoon."
+    assert duiding._niet_onderbouwd(uitleg, [], frozenset({ident}), trace) == []
+    # Zonder aanwijzing in 'extern' zegt de weigering hoe het wél moet: het id, niet get_artikel.
+    los = duiding._niet_onderbouwd(uitleg, [], frozenset(), trace)
+    assert los == ["artikel 2:9"]
+    melding = str(duiding._genoemd_is_gelezen(los, {}, trace))
+    assert ident in melding and "'extern'" in melding and "get_artikel" not in melding
+
+
+def test_een_interne_weigering_komt_nooit_bij_de_jurist():
+    """I28: het model schreef "Het sjabloon detecteert elke verwijzing …" als antwoord."""
+    from agent.nodes.antwoord import zonder_interne_taal
+
+    tekst = ("Het sjabloon detecteert elke verwijzing naar artikel 2:9 en blokkeert de afronding. Ik geef het antwoord "
+             "hieronder.\n\n**Vergelijking**\n\nDe bepalingen verschillen op vier punten.")
+    assert zonder_interne_taal(tekst) == "Ik geef het antwoord hieronder.\n\n**Vergelijking**\n\nDe bepalingen verschillen op vier punten."
+    assert zonder_interne_taal("De wet gebruikt geen modelbepaling.") == "De wet gebruikt geen modelbepaling."
