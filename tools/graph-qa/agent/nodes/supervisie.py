@@ -177,6 +177,10 @@ def _te_lezen(state: State, vraag: str) -> list[dict[str, Any]]:
     return uit[:MAX_GENOEMD]
 
 
+#: Een verzoek om te annoteren of te markeren: dat leest de code niet vooraf, de annotatieworker zegt wat er kan.
+_ANNOTEER_RE = re.compile(r"\b(?:annote(?:er|ren)|markeer|markeren|classificeer)\b", re.IGNORECASE)
+
+
 def _buiten_graaf(b: Bouw, state: State, vraag: str) -> list[Any]:
     """De regelingen die de vraag noemt en die niet in de kennisgraaf staan (`agent/buiten_graaf.py`), alleen als de
     connector `wetgeving_live` in deze beurt aanstaat: anders gaat er geen verzoek naar overheid.nl. Een storing is leeg."""
@@ -398,7 +402,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     from .. import buiten_graaf
     if (terug := buiten_graaf.keuzevraag(buiten)) and not any(g.bwb_id for g in buiten):
         return _keuze_regeling(writer, terug)
-    if not gesprek and (live := buiten_graaf.leesaanroepen(buiten)) and len(live) == 1:
+    if not gesprek and not _ANNOTEER_RE.search(vraag_nu) and (live := buiten_graaf.leesaanroepen(buiten)) \
+            and len(live) == 1:
         g = next(x for x in buiten if x.bwb_id and x.artikel)
         _stap(writer, "Lex", f"leest artikel {g.artikel} van de {g.titel} bij overheid.nl (niet in de kennisgraaf)",
               route="bron_lezen")
