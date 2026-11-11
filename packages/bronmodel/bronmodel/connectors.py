@@ -256,7 +256,8 @@ KAMERSTUKKEN = ConnectorBeschrijving(
     grenzen=("zoeken gaat op dossier en nummer, woorden uit de titel of de hele tekst, soort, documentdatum, "
              "vergaderjaar en Kamer, en ordent op nummer, op datum of op relevantie. Een stuk dat alleen als PDF bestaat "
              "(nog onopgemaakt) wordt gevonden, maar de tekst is niet te lezen; zoeken in de tekst gaat op de index van "
-             "KOOP, niet op wat Lex las"),
+             "KOOP, niet op wat Lex las. De zoekdienst heeft Kamerstukken vanaf het vergaderjaar 1994-1995; oudere "
+             "parlementaire geschiedenis staat er niet in"),
     levert=("alinea's", "voetnoten", "tabellen (op te halen met hun rijen)"),
     niet_in_tekst=("illustraties",),
     werkwoorden={

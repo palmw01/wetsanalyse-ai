@@ -8,7 +8,7 @@ from typing import Any, Sequence
 
 from ..resultaat import BUDGET, per_eenheid
 
-#: Zo veel koppen staan hoogstens in `inhoud` op de eerste pagina; meer en alleen de bovenste twee niveaus.
+#: Zo veel koppen staan hoogstens in `inhoud` op de eerste pagina: het diepste niveau dat past (`inhoud_van`).
 MAX_INHOUD = 40
 #: Een kop op het bovenste niveau draagt het begin van zijn eerste alinea mee, tot hoogstens zo veel tekens: de aanhef
 #: van een wijzigingsartikel ("De Invorderingswet 1990 wordt als volgt gewijzigd:"). Zonder die regel opende het model
@@ -69,7 +69,11 @@ def inhoud_van(rijen: Sequence[dict[str, Any]]) -> tuple[list[dict[str, Any]], b
     def past(lijst: list[dict[str, Any]]) -> bool:
         return len(lijst) <= MAX_INHOUD and len(json.dumps(lijst, ensure_ascii=False)) <= BUDGET // 4
 
-    for diepte in (None, 2, 1):
+    # Elke diepte, van diep naar ondiep: eerst stond hier (alles, 2, 1), en dan kreeg een begroting met vijf niveaus de
+    # zeven koppen van niveau 2 terwijl de 32 van niveau 3 pasten. Het model zocht "Artikel 1 Belastingen" toen met vijf
+    # offsets (ronde 2 Kamerstukken, 11 nov 2026, K15: kst-36200-IX-2).
+    diepst = max((len(str(r.get("kop") or "").split(" › ")) for r in rijen if r.get("kop")), default=1)
+    for diepte in (None, *range(diepst - 1, 0, -1)):
         for met in (True, False):
             if past(lijst := koppen(rijen, diepte, met_begin=met)):
                 if len(lijst) <= 1:

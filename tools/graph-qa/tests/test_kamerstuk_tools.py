@@ -20,7 +20,7 @@ from agent.grounding import check_grounding
 from agent.provenance import collect_sources
 from agent.resultaat import BUDGET
 from agent.sjablonen.vullen import bron_rijen
-from agent.tools.kamerstuk_tools import MAX_DOSSIER, alineas
+from agent.tools.kamerstuk_tools import EERSTE_VERGADERJAAR, MAX_DOSSIER, alineas
 
 AAN = Settings(connector_kamerstukken=True)
 
@@ -785,3 +785,23 @@ def test_een_genoemd_stuk_dat_niet_bestaat_is_een_melding_uit_code(monkeypatch):
     """K27: "kst-99999-99" ging langs het model en stond daarna in de bronnen."""
     [leemte] = _beurt("Wat staat er in kst-99001-7?", _koop(Koop({})), monkeypatch)
     assert leemte["soort"] == "leemte" and leemte["tekst"].startswith("kst-99001-7 is bij Kamerstukken niet gevonden.")
+
+
+@pytest.mark.parametrize("args", [{"dossier": "20588"}, {"tekst": "xyzzyquux"}])
+def test_een_lege_uitkomst_noemt_de_grens_van_de_zoekdienst(args):
+    """Ronde 2 Kamerstukken (11 nov 2026, K16 en K17): dossier 20588 (de Invorderingswet 1990) gaf niets, en het model
+    schreef twee keer dat die stukken "alleen als PDF" bij KOOP staan. Ze staan er helemaal niet in."""
+    d = roep("zoek_kamerstukken", args, NepBron([]))
+    assert d["status"] == "ok" and d["aantal"] == 0
+    assert EERSTE_VERGADERJAAR in d["toelichting"] and "ook niet als PDF" in d["toelichting"]
+
+
+def test_een_stuk_uit_een_gezamenlijke_behandeling_zegt_dat_in_de_lijst():
+    """Ronde 2 Kamerstukken (K04, K21, K25): in de lijst van dossier 33755 stond "Kamerstukken 33752, nr. L" zonder uitleg."""
+    from bronmodel.antwoord import Antwoord, Stuk, Stukken, antwoord_tekst
+    blok = Stukken(brontype="kamerstuk", kop="Gevonden Kamerstukken", totaal=2, items=[
+        Stuk(id="kst-33755-3", label="Kamerstukken 33755, nr. 3"),
+        Stuk(id="kst-33752-L", label="Kamerstukken 33752, nr. L", reeks=["33752", "33753", "33754", "33755"])])
+    regels = [r for r in antwoord_tekst(Antwoord(sjabloon="extern", blokken=[blok])).splitlines() if r.startswith("- ")]
+    assert regels[0] == "- Kamerstukken 33755, nr. 3"
+    assert regels[1] == "- Kamerstukken 33752, nr. L (gezamenlijk behandeld: 33752–33755)"
