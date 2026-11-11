@@ -22,7 +22,8 @@ import json
 import re
 from typing import Any
 
-from bronmodel.antwoord import Antwoord, Extern, ExternePassage, ExterneVerwijzing, Stuk, Stukken, Toelichting, Twijfel
+from bronmodel.antwoord import (Antwoord, Extern, ExternePassage, ExterneVerwijzing, Leemte, Stuk, Stukken, Toelichting,
+                                Twijfel)
 from bronmodel.connectors import CONNECTORS, ConnectorBeschrijving, van_id
 from bronmodel.extern import externe_vindplaats
 
@@ -33,7 +34,9 @@ from .vullen import Onvulbaar, Trace, _data, resultaten
 MAX_PASSAGES = 6
 #: Zo veel stukken per antwoord.
 MAX_STUKKEN = 4
-#: Zo veel alinea's citeert één antwoord hoogstens, over alle aanwijzingen samen. Een langere reeks splitst de code zelf.
+#: Zo veel alinea's citeert één antwoord hoogstens, over alle aanwijzingen samen. Een langere reeks splitst de code zelf,
+#: en wat erboven valt kapt de code af, met een melding in het antwoord: een weigering liet het model zijn aanwijzingen
+#: inkorten tot het er precies zoveel waren, en kostte zo twee rondes (iteratie bekendmakingen ronde 4, B21 en B22).
 #: Een grens per aanwijzing liet het model in stappen splitsen, één weigering per stap (iteratie 11 nov 2026: Kamerstukken
 #: K15 vijf keer, 450k tokens). Het aantal aanwijzingen heeft geen eigen grens: elke aanwijzing draagt minstens één alinea,
 #: dus dit totaal begrenst ze al. Een grens van acht aanwijzingen weigerde losse alinea's verspreid over een stuk, zoals de
@@ -205,10 +208,11 @@ def _reeksen(nummers: Any) -> str:
     return ", ".join(uit)
 
 
-def blokken(items: Any, trace: Trace) -> list[Extern]:
+def blokken(items: Any, trace: Trace) -> list[Extern | Leemte]:
     """De blokken `extern` uit de aanwijzingen van het model; elk feit uit de trace. Wat niet klopt, staat in één
     weigering voor alle aanwijzingen samen: per fout een weigering kostte per fout een ronde waarin het model het hele
-    antwoord opnieuw schreef (iteratie bekendmakingen ronde 1, 11 nov 2026: B16 vijf rondes, ~120k tokens)."""
+    antwoord opnieuw schreef (iteratie bekendmakingen ronde 1, 11 nov 2026: B16 vijf rondes, ~120k tokens). Meer dan
+    `MAX_ALINEAS` is geen fout: de code kapt af en zegt het in een `Leemte` achter de blokken."""
     if not items:
         return []
     if not isinstance(items, list) or len(items) > MAX_ALINEAS:
@@ -258,9 +262,6 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
                           for n in range(van, tot + 1) if n not in al and n in rijen]
     if len(per_stuk) > MAX_STUKKEN:
         fouten.append(f"Hoogstens {MAX_STUKKEN} stukken per antwoord.")
-    if (aantal := sum(len(b.passages) for b in per_stuk.values())) > MAX_ALINEAS:
-        fouten.append(f"Het antwoord wijst {aantal} alinea's aan; hoogstens {MAX_ALINEAS}. Wijs alleen de alinea's aan die "
-                      "het antwoord dragen, en vat de rest samen in het korte antwoord.")
     if len(fouten) == 1:
         raise Onvulbaar(fouten[0])
     if fouten:
@@ -268,7 +269,22 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
                         + "\n".join(f"- {f}" for f in fouten))
     for b in per_stuk.values():
         b.passages.sort(key=lambda p: p.nr)
-    return list(per_stuk.values())
+    return [*per_stuk.values(), *_afgekapt(list(per_stuk.values()))]
+
+
+def _afgekapt(blokken: list[Extern]) -> list[Leemte]:
+    """Kap de passages af op `MAX_ALINEAS`, in de volgorde van het antwoord, en zeg welke alinea's eruit vielen: een
+    melding in plaats van een weigering. Een lege lijst als alles past."""
+    ruimte, weg = MAX_ALINEAS, []
+    for b in blokken:
+        houd, b.passages = b.passages[:ruimte], b.passages[ruimte:]
+        if b.passages:
+            weg.append(f"{b.label} (alinea {_reeksen([p.nr for p in b.passages])})")
+        b.passages, ruimte = houd, ruimte - len(houd)
+    if not weg:
+        return []
+    return [Leemte(tekst=f"Dit antwoord citeert hoogstens {MAX_ALINEAS} alinea's. Niet geciteerd: {_opsomming(weg)}. Lees "
+                         "die tekst via de link bij het stuk.")]
 
 
 def heel_stuk(trace: Trace, ident: str) -> Extern | None:
