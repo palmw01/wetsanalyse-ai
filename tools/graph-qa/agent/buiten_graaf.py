@@ -236,3 +236,13 @@ def melding_bron_uit(titels: list[str], uit_zin: str) -> str:
     wat = " en ".join(titels)
     return (f"{wat} {'staat' if len(titels) == 1 else 'staan'} niet in de kennisgraaf. {uit_zin} Uit mijn eigen kennis "
             "vul ik niet in wat daar staat. Over de regelingen in de kennisgraaf kan ik je wel helpen.")
+
+
+def melding_opnemen(titels: list[str], *, lezen_kan: bool) -> str:
+    """Waarom een bepaling uit een regeling buiten de kennisgraaf niet in een bronselectie of werkgebied kan: een bron van
+    een werkgebied is een bronnode in de graaf. Vóór het model, zodat het nooit "staat nu in de bronselectie" schrijft
+    (controle 11 nov 2026, W15)."""
+    wat = " en ".join(titels)
+    return (f"Ik kan deze bepaling niet opnemen: {wat} {'staat' if len(titels) == 1 else 'staan'} niet in de kennisgraaf, en "
+            "een bron van het werkgebied kan zo'n bepaling pas worden na een import in de graaf. Er is niets opgenomen."
+            + (" Lezen kan wel, via de bron Wetgeving buiten de kennisgraaf." if lezen_kan else ""))

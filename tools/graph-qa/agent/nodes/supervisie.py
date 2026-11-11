@@ -182,6 +182,9 @@ def _te_lezen(state: State, vraag: str) -> list[dict[str, Any]]:
 
 #: Een verzoek om te annoteren of te markeren: dat leest de code niet vooraf, de annotatieworker zegt wat er kan.
 _ANNOTEER_RE = re.compile(r"\b(?:annote(?:er|ren)|markeer|markeren|classificeer)\b", re.IGNORECASE)
+#: Een verzoek om een bepaling op te nemen of toe te voegen (aan de bronselectie, het werkgebied): dat kan alleen met een
+#: bronnode in de graaf.
+_OPNEEM_RE = re.compile(r"\b(?:neem\b.*\bop\b|opnemen|voeg\b.*\btoe\b|toevoegen)", re.IGNORECASE)
 
 
 def _live_aan(state: State) -> bool:
@@ -193,6 +196,8 @@ def _buiten_graaf_melding(writer, state: State, vraag: str, buiten: list[Any], g
     """Een vraag over een regeling buiten de kennisgraaf die geen tekst kan krijgen, met een vaste melding zonder model:
 
     - een verzoek om te **annoteren**: dat vraagt een bronnode in de graaf (meting 11 nov 2026, W16: "Ongeldig BWB-id");
+    - een verzoek om **op te nemen** of toe te voegen (bronselectie, werkgebied): idem (controle 11 nov 2026, W15: het
+      model schreef "staat nu in de bronselectie");
     - de connector staat **uit**: zeggen dat de regeling niet in de kennisgraaf staat en wie de bron aanzet (W14: vier
       rondes en 46k voor die melding). Zonder connector gaat er geen verzoek naar overheid.nl, dus de herkenning is op
       naam (`buiten_graaf.zonder_zoekdienst`)."""
@@ -208,6 +213,9 @@ def _buiten_graaf_melding(writer, state: State, vraag: str, buiten: list[Any], g
     if _ANNOTEER_RE.search(vraag):
         melding, stap = buiten_graaf.melding_annoteren(titels, lezen_kan=aan), "niet geannoteerd – niet in de kennisgraaf"
         _stap(writer, "Lex", "annoteert niet: de regeling staat niet in de kennisgraaf", route="niet_in_graaf")
+    elif _OPNEEM_RE.search(vraag):
+        melding, stap = buiten_graaf.melding_opnemen(titels, lezen_kan=aan), "niet opgenomen – niet in de kennisgraaf"
+        _stap(writer, "Lex", "neemt niet op: de regeling staat niet in de kennisgraaf", route="niet_in_graaf")
     elif not aan:
         stand = state.get("bronstand") or {}
         melding = buiten_graaf.melding_bron_uit(titels, bronstand.uit_zin(stand, "wetgeving_live"))
