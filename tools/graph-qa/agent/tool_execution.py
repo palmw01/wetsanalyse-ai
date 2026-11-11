@@ -37,7 +37,7 @@ def begrip_port(b, state):
 FILTERS = frozenset({"klasse", "jas_klassen", "tekst", "lifecycle", "laagstatus", "tekstveld", "match", "scope",
                      "bronversie", "inclusief_verouderd", "limit", "offset", "cursor", "herkomst", "aandacht", "subtype",
                      "beslist_door", "met_twijfel", "zoekterm", "status", "werkgebied_id", "volgorde", "aantal",
-                     "regeling", "tabel", "inhoud", "lid"}) | frozenset(
+                     "regeling", "tabel", "inhoud", "lid", "onderdeel"}) | frozenset(
     f for c in CONNECTORS.values() for veld in c.metadata for f in veld.filters) - {"bwb_id", "artikel", "id"}
 
 

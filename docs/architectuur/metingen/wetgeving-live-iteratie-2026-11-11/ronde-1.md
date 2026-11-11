@@ -91,23 +91,40 @@ Opgelost in de PR van deze ronde (eigen code, met tests in `tests/test_wetgeving
      - een vraag die een stuk aanwijst (id, signaal van een andere connector, stukwoord), is geen tekstvraag;
      - een datum telt alleen als peildatum als de jurist hem typte.
 
-Gemeld aan de hoofdsessie (gedeelde code, eigenaar nog aan te wijzen):
+Gedeelde code, na akkoord van de hoofdsessie ook in deze PR:
 
-8. **supervisie**, het wetgeving-blok:
-   - een herschreven vervolgvraag gaat niet langs `lees_buiten` (I25, 83k en leden in eigen woorden);
-   - een stukvraag krijgt toch de wettekst vooraf (I02);
-   - een genoemde Wet-titel die niet in het BWB staat, kan een vaste melding krijgen (I07).
-9. **grounding**:
-   - een gelezen maar ongebruikt `wettekst_live`-stuk blijft in de bronnenlijst (I20);
-   - `curate_sources` houdt alle graafregelingen uit `search_wetgeving` als het antwoord geen BWB-id noemt (I07, I11, I20).
-10. **bronmodel.bwb**:
-    - de structuur van het BBBB (beleidsregel) is onbekend, dekking 0% (I12);
-    - de hele Algemene douanewet wordt geweigerd bij 98,5% dekking, ook als het gevraagde artikel volledig gelezen is (I03).
-11. **sjablonen/duiding**: een verwijzing naar een gelezen `wettekst_live`-artikel wordt geweigerd, en het model schreef de
-    interne melding naar de jurist (I28, 12 rondes, 326k).
-12. **Rechtspraak en provenance**:
-    - `zoek_uitspraken` kent een regeling buiten de graaf niet;
-    - een graaf-IRI uit dat foutresultaat kwam in de bronnenlijst (I02).
+8. **supervisie, het wetgeving-blok**:
+   - een herschreven vervolgvraag gaat nu langs `lees_buiten` (I25);
+   - een stukvraag krijgt geen wettekst vooraf (I02);
+   - een genoemd stuk gaat voor de bepalingsroute, ook met een artikel erbij (K14 van Kamerstukken). Getoetst voor een
+     Kamerstuk, een Staatsblad en een ECLI;
+   - een genoemde Wet-titel die het BWB niet kent, krijgt een vaste melding zonder model (I07).
+9. **bronmodel.bwb, alleen de leesroute** (I03): de dekking per gelezen artikel (`bron_tekens_per_artikel`,
+   `model_tekens_van`).
+   - Een artikel dat zelf volledig gelezen is, mag uit een toestand onder de drempel komen; de toelichting zegt het erbij.
+   - De opbouw en het zoeken blijven weigeren.
+   - De importer meet de toestand als geheel, zoals voorheen: de bwb-import-suite is ongewijzigd groen.
+10. **sjablonen/duiding** (I28):
+    - een artikel van overheid.nl dat het blok `extern` in dezelfde aanroep aanwijst, telt als onderbouwd;
+    - zonder die aanwijzing noemt de weigering het id;
+    - interne taal (sjabloon, de naam van een sjabloontool) gaat nooit naar de jurist: `OPNIEUW` zegt het, en
+      `finalize_node` haalt zo'n zin eruit (`zonder_interne_taal`), voor elk antwoord zonder sjabloon.
+
+Bij een andere eigenaar (doorgezet door de hoofdsessie):
+
+11. **grounding en provenance** (Rechtspraak):
+    - een gelezen maar ongebruikt `wettekst_live`-stuk blijft in de bronnenlijst (I20);
+    - `curate_sources` houdt de graafregelingen uit `search_wetgeving` (I07, I11, I20);
+    - een `urn:bwb:` uit een foutresultaat komt in de bronnen (I02).
+12. **zoek_uitspraken** kent een regeling buiten de graaf niet (I02, Rechtspraak).
+
+Bewust niet in deze ronde:
+
+13. **Het BBBB (I12)**: paragrafen met een `structuurtekst` in plaats van artikelen.
+    - Als de lezer die tekst gaat lezen, telt hij mee in de dekking van de importer, terwijl de importer hem niet schrijft.
+      Dan klopt "dekking = wat in de graaf komt" niet meer.
+    - Dat vraagt een wijziging in lezer, importer en graafmodel samen, met de metingen van de importer. Dat is een eigen
+      PR, en de hoofdsessie moet er een plek voor kiezen.
 
 Open, niet in deze ronde:
 - **De toelichting** van de workflow draait soms een uitzondering om of voegt iets toe (I08, I17). Dit geldt ook voor
