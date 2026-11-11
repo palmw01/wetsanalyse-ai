@@ -161,10 +161,12 @@ def test_een_citeervorm_wordt_vooraf_gelezen(monkeypatch):
     from test_kamerstuk_tools import DOSSIER, NepBron
 
     monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", NepBron(DOSSIER))
-    llm = FakeLLM([response([text_block("Kst-99001-3 legt het doel uit.")], "end_turn")])
+    # Tekst na een gelezen stuk: de code vraagt één keer om het sjabloon (nodes/antwoord._gevonden_zonder_sjabloon).
+    llm = FakeLLM([response([text_block("Kst-99001-3 legt het doel uit.")], "end_turn"),
+                   response([text_block("Kst-99001-3 legt het doel uit.")], "end_turn")])
     _run(answer_stream("Kamerstuk 99001, nr. 3", settings=AAN, llm=llm, graph=FakeGraph(result=""),
                        bronnen=["kamerstukken"]))
-    assert len(llm.calls) == 1, "geen supervisorcall: de citeervorm bepaalt de route"
+    assert len(llm.calls) == 2, "geen supervisorcall: de citeervorm bepaalt de route (de tweede vraagt om het sjabloon)"
     gelezen = [b for m in llm.calls[0]["messages"] for b in (m["content"] if isinstance(m["content"], list) else [])
                if b.get("type") == "tool_use"]
     assert [(g["name"], g["input"]) for g in gelezen] == [("get_kamerstuk", {"id": "kst-99001-3"})]

@@ -100,7 +100,8 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   uit de trace (register + deze beurt): blokken in `State.antwoord`, de vaste tekst uit `antwoord_tekst` in `answer`. Niet te
   vullen (`Onvulbaar`) is een `is_error`-resultaat en het model gaat verder; een halve vulling bestaat niet. Naast een
   graaftool wacht het sjabloon tot de volgende ronde. Tekst in plaats van de tool blijft geldig (log `sjabloon gemist`),
-  behalve één keer per beurt na een zoekresultaat van een bronconnector: dan stuurt `route_after_agent` de agent terug naar
+  behalve één keer per beurt na een zoek- of leesresultaat van een bronconnector (geen fout; ronde 2, B22: een tabel met
+  zelf afgeleide nummers na een gelezen stuk): dan stuurt `route_after_agent` de agent terug naar
   zichzelf met `SJABLOON_GEVRAAGD` (`_gevonden_zonder_sjabloon`, `State.sjabloon_gevraagd`/`sjabloon_nu`, per beurt gereset;
   iteratie 11 nov 2026: lijsten als tekst of markdown-tabel zonder links of zoekvraag). Blijft het tekst, dan is dat het antwoord.
   Alleen de sjabloontools zijn `strict`, en ze staan niet in `TOOLS`. Per specialist: `Specialist.sjablonen`.
@@ -324,7 +325,8 @@ bruikbaar is.
   doorleest naar de inwerkingtreding of de toelichting (hermeting B08: anders las het model het hele stuk, 86k tegen 24k).
   Een genoemd stuk leest de code vooraf mét het genoemde artikel als de leestool `artikel` kent
   (`supervisie._te_lezen`), en zonder als dat niets oplevert (`bron_lezen`). Het `stuk` noemt de andere versies met hetzelfde blad, jaar en nummer (`versies`:
-  herdruk, tweede versie, verbeterblad; `SruBekendmakingen.versies`, alleen op de eerste pagina). Een oud stuk heeft vaak alleen een PDF
+  herdruk, tweede versie, verbeterblad; `SruBekendmakingen.versies`, alleen op de eerste pagina), ook in de toelichting: in
+  het veld las het model ze niet (ronde 2, B12). Een oud stuk heeft vaak alleen een PDF
   (`alleen_pdf`, met de metadata); een id dat KOOP niet kent zoekt de adapter op blad, jaargang en nummer. `geldigheid`
   noemt naast de BWB-vorm het id (`bekendmakingen`). Citeervormen "Stb. 2010, 176", "Stb.2009-610", "Staatscourant 2026,
   nr. 37344". **Uit de Staatscourant alleen regelgeving en beleid** (`REGELGEVENDE_SOORTEN`, een witte lijst op `dt.type`;

@@ -224,23 +224,26 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     return upd
 
 #: Wat de agent hoort als hij na een zoekresultaat van een bronconnector in tekst antwoordt (`_gevonden_zonder_sjabloon`).
-SJABLOON_GEVRAAGD = ("Je antwoordde in tekst, terwijl deze beurt stukken vond met {tools}. Roep het sjabloon aan "
+SJABLOON_GEVRAAGD = ("Je antwoordde in tekst, terwijl deze beurt stukken vond of las met {tools}. Roep het sjabloon aan "
                      "({sjablonen}): wijs de gevonden stukken aan in 'stukken' en de gelezen passages in 'extern', dan "
                      "staan ze erbij met hun link, de zoekvraag en het totaal. Zet je uitleg in het korte antwoord; "
                      "herhaal de lijst niet in tekst.")
 
 
 def _gevonden_zonder_sjabloon(b: Bouw, state: State) -> set[str]:
-    """De zoektools van een bronconnector die deze beurt iets vonden, als de agent het sjabloon nog niet gevraagd is en
+    """De tools van een bronconnector die deze beurt iets vonden of lazen, als de agent het sjabloon nog niet gevraagd is en
     er nog een ronde over is; anders leeg. Zonder sjabloon kwam een lijst gevonden stukken als tekst, zonder links,
     zoekvraag of totaal, soms als markdown-tabel (iteratie 11 nov 2026: bekendmakingen B03, B05, B18, B20; rechtspraak R06,
     R17, R18, R22, R23). Hoogstens één keer per beurt (`sjabloon_gevraagd`), en niet na een correctieronde."""
     if state.get("sjabloon_gevraagd") or state.get("corrected") or state.get("turns", 0) + 1 >= b.settings.max_turns:
         return set()
-    zoektools = {t for c in CONNECTORS.values() for t in c.tools if t != c.leestool}
+    # Ook een gelezen stuk: in tekst noemde het model nummers die het zelf afleidde, zonder citaat (iteratie ronde 2,
+    # B22: "25.2.10 (nieuw)" voor "na artikel 25.2.9 een nieuw artikel"). Een fout (alleen PDF, buiten bereik, niet
+    # gevonden) telt niet: daar is niets aan te wijzen.
+    connectortools = {t for c in CONNECTORS.values() for t in c.tools}
     gevonden = set()
     for naam, resultaat in state.get("source_trace", []):
-        if naam in zoektools and not is_fout(resultaat):
+        if naam in connectortools and not is_fout(resultaat):
             try:
                 data = json.loads(resultaat)
             except (TypeError, ValueError):

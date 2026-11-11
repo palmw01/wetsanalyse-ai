@@ -376,7 +376,7 @@ def _stream(vraag, monkeypatch, llm):
 
 
 def _gelezen(llm):
-    return [(b["name"], b["input"]) for m in llm.calls[-1]["messages"]
+    return [(b["name"], b["input"]) for m in llm.calls[1]["messages"]
             for b in (m["content"] if isinstance(m["content"], list) else []) if b.get("type") == "tool_use"]
 
 
@@ -386,7 +386,8 @@ def test_de_voorlezing_neemt_het_genoemde_artikel_mee(monkeypatch):
     from fakes import FakeLLM, response, text_block
 
     llm = FakeLLM([response([text_block("duiding")], "end_turn"),
-                   response([text_block("Onderdeel A voegt twee gedachtestreepjes in.")], "end_turn")])
+                   response([text_block("Onderdeel A voegt twee gedachtestreepjes in.")], "end_turn"),
+                   response([text_block("x")], "end_turn")])  # de vraag om het sjabloon
     _stream("Wat veranderde stcrt-2026-37344 aan artikel 1.1.5 van de Leidraad Invordering 2008?", monkeypatch, llm)
     assert _gelezen(llm) == [("get_bekendmaking", {"id": "stcrt-2026-37344", "artikel": "1.1.5"})]
 
@@ -395,7 +396,8 @@ def test_raakt_het_artikel_geen_onderdeel_dan_het_hele_stuk(monkeypatch):
     from fakes import FakeLLM, response, text_block
 
     llm = FakeLLM([response([text_block("duiding")], "end_turn"),
-                   response([text_block("Het besluit zet de wijziging in werking.")], "end_turn")])
+                   response([text_block("Het besluit zet de wijziging in werking.")], "end_turn"),
+                   response([text_block("x")], "end_turn")])  # de vraag om het sjabloon
     _stream("Wat staat er in Stb. 2010, 176 over artikel 36?", monkeypatch, llm)
     assert _gelezen(llm) == [("get_bekendmaking", {"id": "stb-2010-176"})], "één lezing in de historie, zonder filter"
 
@@ -475,6 +477,8 @@ def test_het_stuk_noemt_de_andere_versies():
     assert d["stuk"]["versies"] == [
         {"id": "stb-2010-176-n1", "label": "Stb. 2010, 176 (herdruk)", "datum": "2010-06-01"},
         {"id": "stb-2010-176-n2", "label": "Stb. 2010, 176 (versie n2)", "datum": "2010-07-01"}]
+    assert ("Van deze publicatie bestaat ook Stb. 2010, 176 (herdruk) (2010-06-01) en Stb. 2010, 176 (versie n2) "
+            "(2010-07-01)") in d["toelichting"], "ook in de toelichting: in het veld las het model het niet (B12)"
     assert "versies" not in roep("get_bekendmaking", {"id": "stb-2010-176", "offset": 3}, bron=bron)["stuk"], (
         "alleen op de eerste pagina")
 
@@ -577,3 +581,20 @@ def test_een_lange_reeks_splitst_de_code_zelf():
         extern.blokken([{"id": "stb-2009-610", "van_nr": 1, "tot_nr": len(rijen)}],
                        [("get_bekendmaking", json.dumps(groot, ensure_ascii=False))])
     assert f"wijst {len(rijen)} alinea's aan; hoogstens {extern.MAX_ALINEAS}" in str(fout.value)
+
+
+def test_tekst_na_een_gelezen_stuk_vraagt_een_keer_om_het_sjabloon(monkeypatch):
+    """Iteratie ronde 2, B22: na het lezen van een stuk antwoordde het model met een tabel zonder citaat, en met nummers
+    die het zelf afleidde. Na een gelezen stuk vraagt de code ook één keer om het sjabloon; een fout (alleen PDF, buiten
+    bereik) telt niet."""
+    from fakes import FakeLLM, response, text_block
+
+    llm = FakeLLM([response([text_block("duiding")], "end_turn"),
+                   response([text_block("| onderdeel | artikel |\n|---|---|\n| A | 1.1.5 |")], "end_turn"),
+                   response([text_block("Onderdeel A wijzigt artikel 1.1.5.")], "end_turn")])
+    _stream("Wat veranderde stcrt-2026-37344 aan artikel 1.1.5 van de Leidraad Invordering 2008?", monkeypatch, llm)
+    assert len(llm.calls) == 3 and _gevraagd(llm) == 1
+
+    pdf = FakeLLM([response([text_block("Alleen als PDF.")], "end_turn")])
+    _stream("Wat staat er in stb-1990-222?", monkeypatch, pdf)
+    assert len(pdf.calls) == 1 and _gevraagd(pdf) == 0, "na een fout geen vraag om het sjabloon"
