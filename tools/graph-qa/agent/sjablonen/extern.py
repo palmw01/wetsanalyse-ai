@@ -185,40 +185,61 @@ def _tekst_bij(trace: Trace, c: ConnectorBeschrijving, ident: str) -> dict[str, 
     return {k: rij[k] for k in TEKSTVELDEN if rij.get(k) not in ("", None)}
 
 
+def _reeksen(nummers: Any) -> str:
+    """Alineanummers als reeksen: [6, 7, 8, 12] wordt "6–8, 12". Een weigering met honderden losse nummers was langer dan
+    het antwoord dat het model moest herstellen."""
+    uit: list[str] = []
+    for n in sorted(set(nummers)):
+        if uit and isinstance(laatste := uit[-1], str) and laatste.split("–")[-1].isdigit() and int(
+                laatste.split("–")[-1]) == n - 1:
+            uit[-1] = f"{laatste.split('–')[0]}–{n}"
+        else:
+            uit.append(str(n))
+    return ", ".join(uit)
+
+
 def blokken(items: Any, trace: Trace) -> list[Extern]:
-    """De blokken `extern` uit de aanwijzingen van het model; elk feit uit de trace."""
+    """De blokken `extern` uit de aanwijzingen van het model; elk feit uit de trace. Wat niet klopt, staat in één
+    weigering voor alle aanwijzingen samen: per fout een weigering kostte per fout een ronde waarin het model het hele
+    antwoord opnieuw schreef (iteratie bekendmakingen ronde 1, 11 nov 2026: B16 vijf rondes, ~120k tokens)."""
     if not items:
         return []
     if not isinstance(items, list) or len(items) > MAX_STUKKEN * 2:
         raise Onvulbaar(f"'{VELD}' is een lijst van hoogstens {MAX_STUKKEN * 2} aanwijzingen.")
     per_stuk: dict[str, Extern] = {}
+    fouten: list[str] = []
     for item in items:
         ident = str((item or {}).get("id") or "").strip()
         vp = externe_vindplaats(ident)
         c = van_id(ident)
         if vp is None or c is None:
-            raise Onvulbaar(f"'{ident}' is geen id van een bron naast de wet die hier aanstaat. Een stuk waar de tekst alleen "
-                            f"naar verwijst, hoort niet in '{VELD}': noem het in je eigen woorden of in de twijfel.")
+            fouten.append(f"'{ident}' is geen id van een bron naast de wet die hier aanstaat. Een stuk waar de tekst alleen "
+                          f"naar verwijst, hoort niet in '{VELD}': noem het in je eigen woorden of in de twijfel.")
+            continue
         stuk, rijen, alleen_eerder, in_tabel = _gelezen(trace, c, vp.id)
         if not stuk:
-            raise Onvulbaar(f"{vp.label} is in dit gesprek niet gelezen: haal het stuk eerst op met {c.leestool} en wijs "
-                            f"dan de passages aan, of laat het weg uit '{VELD}' en noem het in je eigen woorden of in de "
-                            "twijfel (niet gelezen).")
+            fouten.append(f"{vp.label} is in dit gesprek niet gelezen: haal het stuk eerst op met {c.leestool} en wijs "
+                          f"dan de passages aan, of laat het weg uit '{VELD}' en noem het in je eigen woorden of in de "
+                          "twijfel (niet gelezen).")
+            continue
         van, tot = item.get("van_nr"), item.get("tot_nr")
         if not isinstance(van, int) or not isinstance(tot, int) or van > tot:
-            raise Onvulbaar(f"{vp.label}: van_nr en tot_nr zijn alineanummers, met van_nr ≤ tot_nr.")
+            fouten.append(f"{vp.label}: van_nr en tot_nr zijn alineanummers, met van_nr ≤ tot_nr.")
+            continue
         if sum(1 for n in range(van, tot + 1) if n not in in_tabel) > MAX_PASSAGES:
-            raise Onvulbaar(f"{vp.label}: hoogstens {MAX_PASSAGES} alinea's per aanwijzing. Wijs de alinea's aan die het "
-                            "antwoord dragen (meer aanwijzingen voor hetzelfde stuk mag) en vat de rest samen in het korte "
-                            "antwoord.")
+            fouten.append(f"{vp.label} ({van}–{tot}): hoogstens {MAX_PASSAGES} alinea's per aanwijzing. Wijs de alinea's "
+                          "aan die het antwoord dragen (meer aanwijzingen voor hetzelfde stuk mag) en vat de rest samen in "
+                          "het korte antwoord.")
+            continue
         ontbreekt = [n for n in range(van, tot + 1) if n not in rijen and n not in in_tabel]
         if ontbreekt and set(ontbreekt) & alleen_eerder:
-            raise Onvulbaar(f"{vp.label} is veranderd sinds alinea {', '.join(map(str, sorted(set(ontbreekt) & alleen_eerder)))} "
-                            f"gelezen werd. Haal het stuk opnieuw op met {c.leestool}, en wijs de passages aan in de "
-                            "versie van nu.")
+            fouten.append(f"{vp.label} is veranderd sinds alinea {_reeksen(set(ontbreekt) & alleen_eerder)} gelezen "
+                          f"werd. Haal het stuk opnieuw op met {c.leestool}, en wijs de passages aan in de versie van nu.")
+            continue
         if ontbreekt:
-            raise Onvulbaar(f"{vp.label}: alinea {', '.join(map(str, ontbreekt))} is niet opgehaald. Haal het vervolg op, "
-                            "of wijs alinea's aan die in het resultaat staan.")
+            fouten.append(f"{vp.label}: alinea {_reeksen(ontbreekt)} is niet opgehaald. Haal het vervolg op, of wijs "
+                          f"alinea's aan die in het resultaat staan (gelezen: {_reeksen(rijen)}).")
+            continue
         blok = per_stuk.setdefault(vp.id, Extern(
             brontype=vp.brontype, id=vp.id, label=str(stuk.get("label") or vp.label),
             link=str(stuk.get("link") or vp.uri), kop=c.kop_in_antwoord, passages=[],
@@ -233,7 +254,12 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
                                          plek=str(rijen[n].get("plek") or ""))
                           for n in range(van, tot + 1) if n not in al and n in rijen]
     if len(per_stuk) > MAX_STUKKEN:
-        raise Onvulbaar(f"Hoogstens {MAX_STUKKEN} stukken per antwoord.")
+        fouten.append(f"Hoogstens {MAX_STUKKEN} stukken per antwoord.")
+    if len(fouten) == 1:
+        raise Onvulbaar(fouten[0])
+    if fouten:
+        raise Onvulbaar(f"{len(fouten)} aanwijzingen in '{VELD}' kloppen niet; herstel ze allemaal in één aanroep:\n"
+                        + "\n".join(f"- {f}" for f in fouten))
     for b in per_stuk.values():
         b.passages.sort(key=lambda p: p.nr)
     return list(per_stuk.values())
