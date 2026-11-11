@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   annotatieKopTekst, bepalingKort, herkomstKop, herkomstLabel, herkomstRegel, herkomstVan, plaatsKort, plaatsZin, standMeldingen,
   tekstBijMeldingen, tekstPeriode,
-  vindplaatsTekst,
+  vindplaatsTekst, WETTEKST_LIVE, wettekstMeldingen,
 } from "./herkomst";
 
 const IW9 = "urn:bwb:BWBR0004770:artikel:9:lid:2";
@@ -84,5 +84,30 @@ describe("herkomst", () => {
     expect(bepalingKort({ artikel: "9", lid: "2" })).toBe("art. 9 lid 2");
     expect(annotatieKopTekst({ citeertitel: "Invorderingswet 1990", artikel: "9" }, { bwbId: "BWBR0004770", lid: "2" }))
       .toBe("Invorderingswet 1990 – art. 9 lid 2");
+  });
+});
+
+
+describe("wettekst buiten de kennisgraaf (connector wetgeving_live)", () => {
+  it("zegt welke tekst het is, en nooit dat het een uitleg bij een andere tekst is", () => {
+    const eerder = wettekstMeldingen({ tekststand: "eerdere tekst", tekst_vanaf: "2020-01-01", tekst_tot: "2020-06-30" });
+    expect(eerder.map((m) => m.soort)).toEqual(["eerdere-tekst", "buiten-graaf"]);
+    expect(eerder[0].tekst).toBe("Dit is de tekst van 1 januari 2020 tot en met 30 juni 2020: een eerdere tekst dan die nu geldt.");
+    expect(eerder[0].tekst).not.toContain("Dit stuk noemt");
+  });
+
+  it("een toekomstige tekst en de status van de bepaling", () => {
+    const later = wettekstMeldingen({ tekststand: "toekomstige tekst", tekst_vanaf: "2027-01-01",
+      status: "nog niet in werking; treedt in werking op 2027-01-01" });
+    expect(later.map((m) => m.soort)).toEqual(["toekomstige-tekst", "nog-niet-in-werking", "buiten-graaf"]);
+    expect(later[0].tekst).toBe("Deze tekst gaat pas gelden op 1 januari 2027.");
+    expect(wettekstMeldingen({ tekststand: "huidige tekst", status: "vervallen per 2026-01-01" }).map((m) => m.soort))
+      .toEqual(["vervallen", "buiten-graaf"]);
+  });
+
+  it("tekstBijMeldingen kiest de wettekstmeldingen alleen bij het brontype wettekst_live", () => {
+    const t = { tekststand: "eerdere tekst", tekst_vanaf: "2020-01-01", tekst_tot: "2020-06-30" };
+    expect(tekstBijMeldingen(t, WETTEKST_LIVE)[0].tekst).toContain("Dit is de tekst");
+    expect(tekstBijMeldingen(t, "uitspraak")[0].tekst).toContain("Dit stuk noemt");
   });
 });

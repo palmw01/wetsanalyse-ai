@@ -77,7 +77,7 @@ raakt "frontend/" && {
 # de omgeving die er lokaal niet is. `--no-project` is nodig omdat uv anders de map als project
 # behandelt en er een lege uv.lock achterlaat – een artefact dat telkens terugkomt en zelfs een
 # image-build kan triggeren.
-raakt "tools/bwb-import/" && draai "bwb-import" tools/bwb-import \
+{ raakt "tools/bwb-import/" || raakt "packages/bronmodel/"; } && draai "bwb-import" tools/bwb-import \
   uv run --no-project --with-requirements requirements.txt python -m pytest -q -x
 { raakt "api/" || raakt "packages/bronmodel/"; } && draai "api"        api              uv run pytest -q -x
 

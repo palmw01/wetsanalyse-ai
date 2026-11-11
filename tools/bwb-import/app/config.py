@@ -11,6 +11,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from bronmodel.bwb import SCHEMAS
 from dotenv import load_dotenv
 
 from .dekking import STANDAARD_DREMPEL
@@ -77,7 +78,7 @@ class Settings:
         load_dotenv(dotenv_path=env_file or (PROJECT_ROOT / ".env"))
 
         data_dir = Path(os.getenv("BWB_DATA_DIR", str(PROJECT_ROOT / "data")))
-        schemas_dir = Path(os.getenv("BWB_SCHEMAS_DIR", str(PROJECT_ROOT / "schemas")))
+        schemas_dir = Path(os.getenv("BWB_SCHEMAS_DIR", str(SCHEMAS)))
 
         return cls(
             data_dir=data_dir,

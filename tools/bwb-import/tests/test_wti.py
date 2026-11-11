@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from bronmodel.bwb.parser import ToestandParser
 from rdflib import RDF, RDFS, Literal, URIRef
 
 from app.graphdb_writer import DCTERMS, SKOS, GraphDbWriter
-from app.parser import ToestandParser
 from app.rdf_vocab import Vocab
 from app.wti_parser import WtiParser
 

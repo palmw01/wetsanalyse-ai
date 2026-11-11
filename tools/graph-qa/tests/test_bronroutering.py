@@ -215,3 +215,31 @@ def test_het_bronvenster_leest_een_stuk_via_de_leestool_uit_de_beschrijving(monk
     assert TestClient(main.app).get("/v1/bronnen/onbekend/stukken/x").status_code == 404
     monkeypatch.setattr(main.settings, "connector_kamerstukken", False, raising=False)
     assert TestClient(main.app).get("/v1/bronnen/kamerstukken/stukken/kst-99001-3").status_code == 404
+
+
+def test_het_bronvenster_leest_een_wettekst_buiten_de_graaf_met_de_graaf_erbij(monkeypatch):
+    """Een wettekst buiten de kennisgraaf (connector wetgeving_live) vraagt de graaf of de regeling erin staat; zonder graaf
+    zou de leestool weigeren. De route geeft hem er een, op het brontype `wettekst_live`, en sluit hem na afloop."""
+    from fastapi.testclient import TestClient
+
+    import api.main as main
+    from agent.adapters import graphdb_graph
+    from agent.tools import wetgeving_tools as w
+    from agent.tools.connectortools import MODULES
+    from test_resultaatcontract import NepBwb, nepgraaf
+
+    graaf = nepgraaf("wetgeving_live")
+    gesloten = []
+    graaf.close = lambda: gesloten.append(True)
+    monkeypatch.setattr(graphdb_graph, "make_graph", lambda _s: graaf)
+    monkeypatch.setattr(MODULES["wetgeving_live"], "_bron", NepBwb(3, alineas=2))
+    monkeypatch.setattr(main.settings, "qa_api_token", "", raising=False)
+    monkeypatch.setattr(main.settings, "connector_wetgeving_live", True, raising=False)
+    w._graaf_stand.clear()
+    r = TestClient(main.app).get(f"/v1/bronnen/wettekst_live/stukken/bwbt:{NepBwb.BWB}:2026-01-01_0:artikel:1")
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["connector"]["naam"] == "wetgeving_live" and data["resultaat"]["status"] == "ok", data
+    assert data["resultaat"]["stuk"]["id"] == f"bwbt:{NepBwb.BWB}:2026-01-01_0:artikel:1"
+    assert graaf.queries and gesloten == [True]
+    w._graaf_stand.clear()

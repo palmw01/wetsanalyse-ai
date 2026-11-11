@@ -1,5 +1,5 @@
 # Bouwt de BWB-importservice-image (wetgeving → kennisgraaf) en pusht naar GHCR.
-# Draait bij wijzigingen in tools/bwb-import/ op master en bij versietags (v*).
+# Draait bij wijzigingen in tools/bwb-import/ of packages/bronmodel/ (de BWB-lezer) op master en bij versietags (v*).
 # Spiegelt .github/workflows/graph-qa-docker-publish.yml.
 
 name: bwb-import-docker-publish
@@ -9,6 +9,7 @@ on:
     branches: [master]
     paths:
       - "tools/bwb-import/**"
+      - "packages/bronmodel/**"
       - "!tools/bwb-import/**/*.md"
       - ".github/workflows/bwb-import-docker-publish.yml"
   workflow_dispatch:
@@ -82,7 +83,7 @@ jobs:
         id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          context: tools/bwb-import
+          context: .
           file: tools/bwb-import/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}

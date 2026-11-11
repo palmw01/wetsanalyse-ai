@@ -353,9 +353,12 @@ jobs:
           heeft() { echo "$code" | grep -q "^$1" && echo true || echo false; }
           graph_qa=$(heeft 'tools/graph-qa/')
           api=$(heeft 'api/')
+          bwb_import=$(heeft 'tools/bwb-import/')
+          # De BWB-lezer (`bronmodel.bwb`) is van de importer én van graph-qa (de connector wetgeving_live).
           if [ "$(heeft 'packages/bronmodel/')" = true ]; then
             graph_qa=true
             api=true
+            bwb_import=true
           fi
           if [ -n "$skill" ]; then
             echo "Skill-wijziging gezien: graph-qa-tests draaien voor de methode-drift-guard."
@@ -375,7 +378,7 @@ jobs:
             echo "mcp=$(heeft 'tools/wetsanalyse-')"
             echo "frontend=$(heeft 'frontend/')"
             echo "graph_qa=$graph_qa"
-            echo "bwb_import=$(heeft 'tools/bwb-import/')"
+            echo "bwb_import=$bwb_import"
             echo "api=$api"
           } | tee -a "$GITHUB_OUTPUT"
 

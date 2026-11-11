@@ -1,7 +1,6 @@
 "use client";
 
 import { Opstellen } from "@/components/ui/Icoon";
-import Link from "next/link";
 import { InstellingenLink } from "@/components/instellingen/InstellingenLink";
 import { INSTELLINGEN_PARAM } from "@/lib/instellingen";
 import dynamic from "next/dynamic";
@@ -10,6 +9,7 @@ import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 import { AppSidebar } from "@/components/werkplek/AppSidebar";
+import { Teststrook } from "@/components/werkplek/Teststrook";
 import { ChatKop } from "@/components/werkplek/ChatKop";
 import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
 import { leesStand, moetStarten, RONDLEIDING_VERSIE, START_PARAMETER, startUitUrl } from "@/lib/rondleiding";
@@ -361,16 +361,9 @@ export function WorkbenchShell({
   return (
     <div className="relative flex h-full flex-col">
       <SkipLink />
-      {/* Waar zit ik? Deze strook staat bovenaan de schil en niet in de globale sitekop: die
-          verbergt zichzelf op de werkplek, dus juist waar je de hele dag werkt, zag je hem dan nooit. De klik opent de voorwaarden als dialog (intercepting route), zodat je je gesprek
-          niet verlaat. */}
-      <Link
-        href="/disclaimer"
-        className="focus-ring block shrink-0 bg-waarschuwing/10 py-1 text-center text-[0.7rem] text-ink transition-colors hover:bg-waarschuwing/20"
-      >
-        <span className="font-semibold">Testomgeving – proof of concept.</span>{" "}
-        Analyses kunnen verloren gaan. <span className="underline">Lees de voorwaarden</span>
-      </Link>
+      {/* Waar zit ik? Deze strook staat bovenaan de schil en niet in de globale sitekop: die verbergt zichzelf op de
+          werkplek, dus juist waar je de hele dag werkt, zag je hem dan nooit. Wegklikbaar voor de rest van de login. */}
+      <Teststrook />
 
       {/* Tokenbudget: één strook die twee standen kent. Hij wordt uit de SERVERSTAND afgeleid en
           niet uit een eerder gezette vlag, zodat hij niet kan blijven hangen als hij niet meer

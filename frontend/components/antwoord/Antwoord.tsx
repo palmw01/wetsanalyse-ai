@@ -7,7 +7,7 @@
 import Link from "next/link";
 
 import { StandMelding } from "@/components/ui/StandMelding";
-import { NOG_NIET_IN_WERKING, TEKSTSTAND_LABEL, tekstBijMeldingen, tekstPeriode } from "@/lib/herkomst";
+import { NOG_NIET_IN_WERKING, TEKSTSTAND_LABEL, WETTEKST_LIVE, tekstBijMeldingen, tekstPeriode } from "@/lib/herkomst";
 import { Citaat } from "@/components/ui/Citaat";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { StukVindplaats, Vindplaats } from "./Vindplaats";
@@ -126,9 +126,12 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
   // Een bron naast de wet (ADR-013): letterlijk, met haar eigen vindplaats, en zichtbaar geen wettekst.
   extern: ({ blok }) => (
     <Sectie kop={blok.kop}>
-      <p className="text-xs text-muted">{BRONTYPE_NAAM[blok.brontype] ?? "Bron naast de wet"}, geen wettekst: het onderbouwt een uitleg, niet wat de wet zegt.</p>
-      {/* Bij welke tekst van de bepaling het stuk hoort (een uitspraak bij een eerdere versie van het artikel). */}
-      <StandMelding meldingen={tekstBijMeldingen(blok)} />
+      {blok.brontype === WETTEKST_LIVE
+        ? <p className="text-xs text-muted">Wettekst van overheid.nl, letterlijk, maar niet uit de kennisgraaf.</p>
+        : <p className="text-xs text-muted">{BRONTYPE_NAAM[blok.brontype] ?? "Bron naast de wet"}, geen wettekst: het onderbouwt een uitleg, niet wat de wet zegt.</p>}
+      {/* Bij welke tekst van de bepaling het stuk hoort (een uitspraak bij een eerdere versie van het artikel); bij een
+          wettekst buiten de graaf welke tekst het is. */}
+      <StandMelding meldingen={tekstBijMeldingen(blok, blok.brontype)} />
       <div data-extern={blok.id}>
         <ConnectorTekst passages={blok.passages} />
       </div>
@@ -155,7 +158,7 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
                 : <StukVindplaats brontype={blok.brontype} id={s.id} label={s.label} link={s.link} tekst={s} className="font-medium text-lint" />}
               {s.leesbaar === false && <StatusLabel toon="geel" klein uitleg="De tekst van dit stuk is bij de bron niet te lezen; open het via de link.">{s.zonder_tekst || "geen tekst bij de bron"}</StatusLabel>}
               {/* Een eerdere tekst van de bepaling, of een andere dan op de peildatum: de zin van `tekstBijMeldingen`. */}
-              {tekstBijMeldingen(s).map((m) => (
+              {tekstBijMeldingen(s, blok.brontype).filter((m) => TEKSTSTAND_LABEL[m.soort]).map((m) => (
                 <StatusLabel key={m.soort} toon={m.soort === "tekststand-onbekend" ? "neutraal" : "geel"} klein uitleg={m.tekst}>
                   <span data-tekststand={m.soort}>{TEKSTSTAND_LABEL[m.soort]}</span>
                 </StatusLabel>

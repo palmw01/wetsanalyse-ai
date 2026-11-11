@@ -337,8 +337,61 @@ class NepRechtspraak:
         return Uitspraak(ecli, self.xml, "h", "2020-02-01")
 
 
+class NepBwb:
+    """De zoekdienst van de BWB en het repository (connector wetgeving_live): `n` regelingen met de langste titels, en een
+    toestand met `n` artikelen in één hoofdstuk, waarvan het eerste `alineas` lange leden heeft."""
+
+    BWB = "BWBR9999999"
+
+    def __init__(self, n: int, alineas: int = 400) -> None:
+        from agent.adapters.sru_bwb import REPOSITORY_HOST, Gelezen, Toestand
+        from bronmodel.bwb.models import Artikel, Lid, Structuurdeel, Wet
+
+        def url(bwb: str) -> str:
+            return f"https://{REPOSITORY_HOST}/bwb/{bwb}/2026-01-01_0/xml/{bwb}_2026-01-01_0.xml"
+        self.regelingen = [Toestand(f"BWBR{9000000 + i:07d}", f"Wet {i} " + _LANG[:150], "wet", "2026-01-01",
+                                    "9999-12-31", "2026-01-01", "9999-12-31", url(f"BWBR{9000000 + i:07d}"),
+                                    ministerie="Financiën", rechtsgebieden=("Belastingrecht",),
+                                    gewijzigd=f"2026-{(i % 12) + 1:02d}-{(i % 28) + 1:02d}") for i in range(n)]
+        self.regelingen.sort(key=lambda t: (t.gewijzigd, t.bwb_id), reverse=True)
+        jci = f"jci1.3:c:{self.BWB}&hoofdstuk=1&artikel="
+        leden = [Lid(id=f"l{j}", nummer=str(j + 1), tekst=_LANG[:1500], jci=f"{jci}1&lid={j + 1}&z=2026-01-01&g=2026-01-01")
+                 for j in range(alineas)]
+        artikelen = [Artikel(id=f"a{i}", nummer=str(i + 1), label=f"Artikel {i + 1}", tekst="" if i == 0 else _LANG[:300],
+                             titel=_LANG[:80], jci=f"{jci}{i + 1}&z=2026-01-01&g=2026-01-01", inwerking="2026-01-01",
+                             status="goed", leden=leden if i == 0 else []) for i in range(n)]
+        wet = Wet(bwb_id=self.BWB, citeertitel="Testwet", opschrift="", soort="wet", structuurdelen=[
+            Structuurdeel(id="h1", soort="hoofdstuk", nummer="1", label="Hoofdstuk", titel=_LANG[:120],
+                          artikelen=artikelen)])
+        self.toestand = Toestand(self.BWB, "Testwet", "wet", "2026-01-01", "9999-12-31", "2026-01-01", "9999-12-31",
+                                 url(self.BWB))
+        self.gelezen = Gelezen(self.toestand, wet, "h", True, 1, 1)
+
+    def zoek(self, cql, *, start=1, maximum=50):
+        return len(self.regelingen), self.regelingen[start - 1:start - 1 + maximum]
+
+    def toestanden(self, bwb_id):
+        return [self.toestand]
+
+    def toestand_op(self, bwb_id, peildatum=None):
+        return self.toestand
+
+    def lees(self, toestand):
+        return self.gelezen
+
+
+def nepgraaf(connector: str):
+    """De graaf in de harnas: geen, behalve voor een connector die vraagt of een regeling in de graaf staat (dan een
+    graaf zonder die regeling)."""
+    if connector != "wetgeving_live":
+        return None
+    from fakes import FakeGraph
+    return FakeGraph(result=json.dumps("?r\t?van\t?tot\n"))
+
+
 #: Per connector: een nepbron per omvang, en per tool de argumenten en de omvang van de dataset die terug moet komen.
-NEPBRONNEN = {"kamerstukken": NepSru, "rechtspraak": NepRechtspraak, "bekendmakingen": NepKoopBekendmakingen}
+NEPBRONNEN = {"kamerstukken": NepSru, "rechtspraak": NepRechtspraak, "bekendmakingen": NepKoopBekendmakingen,
+              "wetgeving_live": NepBwb}
 CONNECTOR_ARGS: dict[str, list[tuple[dict, str]]] = {
     "zoek_kamerstukken": [({"dossier": "99001"}, "dossier"), ({"woorden": "Invorderingswet"}, "dossier"),
                           ({"dossier": "99001", "woorden": "stuk"}, "dossier")],
@@ -349,6 +402,10 @@ CONNECTOR_ARGS: dict[str, list[tuple[dict, str]]] = {
     "zoek_bekendmakingen": [({"woorden": "Invorderingswet"}, "dossier"),
                             ({"publicatie": "Staatsblad", "volgorde": "nieuwste", "aantal": 25}, "dossier")],
     "get_bekendmaking": [({"id": "stb-2099-1"}, "alineas")],
+    "zoek_regelingen": [({"rechtsgebied": "Belastingrecht", "volgorde": "nieuwste"}, "dossier"),
+                        ({"orgaan": "Financiën", "aantal": 25}, "dossier")],
+    "zoek_artikelen": [({"bwb_id": NepBwb.BWB}, "dossier")],
+    "get_wettekst": [({"bwb_id": NepBwb.BWB, "artikel": "1"}, "alineas")],
 }
 OMVANGEN = (1, 40, 300, 301, 1000, 1001, 1200)
 
@@ -372,7 +429,7 @@ def test_rijen_en_stuk_dragen_de_metadatasleutels(naam: str, args: dict, soort: 
     c = CONNECTORS[_connector(naam)]
     beschreven = {v.sleutel for v in c.metadata} | VINDPLAATS_SLEUTELS
     assert beschreven - VINDPLAATS_SLEUTELS <= set(METADATA_SLEUTELS)
-    data = json.loads(tools.dispatch(naam, None, args, make_settings(**{f"connector_{c.naam}": True}),
+    data = json.loads(tools.dispatch(naam, nepgraaf(c.naam), args, make_settings(**{f"connector_{c.naam}": True}),
                                      **{c.naam: NEPBRONNEN[c.naam](40, alineas=3)}))
     assert data["status"] == "ok", data
     if naam == c.leestool:
@@ -395,8 +452,10 @@ def test_contract_van_een_connectortool(naam: str, args: dict, soort: str, omvan
     bron = NEPBRONNEN[c](omvang, alineas=omvang)
     instellingen = make_settings(**{f"connector_{c}": True})
 
+    graaf = nepgraaf(c)
+
     def roep(n: str, a: dict) -> str:
-        return tools.dispatch(n, None, a, instellingen, **{c: bron})
+        return tools.dispatch(n, graaf, a, instellingen, **{c: bron})
 
     uit = roep(naam, args)
     data = is_contract(uit)

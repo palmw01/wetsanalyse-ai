@@ -11,6 +11,7 @@ uitbreiding naar andere regelingsoorten werken zonder modelwijziging.
 
 from __future__ import annotations
 
+import io
 import logging
 import re
 from pathlib import Path
@@ -18,7 +19,7 @@ from typing import Any
 
 from lxml import etree
 
-from app.models import (
+from .models import (
     Artikel,
     Bijlage,
     Divisie,
@@ -30,7 +31,7 @@ from app.models import (
     Verwijzing,
     Wet,
 )
-from app.references import extract_references
+from .references import extract_references
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,9 @@ _STRUCTUUR_TAGS = {
     "titeldeel": "titeldeel",
     "afdeling": "afdeling",
     "paragraaf": "paragraaf",
+    # Een paragraaf binnen een paragraaf (Boek 7 BW, titel 7.10). Geen eigen soort in de graaf: een geneste paragraaf. De
+    # IRI van een artikel verandert er niet door (die noemt alleen het artikel).
+    "sub-paragraaf": "paragraaf",
 }
 
 
@@ -88,7 +92,7 @@ class ParseError(RuntimeError):
 
 
 class ToestandParser:
-    """Zet een toestand-XML om naar het :class:`~app.models.Wet`-model."""
+    """Zet een toestand-XML om naar het :class:`~bronmodel.bwb.models.Wet`-model."""
 
     def __init__(self, schema_path: Path | None = None) -> None:
         self._schema_path = schema_path
@@ -96,23 +100,24 @@ class ToestandParser:
         self._schema: etree.XMLSchema | None = None
 
     # ------------------------------------------------------------- validatie
-    def validate(self, xml_path: Path) -> bool:
+    def validate(self, xml_path: Path | bytes) -> bool:
         """Valideer tegen het XSD. Niet-blokkerend: faalt zacht met waarschuwing.
 
         Geeft ``True`` bij geldig, ``False`` bij ongeldig of als het schema niet
-        beschikbaar is.
+        beschikbaar is. Neemt een pad (de importer) of de XML zelf (de connector, die niets op schijf zet).
         """
+        naam = _naam(xml_path)
         if self._schema_path is None:
             logger.warning("Geen XSD opgegeven; validatie overgeslagen")
             return False
         try:
             schema = self._load_schema()
-            doc = etree.parse(str(xml_path))
+            doc = etree.parse(_bron(xml_path))
             schema.assertValid(doc)
-            logger.info("XSD-validatie geslaagd voor %s", xml_path.name)
+            logger.info("XSD-validatie geslaagd voor %s", naam)
             return True
         except etree.DocumentInvalid as exc:
-            logger.warning("XSD-validatie mislukt voor %s: %s", xml_path.name, exc)
+            logger.warning("XSD-validatie mislukt voor %s: %s", naam, exc)
             return False
         except (etree.XMLSchemaParseError, OSError) as exc:
             logger.warning("XSD kon niet worden geladen (%s); validatie overgeslagen", exc)
@@ -125,9 +130,9 @@ class ToestandParser:
         return self._schema
 
     # ----------------------------------------------------------------- parse
-    def parse(self, xml_path: Path) -> Wet:
-        """Parse de toestand-XML naar een :class:`Wet`."""
-        tree = etree.parse(str(xml_path))
+    def parse(self, xml_path: Path | bytes) -> Wet:
+        """Parse de toestand-XML (een pad of de XML zelf) naar een :class:`Wet`."""
+        tree = etree.parse(_bron(xml_path))
         root = tree.getroot()
         if root.tag != "toestand":
             raise ParseError(f"Onverwacht root-element: {root.tag!r} (verwacht 'toestand')")
@@ -235,6 +240,13 @@ class ToestandParser:
                 continue
             if tag == "artikel":
                 artikelen.append(self._parse_artikel(child, bwb_id))
+            elif tag == "boek" and element.tag == "wettekst":
+                # Een boek van het Burgerlijk Wetboek is een eigen regeling (Boek 7 is BWBR0005290), en zijn wettekst is
+                # precies één `<boek>`. Het is dus geen deel binnen de regeling maar de regeling zelf: zijn titeldelen
+                # horen er direct onder. De jci noemt het boek, maar een vindplaats rekent het niet mee
+                # (`bronmodel.vindplaats`: alleen hoofdstuk, titeldeel, afdeling en paragraaf), dus de IRI verandert
+                # niet. Zonder deze tak viel de hele tekst als "onbekende structuur" weg.
+                self._lees_kinderen(child, bwb_id, delen, artikelen, tekst)
             elif self._structuursoort(child):
                 delen.append(self._parse_structuurdeel(child, bwb_id))
             elif tag not in tekst:
@@ -757,6 +769,15 @@ class ToestandParser:
             "uitgiftedatum": uitg.get("isodatum") if uitg is not None else None,
             "dossier": doss.get("dossier") if doss is not None else None,
         }
+
+
+def _bron(xml: Path | str | bytes) -> str | io.BytesIO:
+    """Wat `etree.parse` leest: een pad als tekst, of de XML zelf als bestand in het geheugen."""
+    return io.BytesIO(xml) if isinstance(xml, bytes) else str(xml)
+
+
+def _naam(xml: Path | str | bytes) -> str:
+    return "<xml in het geheugen>" if isinstance(xml, bytes) else Path(xml).name
 
 
 def _tekst_in(element: etree._Element, basis: str, binnen: str) -> str:

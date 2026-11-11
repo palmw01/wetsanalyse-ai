@@ -11,10 +11,10 @@ import logging
 from pathlib import Path
 
 import requests
+from bronmodel.bwb.models import ToestandRef
 from lxml import etree
 
 from app.config import Settings
-from app.models import ToestandRef
 
 logger = logging.getLogger(__name__)
 

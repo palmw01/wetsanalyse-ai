@@ -13,13 +13,13 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from bronmodel.bwb.dekking import _tekst_zonder
 from lxml import etree
 
 from app.dekking import (
     STANDAARD_DREMPEL,
     Dekking,
     Stand,
-    _tekst_zonder,
     bron_tekens,
     meet,
     poortbesluit,

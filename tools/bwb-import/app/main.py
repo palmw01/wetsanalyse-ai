@@ -13,13 +13,14 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from bronmodel.bwb.models import ImportResult, ImportSummary, ToestandRef, Wet
+from bronmodel.bwb.parser import ToestandParser
+
 from app.collect import Batch, bepalingsindex, collect, structuurindex
 from app.config import Settings
 from app.dekking import Dekking, Stand, bron_tekens, poortbesluit
 from app.downloader import BwbDownloader
 from app.graphdb_writer import GraphDbWriter
-from app.models import ImportResult, ImportSummary, ToestandRef, Wet
-from app.parser import ToestandParser
 from app.rdf_vocab import Vocab
 from app.wti_parser import WtiInfo, WtiParser
 

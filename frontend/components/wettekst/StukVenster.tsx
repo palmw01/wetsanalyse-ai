@@ -11,7 +11,7 @@ import { ConnectorTekst, STUK_EENHEID } from "@/components/wettekst/ConnectorTek
 import { hoortBij, stukGegevens, stukMeldingen, stukVerwijzingen, type StukPassage } from "@/lib/bronStuk";
 import type { useStuk } from "@/lib/useStuk";
 import type { TekstBij } from "@/lib/antwoord";
-import { tekstBijMeldingen } from "@/lib/herkomst";
+import { WETTEKST_LIVE, tekstBijMeldingen, wettekstMeldingen } from "@/lib/herkomst";
 
 /** Het bronvenster van een stuk uit een bronconnector (ADR-013, het bronvenster PR 6), in vaste blokken onder de kop:
  *  1. de stand (een andere versie dan Lex las, een bewaarde versie, alleen een PDF);
@@ -51,7 +51,10 @@ export function StukVenster({ stuk: { stand, fout, laadt, meer }, gelezen, voorb
   }
   if (!stand) return <div className="space-y-2"><Skeleton className="h-4 w-48" /><Skeleton className="h-16 w-full" /></div>;
   const { beschrijving, deel } = stand.antwoord;
-  const meldingen = [...tekstBijMeldingen(bij ?? {}), ...stukMeldingen(deel, gelezen)];
+  // Een wettekst buiten de graaf zegt zelf welke tekst hij is (de metadata van het gelezen stuk); een ander stuk zegt bij
+  // welke tekst van de bepaling het hoort (uit de lijst waar het geopend werd).
+  const meldingen = [...(beschrijving.brontype === WETTEKST_LIVE ? wettekstMeldingen({ ...bij, ...((deel.stuk ?? {}) as TekstBij & { status?: string }) })
+    : tekstBijMeldingen(bij ?? {})), ...stukMeldingen(deel, gelezen)];
   const gegevens = stukGegevens(beschrijving, deel.stuk);
   const verwijzingen = stukVerwijzingen(passages);
   const naarKop = (offset: number) => {

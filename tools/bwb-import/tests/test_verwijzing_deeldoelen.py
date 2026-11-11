@@ -9,6 +9,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from bronmodel.bwb.models import Artikel, Lid, Onderdeel, Verwijzing, VerwijzingSoort, Wet
+from bronmodel.bwb.parser import ToestandParser
+from bronmodel.bwb.references import Deeldoel, deeldoelen
 
 from app.collect import (
     Batch,
@@ -17,10 +20,7 @@ from app.collect import (
     koppel_deelverwijzingen,
 )
 from app.graphdb_writer import GraphDbWriter
-from app.models import Artikel, Lid, Onderdeel, Verwijzing, VerwijzingSoort, Wet
-from app.parser import ToestandParser
 from app.rdf_vocab import Vocab
-from app.references import Deeldoel, deeldoelen
 
 AWR = "BWBR0002320"
 AWIR = "BWBR0018472"

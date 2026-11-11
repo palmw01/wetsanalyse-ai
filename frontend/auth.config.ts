@@ -5,6 +5,7 @@
 
 import type { NextAuthConfig } from "next-auth";
 import { DISCLAIMER_COOKIE, DISCLAIMER_PAD, vereistAkkoord } from "@/lib/disclaimer";
+import { loginSleutel } from "@/lib/teststrook";
 import { isPuntSegment } from "@/lib/url";
 
 export type Role = "beheerder" | "analist";
@@ -192,6 +193,9 @@ export const authConfig = {
         (session.user as { userid?: string }).userid = token.userid as string | undefined;
         (session.user as { role?: Role }).role = token.role as Role | undefined;
         (session.user as { viaToken?: string }).viaToken = token.viaToken as string | undefined;
+        // Deze login, voor wat per login geldt in de browser (de testomgeving-strook, lib/teststrook.ts):
+        // een nieuwe login of een ander account geeft een andere sleutel.
+        (session.user as { loginSleutel?: string }).loginSleutel = loginSleutel(token.userid, token.loginAt);
       }
       return session;
     },
