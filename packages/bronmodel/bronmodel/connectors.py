@@ -467,7 +467,8 @@ RECHTSPRAAK = ConnectorBeschrijving(
 
 
 #: De soorten bekendmaking die een jurist in een lijstvraag noemt, zoals `dt.type` ze kent (live, 10 nov 2026). "Wet"
-#: staat er bewust niet in: "de wet" staat in bijna elke vraag.
+#: alleen in het meervoud: "de wet" staat in bijna elke vraag, "wetten" wijst een soort aan ("hoeveel wetten van
+#: Financiën staan er in het Staatsblad van 2024", iteratie bekendmakingen ronde 1, B20).
 _BEKENDMAKINGSOORTEN = (
     # Geen `dt.type`: een inwerkingtredingsbesluit is een AMvB of KB met "inwerkingtreding" in de titel (5.466 in het
     # Staatsblad, live 10 nov 2026); de zoektool zoekt het in de titel.
@@ -478,6 +479,7 @@ _BEKENDMAKINGSOORTEN = (
     ("beleidsregel", r"\bbeleidsregel(?:s)?\b"),
     ("circulaire", r"\bcirculaire(?:s)?\b"),
     ("rijkswet", r"\brijkswet(?:ten)?\b"),
+    ("wet", r"\bwetten\b"),
     ("verbeterblad", r"\bverbeterblad(?:en)?\b|\brectificatie(?:s)?\b"),
 )
 
@@ -509,7 +511,7 @@ BEKENDMAKINGEN = ConnectorBeschrijving(
              "het inwerkingtredingsbesluit, niet eerdere toestanden), op woorden in de titel of de hele tekst, soort, "
              "Staatsblad of Staatscourant, datum, jaargang, ministerie en Kamerdossier. Uit de Staatscourant alleen "
              "regelgeving, beleid en adviezen van de Raad van State; aankondigingen over personen (deurwaardersexploten, "
-             "faillissementen, curatele) staan er niet in. Stukken van vóór ongeveer 1995 "
+             "faillissementen, curatele) staan wel in de Staatscourant, maar worden niet gezocht of gelezen. Stukken van vóór ongeveer 1995 "
              "staan bij KOOP meestal alleen als PDF: ze worden gevonden, maar de tekst is niet te lezen. Een "
              "wijzigingsbesluit geeft de wijzigingsopdrachten, niet de geconsolideerde tekst"),
     levert=("alinea's (de aanhef, de artikelen en wijzigingsonderdelen, de toelichting)", "voetnoten",

@@ -34,6 +34,13 @@ class SruBekendmakingen(SruKoop):
     _logger = logging.getLogger("graph_qa.bekendmakingen")
 
     def _terugval(self, ident: str) -> list[Record]:
+        return self.versies(ident)
+
+    def versies(self, ident: str) -> list[Record]:
+        """Elke publicatie met hetzelfde blad, dezelfde jaargang en hetzelfde nummer: het stuk zelf, een herdruk, een
+        tweede versie, een verbeterblad (een eigen id met `-n1`, ook bij KOOP). Leeg voor een id zonder nummer. Zo ziet
+        Lex dat er een andere versie is (iteratie bekendmakingen ronde 1, B25: "kent geen meerdere versies", terwijl
+        stcrt-2024-20015-n1 bestaat)."""
         if (bjn := blad_jaar_nummer(ident)) is None:
             return []
         blad, jaar, nummer = bjn

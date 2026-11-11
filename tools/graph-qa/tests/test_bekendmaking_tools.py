@@ -455,3 +455,33 @@ def test_de_bron_draagt_het_label_van_het_gelezen_stuk():
     tekst = json.dumps({"status": "ok", "volledig": True, "aantal": 0, "resultaten": [],
                         "stuk": {"id": "stb-2010-185-n1", "label": "Stb. 2010, 185 (herdruk)"}})
     assert [s.label for s in collect_sources([("get_bekendmaking", tekst)])] == ["Stb. 2010, 185 (herdruk)"]
+
+
+def test_het_stuk_noemt_de_andere_versies():
+    """Iteratie ronde 1, B25: "kent geen meerdere versies", terwijl stcrt-2024-20015-n1 bestaat. Het stuk noemt nu de
+    andere publicaties met hetzelfde blad, jaar en nummer, oudste eerst, met hun label van KOOP."""
+    from types import SimpleNamespace
+
+    from agent.adapters.sru_koop import KoopFout
+
+    def rec(ident, datum, versie=""):
+        return SimpleNamespace(id=ident, datum=datum, publicatienaam="Staatsblad", jaargang="2010",
+                               publicatienummer="176", versie=versie)
+
+    bron = _bron()
+    bron.versies = lambda ident: [rec("stb-2010-176", "2010-05-11"), rec("stb-2010-176-n2", "2010-07-01", "n2"),
+                                  rec("stb-2010-176-n1", "2010-06-01", "Herdruk")]
+    d = roep("get_bekendmaking", {"id": "stb-2010-176"}, bron=bron)
+    assert d["stuk"]["versies"] == [
+        {"id": "stb-2010-176-n1", "label": "Stb. 2010, 176 (herdruk)", "datum": "2010-06-01"},
+        {"id": "stb-2010-176-n2", "label": "Stb. 2010, 176 (versie n2)", "datum": "2010-07-01"}]
+    assert "versies" not in roep("get_bekendmaking", {"id": "stb-2010-176", "offset": 3}, bron=bron)["stuk"], (
+        "alleen op de eerste pagina")
+
+    def storing(ident):
+        raise KoopFout("weg")
+    bron.versies = storing
+    d = roep("get_bekendmaking", {"id": "stb-2010-176"}, bron=bron)
+    assert d["status"] == "ok" and d["resultaten"] and "versies" not in d["stuk"], "een storing kost alleen de versies"
+    bron.versies = lambda ident: [rec("stb-2010-176", "2010-05-11")]
+    assert "versies" not in roep("get_bekendmaking", {"id": "stb-2010-176"}, bron=bron)["stuk"], "geen andere versie"

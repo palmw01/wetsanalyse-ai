@@ -259,3 +259,13 @@ def test_het_antwoord_zegt_dat_het_minder_toont_dan_gevraagd(monkeypatch):
     tekst = "".join(e.get("content", "") for e in events if e["type"] == "token")
     assert "Je vroeg om 100; per keer toon ik er hoogstens 25. Vraag om de volgende als je meer wilt zien." in tekst
     assert "25 van de 60 stukken." in tekst
+
+
+@pytest.mark.parametrize("vraag,soort", [
+    ("Hoeveel wetten van het Ministerie van Financiën staan er in het Staatsblad van 2024?", "wet"),
+    ("Welke Staatsbladen wijzigen de belastingwetten?", None),
+    ("Wat staat er in de Wet op de huurtoeslag?", None)])
+def test_wetten_is_een_soort_maar_de_wet_niet(vraag, soort):
+    """Iteratie bekendmakingen ronde 1, B20: "wetten" ging naar het model; "de wet" en "belastingwetten" zijn geen soort."""
+    uit = bron_lijst.lees(vraag, frozenset({"bekendmakingen"}), lambda t: [])
+    assert (uit.args.get("soort") if uit else None) == soort

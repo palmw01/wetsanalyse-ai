@@ -229,7 +229,14 @@
    },
    "verwacht": {
     "stuk": {
-     "label": "Stcrt. 2024, 20015 (versie n1)"
+     "label": "Stcrt. 2024, 20015 (versie n1)",
+     "versies": [
+      {
+       "id": "stcrt-2024-20015",
+       "label": "Stcrt. 2024, 20015",
+       "datum": "2024-06-28"
+      }
+     ]
     }
    },
    "goed": "De tweede versie (n1) van de wijziging van de Leidraad Invordering 2008 van 1 juli 2024, met het label en de datum uit KOOP, en dat er een eerdere versie is (stcrt-2024-20015, 28 juni 2024). Vroeger stond hier een herdruk over onderwijs (stb-2010-185-n1): daar weigerde Lex een antwoord (meting 10 nov 2026, B12); een genoemd stuk buiten het domein vat hij nu samen met één zin dat het buiten invordering en belastingen valt."
@@ -358,22 +365,25 @@
    "id": "B20",
    "soort": "telling per soort",
    "vraag": "Hoeveel wetten van het Ministerie van Financiën staan er in het Staatsblad van 2024?",
-   "route": "model",
+   "route": "lijstvraag",
    "tool": "zoek_bekendmakingen",
    "args": {
-    "soort": "Wet",
+    "soort": "wet",
     "orgaan": "Ministerie van Financiën",
     "publicatie": "Staatsblad",
-    "jaar": "2024"
+    "vanaf": "2024",
+    "tot": "2024"
    },
    "verwacht": {
     "totaal_min": 20,
     "alle": {
      "publicatie": "Staatsblad",
      "soort": "Wet"
-    }
+    },
+    "datum_vanaf": "2024-01-01",
+    "datum_tot": "2024-12-31"
    },
-   "goed": "Twintig (het totaal van KOOP), met de zoekvraag; geen getal uit eigen kennis. Een lijst mag erbij, met de zin dat er meer zijn dan er staan."
+   "goed": "Twintig (het totaal van KOOP), met de zoekvraag; een lijstvraag sinds ronde 1 van de iteratie (11 nov 2026): \"wetten\" is een soort, en het blok zegt \"N van de 20 stukken\"."
   },
   {
    "id": "B21",
@@ -462,7 +472,14 @@
    },
    "verwacht": {
     "stuk": {
-     "label": "Stcrt. 2024, 20015"
+     "label": "Stcrt. 2024, 20015",
+     "versies": [
+      {
+       "id": "stcrt-2024-20015-n1",
+       "label": "Stcrt. 2024, 20015 (versie n1)",
+       "datum": "2024-07-01"
+      }
+     ]
     }
    },
    "goed": "Twee: Stcrt. 2024, 20015 van 28 juni 2024 en de tweede versie stcrt-2024-20015-n1 van 1 juli 2024, met datum en label uit KOOP; als Lex het verschil niet ziet, zegt hij dat."
