@@ -33,9 +33,11 @@ from .vullen import Onvulbaar, Trace, _data, resultaten
 MAX_PASSAGES = 6
 #: Zo veel stukken per antwoord.
 MAX_STUKKEN = 4
-#: Zo veel alinea's citeert één antwoord hoogstens, over alle aanwijzingen samen: de aanwijzingen die het model mag geven
-#: (`MAX_STUKKEN * 2`) maal `MAX_PASSAGES`. Een langere reeks splitst de code zelf. Een grens per aanwijzing liet het
-#: model in stappen splitsen, één weigering per stap (iteratie 11 nov 2026: Kamerstukken K15 vijf keer, 450k tokens).
+#: Zo veel alinea's citeert één antwoord hoogstens, over alle aanwijzingen samen. Een langere reeks splitst de code zelf.
+#: Een grens per aanwijzing liet het model in stappen splitsen, één weigering per stap (iteratie 11 nov 2026: Kamerstukken
+#: K15 vijf keer, 450k tokens). Het aantal aanwijzingen heeft geen eigen grens: elke aanwijzing draagt minstens één alinea,
+#: dus dit totaal begrenst ze al. Een grens van acht aanwijzingen weigerde losse alinea's verspreid over een stuk, zoals de
+#: aanhef van zeventien artikelen van een verzamelwet (iteratie bekendmakingen ronde 3, B16: zeven rondes, 187k tokens).
 MAX_ALINEAS = MAX_PASSAGES * MAX_STUKKEN * 2
 
 VELD = "extern"
@@ -209,8 +211,9 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
     antwoord opnieuw schreef (iteratie bekendmakingen ronde 1, 11 nov 2026: B16 vijf rondes, ~120k tokens)."""
     if not items:
         return []
-    if not isinstance(items, list) or len(items) > MAX_STUKKEN * 2:
-        raise Onvulbaar(f"'{VELD}' is een lijst van hoogstens {MAX_STUKKEN * 2} aanwijzingen.")
+    if not isinstance(items, list) or len(items) > MAX_ALINEAS:
+        raise Onvulbaar(f"'{VELD}' is een lijst van hoogstens {MAX_ALINEAS} aanwijzingen. Wijs alleen de alinea's aan die "
+                        "het antwoord dragen, en vat de rest samen in het korte antwoord.")
     per_stuk: dict[str, Extern] = {}
     fouten: list[str] = []
     for item in items:

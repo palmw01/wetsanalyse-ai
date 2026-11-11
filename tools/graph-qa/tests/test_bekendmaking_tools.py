@@ -583,6 +583,27 @@ def test_een_lange_reeks_splitst_de_code_zelf():
     assert f"wijst {len(rijen)} alinea's aan; hoogstens {extern.MAX_ALINEAS}" in str(fout.value)
 
 
+def test_losse_alineas_verspreid_over_een_stuk_in_een_aanroep():
+    """Iteratie ronde 3, B16: de aanhef van zeventien artikelen van een verzamelwet is zeventien losse alinea's. Een grens
+    van acht aanwijzingen weigerde dat, en het model probeerde het zes rondes lang (187k tokens). Het totaal aan alinea's
+    begrenst nu ook het aantal aanwijzingen."""
+    from agent.sjablonen import extern
+    from agent.sjablonen.vullen import Onvulbaar
+
+    rijen = [{"nr": n, "kop": f"Artikel {n}", "tekst": f"Alinea {n}."} for n in range(1, 61)]
+    stuk = {**roep("get_bekendmaking", {"id": "stb-2009-610"}), "volledig": True, "resultaten": rijen, "aantal": len(rijen)}
+    stuk.pop("vervolg", None)
+    trace = [("get_bekendmaking", json.dumps(stuk, ensure_ascii=False))]
+    los = [{"id": "stb-2009-610", "van_nr": n, "tot_nr": n} for n in range(1, 35, 2)]
+    assert len(los) == 17 > 8
+    [blok] = extern.blokken(los, trace)
+    assert [p.nr for p in blok.passages] == list(range(1, 35, 2)), "zeventien aanwijzingen, geen weigering"
+    te_veel = [{"id": "stb-2009-610", "van_nr": n, "tot_nr": n} for n in range(1, extern.MAX_ALINEAS + 2)]
+    with pytest.raises(Onvulbaar) as fout:
+        extern.blokken(te_veel, trace)
+    assert f"hoogstens {extern.MAX_ALINEAS} aanwijzingen" in str(fout.value)
+
+
 def test_tekst_na_een_gelezen_stuk_vraagt_een_keer_om_het_sjabloon(monkeypatch):
     """Iteratie ronde 2, B22: na het lezen van een stuk antwoordde het model met een tabel zonder citaat, en met nummers
     die het zelf afleidde. Na een gelezen stuk vraagt de code ook één keer om het sjabloon; een fout (alleen PDF, buiten
