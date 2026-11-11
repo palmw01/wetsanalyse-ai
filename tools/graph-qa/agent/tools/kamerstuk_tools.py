@@ -37,6 +37,12 @@ _DOSSIER_RE = re.compile(r"^\d{4,6}(?:-[A-Z0-9]{1,6})?$")
 #: `w.ondernummer` als tekst ("10" vóór "2"), dus dat kan hij niet zelf. Een groter dossier staat op documentdatum
 #: (`oudste`), per record gepagineerd met een exact vervolg: nooit afgekapt.
 MAX_DOSSIER = 1000
+#: Het oudste vergaderjaar in de zoekdienst van KOOP (gemeten 11 nov 2026: de oudste stukken zijn van 1994-1995). Een
+#: lege uitkomst noemt die grens: in ronde 2 Kamerstukken gaf dossier 20588 (de Invorderingswet 1990) niets, en schreef
+#: het model twee keer dat die stukken "alleen als PDF" bij KOOP staan (K16, K17). Ze staan er helemaal niet in.
+EERSTE_VERGADERJAAR = "1994-1995"
+GRENS = (f"De zoekdienst van KOOP heeft Kamerstukken vanaf het vergaderjaar {EERSTE_VERGADERJAAR}; wat ouder is, staat "
+         "er niet in, ook niet als PDF.")
 #: Records per aanroep bij het ophalen van een dossier (de zoekdienst staat er 1000 toe).
 _STAP = 250
 #: `dt.type==Kamerstuk` laat de bijlagen weg; `w.publicatienaam==Kamerstuk` alleen doet dat niet.
@@ -271,7 +277,7 @@ def _dossier(bron: KamerstukBron, dossier: str, cql: str, args: dict[str, Any], 
     extra = compact({"totaal": alle, "volgorde": "nummer", "dossiertitel": _dossiertitel(records),
                      "zoekvraag": _zoekvraag(args, "nummer")})
     return per_eenheid(lijst, tool="zoek_kamerstukken", args=args, offset=offset,
-                       toelichting=toelichting if lijst else f"Geen Kamerstukken in dossier {dossier}.",
+                       toelichting=toelichting if lijst else f"Geen Kamerstukken in dossier {dossier}. {GRENS}",
                        extra=extra if lijst else None)
 
 
@@ -403,7 +409,7 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
         return _dossier(bron, dossier, cql, args, offset, aantal=aantal, toelichting=toelichting)
     return _per_record(bron, cql + _OP_VOLGORDE.get(volgorde, ""), args, offset, dossier=bool(dossier),
                        maximum=aantal or LIMIT, extra={"volgorde": volgorde, "zoekvraag": _zoekvraag(args, volgorde)},
-                       toelichting=toelichting, leeg="Geen Kamerstukken die aan de zoekvraag voldoen.")
+                       toelichting=toelichting, leeg=f"Geen Kamerstukken die aan de zoekvraag voldoen. {GRENS}")
 
 
 def _get(bron: KamerstukBron, a: dict[str, Any]) -> str:

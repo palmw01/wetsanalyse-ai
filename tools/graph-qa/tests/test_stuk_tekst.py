@@ -7,7 +7,7 @@ from agent.resultaat import BUDGET
 import pytest
 
 from agent import tools
-from agent.tools.stuk_tekst import INHOUD_ARG, MAX_BEGIN, aangevuld, begin_van, inhoudpagina, tekstpagina
+from agent.tools.stuk_tekst import INHOUD_ARG, MAX_BEGIN, MAX_INHOUD, aangevuld, begin_van, inhoud_van, inhoudpagina, tekstpagina
 
 
 def _rijen(n: int, lengte: int, secties: int = 2) -> list[dict]:
@@ -151,3 +151,19 @@ def test_de_inhoud_van_een_stuk_zonder_koppen_zegt_dat_en_wijst_naar_de_tekst():
     assert d["stuk"].get("leesbaar") is not False and "2 alinea’s" in d["toelichting"]
     leeg = json.loads(inhoudpagina([], tool="get_stuk", args={"id": "s1"}, offset=0, stuk={"id": "s1"}))
     assert leeg["stuk"]["leesbaar"] is False and "zonder_koppen" not in leeg
+
+
+def test_de_inhoud_neemt_het_diepste_niveau_dat_past_ook_onder_het_tweede():
+    """Een begroting heeft vijf niveaus; niveau 3 past (ronde 2 Kamerstukken, K15: kst-36200-IX-2 kreeg de zeven koppen
+    van niveau 2, en het model zocht "Artikel 1 Belastingen" met vijf offsets)."""
+    rijen = []
+    for d in "AB":
+        for h in range(1, 5):
+            for a in range(1, 5):
+                for p in range(1, 4):  # niveau 4: 2·4·4·3 = 96 koppen, te veel
+                    rijen.append({"nr": len(rijen) + 1, "kop": f"{d} › {h}. Hoofdstuk › Artikel {h}.{a} › §{p}",
+                                  "tekst": "Een alinea."})
+    lijst, ingekort, _ = inhoud_van(rijen)
+    assert not ingekort and len(lijst) == 32 <= MAX_INHOUD
+    assert {k["kop"].count(" › ") for k in lijst} == {2}, "niveau 3, niet niveau 2"
+    assert lijst[5] == {"kop": "A › 2. Hoofdstuk › Artikel 2.2", "offset": 15}

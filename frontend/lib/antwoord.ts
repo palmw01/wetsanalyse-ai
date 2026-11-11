@@ -151,3 +151,11 @@ export function externGroepen(passages: readonly ExternePassage[]): ExternGroep[
   }
   return uit;
 }
+
+/** Een stuk uit een gezamenlijke behandeling van dossiers: "gezamenlijk behandeld: 33752–33755", de spiegel van
+ *  `reeks_tekst` in `bronmodel/antwoord.py`. Zonder die zin stonden in de lijst van dossier 33755 tien stukken als
+ *  "Kamerstukken 33752, nr. B" zonder uitleg (ronde 2 Kamerstukken, 11 nov 2026). Leeg bij één dossier. */
+export function reeksTekst(reeks: readonly string[] | undefined): string {
+  if (!reeks || reeks.length < 2) return "";
+  return reeks.length > 2 ? `gezamenlijk behandeld: ${reeks[0]}–${reeks[reeks.length - 1]}` : `gezamenlijk behandeld: ${reeks[0]} en ${reeks[1]}`;
+}
