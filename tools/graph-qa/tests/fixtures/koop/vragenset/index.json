@@ -25,6 +25,7 @@
  "/sru?maximumRecords=1&query=c.product-area==officielepublicaties AND dt.identifier==stcrt-2026-37003&startRecord=1": "ae1da8d74bd91aa7.xml",
  "/sru?maximumRecords=1&query=c.product-area==officielepublicaties AND dt.identifier==stcrt-2026-37344&startRecord=1": "c74ff2527fc27db5.xml",
  "/sru?maximumRecords=10&query=c.product-area==officielepublicaties AND (w.publicatienaam==Staatsblad OR (w.publicatienaam==Staatscourant AND (dt.type==\"algemeen verbindend voorschrift (ministeriële regeling)\" OR dt.type==\"beleidsregel\" OR dt.type==\"ander besluit van algemene strekking\" OR dt.type==\"circulaire\" OR dt.type==\"interne regeling\" OR dt.type==\"advies Raad van State\"))) sortBy dt.date/sort.descending dt.identifier/sort.ascending&startRecord=1": "2a604765eca77126.xml",
+ "/sru?maximumRecords=10&query=c.product-area==officielepublicaties AND w.publicatienaam==Staatsblad AND w.jaargang==\"1995\" AND w.publicatienummer==\"1\"&startRecord=1": "08b677780c48febd.xml",
  "/sru?maximumRecords=10&query=c.product-area==officielepublicaties AND w.publicatienaam==Staatsblad AND w.jaargang==\"2009\" AND w.publicatienummer==\"610\"&startRecord=1": "d05cf72d656f8665.xml",
  "/sru?maximumRecords=10&query=c.product-area==officielepublicaties AND w.publicatienaam==Staatsblad AND w.jaargang==\"2010\" AND w.publicatienummer==\"176\"&startRecord=1": "6662b12dab034f93.xml",
  "/sru?maximumRecords=10&query=c.product-area==officielepublicaties AND w.publicatienaam==Staatsblad AND w.jaargang==\"2013\" AND w.publicatienummer==\"568\"&startRecord=1": "424971af74d27eca.xml",
