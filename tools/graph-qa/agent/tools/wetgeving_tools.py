@@ -31,7 +31,7 @@ from datetime import date
 from typing import Any, Protocol
 from urllib.parse import quote
 
-from bronmodel.bwb.boom import Plek, artikelen, divisies, onderdelen
+from bronmodel.bwb.boom import Plek, artikelen, divisies, divisies_met_plek, onderdelen
 from bronmodel.bwb.models import Artikel, Bijlage, Divisie, Onderdeel
 from bronmodel.connectors import WETGEVING_LIVE
 from bronmodel.extern import bwbt_delen
@@ -460,9 +460,9 @@ def _bepalingen(g: Gelezen) -> list[tuple[str, Plek | None, Bepaling]]:
     uit: list[tuple[str, Plek | None, Bepaling]] = []
     for plek, a in artikelen(g.wet):
         uit.append((_staart(a.jci, f":artikel:{quote(a.nummer.strip().rstrip('.'), safe='')}"), plek, a))
-    for d in divisies(g.wet):
+    for plek, d in divisies_met_plek(g.wet):
         if (d.tekst or "").strip() or d.onderdelen:
-            uit.append((_staart(d.jci, f":id:{quote(d.id, safe='')}"), None, d))
+            uit.append((_staart(d.jci, f":id:{quote(d.id, safe='')}"), plek, d))
     for b in g.wet.bijlagen:
         uit.append((_staart(b.jci, f":bijlage:{quote((b.nummer or b.id).strip(), safe='')}"), None, b))
     return uit
@@ -680,6 +680,12 @@ def _get(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
         # "7:610" bij Boek 7 van het BW: het nummer in de BWB is "610".
         kort = f":artikel:{quote(artikel.rsplit(':', 1)[1], safe='')}"
         treffer = next(((s, p, b) for s, p, b in kandidaten if s.casefold() == kort.casefold()), None)
+    if treffer is None and artikel:
+        # Een beleidsregel zonder artikelen nummert haar divisies ("§ 1", "26.5"): een nummer dat precies één divisie
+        # draagt, is die divisie (iteratie wetgeving_live, I12: het BBBB kent geen "artikel 1", wel "§ 1").
+        zelfde = [(s, p, b) for s, p, b in kandidaten if isinstance(b, Divisie)
+                  and (b.nummer or "").strip().rstrip(".").casefold() == artikel.removeprefix("§").strip().casefold()]
+        treffer = zelfde[0] if len(zelfde) == 1 else None
     if treffer is None:
         titel = g.wet.citeertitel or t.titel
         onbekend = (f" De bron heeft structuur die de lezer niet als eigen deel kent ({', '.join(g.wet.overgeslagen)}): "
