@@ -400,3 +400,20 @@ describe("een pagina zonder sessie", () => {
     expect(readFileSync(new URL("./proxy.ts", import.meta.url), "utf8")).toMatch(/export default auth\(\(request\)/);
   });
 });
+
+describe("session-callback", () => {
+  type SessionFn = (p: { session: { user?: Record<string, unknown> }; token: Record<string, unknown> }) => {
+    user?: Record<string, unknown>;
+  };
+  const session = authConfig.callbacks.session as unknown as SessionFn;
+
+  it("zet de sleutel van deze login op de sessie", () => {
+    const uit = session({ session: { user: {} }, token: { userid: "an1", role: "analist", loginAt: 42 } });
+    expect(uit.user?.loginSleutel).toBe("an1:42");
+  });
+
+  it("geen sleutel zonder inlogmoment", () => {
+    const uit = session({ session: { user: {} }, token: { userid: "an1" } });
+    expect(uit.user?.loginSleutel).toBeUndefined();
+  });
+});
