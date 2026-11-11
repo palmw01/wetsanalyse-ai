@@ -167,3 +167,33 @@ antwoord is:
 **Kosten:** 48 runs (16 vragen × 3). Een lijstvraag of genoemd stuk kost weinig (geen supervisor, één formulering); naar de
 nulmeting van Kamerstukken ~20–60k tokens per run: samen ~1,5–2M tokens. Alleen na akkoord van de gebruiker. De uitkomst
 komt in `../architectuur/metingen/bekendmakingen-2026-11-…`, met een regel in het meetlogboek.
+
+## Wetgeving buiten de kennisgraaf (vierde connector, 11 nov 2026)
+
+**Wat het meet.** Of Lex een regeling die niet in de kennisgraaf staat herkent en letterlijk citeert, met de herkomst
+erbij; of hij een eerdere tekst als zodanig noemt; of de graaf de bron blijft voor wat erin staat (nooit twee teksten van
+dezelfde toestand); en of hij niet doet alsof je zo'n bepaling kunt annoteren of opnemen. Met `bronnen: ["wetgeving_live"]`,
+op acceptatie, drie runs per vraag (W14 met `bronnen: []`).
+
+**De vragenset** staat in `tools/graph-qa/tests/data/wetgeving_live_vragenset.json` en wordt op drie plekken gebruikt: de
+toets tegen opgenomen antwoorden van overheid.nl (`tests/test_wetgeving_live_vragenset.py`), de browsertoets
+(`frontend/scripts/test-bronvenster-wettekst.mjs`) en deze meting. Achttien vragen, met de route (vooraf: de code leest het
+genoemde artikel; keuzevraag: de code vraagt welke regeling; graaf: de graaf heeft de tekst; uit: de connector staat uit;
+model: de antwoordlus kiest), de tool met haar argumenten en wat een goed antwoord is (`goed`).
+
+**Vastgelegd per run:** route, toolaanroepen met argumenten, of `get_wettekst` een regeling in de graaf kreeg (moet
+`in_graaf` zijn), sjabloon, grounding (niveau, `niet_letterlijk`), de ids in het blok `extern`, tokens (delta verbruik) en
+duur.
+
+**Criteria (vooraf):**
+- **Garanties, op 3/3:** geen run ongegrond; geen tekst van overheid.nl voor een toestand die in de graaf staat (W08); geen
+  gok bij een dubbelzinnige afkorting (W04); geen schijnopname of annotatie (W15, W16); geen tekst uit eigen kennis (W11,
+  W14).
+- **Slagen, op ≥ 2/3:** de genoemde artikelen (W01, W02, W12, W13) zonder model naar de tool; W07 en W09 met de juiste
+  toestand en het label eerdere tekst; W13 zegt dat het artikel nog niet in werking is.
+- **Trend:** W17 noemt bij beide bepalingen de eigen herkomst; W18 blijft onder de 60k tokens.
+
+**Kosten:** 54 runs (18 × 3). Een genoemd artikel kost weinig (geen supervisor, één formulering); naar de eerdere metingen
+~20–60k tokens per run: samen ~1,5–2,5M tokens. Alleen na akkoord van de gebruiker. De uitkomst komt in
+`../architectuur/metingen/wetgeving-live-2026-11-…`, met een regel in het meetlogboek.
+

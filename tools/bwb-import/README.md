@@ -8,6 +8,11 @@ importeer je met haar BWB-id, zolang ze tot een van de drie documentsoorten hier
 
 ## Pijplijn
 
+> **De lezer is gedeeld.** Parser, modellen, verwijzingen, de bronmeting en de XSD's staan in `packages/bronmodel`
+> (`bronmodel.bwb`, extra `bwb`), zodat de connector *Wetgeving buiten de kennisgraaf* van graph-qa een regeling met
+> precies dezelfde code leest als de importer. `requirements.txt` noemt het pakket editable; de image bouwt vanaf de
+> projectroot. Een wijziging aan de lezer draait de suites van importer én graph-qa.
+
 ```
 SRU-discovery → toestand-XML downloaden → XSD-validatie → lxml-parse → collect → GraphDB-writer
 ```
@@ -128,7 +133,7 @@ waarde niet als segmentgrens leest.
   hetzelfde element (art. 6 lid 2 c Uitvoeringsregeling Awir, art. 24 lid 1 IW 1990, en bij de
   Leidraad vaak). Zo'n reeks alinea's wordt een ongenummerde `bwb:Onderdeel` met
   `bwb:label "Slottekst"`, tussen de onderdelen van zijn houder (`Onderdeel.slottekst`,
-  `_parse_onderdelen` in `app/parser.py`); lijst en tekst mogen afwisselen. `bwb:tekst` van de houder
+  `_parse_onderdelen` in `bronmodel/bwb/parser.py`); lijst en tekst mogen afwisselen. `bwb:tekst` van de houder
   is alleen wat vóór de eerste lijst staat. Een `<al>` heeft geen jci, dus de IRI is wet-lokaal
   (`…:id:…%2FSlottekst1`) en de node is niet citeerbaar; zijn `bwb:vindplaats` is die van zijn ouder.
   De volgorde staat in `bwb:volgtOp` (alleen tussen onderdelen van een houder met een slottekst, zodat
@@ -281,7 +286,7 @@ cp .env.example .env   # zet GRAPHDB_URL; lokaal is dat http://localhost:7200
 ```
 
 > Vereist Python ≥ 3.13 (`pyproject.toml`); de container draait 3.14. De officiële XSD's
-> staan in `schemas/`.
+> staan in `packages/bronmodel/bronmodel/bwb/schemas/`.
 
 ## Configuratie (`.env`)
 
@@ -299,7 +304,7 @@ cp .env.example .env   # zet GRAPHDB_URL; lokaal is dat http://localhost:7200
 | `BWB_IMPORT_WTI`       | `false`                       | WTI-verrijking (titels/rechtsgebieden/grondslagen); op Azure `true` |
 | `BWB_MIN_DEKKING`      | `0.995`                       | Ondergrens tekstdekking; eronder exitcode 2; `0` = uit |
 | `BWB_DATA_DIR`         | `data/` (in de projectwortel) | Cache-map voor gedownloade XML                |
-| `BWB_SCHEMAS_DIR`      | `schemas/` (in de projectwortel) | Map met de officiële XSD's                 |
+| `BWB_SCHEMAS_DIR`      | `bronmodel/bwb/schemas/` (`bronmodel.bwb.SCHEMAS`) | Map met de officiële XSD's                 |
 | `BWB_SRU_URL`          | `https://zoekservice.overheid.nl/sru/Search` | SRU-zoekdienst (discovery)     |
 
 ## Gebruik

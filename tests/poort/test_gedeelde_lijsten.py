@@ -25,7 +25,7 @@ def test_de_importer_telt_dezelfde_rangtelwoorden():
     """De importer leest "derde lid" uit de ankertekst van een verwijzing; de agent en de api lezen dezelfde woorden
     met de lijst uit het bronmodel. Een spelling of volgorde die uiteenloopt, wijst een ander lid aan."""
     gedeeld = ast.literal_eval(_toekenning(TAAL, "RANGTELWOORDEN"))
-    waarde = _toekenning(WORTEL / "tools" / "bwb-import" / "app" / "references.py", "_RANGTELWOORDEN")
+    waarde = _toekenning(WORTEL / "packages" / "bronmodel" / "bronmodel" / "bwb" / "references.py", "_RANGTELWOORDEN")
     assert isinstance(waarde, ast.Call) and waarde.func.attr == "split"
     assert tuple(ast.literal_eval(waarde.func.value).split()) == gedeeld
 

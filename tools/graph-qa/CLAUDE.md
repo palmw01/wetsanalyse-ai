@@ -369,6 +369,32 @@ bruikbaar is.
   lukt dat niet, dan blijft het jaar uit de ECLI staan (vraag 3). Het blok `extern` neemt de tekstvelden uit de zoekrij
   (`extern._tekst_bij`, `TEKSTVELDEN`), want de leestool kent het artikel niet. `tests/test_rechtspraak_tools.py`,
   live `tests/test_rechtspraak_live.py`, meting `docs/architectuur/metingen/lido-spike-2026-11-10/`.
+- **Wetgeving buiten de kennisgraaf** (`tools/wetgeving_tools.py`, transport `adapters/sru_bwb.py`, ADR-013 fase 1e):
+  wettekst van het BWB die niet in de graaf staat, live bij overheid.nl. **De graaf blijft de bron voor wat erin staat**,
+  en dat beslist code: `_graafbesluit` vraagt de graaf (`graaftoestanden`, `q_in_graaf`, een cache per graafverbinding)
+  of de regeling erin staat en welke toestand; valt de peildatum daarin, dan `in_graaf` met de graaftool, en een graaf die
+  niet antwoordt is `graaf_onbereikbaar` (nooit "staat er niet in"). Een andere toestand (eerdere of toekomstige tekst)
+  en een regeling buiten de graaf leest hij wel. `zoek_regelingen` (naam: afkorting exact + titel als woordgroep, de code
+  rangschikt – exacte titel, afkorting, begin, geen regeling óver een andere, soort; filters: de dienst pagineert zelf met
+  `startRecord`; een afkorting bij meer regelingen zegt "kies niet zelf"), `zoek_artikelen` (de artikelen, divisies en
+  bijlagen in documentvolgorde met `reeks` = de koppen; `woorden` filtert op de tekst) en `get_wettekst` (rijen per lid
+  en onderdeel met `nummer` en `jci`; de kop draagt de plek in de regeling; `status` vervallen of nog niet in werking).
+  **Dezelfde lezer als de importer** (`bronmodel.bwb`): XSD, parser, `model_tekens` tegen `bron_tekens`; onder
+  `STANDAARD_DREMPEL` weigert de adapter (`toestand_onvolledig`), onbekende structuur met volle dekking niet (de tool
+  meldt het bij "niet gevonden"). **Eigen vindplaats**: `bwbt:<bwb>:<toestand>:<staart van de graaf-IRI>` (brontype
+  `wettekst_live`, `bronmodel.extern.bwbt_delen`); de rijen dragen BWB-id's en jci's, maar `provenance.collect_sources`
+  neemt van deze tools alleen het gelezen stuk (`LIVE_WETTEKST_TOOLS`), want de werkplek opent een BWB-vindplaats uit de
+  graaf. Het bronvenster (`GET /v1/bronnen/wettekst_live/stukken/{id}`) krijgt daarvoor een graafverbinding. De
+  graaftools geven bij een regeling die er niet in staat `niet_in_graaf` met `alternatief` (`_niet_in_graaf`), niet meer
+  een lege lezing met een opgebouwde iri. **Herkennen in code** (`agent/buiten_graaf.py`, alleen met de connector aan):
+  kandidaten uit vaste vormen (een samenstelling op -wet, een titel met "Wet", "7:610 BW", een afkorting na een artikel of
+  lidwoord), wat de graaf bij naam kent valt af, de rest opgezocht bij de zoekdienst (exacte titel, of één regeling met die
+  afkorting). In `supervisie._kies`: een dubbelzinnige afkorting is een vraag terug zonder model (`_keuze_regeling`), een
+  genoemd artikel in een nieuw gesprek leest de code vooraf (`bron_lezen`), en na een modelkeuze komt het in het plan
+  (`plan_regel`) en `bron_lezen`. Annoteren (`nodes/annotatie._niet_in_graaf`) en opnemen in een werkgebied
+  (`bronselectie.NIET_IN_GRAAF`) zeggen dat het pas na een import kan. Tests met opnames van overheid.nl
+  (`tests/fixtures/bwb_live/`, `WETGEVING_OPNEMEN=1`): `tests/test_wetgeving_tools.py`, `tests/test_buiten_graaf.py` en de
+  vragenset `tests/test_wetgeving_live_vragenset.py`; live `tests/test_wetgeving_live_live.py`.
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION).
   **`graph/schema.py`** – schema-introspectie met een cache van een uur. **`graph/results.py`** –
   `parse_select`: de MCP levert SELECT als JSON-string-gewrapte TSV.
