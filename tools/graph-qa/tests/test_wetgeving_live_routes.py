@@ -450,3 +450,21 @@ def test_een_interne_weigering_komt_nooit_bij_de_jurist():
              "hieronder.\n\n**Vergelijking**\n\nDe bepalingen verschillen op vier punten.")
     assert zonder_interne_taal(tekst) == "Ik geef het antwoord hieronder.\n\n**Vergelijking**\n\nDe bepalingen verschillen op vier punten."
     assert zonder_interne_taal("De wet gebruikt geen modelbepaling.") == "De wet gebruikt geen modelbepaling."
+
+
+def test_systeemtaal_komt_nooit_bij_de_jurist_ook_niet_in_een_sjabloon():
+    """B15 (Bekendmakingen): "de regels van deze werkplek". Voor elke route: vrije tekst en de blokken van Lex."""
+    from agent.nodes.antwoord import _lex_zonder_interne_taal, zonder_interne_taal
+
+    assert zonder_interne_taal("Dat mag ik volgens de regels van deze werkplek niet tonen. Het Staatsblad noemt het "
+                               "artikel.") == "Het Staatsblad noemt het artikel."
+    antwoord = {"sjabloon": "extern", "blokken": [
+        {"soort": "toelichting", "door": "lex", "kop": "Toelichting van Lex",
+         "tekst": "Het sjabloon weigerde dit. Het artikel regelt de norm."},
+        {"soort": "twijfel", "door": "lex", "punten": ["Volgens mijn instructies citeer ik niet.", "De datum is onzeker."]},
+        {"soort": "leemte", "door": "bron", "tekst": "Het sjabloon blijft hier staan: dit is tekst van de code."}]}
+    schoon = _lex_zonder_interne_taal(antwoord)
+    assert schoon["blokken"][0]["tekst"] == "Het artikel regelt de norm."
+    assert schoon["blokken"][1]["punten"] == ["De datum is onzeker."]
+    assert schoon["blokken"][2] == antwoord["blokken"][2]
+    assert _lex_zonder_interne_taal({"sjabloon": "extern", "blokken": [antwoord["blokken"][2]]}) is None
