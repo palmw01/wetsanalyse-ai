@@ -263,7 +263,8 @@ KAMERSTUKKEN = ConnectorBeschrijving(
     werkwoorden={
         "zoek_kamerstukken": ("zoekt de Kamerstukken van dossier {dossier}", "zoekt Kamerstukken over „{woorden}”",
                               "zoekt in de tekst van Kamerstukken naar „{tekst}”", "zoekt Kamerstukken"),
-        "get_kamerstuk": ("leest tabel {tabel} van Kamerstuk {id}", "leest Kamerstuk {id}", "leest een Kamerstuk"),
+        "get_kamerstuk": ("leest tabel {tabel} van Kamerstuk {id}", "zoekt in Kamerstuk {id} naar „{woorden}”",
+                          "leest Kamerstuk {id}", "leest een Kamerstuk"),
     },
     beheer=("Wetsgeschiedenis uit de officiële publicaties: memorie van toelichting, nota's, verslagen en het advies "
             "van de Raad van State. Openbaar, zonder sleutel."),

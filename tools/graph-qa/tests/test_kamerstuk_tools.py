@@ -840,3 +840,25 @@ def test_een_onbereikbare_bron_is_een_melding_uit_code_voor_elke_connector(conne
 def test_een_genoemd_stuk_bij_een_storing_gaat_niet_langs_het_model(monkeypatch):
     [leemte] = _beurt("Wat staat er in kst-33755-3?", _koop(Koop({}, weg=True)), monkeypatch)
     assert leemte["tekst"].startswith("Kamerstukken is nu niet te bereiken, dus kst-33755-3 kan ik niet lezen.")
+
+
+def test_woorden_geeft_de_alineas_van_een_stuk_die_ze_noemen_met_hun_offset():
+    """Ronde 3 Kamerstukken (12 nov 2026, K07): het model zocht de passages met tien offsets in drie stukken, 779k tokens.
+    Een woord telt ook in een vervoeging of samenstelling (de stam van zeven letters), en ook in de kop."""
+    d = roep("get_kamerstuk", {"id": "kst-99001-3", "woorden": "invorderingsrenten"})
+    assert d["status"] == "ok" and d["volledig"]
+    assert [(r["offset"], r["tekst"]) for r in d["resultaten"]] == [(0, "Dit voorstel regelt de invorderingsrente opnieuw.")]
+    assert d["totaal"] == 1 and d["alineas"] == 3 and "1 van de 3 alinea's" in d["toelichting"]
+    kop = roep("get_kamerstuk", {"id": "kst-99001-3", "woorden": "doel eenvoud"})
+    assert [r["offset"] for r in kop["resultaten"]] == [2], "elk woord, in tekst of kop"
+    niets = roep("get_kamerstuk", {"id": "kst-99001-3", "woorden": "bestuurder"})
+    assert niets["aantal"] == 0 and "inhoud: true" in niets["toelichting"]
+    assert roep("get_kamerstuk", {"id": "kst-99001-3", "woorden": "of"})["reden"] == "ongeldige_argumenten"
+
+
+def test_een_lettercode_in_een_gezamenlijke_behandeling_vindt_het_stuk_in_het_eerste_dossier():
+    """Ronde 3 Kamerstukken (12 nov 2026, K22): de lijst van dossier 33755 noemde 33752 nr. L, en de vervolgvraag "wat staat
+    erin?" werd kst-33755-L, dat KOOP niet kent. Een lettercode van de Eerste Kamer geldt voor de hele reeks."""
+    motie = _record_xml("kst-33752-L", dossiers=("33752", "33753", "33754", "33755"), nummer="L", xml=True)
+    d = roep("get_kamerstuk", {"id": "kst-33755-L"}, _koop(Koop({}, {("33755", "L"): [motie]})))
+    assert d["status"] == "ok" and d["stuk"]["id"] == "kst-33752-L" and "kst-33752-L" in d["toelichting"]
