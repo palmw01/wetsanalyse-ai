@@ -64,7 +64,7 @@ De overige 22 vragen zijn gelijk gebleven: dezelfde vorm, de tokens binnen 5%.
 5. **De bronnen van B12 tonen nu ook de stukken uit de voetnoten** (Stcrt. 2021, 12238, Stb. 2023, 381 en 408), terwijl
    die niet gelezen zijn. In ronde 3 stonden alleen de twee versies er. Dit komt waarschijnlijk uit een andere wijziging
    in bundel 44 of 45. Ik meld het bij de hoofdsessie.
-6. **Bekend, gedeeld:** de dubbele "alleen als PDF (alleen als PDF)" bij B07 (`bron_lezen._zonder_tekst`, Kamerstukken).
+6. **De dubbele "alleen als PDF" is weg** (B07). De fix in #1237 (bundel 45) werkt: de melding zegt het één keer.
 
 ## Wat deze ronde niet zegt
 

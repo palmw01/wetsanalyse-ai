@@ -47,15 +47,19 @@ particulier.
 
 ## Wat open blijft
 
-Ronde 4 is de laatste, dus dit zijn vervolgstappen:
+Ronde 4 is de laatste. Twee vervolgstappen in gedeelde code zijn na ronde 4 gebouwd, in dezelfde PR als dit verslag, op
+besluit van de hoofdsessie. Ze zijn niet meer gemeten: de andere connectors meten ze in hun volgende ronde.
 
-1. **Afkappen in plaats van weigeren bij meer dan 48 alinea's** (B21, B22: twee sjabloonrondes). De code kapt af en zegt
-   in het blok dat de bron meer telt. *Gedeeld*, `sjablonen/extern.blokken`.
-2. **Eén spoorregel voor de voorlezing** in plaats van "deels gelezen" per pagina. *Gedeeld*, `nodes/bron_lezen.py`.
+1. **Afkappen in plaats van weigeren bij meer dan 48 alinea's** (B21, B22: twee sjabloonrondes). *Gebouwd:*
+   `extern.blokken` kapt af in de volgorde van het antwoord, en een `Leemte` achter de blokken zegt welke alinea's van
+   welk stuk niet geciteerd zijn.
+2. **Eén spoorregel voor de voorlezing** in plaats van "deels gelezen" per pagina. *Gebouwd:* voor elke connector
+   `spoorbronnen.voorleesregel`, "stcrt-2025-22266 gelezen, 7 pagina’s". Elke pagina blijft een `tool_execution`.
 3. **Zelf afgeleide nummers** ("nieuw artikel 25.2.10"). Een fout van het model die in drie rondes terugkwam. Een
    generieke fix zie ik niet zonder een controle op nummers in de eigen woorden van het model.
 4. **Bij andere eigenaren gemeld:**
-   - de dubbele "alleen als PDF" (`_zonder_tekst`, Kamerstukken);
+   - de dubbele "alleen als PDF" (`_zonder_tekst`, Kamerstukken). Die was al opgelost in #1237, en in ronde 4 kwam hij
+     niet meer voor (B07);
    - stukken uit voetnoten in de bronnen zonder dat ze gelezen zijn (B12, sinds bundel 44 of 45).
 5. **Spreiding.** B15 en B24 wisselden tussen goed en deels, en B23 en B26 tussen 88k en 140k, zonder codewijziging. Eén
    run per vraag is genoeg om grote oorzaken te vinden, maar niet om kleine verschillen aan een fix toe te schrijven.
