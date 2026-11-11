@@ -555,3 +555,25 @@ def test_tekst_zonder_zoekresultaat_vraagt_niet_om_het_sjabloon(monkeypatch):
                    response([text_block("Daar heb ik geen publicatie bij nodig.")], "end_turn")])
     _stream_met_graaf("Wat betekent betalingsonmacht in de Invorderingswet 1990?", monkeypatch, llm, FakeGraph(result=""))
     assert len(llm.calls) == 2 and _gevraagd(llm) == 0
+
+
+def test_een_lange_reeks_splitst_de_code_zelf():
+    """Iteratie 11 nov 2026, Kamerstukken K15: met een grens van zes alinea's per aanwijzing weigerde het sjabloon vijf
+    keer, en het model splitste telkens een stap verder (450k tokens). Een reeks binnen het totaal neemt de code nu in één
+    keer; pas boven het totaal volgt één weigering met het aantal."""
+    from agent.sjablonen import extern
+    from agent.sjablonen.vullen import Onvulbaar
+
+    eerste = roep("get_bekendmaking", {"id": "stb-2009-610"})
+    trace = [("get_bekendmaking", json.dumps(eerste, ensure_ascii=False))]
+    laatste = eerste["resultaten"][-1]["nr"]
+    assert laatste > extern.MAX_PASSAGES, "de eerste pagina is langer dan één oude aanwijzing"
+    [blok] = extern.blokken([{"id": "stb-2009-610", "van_nr": 1, "tot_nr": laatste}], trace)
+    assert [p.nr for p in blok.passages] == list(range(1, laatste + 1)), "één aanwijzing, geen weigering"
+    rijen = [{"nr": n, "kop": "Artikel I", "tekst": f"Alinea {n}."} for n in range(1, extern.MAX_ALINEAS + 10)]
+    groot = {**eerste, "volledig": True, "resultaten": rijen, "aantal": len(rijen)}
+    groot.pop("vervolg", None)
+    with pytest.raises(Onvulbaar) as fout:
+        extern.blokken([{"id": "stb-2009-610", "van_nr": 1, "tot_nr": len(rijen)}],
+                       [("get_bekendmaking", json.dumps(groot, ensure_ascii=False))])
+    assert f"wijst {len(rijen)} alinea's aan; hoogstens {extern.MAX_ALINEAS}" in str(fout.value)

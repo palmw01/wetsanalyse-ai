@@ -28,10 +28,14 @@ from bronmodel.extern import externe_vindplaats
 from ..tools.stuk_tekst import aangevuld
 from .vullen import Onvulbaar, Trace, _data, resultaten
 
-#: Zo veel passages mag één aanwijzing omvatten: meer is een samenvatting, en die schrijft Lex in eigen woorden.
+#: De maat van één aanwijzing: meer is een samenvatting, en die schrijft Lex in eigen woorden.
 MAX_PASSAGES = 6
 #: Zo veel stukken per antwoord.
 MAX_STUKKEN = 4
+#: Zo veel alinea's citeert één antwoord hoogstens, over alle aanwijzingen samen: de aanwijzingen die het model mag geven
+#: (`MAX_STUKKEN * 2`) maal `MAX_PASSAGES`. Een langere reeks splitst de code zelf. Een grens per aanwijzing liet het
+#: model in stappen splitsen, één weigering per stap (iteratie 11 nov 2026: Kamerstukken K15 vijf keer, 450k tokens).
+MAX_ALINEAS = MAX_PASSAGES * MAX_STUKKEN * 2
 
 VELD = "extern"
 #: Het veld voor een lijst gevonden stukken (`Stukken`): alleen de ids, de rest komt uit de zoekrijen.
@@ -226,11 +230,6 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
         if not isinstance(van, int) or not isinstance(tot, int) or van > tot:
             fouten.append(f"{vp.label}: van_nr en tot_nr zijn alineanummers, met van_nr ≤ tot_nr.")
             continue
-        if sum(1 for n in range(van, tot + 1) if n not in in_tabel) > MAX_PASSAGES:
-            fouten.append(f"{vp.label} ({van}–{tot}): hoogstens {MAX_PASSAGES} alinea's per aanwijzing. Wijs de alinea's "
-                          "aan die het antwoord dragen (meer aanwijzingen voor hetzelfde stuk mag) en vat de rest samen in "
-                          "het korte antwoord.")
-            continue
         ontbreekt = [n for n in range(van, tot + 1) if n not in rijen and n not in in_tabel]
         if ontbreekt and set(ontbreekt) & alleen_eerder:
             fouten.append(f"{vp.label} is veranderd sinds alinea {_reeksen(set(ontbreekt) & alleen_eerder)} gelezen "
@@ -255,6 +254,9 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
                           for n in range(van, tot + 1) if n not in al and n in rijen]
     if len(per_stuk) > MAX_STUKKEN:
         fouten.append(f"Hoogstens {MAX_STUKKEN} stukken per antwoord.")
+    if (aantal := sum(len(b.passages) for b in per_stuk.values())) > MAX_ALINEAS:
+        fouten.append(f"Het antwoord wijst {aantal} alinea's aan; hoogstens {MAX_ALINEAS}. Wijs alleen de alinea's aan die "
+                      "het antwoord dragen, en vat de rest samen in het korte antwoord.")
     if len(fouten) == 1:
         raise Onvulbaar(fouten[0])
     if fouten:

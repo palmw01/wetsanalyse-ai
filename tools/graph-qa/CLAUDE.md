@@ -124,7 +124,9 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   `inhoud` alleen als het stuk zonder niet op één pagina past, en `leesbaar: false` in `stuk` bij een stuk zonder tekst (derde
   meting 10 nov 2026: ECLI:NL:HR:2022:50 paste net niet, en het vervolg kostte een ronde). Na een weigering vraagt
   `sjabloon_node` het sjabloon opnieuw aan te roepen (`OPNIEUW`); `extern.blokken` noemt dan alle fouten van alle aanwijzingen in één
-  weigering, met ontbrekende alinea's als reeksen (`_reeksen`; per fout een weigering kostte per fout een ronde, B16: vijf), en het gelezen stuk staat in de bronnenlijst als de vraag het noemt. Een stuk dat alleen in een zoekresultaat stond, is
+  weigering, met ontbrekende alinea's als reeksen (`_reeksen`; per fout een weigering kostte per fout een ronde, B16: vijf),
+  en een reeks heeft geen grens per aanwijzing meer: de code splitst, en alleen boven `MAX_ALINEAS` (48) per antwoord volgt één
+  weigering met het aantal (Kamerstukken K15: vijf weigeringen van "hoogstens 6", 450k tokens), en het gelezen stuk staat in de bronnenlijst als de vraag het noemt. Een stuk dat alleen in een zoekresultaat stond, is
   voor `check_grounding` geen signaal meer (10 nov 2026: een lijst opvolgende stukken gaf 13 keer "alleen gevonden");
   het zoekresultaat draagt label, soort, datum en titel, en in de bronnenlijst komt het pas als het gelezen is. De prompt
   (BRONNEN IN DEZE BEURT) en de zoektool vragen zo'n lijst in het veld `stukken`. **Een lijst gevonden stukken** is het blok `stukken` (veld
