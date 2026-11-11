@@ -33,8 +33,9 @@ noemen "Wet op de omzetbelasting 1968" in plaats van het BWB-id. De overige 22 v
    plaats van "Kamerstukken 32140, nr. 342". Sinds ronde 2 blijft een fout mét `stuk` een bron, maar het label kwam alleen uit een
    geslaagd resultaat. **Opgelost** (gedeeld, `provenance._labels`), met een test voor Kamerstukken en Staatsblad.
 3. **Gedeelde punten van andere connectors, in deze ronde gebouwd** (eigenaar Rechtspraak):
-   - een regeling die alleen in een zoekresultaat staat (`search_wetgeving`, `list_regelingen`, `zoek_uitspraken`), is geen bron;
-     een bepaling die een zoektool met tekst gaf, wel (wetgeving_live I03/I20). Daarmee verdwijnt ook "BWBR0011353" uit de
+   - een regeling die alleen in een zoekresultaat staat (`search_wetgeving`, `zoek_uitspraken`), is geen bron; een bepaling die
+     een zoektool met tekst gaf, wel, en een lijst regelingen (`list_regelingen`, `zoek_regelingen`) ook: daar zijn de regelingen
+     het antwoord (wetgeving_live I03/I20). Daarmee verdwijnt ook "BWBR0011353" uit de
      bronnenlijst van R09;
    - een artikel met een boeknummer ("6:162", uit `boek=6&…&artikel=162`) telt als bekend (wetgeving_live I24/I28);
    - de grens van het blok `stukken` (25) geldt per bron, niet over alle bronnen samen (R30 in ronde 2: 25 uitspraken lieten geen

@@ -144,11 +144,17 @@ def _met_titel(label: str, uit_tool: str) -> str:
     return label
 
 
+#: De tools die regelingen opsommen in plaats van bepalingen te zoeken.
+REGELINGTOOLS = frozenset({"list_regelingen", "zoek_regelingen"})
+
+
 def _zoektools() -> frozenset[str]:
     """De tools die zoeken in plaats van lezen, uit het register van wat Lex raadpleegt (`spoorbronnen`)."""
     from .spoorbronnen import bronnen
 
-    return frozenset(t for b in bronnen() for t in b.zoektools)
+    # Een tool die regelingen opsomt, levert juist regelingen als antwoord ("welke regelingen zitten er in de
+    # kennisgraaf?"): die regelingen zijn de bron.
+    return frozenset(t for b in bronnen() for t in b.zoektools) - REGELINGTOOLS
 
 
 def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:

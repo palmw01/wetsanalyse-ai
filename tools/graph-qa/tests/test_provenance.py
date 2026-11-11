@@ -164,9 +164,10 @@ def test_een_regeling_die_alleen_gezocht_is_is_geen_bron_maar_een_gevonden_bepal
     uris = [s.uri for s in collect_sources([("search_wetgeving", gezocht)])]
     assert "urn:bwb:BWBR0005537" not in uris, "de Awb is alleen gezocht"
     assert any("artikel:9" in u for u in uris), "een gevonden bepaling met tekst is een bron"
+    # Een lijst regelingen is wel een bron: daar zijn de regelingen het antwoord ("welke regelingen zitten erin?").
     lijst = _json.dumps({"status": "ok", "volledig": True, "aantal": 1,
                          "resultaten": [{"iri": "urn:bwb:BWBR0018472", "citeertitel": "Awir"}]})
-    assert collect_sources([("list_regelingen", lijst)]) == []
+    assert [s.uri for s in collect_sources([("list_regelingen", lijst)])] == ["urn:bwb:BWBR0018472"]
     gelezen = _json.dumps({"status": "ok", "volledig": True, "aantal": 1, "resultaten": [{"iri": "urn:bwb:BWBR0018472"}]})
     assert [s.uri for s in collect_sources([("get_artikel", gelezen)])] == ["urn:bwb:BWBR0018472"]
 

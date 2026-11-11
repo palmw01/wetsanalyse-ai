@@ -416,8 +416,8 @@ bruikbaar is.
   "in maart 2025" en "van gerechtshoven". Gedeeld (Kamerstukken ronde 2): `grounding.genoemd_extern` herkent een stuk ook in
   de citeervorm van een connector ("Stb. 2013, 568"), zodat een gelezen stuk dat het antwoord zo noemt in de bronnenlijst
   blijft (`curate_sources`, `alleen_gelezen_extern`), en "Zoek …"/"Vind …" is een lijstvraag. **Na ronde 3** (gedeeld): een regeling die alleen
-  in een zoekresultaat staat (de zoektools uit `spoorbronnen`), is geen bron, een bepaling met tekst uit een zoektool wel
-  (`provenance._zoektools`); een stuk in een foutresultaat houdt zijn label (`_labels`); een artikel met boeknummer
+  in een zoekresultaat staat (de zoektools uit `spoorbronnen`), is geen bron, een bepaling met tekst uit een zoektool wel, en
+  een lijst regelingen ook (`provenance._zoektools`, `REGELINGTOOLS`); een stuk in een foutresultaat houdt zijn label (`_labels`); een artikel met boeknummer
   (`boek=6&…&artikel=162`) telt als "6:162" (`grounding._BOEK_ARTIKEL`); de grens van het blok `stukken` geldt per bron. `tests/test_rechtspraak_tools.py`,
   live `tests/test_rechtspraak_live.py`, meting `docs/architectuur/metingen/lido-spike-2026-11-10/`.
 - **Wetgeving buiten de kennisgraaf** (`tools/wetgeving_tools.py`, transport `adapters/sru_bwb.py`, ADR-013 fase 1e):
