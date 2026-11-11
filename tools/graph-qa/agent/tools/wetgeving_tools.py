@@ -515,6 +515,15 @@ def _opbouw(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
                        extra={"regeling": kop, "totaal": len(rijen)}, toelichting=toelichting)
 
 
+def onderdeel_plek(nummer: str) -> str:
+    """Het nummer van een onderdeel als plek van zijn rij ("onderdeel b", "1°"): de tekst zelf draagt het niet, en een lid
+    dat naar "onderdeel b" verwijst was anders niet te volgen (controle 11 nov 2026, W09). Leeg zonder nummer."""
+    nr = (nummer or "").strip().rstrip(".").strip()
+    if not nr:
+        return ""
+    return nr if "°" in nr else f"onderdeel {nr}"
+
+
 def _rijen(b: Bepaling, lid_nr: str, o_nr: str, plek: Plek | None = None) -> list[dict[str, Any]]:
     """De rijen van een bepaling: haar eigen tekst, dan per lid de lidtekst en zijn onderdelen, dan de onderdelen
     direct onder de bepaling. Met `lid_nr` (en `o_nr`) alleen dat lid (dat onderdeel). De kop draagt de plek in de
@@ -523,16 +532,16 @@ def _rijen(b: Bepaling, lid_nr: str, o_nr: str, plek: Plek | None = None) -> lis
                        _label(b) + (f" – {b.titel.strip()}" if (b.titel or "").strip() else "")])
     uit: list[dict[str, Any]] = []
 
-    def rij(tekst: str, kop: str, nummer: str = "", jci: str | None = None) -> None:
+    def rij(tekst: str, kop: str, nummer: str = "", jci: str | None = None, plek: str = "") -> None:
         if (tekst or "").strip():
             uit.append(compact({"nr": len(uit) + 1, "tekst": tekst.strip(), "kop": kop,
-                                "nummer": nummer.strip(), "jci": jci or ""}))
+                                "nummer": nummer.strip(), "jci": jci or "", "plek": plek}))
 
     def onder(lijst: list[Onderdeel], kop: str) -> None:
         for o in onderdelen(lijst):
             if o_nr and o.nummer.strip().rstrip(".").casefold() != o_nr.casefold():
                 continue
-            rij(o.tekst, kop, o.nummer, o.jci)
+            rij(o.tekst, kop, o.nummer, o.jci, plek=onderdeel_plek(o.nummer))
 
     if not lid_nr:
         rij(b.tekst, naam, "", b.jci)

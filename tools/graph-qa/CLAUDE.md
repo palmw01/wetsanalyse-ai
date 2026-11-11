@@ -406,7 +406,10 @@ bruikbaar is.
   de gelezen rijen (`grounding.live_niet_letterlijk`), en een gelezen `wettekst_live`-stuk blijft in de bronnenlijst
   (`alleen_gelezen_extern`). `bron_lezen` leest bij `get_wettekst` ook alle pagina's (`HEEL_LEZEN`). Annoteren van een
   regeling buiten de graaf, en een vraag erover met de connector uit (maar wel in de straat), geeft een vaste melding
-  zonder model (`supervisie._buiten_graaf_melding`; zonder connector op naam, `buiten_graaf.zonder_zoekdienst`).
+  zonder model (`supervisie._buiten_graaf_melding`; zonder connector op naam, `buiten_graaf.zonder_zoekdienst`). Na de
+  controle (`controle.md` bij die meting): ook een verzoek om **op te nemen of toe te voegen** (`_OPNEEM_RE`) krijgt die
+  vaste melding (`buiten_graaf.melding_opnemen`): het model schreef "staat nu in de bronselectie". Een onderdeel draagt
+  zijn nummer als `plek` ("onderdeel b", `wetgeving_tools.onderdeel_plek`), want de tekst zelf draagt het niet.
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION).
   **`graph/schema.py`** – schema-introspectie met een cache van een uur. **`graph/results.py`** –
   `parse_select`: de MCP levert SELECT als JSON-string-gewrapte TSV.

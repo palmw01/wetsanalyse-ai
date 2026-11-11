@@ -142,7 +142,7 @@ def test_de_supervisor_kiest_de_workflow_voor_een_artikel_buiten_de_graaf():
 def test_een_niet_tekstvraag_leest_de_code_vooraf_met_alle_paginas(monkeypatch):
     from agent.nodes import bron_lezen
 
-    upd = _kies("Neem artikel 31 van de Participatiewet op in de bronselectie", _AAN)
+    upd = _kies("Wat regelt artikel 31 van de Participatiewet?", _AAN)
     assert upd["bron_lezen"] == [{"name": "get_wettekst", "input": {"bwb_id": PW, "artikel": "31"}}]
     graaf = _graaf()
     monkeypatch.setattr(bron_lezen, "execute_tool", lambda b, state, writer, t: _voer_uit(graaf)(t["name"], t["input"]))
@@ -244,3 +244,38 @@ def test_de_hele_beurt_een_modelaanroep_bronnen_en_gegrond(monkeypatch):
     assert [s["brontype"] for s in bronnen] == ["wettekst_live"]
     grounding = next(e for e in events if e["type"] == "grounding")
     assert grounding["grounded"] is True and grounding["niveau"] == "gegrond"
+
+
+# --- na de controle (11 nov 2026, `controle.md`) ---------------------------------------------------------------------
+
+@pytest.mark.parametrize("stand", [_AAN, _UIT], ids=["connector aan", "connector uit"])
+@pytest.mark.parametrize("vraag", ["Neem artikel 31 van de Participatiewet op in de bronselectie",
+                                   "Voeg artikel 31 van de Participatiewet toe aan het werkgebied"])
+def test_opnemen_van_een_regeling_buiten_de_graaf_geeft_de_vaste_melding(vraag, stand):
+    upd = _kies(vraag, stand)
+    assert upd["afwijzen"] and not upd.get("bron_lezen") and not upd.get("bepalingsvraag")
+    melding = upd["afwijs_melding"]
+    assert "niet opnemen" in melding and "Participatiewet staat niet in de kennisgraaf" in melding
+    assert "Er is niets opgenomen." in melding and "import" in melding
+    assert ("Lezen kan wel" in melding) is (stand is _AAN)
+
+
+def test_een_vraag_met_opgenomen_is_geen_opnameverzoek():
+    upd = _kies("Wat staat er opgenomen in artikel 31 van de Participatiewet?", _AAN)
+    assert not upd.get("afwijzen") and upd["bepalingsvraag"]["live"]
+
+
+def test_een_onderdeel_draagt_zijn_letter_als_plek():
+    vraag = "Wat staat er in artikel 31 van de Participatiewet?"
+    v = wf.lees_buiten(vraag, bg.genoemd(vraag, _graaf(), _bron(), vandaag=VANDAAG))
+    blok = wf.antwoord(v, wf.haal(_graaf(), v, _voer_uit(_graaf()))).blokken[0]
+    plekken = {p.tekst: p.plek for p in blok.passages}
+    assert plekken["de jonggehandicaptenkorting;"] == "onderdeel c"
+    # Een lid draagt zijn nummer al in de kop; zijn eigen tekst krijgt geen plek.
+    assert plekken["Niet tot de middelen van de belanghebbende worden gerekend:"] == ""
+    from bronmodel.antwoord import antwoord_tekst
+    assert '> "de jonggehandicaptenkorting;" (onderdeel c)' in antwoord_tekst(wf.antwoord(v, wf.haal(_graaf(), v, _voer_uit(_graaf()))))
+
+
+def test_een_subonderdeel_heet_naar_zijn_nummer():
+    assert w.onderdeel_plek("1°.") == "1°" and w.onderdeel_plek("b.") == "onderdeel b" and w.onderdeel_plek("") == ""
