@@ -4,7 +4,10 @@ from __future__ import annotations
 import json
 
 from agent.resultaat import BUDGET
-from agent.tools.stuk_tekst import aangevuld, tekstpagina
+import pytest
+
+from agent import tools
+from agent.tools.stuk_tekst import INHOUD_ARG, MAX_BEGIN, aangevuld, begin_van, inhoudpagina, tekstpagina
 
 
 def _rijen(n: int, lengte: int, secties: int = 2) -> list[dict]:
@@ -71,3 +74,63 @@ def test_een_passage_midden_in_een_sectie_krijgt_haar_kop_in_het_blok_extern():
                                "bron_hash": "h"})
     [blok] = blokken([{"id": "ECLI:NL:HR:2022:50", "van_nr": 2, "tot_nr": 3}], [("get_uitspraak", pagina)])
     assert [p.kop for p in blok.passages] == [rijen[1]["kop"], rijen[2]["kop"]]
+
+
+@pytest.mark.parametrize("tekst,begin,afgekapt", [
+    ("De Wet wordt als volgt gewijzigd:", "De Wet wordt als volgt gewijzigd:", False),
+    ("  twee   spaties ", "twee spaties", False),
+    ("woord " * 40, ("woord " * 26).strip(), True),
+])
+def test_het_begin_van_een_alinea_is_letterlijk_en_eindigt_op_een_woordgrens(tekst, begin, afgekapt):
+    stuk, af = begin_van(tekst)
+    assert (stuk, af) == (begin, afgekapt) and len(stuk) <= MAX_BEGIN
+    assert "…" not in stuk, "geen weglatingsteken: het begin is de bron, de vlag zegt dat er meer is"
+
+
+def _verzamelwet(n: int) -> list[dict]:
+    rijen = []
+    for i in range(n):
+        rijen.append({"nr": len(rijen) + 1, "kop": f"Artikel {i + 1}",
+                      "tekst": f"In artikel {i}, eerste lid, van de Regeling nummer {i} met een lange naam wordt, onder "
+                               "vervanging van de punt aan het slot door een puntkomma, een onderdeel toegevoegd:"})
+        rijen += [{"nr": len(rijen) + 1, "kop": f"Artikel {i + 1} › A", "tekst": "x" * 200}]
+    return rijen
+
+
+MAX_INHOUD_PLUS = 45
+
+
+def test_een_ingekorte_inhoud_wijst_naar_de_hele_inhoud():
+    """Hermeting 11 nov 2026, B16: de eerste pagina noemde 11 van de 30 artikelen, zonder weg naar de rest."""
+    rijen = _verzamelwet(30)
+    d = _pagina(rijen)
+    assert len(d["inhoud"]) == 30 and all("begint" not in i for i in d["inhoud"]), "eerst alle koppen, dan het begin"
+    assert d["inhoud_zonder_begin"] and d["inhoud_openen"] == {"tool": "get_stuk", "args": {"id": "s1", "inhoud": True}}
+    veel = _pagina(_verzamelwet(MAX_INHOUD_PLUS))
+    assert veel["inhoud_ingekort"] and "inhoud_zonder_begin" not in veel and veel["inhoud_openen"]
+    alles = json.loads(inhoudpagina(rijen, tool="get_stuk", args={"id": "s1"}, offset=0, stuk={"id": "s1"}))
+    assert alles["volledig"] and "inhoud_openen" not in alles and [i["kop"] for i in alles["resultaten"]] == [f"Artikel {i + 1}" for i in range(30)]
+    assert all(i["begint_afgekapt"] and rijen[i["offset"]]["tekst"].startswith(i["begint"]) for i in alles["resultaten"])
+
+
+def test_een_gefilterde_lezing_draagt_de_inhoud_van_de_publicatie():
+    rijen = _verzamelwet(3)
+    d = json.loads(tekstpagina(rijen[2:4], tool="get_stuk", args={"id": "s1", "artikel": "2"}, offset=0,
+                               stuk={"id": "s1"}, publicatie=rijen))
+    assert "inhoud" not in d, "de koppen van de gefilterde rijen wijzen nergens heen"
+    assert [i["offset"] for i in d["inhoud_publicatie"] if " › " not in i["kop"]] == [0, 2, 4]
+    leeg = json.loads(tekstpagina([], tool="get_stuk", args={"id": "s1"}, offset=0, stuk={"id": "s1"}, publicatie=rijen))
+    assert leeg["stuk"].get("leesbaar") is not False, "een filter zonder treffer maakt het stuk niet onleesbaar"
+
+
+@pytest.mark.parametrize("naam", ["get_kamerstuk", "get_bekendmaking", "get_uitspraak"])
+def test_elke_leestool_leest_de_inhoud_apart(naam):
+    schema = next(t for t in tools.TOOLS if t["name"] == naam)["input_schema"]
+    assert schema["properties"]["inhoud"] is INHOUD_ARG
+
+
+def test_een_inhoud_die_met_het_begin_past_heeft_geen_verwijzing():
+    rijen = [{"nr": 1, "kop": "Artikel I", "tekst": "De Wet wordt als volgt gewijzigd:"},
+             {"nr": 2, "kop": "Artikel II", "tekst": "Dit besluit treedt in werking."}]
+    d = json.loads(tekstpagina(rijen, tool="get_stuk", args={"id": "s1"}, offset=0, stuk={"id": "s1"}))
+    assert "inhoud_openen" not in d and "inhoud_zonder_begin" not in d

@@ -26,7 +26,7 @@ from .op_xml import alineas, lees  # noqa: F401 – de lezer van elke officiële
 from .sru_zoeken import LIMIT, MAX_WOORDEN, OP_VOLGORDE, WOORD_RE as _WOORD_RE, per_record, tekst_cql as _tekst_cql
 from .sru_zoeken import cql_woorden, tekst_woorden, zoekvraag as _zoekvraag
 from .zoekfilters import datum as _datum
-from .stuk_tekst import MAX_INHOUD, inhoud, tekstpagina  # noqa: F401 – gedeeld met elke leestool
+from .stuk_tekst import INHOUD_ARG, MAX_INHOUD, inhoud, inhoudpagina, tekstpagina  # noqa: F401 – gedeeld met elke leestool
 
 #: Uit de beschrijving (`bronmodel.connectors`); de poorttest toetst dat `KAMERSTUK_TOOLS` precies deze namen heeft.
 KAMERSTUK_TOOL_NAMEN = KAMERSTUKKEN.tools
@@ -143,6 +143,8 @@ KAMERSTUK_TOOLS: list[dict[str, Any]] = [
                 "offset": {"type": "integer", "description": "Voor het vervolg; begin bij 0."},
                 "tabel": {"type": "integer", "description": "Het nr van een rij met soort 'tabel': dan de tabel zelf, "
                                                             "per rij, om eruit te citeren."},
+
+                "inhoud": INHOUD_ARG,
             },
             "required": ["id"],
             "additionalProperties": False,
@@ -400,6 +402,8 @@ def _get(bron: KamerstukBron, a: dict[str, Any]) -> str:
         return per_eenheid(tabelrijen, tool="get_kamerstuk", args={"id": vp.id, "tabel": int(a["tabel"])},
                            offset=offset, extra={"stuk": stuk, "totaal": len(tabelrijen),
                                                  **({"samengevoegd": samen} if samen else {})})
+    if a.get("inhoud"):
+        return inhoudpagina(rijen, tool="get_kamerstuk", args={"id": vp.id}, offset=offset, stuk=stuk)
     # Een tabel is één rij met `openen`: verdieping buiten de scope van deze pagina, geen onvolledigheid.
     rijen = [{**r, "openen": {"tool": "get_kamerstuk", "args": {"id": vp.id, "tabel": r["nr"]}}}
              if r.get("soort") == "tabel" else r for r in rijen]

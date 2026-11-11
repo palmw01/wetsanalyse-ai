@@ -228,3 +228,55 @@ def test_uitspraken_bij_een_artikel_lopen_door_de_route_zonder_model(monkeypatch
     assert blok["zoekvraag"].startswith("Gezocht bij artikel 36 van Invorderingswet 1990"), blok["zoekvraag"]
     ehrm, = [s for s in blok["items"] if s["id"].startswith("ECLI:CE:")]
     assert ehrm["leesbaar"] is False, "een uitspraak van het EHRM staat erin, als niet leesbaar stuk"
+
+
+def test_in_een_werkgebied_met_peildatum_geeft_de_lijstroute_hem_mee(monkeypatch):
+    """Meting 11 nov 2026 (`rechtspraak-versies-2026-11-11`, vraag 5): in een werkgebied met peildatum 2015 toonde de
+    vaste lijstroute de uitspraken bij de tekst van nu, zonder iets over de peildatum. Nu gaat hij mee als argument: de
+    lijst blijft dezelfde, maar elke rij zegt of haar tekst op de peildatum gold, en de zoekvraag noemt hem."""
+    import asyncio
+    from agent import agent as agent_mod, overzicht, tools as t
+    from agent.agent import answer_stream
+    from tests.fakes import FakeGraph, FakeLLM
+    from tests.test_rechtspraak_tools import LINKS, NepBron, _tsv
+
+    async def stand(settings, user_id, werkgebied_id):
+        return "", "2015-01-01"
+
+    monkeypatch.setattr(agent_mod, "_werkgebied_stand", stand)
+    namen = ("?regeling\t?citeertitel\t?soort\t?afkortingen\n"
+             "<urn:bwb:BWBR0004770>\t\"Invorderingswet 1990\"\t\"wet\"\t\"IW | Iw 1990\"\n")
+    artikel = _tsv(["node", "jci", "labelId", "label", "soort", "citeertitel"],
+                   [["urn:bwb:BWBR0004770:artikel:36", "jci1.3:c:BWBR0004770&artikel=36", "x", "Artikel 36",
+                     "urn:bwb-ns:Artikel", "Invorderingswet 1990"]])
+    graaf = FakeGraph(results=lambda q: artikel if "?labelId" in q else namen)
+    overzicht._REGELINGEN_CACHE.clear()
+    monkeypatch.setattr(t.CONNECTORMODULES["rechtspraak"], "_bron", NepBron(LINKS))
+    llm = FakeLLM([])
+
+    async def verzamel():
+        return [ev async for ev in answer_stream("Welke uitspraken noemen artikel 36 van de Invorderingswet 1990?",
+                                                 settings=AAN, llm=llm, graph=graaf, bronnen=["rechtspraak"],
+                                                 werkgebied_id="wg-1")]
+
+    events = asyncio.run(verzamel())
+    overzicht._REGELINGEN_CACHE.clear()
+    assert llm.calls == []
+    antwoord, = [e["antwoord"] for e in events if e["type"] == "antwoord"]
+    blok, = [b for b in antwoord["blokken"] if b["soort"] == "stukken"]
+    assert "peildatum 1 januari 2015" in blok["zoekvraag"], blok["zoekvraag"]
+    assert blok["items"] and all(s["op_peildatum"] is not None for s in blok["items"] if s["id"].startswith("ECLI:NL:"))
+
+
+def test_de_peildatum_gaat_alleen_mee_waar_hij_hoort():
+    from agent.nodes.bron_lijst import met_peildatum
+
+    bij_artikel = {"bwb_id": "BWBR0004770", "artikel": "36"}
+    assert met_peildatum("zoek_uitspraken", bij_artikel, "2015-01-01") == {**bij_artikel, "peildatum": "2015-01-01"}
+    assert met_peildatum("zoek_uitspraken", bij_artikel, "") == bij_artikel, "zonder peildatum"
+    assert met_peildatum("zoek_uitspraken", {"instantie": "Hoge Raad"}, "2015-01-01") == {"instantie": "Hoge Raad"}, \
+        "zonder artikel weigert de zoektool een peildatum"
+    eigen = {**bij_artikel, "peildatum": "2020-01-01"}
+    assert met_peildatum("zoek_uitspraken", eigen, "2015-01-01") == eigen, "een peildatum uit de vraag wint"
+    assert met_peildatum("zoek_kamerstukken", {"artikel": "36"}, "2015-01-01") == {"artikel": "36"}, \
+        "een zoektool zonder het argument"

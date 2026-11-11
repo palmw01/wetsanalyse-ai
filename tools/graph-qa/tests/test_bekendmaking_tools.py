@@ -242,12 +242,42 @@ def test_met_een_regeling_alleen_de_artikelen_die_haar_wijzigen():
 
 
 def test_de_inhoud_van_een_verzamelwet_noemt_per_artikel_de_aanhef():
+    """Hermeting 11 nov 2026, B16: de eerste pagina had 11 van de 30 artikelen, en een aanhef boven 160 tekens viel weg.
+    Nu zegt de eerste pagina waar de hele inhoud staat, en daar staat elk artikel met het begin van zijn aanhef."""
     d = roep("get_bekendmaking", {"id": "stb-2009-610"})
     assert not d["volledig"], "de wet past niet op één pagina"
-    aanhef = {i["kop"]: i.get("begint", "") for i in d["inhoud"]}
-    assert aanhef["Artikel XVI"] == "De Algemene wet inzake rijksbelastingen wordt als volgt gewijzigd:"
-    assert aanhef["Artikel XVII"] == "De Invorderingswet 1990 wordt als volgt gewijzigd:"
-    assert all(len(b) <= 160 for b in aanhef.values())
+    assert len(d["inhoud"]) == 30 and "inhoud_ingekort" not in d, "alle artikelen, voor het bronvenster en de sprong"
+    assert d["inhoud_zonder_begin"] and d["inhoud_openen"] == {"tool": "get_bekendmaking",
+                                                              "args": {"id": "stb-2009-610", "inhoud": True}}
+    alles = roep(d["inhoud_openen"]["tool"], d["inhoud_openen"]["args"])
+    assert alles["status"] == "ok" and alles["volledig"] and alles["totaal"] == 30
+    aanhef = {i["kop"]: i for i in alles["resultaten"]}
+    assert aanhef["Artikel XVI"]["begint"] == "De Algemene wet inzake rijksbelastingen wordt als volgt gewijzigd:"
+    assert aanhef["Artikel XVII"]["begint"] == "De Invorderingswet 1990 wordt als volgt gewijzigd:"
+    assert "begint_afgekapt" not in aanhef["Artikel XVII"]
+    vii = aanhef["Artikel VII"]
+    assert vii["begint"].startswith("Aan artikel 15, eerste lid, van de Wet op belastingen van rechtsverkeer wordt")
+    assert vii["begint_afgekapt"] and len(vii["begint"]) <= 160, "een lange aanhef: het begin, en dat het een begin is"
+    _, rijen, _, _ = lees((FIX / "stb-2009-610.xml").read_bytes())
+    assert rijen[vii["offset"]]["tekst"].startswith(vii["begint"]), "letterlijk het begin, en de offset klopt"
+    assert all(" › " not in i["kop"] for i in alles["resultaten"]), "het bovenste niveau, zoals een ingekorte inhoud"
+
+
+def test_een_gefilterde_lezing_wijst_de_rest_van_de_publicatie_aan():
+    """Hermeting 11 nov 2026, B08: na de lezing met artikel las het model het hele stuk om de inwerkingtreding te vinden
+    (86k tegen 24k). Nu draagt de lezing de inhoud van de hele publicatie, met de offsets voor een lezing zonder filter."""
+    d = roep("get_bekendmaking", {"id": "stcrt-2026-37344", "artikel": "1.1.5"})
+    assert d["status"] == "ok" and d["resultaten"] and "inhoud" not in d
+    delen = {i["kop"]: i for i in d["inhoud_publicatie"]}
+    ii = delen["Artikel II – Inwerkingtreding"]
+    assert ii["begint"].startswith("Dit besluit treedt op 1 januari 2027 in werking")
+    vanaf = roep("get_bekendmaking", {"id": "stcrt-2026-37344", "offset": ii["offset"]})
+    assert vanaf["resultaten"][0]["tekst"] == ii["begint"], "de offset wijst in de lezing zonder filter"
+    assert "inhoud_publicatie" in d["toelichting"]
+    r = roep("get_bekendmaking", {"id": "stb-2009-610", "regeling": "Invorderingswet 1990"})
+    assert r["inhoud_publicatie"] and r["inhoud_openen"]["args"] == {"id": "stb-2009-610", "inhoud": True}
+    niets = roep("get_bekendmaking", {"id": "stcrt-2026-37344", "artikel": "99.9"})
+    assert niets["resultaten"] == [] and niets["inhoud_publicatie"] and niets["stuk"].get("leesbaar") is not False
 
 
 @pytest.mark.parametrize("tekst,artikel,ja", [

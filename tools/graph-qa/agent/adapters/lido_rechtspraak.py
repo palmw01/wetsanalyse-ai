@@ -503,6 +503,13 @@ class LidoRechtspraak:
 
     # --- de uitspraak zelf -----------------------------------------------------------------------------------------
 
+    def metadata(self, ecli: str) -> bytes:
+        """Alleen de metadata van een uitspraak (`return=META`): titel, gerecht, datum, zaaknummer. Voor een koppeling
+        die LiDO alleen in RDF gaf, zonder titel (meting 11 nov 2026: bij een oudere versie stond er alleen het jaar).
+        Gecachet als de waardelijsten: de metadata van een uitspraak verandert zelden, en de lijst vraagt er veel."""
+        return self._bewaard(f"m|{ecli}", VERS_WAARDELIJST_S,  # type: ignore[return-value]
+                             lambda: self._get(self._rs, id=ecli, **{"return": "META"}).encode("utf-8"))
+
     def document(self, ecli: str) -> Document:
         sleutel = f"d|{ecli}"
         with self._lock:

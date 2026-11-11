@@ -302,9 +302,18 @@ bruikbaar is.
   (`w.jaargang`). `get_bekendmaking` leest per alinea; met `artikel` alleen de wijzigingsonderdelen (`wijzig-lid`) waarvan
   de opdracht dat artikel noemt (`_noemt_artikel`: 1.1.5 is niet 1.1.5b); met `regeling` alleen de artikelen van een
   verzamelwet waarvan de aanhef die regeling noemt ("De Invorderingswet 1990 wordt als volgt gewijzigd:"). De `inhoud` van
-  de eerste pagina (`stuk_tekst.inhoud`, voor elke connector) draagt bij een kop op het bovenste niveau een korte eerste
-  alinea (`begint`), zodat te zien is welke wetten een verzamelwet wijzigt zonder haar door te bladeren (meting 10 nov
-  2026: B16 338k tokens). Een genoemd stuk leest de code vooraf mét het genoemde artikel als de leestool `artikel` kent
+  de eerste pagina (`stuk_tekst.inhoud`, voor elke connector) draagt bij een kop op het bovenste niveau het begin van zijn
+  eerste alinea (`begint`, tot `MAX_BEGIN` tekens op een woordgrens, letterlijk, met `begint_afgekapt` als er meer is;
+  `begin_van`), zodat te zien is welke wetten een verzamelwet wijzigt zonder haar door te bladeren (meting 10 nov 2026:
+  B16 338k tokens). Past de inhoud niet in haar deel van de begroting, dan gaan de koppen voor het begin (het bronvenster
+  en de sprong hebben ze nodig): eerst alle koppen zonder `begint` (`inhoud_zonder_begin`), en pas daarna een ingekorte
+  lijst (`inhoud_ingekort`); in beide gevallen noemt de pagina `inhoud_openen` (`stuk_tekst.inhoud_van`, `_met_inhoud`).
+  Elke leestool leest met `inhoud: true` (`INHOUD_ARG`, `stuk_tekst.inhoudpagina`) alleen de koppen op het
+  bovenste niveau, per pagina (hermeting 11 nov 2026: 11 van de 30 artikelen van Stb. 2009, 610 op de eerste pagina, en
+  een aanhef boven 160 tekens viel weg). **Een gefilterde lezing** (`artikel`, `regeling`) draagt `inhoud_publicatie`: de
+  koppen van de hele publicatie met hun offset in een lezing zonder filter (`tekstpagina(publicatie=)`), zodat Lex gericht
+  doorleest naar de inwerkingtreding of de toelichting (hermeting B08: anders las het model het hele stuk, 86k tegen 24k).
+  Een genoemd stuk leest de code vooraf mét het genoemde artikel als de leestool `artikel` kent
   (`supervisie._te_lezen`), en zonder als dat niets oplevert (`bron_lezen`). Een oud stuk heeft vaak alleen een PDF
   (`alleen_pdf`, met de metadata); een id dat KOOP niet kent zoekt de adapter op blad, jaargang en nummer. `geldigheid`
   noemt naast de BWB-vorm het id (`bekendmakingen`). Citeervormen "Stb. 2010, 176", "Stb.2009-610", "Staatscourant 2026,
@@ -352,7 +361,12 @@ bruikbaar is.
   een van die versies de huidige is. Het resultaat draagt `huidige_tekst`, `per_tekststand` en `tekstversies`, en het
   filter `tekststand` kiest. Kent LiDO de huidige tekst nog niet, dan zegt de toelichting dat. LiDO koppelt naar de
   datum van de uitspraak, niet naar de tekst die de rechter toepaste: dat zegt de toolregel (`_VERSIE`). De peildatum
-  van het werkgebied staat in `werkgebied_context`. Het blok `extern` neemt de tekstvelden uit de zoekrij
+  van het werkgebied staat in `werkgebied_context` (voor het model) en in `State.werkgebied_peildatum`: de vaste
+  lijstroute geeft hem mee als de zoektool het argument kent en de vraag een artikel noemt (`bron_lijst.met_peildatum`;
+  meting `rechtspraak-versies-2026-11-11`, vraag 5). Een koppeling die LiDO alleen in RDF gaf, heeft geen titel: `_aangevuld` haalt dan
+  datum, gerecht, titel en zaaknummer uit de metadata van de Rechtspraak (`LidoRechtspraak.metadata`, `return=META`,
+  gecachet als de waardelijsten), vóór het sorteren tot `MAX_AANVULLEN` rijen, daarboven alleen voor de getoonde pagina;
+  lukt dat niet, dan blijft het jaar uit de ECLI staan (vraag 3). Het blok `extern` neemt de tekstvelden uit de zoekrij
   (`extern._tekst_bij`, `TEKSTVELDEN`), want de leestool kent het artikel niet. `tests/test_rechtspraak_tools.py`,
   live `tests/test_rechtspraak_live.py`, meting `docs/architectuur/metingen/lido-spike-2026-11-10/`.
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION).
