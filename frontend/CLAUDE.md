@@ -318,7 +318,12 @@ Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` no
 > (§IDENTITEIT), de toon in `docs/schrijfrichtlijn-lex.md`.
 
 `app/workbench/page.tsx` → `WerkplekVenster` → `components/werkplek/WorkbenchShell.tsx`: een
-volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de disclaimer). Er is
+volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de disclaimer; `Teststrook`). Het
+kruisje klikt hem weg voor de rest van de login (verzoek gebruiker 11 nov 2026): `localStorage` bewaart de sleutel
+`<userid>:<loginAt>` die de session-callback als `loginSleutel` op de sessie zet (`lib/teststrook.ts`), dus herladen en
+een tweede tab houden hem weg, en een nieuwe login of een ander account brengt hem terug zonder dat uitloggen iets hoeft
+te wissen. Geen Escape: het is geen laag. De voorwaarden staan dan nog in het gebruikersmenu (*Voorwaarden
+testomgeving*). Browserregressie: `scripts/test-teststrook.mjs`. Er is
 **geen globale chrome**: `app/layout.tsx` bevat alleen `Providers`, `{children}` en het
 `modal`-slot. De shell-pagina's zetten zelf `h-[100dvh] overflow-hidden`; alles daarbuiten gebruikt
 `AuthFrame` (zie §*Buiten de schil*).

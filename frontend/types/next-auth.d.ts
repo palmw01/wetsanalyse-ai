@@ -4,7 +4,13 @@ import type { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
   interface Session {
-    user: { userid?: string; role?: Role; viaToken?: string } & DefaultSession["user"];
+    user: {
+      userid?: string;
+      role?: Role;
+      viaToken?: string;
+      /** `<userid>:<loginAt>`: wisselt bij elke login (zie lib/teststrook.ts). */
+      loginSleutel?: string;
+    } & DefaultSession["user"];
   }
   interface User {
     userid?: string;

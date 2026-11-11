@@ -262,6 +262,14 @@ export function GesprekSidebar({
                 Rondleiding
               </button>
             )}
+            {/* De voorwaarden blijven bereikbaar als de strook bovenaan is weggeklikt (opent als dialog). */}
+            <Link
+              href="/disclaimer"
+              onClick={() => setMenuOpen(false)}
+              className="block px-3 py-2.5 text-sm text-ink transition-colors hover:bg-surface"
+            >
+              Voorwaarden testomgeving
+            </Link>
             <button
               type="button"
               onClick={() => {
