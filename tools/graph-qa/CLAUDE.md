@@ -454,7 +454,7 @@ bruikbaar is.
   zonder model (`supervisie._buiten_graaf_melding`; zonder connector op naam, `buiten_graaf.zonder_zoekdienst`). Na de
   controle (`controle.md` bij die meting): ook een verzoek om **op te nemen of toe te voegen** (`_OPNEEM_RE`) krijgt die
   vaste melding (`buiten_graaf.melding_opnemen`): het model schreef "staat nu in de bronselectie". Een onderdeel draagt
-  zijn nummer als `plek` ("onderdeel b", `wetgeving_tools.onderdeel_plek`), want de tekst zelf draagt het niet.
+  zijn nummer als `plek` ("onderdeel b", `wetgeving_tools.onderdeel_plek`), want de tekst zelf draagt het niet. **Een duiding buiten de graaf rust op `extern`** (iteratie ronde 3): `onderbouwing` mag leeg als `extern` een gelezen stuk van `get_wettekst` aanwijst (`duiding.live_stukken`), en een weigering wijst dan naar `extern` met het id, ook als het model die tekst in `onderbouwing` zette (`_live_van`), nooit naar get_artikel: anders las het model de tekst opnieuw en schreef het het antwoord tot acht keer opnieuw (I13, 631k).
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION).
   **`graph/schema.py`** – schema-introspectie met een cache van een uur. **`graph/results.py`** –
   `parse_select`: de MCP levert SELECT als JSON-string-gewrapte TSV.
