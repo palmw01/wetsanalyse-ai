@@ -31,15 +31,16 @@ import time
 import xml.etree.ElementTree as ET
 from collections import OrderedDict
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from typing import Any
 from datetime import date
 from urllib.parse import urlparse
 
 import httpx
 from bronmodel import tekst_hash
 from bronmodel.bwb import TOESTAND_XSD
-from bronmodel.bwb.boom import model_tekens
-from bronmodel.bwb.dekking import STANDAARD_DREMPEL, bron_tekens
+from bronmodel.bwb.boom import model_tekens, model_tekens_van
+from bronmodel.bwb.dekking import STANDAARD_DREMPEL, bron_tekens, bron_tekens_per_artikel
 from bronmodel.bwb.models import Wet
 from bronmodel.bwb.parser import ParseError, ToestandParser
 
@@ -121,10 +122,31 @@ class Gelezen:
     xsd_geldig: bool
     bron_tekens: int
     model_tekens: int
+    #: Bij een toestand onder de drempel: de brontekens per artikel (`bwb-ng-variabel-deel`), zodat één artikel dat wél
+    #: volledig gelezen is, toch te citeren is (`artikel_volledig`). Leeg bij een volledige toestand.
+    per_artikel: dict[str, int] = field(default_factory=dict, repr=False)
 
     @property
     def dekking(self) -> float:
         return 1.0 if self.bron_tekens <= 0 else self.model_tekens / self.bron_tekens
+
+    @property
+    def volledig(self) -> bool:
+        return self.bron_tekens > 0 and self.dekking >= STANDAARD_DREMPEL
+
+    def artikel_volledig(self, artikel: Any) -> bool:
+        """Is dit artikel volledig gelezen? Bij een volledige toestand altijd; anders per artikel tegen dezelfde drempel."""
+        if self.volledig:
+            return True
+        pad = (getattr(artikel, "id", "") or "").removeprefix(self.toestand.bwb_id)
+        bron = self.per_artikel.get(pad, 0)
+        return bron > 0 and model_tekens_van(artikel) / bron >= STANDAARD_DREMPEL
+
+    def eis_volledig(self) -> None:
+        """Voor wat de hele toestand nodig heeft (de opbouw, zoeken in de tekst): onder de drempel is dat `onvolledig`."""
+        if not self.volledig:
+            raise BwbFout(f"de toestand {self.toestand.versie} van {self.toestand.bwb_id} is niet volledig te lezen "
+                          f"(dekking {self.dekking:.1%})", code="onvolledig")
 
 
 def _tekst(e: ET.Element, pad: str) -> str:
@@ -324,12 +346,16 @@ class SruBwb:
             # vinden is, geeft "niet gevonden", nooit een verkeerde tekst. De tool zegt het erbij.
             logger.info("bwb_toestand onbekende structuur", extra={
                 "bwb_id": toestand.bwb_id, "toestand": toestand.versie, "overgeslagen": list(wet.overgeslagen)})
-        if bron <= 0 or gelezen.dekking < STANDAARD_DREMPEL:
+        if bron <= 0:
+            raise BwbFout(f"de toestand {toestand.versie} van {toestand.bwb_id} heeft geen tekst", code="onvolledig")
+        if not gelezen.volledig:
+            # Onder de drempel: de toestand als geheel is niet te citeren (de opbouw, zoeken), maar een artikel dat zelf
+            # volledig gelezen is wel (iteratie ronde 1, I03: de Algemene douanewet op 98,5% weigerde elk artikel). Die
+            # keuze maakt `Gelezen.artikel_volledig`; de importer meet de toestand als geheel, en dat blijft zo.
             logger.warning("bwb_toestand onvolledig", extra={
                 "bwb_id": toestand.bwb_id, "toestand": toestand.versie, "dekking": round(gelezen.dekking, 5),
                 "overgeslagen": list(wet.overgeslagen)})
-            raise BwbFout(f"de toestand {toestand.versie} van {toestand.bwb_id} is niet volledig te lezen (dekking "
-                          f"{gelezen.dekking:.1%})", code="onvolledig")
+            gelezen = replace(gelezen, per_artikel=bron_tekens_per_artikel(xml))
         return gelezen, len(xml)
 
     def close(self) -> None:

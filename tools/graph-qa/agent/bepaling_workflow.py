@@ -68,6 +68,8 @@ class Bepalingsvraag:
     #: vandaag).
     live: bool = False
     peildatum: str = ""
+    #: Alleen dit onderdeel ("c"), bij wettekst van overheid.nl (de graafroute leest het lid).
+    onderdeel: str = ""
 
     @property
     def iri(self) -> str:
@@ -85,16 +87,42 @@ def peildatum_in(vraag: str) -> str | None:
     return next(iter(datums)) if len(datums) == 1 else ""
 
 
+#: "onderdeel c", "onder c": het onderdeel binnen het genoemde lid.
+_ONDERDEEL = re.compile(r"\b(?:onderdeel|onder)\s+(?P<o>[a-z]{1,2}|\d+°?)(?![\w])", re.IGNORECASE)
+
+#: Woorden voor een stuk naast de wet. "Wat zegt het arrest over artikel 36" vraagt naar het arrest, niet naar de wettekst.
+_STUKWOORD = re.compile(r"\b(?:arrest(?:en)?|uitspra(?:ak|ken)|vonnis(?:sen)?|kamerstuk(?:ken)?|kamerbrie(?:f|ven)|memorie|"
+                        r"staatsblad(?:en)?|staatscourant(?:en)?|bekendmaking(?:en)?|ecli)\b", re.IGNORECASE)
+
+
+def wijst_stuk_aan(vraag: str) -> bool:
+    """Wijst de vraag een stuk naast de wet aan? Een genoemd id of citeervorm (`genoemde_stukken`), een signaal van een
+    connector die geen wettekst levert, of een stukwoord. Dan is het geen vraag naar de tekst van een bepaling, ook als er
+    een artikel in staat (R28b, rechtspraak 11 nov 2026: "wat zegt de nieuwste daarvan" na een lijst arresten bij art. 36
+    Iw las art. 36 live in plaats van het arrest)."""
+    from bronmodel.connectors import CONNECTORS, genoemde_stukken
+
+    if _STUKWOORD.search(vraag or ""):
+        return True
+    if any(c.brontype != "wettekst_live" for c, _ in genoemde_stukken(vraag or "")):
+        return True
+    return any(c.brontype != "wettekst_live" and c.herkent(vraag or "") for c in CONNECTORS.values())
+
+
 def _is_tekstvraag(vraag: str) -> bool:
-    return bool(_TEKSTVRAAG.search(vraag)) and not _UITLEG.search(vraag)
+    return bool(_TEKSTVRAAG.search(vraag)) and not _UITLEG.search(vraag) and not wijst_stuk_aan(vraag)
 
 
-def lees(vraag: str, graph: GraphPort, *, live_aan: bool = False) -> Bepalingsvraag | None:
+def lees(vraag: str, graph: GraphPort, *, live_aan: bool = False, getypt: str | None = None) -> Bepalingsvraag | None:
     """De bepaling die de vraag eenduidig aanwijst, of `None`. Leest de regelingnamen uit de graaf (gecachet).
 
     Noemt de vraag een peildatum buiten de toestand van de graaf ("wat zei artikel 9 Iw op 1 januari 2020?"), dan is de
     graaftekst niet de gevraagde tekst: met de connector aan (`live_aan`) leest de code de tekst van die datum bij
-    overheid.nl, anders `None` (de agent zegt wat de graaf heeft). Een peildatum binnen de graaftoestand is gewoon de graaf."""
+    overheid.nl, anders `None` (de agent zegt wat de graaf heeft). Een peildatum binnen de graaftoestand is gewoon de graaf.
+
+    `getypt` is wat de jurist zelf typte, als `vraag` een herschreven vervolgvraag is. Een datum telt alleen als peildatum
+    als de jurist hem typte: een herschrijving neemt ook de datum van een stuk uit de vorige beurt over (de uitspraak van
+    10 april 2026), en dat is geen vraag naar de tekst op die dag (R28b). Zo'n vraag gaat de gewone weg."""
     if not _is_tekstvraag(vraag):
         return None
     aanwijzing = lees_aanwijzing(vraag)
@@ -111,7 +139,7 @@ def lees(vraag: str, graph: GraphPort, *, live_aan: bool = False) -> Bepalingsvr
     peil = peildatum_in(vraag)
     if peil is None:
         return v
-    if not peil:
+    if not peil or (getypt is not None and peildatum_in(getypt) != peil):
         return None
     from .tools.wetgeving_tools import GraafOnbekend, graaftoestanden
 
@@ -124,7 +152,7 @@ def lees(vraag: str, graph: GraphPort, *, live_aan: bool = False) -> Bepalingsvr
     return replace(v, live=True, peildatum=peil) if live_aan else None
 
 
-def lees_buiten(vraag: str, genoemde: list[Any]) -> Bepalingsvraag | None:
+def lees_buiten(vraag: str, genoemde: list[Any], *, getypt: str | None = None) -> Bepalingsvraag | None:
     """Een tekstvraag naar één artikel van één regeling buiten de kennisgraaf (`buiten_graaf.genoemd`): die leest de code
     bij overheid.nl. `None` als de vraag geen tekstvraag is of niet eenduidig één artikel noemt."""
     if not _is_tekstvraag(vraag):
@@ -133,10 +161,20 @@ def lees_buiten(vraag: str, genoemde: list[Any]) -> Bepalingsvraag | None:
     if len(eenduidig) != 1 or not eenduidig[0].artikel or any(g.dubbelzinnig for g in genoemde):
         return None
     peil = peildatum_in(vraag)
-    if peil == "":
+    if peil == "" or (peil and getypt is not None and peildatum_in(getypt) != peil):
+        # Een datum die alleen de herschrijving noemt, is geen peildatum (R28b).
         return None
     g = eenduidig[0]
-    return Bepalingsvraag(bwb_id=g.bwb_id, artikel=g.artikel, lid=g.lid, live=True, peildatum=peil or "")
+    # Het lid en onderdeel zoals de vraag ze noemt ("tweede lid, onderdeel c"): `lees_aanwijzing` kent de
+    # rangtelwoorden, de herkenning van de regeling alleen "lid 2" (meting 11 nov 2026, I09: het hele artikel).
+    leden = lees_aanwijzing(vraag).leden
+    if len(leden) > 1:
+        return None
+    lid = leden[0] if leden else g.lid
+    onderdelen = {m.group("o").lower() for m in _ONDERDEEL.finditer(vraag)}
+    onderdeel = next(iter(onderdelen)) if len(onderdelen) == 1 and lid else ""
+    return Bepalingsvraag(bwb_id=g.bwb_id, artikel=g.artikel, lid=lid, live=True, peildatum=peil or "",
+                          onderdeel=onderdeel)
 
 
 Uitvoerder = Callable[[str, dict[str, Any]], str]
@@ -169,6 +207,7 @@ def haal(graph: GraphPort, v: Bepalingsvraag, voer_uit: Uitvoerder | None = None
         # Het hele artikel (of lid) in één keer, alle pagina's: een weigering (`in_graaf`) of fout is `None`.
         return _alle_paginas(voer_uit, "get_wettekst", {"bwb_id": v.bwb_id, "artikel": v.artikel,
                                                          **({"lid": v.lid} if v.lid else {}),
+                                                         **({"onderdeel": v.onderdeel} if v.onderdeel else {}),
                                                          **({"peildatum": v.peildatum} if v.peildatum else {})})
     if v.lid:
         return _alle_paginas(voer_uit, "get_lid", {"bwb_id": v.bwb_id, "artikel": v.artikel, "lid": v.lid})
@@ -209,7 +248,19 @@ def werking_zin(stuk: dict[str, Any]) -> str:
     return ""
 
 
-def _live_antwoord(trace: list[tuple[str, str]], toelichting: str) -> Antwoord | None:
+def toekomst_zin(stuk: dict[str, Any], peildatum: str) -> str:
+    """Een peildatum in de toekomst waarop de BWB nog geen andere tekst heeft: dan is de tekst van nu wat bekend is, en dat
+    zegt de code (meting 11 nov 2026, I17: "per 1 januari 2028" gaf stil de tekst van nu)."""
+    from .sjablonen.extern import _voluit
+    from .tools.wetgeving_tools import _vandaag
+
+    if not peildatum or peildatum <= _vandaag() or str(stuk.get("tekststand") or "") != "huidige tekst":
+        return ""
+    return (f"Voor {_voluit(peildatum)} is in het Basiswettenbestand geen andere tekst bekend: dit is de tekst die geldt "
+            f"vanaf {_voluit(str(stuk.get('tekst_vanaf') or ''))}. Een latere wijziging kan nog worden gepubliceerd.")
+
+
+def _live_antwoord(trace: list[tuple[str, str]], toelichting: str, peildatum: str = "") -> Antwoord | None:
     from bronmodel.antwoord import Leemte, Toelichting
 
     from .sjablonen.extern import heel_stuk
@@ -218,8 +269,8 @@ def _live_antwoord(trace: list[tuple[str, str]], toelichting: str) -> Antwoord |
     blok = heel_stuk(trace, str(stuk.get("id") or ""))
     if blok is None:
         return None
-    zin = werking_zin(stuk)
-    return Antwoord(sjabloon="extern", blokken=[blok, *([Leemte(tekst=zin)] if zin else []),
+    zinnen = [z for z in (werking_zin(stuk), toekomst_zin(stuk, peildatum)) if z]
+    return Antwoord(sjabloon="extern", blokken=[blok, *(Leemte(tekst=z) for z in zinnen),
                                                 *([Toelichting(tekst=toelichting)] if toelichting else [])])
 
 
@@ -227,7 +278,7 @@ def antwoord(v: Bepalingsvraag, trace: list[tuple[str, str]], toelichting: str =
     """Het sjabloon `bepaling`, door de code aangewezen (bij wettekst van overheid.nl het blok `extern` met het hele
     artikel). `None` als het sjabloon niet compleet te vullen is."""
     if v.live:
-        return _live_antwoord(trace, toelichting)
+        return _live_antwoord(trace, toelichting, v.peildatum)
     try:
         return vul_sjabloon("antwoord_bepaling", {"bepalingen": [v.iri], "toelichting": toelichting}, trace)
     except Onvulbaar:

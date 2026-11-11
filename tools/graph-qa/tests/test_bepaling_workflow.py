@@ -179,3 +179,34 @@ def test_een_toelichting_met_de_termijn_uit_de_bepaling_blijft():
 def test_de_prompt_vraagt_de_termijn_en_een_uitzondering_niet_om_te_draaien():
     """Acceptatie 7 nov 2026: "een bepaalde periode" bij Iw 9 lid 1, en de uitzondering van Iw 22 lid 3 omgedraaid."""
     assert "zes weken" in wf.TOELICHTING_SYSTEM and "draai haar niet om" in wf.TOELICHTING_SYSTEM
+
+
+# --- een vraag die een stuk aanwijst (R28b, rechtspraak 11 nov 2026) ----------------------------------------------------
+
+@pytest.mark.parametrize("vraag", [
+    "Wat zegt het nieuwste arrest van de Hoge Raad over artikel 36 van de Invorderingswet 1990?",
+    "Wat zegt het nieuwste kamerstuk over artikel 25 van de Invorderingswet 1990?",
+    "Wat staat er in ECLI:NL:HR:2026:586 over artikel 36 van de Invorderingswet 1990?",
+    "Wat staat er in kst-35496-F over artikel 25 van de Invorderingswet 1990?",
+    "Wat zegt het Staatsblad over artikel 9 van de Invorderingswet 1990?",
+])
+def test_een_vraag_die_een_stuk_aanwijst_is_geen_tekstvraag(vraag):
+    assert wf.wijst_stuk_aan(vraag)
+    assert wf.lees(vraag, _graaf(), live_aan=True) is None
+
+
+def test_een_wettekstvraag_wijst_geen_stuk_aan():
+    assert not wf.wijst_stuk_aan("Wat staat er in artikel 9 van de Invorderingswet 1990?")
+    assert not wf.wijst_stuk_aan("Wat staat er in bwbt:BWBR0015703:2026-07-01_0:artikel:31?")
+
+
+def test_een_datum_die_de_jurist_niet_typte_is_geen_peildatum():
+    # "Wat zegt de nieuwste daarvan?", herschreven met de datum van de uitspraak uit de vorige beurt.
+    herschreven = "Wat zegt artikel 36 van de Invorderingswet 1990 op 10 april 2026?"
+    assert wf.lees(herschreven, _graaf(), live_aan=True, getypt="Wat zegt de nieuwste daarvan?") is None
+    # Typte de jurist de datum zelf, dan blijft het een peildatumvraag (hier: binnen de graaftoestand is het de graaf).
+    getypt = "En wat zei het op 10 april 2026?"
+    assert wf.peildatum_in(getypt) == "2026-04-10"
+    # Zonder datum verandert er niets aan een herschreven vervolgvraag.
+    assert wf.lees("Wat staat er in artikel 9 van de Invorderingswet 1990?", _graaf(), live_aan=True,
+                   getypt="En artikel 9?") == wf.Bepalingsvraag(bwb_id=IW, artikel="9")

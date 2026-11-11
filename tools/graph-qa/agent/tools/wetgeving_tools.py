@@ -135,6 +135,7 @@ WETGEVING_TOOLS: list[dict[str, Any]] = [
             "bwb_id": _BWB_ARG,
             "artikel": {"type": "string", "description": "Het artikelnummer, bijv. '31' of '7a'."},
             "lid": {"type": "string", "description": "Alleen dit lid, bijv. '2'."},
+            "onderdeel": {"type": "string", "description": "Alleen dit onderdeel (met 'lid' van dat lid), bijv. 'c'."},
             "peildatum": _PEILDATUM,
             "offset": {"type": "integer", "description": "Vanaf welke rij (voor het vervolg)."},
             "inhoud": INHOUD_ARG,
@@ -378,6 +379,9 @@ def _zoek(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
         namen = ", ".join(t.titel for t in regelingen if t.bwb_id in afkorting)
         toelichting.append(f"De afkorting „{naam}” past bij {len(afkorting)} regelingen ({namen}): vraag welke bedoeld "
                            "is en kies niet zelf.")
+    if naam and offset == 0 and not any(t.titel.casefold() == naam.casefold() or t.bwb_id in afkorting
+                                        for t in regelingen):
+        toelichting.append(_buiten_de_peildatum(bron, naam, peil))
     if not regelingen and offset == 0:
         toelichting.append(f"Geen regeling gevonden ({_zoekvraag_tekst(a, peil)}). Dat bewijst niet dat ze niet "
                            "bestaat: probeer een andere schrijfwijze of de afkorting.")
@@ -390,6 +394,35 @@ def _zoek(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
                   limit=aantal, offset=offset,
                   extra={"zoekvraag": _zoekvraag_tekst(a, peil), "totaal": max(totaal, len(regelingen))},
                   toelichting=" ".join(toelichting))
+
+
+def _buiten_de_peildatum(bron: WetgevingBron, naam: str, peil: str) -> str:
+    """Wat de BWB heeft van een regeling met precies deze titel als die op de peildatum geen toestand heeft: de periode
+    van haar toestanden, of dat er geen is. Zonder deze zin gokte Lex achttien rondes naar BWB-id's (meting 11 nov 2026,
+    I20: de Wet op de inkomstenbelasting 1964 op 1 januari 1995)."""
+    exact: list[Toestand] = []
+    try:
+        # Eerst vandaag (dan is het één record per regeling), dan zonder datum (elke toestand een record).
+        for cql in (f'overheidbwb.titel adj "{naam}" and overheidbwb.geldigheidsdatum={_vandaag()}',
+                    f'overheidbwb.titel adj "{naam}"'):
+            exact = [t for t in bron.zoek(cql, maximum=MAX_RECORDS)[1] if t.titel.casefold() == naam.casefold()]
+            if exact:
+                break
+        if exact:
+            exact = bron.toestanden(exact[0].bwb_id) or exact
+    except Exception:  # noqa: BLE001 – een storing kost alleen deze zin
+        return ""
+    if not exact:
+        return (f"Het Basiswettenbestand kent geen regeling met precies de titel „{naam}”, ook niet op een andere datum. "
+                "Een regeling die verviel voordat het Basiswettenbestand haar bijhield, staat er niet in. Raad geen "
+                "BWB-id's: zeg dat de regeling niet gevonden is.")
+    van = min(t.geldig_vanaf for t in exact)
+    tot = max((t.geldig_tot or OPEN_EIND) for t in exact)
+    if van <= peil <= tot:
+        return (f"„{naam}” ({exact[0].bwb_id}) heeft op {peil} een tekst in het Basiswettenbestand, mogelijk onder een "
+                f"andere titel: lees haar met bwb_id {exact[0].bwb_id} en deze peildatum.")
+    return (f"„{naam}” ({exact[0].bwb_id}) staat in het Basiswettenbestand met teksten van {van} tot {_tot_tekst(tot)}, "
+            f"niet op {peil}: kies een peildatum in die periode, of zeg dat er voor {peil} geen tekst is.")
 
 
 def _regelingrij(t: Toestand, peil: str, vandaag: str, in_graaf: dict[str, Any] | None) -> dict[str, Any]:
@@ -496,6 +529,7 @@ def _opbouw(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
         return weigering
     t = bron.toestand_op(bwb_id, peil)
     g = bron.lees(t)
+    g.eis_volledig()
     woorden = " ".join(str(a.get("woorden") or "").split())[:200]
     rijen = []
     for staart, plek, b in _bepalingen(g):
@@ -511,8 +545,55 @@ def _opbouw(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
         toelichting = (f"Geen artikel van {kop['titel']} bevat „{woorden}” (tekst geldig vanaf {t.geldig_vanaf}). Dat "
                        "zegt alleen iets over deze woorden: zoek eventueel met een ander woord.")
     args = {"bwb_id": bwb_id, **({"peildatum": peil} if peil else {}), **({"woorden": a["woorden"]} if woorden else {})}
-    return per_eenheid(rijen, tool="zoek_artikelen", args=args, offset=_geheel(a.get("offset"), 0, 0, 10_000),
-                       extra={"regeling": kop, "totaal": len(rijen)}, toelichting=toelichting)
+    offset = _geheel(a.get("offset"), 0, 0, 10_000)
+    extra: dict[str, Any] = {"regeling": kop, "totaal": len(rijen)}
+    if not woorden and offset == 0:
+        # De opbouw en de telling in één keer: zonder deze velden bladerde het model door alle artikelen om de
+        # hoofdstukken of de vervallen artikelen te tellen (meting 11 nov 2026, I13: 21 rondes en 1,0M tokens voor de
+        # opbouw van de Wet IB 2001; I30: zes pagina's voor "hoeveel artikelen").
+        extra |= {"opbouw": opbouw(rijen), "telling": telling(rijen)}
+        toelichting += (" 'opbouw' geeft de delen op het hoogste niveau met hun artikelen, 'telling' het aantal per "
+                        "status: blader alleen door als je de artikelen zelf nodig hebt.")
+    return per_eenheid(rijen, tool="zoek_artikelen", args=args, offset=offset, extra=extra, toelichting=toelichting)
+
+
+def opbouw(rijen: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """De delen op het hoogste niveau (de eerste kop van `reeks`) in documentvolgorde: kop, aantal artikelen, eerste en
+    laatste. Leeg voor een regeling zonder indeling."""
+    delen: list[dict[str, Any]] = []
+    for r in rijen:
+        reeks = r.get("reeks") or []
+        if not reeks:
+            continue
+        if not delen or delen[-1]["kop"] != reeks[0]:
+            delen.append({"kop": reeks[0], "artikelen": 0, "van": r["label"], "tot": r["label"]})
+        delen[-1]["artikelen"] += 1
+        delen[-1]["tot"] = r["label"]
+    return delen
+
+
+def telling(rijen: list[dict[str, Any]]) -> dict[str, int]:
+    """Het aantal bepalingen per status: geldend, vervallen, nog niet in werking."""
+    uit = {"totaal": len(rijen), "geldend": 0, "vervallen": 0, "nog_niet_in_werking": 0}
+    for r in rijen:
+        status = str(r.get("status") or "")
+        uit["vervallen" if status.startswith("vervallen") else "nog_niet_in_werking" if status.startswith("nog niet")
+            else "geldend"] += 1
+    return uit
+
+
+_PUBLICATIE_RE = re.compile(r"^(Stb|Stcrt|Trb)\.?\s*(\d{4})[-,\s]+(\d+)$", re.IGNORECASE)
+
+
+def publicatie(bron: str | None) -> str:
+    """De bron van een artikel in de vorm van de BWB ("Stb.2025-312") als citeervorm ("Stb. 2025, 312"); een andere vorm
+    blijft zoals hij is. Zo zegt de leestool zelf waarmee het artikel is ingevoegd of gewijzigd, en hoeft Lex daar niet naar
+    te zoeken (meting 11 nov 2026, I06: zeven rondes en 185k voor "welk Staatsblad voerde artikel 24a in")."""
+    waarde = (bron or "").strip()
+    if not waarde:
+        return ""
+    m = _PUBLICATIE_RE.match(waarde)
+    return f"{m.group(1).capitalize()}. {m.group(2)}, {m.group(3)}" if m else waarde
 
 
 def onderdeel_plek(nummer: str) -> str:
@@ -549,8 +630,9 @@ def _rijen(b: Bepaling, lid_nr: str, o_nr: str, plek: Plek | None = None) -> lis
         if lid_nr and lid.nummer.strip().rstrip(".") != lid_nr:
             continue
         kop = f"{naam} › lid {lid.nummer.strip().rstrip('.')}"
-        if not o_nr:
-            rij(lid.tekst, kop, lid.nummer, lid.jci)
+        # Met een onderdeel blijft de aanhef van het lid erbij ("Niet tot de middelen worden gerekend:"): zonder die
+        # zin is het onderdeel niet te lezen.
+        rij(lid.tekst, kop, lid.nummer, lid.jci)
         onder(lid.onderdelen, kop)
     if not lid_nr:
         onder(getattr(b, "onderdelen", []) or [], naam)
@@ -574,7 +656,7 @@ def _get(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
     gevraagd = dict(paren)
     artikel = str(a.get("artikel") or gevraagd.get("artikel") or "").strip().rstrip(".")
     lid = str(a.get("lid") or gevraagd.get("lid") or "").strip().rstrip(".")
-    o_nr = gevraagd.get("o", "")
+    o_nr = str(a.get("onderdeel") or gevraagd.get("o", "")).strip().rstrip(".")
     if artikel and not _NUMMER_RE.match(artikel):
         return fout("ongeldig_nummer", f"'{artikel}' is geen artikelnummer; geef bijvoorbeeld '31' of '7a'")
     staart_gevraagd = "".join(f":{k}:{quote(v, safe='')}" for k, v in paren if k not in ("lid", "o"))
@@ -607,6 +689,9 @@ def _get(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
             "Zoek de bepaling met zoek_artikelen, bijvoorbeeld "
             f"{{\"bwb_id\": \"{bwb_id}\"}}." + onbekend))
     staart, plek, b = treffer
+    if not (g.artikel_volledig(b) if isinstance(b, Artikel) else g.volledig):
+        raise BwbFout(f"de toestand {t.versie} van {bwb_id} is niet volledig te lezen (dekking {g.dekking:.1%}), en "
+                      f"{_label(b)} ook niet", code="onvolledig")
     stuk_id = _id(t, staart)
     titel = g.wet.citeertitel or t.titel
     werking = _werking(b)
@@ -615,10 +700,11 @@ def _get(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
                     "link": f"https://wetten.overheid.nl/{b.jci}" if b.jci else t.link,
                     **{k: v for k, v in kop.items() if k != "bwb_id"}, "titel": titel, "nummer": bwb_id,
                     "inwerking": getattr(b, "inwerking", "") or "", "status": werking,
+                    "publicatie": publicatie(getattr(b, "bron", None)),
                     "reeks": list(plek.koppen()) if plek else [], "leesbaar": True})
     rijen = _rijen(b, lid, o_nr, plek)
     offset = _geheel(a.get("offset"), 0, 0, 10_000)
-    args = {"id": stuk_id, **({"lid": lid} if lid else {})}
+    args = {"id": stuk_id, **({"lid": lid} if lid else {}), **({"onderdeel": o_nr} if o_nr and a.get("onderdeel") else {})}
     if a.get("inhoud"):
         return inhoudpagina(rijen, tool="get_wettekst", args=args, offset=offset, stuk=stuk)
     zinnen = [f"Deze tekst komt van overheid.nl ({kop['tekststand']}, geldig van {t.geldig_vanaf} tot "
@@ -628,8 +714,13 @@ def _get(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
         zinnen.append(f"{_label(b)} is {werking}: presenteer het niet als geldend recht.")
     elif werking.startswith("vervallen"):
         zinnen.append(f"{_label(b)} is {werking}: er geldt geen tekst meer.")
-    if lid and not rijen:
+    if o_nr and not any(r.get("plek") for r in rijen):
+        zinnen.append(f"{_label(b)} heeft in deze tekst geen onderdeel {o_nr}" + (f" in lid {lid}." if lid else "."))
+    elif lid and not rijen:
         zinnen.append(f"{_label(b)} heeft in deze tekst geen lid {lid}.")
+    if not g.volledig:
+        zinnen.append(f"De toestand als geheel is niet volledig te lezen (dekking {g.dekking:.1%}); {_label(b)} wel: die "
+                      "tekst is volledig en te citeren.")
     if not g.xsd_geldig:
         zinnen.append("De toestand valideert niet tegen de XSD van de BWB; de tekst is wel volledig gelezen.")
     return tekstpagina(rijen, tool="get_wettekst", args=args, offset=offset, stuk=stuk, toelichting=" ".join(zinnen))

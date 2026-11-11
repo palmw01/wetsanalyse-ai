@@ -35,6 +35,16 @@ _STOP = (r"(?:en|of|in|over|bij|voor|met|is|zijn|wordt|worden|was|staat|staan|st
          r"wat|die|dat|lid|artikel|art|opgebouwd|gewijzigd|geregeld|bedoeld|genoemd|ingevoerd)")
 _WET_RE = re.compile(rf"(?<![\w-])(?P<naam>Wet\s+(?:(?!{_STOP}\b)[A-Za-zà-ÿ0-9][\w.-]*\s+){{0,7}}?"
                      rf"(?!{_STOP}\b)[A-Za-zà-ÿ0-9][\w.-]*)(?=\s*(?:[?!,;:()]|\.(?:\s|$)|$)|\s+{_STOP}\b)")
+#: Titels die niet op -wet eindigen of met "Wet" beginnen (meting 11 nov 2026, I03/I10/I11/I12: Lex zocht ze zelf op):
+#: een besluit of regeling met een jaartal ("Uitvoeringsbesluit inkomstenbelasting 2001"), een algemene wet ("Algemene
+#: douanewet") en een besluit of regeling met woorden met een hoofdletter ("Besluit Bestuurlijke Boeten Belastingdienst").
+#: De zoekdienst beslist daarna: alleen een exact gelijke titel telt.
+_TITEL_RES = (
+    re.compile(r"(?<![\w-])(?P<naam>[A-Z][a-zà-ÿ]*(?:besluit|regeling)\s+(?:[a-zà-ÿ][\w-]*\s+){0,5}?(?:19|20)\d{2})(?![\w-])"),
+    re.compile(r"(?<![\w-])(?P<naam>Algemene\s+[a-zà-ÿ]+(?:wet|wetboek)(?:\s+(?:19|20)\d{2})?)(?![\w-])"),
+    re.compile(r"(?<![\w-])(?P<naam>(?:Besluit|Regeling)(?:\s+(?:[A-Z][a-zà-ÿ]+|en|op|van|de|het|inzake)){0,6}"
+               r"\s+[A-Z][a-zà-ÿ]+)(?![\w-])"),
+)
 _BW_RE = re.compile(r"(?<![\w:])(?P<boek>[1-8]|10):(?P<artikel>\d+[a-z]*)(?:\s*,?\s*lid\s+\d+[a-z]*)?\s*"
                     r"(?:van\s+het\s+)?(?:BW|Burgerlijk\s+Wetboek)\b", re.IGNORECASE)
 _AFK_RE = re.compile(r"\bart(?:ikel|\.)\s*(?P<artikel>\d+[a-z]*(?:\.\d+[a-z]*)*)(?:\s*,?\s*(?:lid|eerste|tweede)\s*\w*)?"
@@ -42,7 +52,9 @@ _AFK_RE = re.compile(r"\bart(?:ikel|\.)\s*(?P<artikel>\d+[a-z]*(?:\.\d+[a-z]*)*)
 #: Een afkorting als lidwoord + korte naam ("de Wlz", "de Awb"), ook zonder artikel.
 _LOS_AFK_RE = re.compile(r"\b(?:de|het)\s+(?P<naam>[A-Z][a-z]{0,2}[A-Za-z]{1,3}(?:\s(?:19|20)\d{2})?)(?![\w-])")
 #: Korte woorden met een hoofdletter die geen afkorting van een regeling zijn.
-_GEEN_AFK = frozenset({"hoge", "raad", "staat", "kamer", "rijk", "wet", "eu", "bv", "nv", "vof"})
+_GEEN_AFK = frozenset({"hoge", "raad", "staat", "kamer", "rijk", "wet", "eu", "bv", "nv", "vof",
+                       # Stukken en gerechten, geen regelingen ("de MvT bij Kamerstuk 33755").
+                       "mvt", "nvt", "ecli", "stb", "stcrt", "kst", "crvb", "hr", "rvs", "abrvs", "cbb"})
 _ARTIKEL_RE = re.compile(r"\bart(?:ikel|\.)\s*(?P<artikel>\d+[a-z]*(?:[.:]\d+[a-z]*)*)", re.IGNORECASE)
 _LID_RE = re.compile(r"\blid\s+(?P<lid>\d+[a-z]*)\b", re.IGNORECASE)
 #: Woorden die als kandidaat voorkomen maar geen regeling zijn.
@@ -61,6 +73,8 @@ class Genoemd:
     lid: str = ""
     #: Bij een afkorting die bij meer regelingen past: (bwb_id, titel) van elk.
     kandidaten: tuple[tuple[str, str], ...] = field(default=())
+    #: De zoekdienst kent geen geldende regeling met deze titel of afkorting.
+    onbekend: bool = False
 
     @property
     def dubbelzinnig(self) -> bool:
@@ -78,7 +92,7 @@ def _kandidaten(vraag: str) -> list[tuple[str, str, str]]:
     for m in _LOS_AFK_RE.finditer(vraag):
         if m.group("naam").casefold() not in _GEEN_AFK:
             uit.append((m.start("naam"), m.group("naam"), m.group("naam"), ""))
-    for patroon in (_SAMENSTELLING_RE, _WET_RE):
+    for patroon in (_SAMENSTELLING_RE, _WET_RE, *_TITEL_RES):
         for m in patroon.finditer(vraag):
             # Een jaartal sluit de titel af: "Wet op de loonbelasting 1964 ook" → tot en met 1964.
             naam = re.sub(r"^(.*?\b(?:18|19|20)\d{2})\b.*$", r"\1", m.group("naam"))
@@ -141,6 +155,7 @@ def genoemd(vraag: str, graph: Any, bron: Any, *, vandaag: str) -> list[Genoemd]
             uit.append(Genoemd(naam, kandidaten=tuple(sorted(per_id.items(), key=lambda p: p[1]))))
             continue
         else:
+            uit.append(Genoemd(naam, titel=titel, onbekend=True))
             continue
         uit.append(Genoemd(naam, gekozen.bwb_id, gekozen.titel))
     eenduidig = [g for g in uit if g.bwb_id]
@@ -246,3 +261,24 @@ def melding_opnemen(titels: list[str], *, lezen_kan: bool) -> str:
     return (f"Ik kan deze bepaling niet opnemen: {wat} {'staat' if len(titels) == 1 else 'staan'} niet in de kennisgraaf, en "
             "een bron van het werkgebied kan zo'n bepaling pas worden na een import in de graaf. Er is niets opgenomen."
             + (" Lezen kan wel, via de bron Wetgeving buiten de kennisgraaf." if lezen_kan else ""))
+
+
+def onbekende(genoemde: list[Genoemd], vraag: str) -> list[str]:
+    """De titels die de vraag als regeling noemt (een "Wet …"-titel of een naam op -wet, bij een artikel) en die de
+    zoekdienst niet kent, als de vraag verder geen regeling noemt en geen peildatum heeft (een vervallen regeling zoekt
+    `zoek_regelingen` op, met de periode van haar teksten). Voor een vaste melding zonder model (iteratie ronde 1, I07:
+    drie rondes voor "de Wet op de robotbelasting bestaat niet")."""
+    from .bepaling_workflow import peildatum_in
+
+    if any(g.bwb_id or g.dubbelzinnig for g in genoemde) or peildatum_in(vraag) is not None:
+        return []
+    if not _ARTIKEL_RE.search(vraag or ""):
+        return []
+    return [g.naam for g in genoemde if g.onbekend and "wet" in g.naam.casefold()]
+
+
+def melding_onbekend(titels: list[str]) -> str:
+    wat = " en ".join(f"„{t}”" for t in titels)
+    return (f"Een regeling met de naam {wat} vind ik niet: niet in de kennisgraaf, en het Basiswettenbestand kent geen "
+            "geldende regeling met die titel of afkorting. Controleer de naam; uit mijn eigen kennis vul ik niet in wat er "
+            "zou staan.")

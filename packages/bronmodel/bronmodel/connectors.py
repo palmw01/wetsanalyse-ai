@@ -667,6 +667,9 @@ WETGEVING_LIVE = ConnectorBeschrijving(
                      "de koppen boven een artikel, van boven naar beneden"),
         MetadataVeld("in_graaf", "in de kennisgraaf", "bwb:Regeling in de kennisgraaf",
                      "of de regeling ook in de kennisgraaf staat; dan lees je de huidige tekst daar (get_artikel)"),
+        MetadataVeld("publicatie", "bron van het artikel", "@bron van het artikel in de toestand",
+                     "de bekendmaking (Stb., Stcrt.) waarmee het artikel het laatst is ingevoegd of gewijzigd, zoals de "
+                     "BWB haar noemt; niet het besluit over de inwerkingtreding"),
         MetadataVeld("gewijzigd", "laatst gewijzigd", "dcterms:modified",
                      "wanneer de BWB de regeling het laatst bijwerkte; daarop ordenen 'nieuwste' en 'oudste'",
                      sorteerbaar=True),
