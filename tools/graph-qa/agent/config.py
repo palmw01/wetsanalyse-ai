@@ -51,6 +51,7 @@ class Settings(BaseModel):
     kamerstukken_sru_url: str = "https://repository.overheid.nl/sru"
     connector_rechtspraak: bool = False
     connector_bekendmakingen: bool = False
+    connector_wetgeving_live: bool = False
 
     # LLM (Azure AI Foundry / Anthropic)
     azure_foundry_api_key: str | None = None
@@ -199,6 +200,7 @@ class Settings(BaseModel):
             "kamerstukken_sru_url": e.get("KAMERSTUKKEN_SRU_URL"),
             "connector_rechtspraak": e.get("CONNECTOR_RECHTSPRAAK"),
             "connector_bekendmakingen": e.get("CONNECTOR_BEKENDMAKINGEN"),
+            "connector_wetgeving_live": e.get("CONNECTOR_WETGEVING_LIVE"),
             "azure_foundry_api_key": _read_secret(e, "AZURE_FOUNDRY_API_KEY"),
             "azure_foundry_base_url": e.get("AZURE_FOUNDRY_BASE_URL"),
             "llm_model": e.get("LLM_MODEL"),

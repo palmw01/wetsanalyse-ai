@@ -15,10 +15,10 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
+from bronmodel.bwb.models import ImportResult, ImportSummary
 
 import app.main as main_module
 from app.dekking import Stand
-from app.models import ImportResult, ImportSummary
 
 
 def _summary(bwb_id: str, *, bron: int, graaf: int) -> ImportSummary:

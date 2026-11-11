@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from bronmodel.bwb.models import Wet
+from bronmodel.bwb.parser import ToestandParser
 from lxml import etree
-
-from app.models import Wet
-from app.parser import ToestandParser
 
 
 def _parse(sample_xml: Path) -> Wet:

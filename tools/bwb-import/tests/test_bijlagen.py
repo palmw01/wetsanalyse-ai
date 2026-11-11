@@ -9,15 +9,15 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from bronmodel.bwb.parser import ToestandParser
+from bronmodel.bwb.references import jci_doel_ref_key, jci_node_ref_key
 from rdflib import Literal, URIRef
+from test_slottekst import _snapshot
 
 from app.collect import collect
 from app.dekking import Dekking, Stand, meet, poortbesluit
 from app.graphdb_writer import GraphDbWriter
-from app.parser import ToestandParser
 from app.rdf_vocab import Vocab
-from app.references import jci_doel_ref_key, jci_node_ref_key
-from test_slottekst import _snapshot
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample_bijlage_divisies.xml"
 V = Vocab()

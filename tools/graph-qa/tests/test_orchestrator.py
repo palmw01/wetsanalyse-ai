@@ -86,7 +86,8 @@ def test_max_turns_kapt_af_zonder_orphan_tooluse():
     assert "done" in types
     assert llm.index == 2                 # gestopt op de cap; geen 3e agent-call
     # Alleen de 1e beurt voerde tools uit; de 2e viel weg. De naamquery van finalize telt niet mee.
-    assert len([q for q in graph.queries if "bwb:citeertitel ?c" not in q]) == 1
+    # Eén lezing; de vraag of de regeling bestaat (na een lege lezing, `tools._niet_in_graaf`) telt niet mee.
+    assert len([q for q in graph.queries if "bwb:citeertitel ?c" not in q and "a bwb:Regeling . } LIMIT 1" not in q]) == 1
     token = "".join(e["content"] for e in events if e["type"] == "token")
     assert token.strip()                  # niet-leeg antwoord (de afkap-melding)
 

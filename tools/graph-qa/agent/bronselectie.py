@@ -56,6 +56,11 @@ Toets = Callable[[dict[str, Any], list[str], list[str], bool], dict[str, Any]]
 _TOETS: ContextVar[Toets | None] = ContextVar("bronselectie_toets", default=None)
 
 
+#: Een bepaling uit een regeling buiten de kennisgraaf (ADR-013, fase 1e): lezen kan, opnemen niet.
+NIET_IN_GRAAF = ("Lezen kan via de bron Wetgeving buiten de kennisgraaf; een bron van het werkgebied kan zo'n bepaling "
+                 "pas worden na een import in de graaf.")
+
+
 def intake_id(werkgebied_id: str) -> str:
     """Eén reeks kaartjes per werkgebied, ook over gesprekken heen."""
     return f"bs-{werkgebied_id}"[:64]
@@ -563,7 +568,7 @@ async def bepaling_treffers(api, wid: str, ov: dict[str, Any], tekst: str,
         except WetsanalyseApiFout as fout:
             if fout.status != 404:
                 raise
-            zinnen.append(f"De regeling van artikel {q} staat niet in de kennisgraaf.")
+            zinnen.append(f"De regeling van artikel {q} staat niet in de kennisgraaf. {NIET_IN_GRAAF}")
             continue
         gevonden = (uit.get("treffers") or [])[:1]
         if not gevonden:
@@ -625,7 +630,7 @@ async def noem(api, wid: str, ov: dict[str, Any], did: str, regels: list[str],
                 if fout.status not in (409, 422):
                     raise
                 zinnen.append(f"{t.get('vindplaats') or 'Deze bepaling'}: " + (
-                    "die staat niet in de kennisgraaf." if fout.status == 422 else
+                    f"die staat niet in de kennisgraaf. {NIET_IN_GRAAF}" if fout.status == 422 else
                     (fout.reden or "staat er al of is uitgesloten") + "."))
     if len(regels) > MAX_REGELS:
         zinnen.append(f"Ik nam de eerste {MAX_REGELS} regels; noem de rest in een volgende keer.")

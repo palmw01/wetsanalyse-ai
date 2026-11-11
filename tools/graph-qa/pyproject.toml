@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Juridische vraagbeantwoording via GraphDB-graaf (MCP)"
 requires-python = ">=3.11"
 dependencies = [
-    "wetsanalyse-bronmodel",
+    "wetsanalyse-bronmodel[bwb]",
     "anthropic>=1,<2",
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",

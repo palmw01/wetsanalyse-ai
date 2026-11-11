@@ -125,6 +125,10 @@ def _bereid_voor(b: Bouw, state: State, writer) -> dict[str, Any]:
         # aanduiding die de werkplek niet kan openen – de jurist ziet dan pas bij het openen dat er
         # iets mis is, en heeft ondertussen een document in zijn werkvoorraad dat nergens bij hoort.
         melding = f"Ik kan de gevraagde bepaling nu niet annoteren: {fout}."
+        if "bestaat niet" in str(fout) and (buiten := _niet_in_graaf(b, doel)) is not None:
+            # Een regeling buiten de kennisgraaf (ADR-013, fase 1e): annoteren vraagt een bronnode in de graaf.
+            melding = (f"Ik kan deze bepaling niet annoteren: {buiten} staat niet in de kennisgraaf, en annoteren kan pas "
+                       "na een import in de graaf. Lezen kan wel, via de bron Wetgeving buiten de kennisgraaf.")
         writer({"type": "token", "content": melding})
         return {"klaar": {"answer": melding, "voorstellen": [], "messages": [{"role": "assistant", "content": melding}]}}
 
@@ -340,3 +344,18 @@ def _emit_hergebruik(
     return {"answer": samenvatting, "focus": focus, "bronregister": _register(state, focus),
             "entities_seen": [focus["bron_iri"]] if focus["bron_iri"] else [],
             "messages": [{"role": "assistant", "content": _geheugenregel(focus, ", hergebruikt")}]}
+
+
+def _niet_in_graaf(b: Bouw, doel: dict[str, Any]) -> str | None:
+    """De regeling van het doel als die zeker niet in de kennisgraaf staat, anders None (ook bij een storing)."""
+    from ..tools.wetgeving_tools import GraafOnbekend, graaftoestanden
+
+    bwb_id = str(doel.get("bwbId") or "")
+    if not bwb_id:
+        return None
+    try:
+        if graaftoestanden(b.graph, [bwb_id]).get(bwb_id) is not None:
+            return None
+    except GraafOnbekend:
+        return None
+    return str(doel.get("citeertitel") or "") or bwb_id

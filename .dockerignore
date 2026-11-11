@@ -13,3 +13,8 @@ analyses/
 **/.env
 **/.env.*
 !**/.env.example
+
+# De bwb-import-image bouwt sinds de gedeelde BWB-lezer (bronmodel.bwb) vanaf de projectroot: zijn downloadcache en
+# tests horen niet in de context.
+tools/bwb-import/data/
+tools/bwb-import/tests/

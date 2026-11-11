@@ -57,6 +57,7 @@ METADATA_SLEUTELS: dict[str, str] = {
     "wetsverwijzing": "tekst", # de bepaling die het stuk noemt ("artikel 36 van de Invorderingswet 1990")
     "samenvatting": "tekst",   # een korte samenvatting van de bron zelf (de inhoudsindicatie), geen tekst van Lex
     "leesbaar": "waarheid",    # of de leestool de tekst kan lezen
+    "in_graaf": "waarheid",    # of de bron (een regeling) ook in de kennisgraaf staat; dan leest Lex haar daar
 }
 
 
@@ -95,7 +96,7 @@ class ConnectorBeschrijving:
     naam: str
     #: Leesbaar, voor het menu en de meldingen ("Kamerstukken").
     label: str
-    #: Het soort vindplaats (`extern.BRONTYPEN`, nooit `wettekst`).
+    #: Het soort vindplaats (`extern.BRONTYPEN`, nooit `wettekst`: dat is de kennisgraaf; live gelezen wet is `wettekst_live`).
     brontype: str
     #: De kop in de bronnenlijst van de werkplek ("Parlementaire stukken").
     groep: str
@@ -591,8 +592,126 @@ BEKENDMAKINGEN = ConnectorBeschrijving(
     vulwoorden=("bekendmaking", "officiële", "staatsblad", "staatscourant", "publicatie", "publicatieblad"),
 )
 
+#: De soorten regelingen in de woorden van de jurist, zoals `dcterms.type` van de BWB ze noemt. Alleen vormen die geen
+#: andere connector draagt: een lijstvraag over "ministeriële regelingen" in de Staatscourant blijft bij Bekendmakingen
+#: (die staat eerder in `CONNECTORS`).
+_REGELINGSOORTEN = (
+    ("wet", r"\bformele\s+wet(?:ten)?\b"),
+    ("AMvB", r"\balgemene\s+maatregel(?:en)?\s+van\s+bestuur\b"),
+    ("ministeriele-regeling", r"\bministeri[eë]le\s+regeling(?:en)?\b"),
+    ("beleidsregel", r"\bbeleidsregel(?:s)?\b"),
+    ("circulaire", r"\bcirculaire(?:s)?\b"),
+)
+
+WETGEVING_LIVE = ConnectorBeschrijving(
+    naam="wetgeving_live",
+    label="Wetgeving buiten de kennisgraaf",
+    brontype="wettekst_live",
+    groep="Wetgeving buiten de kennisgraaf",
+    dekt=("de wettekst van elke regeling in het Basiswettenbestand (wetten, AMvB's, ministeriële regelingen, "
+          "beleidsregels) die niet in de kennisgraaf staat, en de eerdere of toekomstige tekst van een regeling die er wel "
+          "in staat, live gelezen bij overheid.nl op een peildatum"),
+    # Een regeling bij naam herkent de code, niet een signaal: elke wetsnaam zou er een zijn. De signalen zijn de woorden
+    # waarmee een jurist deze bron zelf noemt.
+    signalen=(r"\bwetten\.overheid\.nl\b", r"\bbasiswettenbestand\b", r"\bbwbt:",
+              r"\b(?:eerdere|vorige|oude|toekomstige|historische)\s+(?:wets)?(?:tekst|versie|toestand)(?:en)?\b",
+              r"\bwettekst\s+(?:van|op)\s+\d{1,2}\s+\w+\s+\d{4}\b", r"\bbuiten\s+de\s+(?:kennis)?graaf\b"),
+    tools=frozenset({"zoek_regelingen", "zoek_artikelen", "get_wettekst"}),
+    leestool="get_wettekst",
+    lees_argument="id",
+    id_prefixen=("bwbt:",),
+    voorbeeld_id="bwbt:BWBR0015703:2026-07-01_0:artikel:31",
+    specialisten=frozenset({"definitie", "duiding", "algemeen"}),
+    rol_in_antwoord=("wat de wet zegt, letterlijk uit een toestand van het Basiswettenbestand die niet in de kennisgraaf "
+                     "staat: een regeling die niet geïmporteerd is, of de tekst op een andere peildatum dan de graaf. Noem "
+                     "altijd welke tekst het is (geldig van … tot …) en dat de bepaling niet in de kennisgraaf staat; "
+                     "annoteren of opnemen in een werkgebied kan pas na een import"),
+    kop_in_antwoord="Wettekst van overheid.nl (niet in de kennisgraaf)",
+    zonder_tekst="niet volledig te lezen",
+    grenzen=("leest één toestand van het Basiswettenbestand per keer, per artikel, lid, divisie of bijlage, met de opbouw "
+             "en zoeken op woorden in de tekst van één regeling. De huidige tekst van een regeling die in de kennisgraaf "
+             "staat, komt altijd uit de graaf, niet hieruit. Verwijzingen naar deze tekst, definities, annotaties, "
+             "begrippen en semantisch zoeken kent deze bron niet: die bestaan alleen in de kennisgraaf. Een bepaling "
+             "hieruit kan geen bron in een werkgebied worden en niet geannoteerd worden zonder import. Een toestand die "
+             "niet volledig te lezen is (een structuur die de lezer niet kent), weigert de bron in plaats van een deel"),
+    levert=("leden en onderdelen (met hun nummer en de koppen erboven)", "de status (vervallen, nog niet in werking)"),
+    niet_in_tekst=("tabellen als rijen en kolommen", "illustraties", "redactionele opmerkingen"),
+    werkwoorden={
+        "zoek_regelingen": ("zoekt de regeling „{naam}” in het Basiswettenbestand",
+                            "zoekt {bwb_id} in het Basiswettenbestand", "zoekt regelingen in het Basiswettenbestand"),
+        "zoek_artikelen": ("zoekt „{woorden}” in de tekst van {bwb_id}", "zoekt de artikelen van {bwb_id}",
+                           "zoekt de artikelen van een regeling"),
+        "get_wettekst": ("leest artikel {artikel} van {bwb_id} bij overheid.nl", "leest {id} bij overheid.nl",
+                         "leest wettekst bij overheid.nl"),
+    },
+    beheer=("De wettekst van het Basiswettenbestand, live bij overheid.nl (zoekdienst en repository van KOOP), met de "
+            "lezer van de importer. Voor regelingen die niet in de kennisgraaf staan en voor eerdere teksten. Openbaar, "
+            "zonder sleutel."),
+    voorbeeldvragen=(
+        "Wat zei de wettekst op 1 januari 2020 van artikel 9 van de Invorderingswet 1990?",
+        "Zoek de Participatiewet in het basiswettenbestand",
+        "Wat is de eerdere tekst van artikel 25 van de Invorderingswet 1990?",
+        "Lees bwbt:BWBR0015703:2026-07-01_0:artikel:31",
+    ),
+    # Uit de SRU van de BWB (`x-connection=BWB`), live getoetst op 11 nov 2026: `dcterms.modified` sorteert met `sortBy`,
+    # `overheid.authority` en `overheidbwb.rechtsgebied` filteren, `overheidbwb.citeertitel` bestaat niet als index.
+    metadata=(
+        MetadataVeld("datum", "geldig vanaf", "overheidbwb:geldigheidsperiode_startdatum; inwerking (artikel)",
+                     "sinds wanneer de tekst geldt: bij een regeling de toestand, bij een artikel zijn inwerkingtreding; "
+                     "niet de datum van de regeling zelf", filters=("peildatum",)),
+        MetadataVeld("nummer", "BWB-id", "dcterms:identifier",
+                     "het BWB-id van de regeling (BWBR…): daarmee lees je de opbouw en de artikelen"),
+        MetadataVeld("reeks", "plek in de regeling", "de structuur van de toestand (hoofdstuk, afdeling, paragraaf)",
+                     "de koppen boven een artikel, van boven naar beneden"),
+        MetadataVeld("in_graaf", "in de kennisgraaf", "bwb:Regeling in de kennisgraaf",
+                     "of de regeling ook in de kennisgraaf staat; dan lees je de huidige tekst daar (get_artikel)"),
+        MetadataVeld("gewijzigd", "laatst gewijzigd", "dcterms:modified",
+                     "wanneer de BWB de regeling het laatst bijwerkte; daarop ordenen 'nieuwste' en 'oudste'",
+                     sorteerbaar=True),
+        MetadataVeld("tekst_vanaf", "tekst geldig vanaf", "overheidbwb:geldigheidsperiode_startdatum",
+                     "het begin van de periode waarin de gelezen tekst geldt"),
+        MetadataVeld("tekst_tot", "tekst geldig tot", "overheidbwb:geldigheidsperiode_einddatum",
+                     "het einde van die periode; leeg als hij nog geldt"),
+        MetadataVeld("tekststand", "tekststand", "de peildatum tegenover de toestand in de kennisgraaf",
+                     "huidige tekst, eerdere tekst of toekomstige tekst; bij een regeling die niet in de graaf staat: de "
+                     "tekst op de peildatum"),
+        MetadataVeld("op_peildatum", "op de peildatum", "de gekozen toestand",
+                     "of de gelezen tekst gold op de peildatum (de toestand is erop gekozen, dus altijd waar)"),
+        MetadataVeld("inwerking", "in werking", "inwerking (artikel)",
+                     "wanneer deze tekst van het artikel in werking trad; bij 'nog niet in werking' de datum waarop het "
+                     "gaat gelden"),
+        MetadataVeld("titel", "titel", "dcterms:title", "de citeertitel van de regeling", filters=("naam",)),
+        MetadataVeld("soort", "soort", "dcterms:type",
+                     "het soort regeling: wet, AMvB, ministeriele-regeling, beleidsregel, circulaire", filters=("soort",)),
+        MetadataVeld("orgaan", "ministerie", "overheid:authority", "het verantwoordelijke ministerie",
+                     filters=("orgaan",)),
+        MetadataVeld("rechtsgebied", "rechtsgebied", "overheidbwb:rechtsgebied", "de rechtsgebieden volgens de BWB",
+                     filters=("rechtsgebied",)),
+        MetadataVeld("status", "status", "status (artikel)", "vervallen, nog niet in werking, of geldend"),
+        MetadataVeld("versie", "toestand", "locatie_toestand",
+                     "de toestand zoals het repository hem noemt (2026-07-01_0); een tweede op dezelfde datum (_1) is "
+                     "een later zichtbare versie"),
+        MetadataVeld("leesbaar", "leesbaar", "de bronmeting van de lezer",
+                     "of de toestand volledig te lezen is (dezelfde dekkingsdrempel als de importer)"),
+    ),
+    standaard_datum="gewijzigd",
+    volgordes=("relevantie", "nieuwste", "oudste"),
+    # Met een BWB-id is een artikel te lezen zonder naam; een naam lost de code op (zoek_regelingen of de vooraf-stap).
+    citeervormen=((r"\bartikel\s+(?P<artikel>[0-9]+[a-z]*(?:\.[0-9]+[a-z]*)*)\s+(?:van\s+)?(?P<bwb>BWB[RV]\d{7})\b",
+                   "bwbt:{bwb}:artikel:{artikel}"),
+                  (r"\b(?P<bwb>BWB[RV]\d{7})\s*,?\s*(?:art\.|artikel)\s*(?P<artikel>[0-9]+[a-z]*(?:\.[0-9]+[a-z]*)*)\b",
+                   "bwbt:{bwb}:artikel:{artikel}")),
+    soorten=_REGELINGSOORTEN,
+    organen=("Financiën", "Justitie en Veiligheid", "Binnenlandse Zaken en Koninkrijksrelaties",
+             "Sociale Zaken en Werkgelegenheid", "Volksgezondheid, Welzijn en Sport", "Infrastructuur en Waterstaat",
+             "Economische Zaken", "Onderwijs, Cultuur en Wetenschap"),
+    verzamelnamen=("basiswettenbestand",),
+    vulwoorden=("regeling", "regelingen", "toestand", "toestanden"),
+)
+
 #: De bronconnectors, in de volgorde van het menu en de beheertab.
-CONNECTORS: dict[str, ConnectorBeschrijving] = {c.naam: c for c in (KAMERSTUKKEN, BEKENDMAKINGEN, RECHTSPRAAK)}
+CONNECTORS: dict[str, ConnectorBeschrijving] = {
+    c.naam: c for c in (KAMERSTUKKEN, BEKENDMAKINGEN, RECHTSPRAAK, WETGEVING_LIVE)}
 
 #: De namen, als tuple voor een `Literal[NAMEN]` in de contracten.
 NAMEN: tuple[str, ...] = tuple(CONNECTORS)

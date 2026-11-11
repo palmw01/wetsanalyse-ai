@@ -11,15 +11,20 @@ Herkend worden alleen identifiers met een vaste, officiële vorm, en nooit een l
   `ah-tk-20232024-123` (parlementair, brontype `kamerstuk`) en `stb-2023-123`, `stcrt-2023-12345`
   (`bekendmaking`);
 - ECLI (`ECLI:NL:HR:2020:1234`, ook van andere landen en van het Hof van Justitie): `uitspraak`;
-- EU-recht met prefix `CELEX:32016R0679` of als ELI-URI (`http://data.europa.eu/eli/reg/2016/679/oj`): `eu`.
+- EU-recht met prefix `CELEX:32016R0679` of als ELI-URI (`http://data.europa.eu/eli/reg/2016/679/oj`): `eu`;
+- een bepaling uit een toestand van het BWB die Lex live las, buiten de kennisgraaf (connector `wetgeving_live`):
+  `bwbt:BWBR0015703:2026-07-01_0:artikel:31`, brontype `wettekst_live`. Na `bwbt:` staan het BWB-id, de toestand zoals
+  het repository hem noemt en de staart van de graaf-IRI (`urn:bwb:BWBR0015703:artikel:31` na een import). Een jci of een
+  `urn:bwb:`-IRI kan het niet zijn: die opent de werkplek uit de graaf, en de graaf draagt ook jci's met `g=`/`z=`.
 """
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from urllib.parse import unquote
 
 #: De brontypen, in de volgorde waarin de werkplek ze toont. `wettekst` is de BWB (`vindplaats`).
-BRONTYPEN = ("wettekst", "kamerstuk", "bekendmaking", "uitspraak", "eu")
+BRONTYPEN = ("wettekst", "wettekst_live", "kamerstuk", "bekendmaking", "uitspraak", "eu")
 
 _STOP = r"(?![0-9A-Za-z])"
 _KOOP_RE = re.compile(
@@ -27,6 +32,13 @@ _KOOP_RE = re.compile(
 _ECLI_RE = re.compile(r"(?<![0-9A-Za-z])ECLI:[A-Z]{2}:[A-Z0-9]{1,7}:\d{4}:[A-Z0-9.]{1,25}", re.I)
 _CELEX_RE = re.compile(r"(?<![0-9A-Za-z])CELEX:([0-9CE]\d{4}[A-Z]{1,2}\d{4}[0-9A-Z_]*(?:\(\d{2}\))?)", re.I)
 _ELI_RE = re.compile(r"https?://data\.europa\.eu/eli/[a-z_]+/\d{4}/\d+(?:/[0-9A-Za-z_-]+)*")
+#: De sleutels van de staart, zoals de importer ze in de graaf-IRI schrijft (`Vocab.by_ref_key`); een waarde is
+#: percent-escaped, dus zonder dubbele punt.
+_BWBT_SLEUTELS = r"(?:hoofdstuk|titeldeel|afdeling|paragraaf|artikel|lid|o|bijlage|divisie|id)"
+_BWBT_RE = re.compile(r"(?<![0-9A-Za-z])bwbt:(BWB[RV]\d+)(?::(\d{4}-\d{2}-\d{2}_\d+))?"
+                      r"((?::" + _BWBT_SLEUTELS + r":[0-9A-Za-z%_~-](?:[0-9A-Za-z%._~-]*[0-9A-Za-z%_~-])?)*)"
+                      r"(?![0-9A-Za-z%_~:-]|\.[0-9A-Za-z])")
+_BWBT_NAAM = {"o": "onderdeel"}
 
 _PARLEMENTAIR = {"kst", "blg", "h-tk", "h-ek", "ah-tk", "ah-ek"}
 _KAMER = {"tk": "II", "ek": "I"}
@@ -81,6 +93,30 @@ def _koop(ident: str) -> ExterneVindplaats:
     return ExterneVindplaats(brontype, ident, f"https://zoek.officielebekendmakingen.nl/{ident}", label)
 
 
+def _bwbt(m: re.Match[str]) -> ExterneVindplaats:
+    """`bwbt:BWBR0015703:2026-07-01_0:artikel:31` → "BWBR0015703, artikel 31 (toestand 2026-07-01_0)". Zonder toestand
+    (`bwbt:BWBR0015703:artikel:31`) is het een verzoek: de leestool kiest de toestand op de peildatum, en het `stuk` dat
+    hij teruggeeft draagt hem altijd. Het label uit het id kent de citeertitel niet; dat geeft de leestool."""
+    bwb, versie, staart = m.group(1), m.group(2) or "", m.group(3) or ""
+    delen = staart.strip(":").split(":") if staart else []
+    paren = list(zip(delen[::2], delen[1::2]))
+    plek = ", ".join(f"{_BWBT_NAAM.get(k, k)} {unquote(v)}" for k, v in paren if k != "id")
+    label = bwb + (f", {plek}" if plek else "") + (f" (toestand {versie})" if versie else "")
+    ident = f"bwbt:{bwb}" + (f":{versie}" if versie else "") + staart
+    datum = versie.split("_", 1)[0]
+    uri = f"https://wetten.overheid.nl/{bwb}/{datum}" if datum else f"https://wetten.overheid.nl/{bwb}"
+    return ExterneVindplaats("wettekst_live", ident, uri, label)
+
+
+def bwbt_delen(ident: str) -> tuple[str, str, tuple[tuple[str, str], ...]] | None:
+    """(bwb_id, toestand, (sleutel, waarde)…) uit een `bwbt:`-id, met de waarden ontsleuteld; None als het er geen is."""
+    m = _BWBT_RE.fullmatch((ident or "").strip())
+    if not m:
+        return None
+    delen = (m.group(3) or "").strip(":").split(":") if m.group(3) else []
+    return m.group(1), m.group(2) or "", tuple((k, unquote(v)) for k, v in zip(delen[::2], delen[1::2]))
+
+
 def _ecli(ident: str) -> ExterneVindplaats:
     ident = ident.upper().rstrip(".")
     uri = f"https://deeplink.rechtspraak.nl/uitspraak?id={ident}" if ident.startswith("ECLI:NL:") else ""
@@ -128,6 +164,8 @@ def externe_vindplaats(ref: str) -> ExterneVindplaats | None:
     for patroon, maak in ((_KOOP_RE, _koop), (_ECLI_RE, _ecli), (_ELI_RE, _eli)):
         if patroon.fullmatch(ref.rstrip(".")):
             return maak(ref.rstrip("."))
+    if m := _BWBT_RE.fullmatch(ref.rstrip(".")):
+        return _bwbt(m)
     if m := _CELEX_RE.fullmatch(ref.rstrip(".")):
         return _celex(m.group(1))
     return None
@@ -141,6 +179,7 @@ def externe_verwijzingen_met_plek(tekst: str) -> list[tuple[int, ExterneVindplaa
     for patroon, maak in ((_KOOP_RE, _koop), (_ECLI_RE, _ecli), (_ELI_RE, _eli)):
         gevonden += [(m.start(), maak(m.group(0).rstrip("."))) for m in patroon.finditer(tekst or "")]
     gevonden += [(m.start(), _celex(m.group(1))) for m in _CELEX_RE.finditer(tekst or "")]
+    gevonden += [(m.start(), _bwbt(m)) for m in _BWBT_RE.finditer(tekst or "")]
     uit: dict[str, tuple[int, ExterneVindplaats]] = {}
     for plek, vp in sorted(gevonden, key=lambda p: p[0]):
         uit.setdefault(vp.id, (plek, vp))

@@ -6,8 +6,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from bronmodel.bwb.parser import ToestandParser
+
 from app.collect import collect
-from app.parser import ToestandParser
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 TABEL = ("<table><tgroup cols=\"2\"><tbody><row><entry><al>Afk.</al></entry><entry><al>Betekenis</al></entry></row>"

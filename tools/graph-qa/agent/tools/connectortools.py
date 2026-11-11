@@ -68,8 +68,18 @@ def _rechtspraak() -> ConnectorModule:
         dispatch=r.dispatch_rechtspraak, fout=RechtspraakFout, fout_van=r.fout_van, foutredenen=r.FOUTREDEN)
 
 
+def _wetgeving_live() -> ConnectorModule:
+    from ..adapters.sru_bwb import BwbFout, SruBwb
+    from . import wetgeving_tools as w
+
+    return ConnectorModule(
+        naam=w.CONNECTOR, tools=w.WETGEVING_TOOLS, maak_bron=lambda _s: SruBwb(),
+        dispatch=w.dispatch_wetgeving, fout=BwbFout, fout_van=w.fout_van, foutredenen=w.FOUTREDEN)
+
+
 #: Per connector (de naam uit `bronmodel.connectors`) zijn module.
-MODULES: dict[str, ConnectorModule] = {m.naam: m for m in (_kamerstukken(), _bekendmakingen(), _rechtspraak())}
+MODULES: dict[str, ConnectorModule] = {m.naam: m for m in (_kamerstukken(), _bekendmakingen(), _rechtspraak(),
+                                                           _wetgeving_live())}
 
 
 def module_van(tool: str) -> ConnectorModule | None:

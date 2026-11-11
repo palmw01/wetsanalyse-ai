@@ -125,7 +125,7 @@ def test_het_schema_is_geldig_en_vangt_een_onvolledig_resultaat_zonder_vervolg()
 
 def _harnas():
     """Elke contracttool met zijn worst-case argumenten uit de contractharnas, alle pagina's."""
-    from test_resultaatcontract import ARGS, CONNECTOR_ARGS, NEPBRONNEN, WorstCaseGraaf, _aanroep, _connector
+    from test_resultaatcontract import ARGS, CONNECTOR_ARGS, NEPBRONNEN, WorstCaseGraaf, _aanroep, _connector, nepgraaf
 
     for naam, args in ARGS.items():
         yield naam, lambda n, a, g=WorstCaseGraaf(): _aanroep(n, a, g), args
@@ -134,7 +134,7 @@ def _harnas():
         for args, _ in lijst:
             bron = NEPBRONNEN[c](1001, alineas=300)
             inst = make_settings(**{f"connector_{c}": True})
-            yield naam, lambda n, a, b=bron, i=inst, c=c: tools.dispatch(n, None, a, i, **{c: b}), args
+            yield naam, lambda n, a, b=bron, i=inst, c=c, g=nepgraaf(c): tools.dispatch(n, g, a, i, **{c: b}), args
 
 
 def test_structured_content_voldoet_aan_het_schema_voor_elke_contracttool():

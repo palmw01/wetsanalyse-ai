@@ -18,13 +18,15 @@ RUN apt-get update \
 RUN pip install --no-cache-dir --upgrade pip 'setuptools>=83.0.0' \
  && rm -f /usr/local/lib/python3.14/site-packages/pip/_vendor/bom.cdx.json
 
-# Dependencies (betere layer-caching). lxml-wheels bundelen libxml2/libxslt.
-COPY requirements.txt .
+# Dependencies (betere layer-caching). lxml-wheels bundelen libxml2/libxslt. De buildcontext is de projectroot (zoals
+# bij api en graph-qa): de BWB-lezer en de officiële XSD's staan in packages/bronmodel (`bronmodel.bwb`), gedeeld met
+# graph-qa. requirements.txt noemt hem als `../../packages/bronmodel[bwb]`; vanuit /app is dat /packages/bronmodel.
+COPY packages/bronmodel /packages/bronmodel
+COPY tools/bwb-import/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Applicatiecode en de officiële XSD's.
-COPY app ./app
-COPY schemas ./schemas
+# Applicatiecode.
+COPY tools/bwb-import/app ./app
 
 # Niet als root (SEC-12), net als de andere images. De importer schrijft alleen zijn downloadcache (`BWB_DATA_DIR`,
 # standaard /app/data); die map is van de gebruiker.

@@ -16,6 +16,7 @@ Pakketnaam `wetsanalyse-bronmodel`, import `bronmodel`. Python ≥ 3.11; de enig
 | `bronmodel.antwoord` | Het antwoord als sjabloon, het contract tussen agent, api en werkplek ([ADR-008](../../docs/architectuur/adr-008-antwoordsjablonen.md)). |
 | `bronmodel.corpus` | Spans over de tekst van meer bronnodes: `CorpusMap`, `CorpusSegment`, `Span`, `SpanFout`, `SCHEIDING`. |
 | `bronmodel.vindplaats` | Van graaf-IRI of jci naar de vindplaats: `vindplaats`, `Vindplaats`. |
+| `bronmodel.bwb` | De lezer van de BWB-toestand-XML (parser, modellen, verwijzingen, bronmeting, XSD's; extra `bwb` met lxml), gedeeld door de importer en de connector `wetgeving_live` van graph-qa: dezelfde tekst, hash en jci. `boom` loopt door de artikelen en telt de tekst zoals de importer hem schrijft. |
 | `bronmodel.extern` | Vindplaatsen buiten de wettekst (ADR-013): `externe_vindplaats`, `externe_verwijzingen`, `ExterneVindplaats`, `BRONTYPEN`. De werkplek parseert ze niet zelf: hij leest `brontype` en `link` op de bron. |
 | `bronmodel.taal` | Kleine gedeelde lijsten: `RANGTELWOORDEN`, `rangnummers`, `normaliseer_vraag` (de sleutel van een deelvraag) en `BRON_IRI`. De importer en de logredactie houden een eigen kopie; `tests/poort/test_gedeelde_lijsten.py` bewaakt die. |
 | `bronmodel.definities` | Het geldingsbereik van een wettelijke definitie: `geldigheid_uit`, `Geldigheid`, `losse_termen`, `term_vindplaats`. |

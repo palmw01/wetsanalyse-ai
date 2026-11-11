@@ -197,3 +197,58 @@ def test_een_genoemd_id_van_een_uitgezette_bron_wordt_niet_gelezen():
     b = _bouw()
     upd = supervisie.supervisor_node(b, state)
     assert supervisie._entry_node(b, {**state, **upd}) == "afwijzen" and not upd.get("bron_lezen")
+
+
+_LIVE = {"wetgeving_live": {"naam": "wetgeving_live", "label": "Wetgeving buiten de kennisgraaf", "aan": True,
+                            "reden": "aan"}}
+
+
+@pytest.fixture
+def _wetgeving_live(monkeypatch):
+    """De connector Wetgeving buiten de kennisgraaf tegen de opnames van overheid.nl (`test_wetgeving_tools.py`), met een
+    graaf waarin alleen de Iw 1990 staat."""
+    from agent import buiten_graaf
+    from agent.tools import wetgeving_tools as w
+    from agent.tools.connectortools import MODULES
+    from test_wetgeving_tools import VANDAAG, _bron, _graaf
+
+    monkeypatch.setattr(MODULES["wetgeving_live"], "_bron", _bron())
+    monkeypatch.setattr(buiten_graaf, "_graafnamen", lambda graph: {"invorderingswet 1990"})
+    import dataclasses
+    import datetime as dt
+
+    class _Datum(dt.date):
+        @classmethod
+        def today(cls):
+            return dt.date.fromisoformat(VANDAAG)
+    monkeypatch.setattr(dt, "date", _Datum)
+    w._graaf_stand.clear()
+    yield dataclasses.replace(_bouw(), graph=_graaf())
+    w._graaf_stand.clear()
+
+
+def test_een_genoemd_artikel_buiten_de_graaf_wordt_zonder_model_gelezen(_wetgeving_live):
+    vraag = "Wat staat er in artikel 31 van de Participatiewet?"
+    state = {"question": vraag, "modus": "auto", "focus": {}, "bronstand": _LIVE,
+             "messages": [{"role": "user", "content": vraag}]}
+    upd = supervisie.supervisor_node(_wetgeving_live, state)
+    assert supervisie._entry_node(_wetgeving_live, {**state, **upd}) == "bron_lezen"
+    assert upd["bron_lezen"] == [{"name": "get_wettekst", "input": {"bwb_id": "BWBR0015703", "artikel": "31"}}]
+    assert "REGELINGEN BUITEN DE KENNISGRAAF" in upd["plan"]
+
+
+def test_een_dubbelzinnige_afkorting_wordt_een_vraag_terug_zonder_model(_wetgeving_live):
+    vraag = "Wat staat er in artikel 1 Pw?"
+    state = {"question": vraag, "modus": "auto", "focus": {}, "bronstand": _LIVE,
+             "messages": [{"role": "user", "content": vraag}]}
+    upd = supervisie.supervisor_node(_wetgeving_live, state)
+    assert upd["afwijzen"] and "Welke bedoel je?" in upd["afwijs_melding"] and "Participatiewet" in upd["afwijs_melding"]
+
+
+def test_zonder_de_connector_geen_verzoek_naar_overheid(_wetgeving_live, monkeypatch):
+    from agent.tools.connectortools import MODULES
+
+    monkeypatch.setattr(MODULES["wetgeving_live"], "_bron", None)
+    vraag = "Wat staat er in artikel 31 van de Participatiewet?"
+    uit = {"wetgeving_live": {**_LIVE["wetgeving_live"], "aan": False, "reden": "straat"}}
+    assert supervisie._buiten_graaf(_wetgeving_live, {"bronstand": uit}, vraag) == []

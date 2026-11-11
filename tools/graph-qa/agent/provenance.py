@@ -21,7 +21,8 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable, Iterator
 
-from bronmodel.extern import externe_verwijzingen, externe_vindplaats
+from bronmodel.connectors import CONNECTORS
+from bronmodel.extern import ExterneVindplaats, externe_verwijzingen, externe_vindplaats
 from bronmodel.vindplaats import vindplaats
 
 from .models import Source
@@ -40,6 +41,19 @@ _BWB_RE = re.compile(r"\bBWBR\d+\b")
 # telde dat id als losse bron, dan leek een annotatie de wettekst te onderbouwen terwijl er geen
 # wettekst was opgehaald. Die IRI's worden daarom weggelaten vóór het zoeken.
 _AFGELEID_RE = re.compile(r"urn:jas[:\-][^\s\"'<>)\]}\\`*]*")
+
+
+#: De tools van een connector die wettekst buiten de kennisgraaf leest (`wettekst_live`). Hun rijen dragen BWB-id's en
+#: jci's van een toestand die niet in de graaf staat; telde `iter_refs` die, dan stond er een graafbron in de lijst die de
+#: werkplek uit de graaf opent (en daar niet vindt). Van zo'n tool telt alleen het gelezen stuk, onder zijn eigen id.
+LIVE_WETTEKST_TOOLS: frozenset[str] = frozenset(
+    t for c in CONNECTORS.values() if c.brontype == "wettekst_live" for t in c.tools)
+
+
+def _gelezen_live(text: str) -> ExterneVindplaats | None:
+    stuk = (is_contract(text) or {}).get("stuk")
+    vp = externe_vindplaats(str(stuk.get("id") or "")) if isinstance(stuk, dict) else None
+    return vp if vp is not None and vp.brontype == "wettekst_live" else None
 
 
 def _clean(uri: str) -> str:
@@ -143,6 +157,13 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
         if not text or tool in AFGELEIDE_TOOL_NAMEN:
             continue
         labels = _labels(text)
+        if tool in LIVE_WETTEKST_TOOLS:
+            if (ext := _gelezen_live(text)) is not None and ext.id not in per_node:
+                bron = Source(label=labels.get(ext.id) or ext.label, uri=ext.id, origin_tool=tool,
+                              brontype=ext.brontype, link=ext.uri or None)
+                per_node[ext.id] = bron
+                sources.append(bron)
+            continue
         # De waarden van een contractresultaat (`resultaat.waarden`), niet zijn JSON-tekst.
         for uri, iri, jci in iter_refs(waarden(text)):
             if (ext := externe_vindplaats(uri)) is not None:

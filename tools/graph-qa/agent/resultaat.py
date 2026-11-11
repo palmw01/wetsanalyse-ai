@@ -66,6 +66,9 @@ REDEN_ZIN: dict[str, str] = {
     "onleesbaar_document": "het stuk is niet te lezen",
     "overzicht_niet_opgebouwd": "het overzicht kon niet worden opgebouwd",
     "onvolledig_antwoord": "gaf een onvolledig antwoord",
+    "in_graaf": "staat in de kennisgraaf; daar gelezen",
+    "niet_in_graaf": "staat niet in de kennisgraaf",
+    "toestand_onvolledig": "de tekst is niet volledig te lezen",
 }
 
 

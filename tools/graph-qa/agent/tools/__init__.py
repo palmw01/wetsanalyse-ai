@@ -176,8 +176,38 @@ def _werking(kop: dict[str, Any]) -> dict[str, bool]:
     return {"nog_niet_in_werking": True} if kop.get("status") == NOG_NIET else {}
 
 
+def _q_regeling_bestaat(bwb_id: str) -> str:
+    """Staat deze regeling in de kennisgraaf? Eén rij of geen."""
+    return queries.PREFIXES + (f"SELECT ?r WHERE {{ BIND(<{queries.regeling_iri(bwb_id)}> AS ?r) "
+                               "?r a bwb:Regeling . } LIMIT 1")
+
+
+def _niet_in_graaf(g: GraphPort, bwb_id: str, lezen: dict[str, Any]) -> str | None:
+    """Een foutresultaat als de regeling niet in de kennisgraaf staat, anders None. Alleen na een lege lezing: één lichte
+    vraag. Zonder dit gaf `get_artikel` bij een onbekend BWB-id `status: ok` met een opgebouwde iri, die in de trace als
+    vindplaats telde, en gooiden `get_bepaling` en `inhoudsopgave` een kale fouttekst. Het model kon dan doen alsof de
+    wet niet bestaat, of de iri als bron noemen. Een storing bij deze vraag is geen bewijs: dan None."""
+    try:
+        ruw = g.sparql(_q_regeling_bestaat(bwb_id))
+    except Exception:  # noqa: BLE001 – onbekend is geen "staat er niet in"
+        return None
+    # Alleen een geldig leeg antwoord (de kop `?r` zonder rij) bewijst dat de regeling er niet in staat; een antwoord
+    # zonder kop is onleesbaar, en dus geen bewijs.
+    if parse_select(ruw) or "?r" not in str(ruw or ""):
+        return None
+    return fout("niet_in_graaf", (
+        f"{bwb_id} staat niet in de kennisgraaf. Staat de bron Wetgeving buiten de kennisgraaf in deze beurt aan (zie "
+        "BRONNEN IN DEZE BEURT), lees de tekst dan live met get_wettekst en zeg dat hij niet uit de kennisgraaf komt; "
+        "anders: zeg dat deze regeling niet in de kennisgraaf staat, en antwoord niet uit eigen kennis. Voor een werkgebied "
+        "of een annotatie moet de regeling eerst in de graaf geïmporteerd worden."),
+        bwb_id=bwb_id, alternatief={"tool": "get_wettekst" if lezen else "zoek_artikelen",
+                                    "args": {"bwb_id": bwb_id, **lezen}})
+
+
 def _h_get_artikel(g: GraphPort, a: dict[str, Any]) -> str:
     rijen = parse_select(g.sparql(queries.get_artikel(a["bwb_id"], a["artikel"])))
+    if not rijen and (weg := _niet_in_graaf(g, a["bwb_id"], {"artikel": a["artikel"]})):
+        return weg
     kop = rijen[0] if rijen else {}
     artikel = {"iri": queries.artikel_iri(a["bwb_id"], a["artikel"]), "tekst": kop.get("tekst", ""), "jci": kop.get("jci", ""),
                **_werking(kop)}
@@ -199,6 +229,8 @@ def _h_get_artikel(g: GraphPort, a: dict[str, Any]) -> str:
 
 def _h_get_lid(g: GraphPort, a: dict[str, Any]) -> str:
     rijen = parse_select(g.sparql(queries.get_lid(a["bwb_id"], a["artikel"], a["lid"])))
+    if not rijen and (weg := _niet_in_graaf(g, a["bwb_id"], {"artikel": a["artikel"], "lid": a["lid"]})):
+        return weg
     kop = rijen[0] if rijen else {}
     lid = {"iri": queries.lid_iri(a["bwb_id"], a["artikel"], a["lid"]), "nummer": kop.get("nummer", ""),
            "tekst": kop.get("tekst", ""), "jci": kop.get("jci", ""), **_werking(kop)}
@@ -212,6 +244,8 @@ def _h_get_lid(g: GraphPort, a: dict[str, Any]) -> str:
 
 def _h_get_bepaling(g: GraphPort, a: dict[str, Any]) -> str:
     rijen = parse_select(g.sparql(queries.get_bepaling(a["bwb_id"], a["nummer"])))
+    if not rijen and (weg := _niet_in_graaf(g, a["bwb_id"], {"artikel": a["nummer"]})):
+        return weg
     if not rijen:
         raise ValueError(f"Bepaling {a['nummer']!r} niet gevonden in {a['bwb_id']}.")
     kop = rijen[0]
@@ -264,6 +298,8 @@ _INHOUD_DIEPTE = 4
 def _h_inhoudsopgave(g: GraphPort, a: dict[str, Any]) -> str:
     bwb_id, vanaf = a["bwb_id"], a.get("vanaf") or None
     rijen = parse_select(g.sparql(queries.inhoudsopgave(bwb_id, vanaf, _INHOUD_DIEPTE)))
+    if not rijen and not vanaf and (weg := _niet_in_graaf(g, bwb_id, {})):
+        return weg
     if not rijen:
         raise ValueError(f"Geen structuur gevonden voor {bwb_id}" + (f" vanaf {vanaf!r}" if vanaf else "")
                          + ". Controleer het BWB-id (list_regelingen) of het deel.")

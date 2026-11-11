@@ -14,16 +14,7 @@ from pathlib import Path
 
 import pytest
 import requests
-from rdflib import OWL, RDF, RDFS, XSD, Literal, URIRef
-
-from app.collect import collect, structuurindex
-from app.dekking import Stand
-from app.graphdb_writer import (
-    GraphDbWriter,
-    _fts_connector_config,
-    _similarity_index_config,
-)
-from app.models import (
+from bronmodel.bwb.models import (
     Artikel,
     Divisie,
     Lid,
@@ -33,7 +24,16 @@ from app.models import (
     VerwijzingSoort,
     Wet,
 )
-from app.parser import ToestandParser
+from bronmodel.bwb.parser import ToestandParser
+from rdflib import OWL, RDF, RDFS, XSD, Literal, URIRef
+
+from app.collect import collect, structuurindex
+from app.dekking import Stand
+from app.graphdb_writer import (
+    GraphDbWriter,
+    _fts_connector_config,
+    _similarity_index_config,
+)
 from app.rdf_vocab import Vocab
 
 FIXTURES = Path(__file__).parent / "fixtures"
