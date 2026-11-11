@@ -776,7 +776,7 @@ def test_een_genoemd_stuk_met_alleen_een_pdf_is_een_melding_uit_code(monkeypatch
     """K12 (ronde 1, 11 nov 2026): het model formuleerde zelf wat de code al wist."""
     pdf = _record_xml("kst-1278484", dossiers=("32140",), datum="2026-10-16", gepubliceerd="2026-10-16")
     leemte, lijst = _beurt("Wat staat er in kst-32140-342?", _koop(Koop({}, {("32140", "342"): [pdf]})), monkeypatch)
-    assert leemte["soort"] == "leemte" and "alleen als PDF (onopgemaakt, alleen PDF)" in leemte["tekst"]
+    assert leemte["soort"] == "leemte" and "alleen als PDF (onopgemaakt):" in leemte["tekst"]
     assert lijst["soort"] == "stukken" and lijst["kop"] == "Uit de parlementaire geschiedenis"
     assert lijst["items"][0]["id"] == "kst-1278484" and lijst["items"][0]["label"] == "Kamerstukken 32140, nr. 342"
 
@@ -805,3 +805,17 @@ def test_een_stuk_uit_een_gezamenlijke_behandeling_zegt_dat_in_de_lijst():
     regels = [r for r in antwoord_tekst(Antwoord(sjabloon="extern", blokken=[blok])).splitlines() if r.startswith("- ")]
     assert regels[0] == "- Kamerstukken 33755, nr. 3"
     assert regels[1] == "- Kamerstukken 33752, nr. L (gezamenlijk behandeld: 33752–33755)"
+
+
+@pytest.mark.parametrize("connector,verwacht", [
+    ("kamerstukken", " (onopgemaakt)"),     # "onopgemaakt, alleen PDF": alleen wat nieuw is
+    ("bekendmakingen", ""),                 # "alleen als PDF": niets nieuws, dus geen haakjes (B07, Staatsblad ronde 3)
+    ("rechtspraak", " (geen tekst in de open data)"),
+    ("wetgeving_live", " (niet volledig te lezen)"),
+])
+def test_de_vaste_pdf_zin_herhaalt_de_connector_niet(connector, verwacht):
+    from agent.nodes.bron_lezen import _wat_nieuw
+    from bronmodel.connectors import CONNECTORS
+    c = CONNECTORS[connector]
+    extra = _wat_nieuw(c.zonder_tekst, "alleen als PDF")
+    assert (f" ({extra})" if extra else "") == verwacht

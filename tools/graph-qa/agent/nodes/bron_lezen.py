@@ -12,6 +12,7 @@ Dezelfde vorm als de leesroute voor annotaties (`annotatie_lezen.zoek_annotaties
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 from uuid import uuid4
 
@@ -144,7 +145,7 @@ def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]
                                     "de bron: er is alleen de beschrijving hieronder. Lees de tekst via de link."))
     if pdf:
         c = van_id(pdf[0])
-        hoe = f" ({c.zonder_tekst})" if c is not None and c.zonder_tekst else ""
+        hoe = f" ({extra})" if c is not None and (extra := _wat_nieuw(c.zonder_tekst, "alleen als PDF")) else ""
         blokken.append(Leemte(tekst=f"{'Dit stuk staat' if len(pdf) == 1 else 'Deze stukken staan'} bij de bron alleen "
                                     f"als PDF{hoe}: de tekst kan ik niet lezen of citeren. De beschrijving staat hieronder; "
                                     "lees het stuk via de link."))
@@ -154,6 +155,15 @@ def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]
         blokken.append(Leemte(tekst=f"{ident} is{bij} niet gevonden. Controleer het id, of vraag mij naar de stukken "
                                     "waar het bij hoort; zonder tekst zeg ik er niets over."))
     return Antwoord(sjabloon="extern", blokken=[*blokken, *stukken])
+
+
+def _wat_nieuw(toevoeging: str, zin: str) -> str:
+    """Wat `toevoeging` zegt naast `zin`: de delen (tussen komma's) met een woord dat er nog niet in staat. "alleen als
+    PDF" achter "alleen als PDF" gaf "alleen als PDF (alleen als PDF)" (Staatsblad ronde 3, B07); bij Kamerstukken
+    blijft van "onopgemaakt, alleen PDF" alleen "onopgemaakt" over."""
+    al = {w.lower() for w in re.findall(r"\w+", zin)}
+    delen = [d.strip() for d in toevoeging.split(",") if d.strip()]
+    return ", ".join(d for d in delen if {w.lower() for w in re.findall(r"\w+", d)} - al)
 
 
 def _genoemd(gebruik: list[dict[str, Any]] | None, i: int) -> str:
