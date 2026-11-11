@@ -352,7 +352,12 @@ bruikbaar is.
   een van die versies de huidige is. Het resultaat draagt `huidige_tekst`, `per_tekststand` en `tekstversies`, en het
   filter `tekststand` kiest. Kent LiDO de huidige tekst nog niet, dan zegt de toelichting dat. LiDO koppelt naar de
   datum van de uitspraak, niet naar de tekst die de rechter toepaste: dat zegt de toolregel (`_VERSIE`). De peildatum
-  van het werkgebied staat in `werkgebied_context`. Het blok `extern` neemt de tekstvelden uit de zoekrij
+  van het werkgebied staat in `werkgebied_context` (voor het model) en in `State.werkgebied_peildatum`: de vaste
+  lijstroute geeft hem mee als de zoektool het argument kent en de vraag een artikel noemt (`bron_lijst.met_peildatum`;
+  meting `rechtspraak-versies-2026-11-11`, vraag 5). Een koppeling die LiDO alleen in RDF gaf, heeft geen titel: `_aangevuld` haalt dan
+  datum, gerecht, titel en zaaknummer uit de metadata van de Rechtspraak (`LidoRechtspraak.metadata`, `return=META`,
+  gecachet als de waardelijsten), vóór het sorteren tot `MAX_AANVULLEN` rijen, daarboven alleen voor de getoonde pagina;
+  lukt dat niet, dan blijft het jaar uit de ECLI staan (vraag 3). Het blok `extern` neemt de tekstvelden uit de zoekrij
   (`extern._tekst_bij`, `TEKSTVELDEN`), want de leestool kent het artikel niet. `tests/test_rechtspraak_tools.py`,
   live `tests/test_rechtspraak_live.py`, meting `docs/architectuur/metingen/lido-spike-2026-11-10/`.
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION).

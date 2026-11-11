@@ -207,6 +207,8 @@ class NepBron:
     versies: tuple[str, ...] = (V_NU, V_2016)
     onvolledig: tuple = ()
     docs: dict[str, bytes] = field(default_factory=dict)
+    meta: dict[str, bytes] = field(default_factory=dict)
+    metavragen: list[str] = field(default_factory=list)
 
     def koppelingen(self, bwb_id, artikel, jci=""):
         return Koppelingen(tuple(self.links), self.versies, self.onvolledig, "ref", {})
@@ -215,6 +217,12 @@ class NepBron:
         if ecli not in self.docs:
             raise RechtspraakFout(f"{ecli} staat niet in de open data", code="niet_gevonden")
         return L.Document(ecli, self.docs[ecli], "h1", "2025-03-22")
+
+    def metadata(self, ecli):
+        self.metavragen.append(ecli)
+        if ecli not in self.meta:
+            raise RechtspraakFout(f"{ecli} staat niet in de open data", code="niet_gevonden")
+        return self.meta[ecli]
 
 
 LINKS = [
@@ -675,3 +683,59 @@ def test_terugwerkende_kracht_telt_als_de_huidige_tekst():
 def test_een_invoerfout_bij_de_tekststand(args, reden):
     uit = _zoek(args, links=VERSIELINKS, graaf=_artikel("2023-01-01"), versies=DRIE)
     assert uit["status"] == "error" and uit["reden"] == reden and "bijvoorbeeld" in uit["melding"]
+
+
+def _meta(ecli: str, gerecht: str, datum: str, zaak: str) -> bytes:
+    """Het antwoord van de Rechtspraak op `return=META`: alleen de RDF-beschrijving."""
+    d, m, j = datum.split("-")
+    return f"""<open-rechtspraak xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:dcterms="http://purl.org/dc/terms/" xmlns:psi="http://psi.rechtspraak.nl/">
+<rdf:RDF><rdf:Description>
+  <dcterms:identifier>{ecli}</dcterms:identifier><dcterms:creator>{gerecht}</dcterms:creator>
+  <dcterms:date>{j}-{m}-{d}</dcterms:date><psi:zaaknummer>{zaak}</psi:zaaknummer>
+  <dcterms:title>{ecli}, {gerecht}, {datum}, {zaak}</dcterms:title>
+</rdf:Description></rdf:RDF></open-rechtspraak>""".encode()
+
+
+def test_een_uitspraak_zonder_titel_krijgt_datum_en_gerecht_uit_de_metadata():
+    """Meting 11 nov 2026 (`rechtspraak-versies-2026-11-11`, vraag 3): bij de tekst op peildatum 2015 gaf LiDO de
+    koppelingen alleen in RDF, zonder titel, en de rijen droegen alleen het jaar en "rechtbank". Nu vult de metadata van
+    de Rechtspraak ze aan, vóór het sorteren; lukt dat niet, dan blijft het jaar staan."""
+    links = [Link("ECLI:NL:RBDHA:2015:2495", "", "Door computer herkende referentie", V_2010),
+             Link("ECLI:NL:RBGEL:2015:5487", "", "Door computer herkende referentie", V_2010),
+             Link("ECLI:NL:PHR:2015:354", "", "Redactionele referentie", V_2010)]
+    bron = NepBron(links, versies=DRIE, meta={
+        "ECLI:NL:RBDHA:2015:2495": _meta("ECLI:NL:RBDHA:2015:2495", "Rechtbank Den Haag", "03-03-2015", "AWB 14/1"),
+        "ECLI:NL:RBGEL:2015:5487": _meta("ECLI:NL:RBGEL:2015:5487", "Rechtbank Gelderland", "01-09-2015", "AWB 14/2")})
+    uit = json.loads(tools.dispatch("zoek_uitspraken", FakeGraph(result=_artikel("2023-01-01")),
+                                    {"bwb_id": IW, "artikel": "9", "peildatum": "2015-01-01",
+                                     "tekststand": "op peildatum"}, AAN, rechtspraak=bron))
+    assert uit["status"] == "ok"
+    gel, dha, phr = uit["resultaten"]
+    assert (gel["id"], gel["datum"], gel["orgaan"], gel["nummer"]) == (
+        "ECLI:NL:RBGEL:2015:5487", "2015-09-01", "Rechtbank Gelderland", "AWB 14/2"), "nieuwste eerst, op de dag"
+    assert gel["label"] == "Rechtbank Gelderland 1 september 2015, ECLI:NL:RBGEL:2015:5487"
+    assert dha["datum"] == "2015-03-03" and dha["titel"].startswith("ECLI:NL:RBDHA:2015:2495, Rechtbank Den Haag")
+    assert phr["datum"] == "2015" and phr["orgaan"] == "Parket bij de Hoge Raad", "zonder metadata blijft het jaar"
+    assert all(r["op_peildatum"] is True for r in uit["resultaten"])
+    assert sorted(bron.metavragen) == sorted(l.ecli for l in links), "één vraag per uitspraak zonder titel"
+
+
+def test_een_rij_met_titel_vraagt_geen_metadata():
+    bron = NepBron(VERSIELINKS, versies=DRIE)
+    json.loads(tools.dispatch("zoek_uitspraken", FakeGraph(result=_artikel("2023-01-01")), {"bwb_id": IW, "artikel": "9"},
+                              AAN, rechtspraak=bron))
+    assert bron.metavragen == []
+
+
+def test_de_adapter_vraagt_alleen_de_metadata_en_bewaart_die():
+    gezien: list[dict] = []
+
+    def dienst(request: httpx.Request) -> httpx.Response:
+        gezien.append(dict(request.url.params))
+        return httpx.Response(200, text=_meta("ECLI:NL:HR:2015:1", "Hoge Raad", "02-02-2015", "14/1").decode())
+
+    bron = LidoRechtspraak(client=httpx.Client(transport=httpx.MockTransport(dienst)), slaap=lambda _s: None)
+    eerste = bron.metadata("ECLI:NL:HR:2015:1")
+    assert bron.metadata("ECLI:NL:HR:2015:1") == eerste and b"<dcterms:date>2015-02-02" in eerste
+    assert gezien == [{"id": "ECLI:NL:HR:2015:1", "return": "META"}], "één aanroep, alleen de metadata"

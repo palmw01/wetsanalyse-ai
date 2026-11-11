@@ -54,9 +54,9 @@ def test_in_een_gesprek_binnen_een_werkgebied_krijgt_lex_het_dossier_mee(monkeyp
 
     async def blok(settings, user_id, werkgebied_id):
         gevraagd.append(werkgebied_id)
-        return als_blok(WG)
+        return als_blok(WG), ""
 
-    monkeypatch.setattr(agent_mod, "_werkgebied_blok", blok)
+    monkeypatch.setattr(agent_mod, "_werkgebied_stand", blok)
     settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     llm = FakeLLM([response([text_block("WORKERS: antwoord\nSPECIALIST: algemeen\nPLAN: uitleg")], "end_turn"),
                    response([text_block("Box 3 gaat over sparen en beleggen.")], "end_turn")])
@@ -71,9 +71,9 @@ def test_in_een_gesprek_binnen_een_werkgebied_krijgt_lex_het_dossier_mee(monkeyp
 
 
 def test_zonder_api_geen_werkgebiedblok():
-    from agent.agent import _werkgebied_blok
+    from agent.agent import _werkgebied_stand
 
-    assert asyncio.run(_werkgebied_blok(make_settings(), "u", "wg-1")) == ""
+    assert asyncio.run(_werkgebied_stand(make_settings(), "u", "wg-1")) == ("", "")
 
 
 def test_het_tooi_thema_staat_in_de_context():

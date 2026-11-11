@@ -29,11 +29,29 @@ from ..tool_execution import execute_tool
 logger = logging.getLogger(__name__)
 
 
+def met_peildatum(tool: str, args: dict[str, Any], peildatum: str) -> dict[str, Any]:
+    """De peildatum van het werkgebied als argument, als de zoektool er een kent en de vraag een artikel noemt.
+
+    Meting 11 nov 2026 (`rechtspraak-versies-2026-11-11`, vraag 5): in een werkgebied met peildatum 2015 toonde de lijst
+    de nieuwste uitspraken bij de tekst van nu, zonder te zeggen dat ze niet bij de peildatum horen. Het model las de
+    peildatum uit het contextblok; deze route heeft geen model. Het is een argument, geen filter: de lijst blijft
+    dezelfde, elke rij zegt `op_peildatum` en de zoekvraag noemt de peildatum. Zonder artikel geen peildatum: die gaat
+    over de tekst van een artikel, en de zoektool weigert hem dan."""
+    if not peildatum or "peildatum" in args or not args.get("artikel"):
+        return args
+    from ..tools import TOOLS
+    schema = next((t for t in TOOLS if t["name"] == tool), {})
+    if "peildatum" not in ((schema.get("input_schema") or {}).get("properties") or {}):
+        return args
+    return {**args, "peildatum": peildatum}
+
+
 def bron_lijst_node(b, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     v = state.get("bron_lijst") or {}
     c = CONNECTORS[v["connector"]]
-    tool = {"id": uuid4().hex, "name": v["tool"], "input": dict(v.get("args") or {})}
+    tool = {"id": uuid4().hex, "name": v["tool"], "input": met_peildatum(v["tool"], dict(v.get("args") or {}),
+                                                                   state.get("werkgebied_peildatum") or "")}
     _stap(writer, "Lex", _toolregel(tool))
     raw = execute_tool(b, state, writer, tool)
     paar = [{"role": "assistant", "content": [{"type": "tool_use", **tool}]},

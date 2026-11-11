@@ -158,20 +158,21 @@ async def delete_conversations(conversation_ids: list[str], *, settings: Setting
             await saver.adelete_thread(conversation_id)
 
 
-async def _werkgebied_blok(settings: Settings, user_id: str, werkgebied_id: str) -> str:
-    """Het contextblok van het werkgebied (`werkgebied_context.als_blok`). Zonder api of bij een storing
-    leeg: het dossier is context, geen voorwaarde om te antwoorden."""
+async def _werkgebied_stand(settings: Settings, user_id: str, werkgebied_id: str) -> tuple[str, str]:
+    """Het contextblok van het werkgebied (`werkgebied_context.als_blok`) en zijn peildatum (JJJJ-MM-DD). Zonder api of
+    bij een storing allebei leeg: het dossier is context, geen voorwaarde om te antwoorden."""
     if not settings.legt_zelf_vast:
-        return ""
+        return "", ""
     from .werkgebied_context import als_blok
     from .wetsanalyse_api import WetsanalyseApi
 
     api = WetsanalyseApi(settings, user_id)
     try:
-        return als_blok(await api.haal_werkgebied(werkgebied_id))
+        werkgebied = await api.haal_werkgebied(werkgebied_id)
+        return als_blok(werkgebied), str(werkgebied.get("peildatum") or "").strip()
     except Exception:  # noqa: BLE001
         logger.warning("werkgebiedcontext niet opgehaald", extra={"categorie": "technisch"}, exc_info=True)
-        return ""
+        return "", ""
     finally:
         await api.aclose()
 
@@ -305,6 +306,8 @@ async def answer_stream(
     # Per beurt: nieuwe user-message (append-reducer) + reset van de werkvelden.
     beurtbronnen, bronstand_nu = await _bronnen_van_beurt(
         settings, user_id, list(bronnen) if bronnen is not None else None, bronnen_herkomst)
+    werkgebied_blok, werkgebied_peildatum = (await _werkgebied_stand(settings, user_id, werkgebied_id)
+                                             if werkgebied_id else ("", ""))
     init: dict[str, Any] = {
         "question": question,
         "run_id": run_id or uuid.uuid4().hex,
@@ -319,7 +322,9 @@ async def answer_stream(
         "bron_lezen": [],
         "bron_lijst": {},
         # Het dossier van dat werkgebied, per beurt vers uit de api: elke bewaarde wijziging telt meteen.
-        "werkgebied_context": await _werkgebied_blok(settings, user_id, werkgebied_id) if werkgebied_id else "",
+        "werkgebied_context": werkgebied_blok,
+        # Zijn peildatum: de vaste lijstroute geeft hem mee aan een zoektool die er een kent (meting 11 nov 2026).
+        "werkgebied_peildatum": werkgebied_peildatum,
         # Waar de analist *Vraag Lex* op koos: alleen deze beurt; het object blijft in de focus.
         "onderwerp": onderwerp_dict,
         "onderwerp_context": await _onderwerp_blok(settings, user_id, onderwerp_dict) if onderwerp_dict else "",
