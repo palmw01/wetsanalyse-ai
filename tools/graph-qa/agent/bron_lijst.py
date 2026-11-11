@@ -62,7 +62,7 @@ _OVER_RE = re.compile(r"\bover\s+(?:de\s+|het\s+)?(?P<o>[^?.!,;]+)", re.IGNORECA
 #: Woorden die in een lijstvraag staan zonder iets te zoeken.
 _VULWOORDEN = frozenset("""geef mij me toon noem laat zien lijst wat welke wie is zijn de het een van uit bij in op
     met en of er nu ook alle stuk stukken publicaties staan zit zitten gaan gaat graag alsjeblieft aub kun kan je u
-    noemen noemt genoemd over horen hoort hoeveel""".split()) | frozenset(
+    noemen noemt genoemd over horen hoort hoeveel zoek zoeken vind vinden""".split()) | frozenset(
     w for c in CONNECTORS.values() for w in (*c.verzamelnamen, *c.vulwoorden))
 #: Werkwoorden die achter het onderwerp staan zonder iets te zoeken: "memories van toelichting over de inkomstenbelasting
 #: die in 2024 zijn verschenen" zocht op "inkomstenbelasting verschenen" en vond niets (meting Kamerstukken K09).

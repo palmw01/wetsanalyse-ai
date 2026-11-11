@@ -295,6 +295,16 @@ def _op_pad(a: tuple[tuple[str, str], ...], b: tuple[tuple[str, str], ...]) -> b
     return lang[: len(kort)] == kort
 
 
+def genoemd_extern(tekst: str) -> set[str]:
+    """De ids van de stukken naast de wet die een tekst noemt: bij id ("stb-2013-568", een ECLI) én in een citeervorm van
+    een connector ("Stb. 2013, 568", "Staatscourant 2026, nr. 37344", "Kamerstuk 32140, nr. 342", "ecli nl hr 2022 50").
+    Zonder de citeervorm viel een gelezen stuk dat het antwoord zo noemt uit de bronnenlijst (meting Kamerstukken ronde 2,
+    K18)."""
+    from bronmodel.connectors import genoemde_stukken
+
+    return {e.id for e in externe_verwijzingen(tekst or "")} | {i for _, i in genoemde_stukken(tekst or "")}
+
+
 def curate_sources(sources: list[Source], answer_text: str) -> list[Source]:
     """Beperk de bronnenlijst tot wat het antwoord aanhaalt.
 
@@ -314,8 +324,8 @@ def curate_sources(sources: list[Source], answer_text: str) -> list[Source]:
         return sources
     # Een externe bron (ADR-013) blijft staan als het antwoord haar id noemt; zonder id volgt ze de regel
     # van de regelingen: onbesproken, dus weg zodra het antwoord wél regelingen noemt.
-    genoemd_extern = {e.id for e in externe_verwijzingen(answer_text)}
-    extern = [s for s in sources if s.brontype not in (None, "wettekst") and s.uri in genoemd_extern]
+    genoemd = genoemd_extern(answer_text)
+    extern = [s for s in sources if s.brontype not in (None, "wettekst") and s.uri in genoemd]
     # Exacte BWB-id-match (woordgrens) i.p.v. substring, zodat een genoemde prefix-id geen bron van
     # een langere regeling meesleept.
     kept = [s for s in sources if (m := _BWB_RE.search(s.uri)) and m.group(0) in bwbs]
@@ -363,8 +373,8 @@ def alleen_gelezen_extern(sources: list[Source], trace: list[tuple[str, str]], a
         data = is_contract(t) or {}
         if isinstance(data.get("stuk"), dict) and (vp := externe_vindplaats(str(data["stuk"].get("id") or ""))):
             stukken.add(vp.id)
-    genoemd = {e.id for e in externe_verwijzingen(answer_text or "")}
-    gevraagd = {e.id for e in externe_verwijzingen(vraag or "")}
+    genoemd = genoemd_extern(answer_text)
+    gevraagd = genoemd_extern(vraag)
     return [s for s in sources
             if s.brontype in (None, "wettekst")
             or (s.uri in genoemd and (van_id(s.uri) is None or s.uri in in_tekst | stukken))

@@ -293,6 +293,10 @@ ALLE3 = frozenset({"kamerstukken", "rechtspraak", "bekendmakingen"})
     # Het werkwoord na het onderwerp zoekt niet mee (Kamerstukken K09).
     ("Welke memories van toelichting over de inkomstenbelasting zijn er in 2024 verschenen?", "kamerstukken",
      {"soort": "memorie van toelichting", "vanaf": "2024", "tot": "2024", "tekst": "inkomstenbelasting"}),
+    # "Zoek …" en "Vind …" zoeken niets (Kamerstukken ronde 2, K30).
+    ("Zoek kamerstukken over invorderingsrente", "kamerstukken", {"tekst": "invorderingsrente"}),
+    ("Vind Kamerstukken over kwijtschelding uit 2024", "kamerstukken",
+     {"vanaf": "2024", "tot": "2024", "tekst": "kwijtschelding"}),
     # "kamerdossier" is een dossier (Staatsblad B18).
     ("Wat is het laatste stuk van kamerdossier 32140?", "kamerstukken",
      {"volgorde": "nieuwste", "aantal": 1, "dossier": "32140"}),
