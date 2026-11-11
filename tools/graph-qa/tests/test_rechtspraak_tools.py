@@ -153,6 +153,27 @@ def test_zonder_ref_de_jci_met_de_nieuwste_toestand_die_lido_kent():
     assert k.route == "jci" and k.versies == (V_NU, V_2015)
 
 
+def test_de_titel_van_een_regeling_komt_uit_de_zoekdienst_en_een_storing_is_leeg():
+    ok = httpx.MockTransport(lambda r: httpx.Response(
+        200, text="<searchRetrieveResponse><dcterms:title>Wet op de omzetbelasting 1968</dcterms:title></searchRetrieveResponse>"))
+    assert LidoRechtspraak(client=httpx.Client(transport=ok)).titel("BWBR0002629") == "Wet op de omzetbelasting 1968"
+    weg = httpx.MockTransport(lambda r: httpx.Response(500, text=""))
+    assert LidoRechtspraak(client=httpx.Client(transport=weg)).titel("BWBR0002629") == ""
+    assert LidoRechtspraak(client=httpx.Client(transport=ok)).titel("geen id") == ""
+
+
+def test_een_buitenlandse_ecli_is_een_stuk_zonder_tekst():
+    """Ronde 2, R15: alleen het voorbeeld in de fout, dus het antwoord dat de ECLI noemde was "ongegrond"."""
+    from agent.grounding import check_grounding
+
+    raw = tools.dispatch("get_uitspraak", None, {"id": "ECLI:EU:C:2019:123"}, AAN, rechtspraak=NepBron([]))
+    uit = json.loads(raw)
+    assert uit["status"] == "error" and uit["reden"] == "buiten_bereik"
+    assert uit["stuk"]["id"] == "ECLI:EU:C:2019:123" and uit["stuk"]["leesbaar"] is False
+    assert check_grounding("ECLI:EU:C:2019:123 is een arrest van het Hof van Justitie.", [("get_uitspraak", raw)]).niveau \
+        != "ongegrond"
+
+
 def test_get_links_vraagt_alleen_jurisprudentie():
     """Zonder filter noemt LiDO bij een veelgebruikt artikel ook wetten met honderden identifiers, en dan breekt het
     antwoord af, ook bij tien rijen (Awb 6:7, meting 11 nov 2026: 0 van de 6772 uitspraken)."""
@@ -320,6 +341,12 @@ def test_een_regeling_buiten_de_graaf_zoekt_lido_op_bwb_id_en_nummer():
     assert uit["status"] == "ok" and uit["totaal"] == 4, uit
     assert "niet in de kennisgraaf" in uit["toelichting"]
     assert all(r.get("tekststand") in (None, "onbekend") for r in uit["resultaten"])
+    # De naam komt uit de BWB-zoekdienst, zodat de zoekvraag de regeling noemt (ronde 2, R09).
+    bron = NepBron(LINKS)
+    bron.titel = lambda b: "Wet inkomstenbelasting 2001"
+    met = json.loads(tools.dispatch("zoek_uitspraken", graaf, {"bwb_id": "BWBR0011353", "artikel": "3.111"}, AAN,
+                                    rechtspraak=bron))
+    assert met["zoekvraag"]["bepaling"] == "artikel 3.111 van Wet inkomstenbelasting 2001"
 
 
 def test_een_graaf_die_niet_antwoordt_is_geen_regeling_buiten_de_graaf():
@@ -487,7 +514,10 @@ def test_een_lange_alinea_komt_in_delen_binnen_de_begroting():
 
 def test_een_ongeldige_of_onbekende_ecli():
     nep = NepBron([])
-    ongeldig = json.loads(tools.dispatch("get_uitspraak", None, {"id": "ECLI:CE:ECHR:2002:1"}, AAN, rechtspraak=nep))
+    # Een buitenlandse ECLI is een stuk zonder tekst (ronde 2, R15); iets wat geen ECLI is, is een ongeldig id.
+    buiten = json.loads(tools.dispatch("get_uitspraak", None, {"id": "ECLI:CE:ECHR:2002:1"}, AAN, rechtspraak=nep))
+    assert buiten["reden"] == "buiten_bereik" and buiten["stuk"]["leesbaar"] is False
+    ongeldig = json.loads(tools.dispatch("get_uitspraak", None, {"id": "kst-36200-1"}, AAN, rechtspraak=nep))
     assert ongeldig["reden"] == "ongeldig_id" and "bijvoorbeeld" in ongeldig["melding"]
     onbekend = json.loads(tools.dispatch("get_uitspraak", None, {"id": "ECLI:NL:HR:1900:1"}, AAN, rechtspraak=nep))
     assert onbekend["reden"] == "niet_gevonden" and "zoek_uitspraken" in onbekend["melding"]
@@ -809,3 +839,23 @@ def test_de_adapter_vraagt_alleen_de_metadata_en_bewaart_die():
     eerste = bron.metadata("ECLI:NL:HR:2015:1")
     assert bron.metadata("ECLI:NL:HR:2015:1") == eerste and b"<dcterms:date>2015-02-02" in eerste
     assert gezien == [{"id": "ECLI:NL:HR:2015:1", "return": "META"}], "één aanroep, alleen de metadata"
+
+
+def test_een_regeling_zonder_artikel_zoekt_de_uitspraken_bij_de_regeling():
+    """Ronde 2, R26: "Welke uitspraken noemen de Leidraad Invordering 2008?" gaf de zoekfeed van het belastingrecht.
+    LiDO koppelt een uitspraak die de regeling noemt zonder artikel aan de regeling zelf."""
+    bron = NepBron(LINKS)
+    vragen = []
+    bron.koppelingen = lambda b, a, jci="": vragen.append((b, a)) or Koppelingen(tuple(LINKS), (V_NU,), (), "ref", {})
+    bron.titel = lambda b: "Leidraad Invordering 2008"
+    uit = json.loads(tools.dispatch("zoek_uitspraken", FakeGraph(result=""), {"bwb_id": "BWBR0024096"}, AAN,
+                                    rechtspraak=bron))
+    assert uit["status"] == "ok" and uit["totaal"] == 4 and vragen == [("BWBR0024096", "")]
+    assert uit["zoekvraag"]["bepaling"] == "Leidraad Invordering 2008 als geheel"
+    assert "als geheel noemen" in uit["kanttekening"]
+
+
+def test_lido_zoekt_de_regeling_op_haar_ref_zonder_artikel():
+    d = Dienst(ref={IW: V_NU}, links={V_NU: _get_links(V_NU, [("ECLI:NL:HR:2022:50", "y")])})
+    k = _bron(d).koppelingen(IW, "")
+    assert [ln.ecli for ln in k.links] == ["ECLI:NL:HR:2022:50"]

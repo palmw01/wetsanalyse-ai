@@ -407,7 +407,13 @@ bruikbaar is.
   zoekvraag; `van_orgaan` kiest het lidwoord ("van het College"); `provenance.collect_sources` slaat een foutresultaat over
   (`is_fout`: het voorbeeld in een foutmelding is geen bron); `bron_lijst` leest een maand, laat een werkwoord achter het
   onderwerp weg (`_WERKWOORDEN`), kent "kamerdossier" en telt een naam binnen een langere regelingnaam niet
-  (`_zonder_ingesloten`). `tests/test_rechtspraak_tools.py`,
+  (`_zonder_ingesloten`). **Na ronde 2**: `zoek_uitspraken` met alleen `bwb_id` zoekt de uitspraken die de regeling als
+  geheel noemen (LiDO op `juriconnect-ref=<bwb>`; de Leidraad Invordering 2008: 204); een regeling buiten de graaf krijgt haar
+  titel uit de BWB-zoekdienst (`LidoRechtspraak.titel`); een buitenlandse of Europese ECLI is `buiten_bereik` met een `stuk`
+  (`leesbaar: false`), zodat het antwoord haar mag noemen; `bron_lijst` geeft bij "alle" een volle pagina; de zoekvraag zegt
+  "in maart 2025" en "van gerechtshoven". Gedeeld (Kamerstukken ronde 2): `grounding.genoemd_extern` herkent een stuk ook in
+  de citeervorm van een connector ("Stb. 2013, 568"), zodat een gelezen stuk dat het antwoord zo noemt in de bronnenlijst
+  blijft (`curate_sources`, `alleen_gelezen_extern`), en "Zoek …"/"Vind …" is een lijstvraag. `tests/test_rechtspraak_tools.py`,
   live `tests/test_rechtspraak_live.py`, meting `docs/architectuur/metingen/lido-spike-2026-11-10/`.
 - **Wetgeving buiten de kennisgraaf** (`tools/wetgeving_tools.py`, transport `adapters/sru_bwb.py`, ADR-013 fase 1e):
   wettekst van het BWB die niet in de graaf staat, live bij overheid.nl. **De graaf blijft de bron voor wat erin staat**,

@@ -293,6 +293,10 @@ ALLE3 = frozenset({"kamerstukken", "rechtspraak", "bekendmakingen"})
     # Het werkwoord na het onderwerp zoekt niet mee (Kamerstukken K09).
     ("Welke memories van toelichting over de inkomstenbelasting zijn er in 2024 verschenen?", "kamerstukken",
      {"soort": "memorie van toelichting", "vanaf": "2024", "tot": "2024", "tekst": "inkomstenbelasting"}),
+    # "Zoek …" en "Vind …" zoeken niets (Kamerstukken ronde 2, K30).
+    ("Zoek kamerstukken over invorderingsrente", "kamerstukken", {"tekst": "invorderingsrente"}),
+    ("Vind Kamerstukken over kwijtschelding uit 2024", "kamerstukken",
+     {"vanaf": "2024", "tot": "2024", "tekst": "kwijtschelding"}),
     # "kamerdossier" is een dossier (Staatsblad B18).
     ("Wat is het laatste stuk van kamerdossier 32140?", "kamerstukken",
      {"volgorde": "nieuwste", "aantal": 1, "dossier": "32140"}),
@@ -319,7 +323,8 @@ def test_een_naam_binnen_een_langere_regelingnaam_telt_niet():
         return [(b, n) for b, n in namen.items() if any(x.lower() in t.lower() for x in n)]
     l = bron_lijst.lees("Geef alle uitspraken die artikel 2 van de Uitvoeringsregeling Invorderingswet 1990 noemen",
                         frozenset({"rechtspraak"}), regelingen)
-    assert l is not None and l.args == {"bwb_id": "BWBR0004766", "artikel": "2"}
+    # "alle": een volle pagina (Rechtspraak ronde 2, R23: 10 van de 11).
+    assert l is not None and l.args == {"aantal": 25, "bwb_id": "BWBR0004766", "artikel": "2"}
     beide = bron_lijst.lees("uitspraken bij artikel 2 Invorderingswet 1990 en de Uitvoeringsregeling Invorderingswet 1990",
                             frozenset({"rechtspraak"}), regelingen)
     assert beide is None, "twee regelingen die elk zelf genoemd worden, blijven dubbelzinnig"

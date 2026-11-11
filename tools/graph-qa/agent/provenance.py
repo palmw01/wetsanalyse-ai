@@ -154,9 +154,9 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
     per_node: dict[str, Source] = {}
 
     for tool, text in entries:
-        # Een foutresultaat is geen bron: zijn voorbeeld ({"bwb_id": "BWBR0004770", …}) zette de Invorderingswet in de
+        # Een foutresultaat zonder stuk is geen bron: zijn voorbeeld ({"bwb_id": "BWBR0004770", …}) zette de Invorderingswet in de
         # bronnenlijst bij een ECLI die niet bestaat (meting Rechtspraak R14, 11 nov 2026).
-        if not text or tool in AFGELEIDE_TOOL_NAMEN or is_fout(text):
+        if not text or tool in AFGELEIDE_TOOL_NAMEN or (is_fout(text) and '"stuk"' not in text):
             continue
         labels = _labels(text)
         if tool in LIVE_WETTEKST_TOOLS:
