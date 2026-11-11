@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from bronmodel.bwb import TOESTAND_XSD
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
@@ -43,4 +44,4 @@ def sample_bijlage_xml() -> Path:
 @pytest.fixture
 def toestand_xsd() -> Path:
     """Pad naar het officiële toestand-XSD met lokale afhankelijkheden."""
-    return PROJECT_ROOT / "schemas" / "toestand.xsd"
+    return TOESTAND_XSD

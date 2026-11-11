@@ -9,11 +9,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from bronmodel.bwb.parser import ToestandParser
 from rdflib import OWL, RDF, RDFS, URIRef
 
 from app.graphdb_writer import GraphDbWriter
 from app.ontology import ELI, build_ontology, gedeclareerde_termen
-from app.parser import ToestandParser
 from app.rdf_vocab import Vocab
 
 FIXTURES = Path(__file__).parent / "fixtures"

@@ -11,13 +11,13 @@ import sys
 from pathlib import Path
 
 import pytest
+from bronmodel.bwb.models import Onderdeel, Wet
+from bronmodel.bwb.parser import ToestandParser
 from rdflib import Dataset, URIRef
 
 from app.collect import collect
 from app.dekking import bron_tekens
 from app.graphdb_writer import GraphDbWriter
-from app.models import Onderdeel, Wet
-from app.parser import ToestandParser
 from app.rdf_vocab import Vocab
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"

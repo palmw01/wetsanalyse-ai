@@ -18,7 +18,7 @@ from typing import Any
 
 from lxml import etree
 
-from app.models import (
+from .models import (
     Artikel,
     Bijlage,
     Divisie,
@@ -30,7 +30,7 @@ from app.models import (
     Verwijzing,
     Wet,
 )
-from app.references import extract_references
+from .references import extract_references
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +88,7 @@ class ParseError(RuntimeError):
 
 
 class ToestandParser:
-    """Zet een toestand-XML om naar het :class:`~app.models.Wet`-model."""
+    """Zet een toestand-XML om naar het :class:`~bronmodel.bwb.models.Wet`-model."""
 
     def __init__(self, schema_path: Path | None = None) -> None:
         self._schema_path = schema_path

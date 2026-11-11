@@ -13,8 +13,8 @@ from dataclasses import dataclass
 
 from lxml import etree
 
-from app.afkortingen import zoek_bwb_id
-from app.models import Verwijzing, VerwijzingSoort
+from .afkortingen import zoek_bwb_id
+from .models import Verwijzing, VerwijzingSoort
 
 # Verwijzingen mogen niet uit meta-data-subtrees komen.
 _REF_XPATH = ".//*[self::intref or self::extref][not(ancestor::meta-data)]"

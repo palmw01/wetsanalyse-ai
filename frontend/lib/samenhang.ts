@@ -202,7 +202,7 @@ export function vindplaatsLabel(paren: [string, string][]): string {
 const STRUCTUUR = new Set(["hoofdstuk", "titeldeel", "afdeling", "paragraaf"]);
 
 /** Het pad van een jci zoals de importer het als node-identiteit gebruikt
- *  (`jci_node_ref_key` in tools/bwb-import/app/references.py):
+ *  (`jci_node_ref_key` in packages/bronmodel/bronmodel/bwb/references.py):
  *
  *  - met een artikel: `artikel` (het laatste), `lid` (het laatste) en elke `o` – het structuurpad
  *    ernaartoe hoort er níét in, want een artikel is binnen de regeling al uniek;

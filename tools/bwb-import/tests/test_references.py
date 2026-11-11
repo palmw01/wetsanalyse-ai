@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from lxml import etree
-
-from app.models import VerwijzingSoort
-from app.references import (
+from bronmodel.bwb.models import VerwijzingSoort
+from bronmodel.bwb.references import (
     detect_textual_references,
     extract_references,
     jci_doel,
@@ -13,6 +11,7 @@ from app.references import (
     jci_node_ref_key,
     jci_to_ref_key,
 )
+from lxml import etree
 
 
 def _ankers(tekst: str, *, eigen_bwb_id: str = "BWBR0004770") -> list[str]:

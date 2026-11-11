@@ -14,7 +14,7 @@ import json, pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "bwb-import"))
 from app.config import Settings
 from app.downloader import BwbDownloader
-from app.parser import ToestandParser
+from bronmodel.bwb.parser import ToestandParser
 
 s = Settings.from_env(); dl = BwbDownloader(s)
 parser = ToestandParser(schema_path=(s.schemas_dir / "toestand.xsd") if s.validate_xsd else None)

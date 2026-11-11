@@ -1,9 +1,9 @@
 """Opslag-agnostische traversal van het BWB-model naar een platte ``Batch``.
 
-Loopt één keer door een :class:`~app.models.Wet` en verzamelt nodes, relaties en
+Loopt één keer door een :class:`~bronmodel.bwb.models.Wet` en verzamelt nodes, relaties en
 verwijzingen in een neutrale representatie. De GraphDB-writer consumeert die
 ``Batch``, zodat de ref_key-/Citeerbaar-/verwijzing-logica (inclusief de telling
-in :class:`~app.models.ImportSummary`) op één plek staat.
+in :class:`~bronmodel.bwb.models.ImportSummary`) op één plek staat.
 
 Elke node die JuriConnect-adresseerbaar is (wet, structuurdeel, artikel, lid,
 onderdeel, divisie) draagt naast zijn XML-``id`` een ``ref_key``. Die sleutel is
@@ -19,7 +19,7 @@ import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
-from app.models import (
+from bronmodel.bwb.models import (
     Artikel,
     Bijlage,
     Divisie,
@@ -31,7 +31,7 @@ from app.models import (
     Verwijzing,
     Wet,
 )
-from app.references import (
+from bronmodel.bwb.references import (
     deeldoelen,
     detect_textual_references,
     jci_doel,

@@ -17,19 +17,23 @@ import json
 import logging
 
 import requests
+from bronmodel.bwb.models import ImportSummary, Wet
 from rdflib import OWL, RDF, RDFS, Graph, Literal, Namespace, URIRef
 
+from app import tooi
 from app.collect import (
     Batch,
     collect,
-    koppel_structuurverwijzingen,
-    bepalingsindex as bepalingsindex_van,
     koppel_deelverwijzingen,
+    koppel_structuurverwijzingen,
+)
+from app.collect import (
+    bepalingsindex as bepalingsindex_van,
+)
+from app.collect import (
     structuurindex as structuurindex_van,
 )
 from app.dekking import Stand
-from app.models import ImportSummary, Wet
-from app import tooi
 from app.ontology import build_ontology
 from app.rdf_vocab import Vocab
 from app.wti_parser import WtiInfo
@@ -251,7 +255,7 @@ def inhoud_hash(graph: Graph) -> str:
 
 
 class GraphDbWriter:
-    """Schrijft een :class:`~app.models.Wet` als RDF naar een GraphDB-repository."""
+    """Schrijft een :class:`~bronmodel.bwb.models.Wet` als RDF naar een GraphDB-repository."""
 
     def __init__(
         self,

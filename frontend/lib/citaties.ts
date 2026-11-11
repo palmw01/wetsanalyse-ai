@@ -21,7 +21,7 @@ const RANG = ["eerste", "tweede", "derde", "vierde", "vijfde", "zesde", "zevende
 // volgt: anders werd "artikel 4:94a" artikel 4 en "artikel 31bis" artikel 31 – een chip naar de
 // verkeerde bepaling, juist in een antwoord over meerdere regelingen. Daarachter optioneel "onderdeel m"
 // of "aanhef en onderdeel m", met de nummers en de woorden-die-geen-nummer-zijn van de importer
-// (`_NR` en `_GEEN_NUMMER` in tools/bwb-import/app/references.py): "onderdeel is" is geen onderdeel.
+// (`_NR` en `_GEEN_NUMMER` in packages/bronmodel/bronmodel/bwb/references.py): "onderdeel is" is geen onderdeel.
 const VERMELDING = new RegExp(
   String.raw`\b(?:artikel|art\.)\s+(\d+[a-z]*(?:[.:]\d+[a-z]*)*)(?![a-z0-9])` +
   String.raw`(?:,?\s+(?:lid\s+(\d+[a-z]?)|(${RANG.join("|")})\s+lid))?` +
