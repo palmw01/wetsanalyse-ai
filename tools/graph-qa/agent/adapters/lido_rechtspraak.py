@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+import html
 import re
 import threading
 import time
@@ -381,6 +382,23 @@ class LidoRechtspraak:
                           maximumRecords="1000", query=f"dcterms.identifier={bwb_id}")
         return sorted(set(re.findall(r"/(\d{4}-\d{2}-\d{2})_\d+/xml/", tekst)))
 
+    def titel(self, bwb_id: str) -> str:
+        """De titel van een regeling uit de BWB-zoekdienst (`dcterms:title`), voor een regeling die niet in de
+        kennisgraaf staat (meting Rechtspraak ronde 2: "artikel 3.111 van BWBR0011353"). Gecachet als de waardelijsten;
+        een storing of een onbekend id is '' (dan het BWB-id)."""
+        if not re.fullmatch(r"BWB[RV]\d{7}", bwb_id or ""):
+            return ""
+
+        def haal() -> str:
+            tekst = self._get(self._sru, operation="searchRetrieve", version="2.0", **{"x-connection": "BWB"},
+                              maximumRecords="1", query=f"dcterms.identifier={bwb_id}")
+            m = re.search(r"<dcterms:title>([^<]+)</dcterms:title>", tekst)
+            return html.unescape(m.group(1)).strip() if m else ""
+        try:
+            return str(self._bewaard(f"t|{bwb_id}", VERS_WAARDELIJST_S, haal))
+        except RechtspraakFout:
+            return ""
+
     def _versies(self, bwb_id: str, artikel: str, jci: str, teller: list[int]) -> tuple[list[str], str]:
         def get_id(**params) -> str | None:
             if teller[0] >= MAX_AANROEPEN:
@@ -400,7 +418,8 @@ class LidoRechtspraak:
                 vid = vorige(begin)
             return uit
 
-        ref = f"{bwb_id}&artikel={artikel}"
+        # Zonder artikel de regeling als geheel (een uitspraak die de regeling noemt, niet een artikel ervan).
+        ref = f"{bwb_id}&artikel={artikel}" if artikel else bwb_id
         eerste = get_id(**{"juriconnect-ref": ref})
         if eerste:
             def via_ref(begin: str) -> str | None:

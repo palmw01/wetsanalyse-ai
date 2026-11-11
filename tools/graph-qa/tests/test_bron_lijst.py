@@ -319,7 +319,8 @@ def test_een_naam_binnen_een_langere_regelingnaam_telt_niet():
         return [(b, n) for b, n in namen.items() if any(x.lower() in t.lower() for x in n)]
     l = bron_lijst.lees("Geef alle uitspraken die artikel 2 van de Uitvoeringsregeling Invorderingswet 1990 noemen",
                         frozenset({"rechtspraak"}), regelingen)
-    assert l is not None and l.args == {"bwb_id": "BWBR0004766", "artikel": "2"}
+    # "alle": een volle pagina (Rechtspraak ronde 2, R23: 10 van de 11).
+    assert l is not None and l.args == {"aantal": 25, "bwb_id": "BWBR0004766", "artikel": "2"}
     beide = bron_lijst.lees("uitspraken bij artikel 2 Invorderingswet 1990 en de Uitvoeringsregeling Invorderingswet 1990",
                             frozenset({"rechtspraak"}), regelingen)
     assert beide is None, "twee regelingen die elk zelf genoemd worden, blijven dubbelzinnig"

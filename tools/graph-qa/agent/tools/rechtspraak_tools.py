@@ -57,6 +57,7 @@ class RechtspraakBron(Protocol):
     def koppelingen(self, bwb_id: str, artikel: str, jci: str = "") -> Any: ...
     def document(self, ecli: str) -> Any: ...
     def metadata(self, ecli: str) -> bytes: ...
+    def titel(self, bwb_id: str) -> str: ...
     def zoek(self, *, instanties: tuple[str, ...] = (), rechtsgebieden: tuple[str, ...] = (), soort: str = "",
              vanaf: str = "", tot: str = "", maximum: int = 1000) -> Any: ...
     def instanties(self) -> Any: ...
@@ -91,7 +92,8 @@ RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
         "description": (
             "Uitspraken en conclusies zoeken, langs twee wegen. MET 'bwb_id' en 'artikel': de uitspraken die dat "
             "wetsartikel noemen, volgens Linked Data Overheid (KOOP), over alle versies van het artikel; een lid kan "
-            "niet, LiDO koppelt per artikel. ZONDER artikel: de zoekfeed van de Rechtspraak zelf, op 'instantie', "
+            "niet, LiDO koppelt per artikel. MET alleen 'bwb_id': de uitspraken die de regeling als geheel noemen (ook een "
+            "beleidsregel als de Leidraad Invordering 2008). ZONDER regeling: de zoekfeed van de Rechtspraak zelf, op 'instantie', "
             "'rechtsgebied' (bijvoorbeeld 'belastingrecht'), 'soort' en periode – zo vind je 'de nieuwste uitspraken van "
             "de Hoge Raad in het belastingrecht'. Zoeken op woorden in de tekst kan langs geen van beide. Filter op "
             "'instantie' (een soort gerecht als 'Hoge Raad' of 'rechtbank', of één gerecht als 'Rechtbank Gelderland' of "
@@ -109,7 +111,9 @@ RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
             "altijd 'ten minste', met 'versies' (hoeveel versies van het artikel LiDO kende). 'totaal' telt wat aan alle "
             "filters voldoet; per_instantie, per_tekststand en tekstversies tellen binnen de andere filters (per_instantie "
             "negeert alleen 'instantie', per_tekststand alleen 'tekststand'), en 'bij_het_artikel' is het aantal zonder "
-            "filters. Noem bij een lijst het "
+            # Ronde 2, R22: "past bij het civielrechtelijke karakter van het artikel" bij een telling per instantie.
+            "filters. Een telling duid je niet: zeg wat ze telt, niet wat ze over het artikel of zijn karakter zegt. "
+            "Noem bij een lijst het "
             "totaal en dat het om vermeldingen gaat. Lees een uitspraak met get_uitspraak voor je zegt wat ze inhoudt."
             + _CONTRACT
         ),
@@ -117,7 +121,9 @@ RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
             "type": "object",
             "properties": {
                 "bwb_id": {"type": "string", "description": "BWB-id van de regeling, bijvoorbeeld 'BWBR0004770'; "
-                                                            "samen met 'artikel', of allebei weg."},
+                                                            "met 'artikel' de uitspraken bij dat artikel, zonder de "
+                                                            "uitspraken die de regeling als geheel noemen; weg voor de "
+                                                            "zoekfeed."},
                 "artikel": {"type": "string", "description": "Het artikelnummer, bijvoorbeeld '36' of '8:57'."},
                 "instantie": {"type": "string",
                               "description": ("Een soort gerecht (" + ", ".join(INSTANTIES[:7]) + ") of één gerecht "
@@ -155,7 +161,9 @@ RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
             "hij geldt tot de volgende), met 'plek' als de alinea in een "
             "genummerde rechtsoverweging staat ('r.o. 2.1'; noem haar zo); een lange alinea staat in delen ('deel'). De "
             "eerste pagina van een stuk dat niet op één pagina past draagt 'inhoud': per kop de offset waar dat deel begint; ga met die offset naar het deel dat "
-            "de vraag raakt. Noem de datum en de instantie uit 'stuk', niet uit de tekst." + _CONTRACT
+            "de vraag raakt. Voor een samenvatting ('wat staat er in') volstaan de inhoudsindicatie, de inhoud en het deel met de "
+            "beslissing: blader niet alle pagina's door. Noem de datum en de instantie uit 'stuk', niet uit de tekst."
+            + _CONTRACT
         ),
         "input_schema": {
             "type": "object",
@@ -496,8 +504,10 @@ def _regeling_buiten_graaf(graph: Any, bwb_id: str) -> bool:
 
 def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
     bwb_id, artikel = (a.get("bwb_id") or "").strip(), (a.get("artikel") or "").strip()
-    if (bwb_id or artikel) and (not re.fullmatch(r"BWB[RV]\d{7}", bwb_id) or not artikel):
-        return fout("ongeldige_argumenten", "geef de regeling en het artikel samen, bijvoorbeeld "
+    # Een regeling zonder artikel mag: de uitspraken die de regeling als geheel noemen ("Welke uitspraken noemen de
+    # Leidraad Invordering 2008?", ronde 2, R26: de zoekfeed gaf willekeurige uitspraken in het belastingrecht).
+    if (bwb_id or artikel) and not re.fullmatch(r"BWB[RV]\d{7}", bwb_id):
+        return fout("ongeldige_argumenten", "geef de regeling (en eventueel het artikel), bijvoorbeeld "
                     "{\"bwb_id\": \"BWBR0004770\", \"artikel\": \"36\"}, of laat ze allebei weg om in de zoekfeed van "
                     "de Rechtspraak te zoeken, bijvoorbeeld {\"instantie\": \"Hoge Raad\"}")
     volgorde = a.get("volgorde") or "nieuwste"
@@ -546,8 +556,13 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
     # Uit de graaf: de jci (de terugvalroute van LiDO, nodig voor de Awb), het label en of het een artikel is. Zonder
     # graaf (een MCP-client, de contractharnas) zoekt LiDO het artikel op bwb-id en nummer.
     zonder_graaf = [{"label": f"artikel {artikel}", "soort": "Artikel"}]
-    rijen = parse_select(graph.sparql(_q_artikel(bwb_id, artikel))) if graph is not None else zonder_graaf
     buiten_graaf = False
+    if not artikel:
+        # De regeling als geheel: LiDO koppelt een uitspraak die de regeling noemt zonder artikel aan de regeling zelf.
+        titel = (getattr(bron, "titel", None) or (lambda _b: ""))(bwb_id)
+        rijen = [{"label": titel or bwb_id, "soort": "Regeling"}]
+    else:
+        rijen = parse_select(graph.sparql(_q_artikel(bwb_id, artikel))) if graph is not None else zonder_graaf
     if not rijen:
         # Een regeling die niet in de kennisgraaf staat (de Wet IB 2001, de Wet OB 1968) kent LiDO wel: zoek dan op
         # bwb-id en nummer, zoals zonder graaf (meting 11 nov 2026, R09/R10: "staat niet in de graaf" bij een artikel
@@ -555,11 +570,13 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
         if not _regeling_buiten_graaf(graph, bwb_id):
             return fout("niet_gevonden", f"artikel {artikel} van {bwb_id} staat niet in de graaf. Controleer het "
                         "nummer, bijvoorbeeld met get_artikel.")
-        rijen, buiten_graaf = zonder_graaf, True
+        # De naam uit de BWB-zoekdienst, zodat de zoekvraag en de bronnenlijst de regeling noemen (ronde 2, R09/R10).
+        titel = (getattr(bron, "titel", None) or (lambda _b: ""))(bwb_id)
+        rijen, buiten_graaf = [{**zonder_graaf[0], **({"citeertitel": titel} if titel else {})}], True
     kop = rijen[0]
     label = kop.get("label") or f"artikel {artikel}"
-    bepaling = {"bwb_id": bwb_id, "artikel": artikel, "label": label}
-    if not str(kop.get("soort", "")).endswith("Artikel"):
+    bepaling = compact({"bwb_id": bwb_id, "artikel": artikel, "label": label})
+    if artikel and not str(kop.get("soort", "")).endswith("Artikel"):
         return pagina([], tool="zoek_uitspraken", args=a, limit=aantal, offset=offset,
                       toelichting=(f"{label} is een divisie van een beleidsregel. LiDO koppelt uitspraken alleen aan "
                                    "artikelen van wetten en regelingen; de divisies kent het niet."),
@@ -637,6 +654,8 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
         _stand_zin(label, versies, huidig, loopt_achter, per_tekststand, len(zonder_stand), buiten_graaf)
         if buiten_graaf else "",
         (f"LiDO kent geen rechtsgebied; het filter op „{genegeerd}” is niet toegepast." if genegeerd else ""),
+        ("Dit zijn de uitspraken die de regeling als geheel noemen; een uitspraak die een artikel of onderdeel noemt, "
+         "staat bij dat artikel." if not artikel else ""),
     ) if z)
     if (stand_zin := _stand_zin(label, versies, huidig, loopt_achter, per_tekststand, len(zonder_stand),
                                 buiten_graaf)):
@@ -659,7 +678,9 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
         "per_instantie": dict(sorted(per_instantie.items(), key=lambda x: _RANG.get(x[0], 99))),
         "koppelingen": koppelingen,
         "zoekvraag": {**{x: v for x, v in a.items() if x not in {"offset"} and v not in ("", None)},
-                      "volgorde": volgorde, "bepaling": _in_woorden(label, kop.get("citeertitel") or bwb_id)},
+                      "volgorde": volgorde,
+                      "bepaling": (_in_woorden(label, kop.get("citeertitel") or bwb_id) if artikel
+                                   else f"{label} als geheel")},
     })
     getoond = lijst[offset:offset + aantal + 1]
     return pagina(getoond if vooraf else [_aangevuld(bron, r) for r in getoond], tool="zoek_uitspraken",
@@ -784,7 +805,15 @@ def label_van(ecli: str, meta: dict[str, str]) -> str:
 
 def _get(bron: RechtspraakBron, a: dict[str, Any]) -> str:
     vp = externe_vindplaats((a.get("id") or "").strip())
-    if vp is None or vp.brontype != "uitspraak" or not vp.id.startswith(RECHTSPRAAK.id_prefixen):
+    if vp is not None and vp.brontype == "uitspraak" and not vp.id.startswith(RECHTSPRAAK.id_prefixen):
+        # Een buitenlandse of Europese ECLI is een stuk dat bestaat maar niet bij de Rechtspraak staat: het resultaat
+        # noemt het, met `leesbaar: false`, zodat het antwoord het mag noemen (meting ronde 2, R15: "ongegrond" omdat
+        # alleen het voorbeeld in de fout stond).
+        return fout("buiten_bereik", f"{vp.id} is geen Nederlandse uitspraak: de open data van de Rechtspraak heeft er "
+                    "geen tekst van. Zeg dat, en citeer er niet uit.",
+                    stuk={"id": vp.id, "label": vp.label, "link": vp.uri, "soort": "Uitspraak", "leesbaar": False,
+                          "zonder_tekst": RECHTSPRAAK.zonder_tekst})
+    if vp is None or vp.brontype != "uitspraak":
         return fout("ongeldig_id", "geef de ECLI van een Nederlandse uitspraak, bijvoorbeeld 'ECLI:NL:HR:2022:50'")
     doc = bron.document(vp.id)
     try:

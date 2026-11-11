@@ -406,7 +406,9 @@ def test_de_slotzin_noemt_het_totaal_ook_als_alles_getoond_is(n, totaal, slot):
     ("Ministerie van Financiën", "van het Ministerie van Financiën"),
     ("Parket bij de Hoge Raad", "van het Parket bij de Hoge Raad"),
     ("Eerste Kamer", "van de Eerste Kamer"),
-    ("gerechtshof", "van een gerechtshof"),
+    ("gerechtshof", "van gerechtshoven"),
+    ("gerechtshoven", "van gerechtshoven"),
+    ("rechtbank", "van rechtbanken"),
 ])
 def test_het_lidwoord_bij_een_orgaan(naam, verwacht):
     """Metingen Rechtspraak R25 en Staatsblad B10: "van de College", "van de Ministerie"."""
@@ -481,3 +483,14 @@ def test_een_rechtsgebied_naast_een_artikel_zoekt_zonder_en_zegt_het():
                                      rechtspraak=NepBron(LINKS)))
     assert data["status"] == "ok" and data["totaal"] == 4
     assert "niet toegepast" in data["kanttekening"] and "rechtsgebied" not in data["zoekvraag"]
+
+
+def test_een_maand_en_een_jaar_in_de_zoekvraag():
+    """Rechtspraak ronde 2, R04: "van 2025-03 tot en met 2025-03" en "… en in maart 2025"."""
+    from bronmodel.connectors import RECHTSPRAAK
+
+    assert extern.zoekvraag_tekst(RECHTSPRAAK, {"instantie": "Centrale Raad van Beroep", "vanaf": "2025-03",
+                                                "tot": "2025-03", "volgorde": "nieuwste"}) == (
+        "Gezocht naar stukken van de Centrale Raad van Beroep in maart 2025. Nieuwste eerst.")
+    assert "van maart 2025 tot en met juni 2025" in extern.zoekvraag_tekst(
+        RECHTSPRAAK, {"vanaf": "2025-03", "tot": "2025-06"})

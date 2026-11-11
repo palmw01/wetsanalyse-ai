@@ -380,6 +380,7 @@
    "route": "lijstvraag",
    "tool": "zoek_uitspraken",
    "args": {
+    "aantal": 25,
     "bwb_id": "BWBR0004766",
     "artikel": "2"
    },
