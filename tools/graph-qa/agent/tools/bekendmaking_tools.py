@@ -15,6 +15,7 @@ de grounding toetst een citaat letterlijk, en wat de wet nu zegt onderbouwt ze n
 """
 from __future__ import annotations
 
+import logging
 import re
 import xml.etree.ElementTree as ET
 from typing import Any, Protocol
@@ -29,6 +30,8 @@ from .op_xml import lees
 from .sru_zoeken import LIMIT, MAX_WOORDEN, OP_VOLGORDE, cql_woorden, per_record, tekst_cql, tekst_woorden, zoekvraag
 from .stuk_tekst import INHOUD_ARG, inhoudpagina, tekstpagina
 from .zoekfilters import datum
+
+logger = logging.getLogger("graph_qa.bekendmakingen")
 
 #: Uit de beschrijving (`bronmodel.connectors`); de poorttest toetst dat `BEKENDMAKING_TOOLS` precies deze namen heeft.
 BEKENDMAKING_TOOL_NAMEN = BEKENDMAKINGEN.tools
@@ -163,7 +166,8 @@ BEKENDMAKING_TOOLS: list[dict[str, Any]] = [
             "staat 'inhoud': per kop de offset, en bij een artikel zijn korte aanhef ('begint'); daaruit lees je welke "
             "regelingen een verzamelwet wijzigt.\n"
             "GEEFT TERUG: het stuk (id, label, publicatie, soort, titel, datum, ondertekend, jaar, nummer, orgaan, reeks, "
-            "link, bron_hash en de stand bij KOOP) en per alinea nr, kop en tekst (de kop alleen waar hij verandert). "
+            "link, bron_hash, de stand bij KOOP en 'versies': de andere versies met hetzelfde nummer, zoals een herdruk, een "
+            "tweede versie of een verbeterblad, met id, label en datum) en per alinea nr, kop en tekst (de kop alleen waar hij verandert). "
             "Noem de datum en het soort uit 'stuk', niet uit de tekst. Een voetnoot is een eigen rij na zijn alinea; een "
             "tabel is één rij met 'openen' (haal hem op met tabel=<nr>). Illustraties en ondertekeningen staan er niet "
             "in; de telling staat in 'overgeslagen'. Staat er gevalideerd: false, dan kon de nieuwste versie niet "
@@ -498,6 +502,22 @@ _REST = ("'inhoud_publicatie' noemt de delen van de hele publicatie met hun offs
          "lees daar gericht verder met id en offset, zonder artikel of regeling.")
 
 
+def _andere_versies(bron: Any, ident: str) -> list[dict[str, str]]:
+    """De andere versies van een publicatie (`SruBekendmakingen.versies`): id, label en datum, oudste eerst. Een bron
+    zonder die methode (een nep) of een storing geeft niets; de lezing zelf gaat dan gewoon door, want de versies zijn
+    een aanvulling op het stuk."""
+    if not callable(getattr(bron, "versies", None)):
+        return []
+    try:
+        records = bron.versies(ident)
+    except RuntimeError:  # KoopFout: een storing kost alleen de versies
+        logger.info("bekendmaking_versies_onbekend", extra={"categorie": "functioneel", "id": ident})
+        return []
+    uit = [compact({"id": r.id, "label": label_van(r, vp), "datum": r.datum or ""})
+           for r in records if r.id != ident and (vp := _vp(r.id)) is not None]
+    return sorted(uit, key=lambda v: (v.get("datum", ""), v["id"]))
+
+
 def _noemt_artikel(tekst: str, artikel: str) -> bool:
     """Noemt de wijzigingsopdracht dit artikel ("In artikel 1.1.5 worden …", "Artikel 25 wordt als volgt gewijzigd",
     "In de artikelen 24 en 25 …")? Een langer nummer telt niet: 1.1.5 is niet 1.1.5b, 25 is niet 25a of 25.1."""
@@ -536,6 +556,8 @@ def _get(bron: BekendmakingBron, a: dict[str, Any], graph: Any = None) -> str:
     toelichting = (f"{vp.id} staat bij KOOP als {echt.id} ({stuk['label']}): noem en citeer dat id."
                    if echt.id != vp.id else "")
     offset = max(int(a.get("offset") or 0), 0)
+    if offset == 0 and a.get("tabel") is None and (andere := _andere_versies(bron, echt.id)):
+        stuk = {**stuk, "versies": andere}
     if a.get("tabel") is not None:
         gevonden = tabellen.get(int(a["tabel"])) if str(a["tabel"]).lstrip("-").isdigit() else None
         if gevonden is None:

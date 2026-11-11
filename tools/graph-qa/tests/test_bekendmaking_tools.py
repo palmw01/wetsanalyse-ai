@@ -455,3 +455,103 @@ def test_de_bron_draagt_het_label_van_het_gelezen_stuk():
     tekst = json.dumps({"status": "ok", "volledig": True, "aantal": 0, "resultaten": [],
                         "stuk": {"id": "stb-2010-185-n1", "label": "Stb. 2010, 185 (herdruk)"}})
     assert [s.label for s in collect_sources([("get_bekendmaking", tekst)])] == ["Stb. 2010, 185 (herdruk)"]
+
+
+def test_het_stuk_noemt_de_andere_versies():
+    """Iteratie ronde 1, B25: "kent geen meerdere versies", terwijl stcrt-2024-20015-n1 bestaat. Het stuk noemt nu de
+    andere publicaties met hetzelfde blad, jaar en nummer, oudste eerst, met hun label van KOOP."""
+    from types import SimpleNamespace
+
+    from agent.adapters.sru_koop import KoopFout
+
+    def rec(ident, datum, versie=""):
+        return SimpleNamespace(id=ident, datum=datum, publicatienaam="Staatsblad", jaargang="2010",
+                               publicatienummer="176", versie=versie)
+
+    bron = _bron()
+    bron.versies = lambda ident: [rec("stb-2010-176", "2010-05-11"), rec("stb-2010-176-n2", "2010-07-01", "n2"),
+                                  rec("stb-2010-176-n1", "2010-06-01", "Herdruk")]
+    d = roep("get_bekendmaking", {"id": "stb-2010-176"}, bron=bron)
+    assert d["stuk"]["versies"] == [
+        {"id": "stb-2010-176-n1", "label": "Stb. 2010, 176 (herdruk)", "datum": "2010-06-01"},
+        {"id": "stb-2010-176-n2", "label": "Stb. 2010, 176 (versie n2)", "datum": "2010-07-01"}]
+    assert "versies" not in roep("get_bekendmaking", {"id": "stb-2010-176", "offset": 3}, bron=bron)["stuk"], (
+        "alleen op de eerste pagina")
+
+    def storing(ident):
+        raise KoopFout("weg")
+    bron.versies = storing
+    d = roep("get_bekendmaking", {"id": "stb-2010-176"}, bron=bron)
+    assert d["status"] == "ok" and d["resultaten"] and "versies" not in d["stuk"], "een storing kost alleen de versies"
+    bron.versies = lambda ident: [rec("stb-2010-176", "2010-05-11")]
+    assert "versies" not in roep("get_bekendmaking", {"id": "stb-2010-176"}, bron=bron)["stuk"], "geen andere versie"
+
+
+def test_een_weigering_noemt_alle_fouten_in_een_keer():
+    """Iteratie ronde 1, B16: per fout een weigering kostte per fout een ronde (vijf rondes, ~120k tokens). Nu staan alle
+    fouten in één weigering, en ontbrekende alinea's als reeksen in plaats van honderden losse nummers."""
+    from agent.sjablonen import extern
+    from agent.sjablonen.vullen import Onvulbaar
+
+    eerste = roep("get_bekendmaking", {"id": "stb-2009-610"})
+    trace = [("get_bekendmaking", json.dumps(eerste, ensure_ascii=False))]
+    laatste = eerste["resultaten"][-1]["nr"]
+    with pytest.raises(Onvulbaar) as fout:
+        extern.blokken([{"id": "stb-2009-610", "van_nr": laatste + 1, "tot_nr": laatste + 5},
+                        {"id": "stb-2099-1", "van_nr": 1, "tot_nr": 1},
+                        {"id": "stb-2009-610", "van_nr": 1, "tot_nr": 1}], trace)
+    tekst = str(fout.value)
+    assert tekst.startswith("2 aanwijzingen") and tekst.count("\n- ") == 2, tekst
+    assert f"alinea {laatste + 1}–{laatste + 5} is niet opgehaald" in tekst, "een reeks, geen losse nummers"
+    assert f"gelezen: 1–{laatste}" in tekst and "stb-2099-1" in tekst.replace("Stb. 2099, 1", "stb-2099-1")
+    [blok] = extern.blokken([{"id": "stb-2009-610", "van_nr": 5, "tot_nr": 5}], trace)
+    assert blok.passages[0].tekst == "De Wet inkomstenbelasting 2001 wordt als volgt gewijzigd:"
+
+
+def _stream_met_graaf(vraag, monkeypatch, llm, graaf):
+    import asyncio
+
+    from agent.agent import answer_stream
+    from fakes import make_settings
+
+    monkeypatch.setattr(tools.CONNECTORMODULES["bekendmakingen"], "_bron", _bron())
+
+    async def verzamel():
+        return [e async for e in answer_stream(vraag, settings=make_settings(connector_bekendmakingen=True), llm=llm,
+                                               graph=graaf, bronnen=["bekendmakingen"])]
+    return asyncio.run(verzamel())
+
+
+def _gevraagd(llm) -> int:
+    from agent.nodes.antwoord import SJABLOON_GEVRAAGD
+    begin = SJABLOON_GEVRAAGD.split("{")[0]
+    return sum(1 for m in llm.calls[-1]["messages"] if m["role"] == "user"
+               and begin in (m["content"] if isinstance(m["content"], str) else json.dumps(m["content"])))
+
+
+def test_tekst_na_een_zoekresultaat_vraagt_een_keer_om_het_sjabloon(monkeypatch):
+    """Iteratie 11 nov 2026 (bekendmakingen B03, B05, B18, B20; rechtspraak R06, R17, R18, R22, R23): na een
+    zoekresultaat van een bronconnector antwoordde het model in tekst, soms als markdown-tabel, zonder links, zoekvraag
+    of totaal. De code vraagt dan één keer om het sjabloon; blijft het tekst, dan is dat het antwoord, zonder lus."""
+    from fakes import FakeGraph, FakeLLM, response, text_block, tool_block
+
+    llm = FakeLLM([response([text_block("duiding")], "end_turn"),
+                   response([tool_block("t1", "zoek_bekendmakingen", {"bwb_id": "BWBR0004770", "artikel": "36"})],
+                            "tool_use"),
+                   response([text_block("| Stb. | datum |\n|---|---|\n| 2010, 176 | 2010-05-11 |")], "end_turn"),
+                   response([text_block("Stb. 2009, 610 en Stb. 2010, 176.")], "end_turn")])
+    events = _stream_met_graaf("Wanneer trad artikel 36 van de Invorderingswet 1990 in werking?", monkeypatch, llm,
+                               FakeGraph(result=ART36))
+    assert len(llm.calls) == 4 and _gevraagd(llm) == 1, "precies één keer gevraagd, en daarna geen nieuwe ronde"
+    assert "zoek_bekendmakingen" in [m for m in llm.calls[-1]["messages"] if m["role"] == "user"][-1]["content"]
+    tekst = "".join(e.get("content", "") for e in events if e.get("type") == "token")
+    assert "Stb. 2009, 610 en Stb. 2010, 176." in tekst and "| Stb. |" not in tekst
+
+
+def test_tekst_zonder_zoekresultaat_vraagt_niet_om_het_sjabloon(monkeypatch):
+    from fakes import FakeGraph, FakeLLM, response, text_block
+
+    llm = FakeLLM([response([text_block("duiding")], "end_turn"),
+                   response([text_block("Daar heb ik geen publicatie bij nodig.")], "end_turn")])
+    _stream_met_graaf("Wat betekent betalingsonmacht in de Invorderingswet 1990?", monkeypatch, llm, FakeGraph(result=""))
+    assert len(llm.calls) == 2 and _gevraagd(llm) == 0

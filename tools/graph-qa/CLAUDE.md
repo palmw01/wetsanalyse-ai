@@ -99,7 +99,10 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
 - **`sjabloon_node`** – roept het model een sjabloontool aan (`agent/sjablonen/`, ADR-008), dan vult de code het antwoord
   uit de trace (register + deze beurt): blokken in `State.antwoord`, de vaste tekst uit `antwoord_tekst` in `answer`. Niet te
   vullen (`Onvulbaar`) is een `is_error`-resultaat en het model gaat verder; een halve vulling bestaat niet. Naast een
-  graaftool wacht het sjabloon tot de volgende ronde. Tekst in plaats van de tool blijft geldig (log `sjabloon gemist`).
+  graaftool wacht het sjabloon tot de volgende ronde. Tekst in plaats van de tool blijft geldig (log `sjabloon gemist`),
+  behalve één keer per beurt na een zoekresultaat van een bronconnector: dan stuurt `route_after_agent` de agent terug naar
+  zichzelf met `SJABLOON_GEVRAAGD` (`_gevonden_zonder_sjabloon`, `State.sjabloon_gevraagd`/`sjabloon_nu`, per beurt gereset;
+  iteratie 11 nov 2026: lijsten als tekst of markdown-tabel zonder links of zoekvraag). Blijft het tekst, dan is dat het antwoord.
   Alleen de sjabloontools zijn `strict`, en ze staan niet in `TOOLS`. Per specialist: `Specialist.sjablonen`.
   `antwoord_duiding` (uitleg): het model wijst per passage de bepaling en de eerste en laatste woorden aan (`van`/`tot`,
   D5), de code neemt de tekst ertussen uit de bron; gezocht wordt met typografische tekens als hun gewone vorm (’ = '),
@@ -120,7 +123,8 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   leestool dezelfde: de kop alleen waar hij verandert (`zonder_herhaling` op de pagina; `extern` vult hem aan met `aangevuld`),
   `inhoud` alleen als het stuk zonder niet op één pagina past, en `leesbaar: false` in `stuk` bij een stuk zonder tekst (derde
   meting 10 nov 2026: ECLI:NL:HR:2022:50 paste net niet, en het vervolg kostte een ronde). Na een weigering vraagt
-  `sjabloon_node` het sjabloon opnieuw aan te roepen (`OPNIEUW`), en het gelezen stuk staat in de bronnenlijst als de vraag het noemt. Een stuk dat alleen in een zoekresultaat stond, is
+  `sjabloon_node` het sjabloon opnieuw aan te roepen (`OPNIEUW`); `extern.blokken` noemt dan alle fouten van alle aanwijzingen in één
+  weigering, met ontbrekende alinea's als reeksen (`_reeksen`; per fout een weigering kostte per fout een ronde, B16: vijf), en het gelezen stuk staat in de bronnenlijst als de vraag het noemt. Een stuk dat alleen in een zoekresultaat stond, is
   voor `check_grounding` geen signaal meer (10 nov 2026: een lijst opvolgende stukken gaf 13 keer "alleen gevonden");
   het zoekresultaat draagt label, soort, datum en titel, en in de bronnenlijst komt het pas als het gelezen is. De prompt
   (BRONNEN IN DEZE BEURT) en de zoektool vragen zo'n lijst in het veld `stukken`. **Een lijst gevonden stukken** is het blok `stukken` (veld
@@ -317,7 +321,8 @@ bruikbaar is.
   koppen van de hele publicatie met hun offset in een lezing zonder filter (`tekstpagina(publicatie=)`), zodat Lex gericht
   doorleest naar de inwerkingtreding of de toelichting (hermeting B08: anders las het model het hele stuk, 86k tegen 24k).
   Een genoemd stuk leest de code vooraf mét het genoemde artikel als de leestool `artikel` kent
-  (`supervisie._te_lezen`), en zonder als dat niets oplevert (`bron_lezen`). Een oud stuk heeft vaak alleen een PDF
+  (`supervisie._te_lezen`), en zonder als dat niets oplevert (`bron_lezen`). Het `stuk` noemt de andere versies met hetzelfde blad, jaar en nummer (`versies`:
+  herdruk, tweede versie, verbeterblad; `SruBekendmakingen.versies`, alleen op de eerste pagina). Een oud stuk heeft vaak alleen een PDF
   (`alleen_pdf`, met de metadata); een id dat KOOP niet kent zoekt de adapter op blad, jaargang en nummer. `geldigheid`
   noemt naast de BWB-vorm het id (`bekendmakingen`). Citeervormen "Stb. 2010, 176", "Stb.2009-610", "Staatscourant 2026,
   nr. 37344". **Uit de Staatscourant alleen regelgeving en beleid** (`REGELGEVENDE_SOORTEN`, een witte lijst op `dt.type`;

@@ -361,6 +361,8 @@ async def answer_stream(
         "source_trace": [],
         "turns": 0,
         "corrected": False,
+        "sjabloon_gevraagd": False,
+        "sjabloon_nu": False,
         "afgekapt": False,
         "onbevestigd": [],
         "answer": "",

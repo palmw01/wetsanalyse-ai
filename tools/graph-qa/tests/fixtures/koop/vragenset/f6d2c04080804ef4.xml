@@ -1,0 +1,424 @@
+<?xml version="1.0" encoding="utf-8"?>
+<officiele-publicatie xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                      xsi:noNamespaceSchemaLocation="http://technische-documentatie.oep.overheid.nl/repository/schemas/op-consolidated/op-consolidated_2014-05-15/xsd/op-xsd-2014-05-15.xsd">
+   <metadata>
+      <meta name="DCTERMS.publisher" scheme="OVERHEID.Ministerie"
+            content="Ministerie van Binnenlandse Zaken en Koninkrijksrelaties"/>
+      <meta name="DC.creator" scheme="OVERHEID.Ministerie"
+            content="Ministerie van Financiën"/>
+      <meta name="OVERHEIDop.configuratie" scheme=""
+            content="https://repository.officiele-overheidspublicaties.nl/MasterConfiguraties/MC-OEP-StcrtBvasAnderBvas-Web/1.26/xml/MC-OEP-StcrtBvasAnderBvas-Web.xml"/>
+      <meta name="OVERHEIDop.steltVast" scheme="" content=""/>
+      <meta name="DC.identifier" scheme="OVERHEIDop.StcrtID" content="stcrt-2025-22266"/>
+      <meta name="OVERHEIDop.datumEindeReactietermijn" scheme="" content=""/>
+      <meta name="DC.type" scheme="OVERHEIDop.Rubriek"
+            content="ander besluit van algemene strekking"/>
+      <meta name="OVERHEIDop.ketenID" scheme="" content=""/>
+      <meta name="OVERHEIDop.terinzageleggingBG" scheme="" content=""/>
+      <meta name="DCTERMS.relation" scheme="" content=""/>
+      <meta name="OVERHEIDop.materieelUitgewerkt" scheme="DCTERMS.W3CDTF" content=""/>
+      <meta name="DCTERMS.isReplacedBy" scheme="OVERHEIDop.StcrtID" content=""/>
+      <meta name="DCTERMS.requires" scheme="OVERHEIDop.StcrtID" content=""/>
+      <meta name="OVERHEIDop.pagina" scheme="" content=""/>
+      <meta name="DCTERMS.replaces" scheme="OVERHEIDop.StcrtID" content=""/>
+      <meta name="DCTERMS.isRequiredBy" scheme="OVERHEIDop.StcrtID" content=""/>
+      <meta name="DCTERMS.hasPart" scheme="OVERHEIDop.StcrtID" content=""/>
+      <meta name="OVERHEIDop.publicationIssue" scheme="" content="22266"/>
+      <meta name="OVERHEIDop.jaargang" scheme="DCTERMS.W3CDTF" content="2025"/>
+      <meta name="OVERHEIDop.versieInformatie" scheme="" content=""/>
+      <meta name="DCTERMS.language" scheme="DCTERMS.RFC4646" content="nl"/>
+      <meta name="OVERHEIDop.doctype" scheme="" content="Officiële Publicaties, versie 1.1"/>
+      <meta name="DC.type" scheme="OVERHEID.Informatietype" content="officiële publicatie"/>
+      <meta name="OVERHEIDop.publicationName" scheme="" content="Staatscourant"/>
+      <meta name="OVERHEID.organisationType" scheme="OVERHEID.Organisatietype"
+            content="ministerie"/>
+      <meta name="OVERHEID.category" scheme="OVERHEID.TaxonomieBeleidsagenda"
+            content="Financiën | Belasting"/>
+      <meta name="DC.title" content="Wijziging van Leidraad Invordering 2008"/>
+      <meta name="DCTERMS.alternative" scheme="" content=""/>
+      <meta name="OVERHEIDop.datumOndertekening" scheme="DCTERMS.W3CDTF"
+            content="2025-06-26"/>
+      <meta name="DCTERMS.available" scheme="DCTERMS.W3CDTF" content="2025-07-01"/>
+      <meta content="" name="OVERHEIDop.bekendmakingBetreffendePlan"
+            scheme="OVERHEIDop.Ruimtelijkplan"/>
+   </metadata>
+   <kop>
+      <titel>STAATSCOURANT</titel>
+      <subtitel>Officiële uitgave van het Koninkrijk der Nederlanden sinds 1814.</subtitel>
+   </kop>
+   <staatscourant>
+      <kop>
+         <titel>Wijziging van Leidraad Invordering 2008</titel>
+      </kop>
+      <regeling>
+         <aanhef>
+            <context>
+               <context.al>Directoraat-generaal Belastingdienst/Corporate Dienst Vaktechniek</context.al>
+               <context.al>Besluit van 26 juni 2025, nr. 2025-070007</context.al>
+            </context>
+            <afkondiging>
+               <al>
+                  <nadruk type="vet">De Staatssecretaris van Financiën heeft het volgende besloten.</nadruk>
+               </al>
+               <al>Dit besluit wijzigt de Leidraad Invordering 2008.</al>
+            </afkondiging>
+         </aanhef>
+         <regeling-tekst>
+            <wijzig-artikel status="goed">
+               <kop>
+                  <label>ARTIKEL</label>
+                  <nr status="officieel">I</nr>
+               </kop>
+               <wat type="wijziging">Het besluit van 12 juni 2008, nr. CPP2008/1137M, laatstelijk gewijzigd bij besluit van 17 december 2024, nr. 2024-372579, wijzigt als volgt:</wat>
+               <wijzig-lid>
+                  <lidnr status="officieel">A</lidnr>
+                  <wat>Artikel 1.1.5 wordt als volgt gewijzigd:</wat>
+                  <wijziging>
+                     <nr status="officieel">1.</nr>
+                     <wat>Na het eerste gedachtestreepje wordt een nieuw gedachtestreepje ingevoegd, luidende:</wat>
+                     <artikeltekst>
+                        <lijst type="expliciet" start="1" level="single" nr-sluiting=".">
+                           <li>
+                              <li.nr>–</li.nr>
+                              <al>bezwaarschriften tegen beschikkingen ambtshalve kwijtschelding als bedoeld in artikel 26a van de wet;</al>
+                           </li>
+                        </lijst>
+                     </artikeltekst>
+                  </wijziging>
+                  <wijziging>
+                     <nr status="officieel">2.</nr>
+                     <wat>Na het zesde gedachtestreepje (nieuw) worden twee nieuwe gedachtestreepjes ingevoegd, luidende:</wat>
+                     <artikeltekst>
+                        <lijst type="expliciet" start="1" level="single" nr-sluiting=".">
+                           <li>
+                              <li.nr>–</li.nr>
+                              <al>bezwaarschriften tegen beschikkingen uitstel van betaling voor de vennootschapsbelasting bij de overdracht van vermogensbestanddelen door een fonds voor gemene rekening als bedoeld in artikel 70g van de wet;</al>
+                           </li>
+                           <li>
+                              <li.nr>–</li.nr>
+                              <al>bezwaarschriften tegen beschikkingen uitstel van betaling voor de vennootschapsbelasting bij een overdracht van vermogensbestanddelen door een open commanditaire vennootschap als bedoeld in artikel 70h van de wet;</al>
+                           </li>
+                        </lijst>
+                     </artikeltekst>
+                  </wijziging>
+                  <wijziging>
+                     <nr status="officieel">3.</nr>
+                     <wat>De laatste alinea wordt vanaf de vierde zin vervangen en komt te luiden:</wat>
+                     <artikeltekst>
+                        <al>Als bij de marginale toetsing blijkt dat een belastingaanslag gedeeltelijk of geheel in materiële zin niet verschuldigd kan worden geacht, neemt de ontvanger in zoverre geen invorderingsmaatregelen. Onder invorderingsmaatregelen worden niet alleen dwangmaatregelen begrepen zoals de tenuitvoerlegging van een dwangbevel, maar ook de verrekening van een belastingaanslag met belastingteruggaven.</al>
+                        <al>Als de ontvanger invorderingsmaatregelen heeft genomen na indiening van het verzoek van de belastingschuldige tot marginale toetsing, corrigeert hij de afboekingen op de belastingaanslag voor zover deze belastingaanslag niet materieel verschuldigd kan worden geacht. In het geval het afboekingen betreffen die zien op de periode van vóór de ontvangst van het verzoek dan wel er sprake is van betalingen uit eigen beweging van de belastingschuldige, corrigeert de ontvanger dit voor zover dat in redelijkheid nog mogelijk is.</al>
+                        <al>De ontvanger wijst het verzoek van belastingschuldige af als de inspecteur het tijdige verzoek voor ambtshalve beoordeling ook zou hebben afgewezen.</al>
+                     </artikeltekst>
+                  </wijziging>
+               </wijzig-lid>
+               <wijzig-lid>
+                  <lidnr status="officieel">B</lidnr>
+                  <wat>Artikel 11.5 wordt als volgt gewijzigd:</wat>
+                  <wijziging>
+                     <nr status="officieel">1.</nr>
+                     <wat>In de eerste alinea vervalt ‘dan wel het betalingsgedrag van de belastingschuldige’.</wat>
+                  </wijziging>
+                  <wijziging>
+                     <nr status="officieel">2.</nr>
+                     <wat>Na de eerste alinea wordt een alinea ingevoegd, luidende:</wat>
+                     <artikeltekst>
+                        <al>Als de belastingschuld de inkomstenbelasting, de inkomensafhankelijke bijdrage zorgverzekeringswet, de motorrijtuigenbelasting dan wel de vennootschapsbelasting betreft, verzendt de ontvanger eerst (kosteloos) een schriftelijke betalingsherinnering.</al>
+                     </artikeltekst>
+                  </wijziging>
+               </wijzig-lid>
+               <wijzig-lid>
+                  <lidnr status="officieel">C</lidnr>
+                  <wat>Artikel 19.3.9 vervalt.</wat>
+               </wijzig-lid>
+               <wijzig-lid>
+                  <lidnr status="officieel">D</lidnr>
+                  <wat>Na artikel 25.2.9 wordt een nieuw artikel ingevoegd, luidende:</wat>
+                  <wijziging>
+                     <wijzig-divisie soort="onbekend" opmaak="default">
+                        <kop>
+                           <nr status="officieel">25.2.10</nr>
+                           <titel>Uitstel voor herzieningsverzoeken en verzoeken om ambtshalve vermindering</titel>
+                        </kop>
+                        <al>De belastingschuldige kan een herzieningsverzoek in de zin van artikel 9.5 van de Wet inkomstenbelasting 2001 dan wel een verzoek om ambtshalve vermindering in de zin van artikel 9.6 van die wet, bij de inspecteur indienen. Als de belastingschuldige in verband daarmee uitstel van betaling wenst, moet hij hiervoor een schriftelijk verzoek indienen bij de ontvanger. De ontvanger wijst dit verzoek in het algemeen toe. De ontvanger kan aan het uitstel voorwaarden verbinden en verleent slechts uitstel van betaling voor het bedrag waarvoor de belastingschuldige heeft verzocht de belastingaanslag te verlagen. Het verleende uitstel vervalt op het moment dat de inspecteur op het verzoek heeft beslist.</al>
+                     </wijzig-divisie>
+                  </wijziging>
+               </wijzig-lid>
+               <wijzig-lid>
+                  <lidnr status="officieel">E</lidnr>
+                  <wat>Artikel 25.4.2 komt te luiden:</wat>
+                  <wijziging>
+                     <wijzig-divisie soort="onbekend" opmaak="default">
+                        <kop>
+                           <nr status="officieel">25.4.2</nr>
+                           <titel>Uitstel en de belasting van personenauto’s en motorrijwielen</titel>
+                        </kop>
+                        <al>In beginsel wijst de ontvanger verzoeken om betalingsregelingen voor de belasting van personenauto’s en motorrijwielen af, vanwege het specifieke karakter van die belasting.</al>
+                     </wijzig-divisie>
+                  </wijziging>
+               </wijzig-lid>
+               <wijzig-lid>
+                  <lidnr status="officieel">F</lidnr>
+                  <wat>In artikel 25.5.1 wordt aan de tweede alinea, een zin toegevoegd, luidende:</wat>
+                  <wijziging>
+                     <artikeltekst>
+                        <al>Het beleid zoals beschreven bij de berekening van de betalingscapaciteit bij betalingsregelingen tot en met twaalf maanden, is van overeenkomstige toepassing op een regeling die vanwege bijzondere omstandigheden langer dan twaalf maanden duurt.</al>
+                     </artikeltekst>
+                  </wijziging>
+               </wijzig-lid>
+               <wijzig-lid>
+                  <lidnr status="officieel">G</lidnr>
+                  <wat>Artikel 25.5.8 komt te luiden:</wat>
+                  <wijziging>
+                     <artikeltekst>
+                        <al>De ontvanger kan aflossingsverplichtingen aan derden, waarvan het niet-nakomen tot ongewenste effecten kan leiden, meenemen bij de berekening van de betalingscapaciteit.</al>
+                     </artikeltekst>
+                  </wijziging>
+               </wijzig-lid>
+               <wijzig-lid>
+                  <lidnr status="officieel">H</lidnr>
+                  <wat>Artikel 25.5.9 komt te luiden:</wat>
+                  <wijziging>
+                     <artikeltekst>
+                        <al>Bij de berekening van de betalingscapaciteit kan de ontvanger rekening houden met extra inkomsten, zoals vakantiegeld, tantièmes en dergelijke, voor zover uitbetaling daarvan plaatsvindt in de periode waarvoor de betalingsregeling geldt.</al>
+                     </artikeltekst>
+                  </wijziging>
+               </wijzig-lid>
+               <wijzig-lid>
+                  <lidnr status="officieel">I</lidnr>
+                  <wat>Artikel 25.5.11 vervalt.</wat>
+               </wijzig-lid>
+               <wijzig-lid>
+                  <lidnr status="officieel">J</lidnr>
+                  <wat>Na artikel 25.5.11 worden drie artikelen ingevoegd, luidende:</wat>
+                  <wijziging>
+                     <wijzig-divisie soort="onbekend" opmaak="default">
+                        <kop>
+                           <nr status="officieel">25.5a</nr>
+                           <titel>Verlengde betalingsregeling in verband met illiquide vermogen</titel>
+                        </kop>
+                        <wijzig-divisie soort="onbekend" opmaak="default">
+                           <kop>
+                              <nr status="officieel">25.5a.1</nr>
+                              <titel>Betalingsregeling bij illiquide vermogen</titel>
+                           </kop>
+                           <al>Aan de belastingschuldige bij wie – na aanwending van het eventuele overige vermogen dat niet bezwaarlijk liquide te maken is – sprake is van vermogen dat bezwaarlijk liquide te maken is als bedoeld in artikel 12, vijfde lid, van de regeling (hierna: illiquide vermogen) kan de ontvanger de reguliere uitsteltermijn van twaalf maanden waarin de belastingschuldige zijn betalingscapaciteit inzet, verlengen met inachtneming van het volgende.</al>
+                           <al>De ontvanger verlengt de uitsteltermijn van twaalf maanden met ten hoogste 60 maanden. In deze periode dient de belastingschuldige een bedrag af te lossen gelijk aan maximaal de (over)waarde van het illiquide vermogen. Bij de maandelijkse termijnbetalingen houdt de ontvanger rekening met de betalingscapaciteit van de belastingschuldige.</al>
+                           <al>Als de omstandigheden op grond waarvan de betalingsregeling is toegekend veranderen, is belastingschuldige verplicht de ontvanger zo spoedig mogelijk hierover te informeren. Voorts beoordeelt de ontvanger jaarlijks of er sprake is van een verandering van het inkomen. Als blijkt dat er wijzigingen hebben plaatsgevonden van het inkomen, berekent de ontvanger opnieuw de betalingscapaciteit van de belastingschuldige. De ontvanger past de betalingsregeling alleen aan als de betalingscapaciteit naar beneden moet worden bijgesteld.</al>
+                           <al>Als gedurende de looptijd van de betalingsregeling een nieuwe belastingschuld ontstaat kan de ontvanger deze op verzoek van de belastingschuldige meenemen in de bestaande regeling, indien deze nieuwe belastingschuld binnen de resterende (maximale) betalingstermijn kan worden voldaan. Indien deze nieuwe belastingschuld vanwege onvoldoende betalingscapaciteit niet kan worden meegenomen in de bestaande betalingsregeling beëindigt de ontvanger de betalingsregeling.</al>
+                        </wijzig-divisie>
+                        <wijzig-divisie soort="onbekend" opmaak="default">
+                           <kop>
+                              <nr status="officieel">25.5a.2</nr>
+                              <titel>Onvoldoende betalingscapaciteit voor (voortzetten) betalingsregeling</titel>
+                           </kop>
+                           <al>Als een belastingschuldige niet of niet langer over voldoende betalingscapaciteit beschikt om de (over)waarde van zijn illiquide vermogen in (de resterende) 60 maanden te voldoen, dan wijst de ontvanger het verzoek om uitstel af of beëindigt de betalingsregeling. De ontvanger houdt de invordering aan voor een redelijke termijn zodat belastingschuldige het vermogen liquide kan maken dan wel op een andere manier een bedrag gelijk aan de (over)waarde van het vermogen kan voldoen.</al>
+                        </wijzig-divisie>
+                        <wijzig-divisie soort="onbekend" opmaak="default">
+                           <kop>
+                              <nr status="officieel">25.5a.3</nr>
+                              <titel>Redenen beëindigen betalingsregeling illiquide vermogen</titel>
+                           </kop>
+                           <al>In aanvulling op artikel 25.1.4. van deze leidraad en op de redenen tot beëindiging van de betalingsregeling genoemd in artikel 25.5a.1 en 25.5a.2, beëindigt de ontvanger de betalingsregeling eveneens als de gerechtigdheid tot het illiquide vermogen wijzigt.</al>
+                        </wijzig-divisie>
+                     </wijzig-divisie>
+                  </wijziging>
+               </wijzig-lid>
+               <wijzig-lid>
+                  <lidnr status="officieel">K</lidnr>
+                  <wat>Artikel 26.3.8 wordt als volgt gewijzigd:</wat>
+                  <wijziging>
+                     <nr status="officieel">1.</nr>
+                     <wat>De tekst van het vierde gedachtestreepje komt te luiden:</wat>
+                     <artikeltekst>
+                        <lijst type="expliciet" start="1" level="single" nr-sluiting=".">
+                           <li>
+                              <li.nr>–</li.nr>
+                              <al>Dwangcrediteuren. Onder ‘dwangcrediteuren’ worden in dit verband handelscrediteuren verstaan van wie het aannemelijk is dat zij niet bereid zullen zijn aan een akkoord mee te werken, terwijl zonder de betrokkenheid van deze handelscrediteuren de onderneming na de totstandkoming van het saneringsakkoord niet kan worden voortgezet.</al>
+                           </li>
+                        </lijst>
+                     </artikeltekst>
+                  </wijziging>
+                  <wijziging>
+                     <nr status="officieel">2.</nr>
+                     <wat>Na het vierde gedachtestreepje wordt een nieuw gedachtestreepje ingevoegd:</wat>
+                     <artikeltekst>
+                        <lijst type="expliciet" start="1" level="single" nr-sluiting=".">
+                           <li>
+                              <li.nr>–</li.nr>
+                              <al>De boekhouder of adviseur die stukken moet produceren die voor de beoordeling van een saneringsakkoord nodig zijn. Bij de beoordeling van het akkoord houdt de ontvanger rekening met de volledige betaling van de vordering van de boekhouder of adviseur voor zover deze ziet op die werkzaamheden.</al>
+                           </li>
+                        </lijst>
+                     </artikeltekst>
+                  </wijziging>
+               </wijzig-lid>
+               <wijzig-lid>
+                  <lidnr status="officieel">L</lidnr>
+                  <wat>Artikel 26.3.9 komt te luiden:</wat>
+                  <wijziging>
+                     <artikeltekst>
+                        <al>De betaling van het bedrag van het saneringsakkoord vindt in beginsel zonder uitstel plaats. De ontvanger kan echter toestaan dat het bedrag in termijnen wordt betaald. Dit kan indien de belastingschuldige na de sanering het bedrijf of zelfstandig beroep blijft uitoefenen en aannemelijk maakt dat de termijnen, bedoeld in de tweede volzin, evenals de nieuw opkomende fiscale verplichtingen tijdig kunnen worden nagekomen. In het geval de ontvanger betaling in termijnen heeft toegestaan, treedt hij voorwaardelijk toe tot het akkoord. Op de betalingsregeling voor het bedrag van het saneringsakkoord zijn de artikelen 25.6.1, 25.6.2 en 25.6.2a van overeenkomstige toepassing waarbij in afwijking van:</al>
+                        <lijst type="expliciet" start="1" level="single" nr-sluiting=".">
+                           <li>
+                              <li.nr>−</li.nr>
+                              <al>artikel 25.4.3 van deze leidraad geen verrekening plaatsvindt van belastingteruggaven en andere teruggaven voor zover die materieel zijn ontstaan na de dag waarop het verzoek tot het sluiten van het saneringsakkoord is ingediend;</al>
+                           </li>
+                           <li>
+                              <li.nr>−</li.nr>
+                              <al>artikel 25.6.1 van deze leidraad de looptijd van twaalf maanden aanvangt op de dag na de dagtekening van de voorwaardelijke beschikking tot kwijtschelding;</al>
+                           </li>
+                           <li>
+                              <li.nr>−</li.nr>
+                              <al>artikel 25.6.2 van deze leidraad de belastingschuldige nieuw opkomende fiscale en andere financiële verplichtingen, waarvan de invordering aan de ontvanger is opgedragen, niet alleen gedurende de uitstelregeling, maar gedurende de gehele looptijd van de saneringsprocedure nakomt;</al>
+                           </li>
+                           <li>
+                              <li.nr>−</li.nr>
+                              <al>artikel 25.6.2 van deze leidraad de belastingschuldige geen zekerheid hoeft te stellen;</al>
+                           </li>
+                           <li>
+                              <li.nr>−</li.nr>
+                              <al>artikel 25.6.2a van deze leidraad het bedrag van het saneringsakkoord in meer dan twaalf maandelijkse termijnen kan worden betaald, indien de belastingschuldige aannemelijk maakt dat hij het bedrag van het saneringsakkoord niet binnen twaalf maandelijkse termijnen kan voldoen en nakoming van het akkoord is geborgd. Daarnaast hoeft de belastingschuldige met een verklaring van een derde deskundige alleen aannemelijk te maken dat de betalingsproblemen met het saneringsakkoord zullen worden opgelost en dat er sprake is van een levensvatbare onderneming. De tweede alinea van artikel 25.6.2b van deze leidraad is van overeenkomstige toepassing.</al>
+                           </li>
+                        </lijst>
+                        <al>De ontvanger verleent kwijtschelding indien het saneringsakkoord in het geheel is nagekomen.</al>
+                     </artikeltekst>
+                  </wijziging>
+               </wijzig-lid>
+               <wijzig-lid>
+                  <lidnr status="officieel">M</lidnr>
+                  <wat>In artikel 73.5.5 wordt na ‘als bedoeld in artikel 287a van de Faillissementswet’ ingevoegd ‘ of een verzoek tot toelating tot de WSNP’.</wat>
+               </wijzig-lid>
+               <wijzig-lid>
+                  <lidnr status="officieel">N</lidnr>
+                  <wat>In artikel 79.15 wordt na de eerste zin een zin ingevoegd, luidende:</wat>
+                  <wijziging>
+                     <artikeltekst>
+                        <al>De Dienst Toeslagen houdt de invordering van een toeslagschuld ook aan als de Belangenbehartiger een casus van de belanghebbende in behandeling heeft genomen. De Dienst Toeslagen doet dit tot het moment waarop behandeling van de casus door de Belangenbehartiger definitief is afgerond.</al>
+                     </artikeltekst>
+                  </wijziging>
+               </wijzig-lid>
+            </wijzig-artikel>
+            <artikel status="goed">
+               <kop>
+                  <label>ARTIKEL</label>
+                  <nr status="officieel">II</nr>
+               </kop>
+               <al>Dit besluit treedt op 1 juli 2025 in werking. Dit besluit zal met de toelichting in de Staatscourant worden geplaatst.</al>
+            </artikel>
+         </regeling-tekst>
+         <regeling-sluiting status="goed">
+            <gegeven>
+               <dagtekening>
+                  <plaats>Den Haag,</plaats>
+                  <datum isodatum="2025-06-26">26 juni 2025</datum>
+               </dagtekening>
+            </gegeven>
+            <ondertekening>
+               <functie>De Staatssecretaris van Financiën,</functie>
+               <deze>namens deze,</deze>
+               <naam>
+                  <voornaam>H.G.</voornaam>
+                  <achternaam>Roodbeen</achternaam>
+               </naam>
+               <functie>hoofddirecteur Fiscale en Juridische zaken</functie>
+            </ondertekening>
+         </regeling-sluiting>
+         <nota-toelichting>
+            <kop>
+               <titel>TOELICHTING:</titel>
+            </kop>
+            <al>Artikel I, onderdeel A wijzigt artikel 1.1.5 op twee punten. De eerste wijziging betreft een uitbreiding van de opsomming van beschikkingen waarvoor de regeling inzake de dwangsom bij niet tijdig beslissen van toepassing is. Per 2 juni 2021 is met de Wet Hersteloperatie Toeslagen<noot id="n1" type="voet">
+                  <noot.nr>1</noot.nr>
+                  <noot.al>Wet van 2 november 2022, houdende regels ten behoeve van de hersteloperatie toeslagen (Wet hersteloperatie toeslagen), <extref doc="stb-2022-433" soort="document" status="actief">Stb. 2022, 433</extref>.</noot.al>
+               </noot> artikel 26a Invorderingswet 1990 (IW 1990) ingevoerd. Hierin is bepaald dat de ontvanger onder de daar genoemde voorwaarden bij voor bezwaar vatbare beschikking ambtshalve kwijtschelding verleent. Op deze bij voor bezwaar vatbare beschikking is de regeling inzake de dwangsom bij niet tijdig beslissen van toepassing.</al>
+            <al>Voorts zijn per 1 januari 2025 de artikelen 70g en 70h IW 1990 ingevoerd. Op grond van deze bepalingen kan bijzonder uitstel van betaling worden verleend. Dit uitstel van betaling wordt bij voor bezwaar vatbare beschikking verleend. Op deze bij voor bezwaar vatbare beschikkingen is de regeling inzake de dwangsom bij niet tijdig beslissen van toepassing.</al>
+            <al>De tweede wijziging betreft een nadere invulling van de marginale toetsing van een belastingaanslag door de ontvanger. Deze wijziging is geïnitieerd naar aanleiding van signalen uit de praktijk dat het beleid ten aanzien van de marginale toetsing van een belastingaanslag onvoldoende duidelijk is. In deze wijziging zijn ook de bevindingen uit twee rapporten van de Nationale ombudsman meegenomen.<noot id="n2" type="voet">
+                  <noot.nr>2</noot.nr>
+                  <noot.al>Rapporten Nationale ombudsman van 18 april 2016, nr. 2016/037 en 9 december 2020, nr. 2020/047.</noot.al>
+               </noot>
+            </al>
+            <al>De wijziging verduidelijkt dat de ontvanger slechts in de mate waarin de belastingaanslag – zoals volgt na marginale toetsing – materieel verschuldigd is, invorderingsmaatregelen neemt.</al>
+            <al>In artikel 1.1.5 is nu opgenomen dat de ontvanger, in het geval hij invorderingsmaatregelen heeft genomen na het verzoek om marginale toetsing, afboekingen op een belastingaanslag terugdraait voor zover deze belastingaanslag materieel niet verschuldigd is. In het geval de invorderingsmaatregelen reeds waren genomen vóór indiening van het verzoek om marginale toetsing, dan wel in het geval van betalingen uit eigen beweging van de belastingschuldige, corrigeert de ontvanger voor zover dit in redelijkheid nog mogelijk is. De vraag wat in redelijkheid nog mogelijk is, is afhankelijk van de omstandigheden van het geval. Denkbaar is dat er voor de belastingaanslag meerdere verrekeningen hebben plaatsgevonden, waarmee conform artikel 7 IW 1990 eerst de kosten en de verschuldigde rente zijn betaald. Als pas na lange tijd na deze verrekeningen wordt verzocht om marginale toetsing, kan het praktisch ondoenlijk zijn om dit te corrigeren.</al>
+            <al>Opmerking verdient dat de ontvanger, in de situatie dat de belastingschuldige informatie aanlevert waaruit blijkt dat er gegronde twijfels zijn over de materiële verschuldigdheid van een belastingaanslag, niet altijd gehouden is aan een verzoek om marginale toetsing tegemoet te komen. Te denken valt aan gevallen waarin een belastingschuldige opzettelijk niet aan zijn verplichtingen heeft voldaan op grond van artikel 47 Algemene wet inzake rijksbelastingen, terwijl hij wel over de informatie beschikte en wist of in redelijkheid had moeten weten wat de gevolgen zouden zijn als hij niet aan zijn verplichtingen zou voldoen. In dat soort gevallen hoeft de ontvanger de alsnog verstrekte informatie niet mee te wegen bij een marginale toetsing. De marginale toetsing is niet bedoeld om de aanslagfase opnieuw te doorlopen of belastingschuldigen die welbewust relevante informatie hebben achtergehouden voor de inspecteur of de rechter, de mogelijkheid te bieden alsnog de materiële verschuldigdheid van een belastingaanslag aan te vechten.</al>
+            <al>Artikel I, onderdeel B wijzigt artikel 11.5. Met deze wijziging wordt aangesloten bij de huidige werkwijze zoals toegezegd in de brief van de Staatssecretarissen van Financiën van 26 april 2024.<noot id="n3" type="voet">
+                  <noot.nr>3</noot.nr>
+                  <noot.al>Kamerstukken II 2023/24, <extref doc="kst-31066-1380" soort="document" status="actief">31 066, nr. 1380</extref>, p. 2.</noot.al>
+               </noot> Voorheen verstuurde de Belastingdienst geen betalingsherinnering aan de belastingschuldige als er al een aanmaning was verstuurd voor een andere openstaande vordering. In de brief van de Staatssecretarissen van Financiën van 26 april 2024 is de ambitie uitgesproken om per 1 januari 2025 ook in die gevallen een (kosteloze) betalingsherinnering toe te sturen. Het betreft dus een uitbreiding van de gevallen waarin een betalingsherinnering wordt verstuurd. Indien op basis van het beleid een betalingsherinnering wordt verstuurd, wordt deze nu dus telkens verstuurd, ook indien er voor andere openstaande vorderingen reeds eerder een betalingsherinnering is verstuurd. Deze maatregel beoogt verdere schuldenoploop te voorkomen. De gedachte is dat belastingschuldigen eerder contact zullen opnemen met de Belastingdienst, als zij per vordering een betalingsherinnering krijgen.</al>
+            <al>Artikel I, onderdeel C schrapt artikel 19.3.9. Op 1 januari 2021 is de Wet vereenvoudiging beslagvrije voet (hierna: Wet Vbvv) in werking getreden. Deze inwerkingtreding had voor AOW-gerechtigden tot gevolg dat van een lagere bijstandsnorm werd uitgegaan dan voorheen. Om die reden kwamen er signalen dat de negatieve gevolgen van de beslagvrije voet voor de AOW-gerechtigden groter zouden zijn dan was voorzien. Als gevolg hiervan werd een verdiepend onderzoek gestart naar deze problematiek<noot id="n4" type="voet">
+                  <noot.nr>4</noot.nr>
+                  <noot.al>Kamerstukken II 2021/22, <extref doc="kst-24515-617" soort="document" status="actief">24 515 nr. 617</extref>.</noot.al>
+               </noot> en was wetgeving in voorbereiding<noot id="n5" type="voet">
+                  <noot.nr>5</noot.nr>
+                  <noot.al>Kamerstukken II 2022/23, <extref doc="kst-24515-670" soort="document" status="actief">24 515, nr. 670</extref>.</noot.al>
+               </noot>. In aanloop naar een eventuele oplossing is artikel 19.3.9 per 1 januari 2023 ingevoerd.<noot id="n6" type="voet">
+                  <noot.nr>6</noot.nr>
+                  <noot.al>Besluit 22 december 2022, nr. 2022-287717, p. 1.</noot.al>
+               </noot> Uit de brief van 3 september 2024 van de Staatssecretaris van Sociale Zaken en Werkgelegenheid<noot id="n7" type="voet">
+                  <noot.nr>7</noot.nr>
+                  <noot.al>Kamerstukken II 2023/24, <extref doc="kst-24515-768" soort="document" status="actief">24 515, nr. 768</extref>.</noot.al>
+               </noot> blijkt dat uit het verdiepend onderzoek naar voren is gekomen dat de AOW-gerechtigden er niet sterker op zijn achteruitgegaan dan door de wetgever was voorzien, zodat er onvoldoende reden is om de Wet Vbvv voor AOW-gerechtigden aan te passen. Gelet hierop bestaat er geen aanleiding meer om artikel 19.3.9 toe te passen; de bepaling komt te vervallen. De AOW-gerechtigden bij wie op grond van artikel 19.3.9 de (gunstigere) beslagvrije voet reeds is vastgesteld dan wel is gecommuniceerd, mogen erop vertrouwen dat deze blijft gelden conform de hiervoor geldende wettelijke termijn (artikel 475d, tweede lid, van het Wetboek van Burgerlijke Rechtsvordering).</al>
+            <al>Artikel I, onderdeel D betreft de invoering van een nieuw artikel 25.2.10. Met ingang van 1 januari 2024 wordt een verzoek om ambtshalve vermindering van een belastingaanslag zoals vermeld in artikel 9.6 Wet Inkomstenbelasting 2001 (hierna: Wet IB 2001) niet langer aangemerkt als een bezwaarschrift. Voorheen werd voor dergelijke verzoeken uitstel van betaling verleend op grond van de artikelen 25.2.2 en 25.2.3 van de Leidraad. Het is niet wenselijk om voor eenzelfde verzoek, vanwege een kwalificatiewijziging, geen uitstel meer te verlenen. Dit geldt temeer omdat een mogelijke afwijzing van het verzoek om ambtshalve vermindering een voor bezwaar vatbare beschikking is, zodat belastingschuldige bij het indienen van bezwaar hiertegen wederom in aanmerking komt voor uitstel op grond van voornoemde artikelen 25.2.2 en 25.2.3. Dit leidt tot de onwenselijke situatie dat gedurende het bezwaar tegen de afwijzing wel recht bestaat op uitstel, terwijl er in de voorfase geen uitstel mogelijk is (behoudens uitstel verleend op het reguliere uitstelbeleid). Dit laatste argument geldt ook voor de verzoeken om herziening in de zin van artikel 9.5 van de Wet IB 2001. Om die reden is de mogelijkheid voor uitstel ook voor deze gevallen uitgebreid, met dien verstande dat belastingschuldige hierom schriftelijk zal moeten verzoeken. De ontvanger verleent slechts uitstel van betaling voor het bestreden bedrag waarvoor de belastingschuldige verzoekt om ambtshalve vermindering dan wel herziening van de belastingaanslag.</al>
+            <al>Artikel I, onderdeel E vervangt artikel 25.4.2. In navolging van de eerdere verruiming van het beleid waardoor uitstel van betaling voor de naheffingsaanslagen motorrijtuigenbelasting mogelijk is gemaakt, is het per 1 januari 2025 mogelijk om uitstel van betaling te verlenen voor naheffingsaanslagen belasting voor zware motorrijtuigen.<noot id="n8" type="voet">
+                  <noot.nr>8</noot.nr>
+                  <noot.al>Regeling van de Staatssecretaris van Financiën van 15 december 2023 tot wijziging van onder meer enige uitvoeringsregeling op het gebied van belastingen en toeslagen (Eindejaarsregeling 2023), <extref doc="stcrt-2023-34571" soort="document" status="actief">Stcrt. 2023, 34571</extref>, p. 49.</noot.al>
+               </noot> Bij de wijziging van 1 januari 2025 van deze Leidraad<noot id="n9" type="voet">
+                  <noot.nr>9</noot.nr>
+                  <noot.al>Besluit van 17 december 2024, nr. 2024-372579.</noot.al>
+               </noot> is deze wijziging abusievelijk niet opgenomen. Tevens wordt een redactionele wijziging doorgevoerd die nog duidelijker tot uiting brengt dat het beleid van artikel 25.4.2 uitsluitend ziet op belasting van personenauto’s en motorrijwielen.</al>
+            <al>Artikel I, onderdeel F en I wijzigt artikel 25.5.1 en laat artikel 25.5.11 vervallen. De eerste zin van artikel 25.5.11 wordt aan artikel 25.5.1 toegevoegd. Dit betreft enkel een redactionele wijziging. De overige tekst van artikel 25.5.11 stemt niet meer overeen met de in onderdeel G genoemde wijziging van artikel 25.5.8 en de introductie van de verlengde betalingsregeling bij illiquide vermogen in artikel 25.5a e.v., zodat artikel 25.5.11 van de Leidraad komt te vervallen.</al>
+            <al>Artikel I, onderdeel G wijzigt artikel 25.5.8. In het Verantwoordingsonderzoek Financiën 2024<noot id="n10" type="voet">
+                  <noot.nr>10</noot.nr>
+                  <noot.al>
+                     <nadruk type="vet">Verantwoordingsonderzoek Financiën 2024</nadruk>
+                     <nadruk type="cur"> Resultaten verantwoordingsonderzoek 2024 Ministerie van Financiën en Nationale Schuld IX</nadruk> (advies van de Algemene Rekenkamer), Den Haag, mei 2025.</noot.al>
+               </noot> heeft de Algemene Rekenkamer geconstateerd dat het beleid van de Belastingdienst onvoldoende bescherming biedt aan burgers met een beperkte betaalcapaciteit en met meerdere aflossingen, doordat de Leidraad de ontvanger voorschrijft bij de berekening van de betalingscapaciteit over het algemeen geen rekening te houden met andere aflossingen. De Algemene Rekenkamer constateerde dat burgers hierdoor mogelijk onder het bestaansminimum kunnen geraken. Artikel 25.5.8 van de Leidraad bood weliswaar reeds de mogelijkheid om de aflossingen op schulden aan derden mee te nemen in de berekening van de betalingscapaciteit, maar de wijziging in artikel 25.5.8 zorgt ervoor dat dit beter tot uitdrukking komt. Met de wijziging wordt beoogd de ruimte in het recht beter naar voren te laten komen en te verduidelijken dat de preferentie geen rol speelt bij de beoordeling of de aflossingen op schulden aan derden worden meegenomen bij de berekening van de betalingscapaciteit. Relevant is of het niet meenemen van bepaalde aflossingen aan derden leidt tot ongewenste effecten voor de belastingschuldige. Bijvoorbeeld als de belastingschuldige onder het bestaansminimum komt of uit huis gezet dreigt te worden. De ontvanger kan dan een langere betalingsregeling toestaan dan twaalf maanden, omdat sprake is van een bijzondere omstandigheid als bedoeld in artikel 25.5.1, tweede alinea van deze Leidraad, die een langere looptijd rechtvaardigt.</al>
+            <al>Deze wijziging laat de praktijk van het ambtshalve toetsen op kwijtschelding zoals volgt uit artikel 25.5.1, derde alinea van deze Leidraad onverlet. Dit houdt in dat als belastingschuldige de belastingschuld niet in twaalf maanden kan voldoen, de ontvanger ambtshalve toetst op kwijtschelding. Kwijtschelding is – als aan alle overige voorwaarden voor kwijtschelding is voldaan – mogelijk voor het deel van de belastingschuld dat niet in twaalf maanden kan worden voldaan op basis van de berekening van betalingscapaciteit zoals deze geldt bij het kwijtscheldingsbeleid.</al>
+            <al-groep>
+               <al>Artikel I, onderdeel H wijzigt artikel 25.5.9. In de praktijk is naar voren gekomen dat de berekening van de betalingscapaciteit tot problemen kan leiden wanneer rekening wordt gehouden met extra inkomsten, zoals het vakantiegeld. Deze extra inkomsten worden in de betalingsregeling op basis van berekening van de betalingscapaciteit maandelijks opgeëist, onafhankelijk van de vraag of de belastingschuldige die extra inkomsten wel maandelijks geniet. Hierdoor bestaat het gevaar dat iemand gedurende een bepaalde periode onder het bestaansminimum komt.</al>
+               <al>Door van de regeling een ‘kan’-bepaling te maken en door weglating van de zinsnede ‘dan wel zou moeten plaatsvinden’ wordt niet alleen beoogd zulke situaties te voorkomen, maar wordt ook aan de ontvanger de ruimte gegeven deze extra inkomsten in de berekening van de betalingscapaciteit mee te nemen wanneer de situatie zich hiervoor leent. Het gaat hierbij om de situatie dat de betalingsregeling ziet op tijdvakken waarin bijvoorbeeld het vakantiegeld daadwerkelijk wordt genoten en dit bij de ontvanger bekend is.</al>
+            </al-groep>
+            <al>Artikel I, onderdeel J, bevat een uitwerking van de verlengde betalingsregeling bij illiquide vermogen. Er worden drie nieuwe artikelen geïntroduceerd in de Leidraad.</al>
+            <al>Per 1 juli 2025 wordt aan artikel 12 van de Uitvoeringsregeling Invorderingswet 1990 (URIW 1990) een vijfde lid toegevoegd waarmee het mogelijk wordt gemaakt om een bezitting onder voorwaarden buiten beschouwing te laten bij het bepalen van het recht op kwijtschelding, wanneer het onredelijk bezwarend wordt geacht om deze liquide te maken. Met de invoering van dit artikellid wordt uitvoering gegeven aan een van de toezeggingen gedaan in de brief van de Staatssecretaris van Financiën van 26 april 2024<noot id="n11" type="voet">
+                  <noot.nr>11</noot.nr>
+                  <noot.al>Kamerstukken II 2023/24, <extref doc="kst-31066-1380" soort="document" status="actief">31 066, nr. 1380</extref>.</noot.al>
+               </noot>. Zoals ook in de artikelsgewijze toelichting bij artikel 12, vijfde lid, URIW 1990 is vermeld ziet de mogelijkheid van de verlengde betalingsregeling met mogelijke kwijtschelding van het restant van de belastingschuld enkel op illiquide vermogensbestanddelen waarbij het onredelijk bezwarend wordt geacht dat deze liquide gemaakt zouden moeten worden. Het is daarbij aan de belastingschuldige om aannemelijk te maken dat er sprake is van illiquide vermogen en wat de nettowaarde is van het vermogen in kwestie. De wijze waarop is afhankelijk van de betreffende bezitting en de situatie. Voor de waardering van een eigen woning kan gedacht worden aan de WOZ-waarde, een taxatierapport of indien dit een reëler beeld geeft van de nettowaarde, het eigen aankoopbedrag.</al>
+            <al>Het wordt in beginsel niet passend geacht vermogensbestanddelen te ontzien die kunnen kwalificeren als een luxegoed, zoals een plezierjacht, onroerend goed wat niet de eigen woning is of een (kostbare) tweede auto. Om in aanmerking te komen voor de verlengde betalingsregeling in verband met illiquide vermogen met eventuele kwijtschelding van het restant zal dus eerst het eventuele overige vermogen wat niet kwalificeert als illiquide in de zin van artikel 12, vijfde lid, URIW 1990, moeten worden aangewend voor voldoening van de belastingschuld. Pas daarna komt een belastingschuldige – als aan alle voorwaarden is voldaan – in aanmerking voor de verlengde betalingsregeling in verband met illiquide vermogen met eventuele kwijtschelding van het restant van de belastingschuld.</al>
+            <al>In de artikelsgewijze toelichting bij de invoering van het vijfde lid van artikel 12 URIW 1990 staat dat het van de feiten en omstandigheden van het geval afhangt of het onredelijk bezwarend is om te eisen dat de belastingschuldige zijn vermogensbestanddeel liquide maakt. Hierbij is het voorbeeld gegeven van een situatie waarin de belastingschuldige een overwaarde heeft op zijn eigen woning, maar vanwege een beperkte betalingscapaciteit zijn schuld niet kan voldoen binnen een reguliere betalingsregeling van twaalf maanden en door de overwaarde op zijn eigen woning niet in aanmerking komt voor (gedeeltelijke) kwijtschelding. In een dergelijke situatie kan het onevenredig zijn om van de belastingschuldige te verlangen zijn woning te verkopen om de belastingschuld te voldoen.</al>
+            <al>De regeling is niet beperkt tot de eigen woning. Het kan ook gaan om vermogensbestanddelen die voor de belastingschuldige noodzakelijk zijn om te kunnen voorzien in zijn levensonderhoud, zoals aandelen in zijn eigen BV. Ook de hoogte van de belastingschuld en de waarde van het vermogen zijn indicatoren voor het bepalen of het onredelijk bezwarend is om het vermogen terstond liquide te maken. Zo zal een lage belastingschuld of een lage waarde van het vermogen eraan kunnen bijdragen dat het terstond liquideren leidt tot een situatie die volgens de ontvanger voor de belastingschuldige onevenredige gevolgen met zich meebrengt.</al>
+            <al>Er zullen zich naar verwachting situaties voordoen waarin belastingschuldige zijn volledige belastingschuld met een verlengde betalingsregeling kan voldoen, zodat hij geen recht heeft op kwijtschelding. De verlengde betalingsregeling staat op zichzelf, met dien verstande dat de belastingschuldige er pas in aanmerking voor komt als hij zijn belastingschuld niet in twaalf maanden kan betalen.</al>
+            <al>Ook zullen er naar verwachting situaties zijn waarin belastingschuldige een restschuld heeft na afloop van de betalingsregeling en geen kwijtschelding krijgt. Deze situatie doet zich bijvoorbeeld voor indien de belastingschuldige niet in aanmerking komt voor kwijtschelding omdat het aan hem te wijten is dat de belastingschuld niet kan worden voldaan. In een dergelijk geval kan de verlengde betalingsregeling worden toegekend om de belastingschuldige meer ademruimte te bieden om gedurende deze regeling tot een oplossing te komen voor de belastingschuld. De belastingschuldige zou bijvoorbeeld het illiquide vermogen alsnog liquide kunnen maken of op een andere manier de nog openstaande schuld voldoen. De ontvanger treedt hierover in contact met de belastingschuldige.</al>
+            <al>Om te voorkomen dat de belastingschuldige onder het bestaansminimum komt en om te beoordelen of de betalingsregeling moet worden ingetrokken, is als voorwaarde gesteld dat de belastingschuldige de ontvanger zo spoedig mogelijk informeert als er een verandering in zijn situatie komt. Ook zal de ontvanger jaarlijks beoordelen of er veranderingen in het inkomen hebben plaatsgevonden. De ontvanger neemt hierbij zo nodig contact op met de belastingschuldige. Als er sprake is van een wijziging van de inkomenspositie van de belastingschuldige berekent de ontvanger de betalingscapaciteit opnieuw. De ontvanger past de betalingsregeling alleen aan als de betalingscapaciteit naar beneden moet worden bijgesteld. Een lagere betalingscapaciteit kan ertoe leiden dat de betalingsregeling een langere looptijd (in totaal maximaal 72 maanden) krijgt, maar kan er ook toe leiden dat de ontvanger de betalingsregeling beëindigt vanwege onvoldoende betalingscapaciteit. Bij bijzondere omstandigheden, past de ontvanger maatwerk toe ter voorkoming van schrijnende situaties. Hetzelfde geldt voor het voegen van nieuwe belastingschuld(en). Voor zover dat mogelijk is, voegt de ontvanger deze schuld op verzoek in de lopende betalingsregeling. De duur van de betalingsregeling blijft maximaal 72 maanden, gerekend vanaf het ingaan van de initiële betalingsregeling.</al>
+            <al>De beëindigingsgronden van artikel 25.1.4 zijn op de betalingsregeling van toepassing. Daarnaast zijn er specifieke beëindigingsgronden in artikel 25.5a opgenomen. Hierboven is de te lage betalingscapaciteit al genoemd als beëindigingsgrond. Ook als een nieuwe belastingschuld niet gevoegd kan worden, omdat deze niet binnen de maximale looptijd van de betalingsregeling kan worden voldaan, beëindigt de ontvanger in beginsel de betalingsregeling. De betalingsregeling wordt ook beëindigd als de gerechtigdheid tot het vermogen wijzigt. Denk aan vervreemding, schenking, wijziging tenaamstelling en het aangaan van een huwelijk waarbij het vermogen in de gemeenschap valt.</al>
+            <al>Als de belastingschuldige niet (langer) in aanmerking komt voor de betalingsregeling gunt de ontvanger de belastingschuldige een redelijke termijn om het vermogen te liquideren dan wel op een andere manier de (over)waarde van het vermogen te voldoen. Denk hierbij aan een tweede hypotheek. De ontvanger zal hierover in contact treden met de belastingschuldige.</al>
+            <al>Artikel I, onderdeel K wijzigt 26.3.8. Met deze wijziging is beoogd te verduidelijken wanneer er sprake is van ‘dwangcrediteuren’. Door de term ‘leveranciers’ te vervangen door ‘handelscrediteuren’ wordt verduidelijkt dat het bij de dwangcrediteuren niet alleen kan gaan om een leverancier van een goed, maar ook om een leverancier van een dienst. In de beantwoording van Kamervragen van 1 mei 2025<noot id="n12" type="voet">
+                  <noot.nr>12</noot.nr>
+                  <noot.al>Aanhangsel Handelingen II 2024/25, nr. <extref doc="ah-tk-20242025-2025" soort="document" status="actief">2025</extref>D19782. Zie ook <extref soort="URL"
+                             doc="https://www.tweedekamer.nl/kamerstukken/kamervragen/detail?id=2025Z07052&amp;did=2025D19782"
+                             status="actief">https://www.tweedekamer.nl/kamerstukken/kamervragen/detail?id=2025Z07052&amp;did=2025D19782</extref>.</noot.al>
+               </noot> is toegelicht dat de redactie van artikel 26.3.8 mogelijk de indruk wekt dat om een crediteur aan te kunnen merken als dwangcrediteur een schriftelijke weigering van deze crediteur om aan het saneringsakkoord mee te werken een vereiste is. Met de wijziging van dit artikel wordt verduidelijkt dat dit geen vereiste is. Het is aan de belastingschuldige die een verzoek om sanering doet om aannemelijk te maken dat een crediteur niet bereid zal zijn mee te werken aan een saneringsakkoord en dat zonder de betrokkenheid van deze crediteur voortzetting van de onderneming in gevaar komt. De belastingschuldige kan dit aannemelijk maken door het overleggen van een schriftelijke weigering om mee te doen aan een saneringsakkoord, maar kan dit ook op andere manieren aannemelijk maken. Het is aan de ontvanger om te beoordelen of hij in de gegeven situatie nog aanvullende stukken nodig heeft om vast te stellen of daadwerkelijk sprake is van een dwangcrediteur.</al>
+            <al>Artikel I, onderdeel L vervangt artikel 26.3.9 nu er in artikel 26.3.9 een nieuw gedachtestreepje is toegevoegd dat expliciet vermeldt dat – onder voorwaarden – een betalingsregeling van meer dan twaalf maanden mogelijk is voor de betaling van een in een saneringsakkoord overeengekomen bedrag (hierna: het akkoordbedrag).</al>
+            <al>Zoals uit de beantwoording van de Kamervragen van 1 mei 2025<noot id="n13" type="voet">
+                  <noot.nr>13</noot.nr>
+                  <noot.al>Zie noot 11.</noot.al>
+               </noot> blijkt, is meer flexibiliteit wenselijk in de praktijk. Daarom verduidelijkt deze wijziging dat de ontvanger kan instemmen met betaling van het akkoordbedrag in meer dan twaalf maanden.</al>
+            <al>Om het akkoordbedrag in meer dan twaalf maanden te mogen betalen wordt de voorwaarde gesteld dat de belastingschuldige het akkoordbedrag niet binnen twaalf maanden kan voldoen. In dat verband moet hij aannemelijk maken dat onvoldoende liquide middelen voorhanden (kunnen) zijn voor betaling van het aan de ontvanger toekomende bedrag binnen twaalf maanden. Hierbij beoordeelt de ontvanger of dezelfde betaalafspraken ook gemaakt kunnen worden met andere, aan het akkoord deelnemende crediteuren. Het gaat dan om gelijk bevoorrechte of concurrente crediteuren die gelieerd zijn aan belastingschuldige of die een vordering op belastingschuldige hebben in dezelfde orde van grootte als de ontvanger. Voorts wordt de voorwaarde gesteld dat nakoming van het akkoord voldoende is geborgd. Ter borging van de nakoming van het akkoord dient de belastingschuldige bij een verklaring van een derde deskundige aannemelijk te maken dat de betalingsproblemen met het saneringsakkoord worden opgelost en dat er sprake is van een levensvatbare onderneming. Hierbij is het beleid zoals geformuleerd onder artikel 25.6.2b, tweede alinea van de Leidraad van overeenkomstige toepassing. Dit houdt in dat aan de derde deskundige geen formele eisen worden gesteld. Aan de verklaring van de derde deskundige kan de ontvanger wel eisen stellen als de ontvanger meent dat daar aanleiding toe is. Daarnaast kan ter borging van de nakoming van het akkoord worden gedacht aan bijvoorbeeld het laten stellen van zekerheid. Op grond van artikel 26.3.9 van de Leidraad hoeft de belastingschuldige geen zekerheid te stellen, maar het is denkbaar dat een belastingschuldige dit wel doet om zodoende nakoming van het akkoord te waarborgen.</al>
+            <al>Artikel I, onderdeel M wijzigt artikel 73.5.5. Een aantal overheidsorganisaties, waaronder de Belastingdienst, hebben het één overheidsconvenant afgesloten met de Nederlandse Vereniging voor Volkskrediet (NVVK). Dit convenant verbetert de samenwerking tussen de bij de NVVK aangesloten schuldhulpverleners en deze overheidsorganisaties. In dit overheidsconvenant is opgenomen dat de opschorting van lopende incassomaatregelen wordt beëindigd indien er na acht maanden nog geen sprake is van een lopende schuldregeling, betalingsregeling of herfinanciering. Dit is anders in het geval een dwangakkoord in de zin van artikel 287a van de Faillissementswet is aangevraagd of een Wsnp verzoek is ingediend bij de rechter. In dat geval wordt de schorsing van de lopende incassomaatregelen verlengd met de periode tussen de aanvraag of het verzoek en de beslissing van de rechter. In de Leidraad was de situatie van een Wsnp verzoek abusievelijk niet vermeld bij deze verlenging van de looptijd van de opschorting. Dit wordt met deze wijziging hersteld.</al>
+            <al>Artikel I, onderdeel N wijzigt artikel 79.15 in die zin dat de invordering wordt aangehouden vanwege behandeling van een casus door de Belangenbehartiger. Per 1 maart 2025 is er een Belangenbehartiger. De Belangenbehartiger biedt in individuele gevallen hulp aan burgers en bedrijven in belasting- en toeslagzaken wanneer zij er zelf niet ‘uitkomen’ met de uitvoeringsdiensten. Als de Belangenbehartiger een casus in behandeling neemt, is het wenselijk dat de invordering wordt aangehouden tot het moment waarop de behandeling van de casus door de Belangenbehartiger definitief is afgerond. Per 1 januari 2025 is vanwege de introductie van de Belangbehartiger het met artikel 79.15 corresponderende artikel 25.1.15 gewijzigd. De aanpassing van artikel 79.15 is toen abusievelijk niet meegenomen. Met deze wijziging zijn deze corresponderende bepalingen weer gelijkluidend.</al>
+            <al>Artikel II regelt de datum van inwerkingtreding van de onderhavige wijziging(en). Deze datum is gesteld op 1 juli 2025. Dit besluit is na de inwerkingtreding terstond uitgewerkt en bevat daarom geen vervalbepaling.<noot id="n14" type="voet">
+                  <noot.nr>14</noot.nr>
+                  <noot.al>Zie <extref doc="http://wetten.overheid.nl/BWBR0005730/2018-01-01#Hoofdstuk6_Paragraaf6.3_Artikel6.25"
+                             soort="URL"
+                             status="actief">Aanwijzing 6.25 Aanwijzingen voor de regelgeving (Stcrt. 2017, 69426)</extref>.</noot.al>
+               </noot>
+            </al>
+            <ondertekening>
+               <functie>De Staatssecretaris van Financiën,</functie>
+               <deze>namens deze,</deze>
+               <naam>
+                  <voornaam>H.G.</voornaam>
+                  <achternaam>Roodbeen</achternaam>
+               </naam>
+               <functie>hoofddirecteur</functie> Fiscale en Juridische zaken</ondertekening>
+         </nota-toelichting>
+      </regeling>
+   </staatscourant>
+</officiele-publicatie>

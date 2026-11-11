@@ -242,7 +242,7 @@ def build_graph(
         # Zonder supervisor: alleen de antwoordketen (geen annotatie-route). Een testvorm.
         g.add_edge(START, "agent")
         g.add_conditional_edges("agent", functools.partial(route_after_agent, b),
-                                {"tools": "tools", "verify": "verify", "sjabloon": "sjabloon"})
+                                {"tools": "tools", "verify": "verify", "sjabloon": "sjabloon", "agent": "agent"})
         g.add_edge("finalize", END)
         return g
 
@@ -254,7 +254,7 @@ def build_graph(
     g.add_edge("afwijzen", END)
     g.add_conditional_edges(
         "agent", functools.partial(route_after_agent, b),
-        {"tools": "tools", "verify": "verify", "annoteer": "annoteer", "sjabloon": "sjabloon"},
+        {"tools": "tools", "verify": "verify", "annoteer": "annoteer", "sjabloon": "sjabloon", "agent": "agent"},
     )
     g.add_edge("finalize", "advance")
 

@@ -1,0 +1,110 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<officiele-publicatie xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://technische-documentatie.oep.overheid.nl/repository/schemas/op-consolidated/op-consolidated_2014-05-15/xsd/op-xsd-2014-05-15.xsd">
+  <metadata>
+    <meta name="OVERHEIDop.externMetadataRecord" scheme="" content="https://zoek.officielebekendmakingen.nl/stcrt-2024-20015/metadata.xml" />
+  </metadata>
+  <kop>
+    <titel>STAATSCOURANT</titel>
+    <subtitel>Officiële uitgave van het Koninkrijk der Nederlanden sinds 1814.</subtitel>
+  </kop>
+  <staatscourant>
+    <kop>
+      <titel>Wijziging van Leidraad Invordering 2008</titel>
+    </kop>
+    <regeling>
+      <aanhef>
+        <context>
+          <context.al>Directoraat-generaal Belastingdienst/Corporate Dienst Vaktechniek</context.al>
+          <context.al>Besluit van 24 juni 2024, nr. 2024-298271</context.al>
+          <context.al>De Staatssecretaris van Financiën heeft het volgende besloten.</context.al>
+        </context>
+        <considerans>
+          <considerans.al>Dit besluit wijzigt de Leidraad Invordering 2008.</considerans.al>
+        </considerans>
+      </aanhef>
+      <regeling-tekst>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">I</nr>
+          </kop>
+          <wat>Het besluit van 12 juni 2008, nr. CPP2008/1137M, laatstelijk gewijzigd bij besluit van 26 april 2024, nr. 2024-233610, wijzigt als volgt:</wat>
+          <wijzig-lid>
+            <lidnr status="officieel">A</lidnr>
+            <wat>In de opsomming van artikel 1.1.2 wordt bij het derde gedachtestreepje ‘artikel 4, tweede lid, van de Uitvoeringsregeling Belastingdienst 2003 bedoelde algemeen directeur’ vervangen door ‘artikel 4, vierde lid, van de Uitvoeringsregeling Belastingdienst 2003 bedoelde algemeen directeur’.</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">B</lidnr>
+            <wat>De eerste zin van artikel 8.2 wordt vervangen door ‘De wijze van bekendmaking van de belastingaanslag, bedoeld in artikel 8 tweede lid van de Wet, is ter beoordeling van de ontvanger.’.</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">C</lidnr>
+            <wat>De tweede zin van de eerste alinea van artikel 19.1.6 vervalt.</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">D</lidnr>
+            <wat>In artikel 25.1.15 wordt na ‘Ministerie van Financiën’ ingevoegd ‘tot op dat verzoekschrift is beslist’.</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">E</lidnr>
+            <wat>In artikel 26.1.11 wordt na ‘Ministerie van Financiën’ ingevoegd ‘tot op dat verzoekschrift is beslist’.</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">F</lidnr>
+            <wat>De tweede zin in artikel 73.6.7 vervalt.</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">G</lidnr>
+            <wat>In Artikel 79.15 wordt na ‘Ministerie van Financiën’ ingevoegd ‘tot op dat verzoekschrift is beslist’.</wat>
+          </wijzig-lid>
+        </wijzig-artikel>
+        <artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">II</nr>
+          </kop>
+          <al>Dit besluit treedt op 1 juli 2024 in werking. Dit besluit zal met de toelichting in de Staatscourant worden geplaatst.</al>
+        </artikel>
+      </regeling-tekst>
+      <regeling-sluiting status="goed">
+        <gegeven>
+          <dagtekening>
+            <plaats>Den Haag,</plaats>
+            <datum isodatum="2024-06-24">24 juni 2024</datum>
+          </dagtekening>
+        </gegeven>
+        <ondertekening>
+          <functie>De Staatssecretaris van Financiën,</functie>
+          <deze>namens deze,</deze>
+          <naam>
+            <voornaam>H.G.</voornaam>
+            <achternaam>Roodbeen</achternaam>
+          </naam>
+          <functie>hoofddirecteur Fiscale en Juridische zaken</functie>
+        </ondertekening>
+      </regeling-sluiting>
+      <nota-toelichting>
+        <divisie opmaak="default">
+          <kop>
+            <titel>TOELICHTING:</titel>
+          </kop>
+          <al>Artikel I, onderdeel A, betreft een wijziging van de verwijzing in artikel 1.1.2 naar de bepaling van artikel 4 van de Uitvoeringsregeling Belastingdienst 2003<noot id="n1" type="voet"><noot.nr>1</noot.nr><noot.al>Zie <extref doc="stcrt-2021-12238" soort="document" status="actief">Stcrt. 2021, 12238</extref>.</noot.al></noot>. Dit is een technische wijziging als gevolg van de wijziging van artikel 4 van de Uitvoeringsregeling Belastingdienst 2003 per 1 januari 2021. Hier is geen beleidswijziging mee beoogd.</al>
+          <al>Artikel I, onderdeel B, betreft een redactionele wijziging waarmee artikel 8.2 in lijn wordt gebracht met de tekst van artikel 8, tweede lid, van de Invorderingswet 1990. Hier is geen beleidswijziging mee beoogd.</al>
+          <al>Artikel I, onderdeel C, is een technische wijziging van artikel 19.1.6. De tweede zin van de eerste alinea uit deze bepaling bevat geen andere regels dan hetgeen reeds in de wet is vastgelegd en kan daarom komen te vervallen. Er is geen beleidswijziging beoogd.</al>
+          <al>Artikel I, onderdelen D, E en G, betreffen redactionele wijzigingen van de artikelen 25.1.15, 26.1.11 en 79.15. Daarmee beoog ik het voor de ontvanger duidelijker te maken tot wanneer hij de invordering moet aanhouden als een verzoekschrift is ingediend bij Zijne Majesteit de Koning, de Commissie voor de Verzoekschriften en Burgerinitiatieven uit de Tweede Kamer of de Commissie voor de Verzoekschriften uit de Eerste Kamer der Staten-Generaal, de Nationale ombudsman of het Ministerie van Financiën. De ontvanger zal in de genoemde gevallen de invordering aanhouden vanaf het moment dat hij op de hoogte is van het feit dat er een verzoekschrift is ingediend bij een van de in de artikelen genoemde instanties en dit zal duren tot op het verzoekschrift is beslist. Met de wijziging is geen beleidswijziging beoogd.</al>
+          <al>Artikel I, onderdeel F, wijzigt artikel 73.6.7 in verband met het vervallen van het schuldig nalatig verklaren per 1 januari 2024.<noot id="n2" type="voet"><noot.nr>2</noot.nr><noot.al>Zie <extref doc="stb-2023-381" soort="document" status="actief">Stb. 2023, nr. 381</extref> en <extref doc="stb-2023-408" soort="document" status="actief">Stb. 2023, nr. 408</extref>.</noot.al></noot> Er zijn echter belastingaanslagen waarvoor de Sociale Verzekeringsbank in het verleden een schuldig nalatig verklaring heeft afgegeven en de korting op de AOW is toegepast. Voor zover deze aanslagen nog open staan en niet zijn verjaard, is het nog steeds niet de bedoeling dat hiervoor invorderingsmaatregelen worden genomen. Gezien de overwegingen bij het vervallen van het schuldig nalatig verklaren, is het niet meer passend om geen kwijtschelding te verlenen voor deze belastingaanslagen.</al>
+          <al>Artikel II regelt de datum van inwerkingtreding van de onderhavige wijziging(en). Deze datum is gesteld op 1 juli 2024. Dit besluit is na de inwerkingtreding terstond uitgewerkt en bevat daarom geen vervalbepaling.<noot id="n3" type="voet"><noot.nr>3</noot.nr><noot.al>Zie <extref doc="http://wetten.overheid.nl/BWBR0005730/2018-01-01#Hoofdstuk6_Paragraaf6.3_Artikel6.25" soort="URL" status="actief">Aanwijzing 6.25 Aanwijzingen voor de regelgeving (Stcrt. 1992, 230)</extref>.</noot.al></noot></al>
+        </divisie>
+        <ondertekening>
+          <functie>De Staatssecretaris van Financiën,</functie>
+          <deze>namens deze,</deze>
+          <naam>
+            <voornaam>H.G.</voornaam>
+            <achternaam>Roodbeen</achternaam>
+          </naam>
+          <functie>hoofddirecteur Fiscale en Juridische zaken</functie>
+        </ondertekening>
+      </nota-toelichting>
+    </regeling>
+  </staatscourant>
+</officiele-publicatie>
