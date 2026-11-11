@@ -384,7 +384,16 @@ bruikbaar is.
   `per_tekststand` en `tekstversies` tellen binnen de andere filters (een facet), `bij_het_artikel` zonder filters. Een soort
   gerecht in het meervoud ("gerechtshoven", `bronmodel.connectors.INSTANTIE_MEERVOUD`) leest de lijstroute en zet de tool om.
   De vragenset `tests/data/rechtspraak_vragenset_30.json` met de routetoets `tests/test_rechtspraak_vragenset.py` (een bekende
-  afwijking in gedeelde code staat als `open`, `xfail(strict=True)`). `tests/test_rechtspraak_tools.py`,
+  afwijking in gedeelde code staat als `open`, `xfail(strict=True)`). Een rechtsgebied naast een artikel past de tool niet
+  toe, en dat zegt de **`kanttekening`**: een veld van het resultaatcontract (`resultaat.CONTRACT_SCHEMA`) met een zin voor
+  de jurist over de grens van de zoekvraag (onvolledig, LiDO kent het artikel niet, een regeling buiten de graaf, een filter
+  dat niet kon). `extern.lijsten` zet hem achter de zoekvraag van het blok `stukken`, `extern.leemte_tekst` in de leemte
+  (zonder volgorde: "Bij deze zoekvraag vond ik geen …"). Voor elke connector, ook in de ronde gedeeld gebouwd:
+  `extern.lijsten` neemt pagina's van dezelfde zoekvraag (`_zoeksleutel`) als één lijst en houdt een gelezen stuk bij zijn
+  zoekvraag; `van_orgaan` kiest het lidwoord ("van het College"); `provenance.collect_sources` slaat een foutresultaat over
+  (`is_fout`: het voorbeeld in een foutmelding is geen bron); `bron_lijst` leest een maand, laat een werkwoord achter het
+  onderwerp weg (`_WERKWOORDEN`), kent "kamerdossier" en telt een naam binnen een langere regelingnaam niet
+  (`_zonder_ingesloten`). `tests/test_rechtspraak_tools.py`,
   live `tests/test_rechtspraak_live.py`, meting `docs/architectuur/metingen/lido-spike-2026-11-10/`.
 - **Wetgeving buiten de kennisgraaf** (`tools/wetgeving_tools.py`, transport `adapters/sru_bwb.py`, ADR-013 fase 1e):
   wettekst van het BWB die niet in de graaf staat, live bij overheid.nl. **De graaf blijft de bron voor wat erin staat**,

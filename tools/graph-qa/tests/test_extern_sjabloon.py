@@ -384,3 +384,88 @@ def test_de_zoekvraag_noemt_de_peildatum_en_de_tekststand():
                                                  "tekststand": "op peildatum", "volgorde": "nieuwste"})
     assert tekst.startswith("Gezocht bij artikel 9 van Invorderingswet 1990, op ")
     assert "peildatum 1 januari 2015" in tekst and "de tekst op de peildatum" in tekst
+
+
+# ── Ronde 1 van de iteratie Rechtspraak (11 nov 2026): de zoekvraag, de pagina's en de kanttekening ──────────────────
+
+@pytest.mark.parametrize("naam,verwacht", [
+    ("Hoge Raad", "van de Hoge Raad"),
+    ("College van Beroep voor het bedrijfsleven", "van het College van Beroep voor het bedrijfsleven"),
+    ("Ministerie van Financiën", "van het Ministerie van Financiën"),
+    ("Parket bij de Hoge Raad", "van het Parket bij de Hoge Raad"),
+    ("Eerste Kamer", "van de Eerste Kamer"),
+    ("gerechtshof", "van een gerechtshof"),
+])
+def test_het_lidwoord_bij_een_orgaan(naam, verwacht):
+    """Metingen Rechtspraak R25 en Staatsblad B10: "van de College", "van de Ministerie"."""
+    assert extern.van_orgaan(naam) == verwacht
+
+
+def test_de_paginas_van_een_zoekvraag_zijn_een_lijst():
+    """Kamerstukken K10, Rechtspraak R04/R30: ids uit twee pagina's van dezelfde zoekvraag gaven een blok zonder
+    zoekvraag en met totaal null."""
+    eerste = _zoek({"dossier": "99001", "volgorde": "nieuwste", "aantal": 2})
+    data = json.loads(eerste[1])
+    tweede = _zoek(data["vervolg"]["args"])
+    ids = [r["id"] for r in data["resultaten"]] + [r["id"] for r in json.loads(tweede[1])["resultaten"]][:1]
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "k", "extern": [], "stukken": ids, "twijfel": []},
+                      [eerste, tweede])
+    blok = next(b for b in a.blokken if b.soort == "stukken")
+    assert blok.zoekvraag == "Gezocht op dossier 99001. Nieuwste eerst." and blok.totaal == 4
+    assert [x.id for x in blok.items] == ids
+
+
+def test_twee_zoekvragen_zijn_geen_lijst_met_een_zoekvraag():
+    a1 = _zoek({"dossier": "99001", "volgorde": "nieuwste", "aantal": 2})
+    d1 = json.loads(a1[1])
+    # Een tweede zoekvraag met een andere rij: alleen de tweede rij, met een andere volgorde.
+    d2 = {**d1, "resultaten": d1["resultaten"][1:], "zoekvraag": {**d1["zoekvraag"], "volgorde": "oudste"}}
+    a1 = (a1[0], json.dumps({**d1, "resultaten": d1["resultaten"][:1]}))
+    a2 = (a1[0], json.dumps(d2))
+    ids = [d1["resultaten"][0]["id"], d1["resultaten"][1]["id"]]
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "k", "extern": [], "stukken": ids, "twijfel": []}, [a1, a2])
+    blok = next(b for b in a.blokken if b.soort == "stukken")
+    assert blok.zoekvraag == "" and blok.totaal is None
+
+
+def test_een_gelezen_stuk_blijft_bij_zijn_zoekvraag():
+    """Rechtspraak R27: een arrest dat na het zoeken gelezen werd, maakte zoekvraag en totaal van het blok leeg."""
+    trace = _rechtspraak_trace(lezen=True)
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "k", "extern": [], "twijfel": [],
+                                          "stukken": ["ECLI:NL:HR:2018:2", "ECLI:NL:HR:2024:1"]}, trace)
+    blok = next(b for b in a.blokken if b.soort == "stukken")
+    assert blok.zoekvraag.startswith("Gezocht bij artikel 9") and isinstance(blok.totaal, int)
+
+
+def test_de_kanttekening_van_de_tool_staat_bij_de_lijst_en_bij_niets_gevonden():
+    """Rechtspraak R07: een onvolledige lijst bleef "geen jurisprudentie gevonden". De kanttekening van de tool komt in
+    het blok, en in de leemte zonder volgorde."""
+    from bronmodel.connectors import RECHTSPRAAK
+    from test_rechtspraak_tools import ARTIKEL, IW, LINKS, V_2016, NepBron
+
+    aan = make_settings(connector_rechtspraak=True)
+    bron = NepBron(LINKS, onvolledig=((V_2016, "plafond"),))
+    raw = tools.dispatch("zoek_uitspraken", FakeGraph(result=ARTIKEL), {"bwb_id": IW, "artikel": "9"}, aan,
+                         rechtspraak=bron)
+    data = json.loads(raw)
+    assert "niet alles binnen" in data["kanttekening"]
+    ids = [r["id"] for r in data["resultaten"]][:2]
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "k", "extern": [], "stukken": ids, "twijfel": []},
+                      [("zoek_uitspraken", raw)])
+    blok = next(b for b in a.blokken if b.soort == "stukken")
+    assert blok.zoekvraag.endswith(data["kanttekening"])
+    leeg = extern.leemte_tekst(RECHTSPRAAK, {**data, "resultaten": []})
+    assert leeg.startswith("Bij deze zoekvraag vond ik geen jurisprudentie.") and "niet alles binnen" in leeg
+    assert "eerst." not in leeg
+
+
+def test_een_rechtsgebied_naast_een_artikel_zoekt_zonder_en_zegt_het():
+    """Rechtspraak R24: de tool weigerde, het model nam het over en liet het filter stil vallen."""
+    from test_rechtspraak_tools import ARTIKEL, IW, LINKS, NepBron
+
+    aan = make_settings(connector_rechtspraak=True)
+    data = json.loads(tools.dispatch("zoek_uitspraken", FakeGraph(result=ARTIKEL),
+                                     {"bwb_id": IW, "artikel": "9", "rechtsgebied": "belastingrecht"}, aan,
+                                     rechtspraak=NepBron(LINKS)))
+    assert data["status"] == "ok" and data["totaal"] == 4
+    assert "niet toegepast" in data["kanttekening"] and "rechtsgebied" not in data["zoekvraag"]

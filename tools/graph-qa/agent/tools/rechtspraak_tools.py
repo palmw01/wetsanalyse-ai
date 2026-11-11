@@ -122,7 +122,8 @@ RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
                 "instantie": {"type": "string",
                               "description": ("Een soort gerecht (" + ", ".join(INSTANTIES[:7]) + ") of één gerecht "
                                               "met naam of afkorting, bijvoorbeeld 'Rechtbank Gelderland' of 'CRvB'.")},
-                "rechtsgebied": {"type": "string", "description": "Alleen zonder artikel: een rechtsgebied uit de "
+                "rechtsgebied": {"type": "string", "description": "Alleen zonder artikel (met een artikel past de tool "
+                                 "het niet toe en zegt hij dat): een rechtsgebied uit de "
                                  "waardelijst van de Rechtspraak, bijvoorbeeld 'belastingrecht' of 'bestuursrecht'."},
                 "soort": {"type": "string", "enum": ["uitspraak", "conclusie"],
                           "description": "Een uitspraak of een conclusie van de advocaat-generaal."},
@@ -537,9 +538,10 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
                     "\"peildatum\": \"2015-01-01\"}")
     if not bwb_id:
         return _zoek_feed(bron, a, keuze, volgorde=volgorde, vanaf=vanaf, tot=tot, aantal=aantal, offset=offset)
-    if a.get("rechtsgebied"):
-        return fout("ongeldige_argumenten", "een rechtsgebied kan alleen zonder artikel (de koppelingen van LiDO kennen "
-                    "het niet): laat 'bwb_id' en 'artikel' weg, bijvoorbeeld {\"rechtsgebied\": \"belastingrecht\"}")
+    # LiDO kent geen rechtsgebied. Weigeren liet het model de vraag overnemen en het filter stil laten vallen (meting 11
+    # nov 2026, R24: 93k tokens); nu zoekt de tool zonder en zegt hij het, ook tegen de jurist (`kanttekening`).
+    genegeerd = str(a.get("rechtsgebied") or "").strip()
+    a = {k: v for k, v in a.items() if k != "rechtsgebied"}
 
     # Uit de graaf: de jci (de terugvalroute van LiDO, nodig voor de Awb), het label en of het een artikel is. Zonder
     # graaf (een MCP-client, de contractharnas) zoekt LiDO het artikel op bwb-id en nummer.
@@ -628,15 +630,26 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
                        "eventueel via een andere bron.")
     elif not lijst:
         toelichting = "LiDO noemt bij dit artikel geen uitspraken die aan de filters voldoen."
+    # Wat de jurist bij de lijst moet weten: waar deze zoekvraag minder kon dan ze vroeg (`kanttekening`, het blok
+    # toont het). De toelichting zegt het ook, voor het model.
+    kanttekening = " ".join(z for z in (
+        toelichting if (k.onvolledig or not k.versies) else "",
+        _stand_zin(label, versies, huidig, loopt_achter, per_tekststand, len(zonder_stand), buiten_graaf)
+        if buiten_graaf else "",
+        (f"LiDO kent geen rechtsgebied; het filter op „{genegeerd}” is niet toegepast." if genegeerd else ""),
+    ) if z)
     if (stand_zin := _stand_zin(label, versies, huidig, loopt_achter, per_tekststand, len(zonder_stand),
                                 buiten_graaf)):
         toelichting = f"{toelichting} {stand_zin}".strip()
+    if genegeerd:
+        toelichting = f"{toelichting} LiDO kent geen rechtsgebied: het filter op {genegeerd!r} is niet toegepast; zeg dat.".strip()
     per_tv: dict[str, int] = {}
     for r in zonder_stand:
         for v in per[r["id"]][2]:
             per_tv[v] = per_tv.get(v, 0) + 1
     extra = compact({
         "bepaling": bepaling, "totaal": len(lijst), "dekking": "ten minste", "versies": len(k.versies),
+        "kanttekening": kanttekening,
         "bij_het_artikel": len(alle) if len(alle) != len(lijst) else None,
         "huidige_tekst": {"vanaf": min(huidig)} if huidig else {},
         "per_tekststand": per_tekststand,

@@ -74,8 +74,7 @@
     "datum_vanaf": "2025-03-01",
     "datum_tot": "2025-03-31"
    },
-   "goed": "Uitspraken van de CRvB met een datum in maart 2025, het totaal, en geen uitspraken van daarbuiten.",
-   "open": "de lijstroute leest geen maand ('in maart 2025'): gedeelde code (agent/bron_lijst.py), gemeld aan de hoofdsessie"
+   "goed": "Uitspraken van de CRvB met een datum in maart 2025, het totaal, en geen uitspraken van daarbuiten."
   },
   {
    "id": "R05",
@@ -385,8 +384,7 @@
     "artikel": "2"
    },
    "verwacht": {},
-   "goed": "De uitspraken bij artikel 2 Uitvoeringsregeling Iw 1990, met het totaal; zijn het er meer dan op een pagina past, dan zegt Lex dat en hoe je de rest krijgt, zonder stille begrenzing.",
-   "open": "de vraag noemt de Uitvoeringsregeling én (erin) de Invorderingswet: twee regelingen, dus het model; de langste naam hoort te winnen (gedeelde code, gemeld)"
+   "goed": "De uitspraken bij artikel 2 Uitvoeringsregeling Iw 1990, met het totaal; zijn het er meer dan op een pagina past, dan zegt Lex dat en hoe je de rest krijgt, zonder stille begrenzing."
   },
   {
    "id": "R24",

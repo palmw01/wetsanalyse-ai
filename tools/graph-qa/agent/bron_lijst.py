@@ -33,8 +33,12 @@ _AANTAL_RE = re.compile(rf"\b(?:(?P<voor>{_GETAL})\s+(?:{_NIEUWSTE}|{_OUDSTE})|(
 _EEN_RE = re.compile(rf"\b(?:het|de)\s+(?:{_NIEUWSTE}|{_OUDSTE})\s+(?!\d)(?!(?:{_GETAL})\b)\w+", re.IGNORECASE)
 #: Een vraag naar wat er in een stuk staat, is geen lijstvraag.
 _INHOUD_RE = re.compile(r"\b(?:staat\s+er|zegt|zeggen|samenvat\w*|inhoud|uitleg|leg\s+uit|waarom|bedoel\w*|"
-                        r"lees|citeer|wat\s+vind)\b", re.IGNORECASE)
-_DOSSIER_RE = re.compile(r"\b(?:dossier(?:nummer)?|kamerstukdossier)\s+(?P<d>\d{4,6}(?:[- ](?:[IVXLC]{1,6}|[A-Z]))?)\b",
+                        r"lees|citeer|wat\s+vind|betekent|betekenis|definitie|houdt\b.*\bin)\b", re.IGNORECASE)
+#: Een vraag naar wat iets is ("Wat is een inwerkingtredingsbesluit?"): met alleen een soort stuk en verder niets is dat
+#: een begripsvraag, geen lijst (meting Staatsblad en Staatscourant, 11 nov 2026). "Wat is het laatste …" en "Wat zijn de
+#: moties van de Eerste Kamer?" hebben een volgorde of filter en blijven een lijst.
+_BEGRIP_RE = re.compile(r"^\s*wat\s+(?:is|zijn|was|waren)\b", re.IGNORECASE)
+_DOSSIER_RE = re.compile(r"\b(?:dossier(?:nummer)?|kamerstukdossier|kamerdossier)\s+(?P<d>\d{4,6}(?:[- ](?:[IVXLC]{1,6}|[A-Z]))?)\b",
                          re.IGNORECASE)
 _JAAR = r"(?:19|20)\d{2}"
 #: Een periode: "uit 2023 en 2024", "2023-2024", "tussen 2020 en 2022", "van 2020 tot en met 2022". Vóór de losse jaren,
@@ -45,6 +49,12 @@ _PERIODE_RE = re.compile(rf"\b(?:(?:tussen|in|uit|van)\s+)?(?P<a>{_JAAR})\s*(?:-
 #: (meting bekendmakingen B11, 10 nov 2026).
 _JAAR_RE = re.compile(rf"\b(?:(?P<sinds>sinds|vanaf|na)\s+(?P<j1>{_JAAR})|(?P<in>in|uit|van)\s+(?P<j2>{_JAAR})"
                       rf"|(?P<tot>tot|voor)\s+(?P<j3>{_JAAR}))\b", re.IGNORECASE)
+_MAANDEN = ("januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober",
+            "november", "december")
+#: Een maand met jaar: "in maart 2025", "sinds juni 2024", "voor januari 2026". Vóór de periode en de losse jaren, anders
+#: bleef "maart" over en ging de vraag naar het model (meting Rechtspraak R04, 11 nov 2026).
+_MAAND_RE = re.compile(rf"\b(?:(?P<sinds>sinds|vanaf|na)|(?P<in>in|uit|van)|(?P<tot>tot|voor))?\s*"
+                       rf"(?P<maand>{'|'.join(_MAANDEN)})\s+(?P<jaar>{_JAAR})\b", re.IGNORECASE)
 _VERGADERJAAR_RE = re.compile(r"\bvergaderjaar\s+(?P<a>\d{4})\s*[-/]\s*(?P<b>\d{2,4})\b", re.IGNORECASE)
 _OVER_RE = re.compile(r"\bover\s+(?:de\s+|het\s+)?(?P<o>[^?.!,;]+)", re.IGNORECASE)
 #: Woorden die in een lijstvraag staan zonder iets te zoeken.
@@ -52,6 +62,11 @@ _VULWOORDEN = frozenset("""geef mij me toon noem laat zien lijst wat welke wie i
     met en of er nu ook alle stuk stukken publicaties staan zit zitten gaan gaat graag alsjeblieft aub kun kan je u
     noemen noemt genoemd over horen hoort hoeveel""".split()) | frozenset(
     w for c in CONNECTORS.values() for w in (*c.verzamelnamen, *c.vulwoorden))
+#: Werkwoorden die achter het onderwerp staan zonder iets te zoeken: "memories van toelichting over de inkomstenbelasting
+#: die in 2024 zijn verschenen" zocht op "inkomstenbelasting verschenen" en vond niets (meting Kamerstukken K09).
+_WERKWOORDEN = frozenset("""werd werden wordt worden zijn is was waren verschenen verschijnt gepubliceerd publiceerde
+    ingediend gedaan uitgebracht uitgekomen aangenomen verstuurd gestuurd geschreven gemaakt gewezen uitgesproken
+    gegeven genomen vastgesteld deed deden doet gaf gaven die dat""".split())
 MAX_ONDERWERP = 4
 #: Zo veel stukken toont één pagina van de lijstroute: wat het blok `stukken` draagt (`sjablonen.extern.MAX_LIJST`) en wat
 #: de zoektools per pagina geven.
@@ -141,6 +156,20 @@ def lees(vraag: str, aan: frozenset[str],
     if (v := _VERGADERJAAR_RE.search(rest)) and (arg := _arg(c, "jaar")):
         args[arg] = f"{v.group('a')}-{v.group('b')}"
         rest = rest.replace(v.group(0), " ")
+    if (mnd := _MAAND_RE.search(rest)) is not None:
+        vanaf, tot = _arg(c, "datum", 0), _arg(c, "datum", 1)
+        if not (vanaf and tot):
+            return None
+        j, nr = int(mnd.group("jaar")), _MAANDEN.index(mnd.group("maand").lower()) + 1
+        if mnd.group("sinds"):
+            args[vanaf] = f"{j}-{nr:02d}"
+        elif mnd.group("tot"):
+            # "voor maart 2025": tot en met februari.
+            vj, vm = (j, nr - 1) if nr > 1 else (j - 1, 12)
+            args[tot] = f"{vj}-{vm:02d}"
+        else:
+            args[vanaf] = args[tot] = f"{j}-{nr:02d}"
+        rest = rest.replace(mnd.group(0), " ")
     if (p := _PERIODE_RE.search(rest)) and int(p.group("a")) <= int(p.group("b")):
         vanaf, tot = _arg(c, "datum", 0), _arg(c, "datum", 1)
         if not (vanaf and tot):
@@ -157,7 +186,8 @@ def lees(vraag: str, aan: frozenset[str],
             args[tot] = str(int(j.group("j3")) - 1)
         rest = rest.replace(j.group(0), " ")
     if (o := _OVER_RE.search(rest)) is not None:
-        woorden = [w for w in re.findall(r"[0-9A-Za-zÀ-ÿ'-]+", o.group("o")) if w.lower() not in _VULWOORDEN]
+        woorden = [w for w in re.findall(r"[0-9A-Za-zÀ-ÿ'-]+", o.group("o"))
+                   if w.lower() not in _VULWOORDEN and w.lower() not in _WERKWOORDEN]
         if woorden and (len(woorden) > MAX_ONDERWERP or "tekst" not in _zoekargumenten(c)):
             return None
         if woorden:
@@ -169,10 +199,13 @@ def lees(vraag: str, aan: frozenset[str],
     rest = " ".join(w for w in rest.split() if not _bronwoord(c, w))
     if not args:
         return None
+    if _BEGRIP_RE.match(tekst) and set(args) <= {_arg(c, "soort")}:
+        return None
     # Wat er overblijft, moet leeg zijn: een woord dat de code niet plaatst, is een vraag die het model beter leest.
     # Ook een getal: een jaartal of nummer dat de code niet plaatste, is een filter dat anders stil wegvalt ("uit 2023 en
     # 2024" werd alleen 2023, meting bekendmakingen 10 nov 2026). Aantal, dossier en vergaderjaar zijn al uit `rest`.
-    over = [w for w in re.findall(r"[0-9A-Za-zÀ-ÿ]+", rest) if w.lower() not in _VULWOORDEN]
+    over = [w for w in re.findall(r"[0-9A-Za-zÀ-ÿ]+", rest)
+            if w.lower() not in _VULWOORDEN and w.lower() not in _WERKWOORDEN]
     if over:
         return None
     return Lijstvraag(c.naam, zoektool[0], args, gevraagd if gevraagd > MAX_AANTAL else 0)
@@ -190,7 +223,7 @@ def _wetsverwijzing(c: ConnectorBeschrijving, tekst: str,
         return None
     if len(aw.artikelen) != 1 or aw.leden or regelingen is None:
         return ()
-    genoemd = regelingen(tekst)
+    genoemd = _zonder_ingesloten(regelingen(tekst), tekst)
     if len(genoemd) != 1:
         return ()
     bwb_id, namen = genoemd[0]
@@ -198,6 +231,23 @@ def _wetsverwijzing(c: ConnectorBeschrijving, tekst: str,
     for naam in sorted(namen, key=len, reverse=True):
         rest = re.sub(rf"(?<![\w.]){re.escape(naam)}(?![\w])", " ", rest, flags=re.IGNORECASE)
     return {veld.filters[0]: bwb_id, veld.filters[1]: aw.artikelen[0]}, rest
+
+
+def _plekken(namen: set[str], tekst: str) -> list[tuple[int, int]]:
+    return [m.span() for n in namen for m in re.finditer(rf"(?<![\w.]){re.escape(n)}(?![\w])", tekst, re.IGNORECASE)]
+
+
+def _zonder_ingesloten(genoemd: list[tuple[str, set[str]]], tekst: str) -> list[tuple[str, set[str]]]:
+    """De regelingen die de tekst zelf noemt: een naam die alleen binnen de naam van een andere staat, telt niet
+    ("Uitvoeringsregeling Invorderingswet 1990" noemt de Invorderingswet 1990 niet; meting Rechtspraak R23, 11 nov 2026).
+    Een regeling zonder namen (de graaf gaf er geen) blijft staan."""
+    if len(genoemd) < 2:
+        return genoemd
+    plekken = {b: _plekken(n, tekst) for b, n in genoemd}
+
+    def ingesloten(b: str, p: tuple[int, int]) -> bool:
+        return any(q != p and q[0] <= p[0] and p[1] <= q[1] for a, qs in plekken.items() if a != b for q in qs)
+    return [(b, n) for b, n in genoemd if not plekken[b] or any(not ingesloten(b, p) for p in plekken[b])]
 
 
 def _bronwoord(c: ConnectorBeschrijving, woord: str) -> bool:

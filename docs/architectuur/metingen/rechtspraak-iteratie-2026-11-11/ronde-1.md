@@ -11,17 +11,17 @@ BWB-repository), niet geraden.
 
 ## Score
 
-**15 goed, 11 deels, 4 fout**, en 2 niet beoordeeld:
+**16 goed, 11 deels, 4 fout**, en 1 niet beoordeeld:
 
-- R03 is niet gedraaid. De eerste poging viel op het inloggen (drie werkers tegelijk), de tweede op het tokenbudget van het
-  account (429 `budget_op`).
+- R03 viel twee keer uit: eerst op het inloggen (drie werkers tegelijk), toen op het tokenbudget van het account (429
+  `budget_op`). Na de reset van het budget is hij nagedraaid: goed, zonder model.
 - R19 is niet beoordeeld. Het meetwerkgebied met peildatum 2015 was die ochtend verwijderd; de run liep zonder werkgebied.
 
 | # | vraag (kort) | oordeel | tokens | rondes |
 |---|---|---|---|---|
 | R01 | uitspraken bij art. 9 Iw | goed | 0 | 0 |
 | R02 | de 5 nieuwste bij art. 36 Iw | goed | 0 | 0 |
-| R03 | nieuwste HR in het belastingrecht | niet gedraaid | – | – |
+| R03 | nieuwste HR in het belastingrecht | goed (nagedraaid) | 0 | 0 |
 | R04 | CRvB in maart 2025 | deels | 177.672 | 6 |
 | R05 | 10 oudste conclusies bij art. 25 Iw | deels | 62.870 | 3 |
 | R06 | hoven bij art. 67f AWR | deels | 127.995 | 5 |
@@ -79,22 +79,30 @@ Wat goed gaat:
    de advocaat-generaal" als één soort.
 5. **Een vervolgvraag over een uitspraak werd een wettekstvraag** (R28b, fout). "Wat zegt de nieuwste daarvan?" werd herschreven
    met "wat zegt", artikel 36 en een datum. De bepalingsroute las dat als de tekst van artikel 36 op die datum. Gedeelde code
-   (`bepaling_workflow`): **gemeld aan de hoofdsessie**.
+   (`bepaling_workflow`): **gemeld**; de sessie van Wetgeving buiten de kennisgraaf is eigenaar.
 6. **Een foutmelding met een voorbeeld wordt een bron** (R14). Het voorbeeld `{"bwb_id": "BWBR0004770", …}` in een foutresultaat
-   zet de Invorderingswet in de bronnenlijst. Gedeelde code (`provenance`): **gemeld**.
-7. **Het blok verzwijgt de toelichting van de tool** (R07). Een onvolledige lijst of "LiDO kent dit artikel niet" kwam niet in het
-   blok; ook "die … voldoen" en "van de College". Gedeelde code (`sjablonen/extern`): **gemeld**.
-8. **Platte tekst met een markdown-tabel in plaats van het blok stukken** (R06, R17, R18, R22, R23), en een blok stukken in een
-   modelantwoord zonder zoekvraag en totaal (R04, R27, R30). Gedeelde code (sjabloon): **gemeld**.
+   zet de Invorderingswet in de bronnenlijst. **Opgelost** (gedeeld, eigenaar Rechtspraak): `collect_sources` slaat een
+   foutresultaat over (`resultaat.is_fout`), met een test per connector die een voorbeeld in de fout zet.
+7. **Het blok verzwijgt de grens van de zoekvraag** (R07). Een onvolledige lijst of "LiDO kent dit artikel niet" kwam niet in het
+   blok; ook "die … voldoen" en "van de College". **Opgelost** (gedeeld, eigenaar Rechtspraak): een zoektool geeft een
+   `kanttekening` (in het resultaatcontract) en het blok `stukken` en de leemte tonen die; de leemte noemt geen volgorde
+   meer en luidt "Bij deze zoekvraag vond ik geen …"; een orgaan krijgt het juiste lidwoord (`van_orgaan`).
+8. **Platte tekst met een markdown-tabel in plaats van het blok stukken** (R06, R17, R18, R22, R23): **gemeld**, de sessie van
+   Staatsblad en Staatscourant is eigenaar. Een blok stukken in een modelantwoord zonder zoekvraag en totaal (R04, R27, R30):
+   **opgelost** in `extern.lijsten`, pagina's van dezelfde zoekvraag zijn één lijst, en een gelezen stuk blijft bij de zoekvraag
+   waarin het stond.
 9. **De lijstroute leest geen maand en geeft een rechtsgebied mee naast een artikel** (R04, R24), en ziet in "Uitvoeringsregeling
-   Invorderingswet 1990" twee regelingen (R23). Gedeelde code (`agent/bron_lijst.py`, `regelingen_in_vraag`): **gemeld**.
+   Invorderingswet 1990" twee regelingen (R23). **Opgelost** (gedeeld, eigenaar Rechtspraak): `bron_lijst` leest een maand
+   ("in maart 2025", "sinds", "voor"), laat een werkwoord achter het onderwerp weg (Kamerstukken K09), kent "kamerdossier"
+   (Staatsblad B18), en een naam die alleen binnen een langere regelingnaam staat telt niet. Een rechtsgebied naast een artikel
+   past de zoektool niet toe, en ze zegt dat in de kanttekening.
 10. **Een samenvatting van een lang arrest leest alle pagina's** (R11: 8 pagina's, 357k). Nog niet aangepakt: eerst zien of het in
     ronde 2 terugkomt.
 
 ## Wat deze ronde niet zegt
 
 - Eén run per vraag: over de spreiding zegt dit niets.
-- R03 en R19 zijn niet gemeten; ze komen in ronde 2 terug, R19 in een nieuw eigen werkgebied.
+- R19 is niet gemeten; hij komt in ronde 2 terug, in een nieuw eigen werkgebied.
 - De fixes zijn lokaal en live tegen LiDO getoetst, nog niet op acceptatie. Dat doet ronde 2.
 
 Voor deze ronde zijn 31 gesprekken aangemaakt. Er is niets gewijzigd of gewist.

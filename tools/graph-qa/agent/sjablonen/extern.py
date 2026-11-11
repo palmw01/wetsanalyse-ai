@@ -18,6 +18,7 @@ haalt dan eerst op, net als bij `van`/`tot` in de duiding.
 from __future__ import annotations
 
 import copy
+import json
 import re
 from typing import Any
 
@@ -307,7 +308,23 @@ def _opsomming(delen: list[str]) -> str:
     return delen[0] if len(delen) == 1 else ", ".join(delen[:-1]) + " en " + delen[-1]
 
 
-def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any]) -> str:
+#: Het eerste woord van een naam dat "het" krijgt: "van het College van Beroep", "van het Ministerie van Financiën"
+#: (metingen Rechtspraak R25 en Staatsblad B10, 11 nov 2026: "van de College", "van de Ministerie").
+_HET = frozenset({"college", "ministerie", "parket", "gerechtshof", "hof", "openbaar", "instituut", "comité", "agentschap",
+                  "bureau", "centraal", "europees", "kabinet", "uwv", "cbs"})
+
+
+def van_orgaan(naam: str) -> str:
+    """'van de Hoge Raad', 'van het College van Beroep voor het bedrijfsleven'; een soort in kleine letters (een
+    categorie, geen naam) krijgt 'een': 'van een gerechtshof'."""
+    naam = " ".join(str(naam).split())
+    eerste = naam.split(" ", 1)[0] if naam else ""
+    if eerste[:1].islower():
+        return f"van een {naam}"
+    return f"van {'het' if eerste.lower() in _HET else 'de'} {naam}"
+
+
+def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any], *, volgorde: bool = True) -> str:
     """De zoekvraag onder een lijst, in gewone zinnen: "Gezocht op „invorderingsrente” in de tekst, vergaderjaar
     2025-2026 en van de Eerste Kamer. Meest relevante eerst." Uit de code, met de labels uit de metadata van de
     beschrijving (`ConnectorBeschrijving.filters`); de vorm per soort veld (`MetadataVeld.sleutel`), dus voor elke
@@ -334,7 +351,7 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any]) -> str:
         elif veld is not None and veld.type == "datum":
             periode["vanaf" if arg == veld.filters[0] else "tot"] = _voluit(str(waarde))
         elif sleutel == "orgaan":
-            delen.append(f"van de {waarde}")
+            delen.append(van_orgaan(str(waarde)))
         elif sleutel == "op_peildatum":
             delen.append(f"peildatum {_voluit(str(waarde))}")
         elif sleutel == "tekststand":
@@ -363,8 +380,9 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any]) -> str:
         begin = f"Gezocht naar stukken {_opsomming(delen)}."
     else:
         begin = f"Gezocht op {_opsomming(delen)}." if delen else ""
+    # Bij niets gevonden zegt een volgorde niets ("Meest relevante eerst." onder 0 treffers, meting Staatsblad B14).
     zinnen = [begin,
-              _VOLGORDE_TEKST.get(str(zoekvraag.get("volgorde") or ""), "")]
+              _VOLGORDE_TEKST.get(str(zoekvraag.get("volgorde") or ""), "") if volgorde else ""]
     return " ".join(z for z in zinnen if z)
 
 
@@ -383,9 +401,11 @@ def _gevonden(trace: Trace, c: ConnectorBeschrijving) -> dict[str, tuple[dict[st
                     uit[r["id"]] = (r, data, plek * 1000 + i)
         elif naam == c.leestool and isinstance(data.get("stuk"), dict) and isinstance(data["stuk"].get("id"), str):
             # Wat alleen de zoekrij weet (de tekst van het artikel waarbij een uitspraak hoort) blijft staan.
-            eerder = uit.get(data["stuk"]["id"], ({}, None, 0))[0]
-            uit[data["stuk"]["id"]] = ({**{k: eerder[k] for k in TEKSTVELDEN if k in eerder}, **data["stuk"]}, None,
-                                       plek * 1000)
+            # Gevonden in een zoekvraag en daarna gelezen: het blijft bij die zoekvraag, op zijn plek in de lijst
+            # (meting Rechtspraak R27: een gelezen arrest maakte de zoekvraag en het totaal van het blok leeg).
+            eerder, bij, waar = uit.get(data["stuk"]["id"], ({}, None, plek * 1000))
+            uit[data["stuk"]["id"]] = ({**{k: eerder[k] for k in TEKSTVELDEN if k in eerder}, **data["stuk"]}, bij,
+                                       waar if bij is not None else plek * 1000)
     return uit
 
 
@@ -421,18 +441,42 @@ def lijsten(items: Any, trace: Trace) -> list[Stukken]:
     for naam, rijen in per.items():
         c = CONNECTORS[naam]
         rijen.sort(key=lambda x: x[0])
-        bronnen = {id(d) for _, _, d in rijen}
-        data = rijen[0][2] if len(bronnen) == 1 else None
+        # Pagina's van dezelfde zoekvraag (alleen `offset` verschilt, en die staat niet in `zoekvraag`) zijn één lijst
+        # (metingen Rechtspraak R04/R30 en Kamerstukken K10, 11 nov 2026: zoekvraag leeg en totaal null).
+        vragen = {_zoeksleutel(d) for _, _, d in rijen}
+        data = rijen[0][2] if len(vragen) == 1 and None not in vragen else None
         zoekvraag = data.get("zoekvraag") if data and isinstance(data.get("zoekvraag"), dict) else {}
         totaal = data.get("totaal") if data and isinstance(data.get("totaal"), int) else None
+        kanttekening = " ".join(dict.fromkeys(
+            str(d["kanttekening"]).strip() for _, _, d in rijen
+            if d and isinstance(d.get("kanttekening"), str) and d["kanttekening"].strip()))
         velden = set(Stuk.model_fields)
         uit.append(Stukken(
             brontype=c.brontype, kop=f"Gevonden {c.label}",
             items=[Stuk(**{k: v for k, v in r.items() if k in velden},
                         **({"zonder_tekst": c.zonder_tekst} if r.get("leesbaar") is False else {}))
                    for _, r, _ in rijen],
-            zoekvraag=zoekvraag_tekst(c, zoekvraag), totaal=totaal))
+            zoekvraag=" ".join(filter(None, [zoekvraag_tekst(c, zoekvraag), kanttekening])), totaal=totaal))
     return uit
+
+
+def _zoeksleutel(data: dict[str, Any] | None) -> str | None:
+    """Wat een zoekvraag is, los van de pagina: de zoekvraag van het resultaat (zonder `offset`) en het totaal. None voor
+    een rij zonder zoekvraag (alleen gelezen)."""
+    if not data or not isinstance(data.get("zoekvraag"), dict):
+        return None
+    return json.dumps([data["zoekvraag"], data.get("totaal")], sort_keys=True, ensure_ascii=False, default=str)
+
+
+def leemte_tekst(c: ConnectorBeschrijving, data: dict[str, Any]) -> str:
+    """De zin bij niets gevonden: de zoekvraag zonder volgorde, de kanttekening van de tool (waar de zoekvraag minder
+    kon, meting Rechtspraak R07: een onvolledige lijst bleef "geen jurisprudentie gevonden") en dat niets gevonden geen
+    bewijs is."""
+    stukken = c.verzamelnamen[0] if c.verzamelnamen else "stukken"
+    zoekvraag = zoekvraag_tekst(c, data.get("zoekvraag") or {}, volgorde=False)
+    kant = str(data.get("kanttekening") or "").strip()
+    return " ".join(filter(None, [f"Bij deze zoekvraag vond ik geen {stukken}.", zoekvraag, kant,
+                                  "Dat ik niets vond, betekent niet dat het niet bestaat."]))
 
 
 def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
