@@ -15,7 +15,9 @@
  *  - een beheerder zonder 2FA ziet op de beheertabs waarom het dicht is, koppelt, ziet zijn herstelcodes
  *    één keer en loopt dan zonder herladen door naar het beheer;
  *  - een andere beheerder reset 2FA met twee klikken, en een beheerder zonder 2FA valt op in de lijst;
- *  - het 2FA-scherm neemt een herstelcode aan.
+ *  - het 2FA-scherm neemt een herstelcode aan;
+ *  - een beheerder met 2FA ziet geen *Uitschakelen* maar wel *Opnieuw koppelen* (wachtwoord plus huidige code,
+ *    dan de QR van de nieuwe app); een analist kan wel uitschakelen.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -282,7 +284,30 @@ try {
   await inlog.page.getByRole("button", { name: "Verifiëren" }).click();
   await inlog.page.getByText(/Onjuiste of verlopen code/).waitFor();
   assert.equal(inlog.stand.verzoeken.find((v) => v.p === "/api/login-2fa").body.totp, "AAAA-BBBB-CCCC-DDDD");
-  for (const v of [plicht, reset, inlog]) assert.deepEqual(v.fouten, []);
+
+  // Opnieuw koppelen: een beheerder zet 2FA niet uit, maar vervangt de app terwijl 2FA aan blijft.
+  const vervang = await open("beheerder");
+  Object.assign(vervang.stand.account, { totp_enabled: true, herstelcodes_over: 10 });
+  await vervang.page.goto(`${base}/workbench?instellingen=beveiliging`);
+  await vervang.page.getByRole("button", { name: "Opnieuw koppelen" }).waitFor();
+  assert.equal(await vervang.page.getByRole("button", { name: "Uitschakelen" }).count(), 0, "een beheerder houdt 2FA aan");
+  await vervang.page.getByRole("button", { name: "Opnieuw koppelen" }).click();
+  await vervang.page.getByLabel("Huidig wachtwoord").fill("goed");
+  await vervang.page.getByRole("textbox", { name: /^Code/ }).fill("654321");
+  await vervang.page.getByRole("button", { name: "Doorgaan" }).click();
+  await vervang.page.getByRole("img", { name: "QR-code voor 2FA" }).waitFor();
+  assert.deepEqual(vervang.stand.verzoeken.find((v) => v.p === "/api/account/2fa/begin").body, { password: "goed", totp: "654321" });
+  await vervang.page.getByLabel(/Code uit de app/).fill("123456");
+  await vervang.page.getByRole("button", { name: "Bevestigen" }).click();
+  await vervang.page.getByText("Herstelcodes – bewaar ze nu").waitFor();
+  assert.equal(vervang.stand.verzoeken.filter((v) => v.p === "/api/account/2fa/disable").length, 0, "er wordt niets uitgezet");
+
+  const analistAan = await open("analist");
+  Object.assign(analistAan.stand.account, { totp_enabled: true, herstelcodes_over: 10 });
+  await analistAan.page.goto(`${base}/workbench?instellingen=beveiliging`);
+  await analistAan.page.getByRole("button", { name: "Uitschakelen" }).waitFor();
+  await analistAan.page.getByRole("button", { name: "Opnieuw koppelen" }).waitFor();
+  for (const v of [plicht, reset, inlog, vervang, analistAan]) assert.deepEqual(v.fouten, []);
   console.log("OK test-instellingen");
 } finally {
   await browser.close();

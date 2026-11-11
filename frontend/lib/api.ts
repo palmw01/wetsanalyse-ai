@@ -480,11 +480,13 @@ export async function zetRondleiding(
   return json(res);
 }
 
-export async function begin2fa(password: string): Promise<TotpBegin> {
+/** Start een koppeling. Met `totp` (een code van de huidige app of een herstelcode) is het opnieuw koppelen terwijl
+ *  2FA aan blijft: de nieuwe app vervangt de oude pas bij `activate2fa`. */
+export async function begin2fa(password: string, totp?: string): Promise<TotpBegin> {
   const res = await fetch("/api/account/2fa/begin", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password }),
+    body: JSON.stringify(totp ? { password, totp } : { password }),
   });
   return json<TotpBegin>(res);
 }

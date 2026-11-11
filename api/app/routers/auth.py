@@ -15,9 +15,10 @@ GET  /v1/auth/api-token/{id}/status – geldt het accounttoken nog? (de hercontr
 GET  /v1/auth/me                  – eigen account (rol + of 2FA aanstaat) – X-User-Id
 PATCH /v1/auth/me/rondleiding     – stand van de rondleiding: aangeboden versie, knop op het startscherm – X-User-Id
 POST /v1/auth/change-password     – eigen wachtwoord wijzigen (huidig → nieuw) – X-User-Id
-POST /v1/auth/2fa/begin           – start 2FA-koppeling (met wachtwoord), geeft de otpauth-URI – X-User-Id
-POST /v1/auth/2fa/activate        – bevestig 2FA met één geldige code, geeft de herstelcodes – X-User-Id
-POST /v1/auth/2fa/disable         – schakel 2FA uit (code of herstelcode) – X-User-Id
+POST /v1/auth/2fa/begin           – start 2FA-koppeling (met wachtwoord), geeft de otpauth-URI; met een code bij
+                                    actieve 2FA: opnieuw koppelen, de huidige app blijft tot de bevestiging – X-User-Id
+POST /v1/auth/2fa/activate        – bevestig 2FA (of de nieuwe app) met één geldige code, geeft de herstelcodes – X-User-Id
+POST /v1/auth/2fa/disable         – schakel 2FA uit (code of herstelcode); niet voor een beheerder (409) – X-User-Id
 POST /v1/auth/2fa/herstelcodes    – vervang de herstelcodes (code of herstelcode) – X-User-Id
 """
 
@@ -147,6 +148,8 @@ class TotpBeginOut(BaseModel):
 
 class TotpBeginIn(BaseModel):
     password: str = Field(max_length=512)
+    # Met een code van de huidige app (of een herstelcode) is dit opnieuw koppelen terwijl 2FA aan blijft.
+    totp: str | None = Field(default=None, max_length=CODE_MAX)
 
 
 class TotpActivateIn(BaseModel):
@@ -446,7 +449,7 @@ async def tfa_begin(body: TotpBeginIn, userid: str = Depends(huidige_userid)):
             detail="Geen LLM_CONFIG_SECRET geconfigureerd; 2FA-secret kan niet versleuteld worden opgeslagen.",
         )
     try:
-        uri = await users.begin_2fa(userid, body.password)
+        uri = await users.begin_2fa(userid, body.password, body.totp)
     except users.TotpActiefError as e:
         # De webapp toont deze actie niet bij actieve 2FA: wie hier komt, doet het met de hand.
         logger.warning(
@@ -487,5 +490,7 @@ async def tfa_disable(body: TotpDisableIn, userid: str = Depends(huidige_userid)
     _rem_gevoelig(userid)
     try:
         await users.disable_2fa(userid, body.totp)
+    except users.BeheerderHoudt2faError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except users.UserError as e:
         raise HTTPException(status_code=400, detail=str(e))
