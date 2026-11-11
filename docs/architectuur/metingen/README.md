@@ -1,6 +1,6 @@
 # Meetlogboek
 
-Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 10 november 2026
+Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 11 november 2026
 
 Hier staat per datum wat er gemeten is, op welke code, wat eruit kwam en waar de gegevens staan.
 Nieuwste bovenaan. De meetbestanden zelf zijn bewijs: **wijzig ze niet achteraf**. Een correctie
@@ -17,6 +17,7 @@ of herhaling krijgt een eigen map of rij. Hoe de keten nu werkt, staat in
 
 | Datum | Meting | Code | Uitkomst in één regel | Gegevens |
 |---|---|---|---|---|
+| 11 nov | **Rechtspraak: de tekst van het artikel bij een uitspraak** (bundel 36: #1207): 5 vragen, één run elk, via de acceptatie-MCP | `d6dcabb5` | De velden `tekst_vanaf`/`tekst_tot`/`tekststand`/`op_peildatum` komen aan in lijst en gelezen uitspraak; Lex gebruikt `tekststand` en `peildatum` zelf en noemt 470 huidige tegen 153 eerdere (art. 36) en de LiDO-grens. Fout: de vaste lijstroute geeft de peildatum van het werkgebied niet mee (vraag 5). Ook: rijen via het peildatumfilter zonder datum en titel. Totaal 929.469 (events) | [`rechtspraak-versies-2026-11-11/`](rechtspraak-versies-2026-11-11/README.md) |
 | 10 nov | **Staatsblad en Staatscourant op acceptatie** (bundel 35: #1202): de vragenset B01–B16 via de acceptatie-MCP, 46 van 48 runs (B16 één run: budget boven het akkoord), `claude-sonnet-4-6` | `466a65d2` | 14 van 16 vragen goed, 0 ongegrond en 0 niet-letterlijk in 46 runs, geen namen van personen; lijstvragen en genoemde stukken zonder model (0–41k). Fout: "van 2018" valt stil weg uit de lijstvraag (B11 0/3); B12 0/3 (herdruk buiten het domein, Lex weigert). Duur: een verzamelwet doorbladeren (B03 run 2 376k, B16 338k), want er is geen filter op regeling. Totaal 2.143.389 | [`bekendmakingen-2026-11-10/`](bekendmakingen-2026-11-10/README.md) |
 | 11 nov | **Staatsblad en Staatscourant, hermeting** (bundel 36: #1206): B03, B04, B05, B08, B10, B11, B12, B16, één run elk, `claude-sonnet-4-6` | `d6dcabb5` | 8 van 8 goed (B12 en B16 deels), 0 ongegrond, 0 niet-letterlijk. B11 goed (jaar), B10 en B11 0 tokens, B16 338k → 72k, B04 bekendmaking in de bronnen. Duurder: B08 24k → 86k (het model leest na de voorlezing met artikel het hele stuk). B16 mist 8 artikelen: `begint` alleen bij een aanhef ≤ 160 tekens. Totaal 451.885 | [`bekendmakingen-2026-11-11-hermeting/`](bekendmakingen-2026-11-11-hermeting/README.md) |
 | 10 nov | **Rechtspraak op acceptatie, vierde meting** na #1185 (bundel 32): dezelfde vragen, vraag 4 twee keer (budget) | `814d46ed` | ECLI lezen 3/3 met het sjabloon, 2 rondes, 47,4–47,7k (was 72k), de gelezen ECLI 3/3 in de bronnen, 28 van 28 rijen op één pagina; lijsten en ECLI zonder tekst zonder model, nu met `leesbaar: false`. Open: "(onopgemaakt, alleen PDF)" bij een uitspraak zonder tekst. Totaal 580.957 | [`rechtspraak-2026-11-10-vierde/`](rechtspraak-2026-11-10-vierde/README.md) |

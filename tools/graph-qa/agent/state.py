@@ -33,6 +33,9 @@ class State(TypedDict, total=False):
     # Het dossier van dat werkgebied als contextblok (`werkgebied_context.als_blok`), per beurt opgehaald;
     # `memory_context` zet het naast de focus. Context, geen filter.
     werkgebied_context: str
+    # De peildatum van dat werkgebied (JJJJ-MM-DD of leeg), per beurt opgehaald. `nodes/bron_lijst.py` geeft hem mee
+    # aan een zoektool met een argument `peildatum`; het model leest hem uit het contextblok.
+    werkgebied_peildatum: str
     # Waar de analist *Vraag Lex* op koos (F3b, `models.Onderwerp` als dict) en het blok dat
     # `agent/onderwerp.py` daarvan maakt; beide per beurt gereset. Het object zelf blijft in de focus
     # (`focus.bij_onderwerp`) voor vervolgvragen.

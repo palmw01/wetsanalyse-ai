@@ -18,6 +18,7 @@ Het artikel zoekt de tool zelf op in de graaf (jci en label-id), zodat het model
 from __future__ import annotations
 
 import calendar
+import logging
 import datetime as dt
 import re
 from dataclasses import dataclass
@@ -27,12 +28,14 @@ from typing import Any, Protocol
 from bronmodel.connectors import INSTANTIES, RECHTSPRAAK
 from bronmodel.extern import externe_vindplaats
 
-from ..adapters.lido_rechtspraak import begindatum
+from ..adapters.lido_rechtspraak import RechtspraakFout, begindatum
 from ..graph import queries
 from ..graph.results import parse_select
 from ..resultaat import compact, fout, pagina, per_eenheid
 from .zoekfilters import datum as _datum
 from .stuk_tekst import INHOUD_ARG, inhoudpagina, tekstpagina
+
+logger = logging.getLogger(__name__)
 
 RECHTSPRAAK_TOOL_NAMEN = RECHTSPRAAK.tools
 CONNECTOR = RECHTSPRAAK.naam
@@ -53,6 +56,7 @@ _RANG = {n: i for i, n in enumerate(INSTANTIES)}
 class RechtspraakBron(Protocol):
     def koppelingen(self, bwb_id: str, artikel: str, jci: str = "") -> Any: ...
     def document(self, ecli: str) -> Any: ...
+    def metadata(self, ecli: str) -> bytes: ...
     def zoek(self, *, instanties: tuple[str, ...] = (), rechtsgebieden: tuple[str, ...] = (), soort: str = "",
              vanaf: str = "", tot: str = "", maximum: int = 1000) -> Any: ...
     def instanties(self) -> Any: ...
@@ -210,6 +214,29 @@ def rij_van(ecli: str, titel: str) -> dict[str, Any]:
         "nummer": (m["zaak"] or "").strip() if m else "",
         "link": vp.uri if vp is not None else "",
         **({"leesbaar": False} if not ident.upper().startswith("ECLI:NL:") else {})})
+
+
+#: Hoeveel rijen zonder titel `_aangevuld` hoogstens aanvult vóór het sorteren; daarboven alleen de getoonde pagina.
+MAX_AANVULLEN = 50
+
+
+def _aangevuld(bron: RechtspraakBron, rij: dict[str, Any]) -> dict[str, Any]:
+    """Een rij zonder titel (een koppeling die LiDO alleen in RDF gaf) met datum, gerecht, titel en zaaknummer uit de
+    metadata van de Rechtspraak. Meting 11 nov 2026 (`rechtspraak-versies-2026-11-11`, vraag 3): de 14 uitspraken bij de
+    tekst op peildatum 2015 droegen alleen het jaar en "rechtbank". Lukt het niet, dan blijft de rij zoals hij was: het
+    jaar uit de ECLI is waar, alleen minder precies."""
+    if rij.get("titel") or not str(rij.get("id", "")).upper().startswith("ECLI:NL:"):
+        return rij
+    try:
+        meta, _ = lees(bron.metadata(rij["id"]))
+    except (RechtspraakFout, ET.ParseError) as exc:
+        logger.info("uitspraak zonder metadata", extra={"ecli": rij["id"], "reden": str(exc)[:200]})
+        return rij
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", meta.get("date", "")):
+        return rij
+    return {**rij, **compact({"label": label_van(rij["id"], meta), "titel": meta.get("title", ""),
+                              "datum": meta["date"], "orgaan": meta.get("creator", "") or rij.get("orgaan", ""),
+                              "nummer": meta.get("zaaknummer", "")})}
 
 
 # --- zoeken --------------------------------------------------------------------------------------------------------
@@ -540,6 +567,11 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
     for r in alle:
         if r.get("tekststand"):
             per_tekststand[r["tekststand"]] = per_tekststand.get(r["tekststand"], 0) + 1
+    # Rijen zonder titel krijgen hun datum uit de metadata, vóór het sorteren, zodat de volgorde op de dag klopt. Zijn
+    # het er meer dan `MAX_AANVULLEN`, dan alleen de getoonde pagina (hieronder): de Rechtspraak vraagt rust.
+    vooraf = sum(1 for r in lijst if not r.get("titel")) <= MAX_AANVULLEN
+    if vooraf:
+        lijst = [_aangevuld(bron, r) for r in lijst]
     # Op datum; bij dezelfde datum de hoogste instantie eerst, dan de ECLI (vast, dus dezelfde vraag dezelfde lijst).
     lijst.sort(key=lambda r: (_RANG.get(instantie(r["id"]), 99), r["id"]))
     lijst.sort(key=lambda r: r["datum"], reverse=volgorde == "nieuwste")
@@ -570,8 +602,9 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
         "zoekvraag": {**{x: v for x, v in a.items() if x not in {"offset"} and v not in ("", None)},
                       "volgorde": volgorde, "bepaling": _in_woorden(label, kop.get("citeertitel") or bwb_id)},
     })
-    return pagina(lijst[offset:offset + aantal + 1], tool="zoek_uitspraken", args={**a, "aantal": aantal},
-                  limit=aantal, offset=offset, toelichting=toelichting, extra=extra)
+    getoond = lijst[offset:offset + aantal + 1]
+    return pagina(getoond if vooraf else [_aangevuld(bron, r) for r in getoond], tool="zoek_uitspraken",
+                  args={**a, "aantal": aantal}, limit=aantal, offset=offset, toelichting=toelichting, extra=extra)
 
 
 # --- lezen ---------------------------------------------------------------------------------------------------------
