@@ -502,6 +502,10 @@ _REST = ("'inhoud_publicatie' noemt de delen van de hele publicatie met hun offs
          "lees daar gericht verder met id en offset, zonder artikel of regeling.")
 
 
+def _opsomming(delen: list[str]) -> str:
+    return delen[0] if len(delen) == 1 else ", ".join(delen[:-1]) + " en " + delen[-1]
+
+
 def _andere_versies(bron: Any, ident: str) -> list[dict[str, str]]:
     """De andere versies van een publicatie (`SruBekendmakingen.versies`): id, label en datum, oudste eerst. Een bron
     zonder die methode (een nep) of een storing geeft niets; de lezing zelf gaat dan gewoon door, want de versies zijn
@@ -558,6 +562,12 @@ def _get(bron: BekendmakingBron, a: dict[str, Any], graph: Any = None) -> str:
     offset = max(int(a.get("offset") or 0), 0)
     if offset == 0 and a.get("tabel") is None and (andere := _andere_versies(bron, echt.id)):
         stuk = {**stuk, "versies": andere}
+        # In de toelichting, niet alleen in het veld: wie vroeg wat er in het stuk staat, las `stuk.versies` niet
+        # (iteratie ronde 2, B12; in B25, waar naar de versies gevraagd werd, wel).
+        toelichting = (toelichting + " " if toelichting else "") + (
+            "Van deze publicatie bestaat ook " + _opsomming([f"{v['label']} ({v['datum']})" if v.get("datum")
+                                                            else v["label"] for v in andere])
+            + ": noem dat in je antwoord, met het id van de versie die je las.")
     if a.get("tabel") is not None:
         gevonden = tabellen.get(int(a["tabel"])) if str(a["tabel"]).lstrip("-").isdigit() else None
         if gevonden is None:

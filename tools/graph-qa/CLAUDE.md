@@ -100,7 +100,8 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   uit de trace (register + deze beurt): blokken in `State.antwoord`, de vaste tekst uit `antwoord_tekst` in `answer`. Niet te
   vullen (`Onvulbaar`) is een `is_error`-resultaat en het model gaat verder; een halve vulling bestaat niet. Naast een
   graaftool wacht het sjabloon tot de volgende ronde. Tekst in plaats van de tool blijft geldig (log `sjabloon gemist`),
-  behalve één keer per beurt na een zoekresultaat van een bronconnector: dan stuurt `route_after_agent` de agent terug naar
+  behalve één keer per beurt na een zoek- of leesresultaat van een bronconnector (geen fout; ronde 2, B22: een tabel met
+  zelf afgeleide nummers na een gelezen stuk): dan stuurt `route_after_agent` de agent terug naar
   zichzelf met `SJABLOON_GEVRAAGD` (`_gevonden_zonder_sjabloon`, `State.sjabloon_gevraagd`/`sjabloon_nu`, per beurt gereset;
   iteratie 11 nov 2026: lijsten als tekst of markdown-tabel zonder links of zoekvraag). Blijft het tekst, dan is dat het antwoord.
   Alleen de sjabloontools zijn `strict`, en ze staan niet in `TOOLS`. Per specialist: `Specialist.sjablonen`.
@@ -124,7 +125,9 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   `inhoud` alleen als het stuk zonder niet op één pagina past, en `leesbaar: false` in `stuk` bij een stuk zonder tekst (derde
   meting 10 nov 2026: ECLI:NL:HR:2022:50 paste net niet, en het vervolg kostte een ronde). Na een weigering vraagt
   `sjabloon_node` het sjabloon opnieuw aan te roepen (`OPNIEUW`); `extern.blokken` noemt dan alle fouten van alle aanwijzingen in één
-  weigering, met ontbrekende alinea's als reeksen (`_reeksen`; per fout een weigering kostte per fout een ronde, B16: vijf), en het gelezen stuk staat in de bronnenlijst als de vraag het noemt. Een stuk dat alleen in een zoekresultaat stond, is
+  weigering, met ontbrekende alinea's als reeksen (`_reeksen`; per fout een weigering kostte per fout een ronde, B16: vijf),
+  en een reeks heeft geen grens per aanwijzing meer: de code splitst, en alleen boven `MAX_ALINEAS` (48) per antwoord volgt één
+  weigering met het aantal (Kamerstukken K15: vijf weigeringen van "hoogstens 6", 450k tokens), en het gelezen stuk staat in de bronnenlijst als de vraag het noemt. Een stuk dat alleen in een zoekresultaat stond, is
   voor `check_grounding` geen signaal meer (10 nov 2026: een lijst opvolgende stukken gaf 13 keer "alleen gevonden");
   het zoekresultaat draagt label, soort, datum en titel, en in de bronnenlijst komt het pas als het gelezen is. De prompt
   (BRONNEN IN DEZE BEURT) en de zoektool vragen zo'n lijst in het veld `stukken`. **Een lijst gevonden stukken** is het blok `stukken` (veld
@@ -329,7 +332,8 @@ bruikbaar is.
   doorleest naar de inwerkingtreding of de toelichting (hermeting B08: anders las het model het hele stuk, 86k tegen 24k).
   Een genoemd stuk leest de code vooraf mét het genoemde artikel als de leestool `artikel` kent
   (`supervisie._te_lezen`), en zonder als dat niets oplevert (`bron_lezen`). Het `stuk` noemt de andere versies met hetzelfde blad, jaar en nummer (`versies`:
-  herdruk, tweede versie, verbeterblad; `SruBekendmakingen.versies`, alleen op de eerste pagina). Is geen enkel genoemd stuk
+  herdruk, tweede versie, verbeterblad; `SruBekendmakingen.versies`, alleen op de eerste pagina), ook in de toelichting: in
+  het veld las het model ze niet (ronde 2, B12). Is geen enkel genoemd stuk
   te lezen, dan antwoordt de code zonder model, voor elke connector hetzelfde (`bron_lezen._zonder_tekst`): geen tekst bij
   de bron, alleen een PDF (`alleen_pdf`, met het stuk in de lijst en `zonder_tekst` van de connector) of niet gevonden
   (`niet_gevonden`, met het id in de melding; ronde 1 Kamerstukken, K12/K27). Een oud stuk heeft vaak alleen een PDF

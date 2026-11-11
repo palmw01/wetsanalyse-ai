@@ -57,7 +57,8 @@ def test_het_eigen_sjabloon_neemt_de_tekst_uit_de_bron():
 @pytest.mark.parametrize("aanwijzing,reden", [
     ({"id": "kst-99001-10", "van_nr": 1, "tot_nr": 1}, "niet gelezen"),
     ({"id": ID, "van_nr": 2, "tot_nr": 4}, "niet opgehaald"),
-    ({"id": ID, "van_nr": 1, "tot_nr": 9}, "hoogstens 6"),
+    # Geen grens per aanwijzing meer (K15): een lange reeks splitst de code, en wat niet gelezen is, zegt de weigering.
+    ({"id": ID, "van_nr": 1, "tot_nr": 9}, "alinea 4–9 is niet opgehaald"),
     ({"id": ID, "van_nr": 2, "tot_nr": 1}, "van_nr ≤ tot_nr"),
     # Een ECLI heeft sinds de connector Rechtspraak wel een bron; EU-recht (nog) niet.
     ({"id": "CELEX:32016R0679", "van_nr": 1, "tot_nr": 1}, "geen id van een bron"),
