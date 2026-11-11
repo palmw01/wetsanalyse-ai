@@ -517,7 +517,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         return {**upd, **_lees(writer, vraag)}
     if is_overzichtsvraag(zelfstandig):
         return {**upd, **_overzicht(writer, vraag)}
-    if modus == "auto" and vraag and (bepaling := lees_bepalingsvraag(zelfstandig, b.graph, live_aan=_live_aan(state))):
+    if modus == "auto" and vraag and (bepaling := lees_bepalingsvraag(zelfstandig, b.graph, live_aan=_live_aan(state),
+                                                                         getypt=state.get("question", ""))):
         # "Wat staat er in artikel 9?" na een vraag over de Invorderingswet: pas de herschreven vraag noemt de regeling.
         # Op acceptatie ging zo'n vervolgvraag de open lus in (4 rondes, 18 s) in plaats van de workflow (1 ronde).
         # De regeling raadt de code niet zelf uit de vorige beurt: het model leest het gesprek, de code beslist daarna.

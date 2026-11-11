@@ -85,16 +85,39 @@ def peildatum_in(vraag: str) -> str | None:
     return next(iter(datums)) if len(datums) == 1 else ""
 
 
+#: Woorden voor een stuk naast de wet. "Wat zegt het arrest over artikel 36" vraagt naar het arrest, niet naar de wettekst.
+_STUKWOORD = re.compile(r"\b(?:arrest(?:en)?|uitspra(?:ak|ken)|vonnis(?:sen)?|kamerstuk(?:ken)?|kamerbrie(?:f|ven)|memorie|"
+                        r"staatsblad(?:en)?|staatscourant(?:en)?|bekendmaking(?:en)?|ecli)\b", re.IGNORECASE)
+
+
+def wijst_stuk_aan(vraag: str) -> bool:
+    """Wijst de vraag een stuk naast de wet aan? Een genoemd id of citeervorm (`genoemde_stukken`), een signaal van een
+    connector die geen wettekst levert, of een stukwoord. Dan is het geen vraag naar de tekst van een bepaling, ook als er
+    een artikel in staat (R28b, rechtspraak 11 nov 2026: "wat zegt de nieuwste daarvan" na een lijst arresten bij art. 36
+    Iw las art. 36 live in plaats van het arrest)."""
+    from bronmodel.connectors import CONNECTORS, genoemde_stukken
+
+    if _STUKWOORD.search(vraag or ""):
+        return True
+    if any(c.brontype != "wettekst_live" for c, _ in genoemde_stukken(vraag or "")):
+        return True
+    return any(c.brontype != "wettekst_live" and c.herkent(vraag or "") for c in CONNECTORS.values())
+
+
 def _is_tekstvraag(vraag: str) -> bool:
-    return bool(_TEKSTVRAAG.search(vraag)) and not _UITLEG.search(vraag)
+    return bool(_TEKSTVRAAG.search(vraag)) and not _UITLEG.search(vraag) and not wijst_stuk_aan(vraag)
 
 
-def lees(vraag: str, graph: GraphPort, *, live_aan: bool = False) -> Bepalingsvraag | None:
+def lees(vraag: str, graph: GraphPort, *, live_aan: bool = False, getypt: str | None = None) -> Bepalingsvraag | None:
     """De bepaling die de vraag eenduidig aanwijst, of `None`. Leest de regelingnamen uit de graaf (gecachet).
 
     Noemt de vraag een peildatum buiten de toestand van de graaf ("wat zei artikel 9 Iw op 1 januari 2020?"), dan is de
     graaftekst niet de gevraagde tekst: met de connector aan (`live_aan`) leest de code de tekst van die datum bij
-    overheid.nl, anders `None` (de agent zegt wat de graaf heeft). Een peildatum binnen de graaftoestand is gewoon de graaf."""
+    overheid.nl, anders `None` (de agent zegt wat de graaf heeft). Een peildatum binnen de graaftoestand is gewoon de graaf.
+
+    `getypt` is wat de jurist zelf typte, als `vraag` een herschreven vervolgvraag is. Een datum telt alleen als peildatum
+    als de jurist hem typte: een herschrijving neemt ook de datum van een stuk uit de vorige beurt over (de uitspraak van
+    10 april 2026), en dat is geen vraag naar de tekst op die dag (R28b). Zo'n vraag gaat de gewone weg."""
     if not _is_tekstvraag(vraag):
         return None
     aanwijzing = lees_aanwijzing(vraag)
@@ -111,7 +134,7 @@ def lees(vraag: str, graph: GraphPort, *, live_aan: bool = False) -> Bepalingsvr
     peil = peildatum_in(vraag)
     if peil is None:
         return v
-    if not peil:
+    if not peil or (getypt is not None and peildatum_in(getypt) != peil):
         return None
     from .tools.wetgeving_tools import GraafOnbekend, graaftoestanden
 
