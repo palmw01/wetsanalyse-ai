@@ -110,8 +110,8 @@ KAMERSTUK_TOOLS: list[dict[str, Any]] = [
                 "volgorde": {"type": "string", "enum": list(KAMERSTUKKEN.volgordes),
                              "description": "nieuwste of oudste (datum van het stuk), nummer (in een dossier) of "
                                             "relevantie (bij woorden of tekst)."},
-                "aantal": {"type": "integer", "description": f"Hoeveel stukken per pagina, 1 tot {LIMIT}; niet bij "
-                                                            "volgorde 'nummer'."},
+                "aantal": {"type": "integer", "description": f"Hoeveel stukken per pagina, 1 tot {LIMIT}; bij "
+                                                            "volgorde 'nummer' de eerste zoveel van het dossier."},
                 "offset": {"type": "integer", "description": "Voor het vervolg; begin bij 0."},
             },
             "required": [],
@@ -239,16 +239,19 @@ def _per_record(bron: KamerstukBron, cql: str, args: dict[str, Any], offset: int
                       extra_van=(lambda deel: {"dossiertitel": _dossiertitel(deel)}) if dossier else None)
 
 
-def _dossier(bron: KamerstukBron, dossier: str, cql: str, args: dict[str, Any], offset: int) -> str:
-    """De stukken van één dossier (of subdossier: `36200-IX` staat als eigen waarde in `w.dossiernummer`)."""
+def _dossier(bron: KamerstukBron, dossier: str, cql: str, args: dict[str, Any], offset: int, *,
+             aantal: int | None = None, toelichting: str = "") -> str:
+    """De stukken van één dossier (of subdossier: `36200-IX` staat als eigen waarde in `w.dossiernummer`). Met `aantal`
+    de eerste zoveel op nummer ("de eerste vijf stukken van dossier 33755"); eerst was dat een invoerfout, en het model
+    probeerde het daarna anders (ronde 1 Kamerstukken, K07 en K17)."""
     totaal, _ = bron.zoek(cql, start=1, maximum=0)
     if totaal > MAX_DOSSIER:
         return _per_record(
             bron, cql + _OP_DATUM, args, offset, extra={"volgorde": "oudste", "zoekvraag": _zoekvraag(args, "oudste")},
-            dossier=True,
+            dossier=True, maximum=aantal or LIMIT,
             toelichting=(f"Het dossier {dossier} telt {totaal} stukken: te veel om op nummer te zetten, dus ze staan op "
                          "de datum van het stuk, de oudste eerst. Zoek gericht met dossier én soort, of met volgorde "
-                         "'nieuwste'."))
+                         f"'nieuwste'. {toelichting}").strip())
     # Een dossier tot MAX_DOSSIER: alles ophalen en op nummer zetten, dan zelf pagineren op hele rijen.
     records: list[Any] = []
     while len(records) < totaal:
@@ -261,10 +264,14 @@ def _dossier(bron: KamerstukBron, dossier: str, cql: str, args: dict[str, Any], 
                     f"{dossier}. Probeer het opnieuw; een onvolledige lijst noem ik niet volledig.")
     records.sort(key=lambda r: _ondersleutel(r.ondernummer))
     lijst = [r for r in (_rij(rec) for rec in records) if r]
-    extra = compact({"totaal": len(lijst), "volgorde": "nummer", "dossiertitel": _dossiertitel(records),
+    alle = len(lijst)
+    if aantal is not None:
+        # De eerste `aantal` vanaf de offset; `totaal` blijft het hele dossier, zodat de slotzin "5 van de 27" zegt.
+        lijst = lijst[:offset + aantal]
+    extra = compact({"totaal": alle, "volgorde": "nummer", "dossiertitel": _dossiertitel(records),
                      "zoekvraag": _zoekvraag(args, "nummer")})
     return per_eenheid(lijst, tool="zoek_kamerstukken", args=args, offset=offset,
-                       toelichting="" if lijst else f"Geen Kamerstukken in dossier {dossier}.",
+                       toelichting=toelichting if lijst else f"Geen Kamerstukken in dossier {dossier}.",
                        extra=extra if lijst else None)
 
 
@@ -278,14 +285,41 @@ def _vergaderjaar(waarde: str) -> str | None:
     return f"{begin}-{eind}" if eind == begin + 1 else None
 
 
-def _soort_cql(soort: str) -> str:
-    """Het soort in `w.subrubriek` óf in de titel: bij oudere stukken is de rubriek 'Overig' en staat het soort alleen
-    in de titel (kst-33755-3; live, 9 nov 2026)."""
+#: Hoeveel stukken waarvan alleen de titel het soort draagt de tool zelf toetst; daarboven blijft de titel het filter.
+MAX_SOORT_TITEL = 100
+
+
+def _soort_in_titel(rec: Any, woorden: list[str]) -> bool:
+    """Draagt een stuk zonder eigen rubriek het soort op zijn plek in de titel? Elk woord begint een woord van dat soort
+    ("amendement" in "Amendement van het lid X"), zoals `all` in de zoekdienst ook een meervoud vindt."""
+    if (getattr(rec, "soort", "") or "").strip().lower() not in {"", "overig"}:
+        return False
+    eigen = [w.lower() for w in _WOORD_RE.findall(_soort_uit_titel(rec))]
+    return all(any(e.startswith(w) for e in eigen) for w in woorden)
+
+
+def _soort_cql(bron: KamerstukBron, rest: str, soort: str) -> tuple[str, bool]:
+    """Het soort als filter: (CQL, ruim). Een stuk met een rubriek telt op `w.subrubriek`; een ouder stuk heeft geen
+    rubriek of "Overig", en dan staat het soort alleen in de titel (kst-33755-3, kst-30322-3; live, 9 en 11 nov 2026).
+
+    Eerst stond er `w.subrubriek all … OR dt.title all …`, en dan kwam ook een brief met het woord in zijn titel mee
+    ("Uitvoeringstoetsen aangenomen amendementen", ronde 1 Kamerstukken K10). De zoekdienst kan niet vragen naar een stuk
+    zonder rubriek (`w.subrubriek=*` geeft niets). Daarom haalt de tool de stukken op waarvan alleen de titel het woord
+    draagt, toetst ze (`_soort_in_titel`) en neemt de goede op id op. Zo blijven totaal, volgorde en vervolg die van de
+    zoekdienst. Zijn het er meer dan `MAX_SOORT_TITEL`, dan blijft de titel het filter, en zegt de toelichting dat
+    (`ruim`)."""
     woorden = list(dict.fromkeys(w.lower() for w in _WOORD_RE.findall(soort)))[:MAX_WOORDEN]
     if not woorden:
         raise ValueError("soort")
     term = " ".join(woorden)
-    return f' AND (w.subrubriek all "{term}" OR dt.title all "{term}")'
+    rubriek = f'w.subrubriek all "{term}"'
+    totaal, deel = bron.zoek(f'{rest} AND dt.title all "{term}" NOT {rubriek}', start=1, maximum=MAX_SOORT_TITEL)
+    if totaal > len(deel):
+        return f' AND ({rubriek} OR dt.title all "{term}")', True
+    ids = list(dict.fromkeys(r.id for r in deel if _soort_in_titel(r, woorden)))
+    if not ids:
+        return f" AND {rubriek}", False
+    return f' AND ({rubriek} OR {" OR ".join(f"dt.identifier=={chr(34)}{i}{chr(34)}" for i in ids)})', False
 
 
 def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
@@ -349,24 +383,27 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
     if volgorde == "relevantie" and not gezocht:
         return fout("ongeldige_volgorde", "relevantie gaat over woorden: geef 'woorden' of 'tekst', of kies een datum, "
                     "bijvoorbeeld {\"volgorde\": \"nieuwste\"}.")
-    if volgorde == "nummer" and aantal is not None:
-        return fout("ongeldig_aantal", "op nummer komt het hele dossier op pagina's; laat 'aantal' weg, of kies "
-                    "bijvoorbeeld {\"volgorde\": \"nieuwste\", \"aantal\": 10}.")
     args = {**{k: v for k, v in filters.items() if v}, **({"volgorde": a["volgorde"]} if a.get("volgorde") else {}),
             **({"aantal": aantal} if aantal is not None else {})}
     cql = _BASIS + (f' AND w.dossiernummer=="{dossier}"' if dossier else "")
     cql += f' AND w.ondernummer=="{nummer}"' if nummer else ""
     cql += (" AND " + _cql_woorden(woorden)) if woorden else ""
     cql += _tekst_cql(tekst) if tekst else ""
-    cql += _soort_cql(soort) if soort else ""
     cql += (f" AND dt.date>={vanaf}" if vanaf else "") + (f" AND dt.date<={tot}" if tot else "")
     cql += f' AND w.vergaderjaar=="{jaar}"' if jaar else ""
     cql += f' AND dt.creator=="{_KAMERS[kamer]}"' if kamer else ""
+    ruim = False
+    if soort:
+        filter_, ruim = _soort_cql(bron, cql, soort)
+        cql += filter_
+    toelichting = (f"Bij oudere stukken staat het soort alleen in de titel, en er zijn er te veel om elk te toetsen: "
+                   f"een stuk met '{soort}' elders in de titel kan ertussen staan. Kijk naar het soort per stuk."
+                   if ruim else "")
     if volgorde == "nummer":
-        return _dossier(bron, dossier, cql, args, offset)
+        return _dossier(bron, dossier, cql, args, offset, aantal=aantal, toelichting=toelichting)
     return _per_record(bron, cql + _OP_VOLGORDE.get(volgorde, ""), args, offset, dossier=bool(dossier),
                        maximum=aantal or LIMIT, extra={"volgorde": volgorde, "zoekvraag": _zoekvraag(args, volgorde)},
-                       leeg="Geen Kamerstukken die aan de zoekvraag voldoen.")
+                       toelichting=toelichting, leeg="Geen Kamerstukken die aan de zoekvraag voldoen.")
 
 
 def _get(bron: KamerstukBron, a: dict[str, Any]) -> str:

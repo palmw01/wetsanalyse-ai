@@ -25,13 +25,21 @@ from ..resultaat import compact
 #: de inhoudsopgave en de cijfers van een budgettabel zonder hun kolommen (acceptatie 8 nov 2026: 43 van de 63 alinea's
 #: van kst-33755-3).
 _OVERGESLAGEN = {"tabel": "tabel", "table": "tabel", "illustratie": "illustratie", "noot": "voetnoot",
-                 "ondertekening": "ondertekening", "koning": "ondertekening"}
+                 "ondertekening": "ondertekening", "koning": "ondertekening", "ondertek": "ondertekening"}
 #: De wortel van een publicatie, per soort.
-_WORTELS = ("stuk", "staatsblad", "staatscourant")
+#: `staatsbl` is de wortel van een Staatsblad in het oude schema van KOOP (rond 2005; ronde 1 Kamerstukken, 11 nov 2026).
+_WORTELS = ("stuk", "staatsblad", "staatscourant", "staatsbl")
 #: Elementen waarvan de tekst een rij is.
-_TEKSTBLOK = {"al", "wat", "considerans.al", "wij", "wie", "dagtekening"}
+#: `afkondig` en `slotform` zijn de afkondiging en de slotformule in het oude schema.
+_TEKSTBLOK = {"al", "wat", "considerans.al", "wij", "wie", "dagtekening", "afkondig", "slotform"}
 #: Elementen met een kop zoals een artikel: label, nr en titel.
-_ARTIKEL = {"artikel", "wijzig-artikel"}
+#: `art` en `wart` zijn artikel en wijzigingsartikel in het oude schema (kop met alleen `nr`: "ARTIKEL I").
+_ARTIKEL = {"artikel", "wijzig-artikel", "art", "wart"}
+#: Een lid, of een wijzigingsonderdeel (`wijzig-lid`, oud `wlid`: kop met de letter).
+_LID = {"lid", "wijzig-lid", "wlid"}
+_ONDERDEEL = {"wijzig-lid", "wlid"}
+#: Een tussenkop; oud `tuskop`.
+_TUSSENKOP = {"tussenkop", "tuskop"}
 _ROMEINS_RE = re.compile(r"[IVXLCDM]+|[A-Z]")
 
 
@@ -170,24 +178,37 @@ def lees(xml: bytes, *, met_onderdeel: bool = False) -> tuple[dict[str, str], li
             return ""
         deel = {k.tag: " ".join(_platte_tekst(k, {}).split()) for k in kop if k.tag in {"label", "nr", "titel"}}
         label, nr, titel = (_zacht(deel.get(t, "")) if t != "nr" else deel.get(t, "") for t in ("label", "nr", "titel"))
+        # Het oude schema zet het hele label in `nr` ("ARTIKEL I", "ARTIKEL 12"): het woord krijgt een beginhoofdletter.
+        nr = " ".join(_zacht(w) if i == 0 and len(nr.split()) > 1 else w for i, w in enumerate(nr.split()))
         hoofd = " ".join(x for x in (label, nr) if x)
         if titel:
             return f"{hoofd} – {titel}" if nr else f"{hoofd} {titel}".strip()
         return hoofd
 
+    def lidnr(lid: ET.Element) -> ET.Element | None:
+        """Het element met het nummer van een lid: `lidnr`, in het oude schema `kop/nr` (een `wlid`) of een `nr` als
+        eerste kind (een `lid`)."""
+        if (e := lid.find("lidnr")) is not None or (e := lid.find("kop/nr")) is not None:
+            return e
+        eerste = next(iter(lid), None)
+        return eerste if eerste is not None and eerste.tag == "nr" else None
+
     def lidkop(lid: ET.Element) -> str:
         """"lid 2" bij een lid, de letter bij een wijzigingsonderdeel ("A")."""
-        nr = " ".join(_platte_tekst(lid.find("lidnr"), {}).split()) if lid.find("lidnr") is not None else ""
+        e = lidnr(lid)
+        nr = " ".join(_platte_tekst(e, {}).split()) if e is not None else ""
         if not nr:
             return ""
         # "C." in de bron is onderdeel C: zonder punt in de kop ("Artikel XI › C", meting bekendmakingen B03).
-        return nr.rstrip(".") if lid.tag == "wijzig-lid" else f"lid {nr.rstrip('.')}"
+        return nr.rstrip(".") if lid.tag in _ONDERDEEL else f"lid {nr.rstrip('.')}"
 
-    def loop(e: ET.Element, koppen: tuple[str, ...]) -> None:
+    def loop(e: ET.Element, koppen: tuple[str, ...], zonder: ET.Element | None = None) -> None:
         # Een `tussenkop` ("Artikel I (artikel 30hb …)") geldt voor de alinea's die erna komen in dezelfde divisie: in de
         # artikelsgewijze toelichting zegt juist die kop bij welk artikel een alinea hoort. Eerst viel hij stil weg.
         tussen, voor = "", ""
         for kind in e:
+            if kind is zonder:
+                continue
             hier = (*koppen, tussen) if tussen else koppen
             if kind.tag in {"table", "tabel"} and _is_inhoudsopgave(kind):
                 overgeslagen["inhoudsopgave"] = overgeslagen.get("inhoudsopgave", 0) + 1
@@ -210,7 +231,7 @@ def lees(xml: bytes, *, met_onderdeel: bool = False) -> tuple[dict[str, str], li
                                       f"{'kolom' if breed == 1 else 'kolommen'}"})
             elif kind.tag in _OVERGESLAGEN:
                 overgeslagen[_OVERGESLAGEN[kind.tag]] = overgeslagen.get(_OVERGESLAGEN[kind.tag], 0) + 1
-            elif kind.tag == "tussenkop":
+            elif kind.tag in _TUSSENKOP:
                 tussen = " ".join(_platte_tekst(kind, overgeslagen).split())
             elif kind.tag in {"divisie", "nota-toelichting"}:
                 kop = kop_van(kind)
@@ -218,11 +239,12 @@ def lees(xml: bytes, *, met_onderdeel: bool = False) -> tuple[dict[str, str], li
             elif kind.tag in _ARTIKEL:
                 kop = artikelkop(kind)
                 loop(kind, (*hier, kop) if kop else hier)
-            elif kind.tag in {"lid", "wijzig-lid"}:
+            elif kind.tag in _LID:
                 kop = lidkop(kind)
                 begin = len(uit)
-                loop(kind, (*hier, kop) if kop else hier)
-                if met_onderdeel and kind.tag == "wijzig-lid":
+                # Het nummer staat al in de kop; in het oude schema is het een `nr`, dat anders vóór de tekst kwam.
+                loop(kind, (*hier, kop) if kop else hier, zonder=lidnr(kind) if kop else None)
+                if met_onderdeel and kind.tag in _ONDERDEEL:
                     # Het wijzigingsonderdeel ("Artikel I – Wijziging › A") waar de rij bij hoort; een genest onderdeel
                     # houdt het zijne.
                     for r in uit[begin:]:

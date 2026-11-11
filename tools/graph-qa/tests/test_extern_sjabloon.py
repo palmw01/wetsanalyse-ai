@@ -384,3 +384,14 @@ def test_de_zoekvraag_noemt_de_peildatum_en_de_tekststand():
                                                  "tekststand": "op peildatum", "volgorde": "nieuwste"})
     assert tekst.startswith("Gezocht bij artikel 9 van Invorderingswet 1990, op ")
     assert "peildatum 1 januari 2015" in tekst and "de tekst op de peildatum" in tekst
+
+
+@pytest.mark.parametrize("n,totaal,slot", [(3, 3, "3 stukken."), (1, 1, "1 stuk."), (2, 4, "2 van de 4 stukken."),
+                                            (2, None, "")])
+def test_de_slotzin_noemt_het_totaal_ook_als_alles_getoond_is(n, totaal, slot):
+    """K25 (ronde 1 Kamerstukken, 11 nov 2026): "hoeveel stukken zitten er in dossier 33755?" kreeg een lijst zonder getal."""
+    from bronmodel.antwoord import Stuk, Stukken
+    blok = Stukken(brontype="kamerstuk", kop="Gevonden Kamerstukken", totaal=totaal,
+                   items=[Stuk(id=f"kst-99001-{i}", label=f"Kamerstukken 99001, nr. {i}") for i in range(n)])
+    tekst = antwoord_tekst(Antwoord(sjabloon="extern", blokken=[blok]))
+    assert tekst.endswith(slot) and tekst.count("\n\n") == (2 if slot else 1), "zonder totaal geen slotzin"

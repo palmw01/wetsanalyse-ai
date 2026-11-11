@@ -24,7 +24,7 @@ from typing import Any
 from urllib.parse import unquote
 
 from .annotatie import _normaliseer, komt_letterlijk_voor
-from .hoeveelheden import buiten as hoeveelheden_buiten
+from .hoeveelheden import buiten as hoeveelheden_buiten, uit_tabellen
 from .models import Source
 from bronmodel.connectors import leestools, van_id
 from bronmodel.extern import externe_verwijzingen, externe_vindplaats
@@ -136,7 +136,7 @@ def _onbevestigd(answer_text: str, source_trace: list[tuple[str, str]], trace_te
         if "\\" not in passage and not komt_letterlijk_voor(trace_text, passage):
             uit.append(passage if len(passage) <= 80 else passage[:80].rstrip() + "…")
     # Een termijn, bedrag of datum die het antwoord noemt en het opgehaalde niet (R4a): "1 oktober 2026" zonder bron.
-    uit += hoeveelheden_buiten(answer_text, trace_text)
+    uit += hoeveelheden_buiten(answer_text, f"{trace_text}\n{uit_tabellen(source_trace)}")
     return uit
 
 

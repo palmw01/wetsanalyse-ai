@@ -292,9 +292,11 @@ def _blok_tekst(b: BaseModel) -> str:
             wat = " · ".join(v for v in (x.soort, x.datum) if v)
             geen = f" ({x.zonder_tekst or 'geen tekst bij de bron'})" if not x.leesbaar else ""
             return f"- {naam}{' · ' + wat if wat else ''}{': ' + x.titel if x.titel else ''}{geen}"
-        voet = " ".join(v for v in (
-            b.zoekvraag, f"{len(b.items)} van de {getal(b.totaal)} stukken." if b.totaal and b.totaal > len(b.items) else "")
-            if v)
+        # Het totaal staat er ook als alles getoond is: "hoeveel stukken zitten er in dossier 33755?" kreeg anders een
+        # lijst zonder getal (ronde 1 Kamerstukken, 11 nov 2026, K25).
+        aantal = ("" if not b.totaal else f"{len(b.items)} van de {getal(b.totaal)} stukken." if b.totaal > len(b.items)
+                  else f"{getal(b.totaal)} {'stuk' if b.totaal == 1 else 'stukken'}.")
+        voet = " ".join(v for v in (b.zoekvraag, aantal) if v)
         return "\n".join(regel(x) for x in b.items) + (f"\n\n{voet}" if voet else "")
     if isinstance(b, Leemte):
         return b.tekst

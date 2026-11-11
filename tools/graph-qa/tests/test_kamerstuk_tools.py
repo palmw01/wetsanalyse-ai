@@ -653,8 +653,9 @@ BASIS = "c.product-area==officielepublicaties AND w.publicatienaam==Kamerstuk AN
     ({"dossier": "32140", "nummer": "342"},
      ' AND w.dossiernummer=="32140" AND w.ondernummer=="342" sortBy dt.date/sort.descending dt.identifier/sort.ascending'),
     ({"soort": "Memorie van toelichting", "vanaf": "2024", "tot": "2024-06"},
-     ' AND (w.subrubriek all "memorie van toelichting" OR dt.title all "memorie van toelichting")'
-     " AND dt.date>=2024-01-01 AND dt.date<=2024-06-30 sortBy dt.date/sort.descending dt.identifier/sort.ascending"),
+     " AND dt.date>=2024-01-01 AND dt.date<=2024-06-30"
+     ' AND (w.subrubriek all "memorie van toelichting" OR dt.identifier=="kst-99001-3")'
+     " sortBy dt.date/sort.descending dt.identifier/sort.ascending"),
     ({"vergaderjaar": "2025/26", "kamer": "Eerste Kamer", "volgorde": "oudste"},
      ' AND w.vergaderjaar=="2025-2026" AND dt.creator=="Eerste Kamer der Staten-Generaal"'
      " sortBy dt.date/sort.ascending dt.identifier/sort.ascending"),
@@ -701,7 +702,6 @@ def test_een_dossier_alleen_staat_nog_op_nummer():
     ({"soort": "motie", "volgorde": "relevantie"}, "ongeldige_volgorde"),
     ({"volgorde": "nieuwste", "aantal": 0}, "ongeldig_aantal"),
     ({"volgorde": "nieuwste", "aantal": 26}, "ongeldig_aantal"),
-    ({"dossier": "99001", "volgorde": "nummer", "aantal": 5}, "ongeldig_aantal"),
     ({}, "ongeldige_argumenten"),
     ({"tekst": "a b"}, "ongeldige_tekst"),
     ({"tekst": '"een twee drie vier vijf" zes zeven'}, "ongeldige_tekst"),
@@ -709,3 +709,79 @@ def test_een_dossier_alleen_staat_nog_op_nummer():
 def test_een_invoerfout_zegt_wat_wel_kan(args, reden):
     d = roep("zoek_kamerstukken", args)
     assert d["status"] == "error" and d["reden"] == reden and "bijvoorbeeld" in d["melding"], d
+
+
+# ── Ronde 1 van de Kamerstukken-iteratie (11 nov 2026) ───────────────────────────────────────────────────────────────
+
+def _met_rubriek(ident: str, titel: str, rubriek: str, nr: str) -> Record:
+    return dataclasses.replace(rec(ident, titel, nr), soort=rubriek, dossiers=("36602",))
+
+
+def test_het_soort_uit_de_titel_geldt_alleen_voor_een_stuk_zonder_rubriek():
+    """K10: "Belastingplan 2025; Brief regering; Uitvoeringstoetsen aangenomen amendementen" is geen amendement."""
+    kandidaten = [_met_rubriek("kst-36602-166", "Belastingplan 2025; Brief regering; Uitvoeringstoetsen aangenomen "
+                               "amendementen", "Brief regering", "166"),
+                  _met_rubriek("kst-36602-9", "Belastingplan 2025; Amendement van het lid X", "", "9"),
+                  _met_rubriek("kst-36602-10", "Belastingplan 2025; Amendement; tweede", "Overig", "10")]
+    bron = NepBron(kandidaten)
+    roep("zoek_kamerstukken", {"dossier": "36602", "soort": "amendement", "volgorde": "nieuwste"}, bron)
+    assert bron.vragen[0] == (BASIS + ' AND w.dossiernummer=="36602" AND dt.title all "amendement"'
+                              ' NOT w.subrubriek all "amendement"'), "eerst de stukken waarvan alleen de titel het draagt"
+    assert ('(w.subrubriek all "amendement" OR dt.identifier=="kst-36602-9" OR dt.identifier=="kst-36602-10")'
+            in bron.vragen[-1]), "de brief valt af, de stukken zonder rubriek blijven"
+
+
+def test_zonder_kandidaat_in_de_titel_alleen_de_rubriek():
+    bron = NepBron([_met_rubriek("kst-36602-166", "Belastingplan 2025; Brief regering; Over amendementen",
+                                 "Brief regering", "166")])
+    roep("zoek_kamerstukken", {"dossier": "36602", "soort": "amendement", "volgorde": "nieuwste"}, bron)
+    assert bron.vragen[-1].startswith(BASIS + ' AND w.dossiernummer=="36602" AND w.subrubriek all "amendement" sortBy')
+
+
+def test_te_veel_kandidaten_in_de_titel_houdt_de_titel_als_filter_en_zegt_het():
+    from agent.tools.kamerstuk_tools import MAX_SOORT_TITEL
+    bron = NepBron([_met_rubriek(f"kst-36602-{i}", "Wet; Motie", "", str(i)) for i in range(MAX_SOORT_TITEL + 1)])
+    d = roep("zoek_kamerstukken", {"soort": "motie", "volgorde": "nieuwste", "aantal": 5}, bron)
+    assert '(w.subrubriek all "motie" OR dt.title all "motie")' in bron.vragen[-1]
+    assert "alleen in de titel" in d["toelichting"]
+
+
+def test_een_dossier_op_nummer_met_een_aantal_geeft_de_eerste():
+    """K07, K17: 'volgorde: nummer' met 'aantal' was een invoerfout."""
+    d = roep("zoek_kamerstukken", {"dossier": "99001", "volgorde": "nummer", "aantal": 2})
+    assert d["status"] == "ok" and [r["id"] for r in d["resultaten"]] == ["kst-99001-2", "kst-99001-3"]
+    assert d["totaal"] == 3 and d["volgorde"] == "nummer"
+
+
+def _beurt(vraag: str, bron, monkeypatch):
+    import asyncio
+    from agent import tools as t
+    from agent.agent import answer_stream
+    from tests.fakes import FakeGraph, FakeLLM
+
+    monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", bron)
+    llm = FakeLLM([])
+
+    async def verzamel():
+        return [e async for e in answer_stream(vraag, settings=AAN, llm=llm, graph=FakeGraph(result=""),
+                                               bronnen=["kamerstukken"])]
+
+    events = asyncio.run(verzamel())
+    assert llm.calls == [], "geen model"
+    antwoord, = [e["antwoord"] for e in events if e["type"] == "antwoord"]
+    return antwoord["blokken"]
+
+
+def test_een_genoemd_stuk_met_alleen_een_pdf_is_een_melding_uit_code(monkeypatch):
+    """K12 (ronde 1, 11 nov 2026): het model formuleerde zelf wat de code al wist."""
+    pdf = _record_xml("kst-1278484", dossiers=("32140",), datum="2026-10-16", gepubliceerd="2026-10-16")
+    leemte, lijst = _beurt("Wat staat er in kst-32140-342?", _koop(Koop({}, {("32140", "342"): [pdf]})), monkeypatch)
+    assert leemte["soort"] == "leemte" and "alleen als PDF (onopgemaakt, alleen PDF)" in leemte["tekst"]
+    assert lijst["soort"] == "stukken" and lijst["kop"] == "Uit de parlementaire geschiedenis"
+    assert lijst["items"][0]["id"] == "kst-1278484" and lijst["items"][0]["label"] == "Kamerstukken 32140, nr. 342"
+
+
+def test_een_genoemd_stuk_dat_niet_bestaat_is_een_melding_uit_code(monkeypatch):
+    """K27: "kst-99999-99" ging langs het model en stond daarna in de bronnen."""
+    [leemte] = _beurt("Wat staat er in kst-99001-7?", _koop(Koop({})), monkeypatch)
+    assert leemte["soort"] == "leemte" and leemte["tekst"].startswith("kst-99001-7 is bij Kamerstukken niet gevonden.")

@@ -134,7 +134,9 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   `ConnectorBeschrijving.filters`) en het totaal (`zoekvraag_tekst`: per soort metadataveld een eigen vorm – "van de Eerste Kamer", een periode voluit
   – en de volgorde als eigen zin). Het blok staat in `NIET_GETOETST`: gevonden is daar geen signaal. Het
   blok `extern` draagt `datum` en `soort_stuk` uit het `stuk`. Een ISO-datum uit een bron telt in de controle als dezelfde
-  datum voluit (`hoeveelheden`). `tests/test_extern_sjabloon.py`.
+  datum voluit (`hoeveelheden`). Een kaal getal in een tabelcel telt met de eenheid uit zijn kolomkop of de titel van de tabel
+  ("€ 106" onder "Opbrengst (€ mln)", `hoeveelheden.uit_tabellen`; K28). De slotzin van een lijst noemt het totaal ook
+  als alles getoond is ("16 stukken."; K25). `tests/test_extern_sjabloon.py`.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
   keurt **twee** dingen af en `correct_node` moet ze allebei benoemen: `unsupported` (een vindplaats die
@@ -253,7 +255,9 @@ bruikbaar is.
   is dat blok leeg. `tests/test_bronprompt.py`. `tests/test_bronschakelaar.py`.
   **Kamerstukken** (`tools/kamerstuk_tools.py`, transport `adapters/sru_kamerstukken.py`): `zoek_kamerstukken`
   (filters, te combineren: een dossier of subdossier, `w.dossiernummer=="36200-IX"`, met `nummer` voor één stuk; woorden in
-  de titel; `soort` in `w.subrubriek` óf de titel, want oudere stukken hebben de rubriek "Overig"; `tekst` in de hele tekst
+  de titel; `soort` in `w.subrubriek`, en bij een stuk zonder rubriek (of "Overig") op zijn plek in de titel: de tool toetst
+  die stukken zelf en neemt ze op id op, zodat een brief met het woord in zijn titel niet meekomt (`_soort_cql`,
+  `MAX_SOORT_TITEL`); `tekst` in de hele tekst
   (`cql.textAndIndexes`: een zinsdeel tussen aanhalingstekens als `adj`, losse woorden als `all`, hoogstens zes; meting
   `kamerstukken-tekstzoeken-2026-11-09`: 8 van 8 tegen 3 in de titel); `vanaf`/`tot` op de
   documentdatum, ook `JJJJ` of `JJJJ-MM`; `vergaderjaar`; `kamer`. De `volgorde` is de enum uit
@@ -265,7 +269,7 @@ bruikbaar is.
   een CALS-tabel als één rij (`soort: "tabel"`, titel, omvang, `tot_nr`) met `openen` naar `get_kamerstuk(tabel=)`: de kop met
   de kolommen als `cellen`, per rij `{soort: "tabelrij", cellen, tekst: "a | b"}`, de tabelnoten, en `samengevoegd` (een
   overspannende cel staat in haar eerste kolom); illustraties geteld in `overgeslagen`, de eigen inhoudsopgave apart; een voetnoot is een rij direct
-  na zijn alinea (`soort: "voetnoot"`, `verwijst_naar` uit een `extref` naar een document), en de alinea noemt haar `noten`; een `tussenkop` hoort bij de alinea's erna, zodat
+  na zijn alinea (`soort: "voetnoot"`, `verwijst_naar` uit een `extref` naar een document), en de alinea noemt haar `noten`; een `tussenkop` (oud schema: `tuskop`) hoort bij de alinea's erna, zodat
   de artikelsgewijze toelichting haar artikel noemt; de eerste pagina draagt `inhoud`, per kop de offset, om te springen). De CQL bouwt de tool, de document-URL komt uit het
   SRU-record en alleen `repository.overheid.nl` over https; een fout is een foutresultaat, nooit een lege lijst, met de
   oorzaak als reden (`KamerstukFout.code` → `FOUTREDEN`): `bron_onbereikbaar` (storing), `zoekvraag_geweigerd` (een
@@ -290,7 +294,8 @@ bruikbaar is.
   cache en recordvorm (`adapters/sru_koop.py`: `SruKoop`, `Record`, `KoopFout`; een subklasse zet alleen het filter,
   de terugval voor een id dat KOOP niet kent en de naam in de logregels), één bouwer van de CQL (`tools/sru_zoeken.py`:
   woorden in de titel, `cql.textAndIndexes`, `sortBy`, `per_record`) en één lezer van het OP-schema (`tools/op_xml.py`:
-  wortel `stuk`, `staatsblad` of `staatscourant`; koppen per divisie, artikel – "Artikel I – Wijziging" –, lid en
+  wortel `stuk`, `staatsblad` of `staatscourant`, of in het oude schema van rond 2005 `staatsbl` met `art`, `wart`, `wlid`
+  en `tuskop` (`tests/test_op_xml_oud_schema.py`); koppen per divisie, artikel – "Artikel I – Wijziging" –, lid en
   wijzigingsonderdeel; een `nr`/`li.nr` vóór de tekst die volgt; `wat`, `considerans.al` en de dagtekening als rij;
   ondertekeningen in `overgeslagen`). Een datum vóór 1800 in de metadata telt als onbekend (stb-2019-129 draagt
   0004-03-01). De datum van de jurist (`vanaf`/`tot`) komt voor elke connector uit `tools/zoekfilters.py`. Maak er
@@ -315,14 +320,19 @@ bruikbaar is.
   Elke leestool leest met `inhoud: true` (`INHOUD_ARG`, `stuk_tekst.inhoudpagina`) alleen de koppen op het
   bovenste niveau, per pagina, elk met zijn eerste alinea als rij (`nr`, `tekst`: te citeren in `extern`) tot
   `MAX_AANHEF` tekens, en anders het begin (hermeting 11 nov 2026: 11 van de 30 artikelen van Stb. 2009, 610 op de eerste
-  pagina, en een aanhef boven 160 tekens viel weg; controle: zonder `nr` citeerde het model de hele eerste pagina). Het
+  pagina, en een aanhef boven 160 tekens viel weg; controle: zonder `nr` citeerde het model de hele eerste pagina). Een
+  stuk zonder koppen zegt `zonder_koppen` met het aantal alinea's en `lezen` (offset 0), en de statusregel "heeft geen
+  koppen, 210 alinea’s"; "heeft geen tekst om te lezen" staat er alleen bij `leesbaar: false` (ronde 1 Kamerstukken). Het
   spoor noemt `inhoud` bij de filters, en elk argument van een connectortool buiten `doel` staat daar
   (`test_het_spoor_toont_de_filters_van_elke_connector`). **Een gefilterde lezing** (`artikel`, `regeling`) draagt `inhoud_publicatie`: de
   koppen van de hele publicatie met hun offset in een lezing zonder filter (`tekstpagina(publicatie=)`), zodat Lex gericht
   doorleest naar de inwerkingtreding of de toelichting (hermeting B08: anders las het model het hele stuk, 86k tegen 24k).
   Een genoemd stuk leest de code vooraf mét het genoemde artikel als de leestool `artikel` kent
   (`supervisie._te_lezen`), en zonder als dat niets oplevert (`bron_lezen`). Het `stuk` noemt de andere versies met hetzelfde blad, jaar en nummer (`versies`:
-  herdruk, tweede versie, verbeterblad; `SruBekendmakingen.versies`, alleen op de eerste pagina). Een oud stuk heeft vaak alleen een PDF
+  herdruk, tweede versie, verbeterblad; `SruBekendmakingen.versies`, alleen op de eerste pagina). Is geen enkel genoemd stuk
+  te lezen, dan antwoordt de code zonder model, voor elke connector hetzelfde (`bron_lezen._zonder_tekst`): geen tekst bij
+  de bron, alleen een PDF (`alleen_pdf`, met het stuk in de lijst en `zonder_tekst` van de connector) of niet gevonden
+  (`niet_gevonden`, met het id in de melding; ronde 1 Kamerstukken, K12/K27). Een oud stuk heeft vaak alleen een PDF
   (`alleen_pdf`, met de metadata); een id dat KOOP niet kent zoekt de adapter op blad, jaargang en nummer. `geldigheid`
   noemt naast de BWB-vorm het id (`bekendmakingen`). Citeervormen "Stb. 2010, 176", "Stb.2009-610", "Staatscourant 2026,
   nr. 37344". **Uit de Staatscourant alleen regelgeving en beleid** (`REGELGEVENDE_SOORTEN`, een witte lijst op `dt.type`;

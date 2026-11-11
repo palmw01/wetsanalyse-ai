@@ -140,3 +140,14 @@ def test_een_inhoud_die_met_het_begin_past_heeft_geen_verwijzing():
              {"nr": 2, "kop": "Artikel II", "tekst": "Dit besluit treedt in werking."}]
     d = json.loads(tekstpagina(rijen, tool="get_stuk", args={"id": "s1"}, offset=0, stuk={"id": "s1"}))
     assert "inhoud_openen" not in d and "inhoud_zonder_begin" not in d
+
+
+def test_de_inhoud_van_een_stuk_zonder_koppen_zegt_dat_en_wijst_naar_de_tekst():
+    """Ronde 1 Kamerstukken (11 nov 2026, K07/K16): een leeg resultaat las als "geen tekst", en het model bladerde."""
+    rijen = [{"nr": 1, "tekst": "Een alinea."}, {"nr": 2, "tekst": "Nog een."}, {"nr": 3, "soort": "voetnoot", "tekst": "n"}]
+    d = json.loads(inhoudpagina(rijen, tool="get_stuk", args={"id": "s1"}, offset=0, stuk={"id": "s1"}))
+    assert d["resultaten"] == [] and d["volledig"] and d["zonder_koppen"] is True and d["alineas"] == 2
+    assert d["lezen"] == {"tool": "get_stuk", "args": {"id": "s1", "offset": 0}}
+    assert d["stuk"].get("leesbaar") is not False and "2 alinea’s" in d["toelichting"]
+    leeg = json.loads(inhoudpagina([], tool="get_stuk", args={"id": "s1"}, offset=0, stuk={"id": "s1"}))
+    assert leeg["stuk"]["leesbaar"] is False and "zonder_koppen" not in leeg

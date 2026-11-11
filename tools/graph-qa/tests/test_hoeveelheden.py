@@ -56,3 +56,19 @@ def test_een_iso_datum_in_de_bron_is_dezelfde_datum():
     assert buiten("Het stuk is van 1 november 2024.", '{"datum": "2024-10-31"}') == ["1 november 2024"]
     # Geen datum: een dossiernummer met streepjes of een onmogelijke maand.
     assert hoeveelheden("kst-2024-10-31-x 2024-13-01") == set()
+
+
+def test_een_kaal_getal_in_een_tabel_draagt_de_eenheid_van_de_titel_of_de_kolom():
+    """K28 (ronde 1 Kamerstukken, 11 nov 2026): "€ 106 miljoen" uit tabel 1 van kst-33755-3 telde als niet opgehaald."""
+    import json
+    from agent.hoeveelheden import buiten, uit_tabellen
+    eerste = json.dumps({"status": "ok", "stuk": {"id": "kst-33755-3"}, "resultaten": [
+        {"nr": 13, "soort": "tabel", "tekst": "Tabel 1 Opbrengst (€ mln)", "cellen": ["Jaar", "2014", "Aandeel (%)"]},
+        {"nr": 14, "soort": "tabelrij", "cellen": ["Rente", "-106", "12"], "tekst": "Rente | -106 | 12"}]})
+    volgende = json.dumps({"status": "ok", "stuk": {"id": "kst-33755-3"}, "resultaten": [
+        {"nr": 15, "soort": "tabelrij", "cellen": ["Totaal", "155", "4,5"], "tekst": "Totaal | 155 | 4,5"}]})
+    bron = uit_tabellen([("get_kamerstuk", eerste), ("get_kamerstuk", volgende)])
+    assert buiten("Lagere uitgaven van € 106 miljoen, in totaal € 155; een aandeel van 12% en 4,5 procent.", bron) == []
+    assert buiten("Het is € 12.", bron) == ["12 euro"], "de kolom met procenten is geen bedrag"
+    assert uit_tabellen([("get_kamerstuk", json.dumps({"status": "ok", "resultaten": [
+        {"nr": 1, "soort": "tabelrij", "cellen": ["7"]}]}))]) == "", "zonder tabel geen eenheid"
