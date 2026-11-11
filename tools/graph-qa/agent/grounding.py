@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
+from typing import Any
 from urllib.parse import unquote
 
 from .annotatie import _normaliseer, komt_letterlijk_voor
@@ -351,7 +352,7 @@ def alleen_gelezen_extern(sources: list[Source], trace: list[tuple[str, str]], a
     ECLI:NL:HR:2022:50 noemt die ECLI vaak niet meer, en dan miste de bronnenlijst precies het stuk dat gelezen is
     (derde meting 10 nov 2026). Net zo een gelezen stuk waaruit het sjabloon citeert (`geciteerd`: de blokken `extern`):
     de tekst noemt het dan in een citeervorm ("Stb. 2010, 176"), en die herkent `externe_verwijzingen` niet (meting
-    bekendmakingen B04)."""
+    bekendmakingen B04). Een gelezen wettekst van overheid.nl (`wettekst_live`) blijft altijd staan: dat is wettekst."""
     lees = leestools()
     in_tekst: set[str] = set()
     stukken: set[str] = set()
@@ -367,4 +368,29 @@ def alleen_gelezen_extern(sources: list[Source], trace: list[tuple[str, str]], a
     return [s for s in sources
             if s.brontype in (None, "wettekst")
             or (s.uri in genoemd and (van_id(s.uri) is None or s.uri in in_tekst | stukken))
-            or (s.uri in gevraagd | geciteerd and s.uri in stukken)]
+            or (s.uri in gevraagd | geciteerd and s.uri in stukken)
+            # Wettekst van overheid.nl (`wettekst_live`) is wettekst, geen stuk naast de wet: gelezen is genoeg. Haar id
+            # (`bwbt:…`) staat nooit in lopende tekst, dus de jurist zag "Klaar · 0 bronnen" (meting 11 nov 2026, W07/W12/W15).
+            or (s.brontype == "wettekst_live" and s.uri in stukken)]
+
+
+def live_niet_letterlijk(antwoord: dict[str, Any] | None, trace: list[tuple[str, str]]) -> tuple[bool, list[str]]:
+    """De letterlijkheid van wettekst van overheid.nl in een sjabloon (het blok `extern` met brontype `wettekst_live`).
+
+    Geeft (heeft zulke blokken, passages die niet letterlijk in een gelezen rij van dat stuk staan). Wettekst uit een
+    sjabloon staat zonder aanhalingstekens, dus `check_grounding` ziet er "niets te controleren" in; deze toets legt elke
+    passage naast de rijen die `get_wettekst` voor dat id teruggaf (meting 11 nov 2026: grounding `onbepaald` bij W07)."""
+    blokken = [b for b in (antwoord or {}).get("blokken") or []
+               if b.get("soort") == "extern" and b.get("brontype") == "wettekst_live"]
+    if not blokken:
+        return False, []
+    gelezen: dict[str, set[str]] = {}
+    for naam, tekst in trace:
+        if naam != "get_wettekst" or not (data := is_contract(tekst)) or not isinstance(data.get("stuk"), dict):
+            continue
+        ident = str(data["stuk"].get("id") or "")
+        gelezen.setdefault(ident, set()).update(
+            str(r.get("tekst")) for r in data.get("resultaten") or [] if isinstance(r, dict) and r.get("tekst"))
+    fout = [str(p.get("tekst") or "")[:200] for b in blokken for p in b.get("passages") or []
+            if str(p.get("tekst") or "") not in gelezen.get(str(b.get("id") or ""), set())]
+    return True, fout

@@ -20,7 +20,7 @@ from langgraph.config import get_stream_writer
 from ..berichten import CORRECTIE, _parse_final, _schoon_messages, _trim_messages, beurt_start, venster_telling
 from ..bronregister import bij, controletrace
 from ..focus import na_antwoord
-from ..grounding import alleen_gelezen_extern, check_grounding, curate_sources, herstel_citaten
+from ..grounding import alleen_gelezen_extern, check_grounding, curate_sources, herstel_citaten, live_niet_letterlijk
 from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk
 from ..overzicht import bronrijen as overzicht_bronrijen
 from ..sjablonen import EXTERN, SJABLONEN, sjabloon_schemas, sjabloon_uit_tekst
@@ -301,6 +301,15 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     # Wettekst uit een sjabloon staat zonder aanhalingstekens, dus de toets ziet "niets te controleren". Maar de code
     # toonde hem uit de tool-rijen, met de vindplaats erbij: de melding dat er geen vindplaats is, zou onwaar zijn.
     if report.niveau == "onbepaald" and not report.onbevestigd and (state.get("antwoord") or {}).get("doelen"):
+        report = replace(report, niveau="gegrond")
+    # Wettekst van overheid.nl in het blok `extern` (ADR-013 fase 1e): elke passage moet letterlijk een gelezen rij van dat
+    # stuk zijn. Zo ja, dan is dat dezelfde zekerheid als wettekst uit de graaf in een sjabloon; zo nee, dan is het niet
+    # letterlijk, en dat keurt de controle af.
+    heeft_live, niet_live = live_niet_letterlijk(state.get("antwoord"), controletrace(state))
+    if niet_live:
+        report = replace(report, grounded=False, niveau="ongegrond",
+                         niet_letterlijk=[*report.niet_letterlijk, *niet_live])
+    elif heeft_live and report.niveau == "onbepaald" and not report.onbevestigd:
         report = replace(report, niveau="gegrond")
     # Deze controle heeft geen eigen narratie (geen LLM), dus zonder deze regel gebeurt er iets
     # wezenlijks – de brongetrouwheidstoets – zonder dat de jurist het ziet. De tijdlijn wordt

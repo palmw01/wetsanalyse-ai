@@ -46,6 +46,17 @@ def bron_lezen_node(b, state: State) -> dict[str, Any]:
         gebruik.append({"type": "tool_use", **tool})
         resultaten.append({"type": "tool_result", "tool_use_id": tool["id"], "content": raw})
         trace.append((tool["name"], raw))
+        if tool["name"] in HEEL_LEZEN:
+            # Een artikel is één geheel: alle pagina's in code, anders bladerde het model zelf (meting 11 nov 2026,
+            # W15: drie aanroepen en 131k tokens voor artikel 31 van de Participatiewet).
+            for _ in range(MAX_PAGINAS - 1):
+                if not (vervolg := _vervolg(raw)):
+                    break
+                tool = {"id": uuid4().hex, "name": vervolg["tool"], "input": dict(vervolg.get("args") or {})}
+                raw = execute_tool(b, state, writer, tool)
+                gebruik.append({"type": "tool_use", **tool})
+                resultaten.append({"type": "tool_result", "tool_use_id": tool["id"], "content": raw})
+                trace.append((tool["name"], raw))
     if not gebruik:
         return {"bron_lezen": []}
     paar = [{"role": "assistant", "content": gebruik}, {"role": "user", "content": resultaten}]
@@ -60,6 +71,22 @@ def bron_lezen_node(b, state: State) -> dict[str, Any]:
         "messages": [{"role": "assistant", "content": gebruik},
                      {"role": "user", "content": [*resultaten, {"type": "text", "text": TOELICHTING}]}],
     }
+
+
+#: De leestools waarvan de code alle pagina's leest: een wettekst van overheid.nl is per artikel begrensd.
+HEEL_LEZEN = frozenset({"get_wettekst"})
+#: Zoveel pagina's hoogstens (gelijk aan de bepalingsworkflow).
+MAX_PAGINAS = 8
+
+
+def _vervolg(raw: str) -> dict[str, Any] | None:
+    """De aanroep voor de volgende pagina van een geslaagde lezing, of None."""
+    try:
+        data = json.loads(raw)
+    except ValueError:
+        return None
+    vervolg = data.get("vervolg") if isinstance(data, dict) and data.get("status") in ("ok", "partial") else None
+    return vervolg if isinstance(vervolg, dict) and vervolg.get("tool") in HEEL_LEZEN else None
 
 
 def _leeg(raw: str) -> bool:
