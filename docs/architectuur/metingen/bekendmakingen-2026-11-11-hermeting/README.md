@@ -77,3 +77,28 @@ gelezen stuk. In B04 staat de bekendmaking waaruit het antwoord citeert in de br
 - Het samenvatten van een genoemd stuk buiten het belastingdomein (het besluit bij B12) is niet gemeten: de nieuwe B12
   valt binnen het domein.
 - De datums in de toelichtingen zijn niet elk tegen KOOP of de BWB nagetrokken (bijvoorbeeld "24 juni 2024" in B12).
+
+## Controle na de oplossing – 11 november 2026
+
+Code: master `7afd7d15` (bundel 37, #1212, met de oplossing uit #1210). Twee runs, B08 en B16, samen **142.318 tokens**
+(grens 150k). Ruwe gegevens onderaan [`runs.jsonl`](runs.jsonl), `r: "controle"`.
+
+| # | rondes | tokens | hermeting | uitkomst |
+|---|---|---|---|---|
+| B08 | 3, 2 tools | 45k | 86k | goed: onderdeel A en de toelichting erbij, letterlijk, gegrond |
+| B16 | 4, 2 tools | 98k | 72k (12 regelingen) | goed: **alle 17 regelingen**, per artikel, gegrond |
+
+- **B08 is weer goedkoop.** Na de voorlezing met artikel las het model alleen de toelichting bij onderdeel A, vanaf de
+  offset uit `inhoud_publicatie` (265), en niet het hele stuk of de BWB. Van de 45k was 24k cache schrijven: de eerste
+  run na de uitrol had een koude cache. De 24k van de eerste meting was met een warme cache.
+- **B16 heeft alle artikelen.** De eerste pagina gaf alle 30 koppen zonder begin, met `inhoud_openen`. Het model vroeg de
+  inhoudpagina op (`inhoud: true`, 30 koppen met hun aanhef) en las de tekst niet door. Het noemt de 17 regelingen, en
+  zegt wat XX, XXA, XXI en XXII doen. Duurder dan de 72k van de hermeting, maar die miste 5 regelingen. De eerste meting
+  vond er 17 voor 338k.
+- **Twee kleine dingen:**
+  - In B16 citeert het blok `extern` de hele eerste pagina (nr 1–20: de aanhef en artikel I) in plaats van de aanhef per
+    artikel. Die aanhef staat alleen in de inhoudpagina, niet als rij met een nr, dus het model kon hem niet als passage
+    aanwijzen. Een groot deel van de 98k zit in die uitvoer.
+  - Het spoor toont `inhoud: true` niet bij de filters (`tool_execution.FILTERS`).
+
+Eén run per vraag, dus geen spreiding.
