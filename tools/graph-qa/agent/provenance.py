@@ -26,7 +26,7 @@ from bronmodel.extern import ExterneVindplaats, externe_verwijzingen, externe_vi
 from bronmodel.vindplaats import vindplaats
 
 from .models import Source
-from .resultaat import is_contract, is_fout, waarden
+from .resultaat import is_contract, is_fout, is_foutresultaat, waarden
 from .namespace import vindplaats_patroon
 from .tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
 
@@ -113,7 +113,9 @@ def _labels(text: str) -> dict[str, str]:
     """IRI → label uit de rijen van een contractresultaat. Een wet-lokale `id:`-node (een divisie van de
     Leidraad) heeft geen label in zijn IRI, maar de tool die hem vond wél: zonder dit stond hij in de
     bronnenlijst als `urn:bwb:BWBR0024096:id:…divisie26.5`."""
-    data = is_contract(text)
+    # Ook een fout kan een stuk dragen (`alleen_pdf`, een buitenlandse ECLI): dat label hoort mee, anders stond het stuk
+    # met zijn kale id in de bronnenlijst ("kst-1278484", meting Kamerstukken ronde 3, K12).
+    data = is_contract(text) or is_foutresultaat(text)
     uit: dict[str, str] = {}
     # Het gelezen stuk van een leestool draagt het label van de bron zelf ("Stb. 2010, 185 (herdruk)"); het label uit het
     # id kent alleen "versie n1" (meting bekendmakingen B12).

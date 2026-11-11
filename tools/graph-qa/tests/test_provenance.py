@@ -181,3 +181,14 @@ def test_een_artikel_met_boeknummer_is_bekend(vindplaats, genoemd):
     from agent.grounding import _bekende_artikelen
 
     assert genoemd.removeprefix("artikel ") in _bekende_artikelen([("get_wettekst", _json.dumps({"jci": vindplaats}))])
+
+
+@_pytest.mark.parametrize("leestool,stuk", [
+    ("get_kamerstuk", {"id": "kst-1278484", "label": "Kamerstukken 32140, nr. 342", "leesbaar": False}),
+    ("get_bekendmaking", {"id": "stb-1990-222", "label": "Stb. 1990, 222", "leesbaar": False}),
+])
+def test_een_stuk_in_een_fout_houdt_zijn_label(leestool, stuk):
+    """Meting Kamerstukken ronde 3, K12: een stuk dat alleen als PDF bestaat stond met zijn kale id in de bronnenlijst."""
+    raw = _json.dumps({"status": "error", "reden": "alleen_pdf", "melding": "alleen als pdf", "stuk": stuk})
+    bronnen = collect_sources([(leestool, raw)])
+    assert [(s.uri, s.label) for s in bronnen] == [(stuk["id"], stuk["label"])]
