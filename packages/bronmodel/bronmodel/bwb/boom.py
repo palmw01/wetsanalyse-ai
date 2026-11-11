@@ -81,8 +81,39 @@ def divisies(wet: Wet) -> Iterator[Divisie]:
         yield d
         for sub in d.subdivisies:
             yield from loop(sub)
+    def in_structuur(delen: list[Structuurdeel]) -> Iterator[Divisie]:
+        for deel in delen:
+            for d in deel.divisies:
+                yield from loop(d)
+            yield from in_structuur(deel.subdelen)
+    # De tekst van een paragraaf zonder artikelen (`Structuurdeel.divisies`) eerst: ze staat in de wettekst.
+    yield from in_structuur(wet.structuurdelen)
     for d in wet.divisies:
         yield from loop(d)
+    for bijlage in wet.bijlagen:
+        yield from in_structuur(bijlage.structuurdelen)
+
+
+def divisies_met_plek(wet: Wet) -> Iterator[tuple[Plek | None, Divisie]]:
+    """Als `divisies`, met de plek van een divisie die de tekst van een structuurdeel draagt (`Structuurdeel.divisies`):
+    de delen erboven, zonder het deel zelf (de divisie staat ervoor, met zijn nummer en titel). Een divisie van een
+    circulaire heeft geen plek in een wettekst (None)."""
+    def loop(d: Divisie, plek: Plek | None) -> Iterator[tuple[Plek | None, Divisie]]:
+        yield plek, d
+        for sub in d.subdivisies:
+            yield from loop(sub, plek)
+
+    def in_structuur(delen: list[Structuurdeel], pad: tuple[Structuurdeel, ...], bijlage: Bijlage | None,
+                     ) -> Iterator[tuple[Plek | None, Divisie]]:
+        for deel in delen:
+            for d in deel.divisies:
+                yield from loop(d, Plek(pad, bijlage=bijlage))
+            yield from in_structuur(deel.subdelen, (*pad, deel), bijlage)
+    yield from in_structuur(wet.structuurdelen, (), None)
+    for d in wet.divisies:
+        yield from loop(d, None)
+    for bijlage in wet.bijlagen:
+        yield from in_structuur(bijlage.structuurdelen, (), bijlage)
 
 
 def onderdelen(lijst: list[Onderdeel]) -> Iterator[Onderdeel]:

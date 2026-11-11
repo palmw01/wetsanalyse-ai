@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<toestand bwb-id="BWBR0098877" inwerkingtreding="2026-11-01">
+  <wetgeving soort="beleidsregel">
+    <intitule>Besluit van 1 juli 2016 over een testbeleid</intitule>
+    <citeertitel>Testbeleidsbesluit</citeertitel>
+    <regeling>
+      <regeling-tekst>
+        <hoofdstuk bwb-ng-variabel-deel="/Hoofdstuk1" label="Hoofdstuk 1" inwerking="2016-07-01" bron="Stcrt.2016-34921" status="goed">
+          <kop><label>Hoofdstuk</label><nr>1</nr><titel>Algemene bepalingen</titel></kop>
+          <paragraaf bwb-ng-variabel-deel="/Hoofdstuk1/Paragraaf1" label="§ 1" inwerking="2024-02-01" bron="Stcrt.2024-1915" status="goed">
+            <kop><label>§</label><nr>1</nr><titel>Reikwijdte</titel></kop>
+            <structuurtekst bwb-ng-variabel-deel="/Hoofdstuk1/Paragraaf1/Structuurtekst" inwerking="2026-08-08" bron="Stcrt.2026-27767" status="goed">
+              <al>Dit besluit regelt het testbeleid.</al>
+              <lijst type="expliciet">
+                <li bwb-ng-variabel-deel="/Hoofdstuk1/Paragraaf1/Structuurtekst/Onderdeel1">
+                  <li.nr>1.</li.nr>
+                  <al>Het geldt voor de heffing van <extref doc="jci1.3:c:BWBR0002320" bwb-id="BWBR0002320">de AWR</extref>.</al>
+                </li>
+                <li bwb-ng-variabel-deel="/Hoofdstuk1/Paragraaf1/Structuurtekst/Onderdeel2">
+                  <li.nr>2.</li.nr>
+                  <al>Het geldt ook voor de werknemersverzekeringen.</al>
+                </li>
+              </lijst>
+            </structuurtekst>
+          </paragraaf>
+          <paragraaf bwb-ng-variabel-deel="/Hoofdstuk1/Paragraaf2" label="§ 2" inwerking="2016-07-01" bron="Stcrt.2016-34921" status="goed">
+            <kop><label>§</label><nr>2</nr><titel>Begrippen</titel></kop>
+            <structuurtekst bwb-ng-variabel-deel="/Hoofdstuk1/Paragraaf2/Structuurtekst" inwerking="2016-07-01" status="goed">
+              <al>In dit besluit wordt verstaan onder boete: een bestuurlijke boete.</al>
+            </structuurtekst>
+          </paragraaf>
+        </hoofdstuk>
+      </regeling-tekst>
+    </regeling>
+  </wetgeving>
+</toestand>

@@ -217,6 +217,11 @@ class Structuurdeel:
     label_id: str | None = None  # WTI-join-sleutel (label-id-attribuut)
     subdelen: list[Structuurdeel] = field(default_factory=list)
     artikelen: list[Artikel] = field(default_factory=list)
+    # Een paragraaf van een beleidsregel zonder artikelen draagt haar tekst in een ``<structuurtekst>`` (het Besluit
+    # Bestuurlijke Boeten Belastingdienst). Die tekst is een divisie onder het structuurdeel, met het nummer en de titel
+    # van de paragraaf: dezelfde node als een divisie van een circulaire, dus de importer, de dekking en de leestools
+    # behandelen haar zoals de Leidraad.
+    divisies: list[Divisie] = field(default_factory=list)
 
 
 @dataclass(slots=True)
