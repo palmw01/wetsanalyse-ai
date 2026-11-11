@@ -32,7 +32,7 @@ from ..graph import queries
 from ..graph.results import parse_select
 from ..resultaat import compact, fout, pagina, per_eenheid
 from .zoekfilters import datum as _datum
-from .stuk_tekst import tekstpagina
+from .stuk_tekst import INHOUD_ARG, inhoudpagina, tekstpagina
 
 RECHTSPRAAK_TOOL_NAMEN = RECHTSPRAAK.tools
 CONNECTOR = RECHTSPRAAK.naam
@@ -154,6 +154,8 @@ RECHTSPRAAK_TOOLS: list[dict[str, Any]] = [
             "properties": {
                 "id": {"type": "string", "description": "De ECLI, bijvoorbeeld 'ECLI:NL:HR:2022:50'."},
                 "offset": {"type": "integer", "description": "Voor het vervolg; begin bij 0."},
+
+                "inhoud": INHOUD_ARG,
             },
             "required": ["id"],
             "additionalProperties": False,
@@ -708,6 +710,9 @@ def _get(bron: RechtspraakBron, a: dict[str, Any]) -> str:
         stuk["gevalideerd"] = False
     # De koppen met hun offset, zoals bij Kamerstukken: een lange uitspraak (de Raad van State, honderden alinea's)
     # leest Lex vanaf het deel dat de vraag raakt, en het bronvenster toont er de inhoudsopgave mee (`tekstpagina`).
+    if a.get("inhoud"):
+        return inhoudpagina(rijen, tool="get_uitspraak", args={"id": vp.id}, offset=max(int(a.get("offset") or 0), 0),
+                            stuk=stuk)
     return tekstpagina(rijen, tool="get_uitspraak", args={"id": vp.id}, offset=max(int(a.get("offset") or 0), 0),
                        stuk=stuk, toelichting="" if rijen else "Deze uitspraak heeft geen tekst in de open data.")
 

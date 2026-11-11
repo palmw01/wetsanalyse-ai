@@ -10,10 +10,22 @@ from ..resultaat import BUDGET, per_eenheid
 
 #: Zo veel koppen staan hoogstens in `inhoud` op de eerste pagina; meer en alleen de bovenste twee niveaus.
 MAX_INHOUD = 40
-#: Een kop op het bovenste niveau draagt zijn eerste alinea mee als die zo kort is: de aanhef van een wijzigingsartikel
-#: ("De Invorderingswet 1990 wordt als volgt gewijzigd:"). Zonder die regel opende het model elk artikel van een
-#: verzamelwet om te zien welke regeling het wijzigt (meting bekendmakingen B16: negen pagina's, 338k tokens).
+#: Een kop op het bovenste niveau draagt het begin van zijn eerste alinea mee, tot hoogstens zo veel tekens: de aanhef
+#: van een wijzigingsartikel ("De Invorderingswet 1990 wordt als volgt gewijzigd:"). Zonder die regel opende het model
+#: elk artikel van een verzamelwet om te zien welke regeling het wijzigt (meting bekendmakingen B16: negen pagina's,
+#: 338k tokens). Een langere alinea wordt afgekapt op een woordgrens, met `begint_afgekapt` (hermeting 11 nov 2026: met
+#: alleen alinea's tot deze lengte vielen acht artikelen van Stb. 2009, 610 weg, en de regeling staat vooraan).
 MAX_BEGIN = 160
+
+
+def begin_van(tekst: str) -> tuple[str, bool]:
+    """Het begin van een alinea tot `MAX_BEGIN` tekens, afgekapt op een woordgrens, en of er is afgekapt. Geen
+    weglatingsteken: het begin is letterlijk de bron, en dat het niet de hele alinea is, zegt de vlag."""
+    tekst = " ".join(tekst.split())
+    if len(tekst) <= MAX_BEGIN:
+        return tekst, False
+    knip = tekst[:MAX_BEGIN + 1].rsplit(" ", 1)[0] if " " in tekst[:MAX_BEGIN + 1] else tekst[:MAX_BEGIN]
+    return knip.rstrip(" ,;:"), True
 
 #: Velden die een rij alleen draagt als ze anders zijn dan op de rij ervoor op dezelfde pagina. De kop staat anders op
 #: elke alinea van een sectie: bij ECLI:NL:HR:2022:50 ~900 van de ~8500 tekens, en dan past de uitspraak niet op één
@@ -21,35 +33,60 @@ MAX_BEGIN = 160
 HERHAALD = ("kop",)
 
 
-def inhoud(rijen: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], bool]:
-    """De koppen van het stuk met de offset waar ze beginnen, voor de eerste pagina, en of dat alle koppen zijn. Zo springt
-    Lex naar het deel dat de vraag raakt in plaats van het stuk pagina voor pagina te lezen (acceptatie 8 nov 2026: twee
-    pagina's gelezen, de artikelsgewijze toelichting niet). Het diepste niveau dat helemaal past (hoogstens `MAX_INHOUD`
-    koppen en een kwart van de begroting: de inhoud wijst de weg, de alinea's zijn de inhoud); past zelfs het bovenste
-    niveau niet, dan het begin ervan, en dat zegt het resultaat (`inhoud_ingekort`). Leeg bij één kop. Een kop op het
-    bovenste niveau draagt een korte eerste alinea als `begint` (`MAX_BEGIN`)."""
-    def koppen(diepte: int | None) -> list[dict[str, Any]]:
-        uit: list[dict[str, Any]] = []
-        for i, r in enumerate(rijen):
-            delen = r.get("kop", "").split(" › ")
-            kop = " › ".join(delen[:diepte] if diepte else delen)
-            if kop and all(u["kop"] != kop for u in uit):
-                tekst = " ".join(str(r.get("tekst") or "").split())
-                begin = ({"begint": tekst} if " › " not in kop and tekst and len(tekst) <= MAX_BEGIN
-                         and r.get("kop") == kop else {})
-                uit.append({"kop": kop, "offset": i, **begin})
-        return uit
+#: Het argument van elke leestool waarmee Lex alleen de inhoud van een stuk leest, met alle koppen (`inhoudpagina`). Eén
+#: schema, zodat de drie leestools het gelijk beschrijven.
+INHOUD_ARG = {"type": "boolean", "description": "true: alleen de inhoud van het stuk: de koppen op het bovenste niveau met "
+                                                 "hun offset en het begin van hun eerste alinea, per pagina. Gebruik het als de eerste "
+                                                 "pagina 'inhoud_openen' noemt (de inhoud is ingekort of zonder het begin "
+                                                 "van de delen), of om te zien waar een deel staat."}
 
+
+def koppen(rijen: Sequence[dict[str, Any]], diepte: int | None = None, *, met_begin: bool = True) -> list[dict[str, Any]]:
+    """De koppen van een stuk tot `diepte` niveaus (alles bij None), elk één keer, met de offset van hun eerste rij. Een kop
+    op het bovenste niveau draagt het begin van zijn eerste alinea (`begint`, `begin_van`), behalve zonder `met_begin`."""
+    uit: list[dict[str, Any]] = []
+    gezien: set[str] = set()
+    for i, r in enumerate(rijen):
+        delen = str(r.get("kop") or "").split(" › ")
+        kop = " › ".join(delen[:diepte] if diepte else delen)
+        if kop and kop not in gezien:
+            gezien.add(kop)
+            begin: dict[str, Any] = {}
+            if (met_begin and " › " not in kop and r.get("kop") == kop
+                    and (tekst := str(r.get("tekst") or "").strip())):
+                stuk, afgekapt = begin_van(tekst)
+                begin = {"begint": stuk, **({"begint_afgekapt": True} if afgekapt else {})}
+            uit.append({"kop": kop, "offset": i, **begin})
+    return uit
+
+
+def inhoud_van(rijen: Sequence[dict[str, Any]]) -> tuple[list[dict[str, Any]], bool, bool]:
+    """De inhoud voor de eerste pagina: (koppen, ingekort, zonder het begin). Het diepste niveau dat helemaal past
+    (hoogstens `MAX_INHOUD` koppen en een kwart van de begroting: de inhoud wijst de weg, de alinea's zijn de inhoud), op
+    elk niveau eerst met `begint` en dan zonder – meer koppen gaan voor het begin, want het bronvenster en de sprong naar
+    een deel hebben de koppen nodig, en het begin staat op de inhoudpagina. Past zelfs het bovenste niveau zonder begin
+    niet, dan het begin van die lijst. Leeg bij één kop."""
     def past(lijst: list[dict[str, Any]]) -> bool:
         return len(lijst) <= MAX_INHOUD and len(json.dumps(lijst, ensure_ascii=False)) <= BUDGET // 4
 
     for diepte in (None, 2, 1):
-        if past(lijst := koppen(diepte)):
-            return (lijst, True) if len(lijst) > 1 else ([], True)
-    lijst = koppen(1)
+        for met in (True, False):
+            if past(lijst := koppen(rijen, diepte, met_begin=met)):
+                if len(lijst) <= 1:
+                    return [], False, False
+                return lijst, False, not met and any("begint" in k for k in koppen(rijen, 1))
+    lijst = koppen(rijen, 1, met_begin=False)
     while lijst and not past(lijst):
         lijst = lijst[:-1]
-    return lijst, False
+    return lijst, True, True
+
+
+def inhoud(rijen: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], bool]:
+    """De koppen van het stuk met de offset waar ze beginnen, voor de eerste pagina, en of dat alle koppen zijn
+    (`inhoud_van`). Zo springt Lex naar het deel dat de vraag raakt in plaats van het stuk pagina voor pagina te lezen
+    (acceptatie 8 nov 2026: twee pagina's gelezen, de artikelsgewijze toelichting niet)."""
+    lijst, ingekort, _ = inhoud_van(rijen)
+    return lijst, not ingekort
 
 
 def _zonder_gaten(rijen: Sequence[dict[str, Any]]) -> tuple[str, ...]:
@@ -87,15 +124,45 @@ def aangevuld(data: dict[str, Any]) -> list[dict[str, Any]]:
     return uit
 
 
+def _met_inhoud(rijen: list[dict[str, Any]], tool: str, args: dict[str, Any], *, sleutel: str) -> dict[str, Any]:
+    """De inhoud van `rijen` onder `sleutel`. Ontbreken er koppen (`inhoud_ingekort`) of het begin van de delen
+    (`inhoud_zonder_begin`), dan `inhoud_openen`: de aanroep die de hele inhoud met het begin geeft (`inhoudpagina`).
+    Zonder dat wist het model niet hoe het verder kwam, en bladerde het de tekst door (hermeting bekendmakingen 11 nov
+    2026, B16: 11 van de 30 artikelen van Stb. 2009, 610, zonder de regeling die ze wijzigen)."""
+    inh, ingekort, zonder_begin = inhoud_van(rijen)
+    openen = {"inhoud_openen": {"tool": tool, "args": {"id": args["id"], "inhoud": True}}}
+    return {**({sleutel: inh} if inh else {}), **({"inhoud_ingekort": True} if ingekort else {}),
+            **({"inhoud_zonder_begin": True} if zonder_begin and not ingekort else {}),
+            **(openen if ingekort or zonder_begin else {})}
+
+
+def inhoudpagina(rijen: list[dict[str, Any]], *, tool: str, args: dict[str, Any], offset: int,
+                 stuk: dict[str, Any]) -> str:
+    """Alleen de inhoud van een stuk: de koppen op het bovenste niveau (`koppen`) met hun offset en `begint`, per pagina –
+    het niveau waarop een ingekorte inhoud stopt (`inhoud`), en bij een verzamelwet de artikelen met de regeling die ze
+    wijzigen. De offsets wijzen in de tekst (een aanroep zonder `inhoud`), de paginering van deze aanroep loopt over de
+    koppen. Een dieper deel staat in de tekst vanaf de offset van zijn bovenste kop."""
+    lijst = koppen(rijen, 1)
+    return per_eenheid(lijst, tool=tool, args={"id": args["id"], "inhoud": True}, offset=offset,
+                       extra={"stuk": stuk, "totaal": len(lijst)},
+                       toelichting="De koppen van het stuk; 'offset' is de plek in de tekst: lees vanaf daar met "
+                                   f"{{\"id\": \"{args['id']}\", \"offset\": <offset>}}.")
+
+
 def tekstpagina(rijen: list[dict[str, Any]], *, tool: str, args: dict[str, Any], offset: int, stuk: dict[str, Any],
-                extra: dict[str, Any] | None = None, toelichting: str = "") -> str:
+                extra: dict[str, Any] | None = None, toelichting: str = "",
+                publicatie: list[dict[str, Any]] | None = None) -> str:
     """Een pagina van de tekst van een stuk, voor elke leestool dezelfde vorm.
 
     - De kop alleen waar hij verandert (`HERHAALD`); de eerste rij van een pagina draagt hem altijd.
     - Op de eerste pagina `inhoud`, behalve als het hele stuk zonder past en met niet: dan staan de koppen al in de rijen,
       en één pagina scheelt het model een ronde.
+    - Is de lezing gefilterd (een artikel, een regeling), dan geeft de aanroeper de rijen van het hele stuk mee als
+      `publicatie`, en draagt de pagina `inhoud_publicatie`: de koppen van het hele stuk met hun offset in een lezing
+      zonder filter. Zo leest Lex gericht door (de inwerkingtreding, de toelichting bij het onderdeel) in plaats van het
+      hele stuk (hermeting 11 nov 2026, B08: 86k tegen 24k).
     - Een stuk zonder tekst zegt `leesbaar: false` in `stuk`, zoals een stuk dat de bron niet als tekst heeft."""
-    if not rijen:
+    if not rijen and not publicatie:
         stuk = {**stuk, "leesbaar": False}
     velden = _zonder_gaten(rijen)
     # De pagina zegt welke velden bij een herhaling wegvallen, zodat een lezer alleen dan aanvult (een tabelpagina doet
@@ -108,10 +175,11 @@ def tekstpagina(rijen: list[dict[str, Any]], *, tool: str, args: dict[str, Any],
 
     if offset != 0:
         return maak(basis)
-    inh, alle = inhoud(rijen)
-    met = {**basis, **({"inhoud": inh} if inh else {}), **({} if alle else {"inhoud_ingekort": True})}
+    if publicatie is not None:
+        return maak({**basis, **_met_inhoud(publicatie, tool, args, sleutel="inhoud_publicatie")})
+    met = {**basis, **_met_inhoud(rijen, tool, args, sleutel="inhoud")}
     tekst = maak(met)
-    if inh and not json.loads(tekst).get("volledig"):
+    if met.get("inhoud") and not json.loads(tekst).get("volledig"):
         zonder = maak(basis)
         if json.loads(zonder).get("volledig"):
             return zonder

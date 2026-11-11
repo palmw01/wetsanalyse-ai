@@ -27,7 +27,7 @@ from ..graph.results import parse_select
 from ..resultaat import compact, fout, per_eenheid
 from .op_xml import lees
 from .sru_zoeken import LIMIT, MAX_WOORDEN, OP_VOLGORDE, cql_woorden, per_record, tekst_cql, tekst_woorden, zoekvraag
-from .stuk_tekst import tekstpagina
+from .stuk_tekst import INHOUD_ARG, inhoudpagina, tekstpagina
 from .zoekfilters import datum
 
 #: Uit de beschrijving (`bronmodel.connectors`); de poorttest toetst dat `BEKENDMAKING_TOOLS` precies deze namen heeft.
@@ -182,6 +182,7 @@ BEKENDMAKING_TOOLS: list[dict[str, Any]] = [
                                                               "kan ook."},
                 "offset": {"type": "integer", "description": "Voor het vervolg; begin bij 0."},
                 "tabel": {"type": "integer", "description": "Het nr van een rij met soort 'tabel': dan de tabel zelf."},
+                "inhoud": INHOUD_ARG,
             },
             "required": ["id"],
             "additionalProperties": False,
@@ -492,6 +493,11 @@ def _zoek(bron: BekendmakingBron, graph: Any, a: dict[str, Any]) -> str:
 
 # --- lezen ---------------------------------------------------------------------------------------------------------
 
+#: Wat een gefilterde lezing zegt over de rest van de publicatie (`stuk_tekst.tekstpagina`, `publicatie`).
+_REST = ("'inhoud_publicatie' noemt de delen van de hele publicatie met hun offset (de inwerkingtreding, de toelichting): "
+         "lees daar gericht verder met id en offset, zonder artikel of regeling.")
+
+
 def _noemt_artikel(tekst: str, artikel: str) -> bool:
     """Noemt de wijzigingsopdracht dit artikel ("In artikel 1.1.5 worden …", "Artikel 25 wordt als volgt gewijzigd",
     "In de artikelen 24 en 25 …")? Een langer nummer telt niet: 1.1.5 is niet 1.1.5b, 25 is niet 25a of 25.1."""
@@ -539,7 +545,10 @@ def _get(bron: BekendmakingBron, a: dict[str, Any], graph: Any = None) -> str:
         return per_eenheid(tabelrijen, tool="get_bekendmaking", args={"id": echt.id, "tabel": int(a["tabel"])},
                            offset=offset, extra={"stuk": stuk, "totaal": len(tabelrijen),
                                                  **({"samengevoegd": samen} if samen else {})})
+    if a.get("inhoud"):
+        return inhoudpagina(rijen, tool="get_bekendmaking", args={"id": echt.id}, offset=offset, stuk=stuk)
     args: dict[str, Any] = {"id": echt.id}
+    publicatie = rijen if (regeling or artikel) else None
     if regeling:
         # Per artikel van de wijzigingswet (het eerste deel van de kop) telt de eerste rij: de aanhef.
         aanhef: dict[str, str] = {}
@@ -551,7 +560,7 @@ def _get(bron: BekendmakingBron, a: dict[str, Any], graph: Any = None) -> str:
         args["regeling"] = regeling
         toelichting = (toelichting + " " if toelichting else "") + (
             ("Alleen het artikel" if len(raak) == 1 else f"Alleen de {len(raak)} artikelen")
-            + f" waarvan de aanhef {regeling} noemt; de rest van de publicatie staat er niet bij." if raak else
+            + f" waarvan de aanhef {regeling} noemt; de rest staat er niet bij. {_REST}" if raak else
             f"Geen artikel van {echt.id} noemt {regeling} in zijn aanhef. Kijk in 'inhoud' van de hele publicatie, "
             f"bijvoorbeeld {{\"id\": \"{echt.id}\"}}.")
     if artikel:
@@ -570,10 +579,10 @@ def _get(bron: BekendmakingBron, a: dict[str, Any], graph: Any = None) -> str:
         else:
             toelichting = (toelichting + " " if toelichting else "") + (
                 f"Alleen de {len(raak)} wijzigingsonderdeel{'en' if len(raak) != 1 else ''} die artikel {artikel} "
-                "noemen; de rest van de publicatie staat er niet bij.")
+                f"noemen; de rest staat er niet bij. {_REST}")
     rijen = [{**r, "openen": {"tool": "get_bekendmaking", "args": {"id": echt.id, "tabel": r["nr"]}}}
              if r.get("soort") == "tabel" else r for r in rijen]
-    return tekstpagina(rijen, tool="get_bekendmaking", args=args, offset=offset, stuk=stuk,
+    return tekstpagina(rijen, tool="get_bekendmaking", args=args, offset=offset, stuk=stuk, publicatie=publicatie,
                        extra={"overgeslagen": overgeslagen} if overgeslagen else None,
                        toelichting=toelichting or ("" if rijen else "Deze publicatie heeft geen lopende tekst in de XML."))
 
