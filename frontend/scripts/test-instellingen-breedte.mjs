@@ -93,8 +93,9 @@ const SCHERMEN = [
     await p.getByAltText("QR-code voor 2FA").waitFor();
   } },
   { naam: "beveiliging-aan", tab: "Beveiliging", vooraf: (s) => Object.assign(s.account, { totp_enabled: true, herstelcodes_over: 3 }), klaar: async (p) => {
-    await p.getByRole("button", { name: "Uitschakelen" }).click();
-    await p.getByLabel(/^Code/).waitFor();
+    // Een beheerder zet 2FA niet uit; de breedste vorm bij actieve 2FA is het formulier voor opnieuw koppelen.
+    await p.getByRole("button", { name: "Opnieuw koppelen" }).click();
+    await p.getByRole("textbox", { name: /^Code/ }).waitFor();
   } },
   { naam: "verbruik", tab: "Verbruik", klaar: (p) => p.getByText("Reset op").waitFor() },
   { naam: "berichten", tab: "Berichten", klaar: (p) => p.getByText("Wat is er nieuw").first().waitFor() },
