@@ -279,3 +279,147 @@ def test_een_onderdeel_draagt_zijn_letter_als_plek():
 
 def test_een_subonderdeel_heet_naar_zijn_nummer():
     assert w.onderdeel_plek("1°.") == "1°" and w.onderdeel_plek("b.") == "onderdeel b" and w.onderdeel_plek("") == ""
+
+
+# --- ronde 1 van de iteraties (11 nov 2026, `docs/architectuur/metingen/wetgeving-live-iteratie-2026-11-11/`) ---------
+
+def test_de_opbouw_en_de_telling_staan_op_de_eerste_pagina():
+    """I13/I30: zonder deze velden bladerde het model door alle artikelen (1,0M en 219k tokens)."""
+    r = json.loads(tools.dispatch("zoek_artikelen", _graaf(), {"bwb_id": PW}, AAN, wetgeving_live=_bron()))
+    assert r["telling"] == {"totaal": 174, "geldend": 150, "vervallen": 20, "nog_niet_in_werking": 4}
+    assert r["opbouw"][0] == {"kop": "Hoofdstuk 1 – Algemeen", "artikelen": 15, "van": "Artikel 1", "tot": "Artikel 8d"}
+    assert sum(d["artikelen"] for d in r["opbouw"]) == 174
+    # Alleen op de eerste pagina, en niet bij zoeken op woorden.
+    vervolg = json.loads(tools.dispatch("zoek_artikelen", _graaf(), {"bwb_id": PW, "offset": 30}, AAN, wetgeving_live=_bron()))
+    assert "opbouw" not in vervolg
+    woorden = json.loads(tools.dispatch("zoek_artikelen", _graaf(), {"bwb_id": PW, "woorden": "kostendelende medebewoner"},
+                                        AAN, wetgeving_live=_bron()))
+    assert "opbouw" not in woorden
+
+
+def test_een_onderdeel_met_de_aanhef_van_zijn_lid():
+    """I09: "tweede lid, onderdeel c" gaf het hele artikel."""
+    vraag = "Wat staat er in artikel 31, tweede lid, onderdeel c, van de Participatiewet?"
+    v = wf.lees_buiten(vraag, bg.genoemd(vraag, _graaf(), _bron(), vandaag=VANDAAG))
+    assert (v.artikel, v.lid, v.onderdeel) == ("31", "2", "c")
+    blok = wf.antwoord(v, wf.haal(_graaf(), v, _voer_uit(_graaf()))).blokken[0]
+    assert [(p.plek, p.tekst) for p in blok.passages] == [
+        ("", "Niet tot de middelen van de belanghebbende worden gerekend:"), ("onderdeel c", "de jonggehandicaptenkorting;")]
+    geen = json.loads(tools.dispatch("get_wettekst", _graaf(), {"bwb_id": PW, "artikel": "31", "lid": "2", "onderdeel": "zz"},
+                                     AAN, wetgeving_live=_bron()))
+    assert "geen onderdeel zz in lid 2" in geen["toelichting"]
+
+
+def test_get_wettekst_noemt_de_bekendmaking_van_het_artikel():
+    """I06: zonder dit veld zocht Lex zeven rondes naar het Staatsblad van artikel 24a."""
+    r = json.loads(tools.dispatch("get_wettekst", _graaf(), {"bwb_id": PW, "artikel": "24a"}, AAN, wetgeving_live=_bron()))
+    assert r["stuk"]["publicatie"] == "Stb. 2025, 312"
+    assert w.publicatie("Stcrt.2024-1234") == "Stcrt. 2024, 1234" and w.publicatie("") == ""
+    assert w.publicatie("Trb. 2001, 5 en later") == "Trb. 2001, 5 en later"
+
+
+class _Bron:
+    """Een zoekdienst met vaste antwoorden voor `_buiten_de_peildatum`."""
+
+    def __init__(self, vandaag=(), altijd=(), toestanden=()):
+        self._vandaag, self._altijd, self._toestanden = list(vandaag), list(altijd), list(toestanden)
+
+    def zoek(self, cql, *, start=1, maximum=50):
+        rijen = self._vandaag if "geldigheidsdatum" in cql else self._altijd
+        return len(rijen), rijen
+
+    def toestanden(self, bwb_id):
+        return self._toestanden
+
+
+def _toestand(titel, van, tot="9999-12-31", bwb="BWBR0000001"):
+    from agent.adapters.sru_bwb import Toestand
+    return Toestand(bwb, titel, "wet", van, tot, van, "9999-12-31", f"https://x/{bwb}/{van}.xml")
+
+
+def test_een_regeling_zonder_tekst_op_de_peildatum_krijgt_haar_periode():
+    """I20: zonder deze zin gokte Lex achttien rondes naar BWB-id's (509k)."""
+    weg = w._buiten_de_peildatum(_Bron(), "Wet op de inkomstenbelasting 1964", "1995-01-01")
+    assert "geen regeling met precies de titel" in weg and "Raad geen BWB-id's" in weg
+    t = [_toestand("Participatiewet", "2004-01-01", "2004-12-31"), _toestand("Participatiewet", "2026-07-01")]
+    later = w._buiten_de_peildatum(_Bron(vandaag=t[-1:], toestanden=t), "Participatiewet", "2001-01-01")
+    assert "teksten van 2004-01-01 tot nu, niet op 2001-01-01" in later
+    binnen = w._buiten_de_peildatum(_Bron(vandaag=t[-1:], toestanden=t), "Participatiewet", "2010-01-01")
+    assert "mogelijk onder een andere titel" in binnen
+
+
+def test_een_toekomstige_peildatum_zonder_andere_tekst_zegt_dat(monkeypatch):
+    """I17: "per 1 januari 2028" gaf stil de tekst van nu."""
+    stuk = {"tekststand": "huidige tekst", "tekst_vanaf": "2026-01-01"}
+    zin = wf.toekomst_zin(stuk, "2028-01-01")
+    assert "Voor 1 januari 2028 is in het Basiswettenbestand geen andere tekst bekend" in zin and "1 januari 2026" in zin
+    assert wf.toekomst_zin(stuk, "2020-01-01") == "" and wf.toekomst_zin(stuk, "") == ""
+    assert wf.toekomst_zin({**stuk, "tekststand": "toekomstige tekst"}, "2028-01-01") == ""
+
+
+@pytest.mark.parametrize("vraag,naam", [
+    ("Wat staat er in artikel 1:1 van de Algemene douanewet?", "Algemene douanewet"),
+    ("Wat staat er in artikel 1 van het Uitvoeringsbesluit inkomstenbelasting 2001?", "Uitvoeringsbesluit inkomstenbelasting 2001"),
+    ("Wat staat er in artikel 1 van de Uitvoeringsregeling inkomstenbelasting 2001?", "Uitvoeringsregeling inkomstenbelasting 2001"),
+    ("Hoe is het Besluit Bestuurlijke Boeten Belastingdienst opgebouwd?", "Besluit Bestuurlijke Boeten Belastingdienst"),
+])
+def test_ook_besluiten_regelingen_en_algemene_wetten_worden_herkend(vraag, naam):
+    """I03/I10/I11/I12: alleen titels op -wet of met "Wet" werden herkend, de rest zocht het model zelf."""
+    assert naam in [k[0] for k in bg._kandidaten(vraag)]
+
+
+_ALLE = {**_AAN, **{n: {"naam": n, "label": n, "aan": True, "reden": "aan"}
+                    for n in ("kamerstukken", "bekendmakingen", "rechtspraak")}}
+
+
+@pytest.mark.parametrize("vraag,leestool,ident", [
+    ("Wat zegt de MvT bij Kamerstuk 33755, nr. 3 over artikel 29 IW?", "get_kamerstuk", "kst-33755-3"),
+    ("Wat staat er in Stb. 2025, 312 over artikel 24a van de Participatiewet?", "get_bekendmaking", "stb-2025-312"),
+    ("Wat zegt ECLI:NL:HR:2026:586 over artikel 36 van de Invorderingswet 1990?", "get_uitspraak", "ECLI:NL:HR:2026:586"),
+])
+def test_een_genoemd_stuk_gaat_voor_de_bepalingsroute(vraag, leestool, ident):
+    """R28b en K14 (Kamerstukken): met een artikel erbij las Lex alleen de wettekst, en het stuk niet."""
+    upd = _kies(vraag, _ALLE)
+    assert not upd.get("bepalingsvraag")
+    aanroepen = upd["bron_lezen"]
+    assert [a["name"] for a in aanroepen] == [leestool]
+    assert ident in aanroepen[0]["input"].values()
+
+
+def test_een_stukvraag_leest_de_wettekst_niet_vooraf():
+    """I02: bij "welke uitspraken … over artikel 31 Pw" las de code eerst de wettekst."""
+    from agent.bepaling_workflow import wijst_stuk_aan
+    vraag = "Welke uitspraken van de Centrale Raad van Beroep gaan over artikel 31 van de Participatiewet?"
+    assert wijst_stuk_aan(vraag)
+    from test_routering import ModelGevraagd
+    with pytest.raises(ModelGevraagd):  # geen vooraf-lezing: de beurt gaat naar het model, met de connectors
+        _kies(vraag, _AAN)
+
+
+def test_een_herschreven_vervolgvraag_buiten_de_graaf_gaat_de_workflow_in():
+    """I25: "En wat staat er in artikel 32?" na artikel 31 Pw."""
+    zelfstandig = "Wat staat er in artikel 32 van de Participatiewet?"
+    genoemd = bg.genoemd(zelfstandig, _graaf(), _bron(), vandaag=VANDAAG)
+    assert wf.lees_buiten(zelfstandig, genoemd, getypt="En wat staat er in artikel 32?") == \
+        wf.Bepalingsvraag(bwb_id=PW, artikel="32", live=True)
+    # Een datum uit de herschrijving (van een stuk uit de vorige beurt) is geen peildatum.
+    met_datum = "Wat staat er op 10 april 2026 in artikel 32 van de Participatiewet?"
+    assert wf.lees_buiten(met_datum, genoemd, getypt="En artikel 32?") is None
+
+
+def test_een_onbekende_wet_krijgt_de_vaste_melding():
+    """I07: drie rondes en vier niet-gerelateerde bronnen voor een wet die niet bestaat."""
+    upd = _kies("Wat staat er in artikel 3 van de Wet op de robotbelasting?", _AAN)
+    assert upd["afwijzen"] and "„Wet op de robotbelasting”" in upd["afwijs_melding"]
+    assert "Basiswettenbestand kent geen geldende regeling" in upd["afwijs_melding"]
+
+
+def test_een_volledig_gelezen_artikel_uit_een_onvolledige_toestand_is_te_lezen():
+    """I03: de Algemene douanewet (dekking 98,5%) weigerde elk artikel, ook een dat zelf volledig gelezen is. De toestand
+    als geheel blijft onvolledig voor de opbouw; de importer meet de toestand als geheel, en dat verandert niet."""
+    adw = "BWBR0023746"
+    r = json.loads(tools.dispatch("get_wettekst", _graaf(), {"bwb_id": adw, "artikel": "1:1"}, AAN, wetgeving_live=_bron()))
+    assert r["status"] == "ok" and r["resultaten"], r
+    assert "niet volledig te lezen" in r["toelichting"] and "volledig en te citeren" in r["toelichting"]
+    opbouw = json.loads(tools.dispatch("zoek_artikelen", _graaf(), {"bwb_id": adw}, AAN, wetgeving_live=_bron()))
+    assert opbouw["status"] == "error" and opbouw["reden"] == "toestand_onvolledig"

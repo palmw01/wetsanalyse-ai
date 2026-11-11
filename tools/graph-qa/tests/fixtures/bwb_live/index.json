@@ -23,6 +23,10 @@
   "bestand": "3a5b22a5261dabb2.xml.gz",
   "status": 200
  },
+ "/bwb/BWBR0023746/2026-07-01_0/xml/BWBR0023746_2026-07-01_0.xml": {
+  "bestand": "cbb4f1e2b7f9ff5c.xml.gz",
+  "status": 200
+ },
  "/bwb/BWBR0035917/2026-01-01_0/xml/BWBR0035917_2026-01-01_0.xml": {
   "bestand": "8b7d0e69cce016e3.xml.gz",
   "status": 200
@@ -61,6 +65,10 @@
  },
  "query=dcterms.identifier=BWBR0015703 | startRecord=1 | maximumRecords=1000": {
   "bestand": "2282f9d0af25c487.xml.gz",
+  "status": 406
+ },
+ "query=dcterms.identifier=BWBR0023746 and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=20": {
+  "bestand": "bf63128a7ea27b5d.xml.gz",
   "status": 406
  },
  "query=dcterms.identifier=BWBR0035917 and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=20": {
@@ -125,6 +133,10 @@
  },
  "query=overheidbwb.titel adj \"Wet op de robotbelasting\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=50": {
   "bestand": "771d7ec0187f0d79.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.titel adj \"Wet op de robotbelasting\" | startRecord=1 | maximumRecords=100": {
+  "bestand": "b683e1c2baa7246a.xml.gz",
   "status": 406
  },
  "query=overheidbwb.titel all \"Wet op de robotbelasting\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=100": {

@@ -20,7 +20,7 @@ from .. import bronstand
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
 from ..llm_stap import Rol, aanroep
 from ..bepaling_workflow import lees as lees_bepalingsvraag
-from ..bepaling_workflow import lees_buiten
+from ..bepaling_workflow import lees_buiten, wijst_stuk_aan
 from ..doel import _heeft_opgegeven_doel
 from ..bronselectie import is_bronselectievraag
 from ..models import ACTIE_TAAK, BRONSELECTIE_ACTIES, INTAKE_ACTIES
@@ -204,6 +204,11 @@ def _buiten_graaf_melding(writer, state: State, vraag: str, buiten: list[Any], g
     from .. import buiten_graaf
 
     aan = _live_aan(state)
+    if aan and (onbekend := buiten_graaf.onbekende(buiten, vraag)):
+        _stap(writer, "Lex", "vindt de genoemde regeling niet", route="niet_in_graaf")
+        return {"specialist": "", "plan": "", "worker_plan": [], "worker_idx": 0, "afwijzen": True,
+                "afwijs_melding": buiten_graaf.melding_onbekend(onbekend),
+                "afwijs_stap": "niet gevonden – geen regeling met die naam", "annotaties_lezen": False}
     if not aan and ((state.get("bronstand") or {}).get("wetgeving_live") or {}).get("reden", "straat") == "straat":
         # Een straat zonder de connector (productie): daar is niets aan te zetten, en de agent zegt wat de graaf heeft.
         return None
@@ -458,8 +463,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # De tekst van een artikel buiten de graaf: dezelfde workflow als een artikel uit de graaf (ADR-010, D1), met het
         # hele artikel in het blok `extern` en de controle op letterlijkheid. Ook in een gesprek: de vraag noemt het zelf.
         return _bepaling(writer, live_bepaling)
-    if not gesprek and not _ANNOTEER_RE.search(vraag_nu) and (live := buiten_graaf.leesaanroepen(buiten)) \
-            and len(live) == 1:
+    if not gesprek and not _ANNOTEER_RE.search(vraag_nu) and not wijst_stuk_aan(vraag_nu) \
+            and (live := buiten_graaf.leesaanroepen(buiten)) and len(live) == 1:
         g = next(x for x in buiten if x.bwb_id and x.artikel)
         _stap(writer, "Lex", f"leest artikel {g.artikel} van de {g.titel} bij overheid.nl (niet in de kennisgraaf)",
               route="bron_lezen")
@@ -467,9 +472,11 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
                 "annotaties_lezen": False, "bron_lezen": live,
                 "plan": "Beantwoord de vraag uit de tekst van het genoemde artikel, die al is opgehaald."
                         + buiten_graaf.plan_regel(buiten)}
-    if modus == "auto" and (aanroepen := _te_lezen(state, vraag_nu)) and not lees_aanwijzing(vraag_nu).artikelen:
+    if modus == "auto" and (aanroepen := _te_lezen(state, vraag_nu)):
         # De vraag noemt een stuk bij zijn id: lezen in code, zoals een genoemd artikel (acceptatie 8 nov 2026: zes
-        # rondes zoeken voor kst-35496-F). Ook in een lopend gesprek: het id staat er letterlijk.
+        # rondes zoeken voor kst-35496-F). Ook in een lopend gesprek: het id staat er letterlijk. Ook met een artikel
+        # erbij ("wat zegt de MvT bij Kamerstuk 33755, nr. 3 over artikel 29 IW?"): het stuk gaat voor, met dat artikel als
+        # filter (`_te_lezen`); zonder dit las Lex alleen de wettekst (iteratie Kamerstukken K14, 11 nov 2026).
         return _lees_genoemd(writer, aanroepen, "")
     if modus == "auto" and (lijst := _lijst(state, vraag_nu, b.graph)):
         # "Wat is het laatste stuk van dossier 32140?": een zoekvraag met een volgorde, die de code helemaal leest. Ook in
@@ -523,6 +530,11 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # Op acceptatie ging zo'n vervolgvraag de open lus in (4 rondes, 18 s) in plaats van de workflow (1 ronde).
         # De regeling raadt de code niet zelf uit de vorige beurt: het model leest het gesprek, de code beslist daarna.
         return {**upd, **_bepaling(writer, bepaling)}
+    if modus == "auto" and vraag and _live_aan(state) and (live_bepaling := lees_buiten(
+            zelfstandig, _buiten_graaf(b, state, zelfstandig), getypt=state.get("question", ""))):
+        # Hetzelfde voor een regeling buiten de graaf: "En wat staat er in artikel 32?" na artikel 31 Pw noemt de regeling
+        # pas herschreven (iteratie ronde 1, I25: anders 4 rondes, 83k en de leden in eigen woorden).
+        return {**upd, **_bepaling(writer, live_bepaling)}
     if modus == "auto" and vraag and state.get("werkgebied_id") and is_dekkingsvraag(zelfstandig):
         # "Welke bronnen horen daarbij?" is pas herschreven een vraag naar de stand ("… bij de deelvraag '…'"). Op
         # acceptatie ging hij de open lus in: 188 s en 7 rondes voor wat de api zonder model weet.
@@ -585,7 +597,7 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # Een regeling buiten de kennisgraaf: het plan zegt welke, en een genoemd artikel leest de code eerst.
         from .. import buiten_graaf
         plan += buiten_graaf.plan_regel(buiten)
-        if live := buiten_graaf.leesaanroepen(buiten):
+        if not wijst_stuk_aan(zelfstandig) and (live := buiten_graaf.leesaanroepen(buiten)):
             upd["bron_lezen"] = [*(upd.get("bron_lezen") or []), *live][:MAX_GENOEMD]
     _stap(writer, "Lex", _WORKER_STAP.get(eerste, f"zoekt het antwoord in {bronstand.waar(state.get('bronstand'))}"),
           route=eerste)

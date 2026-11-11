@@ -64,7 +64,14 @@ def test_een_regeling_in_de_graaf_valt_af():
 
 
 def test_een_regeling_die_niet_bestaat_is_geen_treffer():
-    assert _genoemd("Wat staat er in artikel 3 van de Wet op de robotbelasting?") == []
+    # Geen BWB-id en niets te lezen; wel gemarkeerd als onbekend, voor de vaste melding (`onbekende`).
+    vraag = "Wat staat er in artikel 3 van de Wet op de robotbelasting?"
+    genoemd = _genoemd(vraag)
+    assert [(g.bwb_id, g.onbekend) for g in genoemd] == [("", True)] and not bg.leesaanroepen(genoemd)
+    assert bg.onbekende(genoemd, vraag) == ["Wet op de robotbelasting"]
+    # Met een peildatum zoekt zoek_regelingen verder (een vervallen regeling), zonder artikel is het geen bepalingsvraag.
+    assert bg.onbekende(genoemd, vraag + " Op 1 januari 1995?") == []
+    assert bg.onbekende(genoemd, "Wat regelt de Wet op de robotbelasting?") == []
 
 
 def test_een_storing_kost_alleen_de_herkenning():
