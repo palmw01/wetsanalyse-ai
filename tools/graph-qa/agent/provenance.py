@@ -142,6 +142,13 @@ def _met_titel(label: str, uit_tool: str) -> str:
     return label
 
 
+def _zoektools() -> frozenset[str]:
+    """De tools die zoeken in plaats van lezen, uit het register van wat Lex raadpleegt (`spoorbronnen`)."""
+    from .spoorbronnen import bronnen
+
+    return frozenset(t for b in bronnen() for t in b.zoektools)
+
+
 def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
     """Bouw een ontdubbelde bronnenlijst uit (tool_naam, resultaat_tekst)-paren.
 
@@ -176,6 +183,11 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
                     sources.append(bron)
                 continue
             vp = vindplaats(uri)
+            # Een regeling die alleen in een zoekresultaat staat (het BWB-id bij een treffer, een lijst regelingen), is
+            # niet gelezen en dus geen bron; een bepaling die de zoektool vond, wel (search_wetgeving geeft haar tekst).
+            # Meting wetgeving_live ronde 2, I03/I20: de Awb, AWR en Awir in de bronnenlijst na alleen een zoekvraag.
+            if vp is not None and vp.soort == "regeling" and tool in _zoektools():
+                continue
             sleutel = vp.bron_iri if vp else uri
             if (bestaand := per_node.get(sleutel)) is not None:
                 bestaand.iri = bestaand.iri or iri

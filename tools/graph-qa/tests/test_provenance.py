@@ -153,3 +153,31 @@ def test_een_gelezen_stuk_in_een_citeervorm_blijft_een_bron(leestool, ident, bro
     assert alleen_gelezen_extern([bron], trace, tekst) == [bron]
     wet = Source(uri="urn:bwb:BWBR0004770", label="Iw", origin_tool="get_artikel")
     assert bron in curate_sources([wet, bron], f"{tekst} Zie ook BWBR0004770.")
+
+
+# --- een regeling uit een zoekresultaat is geen bron (meting wetgeving_live ronde 2, I03/I20) ------------------------
+
+def test_een_regeling_die_alleen_gezocht_is_is_geen_bron_maar_een_gevonden_bepaling_wel():
+    gezocht = _json.dumps({"status": "ok", "volledig": True, "aantal": 2, "resultaten": [
+        {"bwb_id": "BWBR0005537", "citeertitel": "Algemene wet bestuursrecht"},
+        {"iri": "urn:bwb:BWBR0004770:artikel:9", "bwb_id": "BWBR0004770", "tekst": "De belastingschuldige …"}]})
+    uris = [s.uri for s in collect_sources([("search_wetgeving", gezocht)])]
+    assert "urn:bwb:BWBR0005537" not in uris, "de Awb is alleen gezocht"
+    assert any("artikel:9" in u for u in uris), "een gevonden bepaling met tekst is een bron"
+    lijst = _json.dumps({"status": "ok", "volledig": True, "aantal": 1,
+                         "resultaten": [{"iri": "urn:bwb:BWBR0018472", "citeertitel": "Awir"}]})
+    assert collect_sources([("list_regelingen", lijst)]) == []
+    gelezen = _json.dumps({"status": "ok", "volledig": True, "aantal": 1, "resultaten": [{"iri": "urn:bwb:BWBR0018472"}]})
+    assert [s.uri for s in collect_sources([("get_artikel", gelezen)])] == ["urn:bwb:BWBR0018472"]
+
+
+@_pytest.mark.parametrize("vindplaats,genoemd", [
+    ("jci1.3:c:BWBR0005291&boek=6&titel=3&afdeling=1&artikel=162&z=2026-01-01&g=2026-01-01", "artikel 6:162"),
+    ("jci1.3:c:BWBR0003045&boek=2&titel=1&artikel=9&z=2026-01-01&g=2026-01-01", "artikel 2:9"),
+    ("urn:bwb:BWBR0005537:artikel:4%3A86", "artikel 4:86"),
+])
+def test_een_artikel_met_boeknummer_is_bekend(vindplaats, genoemd):
+    """Meting wetgeving_live ronde 2, I24/I28: uit `boek=6&…&artikel=162` kwam alleen "162"."""
+    from agent.grounding import _bekende_artikelen
+
+    assert genoemd.removeprefix("artikel ") in _bekende_artikelen([("get_wettekst", _json.dumps({"jci": vindplaats}))])
