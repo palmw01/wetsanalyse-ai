@@ -36,9 +36,10 @@ HERHAALD = ("kop",)
 #: Het argument van elke leestool waarmee Lex alleen de inhoud van een stuk leest, met alle koppen (`inhoudpagina`). Eén
 #: schema, zodat de drie leestools het gelijk beschrijven.
 INHOUD_ARG = {"type": "boolean", "description": "true: alleen de inhoud van het stuk: de koppen op het bovenste niveau met "
-                                                 "hun offset en het begin van hun eerste alinea, per pagina. Gebruik het als de eerste "
-                                                 "pagina 'inhoud_openen' noemt (de inhoud is ingekort of zonder het begin "
-                                                 "van de delen), of om te zien waar een deel staat."}
+                                                 "hun offset en het begin van hun eerste alinea, en de diepere koppen met hun "
+                                                 "naam en 'diepte' zo ver als in één antwoord past, per pagina. Gebruik het als "
+                                                 "de eerste pagina 'inhoud_openen' noemt (de inhoud is ingekort, zonder het begin "
+                                                 "van de delen, of er zijn diepere koppen), of om te zien waar een deel staat."}
 
 
 def koppen(rijen: Sequence[dict[str, Any]], diepte: int | None = None, *, met_begin: bool = True) -> list[dict[str, Any]]:
@@ -135,9 +136,53 @@ def _met_inhoud(rijen: list[dict[str, Any]], tool: str, args: dict[str, Any], *,
     2026, B16: 11 van de 30 artikelen van Stb. 2009, 610, zonder de regeling die ze wijzigen)."""
     inh, ingekort, zonder_begin = inhoud_van(rijen)
     openen = {"inhoud_openen": {"tool": tool, "args": {"id": args["id"], "inhoud": True}}}
+    # Staan er diepere koppen in het stuk dan in deze inhoud, en toont de inhoudpagina ze, dan zegt de pagina dat
+    # (`inhoud_dieper`): bij kst-36200-IX-2 stonden zeven koppen van niveau 2 als hele inhoud, en zocht het model
+    # "Artikel 1 Belastingen" met vijf offsets (ronde 2 Kamerstukken, K15).
+    dieper = bool(inh) and not ingekort and _diepte_inhoudpagina(rijen) > max(_diepte(k["kop"]) for k in inh)
     return {**({sleutel: inh} if inh else {}), **({"inhoud_ingekort": True} if ingekort else {}),
             **({"inhoud_zonder_begin": True} if zonder_begin and not ingekort else {}),
-            **(openen if ingekort or zonder_begin else {})}
+            **({"inhoud_dieper": True} if dieper else {}),
+            **(openen if ingekort or zonder_begin or dieper else {})}
+
+
+def _diepte(kop: str) -> int:
+    return len(str(kop or "").split(" › "))
+
+
+def _bovenste(rijen: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    """De koppen op het bovenste niveau voor de inhoudpagina, met hun eerste alinea als rij als die kort genoeg is."""
+    lijst = []
+    for k in koppen(rijen, 1):
+        r = rijen[k["offset"]]
+        tekst = str(r.get("tekst") or "")
+        if "begint" in k and isinstance(r.get("nr"), int) and len(tekst) <= MAX_AANHEF:
+            k = {"nr": r["nr"], "kop": k["kop"], "offset": k["offset"], "tekst": tekst}
+        lijst.append(k)
+    return lijst
+
+
+def _inhoudpagina_koppen(rijen: Sequence[dict[str, Any]], diepte: int) -> list[dict[str, Any]]:
+    """De koppen van de inhoudpagina tot `diepte`: het bovenste niveau als nu, en een diepere kop met alleen zijn eigen
+    naam en zijn `diepte` (het pad zou elke kop een veelvoud zo lang maken), in documentvolgorde."""
+    lijst = _bovenste(rijen)
+    if diepte > 1:
+        # Per niveau apart: een kop van niveau 2 zonder eigen alinea's staat anders niet boven zijn kinderen.
+        lijst += [{"kop": k["kop"].split(" › ")[-1], "diepte": niveau, "offset": k["offset"]}
+                  for niveau in range(2, diepte + 1)
+                  for k in koppen(rijen, niveau, met_begin=False) if _diepte(k["kop"]) == niveau]
+        lijst.sort(key=lambda k: (k["offset"], k.get("diepte", 1)))
+    return lijst
+
+
+def _diepte_inhoudpagina(rijen: Sequence[dict[str, Any]]) -> int:
+    """Het diepste niveau waarop de inhoudpagina in één antwoord past, hoogstens het diepste van het stuk; het bovenste
+    niveau als zelfs het tweede niet past (een verzamelwet: de artikelen met hun aanhef, zoals eerst)."""
+    diepst = max((_diepte(r.get("kop")) for r in rijen if r.get("kop")), default=1)
+    for d in range(diepst, 1, -1):
+        if len(json.dumps(_inhoudpagina_koppen(rijen, d), ensure_ascii=False)) <= BUDGET * 3 // 4:
+            return d
+    return 1
 
 
 #: Zo lang mag de eerste alinea van een deel zijn om op de inhoudpagina helemaal te staan, als rij met haar `nr`: dan is
@@ -149,7 +194,8 @@ MAX_AANHEF = BUDGET // 8
 
 def inhoudpagina(rijen: list[dict[str, Any]], *, tool: str, args: dict[str, Any], offset: int,
                  stuk: dict[str, Any]) -> str:
-    """Alleen de inhoud van een stuk: de koppen op het bovenste niveau (`koppen`) met hun offset, per pagina – het niveau
+    """Alleen de inhoud van een stuk: de koppen op het bovenste niveau (`koppen`) met hun offset, en daaronder zo diep als in
+    één antwoord past (`_diepte_inhoudpagina`, een diepere kop met alleen zijn naam en `diepte`; ronde 3 Kamerstukken), per pagina – het niveau
     waarop een ingekorte inhoud stopt (`inhoud`), en bij een verzamelwet de artikelen met de regeling die ze wijzigen.
     Per kop de eerste alinea als rij (`nr`, `tekst`, letterlijk en dus te citeren) als die hoogstens `MAX_AANHEF` tekens
     telt, anders haar begin (`begint`, `begint_afgekapt`). De offsets wijzen in de tekst (een aanroep zonder `inhoud`), de
@@ -161,13 +207,8 @@ def inhoudpagina(rijen: list[dict[str, Any]], *, tool: str, args: dict[str, Any]
     `leesbaar: false`, zoals bij `tekstpagina`."""
     if not rijen:
         stuk = {**stuk, "leesbaar": False}
-    lijst = []
-    for k in koppen(rijen, 1):
-        r = rijen[k["offset"]]
-        tekst = str(r.get("tekst") or "")
-        if "begint" in k and isinstance(r.get("nr"), int) and len(tekst) <= MAX_AANHEF:
-            k = {"nr": r["nr"], "kop": k["kop"], "offset": k["offset"], "tekst": tekst}
-        lijst.append(k)
+    diepte = _diepte_inhoudpagina(rijen) if rijen else 1
+    lijst = _inhoudpagina_koppen(rijen, diepte)
     if rijen and not lijst:
         alineas = sum(1 for r in rijen if r.get("soort") != "voetnoot")
         lezen = {"tool": tool, "args": {"id": args["id"], "offset": 0}}
@@ -180,7 +221,9 @@ def inhoudpagina(rijen: list[dict[str, Any]], *, tool: str, args: dict[str, Any]
                        extra={"stuk": stuk, "totaal": len(lijst)},
                        toelichting="De koppen van het stuk met hun eerste alinea; 'offset' is de plek in de tekst: lees "
                                    f"vanaf daar met {{\"id\": \"{args['id']}\", \"offset\": <offset>}}. Een rij met nr "
-                                   "en tekst kun je citeren.")
+                                   "en tekst kun je citeren."
+                                   + (f" Een kop met 'diepte' (tot niveau {diepte}) draagt alleen zijn eigen naam en hoort "
+                                      "bij de kop met een lagere diepte erboven." if diepte > 1 else ""))
 
 
 def tekstpagina(rijen: list[dict[str, Any]], *, tool: str, args: dict[str, Any], offset: int, stuk: dict[str, Any],

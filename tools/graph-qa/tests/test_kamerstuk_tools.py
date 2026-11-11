@@ -819,3 +819,24 @@ def test_de_vaste_pdf_zin_herhaalt_de_connector_niet(connector, verwacht):
     c = CONNECTORS[connector]
     extra = _wat_nieuw(c.zonder_tekst, "alleen als PDF")
     assert (f" ({extra})" if extra else "") == verwacht
+
+
+@pytest.mark.parametrize("connector", ["kamerstukken", "bekendmakingen", "rechtspraak", "wetgeving_live"])
+def test_een_onbereikbare_bron_is_een_melding_uit_code_voor_elke_connector(connector):
+    """Ronde 3 Kamerstukken (12 nov 2026, K11): bij een storing van KOOP verwees het model naar "kamerstukken.nl …
+    onderdeel 3", en de controle zei ongegrond. De code zegt het nu zelf, met het id dat gevraagd was."""
+    from agent.nodes.bron_lezen import _zonder_tekst
+    from bronmodel.connectors import CONNECTORS
+    c = CONNECTORS[connector]
+    resultaten = [{"content": json.dumps({"status": "error", "reden": "bron_onbereikbaar", "melding": "time-out"})}]
+    gebruik = [{"name": c.leestool, "input": {c.lees_argument: c.voorbeeld_id}}]
+    antwoord = _zonder_tekst(resultaten, [], gebruik)
+    assert antwoord is not None
+    [leemte] = antwoord.blokken
+    assert leemte.tekst == (f"{c.label} is nu niet te bereiken, dus {c.voorbeeld_id} kan ik niet lezen. Vraag het over "
+                            "een paar minuten opnieuw; zonder tekst zeg ik er niets over.")
+
+
+def test_een_genoemd_stuk_bij_een_storing_gaat_niet_langs_het_model(monkeypatch):
+    [leemte] = _beurt("Wat staat er in kst-33755-3?", _koop(Koop({}, weg=True)), monkeypatch)
+    assert leemte["tekst"].startswith("Kamerstukken is nu niet te bereiken, dus kst-33755-3 kan ik niet lezen.")

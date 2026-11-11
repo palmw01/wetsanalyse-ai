@@ -322,8 +322,11 @@ bruikbaar is.
   B16 338k tokens). Past de inhoud niet in haar deel van de begroting, dan gaan de koppen voor het begin (het bronvenster
   en de sprong hebben ze nodig): eerst alle koppen zonder `begint` (`inhoud_zonder_begin`), en pas daarna een ingekorte
   lijst (`inhoud_ingekort`); in beide gevallen noemt de pagina `inhoud_openen` (`stuk_tekst.inhoud_van`, `_met_inhoud`).
-  Elke leestool leest met `inhoud: true` (`INHOUD_ARG`, `stuk_tekst.inhoudpagina`) alleen de koppen op het
-  bovenste niveau, per pagina, elk met zijn eerste alinea als rij (`nr`, `tekst`: te citeren in `extern`) tot
+  Elke leestool leest met `inhoud: true` (`INHOUD_ARG`, `stuk_tekst.inhoudpagina`) de koppen op het
+  bovenste niveau en daaronder zo diep als in één antwoord past (`_diepte_inhoudpagina`; een diepere kop met alleen zijn
+  eigen naam en `diepte`, per niveau zodat een ouder zonder eigen alinea's er ook staat; staat de eerste pagina daardoor
+  minder diep, dan `inhoud_dieper` met `inhoud_openen`; ronde 3 Kamerstukken, K15: gemeten tegen het pad korter maken op de
+  eerste pagina, dat niet paste en een verzamelwet groter maakte), per pagina, het bovenste niveau elk met zijn eerste alinea als rij (`nr`, `tekst`: te citeren in `extern`) tot
   `MAX_AANHEF` tekens, en anders het begin (hermeting 11 nov 2026: 11 van de 30 artikelen van Stb. 2009, 610 op de eerste
   pagina, en een aanhef boven 160 tekens viel weg; controle: zonder `nr` citeerde het model de hele eerste pagina). Een
   stuk zonder koppen zegt `zonder_koppen` met het aantal alinea's en `lezen` (offset 0), en de statusregel "heeft geen
@@ -338,7 +341,8 @@ bruikbaar is.
   het veld las het model ze niet (ronde 2, B12). Is geen enkel genoemd stuk
   te lezen, dan antwoordt de code zonder model, voor elke connector hetzelfde (`bron_lezen._zonder_tekst`): geen tekst bij
   de bron, alleen een PDF (`alleen_pdf`, met het stuk in de lijst en `zonder_tekst` van de connector) of niet gevonden
-  (`niet_gevonden`, met het id in de melding; ronde 1 Kamerstukken, K12/K27). Een oud stuk heeft vaak alleen een PDF
+  (`niet_gevonden`, met het id in de melding; ronde 1 Kamerstukken, K12/K27) of een bron die niet te bereiken is
+  (`bron_onbereikbaar`; ronde 3, K11: het model verwees bij een storing naar een site die het niet kende). Een oud stuk heeft vaak alleen een PDF
   (`alleen_pdf`, met de metadata); een id dat KOOP niet kent zoekt de adapter op blad, jaargang en nummer. `geldigheid`
   noemt naast de BWB-vorm het id (`bekendmakingen`). Citeervormen "Stb. 2010, 176", "Stb.2009-610", "Staatscourant 2026,
   nr. 37344". **Uit de Staatscourant alleen regelgeving en beleid** (`REGELGEVENDE_SOORTEN`, een witte lijst op `dt.type`;
