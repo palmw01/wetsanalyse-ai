@@ -130,9 +130,11 @@ def test_niets_gevonden_is_een_leemte(monkeypatch):
     events = _run(answer_stream("de laatste vijf moties van de Eerste Kamer", settings=AAN, llm=FakeLLM([]),
                                 graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
     tekst = "".join(e.get("content", "") for e in events if e["type"] == "token")
-    assert tekst.startswith("Geen kamerstukken gevonden die aan de zoekvraag voldoen.")
+    assert tekst.startswith("Bij deze zoekvraag vond ik geen kamerstukken.")
     assert tekst.endswith("Dat ik niets vond, betekent niet dat het niet bestaat.")
     assert "soort stuk „motie”" in tekst and "van de Eerste Kamer" in tekst and "Kamer Eerste" not in tekst
+    # Bij niets gevonden zegt een volgorde niets (meting Staatsblad B14: "Meest relevante eerst." onder 0 treffers).
+    assert "eerst." not in tekst
 
 
 def test_een_fout_gaat_naar_de_agent_met_het_resultaat(monkeypatch):
@@ -161,10 +163,12 @@ def test_een_citeervorm_wordt_vooraf_gelezen(monkeypatch):
     from test_kamerstuk_tools import DOSSIER, NepBron
 
     monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", NepBron(DOSSIER))
-    llm = FakeLLM([response([text_block("Kst-99001-3 legt het doel uit.")], "end_turn")])
+    # Tekst na een gelezen stuk: de code vraagt één keer om het sjabloon (nodes/antwoord._gevonden_zonder_sjabloon).
+    llm = FakeLLM([response([text_block("Kst-99001-3 legt het doel uit.")], "end_turn"),
+                   response([text_block("Kst-99001-3 legt het doel uit.")], "end_turn")])
     _run(answer_stream("Kamerstuk 99001, nr. 3", settings=AAN, llm=llm, graph=FakeGraph(result=""),
                        bronnen=["kamerstukken"]))
-    assert len(llm.calls) == 1, "geen supervisorcall: de citeervorm bepaalt de route"
+    assert len(llm.calls) == 2, "geen supervisorcall: de citeervorm bepaalt de route (de tweede vraagt om het sjabloon)"
     gelezen = [b for m in llm.calls[0]["messages"] for b in (m["content"] if isinstance(m["content"], list) else [])
                if b.get("type") == "tool_use"]
     assert [(g["name"], g["input"]) for g in gelezen] == [("get_kamerstuk", {"id": "kst-99001-3"})]
@@ -269,3 +273,67 @@ def test_wetten_is_een_soort_maar_de_wet_niet(vraag, soort):
     """Iteratie bekendmakingen ronde 1, B20: "wetten" ging naar het model; "de wet" en "belastingwetten" zijn geen soort."""
     uit = bron_lijst.lees(vraag, frozenset({"bekendmakingen"}), lambda t: [])
     assert (uit.args.get("soort") if uit else None) == soort
+
+
+# --- ronde 1 van de iteratie (11 nov 2026): de maand, het werkwoord, het dossier en een ingesloten regelingnaam ---------
+
+ALLE3 = frozenset({"kamerstukken", "rechtspraak", "bekendmakingen"})
+
+
+@pytest.mark.parametrize("vraag,connector,args", [
+    # De maand (Rechtspraak R04): "in", "sinds" en "voor" geven een eigen periode.
+    ("Welke uitspraken deed de Centrale Raad van Beroep in maart 2025?", "rechtspraak",
+     {"instantie": "Centrale Raad van Beroep", "vanaf": "2025-03", "tot": "2025-03"}),
+    ("Geef de nieuwste uitspraken van de Hoge Raad sinds juni 2026", "rechtspraak",
+     {"volgorde": "nieuwste", "aantal": 10, "instantie": "Hoge Raad", "vanaf": "2026-06"}),
+    ("De nieuwste conclusies voor januari 2025", "rechtspraak",
+     {"volgorde": "nieuwste", "aantal": 10, "soort": "conclusie", "tot": "2024-12"}),
+    ("Welke moties van de Tweede Kamer zijn er in februari 2026 ingediend?", "kamerstukken",
+     {"soort": "motie", "kamer": "Tweede Kamer", "vanaf": "2026-02", "tot": "2026-02"}),
+    # Het werkwoord na het onderwerp zoekt niet mee (Kamerstukken K09).
+    ("Welke memories van toelichting over de inkomstenbelasting zijn er in 2024 verschenen?", "kamerstukken",
+     {"soort": "memorie van toelichting", "vanaf": "2024", "tot": "2024", "tekst": "inkomstenbelasting"}),
+    # "kamerdossier" is een dossier (Staatsblad B18).
+    ("Wat is het laatste stuk van kamerdossier 32140?", "kamerstukken",
+     {"volgorde": "nieuwste", "aantal": 1, "dossier": "32140"}),
+])
+def test_ronde1_de_lijstroute_leest_meer(vraag, connector, args):
+    l = bron_lijst.lees(vraag, ALLE3, lambda t: [])
+    assert l is not None and l.connector == connector and l.args == args, l
+
+
+def test_een_maand_zonder_datumfilter_is_geen_lijstvraag():
+    """Een connector zonder `vanaf`/`tot` laat een maand niet stil vallen."""
+    from bronmodel.connectors import KAMERSTUKKEN
+
+    zonder = frozenset({"kamerstukken"})
+    assert KAMERSTUKKEN.veld("datum") is not None  # de toets hieronder heeft een connector met datum nodig
+    assert bron_lijst.lees("de nieuwste moties in maart 2025", zonder, lambda t: []).args.get("vanaf") == "2025-03"
+
+
+def test_een_naam_binnen_een_langere_regelingnaam_telt_niet():
+    """'Uitvoeringsregeling Invorderingswet 1990' noemt de Invorderingswet 1990 niet (Rechtspraak R23)."""
+    namen = {"BWBR0004770": {"Invorderingswet 1990"}, "BWBR0004766": {"Uitvoeringsregeling Invorderingswet 1990"}}
+
+    def regelingen(t):
+        return [(b, n) for b, n in namen.items() if any(x.lower() in t.lower() for x in n)]
+    l = bron_lijst.lees("Geef alle uitspraken die artikel 2 van de Uitvoeringsregeling Invorderingswet 1990 noemen",
+                        frozenset({"rechtspraak"}), regelingen)
+    assert l is not None and l.args == {"bwb_id": "BWBR0004766", "artikel": "2"}
+    beide = bron_lijst.lees("uitspraken bij artikel 2 Invorderingswet 1990 en de Uitvoeringsregeling Invorderingswet 1990",
+                            frozenset({"rechtspraak"}), regelingen)
+    assert beide is None, "twee regelingen die elk zelf genoemd worden, blijven dubbelzinnig"
+
+
+@pytest.mark.parametrize("vraag", ["Wat is een inwerkingtredingsbesluit?", "Wat is een motie?",
+                                   "Wat zijn conclusies van de advocaat-generaal?", "Wat betekent een verbeterblad?",
+                                   "Wat houdt een ministeriële regeling in?"])
+def test_een_begripsvraag_is_geen_lijst(vraag):
+    """Alleen een soort stuk, en de vraag wat het is: dat is uitleg, geen lijst (Staatsblad en Staatscourant, 11 nov)."""
+    assert bron_lijst.lees(vraag, ALLE3, lambda t: []) is None
+
+
+@pytest.mark.parametrize("vraag", ["Wat is het laatste inwerkingtredingsbesluit?",
+                                   "Wat zijn de moties van de Eerste Kamer?", "Welke moties zijn er?"])
+def test_een_lijst_met_wat_blijft_een_lijst(vraag):
+    assert bron_lijst.lees(vraag, ALLE3, lambda t: []) is not None

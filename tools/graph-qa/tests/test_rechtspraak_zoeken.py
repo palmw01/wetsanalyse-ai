@@ -125,7 +125,8 @@ def test_een_soort_gerecht_zijn_alle_gerechten_van_nu_en_een_rechtsgebied_een_ur
     ({"instantie": "Rechtbank Atlantis"}, "Rechtbank Gelderland"),
     ({"rechtsgebied": "sterrenkunde"}, "belastingrecht"),
     ({"bwb_id": "BWBR0004770"}, "artikel"),
-    ({"bwb_id": "BWBR0004770", "artikel": "36", "rechtsgebied": "belastingrecht"}, "zonder artikel"),
+    # Een rechtsgebied naast een artikel is geen invoerfout meer: de tool zoekt zonder en zegt het in de kanttekening
+    # (ronde 1 van de iteratie, R24; test_extern_sjabloon.test_een_rechtsgebied_naast_een_artikel_zoekt_zonder_en_zegt_het).
     ({"instantie": "Europees Hof voor de Rechten van de Mens"}, "bij een artikel"),
 ])
 def test_een_invoerfout_noemt_een_voorbeeld(args, woord):

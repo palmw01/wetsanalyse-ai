@@ -115,3 +115,8 @@ def tekstdragers(wet: Wet) -> Iterator[Tekstdrager]:
 def model_tekens(wet: Wet) -> int:
     """De tekens die de importer van deze toestand als `bwb:tekst` zou schrijven: de graafkant van de dekking."""
     return sum(len(d.tekst or "") for d in tekstdragers(wet))
+
+
+def model_tekens_van(artikel: Artikel) -> int:
+    """De modeltekens van één artikel met zijn leden en onderdelen: de graafkant van de dekking per artikel."""
+    return sum(len(d.tekst or "") for d in _van_artikel(artikel))

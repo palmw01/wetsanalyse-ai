@@ -1,0 +1,323 @@
+{
+ "versie": 1,
+ "datum": "2026-11-11",
+ "toelichting": "Dertig vragen voor de iteratieve rondes van de connector Wetgeving buiten de kennisgraaf (wetgeving_live). Elke vraag één run in een eigen gesprek, met bronnen ['wetgeving_live'] tenzij 'bronnen' iets anders zegt. 'beurten' is een gesprek van meer vragen. De kern van het juiste antwoord is vooraf gecontroleerd tegen de officiële bron (de eigen adapter tegen overheid.nl, 11 nov 2026). In de graaf staan: Awb, Awir, AWR, Iw 1990, Leidraad Invordering 2008, Uitv.reg. Awir, Uitv.reg. Iw 1990.",
+ "vragen": [
+  {
+   "id": "I01",
+   "soort": "zoeken op onderwerp",
+   "domein": "zorg",
+   "regelingsoort": "wet",
+   "vraag": "Welke wet gaat over de langdurige zorg?",
+   "route": "model: zoek_regelingen",
+   "kern": "Wet langdurige zorg (Wlz), BWBR0035917, bovenaan; niets uit eigen kennis",
+   "bronnenlijst": "geen wettekst nodig (zoekvraag); geen graafbronnen"
+  },
+  {
+   "id": "I02",
+   "soort": "combinatie Rechtspraak",
+   "domein": "sociale zekerheid",
+   "regelingsoort": "wet",
+   "vraag": "Welke uitspraken van de Centrale Raad van Beroep gaan over artikel 31 van de Participatiewet?",
+   "bronnen": [
+    "wetgeving_live",
+    "rechtspraak"
+   ],
+   "route": "rechtspraak: zoek_uitspraken (bepaling Pw art. 31, instantie CRvB)",
+   "kern": "uitspraken van de CRvB bij art. 31 Pw, met ECLI's uit de bron; geen verzonnen ECLI",
+   "bronnenlijst": "alleen gelezen uitspraken; geen graafbronnen"
+  },
+  {
+   "id": "I03",
+   "soort": "lezen, onvolledige bron",
+   "domein": "douane",
+   "regelingsoort": "wet",
+   "vraag": "Wat staat er in artikel 1:1 van de Algemene douanewet?",
+   "route": "workflow: get_wettekst (BWBR0023746, 1:1)",
+   "kern": "de toestand is niet volledig te lezen (dekking onder de drempel): Lex zegt dat en geeft de link; geen tekst uit eigen kennis",
+   "bronnenlijst": "leeg of alleen de link; geen verzonnen tekst"
+  },
+  {
+   "id": "I04",
+   "soort": "artikel lezen",
+   "domein": "sociale zekerheid",
+   "regelingsoort": "wet",
+   "vraag": "Wat staat er in artikel 31 van de Participatiewet?",
+   "route": "workflow: get_wettekst (BWBR0015703, 31), alle pagina's",
+   "kern": "het hele artikel, 6 leden, lid 2 onderdelen a t/m aa met hun letter; huidige tekst vanaf 1 juli 2026",
+   "bronnenlijst": "bwbt:BWBR0015703:2026-07-01_0:artikel:31"
+  },
+  {
+   "id": "I05",
+   "soort": "BW-lid lezen",
+   "domein": "BW",
+   "regelingsoort": "wet",
+   "vraag": "Wat staat er in artikel 7:610 lid 1 BW?",
+   "route": "workflow: get_wettekst (Boek 7, 610, lid 1)",
+   "kern": "de definitie van de arbeidsovereenkomst, letterlijk",
+   "bronnenlijst": "bwbt:BWBR0005290:…:artikel:610 (lid 1)"
+  },
+  {
+   "id": "I06",
+   "soort": "combinatie Staatsblad",
+   "domein": "sociale zekerheid",
+   "regelingsoort": "wet",
+   "vraag": "Welk Staatsblad heeft artikel 24a van de Participatiewet ingevoerd?",
+   "bronnen": [
+    "wetgeving_live",
+    "bekendmakingen"
+   ],
+   "route": "model: get_wettekst (bron/inwerking) en/of zoek_bekendmakingen",
+   "kern": "de bekendmaking uit de bron (Stb.-nummer uit get_wettekst of de zoekdienst), niet geraden",
+   "bronnenlijst": "het gelezen artikel en/of de gelezen bekendmaking"
+  },
+  {
+   "id": "I07",
+   "soort": "niet bestaand",
+   "domein": "fiscaal",
+   "regelingsoort": "wet",
+   "vraag": "Wat staat er in artikel 3 van de Wet op de robotbelasting?",
+   "route": "workflow/zoeken: geen regeling",
+   "kern": "die regeling staat niet in het Basiswettenbestand; niets verzonnen",
+   "bronnenlijst": "leeg"
+  },
+  {
+   "id": "I08",
+   "soort": "artikel lezen",
+   "domein": "toeslagen",
+   "regelingsoort": "wet",
+   "vraag": "Wat staat er in artikel 1 van de Wet op de zorgtoeslag?",
+   "route": "workflow: get_wettekst (BWBR0018451, 1)",
+   "kern": "de begripsbepalingen, onderdelen a en verder met hun letter (Onze Minister, zorgverzekering, verzekerde, premie, zorgtoeslag …)",
+   "bronnenlijst": "bwbt:BWBR0018451:…:artikel:1"
+  },
+  {
+   "id": "I09",
+   "soort": "onderdeel lezen",
+   "domein": "sociale zekerheid",
+   "regelingsoort": "wet",
+   "vraag": "Wat staat er in artikel 31, tweede lid, onderdeel c, van de Participatiewet?",
+   "route": "workflow: get_wettekst (31, lid 2)",
+   "kern": "onderdeel c: \"de jonggehandicaptenkorting;\" (met de aanhef van lid 2); geen ander onderdeel als antwoord",
+   "bronnenlijst": "bwbt:BWBR0015703:2026-07-01_0:artikel:31"
+  },
+  {
+   "id": "I10",
+   "soort": "AMvB lezen",
+   "domein": "fiscaal",
+   "regelingsoort": "AMvB",
+   "vraag": "Wat staat er in artikel 1 van het Uitvoeringsbesluit inkomstenbelasting 2001?",
+   "route": "model of workflow: zoek_regelingen → get_wettekst (BWBR0012066, 1)",
+   "kern": "lid 1: het besluit geeft uitvoering aan een reeks artikelen van de Wet IB 2001; lid 2: 'wet' is de Wet inkomstenbelasting 2001",
+   "bronnenlijst": "bwbt:BWBR0012066:…:artikel:1"
+  },
+  {
+   "id": "I11",
+   "soort": "ministeriële regeling lezen",
+   "domein": "fiscaal",
+   "regelingsoort": "ministeriële regeling",
+   "vraag": "Wat staat er in artikel 1 van de Uitvoeringsregeling inkomstenbelasting 2001?",
+   "route": "model of workflow: get_wettekst (BWBR0012031, 1)",
+   "kern": "lid 1 de uitvoeringsgrondslag; lid 2 begripsbepalingen a (wet), b (inhoudingsplichtige), c (openbaar vervoer)",
+   "bronnenlijst": "bwbt:BWBR0012031:…:artikel:1"
+  },
+  {
+   "id": "I12",
+   "soort": "beleidsregel opbouw",
+   "domein": "fiscaal",
+   "regelingsoort": "beleidsregel",
+   "vraag": "Hoe is het Besluit Bestuurlijke Boeten Belastingdienst opgebouwd?",
+   "route": "model: zoek_regelingen → zoek_artikelen (BWBR0038145)",
+   "kern": "de paragrafen van het BBBB uit de bron, of eerlijk dat de tekst niet te lezen is; niets uit eigen kennis",
+   "bronnenlijst": "geen verzonnen vindplaats"
+  },
+  {
+   "id": "I13",
+   "soort": "opbouw",
+   "domein": "fiscaal",
+   "regelingsoort": "wet",
+   "vraag": "Hoe is de Wet inkomstenbelasting 2001 opgebouwd?",
+   "route": "model: zoek_artikelen (BWBR0011353)",
+   "kern": "de hoofdstukken uit de bron (Hoofdstuk 1 Algemene bepalingen …), geen verzonnen hoofdstukken",
+   "bronnenlijst": "geen graafbronnen"
+  },
+  {
+   "id": "I14",
+   "soort": "zoeken in de tekst",
+   "domein": "sociale zekerheid",
+   "regelingsoort": "wet",
+   "vraag": "In welke artikelen van de Participatiewet komt de kostendelende medebewoner voor?",
+   "route": "model: zoek_artikelen (woorden)",
+   "kern": "artikel 19a, 20, 21, 22, 22a, 24 en 53a (stand 11 nov 2026); compleet en zonder extra's",
+   "bronnenlijst": "geen graafbronnen"
+  },
+  {
+   "id": "I15",
+   "soort": "eerdere tekst, regeling in de graaf",
+   "domein": "fiscaal",
+   "regelingsoort": "wet",
+   "vraag": "Wat zei artikel 9 van de Invorderingswet 1990 op 1 januari 2020?",
+   "route": "workflow: get_wettekst (BWBR0004770, 9, peildatum 2020-01-01)",
+   "kern": "toestand 2020-01-01_1, eerdere tekst (tot 31 mei 2020), lid 8 met onderdelen a en b",
+   "bronnenlijst": "bwbt:BWBR0004770:2020-01-01_1:artikel:9"
+  },
+  {
+   "id": "I16",
+   "soort": "eerdere tekst, buiten de graaf",
+   "domein": "sociale zekerheid",
+   "regelingsoort": "wet",
+   "vraag": "Wat stond er op 15 januari 2015 in artikel 8 van de Participatiewet?",
+   "route": "workflow: get_wettekst (8, peildatum 2015-01-15)",
+   "kern": "toestand 2015-01-01_1, eerdere tekst; lid 1 onderdelen a–e met hun letter",
+   "bronnenlijst": "bwbt:BWBR0015703:2015-01-01_1:artikel:8"
+  },
+  {
+   "id": "I17",
+   "soort": "toekomstige datum",
+   "domein": "toeslagen",
+   "regelingsoort": "wet",
+   "vraag": "Wat staat er per 1 januari 2028 in artikel 1 van de Wet op de zorgtoeslag?",
+   "route": "workflow: get_wettekst (peildatum 2028-01-01)",
+   "kern": "er is geen latere toestand gepubliceerd: de tekst die nu geldt (vanaf 1 januari 2026) is wat bekend is; Lex zegt dat en verzint geen wijziging",
+   "bronnenlijst": "bwbt:BWBR0018451:…:artikel:1"
+  },
+  {
+   "id": "I18",
+   "soort": "vervallen artikel",
+   "domein": "sociale zekerheid",
+   "regelingsoort": "wet",
+   "vraag": "Wat staat er in artikel 12 van de Participatiewet?",
+   "route": "workflow",
+   "kern": "vervallen per 1 januari 2026; er geldt geen tekst meer",
+   "bronnenlijst": "bwbt:BWBR0015703:2026-07-01_0:artikel:12"
+  },
+  {
+   "id": "I19",
+   "soort": "nog niet in werking",
+   "domein": "sociale zekerheid",
+   "regelingsoort": "wet",
+   "vraag": "Wat staat er in artikel 24a van de Participatiewet?",
+   "route": "workflow",
+   "kern": "de tekst, met: nog niet in werking, treedt in werking op 1 januari 2027",
+   "bronnenlijst": "bwbt:BWBR0015703:2026-07-01_0:artikel:24a"
+  },
+  {
+   "id": "I20",
+   "soort": "vervallen regeling",
+   "domein": "fiscaal",
+   "regelingsoort": "wet",
+   "vraag": "Wat stond er op 1 januari 1995 in artikel 1 van de Wet op de inkomstenbelasting 1964?",
+   "route": "model of workflow: zoek_regelingen (peildatum 1995-01-01) → get_wettekst",
+   "kern": "de tekst van toen uit de bron, of eerlijk dat de regeling niet gevonden werd; geen tekst uit eigen kennis, geen wijzigingswet als 'de wet'",
+   "bronnenlijst": "alleen wat gelezen is"
+  },
+  {
+   "id": "I21",
+   "soort": "de graaf gaat voor",
+   "domein": "fiscaal",
+   "regelingsoort": "wet",
+   "vraag": "Wat staat er in artikel 9 van de Invorderingswet 1990?",
+   "route": "workflow uit de graaf (get_artikel); get_wettekst niet",
+   "kern": "12 leden uit de graaf, sjabloon bepaling",
+   "bronnenlijst": "urn:bwb:BWBR0004770:artikel:9"
+  },
+  {
+   "id": "I22",
+   "soort": "dubbelzinnige afkorting",
+   "domein": "sociale zekerheid",
+   "regelingsoort": "wet",
+   "vraag": "Wat staat er in artikel 1 Pw?",
+   "route": "keuzevraag, geen model",
+   "kern": "Lex vraagt welke Pw: Participatiewet, Pensioenwet, Prijzenwet, Provinciewet",
+   "bronnenlijst": "leeg"
+  },
+  {
+   "id": "I23",
+   "soort": "combinatie Kamerstukken",
+   "domein": "sociale zekerheid",
+   "regelingsoort": "wet",
+   "vraag": "Welke Kamerstukken gaan over de kostendelersnorm in de Participatiewet?",
+   "bronnen": [
+    "wetgeving_live",
+    "kamerstukken"
+   ],
+   "route": "model: zoek_kamerstukken (en eventueel zoek_artikelen in de Pw)",
+   "kern": "Kamerstukken uit de zoekdienst met hun nummer en titel; wettekst alleen als gelezen; niets verzonnen",
+   "bronnenlijst": "alleen gelezen stukken"
+  },
+  {
+   "id": "I24",
+   "soort": "BW-uitleg",
+   "domein": "BW",
+   "regelingsoort": "wet",
+   "vraag": "Wat regelt artikel 6:162 BW?",
+   "route": "vooraf: get_wettekst (Boek 6, 162) → duiding",
+   "kern": "de onrechtmatige daad: plicht tot schadevergoeding (lid 1), wat onrechtmatig is (lid 2), toerekening (lid 3)",
+   "bronnenlijst": "bwbt:BWBR0005289:…:artikel:162"
+  },
+  {
+   "id": "I25",
+   "soort": "vervolgvraag",
+   "domein": "sociale zekerheid",
+   "regelingsoort": "wet",
+   "beurten": [
+    "Wat staat er in artikel 31 van de Participatiewet?",
+    "En wat staat er in artikel 32?"
+   ],
+   "route": "beurt 2: herschreven naar art. 32 Pw → workflow",
+   "kern": "beurt 2: artikel 32 Pw (inkomen), lid 1 onderdelen a en b met hun letter; niet art. 32 van een andere wet",
+   "bronnenlijst": "beurt 2: bwbt:BWBR0015703:2026-07-01_0:artikel:32"
+  },
+  {
+   "id": "I26",
+   "soort": "opnemen buiten de graaf",
+   "domein": "sociale zekerheid",
+   "regelingsoort": "wet",
+   "vraag": "Neem artikel 31 van de Participatiewet op in de bronselectie",
+   "route": "vaste melding, geen model",
+   "kern": "niet in de kennisgraaf, pas na een import; 'Er is niets opgenomen.'",
+   "bronnenlijst": "leeg"
+  },
+  {
+   "id": "I27",
+   "soort": "toevoegen buiten de graaf",
+   "domein": "BW",
+   "regelingsoort": "wet",
+   "vraag": "Voeg artikel 7:610 BW toe aan het werkgebied",
+   "route": "vaste melding, geen model",
+   "kern": "Burgerlijk Wetboek Boek 7 niet in de kennisgraaf; niets opgenomen",
+   "bronnenlijst": "leeg"
+  },
+  {
+   "id": "I28",
+   "soort": "graaf en overheid.nl samen",
+   "domein": "fiscaal/BW",
+   "regelingsoort": "wet",
+   "vraag": "Verschilt de aansprakelijkheid in artikel 33 van de Invorderingswet 1990 van artikel 2:9 BW?",
+   "route": "model: get_artikel (Iw, graaf) + get_wettekst (Boek 2, 9)",
+   "kern": "beide bepalingen gelezen en elk met de eigen herkomst: art. 33 Iw uit de graaf, art. 2:9 BW van overheid.nl; het verschil uit de tekst",
+   "bronnenlijst": "urn:bwb:BWBR0004770:artikel:33 en bwbt:BWBR0003045:…:artikel:9"
+  },
+  {
+   "id": "I29",
+   "soort": "connector uit",
+   "domein": "toeslagen",
+   "regelingsoort": "wet",
+   "vraag": "Wat staat er in artikel 1 van de Wet op de zorgtoeslag?",
+   "bronnen": [],
+   "route": "vaste melding (bron_uit), geen model",
+   "kern": "staat niet in de kennisgraaf, de bron staat uit, aanzetten bij Bronnen en tools",
+   "bronnenlijst": "leeg"
+  },
+  {
+   "id": "I30",
+   "soort": "telling en volledigheid",
+   "domein": "sociale zekerheid",
+   "regelingsoort": "wet",
+   "vraag": "Hoeveel artikelen heeft de Participatiewet?",
+   "route": "model: zoek_artikelen (totaal)",
+   "kern": "174 artikelen in de toestand van 1 juli 2026 (totaal uit de bron), met wat er wel en niet meetelt (vervallen artikelen); geen schatting",
+   "bronnenlijst": "geen graafbronnen"
+  }
+ ]
+}

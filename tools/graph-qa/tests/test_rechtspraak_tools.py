@@ -153,6 +153,15 @@ def test_zonder_ref_de_jci_met_de_nieuwste_toestand_die_lido_kent():
     assert k.route == "jci" and k.versies == (V_NU, V_2015)
 
 
+def test_get_links_vraagt_alleen_jurisprudentie():
+    """Zonder filter noemt LiDO bij een veelgebruikt artikel ook wetten met honderden identifiers, en dan breekt het
+    antwoord af, ook bij tien rijen (Awb 6:7, meting 11 nov 2026: 0 van de 6772 uitspraken)."""
+    d = Dienst(ref={f"{IW}&artikel=9": V_NU}, links={V_NU: _get_links(V_NU, [("ECLI:NL:HR:2022:50", "y")])})
+    _bron(d).koppelingen(IW, "9")
+    links = [u for u in d.gezien if "/get-links" in u]
+    assert links and all("fq=obj_type%3AJurisprudentie" in u for u in links), links
+
+
 def test_een_afgebroken_xml_valt_terug_op_rdf():
     """Live: HTTP 200 met een JSON-fout midden in de XML, bij 4 % van de versies. Zonder terugval 12 % stil weg."""
     kapot = '<lido service="get-links"><subject id="x">{\n "Error": "The server encountered a problem"\n}'
@@ -293,8 +302,69 @@ def test_een_divisie_kent_lido_niet():
 
 
 def test_een_artikel_dat_niet_bestaat():
-    uit = _zoek({"bwb_id": IW, "artikel": "999"}, graaf=_tsv(["node"], []))
+    """De regeling staat in de graaf, het artikel niet: een tikfout, geen zoektocht bij LiDO."""
+    graaf = FakeGraph(results=lambda q: (_tsv(["r", "van", "tot"], [[f"urn:bwb:{IW}", "2026-01-01", "9999-12-31"]])
+                                         if "geldigVanaf" in q else _tsv(["node"], [])))
+    uit = json.loads(tools.dispatch("zoek_uitspraken", graaf, {"bwb_id": IW, "artikel": "999"}, AAN,
+                                    rechtspraak=NepBron(LINKS)))
     assert uit["status"] == "error" and uit["reden"] == "niet_gevonden"
+
+
+def test_een_regeling_buiten_de_graaf_zoekt_lido_op_bwb_id_en_nummer():
+    """De Wet IB 2001 staat niet in de kennisgraaf, maar LiDO kent artikel 3.111 wel (meting 11 nov 2026, R09: "staat
+    niet in de graaf" bij een artikel met honderden uitspraken). De tekststand is dan niet vast te stellen, en dat staat
+    erbij."""
+    graaf = FakeGraph(results=lambda q: _tsv(["r", "van", "tot"], []) if "geldigVanaf" in q else _tsv(["node"], []))
+    uit = json.loads(tools.dispatch("zoek_uitspraken", graaf, {"bwb_id": "BWBR0011353", "artikel": "3.111"}, AAN,
+                                    rechtspraak=NepBron(LINKS)))
+    assert uit["status"] == "ok" and uit["totaal"] == 4, uit
+    assert "niet in de kennisgraaf" in uit["toelichting"]
+    assert all(r.get("tekststand") in (None, "onbekend") for r in uit["resultaten"])
+
+
+def test_een_graaf_die_niet_antwoordt_is_geen_regeling_buiten_de_graaf():
+    """Een storing van de graaf mag niet stil naar LiDO leiden alsof de regeling er niet in staat."""
+    def antwoord(q):
+        if "geldigVanaf" in q:
+            raise RuntimeError("graaf weg")
+        return _tsv(["node"], [])
+    uit = json.loads(tools.dispatch("zoek_uitspraken", FakeGraph(results=antwoord), {"bwb_id": IW, "artikel": "999"},
+                                    AAN, rechtspraak=NepBron(LINKS)))
+    assert uit["status"] == "error" and uit["reden"] == "niet_gevonden"
+
+
+def test_de_tellingen_tellen_binnen_de_andere_filters():
+    """Met een filter op instantie telt per_tekststand alleen die instantie, en per_instantie alle instanties binnen de
+    overige filters (meting 11 nov 2026, R06: "487 van de gerechtshoven" naast 26 en 869 over alle uitspraken)."""
+    alles = _zoek({"bwb_id": IW, "artikel": "9"})
+    hr = _zoek({"bwb_id": IW, "artikel": "9", "instantie": "Hoge Raad"})
+    assert hr["totaal"] == 1 and sum(hr["per_tekststand"].values()) == 1
+    assert hr["per_instantie"] == alles["per_instantie"], "per_instantie negeert alleen het filter op instantie"
+    assert hr["bij_het_artikel"] == alles["totaal"] == 4 and "bij_het_artikel" not in alles
+    assert sum(v["uitspraken"] for v in hr["tekstversies"]) >= 1
+    conclusies = _zoek({"bwb_id": IW, "artikel": "9", "soort": "conclusie"})
+    assert conclusies["per_instantie"] == {"Parket bij de Hoge Raad": 1}, "binnen het filter op soort"
+
+
+def test_een_plafond_noemt_wat_lido_zelf_telt():
+    bron = NepBron(LINKS, onvolledig=((V_2016, "plafond"),))
+    bron.koppelingen = lambda *a, **k: Koppelingen(tuple(LINKS), (V_NU, V_2016), ((V_2016, "plafond"),), "ref",
+                                                   {V_2016: 6772})
+    uit = json.loads(tools.dispatch("zoek_uitspraken", FakeGraph(result=ARTIKEL), {"bwb_id": IW, "artikel": "9"}, AAN,
+                                    rechtspraak=bron))
+    assert "LiDO telt bij die versie 6772 uitspraken" in uit["toelichting"]
+
+
+@pytest.mark.parametrize("meervoud", ["gerechtshoven", "hoven", "Rechtbanken"])
+def test_een_soort_gerecht_in_het_meervoud(meervoud):
+    links = [*LINKS, Link("ECLI:NL:GHARL:2025:1", "ECLI:NL:GHARL:2025:1 - Gerechtshof Arnhem-Leeuwarden, 01-02-2025 / 1",
+                          "Door computer herkende referentie", V_NU),
+             Link("ECLI:NL:RBGEL:2025:1", "ECLI:NL:RBGEL:2025:1 - Rechtbank Gelderland, 01-02-2025 / 1",
+                  "Door computer herkende referentie", V_NU)]
+    uit = _zoek({"bwb_id": IW, "artikel": "9", "instantie": meervoud}, links=links)
+    verwacht = "Gerechtshof" if "hoven" in meervoud else "Rechtbank"
+    assert uit["status"] == "ok" and uit["resultaten"] and all(r["orgaan"].startswith(verwacht)
+                                                               for r in uit["resultaten"]), uit
 
 
 @pytest.mark.parametrize("args,reden", [

@@ -67,6 +67,8 @@ def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:
     if naam == EXTERN or not ({_extern.VELD, _extern.STUKKEN} & set(invoer)):
         return SJABLONEN[naam].vul(invoer, trace)
     rest = {k: v for k, v in invoer.items() if k not in {_extern.VELD, _extern.STUKKEN}}
+    # Wat het subsjabloon aanwijst, telt in de uitleg als onderbouwd (een artikel van overheid.nl, `duiding.EXTERN_IDS`).
+    rest["_extern_ids"] = [str((x or {}).get("id") or "") for x in invoer.get(_extern.VELD) or [] if isinstance(x, dict)]
     # Een lijst gevonden stukken vóór de passages: eerst wat er is, dan wat erin staat.
     extra = [*_extern.lijsten(invoer.get(_extern.STUKKEN), trace), *_extern.blokken(invoer.get(_extern.VELD), trace)]
     antwoord = SJABLONEN[naam].vul(rest, trace)

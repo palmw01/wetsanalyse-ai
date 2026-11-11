@@ -18,6 +18,7 @@ haalt dan eerst op, net als bij `van`/`tot` in de duiding.
 from __future__ import annotations
 
 import copy
+import json
 import re
 from typing import Any
 
@@ -28,10 +29,14 @@ from bronmodel.extern import externe_vindplaats
 from ..tools.stuk_tekst import aangevuld
 from .vullen import Onvulbaar, Trace, _data, resultaten
 
-#: Zo veel passages mag één aanwijzing omvatten: meer is een samenvatting, en die schrijft Lex in eigen woorden.
+#: De maat van één aanwijzing: meer is een samenvatting, en die schrijft Lex in eigen woorden.
 MAX_PASSAGES = 6
 #: Zo veel stukken per antwoord.
 MAX_STUKKEN = 4
+#: Zo veel alinea's citeert één antwoord hoogstens, over alle aanwijzingen samen: de aanwijzingen die het model mag geven
+#: (`MAX_STUKKEN * 2`) maal `MAX_PASSAGES`. Een langere reeks splitst de code zelf. Een grens per aanwijzing liet het
+#: model in stappen splitsen, één weigering per stap (iteratie 11 nov 2026: Kamerstukken K15 vijf keer, 450k tokens).
+MAX_ALINEAS = MAX_PASSAGES * MAX_STUKKEN * 2
 
 VELD = "extern"
 #: Het veld voor een lijst gevonden stukken (`Stukken`): alleen de ids, de rest komt uit de zoekrijen.
@@ -226,11 +231,6 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
         if not isinstance(van, int) or not isinstance(tot, int) or van > tot:
             fouten.append(f"{vp.label}: van_nr en tot_nr zijn alineanummers, met van_nr ≤ tot_nr.")
             continue
-        if sum(1 for n in range(van, tot + 1) if n not in in_tabel) > MAX_PASSAGES:
-            fouten.append(f"{vp.label} ({van}–{tot}): hoogstens {MAX_PASSAGES} alinea's per aanwijzing. Wijs de alinea's "
-                          "aan die het antwoord dragen (meer aanwijzingen voor hetzelfde stuk mag) en vat de rest samen in "
-                          "het korte antwoord.")
-            continue
         ontbreekt = [n for n in range(van, tot + 1) if n not in rijen and n not in in_tabel]
         if ontbreekt and set(ontbreekt) & alleen_eerder:
             fouten.append(f"{vp.label} is veranderd sinds alinea {_reeksen(set(ontbreekt) & alleen_eerder)} gelezen "
@@ -255,6 +255,9 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
                           for n in range(van, tot + 1) if n not in al and n in rijen]
     if len(per_stuk) > MAX_STUKKEN:
         fouten.append(f"Hoogstens {MAX_STUKKEN} stukken per antwoord.")
+    if (aantal := sum(len(b.passages) for b in per_stuk.values())) > MAX_ALINEAS:
+        fouten.append(f"Het antwoord wijst {aantal} alinea's aan; hoogstens {MAX_ALINEAS}. Wijs alleen de alinea's aan die "
+                      "het antwoord dragen, en vat de rest samen in het korte antwoord.")
     if len(fouten) == 1:
         raise Onvulbaar(fouten[0])
     if fouten:
@@ -307,7 +310,23 @@ def _opsomming(delen: list[str]) -> str:
     return delen[0] if len(delen) == 1 else ", ".join(delen[:-1]) + " en " + delen[-1]
 
 
-def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any]) -> str:
+#: Het eerste woord van een naam dat "het" krijgt: "van het College van Beroep", "van het Ministerie van Financiën"
+#: (metingen Rechtspraak R25 en Staatsblad B10, 11 nov 2026: "van de College", "van de Ministerie").
+_HET = frozenset({"college", "ministerie", "parket", "gerechtshof", "hof", "openbaar", "instituut", "comité", "agentschap",
+                  "bureau", "centraal", "europees", "kabinet", "uwv", "cbs"})
+
+
+def van_orgaan(naam: str) -> str:
+    """'van de Hoge Raad', 'van het College van Beroep voor het bedrijfsleven'; een soort in kleine letters (een
+    categorie, geen naam) krijgt 'een': 'van een gerechtshof'."""
+    naam = " ".join(str(naam).split())
+    eerste = naam.split(" ", 1)[0] if naam else ""
+    if eerste[:1].islower():
+        return f"van een {naam}"
+    return f"van {'het' if eerste.lower() in _HET else 'de'} {naam}"
+
+
+def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any], *, volgorde: bool = True) -> str:
     """De zoekvraag onder een lijst, in gewone zinnen: "Gezocht op „invorderingsrente” in de tekst, vergaderjaar
     2025-2026 en van de Eerste Kamer. Meest relevante eerst." Uit de code, met de labels uit de metadata van de
     beschrijving (`ConnectorBeschrijving.filters`); de vorm per soort veld (`MetadataVeld.sleutel`), dus voor elke
@@ -334,7 +353,7 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any]) -> str:
         elif veld is not None and veld.type == "datum":
             periode["vanaf" if arg == veld.filters[0] else "tot"] = _voluit(str(waarde))
         elif sleutel == "orgaan":
-            delen.append(f"van de {waarde}")
+            delen.append(van_orgaan(str(waarde)))
         elif sleutel == "op_peildatum":
             delen.append(f"peildatum {_voluit(str(waarde))}")
         elif sleutel == "tekststand":
@@ -363,8 +382,9 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any]) -> str:
         begin = f"Gezocht naar stukken {_opsomming(delen)}."
     else:
         begin = f"Gezocht op {_opsomming(delen)}." if delen else ""
+    # Bij niets gevonden zegt een volgorde niets ("Meest relevante eerst." onder 0 treffers, meting Staatsblad B14).
     zinnen = [begin,
-              _VOLGORDE_TEKST.get(str(zoekvraag.get("volgorde") or ""), "")]
+              _VOLGORDE_TEKST.get(str(zoekvraag.get("volgorde") or ""), "") if volgorde else ""]
     return " ".join(z for z in zinnen if z)
 
 
@@ -383,9 +403,11 @@ def _gevonden(trace: Trace, c: ConnectorBeschrijving) -> dict[str, tuple[dict[st
                     uit[r["id"]] = (r, data, plek * 1000 + i)
         elif naam == c.leestool and isinstance(data.get("stuk"), dict) and isinstance(data["stuk"].get("id"), str):
             # Wat alleen de zoekrij weet (de tekst van het artikel waarbij een uitspraak hoort) blijft staan.
-            eerder = uit.get(data["stuk"]["id"], ({}, None, 0))[0]
-            uit[data["stuk"]["id"]] = ({**{k: eerder[k] for k in TEKSTVELDEN if k in eerder}, **data["stuk"]}, None,
-                                       plek * 1000)
+            # Gevonden in een zoekvraag en daarna gelezen: het blijft bij die zoekvraag, op zijn plek in de lijst
+            # (meting Rechtspraak R27: een gelezen arrest maakte de zoekvraag en het totaal van het blok leeg).
+            eerder, bij, waar = uit.get(data["stuk"]["id"], ({}, None, plek * 1000))
+            uit[data["stuk"]["id"]] = ({**{k: eerder[k] for k in TEKSTVELDEN if k in eerder}, **data["stuk"]}, bij,
+                                       waar if bij is not None else plek * 1000)
     return uit
 
 
@@ -421,18 +443,42 @@ def lijsten(items: Any, trace: Trace) -> list[Stukken]:
     for naam, rijen in per.items():
         c = CONNECTORS[naam]
         rijen.sort(key=lambda x: x[0])
-        bronnen = {id(d) for _, _, d in rijen}
-        data = rijen[0][2] if len(bronnen) == 1 else None
+        # Pagina's van dezelfde zoekvraag (alleen `offset` verschilt, en die staat niet in `zoekvraag`) zijn één lijst
+        # (metingen Rechtspraak R04/R30 en Kamerstukken K10, 11 nov 2026: zoekvraag leeg en totaal null).
+        vragen = {_zoeksleutel(d) for _, _, d in rijen}
+        data = rijen[0][2] if len(vragen) == 1 and None not in vragen else None
         zoekvraag = data.get("zoekvraag") if data and isinstance(data.get("zoekvraag"), dict) else {}
         totaal = data.get("totaal") if data and isinstance(data.get("totaal"), int) else None
+        kanttekening = " ".join(dict.fromkeys(
+            str(d["kanttekening"]).strip() for _, _, d in rijen
+            if d and isinstance(d.get("kanttekening"), str) and d["kanttekening"].strip()))
         velden = set(Stuk.model_fields)
         uit.append(Stukken(
             brontype=c.brontype, kop=f"Gevonden {c.label}",
             items=[Stuk(**{k: v for k, v in r.items() if k in velden},
                         **({"zonder_tekst": c.zonder_tekst} if r.get("leesbaar") is False else {}))
                    for _, r, _ in rijen],
-            zoekvraag=zoekvraag_tekst(c, zoekvraag), totaal=totaal))
+            zoekvraag=" ".join(filter(None, [zoekvraag_tekst(c, zoekvraag), kanttekening])), totaal=totaal))
     return uit
+
+
+def _zoeksleutel(data: dict[str, Any] | None) -> str | None:
+    """Wat een zoekvraag is, los van de pagina: de zoekvraag van het resultaat (zonder `offset`) en het totaal. None voor
+    een rij zonder zoekvraag (alleen gelezen)."""
+    if not data or not isinstance(data.get("zoekvraag"), dict):
+        return None
+    return json.dumps([data["zoekvraag"], data.get("totaal")], sort_keys=True, ensure_ascii=False, default=str)
+
+
+def leemte_tekst(c: ConnectorBeschrijving, data: dict[str, Any]) -> str:
+    """De zin bij niets gevonden: de zoekvraag zonder volgorde, de kanttekening van de tool (waar de zoekvraag minder
+    kon, meting Rechtspraak R07: een onvolledige lijst bleef "geen jurisprudentie gevonden") en dat niets gevonden geen
+    bewijs is."""
+    stukken = c.verzamelnamen[0] if c.verzamelnamen else "stukken"
+    zoekvraag = zoekvraag_tekst(c, data.get("zoekvraag") or {}, volgorde=False)
+    kant = str(data.get("kanttekening") or "").strip()
+    return " ".join(filter(None, [f"Bij deze zoekvraag vond ik geen {stukken}.", zoekvraag, kant,
+                                  "Dat ik niets vond, betekent niet dat het niet bestaat."]))
 
 
 def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:

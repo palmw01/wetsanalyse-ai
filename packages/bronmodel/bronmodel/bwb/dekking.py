@@ -106,3 +106,16 @@ def bron_tekens(xml_pad: str | Path | bytes) -> int:
         " or ancestor::bijlage) and not(ancestor::opmerkingen-inhoud) and not(ancestor::meta-data)]"
     )
     return sum(len(_tekst_zonder(alinea)) for alinea in alineas)
+
+
+def bron_tekens_per_artikel(xml_pad: str | Path | bytes) -> dict[str, int]:
+    """De brontekens per artikel, op zijn `bwb-ng-variabel-deel` (de staart van zijn knoop-id): dezelfde telling als
+    `bron_tekens`, per artikel. Een artikel bevat geen ander artikel, dus niets telt dubbel. Alleen voor de leesroute (`wetgeving_live`): een toestand die als geheel onder de
+    drempel blijft, kan een artikel toch volledig bevatten. De importer meet de toestand als geheel, en dat verandert niet."""
+    bron = io.BytesIO(xml_pad) if isinstance(xml_pad, bytes) else str(xml_pad)
+    wortel = etree.parse(bron).getroot()
+    uit: dict[str, int] = {}
+    for deel in wortel.xpath("//artikel[@bwb-ng-variabel-deel]"):
+        alineas = deel.xpath(".//al[not(ancestor::opmerkingen-inhoud) and not(ancestor::meta-data)]")
+        uit[deel.get("bwb-ng-variabel-deel")] = sum(len(_tekst_zonder(a)) for a in alineas)
+    return uit

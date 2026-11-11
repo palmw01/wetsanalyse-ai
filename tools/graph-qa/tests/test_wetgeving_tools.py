@@ -144,11 +144,19 @@ def test_de_toestand_wordt_gelezen_met_de_lezer_van_de_importer_en_volledig():
 
 
 def test_een_onvolledige_lezing_wordt_geweigerd(monkeypatch):
+    # Onder de drempel is de toestand als geheel niet te gebruiken (opbouw, zoeken); een artikel alleen als het zelf
+    # volledig gelezen is (iteratie ronde 1, I03; `test_wetgeving_live_routes.py`).
     monkeypatch.setattr(sru_bwb, "model_tekens", lambda wet: 10)
+    monkeypatch.setattr(sru_bwb, "model_tekens_van", lambda artikel: 0)
     bron = _bron()
+    g = bron.lees(bron.toestand_op(PW))
+    assert not g.volledig and g.per_artikel
     with pytest.raises(BwbFout) as e:
-        bron.lees(bron.toestand_op(PW))
+        g.eis_volledig()
     assert e.value.code == "onvolledig"
+    from bronmodel.bwb.boom import artikelen
+    artikel = next(b for _, b in artikelen(g.wet))
+    assert not g.artikel_volledig(artikel)
 
 
 def test_de_cache_leest_een_toestand_een_keer_en_blijft_binnen_zijn_grens(monkeypatch):

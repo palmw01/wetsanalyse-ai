@@ -149,7 +149,14 @@ def inhoudpagina(rijen: list[dict[str, Any]], *, tool: str, args: dict[str, Any]
     waarop een ingekorte inhoud stopt (`inhoud`), en bij een verzamelwet de artikelen met de regeling die ze wijzigen.
     Per kop de eerste alinea als rij (`nr`, `tekst`, letterlijk en dus te citeren) als die hoogstens `MAX_AANHEF` tekens
     telt, anders haar begin (`begint`, `begint_afgekapt`). De offsets wijzen in de tekst (een aanroep zonder `inhoud`), de
-    paginering van deze aanroep loopt over de koppen. Een dieper deel staat in de tekst vanaf de offset van zijn kop."""
+    paginering van deze aanroep loopt over de koppen. Een dieper deel staat in de tekst vanaf de offset van zijn kop.
+
+    Een stuk zonder koppen (een oud Kamerstuk, een korte brief) zegt dat met `zonder_koppen` en het aantal alinea's, met
+    de lezing vanaf het begin in `lezen`. Eerst was het resultaat leeg en las de statusregel "geen tekst"; het model bladerde
+    dan pagina voor pagina, of gaf het stuk op (ronde 1 Kamerstukken, 11 nov 2026: K07 en K16). Een stuk zonder tekst zegt
+    `leesbaar: false`, zoals bij `tekstpagina`."""
+    if not rijen:
+        stuk = {**stuk, "leesbaar": False}
     lijst = []
     for k in koppen(rijen, 1):
         r = rijen[k["offset"]]
@@ -157,6 +164,14 @@ def inhoudpagina(rijen: list[dict[str, Any]], *, tool: str, args: dict[str, Any]
         if "begint" in k and isinstance(r.get("nr"), int) and len(tekst) <= MAX_AANHEF:
             k = {"nr": r["nr"], "kop": k["kop"], "offset": k["offset"], "tekst": tekst}
         lijst.append(k)
+    if rijen and not lijst:
+        alineas = sum(1 for r in rijen if r.get("soort") != "voetnoot")
+        lezen = {"tool": tool, "args": {"id": args["id"], "offset": 0}}
+        return per_eenheid([], tool=tool, args={"id": args["id"], "inhoud": True}, offset=offset,
+                           extra={"stuk": stuk, "totaal": 0, "zonder_koppen": True, "alineas": alineas, "lezen": lezen},
+                           toelichting=f"Dit stuk heeft geen koppen; de tekst telt {alineas} "
+                                       f"{'alinea' if alineas == 1 else 'alinea’s'}. Lees de tekst vanaf het begin "
+                                       f"met {{\"id\": \"{args['id']}\", \"offset\": 0}}.")
     return per_eenheid(lijst, tool=tool, args={"id": args["id"], "inhoud": True}, offset=offset,
                        extra={"stuk": stuk, "totaal": len(lijst)},
                        toelichting="De koppen van het stuk met hun eerste alinea; 'offset' is de plek in de tekst: lees "

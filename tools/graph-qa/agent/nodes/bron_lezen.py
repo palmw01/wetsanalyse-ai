@@ -16,7 +16,7 @@ from typing import Any
 from uuid import uuid4
 
 from bronmodel.antwoord import Antwoord, Leemte, antwoord_tekst
-from bronmodel.connectors import van_id
+from bronmodel.connectors import CONNECTORS, van_id
 from langgraph.config import get_stream_writer
 
 from ..narratie import _stap, _toolregel
@@ -60,7 +60,7 @@ def bron_lezen_node(b, state: State) -> dict[str, Any]:
     if not gebruik:
         return {"bron_lezen": []}
     paar = [{"role": "assistant", "content": gebruik}, {"role": "user", "content": resultaten}]
-    if (zonder := _zonder_tekst(resultaten, trace)) is not None:
+    if (zonder := _zonder_tekst(resultaten, trace, gebruik)) is not None:
         uit = antwoord_tekst(zonder)
         return {"bron_lezen": [], "source_trace": trace, "answer": uit, "antwoord": zonder.model_dump(),
                 "messages": [*paar, {"role": "assistant", "content": [{"type": "text", "text": uit}]}]}
@@ -98,31 +98,73 @@ def _leeg(raw: str) -> bool:
     return isinstance(data, dict) and data.get("status") == "ok" and not data.get("resultaten")
 
 
-def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]) -> Antwoord | None:
-    """Heeft elk gelezen stuk geen tekst bij de bron (een uitspraak met alleen metadata), dan zegt de code dat, met het
-    stuk en zijn gegevens uit de bron als lijst en de link: geen model, dus geen eigen duiding ("dus een verkeersboete")
-    en geen systeemtaal (nameting 10 nov 2026). None als er iets te lezen is, of bij een fout: dan formuleert de agent."""
-    ids: list[str] = []
-    for r in resultaten:
+def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]],
+                 gebruik: list[dict[str, Any]] | None = None) -> Antwoord | None:
+    """Is geen enkel genoemd stuk te lezen, dan zegt de code dat, zonder model: geen eigen duiding ("dus een
+    verkeersboete") en geen systeemtaal (nameting 10 nov 2026). Voor elke connector dezelfde drie gevallen:
+
+    - geen tekst bij de bron (een uitspraak met alleen metadata, `leesbaar: false`);
+    - alleen een PDF (`alleen_pdf`, met het `stuk` en zijn metadata: het bestaat);
+    - niet gevonden (`niet_gevonden`): het id staat in de melding, en er komt geen stuk in de lijst.
+
+    Een stuk dat wel te lezen is staat als lijst met zijn gegevens uit de bron en de link (ronde 1 Kamerstukken, 11 nov
+    2026: K12 en K27 gingen langs het model). None als er iets te lezen is, of bij een andere fout: dan formuleert de
+    agent."""
+    zonder: list[str] = []
+    pdf: list[str] = []
+    weg: list[str] = []
+    for i, r in enumerate(resultaten):
         try:
             data = json.loads(r.get("content") or "")
         except (TypeError, ValueError):
             return None
-        stuk = data.get("stuk") if isinstance(data, dict) else None
-        if (data.get("status") != "ok" or data.get("resultaten") or data.get("vervolg")
-                or not isinstance(stuk, dict) or not isinstance(stuk.get("id"), str)):
+        if not isinstance(data, dict):
             return None
-        ids.append(stuk["id"])
+        stuk = data.get("stuk") if isinstance(data.get("stuk"), dict) else None
+        ident = stuk.get("id") if stuk is not None and isinstance(stuk.get("id"), str) else None
+        if data.get("status") == "ok" and not data.get("resultaten") and not data.get("vervolg") and ident:
+            zonder.append(ident)
+        elif data.get("status") == "error" and data.get("reden") == "alleen_pdf" and ident:
+            pdf.append(ident)
+        elif data.get("status") == "error" and data.get("reden") == "niet_gevonden" and (genoemd := _genoemd(gebruik, i)):
+            weg.append(genoemd)
+        else:
+            return None
+    ids = [*zonder, *pdf]
     try:
         stukken = lijsten(ids, trace)
     except Onvulbaar:
         return None
-    c = van_id(ids[0])
-    melding = (f"De tekst van {'dit stuk' if len(ids) == 1 else 'deze stukken'} staat niet bij de bron: er is alleen "
-               "de beschrijving hieronder. Lees de tekst via de link.")
     for s in stukken:
+        c = van_id(next((st.id for st in s.items), "")) if s.items else None
         s.kop = c.kop_in_antwoord if c is not None else s.kop
-    return Antwoord(sjabloon="extern", blokken=[Leemte(tekst=melding), *stukken])
+    blokken: list[Any] = []
+    if zonder:
+        blokken.append(Leemte(tekst=f"De tekst van {'dit stuk' if len(zonder) == 1 else 'deze stukken'} staat niet bij "
+                                    "de bron: er is alleen de beschrijving hieronder. Lees de tekst via de link."))
+    if pdf:
+        c = van_id(pdf[0])
+        hoe = f" ({c.zonder_tekst})" if c is not None and c.zonder_tekst else ""
+        blokken.append(Leemte(tekst=f"{'Dit stuk staat' if len(pdf) == 1 else 'Deze stukken staan'} bij de bron alleen "
+                                    f"als PDF{hoe}: de tekst kan ik niet lezen of citeren. De beschrijving staat hieronder; "
+                                    "lees het stuk via de link."))
+    for ident in weg:
+        c = van_id(ident)
+        bij = f" bij {c.label}" if c is not None else ""
+        blokken.append(Leemte(tekst=f"{ident} is{bij} niet gevonden. Controleer het id, of vraag mij naar de stukken "
+                                    "waar het bij hoort; zonder tekst zeg ik er niets over."))
+    return Antwoord(sjabloon="extern", blokken=[*blokken, *stukken])
+
+
+def _genoemd(gebruik: list[dict[str, Any]] | None, i: int) -> str:
+    """Het id dat de i-de leesaanroep vroeg (het `lees_argument` van zijn connector), of leeg."""
+    if not gebruik or i >= len(gebruik):
+        return ""
+    invoer = gebruik[i].get("input") or {}
+    for c in CONNECTORS.values():
+        if c.leestool == gebruik[i].get("name"):
+            return str(invoer.get(c.lees_argument) or "").strip()
+    return ""
 
 
 def route_na_bron_lezen(b, state: State) -> str:

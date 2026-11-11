@@ -9,6 +9,7 @@ Geschreven en cijfermatige getallen zijn gelijk ("zes weken" = "6 weken"), en ee
 """
 from __future__ import annotations
 
+import json
 import re
 
 _TELWOORDEN = {
@@ -61,3 +62,50 @@ def hoeveelheden(tekst: str) -> set[str]:
 def buiten(tekst: str, bron: str) -> list[str]:
     """Wat de tekst aan termijnen, bedragen en datums noemt dat de bron niet noemt, in vaste volgorde."""
     return sorted(hoeveelheden(tekst) - hoeveelheden(bron))
+
+
+_KAAL = re.compile(r"[-−–]?\s*(\d+(?:[.,]\d+)*)")
+
+
+def _eenheid(tekst: str) -> str:
+    """De eenheid die een titel of kolomkop noemt ("Opbrengst (€ mln)", "in procenten"); leeg bij geen of twee."""
+    t = (tekst or "").casefold()
+    gevonden = {e for e, ja in (("euro", "€" in t or re.search(r"\beuro\b", t)),
+                                ("procent", "%" in t or re.search(r"\bprocent(en)?\b", t))) if ja}
+    return next(iter(gevonden)) if len(gevonden) == 1 else ""
+
+
+def uit_tabellen(trace: list[tuple[str, str]]) -> str:
+    """De kale getallen uit tabellen in het opgehaalde, met de eenheid uit hun kolomkop of de titel van de tabel
+    ("€ 106" voor de cel "106" onder "Tabel 1 Opbrengst (€ mln)"), als tekst om mee te toetsen.
+
+    Een tabelcel draagt haar eenheid zelden zelf, en dan las de controle "€ 106 miljoen" in de uitleg als niet opgehaald
+    (ronde 1 Kamerstukken, 11 nov 2026, K28: vijf keer vals alarm). Een tabel is de rij met `soort: "tabel"` (de titel als
+    tekst, de kolommen als `cellen`, `tools/op_xml.py`); een `tabelrij` hoort bij de tabel met het hoogste `nr` dat er niet
+    na komt, in hetzelfde stuk, ook op een volgende pagina."""
+
+    tabellen: dict[str, list[tuple[int, str, list[str]]]] = {}
+    uit: list[str] = []
+    for _, raw in trace:
+        try:
+            data = json.loads(raw)
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(data, dict) or not isinstance(data.get("resultaten"), list):
+            continue
+        stuk = str((data.get("stuk") or {}).get("id") or "") if isinstance(data.get("stuk"), dict) else ""
+        for r in data["resultaten"]:
+            if not isinstance(r, dict) or not isinstance(r.get("nr"), int):
+                continue
+            if r.get("soort") == "tabel":
+                kolommen = [_eenheid(str(c)) for c in r.get("cellen") or []]
+                tabellen.setdefault(stuk, []).append((r["nr"], _eenheid(str(r.get("tekst") or "")), kolommen))
+            elif r.get("soort") == "tabelrij" and isinstance(r.get("cellen"), list):
+                bij = max((t for t in tabellen.get(stuk, []) if t[0] <= r["nr"]), default=None, key=lambda t: t[0])
+                if bij is None:
+                    continue
+                for i, cel in enumerate(r["cellen"]):
+                    eenheid = (bij[2][i] if i < len(bij[2]) else "") or bij[1]
+                    if eenheid and (m := _KAAL.fullmatch(str(cel).strip())):
+                        uit.append(f"€ {m.group(1)}" if eenheid == "euro" else f"{m.group(1)} procent")
+    return "\n".join(uit)

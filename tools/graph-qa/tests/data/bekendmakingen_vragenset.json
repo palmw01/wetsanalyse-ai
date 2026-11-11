@@ -510,9 +510,13 @@
     "id": "stb-1995-1"
    },
    "verwacht": {
-    "reden": "onleesbaar_document"
+    "aantal": 27,
+    "stuk": {
+     "label": "Stb. 1995, 1"
+    },
+    "tekst_bevat": "Het Statuut voor het Koninkrijk der Nederlanden wordt gewijzigd als volgt:"
    },
-   "goed": "KOOP heeft dit stuk als XML in het oudere formaat van de Sdu (wortel `staatsbl`). Lex leest de tekst, of zegt eerlijk dat hij haar niet kan lezen en geeft de link; geen inhoud uit eigen kennis. De verwachting `onleesbaar_document` is de stand van 11 nov 2026, vóór ronde 1."
+   "goed": "KOOP heeft dit stuk als XML in het oudere formaat van de Sdu (wortel `staatsbl`, met `wart`, `wlid` en `lid`). Lex leest de tekst (Artikel I tot en met III, met onderdelen en leden) en citeert eruit; geen inhoud uit eigen kennis. Tot ronde 1 van de Kamerstukken-iteratie (11 nov 2026) was dit `onleesbaar_document`."
   },
   {
    "id": "B28",
