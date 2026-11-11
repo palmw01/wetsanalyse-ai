@@ -1177,14 +1177,21 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
 - **Een 2FA-koppeling starten vraagt het wachtwoord** (`users.begin_2fa`), en actieve 2FA blijft
   staan: een sessie alleen mag de tweede factor niet vervangen. Die weigering (409, security-log
   `2fa_begin_geweigerd`) zit in de voorwaardelijke `UPDATE`, niet in een eerdere lezing. Uitzetten kan
-  alleen met een code; een herstelpad bij een verloren authenticator is er nog niet.
+  alleen met een code, en **niet voor een beheerder** (`BeheerderHoudt2faError`, 409): zonder 2FA is het beheer
+  dicht, en voor de enige beheerder is er dan niemand die beheert. De weigering staat vóór het verbruiken van de
+  code.
+- **Opnieuw koppelen terwijl 2FA aan blijft** (`begin_2fa` mét `totp`, dan `activate_2fa`): met het wachtwoord
+  én een code van de huidige app (of een herstelcode) komt een nieuw secret in `users.totp_nieuw_enc`. De oude app
+  blijft gelden tot een code van de nieuwe het in één voorwaardelijke `UPDATE` (op precies dat klaargezette secret)
+  overzet; die code telt als gebruikt en er komt een nieuwe set herstelcodes. `_wis_2fa` (uitzetten, reset) ruimt
+  een klaargezette app op.
 - **Herstelcodes** (`users.py`, tabel `herstelcodes`): tien stuks van 80 bits bij `activate_2fa`, één keer
   getoond en daarna alleen als sha256 over `userid|code`. Verbruiken is één voorwaardelijke `DELETE`.
   `_verbruik_tweede_factor` kiest op de **vorm** van de invoer, in hetzelfde veld als de TOTP-code; zo raakt
   een herstelcode de Fernet-sleutel niet en overleeft hij een geroteerde `LLM_CONFIG_SECRET`. Ze werken bij
   het inloggen (`"ok_herstelcode"`, security-log `herstelcode_login`), bij `disable_2fa` en bij
-  `vervang_herstelcodes`. Een nieuwe telefoon is dus: inloggen met een code, uitschakelen met de volgende,
-  opnieuw koppelen.
+  `vervang_herstelcodes`, en als bewijs bij opnieuw koppelen. Een nieuwe telefoon is dus: inloggen met een code,
+  opnieuw koppelen met de volgende.
 - **Er blijft altijd een actieve beheerder** (`users.patch_user`, `users.delete_user`): degraderen,
   deactiveren en verwijderen weigeren (409) als het doel de laatste actieve beheerder is. Een inactieve
   beheerder telt niet mee. Beide nemen eerst hetzelfde slot (`_beheerdersslot`, een advisory xact-lock op

@@ -487,6 +487,14 @@ describe("begin2fa", () => {
     expect(pad).toBe("/api/account/2fa/begin");
     expect(JSON.parse(init.body as string)).toEqual({ password: "geheim" });
   });
+
+  it("stuurt bij opnieuw koppelen ook de code van de huidige app mee", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ otpauth_uri: "otpauth://x" }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await begin2fa("geheim", "123456");
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({ password: "geheim", totp: "123456" });
+  });
 });
 
 describe("loginVerify / login2fa – storing vs. afwijzing", () => {

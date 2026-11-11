@@ -332,7 +332,7 @@ async def test_2fa_cyclus(monkeypatch, db):
     _fresh_settings(monkeypatch)
     from app import users
 
-    await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
+    await _baas_als_analist()
     uri = await users.begin_2fa("baas", "wachtwoord1")
     assert not (await users.get_user("baas")).totp_enabled
     assert (await users.verify_credentials("baas", "wachtwoord1"))[1] == "ok"
@@ -432,7 +432,7 @@ async def test_2fa_aan_en_uit_verbruiken_de_code(monkeypatch, db):
     _fresh_settings(monkeypatch)
     from app import users
 
-    await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
+    await _baas_als_analist()
     uri = await users.begin_2fa("baas", "wachtwoord1")
     code = _totp_now(uri)
     await users.activate_2fa("baas", code)
@@ -565,12 +565,21 @@ async def test_2fa_http_via_header(client):
     assert act.status_code == 200 and len(act.json()["codes"]) == 10
     assert (await client.get("/v1/auth/me", headers=hdr)).json()["totp_enabled"] is True
 
-    dis_fout = await client.post("/v1/auth/2fa/disable", json={"totp": "000000"}, headers=hdr)
-    assert dis_fout.status_code == 400
-
+    # Een beheerder zet 2FA niet uit, ook niet met een geldige code; die code blijft dan ongebruikt.
     totp_code = _totp_now(begin.json()["otpauth_uri"])
     dis = await client.post("/v1/auth/2fa/disable", json={"totp": totp_code}, headers=hdr)
-    assert dis.status_code == 204
+    assert dis.status_code == 409
+    assert (await client.get("/v1/auth/me", headers=hdr)).json()["totp_enabled"] is True
+    login = await client.post("/v1/auth/verify", json={"userid": "baas", "password": "wachtwoord1", "totp": totp_code})
+    assert login.json()["ok"] is True
+
+    # Een analist mag het wel.
+    temp = (await client.post("/v1/admin/users", json={"userid": "ana", "email": "a@example.com"}, headers=_ADMIN)).json()["temp_password"]
+    ahdr = {"X-User-Id": "ana"}
+    auri = (await client.post("/v1/auth/2fa/begin", json={"password": temp}, headers=ahdr)).json()["otpauth_uri"]
+    await client.post("/v1/auth/2fa/activate", json={"totp": _totp_now(auri)}, headers=ahdr)
+    assert (await client.post("/v1/auth/2fa/disable", json={"totp": "000000"}, headers=ahdr)).status_code == 400
+    assert (await client.post("/v1/auth/2fa/disable", json={"totp": _totp_now(auri)}, headers=ahdr)).status_code == 204
 
 
 async def test_begin_2fa_laat_actieve_2fa_staan(monkeypatch, db):
@@ -632,7 +641,7 @@ async def test_begin_2fa_opnieuw_voor_bevestiging_en_na_uitzetten(monkeypatch, d
     _fresh_settings(monkeypatch)
     from app import users
 
-    await users.bootstrap_admin("baas", "boss@example.com", "wachtwoord1")
+    await _baas_als_analist()
     eerste = await users.begin_2fa("baas", "wachtwoord1")
     tweede = await users.begin_2fa("baas", "wachtwoord1")  # onbevestigd: vervangt het eerste secret
     assert _secret(eerste) != _secret(tweede)
@@ -783,12 +792,96 @@ async def test_me_geeft_sessions_valid_from(client):
 
 # --- herstelcodes en de 2FA-plicht ----------------------------------------------
 
+async def _baas_als_analist() -> None:
+    """"baas" (wachtwoord1) als analist: een beheerder kan 2FA niet uitzetten, dus de uitzet-tests draaien op een
+    analist. "reserve" blijft beheerder, anders weigert de degradatie."""
+    from app import users
+
+    await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
+    await users.create_user("reserve", "r@example.com", role="beheerder")
+    await users.patch_user("baas", role="analist")
+
+
 async def _met_2fa(userid: str = "baas") -> tuple[str, list[str]]:
     """Een account met actieve 2FA: geeft de otpauth-URI en de herstelcodes."""
     from app import users
 
     uri = await users.begin_2fa(userid, "wachtwoord1")
     return uri, await users.activate_2fa(userid, _totp_now(uri))
+
+
+async def test_opnieuw_koppelen_vervangt_pas_na_een_code_van_de_nieuwe_app(monkeypatch, db):
+    _fresh_settings(monkeypatch)
+    from app import users
+
+    await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
+    oud, _ = await _met_2fa()
+
+    # Zonder geldige code of met het verkeerde wachtwoord staat er niets klaar.
+    with pytest.raises(users.UserError):
+        await users.begin_2fa("baas", "wachtwoord1", "000000")
+    with pytest.raises(users.UserError):
+        await users.begin_2fa("baas", "fout", _totp_now(oud))
+    with pytest.raises(users.TotpActiefError):
+        await users.begin_2fa("baas", "wachtwoord1")
+    assert await users._klaarstaande_app("baas") is None
+
+    eerste = await users.begin_2fa("baas", "wachtwoord1", _totp_now(oud))
+    tweede = await users.begin_2fa("baas", "wachtwoord1", _totp_now(oud))  # vervangt de eerste klaargezette
+    # Tot de bevestiging blijft de oude app gelden en blijft 2FA aan.
+    assert (await users.get_user("baas")).totp_enabled
+    assert (await users.verify_credentials("baas", "wachtwoord1", _totp_now(oud)))[1] == "ok_totp"
+    with pytest.raises(users.UserError):
+        await users.activate_2fa("baas", _totp_now(eerste))
+    with pytest.raises(users.UserError):
+        await users.activate_2fa("baas", _totp_now(oud))
+
+    codes = await users.activate_2fa("baas", code := _totp_now(tweede))
+    assert len(codes) == 10 and await users._klaarstaande_app("baas") is None
+    assert (await users.verify_credentials("baas", "wachtwoord1", _totp_now(oud)))[1] == "totp_required"
+    # De bevestigingscode is gebruikt; de volgende van de nieuwe app werkt.
+    assert (await users.verify_credentials("baas", "wachtwoord1", code))[1] == "totp_required"
+    assert (await users.verify_credentials("baas", "wachtwoord1", _totp_now(tweede)))[1] == "ok_totp"
+    with pytest.raises(users.UserError):
+        await users.activate_2fa("baas", _totp_now(tweede))  # niets meer klaar
+
+
+async def test_opnieuw_koppelen_met_een_herstelcode_en_een_reset_ruimt_op(monkeypatch, db):
+    _fresh_settings(monkeypatch)
+    from app import users
+
+    await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
+    await users.create_user("collega", "c@example.com", role="beheerder")
+    _, codes = await _met_2fa()
+    nieuw = await users.begin_2fa("baas", "wachtwoord1", codes[0])
+    with pytest.raises(users.UserError):
+        await users.begin_2fa("baas", "wachtwoord1", codes[0])  # verbruikt
+    # Een reset door een collega laat geen klaargezette app achter.
+    await users.reset_2fa("baas", door="collega")
+    assert await users._klaarstaande_app("baas") is None
+    with pytest.raises(users.UserError):
+        await users.activate_2fa("baas", _totp_now(nieuw))
+    assert users.moet_2fa_koppelen(await users.get_user("baas"))
+
+
+async def test_beheerder_zet_2fa_niet_uit_analist_wel(monkeypatch, db):
+    _fresh_settings(monkeypatch)
+    from app import users
+
+    await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
+    uri, codes = await _met_2fa()
+    for code in (_totp_now(uri), codes[0]):
+        with pytest.raises(users.BeheerderHoudt2faError):
+            await users.disable_2fa("baas", code)
+    # De weigering verbruikt de herstelcode niet.
+    assert await users.aantal_herstelcodes("baas") == 10
+    assert (await users.get_user("baas")).totp_enabled
+
+    # Gedegradeerd (met een tweede beheerder) mag het wel.
+    await users.create_user("tweede", "t@example.com", role="beheerder")
+    await users.patch_user("baas", role="analist")
+    await users.disable_2fa("baas", codes[0])
+    assert not (await users.get_user("baas")).totp_enabled
 
 
 async def test_herstelcodes_gelden_een_keer_en_de_set_is_uniek(monkeypatch, db):
@@ -853,7 +946,7 @@ async def test_herstelcode_overleeft_een_geroteerde_sleutel(monkeypatch, db):
     from app import users
     from app.secrets_crypto import SecretsCryptoError
 
-    await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
+    await _baas_als_analist()
     _, codes = await _met_2fa()
 
     _fresh_settings(monkeypatch, LLM_CONFIG_SECRET=Fernet.generate_key().decode())
@@ -868,7 +961,7 @@ async def test_nieuwe_telefoon_met_twee_herstelcodes(monkeypatch, db):
     _fresh_settings(monkeypatch)
     from app import users
 
-    await users.bootstrap_admin("baas", "u@example.com", "wachtwoord1")
+    await _baas_als_analist()
     _, codes = await _met_2fa()
 
     assert (await users.verify_credentials("baas", "wachtwoord1", codes[0]))[1] == "ok_herstelcode"
@@ -953,8 +1046,10 @@ async def test_plicht_geldt_voor_elke_weg_naar_beheerder(monkeypatch, db):
     uri = await users.begin_2fa("baas", "wachtwoord1")
     await users.activate_2fa("baas", _totp_now(uri))
     assert not users.moet_2fa_koppelen(await users.get_user("baas"))
-    # Uitzetten mag, maar dan geldt de plicht weer.
-    await users.disable_2fa("baas", _totp_now(uri))
+    # Uitzetten mag een beheerder niet; een reset door een collega zet de plicht weer aan.
+    with pytest.raises(users.BeheerderHoudt2faError):
+        await users.disable_2fa("baas", _totp_now(uri))
+    await users.reset_2fa("baas", door="tweede")
     assert users.moet_2fa_koppelen(await users.get_user("baas"))
 
 
@@ -1115,22 +1210,32 @@ async def test_laatste_beheerder_redt_zich_met_een_herstelcode(client):
     uri = (await client.post("/v1/auth/2fa/begin", json={"password": "wachtwoord1"}, headers=hdr)).json()["otpauth_uri"]
     codes = (await client.post("/v1/auth/2fa/activate", json={"totp": _totp_now(uri)}, headers=hdr)).json()["codes"]
 
-    assert (await client.post("/v1/auth/2fa/disable", json={"totp": codes[0]}, headers=hdr)).status_code == 204
-    nieuw = (await client.post("/v1/auth/2fa/begin", json={"password": "wachtwoord1"}, headers=hdr)).json()["otpauth_uri"]
+    # Telefoon kwijt: inloggen met een herstelcode, opnieuw koppelen met de volgende. 2FA staat geen moment uit.
+    login = await client.post("/v1/auth/verify", json={"userid": "baas", "password": "wachtwoord1", "totp": codes[0]})
+    assert login.json()["ok"] is True
+    nieuw = (await client.post(
+        "/v1/auth/2fa/begin", json={"password": "wachtwoord1", "totp": codes[1]}, headers=hdr
+    )).json()["otpauth_uri"]
+    assert (await client.get("/v1/auth/me", headers=hdr)).json()["tfa_nodig"] is False
     res = await client.post("/v1/auth/2fa/activate", json={"totp": _totp_now(nieuw)}, headers=hdr)
-    assert res.status_code == 200 and (await client.get("/v1/auth/me", headers=hdr)).json()["tfa_nodig"] is False
+    assert res.status_code == 200 and len(res.json()["codes"]) == 10
+    me = (await client.get("/v1/auth/me", headers=hdr)).json()
+    assert me["tfa_nodig"] is False and me["herstelcodes_over"] == 10
+    # De oude app geldt niet meer, de nieuwe wel.
+    oud = await client.post("/v1/auth/verify", json={"userid": "baas", "password": "wachtwoord1", "totp": _totp_now(uri)})
+    assert oud.json()["ok"] is False
+    goed = await client.post("/v1/auth/verify", json={"userid": "baas", "password": "wachtwoord1", "totp": _totp_now(nieuw)})
+    assert goed.json()["ok"] is True
 
 
 async def test_enige_beheerder_zonder_2fa_logt_in_en_koppelt_opnieuw(client):
-    """Zet de enige beheerder zijn 2FA uit, dan zit hij niet vast: het inloggen vraagt alleen het wachtwoord,
-    het beheer met zijn naam is dicht tot hij koppelt, en koppelen kan hij zelf."""
-    await client.post(
-        "/v1/auth/setup", json={"userid": "baas", "email": "boss@example.com", "password": "wachtwoord1"}
-    )
+    """Een beheerder zonder 2FA (net gepromoveerd, of gereset door een collega die daarna vertrok) zit niet vast:
+    het inloggen vraagt alleen het wachtwoord, het beheer met zijn naam is dicht tot hij koppelt, en koppelen kan
+    hij zelf."""
+    await _twee_beheerders(client)
     hdr = {"X-User-Id": "baas"}
-    uri = (await client.post("/v1/auth/2fa/begin", json={"password": "wachtwoord1"}, headers=hdr)).json()["otpauth_uri"]
-    await client.post("/v1/auth/2fa/activate", json={"totp": _totp_now(uri)}, headers=hdr)
-    assert (await client.post("/v1/auth/2fa/disable", json={"totp": _totp_now(uri)}, headers=hdr)).status_code == 204
+    assert (await client.post("/v1/admin/users/baas/2fa/reset", headers={**_ADMIN, "X-User-Id": "kwijt"})).status_code == 204
+    assert (await client.delete("/v1/admin/users/kwijt", headers=_ADMIN)).status_code == 200
 
     login = (await client.post("/v1/auth/verify", json={"userid": "baas", "password": "wachtwoord1"})).json()
     assert login["ok"] is True and login["role"] == "beheerder"
