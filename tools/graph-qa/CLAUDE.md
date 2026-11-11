@@ -1725,7 +1725,8 @@ ze geen artikel), dan zegt Lex zonder model waarom en wie ze aanzet (`_bron_uit`
 `bron_uit`, met een `bron_uit`-event waarmee de werkplek *Zet aan* aanbiedt). **Noemt de vraag een stuk bij id** van een
 connector die aanstaat (`connectors.genoemde_stukken`, ook in een citeervorm van de beschrijving: "Kamerstuk 32140, nr.
 342" → `kst-32140-342`, dat de leestool bij de bron oplost), dan leest de code het vooraf (`_te_lezen`,
-`nodes/bron_lezen.py`, de `leestool` met `lees_argument`); zonder artikel in de vraag zonder supervisorcall. **Een
+`nodes/bron_lezen.py`, de `leestool` met `lees_argument`; een kort stuk, hoogstens `MAX_RIJEN_KORT` rijen en `MAX_PAGINAS`
+pagina's, helemaal, ongefilterd: anders bladerde het model met één ronde per pagina, ronde 2 bekendmakingen B21); zonder artikel in de vraag zonder supervisorcall. **Een
 lijstvraag** ("geef de 10 meest recente Kamerstukken", "de laatste vijf moties van de Eerste Kamer", ook zonder volgorde
 "Kamerstukken uit vergaderjaar 2025-2026 over invorderingsrente": dan kiest de zoektool, en een orgaan als "Eerste Kamer"
 is nooit een volgorde) leest `agent/bron_lijst.py` helemaal in code – volgorde, aantal, dossier, soort (`ConnectorBeschrijving.soorten`), periode,
