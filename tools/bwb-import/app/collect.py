@@ -211,6 +211,8 @@ class _Collector:
         for sub in deel.subdelen:
             self._structuur(sub, deel.id, entiteit, ref_key)
         self._artikelen(deel.artikelen, deel.id, entiteit)
+        # De tekst van een paragraaf zonder artikelen (een ``<structuurtekst>``, het BBBB): een divisie onder het deel.
+        self._divisies(deel.divisies, deel.id, entiteit)
 
     def _artikelen(self, artikelen: list[Artikel], ouder_id: str, ouder_ent: str) -> None:
         vorige_artikel: str | None = None

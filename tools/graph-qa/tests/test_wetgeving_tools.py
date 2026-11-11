@@ -321,3 +321,15 @@ def test_de_bronnenlijst_kent_alleen_het_gelezen_stuk_geen_graafbron():
 
 def test_het_id_draagt_de_staart_van_de_graaf_iri():
     assert bwbt_delen(f"bwbt:{PW}:2026-07-01_0:artikel:8:lid:1") == (PW, "2026-07-01_0", (("artikel", "8"), ("lid", "1")))
+
+
+def test_een_beleidsregel_met_paragrafen_is_te_lezen():
+    """I12 (iteratie 11 nov 2026): het BBBB deelt zijn tekst in paragrafen met een `<structuurtekst>`, zonder artikelen.
+    De lezer las er niets van (dekking 0%). Nu is elke paragraaf een divisie met haar nummer, titel en plek."""
+    bbbb = "BWBR0038145"
+    rij = _roep("zoek_artikelen", {"bwb_id": bbbb})["resultaten"][0]
+    assert (rij["label"], rij["titel"], rij["reeks"]) == ("§ 1", "Reikwijdte", ["Hoofdstuk 1 – Algemene bepalingen"])
+    r = _roep("get_wettekst", {"bwb_id": bbbb, "artikel": "1"})
+    assert r["status"] == "ok" and r["stuk"]["label"].startswith("Besluit Bestuurlijke Boeten Belastingdienst, § 1")
+    assert r["resultaten"][0]["kop"] == "Hoofdstuk 1 – Algemene bepalingen › § 1 – Reikwijdte"
+    assert r["resultaten"][0]["tekst"].startswith("In dit besluit is het beleid neergelegd")

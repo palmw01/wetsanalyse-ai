@@ -232,8 +232,10 @@ class ToestandParser:
         delen: list[Structuurdeel],
         artikelen: list[Artikel],
         tekst: frozenset[str] = _GEEN_STRUCTUUR,
+        divisies: list[Divisie] | None = None,
     ) -> None:
-        """De kinderen van een container, in documentvolgorde. Eén lus voor elke container."""
+        """De kinderen van een container, in documentvolgorde. Eén lus voor elke container. Een structuurdeel geeft
+        `divisies` mee voor een ``<structuurtekst>`` (`_parse_structuurtekst`)."""
         for child in element:
             tag = child.tag if isinstance(child.tag, str) else ""
             if not tag:
@@ -249,6 +251,8 @@ class ToestandParser:
                 self._lees_kinderen(child, bwb_id, delen, artikelen, tekst)
             elif self._structuursoort(child):
                 delen.append(self._parse_structuurdeel(child, bwb_id))
+            elif tag == "structuurtekst" and divisies is not None:
+                divisies.append(self._parse_structuurtekst(child, element, bwb_id))
             elif tag not in tekst:
                 self._meld_onbekend(element, tag)
 
@@ -263,8 +267,35 @@ class ToestandParser:
             jci=self._element_jci(element),
             label_id=element.get("label-id"),
         )
-        self._lees_kinderen(element, bwb_id, deel.subdelen, deel.artikelen)
+        self._lees_kinderen(element, bwb_id, deel.subdelen, deel.artikelen, divisies=deel.divisies)
         return deel
+
+    def _parse_structuurtekst(self, element: etree._Element, ouder: etree._Element, bwb_id: str) -> Divisie:
+        """Een ``<structuurtekst>``: de tekst van een paragraaf zonder artikelen (beleidsregels als het BBBB). Een
+        divisie met het nummer, label en de titel van de paragraaf, en eigen alinea's en onderdelen (de genummerde
+        punten). Zonder deze tak viel de hele tekst weg als onbekende structuur (iteratie wetgeving_live, I12: dekking
+        0%). De jci is die van het element zelf; die van de paragraaf zou de divisie op de IRI van de paragraaf zetten."""
+        kop = ouder.find("kop")
+        excl = f" and not(ancestor::li){_GEEN_SLOT}"
+        return Divisie(
+            id=self._knoop_id(bwb_id, element),
+            nummer=self._tekst(kop.find("nr")) if kop is not None else "",
+            label=ouder.get("label", ""),
+            titel=self._tekst(kop.find("titel")) if kop is not None else "",
+            tekst=_tekst_in(element, ".//", "not(ancestor::li)"),
+            jci=self._element_jci(element),
+            inwerking=element.get("inwerking"),
+            bron=element.get("bron"),
+            effect=element.get("effect"),
+            status=element.get("status"),
+            terugwerkend_tot=self._terugwerkend(element),
+            wijzigingsbronnen=self._wijzigingsbronnen(element),
+            **self._bronverwijzingen(element),
+            verwijzingen=self._verwijzingen_scope(element, bwb_id, base=".//*", extra_excl=excl),
+            onderdelen=self._parse_onderdelen(element, bwb_id),
+            voetnoten=[self._noot_tekst(noot) for noot in element.xpath(f".//noot[not(ancestor::li){_GEEN_SLOT}]")],
+            illustraties=self._illustraties(element, base=".//illustratie", extra_excl=excl),
+        )
 
     def _parse_divisie(self, element: etree._Element, bwb_id: str) -> Divisie:
         """Parse een ``<circulaire.divisie>`` (recursief) uit een circulaire.
