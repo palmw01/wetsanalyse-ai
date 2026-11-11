@@ -1185,6 +1185,12 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   het inloggen (`"ok_herstelcode"`, security-log `herstelcode_login`), bij `disable_2fa` en bij
   `vervang_herstelcodes`. Een nieuwe telefoon is dus: inloggen met een code, uitschakelen met de volgende,
   opnieuw koppelen.
+- **Er blijft altijd een actieve beheerder** (`users.patch_user`, `users.delete_user`): degraderen,
+  deactiveren en verwijderen weigeren (409) als het doel de laatste actieve beheerder is. Een inactieve
+  beheerder telt niet mee. Beide nemen eerst hetzelfde slot (`_beheerdersslot`, een advisory xact-lock op
+  Postgres) en lezen daarna de doelrij en de telling opnieuw, in de transactie van de wijziging; een toets
+  vóór het slot laat twee beheerders elkaar tegelijk verwijderen. Webapp, admin-API en admin-MCP gaan alle drie
+  langs deze twee functies; de races staan in `tests/test_beheerders_postgres.py`.
 - **De 2FA-plicht is afgeleide toestand** (`users.moet_2fa_koppelen`): `role == "beheerder"` zonder
   `totp_enabled`, en `/v1/auth/me` meldt hem als `tfa_nodig`. Er is geen controle per ingang, dus `/setup`,
   promotie, een nieuw account en een goedgekeurde aanvraag vallen vanzelf onder dezelfde regel. Afdwingen doet

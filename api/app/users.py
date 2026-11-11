@@ -190,15 +190,6 @@ async def _count() -> int:
         return (await conn.execute(select(func.count()).select_from(db.users))).scalar() or 0
 
 
-async def _aantal_actieve_beheerders() -> int:
-    async with db.get_engine().connect() as conn:
-        return (await conn.execute(
-            select(func.count()).select_from(db.users).where(
-                db.users.c.role == "beheerder", db.users.c.active.is_(True)
-            )
-        )).scalar() or 0
-
-
 async def needs_setup() -> bool:
     """True zolang er nog geen enkel account is (de eenmalige-registratie-route is dan open)."""
     return await _count() == 0
@@ -542,42 +533,64 @@ async def _require_user(userid: str) -> User:
     return user
 
 
+async def _beheerdersslot(conn) -> None:
+    """Serialiseer elke wijziging die het aantal actieve beheerders kan raken.
+
+    Op Postgres een advisory xact-lock (vrijgegeven bij commit of rollback); op SQLite (tests) zijn
+    writes al geserialiseerd. Wie het slot heeft, leest daarna de doelrij én de telling opnieuw:
+    een rij die vóór het slot is gelezen, kan intussen door een andere transactie zijn veranderd.
+    """
+    if db.get_engine().url.get_backend_name() == "postgresql":
+        await conn.execute(text("SELECT pg_advisory_xact_lock(hashtext(:k))"), {"k": "actieve-beheerders"})
+
+
+async def _actieve_beheerders_in(conn) -> int:
+    return (await conn.execute(
+        select(func.count()).select_from(db.users).where(
+            db.users.c.role == "beheerder", db.users.c.active.is_(True)
+        )
+    )).scalar() or 0
+
+
+async def _gelockte_user(conn, userid: str) -> User:
+    rij = (await conn.execute(
+        select(db.users).where(db.users.c.userid == _norm_userid(userid))
+    )).mappings().first()
+    if rij is None:
+        raise UserError(f"Onbekende gebruiker: {userid}")
+    return _row_to_user(rij)
+
+
 async def patch_user(userid: str, *, role: str | None = None, active: bool | None = None) -> User:
     """Combineer een rol- en/of active-wijziging in ÉÉN transactie, met de 'laatste actieve
     beheerder'-invariant getoetst op de EIND-toestand. Zo kan een gelijktijdige rol+active-patch
     (of twee parallelle patches) de laatste beheerder niet via twee losse checks laten verdwijnen
-    (TOCTOU). Op Postgres serialiseert een advisory xact-lock de check+write; op SQLite (tests) zijn
-    writes al geserialiseerd.
+    (TOCTOU).
+
+    De toets staat ná het slot (`_beheerdersslot`) en leest de doelrij daar opnieuw: met een rij van
+    vóór het slot zou een patch die een net gepromoveerde beheerder deactiveert de toets overslaan,
+    terwijl een andere transactie tegelijk de vorige beheerder degradeert.
     """
     if role is not None and role not in ROLLEN:
         raise UserError(f"Onbekende rol: {role!r}")
-    user = await _require_user(userid)
     waarden: dict = {}
     if role is not None:
         waarden["role"] = role
     if active is not None:
         waarden["active"] = active
     if not waarden:
-        return user
-    nieuw_role = role if role is not None else user.role
-    nieuw_active = active if active is not None else user.active
-    was_actieve_beheerder = user.role == "beheerder" and user.active
-    wordt_actieve_beheerder = nieuw_role == "beheerder" and nieuw_active
+        return await _require_user(userid)
     waarden["updated"] = _utcnow()
     async with db.get_engine().begin() as conn:
-        if was_actieve_beheerder and not wordt_actieve_beheerder:
-            if db.get_engine().url.get_backend_name() == "postgresql":
-                await conn.execute(
-                    text("SELECT pg_advisory_xact_lock(hashtext(:k))"), {"k": "actieve-beheerders"}
-                )
-            aantal = (await conn.execute(
-                select(func.count()).select_from(db.users).where(
-                    db.users.c.role == "beheerder", db.users.c.active.is_(True)
-                )
-            )).scalar() or 0
-            if aantal <= 1:
-                raise UserError("Kan de laatste actieve beheerder niet degraderen of deactiveren.")
-        await conn.execute(update(db.users).where(db.users.c.userid == userid).values(**waarden))
+        await _beheerdersslot(conn)
+        user = await _gelockte_user(conn, userid)
+        nieuw_role = role if role is not None else user.role
+        nieuw_active = active if active is not None else user.active
+        was_actieve_beheerder = user.role == "beheerder" and user.active
+        wordt_actieve_beheerder = nieuw_role == "beheerder" and nieuw_active
+        if was_actieve_beheerder and not wordt_actieve_beheerder and await _actieve_beheerders_in(conn) <= 1:
+            raise UserError("Kan de laatste actieve beheerder niet degraderen of deactiveren.")
+        await conn.execute(update(db.users).where(db.users.c.userid == user.userid).values(**waarden))
     user.role, user.active = nieuw_role, nieuw_active
     return user
 
@@ -611,11 +624,14 @@ async def delete_user(userid: str) -> list[str]:
     agent-geheugen ervan kan wissen; dat staat bij graph-qa, niet hier.
 
     De userid blijft bezet (`verwijderde_userids`). Audit en verbruik blijven staan: dat is wie wat deed."""
-    user = await _require_user(userid)
-    if user.role == "beheerder" and user.active and await _aantal_actieve_beheerders() <= 1:
-        raise UserError("Kan de laatste actieve beheerder niet verwijderen.")
     g, b = db.gesprekken, db.gesprek_berichten
     async with db.get_engine().begin() as conn:
+        # Toets en verwijdering in één transactie onder hetzelfde slot als `patch_user`: anders
+        # verwijderen twee beheerders elkaar tegelijk, of valt een degradatie tussen toets en delete.
+        await _beheerdersslot(conn)
+        user = await _gelockte_user(conn, userid)
+        if user.role == "beheerder" and user.active and await _actieve_beheerders_in(conn) <= 1:
+            raise UserError("Kan de laatste actieve beheerder niet verwijderen.")
         gesprekken = list((await conn.execute(select(g.c.id).where(g.c.user_id == user.userid))).scalars().all())
         if gesprekken:
             await conn.execute(delete(b).where(b.c.gesprek_id.in_(gesprekken)))

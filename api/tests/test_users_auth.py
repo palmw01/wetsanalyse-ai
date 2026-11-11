@@ -185,6 +185,50 @@ async def test_patch_user_gecombineerd_atomair(monkeypatch, db):
     assert u.role == "analist" and u.active is False
 
 
+async def test_gedeactiveerde_beheerder_telt_niet_mee(monkeypatch, db):
+    """Een tweede beheerder die niet actief is, redt de laatste actieve niet: die blijft beschermd."""
+    _fresh_settings(monkeypatch)
+    from app import users
+
+    await users.bootstrap_admin("admin", "admin@example.com", "wachtwoord1")
+    await users.create_user("slaper", "slaper@example.com", role="beheerder")
+    await users.patch_user("slaper", active=False)
+    for poging in (
+        lambda: users.patch_user("admin", role="analist"),
+        lambda: users.patch_user("admin", active=False),
+        lambda: users.delete_user("admin"),
+    ):
+        with pytest.raises(users.UserError):
+            await poging()
+    na = await users.get_user("admin")
+    assert na.role == "beheerder" and na.active is True
+
+    # Een inactieve beheerder mag weg of terug naar analist: dat raakt de telling niet.
+    await users.patch_user("slaper", role="analist")
+    await users.delete_user("slaper")
+    # Weer actief maken telt hem wél mee.
+    await users.create_user("terug", "terug@example.com", role="beheerder")
+    await users.patch_user("terug", active=False)
+    await users.patch_user("terug", active=True)
+    await users.patch_user("admin", role="analist")
+    assert (await users.get_user("terug")).role == "beheerder"
+
+
+async def test_laatste_beheerder_via_admin_api_en_userid_in_hoofdletters(client):
+    """De admin-API (en dus de admin-MCP en de webapp, die er allebei langs gaan) houdt dezelfde regel, ook als
+    de userid anders geschreven is."""
+    await client.post(
+        "/v1/auth/setup", json={"userid": "baas", "email": "boss@example.com", "password": "wachtwoord1"}
+    )
+    for pad in ("/v1/admin/users/baas", "/v1/admin/users/BAAS"):
+        assert (await client.patch(pad, json={"role": "analist"}, headers=_ADMIN)).status_code == 409
+        assert (await client.patch(pad, json={"active": False}, headers=_ADMIN)).status_code == 409
+        assert (await client.patch(pad, json={"role": "analist", "active": False}, headers=_ADMIN)).status_code == 409
+        assert (await client.delete(pad, headers=_ADMIN)).status_code == 409
+    me = (await client.get("/v1/auth/me", headers={"X-User-Id": "baas"})).json()
+    assert me["role"] == "beheerder"
+
+
 async def test_verify_credentials_dummy_bcrypt_bij_onbekende_user(monkeypatch, db):
     """Bij een onbekende/inactieve gebruiker draait tóch een bcrypt-verificatie (dummy-hash), zodat
     er geen timing-oracle 'bestaat + actief' ontstaat. We toetsen het waarneembare contract: de
@@ -1075,6 +1119,32 @@ async def test_laatste_beheerder_redt_zich_met_een_herstelcode(client):
     nieuw = (await client.post("/v1/auth/2fa/begin", json={"password": "wachtwoord1"}, headers=hdr)).json()["otpauth_uri"]
     res = await client.post("/v1/auth/2fa/activate", json={"totp": _totp_now(nieuw)}, headers=hdr)
     assert res.status_code == 200 and (await client.get("/v1/auth/me", headers=hdr)).json()["tfa_nodig"] is False
+
+
+async def test_enige_beheerder_zonder_2fa_logt_in_en_koppelt_opnieuw(client):
+    """Zet de enige beheerder zijn 2FA uit, dan zit hij niet vast: het inloggen vraagt alleen het wachtwoord,
+    het beheer met zijn naam is dicht tot hij koppelt, en koppelen kan hij zelf."""
+    await client.post(
+        "/v1/auth/setup", json={"userid": "baas", "email": "boss@example.com", "password": "wachtwoord1"}
+    )
+    hdr = {"X-User-Id": "baas"}
+    uri = (await client.post("/v1/auth/2fa/begin", json={"password": "wachtwoord1"}, headers=hdr)).json()["otpauth_uri"]
+    await client.post("/v1/auth/2fa/activate", json={"totp": _totp_now(uri)}, headers=hdr)
+    assert (await client.post("/v1/auth/2fa/disable", json={"totp": _totp_now(uri)}, headers=hdr)).status_code == 204
+
+    login = (await client.post("/v1/auth/verify", json={"userid": "baas", "password": "wachtwoord1"})).json()
+    assert login["ok"] is True and login["role"] == "beheerder"
+    me = (await client.get("/v1/auth/me", headers=hdr)).json()
+    assert me["role"] == "beheerder" and me["tfa_nodig"] is True
+    persoonlijk = "/v1/admin/users/baas/verbruik/reset"
+    assert (await client.post(persoonlijk, headers={**_ADMIN, **hdr})).status_code == 403
+
+    nieuw = (await client.post("/v1/auth/2fa/begin", json={"password": "wachtwoord1"}, headers=hdr)).json()["otpauth_uri"]
+    assert (await client.post("/v1/auth/2fa/activate", json={"totp": _totp_now(nieuw)}, headers=hdr)).status_code == 200
+    assert (await client.get("/v1/auth/me", headers=hdr)).json()["tfa_nodig"] is False
+    assert (await client.post(persoonlijk, headers={**_ADMIN, **hdr})).status_code == 200
+    # En de beheerder bleef al die tijd beheerder: het uitzetten raakt de rol niet.
+    assert (await client.patch("/v1/admin/users/baas", json={"role": "analist"}, headers=_ADMIN)).status_code == 409
 
 
 async def test_zonder_master_key_geen_koppeling_en_de_plicht_blijft(monkeypatch):
