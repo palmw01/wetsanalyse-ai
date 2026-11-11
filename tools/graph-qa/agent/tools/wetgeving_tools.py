@@ -760,7 +760,11 @@ def _get(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
     stuk = compact({"id": stuk_id, "label": f"{titel}, {_deel_label(b, lid if deel else '', o_nr if ':o:' in deel else '')}"
                              f" ({tekst_periode(t, vandaag)})",
                     "link": f"https://wetten.overheid.nl/{deel_jci or b.jci}" if (deel_jci or b.jci) else t.link,
-                    **{k: v for k, v in kop.items() if k != "bwb_id"}, "titel": titel, "nummer": bwb_id,
+                    # De titel is die van de bepaling (haar opschrift), zoals in de rij van zoek_artikelen: het label
+                    # noemt de regeling al, en een gelezen artikel stond in de lijst anders met de titel van de wet
+                    # (ronde 3, I13: "Artikel 2.3 …: Wet inkomstenbelasting 2001" tussen "Artikel 2.4: Bepalingen …").
+                    **{k: v for k, v in kop.items() if k != "bwb_id"}, "titel": (b.titel or "").strip() or titel,
+                    "nummer": bwb_id,
                     "inwerking": getattr(b, "inwerking", "") or "", "status": werking,
                     "publicatie": publicatie(getattr(b, "bron", None)),
                     "reeks": list(plek.koppen()) if plek else [], "leesbaar": True})
