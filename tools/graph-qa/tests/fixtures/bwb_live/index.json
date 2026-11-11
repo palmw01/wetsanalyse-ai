@@ -1,0 +1,130 @@
+{
+ "/bwb/BWBR0003045/2026-07-01_0/xml/BWBR0003045_2026-07-01_0.xml": {
+  "bestand": "8485328a4556b82c.xml.gz",
+  "status": 200
+ },
+ "/bwb/BWBR0004770/2020-01-01_1/xml/BWBR0004770_2020-01-01_1.xml": {
+  "bestand": "ef787b3f93638a36.xml.gz",
+  "status": 200
+ },
+ "/bwb/BWBR0005290/2026-10-08_0/xml/BWBR0005290_2026-10-08_0.xml": {
+  "bestand": "7981b3f24dba8fa8.xml.gz",
+  "status": 200
+ },
+ "/bwb/BWBR0011353/2026-02-21_0/xml/BWBR0011353_2026-02-21_0.xml": {
+  "bestand": "fcb298b5c2ae8442.xml.gz",
+  "status": 200
+ },
+ "/bwb/BWBR0015703/2015-01-01_1/xml/BWBR0015703_2015-01-01_1.xml": {
+  "bestand": "b3cb548942d7c16b.xml.gz",
+  "status": 200
+ },
+ "/bwb/BWBR0015703/2026-07-01_0/xml/BWBR0015703_2026-07-01_0.xml": {
+  "bestand": "3a5b22a5261dabb2.xml.gz",
+  "status": 200
+ },
+ "/bwb/BWBR0035917/2026-01-01_0/xml/BWBR0035917_2026-01-01_0.xml": {
+  "bestand": "8b7d0e69cce016e3.xml.gz",
+  "status": 200
+ },
+ "query=dcterms.identifier=BWBR0003045 and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=20": {
+  "bestand": "6f903afab586a3d0.xml.gz",
+  "status": 406
+ },
+ "query=dcterms.identifier=BWBR0004770 and overheidbwb.geldigheidsdatum=2020-01-01 | startRecord=1 | maximumRecords=20": {
+  "bestand": "a8424c1051e23295.xml.gz",
+  "status": 406
+ },
+ "query=dcterms.identifier=BWBR0004770 and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=20": {
+  "bestand": "5701b664b0a29829.xml.gz",
+  "status": 406
+ },
+ "query=dcterms.identifier=BWBR0005290 and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=20": {
+  "bestand": "40e2b37df1e77502.xml.gz",
+  "status": 406
+ },
+ "query=dcterms.identifier=BWBR0011353 and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=20": {
+  "bestand": "74111d2f559caf8b.xml.gz",
+  "status": 406
+ },
+ "query=dcterms.identifier=BWBR0015703 and overheidbwb.geldigheidsdatum=2015-01-15 | startRecord=1 | maximumRecords=20": {
+  "bestand": "e99d1f633eb3f1c9.xml.gz",
+  "status": 406
+ },
+ "query=dcterms.identifier=BWBR0015703 and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=20": {
+  "bestand": "b31576ab64bd41b4.xml.gz",
+  "status": 406
+ },
+ "query=dcterms.identifier=BWBR0015703 | startRecord=1 | maximumRecords=1000": {
+  "bestand": "2282f9d0af25c487.xml.gz",
+  "status": 406
+ },
+ "query=dcterms.identifier=BWBR0035917 and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=20": {
+  "bestand": "54ae04f2ae6f81af.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.afkorting=\"Participatiewet\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=100": {
+  "bestand": "09fa593162c8ab62.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.afkorting=\"Participatiewet\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=20": {
+  "bestand": "5bc39b90ad4f74e5.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.afkorting=\"Pw\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=100": {
+  "bestand": "3344b62dd1509964.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.afkorting=\"Pw\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=20": {
+  "bestand": "fa4c7ef7ba3d5a45.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.afkorting=\"Wet langdurige zorg\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=100": {
+  "bestand": "d5f314352b5275cf.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.afkorting=\"Wet op de robotbelasting\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=100": {
+  "bestand": "a058b3f6f80deff5.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.titel adj \"Burgerlijk Wetboek Boek 2\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=50": {
+  "bestand": "3a43dbf3b46bc390.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.titel adj \"Burgerlijk Wetboek Boek 7\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=50": {
+  "bestand": "ea8c7fd150cbd6f9.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.titel adj \"Participatiewet\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=100": {
+  "bestand": "19a3c0ed0f6d6024.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.titel adj \"Participatiewet\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=50": {
+  "bestand": "3d2fc0de170eee17.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.titel adj \"Pw\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=100": {
+  "bestand": "e8d20ab5d5f56d34.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.titel adj \"Pw\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=50": {
+  "bestand": "cfd6dc24a59fde83.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.titel adj \"Wet langdurige zorg\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=100": {
+  "bestand": "e23c08124c4507f7.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.titel adj \"Wet op de robotbelasting\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=100": {
+  "bestand": "25a57192fca0256b.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.titel adj \"Wet op de robotbelasting\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=50": {
+  "bestand": "771d7ec0187f0d79.xml.gz",
+  "status": 406
+ },
+ "query=overheidbwb.titel all \"Wet op de robotbelasting\" and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=100": {
+  "bestand": "ec0668fe9ddbc963.xml.gz",
+  "status": 406
+ }
+}

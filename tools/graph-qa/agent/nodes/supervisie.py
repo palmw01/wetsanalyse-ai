@@ -177,6 +177,32 @@ def _te_lezen(state: State, vraag: str) -> list[dict[str, Any]]:
     return uit[:MAX_GENOEMD]
 
 
+def _buiten_graaf(b: Bouw, state: State, vraag: str) -> list[Any]:
+    """De regelingen die de vraag noemt en die niet in de kennisgraaf staan (`agent/buiten_graaf.py`), alleen als de
+    connector `wetgeving_live` in deze beurt aanstaat: anders gaat er geen verzoek naar overheid.nl. Een storing is leeg."""
+    from datetime import date
+
+    from .. import buiten_graaf
+    from ..tools.connectortools import MODULES
+
+    if not ((state.get("bronstand") or {}).get("wetgeving_live") or {}).get("aan"):
+        return []
+    try:
+        bron = MODULES["wetgeving_live"].bron(b.settings)
+        return buiten_graaf.genoemd(vraag, b.graph, bron, vandaag=date.today().isoformat())
+    except Exception:  # noqa: BLE001 – de herkenning is een hulp, geen voorwaarde
+        logger.warning("regelingen buiten de graaf niet herkend", exc_info=True)
+        return []
+
+
+def _keuze_regeling(writer, vraag_terug: str) -> dict[str, Any]:
+    """Een afkorting die bij meer regelingen past ("Pw"): de vraag terug, zonder model en zonder te gokken."""
+    _stap(writer, "Lex", "vraagt welke regeling je bedoelt", route="regeling_kiezen")
+    return {"specialist": "", "plan": "", "worker_plan": [], "worker_idx": 0, "afwijzen": True,
+            "afwijs_melding": vraag_terug, "afwijs_stap": "niet gezocht – welke regeling bedoeld is, is niet eenduidig",
+            "annotaties_lezen": False}
+
+
 def _lees_genoemd(writer, aanroepen: list[dict[str, Any]], vraag: str) -> dict[str, Any]:
     """Een vraag die alleen over genoemde stukken gaat: lezen in code, dan formuleert de duiding. Geen supervisorcall."""
     _stap(writer, "Lex", "leest het stuk dat je noemt" if len(aanroepen) == 1 else "leest de stukken die je noemt",
@@ -366,6 +392,20 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # Een vraag naar een bron die uit staat: zeggen wie hem aanzet, niet raden of afwijzen (ADR-013).
         return uit
     vraag_nu = state.get("question", "")
+    # Een regeling buiten de kennisgraaf (connector wetgeving_live): een dubbelzinnige afkorting is een vraag terug; een
+    # eenduidig genoemd artikel leest de code vooraf, in een nieuw gesprek zonder supervisorcall (zoals een genoemd stuk).
+    buiten = _buiten_graaf(b, state, vraag_nu) if modus == "auto" else []
+    from .. import buiten_graaf
+    if (terug := buiten_graaf.keuzevraag(buiten)) and not any(g.bwb_id for g in buiten):
+        return _keuze_regeling(writer, terug)
+    if not gesprek and (live := buiten_graaf.leesaanroepen(buiten)) and len(live) == 1:
+        g = next(x for x in buiten if x.bwb_id and x.artikel)
+        _stap(writer, "Lex", f"leest artikel {g.artikel} van de {g.titel} bij overheid.nl (niet in de kennisgraaf)",
+              route="bron_lezen")
+        return {"specialist": "duiding", "worker_plan": ["duiding"], "worker_idx": 0, "afwijzen": False,
+                "annotaties_lezen": False, "bron_lezen": live,
+                "plan": "Beantwoord de vraag uit de tekst van het genoemde artikel, die al is opgehaald."
+                        + buiten_graaf.plan_regel(buiten)}
     if modus == "auto" and (aanroepen := _te_lezen(state, vraag_nu)) and not lees_aanwijzing(vraag_nu).artikelen:
         # De vraag noemt een stuk bij zijn id: lezen in code, zoals een genoemd artikel (acceptatie 8 nov 2026: zes
         # rondes zoeken voor kst-35496-F). Ook in een lopend gesprek: het id staat er letterlijk.
@@ -478,6 +518,13 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     if eerste in ("duiding", "definitie", "algemeen") and (aanroepen := _te_lezen(state, zelfstandig)):
         # Noemt de (herschreven) vraag ook een stuk bij id, dan leest de code het eerst; de agent zoekt de rest.
         upd["bron_lezen"] = aanroepen
+    if eerste in ("duiding", "definitie", "algemeen") and modus == "auto" and (
+            buiten := _buiten_graaf(b, state, zelfstandig)):
+        # Een regeling buiten de kennisgraaf: het plan zegt welke, en een genoemd artikel leest de code eerst.
+        from .. import buiten_graaf
+        plan += buiten_graaf.plan_regel(buiten)
+        if live := buiten_graaf.leesaanroepen(buiten):
+            upd["bron_lezen"] = [*(upd.get("bron_lezen") or []), *live][:MAX_GENOEMD]
     _stap(writer, "Lex", _WORKER_STAP.get(eerste, f"zoekt het antwoord in {bronstand.waar(state.get('bronstand'))}"),
           route=eerste)
     logger.info("worker gekozen", extra={"categorie": "functioneel", "worker": eerste})

@@ -22,6 +22,7 @@ aan beide kanten niet mee.
 """
 from __future__ import annotations
 
+import io
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -91,14 +92,15 @@ def _tekst_zonder(element: etree._Element) -> str:
     return _WS.sub(" ", "".join(delen)).strip()
 
 
-def bron_tekens(xml_pad: str | Path) -> int:
+def bron_tekens(xml_pad: str | Path | bytes) -> int:
     """Tekstomvang van de wettekst in de bron-XML, zoals de importer hem hoort over te nemen.
 
     Bijlagen horen erbij. Ze staan náást de wettekst, en zolang de meting dat volgde kon Bijlage 2
     van de Awb (66.086 tekens) ontbreken terwijl de dekking op 104% stond. Eén xpath over de
     alinea's, zodat een alinea hoogstens één keer telt, hoe de containers ook genest zijn.
     """
-    wortel = etree.parse(str(xml_pad)).getroot()
+    bron = io.BytesIO(xml_pad) if isinstance(xml_pad, bytes) else str(xml_pad)
+    wortel = etree.parse(bron).getroot()
     alineas = wortel.xpath(
         "//al[(ancestor::wettekst or ancestor::regeling-tekst or ancestor::circulaire-tekst"
         " or ancestor::bijlage) and not(ancestor::opmerkingen-inhoud) and not(ancestor::meta-data)]"

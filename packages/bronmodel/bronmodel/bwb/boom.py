@@ -26,11 +26,19 @@ class Plek:
         """De koppen boven het artikel, van boven naar beneden: "Hoofdstuk 3 – Algemene bijstand"."""
         uit = []
         if self.bijlage is not None:
-            uit.append(_kop(self.bijlage.label, self.bijlage.titel))
-        uit.extend(_kop(s.label, s.titel) for s in self.structuur)
+            uit.append(_kop(_met_nummer(self.bijlage.label, self.bijlage.nummer), self.bijlage.titel))
+        uit.extend(_kop(_met_nummer(s.label, s.nummer), s.titel) for s in self.structuur)
         if self.divisie is not None:
-            uit.append(_kop(self.divisie.label, self.divisie.titel))
+            uit.append(_kop(_met_nummer(self.divisie.label, self.divisie.nummer), self.divisie.titel))
         return tuple(k for k in uit if k)
+
+
+def _met_nummer(label: str | None, nummer: str | None) -> str:
+    """"Hoofdstuk" + "1" → "Hoofdstuk 1"; een label dat het nummer al draagt ("Artikel 9.4") blijft."""
+    label, nummer = (label or "").strip(), (nummer or "").strip().rstrip(".")
+    if not nummer or nummer in label.split():
+        return label
+    return f"{label} {nummer}".strip()
 
 
 def _kop(label: str | None, titel: str | None) -> str:

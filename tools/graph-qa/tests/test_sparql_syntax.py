@@ -24,7 +24,8 @@ import pytest
 import agent
 from agent import begrip_kaart, bronnen_vinden, plekken, regelingnamen, zoekvragen
 from agent.graph import queries as q
-from agent.tools import begrip_tools, bekendmaking_tools, rechtspraak_tools
+from agent import tools as _tools
+from agent.tools import begrip_tools, bekendmaking_tools, rechtspraak_tools, wetgeving_tools
 
 rdflib = pytest.importorskip("rdflib", reason="rdflib is een dev-only parser-afhankelijkheid")
 from rdflib.plugins.sparql import prepareQuery  # noqa: E402
@@ -96,6 +97,8 @@ GEVALLEN: list[tuple[str, str]] = [
     ("regelingnamen._query", regelingnamen._query([IW])),
     ("zoekvragen.q_subdivisies", zoekvragen.q_subdivisies([f"urn:bwb:{IW}:artikel:4"], 10)),
     ("tools.begrip_tools.q_begrippen", begrip_tools.q_begrippen("bestuurder", ["onderzocht"], "wg", 10)),
+    ("tools.__init__._q_regeling_bestaat", _tools._q_regeling_bestaat(IW)),
+    ("tools.wetgeving_tools.q_in_graaf", wetgeving_tools.q_in_graaf([IW, "BWBR0015703"])),
 ]
 
 

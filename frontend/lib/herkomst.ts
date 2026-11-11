@@ -144,7 +144,9 @@ export type StandSoort = "nog-niet-in-werking" | "gelezen-ouder" | "na-peildatum
   // Een stuk uit een bronconnector (`lib/bronStuk.ts`).
   | "stuk-gewijzigd" | "bewaarde-versie" | "alleen-pdf"
   // Bij welke tekst van de bepaling een stuk hoort (`tekstBijMeldingen`).
-  | "eerdere-tekst" | "buiten-peildatum" | "tekststand-onbekend";
+  | "eerdere-tekst" | "buiten-peildatum" | "tekststand-onbekend"
+  // Een wettekst die Lex buiten de kennisgraaf las (brontype `wettekst_live`, `wettekstMeldingen`).
+  | "toekomstige-tekst" | "vervallen" | "buiten-graaf";
 export interface StandMeldingData { soort: StandSoort; tekst: string }
 
 export const NOG_NIET_IN_WERKING: StandMeldingData = {
@@ -192,12 +194,35 @@ export function tekstPeriode(t: TekstBij): string {
 /** Het korte label bij een melding over de tekst, voor een rij in een lijst. */
 export const TEKSTSTAND_LABEL: Partial<Record<StandSoort, string>> = {
   "eerdere-tekst": "eerdere tekst", "buiten-peildatum": "niet op de peildatum", "tekststand-onbekend": "tekst onbekend",
+  "toekomstige-tekst": "toekomstige tekst", "vervallen": "vervallen", "nog-niet-in-werking": "nog niet in werking",
 };
+
+/** Het brontype van een wettekst die Lex live bij overheid.nl las, buiten de kennisgraaf (ADR-013, fase 1e). */
+export const WETTEKST_LIVE = "wettekst_live";
+
+/** Wat er te zeggen valt over een wettekst buiten de kennisgraaf: dat hij niet uit de graaf komt, welke tekst het is
+ *  (een eerdere of een toekomstige) en de status van de bepaling (vervallen, nog niet in werking). Anders dan bij een
+ *  uitspraak gaat het hier om de tekst zelf, niet om de tekst waar een stuk bij hoort. */
+export function wettekstMeldingen(t: TekstBij & { status?: string }): StandMeldingData[] {
+  const uit: StandMeldingData[] = [];
+  const periode = tekstPeriode(t);
+  if (t.tekststand === "eerdere tekst") {
+    uit.push({ soort: "eerdere-tekst", tekst: `Dit is ${periode || "een eerdere tekst"}: een eerdere tekst dan die nu geldt.` });
+  } else if (t.tekststand === "toekomstige tekst") {
+    uit.push({ soort: "toekomstige-tekst", tekst: `Deze tekst gaat pas gelden${t.tekst_vanaf ? ` op ${datumTekst(t.tekst_vanaf)}` : ""}.` });
+  }
+  const status = t.status ?? "";
+  if (status.startsWith("nog niet")) uit.push({ soort: "nog-niet-in-werking", tekst: `Deze bepaling is ${status}.` });
+  else if (status.startsWith("vervallen")) uit.push({ soort: "vervallen", tekst: `Deze bepaling is ${status}.` });
+  uit.push({ soort: "buiten-graaf", tekst: "Deze tekst komt live van overheid.nl en staat niet in de kennisgraaf: annoteren of opnemen in een werkgebied kan pas na een import." });
+  return uit;
+}
 
 /** Wat er te zeggen valt over de tekst van de bepaling waarbij een stuk hoort (review ADR-013, 10 nov 2026): een
  *  eerdere tekst dan die in de graaf, een andere dan op de peildatum, of niet vast te stellen. De graaf draagt één
  *  toestand per regeling; de zin suggereert nooit dat de oudere tekst er is. */
-export function tekstBijMeldingen(t: TekstBij): StandMeldingData[] {
+export function tekstBijMeldingen(t: TekstBij, brontype?: string): StandMeldingData[] {
+  if (brontype === WETTEKST_LIVE) return wettekstMeldingen(t);
   const uit: StandMeldingData[] = [];
   if (t.tekststand === "eerdere tekst") {
     const periode = tekstPeriode(t);

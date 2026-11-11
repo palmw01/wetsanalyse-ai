@@ -41,6 +41,9 @@ _STRUCTUUR_TAGS = {
     "titeldeel": "titeldeel",
     "afdeling": "afdeling",
     "paragraaf": "paragraaf",
+    # Een paragraaf binnen een paragraaf (Boek 7 BW, titel 7.10). Geen eigen soort in de graaf: een geneste paragraaf. De
+    # IRI van een artikel verandert er niet door (die noemt alleen het artikel).
+    "sub-paragraaf": "paragraaf",
 }
 
 
@@ -237,6 +240,13 @@ class ToestandParser:
                 continue
             if tag == "artikel":
                 artikelen.append(self._parse_artikel(child, bwb_id))
+            elif tag == "boek" and element.tag == "wettekst":
+                # Een boek van het Burgerlijk Wetboek is een eigen regeling (Boek 7 is BWBR0005290), en zijn wettekst is
+                # precies één `<boek>`. Het is dus geen deel binnen de regeling maar de regeling zelf: zijn titeldelen
+                # horen er direct onder. De jci noemt het boek, maar een vindplaats rekent het niet mee
+                # (`bronmodel.vindplaats`: alleen hoofdstuk, titeldeel, afdeling en paragraaf), dus de IRI verandert
+                # niet. Zonder deze tak viel de hele tekst als "onbekende structuur" weg.
+                self._lees_kinderen(child, bwb_id, delen, artikelen, tekst)
             elif self._structuursoort(child):
                 delen.append(self._parse_structuurdeel(child, bwb_id))
             elif tag not in tekst:

@@ -567,7 +567,17 @@ async def bron_stuk(connector: str, stuk_id: str, offset: int = 0, tabel: int | 
     args: dict = {c.lees_argument: stuk_id, "offset": max(offset, 0)}
     if tabel is not None:
         args["tabel"] = tabel
-    ruw = await run_in_threadpool(dispatch, c.leestool, None, args, settings, bronnen=[c.naam])
+    # Een wettekst buiten de kennisgraaf vraagt de graaf eerst of de regeling erin staat (dan komt de tekst daarvandaan,
+    # niet live): zonder graaf weigert de leestool, dus het venster krijgt er hier een (één verbinding per verzoek).
+    graaf = None
+    if c.brontype == "wettekst_live":
+        from agent.adapters.graphdb_graph import make_graph
+        graaf = make_graph(settings)
+    try:
+        ruw = await run_in_threadpool(dispatch, c.leestool, graaf, args, settings, bronnen=[c.naam])
+    finally:
+        if graaf is not None:
+            graaf.close()
     try:
         resultaat = json.loads(ruw)
     except ValueError:

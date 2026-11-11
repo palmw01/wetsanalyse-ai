@@ -31,3 +31,19 @@ def test_artikelen_in_documentvolgorde_met_plek() -> None:
     rijen = list(artikelen(ToestandParser().parse(pad)))
     assert rijen, "geen artikelen gelezen"
     assert len({id(a) for _, a in rijen}) == len(rijen)
+
+
+def test_een_boek_van_het_bw_is_de_regeling_zelf():
+    """Boek 7 BW (BWBR0005290) heeft als wettekst precies één `<boek>`. De lezer leest erdoorheen: dezelfde artikelen en
+    tekst als zonder die omhulling, niets overgeslagen, en de IRI's veranderen niet."""
+    pad = next(p for p in TOESTANDEN if p.name == "sample_toestand.xml")
+    xml = pad.read_text(encoding="utf-8")
+    kop, staart = xml.split("<wettekst", 1)
+    open_tag, rest = staart.split(">", 1)
+    inhoud, slot = rest.rsplit("</wettekst>", 1)
+    met_boek = (f"{kop}<wettekst{open_tag}><boek><kop><label>Boek</label><nr>7</nr><titel>Test</titel></kop>"
+                f"{inhoud}</boek></wettekst>{slot}").encode("utf-8")
+    zonder, met = ToestandParser().parse(pad), ToestandParser().parse(met_boek)
+    assert not met.overgeslagen
+    assert [a.nummer for _, a in artikelen(met)] == [a.nummer for _, a in artikelen(zonder)]
+    assert model_tekens(met) == model_tekens(zonder)
