@@ -49,6 +49,7 @@ def _tsv(kop: list[str], rijen: list[list[str]]) -> str:
 
 
 _DATUM = '"2010-07-04"^^<http://www.w3.org/2001/XMLSchema#date>'
+_DATUM_2026 = '"2026-01-01"^^<http://www.w3.org/2001/XMLSchema#date>'
 #: Wat de acceptatiegraaf op 10 nov 2026 antwoordde: de koppelingen van Iw art. 36 en de regelingen bij drie publicaties.
 GRAAF = {
     "art36": _tsv(["waarde", "rol", "inwerking", "aantal"],
@@ -58,6 +59,9 @@ GRAAF = {
         ["Stb.2009-610", "wijziging", "BWBR0002320", '"Algemene wet inzake rijksbelastingen"@nl', "1"],
         ["Stb.2009-610", "wijziging", IW, '"Invorderingswet 1990"@nl', "1"],
         ["Stb.2010-176", "inwerkingtreding", IW, '"Invorderingswet 1990"@nl', "1"]]),
+    # AWR art. 67f, zoals de acceptatiegraaf op 11 nov 2026 antwoordde.
+    "awr67f": _tsv(["waarde", "rol", "inwerking", "aantal"],
+                   [["Stb.2025-431", "wijziging", _DATUM_2026, "1"], ["Stb.2025-431", "inwerkingtreding", _DATUM_2026, "1"]]),
 }
 
 
@@ -65,7 +69,7 @@ def _graaf(soort: str | None) -> FakeGraph:
     def antwoord(q: str) -> str:
         if "VALUES ?waarde" in q:
             return GRAAF["regelingen"] if soort == "regelingen" else ""
-        return GRAAF["art36"] if soort == "art36" else ""
+        return GRAAF[soort] if soort in ("art36", "awr67f") else ""
     return FakeGraph(results=antwoord)
 
 
@@ -155,7 +159,7 @@ def test_de_tool_levert_wat_de_set_verwacht(v: dict):
     if "wetsverwijzing_bevat" in e:
         assert e["wetsverwijzing_bevat"] in d["stuk"].get("wetsverwijzing", ""), d["stuk"]
     if "onderdelen" in e:
-        assert {r["kop"].split(" › ")[1] for r in rijen if r.get("kop")} == set(e["onderdelen"])
+        assert {r["kop"].split(" › ")[1] for r in rijen if " › " in r.get("kop", "")} == set(e["onderdelen"])
 
 
 def test_de_set_dekt_het_geheel():

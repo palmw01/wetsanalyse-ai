@@ -1,74 +1,559 @@
 {
-  "uitleg": "De vragenset van de connector Staatsblad en Staatscourant (ADR-013, 1d), uit het domein belastingen en invordering. Eén set voor drie plekken: de adaptertoets met opgenomen antwoorden (tests/test_bekendmakingen_vragenset.py, opnemen met BEKENDMAKINGEN_OPNEMEN=1), de browsertoets (frontend/scripts/test-bronvenster-bekendmaking.mjs) en de meting op acceptatie (docs/acceptatie/connectors-meting.md, alleen na akkoord). Per vraag: welke tool met welke argumenten, of de code de vraag zelf leest (`route`: lijstvraag of genoemd stuk, zonder model), wat de code van het resultaat eist (`verwacht`) en wat een goed antwoord van Lex is (`goed`).",
-  "vragen": [
-    {"id": "B01", "soort": "recentheid", "vraag": "Wat zijn de 10 meest recente publicaties?",
-     "route": "lijstvraag", "tool": "zoek_bekendmakingen", "args": {"volgorde": "nieuwste", "aantal": 10},
-     "verwacht": {"aantal": 10, "nieuwste_eerst": true, "stcrt_regelgevend": true},
-     "goed": "Een lijst (blok stukken) van tien publicaties, nieuwste eerst, met blad, soort en datum uit KOOP; uit de Staatscourant alleen regelgeving en beleid, geen aankondigingen over personen."},
-    {"id": "B02", "soort": "recentheid per soort", "vraag": "Geef de 5 nieuwste beleidsregels in de Staatscourant",
-     "route": "lijstvraag", "tool": "zoek_bekendmakingen",
-     "args": {"volgorde": "nieuwste", "aantal": 5, "soort": "beleidsregel", "publicatie": "Staatscourant"},
-     "verwacht": {"aantal": 5, "nieuwste_eerst": true, "alle": {"publicatie": "Staatscourant", "soort": "beleidsregel"}},
-     "goed": "Vijf beleidsregels uit de Staatscourant, nieuwste eerst, met datum en ministerie; de zoekvraag in woorden erboven."},
-    {"id": "B03", "soort": "per regeling", "vraag": "Welke wijzigingen van de Invorderingswet 1990 zijn er sinds 2024 gepubliceerd?",
-     "route": "model", "tool": "zoek_bekendmakingen", "args": {"woorden": "Invorderingswet 1990", "vanaf": "2024", "volgorde": "nieuwste"},
-     "verwacht": {"nieuwste_eerst": true, "datum_vanaf": "2024-01-01"},
-     "goed": "De publicaties met de Invorderingswet 1990 in de titel sinds 2024, nieuwste eerst, en de kanttekening dat een verzamelwet (een Belastingplan) de wet kan wijzigen zonder haar in de titel te noemen; eventueel aangevuld met zoek_bekendmakingen per bepaling."},
-    {"id": "B04", "soort": "inwerkingtreding", "vraag": "Wanneer trad artikel 36 van de Invorderingswet 1990 in werking en welk besluit regelde dat?",
-     "route": "model", "tool": "zoek_bekendmakingen", "args": {"bwb_id": "BWBR0004770", "artikel": "36"}, "graaf": "art36",
-     "verwacht": {"ids": ["stb-2009-610", "stb-2010-176"], "inwerking": "2010-07-04",
-                  "wetsverwijzing": {"stb-2009-610": "laatste wijziging", "stb-2010-176": "inwerkingtreding"}},
-     "goed": "De huidige tekst van artikel 36 geldt sinds 4 juli 2010; de wijziging staat in Stb. 2009, 610, de inwerkingtreding in Stb. 2010, 176 – met de grens dat dit de toestand is die Lex leest."},
-    {"id": "B05", "soort": "beleid in de Staatscourant", "vraag": "Welke wijzigingen van de Leidraad Invordering 2008 zijn er recent in de Staatscourant gepubliceerd?",
-     "route": "model", "tool": "zoek_bekendmakingen",
-     "args": {"publicatie": "Staatscourant", "woorden": "Leidraad Invordering", "volgorde": "nieuwste", "aantal": 5},
-     "verwacht": {"eerste": "stcrt-2026-37344", "nieuwste_eerst": true, "alle": {"publicatie": "Staatscourant"}},
-     "goed": "De nieuwste besluiten tot wijziging van de Leidraad Invordering 2008, met Stcrt. 2026, 37344 (30 oktober 2026) bovenaan."},
-    {"id": "B06", "soort": "één publicatie lezen", "vraag": "Wat staat er in Stb. 2010, 176?",
-     "route": "genoemd stuk", "tool": "get_bekendmaking", "args": {"id": "stb-2010-176"}, "graaf": "regelingen",
-     "verwacht": {"stuk": {"label": "Stb. 2010, 176", "publicatie": "Staatsblad"}, "tekst_bevat": "in werking",
-                  "wetsverwijzing_bevat": "Invorderingswet 1990"},
-     "goed": "Het inwerkingtredingsbesluit, met letterlijke passages in het blok extern, de datum en het soort uit stuk, en welke regeling het in werking zet."},
-    {"id": "B07", "soort": "alleen een PDF", "vraag": "Wat staat er in stb-1990-222?",
-     "route": "genoemd stuk", "tool": "get_bekendmaking", "args": {"id": "stb-1990-222"},
-     "verwacht": {"reden": "alleen_pdf"},
-     "goed": "Lex zegt dat Stb. 1990, 222 (de Invoeringswet Invorderingswet 1990, 1990) bij KOOP alleen als PDF bestaat, geeft de link en citeert er niet uit."},
-    {"id": "B08", "soort": "wat veranderde aan één artikel", "vraag": "Wat veranderde stcrt-2026-37344 aan artikel 1.1.5 van de Leidraad Invordering 2008?",
-     "route": "model", "tool": "get_bekendmaking", "args": {"id": "stcrt-2026-37344", "artikel": "1.1.5"},
-     "verwacht": {"onderdelen": ["A"]},
-     "goed": "Alleen onderdeel A: twee gedachtestreepjes na het eerste in artikel 1.1.5 (bezwaarschriften tegen uitstel van betaling en tegen kwijtschelding), letterlijk geciteerd; 1.1.5b en 1.1.5c niet."},
-    {"id": "B09", "soort": "koppeling met Kamerstukken", "vraag": "Bij welk wetsvoorstel hoort Stb. 2013, 568?",
-     "route": "genoemd stuk", "tool": "get_bekendmaking", "args": {"id": "stb-2013-568"},
-     "verwacht": {"stuk": {"reeks": ["33755"]}},
-     "goed": "Het Kamerdossier 33755 (uit w.behandeldDossier), met het aanbod de memorie van toelichting te lezen als Kamerstukken aanstaat."},
-    {"id": "B10", "soort": "telling en filter", "vraag": "Hoeveel ministeriële regelingen van het Ministerie van Financiën staan er uit 2025 in de Staatscourant?",
-     "route": "lijstvraag", "tool": "zoek_bekendmakingen",
-     "args": {"soort": "ministeriële regeling", "orgaan": "Ministerie van Financiën", "publicatie": "Staatscourant", "vanaf": "2025", "tot": "2025"},
-     "verwacht": {"totaal_min": 10, "alle": {"publicatie": "Staatscourant", "orgaan": "Ministerie van Financiën"}, "datum_vanaf": "2025-01-01", "datum_tot": "2025-12-31"},
-     "goed": "Het aantal uit 'totaal' (KOOP telt), met de zoekvraag erbij; geen getal uit eigen kennis. Een lijstvraag sinds de meting van 10 nov 2026 (\"hoeveel\" is een vulwoord): het blok zegt \"N van de 38 stukken\"."},
-    {"id": "B11", "soort": "rectificatie", "vraag": "Welke verbeterbladen staan er in het Staatsblad van 2018?",
-     "route": "lijstvraag", "tool": "zoek_bekendmakingen", "args": {"soort": "verbeterblad", "publicatie": "Staatsblad", "vanaf": "2018", "tot": "2018"},
-     "verwacht": {"totaal_min": 1, "alle": {"publicatie": "Staatsblad", "soort": "Verbeterblad"}, "datum_vanaf": "2018-01-01", "datum_tot": "2018-12-31"},
-     "goed": "De verbeterbladen van 2018 met hun id (stb-2018-…-n1), en dat een verbeterblad een eerdere publicatie herstelt."},
-    {"id": "B12", "soort": "tweede versie", "vraag": "Wat staat er in stcrt-2024-20015-n1?",
-     "route": "genoemd stuk", "tool": "get_bekendmaking", "args": {"id": "stcrt-2024-20015-n1"},
-     "verwacht": {"stuk": {"label": "Stcrt. 2024, 20015 (versie n1)"}},
-     "goed": "De tweede versie (n1) van de wijziging van de Leidraad Invordering 2008 van 1 juli 2024, met het label en de datum uit KOOP, en dat er een eerdere versie is (stcrt-2024-20015, 28 juni 2024). Vroeger stond hier een herdruk over onderwijs (stb-2010-185-n1): daar weigerde Lex een antwoord (meting 10 nov 2026, B12); een genoemd stuk buiten het domein vat hij nu samen met één zin dat het buiten invordering en belastingen valt."},
-    {"id": "B13", "soort": "niet bestaand nummer", "vraag": "Wat staat er in Stb. 2099, 1?",
-     "route": "genoemd stuk", "tool": "get_bekendmaking", "args": {"id": "stb-2099-1"},
-     "verwacht": {"reden": "niet_gevonden"},
-     "goed": "Lex zegt dat Stb. 2099, 1 niet in de officiële publicaties staat, en verzint niets."},
-    {"id": "B14", "soort": "zonder treffers", "vraag": "Welke publicaties in de Staatscourant gaan over robotbelasting?",
-     "route": "lijstvraag", "tool": "zoek_bekendmakingen", "args": {"publicatie": "Staatscourant", "tekst": "robotbelasting"},
-     "verwacht": {"aantal": 0},
-     "goed": "Een leemte met de zoekvraag in woorden: er is niets gevonden, en dat bewijst niet dat het niet bestaat."},
-    {"id": "B15", "soort": "buiten de bron", "vraag": "Wat zijn de nieuwste deurwaardersexploten in de Staatscourant?",
-     "route": "model", "tool": "zoek_bekendmakingen", "args": {"publicatie": "Staatscourant", "soort": "deurwaardersexploot", "volgorde": "nieuwste"},
-     "verwacht": {"aantal": 0},
-     "goed": "Lex zegt dat aankondigingen over personen (deurwaardersexploten) buiten de bron vallen; geen namen."},
-    {"id": "B16", "soort": "welke regeling een publicatie wijzigt", "vraag": "Welke regelingen wijzigt Stb. 2009, 610?",
-     "route": "genoemd stuk", "tool": "get_bekendmaking", "args": {"id": "stb-2009-610"}, "graaf": "regelingen",
-     "verwacht": {"wetsverwijzing_bevat": "Algemene wet inzake rijksbelastingen"},
-     "goed": "Volgens de BWB wijzigt Stb. 2009, 610 de Invorderingswet 1990 en de AWR (en zet een deel van de AWR in werking), met het aantal bepalingen – voor de toestand die Lex leest."}
-  ]
+ "uitleg": "De vragenset van de connector Staatsblad en Staatscourant (ADR-013, 1d), uit het domein belastingen en invordering. Eén set voor drie plekken: de adaptertoets met opgenomen antwoorden (tests/test_bekendmakingen_vragenset.py, opnemen met BEKENDMAKINGEN_OPNEMEN=1), de browsertoets (frontend/scripts/test-bronvenster-bekendmaking.mjs) en de meting op acceptatie (docs/acceptatie/connectors-meting.md, alleen na akkoord). Een vraag met `vervolg_op` volgt in hetzelfde gesprek op die vraag. Per vraag: welke tool met welke argumenten, of de code de vraag zelf leest (`route`: lijstvraag of genoemd stuk, zonder model), wat de code van het resultaat eist (`verwacht`) en wat een goed antwoord van Lex is (`goed`).",
+ "vragen": [
+  {
+   "id": "B01",
+   "soort": "recentheid",
+   "vraag": "Wat zijn de 10 meest recente publicaties?",
+   "route": "lijstvraag",
+   "tool": "zoek_bekendmakingen",
+   "args": {
+    "volgorde": "nieuwste",
+    "aantal": 10
+   },
+   "verwacht": {
+    "aantal": 10,
+    "nieuwste_eerst": true,
+    "stcrt_regelgevend": true
+   },
+   "goed": "Een lijst (blok stukken) van tien publicaties, nieuwste eerst, met blad, soort en datum uit KOOP; uit de Staatscourant alleen regelgeving en beleid, geen aankondigingen over personen."
+  },
+  {
+   "id": "B02",
+   "soort": "recentheid per soort",
+   "vraag": "Geef de 5 nieuwste beleidsregels in de Staatscourant",
+   "route": "lijstvraag",
+   "tool": "zoek_bekendmakingen",
+   "args": {
+    "volgorde": "nieuwste",
+    "aantal": 5,
+    "soort": "beleidsregel",
+    "publicatie": "Staatscourant"
+   },
+   "verwacht": {
+    "aantal": 5,
+    "nieuwste_eerst": true,
+    "alle": {
+     "publicatie": "Staatscourant",
+     "soort": "beleidsregel"
+    }
+   },
+   "goed": "Vijf beleidsregels uit de Staatscourant, nieuwste eerst, met datum en ministerie; de zoekvraag in woorden erboven."
+  },
+  {
+   "id": "B03",
+   "soort": "per regeling",
+   "vraag": "Welke wijzigingen van de Invorderingswet 1990 zijn er sinds 2024 gepubliceerd?",
+   "route": "model",
+   "tool": "zoek_bekendmakingen",
+   "args": {
+    "woorden": "Invorderingswet 1990",
+    "vanaf": "2024",
+    "volgorde": "nieuwste"
+   },
+   "verwacht": {
+    "nieuwste_eerst": true,
+    "datum_vanaf": "2024-01-01"
+   },
+   "goed": "De publicaties met de Invorderingswet 1990 in de titel sinds 2024, nieuwste eerst, en de kanttekening dat een verzamelwet (een Belastingplan) de wet kan wijzigen zonder haar in de titel te noemen; eventueel aangevuld met zoek_bekendmakingen per bepaling."
+  },
+  {
+   "id": "B04",
+   "soort": "inwerkingtreding",
+   "vraag": "Wanneer trad artikel 36 van de Invorderingswet 1990 in werking en welk besluit regelde dat?",
+   "route": "model",
+   "tool": "zoek_bekendmakingen",
+   "args": {
+    "bwb_id": "BWBR0004770",
+    "artikel": "36"
+   },
+   "graaf": "art36",
+   "verwacht": {
+    "ids": [
+     "stb-2009-610",
+     "stb-2010-176"
+    ],
+    "inwerking": "2010-07-04",
+    "wetsverwijzing": {
+     "stb-2009-610": "laatste wijziging",
+     "stb-2010-176": "inwerkingtreding"
+    }
+   },
+   "goed": "De huidige tekst van artikel 36 geldt sinds 4 juli 2010; de wijziging staat in Stb. 2009, 610, de inwerkingtreding in Stb. 2010, 176 – met de grens dat dit de toestand is die Lex leest."
+  },
+  {
+   "id": "B05",
+   "soort": "beleid in de Staatscourant",
+   "vraag": "Welke wijzigingen van de Leidraad Invordering 2008 zijn er recent in de Staatscourant gepubliceerd?",
+   "route": "model",
+   "tool": "zoek_bekendmakingen",
+   "args": {
+    "publicatie": "Staatscourant",
+    "woorden": "Leidraad Invordering",
+    "volgorde": "nieuwste",
+    "aantal": 5
+   },
+   "verwacht": {
+    "eerste": "stcrt-2026-37344",
+    "nieuwste_eerst": true,
+    "alle": {
+     "publicatie": "Staatscourant"
+    }
+   },
+   "goed": "De nieuwste besluiten tot wijziging van de Leidraad Invordering 2008, met Stcrt. 2026, 37344 (30 oktober 2026) bovenaan."
+  },
+  {
+   "id": "B06",
+   "soort": "één publicatie lezen",
+   "vraag": "Wat staat er in Stb. 2010, 176?",
+   "route": "genoemd stuk",
+   "tool": "get_bekendmaking",
+   "args": {
+    "id": "stb-2010-176"
+   },
+   "graaf": "regelingen",
+   "verwacht": {
+    "stuk": {
+     "label": "Stb. 2010, 176",
+     "publicatie": "Staatsblad"
+    },
+    "tekst_bevat": "in werking",
+    "wetsverwijzing_bevat": "Invorderingswet 1990"
+   },
+   "goed": "Het inwerkingtredingsbesluit, met letterlijke passages in het blok extern, de datum en het soort uit stuk, en welke regeling het in werking zet."
+  },
+  {
+   "id": "B07",
+   "soort": "alleen een PDF",
+   "vraag": "Wat staat er in stb-1990-222?",
+   "route": "genoemd stuk",
+   "tool": "get_bekendmaking",
+   "args": {
+    "id": "stb-1990-222"
+   },
+   "verwacht": {
+    "reden": "alleen_pdf"
+   },
+   "goed": "Lex zegt dat Stb. 1990, 222 (de Invoeringswet Invorderingswet 1990, 1990) bij KOOP alleen als PDF bestaat, geeft de link en citeert er niet uit."
+  },
+  {
+   "id": "B08",
+   "soort": "wat veranderde aan één artikel",
+   "vraag": "Wat veranderde stcrt-2026-37344 aan artikel 1.1.5 van de Leidraad Invordering 2008?",
+   "route": "model",
+   "tool": "get_bekendmaking",
+   "args": {
+    "id": "stcrt-2026-37344",
+    "artikel": "1.1.5"
+   },
+   "verwacht": {
+    "onderdelen": [
+     "A"
+    ]
+   },
+   "goed": "Alleen onderdeel A: twee gedachtestreepjes na het eerste in artikel 1.1.5 (bezwaarschriften tegen uitstel van betaling en tegen kwijtschelding), letterlijk geciteerd; 1.1.5b en 1.1.5c niet."
+  },
+  {
+   "id": "B09",
+   "soort": "koppeling met Kamerstukken",
+   "vraag": "Bij welk wetsvoorstel hoort Stb. 2013, 568?",
+   "route": "genoemd stuk",
+   "tool": "get_bekendmaking",
+   "args": {
+    "id": "stb-2013-568"
+   },
+   "verwacht": {
+    "stuk": {
+     "reeks": [
+      "33755"
+     ]
+    }
+   },
+   "goed": "Het Kamerdossier 33755 (uit w.behandeldDossier), met het aanbod de memorie van toelichting te lezen als Kamerstukken aanstaat."
+  },
+  {
+   "id": "B10",
+   "soort": "telling en filter",
+   "vraag": "Hoeveel ministeriële regelingen van het Ministerie van Financiën staan er uit 2025 in de Staatscourant?",
+   "route": "lijstvraag",
+   "tool": "zoek_bekendmakingen",
+   "args": {
+    "soort": "ministeriële regeling",
+    "orgaan": "Ministerie van Financiën",
+    "publicatie": "Staatscourant",
+    "vanaf": "2025",
+    "tot": "2025"
+   },
+   "verwacht": {
+    "totaal_min": 10,
+    "alle": {
+     "publicatie": "Staatscourant",
+     "orgaan": "Ministerie van Financiën"
+    },
+    "datum_vanaf": "2025-01-01",
+    "datum_tot": "2025-12-31"
+   },
+   "goed": "Het aantal uit 'totaal' (KOOP telt), met de zoekvraag erbij; geen getal uit eigen kennis. Een lijstvraag sinds de meting van 10 nov 2026 (\"hoeveel\" is een vulwoord): het blok zegt \"N van de 38 stukken\"."
+  },
+  {
+   "id": "B11",
+   "soort": "rectificatie",
+   "vraag": "Welke verbeterbladen staan er in het Staatsblad van 2018?",
+   "route": "lijstvraag",
+   "tool": "zoek_bekendmakingen",
+   "args": {
+    "soort": "verbeterblad",
+    "publicatie": "Staatsblad",
+    "vanaf": "2018",
+    "tot": "2018"
+   },
+   "verwacht": {
+    "totaal_min": 1,
+    "alle": {
+     "publicatie": "Staatsblad",
+     "soort": "Verbeterblad"
+    },
+    "datum_vanaf": "2018-01-01",
+    "datum_tot": "2018-12-31"
+   },
+   "goed": "De verbeterbladen van 2018 met hun id (stb-2018-…-n1), en dat een verbeterblad een eerdere publicatie herstelt."
+  },
+  {
+   "id": "B12",
+   "soort": "tweede versie",
+   "vraag": "Wat staat er in stcrt-2024-20015-n1?",
+   "route": "genoemd stuk",
+   "tool": "get_bekendmaking",
+   "args": {
+    "id": "stcrt-2024-20015-n1"
+   },
+   "verwacht": {
+    "stuk": {
+     "label": "Stcrt. 2024, 20015 (versie n1)"
+    }
+   },
+   "goed": "De tweede versie (n1) van de wijziging van de Leidraad Invordering 2008 van 1 juli 2024, met het label en de datum uit KOOP, en dat er een eerdere versie is (stcrt-2024-20015, 28 juni 2024). Vroeger stond hier een herdruk over onderwijs (stb-2010-185-n1): daar weigerde Lex een antwoord (meting 10 nov 2026, B12); een genoemd stuk buiten het domein vat hij nu samen met één zin dat het buiten invordering en belastingen valt."
+  },
+  {
+   "id": "B13",
+   "soort": "niet bestaand nummer",
+   "vraag": "Wat staat er in Stb. 2099, 1?",
+   "route": "genoemd stuk",
+   "tool": "get_bekendmaking",
+   "args": {
+    "id": "stb-2099-1"
+   },
+   "verwacht": {
+    "reden": "niet_gevonden"
+   },
+   "goed": "Lex zegt dat Stb. 2099, 1 niet in de officiële publicaties staat, en verzint niets."
+  },
+  {
+   "id": "B14",
+   "soort": "zonder treffers",
+   "vraag": "Welke publicaties in de Staatscourant gaan over robotbelasting?",
+   "route": "lijstvraag",
+   "tool": "zoek_bekendmakingen",
+   "args": {
+    "publicatie": "Staatscourant",
+    "tekst": "robotbelasting"
+   },
+   "verwacht": {
+    "aantal": 0
+   },
+   "goed": "Een leemte met de zoekvraag in woorden: er is niets gevonden, en dat bewijst niet dat het niet bestaat."
+  },
+  {
+   "id": "B15",
+   "soort": "buiten de bron",
+   "vraag": "Wat zijn de nieuwste deurwaardersexploten in de Staatscourant?",
+   "route": "model",
+   "tool": "zoek_bekendmakingen",
+   "args": {
+    "publicatie": "Staatscourant",
+    "soort": "deurwaardersexploot",
+    "volgorde": "nieuwste"
+   },
+   "verwacht": {
+    "aantal": 0
+   },
+   "goed": "Lex zegt dat aankondigingen over personen (deurwaardersexploten) buiten de bron vallen; geen namen."
+  },
+  {
+   "id": "B16",
+   "soort": "welke regeling een publicatie wijzigt",
+   "vraag": "Welke regelingen wijzigt Stb. 2009, 610?",
+   "route": "genoemd stuk",
+   "tool": "get_bekendmaking",
+   "args": {
+    "id": "stb-2009-610"
+   },
+   "graaf": "regelingen",
+   "verwacht": {
+    "wetsverwijzing_bevat": "Algemene wet inzake rijksbelastingen"
+   },
+   "goed": "Volgens de BWB wijzigt Stb. 2009, 610 de Invorderingswet 1990 en de AWR (en zet een deel van de AWR in werking), met het aantal bepalingen – voor de toestand die Lex leest."
+  },
+  {
+   "id": "B17",
+   "soort": "onderwerp en jaar",
+   "vraag": "Welke Staatsbladen over omzetbelasting zijn er uit 2025?",
+   "route": "lijstvraag",
+   "tool": "zoek_bekendmakingen",
+   "args": {
+    "publicatie": "Staatsblad",
+    "vanaf": "2025",
+    "tot": "2025",
+    "tekst": "omzetbelasting"
+   },
+   "verwacht": {
+    "aantal": 5,
+    "alle": {
+     "publicatie": "Staatsblad"
+    },
+    "datum_vanaf": "2025-01-01",
+    "datum_tot": "2025-12-31"
+   },
+   "goed": "Een lijst van de vijf Staatsbladen uit 2025 die omzetbelasting in hun tekst noemen (onder meer de Fiscale verzamelwet 2026, Stb. 2025, 431), met de zoekvraag erbij: gezocht in de hele tekst, dus ook stukken die het woord alleen noemen."
+  },
+  {
+   "id": "B18",
+   "soort": "Kamerdossier",
+   "vraag": "Welke publicaties horen bij Kamerdossier 36602?",
+   "route": "model",
+   "tool": "zoek_bekendmakingen",
+   "args": {
+    "dossier": "36602"
+   },
+   "verwacht": {
+    "ids": [
+     "stb-2024-434"
+    ]
+   },
+   "goed": "Stb. 2024, 434, het Belastingplan 2025 (Wet van 18 december 2024), met het dossier uit KOOP (36602, ook 36378); geen andere publicaties."
+  },
+  {
+   "id": "B19",
+   "soort": "douane",
+   "vraag": "Welke Staatsbladen uit 2025 gaan over de Douanewet?",
+   "route": "lijstvraag",
+   "tool": "zoek_bekendmakingen",
+   "args": {
+    "publicatie": "Staatsblad",
+    "vanaf": "2025",
+    "tot": "2025",
+    "tekst": "Douanewet"
+   },
+   "verwacht": {
+    "aantal": 7,
+    "alle": {
+     "publicatie": "Staatsblad"
+    },
+    "datum_vanaf": "2025-01-01",
+    "datum_tot": "2025-12-31"
+   },
+   "goed": "Een lijst van de zeven Staatsbladen uit 2025 die de Douanewet in hun tekst noemen, met de wijziging van de Algemene douanewet (Stb. 2025, 143) en het Algemeen douanebesluit (Stb. 2025, 122), en de zoekvraag."
+  },
+  {
+   "id": "B20",
+   "soort": "telling per soort",
+   "vraag": "Hoeveel wetten van het Ministerie van Financiën staan er in het Staatsblad van 2024?",
+   "route": "model",
+   "tool": "zoek_bekendmakingen",
+   "args": {
+    "soort": "Wet",
+    "orgaan": "Ministerie van Financiën",
+    "publicatie": "Staatsblad",
+    "jaar": "2024"
+   },
+   "verwacht": {
+    "totaal_min": 20,
+    "alle": {
+     "publicatie": "Staatsblad",
+     "soort": "Wet"
+    }
+   },
+   "goed": "Twintig (het totaal van KOOP), met de zoekvraag; geen getal uit eigen kennis. Een lijst mag erbij, met de zin dat er meer zijn dan er staan."
+  },
+  {
+   "id": "B21",
+   "soort": "citeervorm Staatscourant",
+   "vraag": "Wat staat er in Staatscourant 2025, nr. 22266?",
+   "route": "genoemd stuk",
+   "tool": "get_bekendmaking",
+   "args": {
+    "id": "stcrt-2025-22266"
+   },
+   "verwacht": {
+    "stuk": {
+     "label": "Stcrt. 2025, 22266"
+    },
+    "tekst_bevat": "Artikel 1.1.5 wordt als volgt gewijzigd"
+   },
+   "goed": "Een besluit van de staatssecretaris van Financiën tot wijziging van de Leidraad Invordering 2008, in werking op 1 juli 2025, met letterlijke passages en de bekendmaking in de bronnen."
+  },
+  {
+   "id": "B22",
+   "soort": "vervolgvraag",
+   "vervolg_op": "B21",
+   "vraag": "Welke artikelen van de Leidraad wijzigt dat besluit?",
+   "route": "model",
+   "tool": "get_bekendmaking",
+   "args": {
+    "id": "stcrt-2025-22266"
+   },
+   "verwacht": {
+    "stuk": {
+     "label": "Stcrt. 2025, 22266"
+    },
+    "tekst_bevat": "Artikel 1.1.5 wordt als volgt gewijzigd"
+   },
+   "goed": "In hetzelfde gesprek na B21: de onderdelen A tot en met N van artikel I, met de artikelen 1.1.5, 11.5, 19.3.9 (vervalt), 25.2.9 (nieuw artikel erna), 25.4.2, 25.5.1, 25.5.8, 25.5.9, 25.5.11 (vervalt, drie nieuwe erna), 26.3.8, 26.3.9, 73.5.5 en 79.15; niets erbij verzonnen."
+  },
+  {
+   "id": "B23",
+   "soort": "één regeling in een verzamelwet",
+   "vraag": "Wat verandert de Wet Overige fiscale maatregelen 2025 aan de Invorderingswet 1990?",
+   "route": "model",
+   "tool": "get_bekendmaking",
+   "args": {
+    "id": "stb-2024-435",
+    "regeling": "Invorderingswet 1990"
+   },
+   "verwacht": {
+    "tekst_bevat": "De Invorderingswet 1990 wordt als volgt gewijzigd:",
+    "onderdelen": [
+     "A",
+     "B"
+    ]
+   },
+   "goed": "Artikel XII van Stb. 2024, 435: onderdeel A (artikel 44a, vijfde lid) en B (artikel 44b, vijfde lid), letterlijk geciteerd, zonder de rest van de verzamelwet door te bladeren."
+  },
+  {
+   "id": "B24",
+   "soort": "koppeling met een bepaling",
+   "vraag": "Welke publicatie gaf de huidige tekst van artikel 67f van de Algemene wet inzake rijksbelastingen, en wanneer trad die in werking?",
+   "route": "model",
+   "tool": "zoek_bekendmakingen",
+   "args": {
+    "bwb_id": "BWBR0002320",
+    "artikel": "67f"
+   },
+   "graaf": "awr67f",
+   "verwacht": {
+    "ids": [
+     "stb-2025-431"
+    ],
+    "inwerking": "2026-01-01",
+    "wetsverwijzing": {
+     "stb-2025-431": "laatste wijziging"
+    }
+   },
+   "goed": "Stb. 2025, 431 (Fiscale verzamelwet 2026), zowel de wijziging als de inwerkingtreding, met ingang van 1 januari 2026, volgens de BWB voor de toestand die Lex leest."
+  },
+  {
+   "id": "B25",
+   "soort": "versies",
+   "vraag": "Welke versies zijn er van de Leidraad-wijziging in Stcrt. 2024, 20015?",
+   "route": "genoemd stuk",
+   "tool": "get_bekendmaking",
+   "args": {
+    "id": "stcrt-2024-20015"
+   },
+   "verwacht": {
+    "stuk": {
+     "label": "Stcrt. 2024, 20015"
+    }
+   },
+   "goed": "Twee: Stcrt. 2024, 20015 van 28 juni 2024 en de tweede versie stcrt-2024-20015-n1 van 1 juli 2024, met datum en label uit KOOP; als Lex het verschil niet ziet, zegt hij dat."
+  },
+  {
+   "id": "B26",
+   "soort": "vervolgvraag",
+   "vervolg_op": "B16",
+   "vraag": "En wat verandert dat Staatsblad aan de Invorderingswet 1990?",
+   "route": "model",
+   "tool": "get_bekendmaking",
+   "args": {
+    "id": "stb-2009-610",
+    "regeling": "Invorderingswet 1990"
+   },
+   "verwacht": {
+    "tekst_bevat": "De Invorderingswet 1990 wordt als volgt gewijzigd:"
+   },
+   "goed": "In hetzelfde gesprek na B16: artikel XVII van Stb. 2009, 610, de onderdelen die de Invorderingswet 1990 wijzigen (met onderdeel C: artikel 36, tweede lid), letterlijk, zonder de hele wet door te bladeren."
+  },
+  {
+   "id": "B27",
+   "soort": "oud formaat",
+   "vraag": "Wat staat er in Stb. 1995, 1?",
+   "route": "genoemd stuk",
+   "tool": "get_bekendmaking",
+   "args": {
+    "id": "stb-1995-1"
+   },
+   "verwacht": {
+    "reden": "onleesbaar_document"
+   },
+   "goed": "KOOP heeft dit stuk als XML in het oudere formaat van de Sdu (wortel `staatsbl`). Lex leest de tekst, of zegt eerlijk dat hij haar niet kan lezen en geeft de link; geen inhoud uit eigen kennis. De verwachting `onleesbaar_document` is de stand van 11 nov 2026, vóór ronde 1."
+  },
+  {
+   "id": "B28",
+   "soort": "toeslagen",
+   "vraag": "Welke Staatsbladen uit 2024 gaan over de huurtoeslag?",
+   "route": "lijstvraag",
+   "tool": "zoek_bekendmakingen",
+   "args": {
+    "publicatie": "Staatsblad",
+    "vanaf": "2024",
+    "tot": "2024",
+    "tekst": "huurtoeslag"
+   },
+   "verwacht": {
+    "aantal": 11,
+    "alle": {
+     "publicatie": "Staatsblad"
+    },
+    "datum_vanaf": "2024-01-01",
+    "datum_tot": "2024-12-31"
+   },
+   "goed": "Een lijst van de elf Staatsbladen uit 2024 die huurtoeslag noemen, met de wijziging van de Wet op de huurtoeslag (Stb. 2024, 425) en de zoekvraag."
+  },
+  {
+   "id": "B29",
+   "soort": "Awb over twee jaar",
+   "vraag": "Welke publicaties in het Staatsblad gaan over de Algemene wet bestuursrecht uit 2023 en 2024?",
+   "route": "lijstvraag",
+   "tool": "zoek_bekendmakingen",
+   "args": {
+    "publicatie": "Staatsblad",
+    "vanaf": "2023",
+    "tot": "2024",
+    "tekst": "\"Algemene wet bestuursrecht\""
+   },
+   "verwacht": {
+    "totaal_min": 100,
+    "alle": {
+     "publicatie": "Staatsblad"
+    },
+    "datum_vanaf": "2023-01-01",
+    "datum_tot": "2024-12-31"
+   },
+   "goed": "Een eerste deel van de 129 treffers, met het totaal en de zoekvraag (de Awb in de hele tekst), en het aanbod om de volgende te tonen; geen stille begrenzing."
+  },
+  {
+   "id": "B30",
+   "soort": "buiten bereik bij id",
+   "vraag": "Wat staat er in stcrt-2026-37003?",
+   "route": "genoemd stuk",
+   "tool": "get_bekendmaking",
+   "args": {
+    "id": "stcrt-2026-37003"
+   },
+   "verwacht": {
+    "reden": "buiten_bereik"
+   },
+   "goed": "Lex leest het niet: het is een aankondiging in de Staatscourant (overige overheidsinformatie), geen regelgeving of beleid; hij noemt alleen de link en geen inhoud."
+  }
+ ]
 }

@@ -1,0 +1,176 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE staatsbl PUBLIC "-//SDU//DTD staatsblad xml 1.1//NL" "../../dtd/staatsbl-11.dtd"[]>
+<staatsbl id="sb995.1" soort="wet" publtype="swet">
+  <metadata>
+    <meta name="OVERHEIDop.externMetadataRecord" scheme="" content="https://zoek.officielebekendmakingen.nl/stb-1995-1/metadata.xml" />
+  </metadata>
+  <kop>
+    <titel status="off">Staatsblad</titel>
+    <subtitel>van het Koninkrijk der Nederlanden</subtitel>
+  </kop>
+  <frontm>
+    <versie dtd="0.4" conv="prod" markup="c1xa"></versie>
+    <ordernr>51U0003</ordernr>
+    <stb>
+      <jaargang jaar="1995">Jaargang 1995</jaargang>
+      <stbjaar>1995</stbjaar>
+      <stbnr>1 </stbnr>
+    </stb>
+    <intitule>
+      <soort>Rijkswet</soort> van 15 december 1994, houdende wijziging van het Statuut voor het Koninkrijk der Nederlanden in verband met het voortzetten van de in het Statuut neergelegde rechtsorde ten aanzien van Aruba</intitule>
+    <aanhef>
+      <wie>Wij Beatrix, bij de gratie Gods, Koningin der Nederlanden, Prinses van Oranje-Nassau, enz. enz. enz.</wie>
+      <consider>
+        <al>Allen, die deze zullen zien of horen lezen, saluut! doen te weten:</al>
+        <al>Alzo Wij in overweging genomen hebben, dat de landen van het Koninkrijk der Nederlanden de constitutionele verhouding willen voortzetten, derhalve artikel 62 van het Statuut voor het Koninkrijk der Nederlanden dient te vervallen, en dat het tevens wenselijk is in het Statuut voor het Koninkrijk der Nederlanden vast te leggen dat Aruba zelfstandig kan opteren voor de beëindiging van deze verhouding;</al>
+      </consider>
+      <afkondig>Zo is het, dat Wij, de Raad van State van het Koninkrijk gehoord, en met gemeen overleg der Staten-Generaal, de bepalingen van het Statuut voor het Koninkrijk in acht genomen zijnde, hebben goedgevonden en verstaan, gelijk Wij goedvinden en verstaan bij deze:</afkondig>
+    </aanhef>
+  </frontm>
+  <body>
+    <wart id="ai">
+      <kop>
+        <nr>ARTIKEL I</nr>
+      </kop>
+      <al>Het Statuut voor het Koninkrijk der Nederlanden<eindref refid="e1"></eindref> wordt gewijzigd als volgt: </al>
+      <wlid>
+        <kop>
+          <nr>A</nr>
+        </kop>
+        <al>In de preambule vervalt de zinsnede «voor een overgangsperiode naar de onafhankelijkheid». </al>
+      </wlid>
+      <wlid>
+        <kop>
+          <nr>B</nr>
+        </kop>
+        <al>Na artikel 36 wordt ingevoegd een nieuw artikel 36a luidende: </al>
+        <wlichaam>
+          <art>
+            <kop>
+              <nr>Artikel 36a</nr>
+            </kop>
+            <lid>
+              <nr>1.</nr>
+              <al>Nederland, de Nederlandse Antillen en Aruba nemen deel in een fonds ten behoeve van het handhaven van een behoorlijk bestuursniveau in de eilandgebieden Bonaire, Saba en Sint Eustatius van de Nederlandse Antillen.</al>
+            </lid>
+            <lid>
+              <nr>2.</nr>
+              <al>Dit fonds wordt ingesteld bij rijkswet.</al>
+            </lid>
+          </art>
+        </wlichaam>
+      </wlid>
+      <wlid>
+        <kop>
+          <nr>C</nr>
+        </kop>
+        <al>Na artikel 57 worden de volgende artikelen ingevoegd: </al>
+        <wlichaam>
+          <art>
+            <kop>
+              <nr>Artikel 58</nr>
+            </kop>
+            <lid>
+              <nr>1.</nr>
+              <al>Aruba kan bij landsverordening verklaren dat het de rechtsorde neergelegd in het Statuut ten aanzien van Aruba wil beëindigen.</al>
+            </lid>
+            <lid>
+              <nr>2.</nr>
+              <al>Het voorstel van een zodanige landsverordening gaat bij indiening vergezeld van een schets van een toekomstige constitutie, houdende tenminste bepalingen inzake de grondrechten, regering, vertegenwoordigend orgaan, wetgeving en bestuur, rechtspraak en wijziging van de constitutie.</al>
+            </lid>
+            <lid>
+              <nr>3.</nr>
+              <al>De Staten kunnen het voorstel niet goedkeuren dan met een meerderheid van twee derden van de stemmen van het aantal zitting hebbende leden.</al>
+            </lid>
+          </art>
+          <art>
+            <kop>
+              <nr>Artikel 59</nr>
+            </kop>
+            <lid>
+              <nr>1.</nr>
+              <al>Binnen zes maanden nadat de Staten van Aruba het in artikel 58 genoemde voorstel hebben goedgekeurd wordt een bij landsverordening geregeld referendum gehouden, waarbij de kiesgerechtigden voor de Staten zich kunnen uitspreken over het goedgekeurde voorstel.</al>
+            </lid>
+            <lid>
+              <nr>2.</nr>
+              <al>Het goedgekeurde voorstel wordt niet als landsverordening vastgesteld dan nadat bij het referendum een meerderheid van het aantal kiesgerechtigden voor het voorstel heeft gestemd.</al>
+            </lid>
+          </art>
+          <art>
+            <kop>
+              <nr>Artikel 60</nr>
+            </kop>
+            <lid>
+              <nr>1.</nr>
+              <al>Na vaststelling van de landsverordening overeenkomstig de artikelen 58 en 59 en goedkeuring van de toekomstige constitutie door de Staten van Aruba met een meerderheid van ten minste twee derden van de stemmen van het aantal zitting hebbende leden wordt overeenkomstig het gevoelen van de regering van Aruba bij koninklijk besluit het tijdstip van beëindiging van de in het Statuut neergelegde rechtsorde ten aanzien van Aruba bepaald.</al>
+            </lid>
+            <lid>
+              <nr>2.</nr>
+              <al>Dit tijdstip ligt ten hoogste een maand na de datum van vaststelling van de constitutie. Deze vaststelling vindt plaats ten hoogste een jaar na de datum van het in artikel 59 bedoelde referendum.</al>
+            </lid>
+          </art>
+        </wlichaam>
+      </wlid>
+      <wlid>
+        <kop>
+          <nr>D</nr>
+        </kop>
+        <al>Artikel 62 vervalt.</al>
+      </wlid>
+    </wart>
+    <art id="aii">
+      <kop>
+        <nr>ARTIKEL II</nr>
+      </kop>
+      <al>De tekst van het Statuut voor het Koninkrijk der Nederlanden wordt bij koninklijk besluit in het Staatsblad, in het Publicatieblad van de Nederlandse Antillen en in het Afkondigingsblad van Aruba geplaatst.</al>
+    </art>
+    <art id="aiii">
+      <kop>
+        <nr>ARTIKEL III</nr>
+      </kop>
+      <al>Deze rijkswet treedt in werking met ingang van een bij koninklijk besluit te bepalen tijdstip. Het ontwerp van dit koninklijk besluit wordt aan de Eerste en Tweede Kamer der Staten-Generaal overgelegd.</al>
+    </art>
+  </body>
+  <backm>
+    <nawerk>
+      <slotform>Lasten en bevelen dat deze in het Staatsblad, in het Publicatieblad van de Nederlandse Antillen en in het Afkondigingsblad van Aruba zal worden geplaatst en dat alle ministeries, autoriteiten, colleges en ambtenaren wie zulks aangaat, aan de nauwkeurige uitvoering de hand zullen houden.</slotform>
+      <eindnoot id="e1">
+        <al>Stb. 1985, 453.</al>
+      </eindnoot>
+      <histnoot>
+        <al>Zie voor de behandeling in de Staten-Generaal:</al>
+        <al>Kamerstukken II 1991/92, 1992/93, 1993/94, 22 593, (R1433)</al>
+        <al>Handelingen II 1993/94, blz. 4320–4358; 4359–4409; 4438–4439</al>
+        <al>Kamerstukken I 1993/94, 22 593 (R1433) (302, 302a, 302b)</al>
+        <al>Handelingen I 1993/94, blz. 1242–1282</al>
+      </histnoot>
+      <ondertek>
+        <ondplts>Gegeven te 's-Gravenhage, </ondplts>
+        <onddatum>15 december 1994</onddatum>
+        <koning>Beatrix </koning>
+        <minister>
+          <minvan>De Minister-President, Minister van Algemene Zaken,</minvan>
+          <naam>W. Kok </naam>
+        </minister>
+        <minister>
+          <minvan>De Minister voor Nederlands-Antilliaanse en Arubaanse Zaken,</minvan>
+          <naam>J. J. C. Voorhoeve </naam>
+        </minister>
+        <minister>
+          <minvan>De Minister van Binnenlandse Zaken,</minvan>
+          <naam>H. F. Dijkstal</naam>
+        </minister>
+      </ondertek>
+      <uitgifte>
+        <uitgifte-regel>Uitgegeven de <nadruk type="cur">tiende</nadruk> januari 1995</uitgifte-regel>
+        <uitdag>tiende</uitdag>
+        <uitmaand>januari</uitmaand>
+        <uitjaar>1995</uitjaar>
+        <door>
+          <minvan>De Minister van Justitie,</minvan>
+          <naam>W. Sorgdrager</naam>
+        </door>
+      </uitgifte>
+    </nawerk>
+  </backm>
+</staatsbl>

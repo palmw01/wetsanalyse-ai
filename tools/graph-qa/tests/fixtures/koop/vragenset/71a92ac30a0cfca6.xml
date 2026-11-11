@@ -1,0 +1,817 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<officiele-publicatie xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://technische-documentatie.oep.overheid.nl/repository/schemas/op-consolidated/op-consolidated_2014-05-15/xsd/op-xsd-2014-05-15.xsd">
+  <metadata>
+    <meta name="OVERHEIDop.externMetadataRecord" scheme="" content="https://zoek.officielebekendmakingen.nl/stb-2024-435/metadata.xml" />
+  </metadata>
+  <kop>
+    <titel>Staatsblad</titel>
+    <subtitel>van het Koninkrijk der Nederlanden</subtitel>
+  </kop>
+  <staatsblad>
+    <intitule>Wet van 18 december 2024 tot wijziging van enkele belastingwetten en enige andere wetten (Overige fiscale maatregelen 2025)</intitule>
+    <wet-besluit>
+      <aanhef>
+        <wij>Wij Willem-Alexander, bij de gratie Gods, Koning der Nederlanden, Prins van Oranje-Nassau, enz. enz. enz.</wij>
+        <considerans>
+          <considerans.al>Allen, die deze zullen zien of horen lezen, saluut! doen te weten:</considerans.al>
+          <considerans.al>Alzo Wij in overweging genomen hebben, dat het in het kader van het fiscale beleid voor het jaar 2025 wenselijk is in een aantal belastingwetten en enige andere wetten wijzigingen aan te brengen;</considerans.al>
+        </considerans>
+        <afkondiging>
+          <al>Zo is het, dat Wij, de Afdeling advisering van de Raad van State gehoord, en met gemeen overleg der Staten-Generaal, hebben goedgevonden en verstaan, gelijk Wij goedvinden en verstaan bij deze:</al>
+        </afkondiging>
+      </aanhef>
+      <wettekst>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">I</nr>
+          </kop>
+          <wat type="wijziging">De Wet inkomstenbelasting 2001 wordt als volgt gewijzigd:</wat>
+          <wijzig-lid>
+            <lidnr status="officieel">A</lidnr>
+            <wat>Aan artikel 3.57, derde lid, wordt een zin toegevoegd, luidende: Indien de belastingplichtige ten tijde van de fusie onmiddellijk alle aandelen houdt in de verdwijnende en de verkrijgende rechtspersoon, zijnde een vennootschap, en in het kader van de fusie geen aandelen worden toegekend, worden in afwijking van de eerste zin de aandelen in de verkrijgende vennootschap direct na de fusie te boek gesteld voor de som van de waarden waarvoor de aandelen in de verkrijgende en de verdwijnende vennootschap ten tijde van de fusie te boek zijn gesteld.</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">B</lidnr>
+            <wat>Aan artikel 4.41, derde lid, wordt een zin toegevoegd, luidende: De eerste en tweede zin zijn van overeenkomstige toepassing op het voordeel, bedoeld in artikel 4.16, eerste lid, onderdeel g, indien sprake is van een overgang onder algemene titel van het vermogen van een verdwijnende vennootschap naar een verkrijgende vennootschap waarbij de belastingplichtige ten tijde van de fusie onmiddellijk alle aandelen in de verwijdende en de verkrijgende vennootschap en in het kader van de fusie geen aandelen worden toegekend.</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">C</lidnr>
+            <wat>In artikel 4.42, derde lid, wordt «aangemerkt als» vervangen door «gerekend tot».</wat>
+          </wijzig-lid>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">II</nr>
+          </kop>
+          <wat type="wijziging">De Wet op de loonbelasting 1964 wordt als volgt gewijzigd:</wat>
+          <wijzig-lid>
+            <lidnr status="officieel">A</lidnr>
+            <wat>In artikel 2, derde lid, eerste zin, wordt «in dienstbetrekking bij de Staat der Nederlanden» vervangen door «in dienstbetrekking bij een Nederlandse publiekrechtelijke rechtspersoon».</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">B</lidnr>
+            <wat>In artikel 18a, zesde lid, derde zin, wordt na «rendementsverwachting» ingevoegd «over de eerste zestig jaar».</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">C</lidnr>
+            <wat>In artikel 26b, tweede zin, wordt «de Staat der Nederlanden» vervangen door «een Nederlandse publiekrechtelijke rechtspersoon».</wat>
+          </wijzig-lid>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">III</nr>
+          </kop>
+          <wat type="wijziging">De Wet op de vennootschapsbelasting 1969 wordt als volgt gewijzigd:</wat>
+          <wijzig-lid>
+            <lidnr status="officieel">A</lidnr>
+            <wat>Artikel 10a wordt als volgt gewijzigd:</wat>
+            <wijziging>
+              <nr status="officieel">1.</nr>
+              <wat>Het derde lid wordt als volgt gewijzigd:</wat>
+            </wijziging>
+            <wijziging>
+              <nr status="officieel">a.</nr>
+              <wat>In onderdeel a wordt «, of» vervangen door»; of».</wat>
+            </wijziging>
+            <wijziging>
+              <nr status="officieel">b.</nr>
+              <wat>In onderdeel b wordt «..» aan het slot vervangen door een punt.</wat>
+            </wijziging>
+            <wijziging>
+              <nr status="officieel">2.</nr>
+              <wat>Er wordt een lid toegevoegd, luidende:</wat>
+              <artikeltekst>
+                <lid>
+                  <lidnr status="officieel">11.</lidnr>
+                  <al>Voor de toepassing van het derde lid, onderdeel b, worden onder een naar de winst geheven belasting mede verstaan een kwalificerende binnenlandse bijheffing als bedoeld in artikel 1.2 van de Wet minimumbelasting 2024, een kwalificerende inkomen-inclusiemaatregel als bedoeld in dat artikel en een kwalificerende onderbelastewinstmaatregel als bedoeld in dat artikel.</al>
+                </lid>
+              </artikeltekst>
+            </wijziging>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">B</lidnr>
+            <wat>In artikel 12bd, derde lid, wordt «onderdeel c» vervangen door «onderdeel d».</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">C</lidnr>
+            <wat>Aan artikel 13 wordt een lid toegevoegd, luidende:</wat>
+            <wijziging>
+              <artikeltekst>
+                <lid>
+                  <lidnr status="officieel">20.</lidnr>
+                  <al>Voor de toepassing van het elfde lid, onderdeel a, het dertiende lid en de artikelen 13a, eerste lid, onderdeel a, 13aa, zevende lid, onderdeel a, 13ba, vierde en dertiende lid, en 13d, tiende lid, wordt onder een belasting naar de winst mede verstaan een kwalificerende binnenlandse bijheffing als bedoeld in artikel 1.2 van de Wet minimumbelasting 2024.</al>
+                </lid>
+              </artikeltekst>
+            </wijziging>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">D</lidnr>
+            <wat>Artikel 13k wordt als volgt gewijzigd:</wat>
+            <wijziging>
+              <nr status="officieel">1.</nr>
+              <wat>In het tweede lid wordt na «Het voor de» ingevoegd «in het kader van de fusie verkregen» en aan dat lid wordt een zin toegevoegd, luidende: Indien de belastingplichtige ten tijde van de fusie onmiddellijk een deelneming houdt in zowel de verdwijnende als de verkrijgende rechtspersoon en in het kader van de fusie geen aandelen worden toegekend, wordt het voor de deelneming in de verkrijgende rechtspersoon opgeofferde bedrag vermeerderd met ten hoogste het voor de deelneming in de verdwijnende rechtspersoon opgeofferde bedrag.</wat>
+            </wijziging>
+            <wijziging>
+              <nr status="officieel">2.</nr>
+              <wat>In het vierde lid wordt, onder verlettering van onderdeel b tot c, een onderdeel ingevoegd, luidende:</wat>
+              <artikeltekst>
+                <lijst type="expliciet" start="1" level="single" nr-sluiting=".">
+                  <li>
+                    <li.nr>b.</li.nr>
+                    <al>treden ingeval de aandeelhouder ten tijde van de fusie alle aandelen houdt in de verdwijnende en de verkrijgende rechtspersoon en in het kader van de fusie geen aandelen worden toegekend, de aandelen die de belastingplichtige direct na de fusie in de verkrijgende rechtspersoon heeft in de plaats van de aandelen die de belastingplichtige ten tijde van de fusie in de verdwijnende en verkrijgende rechtspersoon heeft;.</al>
+                  </li>
+                </lijst>
+              </artikeltekst>
+            </wijziging>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">E</lidnr>
+            <wat>Artikel 15e wordt als volgt gewijzigd:</wat>
+            <wijziging>
+              <nr status="officieel">1.</nr>
+              <wat>In het negende lid wordt «indien sprake is» vervangen door «voor zover de winst» en aan dat lid wordt toegevoegd «, niet is onderworpen aan een naar de winst geheven belasting in de staat waarin die vaste inrichting voor de toepassing van dit artikel wordt beschouwd te zijn gelegen».</wat>
+            </wijziging>
+            <wijziging>
+              <nr status="officieel">2.</nr>
+              <wat>Er wordt een lid toegevoegd, luidende:</wat>
+              <artikeltekst>
+                <lid>
+                  <lidnr status="officieel">13.</lidnr>
+                  <al>Voor de toepassing van het vijfde lid en de artikelen 15g, eerste lid, onderdeel b, en 15h, derde lid, wordt onder een belastingheffing naar de winst, onderscheidenlijk een belasting naar de winst, mede verstaan een kwalificerende binnenlandse bijheffing als bedoeld in artikel 1.2 van de Wet minimumbelasting 2024.</al>
+                </lid>
+              </artikeltekst>
+            </wijziging>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">F</lidnr>
+            <wat>Na hoofdstuk VIIa wordt een hoofdstuk ingevoegd, luidende:</wat>
+            <wijziging>
+              <wijzig-divisie soort="hoofdstuk" opmaak="default">
+                <kop>
+                  <label>HOOFDSTUK</label>
+                  <nr status="officieel">VIIB</nr>
+                  <titel>ALGEMENE ANTIMISBRUIKBEPALING ARTIKEL 29I</titel>
+                </kop>
+                <al>Voor de toepassing van deze wet blijft buiten beschouwing een constructie of een reeks van constructies die is opgezet met als hoofddoel of een van de hoofddoelen een belastingvoordeel te verkrijgen dat het doel of de toepassing van deze wet ondermijnt, en die, alle relevante feiten en omstandigheden in aanmerking genomen, kunstmatig is, waarbij:</al>
+                <?xpp qa?>
+                <?xpp lead;-1?>
+                <lijst type="expliciet" start="1" level="single" nr-sluiting=".">
+                  <li>
+                    <li.nr>a.</li.nr>
+                    <al>een constructie uit verscheidene stappen of onderdelen kan bestaan;</al>
+                  </li>
+                  <li>
+                    <li.nr>b.</li.nr>
+                    <al>een constructie of een reeks van constructies als kunstmatig wordt beschouwd voor zover zij niet is opgezet op grond van geldige zakelijke redenen die de economische realiteit weerspiegelen.</al>
+                  </li>
+                </lijst>
+              </wijzig-divisie>
+            </wijziging>
+          </wijzig-lid>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">IV</nr>
+          </kop>
+          <wat type="wijziging">De Wet op de dividendbelasting 1965 wordt als volgt gewijzigd:</wat>
+          <wijzig-lid>
+            <lidnr status="officieel">A</lidnr>
+            <wat>Artikel 3a wordt als volgt gewijzigd:</wat>
+            <wijziging>
+              <nr status="officieel">1.</nr>
+              <wat>Het vijfde lid komt te luiden:</wat>
+              <artikeltekst>
+                <lid>
+                  <lidnr status="officieel">5.</lidnr>
+                  <al>In geval van een overgang onder algemene titel in het kader van een fusie van een rechtspersoon wordt:</al>
+                  <lijst type="expliciet" start="1" level="single" nr-sluiting=".">
+                    <li>
+                      <li.nr>a.</li.nr>
+                      <al>ingeval in het kader van de fusie aandelen worden toegekend: ten aanzien van alle aandeelhouders ten hoogste het bedrag van het op de aandelen in de verdwijnende rechtspersoon gestorte kapitaal verminderd met een bijbetaling in contanten die in het kader van de fusie plaatsvindt, aangemerkt als gestort kapitaal op de door de verkrijgende rechtspersoon in het kader van de fusie toegekende aandelen; of</al>
+                    </li>
+                    <li>
+                      <li.nr>b.</li.nr>
+                      <al>ingeval in het kader van de fusie geen aandelen worden toegekend en de aandeelhouder ten tijde van de fusie alle aandelen bezit in de verdwijnende en de verkrijgende rechtspersoon: ten aanzien van de aandeelhouder het gestorte kapitaal in de verkrijgende rechtspersoon vermeerderd met ten hoogste het op de aandelen in de verdwijnende rechtspersoon gestorte kapitaal.</al>
+                    </li>
+                  </lijst>
+                </lid>
+              </artikeltekst>
+            </wijziging>
+            <wijziging>
+              <nr status="officieel">2.</nr>
+              <wat>Onder vernummering van het zesde en zevende lid tot zevende en achtste lid wordt een lid ingevoegd, luidende:</wat>
+              <artikeltekst>
+                <lid>
+                  <lidnr status="officieel">6.</lidnr>
+                  <al>Ingeval de verdwijnende rechtspersoon niet in Nederland is gevestigd, wordt voor de toepassing van het vijfde lid als het op de aandelen in de verdwijnende rechtspersoon gestorte kapitaal aangemerkt de waarde in het economische verkeer van het vermogen dat als gevolg van de fusie overgaat op de verkrijgende rechtspersoon voor zover het vermogen niet bestaat uit aandelen in een in Nederland gevestigde vennootschap, tenzij de fusie in overwegende mate is gericht op het ontgaan of uitstellen van belastingheffing.</al>
+                </lid>
+              </artikeltekst>
+            </wijziging>
+            <wijziging>
+              <nr status="officieel">3.</nr>
+              <wat>In het zevende lid (nieuw) wordt «vierde en vijfde lid» vervangen door «vierde, vijfde en zesde lid».</wat>
+            </wijziging>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">B</lidnr>
+            <wat>In artikel 4, eerste lid, aanhef, wordt «mag achterwege blijven» vervangen door «blijft achterwege».</wat>
+          </wijzig-lid>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">V</nr>
+          </kop>
+          <wat type="wijziging">De Wet op de motorrijtuigenbelasting 1994 wordt als volgt gewijzigd:</wat>
+          <wijzig-lid>
+            <lidnr status="officieel">A</lidnr>
+            <wat>In artikel 2, onderdeel i, wordt «als bedoeld in hoofdstuk IV, paragraaf 5, van de Wegenverkeerswet 1994 is verleend» vervangen door «als bedoeld in artikel 4aud, eerste lid, van de Wegenverkeerswet 1994 is verleend om motorrijtuigen en aanhangwagens op te nemen in zijn bedrijfsvoorraad».</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">B</lidnr>
+            <wat>In artikel 25c, tweede lid, wordt «De belasting bedraagt» vervangen door «Op verzoek bedraagt de belasting» en aan dat lid wordt een zin toegevoegd, luidende: De inspecteur neemt de beslissing op het verzoek bij voor bezwaar vatbare beschikking.</wat>
+          </wijzig-lid>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">VI</nr>
+          </kop>
+          <wat type="wijziging">In de Wet bronbelasting 2021 wordt artikel 3.4b als volgt gewijzigd:</wat>
+          <wijziging>
+            <nr status="officieel">1.</nr>
+            <wat>Het vijfde lid komt te luiden:</wat>
+            <artikeltekst>
+              <lid>
+                <lidnr status="officieel">5.</lidnr>
+                <al>In geval van een overgang onder algemene titel in het kader van een fusie van een rechtspersoon wordt:</al>
+                <lijst type="expliciet" start="1" level="single" nr-sluiting=".">
+                  <li>
+                    <li.nr>a.</li.nr>
+                    <al>ingeval in het kader van de fusie aandelen worden toegekend: ten aanzien van alle aandeelhouders ten hoogste het bedrag van het op de aandelen in de verdwijnende rechtspersoon gestorte kapitaal verminderd met een bijbetaling in contanten die in het kader van de fusie plaatsvindt, aangemerkt als gestort kapitaal op de door de verkrijgende rechtspersoon in het kader van de fusie toegekende aandelen; of</al>
+                  </li>
+                  <li>
+                    <li.nr>b.</li.nr>
+                    <al>ingeval in het kader van de fusie geen aandelen worden toegekend en de aandeelhouder ten tijde van de fusie alle aandelen bezit in de verdwijnende en de verkrijgende rechtspersoon: ten aanzien van de aandeelhouder het gestorte kapitaal in de verkrijgende rechtspersoon vermeerderd met ten hoogste het op de aandelen in de verdwijnende rechtspersoon gestorte kapitaal.</al>
+                  </li>
+                </lijst>
+              </lid>
+            </artikeltekst>
+          </wijziging>
+          <wijziging>
+            <nr status="officieel">2.</nr>
+            <wat>Onder vernummering van het zesde en zevende lid tot zevende en achtste lid, wordt een lid ingevoegd, luidende:</wat>
+            <artikeltekst>
+              <lid>
+                <lidnr status="officieel">6.</lidnr>
+                <al>Ingeval de verdwijnende rechtspersoon niet in Nederland is gevestigd, wordt voor de toepassing van het vijfde lid als het op de aandelen in de verdwijnende rechtspersoon gestorte kapitaal aangemerkt de waarde in het economische verkeer van het vermogen dat als gevolg van de fusie overgaat op de verkrijgende rechtspersoon voor zover het vermogen niet bestaat uit aandelen in een in Nederland gevestigde vennootschap, tenzij de fusie in overwegende mate is gericht op het ontgaan of uitstellen van belastingheffing.</al>
+              </lid>
+            </artikeltekst>
+          </wijziging>
+          <wijziging>
+            <nr status="officieel">3.</nr>
+            <wat>In het zevende lid (nieuw) wordt «vierde en vijfde lid» vervangen door «vierde, vijfde en zesde lid».</wat>
+          </wijziging>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">VII</nr>
+          </kop>
+          <wat type="wijziging">De Wet belastingen op milieugrondslag wordt als volgt gewijzigd:</wat>
+          <wijzig-lid>
+            <lidnr status="officieel">A</lidnr>
+            <wat>In artikel 27, eerste lid, wordt «percolaat of stortgas» vervangen door «percolaat, stortgas of stoffen die na verbranding via de schoorsteen de inrichting verlaten».</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">Aa</lidnr>
+            <wat>Artikel 47, eerste lid, onderdeel ac, komt te luiden:</wat>
+            <wijziging>
+              <artikeltekst>
+                <?xpp qa?>
+                <?xpp lead;-1?>
+                <definitielijst plaatsing="inline" type="ongemarkeerd" nr-sluiting=".">
+                  <definitie-item>
+                    <li.nr>ac.</li.nr>
+                    <term>EAN-code:</term>
+                    <definitie>
+                      <al>uniek identificatienummer conform de Europese Artikel Nummering betreffende de aansluiting.</al>
+                    </definitie>
+                  </definitie-item>
+                </definitielijst>
+              </artikeltekst>
+            </wijziging>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">B</lidnr>
+            <wat>Na artikel 71h wordt een artikel ingevoegd, luidende:</wat>
+            <wijziging>
+              <artikel status="goed">
+                <kop>
+                  <label>Artikel</label>
+                  <nr status="officieel">71ha</nr>
+                </kop>
+                <al>Indien een afvalverbrandingsinstallatie tevens een broeikasgasinstallatie is, zijn de bepalingen van dit hoofdstuk met betrekking tot afvalverbrandingsinstallaties van toepassing.</al>
+              </artikel>
+            </wijziging>
+          </wijzig-lid>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">VIII</nr>
+          </kop>
+          <wat type="wijziging">De Wet fiscale klimaatmaatregelen glastuinbouw wordt als volgt gewijzigd:</wat>
+          <wijzig-lid>
+            <lidnr status="officieel">A</lidnr>
+            <wat>In het in artikel I, onderdeel C, opgenomen onderdeel d wordt «thermisch» vervangen door «elektrisch».</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">Aa</lidnr>
+            <wat>In het in artikel I, onderdeel E, onder 1, opgenomen eerste lid, onderdeel d, vervalt «productie van elektriciteit en voor».</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">B</lidnr>
+            <wat>In het in artikel I, onderdeel E, onder 1, opgenomen tweede lid wordt in de eerste zin «thermisch» vervangen door «elektrisch» en wordt in de tweede zin «de vrijstelling» vervangen door «de per verbruiksperiode te berekenen vrijstelling».</wat>
+          </wijzig-lid>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">IX</nr>
+          </kop>
+          <wat type="wijziging">De Algemene douanewet wordt als volgt gewijzigd:</wat>
+          <wijzig-lid>
+            <lidnr status="officieel">0A</lidnr>
+            <wat>In artikel 9:1a, tweede lid, wordt «ovolledig» vervangen door «onvolledig».</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">A</lidnr>
+            <wat>Artikel 9:6 wordt als volgt gewijzigd:</wat>
+            <wijziging>
+              <nr status="officieel">1.</nr>
+              <wat>In het eerste lid wordt «vindt artikel 5:53 van de Algemene wet bestuursrecht geen toepassing» vervangen door «is artikel 5:53 van de Algemene wet bestuursrecht niet van toepassing».</wat>
+            </wijziging>
+            <wijziging>
+              <nr status="officieel">2.</nr>
+              <wat>Onder vernummering van het tweede lid tot derde lid wordt een lid ingevoegd, luidende:</wat>
+              <artikeltekst>
+                <lid>
+                  <lidnr status="officieel">2.</lidnr>
+                  <al>Met betrekking tot het opleggen van een boete naar aanleiding van een vergrijp is artikel 10:3, vierde lid, van de Algemene wet bestuursrecht niet van toepassing.</al>
+                </lid>
+              </artikeltekst>
+            </wijziging>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">B</lidnr>
+            <wat>Aan hoofdstuk 9, afdeling 9.1, wordt een artikel toegevoegd, luidende:</wat>
+            <wijziging>
+              <artikel status="goed">
+                <kop>
+                  <label>Artikel</label>
+                  <nr status="officieel">9:6b</nr>
+                </kop>
+                <lid>
+                  <lidnr status="officieel">1.</lidnr>
+                  <al>In afwijking van artikel 5:43 van de Algemene wet bestuursrecht kan de inspecteur een boete naar aanleiding van een vergrijp opleggen wegens hetzelfde feit als waarvoor eerder een boete naar aanleiding van een verzuim is opgelegd, indien nieuwe bezwaren bekend zijn geworden.</al>
+                </lid>
+                <lid>
+                  <lidnr status="officieel">2.</lidnr>
+                  <al>Als nieuwe bezwaren kunnen enkel worden aangemerkt:</al>
+                  <lijst type="expliciet" start="1" level="single" nr-sluiting=".">
+                    <li>
+                      <li.nr>a.</li.nr>
+                      <al>inlichtingen van eenieder die direct of indirect bij het vervullen van douaneformaliteiten of douanecontroles is betrokken die later bekend zijn geworden of niet zijn onderzocht;</al>
+                    </li>
+                    <li>
+                      <li.nr>b.</li.nr>
+                      <al>boeken, bescheiden en andere gegevensdragers of de inhoud daarvan, die later bekend zijn geworden of niet zijn onderzocht; of</al>
+                    </li>
+                    <li>
+                      <li.nr>c.</li.nr>
+                      <al>gegevens en resultaten van controles als bedoeld in artikel 47 van het Douanewetboek van de Unie, die later bekend zijn geworden of niet zijn onderzocht.</al>
+                    </li>
+                  </lijst>
+                </lid>
+                <lid>
+                  <lidnr status="officieel">3.</lidnr>
+                  <al>Het rapport, bedoeld in artikel 5:48 van de Algemene wet bestuursrecht, wordt opgemaakt en vermeldt tevens waaruit de nieuwe bezwaren bestaan.</al>
+                </lid>
+                <lid>
+                  <lidnr status="officieel">4.</lidnr>
+                  <al>De eerder opgelegde boete ter zake van een verzuim wordt verrekend met de wegens hetzelfde feit opgelegde boete ter zake van een vergrijp.</al>
+                </lid>
+              </artikel>
+            </wijziging>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">C</lidnr>
+            <wat>De bijlage, onderdeel B, wordt als volgt gewijzigd:</wat>
+            <wijziging>
+              <nr status="officieel">1.</nr>
+              <wat>De onderdelen «– Brandweerwet 1985», «– Gezondheids- en welzijnswet voor dieren», «– Wet van 11 november 1999, houdende invoering van een verbod tot het vervaardigen, voorradig hebben en verspreiden van drukwerken of andere voorwerpen die, in verband met de invoering van de euro, ten onrechte de indruk zouden kunnen wekken dat zij wettig betaalmiddel zijn», «– Wet pleziervaartuigen» en «– de Wet zeevarenden» vervallen.</wat>
+            </wijziging>
+            <wijziging>
+              <nr status="officieel">2.</nr>
+              <wat>In de alfabetische volgorde worden drie onderdelen ingevoegd, luidende:</wat>
+              <artikeltekst>
+                <lijst type="expliciet" start="1" level="single" nr-sluiting=".">
+                  <li>
+                    <li.nr>–</li.nr>
+                    <al>Wet pleziervaartuigen 2016</al>
+                  </li>
+                  <li>
+                    <li.nr>–</li.nr>
+                    <al>Wet veiligheidsregio’s</al>
+                  </li>
+                  <li>
+                    <li.nr>–</li.nr>
+                    <al>Wet zeevarenden.</al>
+                  </li>
+                </lijst>
+              </artikeltekst>
+            </wijziging>
+          </wijzig-lid>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">X</nr>
+          </kop>
+          <wat type="wijziging">De Wet op de accijns wordt als volgt gewijzigd:</wat>
+          <wijzig-lid>
+            <lidnr status="officieel">A</lidnr>
+            <wat>In artikel 27a vervalt «71e, tweede lid,».</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">B</lidnr>
+            <wat type="wijziging">Hoofdstuk VI, afdeling 2A, vervalt</wat>
+          </wijzig-lid>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">XI</nr>
+          </kop>
+          <wat type="wijziging">In de Wet op de verbruiksbelasting van alcoholvrije dranken wordt in artikel 23, tweede lid, «vijfde tot en met achtste lid» vervangen door «zesde tot en met negende lid».</wat>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">XII</nr>
+          </kop>
+          <wat type="wijziging">De Invorderingswet 1990 wordt als volgt gewijzigd:</wat>
+          <wijzig-lid>
+            <lidnr status="officieel">A</lidnr>
+            <wat>In artikel 44a, vijfde lid, wordt «niet in Nederland» vervangen door «niet in een van de lidstaten van de Europese Unie, een andere staat die partij is bij de Overeenkomst betreffende de Europese Economische Ruimte of Zwitserland».</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">B</lidnr>
+            <wat>In artikel 44b, vijfde lid, wordt «zesde lid» vervangen door «zevende lid». Voorts wordt «niet in Nederland» vervangen door «niet in een van de lidstaten van de Europese Unie, een andere staat die partij is bij de Overeenkomst betreffende de Europese Economische Ruimte of Zwitserland».</wat>
+          </wijzig-lid>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">XIII</nr>
+          </kop>
+          <wat type="wijziging">De Pensioenwet wordt als volgt gewijzigd:</wat>
+          <wijzig-lid>
+            <lidnr status="officieel">A</lidnr>
+            <wat>In artikel 85, eerste lid, onderdeel b, wordt voor «de mogelijkheden» ingevoegd «voor zover de waarde niet naar een pensioeninstelling of verzekeraar uit een andere lidstaat wordt overgedragen:».</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">B</lidnr>
+            <wat>In artikel 87, tweede lid, onderdeel f, wordt voor «de mogelijkheden» ingevoegd «voor zover de waarde niet naar een buitenlandse instelling uit een andere lidstaat wordt overgedragen:».</wat>
+          </wijzig-lid>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">XIV</nr>
+          </kop>
+          <wat type="wijziging">De Wet verplichte beroepspensioenregeling wordt als volgt gewijzigd:</wat>
+          <wijzig-lid>
+            <lidnr status="officieel">A</lidnr>
+            <wat>In artikel 93, eerste lid, onderdeel b, wordt voor «de mogelijkheden» ingevoegd «voor zover de waarde niet naar een pensioeninstelling of verzekeraar uit een andere lidstaat wordt overgedragen:».</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">B</lidnr>
+            <wat>In artikel 95, tweede lid, onderdeel f, wordt voor «de mogelijkheden» ingevoegd «voor zover de waarde niet naar een buitenlandse instelling uit een andere lidstaat wordt overgedragen:».</wat>
+          </wijzig-lid>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">XV</nr>
+          </kop>
+          <wat type="wijziging">Overige fiscale maatregelen 2011 wordt als volgt gewijzigd:</wat>
+          <wijzig-lid>
+            <lidnr status="officieel">A</lidnr>
+            <wat>De artikelen XII en XIII vervallen.</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">B</lidnr>
+            <wat>In artikel XXVIII, achtste lid, wordt «III, X, XI, XII en XIII» vervangen door «III, X en XI» en wordt «de artikelen XI en XIII» vervangen door «artikel XI».</wat>
+          </wijzig-lid>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">XVI</nr>
+          </kop>
+          <wat type="wijziging">Het Belastingplan 2023 wordt als volgt gewijzigd:</wat>
+          <wijzig-lid>
+            <lidnr status="officieel">A</lidnr>
+            <wat>Artikel XXII wordt als volgt gewijzigd:</wat>
+            <wijziging>
+              <nr status="officieel">1.</nr>
+              <wat>Onderdeel B komt te luiden:</wat>
+              <wijzig-lid>
+                <lidnr status="officieel">B</lidnr>
+                <wat>Artikel 5, eerste lid, tweede zin, vervalt.</wat>
+              </wijzig-lid>
+            </wijziging>
+            <wijziging>
+              <nr status="officieel">2.</nr>
+              <wat>Onderdeel C, onder 2, komt te luiden:</wat>
+              <artikeltekst>
+                <lijst type="expliciet" start="1" level="single" nr-sluiting=".">
+                  <li>
+                    <li.nr>2.</li.nr>
+                    <al>Subonderdeel 2° vervalt onder vernummering van subonderdeel 3° tot 2°.</al>
+                  </li>
+                </lijst>
+              </artikeltekst>
+            </wijziging>
+            <wijziging>
+              <nr status="officieel">3.</nr>
+              <wat>Onderdeel E komt te luiden:</wat>
+              <wijzig-lid>
+                <lidnr status="officieel">E</lidnr>
+                <wat>Artikel 9 wordt als volgt gewijzigd:</wat>
+                <wijziging>
+                  <nr status="officieel">1.</nr>
+                  <wat>Het derde lid wordt als volgt gewijzigd:</wat>
+                </wijziging>
+                <wijziging>
+                  <nr status="officieel">a.</nr>
+                  <wat>In onderdeel a vervalt «bestelauto of een» en wordt «veertiende lid» vervangen door «vijftiende lid». Voorts vervalt «bestelauto of».</wat>
+                </wijziging>
+                <wijziging>
+                  <nr status="officieel">b.</nr>
+                  <wat>Onder vervanging van de punt aan het slot van onderdeel b, onder 2°, door een puntkomma wordt een onderdeel toegevoegd, luidende:</wat>
+                  <artikeltekst>
+                    <lijst type="expliciet" start="1" level="single" nr-sluiting=".">
+                      <li>
+                        <li.nr>c.</li.nr>
+                        <al>voor een bestelauto € 66,91 vermenigvuldigd met het aantal gram/km CO<inf>2</inf>-uitstoot.</al>
+                      </li>
+                    </lijst>
+                  </artikeltekst>
+                </wijziging>
+                <wijziging>
+                  <nr status="officieel">2.</nr>
+                  <wat>In het elfde lid wordt «een personenauto» vervangen door «een personenauto of een bestelauto».</wat>
+                </wijziging>
+                <wijziging>
+                  <nr status="officieel">3.</nr>
+                  <wat>In het twaalfde lid wordt na «CO<inf>2</inf>-uitstoot» ingevoegd «van een personenauto».</wat>
+                </wijziging>
+                <wijziging>
+                  <nr status="officieel">4.</nr>
+                  <wat>Onder vernummering van het veertiende lid tot vijftiende lid wordt een lid ingevoegd, luidende:</wat>
+                  <artikeltekst>
+                    <lid>
+                      <lidnr status="officieel">14.</lidnr>
+                      <al>Indien voor de toepassing van dit artikel de CO<inf>2</inf>-uitstoot van een bestelauto niet op een bij ministeriële regeling voorgeschreven wijze is aangetoond, wordt deze gesteld op 330 gram per kilometer.</al>
+                    </lid>
+                  </artikeltekst>
+                </wijziging>
+                <wijziging>
+                  <nr status="officieel">5.</nr>
+                  <wat>In het vijftiende lid (nieuw) wordt «Bijlage I, onderdeel A, punt 5, van Verordening (EU) 2018/858» vervangen door «Bijlage I, deel A, punt 5, van Verordening (EU) 2018/858 van het Europees Parlement en de Raad van 30 mei 2018 betreffende de goedkeuring van en het markttoezicht op motorvoertuigen en aanhangwagens daarvan en systemen, onderdelen en technische eenheden die voor dergelijke voertuigen zijn bestemd, tot wijziging van Verordeningen (EG) nr. 715/2007 en (EG) nr. 595/2009 en tot intrekking van Richtlijn 2007/46/EG (PbEU 2018, L 151)».</wat>
+                </wijziging>
+              </wijzig-lid>
+            </wijziging>
+            <wijziging>
+              <nr status="officieel">4.</nr>
+              <wat>Onderdeel G komt te luiden:</wat>
+              <wijzig-lid>
+                <lidnr status="officieel">G</lidnr>
+                <wat>Artikel 12a wordt als volgt gewijzigd:</wat>
+                <wijziging>
+                  <nr status="officieel">1.</nr>
+                  <wat>In het derde en vijfde lid wordt «een personenauto» vervangen door «een personenauto of een bestelauto».</wat>
+                </wijziging>
+                <wijziging>
+                  <nr status="officieel">2.</nr>
+                  <wat>Er wordt een lid toegevoegd, luidende:</wat>
+                  <artikeltekst>
+                    <lid>
+                      <lidnr status="officieel">6.</lidnr>
+                      <al>Naheffing van de belasting vindt plaats van degene die ten onrechte een teruggaafverklaring als bedoeld in artikel 15a, vierde lid, aan de inschrijver heeft verstrekt.</al>
+                    </lid>
+                  </artikeltekst>
+                </wijziging>
+              </wijzig-lid>
+            </wijziging>
+            <wijziging>
+              <nr status="officieel">5.</nr>
+              <wat>Onderdeel J komt te luiden:</wat>
+              <wijzig-lid>
+                <lidnr status="officieel">J</lidnr>
+                <wat>Artikel 15a wordt als volgt gewijzigd:</wat>
+                <wijziging>
+                  <nr status="officieel">1.</nr>
+                  <wat>Het vierde lid komt te luiden:</wat>
+                  <artikeltekst>
+                    <lid>
+                      <lidnr status="officieel">4.</lidnr>
+                      <al>De teruggaaf wordt verleend aan degene op wiens naam de bestelauto is gesteld. De teruggaaf kan, onder bij algemene maatregel van bestuur te stellen voorwaarden, door degene aan wie op de voet van artikel 8 is toegestaan de belasting per tijdvak te voldoen en die de inschrijving, bedoeld in artikel 1, tweede lid, aanvraagt, worden verrekend met de belasting die uit hoofde van de inschrijving verschuldigd wordt, indien degene op wiens naam de bestelauto wordt gesteld een teruggaafverklaring aan de inschrijver heeft overgelegd.</al>
+                    </lid>
+                  </artikeltekst>
+                </wijziging>
+                <wijziging>
+                  <nr status="officieel">2.</nr>
+                  <wat>In het achtste lid wordt «artikel 10, zesde lid» vervangen door «artikel 10, vijfde lid» en wordt «artikel 10, eerste en zesde lid» vervangen door «artikel 10, eerste en vijfde lid». Voorts wordt «aan wie de teruggaaf is verleend» vervangen door «op wiens naam de bestelauto is gesteld» en wordt «artikelen 10, derde, vierde, vijfde en negende lid» vervangen door «artikelen 10, derde, vierde en achtste lid».</wat>
+                </wijziging>
+              </wijzig-lid>
+            </wijziging>
+            <wijziging>
+              <nr status="officieel">6.</nr>
+              <wat>Na onderdeel J wordt een onderdeel ingevoegd, luidende:</wat>
+              <wijzig-lid>
+                <lidnr status="officieel">JA</lidnr>
+                <wat>In artikel 15b, eerste lid, wordt «artikel 15 of 15a» vervangen door «artikel 15a».</wat>
+              </wijzig-lid>
+            </wijziging>
+            <wijziging>
+              <nr status="officieel">7.</nr>
+              <wat>Onderdeel L komt te luiden:</wat>
+              <wijzig-lid>
+                <lidnr status="officieel">L</lidnr>
+                <wat>Artikel 16b wordt als volgt gewijzigd:</wat>
+                <wijziging>
+                  <nr status="officieel">1.</nr>
+                  <wat>In het eerste lid wordt «artikel 9, eerste en tweede lid» telkens vervangen door «artikel 9, eerste lid» en wordt «en op het bedrag, genoemd in artikel 9, eerste lid, laatste volzin, en tweede lid, laatste volzin» vervangen door «en op de bedragen, genoemd in artikel 9, eerste lid, laatste zin en artikel 9, derde lid, onderdeel c».</wat>
+                </wijziging>
+                <wijziging>
+                  <nr status="officieel">2.</nr>
+                  <wat>In het tweede lid wordt «artikel 9, eerste en tweede lid» vervangen door «artikel 9, eerste lid».</wat>
+                </wijziging>
+              </wijzig-lid>
+            </wijziging>
+            <wijziging>
+              <nr status="officieel">8.</nr>
+              <wat>Onderdeel M komt te luiden:</wat>
+              <wijzig-lid>
+                <lidnr status="officieel">M</lidnr>
+                <wat>Artikel 22 komt te luiden:</wat>
+                <wijziging>
+                  <artikel status="goed">
+                    <kop>
+                      <label>Artikel</label>
+                      <nr status="officieel">22</nr>
+                    </kop>
+                    <lid>
+                      <lidnr status="officieel">1.</lidnr>
+                      <al>De artikelen 5, eerste lid, en 6, tweede lid, onderdeel a, en de daarop berustende bepalingen zoals die luidden op 31 december 2024 blijven van toepassing ter zake van de inschrijving van een bestelauto die uiterlijk op 31 december 2024 heeft plaatsgevonden.</al>
+                    </lid>
+                    <lid>
+                      <lidnr status="officieel">2.</lidnr>
+                      <al>De artikelen 10, derde lid, 13a en 13b en de daarop berustende bepalingen zoals die luidden op 31 december 2024 blijven van toepassing op een bestelauto waarvan de datum eerste toelating uiterlijk op 31 december 2024 is gelegen.</al>
+                    </lid>
+                  </artikel>
+                </wijziging>
+              </wijzig-lid>
+            </wijziging>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">B</lidnr>
+            <wat type="wijziging">Na artikel XXII wordt een artikel ingevoegd, luidende:</wat>
+            <wijziging>
+              <wijzig-artikel status="goed">
+                <kop>
+                  <label>ARTIKEL</label>
+                  <nr status="officieel">XXIIA</nr>
+                </kop>
+                <wat type="wijziging">In de Wet op de belasting van personenauto’s en motorrijwielen 1992 vervalt artikel 22 met ingang van 1 januari 2030.</wat>
+              </wijzig-artikel>
+            </wijziging>
+          </wijzig-lid>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">XVII</nr>
+          </kop>
+          <wat type="wijziging">In het Belastingplan 2024 wordt in het in artikel XXIV, onderdeel B, onder 3, opgenomen artikel 67, vierde lid, «over dat bedrag berekende omzetbelasting over dat bedrag» vervangen door «over dat bedrag berekende omzetbelasting».</wat>
+        </wijzig-artikel>
+        <wijzig-artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">XVIII</nr>
+          </kop>
+          <wijzig-lid>
+            <lidnr status="officieel">A</lidnr>
+            <wat>Artikel V, onderdeel B, vindt eerst toepassing met betrekking tot autobussen die op of na 1 januari 2025 worden tenaamgesteld.</wat>
+          </wijzig-lid>
+          <wijzig-lid>
+            <lidnr status="officieel">B</lidnr>
+            <wat>Artikel IX, onderdeel B vindt eerst toepassing met betrekking tot boetes naar aanleiding van een verzuim die op of na 1 januari 2025 worden opgelegd.</wat>
+          </wijzig-lid>
+        </wijzig-artikel>
+        <artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">XIX</nr>
+          </kop>
+          <lid>
+            <lidnr status="officieel">1.</lidnr>
+            <al>Deze wet treedt in werking met ingang van 1 januari 2025, met dien verstande dat:</al>
+            <lijst type="expliciet" start="1" level="single" nr-sluiting=".">
+              <li>
+                <li.nr>a.</li.nr>
+                <al>artikel II, onderdeel B, terugwerkt tot en met 1 oktober 2024;</al>
+              </li>
+              <li>
+                <li.nr>b.</li.nr>
+                <al>artikel III, onderdeel B en onderdeel E, onder 1, voor het eerst toepassing vindt met betrekking tot boekjaren die aanvangen op of na 1 januari 2025;</al>
+              </li>
+              <li>
+                <li.nr>c.</li.nr>
+                <al>artikel XI terugwerkt tot en met 13 februari 2023;</al>
+              </li>
+              <li>
+                <li.nr>d.</li.nr>
+                <al>artikel VIII toepassing vindt voordat artikel I, onderdelen C en E, van de Wet fiscale klimaatmaatregelen glastuinbouw wordt toegepast;</al>
+              </li>
+              <li>
+                <li.nr>e.</li.nr>
+                <al>artikel XII, onderdeel B, eerste zin, terugwerkt tot en met 1 juli 2023;</al>
+              </li>
+              <li>
+                <li.nr>f.</li.nr>
+                <al>artikel XII, onderdeel A en onderdeel B, tweede zin, en de artikelen XIII en XIV terugwerken tot en met 16 november 2023;</al>
+              </li>
+              <li>
+                <li.nr>g.</li.nr>
+                <al>artikel XVI toepassing vindt voordat artikel XXII van het Belastingplan 2023 wordt toegepast.</al>
+              </li>
+            </lijst>
+          </lid>
+          <lid>
+            <lidnr status="officieel">2.</lidnr>
+            <al>In afwijking van het eerste lid treedt V, onderdeel A, in werking op het tijdstip waarop de Wet van 10 mei 2023 tot wijziging van de Wegenverkeerswet 1994 in verband met de modernisering van het erkenningenstelsel, het verbeteren van de handhaafbaarheid en enkele andere wijzigingen van technische aard in werking treedt.</al>
+          </lid>
+        </artikel>
+        <artikel status="goed">
+          <kop>
+            <label>ARTIKEL</label>
+            <nr status="officieel">XX</nr>
+          </kop>
+          <al>Deze wet wordt aangehaald als: Overige fiscale maatregelen 2025.</al>
+        </artikel>
+      </wettekst>
+      <wetsluiting status="goed">
+        <slotformulering>
+          <al>Lasten en bevelen dat deze in het Staatsblad zal worden geplaatst en dat alle ministeries, autoriteiten, colleges en ambtenaren die zulks aangaat, aan de nauwkeurige uitvoering de hand zullen houden.</al>
+        </slotformulering>
+        <histnoot type="parlementair">
+          <al>Kamerstuk <dossierref dossier="36603">36 603</dossierref></al>
+        </histnoot>
+        <gegeven>
+          <label>Gegeven te </label>
+          <dagtekening>
+            <plaats>’s-Gravenhage,</plaats>
+            <datum isodatum="2024-12-18">18 december 2024</datum>
+          </dagtekening>
+          <koning>Willem-Alexander</koning>
+        </gegeven>
+        <ondertekening>
+          <functie>De Staatssecretaris Financiën,</functie>
+          <naam>
+            <voornaam>T. van</voornaam>
+            <achternaam>Oostenbruggen</achternaam>
+          </naam>
+        </ondertekening>
+        <uitgifte>
+          <datum isodatum="2024-12-23">Uitgegeven de <nadruk type="cur">drieëntwintigste</nadruk> december 2024</datum>
+          <ondertekening>
+            <functie>De Minister van Justitie en Veiligheid,</functie>
+            <naam>
+              <voornaam>D.M. van</voornaam>
+              <achternaam>Weel</achternaam>
+            </naam>
+          </ondertekening>
+        </uitgifte>
+      </wetsluiting>
+    </wet-besluit>
+  </staatsblad>
+</officiele-publicatie>
