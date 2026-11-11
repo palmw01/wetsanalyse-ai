@@ -163,3 +163,56 @@ def test_een_connector_noemt_de_regeling_bij_naam_als_die_bekend_is(monkeypatch)
     assert regel == "zoekt uitspraken bij artikel 36 van Invorderingswet 1990"
     monkeypatch.setattr(overzicht, "_REGELINGEN_CACHE", [])
     assert "BWBR0004770" in sb.toolregel({"name": "zoek_uitspraken", "input": {"bwb_id": "BWBR0004770", "artikel": "36"}})
+
+
+def test_de_voorleesregel():
+    assert sb.voorleesregel("get_bekendmaking", {"id": "stcrt-2025-22266"}, 7, True) == "stcrt-2025-22266 gelezen, 7 pagina’s"
+    assert sb.voorleesregel("get_bekendmaking", {"id": "stcrt-2025-22266"}, 8, False) == (
+        "stcrt-2025-22266 deels gelezen (8 pagina’s), er is meer dan dit")
+
+
+#: Per connector met een leestool die de voorlezing doorleest: de leestool, haar argument en een id.
+_VOORLEESVORMEN = [(c.leestool, c.lees_argument, c.voorbeeld_id) for c in bm.CONNECTORS.values()
+                   if c.leestool and c.lees_argument and c.voorbeeld_id]
+
+
+@pytest.mark.parametrize("tool,arg,ident", _VOORLEESVORMEN)
+def test_een_doorgelezen_stuk_geeft_een_spoorregel(tool, arg, ident):
+    """Iteratie bekendmakingen ronde 4, B21: de voorlezing las een stuk in zeven pagina's, en het spoor zei zes keer
+    "deels gelezen, er is meer dan dit". Nu één regel per stuk, voor elke connector; één pagina meldt zich zoals eerst."""
+    import json
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from agent.nodes import bron_lezen as bl
+
+    def pagina(offset: int, totaal: int, per: int = 30) -> dict:
+        rijen = [{"nr": n + 1, "tekst": f"Alinea {n + 1}."} for n in range(offset, min(offset + per, totaal))]
+        vervolg = {"tool": tool, "args": {arg: ident, "offset": offset + per}} if offset + per < totaal else None
+        return {"status": "ok", "volledig": vervolg is None, "aantal": len(rijen), "totaal": totaal, "stuk": {"id": ident},
+                "resultaten": rijen, **({"vervolg": vervolg} if vervolg else {})}
+
+    def spoor(totaal: int) -> list[str]:
+        events: list[dict] = []
+        aanroepen: list[dict] = []
+
+        def uitvoeren(b, state, writer, aanroep):
+            aanroepen.append(aanroep)
+            data = pagina(int(aanroep["input"].get("offset") or 0), totaal)
+            return execute_tool(_Bouw(), state, writer, aanroep, operation=lambda: data)
+
+        state = {"run_id": "r", "bron_lezen": [{"name": tool, "input": {arg: ident}}], "source_trace": []}
+        with patch.object(bl, "execute_tool", uitvoeren), patch.object(bl, "get_stream_writer", return_value=events.append):
+            bl.bron_lezen_node(SimpleNamespace(), state)
+        eind = [e for e in events if e.get("type") == "tool_execution" and e["phase"] == "end"]
+        assert len(eind) == len(aanroepen), "elke pagina blijft een tool_execution, voor eval en audit"
+        return [e["message"] for e in events if e.get("type") == "status" and e.get("bron")]
+
+    label = sb.bron_van(tool).label
+    assert spoor(100) == [f"{label} · {ident} gelezen, 4 pagina’s"]
+    assert spoor(20) == [], "één pagina, helemaal gelezen: niets te melden, zoals eerst"
+    lang = bl.MAX_RIJEN_KORT + 10
+    if tool in bl.HEEL_LEZEN:  # een artikel leest de code altijd helemaal
+        assert spoor(lang) == [f"{label} · {ident} gelezen, {-(-lang // 30)} pagina’s"]
+    else:
+        assert spoor(lang) == [f"{label} · {ident} deels gelezen, er is meer dan dit"], "lang: één pagina"

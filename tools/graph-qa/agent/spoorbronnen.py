@@ -228,3 +228,15 @@ def uitkomstregel(tool: str, invoer: dict[str, Any], eind: dict[str, Any], data:
         stuk = str((invoer or {}).get(arg) or "").strip() if arg else ""
         delen.append("er is meer dan dit" if zoekt else f"{stuk + ' ' if stuk else ''}deels gelezen, er is meer dan dit")
     return ", ".join(delen)
+
+
+def voorleesregel(tool: str, invoer: dict[str, Any], paginas: int, volledig: bool) -> str:
+    """Eén regel voor een stuk dat de code zelf doorlas (`nodes/bron_lezen.py`): "kst-33755-3 gelezen, 7 pagina’s". Elke
+    pagina meldde zich eerst als "deels gelezen, er is meer dan dit", zes keer voor één stuk (iteratie bekendmakingen
+    ronde 4, B21). Is het stuk na de laatste pagina nog niet uit, dan zegt de regel dat."""
+    bron = bron_van(tool)
+    arg = bron.lees_id.get(tool) if bron is not None else None
+    stuk = str((invoer or {}).get(arg) or "").strip() if arg else ""
+    voor = f"{stuk} " if stuk else ""
+    wat = f"{_getal(paginas)} {'pagina' if paginas == 1 else 'pagina’s'}"
+    return f"{voor}gelezen, {wat}" if volledig else f"{voor}deels gelezen ({wat}), er is meer dan dit"

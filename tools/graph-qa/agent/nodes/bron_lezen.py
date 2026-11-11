@@ -22,6 +22,7 @@ from langgraph.config import get_stream_writer
 
 from ..narratie import _stap, _toolregel
 from ..sjablonen.extern import lijsten
+from ..spoorbronnen import bron_van, voorleesregel
 from ..sjablonen.vullen import Onvulbaar
 from ..state import State
 from ..tool_execution import execute_tool
@@ -38,12 +39,14 @@ def bron_lezen_node(b, state: State) -> dict[str, Any]:
     for aanroep in state.get("bron_lezen") or []:
         tool = {"id": uuid4().hex, "name": aanroep["name"], "input": dict(aanroep.get("input") or {})}
         _stap(writer, "Lex", _toolregel(tool))
-        raw = execute_tool(b, state, writer, tool)
+        eerste = tool
+        lezer = _Voorlezer(writer)
+        raw = execute_tool(b, state, lezer, tool)
         if "artikel" in tool["input"] and _leeg(raw):
             # Het genoemde artikel staat in geen wijzigingsonderdeel ("wat staat er in Stb. 2010, 176 over artikel 36"
             # noemt het in de toelichting): dan het hele stuk, zodat de agent geen extra ronde nodig heeft.
             tool = {**tool, "id": uuid4().hex, "input": {k: v for k, v in tool["input"].items() if k != "artikel"}}
-            raw = execute_tool(b, state, writer, tool)
+            raw = execute_tool(b, state, lezer, tool)
         gebruik.append({"type": "tool_use", **tool})
         resultaten.append({"type": "tool_result", "tool_use_id": tool["id"], "content": raw})
         trace.append((tool["name"], raw))
@@ -55,10 +58,12 @@ def bron_lezen_node(b, state: State) -> dict[str, Any]:
                 if not (vervolg := _vervolg(raw, tool["name"])):
                     break
                 tool = {"id": uuid4().hex, "name": vervolg["tool"], "input": dict(vervolg.get("args") or {})}
-                raw = execute_tool(b, state, writer, tool)
+                raw = execute_tool(b, state, lezer, tool)
                 gebruik.append({"type": "tool_use", **tool})
                 resultaten.append({"type": "tool_result", "tool_use_id": tool["id"], "content": raw})
                 trace.append((tool["name"], raw))
+                lezer.paginas += 1
+        lezer.klaar(eerste, volledig=_vervolg(raw, tool["name"]) is None)
     if not gebruik:
         return {"bron_lezen": []}
     paar = [{"role": "assistant", "content": gebruik}, {"role": "user", "content": resultaten}]
@@ -73,6 +78,33 @@ def bron_lezen_node(b, state: State) -> dict[str, Any]:
         "messages": [{"role": "assistant", "content": gebruik},
                      {"role": "user", "content": [*resultaten, {"type": "text", "text": TOELICHTING}]}],
     }
+
+
+class _Voorlezer:
+    """De writer tijdens het lezen van één genoemd stuk. Hij houdt de regels over wat de bron opleverde vast (de status
+    met een `bron`), en laat al het andere door, ook de `tool_execution`-events. Las de code zelf meer pagina's, dan
+    wordt het één regel (`spoorbronnen.voorleesregel`) in plaats van "deels gelezen" per pagina; anders, of als een
+    pagina een fout gaf, komen de vastgehouden regels zoals ze waren."""
+
+    def __init__(self, writer: Any) -> None:
+        self.writer, self.regels, self.paginas, self.fout = writer, [], 1, False
+
+    def __call__(self, event: dict[str, Any]) -> None:
+        if event.get("type") == "status" and event.get("bron"):
+            self.regels.append(event)
+            return
+        if event.get("type") == "tool_execution" and event.get("phase") == "end" and event.get("status") not in ("ok", "partial"):
+            self.fout = True
+        self.writer(event)
+
+    def klaar(self, tool: dict[str, Any], *, volledig: bool) -> None:
+        if self.paginas == 1 or self.fout:
+            for event in self.regels:
+                self.writer(event)
+            return
+        bron = bron_van(tool["name"])
+        _stap(self.writer, bron.label if bron else "Kennisgraaf",
+              voorleesregel(tool["name"], tool["input"], self.paginas, volledig), bron=bron.naam if bron else "")
 
 
 #: De leestools waarvan de code altijd alle pagina's leest: een wettekst van overheid.nl is per artikel begrensd.
