@@ -450,9 +450,33 @@ def hergebruikte_bronnen(register, antwoord: str, al) -> list:
 
 
 #: Woorden die alleen in de werking van Lex bestaan, nooit in een antwoord aan de jurist: het sjabloon en zijn tools.
-_INTERN = re.compile(r"\b(?:sjablo(?:on|nen)\w*|antwoord_(?:bepaling|duiding|extern|begrip|annotaties)|brongetrouwheidscontrole)\b",
-                     re.IGNORECASE)
+_INTERN = re.compile(
+    r"\b(?:sjablo(?:on|nen)\w*|antwoord_(?:bepaling|duiding|extern|begrip|annotaties)|brongetrouwheidscontrole"
+    # Systeemtaal over de eigen werking (Bekendmakingen B15, 11 nov 2026: "de regels van deze werkplek").
+    r"|(?:de\s+)?regels\s+van\s+(?:deze|de)\s+werkplek|systeemprompt|mijn\s+instructies|toolaanroep\w*)\b",
+    re.IGNORECASE)
 _ZIN = re.compile(r"[^.!?\n]*[.!?]?[ \t]*")
+
+
+def _lex_zonder_interne_taal(antwoord: dict[str, Any]) -> dict[str, Any] | None:
+    """Het sjabloon met de blokken van Lex (`door: "lex"`) zonder interne taal, of None als er niets te halen was. Een
+    blok dat zo leeg wordt, valt weg."""
+    gewijzigd, blokken = False, []
+    for blok in antwoord.get("blokken") or []:
+        if blok.get("door") == "lex":
+            blok = dict(blok)
+            if isinstance(blok.get("tekst"), str) and (t := zonder_interne_taal(blok["tekst"])) != blok["tekst"]:
+                gewijzigd, blok["tekst"] = True, t
+                if not t:
+                    continue
+            if isinstance(blok.get("punten"), list):
+                punten = [p for p in (zonder_interne_taal(str(x)) for x in blok["punten"]) if p]
+                if punten != blok["punten"]:
+                    gewijzigd, blok["punten"] = True, punten
+                    if not punten:
+                        continue
+        blokken.append(blok)
+    return {**antwoord, "blokken": blokken} if gewijzigd else None
 
 
 def zonder_interne_taal(tekst: str) -> str:
@@ -480,6 +504,14 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
     # "(geen antwoord)" – zonder spoor in de logs. Liever een eerlijke melding, en altijd een
     # logregel zodat het volgende geval terug te vinden is.
     antwoord = state.get("answer", "") or ""
+    if state.get("antwoord") and (blokken := _lex_zonder_interne_taal(state["antwoord"])) is not None:
+        # Een sjabloon: alleen wat Lex schreef (toelichting, kort antwoord, twijfel) kan interne taal dragen; de rest komt
+        # uit de bron. Daarna de vaste tekst opnieuw, zodat tekst en blokken gelijk blijven.
+        logger.warning("interne taal uit het antwoord gehaald", extra={"categorie": "functioneel",
+                                                                         "run_id": state.get("run_id", "")})
+        schoon_antwoord = Antwoord.model_validate(blokken)
+        antwoord = antwoord_tekst(schoon_antwoord)
+        state = {**state, "antwoord": schoon_antwoord.model_dump(), "answer": antwoord}
     if not state.get("antwoord") and (schoon := zonder_interne_taal(antwoord)) != antwoord:
         # Na een geweigerd sjabloon schreef het model de weigering naar de jurist ("Het sjabloon detecteert elke
         # verwijzing …", iteratie ronde 1, I28). Interne taal hoort nooit in het antwoord; de zin gaat eruit, met een spoor.
