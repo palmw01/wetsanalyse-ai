@@ -228,7 +228,9 @@ def _wetgeving_live(monkeypatch):
 
 
 def test_een_genoemd_artikel_buiten_de_graaf_wordt_zonder_model_gelezen(_wetgeving_live):
-    vraag = "Wat staat er in artikel 31 van de Participatiewet?"
+    # Een tekstvraag gaat de bepalingsworkflow in (`test_wetgeving_live_routes.py`); een andere vraag over het artikel leest
+    # de code vooraf, waarna de duiding formuleert.
+    vraag = "Wat regelt artikel 31 van de Participatiewet?"
     state = {"question": vraag, "modus": "auto", "focus": {}, "bronstand": _LIVE,
              "messages": [{"role": "user", "content": vraag}]}
     upd = supervisie.supervisor_node(_wetgeving_live, state)

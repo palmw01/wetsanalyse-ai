@@ -20,6 +20,7 @@ from .. import bronstand
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
 from ..llm_stap import Rol, aanroep
 from ..bepaling_workflow import lees as lees_bepalingsvraag
+from ..bepaling_workflow import lees_buiten
 from ..doel import _heeft_opgegeven_doel
 from ..bronselectie import is_bronselectievraag
 from ..models import ACTIE_TAAK, BRONSELECTIE_ACTIES, INTAKE_ACTIES
@@ -51,8 +52,10 @@ _AGENT_STAP = {"deelvragen": "kijkt naar de deelvragen van het werkgebied", "beg
 def _bepaling(writer, bepaling) -> dict[str, Any]:
     """De bepalingsroute (ADR-010, laag 2): de workflow haalt op en vult het sjabloon."""
     _stap(writer, "Lex", "haalt de tekst van de bepaling op", route="bepaling")
+    # Alleen de velden met een waarde (plus de drie vaste): de graafroute houdt dezelfde vorm als vóór `live`.
+    vraag = {k: v for k, v in asdict(bepaling).items() if v or k in ("bwb_id", "artikel", "lid")}
     return {"specialist": "algemeen", "worker_plan": ["algemeen"], "worker_idx": 0, "plan": "de tekst van een bepaling",
-            "afwijzen": False, "annotaties_lezen": False, "bepalingsvraag": asdict(bepaling)}
+            "afwijzen": False, "annotaties_lezen": False, "bepalingsvraag": vraag}
 
 
 def _doorvraag(state: State) -> str:
@@ -181,6 +184,44 @@ def _te_lezen(state: State, vraag: str) -> list[dict[str, Any]]:
 _ANNOTEER_RE = re.compile(r"\b(?:annote(?:er|ren)|markeer|markeren|classificeer)\b", re.IGNORECASE)
 
 
+def _live_aan(state: State) -> bool:
+    """Staat de connector `wetgeving_live` in deze beurt aan?"""
+    return bool(((state.get("bronstand") or {}).get("wetgeving_live") or {}).get("aan"))
+
+
+def _buiten_graaf_melding(writer, state: State, vraag: str, buiten: list[Any], graph: Any) -> dict[str, Any] | None:
+    """Een vraag over een regeling buiten de kennisgraaf die geen tekst kan krijgen, met een vaste melding zonder model:
+
+    - een verzoek om te **annoteren**: dat vraagt een bronnode in de graaf (meting 11 nov 2026, W16: "Ongeldig BWB-id");
+    - de connector staat **uit**: zeggen dat de regeling niet in de kennisgraaf staat en wie de bron aanzet (W14: vier
+      rondes en 46k voor die melding). Zonder connector gaat er geen verzoek naar overheid.nl, dus de herkenning is op
+      naam (`buiten_graaf.zonder_zoekdienst`)."""
+    from .. import buiten_graaf
+
+    aan = _live_aan(state)
+    if not aan and ((state.get("bronstand") or {}).get("wetgeving_live") or {}).get("reden", "straat") == "straat":
+        # Een straat zonder de connector (productie): daar is niets aan te zetten, en de agent zegt wat de graaf heeft.
+        return None
+    titels = ([g.titel for g in buiten if g.bwb_id] if aan else buiten_graaf.zonder_zoekdienst(vraag, graph))
+    if not titels:
+        return None
+    if _ANNOTEER_RE.search(vraag):
+        melding, stap = buiten_graaf.melding_annoteren(titels, lezen_kan=aan), "niet geannoteerd – niet in de kennisgraaf"
+        _stap(writer, "Lex", "annoteert niet: de regeling staat niet in de kennisgraaf", route="niet_in_graaf")
+    elif not aan:
+        stand = state.get("bronstand") or {}
+        melding = buiten_graaf.melding_bron_uit(titels, bronstand.uit_zin(stand, "wetgeving_live"))
+        stap = "niet gezocht – niet in de kennisgraaf, en de bron staat uit"
+        s = stand.get("wetgeving_live") or {"reden": "straat", "label": "Wetgeving buiten de kennisgraaf"}
+        _stap(writer, "Lex", f"{s.get('label')} staat uit in deze beurt", route="bron_uit")
+        writer({"type": "bron_uit", "bronnen": [{"naam": "wetgeving_live", "label": s.get("label"),
+                                                 "reden": s.get("reden", "straat")}]})
+    else:
+        return None
+    return {"specialist": "", "plan": "", "worker_plan": [], "worker_idx": 0, "afwijzen": True,
+            "afwijs_melding": melding, "afwijs_stap": stap, "annotaties_lezen": False}
+
+
 def _buiten_graaf(b: Bouw, state: State, vraag: str) -> list[Any]:
     """De regelingen die de vraag noemt en die niet in de kennisgraaf staan (`agent/buiten_graaf.py`), alleen als de
     connector `wetgeving_live` in deze beurt aanstaat: anders gaat er geen verzoek naar overheid.nl. Een storing is leeg."""
@@ -189,7 +230,7 @@ def _buiten_graaf(b: Bouw, state: State, vraag: str) -> list[Any]:
     from .. import buiten_graaf
     from ..tools.connectortools import MODULES
 
-    if not ((state.get("bronstand") or {}).get("wetgeving_live") or {}).get("aan"):
+    if not _live_aan(state):
         return []
     try:
         bron = MODULES["wetgeving_live"].bron(b.settings)
@@ -374,7 +415,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # Zonder gesprek valt er niets te herschrijven: geen LLM-call, de vorm van de vraag beslist.
         return _overzicht(writer, "")
 
-    if modus == "auto" and (bepaling := lees_bepalingsvraag(state.get("question", ""), b.graph)):
+    if modus == "auto" and (bepaling := lees_bepalingsvraag(state.get("question", ""), b.graph,
+                                                                    live_aan=_live_aan(state))):
         # De tekst van een bepaling (ADR-010, D1): de vraag noemt zelf de regeling en het artikel, dus ook in een gesprek
         # valt er niets te herschrijven. Geen LLM-call; de workflow haalt op en vult het sjabloon.
         return _bepaling(writer, bepaling)
@@ -402,6 +444,12 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     from .. import buiten_graaf
     if (terug := buiten_graaf.keuzevraag(buiten)) and not any(g.bwb_id for g in buiten):
         return _keuze_regeling(writer, terug)
+    if modus == "auto" and (melding := _buiten_graaf_melding(writer, state, vraag_nu, buiten, b.graph)):
+        return melding
+    if modus == "auto" and (live_bepaling := lees_buiten(vraag_nu, buiten)):
+        # De tekst van een artikel buiten de graaf: dezelfde workflow als een artikel uit de graaf (ADR-010, D1), met het
+        # hele artikel in het blok `extern` en de controle op letterlijkheid. Ook in een gesprek: de vraag noemt het zelf.
+        return _bepaling(writer, live_bepaling)
     if not gesprek and not _ANNOTEER_RE.search(vraag_nu) and (live := buiten_graaf.leesaanroepen(buiten)) \
             and len(live) == 1:
         g = next(x for x in buiten if x.bwb_id and x.artikel)
@@ -461,7 +509,7 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         return {**upd, **_lees(writer, vraag)}
     if is_overzichtsvraag(zelfstandig):
         return {**upd, **_overzicht(writer, vraag)}
-    if modus == "auto" and vraag and (bepaling := lees_bepalingsvraag(zelfstandig, b.graph)):
+    if modus == "auto" and vraag and (bepaling := lees_bepalingsvraag(zelfstandig, b.graph, live_aan=_live_aan(state))):
         # "Wat staat er in artikel 9?" na een vraag over de Invorderingswet: pas de herschreven vraag noemt de regeling.
         # Op acceptatie ging zo'n vervolgvraag de open lus in (4 rondes, 18 s) in plaats van de workflow (1 ronde).
         # De regeling raadt de code niet zelf uit de vorige beurt: het model leest het gesprek, de code beslist daarna.

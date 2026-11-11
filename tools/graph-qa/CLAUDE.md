@@ -398,6 +398,15 @@ bruikbaar is.
   (`bronselectie.NIET_IN_GRAAF`) zeggen dat het pas na een import kan. Tests met opnames van overheid.nl
   (`tests/fixtures/bwb_live/`, `WETGEVING_OPNEMEN=1`): `tests/test_wetgeving_tools.py`, `tests/test_buiten_graaf.py` en de
   vragenset `tests/test_wetgeving_live_vragenset.py`; live `tests/test_wetgeving_live_live.py`.
+  **Na de eerste meting** (`docs/architectuur/metingen/wetgeving-live-2026-11-11/`, `tests/test_wetgeving_live_routes.py`):
+  een tekstvraag naar één genoemd artikel gaat de **bepalingsworkflow** in (`bepaling_workflow.lees_buiten`, en `lees` met
+  een peildatum buiten de graaftoestand: `live`, `peildatum`). De code leest het hele artikel met `get_wettekst` (alle
+  pagina's) en toont het in het blok `extern` (`sjablonen.extern.heel_stuk`, zonder `MAX_PASSAGES`), met een `Leemte` bij
+  vervallen of nog niet in werking; het model schrijft alleen de toelichting. `verify` toetst elke passage letterlijk tegen
+  de gelezen rijen (`grounding.live_niet_letterlijk`), en een gelezen `wettekst_live`-stuk blijft in de bronnenlijst
+  (`alleen_gelezen_extern`). `bron_lezen` leest bij `get_wettekst` ook alle pagina's (`HEEL_LEZEN`). Annoteren van een
+  regeling buiten de graaf, en een vraag erover met de connector uit (maar wel in de straat), geeft een vaste melding
+  zonder model (`supervisie._buiten_graaf_melding`; zonder connector op naam, `buiten_graaf.zonder_zoekdienst`).
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION).
   **`graph/schema.py`** – schema-introspectie met een cache van een uur. **`graph/results.py`** –
   `parse_select`: de MCP levert SELECT als JSON-string-gewrapte TSV.

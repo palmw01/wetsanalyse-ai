@@ -188,3 +188,51 @@ def leesaanroepen(genoemde: list[Genoemd]) -> list[dict[str, Any]]:
     """De leestool vooraf voor een eenduidig genoemd artikel van een regeling buiten de graaf."""
     return [{"name": "get_wettekst", "input": {"bwb_id": g.bwb_id, "artikel": g.artikel, **({"lid": g.lid} if g.lid else {})}}
             for g in genoemde if g.bwb_id and g.artikel]
+
+
+def zonder_zoekdienst(vraag: str, graph: Any) -> list[str]:
+    """De regelingen die de vraag bij een artikel noemt en die de graaf niet kent, zonder de zoekdienst van de BWB: voor
+    een beurt waarin de connector uit staat (dan gaat er geen verzoek naar overheid.nl). Geeft hun titel ("Participatiewet",
+    "Burgerlijk Wetboek Boek 7").
+
+    Zonder de zoekdienst is niet zeker dat zo'n regeling bestaat, dus de melding zegt alleen dat ze niet in de kennisgraaf
+    staat. Wat voorzichtig: alleen bij een vraag met een artikel, die geen regeling uit de graaf noemt, en alleen een naam
+    met "wet" erin of een vorm die het artikel zelf draagt ("7:610 BW", "artikel 1 Pw"). Een naam die het begin van een
+    naam in de graaf is ("Invorderingswet" bij "Invorderingswet 1990"), telt als graafnaam. Een storing is leeg."""
+    from . import overzicht
+
+    if not _ARTIKEL_RE.search(vraag or "") and not _BW_RE.search(vraag or ""):
+        return []
+    try:
+        if overzicht.regelingen_in_vraag(graph, vraag):
+            return []
+    except Exception:  # noqa: BLE001 – zonder graaf geen uitspraak over wat er niet in staat
+        return []
+    graafnamen = _graafnamen(graph)
+    if not graafnamen:
+        return []
+    uit: list[str] = []
+    for naam, titel, artikel in _kandidaten(vraag):
+        if "wet" not in naam.casefold() and not artikel:
+            continue
+        n, t = naam.casefold(), titel.casefold()
+        if any(g in (n, t) or g.startswith((n + " ", t + " ")) for g in graafnamen):
+            continue
+        uit.append(titel)
+    return uit[:MAX_KANDIDATEN]
+
+
+def melding_annoteren(titels: list[str], *, lezen_kan: bool) -> str:
+    """Waarom een bepaling uit een regeling buiten de kennisgraaf niet te annoteren is: een annotatie hangt aan een bronnode
+    in de graaf."""
+    wat = " en ".join(titels)
+    return (f"Ik kan deze bepaling niet annoteren: {wat} {'staat' if len(titels) == 1 else 'staan'} niet in de "
+            "kennisgraaf, en annoteren kan pas na een import in de graaf."
+            + (" Lezen kan wel, via de bron Wetgeving buiten de kennisgraaf." if lezen_kan else ""))
+
+
+def melding_bron_uit(titels: list[str], uit_zin: str) -> str:
+    """Een regeling buiten de kennisgraaf terwijl de connector uit staat: zeggen wat er is en wie de bron aanzet."""
+    wat = " en ".join(titels)
+    return (f"{wat} {'staat' if len(titels) == 1 else 'staan'} niet in de kennisgraaf. {uit_zin} Uit mijn eigen kennis "
+            "vul ik niet in wat daar staat. Over de regelingen in de kennisgraaf kan ik je wel helpen.")

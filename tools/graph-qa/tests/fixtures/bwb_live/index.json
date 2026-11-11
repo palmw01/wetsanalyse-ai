@@ -39,6 +39,10 @@
   "bestand": "5701b664b0a29829.xml.gz",
   "status": 406
  },
+ "query=dcterms.identifier=BWBR0004770 | startRecord=1 | maximumRecords=1000": {
+  "bestand": "077a0654e6b08bc3.xml.gz",
+  "status": 406
+ },
  "query=dcterms.identifier=BWBR0005290 and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=20": {
   "bestand": "40e2b37df1e77502.xml.gz",
   "status": 406

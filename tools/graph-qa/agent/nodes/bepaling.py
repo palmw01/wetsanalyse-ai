@@ -3,7 +3,8 @@ modelaanroep voor een korte toelichting.
 
 De supervisor zet `bepalingsvraag` als de vraag eenduidig één artikel (en hoogstens één lid) van één regeling aanwijst
 (`bepaling_workflow.lees`). Lukt het ophalen of vullen niet, dan gaat de beurt naar de agent, die het op de gewone
-manier doet: deze route geeft nooit een halve tekst. Daarna volgen `verify` en `finalize` zoals bij elk sjabloon.
+manier doet: deze route geeft nooit een halve tekst. Daarna volgen `verify` en `finalize` zoals bij elk sjabloon. Wettekst
+van overheid.nl (`live`) komt in het blok `extern`, met het hele artikel (ADR-013 fase 1e).
 """
 from __future__ import annotations
 
@@ -34,8 +35,15 @@ def bepaling_node(b: Bouw, state: State) -> dict[str, Any]:
     if kaal is None:
         _stap(writer, "Lex", "kon de tekst niet in één keer ophalen; zoekt verder")
         return {"bepalingsvraag": {}}
-    tekst = "\n\n".join(item.tekst for item in kaal.blokken[0].items)
-    toelichting = wf.schrijf_toelichting(b.llm, b.model, f"{vindplaats_van(v.iri).label}\n\n{tekst}")
+    if v.live:
+        # Wettekst van overheid.nl: het blok `extern` met het hele artikel; label en status uit het gelezen stuk.
+        stuk = wf.gelezen_stuk(trace)
+        tekst = "\n\n".join(p.tekst for p in kaal.blokken[0].passages)
+        kop = "\n".join(x for x in (str(stuk.get("label") or ""), wf.werking_zin(stuk)) if x)
+    else:
+        tekst = "\n\n".join(item.tekst for item in kaal.blokken[0].items)
+        kop = vindplaats_van(v.iri).label
+    toelichting = wf.schrijf_toelichting(b.llm, b.model, f"{kop}\n\n{tekst}")
     antwoord = wf.antwoord(v, trace, toelichting) or kaal
     _met_regelingen(b, antwoord)
     uit = antwoord_tekst(antwoord)

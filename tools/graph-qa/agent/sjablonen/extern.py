@@ -239,6 +239,28 @@ def blokken(items: Any, trace: Trace) -> list[Extern]:
     return list(per_stuk.values())
 
 
+def heel_stuk(trace: Trace, ident: str) -> Extern | None:
+    """Het blok `extern` met álle rijen van de laatste lezing van één stuk, door de code aangewezen (geen grens van
+    `MAX_PASSAGES`: die begrenst wat het model aanwijst). Voor de tekst van een artikel van overheid.nl in de
+    bepalingsworkflow (`bepaling_workflow`): een artikel is één geheel, en de jurist ziet het zoals de graaf een artikel
+    toont. `None` als het stuk niet (helemaal) gelezen is: een gat in de nummers is een ontbrekende pagina."""
+    vp, c = externe_vindplaats(ident), van_id(ident)
+    if vp is None or c is None:
+        return None
+    stuk, rijen, _, _ = _gelezen(trace, c, vp.id)
+    if not stuk or not rijen or sorted(rijen) != list(range(1, len(rijen) + 1)):
+        return None
+    tekstvelden = {k: stuk[k] for k in TEKSTVELDEN if stuk.get(k) not in ("", None)}
+    return Extern(
+        brontype=vp.brontype, id=vp.id, label=str(stuk.get("label") or vp.label), link=str(stuk.get("link") or vp.uri),
+        kop=c.kop_in_antwoord, bron_hash=str(stuk.get("bron_hash") or ""), gewijzigd=str(stuk.get("gewijzigd") or ""),
+        datum=str(stuk.get("datum") or ""), soort_stuk=str(stuk.get("soort") or ""),
+        **{**tekstvelden, **_tekst_bij(trace, c, vp.id)},
+        passages=[ExternePassage(nr=n, tekst=r["tekst"], kop=str(r.get("kop") or ""), soort=str(r.get("soort") or "alinea"),
+                                 verwijst_naar=_verwijzingen(r), plek=str(r.get("plek") or ""))
+                  for n, r in sorted(rijen.items())])
+
+
 #: De volgordes in de woorden van de jurist: een eigen zin onder de lijst.
 _VOLGORDE_TEKST = {"nieuwste": "Nieuwste eerst.", "oudste": "Oudste eerst.", "nummer": "Op nummer.",
                    "relevantie": "Meest relevante eerst."}
