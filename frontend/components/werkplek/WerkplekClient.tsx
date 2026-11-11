@@ -1388,7 +1388,7 @@ export function WerkplekClient({
               ? "Dit is een voorbeeld voor de rondleiding – er gaat niets naar de agent."
               : geblokkeerd && verbruik
                 ? `Je tokenbudget is op. Je kunt weer verder op ${resetdatum(verbruik.reset_op)}.`
-                : "De agent bevraagt de kennisgraaf – controleer altijd de bron."}
+                : "Lex zoekt in de wetgeving en de bronnen die aanstaan – controleer altijd de bron."}
           </p>
           </>)}
         </div>
