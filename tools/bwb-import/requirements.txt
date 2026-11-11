@@ -1,7 +1,8 @@
 # De BWB-lezer (parser, modellen, bronmeting, XSD's) staat in packages/bronmodel (`bronmodel.bwb`), gedeeld met
 # graph-qa. Het pad is relatief aan de werkmap: tools/bwb-import lokaal en in CI, /app in de image (daar staat het
-# pakket op /packages/bronmodel).
-../../packages/bronmodel[bwb]
+# pakket op /packages/bronmodel). Editable, zodat een lokale run (uv --with-requirements cachet zijn omgeving) altijd
+# de huidige code van het pakket leest.
+-e ../../packages/bronmodel[bwb]
 lxml>=6.1.3
 requests~=2.34
 rdflib~=7.6

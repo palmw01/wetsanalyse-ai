@@ -11,6 +11,7 @@ uitbreiding naar andere regelingsoorten werken zonder modelwijziging.
 
 from __future__ import annotations
 
+import io
 import logging
 import re
 from pathlib import Path
@@ -96,23 +97,24 @@ class ToestandParser:
         self._schema: etree.XMLSchema | None = None
 
     # ------------------------------------------------------------- validatie
-    def validate(self, xml_path: Path) -> bool:
+    def validate(self, xml_path: Path | bytes) -> bool:
         """Valideer tegen het XSD. Niet-blokkerend: faalt zacht met waarschuwing.
 
         Geeft ``True`` bij geldig, ``False`` bij ongeldig of als het schema niet
-        beschikbaar is.
+        beschikbaar is. Neemt een pad (de importer) of de XML zelf (de connector, die niets op schijf zet).
         """
+        naam = _naam(xml_path)
         if self._schema_path is None:
             logger.warning("Geen XSD opgegeven; validatie overgeslagen")
             return False
         try:
             schema = self._load_schema()
-            doc = etree.parse(str(xml_path))
+            doc = etree.parse(_bron(xml_path))
             schema.assertValid(doc)
-            logger.info("XSD-validatie geslaagd voor %s", xml_path.name)
+            logger.info("XSD-validatie geslaagd voor %s", naam)
             return True
         except etree.DocumentInvalid as exc:
-            logger.warning("XSD-validatie mislukt voor %s: %s", xml_path.name, exc)
+            logger.warning("XSD-validatie mislukt voor %s: %s", naam, exc)
             return False
         except (etree.XMLSchemaParseError, OSError) as exc:
             logger.warning("XSD kon niet worden geladen (%s); validatie overgeslagen", exc)
@@ -125,9 +127,9 @@ class ToestandParser:
         return self._schema
 
     # ----------------------------------------------------------------- parse
-    def parse(self, xml_path: Path) -> Wet:
-        """Parse de toestand-XML naar een :class:`Wet`."""
-        tree = etree.parse(str(xml_path))
+    def parse(self, xml_path: Path | bytes) -> Wet:
+        """Parse de toestand-XML (een pad of de XML zelf) naar een :class:`Wet`."""
+        tree = etree.parse(_bron(xml_path))
         root = tree.getroot()
         if root.tag != "toestand":
             raise ParseError(f"Onverwacht root-element: {root.tag!r} (verwacht 'toestand')")
@@ -757,6 +759,15 @@ class ToestandParser:
             "uitgiftedatum": uitg.get("isodatum") if uitg is not None else None,
             "dossier": doss.get("dossier") if doss is not None else None,
         }
+
+
+def _bron(xml: Path | str | bytes) -> str | io.BytesIO:
+    """Wat `etree.parse` leest: een pad als tekst, of de XML zelf als bestand in het geheugen."""
+    return io.BytesIO(xml) if isinstance(xml, bytes) else str(xml)
+
+
+def _naam(xml: Path | str | bytes) -> str:
+    return "<xml in het geheugen>" if isinstance(xml, bytes) else Path(xml).name
 
 
 def _tekst_in(element: etree._Element, basis: str, binnen: str) -> str:
