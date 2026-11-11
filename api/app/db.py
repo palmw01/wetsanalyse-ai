@@ -97,6 +97,9 @@ users = Table(
     # die niet groter is dan deze wordt geweigerd, ook binnen de ±30 s die `valid_window` toelaat.
     # NULL = nog nooit een code gebruikt. Additief, dus `reconcile_schema` zet hem bij.
     Column("totp_laatste_stap", BigInteger, nullable=True),
+    # Een nieuwe authenticator die klaarstaat terwijl 2FA aan blijft ("Opnieuw koppelen"): pas na een geldige
+    # code uit die nieuwe app vervangt hij `totp_secret_enc`. NULL = er staat niets klaar. Additief.
+    Column("totp_nieuw_enc", Text, nullable=True),
     # De rondleiding hoort bij de gebruiker, niet bij de browser: wat op de ene computer gezien of uitgezet
     # is, komt op de andere niet terug. De hoogste versie die zich heeft aangeboden (0 = nog nooit), en of de
     # knop op het startscherm staat. Additief, dus `reconcile_schema` zet ze bij.

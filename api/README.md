@@ -115,7 +115,7 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | `GET` | `/v1/auth/me` | Eigen account (rol, 2FA-status, `tfa_nodig`, `herstelcodes_over`, de stand van de rondleiding) |
 | `PATCH` | `/v1/auth/me/rondleiding` | Stand van de rondleiding: de aangeboden versie (gaat alleen omhoog) en de knop op het startscherm |
 | `POST` | `/v1/auth/change-password` | Eigen wachtwoord wijzigen |
-| `POST` | `/v1/auth/2fa/{begin,activate,disable}` | TOTP-2FA, self-service; `begin` vraagt het wachtwoord en weigert (409) bij actieve 2FA, `activate` geeft de herstelcodes, `disable` neemt ook een herstelcode |
+| `POST` | `/v1/auth/2fa/{begin,activate,disable}` | TOTP-2FA, self-service; `begin` vraagt het wachtwoord en weigert (409) bij actieve 2FA, behalve mét een code (opnieuw koppelen: de nieuwe app vervangt de oude bij `activate`), `activate` geeft de herstelcodes, `disable` neemt ook een herstelcode en weigert (409) voor een beheerder |
 | `POST` | `/v1/auth/2fa/herstelcodes` | Vervang de herstelcodes, met een code uit de app of een herstelcode |
 | `POST` | `/v1/auth/api-token/verify` | Wissel een accounttoken in voor de identiteit van het account (alleen met `API_TOKEN_LOGIN`) |
 | `GET` | `/v1/auth/api-token/{id}/status` | Geldt het accounttoken nog? (alleen met `API_TOKEN_LOGIN`) |

@@ -68,6 +68,9 @@ export function AccountClient() {
   const [code, setCode] = useState("");
   // Welke actie op actieve 2FA om een code vraagt.
   const [codeVoor, setCodeVoor] = useState<"uitschakelen" | "herstelcodes" | null>(null);
+  // Opnieuw koppelen terwijl 2FA aan blijft: wachtwoord plus een code van de huidige app (of een herstelcode).
+  const [opnieuw, setOpnieuw] = useState(false);
+  const [huidigeCode, setHuidigeCode] = useState("");
   // Net gemaakte herstelcodes: dit is de enige keer dat ze te zien zijn.
   const [herstelcodes, setHerstelcodes] = useState<string[] | null>(null);
   const [bezig, setBezig] = useState(false);
@@ -96,7 +99,7 @@ export function AccountClient() {
     setFout(null);
     setBezig(true);
     try {
-      const { otpauth_uri } = await begin2fa(wachtwoord);
+      const { otpauth_uri } = await begin2fa(wachtwoord, opnieuw ? huidigeCode.trim() : undefined);
       // qrcode wordt alleen hier gebruikt, bij het activeren van 2FA. Statisch importeren zette
       // de hele encoder in de bundel van iedereen die zijn account opent.
       const { default: QRCode } = await import("qrcode");
@@ -104,7 +107,9 @@ export function AccountClient() {
       setKoppeling({ uri: otpauth_uri, qr });
       setCode("");
       setWachtwoord("");
+      setHuidigeCode("");
       setInschakelen(false);
+      setOpnieuw(false);
     } catch (e) {
       melden(e);
     } finally {
@@ -197,8 +202,16 @@ export function AccountClient() {
           <SettingList>
             <SettingRow label="Tweestapsverificatie">
               <StatusLabel toon={account.totp_enabled ? "groen" : "neutraal"}>{account.totp_enabled ? "Aan" : "Uit"}</StatusLabel>
-              {account.totp_enabled && codeVoor !== "uitschakelen" && (
-                <Button size="sm" variant="secondary" onClick={() => setCodeVoor("uitschakelen")}>Uitschakelen</Button>
+              {account.totp_enabled && !koppeling && !opnieuw && (
+                <Button size="sm" variant="secondary" onClick={() => { setCodeVoor(null); setOpnieuw(true); }}>
+                  Opnieuw koppelen
+                </Button>
+              )}
+              {/* Een beheerder houdt 2FA aan: de api weigert het uitzetten ook. Een nieuwe telefoon is opnieuw koppelen. */}
+              {account.totp_enabled && account.role !== "beheerder" && codeVoor !== "uitschakelen" && (
+                <Button size="sm" variant="secondary" onClick={() => { setOpnieuw(false); setCodeVoor("uitschakelen"); }}>
+                  Uitschakelen
+                </Button>
               )}
               {!account.totp_enabled && !koppeling && !inschakelen && (
                 <Button size="sm" onClick={() => setInschakelen(true)}>2FA inschakelen</Button>
@@ -218,15 +231,51 @@ export function AccountClient() {
             )}
           </SettingList>
 
-          {account.totp_enabled ? (
+          {koppeling ? null : account.totp_enabled && opnieuw ? (
+            <form onSubmit={onStart} className="mt-4 space-y-3">
+              <p className="text-sm text-muted">
+                Een nieuwe telefoon of app? Voer je wachtwoord en een code van je huidige app (of een herstelcode) in.
+                Je huidige app blijft werken tot je de nieuwe met een code bevestigt.
+              </p>
+              <FormRij>
+                <Field label="Huidig wachtwoord">
+                  <Input
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={wachtwoord}
+                    onChange={(e) => setWachtwoord(e.target.value)}
+                  />
+                </Field>
+                <Field label="Code" hint="6 cijfers uit de huidige app, of een herstelcode">
+                  <Input
+                    autoComplete="one-time-code"
+                    required
+                    value={huidigeCode}
+                    onChange={(e) => setHuidigeCode(e.target.value)}
+                  />
+                </Field>
+                <FormKnoppen>
+                  <Button type="submit" size="sm" disabled={bezig}>
+                    Doorgaan
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setWachtwoord(""); setHuidigeCode(""); setOpnieuw(false); }}
+                    disabled={bezig}
+                  >
+                    Annuleren
+                  </Button>
+                </FormKnoppen>
+              </FormRij>
+            </form>
+          ) : account.totp_enabled ? (
             <>
-              {codeVoor === "uitschakelen" && (
+              {codeVoor === "uitschakelen" && account.role !== "beheerder" && (
                 <CodeFormulier
-                  uitleg={
-                    account.role === "beheerder"
-                      ? "Voer een code in om tweestapsverificatie uit te schakelen. Daarna is het beheer dicht tot je opnieuw koppelt."
-                      : "Voer een code in om tweestapsverificatie uit te schakelen."
-                  }
+                  uitleg="Voer een code in om tweestapsverificatie uit te schakelen."
                   knop="2FA uitschakelen"
                   gevaar
                   bezig={bezig}
@@ -275,7 +324,8 @@ export function AccountClient() {
                 </FormKnoppen>
               </FormRij>
             </form>
-          ) : koppeling ? (
+          ) : null}
+          {koppeling && (
             <div className="mt-4 space-y-3">
               <p className="text-sm text-muted">
                 Scan de QR-code met je authenticator-app (of voer de sleutel handmatig in) en
@@ -315,7 +365,7 @@ export function AccountClient() {
                 </FormRij>
               </form>
             </div>
-          ) : null}
+          )}
         </div>
       )}
     </SettingGroup>

@@ -110,7 +110,13 @@ def test_een_ingekorte_inhoud_wijst_naar_de_hele_inhoud():
     assert veel["inhoud_ingekort"] and "inhoud_zonder_begin" not in veel and veel["inhoud_openen"]
     alles = json.loads(inhoudpagina(rijen, tool="get_stuk", args={"id": "s1"}, offset=0, stuk={"id": "s1"}))
     assert alles["volledig"] and "inhoud_openen" not in alles and [i["kop"] for i in alles["resultaten"]] == [f"Artikel {i + 1}" for i in range(30)]
-    assert all(i["begint_afgekapt"] and rijen[i["offset"]]["tekst"].startswith(i["begint"]) for i in alles["resultaten"])
+    assert all(i["tekst"] == rijen[i["offset"]]["tekst"] and i["nr"] == rijen[i["offset"]]["nr"]
+               for i in alles["resultaten"]), "de aanhef helemaal, als rij: te citeren"
+    lang = [{"nr": 1, "kop": "Artikel 1", "tekst": "woord " * 400}, {"nr": 2, "kop": "Artikel 2", "tekst": "kort"}]
+    eerste, tweede = json.loads(inhoudpagina(lang, tool="get_stuk", args={"id": "s1"}, offset=0,
+                                             stuk={"id": "s1"}))["resultaten"]
+    assert "tekst" not in eerste and eerste["begint_afgekapt"], "boven MAX_AANHEF alleen het begin"
+    assert tweede == {"nr": 2, "kop": "Artikel 2", "offset": 1, "tekst": "kort"}
 
 
 def test_een_gefilterde_lezing_draagt_de_inhoud_van_de_publicatie():

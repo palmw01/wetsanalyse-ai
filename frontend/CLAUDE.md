@@ -2067,7 +2067,8 @@ knop. Zie `docs/observability.md`.
   - **2FA (TOTP)** is self-service in de tab Beveiliging; inschakelen vraagt het huidige wachtwoord. De
     account/2FA-routes zetten `X-User-Id` uit de sessie, nooit uit browser-input. Voor een beheerder is het
     verplicht: `InstellingenInhoud` toont dan op de beheertabs `BeheerVraagt2fa` (de BFF houdt ze hoe dan
-    ook dicht). Bij het koppelen komen de herstelcodes één keer in beeld; `TwoFactorClient` neemt een
+    ook dicht), en `AccountClient` toont een beheerder geen *Uitschakelen* (de api weigert het ook) maar wel
+    *Opnieuw koppelen*: wachtwoord plus code van de huidige app, dan de QR van de nieuwe. Bij het koppelen komen de herstelcodes één keer in beeld; `TwoFactorClient` neemt een
     herstelcode aan in hetzelfde veld als de code uit de app. De 2FA-reset staat in het menu ⋯ van
     `UsersPanel` en zet `X-User-Id`, want de api wil weten welke beheerder het doet.
   - Auth.js' eigen routes leven onder `/api/auth/*`; zet daar geen eigen BFF-route bij (daarom

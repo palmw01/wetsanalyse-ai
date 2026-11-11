@@ -410,8 +410,11 @@ niet koppelen en bestaan alleen op acceptatie, de tweede dragen geen persoon.
 
 Authenticator kwijt:
 
-1. **Met herstelcodes:** inloggen met een code, in *Beveiliging* uitschakelen met de volgende code, opnieuw
-   koppelen.
+Een beheerder kan 2FA niet uitzetten, want het beheer vraagt 2FA. Een nieuwe app koppel je zonder uitzetten:
+*Beveiliging* → *Opnieuw koppelen*, met een code van de huidige app of een herstelcode. De oude app blijft gelden
+tot een code van de nieuwe is bevestigd.
+
+1. **Met herstelcodes:** inloggen met een code, in *Beveiliging* → *Opnieuw koppelen* met de volgende code.
 2. **Zonder herstelcodes:** een andere beheerder met 2FA kiest bij dat account in *Gebruikers* het menu ⋯ →
    *2FA resetten*. Het security-log noemt wie dat deed (`actie: 2fa_reset`).
 3. **Enige beheerder, telefoon én codes kwijt:** daarvoor is er geen weg in de app, en bewust ook geen

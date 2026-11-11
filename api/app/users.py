@@ -9,8 +9,9 @@ Verantwoordelijkheden:
     de tabel leeg is; daarna sluit die route.
   - Admin-CRUD voor gebruikersbeheer in /beheer, met de beleidsgaranties (laatste actieve
     beheerder mag niet verdwijnen).
-  - 2FA (TOTP): koppelen (`begin_2fa`, met het wachtwoord), bevestigen (`activate_2fa`) en losmaken
-    (`disable_2fa`). Het secret staat versleuteld (Fernet, zie secrets_crypto). Optioneel, behalve voor
+  - 2FA (TOTP): koppelen (`begin_2fa`, met het wachtwoord), bevestigen (`activate_2fa`), opnieuw koppelen
+    terwijl 2FA aan blijft (dezelfde twee, met een code van de huidige app) en losmaken (`disable_2fa`, niet
+    voor een beheerder). Het secret staat versleuteld (Fernet, zie secrets_crypto). Optioneel, behalve voor
     een beheerder: zonder 2FA geen beheer (`moet_2fa_koppelen`).
   - Herstel bij een verloren authenticator: herstelcodes (`maak_herstelcodes`) en een reset door een
     andere beheerder (`reset_2fa`).
@@ -66,7 +67,11 @@ class UserError(ValueError):
 
 
 class TotpActiefError(UserError):
-    """Een nieuwe 2FA-koppeling terwijl 2FA aanstaat: eerst uitzetten, met een code."""
+    """Een nieuwe 2FA-koppeling terwijl 2FA aanstaat, zonder code van de huidige app: dat is opnieuw koppelen."""
+
+
+class BeheerderHoudt2faError(UserError):
+    """Een beheerder zet 2FA niet uit: beheer vraagt 2FA. Een nieuwe telefoon is opnieuw koppelen."""
 
 
 def moet_2fa_koppelen(user: User) -> bool:
@@ -190,15 +195,6 @@ async def _count() -> int:
         return (await conn.execute(select(func.count()).select_from(db.users))).scalar() or 0
 
 
-async def _aantal_actieve_beheerders() -> int:
-    async with db.get_engine().connect() as conn:
-        return (await conn.execute(
-            select(func.count()).select_from(db.users).where(
-                db.users.c.role == "beheerder", db.users.c.active.is_(True)
-            )
-        )).scalar() or 0
-
-
 async def needs_setup() -> bool:
     """True zolang er nog geen enkel account is (de eenmalige-registratie-route is dan open)."""
     return await _count() == 0
@@ -214,9 +210,13 @@ def _nu() -> float:
 def _totp_stap(user: User, code: str) -> int | None:
     """De tijdstap waarvoor deze code geldt, of None. Eén stap ervoor en erna telt mee: dat vangt
     klok-drift van ±30 s op (hetzelfde venster als `valid_window=1` in pyotp)."""
-    if not user.totp_secret_enc:
+    return _stap_voor(user.totp_secret_enc, code)
+
+
+def _stap_voor(secret_enc: str | None, code: str) -> int | None:
+    if not secret_enc:
         return None
-    totp = pyotp.TOTP(decrypt(user.totp_secret_enc))
+    totp = pyotp.TOTP(decrypt(secret_enc))
     nu = int(_nu()) // totp.interval
     code = code.strip()
     for stap in (nu - 1, nu, nu + 1):
@@ -542,42 +542,64 @@ async def _require_user(userid: str) -> User:
     return user
 
 
+async def _beheerdersslot(conn) -> None:
+    """Serialiseer elke wijziging die het aantal actieve beheerders kan raken.
+
+    Op Postgres een advisory xact-lock (vrijgegeven bij commit of rollback); op SQLite (tests) zijn
+    writes al geserialiseerd. Wie het slot heeft, leest daarna de doelrij én de telling opnieuw:
+    een rij die vóór het slot is gelezen, kan intussen door een andere transactie zijn veranderd.
+    """
+    if db.get_engine().url.get_backend_name() == "postgresql":
+        await conn.execute(text("SELECT pg_advisory_xact_lock(hashtext(:k))"), {"k": "actieve-beheerders"})
+
+
+async def _actieve_beheerders_in(conn) -> int:
+    return (await conn.execute(
+        select(func.count()).select_from(db.users).where(
+            db.users.c.role == "beheerder", db.users.c.active.is_(True)
+        )
+    )).scalar() or 0
+
+
+async def _gelockte_user(conn, userid: str) -> User:
+    rij = (await conn.execute(
+        select(db.users).where(db.users.c.userid == _norm_userid(userid))
+    )).mappings().first()
+    if rij is None:
+        raise UserError(f"Onbekende gebruiker: {userid}")
+    return _row_to_user(rij)
+
+
 async def patch_user(userid: str, *, role: str | None = None, active: bool | None = None) -> User:
     """Combineer een rol- en/of active-wijziging in ÉÉN transactie, met de 'laatste actieve
     beheerder'-invariant getoetst op de EIND-toestand. Zo kan een gelijktijdige rol+active-patch
     (of twee parallelle patches) de laatste beheerder niet via twee losse checks laten verdwijnen
-    (TOCTOU). Op Postgres serialiseert een advisory xact-lock de check+write; op SQLite (tests) zijn
-    writes al geserialiseerd.
+    (TOCTOU).
+
+    De toets staat ná het slot (`_beheerdersslot`) en leest de doelrij daar opnieuw: met een rij van
+    vóór het slot zou een patch die een net gepromoveerde beheerder deactiveert de toets overslaan,
+    terwijl een andere transactie tegelijk de vorige beheerder degradeert.
     """
     if role is not None and role not in ROLLEN:
         raise UserError(f"Onbekende rol: {role!r}")
-    user = await _require_user(userid)
     waarden: dict = {}
     if role is not None:
         waarden["role"] = role
     if active is not None:
         waarden["active"] = active
     if not waarden:
-        return user
-    nieuw_role = role if role is not None else user.role
-    nieuw_active = active if active is not None else user.active
-    was_actieve_beheerder = user.role == "beheerder" and user.active
-    wordt_actieve_beheerder = nieuw_role == "beheerder" and nieuw_active
+        return await _require_user(userid)
     waarden["updated"] = _utcnow()
     async with db.get_engine().begin() as conn:
-        if was_actieve_beheerder and not wordt_actieve_beheerder:
-            if db.get_engine().url.get_backend_name() == "postgresql":
-                await conn.execute(
-                    text("SELECT pg_advisory_xact_lock(hashtext(:k))"), {"k": "actieve-beheerders"}
-                )
-            aantal = (await conn.execute(
-                select(func.count()).select_from(db.users).where(
-                    db.users.c.role == "beheerder", db.users.c.active.is_(True)
-                )
-            )).scalar() or 0
-            if aantal <= 1:
-                raise UserError("Kan de laatste actieve beheerder niet degraderen of deactiveren.")
-        await conn.execute(update(db.users).where(db.users.c.userid == userid).values(**waarden))
+        await _beheerdersslot(conn)
+        user = await _gelockte_user(conn, userid)
+        nieuw_role = role if role is not None else user.role
+        nieuw_active = active if active is not None else user.active
+        was_actieve_beheerder = user.role == "beheerder" and user.active
+        wordt_actieve_beheerder = nieuw_role == "beheerder" and nieuw_active
+        if was_actieve_beheerder and not wordt_actieve_beheerder and await _actieve_beheerders_in(conn) <= 1:
+            raise UserError("Kan de laatste actieve beheerder niet degraderen of deactiveren.")
+        await conn.execute(update(db.users).where(db.users.c.userid == user.userid).values(**waarden))
     user.role, user.active = nieuw_role, nieuw_active
     return user
 
@@ -611,11 +633,14 @@ async def delete_user(userid: str) -> list[str]:
     agent-geheugen ervan kan wissen; dat staat bij graph-qa, niet hier.
 
     De userid blijft bezet (`verwijderde_userids`). Audit en verbruik blijven staan: dat is wie wat deed."""
-    user = await _require_user(userid)
-    if user.role == "beheerder" and user.active and await _aantal_actieve_beheerders() <= 1:
-        raise UserError("Kan de laatste actieve beheerder niet verwijderen.")
     g, b = db.gesprekken, db.gesprek_berichten
     async with db.get_engine().begin() as conn:
+        # Toets en verwijdering in één transactie onder hetzelfde slot als `patch_user`: anders
+        # verwijderen twee beheerders elkaar tegelijk, of valt een degradatie tussen toets en delete.
+        await _beheerdersslot(conn)
+        user = await _gelockte_user(conn, userid)
+        if user.role == "beheerder" and user.active and await _actieve_beheerders_in(conn) <= 1:
+            raise UserError("Kan de laatste actieve beheerder niet verwijderen.")
         gesprekken = list((await conn.execute(select(g.c.id).where(g.c.user_id == user.userid))).scalars().all())
         if gesprekken:
             await conn.execute(delete(b).where(b.c.gesprek_id.in_(gesprekken)))
@@ -652,36 +677,84 @@ async def zet_rondleiding(userid: str, *, aangeboden: int | None = None, knop: b
 
 # --- 2FA (TOTP) ----------------------------------------------------------------
 
-async def begin_2fa(userid: str, password: str) -> str:
+async def begin_2fa(userid: str, password: str, code: str | None = None) -> str:
     """Genereer een (nog niet actief) TOTP-secret en geef de otpauth://-URI voor de QR-code.
 
-    Het secret wordt versleuteld opgeslagen maar `totp_enabled` blijft False tot `activate_2fa`
-    één geldige code bevestigt. Opnieuw aanroepen vervangt een nog niet bevestigd secret.
+    Staat 2FA uit, dan wordt het secret versleuteld opgeslagen maar `totp_enabled` blijft False tot
+    `activate_2fa` één geldige code bevestigt. Opnieuw aanroepen vervangt een nog niet bevestigd secret.
+
+    Staat 2FA aan, dan is dit **opnieuw koppelen**: met `code` (uit de huidige app, of een herstelcode) zet het
+    een nieuwe app klaar in `totp_nieuw_enc`, en de huidige blijft gelden tot `activate_2fa` een code van de
+    nieuwe bevestigt. Zo hoeft niemand 2FA uit te zetten voor een nieuwe telefoon, en blijft een beheerder
+    onder de plicht. Zonder code blijft actieve 2FA onaangeroerd (`TotpActiefError`).
 
     Koppelen vraagt het wachtwoord: een sessie alleen is geen bewijs, want wie er één kaapt zou de
-    eigenaar anders met een eigen authenticator buitensluiten. Actieve 2FA blijft onaangeroerd
-    (`TotpActiefError`); uitzetten kan alleen met een code (`disable_2fa`). Die weigering zit in de
-    UPDATE zelf, zodat een gelijktijdige `activate_2fa` er niet tussendoor valt.
+    eigenaar anders met een eigen authenticator buitensluiten. De weigering zit in de UPDATE zelf, zodat een
+    gelijktijdige `activate_2fa` er niet tussendoor valt.
     """
     user = await _require_user(userid)
     if not user.active or not await controleer_wachtwoord(password, user.password_hash):
         raise UserError("Huidig wachtwoord onjuist.")
     secret = pyotp.random_base32()
-    async with db.get_engine().begin() as conn:
-        res = await conn.execute(
-            update(db.users)
-            .where(db.users.c.userid == user.userid, db.users.c.totp_enabled.is_(False))
-            .values(totp_secret_enc=encrypt(secret), updated=_utcnow())
-        )
-    if res.rowcount != 1:
-        raise TotpActiefError("2FA staat al aan. Schakel het eerst uit om een nieuwe app te koppelen.")
+    if code is None or not user.totp_enabled:
+        async with db.get_engine().begin() as conn:
+            res = await conn.execute(
+                update(db.users)
+                .where(db.users.c.userid == user.userid, db.users.c.totp_enabled.is_(False))
+                .values(totp_secret_enc=encrypt(secret), totp_nieuw_enc=None, updated=_utcnow())
+            )
+        if res.rowcount != 1:
+            raise TotpActiefError(
+                "2FA staat al aan. Een nieuwe app koppel je met een code van de huidige app of een herstelcode."
+            )
+    else:
+        if await _verbruik_tweede_factor(user, code) is None:
+            raise UserError("Onjuiste of verlopen 2FA-code.")
+        async with db.get_engine().begin() as conn:
+            res = await conn.execute(
+                update(db.users)
+                .where(db.users.c.userid == user.userid, db.users.c.totp_enabled.is_(True))
+                .values(totp_nieuw_enc=encrypt(secret), updated=_utcnow())
+            )
+        if res.rowcount != 1:
+            raise UserError("2FA staat niet meer aan; koppel opnieuw vanaf het begin.")
     # In de authenticator toont het account de userid; issuer = Wetsanalyse.
     return pyotp.TOTP(secret).provisioning_uri(name=user.userid, issuer_name=_TOTP_ISSUER)
 
 
+async def _klaarstaande_app(userid: str) -> str | None:
+    async with db.get_engine().connect() as conn:
+        return (await conn.execute(
+            select(db.users.c.totp_nieuw_enc).where(db.users.c.userid == userid)
+        )).scalar()
+
+
 async def activate_2fa(userid: str, code: str) -> list[str]:
-    """Bevestig de koppeling. Geeft de herstelcodes terug: die verlaten de server alleen hier."""
+    """Bevestig de koppeling. Geeft de herstelcodes terug: die verlaten de server alleen hier.
+
+    Staat 2FA al aan, dan bevestigt de code de klaargezette nieuwe app (`begin_2fa` met een code): die
+    vervangt de oude, en er komt een nieuwe set herstelcodes. Trusted devices vervallen vanzelf, want hun
+    binding bevat het secret.
+    """
     user = await _require_user(userid)
+    if user.totp_enabled:
+        nieuw = await _klaarstaande_app(user.userid)
+        if not nieuw:
+            raise UserError("Er staat geen nieuwe app klaar; begin opnieuw met koppelen.")
+        stap = _stap_voor(nieuw, code)
+        if stap is None:
+            raise UserError("Onjuiste of verlopen code.")
+        async with db.get_engine().begin() as conn:
+            # Voorwaardelijk op precies deze klaargezette app: een tweede `begin_2fa` ertussen wint niet stil.
+            res = await conn.execute(
+                update(db.users)
+                .where(db.users.c.userid == user.userid, db.users.c.totp_enabled.is_(True),
+                       db.users.c.totp_nieuw_enc == nieuw)
+                .values(totp_secret_enc=nieuw, totp_nieuw_enc=None, totp_laatste_stap=stap, updated=_utcnow())
+            )
+            if res.rowcount != 1:
+                raise UserError("De koppeling is intussen gewijzigd; begin opnieuw met koppelen.")
+            return await _vervang_herstelcodes(conn, user.userid)
     if not user.totp_secret_enc:
         raise UserError("Geen 2FA-aanmelding gestart; vraag eerst een nieuwe code aan.")
     if not await _verbruik_totp(user, code):
@@ -695,12 +768,17 @@ async def activate_2fa(userid: str, code: str) -> list[str]:
 
 
 async def disable_2fa(userid: str, code: str) -> None:
-    """Zet 2FA uit met een TOTP-code of een herstelcode. Dat laatste is de weg bij een nieuwe telefoon:
-    koppelen kan pas weer als 2FA uit staat. Een beheerder mag dit ook, en valt dan onder
-    `moet_2fa_koppelen` tot er opnieuw een app gekoppeld is."""
+    """Zet 2FA uit met een TOTP-code of een herstelcode. Alleen voor een analist: een beheerder houdt 2FA, want
+    zonder 2FA is het beheer dicht, en voor de enige beheerder is er dan niemand meer die beheert. Een nieuwe
+    telefoon is opnieuw koppelen (`begin_2fa` met een code); wie alles kwijt is, laat een andere beheerder
+    resetten (`reset_2fa`)."""
     user = await _require_user(userid)
     if not user.totp_enabled:
         raise UserError("2FA staat niet aan.")
+    if user.role == "beheerder":
+        raise BeheerderHoudt2faError(
+            "Een beheerder houdt tweestapsverificatie aan. Koppel een nieuwe app met Opnieuw koppelen."
+        )
     if await _verbruik_tweede_factor(user, code) is None:
         raise UserError("Onjuiste of verlopen 2FA-code.")
     await _wis_2fa(user.userid)
@@ -710,7 +788,7 @@ async def _wis_2fa(userid: str, **extra) -> None:
     async with db.get_engine().begin() as conn:
         await conn.execute(
             update(db.users).where(db.users.c.userid == userid)
-            .values(totp_secret_enc=None, totp_enabled=False, updated=_utcnow(), **extra)
+            .values(totp_secret_enc=None, totp_nieuw_enc=None, totp_enabled=False, updated=_utcnow(), **extra)
         )
         await conn.execute(delete(db.herstelcodes).where(db.herstelcodes.c.userid == userid))
 
