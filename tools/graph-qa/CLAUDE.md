@@ -338,7 +338,7 @@ bruikbaar is.
   `zoek_bekendmakingen` heeft twee wegen. Met `bwb_id` (en `artikel`) leest hij uit de graaf de publicaties die de BWB
   bij de huidige tekst noemt (`bwb:bron` = de laatste wijziging, `bwb:inwerkingtredingsbron`, met `bwb:inwerking`; bij
   een lid op het artikel erboven, zoals `queries.geldigheid`), zet "Stb.2009-610" om met `bronmodel.extern.koop_id_uit_bron`
-  en haalt de records in één CQL (`dt.identifier==… OR …`); de rij zegt de koppeling in `wetsverwijzing`, de datum in
+  en haalt de records in één CQL (`dt.identifier==… OR …`); de zoekvraag noemt de bepaling met de naam uit de graaf (`zoekvraag.bepaling`, "Invorderingswet 1990 als geheel", zoals Rechtspraak; Kamerstukken ronde 5, BX1); de rij zegt de koppeling in `wetsverwijzing`, de datum in
   `inwerking`, en de toelichting de grens (één toestand, eerdere wijzigingen niet). Zonder `bwb_id`: `publicatie`
   (Staatsblad/Staatscourant), `woorden`, `tekst`, `soort` (`dt.type all`; een inwerkingtredingsbesluit in de titel),
   `orgaan` (`dt.creator all`), `dossier` (`w.behandeldDossier`: de brug naar Kamerstukken), `vanaf`/`tot`, `jaar`

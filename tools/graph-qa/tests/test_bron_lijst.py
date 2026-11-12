@@ -506,7 +506,7 @@ def test_stukken_bij_een_regeling_leest_de_code_per_connector(vraag, connector, 
     assert lijst is not None and lijst.args == args
     assert bool(lijst.kanttekening) is kanttekening
     if kanttekening:
-        assert "„Invorderingswet 1990” in de titel" in lijst.kanttekening
+        assert "andere titel staat er niet bij" in lijst.kanttekening
 
 
 @pytest.mark.parametrize("vraag,regelingen", [
@@ -536,3 +536,5 @@ def test_de_kanttekening_staat_bij_de_zoekvraag_van_de_lijst(monkeypatch):
     assert llm.calls == []
     blok, = [b for e in events if e["type"] == "antwoord" for b in e["antwoord"]["blokken"]]
     assert "Kamerstukken koppelt een stuk niet aan een regeling" in blok["zoekvraag"]
+    # Ronde 5, K17: "in de titel" stond er twee keer, in de zoekvraag en in de kanttekening.
+    assert blok["zoekvraag"].count("in de titel") == 1, blok["zoekvraag"]

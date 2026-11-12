@@ -139,6 +139,23 @@ def test_bij_een_artikel_de_wijziging_en_het_inwerkingtredingsbesluit():
     assert "bwb:inwerkingtredingsbron" in graaf.queries[0] and "bwb:bron" in graaf.queries[0]
 
 
+@pytest.mark.parametrize("args,bepaling", [({"bwb_id": IW, "artikel": "36"}, "artikel 36 van Invorderingswet 1990"),
+                                          ({"bwb_id": IW}, "Invorderingswet 1990 als geheel")])
+def test_de_zoekvraag_noemt_de_bepaling_bij_naam(monkeypatch, args, bepaling):
+    """Kamerstukken ronde 5, BX1: onder de lijst stond "Gezocht bij artikel  van BWBR0004770." De naam komt uit de graaf,
+    in dezelfde vorm als bij Rechtspraak; zonder naam blijft het bwb-id staan."""
+    from agent import regelingnamen
+    from agent.sjablonen import extern
+
+    monkeypatch.setitem(regelingnamen._CACHE, IW, "Invorderingswet 1990")
+    d = roep("zoek_bekendmakingen", args, graph=FakeGraph(result=ART36))
+    assert d["zoekvraag"]["bepaling"] == bepaling
+    assert extern.zoekvraag_tekst(bm.BEKENDMAKINGEN, d["zoekvraag"], volgorde=False) == f"Gezocht bij {bepaling}."
+    monkeypatch.delitem(regelingnamen._CACHE, IW)
+    zonder = roep("zoek_bekendmakingen", args, graph=FakeGraph(result=ART36))
+    assert IW in zonder["zoekvraag"]["bepaling"], "zonder naam het bwb-id, nooit een leeg artikel"
+
+
 def test_een_bepaling_zonder_publicatie_is_een_lege_lijst_met_de_reden():
     d = roep("zoek_bekendmakingen", {"bwb_id": IW, "artikel": "1"}, graph=FakeGraph(result=_tsv(
         ["waarde", "rol", "inwerking", "aantal"], [])))

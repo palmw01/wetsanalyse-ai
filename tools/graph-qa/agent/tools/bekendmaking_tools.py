@@ -25,6 +25,7 @@ from bronmodel.extern import bwb_bron_van, externe_vindplaats, koop_id_uit_bron
 
 from ..graph import queries
 from ..graph.results import parse_select
+from ..regelingnamen import regelingnamen
 from ..resultaat import compact, fout, per_eenheid
 from .op_xml import lees
 from .sru_zoeken import LIMIT, MAX_WOORDEN, OP_VOLGORDE, cql_woorden, per_record, tekst_cql, tekst_woorden, zoekvraag
@@ -402,8 +403,17 @@ def _bij_bepaling(bron: BekendmakingBron, graph: Any, bwb_id: str, artikel: str,
         toelichting += (" Een wijziging die bij geen bepaling meer de laatste is, staat hier niet: zoek daarvoor ook op de "
                         "citeertitel in de titel, bijvoorbeeld {\"woorden\": \"Invorderingswet 1990\", \"vanaf\": \"2024\"}.")
     return per_eenheid(rijen, tool="zoek_bekendmakingen", args=args, offset=offset, toelichting=toelichting,
-                       extra={"totaal": len(rijen), "zoekvraag": zoekvraag(args, volgorde or "koppeling"),
+                       extra={"totaal": len(rijen), "zoekvraag": {**zoekvraag(args, volgorde or "koppeling"),
+                                                                  "bepaling": _in_woorden(graph, bwb_id, artikel)},
                               **({"volledig_bij_koop": False} if onbekend else {})})
+
+
+def _in_woorden(graph: Any, bwb_id: str, artikel: str) -> str:
+    """De bepaling voor de zoekvraag onder een lijst, met de naam uit de graaf: "artikel 36 van de Invorderingswet 1990"
+    of "Invorderingswet 1990 als geheel", zoals Rechtspraak. Zonder naam het bwb-id (Kamerstukken ronde 5, BX1: "Gezocht
+    bij artikel  van BWBR0004770")."""
+    naam = regelingnamen(graph, [bwb_id]).get(bwb_id, bwb_id)
+    return f"artikel {artikel} van {naam}" if artikel else f"{naam} als geheel"
 
 
 # --- zoeken bij KOOP -----------------------------------------------------------------------------------------------

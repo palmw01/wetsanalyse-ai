@@ -305,8 +305,10 @@ def _bij_regeling(c: ConnectorBeschrijving, tekst: str,
         return {veld.filters[0]: bwb_id}, rest, ""
     if not (arg := _arg(c, "titel")):
         return ()
-    return {arg: naam}, rest, (f"{c.label} koppelt een stuk niet aan een regeling: ik zocht op „{naam}” in de titel, dus "
-                               "een stuk over de regeling met een andere titel staat er niet bij.")
+    # De zoekvraag zegt al dat het de titel is ("Gezocht op „Invorderingswet 1990” in de titel"); de kanttekening zegt
+    # alleen wat dat betekent (Kamerstukken ronde 5, K17: de zin stond er twee keer).
+    return {arg: naam}, rest, (f"{c.label} koppelt een stuk niet aan een regeling, dus een stuk over de regeling met een "
+                               "andere titel staat er niet bij.")
 
 
 def _plekken(namen: set[str], tekst: str) -> list[tuple[int, int]]:

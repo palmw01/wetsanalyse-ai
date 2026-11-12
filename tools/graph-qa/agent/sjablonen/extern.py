@@ -367,8 +367,9 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any], *, volg
         sleutel = veld.sleutel if veld else ""
         if sleutel == "wetsverwijzing":
             # Eén bepaling, ook al zijn het twee argumenten (regeling en artikel): in woorden, zoals de tool haar noemt.
-            bepaling = str(zoekvraag.get("bepaling") or
-                           f"artikel {zoekvraag.get('artikel', '')} van {zoekvraag.get('bwb_id', '')}")
+            # Zonder artikel de regeling, niet "artikel  van BWBR0004770" (Kamerstukken ronde 5, BX1).
+            regeling, artikel = zoekvraag.get("bwb_id", ""), zoekvraag.get("artikel", "")
+            bepaling = str(zoekvraag.get("bepaling") or (f"artikel {artikel} van {regeling}" if artikel else regeling))
             continue
         if arg == "tekst":
             kaal = " ".join(_AANHALING.sub(" ", str(waarde)).split())
