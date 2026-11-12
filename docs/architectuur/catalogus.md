@@ -112,10 +112,10 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 | S3 | de routeringstabel (ADR-010) | #1292 |
 | S4 | context per agent (`test_context_per_agent`) | #1294 |
 | S5 | meerdere skills, binding per rol, nep-skill | #1296 |
-| S6 | regelsets uit een skill, achter de proefvlag `SKILL_REGELS` | – |
+| S6 | regelsets uit een skill, achter de proefvlag `SKILL_REGELS` | #1301 (bundel 61) |
 | S7 | werkplek per concept | #1299 |
 | S8 | commando's wijzen naar één onderdeel | #1298 |
-| C7 | een wijziging voorstellen → concept-PR (acceptatie, `CATALOGUS_VOORSTELLEN` + `WA_GITHUB_PR_TOKEN`) | – |
-| v3 | de skill wetsanalyse 3.0 volgens de eisen voor Claude-skills, methodetekst byte-gelijk | – |
-| C8 | de skill `wetsuitvoering` (JRM 2), eerst zonder rolkoppeling | – |
+| C7 | een wijziging voorstellen → concept-PR (acceptatie, `CATALOGUS_VOORSTELLEN` + `WA_GITHUB_PR_TOKEN`) | #1310 |
+| v3 | de skill wetsanalyse 3.0 volgens de eisen voor Claude-skills, methodetekst byte-gelijk | #1307 |
+| C8 | de skill `wetsuitvoering` (JRM 2), eerst zonder rolkoppeling | #1309 |
 | C9 | regels voorstellen, met hun eigen tests als poort | – |
