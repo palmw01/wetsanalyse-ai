@@ -159,6 +159,12 @@ try {
   assert.ok(vak && vak.x >= 0 && vak.x + vak.width <= 375, `het menu past op 375 px (${JSON.stringify(vak)})`);
   const regel = await telMenu.getByRole("option").first().boundingBox();
   assert.ok(regel && regel.height >= 44, `een regel is minstens 44 px hoog (${regel?.height})`);
+  // Eén regel per commando, zoals het slash-menu van Claude: de hulp kapt af, de rij groeit niet mee.
+  const hoogtes = await telMenu.getByRole("option").evaluateAll((rijen) => rijen.map((r) => r.getBoundingClientRect().height));
+  assert.ok(Math.max(...hoogtes) <= 48, `elke regel is één regel hoog (${hoogtes.join(", ")})`);
+  const hulp = telMenu.locator("[data-commando-hulp]").first();
+  assert.equal(await hulp.evaluate((el) => getComputedStyle(el).textOverflow), "ellipsis");
+  assert.ok((await telMenu.getByRole("option").first().getAttribute("title"))?.length, "de hulp voluit in de tooltip");
   const breedte = await tel.evaluate(() => document.documentElement.scrollWidth);
   assert.ok(breedte <= 375, `geen horizontale scroll (${breedte})`);
   await telMenu.getByRole("option").filter({ hasText: "/deelvragen" }).tap();
