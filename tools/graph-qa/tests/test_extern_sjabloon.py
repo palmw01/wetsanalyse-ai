@@ -515,3 +515,14 @@ def test_de_grens_van_de_lijst_geldt_per_bron():
                                           "stukken": eclis + ["ECLI:NL:RBZWB:2024:999"]},
                       [*trace[:1], ("zoek_uitspraken", json.dumps({**json.loads(uitspraken), "resultaten": [
                           *json.loads(uitspraken)["resultaten"], {"id": "ECLI:NL:RBZWB:2024:999", "label": "x"}]}))])
+
+
+def test_de_schemabeschrijving_noemt_de_bronnen_met_of():
+    """Twee functies `_opsomming` overschaduwden elkaar: het schema zei "een kamerstuk, een bekendmaking en een uitspraak"
+    waar "of" bedoeld is (Staatsblad, 12 nov 2026). De zoekvraag houdt "en"."""
+    from bronmodel.connectors import KAMERSTUKKEN, RECHTSPRAAK
+
+    tekst = json.dumps(extern.items(["kamerstukken", "bekendmakingen", "rechtspraak"]), ensure_ascii=False)
+    assert " of een " in tekst and "en een uitspraak" not in tekst
+    assert " en " in extern.zoekvraag_tekst(KAMERSTUKKEN, {"tekst": "x", "vergaderjaar": "2025-2026", "kamer": "Eerste Kamer"})
+    assert RECHTSPRAAK.brontype == "uitspraak"
