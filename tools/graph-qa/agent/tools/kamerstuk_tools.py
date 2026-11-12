@@ -151,6 +151,11 @@ KAMERSTUK_TOOLS: list[dict[str, Any]] = [
                                                             "per rij, om eruit te citeren."},
 
                 "inhoud": INHOUD_ARG,
+                "woorden": {"type": "string", "description": "Alleen de alinea's van dit stuk waarin elk van deze woorden "
+                                                             "staat (een woord telt ook in een vervoeging of samenstelling: "
+                                                             "'bestuurder' vindt 'bestuurders'), met hun offset. Gebruik het "
+                                                             "om in een lang stuk de passages over een onderwerp te vinden, "
+                                                             "in plaats van het met offsets door te bladeren."},
             },
             "required": ["id"],
             "additionalProperties": False,
@@ -215,7 +220,8 @@ def metadata(rec: Any, vp: Any) -> dict[str, Any]:
         "label": label_van(rec, vp), "soort": soort, "titel": titel, "datum": datum,
         "gepubliceerd": gepubliceerd if gepubliceerd != datum else "", "jaar": rec.vergaderjaar,
         "orgaan": _kamer(getattr(rec, "kamer", "")), "indieners": list(getattr(rec, "indieners", ()) or ()),
-        "reeks": list(dossiers) if len(dossiers) > 1 else [], "status": status if status == "Onopgemaakt" else "",
+        "reeks": list(dossiers) if len(dossiers) > 1 else [], "gezamenlijk": list(dossiers) if len(dossiers) > 1 else [],
+        "status": status if status == "Onopgemaakt" else "",
         "versie": getattr(rec, "versie", ""),
         **({"leesbaar": False} if getattr(rec, "xml_url", "x") == "" else {})})
 
@@ -447,12 +453,42 @@ def _get(bron: KamerstukBron, a: dict[str, Any]) -> str:
                                                  **({"samengevoegd": samen} if samen else {})})
     if a.get("inhoud"):
         return inhoudpagina(rijen, tool="get_kamerstuk", args={"id": vp.id}, offset=offset, stuk=stuk)
+    if (woorden := str(a.get("woorden") or "").strip()):
+        return _met_woorden(rijen, woorden, vp.id, offset, stuk)
     # Een tabel is één rij met `openen`: verdieping buiten de scope van deze pagina, geen onvolledigheid.
     rijen = [{**r, "openen": {"tool": "get_kamerstuk", "args": {"id": vp.id, "tabel": r["nr"]}}}
              if r.get("soort") == "tabel" else r for r in rijen]
     return tekstpagina(rijen, tool="get_kamerstuk", args={"id": vp.id}, offset=offset, stuk=stuk,
                        extra={"overgeslagen": overgeslagen} if overgeslagen else None,
                        toelichting=toelichting or ("" if rijen else "Dit stuk heeft geen lopende tekst in de XML."))
+
+
+def _stammen(woorden: str) -> list[str]:
+    """De woorden van een zoekvraag in een stuk als stam: de eerste zeven letters, zodat 'aansprakelijkheid' ook
+    'aansprakelijk' vindt en 'bestuurder' 'bestuurders'. Woorden onder de drie letters tellen niet."""
+    return [w[:7] for w in (w.lower() for w in _WOORD_RE.findall(woorden)) if len(w) >= 3]
+
+
+def _met_woorden(rijen: list[dict[str, Any]], woorden: str, ident: str, offset: int, stuk: dict[str, Any]) -> str:
+    """De alinea's van één stuk waarin elk woord staat (in de tekst of de kop), met hun offset in de tekst. In ronde 3
+    van de Kamerstukken-iteratie (12 nov 2026, K07) zocht het model de passages over de bestuurder met tien offsets in drie
+    stukken: 16 rondes, 779k tokens."""
+    stammen = _stammen(woorden)
+    if not stammen:
+        return fout("ongeldige_argumenten", "geef woorden van minstens drie letters, bijvoorbeeld 'bestuurder loonbelasting'")
+
+    def raakt(r: dict[str, Any]) -> bool:
+        eigen = [w.lower() for w in _WOORD_RE.findall(f"{r.get('kop') or ''} {r.get('tekst') or ''}")]
+        return all(any(stam in w for w in eigen) for stam in stammen)
+
+    treffers = [{**r, "offset": i} for i, r in enumerate(rijen) if r.get("soort") != "tabelrij" and raakt(r)]
+    lezen = f"lees verder vanaf 'offset' met {{\"id\": \"{ident}\", \"offset\": <offset>}}"
+    return per_eenheid(treffers, tool="get_kamerstuk", args={"id": ident, "woorden": woorden}, offset=offset,
+                       extra={"stuk": stuk, "totaal": len(treffers), "alineas": len(rijen)},
+                       toelichting=(f"{len(treffers)} van de {len(rijen)} alinea's noemen „{woorden}”; {lezen} voor de "
+                                    "alinea's eromheen. Citeer letterlijk uit 'tekst'." if treffers else
+                                    f"Geen alinea van dit stuk noemt „{woorden}” (elk woord). Probeer minder of andere "
+                                    "woorden, of lees de inhoud met inhoud: true."))
 
 
 #: De reden in het foutresultaat per code van de adapter (`KamerstukFout.code`).

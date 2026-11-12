@@ -439,7 +439,11 @@ def test_twee_zoekvragen_zijn_geen_lijst_met_een_zoekvraag():
     ids = [d1["resultaten"][0]["id"], d1["resultaten"][1]["id"]]
     a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "k", "extern": [], "stukken": ids, "twijfel": []}, [a1, a2])
     blok = next(b for b in a.blokken if b.soort == "stukken")
-    assert blok.zoekvraag == "" and blok.totaal is None
+    # Geen totaal voor de hele lijst (dat is er niet), wel per zoekvraag een zin met haar totaal (Kamerstukken ronde 3,
+    # K17: de jurist zag niet waarop gezocht was).
+    assert blok.totaal is None
+    assert blok.zoekvraag == ("Gezocht op dossier 99001. Nieuwste eerst. Totaal 4. "
+                              "Gezocht op dossier 99001. Oudste eerst. Totaal 4.")
 
 
 def test_een_gelezen_stuk_blijft_bij_zijn_zoekvraag():
@@ -515,3 +519,14 @@ def test_de_grens_van_de_lijst_geldt_per_bron():
                                           "stukken": eclis + ["ECLI:NL:RBZWB:2024:999"]},
                       [*trace[:1], ("zoek_uitspraken", json.dumps({**json.loads(uitspraken), "resultaten": [
                           *json.loads(uitspraken)["resultaten"], {"id": "ECLI:NL:RBZWB:2024:999", "label": "x"}]}))])
+
+
+def test_de_schemabeschrijving_noemt_de_bronnen_met_of():
+    """Twee functies `_opsomming` overschaduwden elkaar: het schema zei "een kamerstuk, een bekendmaking en een uitspraak"
+    waar "of" bedoeld is (Staatsblad, 12 nov 2026). De zoekvraag houdt "en"."""
+    from bronmodel.connectors import KAMERSTUKKEN, RECHTSPRAAK
+
+    tekst = json.dumps(extern.items(["kamerstukken", "bekendmakingen", "rechtspraak"]), ensure_ascii=False)
+    assert " of een " in tekst and "en een uitspraak" not in tekst
+    assert " en " in extern.zoekvraag_tekst(KAMERSTUKKEN, {"tekst": "x", "vergaderjaar": "2025-2026", "kamer": "Eerste Kamer"})
+    assert RECHTSPRAAK.brontype == "uitspraak"

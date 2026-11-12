@@ -159,7 +159,10 @@ def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]
 
     - geen tekst bij de bron (een uitspraak met alleen metadata, `leesbaar: false`);
     - alleen een PDF (`alleen_pdf`, met het `stuk` en zijn metadata: het bestaat);
-    - niet gevonden (`niet_gevonden`): het id staat in de melding, en er komt geen stuk in de lijst.
+    - niet gevonden (`niet_gevonden`): het id staat in de melding, en er komt geen stuk in de lijst;
+    - de bron is niet te bereiken (`bron_onbereikbaar`): zeggen en later opnieuw. Eerst ging dat langs het model, en
+      dat verwees naar een site die het niet kende ("zoek het op via kamerstukken.nl … onderdeel 3", ronde 3
+      Kamerstukken, 12 nov 2026: K11, grounding ongegrond).
 
     Een stuk dat wel te lezen is staat als lijst met zijn gegevens uit de bron en de link (ronde 1 Kamerstukken, 11 nov
     2026: K12 en K27 gingen langs het model). None als er iets te lezen is, of bij een andere fout: dan formuleert de
@@ -167,6 +170,7 @@ def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]
     zonder: list[str] = []
     pdf: list[str] = []
     weg: list[str] = []
+    dicht: list[str] = []
     for i, r in enumerate(resultaten):
         try:
             data = json.loads(r.get("content") or "")
@@ -182,6 +186,8 @@ def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]
             pdf.append(ident)
         elif data.get("status") == "error" and data.get("reden") == "niet_gevonden" and (genoemd := _genoemd(gebruik, i)):
             weg.append(genoemd)
+        elif data.get("status") == "error" and data.get("reden") == "bron_onbereikbaar" and (genoemd := _genoemd(gebruik, i)):
+            dicht.append(genoemd)
         else:
             return None
     ids = [*zonder, *pdf]
@@ -207,6 +213,11 @@ def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]
         bij = f" bij {c.label}" if c is not None else ""
         blokken.append(Leemte(tekst=f"{ident} is{bij} niet gevonden. Controleer het id, of vraag mij naar de stukken "
                                     "waar het bij hoort; zonder tekst zeg ik er niets over."))
+    for ident in dicht:
+        c = van_id(ident)
+        waar = c.label if c is not None else "De bron"
+        blokken.append(Leemte(tekst=f"{waar} is nu niet te bereiken, dus {ident} kan ik niet lezen. Vraag het over een "
+                                    "paar minuten opnieuw; zonder tekst zeg ik er niets over."))
     return Antwoord(sjabloon="extern", blokken=[*blokken, *stukken])
 
 

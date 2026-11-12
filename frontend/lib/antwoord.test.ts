@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { BLOK_SOORTEN, externGroepen, NIET_GETOETST, alleenNietGetoetst, bepalingenVan, groepeerWettekst, parseAntwoord, reeksTekst } from "./antwoord";
+import { BLOK_SOORTEN, externGroepen, NIET_GETOETST, alleenNietGetoetst, bepalingenVan, groepeerWettekst, parseAntwoord, gezamenlijkTekst } from "./antwoord";
 
 const v = { iri: "urn:bwb:BWBR1:artikel:2", label: "Artikel 2", jci: "", regeling: "Wet" };
 
@@ -101,11 +101,11 @@ describe("parseAntwoord", () => {
   });
 });
 
-describe("reeksTekst", () => {
-  it("noemt de gezamenlijke behandeling, zoals bronmodel.antwoord.reeks_tekst", () => {
-    expect(reeksTekst(["33752", "33753", "33754", "33755"])).toBe("gezamenlijk behandeld: 33752–33755");
-    expect(reeksTekst(["33752", "33753"])).toBe("gezamenlijk behandeld: 33752 en 33753");
-    expect(reeksTekst(["33755"])).toBe("");
-    expect(reeksTekst(undefined)).toBe("");
+describe("gezamenlijkTekst", () => {
+  it("noemt de gezamenlijke behandeling, zoals bronmodel.antwoord.gezamenlijk_tekst", () => {
+    expect(gezamenlijkTekst(["33752", "33753", "33754", "33755"])).toBe("gezamenlijk behandeld: 33752–33755");
+    expect(gezamenlijkTekst(["33752", "33753"])).toBe("gezamenlijk behandeld: 33752 en 33753");
+    expect(gezamenlijkTekst(["33755"])).toBe("");
+    expect(gezamenlijkTekst(undefined)).toBe("");
   });
 });

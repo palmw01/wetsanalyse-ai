@@ -13,7 +13,7 @@ import { StatusLabel } from "@/components/ui/Lijst";
 import { StukVindplaats, Vindplaats } from "./Vindplaats";
 import { ConnectorTekst } from "@/components/wettekst/ConnectorTekst";
 import { Markdown } from "@/components/werkplek/Markdown";
-import { groepeerWettekst, reeksTekst, type Antwoord as AntwoordData, type AntwoordBlok, type BlokSoort } from "@/lib/antwoord";
+import { gezamenlijkTekst, groepeerWettekst, type Antwoord as AntwoordData, type AntwoordBlok, type BlokSoort } from "@/lib/antwoord";
 import { bronHref } from "@/lib/url";
 
 /** "19.523", zoals de statusregel van Lex en de Markdown van het antwoord (`bronmodel.antwoord.getal`). */
@@ -168,7 +168,7 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
               {[s.soort, datumTekst(s.datum), s.orgaan].filter(Boolean).join(" · ")}
               {s.gepubliceerd && <> · gepubliceerd {datumTekst(s.gepubliceerd)}</>}
               {tekstPeriode(s) && <span data-tekst-periode> · bij {tekstPeriode(s)}</span>}
-              {reeksTekst(s.reeks) && <span data-stuk-reeks> · {reeksTekst(s.reeks)}</span>}
+              {gezamenlijkTekst(s.gezamenlijk) && <span data-stuk-gezamenlijk> · {gezamenlijkTekst(s.gezamenlijk)}</span>}
             </p>
             {s.titel && <p>{s.titel}</p>}
             {!!s.indieners?.length && <p className="text-xs text-muted">Ingediend door {s.indieners.join(", ")}</p>}

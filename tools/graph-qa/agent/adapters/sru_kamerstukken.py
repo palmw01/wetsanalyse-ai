@@ -42,4 +42,12 @@ class SruKamerstukken(SruKoop):
             return []
         _, records = self.zoek(f'{_KAMERSTUK} AND w.dossiernummer=="{dn[0]}" AND w.ondernummer=="{dn[1]}"', maximum=10)
         # Alleen een stuk waarvan dit het hoofddossier is: een motie in vier dossiers heeft één nummer, in het eerste.
-        return [r for r in records if r.dossiers[:1] == (dn[0],) and r.ondernummer == dn[1]]
+        eigen = [r for r in records if r.dossiers[:1] == (dn[0],) and r.ondernummer == dn[1]]
+        if eigen or not dn[1].isalpha():
+            return eigen
+        # Een lettercode van de Eerste Kamer (A, B, … L) geldt bij een gezamenlijke behandeling voor de hele reeks, en het
+        # stuk heet naar het eerste dossier: wie kst-33755-L vraagt, bedoelt kst-33752-L (ronde 3 Kamerstukken, 12 nov
+        # 2026, K22: de vervolgvraag op "het laatste stuk van dossier 33755" las "niet gevonden"). Een nummer in cijfers
+        # hoort bij één dossier en valt hier niet onder. Alleen als het eenduidig is.
+        reeks = [r for r in records if dn[0] in r.dossiers and r.ondernummer == dn[1]]
+        return reeks if len(reeks) == 1 else []
