@@ -193,5 +193,17 @@
     "status": "passages_bewaard",
     "sha256": "b2d780ad4b996cead46b51e19d03dfad923c9a4afb34fbd22ec76c7e21e9e710",
     "toelichting": "Alleen geselecteerde passages uit online gelezen historische weergave opgeslagen; niet presenteren als geldend in 2026. 6 nov 2026: pad en hash bijgewerkt naar v1/cases.json, de plek sinds de geversioneerde referentieset (#525)."
+  },
+  {
+    "id": "J01",
+    "titel": "Juridisch Referentiemodel (JRM 2) – methode wetsuitvoering, specificatie",
+    "auteur": "Ministerie van BZK",
+    "versie": "main, commit 4a9b584 (2025-03-21)",
+    "pad": "docs/wetsanalyse/wetsuitvoering/",
+    "url": "https://minbzk.github.io/wetsuitvoering/",
+    "registratiedatum": "2026-11-12",
+    "status": "in_repo",
+    "sha256": "4a4148e1b6af4e48e619c1a743e2d43dc0d38323cdb35d971e6d8d90273371ba",
+    "toelichting": "W3C Software and Document License; abstract.md en H1–H5 ongewijzigd, sha256 over die zes bestanden in die volgorde. Zie BRON.md."
   }
 ]

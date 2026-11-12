@@ -17,6 +17,10 @@ implementatie van alle modellen uit die werkversie.
 | Juridische toestand | Relevante relaties en feiten vóór/na de gebeurtenis, inclusief onbekende onderdelen. |
 | Scenario | Hypothetische beginfeiten, gebeurtenis, toepasselijke normen en verwachte eindtoestand. |
 
+**Scenario's, aktes, rechtsgevolgen en juridisch relevante feiten uitwerken?** Gebruik daarvoor de skill
+**wetsuitvoering** (`.claude/skills/wetsuitvoering/`), die de JRM 2-specificatie van BZK (W3C) uitwerkt met
+werkstromen, een sjabloon en voorbeelden. Dit bestand blijft de korte vorm binnen een wetsanalyse.
+
 Geef relaties R01 enzovoort en gebeurtenissen/gevolgen G01 enzovoort een identiteit.
 Koppel brononderbouwde relaties aan E- en B-ID's. Een impliciet of nog niet vaststaand
 verband krijgt die status; forceer geen complete relatie door een wederpartij te verzinnen.

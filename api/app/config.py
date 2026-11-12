@@ -46,6 +46,11 @@ class Settings:
         # Inloggen met een API-token per account (de acceptatie-MCP). Default uit: alleen de
         # acceptatiestraat zet hem aan, en een guard in `poort` bewaakt dat.
         self.api_token_login = os.environ.get("API_TOKEN_LOGIN", "").lower() in {"1", "true"}
+        # Een wijziging van de methode voorstellen als concept-PR (ADR-014 C7). Default uit: alleen de acceptatiestraat
+        # zet hem aan, met een poort-guard. Het token heeft alleen schrijfrecht op deze ene repo.
+        self.catalogus_voorstellen = os.environ.get("CATALOGUS_VOORSTELLEN", "").lower() in {"1", "true"}
+        self.github_pr_token = _read_secret("GITHUB_PR_TOKEN")
+        self.github_repo = os.environ.get("GITHUB_REPO", "").strip()
 
         # --- Admin-auth: aparte tokens voor /v1/admin/* (LLM-beheer) ---
         raw_admin = _read_secret("WETSANALYSE_ADMIN_TOKENS") or ""

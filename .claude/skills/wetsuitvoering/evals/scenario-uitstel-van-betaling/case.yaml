@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: scenario-uitstel-van-betaling
+expected_outcome: |
+  Een scenario met aktes (begintoestand, rechtsfeit, rechtsgevolgen, eindtoestand) waarin de eindtoestand van
+  een akte de begintoestand van de volgende is. Het verlenen van uitstel bij beschikking is een rechtsfeit; dat
+  de dwanginvordering niet aanvangt of geschorst wordt, is een rechtsgevolg. Elk element verwijst naar de
+  bepaling of is als aanname gemarkeerd, en er worden andere scenario's dan de happy flow genoemd.

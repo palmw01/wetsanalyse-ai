@@ -20,6 +20,9 @@ mapnamen niet af te lezen — vandaar deze index.
   afwijkingen staan in [`BRON.md`](wetsanalyse/wetsanalyse-rijk/BRON.md). `H2-JAS.md` is de
   **gezaghebbende** klassenindeling: per klasse een omschrijving, een herkenningsvraag en de
   uitdrukkingswijze.
+- **`wetsanalyse/wetsuitvoering/`** — *bron van derden.* De specificatie van het Juridisch Referentiemodel (JRM 2,
+  de methode wetsuitvoering) van BZK onder de **W3C-licentie**; herkomst en afwijkingen in
+  [`BRON.md`](wetsanalyse/wetsuitvoering/BRON.md). De skill `.claude/skills/wetsuitvoering/` werkt haar uit.
 - **`wetsanalyse/wa-table.png`** — *bron van derden.* De officiële JAS-tabel: zestien genummerde
   klassen met korte definities en de kleurcodering. De labelkleuren in
   `api/app/jas_klassen.py` en `frontend/lib/jas.ts` zijn hieruit gesampled.

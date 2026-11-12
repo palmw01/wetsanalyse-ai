@@ -1,82 +1,151 @@
-# Analyseprotocol — activiteit 2 met context en samenhang
+# Analyseprotocol: een volledig dossier (activiteit 2 met context en samenhang)
 
-Grondslag: [bronnen en beslisregister](bronnen.md) — P01–P03, P08–P09.
-Versie 2.1, projectprofiel JAS met JRM 2-verrijking. Lees samen met fragmentgrenzen,
-verwijzingen-volgen, jrm-verrijking en kwaliteit. Uitvoer: assets/analysedossier.md.
+Grondslag: [bronnen en beslisregister](bronnen.md) — P01–P03, P08–P09. Uitvoer: het
+[dossiersjabloon](../assets/analysedossier.md). Lees samen met [fragmentgrenzen](markeren-fragmentgrenzen.md),
+[verwijzingen volgen](verwijzingen-volgen.md), [JRM-verrijking](jrm-verrijking.md) en [kwaliteit](kwaliteit.md).
+
+## Inhoud
+
+- Voortgang
+- 1. Afbakening en bronintegriteit
+- 2. Structuurkaart en grammaticale ontleding
+- 3. Context en interpretatie
+- 4. Markeren en classificeren
+- 5. Samenhang en toetsing met scenario's
+- 6. Review en oplevering
+- Identiteiten in het dossier
+
+## Voortgang
+
+Kopieer deze lijst in je antwoord en vink af terwijl je werkt:
+
+```
+Dossier – voortgang
+- [ ] 1. Opdracht, werkgebied, peildatum en bronnen vastgelegd (B-ID's)
+- [ ] 2. Normeenheden (N-ID's) ontleed met de controletabel
+- [ ] 3. Context gelezen: definities, verwijzingen, delegatie, toelichting; interpretatiekeuzes vastgelegd
+- [ ] 4. Elementen (E-ID's) gemarkeerd en geclassificeerd, met alternatieven
+- [ ] 5. Relaties (R-ID's) en gevolgen (G-ID's) vastgelegd; scenario's (S-ID's) gedraaid
+- [ ] 6. Dekking per normeenheid, kwaliteitsrubriek, open punten met reviewvragen
+```
+
+Stap 5 kan een fout in stap 2 blootleggen. Ga dan terug, verbeter de ontleding en loop de stappen erna opnieuw na.
 
 ## 1. Afbakening en bronintegriteit
 
-Leg vast: opdrachtgever/doelgroep, analysevraag, voorgenomen gebruik, regeling,
-artikelen/leden, territorium en peildatum. Maak onderscheid tussen het doel van de analyse
-en het beleidsdoel van de wet. Voor een louter tekstuele oefening mag de peildatum onbekend
-blijven, maar dan volgt geen conclusie over actueel toepasselijk recht.
+Leg vast:
+- opdrachtgever en doelgroep;
+- analysevraag en voorgenomen gebruik;
+- regeling, artikelen en leden;
+- territorium en peildatum.
 
-Bewaar de opgehaalde tekst ongewijzigd met bron-ID/URL, versie, vindplaats en raadpleegdatum.
-Controleer aanhef, tabel, voetnoot en bijlage tegen het origineel wanneer extractie betekenis
-kan verliezen. Wetsvoorstel en geldende wet zijn verschillende bronnen. Geef bronnen
-stabiele dossier-ID's B01 enzovoort; bronhashes controleren tekst, geen juridische geldigheid.
+Het doel van de analyse is niet het beleidsdoel van de wet. Voor een louter tekstuele oefening mag de peildatum
+onbekend blijven, maar dan trek je geen conclusie over het recht dat nu geldt.
+
+Bewaar de opgehaalde tekst ongewijzigd, met:
+- bron-ID of URL;
+- versie;
+- vindplaats;
+- raadpleegdatum.
+
+Controleer aanhef, tabel, voetnoot en bijlage tegen het origineel als bij het overnemen betekenis verloren kan gaan.
+Een wetsvoorstel en de geldende wet zijn verschillende bronnen. Een hash controleert de tekst, niet of die geldt.
 
 ## 2. Structuurkaart en grammaticale ontleding
 
-Maak normeenheden N01 enzovoort. Een eenheid bevat één dragende uitspraak met toepasselijke
-voorwaarden; gedeelde aanhef en uitzonderingen mogen aan meerdere eenheden gekoppeld zijn.
-Noteer per eenheid een compacte ontleding, geen onnodige volledige taalkundige boom.
+Een normeenheid bevat één dragende uitspraak met de voorwaarden die erop werken. Een gedeelde aanhef en
+uitzonderingen kunnen bij meer eenheden horen. Noteer per eenheid een compacte ontleding, geen volledige taalkundige
+boom.
 
-| Controle | Te beantwoorden vraag |
+| Controle | Vraag |
 |---|---|
-| Predicatie | Wat wordt van wie/wat gezegd? Welke gesplitste werkwoorddelen horen samen? |
-| Passief/ellips | Welke actor of zinsdelen zijn weggelaten; is aanvulling onderbouwd? |
-| Modaliteit | Drukt 'kan' bevoegdheid, mogelijkheid of iets anders uit? Is een plicht indicatief geformuleerd? |
-| Negatie | Waarop werken 'niet', 'geen', 'tenzij' en dubbele ontkenning? |
-| Kwantificatie | Alle, ieder, ten minste, uitsluitend: over welke verzameling en met welk bereik? |
-| Coördinatie | Is sprake van cumulatie, alternatief of exclusiviteit? Welke tak deelt welke aanhef? |
-| Bijzin | Beperkt of beschrijft deze een groep; op welke hoofdzin werkt zij? |
-| Coreferentie | Waarnaar verwijzen 'hij', 'deze', 'hetgeen', 'dergelijke' en nominalisaties? |
-| Rekenen | Wat zijn invoer, uitkomst, eenheid, vergelijking, afronding en grensinclusiviteit? |
-| Tijd | Startgebeurtenis, duur, einde, geldigheid en overgangsrecht; zijn deze onderscheiden? |
-| Plaats | Welke territoriale beperking geldt voor welke norm/partij? |
+| Predicatie | Wat wordt van wie of wat gezegd? Welke gesplitste werkwoorddelen horen samen? |
+| Passief en ellips | Welke actor of zinsdelen zijn weggelaten; is een aanvulling onderbouwd? |
+| Modaliteit | Drukt *kan* een bevoegdheid uit, een mogelijkheid of iets anders? Staat een plicht in de indicatief? |
+| Negatie | Waarop werken *niet*, *geen*, *tenzij* en een dubbele ontkenning? |
+| Kwantificatie | *Alle*, *ieder*, *ten minste*, *uitsluitend*: over welke verzameling, met welk bereik? |
+| Coördinatie | Cumulatie, alternatief of exclusiviteit? Welke tak deelt welke aanhef? |
+| Bijzin | Beperkt of beschrijft hij een groep; op welke hoofdzin werkt hij? |
+| Coreferentie | Waarnaar verwijzen *hij*, *deze*, *hetgeen*, *dergelijke* en nominalisaties? |
+| Rekenen | Invoer, uitkomst, eenheid, vergelijking, afronding en of grenzen meetellen. |
+| Tijd | Startgebeurtenis, duur, einde, geldigheid en overgangsrecht, uit elkaar gehouden. |
+| Plaats | Welke territoriale beperking geldt voor welke norm of partij? |
 
-Maak alleen een actieve of vereenvoudigde herformulering als die een relevante ambiguïteit
-verheldert. Label haar als analytische reconstructie; toon aannames en vergelijk terug met
-het origineel. Syntactische correctheid bewijst geen juridische juistheid. Een parser kan
-later ondersteunen; deze versie vereist geen nieuwe NLP-software.
+Herformuleer alleen als dat een relevante dubbelzinnigheid verheldert. Label het als analytische reconstructie,
+noem je aannames en vergelijk terug met het origineel. Een grammaticaal correcte lezing is nog geen juridisch
+juiste.
 
 ## 3. Context en interpretatie
 
-Volg noodzakelijke bronnen met verwijzingen-volgen.md. Controleer definities en hun bereik,
-verwijzingen, delegatie, hogere regelgeving en toepasselijke wijzigingen. Bepaal het wetsdoel
-uit relevante officiële toelichtingen; onderscheid algemene doelen van het doel van deze
-bepaling en van latere wijzigingen. Noteer 'niet vastgesteld' als onderbouwing ontbreekt.
+Volg de bronnen die je nodig hebt met [verwijzingen volgen](verwijzingen-volgen.md). Controleer:
+- definities en hun bereik;
+- verwijzingen;
+- delegatie;
+- hogere regelgeving;
+- wijzigingen die van toepassing zijn.
 
-Leg bij een materiële interpretatiekeuze vast: vraag, mogelijke lezingen, grammaticale,
-systematische, historische en/of doelgerichte argumenten, bronpassages, gekozen conceptduiding,
-zekerheidsbeperking en gevolgen voor scenario's. Er is geen universele rangorde van deze
-interpretatiemethoden. Open normen en beleidsruimte krijgen geen verzonnen exacte drempel.
-Ficties, rechtsvermoedens en bewijslast verdienen afzonderlijke aandacht waar zij voorkomen.
+Haal het wetsdoel uit de officiële toelichting. Onderscheid algemene doelen van het doel van deze bepaling en van
+latere wijzigingen. Ontbreekt de onderbouwing, schrijf dan 'niet vastgesteld'.
+
+Een materiële interpretatiekeuze leg je vast in de tabel Interpretaties, met:
+- de vraag en de mogelijke lezingen;
+- de argumenten: grammaticaal, systematisch, historisch, doelgericht;
+- de bronpassages;
+- je conceptkeuze;
+- de beperking van de zekerheid;
+- het gevolg voor de scenario's.
+
+Er is geen vaste rangorde tussen deze interpretatiemethoden.
+
+Een open norm of beleidsruimte krijgt geen verzonnen exacte drempel. Ficties, rechtsvermoedens en bewijslast
+verdienen eigen aandacht waar ze voorkomen.
 
 ## 4. Markeren en classificeren
 
-Bepaal de hoofdfunctie van iedere normeenheid, vervolgens haar onderdelen. Gebruik de
-klassenreferentie als herkenningshulp en fragmentgrenzen.md voor de projectbeslisregels.
-Markeer letterlijke tekst; koppel alle elementen E01 enzovoort aan norm- en bron-ID's.
-Maak onderscheid tussen een abstract type en een concrete partij/waarde in een scenario.
-Een label is geen zelfstandig bewijs dat een juridische relatie volledig is begrepen.
+Bepaal eerst de hoofdfunctie van elke normeenheid, daarna haar onderdelen. De werkwijze en de regels staan in de
+[markeringslijst](annotatieprotocol.md) en de [fragmentgrenzen](markeren-fragmentgrenzen.md). Koppel elk element aan
+zijn norm- en bron-ID. Houd een abstract type (*de belastingschuldige*) apart van een concrete partij of waarde in
+een scenario. Een label alleen bewijst niet dat de juridische relatie begrepen is.
 
-## 5. Samenhang en toetsing
+## 5. Samenhang en toetsing met scenario's
 
-Gebruik jrm-verrijking.md voor relaties en toestandsveranderingen. Maak scenario's om de
-analyse te beproeven, geen omvangrijke parallelle boom van deelvragen. Ons profiel gebruikt
-scenario's naast de dekkingscontrole van het gekozen corpus; dit is een expliciete
-projectkeuze en geen claim van een zuivere JRM 2-implementatie.
+Leg de relaties en toestandsveranderingen vast volgens [relaties](relaties.md) en de
+[JRM-verrijking](jrm-verrijking.md). Gebruik scenario's om de analyse te beproeven, niet als een parallelle boom van
+deelvragen.
 
-Per toepasselijk beslispunt: normaal geval, niet voldane voorwaarde, uitzondering en
-precieze grens. Noteer bij onbekende invoer 'niet bepaalbaar' als de bron geen oplossing geeft.
-Herleid iedere verwachte uitkomst tot normen en bronnen. Hypothetische feiten zijn nooit
-bronbewijs. Werk terug naar de ontleding als een scenario een tegenspraak blootlegt.
+Draai per beslispunt dat ertoe doet vier scenario's:
+- het normale geval;
+- een voorwaarde die niet voldaan is;
+- de uitzondering;
+- de precieze grens.
+
+Weet je een invoer niet en geeft de bron geen oplossing, schrijf dan 'niet bepaalbaar'. Herleid elke verwachte
+uitkomst tot normen en bronnen. Een hypothetisch feit is nooit bronbewijs.
+
+Dit profiel combineert scenario's met een dekkingscontrole van het gekozen corpus. Dat is een projectkeuze (P08),
+geen zuivere JRM 2-werkwijze.
 
 ## 6. Review en oplevering
 
-Behandel elke normeenheid als geanalyseerd, gemotiveerd buiten de opdracht of onopgelost.
-Geef materiële lacunes een reviewvraag met impact en benodigde bron/deskundigheid. Pas de
-kwaliteitsrubriek toe. Het eindproduct blijft concept tot menselijke beoordeling; rapporteer
-technische juistheid, inhoudelijke kwaliteit en brondekking afzonderlijk.
+Geef elke normeenheid een status:
+- geanalyseerd;
+- gemotiveerd buiten de opdracht;
+- onopgelost.
+
+Een materiële lacune krijgt een reviewvraag, met de impact en de bron of deskundigheid die nodig is. Pas de
+[kwaliteitsrubriek](kwaliteit.md) toe. Rapporteer de technische juistheid, de inhoudelijke kwaliteit en de
+brondekking apart. Het dossier blijft concept tot een mens het beoordeelt.
+
+## Identiteiten in het dossier
+
+| Voorvoegsel | Wat | Voorbeeld |
+|---|---|---|
+| B | Bron (regeling, toelichting, uitspraak) met versie | B01 |
+| N | Normeenheid | N01 |
+| E | Element (een markering) | E01 |
+| R | Relatie tussen elementen | R01 |
+| G | Gebeurtenis of rechtsgevolg | G01 |
+| I | Interpretatievraag | I01 |
+| S | Scenario | S01 |
+
+ID's zijn stabiel binnen een dossier: hernummer niet als je iets toevoegt.

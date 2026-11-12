@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: delegatie-met-beeindigingsgronden
+expected_outcome: |
+  Een duiding die de eerste volzin als (verplichte) delegatiebevoegdheid herkent, de onderdelen a tot en met c
+  samen met de aanhef 'Het uitstel wordt beëindigd' leest als afzonderlijke gronden voor beëindiging, en de
+  verwijzingen naar de Successiewet 1956 als context noemt die nog gelezen moet worden in plaats van hun inhoud
+  te verzinnen.

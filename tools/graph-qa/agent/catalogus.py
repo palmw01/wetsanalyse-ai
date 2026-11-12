@@ -67,7 +67,8 @@ def uit_methode() -> list[Onderdeel]:
         prefix = "" if naam == _basis() else f"{naam}/"
         uit.append(Onderdeel(
             id=oid("methode", naam), soort="methode", label=meta["lex"]["label"], doel=meta["lex"]["beschrijving"],
-            model="geen", herkomst=_methode_herkomst(codes, naam),
+            model="geen", herkomst=_methode_herkomst(
+                codes + ((f"{meta['map']}/BRON.md",) if meta["lex"]["letterlijk"] == "ja" else ()), naam),
             bestand=tuple(f"{meta['map']}/{p.removeprefix(prefix)}" for p in sorted(PAKKET["bronbestanden"])
                           if (p.startswith(prefix) if prefix else not p.startswith(_andere_skills()))),
             versie=versie(meta["versie"], *(x["sha256"] for x in eigen.values())), uitvoer="methodetekst per rol",
@@ -101,7 +102,8 @@ def uit_rollen() -> list[Onderdeel]:
             versie=vingerafdruk(rol), ingang=_aanroepers(rol),
             context="vóór de systeemprompt, in het stabiele deel (cache-prefix)", uitvoer="systeemprompt",
             tests=("tools/graph-qa/tests/test_methoderollen.py",), deel_van=oid("methode", _basis()), bewerkbaar=tuple(ids),
-            inhoud={"secties": [{"id": k, "skill": s["skill"], "bronnen": s["bronnen"], "sha256": s["sha256"], "tekst": s["tekst"]}
+            inhoud={"secties": [{"id": k, "skill": s["skill"], "bestand": f".claude/skills/{s['skill']}/{s['bestand']}",
+                                 "bronnen": s["bronnen"], "sha256": s["sha256"], "tekst": s["tekst"]}
                                 for k, s in secties.items()]},
         ))
     return uit
