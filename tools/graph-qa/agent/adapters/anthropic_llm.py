@@ -38,6 +38,9 @@ class AnthropicLLM:
         # Het cache-punt op het eind van de berichten (de top-level `cache_control`). Apart van `_caching`: weigert de
         # provider alleen dit, dan blijft het cache-punt op de systeemprompt staan.
         self._historie_caching = settings.prompt_caching
+        # De TTL van het cachepunt op de systeemprompt (`Settings.prompt_cache_ttl`). `None` is de standaard van de
+        # provider (5 minuten), en daarop valt de adapter terug als de provider een TTL weigert.
+        self._ttl: str | None = None if settings.prompt_cache_ttl == "5m" else settings.prompt_cache_ttl
         # Eén meter per adapter, en de adapter wordt per beurt gebouwd – dus deze telt precies één
         # beurt op. `answer_stream` leest hem aan het eind uit en meldt het verbruik aan de api.
         self.meter = Verbruiksmeter()
@@ -65,6 +68,10 @@ class AnthropicLLM:
         Wat dit oplevert: de antwoordroute herhaalt de systeemprompt bij élke tool-ronde, en als die
         boven `_MIN_CACHE_TEKENS` komt, is dat het profiel waarvoor caching bestaat. In de
         annotatieketen verschilt de prompt per batch, dus daar levert het niets op.
+
+        Dit punt dekt ook de tools (die staan ervóór in de cache) en draagt de TTL uit de settings: met een uur overleeft
+        het voorvoegsel de pauze waarin de jurist een antwoord leest. Het punt op de historie (top-level) houdt de
+        standaard van 5 minuten; de API eist de langere TTL vóór de kortere.
         """
         aan = self._caching if caching is None else caching
         delen = [system] if isinstance(system, str) else [d for d in system if d]
@@ -78,9 +85,11 @@ class AnthropicLLM:
             # cache-write voor een voorvoegsel dat toch nooit als hit terugkomt.
             return "\n\n".join(d for d in (stabiel, variabel) if d)
 
-        blokken: list[dict[str, Any]] = [
-            {"type": "text", "text": stabiel, "cache_control": {"type": "ephemeral"}}
-        ]
+        # De TTL alleen voor wie zelf een stabiel deel aanwijst (een lijst: supervisor, antwoordlus): die prompt komt
+        # terug. Een losse string (classifier, kaartacties) is meestal eenmalig, en schrijven voor een uur kost 2×.
+        lang = self._ttl if not isinstance(system, str) else None
+        punt = {"type": "ephemeral", "ttl": lang} if lang else {"type": "ephemeral"}
+        blokken: list[dict[str, Any]] = [{"type": "text", "text": stabiel, "cache_control": punt}]
         if variabel:
             blokken.append({"type": "text", "text": variabel})
         return blokken
@@ -92,8 +101,16 @@ class AnthropicLLM:
         accepteren, dan faalt zónder deze terugval élke LLM-call – en daarmee de hele agent. De prijs
         van caching mag nooit "de dienst ligt plat" zijn.
         """
-        if not self._caching or "cache_control" not in str(exc):
+        if not self._caching or ("cache_control" not in str(exc) and "ttl" not in str(exc).lower()):
             return False
+        # Een TTL die de provider niet kent: terug naar zijn standaard (5 minuten); de cachepunten blijven staan.
+        if self._ttl and "ttl" in str(exc).lower():
+            self._ttl = None
+            logger.warning(
+                "cache-TTL geweigerd door de provider; voortaan 5 minuten",
+                extra={"categorie": "technisch", "fout": str(exc)[:200]},
+            )
+            return True
         # Droeg het verzoek het cache-punt op de historie, dan ligt het daaraan: het cache-punt op de systeemprompt nam
         # de provider al aan. Alleen dat ene gaat dan uit.
         if historie and self._historie_caching:

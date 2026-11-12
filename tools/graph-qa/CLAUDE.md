@@ -256,7 +256,13 @@ bruikbaar is.
   Caching is een prefix-match: zet je plan of geheugen-context vóór de identiteit, dan is de cache
   stil waardeloos. Onder `_MIN_CACHE_TEKENS` gaat er geen cache-punt op. Weigert de provider
   `cache_control` (op Foundry een beta-functie), dan zet de adapter zichzelf uit en herhaalt de call
-  zonder – caching mag nooit "de dienst ligt plat" kosten. Knop: `PROMPT_CACHING=false`.
+  zonder – caching mag nooit "de dienst ligt plat" kosten. Knop: `PROMPT_CACHING=false`. Het punt op een gesplitste
+  systeemprompt (supervisor, antwoordlus) houdt een uur (`PROMPT_CACHE_TTL`, standaard `1h`): de tools staan ervóór
+  en vallen eronder, dus het voorvoegsel overleeft de pauze waarin de jurist een antwoord leest. Het punt op de
+  historie houdt 5 minuten. Weigert de provider de TTL, dan valt de adapter terug op 5 minuten. De nulmeting staat in
+  `docs/architectuur/metingen/context-2026-11-12/`: het koude begin van een beurt was 40–70% van de gewogen kosten.
+  Server-compaction en context editing van de API gebruikt Lex bewust niet. Ze kunnen de lopende beurt inkorten,
+  en de dure post is het herschrijven van het voorvoegsel, niet de omvang van de historie.
 - **`llm_stap.py`** – de gedeelde modelstap (H5). `aanroep(llm, rol, **verzoek)` geeft de kwargs ongewijzigd door,
   geeft een `Stopreden` terug, logt één `model_aanroep` (rol, model, stopreden, duur, gebruik en de opbouw van het verzoek uit
   `agent/verzoekopbouw.py`: tekens van tools, systeemdelen, historie en lopende beurt, plus `tools_hash`/`system_hash`,

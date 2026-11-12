@@ -286,6 +286,7 @@ Secrets kunnen ook als `<NAAM>_FILE` (pad naar een bestand) worden gezet: `GRAPH
 | `LLM_MODEL_OPHAAL` | = `LLM_MODEL` | Model voor de ophaal-agent. Verlaag pas na meting: kiest hij de verkeerde bepaling, dan is alles daarna brongetrouw én verkeerd. |
 | `LLM_TIMEOUT_SECONDS` / `LLM_MAX_RETRIES` | `120` / `2` | Wachttijd en herhalingen per LLM-call (de eval-job zet 45 s). |
 | `PROMPT_CACHING` | `true` | Prompt-caching op het stabiele deel van de systeemprompt. |
+| `PROMPT_CACHE_TTL` | `1h` | Hoe lang het cachepunt op een gesplitste systeemprompt (met de tools ervóór) blijft: `1h` of `5m`. |
 | `WETSANALYSE_API_URL` / `WETSANALYSE_API_TOKEN` | leeg | De wetsanalyse-API: vastleggen van beurten, annotatieleestools en dekkingscontrole. Beide gezet = de agent legt zelf vast. |
 | `ANNOTATIE_READ_USER_ID` | leeg | Alleen voor CLI/MCP: namens wie de annotatietools lezen. Over HTTP geldt de rungebruiker. |
 | `PORT` | `8080` | Luisterpoort. |
