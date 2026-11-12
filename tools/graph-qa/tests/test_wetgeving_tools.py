@@ -399,3 +399,18 @@ def test_een_bwb_id_zonder_toestand_op_de_peildatum_noemt_zijn_regeling():
     uit = _roep("get_wettekst", {"bwb_id": "BWBR0002471", "artikel": "1", "peildatum": "1995-01-01"})
     assert uit["status"] == "error" and uit["reden"] == "niet_gevonden"
     assert "Wet op de loonbelasting 1964" in json.dumps(uit, ensure_ascii=False)
+
+
+def test_een_bwb_id_zonder_treffer_in_de_zoekdienst_zegt_welke_regeling_het_is():
+    """Ronde 4, I20: het model zocht een geraden BWB-id op ("BWBR0002471", peildatum 1995) en kreeg alleen "niets
+    gevonden". Dat id is de Wet op de loonbelasting 1964: zeg dat, zodat het niet voor de gezochte wet doorgaat."""
+    uit = _roep("zoek_regelingen", {"bwb_id": "BWBR0002471", "peildatum": "1995-01-01"})
+    assert uit["status"] == "ok" and not uit["resultaten"]
+    assert "Wet op de loonbelasting 1964" in uit["toelichting"]
+    assert "gebruik dit id dan niet" in uit["toelichting"]
+
+
+def test_een_onbekend_bwb_id_in_de_zoekdienst_zegt_dat_het_niet_bestaat():
+    uit = _roep("zoek_regelingen", {"bwb_id": "BWBR0999999"})
+    assert uit["status"] == "ok" and not uit["resultaten"]
+    assert "kent geen regeling met id BWBR0999999" in uit["toelichting"]
