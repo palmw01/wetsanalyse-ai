@@ -856,6 +856,18 @@ def test_woorden_geeft_de_alineas_van_een_stuk_die_ze_noemen_met_hun_offset():
     assert roep("get_kamerstuk", {"id": "kst-99001-3", "woorden": "of"})["reden"] == "ongeldige_argumenten"
 
 
+def test_woorden_zonder_treffer_zegt_per_woord_hoe_vaak_het_los_staat():
+    """Ronde 4 Kamerstukken (12 nov 2026, K07 en K16): vijf keer nul treffers op woorden die samen nergens staan, en het
+    model raadde telkens opnieuw welk woord eruit moest. De code telt het per woord."""
+    d = roep("get_kamerstuk", {"id": "kst-99001-3", "woorden": "invorderingsrente bestuurder"})
+    assert d["status"] == "ok" and d["aantal"] == 0
+    assert d["per_woord"] == {"invorde": 1, "bestuur": 0}
+    assert "„invorde…” 1, „bestuur…” 0" in d["toelichting"] and "laat „bestuur…” weg" in d["toelichting"]
+    beide = roep("get_kamerstuk", {"id": "kst-99001-3", "woorden": "invorderingsrente eenvoud"})
+    assert beide["aantal"] == 0 and "geef minder woorden tegelijk" in beide["toelichting"], "elk woord staat er, los"
+    assert "per_woord" not in roep("get_kamerstuk", {"id": "kst-99001-3", "woorden": "bestuurder"}), "één woord: niets te tellen"
+
+
 def test_een_lettercode_in_een_gezamenlijke_behandeling_vindt_het_stuk_in_het_eerste_dossier():
     """Ronde 3 Kamerstukken (12 nov 2026, K22): de lijst van dossier 33755 noemde 33752 nr. L, en de vervolgvraag "wat staat
     erin?" werd kst-33755-L, dat KOOP niet kent. Een lettercode van de Eerste Kamer geldt voor de hele reeks."""

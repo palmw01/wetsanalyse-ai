@@ -483,12 +483,34 @@ def _met_woorden(rijen: list[dict[str, Any]], woorden: str, ident: str, offset: 
 
     treffers = [{**r, "offset": i} for i, r in enumerate(rijen) if r.get("soort") != "tabelrij" and raakt(r)]
     lezen = f"lees verder vanaf 'offset' met {{\"id\": \"{ident}\", \"offset\": <offset>}}"
+    extra: dict[str, Any] = {"stuk": stuk, "totaal": len(treffers), "alineas": len(rijen)}
+    if treffers:
+        toelichting = (f"{len(treffers)} van de {len(rijen)} alinea's noemen „{woorden}”; {lezen} voor de alinea's "
+                       "eromheen. Citeer letterlijk uit 'tekst'.")
+    else:
+        toelichting = f"Geen alinea van dit stuk noemt „{woorden}” (elk woord). " + _zonder_treffer(rijen, stammen, extra)
     return per_eenheid(treffers, tool="get_kamerstuk", args={"id": ident, "woorden": woorden}, offset=offset,
-                       extra={"stuk": stuk, "totaal": len(treffers), "alineas": len(rijen)},
-                       toelichting=(f"{len(treffers)} van de {len(rijen)} alinea's noemen „{woorden}”; {lezen} voor de "
-                                    "alinea's eromheen. Citeer letterlijk uit 'tekst'." if treffers else
-                                    f"Geen alinea van dit stuk noemt „{woorden}” (elk woord). Probeer minder of andere "
-                                    "woorden, of lees de inhoud met inhoud: true."))
+                       extra=extra, toelichting=toelichting)
+
+
+def _zonder_treffer(rijen: list[dict[str, Any]], stammen: list[str], extra: dict[str, Any]) -> str:
+    """Bij nul treffers: in hoeveel alinea's elk woord los staat, zodat het model in één keer het woord laat vallen dat
+    het stuk niet gebruikt. In ronde 4 van de Kamerstukken-iteratie (12 nov 2026, K07 en K16) gaf 'bestuurdersaansprakelijk-
+    heid loonbelasting' of 'artikel 36 bestuurder aansprakelijk' vijf keer nul treffers, en raadde het model telkens
+    opnieuw welk woord eruit moest."""
+    if len(stammen) < 2:
+        return "Probeer een ander woord, of lees de inhoud met inhoud: true."
+    woorden_per_rij = [[w.lower() for w in _WOORD_RE.findall(f"{r.get('kop') or ''} {r.get('tekst') or ''}")]
+                       for r in rijen if r.get("soort") != "tabelrij"]
+    per_woord = {stam: sum(1 for eigen in woorden_per_rij if any(stam in w for w in eigen))
+                 for stam in dict.fromkeys(stammen)}
+    extra["per_woord"] = per_woord
+    los = ", ".join(f"„{stam}…” {n}" for stam, n in per_woord.items())
+    nul = [stam for stam, n in per_woord.items() if not n]
+    raad = (f"laat {', '.join(f'„{s}…”' for s in nul)} weg" if nul and len(nul) < len(per_woord)
+            else "geef minder woorden tegelijk")
+    return (f"Per woord, in hoeveel alinea's het los staat: {los}. Samen staan ze in geen alinea; {raad}, of lees de "
+            "inhoud met inhoud: true.")
 
 
 #: De reden in het foutresultaat per code van de adapter (`KamerstukFout.code`).
