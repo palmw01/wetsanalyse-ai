@@ -65,7 +65,7 @@ def _lees_wat_genoemd_is(b: Bouw, state: State, fout: Onvulbaar) -> tuple[str, l
 
 #: Achter elke weigering: verbeter de aanroep, geen vrije tekst (behalve waar de weigering zelf tekst toestaat).
 OPNIEUW = ("\n\nVerbeter de aanroep en roep {naam} opnieuw aan: het antwoord hoort in het sjabloon. Schrijf alleen "
-           "tekst als de melding hierboven dat zegt. Deze melding komt van de code, niet van de jurist: noem haar, het "
+           "tekst als de melding hierboven dat zegt, en geen tekst naast de aanroep. Deze melding komt van de code, niet van de jurist: noem haar, het "
            "sjabloon of deze tool nooit in je antwoord.")
 
 
@@ -81,8 +81,12 @@ def redencode(fout: BaseException) -> str:
     return f"{module}.{tb.tb_frame.f_code.co_name}"
 
 
-def sjabloon_node(b: Bouw, state: State) -> dict[str, Any]:
-    tu = state["pending_tools"][0]
+def vul_aanroep(b: Bouw, state: State, tu: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
+    """Vul één sjabloonaanroep uit de trace van `state`: (het `tool_result`, de berichten erna, de rest van de update).
+
+    Gedeeld door `sjabloon_node` en `tools_node` (een sjabloon naast graaftools): het resultaat komt in hetzelfde
+    user-bericht als de andere resultaten van die ronde, want elke `tool_use` hoort zijn resultaat in het volgende bericht
+    te krijgen."""
     def resultaat(tekst: str, **extra: Any) -> dict[str, Any]:
         return {"type": "tool_result", "tool_use_id": tu["id"], "content": tekst, **extra}
 
@@ -97,19 +101,18 @@ def sjabloon_node(b: Bouw, state: State) -> dict[str, Any]:
         # Na een weigering schreef het model vaak vrije tekst (derde meting Rechtspraak, 10 nov 2026: 2 van 6 runs na een
         # tweede pagina, met afgeronde bedragen en een eigen blokcitaat). Het sjabloon hoort het antwoord te dragen.
         tekst += OPNIEUW.format(naam=tu["name"])
-        return {"messages": [{"role": "user", "content": [resultaat(tekst, is_error=True)]}], "pending_tools": [],
-                **({"source_trace": trace} if fout.ophalen else {}),
-                **tel_sjabloon(state, "geweigerd", f"{tu['name']}:{redencode(fout)}")}
+        return (resultaat(tekst, is_error=True), [],
+                {**({"source_trace": trace} if fout.ophalen else {}),
+                 **tel_sjabloon(state, "geweigerd", f"{tu['name']}:{redencode(fout)}")})
     _met_regelingen(b, antwoord)
     tekst = antwoord_tekst(antwoord)
-    return {
-        "messages": [{"role": "user", "content": [resultaat(VASTGELEGD)]},
-                     {"role": "assistant", "content": [{"type": "text", "text": tekst}]}],
-        "pending_tools": [],
-        "answer": tekst,
-        "antwoord": antwoord.model_dump(),
-        **tel_sjabloon(state, "gevuld", tu["name"]),
-    }
+    return (resultaat(VASTGELEGD), [{"role": "assistant", "content": [{"type": "text", "text": tekst}]}],
+            {"answer": tekst, "antwoord": antwoord.model_dump(), **tel_sjabloon(state, "gevuld", tu["name"])})
+
+
+def sjabloon_node(b: Bouw, state: State) -> dict[str, Any]:
+    blok, na, upd = vul_aanroep(b, state, state["pending_tools"][0])
+    return {"messages": [{"role": "user", "content": [blok]}, *na], "pending_tools": [], **upd}
 
 
 def route_na_sjabloon(b: Bouw, state: State) -> str:

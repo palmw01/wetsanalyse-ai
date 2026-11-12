@@ -143,11 +143,22 @@ def test_een_verzonnen_verwijzing_in_de_toelichting_gaat_door_de_correctie():
     assert [e for e in events if e["type"] == "antwoord"][-1]["antwoord"]["blokken"][-1]["tekst"] == "Zonder verzinsel."
 
 
-def test_een_sjabloon_naast_een_graaftool_wacht_op_de_graaftool():
+def test_een_sjabloon_naast_een_graaftool_wordt_na_de_graaftool_gevuld():
+    """Eerst viel het sjabloon weg en schreef het model het de volgende ronde opnieuw (~2.000 uitvoertokens). Nu voert
+    `tools_node` de graaftool uit en vult daarna het sjabloon: geen tweede schrijfronde, en beide resultaten in één bericht."""
     beide = response([tool_block("t1", "zoek_definitie", {"term": "belastingschuldige"}), tool_block("t2", "antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""})], "tool_use")
-    events, llm = _beurt(beide, _sjabloon())
-    assert llm.index == 3
+    from agent.models import Verbruiksmeter
+
+    llm, meter = FakeLLM([KIES, beide, _sjabloon()]), Verbruiksmeter()
+
+    async def alles():
+        return [e async for e in answer_stream("Wat betekent belastingschuldige?", settings=make_settings(enable_planning=True),
+                                               llm=llm, graph=FakeGraph(result=RIJ), meter=meter)]
+
+    events = asyncio.run(alles())
+    assert llm.index == 2, "geen ronde om het sjabloon opnieuw te schrijven"
     assert [e for e in events if e["type"] == "antwoord"]
+    assert meter.sjabloon["uitgesteld"] == 1 and meter.sjabloon["gevuld"] == {"antwoord_begrip": 1}
 
 
 def test_het_model_krijgt_de_tool_echt_aangeboden():

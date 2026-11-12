@@ -28,7 +28,7 @@ from typing import Any
 from .annotatie import sleutel_van
 from .config import Settings
 from .models import Verbruiksmeter
-from .narratie import met_regelgrens
+from .narratie import denk_bij
 from .nodes.annotatie_samenvatting import vervangen_zin
 from .wetsanalyse_api import GesprekVerdwenen, WetsanalyseApi, WetsanalyseApiFout
 
@@ -145,10 +145,8 @@ class BeurtSchrijver:
         soort = event.get("type")
         if soort == "token":
             self.tekst += event.get("content", "")
-        elif soort == "status":
-            self.denk += ("\n" if self.denk else "") + "· " + event.get("message", "")
-        elif soort == "reason":
-            self.denk += met_regelgrens(self.denk, event.get("content", ""))
+        elif soort in ("status", "reason"):
+            self.denk = denk_bij(self.denk, event)
         elif soort == "sources":
             self.bronnen = event.get("sources") or []
         elif soort == "doel":

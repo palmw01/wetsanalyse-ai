@@ -90,6 +90,12 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   `anthropic_schemas(only=spec.tools)`. Tekst stroomt niet mee: pas na de ronde is bekend of het narratie
   is. Een ronde mét tools gaat dan als `reason` naar het denkproces (`narratie.ronde_in_denk`, met `\n\n`
   op een rondegrens). Een ronde zonder tools is een eindantwoord: dat gaat de state in, nooit naar `reason`.
+  **Een ronde met een sjabloon is ook het antwoord** (12 nov 2026, acceptatie K17: het hele antwoord stond onderaan het
+  denkproces en daarna nog eens in het sjabloon): wat het model naast de sjabloonaanroep schreef, gaat niet naar `reason`
+  en niet de historie in, en `sjabloon.tekst_ernaast` telt de tekens (verspilde uitvoertokens). De systeemprompt
+  (AFRONDEN MET EEN SJABLOON) vraagt geen tekst naast de aanroep. **Het denkproces bouwt één functie op**:
+  `narratie.denk_bij` voor het bewaarde bericht, `frontend/lib/denkproces.ts` (`denkBij`) voor wie meekijkt, gelijk
+  gehouden door `tests/data/denkproces-vectoren.json`.
 - **`tools_node`** – voert elke aanroep uit via `dispatch(...)` en voegt `(tool_naam, resultaat)` toe
   aan de `source_trace`. Dezelfde aanroep (naam + argumenten) gaat in één beurt één keer naar de graaf; een herhaling krijgt
   het bewaarde resultaat met `HERHAALD` (`_al_gedaan`, uit de berichten van de beurt). Elke aanroep houdt zijn resultaat,
@@ -99,7 +105,9 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
 - **`sjabloon_node`** – roept het model een sjabloontool aan (`agent/sjablonen/`, ADR-008), dan vult de code het antwoord
   uit de trace (register + deze beurt): blokken in `State.antwoord`, de vaste tekst uit `antwoord_tekst` in `answer`. Niet te
   vullen (`Onvulbaar`) is een `is_error`-resultaat en het model gaat verder; een halve vulling bestaat niet. Naast een
-  graaftool wacht het sjabloon tot de volgende ronde. Tekst in plaats van de tool blijft geldig (log `sjabloon gemist`).
+  graaftool vult `tools_node` het sjabloon ná die tool (`sjabloon.vul_aanroep`, alle resultaten in één bericht, telling
+  `uitgesteld`), en gaat de beurt daarna meteen naar `verify` (`route_na_tools`); eerst wachtte het sjabloon en schreef het
+  model het de volgende ronde opnieuw (~2.000 uitvoertokens). Tekst in plaats van de tool blijft geldig (log `sjabloon gemist`).
   **Na een vondst van een bronconnector is het één schrijfronde** (iteratie wetgeving_live ronde 4: de rol zei "antwoord
   in tekst", de code vroeg daarna alsnog om het sjabloon, ~20–25k tokens per vraag bij alle connectors):
   - met een connector aan staat `AFRONDEN_EXTERN` in het variabele promptdeel: rond af met het sjabloon, ook bij uitleg, telling of
@@ -109,7 +117,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     noemt de stukken die die lijst noemt (`genoemde_stukken`), zodat er geen lijst bij komt die niet gevraagd is (I13, I30);
   - tekst zonder lijst is het antwoord, zonder tweede ronde.
   Wat er per beurt met de sjablonen gebeurde, telt `beurtmeting.tel_sjabloon` (`State.sjabloon_telling` → `Verbruiksmeter.sjabloon`
-  → het veld `sjabloon` van het `meting`-event): `gevraagd`, `tekst_zonder_lijst`, `gemist`, `als_tekst`, en per sjabloon `gevuld`
+  → het veld `sjabloon` van het `meting`-event): `gevraagd`, `tekst_zonder_lijst`, `gemist`, `als_tekst`, `uitgesteld`, `tekst_ernaast` (tekens), en per sjabloon `gevuld`
   en `geweigerd` (`<sjabloon>:<redencode>`, de functie die `Onvulbaar` gooide, `nodes/sjabloon.redencode`). Geen inhoud.
   Alleen de sjabloontools zijn `strict`, en ze staan niet in `TOOLS`. Per specialist: `Specialist.sjablonen`.
   `antwoord_duiding` (uitleg): het model wijst per passage de bepaling en de eerste en laatste woorden aan (`van`/`tot`,

@@ -95,7 +95,9 @@ def test_planning_is_de_standaardvorm():
         ("agent", "tools", "", True),
         ("agent", "verify", "", True),
         ("agent", "annoteer", "", True),
-        ("tools", "agent", "", False),
+        ("tools", "agent", "", True),
+        # Een sjabloon naast graaftools vult `tools_node` na die tools; gelukt, dan meteen de controle.
+        ("tools", "verify", "", True),
         ("verify", "correct", "", True),
         ("verify", "finalize", "", True),
         ("correct", "agent", "", False),
