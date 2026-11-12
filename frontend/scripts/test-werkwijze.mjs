@@ -25,12 +25,12 @@ const o = (id, extra = {}) => ({
   aan: true, concept: "skill", deel_van: null, ...extra,
 });
 const INLINE = [
-  o("rol/duiding", { model: "agent" }),
-  o("workflow/annotatieketen", { label: "Annotatieketen (ADR-001)", laag: "taakagent", model: "strict",
+  o("rol/duiding", { concept: "skill" }),
+  o("workflow/annotatieketen", { label: "Annotatieketen (ADR-001)", laag: "taakagent", model: "strict", concept: "workflow",
     hangt_af_van: ["regelset/jas.detector.tijd"],
     stappen: [{ naam: "Detectie", model: "geen", onderdeel: null }, { naam: "Classificatie", model: "strict", onderdeel: null }] }),
-  o("workflow/bronnen_vinden", { label: "Bronnen vinden", laag: "workflow" }),
-  o("connector/kamerstukken", { label: "Kamerstukken", straat: "CONNECTOR_KAMERSTUKKEN", aan: false }),
+  o("workflow/bronnen_vinden", { label: "Bronnen vinden", laag: "workflow", concept: "workflow" }),
+  o("connector/kamerstukken", { label: "Kamerstukken", straat: "CONNECTOR_KAMERSTUKKEN", aan: false, concept: "tool" }),
   o("regelset/jas.detector.tijd", { label: "jas.detector.tijd", doel: "Tijdsaanduiding (H2:107-109)." }),
 ];
 const fixture = process.env.WERKWIJZE_FIXTURE ? JSON.parse(readFileSync(process.env.WERKWIJZE_FIXTURE, "utf8")) : null;
@@ -81,18 +81,20 @@ try {
     if (!fixture) {
       // Geen *Door mij bewerkt*: in de catalogus bewerkt niemand iets.
       assert.equal(await page.getByRole("checkbox", { name: "Door mij bewerkt" }).count(), 0);
-      // Een groep per soort met onderdelen, in de vaste volgorde; een soort zonder onderdelen staat er niet.
-      assert.deepEqual(await page.locator("[data-soort]").evaluateAll((els) => els.map((e) => e.dataset.soort)),
-        ["rol", "regelset", "connector", "workflow"]);
-      assert.equal(await page.getByRole("button", { name: /^Routes/ }).count(), 0);
+      // Een groep per concept met onderdelen, in de vaste volgorde; een concept zonder onderdelen staat er niet. Binnen
+      // een concept staat bij elke rij zijn soort.
+      assert.deepEqual(await page.locator("[data-concept]").evaluateAll((els) => els.map((e) => e.dataset.concept)),
+        ["skill", "workflow", "tool"]);
+      assert.equal(await page.getByRole("button", { name: /^Ingangen/ }).count(), 0);
+      assert.match(await page.locator('[data-onderdeel="regelset/jas.detector.tijd"] [data-soort]').innerText(), /Regelset/);
       // Het modellabel, en *hier uit* bij een connector die deze omgeving niet aanbiedt.
       const keten = page.locator('[data-onderdeel="workflow/annotatieketen"]');
       assert.equal(await keten.locator("[data-model]").getAttribute("data-model"), "strict");
       assert.match(await page.locator('[data-onderdeel="connector/kamerstukken"]').innerText(), /hier uit/);
 
       // Soort en zoekterm in de URL, en na herladen nog zo.
-      await page.getByRole("button", { name: /^Workflows/ }).click();
-      await page.waitForURL(/soort=workflow/);
+      await page.getByRole("button", { name: /^Vaste ketens/ }).click();
+      await page.waitForURL(/concept=workflow/);
       assert.equal(await page.locator("[data-onderdeel]").count(), 2);
       await page.getByLabel("Zoeken in de werkwijze").fill("bronnen");
       await page.waitForURL(/q=bronnen/);

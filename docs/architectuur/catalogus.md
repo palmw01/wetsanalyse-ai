@@ -108,7 +108,7 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 | S5 | meerdere skills, binding per rol, nep-skill | #1296 |
 | S6 | regelsets uit een skill | – |
 | S7 | werkplek per concept | – |
-| S8 | commando's wijzen naar één onderdeel (na #1276) | – |
+| S8 | commando's wijzen naar één onderdeel | #1298 |
 | C7 | een wijziging voorstellen → concept-PR (acceptatie) | – |
 | C8 | de skill `wetsuitvoering` (trap 1) | – |
 | C9 | regels voorstellen, met hun eigen tests als poort | – |

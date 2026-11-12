@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { ModelLabel } from "@/components/werkwijze/ModelLabel";
 import { foutTekst, haalOnderdeel } from "@/lib/api";
-import { SOORT_LABEL, onderdeelPad, soortVan, type OnderdeelDetail, type Soort } from "@/lib/catalogus";
+import { CONCEPT_LABEL, SOORT_LABEL, onderdeelPad, soortVan, type OnderdeelDetail, type Soort } from "@/lib/catalogus";
 
 type Rij = Record<string, unknown>;
 const lijst = (x: unknown): Rij[] => (Array.isArray(x) ? (x as Rij[]) : []);
@@ -31,7 +31,8 @@ export function OnderdeelPagina({ soort, naam }: { soort: Soort; naam: string })
   }, [soort, naam]);
 
   const kruimels = [{ label: "Werkwijze van Lex", href: "/werkwijze" },
-    { label: SOORT_LABEL[soort].meer, href: `/werkwijze?soort=${soort}` }, { label: o?.label ?? naam }];
+    ...(o ? [{ label: CONCEPT_LABEL[o.concept].kop, href: `/werkwijze?concept=${o.concept}` }] : []),
+    { label: o?.label ?? naam }];
 
   return (
     <WerkgebiedSchil titel={o?.label ?? "Werkwijze van Lex"} onFout={setFout}>
@@ -39,7 +40,8 @@ export function OnderdeelPagina({ soort, naam }: { soort: Soort; naam: string })
       {!o ? (!fout && <div className="space-y-3"><Skeleton className="h-6 w-64" /><Skeleton className="h-40 w-full" /></div>) : (
         <>
           <PaginaKop kruimels={kruimels} titel={o.label} sub={o.doel}
-            meta={<><StatusLabel toon="lint">{SOORT_LABEL[soort].een}</StatusLabel><ModelLabel model={o.model} aan={o.aan} />
+            meta={<><StatusLabel toon="lint" uitleg={CONCEPT_LABEL[o.concept].uitleg} data-concept={o.concept}>
+              {SOORT_LABEL[soort].een}</StatusLabel><ModelLabel model={o.model} aan={o.aan} />
               {o.laag && <span>laag: {o.laag}</span>}<span>versie <span className="font-mono">{o.versie}</span></span></>} />
           <SplitDetail
             hoofd={<>
@@ -49,6 +51,7 @@ export function OnderdeelPagina({ soort, naam }: { soort: Soort; naam: string })
             </>}
             zij={<>
               <Herkomst o={o} />
+              {o.deel_van && <Samenhang titel="Deel van" ids={[o.deel_van]} />}
               <Samenhang titel="Leunt op" ids={o.hangt_af_van} />
               <Samenhang titel="Gebruikt door" ids={o.gebruikt_door} />
               <InDeRepo o={o} />
@@ -102,7 +105,8 @@ function Inhoud({ o }: { o: OnderdeelDetail }) {
         <Kaart titel="Methodetekst" toelichting="Deze tekst gaat letterlijk mee in de systeemprompt." data-blok="inhoud">
           <div className="space-y-4">{lijst(i.secties).map((s) => (
             <section key={tekst(s.id)} data-sectie={tekst(s.id)}>
-              <h3 className="text-sm font-semibold text-ink">{tekst(s.id)} <span className="font-normal text-muted">· bronnen {tekst(s.bronnen)}</span></h3>
+              <h3 className="text-sm font-semibold text-ink">{tekst(s.id)} <span className="font-normal text-muted">
+                · uit {tekst(s.skill) || "de methode"} · bronnen {tekst(s.bronnen)}</span></h3>
               <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{tekst(s.tekst)}</p>
             </section>
           ))}</div>
@@ -143,6 +147,22 @@ function Inhoud({ o }: { o: OnderdeelDetail }) {
       );
     case "regelset":
       return <RegelsetInhoud i={i} />;
+    case "tool":
+      return (
+        <Kaart titel="Wat de handeling doet" data-blok="inhoud">
+          <p className="whitespace-pre-wrap text-sm text-ink">{tekst(i.beschrijving)}</p>
+          {lijst(i.argumenten).length > 0 && <p className="mt-3 text-xs text-muted">Argumenten: {tekst(i.argumenten)}</p>}
+        </Kaart>
+      );
+    case "route":
+      return (
+        <Kaart titel="Herkenning" data-blok="inhoud">
+          <Regels className="text-sm">
+            <Regel naam="Moment">{tekst(i.moment)}</Regel>
+            <Regel naam="Herkenner"><span className="font-mono text-xs">{tekst(i.herkenner)}</span></Regel>
+          </Regels>
+        </Kaart>
+      );
     default:
       return null;
   }
@@ -203,7 +223,8 @@ function Herkomst({ o }: { o: OnderdeelDetail }) {
 function Samenhang({ titel, ids }: { titel: string; ids: string[] }) {
   if (!ids.length) return null;
   return (
-    <Kaart titel={titel} telling={ids.length} data-blok={titel === "Leunt op" ? "leunt-op" : "gebruikt-door"}>
+    <Kaart titel={titel} telling={ids.length > 1 ? ids.length : undefined}
+      data-blok={{ "Leunt op": "leunt-op", "Gebruikt door": "gebruikt-door", "Deel van": "deel-van" }[titel]}>
       <ul className="space-y-1 text-sm">{ids.map((id) => {
         const s = soortVan(id);
         return (

@@ -1438,9 +1438,10 @@ bestaat los van de gesprekken.
 ## De werkwijze van Lex (`/werkwijze`, ADR-014)
 
 Een leesingang in de sidebar (*Werkwijze*): wat Lex kan, uit graph-qa `GET /v1/catalogus` (de BFF `app/api/catalogus`,
-`agent: true`). Per soort een `Groep` met `GroepRij`'s, en per onderdeel of er een model aan te pas komt (`ModelLabel`:
+`agent: true`). Per concept (ADR-014 §7: kennis en methode, vaste ketens, agents, handelingen, ingangen, controles;
+`CONCEPT_LABEL`) een `Groep` met `GroepRij`'s, per rij de soort als label en of er een model aan te pas komt (`ModelLabel`:
 *Zonder model*, *Model in één stap*, *Model met tools*; lintblauw, geen oordeel) en *hier uit* als de straat het niet
-aanbiedt. De balk is `OverzichtBalk` zonder *Door mij bewerkt* (de props zijn optioneel); soort en zoekterm staan in de
+aanbiedt. De balk is `OverzichtBalk` zonder *Door mij bewerkt* (de props zijn optioneel); concept en zoekterm staan in de
 URL. De pagina van een onderdeel (`/werkwijze/<soort>/<naam>`, `OnderdeelPagina`) toont het contract (ADR-010), de stappen
 van een workflow, de inhoud per soort (methodetekst, regels met hun voorbeeldzinnen, de beschrijving van een bron), de
 herkomst, *Leunt op* / *Gebruikt door* en waar het in de repo staat. **Alleen lezen**: dit is geen ontwikkelhulpmiddel

@@ -5,30 +5,32 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Melding } from "@/components/ui/Melding";
 import { OverzichtBalk } from "@/components/ui/OverzichtBalk";
+import { StatusLabel } from "@/components/ui/Lijst";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { ModelLabel } from "@/components/werkwijze/ModelLabel";
 import { foutTekst, haalCatalogus } from "@/lib/api";
 import {
-  SOORTEN, SOORT_LABEL, filterOnderdelen, onderdeelPad, perSoort, telling, type Catalogus, type Soort,
+  CONCEPT_LABEL, CONCEPT_VOLGORDE, SOORT_LABEL, filterOnderdelen, onderdeelPad, perConcept, type Catalogus, type Concept,
 } from "@/lib/catalogus";
 
-/** De werkwijze van Lex (ADR-014): wat Lex kan, per soort, met per onderdeel of er een model aan te pas komt. Een
- *  leesingang voor iedereen; een onderdeel toevoegen of wijzigen gaat via de repo. Soort en zoekterm staan in de URL. */
+/** De werkwijze van Lex (ADR-014): wat Lex kan, per concept (§7: kennis, vaste ketens, agents, handelingen, ingangen,
+ *  controles), met per onderdeel zijn soort en of er een model aan te pas komt. Een leesingang voor iedereen; een
+ *  onderdeel toevoegen of wijzigen gaat via de repo. Concept en zoekterm staan in de URL. */
 export function WerkwijzeClient() {
   const router = useRouter();
   const pad = usePathname();
   const zoekParams = useSearchParams();
-  const soort = (SOORTEN as readonly string[]).includes(zoekParams.get("soort") ?? "")
-    ? (zoekParams.get("soort") as Soort) : "";
+  const concept = (CONCEPT_VOLGORDE as string[]).includes(zoekParams.get("concept") ?? "")
+    ? (zoekParams.get("concept") as Concept) : "";
   const [zoek, setZoek] = useState(zoekParams.get("q") ?? "");
   const [data, setData] = useState<Catalogus | null>(null);
   const [fout, setFout] = useState<string | null>(null);
 
-  function zet(nieuw: { soort: Soort | ""; q: string }) {
+  function zet(nieuw: { concept: Concept | ""; q: string }) {
     const qs = new URLSearchParams();
-    if (nieuw.soort) qs.set("soort", nieuw.soort);
+    if (nieuw.concept) qs.set("concept", nieuw.concept);
     if (nieuw.q) qs.set("q", nieuw.q);
     // `replace`: een filter is geen stap in de geschiedenis.
     router.replace(qs.size ? `${pad}?${qs}` : pad, { scroll: false });
@@ -36,7 +38,7 @@ export function WerkwijzeClient() {
 
   useEffect(() => {
     if (zoek === (zoekParams.get("q") ?? "")) return;
-    const t = setTimeout(() => zet({ soort, q: zoek }), 300);
+    const t = setTimeout(() => zet({ concept, q: zoek }), 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zoek]);
@@ -45,10 +47,10 @@ export function WerkwijzeClient() {
     haalCatalogus().then(setData).catch((e) => setFout(foutTekst(e, "De werkwijze van Lex kon niet worden geladen.")));
   }, []);
 
-  const tel = useMemo(() => (data ? telling(data.onderdelen) : null), [data]);
-  const groepen = useMemo(() => (data ? perSoort(filterOnderdelen(data.onderdelen, { soort, zoek })) : []), [data, soort, zoek]);
+  const groepen = useMemo(() => (data ? perConcept(filterOnderdelen(data.onderdelen, { concept, zoek })) : []), [data, concept, zoek]);
+  const alle = useMemo(() => (data ? perConcept(data.onderdelen) : []), [data]);
   const filters = [{ waarde: "" as const, label: "Alles", aantal: data?.onderdelen.length },
-    ...SOORTEN.filter((s) => !!tel && tel[s] > 0).map((s) => ({ waarde: s, label: SOORT_LABEL[s].meer, aantal: tel?.[s] }))];
+    ...alle.map((g) => ({ waarde: g.concept, label: CONCEPT_LABEL[g.concept].kop, aantal: g.onderdelen.length }))];
 
   return (
     <WerkgebiedSchil titel="Werkwijze van Lex" onFout={setFout}>
@@ -60,11 +62,11 @@ export function WerkwijzeClient() {
         </p>
       </header>
 
-      <OverzichtBalk<Soort | "">
+      <OverzichtBalk<Concept | "">
         filters={filters}
-        gekozen={soort}
-        onKies={(s) => zet({ soort: s, q: zoek })}
-        filterLabel="Soort"
+        gekozen={concept}
+        onKies={(c) => zet({ concept: c, q: zoek })}
+        filterLabel="Soort onderdeel"
         zoekterm={zoek}
         onZoek={setZoek}
         zoekLabel="Zoeken in de werkwijze"
@@ -84,11 +86,12 @@ export function WerkwijzeClient() {
       ) : (
         <div className="space-y-6" data-testid="werkwijze">
           {groepen.map((g) => (
-            <Groep key={g.soort} kop={SOORT_LABEL[g.soort].meer} telling={g.onderdelen.length}
-              sub={SOORT_LABEL[g.soort].uitleg} label={SOORT_LABEL[g.soort].meer} data-soort={g.soort}>
+            <Groep key={g.concept} kop={CONCEPT_LABEL[g.concept].kop} telling={g.onderdelen.length}
+              sub={CONCEPT_LABEL[g.concept].uitleg} label={CONCEPT_LABEL[g.concept].kop} data-concept={g.concept}>
               {g.onderdelen.map((o) => (
                 <GroepRij key={o.id} href={onderdeelPad(o.id)} titel={o.label} sub={o.doel} data-onderdeel={o.id}
-                  status={<ModelLabel model={o.model} aan={o.aan} />} />
+                  status={<><StatusLabel data-soort={o.soort}>{SOORT_LABEL[o.soort].een}</StatusLabel>
+                    <ModelLabel model={o.model} aan={o.aan} /></>} />
               ))}
             </Groep>
           ))}

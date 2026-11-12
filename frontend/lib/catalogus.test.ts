@@ -4,7 +4,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  SOORTEN, SOORT_LABEL, filterOnderdelen, onderdeelPad, parseCatalogus, parseOnderdeel, perSoort, type Onderdeel,
+  CONCEPTEN, CONCEPT_LABEL, CONCEPT_VOLGORDE, SOORTEN, SOORT_LABEL, filterOnderdelen, onderdeelPad, parseCatalogus,
+  parseOnderdeel, perConcept, perSoort, type Onderdeel,
 } from "./catalogus";
 
 const BRONMODEL = join(__dirname, "..", "..", "packages", "bronmodel", "bronmodel", "catalogus.py");
@@ -23,6 +24,14 @@ describe("de catalogus volgt het bronmodel", () => {
     const literal = bron.match(/^Soort = Literal\[([\s\S]*?)\]/m)?.[1] ?? "";
     expect([...literal.matchAll(/"([a-z]+)"/g)].map((m) => m[1])).toEqual([...SOORTEN]);
     for (const s of SOORTEN) expect(SOORT_LABEL[s].een).toBeTruthy();
+  });
+
+  it("dezelfde concepten als bronmodel.catalogus.Concept, elk met een kop", () => {
+    const bron = readFileSync(BRONMODEL, "utf8");
+    const literal = bron.match(/^Concept = Literal\[([\s\S]*?)\]/m)?.[1] ?? "";
+    expect([...literal.matchAll(/"([a-z]+)"/g)].map((m) => m[1])).toEqual([...CONCEPTEN]);
+    expect([...CONCEPT_VOLGORDE].sort()).toEqual([...CONCEPTEN].sort());
+    for (const c of CONCEPTEN) expect(CONCEPT_LABEL[c].kop).toBeTruthy();
   });
 });
 
@@ -50,6 +59,13 @@ describe("filteren en groeperen", () => {
       .toEqual(["workflow/annotatieketen", "workflow/regie"]);
     expect(filterOnderdelen(lijst, { soort: "", zoek: "werk deelgesprekken" }).map((x) => x.id)).toEqual(["workflow/regie"]);
     expect(filterOnderdelen(lijst, { soort: "", zoek: "TIJD" }).map((x) => x.id)).toEqual(["regelset/jas.detector.tijd"]);
+  });
+
+  it("per concept in de volgorde van de pagina, binnen een concept op soort", () => {
+    const met = [o("regelset/r", { concept: "skill" }), o("workflow/w", { concept: "workflow" }), o("rol/x", { concept: "skill" })];
+    expect(perConcept(met).map((g) => [g.concept, g.onderdelen.map((x) => x.id)]))
+      .toEqual([["skill", ["rol/x", "regelset/r"]], ["workflow", ["workflow/w"]]]);
+    expect(filterOnderdelen(met, { concept: "workflow", zoek: "" }).map((x) => x.id)).toEqual(["workflow/w"]);
   });
 
   it("per soort in de volgorde van SOORTEN, zonder lege soorten", () => {

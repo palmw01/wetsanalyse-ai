@@ -75,6 +75,17 @@ export const SOORT_LABEL: Record<Soort, { een: string; meer: string; uitleg: str
   controle: { een: "Controle", meer: "Controles", uitleg: "Een vaste controle op een vast moment, niet door het model uit te zetten." },
 };
 
+/** De concepten in de taal van de jurist (ADR-014 §7), met wat ze zijn. De volgorde is die van de pagina. */
+export const CONCEPT_LABEL: Record<Concept, { kop: string; uitleg: string }> = {
+  skill: { kop: "Kennis en methode", uitleg: "Wat Lex weet en volgt: de methode, de tekst per rol en de vaste regels. Voert zelf niets uit." },
+  workflow: { kop: "Vaste ketens", uitleg: "Stappen in een vaste volgorde; een model alleen in één afgebakende stap." },
+  agent: { kop: "Agents", uitleg: "Zoeken en formuleren met een model, met eigen tools en een eigen opdracht." },
+  tool: { kop: "Handelingen", uitleg: "Eén afgebakende handeling op de kennisgraaf of een bron, met een vaste vorm van het resultaat." },
+  ingang: { kop: "Ingangen", uitleg: "Herkent een vraag en kiest zonder model de keten of agent die hem beantwoordt." },
+  hook: { kop: "Controles", uitleg: "Vaste controles op een vast moment; het model kan ze niet overslaan." },
+};
+export const CONCEPT_VOLGORDE: Concept[] = ["skill", "workflow", "agent", "tool", "ingang", "hook"];
+
 /** Of er een model aan te pas komt, in gewone woorden. Kleur draagt hier geen oordeel: lintblauw zegt wat het is. */
 export const MODEL_LABEL: Record<Model, { tekst: string; uitleg: string }> = {
   geen: { tekst: "Zonder model", uitleg: "Alleen vaste regels en code: dezelfde invoer geeft dezelfde uitkomst." },
@@ -98,10 +109,18 @@ export function onderdeelPad(id: string): string {
 }
 
 /** Zoeken op label, doel en id; hoofdletterongevoelig, alle woorden moeten passen. */
-export function filterOnderdelen(lijst: Onderdeel[], { soort, zoek }: { soort: Soort | ""; zoek: string }): Onderdeel[] {
+export function filterOnderdelen(lijst: Onderdeel[], { soort = "", concept = "", zoek }:
+  { soort?: Soort | ""; concept?: Concept | ""; zoek: string }): Onderdeel[] {
   const woorden = zoek.toLowerCase().split(/\s+/).filter(Boolean);
-  return lijst.filter((o) => (!soort || o.soort === soort)
+  return lijst.filter((o) => (!soort || o.soort === soort) && (!concept || o.concept === concept)
     && woorden.every((w) => `${o.label} ${o.doel} ${o.id}`.toLowerCase().includes(w)));
+}
+
+/** De onderdelen per concept, in de volgorde van de pagina; binnen een concept op soort (de volgorde van `SOORTEN`). */
+export function perConcept(lijst: Onderdeel[]): { concept: Concept; onderdelen: Onderdeel[] }[] {
+  const rang = (o: Onderdeel) => SOORTEN.indexOf(o.soort);
+  return CONCEPT_VOLGORDE.map((concept) => ({ concept, onderdelen: lijst.filter((o) => o.concept === concept)
+    .sort((a, b) => rang(a) - rang(b)) })).filter((g) => g.onderdelen.length > 0);
 }
 
 /** De onderdelen per soort, in de volgorde van `SOORTEN`; een soort zonder onderdelen valt weg. */
@@ -119,6 +138,7 @@ export function telling(lijst: Onderdeel[]): Record<Soort, number> {
 function isOnderdeel(x: unknown): x is Onderdeel {
   const o = x as Onderdeel;
   return !!o && typeof o.id === "string" && soortVan(o.id) === o.soort && typeof o.label === "string"
+    && (CONCEPTEN as readonly string[]).includes(o.concept)
     && typeof o.doel === "string" && ["geen", "strict", "agent"].includes(o.model) && Array.isArray(o.hangt_af_van);
 }
 
