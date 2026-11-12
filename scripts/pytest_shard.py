@@ -56,6 +56,24 @@ def pytest_collection_modifyitems(config, items):
     items[:] = gekozen
 
 
+_DUUR: dict[str, float] = {}
+
+
+def pytest_runtest_logreport(report):
+    if _lees_shard() is not None:
+        pad = report.nodeid.split("::", 1)[0]
+        _DUUR[pad] = _DUUR.get(pad, 0.0) + report.duration
+
+
+def pytest_terminal_summary(terminalreporter):
+    """De duur per bestand, als JSON-regel: de grondstof om `GEWICHT` bij te stellen."""
+    if _lees_shard() is not None and _DUUR:
+        import json
+
+        terminalreporter.write_line("pytest_shard duur per bestand: "
+                                    + json.dumps({k: round(v, 1) for k, v in sorted(_DUUR.items())}))
+
+
 def pytest_report_header(config):
     shard = _lees_shard()
     if shard is not None:
