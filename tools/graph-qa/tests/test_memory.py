@@ -41,8 +41,8 @@ def test_continuiteit_en_pointercontext(tmp_path):
     serialized = str(agent_call["messages"])
     assert "Wat is artikel 9 IW?" in serialized
     # Semantisch/entiteit: eerder geraadpleegde IRI als pointer-context in de system-prompt.
-    assert ART_IRI in agent_call["prompt"]
-    assert "GESPREKSCONTEXT" in agent_call["prompt"]
+    assert ART_IRI in llm2.prompts[0]
+    assert "GESPREKSCONTEXT" in llm2.prompts[0]
 
 
 def test_nieuw_gesprek_start_leeg(tmp_path):
@@ -88,4 +88,4 @@ def test_zonder_memory_context_geen_injectie(tmp_path):
 
     llm2 = FakeLLM([response([text_block("q2-antwoord.")], "end_turn")])
     _run(answer_stream("q2", "g", settings=make_settings(**base), llm=llm2, graph=FakeGraph(result="")))
-    assert "GESPREKSCONTEXT" not in llm2.calls[0]["prompt"]
+    assert "GESPREKSCONTEXT" not in llm2.prompts[0]

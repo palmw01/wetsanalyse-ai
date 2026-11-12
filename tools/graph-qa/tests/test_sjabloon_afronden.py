@@ -31,15 +31,10 @@ def _llm(*antwoorden):
     return FakeLLM([response([text_block("duiding")], "end_turn"), response([ZOEK], "tool_use"), *antwoorden])
 
 
-def _systeem(call) -> str:
-    """Wat de beurt als instructie meekrijgt: systeemprompt plus de context van de beurt (`FakeLLM.prompt`)."""
-    return str(call.get("prompt"))
-
-
 def test_met_een_connector_aan_zegt_de_prompt_dat_een_vondst_met_het_sjabloon_afrondt(monkeypatch):
     llm = _llm(response([text_block("Stb. 2010, 176 regelt de inwerkingtreding.")], "end_turn"))
     _stream_met_graaf(VRAAG, monkeypatch, llm, FakeGraph(result=ART36))
-    agent = _systeem(llm.calls[1])
+    agent = llm.prompts[1]
     assert AFRONDEN_EXTERN.format(extern=EXTERN).strip() in agent
     assert "Dit gaat voor 'antwoord in tekst'" in agent and "blijft 'stukken' leeg" in agent
 
@@ -54,7 +49,7 @@ def test_zonder_connector_blijft_de_prompt_gelijk():
         return [e async for e in answer_stream("Wat betekent betalingsonmacht?", settings=make_settings(), llm=llm,
                                                graph=FakeGraph(result=""))]
     asyncio.run(verzamel())
-    assert all("AFRONDEN MET EEN BRON NAAST DE WET" not in _systeem(c) for c in llm.calls)
+    assert all("AFRONDEN MET EEN BRON NAAST DE WET" not in p for p in llm.prompts)
 
 
 def test_tekst_zonder_lijst_na_een_vondst_is_het_antwoord_zonder_tweede_ronde(monkeypatch):

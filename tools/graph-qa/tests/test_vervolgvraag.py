@@ -43,7 +43,7 @@ def _eerste_beurt(settings, gid):
     ])
     _run(answer_stream("Wat regelt artikel 9 van de Invorderingswet 1990?", gid, settings=settings, llm=llm,
                        graph=FakeGraph(result='?nummer\t?tekst\n"9"\t"tekst"')))
-    supervisor = str(llm.calls[0]["prompt"])
+    supervisor = str(llm.prompts[0])
     assert "VERVOLGVRAAG" not in supervisor, "de eerste vraag van een gesprek heeft niets te herschrijven"
 
 
@@ -56,12 +56,12 @@ def test_vervolgvraag_wordt_met_het_gesprek_gelezen_en_herschreven(tmp_path):
         response([text_block("Lid 2 regelt een afwijkende termijn.")], "end_turn"),
     ])
     events = _run(answer_stream("En lid 2?", "g-vervolg", settings=settings, llm=llm, graph=FakeGraph(result="")))
-    supervisor = str(llm.calls[0]["prompt"])
+    supervisor = str(llm.prompts[0])
     assert "VERVOLGVRAAG" in supervisor
     assert "Jurist: Wat regelt artikel 9 van de Invorderingswet 1990?" in supervisor
     assert "Lex: Artikel 9 regelt wanneer een aanslag invorderbaar is." in supervisor
     # De specialist krijgt de herschreven vraag in zijn aanpak; de historie houdt de echte vraag.
-    specialist = str(llm.calls[1]["prompt"])
+    specialist = str(llm.prompts[1])
     assert "zelfstandig geformuleerd: Wat regelt artikel 9 lid 2" in specialist
     assert vraag_van(llm.calls[1]["messages"][-1]) == "En lid 2?"
     assert any("leest je vraag als" in e.get("message", "") for e in events if e["type"] == "status")
@@ -93,4 +93,4 @@ def test_zonder_vraagregel_blijft_de_eigen_vraag_gelden(tmp_path):
         response([text_block("Omdat de wetgever rechtszekerheid wilde.")], "end_turn"),
     ])
     _run(answer_stream("Waarom?", "g-geen", settings=settings, llm=llm, graph=FakeGraph(result="")))
-    assert "zelfstandig geformuleerd" not in str(llm.calls[1]["prompt"])
+    assert "zelfstandig geformuleerd" not in str(llm.prompts[1])

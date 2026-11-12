@@ -66,6 +66,10 @@ class FakeLLM:
         self._responses = list(responses)
         self.index = 0
         self.calls: list[dict[str, Any]] = []
+        # Per aanroep wat de beurt als instructie meekreeg: de systeemprompt plus de context van de beurt (die staat sinds
+        # ADR-015 als eerste blok van de vraag, `met_beurtcontext`). Apart van `calls`: die draagt de kwargs van de aanroeper,
+        # zonder eigen sleutels erbij (`tests/test_llm_stap.py` eist dat). Waar het blok staat, toetst `test_prompt_caching`.
+        self.prompts: list[str] = []
 
     def _next(self) -> SimpleNamespace:
         resp = self._responses[self.index]
@@ -82,12 +86,9 @@ class FakeLLM:
         systeem = kwargs.get("system")
         if isinstance(systeem, list):
             kwargs = {**kwargs, "system_delen": systeem, "system": "\n\n".join(d for d in systeem if d)}
-        # `prompt`: alles wat de beurt als instructie meekrijgt, de systeemprompt plus de context van de beurt. Die staat
-        # sinds de nulmeting context (12 nov 2026) als eerste blok van de vraag, ná de historie (`met_beurtcontext`).
-        # Waar hij staat, toetst `test_prompt_caching`; wat erin staat, toetsen de andere tests hierop.
         context = [b.get("text", "") for m in kwargs.get("messages") or [] if isinstance(m.get("content"), list)
                    for b in m["content"] if isinstance(b, dict) and str(b.get("text", "")).startswith(BEURTCONTEXT_KOP)]
-        kwargs = {**kwargs, "prompt": "\n\n".join([str(kwargs.get("system") or ""), *context])}
+        self.prompts.append("\n\n".join([str(kwargs.get("system") or ""), *context]))
         self.calls.append(kwargs)
 
     def create(self, **kwargs: Any) -> SimpleNamespace:

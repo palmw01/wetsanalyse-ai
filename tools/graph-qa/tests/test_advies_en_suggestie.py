@@ -63,7 +63,7 @@ def test_adviesvraag_slaat_de_supervisor_over():
         settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
     # De eerste call is meteen de agent (met SYSTEM_PROMPT), niet de supervisor.
-    assert "WORKERS" not in llm.calls[0]["prompt"], "de supervisor-prompt hoort niet gedraaid te zijn"
+    assert "WORKERS" not in llm.prompts[0], "de supervisor-prompt hoort niet gedraaid te zijn"
 
 
 def test_de_context_staat_in_de_prompt():
@@ -77,7 +77,7 @@ def test_de_context_staat_in_de_prompt():
                             fragment="indien de schuldenaar daarom verzoekt", corpus="De ontvanger…"),
         settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
-    system = llm.calls[0]["prompt"]
+    system = llm.prompts[0]
     assert "WAAR DE VRAAG OVER GAAT" in system
     assert "indien de schuldenaar daarom verzoekt" in system
     assert "ADVIESVRAAG" in system
@@ -95,7 +95,7 @@ def _motiveer(buren=()):
                             bestaande_elementen=list(buren)),
         settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
-    return llm.calls[0]["prompt"]
+    return llm.prompts[0]
 
 
 def test_de_adviesvraag_wordt_afgebakend_tot_het_gekozen_fragment():
@@ -145,7 +145,7 @@ def test_zonder_fragment_geen_afbakening():
         context=ChatContext(bwbId="BWBR0004770", artikel="9"),
         settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
-    assert "AFBAKENING VAN DEZE VRAAG" not in llm.calls[0]["prompt"]
+    assert "AFBAKENING VAN DEZE VRAAG" not in llm.prompts[0]
 
 
 def test_gewone_vraag_gebruikt_de_supervisor_gewoon():
@@ -159,4 +159,4 @@ def test_gewone_vraag_gebruikt_de_supervisor_gewoon():
         "wat is een voorwaarde?",
         settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
-    assert "WORKERS" in llm.calls[0]["prompt"], "zonder adviesmodus loopt het via de supervisor"
+    assert "WORKERS" in llm.prompts[0], "zonder adviesmodus loopt het via de supervisor"
