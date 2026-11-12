@@ -272,7 +272,15 @@ bruikbaar is.
   regel voor de schema's van de antwoordlus, de MCP-server en `dispatch`. Een connector staat uit tot de straat hem
   aanzet (`CONNECTOR_KAMERSTUKKEN=true`); uit is niet aangeboden, en een aanroep is dan `connector_uit`. **De beurt
   beperkt verder** (`ChatRequest.bronnen`, `State.bronnen`, per beurt): weggelaten = wat de straat aanbiedt, een lege
-  lijst = alleen wetgeving, en een connector die de straat niet aanbiedt gaat nooit aan (`actieve_connectors`).
+  lijst = alleen wetgeving, en een connector die de straat niet aanbiedt gaat nooit aan (`actieve_connectors`). **Daarbinnen alleen
+  wat de vraag noemt** (`agent/bronkeuze.py`, ronde 6, 12 nov 2026; elke aangezette connector kostte ~2k tokens per
+  modelronde): `supervisor_node` kiest na de route uit de vraag en de herschreven vraag de connectors die hun beschrijving
+  herkent (`herkende`: signalen en id's) of waarvan een orgaan genoemd wordt (`organen`). Alleen die krijgen hun tools; de
+  rest krijgt in de bronstand de reden `vraag` (event opnieuw, en een regel in BRONNEN IN DEZE BEURT). Een regeling buiten
+  de graaf (`buiten_graaf.noemt_regeling_buiten_graaf`, zonder zoekdienst) neemt `wetgeving_live` erbij maar beperkt alleen
+  niet. Noemt de vraag niets, dan houdt een vervolgvraag de keuze van het gesprek (`State.bronkeuze`, niet in de
+  per-beurt-reset), en anders blijft alles aan. `tests/test_bronkeuze.py` eist dat geen vraag uit de vier vragensets haar
+  eigen bron verliest.
   `tool_execution` geeft de stand aan `dispatch`, dus ook een workflow die een tool in code aanroept valt eronder.
   **De bronstand** (`agent/bronstand.py`, `State.bronstand`) zegt per connector waaróm hij uit staat (`straat`,
   `gesprek`/`werkgebied` uit `ChatRequest.bronnen_herkomst`, `register_onleesbaar`, `beheerder`) en gaat als eerste

@@ -118,6 +118,17 @@ def _graafnamen(graph: Any) -> set[str]:
         return set()
 
 
+def noemt_regeling_buiten_graaf(vraag: str, graph: Any) -> bool:
+    """Noemt de vraag een regeling die niet bij naam in de kennisgraaf staat? Zonder zoekdienst, dus zonder verzoek naar
+    overheid.nl: alleen de vaste vormen (`_kandidaten`) tegen de namen in de graaf. Voor de keuze van de connectors van een
+    beurt (`agent/bronkeuze.py`); of de regeling echt bestaat, zoekt `genoemd` daarna uit."""
+    kandidaten = _kandidaten(vraag or "")
+    if not kandidaten:
+        return False
+    graafnamen = _graafnamen(graph)
+    return any(k[0].casefold() not in graafnamen and k[1].casefold() not in graafnamen for k in kandidaten)
+
+
 def _zoek(bron: Any, titel: str, peil: str) -> tuple[list[Any], list[Any]]:
     """(met deze afkorting, met deze titel als woordgroep), geldig op de peildatum."""
     schoon = " ".join(re.sub(r'["\\]', " ", titel).split())

@@ -26,6 +26,9 @@ class State(TypedDict, total=False):
     bronnen: list[str] | None
     # Per connector `{naam, label, aan, reden}` (`agent/bronstand.py`): waarom een bron uit staat. Per beurt.
     bronstand: dict[str, dict[str, Any]]
+    # De connectors waar het gesprek over gaat (`agent/bronkeuze.py`): wat de laatste vraag die een bron noemde, noemde.
+    # None of leeg = geen keuze, dus alles wat aanstaat. Bewust NIET in de per-beurt-reset: een vervolgvraag houdt ze.
+    bronkeuze: list[str] | None
     # De leestool-aanroepen voor stukken die de vraag bij id noemt (`nodes/bron_lezen.py`); per beurt, één keer.
     bron_lezen: list[dict[str, Any]]
     # Een lijstvraag over een bron naast de wet (`agent/bron_lijst.py`): {connector, tool, args}; per beurt.

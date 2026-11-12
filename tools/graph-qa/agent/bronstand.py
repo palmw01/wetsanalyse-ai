@@ -7,6 +7,8 @@ nodig: staat Kamerstukken uit, dan moet Lex kunnen zeggen wie hem aanzet. De red
   veranderen;
 - `gesprek` of `werkgebied`: de beurt vraagt hem niet, omdat de jurist (of de standaard van het werkgebied) hem
   uitzette; de werkplek geeft de herkomst mee (`ChatRequest.bronnen_herkomst`);
+- `vraag`: de connector staat aan, maar deze beurt biedt hem niet aan, omdat de vraag (of het gesprek) een andere bron
+  noemt (`agent/bronkeuze.py`); de jurist neemt hem erbij door hem te noemen;
 - `register_onleesbaar`: het register van de beheerder kon niet worden gelezen, dus staat alles uit;
 - `beheerder`: de beheerder zette hem uit in het register;
 - `aan`.
@@ -22,7 +24,7 @@ from typing import Any, Literal
 
 from bronmodel.connectors import CONNECTORS
 
-Reden = Literal["aan", "straat", "register_onleesbaar", "beheerder", "gesprek", "werkgebied"]
+Reden = Literal["aan", "straat", "register_onleesbaar", "beheerder", "gesprek", "werkgebied", "vraag"]
 Herkomst = Literal["gesprek", "werkgebied", "standaard"]
 
 #: Waarom een connector uit staat en wie hem aanzet, in de woorden van de jurist (`{label}` wordt ingevuld).
@@ -33,6 +35,8 @@ WIE_ZET_AAN: dict[str, str] = {
     "beheerder": "{label} staat uit: de beheerder heeft deze bron uitgezet.",
     "gesprek": "{label} staat uit in dit gesprek. Je kunt de bron aanzetten bij *Bronnen en tools* boven het "
                "invoerveld.",
+    "vraag": "{label} doet in deze beurt niet mee, omdat je vraag een andere bron noemt. Noem {label} in je vraag om de "
+             "bron erbij te nemen.",
     "werkgebied": "{label} staat uit in de standaard van dit werkgebied. Je kunt de bron aanzetten bij *Bronnen en "
                   "tools* boven het invoerveld.",
 }
