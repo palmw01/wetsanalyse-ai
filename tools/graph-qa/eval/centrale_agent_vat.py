@@ -47,8 +47,13 @@ def per_soort(metingen: list[dict[str, Any]]) -> dict[str, int]:
             "cache_schrijf_5m": sum(x.get("cache_schrijf", 0) for x in bron) - uur, "cache_schrijf_1u": uur}
 
 
-def gewogen(soorten: dict[str, int]) -> int:
-    return round(sum(GEWICHT[k] * soorten.get(k, 0) for k in GEWICHT))
+def gewogen(soorten: dict[str, int], *, warm: bool = False) -> int:
+    """De naar prijs gewogen som. `warm`: de toestand waarin het voorvoegsel van een uur al in de cache staat. Wat de
+    beurt van dat voorvoegsel schreef, telt dan als gelezen. Het voorvoegsel is voor alle juristen gelijk en blijft een
+    uur warm; welke beurt het schrijft, hangt af van wat er het uur ervoor liep, niet van de versie. Op deze maat wordt
+    de drempel "niet duurder" getoetst; de koude kosten staan ernaast."""
+    gewicht = {**GEWICHT, "cache_schrijf_1u": GEWICHT["cache_lees"]} if warm else GEWICHT
+    return round(sum(gewicht[k] * soorten.get(k, 0) for k in gewicht))
 
 
 def _een_van(ingangen: list[str], gezien: set[str]) -> list[str]:
@@ -90,7 +95,8 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
         "cache_lees": sum(m.get("cache_lees", 0) for m in metingen),
         "cache_schrijf": sum(m.get("cache_schrijf", 0) for m in metingen),
         "cache_schrijf_1u": soorten["cache_schrijf_1u"],
-        "gewogen": gewogen(soorten), "opzet_gewogen": gewogen(opzet_soorten),
+        "gewogen": gewogen(soorten), "gewogen_warm": gewogen(soorten, warm=True),
+        "opzet_gewogen": gewogen(opzet_soorten), "opzet_gewogen_warm": gewogen(opzet_soorten, warm=True),
         "duur_ms": sum(m.get("duur_ms", 0) for m in metingen) or sum(b.get("wand_ms", 0) for b in gemeten),
         "opzet_tokens": sum(_tokens(e) for b in opzet for e in b.get("events", []) if e["type"] == "meting"),
         "delta_account": sum(b.get("delta_account") or 0 for b in rec["beurten"]),

@@ -166,6 +166,8 @@ def test_de_samenvatting_toetst_een_run_tegen_de_set():
     uur = {**meting, "aanroepen": [{"invoer": 10, "uitvoer": 5, "cache_lees": 100, "cache_schrijf": 20, "cache_schrijf_1u": 12}]}
     s_uur = vat({"id": "E08", "run": 1, "vorm": "meten", "beurten": [{"label": "gemeten", "events": [uur]}]}, PER_ID["E08"])
     assert (s_uur["gewogen"], s_uur["cache_schrijf_1u"], s_uur["vorm"]) == (79, 12, "meten")   # 8×1,25 + 12×2 = 34
+    # Warm: het uurvoorvoegsel staat al in de cache, dus die 12 tokens tellen als gelezen (12×0,1 in plaats van 12×2).
+    assert (s_uur["gewogen_warm"], s["gewogen_warm"]) == (56, s["gewogen"])
     assert s["route_past"] and s["delegatie_past"] and s["sjabloon_past"] and not s["tools_ontbreken"]
 
     regie = [{"type": "regie", "fase": "start"}, {"type": "regie_taak", "fase": "start", "gesprek_id": "k1"}]
