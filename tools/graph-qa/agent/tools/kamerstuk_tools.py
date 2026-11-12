@@ -220,7 +220,8 @@ def metadata(rec: Any, vp: Any) -> dict[str, Any]:
         "label": label_van(rec, vp), "soort": soort, "titel": titel, "datum": datum,
         "gepubliceerd": gepubliceerd if gepubliceerd != datum else "", "jaar": rec.vergaderjaar,
         "orgaan": _kamer(getattr(rec, "kamer", "")), "indieners": list(getattr(rec, "indieners", ()) or ()),
-        "reeks": list(dossiers) if len(dossiers) > 1 else [], "status": status if status == "Onopgemaakt" else "",
+        "reeks": list(dossiers) if len(dossiers) > 1 else [], "gezamenlijk": list(dossiers) if len(dossiers) > 1 else [],
+        "status": status if status == "Onopgemaakt" else "",
         "versie": getattr(rec, "versie", ""),
         **({"leesbaar": False} if getattr(rec, "xml_url", "x") == "" else {})})
 

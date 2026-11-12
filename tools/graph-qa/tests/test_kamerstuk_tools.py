@@ -801,7 +801,7 @@ def test_een_stuk_uit_een_gezamenlijke_behandeling_zegt_dat_in_de_lijst():
     from bronmodel.antwoord import Antwoord, Stuk, Stukken, antwoord_tekst
     blok = Stukken(brontype="kamerstuk", kop="Gevonden Kamerstukken", totaal=2, items=[
         Stuk(id="kst-33755-3", label="Kamerstukken 33755, nr. 3"),
-        Stuk(id="kst-33752-L", label="Kamerstukken 33752, nr. L", reeks=["33752", "33753", "33754", "33755"])])
+        Stuk(id="kst-33752-L", label="Kamerstukken 33752, nr. L", gezamenlijk=["33752", "33753", "33754", "33755"])])
     regels = [r for r in antwoord_tekst(Antwoord(sjabloon="extern", blokken=[blok])).splitlines() if r.startswith("- ")]
     assert regels[0] == "- Kamerstukken 33755, nr. 3"
     assert regels[1] == "- Kamerstukken 33752, nr. L (gezamenlijk behandeld: 33752–33755)"
@@ -862,3 +862,29 @@ def test_een_lettercode_in_een_gezamenlijke_behandeling_vindt_het_stuk_in_het_ee
     motie = _record_xml("kst-33752-L", dossiers=("33752", "33753", "33754", "33755"), nummer="L", xml=True)
     d = roep("get_kamerstuk", {"id": "kst-33755-L"}, _koop(Koop({}, {("33755", "L"): [motie]})))
     assert d["status"] == "ok" and d["stuk"]["id"] == "kst-33752-L" and "kst-33752-L" in d["toelichting"]
+
+
+@pytest.mark.parametrize("brontype,velden,zin", [
+    ("kamerstuk", {"reeks": ["33752", "33755"], "gezamenlijk": ["33752", "33755"]}, " (gezamenlijk behandeld: 33752 en 33755)"),
+    ("wettekst_live", {"reeks": ["Hoofdstuk 2", "§ 2.1"]}, ""),       # de plek in de regeling (wetgeving_live ronde 3, I13)
+    ("bekendmaking", {"reeks": ["36602"]}, ""),                      # het Kamerdossier
+    ("uitspraak", {}, ""),
+])
+def test_alleen_gezamenlijk_geeft_de_zin_niet_reeks(brontype, velden, zin):
+    """`reeks` betekent per connector iets anders; alleen het eigen veld `gezamenlijk` zegt dat dossiers samen zijn
+    behandeld (wetgeving_live ronde 3, I13/I14: elke artikelrij kreeg "gezamenlijk behandeld: Hoofdstuk 2–§ 2.1")."""
+    from bronmodel.antwoord import Antwoord, Stuk, Stukken, antwoord_tekst
+    blok = Stukken(brontype=brontype, kop="Gevonden", items=[Stuk(id="x-1", label="Stuk 1", **velden)])
+    regel = next(r for r in antwoord_tekst(Antwoord(sjabloon="extern", blokken=[blok])).splitlines() if r.startswith("- "))
+    assert regel == f"- Stuk 1{zin}"
+
+
+def test_de_metadata_van_een_kamerstuk_draagt_gezamenlijk_bij_meer_dossiers():
+    from agent.tools.kamerstuk_tools import metadata
+    from bronmodel.connectors import externe_vindplaats
+    een = Record(id="kst-33755-3", titel="MvT", datum="2013-09-17", vergaderjaar="2013-2014", dossiers=("33755",),
+                 ondernummer="3", xml_url="https://repository.overheid.nl/x.xml")
+    meer = Record(id="kst-33752-L", titel="Motie", datum="2013-12-17", vergaderjaar="2013-2014",
+                  dossiers=("33752", "33753", "33754", "33755"), ondernummer="L", xml_url="https://repository.overheid.nl/y.xml")
+    assert "gezamenlijk" not in metadata(een, externe_vindplaats("kst-33755-3"))
+    assert metadata(meer, externe_vindplaats("kst-33752-L"))["gezamenlijk"] == ["33752", "33753", "33754", "33755"]

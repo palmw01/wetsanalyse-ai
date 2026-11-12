@@ -44,7 +44,8 @@ METADATA_SLEUTELS: dict[str, str] = {
     "publicatie": "tekst",     # waarin het stuk verscheen (Staatsblad, Staatscourant)
     "titel": "tekst",          # de titel van het stuk zelf
     "soort": "tekst",          # het soort stuk ("Memorie van toelichting", "Motie", "Uitspraak")
-    "reeks": "lijst",          # waar het stuk bij hoort (een dossier, een zaak); de eerste is de hoofdreeks
+    "reeks": "lijst",          # waar het stuk bij hoort (een dossier, een zaak, de plek in een regeling); per connector
+    "gezamenlijk": "lijst",    # de dossiers die samen zijn behandeld, als het stuk bij meer dan één hoort
     "reekstitel": "tekst",     # de titel van de hoofdreeks
     "nummer": "tekst",         # het nummer binnen de reeks
     "jaar": "tekst",           # het (vergader)jaar
@@ -293,6 +294,9 @@ KAMERSTUKKEN = ConnectorBeschrijving(
                      filters=("soort",)),
         MetadataVeld("reeks", "dossier", "w.dossiernummer",
                      "de dossiers waar het stuk bij hoort; het eerste is het hoofddossier", filters=("dossier",)),
+        MetadataVeld("gezamenlijk", "gezamenlijk behandeld", "w.dossiernummer",
+                     "de dossiers die samen zijn behandeld (een belastingplan met zijn wetsvoorstellen), als het stuk "
+                     "bij meer dan één hoort; het stuk heet naar het eerste"),
         MetadataVeld("reekstitel", "dossiertitel", "w.dossiertitel", "de titel van het hoofddossier"),
         MetadataVeld("nummer", "nummer", "w.ondernummer",
                      "het nummer binnen het dossier; letters zijn stukken van de Eerste Kamer", filters=("nummer",),

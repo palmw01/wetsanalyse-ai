@@ -281,8 +281,9 @@ bruikbaar is.
   (`KAMERSTUKKEN.metadata`, sleutels uit `bronmodel.connectors.METADATA_SLEUTELS`): `Record` leest elk veld apart (de
   documentdatum `dt.date` en de publicatiedatum `dt.available` lopen soms weken uiteen), en `kamerstuk_tools.metadata`
   zet ze in de rij en in `stuk` (`label`, `soort`, `titel`, `datum`, `jaar`, `orgaan`, `indieners`; `gepubliceerd`,
-  `reeks`, `status`, `leesbaar` alleen in de uitzondering; een stuk met een `reeks` heet in de lijst "(gezamenlijk
-  behandeld: 33752–33755)", `bronmodel.antwoord.reeks_tekst`, ronde 2). Een lege uitkomst noemt de grens van de
+  `reeks`, `gezamenlijk`, `status`, `leesbaar` alleen in de uitzondering; een stuk met `gezamenlijk` heet in de lijst
+  "(gezamenlijk behandeld: 33752–33755)", `bronmodel.antwoord.gezamenlijk_tekst`, ronde 2 – een eigen sleutel, want `reeks`
+  is bij wetgeving buiten de kennisgraaf de plek in de regeling, ronde 3). Een lege uitkomst noemt de grens van de
   zoekdienst (`GRENS`: Kamerstukken vanaf het vergaderjaar 1994-1995, ouder staat er niet in). Het label komt uit dossier en nummer, niet uit het id; een
   `w.subrubriek` "Overig" (oudere stukken) wordt het soort uit de titel. **Een id dat KOOP niet kent** zoekt
   `SruKamerstukken.record` op dossier en nummer in het hoofddossier: een herdruk (`kst-32740-1` → `kst-32740-1-n1`) en
