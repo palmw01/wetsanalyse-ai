@@ -44,6 +44,7 @@ De oorspronkelijke bronbestanden worden niet aangepast bij een wijziging van de 
 | P14 | Deelvragen en bronnen (graph-qa, deelvragen-agent en intake, PLAN spoor F3) | Handleiding 1.0 §3.3 deelactiviteiten 1d–1g; M03 | Wat een goede deelvraag is, splitsen en samenvoegen, van deelvraag naar bronnen (lidniveau, verwijzingen één stap) en dekking, in eigen woorden. Dekking = een bron om te analyseren (1g). Begrippen horen bij het werkgebied, niet bij een deelvraag (M04 H3: het begrippenkader gaat over het hele scenario); sinds spoor K telt een begrip niet meer mee in de dekking per deelvraag. |
 | P15 | Begrippen (graph-qa, begrippen-agent, PLAN spoor D/F3) | M04 H3 begrippenkader; NL-SBB 1.0; ADR-003, ADR-004 | Begrip = analyse-uitkomst; herkomst letterlijk > samengesteld > geformuleerd; voorbeelden pas na een overgenomen definitie; relaties met type en richting. De drempels en de volgorde zijn projectkeuzes van de begrippenketen. |
 | P17 | Zoekvragen bij de bronselectie ([zoekvragen-bronselectie](zoekvragen-bronselectie.md), graph-qa bronnenrun, PLAN spoor F) | M14; M02 deelactiviteit 1f; P06 | De gebeurtenis in de term van de wet als vertrekpunt, de vier zoekvragen als keten vanaf de grondslag, één zoekvraag per kandidaat als label. Projectkeuzes: het platform herkent de zoekvragen zonder model, met tekstsignalen en verwijzingen in de graaf (een voorstel, geen kwalificatie); de koppeling zoekvraag → rol is een vuistregel; de analist kiest de gebeurtenis. |
+| P19 | Opbouw van de skill (skillversie 3.0) | Aanbevelingen voor Claude-skills (progressive disclosure, werkstromen met checklists, voorbeelden); P11–P12 | `SKILL.md` kiest de werkstroom per activiteit; de protocollen en voorbeelden staan in references; de runtime-secties blijven byte-gelijk tot een meting een wijziging onderbouwt. De voorbeelden zijn een illustratie van de werkwijze, geen referentieset. |
 | P16 | NL-SBB-velden en uitleg in B1 (graph-qa, begrippen-agent, PLAN spoor I) | M11; M12; ADR-003 | Een slank begrip (term, definitie, uitleg, toelichting, voorbeelden). De uitleg op B1 met toetsen in code (`begrip_b1`): ≤ 20 woorden per zin, ≤ 5 zinnen, lijdende vorm, moeilijk woord (eigen lijst), onverklaarde vakterm, herhaalde definitie. Drempels en woordenlijst zijn projectkeuzes; een treffer is een aandachtspunt, geen weigering. |
 | P18 | Relaties tussen markeringen ([relaties](relaties.md), catalogus `relaties.json`, ADR-011) | M01 h.4 per klasse; M02 deelactiviteit 2c; M04 H2; M05; M06 JRM 2 | Relaties horen bij activiteit 2 (2c). De rollen en verbanden komen uit de methode; codes, leesvormen, richting en drager zijn projectkeuzes. `onderdeel`, `uitzondering_op` en `toepassing` zijn projecttypen, de laatste twee alleen waar de tekst ze uitdrukt. Een impliciete partij is alleen een Rechtssubject en alleen door de jurist; relaties tussen afleidingsregels en waarden op een lijn horen bij activiteit 3b. |
 
@@ -55,7 +56,15 @@ regenereer het runtimeprotocol. Controleer de regressies en beoordeel geraakte v
 opnieuw. Een SHA-wijziging vereist controle van het nieuwe bronexemplaar; gebruik geen
 stil bijgewerkte webpagina onder een oude versieaanduiding.
 
-## Bijstelling 2.1 na eerste modelproef
+## Historie
+
+**Skillversie 3.0 (12 nov 2026).** De skill is opnieuw opgezet volgens de eisen voor Claude-skills: een router per
+activiteit, werkstromen met checklists, een markeringslijst als uitvoerformaat, uitgewerkte voorbeelden, de
+beheerdersinformatie apart ([platform](platform.md)) en testgevallen in `evals/`. De methodetekst per rol (de secties
+in [agentrollen](agentrollen.md), [deelvragen en bronnen](deelvragen-en-bronnen.md) en [NL-SBB en B1](nl-sbb-en-b1.md))
+is bewust ongewijzigd: een wijziging daarvan vraagt een meting (P19).
+
+**Bijstelling 2.1 na eerste modelproef.**
 
 Op 2026-09-12 liet de proef met protocol 2.0 nog losse gezegden en dubbele
 tijdsduur/parameterduidingen zien. P04/P05 zijn daarom explicieter gemaakt voor

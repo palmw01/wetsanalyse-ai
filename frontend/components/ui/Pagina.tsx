@@ -123,7 +123,9 @@ export function Kaart({ titel, telling, toelichting, meer, acties, children, cla
   className?: string;
 } & Omit<React.HTMLAttributes<HTMLElement>, "title">) {
   return (
-    <section className={`rounded-kaart border border-line bg-paper p-4 shadow-zacht sm:p-5 ${className}`} {...rest}>
+    // `min-w-0` en `overflow-wrap: anywhere`: een lang woord zonder spaties (een pad, een id) breekt af in plaats van de
+    // kaart – en op een telefoon de pagina – breder te maken. Het breekt alleen waar het anders niet past.
+    <section className={`min-w-0 rounded-kaart border border-line bg-paper p-4 shadow-zacht [overflow-wrap:anywhere] sm:p-5 ${className}`} {...rest}>
       {(titel || meer || acties) && (
         <BlokKop className="mb-3" titel={titel} telling={telling} toelichting={toelichting} acties={(acties || meer) && <>
           {acties}

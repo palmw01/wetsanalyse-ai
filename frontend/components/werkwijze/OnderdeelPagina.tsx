@@ -10,7 +10,9 @@ import { Kaart, PaginaKop, SplitDetail } from "@/components/ui/Pagina";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { ModelLabel } from "@/components/werkwijze/ModelLabel";
-import { foutTekst, haalOnderdeel } from "@/lib/api";
+import { Button } from "@/components/ui/Button";
+import { Field, Textarea } from "@/components/ui/Field";
+import { dienVoorstelIn, foutTekst, haalOnderdeel, haalVoorstelStand, type VoorstelStand, type VoorstelUit } from "@/lib/api";
 import { CONCEPT_LABEL, SOORT_LABEL, onderdeelPad, soortVan, type OnderdeelDetail, type Soort } from "@/lib/catalogus";
 
 type Rij = Record<string, unknown>;
@@ -22,6 +24,13 @@ const tekst = (x: unknown): string => (typeof x === "string" ? x : Array.isArray
 export function OnderdeelPagina({ soort, naam }: { soort: Soort; naam: string }) {
   const [o, setO] = useState<OnderdeelDetail | null>(null);
   const [fout, setFout] = useState<string | null>(null);
+  const [stand, setStand] = useState<VoorstelStand | null>(null);
+
+  useEffect(() => {
+    let weg = false;
+    haalVoorstelStand().then((s) => { if (!weg) setStand(s); }).catch(() => { /* geen knop */ });
+    return () => { weg = true; };
+  }, []);
 
   useEffect(() => {
     let weg = false;
@@ -47,7 +56,7 @@ export function OnderdeelPagina({ soort, naam }: { soort: Soort; naam: string })
             hoofd={<>
               <Contract o={o} />
               {o.stappen.length > 0 && <Stappen o={o} />}
-              <Inhoud o={o} />
+              <Inhoud o={o} stand={stand} />
             </>}
             zij={<>
               <Herkomst o={o} />
@@ -89,7 +98,7 @@ function Stappen({ o }: { o: OnderdeelDetail }) {
   );
 }
 
-function Inhoud({ o }: { o: OnderdeelDetail }) {
+function Inhoud({ o, stand }: { o: OnderdeelDetail; stand: VoorstelStand | null }) {
   const i = o.inhoud;
   switch (o.soort) {
     case "methode":
@@ -103,12 +112,9 @@ function Inhoud({ o }: { o: OnderdeelDetail }) {
     case "rol":
       return (
         <Kaart titel="Methodetekst" toelichting="Deze tekst gaat letterlijk mee in de systeemprompt." data-blok="inhoud">
+          {stand && !stand.aan && <p className="mb-3 text-xs text-muted" data-voorstel-stand="uit">{stand.reden}</p>}
           <div className="space-y-4">{lijst(i.secties).map((s) => (
-            <section key={tekst(s.id)} data-sectie={tekst(s.id)}>
-              <h3 className="text-sm font-semibold text-ink">{tekst(s.id)} <span className="font-normal text-muted">
-                · uit {tekst(s.skill) || "de methode"} · bronnen {tekst(s.bronnen)}</span></h3>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{tekst(s.tekst)}</p>
-            </section>
+            <Sectie key={tekst(s.id)} o={o} s={s} kanVoorstellen={!!stand?.aan && o.bewerkbaar.includes(tekst(s.id)) && !!tekst(s.bestand)} />
           ))}</div>
         </Kaart>
       );
@@ -166,6 +172,66 @@ function Inhoud({ o }: { o: OnderdeelDetail }) {
     default:
       return null;
   }
+}
+
+/** Eén methodesectie, met (voor een beheerder op acceptatie) *Wijziging voorstellen*: dat opent een concept-PR,
+ *  geen directe wijziging. Actief wordt de tekst pas na review, de poort, de merge en de uitrol (ADR-014 §4). */
+function Sectie({ o, s, kanVoorstellen }: { o: OnderdeelDetail; s: Rij; kanVoorstellen: boolean }) {
+  const id = tekst(s.id);
+  const [open, setOpen] = useState(false);
+  const [nieuw, setNieuw] = useState(tekst(s.tekst));
+  const [toelichting, setToelichting] = useState("");
+  const [bezig, setBezig] = useState(false);
+  const [fout, setFout] = useState<string | null>(null);
+  const [uit, setUit] = useState<VoorstelUit | null>(null);
+
+  async function dien() {
+    setBezig(true); setFout(null);
+    try {
+      setUit(await dienVoorstelIn({ onderdeel_id: o.id, bestand: tekst(s.bestand), sectie: id, tekst: nieuw, toelichting }));
+      setOpen(false);
+    } catch (e) {
+      setFout(foutTekst(e, "Het voorstel kon niet worden ingediend."));
+    } finally {
+      setBezig(false);
+    }
+  }
+
+  return (
+    <section data-sectie={id}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-sm font-semibold text-ink">{id} <span className="font-normal text-muted">
+          · uit {tekst(s.skill) || "de methode"} · bronnen {tekst(s.bronnen)}</span></h3>
+        {kanVoorstellen && !open && !uit && (
+          <Button variant="secondary" size="xs" onClick={() => setOpen(true)} data-actie="voorstel-openen">Wijziging voorstellen</Button>
+        )}
+      </div>
+      {open ? (
+        <div className="mt-2 space-y-3" data-voorstel={id}>
+          <Field label="Voorgestelde tekst" hint="Zonder HTML-commentaar; hoogstens 6000 tekens.">
+            <Textarea rows={10} value={nieuw} onChange={(e) => setNieuw(e.target.value)} />
+          </Field>
+          <Field label="Toelichting voor de reviewer">
+            <Textarea rows={3} value={toelichting} onChange={(e) => setToelichting(e.target.value)} />
+          </Field>
+          {fout && <Melding type="fout">{fout}</Melding>}
+          <p className="text-xs text-muted">Dit opent een concept-pull request. Er verandert niets aan Lex tot die is
+            beoordeeld, gemeten, gemerged en uitgerold.</p>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={dien} disabled={bezig || !nieuw.trim()} data-actie="voorstel-indienen">
+              {bezig ? "Bezig…" : "Voorstel indienen"}</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setOpen(false); setFout(null); setNieuw(tekst(s.tekst)); }}>Annuleren</Button>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{tekst(s.tekst)}</p>
+      )}
+      {uit && (
+        <Melding type="bevestiging" className="mt-2">Voorstel ingediend als concept-pull request{" "}
+          <a className="underline" href={uit.pr_url} target="_blank" rel="noreferrer">#{uit.pr_nummer}</a>.</Melding>
+      )}
+    </section>
+  );
 }
 
 function RegelsetInhoud({ i }: { i: Record<string, unknown> }) {

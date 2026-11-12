@@ -1448,7 +1448,11 @@ herkomst, *Leunt op* / *Gebruikt door* en waar het in de repo staat. **Alleen le
 maar uitleg voor de jurist hoe een voorstel ontstaat; drift en testuitslagen horen er niet. Wijzigen gaat via een PR
 (later een voorstel dat een concept-PR wordt, alleen op acceptatie). De rekenkern en de spiegel van het bronmodel staan
 in `lib/catalogus.ts` (`catalogus.test.ts` toetst de soorten tegen `bronmodel/catalogus.py`). Browserregressie:
-`scripts/test-werkwijze.mjs` (`WERKWIJZE_FIXTURE` en `WERKWIJZE_SCREENSHOT` voor een controle met de echte catalogus).
+`scripts/test-werkwijze.mjs` (`WERKWIJZE_FIXTURE` en `WERKWIJZE_SCREENSHOT` voor een controle met de echte catalogus). Op een telefoon past alles: `scripts/test-werkwijze-breedte.mjs` loopt op 375 px het overzicht, elk concept en elk
+onderdeel na (zonder fixture één onderdeel per soort uit `lib/catalogus.ts` met de langste waarden, met `WERKWIJZE_FIXTURE`
+de echte catalogus) en faalt als de pagina zijwaarts scrolt of iets buiten zijn kaart steekt. Een pad of id als label is
+`Tag` (`components/ui/Badge`), dat binnen zijn breedte afbreekt; een `Kaart` breekt een lang woord zonder spaties af
+(`overflow-wrap: anywhere`) in plaats van breder te worden.
 
 ## De artefact-werkbank
 

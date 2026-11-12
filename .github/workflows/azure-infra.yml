@@ -244,6 +244,7 @@ jobs:
           GH_GRAPH_QA_API_TOKEN: ${{ secrets.WA_GRAPH_QA_API_TOKEN }}
           GH_GRAPHDB_TOKEN: ${{ secrets.WA_GRAPHDB_TOKEN }}
           GH_GRAPHDB_PROXY_TOKEN: ${{ secrets.WA_GRAPHDB_PROXY_TOKEN }}
+          GH_GITHUB_PR_TOKEN: ${{ secrets.WA_GITHUB_PR_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -283,6 +284,9 @@ jobs:
             proxy_tok=$(printf '%s' "$proxy_conf" | sed -n 's/.*"Bearer \([^"]*\)".*/\1/p' | head -1)
           fi
           bewaar WA_GRAPHDB_PROXY_TOKEN "${GH_GRAPHDB_PROXY_TOKEN:-}" "$proxy_tok"
+          # Het token voor de concept-PR's van een voorstel (ADR-014 C7): zelf aangemaakt, alleen op acceptatie. Zonder
+          # staan voorstellen uit; overnemen uit Azure houdt ze aan als het GitHub-secret ontbreekt.
+          bewaar WA_GITHUB_PR_TOKEN "${GH_GITHUB_PR_TOKEN:-}" "$(uit_azure api github-pr-token)"
 
           # Het databasewachtwoord staat niet als eigen secret maar in de connectiestring:
           #   postgresql+asyncpg://wetsanalyse:<wachtwoord>@host:5432/...
@@ -355,6 +359,8 @@ jobs:
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--relatie-voorstellen)
           # Regels uit een methode-skill (ADR-014 §7, S6): een proefvlag, gemeten op acceptatie.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--skill-regels)
+          # Voorstellen voor de methode als concept-PR (ADR-014 C7): alleen acceptatie, en alleen met WA_GITHUB_PR_TOKEN.
+          [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--catalogus-voorstellen --github-repo "$GITHUB_REPOSITORY")
           # De GraphDB-MCP-proxy: standaard NIET, en net als de api-ingress alleen op acceptatie.
           # GraphDB zelf blijft altijd intern – deze vlag zet er een nginx met tokencontrole naast.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && [ "${{ inputs.graphdb_proxy }}" = "true" ] && args+=(--graphdb-proxy-extern)
@@ -398,6 +404,8 @@ jobs:
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--relatie-voorstellen)
           # Regels uit een methode-skill (ADR-014 §7, S6): een proefvlag, gemeten op acceptatie.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--skill-regels)
+          # Voorstellen voor de methode als concept-PR (ADR-014 C7): alleen acceptatie, en alleen met WA_GITHUB_PR_TOKEN.
+          [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--catalogus-voorstellen --github-repo "$GITHUB_REPOSITORY")
           # De GraphDB-MCP-proxy: standaard NIET, en net als de api-ingress alleen op acceptatie.
           # GraphDB zelf blijft altijd intern – deze vlag zet er een nginx met tokencontrole naast.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && [ "${{ inputs.graphdb_proxy }}" = "true" ] && args+=(--graphdb-proxy-extern)

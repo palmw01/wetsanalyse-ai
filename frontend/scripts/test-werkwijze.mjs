@@ -25,7 +25,7 @@ const o = (id, extra = {}) => ({
   aan: true, concept: "skill", deel_van: null, ...extra,
 });
 const INLINE = [
-  o("rol/duiding", { concept: "skill" }),
+  o("rol/duiding", { concept: "skill", bewerkbaar: ["duiding"] }),
   o("workflow/annotatieketen", { label: "Annotatieketen (ADR-001)", laag: "taakagent", model: "strict", concept: "workflow",
     hangt_af_van: ["regelset/jas.detector.tijd"],
     stappen: [{ naam: "Detectie", model: "geen", onderdeel: null }, { naam: "Classificatie", model: "strict", onderdeel: null }] }),
@@ -37,7 +37,8 @@ const fixture = process.env.WERKWIJZE_FIXTURE ? JSON.parse(readFileSync(process.
 const LIJST = fixture?.lijst ?? { soorten: ["methode", "rol", "regelset", "tool", "connector", "sjabloon", "workflow",
   "specialist", "agent", "route", "controle"], onderdelen: INLINE };
 const detail = (id) => fixture?.detail?.[id] ?? { ...INLINE.find((x) => x.id === id),
-  inhoud: id.startsWith("regelset/") ? { regels: [{ id: "jas.tijd.datum", code: "TEMPORAL_DATE", klassen: ["Tijdsaanduiding"],
+  inhoud: id === "rol/duiding" ? { secties: [{ id: "duiding", skill: "wetsanalyse", bestand: ".claude/skills/wetsanalyse/references/agentrollen.md",
+    bronnen: ["M01"], sha256: "x", tekst: "Oude methodetekst." }] } : id.startsWith("regelset/") ? { regels: [{ id: "jas.tijd.datum", code: "TEMPORAL_DATE", klassen: ["Tijdsaanduiding"],
     bron: "H2:109", versie: 2, voorbeelden: { positief: ["Deze wet treedt in werking op 1 september 2009."], negatief: ["Zie Stb. 2009, 1."] } }] } : {},
   gebruikt_door: id === "regelset/jas.detector.tijd" ? ["workflow/annotatieketen"] : [] };
 
@@ -46,6 +47,7 @@ try {
   for (const breedte of SHOTS ? [1280, 390] : [1280]) {
     const page = await browser.newPage({ viewport: { width: breedte, height: 900 } });
     const errors = [];
+    const voorstellen = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await page.context().addCookies(await sessieCookies(base));
     await page.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true })));
@@ -59,6 +61,12 @@ try {
         return d?.id ? route.fulfill({ json: d }) : route.fulfill({ status: 404, json: { detail: "Onbekend onderdeel" } });
       }
       if (p === "/api/gesprekken") return route.fulfill({ json: [] });
+      // Voorstellen voor de methode (ADR-014 C7): aan, en een concept-PR als antwoord.
+      if (p === "/api/admin/catalogus/voorstellen/stand") return route.fulfill({ json: { aan: true, reden: "" } });
+      if (p === "/api/admin/catalogus/voorstellen") {
+        voorstellen.push(route.request().postDataJSON());
+        return route.fulfill({ status: 201, json: { pr_url: "https://example.test/pull/7", branch: "claude/x", pr_nummer: 7 } });
+      }
       return route.fulfill({ json: {} });
     });
     const shot = async (naam) => SHOTS && page.screenshot({ path: `${SHOTS}/werkwijze-${naam}-${breedte}.png`, fullPage: true });
@@ -124,6 +132,21 @@ try {
     assert.match(await page.locator('[data-regel="jas.tijd.datum"]').innerText(), /Wel: “Deze wet treedt in werking/);
     assert.match(await page.locator('[data-blok="gebruikt-door"]').innerText(), /annotatieketen/);
     await shot("regelset");
+
+    if (!fixture) {
+      // Een methoderol: per sectie *Wijziging voorstellen*, dat een concept-PR opent (ADR-014 C7).
+      await page.goto(`${base}/werkwijze/rol/duiding`);
+      await page.locator('[data-sectie="duiding"]').waitFor();
+      await page.locator('[data-actie="voorstel-openen"]').click();
+      await page.getByLabel("Voorgestelde tekst").fill("Nieuwe methodetekst.");
+      await page.getByLabel("Toelichting voor de reviewer").fill("Scherper.");
+      await page.locator('[data-actie="voorstel-indienen"]').click();
+      await page.getByRole("link", { name: "#7" }).waitFor();
+      assert.deepEqual(voorstellen, [{ onderdeel_id: "rol/duiding", bestand: ".claude/skills/wetsanalyse/references/agentrollen.md",
+        sectie: "duiding", tekst: "Nieuwe methodetekst.", toelichting: "Scherper." }]);
+      assert.match(await page.locator('[data-sectie="duiding"]').innerText(), /Oude methodetekst/);
+      await shot("voorstel");
+    }
 
     // Een onbekend onderdeel is een melding, geen lege pagina.
     await page.goto(`${base}/werkwijze/rol/bestaat_niet`);

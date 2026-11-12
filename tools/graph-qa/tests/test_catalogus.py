@@ -126,6 +126,8 @@ def test_verwijzingen_van_de_methode_staan_in_het_bronregister():
         if o.soort == "methode":
             register = (WORTEL / PAKKET["skills"][o.naam]["map"] / "references/bronnen.md").read_text()
             for code in o.herkomst.verwijzing:
+                if code.endswith("BRON.md"):   # de notice bij letterlijke tekst, geen broncode
+                    continue
                 assert f"| {code} |" in register, f"{o.id}: broncode {code} niet in het bronregister"
 
 

@@ -19,7 +19,11 @@ Een verzonnen bron, betekenisveranderende omissie of onbewezen conclusie als zek
 blokkeert vaststelling. Een kritieke open vraag blokkeert de betrokken conclusie; andere
 zelfstandige delen kunnen wel beoordeeld worden. Geen gemiddeld cijfer dat een kritieke fout maskeert.
 
-## Referentieset
+## Voor wie de skill of Lex meet
+
+Dit deel gaat over het meten van de kwaliteit van de skill of van het platform, niet over één analyse.
+
+### Referentieset
 
 Conceptvoorbeelden zijn geen gold. Laat een deskundige eerst zelf duiden, vergelijk daarna
 met het voorstel en leg adjudicatie en aanvaardbare alternatieven vast. Waar slechts één
