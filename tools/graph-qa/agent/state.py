@@ -99,6 +99,7 @@ class State(TypedDict, total=False):
     niet_letterlijk: list[str]   # als citaat gepresenteerd, maar niet letterlijk in de trace
     grounding_niveau: str        # gegrond | onbepaald | ongegrond
     onbevestigd: list[str]       # genoemd maar niet teruggevonden in het opgehaalde; een signaal, geen afkeuring
+    beweringen: list[str]        # feiten zonder bron die de correctieronde moet herstellen (`agent/beweringen.py`)
     afgekapt: bool               # het antwoord stuitte op de limiet van het model en is niet af
     sources: list[dict[str, Any]]
     pending_tools: list[dict[str, Any]]

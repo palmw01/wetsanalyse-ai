@@ -152,6 +152,10 @@ def _leeg(raw: str) -> bool:
     return isinstance(data, dict) and data.get("status") == "ok" and not data.get("resultaten")
 
 
+#: Een fout die over de bron zegt en niet over het stuk, met hoe de bron er nu bij staat.
+_TIJDELIJK = {"bron_onbereikbaar": "niet te bereiken", "bron_bezet": "te druk"}
+
+
 def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]],
                  gebruik: list[dict[str, Any]] | None = None) -> Antwoord | None:
     """Is geen enkel genoemd stuk te lezen, dan zegt de code dat, zonder model: geen eigen duiding ("dus een
@@ -160,7 +164,7 @@ def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]
     - geen tekst bij de bron (een uitspraak met alleen metadata, `leesbaar: false`);
     - alleen een PDF (`alleen_pdf`, met het `stuk` en zijn metadata: het bestaat);
     - niet gevonden (`niet_gevonden`): het id staat in de melding, en er komt geen stuk in de lijst;
-    - de bron is niet te bereiken (`bron_onbereikbaar`): zeggen en later opnieuw. Eerst ging dat langs het model, en
+    - de bron is niet te bereiken of te druk (`bron_onbereikbaar`, `bron_bezet`): zeggen en later opnieuw. Eerst ging dat langs het model, en
       dat verwees naar een site die het niet kende ("zoek het op via kamerstukken.nl … onderdeel 3", ronde 3
       Kamerstukken, 12 nov 2026: K11, grounding ongegrond).
 
@@ -170,7 +174,7 @@ def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]
     zonder: list[str] = []
     pdf: list[str] = []
     weg: list[str] = []
-    dicht: list[str] = []
+    dicht: list[tuple[str, str]] = []
     for i, r in enumerate(resultaten):
         try:
             data = json.loads(r.get("content") or "")
@@ -186,8 +190,8 @@ def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]
             pdf.append(ident)
         elif data.get("status") == "error" and data.get("reden") == "niet_gevonden" and (genoemd := _genoemd(gebruik, i)):
             weg.append(genoemd)
-        elif data.get("status") == "error" and data.get("reden") == "bron_onbereikbaar" and (genoemd := _genoemd(gebruik, i)):
-            dicht.append(genoemd)
+        elif data.get("status") == "error" and data.get("reden") in _TIJDELIJK and (genoemd := _genoemd(gebruik, i)):
+            dicht.append((genoemd, _TIJDELIJK[data["reden"]]))
         else:
             return None
     ids = [*zonder, *pdf]
@@ -213,10 +217,10 @@ def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]
         bij = f" bij {c.label}" if c is not None else ""
         blokken.append(Leemte(tekst=f"{ident} is{bij} niet gevonden. Controleer het id, of vraag mij naar de stukken "
                                     "waar het bij hoort; zonder tekst zeg ik er niets over."))
-    for ident in dicht:
+    for ident, hoe in dicht:
         c = van_id(ident)
         waar = c.label if c is not None else "De bron"
-        blokken.append(Leemte(tekst=f"{waar} is nu niet te bereiken, dus {ident} kan ik niet lezen. Vraag het over een "
+        blokken.append(Leemte(tekst=f"{waar} is nu {hoe}, dus {ident} kan ik niet lezen. Vraag het over een "
                                     "paar minuten opnieuw; zonder tekst zeg ik er niets over."))
     return Antwoord(sjabloon="extern", blokken=[*blokken, *stukken])
 
