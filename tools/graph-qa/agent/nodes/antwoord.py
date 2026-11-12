@@ -219,7 +219,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
             upd["pending_tools"] = [aanroep]
             upd.update(tel_sjabloon({**state, **upd}, "omgezet"))
             return upd
-        lijst = False  # een opbouw: de tekst is het antwoord
+        lijst = False  # een opbouw of een lijst zonder stukken: de tekst is het antwoord
         upd.update(tel_sjabloon({**state, **upd}, "lijst_aangenomen"))
     if lijst:
         # Eén keer per beurt: een lijst gevonden stukken in tekst mist de links, de zoekvraag en het totaal uit de code.
@@ -269,11 +269,19 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         # wordt de brontekst. Anders volgde er een volledige correctieronde voor een afwijking die
         # mechanisch te herstellen is.
         antwoord, hersteld = herstel_citaten(antwoord, controletrace(state))
+        # Een eigen kanttekening als blokcitaat ("> Let op: …") lijkt een citaat uit de bron (ronde 6, I28): de vorm valt weg,
+        # de tekst blijft. Ook in de historie, zodat een vervolgbeurt hem niet als citaat leest.
+        antwoord, ontcitaat = kanttekening_als_tekst(antwoord, controletrace(state))
+        if ontcitaat:
+            logger.info("blokcitaat zonder bron als tekst", extra={"categorie": "functioneel",
+                                                                   "run_id": state.get("run_id", ""), "aantal": ontcitaat})
         if hersteld:
             _stap(writer, "Controle", f"{len(hersteld)} citaat letterlijk gemaakt naar de bron"
                   if len(hersteld) == 1 else f"{len(hersteld)} citaten letterlijk gemaakt naar de bron")
+        if hersteld or ontcitaat:
             # Ook in de historie: de volgende beurt bouwt voort op het herstelde antwoord.
-            assistant_content = [{**blok, "text": herstel_citaten(blok["text"], controletrace(state))[0]}
+            assistant_content = [{**blok, "text": kanttekening_als_tekst(herstel_citaten(blok["text"], controletrace(state))[0],
+                                                                 controletrace(state))[0]}
                                  if blok.get("type") == "text" else blok for blok in assistant_content]
             upd["messages"] = [{"role": "assistant", "content": assistant_content}]
         upd["answer"] = antwoord
@@ -313,28 +321,94 @@ def heeft_lijst(tekst: str) -> bool:
     return len(_LIJSTREGEL.findall(tekst or "")) >= 2
 
 
-def genoemde_stukken(tekst: str, gevonden: dict[str, list[tuple[str, str]]]) -> list[str]:
-    """De ids van de gevonden of gelezen stukken die de tekst noemt, bij id of label, in de volgorde van de trace. Een
-    label telt alleen als heel woord ("Artikel 1" niet in "Artikel 19")."""
-    laag = (tekst or "").lower()
-    uit: list[str] = []
-    for paren in gevonden.values():
-        for ident, label in paren:
-            if ident in uit:
-                continue
-            for naam in (ident, label):
-                if naam and re.search(rf"(?<!\w){re.escape(naam.lower())}(?!\w)", laag):
-                    uit.append(ident)
-                    break
+_BLOKCITAAT = re.compile(r"(?:^[ \t]*>.*(?:\n|$))+", re.MULTILINE)
+
+
+def kanttekening_als_tekst(tekst: str, trace: Any) -> tuple[str, int]:
+    """Een blokcitaat ("> …") dat niet letterlijk in het opgehaalde staat, wordt gewone tekst: de vorm zegt "uit de bron",
+    en een eigen kanttekening als citaat kwam als `onbevestigd` door de controle (wetgeving_live ronde 6, I28: "> Let op:
+    artikel 33 IW 1990 ziet op …"). Een echt blokcitaat blijft staan. Geeft de tekst en het aantal omgezette blokken."""
+    from ..annotatie import _normaliseer, komt_letterlijk_voor
+    from ..resultaat import waarden
+
+    if ">" not in (tekst or ""):
+        return tekst, 0
+    bron = _normaliseer("\n".join(waarden(t) for _, t in trace or [] if t))
+    omgezet = 0
+
+    def vervang(m: re.Match[str]) -> str:
+        nonlocal omgezet
+        blok = m.group(0)
+        regels = [re.sub(r"^[ \t]*>[ \t]?", "", r) for r in blok.splitlines()]
+        passage = " ".join(regels).strip().strip('"„”“')
+        if not passage or komt_letterlijk_voor(bron, passage):
+            return blok
+        omgezet += 1
+        return "\n".join(regels) + ("\n" if blok.endswith("\n") else "")
+
+    return _BLOKCITAAT.sub(vervang, tekst), omgezet
+
+
+def _kern(label: str) -> str:
+    """Het nummer van een stuk uit zijn label: het label vanaf het eerste cijfer ("Artikel 19a" → "19a", "Stb. 2010, 176"
+    → "2010, 176", "Kamerstukken 34273, nr. 7" → "34273, nr. 7"). Uit het label, niet uit een vaste vorm, dus voor elke
+    connector; leeg als het label geen cijfer draagt."""
+    m = re.search(r"\d", label or "")
+    return label[m.start():].strip().lower() if m else ""
+
+
+_OPMAAK = re.compile(r"[*_`§]+")
+
+
+def _begin_van(regel: str) -> str:
+    """Waar een lijstregel mee begint: de eerste cel van een tabelrij, of de tekst na het opsommingsteken, zonder opmaak
+    ("| **19a** | …" → "19a", "- § 22a Aangifte…" → "22a aangifte…")."""
+    r = regel.strip()
+    if r.startswith("|"):
+        r = r.strip("|").split("|", 1)[0]
+    else:
+        r = re.sub(r"^(?:[-*•]|\d+[.)])\s+", "", r)
+    r = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", r)  # een link: alleen de tekst
+    return " ".join(_OPMAAK.sub("", r).split()).lower()
+
+
+def _noemt(regel: str, paren: list[tuple[str, str]], kernen: dict[str, str]) -> list[str]:
+    """De ids die één lijstregel noemt: bij id of label als heel woord, of met haar begin gelijk aan de kern van een label
+    die bij één stuk uit de trace hoort (een tabel met kale nummers, wetgeving_live ronde 6, I14: "**19a**")."""
+    laag, begin = regel.lower(), _begin_van(regel)
+    uit = [ident for ident, label in paren
+           if any(n and re.search(rf"(?<!\w){re.escape(n.lower())}(?!\w)", laag) for n in (ident, label))]
+    for kern, ident in kernen.items():
+        if ident not in uit and (begin == kern or re.match(rf"{re.escape(kern)}(?![\w])", begin)):
+            uit.append(ident)
     return uit
 
 
+def _lijstregels(tekst: str) -> list[str]:
+    """De regels van opsommingen en tabellen, zonder de scheidingsregel van een tabel."""
+    return [r for r in (tekst or "").splitlines() if _LIJSTREGEL.match(r) and not re.fullmatch(r"\s*\|[\s|:-]*\|\s*", r)]
+
+
+def genoemde_stukken(tekst: str, gevonden: dict[str, list[tuple[str, str]]]) -> list[str]:
+    """De ids van de gevonden of gelezen stukken die de lijst in de tekst noemt, in de volgorde van de trace. Alleen de
+    lijstregels tellen, niet de lopende tekst: "van artikel 1 tot en met artikel 86" is geen lijst, en een opsomming van
+    statussen noemt geen stuk (ronde 6, I30). Een label telt als heel woord ("Artikel 1" niet in "Artikel 19"), een kaal
+    nummer alleen als het bij één stuk hoort."""
+    paren = list(dict.fromkeys(p for ps in gevonden.values() for p in ps))
+    per_kern: dict[str, set[str]] = {}
+    for ident, label in paren:
+        if k := _kern(label):
+            per_kern.setdefault(k, set()).add(ident)
+    kernen = {k: next(iter(ids)) for k, ids in per_kern.items() if len(ids) == 1}
+    genoemd = {i for r in _lijstregels(tekst) for i in _noemt(r, paren, kernen)}
+    return [ident for ident, _ in paren if ident in genoemd]
+
+
 def zonder_lijstregels(tekst: str, genoemd: list[str], gevonden: dict[str, list[tuple[str, str]]]) -> str:
-    """De tekst zonder de regels van de lijst die een genoemd stuk noemen; een tabel met zo'n rij gaat er helemaal uit.
-    Wat overblijft is de uitleg eromheen."""
-    namen = {ident: label for paren in gevonden.values() for ident, label in paren if ident in genoemd}
+    """De tekst zonder de lijstregels die een genoemd stuk noemen; een tabel met zo'n rij gaat er helemaal uit. Wat
+    overblijft is de uitleg eromheen."""
     def noemt(regel: str) -> bool:
-        return bool(genoemde_stukken(regel, {"": [(i, l) for i, l in namen.items()]}))
+        return any(i in genoemd for i in genoemde_stukken(regel, gevonden))
     regels = (tekst or "").splitlines()
     tabel = any(r.strip().startswith("|") and noemt(r) for r in regels)
     uit = [r for r in regels if not (_LIJSTREGEL.match(r) and (noemt(r) or (tabel and r.strip().startswith("|"))))]
@@ -345,16 +419,17 @@ def lijst_omzetten(tekst: str, gevonden: dict[str, list[tuple[str, str]]], sjabl
                    trace: Any) -> tuple[str, dict[str, Any] | None] | None:
     """Een lijst in tekst na een vondst van een connector, zonder modelronde afgehandeld:
     - ("omgezet", aanroep): de stukken die de lijst noemt in het sjabloon `antwoord_extern`, met de rest als kort antwoord;
-    - ("aangenomen", None): de lijst noemt meer stukken dan één blok draagt (`MAX_LIJST`; een opbouw, I12): de tekst is
-      het antwoord;
-    - None: de lijst noemt geen gevonden stuk bij id of label (een tabel met alleen nummers, B03), of het sjabloon is
-      niet te vullen; dan het herhaalverzoek."""
+    - ("aangenomen", None): de lijst noemt geen gevonden stuk en er is niets gelezen (een opsomming van statussen na een
+      zoekvraag, I30), of ze noemt meer stukken dan één blok draagt (`MAX_LIJST`; een opbouw, I12): de tekst is het antwoord;
+    - None: de lijst noemt geen stuk terwijl er een stuk gelezen is (een tabel met nummers die het model uit de tekst
+      afleidde, B22: de passages horen in 'extern'), er staat naast de lijst geen uitleg, of het sjabloon is niet te
+      vullen; dan het herhaalverzoek."""
     if EXTERN not in sjablonen:
         return None
     genoemd = genoemde_stukken(tekst, gevonden)
-    if not genoemd:
+    if not genoemd and set(gevonden) & {c.leestool for c in CONNECTORS.values()}:
         return None
-    if len(genoemd) > MAX_LIJST:
+    if not genoemd or len(genoemd) > MAX_LIJST:
         return ("aangenomen", None)
     kort = zonder_lijstregels(tekst, genoemd, gevonden)
     invoer = {"kort_antwoord": kort, "extern": [], "stukken": genoemd, "twijfel": []}

@@ -123,7 +123,13 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     draagt (`MAX_LIJST`, een opbouw): de tekst is het antwoord (`lijst_aangenomen`). Het herhaalverzoek blijft alleen als
     de lijst geen gevonden stuk noemt (een tabel met kale nummers, B03), er naast de lijst geen uitleg staat, of het
     sjabloon niet te vullen is.
-  - **na een tweede weigering in dezelfde beurt** vraagt `vul_aanroep` geen derde poging maar tekst (`TEKST_NU`; ronde 5: I12
+  - **welke stukken een lijst noemt** (`genoemde_stukken`, ronde 7): alleen de lijstregels (opsomming of tabelrij, niet de
+    lopende tekst: I30 "van artikel 1 tot en met artikel 86"), bij id of label als heel woord, of met het begin van de regel
+    (de eerste cel, de tekst na het opsommingsteken, zonder opmaak) gelijk aan de kern van een label: het label vanaf het eerste
+    cijfer (`_kern`: "19a", "2010, 176", "34273, nr. 7"), alleen als die kern bij één stuk uit de trace hoort (I14: "**19a**" in een
+    tabel). Een lijst zonder stukken na alleen een zoekvraag is tekst (`lijst_aangenomen`); na een gelezen stuk het herhaalverzoek
+    (B22). Een blokcitaat dat niet letterlijk in het opgehaalde staat, wordt gewone tekst (`kanttekening_als_tekst`, I28);
+ vraagt `vul_aanroep` geen derde poging maar tekst (`TEKST_NU`; ronde 5: I12
     en L-R1 tot negen rondes), behalve als de code bij die weigering iets ophaalde; na een weigering komt geen herhaalverzoek
     meer (`sjabloon_gevraagd`). AFRONDEN_EXTERN zegt: zonder stuk en zonder passage antwoord je in tekst (I30, I13: een lege
     aanroep weigerde `extern.vul`).
@@ -134,7 +140,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   `antwoord_duiding` (uitleg): het model wijst per passage de bepaling en de eerste en laatste woorden aan (`van`/`tot`,
   D5), de code neemt de tekst ertussen uit de bron; gezocht wordt met typografische tekens als hun gewone vorm (’ = '),
   een slotzin uit `get_lid` telt onder zijn lid en een jci wordt de iri van de rij. Ze toetst tegen de tekst van de aangewezen bepaling, niet tegen de hele trace, en
-  weigert een bepaling die de uitleg noemt zonder passage; kort antwoord, waarom en twijfel gaan als tekst door `verify`.
+  weigert een bepaling die de uitleg noemt zonder passage; kort antwoord, waarom en twijfel gaan als tekst door `verify`. Staan de aangewezen woorden er niet, dan zegt de weigering waar ze wél staan of hoe de aangewezen tekst begint (`duiding._waar_wel`, uit de opgehaalde rijen; ronde 6, I28 en L-R1: twee weigeringen en daarna tekst).
   **Wat de uitleg noemt, is gelezen** (D, besluit gebruiker 7 nov 2026; `duiding._genoemd_is_gelezen`): wijst de opgehaalde
   tekst het genoemde artikel aan zonder zijn tekst (een verwijzing in `get_context`, in precies één regeling,
   `vullen.artikel_in_trace`), dan haalt `sjabloon_node` het op via `execute_tool` (hoogstens `MAX_OPHALEN`), zet het in het

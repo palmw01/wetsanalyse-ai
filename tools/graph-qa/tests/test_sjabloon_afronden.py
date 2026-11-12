@@ -102,12 +102,50 @@ def test_zonder_uitleg_naast_de_lijst_of_zonder_extern_sjabloon_volgt_het_herhaa
     assert zonder_lijstregels("Uitleg.\n\n| art | titel |\n|---|---|\n| Artikel 1 | a |", ["x-1"], gevonden) == "Uitleg."
 
 
-def test_een_lijst_zonder_gevonden_stuk_vraagt_stukken_leeg_te_laten(monkeypatch):
-    llm = _llm(response([text_block("Twee punten:\n1. de wet\n2. het besluit")], "end_turn"),
-               response([text_block("klaar")], "end_turn"))
-    _stream_met_graaf(VRAAG, monkeypatch, llm, FakeGraph(result=ART36))
-    verzoek = [m for m in llm.calls[-1]["messages"] if m["role"] == "user"][-1]["content"]
-    assert "laat 'stukken' dan leeg" in verzoek
+def test_een_lijst_zonder_stukken_na_een_zoekvraag_is_het_antwoord(monkeypatch):
+    """Ronde 6, I30: een opsomming van statussen ("150 geldende artikelen") is geen lijst van stukken. Zonder gelezen stuk
+    geen herhaalverzoek en geen omzetting: de tekst is het antwoord."""
+    llm = _llm(response([text_block("Twee punten:\n1. de wet\n2. het besluit")], "end_turn"))
+    events = _stream_met_graaf(VRAAG, monkeypatch, llm, FakeGraph(result=ART36))
+    assert len(llm.calls) == 3 and _gevraagd(llm) == 0
+    assert not [e for e in events if e.get("type") == "antwoord"], "geen sjabloon, dus geen lijst eronder"
+
+
+def _paren(*labels: str, prefix: str = "x") -> dict[str, list[tuple[str, str]]]:
+    return {"zoek_x": [(f"{prefix}-{i}", label) for i, label in enumerate(labels)]}
+
+
+def test_alleen_de_lijstregels_noemen_stukken():
+    """Ronde 6, I30: "van artikel 1 tot en met artikel 86" in de lopende tekst zette "Artikel 1" als lijst eronder."""
+    gevonden = _paren("Artikel 1", "Artikel 2")
+    tekst = "De wet telt 174 artikelen, van artikel 1 tot en met artikel 86.\n\n- **150** geldend\n- **20** vervallen"
+    assert genoemde_stukken(tekst, gevonden) == []
+    assert genoemde_stukken("Zie:\n- Artikel 2: titel\n- iets", gevonden) == ["x-1"]
+
+
+def test_een_kaal_nummer_in_een_tabel_is_het_stuk_met_dat_nummer():
+    """Ronde 6, I14: de zeven artikelen stonden als "**19a**" in een tabel; alleen twee werden herkend."""
+    from agent.nodes.antwoord import zonder_lijstregels
+
+    gevonden = _paren("Artikel 19a", "Artikel 20", "Artikel 22a")
+    tekst = ("Het begrip staat in drie artikelen:\n\n| Artikel | Titel |\n|---|---|\n| **19a** | Kostendelende medebewoner |"
+             "\n| **20** | Jongerennormen |\n| 22a | Kostendelersnorm |\n\nArtikel 19a is het centrale artikel.")
+    assert genoemde_stukken(tekst, gevonden) == ["x-0", "x-1", "x-2"]
+    assert zonder_lijstregels(tekst, ["x-0", "x-1", "x-2"], gevonden) == ("Het begrip staat in drie artikelen:\n\n"
+                                                                          "Artikel 19a is het centrale artikel.")
+
+
+def test_de_kern_komt_uit_het_label_voor_elke_connector():
+    """Het nummer komt uit het label, niet uit een vaste vorm: een Staatsblad, een Kamerstuk, een paragraaf."""
+    gevonden = _paren("Stb. 2010, 176", "Kamerstukken 34273, nr. 7", "§ 22a")
+    tekst = "| Stb. | datum |\n|---|---|\n| 2010, 176 | 2010-05-11 |\n\n- 34273, nr. 7 – nota\n- § 22a Aangifte"
+    assert genoemde_stukken(tekst, gevonden) == ["x-0", "x-1", "x-2"]
+
+
+def test_een_nummer_bij_twee_stukken_telt_niet():
+    """Dezelfde kern bij twee stukken (artikel 1 van twee regelingen) is dubbelzinnig: dan alleen bij id of label."""
+    gevonden = {"zoek_x": [("a-1", "Artikel 1"), ("b-1", "Artikel 1 ")]}
+    assert genoemde_stukken("| **1** | Begrippen |\n| **2** | Doel |", gevonden) == []
 
 
 def test_een_lijst_of_tabel_is_twee_regels_of_meer():
@@ -118,6 +156,7 @@ def test_een_lijst_of_tabel_is_twee_regels_of_meer():
 def test_een_label_telt_alleen_als_heel_woord():
     gevonden = {"zoek_x": [("x-1", "Artikel 1"), ("x-19", "Artikel 19"), ("x-2", "Artikel 2")]}
     assert genoemde_stukken("- Artikel 19\n- en x-2", gevonden) == ["x-19", "x-2"]
+    assert genoemde_stukken("Artikel 19 en x-2 in de lopende tekst.", gevonden) == []
 
 
 def test_het_meting_event_telt_wat_er_met_de_sjablonen_gebeurde(monkeypatch):
@@ -175,3 +214,17 @@ def test_na_een_tweede_weigering_is_de_tekst_het_antwoord(monkeypatch):
 def test_de_prompt_zegt_tekst_als_er_niets_aan_te_wijzen_is():
     """Ronde 5, I30: 'stukken' leeg bij een telling, en daarna weigerde het sjabloon omdat er niets aangewezen was."""
     assert "antwoord dan in tekst" in AFRONDEN_EXTERN and "niet te vullen" in AFRONDEN_EXTERN
+
+
+def test_een_eigen_kanttekening_als_blokcitaat_wordt_gewone_tekst():
+    """Ronde 6, I28: "> Let op: artikel 33 IW 1990 ziet op …" stond als blokcitaat, en de controle zag het als onbevestigd.
+    Een blokcitaat dat letterlijk in de bron staat, blijft."""
+    from agent.nodes.antwoord import kanttekening_als_tekst
+
+    trace = [("get_artikel", json.dumps({"status": "ok", "resultaten": [{"tekst": "De ontvanger kan uitstel verlenen voor de duur van zes maanden."}]}))]
+    tekst = ("Vergelijking.\n\n> De ontvanger kan uitstel verlenen voor de duur van zes maanden.\n\n"
+             "> Let op: dit artikel ziet op een bijzondere groep lichamen.\n")
+    uit, n = kanttekening_als_tekst(tekst, trace)
+    assert n == 1
+    assert "> De ontvanger kan uitstel" in uit and "\nLet op: dit artikel ziet op" in uit and "> Let op" not in uit
+    assert kanttekening_als_tekst("Geen citaat hier.", trace) == ("Geen citaat hier.", 0)
