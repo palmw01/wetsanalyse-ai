@@ -64,7 +64,14 @@ Het koude begin had drie oorzaken:
 - **De toolset per vraag** (bronkeuze, ronde 6) maakt per combinatie van specialist en connectors een eigen
   voorvoegsel. Of een vaste toollijst per gesprek met de keuze als tekst (BRONNEN IN DEZE BEURT) goedkoper is, hangt
   af van hoe vaak de combinatie wisselt. Met de TTL van een uur blijft elke combinatie een uur warm, voor iedereen.
-  Eerst meten in een gesprek waarin de genoemde bron per beurt wisselt.
+  Gemeten (`metingen/context-2026-11-12/`, G3):
+  - een nieuwe combinatie kost ≈ 36k gewogen, één keer per uur;
+  - een vaste lijst kost ≈ 4k gewogen per beurt;
+  - het omslagpunt ligt bij één wissel per ~9 beurten.
+
+  Hoe vaak het in echte gesprekken wisselt, meet de `tools_hash` in `model_aanroep`. Tot die meting blijft de
+  toolset per vraag, mede omdat de bronkeuze beperkt wat het model mag aanroepen. `defer_loading` met tool search
+  loont pas boven ~10k tokens aan schema's.
 - **Denkstappen.** Gaat de antwoordlus ooit naar een model met denkstappen die tegen bewerking beschermd zijn
   (Opus 5.5), dan is elke bewerking van een eerdere beurt aan de clientkant een breuk. Dat geldt ook voor de krimp
   van de vorige beurt. Dan is compaction of clearing aan de serverkant de veilige vorm, met een drempel en een
