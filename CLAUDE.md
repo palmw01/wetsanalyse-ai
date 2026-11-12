@@ -252,23 +252,36 @@ Python, dan faalt de test. Omdat de skill een build-input is, draait `poort` de 
 bij een PR die alleen skill-markdown raakt, en bouwt `graph-qa-docker-publish.yml` op
 `.claude/skills/wetsanalyse/**`.
 
-De `references/` zijn de operationele uitwerking van de methode, onder meer:
+**Opbouw (skillversie 3.0, volgens de eisen voor Claude-skills).** `SKILL.md` is de router: drie dingen die altijd
+gelden, een tabel *Wat ga je doen?* per activiteit (A werkgebied, B markeren, C samenhang, D begrippen, E volledig
+dossier), werkstromen met checklists, de dertien klassen en de veelgemaakte fouten. De `references/` zijn de
+uitwerking, één niveau diep:
 
 - `references/jas-klassen-referentie.md` – de dertien JAS-klassen, volledig uit
   `docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md` met regelverwijzingen. **Dit is de bron voor de
   code.** Verzin er geen klassen bij.
-- `references/markeren-fragmentgrenzen.md` – hoe je markeert: fragmentgrenzen per klasse,
-  overlappende markeringen, opsommingen, verwijzende voornaamwoorden, homoniemen, en wat je juist
-  niet markeert. Afgeleid uit het boek en de BRM-readers, in eigen woorden – dat materiaal is van
-  derden en mag niet letterlijk in deze publieke repo.
-- `references/verwijzingen-volgen.md` – het volg-beleid voor cross-referenties: functies,
-  diepte-cap 1 + relevantie-gate, bounded delegaties. Hoort bij het afbakenen van een werkgebied
-  over meerdere bronnen; de annotatiestroom in de werkplek volgt zelf geen verwijzingen.
+- `references/werkgebied.md` (activiteit 1), `deelvragen-en-bronnen.md`, `zoekvragen-bronselectie.md` en
+  `verwijzingen-volgen.md` – een werkgebied afbakenen en bronnen kiezen.
+- `references/annotatieprotocol.md` (de markeringslijst), `markeren-fragmentgrenzen.md`, `relaties.md` en
+  `jrm-verrijking.md` – markeren, classificeren en samenhang. Afgeleid uit het boek en de BRM-readers, in eigen
+  woorden – dat materiaal is van derden en mag niet letterlijk in deze publieke repo.
+- `references/begrippen.md` en `nl-sbb-en-b1.md` – begrippen (activiteit 3a).
+- `references/analyseprotocol.md`, `kwaliteit.md` en `assets/analysedossier.md` – het volledige dossier.
+- `references/voorbeelden.md` – uitgewerkte bepalingen (Invorderingswet 1990, art. 9); een illustratie, geen
+  referentieset.
 - `references/bronnen.md` – verbindt elke methodestap met bron + sectie en benoemt eigen
   projectkeuzes; de lokale originelen en hun hashes staan in `docs/wetsanalyse/bronnen/manifest.json`.
-- `references/annotatieprotocol.md`, `analyseprotocol.md`, `jrm-verrijking.md`, `kwaliteit.md`,
-  `agentrollen.md` en `assets/analysedossier.md` – de uitvoervormen (platformannotatie of volledig
-  analysedossier) en de rolteksten voor de agent.
+- `references/agentrollen.md` – de methodetekst per rol in Lex; `references/platform.md` – wat het platform uit de
+  skill haalt en wat je niet zomaar verandert.
+- `evals/` – testgevallen in de vorm die `claude plugin eval` leest (andere bepalingen dan in de voorbeelden).
+
+**Een tweede methode-skill: `.claude/skills/wetsuitvoering/`** (JRM 2, de specificatie van BZK onder de W3C-licentie;
+bron ongewijzigd in `docs/wetsanalyse/wetsuitvoering/` met `BRON.md`). Juridische scenario's en aktes, rechtsgevolgen,
+juridisch relevante feiten en de verhouding tot het JAS. Zijn methodesecties zijn nog aan geen rol van Lex gekoppeld
+(`"rollen": {}`): dat volgt na een meting (ADR-010, ADR-014 §7).
+
+**De methodetekst per rol is bij de herinrichting byte-gelijk gebleven** (de vingerafdrukken zijn ongewijzigd): een
+wijziging van de tekst tussen de methodemarkers verandert het gedrag van Lex en vraagt een meting (ADR-010, P19).
 
 ## Observability
 
@@ -404,6 +417,8 @@ alleen lokaal bestaan. Daarvóór staan structurele guards:
 - inloggen met een accounttoken (`apiTokenLogin`) staat default uit en alleen op acceptatie aan;
 - de bronconnectors (`connectoren`, ADR-013: één lijst, één weg naar de env) staan default uit en alleen op acceptatie aan;
 - de regels uit een methode-skill (`skillRegels`, ADR-014 §7, een proefvlag) staan default uit en alleen op acceptatie aan;
+- een wijziging van de methode voorstellen als concept-PR (`catalogusVoorstellen`, ADR-014 C7) staat default uit, alleen op
+  acceptatie aan, en alleen met het token `WA_GITHUB_PR_TOKEN`;
 - de relatievoorstellen uit de annotatieketen (`relatieVoorstellen`, ADR-011, een proefvlag) staan default uit en alleen op
   acceptatie aan;
 - GraphDB blijft `external: false`; de proxy staat default uit, alleen op acceptatie, alleen mét

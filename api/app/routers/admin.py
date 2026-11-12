@@ -21,6 +21,8 @@ PUT    /v1/admin/budget                   – beleid wijzigen (resetperiode, aan
 PUT    /v1/admin/budget/rollen/{rol}      – het tokenbudget van een rol zetten
 GET    /v1/admin/verbruik                 – stand per gebruiker, zwaarste eerst
 POST   /v1/admin/users/{id}/verbruik/reset – geef een gebruiker zijn budget terug voor dit venster
+GET    /v1/admin/catalogus/voorstellen/stand – kan deze omgeving een methodevoorstel indienen (ADR-014 C7)
+POST   /v1/admin/catalogus/voorstellen    – een nieuwe tekst voor een methodesectie als concept-PR (2FA)
 """
 
 from __future__ import annotations
@@ -35,6 +37,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .. import (
     api_tokens,
+    catalogus_voorstel,
     connectors,
     berichten as berichten_svc,
     feedback as feedback_svc,
@@ -91,6 +94,29 @@ async def connector_audit(naam: str):
     if naam not in connectors.BEKEND:
         raise HTTPException(status_code=404, detail=f"Onbekende connector: {naam}")
     return await connectors.audit(naam)
+
+
+# --- de catalogus: een wijziging voorstellen als concept-PR (ADR-014 C7) ---------
+
+class VoorstelStand(BaseModel):
+    aan: bool
+    reden: str = ""
+
+
+@router.get("/catalogus/voorstellen/stand", response_model=VoorstelStand)
+async def catalogus_voorstel_stand():
+    """Kan deze omgeving een voorstel indienen? De werkplek toont de knop alleen dan."""
+    st = catalogus_voorstel.stand()
+    return VoorstelStand(aan=st.aan, reden=st.reden)
+
+
+@router.post("/catalogus/voorstellen", response_model=catalogus_voorstel.VoorstelUit, status_code=201)
+async def catalogus_voorstel_indienen(body: catalogus_voorstel.VoorstelIn, door: str = Depends(beheerder_met_2fa)):
+    """Een beheerder met 2FA stelt een nieuwe tekst voor een methodesectie voor; de api opent een concept-PR."""
+    try:
+        return await catalogus_voorstel.dien_in(body, door)
+    except catalogus_voorstel.VoorstelFout as e:
+        raise HTTPException(status_code=e.status, detail=e.detail) from e
 
 
 # --- modellen ------------------------------------------------------------------

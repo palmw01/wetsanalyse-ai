@@ -1,9 +1,13 @@
-# Agentrollen en import
+# Methodetekst per rol in Lex
 
-Deze selectie operationaliseert de bronmethode voor bestaande platformrollen.
-Het zijn projectkeuzes (P12), geen claim dat elke rol een volledig dossier maakt.
-De mapping in `../agentrollen.json` is het importcontract; de sectie-ID’s blijven stabiel.
-Broncodes verwijzen naar [bronnen en beslisregister](bronnen.md).
+De secties hieronder gaan **letterlijk** als methodetekst naar de modelrollen van Lex, het platform in
+`tools/graph-qa/` (zie [platform](platform.md)). Ze zijn de korte, operationele vorm van de werkstromen in deze skill:
+waar `SKILL.md` en de protocollen uitleggen hoe je een analyse doet, zeggen deze secties wat één rol in één beurt
+moet bewaken. Het zijn projectkeuzes (P12), geen claim dat elke rol een volledig dossier maakt.
+
+`../agentrollen.json` koppelt de rollen aan de sectie-ID's; die ID's blijven stabiel. Een wijziging van de tekst
+tussen de markers verandert het gedrag van Lex: doe haar alleen met een meting. Broncodes verwijzen naar
+[bronnen en beslisregister](bronnen.md).
 
 ## Brongebruik en uitvoergrenzen
 

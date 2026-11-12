@@ -1284,6 +1284,22 @@ een rij ontbreekt = uit), en elke wijziging is een regel in `connector_audit`.
   uitvoer van een werkgebied. De werkplek rekent de stand en stuurt hem per beurt als `bronnen` naar graph-qa.
 - Credentials en een rate-limit per connector komen met de eerste connector die ze nodig heeft (EUR-Lex).
 
+## Voorstellen voor de methode (ADR-014 C7)
+
+`app/catalogus_voorstel.py`, routes in `routers/admin.py`. Een beheerder met 2FA (`beheerder_met_2fa`) stelt een nieuwe tekst
+voor een methodesectie voor; de api opent er op GitHub een **concept-PR** voor. Er is geen overlay en geen tweede waarheid:
+de tekst gaat pas mee na review, meting (ADR-010), merge en uitrol.
+
+- `GET /v1/admin/catalogus/voorstellen/stand` (`{aan, reden}`) en `POST /v1/admin/catalogus/voorstellen` (201 `{pr_url,
+  branch, pr_nummer}`). Uit zonder `CATALOGUS_VOORSTELLEN` of zonder `GITHUB_PR_TOKEN`/`GITHUB_REPO` (404).
+- Alleen `.claude/skills/<skill>/references/*.md` (422). De sectie leest en vervangt `bronmodel.methodesectie`, dezelfde
+  validator als de generator van het methodepakket: precies één markerpaar, niet leeg, hoogstens 6000 tekens, geen
+  HTML-commentaar; de rest van het bestand blijft byte-gelijk. Gelijke tekst 409; hetzelfde voorstel nog eens 409 (de branch
+  is een hash van bestand, sectie en tekst).
+- Het bestand komt van `master` op GitHub, niet uit het image. De PR-tekst draagt toen en nu, wie het voorstelde en de
+  checklist voor de reviewer (meting, licentie, het methodepakket opnieuw genereren).
+- Tests: `tests/test_catalogus_voorstel.py` (GitHub als `httpx.MockTransport` via `catalogus_voorstel._TRANSPORT`).
+
 ## Schema
 
 Er is geen Alembic. `db.bouw_schema` draait bij de start, onder een advisory lock zodat replica's op elkaar wachten:

@@ -93,6 +93,10 @@ def main() -> None:
     p.add_argument("--skill-regels", action="store_true", default=None,
                    help="De regels uit methode-skills meenemen in de ketens (proefvlag, alleen acceptatie; zie "
                         "main.bicep:skillRegels).")
+    p.add_argument("--catalogus-voorstellen", action="store_true", default=None,
+                   help="Voorstellen voor de methode vanuit de werkplek als concept-PR (alleen acceptatie; zie "
+                        "main.bicep:catalogusVoorstellen). Zonder WA_GITHUB_PR_TOKEN blijft het uit.")
+    p.add_argument("--github-repo", default=None, help="eigenaar/naam van de repo voor die concept-PR's.")
     p.add_argument("--graphdb-proxy-extern", action="store_true", default=None,
                    help="De externe GraphDB-MCP-proxy uitrollen (alleen acceptatie; zie "
                         "main.bicep:graphdbProxyExtern). Vereist WA_GRAPHDB_PROXY_TOKEN.")
@@ -166,6 +170,9 @@ def main() -> None:
             "dbAdminPassword": {"value": db_pass},
             "graphdbToken": {"value": tok_graphdb},
             "graphdbProxyToken": {"value": tok_graphdb_proxy},
+            # Net als het proxytoken niet gegenereerd: een mens maakt het aan op GitHub, met alleen contents en pull
+            # requests op deze repo. Leeg = geen voorstellen (de bicep zet ze dan uit).
+            "githubPrToken": {"value": os.environ.get("WA_GITHUB_PR_TOKEN", "")},
             "qaApiToken": {"value": tok_qa},
             "graphQaApiToken": {"value": tok_qa_api},
             "graphdbLicenseBase64": {"value": licentie_b64},
@@ -183,6 +190,8 @@ def main() -> None:
          "connectoren"),
         (args.relatie_voorstellen, "relatieVoorstellen"),
         (args.skill_regels, "skillRegels"),
+        (args.catalogus_voorstellen, "catalogusVoorstellen"),
+        (args.github_repo, "githubRepo"),
         (args.graphdb_proxy_extern, "graphdbProxyExtern"),
         (args.api_image, "apiImage"),
         (args.frontend_image, "frontendImage"),

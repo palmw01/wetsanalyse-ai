@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: markeert-bevoegdheid-met-voorwaarden
+expected_outcome: |
+  Een markeringslijst met letterlijke fragmenten, elk met een JAS-klasse en toelichting. De eerste zin wordt als
+  normformulering met de ontvanger en het verlenen van uitstel gemarkeerd (een bevoegdheid, geen plicht), met de
+  voorwaarden, de tijdsaanduiding en de belastingschuldige als eigen markeringen. De tweede zin wordt als gevolg
+  van het uitstel herkend. Geen verzonnen klassen, partijen of drempels.

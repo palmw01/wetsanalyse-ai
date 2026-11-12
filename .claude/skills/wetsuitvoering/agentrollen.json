@@ -1,0 +1,13 @@
+{
+  "secties": {
+    "jrm-scenario": {
+      "bestand": "references/scenario.md",
+      "bronnen": ["J01", "JP01", "JP03"]
+    },
+    "jrm-relevant-feit": {
+      "bestand": "references/relevant-feit.md",
+      "bronnen": ["J01", "JP02", "JP03"]
+    }
+  },
+  "rollen": {}
+}

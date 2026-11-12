@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: relevante-feiten-jaarinkomen
+expected_outcome: |
+  Juridisch relevante feiten als feittypen met onderdelen tussen punthaken, met bepalende en bepaalde
+  onderdelen. Het toetsingsinkomen van een persoon in een jaar is een feit dat in een voorwaarde voorkomt; het
+  drempelbedrag per jaar is een (parameter)waarde. Het antwoord maakt duidelijk dat een losse variabele zonder
+  persoon en jaar onvoldoende is, en verzint geen concreet drempelbedrag.

@@ -1,17 +1,31 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
-PAKKET = {'bronbestanden': {'SKILL.md': 'be6f05b4b1c8415517261dbc8e8f39664aa0082c1cbf3cbc3ba1771185910d82',
+PAKKET = {'bronbestanden': {'SKILL.md': '2ff0a7db13d296db4d426d305cac6065ba9f09538001974520cdb626b9eef5c0',
                    'agentrollen.json': '84ad41e689a3ebf7a77fbbc409f5d07a10539cbe0b578cb7111a60feded2f418',
-                   'references/agentrollen.md': 'c95a55241b9190a14be0804ca5875db9f2be58dc045cb8e4d570c8952f77f76b',
-                   'references/bronnen.md': '0e2bca467b3e2b348ce4121ea1833d0dba4493258110dfd0e84638d0155a2e06',
+                   'references/agentrollen.md': 'd5fd6a2a5a9d00d4ae2950f2a1aa4bdda8f1625f1a3b6a4661cc09d509c038e6',
+                   'references/bronnen.md': '4a9bf2867a412550a8239aaa05f72e2f64aab414136588e0fe9ae1ec1442a25d',
                    'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
-                   'references/jas-klassen-referentie.md': 'fcff29a0b63d54e457dcb32de3706552a327033b0e7571e8b26025dd552da429',
-                   'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411'},
- 'lex': {'beschrijving': 'Analyseer Nederlandse wet- en regelgeving volgens JAS, met JRM '
-                         '2-verrijking. Gebruik voor juridisch ontleden, markeren en classificeren '
-                         'van bepalingen en voor een brononderbouwd conceptanalysedossier bij '
-                         'activiteit 2 van Wetsanalyse. Omvat grammatica, verwijzingen, juridische '
-                         'samenhang en scenario-toetsing.',
+                   'references/jas-klassen-referentie.md': 'b1f0949a33bd7f7388cc1778a7dce69c42db5d585715cd3f2843594d2564855d',
+                   'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411',
+                   'wetsuitvoering/BRON.md': '1860919287fd49783ead620f664ffc5abe302ffdcdcc62b78138f0d1b31a1a31',
+                   'wetsuitvoering/SKILL.md': '06d20666288ef468bd26429390339c5d7186a552899356c974990d8d71b2dbfa',
+                   'wetsuitvoering/agentrollen.json': '9db3cfa57d88e61a3968ba86f41c32dbe7f38be066d63c8587c10da3454a8fa9',
+                   'wetsuitvoering/references/bronnen.md': 'f7aecfe045216d22fa741e2e0cfa48cbc77198da9eb93e6c6fcdeddb5c0c1e74',
+                   'wetsuitvoering/references/relevant-feit.md': '6ea63fafb8bf89e6e554accfd922369acbb835eaa3f43eebe33b0a8cb4fa3d3a',
+                   'wetsuitvoering/references/scenario.md': '6cfccfe8757bf88132ff47d9ba811d85f8076b419f994339b10619691e528bf0'},
+ 'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving volgens de methode '
+                         'Wetsanalyse en het Juridisch Analyseschema (JAS), met JRM 2-verrijking: '
+                         'een werkgebied afbakenen (analysevraag, deelvragen, bronselectie), '
+                         'bepalingen ontleden, markeren en classificeren in de dertien '
+                         'JAS-klassen, de samenhang vastleggen (rechtsbetrekkingen, rechtsfeiten, '
+                         'afleidingsregels, voorwaarden), begrippen formuleren volgens NL-SBB en '
+                         'een brononderbouwd conceptanalysedossier opstellen. Gebruik deze skill '
+                         'zodra iemand een wetsartikel wil ontleden, annoteren of duiden, vraagt '
+                         'welke JAS-klasse een formulering heeft, een werkgebied of deelvragen wil '
+                         'opstellen, bronnen bij een analysevraag zoekt, een begrip of definitie '
+                         'uit wetgeving wil vastleggen, of een wetsanalyse, regelanalyse of '
+                         'juridische analyse van een regeling noemt, ook als het woord JAS niet '
+                         'valt.',
          'herkomst': 'Methode Wetsanalyse (Ausems, Bulles & Lokin) en het JAS (BZK); de bronnen '
                      'staan in references/bronnen.md',
          'label': 'Wetsanalyse: JAS met JRM 2-verrijking',
@@ -111,6 +125,41 @@ PAKKET = {'bronbestanden': {'SKILL.md': 'be6f05b4b1c8415517261dbc8e8f39664aa0082
                                   'verdedigbare alternatieven. De dertien JAS-labels blijven '
                                   'ongewijzigd; JRM-verrijking is aanvullende uitleg, geen nieuwe '
                                   'annotatieklasse.'},
+             'jrm-relevant-feit': {'bestand': 'references/relevant-feit.md',
+                                   'bronnen': ['J01', 'JP02', 'JP03'],
+                                   'sha256': '6e954636c73b5e5e912ca188a0db62b6dfb6639b60d7a4aa1e0507ffd2d38abb',
+                                   'skill': 'wetsuitvoering',
+                                   'tekst': 'Een juridisch relevant feit verbindt een waarde met '
+                                            'de elementen waar zij bij hoort, zoals een persoon en '
+                                            'een kalenderjaar; het staat in een voorwaarde, is een '
+                                            'onderdeel van een rechtsobject, of is invoer of '
+                                            'uitvoer van een afleidingsregel. Beschrijf het waar '
+                                            'het helpt als feittype met onderdelen tussen '
+                                            'punthaken, en zeg welke onderdelen het feit bepalen '
+                                            'en welk onderdeel bepaald wordt. Een losse variabele '
+                                            'zonder die samenhang is onvoldoende. Noem de bepaling '
+                                            'die het feit nodig maakt. Een waarde is een in de wet '
+                                            'opgenomen waarde bij een constante of een variabele; '
+                                            'het JAS-label blijft het paar variabele of parameter '
+                                            'met waarde.'},
+             'jrm-scenario': {'bestand': 'references/scenario.md',
+                              'bronnen': ['J01', 'JP01', 'JP03'],
+                              'sha256': '22f530e6c5d3604d273827b6dcf61b7033cabd2cc2d6490e7d4fcf523e5ca077',
+                              'skill': 'wetsuitvoering',
+                              'tekst': 'Beschrijf waar het helpt hoe een burger of bedrijf de '
+                                       'bepaling doorloopt in de uitvoering, als juridisch '
+                                       'scenario volgens JRM 2: per gebeurtenis een akte met '
+                                       'begintoestand, rechtsfeit, rechtsgevolgen en eindtoestand, '
+                                       'waarbij de eindtoestand de begintoestand van de volgende '
+                                       'akte is. Een rechtsgevolg zegt wat ontstaat, wijzigt of '
+                                       'eindigt en welk rechtsfeit het veroorzaakt. Herleid elk '
+                                       'element tot de bepaling of noem het een aanname; een '
+                                       'hypothetisch scenario toetst een lezing en bewijst haar '
+                                       'niet. Houd een concreet geval (instantie) apart van de '
+                                       "regel (type). Noem welke andere scenario's er zijn naast "
+                                       'de happy flow. De dertien JAS-labels blijven het '
+                                       "annotatiecontract; rechtsgevolgen en scenario's zijn "
+                                       'aanvullende uitleg.'},
              'nl-sbb-taalniveau': {'bestand': 'references/nl-sbb-en-b1.md',
                                    'bronnen': ['M11', 'M12', 'M13', 'P16'],
                                    'sha256': 'ac237c3c32df50c8b1f988d8cd3938ff9035640cffd5ca7eea3b03371db96c08',
@@ -179,15 +228,28 @@ PAKKET = {'bronbestanden': {'SKILL.md': 'be6f05b4b1c8415517261dbc8e8f39664aa0082
                                      'JAS/JRM-dossier via een route die alleen markeringen of een '
                                      'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
                                      'rol over.'}},
- 'sha256': '129c062ec9097aa08e983de85742c41c9089115344229e9aeb396c7fb7870d15',
- 'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseer Nederlandse wet- en regelgeving '
-                                                    'volgens JAS, met JRM 2-verrijking. Gebruik '
-                                                    'voor juridisch ontleden, markeren en '
-                                                    'classificeren van bepalingen en voor een '
-                                                    'brononderbouwd conceptanalysedossier bij '
-                                                    'activiteit 2 van Wetsanalyse. Omvat '
-                                                    'grammatica, verwijzingen, juridische '
-                                                    'samenhang en scenario-toetsing.',
+ 'sha256': '814708f322f8f210f01dc7fb9f50b4d929b5df3b890562fc7a6bbeb6112a932b',
+ 'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving '
+                                                    'volgens de methode Wetsanalyse en het '
+                                                    'Juridisch Analyseschema (JAS), met JRM '
+                                                    '2-verrijking: een werkgebied afbakenen '
+                                                    '(analysevraag, deelvragen, bronselectie), '
+                                                    'bepalingen ontleden, markeren en '
+                                                    'classificeren in de dertien JAS-klassen, de '
+                                                    'samenhang vastleggen (rechtsbetrekkingen, '
+                                                    'rechtsfeiten, afleidingsregels, voorwaarden), '
+                                                    'begrippen formuleren volgens NL-SBB en een '
+                                                    'brononderbouwd conceptanalysedossier '
+                                                    'opstellen. Gebruik deze skill zodra iemand '
+                                                    'een wetsartikel wil ontleden, annoteren of '
+                                                    'duiden, vraagt welke JAS-klasse een '
+                                                    'formulering heeft, een werkgebied of '
+                                                    'deelvragen wil opstellen, bronnen bij een '
+                                                    'analysevraag zoekt, een begrip of definitie '
+                                                    'uit wetgeving wil vastleggen, of een '
+                                                    'wetsanalyse, regelanalyse of juridische '
+                                                    'analyse van een regeling noemt, ook als het '
+                                                    'woord JAS niet valt.',
                                     'herkomst': 'Methode Wetsanalyse (Ausems, Bulles & Lokin) en '
                                                 'het JAS (BZK); de bronnen staan in '
                                                 'references/bronnen.md',
@@ -197,5 +259,35 @@ PAKKET = {'bronbestanden': {'SKILL.md': 'be6f05b4b1c8415517261dbc8e8f39664aa0082
                                                 'BRM-readers alleen in eigen woorden',
                                     'soort': 'methode'},
                             'map': '.claude/skills/wetsanalyse',
-                            'versie': '2.1'}},
+                            'versie': '2.1'},
+            'wetsuitvoering': {'lex': {'beschrijving': 'Beschrijft hoe wet- en regelgeving in de '
+                                                       'uitvoering uitpakt volgens het Juridisch '
+                                                       'Referentiemodel (JRM 2), de methode '
+                                                       "wetsuitvoering: juridische scenario's en "
+                                                       'aktes opstellen (begintoestand, '
+                                                       'rechtsfeit, rechtsgevolgen, eindtoestand), '
+                                                       'rechtsgevolgen expliciet vastleggen, '
+                                                       'juridisch relevante feiten en feittypen '
+                                                       'formuleren als opmaat naar een '
+                                                       'gegevensmodel, en de JRM-classificaties '
+                                                       'verbinden met het Juridisch Analyseschema. '
+                                                       'Gebruik deze skill zodra iemand een '
+                                                       'scenario, tijdlijn of testgeval uit '
+                                                       'wetgeving wil afleiden, vraagt wat er '
+                                                       'juridisch verandert door een gebeurtenis, '
+                                                       'de happy flow en afwijkende gevallen wil '
+                                                       'uitwerken, rechtsgevolgen of juridisch '
+                                                       'relevante feiten wil vastleggen, of de '
+                                                       'stap van wettekst naar gegevens of '
+                                                       'uitvoering wil zetten, ook als JRM niet '
+                                                       'genoemd wordt.',
+                                       'herkomst': 'Juridisch Referentiemodel (JRM 2), '
+                                                   'specificatie van BZK (minbzk/wetsuitvoering, '
+                                                   'commit 4a9b584); zie BRON.md',
+                                       'label': "Wetsuitvoering: juridische scenario's (JRM 2)",
+                                       'letterlijk': 'ja',
+                                       'licentie': 'W3C Software and Document License',
+                                       'soort': 'methode'},
+                               'map': '.claude/skills/wetsuitvoering',
+                               'versie': 'JRM 2 (2025-03)'}},
  'versie': '2.1'}

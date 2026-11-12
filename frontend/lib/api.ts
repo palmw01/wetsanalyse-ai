@@ -205,6 +205,24 @@ export async function haalOnderdeel(soort: string, naam: string): Promise<Onderd
   return uit;
 }
 
+// --- Een wijziging van de methode voorstellen (ADR-014 C7): een concept-PR -----------------
+
+export type VoorstelStand = { aan: boolean; reden: string };
+export type VoorstelUit = { pr_url: string; branch: string; pr_nummer: number };
+
+/** `null` als deze gebruiker geen beheerder is (403): dan is er geen knop. */
+export async function haalVoorstelStand(): Promise<VoorstelStand | null> {
+  const res = await fetch("/api/admin/catalogus/voorstellen/stand", { cache: "no-store" });
+  if (res.status === 401 || res.status === 403) return null;
+  return json<VoorstelStand>(res);
+}
+
+export async function dienVoorstelIn(v: { onderdeel_id: string; bestand: string; sectie: string; tekst: string; toelichting: string }): Promise<VoorstelUit> {
+  return json<VoorstelUit>(await fetch("/api/admin/catalogus/voorstellen", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(v),
+  }));
+}
+
 // --- Admin: LLM-modelprofielen ----------------------------------------------
 
 export async function listProfiles(): Promise<LlmProfileOut[]> {
