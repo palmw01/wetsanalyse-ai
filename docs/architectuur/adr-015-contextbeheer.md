@@ -50,6 +50,26 @@ Het koude begin had drie oorzaken:
   Gesimuleerd met de echte cachepunten: per beurt ~16k tekens opnieuw geschreven (de vorige beurt gekrompen plus de
   nieuwe), tegen 34–36k met het oude venster (`tests/test_trimming.py`).
 
+## Zichtbaar
+
+Wat dit besluit oplevert en kost, is in Lex te zien (plan `plan-contextweergave.md`, meting
+`metingen/contextweergave-2026-11-12/`). De contextmeter bij het invoerveld en `/context` tonen per beurt:
+
+- **de context**: het laatste verzoek van de antwoordlus, verdeeld over vaste categorieën (`agent/contextdelen.py`), en
+  het deel van het venster dat het vult. Het voorvoegsel van dit besluit is daarin het blauwe deel;
+- **het begin**: of de beurt warm of koud begon. Een koud begin is de post die dit besluit kleiner maakt, en ze is nu per
+  beurt te zien, met de reden (een pauze, een ander soort vraag, andere bronnen naast de wet);
+- **de historie tegen haar grens**: `MAX_HISTORY_CHARS` in dezelfde eenheid, en of er beurten zijn ingekort of weggevallen;
+- **het verbruik**: wat de hele beurt kostte, over alle rondes en rollen. Dat is een ander getal dan de context.
+
+De weergave telt niet met een extra aanroep. Het totaal en de cachecijfers komen uit `usage`. Het voorvoegsel is exact
+zodra een verzoek het schrijft: het 1-uursdeel van `cache_creation` is dan precies tools + systeem, omdat alleen het
+cachepunt op de systeemprompt een uur houdt. De rest gaat naar tekens. De meting laat zien dat dat genoeg is: binnen het
+voorvoegsel tot 4% ernaast, daarbuiten zonder anker tot 20%.
+
+De meting bevestigt ook wat onder *Open* staat: een ander soort vraag kiest een andere specialist met een eigen toolset,
+en dat is een nieuw voorvoegsel (27k tokens geschreven), ook als de bronnen naast de wet gelijk blijven.
+
 ## Wat niet
 
 - **Server-compaction** (`compact_20260112`) en **context editing** (`clear_tool_uses_20250919`) gebruikt Lex niet.

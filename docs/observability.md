@@ -76,6 +76,29 @@ vallen erbuiten. Welke stap traag was, staat in de spans `graph_qa.node.<naam>`.
 `model_aanroep` draagt dezelfde velden. Zo is één beurt te meten zonder toegang tot Application Insights, bijvoorbeeld
 met de acceptatie-MCP (`lex_wacht` geeft het event door).
 
+**De contextopbouw** (plan `architectuur/plan-contextweergave.md`). Elke modelaanroep draagt naast de velden hierboven:
+
+- `rol`: wie de aanroep deed (`llm_stap.Rol`), ook in `Verbruiksmeter.aanroepen` en dus in het `meting`-event;
+- `samenstelling`: het verzoek over de categorieën van `agent/contextdelen.py`, in JSON-tekens (systeem, methode,
+  graaftools, connectortools, sjablonen, beurtcontext, opdracht, historie, beurt, toolresultaten, overig);
+- `cache_schrijf_1u`: het deel van `cache_schrijf` dat een uur blijft (`usage.cache_creation`). Bij een koud begin is dat
+  het voorvoegsel; ontbreekt het veld, dan meldde de provider het object niet;
+- `profiel_id`, `profiel_versie`: het profiel waarmee de agent draaide (ADR-016).
+
+Het `meting`-event draagt daarnaast **`contextopbouw`**, en hetzelfde object staat op het bewaarde bericht
+(`Bericht.contextopbouw`). Het staat niet in de logregel `beurt_meting`.
+
+- `versie`, `run_id`, `ouder_run_id`, `profiel_id`, `profiel_versie`;
+- `agenten`: per rol met een toollus `rol`, `model`, `venster`, `laatste` (`delen` per categorie, `totaal`, `voorvoegsel`
+  met `exact`, `cache`), `begin` (`totaal`, `cache`, `tools_hash`, `system_hash`), `historiegrens` en `venster_beurten`;
+- `verbruik`: per rol `aanroepen`, `invoer`, `cache_lees`, `cache_schrijf`, `uitvoer`, `duur`;
+- `som`: de vier tellers van de beurt, gelijk aan wat naar `/v1/verbruik` gaat;
+- `aanroepen`: per aanroep het totaal, de cachecijfers, de duur en de twee vingerafdrukken, hoogstens zestig.
+
+Alleen tellingen en vingerafdrukken, geen inhoud. **Geen veld heet `token`**: de redactie (`GEHEIME_VELDEN`) laat een
+veld met precies die naam weg. `api GET /v1/gesprekken/{id}/contextopbouw` geeft de contextopbouw van de
+deelgesprekken. Een beurt zonder model heeft geen `contextopbouw`.
+
 **`venster`** (zelfde logger `graph_qa.beurt`, E6-C1) is één regel per beurt uit `agent_node`, bij de eerste
 modelronde: wat `_trim_messages` van de historie overliet (`berichten.venster_telling`). Velden: `run_id`,
 `chat_session_id`, `historie_tekens`, `venster_tekens`, `beurten_historie` en `beurten_venster` (vragen van de

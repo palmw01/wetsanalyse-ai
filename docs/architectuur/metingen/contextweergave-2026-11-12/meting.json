@@ -1,0 +1,260 @@
+{
+  "meting": "contextweergave, stap 6 van plan-contextweergave.md",
+  "datum": "2026-11-12",
+  "commit": "06556097",
+  "model": "claude-sonnet-4-6",
+  "provider": "anthropic_via_azure_foundry",
+  "eenheid": "tokens uit usage; tekens zijn JSON-tekens uit verzoekopbouw.samenstelling",
+  "vijf_beurten": [
+    {
+      "beurt": 1,
+      "run_id": "7b493abe8ff64220a93f2d694e72459a",
+      "route": "duiding",
+      "begin": "koud",
+      "aanroepen": 3,
+      "som": {
+        "invoer": 36,
+        "uitvoer": 377,
+        "cache_lees": 30049,
+        "cache_schrijf": 28177
+      },
+      "verbruik": 58639,
+      "context": 28178,
+      "begin_cache": {
+        "lees": 0,
+        "schrijf": 27860,
+        "nieuw": 3
+      },
+      "cache_schrijf_1u": 25009,
+      "voorvoegsel": {
+        "omvang": 25009,
+        "exact": true
+      },
+      "budget_voor": 829811,
+      "budget_na": 888450
+    },
+    {
+      "beurt": 2,
+      "run_id": "57255a69b59e4328874edade833183dd",
+      "route": "duiding",
+      "begin": "warm",
+      "aanroepen": 2,
+      "som": {
+        "invoer": 676,
+        "uitvoer": 165,
+        "cache_lees": 27198,
+        "cache_schrijf": 3854
+      },
+      "verbruik": 31893,
+      "context": 28866,
+      "begin_cache": {
+        "lees": 25009,
+        "schrijf": 3854,
+        "nieuw": 3
+      },
+      "voorvoegsel": {
+        "omvang": 25164,
+        "exact": false
+      }
+    },
+    {
+      "beurt": 3,
+      "run_id": "20beb9d1944e423b847760dec933deed",
+      "route": "duiding",
+      "begin": "warm",
+      "aanroepen": 3,
+      "som": {
+        "invoer": 763,
+        "uitvoer": 378,
+        "cache_lees": 57271,
+        "cache_schrijf": 3082
+      },
+      "verbruik": 61494,
+      "context": 29228,
+      "begin_cache": {
+        "lees": 26145,
+        "schrijf": 2792,
+        "nieuw": 3
+      },
+      "voorvoegsel": {
+        "omvang": 25133,
+        "exact": false
+      }
+    },
+    {
+      "beurt": 4,
+      "run_id": "2f8e39efe03843deac8ba60c966e88e9",
+      "route": "algemeen",
+      "begin": "koud",
+      "aanroepen": 3,
+      "som": {
+        "invoer": 937,
+        "uitvoer": 395,
+        "cache_lees": 33734,
+        "cache_schrijf": 32003
+      },
+      "verbruik": 67069,
+      "context": 32004,
+      "begin_cache": {
+        "lees": 0,
+        "schrijf": 31545,
+        "nieuw": 3
+      },
+      "cache_schrijf_1u": 26905,
+      "voorvoegsel": {
+        "omvang": 26905,
+        "exact": true
+      }
+    },
+    {
+      "beurt": 5,
+      "run_id": "64ec1383378243b5b2528c3ecbc55f26",
+      "route": "duiding",
+      "begin": "warm",
+      "aanroepen": 2,
+      "som": {
+        "invoer": 959,
+        "uitvoer": 749,
+        "cache_lees": 28414,
+        "cache_schrijf": 4428
+      },
+      "verbruik": 34550,
+      "context": 30656,
+      "begin_cache": {
+        "lees": 26225,
+        "schrijf": 4428,
+        "nieuw": 3
+      },
+      "voorvoegsel": {
+        "omvang": 25139,
+        "exact": false
+      }
+    }
+  ],
+  "voorvoegsels": {
+    "A_duiding_alle_bronnen": {
+      "tools_hash": "758623c1266b",
+      "system_hash": "5cc1b4215950",
+      "omvang": 25009,
+      "hoe": "cache_schrijf_1u bij een koud begin, en cache_lees van de eerste aanroep van beurt 2",
+      "tekens": {
+        "systeem": 9685,
+        "methode": 3173,
+        "graaftools": 24314,
+        "connectortools": 27480,
+        "sjablonen": 8751
+      }
+    },
+    "B_algemeen_alle_bronnen": {
+      "tools_hash": "ede9cb175ba0",
+      "system_hash": "a4a1b90d60b6",
+      "omvang": 26905,
+      "hoe": "cache_schrijf_1u bij een koud begin",
+      "tekens": {
+        "systeem": 9685,
+        "methode": 2959,
+        "graaftools": 33280,
+        "connectortools": 27480,
+        "sjablonen": 5231
+      }
+    },
+    "C_duiding_alleen_wetgeving": {
+      "tools_hash": "ad901dcefedf",
+      "system_hash": "5cc1b4215950",
+      "omvang": 13677,
+      "hoe": "cache_lees van de eerste aanroep in een nieuw gesprek (warm begin)",
+      "tekens": {
+        "systeem": 9685,
+        "methode": 3173,
+        "graaftools": 24314,
+        "sjablonen": 2849
+      }
+    }
+  },
+  "ijking_beurt_C": {
+    "run_id": "75d06868dfcb479f83cfa1b45ade8af8",
+    "aanroepen": 4,
+    "som": {
+      "invoer": 37,
+      "uitvoer": 412,
+      "cache_lees": 45028,
+      "cache_schrijf": 1357
+    },
+    "verbruik": 46834,
+    "context": 15035,
+    "voorvoegsel_geschat": 13954,
+    "rest_tekens": {
+      "beurtcontext": 1285,
+      "beurt": 549,
+      "toolresultaten": 1266
+    }
+  },
+  "regie": {
+    "opdracht": "regie_annoteren, werkgebied zonder deelvragen, 3 bepalingen in 1 deelgesprek",
+    "regie_run": {
+      "run_id": "f91544ae40b44deb8e4a56a273b6fd66",
+      "contextopbouw": null,
+      "reden": "geen modelaanroep"
+    },
+    "kind_run": "c8b4203a05a5492b8dffe05eab74a609",
+    "beurten": [
+      {
+        "run_id": "c8b4203a05a5492b8dffe05eab74a609.1",
+        "ouder_run_id": "",
+        "agenten": 0,
+        "som": {
+          "invoer": 6334,
+          "uitvoer": 1213,
+          "cache_lees": 0,
+          "cache_schrijf": 0
+        },
+        "verbruik": 7547,
+        "rollen": {
+          "jas_classifier": 4,
+          "jas_reviewer": 1
+        }
+      },
+      {
+        "run_id": "c8b4203a05a5492b8dffe05eab74a609.2",
+        "ouder_run_id": "",
+        "agenten": 0,
+        "som": {
+          "invoer": 4370,
+          "uitvoer": 391,
+          "cache_lees": 0,
+          "cache_schrijf": 0
+        },
+        "verbruik": 4761,
+        "rollen": {
+          "jas_classifier": 3
+        }
+      },
+      {
+        "run_id": "c8b4203a05a5492b8dffe05eab74a609.3",
+        "ouder_run_id": "",
+        "agenten": 0,
+        "som": {
+          "invoer": 9635,
+          "uitvoer": 1490,
+          "cache_lees": 0,
+          "cache_schrijf": 0
+        },
+        "verbruik": 11125,
+        "rollen": {
+          "jas_classifier": 6,
+          "jas_reviewer": 1
+        }
+      }
+    ],
+    "verbruik_boom": 23433
+  },
+  "eerste_beurt_na_stap_3": {
+    "run_id": "29fcd065481e4ccaada4ec48a08dc414",
+    "verbruik": 93012,
+    "context": 30890,
+    "cache_schrijf_1u": 25009,
+    "rest_tekens": 16094,
+    "rest_omvang": 5881
+  },
+  "totaal_verbruik_meting": 323912
+}
