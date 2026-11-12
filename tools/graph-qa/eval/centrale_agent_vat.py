@@ -21,6 +21,10 @@ from typing import Any
 SET = Path(__file__).resolve().parent / "golden_centrale_agent.jsonl"
 #: Een route in code vraagt het model hoogstens één keer: de toelichting van de bepalingsroute.
 MAX_RONDES_CODE = 1
+#: Naar prijs gewogen (besluit gebruiker 12 nov 2026: de drempel "niet duurder" geldt op deze maat; ADR-016 §A6): een
+#: token in invoertokens, naar de prijsverhouding van het model. Schrijven naar de cache kost meer naarmate de TTL
+#: langer is; lezen een tiende.
+GEWICHT = {"invoer": 1.0, "uitvoer": 5.0, "cache_lees": 0.1, "cache_schrijf_5m": 1.25, "cache_schrijf_1u": 2.0}
 
 
 def lees_set() -> dict[str, dict[str, Any]]:
@@ -30,6 +34,40 @@ def lees_set() -> dict[str, dict[str, Any]]:
 
 def _tokens(meting: dict[str, Any]) -> int:
     return sum(meting.get(k, 0) for k in ("invoer", "uitvoer", "cache_lees", "cache_schrijf"))
+
+
+def per_soort(metingen: list[dict[str, Any]]) -> dict[str, int]:
+    """De tokens per soort uit de modelaanroepen van een of meer `meting`-events. Het schrijven met een TTL van een uur
+    staat alleen per aanroep (`cache_schrijf_1u`); zonder aanroepen telt al het schrijven als vijf minuten."""
+    aanroepen = [a for m in metingen for a in m.get("aanroepen") or []]
+    bron = aanroepen or metingen
+    uur = sum(a.get("cache_schrijf_1u", 0) for a in aanroepen)
+    return {"invoer": sum(x.get("invoer", 0) for x in bron), "uitvoer": sum(x.get("uitvoer", 0) for x in bron),
+            "cache_lees": sum(x.get("cache_lees", 0) for x in bron),
+            "cache_schrijf_5m": sum(x.get("cache_schrijf", 0) for x in bron) - uur, "cache_schrijf_1u": uur}
+
+
+def gewogen(soorten: dict[str, int], *, warm: bool = False) -> int:
+    """De naar prijs gewogen som. `warm`: de toestand waarin het voorvoegsel van een uur al in de cache staat. Wat de
+    beurt van dat voorvoegsel schreef, telt dan als gelezen. Het voorvoegsel is voor alle juristen gelijk en blijft een
+    uur warm; welke beurt het schrijft, hangt af van wat er het uur ervoor liep, niet van de versie. Op deze maat wordt
+    de drempel "niet duurder" getoetst; de koude kosten staan ernaast."""
+    gewicht = {**GEWICHT, "cache_schrijf_1u": GEWICHT["cache_lees"]} if warm else GEWICHT
+    return round(sum(gewicht[k] * soorten.get(k, 0) for k in gewicht))
+
+
+def per_rol(metingen: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Per rol (supervisor, antwoord, …) het aantal aanroepen, de modellen en de tokens ruw en gewogen. Zo is te zien
+    wat de supervisorstap kost naast de antwoordlus, en of een rol op een ander model draait (ADR-016 §A6)."""
+    rollen: dict[str, list[dict[str, Any]]] = {}
+    for a in (a for m in metingen for a in m.get("aanroepen") or []):
+        rollen.setdefault(a.get("rol") or "?", []).append(a)
+    uit = {}
+    for rol, aanroepen in sorted(rollen.items()):
+        soorten = per_soort([{"aanroepen": aanroepen}])
+        uit[rol] = {"aanroepen": len(aanroepen), "modellen": sorted({a.get("model", "") for a in aanroepen}),
+                    "ruw": sum(soorten.values()), "gewogen": gewogen(soorten), "gewogen_warm": gewogen(soorten, warm=True)}
+    return uit
 
 
 def _een_van(ingangen: list[str], gezien: set[str]) -> list[str]:
@@ -57,8 +95,11 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
     gezien = set(tools) | set(sjabloon.get("gevuld") or {}) | ({"annoteer"} if annoteerde else set())
     laag, hoog = v["subagents"]
     gevuld = set(sjabloon.get("gevuld") or {})
+    soorten = per_soort(metingen)
+    opzet_soorten = per_soort([e for b in opzet for e in b.get("events", []) if e["type"] == "meting"])
     return {
         "id": rec["id"], "run": rec["run"], "groep": opdracht["groep"], "commit": rec.get("commit", ""),
+        "vorm": rec.get("vorm", ""),
         "gesprek": gemeten[0].get("gesprek", "") if gemeten else "",
         "runs": [b.get("run_id", "") for b in gemeten],
         "route": "regie" if regie else "+".join(m.get("route", "") for m in metingen) or "geen",
@@ -67,6 +108,15 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
         "invoer": sum(m.get("invoer", 0) for m in metingen), "uitvoer": sum(m.get("uitvoer", 0) for m in metingen),
         "cache_lees": sum(m.get("cache_lees", 0) for m in metingen),
         "cache_schrijf": sum(m.get("cache_schrijf", 0) for m in metingen),
+        "cache_schrijf_1u": soorten["cache_schrijf_1u"],
+        "gewogen": gewogen(soorten), "gewogen_warm": gewogen(soorten, warm=True),
+        "opzet_gewogen": gewogen(opzet_soorten), "opzet_gewogen_warm": gewogen(opzet_soorten, warm=True),
+        "per_rol": per_rol(metingen),
+        # Welke vorm echt draaide, uit de run zelf en niet uit wat het verzoek vroeg: een agent met de rol `centraal` in
+        # `contextopbouw.agenten`, of een aanroep met de rol `supervisor`. Leeg bij een route zonder model.
+        "vorm_gezien": sorted(({"centraal"} if any(a.get("rol") == "centraal" for m in metingen
+                                                   for a in (m.get("contextopbouw") or {}).get("agenten") or []) else set())
+                              | ({"supervisor"} if "supervisor" in per_rol(metingen) else set())),
         "duur_ms": sum(m.get("duur_ms", 0) for m in metingen) or sum(b.get("wand_ms", 0) for b in gemeten),
         "opzet_tokens": sum(_tokens(e) for b in opzet for e in b.get("events", []) if e["type"] == "meting"),
         "delta_account": sum(b.get("delta_account") or 0 for b in rec["beurten"]),
