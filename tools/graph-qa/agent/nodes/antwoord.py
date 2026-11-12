@@ -19,6 +19,7 @@ from bronmodel.antwoord import NIET_GETOETST, Antwoord, antwoord_tekst
 from bronmodel.connectors import CONNECTORS
 from langgraph.config import get_stream_writer
 
+from ..beurtmeting import tel_sjabloon
 from ..berichten import CORRECTIE, _parse_final, _schoon_messages, _trim_messages, beurt_start, venster_telling
 from ..bronregister import bij, controletrace
 from ..focus import na_antwoord
@@ -92,6 +93,11 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     variabel += b.advies_context(state)
     # Welke bronnen naast de wet aanstaan, en waarom niet (ADR-013): na het cachepunt, want het verschilt per beurt.
     variabel += bronstand_blok(state.get("bronstand") or {}, state.get("zelfstandige_vraag") or state.get("question", ""))
+    if extern_aan:
+        # Vóór deze regel zei de rol "antwoord gewoon in tekst" bij elke vraag die om meer gaat dan de wettekst, en vroeg
+        # de code daarna alsnog om het sjabloon: elk antwoord na een vondst werd twee keer geschreven (iteratie
+        # wetgeving_live ronde 4: ~20–25k tokens per vraag, bij alle connectors).
+        variabel += AFRONDEN_EXTERN.format(extern=EXTERN)
 
     # De annotatie-worker produceert JSON, geen leesbaar antwoord – díe narratie tonen we niet
     # (annoteer_node emit straks een korte samenvatting).
@@ -126,9 +132,11 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         final = stream.final_message()
 
     tool_uses, text_parts = _parse_final(final)
+    telling: dict[str, Any] = {}
     if not tool_uses and sjablonen and (aanroep := sjabloon_uit_tekst(text_parts, sjablonen)):
         logger.warning("sjabloon als tekst", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""), "sjabloon": aanroep["name"]})
         tool_uses, text_parts = [aanroep], []
+        telling = tel_sjabloon(state, "als_tekst")
     # Een sjabloon rondt af: staat hij naast graaftools, dan eerst die, en daarna komt hij vanzelf terug.
     if len(tool_uses) > 1:
         tool_uses = [t for t in tool_uses if t["name"] not in SJABLONEN]
@@ -176,18 +184,30 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         "afgekapt": afgekapt,
     }
     upd["sjabloon_nu"] = False
-    if not tool_uses and sjablonen and (zoektools := _gevonden_zonder_sjabloon(b, state)):
+    upd.update(telling)
+    gevonden = _gevonden_zonder_sjabloon(b, state) if not tool_uses and sjablonen else {}
+    tekst = "\n\n".join(p for p in text_parts if p)
+    if gevonden and heeft_lijst(tekst):
         # Eén keer per beurt: een lijst gevonden stukken in tekst mist de links, de zoekvraag en het totaal uit de code.
+        # Alleen bij een lijst: tekst zonder lijst is een geldig antwoord, en een tweede ronde kostte de hele context
+        # opnieuw. Het verzoek noemt de stukken die de lijst noemt, zodat er geen lijst bij komt die niet gevraagd is
+        # (iteratie wetgeving_live ronde 4, I13 en I30: 25 en 17 artikelen onder een opbouw en een telling).
+        genoemd = genoemde_stukken(tekst, gevonden)
         logger.info("sjabloon gevraagd", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
-                                                "specialist": spec_naam, "zoektools": sorted(zoektools)})
+                                                "specialist": spec_naam, "zoektools": sorted(gevonden),
+                                                "genoemd": len(genoemd)})
         upd["messages"] = [{"role": "assistant", "content": assistant_content},
-                           {"role": "user", "content": SJABLOON_GEVRAAGD.format(
-                               tools=", ".join(sorted(zoektools)), sjablonen=", ".join(sorted(sjablonen)))}]
-        upd.update(sjabloon_gevraagd=True, sjabloon_nu=True)
+                           {"role": "user", "content": sjabloon_gevraagd(sorted(gevonden), sorted(sjablonen), genoemd)}]
+        upd.update(sjabloon_gevraagd=True, sjabloon_nu=True, **tel_sjabloon({**state, **upd}, "gevraagd"))
         return upd
     if not tool_uses:
-        if sjablonen and not state.get("corrected"):
+        if gevonden:
+            logger.info("tekst zonder lijst aangenomen", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
+                                                                "specialist": spec_naam, "zoektools": sorted(gevonden)})
+            upd.update(tel_sjabloon({**state, **upd}, "tekst_zonder_lijst"))
+        elif sjablonen and not state.get("corrected"):
             logger.info("sjabloon gemist", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""), "specialist": spec_naam})
+            upd.update(tel_sjabloon({**state, **upd}, "gemist"))
         # De tool-loze beurt is het eindantwoord. Het gaat de state in en pas in `finalize_node` naar
         # de jurist: `verify` kan het nog afkeuren.
         antwoord = "\n\n".join(p for p in text_parts if p)
@@ -225,25 +245,75 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         upd["answer"] = antwoord
     return upd
 
-#: Wat de agent hoort als hij na een zoekresultaat van een bronconnector in tekst antwoordt (`_gevonden_zonder_sjabloon`).
-SJABLOON_GEVRAAGD = ("Je antwoordde in tekst, terwijl deze beurt stukken vond of las met {tools}. Roep het sjabloon aan "
-                     "({sjablonen}): wijs de gevonden stukken aan in 'stukken' en de gelezen passages in 'extern', dan "
-                     "staan ze erbij met hun link, de zoekvraag en het totaal. Zet je uitleg in het korte antwoord; "
-                     "herhaal de lijst niet in tekst.")
+#: Het afronden als er een bron naast de wet aanstaat; in het variabele deel van de prompt, na het cachepunt.
+AFRONDEN_EXTERN = (
+    "\n\nAFRONDEN MET EEN BRON NAAST DE WET: vond of las je in deze beurt iets met een tool van zo'n bron, dan schrijf "
+    "je geen antwoord in tekst maar rond je af met een sjabloontool, ook als de vraag om uitleg, een telling of een "
+    "opbouw gaat. Dit gaat voor 'antwoord in tekst' hierboven. Gaat de vraag alleen over zo'n bron, gebruik dan "
+    "{extern} en zet je uitleg in kort_antwoord. Vul 'stukken' alleen als de vraag om een lijst stukken vraagt (welke, "
+    "de nieuwste, alle …); bij een telling, een opbouw of een uitleg blijft 'stukken' leeg en noem je het totaal in je "
+    "eigen woorden.")
+
+#: Wat de agent hoort als hij na een vondst van een bronconnector een lijst in tekst schreef (`_gevonden_zonder_sjabloon`).
+SJABLOON_GEVRAAGD = ("Je antwoordde met een lijst in tekst, terwijl deze beurt stukken vond of las met {tools}. Roep het "
+                     "sjabloon aan ({sjablonen}) met je uitleg in het korte antwoord; herhaal de lijst niet in tekst. "
+                     "{stukken} Een gelezen passage die je citeert, wijs je aan in 'extern'.")
+_STUKKEN_GENOEMD = "Zet in 'stukken' de stukken die je lijst noemt, en geen andere: {ids}."
+_STUKKEN_ONBEKEND = ("Zet in 'stukken' alleen de stukken die je lijst noemt; noemt je lijst geen gevonden stukken, laat "
+                     "'stukken' dan leeg.")
 
 
-def _gevonden_zonder_sjabloon(b: Bouw, state: State) -> set[str]:
-    """De tools van een bronconnector die deze beurt iets vonden of lazen, als de agent het sjabloon nog niet gevraagd is en
-    er nog een ronde over is; anders leeg. Zonder sjabloon kwam een lijst gevonden stukken als tekst, zonder links,
-    zoekvraag of totaal, soms als markdown-tabel (iteratie 11 nov 2026: bekendmakingen B03, B05, B18, B20; rechtspraak R06,
-    R17, R18, R22, R23). Hoogstens één keer per beurt (`sjabloon_gevraagd`), en niet na een correctieronde."""
+def sjabloon_gevraagd(tools: list[str], sjablonen: list[str], genoemd: list[str]) -> str:
+    stukken = _STUKKEN_GENOEMD.format(ids=", ".join(genoemd)) if genoemd else _STUKKEN_ONBEKEND
+    return SJABLOON_GEVRAAGD.format(tools=", ".join(tools), sjablonen=", ".join(sjablonen), stukken=stukken)
+
+
+#: Een regel van een opsomming of een tabel in markdown.
+_LIJSTREGEL = re.compile(r"^\s*(?:[-*•]\s+|\d+[.)]\s+|\|.*\|\s*$)", re.M)
+
+
+def heeft_lijst(tekst: str) -> bool:
+    """Draagt de tekst een opsomming of tabel (twee regels of meer)? Dan mist hij wat de code bij een lijst toont: de
+    link, de zoekvraag en het totaal."""
+    return len(_LIJSTREGEL.findall(tekst or "")) >= 2
+
+
+def genoemde_stukken(tekst: str, gevonden: dict[str, list[tuple[str, str]]]) -> list[str]:
+    """De ids van de gevonden of gelezen stukken die de tekst noemt, bij id of label, in de volgorde van de trace. Een
+    label telt alleen als heel woord ("Artikel 1" niet in "Artikel 19")."""
+    laag = (tekst or "").lower()
+    uit: list[str] = []
+    for paren in gevonden.values():
+        for ident, label in paren:
+            if ident in uit:
+                continue
+            for naam in (ident, label):
+                if naam and re.search(rf"(?<!\w){re.escape(naam.lower())}(?!\w)", laag):
+                    uit.append(ident)
+                    break
+    return uit
+
+
+def _stukken_in(data: dict[str, Any]) -> list[tuple[str, str]]:
+    """(id, label) van wat een connectortool teruggaf: het gelezen stuk en de zoekrijen."""
+    rijen = [data["stuk"]] if isinstance(data.get("stuk"), dict) else []
+    rijen += [r for r in data.get("resultaten") or [] if isinstance(r, dict) and not isinstance(data.get("stuk"), dict)]
+    return [(str(r.get("id")), str(r.get("label") or "")) for r in rijen if r.get("id")]
+
+
+def _gevonden_zonder_sjabloon(b: Bouw, state: State) -> dict[str, list[tuple[str, str]]]:
+    """Per tool van een bronconnector die deze beurt iets vond of las, de stukken (id, label), als de agent het sjabloon
+    nog niet gevraagd is en er nog een ronde over is; anders leeg. Zonder sjabloon kwam een lijst gevonden stukken als
+    tekst, zonder links, zoekvraag of totaal, soms als markdown-tabel (iteratie 11 nov 2026: bekendmakingen B03, B05,
+    B18, B20; rechtspraak R06, R17, R18, R22, R23). Hoogstens één keer per beurt (`sjabloon_gevraagd`), en niet na een
+    correctieronde. Of het verzoek ook komt, beslist de lijst in de tekst (`heeft_lijst`)."""
     if state.get("sjabloon_gevraagd") or state.get("corrected") or state.get("turns", 0) + 1 >= b.settings.max_turns:
-        return set()
+        return {}
     # Ook een gelezen stuk: in tekst noemde het model nummers die het zelf afleidde, zonder citaat (iteratie ronde 2,
     # B22: "25.2.10 (nieuw)" voor "na artikel 25.2.9 een nieuw artikel"). Een fout (alleen PDF, buiten bereik, niet
     # gevonden) telt niet: daar is niets aan te wijzen.
     connectortools = {t for c in CONNECTORS.values() for t in c.tools}
-    gevonden = set()
+    gevonden: dict[str, list[tuple[str, str]]] = {}
     for naam, resultaat in state.get("source_trace", []):
         if naam in connectortools and not is_fout(resultaat):
             try:
@@ -251,7 +321,7 @@ def _gevonden_zonder_sjabloon(b: Bouw, state: State) -> set[str]:
             except (TypeError, ValueError):
                 continue
             if isinstance(data, dict) and data.get("resultaten"):
-                gevonden.add(naam)
+                gevonden.setdefault(naam, []).extend(_stukken_in(data))
     return gevonden
 
 
@@ -325,7 +395,7 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
         if sleutel in gedaan:
             results.append(_tool_result(tu, gedaan[sleutel].removesuffix(HERHAALD) + HERHAALD))
             continue
-        result_text = execute_tool(b, state, writer, tu)
+        result_text = execute_tool(b, state, writer, tu, van_model=True)
         gedaan[sleutel] = result_text
         trace.append((tu["name"], result_text))
         results.append(_tool_result(tu, result_text))

@@ -16,7 +16,7 @@ import logging
 from typing import Any
 from uuid import uuid4
 
-from bronmodel.antwoord import Antwoord, Leemte, antwoord_tekst
+from bronmodel.antwoord import Antwoord, Leemte, TelPost, Telling, antwoord_tekst
 from bronmodel.connectors import CONNECTORS
 from langgraph.config import get_stream_writer
 
@@ -85,6 +85,11 @@ def bron_lijst_node(b, state: State) -> dict[str, Any]:
         blokken[0] = blokken[0].model_copy(update={"zoekvraag": " ".join(filter(None, [
             blokken[0].zoekvraag, f"Je vroeg om {gevraagd}; per keer toon ik er hoogstens {getoond}. Vraag om de "
             "volgende als je meer wilt zien."]))})
+    if v.get("kanttekening") and blokken and getattr(blokken[0], "soort", "") == "stukken":
+        blokken[0] = blokken[0].model_copy(update={"zoekvraag": " ".join(filter(None, [blokken[0].zoekvraag,
+                                                                                       v["kanttekening"]]))})
+    if v.get("tellen") and blokken and getattr(blokken[0], "soort", "") == "stukken":
+        blokken[0] = blokken[0].model_copy(update={"telling": telling(c.label, data, v.get("verdeling") or "")})
     antwoord = Antwoord(sjabloon="extern", blokken=blokken)
     uit = antwoord_tekst(antwoord)
     return {
@@ -94,6 +99,39 @@ def bron_lijst_node(b, state: State) -> dict[str, Any]:
         # Het paar plus het antwoord: een vervolgvraag ("lees de eerste") kent de ids en de zoekvraag.
         "messages": [*paar, {"role": "assistant", "content": [{"type": "text", "text": uit}]}],
     }
+
+
+def _stam(woord: str) -> str:
+    """Het woord zonder meervoud, om het naast een telling van de bron te leggen ("instanties" → "instantie")."""
+    w = woord.lower()
+    for eind in ("ies", "en", "s"):
+        if w.endswith(eind) and len(w) - len(eind) >= 4:
+            return w[: -len(eind)] + ("ie" if eind == "ies" else "")
+    return w
+
+
+def telling(bron: str, data: dict[str, Any], verdeling: str = "") -> Telling:
+    """Het antwoord op een telvraag uit het resultaat van de zoektool, voor elke connector: het `totaal` van de bron (anders
+    het aantal rijen van een volledig resultaat, anders ten minste dat), met de `dekking` die de tool zegt. Een verdeling
+    komt uit een telling van de bron (`per_<woord>`: `per_instantie`), nooit uit de rijen van één pagina; geeft de bron er
+    geen, dan zegt de telling dat."""
+    rijen = data.get("resultaten") or []
+    totaal = data.get("totaal")
+    if isinstance(totaal, int):
+        aantal, dekking = totaal, "ten minste" if data.get("dekking") == "ten minste" else "precies"
+    else:
+        aantal, dekking = len(rijen), "precies" if data.get("volledig") else "ten minste"
+    uit = Telling(aantal=aantal, dekking=dekking, bron=bron)
+    if not verdeling:
+        return uit
+    stam = _stam(verdeling)
+    sleutel = next((k for k, w in data.items() if k.startswith("per_") and isinstance(w, dict)
+                    and _stam(k[4:].replace("_", " ")).startswith(stam[:6])), "")
+    if not sleutel:
+        return uit.model_copy(update={"zonder_verdeling": f"Een verdeling naar {verdeling} geeft {bron or 'de bron'} "
+                                                          "niet, en die tel ik niet zelf uit één pagina."})
+    per = [TelPost(waarde=str(w), aantal=n) for w, n in data[sleutel].items() if isinstance(n, int)]
+    return uit.model_copy(update={"per_wat": sleutel[4:].replace("_", " "), "per": per})
 
 
 def route_na_bron_lijst(b, state: State) -> str:

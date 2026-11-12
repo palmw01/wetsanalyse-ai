@@ -9,6 +9,7 @@ import logging
 
 from bronmodel.connectors import CONNECTORS
 
+from . import id_herkomst
 from .annotatie_read import AnnotatieReadApi
 from .begrip_read import BegripReadApi
 from .tools import dispatch
@@ -41,7 +42,9 @@ FILTERS = frozenset({"klasse", "jas_klassen", "tekst", "lifecycle", "laagstatus"
     f for c in CONNECTORS.values() for veld in c.metadata for f in veld.filters) - {"bwb_id", "artikel", "id"}
 
 
-def execute_tool(b, state, writer, tool, *, operation=None):
+def execute_tool(b, state, writer, tool, *, operation=None, van_model=False):
+    """Voer één aanroep uit, met de events eromheen. `van_model`: de aanroep komt van het model (`tools_node`), en dan moet
+    elk id erin uit het gesprek komen (`id_herkomst.toets`); code die zelf een tool aanroept, leidt haar ids zelf af."""
     name, args = tool["name"], tool.get("input") or {}
     leesroute = "annotaties_lezen" if state.get("annotaties_lezen") else "begrippen_lezen" if state.get("begrippen_lezen") else ""
     if leesroute and not operation:
@@ -61,9 +64,16 @@ def execute_tool(b, state, writer, tool, *, operation=None):
     writer({**event, "phase": "start", "status": "running"})
     start = monotonic()
     try:
-        raw = operation() if operation else dispatch(name, b.graph, args, b.settings,
-                                                     annotaties=read_port(b, state), begrippen=begrip_port(b, state),
-                                                     bronnen=state.get("bronnen"))
+        weigering = id_herkomst.toets(name, args, state, graph=b.graph) if van_model and not operation else None
+        if weigering:
+            logger.info("id_niet_uit_gesprek", extra={"categorie": "functioneel", "tool": name,
+                                                       "run_id": state.get("run_id", "")})
+            raw = fout("id_niet_uit_gesprek", weigering)
+        elif operation:
+            raw = operation()
+        else:
+            raw = dispatch(name, b.graph, args, b.settings, annotaties=read_port(b, state),
+                           begrippen=begrip_port(b, state), bronnen=state.get("bronnen"))
         if not isinstance(raw, str):
             raw = json.dumps(raw, ensure_ascii=False)
         try:

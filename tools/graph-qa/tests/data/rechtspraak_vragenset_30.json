@@ -362,7 +362,7 @@
    "id": "R22",
    "soort": "verdeling per instantie",
    "vraag": "Hoe verdelen de uitspraken over artikel 36 Invorderingswet 1990 zich over de instanties?",
-   "route": "model",
+   "route": "lijstvraag",
    "tool": "zoek_uitspraken",
    "args": {
     "bwb_id": "BWBR0004770",

@@ -36,7 +36,7 @@ ankerlogica die de api en de agent delen staat in `packages/bronmodel` (`wetsana
 | `nodes/annotatie.py` | annoteer (voorbereiding + `jas_pipeline.keten.analyseer`) en emit |
 | `nodes/annotatie_lezen.py` | de leesroute: eerst zoeken in de opgeslagen annotaties, dan formuleren |
 | `nodes/bron_lezen.py` | een stuk dat de vraag bij id noemt (ADR-013): de leestool van de connector in code, dan formuleren |
-| `nodes/bron_lijst.py` | een lijstvraag over een bron naast de wet ("het laatste stuk van dossier 32140"): de zoektool in code, het blok `stukken`, zonder model |
+| `nodes/bron_lijst.py` | een lijstvraag over een bron naast de wet ("het laatste stuk van dossier 32140"): de zoektool in code, het blok `stukken`, zonder model; ook een telvraag ("hoeveel …", "hoe verdelen … zich over de instanties": `Stukken.telling` uit `totaal`, `dekking` en een `per_<woord>` van de bron, nooit uit één pagina) en stukken die bij een regeling horen (het bwb-id bij een connector met `wetsverwijzing`, anders de naam in de titel met een kanttekening; Kamerstukken ronde 5, K17/K25/K26, Rechtspraak R22) |
 | `nodes/overzicht.py` | de overzichtsroute: overzicht en tekst uit de graaf, zonder model |
 | `nodes/bepaling.py` | de bepalingsroute (ADR-010, laag 2): de tekst van een bepaling uit `bepaling_workflow`, zonder toollus |
 | `nodes/werkgebied.py` | de werkgebied-worker: één stap van het samenstellen van een werkgebied (activiteit 1) |
@@ -99,11 +99,18 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
 - **`sjabloon_node`** – roept het model een sjabloontool aan (`agent/sjablonen/`, ADR-008), dan vult de code het antwoord
   uit de trace (register + deze beurt): blokken in `State.antwoord`, de vaste tekst uit `antwoord_tekst` in `answer`. Niet te
   vullen (`Onvulbaar`) is een `is_error`-resultaat en het model gaat verder; een halve vulling bestaat niet. Naast een
-  graaftool wacht het sjabloon tot de volgende ronde. Tekst in plaats van de tool blijft geldig (log `sjabloon gemist`),
-  behalve één keer per beurt na een zoek- of leesresultaat van een bronconnector (geen fout; ronde 2, B22: een tabel met
-  zelf afgeleide nummers na een gelezen stuk): dan stuurt `route_after_agent` de agent terug naar
-  zichzelf met `SJABLOON_GEVRAAGD` (`_gevonden_zonder_sjabloon`, `State.sjabloon_gevraagd`/`sjabloon_nu`, per beurt gereset;
-  iteratie 11 nov 2026: lijsten als tekst of markdown-tabel zonder links of zoekvraag). Blijft het tekst, dan is dat het antwoord.
+  graaftool wacht het sjabloon tot de volgende ronde. Tekst in plaats van de tool blijft geldig (log `sjabloon gemist`).
+  **Na een vondst van een bronconnector is het één schrijfronde** (iteratie wetgeving_live ronde 4: de rol zei "antwoord
+  in tekst", de code vroeg daarna alsnog om het sjabloon, ~20–25k tokens per vraag bij alle connectors):
+  - met een connector aan staat `AFRONDEN_EXTERN` in het variabele promptdeel: rond af met het sjabloon, ook bij uitleg, telling of
+    opbouw, en vul 'stukken' alleen als de vraag om een lijst vraagt;
+  - schrijft het model toch tekst, dan komt het herhaalverzoek (`sjabloon_gevraagd`, één keer per beurt, `State.sjabloon_gevraagd`/
+    `sjabloon_nu`) alleen bij een opsomming of tabel (`heeft_lijst`; ronde 2, B22: een tabel met zelf afgeleide nummers), en het
+    noemt de stukken die die lijst noemt (`genoemde_stukken`), zodat er geen lijst bij komt die niet gevraagd is (I13, I30);
+  - tekst zonder lijst is het antwoord, zonder tweede ronde.
+  Wat er per beurt met de sjablonen gebeurde, telt `beurtmeting.tel_sjabloon` (`State.sjabloon_telling` → `Verbruiksmeter.sjabloon`
+  → het veld `sjabloon` van het `meting`-event): `gevraagd`, `tekst_zonder_lijst`, `gemist`, `als_tekst`, en per sjabloon `gevuld`
+  en `geweigerd` (`<sjabloon>:<redencode>`, de functie die `Onvulbaar` gooide, `nodes/sjabloon.redencode`). Geen inhoud.
   Alleen de sjabloontools zijn `strict`, en ze staan niet in `TOOLS`. Per specialist: `Specialist.sjablonen`.
   `antwoord_duiding` (uitleg): het model wijst per passage de bepaling en de eerste en laatste woorden aan (`van`/`tot`,
   D5), de code neemt de tekst ertussen uit de bron; gezocht wordt met typografische tekens als hun gewone vorm (’ = '),
@@ -479,6 +486,14 @@ bruikbaar is.
   "Kamerstukken · kst-33755-3 deels gelezen, er is meer dan dit", "Wetgeving · niet bereikbaar". Een aantal alleen bij
   een zoektool (bij een leestool telt het rijen, geen inhoud), een fout in woorden (`resultaat.REDEN_ZIN`), geen toolnaam,
   JSON of duur. Het tweede blok onder het antwoord ("Graaf geraadpleegd") is daarmee weg (9 nov 2026).
+  **Een id in een aanroep van het model komt uit het gesprek** (`agent/id_herkomst.py`, `execute_tool(van_model=True)`, alleen
+  vanuit `tools_node`): een BWB-id, het id-argument van een leestool (uit `ConnectorBeschrijving.lees_argument`) of een
+  dossiernummer moet in de vraag, een toolresultaat (deze beurt, register, berichten), de context van de code of een eerder
+  antwoord staan, en een stuk mag ook in een citeervorm in de vraag staan. Anders gaat het niet naar de bron maar terug als
+  fout (`id_niet_uit_gesprek`), met de zoektool die het wel vindt. Declaratief per parameter (`ARGUMENTEN`), niet per tool. Een
+  BWB-id van een regeling in de graaf mag ook (het resultaat noemt haar en de controle toetst het id); de weigering geldt
+  als de graaf aantoont dat ze er niet in staat (wetgeving_live I20: een id uit het geheugen). Wat het model in deze beurt
+  zelf schreef, telt niet. Code die een tool aanroept, leidt haar ids zelf af en valt er niet onder. `tests/test_id_herkomst.py`.
 - **`agent/spoorbronnen.py`** – één register van wat Lex raadpleegt, intern (`WETGEVING`, `ANNOTATIES`, `BEGRIPPEN`,
   `METHODE`) en per connector afgeleid uit zijn beschrijving (`uit_connector`: label, werkwoorden, leestool = lezen, de
   rest zoekt). Daaruit komen het werkwoord van de statusregel (`toolregel`, achter `narratie._toolregel`) en de

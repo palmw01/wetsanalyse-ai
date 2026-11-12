@@ -13,7 +13,7 @@ import { StatusLabel } from "@/components/ui/Lijst";
 import { StukVindplaats, Vindplaats } from "./Vindplaats";
 import { ConnectorTekst } from "@/components/wettekst/ConnectorTekst";
 import { Markdown } from "@/components/werkplek/Markdown";
-import { gezamenlijkTekst, groepeerWettekst, type Antwoord as AntwoordData, type AntwoordBlok, type BlokSoort } from "@/lib/antwoord";
+import { gezamenlijkTekst, groepeerWettekst, tellingTekst, type Antwoord as AntwoordData, type AntwoordBlok, type BlokSoort } from "@/lib/antwoord";
 import { bronHref } from "@/lib/url";
 
 /** "19.523", zoals de statusregel van Lex en de Markdown van het antwoord (`bronmodel.antwoord.getal`). */
@@ -147,6 +147,17 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
   // Een lijst gevonden stukken: elk feit uit de zoekrijen, met wat er gezocht is. Gevonden, niet gelezen.
   stukken: ({ blok }) => (
     <Sectie kop={blok.kop}>
+      {/* Een telvraag: eerst het aantal dat de bron telt, en de verdeling als de bron die geeft. */}
+      {blok.telling && (
+        <div className="space-y-1" data-telling>
+          <p className="font-medium">{tellingTekst(blok.telling)}{!blok.telling.per?.length && blok.telling.zonder_verdeling ? ` ${blok.telling.zonder_verdeling}` : ""}</p>
+          {!!blok.telling.per?.length && (
+            <ul className="text-sm" data-telling-per={blok.telling.per_wat}>
+              {blok.telling.per.map((p) => <li key={p.waarde}>{p.waarde}: {getal(p.aantal)}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
       <ul className="space-y-2" data-stukken={blok.brontype}>
         {blok.items.map((s) => (
           <li key={s.id} className="space-y-0.5" data-stuk={s.id}>

@@ -69,6 +69,7 @@ REDEN_ZIN: dict[str, str] = {
     "in_graaf": "staat in de kennisgraaf; daar gelezen",
     "niet_in_graaf": "staat niet in de kennisgraaf",
     "toestand_onvolledig": "de tekst is niet volledig te lezen",
+    "id_niet_uit_gesprek": "niet gezocht: het id kwam niet uit het gesprek",
 }
 
 

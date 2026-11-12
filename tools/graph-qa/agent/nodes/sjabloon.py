@@ -15,6 +15,7 @@ from bronmodel.antwoord import Annotaties, Antwoord, Vindplaats, antwoord_tekst
 from bronmodel.vindplaats import vindplaats
 from langgraph.config import get_stream_writer
 
+from ..beurtmeting import tel_sjabloon
 from ..bronregister import controletrace
 from ..narratie import _stap, _toolregel
 from ..tool_execution import execute_tool
@@ -68,6 +69,18 @@ OPNIEUW = ("\n\nVerbeter de aanroep en roep {naam} opnieuw aan: het antwoord hoo
            "sjabloon of deze tool nooit in je antwoord.")
 
 
+def redencode(fout: BaseException) -> str:
+    """Waar de weigering vandaan kwam, zonder inhoud: de module en de functie die `Onvulbaar` gooide
+    (`extern.blokken`, `duiding.vul`). Zo telt het `meting`-event weigeringen per soort zonder één melding aan te passen."""
+    tb = fout.__traceback__
+    while tb is not None and tb.tb_next is not None:
+        tb = tb.tb_next
+    if tb is None:
+        return "onbekend"
+    module = tb.tb_frame.f_globals.get("__name__", "").rsplit(".", 1)[-1]
+    return f"{module}.{tb.tb_frame.f_code.co_name}"
+
+
 def sjabloon_node(b: Bouw, state: State) -> dict[str, Any]:
     tu = state["pending_tools"][0]
     def resultaat(tekst: str, **extra: Any) -> dict[str, Any]:
@@ -78,13 +91,15 @@ def sjabloon_node(b: Bouw, state: State) -> dict[str, Any]:
     except Onvulbaar as fout:
         logger.warning("sjabloon niet te vullen", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
                                                          "sjabloon": tu["name"], "reden": str(fout),
+                                                         "redencode": redencode(fout),
                                                          "opgehaald": len(fout.ophalen)})
         tekst, trace = _lees_wat_genoemd_is(b, state, fout)
         # Na een weigering schreef het model vaak vrije tekst (derde meting Rechtspraak, 10 nov 2026: 2 van 6 runs na een
         # tweede pagina, met afgeronde bedragen en een eigen blokcitaat). Het sjabloon hoort het antwoord te dragen.
         tekst += OPNIEUW.format(naam=tu["name"])
         return {"messages": [{"role": "user", "content": [resultaat(tekst, is_error=True)]}], "pending_tools": [],
-                **({"source_trace": trace} if fout.ophalen else {})}
+                **({"source_trace": trace} if fout.ophalen else {}),
+                **tel_sjabloon(state, "geweigerd", f"{tu['name']}:{redencode(fout)}")}
     _met_regelingen(b, antwoord)
     tekst = antwoord_tekst(antwoord)
     return {
@@ -93,6 +108,7 @@ def sjabloon_node(b: Bouw, state: State) -> dict[str, Any]:
         "pending_tools": [],
         "answer": tekst,
         "antwoord": antwoord.model_dump(),
+        **tel_sjabloon(state, "gevuld", tu["name"]),
     }
 
 
