@@ -138,3 +138,26 @@ def test_geen_vraag_uit_de_vragensets_verliest_haar_eigen_bron(bestand, eigen):
         for buiten in (False, True):
             stand, _ = bronkeuze.kies(_stand(), bronkeuze.genoemd([vraag], buiten_graaf=buiten), None)
             assert eigen in bronkeuze.actief(stand), (q.get("id"), vraag)
+
+
+def test_een_route_in_code_houdt_haar_connector():
+    """Meting ronde 6, B18: de vraag noemt het Staatsblad, de lijstroute koos Kamerstukken. Die connector hoort erbij."""
+    upd = {"bron_lijst": {"connector": "kamerstukken", "tool": "zoek_kamerstukken", "args": {"dossier": "36602"}}}
+    assert bronkeuze.van_route(upd) == {"kamerstukken"}
+    assert bronkeuze.van_route({"bron_lezen": [{"name": "get_bekendmaking", "input": {"id": "stb-2010-176"}}]}) == {"bekendmakingen"}
+    stand, _ = bronkeuze.kies(_stand(), {"bekendmakingen"} | bronkeuze.van_route(upd), None)
+    assert set(bronkeuze.actief(stand)) == {"bekendmakingen", "kamerstukken"}
+
+
+def test_de_lijstroute_krijgt_haar_eigen_bron_ook_als_de_vraag_een_andere_noemt(monkeypatch):
+    from agent.nodes import supervisie
+
+    monkeypatch.setattr(supervisie, "get_stream_writer", lambda: (lambda _e: None))
+    state = {"question": "Welke publicaties horen bij Kamerdossier 36602?", "bronstand": _stand()}
+    upd = {"bron_lijst": {"connector": "kamerstukken", "tool": "zoek_kamerstukken", "args": {"dossier": "36602"}}}
+
+    class _B:
+        graph = FakeGraph(result="")
+
+    uit = supervisie._bronkeuze(_B(), state, upd)
+    assert set(uit["bronnen"]) == {"bekendmakingen", "kamerstukken"}

@@ -46,6 +46,19 @@ def genoemd(teksten: Iterable[str], *, buiten_graaf: bool = False) -> set[str]:
     return uit | ({BUITEN_GRAAF} if buiten_graaf and uit else set())
 
 
+def van_route(upd: dict[str, Any]) -> set[str]:
+    """De connectors waarvan de route die de supervisor in code koos al een tool aanroept: een genoemd stuk lezen
+    (`bron_lezen`) of een lijstvraag (`bron_lijst`). Die horen altijd bij de keuze; anders liep de aanroep van de code zelf
+    tegen een vernauwde stand aan (meting ronde 6, B18: "Welke publicaties horen bij Kamerdossier 36602?" noemt het
+    Staatsblad, de lijstroute koos `zoek_kamerstukken {dossier}`, en Lex zei dat Kamerstukken uit stond)."""
+    tools = {str(a.get("name", "")) for a in upd.get("bron_lezen") or [] if isinstance(a, dict)}
+    lijst = upd.get("bron_lijst") or {}
+    uit = {n for n, c in CONNECTORS.items() if tools & set(c.tools)}
+    if isinstance(lijst, dict) and lijst.get("connector") in CONNECTORS:
+        uit.add(lijst["connector"])
+    return uit
+
+
 def kies(stand: dict[str, dict[str, Any]], genoemde: set[str],
          vorige: list[str] | None) -> tuple[dict[str, dict[str, Any]], list[str] | None]:
     """(de bronstand van deze beurt, de keuze van het gesprek). De keuze is None als er niets te kiezen valt: dan blijft
