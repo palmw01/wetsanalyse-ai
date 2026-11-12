@@ -15,6 +15,7 @@ DOEL = ROOT / 'tools/graph-qa/agent/methodepakket.py'
 # methodetekst.
 # Een rol hoort hier alleen als een modelaanroep hem draagt (`llm_stap.Rol`, `tests/test_methoderollen.py`).
 ROLLEN = frozenset({'supervisor', 'retrieval', 'definitie', 'duiding', 'algemeen', 'deelvragen'})
+LEX_VELDEN = frozenset({'soort', 'label', 'herkomst', 'licentie', 'letterlijk'})
 
 
 def sha(tekst: str) -> str:
@@ -26,6 +27,15 @@ def compileer(skill: Path = SKILL) -> dict:
     versie = re.findall(r'^  methode_versie: "([^"\n]+)"$', hoofd.split('---', 2)[1], re.M)
     if len(versie) != 1:
         raise ValueError('precies één methode_versie in skillmetadata vereist')
+    # De beschrijving voor de catalogus (ADR-014): soort, label, herkomst, licentie en of de tekst letterlijk uit een
+    # bron van derden mag komen. Het staat in de frontmatter, zodat de skill ook voor Claude Code één bestand blijft.
+    lex = dict(re.findall(r'^  lex_([a-z]+): "([^"\n]+)"$', hoofd.split('---', 2)[1], re.M))
+    beschrijving = re.search(r'^description: >-\n((?:  .+\n)+)', hoofd.split('---', 2)[1], re.M)
+    if not beschrijving:
+        raise ValueError('skillmetadata: description (>-) vereist')
+    lex['beschrijving'] = ' '.join(r.strip() for r in beschrijving[1].splitlines())
+    if set(lex) - {'beschrijving'} != LEX_VELDEN or lex['soort'] != 'methode' or lex['letterlijk'] not in ('ja', 'nee'):
+        raise ValueError(f'skillmetadata lex_*: precies {sorted(LEX_VELDEN)} vereist')
     mapping = json.loads((skill / 'agentrollen.json').read_text())
     if set(mapping['rollen']) != ROLLEN:
         raise ValueError('onbekende of ontbrekende agentrollen')
@@ -54,7 +64,7 @@ def compileer(skill: Path = SKILL) -> dict:
     # Ook klassendefinities en bronregister vallen onder de identiteit van het pakket.
     bestanden = {'SKILL.md', 'agentrollen.json', 'references/bronnen.md',
                  'references/jas-klassen-referentie.md'} | {s['bestand'] for s in secties.values()}
-    pakket = {'versie': versie[0], 'rollen': mapping['rollen'], 'secties': secties,
+    pakket = {'versie': versie[0], 'lex': lex, 'rollen': mapping['rollen'], 'secties': secties,
               'bronbestanden': {p: sha((skill / p).read_text()) for p in sorted(bestanden)}}
     pakket['sha256'] = sha(json.dumps(pakket, sort_keys=True, ensure_ascii=False))
     return pakket

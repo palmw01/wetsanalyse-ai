@@ -23,6 +23,7 @@ from functools import cache
 from typing import Any
 
 from bronmodel import CorpusMap, Span
+from bronmodel.catalogus import Stap
 
 from . import relaties as relatieregels, uitleg
 from ..annotatie import _maak_anker
@@ -190,6 +191,19 @@ def _verwerp(beslissingen: list[Beslissing], bevindingen) -> list[Beslissing]:
     fout = {x.label: x for x in bevindingen if x.ernst == "fout"}
     return [b.model_copy(update={"status": CandidateStatus.REJECTED, "reden": f"VALIDATION_ERROR:{fout[b.label].code}"})
             if b.label in fout else b for b in beslissingen]
+
+
+#: De fasen in uitvoeringsvolgorde, met of er een model aan te pas komt (ADR-014: de catalogus toont ze). Elke
+#: `fasen.klaar(...)` hieronder noemt een fase uit deze lijst; `tests/test_catalogus.py` toetst dat.
+FASEN: tuple[Stap, ...] = (
+    Stap("Taalanalyse", "geen"),
+    Stap("Detectie", "geen"),   # de detectorregels: regelset/jas.detector.*
+    Stap("Besluit", "geen"),
+    Stap("Classificatie", "strict"),
+    Stap("Review", "strict"),
+    Stap("Resultaat", "geen", "regelset/jas.verklaringen"),
+    Stap("Relaties", "geen"),
+)
 
 
 class _Fasen:

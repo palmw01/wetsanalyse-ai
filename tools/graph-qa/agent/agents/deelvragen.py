@@ -29,6 +29,10 @@ from ..wetsanalyse_api import WetsanalyseApiFout
 from . import Context, Uitkomst, geweigerd
 
 
+#: Wat deze agent doet, met wat er níét bij hoort (ADR-010 contractpunt 1; de catalogus toont het, ADR-014).
+DOEL = "Stelt deelvragen bij een werkgebied voor, verbetert ze en toont de dekking; bronnen kiest hij niet, dat doet de bronselectie."
+
+
 class Taak(StrEnum):
     VOORSTELLEN = "voorstellen"
     VERBETEREN = "verbeteren"

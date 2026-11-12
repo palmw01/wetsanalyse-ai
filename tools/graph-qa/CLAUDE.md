@@ -192,7 +192,10 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   166") blijft het een bewering. Een **aantal** ("12 publicaties", "vijf wetten") toetst tegen de aantallen in de trace
   (`tellingen_uit`: elk geheel getal in de JSON en de lengte van elke lijst), niet tegen elk getal: een klein getal staat
   vaak toevallig in een datum (Staatsblad ronde 5, B03/B26). Een telwoord van twee tot twintig telt mee, tenzij de gelezen
-  tekst het zelf gebruikt. Terugmeting zonder model: `docs/architectuur/metingen/rechtspraak-iteratie-2026-11-11/beweringen-terugmeting.md`.
+  tekst het zelf gebruikt. Een **vergaderjaar** ("1987/88", "1987-1988": één vorm) is een eigen bewering, en een dossier
+met een vergaderjaar in één zin moet samen in één toolresultaat staan (`bronnen`; Kamerstukken ronde 6, K16: "dossier
+20588, 1988-1989" was een juist nummer met een fout jaar). Een getal vóór een komma telt (alleen ",\d" is een decimaal),
+"20 588" is één getal, en een citeervorm van een connector ("Stb. 2009, 610") heeft de toets van een id. Terugmeting zonder model: `docs/architectuur/metingen/rechtspraak-iteratie-2026-11-11/beweringen-terugmeting.md`.
   `tests/test_beweringen.py`.
 - **`finalize_node`** – de enige plek in de antwoordketen die `token` uitstuurt (ook voor het overzicht; `tests/test_uitgifte_na_controle.py` bewaakt het). Een controle die volgt op publicatie
   houdt niets tegen, dus de jurist ziet een antwoord pas ná `verify` en afgekeurde tekst nooit, ook niet in
@@ -253,7 +256,10 @@ bruikbaar is.
   `cache_control` (op Foundry een beta-functie), dan zet de adapter zichzelf uit en herhaalt de call
   zonder – caching mag nooit "de dienst ligt plat" kosten. Knop: `PROMPT_CACHING=false`.
 - **`llm_stap.py`** – de gedeelde modelstap (H5). `aanroep(llm, rol, **verzoek)` geeft de kwargs ongewijzigd door,
-  geeft een `Stopreden` terug, logt één `model_aanroep` (rol, model, stopreden, duur, gebruik; geen inhoud) en eist dat
+  geeft een `Stopreden` terug, logt één `model_aanroep` (rol, model, stopreden, duur, gebruik en de opbouw van het verzoek uit
+  `agent/verzoekopbouw.py`: tekens van tools, systeemdelen, historie en lopende beurt, plus `tools_hash`/`system_hash`,
+  en `methode_sha` = `methode.vingerafdruk(rol)` uit de sectie-sha's van `PAKKET`, dezelfde bron als de catalogus van
+  ADR-014; geen inhoud) en eist dat
   de systeemprompt de methodetekst van de rol draagt (`Rol.methoderol`, of `methoderol=` voor de specialist van de
   antwoordlus). `stroom` doet hetzelfde voor de streamende antwoordlus en logt bij `final_message()`. Supervisor,
   antwoordlus, ophaal-agent en de toelichting van de bepalingsroute lopen erlangs. `vraag_tool` is de vorm voor één tool (meestal strict):
@@ -829,7 +835,8 @@ markeringen op, dan meldt hij dat ze niet zijn vastgelegd.
 
 **Tokenverbruik wordt niet via een event geboekt.** Wie meekijkt krijgt het wel te zien: vlak vóór `done` gaat
 een `meting`-event mee met dezelfde cijfers als de logregel `beurt_meting`, plus het verbruik en de duur per
-modelaanroep (`Verbruiksmeter.aanroepen`, hoogstens `MAX_AANROEPEN`). Alleen de run-events, niet `/v1/chat`;
+modelaanroep (`Verbruiksmeter.aanroepen`, hoogstens `MAX_AANROEPEN`), met dezelfde opbouw als `model_aanroep`: daaraan
+zie je of een koude cache uit een andere toolset kwam (een andere `tools_hash` dan de vorige aanroep) of uit de tijd. Alleen de run-events, niet `/v1/chat`;
 de werkplek negeert het. Het boeken zelf blijft zoals hieronder. `AnthropicLLM` telt elk `usage`-blok op in een `Verbruiksmeter`
 (`agent/models.py`, met een lock: takken kunnen parallel lopen). De aanroeper geeft dezelfde meter aan
 `answer_stream` én `voer_beurt_uit`; de driver boekt hem in een `finally` (`POST /v1/verbruik`,
