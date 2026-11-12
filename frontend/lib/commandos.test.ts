@@ -60,13 +60,13 @@ describe("het register", () => {
     const namen = beschikbaar(stand(werkgebiedSuggesties())).map((c) => c.naam);
     expect(namen.slice(0, 3)).toEqual(["dossier", "thema", "deelvragen"]);
     expect(namen).toContain("annoteer");
-    expect(namen.slice(-3)).toEqual(["nieuw", "help", "compact"]);
+    expect(namen.slice(-2)).toEqual(["nieuw", "help"]);
     // Zonder bron om om te zetten geen /bron.
     expect(namen).not.toContain("bron");
-    expect(beschikbaar(stand([], { connectors: bronnen })).map((c) => c.naam)).toEqual(["nieuw", "bron", "help", "compact"]);
+    expect(beschikbaar(stand([], { connectors: bronnen })).map((c) => c.naam)).toEqual(["nieuw", "bron", "help"]);
     // Bij een deelvraag de handelingen op de deelvraag, niet die van het werkgebied.
     const bijDeelvraag = beschikbaar(stand(suggestiesVan(deelvraag))).map((c) => c.naam);
-    expect(bijDeelvraag).toEqual(["scherper", "splits", "bronnen", "bepaling", "annoteer", "dekking", "nieuw", "help", "compact"]);
+    expect(bijDeelvraag).toEqual(["scherper", "splits", "bronnen", "bepaling", "annoteer", "dekking", "nieuw", "help"]);
   });
 });
 
@@ -114,7 +114,6 @@ describe("het menu", () => {
     expect(regels.find((r) => r.label === "/verschil")?.uit).toBeUndefined();
     expect(regels.find((r) => r.label === "/nieuw")?.uitvoer).toEqual({ soort: "client", handeling: "nieuw" });
     expect(menuRegels("/uitleg", stand(suggestiesVan(begrip), { geblokkeerd: true }))![0].uit).toBe("je tokenbudget is op");
-    expect(regels.find((r) => r.label === "/compact")).toMatchObject({ uit: "komt nog", uitvoer: null });
   });
 
   it("/bron vult aan en toont de bronnen met hun stand; wat de omgeving niet aanbiedt staat er niet bij", () => {

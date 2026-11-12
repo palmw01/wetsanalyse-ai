@@ -528,7 +528,11 @@ Het is een versneller naast de suggesties, geen vervanging, en **geen tweede rou
   suggestie, geen eigen lijst.
 - **Clientcommando's** (`CLIENT_COMMANDOS`) zijn geen beurt en kosten geen tokens: `/nieuw` (*Nieuw gesprek*, in het
   werkgebied), `/bron <naam>` (een bron naast de wet om, via `kiesConnector`; de namen uit het connectormenu, alleen wat
-  aan te zetten is) en `/help` (de hele lijst). `/compact` is gereserveerd voor het contextbeheer: zichtbaar, niet te kiezen.
+  aan te zetten is) en `/help` (de hele lijst). Geen `/compact`: de historie is al begrensd en wordt gecachet gelezen
+  (sessie contextbeheer, 12 nov 2026), dus samenvatten levert bijna geen tokens op.
+- **De catalogus (ADR-014)**: een suggestiecommando wijst naar een actie uit graph-qa (`ACTIE_TAAK` en de andere
+  actielijsten), en die actie is een ingang van een `Onderdeel`. Er komt dus geen eigen lijst van wat Lex kan. Vanaf
+  C1 toetst een drift-test dat elke actie van een commando een ingang van een onderdeel is.
 - **Toetsen**: ↑/↓ kiest, Tab vult aan, Enter voert uit (een commando met een argument vult eerst aan), Escape sluit het menu
   en laat de tekst staan. Geen treffer: het menu zegt dat en Enter verstuurt de tekst als vraag. `/` is tekst, geen
   sneltoets: niets reageert op `/` buiten het veld (`app/commandos.test.ts`).

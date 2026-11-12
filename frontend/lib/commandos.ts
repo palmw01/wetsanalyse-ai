@@ -10,8 +10,12 @@ import type { Suggestie } from "./vraagLex";
  *    (de suggesties die de werkplek nu toont).
  *  - **client**: een handeling in de werkplek zelf, zonder beurt en dus zonder tokens: een nieuw gesprek, een bron aan of
  *    uit, de lijst met commando's.
- *  - **gereserveerd**: een naam die al vastligt voor een functie die nog komt (`/compact`, contextbeheer). Staat in de
- *    lijst, niet te kiezen.
+ *
+ *  **De catalogus (ADR-014).** Wat Lex kan, staat niet hier: een suggestiecommando wijst naar een `actie` uit graph-qa
+ *  (`ACTIE_TAAK` en de andere actielijsten in `agent/models.py`), of naar het annotatiedoel. Dat is een ingang van een
+ *  `Onderdeel` in de catalogus. Bij C1 komt er een drift-test die nagaat dat elke actie van een commando een ingang is
+ *  van een onderdeel. Komt er een detailpagina per onderdeel, dan wijst de hulp ernaar. De clientcommando's zijn
+ *  bediening van de werkplek, geen onderdeel van Lex, en horen dus niet in de catalogus.
  *
  *  `/` doet alleen iets als eerste teken in het invoerveld: het is tekst, geen sneltoets. Een `/`-tekst zonder bekend
  *  commando gaat ongewijzigd als vraag naar Lex. */
@@ -20,15 +24,13 @@ export type ClientHandeling = "nieuw" | "bron" | "help";
 
 export type Commando =
   | { soort: "suggestie"; naam: string; hulp: string; suggestie: Suggestie }
-  | { soort: "client"; naam: string; hulp: string; handeling: ClientHandeling; argument?: "connector" }
-  | { soort: "gereserveerd"; naam: string; hulp: string };
+  | { soort: "client"; naam: string; hulp: string; handeling: ClientHandeling; argument?: "connector" };
 
 /** De commando's die geen suggestie zijn. De volgorde is die van het menu, na de commando's van de context. */
-export const CLIENT_COMMANDOS: Extract<Commando, { soort: "client" | "gereserveerd" }>[] = [
+export const CLIENT_COMMANDOS: Extract<Commando, { soort: "client" }>[] = [
   { soort: "client", naam: "nieuw", hulp: "Begin een nieuw gesprek (in een werkgebied: in dat werkgebied)", handeling: "nieuw" },
   { soort: "client", naam: "bron", hulp: "Zet een bron naast de wet aan of uit voor dit gesprek", handeling: "bron", argument: "connector" },
   { soort: "client", naam: "help", hulp: "Toon alle commando's die hier kunnen", handeling: "help" },
-  { soort: "gereserveerd", naam: "compact", hulp: "Het gesprek samenvatten om ruimte te maken – komt nog" },
 ];
 
 /** Een geldige commandonaam: kleine letters en streepjes. */
@@ -94,7 +96,6 @@ export type Uitvoer =
 
 /** Waarom een commando nu niet kan, of `undefined`. */
 function uitReden(c: Commando, stand: Stand): string | undefined {
-  if (c.soort === "gereserveerd") return "komt nog";
   if (c.soort === "suggestie" && !c.suggestie.invullen) {
     if (stand.geblokkeerd) return "je tokenbudget is op";
     if (stand.bezig) return "Lex is nog bezig";
@@ -114,7 +115,7 @@ function regelVan(c: Commando, stand: Stand): Regel {
     // Een commando dat een argument vraagt, voert Enter niet zonder uit: dan vult hij aan.
     uitvoer: uit || vraagtArgument ? null
       : c.soort === "suggestie" ? { soort: "suggestie", suggestie: c.suggestie }
-      : c.soort === "client" ? { soort: "client", handeling: c.handeling } : null,
+      : { soort: "client", handeling: c.handeling },
   };
 }
 
