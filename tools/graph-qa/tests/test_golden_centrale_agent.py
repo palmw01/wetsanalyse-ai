@@ -161,6 +161,11 @@ def test_de_samenvatting_toetst_een_run_tegen_de_set():
               {"type": "grounding", "niveau": "gegrond", "niet_letterlijk": [], "unsupported": []}, meting]
     s = vat({"id": "E08", "run": 1, "beurten": [{"label": "gemeten", "events": events}]}, PER_ID["E08"])
     assert (s["tokens"], s["modelrondes"], s["duur_ms"]) == (135, 3, 900)
+    # Naar prijs gewogen: zonder aanroepen telt het schrijven als vijf minuten (10 + 5×5 + 0,1×100 + 1,25×20).
+    assert (s["gewogen"], s["cache_schrijf_1u"]) == (70, 0)
+    uur = {**meting, "aanroepen": [{"invoer": 10, "uitvoer": 5, "cache_lees": 100, "cache_schrijf": 20, "cache_schrijf_1u": 12}]}
+    s_uur = vat({"id": "E08", "run": 1, "vorm": "meten", "beurten": [{"label": "gemeten", "events": [uur]}]}, PER_ID["E08"])
+    assert (s_uur["gewogen"], s_uur["cache_schrijf_1u"], s_uur["vorm"]) == (79, 12, "meten")   # 8×1,25 + 12×2 = 34
     assert s["route_past"] and s["delegatie_past"] and s["sjabloon_past"] and not s["tools_ontbreken"]
 
     regie = [{"type": "regie", "fase": "start"}, {"type": "regie_taak", "fase": "start", "gesprek_id": "k1"}]

@@ -8,6 +8,9 @@
 //       maakt het meetwerkgebied uit de eerste regel van de set en print zijn id;
 //   node eval/centrale_agent_meting.mjs run <nr> --werkgebied <id> --commit <sha> --uit <map> [id ...]
 //       draait de set (of de genoemde opdrachten) en schrijft per opdracht één regel in <map>/ruw-run<nr>.jsonl.
+//       Met `--vorm <naam> --extra '<json>'` gaan de velden uit <json> mee op elke beurt van de run, en heet het
+//       bestand ruw-<naam>-run<nr>.jsonl. Zo zijn twee vormen op dezelfde versie te meten: de vorm zonder het veld en de
+//       vorm met het veld waarmee een run de centrale agent kiest (ADR-016 §A7). De naam staat op elke regel (`vorm`).
 //
 // `--commit` is de commit van master waarop acceptatie draait; het script kan die niet zelf zien. Een run is hervatbaar:
 // een opdracht die al in het bestand staat, wordt overgeslagen. Breekt een beurt af (een nieuwe revisie van graph-qa
@@ -83,13 +86,14 @@ async function metStoppunt(rec, label, args, stoppunt) {
   return [b, await meet(rec, `${label}:bevestigd`, { ...args, vraag: "Start", actie: "regie_bronnen", extra: { ...args.extra, plan_id: bev.plan_id } })];
 }
 
-async function opdracht(o, runnr, werkgebied, commit) {
+async function opdracht(o, runnr, werkgebied, commit, vorm, velden) {
   const ctx = o.context || {};
   const wg = ctx.werkgebied ? werkgebied : undefined;
   if (ctx.werkgebied && !wg) throw new Error(`${o.id} vraagt --werkgebied`);
-  const extra = { bronnen: ctx.bronnen || [], bronnen_herkomst: "gesprek" };
-  const rec = { id: o.id, run: runnr, commit, begin: new Date().toISOString(), beurten: [] };
-  const hoofd = await gesprek(`Agentset run ${runnr} – ${o.id}`, wg);
+  // De velden van de vorm gaan vóór de bronstand: een vorm kiest de agent, niet de bronnen van de opdracht.
+  const extra = { ...velden, bronnen: ctx.bronnen || [], bronnen_herkomst: "gesprek" };
+  const rec = { id: o.id, run: runnr, commit, vorm, begin: new Date().toISOString(), beurten: [] };
+  const hoofd = await gesprek(`Agentset ${vorm ? vorm + " " : ""}run ${runnr} – ${o.id}`, wg);
   let kind = null;
   for (const [i, stap] of (o.opzet || []).entries()) {
     const label = `opzet${i + 1}`;
@@ -122,9 +126,17 @@ if (commando === "werkgebied") {
   console.log(r.status, r.data?.id ?? "");
 } else if (commando === "run") {
   const werkgebied = optie("--werkgebied", rest), commit = optie("--commit", rest), map = optie("--uit", rest) ?? ".";
+  const vorm = optie("--vorm", rest) ?? "", extraJson = optie("--extra", rest);
   const [nr, ...ids] = rest;
-  if (!nr || !commit) { console.error("run <nr> --commit <sha> [--werkgebied <id>] [--uit <map>] [id ...]"); process.exit(2); }
-  const uit = path.join(map, `ruw-run${nr}.jsonl`);
+  if (!nr || !commit) { console.error("run <nr> --commit <sha> [--werkgebied <id>] [--uit <map>] [--vorm <naam> --extra <json>] [id ...]"); process.exit(2); }
+  if (!/^[a-z0-9-]*$/.test(vorm)) { console.error("--vorm: alleen kleine letters, cijfers en streepjes"); process.exit(2); }
+  let velden = {};
+  if (extraJson) {
+    try { velden = JSON.parse(extraJson); } catch { console.error("--extra is geen JSON"); process.exit(2); }
+    if (!velden || typeof velden !== "object" || Array.isArray(velden)) { console.error("--extra is een JSON-object"); process.exit(2); }
+    if (!vorm) { console.error("--extra vraagt --vorm: zo zijn de bestanden van twee vormen uit elkaar te houden"); process.exit(2); }
+  }
+  const uit = path.join(map, `ruw-${vorm ? vorm + "-" : ""}run${nr}.jsonl`);
   const gedaan = new Set(fs.existsSync(uit) ? fs.readFileSync(uit, "utf8").split("\n").filter(Boolean).map(r => JSON.parse(r).id) : []);
   console.log("account vóór", await verbruik());
   for (const o of set) {
@@ -132,7 +144,7 @@ if (commando === "werkgebied") {
     const afgebroken = [];
     let rec = null;
     for (let poging = 0; poging <= MAX_HERHALEN && !rec; poging++) {
-      try { rec = await opdracht(o, Number(nr), werkgebied, commit); }
+      try { rec = await opdracht(o, Number(nr), werkgebied, commit, vorm, velden); }
       catch (e) {
         if (e instanceof BudgetOp) { console.log("429: het budget is op bij", o.id); process.exit(3); }
         if (!(e instanceof Afgebroken) && !/fetch failed|ECONN|socket|terminated|aborted/i.test(String(e))) throw e;
@@ -140,13 +152,13 @@ if (commando === "werkgebied") {
         await new Promise(r => setTimeout(r, 60_000));        // een revisiewissel duurt ongeveer een minuut
       }
     }
-    rec ??= { id: o.id, run: Number(nr), commit, beurten: [], mislukt: "na herhalen niet afgerond" };
+    rec ??= { id: o.id, run: Number(nr), commit, vorm, beurten: [], mislukt: "na herhalen niet afgerond" };
     if (afgebroken.length) Object.assign(rec, { herhaald: afgebroken.length, afgebroken });
     fs.appendFileSync(uit, JSON.stringify(rec) + "\n");
     console.log(o.id, rec.mislukt ?? "", `beurten ${rec.beurten.length}`, afgebroken.length ? `herhaald ${afgebroken.length}` : "");
   }
   console.log("account na", await verbruik());
 } else {
-  console.error("gebruik: werkgebied | run <nr> --commit <sha> [--werkgebied <id>] [--uit <map>] [id ...]");
+  console.error("gebruik: werkgebied | run <nr> --commit <sha> [--werkgebied <id>] [--uit <map>] [--vorm <naam> --extra <json>] [id ...]");
   process.exit(2);
 }
