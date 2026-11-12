@@ -15,7 +15,7 @@ import anthropic
 from ..config import Settings
 from ..models import Verbruiksmeter
 from ..ports import Systeem
-from ..verzoekopbouw import opbouw
+from ..verzoekopbouw import voor_meter
 
 logger = logging.getLogger("graph_qa.llm")
 
@@ -144,6 +144,8 @@ class AnthropicLLM:
             extra["tool_choice"] = tool_choice
         if temperature is not None:
             extra["temperature"] = temperature
+        # Wie de aanroep doet en waaruit het verzoek bestaat: uit het kader van de gedeelde modelstap, één keer berekend.
+        meting = voor_meter(model=model, system=system, tools=tools, messages=messages)
         begin = time.perf_counter()
         try:
             resp = self._client.messages.create(
@@ -157,8 +159,7 @@ class AnthropicLLM:
                 model=model, max_tokens=max_tokens, system=self._system(system),
                 tools=tools, messages=messages, **extra,
             )
-        self.meter.tel_response(resp, ms=round((time.perf_counter() - begin) * 1000),
-                                opbouw=opbouw(system=system, tools=tools, messages=messages))
+        self.meter.tel_response(resp, ms=round((time.perf_counter() - begin) * 1000), **meting)
         return resp
 
     def stream(
@@ -198,7 +199,7 @@ class AnthropicLLM:
         return _AnthropicStream(
             open_stream(), opnieuw=open_stream,
             terugval=lambda exc, h=met_historie(): self._zonder_caching(exc, historie=h),
-            meter=self.meter, opbouw=opbouw(system=system, tools=tools, messages=messages),
+            meter=self.meter, meting=voor_meter(model=model, system=system, tools=tools, messages=messages),
         )
 
 
@@ -224,13 +225,13 @@ class _AnthropicStream:
     """Dunne wrapper om de Anthropic MessageStream (LLMStream-protocol)."""
 
     def __init__(self, manager: Any, opnieuw: Any = None, terugval: Any = None,
-                 meter: Any = None, opbouw: dict[str, Any] | None = None) -> None:
+                 meter: Any = None, meting: dict[str, Any] | None = None) -> None:
         self._manager = manager
         self._stream: Any = None
         self._opnieuw = opnieuw          # zelfde call, maar zonder cache-punt
         self._terugval = terugval        # beslist of de fout over caching ging
         self._meter = meter              # telt het verbruik van deze beurt op
-        self._opbouw = opbouw            # waaruit het verzoek bestond (`verzoekopbouw`), voor de meter
+        self._meting = meting or {}      # rol, model en opbouw van het verzoek (`verzoekopbouw.voor_meter`)
         self._begin = 0.0                # het openen van de stream: daar gaat de call de deur uit
 
     def __enter__(self) -> "_AnthropicStream":
@@ -260,5 +261,5 @@ class _AnthropicStream:
         """
         resp = self._stream.get_final_message()
         if self._meter is not None:
-            self._meter.tel_response(resp, ms=round((time.perf_counter() - self._begin) * 1000), opbouw=self._opbouw)
+            self._meter.tel_response(resp, ms=round((time.perf_counter() - self._begin) * 1000), **self._meting)
         return resp

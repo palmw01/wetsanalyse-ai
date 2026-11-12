@@ -1,7 +1,8 @@
 # Plan – de context van een beurt zichtbaar maken
 
 Status: plan, goedgekeurd door de gebruiker (12 nov 2026) en dezelfde dag herzien na een review tegen de code, de
-ADR's en de Claude-documentatie (zie *Herziening*). Hoort bij ADR-015 (contextbeheer). Nog niets gebouwd.
+ADR's en de Claude-documentatie (zie *Herziening*). Hoort bij ADR-015 (contextbeheer). Stap 1, 2 en 3 zijn gebouwd
+(12 nov 2026, zie *Stand van de bouw*); de frontend (4, 5) en de meting (6) nog niet.
 
 ## Doel
 
@@ -334,6 +335,30 @@ Een plan per stap toetsen vóór de bouw. De hoofdsessie bundelt de PR's. Niets 
    De meting komt in `metingen/`. Daarna is de weergave het instrument voor de nulmeting van ADR-016 (M0).
 
 PR 1 en 2 kunnen samen, als de diff klein blijft. PR 3 kan parallel aan 1–2. PR 4–5 hebben het contract uit 2–3 nodig.
+
+## Stand van de bouw (12 nov 2026)
+
+Stap 3 (api) en stap 1–2 (graph-qa) zijn gebouwd. Wat daarbij is vastgesteld of gekozen:
+
+- **Foundry meldt `cache_creation`.** De opgenomen modelruns van 29 sep 2026
+  (`metingen/hybrid-v1-invordering-vervolg-2026-09-29/modelruns/`, provider `anthropic_via_azure_foundry`) dragen in
+  `usage` het object `cache_creation` met `ephemeral_1h_input_tokens` en `ephemeral_5m_input_tokens`. Het anker kan dus
+  werken. Die runs schreven geen cache; of het 1-uursdeel bij een koud begin precies tools + systeem is, toont de meting
+  van stap 6 (het veld `cache_schrijf_1u` per aanroep in het `meting`-event). Ontbreekt het object, dan gaat alles naar
+  tekens.
+- **Het venster via Foundry is niet vastgesteld.** Dat kan alleen met een verzoek boven 200k tokens. Het register
+  (`agent/modelvenster.py`) draagt de waarde uit de documentatie (1M voor Sonnet 4.6); een onbekend model krijgt 200k.
+- **`systeem` en `methode` worden gescheiden op de tekst van `SYSTEM_PROMPT`**, niet op "het eerste systeemdeel": de
+  antwoordlus geeft identiteit en specialist als één stabiel deel op, en ze splitsen zou het cachepunt verplaatsen.
+- **Het begin van de beurt geeft de aanroeper mee** (`beurt_start`), en anders wijst de kop van de beurtcontext het aan.
+  De oude afleiding (de laatste platte user-beurt) zag het herhaalverzoek om een sjabloon als begin.
+- **De rol en de opbouw reizen naar de adapter in een contextvariabele** (`verzoekopbouw.aanroepkader`), niet in de
+  kwargs: die blijven byte-gelijk, en de poort `LLMPort` verandert niet.
+- **`opdracht`** is een vlag van de aanroeper; niemand zet haar nog (ADR-016 A3). De tool van een losse stap (de strict
+  tool van de classifier) staat in geen register en is `overig`; een losse stap heeft geen raster.
+- **`venster_beurten.gekrompen`** telt de toolresultaten die ingekort of weggelaten zijn (`venster_telling.ingekort`);
+  `in_venster` telt de lopende beurt mee.
+- **Volgorde**: stap 3 ging voor, want `test_contract_drift` eist dat de api elk veld van het bericht kent.
 
 ## Risico's
 

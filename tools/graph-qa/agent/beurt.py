@@ -27,6 +27,7 @@ from typing import Any
 
 from .annotatie import sleutel_van
 from .config import Settings
+from .contextopbouw import contextopbouw
 from .models import Verbruiksmeter
 from .narratie import denk_bij
 from .nodes.annotatie_samenvatting import vervangen_zin
@@ -291,8 +292,12 @@ async def voer_beurt_uit(
 
     mag_vastleggen = settings.legt_zelf_vast and bool(gesprek_id) and bool(user_id)
     if mag_vastleggen:
+        # De contextopbouw van de beurt (plan contextweergave): uit dezelfde meter als het `meting`-event, op hetzelfde
+        # moment (na de laatste modelaanroep). Een beurt zonder model heeft er geen.
+        opbouw = contextopbouw(meter, run_id=getattr(run, "run_id", "") or "",
+                               ouder_run_id=getattr(run, "ouder_run_id", "") or "")
         async for na in _leg_vast(schrijver, settings=settings, run=run, reeks=reeks,
-                                  gesprek_id=gesprek_id, gestopt=gestopt, user_id=user_id):
+                                  gesprek_id=gesprek_id, gestopt=gestopt, user_id=user_id, contextopbouw=opbouw):
             yield na
     elif schrijver.aanmaken:
         yield {"type": "error",
@@ -397,6 +402,7 @@ async def _leg_vast(
     gestopt: bool,
     user_id: str,
     reeks: dict[str, Any] | None = None,
+    contextopbouw: dict[str, Any] | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """Schrijf de markeringen naar de gedeelde laag en het chatbericht weg; meld de uitkomst."""
     api = WetsanalyseApi(settings, user_id)
@@ -404,7 +410,8 @@ async def _leg_vast(
         vervolg: dict[str, Any] | None = None
         bericht: dict[str, Any] = {"rol": "assistant", "run_id": run.run_id,
                                  "tool_executions": schrijver.tool_executions,
-                                 **({"reeks": reeks} if reeks else {})}
+                                 **({"reeks": reeks} if reeks else {}),
+                                 **({"contextopbouw": contextopbouw} if contextopbouw else {})}
         annotatie_bewaard = False
         opgeslagen_doel = None
         bericht_poging = False

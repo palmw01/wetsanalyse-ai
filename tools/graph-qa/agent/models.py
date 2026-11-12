@@ -496,6 +496,16 @@ class AnnotatieVoorstel(BaseModel):
 MAX_AANROEPEN = 60
 
 
+def _uurdeel(usage: Any) -> int | None:
+    """`usage.cache_creation.ephemeral_1h_input_tokens`, of `None` als de provider het object niet meldt. Een object
+    of een dict: de SDK geeft een model terug, een opname een dict."""
+    cc = getattr(usage, "cache_creation", None)
+    if cc is None:
+        return None
+    waarde = cc.get("ephemeral_1h_input_tokens") if isinstance(cc, dict) else getattr(cc, "ephemeral_1h_input_tokens", None)
+    return int(waarde) if isinstance(waarde, int) and not isinstance(waarde, bool) else None
+
+
 class Verbruiksmeter:
     """Telt het tokenverbruik van één beurt op, over alle LLM-calls heen.
 
@@ -525,11 +535,21 @@ class Verbruiksmeter:
         self.aanroepen: list[dict[str, Any]] = []
         # Wat er met de sjablonen gebeurde (`beurtmeting.tel_sjabloon`), uit de state; zoals `route`.
         self.sjabloon: dict[str, Any] = {}
+        # Voor de contextopbouw (`agent/contextopbouw.py`), over ALLE aanroepen, ook voorbij `MAX_AANROEPEN`:
+        # - per rol het verbruik: aantal aanroepen, de vier tellers en de duur;
+        # - per rol met een toollus het eerste en het laatste verzoek, de ankers (de exacte omvang van tools + systeem,
+        #   per vingerafdruk van het voorvoegsel) en wat de aanroeper over het venster meldde.
+        # De meter kent geen rolnamen: of een rol een lus is, zegt de aanroep (`llm_stap.Rol.lus`).
+        self._per_rol: dict[str, dict[str, Any]] = {}
+        self._lussen: dict[str, dict[str, Any]] = {}
 
-    def tel_response(self, resp: Any, ms: int | None = None, opbouw: dict[str, Any] | None = None) -> None:
+    def tel_response(self, resp: Any, ms: int | None = None, opbouw: dict[str, Any] | None = None, *,
+                     rol: str = "", lus: bool = False, model: str = "", kader: dict[str, Any] | None = None) -> None:
         """Neem het `usage`-blok van één antwoord op. Zonder usage (of bij een fake) telt het niets.
 
-        `ms` is hoe lang de aanroep duurde, als de adapter het weet; `opbouw` waaruit het verzoek bestond."""
+        `ms` is hoe lang de aanroep duurde, als de adapter het weet; `opbouw` waaruit het verzoek bestond. `rol`, `lus`
+        en `kader` komen uit de gedeelde modelstap (`verzoekopbouw.voor_meter`): wie de aanroep deed, of dat een agent
+        met een toollus is, en wat de aanroeper over het venster meldde."""
         u = getattr(resp, "usage", None)
         if u is None:
             return
@@ -539,8 +559,17 @@ class Verbruiksmeter:
             "cache_lees": int(getattr(u, "cache_read_input_tokens", 0) or 0),
             "cache_schrijf": int(getattr(u, "cache_creation_input_tokens", 0) or 0),
         }
+        # Het deel van het geschreven dat een uur blijft: het cachepunt op de systeemprompt, dus tools + systeem
+        # (ADR-015). Alleen als de provider het object `cache_creation` meldt; zonder is er geen anker.
+        uur = _uurdeel(u)
+        if uur is not None:
+            aanroep["cache_schrijf_1u"] = uur
         if ms is not None:
             aanroep["ms"] = int(ms)
+        if rol:
+            aanroep["rol"] = rol
+        if model:
+            aanroep["model"] = model
         if opbouw:
             aanroep.update(opbouw)
         with self._lock:
@@ -551,6 +580,33 @@ class Verbruiksmeter:
             self.cache_schrijf += aanroep["cache_schrijf"]
             if len(self.aanroepen) < MAX_AANROEPEN:
                 self.aanroepen.append(aanroep)
+            som = self._per_rol.setdefault(rol or "onbekend", {
+                "model": "", "aanroepen": 0, "invoer": 0, "cache_lees": 0, "cache_schrijf": 0, "uitvoer": 0, "duur": 0})
+            som["model"] = model or som["model"]
+            som["aanroepen"] += 1
+            for veld in ("invoer", "cache_lees", "cache_schrijf", "uitvoer"):
+                som[veld] += aanroep[veld]
+            som["duur"] += aanroep.get("ms", 0)
+            if lus and rol:
+                stand = self._lussen.setdefault(rol, {"begin": aanroep, "ankers": {}, "kader": {}})
+                stand["laatste"] = aanroep
+                if uur:
+                    stand["ankers"][(aanroep.get("tools_hash", ""), aanroep.get("system_hash", ""))] = uur
+                if kader:
+                    stand["kader"] = {**stand["kader"], **kader}
+
+    def stand(self) -> dict[str, Any]:
+        """Een momentopname voor de contextopbouw: de sommen, het verbruik per rol, de lussen en de (begrensde) lijst
+        aanroepen. Kopieën, onder het slot genomen."""
+        with self._lock:
+            return {
+                "calls": self.calls, "invoer": self.invoer, "uitvoer": self.uitvoer,
+                "cache_lees": self.cache_lees, "cache_schrijf": self.cache_schrijf,
+                "per_rol": {rol: dict(som) for rol, som in self._per_rol.items()},
+                "lussen": {rol: {**lus, "ankers": dict(lus["ankers"]), "kader": dict(lus["kader"])}
+                           for rol, lus in self._lussen.items()},
+                "aanroepen": list(self.aanroepen),
+            }
 
     @property
     def totaal(self) -> int:
