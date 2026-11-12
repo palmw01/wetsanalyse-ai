@@ -149,23 +149,26 @@ def _historievenster(historie: list[dict[str, Any]], max_chars: int) -> list[dic
        een gekrompen beurt gekrompen: per nieuwe beurt verandert alleen de vorige beurt. Eerder beschermde de krimp
        een halve begroting die bij elke beurt opschoof, en verschoof het venster bij elke beurt een stukje. Dan kon
        de prompt-cache de historie nooit hergebruiken (nulmeting context 12 nov 2026: per beurt opnieuw geschreven).
-    3. Past het dan nog niet, dan valt de voorkant weg, maar alleen op een knippunt van `_knippunten`. Dat is een
-       vast raster, dus het venster verschuift in sprongen van een halve begroting en niet bij elke beurt. Past het
-       nergens (één beurt met een groot resultaat), dan krimpt ook de laatste beurt; en past het dan nog niet, dan
-       begint het venster bij het laatste knippunt (correct boven het strikte budget)."""
+    3. De voorkant valt weg op een knippunt van `_knippunten`, een vast raster over de gekrompen historie: het eerste
+       knippunt waarvandaan het gekrompen oude deel, zonder de laatste beurt, binnen een halve begroting past. Dat deel
+       groeit alleen aan, dus het knippunt schuift alleen naar voren, in sprongen van een halve begroting. De laatste
+       beurt komt er heel bij. Is het geheel dan nog te groot (een beurt met een groot resultaat), dan krimpt ook de
+       laatste beurt.
+
+    Gesimuleerd met de echte cachepunten (`met_beurtcontext`): per beurt ~16k tekens opnieuw geschreven (de vorige
+    beurt gekrompen plus de nieuwe), tegen 34–36k met het oude venster. Het minimum is de nieuwe beurt zelf."""
     if sum(_msg_lengte(m) for m in historie) <= max_chars:
         return historie
-    punten = _knippunten(historie, max(1, max_chars // 2))
-    if not punten:
-        return historie
     laatste = next((i for i in range(len(historie) - 1, -1, -1) if _is_plain_user(historie[i])), 0)
-    na = lambda ms, i: sum(_msg_lengte(m) for m in ms[i:])  # noqa: E731
-    for tot in (laatste, len(historie)):
-        gekrompen = _krimp(historie, tot)
-        begin = next((p for p in punten if na(gekrompen, p) <= max_chars), None)
-        if begin is not None:
-            return gekrompen[begin:]
-    return gekrompen[punten[-1]:]
+    alles = _krimp(historie, len(historie))
+    # Het knippunt hangt alleen af van het gekrompen oude deel (alles vóór de laatste beurt). Dat groeit alleen aan, dus
+    # het knippunt schuift alleen naar voren. Hing het ook af van de laatste beurt (heel nu, gekrompen de beurt erna), dan
+    # liep de voorkant heen en weer en was de cache telkens weg (nameting G4-3/G4-4).
+    oud = lambda p: sum(_msg_lengte(m) for m in alles[p:laatste])  # noqa: E731
+    punten = sorted(set(_knippunten(alles, max(1, max_chars // 2))) | {laatste})
+    begin = next(p for p in punten if p >= laatste or oud(p) <= max_chars // 2)
+    venster = _krimp(historie, laatste)[begin:]
+    return venster if sum(_msg_lengte(m) for m in venster) <= max_chars else alles[begin:]
 
 
 def _trim_messages(messages: list[dict[str, Any]], max_chars: int, vraag: str = "") -> list[dict[str, Any]]:
