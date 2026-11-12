@@ -7,6 +7,10 @@ Model: `claude-sonnet-4-6` · Uitvoering: zoals [ronde 1](ronde-1.md), dezelfde 
 [`runs.jsonl`](runs.jsonl) (`ronde: 5`). Tokens = invoer + uitvoer + cache lezen + cache schrijven, uit het
 `meting`-event.
 
+**Bronstand.** In elke run stonden alle vier de connectors aan: Kamerstukken, Staatsblad en Staatscourant, Rechtspraak
+en Wetgeving buiten de kennisgraaf (het `bronstand`-event, reden "aan"; de gesprekken hadden geen eigen keuze). Een
+vraag kon dus bij elke connector terechtkomen. Daarom koos de lijstroute bij B18 Kamerstukken en las I04 bij Rechtspraak.
+
 ## Uitkomst
 
 **De 30 vragen: 28 goed, 2 deels, 0 fout** (ronde 4: 27, 3, 0). **Samen 1.422.232 tokens** (ronde 4: 1.153.439, +23%).
