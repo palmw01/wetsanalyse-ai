@@ -28,6 +28,7 @@ from .begrippen_pipeline import keten as begrippenketen
 from .jas_pipeline import keten as annotatieketen
 from .llm_stap import Rol
 from .models import ACTIE_TAAK, BRONSELECTIE_ACTIES, INTAKE_ACTIES, REGIE_ACTIES
+from .methode import vingerafdruk
 from .methodepakket import PAKKET
 from .sjablonen import SJABLONEN, Sjabloon
 
@@ -82,7 +83,7 @@ def uit_rollen() -> list[Onderdeel]:
                  f"de secties {', '.join(ids)}.",
             model="geen", herkomst=_methode_herkomst(codes),
             bestand=tuple(sorted({f"{_SKILL}/{s['bestand']}" for s in secties.values()} | {f"{_SKILL}/agentrollen.json"})),
-            versie=versie(*(s["sha256"] for s in secties.values())), ingang=_aanroepers(rol),
+            versie=vingerafdruk(rol), ingang=_aanroepers(rol),
             context="vóór de systeemprompt, in het stabiele deel (cache-prefix)", uitvoer="systeemprompt",
             tests=("tools/graph-qa/tests/test_methoderollen.py",), deel_van=METHODE, bewerkbaar=tuple(ids),
             inhoud={"secties": [{"id": k, "bronnen": s["bronnen"], "sha256": s["sha256"], "tekst": s["tekst"]}
@@ -96,7 +97,7 @@ def uit_rollen() -> list[Onderdeel]:
 def uit_specialisten() -> list[Onderdeel]:
     uit: list[Onderdeel] = []
     for naam, spec in specialists.SPECIALISTS.items():
-        tools = ("alle graaftools",) if spec.tools is None else tuple(sorted(spec.tools))
+        tools = tuple(sorted(_tools_van(spec)))
         uit.append(Onderdeel(
             id=oid("specialist", naam), soort="specialist", label=naam.replace("_", " ").capitalize(),
             doel=spec.doel, model="agent", herkomst=EIGEN, bestand=("tools/graph-qa/agent/specialists.py",),
@@ -104,7 +105,7 @@ def uit_specialisten() -> list[Onderdeel]:
             uitvoer=", ".join(sorted(spec.sjablonen)) or "doel-JSON voor de annotatieroute",
             twijfel="leemte of doorvragen; een citaat dat niet letterlijk in de opgehaalde tekst staat, valt weg (grounding)",
             tests=("tools/graph-qa/tests/test_specialists.py",),
-            hangt_af_van=(oid("rol", specialists.methoderol(naam)), *(oid("sjabloon", s) for s in sorted(spec.sjablonen)),
+            hangt_af_van=(oid("rol", specialists.methoderol(naam)), *(oid("sjabloon", s) for s in sorted(_sjablonen_van(naam, spec))),
                           *(oid("connector", c.naam) for c in CONNECTORS.values() if naam in c.specialisten),
                           *(oid("tool", t) for t in sorted(_tools_van(spec))), *ANTWOORD_CONTROLES),
             inhoud={"systeemtekst": spec.system},
@@ -185,7 +186,7 @@ def uit_agents() -> list[Onderdeel]:
             uitvoer="een artefact, een bevestiging of een vraagkaart (`agents.Uitkomst`); altijd een voorstel",
             twijfel="geweigerd met een reden, of een vraagkaart; nooit een besluit",
             tests=("tools/graph-qa/tests/test_agents.py", "tools/graph-qa/tests/test_agent_contracten.py"),
-            hangt_af_van=AGENT_WORKFLOWS.get(naam, ()),
+            hangt_af_van=(*AGENT_WORKFLOWS.get(naam, ()), *((oid("rol", naam),) if naam in PAKKET["rollen"] else ())),
             inhoud={"taken": taken},
         ))
     return uit
@@ -418,8 +419,19 @@ def uit_routes() -> list[Onderdeel]:
 
 # --- tools ----------------------------------------------------------------------------------------------------------
 
+def _sjablonen_van(naam: str, spec: specialists.Specialist) -> frozenset[str]:
+    """De sjablonen die de specialist kan krijgen: zijn eigen, en `antwoord_extern` als een connector zijn rol bedient
+    (`nodes/antwoord.py`, ADR-013)."""
+    from .sjablonen import EXTERN
+    bediend = any(naam in c.specialisten for c in CONNECTORS.values())
+    return spec.sjablonen | {EXTERN} if spec.sjablonen and bediend else spec.sjablonen
+
+
 def _tools_van(spec: specialists.Specialist) -> frozenset[str]:
-    return frozenset(alle_tools()) if spec.tools is None else spec.tools
+    """Wat de specialist mag krijgen: `None` is elke tool die het model aangeboden kan krijgen (de JAS-kennistools zijn
+    opt-in, `anthropic_schemas`). Of een connector in een beurt aanstaat, beslist `toegestane_tools`."""
+    from .tools import TOOLS
+    return frozenset(t["name"] for t in TOOLS) if spec.tools is None else spec.tools
 
 
 def _bronbestand(obj: Any) -> str:
