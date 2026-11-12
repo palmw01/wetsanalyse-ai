@@ -46,15 +46,43 @@ Het is een weergave. Ze verandert niets aan wat Lex naar het model stuurt.
 | Bereik | Standaard de **laatste beurt**, met een kiezer voor eerdere beurten en het **verloop** over het gesprek. |
 | Voor wie | **Iedereen** ziet categorieën, tokens, % en de vrije ruimte. De **beheerder** ziet ook het detail per aanroep: cache, hashes en model. |
 | Telwijze | Het totaal komt **exact uit `usage`**. De vaste delen telt `count_tokens` **één keer per vingerafdruk**. De rest wordt **naar tekens** verdeeld. |
-| Reikwijdte | **Alle modelaanroepen**, generiek gelabeld: de antwoordlus, de supervisor, de annotatie-worker en de agents. |
+| Reikwijdte | **Alle modelaanroepen**, generiek gelabeld: de antwoordlus, de supervisor, de annotatie-worker en de agents. **Per agent een eigen context**: de centrale agent en elke subagent krijgen elk een eigen raster (aanvulling na de afstemming over het totaalplan voor de agentarchitectuur, zie *Context per agent*). |
 | Opslag | Een veld **`context` bij het bericht** in de api. Het bevat alleen tellingen en vingerafdrukken, geen inhoud. |
 | Adviezen | Ja, uit **vaste regels**, zonder model. |
 
 ## De categorieën
 
-Lex bouwt elk verzoek opnieuw op en heeft dus geen doorlopende sessie zoals Claude Code. "De context van een beurt"
-is daarom **het grootste verzoek van die beurt**: wat het model bij de zwaarste stap meekreeg. Meestal is dat de
-laatste ronde van de antwoordlus. De andere aanroepen staan eronder, zoals de subagents in Claude Code.
+Lex bouwt elk verzoek opnieuw op en heeft dus geen doorlopende sessie zoals Claude Code. De context van een agent in
+een beurt is daarom **het grootste verzoek van die agent**: wat het model bij zijn zwaarste stap meekreeg. Bij de
+antwoordlus is dat meestal de laatste ronde. Welke agent een aanroep deed, staat in *Context per agent*.
+
+## Context per agent
+
+Het totaalplan voor de agentarchitectuur heeft een centrale agent die generieke subagents opstelt. Elke subagent kiest
+per opdracht zijn eigen skill, tools, MCP's en connectors, en werkt in een eigen context. De weergave volgt die vorm,
+zoals Claude Code subagents apart toont.
+
+- **Een subagent is een run** (ADR-016, in lijn met ADR-012). Een subagent is een gewone run in een eigen
+  kindgesprek, met een `ouder_run_id`. Zijn `context` staat op zijn eigen `meting`-event en op zijn eigen
+  bericht in het kindgesprek. De boom ontstaat uit `ouder_run_id`. Er komt geen tweede vorm.
+- **Binnen een run** delen de aanroepen van dezelfde agent één berichtenreeks. De meter groepeert ze op
+  `context_id`: de `run_id`, met de worker of rol erachter zolang een run nog meerdere workers draait. Het profiel van de
+  subagent komt als `profiel_id` en `profiel_versie` mee op `model_aanroep` en op het `meting`-event.
+- **De opdracht vervangt de historie.** Een subagent heeft geen eerdere beurten. Wat de centrale agent hem meegeeft,
+  is de categorie `opdracht` (in plaats van `historie`).
+- **Wat een agent meekrijgt, staat in zijn eigen indeling.** De categorieën zijn dezelfde, maar `methode` heet per
+  agent naar de gekozen skill. `graaftools`, `connectortools` en `sjablonen` zijn de tools die die agent koos. Een
+  subagent toont dus zijn eigen tools, niet die van de centrale agent.
+- **De boom.** Het paneel toont eerst de centrale agent: zijn raster, plus wat de subagents samen kostten. Daaronder
+  staat elke subagent als eigen rij: opdracht, profiel, totaal en percentage van zijn venster. Een klik opent dezelfde
+  contextkaart voor die subagent. De centrale agent ziet alleen het eindrapport en de vragen van een subagent, niet zijn
+  toolresultaten. Die terugmelding telt bij de centrale agent als `beurt` (toolresultaat). Zo is te zien wat ze
+  kost.
+- **Zonder centrale agent** (de huidige supervisor met vaste workers) is elke worker een agent met de supervisor als
+  ouder. Er is één vorm, nu en straks.
+
+De agentidentiteit hoort bij het totaalplan (ADR-016, PR #1330). Dit plan neemt over wat daar wordt vastgelegd en
+voegt alleen de meting eraan toe.
 
 | Categorie (`id`) | Wat erin zit | Herkend aan | Claude Code |
 |---|---|---|---|
@@ -65,6 +93,7 @@ laatste ronde van de antwoordlus. De andere aanroepen staan eronder, zoals de su
 | `sjablonen` | de sjabloontools (ADR-008) | de toolnaam in het sjabloonregister | – |
 | `beurtcontext` | plan, gesprekscontext, werkgebied/dossier, bronstand, afrondregel | het blok met `BEURTCONTEXT_KOP`, of het variabele systeemdeel | Memory files |
 | `historie` | eerdere beurten (gekrompen tot vraag en laatste antwoord) | de berichten vóór `beurt_start` | Messages |
+| `opdracht` | bij een subagent: de opdracht van de centrale agent, in plaats van de historie (ADR-016) | het eerste bericht van een run met `ouder_run_id` | prompt van een subagent |
 | `beurt` | vraag, toolaanroepen en toolresultaten van de lopende beurt | de berichten vanaf `beurt_start`, zonder de beurtcontext | Messages |
 | `vrij` | het modelvenster min het verzoek | `modelvenster(model)` | Free space |
 
@@ -112,17 +141,20 @@ Graph-qa zet `context` op het `meting`-event (live) en op het assistentbericht (
 ```text
 context
   versie            1
-  model             model-id van het hoofdverzoek
-  venster           omvang van het modelvenster
   historiegrens     de grens in tokens (afgeleid), of leeg
-  hoofd             het grootste verzoek van de beurt
-    rol             Rol.naam (bv. ANTWOORD)
-    delen           [{categorie, omvang, exact: bool}]   som = totaal
-    totaal          invoer + cache_lees + cache_schrijf
-    cache           {lees, schrijf, nieuw}
-    uitvoer
-  aanroepen         [{rol, totaal, cache_lees, cache_schrijf, invoer, uitvoer, ms, tools_hash, system_hash}]  (≤ MAX_AANROEPEN)
-  venster_beurten   {in_venster, gekrompen, weggevallen}   uit `venster_telling`
+  agenten           [ per contextidentiteit, de centrale agent eerst ]
+    context_id      run_id, met de worker erachter zolang een run meerdere workers draait
+    ouder_run_id    de run die deze subagent startte (ADR-016), of leeg
+    rol             Rol.naam (bv. ANTWOORD), of de opdracht van de subagent
+    profiel_id, profiel_versie   het profiel van de subagent (ADR-016), of leeg
+    model, venster  per agent: een subagent kan een ander model hebben
+    hoofd           het grootste verzoek van deze agent
+      delen         [{categorie, omvang, exact: bool}]   som = totaal
+      totaal        invoer + cache_lees + cache_schrijf
+      cache         {lees, schrijf, nieuw}
+      uitvoer
+    aanroepen       [{totaal, cache_lees, cache_schrijf, invoer, uitvoer, ms, tools_hash, system_hash}]
+  venster_beurten   {in_venster, gekrompen, weggevallen}   uit `venster_telling` (de centrale agent)
 ```
 
 - **Geen veldnaam bevat "token".** De logredactie (`GEHEIME_VELDEN`) zou het veld anders wegfilteren. Daarom heten
@@ -145,7 +177,9 @@ context
   - de legenda per categorie, met tokens, percentage en `≈` waar een deel geschat is;
   - een beurtkiezer en het verloop: het totaal per beurt als lijntje, met het cachedeel erin;
   - de adviezen;
-  - voor beheerders de tabel met aanroepen: rol, cache lezen/schrijven/nieuw, uitvoer, duur en de vingerafdrukken.
+  - de boom van agents: eerst de centrale agent, daaronder elke subagent met een eigen raster (*Context per agent*);
+  - voor beheerders, per agent, de tabel met aanroepen: cache lezen/schrijven/nieuw, uitvoer, duur en de
+    vingerafdrukken.
 - **Eén register van categorieën.** Id, label, kleur en volgorde staan op één plek. Graph-qa draagt de id's en
   `frontend/lib/contextdelen.ts` de weergave, met een drifttest ertussen, zoals bij `jas.ts`. De kleuren komen uit de
   Rijkshuisstijl-tokens van de app.
@@ -184,7 +218,9 @@ Alleen beheerders zien de regels over de cache: het gaat over kosten, niet over 
 Een plan per stap toetsen vóór de bouw. De hoofdsessie bundelt de PR's.
 
 1. **graph-qa: de indeling in tekens.** Het register van categorieën (`agent/contextdelen.py`). `verzoekopbouw` deelt
-   tools, systeemdelen en berichten in, en de antwoordlus geeft haar systeemdelen op. `rol` komt mee per aanroep.
+   tools, systeemdelen en berichten in, en de antwoordlus geeft haar systeemdelen op. Per aanroep komen `rol`,
+   `context_id` en `ouder_run_id` mee, met de identiteit uit het totaalplan van de agentarchitectuur (ADR-016). Tot dat plan er
+   is, geldt: een worker is een agent en de supervisor is zijn ouder.
    Tests: het verzoek blijft byte-gelijk, de som van de delen is gelijk aan de bestaande tellingen, en de
    beurtcontext wordt bij beide waarden van `beurtcontext_plek` herkend. Alleen logregel en `meting`-event.
    Wacht op de merge van de A/B van `beurtcontext_plek`, want beide raken de berichtopbouw.
@@ -212,6 +248,9 @@ PR 1 en 2 kunnen samen, als de diff klein blijft. PR 3 kan parallel aan 1–2. P
   A/B. De indeling is daarom een bijargument en een test eist byte-gelijkheid.
 - **Botsing met de A/B.** Ook `beurtcontext_plek` raakt `berichten.py` en de antwoordlus. PR 1 komt na die merge,
   en de herkenning gaat via de kop.
+- **Afhankelijk van het totaalplan.** De agentidentiteit (`ouder_run_id`, `profiel_id`, `profiel_versie`) komt uit het totaalplan
+  voor de agentarchitectuur. Verandert dat ontwerp, dan verandert alleen wie de identiteit zet, niet de meting of de
+  weergave. De volgorde: eerst het totaalplan, dan PR 1 hier.
 - **Rate limit of Foundry.** Is het telendpoint niet bereikbaar, dan zijn alle delen `≈`. De beurt merkt daar niets
   van.
 - **Een misleidend beeld.** Lex heeft geen doorlopende context. Het paneel zegt daarom wat het toont: "het grootste
