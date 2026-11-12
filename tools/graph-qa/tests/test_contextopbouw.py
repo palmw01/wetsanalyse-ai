@@ -359,6 +359,23 @@ def _beurtmeter() -> Verbruiksmeter:
     return meter
 
 
+def test_elke_aanroep_van_een_agent_draagt_zijn_profiel():
+    """ADR-016 §A3: het profiel staat per agent én per aanroep. Een losse stap (de supervisor) heeft er geen. De meting
+    op acceptatie vond het eerst alleen per agent (12 nov 2026)."""
+    meter = Verbruiksmeter()
+    _lus(meter, rol="supervisor", lus=False, invoer=900, uitvoer=40)
+    profiel = {"profiel_id": "centraal", "profiel_versie": "99fb700096f8"}
+    _lus(meter, rol="centraal", invoer=50, schrijf=9000, uur=8000, uitvoer=200, kader=profiel)
+    _lus(meter, rol="centraal", invoer=30, lees=9000, uitvoer=300, kader=profiel)
+    c = contextopbouw(meter)
+    los, eerste, tweede = c["aanroepen"]
+    assert "profiel_id" not in los and "profiel_versie" not in los
+    for regel in (eerste, tweede):
+        assert (regel["rol"], regel["profiel_id"], regel["profiel_versie"]) == ("centraal", "centraal", "99fb700096f8")
+    [agent] = c["agenten"]
+    assert (agent["profiel_id"], agent["profiel_versie"]) == ("centraal", "99fb700096f8")
+
+
 def test_een_beurt_zonder_model_heeft_geen_contextopbouw():
     assert contextopbouw(None) is None and contextopbouw(Verbruiksmeter()) is None
 

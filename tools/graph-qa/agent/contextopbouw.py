@@ -137,7 +137,9 @@ def _regel(aanroep: dict[str, Any]) -> dict[str, Any]:
     return {"rol": aanroep.get("rol") or ONBEKEND, "totaal": totaal_van(aanroep),
             "cache_lees": int(aanroep.get("cache_lees", 0)), "cache_schrijf": int(aanroep.get("cache_schrijf", 0)),
             "invoer": int(aanroep.get("invoer", 0)), "uitvoer": int(aanroep.get("uitvoer", 0)),
-            "ms": int(aanroep.get("ms", 0)), "tools_hash": _sleutel(aanroep)[0], "system_hash": _sleutel(aanroep)[1]}
+            "ms": int(aanroep.get("ms", 0)), "tools_hash": _sleutel(aanroep)[0], "system_hash": _sleutel(aanroep)[1],
+            # Het profiel van de agent die aanriep (ADR-016 §A3); een losse stap heeft er geen en draagt het veld niet.
+            **{veld: str(aanroep[veld]) for veld in ("profiel_id", "profiel_versie") if aanroep.get(veld)}}
 
 
 def contextopbouw(meter: Any, *, run_id: str = "", ouder_run_id: str = "", profiel_id: str = "",
