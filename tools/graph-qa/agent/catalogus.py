@@ -354,6 +354,43 @@ def uit_workflows() -> list[Onderdeel]:
             bestand=("tools/graph-qa/agent/werkgebied_intake.py",),
             tests=("tools/graph-qa/tests/test_werkgebied_intake.py",), ingang=INTAKE_ACTIES,
             uitvoer="vraagkaarten en het werkgebiedartefact", twijfel="overslaan kan; een praktijkvoorbeeld verzint Lex niet"),
+        _wf("overzicht", "Overzicht van een onderwerp",
+            "Bouwt op 'welke artikelen gaan over X?' een overzicht en een samenvatting uit de opbouw van de wet, zonder "
+            "model: dezelfde vraag geeft hetzelfde overzicht.", "workflow",
+            (Stap("regelingen in de vraag", "geen"), Stap("opbouw zoeken", "geen", "tool/zoek_opbouw"),
+             Stap("samenvatting", "geen")),
+            bestand=("tools/graph-qa/agent/overzicht.py", "tools/graph-qa/agent/nodes/overzicht.py"),
+            tests=("tools/graph-qa/tests/test_overzicht.py",), uitvoer="het overzicht-event en een kaartje",
+            twijfel="een bouwfout gaat naar de agent"),
+        _wf("bepaling", "De tekst van een bepaling (ADR-010, D1)",
+            "Haalt de tekst van één genoemde bepaling uit de graaf (of live bij overheid.nl); het model schrijft alleen "
+            "de toelichting.", "workflow",
+            (Stap("bepaling lezen", "geen"), Stap("toelichting", "strict", rol="bepaling_toelichting")),
+            bestand=("tools/graph-qa/agent/bepaling_workflow.py", "tools/graph-qa/agent/nodes/bepaling.py"),
+            tests=("tools/graph-qa/tests/test_bepaling_workflow.py",), uitvoer="het sjabloon antwoord_bepaling",
+            hangt_af_van=("sjabloon/antwoord_bepaling", "controle/brongetrouwheid"),
+            twijfel="niet te lezen: de agent neemt het over"),
+        _wf("bron_lezen", "Een genoemd stuk vooraf lezen (ADR-013)",
+            "Leest een stuk dat de vraag bij id of citeervorm noemt met de leestool van zijn connector, voordat de "
+            "specialist formuleert; een stuk zonder tekst krijgt een vaste melding.", "workflow",
+            (Stap("stuk lezen", "geen"),),
+            bestand=("tools/graph-qa/agent/nodes/bron_lezen.py",),
+            tests=("tools/graph-qa/tests/test_bronroutering.py",), uitvoer="het gelezen stuk in het bronspoor",
+            twijfel="niet te lezen of niet gevonden: een vaste melding met de reden"),
+        _wf("bron_lijst", "Een lijst- of telvraag over een bron",
+            "Beantwoordt een lijst- of telvraag over een bron naast de wet met de zoektool in code: het blok stukken, "
+            "de telling uit de bron, zonder model.", "workflow",
+            (Stap("zoekvraag lezen", "geen"), Stap("zoeken", "geen"), Stap("lijst of telling", "geen")),
+            bestand=("tools/graph-qa/agent/bron_lijst.py", "tools/graph-qa/agent/nodes/bron_lijst.py"),
+            tests=("tools/graph-qa/tests/test_bron_lijst.py",), uitvoer="het blok stukken",
+            twijfel="een fout van de bron is een vaste melding; een andere fout gaat naar de agent"),
+        _wf("vaste_melding", "Een vaste melding",
+            "Antwoordt zonder model met een vaste tekst uit de code: een bron die uit staat, een regeling buiten de "
+            "graaf, meer artikelen tegelijk, of de keuzevraag van het vorige antwoord.", "workflow",
+            (Stap("melding", "geen"),),
+            bestand=("tools/graph-qa/agent/nodes/supervisie.py",),
+            tests=("tools/graph-qa/tests/test_bronroutering.py",), uitvoer="een tekst met de reden",
+            twijfel="geen: de melding zegt wat er niet kan en wat wel"),
         _wf("regie", "Regie per deelvraag (ADR-012)",
             "Verdeelt het werk in een werkgebied over deelgesprekken, na een bevestiging; neemt zelf geen besluit.",
             "workflow", (Stap("plan", "geen"), Stap("bevestiging door de jurist", "geen"),
@@ -364,6 +401,19 @@ def uit_workflows() -> list[Onderdeel]:
             uitvoer="het regie-artefact: opgeleverd, wacht op jou, mislukt",
             twijfel="de jurist is de poort tussen bronnen zoeken en annoteren"),
     ]
+
+
+# --- routes (ingangen) ----------------------------------------------------------------------------------------------
+
+def uit_routes() -> list[Onderdeel]:
+    from .routes import ROUTES
+    return [Onderdeel(
+        id=oid("route", r.naam), soort="route", label=r.label, doel=r.doel_zin, model="geen", herkomst=EIGEN,
+        bestand=("tools/graph-qa/agent/routes.py", "tools/graph-qa/agent/nodes/supervisie.py"),
+        versie=versie(r.naam, r.herkenner, r.doel, r.moment), ingang=(r.herkenner,), context=r.moment,
+        tests=("tests/poort/test_routecontract.py", "tools/graph-qa/tests/test_graafopbouw.py"),
+        hangt_af_van=(r.doel,), inhoud={"herkenner": r.herkenner, "moment": r.moment},
+    ) for r in ROUTES]
 
 
 # --- tools ----------------------------------------------------------------------------------------------------------
@@ -432,7 +482,7 @@ def uit_controles() -> list[Onderdeel]:
 # --- de catalogus ----------------------------------------------------------------------------------------------------
 
 ADAPTERS = (uit_methode, uit_rollen, uit_regelsets, uit_tools, uit_connectors, uit_sjablonen, uit_workflows,
-            uit_specialisten, uit_agents, uit_controles)
+            uit_specialisten, uit_agents, uit_routes, uit_controles)
 
 
 @cache

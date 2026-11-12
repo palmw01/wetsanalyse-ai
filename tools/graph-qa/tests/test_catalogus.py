@@ -281,3 +281,49 @@ def test_een_deel_hoort_bij_een_geheel_van_hetzelfde_concept():
 def test_een_agent_zonder_modelstap_is_een_workflow():
     assert PER_ID["agent/annotatie"].concept == "workflow"
     assert PER_ID["agent/begrippen"].concept == "agent"
+
+
+# --- de routeringstabel (ADR-010, ADR-014 §7) -------------------------------------------------------------------------
+
+def _los_op(pad: str):
+    import importlib
+    module, naam = pad.split(":")
+    return getattr(importlib.import_module(module), naam)
+
+
+#: Wat `supervisie.py` importeert met een herkennersnaam maar geen route kiest: de stand van een open kaartje.
+NIET_ROUTE = {"is_open", "is_aanvullen"}
+
+
+def test_elke_route_bestaat_en_kiest_een_onderdeel():
+    from agent.routes import ROUTES
+    assert len({r.naam for r in ROUTES}) == len(ROUTES)
+    for r in ROUTES:
+        assert callable(_los_op(r.herkenner)), r.herkenner
+        assert PER_ID[r.doel].concept in ("workflow", "agent"), f"route {r.naam} kiest {r.doel}"
+        assert PER_ID[bc.oid("route", r.naam)].hangt_af_van == (r.doel,)
+
+
+def test_de_routeringstabel_en_supervisie_zijn_gelijk():
+    """Elke herkenner in de tabel wordt in `supervisie.py` gebruikt, en elke herkenner die `supervisie.py` importeert
+    of definieert staat in de tabel. Een nieuwe vaste weg zonder rij, of een rij zonder weg, wordt rood."""
+    import ast
+    import inspect
+
+    from agent.nodes import supervisie
+    from agent.routes import ROUTES
+
+    bron = inspect.getsource(supervisie)
+    boom = ast.parse(bron)
+    geimporteerd = {(a.asname or a.name): f"{n.module}:{a.name}" for n in ast.walk(boom)
+                    if isinstance(n, ast.ImportFrom) and n.module for a in n.names}
+    herkenners = {naam for naam in geimporteerd if re.match(r"(is_|lees_|wijst_|_heeft_)", naam)} - NIET_ROUTE
+    helpers = {"_lijst", "_bron_uit", "_te_lezen", "_doorvraag", "_buiten_graaf_melding"}
+    in_tabel = set()
+    for r in ROUTES:
+        module, naam = r.herkenner.split(":")
+        lokaal = next((k for k, v in geimporteerd.items()
+                       if v.split(":")[1] == naam and v.split(":")[0].split(".")[-1] == module.split(".")[-1]), naam)
+        assert re.search(rf"\b{re.escape(lokaal)}\(", bron), f"route {r.naam}: {lokaal} wordt in supervisie niet aangeroepen"
+        in_tabel.add(lokaal)
+    assert herkenners | helpers <= in_tabel, f"herkenners zonder route: {sorted((herkenners | helpers) - in_tabel)}"

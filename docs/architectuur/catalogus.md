@@ -54,10 +54,10 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 - Een rij in de routeringstabel.
 - Testrijen.
 
-**Route** (een vaste weg zonder model vóór de supervisor)
-- Een rij in de routeringstabel (ADR-010; tot S3 de volgorde in `nodes/supervisie.py`), met zijn negatieven in
-  `eval/golden_gesprek.jsonl` (ADR-005).
-- Het routecontract in `tests/poort/routeboek.py`.
+**Route** (een vaste weg zonder model, vóór of na de supervisor)
+- Een herkenner, een tak in `nodes/supervisie._kies` en een rij in `agent/routes.py` (`ROUTES`: herkenner, doel, moment).
+  `test_catalogus.py` houdt tabel en code gelijk en eist dat de route precies één workflow of agent kiest.
+- De rijen in `eval/golden_routering.jsonl` en de negatieven in `eval/golden_gesprek.jsonl` (ADR-005, ADR-010).
 
 **Tool** (een graaftool, leestool of connectortool)
 - De declaratie in `agent/tools/` met een beschrijving die zegt wat er terugkomt, het resultaatcontract
@@ -97,8 +97,8 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 | C2 | agents en taken, regie, regelsets, workflows met stappen | #1281 |
 | C5 | `GET /v1/catalogus` + BFF | #1285 |
 | C6 | de werkplek: *Werkwijze van Lex* | #1286 |
-| S1 | ADR-014 §7 *Samenwerking* | – |
-| S2 | concepten, de soorten `tool` en `controle`, aanroepregels als test | – |
+| S1 | ADR-014 §7 *Samenwerking* | #1290 |
+| S2 | concepten, de soorten `tool` en `controle`, aanroepregels als test | #1291 |
 | S3 | de routeringstabel (ADR-010) | – |
 | S4 | context per agent (`test_context_per_agent`) | – |
 | S5 | meerdere skills, binding per rol, nep-skill | – |
