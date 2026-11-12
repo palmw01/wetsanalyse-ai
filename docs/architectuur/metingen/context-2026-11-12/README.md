@@ -198,3 +198,29 @@ Gesprek `b661556bf1fa4542`, dezelfde vijf vragen als G5.
 Gesimuleerd met de echte cachepunten, per beurt opnieuw geschreven:
 - met kleine antwoorden 13,6k (het minimum, de nieuwe beurt, is 13,0k);
 - met antwoorden van 8k 32k tegen 45k met het oude venster (het minimum is 28k).
+
+## Controlemeting (bundel 69, `f3344ba8`): de historie blijft
+
+Gesprek `a709a04563c04477`, dezelfde vragen als G5 en G6.
+
+| beurt | ronde 1: lezen / schrijven | historie | wat er gebeurde |
+|---|---|---|---|
+| G7-2 | 25,0k / 6,2k | 9,3k (3 berichten) | beurt 1 als kern |
+| G7-3 | **28,3k / 8,5k** | 25,0k | de kern van beurt 1 uit de cache; de historie bleef in alle 13 rondes staan, ook toen de beurt 81k werd |
+| G7-4 | 25,0k / 5,6k | 7,5k (5 berichten) | een geplande knip: beurt 1 viel weg, de kernen van beurt 2 en 3 bleven |
+| G7-5 | **27,7k / 13,9k** | 34,8k (27 berichten) | de voorkant bleef staan; alleen beurt 4 geschreven |
+
+**Uitkomst:**
+- De historie valt in geen enkele beurt meer weg.
+- Een knip gebeurt alleen op het raster en schuift alleen naar voren (G7-4).
+- Wat per beurt nieuw geschreven wordt, is de vorige beurt; de rest komt uit de cache.
+- Vergeleken met de nulmeting, na een vergelijkbare vervolgbeurt: G1-3 schreef 18,0k, G7-3 8,5k.
+- De grens die overblijft is inherent aan een venster dat moet krimpen. De vorige beurt wordt één keer heel en één
+  keer als kern geschreven, en een knip maakt het voorvoegsel nieuw.
+
+**Gedrag:**
+- Alle beurten waren gegrond.
+- In G7-4 eindigde het antwoord in tekst na twee weigeringen van `antwoord_duiding` (`duiding.vul`). Eén weigering per
+  beurt kwam in G4–G7 vaker voor (G6-2, G6-4, G7-2), ook al vóór #1318.
+- Of de context van de beurt als tekst in de vraag de weigeringen vaker maakt, is met deze steekproef niet te zeggen:
+  daarvoor is een vergelijking op een vragenset nodig. Dat is een vervolgpunt, geen bevinding.
