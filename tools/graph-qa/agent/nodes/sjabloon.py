@@ -81,12 +81,6 @@ def redencode(fout: BaseException) -> str:
     return f"{module}.{tb.tb_frame.f_code.co_name}"
 
 
-#: Na een tweede weigering in dezelfde beurt: geen derde poging, het antwoord in tekst.
-TEKST_NU = ("\n\nRoep het sjabloon niet opnieuw aan. Geef je antwoord nu in tekst, met wat je gelezen hebt; citeer "
-            "letterlijk. Deze melding komt van de code, niet van de jurist: noem haar, het sjabloon of deze tool nooit in je "
-            "antwoord.")
-
-
 def vul_aanroep(b: Bouw, state: State, tu: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
     """Vul één sjabloonaanroep uit de trace van `state`: (het `tool_result`, de berichten erna, de rest van de update).
 
@@ -106,14 +100,9 @@ def vul_aanroep(b: Bouw, state: State, tu: dict[str, Any]) -> tuple[dict[str, An
         tekst, trace = _lees_wat_genoemd_is(b, state, fout)
         # Na een weigering schreef het model vaak vrije tekst (derde meting Rechtspraak, 10 nov 2026: 2 van 6 runs na een
         # tweede pagina, met afgeronde bedragen en een eigen blokcitaat). Het sjabloon hoort het antwoord te dragen.
-        # Eén herkansing: na een tweede weigering (zonder iets op te halen) is de tekst het antwoord. Eerst ging dat door
-        # tot de beurtlimiet (iteratie wetgeving_live ronde 5, I12: twee weigeringen, 8 rondes, 213k; I28 twee).
-        eerder = sum((state.get("sjabloon_telling") or {}).get("geweigerd", {}).values())
-        tekst += TEKST_NU if eerder and not fout.ophalen else OPNIEUW.format(naam=tu["name"])
+        tekst += OPNIEUW.format(naam=tu["name"])
         return (resultaat(tekst, is_error=True), [],
                 {**({"source_trace": trace} if fout.ophalen else {}),
-                 # Een tekstantwoord na een weigering is het antwoord: geen herhaalverzoek meer (`nodes/antwoord`).
-                 "sjabloon_gevraagd": True,
                  **tel_sjabloon(state, "geweigerd", f"{tu['name']}:{redencode(fout)}")})
     _met_regelingen(b, antwoord)
     tekst = antwoord_tekst(antwoord)

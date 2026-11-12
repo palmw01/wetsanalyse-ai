@@ -579,31 +579,3 @@ def test_een_tool_als_vertelstem_komt_niet_bij_de_jurist():
     for zin in ("De wet regelt de verdeling van de toolkit niet.", "Het gereedschap valt onder artikel 3.",
                 "Artikel 7:610 BW definieert de arbeidsovereenkomst."):
         assert zonder_interne_taal(zin) == zin
-
-
-def test_een_grens_van_de_code_als_reden_komt_niet_bij_de_jurist():
-    """Ronde 5, I12: "De lijst van 52 paragrafen kon vanwege de limiet van 25 stukken per bron niet volledig worden
-    opgenomen in de stukkenlijst." De jurist ziet de lijst met haar totaal, niet de grens van het blok."""
-    from agent.nodes.antwoord import zonder_interne_taal
-
-    tekst = ("Het besluit telt 52 paragrafen. De lijst kon vanwege de limiet van 25 stukken per bron niet volledig worden "
-             "opgenomen in de stukkenlijst. Paragraaf 9 is vervallen.")
-    assert zonder_interne_taal(tekst) == "Het besluit telt 52 paragrafen. Paragraaf 9 is vervallen."
-    for zin in ("De termijn is beperkt tot 25 dagen.", "Artikel 25 begrenst het bedrag tot € 1.000."):
-        assert zonder_interne_taal(zin) == zin
-
-
-def test_een_regeling_uit_een_overzicht_is_alleen_een_bron_als_het_antwoord_haar_noemt():
-    """Ronde 5, I20: na `list_regelingen` stonden alle zeven regelingen van de graaf in de bronnenlijst van een antwoord
-    over de Wet op de inkomstenbelasting 1964. Een overzicht is geen lezing; "welke regelingen zitten erin?" noemt ze."""
-    from agent.models import Source
-    from agent.provenance import alleen_genoemde_overzichten
-
-    def bron(bwb: str, naam: str, afk: list[str], tool: str = "list_regelingen") -> Source:
-        return Source(label=naam, uri=f"urn:bwb:{bwb}", origin_tool=tool, soort="regeling", bwb_id=bwb, regeling=naam,
-                      afkortingen=afk)
-
-    awr, iw = bron("BWBR0002320", "Algemene wet inzake rijksbelastingen", ["AWR"]), bron("BWBR0004770", "Invorderingswet 1990", ["IW"])
-    gelezen = bron("BWBR0004770", "Invorderingswet 1990", ["IW"], tool="get_artikel")
-    assert alleen_genoemde_overzichten([awr, iw, gelezen], "De Wet op de inkomstenbelasting 1964 staat er niet in.") == [gelezen]
-    assert alleen_genoemde_overzichten([awr, iw], "In de graaf staan de AWR en de Invorderingswet 1990.") == [awr, iw]

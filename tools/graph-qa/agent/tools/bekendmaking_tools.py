@@ -636,7 +636,8 @@ def _get(bron: BekendmakingBron, a: dict[str, Any], graph: Any = None) -> str:
 
 
 #: De reden in het foutresultaat per code van de adapter (`KoopFout.code`).
-FOUTREDEN = {"onbereikbaar": "bron_onbereikbaar", "geweigerd": "zoekvraag_geweigerd", "niet_gevonden": "niet_gevonden",
+FOUTREDEN = {"onbereikbaar": "bron_onbereikbaar", "bezet": "bron_bezet", "verzoek_geweigerd": "zoekvraag_geweigerd",
+             "geweigerd": "zoekvraag_geweigerd", "niet_gevonden": "niet_gevonden",
              "alleen_pdf": "alleen_pdf"}
 
 

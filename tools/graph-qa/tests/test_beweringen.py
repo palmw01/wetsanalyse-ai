@@ -146,7 +146,65 @@ def test_een_afkorting_van_een_gerecht_is_geen_bewering():
     assert beweringen("De CRvB en het CBb komen weinig voor.", "Centrale Raad van Beroep") == []
 
 
-def test_een_afgeleid_getal_is_een_bewering():
-    """Ronde 2, R22 en K17-R22: "73 procent" en "samen: 166" rekende het model zelf uit; ze staan nergens in de bron."""
-    bron = '{"per_instantie": {"Hoge Raad": 75, "Parket bij de Hoge Raad": 91}}'
-    assert beweringen("Hoge Raad en Parket bij de Hoge Raad samen: 166.", bron) == ["166"]
+BRON_TELLING = '{"totaal": 623, "per_instantie": {"Hoge Raad": 75, "Parket bij de Hoge Raad": 91, "gerechtshof": 222, ' \
+               '"rechtbank": 232}}'
+
+
+def test_een_afgeleid_getal_zonder_de_som_in_de_tekst_is_een_bewering():
+    """Ronde 2, R22 en K17-R22: "samen: 166" zonder de getallen waaruit het volgt; de jurist kan het niet nalopen."""
+    assert beweringen("Hoge Raad en Parket bij de Hoge Raad samen: 166.", BRON_TELLING) == ["166"]
+
+
+@pytest.mark.parametrize("tekst", [
+    "75 van de Hoge Raad en 91 van het Parket, samen 166 uitspraken.",                    # een som (X4, ronde 4)
+    "Van de 623 uitspraken komen er 75 van de Hoge Raad, ruim 12 procent.",              # een percentage (X3)
+    "Rechtbanken (232) en gerechtshoven (222) samen: 454, bijna 73% van de 623.",        # som én percentage (R22)
+    "Van de 623 noemen er 75 de Hoge Raad; de overige 548 komen van andere instanties.",  # een verschil (R17)
+])
+def test_een_som_of_percentage_van_genoemde_getallen_uit_de_bron_is_geen_bewering(tekst):
+    assert beweringen(tekst, BRON_TELLING) == []
+
+
+@pytest.mark.parametrize("tekst,feit", [
+    ("75 van de Hoge Raad en 91 van het Parket, samen 170 uitspraken.", "170 uitspraken"),   # een verkeerde som
+    ("Van de 623 uitspraken komen er 75 van de Hoge Raad, zo'n 20 procent.", "20 procent"),  # een verkeerd percentage
+    ("Van de 623 komen er 400 van rechtbanken, 64 procent.", "400"),                          # een operand zonder bron
+])
+def test_een_verkeerde_rekensom_blijft_een_bewering(tekst, feit):
+    assert feit in beweringen(tekst, BRON_TELLING)
+
+
+# --- aantallen (Staatsblad ronde 5, B03 en B26) ---------------------------------------------------------------------
+
+LIJST = json.dumps({"status": "ok", "totaal": 4, "resultaten": [{"id": f"stb-2024-{i}"} for i in range(4)]})
+
+
+@pytest.mark.parametrize("tekst,feit", [
+    ("De wet is gewijzigd door vijf wetten.", "vijf wetten"),           # B03: vier in de lijst
+    ("Er zijn 5 wetten die het wijzigen.", "5 wetten"),
+    ("Dit leverde vier aanpassingen op, waaronder 12 publicaties.", "12 publicaties"),
+])
+def test_een_aantal_dat_niet_uit_de_trace_komt_is_een_bewering(tekst, feit):
+    from agent.beweringen import tellingen_uit
+    assert feit in beweringen(tekst, LIJST, tellingen=tellingen_uit([LIJST]))
+
+
+@pytest.mark.parametrize("tekst", [
+    "De wet is gewijzigd door vier wetten.",           # de lengte van de lijst
+    "Er zijn 4 publicaties gevonden.",                  # het totaal
+    "Er zijn 2 wetten genoemd in de vraag.",            # uit de vraag (hieronder)
+])
+def test_een_aantal_uit_de_trace_of_de_vraag_is_geen_bewering(tekst):
+    from agent.beweringen import tellingen_uit
+    assert beweringen(tekst, LIJST, bekend="Welke 2 wetten?", tellingen=tellingen_uit([LIJST])) == []
+
+
+def test_een_telwoord_uit_de_gelezen_tekst_is_geen_eigen_telling():
+    from agent.beweringen import tellingen_uit
+    bron = json.dumps({"resultaten": [{"tekst": "De Hoge Raad stelt het Hof van Justitie twee vragen."}]})
+    assert beweringen("De Hoge Raad stelt twee prejudiciële vragen.", bron, tellingen=tellingen_uit([bron])) == []
+
+
+def test_een_verkeerd_aantal_in_de_toelichting_krijgt_een_correctieronde():
+    rapport = check_grounding("De wet is gewijzigd door vijf wetten.", [("zoek_bekendmakingen", LIJST)])
+    assert "vijf wetten" in rapport.beweringen

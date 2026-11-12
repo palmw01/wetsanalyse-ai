@@ -37,8 +37,6 @@ _TEKST = frozenset({"reason", "token"})
 #: weigering of een herhaalverzoek alleen in de logs, en was een meetronde zonder Grafana blind voor de grootste
 #: tokenpost (iteratie wetgeving_live ronde 4: I24 en I28 drie schrijfrondes, de reden onzichtbaar).
 #: - `gevraagd`: het herhaalverzoek na tekst met een lijst (`nodes/antwoord._lijst_zonder_sjabloon`);
-#: - `omgezet`: een lijst in tekst die de code zelf omzette naar het sjabloon, zonder modelronde
-#:   (`nodes/antwoord.lijst_omzetten`); `lijst_aangenomen`: een lijst zonder gevonden stuk, of een opbouw, als antwoord;
 #: - `tekst_zonder_lijst`: tekst na een vondst van een connector, zonder lijst, als antwoord aangenomen;
 #: - `gemist`: een tekstantwoord terwijl er een sjabloon was;
 #: - `als_tekst`: een sjabloonaanroep die als tekst kwam en in code is omgezet;
@@ -46,8 +44,7 @@ _TEKST = frozenset({"reason", "token"})
 #: - `tekst_ernaast`: tekens die het model naast een sjabloonaanroep schreef; dat zegt het sjabloon opnieuw, dus het
 #:   zijn verspilde tokens (de tekst gaat niet naar het denkproces, `narratie.ronde_in_denk`);
 #: - `gevuld` en `geweigerd`: per sjabloon, en per redencode (de functie die `Onvulbaar` gooide).
-SJABLOON_TELLERS = ("gevraagd", "omgezet", "lijst_aangenomen", "tekst_zonder_lijst", "gemist", "als_tekst", "uitgesteld",
-                    "tekst_ernaast")
+SJABLOON_TELLERS = ("gevraagd", "tekst_zonder_lijst", "gemist", "als_tekst", "uitgesteld", "tekst_ernaast")
 SJABLOON_PER = ("gevuld", "geweigerd")
 
 

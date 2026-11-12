@@ -29,6 +29,13 @@ from bronmodel.extern import externe_vindplaats, koop_id_uit_bron
 
 from fakes import FakeGraph
 
+
+@pytest.fixture(autouse=True)
+def _geen_wachttijd(monkeypatch):
+    """Het gedeelde herhaalbeleid wacht tussen pogingen (`http_beleid`); in de tests niet."""
+    from agent.adapters import http_beleid
+    monkeypatch.setattr(http_beleid, "HERHAAL_S", 0)
+
 FIX = Path(__file__).parent / "fixtures" / "koop"
 AAN = Settings(connector_bekendmakingen=True)
 IW = "BWBR0004770"

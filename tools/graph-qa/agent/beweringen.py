@@ -17,13 +17,30 @@ als feit, zonder model na te lopen:
 Niet hier: citaten (`niet_letterlijk`), vindplaatsen en ids van stukken (`unsupported`) en artikelnummers (`onbevestigd`
 in `grounding`); die hebben een eigen toets, en hun getallen tellen hier niet mee.
 
-Bekende grenzen: een klein getal (onder de 100) staat vaak ergens in de trace, dus een verkeerde kleine telling ontgaat de
-toets; een telwoord ("drie uitspraken") toetst ze niet, want dat telt het model vaak zelf uit de lijst die het toont.
+Een **afgeleid getal** is geen bewering als de rekensom in de tekst staat: een som van twee of drie getallen die de
+tekst noemt en die in het opgehaalde staan ("75 van de Hoge Raad en 91 van het Parket, samen 166"), het verschil van twee
+("470 van de 623, de overige 153"), of een percentage van
+zulke getallen ("232 en 222 van de 623, bijna 73%"). De operanden moeten allebei in de tekst én in de bron staan, zodat
+de jurist de som kan nalopen; een getal dat toevallig de som is van twee getallen elders in de trace, telt niet (ronde 4:
+de correctieronde vuurde op elke vraag naar een aandeel of een totaal, en bij X3 liet het model het gevraagde aandeel
+weg).
+
+Een **aantal** ("12 publicaties", "vijf wetten") hoort een aantal uit de trace te zijn: een geheel getal in de JSON (een
+totaal, een telling per instantie) of de lengte van een lijst die een tool teruggaf (`tellingen`). Een klein getal staat
+vaak toevallig ergens in de trace (in een datum, een nummer), dus dat volstaat niet (Staatsblad ronde 5, B03: "vijf wetten"
+bij vier; B26: "vier aanpassingen" bij vijf). Een telwoord van twee tot twintig telt als getal; "een" en "één" niet, dat
+zijn ook lidwoorden; een telwoord dat de gelezen tekst zelf gebruikt, telt niet (een samenvatting van een stuk). Wie
+`beweringen` zonder `tellingen` aanroept, krijgt de oude toets: een telling in cijfers tegen
+elk getal in de bron, en geen telwoorden.
+
+Bekende grenzen: een aantal dat het model zelf telt uit een deel van een lijst ("drie daarvan gaan over …") is niet na te
+lopen en telt dus als bewering.
 """
 from __future__ import annotations
 
 import re
 from functools import lru_cache
+from itertools import combinations
 
 from .hoeveelheden import _DATUM, _HOEVEELHEID, _ISO_DATUM, buiten as hoeveelheden_buiten
 
@@ -60,6 +77,11 @@ _GEEN_TELLING = frozenset({
     "was", "waren", "worden", "wordt", "werden", "hebben", "heeft", "noemen", "noemt", "gaan", "gaat", "staan", "staat",
     "komen", "komt", "daarvan", "ervan", "stuks",
 })
+#: De telwoorden die een aantal maken; "een" en "één" niet (ook een lidwoord).
+TELWOORDEN = {w: i for i, w in enumerate(
+    "twee drie vier vijf zes zeven acht negen tien elf twaalf dertien veertien vijftien zestien zeventien achttien "
+    "negentien twintig".split(), start=2)}
+_TELWOORD = re.compile(rf"\b({'|'.join(TELWOORDEN)})\s+(?:van\s+de\s+\d+\s+)?([a-zà-ÿ][a-zà-ÿ-]{{2,}})\b", re.IGNORECASE)
 #: Een blokcitaat: wettekst of een passage uit het blok `extern`, met een eigen toets.
 _BLOKCITAAT = re.compile(r"^[ \t]*>.*$", re.MULTILINE)
 #: Een citaat tussen aanhalingstekens: idem.
@@ -120,28 +142,106 @@ def _is_jaar(getal: str) -> bool:
     return len(getal) == 4 and 1800 <= int(getal) <= 2100
 
 
-def beweringen(tekst: str, bron: str, *, bekend: str = "") -> list[str]:
+#: Hoogstens zoveel getallen in een som; meer maakt toevallige treffers waarschijnlijk.
+MAX_TERMEN = 3
+#: Zoveel procentpunten mag een percentage afwijken van de rekensom ("bijna 73%" bij 72,9).
+MARGE_PROCENT = 1.0
+
+
+def _operanden(tekst: str, kent: set[str]) -> list[int]:
+    """De getallen die de tekst noemt én die in de bron staan: de grondstof van een rekensom."""
+    return sorted({int(_vorm(g)) for g in _GETAL.findall(tekst)
+                   if _vorm(g) in kent and _vorm(g).isdigit() and not _is_jaar(_vorm(g))})
+
+
+def _sommen(operanden: list[int]) -> set[int]:
+    """De sommen van twee of drie operanden en de verschillen van twee."""
+    sommen = {sum(c) for n in range(2, MAX_TERMEN + 1) for c in combinations(operanden, n)}
+    return sommen | {b - a for a, b in combinations(operanden, 2) if b > a}  # "de overige 153" bij 470 van de 623
+
+
+def _afgeleid(bewering: str, operanden: list[int], sommen: set[int]) -> bool:
+    """Of een bewering een som of een percentage is van de operanden (zie de moduletekst)."""
+    if m := re.fullmatch(r"(\d+(?:\.\d+)?) procent", bewering):
+        p = float(m.group(1))
+        tellers = set(operanden) | sommen
+        return any(abs(100 * x / y - p) <= MARGE_PROCENT for y in operanden if y for x in tellers if x <= y)
+    getal = _vorm(bewering.split()[0])
+    return getal.isdigit() and int(getal) in sommen
+
+
+def tellingen_uit(resultaten: list[str]) -> set[int]:
+    """De aantallen in toolresultaten (JSON): elk geheel getal als waarde en de lengte van elke lijst. Geen JSON (een
+    tekstresultaat) draagt niets bij."""
+    import json
+
+    uit: set[int] = set()
+
+    def loop(x: object) -> None:
+        if isinstance(x, bool):
+            return
+        if isinstance(x, int):
+            uit.add(x)
+        elif isinstance(x, list):
+            uit.add(len(x))
+            for y in x:
+                loop(y)
+        elif isinstance(x, dict):
+            for y in x.values():
+                loop(y)
+    for r in resultaten:
+        try:
+            loop(json.loads(r))
+        except (TypeError, ValueError):
+            continue
+    return uit
+
+
+def beweringen(tekst: str, bron: str, *, bekend: str = "", tellingen: set[int] | None = None) -> list[str]:
     """De feiten in `tekst` die niet in `bron` (de opgehaalde tekst) of `bekend` (de vraag) staan, in vaste volgorde.
 
     `bron` hoort ook de ruwe resultaten te dragen: een telling staat als getal in de JSON (`totaal`, `per_instantie`), en
-    `resultaat.waarden` neemt alleen de tekstwaarden."""
+    `resultaat.waarden` neemt alleen de tekstwaarden. `tellingen`: de aantallen uit de trace (`tellingen_uit`); daarmee
+    toetst een aantal tegen een aantal, niet tegen elk getal."""
     tegen = f"{bron}\n{bekend}"
     zonder = _zonder_citaten(tekst)
     uit = list(hoeveelheden_buiten(zonder, tegen))
     schoon = _zonder_hoeveelheden(zonder)
     kent = _getallen(tegen)
     gezien: set[str] = set()
+    operanden = _operanden(_zonder_hoeveelheden(zonder), kent)
+    sommen = _sommen(operanden)
+    vraag = _getallen(bekend)
+    tegen_klein = tegen.casefold()
+
+    def telling_klopt(getal: str, woord: str) -> bool:
+        if tellingen is None:
+            return _vorm(getal) in kent
+        n = int(_vorm(getal))
+        # Een aantal uit de trace, uit de vraag, een rekensom van genoemde getallen, of letterlijk zo in de bron
+        # ("12 leden" in de tekst van een stuk).
+        return (n in tellingen or _vorm(getal) in vraag or n in sommen
+                or re.search(rf"(?<![\d.]){n}\s+{re.escape(woord)}", tegen_klein) is not None)
+
     for m in _TELLING.finditer(schoon):
         getal, woord = m.group(1), m.group(2).casefold()
-        if woord in _GEEN_TELLING or _vorm(getal) in kent or _is_jaar(getal):
+        if woord in _GEEN_TELLING or _is_jaar(getal) or telling_klopt(getal, woord):
             continue
         uit.append(f"{getal} {woord}")
         gezien.add(_vorm(getal))
+    if tellingen is not None:
+        for m in _TELWOORD.finditer(schoon):
+            woord_n, woord = m.group(1).casefold(), m.group(2).casefold()
+            # Een telwoord dat de gelezen tekst zelf gebruikt ("twee prejudiciële vragen" in een samenvatting van een
+            # uitspraak) is geen eigen telling: de toets is voor een aantal bij een lijst.
+            if woord in _GEEN_TELLING or telling_klopt(str(TELWOORDEN[woord_n]), woord) or \
+                    re.search(rf"\b{woord_n}\b", tegen_klein):
+                continue
+            uit.append(f"{woord_n} {woord}")
     for m in _GETAL.finditer(schoon):
         getal = m.group(1)
         if len(_vorm(getal)) >= 3 and _vorm(getal) not in kent and _vorm(getal) not in gezien:
             uit.append(getal)
             gezien.add(_vorm(getal))
-    tegen_klein = tegen.casefold()
     uit += [n for n in _instanties(schoon) if n.casefold() not in tegen_klein]
-    return list(dict.fromkeys(uit))
+    return [b for b in dict.fromkeys(uit) if not _afgeleid(b, operanden, sommen)]

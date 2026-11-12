@@ -19,8 +19,7 @@ dat zijn predicaten, geen vindplaatsen.
 from __future__ import annotations
 
 import re
-from typing import Any
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 
 from bronmodel.connectors import CONNECTORS
 from bronmodel.extern import ExterneVindplaats, externe_verwijzingen, externe_vindplaats
@@ -149,21 +148,6 @@ def _met_titel(label: str, uit_tool: str) -> str:
 REGELINGTOOLS = frozenset({"list_regelingen", "zoek_regelingen"})
 
 
-def alleen_genoemde_overzichten(sources: list[Any], tekst: str) -> list[Any]:
-    """Een regeling uit een tool die regelingen opsomt (`REGELINGTOOLS`) is alleen een bron als het antwoord haar noemt:
-    bij naam, afkorting of BWB-id. Een overzicht is geen lezing (wetgeving_live ronde 5, I20: de zeven regelingen van
-    `list_regelingen` in de bronnenlijst van een antwoord over een andere wet). "Welke regelingen zitten erin?" noemt ze,
-    en daar blijven ze staan. Na `met_regelingnamen`: dan draagt de bron haar naam en afkortingen."""
-    laag = (tekst or "").lower()
-
-    def genoemd(naam: str) -> bool:
-        return bool(naam) and re.search(rf"(?<!\w){re.escape(naam.lower())}(?!\w)", laag) is not None
-
-    return [s for s in sources if not (getattr(s, "origin_tool", "") in REGELINGTOOLS and getattr(s, "soort", "") == "regeling"
-                                       and not any(genoemd(n) for n in (s.regeling or "", s.bwb_id or "", s.label or "",
-                                                                        *(s.afkortingen or []))))]
-
-
 def _zoektools() -> frozenset[str]:
     """De tools die zoeken in plaats van lezen, uit het register van wat Lex raadpleegt (`spoorbronnen`)."""
     from .spoorbronnen import bronnen
@@ -232,3 +216,20 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
             sources.append(bron)
 
     return sources
+
+
+def alleen_genoemde_zoektreffers(sources: list[Source], antwoord: str,
+                                 namen: Callable[[Iterable[str]], dict[str, str]]) -> list[Source]:
+    """Een bepaling die alleen in een zoekresultaat stond, is een bron als het antwoord haar regeling noemt (bij naam of
+    BWB-id) of als de beurt die regeling ook las. Anders zocht het model en vond het niets bruikbaars: een treffer op
+    "Quint Wellington Redwood arrest" gaf acht Awb-bepalingen, en die stonden als bron bij een arrest uit 1959
+    (Staatsblad ronde 5, I04). `namen`: bwb-id → naam (`regelingnamen`)."""
+    zoek = _zoektools()
+    gelezen = {s.bwb_id for s in sources if s.bwb_id and s.origin_tool not in zoek}
+    twijfel = {s.bwb_id for s in sources if s.bwb_id and s.origin_tool in zoek and s.bwb_id not in gelezen}
+    if not twijfel:
+        return sources
+    tekst = (antwoord or "").casefold()
+    naam = namen(sorted(twijfel))
+    genoemd = {b for b in twijfel if b.casefold() in tekst or (naam.get(b) and naam[b].casefold() in tekst)}
+    return [s for s in sources if not (s.origin_tool in zoek and s.bwb_id in twijfel - genoemd)]

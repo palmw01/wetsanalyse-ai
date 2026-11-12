@@ -115,20 +115,9 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   - schrijft het model toch tekst, dan komt het herhaalverzoek (`sjabloon_gevraagd`, één keer per beurt, `State.sjabloon_gevraagd`/
     `sjabloon_nu`) alleen bij een opsomming of tabel (`heeft_lijst`; ronde 2, B22: een tabel met zelf afgeleide nummers), en het
     noemt de stukken die die lijst noemt (`genoemde_stukken`), zodat er geen lijst bij komt die niet gevraagd is (I13, I30);
-  - tekst zonder lijst is het antwoord, zonder tweede ronde;
-  - **een lijst die gevonden stukken noemt, zet de code zelf om** (`lijst_omzetten`, ronde 6; ronde 5 mat dat AFRONDEN_EXTERN
-    het model bij een lijstvraag niet van tekst afhoudt: I01, I14 elk een herhaalverzoek, I12 25 paragrafen en twee
-    weigeringen, 213k): de stukken die de lijst bij id of label noemt in het blok `stukken` van `antwoord_extern`, de rest
-    van de tekst als kort antwoord (`zonder_lijstregels`), zonder modelronde (telling `omgezet`). Meer genoemd dan één blok
-    draagt (`MAX_LIJST`, een opbouw): de tekst is het antwoord (`lijst_aangenomen`). Het herhaalverzoek blijft alleen als
-    de lijst geen gevonden stuk noemt (een tabel met kale nummers, B03), er naast de lijst geen uitleg staat, of het
-    sjabloon niet te vullen is.
-  - **na een tweede weigering in dezelfde beurt** vraagt `vul_aanroep` geen derde poging maar tekst (`TEKST_NU`; ronde 5: I12
-    en L-R1 tot negen rondes), behalve als de code bij die weigering iets ophaalde; na een weigering komt geen herhaalverzoek
-    meer (`sjabloon_gevraagd`). AFRONDEN_EXTERN zegt: zonder stuk en zonder passage antwoord je in tekst (I30, I13: een lege
-    aanroep weigerde `extern.vul`).
+  - tekst zonder lijst is het antwoord, zonder tweede ronde.
   Wat er per beurt met de sjablonen gebeurde, telt `beurtmeting.tel_sjabloon` (`State.sjabloon_telling` → `Verbruiksmeter.sjabloon`
-  → het veld `sjabloon` van het `meting`-event): `gevraagd`, `omgezet`, `lijst_aangenomen`, `tekst_zonder_lijst`, `gemist`, `als_tekst`, `uitgesteld`, `tekst_ernaast` (tekens), en per sjabloon `gevuld`
+  → het veld `sjabloon` van het `meting`-event): `gevraagd`, `tekst_zonder_lijst`, `gemist`, `als_tekst`, `uitgesteld`, `tekst_ernaast` (tekens), en per sjabloon `gevuld`
   en `geweigerd` (`<sjabloon>:<redencode>`, de functie die `Onvulbaar` gooide, `nodes/sjabloon.redencode`). Geen inhoud.
   Alleen de sjabloontools zijn `strict`, en ze staan niet in `TOOLS`. Per specialist: `Specialist.sjablonen`.
   `antwoord_duiding` (uitleg): het model wijst per passage de bepaling en de eerste en laatste woorden aan (`van`/`tot`,
@@ -179,8 +168,14 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   bewering: de vraag, het dossier en het aangewezen object (`_bekend`). Dat geldt voor elk sjabloon en voor vrije tekst.
   Citaten, vindplaatsen, ids en artikelnummers hebben hun eigen toets; een afkorting en het jaar in een wetsnaam tellen
   niet. `check_grounding` zet ze in `beweringen` (niveau onbepaald). `verify_node` vraagt er eerst één correctieronde voor
-  ("haal het op of laat het weg"); staan ze er daarna nog, dan gaan ze naar `onbevestigd`. Een afgeleid getal ("samen 166")
-  telt als bewering. Terugmeting zonder model: `docs/architectuur/metingen/rechtspraak-iteratie-2026-11-11/beweringen-terugmeting.md`.
+  ("haal het op of laat het weg"); staan ze er daarna nog, dan gaan ze naar `onbevestigd`. Een afgeleid getal telt niet als
+  bewering als de rekensom in de tekst staat: een som van twee of drie getallen, het verschil van twee, of een percentage van
+  zulke getallen, waarbij elke operand in de tekst én in de bron staat (ronde 5: in ronde 4 vuurde de correctieronde op elke
+  vraag naar een aandeel of een totaal, en liet het model het gevraagde aandeel weg). Zonder de operanden in de tekst ("samen
+  166") blijft het een bewering. Een **aantal** ("12 publicaties", "vijf wetten") toetst tegen de aantallen in de trace
+  (`tellingen_uit`: elk geheel getal in de JSON en de lengte van elke lijst), niet tegen elk getal: een klein getal staat
+  vaak toevallig in een datum (Staatsblad ronde 5, B03/B26). Een telwoord van twee tot twintig telt mee, tenzij de gelezen
+  tekst het zelf gebruikt. Terugmeting zonder model: `docs/architectuur/metingen/rechtspraak-iteratie-2026-11-11/beweringen-terugmeting.md`.
   `tests/test_beweringen.py`.
 - **`finalize_node`** – de enige plek in de antwoordketen die `token` uitstuurt (ook voor het overzicht; `tests/test_uitgifte_na_controle.py` bewaakt het). Een controle die volgt op publicatie
   houdt niets tegen, dus de jurist ziet een antwoord pas ná `verify` en afgekeurde tekst nooit, ook niet in
@@ -470,13 +465,22 @@ bruikbaar is.
   blijft (`curate_sources`, `alleen_gelezen_extern`), en "Zoek …"/"Vind …" is een lijstvraag. **Na ronde 3** (gedeeld): een regeling die alleen
   in een zoekresultaat staat (de zoektools uit `spoorbronnen`), is geen bron, een bepaling met tekst uit een zoektool wel, en
   een lijst regelingen ook (`provenance._zoektools`, `REGELINGTOOLS`); een stuk in een foutresultaat houdt zijn label (`_labels`); een artikel met boeknummer
-  (`boek=6&…&artikel=162`) telt als "6:162" (`grounding._BOEK_ARTIKEL`); de grens van het blok `stukken` geldt per bron. Een regeling uit een tool die regelingen opsomt (`REGELINGTOOLS`) is na het cureren alleen een bron als het antwoord haar bij naam, afkorting of BWB-id noemt (`provenance.alleen_genoemde_overzichten`, in `finalize_node` na `met_regelingnamen`; wetgeving_live ronde 5, I20: zeven regelingen van `list_regelingen`). Een stuk van een connector is alleen een bron als het gelezen is,
+  (`boek=6&…&artikel=162`) telt als "6:162" (`grounding._BOEK_ARTIKEL`); de grens van het blok `stukken` geldt per bron. Een stuk van een connector is alleen een bron als het gelezen is,
   niet omdat een gelezen stuk het noemt (een voetnoot, `alleen_gelezen_extern`; Staatsblad B12); de titel van een regeling buiten
   de graaf komt uit de nieuwste toestand (`nieuwste_titel`; wetgeving_live I02). Een lijst uit meer zoekvragen toont per zoekvraag een zin met haar
-  totaal (`extern._per_zoekvraag`), en het blok draagt dan geen totaal (Kamerstukken K17). **Na ronde 4** (K16): `bron_onbereikbaar`
-  geldt alleen bij een netwerkfout, een time-out of een 5xx; een 429 is `bron_bezet` en een andere 4xx `zoekvraag_geweigerd`
-  (`foutcode_van_status`). Een netwerkfout, 5xx of 429 gaat tot `POGINGEN` keer, met een groeiende wachttijd (een 429 volgt
-  `Retry-After`, tot `MAX_WACHT_S`). Elke mislukking logt `rechtspraak_verzoek_mislukt` met host en status. Geeft de
+  totaal (`extern._per_zoekvraag`), en het blok draagt dan geen totaal (Kamerstukken K17). **Na ronde 4** (K16, R08):
+  welke HTTP-status tijdelijk is, is één beleid voor alle adapters (`adapters/http_beleid.py`): een netwerkfout, 5xx of 429
+  altijd, en daarnaast wat de adapter per host declareert (`BELEID`: bij LiDO de 400). Een tijdelijke status gaat tot
+  `POGINGEN` keer, met een groeiende wachttijd (een 429 volgt `Retry-After`, tot `MAX_WACHT_S`); blijft hij, dan is het
+  `bron_onbereikbaar` (`bron_bezet` bij een 429). `zoekvraag_geweigerd` alleen bij een status die de adapter niet als
+  tijdelijk kent. KOOP en de BWB-zoekdienst volgen hetzelfde beleid. Elke mislukking logt `rechtspraak_verzoek_mislukt`
+  (`koop_`, `bwb_`) met host en status. **Een lege uitkomst na een mislukte tussenstap is geen "geen"** (ronde 4, R09/R06):
+  een `get-id` zonder id gaat één keer opnieuw, en `koppelingen` bewaart alleen een uitkomst met versies en zonder
+  afgebroken antwoord; lege metadata en een lege titel worden ook niet bewaard. `tests/test_http_beleid.py`. **De eerste pagina
+  van een lang stuk noemt alle volgende pagina's** (`stuk_tekst._met_paginas`, `paginas.offsets`), voor elke leestool: een
+  arrest zonder koppen kostte zes modelrondes, één per pagina (Staatsblad ronde 5, I04). **Een zoektreffer is geen bron**
+  als het antwoord zijn regeling niet noemt en de beurt haar niet las (`provenance.alleen_genoemde_zoektreffers`, in de
+  sjabloonroute zonder doelen; I04: acht Awb-bepalingen bij een arrest uit 1959). Geeft de
   Rechtspraak de tekst niet, dan draagt het foutresultaat van `get_uitspraak` de uitspraak zoals LiDO haar kent
   (`metadata_lido`: titel, datum, zaaknummer, `gevalideerd: false`). LiDO heeft de tekst niet, dus het antwoord kan haar
   noemen, niet citeren. `bron_lezen` zegt "te druk" of "niet te bereiken". `tests/test_rechtspraak_tools.py`,
