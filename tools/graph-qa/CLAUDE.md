@@ -241,7 +241,9 @@ bruikbaar is.
   `cache_control` (op Foundry een beta-functie), dan zet de adapter zichzelf uit en herhaalt de call
   zonder – caching mag nooit "de dienst ligt plat" kosten. Knop: `PROMPT_CACHING=false`.
 - **`llm_stap.py`** – de gedeelde modelstap (H5). `aanroep(llm, rol, **verzoek)` geeft de kwargs ongewijzigd door,
-  geeft een `Stopreden` terug, logt één `model_aanroep` (rol, model, stopreden, duur, gebruik; geen inhoud) en eist dat
+  geeft een `Stopreden` terug, logt één `model_aanroep` (rol, model, stopreden, duur, gebruik en de opbouw van het verzoek uit
+  `agent/verzoekopbouw.py`: tekens van tools, systeemdelen, historie en lopende beurt, plus `tools_hash`/`system_hash`;
+  geen inhoud) en eist dat
   de systeemprompt de methodetekst van de rol draagt (`Rol.methoderol`, of `methoderol=` voor de specialist van de
   antwoordlus). `stroom` doet hetzelfde voor de streamende antwoordlus en logt bij `final_message()`. Supervisor,
   antwoordlus, ophaal-agent en de toelichting van de bepalingsroute lopen erlangs. `vraag_tool` is de vorm voor één tool (meestal strict):
@@ -803,7 +805,8 @@ markeringen op, dan meldt hij dat ze niet zijn vastgelegd.
 
 **Tokenverbruik wordt niet via een event geboekt.** Wie meekijkt krijgt het wel te zien: vlak vóór `done` gaat
 een `meting`-event mee met dezelfde cijfers als de logregel `beurt_meting`, plus het verbruik en de duur per
-modelaanroep (`Verbruiksmeter.aanroepen`, hoogstens `MAX_AANROEPEN`). Alleen de run-events, niet `/v1/chat`;
+modelaanroep (`Verbruiksmeter.aanroepen`, hoogstens `MAX_AANROEPEN`), met dezelfde opbouw als `model_aanroep`: daaraan
+zie je of een koude cache uit een andere toolset kwam (een andere `tools_hash` dan de vorige aanroep) of uit de tijd. Alleen de run-events, niet `/v1/chat`;
 de werkplek negeert het. Het boeken zelf blijft zoals hieronder. `AnthropicLLM` telt elk `usage`-blok op in een `Verbruiksmeter`
 (`agent/models.py`, met een lock: takken kunnen parallel lopen). De aanroeper geeft dezelfde meter aan
 `answer_stream` én `voer_beurt_uit`; de driver boekt hem in een `finally` (`POST /v1/verbruik`,
