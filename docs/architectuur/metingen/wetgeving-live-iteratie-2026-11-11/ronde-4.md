@@ -93,6 +93,9 @@ Samen kost de ronde **1.192.260 tokens**. Ronde 3 kostte 1.836.261, ronde 2 1.74
     tokens.
   - **Voorstel:** na een geslaagde zoekronde van een connector de volgende modelstap het sjabloon laten aanroepen
     (`tool_choice`), in plaats van achteraf te vragen.
+  - **Correctie:** `tool_choice` geforceerd geeft een 400 op de nieuwste modellen (zie `jas_pipeline/classificatie.py`;
+    ADR-008 kiest daarom voor `auto`). De oplossing moet anders, bijvoorbeeld door het sjabloon te vragen vóór het model
+    tekst schrijft.
 - **Een niet gevraagde lijst** (I30, I13).
   - `SJABLOON_GEVRAAGD` zegt "wijs de gevonden stukken aan in 'stukken'". Bij een telling of een opbouw zet het model
     daarom de eerste pagina artikelen onder het antwoord (I30: 17 van de 174, I13: 25 van de 514), terwijl de vraag
