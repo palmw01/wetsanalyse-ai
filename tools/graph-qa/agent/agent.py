@@ -365,6 +365,7 @@ async def answer_stream(
         "sjabloon_nu": False,
         "afgekapt": False,
         "onbevestigd": [],
+        "beweringen": [],
         "answer": "",
         # Een afwijzing geldt de vráág, niet het gesprek. Bleef deze vlag staan, dan werd elke
         # volgende beurt in dezelfde thread ook afgewezen – dezelfde soort fout als een blijvend

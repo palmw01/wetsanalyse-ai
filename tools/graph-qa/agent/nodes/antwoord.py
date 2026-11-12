@@ -341,7 +341,7 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     # dat een citaat uit het vorige antwoord herhaalt, is niet minder brongetrouw dan dat antwoord.
     # Bij een sjabloon niet de blokken die afgeleide duiding of tekst van de code dragen (`NIET_GETOETST`).
     tekst = antwoord_tekst(Antwoord.model_validate(state["antwoord"]), zonder=NIET_GETOETST) if state.get("antwoord") else state.get("answer", "")
-    report = check_grounding(tekst, controletrace(state), overzicht=state.get("overzicht") or None)
+    report = check_grounding(tekst, controletrace(state), overzicht=state.get("overzicht") or None, bekend=_bekend(state))
     # Wettekst uit een sjabloon staat zonder aanhalingstekens, dus de toets ziet "niets te controleren". Maar de code
     # toonde hem uit de tool-rijen, met de vindplaats erbij: de melding dat er geen vindplaats is, zou onwaar zijn.
     if report.niveau == "onbepaald" and not report.onbevestigd and (state.get("antwoord") or {}).get("doelen"):
@@ -358,6 +358,17 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     # Deze controle heeft geen eigen narratie (geen LLM), dus zonder deze regel gebeurt er iets
     # wezenlijks – de brongetrouwheidstoets – zonder dat de jurist het ziet. De tijdlijn wordt
     # bij de beurt bewaard, dus dit is tegelijk het spoor waarop je achteraf terugvalt.
+    # Een feit in de toelichting dat niet in het opgehaalde staat (een datum, een nummer, een telling, een instantie;
+    # `beweringen`): eerst één correctieronde, net als een vindplaats zonder bron; staat het er daarna nog, dan is het
+    # onbevestigd (Rechtspraak ronde 4, 12 nov 2026: "dossier 20588" en een intrekking bij het verkeerde dossier stonden
+    # als feit in de toelichting, en de controle zag ze niet).
+    if report.beweringen and not state.get("corrected") and b.settings.grounding_correct and not state.get("overzicht"):
+        report = replace(report, grounded=False, niveau="ongegrond")
+    elif report.beweringen:
+        report = replace(report, onbevestigd=[*report.onbevestigd, *report.beweringen])
+        logger.info("grounding: beweringen na de correctie", extra={"categorie": "functioneel",
+                                                                    "run_id": state.get("run_id", ""),
+                                                                    "aantal": len(report.beweringen)})
     _stap(writer, "Controle", _grounding_melding(report))
     if report.onbevestigd:
         # Alleen het aantal: hiermee is vals alarm te meten voordat dit signaal zwaarder mag wegen.
@@ -369,8 +380,17 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
         "unsupported": report.unsupported,
         "niet_letterlijk": report.niet_letterlijk,
         "onbevestigd": report.onbevestigd,
+        "beweringen": report.beweringen if not report.grounded else [],
         "grounding_niveau": report.niveau,
     }
+
+
+def _bekend(state: State) -> str:
+    """Wat de jurist zelf schreef of vastlegde: de vraag, het dossier van het werkgebied, het aangewezen object. Een feit
+    daaruit is geen bewering van Lex."""
+    return "\n".join(str(state.get(k) or "") for k in ("question", "zelfstandige_vraag", "werkgebied_context",
+                                                         "onderwerp_context"))
+
 
 def route_after_verify(b: Bouw, state: State) -> str:
     if state.get("overzicht"):
@@ -395,6 +415,7 @@ def correct_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     unsupported = state.get("unsupported") or []
     niet_letterlijk = state.get("niet_letterlijk") or []
+    beweringen = state.get("beweringen") or []
 
     opdrachten: list[str] = []
     if unsupported:
@@ -414,10 +435,17 @@ def correct_node(b: Bouw, state: State) -> dict[str, Any]:
             "parafrase – die presenteer je niet als citaat."
         )
 
+    if beweringen:
+        opdrachten.append(
+            f"Je schreef als feit {', '.join(beweringen)}, maar dat staat niet in wat je in deze beurt opgehaald of gelezen "
+            "hebt. Haal het op met de tools en noem de bron, of laat het weg; schrijf geen datum, nummer, aantal of "
+            "instantie uit eigen kennis."
+        )
     wat = " en ".join(
         deel for deel in (
             "niet-onderbouwde verwijzingen" if unsupported else "",
             "citaten die niet letterlijk zijn" if niet_letterlijk else "",
+            "feiten zonder bron" if beweringen else "",
         ) if deel
     )
     _stap(writer, "Correctie", f"antwoord bijstellen op {wat}")

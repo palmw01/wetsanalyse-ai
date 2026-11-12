@@ -960,3 +960,16 @@ def test_een_geweigerd_verzoek_vraagt_lido_niet():
     bron, gezien = _rechtspraak_met([403])
     uit = json.loads(tools.dispatch("get_uitspraak", None, {"id": "ECLI:NL:HR:2023:563"}, AAN, rechtspraak=bron))
     assert uit["reden"] == "zoekvraag_geweigerd" and ("lido", 200) not in gezien
+
+
+def test_een_drukke_bron_zegt_bron_lezen_als_te_druk():
+    """Het genoemde stuk is niet te lezen omdat de bron te druk is: de code zegt dat, zonder model, en niet "niet te
+    bereiken"."""
+    from agent.nodes.bron_lezen import _zonder_tekst
+
+    raw = json.dumps({"status": "error", "reden": "bron_bezet", "melding": "te druk"})
+    antwoord = _zonder_tekst([{"content": raw}], [("get_uitspraak", raw)],
+                             [{"name": "get_uitspraak", "input": {"id": "ECLI:NL:HR:2023:563"}}])
+    assert antwoord is not None
+    tekst = " ".join(getattr(b, "tekst", "") for b in antwoord.blokken)
+    assert "te druk" in tekst and "ECLI:NL:HR:2023:563" in tekst

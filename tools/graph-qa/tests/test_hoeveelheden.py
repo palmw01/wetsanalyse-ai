@@ -36,15 +36,16 @@ def test_een_termijn_die_de_bron_niet_noemt():
 
 
 def test_een_datum_zonder_bron_maakt_het_antwoord_onbepaald():
-    """Acceptatie 7 nov 2026: "inwerkingtredingsdatum: 1 oktober 2026" zonder bron. Een signaal, geen afkeuring."""
+    """Acceptatie 7 nov 2026: "inwerkingtredingsdatum: 1 oktober 2026" zonder bron. In de controle een bewering (geen
+    afkeuring van het rapport); `verify_node` vraagt er een correctieronde voor (`test_beweringen.py`)."""
     trace = [("get_lid", json.dumps({"status": "ok", "resultaten": [{"iri": "urn:bwb:BWBR0004770:artikel:9:lid:1", "tekst": IW9}]}))]
     r = check_grounding("De termijn is zes weken. Het lid geldt sinds 1 oktober 2026.", trace)
-    assert r.grounded is True and r.niveau == "onbepaald" and "1 oktober 2026" in r.onbevestigd
+    assert r.grounded is True and r.niveau == "onbepaald" and "1 oktober 2026" in r.beweringen
 
 
 def test_een_termijn_uit_de_bron_is_geen_signaal():
     trace = [("get_lid", json.dumps({"status": "ok", "resultaten": [{"iri": "urn:bwb:BWBR0004770:artikel:9:lid:1", "tekst": IW9}]}))]
-    assert "6 week" not in check_grounding("Je hebt 6 weken de tijd.", trace).onbevestigd
+    assert "6 week" not in check_grounding("Je hebt 6 weken de tijd.", trace).beweringen
 
 
 def test_een_iso_datum_in_de_bron_is_dezelfde_datum():

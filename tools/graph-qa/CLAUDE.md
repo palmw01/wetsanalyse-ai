@@ -146,6 +146,16 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   niet uit de graaf kwam) en `niet_letterlijk` (een citaat dat niet letterlijk in de opgehaalde tekst
   staat). Bij de citaten gaan de passages zelf mee (afgekapt) – zonder de tekst weet het model niet
   wélk citaat het moet herstellen.
+  **Een feit zonder bron in de toelichting** (`agent/beweringen.py`, iteratie Rechtspraak ronde 4) is een derde reden voor
+  de correctieronde. Het gaat om een datum, termijn of bedrag, een getal van drie cijfers of meer, een telling ("36
+  uitspraken") of een instantie bij naam (de `organen` van de connectorbeschrijvingen) die het opgehaalde niet noemt:
+  register plus trace, de waarden én de ruwe JSON, want een telling is een getal. Wat de jurist zelf schreef, telt niet als
+  bewering: de vraag, het dossier en het aangewezen object (`_bekend`). Dat geldt voor elk sjabloon en voor vrije tekst.
+  Citaten, vindplaatsen, ids en artikelnummers hebben hun eigen toets; een afkorting en het jaar in een wetsnaam tellen
+  niet. `check_grounding` zet ze in `beweringen` (niveau onbepaald). `verify_node` vraagt er eerst één correctieronde voor
+  ("haal het op of laat het weg"); staan ze er daarna nog, dan gaan ze naar `onbevestigd`. Een afgeleid getal ("samen 166")
+  telt als bewering. Terugmeting zonder model: `docs/architectuur/metingen/rechtspraak-iteratie-2026-11-11/beweringen-terugmeting.md`.
+  `tests/test_beweringen.py`.
 - **`finalize_node`** – de enige plek in de antwoordketen die `token` uitstuurt (ook voor het overzicht; `tests/test_uitgifte_na_controle.py` bewaakt het). Een controle die volgt op publicatie
   houdt niets tegen, dus de jurist ziet een antwoord pas ná `verify` en afgekeurde tekst nooit, ook niet in
   het denkproces (besluit 6 nov 2026). Blijft de tekst na de correctieronde afgekeurd, dan gaat hij mee met
@@ -429,7 +439,13 @@ bruikbaar is.
   (`boek=6&…&artikel=162`) telt als "6:162" (`grounding._BOEK_ARTIKEL`); de grens van het blok `stukken` geldt per bron. Een stuk van een connector is alleen een bron als het gelezen is,
   niet omdat een gelezen stuk het noemt (een voetnoot, `alleen_gelezen_extern`; Staatsblad B12); de titel van een regeling buiten
   de graaf komt uit de nieuwste toestand (`nieuwste_titel`; wetgeving_live I02). Een lijst uit meer zoekvragen toont per zoekvraag een zin met haar
-  totaal (`extern._per_zoekvraag`), en het blok draagt dan geen totaal (Kamerstukken K17). `tests/test_rechtspraak_tools.py`,
+  totaal (`extern._per_zoekvraag`), en het blok draagt dan geen totaal (Kamerstukken K17). **Na ronde 4** (K16): `bron_onbereikbaar`
+  geldt alleen bij een netwerkfout, een time-out of een 5xx; een 429 is `bron_bezet` en een andere 4xx `zoekvraag_geweigerd`
+  (`foutcode_van_status`). Een netwerkfout, 5xx of 429 gaat tot `POGINGEN` keer, met een groeiende wachttijd (een 429 volgt
+  `Retry-After`, tot `MAX_WACHT_S`). Elke mislukking logt `rechtspraak_verzoek_mislukt` met host en status. Geeft de
+  Rechtspraak de tekst niet, dan draagt het foutresultaat van `get_uitspraak` de uitspraak zoals LiDO haar kent
+  (`metadata_lido`: titel, datum, zaaknummer, `gevalideerd: false`). LiDO heeft de tekst niet, dus het antwoord kan haar
+  noemen, niet citeren. `bron_lezen` zegt "te druk" of "niet te bereiken". `tests/test_rechtspraak_tools.py`,
   live `tests/test_rechtspraak_live.py`, meting `docs/architectuur/metingen/lido-spike-2026-11-10/`.
 - **Wetgeving buiten de kennisgraaf** (`tools/wetgeving_tools.py`, transport `adapters/sru_bwb.py`, ADR-013 fase 1e):
   wettekst van het BWB die niet in de graaf staat, live bij overheid.nl. **De graaf blijft de bron voor wat erin staat**,
