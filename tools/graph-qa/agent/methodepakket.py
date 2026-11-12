@@ -1,12 +1,23 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
-PAKKET = {'bronbestanden': {'SKILL.md': '490265482de89f6399bec7c64b3a115ca21171d29a72e698d7a261b8083f898e',
+PAKKET = {'bronbestanden': {'SKILL.md': 'be6f05b4b1c8415517261dbc8e8f39664aa0082c1cbf3cbc3ba1771185910d82',
                    'agentrollen.json': '84ad41e689a3ebf7a77fbbc409f5d07a10539cbe0b578cb7111a60feded2f418',
                    'references/agentrollen.md': 'c95a55241b9190a14be0804ca5875db9f2be58dc045cb8e4d570c8952f77f76b',
                    'references/bronnen.md': '0e2bca467b3e2b348ce4121ea1833d0dba4493258110dfd0e84638d0155a2e06',
                    'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
                    'references/jas-klassen-referentie.md': 'fcff29a0b63d54e457dcb32de3706552a327033b0e7571e8b26025dd552da429',
                    'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411'},
+ 'lex': {'beschrijving': 'Analyseer Nederlandse wet- en regelgeving volgens JAS, met JRM '
+                         '2-verrijking. Gebruik voor juridisch ontleden, markeren en classificeren '
+                         'van bepalingen en voor een brononderbouwd conceptanalysedossier bij '
+                         'activiteit 2 van Wetsanalyse. Omvat grammatica, verwijzingen, juridische '
+                         'samenhang en scenario-toetsing.',
+         'herkomst': 'Methode Wetsanalyse (Ausems, Bulles & Lokin) en het JAS (BZK); de bronnen '
+                     'staan in references/bronnen.md',
+         'label': 'Wetsanalyse: JAS met JRM 2-verrijking',
+         'letterlijk': 'nee',
+         'licentie': 'eigen tekst in deze repo; het boek en de BRM-readers alleen in eigen woorden',
+         'soort': 'methode'},
  'rollen': {'algemeen': ['basis', 'nl-sbb-taalniveau'],
             'deelvragen': ['basis', 'deelvragen'],
             'definitie': ['basis', 'definitie', 'nl-sbb-taalniveau'],
@@ -160,5 +171,5 @@ PAKKET = {'bronbestanden': {'SKILL.md': '490265482de89f6399bec7c64b3a115ca21171d
                                      'JAS/JRM-dossier via een route die alleen markeringen of een '
                                      'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
                                      'rol over.'}},
- 'sha256': 'e42a57a64c0f3281461389a10e9da150df11adc52a45eeee4cb7d58ee7d76ba4',
+ 'sha256': '304ecf81b50c0985387e5f51858d174688d0b61404ec03d51c014ac4432c23d9',
  'versie': '2.1'}
