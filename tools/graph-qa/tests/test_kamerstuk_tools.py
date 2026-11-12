@@ -14,6 +14,7 @@ import httpx
 import pytest
 
 from agent import tools
+from bronmodel import connectors as bm
 from agent.adapters.sru_kamerstukken import Document, KamerstukFout, Record, SruKamerstukken, lees_records
 from agent.config import Settings
 from agent.grounding import check_grounding
@@ -971,9 +972,27 @@ def test_veel_treffers_in_een_stuk_staan_per_kop_op_de_eerste_pagina():
     assert "per_kop" not in klein
 
 
-def test_per_kop_telt_op_twee_niveaus_en_begrenst():
+def test_per_kop_kiest_het_diepste_niveau_dat_past_en_begrenst():
+    """Nameting #1274, K15: op twee niveaus gaf de begroting vijf koppen voor 223 treffers, te grof om te kiezen. Nu het
+    diepste niveau met hoogstens `MAX_PER_KOP` koppen; past geen niveau, dan het bovenste, begrensd en geteld."""
     from agent.tools.stuk_tekst import MAX_PER_KOP, treffers_per_kop
 
-    treffers = [{"kop": f"A › B{i} › C"} for i in range(MAX_PER_KOP + 5)] + [{"tekst": "zonder kop"}]
-    per, meer = treffers_per_kop(treffers)
-    assert len(per) == MAX_PER_KOP and meer == 6 and per[0] == {"kop": "A › B0", "aantal": 1, "vanaf": 0}
+    fijn = [{"kop": f"A › B{i % 3} › C{i % 6}"} for i in range(12)]
+    per, meer = treffers_per_kop(fijn)
+    assert meer == 0 and len(per) == 6 and per[0] == {"kop": "A › B0 › C0", "aantal": 2, "vanaf": 0}
+    te_veel = [{"kop": f"A › B{i} › C"} for i in range(MAX_PER_KOP + 5)] + [{"tekst": "zonder kop"}]
+    per, meer = treffers_per_kop(te_veel)
+    assert [p["kop"] for p in per] == ["A", "(zonder kop)"] and meer == 0, "geen niveau onder A past: het bovenste"
+    per, meer = treffers_per_kop(te_veel, diepte=2)
+    assert len(per) == MAX_PER_KOP and meer == 6
+
+
+def test_dossiertitel_zoekt_de_titel_van_het_dossier_als_woordgroep():
+    """"Belastingplan 2025" is niet "Belastingplan BES-eilanden 2025": als woordgroep in `w.dossiertitel` (Kamerstukken ronde
+    6, K10: met 'woorden' 94 amendementen, in dossier 36602 zijn het er 88)."""
+    bron = NepBron(DOSSIER)
+    d = roep("zoek_kamerstukken", {"dossiertitel": "Belastingplan 2025", "soort": "amendement"}, bron)
+    assert d["status"] == "ok" and d["zoekvraag"]["dossiertitel"] == "Belastingplan 2025"
+    assert 'w.dossiertitel adj "belastingplan 2025"' in bron.vragen[-1]
+    from agent.sjablonen.extern import zoekvraag_tekst
+    assert "„Belastingplan 2025” in de titel van het dossier" in zoekvraag_tekst(bm.KAMERSTUKKEN, d["zoekvraag"])

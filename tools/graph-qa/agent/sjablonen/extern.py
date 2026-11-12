@@ -384,6 +384,8 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any], *, volg
             delen.append(f"„{kaal}” in de tekst")
         elif sleutel == "titel":
             delen.append(f"„{waarde}” in de titel")
+        elif sleutel == "reekstitel":
+            delen.append(f"„{waarde}” in de titel van het dossier")
         elif veld is not None and veld.type == "datum":
             periode["vanaf" if arg == veld.filters[0] else "tot"] = _voluit(str(waarde))
         elif sleutel == "orgaan":
