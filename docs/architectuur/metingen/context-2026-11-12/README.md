@@ -118,3 +118,28 @@ over een week productieverkeer te meten. Pas dan is het omslagpunt te beoordelen
 ~8k), en de zoekstap kost een extra ronde.
 
 **Bevestigd in de oude code:** het venster sloeg midden in een beurt om (G3-2, G3-3). Dat lost #1305 op.
+
+## Nameting ADR-015, deel 1 (bundel 64, `4fa61ce9`): de voorkant liep terug
+
+Gesprek `aed3e61031564340`, dezelfde vragen als G1, zonder pauzes.
+
+| beurt | wat er gebeurde | ronde 1: lezen / schrijven | historie |
+|---|---|---|---|
+| G4-1 | eerste vraag (`definitie`); de beurt groeide tot 83k tekens | 0 / 23,0k | 0 |
+| G4-2 | andere specialist (`duiding`): nieuw voorvoegsel | 0 / 40,3k | 32,3k (beurt 1 gekrompen) |
+| G4-3 | `duiding` | 25,0k / 10,9k | 21,8k: beurt 1 viel weg |
+| G4-4 | `duiding` | 25,0k / 14,7k | 32,9k: beurt 1 kwam gekrompen terug |
+
+Wat werkt:
+- het variabele systeemdeel is 0, en de context van de beurt staat in de vraag (7,9–9,0k tekens);
+- elke beurt is gegrond en vult haar sjabloon;
+- binnen de beurt leest elke ronde het voorvoegsel.
+
+Wat niet werkt: de historie van de vorige beurt kwam niet uit de cache. Alleen tools en systeemprompt werden gelezen
+(25,0k). De oorzaak is een ontwerpfout in het eerste venster: het knippunt hing ook af van de laatste beurt, die heel
+staat en de beurt erna krimpt. Daardoor liep de voorkant heen en weer (beurt 1 eruit, weer erin).
+
+**Hersteld** (vervolg-PR): het knippunt hangt alleen af van het gekrompen oude deel, op een raster over de gekrompen
+historie. Gesimuleerd met de echte cachepunten: ~16k tekens per beurt opnieuw geschreven, tegen 34–36k met het oude
+venster, en de voorkant loopt nooit terug (`test_de_cache_leest_de_historie_via_de_cachepunten_van_de_vorige_beurt`).
+Deel 2 van de nameting volgt na de uitrol daarvan.
