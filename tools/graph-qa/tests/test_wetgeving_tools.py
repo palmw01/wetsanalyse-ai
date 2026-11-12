@@ -391,3 +391,11 @@ def test_een_beleidsregel_met_paragrafen_is_te_lezen():
     assert r["status"] == "ok" and r["stuk"]["label"].startswith("Besluit Bestuurlijke Boeten Belastingdienst, § 1")
     assert r["resultaten"][0]["kop"] == "Hoofdstuk 1 – Algemene bepalingen › § 1 – Reikwijdte"
     assert r["resultaten"][0]["tekst"].startswith("In dit besluit is het beleid neergelegd")
+
+
+def test_een_bwb_id_zonder_toestand_op_de_peildatum_noemt_zijn_regeling():
+    """Ronde 3, I20: het model raadde BWBR0002471 voor de Wet op de inkomstenbelasting 1964; de fout noemde alleen de
+    periode, niet dat dat id de Wet op de loonbelasting 1964 is."""
+    uit = _roep("get_wettekst", {"bwb_id": "BWBR0002471", "artikel": "1", "peildatum": "1995-01-01"})
+    assert uit["status"] == "error" and uit["reden"] == "niet_gevonden"
+    assert "Wet op de loonbelasting 1964" in json.dumps(uit, ensure_ascii=False)

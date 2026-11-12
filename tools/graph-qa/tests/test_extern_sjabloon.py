@@ -494,3 +494,24 @@ def test_een_maand_en_een_jaar_in_de_zoekvraag():
         "Gezocht naar stukken van de Centrale Raad van Beroep in maart 2025. Nieuwste eerst.")
     assert "van maart 2025 tot en met juni 2025" in extern.zoekvraag_tekst(
         RECHTSPRAAK, {"vanaf": "2025-03", "tot": "2025-06"})
+
+
+def test_de_grens_van_de_lijst_geldt_per_bron():
+    """Rechtspraak ronde 2, R30: 25 uitspraken lieten geen ruimte voor de gezochte Kamerstukken. Elke bron heeft een eigen
+    lijst met hoogstens `MAX_LIJST`."""
+    trace = [_zoek({"dossier": "99001", "volgorde": "nieuwste", "aantal": 2})]
+    kst = [r["id"] for r in json.loads(trace[0][1])["resultaten"]]
+    eclis = [f"ECLI:NL:RBZWB:2024:{i}" for i in range(1, extern.MAX_LIJST + 1)]
+    uitspraken = json.dumps({"status": "ok", "volledig": True, "aantal": len(eclis), "totaal": len(eclis),
+                             "zoekvraag": {"bwb_id": "BWBR0004770", "artikel": "9"},
+                             "resultaten": [{"id": e, "label": e, "soort": "Uitspraak", "datum": "2024-03-01"} for e in eclis]})
+    trace.append(("zoek_uitspraken", uitspraken))
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "k", "extern": [], "stukken": eclis + kst, "twijfel": []},
+                      trace)
+    lijsten = [b for b in a.blokken if b.soort == "stukken"]
+    assert sorted(len(b.items) for b in lijsten) == sorted([len(kst), extern.MAX_LIJST])
+    with pytest.raises(Onvulbaar):
+        sjablonen.vul("antwoord_extern", {"kort_antwoord": "k", "extern": [], "twijfel": [],
+                                          "stukken": eclis + ["ECLI:NL:RBZWB:2024:999"]},
+                      [*trace[:1], ("zoek_uitspraken", json.dumps({**json.loads(uitspraken), "resultaten": [
+                          *json.loads(uitspraken)["resultaten"], {"id": "ECLI:NL:RBZWB:2024:999", "label": "x"}]}))])

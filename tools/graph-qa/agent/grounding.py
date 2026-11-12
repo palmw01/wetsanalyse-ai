@@ -18,6 +18,7 @@ schijnzekerheid, en juist die wil dit platform bestrijden.
 from __future__ import annotations
 
 import logging
+import json
 import re
 from dataclasses import dataclass, field
 from typing import Any
@@ -92,6 +93,10 @@ def _citaten(text: str) -> list[str]:
 _BLOCKQUOTE_RE = re.compile(r"(?:^[ \t]*>.*(?:\n|$))+", re.MULTILINE)
 _AANHALINGSTEKENS = frozenset(t for paar in _PAREN for t in paar)
 _ARTIKEL_VINDPLAATS = re.compile(r""":(?:artikel|bepaling):([^\s:"'<>,\\`*]+)|[&?]artikel=([^\s&"'<>,\\`*]+)""", re.IGNORECASE)
+# Een artikel in een boek (BW): de jci noemt het boek apart (`boek=6&…&artikel=162`), en de tekst noemt het "artikel
+# 6:162" (meting wetgeving_live ronde 2, I24/I28: "6:162" en "2:9" bleven onbevestigd). Ook in een IRI met `:boek:`.
+_BOEK_ARTIKEL = re.compile(r"""[&?]boek=([^\s&"'<>,\\`*]+)(?:&(?!artikel=)[^\s&"'<>,\\`*]*)*&artikel=([^\s&"'<>,\\`*]+)"""
+                           r"""|:boek:([^\s:"'<>,\\`*]+)(?::[^\s"'<>,\\`*]*?)?:artikel:([^\s:"'<>,\\`*]+)""", re.IGNORECASE)
 # Een opbouwtreffer noemt zijn bepalingen als kale lijst (`bepalingen: "4, 5"`), zonder IRI per bepaling.
 _ARTIKEL_VELD = re.compile(r'''"(?:artikel|nummer|bepalingen)"\s*:\s*"([^"]+)"''')
 
@@ -116,6 +121,9 @@ def _bekende_artikelen(source_trace: list[tuple[str, str]]) -> set[str]:
     for _naam, tekst in source_trace:
         for m in _ARTIKEL_VINDPLAATS.finditer(tekst or ""):
             bekend.add(unquote(m.group(1) or m.group(2)).casefold())
+        for m in _BOEK_ARTIKEL.finditer(tekst or ""):
+            boek, artikel = (m.group(1), m.group(2)) if m.group(1) else (m.group(3), m.group(4))
+            bekend.add(unquote(f"{boek}:{artikel}").casefold())
         for m in _ARTIKEL_VELD.finditer(tekst or ""):
             bekend |= {nummer.strip().casefold() for nummer in m.group(1).split(",")}
         bekend |= {v.removeprefix("artikel ").casefold() for v in vermeldingen(waarden(tekst or ""))
@@ -370,14 +378,22 @@ def alleen_gelezen_extern(sources: list[Source], trace: list[tuple[str, str]], a
         if not t or name not in lees:
             continue
         in_tekst |= {e.id for e in externe_verwijzingen(waarden(t))}
-        data = is_contract(t) or {}
+        # Het gelezen stuk, uit elk resultaat van de leestool: ook een fout met een stuk (`alleen_pdf`).
+        try:
+            data = json.loads(t)
+        except (TypeError, ValueError):
+            data = {}
+        data = data if isinstance(data, dict) else {}
         if isinstance(data.get("stuk"), dict) and (vp := externe_vindplaats(str(data["stuk"].get("id") or ""))):
             stukken.add(vp.id)
     genoemd = genoemd_extern(answer_text)
     gevraagd = genoemd_extern(vraag)
     return [s for s in sources
             if s.brontype in (None, "wettekst")
-            or (s.uri in genoemd and (van_id(s.uri) is None or s.uri in in_tekst | stukken))
+            # Een stuk van een connector telt alleen als het gelezen is; dat een gelezen stuk het noemt (een voetnoot,
+            # `verwijst_naar`), maakt het geen bron (meting Staatsblad ronde 4, B12: Stcrt. 2021, 12238 en Stb. 2023, 381
+            # en 408). Een id zonder connector (EHRM) staat er als het gelezen stuk het noemt en het antwoord ook.
+            or (s.uri in genoemd and (s.uri in stukken or (van_id(s.uri) is None and s.uri in in_tekst)))
             or (s.uri in gevraagd | geciteerd and s.uri in stukken)
             # Wettekst van overheid.nl (`wettekst_live`) is wettekst, geen stuk naast de wet: gelezen is genoeg. Haar id
             # (`bwbt:…`) staat nooit in lopende tekst, dus de jurist zag "Klaar · 0 bronnen" (meting 11 nov 2026, W07/W12/W15).

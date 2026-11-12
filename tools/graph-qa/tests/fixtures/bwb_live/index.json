@@ -35,6 +35,14 @@
   "bestand": "db605bd94e68b163.xml.gz",
   "status": 200
  },
+ "query=dcterms.identifier=BWBR0002471 and overheidbwb.geldigheidsdatum=1995-01-01 | startRecord=1 | maximumRecords=20": {
+  "bestand": "26e2e8752a2f3758.xml.gz",
+  "status": 406
+ },
+ "query=dcterms.identifier=BWBR0002471 | startRecord=1 | maximumRecords=1000": {
+  "bestand": "1bd7a44e32105b12.xml.gz",
+  "status": 406
+ },
  "query=dcterms.identifier=BWBR0003045 and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=20": {
   "bestand": "6f903afab586a3d0.xml.gz",
   "status": 406

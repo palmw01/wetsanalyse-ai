@@ -162,6 +162,18 @@ def test_de_titel_van_een_regeling_komt_uit_de_zoekdienst_en_een_storing_is_leeg
     assert LidoRechtspraak(client=httpx.Client(transport=ok)).titel("geen id") == ""
 
 
+def test_de_titel_komt_uit_de_nieuwste_toestand():
+    """Meting wetgeving_live ronde 3, I02: de Participatiewet heette "Wet werk en bijstand", de titel van de oudste
+    toestand die de zoekdienst als eerste geeft."""
+    rec = ("<record><dcterms:title>{t}</dcterms:title><x>https://x/bwb/BWBR0015703/{d}_0/xml/BWBR0015703_{d}_0.xml</x>"
+           "</record>")
+    tekst = ("<searchRetrieveResponse>" + rec.format(t="Wet werk en bijstand", d="2004-01-01")
+             + rec.format(t="Participatiewet", d="2026-07-01") + rec.format(t="Participatiewet", d="2026-04-03")
+             + "</searchRetrieveResponse>")
+    assert L.nieuwste_titel(tekst) == "Participatiewet"
+    assert L.nieuwste_titel("<x/>") == ""
+
+
 def test_een_buitenlandse_ecli_is_een_stuk_zonder_tekst():
     """Ronde 2, R15: alleen het voorbeeld in de fout, dus het antwoord dat de ECLI noemde was "ongegrond"."""
     from agent.grounding import check_grounding

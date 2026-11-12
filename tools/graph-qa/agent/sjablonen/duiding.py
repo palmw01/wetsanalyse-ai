@@ -125,6 +125,13 @@ def _citaat(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace
     onder = {k: (k if _binnen(k, iri) else lid_van[k], r) for k, r in rijen.items()
              if _binnen(k, iri) or _binnen(lid_van.get(k, ""), iri)} if iri else {}
     if not onder:
+        if live := _live_van(str(stuk.get("bepaling") or ""), trace):
+            # Wettekst van overheid.nl is gelezen, maar hoort in 'extern'. "Haal de bepaling op met get_artikel" liet het
+            # model dezelfde tekst opnieuw lezen en het antwoord opnieuw schrijven (ronde 3, I13 en I28: 9 en 18 rondes).
+            fouten.append(f"{stuk.get('bepaling')} is wettekst van overheid.nl, en die staat al in het gesprek: wijs haar "
+                          f"niet in 'onderbouwing' aan maar in 'extern', met het id ({', '.join(live)}) en de "
+                          "alineanummers. Lees haar niet opnieuw")
+            return None
         fouten.append(f"{iri or 'een passage zonder bepaling'}: de tekst is niet (helemaal) opgehaald. Gebruik een iri uit een "
                       "toolresultaat, en haal de bepaling op met get_artikel, get_lid of get_bepaling")
         return None
@@ -147,6 +154,17 @@ def _citaat(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace
     return Citaat(tekst=tekst, waarom=_lex(stuk.get("waarom"), trace),
                   vindplaats=vindplaats_van(plek, jci=met_toestand(rij.get("jci", ""), toestanden(trace)), regeling=rij.get("citeertitel", ""),
                                             label=rij.get("inLabel") or rij.get("label", "")))
+
+
+def _live_van(bepaling: str, trace: Trace) -> list[str]:
+    """De gelezen stukken van overheid.nl (`get_wettekst`) van dezelfde regeling als `bepaling` (een stuk-id, jci of iri),
+    of leeg: daarmee wijst de weigering naar 'extern' in plaats van naar get_artikel."""
+    import re as _re
+
+    bwb = _re.search(r"BWB[RV]\d{7}", bepaling)
+    if not bwb:
+        return []
+    return sorted(i for i in live_stukken(trace) if bwb.group(0) in i)[:6]
 
 
 def _kort(tekst: str) -> str:
@@ -177,6 +195,24 @@ def live_artikelen(trace: Trace) -> dict[str, tuple[str, ...]]:
         for nummer in nummers:
             if ident not in uit.get(nummer, ()):
                 uit[nummer] = (*uit.get(nummer, ()), ident)
+    return uit
+
+
+def live_stukken(trace: Trace) -> set[str]:
+    """De ids van alle stukken die in dit gesprek met `get_wettekst` (wettekst van overheid.nl) gelezen zijn: een
+    artikel, een lid, of een paragraaf van een beleidsregel (`…:id:…`)."""
+    import json
+
+    uit: set[str] = set()
+    for naam, tekst in trace:
+        if naam != "get_wettekst":
+            continue
+        try:
+            ident = str((json.loads(tekst).get("stuk") or {}).get("id") or "")
+        except (ValueError, AttributeError):
+            continue
+        if ident:
+            uit.add(ident)
     return uit
 
 
@@ -267,22 +303,33 @@ def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace:
 EXTERN_IDS = "_extern_ids"
 
 
+def _geen_passage(live: set[str]) -> str:
+    """De weigering zonder aangewezen passage. Is er wettekst van overheid.nl gelezen, dan is die de onderbouwing, in
+    'extern': 'onderbouwing' kent alleen wettekst uit de kennisgraaf (ronde 3, I12 en I13: het model schreef het antwoord
+    acht keer opnieuw, omdat 'onderbouwing' voor een regeling buiten de graaf niet te vullen is)."""
+    if live:
+        return ("Wijs de passages aan in 'extern', met het id van het gelezen stuk (" + ", ".join(sorted(live)[:6]) +
+                ") en de alineanummers: 'onderbouwing' is alleen voor wettekst uit de kennisgraaf, en die staat hier niet.")
+    return "Wijs ten minste één passage aan. Vond je geen bepaling die de vraag draagt, zeg dat dan in tekst."
+
+
 def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
     kort = _lex(invoer.get("kort_antwoord"), trace)
     if not kort:
         raise Onvulbaar("Schrijf het korte antwoord.")
     stukken = invoer.get("onderbouwing") or []
-    if not stukken:
-        raise Onvulbaar("Wijs ten minste één passage aan. Vond je geen bepaling die de vraag draagt, zeg dat dan in tekst.")
+    extern = frozenset(str(i) for i in invoer.get(EXTERN_IDS) or [])
+    live = live_stukken(trace)
+    if not stukken and not (extern & live):
+        raise Onvulbaar(_geen_passage(live))
     rijen, fouten = bron_rijen(trace), []
     citaten = [c for stuk in stukken if (c := _citaat(stuk, rijen, trace, fouten))]
     if fouten:
         raise Onvulbaar("Niet te tonen, dus er wordt niets getoond. " + "; ".join(fouten) + ". Rond daarna opnieuw af.")
     twijfel = list(dict.fromkeys(t for x in invoer.get("twijfel") or [] if (t := _lex(x, trace))))
-    extern = frozenset(str(i) for i in invoer.get(EXTERN_IDS) or [])
     if los := _niet_onderbouwd("\n".join([kort, *(c.waarom for c in citaten), *twijfel]), citaten, extern, trace):
         raise _genoemd_is_gelezen(los, rijen, trace)
-    blokken: list[Any] = [Toelichting(kop="Kort antwoord", tekst=kort), Citaten(items=citaten)]
+    blokken: list[Any] = [Toelichting(kop="Kort antwoord", tekst=kort), *([Citaten(items=citaten)] if citaten else [])]
     if twijfel:
         blokken.append(Twijfel(punten=twijfel))
     return Antwoord(sjabloon="duiding", blokken=blokken, doelen=list({c.vindplaats.iri: c.vindplaats for c in citaten}.values()))

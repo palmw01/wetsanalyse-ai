@@ -577,10 +577,37 @@ def test_een_lange_reeks_splitst_de_code_zelf():
     rijen = [{"nr": n, "kop": "Artikel I", "tekst": f"Alinea {n}."} for n in range(1, extern.MAX_ALINEAS + 10)]
     groot = {**eerste, "volledig": True, "resultaten": rijen, "aantal": len(rijen)}
     groot.pop("vervolg", None)
-    with pytest.raises(Onvulbaar) as fout:
-        extern.blokken([{"id": "stb-2009-610", "van_nr": 1, "tot_nr": len(rijen)}],
-                       [("get_bekendmaking", json.dumps(groot, ensure_ascii=False))])
-    assert f"wijst {len(rijen)} alinea's aan; hoogstens {extern.MAX_ALINEAS}" in str(fout.value)
+    blok, melding = extern.blokken([{"id": "stb-2009-610", "van_nr": 1, "tot_nr": len(rijen)}],
+                                   [("get_bekendmaking", json.dumps(groot, ensure_ascii=False))])
+    assert [p.nr for p in blok.passages] == list(range(1, extern.MAX_ALINEAS + 1)), "afgekapt op het totaal"
+    assert melding.soort == "leemte" and f"alinea {extern.MAX_ALINEAS + 1}–{len(rijen)})" in melding.tekst
+
+
+def test_boven_het_totaal_kapt_de_code_af_met_een_melding():
+    """Iteratie ronde 4, B21 en B22: boven `MAX_ALINEAS` weigerde het sjabloon, en het model kortte zijn aanwijzingen in
+    tot het er precies zoveel waren (twee rondes van ~1.500 tokens uitvoer). Nu kapt de code af in de volgorde van het
+    antwoord, en zegt een melding achter de blokken welke alinea's van welk stuk niet geciteerd zijn."""
+    from agent.sjablonen import extern
+    from agent.sjablonen.vullen import Onvulbaar
+
+    def gelezen(ident: str, n: int) -> tuple[str, str]:
+        stuk = {**roep("get_bekendmaking", {"id": "stb-2009-610"}), "volledig": True, "aantal": n,
+                "resultaten": [{"nr": i, "kop": "Artikel I", "tekst": f"Alinea {i}."} for i in range(1, n + 1)]}
+        stuk["stuk"] = {**stuk["stuk"], "id": ident, "label": ident}
+        stuk.pop("vervolg", None)
+        return ("get_bekendmaking", json.dumps(stuk, ensure_ascii=False))
+
+    trace = [gelezen("stb-2009-610", 40), gelezen("stcrt-2025-22266", 30)]
+    eerste, tweede, melding = extern.blokken([{"id": "stb-2009-610", "van_nr": 1, "tot_nr": 40},
+                                              {"id": "stcrt-2025-22266", "van_nr": 1, "tot_nr": 30}], trace)
+    assert len(eerste.passages) == 40 and [p.nr for p in tweede.passages] == list(range(1, extern.MAX_ALINEAS - 40 + 1))
+    assert f"hoogstens {extern.MAX_ALINEAS} alinea's" in melding.tekst
+    assert f"(alinea {extern.MAX_ALINEAS - 40 + 1}–30)" in melding.tekst and "stb-2009-610" not in melding.tekst
+
+    passend = extern.blokken([{"id": "stb-2009-610", "van_nr": 1, "tot_nr": 40}], trace)
+    assert [b.soort for b in passend] == ["extern"], "binnen het totaal geen melding"
+    with pytest.raises(Onvulbaar):
+        extern.blokken([{"id": "stb-2009-610", "van_nr": 1, "tot_nr": 41}], trace)
 
 
 def test_losse_alineas_verspreid_over_een_stuk_in_een_aanroep():

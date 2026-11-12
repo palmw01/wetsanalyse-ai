@@ -126,8 +126,8 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   meting 10 nov 2026: ECLI:NL:HR:2022:50 paste net niet, en het vervolg kostte een ronde). Na een weigering vraagt
   `sjabloon_node` het sjabloon opnieuw aan te roepen (`OPNIEUW`); `extern.blokken` noemt dan alle fouten van alle aanwijzingen in één
   weigering, met ontbrekende alinea's als reeksen (`_reeksen`; per fout een weigering kostte per fout een ronde, B16: vijf),
-  en een reeks heeft geen grens per aanwijzing meer: de code splitst, en alleen boven `MAX_ALINEAS` (48) per antwoord volgt één
-  weigering met het aantal (Kamerstukken K15: vijf weigeringen van "hoogstens 6", 450k tokens), en het gelezen stuk staat in de bronnenlijst als de vraag het noemt. Een stuk dat alleen in een zoekresultaat stond, is
+  en een reeks heeft geen grens per aanwijzing meer: de code splitst, en boven `MAX_ALINEAS` (48) per antwoord kapt de code af met een `Leemte` die zegt welke alinea's niet
+  geciteerd zijn (Kamerstukken K15: vijf weigeringen van "hoogstens 6", 450k tokens; bekendmakingen ronde 4: een weigering op 48 kostte B21 twee rondes), en het gelezen stuk staat in de bronnenlijst als de vraag het noemt. Een stuk dat alleen in een zoekresultaat stond, is
   voor `check_grounding` geen signaal meer (10 nov 2026: een lijst opvolgende stukken gaf 13 keer "alleen gevonden");
   het zoekresultaat draagt label, soort, datum en titel, en in de bronnenlijst komt het pas als het gelezen is. De prompt
   (BRONNEN IN DEZE BEURT) en de zoektool vragen zo'n lijst in het veld `stukken`. **Een lijst gevonden stukken** is het blok `stukken` (veld
@@ -415,7 +415,12 @@ bruikbaar is.
   (`leesbaar: false`), zodat het antwoord haar mag noemen; `bron_lijst` geeft bij "alle" een volle pagina; de zoekvraag zegt
   "in maart 2025" en "van gerechtshoven". Gedeeld (Kamerstukken ronde 2): `grounding.genoemd_extern` herkent een stuk ook in
   de citeervorm van een connector ("Stb. 2013, 568"), zodat een gelezen stuk dat het antwoord zo noemt in de bronnenlijst
-  blijft (`curate_sources`, `alleen_gelezen_extern`), en "Zoek …"/"Vind …" is een lijstvraag. `tests/test_rechtspraak_tools.py`,
+  blijft (`curate_sources`, `alleen_gelezen_extern`), en "Zoek …"/"Vind …" is een lijstvraag. **Na ronde 3** (gedeeld): een regeling die alleen
+  in een zoekresultaat staat (de zoektools uit `spoorbronnen`), is geen bron, een bepaling met tekst uit een zoektool wel, en
+  een lijst regelingen ook (`provenance._zoektools`, `REGELINGTOOLS`); een stuk in een foutresultaat houdt zijn label (`_labels`); een artikel met boeknummer
+  (`boek=6&…&artikel=162`) telt als "6:162" (`grounding._BOEK_ARTIKEL`); de grens van het blok `stukken` geldt per bron. Een stuk van een connector is alleen een bron als het gelezen is,
+  niet omdat een gelezen stuk het noemt (een voetnoot, `alleen_gelezen_extern`; Staatsblad B12); de titel van een regeling buiten
+  de graaf komt uit de nieuwste toestand (`nieuwste_titel`; wetgeving_live I02). `tests/test_rechtspraak_tools.py`,
   live `tests/test_rechtspraak_live.py`, meting `docs/architectuur/metingen/lido-spike-2026-11-10/`.
 - **Wetgeving buiten de kennisgraaf** (`tools/wetgeving_tools.py`, transport `adapters/sru_bwb.py`, ADR-013 fase 1e):
   wettekst van het BWB die niet in de graaf staat, live bij overheid.nl. **De graaf blijft de bron voor wat erin staat**,
@@ -454,7 +459,7 @@ bruikbaar is.
   zonder model (`supervisie._buiten_graaf_melding`; zonder connector op naam, `buiten_graaf.zonder_zoekdienst`). Na de
   controle (`controle.md` bij die meting): ook een verzoek om **op te nemen of toe te voegen** (`_OPNEEM_RE`) krijgt die
   vaste melding (`buiten_graaf.melding_opnemen`): het model schreef "staat nu in de bronselectie". Een onderdeel draagt
-  zijn nummer als `plek` ("onderdeel b", `wetgeving_tools.onderdeel_plek`), want de tekst zelf draagt het niet.
+  zijn nummer als `plek` ("onderdeel b", `wetgeving_tools.onderdeel_plek`), want de tekst zelf draagt het niet. **Een duiding buiten de graaf rust op `extern`** (iteratie ronde 3): `onderbouwing` mag leeg als `extern` een gelezen stuk van `get_wettekst` aanwijst (`duiding.live_stukken`), en een weigering wijst dan naar `extern` met het id, ook als het model die tekst in `onderbouwing` zette (`_live_van`), nooit naar get_artikel: anders las het model de tekst opnieuw en schreef het het antwoord tot acht keer opnieuw (I13, 631k).
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION).
   **`graph/schema.py`** – schema-introspectie met een cache van een uur. **`graph/results.py`** –
   `parse_select`: de MCP levert SELECT als JSON-string-gewrapte TSV.
@@ -1734,7 +1739,7 @@ ze geen artikel), dan zegt Lex zonder model waarom en wie ze aanzet (`_bron_uit`
 connector die aanstaat (`connectors.genoemde_stukken`, ook in een citeervorm van de beschrijving: "Kamerstuk 32140, nr.
 342" → `kst-32140-342`, dat de leestool bij de bron oplost), dan leest de code het vooraf (`_te_lezen`,
 `nodes/bron_lezen.py`, de `leestool` met `lees_argument`; een kort stuk, hoogstens `MAX_RIJEN_KORT` rijen en `MAX_PAGINAS`
-pagina's, helemaal, ongefilterd: anders bladerde het model met één ronde per pagina, ronde 2 bekendmakingen B21); zonder artikel in de vraag zonder supervisorcall. **Een
+pagina's, helemaal, ongefilterd: anders bladerde het model met één ronde per pagina, ronde 2 bekendmakingen B21; in het spoor één regel per stuk, `spoorbronnen.voorleesregel`, in plaats van "deels gelezen" per pagina); zonder artikel in de vraag zonder supervisorcall. **Een
 lijstvraag** ("geef de 10 meest recente Kamerstukken", "de laatste vijf moties van de Eerste Kamer", ook zonder volgorde
 "Kamerstukken uit vergaderjaar 2025-2026 over invorderingsrente": dan kiest de zoektool, en een orgaan als "Eerste Kamer"
 is nooit een volgorde) leest `agent/bron_lijst.py` helemaal in code – volgorde, aantal, dossier, soort (`ConnectorBeschrijving.soorten`), periode,
