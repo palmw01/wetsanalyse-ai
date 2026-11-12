@@ -208,3 +208,47 @@ def test_een_telwoord_uit_de_gelezen_tekst_is_geen_eigen_telling():
 def test_een_verkeerd_aantal_in_de_toelichting_krijgt_een_correctieronde():
     rapport = check_grounding("De wet is gewijzigd door vijf wetten.", [("zoek_bekendmakingen", LIJST)])
     assert "vijf wetten" in rapport.beweringen
+
+
+# --- dossier en vergaderjaar (Kamerstukken ronde 6, K16) ------------------------------------------------------------
+
+KST = json.dumps({"status": "ok", "resultaten": [{"tekst": "Kamerstukken II 1987/88, 20 588, nr. 3, p. 12"}]})
+
+
+def test_een_getal_voor_een_komma_en_een_vergaderjaar_zijn_beweringen():
+    """"dossier 20588, 1988-1989" ving de toets niet: de komma achter het nummer en het streepje in het jaar sloten
+    allebei het getal uit, ook zonder bron."""
+    assert beweringen("Zie dossier 20588, waarin het staat.", "") == ["20588"]
+    assert beweringen("Het stuk is uit 1988-1989.", "") == ["vergaderjaar 1988-1989"]
+    assert beweringen("Een aandeel van 4,5 procent.", "4,5 procent") == []
+
+
+@pytest.mark.parametrize("vorm", ["1987/88", "1987-1988", "1987/1988", "1987–88"])
+def test_elke_vorm_van_een_vergaderjaar_is_hetzelfde_jaar(vorm):
+    assert beweringen(f"Uit het vergaderjaar {vorm}.", KST) == []
+
+
+def test_dossier_en_vergaderjaar_moeten_samen_in_een_bron_staan():
+    from agent.beweringen import tellingen_uit
+
+    goed = "De memorie van toelichting staat in dossier 20588, 1987-1988."
+    fout = "De memorie van toelichting staat in dossier 20588, 1988-1989."
+    assert beweringen(goed, KST, tellingen=tellingen_uit([KST]), bronnen=[KST]) == []
+    assert "dossier 20588 in 1988-1989" in beweringen(fout, KST, tellingen=tellingen_uit([KST]), bronnen=[KST])
+    los = [json.dumps({"t": "dossier 20588"}), json.dumps({"t": "vergaderjaar 1987/88"})]
+    assert beweringen(goed, "\n".join(los), tellingen=set(), bronnen=los) == ["dossier 20588 in 1987-1988"]
+
+
+def test_een_fout_vergaderjaar_krijgt_een_correctieronde():
+    rapport = check_grounding("De memorie staat in dossier 20588, 1988-1989.", [("get_uitspraak", KST)])
+    assert "vergaderjaar 1988-1989" in rapport.beweringen
+
+
+def test_een_citeervorm_van_een_connector_heeft_een_eigen_toets():
+    """"Stb. 2009, 610" is een id ("stb-2009-610"); zijn getallen tellen hier niet (de komma-fix van K16 ving ze anders)."""
+    assert beweringen("De wet is gewijzigd bij Stb. 2009, 610.", "") == []
+
+
+def test_een_dossier_in_de_notatie_met_een_spatie_is_een_getal():
+    assert beweringen("Zie 20 588, nr. 3.", "Kamerstukken II 1987/88, 20588") == []
+    assert beweringen("Zie 20 588, nr. 3.", "") == ["20588"]
