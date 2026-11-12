@@ -5,7 +5,8 @@
   `808c908e` (bundel 78), de versie van de nulmeting.
 - **Straat:** acceptatie. **Model:** `claude-sonnet-4-6`.
 - **Drempel:** bitgelijk – de kwaliteitsset en de routeringsset laten geen verschil zien tegen de versie van vóór A1.
-- **Gegevens:** [`ronde-1-runs.jsonl`](ronde-1-runs.jsonl), één regel per opdracht.
+- **Gegevens:** [`ronde-1-runs.jsonl`](ronde-1-runs.jsonl), één regel per opdracht, en
+  [`ronde-1-prijsgewogen.jsonl`](ronde-1-prijsgewogen.jsonl), de tokens per soort voor deze ronde en de nulmeting.
 
 **Uitkomst: geen verschil gevonden.** Wat Lex naar het model stuurt, is op beide versies hetzelfde, in de repo en op
 de straat. De ronde is goed; A2 kan beginnen.
@@ -77,6 +78,48 @@ rol, het model, `tools_hash`, `system_hash`, het aantal tools en de omvang van h
   bepalingsroute en de specialisten `duiding`, `definitie` en `annotaties_lezen`. `algemeen` in de antwoordlus,
   `begrippen_lezen` en `retrieval` zijn alleen in stap 1 vergeleken.
 - **T1** (de validatoren) raakt de draaiende keten niet: het bewijs is dat het methodepakket byte-gelijk bleef (stap 1).
+
+## Naar prijs gewogen: de vergelijkingsbasis voor A2
+
+Besluit van de gebruiker (12 nov 2026): de drempel *niet duurder* geldt op naar prijs gewogen tokens; de ruwe tokens
+staan ernaast. Hieronder beide maten voor de tien enkelvoudige opdrachten, voor de nulmeting op `808c908e` (drie runs)
+en voor deze ronde op `bb544957` (één run). De cijfers per opdracht en run, met de vijf soorten tokens apart, staan in
+[`ronde-1-prijsgewogen.jsonl`](ronde-1-prijsgewogen.jsonl).
+
+**De weging**, in invoertokens, naar de prijsverhouding van het model: invoer × 1, uitvoer × 5, cache lezen × 0,1, cache
+schrijven met een TTL van vijf minuten × 1,25 en van een uur × 2. De factoren komen in ADR-016 §A6 te staan; wijken ze
+daar af, dan zijn de gewogen cijfers opnieuw te rekenen uit het bestand, de ruwe niet.
+
+| Opdracht | Ruw, nulmeting r1 / r2 / r3 | Gewogen, nulmeting r1 / r2 / r3 | Mediaan gewogen | Ruw, nu | Gewogen, nu |
+|---|---|---|---|---|---|
+| E01 | 934 / 935 / 916 | 1,6k / 1,6k / 1,5k | 1,6k | 939 | 1,6k |
+| E02 | 0 / 0 / 0 | 0 / 0 / 0 | 0 | 0 | 0 |
+| E03 | 148,0k / 114,8k / 195,3k | 44,7k / 52,2k / 72,4k | 52,2k | 229,6k | 93,1k |
+| E04 | 0 / 0 / 0 | 0 / 0 / 0 | 0 | 0 | 0 |
+| E05 | 77,8k / 48,7k / 49,0k | 26,5k / 17,0k / 18,5k | 18,5k | 48,7k | 51,1k* |
+| E06 | 2,3k / 2,3k / 2,3k | 545 / 515 / 520 | 520 | 2,3k | 545 |
+| E07 | 45,6k / 34,1k / 45,5k | 9,7k / 7,6k / 9,6k | 9,6k | 34,1k | 25,3k* |
+| E08 | 312,0k / 192,8k / 380,0k | 111,5k / 75,6k / 113,5k | 111,5k | 136,3k | 45,7k |
+| E09 | 124,0k / 92,6k / 185,9k | 32,3k / 27,9k / 57,2k | 32,3k | 180,7k | 57,8k |
+| E10 | 31,6k / 43,2k / 31,6k | 24,1k* / 9,7k / 7,1k | 9,7k | 31,6k | 24,0k* |
+| **som** | 742,1k / 529,4k / 890,6k | 250,7k / 192,0k / 280,3k | | 664,2k | 299,3k |
+| **mediaan** | 38,6k / 38,6k / 38,5k | 16,9k / 8,7k / 8,3k | | 32,9k | 24,7k |
+
+Een \* betekent: in die beurt is het voorvoegsel van een uur geschreven (de cache was koud).
+
+- **De basis voor A2:** over de 30 opdracht-runs van de nulmeting is de mediaan **38,6k ruw** en **9,6k gewogen**.
+  Per run is de som 250,7k / 192,0k / 280,3k gewogen tegen 742,1k / 529,4k / 890,6k ruw.
+- **Gewogen is ongeveer een derde van ruw.** Ruw is grotendeels cache lezen, en dat telt voor een tiende. Wat gewogen zwaar
+  telt, is de uitvoer en het schrijven van de cache.
+- **Een koude cache bepaalt de gewogen kosten van een korte beurt.** E05, E07 (nu) en E10 (nulmeting r1, en nu) schreven
+  het voorvoegsel van een uur: 8,8k tot 17,9k tokens tegen factor 2. E07 kost ruw evenveel als in de nulmeting (34k) en
+  gewogen 25k tegen 8k–10k. Welke beurt het voorvoegsel schrijft, hangt af van wat er het uur ervoor op de straat
+  liep, niet van de versie.
+- **Voor A2 volgt daaruit:** vergelijk gewogen kosten over drie runs en met het schrijven van het uurvoorvoegsel apart
+  vermeld (`cache_schrijf_1u`). De centrale agent krijgt een eigen voorvoegsel, dus in zijn eerste beurt is de cache
+  altijd koud; een vergelijking van één run tegen de nulmeting meet dan vooral dat.
+- **Deze ronde tegen de nulmeting:** gewogen 299,3k tegen 250,7k / 192,0k / 280,3k. Het verschil zit in E03
+  (meer rondes) en in de drie beurten met een koude cache; de handtekeningen zijn gelijk.
 
 ## Verbruik
 
