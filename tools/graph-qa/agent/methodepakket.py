@@ -18,6 +18,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': 'be6f05b4b1c8415517261dbc8e8f39664aa0082
          'letterlijk': 'nee',
          'licentie': 'eigen tekst in deze repo; het boek en de BRM-readers alleen in eigen woorden',
          'soort': 'methode'},
+ 'regels': {},
  'rollen': {'algemeen': ['basis', 'nl-sbb-taalniveau'],
             'deelvragen': ['basis', 'deelvragen'],
             'definitie': ['basis', 'definitie', 'nl-sbb-taalniveau'],
@@ -178,7 +179,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': 'be6f05b4b1c8415517261dbc8e8f39664aa0082
                                      'JAS/JRM-dossier via een route die alleen markeringen of een '
                                      'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
                                      'rol over.'}},
- 'sha256': '2079586413afbf3e011c63ce9c604303e5c563d8cd66c507855f1525913ad9e4',
+ 'sha256': '129c062ec9097aa08e983de85742c41c9089115344229e9aeb396c7fb7870d15',
  'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseer Nederlandse wet- en regelgeving '
                                                     'volgens JAS, met JRM 2-verrijking. Gebruik '
                                                     'voor juridisch ontleden, markeren en '

@@ -353,6 +353,8 @@ jobs:
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--connectoren "$(PYTHONPATH=packages/bronmodel python3 -c 'from bronmodel.connectors import CONNECTORS; print(",".join(CONNECTORS))')")
           # Relatievoorstellen uit de annotatieketen (ADR-011, 4C): een proefvlag, gemeten op acceptatie.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--relatie-voorstellen)
+          # Regels uit een methode-skill (ADR-014 §7, S6): een proefvlag, gemeten op acceptatie.
+          [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--skill-regels)
           # De GraphDB-MCP-proxy: standaard NIET, en net als de api-ingress alleen op acceptatie.
           # GraphDB zelf blijft altijd intern – deze vlag zet er een nginx met tokencontrole naast.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && [ "${{ inputs.graphdb_proxy }}" = "true" ] && args+=(--graphdb-proxy-extern)
@@ -394,6 +396,8 @@ jobs:
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--connectoren "$(PYTHONPATH=packages/bronmodel python3 -c 'from bronmodel.connectors import CONNECTORS; print(",".join(CONNECTORS))')")
           # Relatievoorstellen uit de annotatieketen (ADR-011, 4C): een proefvlag, gemeten op acceptatie.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--relatie-voorstellen)
+          # Regels uit een methode-skill (ADR-014 §7, S6): een proefvlag, gemeten op acceptatie.
+          [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--skill-regels)
           # De GraphDB-MCP-proxy: standaard NIET, en net als de api-ingress alleen op acceptatie.
           # GraphDB zelf blijft altijd intern – deze vlag zet er een nginx met tokencontrole naast.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && [ "${{ inputs.graphdb_proxy }}" = "true" ] && args+=(--graphdb-proxy-extern)

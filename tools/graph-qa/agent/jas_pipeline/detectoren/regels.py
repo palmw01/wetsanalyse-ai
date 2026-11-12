@@ -247,6 +247,10 @@ def alle_regels() -> tuple[Regel, ...]:
     for pad in sorted(MAP.glob("[!_]*.yaml")):
         for d in yaml.safe_load(pad.read_text(encoding="utf-8")):
             regels.append(Regel.van(pad.stem, d))
+    # Regels uit een methode-skill (ADR-014 §7), alleen met de proefvlag `SKILL_REGELS`; een eigen detector per regelset.
+    from ... import skill_regels
+    for naam, items in skill_regels.actief("jas").items():
+        regels.extend(Regel.van(naam, d) for d in items)
     ids = [r.id for r in regels]
     if len(ids) != len(set(ids)):
         raise ValueError("dubbele regel-id's")

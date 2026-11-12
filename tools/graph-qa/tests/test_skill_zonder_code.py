@@ -13,18 +13,38 @@ import json
 from pathlib import Path
 
 import pytest
+import yaml
 from bronmodel import catalogus as bc
 
 from agent import catalogus as cat
-from agent import methode, specialists
+from agent import methode, methodepakket, specialists
+from agent.begrippen_pipeline import patronen
+from agent.jas_pipeline.detectoren import BronTekst
+from agent.jas_pipeline.detectoren.regels import RegelDetector, alle_regels
 from agent.methodepakket import PAKKET
 from scripts.genereer_methodepakket import SKILL, compileer
 
 TEKST = "Een scenario beschrijft wat een burger doorloopt; noem bij elke stap de bepaling die hem draagt."
 
 
+JAS_REGEL = {
+    "id": "jas.nepmethode.redelijke_termijn", "klassen": ["Tijdsaanduiding"], "code": "TEMPORAL_DURATION",
+    "bewijs": "zwak", "bron": "nepbron", "versie": 1, "patroon": r"\bbinnen een redelijke termijn\b",
+    "tests": {"positief": [{"tekst": "De inspecteur beslist binnen een redelijke termijn.", "span": "binnen een redelijke termijn"}],
+              "negatief": [{"tekst": "De termijn is redelijk."}],
+              "rand": [{"tekst": "Binnen een redelijke termijn.", "span": "Binnen een redelijke termijn"}],
+              "overlap": [{"tekst": "binnen een redelijke termijn", "spans": ["binnen een redelijke termijn"]}]}}
+BEGRIP_REGEL = {
+    "id": "begrip.nepmethode.telt_als", "hypothese": "kwalificatie", "code": "KWALIFICATIE", "polariteit": "steun",
+    "sterkte": "middel", "bron": "nepbron", "versie": 1, "patroon": r"\b(?P<van>[\w-]+)\s+telt\s+als\s+(?P<naar>[\w-]+)",
+    "tests": {"positief": [{"tekst": "Een eenheid telt als belastingplichtige.", "van": "eenheid", "naar": "belastingplichtige"}],
+              "negatief": [{"tekst": "Een eenheid geldt niet."}],
+              "rand": [{"tekst": "eenheid telt als plichtige", "van": "eenheid", "naar": "plichtige"}],
+              "overlap": [{"tekst": "Een eenheid telt als belastingplichtige.", "van": "eenheid", "naar": "belastingplichtige"}]}}
+
+
 def _nep_skill(map_: Path, *, rollen: dict | None = None, sectie: str = "nep-scenario", code: str = "NX1",
-               letterlijk: str = "nee") -> Path:
+               letterlijk: str = "nee", regels: dict[str, list[dict]] | None = None) -> Path:
     skill = map_ / "nepmethode"
     (skill / "references").mkdir(parents=True)
     (skill / "SKILL.md").write_text(
@@ -37,6 +57,9 @@ def _nep_skill(map_: Path, *, rollen: dict | None = None, sectie: str = "nep-sce
     (skill / "agentrollen.json").write_text(json.dumps({
         "secties": {sectie: {"bestand": "references/nep.md", "bronnen": [code]}},
         "rollen": rollen if rollen is not None else {"duiding": [sectie]}}))
+    for keten, items in (regels or {}).items():
+        (skill / "regels" / keten).mkdir(parents=True)
+        (skill / "regels" / keten / "nep.yaml").write_text(yaml.safe_dump(items, allow_unicode=True))
     return skill
 
 
@@ -86,3 +109,72 @@ def test_wat_code_vraagt_of_botst_wordt_geweigerd(tmp_path, fout):
               "letterlijk_zonder_bron": {"letterlijk": "ja"}}[fout]
     with pytest.raises(ValueError):
         compileer(SKILL, extra=[_nep_skill(tmp_path, **kwargs)])
+
+
+
+# --- regels uit een skill, achter de proefvlag SKILL_REGELS (S6) -----------------------------------------------------
+
+@pytest.fixture
+def met_regels(tmp_path, monkeypatch):
+    pakket = compileer(SKILL, extra=[_nep_skill(tmp_path, regels={"jas": [JAS_REGEL], "begrippen": [BEGRIP_REGEL]})])
+    for mod in (methodepakket, methode, cat):
+        monkeypatch.setattr(mod, "PAKKET", pakket)
+
+    def wis():
+        cat.catalogus.cache_clear()
+        alle_regels.cache_clear()
+        patronen.alle_regels.cache_clear()
+    wis()
+    yield pakket
+    monkeypatch.undo()
+    wis()
+
+
+def test_het_pakket_bundelt_de_regels_van_de_skill(met_regels):
+    assert met_regels["regels"] == {"jas": {"nepmethode.nep": [JAS_REGEL]}, "begrippen": {"nepmethode.nep": [BEGRIP_REGEL]}}
+
+
+def test_zonder_vlag_doen_ze_niet_mee(met_regels, monkeypatch):
+    monkeypatch.delenv("SKILL_REGELS", raising=False)
+    assert JAS_REGEL["id"] not in {r.id for r in alle_regels()}
+    assert BEGRIP_REGEL["id"] not in {r.id for r in patronen.alle_regels()}
+
+
+def test_met_vlag_vuren_ze_op_hun_eigen_tests(met_regels, monkeypatch):
+    monkeypatch.setenv("SKILL_REGELS", "true")
+    regel = next(r for r in alle_regels() if r.id == JAS_REGEL["id"])
+    assert regel.detector == "nepmethode.nep"
+    vind = lambda t: {k.span.tekst for k in RegelDetector(regel.detector, (regel,)).detecteer(BronTekst.van_tekst("urn:t", t)).kandidaten}
+    for g in (*JAS_REGEL["tests"]["positief"], *JAS_REGEL["tests"]["rand"]):
+        assert g["span"] in vind(g["tekst"])
+    for g in JAS_REGEL["tests"]["negatief"]:
+        assert not vind(g["tekst"])
+    patroon = next(r for r in patronen.alle_regels() if r.id == BEGRIP_REGEL["id"]).patroon
+    for g in BEGRIP_REGEL["tests"]["positief"]:
+        m = patroon.search(g["tekst"])
+        assert (m.group("van"), m.group("naar")) == (g["van"], g["naar"])
+
+
+def test_de_catalogus_toont_ze_als_deel_van_de_skill_achter_de_vlag(met_regels):
+    alle = {o.id: o for o in cat.catalogus()}
+    jas = alle["regelset/jas.nepmethode.nep"]
+    assert jas.straat == "SKILL_REGELS" and jas.deel_van == "methode/nepmethode"
+    assert jas.inhoud["regels"][0]["id"] == JAS_REGEL["id"]
+    assert "regelset/jas.nepmethode.nep" in alle["workflow/annotatieketen"].hangt_af_van
+    assert "regelset/begrippen.nepmethode.nep" in alle["workflow/begrippenketen"].hangt_af_van
+
+
+@pytest.mark.parametrize("fout", ["code_zonder_verklaring", "verkeerd_voorvoegsel", "zonder_tests", "onbekende_keten"])
+def test_een_ongeldige_skillregel_wordt_geweigerd(tmp_path, fout):
+    regel = dict(JAS_REGEL)
+    keten = "jas"
+    if fout == "code_zonder_verklaring":
+        regel["code"] = "NIET_BESTAAND"
+    if fout == "verkeerd_voorvoegsel":
+        regel["id"] = "jas.tijd.redelijke_termijn"
+    if fout == "zonder_tests":
+        regel["tests"] = {"positief": JAS_REGEL["tests"]["positief"]}
+    if fout == "onbekende_keten":
+        keten = "onzin"
+    with pytest.raises(ValueError):
+        compileer(SKILL, extra=[_nep_skill(tmp_path, regels={keten: [regel]})])
