@@ -39,6 +39,7 @@ from .nodes.antwoord import (
     correct_node,
     finalize_node,
     route_after_agent,
+    route_na_tools,
     route_after_verify,
     tools_node,
     verify_node,
@@ -233,7 +234,7 @@ def build_graph(
     add("verify", functools.partial(verify_node, b))
     add("correct", functools.partial(correct_node, b))
     add("finalize", functools.partial(finalize_node, b))
-    g.add_edge("tools", "agent")
+    g.add_conditional_edges("tools", functools.partial(route_na_tools, b), {"agent": "agent", "verify": "verify"})
     g.add_conditional_edges("sjabloon", functools.partial(route_na_sjabloon, b), {"verify": "verify", "agent": "agent"})
     g.add_conditional_edges("verify", functools.partial(route_after_verify, b), {"correct": "correct", "finalize": "finalize"})
     g.add_edge("correct", "agent")

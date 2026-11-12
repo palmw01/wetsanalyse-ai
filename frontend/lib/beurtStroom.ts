@@ -10,6 +10,7 @@ import type { AgentDoel, AgentHergebruik, AgentKandidaat, AgentKeuze, BeurtMetin
 import type { Artefact } from "./artefact";
 import { type NodeDoel } from "./annotatieNode";
 import { verwerkReeksEvent, type Reeks } from "./reeks";
+import { denkBij } from "./denkproces";
 import type { Vervolg } from "./vraagLex";
 
 /** Het `opgeslagen`-event: de agent legde de beurt vast. De werkplek schrijft een beurt nooit zelf weg. */
@@ -57,21 +58,12 @@ export type StroomEvent =
 /** Er viel narratie weg. Stond er al antwoordtekst, dan is die mogelijk onvolledig en komt het gat daar; anders raakte
  *  het alleen het denkproces, en zou een "…" in het antwoord een gat suggereren dat er niet is. */
 export const GAT_IN_TEKST = "\n\n…\n\n";
-export const GAT_IN_DENK = "· (een deel van het spoor is niet bewaard)";
-
-/** Een `reason` direct na een statusregel begint op een eigen regel: de eerste ronde van het model draagt geen
- *  alinea-scheiding, en dan plakte "· Lex · zoekt in de kennisgraaf" aan "Ik zoek …". Gelijk aan
- *  `narratie.met_regelgrens` in graph-qa, dat het bericht na herladen vult. */
-export function metRegelgrens(denk: string, tekst: string): string {
-  const laatste = denk.slice(denk.lastIndexOf("\n") + 1);
-  return tekst && laatste.startsWith("· ") && !tekst.startsWith("\n") ? "\n" + tekst : tekst;
-}
 
 export function stroomReducer(s: StroomStand, e: StroomEvent): StroomStand {
   switch (e.type) {
     case "leeft": return s.ontving ? s : { ...s, ontving: true };
-    case "status": return { ...s, denk: s.denk + (s.denk ? "\n" : "") + "· " + e.bericht };
-    case "reason": return { ...s, denk: s.denk + metRegelgrens(s.denk, e.tekst) };
+    case "status": return { ...s, denk: denkBij(s.denk, "status", e.bericht) };
+    case "reason": return { ...s, denk: denkBij(s.denk, "reason", e.tekst) };
     case "token": return { ...s, tekst: s.tekst + e.tekst };
     case "doel": return { ...s, doel: e.doel };
     case "kandidaten": return { ...s, kandidaten: e.kandidaten, keuze: e.keuze };
@@ -83,7 +75,7 @@ export function stroomReducer(s: StroomStand, e: StroomEvent): StroomStand {
     case "meting": return { ...s, meting: e.meting };
     case "gat": return s.tekst
       ? { ...s, tekst: s.tekst + GAT_IN_TEKST }
-      : { ...s, denk: s.denk + (s.denk ? "\n" : "") + GAT_IN_DENK };
+      : { ...s, denk: denkBij(s.denk, "gat") };
     case "opgeslagen": return { ...s, opgeslagen: e.uitkomst };
   }
 }

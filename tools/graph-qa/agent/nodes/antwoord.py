@@ -28,6 +28,7 @@ from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk
 from ..overzicht import bronrijen as overzicht_bronrijen
 from ..sjablonen import EXTERN, SJABLONEN, sjabloon_schemas, sjabloon_uit_tekst
 from .overzicht import TOOL as OVERZICHT_TOOL
+from .sjabloon import vul_aanroep
 from ..prompts import SYSTEM_PROMPT
 from ..provenance import collect_sources
 from ..regelingnamen import met_regelingnamen
@@ -137,9 +138,13 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         logger.warning("sjabloon als tekst", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""), "sjabloon": aanroep["name"]})
         tool_uses, text_parts = [aanroep], []
         telling = tel_sjabloon(state, "als_tekst")
-    # Een sjabloon rondt af: staat hij naast graaftools, dan eerst die, en daarna komt hij vanzelf terug.
-    if len(tool_uses) > 1:
-        tool_uses = [t for t in tool_uses if t["name"] not in SJABLONEN]
+    # Een sjabloon rondt af en komt als laatste. Staat hij naast graaftools, dan voert `tools_node` eerst die uit en vult
+    # daarna het sjabloon met wat ze opleverden. Eerst viel het sjabloon hier weg en schreef het model het de volgende
+    # ronde helemaal opnieuw (~2.000 uitvoertokens); alleen één sjabloon per ronde, het eerste.
+    sjabloonaanroepen = [t for t in tool_uses if t["name"] in SJABLONEN]
+    if sjabloonaanroepen and len(tool_uses) > 1:
+        tool_uses = [t for t in tool_uses if t["name"] not in SJABLONEN] + sjabloonaanroepen[:1]
+        telling = tel_sjabloon({**state, **telling}, "uitgesteld")
 
     stopreden = getattr(final, "stop_reason", "") or ""
     afgekapt = stopreden == "max_tokens"
@@ -168,8 +173,16 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
                 "Ik kon deze vraag niet binnen de beurtlimiet afronden; stel 'm eventueel gerichter."
             ]
 
+    # Een ronde die afrondt met een sjabloon is het antwoord, geen narratie: wat het model ernaast schreef, zegt het
+    # sjabloon opnieuw. Het gaat niet naar het denkproces en niet de historie in (die krijgt de tekst van het sjabloon,
+    # `sjabloon_node`); de telling meet hoeveel het model er toch schreef (acceptatie K17: ~1.500 tekens).
+    if any(t["name"] in SJABLONEN for t in tool_uses):
+        if ernaast := sum(len(p) for p in text_parts if p and p.strip()):
+            telling = tel_sjabloon({**state, **telling}, "tekst_ernaast", aantal=ernaast)
+        text_parts = []
+
     if narratie_tonen:
-        ronde_in_denk(writer, tool_uses, text_parts, state.get("turns", 0))
+        ronde_in_denk(writer, tool_uses, text_parts, state.get("turns", 0), afronden=SJABLONEN)
 
     assistant_content: list[dict[str, Any]] = [{"type": "text", "text": p} for p in text_parts if p and p.strip()]
     assistant_content += [
@@ -381,7 +394,11 @@ def _tool_result(tu: dict[str, Any], tekst: str) -> dict[str, Any]:
 
 def tools_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
-    pending = state.get("pending_tools", [])
+    # Een sjabloon naast graaftools (`agent_node` zet hem achteraan): eerst de graaftools, dan het sjabloon met wat ze
+    # opleverden, en alle resultaten in één bericht.
+    alle = state.get("pending_tools", [])
+    sjabloon = next((t for t in alle if t["name"] in SJABLONEN), None)
+    pending = [t for t in alle if t is not sjabloon]
     # Binnen één beurt verandert de graaf niet: dezelfde aanroep nog eens kost alleen tokens (de e2e-test van 5 nov
     # 2026: drie gelijke zoekopdrachten, 63.867 tokens voor één vraag). Elke aanroep krijgt een resultaat, want het
     # model eist er een; alleen de eerste voert hem uit.
@@ -399,11 +416,18 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
         gedaan[sleutel] = result_text
         trace.append((tu["name"], result_text))
         results.append(_tool_result(tu, result_text))
-    return {
-        "messages": [{"role": "user", "content": results}],  # delta
-        "source_trace": trace,
-        "pending_tools": [],
-    }
+    upd: dict[str, Any] = {"source_trace": trace, "pending_tools": []}
+    na: list[dict[str, Any]] = []
+    if sjabloon is not None:
+        blok, na, extra = vul_aanroep(b, {**state, "source_trace": trace}, sjabloon)
+        results.append(blok)
+        upd.update(extra)
+    return {"messages": [{"role": "user", "content": results}, *na], **upd}  # messages: delta
+
+
+def route_na_tools(b: Bouw, state: State) -> str:
+    """Terug naar de agent, tenzij een sjabloon naast de graaftools het antwoord al vulde (`tools_node`)."""
+    return "verify" if state.get("antwoord") else "agent"
 
 def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
