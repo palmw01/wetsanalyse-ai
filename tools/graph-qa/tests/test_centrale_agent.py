@@ -18,7 +18,7 @@ import pytest
 
 from agent import overdracht, profielen
 from agent.agent import answer_stream
-from agent.agentvorm import CENTRAAL, Agent, CentraleAgent, agent_voor, vorm_van
+from agent.agentvorm import CENTRAAL, CENTRAAL_BREED, Agent, CentraleAgent, agent_voor, vorm_van
 from agent.config import Settings
 from agent.llm_stap import Rol
 from agent.methodepakket import PAKKET
@@ -104,8 +104,8 @@ def test_de_centrale_agent_antwoordt_zelf_zonder_supervisorstap():
     for sectie in PAKKET["rollen"]["agent"]:
         assert PAKKET["secties"][sectie]["tekst"] in verzoek["system"]
     namen = {t["name"] for t in verzoek["tools"]}
-    assert {"wijs_af", "get_artikel", "zoek_definitie", "get_context", "antwoord_duiding", "antwoord_begrip"} <= namen
-    assert not namen & {"subagent", "search_annotaties"}
+    assert {"wijs_af", "meer_tools", "get_artikel", "zoek_definitie", "get_context", "antwoord_duiding", "antwoord_begrip"} <= namen
+    assert not namen & {"subagent", "search_annotaties", "geldigheid", "raw_sparql"}
     assert any(e["type"] == "status" and e.get("route") == CENTRAAL for e in events)
     assert "".join(e["content"] for e in events if e["type"] == "token") == "Antwoord."
 
@@ -123,12 +123,12 @@ def test_het_profiel_centraal_is_een_python_agent_met_zijn_eigen_tools():
     agent = agent_voor(CENTRAAL)
     assert isinstance(agent, CentraleAgent) and isinstance(agent, Agent)
     assert agent.rol is Rol.CENTRAAL and agent.methoderol == "agent"
-    assert set(agent.eigen_tools) == set(overdracht.OVERDRACHT) == {"wijs_af"}
+    assert set(agent.eigen_tools) == set(overdracht.OVERDRACHT) == {"wijs_af", "meer_tools"}
     p = profielen.PROFIELEN[CENTRAAL]
     assert not p.kiesbaar and CENTRAAL not in profielen.KIESBAAR, "een model kiest dit profiel niet"
     # De eigen tools staan niet in de toollaag: een profiel kan ze niet noemen, en een andere agent krijgt ze niet.
     assert not set(overdracht.OVERDRACHT) & profielen.grenzen().tools
-    for naam in set(profielen.PROFIELEN) - {CENTRAAL}:
+    for naam in set(profielen.PROFIELEN) - {CENTRAAL, CENTRAAL_BREED}:
         assert type(agent_voor(naam)) is Agent and not agent_voor(naam).eigen_tools
 
 
@@ -178,3 +178,95 @@ def test_de_centrale_agent_neemt_alleen_de_gewone_vraag_over():
     assert not supervisie._centraal({"agentvorm": "centraal", "modus": "advies"})
     assert not supervisie._centraal({"agentvorm": "supervisor", "modus": "auto"})
     assert not supervisie._centraal({"modus": "auto"})
+
+
+# --- de kernset en de overdracht aan het brede profiel (A2-2b) --------------------------------------------------
+
+def _graaftools() -> set[str]:
+    """De leestools van de graaf en de begrippen: alles uit de toollaag behalve de connectoren en de annotatietools."""
+    from agent import tools
+    return {t["name"] for t in tools.TOOLS} - tools.CONNECTOR_TOOLS - set(tools.ANNOTATIE_TOOL_NAMEN)
+
+
+def test_de_kernset_en_de_rest_zijn_samen_de_graaftools():
+    kern, breed = (set(profielen.PROFIELEN[n].tools) for n in (CENTRAAL, CENTRAAL_BREED))
+    assert kern < breed == _graaftools(), "het brede profiel heeft elke graaftool; de kernset is een deel ervan"
+    # De kernset op gebruik (de nulmeting en de rondes van A2): wat een gewone vraag draagt.
+    assert kern == {"search_wetgeving", "get_artikel", "get_lid", "list_regelingen", "get_bepaling", "zoek_opbouw",
+                    "inhoudsopgave", "get_context", "follow_verwijzingen", "zoek_definitie", "get_regeling_info"}
+
+
+def test_de_twee_profielen_verschillen_alleen_in_tools_en_de_aanwijzingen_daarvoor():
+    kern, breed = profielen.PROFIELEN[CENTRAAL], profielen.PROFIELEN[CENTRAAL_BREED]
+    assert breed.instructie.startswith(kern.instructie + "\n\nMEER TOOLS:")
+    for veld in ("kiesbaar", "methoderol", "connectors", "sjablonen", "skills", "modelklasse"):
+        assert getattr(kern, veld) == getattr(breed, veld), veld
+    # De instructie noemt geen tool die het profiel niet heeft: het model zou hem proberen aan te roepen.
+    for p in (kern, breed):
+        ontbreekt = {t for t in _graaftools() - set(p.tools) if t in p.instructie}
+        assert not ontbreekt, f"{p.naam} noemt {sorted(ontbreekt)} maar heeft ze niet"
+    assert "SAMEN OPHALEN" in kern.instructie and "in dezelfde ronde pas oplevert" in kern.instructie
+
+
+def test_een_keuzevraag_van_de_centrale_agent_heeft_de_vorm_die_de_doorvraagroute_herkent():
+    """De doorvraagroute in code (R3) herkent een open keuzevraag aan haar vorm ("Bedoel je …?"). De specialisten
+    schreven die vorm; de centrale agent niet altijd, en dan ging een vervolg ("En het tweede lid?") naar het model in
+    plaats van naar de vaste doorvraag (ronde 2 van A2, gesprek v-artikel-zonder-wet). De instructie legt de vorm vast."""
+    from agent.verduidelijken import doorvraag, open_keuzevraag
+
+    voorbeeld = "Bedoel je artikel 3:1, 3:2, of een ander artikel?"
+    for naam in (CENTRAAL, CENTRAAL_BREED):
+        assert "NIET GOKKEN" in profielen.PROFIELEN[naam].instructie and voorbeeld in profielen.PROFIELEN[naam].instructie
+    assert open_keuzevraag("De Awb heeft geen artikel 3. " + voorbeeld) == voorbeeld
+    assert doorvraag("En het tweede lid?", "De Awb heeft geen artikel 3. " + voorbeeld)
+
+
+def test_meer_tools_is_er_alleen_voor_de_kernset_en_wijs_af_voor_beide():
+    assert set(agent_voor(CENTRAAL).eigen_tools) == {"wijs_af", "meer_tools"}
+    assert set(agent_voor(CENTRAAL_BREED).eigen_tools) == {"wijs_af"}
+    assert isinstance(agent_voor(CENTRAAL_BREED), CentraleAgent) and agent_voor(CENTRAAL_BREED).rol is Rol.CENTRAAL
+    # De beschrijving noemt elke tool die erachter zit: zo weet het model wanneer het erom vraagt.
+    rest = set(profielen.PROFIELEN[CENTRAAL_BREED].tools) - set(profielen.PROFIELEN[CENTRAAL].tools)
+    assert not {t for t in rest if t not in overdracht.OVERDRACHT["meer_tools"].beschrijving}
+
+
+def test_na_meer_tools_draait_dezelfde_beurt_met_het_brede_profiel():
+    llm = FakeLLM([response([tool_block("t1", "meer_tools", {})], "tool_use"),
+                   response([text_block("Antwoord.")], "end_turn")])
+    events = _beurt(VRAAG, llm, stand="meten", gevraagd="centraal")
+    eerste, tweede = llm.calls
+    voor, na = ({t["name"] for t in c["tools"]} for c in (eerste, tweede))
+    assert "geldigheid" not in voor and "meer_tools" in voor
+    assert {"geldigheid", "grondslagen", "raw_sparql", "wijs_af"} <= na and "meer_tools" not in na
+    assert "MEER TOOLS:" in tweede["system"] and "MEER TOOLS:" not in eerste["system"]
+    # Het gesprek van de beurt blijft: de aanroep en zijn resultaat staan in de historie van de tweede ronde.
+    [resultaat] = [b for m in tweede["messages"] if isinstance(m["content"], list)
+                   for b in m["content"] if b.get("type") == "tool_result"]
+    assert "extra tools" in resultaat["content"] and not resultaat.get("is_error")
+    assert "".join(e["content"] for e in events if e["type"] == "token") == "Antwoord."
+
+
+def test_een_tool_buiten_de_kernset_kan_alleen_na_de_overdracht():
+    """Roept het model een tool aan die het niet kreeg, dan voert de code hem niet uit."""
+    from agent.nodes.antwoord import BUITEN_PROFIEL
+
+    graph = FakeGraph(result="")
+    llm = FakeLLM([response([tool_block("t1", "geldigheid", {"bwb_id": "BWBR0004770"})], "tool_use"),
+                   response([text_block("Antwoord.")], "end_turn")])
+    _run(answer_stream(VRAAG, settings=make_settings(centrale_agent="meten"), llm=llm, graph=graph, agentvorm="centraal"))
+    [resultaat] = [b for m in llm.calls[1]["messages"] if isinstance(m["content"], list)
+                   for b in m["content"] if b.get("type") == "tool_result"]
+    assert resultaat["content"] == BUITEN_PROFIEL and "meer_tools" in BUITEN_PROFIEL
+    assert not graph.queries, "de tool is niet uitgevoerd"
+    # Het brede profiel mag hem wel; een gewone specialist wordt hier niet op getoetst (bitgelijk met de supervisor).
+    assert agent_voor(CENTRAAL_BREED).mag("geldigheid") and not agent_voor(CENTRAAL).mag("geldigheid")
+    assert agent_voor(CENTRAAL).mag("get_artikel") and agent_voor(CENTRAAL).mag("antwoord_duiding")
+    assert agent_voor("definitie").mag("geldigheid") and agent_voor("algemeen").mag("wat_dan_ook")
+
+
+def test_de_eigen_tools_hebben_een_eigen_categorie_in_de_contextopbouw():
+    from agent import contextdelen
+
+    for naam in overdracht.OVERDRACHT:
+        assert contextdelen.tool_categorie(naam) == contextdelen.AGENTTOOLS
+    assert contextdelen.AGENTTOOLS in contextdelen.VOORVOEGSEL

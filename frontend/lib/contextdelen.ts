@@ -22,6 +22,7 @@ export const CONTEXTDELEN: readonly Contextdeel[] = [
   { id: "methode", label: "Methode", uitleg: "De methode Wetsanalyse voor dit soort vraag.", kleur: "bg-lint/50", voorvoegsel: true },
   { id: "graaftools", label: "Wettools", uitleg: "Waarmee Lex in de wetgeving zoekt en leest.", kleur: "bg-link", voorvoegsel: true },
   { id: "connectortools", label: "Bronnen naast de wet", uitleg: "De tools van de bronnen die aanstaan.", kleur: "bg-info", voorvoegsel: true },
+  { id: "agenttools", label: "Eigen tools van de agent", uitleg: "Waarmee de agent het werk overdraagt aan een vaste route of aan een breder profiel.", kleur: "bg-info/70", voorvoegsel: true },
   { id: "sjablonen", label: "Antwoordvormen", uitleg: "De vaste vormen waarin Lex een antwoord opbouwt.", kleur: "bg-info/40", voorvoegsel: true },
   { id: "beurtcontext", label: "Plan en gesprekscontext", uitleg: "Het plan, het werkgebied of dossier en welke bronnen aanstaan.", kleur: "bg-gold", voorvoegsel: false },
   { id: "opdracht", label: "Opdracht", uitleg: "De opdracht die deze agent kreeg.", kleur: "bg-waarschuwing", voorvoegsel: false },
