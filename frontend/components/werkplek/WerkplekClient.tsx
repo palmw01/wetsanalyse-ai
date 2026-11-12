@@ -8,7 +8,7 @@ import { reeksNavigatie } from "@/lib/reeks";
 import { afronding } from "@/lib/beurtStroom";
 import { useBeurt, type BeurtScherm } from "@/lib/useBeurt";
 import { type NodeDoel } from "@/lib/annotatieNode";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { VraagLexContext } from "@/components/werkplek/VraagLexKnop";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 
@@ -52,6 +52,8 @@ import {
 import { VraagDock } from "@/components/werkplek/VraagDock";
 import { BronselectieKaart } from "@/components/werkplek/BronselectieKaart";
 import { ConnectorsMenu } from "@/components/werkplek/ConnectorsMenu";
+import { CommandoMenu } from "@/components/werkplek/CommandoMenu";
+import { menuRegels, type Regel, type Uitvoer } from "@/lib/commandos";
 import { actieveConnectors, beurtBronnen, moetVerversen, toonMenu, wissel as wisselConnector, zelfAanTeZetten, type BronUit, type ConnectorStand } from "@/lib/connectorsMenu";
 import { useConnectorLijst } from "@/lib/useConnectorLijst";
 import {
@@ -67,7 +69,8 @@ import { itemsUitGesprek } from "@/lib/geschiedenis";
 import { bevestigt, startOpties, userVelden, type BeurtVerzoek } from "@/lib/beurtVerzoek";
 import { DEMO_DOEL, DEMO_SLUG, type DemoScene } from "@/lib/rondleidingDemo";
 import {
-  SOORT_LABEL, VERVOLG_TEKST, chipTekst, overVan, suggestiesVan, werkgebiedSuggesties, type Onderwerp, type Vervolg,
+  SOORT_LABEL, VERVOLG_TEKST, chipTekst, overVan, suggestiesVan, werkgebiedSuggesties, type Onderwerp, type Suggestie as SuggestieRegel,
+  type Vervolg,
 } from "@/lib/vraagLex";
 
 // De thread-items staan in `lib/threadItem.ts`, zodat de rondleiding er een voorbeeldbeurt
@@ -131,6 +134,8 @@ interface Props {
   beginOnderwerp?: Onderwerp | null;
   /** Een vraag die klaar staat in het invoerveld (`?start=werkgebied`); versturen doet de analist. */
   beginInvoer?: string | null;
+  /** `/nieuw` in het invoerveld: een nieuw gesprek, zoals *Nieuw gesprek* (in een werkgebied: in dat werkgebied). */
+  onNieuwGesprek?: () => void;
 }
 
 export function WerkplekClient({
@@ -139,6 +144,7 @@ export function WerkplekClient({
   verbruik = null, onBeurtKlaar, werkgebiedId = null, onVerlaatWerkgebied, onKiesWerkgebied, onGesprekGeladen, bronnenSignaal = 0,
   beginOnderwerp = null,
   beginInvoer = null,
+  onNieuwGesprek,
 }: Props) {
   // Budget op? Dan gaat de invoer dicht. Alleen bij een actieve begrenzing – staat die uit, dan is
   // `geblokkeerd` per definitie false en verandert er niets.
@@ -165,6 +171,10 @@ export function WerkplekClient({
   // De open vraag die je met ✕ wegklikte (het item-id); "Een vraag stellen ›" opent hem weer.
   const [weggeklikt, setWeggeklikt] = useState<string | null>(null);
   const [invoer, setInvoer] = useState(beginInvoer ?? "");
+  // Het commandomenu bij `/` vooraan: de actieve regel, en of Escape het voor deze tekst dichtdeed.
+  const [menuCursor, setMenuCursor] = useState(0);
+  const [menuDicht, setMenuDicht] = useState(false);
+  const commandoId = useId();
   // Het concept van de vraag per gesprek (UI-08, `lib/conceptVraag.ts`). Eerst lezen, pas daarna schrijven: anders wist
   // de lege begininvoer het concept voordat het terug is. Lezen in een effect, want `sessionStorage` bestaat niet
   // tijdens de server-render. Een klaargezette vraag (`beginInvoer`) gaat voor; na versturen is de invoer leeg en het
@@ -845,7 +855,51 @@ export function WerkplekClient({
     openVraag: () => actiesRef.current?.openVraag(),
   }));
 
+  /** Een suggestie uitvoeren: een klik op de rij boven het invoerveld én een `/commando` (`lib/commandos.ts`) – één weg. */
+  function voerSuggestieUit(s: SuggestieRegel) {
+    // Een vraag die de analist afmaakt: in het veld, met de cursor aan het eind.
+    if (s.invullen) {
+      setInvoer(s.tekst);
+      taRef.current?.focus();
+      requestAnimationFrame(() => taRef.current?.setSelectionRange(s.tekst.length, s.tekst.length));
+      return;
+    }
+    // Annoteren van één bepaling: de annotatieweg met het doel (`startOpties`), niet een actie.
+    void verstuur({ prompt: s.tekst, actie: s.actie,
+      ...(s.doel ? { doel: s.doel, ...(s.hergebruik ? { hergebruik: s.hergebruik } : {}) } : {}) });
+  }
+
+  /** Wat een regel uit het commandomenu doet. Een clientcommando is geen beurt: geen tokens, niets in de thread. */
+  function voerCommandoUit(u: Uitvoer) {
+    if (u.soort === "suggestie") return voerSuggestieUit(u.suggestie);
+    if (u.handeling === "help") return setInvoer("/");
+    setInvoer("");
+    if (u.handeling === "bron" && u.argument) kiesConnector(u.argument);
+    if (u.handeling === "nieuw") onNieuwGesprek?.();
+  }
+
+  function kiesRegel(regel: Regel) {
+    if (regel.uit) return;
+    if (regel.uitvoer) voerCommandoUit(regel.uitvoer);
+    else { setInvoer(regel.aanvulling); setMenuCursor(0); }
+    taRef.current?.focus();
+  }
+
   function opToets(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    // Het commandomenu (`/` vooraan): ↑/↓ kiezen, Tab vult aan, Enter voert uit, Escape sluit het menu. Zonder treffer
+    // gaat Enter gewoon door: de tekst is dan een vraag.
+    if (commandoRegels && !e.nativeEvent.isComposing) {
+      const regel = commandoRegels[actieveRegel];
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setMenuDicht(true); return; }
+      if (commandoRegels.length && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+        e.preventDefault();
+        const n = commandoRegels.length;
+        setMenuCursor((actieveRegel + (e.key === "ArrowDown" ? 1 : n - 1)) % n);
+        return;
+      }
+      if (regel && e.key === "Tab" && !e.shiftKey) { e.preventDefault(); setInvoer(regel.aanvulling); setMenuCursor(0); return; }
+      if (regel && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); kiesRegel(regel); return; }
+    }
     // `isComposing`: met een IME (of een Android-toetsenbord dat een woordsuggestie met Enter
     // bevestigt) hoort Enter de compositie af te ronden, niet de beurt te versturen.
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -908,8 +962,13 @@ export function WerkplekClient({
     return () => waarnemer.disconnect();
   }, [invoer, toonDock]);
 
-  const suggesties = onderwerp ? suggestiesVan(onderwerp)
-    : werkgebiedId && !demo && !invoer.trim() ? werkgebiedSuggesties() : [];
+  // Wat Lex in deze context kan: de suggesties van het onderwerp, of anders van het werkgebied. De rij boven het invoerveld
+  // toont die van het werkgebied alleen zolang je niet typt; het commandomenu kent ze altijd (`lib/commandos.ts`).
+  const contextSuggesties = onderwerp ? suggestiesVan(onderwerp) : werkgebiedId && !demo ? werkgebiedSuggesties() : [];
+  const suggesties = onderwerp || !invoer.trim() ? contextSuggesties : [];
+  const commandoRegels = demo || menuDicht ? null
+    : menuRegels(invoer, { suggesties: contextSuggesties, connectors: connectorStand, bezig, geblokkeerd });
+  const actieveRegel = commandoRegels?.length ? Math.min(menuCursor, commandoRegels.length - 1) : -1;
 
   // Hoort de open annotatie bij een reeks in dit gesprek, dan bladert het paneel door de leden.
   const nodeReeksNav = (() => {
@@ -1295,7 +1354,10 @@ export function WerkplekClient({
           )}
           {/* Wat Lex met het onderwerp kan; zonder onderwerp, in een werkgebied, wat hij met het werkgebied kan
               (F3d: dat waren de knoppen in de werkgebiedbalk). Die laatste wijken zodra je typt. */}
-          {!bezig && suggesties.length > 0 && (
+          {commandoRegels && (
+            <CommandoMenu id={commandoId} regels={commandoRegels} actief={actieveRegel} onKies={kiesRegel} onActief={setMenuCursor} />
+          )}
+          {!commandoRegels && !bezig && suggesties.length > 0 && (
             // Eén rij die zijwaarts schuift: naast een paneel wordt de chat smal, en dan namen rijen suggesties de
             // leesruimte weg. De rand vervaagt, zodat je ziet dat er meer staat; de focus scrolt een knop in beeld.
             <div className="mb-1 flex gap-1.5 overflow-x-auto p-0.5 pb-1 pr-8 [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)]"
@@ -1310,18 +1372,7 @@ export function WerkplekClient({
                   data-actie={s.actie ?? (s.doel ? "annoteren" : undefined)}
                   data-invullen={s.invullen ? "" : undefined}
                   title={geblokkeerd ? "Je tokenbudget is op" : undefined}
-                  onClick={() => {
-                    // Een vraag die de analist afmaakt: in het veld, met de cursor aan het eind.
-                    if (s.invullen) {
-                      setInvoer(s.tekst);
-                      taRef.current?.focus();
-                      requestAnimationFrame(() => taRef.current?.setSelectionRange(s.tekst.length, s.tekst.length));
-                      return;
-                    }
-                    // Annoteren van één bepaling: de annotatieweg met het doel (`startOpties`), niet een actie.
-                    void verstuur({ prompt: s.tekst, actie: s.actie,
-                      ...(s.doel ? { doel: s.doel, ...(s.hergebruik ? { hergebruik: s.hergebruik } : {}) } : {}) });
-                  }}
+                  onClick={() => voerSuggestieUit(s)}
                 >
                   {s.tekst}
                 </Suggestie>
@@ -1342,8 +1393,15 @@ export function WerkplekClient({
               // Een klaargezette vraag (`beginInvoer`) krijgt de focus, zodat één Enter volstaat.
               autoFocus={Boolean(beginInvoer)}
               value={invoer}
-              onChange={(e) => setInvoer(e.target.value)}
+              onChange={(e) => { setInvoer(e.target.value); setMenuCursor(0); setMenuDicht(false); }}
               onKeyDown={opToets}
+              // Een combobox (ARIA 1.2) zolang `/` vooraan staat: de focus blijft hier, de actieve regel heet in het menu.
+              // Daarbuiten is het een gewoon tekstveld.
+              role={commandoRegels ? "combobox" : undefined}
+              aria-autocomplete={commandoRegels ? "list" : undefined}
+              aria-expanded={commandoRegels ? true : undefined}
+              aria-controls={commandoRegels ? commandoId : undefined}
+              aria-activedescendant={actieveRegel >= 0 ? `${commandoId}-${actieveRegel}` : undefined}
               rows={1}
               disabled={Boolean(demo) || geblokkeerd}
               placeholder={
