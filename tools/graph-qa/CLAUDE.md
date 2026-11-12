@@ -36,7 +36,7 @@ ankerlogica die de api en de agent delen staat in `packages/bronmodel` (`wetsana
 | `nodes/annotatie.py` | annoteer (voorbereiding + `jas_pipeline.keten.analyseer`) en emit |
 | `nodes/annotatie_lezen.py` | de leesroute: eerst zoeken in de opgeslagen annotaties, dan formuleren |
 | `nodes/bron_lezen.py` | een stuk dat de vraag bij id noemt (ADR-013): de leestool van de connector in code, dan formuleren |
-| `nodes/bron_lijst.py` | een lijstvraag over een bron naast de wet ("het laatste stuk van dossier 32140"): de zoektool in code, het blok `stukken`, zonder model |
+| `nodes/bron_lijst.py` | een lijstvraag over een bron naast de wet ("het laatste stuk van dossier 32140"): de zoektool in code, het blok `stukken`, zonder model; ook een telvraag ("hoeveel …", "hoe verdelen … zich over de instanties": `Stukken.telling` uit `totaal`, `dekking` en een `per_<woord>` van de bron, nooit uit één pagina) en stukken die bij een regeling horen (het bwb-id bij een connector met `wetsverwijzing`, anders de naam in de titel met een kanttekening; Kamerstukken ronde 5, K17/K25/K26, Rechtspraak R22) |
 | `nodes/overzicht.py` | de overzichtsroute: overzicht en tekst uit de graaf, zonder model |
 | `nodes/bepaling.py` | de bepalingsroute (ADR-010, laag 2): de tekst van een bepaling uit `bepaling_workflow`, zonder toollus |
 | `nodes/werkgebied.py` | de werkgebied-worker: één stap van het samenstellen van een werkgebied (activiteit 1) |

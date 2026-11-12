@@ -22,8 +22,22 @@ export type AntwoordBlok =
       datum?: string; soort_stuk?: string } & TekstBij
   | { soort: "stukken"; door: "bron"; brontype: string; kop: string; items: StukRij[];
       /** Wat er gezocht is, in woorden van de code; en hoeveel stukken er bij de bron aan voldoen. */
-      zoekvraag?: string; totaal?: number | null }
+      zoekvraag?: string; totaal?: number | null;
+      /** Bij een telvraag: het aantal dat de bron zelf telt, met de verdeling die de bron geeft (`Telling` in bronmodel). */
+      telling?: Telling | null }
   | { soort: "leemte"; door: "bron"; tekst: string }
+
+/** Het antwoord op een telvraag, uit de bron: `dekking` "ten minste" bij een bron die een ondergrens geeft (LiDO). */
+export interface Telling {
+  aantal: number; dekking?: "precies" | "ten minste"; bron?: string; per_wat?: string;
+  per?: { waarde: string; aantal: number }[]; zonder_verdeling?: string;
+}
+
+/** De vaste zin van een telling, zoals `telling_tekst` in `bronmodel/antwoord.py` (zonder de verdeling). */
+export function tellingTekst(t: Telling): string {
+  const n = `${t.dekking === "ten minste" ? "ten minste " : ""}${new Intl.NumberFormat("nl-NL").format(t.aantal)} ${t.aantal === 1 ? "stuk" : "stukken"}`;
+  return `${t.bron ? `${t.bron} telt` : "De bron telt"} ${n} bij deze zoekvraag.`;
+}
 
 /** Bij welke tekst van de bepaling een stuk hoort (een uitspraak bij een eerdere versie van het artikel), uit de bron.
  *  `tekststand` staat tegenover de tekst in de graaf; `op_peildatum` alleen als Lex met een peildatum zocht. */
@@ -66,7 +80,8 @@ function isBlok(b: unknown): b is AntwoordBlok {
     case "extern": return typeof b.id === "string" && typeof b.label === "string" && typeof b.kop === "string" &&
       Array.isArray(b.passages) && b.passages.every((p) => isObject(p) && typeof p.tekst === "string");
     case "stukken": return typeof b.kop === "string" &&
-      lijst((x) => isObject(x) && typeof x.id === "string" && typeof x.label === "string");
+      lijst((x) => isObject(x) && typeof x.id === "string" && typeof x.label === "string") &&
+      (b.telling == null || (isObject(b.telling) && typeof b.telling.aantal === "number"));
   }
 }
 
