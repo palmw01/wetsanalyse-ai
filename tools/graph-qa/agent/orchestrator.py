@@ -34,18 +34,8 @@ from .doel import (  # noqa: F401 – re-export: tests importeren _kandidaten_ui
     _heeft_opgegeven_doel,
     _kandidaten_uit_json,
 )
-from .nodes.antwoord import (
-    agent_node,
-    correct_node,
-    finalize_node,
-    route_after_agent,
-    route_na_tools,
-    route_after_verify,
-    tools_node,
-    verify_node,
-)
+from .agentvorm import voeg_keten_toe
 from .nodes.annotatie import annoteer_node, emit_node
-from .nodes.sjabloon import route_na_sjabloon, sjabloon_node
 from .nodes.context import Bouw
 from .nodes.annotatie_lezen import zoek_annotaties_node
 from .nodes.bron_lezen import bron_lezen_node, route_na_bron_lezen
@@ -227,25 +217,16 @@ def build_graph(
         """Registreer een node, altijd met de stopbewaking eromheen."""
         g.add_node(naam, stopbaar(met_span(naam, fn)))
 
-    # De antwoordketen: agent ⇄ tools → (sjabloon) → verify → (correct) → finalize.
-    add("agent", functools.partial(agent_node, b))
-    add("tools", functools.partial(tools_node, b))
-    add("sjabloon", functools.partial(sjabloon_node, b))
-    add("verify", functools.partial(verify_node, b))
-    add("correct", functools.partial(correct_node, b))
-    add("finalize", functools.partial(finalize_node, b))
-    g.add_conditional_edges("tools", functools.partial(route_na_tools, b), {"agent": "agent", "verify": "verify"})
-    g.add_conditional_edges("sjabloon", functools.partial(route_na_sjabloon, b), {"verify": "verify", "agent": "agent"})
-    g.add_conditional_edges("verify", functools.partial(route_after_verify, b), {"correct": "correct", "finalize": "finalize"})
-    g.add_edge("correct", "agent")
-
+    # De antwoordketen (agent ⇄ tools → (sjabloon) → verify → (correct) → finalize) is van de agentvorm (ADR-016):
+    # elke agent van de open laag draait deze ene keten, met zijn eigen profiel. Hier staat alleen waar ze op aansluit.
     if not settings.enable_planning:
         # Zonder supervisor: alleen de antwoordketen (geen annotatie-route). Een testvorm.
+        voeg_keten_toe(g, add, b, na_finalize=END,
+                       na_agent={"tools": "tools", "verify": "verify", "sjabloon": "sjabloon", "agent": "agent"})
         g.add_edge(START, "agent")
-        g.add_conditional_edges("agent", functools.partial(route_after_agent, b),
-                                {"tools": "tools", "verify": "verify", "sjabloon": "sjabloon", "agent": "agent"})
-        g.add_edge("finalize", END)
         return g
+    voeg_keten_toe(g, add, b, na_finalize="advance", na_agent={
+        "tools": "tools", "verify": "verify", "annoteer": "annoteer", "sjabloon": "sjabloon", "agent": "agent"})
 
     # Supervisor → worker → advance → (volgende worker | einde).
     add("supervisor", functools.partial(supervisor_node, b))
@@ -253,11 +234,6 @@ def build_graph(
     add("afwijzen", functools.partial(afwijs_node, b))
     g.add_edge(START, "supervisor")
     g.add_edge("afwijzen", END)
-    g.add_conditional_edges(
-        "agent", functools.partial(route_after_agent, b),
-        {"tools": "tools", "verify": "verify", "annoteer": "annoteer", "sjabloon": "sjabloon", "agent": "agent"},
-    )
-    g.add_edge("finalize", "advance")
 
     # De annotatie-worker, `annoteer → emit` (ADR-001): detectie, fusie, kleine classifier, validatie,
     # gerichte review en resolver zitten allemaal in `annoteer` (`jas_pipeline.keten`); `emit` is de

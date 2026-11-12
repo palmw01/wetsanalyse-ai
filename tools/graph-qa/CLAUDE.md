@@ -95,9 +95,15 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   noemt de connector, nooit diens tools. Wie een profiel wijzigt, verandert het gedrag van Lex: dat vraagt een meting,
   en de hash in `tests/test_profielregister.py` bewaakt dat het niet ongemerkt gebeurt. Een profiel is configuratie
   die een Python-agent laadt, nooit een agent op zichzelf.
-- **`agent_node`** – draait de specialist (`agent/specialists.py`, afgeleid uit het profielregister): `SYSTEM_PROMPT` + methode-instructies
+- **De agentvorm (`agent/agentvorm.py`, ADR-016).** Elke agent van de open laag is een `Agent`: een Python-object met
+  een profiel. Hij bezit de antwoordketen (`voeg_keten_toe` registreert `agent`, `tools`, `sjabloon`, `verify`,
+  `correct` en `finalize`; `build_graph` sluit haar alleen aan) en hij doet de modelaanroep (`Agent.ronde`). Wat hij
+  meestuurt, volgt uit zijn profiel: systeemtekst, tools, sjablonen, model en `Rol`. **Zet geen modelstap met een
+  lusrol buiten `agentvorm.py`** en bouw geen tweede lus: `tests/test_agentvorm.py` maakt dat rood. De ronde zet
+  `profiel_id` en `profiel_versie` in het meetkader; ze staan op `model_aanroep` en per agent in de contextopbouw.
+- **`agent_node`** – vraagt de agent van de beurt op (`agent_voor`, uit het profielregister): `SYSTEM_PROMPT` + methode-instructies
   (`agent/methode.py`, uit het gegenereerde `methodepakket.py`) + addendum + plan, met
-  `anthropic_schemas(only=spec.tools)`. Tekst stroomt niet mee: pas na de ronde is bekend of het narratie
+  de toolschema's van de agent (`Agent.toolschemas`). Tekst stroomt niet mee: pas na de ronde is bekend of het narratie
   is. Een ronde mét tools gaat dan als `reason` naar het denkproces (`narratie.ronde_in_denk`, met `\n\n`
   op een rondegrens). Een ronde zonder tools is een eindantwoord: dat gaat de state in, nooit naar `reason`.
   **Een ronde met een sjabloon is ook het antwoord** (12 nov 2026, acceptatie K17: het hele antwoord stond onderaan het

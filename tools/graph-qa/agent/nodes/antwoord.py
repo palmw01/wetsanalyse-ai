@@ -28,24 +28,18 @@ from ..focus import na_antwoord
 from ..grounding import alleen_gelezen_extern, check_grounding, curate_sources, herstel_citaten, live_niet_letterlijk
 from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk, zonder_aanloop
 from ..overzicht import bronrijen as overzicht_bronrijen
-from ..sjablonen import EXTERN, SJABLONEN, Onvulbaar, sjabloon_schemas, sjabloon_uit_tekst
+from ..sjablonen import EXTERN, SJABLONEN, Onvulbaar, sjabloon_uit_tekst
 from ..sjablonen import vul as sjabloon_vul
 from ..sjablonen.extern import MAX_LIJST
 from .overzicht import TOOL as OVERZICHT_TOOL
 from .sjabloon import vul_aanroep
-from ..prompts import SYSTEM_PROMPT
 from ..provenance import alleen_genoemde_regelingen, collect_sources
 from ..regelingnamen import met_regelingnamen
 from ..resultaat import is_fout
-from ..profielen import bedient
-from ..specialists import DEFAULT as DEFAULT_SPECIALIST
-from ..specialists import get as get_specialist
-from ..specialists import methoderol as specialist_methoderol
-from ..llm_stap import Rol, stroom
+from ..agentvorm import STANDAARD as DEFAULT_SPECIALIST, agent_voor
 from ..state import State
 from ..bronstand import prompt_blok as bronstand_blok
 from ..bronstand import waar as bronstand_waar
-from ..tools import anthropic_schemas, toegestane_tools
 from ..tool_execution import execute_tool
 from ..tools.annotatie_tools import ANNOTATIE_TOOL_NAMEN, begrens_antwoord
 from ..tools.begrip_tools import alleen_begrippen_gezocht, begrens_begrippen_antwoord
@@ -57,12 +51,6 @@ _beurtlog = logging.getLogger("graph_qa.beurt")
 
 #: Tools waarmee de agent de weg zoekt: wat ze teruggeven draagt een sjabloonantwoord niet.
 _OPZOEKTOOLS = frozenset({"list_regelingen"})
-
-
-#: De antwoordlus streamt, dus een ruime limiet kost alleen wat er echt geschreven wordt. 4096 kapte lange duidingen af.
-MAX_TOKENS_ANTWOORD = 16000
-#: De ophaal-agent schrijft geen tekst voor de jurist, alleen tool-aanroepen.
-MAX_TOKENS_OPHALEN = 4096
 
 GEWEIGERD = "Op deze vraag kan ik geen antwoord geven: het model weigerde hem te beantwoorden. Stel de vraag eventueel anders."
 AFGEKAPT_ZONDER_TEKST = "Ik kon deze vraag niet afronden: het antwoord paste niet in één beurt. Stel de vraag gerichter."
@@ -78,19 +66,13 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     # De annotatie-route draait de agent⇄tools-lus als OPHAAL-agent (retrieval-specialist): hij
     # vindt de exacte bepaling. De JAS-annotatie gebeurt daarna in annoteer_node (pure LLM-call).
     spec_naam = "retrieval" if state.get("specialist") == "annotatie" else state.get("specialist")
-    spec = get_specialist(spec_naam)
-    # ADR-013: staat er een connector aan die deze rol bedient, dan krijgt elk sjabloon het veld voor bronnen naast de
-    # wet (het subsjabloon) en is er het eigen sjabloon `antwoord_extern`. Anders blijven de schema's gelijk.
-    rol = spec_naam or DEFAULT_SPECIALIST
-    extern_namen = tuple(n for n, s in (state.get("bronstand") or {}).items()
-                         if s.get("aan") and n in CONNECTORS and bedient(rol, n)) if spec.sjablonen else ()
-    extern_aan = bool(extern_namen)
-    sjablonen = spec.sjablonen | {EXTERN} if extern_aan else spec.sjablonen
-    # Het stabiele deel (identiteit + specialist) is bij elke tool-ronde van elke beurt hetzelfde en is de
-    # systeemprompt, met het prompt-cache-punt. Het plan, de geheugen-context en de adviescontext verschillen per
-    # beurt; die gaan ná de historie, als eerste blok van de vraag (`met_beurtcontext`). Caching is een prefix-match:
-    # één byte verschil vóór een cache-punt maakt alles erna waardeloos.
-    stabiel = SYSTEM_PROMPT + (f"\n\n{spec.system}" if spec.system else "")
+    # De agent van deze beurt (ADR-016): het profiel bepaalt de systeemtekst, de tools, de sjablonen, het model en de
+    # rol, en de agent doet de modelaanroep. ADR-013: staat er een connector aan die het profiel noemt, dan krijgt elk
+    # sjabloon het veld voor bronnen naast de wet (het subsjabloon) en is er het eigen sjabloon `antwoord_extern`.
+    agent = agent_voor(spec_naam)
+    extern_aan = bool(agent.extern(state.get("bronstand")))
+    sjablonen = agent.sjablonen(state.get("bronstand"))
+    stabiel = agent.systeemtekst
     variabel = ""
     if state.get("plan"):
         variabel += f"AANPAK (door jou gepland):\n{state['plan']}"
@@ -133,24 +115,8 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     else:
         venster, berichtpunten = met_beurtcontext(venster, state.get("question", ""), variabel)
         systeem = [stabiel]
-    with stroom(
-        b.llm, Rol.OPHAAL if spec_naam == "retrieval" else Rol.ANTWOORD, methoderol=specialist_methoderol(spec_naam),
-        kader=meetkader,
-        # Deze node draait twee verschillende rollen: de OPHAAL-agent (annotatieroute – zoeken
-        # en ophalen) en de QA-specialisten (die het antwoord zelf schrijven). Alleen de eerste
-        # heeft een eigen modelknop.
-        model=b.model_ophaal if spec_naam == "retrieval" else b.model,
-        max_tokens=MAX_TOKENS_OPHALEN if spec_naam == "retrieval" else MAX_TOKENS_ANTWOORD,
-        system=systeem,
-        tools=anthropic_schemas(only=toegestane_tools(spec.tools, b.settings, state.get("bronnen"))) + sjabloon_schemas(sjablonen, extern=extern_namen),
-        messages=venster,
-        # Elke toolronde stuurt de hele historie opnieuw: een cache-punt aan het eind maakt die de volgende ronde goedkoop.
-        historie_cache=True,
-        berichtpunten=berichtpunten,
-    ) as stream:
-        # Geen tekst tijdens het streamen: pas aan het eind van de ronde is bekend of dit narratie is
-        # of een eindantwoord, en een eindantwoord mag pas na de controle in beeld (`finalize_node`).
-        final = stream.final_message()
+    final = agent.ronde(b.llm, b.settings, systeem=systeem, berichten=venster, berichtpunten=berichtpunten,
+                        bronnen=state.get("bronnen"), bronstand=state.get("bronstand"), kader=meetkader)
 
     tool_uses, text_parts = _parse_final(final)
     telling: dict[str, Any] = {}
