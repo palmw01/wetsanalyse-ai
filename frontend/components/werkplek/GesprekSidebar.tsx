@@ -77,6 +77,7 @@ export function GesprekSidebar({
   const annotatiesActief = pad?.startsWith("/annotaties") ?? false;
   const werkgebiedenActief = pad?.startsWith("/werkgebieden") ?? false;
   const begrippenActief = pad?.startsWith("/begrippen") ?? false;
+  const werkwijzeActief = pad?.startsWith("/werkwijze") ?? false;
   const [menuOpen, setMenuOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -186,6 +187,21 @@ export function GesprekSidebar({
             <path d="M8 11h8M8 15h5" />
           </svg>
           Begrippen
+        </Link>
+        {/* Hoe Lex werkt (ADR-014): de methode, de vaste regels en ketens, en waar een model meedoet. Alleen lezen. */}
+        <Link
+          href="/werkwijze"
+          onClick={onSluit}
+          aria-current={werkwijzeActief ? "page" : undefined}
+          className={`focus-ring mt-0.5 flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
+            werkwijzeActief ? "bg-lint/10 font-medium text-lint" : "text-ink hover:bg-paper"
+          }`}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" />
+            <path d="M5 17a3 3 0 0 1 3-3h11M9 8h6" />
+          </svg>
+          Werkwijze
         </Link>
       </div>
 

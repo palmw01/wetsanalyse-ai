@@ -544,6 +544,39 @@ async def bronnen(_auth: None = Depends(_check_auth)) -> dict:
                          "straat": c.naam in aan} for c in CONNECTORS.values()]}
 
 
+def _met_straat(o) -> dict:
+    """Een onderdeel als dict, met of deze straat het aanbiedt (`straat` is de naam van de vlag; de waarde staat in
+    `Settings` onder dezelfde naam in kleine letters, zoals `connector_kamerstukken`)."""
+    d = o.als_dict()
+    d["aan"] = True if o.straat is None else bool(getattr(settings, o.straat.lower(), False))
+    return d
+
+
+@app.get("/v1/catalogus")
+async def catalogus_lijst(_auth: None = Depends(_check_auth)) -> dict:
+    """De catalogus van Lex (ADR-014): elk onderdeel met doel, model, herkomst en waar het in de repo staat, zonder
+    de inhoud. Introspectie van wat draait, geen gegenereerd bestand."""
+    from bronmodel.catalogus import SOORTEN
+
+    from agent.catalogus import catalogus
+
+    return {"soorten": list(SOORTEN), "onderdelen": [_met_straat(o) for o in catalogus()]}
+
+
+@app.get("/v1/catalogus/{soort}/{naam}")
+async def catalogus_onderdeel(soort: str, naam: str, _auth: None = Depends(_check_auth)) -> dict:
+    """Eén onderdeel met zijn inhoud (methodetekst, regels met voorbeeldzinnen, de beschrijving van een connector) en
+    de onderdelen die erop leunen."""
+    from agent.catalogus import catalogus, onderdeel
+
+    o = onderdeel(f"{soort}/{naam}")
+    if o is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Onbekend onderdeel")
+    d = _met_straat(o) | {"inhoud": o.inhoud}
+    d["gebruikt_door"] = [x.id for x in catalogus() if o.id in x.hangt_af_van]
+    return d
+
+
 @app.get("/v1/bronnen/{connector}/stukken/{stuk_id}")
 async def bron_stuk(connector: str, stuk_id: str, offset: int = 0, tabel: int | None = None,
                     _auth: None = Depends(_check_auth)) -> dict:
