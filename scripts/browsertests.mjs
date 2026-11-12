@@ -1,9 +1,10 @@
 /** Draait één deel (shard) van de browserregressie, voor de parallelle jobs in `poort.yml`.
  *
- *   node scripts/browsertests.mjs 2/4      (Next draait al, zie test-annotatie-nodes.mjs)
- *   node scripts/browsertests.mjs --lijst  (de indeling tonen, zonder iets te draaien)
+ *   node ../scripts/browsertests.mjs 2/4      (vanuit frontend/, Next draait al, zie test-annotatie-nodes.mjs)
+ *   node ../scripts/browsertests.mjs --lijst  (de indeling tonen, zonder iets te draaien)
  *
- * De lijst komt uit `test:browser` in package.json – die blijft de enige bron, dus een nieuwe browsertest
+ * Het staat bij het gereedschap van de poort (naast `kruistests.sh` en `pytest_shard.py`); een wijziging eraan
+ * draait de browserregressie (zie de detectie in `poort.yml`). De lijst komt uit `test:browser` in frontend/package.json – die blijft de enige bron, dus een nieuwe browsertest
  * hoeft niet hier bij te worden gezet en kan in de poort niet wegvallen. Lokaal draait `npm run test:browser`
  * gewoon alles na elkaar.
  *
@@ -13,7 +14,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const GEWICHT = {
   "test-annotatie-nodes": 20, "test-samenhang": 80, "test-reeks": 6, "test-toetsen": 17, "test-werkgebieden": 22,
@@ -28,9 +29,10 @@ const GEWICHT = {
   "test-instellingen": 17, "test-instellingen-breedte": 61, "test-antwoordweergave": 11,
 };
 const ONBEKEND = 8;
+const FRONTEND = fileURLToPath(new URL("../frontend/", import.meta.url));
 
 export function lijst() {
-  const pakket = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  const pakket = JSON.parse(readFileSync(new URL("../frontend/package.json", import.meta.url), "utf8"));
   const tests = [...pakket.scripts["test:browser"].matchAll(/node (scripts\/[\w-]+\.mjs)/g)].map((m) => m[1]);
   if (!tests.length) throw new Error("geen browsertests gevonden in scripts.test:browser");
   return tests;
@@ -69,7 +71,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   for (const t of shard.tests) {
     const begin = Date.now();
     console.log(`─── ${t}`);
-    const r = spawnSync(process.execPath, [t], { stdio: "inherit" });
+    const r = spawnSync(process.execPath, [t], { stdio: "inherit", cwd: FRONTEND });
     console.log(`    ${t}: ${((Date.now() - begin) / 1000).toFixed(1)} s`);
     // Net als de `&&`-keten van test:browser: de eerste fout stopt de shard.
     if (r.status !== 0) process.exit(r.status ?? 1);

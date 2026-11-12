@@ -101,7 +101,7 @@ def test_pytest_shard_zonder_env_doet_niets(monkeypatch):
 def test_browsershards_dekken_test_browser():
     pakket = json.loads((WORTEL / "frontend" / "package.json").read_text(encoding="utf-8"))
     verwacht = re.findall(r"node (scripts/[\w-]+\.mjs)", pakket["scripts"]["test:browser"])
-    uit = subprocess.run(["node", "scripts/browsertests.mjs", "--lijst", "4"], cwd=WORTEL / "frontend",
+    uit = subprocess.run(["node", "scripts/browsertests.mjs", "--lijst", "4"], cwd=WORTEL,
                          capture_output=True, text=True, check=True).stdout
     gevonden = [t for regel in uit.splitlines() for t in regel.partition(": ")[2].split()]
     assert sorted(gevonden) == sorted(verwacht), "een browsertest valt buiten de shards of staat er dubbel in"

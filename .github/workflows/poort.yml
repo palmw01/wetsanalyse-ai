@@ -20,7 +20,7 @@
 #   alles ──► poort               (de verplichte check: faalt als een benodigde job faalt)
 #
 # Een shard verdeelt per testbestand en verliest niets: `scripts/pytest_shard.py` en
-# `frontend/scripts/browsertests.mjs` (de lijst komt uit `test:browser`), bewaakt door
+# `scripts/browsertests.mjs` (de lijst komt uit `test:browser`), bewaakt door
 # `tests/poort/test_poort_parallel.py`. Een job die niet nodig is wordt overgeslagen; `poort` telt
 # overgeslagen als geslaagd, maar `raakt` en `guards` moeten altijd echt slagen.
 
@@ -96,13 +96,25 @@ jobs:
             echo "Referentieset gewijzigd: graph-qa-tests draaien."
             graph_qa=true
           fi
+          # Het gereedschap van de poort zelf. Een shardscript draait de suites die het verdeelt; de workflow en zijn
+          # composite action raken elke job, dus dan draait alles – anders zou een kapotte poort pas bij de
+          # volgende PR van dat onderdeel rood worden.
+          if [ "$(heeft 'scripts/pytest_shard.py')" = true ]; then graph_qa=true; api=true; fi
+          browser_zelf=$(heeft 'scripts/browsertests.mjs')
+          poort_zelf=false
+          if [ "$(heeft '.github/workflows/poort.yml')" = true ] || [ "$(heeft '.github/actions/frontend-deps/')" = true ]; then
+            echo "De poort zelf gewijzigd: alle suites draaien."
+            poort_zelf=true
+            graph_qa=true; api=true; bwb_import=true
+          fi
           # Elke wijziging aan code draait de kruistests (scripts/kruistests.sh); alleen documentatie niet.
           kruis=false
           if [ -n "$code" ] || [ -n "$skill" ]; then kruis=true; fi
           {
             echo "kruis=$kruis"
-            echo "mcp=$(heeft 'tools/wetsanalyse-')"
-            echo "frontend=$(heeft 'frontend/')"
+            if [ "$poort_zelf" = true ]; then echo "mcp=true"; else echo "mcp=$(heeft 'tools/wetsanalyse-')"; fi
+            if [ "$poort_zelf" = true ] || [ "$browser_zelf" = true ]; then echo "frontend=true"
+            else echo "frontend=$(heeft 'frontend/')"; fi
             echo "graph_qa=$graph_qa"
             echo "bwb_import=$bwb_import"
             echo "api=$api"
@@ -468,7 +480,7 @@ jobs:
         run: npm run typecheck
 
   # De browserregressie in vier shards, elk met een eigen `next dev`. De lijst blijft `test:browser`
-  # in package.json; `scripts/browsertests.mjs` verdeelt hem. Het aantal shards staat ALLEEN hier.
+  # in frontend/package.json; `scripts/browsertests.mjs` verdeelt hem. Het aantal shards staat ALLEEN hier.
   frontend-browser:
     name: frontend-browser (${{ matrix.shard }}/4)
     needs: raakt
@@ -508,7 +520,7 @@ jobs:
             if curl -fsS http://127.0.0.1:3109/api/auth/session > /dev/null; then break; fi
             sleep 1
           done
-          node scripts/browsertests.mjs ${{ matrix.shard }}/4
+          node ../scripts/browsertests.mjs ${{ matrix.shard }}/4
       - name: Next-log bij een fout
         if: failure()
         run: tail -n 200 /tmp/annotatie-next.log || true
