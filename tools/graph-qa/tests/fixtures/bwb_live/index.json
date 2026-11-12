@@ -91,6 +91,14 @@
   "bestand": "3fc99eedbe741c22.xml.gz",
   "status": 406
  },
+ "query=dcterms.identifier=BWBR0999999 and overheidbwb.geldigheidsdatum=2026-11-11 | startRecord=1 | maximumRecords=20": {
+  "bestand": "502f3ea95444f7bb.xml.gz",
+  "status": 406
+ },
+ "query=dcterms.identifier=BWBR0999999 | startRecord=1 | maximumRecords=1000": {
+  "bestand": "1c4b88055bcd58a0.xml.gz",
+  "status": 406
+ },
  "query=overheidbwb.afkorting=\"Participatiewet\" and overheidbwb.geldigheidsdatum=2015-01-15 | startRecord=1 | maximumRecords=100": {
   "bestand": "79f60b7c5ca3c5fa.xml.gz",
   "status": 406

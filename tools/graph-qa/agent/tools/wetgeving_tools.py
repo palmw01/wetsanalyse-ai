@@ -393,7 +393,9 @@ def _zoek(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
     if naam and offset == 0 and not any(t.titel.casefold() == naam.casefold() or t.bwb_id in afkorting
                                         for t in regelingen):
         toelichting.append(_buiten_de_peildatum(bron, naam, peil))
-    if not regelingen and offset == 0:
+    if bwb_id and not regelingen and offset == 0:
+        toelichting.append(_id_buiten_de_peildatum(bron, bwb_id, peil))
+    elif not regelingen and offset == 0:
         toelichting.append(f"Geen regeling gevonden ({_zoekvraag_tekst(a, peil)}). Dat bewijst niet dat ze niet "
                            "bestaat: probeer een andere schrijfwijze of de afkorting.")
     toelichting.append("Staat in_graaf op true, lees de tekst dan met de graaftools (get_artikel); anders met "
@@ -450,6 +452,24 @@ def _buiten_de_peildatum(bron: WetgevingBron, naam: str, peil: str) -> str:
                 f"andere titel: lees haar met bwb_id {exact[0].bwb_id} en deze peildatum.")
     return (f"„{naam}” ({exact[0].bwb_id}) staat in het Basiswettenbestand met teksten van {van} tot {_tot_tekst(tot)}, "
             f"niet op {peil}: kies een peildatum in die periode, of zeg dat er voor {peil} geen tekst is.")
+
+
+def _id_buiten_de_peildatum(bron: WetgevingBron, bwb_id: str, peil: str) -> str:
+    """Wat een BWB-id is als het op de peildatum niets oplevert: de titel en de periode van zijn toestanden, of dat het id
+    niet bestaat. "Niets gevonden" liet een geraden id lijken op de gezochte wet (ronde 4, I20: BWBR0002471 bij de Wet op
+    de inkomstenbelasting 1964 is de Wet op de loonbelasting 1964)."""
+    try:
+        alle = bron.toestanden(bwb_id)
+    except BwbFout:
+        return (f"Het Basiswettenbestand kent geen regeling met id {bwb_id}. Raad geen BWB-id's: zoek op de naam, of zeg "
+                "dat de regeling niet gevonden is.")
+    except Exception:  # noqa: BLE001 – een storing kost alleen deze zin
+        return f"Op {peil} heeft {bwb_id} geen tekst in het Basiswettenbestand."
+    van = alle[0].geldig_vanaf
+    tot = max((t.geldig_tot or OPEN_EIND) for t in alle)
+    return (f"{bwb_id} is „{alle[-1].titel}” ({alle[-1].soort}), met teksten van {van} tot {_tot_tekst(tot)}, en heeft "
+            f"op {peil} geen tekst. Is dat niet de regeling die je zoekt, gebruik dit id dan niet: zoek op de naam, of zeg "
+            "dat de regeling niet gevonden is.")
 
 
 def _regelingrij(t: Toestand, peil: str, vandaag: str, in_graaf: dict[str, Any] | None) -> dict[str, Any]:

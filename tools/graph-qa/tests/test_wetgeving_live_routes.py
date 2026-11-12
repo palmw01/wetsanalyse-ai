@@ -564,3 +564,18 @@ def test_wettekst_van_overheid_in_onderbouwing_wijst_naar_extern(bepaling):
                                           "twijfel": [], "extern": [], "stukken": []}, [("get_wettekst", raw)])
     melding = str(fout.value)
     assert ident in melding and "'extern'" in melding and "get_artikel" not in melding
+
+
+def test_een_tool_als_vertelstem_komt_niet_bij_de_jurist():
+    """Ronde 4, I20: "De tool meldt uitdrukkelijk dat regelingen die vervielen … er niet in zijn opgenomen." De jurist
+    kent bronnen, geen tools."""
+    from agent.nodes.antwoord import zonder_interne_taal
+
+    tekst = ("De Wet op de inkomstenbelasting 1964 staat niet in het Basiswettenbestand. De tool meldt uitdrukkelijk dat "
+             "regelingen die vervielen er niet in zijn opgenomen. De tekst van 1995 is niet op te halen.")
+    assert zonder_interne_taal(tekst) == ("De Wet op de inkomstenbelasting 1964 staat niet in het Basiswettenbestand. "
+                                          "De tekst van 1995 is niet op te halen.")
+    assert zonder_interne_taal("Volgens de zoektool is er niets.") == ""
+    for zin in ("De wet regelt de verdeling van de toolkit niet.", "Het gereedschap valt onder artikel 3.",
+                "Artikel 7:610 BW definieert de arbeidsovereenkomst."):
+        assert zonder_interne_taal(zin) == zin

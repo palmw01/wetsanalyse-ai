@@ -461,7 +461,9 @@ _INTERN = re.compile(
     # 2, I13: "Ik geef de uitleg daarom in tekst, met verwijzing naar de gelezen stukken."; I28: "Ik geef de vergelijking
     # daarom in tekst weer").
     r"|(?:ik\s+geef|geef\s+ik)\s+(?:de|het|mijn|deze)\s+\w+\s+(?:daarom\s+|dus\s+|hier\s+)?in\s+(?:gewone\s+|vrije\s+)?tekst"
-    r"|(?:de\s+)?code\s+herkent\s+(?:ze|het|dit|deze)\b)\b",
+    r"|(?:de\s+)?code\s+herkent\s+(?:ze|het|dit|deze)\b"
+    # Een tool als vertelstem (ronde 4, I20: "De tool meldt uitdrukkelijk dat …"): de jurist kent geen tools, alleen bronnen.
+    r"|(?:de|deze|die|een|mijn)\s+(?:zoek|lees)?tools?\b)\b",
     re.IGNORECASE)
 _ZIN = re.compile(r"[^.!?\n]*[.!?]?[ \t]*")
 
