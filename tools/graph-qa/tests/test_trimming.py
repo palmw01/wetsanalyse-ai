@@ -128,7 +128,7 @@ def test_per_beurt_verandert_alleen_het_eind_van_het_venster():
     assert sum(herschreven) / len(herschreven) < 12_000
 
 
-def _beurt(i: int, resultaten: int, omvang: int) -> list[dict]:
+def _beurt(i: int, resultaten: int, omvang: int) -> list[dict]:  # noqa: D103
     uit = [vraag(f"Vraag {i}")]
     for r in range(resultaten):
         uit += toolbeurt(f"t{i}_{r}", chr(97 + (i + r) % 26) * omvang)
@@ -178,3 +178,25 @@ def test_van_een_oude_beurt_blijven_vraag_en_antwoord_over():
     ids = [b.get("tool_use_id") for m in uit if isinstance(m["content"], list) for b in m["content"]
            if b.get("type") == "tool_result"]
     assert ids == ["s1", "t3"], "de tussenrondes zijn weg, als hele paren"
+
+
+def test_het_venster_valt_niet_leeg_als_oude_beurten_korter_worden():
+    """Nameting G6-5 (12 nov 2026): `_kern` maakte de berichtenlijst korter, terwijl het knippunt nog met indexen in de
+    oorspronkelijke lijst werkte. Daardoor knipte het venster op de verkeerde plek en viel de hele historie weg."""
+    def beurt(i: int) -> list[dict]:
+        # Een groot antwoord, zoals een sjabloon met passages: de kern van een beurt is dan ~8k (G6: 10k).
+        return [*_beurt(i, 6, 4_000)[:-1], {"role": "assistant", "content": "A" * 8_000}]
+
+    historie: list[dict] = []
+    for i in range(6):
+        historie += beurt(i)
+        venster = _trim_messages(historie + [vraag("nieuw")], 40_000, "nieuw")[:-1]
+        laatste = beurt(i)
+        from agent.berichten import _kern
+        # De laatste beurt staat er heel, of als kern als ze heel niet past; nooit valt ze weg.
+        assert venster[-len(laatste):] == laatste or venster[-len(_kern(laatste)):] == _kern(laatste), f"beurt {i}"
+        assert _is_plain_user(venster[0])
+        assert sum(_msg_lengte(m) for m in venster) <= 40_000
+        if i >= 1:
+            assert len([m for m in venster if m["content"] and isinstance(m["content"], str)
+                        and m["content"].startswith("Vraag")]) >= 2, f"beurt {i}: de eerdere beurten vielen weg"

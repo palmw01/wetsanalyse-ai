@@ -217,7 +217,7 @@ prompt-cache het hergebruikt (nulmeting context 12 nov 2026):
   (`_kern`; de tussenrondes vallen weg als hele paren van aanroep en resultaat, het bronregister houdt ze voor de
   controle). Dat hangt af van de hele historie, dus het springt niet aan en uit, en per beurt verandert alleen de
   vorige beurt;
-- de voorkant valt weg op een vast raster over de gekrompen historie (`_knippunten`, stap een halve begroting). Het
+- de voorkant valt weg op een vast raster over de gekrompen beurten (`_knippunten`, stap een kwart begroting; het venster werkt per beurt, `_beurten`, want `_kern` verschuift de berichtindexen). Het
   knippunt hangt alleen af van het gekrompen oude deel zonder de laatste beurt, dus het schuift alleen naar voren;
 - een lange beurt laat de historie niet meer in één keer vallen; de prompt is hoogstens `MAX_HISTORY_CHARS` plus de
   lopende beurt.
