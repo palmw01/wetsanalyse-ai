@@ -373,7 +373,8 @@ def _bronkeuze(b: Bouw, state: State, upd: dict[str, Any]) -> dict[str, Any]:
     teksten = [state.get("question", ""), upd.get("zelfstandige_vraag") or ""]
     buiten = bool((stand.get(bronkeuze.BUITEN_GRAAF) or {}).get("aan")) and any(
         noemt_regeling_buiten_graaf(t, b.graph) for t in teksten if t)
-    nieuw, keuze = bronkeuze.kies(stand, bronkeuze.genoemd(teksten, buiten_graaf=buiten), state.get("bronkeuze"))
+    genoemd = bronkeuze.genoemd(teksten, buiten_graaf=buiten) | bronkeuze.van_route(upd)
+    nieuw, keuze = bronkeuze.kies(stand, genoemd, state.get("bronkeuze"))
     uit: dict[str, Any] = {"bronkeuze": keuze}
     if nieuw is not stand:
         uit.update(bronstand=nieuw, bronnen=bronkeuze.actief(nieuw))
