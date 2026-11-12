@@ -63,7 +63,9 @@ het gaat naar de browser en naar het chatbericht, niet naar Log Analytics.
 
 **`beurt_meting`** is één regel per beurt (`agent/beurtmeting.py`), ook bij fout, stop of afbreken: `route`,
 `uitkomst`, `duur_ms`, `eerste_tekst_ms` (eerste `reason` of `token`), `toolaanroepen`, `modelrondes`, `invoer`,
-`uitvoer`, `cache_lees`, `cache_schrijf`, `model`. Geen inhoud. Hij voedt de panelen *Wachttijd per beurtsoort* en
+`uitvoer`, `cache_lees`, `cache_schrijf`, `model` en `sjabloon` (wat er met de antwoordsjablonen gebeurde: het
+herhaalverzoek, aangenomen tekst, weigeringen per redencode en gevulde sjablonen; `beurtmeting.tel_sjabloon`). Geen
+inhoud. Hij voedt de panelen *Wachttijd per beurtsoort* en
 *Tokens en cachetreffer per beurtsoort*. Bedragen staan er niet bij: prijzen staan nergens in de repo, en de
 boekhouding blijft het verbruiksjournaal van de api. De batchruns van `begrippen_verdieping` zijn geen beurt en
 vallen erbuiten. Welke stap traag was, staat in de spans `graph_qa.node.<naam>`. Dezelfde cijfers gaan als

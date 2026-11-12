@@ -376,7 +376,7 @@ def _stream(vraag, monkeypatch, llm):
 
 
 def _gelezen(llm):
-    return [(b["name"], b["input"]) for m in llm.calls[1]["messages"]
+    return [(b["name"], b["input"]) for m in llm.calls[-1]["messages"]
             for b in (m["content"] if isinstance(m["content"], list) else []) if b.get("type") == "tool_use"]
 
 
@@ -386,8 +386,7 @@ def test_de_voorlezing_neemt_het_genoemde_artikel_mee(monkeypatch):
     from fakes import FakeLLM, response, text_block
 
     llm = FakeLLM([response([text_block("duiding")], "end_turn"),
-                   response([text_block("Onderdeel A voegt twee gedachtestreepjes in.")], "end_turn"),
-                   response([text_block("x")], "end_turn")])  # de vraag om het sjabloon
+                   response([text_block("Onderdeel A voegt twee gedachtestreepjes in.")], "end_turn")])
     _stream("Wat veranderde stcrt-2026-37344 aan artikel 1.1.5 van de Leidraad Invordering 2008?", monkeypatch, llm)
     assert _gelezen(llm) == [("get_bekendmaking", {"id": "stcrt-2026-37344", "artikel": "1.1.5"})]
 
@@ -396,8 +395,7 @@ def test_raakt_het_artikel_geen_onderdeel_dan_het_hele_stuk(monkeypatch):
     from fakes import FakeLLM, response, text_block
 
     llm = FakeLLM([response([text_block("duiding")], "end_turn"),
-                   response([text_block("Het besluit zet de wijziging in werking.")], "end_turn"),
-                   response([text_block("x")], "end_turn")])  # de vraag om het sjabloon
+                   response([text_block("Het besluit zet de wijziging in werking.")], "end_turn")])
     _stream("Wat staat er in Stb. 2010, 176 over artikel 36?", monkeypatch, llm)
     assert _gelezen(llm) == [("get_bekendmaking", {"id": "stb-2010-176"})], "één lezing in de historie, zonder filter"
 

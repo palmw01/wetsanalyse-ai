@@ -33,6 +33,31 @@ logger = logging.getLogger("graph_qa.beurt")
 
 _TEKST = frozenset({"reason", "token"})
 
+#: Wat er per beurt met de sjablonen gebeurde (ADR-008), voor het `meting`-event en de logregel. Zonder dit stond een
+#: weigering of een herhaalverzoek alleen in de logs, en was een meetronde zonder Grafana blind voor de grootste
+#: tokenpost (iteratie wetgeving_live ronde 4: I24 en I28 drie schrijfrondes, de reden onzichtbaar).
+#: - `gevraagd`: het herhaalverzoek na tekst met een lijst (`nodes/antwoord._lijst_zonder_sjabloon`);
+#: - `tekst_zonder_lijst`: tekst na een vondst van een connector, zonder lijst, als antwoord aangenomen;
+#: - `gemist`: een tekstantwoord terwijl er een sjabloon was;
+#: - `als_tekst`: een sjabloonaanroep die als tekst kwam en in code is omgezet;
+#: - `gevuld` en `geweigerd`: per sjabloon, en per redencode (de functie die `Onvulbaar` gooide).
+SJABLOON_TELLERS = ("gevraagd", "tekst_zonder_lijst", "gemist", "als_tekst")
+SJABLOON_PER = ("gevuld", "geweigerd")
+
+
+def tel_sjabloon(state: Mapping[str, Any], soort: str, sleutel: str = "") -> dict[str, Any]:
+    """De telling van deze beurt met één erbij, als update voor de state (`sjabloon_telling`). Alleen namen uit de
+    code, geen inhoud."""
+    telling = {k: (dict(v) if isinstance(v, dict) else v) for k, v in (state.get("sjabloon_telling") or {}).items()}
+    if soort in SJABLOON_PER:
+        per = telling.setdefault(soort, {})
+        per[sleutel or "?"] = per.get(sleutel or "?", 0) + 1
+    elif soort in SJABLOON_TELLERS:
+        telling[soort] = telling.get(soort, 0) + 1
+    else:
+        raise ValueError(f"onbekende sjabloontelling: {soort}")
+    return {"sjabloon_telling": telling}
+
 
 def route_van(state: Mapping[str, Any]) -> str:
     """De beurtsoort uit de state: de agent en taak, of de specialist die de supervisor koos."""
@@ -84,6 +109,7 @@ async def gemeten(
             "cache_lees": verbruik.get("cache_lees", 0),
             "cache_schrijf": verbruik.get("cache_schrijf", 0),
             "model": model,
+            "sjabloon": dict(meter.sjabloon) if meter is not None else {},
         }
 
     def log(waarden: dict[str, Any] | None = None) -> None:

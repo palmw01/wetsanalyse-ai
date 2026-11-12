@@ -94,8 +94,8 @@ def stukken_items(namen: Any = None) -> dict[str, Any]:
             "Een lijst stukken die een zoektool van een bron naast de wet in dit gesprek vond, zoals 'de tien nieuwste "
             f"stukken' of 'het laatste stuk van een reeks': alleen hun ids ({vormen}), in de volgorde van het "
             f"zoekresultaat, hoogstens {MAX_LIJST} per bron (elke bron krijgt een eigen lijst). De code toont per stuk het label, soort, datum en titel uit de bron, "
-            "met de zoekvraag en het totaal. Schrijf de lijst of hun datums niet zelf uit. Leeg als het antwoord geen "
-            "lijst geeft."),
+            "met de zoekvraag en het totaal. Schrijf de lijst of hun datums niet zelf uit. Alleen als de vraag om een "
+            "lijst stukken vraagt; leeg bij een telling, een opbouw of een uitleg, ook als de zoektool stukken gaf."),
     }
 
 

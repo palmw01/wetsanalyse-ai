@@ -363,6 +363,7 @@ async def answer_stream(
         "corrected": False,
         "sjabloon_gevraagd": False,
         "sjabloon_nu": False,
+        "sjabloon_telling": {},
         "afgekapt": False,
         "onbevestigd": [],
         "answer": "",
@@ -400,6 +401,7 @@ async def answer_stream(
                         grounded = chunk.get("grounded", grounded)
                         if meter is not None:
                             meter.route = route_van(chunk)
+                            meter.sjabloon = chunk.get("sjabloon_telling") or {}
                 span.set_attribute("graph_qa.grounded", grounded)
                 logger.info(
                     "antwoord klaar",

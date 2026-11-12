@@ -99,11 +99,18 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
 - **`sjabloon_node`** – roept het model een sjabloontool aan (`agent/sjablonen/`, ADR-008), dan vult de code het antwoord
   uit de trace (register + deze beurt): blokken in `State.antwoord`, de vaste tekst uit `antwoord_tekst` in `answer`. Niet te
   vullen (`Onvulbaar`) is een `is_error`-resultaat en het model gaat verder; een halve vulling bestaat niet. Naast een
-  graaftool wacht het sjabloon tot de volgende ronde. Tekst in plaats van de tool blijft geldig (log `sjabloon gemist`),
-  behalve één keer per beurt na een zoek- of leesresultaat van een bronconnector (geen fout; ronde 2, B22: een tabel met
-  zelf afgeleide nummers na een gelezen stuk): dan stuurt `route_after_agent` de agent terug naar
-  zichzelf met `SJABLOON_GEVRAAGD` (`_gevonden_zonder_sjabloon`, `State.sjabloon_gevraagd`/`sjabloon_nu`, per beurt gereset;
-  iteratie 11 nov 2026: lijsten als tekst of markdown-tabel zonder links of zoekvraag). Blijft het tekst, dan is dat het antwoord.
+  graaftool wacht het sjabloon tot de volgende ronde. Tekst in plaats van de tool blijft geldig (log `sjabloon gemist`).
+  **Na een vondst van een bronconnector is het één schrijfronde** (iteratie wetgeving_live ronde 4: de rol zei "antwoord
+  in tekst", de code vroeg daarna alsnog om het sjabloon, ~20–25k tokens per vraag bij alle connectors):
+  - met een connector aan staat `AFRONDEN_EXTERN` in het variabele promptdeel: rond af met het sjabloon, ook bij uitleg, telling of
+    opbouw, en vul 'stukken' alleen als de vraag om een lijst vraagt;
+  - schrijft het model toch tekst, dan komt het herhaalverzoek (`sjabloon_gevraagd`, één keer per beurt, `State.sjabloon_gevraagd`/
+    `sjabloon_nu`) alleen bij een opsomming of tabel (`heeft_lijst`; ronde 2, B22: een tabel met zelf afgeleide nummers), en het
+    noemt de stukken die die lijst noemt (`genoemde_stukken`), zodat er geen lijst bij komt die niet gevraagd is (I13, I30);
+  - tekst zonder lijst is het antwoord, zonder tweede ronde.
+  Wat er per beurt met de sjablonen gebeurde, telt `beurtmeting.tel_sjabloon` (`State.sjabloon_telling` → `Verbruiksmeter.sjabloon`
+  → het veld `sjabloon` van het `meting`-event): `gevraagd`, `tekst_zonder_lijst`, `gemist`, `als_tekst`, en per sjabloon `gevuld`
+  en `geweigerd` (`<sjabloon>:<redencode>`, de functie die `Onvulbaar` gooide, `nodes/sjabloon.redencode`). Geen inhoud.
   Alleen de sjabloontools zijn `strict`, en ze staan niet in `TOOLS`. Per specialist: `Specialist.sjablonen`.
   `antwoord_duiding` (uitleg): het model wijst per passage de bepaling en de eerste en laatste woorden aan (`van`/`tot`,
   D5), de code neemt de tekst ertussen uit de bron; gezocht wordt met typografische tekens als hun gewone vorm (’ = '),

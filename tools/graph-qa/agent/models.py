@@ -518,6 +518,8 @@ class Verbruiksmeter:
         # Per modelaanroep wat hij kostte en duurde, in volgorde van terugkomst (`beurtmeting`). Begrensd: een
         # beurt met meer aanroepen is zelf het signaal, en de som staat hierboven toch compleet.
         self.aanroepen: list[dict[str, int]] = []
+        # Wat er met de sjablonen gebeurde (`beurtmeting.tel_sjabloon`), uit de state; zoals `route`.
+        self.sjabloon: dict[str, Any] = {}
 
     def tel_response(self, resp: Any, ms: int | None = None) -> None:
         """Neem het `usage`-blok van één antwoord op. Zonder usage (of bij een fake) telt het niets.

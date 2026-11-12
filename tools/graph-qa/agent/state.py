@@ -108,6 +108,8 @@ class State(TypedDict, total=False):
     # één keer per beurt, en `sjabloon_nu` stuurt de agent dan één keer naar zichzelf terug. Per beurt gereset.
     sjabloon_gevraagd: bool
     sjabloon_nu: bool
+    # Wat er deze beurt met de sjablonen gebeurde (`beurtmeting.tel_sjabloon`), voor het `meting`-event. Per beurt gereset.
+    sjabloon_telling: dict[str, Any]
     # Het doel dat de AANROEPER meegaf ({bwbId, artikel, lid?, citeertitel?}). Weet de werkplek de
     # bepaling al – een open document, een item uit de werkvoorraad, een gekozen kandidaat – dan
     # hoeft niemand hem meer te zoeken: de supervisor doet geen LLM-call en de ophaal-agent draait
