@@ -143,3 +143,27 @@ staat en de beurt erna krimpt. Daardoor liep de voorkant heen en weer (beurt 1 e
 historie. Gesimuleerd met de echte cachepunten: ~16k tekens per beurt opnieuw geschreven, tegen 34–36k met het oude
 venster, en de voorkant loopt nooit terug (`test_de_cache_leest_de_historie_via_de_cachepunten_van_de_vorige_beurt`).
 Deel 2 van de nameting volgt na de uitrol daarvan.
+
+## Nameting ADR-015, deel 2 (bundel 66, `82923318`): het vaste knippunt, en waarom het niet genoeg was
+
+Gesprek `6f5743cc5864437a`, vijf duidingsvragen achter elkaar.
+
+| beurt | ronde 1: lezen / schrijven | historie | wat er gebeurde |
+|---|---|---|---|
+| G5-1 | 25,0k / 2,9k | 0 | eerste beurt, tools en systeem al warm (gedeeld over gesprekken) |
+| G5-2 | 25,0k / 10,5k | 19,4k | beurt 1 gekrompen, dus geschreven: verwacht |
+| G5-3 | **32,7k / 6,8k** | 30,6k | de historie van beurt 1 uit de cache; alleen beurt 2 geschreven (G1-3: 24,9k / 18,0k) |
+| G5-4 | 25,0k / 12,8k | 23,6k | het venster knipte: het gekrompen oude deel paste niet meer in een halve begroting |
+| G5-5 | 25,0k / 16,1k | 33,5k | de voorkant bleef staan, maar de beurt waarmee het venster begon, krimpte nu |
+
+- Alle beurten waren gegrond en vulden hun sjabloon.
+- G5-3 laat zien dat het werkt: de historie van een eerdere beurt komt uit de cache.
+- G5-4 en G5-5 laten de grens zien. **Een gekrompen beurt was nog 8–19k tekens**: de tussenrondes (zoeken en ophalen)
+  bleven staan, alleen met afgekapte resultaten. Met een halve begroting van 20k knipte het venster dan bijna elke
+  beurt, en elke knip maakt het hele voorvoegsel nieuw.
+
+**Hersteld** (vervolg-PR): van een oude beurt blijven de vraag en het laatste antwoord over, met het resultaat dat
+erbij hoort (`berichten._kern`). De tussenrondes vallen weg als hele paren, en het bronregister houdt ze voor de
+controle. Gesimuleerd met de echte cachepunten: 13,6k tekens per beurt opnieuw geschreven. Dat is vrijwel het minimum
+(de nieuwe beurt zelf, 13,0k), tegen 16k met #1316 en 34–36k met het oude venster. De nameting daarvan volgt na de
+uitrol.

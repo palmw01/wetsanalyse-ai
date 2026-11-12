@@ -36,7 +36,10 @@ Het koude begin had drie oorzaken:
 - **Het venster groeit aan en wordt alleen bij de grens opgeruimd** (`berichten._historievenster`):
   - `MAX_HISTORY_CHARS` begrenst de historie vóór de lopende beurt;
   - de lopende beurt krimpt nooit en telt niet mee;
-  - boven het budget krimpen de toolresultaten van alle beurten behalve de laatste. Dat hangt af van de hele
+  - boven het budget blijven van alle beurten behalve de laatste alleen de vraag en het laatste antwoord over, met
+    het resultaat dat erbij hoort (`berichten._kern`). De tussenrondes vallen weg als hele paren van aanroep en
+    resultaat; het bronregister houdt ze voor de controle. Toen alleen de resultaten werden afgekapt, was een oude
+    beurt nog 8–19k tekens, en knipte het venster bijna elke beurt (nameting G5-4/G5-5). Dat hangt af van de hele
     historie, dus het springt niet aan en uit. Per beurt verandert alleen de vorige beurt, en elk toolresultaat
     wordt één keer heel en één keer gekrompen geschreven: het minimum voor een venster dat moet krimpen;
   - de voorkant valt weg op een vast raster van knippunten over de gekrompen historie (een halve begroting). Het

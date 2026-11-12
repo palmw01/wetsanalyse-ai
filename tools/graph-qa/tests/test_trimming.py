@@ -162,3 +162,19 @@ def test_de_cache_leest_de_historie_via_de_cachepunten_van_de_vorige_beurt():
         assert nummers == sorted(nummers), f"de voorkant liep terug: {begins}"
         # Per beurt de nieuwe beurt (~13k) plus de vorige beurt gekrompen; het oude venster schreef 34–36k.
         assert sum(geschreven) / len(geschreven) < 18_000, geschreven
+
+
+def test_van_een_oude_beurt_blijven_vraag_en_antwoord_over():
+    """Nameting G5 (12 nov 2026): een oude beurt met haar tussenrondes was gekrompen nog 8–19k tekens, en het venster knipte
+    bijna elke beurt. Nu blijven de vraag en het laatste antwoord, met het resultaat dat bij dat antwoord hoort (een
+    sjabloonaanroep); de tussenrondes gaan weg als hele paren, dus geen los resultaat. De lopende beurt blijft heel."""
+    sjabloon = [{"role": "assistant", "content": [{"type": "tool_use", "id": "s1", "name": "antwoord_duiding", "input": {}}]},
+                {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "s1", "content": "gevuld"}]}]
+    oud = [vraag("Eerste vraag"), *toolbeurt("t1", "y" * 20_000), *toolbeurt("t2", "z" * 20_000), *sjabloon]
+    lopend = [vraag("Tweede vraag"), *toolbeurt("t3", "w" * 30_000)]
+    uit = _trim_messages(oud + lopend, 20_000, "Tweede vraag")
+    assert uit[:3] == [vraag("Eerste vraag"), *sjabloon]
+    assert uit[3:] == lopend
+    ids = [b.get("tool_use_id") for m in uit if isinstance(m["content"], list) for b in m["content"]
+           if b.get("type") == "tool_result"]
+    assert ids == ["s1", "t3"], "de tussenrondes zijn weg, als hele paren"
