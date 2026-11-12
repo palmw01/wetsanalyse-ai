@@ -101,6 +101,13 @@ def test_de_catalogus_toont_de_skill_en_volgt_de_regels(met_nep_skill):
             assert alle[d].concept in bc.MAG_GEBRUIKEN[o.concept], (o.id, d)
 
 
+def test_een_skill_zonder_rollen_verandert_geen_prompt(tmp_path):
+    """Een nieuwe methode komt binnen zonder het gedrag van Lex te raken (ADR-010: eerst meten)."""
+    pakket = compileer(SKILL, extra=[_nep_skill(tmp_path, rollen={})])
+    assert pakket["rollen"] == PAKKET["rollen"]
+    assert "nepmethode" in pakket["skills"] and "nep-scenario" in pakket["secties"]
+
+
 @pytest.mark.parametrize("fout", ["nieuwe_rol", "sectie_bestaat", "code_bestaat", "letterlijk_zonder_bron"])
 def test_wat_code_vraagt_of_botst_wordt_geweigerd(tmp_path, fout):
     kwargs = {"nieuwe_rol": {"rollen": {"scenario": ["nep-scenario"]}},

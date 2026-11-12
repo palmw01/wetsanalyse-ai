@@ -91,7 +91,9 @@ def _lees(skill: Path, *, basis: bool) -> tuple[str, dict, dict, dict, set[str]]
     mapping = json.loads((skill / 'agentrollen.json').read_text())
     if basis and set(mapping['rollen']) != ROLLEN:
         raise ValueError('onbekende of ontbrekende agentrollen')
-    if not basis and (not mapping['rollen'] or not set(mapping['rollen']) <= ROLLEN):
+    # Een skill zonder rollen mag: dan staat hij in het pakket en de catalogus, maar verandert hij geen prompt. Zo komt
+    # een nieuwe methode binnen zonder het gedrag van Lex te raken; de koppeling aan een rol volgt na een meting.
+    if not basis and not set(mapping['rollen']) <= ROLLEN:
         raise ValueError(f'{skill.name}: een skill vult alleen bestaande rollen aan ({sorted(ROLLEN)})')
     register = (skill / 'references/bronnen.md').read_text()
     bekend = set(re.findall(r'^\| ([A-Z]{1,3}\d+) \|', register, re.M))

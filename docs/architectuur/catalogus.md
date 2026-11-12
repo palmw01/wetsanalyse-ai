@@ -116,5 +116,5 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 | S7 | werkplek per concept | #1299 |
 | S8 | commando's wijzen naar één onderdeel | #1298 |
 | C7 | een wijziging voorstellen → concept-PR (acceptatie) | – |
-| C8 | de skill `wetsuitvoering` (trap 1) | – |
+| C8 | de skill `wetsuitvoering` (JRM 2), eerst zonder rolkoppeling | – |
 | C9 | regels voorstellen, met hun eigen tests als poort | – |

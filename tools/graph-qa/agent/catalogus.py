@@ -67,7 +67,8 @@ def uit_methode() -> list[Onderdeel]:
         prefix = "" if naam == _basis() else f"{naam}/"
         uit.append(Onderdeel(
             id=oid("methode", naam), soort="methode", label=meta["lex"]["label"], doel=meta["lex"]["beschrijving"],
-            model="geen", herkomst=_methode_herkomst(codes, naam),
+            model="geen", herkomst=_methode_herkomst(
+                codes + ((f"{meta['map']}/BRON.md",) if meta["lex"]["letterlijk"] == "ja" else ()), naam),
             bestand=tuple(f"{meta['map']}/{p.removeprefix(prefix)}" for p in sorted(PAKKET["bronbestanden"])
                           if (p.startswith(prefix) if prefix else not p.startswith(_andere_skills()))),
             versie=versie(meta["versie"], *(x["sha256"] for x in eigen.values())), uitvoer="methodetekst per rol",

@@ -275,6 +275,11 @@ uitwerking, één niveau diep:
   skill haalt en wat je niet zomaar verandert.
 - `evals/` – testgevallen in de vorm die `claude plugin eval` leest (andere bepalingen dan in de voorbeelden).
 
+**Een tweede methode-skill: `.claude/skills/wetsuitvoering/`** (JRM 2, de specificatie van BZK onder de W3C-licentie;
+bron ongewijzigd in `docs/wetsanalyse/wetsuitvoering/` met `BRON.md`). Juridische scenario's en aktes, rechtsgevolgen,
+juridisch relevante feiten en de verhouding tot het JAS. Zijn methodesecties zijn nog aan geen rol van Lex gekoppeld
+(`"rollen": {}`): dat volgt na een meting (ADR-010, ADR-014 §7).
+
 **De methodetekst per rol is bij de herinrichting byte-gelijk gebleven** (de vingerafdrukken zijn ongewijzigd): een
 wijziging van de tekst tussen de methodemarkers verandert het gedrag van Lex en vraagt een meting (ADR-010, P19).
 
