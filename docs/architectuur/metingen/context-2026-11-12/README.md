@@ -26,8 +26,8 @@ toolresultaat (1–6k).
 cache-lezen (10–20%) zijn kleiner. Er zijn drie oorzaken:
 
 1. **Een andere specialist is een ander voorvoegsel.** De tools staan vooraan in de cache, en elke specialist
-   heeft een eigen set: definitie 20, duiding 30, algemeen alle (+ connectortools en sjablonen). De drie delen er 16,
-   samen 35,5k tekens (≈ 10k tokens). Die worden nu bij elke wissel opnieuw geschreven.
+   heeft een eigen set: definitie 20, duiding 30, algemeen alle (+ connectortools en sjablonen). Zonder de
+   connectortools, die per vraag aan of uit staan, delen de drie er maar 7, samen 8,3k tekens (≈ 2,4k tokens).
 2. **De historie wordt elke beurt opnieuw geschreven.** Het variabele deel van de systeemprompt (plan,
    GESPREKSCONTEXT, BRONNEN IN DEZE BEURT, AFRONDEN_EXTERN; hier 7,6–8,7k tekens) staat vóór de berichten en
    verandert per beurt. Alles erna is dan nieuw voor de cache. Bovendien zit het venster na twee beurten al op
@@ -39,8 +39,9 @@ cache-lezen (10–20%) zijn kleiner. Er zijn drie oorzaken:
 **Wat dit betekent voor het plan:**
 - Server-compaction, context editing en `/compact` blijven afvallen: de historie is niet de dure post, het
   herschrijven ervan wel.
-- **PR 2 (cachepunt op de gedeelde tools)** is gerechtvaardigd: ≈ 10k tokens lezen in plaats van schrijven bij
-  elke wissel van specialist, ≈ 11k gewogen.
+- **PR 2 (cachepunt op de gedeelde tools) valt af**: het gedeelde deel is ≈ 2,4k tokens, ≈ 2,7k gewogen per
+  wissel. Dat is een extra parameter op de poort niet waard. Meer winst vraagt één toolset voor alle antwoordrollen,
+  en dat is een ontwerpkeuze over de toolverdeling, geen cachekwestie.
 - **PR 3 (1h-TTL op het stabiele voorvoegsel)** is gerechtvaardigd. Het schrijven kost dan 2× in plaats van
   1,25×, en het lezen daarna 0,1× in plaats van opnieuw 1,25×. Bij G1-4 zou dat ≈ 25k tokens tools + systeem
   scheelen, ≈ 28k gewogen (37%). Het geldt alleen voor tools en systeem; de berichten houden 5 minuten (de
