@@ -120,7 +120,13 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         })
     # De context van deze beurt staat ná de historie, als eerste blok van de vraag (`met_beurtcontext`): dan leest de
     # prompt-cache de historie van de vorige beurt in plaats van haar opnieuw te schrijven.
-    venster, berichtpunten = met_beurtcontext(venster, state.get("question", ""), variabel)
+    if state.get("beurtcontext_plek") == "systeem":
+        # De meetvlag van ADR-015: de vorm van vóór, het variabele deel in de systeemprompt en geen cachepunten op de
+        # berichten. Alleen om beide vormen op dezelfde code te vergelijken.
+        systeem, berichtpunten = [stabiel, variabel], ()
+    else:
+        venster, berichtpunten = met_beurtcontext(venster, state.get("question", ""), variabel)
+        systeem = [stabiel]
     with stroom(
         b.llm, Rol.OPHAAL if spec_naam == "retrieval" else Rol.ANTWOORD, methoderol=specialist_methoderol(spec_naam),
         # Deze node draait twee verschillende rollen: de OPHAAL-agent (annotatieroute – zoeken
@@ -128,7 +134,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         # heeft een eigen modelknop.
         model=b.model_ophaal if spec_naam == "retrieval" else b.model,
         max_tokens=MAX_TOKENS_OPHALEN if spec_naam == "retrieval" else MAX_TOKENS_ANTWOORD,
-        system=[stabiel],
+        system=systeem,
         tools=anthropic_schemas(only=toegestane_tools(spec.tools, b.settings, state.get("bronnen"))) + sjabloon_schemas(sjablonen, extern=extern_namen),
         messages=venster,
         # Elke toolronde stuurt de hele historie opnieuw: een cache-punt aan het eind maakt die de volgende ronde goedkoop.

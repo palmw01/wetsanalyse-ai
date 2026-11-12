@@ -225,3 +225,30 @@ def test_de_berichtpunten_krijgen_een_cachepunt_en_vallen_mee_terug():
         pass
     assert gezien[1]["messages"] == berichten and "cache_control" not in gezien[1]
     assert isinstance(gezien[1]["system"], list)
+
+
+def test_de_meetvlag_zet_de_beurtcontext_terug_in_de_systeemprompt():
+    """ADR-015, meetvlag: `beurtcontext_plek="systeem"` is de vorm van vóór, zodat beide vormen op dezelfde code te
+    vergelijken zijn. Standaard (`vraag`) staat de context in de vraag."""
+    from agent.models import ChatRequest
+
+    assert ChatRequest(question="x").beurtcontext_plek == "vraag"
+    with pytest.raises(Exception):
+        ChatRequest(question="x", beurtcontext_plek="ergens")
+
+    def draai(plek: str) -> dict:
+        llm = FakeLLM([
+            response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: zoek art. 9 op")], "end_turn"),
+            response([text_block("Artikel 9 gaat over de termijn.")], "end_turn"),
+        ])
+        asyncio.run(_verzamel(answer_stream("Waar gaat artikel 9 over?", settings=make_settings(), llm=llm,
+                                            graph=FakeGraph(result=""), beurtcontext_plek=plek)))
+        return llm.calls[1]
+
+    oud = draai("systeem")
+    assert len(oud["system_delen"]) == 2 and "AANPAK" in oud["system_delen"][1]
+    assert oud["messages"][-1]["content"] == "Waar gaat artikel 9 over?"
+    assert oud.get("berichtpunten") == ()
+    nieuw = draai("vraag")
+    assert len(nieuw["system_delen"]) == 1
+    assert nieuw["messages"][-1]["content"][0]["text"].startswith(BEURTCONTEXT_KOP)

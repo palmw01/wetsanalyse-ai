@@ -247,6 +247,7 @@ async def answer_stream(
     agent_api: Any = None,
     bronnen: list[str] | None = None,
     bronnen_herkomst: str | None = None,
+    beurtcontext_plek: str = "vraag",
 ) -> AsyncIterator[dict[str, Any]]:
     """
     Async generator die SSE-events yield:
@@ -319,6 +320,8 @@ async def answer_stream(
         # De bronnen van deze beurt (ADR-013): toollaag en dispatch filteren erop; de stand zegt per connector waarom.
         "bronnen": beurtbronnen,
         "bronstand": bronstand_nu,
+        # De meetvlag van ADR-015 (`ChatRequest.beurtcontext_plek`): waar de context van de beurt staat. Per beurt.
+        "beurtcontext_plek": beurtcontext_plek,
         "bron_lezen": [],
         "bron_lijst": {},
         # Het dossier van dat werkgebied, per beurt vers uit de api: elke bewaarde wijziging telt meteen.

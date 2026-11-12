@@ -355,6 +355,7 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                     werkvoorraad_id=request.werkvoorraad_id,
                     bronnen=request.bronnen,
                     bronnen_herkomst=request.bronnen_herkomst,
+                    beurtcontext_plek=request.beurtcontext_plek,
                 ),
                 settings=settings,
                 run=run,

@@ -24,6 +24,8 @@ class State(TypedDict, total=False):
     werkgebied_id: str
     # ADR-013: de bronconnectors die in deze beurt aanstaan (None = wat de straat aanbiedt). Per beurt.
     bronnen: list[str] | None
+    # Meetvlag ADR-015: `vraag` (standaard) of `systeem` (de vorm van vóór ADR-015). Per beurt, uit het verzoek.
+    beurtcontext_plek: str
     # Per connector `{naam, label, aan, reden}` (`agent/bronstand.py`): waarom een bron uit staat. Per beurt.
     bronstand: dict[str, dict[str, Any]]
     # De connectors waar het gesprek over gaat (`agent/bronkeuze.py`): wat de laatste vraag die een bron noemde, noemde.
