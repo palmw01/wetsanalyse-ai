@@ -125,6 +125,12 @@ def _kader(rol: Rol, verzoek: dict[str, Any], kader: dict[str, Any] | None) -> A
     return Aanroepkader(rol=rol.naam, lus=rol.lus, opbouw=o, kader=kader)
 
 
+def _profiel(kader: dict[str, Any]) -> dict[str, str]:
+    """Het profiel van de agent die aanroept (ADR-016 §A3), als de agentvorm het in het kader zette. Een losse stap
+    heeft geen profiel: dan staat het veld niet op de logregel."""
+    return {k: str(kader[k]) for k in ("profiel_id", "profiel_versie") if kader.get(k)}
+
+
 def _log(rol: Rol, model: str, resp: Any, begin: float, opbouw: dict[str, Any],
          methoderol: str | None = None) -> Antwoord:
     duur = round((time.perf_counter() - begin) * 1000)
@@ -149,7 +155,7 @@ def aanroep(llm: Any, rol: Rol, *, methoderol: str | None = None, kader: dict[st
     begin = time.perf_counter()
     with aanroepkader(k):
         resp = llm.create(**verzoek)
-    return _log(rol, verzoek.get("model", ""), resp, begin, k.opbouw, methoderol)
+    return _log(rol, verzoek.get("model", ""), resp, begin, {**k.opbouw, **_profiel(k.kader)}, methoderol)
 
 
 class Stroom:
@@ -183,7 +189,7 @@ def stroom(llm: Any, rol: Rol, *, methoderol: str | None = None, kader: dict[str
     with aanroepkader(k):
         stream = llm.stream(**verzoek)
     with stream as s:
-        yield Stroom(s, rol, verzoek.get("model", ""), begin, k.opbouw, methoderol)
+        yield Stroom(s, rol, verzoek.get("model", ""), begin, {**k.opbouw, **_profiel(k.kader)}, methoderol)
 
 
 def lees_tool(resp: Any, naam: str) -> dict[str, Any] | None:

@@ -121,7 +121,7 @@ def uit_agentprofielen() -> list[Onderdeel]:
         uit.append(Onderdeel(
             id=oid("agentprofiel", naam), soort="agentprofiel", label=naam.replace("_", " ").capitalize(),
             doel=p.beschrijving, model="agent", herkomst=EIGEN, bestand=(f".claude/lex-agents/{naam}.md",),
-            versie=versie(p.instructie, tools, sjablonen), tools=tools,
+            versie=profielen.versie(p), tools=tools,
             ingang=("de supervisor kiest het",) if p.kiesbaar else ("een route in code",),
             uitvoer=", ".join(sjablonen) or "doel-JSON voor de annotatieroute",
             twijfel="leemte of doorvragen; een citaat dat niet letterlijk in de opgehaalde tekst staat, valt weg (grounding)",
