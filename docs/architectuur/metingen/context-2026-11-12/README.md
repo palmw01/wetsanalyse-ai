@@ -224,3 +224,36 @@ Gesprek `a709a04563c04477`, dezelfde vragen als G5 en G6.
   beurt kwam in G4–G7 vaker voor (G6-2, G6-4, G7-2), ook al vóór #1318.
 - Of de context van de beurt als tekst in de vraag de weigeringen vaker maakt, is met deze steekproef niet te zeggen:
   daarvoor is een vergelijking op een vragenset nodig. Dat is een vervolgpunt, geen bevinding.
+
+## Sjabloonweigeringen: de context van de beurt als tekst in de vraag (12 nov, `f3344ba8`)
+
+**Vraag:** maakt de context van de beurt (BRONNEN IN DEZE BEURT, AFRONDEN_EXTERN, plan) als tekst in de vraag, in
+plaats van in de systeemprompt, de sjabloonweigeringen vaker?
+
+**Opzet:** tien vragen uit de vragenset van wetgeving_live, alleen die via het model gaan. Elke vraag in een eigen
+gesprek, één run. Basis: dezelfde vragen in ronde 6 op `66e73f75`, vóór ADR-015. Ruwe gegevens:
+[`sjabloon-vergelijking.jsonl`](sjabloon-vergelijking.jsonl).
+
+| | basis (`66e73f75`) | nu (`f3344ba8`) |
+|---|---|---|
+| sjabloonweigeringen | 6 | 7 |
+| geëindigd als tekst (`gemist`) | 4 | 6 |
+| tokens (ruw) | 1,01M | 1,75M |
+
+**Per vraag:**
+- gelijk: I01, I02, I06, I12, I14, I28;
+- één weigering meer: I13 en I24, beide `duiding.vul` (de aangewezen woorden van een passage, een bekend zwak punt van
+  dit sjabloon);
+- één minder: I20;
+- I30 eindigt nu als aangenomen tekst in plaats van een omgezette lijst. Dat is een andere afronding, geen weigering.
+
+**Oordeel:**
+- Er is geen aantoonbaar effect op de weigeringen. Het verschil (6 tegen 7 over tien vragen) ligt binnen de spreiding
+  van één run per vraag, en de afwijkingen gaan beide kanten op.
+- De tokens liggen hoger, vooral door meer modelrondes: I06 ging van 7 naar 15, I02 van 3 naar 6. Dat is met deze
+  meting niet aan ADR-015 toe te schrijven:
+  - sinds `66e73f75` veranderden ook andere delen van de antwoordlus (bundels 54–69);
+  - het aantal rondes spreidt sterk per run;
+  - het voorvoegsel per ronde is gelijk gebleven: de context van de beurt is even groot, alleen verplaatst.
+- Een zuivere vergelijking vraagt beide varianten op dezelfde code, met drie runs per vraag. Daarvoor is een vlag
+  nodig die de context terugzet in de systeemprompt. Dat is een eigen stap.
