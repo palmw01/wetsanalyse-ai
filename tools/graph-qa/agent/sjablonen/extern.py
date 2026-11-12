@@ -351,6 +351,16 @@ def van_orgaan(naam: str) -> str:
     return f"van {'het' if eerste.lower() in _HET else 'de'} {naam}"
 
 
+def _bepaling_in_woorden(zoekvraag: dict[str, Any]) -> str:
+    """"artikel 36 van de Invorderingswet 1990", of de regeling als geheel, als de tool zelf geen `bepaling` gaf. De
+    naam als dit proces hem kent, anders het id. Zonder artikel geen lege plek: "Gezocht bij artikel  van BWBR0004770"
+    (meting Staatsblad ronde 5, B03)."""
+    from ..spoorbronnen import _regeling
+    bwb_id, artikel = str(zoekvraag.get("bwb_id") or "").strip(), str(zoekvraag.get("artikel") or "").strip()
+    regeling = _regeling(bwb_id) if bwb_id else "de regeling"
+    return f"artikel {artikel} van {regeling}" if artikel else regeling
+
+
 def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any], *, volgorde: bool = True) -> str:
     """De zoekvraag onder een lijst, in gewone zinnen: "Gezocht op „invorderingsrente” in de tekst, vergaderjaar
     2025-2026 en van de Eerste Kamer. Meest relevante eerst." Uit de code, met de labels uit de metadata van de
@@ -367,8 +377,7 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any], *, volg
         sleutel = veld.sleutel if veld else ""
         if sleutel == "wetsverwijzing":
             # Eén bepaling, ook al zijn het twee argumenten (regeling en artikel): in woorden, zoals de tool haar noemt.
-            bepaling = str(zoekvraag.get("bepaling") or
-                           f"artikel {zoekvraag.get('artikel', '')} van {zoekvraag.get('bwb_id', '')}")
+            bepaling = str(zoekvraag.get("bepaling") or _bepaling_in_woorden(zoekvraag))
             continue
         if arg == "tekst":
             kaal = " ".join(_AANHALING.sub(" ", str(waarde)).split())

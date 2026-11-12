@@ -286,7 +286,8 @@ def _bij_regeling(c: ConnectorBeschrijving, tekst: str,
     """Stukken die bij een regeling horen, zonder artikel ("Welke Kamerstukken horen bij de Invorderingswet 1990?"):
     (argumenten, de rest van de tekst, een kanttekening). Een connector die stukken aan een regeling koppelt (het veld
     `wetsverwijzing`) zoekt op het bwb-id; een andere zoekt op de naam in de titel (`MetadataVeld("titel")`), en dat zegt
-    de kanttekening. None als de vraag dit niet vraagt; een lege tuple als de code de regeling niet eenduidig plaatst.
+    de kanttekening. None als de vraag dit niet vraagt of geen regeling noemt; een lege tuple als de code de regeling niet
+    eenduidig plaatst (meer dan één, of zonder graaf).
 
     Ronde 4 Kamerstukken, K17: het model zocht zelf, noemde een dossier 20588 dat KOOP niet kent en zette een
     intrekking bij het verkeerde dossier. Deze vraag is een zoekvraag die de code helemaal leest."""
@@ -295,6 +296,11 @@ def _bij_regeling(c: ConnectorBeschrijving, tekst: str,
     if regelingen is None:
         return ()
     genoemd = _zonder_ingesloten(regelingen(tekst), tekst)
+    if not genoemd:
+        # Geen regeling bij naam: dan is het dit patroon niet ("Welke publicaties horen bij Kamerdossier 36602?" leest het
+        # dossierfilter). Wat er overblijft, beslist de rest van `lees`; een naam die de graaf niet kent, blijft over en
+        # gaat naar het model (meting Staatsblad ronde 5, B18: de lege tuple brak de hele lijstvraag af, 0 -> 184k).
+        return None
     if len(genoemd) != 1 or not (plekken := _plekken(genoemd[0][1], tekst)):
         return ()
     bwb_id, _ = genoemd[0]
@@ -305,8 +311,10 @@ def _bij_regeling(c: ConnectorBeschrijving, tekst: str,
         return {veld.filters[0]: bwb_id}, rest, ""
     if not (arg := _arg(c, "titel")):
         return ()
-    return {arg: naam}, rest, (f"{c.label} koppelt een stuk niet aan een regeling: ik zocht op „{naam}” in de titel, dus "
-                               "een stuk over de regeling met een andere titel staat er niet bij.")
+    # De zoekvraag zegt al dat het de titel is ("Gezocht op „Invorderingswet 1990” in de titel"); de kanttekening zegt
+    # alleen wat dat betekent (Kamerstukken ronde 5, K17: de zin stond er twee keer).
+    return {arg: naam}, rest, (f"{c.label} koppelt een stuk niet aan een regeling, dus een stuk over de regeling met een "
+                               "andere titel staat er niet bij.")
 
 
 def _plekken(namen: set[str], tekst: str) -> list[tuple[int, int]]:

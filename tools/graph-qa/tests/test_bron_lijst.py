@@ -137,24 +137,123 @@ def test_niets_gevonden_is_een_leemte(monkeypatch):
     assert "eerst." not in tekst
 
 
-def test_een_fout_gaat_naar_de_agent_met_het_resultaat(monkeypatch):
-    from agent import tools as t
+def _faalt(connector: str, code: str):
+    """Een bron die bij elke zoekvraag faalt met `code`, voor Kamerstukken (KOOP) en Rechtspraak (LiDO)."""
+    from agent.adapters.lido_rechtspraak import RechtspraakFout
     from agent.adapters.sru_kamerstukken import KamerstukFout
+    from test_kamerstuk_tools import DOSSIER, NepBron as KoopBron
+    from tests.test_rechtspraak_tools import LINKS, NepBron as LidoBron
+
+    if connector == "kamerstukken":
+        class Weg(KoopBron):
+            def zoek(self, cql, **_):
+                raise KamerstukFout("de zoekdienst faalt", code=code)
+        return Weg(DOSSIER)
+
+    class Dicht(LidoBron):
+        def koppelingen(self, *a, **k):
+            raise RechtspraakFout("LiDO faalt", code=code)
+    return Dicht(LINKS)
+
+
+_VRAAG_BIJ = {"kamerstukken": "Geef mij de 10 meest recente kamerstukken",
+              "rechtspraak": "Hoeveel uitspraken noemen artikel 36 van de Invorderingswet 1990?"}
+
+
+@pytest.mark.parametrize("connector,code,zin", [
+    ("kamerstukken", "onbereikbaar", "Kamerstukken is nu niet te bereiken"),
+    ("kamerstukken", "geweigerd", "Kamerstukken weigerde de zoekvraag"),
+    ("rechtspraak", "verzoek_geweigerd", "Rechtspraak weigerde de zoekvraag"),
+    ("rechtspraak", "bezet", "Rechtspraak is nu te druk"),
+])
+def test_een_fout_van_de_bron_is_een_vaste_melding_zonder_model(monkeypatch, connector, code, zin):
+    """Kamerstukken ronde 5, RX1: LiDO weigerde de zoekvraag, en het model legde dat uit in drie rondes (90k tokens). Een
+    fout van de bron zelf is een vaste melding, zoals bij een genoemd stuk (`bron_lezen._zonder_tekst`), bij elke
+    connector."""
+    from agent import overzicht, tools as t
+    from tests.test_rechtspraak_tools import _tsv
+
+    namen = ("?regeling\t?citeertitel\t?soort\t?afkortingen\n"
+             "<urn:bwb:BWBR0004770>\t\"Invorderingswet 1990\"\t\"wet\"\t\"IW | Iw 1990\"\n")
+    artikel = _tsv(["node", "jci", "labelId", "label", "soort", "citeertitel"],
+                   [["urn:bwb:BWBR0004770:artikel:36", "jci1.3:c:BWBR0004770&artikel=36", "x", "Artikel 36",
+                     "urn:bwb-ns:Artikel", "Invorderingswet 1990"]])
+    graaf = FakeGraph(results=lambda q: artikel if "?labelId" in q else namen)
+    overzicht._REGELINGEN_CACHE.clear()
+    monkeypatch.setattr(t.CONNECTORMODULES[connector], "_bron", _faalt(connector, code))
+    llm = FakeLLM([])
+    try:
+        events = _run(answer_stream(_VRAAG_BIJ[connector], settings=make_settings(**{f"connector_{connector}": True}),
+                                    llm=llm, graph=graaf, bronnen=[connector]))
+    finally:
+        overzicht._REGELINGEN_CACHE.clear()
+    assert llm.calls == [], "geen model: de fout ligt bij de bron"
+    blok, = [b for e in events if e["type"] == "antwoord" for b in e["antwoord"]["blokken"]]
+    assert blok["soort"] == "leemte" and blok["tekst"].startswith(zin), blok["tekst"]
+    assert "opnieuw" in blok["tekst"]
+    if connector == "rechtspraak":
+        assert "Gezocht bij artikel 36 van Invorderingswet 1990." in blok["tekst"], "de zoekvraag staat erbij, met de naam uit de graaf"
+
+
+def test_een_woordgroep_zonder_treffer_zoekt_de_losse_woorden(monkeypatch):
+    """wetgeving_live L-K2: de lijstroute zocht de hele woordgroep in de tekst en vond niets. Dan de losse woorden, allemaal,
+    en de zoekvraag zegt dat; zonder model."""
+    from agent import tools as t
+    from test_kamerstuk_tools import _veel, NepBron
+
+    class Groep(NepBron):
+        def zoek(self, cql, *, start=1, maximum=50):
+            self.vragen.append(cql)
+            return (0, []) if " adj " in cql else (3, self.records[:3])
+
+    vraag = "Welke kamerstukken gaan over aansprakelijkheid bestuurders?"
+    lijst = bron_lijst.lees(vraag, frozenset({"kamerstukken"}))
+    assert lijst is not None and lijst.args.get("tekst", "").startswith('"'), "de lijstroute zoekt eerst de woordgroep"
+    bron = Groep(_veel(5))
+    monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", bron)
+    llm = FakeLLM([])
+    events = _run(answer_stream(vraag, settings=AAN, llm=llm, graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
+    assert llm.calls == []
+    assert len(bron.vragen) == 2 and " adj " in bron.vragen[0] and " adj " not in bron.vragen[1]
+    blok, = [b for e in events if e["type"] == "antwoord" for b in e["antwoord"]["blokken"]]
+    assert blok["soort"] == "stukken" and len(blok["items"]) == 3
+    assert "Als woordgroep staat „aansprakelijkheid bestuurders” in geen stuk" in blok["zoekvraag"], blok["zoekvraag"]
+
+
+def test_een_fout_in_de_vraag_gaat_naar_de_agent_met_het_resultaat(monkeypatch):
+    """Een argument dat de tool niet aanneemt, kan het model herstellen: dat blijft de agent."""
+    from agent import tools as t
+    from agent.nodes import bron_lijst as node
     from fakes import response, text_block
     from test_kamerstuk_tools import DOSSIER, NepBron
 
-    class Weg(NepBron):
-        def zoek(self, cql, **_):
-            raise KamerstukFout("de officiële publicaties zijn niet bereikbaar: ConnectError")
-
-    monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", Weg(DOSSIER))
-    llm = FakeLLM([response([text_block("De officiële publicaties zijn nu niet bereikbaar.")], "end_turn")])
-    events = _run(answer_stream("Geef mij de 10 meest recente kamerstukken", settings=AAN, llm=llm,
-                                graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
-    assert len(llm.calls) == 1, "geen supervisor; de agent formuleert de fout"
+    monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", NepBron(DOSSIER))
+    monkeypatch.setattr(node, "execute_tool", lambda *a, **k: json.dumps(
+        {"status": "error", "reden": "ongeldige_argumenten", "toelichting": "aantal is te groot"}))
+    llm = FakeLLM([response([text_block("Dat aantal kan niet.")], "end_turn")])
+    _run(answer_stream("Geef mij de 10 meest recente kamerstukken", settings=AAN, llm=llm,
+                       graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
+    assert len(llm.calls) == 1, "de agent formuleert de fout"
     laatste = llm.calls[0]["messages"][-1]["content"]
-    assert any(b.get("type") == "tool_result" and "bron_onbereikbaar" in json.dumps(b) for b in laatste)
-    assert "niet bereikbaar" in "".join(e.get("content", "") for e in events if e["type"] == "token")
+    assert any(b.get("type") == "tool_result" and "ongeldige_argumenten" in json.dumps(b) for b in laatste)
+
+
+@pytest.mark.parametrize("vraag,connector,args", [
+    ("Welke publicaties horen bij Kamerdossier 36602?", "bekendmakingen", {"dossier": "36602"}),
+    ("Welke Kamerstukken horen bij dossier 33755?", "kamerstukken", {"dossier": "33755"}),
+])
+def test_horen_bij_zonder_regeling_is_een_gewone_lijstvraag(vraag, connector, args):
+    """Regressie uit #1252 (Staatsblad B18: 0 → 184k tokens): zonder genoemde regeling gold "horen bij" als niet eenduidig,
+    en viel de hele lijstvraag weg. Geen regeling betekent: het patroon geldt niet."""
+    lijst = bron_lijst.lees(vraag, frozenset({connector}), regelingen=lambda t: [])
+    assert lijst is not None, vraag
+    assert {k: v for k, v in lijst.args.items() if k in args} == args and not lijst.kanttekening
+
+
+def test_horen_bij_meer_regelingen_blijft_niet_eenduidig():
+    lijst = bron_lijst.lees("Welke Kamerstukken horen bij de Invorderingswet 1990 en de Awb?", frozenset({"kamerstukken"}),
+                            regelingen=lambda t: [IW, ("BWBR0005537", {"Awb"})])
+    assert lijst is None
 
 
 def test_een_citeervorm_wordt_vooraf_gelezen(monkeypatch):
@@ -506,7 +605,7 @@ def test_stukken_bij_een_regeling_leest_de_code_per_connector(vraag, connector, 
     assert lijst is not None and lijst.args == args
     assert bool(lijst.kanttekening) is kanttekening
     if kanttekening:
-        assert "„Invorderingswet 1990” in de titel" in lijst.kanttekening
+        assert "andere titel staat er niet bij" in lijst.kanttekening
 
 
 @pytest.mark.parametrize("vraag,regelingen", [
@@ -517,6 +616,28 @@ def test_stukken_bij_een_regeling_leest_de_code_per_connector(vraag, connector, 
 def test_stukken_bij_een_regeling_die_de_code_niet_eenduidig_plaatst_gaan_naar_het_model(vraag, regelingen):
     lees = None if regelingen is None else (lambda t: regelingen)
     assert bron_lijst.lees(vraag, KST, regelingen=lees) is None
+
+
+@pytest.mark.parametrize("vraag,args", [
+    ("Welke publicaties horen bij Kamerdossier 36602?", {"dossier": "36602"}),
+    ("Welke Kamerstukken horen bij Kamerdossier 36602?", {"dossier": "36602"}),
+    ("Hoeveel stukken horen bij Kamerdossier 36602?", {"dossier": "36602"}),
+])
+def test_horen_bij_zonder_regeling_leest_de_rest_van_de_vraag(vraag, args):
+    """Meting Staatsblad ronde 5, B18: "horen bij" zonder regeling bij naam brak de hele lijstvraag af (0 -> 184k
+    tokens). Zonder genoemde regeling is het het patroon "stukken bij een regeling" niet; het dossierfilter leest de
+    vraag, met of zonder graaf (de namenlijst is dan leeg)."""
+    alle = frozenset({"kamerstukken", "bekendmakingen", "rechtspraak", "wetgeving_live"})
+    lijst = bron_lijst.lees(vraag, alle, regelingen=lambda t: [])
+    assert lijst is not None and lijst.connector == "kamerstukken" and lijst.args == args and not lijst.kanttekening
+
+
+@pytest.mark.parametrize("connector", ["kamerstukken", "bekendmakingen", "rechtspraak"])
+def test_horen_bij_een_naam_die_de_graaf_niet_kent_gaat_naar_het_model(connector):
+    """De naam blijft over in de vraag, en wat de code niet plaatst, leest het model (I02: de Wet op de zorgtoeslag
+    staat niet in de graaf)."""
+    assert bron_lijst.lees("Welke stukken horen bij de Wet op de zorgtoeslag?", frozenset({connector}),
+                           regelingen=lambda t: []) is None
 
 
 def test_de_kanttekening_staat_bij_de_zoekvraag_van_de_lijst(monkeypatch):
@@ -536,3 +657,5 @@ def test_de_kanttekening_staat_bij_de_zoekvraag_van_de_lijst(monkeypatch):
     assert llm.calls == []
     blok, = [b for e in events if e["type"] == "antwoord" for b in e["antwoord"]["blokken"]]
     assert "Kamerstukken koppelt een stuk niet aan een regeling" in blok["zoekvraag"]
+    # Ronde 5, K17: "in de titel" stond er twee keer, in de zoekvraag en in de kanttekening.
+    assert blok["zoekvraag"].count("in de titel") == 1, blok["zoekvraag"]

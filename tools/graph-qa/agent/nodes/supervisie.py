@@ -357,7 +357,29 @@ def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
     upd = _kies(b, state)
     if state.get("onderwerp") and "focus" not in upd:
         upd = {**upd, "focus": bij_onderwerp(state.get("focus"), state.get("onderwerp"))}
-    return upd
+    return {**upd, **_bronkeuze(b, state, upd)}
+
+
+def _bronkeuze(b: Bouw, state: State, upd: dict[str, Any]) -> dict[str, Any]:
+    """Alleen de connectors die de vraag of het gesprek noemt (`agent/bronkeuze.py`): de bronnen en de bronstand van deze
+    beurt, en de keuze voor de vervolgvraag. Na de keuze van de route, zodat de herschreven vraag meetelt; de route zelf
+    verandert er niet door. Een gewijzigde stand gaat opnieuw als `bronstand`-event de stroom in."""
+    from .. import bronkeuze
+    from ..buiten_graaf import noemt_regeling_buiten_graaf
+
+    stand = state.get("bronstand") or {}
+    if len(bronkeuze.actief(stand)) < 2:
+        return {}
+    teksten = [state.get("question", ""), upd.get("zelfstandige_vraag") or ""]
+    buiten = bool((stand.get(bronkeuze.BUITEN_GRAAF) or {}).get("aan")) and any(
+        noemt_regeling_buiten_graaf(t, b.graph) for t in teksten if t)
+    nieuw, keuze = bronkeuze.kies(stand, bronkeuze.genoemd(teksten, buiten_graaf=buiten), state.get("bronkeuze"))
+    uit: dict[str, Any] = {"bronkeuze": keuze}
+    if nieuw is not stand:
+        uit.update(bronstand=nieuw, bronnen=bronkeuze.actief(nieuw))
+        get_stream_writer()(bronstand.event(nieuw))
+        logger.info("bronnen per vraag", extra={"categorie": "functioneel", "bronstand": bronstand.als_tekst(nieuw)})
+    return uit
 
 
 def _kies(b: Bouw, state: State) -> dict[str, Any]:

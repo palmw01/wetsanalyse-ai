@@ -36,7 +36,7 @@ ankerlogica die de api en de agent delen staat in `packages/bronmodel` (`wetsana
 | `nodes/annotatie.py` | annoteer (voorbereiding + `jas_pipeline.keten.analyseer`) en emit |
 | `nodes/annotatie_lezen.py` | de leesroute: eerst zoeken in de opgeslagen annotaties, dan formuleren |
 | `nodes/bron_lezen.py` | een stuk dat de vraag bij id noemt (ADR-013): de leestool van de connector in code, dan formuleren |
-| `nodes/bron_lijst.py` | een lijstvraag over een bron naast de wet ("het laatste stuk van dossier 32140"): de zoektool in code, het blok `stukken`, zonder model; ook een telvraag ("hoeveel …", "hoe verdelen … zich over de instanties": `Stukken.telling` uit `totaal`, `dekking` en een `per_<woord>` van de bron, nooit uit één pagina) en stukken die bij een regeling horen (het bwb-id bij een connector met `wetsverwijzing`, anders de naam in de titel met een kanttekening; Kamerstukken ronde 5, K17/K25/K26, Rechtspraak R22) |
+| `nodes/bron_lijst.py` | een lijstvraag over een bron naast de wet ("het laatste stuk van dossier 32140"): de zoektool in code, het blok `stukken`, zonder model; ook een telvraag ("hoeveel …", "hoe verdelen … zich over de instanties": `Stukken.telling` uit `totaal`, `dekking` en een `per_<woord>` van de bron, nooit uit één pagina) en stukken die bij een regeling horen (het bwb-id bij een connector met `wetsverwijzing`, anders de naam in de titel met een kanttekening; Kamerstukken ronde 5, K17/K25/K26, Rechtspraak R22; zonder genoemde regeling geldt dat patroon niet, Staatsblad B18). Een fout van de bron zelf (`BRONFOUT`: onbereikbaar, bezet, zoekvraag geweigerd) is een vaste melding zonder model, zoals bij een genoemd stuk (ronde 5, RX1: 90k tokens); alleen een andere fout gaat naar de agent. Vindt een woordgroep in de tekst niets, dan zoekt hij de losse woorden, allemaal, en zegt dat (wetgeving_live L-K2) |
 | `nodes/overzicht.py` | de overzichtsroute: overzicht en tekst uit de graaf, zonder model |
 | `nodes/bepaling.py` | de bepalingsroute (ADR-010, laag 2): de tekst van een bepaling uit `bepaling_workflow`, zonder toollus |
 | `nodes/werkgebied.py` | de werkgebied-worker: één stap van het samenstellen van een werkgebied (activiteit 1) |
@@ -52,7 +52,7 @@ supervisor ─┬─ antwoord-worker:  agent ⇄ tools → verify → (correct) 
             ├─ annotatie-worker: [agent ⇄ tools als ophaal-agent] → annoteer → emit → advance
             ├─ leesroute:        annotaties_zoeken → agent ⇄ tools → verify → finalize
             ├─ genoemd stuk:     bron_lezen → agent ⇄ tools → verify → finalize   (een id als kst-35496-F, ADR-013)
-            ├─ lijstvraag:       bron_lijst → verify → finalize   (zoektool in code, geen model; bij een fout → agent)
+            ├─ lijstvraag:       bron_lijst → verify → finalize   (zoektool in code, geen model; een fout van de bron is een vaste melding, een andere fout → agent)
             ├─ begrippen lezen:  begrippen_zoeken → agent ⇄ tools → verify → finalize
             ├─ overzichtsroute:  overzicht_bouwen → verify → finalize   (geen model; bij een bouwfout → agent)
             ├─ bepalingsroute:   bepaling_lezen → verify → finalize     (tekst uit code, één aanroep voor de toelichting; anders → agent)
@@ -272,7 +272,15 @@ bruikbaar is.
   regel voor de schema's van de antwoordlus, de MCP-server en `dispatch`. Een connector staat uit tot de straat hem
   aanzet (`CONNECTOR_KAMERSTUKKEN=true`); uit is niet aangeboden, en een aanroep is dan `connector_uit`. **De beurt
   beperkt verder** (`ChatRequest.bronnen`, `State.bronnen`, per beurt): weggelaten = wat de straat aanbiedt, een lege
-  lijst = alleen wetgeving, en een connector die de straat niet aanbiedt gaat nooit aan (`actieve_connectors`).
+  lijst = alleen wetgeving, en een connector die de straat niet aanbiedt gaat nooit aan (`actieve_connectors`). **Daarbinnen alleen
+  wat de vraag noemt** (`agent/bronkeuze.py`, ronde 6, 12 nov 2026; elke aangezette connector kostte ~2k tokens per
+  modelronde): `supervisor_node` kiest na de route uit de vraag en de herschreven vraag de connectors die hun beschrijving
+  herkent (`herkende`: signalen en id's) of waarvan een orgaan genoemd wordt (`organen`). Alleen die krijgen hun tools; de
+  rest krijgt in de bronstand de reden `vraag` (event opnieuw, en een regel in BRONNEN IN DEZE BEURT). Een regeling buiten
+  de graaf (`buiten_graaf.noemt_regeling_buiten_graaf`, zonder zoekdienst) neemt `wetgeving_live` erbij maar beperkt alleen
+  niet. Noemt de vraag niets, dan houdt een vervolgvraag de keuze van het gesprek (`State.bronkeuze`, niet in de
+  per-beurt-reset), en anders blijft alles aan. `tests/test_bronkeuze.py` eist dat geen vraag uit de vier vragensets haar
+  eigen bron verliest.
   `tool_execution` geeft de stand aan `dispatch`, dus ook een workflow die een tool in code aanroept valt eronder.
   **De bronstand** (`agent/bronstand.py`, `State.bronstand`) zegt per connector waaróm hij uit staat (`straat`,
   `gesprek`/`werkgebied` uit `ChatRequest.bronnen_herkomst`, `register_onleesbaar`, `beheerder`) en gaat als eerste
@@ -338,7 +346,7 @@ bruikbaar is.
   `zoek_bekendmakingen` heeft twee wegen. Met `bwb_id` (en `artikel`) leest hij uit de graaf de publicaties die de BWB
   bij de huidige tekst noemt (`bwb:bron` = de laatste wijziging, `bwb:inwerkingtredingsbron`, met `bwb:inwerking`; bij
   een lid op het artikel erboven, zoals `queries.geldigheid`), zet "Stb.2009-610" om met `bronmodel.extern.koop_id_uit_bron`
-  en haalt de records in één CQL (`dt.identifier==… OR …`); de rij zegt de koppeling in `wetsverwijzing`, de datum in
+  en haalt de records in één CQL (`dt.identifier==… OR …`); de zoekvraag noemt de bepaling met de naam uit de graaf (`zoekvraag.bepaling`, "Invorderingswet 1990 als geheel", zoals Rechtspraak; Kamerstukken ronde 5, BX1); de rij zegt de koppeling in `wetsverwijzing`, de datum in
   `inwerking`, en de toelichting de grens (één toestand, eerdere wijzigingen niet). Zonder `bwb_id`: `publicatie`
   (Staatsblad/Staatscourant), `woorden`, `tekst`, `soort` (`dt.type all`; een inwerkingtredingsbesluit in de titel),
   `orgaan` (`dt.creator all`), `dossier` (`w.behandeldDossier`: de brug naar Kamerstukken), `vanaf`/`tot`, `jaar`

@@ -21,7 +21,7 @@ from bronmodel.connectors import CONNECTORS
 from langgraph.config import get_stream_writer
 
 from ..narratie import _stap, _toolregel
-from ..sjablonen.extern import MAX_LIJST, leemte_tekst, lijsten
+from ..sjablonen.extern import MAX_LIJST, leemte_tekst, lijsten, zoekvraag_tekst
 from ..sjablonen.vullen import Onvulbaar
 from ..state import State
 from ..tool_execution import execute_tool
@@ -46,6 +46,11 @@ def met_peildatum(tool: str, args: dict[str, Any], peildatum: str) -> dict[str, 
     return {**args, "peildatum": peildatum}
 
 
+#: Een fout van de bron zelf, niet van de vraag: dan geeft de lijstroute een vaste melding in plaats van het model.
+BRONFOUT = {"bron_onbereikbaar": "is nu niet te bereiken", "bron_bezet": "is nu te druk",
+            "zoekvraag_geweigerd": "weigerde de zoekvraag"}
+
+
 def bron_lijst_node(b, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     v = state.get("bron_lijst") or {}
@@ -61,8 +66,37 @@ def bron_lijst_node(b, state: State) -> dict[str, Any]:
         data = json.loads(raw)
     except ValueError:
         data = {}
+    kanttekening = str(v.get("kanttekening") or "")
+    if (los := _losse_woorden(tool["input"].get("tekst"))) and data.get("status") == "ok" and not data.get("resultaten"):
+        # Een woordgroep zonder treffer: dan de losse woorden, allemaal (`tekst_cql`), en dat zegt de kanttekening
+        # (wetgeving_live L-K2: de lijstroute zocht de hele woordgroep en vond niets). Zoals `per_woord` bij één stuk.
+        groep = tool["input"]["tekst"].strip('"')
+        tool = {"id": uuid4().hex, "name": tool["name"], "input": {**tool["input"], "tekst": los}}
+        _stap(writer, "Lex", _toolregel(tool))
+        raw = execute_tool(b, state, writer, tool)
+        paar += [{"role": "assistant", "content": [{"type": "tool_use", **tool}]},
+                 {"role": "user", "content": [{"type": "tool_result", "tool_use_id": tool["id"], "content": raw}]}]
+        trace.append((tool["name"], raw))
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            data = {}
+        kanttekening = " ".join(filter(None, [f"Als woordgroep staat „{groep}” in geen stuk; dit zijn de stukken met elk "
+                                              "van de woorden.", kanttekening]))
+    if data.get("status") not in ("ok", "partial") and (hoe := BRONFOUT.get(str(data.get("reden") or ""))):
+        # De bron faalt: een vaste melding, zoals bij een genoemd stuk (`bron_lezen._zonder_tekst`). Het model kan dan
+        # niets beters, en legde de fout uit in drie rondes (Kamerstukken ronde 5, RX1: 90k tokens).
+        zoekvraag = zoekvraag_tekst(c, tool["input"], volgorde=False)
+        antwoord = Antwoord(sjabloon="extern", blokken=[Leemte(tekst=" ".join(filter(None, [
+            f"{c.label} {hoe}, dus hierop heb ik geen antwoord.", zoekvraag,
+            "Vraag het over een paar minuten opnieuw; zonder resultaat zeg ik er niets over."])))])
+        uit = antwoord_tekst(antwoord)
+        return {"answer": uit, "antwoord": antwoord.model_dump(),
+                "source_trace": [*state.get("source_trace", []), *trace],
+                "messages": [*paar, {"role": "assistant", "content": [{"type": "text", "text": uit}]}]}
     if data.get("status") not in ("ok", "partial"):
-        # Een fout: de agent krijgt het resultaat en zegt wat er misging, met de tools voor een tweede poging.
+        # Een andere fout (een argument dat de tool niet aannam): de agent krijgt het resultaat, met de tools voor een
+        # tweede poging.
         return {"bron_lijst": {}, "messages": paar, "source_trace": [*state.get("source_trace", []), *trace]}
     # Hoogstens wat het blok draagt (`MAX_LIJST`); een langere pagina (een dossier op nummer) toont dan het begin, en
     # "N van de M stukken" zegt dat er meer is. Anders weigerde het blok de lijst en stond er "geen gevonden".
@@ -85,9 +119,9 @@ def bron_lijst_node(b, state: State) -> dict[str, Any]:
         blokken[0] = blokken[0].model_copy(update={"zoekvraag": " ".join(filter(None, [
             blokken[0].zoekvraag, f"Je vroeg om {gevraagd}; per keer toon ik er hoogstens {getoond}. Vraag om de "
             "volgende als je meer wilt zien."]))})
-    if v.get("kanttekening") and blokken and getattr(blokken[0], "soort", "") == "stukken":
+    if kanttekening and blokken and getattr(blokken[0], "soort", "") == "stukken":
         blokken[0] = blokken[0].model_copy(update={"zoekvraag": " ".join(filter(None, [blokken[0].zoekvraag,
-                                                                                       v["kanttekening"]]))})
+                                                                                       kanttekening]))})
     if v.get("tellen") and blokken and getattr(blokken[0], "soort", "") == "stukken":
         blokken[0] = blokken[0].model_copy(update={"telling": telling(c.label, data, v.get("verdeling") or "")})
     antwoord = Antwoord(sjabloon="extern", blokken=blokken)
@@ -99,6 +133,15 @@ def bron_lijst_node(b, state: State) -> dict[str, Any]:
         # Het paar plus het antwoord: een vervolgvraag ("lees de eerste") kent de ids en de zoekvraag.
         "messages": [*paar, {"role": "assistant", "content": [{"type": "text", "text": uit}]}],
     }
+
+
+def _losse_woorden(tekst: Any) -> str:
+    """De woorden van een woordgroep tussen aanhalingstekens ('"één bankrekeningnummer"' → 'één bankrekeningnummer'),
+    of "" als het geen woordgroep van twee of meer woorden is."""
+    if not isinstance(tekst, str) or not (tekst.startswith('"') and tekst.endswith('"')):
+        return ""
+    woorden = tekst.strip('"').split()
+    return " ".join(woorden) if len(woorden) > 1 else ""
 
 
 def _stam(woord: str) -> str:
