@@ -14,6 +14,16 @@ regel 44.
 Sla dit bestand op zodra je twijfelt tussen twee klassen, een grensgeval tegenkomt, of de
 uitdrukkingswijze van een klasse precies wilt weten.
 
+## Inhoud
+
+- Dertien klassen, zestien rijen
+- Samenloop en bronstatus
+- 1 Rechtssubject · 2 Rechtsobject · 3 Rechtsbetrekking · 4 Rechtsfeit · 5 Voorwaarde · 6 Afleidingsregel
+- 7 Variabele en variabelewaarde · 8 Parameter en parameterwaarde · 9 Operator · 10 Tijdsaanduiding
+- 11 Plaatsaanduiding · 12 Delegatiebevoegdheid en delegatie-invulling · 13 Brondefinitie
+
+Zoek je één klasse, ga dan direct naar haar kop; je hoeft dit bestand niet helemaal te lezen.
+
 ## Dertien klassen, zestien rijen
 
 De JAS-tabel nummert **zestien** rijen; onze labelset telt er dertien. Drie paren zijn
@@ -38,7 +48,8 @@ Alleen de expliciete tijd/plaats-voorrang boven variabele/parameter geldt bij de
 functie; een duur of hoeveelheid in een tijdsaanduiding houdt de parameter vast als subtype
 *verbijzondert parameter* (zie §10, *Verbijzondering*). Andere samenloop: onderscheid overlap van
 concurrerende interpretaties.
-Lees markeren-fragmentgrenzen.md en annotatieprotocol.md voor projectregels.
+Lees [fragmentgrenzen](markeren-fragmentgrenzen.md) en de [markeringslijst](annotatieprotocol.md) voor de
+projectregels, en [voorbeelden](voorbeelden.md) voor een uitgewerkte bepaling.
 
 ---
 

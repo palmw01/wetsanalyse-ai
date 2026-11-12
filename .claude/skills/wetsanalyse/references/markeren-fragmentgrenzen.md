@@ -1,7 +1,8 @@
 # Fragmentgrenzen en juridische functies
 
 Grondslag: [bronnen en beslisregister](bronnen.md) — P04–P05, P10.
-Projectregels versie 2.1. Gebruik met het analyseprotocol en de klassenreferentie.
+Projectregels versie 2.1. Gebruik met de [markeringslijst](annotatieprotocol.md), het
+[analyseprotocol](analyseprotocol.md) en de [klassenreferentie](jas-klassen-referentie.md).
 
 ## Drie verschillende eenheden
 
@@ -71,3 +72,5 @@ uitkomst of beperking duidt. Onbekend mag niet stilzwijgend nul of onwaar worden
 Review iedere normeenheid, ook ongemarkeerde tekst. Registreer waarom die niet relevant
 is of waarom context ontbreekt. 'Taalsuiker' en een hoog aantal markeringen zijn geen
 verantwoording. Markeer niet alles uitsluitend om visuele dekking te bereiken.
+
+Een uitgewerkte bepaling met deze regels, inclusief overlap en een termijn: [voorbeelden](voorbeelden.md).

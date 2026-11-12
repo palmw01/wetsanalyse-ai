@@ -1,17 +1,25 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
-PAKKET = {'bronbestanden': {'SKILL.md': 'be6f05b4b1c8415517261dbc8e8f39664aa0082c1cbf3cbc3ba1771185910d82',
+PAKKET = {'bronbestanden': {'SKILL.md': '2ff0a7db13d296db4d426d305cac6065ba9f09538001974520cdb626b9eef5c0',
                    'agentrollen.json': '84ad41e689a3ebf7a77fbbc409f5d07a10539cbe0b578cb7111a60feded2f418',
-                   'references/agentrollen.md': 'c95a55241b9190a14be0804ca5875db9f2be58dc045cb8e4d570c8952f77f76b',
-                   'references/bronnen.md': '0e2bca467b3e2b348ce4121ea1833d0dba4493258110dfd0e84638d0155a2e06',
+                   'references/agentrollen.md': 'd5fd6a2a5a9d00d4ae2950f2a1aa4bdda8f1625f1a3b6a4661cc09d509c038e6',
+                   'references/bronnen.md': '4a9bf2867a412550a8239aaa05f72e2f64aab414136588e0fe9ae1ec1442a25d',
                    'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
-                   'references/jas-klassen-referentie.md': 'fcff29a0b63d54e457dcb32de3706552a327033b0e7571e8b26025dd552da429',
+                   'references/jas-klassen-referentie.md': 'b1f0949a33bd7f7388cc1778a7dce69c42db5d585715cd3f2843594d2564855d',
                    'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411'},
- 'lex': {'beschrijving': 'Analyseer Nederlandse wet- en regelgeving volgens JAS, met JRM '
-                         '2-verrijking. Gebruik voor juridisch ontleden, markeren en classificeren '
-                         'van bepalingen en voor een brononderbouwd conceptanalysedossier bij '
-                         'activiteit 2 van Wetsanalyse. Omvat grammatica, verwijzingen, juridische '
-                         'samenhang en scenario-toetsing.',
+ 'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving volgens de methode '
+                         'Wetsanalyse en het Juridisch Analyseschema (JAS), met JRM 2-verrijking: '
+                         'een werkgebied afbakenen (analysevraag, deelvragen, bronselectie), '
+                         'bepalingen ontleden, markeren en classificeren in de dertien '
+                         'JAS-klassen, de samenhang vastleggen (rechtsbetrekkingen, rechtsfeiten, '
+                         'afleidingsregels, voorwaarden), begrippen formuleren volgens NL-SBB en '
+                         'een brononderbouwd conceptanalysedossier opstellen. Gebruik deze skill '
+                         'zodra iemand een wetsartikel wil ontleden, annoteren of duiden, vraagt '
+                         'welke JAS-klasse een formulering heeft, een werkgebied of deelvragen wil '
+                         'opstellen, bronnen bij een analysevraag zoekt, een begrip of definitie '
+                         'uit wetgeving wil vastleggen, of een wetsanalyse, regelanalyse of '
+                         'juridische analyse van een regeling noemt, ook als het woord JAS niet '
+                         'valt.',
          'herkomst': 'Methode Wetsanalyse (Ausems, Bulles & Lokin) en het JAS (BZK); de bronnen '
                      'staan in references/bronnen.md',
          'label': 'Wetsanalyse: JAS met JRM 2-verrijking',
@@ -179,15 +187,28 @@ PAKKET = {'bronbestanden': {'SKILL.md': 'be6f05b4b1c8415517261dbc8e8f39664aa0082
                                      'JAS/JRM-dossier via een route die alleen markeringen of een '
                                      'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
                                      'rol over.'}},
- 'sha256': '129c062ec9097aa08e983de85742c41c9089115344229e9aeb396c7fb7870d15',
- 'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseer Nederlandse wet- en regelgeving '
-                                                    'volgens JAS, met JRM 2-verrijking. Gebruik '
-                                                    'voor juridisch ontleden, markeren en '
-                                                    'classificeren van bepalingen en voor een '
-                                                    'brononderbouwd conceptanalysedossier bij '
-                                                    'activiteit 2 van Wetsanalyse. Omvat '
-                                                    'grammatica, verwijzingen, juridische '
-                                                    'samenhang en scenario-toetsing.',
+ 'sha256': '0d038ae5a67d9f2532811ace0167a151577d75d28c21aae16a128fc0ee74b792',
+ 'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving '
+                                                    'volgens de methode Wetsanalyse en het '
+                                                    'Juridisch Analyseschema (JAS), met JRM '
+                                                    '2-verrijking: een werkgebied afbakenen '
+                                                    '(analysevraag, deelvragen, bronselectie), '
+                                                    'bepalingen ontleden, markeren en '
+                                                    'classificeren in de dertien JAS-klassen, de '
+                                                    'samenhang vastleggen (rechtsbetrekkingen, '
+                                                    'rechtsfeiten, afleidingsregels, voorwaarden), '
+                                                    'begrippen formuleren volgens NL-SBB en een '
+                                                    'brononderbouwd conceptanalysedossier '
+                                                    'opstellen. Gebruik deze skill zodra iemand '
+                                                    'een wetsartikel wil ontleden, annoteren of '
+                                                    'duiden, vraagt welke JAS-klasse een '
+                                                    'formulering heeft, een werkgebied of '
+                                                    'deelvragen wil opstellen, bronnen bij een '
+                                                    'analysevraag zoekt, een begrip of definitie '
+                                                    'uit wetgeving wil vastleggen, of een '
+                                                    'wetsanalyse, regelanalyse of juridische '
+                                                    'analyse van een regeling noemt, ook als het '
+                                                    'woord JAS niet valt.',
                                     'herkomst': 'Methode Wetsanalyse (Ausems, Bulles & Lokin) en '
                                                 'het JAS (BZK); de bronnen staan in '
                                                 'references/bronnen.md',
