@@ -245,6 +245,9 @@ class ChatRequest(BaseModel):
     # ná de historie; `systeem` zet hem als variabel deel van de systeemprompt, zoals vóór ADR-015. Alleen om beide
     # vormen op dezelfde code te vergelijken (metingen/context-2026-11-12); de werkplek stuurt hem niet.
     beurtcontext_plek: Literal["vraag", "systeem"] = "vraag"
+    # Een meetvlag (ADR-016 §A7): welke agentvorm deze run draait. Telt alleen waar de straat het toelaat
+    # (`CENTRALE_AGENT` is `meten` of `aan`); met `uit` wordt het veld genegeerd. De werkplek stuurt hem niet.
+    agentvorm: Literal["supervisor", "centraal"] | None = None
 
     @model_validator(mode="after")
     def _actie_kiest_de_route(self) -> "ChatRequest":

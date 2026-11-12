@@ -1,7 +1,7 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
 PAKKET = {'bronbestanden': {'SKILL.md': '2ff0a7db13d296db4d426d305cac6065ba9f09538001974520cdb626b9eef5c0',
-                   'agentrollen.json': '84ad41e689a3ebf7a77fbbc409f5d07a10539cbe0b578cb7111a60feded2f418',
+                   'agentrollen.json': '72e87f25dc6b5f96ddb0c3873cf88a382378196c9f03d8c076e1d0efdd3adf4d',
                    'references/agentrollen.md': 'd5fd6a2a5a9d00d4ae2950f2a1aa4bdda8f1625f1a3b6a4661cc09d509c038e6',
                    'references/bronnen.md': '4a9bf2867a412550a8239aaa05f72e2f64aab414136588e0fe9ae1ec1442a25d',
                    'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
@@ -33,7 +33,8 @@ PAKKET = {'bronbestanden': {'SKILL.md': '2ff0a7db13d296db4d426d305cac6065ba9f095
          'licentie': 'eigen tekst in deze repo; het boek en de BRM-readers alleen in eigen woorden',
          'soort': 'methode'},
  'regels': {},
- 'rollen': {'algemeen': ['basis', 'nl-sbb-taalniveau'],
+ 'rollen': {'agent': ['basis', 'definitie', 'duiding', 'nl-sbb-taalniveau'],
+            'algemeen': ['basis', 'nl-sbb-taalniveau'],
             'deelvragen': ['basis', 'deelvragen'],
             'definitie': ['basis', 'definitie', 'nl-sbb-taalniveau'],
             'duiding': ['basis', 'duiding'],
@@ -228,7 +229,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': '2ff0a7db13d296db4d426d305cac6065ba9f095
                                      'JAS/JRM-dossier via een route die alleen markeringen of een '
                                      'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
                                      'rol over.'}},
- 'sha256': '814708f322f8f210f01dc7fb9f50b4d929b5df3b890562fc7a6bbeb6112a932b',
+ 'sha256': 'bba1908fe585b49909492cd8e94faac203d7c0aad21130ea73ba6a6524abb27a',
  'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving '
                                                     'volgens de methode Wetsanalyse en het '
                                                     'Juridisch Analyseschema (JAS), met JRM '

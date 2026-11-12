@@ -93,6 +93,9 @@ def main() -> None:
     p.add_argument("--skill-regels", action="store_true", default=None,
                    help="De regels uit methode-skills meenemen in de ketens (proefvlag, alleen acceptatie; zie "
                         "main.bicep:skillRegels).")
+    p.add_argument("--centrale-agent", choices=("uit", "meten", "aan"), default=None,
+                   help="De centrale agent van graph-qa (ADR-016 §A7; alleen acceptatie zet iets anders dan uit; zie "
+                        "main.bicep:centraleAgent). Weglaten laat de bicep-default (uit).")
     p.add_argument("--catalogus-voorstellen", action="store_true", default=None,
                    help="Voorstellen voor de methode vanuit de werkplek als concept-PR (alleen acceptatie; zie "
                         "main.bicep:catalogusVoorstellen). Zonder de GitHub App (WA_GITHUB_APP_ID, "
@@ -193,6 +196,7 @@ def main() -> None:
          "connectoren"),
         (args.relatie_voorstellen, "relatieVoorstellen"),
         (args.skill_regels, "skillRegels"),
+        (args.centrale_agent, "centraleAgent"),
         (args.catalogus_voorstellen, "catalogusVoorstellen"),
         (args.github_repo, "githubRepo"),
         (args.graphdb_proxy_extern, "graphdbProxyExtern"),

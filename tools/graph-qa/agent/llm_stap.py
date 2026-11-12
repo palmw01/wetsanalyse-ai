@@ -69,6 +69,8 @@ class Rol(Enum):
     # de methoderol van hun specialist (`specialists.methoderol`), dus die geeft de aanroeper mee.
     OPHAAL = ("ophaal", "retrieval", True)
     ANTWOORD = ("antwoord", None, True)
+    # De centrale agent (ADR-016 §A1): de ene agent van de open laag, met de generieke methoderol `agent`.
+    CENTRAAL = ("centraal", "agent", True)
     BEPALING_TOELICHTING = ("bepaling_toelichting", None, False)
     JAS_CLASSIFIER = ("jas_classifier", None, False)
     JAS_REVIEWER = ("jas_reviewer", None, False)

@@ -37,6 +37,7 @@ from ..provenance import alleen_genoemde_regelingen, collect_sources
 from ..regelingnamen import met_regelingnamen
 from ..resultaat import is_fout
 from ..agentvorm import STANDAARD as DEFAULT_SPECIALIST, agent_voor
+from ..overdracht import OVERDRACHT
 from ..state import State
 from ..bronstand import prompt_blok as bronstand_blok
 from ..bronstand import waar as bronstand_waar
@@ -131,6 +132,10 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     if sjabloonaanroepen and len(tool_uses) > 1:
         tool_uses = [t for t in tool_uses if t["name"] not in SJABLONEN] + sjabloonaanroepen[:1]
         telling = tel_sjabloon({**state, **telling}, "uitgesteld")
+
+    # Een overdrachtstool van de agent (ADR-016 §A1) geeft de beurt aan een route in code: alleen die ene aanroep blijft.
+    if eigen := [t for t in tool_uses if t["name"] in agent.eigen_tools]:
+        tool_uses = eigen[:1]
 
     stopreden = getattr(final, "stop_reason", "") or ""
     afgekapt = stopreden == "max_tokens"
@@ -476,6 +481,8 @@ def route_after_agent(b: Bouw, state: State) -> str:
     pending = state.get("pending_tools") or []
     if pending and pending[0]["name"] in SJABLONEN:
         return "sjabloon"
+    if pending and pending[0]["name"] in OVERDRACHT:
+        return "overdracht"
     if pending and state.get("turns", 0) < b.settings.max_turns:
         return "tools"
     if state.get("specialist") == "annotatie":

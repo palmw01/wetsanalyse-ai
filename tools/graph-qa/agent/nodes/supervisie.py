@@ -18,6 +18,7 @@ from dataclasses import asdict
 
 from .. import bronstand
 from ..aanwijzing import lees_aanwijzing, melding_meerdere
+from ..agentvorm import CENTRAAL
 from ..llm_stap import Rol, aanroep
 from ..bepaling_workflow import lees as lees_bepalingsvraag
 from ..bepaling_workflow import lees_buiten, wijst_stuk_aan
@@ -334,6 +335,21 @@ def _bron_uit(writer, state: State, vraag: str) -> dict[str, Any] | None:
             "afwijs_stap": "niet gezocht – de gevraagde bron staat uit", "annotaties_lezen": False}
 
 
+def _centraal(state: State) -> bool:
+    """Draait deze beurt de centrale agent (ADR-016 §A7)? De straat en het verzoek kozen dat al (`agentvorm.vorm_van`).
+    Zolang een vraagkaart van het samenstellen open staat, blijft de supervisor de beurt lezen: een getypt antwoord op
+    die kaart herkent de centrale agent pas als hij de tool daarvoor heeft (`beantwoord_kaart`, een latere stap)."""
+    return state.get("agentvorm") == "centraal" and state.get("modus", "auto") == "auto" and not _open_kaartje(state)
+
+
+def _naar_centraal(writer, state: State) -> dict[str, Any]:
+    """De centrale agent als enige worker van de beurt: de antwoordketen met het profiel `centraal`."""
+    _stap(writer, "Lex", f"zoekt het antwoord in {bronstand.waar(state.get('bronstand'))}", route=CENTRAAL)
+    logger.info("worker gekozen", extra={"categorie": "functioneel", "worker": CENTRAAL})
+    return {"zelfstandige_vraag": "", "specialist": CENTRAAL, "plan": "", "worker_plan": [CENTRAAL], "worker_idx": 0,
+            "afwijzen": False, "annotaties_lezen": False}
+
+
 def _open_kaartje(state: State) -> str:
     intake = state.get("intake") or {}
     if not is_open(intake):
@@ -510,6 +526,16 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # "Wat is het laatste stuk van dossier 32140?": een zoekvraag met een volgorde, die de code helemaal leest. Ook in
         # een gesprek: de vraag noemt zelf wat er gezocht wordt (acceptatie 9 nov 2026: elf rondes, twee foute antwoorden).
         return _bron_lijst(writer, lijst)
+
+    if _centraal(state):
+        # ADR-016 §A1: geen vaste route pakte de vraag, dus de centrale agent beantwoordt hem zelf. De supervisorstap en
+        # de keuze tussen specialisten vervallen; het gesprek leest hij zelf, dus er wordt niets herschreven. Een
+        # leesvraag in de vraag zoals de analist haar stelde, gaat ook hier voor: de code zoekt eerst.
+        if begripvraag:
+            return _begrippen_lees(writer, "")
+        if leesvraag:
+            return _lees(writer, "")
+        return _naar_centraal(writer, state)
 
     resp = aanroep(
         b.llm, Rol.SUPERVISOR,

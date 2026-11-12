@@ -16,7 +16,9 @@ DOEL = ROOT / 'tools/graph-qa/agent/methodepakket.py'
 # Geen annotatierollen: de annotatieketen (ADR-001) gebruikt geen generatieve prompts met
 # methodetekst.
 # Een rol hoort hier alleen als een modelaanroep hem draagt (`llm_stap.Rol`, `tests/test_methoderollen.py`).
-ROLLEN = frozenset({'supervisor', 'retrieval', 'definitie', 'duiding', 'algemeen', 'deelvragen'})
+# `agent` is de generieke rol van de centrale agent (ADR-016 §A2): hij vervangt de keuze tussen de specialisten en draagt
+# daarom hun secties.
+ROLLEN = frozenset({'supervisor', 'retrieval', 'definitie', 'duiding', 'algemeen', 'deelvragen', 'agent'})
 
 SKILLS = ROOT / '.claude/skills'
 AGENT = ROOT / 'tools/graph-qa/agent'
