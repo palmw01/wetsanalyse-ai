@@ -130,6 +130,7 @@ def test_andere_bepalingen_dan_de_voorbeelden_in_de_skill():
 
 def test_het_meetwerkgebied_draagt_de_opdrachten_met_een_werkgebied():
     assert WERKGEBIED["naam"] and WERKGEBIED["analysevraag"]
+    assert WERKGEBIED["gebeurtenis"], "zonder gebeurtenis vraagt de bronselectie daar eerst naar"
     assert len(WERKGEBIED["deelvragen"]) == 3
     assert all(re.fullmatch(r"BWB[RV]\d+", b) for b in WERKGEBIED["zoekbereik"])
     for rij in RIJEN:
