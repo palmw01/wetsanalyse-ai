@@ -28,7 +28,7 @@ from bronmodel.vindplaats import vindplaats
 
 from .models import Source
 from .resultaat import is_contract, is_fout, is_foutresultaat, waarden
-from .namespace import vindplaats_patroon
+from .namespace import BASIS, vindplaats_patroon
 from .tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
 
 # Backslash uitgesloten uit de char-class zodat een naijlende escape (bv. "...g=2026-07-01\\")
@@ -84,6 +84,9 @@ def iter_refs(text: str) -> Iterator[tuple[str, str | None, str | None]]:
         return None
 
     for m in _IRI_RE.finditer(text):
+        # De kale naamruimte ("de wet staat alleen onder urn:bwb:.") wijst niets aan.
+        if _clean(m.group(0)) == BASIS:
+            continue
         r = emit(m.group(0), iri=_clean(m.group(0)))
         if r:
             yield r
