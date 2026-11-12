@@ -242,8 +242,9 @@ bruikbaar is.
   zonder – caching mag nooit "de dienst ligt plat" kosten. Knop: `PROMPT_CACHING=false`.
 - **`llm_stap.py`** – de gedeelde modelstap (H5). `aanroep(llm, rol, **verzoek)` geeft de kwargs ongewijzigd door,
   geeft een `Stopreden` terug, logt één `model_aanroep` (rol, model, stopreden, duur, gebruik en de opbouw van het verzoek uit
-  `agent/verzoekopbouw.py`: tekens van tools, systeemdelen, historie en lopende beurt, plus `tools_hash`/`system_hash`;
-  geen inhoud) en eist dat
+  `agent/verzoekopbouw.py`: tekens van tools, systeemdelen, historie en lopende beurt, plus `tools_hash`/`system_hash`,
+  en `methode_sha` = `methode.vingerafdruk(rol)` uit de sectie-sha's van `PAKKET`, dezelfde bron als de catalogus van
+  ADR-014; geen inhoud) en eist dat
   de systeemprompt de methodetekst van de rol draagt (`Rol.methoderol`, of `methoderol=` voor de specialist van de
   antwoordlus). `stroom` doet hetzelfde voor de streamende antwoordlus en logt bij `final_message()`. Supervisor,
   antwoordlus, ophaal-agent en de toelichting van de bepalingsroute lopen erlangs. `vraag_tool` is de vorm voor één tool (meestal strict):

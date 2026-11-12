@@ -82,3 +82,25 @@ def test_systeemblokken_tellen_als_tekst_en_een_vreemde_vorm_breekt_niets():
     o = opbouw(system=[{"type": "text", "text": "stabiel"}, {"type": "text", "text": "var"}], tools=[], messages=[])
     assert o["system_stabiel_tekens"] == 7 and o["system_variabel_tekens"] == 3
     assert opbouw(system=None, tools=[{"onserialiseerbaar": object()}], messages=[]) == {}
+
+
+def test_de_methodevingerafdruk_komt_uit_de_sectie_shas_van_het_pakket(caplog):
+    from agent.methode import instructies, vingerafdruk
+    from agent.methodepakket import PAKKET
+
+    assert len(vingerafdruk("duiding")) == 12 and vingerafdruk("duiding") != vingerafdruk("definitie")
+    assert vingerafdruk("bestaat_niet") == ""
+    # Hangt alleen af van de secties van de rol: hun sha256 staan in het pakket, de catalogus leest dezelfde.
+    assert all("sha256" in PAKKET["secties"][k] for k in PAKKET["rollen"]["duiding"])
+
+    resp = SimpleNamespace(usage=None, stop_reason="end_turn", content=[])
+
+    class Nep:
+        def create(self, **_):
+            return resp
+
+    with caplog.at_level(logging.INFO, logger="graph_qa.llm"):
+        aanroep(Nep(), Rol.ANTWOORD, methoderol="duiding", model="m", max_tokens=1,
+                system=[instructies("duiding"), ""], tools=[], messages=[])
+    regel = next(r for r in caplog.records if r.getMessage() == "model_aanroep")
+    assert regel.methode_sha == vingerafdruk("duiding")

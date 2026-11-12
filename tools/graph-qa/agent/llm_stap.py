@@ -28,6 +28,7 @@ from dataclasses import dataclass
 from enum import Enum, StrEnum
 from typing import Any
 
+from .methode import vingerafdruk
 from .verzoekopbouw import opbouw
 
 logger = logging.getLogger("graph_qa.llm")
@@ -110,12 +111,15 @@ def _gebruik(resp: Any) -> dict[str, int]:
             "cache_schrijf": int(getattr(u, "cache_creation_input_tokens", 0) or 0)}
 
 
-def _log(rol: Rol, model: str, resp: Any, begin: float, verzoek: dict[str, Any]) -> Antwoord:
+def _log(rol: Rol, model: str, resp: Any, begin: float, verzoek: dict[str, Any],
+         methoderol: str | None = None) -> Antwoord:
     duur = round((time.perf_counter() - begin) * 1000)
     stop = Stopreden.van(resp)
+    methode = methoderol or rol.methoderol
     logger.info("model_aanroep", extra={"categorie": "technisch", "rol": rol.naam, "model": model,
                                         "stopreden": str(stop), "duur_ms": duur, **_gebruik(resp),
-                                        **opbouw(**verzoek)})
+                                        **opbouw(**verzoek),
+                                        "methode_sha": vingerafdruk(methode) if methode else ""})
     return Antwoord(resp, stop, duur)
 
 
@@ -124,16 +128,17 @@ def aanroep(llm: Any, rol: Rol, *, methoderol: str | None = None, **verzoek: Any
     "token" (de redactie in `observability` kijkt daarnaar). `methoderol` gaat vóór die van de rol."""
     _controleer_rol(rol, verzoek.get("system"), methoderol)
     begin = time.perf_counter()
-    return _log(rol, verzoek.get("model", ""), llm.create(**verzoek), begin, verzoek)
+    return _log(rol, verzoek.get("model", ""), llm.create(**verzoek), begin, verzoek, methoderol)
 
 
 class Stroom:
     """Om de stream van de adapter heen: `final_message()` geeft het volledige antwoord, zoals de adapter, en legt de
     stopreden en de logregel vast. Eén keer aanroepen, net als bij de adapter (de meter telt anders dubbel)."""
 
-    def __init__(self, stream: Any, rol: Rol, model: str, begin: float, verzoek: dict[str, Any]) -> None:
+    def __init__(self, stream: Any, rol: Rol, model: str, begin: float, verzoek: dict[str, Any],
+                 methoderol: str | None = None) -> None:
         self._stream, self._rol, self._model, self._begin = stream, rol, model, begin
-        self._verzoek = verzoek
+        self._verzoek, self._methoderol = verzoek, methoderol
         self.antwoord: Antwoord | None = None
 
     @property
@@ -141,7 +146,8 @@ class Stroom:
         return self._stream.text_deltas
 
     def final_message(self) -> Any:
-        self.antwoord = _log(self._rol, self._model, self._stream.final_message(), self._begin, self._verzoek)
+        self.antwoord = _log(self._rol, self._model, self._stream.final_message(), self._begin, self._verzoek,
+                             self._methoderol)
         return self.antwoord.resp
 
 
@@ -151,7 +157,7 @@ def stroom(llm: Any, rol: Rol, *, methoderol: str | None = None, **verzoek: Any)
     _controleer_rol(rol, verzoek.get("system"), methoderol)
     begin = time.perf_counter()
     with llm.stream(**verzoek) as s:
-        yield Stroom(s, rol, verzoek.get("model", ""), begin, verzoek)
+        yield Stroom(s, rol, verzoek.get("model", ""), begin, verzoek, methoderol)
 
 
 def lees_tool(resp: Any, naam: str) -> dict[str, Any] | None:
