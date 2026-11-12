@@ -1,6 +1,6 @@
 # Plan – de context van een beurt zichtbaar maken
 
-Status: plan, ter goedkeuring (12 nov 2026). De richting is in de brainstorm met de gebruiker gekozen (zie *Besluiten*). Hoort bij ADR-015 (contextbeheer). Nog niets gebouwd.
+Status: plan, goedgekeurd door de gebruiker (12 nov 2026). Hoort bij ADR-015 (contextbeheer). Nog niets gebouwd.
 
 ## Doel
 
