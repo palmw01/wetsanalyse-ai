@@ -14,6 +14,7 @@
  *  - `/context` opent hetzelfde paneel zonder beurt; meter en commando delen één tab;
  *  - een lopende beurt werkt de meter bij uit het `meting`-event, zonder herladen;
  *  - een gesprek zonder meting zegt "nog niet gemeten";
+ *  - een regiegesprek heeft zelf geen meting (geen model), maar toont zijn deelgesprek met alle beurten;
  *  - er staat geen knop die Lex start, en op een telefoon (375 px) past alles zonder horizontale scroll.
  */
 import assert from "node:assert/strict";
@@ -76,6 +77,16 @@ const boom = { gesprek_id: "g1", kinderen: [
     berichten: [{ bericht_id: 9, run_id: "k1r", created: null, contextopbouw: opbouw("k1r", { ouder: "r2", koud: false, totaal: 18000, profiel: "bronnenzoeker" }) }] },
   { gesprek_id: "k2", titel: "Deelvraag 2: loopt nog", updated: null, berichten: [] },
 ] };
+/** Een regie (ADR-012): het gesprek zelf gebruikt geen model, het deelgesprek is een reeks van drie beurten zonder
+ *  toollus en zonder ouder op de beurt – zoals op acceptatie gemeten. */
+const zonderLus = (run) => ({ ...opbouw(run), agenten: [], som: { invoer: 6334, cache_lees: 0, cache_schrijf: 0, uitvoer: 1213 },
+  verbruik: [{ rol: "jas_classifier", model: "claude-sonnet-4-6", aanroepen: 4, invoer: 6334, cache_lees: 0, cache_schrijf: 0, uitvoer: 1213, duur: 36646 }] });
+gesprekken.g4 = [
+  { rol: "user", tekst: "Start de regie", ...leeg },
+  { rol: "assistant", tekst: "Opgeleverd: annoteren.", ...leeg, run_id: "regie" },
+];
+const regieBoom = { gesprek_id: "g4", kinderen: [{ gesprek_id: "k9", titel: "Annoteren · analysevraag (3 bepalingen)", updated: null,
+  berichten: ["c.1", "c.2", "c.3"].map((run, i) => ({ bericht_id: 20 + i, run_id: run, created: null, contextopbouw: zonderLus(run) })) }] };
 const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 
 async function opzet(page) {
@@ -97,7 +108,7 @@ async function opzet(page) {
     const boomPad = p.match(/^\/api\/gesprekken\/(\w+)\/contextopbouw$/);
     if (boomPad) {
       boomVerzoeken.push(boomPad[1]);
-      return route.fulfill({ json: boomPad[1] === "g1" ? boom : { gesprek_id: boomPad[1], kinderen: [] } });
+      return route.fulfill({ json: boomPad[1] === "g1" ? boom : boomPad[1] === "g4" ? regieBoom : { gesprek_id: boomPad[1], kinderen: [] } });
     }
     const gesprek = p.match(/^\/api\/gesprekken\/(g\d)$/);
     if (gesprek) return route.fulfill({ json: { id: gesprek[1], titel: "Test", werkgebied_id: "", berichten: gesprekken[gesprek[1]] ?? [] } });
@@ -216,6 +227,19 @@ try {
   assert.match(await oudeMeter.innerText(), /nog niet gemeten/);
   await oudeMeter.click();
   await oud.locator("[data-context-leeg]").waitFor();
+  assert.equal(await oud.locator("[data-context-boom]").count(), 0, "zonder deelgesprekken geen boom");
+
+  // --- Een regiegesprek: zelf geen meting, wel het deelgesprek met al zijn beurten ---
+  await oud.goto(`${base}/workbench?gesprek=g4`);
+  await oud.locator("[data-contextmeter]").click();
+  const regieKind = oud.locator('[data-context-paneel="contextopbouw"] [data-context-kind]');
+  await regieKind.waitFor();
+  assert.match(await regieKind.innerText(), /Annoteren · analysevraag \(3 bepalingen\)\s*3 beurten · verbruik 23k/);
+  assert.match(await oud.locator("[data-boom-totaal]").innerText(), /De deelgesprekken samen: 23k\./);
+  await regieKind.getByRole("button").click();
+  assert.equal(await regieKind.locator("[data-kind-beurt]").count(), 3, "de kaart toont elke beurt van het deelgesprek");
+  assert.equal(await regieKind.locator("[data-context-raster]").count(), 0, "losse stappen hebben geen raster, wel verbruik");
+  assert.equal(await regieKind.locator("[data-verbruik-totaal]").first().innerText(), "7,5k");
   await oud.close();
 
   // --- Op een telefoon: de meter past, het paneel is een sheet zonder horizontale scroll ---

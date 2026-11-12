@@ -28,7 +28,9 @@ GEWICHT = {"invoer": 1.0, "uitvoer": 5.0, "cache_lees": 0.1, "cache_schrijf_5m":
 
 
 def lees_set() -> dict[str, dict[str, Any]]:
-    rijen = (json.loads(r) for r in SET.read_text(encoding="utf-8").splitlines() if r.strip() and not r.startswith("#"))
+    """De set van 30 en elke aanvulling ernaast (`golden_centrale_agent_<naam>.jsonl`): de id's zijn uniek."""
+    rijen = (json.loads(r) for pad in sorted(SET.parent.glob("golden_centrale_agent*.jsonl"))
+             for r in pad.read_text(encoding="utf-8").splitlines() if r.strip() and not r.startswith("#"))
     return {r["id"]: r for r in rijen if r["id"] != "_werkgebied"}
 
 

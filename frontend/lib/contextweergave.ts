@@ -260,9 +260,15 @@ export function adviezen(nu: Contextopbouw, vorige?: Contextopbouw): Advies[] {
   if (beginKoud(a)) {
     const vorigeAgent = vorige?.agenten.find((x) => x.rol === a.rol);
     const andereTools = !!vorigeAgent && vorigeAgent.begin.tools_hash !== a.begin.tools_hash;
+    // Een andere toolset komt door andere bronnen naast de wet, of doordat Lex de vraag anders indeelde: elk soort vraag
+    // heeft zijn eigen tools (meting 12 nov 2026: de wissel van uitleg naar een algemene vraag schreef het vaste deel
+    // opnieuw, met dezelfde bronnen aan).
+    const andereBronnen = !!vorigeAgent && omvangVan(vorigeAgent, "connectortools") !== omvangVan(a, "connectortools");
     uit.push(andereTools
       ? { id: "koud_toolset", signaal: true,
-          tekst: "De bronnen naast de wet wisselden, dus het vaste deel is opnieuw geschreven. Dat kost één keer extra." }
+          tekst: andereBronnen
+            ? "De bronnen naast de wet wisselden, dus het vaste deel is opnieuw geschreven. Dat kost één keer extra."
+            : "Deze vraag is van een ander soort dan de vorige en gebruikt andere tools, dus het vaste deel is opnieuw geschreven. Dat kost één keer extra." }
       : { id: "koud_pauze", signaal: true,
           tekst: "Het vaste deel stond niet meer klaar, dus het is opnieuw geschreven. Dat kost één keer extra; een volgende beurt binnen een uur leest het." });
   }
@@ -323,15 +329,24 @@ export interface KindRij {
   gemeten: boolean;
 }
 
-/** De rijen van de boom bij één beurt: de deelgesprekken die deze run startte. Een kind zonder enige meting (het loopt
- *  nog, of eindigde zonder bericht) is aan geen beurt toe te wijzen: het staat bij de laatste beurt als "niet gemeten",
- *  en het totaal van de boom is dan onvolledig. */
-export function kindRijen(boom: ContextBoom | undefined, runId: string, laatste = true): KindRij[] {
+/** De rijen van de boom bij één beurt: de deelgesprekken die deze run startte (`ouder_run_id`).
+ *
+ *  Niet elk kind wijst naar een gemeten beurt van dit gesprek. Een regie (ADR-012) gebruikt zelf geen model en heeft dus
+ *  geen meting, en de beurten van een reeks dragen geen ouder (meting 12 nov 2026). Zo'n kind is aan geen beurt toe te
+ *  wijzen: het staat bij de laatste beurt, of – in een gesprek zonder gemeten beurt – op zichzelf. Hetzelfde geldt voor
+ *  een kind zonder enige meting (het loopt nog, of eindigde zonder bericht): dat staat erbij als "niet gemeten", en het
+ *  totaal van de boom is dan onvolledig.
+ *
+ *  `bekend` zijn de runs van de gemeten beurten van dit gesprek; `laatste` zegt of dit de laatste beurt is. */
+export function kindRijen(boom: ContextBoom | undefined, runId: string, laatste = true, bekend: string[] = []): KindRij[] {
   if (!boom) return [];
   const uit: KindRij[] = [];
   for (const k of boom.kinderen) {
     const alle = beurtenUitBerichten(k.berichten.map((b) => ({ rol: "assistant" as const, run_id: b.run_id, contextopbouw: b.contextopbouw })));
-    const eigen = runId ? alle.filter((b) => b.contextopbouw.ouder_run_id === runId) : alle;
+    const eigen = alle.filter((b) => {
+      const ouder = b.contextopbouw.ouder_run_id;
+      return (runId !== "" && ouder === runId) || (laatste && !bekend.includes(ouder));
+    });
     // Een kind dat alleen bij een andere beurt hoort, staat hier niet.
     if (!eigen.length && (alle.length || !laatste)) continue;
     uit.push({ gesprek_id: k.gesprek_id, titel: k.titel, beurten: eigen, gemeten: eigen.length > 0,
@@ -341,9 +356,11 @@ export function kindRijen(boom: ContextBoom | undefined, runId: string, laatste 
   return uit;
 }
 
-/** Het verbruik van de boom: de eigen run plus alle kinderen. `volledig` is onwaar zodra een kind niet gemeten is. */
-export function boomVerbruik(eigen: Contextopbouw, kinderen: KindRij[]): { totaal: number; volledig: boolean } {
-  return { totaal: totaalVerbruik(eigen.som) + kinderen.reduce((n, k) => n + k.verbruik, 0), volledig: kinderen.every((k) => k.gemeten) };
+/** Het verbruik van de boom: de eigen run (als die gemeten is) plus alle kinderen. `volledig` is onwaar zodra een kind
+ *  niet gemeten is. */
+export function boomVerbruik(eigen: Contextopbouw | undefined, kinderen: KindRij[]): { totaal: number; volledig: boolean } {
+  return { totaal: (eigen ? totaalVerbruik(eigen.som) : 0) + kinderen.reduce((n, k) => n + k.verbruik, 0),
+    volledig: kinderen.every((k) => k.gemeten) };
 }
 
 /** De naam van een rol in de tabel van het verbruik. Een onbekende rol toont zijn eigen naam. */

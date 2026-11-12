@@ -28,9 +28,12 @@ class Onvulbaar(ValueError):
     `{"bwb_id", "artikel"}` voor `get_artikel`: een artikel dat het antwoord noemt en dat de opgehaalde tekst
     aanwijst, maar waarvan de tekst er niet bij zit (D, "genoemd is gelezen")."""
 
-    def __init__(self, tekst: str, *, ophalen: Iterable[dict[str, str]] = ()) -> None:
+    def __init__(self, tekst: str, *, ophalen: Iterable[dict[str, str]] = (), code: str = "") -> None:
         super().__init__(tekst)
         self.ophalen = list(ophalen)
+        #: Waarom, als naam uit de code en zonder inhoud (`geen_passage`, `genoemd_onbekend`): de meting telt erop
+        #: (`beurtmeting`, `geweigerd_reden`). De tekst zelf gaat alleen naar het model.
+        self.code = code
 
 
 def _data(tekst: str) -> dict[str, Any] | None:

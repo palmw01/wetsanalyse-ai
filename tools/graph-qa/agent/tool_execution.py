@@ -57,7 +57,11 @@ def execute_tool(b, state, writer, tool, *, operation=None, van_model=False):
              "actie": ("annotaties_lezen" if name in ANNOTATIE_TOOL_NAMEN or name == "get_annotatieweergave" else
                        "begrippen_lezen" if name in BEGRIP_TOOL_NAMEN else "bron_lezen"),
              "filters": {k: v for k, v in args.items() if k in FILTERS},
-             "doel": {k: v for k, v in args.items() if k in {"bron_iri", "bwb_id", "artikel", "lid", "id"}}}
+             "doel": {k: v for k, v in args.items() if k in {"bron_iri", "bwb_id", "artikel", "lid", "id"}},
+             # De modelronde die om deze aanroep vroeg (1 = de eerste van de beurt); 0 als de code hem zelf deed (een
+             # route, een sjabloon dat een artikel ophaalt). Twee aanroepen met dezelfde ronde liepen naast elkaar: zo
+             # is te tellen of het model samen ophaalt wat het samen nodig heeft (ADR-016 §A6).
+             "ronde": int(state.get("turns", 0) or 0) if van_model and not operation else 0}
     bron = bron_van(name)
     if bron is not None:
         event["bron"] = bron.naam

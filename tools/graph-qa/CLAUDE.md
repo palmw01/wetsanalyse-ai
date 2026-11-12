@@ -95,6 +95,12 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   noemt de connector, nooit diens tools. Wie een profiel wijzigt, verandert het gedrag van Lex: dat vraagt een meting,
   en de hash in `tests/test_profielregister.py` bewaakt dat het niet ongemerkt gebeurt. Een profiel is configuratie
   die een Python-agent laadt, nooit een agent op zichzelf.
+- **Twee meetvelden voor de meetlus** (ADR-016 §A6). Elk `tool_execution`-event draagt `ronde`: de modelronde die om de
+  aanroep vroeg (1 = de eerste van de beurt), of 0 als de code hem zelf deed. Twee aanroepen met dezelfde ronde liepen
+  naast elkaar. En een sjabloonweigering telt twee keer in `meting.sjabloon`: in `geweigerd` per sjabloon en functie
+  (zoals altijd, zodat metingen vergelijkbaar blijven) en in `geweigerd_reden` met de reden erbij. Die reden is
+  `Onvulbaar.code`: een naam uit de code, nooit de melding, want die kan tekst uit de vraag of een bron dragen. Geef een
+  nieuwe weigering een `code`; zonder telt ze als `overig`. `tests/test_meetvelden.py`.
 - **De agentvorm (`agent/agentvorm.py`, ADR-016).** Elke agent van de open laag is een `Agent`: een Python-object met
   een profiel. Hij bezit de antwoordketen (`voeg_keten_toe` registreert `agent`, `tools`, `sjabloon`, `verify`,
   `correct` en `finalize`; `build_graph` sluit haar alleen aan) en hij doet de modelaanroep (`Agent.ronde`). Wat hij

@@ -159,6 +159,10 @@ describe("de adviezen en het signaal", () => {
     const andere = opbouw((r) => { r.agenten[0].begin.tools_hash = "anders"; });
     expect(ids(c, andere)).toContain("koud_toolset");
     expect(ids(c, andere)).not.toContain("koud_pauze");
+    // Dezelfde bronnen, andere tools: de vraag is van een ander soort. Andere bronnen: dat zegt de tekst dan.
+    expect(adviezen(c, andere).find((a) => a.id === "koud_toolset")?.tekst).toMatch(/^Deze vraag is van een ander soort/);
+    const andereBronnen = opbouw((r) => { r.agenten[0].begin.tools_hash = "anders"; r.agenten[0].laatste.delen[3].omvang = 100; });
+    expect(adviezen(c, andereBronnen).find((a) => a.id === "koud_toolset")?.tekst).toMatch(/^De bronnen naast de wet wisselden/);
     expect(signaal(c)?.id).toBe("koud_pauze");
     // De cache is van iedereen met hetzelfde vaste deel: de tekst wijst niet naar de jurist.
     expect(adviezen(c).find((a) => a.id === "koud_pauze")?.tekst).not.toMatch(/\bjij\b|\bje was\b/i);
@@ -210,16 +214,31 @@ describe("het verloop en de boom", () => {
       { gesprek_id: "k2", titel: "Andere beurt", berichten: [kind("c", "r0")] },
       { gesprek_id: "k3", titel: "Loopt nog", berichten: [] },
     ] };
-    const rijen = kindRijen(boom, "r1");
+    const bekend = ["r0", "r1"];
+    const rijen = kindRijen(boom, "r1", true, bekend);
     expect(rijen.map((r) => [r.gesprek_id, r.gemeten, r.beurten.length])).toEqual([["k1", true, 2], ["k3", false, 0]]);
     expect(rijen[0].verbruik).toBe(2 * 93012);
     expect(rijen[0].context?.laatste.totaal).toBe(30890);
     expect(boomVerbruik(opbouw(), rijen)).toEqual({ totaal: 3 * 93012, volledig: false });
     expect(boomVerbruik(opbouw(), rijen.slice(0, 1)).volledig).toBe(true);
     // Bij een eerdere beurt staat een kind zonder meting er niet: het is aan geen beurt toe te wijzen.
-    expect(kindRijen(boom, "r1", false).map((r) => r.gesprek_id)).toEqual(["k1"]);
-    expect(kindRijen(boom, "r0", false).map((r) => r.gesprek_id)).toEqual(["k2"]);
+    expect(kindRijen(boom, "r1", false, bekend).map((r) => r.gesprek_id)).toEqual(["k1"]);
+    expect(kindRijen(boom, "r0", false, bekend).map((r) => r.gesprek_id)).toEqual(["k2"]);
     expect(kindRijen(undefined, "r1")).toEqual([]);
+  });
+
+  it("een kind zonder gemeten ouder staat bij de laatste beurt, of op zichzelf in een gesprek zonder meting", () => {
+    // Een regie gebruikt zelf geen model, en de beurten van een reeks dragen geen ouder (meting 12 nov 2026).
+    const kind = (run: string, ouder: string) => ({ run_id: run, contextopbouw: opbouw((r) => { r.run_id = run; r.ouder_run_id = ouder; r.agenten = []; }) });
+    const boom = { gesprek_id: "g", kinderen: [
+      { gesprek_id: "k1", titel: "Annoteren", berichten: [kind("c.1", ""), kind("c.2", ""), kind("c.3", "regie")] },
+    ] };
+    const zonderBeurt = kindRijen(boom, "", true, []);
+    expect(zonderBeurt.map((r) => [r.gesprek_id, r.beurten.length, r.context])).toEqual([["k1", 3, undefined]]);
+    expect(boomVerbruik(undefined, zonderBeurt)).toEqual({ totaal: 3 * 93012, volledig: true });
+    // Met gemeten beurten: bij de laatste, niet bij een eerdere.
+    expect(kindRijen(boom, "r2", true, ["r1", "r2"])).toHaveLength(1);
+    expect(kindRijen(boom, "r1", false, ["r1", "r2"])).toEqual([]);
   });
 
   it("een rol heeft een naam in gewone taal, en een onbekende rol zijn eigen naam", () => {

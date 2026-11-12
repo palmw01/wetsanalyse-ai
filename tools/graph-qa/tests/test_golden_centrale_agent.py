@@ -36,7 +36,7 @@ GROEPEN = {"enkelvoudig": 10, "een_subagent": 5, "meer_subagents": 6, "vraag_omh
 VELDEN = {"route", "route_code", "subagents", "profielen", "tools_verplicht", "tools_verboden", "vraag_omhoog",
           "sjabloon", "bevestiging", "regisseur"}
 #: Tools die ADR-016 toevoegt en die er nu nog niet zijn (A1, A4, A5). Komt er een bij in het ADR, dan hier ook.
-NIEUW = {"subagent", "rapport", "regie_plan", "delegatie_stand", "beantwoord_kaart", "laad_skill", "lees_skill"}
+NIEUW = {"subagent", "rapport", "regie_plan", "delegatie_stand", "beantwoord_kaart", "laad_skill", "lees_skill", "meer_tools"}
 #: Geen tool maar een keten: verboden waar Lex vóór de poort van de jurist niet mag annoteren.
 KETENS = {"annoteer"}
 #: Routes in code die niet in de routeringsset staan: de getypte opdracht aan de regisseur (de ingang van de run, vóór
@@ -187,3 +187,66 @@ def test_de_samenvatting_toetst_een_run_tegen_de_set():
 
     s = vat({"id": "S01", "run": 1, "beurten": [{"label": "gemeten", "events": events}]}, PER_ID["S01"])
     assert not s["delegatie_past"] and "subagent" in s["tools_ontbreken"]
+
+
+def test_de_andere_sets_worden_met_hun_eigen_scorers_gescoord():
+    """`eval/centrale_agent_sets.py`: een beurt van de straat wordt een opname voor de scorers van de set zelf."""
+    from eval.centrale_agent_sets import gesprekken, kwaliteitsset, scoor_gesprek, scoor_kwaliteit
+
+    def beurt(tekst: str, route: str, *, tools=(), niveau="gegrond", bwb="BWBR0004770"):
+        return {"vraag": "v", "tekst": tekst, "gesprek": "g1", "events": [
+            *({"type": "tool_execution", "phase": "start", "tool": t} for t in tools),
+            {"type": "sources", "sources": [{"uri": f"urn:bwb:{bwb}:artikel:1", "bwb_id": bwb}]},
+            {"type": "grounding", "niveau": niveau, "grounded": niveau != "ongegrond", "cited": 1, "unsupported": []},
+            {"type": "meting", "route": route, "modelrondes": 2, "duur_ms": 10, "invoer": 10, "uitvoer": 2,
+             "cache_lees": 0, "cache_schrijf": 0}]}
+
+    # De kwaliteitsset: de weigervraag slaagt alleen zonder bronnen.
+    k_id, case = next((i, c) for i, c in kwaliteitsset().items() if c.get("should_refuse"))
+    geweigerd = {"id": k_id, "set": "kwaliteit", "vorm": "supervisor", "run": 1,
+                 "beurten": [{**beurt("Daar kan ik je niet mee helpen.", "afgewezen"), "events": [
+                     {"type": "meting", "route": "afgewezen", "modelrondes": 1, "invoer": 5, "uitvoer": 1}]}]}
+    assert scoor_kwaliteit(geweigerd, case)["geslaagd"]
+    met_bron = {**geweigerd, "beurten": [beurt("Het regent.", "algemeen")]}
+    assert not scoor_kwaliteit(met_bron, case)["refusal_ok"]
+
+    # Een gesprek: de route komt uit het meting-event; een agent met een taak telt ook als zijn agent.
+    case = gesprekken()["f-bronnen-dan-wetsvraag"]
+    rec = {"id": case["id"], "set": "gesprek", "vorm": "supervisor", "run": 1,
+           "beurten": [beurt("Bij deelvraag 2 ontbreekt nog een bron.", "deelvragen:dekking"),
+                       beurt("Artikel 9 regelt de betalingstermijn.", "algemeen", tools=["get_artikel"])]}
+    uit = scoor_gesprek(rec, case)
+    assert uit["geslaagd"] and uit["beurten"][0]["routes"] == ["deelvragen:dekking", "deelvragen"]
+    assert (uit["tokens"], uit["gewogen"]) == (24, 40)
+    fout = scoor_gesprek({**rec, "beurten": [beurt("Geen idee.", "afgewezen"), rec["beurten"][1]]}, case)
+    assert not fout["geslaagd"] and any("afgewezen" in f for f in fout["beurten"][0]["fouten"])
+
+    # Bij de centrale agent is een specialist bij naam niet te toetsen: dat is geen fout, en het staat erbij.
+    case = {"id": "x", "beurten": [{"vraag": "v", "verwacht": {"route": "definitie", "bevat": ["aanslag"]}}]}
+    centraal = scoor_gesprek({"id": "x", "set": "gesprek", "vorm": "centraal", "run": 1,
+                              "beurten": [beurt("Een belastingaanslag is …", "centraal")]}, case)
+    assert centraal["geslaagd"] and centraal["beurten"][0]["niet_getoetst"] == ["route definitie"]
+    supervisor = scoor_gesprek({"id": "x", "set": "gesprek", "vorm": "supervisor", "run": 1,
+                                "beurten": [beurt("Een belastingaanslag is …", "duiding")]}, case)
+    assert not supervisor["geslaagd"]
+
+
+BREED = _lees(EVAL / "golden_centrale_agent_breed.jsonl")
+
+
+@pytest.mark.parametrize("rij", BREED, ids=lambda r: r["id"])
+def test_de_aanvulling_meet_de_overdracht_naar_de_brede_toolset(rij):
+    """`golden_centrale_agent_breed.jsonl`: dezelfde vorm als de set, in een eigen groep naast de 30."""
+    assert rij["groep"] == "breed" and rij["id"] not in PER_ID
+    v = rij["verwacht"]
+    assert set(v) == VELDEN and v["route"] == "centraal" and v["subagents"] == [0, 0]
+    tools = {t["name"] for t in TOOLS + JAS_TOOLS} | set(SJABLONEN) | NIEUW
+    assert _namen(v["tools_verplicht"]) | _namen(v["tools_verboden"]) <= tools
+    assert ("meer_tools" in v["tools_verplicht"]) != ("meer_tools" in v["tools_verboden"]), "de overdracht hoort wel of juist niet"
+    assert rij["stoppunt"] == "einde" and rij["goed"].strip()
+    assert not SKILLVOORBEELD.search(rij["opdracht"])
+
+
+def test_de_aanvulling_heeft_een_controle_zonder_overdracht():
+    assert sum("meer_tools" in r["verwacht"]["tools_verboden"] for r in BREED) >= 1
+    assert sum("meer_tools" in r["verwacht"]["tools_verplicht"] for r in BREED) >= 2

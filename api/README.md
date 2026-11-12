@@ -147,6 +147,13 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | `POST` | `/v1/admin/users/{userid}/verbruik/reset` | Geef een gebruiker zijn volledige budget terug voor dit venster; het journaal blijft intact. Vraagt `X-User-Id` van een beheerder met 2FA |
 | `POST` | `/v1/admin/users/{id}/2fa/reset` | Haal 2FA van een ander account; vraagt naast het admin-token `X-User-Id` van een beheerder met 2FA |
 | `GET` `POST` | `/v1/admin/api-tokens` | Lijst / nieuw token (eenmalig getoond); met `userid` een accounttoken (409 als `API_TOKEN_LOGIN` uit staat) |
+| `GET` | `/v1/werkplaats/stand` | Staat de werkplaats aan, welke soorten zijn er en wat mag deze gebruiker (ADR-016 deel B) |
+| `GET` `POST` | `/v1/werkplaats/onderdelen` | Eigen en gedeelde concepten / een nieuw concept met versie 1 (alleen met `WERKPLAATS`) |
+| `GET` | `/v1/werkplaats/onderdelen/{id}` · `…/versies/{nummer}` · `…/audit` | Een concept met zijn versies / één versie met de bestanden / de audit |
+| `POST` | `/v1/werkplaats/onderdelen/{id}/versies` · `…/intrekken` | Een volgende versie (`na_versie`, 409 bij een nieuwere) / het eigen concept intrekken |
+| `POST` | `/v1/werkplaats/toets` | Poort 1 zonder op te slaan |
+| `PUT` | `/v1/admin/werkplaats/onderdelen/{id}/delen` · `/v1/admin/werkplaats/beleid` | Delen voor de proef van anderen / mogen analisten concepten maken (beheerder met 2FA) |
+| `POST` | `/v1/admin/werkplaats/onderdelen/{id}/intrekken` | Een concept van een ander intrekken (beheerder met 2FA) |
 | `DELETE` | `/v1/admin/api-tokens/{id}` | Token intrekken |
 | `GET` | `/v1/admin/registraties` | Zelfregistratie-aanvragen (optioneel `?status=aangevraagd`) |
 | `POST` | `/v1/admin/registraties/{id}/goedkeuren` | Account aanmaken (userid corrigeerbaar, rol kiesbaar) |

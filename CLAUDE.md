@@ -427,6 +427,7 @@ alleen lokaal bestaan. Daarvóór staan structurele guards:
   verboden;
 - de relatievoorstellen uit de annotatieketen (`relatieVoorstellen`, ADR-011, een proefvlag) staan default uit en alleen op
   acceptatie aan;
+- de werkplaats van de api (`werkplaats`, ADR-016 deel B) staat default uit en alleen op acceptatie aan;
 - de centrale agent (`centraleAgent`, ADR-016 §A7) staat default op `uit` en alleen op acceptatie op `meten` of `aan`; met
   `uit` negeert graph-qa het verzoek per run;
 - GraphDB blijft `external: false`; de proxy staat default uit, alleen op acceptatie, alleen mét

@@ -509,6 +509,10 @@ def _uurdeel(usage: Any) -> int | None:
     return int(waarde) if isinstance(waarde, int) and not isinstance(waarde, bool) else None
 
 
+#: De velden waarmee de agentvorm zijn profiel aan een aanroep meegeeft (`agentvorm.Agent.ronde`).
+PROFIELVELDEN = ("profiel_id", "profiel_versie")
+
+
 class Verbruiksmeter:
     """Telt het tokenverbruik van één beurt op, over alle LLM-calls heen.
 
@@ -575,6 +579,11 @@ class Verbruiksmeter:
             aanroep["model"] = model
         if opbouw:
             aanroep.update(opbouw)
+        # Het profiel van de agent die aanriep (ADR-016 §A3), als de agentvorm het in het kader zette. Per aanroep, omdat
+        # één beurt meer agents kan draaien (de ophaal-agent en daarna een ander profiel).
+        for veld in PROFIELVELDEN:
+            if (kader or {}).get(veld):
+                aanroep[veld] = str(kader[veld])
         with self._lock:
             self.calls += 1
             self.invoer += aanroep["invoer"]

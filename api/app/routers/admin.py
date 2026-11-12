@@ -45,6 +45,8 @@ from .. import (
     registraties,
     users,
     verbruik as verbruik_svc,
+    werkplaats,
+    werkplaats_store,
 )
 from ..auth import require_admin
 from ..config import get_settings
@@ -72,6 +74,36 @@ async def beheerder_met_2fa(door: str = Depends(huidige_beheerder)) -> str:
     if uitvoerder is None or not uitvoerder.totp_enabled:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Koppel eerst zelf 2FA.")
     return uitvoerder.userid
+
+
+# --- de werkplaats: wat alleen een beheerder mag (ADR-016 §B4) ------------------
+
+class WerkplaatsDelen(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    gedeeld: bool
+
+
+class WerkplaatsBeleid(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    analist_mag_maken: bool
+
+
+@router.put("/werkplaats/onderdelen/{onderdeel_id}/delen", dependencies=[Depends(werkplaats.vereis_aan)])
+async def werkplaats_delen(onderdeel_id: str, body: WerkplaatsDelen, door: str = Depends(beheerder_met_2fa)):
+    """Een concept delen voor de proef van anderen, of dat terugdraaien."""
+    return await werkplaats_store.deel(onderdeel_id, body.gedeeld, door)
+
+
+@router.post("/werkplaats/onderdelen/{onderdeel_id}/intrekken", dependencies=[Depends(werkplaats.vereis_aan)])
+async def werkplaats_intrekken(onderdeel_id: str, door: str = Depends(beheerder_met_2fa)):
+    """Een beheerder trekt elk concept in, ook dat van een ander."""
+    return await werkplaats_store.trek_in(onderdeel_id, door)
+
+
+@router.put("/werkplaats/beleid", dependencies=[Depends(werkplaats.vereis_aan)])
+async def werkplaats_beleid(body: WerkplaatsBeleid, door: str = Depends(beheerder_met_2fa)):
+    """Mogen analisten concepten maken?"""
+    return await werkplaats_store.zet_beleid(body.analist_mag_maken, door)
 
 
 # --- bronconnectors (ADR-013) -------------------------------------------------

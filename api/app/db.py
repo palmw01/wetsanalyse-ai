@@ -734,6 +734,74 @@ connector_audit = Table(
     Index("ix_connector_audit_naam", "naam", "id"),
 )
 
+# De werkplaats (ADR-016 deel B): wat een gebruiker zelf maakt. Eén levenscyclus voor elke soort (skill, agentprofiel,
+# later een MCP-server): geen tabel per soort; wat een soort is, staat in `bronmodel.werkplaats`. Een onderdeel heeft een
+# eigenaar; de naam is uniek per soort en eigenaar zolang het niet is ingetrokken (in code bewaakt, binnen de
+# transactie). De stand (concept, ingetrokken, later voorgesteld en actief) wordt afgeleid en nergens opgeslagen.
+werkplaats_onderdelen = Table(
+    "werkplaats_onderdelen",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("soort", String(32), nullable=False),
+    Column("naam", String(64), nullable=False),
+    Column("eigenaar", String(64), nullable=False),
+    # Door een beheerder gedeeld voor de proef van anderen (§B4).
+    Column("gedeeld", Boolean, nullable=False, default=False),
+    Column("ingetrokken_op", _DT, nullable=True),
+    Column("ingetrokken_door", String(64), nullable=False, default=""),
+    Column("gemaakt", _DT, nullable=False),
+    Column("bijgewerkt", _DT, nullable=False),
+    Index("ix_werkplaats_onderdelen_eigenaar", "eigenaar", "soort", "naam"),
+    # Eén lopend concept per soort, naam en eigenaar: race-vrij tussen replica's. Een ingetrokken onderdeel telt niet.
+    Index("ux_werkplaats_onderdelen_lopend", "soort", "naam", "eigenaar", unique=True,
+          postgresql_where=text("ingetrokken_op IS NULL"), sqlite_where=text("ingetrokken_op IS NULL")),
+)
+
+# Een versie is een volledige snapshot (`bestanden`: pad → tekst) met één hash (`bronmodel.werkplaats.hash_van`). De
+# tabel groeit alleen aan: een versie wordt nooit gewijzigd of verwijderd. `geldig` en `bevindingen` zijn de uitkomst
+# van poort 1 bij het opslaan; een versie die de toets niet haalt, wordt bewaard maar kan niet naar de proef of een PR.
+werkplaats_versies = Table(
+    "werkplaats_versies",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("onderdeel_id", String(64), nullable=False),
+    Column("nummer", Integer, nullable=False),
+    Column("hash", String(64), nullable=False),
+    # De hash van de versie in het image waarop dit concept voortbouwt; leeg bij een nieuw onderdeel.
+    Column("basis_hash", String(64), nullable=False, default=""),
+    Column("bestanden", _JSON, nullable=False),
+    Column("toelichting", String(500), nullable=False, default=""),
+    Column("geldig", Boolean, nullable=False),
+    Column("bevindingen", _JSON, nullable=False, default=list),
+    Column("door", String(64), nullable=False),
+    Column("gemaakt", _DT, nullable=False),
+    Index("ux_werkplaats_versies_nummer", "onderdeel_id", "nummer", unique=True),
+)
+
+# Elke handeling in de werkplaats, append-only, zonder de inhoud van een bestand: het onderdeel, de versie, de hash en
+# wie. `onderdeel_id` is leeg bij het beleid.
+werkplaats_audit = Table(
+    "werkplaats_audit",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("onderdeel_id", String(64), nullable=False, default=""),
+    Column("actie", String(32), nullable=False),
+    Column("door", String(64), nullable=False),
+    Column("details", _JSON, nullable=False, default=dict),
+    Column("tijdstip", _DT, nullable=False),
+    Index("ix_werkplaats_audit_onderdeel", "onderdeel_id", "id"),
+)
+
+# Het beleid van de werkplaats: één rij (id 1). Zonder rij geldt de standaard (`werkplaats_store.BELEID`).
+werkplaats_beleid = Table(
+    "werkplaats_beleid",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("analist_mag_maken", Boolean, nullable=False),
+    Column("door", String(64), nullable=False, default=""),
+    Column("bijgewerkt", _DT, nullable=False),
+)
+
 budget_audit = Table(
     "budget_audit",
     metadata,
