@@ -14,8 +14,14 @@ import pytest
 from bronmodel import catalogus as bc
 from bronmodel import connectors as bm
 
+import typing
+
 from agent import catalogus as cat
 from agent import specialists
+from agent.agents.register import AGENTS
+from agent.begrippen_pipeline import keten as begrippenketen
+from agent.jas_pipeline import keten as annotatieketen
+from agent.models import ACTIE_TAAK, Actie
 from agent.methodepakket import PAKKET
 from agent.sjablonen import SJABLONEN
 
@@ -34,6 +40,47 @@ def test_elk_register_in_de_catalogus_en_omgekeerd():
     assert _ids("connector") == set(bm.CONNECTORS)
     assert _ids("rol") == set(PAKKET["rollen"])
     assert _ids("methode") == {"wetsanalyse"}
+    assert _ids("agent") == set(AGENTS)
+
+
+def test_elk_regelbestand_staat_in_de_catalogus():
+    """Elke YAML in de ketens is een regelset; een nieuw bestand komt vanzelf mee (of de catalogus weigert het, als
+    zijn map niet in `REGELMAPPEN` staat)."""
+    bestanden = {o.bestand[0] for o in ALLE if o.soort == "regelset"}
+    for pad in cat.regelbestanden():
+        rel = "tools/graph-qa/" + pad.relative_to(WORTEL / "tools/graph-qa").as_posix()
+        assert rel in bestanden or "/profielen/" in rel, f"{rel} niet in de catalogus"
+
+
+def test_een_agent_noemt_al_zijn_taken_en_acties():
+    for naam, mod in AGENTS.items():
+        o = cat.onderdeel(bc.oid("agent", naam))
+        assert {t["taak"] for t in o.inhoud["taken"]} == {t.value for t in mod.Taak}
+        assert {t["taak"] for t in o.inhoud["taken"] if t["model"]} == {t.value for t in mod.MODEL_TAKEN}
+        assert set(o.ingang) == {a for a, (ag, _) in ACTIE_TAAK.items() if ag == naam}
+
+
+@pytest.mark.parametrize("keten,fn", [(annotatieketen, "fasen.klaar"), (begrippenketen, "fase")])
+def test_elke_fase_die_een_keten_meldt_staat_in_haar_stappen(keten, fn):
+    """De stappen van een workflow komen uit de code: elke fase die de keten meldt, staat in `FASEN`, en omgekeerd."""
+    bron = Path(keten.__file__).read_text()
+    gemeld = set(re.findall(rf'\b{re.escape(fn)}\("([^"]+)"', bron))
+    assert gemeld and gemeld == {s.naam for s in keten.FASEN}
+
+
+def test_ingangen_van_workflows_en_agents_bestaan():
+    acties = set(typing.get_args(Actie))
+    for o in ALLE:
+        if o.soort in ("agent", "workflow"):
+            for i in o.ingang:
+                assert i in acties or i == "annoteer", f"{o.id}: ingang {i} is geen actie"
+
+
+def test_een_workflow_heeft_stappen_en_een_laag():
+    for o in ALLE:
+        if o.soort == "workflow":
+            assert o.laag and o.stappen
+            assert o.model == bc.zwaarste([s.model for s in o.stappen])
 
 
 def test_ids_zijn_uniek_en_stabiel():

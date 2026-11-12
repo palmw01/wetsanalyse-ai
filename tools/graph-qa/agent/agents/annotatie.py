@@ -18,6 +18,10 @@ from . import Context, Uitkomst, geweigerd
 from .deelvragen import deelvraag_op_nummer
 
 
+#: Wat deze agent doet, met wat er níét bij hoort (ADR-010 contractpunt 1; de catalogus toont het, ADR-014).
+DOEL = "Annoteert een werkgebied als geheel of alleen de bronnen onder de deelvragen, na een bevestiging; één bepaling annoteren is de annotatieketen."
+
+
 class Taak(StrEnum):
     WERKGEBIED = "werkgebied"
     DEELVRAGEN = "deelvragen"

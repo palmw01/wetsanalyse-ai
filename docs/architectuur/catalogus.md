@@ -39,16 +39,18 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 
 **Rol of specialist**
 - Een `Rol`-member in `agent/llm_stap.py` en secties in `agentrollen.json`.
-- Een entry in `SPECIALISTS` met `BESCHRIJVING`.
+- Een entry in `SPECIALISTS` met `doel`.
 - Routeringsrijen in `eval/golden_routering.jsonl` en een meting (ADR-010).
 
 **Agent of taak**
-- De module in `agent/agents/` met `Taak`, `MODEL_TAKEN`, `Invoer`, `voer_uit` en `BESCHRIJVING`.
+- De module in `agent/agents/` met `DOEL`, `Taak`, `MODEL_TAKEN`, `Invoer` en `voer_uit`.
 - `ACTIE_TAAK` en de routeringsrijen.
 - De api-aanroepen in `TOEGESTAAN`.
 
 **Workflow**
-- Een vaste functie of node, met `BESCHRIJVING` (laag, stappen).
+- Een vaste functie of node, met haar stappen als constante in de module zelf (`FASEN`, `METHODEN`,
+  `KAARTSTAPPEN`) en een regel in `agent/catalogus.uit_workflows` (laag, doel). Meldt de keten haar fasen, dan
+  toetst `test_catalogus.py` dat elke gemelde fase in de constante staat.
 - Een rij in de routeringstabel.
 - Testrijen.
 
@@ -64,7 +66,9 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 - Zie ADR-008: de module, de registerregel en `Specialist.sjablonen`. Een nieuw blok krijgt ook een Literal en een component.
 
 **Regelset** (een detector-, begrippen- of zoekregel)
-- Een YAML-item met `bron`, `versie` en `tests` (positief, negatief, rand, overlap).
+- Een YAML-item met `bron`, `versie` en `tests` (positief, negatief, rand, overlap). Het bestand begint met een
+  commentaaralinea: dat is het doel in de catalogus. Een nieuw bestand komt vanzelf mee; een nieuwe map hoort in
+  `REGELMAPPEN` (`agent/catalogus.py`).
 - De code van het item in `verklaringen.yaml`.
 - Bij een detectorregel ook `candidate_rules` in het profiel van zijn klasse.
 
@@ -79,8 +83,8 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 
 | Fase | Wat | PR |
 |---|---|---|
-| C0 | ADR-014 en dit document | – |
-| C1 | `Onderdeel` + adapters voor connector, sjabloon, specialist en methode/rol + drift-test | – |
+| C0 | ADR-014 en dit document | #1275 |
+| C1 | `Onderdeel` + adapters voor connector, sjabloon, specialist en methode/rol + drift-test | #1279 |
 | C2 | agents en taken, regie, regelsets, workflows met stappen | – |
 | C3 | de routeringstabel (ADR-010) | – |
 | C4 | de generator voor meerdere skills | – |
