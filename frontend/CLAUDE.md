@@ -6,7 +6,7 @@ opslag, de [wetsanalyse-API](../api). De app **is de werkplek**: `/workbench` (d
 leidt daarheen door.
 
 > **Scope: chat-werkruimte.** De app bestaat uit de werkplek, het annotatie-overzicht, de
-> werkgebieden, het begrippenoverzicht, de login-flow en het instellingenvenster (account, verbruik, berichten, en voor beheerders
+> werkgebieden, het begrippenoverzicht, de werkwijze van Lex (de catalogus, ADR-014), de login-flow en het instellingenvenster (account, verbruik, berichten, en voor beheerders
 > modelprofielen, gebruikers, aanvragen, API-tokens, berichtenbeheer en feedback).
 
 Lees ook de projectroot-`CLAUDE.md` en `../api/CLAUDE.md` – de API is de bron van waarheid voor de
@@ -1434,6 +1434,21 @@ bestaat los van de gesprekken.
   lijn als inset-schaduw en geen negatieve marge; `test-werkgebieden.mjs` toetst het op 390 px.
 - Browserregressie: `scripts/test-werkgebieden.mjs` en `scripts/test-begrippen.mjs` (mocks die revisies,
   de poort en de primaire duiding bijhouden zoals de api; de tweede loopt de acceptatie van levering 2).
+
+## De werkwijze van Lex (`/werkwijze`, ADR-014)
+
+Een leesingang in de sidebar (*Werkwijze*): wat Lex kan, uit graph-qa `GET /v1/catalogus` (de BFF `app/api/catalogus`,
+`agent: true`). Per concept (ADR-014 §7: kennis en methode, vaste ketens, agents, handelingen, ingangen, controles;
+`CONCEPT_LABEL`) een `Groep` met `GroepRij`'s, per rij de soort als label en of er een model aan te pas komt (`ModelLabel`:
+*Zonder model*, *Model in één stap*, *Model met tools*; lintblauw, geen oordeel) en *hier uit* als de straat het niet
+aanbiedt. De balk is `OverzichtBalk` zonder *Door mij bewerkt* (de props zijn optioneel); concept en zoekterm staan in de
+URL. De pagina van een onderdeel (`/werkwijze/<soort>/<naam>`, `OnderdeelPagina`) toont het contract (ADR-010), de stappen
+van een workflow, de inhoud per soort (methodetekst, regels met hun voorbeeldzinnen, de beschrijving van een bron), de
+herkomst, *Leunt op* / *Gebruikt door* en waar het in de repo staat. **Alleen lezen**: dit is geen ontwikkelhulpmiddel
+maar uitleg voor de jurist hoe een voorstel ontstaat; drift en testuitslagen horen er niet. Wijzigen gaat via een PR
+(later een voorstel dat een concept-PR wordt, alleen op acceptatie). De rekenkern en de spiegel van het bronmodel staan
+in `lib/catalogus.ts` (`catalogus.test.ts` toetst de soorten tegen `bronmodel/catalogus.py`). Browserregressie:
+`scripts/test-werkwijze.mjs` (`WERKWIJZE_FIXTURE` en `WERKWIJZE_SCREENSHOT` voor een controle met de echte catalogus).
 
 ## De artefact-werkbank
 

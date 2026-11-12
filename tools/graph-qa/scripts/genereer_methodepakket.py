@@ -1,4 +1,4 @@
-"""Compileer de expliciete skillselectie; geen runtime-bestandslezing nodig."""
+"""Compileer de expliciete skillselectie van alle methode-skills (ADR-014 §7); geen runtime-bestandslezing nodig."""
 from __future__ import annotations
 
 import argparse
@@ -22,25 +22,41 @@ def sha(tekst: str) -> str:
     return hashlib.sha256(tekst.encode()).hexdigest()
 
 
-def compileer(skill: Path = SKILL) -> dict:
+SKILLS = ROOT / '.claude/skills'
+
+
+def methode_skills(basis: Path = SKILL) -> list[Path]:
+    """De andere methode-skills naast de basis: elke map onder `.claude/skills/` met `lex_soort: "methode"`, op naam
+    (ADR-014 §7). Een skill die alleen voor Claude Code is, telt niet mee."""
+    return [p.parent for p in sorted(SKILLS.glob('*/SKILL.md'))
+            if p.parent.resolve() != basis.resolve() and 'lex_soort: "methode"' in p.read_text()]
+
+
+def _lees(skill: Path, *, basis: bool) -> tuple[str, dict, dict, dict, set[str]]:
+    """Eén skill: versie, lex-metadata, de rollen die hij vult, zijn secties en zijn bronbestanden. De basis bepaalt
+    alle rollen; een andere skill vult bestaande rollen aan (een nieuwe rol vraagt code en een meting, ADR-014 §5)."""
     hoofd = (skill / 'SKILL.md').read_text()
     versie = re.findall(r'^  methode_versie: "([^"\n]+)"$', hoofd.split('---', 2)[1], re.M)
     if len(versie) != 1:
-        raise ValueError('precies één methode_versie in skillmetadata vereist')
+        raise ValueError(f'{skill.name}: precies één methode_versie in skillmetadata vereist')
     # De beschrijving voor de catalogus (ADR-014): soort, label, herkomst, licentie en of de tekst letterlijk uit een
     # bron van derden mag komen. Het staat in de frontmatter, zodat de skill ook voor Claude Code één bestand blijft.
     lex = dict(re.findall(r'^  lex_([a-z]+): "([^"\n]+)"$', hoofd.split('---', 2)[1], re.M))
     beschrijving = re.search(r'^description: >-\n((?:  .+\n)+)', hoofd.split('---', 2)[1], re.M)
     if not beschrijving:
-        raise ValueError('skillmetadata: description (>-) vereist')
+        raise ValueError(f'{skill.name}: skillmetadata: description (>-) vereist')
     lex['beschrijving'] = ' '.join(r.strip() for r in beschrijving[1].splitlines())
     if set(lex) - {'beschrijving'} != LEX_VELDEN or lex['soort'] != 'methode' or lex['letterlijk'] not in ('ja', 'nee'):
-        raise ValueError(f'skillmetadata lex_*: precies {sorted(LEX_VELDEN)} vereist')
+        raise ValueError(f'{skill.name}: skillmetadata lex_*: precies {sorted(LEX_VELDEN)} vereist')
+    if lex['letterlijk'] == 'ja' and not (skill / 'BRON.md').exists():
+        raise ValueError(f'{skill.name}: letterlijke tekst van derden vraagt een BRON.md met de licentie')
     mapping = json.loads((skill / 'agentrollen.json').read_text())
-    if set(mapping['rollen']) != ROLLEN:
+    if basis and set(mapping['rollen']) != ROLLEN:
         raise ValueError('onbekende of ontbrekende agentrollen')
+    if not basis and (not mapping['rollen'] or not set(mapping['rollen']) <= ROLLEN):
+        raise ValueError(f'{skill.name}: een skill vult alleen bestaande rollen aan ({sorted(ROLLEN)})')
     register = (skill / 'references/bronnen.md').read_text()
-    bekend = set(re.findall(r'^\| ([MP]\d+) \|', register, re.M))
+    bekend = set(re.findall(r'^\| ([A-Z]{1,3}\d+) \|', register, re.M))
     secties = {}
     for key, spec in mapping['secties'].items():
         if not re.fullmatch(r'[a-z][a-z-]*', key):
@@ -57,15 +73,40 @@ def compileer(skill: Path = SKILL) -> dict:
         inhoud = tekst.split(start)[1].split(einde)[0].strip()
         if not inhoud or not spec['bronnen'] or not set(spec['bronnen']) <= bekend:
             raise ValueError(f'lege sectie of ongeldige broncodes: {key}')
-        secties[key] = {**spec, 'tekst': inhoud, 'sha256': sha(inhoud)}
+        secties[key] = {**spec, 'tekst': inhoud, 'sha256': sha(inhoud), 'skill': skill.name}
     for rol, ids in mapping['rollen'].items():
         if not ids or len(ids) != len(set(ids)) or not set(ids) <= secties.keys():
             raise ValueError(f'ongeldige sectieselectie: {rol}')
     # Ook klassendefinities en bronregister vallen onder de identiteit van het pakket.
-    bestanden = {'SKILL.md', 'agentrollen.json', 'references/bronnen.md',
-                 'references/jas-klassen-referentie.md'} | {s['bestand'] for s in secties.values()}
-    pakket = {'versie': versie[0], 'lex': lex, 'rollen': mapping['rollen'], 'secties': secties,
-              'bronbestanden': {p: sha((skill / p).read_text()) for p in sorted(bestanden)}}
+    bestanden = {'SKILL.md', 'agentrollen.json', 'references/bronnen.md'} | {s['bestand'] for s in secties.values()}
+    if basis:
+        bestanden.add('references/jas-klassen-referentie.md')
+    return versie[0], lex, mapping['rollen'], secties, bestanden | ({'BRON.md'} if (skill / 'BRON.md').exists() else set())
+
+
+def compileer(skill: Path = SKILL, extra: list[Path] | None = None) -> dict:
+    """Het methodepakket uit de basis-skill en de methode-skills ernaast. Een rol is de vereniging van de secties die de
+    skills haar geven: eerst de basis, dan de andere skills op naam. Sectie-ids en broncodes zijn uniek over de skills."""
+    versie, lex, rollen, secties, bestanden = _lees(skill, basis=True)
+    rollen = {r: list(ids) for r, ids in rollen.items()}
+    bronbestanden = {p: sha((skill / p).read_text()) for p in sorted(bestanden)}
+    codes = {c: skill.name for s in secties.values() for c in s['bronnen']}
+    skills = {skill.name: {'versie': versie, 'lex': lex, 'map': f'.claude/skills/{skill.name}'}}
+    for ander in (methode_skills(skill) if extra is None else extra):
+        v, l, r, s, b = _lees(ander, basis=False)
+        if dubbel := secties.keys() & s.keys():
+            raise ValueError(f'{ander.name}: sectie-id al in gebruik: {sorted(dubbel)}')
+        for c in {c for x in s.values() for c in x['bronnen']}:
+            if codes.get(c, ander.name) != ander.name:
+                raise ValueError(f'{ander.name}: broncode {c} is al van {codes[c]}')
+            codes[c] = ander.name
+        secties |= s
+        for rol, ids in r.items():
+            rollen[rol] += ids
+        bronbestanden |= {f'{ander.name}/{p}': sha((ander / p).read_text()) for p in sorted(b)}
+        skills[ander.name] = {'versie': v, 'lex': l, 'map': f'.claude/skills/{ander.name}'}
+    pakket = {'versie': versie, 'lex': lex, 'rollen': rollen, 'secties': secties, 'bronbestanden': bronbestanden,
+              'skills': skills}
     pakket['sha256'] = sha(json.dumps(pakket, sort_keys=True, ensure_ascii=False))
     return pakket
 

@@ -35,6 +35,12 @@ from .provenance import _BWB_RE, citations_in, first_bwb
 from .resultaat import is_contract, waarden
 from .tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
 
+#: Deze controle in de catalogus (ADR-014 §7, concept hook): deterministisch, op een vast moment, niet door het model
+#: uit te zetten.
+CONTROLE = {"naam": "brongetrouwheid", "label": "Controle op brongetrouwheid", "doel": ("Toetst na het antwoord of elke vindplaats uit de graaf kwam en elk citaat letterlijk in de opgehaalde tekst staat; bij een afwijking één correctieronde, daarna gaat het oordeel mee."),
+            "moment": "na het antwoord, vóór uitgifte (verify_node; Stop-hook)", "tests": ('tools/graph-qa/tests/test_grounding.py',)}
+
+
 logger = logging.getLogger(__name__)
 
 # Citaten in de vormen die een model gebruikt: rechte, typografische en Nederlandse dubbele aanhalingstekens, ook

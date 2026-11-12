@@ -22,7 +22,8 @@ import re
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
-Soort = Literal["methode", "rol", "specialist", "agent", "workflow", "route", "connector", "sjabloon", "regelset"]
+Soort = Literal["methode", "rol", "regelset", "tool", "connector", "sjabloon", "workflow", "specialist", "agent",
+                "route", "controle"]
 
 #: De soorten in de volgorde van de werkplek.
 SOORTEN: tuple[str, ...] = Soort.__args__  # type: ignore[attr-defined]
@@ -32,6 +33,55 @@ SOORTEN: tuple[str, ...] = Soort.__args__  # type: ignore[attr-defined]
 #: - `strict`: één modelstap met een strikte tool en validatie in code (ADR-005/010);
 #: - `agent`: een open lus met tools.
 Model = Literal["geen", "strict", "agent"]
+
+#: Het concept uit Claude Code waar een soort bij hoort (ADR-014 §7). De samenwerking wordt per concept geregeld:
+#: - `skill`: kennis die zelf niets uitvoert en in de context van een agent of workflow geladen wordt;
+#: - `tool`: één getypte handeling met het resultaatcontract;
+#: - `workflow`: een vaste keten in code, een model alleen in een strict stap;
+#: - `agent`: een modellus met eigen context, tools en contract (de subagent);
+#: - `ingang`: kiest zonder model één onderdeel (route, commando);
+#: - `hook`: een deterministische controle op een vast moment.
+Concept = Literal["skill", "tool", "workflow", "agent", "ingang", "hook"]
+CONCEPTEN: tuple[str, ...] = Concept.__args__  # type: ignore[attr-defined]
+
+CONCEPT: dict[str, str] = {
+    "methode": "skill", "rol": "skill", "regelset": "skill",
+    "tool": "tool", "connector": "tool", "sjabloon": "tool",
+    "workflow": "workflow",
+    "specialist": "agent", "agent": "agent",
+    "route": "ingang",
+    "controle": "hook",
+}
+
+
+def concept_van(soort: str, model: str) -> str:
+    """Het concept volgt het gedrag: een taak onder de supervisor zonder enige modelstap is een vaste keten, geen
+    agent (de annotatie-agent annoteert een werkgebied als reeks, zonder model)."""
+    if soort == "agent" and model == "geen":
+        return "workflow"
+    return CONCEPT[soort]
+
+
+#: Wat een concept mag gebruiken (`hangt_af_van` = "A gebruikt B"). `tests/test_catalogus.py` maakt elke andere rand
+#: rood. Een connector bundelt tools, zoals een MCP-server: daarom mag een tool een tool gebruiken.
+MAG_GEBRUIKEN: dict[str, frozenset[str]] = {
+    "skill": frozenset(),
+    "tool": frozenset({"tool"}),
+    "workflow": frozenset({"tool", "skill", "hook", "workflow"}),
+    "agent": frozenset({"tool", "skill", "hook", "workflow"}),
+    "ingang": frozenset({"workflow", "agent"}),
+    "hook": frozenset({"skill"}),
+}
+
+#: Welk model een concept mag hebben. Een workflow kent nooit een open lus; een skill, ingang of hook nooit een model.
+MAG_MODEL: dict[str, frozenset[str]] = {
+    "skill": frozenset({"geen"}),
+    "tool": frozenset({"geen", "strict"}),
+    "workflow": frozenset({"geen", "strict"}),
+    "agent": frozenset({"agent", "strict"}),
+    "ingang": frozenset({"geen"}),
+    "hook": frozenset({"geen"}),
+}
 
 #: Laag uit ADR-010.
 Laag = Literal["routering", "workflow", "taakagent", "open"]
@@ -63,6 +113,8 @@ class Stap:
     naam: str
     model: Model
     onderdeel: str | None = None
+    #: Bij een strict stap: de `llm_stap.Rol` die de modelaanroep draagt (ADR-014 §7).
+    rol: str | None = None
 
 
 @dataclass(frozen=True)
@@ -93,6 +145,9 @@ class Onderdeel:
     tests: tuple[str, ...] = ()
     #: Ids van onderdelen waar dit op leunt. Een specialist leunt bijvoorbeeld op zijn rol, en die rol op de methode.
     hangt_af_van: tuple[str, ...] = ()
+    #: Waar dit een deel van is (een rol is een deel van zijn skill). Iets anders dan gebruiken: een skill gebruikt niets,
+    #: maar bestaat wel uit delen.
+    deel_van: str | None = None
     #: De straatvlag die het aan- of uitzet (`CONNECTOR_KAMERSTUKKEN`, `RELATIE_VOORSTELLEN`); None = altijd aan.
     straat: str | None = None
     #: Welke delen een beheerder via de app als wijziging mag voorstellen. Dat zijn sectie-ids of veldnamen. Zo'n
@@ -116,8 +171,12 @@ class Onderdeel:
     def naam(self) -> str:
         return self.id.split("/", 1)[1]
 
+    @property
+    def concept(self) -> str:
+        return concept_van(self.soort, self.model)
+
     def als_dict(self, *, met_inhoud: bool = False) -> dict[str, Any]:
-        d = asdict(self)
+        d = asdict(self) | {"concept": self.concept}
         if not met_inhoud:
             d.pop("inhoud")
         return d

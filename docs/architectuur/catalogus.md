@@ -34,8 +34,12 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
    - `SKILL.md`: `name`, `description` en `metadata.lex` (`soort: methode`, `herkomst`, `licentie`, `letterlijk`);
    - `agentrollen.json`;
    - `references/bronnen.md` met eigen broncodes.
-3. Begin met methodetekst voor **bestaande** rollen. Een nieuwe rol of eigen classificaties volgen ADR-014 §5.
-4. Draai `uv run python scripts/genereer_jas_klassen.py`. Die draait de methodepakketgenerator mee.
+3. Begin met methodetekst voor **bestaande** rollen: `agentrollen.json` noemt zijn secties en per rol welke hij
+   toevoegt. Sectie-ids en broncodes zijn uniek over de skills; een nieuwe rol of eigen classificaties volgen ADR-014 §5.
+   Met `lex_letterlijk: "ja"` hoort er een `BRON.md` met de licentie in de skillmap.
+4. Draai `uv run python scripts/genereer_jas_klassen.py`. Die draait de methodepakketgenerator mee; hij vindt elke map
+   onder `.claude/skills/` met `lex_soort: "methode"`. Er is geen code nodig: `tests/test_skill_zonder_code.py` bewijst
+   het met een nep-skill.
 
 **Rol of specialist**
 - Een `Rol`-member in `agent/llm_stap.py` en secties in `agentrollen.json`.
@@ -54,10 +58,19 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 - Een rij in de routeringstabel.
 - Testrijen.
 
-**Route** (een vaste weg zonder model vóór de supervisor)
-- Een rij in de routeringstabel (ADR-010; tot C3 de volgorde in `nodes/supervisie.py`), met zijn negatieven in
-  `eval/golden_gesprek.jsonl` (ADR-005).
-- Het routecontract in `tests/poort/routeboek.py`.
+**Route** (een vaste weg zonder model, vóór of na de supervisor)
+- Een herkenner, een tak in `nodes/supervisie._kies` en een rij in `agent/routes.py` (`ROUTES`: herkenner, doel, moment).
+  `test_catalogus.py` houdt tabel en code gelijk en eist dat de route precies één workflow of agent kiest.
+- De rijen in `eval/golden_routering.jsonl` en de negatieven in `eval/golden_gesprek.jsonl` (ADR-005, ADR-010).
+
+**Tool** (een graaftool, leestool of connectortool)
+- De declaratie in `agent/tools/` met een beschrijving die zegt wat er terugkomt, het resultaatcontract
+  (`tests/test_resultaatcontract.py`) en een plek in een specialist (`tests/test_toolverdeling.py`). De catalogus leest
+  `_BY_NAME`; geen eigen lijst.
+
+**Controle** (een hook: deterministisch, op een vast moment)
+- Een `CONTROLE`-beschrijving naast de code (naam, label, doel, moment, tests) en de module in
+  `agent/catalogus._controlemodules`. Een controle gebruikt hoogstens een skill.
 
 **Connector**
 - Zie ADR-013: de beschrijving, de tools en de straatvlag. De catalogus leest de beschrijving.
@@ -85,11 +98,17 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 |---|---|---|
 | C0 | ADR-014 en dit document | #1275 |
 | C1 | `Onderdeel` + adapters voor connector, sjabloon, specialist en methode/rol + drift-test | #1279 |
-| C2 | agents en taken, regie, regelsets, workflows met stappen | – |
-| C3 | de routeringstabel (ADR-010) | – |
-| C4 | de generator voor meerdere skills | – |
-| C5 | `GET /v1/catalogus` + BFF | – |
-| C6 | de werkplek: *Werkwijze van Lex* | – |
+| C2 | agents en taken, regie, regelsets, workflows met stappen | #1281 |
+| C5 | `GET /v1/catalogus` + BFF | #1285 |
+| C6 | de werkplek: *Werkwijze van Lex* | #1286 |
+| S1 | ADR-014 §7 *Samenwerking* | #1290 |
+| S2 | concepten, de soorten `tool` en `controle`, aanroepregels als test | #1291 |
+| S3 | de routeringstabel (ADR-010) | #1292 |
+| S4 | context per agent (`test_context_per_agent`) | #1294 |
+| S5 | meerdere skills, binding per rol, nep-skill | #1296 |
+| S6 | regelsets uit een skill | – |
+| S7 | werkplek per concept | – |
+| S8 | commando's wijzen naar één onderdeel | #1298 |
 | C7 | een wijziging voorstellen → concept-PR (acceptatie) | – |
 | C8 | de skill `wetsuitvoering` (trap 1) | – |
 | C9 | regels voorstellen, met hun eigen tests als poort | – |

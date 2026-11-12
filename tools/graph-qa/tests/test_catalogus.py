@@ -21,7 +21,9 @@ from agent import specialists
 from agent.agents.register import AGENTS
 from agent.begrippen_pipeline import keten as begrippenketen
 from agent.jas_pipeline import keten as annotatieketen
-from agent.models import ACTIE_TAAK, Actie
+from agent.llm_stap import Rol
+from agent.models import ACTIE_TAAK, BRONSELECTIE_ACTIES, INTAKE_ACTIES, REGIE_ACTIES, Actie
+from agent.tools import _BY_NAME
 from agent.methodepakket import PAKKET
 from agent.sjablonen import SJABLONEN
 
@@ -39,8 +41,10 @@ def test_elk_register_in_de_catalogus_en_omgekeerd():
     assert _ids("sjabloon") == set(SJABLONEN)
     assert _ids("connector") == set(bm.CONNECTORS)
     assert _ids("rol") == set(PAKKET["rollen"])
-    assert _ids("methode") == {"wetsanalyse"}
+    assert _ids("methode") == set(PAKKET["skills"])
     assert _ids("agent") == set(AGENTS)
+    assert _ids("tool") == set(_BY_NAME)
+    assert _ids("controle") == {m.CONTROLE["naam"] for m in cat._controlemodules()}
 
 
 def test_elk_regelbestand_staat_in_de_catalogus():
@@ -117,9 +121,10 @@ def test_bewerkbaar_bij_een_rol_zijn_haar_secties():
 
 
 def test_verwijzingen_van_de_methode_staan_in_het_bronregister():
-    register = (WORTEL / ".claude/skills/wetsanalyse/references/bronnen.md").read_text()
+    """Elke broncode van een methode staat in het bronregister van díe skill."""
     for o in ALLE:
-        if o.soort in ("methode", "rol"):
+        if o.soort == "methode":
+            register = (WORTEL / PAKKET["skills"][o.naam]["map"] / "references/bronnen.md").read_text()
             for code in o.herkomst.verwijzing:
                 assert f"| {code} |" in register, f"{o.id}: broncode {code} niet in het bronregister"
 
@@ -191,3 +196,156 @@ def test_het_werkdocument_noemt_elke_soort():
     doc = (WORTEL / "docs" / "architectuur/catalogus.md").read_text().lower()
     for soort in bc.SOORTEN:
         assert re.search(rf"\*\*[^*\n]*\b{soort}\b[^*\n]*\*\*", doc), f"soort {soort} heeft geen checklist in catalogus.md"
+
+
+def test_het_endpoint_geeft_de_lijst_zonder_inhoud_en_het_detail_met(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    import api.main as main
+
+    monkeypatch.setattr(main.settings, "qa_api_token", "", raising=False)
+    monkeypatch.setattr(main.settings, "connector_kamerstukken", True, raising=False)
+    monkeypatch.setattr(main.settings, "connector_rechtspraak", False, raising=False)
+    client = TestClient(main.app)   # zonder `with`: de lifespan hoort niet bij deze lichte route
+    r = client.get("/v1/catalogus")
+    assert r.status_code == 200
+    lijst = r.json()
+    assert lijst["soorten"] == list(bc.SOORTEN)
+    assert [o["id"] for o in lijst["onderdelen"]] == IDS
+    assert all("inhoud" not in o for o in lijst["onderdelen"])
+    per_id = {o["id"]: o for o in lijst["onderdelen"]}
+    assert per_id["connector/kamerstukken"]["aan"] is True
+    assert per_id["connector/rechtspraak"]["aan"] is False
+    assert per_id["specialist/duiding"]["aan"] is True
+
+    d = client.get("/v1/catalogus/rol/duiding").json()
+    assert d["inhoud"]["secties"] and d["inhoud"]["secties"][0]["tekst"]
+    assert "specialist/duiding" in d["gebruikt_door"]
+    assert client.get("/v1/catalogus/rol/bestaat_niet").status_code == 404
+
+
+# --- samenwerking (ADR-014 §7) ----------------------------------------------------------------------------------------
+
+PER_ID = {o.id: o for o in ALLE}
+
+
+@pytest.mark.parametrize("o", ALLE, ids=IDS)
+def test_wie_wat_mag_gebruiken(o: bc.Onderdeel):
+    """`hangt_af_van` volgt de aanroepregels per concept: een skill gebruikt niets, een workflow nooit een agent, een
+    ingang precies één workflow of agent. Een tool gebruikt alleen een tool als hij een connector is (een bundel)."""
+    for d in o.hangt_af_van:
+        doel = PER_ID[d]
+        assert doel.concept in bc.MAG_GEBRUIKEN[o.concept], f"{o.id} ({o.concept}) mag {d} ({doel.concept}) niet gebruiken"
+        if o.concept == "tool":
+            assert o.soort == "connector" and doel.soort == "tool", f"{o.id}: alleen een connector bundelt tools"
+
+
+@pytest.mark.parametrize("o", ALLE, ids=IDS)
+def test_het_model_past_bij_het_concept(o: bc.Onderdeel):
+    assert o.model in bc.MAG_MODEL[o.concept], f"{o.id}: model {o.model} past niet bij {o.concept}"
+
+
+def test_een_strict_stap_noemt_de_rol_die_hem_draagt():
+    rollen = {r.naam for r in Rol}
+    for o in ALLE:
+        for s in o.stappen:
+            if s.model == "strict":
+                assert s.rol in rollen, f"{o.id}, stap {s.naam}: strict zonder bestaande llm_stap.Rol"
+            else:
+                assert s.rol is None
+
+
+def test_een_tool_hoort_bij_hoogstens_een_connector():
+    for t in _ids("tool"):
+        bundels = [o.id for o in ALLE if o.soort == "connector" and bc.oid("tool", t) in o.hangt_af_van]
+        assert len(bundels) <= 1, f"{t} zit in {bundels}"
+
+
+def test_elke_actie_is_de_ingang_van_precies_een_onderdeel():
+    """Een klik op een suggestie, en dus een commando, kiest zonder model precies één onderdeel."""
+    for actie in (*ACTIE_TAAK, *BRONSELECTIE_ACTIES, *INTAKE_ACTIES, *REGIE_ACTIES):
+        doelen = [o.id for o in ALLE if o.concept in ("agent", "workflow") and actie in o.ingang]
+        assert len(doelen) == 1, f"actie {actie} wijst naar {doelen}"
+
+
+def test_elke_controle_staat_naast_zijn_code():
+    for m in cat._controlemodules():
+        assert set(m.CONTROLE) == {"naam", "label", "doel", "moment", "tests"}, m.__name__
+
+
+def test_een_deel_hoort_bij_een_geheel_van_hetzelfde_concept():
+    for o in ALLE:
+        if o.deel_van:
+            assert PER_ID[o.deel_van].concept == o.concept, o.id
+
+
+def test_een_agent_zonder_modelstap_is_een_workflow():
+    assert PER_ID["agent/annotatie"].concept == "workflow"
+    assert PER_ID["agent/begrippen"].concept == "agent"
+
+
+# --- de routeringstabel (ADR-010, ADR-014 §7) -------------------------------------------------------------------------
+
+def _los_op(pad: str):
+    import importlib
+    module, naam = pad.split(":")
+    return getattr(importlib.import_module(module), naam)
+
+
+#: Wat `supervisie.py` importeert met een herkennersnaam maar geen route kiest: de stand van een open kaartje.
+NIET_ROUTE = {"is_open", "is_aanvullen"}
+
+
+def test_elke_route_bestaat_en_kiest_een_onderdeel():
+    from agent.routes import ROUTES
+    assert len({r.naam for r in ROUTES}) == len(ROUTES)
+    for r in ROUTES:
+        assert callable(_los_op(r.herkenner)), r.herkenner
+        assert PER_ID[r.doel].concept in ("workflow", "agent"), f"route {r.naam} kiest {r.doel}"
+        assert PER_ID[bc.oid("route", r.naam)].hangt_af_van == (r.doel,)
+
+
+def test_de_routeringstabel_en_supervisie_zijn_gelijk():
+    """Elke herkenner in de tabel wordt in `supervisie.py` gebruikt, en elke herkenner die `supervisie.py` importeert
+    of definieert staat in de tabel. Een nieuwe vaste weg zonder rij, of een rij zonder weg, wordt rood."""
+    import ast
+    import inspect
+
+    from agent.nodes import supervisie
+    from agent.routes import ROUTES
+
+    bron = inspect.getsource(supervisie)
+    boom = ast.parse(bron)
+    geimporteerd = {(a.asname or a.name): f"{n.module}:{a.name}" for n in ast.walk(boom)
+                    if isinstance(n, ast.ImportFrom) and n.module for a in n.names}
+    herkenners = {naam for naam in geimporteerd if re.match(r"(is_|lees_|wijst_|_heeft_)", naam)} - NIET_ROUTE
+    helpers = {"_lijst", "_bron_uit", "_te_lezen", "_doorvraag", "_buiten_graaf_melding"}
+    in_tabel = set()
+    for r in ROUTES:
+        module, naam = r.herkenner.split(":")
+        lokaal = next((k for k, v in geimporteerd.items()
+                       if v.split(":")[1] == naam and v.split(":")[0].split(".")[-1] == module.split(".")[-1]), naam)
+        assert re.search(rf"\b{re.escape(lokaal)}\(", bron), f"route {r.naam}: {lokaal} wordt in supervisie niet aangeroepen"
+        in_tabel.add(lokaal)
+    assert herkenners | helpers <= in_tabel, f"herkenners zonder route: {sorted((herkenners | helpers) - in_tabel)}"
+
+
+# --- commando's (#1276, ADR-014 §7) -----------------------------------------------------------------------------------
+
+def test_elk_commando_wijst_naar_precies_een_onderdeel():
+    """Een `/commando` is een suggestie uit `frontend/lib/vraagLex.ts`: met een `actie` wijst hij via die actie naar
+    precies één workflow of agent; met een `doel` (annoteren) naar de route die een aangewezen bepaling annoteert; met
+    `invullen` zet hij alleen een vraag klaar, die langs de supervisor gaat. De clientcommando's (`/nieuw`, `/bron`, `/help`) zijn bediening van de werkplek en vallen erbuiten."""
+    bron = (WORTEL / "frontend" / "lib/vraagLex.ts").read_text()
+    regels = [r for r in bron.splitlines() if "commando: {" in r]
+    assert regels, "geen commando's gevonden in vraagLex.ts"
+    for r in regels:
+        naam = re.search(r'commando: \{ naam: "([a-z-]+)"', r)[1]
+        if actie := re.search(r'actie: "([a-z_]+)"', r):
+            doelen = [o.id for o in ALLE if o.concept in ("agent", "workflow") and actie[1] in o.ingang]
+            assert len(doelen) == 1, f"/{naam} (actie {actie[1]}) wijst naar {doelen}"
+        elif "invullen: true" in r:
+            continue   # zet alleen een vraag klaar die de jurist afmaakt: die gaat langs de supervisor
+        else:
+            assert re.search(r"\bdoel\b", r), f"/{naam}: geen actie, doel of invullen"
+            assert PER_ID["route/annotatie_doel"].hangt_af_van == ("workflow/annotatieketen",)

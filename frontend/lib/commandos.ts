@@ -13,9 +13,9 @@ import type { Suggestie } from "./vraagLex";
  *
  *  **De catalogus (ADR-014).** Wat Lex kan, staat niet hier: een suggestiecommando wijst naar een `actie` uit graph-qa
  *  (`ACTIE_TAAK` en de andere actielijsten in `agent/models.py`), of naar het annotatiedoel. Dat is een ingang van een
- *  `Onderdeel` in de catalogus. Bij C1 komt er een drift-test die nagaat dat elke actie van een commando een ingang is
- *  van een onderdeel. Komt er een detailpagina per onderdeel, dan wijst de hulp ernaar. De clientcommando's zijn
- *  bediening van de werkplek, geen onderdeel van Lex, en horen dus niet in de catalogus.
+ *  `Onderdeel` in de catalogus. `tools/graph-qa/tests/test_catalogus.py` toetst dat elk commando via zijn actie (of zijn
+ *  annotatiedoel) naar precies één onderdeel wijst (ADR-014 §7). De clientcommando's zijn bediening van de werkplek,
+ *  geen onderdeel van Lex, en horen dus niet in de catalogus.
  *
  *  `/` doet alleen iets als eerste teken in het invoerveld: het is tekst, geen sneltoets. Een `/`-tekst zonder bekend
  *  commando gaat ongewijzigd als vraag naar Lex. */

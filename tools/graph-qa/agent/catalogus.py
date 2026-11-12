@@ -28,11 +28,10 @@ from .begrippen_pipeline import keten as begrippenketen
 from .jas_pipeline import keten as annotatieketen
 from .llm_stap import Rol
 from .models import ACTIE_TAAK, BRONSELECTIE_ACTIES, INTAKE_ACTIES, REGIE_ACTIES
+from .methode import vingerafdruk
 from .methodepakket import PAKKET
 from .sjablonen import SJABLONEN, Sjabloon
 
-_SKILL = ".claude/skills/wetsanalyse"
-METHODE = oid("methode", "wetsanalyse")
 
 
 def _eerste_zin(tekst: str) -> str:
@@ -43,25 +42,41 @@ def _eerste_zin(tekst: str) -> str:
 
 # --- methode en rollen ---------------------------------------------------------------------------------------------
 
-def _methode_herkomst(codes: tuple[str, ...] = ()) -> Herkomst:
-    lex = PAKKET["lex"]
+def _methode_herkomst(codes: tuple[str, ...] = (), skill: str | None = None) -> Herkomst:
+    lex = PAKKET["skills"][skill or _basis()]["lex"]
     return Herkomst(bron=lex["herkomst"], licentie=lex["licentie"], letterlijk=lex["letterlijk"] == "ja",
                     verwijzing=codes)
 
 
+def _basis() -> str:
+    return next(iter(PAKKET["skills"]))
+
+
+def _andere_skills() -> tuple[str, ...]:
+    """De voorvoegsels van de bronbestanden van de skills naast de basis (`<naam>/…`)."""
+    return tuple(f"{n}/" for n in PAKKET["skills"] if n != _basis())
+
+
 def uit_methode() -> list[Onderdeel]:
-    lex = PAKKET["lex"]
-    codes = tuple(sorted({c for s in PAKKET["secties"].values() for c in s["bronnen"]}))
-    return [Onderdeel(
-        id=METHODE, soort="methode", label=lex["label"], doel=lex["beschrijving"], model="geen",
-        herkomst=_methode_herkomst(codes),
-        bestand=tuple(f"{_SKILL}/{p}" for p in sorted(PAKKET["bronbestanden"])),
-        versie=PAKKET["sha256"][:12], uitvoer="methodetekst per rol",
-        tests=("tools/graph-qa/tests/test_methodepakket.py", "tools/graph-qa/tests/test_methode_drift.py"),
-        bewerkbaar=tuple(sorted(PAKKET["secties"])),
-        inhoud={"methode_versie": PAKKET["versie"], "rollen": PAKKET["rollen"],
-                "secties": {k: {"bestand": s["bestand"], "bronnen": s["bronnen"]} for k, s in PAKKET["secties"].items()}},
-    )]
+    """Eén onderdeel per methode-skill. De basis bepaalt de rollen; een andere skill vult ze aan (ADR-014 §7)."""
+    uit: list[Onderdeel] = []
+    for naam, meta in PAKKET["skills"].items():
+        eigen = {k: x for k, x in PAKKET["secties"].items() if x["skill"] == naam}
+        codes = tuple(sorted({c for x in eigen.values() for c in x["bronnen"]}))
+        rollen = {r: [k for k in ids if k in eigen] for r, ids in PAKKET["rollen"].items()}
+        prefix = "" if naam == _basis() else f"{naam}/"
+        uit.append(Onderdeel(
+            id=oid("methode", naam), soort="methode", label=meta["lex"]["label"], doel=meta["lex"]["beschrijving"],
+            model="geen", herkomst=_methode_herkomst(codes, naam),
+            bestand=tuple(f"{meta['map']}/{p.removeprefix(prefix)}" for p in sorted(PAKKET["bronbestanden"])
+                          if (p.startswith(prefix) if prefix else not p.startswith(_andere_skills()))),
+            versie=versie(meta["versie"], *(x["sha256"] for x in eigen.values())), uitvoer="methodetekst per rol",
+            tests=("tools/graph-qa/tests/test_methodepakket.py", "tools/graph-qa/tests/test_methode_drift.py"),
+            bewerkbaar=tuple(sorted(eigen)),
+            inhoud={"methode_versie": meta["versie"], "rollen": {r: ids for r, ids in rollen.items() if ids},
+                    "secties": {k: {"bestand": x["bestand"], "bronnen": x["bronnen"]} for k, x in eigen.items()}},
+        ))
+    return uit
 
 
 def _aanroepers(rol: str) -> tuple[str, ...]:
@@ -76,17 +91,17 @@ def uit_rollen() -> list[Onderdeel]:
     for rol, ids in sorted(PAKKET["rollen"].items()):
         secties = {k: PAKKET["secties"][k] for k in ids}
         codes = tuple(sorted({c for s in secties.values() for c in s["bronnen"]}))
-        agentisch = any(specialists.methoderol(n) == rol for n in specialists.SPECIALISTS)
         uit.append(Onderdeel(
             id=oid("rol", rol), soort="rol", label=f"Methoderol {rol}",
             doel=f"De methodetekst die {', '.join(_aanroepers(rol)) or 'geen aanroeper'} krijgt: "
                  f"de secties {', '.join(ids)}.",
-            model="agent" if agentisch else "strict", herkomst=_methode_herkomst(codes),
-            bestand=tuple(sorted({f"{_SKILL}/{s['bestand']}" for s in secties.values()} | {f"{_SKILL}/agentrollen.json"})),
-            versie=versie(*(s["sha256"] for s in secties.values())), ingang=_aanroepers(rol),
+            model="geen", herkomst=_methode_herkomst(codes),
+            bestand=tuple(sorted({f".claude/skills/{s['skill']}/{s['bestand']}" for s in secties.values()}
+                                 | {f".claude/skills/{s['skill']}/agentrollen.json" for s in secties.values()})),
+            versie=vingerafdruk(rol), ingang=_aanroepers(rol),
             context="vóór de systeemprompt, in het stabiele deel (cache-prefix)", uitvoer="systeemprompt",
-            tests=("tools/graph-qa/tests/test_methoderollen.py",), hangt_af_van=(METHODE,), bewerkbaar=tuple(ids),
-            inhoud={"secties": [{"id": k, "bronnen": s["bronnen"], "sha256": s["sha256"], "tekst": s["tekst"]}
+            tests=("tools/graph-qa/tests/test_methoderollen.py",), deel_van=oid("methode", _basis()), bewerkbaar=tuple(ids),
+            inhoud={"secties": [{"id": k, "skill": s["skill"], "bronnen": s["bronnen"], "sha256": s["sha256"], "tekst": s["tekst"]}
                                 for k, s in secties.items()]},
         ))
     return uit
@@ -97,7 +112,7 @@ def uit_rollen() -> list[Onderdeel]:
 def uit_specialisten() -> list[Onderdeel]:
     uit: list[Onderdeel] = []
     for naam, spec in specialists.SPECIALISTS.items():
-        tools = ("alle graaftools",) if spec.tools is None else tuple(sorted(spec.tools))
+        tools = tuple(sorted(_tools_van(spec)))
         uit.append(Onderdeel(
             id=oid("specialist", naam), soort="specialist", label=naam.replace("_", " ").capitalize(),
             doel=spec.doel, model="agent", herkomst=EIGEN, bestand=("tools/graph-qa/agent/specialists.py",),
@@ -105,8 +120,9 @@ def uit_specialisten() -> list[Onderdeel]:
             uitvoer=", ".join(sorted(spec.sjablonen)) or "doel-JSON voor de annotatieroute",
             twijfel="leemte of doorvragen; een citaat dat niet letterlijk in de opgehaalde tekst staat, valt weg (grounding)",
             tests=("tools/graph-qa/tests/test_specialists.py",),
-            hangt_af_van=(oid("rol", specialists.methoderol(naam)), *(oid("sjabloon", s) for s in sorted(spec.sjablonen)),
-                          *(oid("connector", c.naam) for c in CONNECTORS.values() if naam in c.specialisten)),
+            hangt_af_van=(oid("rol", specialists.methoderol(naam)), *(oid("sjabloon", s) for s in sorted(_sjablonen_van(naam, spec))),
+                          *(oid("connector", c.naam) for c in CONNECTORS.values() if naam in c.specialisten),
+                          *(oid("tool", t) for t in sorted(_tools_van(spec))), *ANTWOORD_CONTROLES),
             inhoud={"systeemtekst": spec.system},
         ))
     return uit
@@ -148,7 +164,7 @@ def _connector(c: ConnectorBeschrijving) -> Onderdeel:
         versie=versie(c.naam, c.dekt, sorted(c.tools), c.grenzen), ingang=tuple(sorted(c.tools)),
         tools=tuple(sorted(c.tools)), uitvoer=f"het blok extern ({c.brontype})", twijfel=c.grenzen,
         tests=("tools/graph-qa/tests/test_connectorbeschrijving.py",),
-        hangt_af_van=tuple(oid("specialist", s) for s in sorted(c.specialisten)), straat=c.env,
+        hangt_af_van=tuple(oid("tool", t) for t in sorted(c.tools)), straat=c.env,
         inhoud={"dekt": c.dekt, "beheer": c.beheer, "rol_in_antwoord": c.rol_in_antwoord, "levert": list(c.levert),
                 "niet_in_tekst": list(c.niet_in_tekst), "voorbeeldvragen": list(c.voorbeeldvragen)},
     )
@@ -156,6 +172,16 @@ def _connector(c: ConnectorBeschrijving) -> Onderdeel:
 
 def uit_connectors() -> list[Onderdeel]:
     return [_connector(c) for c in CONNECTORS.values()]
+
+
+#: De vaste keten die een agent gebruikt (een agent gebruikt workflows, nooit andersom; ADR-014 §7).
+AGENT_WORKFLOWS: dict[str, tuple[str, ...]] = {
+    "annotatie": ("workflow/annotatieketen",),
+    "begrippen": ("workflow/begrippenketen",),
+}
+#: De rol van `llm_stap` die een modelstap van de intake draagt.
+_INTAKE_ROL = {"naam": "intake", "aanleiding": "intake", "doel": "intake", "analysevraag": "intake",
+               "deelvragen": "deelvragen_voorstel"}
 
 
 # --- agents ----------------------------------------------------------------------------------------------------------
@@ -175,6 +201,7 @@ def uit_agents() -> list[Onderdeel]:
             uitvoer="een artefact, een bevestiging of een vraagkaart (`agents.Uitkomst`); altijd een voorstel",
             twijfel="geweigerd met een reden, of een vraagkaart; nooit een besluit",
             tests=("tools/graph-qa/tests/test_agents.py", "tools/graph-qa/tests/test_agent_contracten.py"),
+            hangt_af_van=(*AGENT_WORKFLOWS.get(naam, ()), *((oid("rol", naam),) if naam in PAKKET["rollen"] else ())),
             inhoud={"taken": taken},
         ))
     return uit
@@ -306,7 +333,7 @@ def uit_workflows() -> list[Onderdeel]:
             "taakagent", annotatieketen.FASEN,
             bestand=("tools/graph-qa/agent/jas_pipeline/keten.py", "docs/architectuur/annotatieketen.md"),
             tests=("tools/graph-qa/tests/test_detectoren.py", "tools/graph-qa/tests/test_provenance_element.py"),
-            ingang=("annoteer",), hangt_af_van=(*detectoren, "regelset/jas.profielen", "agent/annotatie"),
+            ingang=("annoteer",), hangt_af_van=(*detectoren, "regelset/jas.profielen"),
             uitvoer="markeringen met ankers, trace en aandachtniveau; het beslisregister",
             twijfel="geel met alternatieven voor de jurist; nooit automatisch rood", ),
         _wf("begrippenketen", "Begrippenketen (ADR-004)",
@@ -315,8 +342,7 @@ def uit_workflows() -> list[Onderdeel]:
             "taakagent", begrippenketen.FASEN,
             bestand=("tools/graph-qa/agent/begrippen_pipeline/keten.py",),
             tests=("tools/graph-qa/tests/test_begrippen_patronen.py",),
-            ingang=("begrippen_voorstellen",),
-            hangt_af_van=("regelset/begrippen.berekening", "regelset/begrippen.verklaringen", "agent/begrippen"),
+            hangt_af_van=("regelset/begrippen.berekening", "regelset/begrippen.verklaringen"),
             uitvoer="betekenisgroepen, relaties en vragen (het begrippenartefact)",
             twijfel="een vraag aan de analist, of geel; sterk tegenbewijs wint altijd"),
         _wf("bronnen_vinden", "Bronnen vinden",
@@ -326,7 +352,7 @@ def uit_workflows() -> list[Onderdeel]:
             bestand=("tools/graph-qa/agent/bronnen_vinden.py", "tools/graph-qa/agent/zoekvragen.py",
                      ".claude/skills/wetsanalyse/references/zoekvragen-bronselectie.md"),
             tests=("tools/graph-qa/tests/test_bronnen_vinden.py", "tools/graph-qa/tests/test_zoekvragen.py"),
-            ingang=("bronnen_zoeken",), uitvoer="kandidaten per methode met hun bewijs",
+            uitvoer="kandidaten per methode met hun bewijs",
             twijfel="een methode die faalt wordt `volledig: false`; falen ze allemaal, dan een fout"),
         _wf("bronselectie", "Bronselectie per deelvraag (spoor J)",
             "Werkt de deelvragen één voor één af met vraagkaarten: kernbepalingen, wat eraan hangt, afronden; "
@@ -339,11 +365,48 @@ def uit_workflows() -> list[Onderdeel]:
         _wf("werkgebied_intake", "Werkgebied samenstellen (activiteit 1)",
             "Stelt met vraagkaarten in de volgorde van de methode een werkgebied samen of vult zijn dossier aan; "
             "het model doet alleen voorstellen, de volgorde is een stapmachine.",
-            "workflow", tuple(Stap(s, "strict" if s in werkgebied_intake.MODEL_STAPPEN else "geen")
+            "workflow", tuple(Stap(s, "strict", rol=_INTAKE_ROL[s]) if s in werkgebied_intake.MODEL_STAPPEN else Stap(s, "geen")
                               for s in werkgebied_intake.KAARTSTAPPEN),
             bestand=("tools/graph-qa/agent/werkgebied_intake.py",),
             tests=("tools/graph-qa/tests/test_werkgebied_intake.py",), ingang=INTAKE_ACTIES,
             uitvoer="vraagkaarten en het werkgebiedartefact", twijfel="overslaan kan; een praktijkvoorbeeld verzint Lex niet"),
+        _wf("overzicht", "Overzicht van een onderwerp",
+            "Bouwt op 'welke artikelen gaan over X?' een overzicht en een samenvatting uit de opbouw van de wet, zonder "
+            "model: dezelfde vraag geeft hetzelfde overzicht.", "workflow",
+            (Stap("regelingen in de vraag", "geen"), Stap("opbouw zoeken", "geen", "tool/zoek_opbouw"),
+             Stap("samenvatting", "geen")),
+            bestand=("tools/graph-qa/agent/overzicht.py", "tools/graph-qa/agent/nodes/overzicht.py"),
+            tests=("tools/graph-qa/tests/test_overzicht.py",), uitvoer="het overzicht-event en een kaartje",
+            twijfel="een bouwfout gaat naar de agent"),
+        _wf("bepaling", "De tekst van een bepaling (ADR-010, D1)",
+            "Haalt de tekst van één genoemde bepaling uit de graaf (of live bij overheid.nl); het model schrijft alleen "
+            "de toelichting.", "workflow",
+            (Stap("bepaling lezen", "geen"), Stap("toelichting", "strict", rol="bepaling_toelichting")),
+            bestand=("tools/graph-qa/agent/bepaling_workflow.py", "tools/graph-qa/agent/nodes/bepaling.py"),
+            tests=("tools/graph-qa/tests/test_bepaling_workflow.py",), uitvoer="het sjabloon antwoord_bepaling",
+            hangt_af_van=("sjabloon/antwoord_bepaling", "controle/brongetrouwheid"),
+            twijfel="niet te lezen: de agent neemt het over"),
+        _wf("bron_lezen", "Een genoemd stuk vooraf lezen (ADR-013)",
+            "Leest een stuk dat de vraag bij id of citeervorm noemt met de leestool van zijn connector, voordat de "
+            "specialist formuleert; een stuk zonder tekst krijgt een vaste melding.", "workflow",
+            (Stap("stuk lezen", "geen"),),
+            bestand=("tools/graph-qa/agent/nodes/bron_lezen.py",),
+            tests=("tools/graph-qa/tests/test_bronroutering.py",), uitvoer="het gelezen stuk in het bronspoor",
+            twijfel="niet te lezen of niet gevonden: een vaste melding met de reden"),
+        _wf("bron_lijst", "Een lijst- of telvraag over een bron",
+            "Beantwoordt een lijst- of telvraag over een bron naast de wet met de zoektool in code: het blok stukken, "
+            "de telling uit de bron, zonder model.", "workflow",
+            (Stap("zoekvraag lezen", "geen"), Stap("zoeken", "geen"), Stap("lijst of telling", "geen")),
+            bestand=("tools/graph-qa/agent/bron_lijst.py", "tools/graph-qa/agent/nodes/bron_lijst.py"),
+            tests=("tools/graph-qa/tests/test_bron_lijst.py",), uitvoer="het blok stukken",
+            twijfel="een fout van de bron is een vaste melding; een andere fout gaat naar de agent"),
+        _wf("vaste_melding", "Een vaste melding",
+            "Antwoordt zonder model met een vaste tekst uit de code: een bron die uit staat, een regeling buiten de "
+            "graaf, meer artikelen tegelijk, of de keuzevraag van het vorige antwoord.", "workflow",
+            (Stap("melding", "geen"),),
+            bestand=("tools/graph-qa/agent/nodes/supervisie.py",),
+            tests=("tools/graph-qa/tests/test_bronroutering.py",), uitvoer="een tekst met de reden",
+            twijfel="geen: de melding zegt wat er niet kan en wat wel"),
         _wf("regie", "Regie per deelvraag (ADR-012)",
             "Verdeelt het werk in een werkgebied over deelgesprekken, na een bevestiging; neemt zelf geen besluit.",
             "workflow", (Stap("plan", "geen"), Stap("bevestiging door de jurist", "geen"),
@@ -356,10 +419,97 @@ def uit_workflows() -> list[Onderdeel]:
     ]
 
 
+# --- routes (ingangen) ----------------------------------------------------------------------------------------------
+
+def uit_routes() -> list[Onderdeel]:
+    from .routes import ROUTES
+    return [Onderdeel(
+        id=oid("route", r.naam), soort="route", label=r.label, doel=r.doel_zin, model="geen", herkomst=EIGEN,
+        bestand=("tools/graph-qa/agent/routes.py", "tools/graph-qa/agent/nodes/supervisie.py"),
+        versie=versie(r.naam, r.herkenner, r.doel, r.moment), ingang=(r.herkenner,), context=r.moment,
+        tests=("tests/poort/test_routecontract.py", "tools/graph-qa/tests/test_graafopbouw.py"),
+        hangt_af_van=(r.doel,), inhoud={"herkenner": r.herkenner, "moment": r.moment},
+    ) for r in ROUTES]
+
+
+# --- tools ----------------------------------------------------------------------------------------------------------
+
+def _sjablonen_van(naam: str, spec: specialists.Specialist) -> frozenset[str]:
+    """De sjablonen die de specialist kan krijgen: zijn eigen, en `antwoord_extern` als een connector zijn rol bedient
+    (`nodes/antwoord.py`, ADR-013)."""
+    from .sjablonen import EXTERN
+    bediend = any(naam in c.specialisten for c in CONNECTORS.values())
+    return spec.sjablonen | {EXTERN} if spec.sjablonen and bediend else spec.sjablonen
+
+
+def _tools_van(spec: specialists.Specialist) -> frozenset[str]:
+    """Wat de specialist mag krijgen: `None` is elke tool die het model aangeboden kan krijgen (de JAS-kennistools zijn
+    opt-in, `anthropic_schemas`). Of een connector in een beurt aanstaat, beslist `toegestane_tools`."""
+    from .tools import TOOLS
+    return frozenset(t["name"] for t in TOOLS) if spec.tools is None else spec.tools
+
+
+def _bronbestand(obj: Any) -> str:
+    """Het repo-pad van de module of functie (een package wijst naar zijn `__init__.py`)."""
+    import inspect
+    pad = Path(inspect.getfile(obj)).resolve() if obj is not None else _AGENT / "tools" / "__init__.py"
+    return "tools/graph-qa/" + pad.relative_to(_AGENT.parent).as_posix()
+
+
+def alle_tools() -> dict[str, dict[str, Any]]:
+    """Elke tool die een agent kan krijgen of `dispatch` kan uitvoeren, op naam."""
+    from .tools import _BY_NAME
+    return dict(_BY_NAME)
+
+
+def uit_tools() -> list[Onderdeel]:
+    uit: list[Onderdeel] = []
+    for naam, t in sorted(alle_tools().items()):
+        bundel = next((c.naam for c in CONNECTORS.values() if naam in c.tools), None)
+        uit.append(Onderdeel(
+            id=oid("tool", naam), soort="tool", label=naam, doel=_eerste_zin(t.get("description", "")), model="geen",
+            herkomst=EIGEN, bestand=(_bronbestand(t.get("handler")),),
+            versie=versie(t.get("description", ""), t.get("input_schema", {})), ingang=(naam,), tools=(naam,),
+            uitvoer="het resultaatcontract (`agent/resultaat.py`)",
+            twijfel="een fout met een reden; nooit een stil afgekapt resultaat",
+            tests=("tools/graph-qa/tests/test_resultaatcontract.py", "tools/graph-qa/tests/test_toolverdeling.py"),
+            straat=CONNECTORS[bundel].env if bundel else None,
+            inhoud={"beschrijving": t.get("description", ""),
+                    "argumenten": sorted((t.get("input_schema") or {}).get("properties", {}))},
+        ))
+    return uit
+
+
+# --- controles (hooks) -----------------------------------------------------------------------------------------------
+
+def _controlemodules() -> tuple[Any, ...]:
+    from . import beweringen, grounding, id_herkomst
+    from .sjablonen import vullen
+    return (grounding, id_herkomst, beweringen, vullen)
+
+
+#: De controles rond de antwoordlus van elke specialist (verify_node, tools_node, sjabloon_node).
+ANTWOORD_CONTROLES: tuple[str, ...] = ("controle/brongetrouwheid", "controle/id_herkomst", "controle/beweringen",
+                                       "controle/sjabloon_vullen")
+
+
+def uit_controles() -> list[Onderdeel]:
+    uit: list[Onderdeel] = []
+    for mod in _controlemodules():
+        c = mod.CONTROLE
+        uit.append(Onderdeel(
+            id=oid("controle", c["naam"]), soort="controle", label=c["label"], doel=c["doel"], model="geen",
+            herkomst=EIGEN, bestand=(_bronbestand(mod),),
+            versie=versie(c), ingang=(c["moment"],), tests=tuple(c["tests"]),
+            twijfel="een afwijking gaat terug naar het model of wordt zichtbaar voor de jurist; nooit stil",
+        ))
+    return uit
+
+
 # --- de catalogus ----------------------------------------------------------------------------------------------------
 
-ADAPTERS = (uit_methode, uit_rollen, uit_specialisten, uit_agents, uit_workflows, uit_sjablonen, uit_connectors,
-            uit_regelsets)
+ADAPTERS = (uit_methode, uit_rollen, uit_regelsets, uit_tools, uit_connectors, uit_sjablonen, uit_workflows,
+            uit_specialisten, uit_agents, uit_routes, uit_controles)
 
 
 @cache

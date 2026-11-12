@@ -148,6 +148,57 @@ De repo is publiek. Per bron geldt het volgende:
 
 `herkomst.letterlijk` maakt dat onderscheid controleerbaar.
 
+### 7. Samenwerking: concepten, aanroepregels en context per agent (aanvulling 12 nov 2026)
+
+Op verzoek van de gebruiker: "borg je wel de optimale samenwerking tussen de skills, tools (workflows) agents?" Dit
+deel legt vast *hoe* de onderdelen samenwerken. De catalogus dwingt het af.
+
+**Elke soort hoort bij één concept**, in lijn met Claude Code (`Onderdeel.concept`, afgeleid uit de soort):
+
+| Concept | Wat het is | Soorten in Lex |
+|---|---|---|
+| skill | kennis of instructie die zelf niets uitvoert; bij gebruik geladen in de context van een agent of workflow (progressive disclosure: de catalogus toont naam en doel, de body pas op de pagina) | `methode`, `rol`, `regelset` |
+| tool | één getypte handeling met het resultaatcontract | `tool`, `connector` (een bundel tools, zoals een MCP-server), `sjabloon` (de strikte afrondtool) |
+| workflow | een vaste keten in code; een model alleen in een strict stap via `llm_stap` | `workflow` |
+| agent | een modellus met eigen context, eigen tools en een contract (ADR-010); de subagent van Claude Code | `specialist`, `agent` |
+| ingang | kiest zonder model één onderdeel | `route`; een commando is een ingang op een `Onderdeel.id` (#1276) |
+| hook | een deterministische controle op een vast moment rond een agent of workflow | `controle`: brongetrouwheid na het antwoord (Stop), de herkomst van een id vóór een toolaanroep (PreToolUse), de feitentoets, het vullen van een sjabloon |
+
+**Wie wat mag gebruiken.** `hangt_af_van` betekent "A gebruikt B". `MAG_GEBRUIKEN` legt het per concept vast, en
+`test_catalogus.py` maakt een overtreding rood:
+
+| Wie | Mag gebruiken | Model |
+|---|---|---|
+| skill | niets | `geen` |
+| tool | niets; een tool hoort bij hoogstens één connector | `geen`, behalve een sjabloon: `strict` |
+| workflow | tool, skill, hook, workflow | `geen` of `strict`. Een strict stap noemt de `llm_stap.Rol` die hem draagt |
+| agent | tool, skill, hook, workflow | `agent` of `strict` |
+| ingang | precies één workflow of agent | `geen` |
+| hook | skill | `geen` |
+
+Elke actie (`ACTIE_TAAK`, `BRONSELECTIE_ACTIES`, `INTAKE_ACTIES`, `REGIE_ACTIES`) is de ingang van precies één
+onderdeel. Een commando wijst naar zo'n actie, en dus naar precies één onderdeel.
+
+**Context per agent: alleen de eigen skills en tools.** Zo werkt contextisolatie bij een subagent. De bron blijft het
+declaratieve register:
+- tools: `Specialist.tools` met `toegestane_tools`;
+- skill: de rol in `agentrollen.json`;
+- sjablonen: `Specialist.sjablonen`.
+
+De catalogus en de runtime lezen allebei dat register. `test_context_per_agent` vergelijkt wat de runtime per agent
+meestuurt (de toolschema's en de methodevingerafdruk, `methode.vingerafdruk`) met de catalogus. Iets wat er buiten de
+catalogus om bij komt, wordt rood. De `versie` van een rol ís die vingerafdruk.
+
+**Een skill toevoegen zonder code.** Een methode-skill is een map met:
+- `SKILL.md` (met `metadata.lex_*`);
+- `agentrollen.json`, met zijn secties per **bestaande** rol;
+- een eigen bronregister;
+- eventueel regelsets onder `regels/`, in de vorm van een bestaande regelmap en met dezelfde verplichte tests.
+
+De generator bundelt alle skills, dus het image heeft de skillmap niet nodig. Een nieuwe rol of agent vraagt wel code
+en een meting (§5, trap 2). Een nep-skill in de test bewijst het, zoals de nep-connector dat voor connectors doet: een
+sectie bij `duiding` en een detectorregel komen mee zonder één regel code buiten de map.
+
 ## Aansluiting op Claude Code
 
 | Claude Code | Lex | Wat wel en niet |
@@ -157,6 +208,8 @@ De repo is publiek. Per bron geldt het volgende:
 | plugin (bundel met aan/uit per scope) | methodepakket met aan/uit per straat en per beheerder | overgenomen via het patroon met twee schakelaars van de connectors |
 | marketplace | – | niet overgenomen: alles komt uit deze repo en gaat door de poort |
 | slash-command | een ingang naar een onderdeel | het commandoregister verwijst naar `Onderdeel.id` en houdt geen eigen lijst bij |
+| hook (PreToolUse, Stop) | `controle`: id-herkomst vóór een tool, brongetrouwheid na het antwoord | overgenomen als begrip: deterministisch, op een vast moment, niet uitschakelbaar door het model |
+| subagent-contextisolatie | een agent krijgt alleen zijn eigen skills en tools | overgenomen en afgedwongen (`test_context_per_agent`) |
 
 ## Waarom niet anders
 
