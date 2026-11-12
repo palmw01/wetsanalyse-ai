@@ -25,11 +25,13 @@ export function CommandoMenu({ id, regels, actief, onKies, onActief }: {
               onMouseDown={(e) => e.preventDefault()}
               onMouseEnter={() => onActief(i)}
               onClick={() => onKies(r)}
-              className={`${MENU_RIJ} cursor-pointer flex-wrap gap-x-3 gap-y-0 ${i === actief ? "bg-surface" : ""} ${r.uit ? "opacity-60" : ""}`}>
-              <span className="font-mono text-[13px] text-ink">{r.label}</span>
-              <span className="min-w-0 flex-1 text-[13px] text-muted">
-                {r.hulp}{r.uit && <> · <span className="text-ink">{r.uit}</span></>}
-              </span>
+              // Eén regel per commando, zoals het slash-menu van Claude: de naam, dan de hulp die afkapt als hij niet past
+              // (voluit in de tooltip en voor een schermlezer). Waarom het nu niet kan, staat apart en kapt nooit af.
+              title={r.uit ? `${r.hulp} · ${r.uit}` : r.hulp}
+              className={`${MENU_RIJ} cursor-pointer gap-3 ${i === actief ? "bg-surface" : ""} ${r.uit ? "opacity-60" : ""}`}>
+              <span className="shrink-0 font-mono text-[13px] text-ink">{r.label}</span>
+              <span className="min-w-0 flex-1 truncate text-[13px] text-muted" data-commando-hulp>{r.hulp}</span>
+              {r.uit && <span className="shrink-0 text-[13px] text-ink">{r.uit}</span>}
             </li>
           ))}
         </ul>

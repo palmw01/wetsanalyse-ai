@@ -539,6 +539,8 @@ Het is een versneller naast de suggesties, geen vervanging, en **geen tweede rou
 - **Toegankelijk**: zolang het menu openstaat is het veld een combobox (`aria-expanded`, `aria-controls`,
   `aria-activedescendant`) met een listbox; de focus blijft in het veld en een `aria-live`-regel telt de treffers.
   Daarbuiten is het een gewoon tekstveld. Op een telefoon zijn de regels 44 px en voert een tik uit.
+- **Eén regel per commando**, zoals het slash-menu van Claude: de naam, dan de hulp die afkapt (voluit in de tooltip);
+  waarom een commando nu niet kan, staat apart aan het eind en kapt nooit af.
 - Tijdens een beurt of zonder budget staat een suggestiecommando er met de reden, en doet Enter niets.
 - Tests: `lib/commandos.test.ts` (register, context, menu), `app/commandos.test.ts` (één ingang) en
   `scripts/test-commandos.mjs`.
