@@ -24,7 +24,7 @@ Dit is het werkdocument bij [ADR-014](adr-014-catalogus.md). Het hoort bij de so
 
 ## Een onderdeel toevoegen, per soort
 
-Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tests/poort/test_catalogus.py` rood.
+Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/graph-qa/tests/test_catalogus.py` rood.
 
 **Methode** (een nieuwe skill, zoals wetsuitvoering)
 1. Leg de bron vast in `docs/wetsanalyse/<bron>/` met een `BRON.md`. Die bevat herkomst, commit of datum, de licentie
@@ -51,6 +51,11 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tests/po
 - Een vaste functie of node, met `BESCHRIJVING` (laag, stappen).
 - Een rij in de routeringstabel.
 - Testrijen.
+
+**Route** (een vaste weg zonder model vóór de supervisor)
+- Een rij in de routeringstabel (ADR-010; tot C3 de volgorde in `nodes/supervisie.py`), met zijn negatieven in
+  `eval/golden_gesprek.jsonl` (ADR-005).
+- Het routecontract in `tests/poort/routeboek.py`.
 
 **Connector**
 - Zie ADR-013: de beschrijving, de tools en de straatvlag. De catalogus leest de beschrijving.

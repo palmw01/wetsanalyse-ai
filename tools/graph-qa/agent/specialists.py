@@ -22,6 +22,8 @@ class Specialist:
     tools: frozenset[str] | None  # None = alle tools
     # De sjablonen waarmee deze specialist afrondt (`agent/sjablonen`, ADR-008).
     sjablonen: frozenset[str] = frozenset()
+    # Wat hij doet, in één zin met wat er níét bij hoort (ADR-010 contractpunt 1); de catalogus toont het (ADR-014).
+    doel: str = ""
 
 
 # De OPHAAL-agent: vindt en haalt de EXACTE bepaling op die geannoteerd moet worden. Geen annotatie —
@@ -86,6 +88,7 @@ _AFRONDEN_DUIDING = (
 
 SPECIALISTS: dict[str, Specialist] = {
     "annotaties_lezen": Specialist(
+        doel="Beantwoordt vragen over bestaande annotaties door ze te zoeken en te lezen; maakt of wijzigt er geen.",
         system=("Je raadpleegt uitsluitend bestaande annotaties. De eerste zoekopdracht is al voor "
                 "je uitgevoerd en staat als toolresultaat in dit gesprek; bouw je antwoord daarop. "
                 "Gebruik get_annotatie voor detail, overzicht_annotaties voor 'welke … zijn er' per "
@@ -105,6 +108,7 @@ SPECIALISTS: dict[str, Specialist] = {
         sjablonen=frozenset({"antwoord_annotaties"}),
     ),
     "begrippen_lezen": Specialist(
+        doel="Beantwoordt vragen over de vastgelegde begrippen van de werkgebieden; zoekt en leest, wijzigt niets.",
         system=("Je raadpleegt de begrippen die juristen in werkgebieden vastlegden. De eerste zoekopdracht is al "
                 "voor je uitgevoerd en staat als toolresultaat in dit gesprek; bouw je antwoord daarop. Gebruik "
                 "get_begrip voor de passages en relaties van één begrip, of search_begrippen met een ándere "
@@ -122,6 +126,7 @@ SPECIALISTS: dict[str, Specialist] = {
         sjablonen=frozenset({"antwoord_begrip"}),
     ),
     "definitie": Specialist(
+        doel="Zoekt de wettelijke definitie van een begrip en geeft die letterlijk, met vindplaats.",
         system=(
             "Je bent de DEFINITIE-specialist. Je herleidt en verklaart juridische begrippen. "
             "AFRONDEN: vraagt de gebruiker wat een begrip betekent, dan schrijf je geen antwoord in tekst. "
@@ -150,6 +155,7 @@ SPECIALISTS: dict[str, Specialist] = {
         sjablonen=frozenset({"antwoord_begrip"}),
     ),
     "duiding": Specialist(
+        doel="Legt uit wat een bepaling betekent en hoe bepalingen samenhangen, onderbouwd met letterlijke passages.",
         system=(
             "Je bent de DUIDINGS-specialist. Je legt de betekenis, structuur en samenhang van een "
             "bepaling uit.\n" + _AFRONDEN_DUIDING + "\n"
@@ -177,11 +183,12 @@ SPECIALISTS: dict[str, Specialist] = {
         }),
         sjablonen=frozenset({"antwoord_bepaling", "antwoord_duiding"}),
     ),
-    "algemeen": Specialist(system=_AFRONDEN_BEPALING, tools=None, sjablonen=frozenset({"antwoord_bepaling"})),
+    "algemeen": Specialist(doel="Beantwoordt de overige vragen over wet- en regelgeving uit de kennisgraaf.", system=_AFRONDEN_BEPALING, tools=None, sjablonen=frozenset({"antwoord_bepaling"})),
     # De OPHAAL-agent voor de annotatie-flow: dezelfde volledige retrieval-kist als Lex + get_bepaling,
     # zodat hij de EXACTE bepaling vindt (ook beleidsregels/circulaires met decimale nummers zoals "9.1").
     # Hij annoteert NIET; hij levert alleen het doel (JSON). De annoteer-stap doet daarna de JAS-analyse.
     "retrieval": Specialist(
+        doel="Vindt de exacte bepaling die geannoteerd moet worden en haalt die op; beantwoordt en annoteert zelf niet.",
         system=_RETRIEVAL_SYSTEM,
         tools=frozenset({
             "search_wetgeving", "semantic_search", "zoek_opbouw", "overzicht_onderwerp", "get_context", "get_artikel", "get_lid",
