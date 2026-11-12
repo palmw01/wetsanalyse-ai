@@ -168,6 +168,12 @@ def test_de_samenvatting_toetst_een_run_tegen_de_set():
     assert (s_uur["gewogen"], s_uur["cache_schrijf_1u"], s_uur["vorm"]) == (79, 12, "meten")   # 8×1,25 + 12×2 = 34
     # Warm: het uurvoorvoegsel staat al in de cache, dus die 12 tokens tellen als gelezen (12×0,1 in plaats van 12×2).
     assert (s_uur["gewogen_warm"], s["gewogen_warm"]) == (56, s["gewogen"])
+    # Per rol, met het model: de supervisorstap naast de antwoordlus (§A6).
+    twee = {**meting, "aanroepen": [{"rol": "supervisor", "model": "licht", "invoer": 4, "uitvoer": 1, "cache_lees": 0, "cache_schrijf": 0},
+                                    {"rol": "antwoord", "model": "zwaar", "invoer": 6, "uitvoer": 4, "cache_lees": 100, "cache_schrijf": 20}]}
+    rollen = vat({"id": "E08", "run": 1, "beurten": [{"label": "gemeten", "events": [twee]}]}, PER_ID["E08"])["per_rol"]
+    assert rollen["supervisor"] == {"aanroepen": 1, "modellen": ["licht"], "ruw": 5, "gewogen": 9, "gewogen_warm": 9}
+    assert (rollen["antwoord"]["modellen"], rollen["antwoord"]["gewogen"]) == (["zwaar"], 61)
     assert s["route_past"] and s["delegatie_past"] and s["sjabloon_past"] and not s["tools_ontbreken"]
 
     regie = [{"type": "regie", "fase": "start"}, {"type": "regie_taak", "fase": "start", "gesprek_id": "k1"}]

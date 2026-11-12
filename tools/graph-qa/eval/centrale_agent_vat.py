@@ -56,6 +56,20 @@ def gewogen(soorten: dict[str, int], *, warm: bool = False) -> int:
     return round(sum(gewicht[k] * soorten.get(k, 0) for k in gewicht))
 
 
+def per_rol(metingen: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Per rol (supervisor, antwoord, …) het aantal aanroepen, de modellen en de tokens ruw en gewogen. Zo is te zien
+    wat de supervisorstap kost naast de antwoordlus, en of een rol op een ander model draait (ADR-016 §A6)."""
+    rollen: dict[str, list[dict[str, Any]]] = {}
+    for a in (a for m in metingen for a in m.get("aanroepen") or []):
+        rollen.setdefault(a.get("rol") or "?", []).append(a)
+    uit = {}
+    for rol, aanroepen in sorted(rollen.items()):
+        soorten = per_soort([{"aanroepen": aanroepen}])
+        uit[rol] = {"aanroepen": len(aanroepen), "modellen": sorted({a.get("model", "") for a in aanroepen}),
+                    "ruw": sum(soorten.values()), "gewogen": gewogen(soorten), "gewogen_warm": gewogen(soorten, warm=True)}
+    return uit
+
+
 def _een_van(ingangen: list[str], gezien: set[str]) -> list[str]:
     """De ingangen (`a|b` = één van beide) waarvan niets is gezien."""
     return [i for i in ingangen if not set(i.split("|")) & gezien]
@@ -97,6 +111,7 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
         "cache_schrijf_1u": soorten["cache_schrijf_1u"],
         "gewogen": gewogen(soorten), "gewogen_warm": gewogen(soorten, warm=True),
         "opzet_gewogen": gewogen(opzet_soorten), "opzet_gewogen_warm": gewogen(opzet_soorten, warm=True),
+        "per_rol": per_rol(metingen),
         "duur_ms": sum(m.get("duur_ms", 0) for m in metingen) or sum(b.get("wand_ms", 0) for b in gemeten),
         "opzet_tokens": sum(_tokens(e) for b in opzet for e in b.get("events", []) if e["type"] == "meting"),
         "delta_account": sum(b.get("delta_account") or 0 for b in rec["beurten"]),
