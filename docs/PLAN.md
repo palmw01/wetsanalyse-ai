@@ -114,6 +114,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | O | Acceptatietesten via MCP | Accounttoken en acceptatie-MCP gebouwd, eerste scenario gedraaid; open: de fixtures voor de Playwright-mocks |
 | R | Verbeterplan uit de applicatiereview (6 nov 2026) | Ronde 1 en 2 gemerged (t/m #951); ronde 3 als losse PR's (#963–#985), zie de sectie. Uitgesteld: F2, F3, E4, E6, H5; bij de eigenaar: G2 (meldkanaal), G4, G9 |
 | S | Multi-agent regie binnen een werkgebied (ADR-012) | Gebouwd (#1081, #1082, #1085, #1087, #1088, #1100) en op acceptatie gemeten (8 nov 2026); open: zie de sectie |
+| T | De context van een beurt zichtbaar: contextmeter en `/context` (ADR-015) | Plan ter goedkeuring (12 nov 2026), niets gebouwd: [`architectuur/plan-contextweergave.md`](architectuur/plan-contextweergave.md) |
 
 ---
 

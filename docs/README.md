@@ -81,7 +81,8 @@ Toelichting bij enkele documenten:
 
 - **`PLAN.md`** is het enige plan. Wat af is gaat eruit; ontwerpbesluiten horen in een ADR of
   specificatie. Eén uitwerking staat apart, omdat `PLAN.md` ernaar verwijst:
-  [`architectuur/plan-betekenisonderzoek.md`](architectuur/plan-betekenisonderzoek.md) (spoor M).
+  [`architectuur/plan-betekenisonderzoek.md`](architectuur/plan-betekenisonderzoek.md) (spoor M) en
+  [`architectuur/plan-contextweergave.md`](architectuur/plan-contextweergave.md) (spoor T).
 - **`architectuur/verbeterplan-jas-pipeline-2026-10-08.md`** is *onderzoek*: het ontwerp voor de
   kandidaten na V7 uit spoor A (bewijs per hypothese, frames, relaties), met eigen meet- en
   acceptatiecriteria. Het start na V7.
