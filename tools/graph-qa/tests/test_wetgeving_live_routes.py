@@ -511,3 +511,56 @@ def test_systeemtaal_komt_nooit_bij_de_jurist_ook_niet_in_een_sjabloon():
     assert schoon["blokken"][1]["punten"] == ["De datum is onzeker."]
     assert schoon["blokken"][2] == antwoord["blokken"][2]
     assert _lex_zonder_interne_taal({"sjabloon": "extern", "blokken": [antwoord["blokken"][2]]}) is None
+
+
+def test_een_duiding_van_een_regeling_buiten_de_graaf_rust_op_extern():
+    """Ronde 3, I12 en I13: 'onderbouwing' kent alleen wettekst uit de kennisgraaf, dus voor een regeling buiten de graaf
+    was de duiding niet te vullen; het model schreef het antwoord tot acht keer opnieuw (631k tokens). De gelezen tekst
+    van overheid.nl in 'extern' is nu de onderbouwing, en de weigering zonder passage zegt dat met het id."""
+    from agent import sjablonen
+    from agent.sjablonen import Onvulbaar
+
+    raw = tools.dispatch("get_wettekst", _graaf(), {"bwb_id": "BWBR0003045", "artikel": "9"}, AAN, wetgeving_live=_bron())
+    ident = json.loads(raw)["stuk"]["id"]
+    trace = [("get_wettekst", raw)]
+    kort = "Artikel 2:9 BW maakt elke bestuurder tegenover de rechtspersoon verantwoordelijk voor een behoorlijke taakvervulling."
+    antwoord = sjablonen.vul("antwoord_duiding", {"kort_antwoord": kort, "onderbouwing": [], "twijfel": [],
+                                                  "extern": [{"id": ident, "van_nr": 1, "tot_nr": 1}], "stukken": []}, trace)
+    soorten = [b.soort for b in antwoord.blokken]
+    assert soorten == ["toelichting", "extern"] and antwoord.blokken[1].id == ident
+    # Zonder aanwijzing: één weigering die zegt waar de passage hoort, met het id.
+    with pytest.raises(Onvulbaar) as fout:
+        sjablonen.vul("antwoord_duiding", {"kort_antwoord": kort, "onderbouwing": [], "twijfel": [], "extern": [],
+                                          "stukken": []}, trace)
+    assert ident in str(fout.value) and "'extern'" in str(fout.value)
+    # Een Kamerstuk of een ander stuk is geen wettekst: zonder gelezen wettekst blijft de oude weigering.
+    with pytest.raises(Onvulbaar, match="ten minste één passage"):
+        sjablonen.vul("antwoord_duiding", {"kort_antwoord": kort, "onderbouwing": [], "twijfel": []}, [])
+
+
+def test_een_gelezen_artikel_houdt_zijn_eigen_titel_in_de_lijst():
+    """Ronde 3, I13: een gelezen artikel stond in de lijst met de titel van de wet ("Artikel 2.3 …: Wet inkomstenbelasting
+    2001"), want het stuk van get_wettekst overschrijft de zoekrij. Het stuk draagt nu het opschrift van de bepaling."""
+    stuk = json.loads(tools.dispatch("get_wettekst", _graaf(), {"bwb_id": PW, "artikel": "31"}, AAN,
+                                     wetgeving_live=_bron()))["stuk"]
+    assert stuk["titel"] == "Middelen" and stuk["label"].startswith("Participatiewet, Artikel 31")
+
+
+@pytest.mark.parametrize("bepaling", ["jci", "id"])
+def test_wettekst_van_overheid_in_onderbouwing_wijst_naar_extern(bepaling):
+    """Ronde 3, I28 (9 rondes) en I13 (18): het model zette artikel 2:9 BW in 'onderbouwing', en de weigering zei "haal de
+    bepaling op met get_artikel". Het las de leden opnieuw en schreef het antwoord opnieuw. Nu zegt de weigering dat de
+    tekst al gelezen is en in 'extern' hoort, met het id."""
+    from agent import sjablonen
+    from agent.sjablonen import Onvulbaar
+
+    raw = tools.dispatch("get_wettekst", _graaf(), {"bwb_id": "BWBR0003045", "artikel": "9"}, AAN, wetgeving_live=_bron())
+    data = json.loads(raw)
+    ident = data["stuk"]["id"]
+    aanwijzing = data["resultaten"][0]["jci"] if bepaling == "jci" else ident
+    with pytest.raises(Onvulbaar) as fout:
+        sjablonen.vul("antwoord_duiding", {"kort_antwoord": "Artikel 2:9 BW regelt de taak van de bestuurder.",
+                                          "onderbouwing": [{"bepaling": aanwijzing, "van": "", "tot": "", "waarom": "x"}],
+                                          "twijfel": [], "extern": [], "stukken": []}, [("get_wettekst", raw)])
+    melding = str(fout.value)
+    assert ident in melding and "'extern'" in melding and "get_artikel" not in melding

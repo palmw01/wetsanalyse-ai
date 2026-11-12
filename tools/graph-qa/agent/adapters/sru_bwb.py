@@ -293,8 +293,10 @@ class SruBwb:
         if gekozen is None:
             alle = self.toestanden(bwb_id)  # niet_gevonden als de regeling helemaal niet bestaat
             eerste, laatste = alle[0].geldig_vanaf, max(t.geldig_tot for t in alle)
-            raise BwbFout(f"{bwb_id} heeft geen toestand die op {peil} geldt (toestanden van {eerste} tot "
-                          f"{laatste})", code="niet_gevonden")
+            # De titel erbij: een geraden BWB-id is zo zichtbaar een andere regeling (ronde 3, I20: BWBR0002471 is de
+            # Wet op de loonbelasting 1964, gelezen als de Wet op de inkomstenbelasting 1964).
+            raise BwbFout(f"{bwb_id} ({alle[-1].titel}) heeft geen toestand die op {peil} geldt (toestanden van {eerste} "
+                          f"tot {laatste})", code="niet_gevonden")
         return gekozen
 
     # --- lezen -----------------------------------------------------------------------------------------------------
