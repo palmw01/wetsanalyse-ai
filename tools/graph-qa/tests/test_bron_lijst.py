@@ -659,3 +659,27 @@ def test_de_kanttekening_staat_bij_de_zoekvraag_van_de_lijst(monkeypatch):
     assert "Kamerstukken koppelt een stuk niet aan een regeling" in blok["zoekvraag"]
     # Ronde 5, K17: "in de titel" stond er twee keer, in de zoekvraag en in de kanttekening.
     assert blok["zoekvraag"].count("in de titel") == 1, blok["zoekvraag"]
+
+
+@pytest.mark.parametrize("vraag,connector,args", [
+    ("Hoeveel amendementen zijn er bij 36602?", "kamerstukken", {"dossier": "36602", "soort": "amendement"}),
+    ("Hoeveel moties zijn er in 36602?", "kamerstukken", {"dossier": "36602", "soort": "motie"}),
+    ("Hoeveel stukken zitten er in 36200-IX?", "kamerstukken", {"dossier": "36200-IX"}),
+    ("Hoeveel bekendmakingen zijn er bij 36602?", "bekendmakingen", {"dossier": "36602"}),
+])
+def test_een_telvraag_met_een_kaal_dossiernummer_is_een_telling(vraag, connector, args):
+    """Kamerstukken ronde 6, K10: "Hoeveel amendementen zijn er bij 36602?" ging naar het model, dat zelf telde (92 tegen
+    88), omdat de code een dossiernummer alleen na het woord "dossier" las. Een telwoord plus filters uit de beschrijving is
+    een telling, bij elke connector met een dossierfilter."""
+    lijst = bron_lijst.lees(vraag, frozenset({connector}), regelingen=lambda t: [])
+    assert lijst is not None and lijst.tellen, vraag
+    assert lijst.args == args
+
+
+@pytest.mark.parametrize("vraag,connector", [
+    ("Hoeveel uitspraken zijn er bij 36602?", "rechtspraak"),            # geen dossierfilter: het nummer blijft over
+    ("Hoeveel Kamerstukken zijn er in 2025 over de invorderingsrente?", "kamerstukken"),  # een jaartal, geen dossier
+])
+def test_een_kaal_nummer_is_alleen_een_dossier_waar_dat_kan(vraag, connector):
+    lijst = bron_lijst.lees(vraag, frozenset({connector}), regelingen=lambda t: [])
+    assert lijst is None or "dossier" not in lijst.args
