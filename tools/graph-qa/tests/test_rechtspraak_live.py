@@ -135,12 +135,13 @@ def test_de_feed_filtert_en_telt(bron):
 def test_de_vaste_namen_staan_in_de_waardelijsten(bron):
     """De gerechten en rechtsgebieden die de lijstvraag kent (`RECHTSPRAAK.organen`, de waarden van `rechtsgebied`)
     bestaan bij de Rechtspraak: een herindeling of een nieuwe naam maakt dit rood."""
-    from bronmodel.connectors import INSTANTIES as SOORTEN, RECHTSPRAAK
+    from bronmodel.connectors import INSTANTIE_MEERVOUD, INSTANTIES as SOORTEN, RECHTSPRAAK
     from agent.tools.rechtspraak_tools import _AFKORTINGEN
     namen = {i.naam.lower() for i in _of_storing(bron.instanties) if i.actief}
     afk = {i.afkorting.upper() for i in _of_storing(bron.instanties) if i.actief}
     for o in RECHTSPRAAK.organen:
-        if o not in SOORTEN:
+        # Een soort gerecht, ook in het meervoud ("gerechtshoven", zoals de zoektool het omzet), is geen naam in de lijst.
+        if INSTANTIE_MEERVOUD.get(o, o) not in SOORTEN:
             assert o.lower() in namen or _AFKORTINGEN.get(o.lower(), o.upper()) in afk, o
     gebieden = {r.naam.lower() for r in _of_storing(bron.rechtsgebieden)}
     for waarde, _ in RECHTSPRAAK.veld("rechtsgebied").waarden:
