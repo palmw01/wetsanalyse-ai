@@ -60,13 +60,13 @@ describe("het register", () => {
     const namen = beschikbaar(stand(werkgebiedSuggesties())).map((c) => c.naam);
     expect(namen.slice(0, 3)).toEqual(["dossier", "thema", "deelvragen"]);
     expect(namen).toContain("annoteer");
-    expect(namen.slice(-2)).toEqual(["nieuw", "help"]);
+    expect(namen.slice(-2)).toEqual(["context", "help"]);
     // Zonder bron om om te zetten geen /bron.
     expect(namen).not.toContain("bron");
-    expect(beschikbaar(stand([], { connectors: bronnen })).map((c) => c.naam)).toEqual(["nieuw", "bron", "help"]);
+    expect(beschikbaar(stand([], { connectors: bronnen })).map((c) => c.naam)).toEqual(["nieuw", "bron", "context", "help"]);
     // Bij een deelvraag de handelingen op de deelvraag, niet die van het werkgebied.
     const bijDeelvraag = beschikbaar(stand(suggestiesVan(deelvraag))).map((c) => c.naam);
-    expect(bijDeelvraag).toEqual(["scherper", "splits", "bronnen", "bepaling", "annoteer", "dekking", "nieuw", "help"]);
+    expect(bijDeelvraag).toEqual(["scherper", "splits", "bronnen", "bepaling", "annoteer", "dekking", "nieuw", "context", "help"]);
   });
 });
 

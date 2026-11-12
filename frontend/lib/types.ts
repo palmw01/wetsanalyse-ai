@@ -644,6 +644,9 @@ export interface Bericht {
   uitkomst?: unknown;
   /** Het oordeel van de brongetrouwheidstoets; zie `lib/agentEvents.ts:parseGrounding`. */
   grounding?: unknown;
+  /** De opbouw van de context en het verbruik van de beurt (graph-qa); `parseContextopbouw` in `lib/contextweergave.ts`
+   *  leest het. Oudere berichten en beurten zonder model hebben het niet. */
+  contextopbouw?: unknown;
   created?: string;
 }
 

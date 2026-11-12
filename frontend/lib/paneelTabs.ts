@@ -42,6 +42,8 @@ export function contextSleutelVan(c: ContextDoel): string {
     : c.soort === "stuk" ? `stuk:${c.id}`
     // De bepalingen van een antwoord: dezelfde lijst is dezelfde tab, dus een tweede klik opent geen tweede.
     : c.soort === "bepalingen" ? `bepalingen:${c.bepalingen.map((v) => v.iri).join("|")}`
+    // De contextweergave: één tab, voor de meter en voor `/context`.
+    : c.soort === "contextopbouw" ? "contextopbouw"
     : `bibliotheek:${c.werkgebied_id}`;
 }
 
@@ -88,6 +90,7 @@ export function tabLabel(t: PaneelTab): { kort: string; vol: string } {
     } else if (c.soort === "element") { kort = "Element"; vol = c.titel || "JAS-element"; }
     else if (c.soort === "bibliotheek") { kort = "Bronnen"; vol = "Bronnen van dit werkgebied"; }
     else if (c.soort === "stuk") { kort = c.titel || c.id; vol = c.titel || c.id; }
+    else if (c.soort === "contextopbouw") { kort = "Context"; vol = "Context van deze beurt"; }
     else if (c.soort === "bepalingen") { kort = c.titel || "Bepalingen"; vol = `Bepalingen in dit antwoord: ${c.titel}`; }
     else { kort = c.titel || "Overzicht"; vol = `Overzicht: ${c.titel}`; }
   } else if (i.soort === "annotatie") {

@@ -20,7 +20,7 @@ import type { Suggestie } from "./vraagLex";
  *  `/` doet alleen iets als eerste teken in het invoerveld: het is tekst, geen sneltoets. Een `/`-tekst zonder bekend
  *  commando gaat ongewijzigd als vraag naar Lex. */
 
-export type ClientHandeling = "nieuw" | "bron" | "help";
+export type ClientHandeling = "nieuw" | "bron" | "context" | "help";
 
 export type Commando =
   | { soort: "suggestie"; naam: string; hulp: string; suggestie: Suggestie }
@@ -30,6 +30,7 @@ export type Commando =
 export const CLIENT_COMMANDOS: Extract<Commando, { soort: "client" }>[] = [
   { soort: "client", naam: "nieuw", hulp: "Begin een nieuw gesprek (in een werkgebied: in dat werkgebied)", handeling: "nieuw" },
   { soort: "client", naam: "bron", hulp: "Zet een bron naast de wet aan of uit voor dit gesprek", handeling: "bron", argument: "connector" },
+  { soort: "client", naam: "context", hulp: "Toon hoe de context van de laatste beurt is opgebouwd en wat de beurt kostte", handeling: "context" },
   { soort: "client", naam: "help", hulp: "Toon alle commando's die hier kunnen", handeling: "help" },
 ];
 
