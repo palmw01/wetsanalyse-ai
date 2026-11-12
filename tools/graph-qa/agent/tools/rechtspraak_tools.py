@@ -28,7 +28,7 @@ from typing import Any, Protocol
 from bronmodel.connectors import INSTANTIE_MEERVOUD, INSTANTIES, RECHTSPRAAK
 from bronmodel.extern import externe_vindplaats
 
-from ..adapters.lido_rechtspraak import RechtspraakFout, begindatum
+from ..adapters.lido_rechtspraak import TIJDELIJK, RechtspraakFout, begindatum
 from ..graph import queries
 from ..graph.results import parse_select
 from ..resultaat import compact, fout, pagina, per_eenheid
@@ -57,6 +57,7 @@ class RechtspraakBron(Protocol):
     def koppelingen(self, bwb_id: str, artikel: str, jci: str = "") -> Any: ...
     def document(self, ecli: str) -> Any: ...
     def metadata(self, ecli: str) -> bytes: ...
+    def metadata_lido(self, ecli: str) -> dict[str, str]: ...
     def titel(self, bwb_id: str) -> str: ...
     def zoek(self, *, instanties: tuple[str, ...] = (), rechtsgebieden: tuple[str, ...] = (), soort: str = "",
              vanaf: str = "", tot: str = "", maximum: int = 1000) -> Any: ...
@@ -815,7 +816,12 @@ def _get(bron: RechtspraakBron, a: dict[str, Any]) -> str:
                           "zonder_tekst": RECHTSPRAAK.zonder_tekst})
     if vp is None or vp.brontype != "uitspraak":
         return fout("ongeldig_id", "geef de ECLI van een Nederlandse uitspraak, bijvoorbeeld 'ECLI:NL:HR:2022:50'")
-    doc = bron.document(vp.id)
+    try:
+        doc = bron.document(vp.id)
+    except RechtspraakFout as exc:
+        if exc.code not in TIJDELIJK:
+            raise
+        return _zonder_tekst_nu(bron, vp, exc)
     try:
         meta, rijen = lees(doc.xml)
     except ET.ParseError as exc:
@@ -838,8 +844,28 @@ def _get(bron: RechtspraakBron, a: dict[str, Any]) -> str:
                        stuk=stuk, toelichting="" if rijen else "Deze uitspraak heeft geen tekst in de open data.")
 
 
+def _zonder_tekst_nu(bron: RechtspraakBron, vp: Any, exc: RechtspraakFout) -> str:
+    """De Rechtspraak geeft de tekst nu niet (een storing of te druk): een foutresultaat met de reden, en met de uitspraak
+    zoals LiDO haar kent als terugval (K16, Kamerstukken ronde 4: twee keer "niet bereikbaar" zonder dat het antwoord de
+    uitspraak kon noemen). LiDO heeft geen tekst; het stuk is dus te noemen, niet te citeren."""
+    reden = FOUTREDEN[exc.code]
+    lido = getattr(bron, "metadata_lido", None)
+    meta = lido(vp.id) if callable(lido) else {}
+    if not meta:
+        return fout(reden, f"{exc}. Probeer het later opnieuw, of zeg dat de tekst nu niet te lezen is.")
+    m = _TITEL_RE.match(meta.get("titel", "")) if meta.get("titel") else None
+    orgaan = (m["orgaan"].strip() if m else "") or instantie(vp.id)
+    datum = meta.get("datum", "")
+    stuk = compact({"id": vp.id, "label": label_van(vp.id, {"creator": orgaan, "date": datum}), "soort": soort_van(vp.id),
+                    "titel": meta.get("titel", ""), "datum": datum, "orgaan": orgaan, "nummer": meta.get("nummer", ""),
+                    "rechtsgebied": meta.get("rechtsgebied", ""), "link": vp.uri, "gevalideerd": False})
+    return fout(reden, f"{exc}. LiDO kent de uitspraak ({meta.get('titel') or vp.id}), maar heeft haar tekst niet. Noem "
+                "haar zo nodig, citeer er niet uit, en zeg dat de tekst nu niet te lezen was.", stuk=stuk)
+
+
 #: De reden in het foutresultaat per code van de adapter (`RechtspraakFout.code`).
-FOUTREDEN = {"onbereikbaar": "bron_onbereikbaar", "geweigerd": "onleesbaar_document", "niet_gevonden": "niet_gevonden"}
+FOUTREDEN = {"onbereikbaar": "bron_onbereikbaar", "bezet": "bron_bezet", "verzoek_geweigerd": "zoekvraag_geweigerd",
+             "geweigerd": "onleesbaar_document", "niet_gevonden": "niet_gevonden"}
 
 
 def fout_van(exc: Any) -> str:

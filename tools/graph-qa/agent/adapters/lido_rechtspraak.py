@@ -50,6 +50,8 @@ from bronmodel import tekst_hash
 logger = logging.getLogger("graph_qa.rechtspraak")
 
 LIDO_URL = "https://linkeddata.overheid.nl/service"
+#: De RDF van één uitspraak bij LiDO, met haar metadata maar zonder tekst.
+LIDO_TERMS_URL = "https://linkeddata.overheid.nl/terms/jurisprudentie/id"
 BWB_SRU_URL = "https://zoekservice.overheid.nl/sru/Search"
 RECHTSPRAAK_URL = "https://data.rechtspraak.nl/uitspraken/content"
 ZOEK_URL = "https://data.rechtspraak.nl/uitspraken/zoeken"
@@ -77,6 +79,10 @@ ALLEEN_JURISPRUDENTIE = "obj_type:Jurisprudentie"
 PER_SECONDE = 5
 #: Wachttijd voor de ene herhaling na een storing.
 HERHAAL_S = 1.0
+#: Hoe vaak een verzoek gaat bij een netwerkfout, een 5xx of een 429: de wachttijd groeit (1 s, 2 s).
+POGINGEN = 3
+#: Hoogstens zo lang wacht een 429 op `Retry-After`.
+MAX_WACHT_S = 5.0
 #: Hoe ver terug: het BWB begint in 2002, LiDO ook.
 BEGIN = "2002-01-01"
 MAX_VERSIES = 40
@@ -87,19 +93,62 @@ VERS_WAARDELIJST_S = 24 * 3600
 #: Zoveel treffers geeft de feed hoogstens per verzoek (ook de standaard).
 FEED_MAX = 1000
 
-FOUTCODES = ("onbereikbaar", "geweigerd", "niet_gevonden")
+#: `onbereikbaar` alleen bij een netwerkfout, een time-out of een 5xx (K16, Kamerstukken ronde 4: `get_uitspraak` gaf
+#: "niet bereikbaar" terwijl LiDO antwoordde, en zonder status in de log was de oorzaak niet na te gaan); `bezet` bij een
+#: 429, `verzoek_geweigerd` bij een andere 4xx, `geweigerd` bij een antwoord dat niet te lezen is.
+FOUTCODES = ("onbereikbaar", "bezet", "verzoek_geweigerd", "geweigerd", "niet_gevonden")
 
 _RDF = "{http://www.w3.org/1999/02/22-rdf-syntax-ns#}"
 _RL = "{http://linkeddata.overheid.nl/terms/}"
 _ID_RE = re.compile(r"<id>([^<]+)</id>")
 
 
+def _wachttijd(r: httpx.Response) -> float:
+    """De wachttijd uit `Retry-After` (seconden), tussen `HERHAAL_S` en `MAX_WACHT_S`."""
+    try:
+        return min(max(float(r.headers.get("Retry-After", HERHAAL_S)), HERHAAL_S), MAX_WACHT_S)
+    except ValueError:
+        return HERHAAL_S
+
+
+def lido_metadata(tekst: str, ecli: str) -> dict[str, str]:
+    """{titel, datum, nummer, rechtsgebied} uit de RDF van een uitspraak bij LiDO; {} als die de ECLI niet beschrijft."""
+    root = ET.fromstring(tekst)
+    dct, rl = "{http://purl.org/dc/terms/}", _RL
+    if not any((e.text or "").strip() == ecli for e in root.iter(f"{dct}identifier")):
+        return {}
+
+    def eerste(tag: str) -> str:
+        return next(((e.text or "").strip() for e in root.iter(tag) if (e.text or "").strip()), "")
+
+    return {k: v for k, v in {"titel": eerste(f"{dct}title"), "datum": eerste(f"{rl}heeftUitspraakdatum"),
+                              "nummer": eerste(f"{rl}heeftZaaknummer"),
+                              "rechtsgebied": eerste(f"{rl}heeftRechtsgebied")}.items() if v}
+
+
 class RechtspraakFout(RuntimeError):
     """LiDO of de Rechtspraak was niet bruikbaar, met de reden (`FOUTCODES`)."""
 
-    def __init__(self, melding: str, *, code: str = "onbereikbaar"):
+    def __init__(self, melding: str, *, code: str = "onbereikbaar", status: int | None = None):
         super().__init__(melding)
         self.code = code
+        #: De HTTP-status, als er een was (geen bij een netwerkfout).
+        self.status = status
+
+
+#: De codes van een fout die over de bron zegt, niet over het stuk: de bewaarde versie mag dan, en LiDO is de terugval.
+TIJDELIJK = frozenset({"onbereikbaar", "bezet"})
+
+
+def foutcode_van_status(status: int) -> str:
+    """De code bij een HTTP-status van 400 of hoger (404 is `niet_gevonden`)."""
+    if status >= 500:
+        return "onbereikbaar"
+    if status == 429:
+        return "bezet"
+    if status == 404:
+        return "niet_gevonden"
+    return "verzoek_geweigerd"
 
 
 @dataclass(frozen=True)
@@ -347,28 +396,39 @@ class LidoRechtspraak:
         u = urlparse(url)
         if u.scheme != "https" or u.hostname not in _HOSTS:
             raise RechtspraakFout(f"host buiten de allowlist: {u.hostname}", code="geweigerd")
-        for poging in range(2):
+        for poging in range(POGINGEN):
+            laatste = poging == POGINGEN - 1
             self._wacht(u.hostname)
             try:
                 r = self._client.get(url, params=_lijst if _lijst is not None else (params or None))
             except httpx.HTTPError as exc:
-                if poging == 0:
-                    self._slaap(HERHAAL_S)
+                logger.warning("rechtspraak_verzoek_mislukt", extra={"host": u.hostname, "fout": type(exc).__name__,
+                                                                    "poging": poging + 1})
+                if not laatste:
+                    self._slaap(HERHAAL_S * (poging + 1))
                     continue
                 raise RechtspraakFout(f"{u.hostname} is niet bereikbaar: {type(exc).__name__}") from exc
-            # LiDO geeft soms even een 400 of 5xx op een verzoek dat een tel later lukt (live, 10 nov 2026): één keer
-            # opnieuw, zodat één hik geen gat in de lijst wordt.
-            if poging == 0 and (r.status_code >= 500 or (r.status_code == 400 and u.hostname == "linkeddata.overheid.nl")):
-                self._slaap(HERHAAL_S)
+            # LiDO geeft soms even een 400 of 5xx op een verzoek dat een tel later lukt (live, 10 nov 2026): opnieuw, zodat
+            # één hik geen gat in de lijst wordt. Een 429 wacht op `Retry-After`, hoogstens `MAX_WACHT_S`.
+            herhaal = r.status_code >= 500 or r.status_code == 429 or (
+                r.status_code == 400 and u.hostname == "linkeddata.overheid.nl")
+            if r.status_code >= 400 and r.status_code != 404:
+                logger.warning("rechtspraak_verzoek_mislukt", extra={"host": u.hostname, "status": r.status_code,
+                                                                    "poging": poging + 1})
+            if herhaal and not laatste:
+                self._slaap(_wachttijd(r) if r.status_code == 429 else HERHAAL_S * (poging + 1))
                 continue
             break
         if r.status_code == 404:
-            raise RechtspraakFout(f"{u.hostname} kent het niet (404)", code="niet_gevonden")
+            raise RechtspraakFout(f"{u.hostname} kent het niet (404)", code="niet_gevonden", status=404)
         # De BWB-zoekdienst geeft soms HTTP 406 met een geldig antwoord (zoals de importer weet): de inhoud telt.
         if r.status_code == 406 and u.hostname == "zoekservice.overheid.nl" and "searchRetrieveResponse" in r.text:
             return r.text
         if r.status_code >= 400:
-            raise RechtspraakFout(f"{u.hostname} gaf HTTP {r.status_code}")
+            code = foutcode_van_status(r.status_code)
+            uitleg = {"onbereikbaar": "had een storing", "bezet": "was te druk",
+                      "verzoek_geweigerd": "weigerde het verzoek"}[code]
+            raise RechtspraakFout(f"{u.hostname} {uitleg} (HTTP {r.status_code})", code=code, status=r.status_code)
         return r.text
 
     def _uit_cache(self, sleutel: str):
@@ -550,6 +610,17 @@ class LidoRechtspraak:
         return self._bewaard(f"m|{ecli}", VERS_WAARDELIJST_S,  # type: ignore[return-value]
                              lambda: self._get(self._rs, id=ecli, **{"return": "META"}).encode("utf-8"))
 
+    def metadata_lido(self, ecli: str) -> dict[str, str]:
+        """Wat LiDO van een uitspraak weet (titel, datum, zaaknummer, rechtsgebied), uit haar RDF bij LiDO zelf. De terugval
+        als de Rechtspraak de tekst niet geeft: LiDO heeft de tekst niet, maar wel de uitspraak (K16, Kamerstukken
+        ronde 4). Gecachet als de metadata; een storing of een onbekende ECLI geeft {}."""
+        def haal() -> dict[str, str]:
+            return lido_metadata(self._get(f"{LIDO_TERMS_URL}/{ecli}"), ecli)
+        try:
+            return dict(self._bewaard(f"l|{ecli}", VERS_WAARDELIJST_S, haal))  # type: ignore[arg-type]
+        except (RechtspraakFout, ET.ParseError):
+            return {}
+
     def document(self, ecli: str) -> Document:
         sleutel = f"d|{ecli}"
         with self._lock:
@@ -564,7 +635,7 @@ class LidoRechtspraak:
                 gewijzigd = _gewijzigd(self._get(self._rs, id=ecli, **{"return": "META"}))
             except RechtspraakFout as exc:
                 # Alleen een storing mag de bewaarde versie geven; een uitspraak die er niet meer is, is geen storing.
-                if exc.code != "onbereikbaar":
+                if exc.code not in TIJDELIJK:
                     raise
                 logger.warning("uitspraak niet gevalideerd", extra={"ecli": ecli, "bron_hash": bewaard.hash})
                 return replace(bewaard, gevalideerd=False)
