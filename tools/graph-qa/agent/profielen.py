@@ -12,6 +12,9 @@ is een stap van een route in code.
 """
 from __future__ import annotations
 
+import hashlib
+import json
+
 from bronmodel.agentprofiel import Agentprofiel, Grenzen, valideer
 from bronmodel.connectors import CONNECTORS
 
@@ -43,6 +46,13 @@ PROFIELEN: dict[str, Agentprofiel] = laad()
 
 #: De profielen die een model mag kiezen, op naam.
 KIESBAAR: tuple[str, ...] = tuple(n for n, p in PROFIELEN.items() if p.kiesbaar)
+
+
+def versie(profiel: Agentprofiel) -> str:
+    """De hash van een profiel: twaalf hextekens over al zijn velden. Verandert het profiel, dan verandert het gedrag.
+    Dezelfde waarde staat in `model_aanroep`, in de contextopbouw en in de catalogus."""
+    velden = json.dumps(profiel.model_dump(), sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(velden.encode()).hexdigest()[:12]
 
 
 def tools_van(profiel: Agentprofiel) -> frozenset[str] | None:

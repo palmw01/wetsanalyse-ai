@@ -117,6 +117,15 @@ allemaal in Python een basis kennen. Dus die agents moeten wel echt Python agent
 - Dit sluit aan op ADR-014. Het contract hoort bij de code die het nakomt; het profiel kiest alleen uit wat die code
   aanbiedt.
 
+**Uitgewerkt bij A2 (12 nov 2026).** `Agent` is geen eigen lus en geen eigen graaf. Hij doet twee dingen, en alleen hij:
+- hij bezit de antwoordketen: `agentvorm.voeg_keten_toe` registreert de nodes en hun edges in de ene graaf, en
+  `build_graph` sluit haar alleen aan;
+- hij doet de modelaanroep (`Agent.ronde`), met de systeemtekst, de tools, de sjablonen, het model en de `Rol` die uit
+  zijn profiel volgen.
+
+Een specialist is een `Agent` met zijn profiel; er is geen klasse per specialist. `test_agentvorm.py` toetst op de
+broncode dat geen modelstap met een lusrol buiten `agentvorm.py` staat.
+
 ## Deel A — De centrale agent
 
 ### A1. Eén centrale agent, die zelf antwoordt
@@ -142,10 +151,19 @@ verzoek ─► routering in code ─┬─► vaste workflow                 (ge
   - *de routes na het model* (bepaling, overzicht, lijstvraag, annotaties en begrippen lezen): dat worden tools van de
     centrale agent. Zo'n tool is **terminaal**: de code vult het antwoord, zoals een sjabloontool (ADR-008), en het
     model schrijft er niets overheen. De routes vóór het model blijven op de letterlijke vraag werken;
-  - *afwijzen*: de centrale agent zegt het zelf, zonder tool, met de vaste tekst uit zijn instructie;
+  - *afwijzen*: **herzien bij A2:** een tool (`wijs_af`), zonder argumenten. Eerst stond hier dat de centrale agent het
+    zelf zegt, met de vaste tekst uit zijn instructie. Een model dat een vaste tekst naspreekt, wijkt af en kost
+    uitvoertokens. Met de tool komt de tekst uit code (`afwijs_node`), blijft de stap *afgewezen* in het spoor, en kan
+    de code een afwijzing van een vraag over een bron naast de wet weigeren, zoals nu;
   - *een antwoord op een open vraagkaart*: een tool (`beantwoord_kaart`), die de stapmachine van de intake of de
     bronselectie aanroept;
   - *de bronkeuze* (`agent/bronkeuze.py`): blijft code, na de route.
+- **Een tool voor een route bouwt niets na** (uitgewerkt bij A2). Zo'n overdrachtstool zet de state die de route in
+  code nu ook zet en stuurt de beurt naar de node die er al is; er komt geen tweede implementatie. Drie routes zijn
+  daardoor niet terminaal in de strikte zin: annotaties lezen, begrippen lezen en annoteren. Daar zoekt of haalt de code
+  eerst op, en daarna formuleert het profiel dat er nu ook voor staat (`annotaties_lezen`, `begrippen_lezen`,
+  `retrieval`). Dat is een overdracht aan een profiel binnen dezelfde run, geen subagent. Zo blijven de gemeten routes
+  heel.
 - **Hij delegeert alleen wat zich daarvoor leent.** De regel staat in zijn instructie en wordt gemeten (A6):
   - wel: werk dat op zichzelf staat en met een rapport terug kan, veel leest (lange stukken, veel bronnen), of uit
     delen bestaat die naast elkaar kunnen;
@@ -405,6 +423,18 @@ te itereren. Runs verschillen sterk: een trend claimen we pas over drie runs.
 1. De centrale agent komt achter de vlag `centraleAgent` (standaard uit, alleen acceptatie, met poort-guard), naast de
    huidige supervisor. Met de vlag uit is Lex bitgelijk aan nu. Elke stap (A2 tot en met A5) breidt uit wat de vlag
    aanzet, en is los te meten en terug te draaien.
+
+   **De vlag heeft drie standen** (herzien bij A2), zodat het meetspoor beide vormen op dezelfde code kan meten zonder
+   een infra-deploy per ronde:
+
+   | Stand | Standaard per run | Een run mag vragen om |
+   |---|---|---|
+   | `uit` (default, productie) | de supervisor | niets: het veld per run wordt genegeerd |
+   | `meten` (acceptatie, tijdens de rondes) | de supervisor | de centrale agent |
+   | `aan` (acceptatie, na winst) | de centrale agent | de supervisor, voor de vergelijking |
+
+   `uit` is het slot voor productie: een veld per run dat overal telt, zou daar een ongemeten agent openzetten. De
+   poort-guard toetst dat de default `uit` is en dat alleen acceptatie een andere stand zet.
 2. De meting (A6) vergelijkt beide.
 3. Bij winst vervallen de supervisor-modelstap, het `WORKERS:`-formaat en de keuze tussen specialisten. De regisseur
    blijft, als tool op de delegatie. Er blijven geen twee varianten bestaan.

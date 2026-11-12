@@ -126,6 +126,9 @@ def _agent(rol: str, lus: dict[str, Any]) -> dict[str, Any]:
                   "tools_hash": _sleutel(begin)[0], "system_hash": _sleutel(begin)[1]},
         "historiegrens": _historiegrens(laatste, delen, int(kader.get("historiegrens_tekens") or 0)),
         "venster_beurten": _venster_beurten(kader.get("venster_telling") or {}),
+        # Het profiel waarmee deze agent draaide (ADR-016 §A3): de agentvorm zet het in het kader van elke ronde.
+        "profiel_id": str(kader.get("profiel_id") or ""),
+        "profiel_versie": str(kader.get("profiel_versie") or ""),
     }
 
 

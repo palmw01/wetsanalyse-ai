@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
-from .methode import instructies
+from .agentvorm import STANDAARD, agent_voor
 from .profielen import PROFIELEN, tools_van
 
 
@@ -32,21 +32,16 @@ SPECIALISTS: dict[str, Specialist] = {
     for naam, p in PROFIELEN.items()
 }
 
-DEFAULT = "algemeen"
-
-
-def _naam(name: str | None) -> str:
-    rol = (name or "").strip().lower()
-    return rol if rol in SPECIALISTS else DEFAULT
+DEFAULT = STANDAARD
 
 
 def get(name: str | None) -> Specialist:
-    """Specialist op naam; valt terug op 'algemeen' bij onbekend/leeg."""
-    rol = _naam(name)
-    spec = SPECIALISTS[rol]
-    return replace(spec, system=instructies(methoderol(rol)) + "\n\n" + spec.system)
+    """Specialist op naam, met de methodetekst van zijn rol vóór zijn instructie; valt terug op 'algemeen' bij
+    onbekend/leeg. De agent bouwt die tekst op (`agentvorm.Agent.instructie`)."""
+    agent = agent_voor(name)
+    return replace(SPECIALISTS[agent.naam], system=agent.instructie)
 
 
 def methoderol(name: str | None) -> str:
     """De rol uit de skill waarvan de specialist de methodetekst krijgt (`llm_stap` toetst dat hij er staat)."""
-    return PROFIELEN[_naam(name)].rol
+    return agent_voor(name).methoderol
