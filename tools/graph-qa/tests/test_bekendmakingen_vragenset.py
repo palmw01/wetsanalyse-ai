@@ -171,3 +171,11 @@ def test_de_set_dekt_het_geheel():
         assert nodig in soorten, nodig
     for v in SET:
         assert v["tool"] in tools.CONNECTOR_TOOLS and v["args"] and v["goed"] and v["verwacht"], v["id"]
+
+
+def test_bij_een_artikel_zegt_de_toelichting_dat_het_gewijzigde_deel_niet_bekend_is():
+    """Ronde 4, B24: de BWB legt de laatste wijziging van AWR 67f bij het artikel vast, terwijl ze alleen lid 6 raakte, en
+    het model schreef het hele artikel aan die wet toe. De toelichting zegt het, en hoe het deel te lezen is."""
+    [v] = [x for x in SET if x["id"] == "B24"]
+    d = json.loads(tools.dispatch(v["tool"], _graaf(v.get("graaf")), v["args"], AAN, bekendmakingen=_bron()))
+    assert "zegt de BWB hier niet" in d["toelichting"] and "get_bekendmaking" in d["toelichting"]

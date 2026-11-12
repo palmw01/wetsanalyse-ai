@@ -395,7 +395,7 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
         if sleutel in gedaan:
             results.append(_tool_result(tu, gedaan[sleutel].removesuffix(HERHAALD) + HERHAALD))
             continue
-        result_text = execute_tool(b, state, writer, tu)
+        result_text = execute_tool(b, state, writer, tu, van_model=True)
         gedaan[sleutel] = result_text
         trace.append((tu["name"], result_text))
         results.append(_tool_result(tu, result_text))

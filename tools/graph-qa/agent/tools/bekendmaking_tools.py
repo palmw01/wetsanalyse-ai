@@ -388,6 +388,12 @@ def _bij_bepaling(bron: BekendmakingBron, graph: Any, bwb_id: str, artikel: str,
     toelichting = (f"Volgens de BWB, voor de toestand die Lex leest: de publicatie die de huidige tekst van {wat} gaf en "
                    "het besluit waarmee die in werking trad. Eerdere wijzigingen staan in eerdere toestanden en zijn "
                    "hier niet te zien.")
+    if artikel:
+        # Ronde 4, B24: de BWB legt de laatste wijziging bij het artikel vast, ook als die alleen één lid raakte, en het
+        # model schreef het hele artikel aan die wet toe.
+        toelichting += (f" Welk deel van {wat} de wijziging raakte, zegt de BWB hier niet; schrijf het hele artikel er "
+                        "niet aan toe. Lees het met get_bekendmaking en het argument artikel: dan staan alleen de "
+                        "wijzigingsopdrachten voor dit artikel er.")
     if onbekend:
         toelichting += f" Niet gevonden bij KOOP: {', '.join(onbekend)}."
     if meer:

@@ -486,6 +486,14 @@ bruikbaar is.
   "Kamerstukken · kst-33755-3 deels gelezen, er is meer dan dit", "Wetgeving · niet bereikbaar". Een aantal alleen bij
   een zoektool (bij een leestool telt het rijen, geen inhoud), een fout in woorden (`resultaat.REDEN_ZIN`), geen toolnaam,
   JSON of duur. Het tweede blok onder het antwoord ("Graaf geraadpleegd") is daarmee weg (9 nov 2026).
+  **Een id in een aanroep van het model komt uit het gesprek** (`agent/id_herkomst.py`, `execute_tool(van_model=True)`, alleen
+  vanuit `tools_node`): een BWB-id, het id-argument van een leestool (uit `ConnectorBeschrijving.lees_argument`) of een
+  dossiernummer moet in de vraag, een toolresultaat (deze beurt, register, berichten), de context van de code of een eerder
+  antwoord staan, en een stuk mag ook in een citeervorm in de vraag staan. Anders gaat het niet naar de bron maar terug als
+  fout (`id_niet_uit_gesprek`), met de zoektool die het wel vindt. Declaratief per parameter (`ARGUMENTEN`), niet per tool. Een
+  BWB-id van een regeling in de graaf mag ook (het resultaat noemt haar en de controle toetst het id); de weigering geldt
+  als de graaf aantoont dat ze er niet in staat (wetgeving_live I20: een id uit het geheugen). Wat het model in deze beurt
+  zelf schreef, telt niet. Code die een tool aanroept, leidt haar ids zelf af en valt er niet onder. `tests/test_id_herkomst.py`.
 - **`agent/spoorbronnen.py`** – één register van wat Lex raadpleegt, intern (`WETGEVING`, `ANNOTATIES`, `BEGRIPPEN`,
   `METHODE`) en per connector afgeleid uit zijn beschrijving (`uit_connector`: label, werkwoorden, leestool = lezen, de
   rest zoekt). Daaruit komen het werkwoord van de statusregel (`toolregel`, achter `narratie._toolregel`) en de
