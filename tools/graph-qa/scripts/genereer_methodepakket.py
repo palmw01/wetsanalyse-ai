@@ -9,6 +9,7 @@ import re
 from pathlib import Path
 
 import yaml
+from bronmodel.methodesectie import lees_sectie
 
 ROOT = Path(__file__).resolve().parents[3]
 SKILL = ROOT / '.claude/skills/wetsanalyse'
@@ -99,19 +100,12 @@ def _lees(skill: Path, *, basis: bool) -> tuple[str, dict, dict, dict, set[str]]
     bekend = set(re.findall(r'^\| ([A-Z]{1,3}\d+) \|', register, re.M))
     secties = {}
     for key, spec in mapping['secties'].items():
-        if not re.fullmatch(r'[a-z][a-z-]*', key):
-            raise ValueError(f'ongeldig sectie-ID: {key}')
         pad = (skill / spec['bestand']).resolve()
         if not pad.is_relative_to(skill.resolve()):
             raise ValueError('bronpad buiten skill')
-        tekst = pad.read_text()
-        start, einde = f'<!-- methode:{key}:begin -->', f'<!-- methode:{key}:end -->'
-        if tekst.count(start) != 1 or tekst.count(einde) != 1:
-            raise ValueError(f'ontbrekende of dubbele sectie: {key}')
-        if tekst.index(einde) < tekst.index(start):
-            raise ValueError(f'omgekeerde sectie: {key}')
-        inhoud = tekst.split(start)[1].split(einde)[0].strip()
-        if not inhoud or not spec['bronnen'] or not set(spec['bronnen']) <= bekend:
+        # Dezelfde validator als een wijzigingsvoorstel vanuit de werkplek (`bronmodel.methodesectie`, ADR-014 C7).
+        inhoud = lees_sectie(pad.read_text(), key)
+        if not spec['bronnen'] or not set(spec['bronnen']) <= bekend:
             raise ValueError(f'lege sectie of ongeldige broncodes: {key}')
         secties[key] = {**spec, 'tekst': inhoud, 'sha256': sha(inhoud), 'skill': skill.name}
     for rol, ids in mapping['rollen'].items():

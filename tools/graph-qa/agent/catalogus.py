@@ -102,7 +102,8 @@ def uit_rollen() -> list[Onderdeel]:
             versie=vingerafdruk(rol), ingang=_aanroepers(rol),
             context="vóór de systeemprompt, in het stabiele deel (cache-prefix)", uitvoer="systeemprompt",
             tests=("tools/graph-qa/tests/test_methoderollen.py",), deel_van=oid("methode", _basis()), bewerkbaar=tuple(ids),
-            inhoud={"secties": [{"id": k, "skill": s["skill"], "bronnen": s["bronnen"], "sha256": s["sha256"], "tekst": s["tekst"]}
+            inhoud={"secties": [{"id": k, "skill": s["skill"], "bestand": f".claude/skills/{s['skill']}/{s['bestand']}",
+                                 "bronnen": s["bronnen"], "sha256": s["sha256"], "tekst": s["tekst"]}
                                 for k, s in secties.items()]},
         ))
     return uit

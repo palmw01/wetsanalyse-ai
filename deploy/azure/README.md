@@ -492,3 +492,7 @@ Vier vlaggen staan alleen op acceptatie aan, alle vier met default `false` en be
   `RELATIE_VOORSTELLEN`, een proefvlag). Op graph-qa en de eval-job; uit is de uitkomst gelijk aan zonder deze code.
 - `skillRegels` (`--skill-regels`): de annotatie- en begrippenketen nemen de regels mee die een methode-skill meebrengt
   (ADR-014 §7, `SKILL_REGELS`, een proefvlag). Op graph-qa en de eval-job; uit is de uitkomst gelijk aan zonder deze code.
+- `catalogusVoorstellen` (`--catalogus-voorstellen`, met `--github-repo`): een beheerder met 2FA stelt vanuit *Werkwijze van
+  Lex* een wijziging van een methodesectie voor, en de api opent er een concept-PR voor (ADR-014 C7, `CATALOGUS_VOORSTELLEN`).
+  Alleen op de api, en alleen als ook het environment-secret `WA_GITHUB_PR_TOKEN` staat: een fine-grained token op deze ene
+  repo met alleen *Contents* en *Pull requests* (schrijven). Dat token genereert de workflow niet; zonder blijft het uit.

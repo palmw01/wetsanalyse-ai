@@ -115,6 +115,7 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 | S6 | regelsets uit een skill, achter de proefvlag `SKILL_REGELS` | – |
 | S7 | werkplek per concept | #1299 |
 | S8 | commando's wijzen naar één onderdeel | #1298 |
-| C7 | een wijziging voorstellen → concept-PR (acceptatie) | – |
+| C7 | een wijziging voorstellen → concept-PR (acceptatie, `CATALOGUS_VOORSTELLEN` + `WA_GITHUB_PR_TOKEN`) | – |
+| v3 | de skill wetsanalyse 3.0 volgens de eisen voor Claude-skills, methodetekst byte-gelijk | – |
 | C8 | de skill `wetsuitvoering` (JRM 2), eerst zonder rolkoppeling | – |
 | C9 | regels voorstellen, met hun eigen tests als poort | – |

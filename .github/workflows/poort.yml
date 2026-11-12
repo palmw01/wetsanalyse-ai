@@ -351,6 +351,19 @@ jobs:
               if "--skill-regels" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
                   fout.append(f"azure-infra.yml: `--skill-regels` zonder acceptatie-conditie: {regel.strip()}")
 
+          # Voorstellen voor de methode als concept-PR (ADR-014 C7): alleen acceptatie, alleen met een token.
+          m = re.search(r"^param catalogusVoorstellen bool = (\w+)$", bicep, re.M)
+          if not m or m.group(1) != "false":
+              fout.append("main.bicep: `param catalogusVoorstellen bool = false` niet gevonden")
+          if "var catalogusVoorstellenAan = catalogusVoorstellen && !empty(githubPrToken)" not in bicep:
+              fout.append("main.bicep: catalogusVoorstellenAan hangt niet aan vlag én token")
+          for regel in re.findall(r".*name: 'CATALOGUS_VOORSTELLEN'.*", bicep):
+              if "value: catalogusVoorstellenAan ?" not in regel:
+                  fout.append(f"main.bicep: CATALOGUS_VOORSTELLEN zonder de parameter: {regel.strip()}")
+          for regel in flow.splitlines():
+              if "--catalogus-voorstellen" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
+                  fout.append(f"azure-infra.yml: `--catalogus-voorstellen` zonder acceptatie-conditie: {regel.strip()}")
+
           if fout:
               print("\n".join(f"  {f}" for f in fout))
               sys.exit(1)
