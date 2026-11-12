@@ -228,3 +228,12 @@ def test_een_eigen_kanttekening_als_blokcitaat_wordt_gewone_tekst():
     assert n == 1
     assert "> De ontvanger kan uitstel" in uit and "\nLet op: dit artikel ziet op" in uit and "> Let op" not in uit
     assert kanttekening_als_tekst("Geen citaat hier.", trace) == ("Geen citaat hier.", 0)
+
+
+def test_een_telling_in_een_opsomming_is_geen_stuk():
+    """Ronde 7, I30: "- **4** nog niet in werking getreden" zette "Artikel 4" als lijst onder de telling. Een kort kaal
+    nummer telt alleen als de regel precies dat nummer is of het voorvoegsel van het label draagt."""
+    gevonden = _paren("Artikel 4", "Artikel 20", "§ 22a")
+    assert genoemde_stukken("Telling:\n- **150** geldend\n- **20** vervallen\n- **4** nog niet in werking", gevonden) == []
+    assert genoemde_stukken("- Artikel 20 regelt de norm\n- § 22a Aangifte", gevonden) == ["x-1", "x-2"]
+    assert genoemde_stukken("| **4** | Alleenstaande |\n| 20 | Jongerennormen |", gevonden) == ["x-0", "x-1"]

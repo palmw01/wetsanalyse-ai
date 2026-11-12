@@ -358,6 +358,8 @@ def _kern(label: str) -> str:
 
 
 _OPMAAK = re.compile(r"[*_`§]+")
+#: Een kern die alleen een kort nummer is ("4", "19a"): aan het begin van een opsomming even goed een telling.
+_KAAL = re.compile(r"\d{1,4}[a-z]{0,3}")
 
 
 def _begin_van(regel: str) -> str:
@@ -378,9 +380,18 @@ def _noemt(regel: str, paren: list[tuple[str, str]], kernen: dict[str, str]) -> 
     laag, begin = regel.lower(), _begin_van(regel)
     uit = [ident for ident, label in paren
            if any(n and re.search(rf"(?<!\w){re.escape(n.lower())}(?!\w)", laag) for n in (ident, label))]
+    labels = dict(paren)
     for kern, ident in kernen.items():
-        if ident not in uit and (begin == kern or re.match(rf"{re.escape(kern)}(?![\w])", begin)):
-            uit.append(ident)
+        if ident in uit or not (begin == kern or re.match(rf"{re.escape(kern)}(?![\w])", begin)):
+            continue
+        # Een kort kaal nummer aan het begin van een opsomming is vaak een telling ("- **4** nog niet in werking", ronde 7,
+        # I30). Dat telt alleen als de regel precies dat nummer is (een tabelcel) of ook het voorvoegsel van het label draagt
+        # ("§ 22a …", "Artikel 19a …"); een kern met meer dan een nummer ("2010, 176") is onderscheidend genoeg.
+        label = labels.get(ident) or ""
+        voor = label[: len(label) - len(kern)].strip().lower()
+        if begin != kern and _KAAL.fullmatch(kern) and not (voor and voor in laag):
+            continue
+        uit.append(ident)
     return uit
 
 
