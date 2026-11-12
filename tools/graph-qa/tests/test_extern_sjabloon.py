@@ -388,20 +388,6 @@ def test_de_zoekvraag_noemt_de_peildatum_en_de_tekststand():
     assert "peildatum 1 januari 2015" in tekst and "de tekst op de peildatum" in tekst
 
 
-@pytest.mark.parametrize("zoekvraag,begin", [
-    ({"bwb_id": "BWBR0004770"}, "Gezocht bij BWBR0004770."),
-    ({"bwb_id": "BWBR0004770", "bepaling": "Invorderingswet 1990 als geheel"},
-     "Gezocht bij Invorderingswet 1990 als geheel."),
-    ({"bwb_id": "BWBR0004770", "artikel": "36"}, "Gezocht bij artikel 36 van BWBR0004770."),
-])
-def test_een_regeling_zonder_artikel_is_geen_leeg_artikel(zoekvraag, begin):
-    """Kamerstukken ronde 5, BX1: "Gezocht bij artikel  van BWBR0004770." bij een zoekvraag op de regeling als geheel."""
-    from bronmodel.connectors import BEKENDMAKINGEN
-
-    tekst = extern.zoekvraag_tekst(BEKENDMAKINGEN, zoekvraag, volgorde=False)
-    assert tekst == begin and "artikel  " not in tekst
-
-
 @pytest.mark.parametrize("naam", [c for c, k in sorted(CONNECTORS.items()) if k.veld("wetsverwijzing") is not None])
 def test_een_zoekvraag_bij_een_regeling_zonder_artikel_heeft_geen_lege_plek(naam, monkeypatch):
     """Meting Staatsblad ronde 5, B03: "Gezocht bij artikel  van BWBR0004770". Voor elke connector die stukken aan een
