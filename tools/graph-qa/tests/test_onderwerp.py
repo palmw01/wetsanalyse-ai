@@ -298,12 +298,12 @@ def test_supervisor_en_specialist_krijgen_het_blok_en_de_focus_houdt_het_vast(mo
 
     asyncio.run(run("Is deze deelvraag scherp genoeg?", onderwerp))
     assert gevraagd == [onderwerp.model_dump()]
-    systemen = [str(c["system"]) for c in llm.calls]
+    systemen = [str(c["prompt"]) for c in llm.calls]
     assert all("AANGEWEZEN IN DE WERKPLEK" in s for s in systemen), systemen
     # De vervolgvraag zonder chip: geen blok meer, wel de focus.
     asyncio.run(run("En hoe dan?", None))
     assert len(gevraagd) == 1
-    vervolg = [str(c["system"]) for c in llm.calls[2:]]
+    vervolg = [str(c["prompt"]) for c in llm.calls[2:]]
     assert not any("AANGEWEZEN IN DE WERKPLEK" in s for s in vervolg)
     assert all("Aangewezen in de werkplek: deelvraag · Wanneer?" in s for s in vervolg), vervolg
 

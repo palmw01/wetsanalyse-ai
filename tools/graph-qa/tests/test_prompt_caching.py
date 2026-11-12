@@ -15,6 +15,7 @@ import pytest
 
 from agent.adapters.anthropic_llm import _MIN_CACHE_TEKENS, AnthropicLLM
 from agent.agent import answer_stream
+from agent.berichten import BEURTCONTEXT_KOP
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block
 
 
@@ -79,10 +80,12 @@ def test_orkestrator_zet_het_variabele_deel_achter_het_stabiele():
     )))
 
     delen = llm.calls[1]["system_delen"]
-    assert len(delen) == 2, "systeemblok hoort gesplitst te zijn in stabiel + variabel"
-    assert delen[0].startswith("Je heet Lex"), "het stabiele deel begint bij de identiteit"
+    assert len(delen) == 1 and delen[0].startswith("Je heet Lex"), "de systeemprompt is alleen het stabiele deel"
     assert "AANPAK" not in delen[0], "het plan van deze beurt hoort NIET vóór het cache-punt"
-    assert "AANPAK" in delen[1]
+    # Het plan staat ná de historie: als eerste blok van de vraag, met de kop die zegt van wie het is.
+    vraag = llm.calls[1]["messages"][-1]["content"]
+    assert vraag[0]["text"].startswith(BEURTCONTEXT_KOP) and "AANPAK" in vraag[0]["text"]
+    assert vraag[1] == {"type": "text", "text": "Waar gaat artikel 9 over?"}
 
 
 async def _verzamel(gen):
@@ -175,3 +178,50 @@ def test_weigert_de_provider_de_ttl_dan_blijft_het_cachepunt_met_5_minuten():
         pass
     assert len(pogingen) == 2 and pogingen[1]["system"][0]["cache_control"] == {"type": "ephemeral"}
     assert llm._caching and llm._historie_caching, "caching blijft aan, ook op de historie"
+
+
+# --- De historie over beurten heen (nulmeting context 12 nov 2026) ---------------------------------------------------
+
+
+def test_de_beurtcontext_staat_na_de_historie_en_de_punten_wijzen_beide_historie_eindes_aan():
+    from agent.berichten import BEURTCONTEXT_KOP, met_beurtcontext
+
+    venster = [
+        {"role": "user", "content": "vraag 1"}, {"role": "assistant", "content": "antwoord 1"},
+        {"role": "user", "content": "vraag 2"}, {"role": "assistant", "content": "antwoord 2"},
+        {"role": "user", "content": "vraag 3"},
+        {"role": "assistant", "content": [{"type": "tool_use", "id": "t1", "name": "x", "input": {}}]},
+        {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t1", "content": "r"}]},
+        {"role": "user", "content": "Let op: het citaat klopt niet"},
+    ]
+    uit, punten = met_beurtcontext(venster, "vraag 3", "AANPAK: x")
+    assert punten == (1, 3), "het eind van de historie van de vorige beurt (1) en van deze (3)"
+    assert uit[4]["content"] == [{"type": "text", "text": BEURTCONTEXT_KOP + "AANPAK: x"},
+                                 {"type": "text", "text": "vraag 3"}]
+    assert venster[4]["content"] == "vraag 3", "het venster van de aanroeper blijft ongewijzigd"
+    assert uit[:4] == venster[:4] and uit[5:] == venster[5:]
+    # Eerste beurt van een gesprek: geen historie, dus geen punten; zonder context ongewijzigd.
+    assert met_beurtcontext(venster[:1], "vraag 1", "") == (venster[:1], ())
+
+
+def test_de_berichtpunten_krijgen_een_cachepunt_en_vallen_mee_terug():
+    llm = _adapter()
+    gezien: list[dict] = []
+    llm._client = type("C", (), {"messages": type("M", (), {
+        "stream": staticmethod(lambda **kw: gezien.append(kw) or _Stream(kw))})()})()
+    berichten = [{"role": "user", "content": "vraag 1"}, {"role": "assistant", "content": [{"type": "text", "text": "a"}]},
+                 {"role": "user", "content": "vraag 2"}]
+    with llm.stream(model="m", max_tokens=1, system=[LANG], tools=[], messages=berichten, historie_cache=True,
+                    berichtpunten=(0, 1)):
+        pass
+    m = gezien[0]["messages"]
+    assert m[0]["content"] == [{"type": "text", "text": "vraag 1", "cache_control": {"type": "ephemeral"}}]
+    assert m[1]["content"][-1]["cache_control"] == {"type": "ephemeral"}
+    assert m[2] == berichten[2] and berichten[0]["content"] == "vraag 1"
+    # Weigert de provider ze, dan gaan ze uit met het historiepunt; de systeemprompt houdt zijn punt.
+    llm._zonder_caching(_fout("messages.0.content.0.cache_control: too many cache_control blocks"), historie=True)
+    with llm.stream(model="m", max_tokens=1, system=[LANG], tools=[], messages=berichten, historie_cache=True,
+                    berichtpunten=(0, 1)):
+        pass
+    assert gezien[1]["messages"] == berichten and "cache_control" not in gezien[1]
+    assert isinstance(gezien[1]["system"], list)

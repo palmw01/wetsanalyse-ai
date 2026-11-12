@@ -17,7 +17,7 @@ from agent.berichten import _schoon_messages, _trim_messages
 from agent.nodes.antwoord import HERHAALD, _al_gedaan
 from agent.resultaat import fout, is_fout
 from eval.scoring import is_infrastructuurfout
-from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block
+from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block, vraag_van
 
 ART = {"bwb_id": "BWBR0004770", "artikel": "9"}
 
@@ -138,7 +138,7 @@ def test_na_elke_afbreking_is_de_volgende_beurt_een_geldige_reeks(moment: int, c
     naar_model = [c for c in tweede.calls if c.get("tools")]
     assert naar_model, "de tweede beurt bereikte het model niet"
     assert_geldige_reeks(naar_model[-1]["messages"])
-    assert naar_model[-1]["messages"][-1]["content"] == "vraag 2"
+    assert vraag_van(naar_model[-1]["messages"][-1]) == "vraag 2"
 
 
 # --- Het venster in de correctieronde ---------------------------------------------------------------

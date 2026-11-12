@@ -1,6 +1,8 @@
 """Fakes voor de poorten, zodat de agent-loop deterministisch en zonder netwerk test."""
 from __future__ import annotations
 
+from agent.berichten import BEURTCONTEXT_KOP
+
 from collections.abc import Callable
 import re
 from types import SimpleNamespace
@@ -80,6 +82,12 @@ class FakeLLM:
         systeem = kwargs.get("system")
         if isinstance(systeem, list):
             kwargs = {**kwargs, "system_delen": systeem, "system": "\n\n".join(d for d in systeem if d)}
+        # `prompt`: alles wat de beurt als instructie meekrijgt, de systeemprompt plus de context van de beurt. Die staat
+        # sinds de nulmeting context (12 nov 2026) als eerste blok van de vraag, ná de historie (`met_beurtcontext`).
+        # Waar hij staat, toetst `test_prompt_caching`; wat erin staat, toetsen de andere tests hierop.
+        context = [b.get("text", "") for m in kwargs.get("messages") or [] if isinstance(m.get("content"), list)
+                   for b in m["content"] if isinstance(b, dict) and str(b.get("text", "")).startswith(BEURTCONTEXT_KOP)]
+        kwargs = {**kwargs, "prompt": "\n\n".join([str(kwargs.get("system") or ""), *context])}
         self.calls.append(kwargs)
 
     def create(self, **kwargs: Any) -> SimpleNamespace:
@@ -168,3 +176,12 @@ def agent_ctx(api, *, settings=None, run_id: str = "run9", gestopt: bool = False
                   melding=meldingen.append, gestopt=lambda: gestopt, **kw)
     ctx.meldingen = meldingen
     return ctx
+
+
+def vraag_van(bericht: dict) -> str:
+    """De tekst die de jurist schreef, zonder de context van de beurt ervoor (`berichten.met_beurtcontext`)."""
+    c = bericht.get("content")
+    if isinstance(c, str):
+        return c
+    return "".join(b.get("text", "") for b in c or [] if isinstance(b, dict) and b.get("type") == "text"
+                   and not str(b.get("text", "")).startswith(BEURTCONTEXT_KOP))

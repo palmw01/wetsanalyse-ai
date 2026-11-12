@@ -32,8 +32,8 @@ def _llm(*antwoorden):
 
 
 def _systeem(call) -> str:
-    system = call.get("system")
-    return "".join(d.get("text", "") if isinstance(d, dict) else str(d) for d in system) if isinstance(system, list) else str(system)
+    """Wat de beurt als instructie meekrijgt: systeemprompt plus de context van de beurt (`FakeLLM.prompt`)."""
+    return str(call.get("prompt"))
 
 
 def test_met_een_connector_aan_zegt_de_prompt_dat_een_vondst_met_het_sjabloon_afrondt(monkeypatch):
