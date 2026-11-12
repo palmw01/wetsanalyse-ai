@@ -118,7 +118,7 @@ function Inhoud({ o, stand }: { o: OnderdeelDetail; stand: VoorstelStand | null 
           ))}</div>
         </Kaart>
       );
-    case "specialist":
+    case "agentprofiel":
       return (
         <Kaart titel="Instructie" toelichting="Bovenop de identiteit van Lex en de methodetekst van zijn rol." data-blok="inhoud">
           <p className="whitespace-pre-wrap text-sm text-ink">{tekst(i.systeemtekst)}</p>

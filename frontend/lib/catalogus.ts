@@ -2,7 +2,7 @@
 // hem af uit zijn registers (`GET /v1/catalogus`). Alleen lezen: een onderdeel toevoegen of wijzigen gaat via de repo
 // (en later via een voorstel dat een concept-PR wordt). `catalogus.test.ts` toetst de soorten tegen de Python-bron.
 
-export const SOORTEN = ["methode", "rol", "regelset", "tool", "connector", "sjabloon", "workflow", "specialist", "agent",
+export const SOORTEN = ["methode", "rol", "regelset", "tool", "connector", "sjabloon", "workflow", "agentprofiel", "agent",
   "route", "controle"] as const;
 export type Soort = (typeof SOORTEN)[number];
 export type Model = "geen" | "strict" | "agent";
@@ -64,7 +64,7 @@ export interface Catalogus {
 export const SOORT_LABEL: Record<Soort, { een: string; meer: string; uitleg: string }> = {
   methode: { een: "Methode", meer: "Methoden", uitleg: "De methode die Lex volgt, uit een skill." },
   rol: { een: "Methoderol", meer: "Methoderollen", uitleg: "Welke methodetekst een modelaanroep meekrijgt." },
-  specialist: { een: "Specialist", meer: "Specialisten", uitleg: "Beantwoordt een soort vraag met eigen tools." },
+  agentprofiel: { een: "Agentprofiel", meer: "Agentprofielen", uitleg: "Een agent die een soort vraag beantwoordt, met eigen instructie en tools." },
   agent: { een: "Agent", meer: "Agents", uitleg: "Een taak op een werkgebied; levert altijd een voorstel." },
   workflow: { een: "Workflow", meer: "Workflows", uitleg: "Een vaste keten van stappen." },
   route: { een: "Route", meer: "Routes", uitleg: "Een vaste weg voor een herkenbare vraag." },

@@ -21,7 +21,7 @@ const bron = readFileSync(new URL("../lib/catalogus.ts", import.meta.url), "utf8
 const SOORTEN = JSON.parse(bron.match(/export const SOORTEN = (\[[^\]]*\])/s)[1].replace(/,\s*\]/, "]"));
 const CONCEPTEN = JSON.parse(bron.match(/export const CONCEPTEN = (\[[^\]]*\])/s)[1]);
 const CONCEPT_VAN = { methode: "skill", rol: "skill", regelset: "skill", tool: "tool", connector: "tool", sjabloon: "tool",
-  workflow: "workflow", specialist: "agent", agent: "agent", route: "ingang", controle: "hook" };
+  workflow: "workflow", agentprofiel: "agent", agent: "agent", route: "ingang", controle: "hook" };
 
 // De langste waarden die in de echte catalogus voorkomen, en langer: paden en id's zonder spaties.
 const PAD = ".claude/skills/wetsanalyse-met-een-hele-lange-naam/references/markeren-fragmentgrenzen-en-verwijzingen-volgen.md";
@@ -48,7 +48,7 @@ const inhoud = {
   tool: { beschrijving: `Een handeling met ${PAD}.`, argumenten: [ID, `${ID}_2`] },
   connector: { dekt: PAD, rol_in_antwoord: ID, levert: TEST, niet_in_tekst: ID, voorbeeldvragen: [`Wat zegt ${ID}?`] },
   sjabloon: { beschrijving: ID, velden: { [ID]: PAD } },
-  specialist: { systeemtekst: `Instructie met ${PAD}.` },
+  agentprofiel: { systeemtekst: `Instructie met ${PAD}.` },
   agent: { taken: [{ taak: ID, acties: [ID, `${ID}_2`], model: true }] },
   route: { moment: ID, herkenner: `agent.supervisie:${ID}` },
 };

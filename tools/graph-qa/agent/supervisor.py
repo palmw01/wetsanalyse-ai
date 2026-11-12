@@ -19,6 +19,8 @@ from __future__ import annotations
 
 from bronmodel.connectors import CONNECTORS
 
+from .profielen import KIESBAAR
+
 
 def _scope_bronnen() -> str:
     """Wat naast de wet binnen scope valt, uit de connectorbeschrijvingen (ADR-013). Alle bekende connectors, ook als ze
@@ -112,7 +114,8 @@ VERVOLG_SYSTEM = (
     "werkgebied (deelvragen, bronnen, begrippen, meedenken) ook niet."
 )
 
-_QA_SPECIALISTS = ("definitie", "duiding", "algemeen")
+#: De specialisten die de supervisor mag kiezen: de kiesbare profielen (ADR-016 §A2).
+_QA_SPECIALISTS = KIESBAAR
 
 # De workers die bestaan. Alles daarbuiten is een verzinsel van het model en telt niet
 # mee: werd élke onbekende naam stilzwijgend een extra ANTWOORD-worker, dan beantwoordde "WORKERS:

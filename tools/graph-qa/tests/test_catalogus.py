@@ -17,7 +17,9 @@ from bronmodel import connectors as bm
 import typing
 
 from agent import catalogus as cat
-from agent import specialists
+from bronmodel.agentprofiel import Agentprofiel
+
+from agent import profielen, specialists
 from agent.agents.register import AGENTS
 from agent.begrippen_pipeline import keten as begrippenketen
 from agent.jas_pipeline import keten as annotatieketen
@@ -37,7 +39,7 @@ def _ids(soort: str) -> set[str]:
 
 
 def test_elk_register_in_de_catalogus_en_omgekeerd():
-    assert _ids("specialist") == set(specialists.SPECIALISTS)
+    assert _ids("agentprofiel") == set(profielen.PROFIELEN) == set(specialists.SPECIALISTS)
     assert _ids("sjabloon") == set(SJABLONEN)
     assert _ids("connector") == set(bm.CONNECTORS)
     assert _ids("rol") == set(PAKKET["rollen"])
@@ -144,8 +146,8 @@ def test_letterlijke_tekst_van_derden_vraagt_een_bron_met_notice():
 
 
 def test_model_is_afgeleid():
-    per_soort = {o.soort: o.model for o in ALLE if o.soort in ("specialist", "sjabloon", "connector", "methode")}
-    assert per_soort == {"specialist": "agent", "sjabloon": "strict", "connector": "geen", "methode": "geen"}
+    per_soort = {o.soort: o.model for o in ALLE if o.soort in ("agentprofiel", "sjabloon", "connector", "methode")}
+    assert per_soort == {"agentprofiel": "agent", "sjabloon": "strict", "connector": "geen", "methode": "geen"}
 
 
 def test_een_connector_draagt_zijn_straatvlag():
@@ -156,7 +158,7 @@ def test_een_connector_draagt_zijn_straatvlag():
 
 def test_een_specialist_hangt_aan_zijn_rol_en_sjablonen():
     for naam, spec in specialists.SPECIALISTS.items():
-        o = cat.onderdeel(bc.oid("specialist", naam))
+        o = cat.onderdeel(bc.oid("agentprofiel", naam))
         assert bc.oid("rol", specialists.methoderol(naam)) in o.hangt_af_van
         assert {bc.oid("sjabloon", s) for s in spec.sjablonen} <= set(o.hangt_af_van)
 
@@ -176,9 +178,10 @@ def test_een_onderdeel_met_een_ongeldig_id_wordt_geweigerd():
                      bestand=("x",), versie="x", laag="workflow")
 
 
-def test_nieuwe_specialist_en_connector_komen_mee_zonder_code(monkeypatch):
-    nep = specialists.Specialist(system="nep", tools=frozenset({"get_artikel"}), doel="Een nep-specialist.")
-    monkeypatch.setitem(specialists.SPECIALISTS, "nep", nep)
+def test_een_nieuw_profiel_en_een_nieuwe_connector_komen_mee_zonder_code(monkeypatch):
+    nep = Agentprofiel(naam="nep", beschrijving="Een nep-profiel.", instructie="nep", tools=("get_artikel",),
+                       methoderol="algemeen", kiesbaar=False)
+    monkeypatch.setitem(profielen.PROFIELEN, "nep", nep)
     voorbeeld = bm.CONNECTORS["kamerstukken"]
     nepc = dataclasses.replace(voorbeeld, naam="nepbron", label="Nepbron")
     monkeypatch.setitem(bm.CONNECTORS, "nepbron", nepc)
@@ -186,7 +189,7 @@ def test_nieuwe_specialist_en_connector_komen_mee_zonder_code(monkeypatch):
     cat.catalogus.cache_clear()
     try:
         ids = {o.id for o in cat.catalogus()}
-        assert {"specialist/nep", "connector/nepbron"} <= ids
+        assert {"agentprofiel/nep", "connector/nepbron"} <= ids
         assert cat.onderdeel("connector/nepbron").straat == "CONNECTOR_NEPBRON"
     finally:
         cat.catalogus.cache_clear()
@@ -218,11 +221,11 @@ def test_het_endpoint_geeft_de_lijst_zonder_inhoud_en_het_detail_met(monkeypatch
     per_id = {o["id"]: o for o in lijst["onderdelen"]}
     assert per_id["connector/kamerstukken"]["aan"] is True
     assert per_id["connector/rechtspraak"]["aan"] is False
-    assert per_id["specialist/duiding"]["aan"] is True
+    assert per_id["agentprofiel/duiding"]["aan"] is True
 
     d = client.get("/v1/catalogus/rol/duiding").json()
     assert d["inhoud"]["secties"] and d["inhoud"]["secties"][0]["tekst"]
-    assert "specialist/duiding" in d["gebruikt_door"]
+    assert "agentprofiel/duiding" in d["gebruikt_door"]
     assert client.get("/v1/catalogus/rol/bestaat_niet").status_code == 404
 
 

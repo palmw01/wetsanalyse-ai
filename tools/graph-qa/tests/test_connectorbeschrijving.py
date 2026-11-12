@@ -6,7 +6,7 @@ werkplek (de groep in de bronnenlijst). Deze tests lezen ook de api en de fronte
 `scripts/kruistests.sh`.
 
 De nep-connector onderaan bewijst het generieke: een connector die alleen een beschrijving en een tool heeft, komt
-zonder één regel extra code in de toollaag en bij de specialisten.
+zonder één regel extra code in de toollaag; een profiel dat hem noemt (`.claude/lex-agents/`), krijgt zijn tools.
 """
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from bronmodel import connectors as bm
 from bronmodel.extern import BRONTYPEN, externe_vindplaats
 
 from agent import specialists, tools
+from agent.profielen import PROFIELEN, grenzen, tools_van
 from agent.config import Settings
 from agent.models import Connector
 
@@ -56,7 +57,7 @@ def test_de_beschrijving_is_volledig(c: bm.ConnectorBeschrijving):
     assert re.fullmatch(r"[a-z][a-z0-9_]*", c.naam)
     assert c.brontype in BRONTYPEN and c.brontype != "wettekst"
     assert c.leestool in c.tools
-    assert c.specialisten <= set(specialists.SPECIALISTS), "een rol die niet bestaat"
+    assert any(c.naam in p.connectors for p in PROFIELEN.values()), "geen profiel noemt deze connector"
     assert len(c.voorbeeldvragen) >= 3
 
 
@@ -144,17 +145,21 @@ def test_de_namen_in_de_contracten_zijn_de_beschrijving():
             assert f'Literal["{c.naam}"]' not in bron, f"api/app/{bestand}: '{c.naam}' met de hand"
 
 
-def test_geen_specialist_noemt_een_connectortool_met_de_hand():
-    bron = (WORTEL / "tools" / "graph-qa" / "agent" / "specialists.py").read_text(encoding="utf-8")
-    for t in tools.CONNECTOR_TOOLS:
-        assert f'"{t}"' not in bron, f"specialists.py noemt {t}: dat volgt uit de beschrijving"
+def test_geen_profiel_noemt_een_connectortool_met_de_hand():
+    """Een profiel noemt de connector; diens tools volgen uit de beschrijving. Het register weigert de andere weg."""
+    assert not grenzen().tools & tools.CONNECTOR_TOOLS
+    for naam, p in PROFIELEN.items():
+        assert not set(p.tools or ()) & tools.CONNECTOR_TOOLS, f"{naam} noemt een connectortool"
 
 
 @pytest.mark.parametrize("c", BESCHRIJVINGEN, ids=IDS)
 def test_de_rollen_krijgen_zijn_tools(c: bm.ConnectorBeschrijving):
-    for rol in c.specialisten:
+    for rol, p in PROFIELEN.items():
         spec = specialists.SPECIALISTS[rol]
-        assert spec.tools is None or c.tools <= spec.tools
+        if c.naam in p.connectors:
+            assert spec.tools is None or c.tools <= spec.tools
+        else:
+            assert spec.tools is not None and not c.tools & spec.tools
 
 
 def test_de_werkplek_kent_elke_groep():
@@ -173,7 +178,7 @@ def test_een_nieuwe_connector_komt_er_zonder_code_bij(monkeypatch):
     nep = bm.ConnectorBeschrijving(
         naam="testbron", label="Testbron", brontype="uitspraak", groep="Uitspraken",
         dekt="uitspraken van een testgerecht", signalen=(r"\btestgerecht\b",), tools=frozenset({"zoek_testbron"}),
-        leestool="zoek_testbron", lees_argument="id", id_prefixen=("ECLI:",), specialisten=frozenset({"duiding"}),
+        leestool="zoek_testbron", lees_argument="id", id_prefixen=("ECLI:",),
         rol_in_antwoord="een uitspraak onderbouwt een uitleg, nooit wat de wet zegt", kop_in_antwoord="Uit de testrechtspraak", levert=("uitspraken",), niet_in_tekst=(),
         werkwoorden={"zoek_testbron": ("zoekt uitspraken over „{zoekterm}”", "zoekt uitspraken")}, grenzen="alleen een test",
         beheer="Een nep-connector.", voorbeeldvragen=("Wat zei het testgerecht?",))
@@ -190,10 +195,10 @@ def test_een_nieuwe_connector_komt_er_zonder_code_bij(monkeypatch):
     aan = Settings().model_copy(update={"connector_testbron": True})
     assert tools.toegestane_tools(frozenset({"zoek_testbron"}), aan, ["testbron"]) == {"zoek_testbron"}
     assert tools.toegestane_tools(frozenset({"zoek_testbron"}), aan, []) == frozenset()
-    # De specialisten: de rol uit de beschrijving krijgt de tool, een andere niet.
-    afgeleid = specialists._met_connectors(dict(specialists.SPECIALISTS))
-    assert "zoek_testbron" in afgeleid["duiding"].tools
-    assert "zoek_testbron" not in afgeleid["definitie"].tools
+    # De profielen: het profiel dat de connector noemt krijgt de tool, een ander niet.
+    duiding = PROFIELEN["duiding"]
+    assert "zoek_testbron" in tools_van(duiding.model_copy(update={"connectors": (*duiding.connectors, "testbron")}))
+    assert "zoek_testbron" not in tools_van(PROFIELEN["definitie"])
     # De dispatch: een module in het register, en `dispatch` voert de tool uit met de bron van die connector – zonder
     # één regel in `tools/__init__.py` (vroeger een tak, een singleton en een argument per connector).
     from agent.tools.connectortools import ConnectorModule

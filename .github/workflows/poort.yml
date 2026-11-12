@@ -74,7 +74,10 @@ jobs:
           # alleen de methodetekst bijstelt levert een PR met uitsluitend .md-bestanden, `code`
           # is dan leeg, graph_qa wordt false, en de PR mergt groen terwijl de gegenereerde
           # Python achterloopt op de markdown.
-          skill=$(echo "$gewijzigd" | grep '^\.claude/skills/wetsanalyse/' || true)
+          #
+          # Hetzelfde geldt voor de agentprofielen (`.claude/lex-agents/`, ADR-016): `agent/agentprofielen.py` wordt
+          # eruit gegenereerd en `tests/test_profielregister.py` bewaakt dat.
+          skill=$(echo "$gewijzigd" | grep -E '^\.claude/(skills/wetsanalyse|lex-agents)/' || true)
 
           heeft() { echo "$code" | grep -q "^$1" && echo true || echo false; }
           graph_qa=$(heeft 'tools/graph-qa/')
@@ -87,7 +90,7 @@ jobs:
             bwb_import=true
           fi
           if [ -n "$skill" ]; then
-            echo "Skill-wijziging gezien: graph-qa-tests draaien voor de methode-drift-guard."
+            echo "Skill- of profielwijziging gezien: graph-qa-tests draaien voor de drift-guards."
             graph_qa=true
           fi
           # De referentiesets (JAS en begrippen) zijn data waar graph-qa-tests op toetsen: hash,

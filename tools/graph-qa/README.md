@@ -65,8 +65,9 @@ De volledige keten en haar regels staan in [`CLAUDE.md`](CLAUDE.md) en in
 ### Specialisten
 
 De supervisor kiest voor een gewone vraag één van de eerste drie. De twee leesspecialisten horen bij de
-deterministische leesroutes. Elk krijgt een eigen instructie en een **subset** van de tools
-(`agent/specialists.py`):
+deterministische leesroutes. Elk is een **agentprofiel** (ADR-016): een bestand `.claude/lex-agents/<naam>.md` met een
+eigen instructie en een **subset** van de tools, gebundeld in `agent/agentprofielen.py` en geladen door
+`agent/profielen.py`:
 
 | Specialist | Waarvoor | Kern-tools |
 |---|---|---|

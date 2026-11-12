@@ -141,6 +141,10 @@ def main() -> int:
         return 1
     if not args.check:
         PAKKET_DOEL.write_text(pakket, encoding="utf-8")
+    # De agentprofielen (ADR-016 §A2) komen uit `.claude/lex-agents/`; dezelfde --check dekt ze.
+    from scripts import genereer_agentprofielen
+    if genereer_agentprofielen.main(["--check"] if args.check else []):
+        return 1
     if args.check:
         if verwacht != DOEL.read_text(encoding="utf-8"):
             print(f"{DOEL.relative_to(WORTEL)} loopt uit de pas met de skill-referentie.\n"

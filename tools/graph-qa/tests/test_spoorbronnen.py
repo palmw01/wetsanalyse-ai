@@ -71,7 +71,7 @@ def test_een_nieuwe_connector_komt_er_zonder_code_bij(monkeypatch):
     nep = bm.ConnectorBeschrijving(
         naam="testbron", label="Testbron", brontype="uitspraak", groep="Uitspraken", dekt="uitspraken",
         signalen=(r"\btestgerecht\b",), tools=frozenset({"zoek_testbron", "lees_testbron"}), leestool="lees_testbron",
-        lees_argument="ecli", id_prefixen=("ECLI:",), specialisten=frozenset({"duiding"}), rol_in_antwoord="een test",
+        lees_argument="ecli", id_prefixen=("ECLI:",), rol_in_antwoord="een test",
         kop_in_antwoord="Uit de test", levert=("uitspraken",), niet_in_tekst=(), grenzen="alleen een test",
         werkwoorden={"zoek_testbron": ("zoekt uitspraken over „{zoekterm}”", "zoekt uitspraken"),
                      "lees_testbron": ("leest uitspraak {ecli}", "leest een uitspraak")},
