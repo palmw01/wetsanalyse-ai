@@ -104,6 +104,10 @@ KAMERSTUK_TOOLS: list[dict[str, Any]] = [
                 "nummer": {"type": "string", "description": "Het nummer van één stuk in het dossier, bijvoorbeeld "
                                                             "'342' of 'A'; alleen met 'dossier'."},
                 "woorden": {"type": "string", "description": "Woorden uit de titel, bijvoorbeeld 'Invorderingswet'."},
+                "dossiertitel": {"type": "string", "description": "De naam van het wetsvoorstel of onderwerp in de titel van "
+                                                                 "het dossier, als woordgroep: alle stukken van de dossiers "
+                                                                 "die zo heten, bijvoorbeeld 'Belastingplan 2025'. Preciezer "
+                                                                 "dan 'woorden', dat ook stukken uit andere dossiers vindt."},
                 "tekst": {"type": "string", "description": "Waar het stuk over gaat, gezocht in de hele tekst. Zet een "
                                                            "vaste term tussen dubbele aanhalingstekens (\"één "
                                                            "bankrekeningnummer\"); losse woorden moeten er allemaal "
@@ -364,6 +368,7 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
     dossier = (a.get("dossier") or "").strip().upper().replace(" ", "")
     nummer = (a.get("nummer") or "").strip().upper().replace(" ", "")
     woorden = (a.get("woorden") or "").strip()
+    dossiertitel = " ".join(re.findall(r"[0-9A-Za-zÀ-ÿ]+", (a.get("dossiertitel") or "").lower()))
     tekst = (a.get("tekst") or "").strip()
     soort = (a.get("soort") or "").strip()
     offset = max(int(a.get("offset") or 0), 0)
@@ -398,7 +403,8 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
     if tekst and not 0 < tekst_woorden(tekst) <= MAX_WOORDEN:
         return fout("ongeldige_tekst", f"geef één tot {MAX_WOORDEN} woorden van minstens drie letters, bijvoorbeeld "
                     "{\"tekst\": \"bankrekeningnummer toeslagen\"}.")
-    filters = {"dossier": dossier, "nummer": nummer, "woorden": woorden, "tekst": tekst, "soort": soort,
+    filters = {"dossier": dossier, "nummer": nummer, "woorden": woorden, "dossiertitel": (a.get("dossiertitel") or "").strip()
+               if dossiertitel else "", "tekst": tekst, "soort": soort,
                "vanaf": vanaf, "tot": tot, "vergaderjaar": jaar, "kamer": kamer}
     if volgorde == "nummer" and not dossier:
         return fout("ongeldige_volgorde", "op nummer kan alleen binnen een dossier, bijvoorbeeld "
@@ -421,6 +427,9 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
     cql = _BASIS + (f' AND w.dossiernummer=="{dossier}"' if dossier else "")
     cql += f' AND w.ondernummer=="{nummer}"' if nummer else ""
     cql += (" AND " + _cql_woorden(woorden)) if woorden else ""
+    # De dossiertitel als woordgroep: "Belastingplan 2025" is niet "Belastingplan BES-eilanden 2025" (Kamerstukken ronde 6,
+    # K10: op woorden in de titel 94 amendementen, in dossier 36602 zijn het er 88).
+    cql += f' AND w.dossiertitel adj "{dossiertitel}"' if dossiertitel else ""
     cql += _tekst_cql(tekst) if tekst else ""
     cql += (f" AND dt.date>={vanaf}" if vanaf else "") + (f" AND dt.date<={tot}" if tot else "")
     cql += f' AND w.vergaderjaar=="{jaar}"' if jaar else ""

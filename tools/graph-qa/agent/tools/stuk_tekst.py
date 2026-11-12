@@ -52,14 +52,23 @@ MAX_TREFFERS_ZONDER_KOPPEN = 20
 MAX_PER_KOP = 30
 
 
-def treffers_per_kop(treffers: Sequence[dict[str, Any]], diepte: int = 2) -> tuple[list[dict[str, Any]], int]:
-    """Per kop (tot `diepte` niveaus) het aantal treffers en `vanaf`: de plek van de eerste treffer in de lijst, als
-    offset voor dezelfde zoekvraag. Voor elke leestool die binnen een stuk zoekt; (koppen, aantal koppen dat niet past)."""
-    per: dict[str, dict[str, Any]] = {}
-    for i, r in enumerate(treffers):
-        kop = " › ".join(str(r.get("kop") or "").split(" › ")[:diepte]) or "(zonder kop)"
-        per.setdefault(kop, {"kop": kop, "aantal": 0, "vanaf": i})["aantal"] += 1
-    lijst = list(per.values())
+def treffers_per_kop(treffers: Sequence[dict[str, Any]], diepte: int | None = None) -> tuple[list[dict[str, Any]], int]:
+    """Per kop het aantal treffers en `vanaf`: de plek van de eerste treffer in de lijst, als offset voor dezelfde
+    zoekvraag. Voor elke leestool die binnen een stuk zoekt; (koppen, aantal koppen dat niet past).
+
+    Zonder `diepte` het diepste kopniveau met hoogstens `MAX_PER_KOP` koppen: bij de begroting van K15 (nameting #1274)
+    gaven twee niveaus vijf koppen voor 223 treffers, te grof om te kiezen, en het model bladerde toch door."""
+    def per_niveau(d: int) -> list[dict[str, Any]]:
+        per: dict[str, dict[str, Any]] = {}
+        for i, r in enumerate(treffers):
+            kop = " › ".join(str(r.get("kop") or "").split(" › ")[:d]) or "(zonder kop)"
+            per.setdefault(kop, {"kop": kop, "aantal": 0, "vanaf": i})["aantal"] += 1
+        return list(per.values())
+
+    if diepte is None:
+        diepst = max((len(str(r.get("kop") or "").split(" › ")) for r in treffers), default=1)
+        diepte = next((d for d in range(diepst, 1, -1) if len(per_niveau(d)) <= MAX_PER_KOP), 1)
+    lijst = per_niveau(diepte)
     return lijst[:MAX_PER_KOP], max(len(lijst) - MAX_PER_KOP, 0)
 
 
