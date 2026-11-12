@@ -26,7 +26,7 @@ from bronmodel.extern import ExterneVindplaats, externe_verwijzingen, externe_vi
 from bronmodel.vindplaats import vindplaats
 
 from .models import Source
-from .resultaat import is_contract, is_fout, waarden
+from .resultaat import is_contract, is_fout, is_foutresultaat, waarden
 from .namespace import vindplaats_patroon
 from .tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
 
@@ -113,7 +113,9 @@ def _labels(text: str) -> dict[str, str]:
     """IRI → label uit de rijen van een contractresultaat. Een wet-lokale `id:`-node (een divisie van de
     Leidraad) heeft geen label in zijn IRI, maar de tool die hem vond wél: zonder dit stond hij in de
     bronnenlijst als `urn:bwb:BWBR0024096:id:…divisie26.5`."""
-    data = is_contract(text)
+    # Ook een fout kan een stuk dragen (`alleen_pdf`, een buitenlandse ECLI): dat label hoort mee, anders stond het stuk
+    # met zijn kale id in de bronnenlijst ("kst-1278484", meting Kamerstukken ronde 3, K12).
+    data = is_contract(text) or is_foutresultaat(text)
     uit: dict[str, str] = {}
     # Het gelezen stuk van een leestool draagt het label van de bron zelf ("Stb. 2010, 185 (herdruk)"); het label uit het
     # id kent alleen "versie n1" (meting bekendmakingen B12).
@@ -140,6 +142,19 @@ def _met_titel(label: str, uit_tool: str) -> str:
     if streep and titel and " – " not in label and kop.strip().lower() == laatste.strip().lower():
         return f"{label} – {titel.strip()}"
     return label
+
+
+#: De tools die regelingen opsommen in plaats van bepalingen te zoeken.
+REGELINGTOOLS = frozenset({"list_regelingen", "zoek_regelingen"})
+
+
+def _zoektools() -> frozenset[str]:
+    """De tools die zoeken in plaats van lezen, uit het register van wat Lex raadpleegt (`spoorbronnen`)."""
+    from .spoorbronnen import bronnen
+
+    # Een tool die regelingen opsomt, levert juist regelingen als antwoord ("welke regelingen zitten er in de
+    # kennisgraaf?"): die regelingen zijn de bron.
+    return frozenset(t for b in bronnen() for t in b.zoektools) - REGELINGTOOLS
 
 
 def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
@@ -176,6 +191,11 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
                     sources.append(bron)
                 continue
             vp = vindplaats(uri)
+            # Een regeling die alleen in een zoekresultaat staat (het BWB-id bij een treffer, een lijst regelingen), is
+            # niet gelezen en dus geen bron; een bepaling die de zoektool vond, wel (search_wetgeving geeft haar tekst).
+            # Meting wetgeving_live ronde 2, I03/I20: de Awb, AWR en Awir in de bronnenlijst na alleen een zoekvraag.
+            if vp is not None and vp.soort == "regeling" and tool in _zoektools():
+                continue
             sleutel = vp.bron_iri if vp else uri
             if (bestaand := per_node.get(sleutel)) is not None:
                 bestaand.iri = bestaand.iri or iri

@@ -250,6 +250,18 @@ def _groep(uri: str) -> str:
     return "Wet" if "/bwb/id/" in uri else "Overig"
 
 
+def nieuwste_titel(tekst: str) -> str:
+    """De `dcterms:title` van het record met de nieuwste toestand (de datum in de url van de toestand) uit een antwoord
+    van de BWB-zoekdienst; '' als er geen is."""
+    beste: tuple[str, str] = ("", "")
+    for rec in re.findall(r"<(?:\w+:)?record>(.*?)</(?:\w+:)?record>", tekst, re.S) or [tekst]:
+        titel = re.search(r"<dcterms:title>([^<]+)</dcterms:title>", rec)
+        datum = max(re.findall(r"/(\d{4}-\d{2}-\d{2})_\d+/xml/", rec), default="")
+        if titel and (datum, titel.group(1)) > beste:
+            beste = (datum, titel.group(1))
+    return html.unescape(beste[1]).strip()
+
+
 def links_xml(tekst: str, versie: str) -> tuple[list[Link], int, int | None]:
     """(links, aantal items op de pagina, telling van LiDO) uit één pagina van `get-links` als XML. Een ongeldig
     antwoord is een `ET.ParseError`; de aanroeper valt dan terug op RDF."""
@@ -390,10 +402,12 @@ class LidoRechtspraak:
             return ""
 
         def haal() -> str:
+            # De titel van de nieuwste toestand: de zoekdienst geeft de toestanden van oud naar nieuw, en een regeling
+            # kan van naam veranderen (BWBR0015703: "Wet werk en bijstand", nu de Participatiewet; meting
+            # wetgeving_live ronde 3, I02).
             tekst = self._get(self._sru, operation="searchRetrieve", version="2.0", **{"x-connection": "BWB"},
-                              maximumRecords="1", query=f"dcterms.identifier={bwb_id}")
-            m = re.search(r"<dcterms:title>([^<]+)</dcterms:title>", tekst)
-            return html.unescape(m.group(1)).strip() if m else ""
+                              maximumRecords="1000", query=f"dcterms.identifier={bwb_id}")
+            return nieuwste_titel(tekst)
         try:
             return str(self._bewaard(f"t|{bwb_id}", VERS_WAARDELIJST_S, haal))
         except RechtspraakFout:

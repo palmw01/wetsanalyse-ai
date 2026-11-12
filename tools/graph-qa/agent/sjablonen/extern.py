@@ -93,7 +93,7 @@ def stukken_items(namen: Any = None) -> dict[str, Any]:
         "description": (
             "Een lijst stukken die een zoektool van een bron naast de wet in dit gesprek vond, zoals 'de tien nieuwste "
             f"stukken' of 'het laatste stuk van een reeks': alleen hun ids ({vormen}), in de volgorde van het "
-            f"zoekresultaat, hoogstens {MAX_LIJST}. De code toont per stuk het label, soort, datum en titel uit de bron, "
+            f"zoekresultaat, hoogstens {MAX_LIJST} per bron (elke bron krijgt een eigen lijst). De code toont per stuk het label, soort, datum en titel uit de bron, "
             "met de zoekvraag en het totaal. Schrijf de lijst of hun datums niet zelf uit. Leeg als het antwoord geen "
             "lijst geeft."),
     }
@@ -446,8 +446,16 @@ def lijsten(items: Any, trace: Trace) -> list[Stukken]:
     volgorde; een id dat niet gevonden is, is `Onvulbaar` (zoek het eerst)."""
     if not items:
         return []
-    if not isinstance(items, list) or len(items) > MAX_LIJST:
-        raise Onvulbaar(f"'{STUKKEN}' is een lijst van hoogstens {MAX_LIJST} ids.")
+    # Hoogstens `MAX_LIJST` per bron, niet over alle bronnen samen: elke bron krijgt een eigen lijst (meting Rechtspraak
+    # ronde 2, R30: 25 uitspraken lieten geen ruimte voor de gezochte Kamerstukken).
+    if not isinstance(items, list) or len(items) > MAX_LIJST * max(1, len(CONNECTORS)):
+        raise Onvulbaar(f"'{STUKKEN}' is een lijst van hoogstens {MAX_LIJST} ids per bron.")
+    per_bron: dict[str, int] = {}
+    for item in items:
+        if (c0 := van_id(str(item or "").strip())) is not None:
+            per_bron[c0.naam] = per_bron.get(c0.naam, 0) + 1
+    if (te_veel := next((n for n, k in per_bron.items() if k > MAX_LIJST), None)) is not None:
+        raise Onvulbaar(f"'{STUKKEN}' draagt hoogstens {MAX_LIJST} stukken van {CONNECTORS[te_veel].label}.")
     per: dict[str, list[tuple[int, dict[str, Any], dict[str, Any] | None]]] = {}
     gevonden: dict[str, dict[str, tuple[dict[str, Any], dict[str, Any] | None, int]]] = {}
     for item in items:
@@ -469,6 +477,8 @@ def lijsten(items: Any, trace: Trace) -> list[Stukken]:
         rij, data, plek = bij[vp.id]
         if all(p != plek for p, _, _ in per.get(c.naam, [])):
             per.setdefault(c.naam, []).append((plek, rij, data))
+    if (te_veel := next((n for n, r in per.items() if len(r) > MAX_LIJST), None)) is not None:
+        raise Onvulbaar(f"'{STUKKEN}' draagt hoogstens {MAX_LIJST} stukken van {CONNECTORS[te_veel].label}.")
     uit: list[Stukken] = []
     for naam, rijen in per.items():
         c = CONNECTORS[naam]

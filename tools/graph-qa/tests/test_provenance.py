@@ -153,3 +153,60 @@ def test_een_gelezen_stuk_in_een_citeervorm_blijft_een_bron(leestool, ident, bro
     assert alleen_gelezen_extern([bron], trace, tekst) == [bron]
     wet = Source(uri="urn:bwb:BWBR0004770", label="Iw", origin_tool="get_artikel")
     assert bron in curate_sources([wet, bron], f"{tekst} Zie ook BWBR0004770.")
+
+
+# --- een regeling uit een zoekresultaat is geen bron (meting wetgeving_live ronde 2, I03/I20) ------------------------
+
+def test_een_regeling_die_alleen_gezocht_is_is_geen_bron_maar_een_gevonden_bepaling_wel():
+    gezocht = _json.dumps({"status": "ok", "volledig": True, "aantal": 2, "resultaten": [
+        {"bwb_id": "BWBR0005537", "citeertitel": "Algemene wet bestuursrecht"},
+        {"iri": "urn:bwb:BWBR0004770:artikel:9", "bwb_id": "BWBR0004770", "tekst": "De belastingschuldige …"}]})
+    uris = [s.uri for s in collect_sources([("search_wetgeving", gezocht)])]
+    assert "urn:bwb:BWBR0005537" not in uris, "de Awb is alleen gezocht"
+    assert any("artikel:9" in u for u in uris), "een gevonden bepaling met tekst is een bron"
+    # Een lijst regelingen is wel een bron: daar zijn de regelingen het antwoord ("welke regelingen zitten erin?").
+    lijst = _json.dumps({"status": "ok", "volledig": True, "aantal": 1,
+                         "resultaten": [{"iri": "urn:bwb:BWBR0018472", "citeertitel": "Awir"}]})
+    assert [s.uri for s in collect_sources([("list_regelingen", lijst)])] == ["urn:bwb:BWBR0018472"]
+    gelezen = _json.dumps({"status": "ok", "volledig": True, "aantal": 1, "resultaten": [{"iri": "urn:bwb:BWBR0018472"}]})
+    assert [s.uri for s in collect_sources([("get_artikel", gelezen)])] == ["urn:bwb:BWBR0018472"]
+
+
+@_pytest.mark.parametrize("vindplaats,genoemd", [
+    ("jci1.3:c:BWBR0005291&boek=6&titel=3&afdeling=1&artikel=162&z=2026-01-01&g=2026-01-01", "artikel 6:162"),
+    ("jci1.3:c:BWBR0003045&boek=2&titel=1&artikel=9&z=2026-01-01&g=2026-01-01", "artikel 2:9"),
+    ("urn:bwb:BWBR0005537:artikel:4%3A86", "artikel 4:86"),
+])
+def test_een_artikel_met_boeknummer_is_bekend(vindplaats, genoemd):
+    """Meting wetgeving_live ronde 2, I24/I28: uit `boek=6&…&artikel=162` kwam alleen "162"."""
+    from agent.grounding import _bekende_artikelen
+
+    assert genoemd.removeprefix("artikel ") in _bekende_artikelen([("get_wettekst", _json.dumps({"jci": vindplaats}))])
+
+
+@_pytest.mark.parametrize("leestool,stuk", [
+    ("get_kamerstuk", {"id": "kst-1278484", "label": "Kamerstukken 32140, nr. 342", "leesbaar": False}),
+    ("get_bekendmaking", {"id": "stb-1990-222", "label": "Stb. 1990, 222", "leesbaar": False}),
+])
+def test_een_stuk_in_een_fout_houdt_zijn_label(leestool, stuk):
+    """Meting Kamerstukken ronde 3, K12: een stuk dat alleen als PDF bestaat stond met zijn kale id in de bronnenlijst."""
+    raw = _json.dumps({"status": "error", "reden": "alleen_pdf", "melding": "alleen als pdf", "stuk": stuk})
+    bronnen = collect_sources([(leestool, raw)])
+    assert [(s.uri, s.label) for s in bronnen] == [(stuk["id"], stuk["label"])]
+
+
+
+def test_een_stuk_dat_alleen_in_een_gelezen_stuk_genoemd_wordt_is_geen_bron():
+    """Meting Staatsblad ronde 4, B12: Stcrt. 2021, 12238 stond in de bronnenlijst omdat een voetnoot van een gelezen stuk
+    het noemde en het antwoord de citeervorm gebruikte. Alleen een gelezen stuk is een bron."""
+    from agent.grounding import alleen_gelezen_extern
+    from agent.models import Source
+
+    gelezen = Source(uri="stb-2023-381", label="Stb. 2023, 381", brontype="bekendmaking", origin_tool="get_bekendmaking")
+    voetnoot = Source(uri="stcrt-2021-12238", label="Stcrt. 2021, 12238", brontype="bekendmaking",
+                      origin_tool="get_bekendmaking")
+    trace = [("get_bekendmaking", _json.dumps({"status": "ok", "volledig": True, "aantal": 1, "stuk": {"id": "stb-2023-381"},
+                                               "resultaten": [{"nr": 1, "soort": "voetnoot", "tekst": "Stcrt. 2021, 12238",
+                                                               "verwijst_naar": "stcrt-2021-12238"}]}))]
+    antwoord = "Stb. 2023, 381 verwijst naar Staatscourant 2021, nr. 12238."
+    assert alleen_gelezen_extern([gelezen, voetnoot], trace, antwoord) == [gelezen]
