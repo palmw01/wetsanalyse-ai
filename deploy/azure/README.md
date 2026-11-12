@@ -535,6 +535,8 @@ Vier vlaggen staan alleen op acceptatie aan, alle vier met default `false` en be
   hem de standaard. Op graph-qa en de eval-job; alleen acceptatie zet iets anders dan `uit`.
 - `skillRegels` (`--skill-regels`): de annotatie- en begrippenketen nemen de regels mee die een methode-skill meebrengt
   (ADR-014 §7, `SKILL_REGELS`, een proefvlag). Op graph-qa en de eval-job; uit is de uitkomst gelijk aan zonder deze code.
+- `werkplaats` (`--werkplaats`): de werkplaats van de api (ADR-016 deel B, `WERKPLAATS`): een gebruiker maakt zelf een
+  skill of agentprofiel als concept met versies. Uit bestaan de routes niet.
 - `catalogusVoorstellen` (`--catalogus-voorstellen`, met `--github-repo`): een beheerder met 2FA stelt vanuit *Werkwijze van
   Lex* een wijziging van een methodesectie voor, en de api opent er een concept-PR voor (ADR-014 C7, `CATALOGUS_VOORSTELLEN`).
   Alleen op de api, en alleen met een GitHub App (`WA_GITHUB_APP_ID`, `WA_GITHUB_APP_INSTALLATION_ID`, `WA_GITHUB_APP_KEY`);

@@ -25,6 +25,7 @@ Pakketnaam `wetsanalyse-bronmodel`, import `bronmodel`. Python ≥ 3.11; de runt
 | `bronmodel.methodesectie` | Een methodesectie in een skill lezen en vervangen: `lees_sectie`, `vervang_sectie`. |
 | `bronmodel.validatie` | De gedeelde vorm van een validatie ([ADR-016](../../docs/architectuur/adr-016-centrale-agent-en-werkplaats.md) §B2, poort 1): `Bevinding`, `ValidatieFout`, `frontmatter`. |
 | `bronmodel.skill` | De validator van een methode-skill: de Agent Skills-specificatie plus de regels van Lex. `toets` geeft alle bevindingen, `valideer` gooit ze; `toets_samen` bewaakt wat uniek is over de skills heen. Een skill is een afbeelding van pad naar tekst, zodat de generator van het methodepakket en de werkplaats dezelfde toets draaien. |
+| `bronmodel.werkplaats` | Het register van de soorten in de werkplaats (ADR-016 deel B): `SOORTEN`, `REGISTER`, de hash van een snapshot (`hash_van`), poort 1 per soort (`toets`), wat het register nooit bewaart (`weiger`) en het lege begin (`begin`). De api gebruikt het voor versies; graph-qa voor wat in het image zit. |
 | `bronmodel.agentprofiel` | Het agentprofiel (`Agentprofiel`, ADR-016 §A2) uit `<naam>.md` (`uit_markdown`) en zijn grenzen (`Grenzen`, `toets`): een profiel kiest alleen uit wat de aanroeper aanbiedt, en krijgt nooit de tool `subagent`. Graph-qa laadt er zijn profielregister mee (`agent/profielen.py`). |
 
 ## Wat je niet mag breken

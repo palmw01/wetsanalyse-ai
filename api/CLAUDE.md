@@ -59,6 +59,9 @@ ombouwen zonder reden.
 20. **Regies** (`/v1/werkgebieden/{id}/regies/*`, ADR-012): het object waarmee de regisseur van graph-qa het werk in een
    werkgebied over deelgesprekken verdeelt – zie §*Regies*.
 
+21. **De werkplaats** (`/v1/werkplaats/*`, `/v1/admin/werkplaats/*`, ADR-016 deel B): wat een gebruiker zelf maakt
+   (een skill, een agentprofiel) als concept met versies – zie §*De werkplaats*.
+
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
 
@@ -98,6 +101,7 @@ ombouwen zonder reden.
 | `begrip_projectie.py`, `shapes/nl-sbb-1.0.0.ttl`, `shapes/begrippen-wa.ttl` | Begrippen naar de kennisgraaf (NL-SBB), conformiteit per begrip en de Turtle-export. |
 | `begrippen_overzicht.py` (router) | Begrippen over werkgebieden heen: zoeken, verifiëren voor Lex, één begrip. |
 | `regies.py` (router), `regie_store.py`, `regie_contracts.py` | Regies (ADR-012): één lopende per werkgebied en per gebruiker, hartslag en afronden. |
+| `werkplaats.py` (router), `werkplaats_store.py` + `bronmodel.werkplaats` | De werkplaats: onderdelen met een eigenaar, versies die alleen aangroeien, poort 1 bij elke opslag, audit en beleid. |
 | `artefact_versies.py` | Versies van artefacten: de momentopname bij een beurt van Lex, en de routes om ze te lezen. |
 | `annotatie_statistiek.py`, `scripts/statistiek.py` | Reviewstatistiek over de elementen: uitkomst per klasse en per model, klasse-verschuivingen, aandacht tegenover correctie. |
 | `jas_klassen.py`, `validation.py` | De dertien JAS-klassen, volgorde en kleuren (canoniek); `GELDIGE_JAS_KLASSEN`, `JAS_KLASSE_KLEUREN`, `jas_sorteersleutel`. |
@@ -1061,6 +1065,40 @@ verdeelt het werk in een werkgebied over deelgesprekken; de api houdt het object
 - De api voert niets uit: het plan is wat de jurist bevestigde, bewaard als JSON. Besluiten over bronnen en markeringen
   lopen via hun eigen routes, door de jurist.
 - Tests: `tests/test_regies.py`.
+
+## De werkplaats
+
+`werkplaats.py`, `werkplaats_store.py`, de beheerroutes in `routers/admin.py`; het ontwerp is ADR-016 deel B (stap B1-1).
+Achter `WERKPLAATS` (default uit, alleen acceptatie, met een poort-guard): zonder de vlag geven alle routes 404, behalve
+`GET /v1/werkplaats/stand` (`{aan: false}`).
+
+- **Eén levenscyclus voor elke soort.** Tabellen `werkplaats_onderdelen`, `werkplaats_versies`, `werkplaats_audit` en de
+  ene rij `werkplaats_beleid`; geen tabel per soort. Wat een soort is (naamvorm, toets, het lege begin) staat in
+  `bronmodel.werkplaats.REGISTER`; een nieuwe soort is een regel daar. `mcp` staat in `SOORTEN` maar is gesloten (422).
+- **Een versie is een volledige snapshot** (`bestanden`: pad → tekst) met `bronmodel.werkplaats.hash_van`. De tabel
+  groeit alleen aan: geen UPDATE of DELETE op een versie. Dezelfde inhoud als de laatste versie geeft die versie terug;
+  `na_versie` wijkt af van de laatste → 409; het unieke `(onderdeel_id, nummer)` vangt de race.
+- **Poort 1 draait bij elke opslag** (`bronmodel.werkplaats.toets`, dezelfde validatoren als de generator in graph-qa).
+  De uitkomst staat bij de versie (`geldig`, `bevindingen`). **Een ongeldige versie wordt bewaard**; alleen
+  `werkplaats_store.bruikbaar` (geldig, onderdeel niet ingetrokken) mag naar de proef of een PR. Vraag het daar, niet
+  met een eigen regel.
+- **Wat nooit bewaard wordt** (`bronmodel.werkplaats.weiger`, 422): een pad dat geen pad is, een snapshot boven de grens,
+  een onbekende of gesloten soort, een ongeldige naam. Plus hoogstens `MAX_VERSIES` per onderdeel en `MAX_ONDERDELEN`
+  per gebruiker (409).
+- **Een onderdeel heeft een eigenaar**; de naam is uniek per soort en eigenaar zolang het niet is ingetrokken (in de
+  transactie bewaakt). `zelfde_naam` op het onderdeel telt de concepten van anderen met dezelfde soort en naam.
+- **De stand wordt afgeleid**: `concept` of `ingetrokken`. Er komt geen kolom `status`; *voorgesteld* en *actief* komen
+  er in latere stappen bij, ook afgeleid.
+- **Rechten (§B4).** Lezen: de eigenaar, iedereen bij een gedeeld onderdeel, een beheerder met 2FA alles; anders 404.
+  Wijzigen en intrekken: alleen de eigenaar (403). Maken: een analist alleen als het beleid dat toestaat (default aan).
+  Delen, andermans concept intrekken en het beleid: `/v1/admin/werkplaats/*`, achter het admin-token én
+  `beheerder_met_2fa`. Een beheerder zonder 2FA werkt als analist.
+- **De audit en de logregels dragen geen inhoud en geen naam van een concept**: het onderdeel-id, het versienummer, de
+  hash en wie. Een concept kan tekst bevatten die niet openbaar mag worden.
+- **Stijl C**: de store gooit de HTTP-fouten (`{melding, bevindingen?}`), de router toetst alleen wie het vraagt.
+- Nog niet: vullen uit het image en de stand *actief* (B1-2), de proef (B3), promotie (B4). Een account verwijderen
+  laat zijn concepten staan; een beheerder kan ze intrekken.
+- Tests: `tests/test_werkplaats.py`.
 
 ## Versies van artefacten
 

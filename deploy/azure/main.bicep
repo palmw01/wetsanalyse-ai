@@ -93,6 +93,9 @@ param centraleAgent string = 'uit'
 @description('Mag een beheerder vanuit de werkplek een wijziging van een methodesectie voorstellen als concept-PR (ADR-014 C7, CATALOGUS_VOORSTELLEN)? Alleen acceptatie; default false. Zonder de GitHub App (githubAppId, githubAppInstallationId, githubAppKey) staat het ook uit.')
 param catalogusVoorstellen bool = false
 
+@description('De werkplaats van de api (ADR-016 deel B, WERKPLAATS): zelf skills en agentprofielen maken, als concept met versies. Alleen acceptatie; default false. Uit bestaan de routes niet.')
+param werkplaats bool = false
+
 @description('De GitHub App waarmee de api een concept-PR opent (ADR-014 C7): het App-ID. Geen geheim, wel per straat. Leeg = geen voorstellen.')
 param githubAppId string = ''
 
@@ -896,6 +899,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
             // Een wijziging van de methode voorstellen als concept-PR (ADR-014 C7). Zonder het secret leest de api geen
             // sleutel en staan voorstellen uit, ook als het bestand ontbreekt.
             { name: 'CATALOGUS_VOORSTELLEN', value: catalogusVoorstellenAan ? 'true' : 'false' }
+            { name: 'WERKPLAATS', value: werkplaats ? 'true' : 'false' }
             { name: 'GITHUB_REPO', value: githubRepo }
             { name: 'GITHUB_APP_ID', value: githubAppId }
             { name: 'GITHUB_APP_INSTALLATION_ID', value: githubAppInstallationId }

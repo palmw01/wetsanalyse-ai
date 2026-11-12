@@ -485,6 +485,26 @@ concept ──► proef (acceptatie) ──► voorgesteld (concept-PR) ──�
 - **Bestaande skills** komen er vanzelf in: bewerken begint met een conceptversie uit de catalogus, met de hash van het
   image als basis. Is `master` intussen veranderd, dan vraagt Lex een nieuwe versie op de nieuwe basis.
 
+**Uitgewerkt bij B1 (12 nov 2026).**
+
+- **B1 is in tweeën geknipt.** Het register zelf (B1-1) raakt alleen bronmodel en de api. *Vullen uit de catalogus*
+  (B1-2) vraagt werk in graph-qa: de catalogus staat daar, de api roept graph-qa niet aan, en het image bevat de bestanden
+  van een skill niet, alleen de secties die een rol krijgt. Zonder de map is er geen snapshot en geen hash om *actief*
+  mee te vergelijken. De generator bundelt de bronbestanden daarom in een eigen gegenereerd bestand, buiten het
+  methodepakket, zodat de vingerafdrukken niet bewegen.
+- **Een onderdeel heeft een eigenaar.** §B4 geeft de analist rechten op eigen concepten. Twee juristen kunnen dus elk een
+  concept van dezelfde skill hebben; de naam is uniek per soort en eigenaar, en de lijst zegt hoeveel andere concepten
+  dezelfde naam dragen. Bij promotie kiest de beheerder.
+- **Een versie die poort 1 niet haalt, wordt bewaard**, met haar bevindingen: wie een skill schrijft, slaat halverwege op.
+  Alleen een geldige versie van een onderdeel dat niet is ingetrokken, kan naar de proef of een PR.
+- **Eén vorm voor elke soort.** Een versie is een afbeelding van pad naar tekst; een profiel is een snapshot met één
+  bestand. Wat een soort is (de toets, het lege begin) staat in `bronmodel.werkplaats`; de hash is één rekenregel voor
+  het register en voor wat in het image zit. De stand wordt afgeleid en nergens opgeslagen.
+- **De lijst van methoderollen staat in bronmodel** (`bronmodel.skill.ROLLEN`), zodat de api "alleen bestaande rollen"
+  toetst met dezelfde lijst als de generator.
+- **Grenzen:** hoogstens 200 versies per onderdeel en 50 onderdelen per gebruiker, naast de grenzen op de omvang van een
+  skill. De audit en de logregels dragen geen inhoud en geen naam van een concept.
+
 Een gepromoveerd agentprofiel is een bestand `.claude/lex-agents/<naam>.md` met de frontmatter van A2 (de veldnamen van
 een Claude Code-subagent waar ze overeenkomen). Een generator bundelt de profielen in het image, zoals het
 methodepakket. Bewust niet in `.claude/agents/`: daar staan de Claude Code-subagents van het acceptatieteam, en Claude
@@ -598,7 +618,8 @@ werkplaats) start ernaast. Ze komen samen bij het profiel.
 | **A5** | **meer tegelijk en fasen**: de bevestigingskaart met het plafond, hoogstens `REGIE_PARALLEL` tegelijk met de cache-wachtstap, het plan in fasen met de knop voor de volgende fase, `regie_plan` als tool | graph-qa, api, frontend | A4 |
 | **A6** | de eindmeting tegen de huidige weg (A6 hierboven) en het besluit in het meetlogboek | metingen | A5 |
 | **A7** | opruimen bij winst: de supervisor-modelstap, het `WORKERS:`-formaat en de keuze tussen specialisten vervallen | graph-qa | A6 |
-| **B1** | het register `/v1/werkplaats/*`: onderdeel, versie (snapshot + hash), audit, rechten, de vlag `werkplaats`, vullen uit de catalogus | api, deploy (vlag) | T1 |
+| **B1-1** | het register `/v1/werkplaats/*`: onderdeel (met een eigenaar), versie (snapshot + hash), de toets van poort 1 bij elke opslag, audit, rechten, de vlag `werkplaats`. *Nieuw* werkt; *Bewerken vanuit het image* nog niet | bronmodel, api, deploy (vlag) | T1 |
+| **B1-2** | vullen uit het image: de generator bundelt per skill en per profiel de bronbestanden en hun hash, graph-qa geeft ze door, een concept begint met die hash als basis, de stand *actief* wordt afgeleid, en de toets over de skills heen | graph-qa, bronmodel, api of BFF | B1-1 |
 | **B2** | de editor op *Werkwijze van Lex*, voor skills; vervangt de sectie-editor van C7 | frontend | B1 |
 | **B3** | de proef: de groep *Proef* in *Bronnen en tools*, de versie op de beurt, ophalen en valideren in graph-qa, label en provenance | graph-qa, api, frontend | B1; A2 voor een skill op beschrijving |
 | **B4** | evals in de proef en promotie tot concept-PR met de hele map, de licentietoets en *Dit wordt openbaar*; de stand *actief* uit de catalogushash | api, frontend | B3; de GitHub App op acceptatie |
