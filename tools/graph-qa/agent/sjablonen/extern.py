@@ -53,7 +53,7 @@ def _connectors(namen: Any = None) -> list[ConnectorBeschrijving]:
     return [c for n, c in CONNECTORS.items() if n in set(namen)] or list(CONNECTORS.values())
 
 
-def _opsomming(delen: list[str]) -> str:
+def _of_opsomming(delen: list[str]) -> str:
     return delen[0] if len(delen) == 1 else ", ".join(delen[:-1]) + " of " + delen[-1]
 
 
@@ -63,7 +63,7 @@ def items(namen: Any = None) -> dict[str, Any]:
     return {
         "type": "array",
         "description": (
-            f"Passages uit een bron naast de wet ({_opsomming([f'een {c.brontype}' for c in cs])}) die je in dit gesprek "
+            f"Passages uit een bron naast de wet ({_of_opsomming([f'een {c.brontype}' for c in cs])}) die je in dit gesprek "
             "met de leestool ophaalde: per stuk het id en het eerste en laatste alineanummer. Schrijf de tekst niet uit, de "
             "code neemt hem uit de bron. Leeg als het antwoord zo'n bron niet gebruikt. Een bron naast de wet onderbouwt "
             "nooit wat de wet zegt."),
@@ -71,7 +71,7 @@ def items(namen: Any = None) -> dict[str, Any]:
             "type": "object",
             "properties": {
                 "id": {"type": "string", "description": "Het id van het stuk uit het toolresultaat, bijvoorbeeld "
-                       + _opsomming([f"'{c.voorbeeld_id}'" for c in cs]) + "."},
+                       + _of_opsomming([f"'{c.voorbeeld_id}'" for c in cs]) + "."},
                 "van_nr": {"type": "integer", "description": "Het nummer (nr) van de eerste alinea."},
                 "tot_nr": {"type": "integer", "description": "Het nummer (nr) van de laatste alinea; gelijk aan van_nr voor één alinea."},
             },
@@ -102,7 +102,7 @@ def schema(namen: Any = None) -> dict[str, Any]:
     return {
         "name": "antwoord_extern",
         "description": (
-            f"Rond een vraag af die alleen over een bron naast de wet gaat ({_opsomming([c.label for c in cs])}): wat "
+            f"Rond een vraag af die alleen over een bron naast de wet gaat ({_of_opsomming([c.label for c in cs])}): wat "
             "staat er in dit stuk, wat zegt het hierover. Roep deze tool aan nadat je het stuk hebt opgehaald, en schrijf "
             "geen antwoord ernaast. Jij schrijft het korte antwoord in eigen woorden en wijst de passages aan; de code "
             "toont ze letterlijk met hun vindplaats. Gaat de vraag (ook) over wat de wet zegt, gebruik dan het sjabloon "
@@ -311,7 +311,7 @@ def _voluit(datum: str) -> str:
     return f"{int(m.group(3))} {_MAANDEN[int(m.group(2)) - 1]} {m.group(1)}" if m and 1 <= int(m.group(2)) <= 12 else str(datum)
 
 
-def _opsomming(delen: list[str]) -> str:
+def _en_opsomming(delen: list[str]) -> str:
     return delen[0] if len(delen) == 1 else ", ".join(delen[:-1]) + " en " + delen[-1]
 
 
@@ -391,11 +391,11 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any], *, volg
     # (meting Rechtspraak ronde 2, R04: "… en in maart 2025").
     if bepaling:
         begin = f"Gezocht bij {bepaling}" + (f", {' '.join(delen)}" if alleen_van else
-                                              f", op {_opsomming(delen)}" if delen else "") + "."
+                                              f", op {_en_opsomming(delen)}" if delen else "") + "."
     elif alleen_van:
         begin = f"Gezocht naar stukken {' '.join(delen)}."
     else:
-        begin = f"Gezocht op {_opsomming(delen)}." if delen else ""
+        begin = f"Gezocht op {_en_opsomming(delen)}." if delen else ""
     # Bij niets gevonden zegt een volgorde niets ("Meest relevante eerst." onder 0 treffers, meting Staatsblad B14).
     zinnen = [begin,
               _VOLGORDE_TEKST.get(str(zoekvraag.get("volgorde") or ""), "") if volgorde else ""]
