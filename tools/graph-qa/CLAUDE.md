@@ -279,7 +279,7 @@ bruikbaar is.
   (`berichten.met_beurtcontext`). Ze staan dus ná de historie, en de checkpoint krijgt ze niet. Daarbij komen twee
   cachepunten op de berichten (`stream(berichtpunten=)`): het eind van de historie van deze beurt (schrijven) en dat
   van de vorige beurt (lezen). Samen met de systeemprompt en het punt aan het eind zijn dat er vier, het maximum.
-  Zo leest een vervolgbeurt de historie uit de cache in plaats van haar opnieuw te schrijven. Een test die wil
+  Zo leest een vervolgbeurt de historie uit de cache in plaats van haar opnieuw te schrijven. Een meetvlag op het verzoek (`ChatRequest.beurtcontext_plek="systeem"`) zet de vorm van vóór ADR-015 terug, alleen om beide vormen op dezelfde code te vergelijken; de werkplek stuurt hem niet. Een test die wil
   weten wat het model te horen kreeg, leest `FakeLLM.prompts` (systeem plus beurtcontext, per aanroep); `calls` blijft de kwargs van de aanroeper.
 - **`llm_stap.py`** – de gedeelde modelstap (H5). `aanroep(llm, rol, **verzoek)` geeft de kwargs ongewijzigd door,
   geeft een `Stopreden` terug, logt één `model_aanroep` (rol, model, stopreden, duur, gebruik en de opbouw van het verzoek uit

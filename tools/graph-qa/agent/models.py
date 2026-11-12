@@ -241,6 +241,10 @@ class ChatRequest(BaseModel):
     # Waar die stand vandaan komt (`frontend/lib/connectorsMenu.herkomstVan`): zo zegt Lex wie een uitgezette bron
     # weer aanzet (`agent/bronstand.py`).
     bronnen_herkomst: Literal["gesprek", "werkgebied", "standaard"] | None = None
+    # Een meetvlag (ADR-015): waar de context van de beurt staat. `vraag` (standaard) zet hem als eerste blok in de vraag,
+    # ná de historie; `systeem` zet hem als variabel deel van de systeemprompt, zoals vóór ADR-015. Alleen om beide
+    # vormen op dezelfde code te vergelijken (metingen/context-2026-11-12); de werkplek stuurt hem niet.
+    beurtcontext_plek: Literal["vraag", "systeem"] = "vraag"
 
     @model_validator(mode="after")
     def _actie_kiest_de_route(self) -> "ChatRequest":
