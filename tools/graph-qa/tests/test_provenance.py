@@ -210,3 +210,23 @@ def test_een_stuk_dat_alleen_in_een_gelezen_stuk_genoemd_wordt_is_geen_bron():
                                                                "verwijst_naar": "stcrt-2021-12238"}]}))]
     antwoord = "Stb. 2023, 381 verwijst naar Staatscourant 2021, nr. 12238."
     assert alleen_gelezen_extern([gelezen, voetnoot], trace, antwoord) == [gelezen]
+
+
+def test_een_iri_patroon_uit_het_schema_is_geen_bron():
+    """`graph_schema` legt uit hoe een IRI is opgebouwd (`urn:bwb:{BWB-id}:artikel:{nr}`). Dat is een patroon, geen
+    vindplaats: het stond als `urn:bwb:{BWB-id` in de bronnenlijst (K04 en K10, 12 nov 2026)."""
+    import json
+
+    from agent.graph import queries
+    from agent.provenance import collect_sources, iter_refs
+
+    schema = json.dumps({"iri_patronen": {"regeling": f"{queries.NS}{{BWB-id}}",
+                                          "artikel": f"{queries.NS}{{BWB-id}}:artikel:{{nr}}",
+                                          "lid": f"{queries.NS}{{BWB-id}}:artikel:{{nr}}:lid:{{nr}}"},
+                         "toelichting": f"de wet staat alleen onder {queries.NS}."})
+    assert list(iter_refs(schema)) == []
+    assert collect_sources([("graph_schema", schema)]) == []
+    # Een echte IRI in dezelfde tekst blijft een bron, en een patroon ernaast verandert haar niet.
+    echt = f"{queries.NS}BWBR0004770:artikel:9"
+    [bron] = collect_sources([("graph_schema", schema + " " + echt)])
+    assert bron.uri == echt
