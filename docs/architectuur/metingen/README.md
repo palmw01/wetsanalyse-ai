@@ -1,6 +1,6 @@
 # Meetlogboek
 
-Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 11 november 2026
+Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 12 november 2026
 
 Hier staat per datum wat er gemeten is, op welke code, wat eruit kwam en waar de gegevens staan.
 Nieuwste bovenaan. De meetbestanden zelf zijn bewijs: **wijzig ze niet achteraf**. Een correctie
@@ -17,6 +17,7 @@ of herhaling krijgt een eigen map of rij. Hoe de keten nu werkt, staat in
 
 | Datum | Meting | Code | Uitkomst in één regel | Gegevens |
 |---|---|---|---|---|
+| 12 nov | **/commando's in de werkplek** (#1276, bundel 58): UI-test op acceptatie, en 3× *Stel deelvragen voor* getypt tegen 3× als commando (`actie`) | `3fcefd5e` | Alle UI-stappen ok (menu, ↓/Tab/Escape, onbekend, /help, /bron, /nieuw, deelvraag, telefoon). Het commando spaart de supervisor-aanroep: 207–633 invoer + 2.189 cache-lezen + 72–154 uitvoer, en 3,3–10,4 s; een beurt duurt ongeveer de helft (6,2–22,1 s tegen 2,9–10,9 s) | [`commandos-2026-11-12/README.md`](commandos-2026-11-12/README.md) |
 | 12 nov | **Bronkeuze per vraag (#1261)**: de 30 vragen van Kamerstukken en van Staatsblad en Staatscourant, alle vier de connectors aan, één run elk, tegen ronde 5 van beide iteraties | `66e73f75` | Per modelronde −13 % (beperkt: −13 % en −23 %); één stuk lezen ~8k minder per beurt; samen −15 % zonder K07 (3,14M → 2,67M), met K07 −4 % (K07 17 rondes: spreiding, 19/10/16/11/7 in ronde 1–5). Eén regressie: B18 goed → fout (de lijstroute koos Kamerstukken, de vraag noemde het Staatsblad), opgelost in #1270 | [`bronkeuze-2026-11-12/README.md`](bronkeuze-2026-11-12/README.md) |
 | 12 nov | **Bronkeuze robuust (#1273)**: B18 en K16, alle vier de connectors aan, en vijf Kamerstukken-vragen (genoemd stuk), tegen de meting van #1261 | `a120e579` | B18 fout → goed (0 tokens, Kamerstukken en Staatsblad aan, de rest `niet_nodig`); K16 houdt alle vier aan, deels → goed, maar 16 rondes en 638k (was 448k): het model zocht de oorspronkelijke memorie van toelichting vóór de grens van KOOP; de vijf genoemde stukken gelijk (alleen Kamerstukken, één ronde, ~26k) | [`bronkeuze-2026-11-12-r7/README.md`](bronkeuze-2026-11-12-r7/README.md) |
 | 12 nov | **Rechtspraak, iteratie – ronde 5 en eindverslag**: dezelfde 30 vragen in 32 beurten, plus 5 extra | `b5b53696` | 30 goed (ronde 4: 28/1/3), de 5 extra ook; geen bronfout; de correctieronde 3 van 37, geen op een afgeleid getal. Totaal 1.225.839 + 513.494 (events) | [`ronde-5.md`](rechtspraak-iteratie-2026-11-11/ronde-5.md), [`eindverslag-r1-r5.md`](rechtspraak-iteratie-2026-11-11/eindverslag-r1-r5.md) |
