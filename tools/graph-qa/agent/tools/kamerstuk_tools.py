@@ -14,6 +14,7 @@ De query bouwt deze module, het model kiest alleen dossier, woorden en het stuk.
 """
 from __future__ import annotations
 
+import json
 import re
 import xml.etree.ElementTree as ET
 from typing import Any, Protocol
@@ -26,7 +27,8 @@ from .op_xml import alineas, lees  # noqa: F401 – de lezer van elke officiële
 from .sru_zoeken import LIMIT, MAX_WOORDEN, OP_VOLGORDE, WOORD_RE as _WOORD_RE, per_record, tekst_cql as _tekst_cql
 from .sru_zoeken import cql_woorden, tekst_woorden, zoekvraag as _zoekvraag
 from .zoekfilters import datum as _datum
-from .stuk_tekst import INHOUD_ARG, MAX_INHOUD, inhoud, inhoudpagina, tekstpagina  # noqa: F401 – gedeeld met elke leestool
+from .stuk_tekst import (  # noqa: F401 – gedeeld met elke leestool
+    INHOUD_ARG, MAX_INHOUD, MAX_TREFFERS_ZONDER_KOPPEN, inhoud, inhoudpagina, tekstpagina, treffers_per_kop)
 
 #: Uit de beschrijving (`bronmodel.connectors`); de poorttest toetst dat `KAMERSTUK_TOOLS` precies deze namen heeft.
 KAMERSTUK_TOOL_NAMEN = KAMERSTUKKEN.tools
@@ -252,14 +254,15 @@ def _per_record(bron: KamerstukBron, cql: str, args: dict[str, Any], offset: int
 
 
 def _dossier(bron: KamerstukBron, dossier: str, cql: str, args: dict[str, Any], offset: int, *,
-             aantal: int | None = None, toelichting: str = "") -> str:
+             aantal: int | None = None, toelichting: str = "", kanttekening: str = "") -> str:
     """De stukken van één dossier (of subdossier: `36200-IX` staat als eigen waarde in `w.dossiernummer`). Met `aantal`
     de eerste zoveel op nummer ("de eerste vijf stukken van dossier 33755"); eerst was dat een invoerfout, en het model
     probeerde het daarna anders (ronde 1 Kamerstukken, K07 en K17)."""
     totaal, _ = bron.zoek(cql, start=1, maximum=0)
     if totaal > MAX_DOSSIER:
         return _per_record(
-            bron, cql + _OP_DATUM, args, offset, extra={"volgorde": "oudste", "zoekvraag": _zoekvraag(args, "oudste")},
+            bron, cql + _OP_DATUM, args, offset, extra=compact({"volgorde": "oudste", "zoekvraag": _zoekvraag(args, "oudste"),
+                                                                "kanttekening": kanttekening}),
             dossier=True, maximum=aantal or LIMIT,
             toelichting=(f"Het dossier {dossier} telt {totaal} stukken: te veel om op nummer te zetten, dus ze staan op "
                          "de datum van het stuk, de oudste eerst. Zoek gericht met dossier én soort, of met volgorde "
@@ -281,7 +284,7 @@ def _dossier(bron: KamerstukBron, dossier: str, cql: str, args: dict[str, Any], 
         # De eerste `aantal` vanaf de offset; `totaal` blijft het hele dossier, zodat de slotzin "5 van de 27" zegt.
         lijst = lijst[:offset + aantal]
     extra = compact({"totaal": alle, "volgorde": "nummer", "dossiertitel": _dossiertitel(records),
-                     "zoekvraag": _zoekvraag(args, "nummer")})
+                     "zoekvraag": _zoekvraag(args, "nummer"), "kanttekening": kanttekening})
     return per_eenheid(lijst, tool="zoek_kamerstukken", args=args, offset=offset,
                        toelichting=toelichting if lijst else f"Geen Kamerstukken in dossier {dossier}. {GRENS}",
                        extra=extra if lijst else None)
@@ -301,17 +304,31 @@ def _vergaderjaar(waarde: str) -> str | None:
 MAX_SOORT_TITEL = 100
 
 
-def _soort_in_titel(rec: Any, woorden: list[str]) -> bool:
+def _soort_in_titel(rec: Any, woorden: list[str]) -> bool | None:
     """Draagt een stuk zonder eigen rubriek het soort op zijn plek in de titel? Elk woord begint een woord van dat soort
-    ("amendement" in "Amendement van het lid X"), zoals `all` in de zoekdienst ook een meervoud vindt."""
+    ("amendement" in "Amendement van het lid X"), zoals `all` in de zoekdienst ook een meervoud vindt.
+
+    Ja of nee als de titel de vorm van KOOP heeft ("<dossiertitel>; <soort>; …"). Begint hij niet met de dossiertitel,
+    dan is de plek van het soort niet zeker: een deel na de eerste puntkomma dat met het soort begint telt als ja, en een
+    titel die de woorden elders draagt is None, niet te beoordelen (Kamerstukken ronde 6, L-K2: "Wet op de omzetbelasting
+    1968; wijz. …; Memorie van toelichting" heeft als dossiertitel "Wijziging van de Wet …", en het stuk viel stil weg)."""
     if (getattr(rec, "soort", "") or "").strip().lower() not in {"", "overig"}:
         return False
-    eigen = [w.lower() for w in _WOORD_RE.findall(_soort_uit_titel(rec))]
-    return all(any(e.startswith(w) for e in eigen) for w in woorden)
+    titel = (rec.titel or "").strip()
+    dossiertitel = (getattr(rec, "dossiertitel", "") or "").strip()
+    if dossiertitel and titel.startswith(dossiertitel + "; "):
+        eigen = [w.lower() for w in _WOORD_RE.findall(_soort_uit_titel(rec))]
+        return all(any(e.startswith(w) for e in eigen) for w in woorden)
+    delen = [[w.lower() for w in _WOORD_RE.findall(d)] for d in titel.split("; ")[1:]] or [
+        [w.lower() for w in _WOORD_RE.findall(titel)]]
+    if any(len(d) >= len(woorden) and all(e.startswith(w) for e, w in zip(d, woorden)) for d in delen):
+        return True
+    alle = [w.lower() for w in _WOORD_RE.findall(titel)]
+    return None if all(any(e.startswith(w) for e in alle) for w in woorden) else False
 
 
-def _soort_cql(bron: KamerstukBron, rest: str, soort: str) -> tuple[str, bool]:
-    """Het soort als filter: (CQL, ruim). Een stuk met een rubriek telt op `w.subrubriek`; een ouder stuk heeft geen
+def _soort_cql(bron: KamerstukBron, rest: str, soort: str) -> tuple[str, bool, list[str]]:
+    """Het soort als filter: (CQL, ruim, onbeslist). Een stuk met een rubriek telt op `w.subrubriek`; een ouder stuk heeft geen
     rubriek of "Overig", en dan staat het soort alleen in de titel (kst-33755-3, kst-30322-3; live, 9 en 11 nov 2026).
 
     Eerst stond er `w.subrubriek all … OR dt.title all …`, en dan kwam ook een brief met het woord in zijn titel mee
@@ -327,11 +344,15 @@ def _soort_cql(bron: KamerstukBron, rest: str, soort: str) -> tuple[str, bool]:
     rubriek = f'w.subrubriek all "{term}"'
     totaal, deel = bron.zoek(f'{rest} AND dt.title all "{term}" NOT {rubriek}', start=1, maximum=MAX_SOORT_TITEL)
     if totaal > len(deel):
-        return f' AND ({rubriek} OR dt.title all "{term}")', True
-    ids = list(dict.fromkeys(r.id for r in deel if _soort_in_titel(r, woorden)))
+        return f' AND ({rubriek} OR dt.title all "{term}")', True, []
+    # Wat de toets niet kan beoordelen, gaat mee en wordt genoemd (`onbeslist`): een stuk valt nooit stil weg.
+    oordeel = {r.id: _soort_in_titel(r, woorden) for r in deel}
+    ids = [i for i, o in oordeel.items() if o is not False]
+    onbeslist = [i for i, o in oordeel.items() if o is None]
     if not ids:
-        return f" AND {rubriek}", False
-    return f' AND ({rubriek} OR {" OR ".join(f"dt.identifier=={chr(34)}{i}{chr(34)}" for i in ids)})', False
+        return f" AND {rubriek}", False, []
+    return (f' AND ({rubriek} OR {" OR ".join(f"dt.identifier=={chr(34)}{i}{chr(34)}" for i in ids)})', False,
+            onbeslist)
 
 
 def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
@@ -404,17 +425,23 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
     cql += (f" AND dt.date>={vanaf}" if vanaf else "") + (f" AND dt.date<={tot}" if tot else "")
     cql += f' AND w.vergaderjaar=="{jaar}"' if jaar else ""
     cql += f' AND dt.creator=="{_KAMERS[kamer]}"' if kamer else ""
-    ruim = False
+    ruim, onbeslist = False, []
     if soort:
-        filter_, ruim = _soort_cql(bron, cql, soort)
+        filter_, ruim, onbeslist = _soort_cql(bron, cql, soort)
         cql += filter_
+    # Voor de jurist, bij de lijst: welke stukken het soortfilter niet zeker kon toetsen (ze staan erbij).
+    kanttekening = (f"Bij {len(onbeslist)} {'stuk' if len(onbeslist) == 1 else 'stukken'} zonder rubriek kon ik het soort "
+                    f"„{soort}” niet zeker uit de titel halen; {'het staat' if len(onbeslist) == 1 else 'ze staan'} "
+                    f"erbij: {', '.join(onbeslist)}." if onbeslist else "")
     toelichting = (f"Bij oudere stukken staat het soort alleen in de titel, en er zijn er te veel om elk te toetsen: "
                    f"een stuk met '{soort}' elders in de titel kan ertussen staan. Kijk naar het soort per stuk."
                    if ruim else "")
     if volgorde == "nummer":
-        return _dossier(bron, dossier, cql, args, offset, aantal=aantal, toelichting=toelichting)
+        return _dossier(bron, dossier, cql, args, offset, aantal=aantal, toelichting=toelichting,
+                        kanttekening=kanttekening)
     return _per_record(bron, cql + _OP_VOLGORDE.get(volgorde, ""), args, offset, dossier=bool(dossier),
-                       maximum=aantal or LIMIT, extra={"volgorde": volgorde, "zoekvraag": _zoekvraag(args, volgorde)},
+                       maximum=aantal or LIMIT, extra={"volgorde": volgorde, "zoekvraag": _zoekvraag(args, volgorde),
+                                                       **({"kanttekening": kanttekening} if kanttekening else {})},
                        toelichting=toelichting, leeg=f"Geen Kamerstukken die aan de zoekvraag voldoen. {GRENS}")
 
 
@@ -487,6 +514,12 @@ def _met_woorden(rijen: list[dict[str, Any]], woorden: str, ident: str, offset: 
     if treffers:
         toelichting = (f"{len(treffers)} van de {len(rijen)} alinea's noemen „{woorden}”; {lezen} voor de alinea's "
                        "eromheen. Citeer letterlijk uit 'tekst'.")
+        if offset == 0 and len(treffers) > MAX_TREFFERS_ZONDER_KOPPEN:
+            per_kop, meer = treffers_per_kop(treffers)
+            extra.update({"per_kop": per_kop, **({"per_kop_meer": meer} if meer else {})})
+            voorbeeld = json.dumps({"id": ident, "woorden": woorden, "offset": per_kop[-1]["vanaf"]}, ensure_ascii=False)
+            toelichting += (f" Ze staan onder {len(per_kop) + meer} koppen ('per_kop': kop, aantal, vanaf). Blader ze niet "
+                            f"allemaal door: lees de koppen die bij de vraag horen, met 'vanaf' als offset, zoals {voorbeeld}.")
     else:
         toelichting = f"Geen alinea van dit stuk noemt „{woorden}” (elk woord). " + _zonder_treffer(rijen, stammen, extra)
     return per_eenheid(treffers, tool="get_kamerstuk", args={"id": ident, "woorden": woorden}, offset=offset,

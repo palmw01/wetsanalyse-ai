@@ -322,7 +322,8 @@ bruikbaar is.
   (filters, te combineren: een dossier of subdossier, `w.dossiernummer=="36200-IX"`, met `nummer` voor één stuk; woorden in
   de titel; `soort` in `w.subrubriek`, en bij een stuk zonder rubriek (of "Overig") op zijn plek in de titel: de tool toetst
   die stukken zelf en neemt ze op id op, zodat een brief met het woord in zijn titel niet meekomt (`_soort_cql`,
-  `MAX_SOORT_TITEL`); `tekst` in de hele tekst
+  `MAX_SOORT_TITEL`); begint de titel niet met de dossiertitel, dan telt een deel dat met het soort begint, en wat de toets niet kan
+  beoordelen gaat mee en staat in de `kanttekening` (`_soort_in_titel` ja/nee/None; ronde 6, L-K2: kst-24172-3 viel stil weg); `tekst` in de hele tekst
   (`cql.textAndIndexes`: een zinsdeel tussen aanhalingstekens als `adj`, losse woorden als `all`, hoogstens zes; meting
   `kamerstukken-tekstzoeken-2026-11-09`: 8 van 8 tegen 3 in de titel); `vanaf`/`tot` op de
   documentdatum, ook `JJJJ` of `JJJJ-MM`; `vergaderjaar`; `kamer`. De `volgorde` is de enum uit
@@ -352,7 +353,7 @@ bruikbaar is.
   een onopgemaakt stuk (32140 nr. 342 = `kst-1278484`), en een lettercode van de Eerste Kamer die in een gezamenlijke
   behandeling naar het eerste dossier heet (`kst-33755-L` → `kst-33752-L`, alleen een letter en alleen eenduidig; ronde 3,
   K22); het `stuk` noemt het echte id en de toelichting zegt het. `get_kamerstuk(woorden=)` geeft de alinea's van één stuk die
-  elk woord noemen (stam van zeven letters, tekst of kop) met hun offset (ronde 3, K07: tien offsets in drie stukken); bij nul treffers telt `per_woord` hoe vaak elk woord los staat en zegt de toelichting welk woord weg kan (ronde 4, K07/K16: vijf keer nul op woorden die samen nergens staan). Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
+  elk woord noemen (stam van zeven letters, tekst of kop) met hun offset (ronde 3, K07: tien offsets in drie stukken); bij nul treffers telt `per_woord` hoe vaak elk woord los staat en zegt de toelichting welk woord weg kan (ronde 4, K07/K16: vijf keer nul op woorden die samen nergens staan). Boven `MAX_TREFFERS_ZONDER_KOPPEN` draagt de eerste pagina `per_kop` (`stuk_tekst.treffers_per_kop`, voor elke leestool die binnen een stuk zoekt): per kop het aantal treffers en `vanaf`, zodat het model kiest in plaats van alles door te bladeren (ronde 6, K15: 223 alinea's, vier pagina's). Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
   sjabloon citeert er dus niet uit als passage van een bepaling. **Cache met versiecontrole** (een Kamerstuk verandert
   na publicatie: onopgemaakt → opgemaakt, herdruk, rectificatie): binnen `VERS_S` geen aanroep, daarna een lichte
   metadatavraag op `dt.modified`/documentstatus/versie en alleen bij een verschil de XML opnieuw (log
@@ -478,7 +479,7 @@ bruikbaar is.
   `extern.lijsten` neemt pagina's van dezelfde zoekvraag (`_zoeksleutel`) als één lijst en houdt een gelezen stuk bij zijn
   zoekvraag; `van_orgaan` kiest het lidwoord ("van het College"); `provenance.collect_sources` slaat een foutresultaat over
   (`is_fout`: het voorbeeld in een foutmelding is geen bron); `bron_lijst` leest een maand, laat een werkwoord achter het
-  onderwerp weg (`_WERKWOORDEN`), kent "kamerdossier" en telt een naam binnen een langere regelingnaam niet
+  onderwerp weg (`_WERKWOORDEN`), kent "kamerdossier" en een kaal dossiernummer van vijf cijfers na bij/in/uit/van (ronde 6, K10: "Hoeveel amendementen zijn er bij 36602?"), en telt een naam binnen een langere regelingnaam niet
   (`_zonder_ingesloten`). **Na ronde 2**: `zoek_uitspraken` met alleen `bwb_id` zoekt de uitspraken die de regeling als
   geheel noemen (LiDO op `juriconnect-ref=<bwb>`; de Leidraad Invordering 2008: 204); een regeling buiten de graaf krijgt haar
   titel uit de BWB-zoekdienst (`LidoRechtspraak.titel`); een buitenlandse of Europese ECLI is `buiten_bereik` met een `stuk`
