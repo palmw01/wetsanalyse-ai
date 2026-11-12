@@ -30,7 +30,7 @@ def _system(settings, bronnen, vraag="Wat zegt artikel 9?"):
 
     asyncio.run(loop())
     # De nep plakt [stabiel, variabel] aaneen; het stabiele deel begint met SYSTEM_PROMPT en het blok komt erna.
-    tekst = llm.calls[0]["system"]
+    tekst = llm.prompts[0]
     i = tekst.find("BRONNEN IN DEZE BEURT –")
     return (tekst, "") if i < 0 else (tekst[:i], tekst[i:])
 

@@ -99,37 +99,15 @@ _TOOLRESULT_KRIMP = 800
 _KRIMP_NOOT = "\n[… ingekort: ouder tool-resultaat, vraag het opnieuw op als je het nodig hebt]"
 
 
-def _krimp_oude_toolresultaten(messages: list[dict[str, Any]], max_chars: int, vraag: str = "") -> list[dict[str, Any]]:
-    """Kort de inhoud van oudere tool-resultaten in zodat het gesprek zelf langer meegaat.
+def _krimp(messages: list[dict[str, Any]], tot: int) -> list[dict[str, Any]]:
+    """Kort de tool-resultaten in de berichten vóór index `tot` in tot `_TOOLRESULT_KRIMP` tekens.
 
-    Zonder dit weegt één SPARQL-dump van 8000 tekens even zwaar als twintig beurten proza: het
-    venster schuift dan op tool-ruis in plaats van op inhoud, en juist de vroege vraagstelling —
-    waar de annotatie over gaat — valt er als eerste uit.
-
-    De blokken zélf blijven staan; alleen hun tekst wordt afgekapt. Weggooien zou een `tool_use`
-    zonder `tool_result` achterlaten en dat weigert Anthropic. De recentste beurten blijven
-    ongemoeid: daar werkt het model nu mee. Past alles binnen budget, dan gebeurt er niets.
-    """
-    if sum(_msg_lengte(m) for m in messages) <= max_chars:
-        return messages
-
-    # Het recente deel dat we met rust laten: het achterste venster binnen de helft van het budget,
-    # en hoe dan ook de lopende beurt. Dat laatste is geen luxe: was het verse resultaat alleen al
-    # groter dan dat halve budget, dan brak de lus meteen af en werd óók dat resultaat ingekort, met
-    # de noot "vraag het opnieuw op". Het model zocht dan opnieuw, kreeg weer een ingekort resultaat,
-    # en zo door tot de beurtlimiet – de zoeklus bij "welke rechtssubjecten ken je nog meer".
-    beschermd = beurt_start(messages, vraag)
-    ruimte = max_chars // 2
-    for i in range(beschermd - 1, -1, -1):
-        ruimte -= _msg_lengte(messages[i])
-        if ruimte < 0:
-            break
-        beschermd = i
-
+    De blokken zélf blijven staan; alleen hun tekst wordt afgekapt. Weggooien zou een `tool_use` zonder
+    `tool_result` achterlaten en dat weigert Anthropic."""
     uit: list[dict[str, Any]] = []
     for i, m in enumerate(messages):
         c = m.get("content")
-        if i >= beschermd or not isinstance(c, list):
+        if i >= tot or not isinstance(c, list):
             uit.append(m)
             continue
         nieuw_blokken = []
@@ -143,33 +121,72 @@ def _krimp_oude_toolresultaten(messages: list[dict[str, Any]], max_chars: int, v
     return uit
 
 
+def _knippunten(historie: list[dict[str, Any]], stap: int) -> list[int]:
+    """Een vast raster van plekken waar het venster mag beginnen of de krimp mag ophouden.
+
+    Een knippunt is de eerste platte user-beurt op of na elk veelvoud van `stap` tekens, geteld vanaf het begin van
+    het gesprek. Omdat de historie alleen aangroeit, verschuift een bestaand knippunt nooit: er komen er alleen
+    achteraan bij. Daardoor blijft het venster een paar beurten lang byte-gelijk, en kan de prompt-cache de historie
+    van de vorige beurt hergebruiken (nulmeting context 12 nov 2026: per beurt werd de hele historie opnieuw
+    geschreven, omdat het venster bij elke beurt een stukje verschoof)."""
+    punten: list[int] = []
+    totaal, vak = 0, -1
+    for i, m in enumerate(historie):
+        if _is_plain_user(m) and totaal // stap > vak:
+            punten.append(i)
+            vak = totaal // stap
+        totaal += _msg_lengte(m)
+    return punten
+
+
+def _historievenster(historie: list[dict[str, Any]], max_chars: int) -> list[dict[str, Any]]:
+    """De historie vóór de lopende beurt, binnen `max_chars`. Gebouwd om over beurten heen byte-gelijk te blijven.
+
+    1. Past de hele historie, dan gebeurt er niets.
+    2. Anders krimpen de tool-resultaten van alle beurten behalve de laatste, zodat het gesprek zelf langer meegaat:
+       zonder dit weegt één SPARQL-dump van 8000 tekens even zwaar als twintig beurten proza. De laatste beurt van
+       de historie blijft heel; daar gaat een vervolgvraag meestal over. Omdat de historie alleen aangroeit, blijft
+       een gekrompen beurt gekrompen: per nieuwe beurt verandert alleen de vorige beurt. Eerder beschermde de krimp
+       een halve begroting die bij elke beurt opschoof, en verschoof het venster bij elke beurt een stukje. Dan kon
+       de prompt-cache de historie nooit hergebruiken (nulmeting context 12 nov 2026: per beurt opnieuw geschreven).
+    3. Past het dan nog niet, dan valt de voorkant weg, maar alleen op een knippunt van `_knippunten`. Dat is een
+       vast raster, dus het venster verschuift in sprongen van een halve begroting en niet bij elke beurt. Past het
+       nergens (één beurt met een groot resultaat), dan krimpt ook de laatste beurt; en past het dan nog niet, dan
+       begint het venster bij het laatste knippunt (correct boven het strikte budget)."""
+    if sum(_msg_lengte(m) for m in historie) <= max_chars:
+        return historie
+    punten = _knippunten(historie, max(1, max_chars // 2))
+    if not punten:
+        return historie
+    laatste = next((i for i in range(len(historie) - 1, -1, -1) if _is_plain_user(historie[i])), 0)
+    na = lambda ms, i: sum(_msg_lengte(m) for m in ms[i:])  # noqa: E731
+    for tot in (laatste, len(historie)):
+        gekrompen = _krimp(historie, tot)
+        begin = next((p for p in punten if na(gekrompen, p) <= max_chars), None)
+        if begin is not None:
+            return gekrompen[begin:]
+    return gekrompen[punten[-1]:]
+
+
 def _trim_messages(messages: list[dict[str, Any]], max_chars: int, vraag: str = "") -> list[dict[str, Any]]:
     """Beperk de historie die naar de LLM gaat tot een char-budget, met behoud van de
     tool_use/tool_result-integriteit (Anthropic weigert een orphan tool_result).
 
-    Neem het achterste venster binnen budget en breid het begin zo nodig terug uit tot een platte
-    user-beurt, zodat elk tool_result zijn tool_use behoudt (Anthropic weigert een orphan). Omdat
-    messages[0] altijd een platte user-vraag is, termineert dat en is het resultaat nooit leeg;
-    correctheid gaat daarbij boven het strikte char-budget. `max_chars<=0` → ongewijzigd.
+    Het budget geldt voor de historie vóór de lopende beurt (`_historievenster`). **De lopende beurt krimpt nooit en
+    telt niet mee**: anders las het model zijn verse resultaat als "ingekort, vraag opnieuw op" en zocht het in een
+    lus. Dat de beurt buiten het budget valt, heeft twee gevolgen. Het venster op de historie blijft tijdens de hele
+    beurt gelijk, zodat elke ronde haar uit de cache leest. En een lange beurt laat de historie niet meer in één keer
+    vallen: eerder viel bij 51k tekens in de lopende beurt het hele gesprek weg en werd de beurt opnieuw geschreven
+    (nameting context 12 nov 2026). De prompt is daarmee hoogstens `max_chars` plus de lopende beurt.
 
-    `vraag` wijst de lopende beurt aan (`beurt_start`). Zonder telt een correctiebericht als begin van
-    de beurt, en dan krimpt juist de brontekst die het model moet herstellen, of valt de vraag weg.
+    Het venster begint altijd op een platte user-beurt, dus elk tool_result houdt zijn tool_use. `vraag` wijst de
+    lopende beurt aan (`beurt_start`). Zonder telt een correctiebericht als begin van de beurt, en dan valt de
+    brontekst die het model moet herstellen in de historie. `max_chars<=0` → ongewijzigd.
     """
     if max_chars <= 0 or not messages:
         return messages
-    messages = _krimp_oude_toolresultaten(messages, max_chars, vraag)
-    total = 0
-    start = 0
-    for i in range(len(messages) - 1, -1, -1):
-        total += _msg_lengte(messages[i])
-        start = i
-        if total >= max_chars:
-            break
-    # Loop terug over losgeknipte assistant/tool_result-berichten tot een geldig venster-begin
-    # (een platte user-beurt), zodat er geen orphan tool_result vooraan blijft staan.
-    while start > 0 and not _is_plain_user(messages[start]):
-        start -= 1
-    return messages[min(start, beurt_start(messages, vraag)):] if vraag else messages[start:]
+    b = beurt_start(messages, vraag)
+    return _historievenster(messages[:b], max_chars) + messages[b:]
 
 
 def _is_vraag(m: dict[str, Any]) -> bool:
@@ -282,3 +299,37 @@ def _schoon_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         else:
             schoon.append(m)
     return schoon
+
+
+#: De kop boven de context van de beurt in het bericht van de jurist (`met_beurtcontext`). Hij zegt van wie de tekst is:
+#: van de werkplek, niet van de jurist. Wat erin staat, gold eerder als het variabele deel van de systeemprompt.
+BEURTCONTEXT_KOP = ("CONTEXT VAN DEZE BEURT – van de werkplek, niet geschreven door de jurist. Het plan, de "
+                    "gesprekscontext en de bronnen hieronder gelden voor de vraag die erna komt.\n\n")
+
+
+def met_beurtcontext(venster: list[dict[str, Any]], vraag: str, context: str) -> tuple[list[dict[str, Any]], tuple[int, ...]]:
+    """Zet de context van de lopende beurt vóór de vraag, en wijs de cachepunten op de historie aan.
+
+    Het plan, de gesprekscontext, het werkgebied, het onderwerp en BRONNEN IN DEZE BEURT verschillen per beurt. Als
+    variabel deel van de systeemprompt stonden ze vóór de berichten, dus elke beurt was de hele historie nieuw voor de
+    prompt-cache (nulmeting context 12 nov 2026: 11–18k tokens per beurt opnieuw geschreven). Als eerste blok van het
+    bericht van de jurist staan ze ná de historie. Binnen de beurt staan ze elke ronde op dezelfde plek, dus de cache
+    blijft geldig.
+
+    Het blok gaat alleen naar het model, niet de checkpoint in: de historie bewaart de vraag zoals de jurist hem stelde.
+    Daardoor is dat bericht in de volgende beurt anders, en de cache kan pas tot het eind van de historie van deze
+    beurt worden hergebruikt. Daarvoor dienen de twee cachepunten (indexen in het venster):
+    - het eind van de historie van deze beurt (schrijven);
+    - het eind van de historie van de vorige beurt (lezen: dat punt schreef de vorige beurt).
+    De provider zoekt een eerdere hit maar een beperkt aantal blokken terug, dus het tweede punt is nodig om de vorige
+    beurt te overbruggen. Zonder context ongewijzigd, maar wel met de punten."""
+    b = beurt_start(venster, vraag)
+    eerdere = [i for i in range(b) if _is_vraag(venster[i])]
+    punten = tuple(sorted({i for i in (eerdere[-1] - 1 if eerdere else -1, b - 1) if i >= 0}))
+    if not context or b >= len(venster):
+        return venster, punten
+    m = venster[b]
+    blok = {"type": "text", "text": BEURTCONTEXT_KOP + context}
+    c = m.get("content")
+    inhoud = [blok, {"type": "text", "text": c}] if isinstance(c, str) else [blok, *(c or [])]
+    return [*venster[:b], {**m, "content": inhoud}, *venster[b + 1:]], punten

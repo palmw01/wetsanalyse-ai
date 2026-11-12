@@ -69,8 +69,12 @@ class LLMPort(Protocol):
         tools: list[dict[str, Any]],
         messages: list[dict[str, Any]],
         historie_cache: bool = False,
+        berichtpunten: tuple[int, ...] = (),
     ) -> "LLMStream":
-        """Als create(), maar streamend. Gebruik als context manager."""
+        """Als create(), maar streamend. Gebruik als context manager.
+
+        `berichtpunten`: de berichten waarop de provider een cachepunt mag zetten (het eind van de historie van deze en
+        van de vorige beurt, `berichten.met_beurtcontext`)."""
         ...
 
 

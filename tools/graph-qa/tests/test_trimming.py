@@ -8,7 +8,7 @@ uit. Oude tool-resultaten worden daarom eerst ingekort; de blokken zelf blijven 
 
 from __future__ import annotations
 
-from agent.berichten import _TOOLRESULT_KRIMP, _is_plain_user, _trim_messages
+from agent.berichten import _TOOLRESULT_KRIMP, _is_plain_user, _msg_lengte, _trim_messages
 
 
 def vraag(tekst: str) -> dict:
@@ -83,7 +83,8 @@ def test_een_vers_groot_resultaat_wordt_niet_ingekort():
     kreeg weer een ingekort resultaat, en zo door tot de beurtlimiet."""
     msgs = [vraag("Eerste vraag"), *toolbeurt("t1", "y" * 25_000),
             vraag("Welke rechtssubjecten ken je nog meer?"), *toolbeurt("t2", "z" * 30_000)]
-    uit = _trim_messages(msgs, 40_000)
+    # Het budget geldt voor de historie vóór de lopende beurt (25k): bij 20k krimpt het oude resultaat.
+    uit = _trim_messages(msgs, 20_000)
     vers = [blok for m in uit if isinstance(m.get("content"), list)
             for blok in m["content"]
             if blok.get("type") == "tool_result" and blok["tool_use_id"] == "t2"]
@@ -92,3 +93,36 @@ def test_een_vers_groot_resultaat_wordt_niet_ingekort():
            for blok in m["content"]
            if blok.get("type") == "tool_result" and blok["tool_use_id"] == "t1"]
     assert oud and "ingekort" in oud[0]["content"], "het oude resultaat mag wel krimpen"
+
+
+
+def test_de_lopende_beurt_telt_niet_mee_in_het_budget_van_de_historie():
+    """Nameting context 12 nov 2026: bij 51k tekens in de lopende beurt viel het hele gesprek weg (23 → 11
+    berichten) en werd de beurt opnieuw geschreven. De historie past in haar budget, dus ze blijft staan."""
+    historie = [vraag("Eerste vraag"), *toolbeurt("t1", "y" * 5_000), {"role": "assistant", "content": "antwoord"}]
+    beurt = [vraag("Tweede vraag")] + [b for i in range(6) for b in toolbeurt(f"n{i}", "z" * 10_000)]
+    uit = _trim_messages(historie + beurt, 40_000, "Tweede vraag")
+    assert uit == historie + beurt
+
+
+def _gesprek(beurten: int) -> list[dict]:
+    msgs: list[dict] = []
+    for i in range(beurten):
+        msgs += [vraag(f"Vraag {i}"), *toolbeurt(f"t{i}", chr(97 + i % 26) * 6_000), {"role": "assistant", "content": f"Antwoord {i}"}]
+    return msgs
+
+
+def test_per_beurt_verandert_alleen_het_eind_van_het_venster():
+    """Wat de cache per beurt opnieuw moet schrijven: alles vanaf het eerste bericht dat anders is dan in het venster
+    van de vorige beurt. Het minimum is de nieuwe beurt zelf (~6k tekens hier). De oude code schoof het beschermde
+    deel en de voorkant bij elke beurt op en schreef gemiddeld ~29k van een venster van ~36k opnieuw."""
+    herschreven = []
+    for n in range(8, 40):
+        nu = _trim_messages(_gesprek(n) + [vraag("nieuw")], 40_000, "nieuw")[:-1]
+        straks = _trim_messages(_gesprek(n + 1) + [vraag("nieuw")], 40_000, "nieuw")[:-1]
+        k = 0
+        while k < min(len(nu), len(straks)) and nu[k] == straks[k]:
+            k += 1
+        herschreven.append(sum(_msg_lengte(m) for m in straks[k:]))
+        assert sum(_msg_lengte(m) for m in nu) <= 40_000
+    assert sum(herschreven) / len(herschreven) < 12_000

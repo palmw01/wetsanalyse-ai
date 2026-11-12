@@ -1,6 +1,8 @@
 """Fakes voor de poorten, zodat de agent-loop deterministisch en zonder netwerk test."""
 from __future__ import annotations
 
+from agent.berichten import BEURTCONTEXT_KOP
+
 from collections.abc import Callable
 import re
 from types import SimpleNamespace
@@ -64,6 +66,10 @@ class FakeLLM:
         self._responses = list(responses)
         self.index = 0
         self.calls: list[dict[str, Any]] = []
+        # Per aanroep wat de beurt als instructie meekreeg: de systeemprompt plus de context van de beurt (die staat sinds
+        # ADR-015 als eerste blok van de vraag, `met_beurtcontext`). Apart van `calls`: die draagt de kwargs van de aanroeper,
+        # zonder eigen sleutels erbij (`tests/test_llm_stap.py` eist dat). Waar het blok staat, toetst `test_prompt_caching`.
+        self.prompts: list[str] = []
 
     def _next(self) -> SimpleNamespace:
         resp = self._responses[self.index]
@@ -80,6 +86,9 @@ class FakeLLM:
         systeem = kwargs.get("system")
         if isinstance(systeem, list):
             kwargs = {**kwargs, "system_delen": systeem, "system": "\n\n".join(d for d in systeem if d)}
+        context = [b.get("text", "") for m in kwargs.get("messages") or [] if isinstance(m.get("content"), list)
+                   for b in m["content"] if isinstance(b, dict) and str(b.get("text", "")).startswith(BEURTCONTEXT_KOP)]
+        self.prompts.append("\n\n".join([str(kwargs.get("system") or ""), *context]))
         self.calls.append(kwargs)
 
     def create(self, **kwargs: Any) -> SimpleNamespace:
@@ -168,3 +177,12 @@ def agent_ctx(api, *, settings=None, run_id: str = "run9", gestopt: bool = False
                   melding=meldingen.append, gestopt=lambda: gestopt, **kw)
     ctx.meldingen = meldingen
     return ctx
+
+
+def vraag_van(bericht: dict) -> str:
+    """De tekst die de jurist schreef, zonder de context van de beurt ervoor (`berichten.met_beurtcontext`)."""
+    c = bericht.get("content")
+    if isinstance(c, str):
+        return c
+    return "".join(b.get("text", "") for b in c or [] if isinstance(b, dict) and b.get("type") == "text"
+                   and not str(b.get("text", "")).startswith(BEURTCONTEXT_KOP))
