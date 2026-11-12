@@ -907,3 +907,73 @@ def test_de_metadata_van_een_kamerstuk_draagt_gezamenlijk_bij_meer_dossiers():
                   dossiers=("33752", "33753", "33754", "33755"), ondernummer="L", xml_url="https://repository.overheid.nl/y.xml")
     assert "gezamenlijk" not in metadata(een, externe_vindplaats("kst-33755-3"))
     assert metadata(meer, externe_vindplaats("kst-33752-L"))["gezamenlijk"] == ["33752", "33753", "33754", "33755"]
+
+
+def _zonder_rubriek(ident: str, titel: str, dossiertitel: str, documenttitel: str = "") -> Record:
+    from dataclasses import replace
+    return replace(rec(ident, titel, "3"), dossiertitel=dossiertitel, documenttitel=documenttitel)
+
+
+@pytest.mark.parametrize("titel,dossiertitel,oordeel", [
+    # De vorm van KOOP: het soort staat na de dossiertitel (de documenttitel staat apart, zie hieronder).
+    ("Wet x; Memorie van toelichting", "Wet x", True),
+    ("Wet x; Brief regering", "Wet x", False),
+    # Een titel die niet met de dossiertitel begint (kst-24172-3): een deel dat met het soort begint, telt.
+    ("Wet op de omzetbelasting 1968; wijz. ivm constructies; Memorie van toelichting", "Wijziging van de Wet", True),
+    # Het soort staat er, maar niet op een plek die de code kan beoordelen: niet te beoordelen, geen nee.
+    ("Wet y; reactie op de memorie van toelichting", "Wijziging van wet y", None),
+    ("Wet y; Nota naar aanleiding van het verslag", "Wijziging van wet y", False),
+])
+def test_het_soort_in_de_titel_kent_ja_nee_en_niet_te_beoordelen(titel, dossiertitel, oordeel):
+    """Kamerstukken ronde 6, L-K2: een titel die niet met de dossiertitel begint, gaf het verkeerde deel als soort, en het
+    stuk viel stil weg. Nu is er naast ja en nee een derde uitkomst."""
+    from agent.tools.kamerstuk_tools import _soort_in_titel
+
+    assert _soort_in_titel(_zonder_rubriek("kst-1-1", titel, dossiertitel), ["memorie", "van", "toelichting"]) is oordeel
+
+
+def test_een_stuk_dat_het_soortfilter_niet_kan_beoordelen_gaat_mee_en_wordt_genoemd():
+    """Wat het soortfilter niet zeker kan toetsen, valt nooit stil weg: het gaat mee in de zoekvraag, en de kanttekening
+    noemt het, voor de jurist bij de lijst."""
+    bron = NepBron([
+        _zonder_rubriek("kst-1-3", "Wet x; Memorie van toelichting", "Wet x"),
+        _zonder_rubriek("kst-2-3", "Wet op y; wijz.; Memorie van toelichting", "Wijziging van y"),
+        _zonder_rubriek("kst-3-3", "Wet z; reactie op de memorie van toelichting", "Wijziging van z"),
+        _zonder_rubriek("kst-4-3", "Wet x; Brief regering; over de memorie van toelichting", "Wet x",
+                        "over de memorie van toelichting"),
+    ])
+    d = roep("zoek_kamerstukken", {"soort": "memorie van toelichting", "tekst": "invorderingsrente"}, bron)
+    hoofd = bron.vragen[-1]
+    assert all(f'dt.identifier=="{i}"' in hoofd for i in ("kst-1-3", "kst-2-3", "kst-3-3"))
+    assert 'dt.identifier=="kst-4-3"' not in hoofd, "een brief met het soort elders in de titel blijft weg"
+    assert "kst-3-3" in d["kanttekening"] and "kst-2-3" not in d["kanttekening"], d.get("kanttekening")
+
+
+def test_veel_treffers_in_een_stuk_staan_per_kop_op_de_eerste_pagina():
+    """Kamerstukken ronde 6, K15: "Belastingdienst" stond in 223 alinea's van één stuk, en het model bladerde er vier pagina's
+    van door. Boven `MAX_TREFFERS_ZONDER_KOPPEN` zegt de eerste pagina per kop hoeveel alinea's het woord noemen en waar ze
+    beginnen, zodat het model kiest; een volgende pagina en een kleine zoekvraag blijven zoals ze waren."""
+    from agent.tools.kamerstuk_tools import _met_woorden
+    from agent.tools.stuk_tekst import MAX_TREFFERS_ZONDER_KOPPEN
+
+    koppen = ["1. Inleiding", "2. Belastingen › 2.1 Inkomsten", "2. Belastingen › 2.2 Uitvoering", "3. Slot"]
+    rijen = [{"nr": i, "kop": koppen[i % 4], "tekst": f"De Belastingdienst doet {i}."} for i in range(40)]
+    stuk = {"id": "kst-1-2", "label": "Kamerstukken 1, nr. 2"}
+    d = json.loads(_met_woorden(rijen, "Belastingdienst", "kst-1-2", 0, stuk))
+    assert d["totaal"] == 40 > MAX_TREFFERS_ZONDER_KOPPEN
+    per = {p["kop"]: p for p in d["per_kop"]}
+    assert set(per) == set(koppen) and all(p["aantal"] == 10 for p in per.values())
+    assert per["3. Slot"]["vanaf"] == 3, "de plek van de eerste treffer, als offset voor dezelfde zoekvraag"
+    assert "Blader ze niet allemaal door" in d["toelichting"]
+    verder = json.loads(_met_woorden(rijen, "Belastingdienst", "kst-1-2", 10, stuk))
+    assert "per_kop" not in verder, "alleen op de eerste pagina"
+    klein = json.loads(_met_woorden(rijen[:8], "Belastingdienst", "kst-1-2", 0, stuk))
+    assert "per_kop" not in klein
+
+
+def test_per_kop_telt_op_twee_niveaus_en_begrenst():
+    from agent.tools.stuk_tekst import MAX_PER_KOP, treffers_per_kop
+
+    treffers = [{"kop": f"A › B{i} › C"} for i in range(MAX_PER_KOP + 5)] + [{"tekst": "zonder kop"}]
+    per, meer = treffers_per_kop(treffers)
+    assert len(per) == MAX_PER_KOP and meer == 6 and per[0] == {"kop": "A › B0", "aantal": 1, "vanaf": 0}

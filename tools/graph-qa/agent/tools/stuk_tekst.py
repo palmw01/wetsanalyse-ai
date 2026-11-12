@@ -43,6 +43,26 @@ INHOUD_ARG = {"type": "boolean", "description": "true: alleen de inhoud van het 
                                                  "van de delen, of er zijn diepere koppen), of om te zien waar een deel staat."}
 
 
+#: Boven zo veel treffers van een zoekvraag binnen één stuk (`woorden`) draagt de eerste pagina `per_kop`: per kop hoeveel
+#: alinea's het woord noemen en waar ze beginnen. Kamerstukken ronde 6, K15: "Belastingdienst" stond in 223 alinea's, en
+#: het model bladerde er vier pagina's van door (9 rondes, 295k tokens) in plaats van de delen te kiezen die bij de vraag
+#: horen.
+MAX_TREFFERS_ZONDER_KOPPEN = 20
+#: Hoogstens zo veel koppen in `per_kop`; de rest staat geteld in `per_kop_meer`.
+MAX_PER_KOP = 30
+
+
+def treffers_per_kop(treffers: Sequence[dict[str, Any]], diepte: int = 2) -> tuple[list[dict[str, Any]], int]:
+    """Per kop (tot `diepte` niveaus) het aantal treffers en `vanaf`: de plek van de eerste treffer in de lijst, als
+    offset voor dezelfde zoekvraag. Voor elke leestool die binnen een stuk zoekt; (koppen, aantal koppen dat niet past)."""
+    per: dict[str, dict[str, Any]] = {}
+    for i, r in enumerate(treffers):
+        kop = " › ".join(str(r.get("kop") or "").split(" › ")[:diepte]) or "(zonder kop)"
+        per.setdefault(kop, {"kop": kop, "aantal": 0, "vanaf": i})["aantal"] += 1
+    lijst = list(per.values())
+    return lijst[:MAX_PER_KOP], max(len(lijst) - MAX_PER_KOP, 0)
+
+
 def koppen(rijen: Sequence[dict[str, Any]], diepte: int | None = None, *, met_begin: bool = True) -> list[dict[str, Any]]:
     """De koppen van een stuk tot `diepte` niveaus (alles bij None), elk één keer, met de offset van hun eerste rij. Een kop
     op het bovenste niveau draagt het begin van zijn eerste alinea (`begint`, `begin_van`), behalve zonder `met_begin`."""

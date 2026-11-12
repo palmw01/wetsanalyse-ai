@@ -47,8 +47,11 @@ WETSVRAGEN = (
 
 @pytest.mark.parametrize("c", BESCHRIJVINGEN, ids=IDS)
 def test_de_beschrijving_is_volledig(c: bm.ConnectorBeschrijving):
+    # Een aanwijzing is alleen nodig waar een vraag naar de bron wijst zonder haar te noemen ("wat bedoelde de
+    # wetgever"); de meeste connectors hebben er geen.
+    optioneel = {"aanwijzingen"}
     for veld in dataclasses.fields(c):
-        if veld.init:
+        if veld.init and veld.name not in optioneel:
             assert getattr(c, veld.name), f"{c.naam}: veld '{veld.name}' is leeg"
     assert re.fullmatch(r"[a-z][a-z0-9_]*", c.naam)
     assert c.brontype in BRONTYPEN and c.brontype != "wettekst"
