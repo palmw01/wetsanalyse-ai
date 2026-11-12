@@ -153,6 +153,12 @@ class Settings(BaseModel):
     # zetten met `PROMPT_CACHING=false`; de adapter schakelt zichzelf bovendien uit zodra de
     # provider `cache_control` weigert (het is op Azure AI Foundry een beta-functie).
     prompt_caching: bool = True
+    # Hoe lang het cachepunt op de systeemprompt (en dus de tools ervóór) blijft staan. Een jurist leest een antwoord en
+    # vraagt dan door; met 5 minuten was het hele voorvoegsel dan weg (nulmeting context 12 nov 2026: 53k van 76k
+    # gewogen tokens in één beurt). Schrijven kost bij 1h 2× in plaats van 1,25×, lezen daarna 0,1×. De historie houdt
+    # 5 minuten: de API eist de langere TTL vóór de kortere. `5m` zet het terug; weigert de provider het, dan valt de
+    # adapter zelf terug op 5 minuten.
+    prompt_cache_ttl: Literal["5m", "1h"] = "1h"
 
     # Hoe lang de adapter op één LLM-call wacht, en hoe vaak hij het opnieuw probeert.
     #
@@ -221,6 +227,7 @@ class Settings(BaseModel):
             "relatie_voorstellen": e.get("RELATIE_VOORSTELLEN"),
             "grounding_correct": e.get("GROUNDING_CORRECT"),
             "prompt_caching": e.get("PROMPT_CACHING"),
+            "prompt_cache_ttl": e.get("PROMPT_CACHE_TTL"),
             "llm_timeout_seconds": e.get("LLM_TIMEOUT_SECONDS"),
             "llm_max_retries": e.get("LLM_MAX_RETRIES"),
             "wetsanalyse_api_url": e.get("WETSANALYSE_API_URL"),

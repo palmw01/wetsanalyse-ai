@@ -28,7 +28,7 @@ LANG = "x" * _MIN_CACHE_TEKENS
 
 def test_stabiel_deel_krijgt_het_cache_punt():
     blokken = _adapter()._system([LANG, "plan van deze beurt"])
-    assert blokken[0]["cache_control"] == {"type": "ephemeral"}
+    assert blokken[0]["cache_control"] == {"type": "ephemeral", "ttl": "1h"}
     assert blokken[0]["text"] == LANG
     # Het variabele deel staat eráchter en draagt géén cache-punt – anders schrijft elke beurt een
     # eigen cache-entry die niemand ooit leest.
@@ -134,3 +134,44 @@ def test_weigert_de_provider_het_historie_punt_dan_blijft_de_systeemprompt_gecac
     assert len(pogingen) == 2 and "cache_control" not in pogingen[1]
     assert isinstance(pogingen[1]["system"], list), "het cache-punt op de systeemprompt blijft"
     assert llm._caching and not llm._historie_caching
+
+
+# --- De TTL (nulmeting context 12 nov 2026) --------------------------------------------------------------------------
+
+
+def test_ttl_5m_is_de_standaard_van_de_provider():
+    assert _adapter(prompt_cache_ttl="5m")._system([LANG, "x"])[0]["cache_control"] == {"type": "ephemeral"}
+
+
+def test_een_losse_systeemstring_krijgt_geen_uur():
+    """Een prompt zonder aangewezen stabiel deel komt meestal niet terug: schrijven voor een uur kost 2×."""
+    assert _adapter()._system(LANG)[0]["cache_control"] == {"type": "ephemeral"}
+
+
+def test_de_historie_houdt_vijf_minuten():
+    """De API eist de langere TTL vóór de kortere: de systeemprompt een uur, het punt op de berichten de standaard."""
+    llm = _adapter()
+    gezien: list[dict] = []
+    llm._client = type("C", (), {"messages": type("M", (), {
+        "stream": staticmethod(lambda **kw: gezien.append(kw) or _Stream(kw))})()})()
+    with llm.stream(model="m", max_tokens=1, system=[LANG, "x"], tools=[], messages=[], historie_cache=True):
+        pass
+    assert gezien[0]["system"][0]["cache_control"]["ttl"] == "1h"
+    assert gezien[0]["cache_control"] == {"type": "ephemeral"}
+
+
+def test_weigert_de_provider_de_ttl_dan_blijft_het_cachepunt_met_5_minuten():
+    llm = _adapter()
+    pogingen: list[dict] = []
+
+    class Weigerend(_Stream):
+        def __enter__(self):
+            if self.kwargs["system"][0]["cache_control"].get("ttl"):
+                raise _fout("system.0.cache_control.ttl: Extra inputs are not permitted")
+            return self
+    llm._client = type("C", (), {"messages": type("M", (), {
+        "stream": staticmethod(lambda **kw: pogingen.append(kw) or Weigerend(kw))})()})()
+    with llm.stream(model="m", max_tokens=1, system=[LANG, "x"], tools=[], messages=[], historie_cache=True):
+        pass
+    assert len(pogingen) == 2 and pogingen[1]["system"][0]["cache_control"] == {"type": "ephemeral"}
+    assert llm._caching and llm._historie_caching, "caching blijft aan, ook op de historie"
