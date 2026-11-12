@@ -174,6 +174,11 @@ def test_de_samenvatting_toetst_een_run_tegen_de_set():
     rollen = vat({"id": "E08", "run": 1, "beurten": [{"label": "gemeten", "events": [twee]}]}, PER_ID["E08"])["per_rol"]
     assert rollen["supervisor"] == {"aanroepen": 1, "modellen": ["licht"], "ruw": 5, "gewogen": 9, "gewogen_warm": 9}
     assert (rollen["antwoord"]["modellen"], rollen["antwoord"]["gewogen"]) == (["zwaar"], 61)
+    # Welke vorm draaide, uit de run zelf.
+    centraal = {**meting, "contextopbouw": {"agenten": [{"rol": "centraal", "profiel_id": "centraal"}]}}
+    gezien = [vat({"id": "E08", "run": 1, "beurten": [{"label": "gemeten", "events": [m]}]}, PER_ID["E08"])["vorm_gezien"]
+              for m in (twee, centraal, meting)]
+    assert gezien == [["supervisor"], ["centraal"], []]
     assert s["route_past"] and s["delegatie_past"] and s["sjabloon_past"] and not s["tools_ontbreken"]
 
     regie = [{"type": "regie", "fase": "start"}, {"type": "regie_taak", "fase": "start", "gesprek_id": "k1"}]

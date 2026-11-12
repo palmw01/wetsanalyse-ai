@@ -112,6 +112,11 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
         "gewogen": gewogen(soorten), "gewogen_warm": gewogen(soorten, warm=True),
         "opzet_gewogen": gewogen(opzet_soorten), "opzet_gewogen_warm": gewogen(opzet_soorten, warm=True),
         "per_rol": per_rol(metingen),
+        # Welke vorm echt draaide, uit de run zelf en niet uit wat het verzoek vroeg: een agent met de rol `centraal` in
+        # `contextopbouw.agenten`, of een aanroep met de rol `supervisor`. Leeg bij een route zonder model.
+        "vorm_gezien": sorted(({"centraal"} if any(a.get("rol") == "centraal" for m in metingen
+                                                   for a in (m.get("contextopbouw") or {}).get("agenten") or []) else set())
+                              | ({"supervisor"} if "supervisor" in per_rol(metingen) else set())),
         "duur_ms": sum(m.get("duur_ms", 0) for m in metingen) or sum(b.get("wand_ms", 0) for b in gemeten),
         "opzet_tokens": sum(_tokens(e) for b in opzet for e in b.get("events", []) if e["type"] == "meting"),
         "delta_account": sum(b.get("delta_account") or 0 for b in rec["beurten"]),
