@@ -33,7 +33,9 @@ def test_drift_en_hashes():
 
 @pytest.mark.parametrize('fout', ['rol','selectie','bron','sectie','dubbel','pad','versie'])
 def test_ongeldige_import_faalt(tmp_path, fout):
-    skill = tmp_path/'skill'; shutil.copytree(SKILL, skill)
+    # De map heet zoals de skill (de Agent Skills-specificatie): anders valt elke variant om de naam, niet om de fout.
+    skill = tmp_path/SKILL.name; shutil.copytree(SKILL, skill)
+    assert compileer(skill, extra=[])['secties'] == {k: v for k, v in PAKKET['secties'].items() if v['skill'] == SKILL.name}
     pad = skill/'agentrollen.json'; mapping = json.loads(pad.read_text())
     if fout == 'rol': mapping['rollen']['vreemd'] = ['basis']
     if fout == 'selectie': mapping['rollen']['duiding'] = ['onbekend']

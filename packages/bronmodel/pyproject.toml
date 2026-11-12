@@ -3,7 +3,8 @@ name = "wetsanalyse-bronmodel"
 version = "0.1.0"
 description = "Canonieke bronboom en lokale tekstankers voor Wetsanalyse"
 requires-python = ">=3.11"
-dependencies = ["pydantic>=2"]
+# pyyaml: de frontmatter van een skill en een agentprofiel (`bronmodel.validatie`).
+dependencies = ["pydantic>=2", "pyyaml>=6"]
 
 [project.optional-dependencies]
 # De BWB-lezer (`bronmodel.bwb`): importer en graph-qa. De api heeft hem niet nodig.

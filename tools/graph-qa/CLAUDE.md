@@ -991,7 +991,9 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
 - **De klassenduiding komt uit de skill.** Het JAS_KLASSEN-blok in `agent/jas_klassen.py` en
   `agent/methodepakket.py` worden gegenereerd door `scripts/genereer_jas_klassen.py` (CI draait
   `--check`), bewaakt door `tests/test_methode_drift.py`. Bewerk de markdown in
-  `.claude/skills/wetsanalyse/`, niet de Python.
+  `.claude/skills/wetsanalyse/`, niet de Python. De generator toetst elke methode-skill met `bronmodel.skill` (de
+  Agent Skills-specificatie plus de regels van Lex; ADR-016 §B2): dezelfde validator als de werkplaats, dus een regel
+  voor skills hoort daar en niet in het script. Alleen de regels uit een skill (`regels/`) toetst het script zelf.
 
 ### Wat `emit` uitstuurt
 
