@@ -214,6 +214,10 @@ def _tool_results(llm: FakeLLM) -> list[dict[str, Any]]:
             for b in m["content"] if b.get("type") == "tool_result"]
 
 
+#: Het id staat in de vraag: deze tests gaan over toolfouten, niet over waar een id vandaan komt (`id_herkomst`).
+VRAAG = f"Wat zegt artikel {ART['artikel']} van {ART['bwb_id']}?"
+
+
 def _herhaalde_aanroep(rondes: int) -> FakeLLM:
     return FakeLLM([*[response([tool_block(f"t{i}", "get_artikel", ART)], "tool_use") for i in range(rondes)],
                     response([text_block("Klaar.")], "end_turn")])
@@ -222,7 +226,7 @@ def _herhaalde_aanroep(rondes: int) -> FakeLLM:
 def test_een_tijdelijke_toolfout_mag_opnieuw_en_draagt_is_error():
     settings = make_settings(enable_planning=False, grounding_correct=False)
     graph, llm = GraafDieEerstFaalt(1), _herhaalde_aanroep(2)
-    _run(answer_stream("vraag", settings=settings, llm=llm, graph=graph))
+    _run(answer_stream(VRAAG, settings=settings, llm=llm, graph=graph))
     eerste, tweede = _tool_results(llm)
     assert eerste["is_error"] is True and "Fout bij tool" in eerste["content"]
     assert "is_error" not in tweede and '"status":"ok"' in tweede["content"]
@@ -232,7 +236,7 @@ def test_een_tijdelijke_toolfout_mag_opnieuw_en_draagt_is_error():
 def test_een_blijvende_toolfout_wordt_niet_eindeloos_herhaald():
     settings = make_settings(enable_planning=False, grounding_correct=False)
     graph, llm = GraafDieEerstFaalt(99), _herhaalde_aanroep(4)
-    _run(answer_stream("vraag", settings=settings, llm=llm, graph=graph))
+    _run(answer_stream(VRAAG, settings=settings, llm=llm, graph=graph))
     assert graph.fouten == 97                        # twee pogingen, daarna het bewaarde resultaat
     laatste = _tool_results(llm)[-1]
     assert laatste["is_error"] is True and HERHAALD in laatste["content"]
