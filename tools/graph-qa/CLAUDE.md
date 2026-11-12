@@ -93,7 +93,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   **Een ronde met een sjabloon is ook het antwoord** (12 nov 2026, acceptatie K17: het hele antwoord stond onderaan het
   denkproces en daarna nog eens in het sjabloon): wat het model naast de sjabloonaanroep schreef, gaat niet naar `reason`
   en niet de historie in, en `sjabloon.tekst_ernaast` telt de tekens (verspilde uitvoertokens). De systeemprompt
-  (AFRONDEN MET EEN SJABLOON) vraagt geen tekst naast de aanroep. **Het denkproces bouwt één functie op**:
+  (AFRONDEN MET EEN SJABLOON) vraagt geen tekst naast de aanroep. Procestaal boven een scheidingslijn in een tekstantwoord ("Nu heb ik … Ik kan het antwoord nu opbouwen. ---") gaat naar het denkproces en niet de historie in (`narratie.zonder_aanloop`; nameting #1274, K07). **Het denkproces bouwt één functie op**:
   `narratie.denk_bij` voor het bewaarde bericht, `frontend/lib/denkproces.ts` (`denkBij`) voor wie meekijkt, gelijk
   gehouden door `tests/data/denkproces-vectoren.json`.
 - **`tools_node`** – voert elke aanroep uit via `dispatch(...)` en voegt `(tool_naam, resultaat)` toe
@@ -334,7 +334,7 @@ bruikbaar is.
   is dat blok leeg. `tests/test_bronprompt.py`. `tests/test_bronschakelaar.py`.
   **Kamerstukken** (`tools/kamerstuk_tools.py`, transport `adapters/sru_kamerstukken.py`): `zoek_kamerstukken`
   (filters, te combineren: een dossier of subdossier, `w.dossiernummer=="36200-IX"`, met `nummer` voor één stuk; woorden in
-  de titel; `soort` in `w.subrubriek`, en bij een stuk zonder rubriek (of "Overig") op zijn plek in de titel: de tool toetst
+  de titel; `dossiertitel` als woordgroep in `w.dossiertitel` ("Belastingplan 2025" is niet "Belastingplan BES-eilanden 2025"; K10: 88 amendementen); `soort` in `w.subrubriek`, en bij een stuk zonder rubriek (of "Overig") op zijn plek in de titel: de tool toetst
   die stukken zelf en neemt ze op id op, zodat een brief met het woord in zijn titel niet meekomt (`_soort_cql`,
   `MAX_SOORT_TITEL`); begint de titel niet met de dossiertitel, dan telt een deel dat met het soort begint, en wat de toets niet kan
   beoordelen gaat mee en staat in de `kanttekening` (`_soort_in_titel` ja/nee/None; ronde 6, L-K2: kst-24172-3 viel stil weg); `tekst` in de hele tekst
@@ -367,7 +367,7 @@ bruikbaar is.
   een onopgemaakt stuk (32140 nr. 342 = `kst-1278484`), en een lettercode van de Eerste Kamer die in een gezamenlijke
   behandeling naar het eerste dossier heet (`kst-33755-L` → `kst-33752-L`, alleen een letter en alleen eenduidig; ronde 3,
   K22); het `stuk` noemt het echte id en de toelichting zegt het. `get_kamerstuk(woorden=)` geeft de alinea's van één stuk die
-  elk woord noemen (stam van zeven letters, tekst of kop) met hun offset (ronde 3, K07: tien offsets in drie stukken); bij nul treffers telt `per_woord` hoe vaak elk woord los staat en zegt de toelichting welk woord weg kan (ronde 4, K07/K16: vijf keer nul op woorden die samen nergens staan). Boven `MAX_TREFFERS_ZONDER_KOPPEN` draagt de eerste pagina `per_kop` (`stuk_tekst.treffers_per_kop`, voor elke leestool die binnen een stuk zoekt): per kop het aantal treffers en `vanaf`, zodat het model kiest in plaats van alles door te bladeren (ronde 6, K15: 223 alinea's, vier pagina's). Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
+  elk woord noemen (stam van zeven letters, tekst of kop) met hun offset (ronde 3, K07: tien offsets in drie stukken); bij nul treffers telt `per_woord` hoe vaak elk woord los staat en zegt de toelichting welk woord weg kan (ronde 4, K07/K16: vijf keer nul op woorden die samen nergens staan). Boven `MAX_TREFFERS_ZONDER_KOPPEN` draagt de eerste pagina `per_kop` (`stuk_tekst.treffers_per_kop`, voor elke leestool die binnen een stuk zoekt): per kop het aantal treffers en `vanaf`, op het diepste kopniveau met hoogstens `MAX_PER_KOP` koppen (nameting #1274: twee vaste niveaus gaven vijf koppen voor 223 treffers), zodat het model kiest in plaats van alles door te bladeren (ronde 6, K15). Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
   sjabloon citeert er dus niet uit als passage van een bepaling. **Cache met versiecontrole** (een Kamerstuk verandert
   na publicatie: onopgemaakt → opgemaakt, herdruk, rectificatie): binnen `VERS_S` geen aanroep, daarna een lichte
   metadatavraag op `dt.modified`/documentstatus/versie en alleen bij een verschil de XML opnieuw (log
@@ -493,7 +493,7 @@ bruikbaar is.
   `extern.lijsten` neemt pagina's van dezelfde zoekvraag (`_zoeksleutel`) als één lijst en houdt een gelezen stuk bij zijn
   zoekvraag; `van_orgaan` kiest het lidwoord ("van het College"); `provenance.collect_sources` slaat een foutresultaat over
   (`is_fout`: het voorbeeld in een foutmelding is geen bron); `bron_lijst` leest een maand, laat een werkwoord achter het
-  onderwerp weg (`_WERKWOORDEN`), kent "kamerdossier" en een kaal dossiernummer van vijf cijfers na bij/in/uit/van (ronde 6, K10: "Hoeveel amendementen zijn er bij 36602?"), en telt een naam binnen een langere regelingnaam niet
+  onderwerp weg (`_WERKWOORDEN`), kent "kamerdossier" en een kaal dossiernummer van vijf cijfers na bij/in/uit/van (ronde 6, K10: "Hoeveel amendementen zijn er bij 36602?"), en een naam na "bij het/de" ("de amendementen bij het Belastingplan 2025") als dossiertitel bij een connector die dat filter heeft (`_bij_naam`, `_op_naam`; ook "horen bij" een regeling zoekt bij Kamerstukken nu de dossiertitel), en telt een naam binnen een langere regelingnaam niet
   (`_zonder_ingesloten`). **Na ronde 2**: `zoek_uitspraken` met alleen `bwb_id` zoekt de uitspraken die de regeling als
   geheel noemen (LiDO op `juriconnect-ref=<bwb>`; de Leidraad Invordering 2008: 204); een regeling buiten de graaf krijgt haar
   titel uit de BWB-zoekdienst (`LidoRechtspraak.titel`); een buitenlandse of Europese ECLI is `buiten_bereik` met een `stuk`

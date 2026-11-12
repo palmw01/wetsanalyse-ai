@@ -5,6 +5,7 @@ kunnen meerdere node-modules ze delen zonder elkaar te importeren.
 """
 from __future__ import annotations
 
+import re
 from typing import Any
 
 
@@ -134,4 +135,20 @@ def _grounding_melding(report: Any) -> str:
         return "brongetrouwheid: gecontroleerd, niets aangehaald"
     return f"brongetrouwheid: {' en '.join(goed)} gecontroleerd"
 
+
+#: Procestaal van het model vóór een scheidingslijn: "Nu heb ik de letterlijke tekst van alinea 148. Ik kan het antwoord nu
+#: opbouwen.\n\n---\n\n**Twee lagen …**" (nameting #1274, K07: na twee weigeringen van een sjabloon schreef het model zijn
+#: antwoord in tekst, met zijn eigen aanloop erboven). Alleen een korte aanloop in de eerste persoon over het werk zelf.
+_AANLOOP_RE = re.compile(r"\A\s*(?P<kop>[^\n]{1,300}?)\s*\n\s*(?:-{3,}|\*{3,}|_{3,})\s*\n(?P<rest>.+)\Z", re.S)
+_PROCES_RE = re.compile(r"\b(?:ik\s+(?:heb|kan|ga|zal|wil|moet)|nu\s+(?:heb|kan|ga)\s+ik|laat\s+me|eerst\s+(?:lees|zoek|haal))\b",
+                        re.IGNORECASE)
+
+
+def zonder_aanloop(tekst: str) -> tuple[str, str]:
+    """(het antwoord, de aanloop die eraf ging). De aanloop gaat naar het denkproces, niet naar de jurist; geen
+    aanloop of een kop die geen procestaal is (een titel, een citaat): de tekst blijft zoals hij was."""
+    m = _AANLOOP_RE.match(tekst or "")
+    if not m or not _PROCES_RE.search(m.group("kop")) or any(t in m.group("kop") for t in ('"', "„", "“", "#", "**")):
+        return tekst, ""
+    return m.group("rest").lstrip("\n"), m.group("kop").strip()
 
