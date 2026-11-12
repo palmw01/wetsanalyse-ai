@@ -278,8 +278,9 @@ def beweringen(tekst: str, bron: str, *, bekend: str = "", tellingen: set[int] |
             return _vorm(getal) in kent
         n = int(_vorm(getal))
         # Een aantal uit de trace, uit de vraag, een rekensom van genoemde getallen, of letterlijk zo in de bron
-        # ("12 leden" in de tekst van een stuk).
-        return (n in tellingen or _vorm(getal) in vraag or n in sommen
+        # ("12 leden" in de tekst van een stuk). Een getal van vier cijfers of meer dat in de bron staat, is een nummer
+        # met een werkwoord erachter, geen eigen telling ("dossier 20588 valt", ronde 5, X5).
+        return (n in tellingen or (n >= 1000 and _vorm(getal) in kent) or _vorm(getal) in vraag or n in sommen
                 or re.search(rf"(?<![\d.]){n}\s+{re.escape(woord)}", tegen_klein) is not None)
 
     for m in _TELLING.finditer(schoon):

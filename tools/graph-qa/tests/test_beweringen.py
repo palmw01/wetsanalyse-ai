@@ -252,3 +252,11 @@ def test_een_citeervorm_van_een_connector_heeft_een_eigen_toets():
 def test_een_dossier_in_de_notatie_met_een_spatie_is_een_getal():
     assert beweringen("Zie 20 588, nr. 3.", "Kamerstukken II 1987/88, 20588") == []
     assert beweringen("Zie 20 588, nr. 3.", "") == ["20588"]
+
+
+def test_een_nummer_uit_de_bron_met_een_werkwoord_erachter_is_geen_telling():
+    """Ronde 5, X5: "Dossier 20588 valt daarvoor" telde als telling ("20588 valt")."""
+    from agent.beweringen import tellingen_uit
+
+    bron = json.dumps({"resultaten": [{"bron": "Kamerstukken II 20588"}]})
+    assert beweringen("Dossier 20588 valt daarbuiten.", bron, tellingen=tellingen_uit([bron])) == []
