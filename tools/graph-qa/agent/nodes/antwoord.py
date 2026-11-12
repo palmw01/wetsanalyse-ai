@@ -25,7 +25,7 @@ from ..berichten import CORRECTIE, _parse_final, _schoon_messages, _trim_message
 from ..bronregister import bij, controletrace
 from ..focus import na_antwoord
 from ..grounding import alleen_gelezen_extern, check_grounding, curate_sources, herstel_citaten, live_niet_letterlijk
-from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk
+from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk, zonder_aanloop
 from ..overzicht import bronrijen as overzicht_bronrijen
 from ..sjablonen import EXTERN, SJABLONEN, Onvulbaar, sjabloon_schemas, sjabloon_uit_tekst
 from ..sjablonen import vul as sjabloon_vul
@@ -272,16 +272,21 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         # Een eigen kanttekening als blokcitaat ("> Let op: …") lijkt een citaat uit de bron (ronde 6, I28): de vorm valt weg,
         # de tekst blijft. Ook in de historie, zodat een vervolgbeurt hem niet als citaat leest.
         antwoord, ontcitaat = kanttekening_als_tekst(antwoord, controletrace(state))
+        # Procestaal boven een scheidingslijn ("Nu heb ik … Ik kan het antwoord nu opbouwen. ---") is geen antwoord
+        # (nameting #1274, K07): ze gaat naar het denkproces, niet naar de jurist en niet de historie in.
+        antwoord, aanloop = zonder_aanloop(antwoord)
+        if aanloop:
+            writer({"type": "reason", "content": aanloop + "\n\n"})
         if ontcitaat:
             logger.info("blokcitaat zonder bron als tekst", extra={"categorie": "functioneel",
                                                                    "run_id": state.get("run_id", ""), "aantal": ontcitaat})
         if hersteld:
             _stap(writer, "Controle", f"{len(hersteld)} citaat letterlijk gemaakt naar de bron"
                   if len(hersteld) == 1 else f"{len(hersteld)} citaten letterlijk gemaakt naar de bron")
-        if hersteld or ontcitaat:
+        if hersteld or ontcitaat or aanloop:
             # Ook in de historie: de volgende beurt bouwt voort op het herstelde antwoord.
-            assistant_content = [{**blok, "text": kanttekening_als_tekst(herstel_citaten(blok["text"], controletrace(state))[0],
-                                                                 controletrace(state))[0]}
+            assistant_content = [{**blok, "text": zonder_aanloop(kanttekening_als_tekst(
+                                     herstel_citaten(blok["text"], controletrace(state))[0], controletrace(state))[0])[0]}
                                  if blok.get("type") == "text" else blok for blok in assistant_content]
             upd["messages"] = [{"role": "assistant", "content": assistant_content}]
         upd["answer"] = antwoord

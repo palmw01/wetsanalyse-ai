@@ -593,12 +593,12 @@ IW = ("BWBR0004770", {"Invorderingswet 1990", "Iw 1990"})
 
 @pytest.mark.parametrize("vraag,connector,args,kanttekening", [
     # Kamerstukken koppelt geen stuk aan een regeling: de naam in de titel, en dat zegt de kanttekening (K17).
-    ("Welke Kamerstukken horen bij de Invorderingswet 1990?", "kamerstukken", {"woorden": "Invorderingswet 1990"}, True),
+    ("Welke Kamerstukken horen bij de Invorderingswet 1990?", "kamerstukken", {"dossiertitel": "Invorderingswet 1990"}, True),
     # Rechtspraak en Staatsblad en Staatscourant koppelen wel (`wetsverwijzing`): het bwb-id, zonder kanttekening.
     ("Welke uitspraken horen bij de Invorderingswet 1990?", "rechtspraak", {"bwb_id": "BWBR0004770"}, False),
     ("Welke publicaties in het Staatsblad horen bij de Invorderingswet 1990?", "bekendmakingen",
      {"bwb_id": "BWBR0004770", "publicatie": "Staatsblad"}, False),
-    ("Hoeveel Kamerstukken horen bij de Invorderingswet 1990?", "kamerstukken", {"woorden": "Invorderingswet 1990"}, True),
+    ("Hoeveel Kamerstukken horen bij de Invorderingswet 1990?", "kamerstukken", {"dossiertitel": "Invorderingswet 1990"}, True),
 ])
 def test_stukken_bij_een_regeling_leest_de_code_per_connector(vraag, connector, args, kanttekening):
     lijst = bron_lijst.lees(vraag, frozenset({connector}), regelingen=lambda t: [IW] if "Invorderingswet 1990" in t else [])
@@ -683,3 +683,29 @@ def test_een_telvraag_met_een_kaal_dossiernummer_is_een_telling(vraag, connector
 def test_een_kaal_nummer_is_alleen_een_dossier_waar_dat_kan(vraag, connector):
     lijst = bron_lijst.lees(vraag, frozenset({connector}), regelingen=lambda t: [])
     assert lijst is None or "dossier" not in lijst.args
+
+
+@pytest.mark.parametrize("vraag,args,tellen", [
+    ("Geef de amendementen bij het Belastingplan 2025", {"soort": "amendement", "dossiertitel": "Belastingplan 2025"}, False),
+    ("Hoeveel amendementen zijn er bij het Belastingplan 2025?",
+     {"soort": "amendement", "dossiertitel": "Belastingplan 2025"}, True),
+    ("Welke Kamerstukken horen bij het Belastingplan 2025?", {"dossiertitel": "Belastingplan 2025"}, False),
+    ("Welke moties zijn er bij de Wet op de omzetbelasting 1968?",
+     {"soort": "motie", "dossiertitel": "Wet op de omzetbelasting 1968"}, False),
+])
+def test_een_wetsvoorstel_bij_naam_is_een_dossiertitel(vraag, args, tellen):
+    """Kamerstukken ronde 6, K10: "de amendementen bij het Belastingplan 2025" ging naar het model, dat ze doorbladerde en
+    zelf telde (90 of 92; dossier 36602 heeft er 88). Een naam na "bij het/de" is bij een connector met een dossiertitel als
+    filter de titel van het dossier, als woordgroep; de kanttekening zegt dat een dossier met een andere titel ontbreekt."""
+    lijst = bron_lijst.lees(vraag, frozenset({"kamerstukken"}), regelingen=lambda t: [])
+    assert lijst is not None and lijst.args == args and lijst.tellen is tellen, vraag
+    assert "dossier met een andere titel" in lijst.kanttekening
+
+
+@pytest.mark.parametrize("vraag,connector", [
+    ("Geef de uitspraken bij de Hoge Raad", "rechtspraak"),               # geen dossiertitel: geen naam-patroon
+    ("Welke moties zijn er bij de begroting?", "kamerstukken"),           # geen naam met hoofdletter
+])
+def test_bij_het_zonder_naam_of_zonder_dossiertitel_is_geen_dossiertitel(vraag, connector):
+    lijst = bron_lijst.lees(vraag, frozenset({connector}), regelingen=lambda t: [])
+    assert lijst is None or "dossiertitel" not in lijst.args

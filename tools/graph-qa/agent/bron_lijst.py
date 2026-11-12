@@ -194,6 +194,9 @@ def lees(vraag: str, aan: frozenset[str],
             return None
         args.update(rg[0])
         rest, kanttekening = rg[1], rg[2]
+    elif wv is None and (bn := _bij_naam(c, rest)) is not None:
+        args.update(bn[0])
+        rest, kanttekening = bn[1], bn[2]
     for orgaan in c.organen:
         # Het eerste dat past: een gerecht bij naam ("Rechtbank Gelderland") staat vóór de soort gerecht erin.
         if re.search(rf"\b{re.escape(orgaan)}\b", rest, re.IGNORECASE) and (arg := _arg(c, "orgaan")):
@@ -315,12 +318,34 @@ def _bij_regeling(c: ConnectorBeschrijving, tekst: str,
     rest = (tekst[:a] + " " + tekst[b:]).replace(h.group(0), " ")
     if (veld := c.veld("wetsverwijzing")) is not None and veld.filters:
         return {veld.filters[0]: bwb_id}, rest, ""
+    return _op_naam(c, naam, rest)
+
+
+def _op_naam(c: ConnectorBeschrijving, naam: str, rest: str):
+    """Stukken bij een regeling of wetsvoorstel op naam, bij een connector die ze er niet aan koppelt: de dossiers die zo
+    heten (`MetadataVeld("reekstitel")`, als woordgroep), anders de titel van het stuk. De kanttekening zegt wat dat
+    betekent; de zoekvraag zegt al waar gezocht is (Kamerstukken ronde 5, K17: de zin stond er twee keer)."""
+    if (arg := _arg(c, "reekstitel")):
+        return {arg: naam}, rest, (f"{c.label} koppelt een stuk niet aan een regeling of wetsvoorstel, dus een dossier "
+                                   "met een andere titel staat er niet bij.")
     if not (arg := _arg(c, "titel")):
         return ()
-    # De zoekvraag zegt al dat het de titel is ("Gezocht op „Invorderingswet 1990” in de titel"); de kanttekening zegt
-    # alleen wat dat betekent (Kamerstukken ronde 5, K17: de zin stond er twee keer).
     return {arg: naam}, rest, (f"{c.label} koppelt een stuk niet aan een regeling, dus een stuk over de regeling met een "
                                "andere titel staat er niet bij.")
+
+
+#: "de amendementen bij het Belastingplan 2025": een naam met een hoofdletter aan het eind van de vraag, na "bij het/de".
+#: Een regeling uit de graaf gaat via `_bij_regeling`; dit is de naam van een wetsvoorstel of dossier (Kamerstukken ronde 6,
+#: K10: het model telde de amendementen zelf, 90 of 92 tegen 88).
+_BIJ_NAAM_RE = re.compile(r"(?:\b(?:horen|hoort|behoren|behoort)\s+)?\bbij\s+(?:het|de)\s+(?P<naam>[A-ZÀ-Ý][\wÀ-ÿ-]*(?:\s+[\wÀ-ÿ-]+){0,5})\s*[?.!]?\s*$")
+
+
+def _bij_naam(c: ConnectorBeschrijving, tekst: str):
+    """(argumenten, rest, kanttekening) voor "bij het <Naam>", alleen bij een connector met een dossiertitel als filter;
+    None als het patroon niet geldt."""
+    if not _arg(c, "reekstitel") or not (m := _BIJ_NAAM_RE.search(tekst)):
+        return None
+    return _op_naam(c, m.group("naam"), tekst[:m.start()] + " " + tekst[m.end():])
 
 
 def _plekken(namen: set[str], tekst: str) -> list[tuple[int, int]]:

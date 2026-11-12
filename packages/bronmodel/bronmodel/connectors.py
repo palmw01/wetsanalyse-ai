@@ -307,7 +307,9 @@ KAMERSTUKKEN = ConnectorBeschrijving(
         MetadataVeld("gezamenlijk", "gezamenlijk behandeld", "w.dossiernummer",
                      "de dossiers die samen zijn behandeld (een belastingplan met zijn wetsvoorstellen), als het stuk "
                      "bij meer dan één hoort; het stuk heet naar het eerste"),
-        MetadataVeld("reekstitel", "dossiertitel", "w.dossiertitel", "de titel van het hoofddossier"),
+        MetadataVeld("reekstitel", "dossiertitel", "w.dossiertitel", "de titel van het hoofddossier; 'dossiertitel' zoekt "
+                     "de dossiers waarvan de titel deze woorden als woordgroep draagt ('Belastingplan 2025')",
+                     filters=("dossiertitel",)),
         MetadataVeld("nummer", "nummer", "w.ondernummer",
                      "het nummer binnen het dossier; letters zijn stukken van de Eerste Kamer", filters=("nummer",),
                      sorteerbaar=True),
