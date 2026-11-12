@@ -222,16 +222,19 @@ Wat daarbij vastligt:
 - **De centrale agent ziet alleen wat naar boven komt**: het rapport en de artefacten. Niet de toolresultaten van de
   subagent. Zo blijft zijn context klein.
 - **De contextweergave** (PR #1331, `plan-contextweergave.md`, de secties *Context per agent* en *Datacontract*) heeft
-  één bron: het veld `context`. Het staat live op het `meting`-event (`beurtmeting.py`) en bewaard op het
-  assistentbericht (`Bericht.context`), en wordt per `model_aanroep` opgebouwd uit `verzoekopbouw.opbouw`. Voor de
-  subagents betekent dat:
-  - een subagent is een run met `ouder_run_id` in een kindgesprek, met een eigen `context` op zijn eigen `meting`-event
-    en bericht; de boom komt uit `ouder_run_id`, en er komt geen tweede vorm;
-  - de categorie `opdracht` vervangt bij een subagent de historie;
-  - `profiel_id` en `profiel_versie` staan op `model_aanroep` en op het `meting`-event;
-  - in het raster van de centrale agent telt het rapport van een subagent als toolresultaat van de lopende beurt.
+  één bron: het veld `contextopbouw` (herzien 12 nov 2026; eerder `context`). Het staat live op het `meting`-event
+  (`beurtmeting.py`) en bewaard op het assistentbericht (`Bericht.contextopbouw`), en wordt per `model_aanroep`
+  opgebouwd uit `verzoekopbouw.opbouw`. Voor de subagents betekent dat:
+  - een subagent is een run met `ouder_run_id` in een kindgesprek, met een eigen `contextopbouw` op zijn eigen
+    `meting`-event en bericht; de boom komt uit `ouder_run_id` en wordt bij het lezen door de api samengesteld uit de
+    kindgesprekken; er komt geen tweede vorm;
+  - een subagent heeft de categorie `opdracht`; na een vraag naar boven (A4) heeft hij daarnaast zijn eigen historie;
+  - `profiel_id` en `profiel_versie` staan op `model_aanroep` en in `contextopbouw`; tot de agentvorm er is, zijn ze
+    leeg;
+  - in het raster van de centrale agent tellen het rapport en de vragen van een subagent als `toolresultaten`;
+  - het verbruik van de boom (de eigen run plus alle kinderen) staat los van de context per agent.
 
-  Geen nieuw veld krijgt "token" in de naam: de logredactie (`GEHEIME_VELDEN`) filtert die weg.
+  Geen nieuw veld heet `token`: de logredactie (`GEHEIME_VELDEN`) laat een veld met die naam weg.
 - **Cache** (ADR-015): een profiel heeft één voorvoegsel (tools, systeemtekst, vooraf geladen skills), dat een uur
   warm blijft en voor alle juristen gelijk is. Subagents met hetzelfde profiel delen het. Start de centrale agent er
   meer tegelijk, dan wacht de rest tot de eerste zijn eerste antwoord begint: zo lezen ze het voorvoegsel in plaats
