@@ -207,6 +207,41 @@ class Stuk(BaseModel):
     zonder_tekst: str = ""
 
 
+class TelPost(BaseModel):
+    """Eén post van een verdeling: een waarde ("Hoge Raad") en hoeveel stukken de bron daar telt."""
+
+    waarde: str
+    aantal: int
+
+
+class Telling(BaseModel):
+    """Het antwoord op een telvraag ("hoeveel …", "hoe verdelen … zich over de instanties"): het aantal dat de bron zelf
+    telt, nooit een schatting van het model of een telling van één pagina. `dekking` zegt of de bron alles telt
+    ("precies") of een ondergrens geeft ("ten minste", LiDO); `per` is de verdeling die de bron geeft, in haar volgorde.
+    Vraagt de jurist een verdeling die de bron niet geeft, dan staat dat in `zonder_verdeling` en is `per` leeg.
+    Kamerstukken ronde 4 (K26) en Rechtspraak ronde 3 (R22): het model duidde of schatte een telling."""
+
+    aantal: int
+    dekking: Literal["precies", "ten minste"] = "precies"
+    #: De bron die telt, in woorden ("Kamerstukken").
+    bron: str = ""
+    per_wat: str = ""
+    per: list[TelPost] = []
+    zonder_verdeling: str = ""
+
+
+def telling_tekst(t: Telling) -> str:
+    """De vaste zin van een telling: "Kamerstukken telt 72 stukken bij deze zoekvraag." De frontend zegt hetzelfde
+    (`tellingTekst` in `lib/antwoord.ts`)."""
+    n = f"{'ten minste ' if t.dekking == 'ten minste' else ''}{getal(t.aantal)} {'stuk' if t.aantal == 1 else 'stukken'}"
+    zin = f"{t.bron + ' telt' if t.bron else 'De bron telt'} {n} bij deze zoekvraag."
+    if t.per:
+        zin += f"\n\nPer {t.per_wat}:\n" + "\n".join(f"- {p.waarde}: {getal(p.aantal)}" for p in t.per)
+    elif t.zonder_verdeling:
+        zin += f" {t.zonder_verdeling}"
+    return zin
+
+
 class Stukken(BaseModel):
     """Een lijst stukken uit een bron naast de wet (ADR-013), zoals de zoektool ze teruggaf: "de tien nieuwste
     Kamerstukken", "de stukken van dossier 33755". Het model wees de stukken aan; alles hier komt uit de zoekrijen, ook
@@ -220,6 +255,8 @@ class Stukken(BaseModel):
     items: list[Stuk]
     zoekvraag: str = ""
     totaal: int | None = None
+    #: Bij een telvraag: het aantal uit de bron, vóór de lijst (`Telling`).
+    telling: Telling | None = None
 
 
 class Leemte(BaseModel):
@@ -300,7 +337,8 @@ def _blok_tekst(b: BaseModel) -> str:
         aantal = ("" if not b.totaal else f"{len(b.items)} van de {getal(b.totaal)} stukken." if b.totaal > len(b.items)
                   else f"{getal(b.totaal)} {'stuk' if b.totaal == 1 else 'stukken'}.")
         voet = " ".join(v for v in (b.zoekvraag, aantal) if v)
-        return "\n".join(regel(x) for x in b.items) + (f"\n\n{voet}" if voet else "")
+        lijst = "\n".join(regel(x) for x in b.items) + (f"\n\n{voet}" if voet else "")
+        return f"{telling_tekst(b.telling)}\n\n{lijst}" if b.telling else lijst
     if isinstance(b, Leemte):
         return b.tekst
     return ""

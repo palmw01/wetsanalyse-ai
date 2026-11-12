@@ -303,7 +303,9 @@ def _bron_lijst(writer, lijst) -> dict[str, Any]:
     _stap(writer, "Lex", f"maakt een lijst uit de {CONNECTORS[lijst.connector].label}", route="bron_lijst")
     return {"specialist": "algemeen", "worker_plan": ["algemeen"], "worker_idx": 0, "afwijzen": False,
             "annotaties_lezen": False, "bron_lijst": {"connector": lijst.connector, "tool": lijst.tool, "args": lijst.args,
-                                                       "gevraagd": lijst.gevraagd},
+                                                       "gevraagd": lijst.gevraagd, "tellen": lijst.tellen,
+                                                       "verdeling": lijst.verdeling,
+                                                       "kanttekening": lijst.kanttekening},
             "plan": "Een lijst stukken uit een bron naast de wet; de zoekvraag staat in de historie."}
 
 

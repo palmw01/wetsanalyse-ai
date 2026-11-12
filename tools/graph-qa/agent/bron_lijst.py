@@ -57,6 +57,19 @@ _MAANDEN = ("januari", "februari", "maart", "april", "mei", "juni", "juli", "aug
 #: bleef "maart" over en ging de vraag naar het model (meting Rechtspraak R04, 11 nov 2026).
 _MAAND_RE = re.compile(rf"\b(?:(?P<sinds>sinds|vanaf|na)|(?P<in>in|uit|van)|(?P<tot>tot|voor))?\s*"
                        rf"(?P<maand>{'|'.join(_MAANDEN)})\s+(?P<jaar>{_JAAR})\b", re.IGNORECASE)
+#: Een telvraag: "hoeveel …", "het aantal …", "hoe vaak …". Het antwoord is het totaal van de bron, niet een schatting
+#: (Kamerstukken ronde 4, K26; Rechtspraak ronde 3, R22).
+_TEL_RE = re.compile(r"^\s*(?:hoeveel|hoe\s+vaak|(?:wat\s+is\s+)?(?:het\s+)?aantal)\b", re.IGNORECASE)
+#: Een verdeling: "hoe verdelen de uitspraken zich over de instanties", "hoeveel uitspraken per instantie". Het woord na
+#: "over de" of "per" wijst een telling van de bron aan (`per_<woord>` in het resultaat, `Telling.per`).
+_VERDELING_RE = re.compile(r"\bhoe\s+(?:verdel\w*|verdeeld|is\s+de\s+verdeling\s+van)\b|\bverdeling\b", re.IGNORECASE)
+_PER_RE = re.compile(r"\b(?:zich\s+)?(?:over\s+(?:de|het)|per)\s+(?P<w>[A-Za-zÀ-ÿ]+)\s*[?.!]?\s*$|\bper\s+(?P<p>[A-Za-zÀ-ÿ]+)\b",
+                     re.IGNORECASE)
+#: Woorden in de titel: "hebben de Douanewet in de titel", "met 'invorderingsrente' in hun titel".
+_TITEL_RE = re.compile(r"\b(?:met|hebben|heeft|dragen|draagt|staat|staan)\s+(?:de\s+|het\s+|een\s+)?(?P<w>[^?.!,;]+?)\s+"
+                       r"in\s+(?:de|hun|zijn|haar|het)\s+titel\b", re.IGNORECASE)
+#: Stukken die bij een regeling horen, zonder artikel: "Welke Kamerstukken horen bij de Invorderingswet 1990?"
+_HOREN_BIJ_RE = re.compile(r"\b(?:horen|hoort|behoren|behoort)\s+bij\b", re.IGNORECASE)
 _VERGADERJAAR_RE = re.compile(r"\bvergaderjaar\s+(?P<a>\d{4})\s*[-/]\s*(?P<b>\d{2,4})\b", re.IGNORECASE)
 _OVER_RE = re.compile(r"\bover\s+(?:de\s+|het\s+)?(?P<o>[^?.!,;]+)", re.IGNORECASE)
 #: Woorden die in een lijstvraag staan zonder iets te zoeken.
@@ -84,6 +97,13 @@ class Lijstvraag:
     #: Het aantal dat de vraag noemde als dat boven wat een pagina draagt lag ("de 100 nieuwste"): het antwoord zegt dan
     #: dat het er minder toont, in plaats van stil te kappen (externe review, 10 nov 2026).
     gevraagd: int = 0
+    #: Een telvraag: het antwoord begint met het aantal uit de bron (`Telling`).
+    tellen: bool = False
+    #: Bij een verdeling het woord waarover ("instanties"); de node zoekt de telling van de bron erbij (`per_instantie`).
+    verdeling: str = ""
+    #: Een zin over de grens van de zoekvraag die de code koos, achter de zoekvraag van het blok ("Kamerstukken koppelt
+    #: een stuk niet aan een regeling; …").
+    kanttekening: str = ""
 
 
 def _getal(woord: str) -> int:
@@ -111,6 +131,24 @@ def lees(vraag: str, aan: frozenset[str],
     args: dict[str, Any] = {}
     gevraagd = 0
     rest = tekst
+    tellen, verdeling = bool(_TEL_RE.match(tekst)), ""
+    per = _PER_RE.search(tekst)
+    if _VERDELING_RE.search(tekst) or (tellen and per is not None and per.group("p")):
+        # "Hoe verdelen … zich over de instanties?", "hoeveel uitspraken per instantie": een telling per instantie. Zonder
+        # woord waarover geen route.
+        if per is None:
+            return None
+        tellen, verdeling = True, (per.group("w") or per.group("p")).lower()
+        rest = _VERDELING_RE.sub(" ", rest.replace(per.group(0), " "))
+    if tellen:
+        rest = _TEL_RE.sub(" ", rest)
+    if (t := _TITEL_RE.search(rest)) is not None:
+        # Woorden in de titel zijn het titelfilter van de connector (`MetadataVeld("titel", filters=…)`).
+        woorden = [w for w in re.findall(r"[0-9A-Za-zÀ-ÿ'-]+", t.group("w")) if w.lower() not in _VULWOORDEN]
+        if not woorden or len(woorden) > MAX_ONDERWERP or not (arg := _arg(c, "titel")):
+            return None
+        args[arg] = " ".join(woorden)
+        rest = rest.replace(t.group(0), " ")
     if (m := _VOLGORDE_RE.search(zonder_organen)) is not None:
         volgorde = "nieuwste" if m.group("nieuw") else "oudste"
         if volgorde not in c.volgordes:
@@ -144,6 +182,12 @@ def lees(vraag: str, aan: frozenset[str],
             return None
         args.update(wv[0])
         rest = wv[1]
+    kanttekening = ""
+    if wv is None and (rg := _bij_regeling(c, rest, regelingen)) is not None:
+        if not rg:
+            return None
+        args.update(rg[0])
+        rest, kanttekening = rg[1], rg[2]
     for orgaan in c.organen:
         # Het eerste dat past: een gerecht bij naam ("Rechtbank Gelderland") staat vóór de soort gerecht erin.
         if re.search(rf"\b{re.escape(orgaan)}\b", rest, re.IGNORECASE) and (arg := _arg(c, "orgaan")):
@@ -212,7 +256,7 @@ def lees(vraag: str, aan: frozenset[str],
             if w.lower() not in _VULWOORDEN and w.lower() not in _WERKWOORDEN]
     if over:
         return None
-    return Lijstvraag(c.naam, zoektool[0], args, gevraagd if gevraagd > MAX_AANTAL else 0)
+    return Lijstvraag(c.naam, zoektool[0], args, gevraagd if gevraagd > MAX_AANTAL else 0, tellen, verdeling, kanttekening)
 
 
 def _wetsverwijzing(c: ConnectorBeschrijving, tekst: str,
@@ -235,6 +279,34 @@ def _wetsverwijzing(c: ConnectorBeschrijving, tekst: str,
     for naam in sorted(namen, key=len, reverse=True):
         rest = re.sub(rf"(?<![\w.]){re.escape(naam)}(?![\w])", " ", rest, flags=re.IGNORECASE)
     return {veld.filters[0]: bwb_id, veld.filters[1]: aw.artikelen[0]}, rest
+
+
+def _bij_regeling(c: ConnectorBeschrijving, tekst: str,
+                  regelingen: Callable[[str], list[tuple[str, set[str]]]] | None):
+    """Stukken die bij een regeling horen, zonder artikel ("Welke Kamerstukken horen bij de Invorderingswet 1990?"):
+    (argumenten, de rest van de tekst, een kanttekening). Een connector die stukken aan een regeling koppelt (het veld
+    `wetsverwijzing`) zoekt op het bwb-id; een andere zoekt op de naam in de titel (`MetadataVeld("titel")`), en dat zegt
+    de kanttekening. None als de vraag dit niet vraagt; een lege tuple als de code de regeling niet eenduidig plaatst.
+
+    Ronde 4 Kamerstukken, K17: het model zocht zelf, noemde een dossier 20588 dat KOOP niet kent en zette een
+    intrekking bij het verkeerde dossier. Deze vraag is een zoekvraag die de code helemaal leest."""
+    if not (h := _HOREN_BIJ_RE.search(tekst)) or lees_aanwijzing(tekst).artikelen:
+        return None
+    if regelingen is None:
+        return ()
+    genoemd = _zonder_ingesloten(regelingen(tekst), tekst)
+    if len(genoemd) != 1 or not (plekken := _plekken(genoemd[0][1], tekst)):
+        return ()
+    bwb_id, _ = genoemd[0]
+    a, b = max(plekken, key=lambda p: p[1] - p[0])
+    naam = tekst[a:b]
+    rest = (tekst[:a] + " " + tekst[b:]).replace(h.group(0), " ")
+    if (veld := c.veld("wetsverwijzing")) is not None and veld.filters:
+        return {veld.filters[0]: bwb_id}, rest, ""
+    if not (arg := _arg(c, "titel")):
+        return ()
+    return {arg: naam}, rest, (f"{c.label} koppelt een stuk niet aan een regeling: ik zocht op „{naam}” in de titel, dus "
+                               "een stuk over de regeling met een andere titel staat er niet bij.")
 
 
 def _plekken(namen: set[str], tekst: str) -> list[tuple[int, int]]:

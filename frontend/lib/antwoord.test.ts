@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { BLOK_SOORTEN, externGroepen, NIET_GETOETST, alleenNietGetoetst, bepalingenVan, groepeerWettekst, parseAntwoord, gezamenlijkTekst } from "./antwoord";
+import { BLOK_SOORTEN, externGroepen, NIET_GETOETST, alleenNietGetoetst, bepalingenVan, groepeerWettekst, parseAntwoord, gezamenlijkTekst, tellingTekst } from "./antwoord";
 
 const v = { iri: "urn:bwb:BWBR1:artikel:2", label: "Artikel 2", jci: "", regeling: "Wet" };
 
@@ -98,6 +98,21 @@ describe("parseAntwoord", () => {
     const bron = readFileSync(join(__dirname, "../../packages/bronmodel/bronmodel/antwoord.py"), "utf8");
     const set = /NIET_GETOETST = frozenset\(\{([^}]*)\}\)/.exec(bron)![1];
     expect([...set.matchAll(/"(\w+)"/g)].map((m) => m[1]).sort()).toEqual([...NIET_GETOETST].sort());
+  });
+});
+
+describe("tellingTekst", () => {
+  it("zegt het aantal van de bron, zoals bronmodel.antwoord.telling_tekst", () => {
+    expect(tellingTekst({ aantal: 72, bron: "Kamerstukken" })).toBe("Kamerstukken telt 72 stukken bij deze zoekvraag.");
+    expect(tellingTekst({ aantal: 1312, dekking: "ten minste", bron: "Rechtspraak" }))
+      .toBe("Rechtspraak telt ten minste 1.312 stukken bij deze zoekvraag.");
+    expect(tellingTekst({ aantal: 1 })).toBe("De bron telt 1 stuk bij deze zoekvraag.");
+  });
+
+  it("neemt een stukkenblok met een telling aan, en weigert een telling zonder aantal", () => {
+    const blok = { soort: "stukken", door: "bron", brontype: "kamerstuk", kop: "Kamerstukken", items: [{ id: "kst-1", label: "x" }] };
+    expect(parseAntwoord({ sjabloon: "extern", versie: 1, doelen: [], blokken: [{ ...blok, telling: { aantal: 3 } }] })).toBeDefined();
+    expect(parseAntwoord({ sjabloon: "extern", versie: 1, doelen: [], blokken: [{ ...blok, telling: { per: [] } }] })).toBeUndefined();
   });
 });
 

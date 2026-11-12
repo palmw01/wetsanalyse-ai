@@ -342,3 +342,198 @@ def test_een_begripsvraag_is_geen_lijst(vraag):
                                    "Wat zijn de moties van de Eerste Kamer?", "Welke moties zijn er?"])
 def test_een_lijst_met_wat_blijft_een_lijst(vraag):
     assert bron_lijst.lees(vraag, ALLE3, lambda t: []) is not None
+
+
+# --- Telvragen (Kamerstukken ronde 5): het aantal uit de bron, één route voor elke connector ----------------------
+
+ALLE_CONNECTORS = frozenset(bm.CONNECTORS)
+
+
+@pytest.mark.parametrize("vraag,connector,args,verdeling", [
+    ("Hoeveel Kamerstukken hebben de Douanewet in de titel?", "kamerstukken", {"woorden": "Douanewet"}, ""),
+    ("Hoeveel stukken zitten er in dossier 33755?", "kamerstukken", {"dossier": "33755"}, ""),
+    ("Hoeveel kamerstukken met invorderingsrente in de titel zijn er sinds 2020?", "kamerstukken",
+     {"woorden": "invorderingsrente", "vanaf": "2020"}, ""),
+    ("Hoeveel wetten van het Ministerie van Financiën staan er in het Staatsblad van 2024?", "bekendmakingen",
+     {"soort": "wet", "orgaan": "Ministerie van Financiën", "publicatie": "Staatsblad", "vanaf": "2024", "tot": "2024"}, ""),
+    ("Hoeveel publicaties hebben de Invorderingswet 1990 in de titel?", "bekendmakingen",
+     {"woorden": "Invorderingswet 1990"}, ""),
+    ("Hoeveel uitspraken van de Hoge Raad in het belastingrecht zijn er sinds 2025?", "rechtspraak",
+     {"instantie": "Hoge Raad", "rechtsgebied": "belastingrecht", "vanaf": "2025"}, ""),
+    ("Hoe verdelen de uitspraken van de Hoge Raad in het belastingrecht zich over de instanties?", "rechtspraak",
+     {"instantie": "Hoge Raad", "rechtsgebied": "belastingrecht"}, "instanties"),
+])
+def test_een_telvraag_is_een_lijstvraag_met_tellen(vraag, connector, args, verdeling):
+    lijst = bron_lijst.lees(vraag, ALLE_CONNECTORS)
+    assert lijst is not None, vraag
+    assert (lijst.connector, lijst.args, lijst.tellen, lijst.verdeling) == (connector, args, True, verdeling)
+
+
+@pytest.mark.parametrize("vraag", [
+    "Geef de 10 nieuwste kamerstukken",
+    "Kamerstukken van dossier 32140",
+    "de laatste vijf moties van de Eerste Kamer",
+])
+def test_een_gewone_lijstvraag_telt_niet(vraag):
+    lijst = bron_lijst.lees(vraag, ALLE_CONNECTORS)
+    assert lijst is not None and not lijst.tellen and not lijst.verdeling
+
+
+@pytest.mark.parametrize("vraag", [
+    # Een verdeling zonder woord waarover, en een titel die de code niet plaatst: dan leest het model de vraag.
+    "Hoe is de verdeling van de kamerstukken?",
+    "Hoeveel kamerstukken hebben een heel lange titel met veel woorden erin in de titel?",
+])
+def test_een_telvraag_die_de_code_niet_helemaal_leest_gaat_naar_het_model(vraag):
+    assert bron_lijst.lees(vraag, ALLE_CONNECTORS) is None
+
+
+def test_de_telling_komt_uit_het_totaal_van_de_bron_niet_uit_de_pagina():
+    from agent.nodes.bron_lijst import telling
+
+    rijen = [{"id": f"kst-1-{i}"} for i in range(10)]
+    # Kamerstukken, Staatsblad en Staatscourant: KOOP telt alles.
+    t = telling("Kamerstukken", {"status": "ok", "volledig": False, "totaal": 72, "resultaten": rijen})
+    assert (t.aantal, t.dekking, t.per) == (72, "precies", [])
+    # Rechtspraak: LiDO geeft een ondergrens, en dat zegt de telling.
+    t = telling("Rechtspraak", {"status": "ok", "volledig": False, "totaal": 312, "dekking": "ten minste",
+                                "resultaten": rijen, "per_instantie": {"Hoge Raad": 40, "Gerechtshof": 120}},
+                "instanties")
+    assert (t.aantal, t.dekking, t.per_wat) == (312, "ten minste", "instantie")
+    assert [(p.waarde, p.aantal) for p in t.per] == [("Hoge Raad", 40), ("Gerechtshof", 120)]
+    # Een verdeling die de bron niet geeft: gezegd, niet uit de tien rijen van de pagina geteld.
+    t = telling("Kamerstukken", {"status": "ok", "totaal": 72, "resultaten": rijen}, "jaren")
+    assert t.per == [] and "Een verdeling naar jaren geeft Kamerstukken niet" in t.zonder_verdeling
+    # Zonder totaal: een volledig resultaat telt zijn rijen, anders is het ten minste dat.
+    assert telling("X", {"volledig": True, "resultaten": rijen}).dekking == "precies"
+    t = telling("X", {"volledig": False, "resultaten": rijen})
+    assert (t.aantal, t.dekking) == (10, "ten minste")
+
+
+def test_de_tekst_van_een_telling_staat_voor_de_lijst():
+    from bronmodel.antwoord import Antwoord, Stuk, Stukken, TelPost, Telling, antwoord_tekst
+
+    blok = Stukken(brontype="uitspraak", kop="Gevonden Rechtspraak", items=[Stuk(id="ECLI:NL:HR:2022:50", label="HR")],
+                   totaal=1312, telling=Telling(aantal=1312, dekking="ten minste", bron="Rechtspraak", per_wat="instantie",
+                                                per=[TelPost(waarde="Hoge Raad", aantal=40)]))
+    tekst = antwoord_tekst(Antwoord(sjabloon="extern", blokken=[blok]))
+    assert tekst.startswith("**Gevonden Rechtspraak**\n\nRechtspraak telt ten minste 1.312 stukken bij deze zoekvraag.\n\n"
+                            "Per instantie:\n- Hoge Raad: 40\n\n- HR")
+
+
+def test_een_telvraag_bij_kamerstukken_antwoordt_zonder_model_met_het_totaal(monkeypatch):
+    from agent import tools as t
+    from test_kamerstuk_tools import _veel, NepBron
+
+    monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", NepBron(list(reversed(_veel(30)))))
+    llm = FakeLLM([])
+    events = _run(answer_stream("Hoeveel stukken zitten er in dossier 99001?", settings=AAN, llm=llm,
+                                graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
+    assert llm.calls == []
+    antwoord, = [e["antwoord"] for e in events if e["type"] == "antwoord"]
+    blok, = antwoord["blokken"]
+    assert blok["telling"]["aantal"] == 30 and blok["telling"]["dekking"] == "precies"
+    tekst = "".join(e.get("content", "") for e in events if e["type"] == "token")
+    assert "Kamerstukken telt 30 stukken bij deze zoekvraag." in tekst
+
+
+def test_een_verdeling_bij_rechtspraak_komt_uit_de_telling_van_lido(monkeypatch):
+    """Rechtspraak ronde 3, R22: het model duidde de verdeling ("past bij het civielrechtelijke karakter"). Nu komt ze uit
+    `per_instantie`, zonder model en dus zonder duiding."""
+    from agent import overzicht, tools as t
+    from tests.test_rechtspraak_tools import LINKS, NepBron, _tsv
+
+    namen = ("?regeling\t?citeertitel\t?soort\t?afkortingen\n"
+             "<urn:bwb:BWBR0004770>\t\"Invorderingswet 1990\"\t\"wet\"\t\"IW | Iw 1990\"\n")
+    artikel = _tsv(["node", "jci", "labelId", "label", "soort", "citeertitel"],
+                   [["urn:bwb:BWBR0004770:artikel:36", "jci1.3:c:BWBR0004770&artikel=36", "x", "Artikel 36",
+                     "urn:bwb-ns:Artikel", "Invorderingswet 1990"]])
+    graaf = FakeGraph(results=lambda q: artikel if "?labelId" in q else namen)
+    overzicht._REGELINGEN_CACHE.clear()
+    monkeypatch.setattr(t.CONNECTORMODULES["rechtspraak"], "_bron", NepBron(LINKS))
+    llm = FakeLLM([])
+    try:
+        events = _run(answer_stream("Hoe verdelen de uitspraken over artikel 36 van de Invorderingswet 1990 zich over de "
+                                    "instanties?", settings=make_settings(connector_rechtspraak=True), llm=llm,
+                                    graph=graaf, bronnen=["rechtspraak"]))
+    finally:
+        overzicht._REGELINGEN_CACHE.clear()
+    assert llm.calls == [], "geen supervisor en geen specialist"
+    antwoord, = [e["antwoord"] for e in events if e["type"] == "antwoord"]
+    blok, = [b for b in antwoord["blokken"] if b["soort"] == "stukken"]
+    telling = blok["telling"]
+    assert telling["dekking"] == "ten minste" and telling["aantal"] == blok["totaal"]
+    assert telling["per_wat"] == "instantie" and {p["waarde"] for p in telling["per"]} >= {"Hoge Raad"}
+    assert sum(p["aantal"] for p in telling["per"]) == telling["aantal"]
+
+
+def _sets():
+    from pathlib import Path
+    data = Path(__file__).parent / "data"
+    for naam, connector in (("kamerstukken_vragenset_30.json", "kamerstukken"),
+                            ("rechtspraak_vragenset_30.json", "rechtspraak"),
+                            ("bekendmakingen_vragenset.json", "bekendmakingen")):
+        inhoud = json.loads((data / naam).read_text())
+        for v in inhoud["vragen"] if isinstance(inhoud, dict) else inhoud:
+            if v.get("soort", "").startswith(("telling", "verdeling")) and not v.get("gesprek"):
+                yield pytest.param(v, connector, id=v["id"])
+
+
+@pytest.mark.parametrize("v,connector", list(_sets()))
+def test_elke_telvraag_uit_de_vragensets_telt_in_de_lijstroute(v, connector):
+    """Het mechanisme over drie connectors: elke telvraag uit hun vragenset gaat de lijstroute in en telt, met de
+    argumenten die de set verwacht. Een regeling bij naam leest de code met de namen uit de graaf (hier vast)."""
+    regelingen = (lambda t: [("BWBR0004770", {"Invorderingswet 1990"})] if "Invorderingswet 1990" in t else [])
+    lijst = bron_lijst.lees(v["vraag"], frozenset({connector}), regelingen=regelingen)
+    assert lijst is not None and lijst.tellen, v["vraag"]
+    assert lijst.tool == v["tool"] and lijst.args == v["args"]
+    assert bool(lijst.verdeling) == v["soort"].startswith("verdeling")
+
+
+IW = ("BWBR0004770", {"Invorderingswet 1990", "Iw 1990"})
+
+
+@pytest.mark.parametrize("vraag,connector,args,kanttekening", [
+    # Kamerstukken koppelt geen stuk aan een regeling: de naam in de titel, en dat zegt de kanttekening (K17).
+    ("Welke Kamerstukken horen bij de Invorderingswet 1990?", "kamerstukken", {"woorden": "Invorderingswet 1990"}, True),
+    # Rechtspraak en Staatsblad en Staatscourant koppelen wel (`wetsverwijzing`): het bwb-id, zonder kanttekening.
+    ("Welke uitspraken horen bij de Invorderingswet 1990?", "rechtspraak", {"bwb_id": "BWBR0004770"}, False),
+    ("Welke publicaties in het Staatsblad horen bij de Invorderingswet 1990?", "bekendmakingen",
+     {"bwb_id": "BWBR0004770", "publicatie": "Staatsblad"}, False),
+    ("Hoeveel Kamerstukken horen bij de Invorderingswet 1990?", "kamerstukken", {"woorden": "Invorderingswet 1990"}, True),
+])
+def test_stukken_bij_een_regeling_leest_de_code_per_connector(vraag, connector, args, kanttekening):
+    lijst = bron_lijst.lees(vraag, frozenset({connector}), regelingen=lambda t: [IW] if "Invorderingswet 1990" in t else [])
+    assert lijst is not None and lijst.args == args
+    assert bool(lijst.kanttekening) is kanttekening
+    if kanttekening:
+        assert "„Invorderingswet 1990” in de titel" in lijst.kanttekening
+
+
+@pytest.mark.parametrize("vraag,regelingen", [
+    ("Welke Kamerstukken horen bij de Invorderingswet 1990?", None),  # zonder graaf: geen namen
+    ("Welke Kamerstukken horen bij de Invorderingswet 1990 en de AWR?", [IW, ("BWBR0002320", {"AWR"})]),
+    ("Welke Kamerstukken horen bij artikel 36 van de Invorderingswet 1990?", [IW]),  # een artikel: niet als geheel
+])
+def test_stukken_bij_een_regeling_die_de_code_niet_eenduidig_plaatst_gaan_naar_het_model(vraag, regelingen):
+    lees = None if regelingen is None else (lambda t: regelingen)
+    assert bron_lijst.lees(vraag, KST, regelingen=lees) is None
+
+
+def test_de_kanttekening_staat_bij_de_zoekvraag_van_de_lijst(monkeypatch):
+    from agent import overzicht, tools as t
+    from test_kamerstuk_tools import _veel, NepBron
+
+    namen = ("?regeling\t?citeertitel\t?soort\t?afkortingen\n"
+             "<urn:bwb:BWBR0004770>\t\"Invorderingswet 1990\"\t\"wet\"\t\"IW | Iw 1990\"\n")
+    overzicht._REGELINGEN_CACHE.clear()
+    monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", NepBron(_veel(5)))
+    llm = FakeLLM([])
+    try:
+        events = _run(answer_stream("Welke Kamerstukken horen bij de Invorderingswet 1990?", settings=AAN, llm=llm,
+                                    graph=FakeGraph(result=namen), bronnen=["kamerstukken"]))
+    finally:
+        overzicht._REGELINGEN_CACHE.clear()
+    assert llm.calls == []
+    blok, = [b for e in events if e["type"] == "antwoord" for b in e["antwoord"]["blokken"]]
+    assert "Kamerstukken koppelt een stuk niet aan een regeling" in blok["zoekvraag"]
