@@ -91,22 +91,49 @@ async function ronde(breedte) {
     await openMenu(page, smal);
     await page.getByRole("button", { name: "Uitloggen" }).click();
     await page.waitForURL("**/login**");
+    // Elke `GET /api/auth/session` zet het sessiecookie opnieuw (jwt-strategie). Een verzoek dat nog onderweg is,
+    // kan het nieuwe cookie dus overschrijven met de oude stand: eerst moet de oude login stil zijn. De andere tab
+    // vraagt na het uitloggen ook de sessie op; die is hierna niet meer nodig.
+    await ander.close();
+    await page.waitForLoadState("networkidle");
     // Opnieuw inloggen: een nieuwe sessie met een later inlogmoment, zoals de jwt-callback die zet.
     await context.addCookies(await sessieCookies(base, { loginAt: 2_000 }));
     await page.goto(`${base}/workbench`);
+    await verwachtSessie(page, "browser-test", 2_000);
     await strook(page).waitFor();
     if (process.env.SCREENSHOT_DIR) await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/teststrook-${breedte}.png` });
 
     // --- Wegklikken, dan een ander account in dezelfde browser ---
     await kruisje(page).click();
     await strook(page).waitFor({ state: "detached" });
-    await context.clearCookies();
-    await context.addCookies(await sessieCookies(base, { userid: "ander-account", loginAt: 2_000 }));
-    await page.goto(`${base}/workbench`);
-    await strook(page).waitFor();
+    // Dezelfde browser = dezelfde localStorage, met de sleutel van deze login erin. Het andere account komt in een
+    // context met die opslag maar zonder de cookies van de oude: dan kan geen verzoek van de vorige login zijn
+    // sessiecookie nog terugzetten (zie hierboven), en dat gebeurde in de poort.
+    const staat = await context.storageState();
+    const opgeslagen = staat.origins.flatMap((o) => o.localStorage).find((r) => r.name === "wa-teststrook-weg");
+    assert.equal(opgeslagen?.value, "browser-test:2000", "de weggeklikte sleutel van deze login staat in de opslag");
+    const tweedeAccount = await browser.newContext({ viewport: { width: breedte, height: 900 },
+      storageState: { cookies: [], origins: staat.origins } });
+    try {
+      await mock(tweedeAccount);
+      await tweedeAccount.addCookies(await sessieCookies(base, { userid: "ander-account", loginAt: 2_000 }));
+      const anderAccount = await tweedeAccount.newPage();
+      anderAccount.on("pageerror", (e) => errors.push(`${breedte} (ander account): ${e.message}`));
+      await anderAccount.goto(`${base}/workbench`);
+      await verwachtSessie(anderAccount, "ander-account", 2_000);
+      await strook(anderAccount).waitFor();
+    } finally {
+      await tweedeAccount.close();
+    }
   } finally {
     await context.close();
   }
+}
+
+/** De pagina draait echt als deze login; anders zegt een ontbrekende strook niets over de strook. */
+async function verwachtSessie(page, userid, loginAt) {
+  const sessie = await page.evaluate(async () => (await fetch("/api/auth/session")).json());
+  assert.equal(sessie?.user?.loginSleutel, `${userid}:${loginAt}`, `de pagina draait als ${userid}:${loginAt}`);
 }
 
 try {
