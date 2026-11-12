@@ -13,7 +13,9 @@ import { VraagLexContext } from "@/components/werkplek/VraagLexKnop";
 import type { GraafOpties } from "@/components/graaf/useGraafStand";
 
 import { WerkgebiedArtefactPaneel } from "@/components/werkplek/WerkgebiedArtefactPaneel";
-import { ContextPaneel, ContextPaneelContext, contextSleutel, overzichtContext, type ContextDoel } from "@/components/werkplek/ContextPaneel";
+import { CONTEXTOPBOUW_DOEL, ContextPaneel, ContextPaneelContext, contextSleutel, overzichtContext, type ContextDoel } from "@/components/werkplek/ContextPaneel";
+import { ContextMeter, ContextopbouwContext } from "@/components/werkplek/Contextweergave";
+import { beurtenUitBerichten, metBeurt, type Beurt } from "@/lib/contextweergave";
 import { WerkgebiedUitOverzicht } from "@/components/werkplek/WerkgebiedUitOverzicht";
 import { annotatieDoelVan, artefactSleutel, bronselectieVanKaart, artefactKop, werkgebiedArtefactVan, type Artefact, type WerkgebiedArtefact } from "@/lib/artefact";
 import { StatusLabel } from "@/components/ui/Lijst";
@@ -381,6 +383,12 @@ export function WerkplekClient({
   // "opnieuw proberen" terwijl de vorige nog liep) mag de thread niet nog eens aanvullen.
   const hydratiePoging = useRef(0);
 
+  // De beurten met een meting (plan contextweergave): uit de berichten bij het laden, en uit het `meting`-event van een
+  // beurt die hier loopt. Buiten de thread-items: een item wisselt van soort (antwoord, artefact, annotatie), de meting
+  // hoort bij de run.
+  const [contextBeurten, setContextBeurten] = useState<Beurt[]>([]);
+  const contextStand = useMemo(() => ({ gesprekId: gesprekId ?? null, beurten: contextBeurten }), [gesprekId, contextBeurten]);
+
   function hydrateer(id: string) {
     setHydratieFout(null);
     const poging = ++hydratiePoging.current;
@@ -391,6 +399,8 @@ export function WerkplekClient({
         onGesprekGeladen?.(g);
         setGesprekConnectors(g.connectors ?? null);
         const { items: geschiedenis, runIds } = itemsUitGesprek(g.berichten, uid);
+        // De beurten met een meting, vóór wat een lopende beurt intussen meldde (zoals de thread hieronder).
+        setContextBeurten((xs) => xs.reduce((alle, b) => metBeurt(alle, b.contextopbouw), beurtenUitBerichten(g.berichten)));
         // VÓÓR wat er al staat, niet in plaats daarvan. Verstuurde de jurist een vraag terwijl dit nog
         // laadde (een koude start duurt seconden), dan staan zijn vraag en het lopende antwoord al in
         // de thread – vervangen liet het antwoord onzichtbaar binnenstromen tot een herlaadbeurt.
@@ -701,6 +711,8 @@ export function WerkplekClient({
           setItems((xs) => xs.map((x) => (x.id === antId ? { id: antId, type: "reeks", reeks: r, tekst } : x)));
         },
         onHergebruik: (h) => p.pas({ type: "hergebruik", hergebruik: h }),
+        // De contextopbouw van de beurt komt vlak vóór `done`: de meter werkt bij zonder te herladen.
+        onContextopbouw: (c) => setContextBeurten((xs) => metBeurt(xs, c)),
         onRun: (r) => p.pas({ type: "meting", meting: r.instellingen?.meting }),
         // De eventlog van de run is gecapt: er is narratie weggevallen. Benoem dat, in plaats van
         // een tekst te tonen die compleet lijkt maar het niet is (`GAT_IN_TEKST`/`GAT_IN_DENK`).
@@ -874,6 +886,7 @@ export function WerkplekClient({
     if (u.soort === "suggestie") return voerSuggestieUit(u.suggestie);
     if (u.handeling === "help") return setInvoer("/");
     setInvoer("");
+    if (u.handeling === "context") openContext(CONTEXTOPBOUW_DOEL, "het commando /context");
     if (u.handeling === "bron" && u.argument) kiesConnector(u.argument);
     if (u.handeling === "nieuw") onNieuwGesprek?.();
   }
@@ -1071,6 +1084,7 @@ export function WerkplekClient({
 
   return (
     <VraagLexContext.Provider value={demo ? null : kiesOnderwerp}>
+    <ContextopbouwContext.Provider value={demo ? null : contextStand}>
     <ContextPaneelContext.Provider value={demo ? null : openContext}>
     <div className="relative flex min-h-0 min-w-0 flex-1">
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
@@ -1379,12 +1393,18 @@ export function WerkplekClient({
               ))}
             </div>
           )}
-          {!demo && toonMenu(connectorStand) && (
-            <div className="mb-1 flex min-w-0" data-connectors-ruimte>
-              <ConnectorsMenu stand={connectorStand} onWissel={kiesConnector} onOpen={verversAlsOnbekend}
-                onOpnieuw={connectorLijst.ververs}
-                onAlsStandaard={werkgebiedId ? () => void maakConnectorStandaard() : undefined}
-                onTerugNaarStandaard={() => zetGesprekConnectors(null)} />
+          {!demo && (toonMenu(connectorStand) || contextBeurten.length > 0 || items.length > 0) && (
+            <div className="mb-1 flex min-w-0 items-center gap-2">
+              <div className="flex min-w-0 flex-1" data-connectors-ruimte>
+                {toonMenu(connectorStand) && (
+                  <ConnectorsMenu stand={connectorStand} onWissel={kiesConnector} onOpen={verversAlsOnbekend}
+                    onOpnieuw={connectorLijst.ververs}
+                    onAlsStandaard={werkgebiedId ? () => void maakConnectorStandaard() : undefined}
+                    onTerugNaarStandaard={() => zetGesprekConnectors(null)} />
+                )}
+              </div>
+              <ContextMeter beurten={contextBeurten} heeftBeurten={items.some((x) => x.type !== "user")}
+                onOpen={() => openContext(CONTEXTOPBOUW_DOEL, "de contextmeter")} />
             </div>
           )}
           <div data-tour="invoer" className="flex items-end gap-2 rounded-bubbel border border-line bg-white px-2 py-1.5 shadow-zacht transition-shadow focus-within:border-lint focus-within:shadow-kaart">
@@ -1461,6 +1481,7 @@ export function WerkplekClient({
       inklapSignaal={inklapSignaal}>{paneel}</Zijpaneel>}
     </div>
     </ContextPaneelContext.Provider>
+    </ContextopbouwContext.Provider>
     </VraagLexContext.Provider>
   );
 }

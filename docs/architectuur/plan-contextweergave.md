@@ -1,8 +1,8 @@
 # Plan – de context van een beurt zichtbaar maken
 
 Status: plan, goedgekeurd door de gebruiker (12 nov 2026) en dezelfde dag herzien na een review tegen de code, de
-ADR's en de Claude-documentatie (zie *Herziening*). Hoort bij ADR-015 (contextbeheer). Stap 1, 2 en 3 zijn gebouwd
-(12 nov 2026, zie *Stand van de bouw*); de frontend (4, 5) en de meting (6) nog niet.
+ADR's en de Claude-documentatie (zie *Herziening*). Hoort bij ADR-015 (contextbeheer). Stap 1 tot en met 5 zijn gebouwd
+(12 nov 2026, zie *Stand van de bouw*); de meting en de docs (6) nog niet.
 
 ## Doel
 
@@ -359,6 +359,28 @@ Stap 3 (api) en stap 1–2 (graph-qa) zijn gebouwd. Wat daarbij is vastgesteld o
 - **`venster_beurten.gekrompen`** telt de toolresultaten die ingekort of weggelaten zijn (`venster_telling.ingekort`);
   `in_venster` telt de lopende beurt mee.
 - **Volgorde**: stap 3 ging voor, want `test_contract_drift` eist dat de api elk veld van het bericht kent.
+
+### Op acceptatie gezien (12 nov 2026, na stap 1–3)
+
+Eén beurt in een eigen gesprek (duiding van art. 9 Iw 1990, vier modelaanroepen):
+
+- `contextopbouw` staat op het `meting`-event en, gelijk, op het bericht.
+- **Het anker werkt.** Het koude begin schreef 27.864 tokens; `cache_schrijf_1u` was 25.009, de rest (2.855) het
+  5-minutendeel. Dat 1-uursdeel is het voorvoegsel: de twee rondes erna lazen precies 27.864 en 30.148. `laatste.voorvoegsel`
+  was `{omvang: 25009, exact: true}`.
+- De verhouding tekens per token is in het voorvoegsel 2,9 en in de rest 2,7: dicht genoeg bij elkaar voor een verdeling
+  naar tekens. De ijking per categorie volgt in stap 6.
+- Context en verbruik liggen uiteen zoals verwacht: het laatste verzoek was 30.890, de beurt kostte 93.012.
+
+### Stap 4 en 5 (frontend)
+
+- **De boom opent de kaart van een kind ter plekke** (de rij klapt uit), in plaats van naar het deelgesprek te gaan: je
+  blijft in het paneel van het hoofdgesprek.
+- **Een kind zonder meting** is aan geen beurt toe te wijzen; het staat bij de laatste beurt.
+- **De beurten staan buiten de thread-items**, als eigen stand in de werkplek.
+- **Het verloop** is twee lijntjes met elk een eigen schaal; de toelichting zegt dat.
+- **De kleuren**: blauw in stappen voor het vaste deel, warme en neutrale kleuren voor de rest. De app heeft te weinig
+  losse tokens voor elf kleuren, dus twee delen gebruiken een token met dekking.
 
 ## Risico's
 

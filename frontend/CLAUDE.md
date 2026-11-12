@@ -528,7 +528,7 @@ Het is een versneller naast de suggesties, geen vervanging, en **geen tweede rou
   suggestie, geen eigen lijst.
 - **Clientcommando's** (`CLIENT_COMMANDOS`) zijn geen beurt en kosten geen tokens: `/nieuw` (*Nieuw gesprek*, in het
   werkgebied), `/bron <naam>` (een bron naast de wet om, via `kiesConnector`; de namen uit het connectormenu, alleen wat
-  aan te zetten is) en `/help` (de hele lijst). Geen `/compact`: de historie is al begrensd en wordt gecachet gelezen
+  aan te zetten is), `/context` (de contextweergave naast het gesprek, zie hieronder) en `/help` (de hele lijst). Geen `/compact`: de historie is al begrensd en wordt gecachet gelezen
   (sessie contextbeheer, 12 nov 2026), dus samenvatten levert bijna geen tokens op.
 - **De catalogus (ADR-014)**: een suggestiecommando wijst naar een actie uit graph-qa (`ACTIE_TAAK` en de andere
   actielijsten), en die actie is een ingang van een `Onderdeel`. Er komt dus geen eigen lijst van wat Lex kan. Vanaf
@@ -544,6 +544,40 @@ Het is een versneller naast de suggesties, geen vervanging, en **geen tweede rou
 - Tijdens een beurt of zonder budget staat een suggestiecommando er met de reden, en doet Enter niets.
 - Tests: `lib/commandos.test.ts` (register, context, menu), `app/commandos.test.ts` (één ingang) en
   `scripts/test-commandos.mjs`.
+
+### De contextweergave: de meter en `/context` (plan contextweergave, ADR-015)
+
+Wat `/context` in Claude Code laat zien, voor Lex: hoe het verzoek aan het model is opgebouwd en wat de beurt kostte. Eén
+component (`components/werkplek/Contextweergave.tsx`) met twee ingangen, rekenkern in `lib/contextweergave.ts`.
+
+- **Twee getallen, elk met een eigen naam.** *Context* is het laatste verzoek van een agent (zoveel van het venster);
+  *Verbruik van deze beurt* is alles wat de beurt las en schreef, over alle rondes, zoals het budget het telt. Zet ze nooit
+  onder één kop.
+- **De werkplek telt zelf niets.** Ze leest `contextopbouw` (graph-qa `agent/contextopbouw.py`): op het bericht
+  (`Bericht.contextopbouw`, na herladen) en op het `meting`-event vlak vóór `done` (`onContextopbouw`, live).
+  `parseContextopbouw` is tolerant: een vorm die niet past is "nog niet gemeten", nooit een fout. De beurten staan in
+  `WerkplekClient` (`contextBeurten`), buiten de thread-items: een item wisselt van soort, de meting hoort bij de run.
+- **Eén register van categorieën** (`lib/contextdelen.ts`: id, label, uitleg, kleur, volgorde), gelijk aan graph-qa
+  `agent/contextdelen.py`; `contextdelen.test.ts` leest die bron, ook voor de namen van de rollen (`rolLabel`). Een id dat
+  de werkplek niet kent, telt als *Overig*. Blauw in stappen is het vaste deel, de rest wat per beurt verandert; kleur
+  draagt nooit alleen, de legenda noemt elk deel met zijn omvang.
+- **De contextmeter** (`ContextMeter`, rechts in de rij boven het invoerveld, naast *Bronnen en tools*): `31k · 3,1%` met
+  `components/ui/Meter`. Een stip (met de tekst in de toegankelijke naam) bij een signaal: de historie is ingekort, er
+  vielen beurten weg, of de beurt begon koud. De tooltip noemt de drie grootste delen en het verbruik. Een klik opent het
+  paneel. Zonder meting: "nog niet gemeten".
+- **Het paneel** is een soort van `ContextPaneel` (`contextopbouw`, één tab, zonder pagina): de beurtkiezer, per agent de
+  regel, het raster (`VAKJES` vakjes, 100% = het verzoek, niet het venster), de legenda met `≈` en bij de historie de
+  grens, en hoe de beurt begon; dan het verbruik, de adviezen, de details per aanroep (ingeklapt), de deelgesprekken en
+  het verloop. De inhoud komt uit `ContextopbouwContext`, niet uit het doel: de tab wordt bewaard, de meting niet.
+- **De boom** komt van `GET /api/gesprekken/{id}/contextopbouw` (`haalContextBoom`): per deelgesprek een rij met zijn
+  context en verbruik, die dezelfde kaart opent. Een kind hoort bij de beurt die het startte (`ouder_run_id`); een kind
+  zonder meting staat bij de laatste beurt als *niet gemeten*, en het totaal zegt dan "minstens".
+- **De adviezen zijn vaste regels** (`adviezen`), zonder model, over deze en de vorige beurt. De cache is van iedereen
+  met hetzelfde vaste deel: de tekst zegt nooit "jij was een uur stil".
+- **Een weergave, geen artefact**: geen besluit, geen knop die Lex start, geen *Vraag Lex*. Het advies "begin een nieuw
+  gesprek" noemt `/nieuw`.
+- Tests: `lib/contextweergave.test.ts`, `lib/contextdelen.test.ts` en `scripts/test-contextweergave.mjs` (met
+  `CONTEXT_SCREENSHOT=<map>` een beeld van het paneel).
 
 ### Bronnen en tools boven het invoerveld (ADR-013)
 
