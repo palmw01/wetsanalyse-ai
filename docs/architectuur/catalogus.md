@@ -78,6 +78,12 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 **Sjabloon**
 - Zie ADR-008: de module, de registerregel en `Specialist.sjablonen`. Een nieuw blok krijgt ook een Literal en een component.
 
+**Regelset uit een skill** (S6, achter de proefvlag `SKILL_REGELS`)
+- `regels/jas/<familie>.yaml` of `regels/begrippen/<familie>.yaml` in de skillmap. Elke regel heeft het voorvoegsel
+  `jas.<skill>.` of `begrip.<skill>.`, de vier testsoorten en een bewijscode die al in de verklaringen staat. De generator
+  bundelt ze in het pakket. De ketens nemen ze alleen mee met de vlag aan, alleen op acceptatie. Zie
+  `agent/skill_regels.py` en `tests/test_skill_zonder_code.py`.
+
 **Regelset** (een detector-, begrippen- of zoekregel)
 - Een YAML-item met `bron`, `versie` en `tests` (positief, negatief, rand, overlap). Het bestand begint met een
   commentaaralinea: dat is het doel in de catalogus. Een nieuw bestand komt vanzelf mee; een nieuwe map hoort in
@@ -106,8 +112,8 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 | S3 | de routeringstabel (ADR-010) | #1292 |
 | S4 | context per agent (`test_context_per_agent`) | #1294 |
 | S5 | meerdere skills, binding per rol, nep-skill | #1296 |
-| S6 | regelsets uit een skill | – |
-| S7 | werkplek per concept | – |
+| S6 | regelsets uit een skill, achter de proefvlag `SKILL_REGELS` | – |
+| S7 | werkplek per concept | #1299 |
 | S8 | commando's wijzen naar één onderdeel | #1298 |
 | C7 | een wijziging voorstellen → concept-PR (acceptatie) | – |
 | C8 | de skill `wetsuitvoering` (trap 1) | – |

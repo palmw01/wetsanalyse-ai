@@ -36,6 +36,7 @@ from ..narratie import _stap
 from ..state import State
 from .annotatie_samenvatting import aantal_bekend, samenvatting as annotatie_samenvatting
 from .context import Bouw
+from ..skill_regels import aan as skill_regels_aan
 
 logger = logging.getLogger("graph_qa.orchestrator")
 
@@ -224,6 +225,7 @@ def _instellingen(b: Bouw, state: State) -> dict[str, Any]:
             "classifier_parallel": s.classifier_parallel,
             "deterministisch_accepteren": s.deterministisch_accepteren, "gerichte_review": s.gerichte_review,
             "relatie_voorstellen": s.relatie_voorstellen,
+            "skill_regels": skill_regels_aan(),
             "meting": (state.get("analyse") or {}).get("meting", {})}
 
 

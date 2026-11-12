@@ -306,6 +306,31 @@ def uit_regelsets() -> list[Onderdeel]:
         uit.append(_regelset(pad, map_))
     if profielen:
         uit.append(_profielen(profielen))
+    return uit + uit_skillregels()
+
+
+#: Per keten de test die de tests van een skillregel draait (dezelfde als voor de eigen regels).
+_SKILLREGELTEST = {"jas": "tools/graph-qa/tests/test_skill_zonder_code.py",
+                   "begrippen": "tools/graph-qa/tests/test_skill_zonder_code.py"}
+
+
+def uit_skillregels() -> list[Onderdeel]:
+    """Regelsets uit een methode-skill (S6): een deel van hun skill, achter de proefvlag `SKILL_REGELS`."""
+    from . import skill_regels
+    uit: list[Onderdeel] = []
+    for keten in ("jas", "begrippen"):
+        for naam, items in skill_regels.regelsets(keten).items():
+            skill, familie = naam.split(".", 1)
+            regels = _regels(items)
+            uit.append(Onderdeel(
+                id=oid("regelset", f"{keten}.{naam}"), soort="regelset", label=f"{keten}.{naam}",
+                doel=f"Regels uit de methode {PAKKET['skills'][skill]['lex']['label']} voor de {keten}keten "
+                     f"({familie}); alleen actief met de proefvlag.",
+                model="geen", herkomst=_methode_herkomst(tuple(sorted({str(r['bron']) for r in regels if r.get('bron')})), skill),
+                bestand=(f"{PAKKET['skills'][skill]['map']}/regels/{keten}/{familie}.yaml",), versie=versie(items),
+                tests=(_SKILLREGELTEST[keten],), uitvoer="bewijscodes met een bestaande verklaring",
+                deel_van=oid("methode", skill), straat=skill_regels.VLAG, inhoud={"regels": regels},
+            ))
     return uit
 
 
@@ -325,7 +350,9 @@ def _wf(naam: str, label: str, doel: str, laag: str, stappen: tuple[Stap, ...], 
 
 
 def uit_workflows() -> list[Onderdeel]:
-    detectoren = tuple(o.id for o in uit_regelsets() if o.naam.startswith("jas.detector."))
+    sets = uit_regelsets()
+    detectoren = tuple(o.id for o in sets if o.naam.startswith("jas.detector.") or (o.straat and o.naam.startswith("jas.")))
+    uit_skill_begrippen = tuple(o.id for o in sets if o.straat and o.naam.startswith("begrippen."))
     return [
         _wf("annotatieketen", "Annotatieketen (ADR-001)",
             "Markeert en classificeert de formuleringen van één bepaling in JAS-klassen: detectoren en vaste "
@@ -342,7 +369,7 @@ def uit_workflows() -> list[Onderdeel]:
             "taakagent", begrippenketen.FASEN,
             bestand=("tools/graph-qa/agent/begrippen_pipeline/keten.py",),
             tests=("tools/graph-qa/tests/test_begrippen_patronen.py",),
-            hangt_af_van=("regelset/begrippen.berekening", "regelset/begrippen.verklaringen"),
+            hangt_af_van=("regelset/begrippen.berekening", "regelset/begrippen.verklaringen", *uit_skill_begrippen),
             uitvoer="betekenisgroepen, relaties en vragen (het begrippenartefact)",
             twijfel="een vraag aan de analist, of geel; sterk tegenbewijs wint altijd"),
         _wf("bronnen_vinden", "Bronnen vinden",
