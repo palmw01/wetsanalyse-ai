@@ -18,6 +18,7 @@ schijnzekerheid, en juist die wil dit platform bestrijden.
 from __future__ import annotations
 
 import logging
+import json
 import re
 from dataclasses import dataclass, field
 from typing import Any
@@ -377,14 +378,22 @@ def alleen_gelezen_extern(sources: list[Source], trace: list[tuple[str, str]], a
         if not t or name not in lees:
             continue
         in_tekst |= {e.id for e in externe_verwijzingen(waarden(t))}
-        data = is_contract(t) or {}
+        # Het gelezen stuk, uit elk resultaat van de leestool: ook een fout met een stuk (`alleen_pdf`).
+        try:
+            data = json.loads(t)
+        except (TypeError, ValueError):
+            data = {}
+        data = data if isinstance(data, dict) else {}
         if isinstance(data.get("stuk"), dict) and (vp := externe_vindplaats(str(data["stuk"].get("id") or ""))):
             stukken.add(vp.id)
     genoemd = genoemd_extern(answer_text)
     gevraagd = genoemd_extern(vraag)
     return [s for s in sources
             if s.brontype in (None, "wettekst")
-            or (s.uri in genoemd and (van_id(s.uri) is None or s.uri in in_tekst | stukken))
+            # Een stuk van een connector telt alleen als het gelezen is; dat een gelezen stuk het noemt (een voetnoot,
+            # `verwijst_naar`), maakt het geen bron (meting Staatsblad ronde 4, B12: Stcrt. 2021, 12238 en Stb. 2023, 381
+            # en 408). Een id zonder connector (EHRM) staat er als het gelezen stuk het noemt en het antwoord ook.
+            or (s.uri in genoemd and (s.uri in stukken or (van_id(s.uri) is None and s.uri in in_tekst)))
             or (s.uri in gevraagd | geciteerd and s.uri in stukken)
             # Wettekst van overheid.nl (`wettekst_live`) is wettekst, geen stuk naast de wet: gelezen is genoeg. Haar id
             # (`bwbt:…`) staat nooit in lopende tekst, dus de jurist zag "Klaar · 0 bronnen" (meting 11 nov 2026, W07/W12/W15).

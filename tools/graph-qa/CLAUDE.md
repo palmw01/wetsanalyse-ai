@@ -418,7 +418,9 @@ bruikbaar is.
   blijft (`curate_sources`, `alleen_gelezen_extern`), en "Zoek …"/"Vind …" is een lijstvraag. **Na ronde 3** (gedeeld): een regeling die alleen
   in een zoekresultaat staat (de zoektools uit `spoorbronnen`), is geen bron, een bepaling met tekst uit een zoektool wel, en
   een lijst regelingen ook (`provenance._zoektools`, `REGELINGTOOLS`); een stuk in een foutresultaat houdt zijn label (`_labels`); een artikel met boeknummer
-  (`boek=6&…&artikel=162`) telt als "6:162" (`grounding._BOEK_ARTIKEL`); de grens van het blok `stukken` geldt per bron. `tests/test_rechtspraak_tools.py`,
+  (`boek=6&…&artikel=162`) telt als "6:162" (`grounding._BOEK_ARTIKEL`); de grens van het blok `stukken` geldt per bron. Een stuk van een connector is alleen een bron als het gelezen is,
+  niet omdat een gelezen stuk het noemt (een voetnoot, `alleen_gelezen_extern`; Staatsblad B12); de titel van een regeling buiten
+  de graaf komt uit de nieuwste toestand (`nieuwste_titel`; wetgeving_live I02). `tests/test_rechtspraak_tools.py`,
   live `tests/test_rechtspraak_live.py`, meting `docs/architectuur/metingen/lido-spike-2026-11-10/`.
 - **Wetgeving buiten de kennisgraaf** (`tools/wetgeving_tools.py`, transport `adapters/sru_bwb.py`, ADR-013 fase 1e):
   wettekst van het BWB die niet in de graaf staat, live bij overheid.nl. **De graaf blijft de bron voor wat erin staat**,

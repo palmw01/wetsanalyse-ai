@@ -193,3 +193,20 @@ def test_een_stuk_in_een_fout_houdt_zijn_label(leestool, stuk):
     raw = _json.dumps({"status": "error", "reden": "alleen_pdf", "melding": "alleen als pdf", "stuk": stuk})
     bronnen = collect_sources([(leestool, raw)])
     assert [(s.uri, s.label) for s in bronnen] == [(stuk["id"], stuk["label"])]
+
+
+
+def test_een_stuk_dat_alleen_in_een_gelezen_stuk_genoemd_wordt_is_geen_bron():
+    """Meting Staatsblad ronde 4, B12: Stcrt. 2021, 12238 stond in de bronnenlijst omdat een voetnoot van een gelezen stuk
+    het noemde en het antwoord de citeervorm gebruikte. Alleen een gelezen stuk is een bron."""
+    from agent.grounding import alleen_gelezen_extern
+    from agent.models import Source
+
+    gelezen = Source(uri="stb-2023-381", label="Stb. 2023, 381", brontype="bekendmaking", origin_tool="get_bekendmaking")
+    voetnoot = Source(uri="stcrt-2021-12238", label="Stcrt. 2021, 12238", brontype="bekendmaking",
+                      origin_tool="get_bekendmaking")
+    trace = [("get_bekendmaking", _json.dumps({"status": "ok", "volledig": True, "aantal": 1, "stuk": {"id": "stb-2023-381"},
+                                               "resultaten": [{"nr": 1, "soort": "voetnoot", "tekst": "Stcrt. 2021, 12238",
+                                                               "verwijst_naar": "stcrt-2021-12238"}]}))]
+    antwoord = "Stb. 2023, 381 verwijst naar Staatscourant 2021, nr. 12238."
+    assert alleen_gelezen_extern([gelezen, voetnoot], trace, antwoord) == [gelezen]

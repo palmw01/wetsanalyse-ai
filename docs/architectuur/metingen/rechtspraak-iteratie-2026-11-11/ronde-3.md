@@ -40,6 +40,10 @@ noemen "Wet op de omzetbelasting 1968" in plaats van het BWB-id. De overige 22 v
    - een artikel met een boeknummer ("6:162", uit `boek=6&…&artikel=162`) telt als bekend (wetgeving_live I24/I28);
    - de grens van het blok `stukken` (25) geldt per bron, niet over alle bronnen samen (R30 in ronde 2: 25 uitspraken lieten geen
      ruimte voor de Kamerstukken).
+   - een stuk dat alleen in een gelezen stuk genoemd wordt (een voetnoot), is geen bron (Staatsblad ronde 4, B12: Stcrt. 2021,
+     12238 en Stb. 2023, 381 en 408). De citeervormfix van ronde 2 (K18) hield zo'n stuk vast;
+   - de titel van een regeling buiten de graaf komt uit de nieuwste toestand (wetgeving_live ronde 3, I02: de Participatiewet
+     heette "Wet werk en bijstand").
 
 ## Wat deze ronde niet zegt
 
