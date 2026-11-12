@@ -48,20 +48,45 @@ def met_regelgrens(denk: str, inhoud: str) -> str:
     return "\n" + inhoud if inhoud and laatste.startswith("· ") and not inhoud.startswith("\n") else inhoud
 
 
-def ronde_in_denk(writer: Any, tool_uses: list[Any], tekst: list[str], ronde: int) -> None:
+def ronde_in_denk(writer: Any, tool_uses: list[Any], tekst: list[str], ronde: int,
+                  afronden: frozenset[str] | set[str] = frozenset()) -> None:
     """Zet de tekst van een afgelopen modelronde in het denkproces (`reason`), als het narratie is.
 
     Een ronde zonder tool-aanroepen is een eindantwoord, en dat hoort daar niet: `verify` kan het nog
     afkeuren, en het denkproces staat tijdens de beurt open (besluit 2, 6 nov 2026). Vandaar ná de
     ronde en niet per delta: tijdens het streamen is nog niet bekend welke van de twee het is.
 
+    Een ronde met een tool uit `afronden` (de sjablonen) is óók het antwoord: wat het model ernaast schreef, staat daarna
+    in het sjabloon, dus in het denkproces stond het antwoord twee keer (acceptatie 12 nov 2026, K17).
+
     Op een rondegrens een alinea-scheiding, anders plakt "…tegelijkertijd." aan "De thesaurus…".
     Een ronde zonder tekst geeft niets, dus ook geen loshangende witregel.
     """
     inhoud = "".join(tekst)
-    if not tool_uses or not inhoud.strip():
+    if not tool_uses or not inhoud.strip() or any(_naam(t) in afronden for t in tool_uses):
         return
     writer({"type": "reason", "content": ("\n\n" if ronde > 0 else "") + inhoud})
+
+
+def _naam(tool_use: Any) -> str:
+    return str(tool_use.get("name", "") if isinstance(tool_use, dict) else getattr(tool_use, "name", ""))
+
+
+#: Wat er in het denkproces staat vóór een statusregel: `· Actor · bericht`.
+STATUSTEKEN = "· "
+
+
+def denk_bij(denk: str, event: dict[str, Any]) -> str:
+    """Het denkproces na één event: de enige plek in graph-qa die het opbouwt, voor het bewaarde bericht
+    (`beurt.BeurtSchrijver`). Een `status` wordt een eigen regel, een `reason` loopt door (met `met_regelgrens`); elk ander
+    event, ook `token`, laat het staan. `frontend/lib/denkproces.ts` (`denkBij`) doet hetzelfde voor wie meekijkt, en
+    `tests/poort/denkproces-vectoren.json` houdt de twee gelijk."""
+    soort = event.get("type")
+    if soort == "status":
+        return denk + ("\n" if denk else "") + STATUSTEKEN + str(event.get("message", ""))
+    if soort == "reason":
+        return denk + met_regelgrens(denk, str(event.get("content", "")))
+    return denk
 
 
 def _toolregel(call: dict[str, Any]) -> str:

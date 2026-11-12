@@ -11,6 +11,7 @@
 // een misvormd event slaat over, het breekt de reeks niet af.
 
 import { parseHergebruik, parseUitkomst } from "./agentEvents";
+import { denkBij } from "./denkproces";
 import { annotatieDoelVan, artefactVanBericht } from "./artefact";
 import type { NodeDoel } from "./annotatieNode";
 import type { AgentDoelInvoer, AgentHergebruik, AgentKandidaat, Bericht } from "./types";
@@ -100,9 +101,9 @@ export function verwerkReeksEvent(reeks: Reeks | null, ev: Ruw): Reeks | null {
   if (!iri) return reeks;
   switch (soort) {
     case "status":
-      return werkBij(reeks, iri, (o) => ({ ...o, denk: o.denk + (o.denk ? "\n" : "") + "· " + str(ev.message) }));
+      return werkBij(reeks, iri, (o) => ({ ...o, denk: denkBij(o.denk, "status", str(ev.message)) }));
     case "reason":
-      return werkBij(reeks, iri, (o) => ({ ...o, denk: o.denk + str(ev.content) }));
+      return werkBij(reeks, iri, (o) => ({ ...o, denk: denkBij(o.denk, "reason", str(ev.content)) }));
     case "dekking":
       return werkBij(reeks, iri, (o) => ({ ...o, zonderZinsontleding: zonderZinsontleding(ev.dekking) }));
     case "hergebruik": {

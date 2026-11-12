@@ -1,0 +1,20 @@
+{
+  "uitleg": "Het denkproces uit de events, één regel aan beide kanten: graph-qa `narratie.denk_bij` (het bewaarde bericht) en de werkplek `lib/denkproces.ts` `denkBij` (wie meekijkt). Live en na herladen staat er dus hetzelfde. Een `token` (het antwoord) komt er nooit in.",
+  "gevallen": [
+    {"naam": "statusregels onder elkaar",
+     "events": [{"type": "status", "message": "Lex · zoekt in de kennisgraaf"}, {"type": "status", "message": "Wetgeving · 2 gevonden"}],
+     "denk": "· Lex · zoekt in de kennisgraaf\n· Wetgeving · 2 gevonden"},
+    {"naam": "narratie na een statusregel begint op een eigen regel",
+     "events": [{"type": "status", "message": "Lex · zoekt in de kennisgraaf"}, {"type": "reason", "content": "Ik zoek eerst artikel 36 op."}],
+     "denk": "· Lex · zoekt in de kennisgraaf\nIk zoek eerst artikel 36 op."},
+    {"naam": "een rondegrens draagt zelf zijn witregel",
+     "events": [{"type": "reason", "content": "Ik zoek."}, {"type": "status", "message": "Lex · leest artikel 36"}, {"type": "reason", "content": "\n\nNu lid 5."}],
+     "denk": "Ik zoek.\n· Lex · leest artikel 36\n\nNu lid 5."},
+    {"naam": "het antwoord komt niet in het denkproces",
+     "events": [{"type": "status", "message": "Lex · leest artikel 36"}, {"type": "token", "content": "Het antwoord."}, {"type": "antwoord", "antwoord": {}}],
+     "denk": "· Lex · leest artikel 36"},
+    {"naam": "lege narratie laat niets achter",
+     "events": [{"type": "status", "message": "Controle · gecontroleerd"}, {"type": "reason", "content": ""}, {"type": "status", "message": "Klaar · 1 bron"}],
+     "denk": "· Controle · gecontroleerd\n· Klaar · 1 bron"}
+  ]
+}

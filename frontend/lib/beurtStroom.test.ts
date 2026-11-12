@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { GAT_IN_DENK, GAT_IN_TEKST, LEGE_STAND, afronding, frameplanner, stroomReducer, type StroomEvent } from "./beurtStroom";
+import { GAT_IN_TEKST, LEGE_STAND, afronding, frameplanner, stroomReducer, type StroomEvent } from "./beurtStroom";
+import { GAT_IN_DENK } from "./denkproces";
 
 const speel = (events: StroomEvent[]) => events.reduce(stroomReducer, LEGE_STAND);
 const ART = "urn:bwb:BWBR0004770:artikel:9";

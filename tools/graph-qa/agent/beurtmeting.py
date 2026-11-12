@@ -40,20 +40,23 @@ _TEKST = frozenset({"reason", "token"})
 #: - `tekst_zonder_lijst`: tekst na een vondst van een connector, zonder lijst, als antwoord aangenomen;
 #: - `gemist`: een tekstantwoord terwijl er een sjabloon was;
 #: - `als_tekst`: een sjabloonaanroep die als tekst kwam en in code is omgezet;
+#: - `uitgesteld`: een sjabloon naast een graaftool, gevuld na die tool (`nodes/antwoord.tools_node`);
+#: - `tekst_ernaast`: tekens die het model naast een sjabloonaanroep schreef; dat zegt het sjabloon opnieuw, dus het
+#:   zijn verspilde tokens (de tekst gaat niet naar het denkproces, `narratie.ronde_in_denk`);
 #: - `gevuld` en `geweigerd`: per sjabloon, en per redencode (de functie die `Onvulbaar` gooide).
-SJABLOON_TELLERS = ("gevraagd", "tekst_zonder_lijst", "gemist", "als_tekst")
+SJABLOON_TELLERS = ("gevraagd", "tekst_zonder_lijst", "gemist", "als_tekst", "uitgesteld", "tekst_ernaast")
 SJABLOON_PER = ("gevuld", "geweigerd")
 
 
-def tel_sjabloon(state: Mapping[str, Any], soort: str, sleutel: str = "") -> dict[str, Any]:
+def tel_sjabloon(state: Mapping[str, Any], soort: str, sleutel: str = "", aantal: int = 1) -> dict[str, Any]:
     """De telling van deze beurt met één erbij, als update voor de state (`sjabloon_telling`). Alleen namen uit de
     code, geen inhoud."""
     telling = {k: (dict(v) if isinstance(v, dict) else v) for k, v in (state.get("sjabloon_telling") or {}).items()}
     if soort in SJABLOON_PER:
         per = telling.setdefault(soort, {})
-        per[sleutel or "?"] = per.get(sleutel or "?", 0) + 1
+        per[sleutel or "?"] = per.get(sleutel or "?", 0) + aantal
     elif soort in SJABLOON_TELLERS:
-        telling[soort] = telling.get(soort, 0) + 1
+        telling[soort] = telling.get(soort, 0) + aantal
     else:
         raise ValueError(f"onbekende sjabloontelling: {soort}")
     return {"sjabloon_telling": telling}
