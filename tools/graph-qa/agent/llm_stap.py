@@ -8,7 +8,7 @@ Twee lagen:
 
 - **`aanroep`**: elke modelaanroep. De kwargs gaan **ongewijzigd** door naar `llm.create` (het verzoek blijft byte-gelijk;
   `tests/test_modelverzoeken.py` bewaakt dat). Daarbij komen een stopreden, de duur, één logregel `model_aanroep` (met de
-  opbouw van het verzoek in tekens, `verzoekopbouw`) en de
+  opbouw van het verzoek in tekens, `verzoekopbouw`, één keer berekend en met de rol doorgegeven aan de meter) en de
   controle dat de methodetekst van de rol in de systeemprompt staat. Hij probeert niets opnieuw en vangt niets af: de SDK
   herhaalt zelf bij transportfouten (`llm_max_retries`), de adapter doet de cache-terugval, en een fout is van de aanroeper.
 - **`vraag_tool`**: de aanroepen met één strict tool (classifier, reviewer, begrippen, kaartacties, deelvragen, intake). Het
@@ -29,7 +29,7 @@ from enum import Enum, StrEnum
 from typing import Any
 
 from .methode import vingerafdruk
-from .verzoekopbouw import opbouw
+from .verzoekopbouw import Aanroepkader, aanroepkader, opbouw
 
 logger = logging.getLogger("graph_qa.llm")
 
@@ -57,26 +57,32 @@ class Rol(Enum):
     """Wie het model aanroept: een gesloten lijst, met de methoderol uit de skill die de systeemprompt moet dragen.
 
     `None` als de rol zijn methode niet uit `methode.instructies` haalt: de classifier en de reviewer krijgen de
-    JAS-klassen uit `jas_klassen.py`, en de begrippenrol is vervallen (besluit 6, 7 nov 2026)."""
+    JAS-klassen uit `jas_klassen.py`, en de begrippenrol is vervallen (besluit 6, 7 nov 2026).
 
-    SUPERVISOR = ("supervisor", "supervisor")
+    Het derde kenmerk is `lus`: is dit een agent met een toollus, waarvan de berichtenreeks binnen een beurt per ronde
+    groeit? Zo'n rol heeft een context die de contextweergave toont (het laatste verzoek van de lus, en het eerste);
+    een losse stap staat op zichzelf en telt alleen mee in het verbruik (plan contextweergave, *Wat een "context" is*).
+    Elke rol kiest dat bij zijn definitie: de meter kent geen namen."""
+
+    SUPERVISOR = ("supervisor", "supervisor", False)
     # De antwoordlus draait twee rollen: de ophaal-agent van de annotatieroute en de QA-specialisten. Die laatste krijgen
     # de methoderol van hun specialist (`specialists.methoderol`), dus die geeft de aanroeper mee.
-    OPHAAL = ("ophaal", "retrieval")
-    ANTWOORD = ("antwoord", None)
-    BEPALING_TOELICHTING = ("bepaling_toelichting", None)
-    JAS_CLASSIFIER = ("jas_classifier", None)
-    JAS_REVIEWER = ("jas_reviewer", None)
-    BEGRIP_VERGELIJK = ("begrip_vergelijk", None)
-    BEGRIP_KAART = ("begrip_kaart", None)
-    KAARTACTIE = ("kaartactie", None)
-    DEELVRAGEN_VOORSTEL = ("deelvragen_voorstel", "deelvragen")
-    DEELVRAAG_VERBETER = ("deelvraag_verbeter", "deelvragen")
-    INTAKE = ("intake", None)
+    OPHAAL = ("ophaal", "retrieval", True)
+    ANTWOORD = ("antwoord", None, True)
+    BEPALING_TOELICHTING = ("bepaling_toelichting", None, False)
+    JAS_CLASSIFIER = ("jas_classifier", None, False)
+    JAS_REVIEWER = ("jas_reviewer", None, False)
+    BEGRIP_VERGELIJK = ("begrip_vergelijk", None, False)
+    BEGRIP_KAART = ("begrip_kaart", None, False)
+    KAARTACTIE = ("kaartactie", None, False)
+    DEELVRAGEN_VOORSTEL = ("deelvragen_voorstel", "deelvragen", False)
+    DEELVRAAG_VERBETER = ("deelvraag_verbeter", "deelvragen", False)
+    INTAKE = ("intake", None, False)
 
-    def __init__(self, naam: str, methoderol: str | None) -> None:
+    def __init__(self, naam: str, methoderol: str | None, lus: bool) -> None:
         self.naam = naam
         self.methoderol = methoderol
+        self.lus = lus
 
 
 @dataclass(frozen=True)
@@ -111,34 +117,49 @@ def _gebruik(resp: Any) -> dict[str, int]:
             "cache_schrijf": int(getattr(u, "cache_creation_input_tokens", 0) or 0)}
 
 
-def _log(rol: Rol, model: str, resp: Any, begin: float, verzoek: dict[str, Any],
+def _kader(rol: Rol, verzoek: dict[str, Any], kader: dict[str, Any] | None) -> Aanroepkader:
+    """Het kader van één aanroep: de rol en de opbouw van het verzoek, één keer berekend. De logregel en (via de
+    adapter) de meter lezen hetzelfde. `beurt_start` en `opdracht` uit `kader` sturen alleen de indeling."""
+    kader = dict(kader or {})
+    o = opbouw(**verzoek, beurt_start=kader.pop("beurt_start", None), opdracht=bool(kader.pop("opdracht", False)))
+    return Aanroepkader(rol=rol.naam, lus=rol.lus, opbouw=o, kader=kader)
+
+
+def _log(rol: Rol, model: str, resp: Any, begin: float, opbouw: dict[str, Any],
          methoderol: str | None = None) -> Antwoord:
     duur = round((time.perf_counter() - begin) * 1000)
     stop = Stopreden.van(resp)
     methode = methoderol or rol.methoderol
     logger.info("model_aanroep", extra={"categorie": "technisch", "rol": rol.naam, "model": model,
                                         "stopreden": str(stop), "duur_ms": duur, **_gebruik(resp),
-                                        **opbouw(**verzoek),
+                                        **opbouw,
                                         "methode_sha": vingerafdruk(methode) if methode else ""})
     return Antwoord(resp, stop, duur)
 
 
-def aanroep(llm: Any, rol: Rol, *, methoderol: str | None = None, **verzoek: Any) -> Antwoord:
+def aanroep(llm: Any, rol: Rol, *, methoderol: str | None = None, kader: dict[str, Any] | None = None,
+            **verzoek: Any) -> Antwoord:
     """Eén `llm.create`, met de kwargs zoals ze binnenkomen. Logt `model_aanroep`: geen inhoud, geen veldnaam met
-    "token" (de redactie in `observability` kijkt daarnaar). `methoderol` gaat vóór die van de rol."""
+    "token" (de redactie in `observability` kijkt daarnaar). `methoderol` gaat vóór die van de rol.
+
+    `kader` is wat de aanroeper over het verzoek weet en de meting nodig heeft (`beurt_start`, `opdracht`,
+    `venster_telling`, `historiegrens_tekens`). Het gaat niet naar de provider: het verzoek blijft byte-gelijk."""
     _controleer_rol(rol, verzoek.get("system"), methoderol)
+    k = _kader(rol, verzoek, kader)
     begin = time.perf_counter()
-    return _log(rol, verzoek.get("model", ""), llm.create(**verzoek), begin, verzoek, methoderol)
+    with aanroepkader(k):
+        resp = llm.create(**verzoek)
+    return _log(rol, verzoek.get("model", ""), resp, begin, k.opbouw, methoderol)
 
 
 class Stroom:
     """Om de stream van de adapter heen: `final_message()` geeft het volledige antwoord, zoals de adapter, en legt de
     stopreden en de logregel vast. Eén keer aanroepen, net als bij de adapter (de meter telt anders dubbel)."""
 
-    def __init__(self, stream: Any, rol: Rol, model: str, begin: float, verzoek: dict[str, Any],
+    def __init__(self, stream: Any, rol: Rol, model: str, begin: float, opbouw: dict[str, Any],
                  methoderol: str | None = None) -> None:
         self._stream, self._rol, self._model, self._begin = stream, rol, model, begin
-        self._verzoek, self._methoderol = verzoek, methoderol
+        self._opbouw, self._methoderol = opbouw, methoderol
         self.antwoord: Antwoord | None = None
 
     @property
@@ -146,18 +167,23 @@ class Stroom:
         return self._stream.text_deltas
 
     def final_message(self) -> Any:
-        self.antwoord = _log(self._rol, self._model, self._stream.final_message(), self._begin, self._verzoek,
+        self.antwoord = _log(self._rol, self._model, self._stream.final_message(), self._begin, self._opbouw,
                              self._methoderol)
         return self.antwoord.resp
 
 
 @contextmanager
-def stroom(llm: Any, rol: Rol, *, methoderol: str | None = None, **verzoek: Any) -> Iterator[Stroom]:
-    """Eén `llm.stream`, met de kwargs zoals ze binnenkomen (ook `historie_cache`)."""
+def stroom(llm: Any, rol: Rol, *, methoderol: str | None = None, kader: dict[str, Any] | None = None,
+           **verzoek: Any) -> Iterator[Stroom]:
+    """Eén `llm.stream`, met de kwargs zoals ze binnenkomen (ook `historie_cache`). `kader`: zie `aanroep`."""
     _controleer_rol(rol, verzoek.get("system"), methoderol)
+    k = _kader(rol, verzoek, kader)
     begin = time.perf_counter()
-    with llm.stream(**verzoek) as s:
-        yield Stroom(s, rol, verzoek.get("model", ""), begin, verzoek, methoderol)
+    # De adapter leest het kader op het moment dat hij de stream maakt; daarna is het niet meer nodig.
+    with aanroepkader(k):
+        stream = llm.stream(**verzoek)
+    with stream as s:
+        yield Stroom(s, rol, verzoek.get("model", ""), begin, k.opbouw, methoderol)
 
 
 def lees_tool(resp: Any, naam: str) -> dict[str, Any] | None:

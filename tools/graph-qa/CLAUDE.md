@@ -287,7 +287,12 @@ bruikbaar is.
   en `methode_sha` = `methode.vingerafdruk(rol)` uit de sectie-sha's van `PAKKET`, dezelfde bron als de catalogus van
   ADR-014; geen inhoud) en eist dat
   de systeemprompt de methodetekst van de rol draagt (`Rol.methoderol`, of `methoderol=` voor de specialist van de
-  antwoordlus). `stroom` doet hetzelfde voor de streamende antwoordlus en logt bij `final_message()`. Supervisor,
+  antwoordlus). **De opbouw wordt per aanroep één keer berekend**: de stap zet haar met de rol in het
+  `Aanroepkader` (`verzoekopbouw.aanroepkader`, een contextvariabele), de adapter leest het daar (`voor_meter`) en geeft het
+  aan de meter. Het kader reist niet in de kwargs, dus het verzoek blijft byte-gelijk. `kader=` op `aanroep`/`stroom` is wat
+  de aanroeper over het verzoek weet (`beurt_start`, `opdracht`, `venster_telling`, `historiegrens_tekens`). Een `Rol` kiest
+  bij zijn definitie of hij een **lus** is (`Rol.lus`: de antwoordlus en de ophaal-agent): alleen een lus heeft een context
+  in de contextweergave. `stroom` doet hetzelfde voor de streamende antwoordlus en logt bij `final_message()`. Supervisor,
   antwoordlus, ophaal-agent en de toelichting van de bepalingsroute lopen erlangs. `vraag_tool` is de vorm voor één tool (meestal strict):
   `pogingen` verplicht, `haal` bepaalt wat bruikbaar is, de tellers houden hun namen (`llm_calls`, `review_calls`,
   `afgekapt`). Na `refusal` of `max_tokens` geen tweede poging (`GEEN_HERHALING`, H5d). Geen eigen retry (dat doet de SDK) en geen except. Een nieuwe modelaanroep gaat hierlangs, met een
@@ -858,6 +863,24 @@ markeringen op, dan meldt hij dat ze niet zijn vastgelegd.
 > bindt `client_id` niet aan `user_id`. Het api-token van graph-qa is daarmee een schrijfprimitief op
 > elk gebruikersgesprek. Vandaar `Settings.require_api`: kan graph-qa schrijven, dan weigert hij te
 > starten zonder eigen `QA_API_TOKEN`. De BFF vult `user_id` uit de sessie – nooit uit de browser-body.
+
+**De contextopbouw** (`agent/contextopbouw.py`, plan `docs/architectuur/plan-contextweergave.md`): wat `/context` in
+Claude Code laat zien, voor Lex. Context en verbruik zijn twee getallen:
+- **context**: per rol met een toollus het laatste verzoek (`laatste`: de delen per categorie, het totaal, het
+  voorvoegsel, de cache) en het eerste (`begin`: warm of koud, met de vingerafdrukken);
+- **verbruik**: per rol wat alle aanroepen kostten, ook de losse stappen; `som` is wat `/v1/verbruik` kreeg.
+
+De categorieën staan in één register (`agent/contextdelen.py`); `verzoekopbouw.samenstelling` deelt elk deel van het
+verzoek in precies één in, in JSON-tekens, tools via hun eigen register. `contextopbouw.verdeel` zet dat om naar de eenheid
+van `usage`: het totaal is exact, het voorvoegsel (tools + systeem) is exact als een verzoek van de lus het in deze beurt
+schreef (`usage.cache_creation.ephemeral_1h_input_tokens`, het **anker**, per `tools_hash` + `system_hash`), de rest gaat
+naar tekens met de grootste-rest-methode, zodat de som precies het totaal is. Er is geen `count_tokens` en geen extra
+aanroep (ADR-015). Het venster komt uit `agent/modelvenster.py` (op Foundry niet op te vragen). `contextopbouw` staat op het
+`meting`-event en op het bericht (`voer_beurt_uit`), uit dezelfde meter op hetzelfde moment, met `run_id` en `ouder_run_id`;
+een beurt zonder model heeft er geen. **Geen veld heet `token`** (de logredactie laat die naam weg). De meter houdt begin,
+laatste en de sommen over alle aanroepen bij, ook voorbij `MAX_AANROEPEN`. Het contract bij de api is
+`gesprek_contracts.Contextopbouw`; `tests/test_contextopbouw.py` vergelijkt beide kanten en eist een venster voor elk model
+uit de config.
 
 **Tokenverbruik wordt niet via een event geboekt.** Wie meekijkt krijgt het wel te zien: vlak vóór `done` gaat
 een `meting`-event mee met dezelfde cijfers als de logregel `beurt_meting`, plus het verbruik en de duur per
