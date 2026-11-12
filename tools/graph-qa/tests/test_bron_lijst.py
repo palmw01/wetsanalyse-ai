@@ -192,7 +192,7 @@ def test_een_fout_van_de_bron_is_een_vaste_melding_zonder_model(monkeypatch, con
     assert blok["soort"] == "leemte" and blok["tekst"].startswith(zin), blok["tekst"]
     assert "opnieuw" in blok["tekst"]
     if connector == "rechtspraak":
-        assert "Gezocht bij artikel 36 van BWBR0004770." in blok["tekst"], "de zoekvraag staat erbij"
+        assert "Gezocht bij artikel 36 van Invorderingswet 1990." in blok["tekst"], "de zoekvraag staat erbij, met de naam uit de graaf"
 
 
 def test_een_woordgroep_zonder_treffer_zoekt_de_losse_woorden(monkeypatch):
@@ -616,6 +616,28 @@ def test_stukken_bij_een_regeling_leest_de_code_per_connector(vraag, connector, 
 def test_stukken_bij_een_regeling_die_de_code_niet_eenduidig_plaatst_gaan_naar_het_model(vraag, regelingen):
     lees = None if regelingen is None else (lambda t: regelingen)
     assert bron_lijst.lees(vraag, KST, regelingen=lees) is None
+
+
+@pytest.mark.parametrize("vraag,args", [
+    ("Welke publicaties horen bij Kamerdossier 36602?", {"dossier": "36602"}),
+    ("Welke Kamerstukken horen bij Kamerdossier 36602?", {"dossier": "36602"}),
+    ("Hoeveel stukken horen bij Kamerdossier 36602?", {"dossier": "36602"}),
+])
+def test_horen_bij_zonder_regeling_leest_de_rest_van_de_vraag(vraag, args):
+    """Meting Staatsblad ronde 5, B18: "horen bij" zonder regeling bij naam brak de hele lijstvraag af (0 -> 184k
+    tokens). Zonder genoemde regeling is het het patroon "stukken bij een regeling" niet; het dossierfilter leest de
+    vraag, met of zonder graaf (de namenlijst is dan leeg)."""
+    alle = frozenset({"kamerstukken", "bekendmakingen", "rechtspraak", "wetgeving_live"})
+    lijst = bron_lijst.lees(vraag, alle, regelingen=lambda t: [])
+    assert lijst is not None and lijst.connector == "kamerstukken" and lijst.args == args and not lijst.kanttekening
+
+
+@pytest.mark.parametrize("connector", ["kamerstukken", "bekendmakingen", "rechtspraak"])
+def test_horen_bij_een_naam_die_de_graaf_niet_kent_gaat_naar_het_model(connector):
+    """De naam blijft over in de vraag, en wat de code niet plaatst, leest het model (I02: de Wet op de zorgtoeslag
+    staat niet in de graaf)."""
+    assert bron_lijst.lees("Welke stukken horen bij de Wet op de zorgtoeslag?", frozenset({connector}),
+                           regelingen=lambda t: []) is None
 
 
 def test_de_kanttekening_staat_bij_de_zoekvraag_van_de_lijst(monkeypatch):

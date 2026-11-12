@@ -297,10 +297,11 @@ def _bij_regeling(c: ConnectorBeschrijving, tekst: str,
         return ()
     genoemd = _zonder_ingesloten(regelingen(tekst), tekst)
     if not genoemd:
-        # Geen regeling: het patroon geldt niet, en de rest van de lijstvraag gaat door ("Welke publicaties horen bij
-        # Kamerdossier 36602?", Staatsblad B18: met () viel de hele lijstvraag weg, 0 → 184k tokens).
+        # Geen regeling bij naam: dan is het dit patroon niet ("Welke publicaties horen bij Kamerdossier 36602?" leest het
+        # dossierfilter). Wat er overblijft, beslist de rest van `lees`; een naam die de graaf niet kent, blijft over en
+        # gaat naar het model (meting Staatsblad ronde 5, B18: de lege tuple brak de hele lijstvraag af, 0 -> 184k).
         return None
-    if len(genoemd) > 1 or not (plekken := _plekken(genoemd[0][1], tekst)):
+    if len(genoemd) != 1 or not (plekken := _plekken(genoemd[0][1], tekst)):
         return ()
     bwb_id, _ = genoemd[0]
     a, b = max(plekken, key=lambda p: p[1] - p[0])

@@ -10,6 +10,7 @@ import json
 
 import pytest
 from bronmodel.antwoord import Antwoord, antwoord_tekst
+from bronmodel.connectors import CONNECTORS
 
 from agent import sjablonen, tools
 from agent.agent import answer_stream
@@ -399,6 +400,23 @@ def test_een_regeling_zonder_artikel_is_geen_leeg_artikel(zoekvraag, begin):
 
     tekst = extern.zoekvraag_tekst(BEKENDMAKINGEN, zoekvraag, volgorde=False)
     assert tekst == begin and "artikel  " not in tekst
+
+
+@pytest.mark.parametrize("naam", [c for c, k in sorted(CONNECTORS.items()) if k.veld("wetsverwijzing") is not None])
+def test_een_zoekvraag_bij_een_regeling_zonder_artikel_heeft_geen_lege_plek(naam, monkeypatch):
+    """Meting Staatsblad ronde 5, B03: "Gezocht bij artikel  van BWBR0004770". Voor elke connector die stukken aan een
+    regeling koppelt: zonder artikel de regeling als geheel, met de naam als het proces die kent, anders het id."""
+    from agent import overzicht
+    c = CONNECTORS[naam]
+    monkeypatch.setattr(overzicht, "_REGELINGEN_CACHE", [{"bwb_id": "BWBR0004770", "citeertitel": "Invorderingswet 1990"}])
+    veld = c.veld("wetsverwijzing")
+    regeling = {veld.filters[0]: "BWBR0004770", "volgorde": "nieuwste"}
+    assert extern.zoekvraag_tekst(c, regeling).startswith("Gezocht bij Invorderingswet 1990")
+    assert extern.zoekvraag_tekst(c, {**regeling, veld.filters[1]: "36"}).startswith(
+        "Gezocht bij artikel 36 van Invorderingswet 1990")
+    monkeypatch.setattr(overzicht, "_REGELINGEN_CACHE", [])
+    zin = extern.zoekvraag_tekst(c, regeling)
+    assert zin.startswith("Gezocht bij BWBR0004770") and "artikel  " not in zin
 
 
 @pytest.mark.parametrize("n,totaal,slot", [(3, 3, "3 stukken."), (1, 1, "1 stuk."), (2, 4, "2 van de 4 stukken."),
