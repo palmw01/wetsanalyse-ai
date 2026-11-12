@@ -103,6 +103,8 @@ overzien.
    (Belastingdienst-stijlvak: lintblauw, Fira-fonts en JAS-klassekleuren uit
    `docs/wetsanalyse/wa-table.png`), met een eigen beeldmerk voor Lex in plaats van een overheidslogo
    (`frontend/merk/`, zie `frontend/CLAUDE.md` §*Vormgeving*).
+   Een `/` vooraan in het invoerveld opent de **commando's**: dezelfde vaste handelingen als de suggesties (dus zonder
+   supervisor-aanroep) plus een paar zonder beurt (`/nieuw`, `/bron`, `/help`); zie `frontend/CLAUDE.md` §*Commando's*.
 3. **`tools/graph-qa/`** – de eigen **QA/annotatie-agent**, **Lex** (de naam die de gebruiker ziet; de
    code, het image en de env-variabelen heten `graph-qa`), die vragen over wet- en regelgeving
    beantwoordt door de BWB-**kennisgraaf** (GraphDB via MCP) te bevragen en het antwoord
