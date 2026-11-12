@@ -36,7 +36,7 @@ GROEPEN = {"enkelvoudig": 10, "een_subagent": 5, "meer_subagents": 6, "vraag_omh
 VELDEN = {"route", "route_code", "subagents", "profielen", "tools_verplicht", "tools_verboden", "vraag_omhoog",
           "sjabloon", "bevestiging", "regisseur"}
 #: Tools die ADR-016 toevoegt en die er nu nog niet zijn (A1, A4, A5). Komt er een bij in het ADR, dan hier ook.
-NIEUW = {"subagent", "rapport", "regie_plan", "delegatie_stand", "beantwoord_kaart", "laad_skill", "lees_skill"}
+NIEUW = {"subagent", "rapport", "regie_plan", "delegatie_stand", "beantwoord_kaart", "laad_skill", "lees_skill", "meer_tools"}
 #: Geen tool maar een keten: verboden waar Lex vóór de poort van de jurist niet mag annoteren.
 KETENS = {"annoteer"}
 #: Routes in code die niet in de routeringsset staan: de getypte opdracht aan de regisseur (de ingang van de run, vóór
@@ -229,3 +229,24 @@ def test_de_andere_sets_worden_met_hun_eigen_scorers_gescoord():
     supervisor = scoor_gesprek({"id": "x", "set": "gesprek", "vorm": "supervisor", "run": 1,
                                 "beurten": [beurt("Een belastingaanslag is …", "duiding")]}, case)
     assert not supervisor["geslaagd"]
+
+
+BREED = _lees(EVAL / "golden_centrale_agent_breed.jsonl")
+
+
+@pytest.mark.parametrize("rij", BREED, ids=lambda r: r["id"])
+def test_de_aanvulling_meet_de_overdracht_naar_de_brede_toolset(rij):
+    """`golden_centrale_agent_breed.jsonl`: dezelfde vorm als de set, in een eigen groep naast de 30."""
+    assert rij["groep"] == "breed" and rij["id"] not in PER_ID
+    v = rij["verwacht"]
+    assert set(v) == VELDEN and v["route"] == "centraal" and v["subagents"] == [0, 0]
+    tools = {t["name"] for t in TOOLS + JAS_TOOLS} | set(SJABLONEN) | NIEUW
+    assert _namen(v["tools_verplicht"]) | _namen(v["tools_verboden"]) <= tools
+    assert ("meer_tools" in v["tools_verplicht"]) != ("meer_tools" in v["tools_verboden"]), "de overdracht hoort wel of juist niet"
+    assert rij["stoppunt"] == "einde" and rij["goed"].strip()
+    assert not SKILLVOORBEELD.search(rij["opdracht"])
+
+
+def test_de_aanvulling_heeft_een_controle_zonder_overdracht():
+    assert sum("meer_tools" in r["verwacht"]["tools_verboden"] for r in BREED) >= 1
+    assert sum("meer_tools" in r["verwacht"]["tools_verplicht"] for r in BREED) >= 2
