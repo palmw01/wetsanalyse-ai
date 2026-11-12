@@ -29,6 +29,10 @@ from ..wetsanalyse_api import WetsanalyseApiFout
 from . import Context, Uitkomst, geweigerd
 
 
+#: Wat deze agent doet, met wat er níét bij hoort (ADR-010 contractpunt 1; de catalogus toont het, ADR-014).
+DOEL = "Stelt begrippen voor, werkt één begrip uit (brondefinitie, scherper, uitleg, voorbeelden, betekenisverschil, relaties) en denkt mee bij twijfel; elk resultaat is een voorstel."
+
+
 class Taak(StrEnum):
     VOORSTELLEN = "voorstellen"
     MEEDENKEN = "meedenken"

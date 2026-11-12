@@ -13,6 +13,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+from bronmodel.catalogus import Stap
+
 from . import besluit as besluit_mod, definities, groeperen, patronen, signalen, taal as taal_mod
 from .model import (
     Aandacht, Besluit, Beslissing, Betekenisgroep, Kandidaat, Manifest, Onderzoek, Relatie, Taalanalyse, Vraag,
@@ -20,6 +22,15 @@ from .model import (
 from ..jas_pipeline.taal.provider import TaalProvider, maak_provider
 
 Melding = Callable[[str, str, int], None]
+
+#: De fasen in uitvoeringsvolgorde (ADR-014). Zonder model; het meedenken bij twijfel is een eigen laag erboven
+#: (`verdieping.py`, de taak `meedenken` van de begrippen-agent). `tests/test_catalogus.py` toetst dat elke
+#: `fase(...)` hieronder in deze lijst staat.
+FASEN: tuple[Stap, ...] = (
+    Stap("Taalanalyse", "geen", "regelset/begrippen.geen_begrip"),
+    Stap("Signalen", "geen", "regelset/begrippen.relaties"),
+    Stap("Groeperen", "geen"),
+)
 
 
 @dataclass(frozen=True)

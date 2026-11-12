@@ -67,6 +67,9 @@ STAPPEN = ("naam", "aanleiding", "context", "doel", "analysevraag", "praktijkvoo
 #: Alle stappen die een kaartje kan hebben: die van het samenstellen, en `thema` dat alleen bij het aanvullen
 #: voorkomt (na het praktijkvoorbeeld). De api (`IntakeStap`) en `IntakeActie.stap` volgen deze lijst.
 KAARTSTAPPEN = (*STAPPEN[:6], "thema", *STAPPEN[6:])
+#: De stappen waarin het model een voorstel doet (`stel_voor` voor naam, aanleiding, doel en analysevraag;
+#: `deelvragen.vraag_model` voor de deelvragen). De rest is een vaste lijst of vrije tekst. De catalogus toont het (ADR-014).
+MODEL_STAPPEN = frozenset({"naam", "aanleiding", "doel", "analysevraag", "deelvragen"})
 ANALYSEVRAAG = "_analysevraag"
 #: Een oud kaartje (van vóór 4 nov 2026) vraagt bij ‹ nog de stap `bepalingen`: die heet nu de gebeurtenis.
 BEPALINGEN_WAS = {"bepalingen": "gebeurtenis"}

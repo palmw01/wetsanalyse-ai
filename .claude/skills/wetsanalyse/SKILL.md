@@ -2,6 +2,11 @@
 name: wetsanalyse
 metadata:
   methode_versie: "2.1"
+  lex_soort: "methode"
+  lex_label: "Wetsanalyse: JAS met JRM 2-verrijking"
+  lex_herkomst: "Methode Wetsanalyse (Ausems, Bulles & Lokin) en het JAS (BZK); de bronnen staan in references/bronnen.md"
+  lex_licentie: "eigen tekst in deze repo; het boek en de BRM-readers alleen in eigen woorden"
+  lex_letterlijk: "nee"
 description: >-
   Analyseer Nederlandse wet- en regelgeving volgens JAS, met JRM 2-verrijking.
   Gebruik voor juridisch ontleden, markeren en classificeren van bepalingen en
