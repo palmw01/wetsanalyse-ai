@@ -22,7 +22,7 @@ import re
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
-Soort = Literal["methode", "rol", "regelset", "tool", "connector", "sjabloon", "workflow", "specialist", "agent",
+Soort = Literal["methode", "rol", "regelset", "tool", "connector", "sjabloon", "workflow", "agentprofiel", "agent",
                 "route", "controle"]
 
 #: De soorten in de volgorde van de werkplek.
@@ -48,7 +48,7 @@ CONCEPT: dict[str, str] = {
     "methode": "skill", "rol": "skill", "regelset": "skill",
     "tool": "tool", "connector": "tool", "sjabloon": "tool",
     "workflow": "workflow",
-    "specialist": "agent", "agent": "agent",
+    "agentprofiel": "agent", "agent": "agent",
     "route": "ingang",
     "controle": "hook",
 }

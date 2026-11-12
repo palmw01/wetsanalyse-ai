@@ -35,7 +35,7 @@ const INLINE = [
 ];
 const fixture = process.env.WERKWIJZE_FIXTURE ? JSON.parse(readFileSync(process.env.WERKWIJZE_FIXTURE, "utf8")) : null;
 const LIJST = fixture?.lijst ?? { soorten: ["methode", "rol", "regelset", "tool", "connector", "sjabloon", "workflow",
-  "specialist", "agent", "route", "controle"], onderdelen: INLINE };
+  "agentprofiel", "agent", "route", "controle"], onderdelen: INLINE };
 const detail = (id) => fixture?.detail?.[id] ?? { ...INLINE.find((x) => x.id === id),
   inhoud: id === "rol/duiding" ? { secties: [{ id: "duiding", skill: "wetsanalyse", bestand: ".claude/skills/wetsanalyse/references/agentrollen.md",
     bronnen: ["M01"], sha256: "x", tekst: "Oude methodetekst." }] } : id.startsWith("regelset/") ? { regels: [{ id: "jas.tijd.datum", code: "TEMPORAL_DATE", klassen: ["Tijdsaanduiding"],

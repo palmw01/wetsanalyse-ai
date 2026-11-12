@@ -171,6 +171,11 @@ Een profiel is wat een Claude Code-subagent ook is: een beschrijving, een instru
 | `sjablonen` | hoe hij afrondt | uit `SJABLONEN` |
 | `modelklasse` | `licht` of `zwaar`, verwijst naar de modelprofielen in het beheer | – |
 | `max_rondes`, `budget` | hoe lang en hoe duur | begrensd per profiel, en binnen het plafond van de opdracht (A5) |
+| `methoderol` | van welke methoderol hij de tekst uit de skill krijgt (toegevoegd bij A1) | alleen een rol die bestaat; standaard de rol met zijn eigen naam. `annotaties_lezen` en `begrippen_lezen` lenen `algemeen` |
+
+Bij A1 is ook de richting van de connectorkoppeling omgekeerd: het profiel noemt zijn connectors, en het veld
+`specialisten` op de connectorbeschrijving (ADR-013) is vervallen. De tools van een connector volgen uit die keuze; een
+profiel noemt ze niet met de hand.
 
 **Eén register, twee herkomsten:**
 

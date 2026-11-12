@@ -11,6 +11,7 @@ on:
       - "tools/graph-qa/**"
       - "packages/bronmodel/**"
       - ".claude/skills/wetsanalyse/**"
+      - ".claude/lex-agents/**"
       - "!tools/graph-qa/**/*.md"
       - ".github/workflows/graph-qa-docker-publish.yml"
   workflow_dispatch:

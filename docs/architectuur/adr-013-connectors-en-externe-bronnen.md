@@ -52,10 +52,16 @@ ADR-010. Dit ADR neemt de bediening van Claude over en houdt de garanties van he
 
 Elke bronconnector heeft één beschrijving in `packages/bronmodel/bronmodel/connectors.py`: naam, label, brontype, de
 groep in de bronnenlijst, wat hij dekt (voor de router en de scope), signalen om een vraag te herkennen, zijn tools en
-de tool die de citeerbare tekst draagt, de vorm van zijn id, de rollen die zijn tools krijgen, waar hij in een antwoord
-voor staat en wat hij niet kan. De keten leidt er alles uit af – toollaag, specialisten, de toegestane namen in api en
+de tool die de citeerbare tekst draagt, de vorm van zijn id, waar hij in een antwoord
+voor staat en wat hij niet kan. De keten leidt er alles uit af – toollaag, de toegestane namen in api en
 graph-qa, het register – en niets per connector met de hand. Een nieuwe connector is: een beschrijving, zijn tools in
-`agent/tools/` en een straatvlag `CONNECTOR_<NAAM>`. `tools/graph-qa/tests/test_connectorbeschrijving.py` maakt een
+`agent/tools/` en een straatvlag `CONNECTOR_<NAAM>`.
+
+**Herzien 12 nov 2026 (ADR-016 §B5).** Wie de tools van een connector krijgt, staat niet meer in de beschrijving (het
+veld `specialisten` is vervallen): het agentprofiel noemt zijn connectors (`.claude/lex-agents/<naam>.md`, veld
+`connectors`). Eén bron voor die koppeling, aan de kant waar de werkplaats haar kan wijzigen. Een nieuwe connector
+bereikt een agent dus pas als een profiel hem noemt; de bronkeuze per vraag, de aanwijzingen, de bronstand en de
+straatvlag zijn ongewijzigd. `tools/graph-qa/tests/test_connectorbeschrijving.py` maakt een
 onvolledige beschrijving rood.
 
 **In het antwoord** (vervolg op 1a, 8 nov 2026). Een bron naast de wet krijgt binnen ADR-008 een vaste vorm: het blok
@@ -72,7 +78,7 @@ de wettekst en vult nooit een `doel`.
 | scope | de supervisor kent elke bekende connector als binnen de wetgeving, ook uitgezet | `supervisor._scope_bronnen` |
 | routering | een vraag die alleen over een uitgezette bron gaat: een melding zonder model, met reden en wie hem aanzet; AFWIJZEN bij een bronvraag draait de code terug | `nodes/supervisie._bron_uit`, `bronstand` |
 | bronstand | per connector aan, of uit door `straat`, `gesprek`, `werkgebied`, `beheerder` of `register_onleesbaar` | `agent/bronstand.py` |
-| tools | de rollen uit `specialisten` krijgen de tools; `toegestane_tools` blijft het ene filter | `specialists._met_connectors` |
+| tools | het agentprofiel dat de connector noemt krijgt zijn tools; `toegestane_tools` blijft het ene filter | `profielen.tools_van` |
 | prompt | BRONSOORTEN generiek in het stabiele deel; BRONNEN IN DEZE BEURT na het cachepunt | `prompts.py`, `bronstand.prompt_blok` |
 | antwoord | het blok `extern` als subsjabloon en het sjabloon `antwoord_extern` | `sjablonen/extern.py` |
 | verificatie | een citaat uit een stuk moet letterlijk in de gelezen tekst staan; een stuk dat alleen gevonden is, is geen signaal (het zoekresultaat draagt label, soort, datum en titel; tot 10 nov 2026 telde het als `onbevestigd`), maar het komt pas in de bronnenlijst als het gelezen is | `grounding.check_grounding`, `grounding.alleen_gelezen_extern` |
