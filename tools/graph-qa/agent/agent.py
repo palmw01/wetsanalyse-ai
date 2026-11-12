@@ -30,6 +30,7 @@ from .models import Verbruiksmeter
 from .observability import get_tracer
 from .ports import GraphPort, LLMPort
 from .tools.annotatie_tools import is_leesvraag
+from .agentvorm import vorm_van
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +249,7 @@ async def answer_stream(
     bronnen: list[str] | None = None,
     bronnen_herkomst: str | None = None,
     beurtcontext_plek: str = "vraag",
+    agentvorm: str | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """
     Async generator die SSE-events yield:
@@ -322,6 +324,9 @@ async def answer_stream(
         "bronstand": bronstand_nu,
         # De meetvlag van ADR-015 (`ChatRequest.beurtcontext_plek`): waar de context van de beurt staat. Per beurt.
         "beurtcontext_plek": beurtcontext_plek,
+        # De agentvorm van deze beurt (ADR-016 §A7): de straat beslist of het verzoek mag kiezen.
+        "agentvorm": vorm_van(settings.centrale_agent, agentvorm),
+        "overdracht_naar": "",
         "bron_lezen": [],
         "bron_lijst": {},
         # Het dossier van dat werkgebied, per beurt vers uit de api: elke bewaarde wijziging telt meteen.

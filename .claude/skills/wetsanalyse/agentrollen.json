@@ -95,6 +95,12 @@
     "deelvragen": [
       "basis",
       "deelvragen"
+    ],
+    "agent": [
+      "basis",
+      "definitie",
+      "duiding",
+      "nl-sbb-taalniveau"
     ]
   }
 }

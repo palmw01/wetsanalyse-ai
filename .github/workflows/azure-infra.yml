@@ -364,6 +364,8 @@ jobs:
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--relatie-voorstellen)
           # Regels uit een methode-skill (ADR-014 §7, S6): een proefvlag, gemeten op acceptatie.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--skill-regels)
+          # De centrale agent (ADR-016 §A7): op acceptatie `meten`, zodat een meetrun hem per run kan vragen. Productie: uit.
+          [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--centrale-agent meten)
           # Voorstellen voor de methode als concept-PR (ADR-014 C7): alleen acceptatie, en alleen met de GitHub App.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--catalogus-voorstellen --github-repo "$GITHUB_REPOSITORY")
           # De GraphDB-MCP-proxy: standaard NIET, en net als de api-ingress alleen op acceptatie.
@@ -409,6 +411,8 @@ jobs:
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--relatie-voorstellen)
           # Regels uit een methode-skill (ADR-014 §7, S6): een proefvlag, gemeten op acceptatie.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--skill-regels)
+          # De centrale agent (ADR-016 §A7): op acceptatie `meten`, zodat een meetrun hem per run kan vragen. Productie: uit.
+          [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--centrale-agent meten)
           # Voorstellen voor de methode als concept-PR (ADR-014 C7): alleen acceptatie, en alleen met de GitHub App.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--catalogus-voorstellen --github-repo "$GITHUB_REPOSITORY")
           # De GraphDB-MCP-proxy: standaard NIET, en net als de api-ingress alleen op acceptatie.

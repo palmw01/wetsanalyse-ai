@@ -276,6 +276,7 @@ Secrets kunnen ook als `<NAAM>_FILE` (pad naar een bestand) worden gezet: `GRAPH
 | `GRAPHDB_REPOSITORY_ID` | `inning` | Repository. |
 | `GRAPHDB_SPARQL_TOOL` | `sparql_query` | Naam van de SPARQL-tool op de MCP-server. |
 | `SIMILARITY_INDEX` | leeg | GraphDB-similarity-index voor `semantic_search` (op Azure `bwb_similarity`). Leeg → de tool degradeert naar `search_wetgeving`. Zie [`docs/embeddings-runbook.md`](docs/embeddings-runbook.md). |
+| `CENTRALE_AGENT` | `uit` | De centrale agent (ADR-016 §A7): `uit` (de supervisor; een verzoek per run wordt genegeerd), `meten` (de supervisor, tenzij een run met `agentvorm: "centraal"` erom vraagt) of `aan` (de centrale agent, tenzij een run om `supervisor` vraagt). Alleen op acceptatie anders dan `uit`. |
 | `CONNECTOR_KAMERSTUKKEN` | `false` | De bronconnector Kamerstukken (ADR-013): `zoek_kamerstukken` en `get_kamerstuk` op de officiële publicaties van KOOP. Uit = niet aangeboden. |
 | `CONNECTOR_BEKENDMAKINGEN` | `false` | De bronconnector Staatsblad en Staatscourant (ADR-013, fase 1d): `zoek_bekendmakingen` en `get_bekendmaking`, op de SRU van KOOP. Uit = niet aangeboden. |
 | `CONNECTOR_RECHTSPRAAK` | `false` | De bronconnector Rechtspraak (ADR-013, fase 1c): `zoek_uitspraken` (uitspraken die een artikel noemen, uit Linked Data Overheid) en `get_uitspraak` (de tekst, uit de open data van de Rechtspraak). Uit = niet aangeboden. |
