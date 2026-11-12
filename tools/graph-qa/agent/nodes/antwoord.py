@@ -531,6 +531,11 @@ def _tool_result(tu: dict[str, Any], tekst: str) -> dict[str, Any]:
     return {"type": "tool_result", "tool_use_id": tu["id"], "content": tekst, **({"is_error": True} if fout else {})}
 
 
+#: Wat het model ziet als het een tool aanroept die niet bij het profiel van de centrale agent hoort.
+BUITEN_PROFIEL = json.dumps({"status": "unavailable", "volledig": False, "reden": "tool_buiten_profiel",
+                             "aanwijzing": "Deze tool heb je nu niet. Roep eerst meer_tools aan."}, ensure_ascii=False)
+
+
 def tools_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     # Een sjabloon naast graaftools (`agent_node` zet hem achteraan): eerst de graaftools, dan het sjabloon met wat ze
@@ -546,10 +551,18 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
     _stap(writer, "Lex", "; ".join(_toolregel(t) for t in uit_te_voeren) or "gebruikt wat er al is opgehaald")
     trace = list(state.get("source_trace", []))
     results = []
+    agent = agent_voor("retrieval" if state.get("specialist") == "annotatie" else state.get("specialist"))
     for tu in pending:
         sleutel = _sleutel(tu)
         if sleutel in gedaan:
             results.append(_tool_result(tu, gedaan[sleutel].removesuffix(HERHAALD) + HERHAALD))
+            continue
+        if not agent.mag(tu["name"]):
+            # De centrale agent riep een tool aan die niet bij zijn profiel hoort (ADR-016 §A1): niet uitvoeren, wel
+            # zeggen hoe het wel kan. Het resultaat is geen bron en komt niet in het spoor.
+            logger.info("tool buiten profiel", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
+                                                      "profiel": agent.naam, "tool": tu["name"]})
+            results.append(_tool_result(tu, BUITEN_PROFIEL))
             continue
         result_text = execute_tool(b, state, writer, tu, van_model=True)
         gedaan[sleutel] = result_text

@@ -26,6 +26,7 @@ SYSTEEM = "systeem"
 METHODE = "methode"
 GRAAFTOOLS = "graaftools"
 CONNECTORTOOLS = "connectortools"
+AGENTTOOLS = "agenttools"
 SJABLONEN = "sjablonen"
 BEURTCONTEXT = "beurtcontext"
 OPDRACHT = "opdracht"
@@ -39,6 +40,8 @@ CATEGORIEEN: tuple[Categorie, ...] = (
     Categorie(METHODE, "de specialist- of rolprompt met de methodetekst", voorvoegsel=True),
     Categorie(GRAAFTOOLS, "de schema's van de tools uit het toolregister", voorvoegsel=True),
     Categorie(CONNECTORTOOLS, "de tools van aangezette bronconnectors (ADR-013)", voorvoegsel=True),
+    Categorie(AGENTTOOLS, "de eigen tools van de agent: de overdracht aan een route of een profiel (ADR-016)",
+              voorvoegsel=True),
     Categorie(SJABLONEN, "de sjabloontools (ADR-008)", voorvoegsel=True),
     Categorie(BEURTCONTEXT, "plan, gesprekscontext, werkgebied of dossier, bronstand, afrondregel"),
     Categorie(OPDRACHT, "bij een subagent: de opdracht van de centrale agent (ADR-016)"),
@@ -61,6 +64,10 @@ def tool_categorie(naam: str) -> str:
     from .sjablonen import SJABLONEN as sjabloonregister
     from .tools import _BY_NAME, CONNECTOR_TOOLS
 
+    from .overdracht import OVERDRACHT
+
+    if naam in OVERDRACHT:
+        return AGENTTOOLS
     if naam in CONNECTOR_TOOLS:
         return CONNECTORTOOLS
     if naam in sjabloonregister:

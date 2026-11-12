@@ -45,7 +45,7 @@ VOORHEEN = {
 KOOS = {"definitie", "duiding", "algemeen"}
 #: Profielen die er na het register bij kwamen. Ze raken de specialisten van voorheen niet: `centraal` draait alleen
 #: achter de vlag `CENTRALE_AGENT` (`tests/test_centrale_agent.py`).
-NIEUW = {"centraal"}
+NIEUW = {"centraal", "centraal_breed"}
 
 
 # --- bitgelijk ---------------------------------------------------------------------------------------------------

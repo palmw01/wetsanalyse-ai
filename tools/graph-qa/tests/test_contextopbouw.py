@@ -79,10 +79,10 @@ def _beurt() -> list[dict]:
 # ── Stap 1: het register en de indeling ──────────────────────────────────────────────────────────────────────────────
 
 def test_het_register_heeft_elke_categorie_een_keer_in_vaste_volgorde():
-    assert delen.IDS == ("systeem", "methode", "graaftools", "connectortools", "sjablonen", "beurtcontext", "opdracht",
+    assert delen.IDS == ("systeem", "methode", "graaftools", "connectortools", "agenttools", "sjablonen", "beurtcontext", "opdracht",
                          "historie", "beurt", "toolresultaten", "overig")
     assert len(set(delen.IDS)) == len(delen.IDS)
-    assert delen.VOORVOEGSEL == {"systeem", "methode", "graaftools", "connectortools", "sjablonen"}
+    assert delen.VOORVOEGSEL == {"systeem", "methode", "graaftools", "connectortools", "agenttools", "sjablonen"}
     assert all(c.omschrijving for c in delen.CATEGORIEEN)
 
 
