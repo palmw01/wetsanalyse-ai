@@ -125,7 +125,11 @@ try {
   await menu.waitFor();
   await veld.fill("/nieuw");
   await veld.press("Enter");
-  await page.getByText("Stel deelvragen voor", { exact: true }).waitFor({ state: "detached" });
+  // Het vorige gesprek is weg: geen antwoord van Lex meer in de thread. (De tekst "Stel deelvragen voor" blijft wel: in een
+  // leeg gesprek in het werkgebied staat die weer als suggestie.)
+  await page.getByText("Goed.").first().waitFor({ state: "detached" });
+  assert.equal(await page.getByText("Goed.").count(), 0, "het nieuwe gesprek is leeg");
+  await page.getByTestId("vraag-suggesties").locator('[data-actie="deelvragen_voorstellen"]').waitFor();
   assert.equal(runs.length, 2, "/nieuw is geen beurt");
   assert.equal(new URL(page.url()).searchParams.get("werkgebied"), "wg1", "het nieuwe gesprek blijft in het werkgebied");
 
