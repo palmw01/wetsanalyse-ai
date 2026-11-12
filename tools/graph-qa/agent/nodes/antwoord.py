@@ -14,6 +14,7 @@ import json
 import logging
 from collections import Counter
 from typing import Any
+from uuid import uuid4
 
 from bronmodel.antwoord import NIET_GETOETST, Antwoord, antwoord_tekst
 from bronmodel.connectors import CONNECTORS
@@ -26,11 +27,13 @@ from ..focus import na_antwoord
 from ..grounding import alleen_gelezen_extern, check_grounding, curate_sources, herstel_citaten, live_niet_letterlijk
 from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk
 from ..overzicht import bronrijen as overzicht_bronrijen
-from ..sjablonen import EXTERN, SJABLONEN, sjabloon_schemas, sjabloon_uit_tekst
+from ..sjablonen import EXTERN, SJABLONEN, Onvulbaar, sjabloon_schemas, sjabloon_uit_tekst
+from ..sjablonen import vul as sjabloon_vul
+from ..sjablonen.extern import MAX_LIJST
 from .overzicht import TOOL as OVERZICHT_TOOL
 from .sjabloon import vul_aanroep
 from ..prompts import SYSTEM_PROMPT
-from ..provenance import collect_sources
+from ..provenance import alleen_genoemde_overzichten, collect_sources
 from ..regelingnamen import met_regelingnamen
 from ..resultaat import is_fout
 from ..specialists import DEFAULT as DEFAULT_SPECIALIST
@@ -200,7 +203,25 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     upd.update(telling)
     gevonden = _gevonden_zonder_sjabloon(b, state) if not tool_uses and sjablonen else {}
     tekst = "\n\n".join(p for p in text_parts if p)
-    if gevonden and heeft_lijst(tekst):
+    lijst = bool(gevonden) and heeft_lijst(tekst)
+    if lijst and (omzetting := lijst_omzetten(tekst, gevonden, sjablonen, controletrace(state))) is not None:
+        # Een lijst gevonden stukken in tekst zet de code zelf om naar het sjabloon: de stukken die de lijst noemt, met
+        # de rest van de tekst als kort antwoord. Het herhaalverzoek kostte de hele context opnieuw en zette er soms
+        # stukken bij die niet gevraagd waren (iteratie wetgeving_live ronde 5: I01 en I14 elk een ronde van ~25k, I12
+        # 25 paragrafen en twee weigeringen, 213k).
+        soort, aanroep = omzetting
+        logger.info("lijst in tekst", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
+                                             "specialist": spec_naam, "uitkomst": soort,
+                                             "stukken": len((aanroep or {}).get("input", {}).get("stukken") or [])})
+        if aanroep is not None:
+            upd["messages"] = [{"role": "assistant", "content": [
+                {"type": "tool_use", "id": aanroep["id"], "name": aanroep["name"], "input": aanroep["input"]}]}]
+            upd["pending_tools"] = [aanroep]
+            upd.update(tel_sjabloon({**state, **upd}, "omgezet"))
+            return upd
+        lijst = False  # een opbouw: de tekst is het antwoord
+        upd.update(tel_sjabloon({**state, **upd}, "lijst_aangenomen"))
+    if lijst:
         # Eén keer per beurt: een lijst gevonden stukken in tekst mist de links, de zoekvraag en het totaal uit de code.
         # Alleen bij een lijst: tekst zonder lijst is een geldig antwoord, en een tweede ronde kostte de hele context
         # opnieuw. Het verzoek noemt de stukken die de lijst noemt, zodat er geen lijst bij komt die niet gevraagd is
@@ -214,7 +235,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         upd.update(sjabloon_gevraagd=True, sjabloon_nu=True, **tel_sjabloon({**state, **upd}, "gevraagd"))
         return upd
     if not tool_uses:
-        if gevonden:
+        if gevonden and not (upd.get("sjabloon_telling") or {}).get("lijst_aangenomen"):
             logger.info("tekst zonder lijst aangenomen", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
                                                                 "specialist": spec_naam, "zoektools": sorted(gevonden)})
             upd.update(tel_sjabloon({**state, **upd}, "tekst_zonder_lijst"))
@@ -265,7 +286,8 @@ AFRONDEN_EXTERN = (
     "opbouw gaat. Dit gaat voor 'antwoord in tekst' hierboven. Gaat de vraag alleen over zo'n bron, gebruik dan "
     "{extern} en zet je uitleg in kort_antwoord. Vul 'stukken' alleen als de vraag om een lijst stukken vraagt (welke, "
     "de nieuwste, alle …); bij een telling, een opbouw of een uitleg blijft 'stukken' leeg en noem je het totaal in je "
-    "eigen woorden.")
+    "eigen woorden. Heb je dan ook geen passage aan te wijzen, antwoord dan in tekst: een sjabloon zonder stuk en "
+    "zonder passage is niet te vullen.")
 
 #: Wat de agent hoort als hij na een vondst van een bronconnector een lijst in tekst schreef (`_gevonden_zonder_sjabloon`).
 SJABLOON_GEVRAAGD = ("Je antwoordde met een lijst in tekst, terwijl deze beurt stukken vond of las met {tools}. Roep het "
@@ -305,6 +327,42 @@ def genoemde_stukken(tekst: str, gevonden: dict[str, list[tuple[str, str]]]) -> 
                     uit.append(ident)
                     break
     return uit
+
+
+def zonder_lijstregels(tekst: str, genoemd: list[str], gevonden: dict[str, list[tuple[str, str]]]) -> str:
+    """De tekst zonder de regels van de lijst die een genoemd stuk noemen; een tabel met zo'n rij gaat er helemaal uit.
+    Wat overblijft is de uitleg eromheen."""
+    namen = {ident: label for paren in gevonden.values() for ident, label in paren if ident in genoemd}
+    def noemt(regel: str) -> bool:
+        return bool(genoemde_stukken(regel, {"": [(i, l) for i, l in namen.items()]}))
+    regels = (tekst or "").splitlines()
+    tabel = any(r.strip().startswith("|") and noemt(r) for r in regels)
+    uit = [r for r in regels if not (_LIJSTREGEL.match(r) and (noemt(r) or (tabel and r.strip().startswith("|"))))]
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(uit)).strip()
+
+
+def lijst_omzetten(tekst: str, gevonden: dict[str, list[tuple[str, str]]], sjablonen: frozenset[str] | set[str],
+                   trace: Any) -> tuple[str, dict[str, Any] | None] | None:
+    """Een lijst in tekst na een vondst van een connector, zonder modelronde afgehandeld:
+    - ("omgezet", aanroep): de stukken die de lijst noemt in het sjabloon `antwoord_extern`, met de rest als kort antwoord;
+    - ("aangenomen", None): de lijst noemt meer stukken dan één blok draagt (`MAX_LIJST`; een opbouw, I12): de tekst is
+      het antwoord;
+    - None: de lijst noemt geen gevonden stuk bij id of label (een tabel met alleen nummers, B03), of het sjabloon is
+      niet te vullen; dan het herhaalverzoek."""
+    if EXTERN not in sjablonen:
+        return None
+    genoemd = genoemde_stukken(tekst, gevonden)
+    if not genoemd:
+        return None
+    if len(genoemd) > MAX_LIJST:
+        return ("aangenomen", None)
+    kort = zonder_lijstregels(tekst, genoemd, gevonden)
+    invoer = {"kort_antwoord": kort, "extern": [], "stukken": genoemd, "twijfel": []}
+    try:
+        sjabloon_vul(EXTERN, invoer, trace)
+    except Onvulbaar:
+        return None
+    return ("omgezet", {"id": f"omgezet_{uuid4().hex[:12]}", "name": EXTERN, "input": invoer})
 
 
 def _stukken_in(data: dict[str, Any]) -> list[tuple[str, str]]:
@@ -585,7 +643,10 @@ _INTERN = re.compile(
     r"|(?:ik\s+geef|geef\s+ik)\s+(?:de|het|mijn|deze)\s+\w+\s+(?:daarom\s+|dus\s+|hier\s+)?in\s+(?:gewone\s+|vrije\s+)?tekst"
     r"|(?:de\s+)?code\s+herkent\s+(?:ze|het|dit|deze)\b"
     # Een tool als vertelstem (ronde 4, I20: "De tool meldt uitdrukkelijk dat …"): de jurist kent geen tools, alleen bronnen.
-    r"|(?:de|deze|die|een|mijn)\s+(?:zoek|lees)?tools?\b)\b",
+    r"|(?:de|deze|die|een|mijn)\s+(?:zoek|lees)?tools?\b"
+    # Een grens van de code als reden (ronde 5, I12: "kon vanwege de limiet van 25 stukken per bron niet volledig worden
+    # opgenomen in de stukkenlijst"): de jurist ziet de lijst, niet de grens van het blok.
+    r"|(?:de\s+)?limiet\s+van\s+\d+|stukkenlijst\w*)\b",
     re.IGNORECASE)
 _ZIN = re.compile(r"[^.!?\n]*[.!?]?[ \t]*")
 
@@ -708,7 +769,7 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
         sources = alleen_gelezen_extern(sources, controletrace(state), state.get("answer", ""),
                                         state.get("question", ""), geciteerd)
     # Na het cureren: alleen de namen van regelingen die in de lijst blijven (één query per beurt).
-    sources = met_regelingnamen(b.graph, sources)
+    sources = alleen_genoemde_overzichten(met_regelingnamen(b.graph, sources), state.get("answer", ""))
     src_dicts = [s.model_dump() for s in sources]
     _stap(writer, "Klaar", f"{len(src_dicts)} bron" + ("nen" if len(src_dicts) != 1 else ""))
     writer({"type": "sources", "sources": src_dicts})

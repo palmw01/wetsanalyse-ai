@@ -115,9 +115,20 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   - schrijft het model toch tekst, dan komt het herhaalverzoek (`sjabloon_gevraagd`, één keer per beurt, `State.sjabloon_gevraagd`/
     `sjabloon_nu`) alleen bij een opsomming of tabel (`heeft_lijst`; ronde 2, B22: een tabel met zelf afgeleide nummers), en het
     noemt de stukken die die lijst noemt (`genoemde_stukken`), zodat er geen lijst bij komt die niet gevraagd is (I13, I30);
-  - tekst zonder lijst is het antwoord, zonder tweede ronde.
+  - tekst zonder lijst is het antwoord, zonder tweede ronde;
+  - **een lijst die gevonden stukken noemt, zet de code zelf om** (`lijst_omzetten`, ronde 6; ronde 5 mat dat AFRONDEN_EXTERN
+    het model bij een lijstvraag niet van tekst afhoudt: I01, I14 elk een herhaalverzoek, I12 25 paragrafen en twee
+    weigeringen, 213k): de stukken die de lijst bij id of label noemt in het blok `stukken` van `antwoord_extern`, de rest
+    van de tekst als kort antwoord (`zonder_lijstregels`), zonder modelronde (telling `omgezet`). Meer genoemd dan één blok
+    draagt (`MAX_LIJST`, een opbouw): de tekst is het antwoord (`lijst_aangenomen`). Het herhaalverzoek blijft alleen als
+    de lijst geen gevonden stuk noemt (een tabel met kale nummers, B03), er naast de lijst geen uitleg staat, of het
+    sjabloon niet te vullen is.
+  - **na een tweede weigering in dezelfde beurt** vraagt `vul_aanroep` geen derde poging maar tekst (`TEKST_NU`; ronde 5: I12
+    en L-R1 tot negen rondes), behalve als de code bij die weigering iets ophaalde; na een weigering komt geen herhaalverzoek
+    meer (`sjabloon_gevraagd`). AFRONDEN_EXTERN zegt: zonder stuk en zonder passage antwoord je in tekst (I30, I13: een lege
+    aanroep weigerde `extern.vul`).
   Wat er per beurt met de sjablonen gebeurde, telt `beurtmeting.tel_sjabloon` (`State.sjabloon_telling` → `Verbruiksmeter.sjabloon`
-  → het veld `sjabloon` van het `meting`-event): `gevraagd`, `tekst_zonder_lijst`, `gemist`, `als_tekst`, `uitgesteld`, `tekst_ernaast` (tekens), en per sjabloon `gevuld`
+  → het veld `sjabloon` van het `meting`-event): `gevraagd`, `omgezet`, `lijst_aangenomen`, `tekst_zonder_lijst`, `gemist`, `als_tekst`, `uitgesteld`, `tekst_ernaast` (tekens), en per sjabloon `gevuld`
   en `geweigerd` (`<sjabloon>:<redencode>`, de functie die `Onvulbaar` gooide, `nodes/sjabloon.redencode`). Geen inhoud.
   Alleen de sjabloontools zijn `strict`, en ze staan niet in `TOOLS`. Per specialist: `Specialist.sjablonen`.
   `antwoord_duiding` (uitleg): het model wijst per passage de bepaling en de eerste en laatste woorden aan (`van`/`tot`,
@@ -459,7 +470,7 @@ bruikbaar is.
   blijft (`curate_sources`, `alleen_gelezen_extern`), en "Zoek …"/"Vind …" is een lijstvraag. **Na ronde 3** (gedeeld): een regeling die alleen
   in een zoekresultaat staat (de zoektools uit `spoorbronnen`), is geen bron, een bepaling met tekst uit een zoektool wel, en
   een lijst regelingen ook (`provenance._zoektools`, `REGELINGTOOLS`); een stuk in een foutresultaat houdt zijn label (`_labels`); een artikel met boeknummer
-  (`boek=6&…&artikel=162`) telt als "6:162" (`grounding._BOEK_ARTIKEL`); de grens van het blok `stukken` geldt per bron. Een stuk van een connector is alleen een bron als het gelezen is,
+  (`boek=6&…&artikel=162`) telt als "6:162" (`grounding._BOEK_ARTIKEL`); de grens van het blok `stukken` geldt per bron. Een regeling uit een tool die regelingen opsomt (`REGELINGTOOLS`) is na het cureren alleen een bron als het antwoord haar bij naam, afkorting of BWB-id noemt (`provenance.alleen_genoemde_overzichten`, in `finalize_node` na `met_regelingnamen`; wetgeving_live ronde 5, I20: zeven regelingen van `list_regelingen`). Een stuk van een connector is alleen een bron als het gelezen is,
   niet omdat een gelezen stuk het noemt (een voetnoot, `alleen_gelezen_extern`; Staatsblad B12); de titel van een regeling buiten
   de graaf komt uit de nieuwste toestand (`nieuwste_titel`; wetgeving_live I02). Een lijst uit meer zoekvragen toont per zoekvraag een zin met haar
   totaal (`extern._per_zoekvraag`), en het blok draagt dan geen totaal (Kamerstukken K17). **Na ronde 4** (K16): `bron_onbereikbaar`

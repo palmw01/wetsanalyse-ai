@@ -19,6 +19,7 @@ dat zijn predicaten, geen vindplaatsen.
 from __future__ import annotations
 
 import re
+from typing import Any
 from collections.abc import Iterable, Iterator
 
 from bronmodel.connectors import CONNECTORS
@@ -146,6 +147,21 @@ def _met_titel(label: str, uit_tool: str) -> str:
 
 #: De tools die regelingen opsommen in plaats van bepalingen te zoeken.
 REGELINGTOOLS = frozenset({"list_regelingen", "zoek_regelingen"})
+
+
+def alleen_genoemde_overzichten(sources: list[Any], tekst: str) -> list[Any]:
+    """Een regeling uit een tool die regelingen opsomt (`REGELINGTOOLS`) is alleen een bron als het antwoord haar noemt:
+    bij naam, afkorting of BWB-id. Een overzicht is geen lezing (wetgeving_live ronde 5, I20: de zeven regelingen van
+    `list_regelingen` in de bronnenlijst van een antwoord over een andere wet). "Welke regelingen zitten erin?" noemt ze,
+    en daar blijven ze staan. Na `met_regelingnamen`: dan draagt de bron haar naam en afkortingen."""
+    laag = (tekst or "").lower()
+
+    def genoemd(naam: str) -> bool:
+        return bool(naam) and re.search(rf"(?<!\w){re.escape(naam.lower())}(?!\w)", laag) is not None
+
+    return [s for s in sources if not (getattr(s, "origin_tool", "") in REGELINGTOOLS and getattr(s, "soort", "") == "regeling"
+                                       and not any(genoemd(n) for n in (s.regeling or "", s.bwb_id or "", s.label or "",
+                                                                        *(s.afkortingen or []))))]
 
 
 def _zoektools() -> frozenset[str]:
