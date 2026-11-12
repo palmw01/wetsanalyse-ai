@@ -70,7 +70,10 @@ inhoud. Hij voedt de panelen *Wachttijd per beurtsoort* en
 boekhouding blijft het verbruiksjournaal van de api. De batchruns van `begrippen_verdieping` zijn geen beurt en
 vallen erbuiten. Welke stap traag was, staat in de spans `graph_qa.node.<naam>`. Dezelfde cijfers gaan als
 `meting`-event vlak vóór `done` naar wie de run volgt, met daarbij per modelaanroep `invoer`, `uitvoer`,
-`cache_lees`, `cache_schrijf` en `ms`. Zo is één beurt te meten zonder toegang tot Application Insights, bijvoorbeeld
+`cache_lees`, `cache_schrijf` en `ms`, en de opbouw van het verzoek (`agent/verzoekopbouw.py`): `tools_tekens`,
+`tools_aantal`, `tools_hash`, `system_stabiel_tekens`, `system_hash`, `system_variabel_tekens`, `historie_tekens`,
+`beurt_tekens` en `berichten`. Dat zijn tellingen en vingerafdrukken van twaalf tekens, geen inhoud. De logregel
+`model_aanroep` draagt dezelfde velden. Zo is één beurt te meten zonder toegang tot Application Insights, bijvoorbeeld
 met de acceptatie-MCP (`lex_wacht` geeft het event door).
 
 **`venster`** (zelfde logger `graph_qa.beurt`, E6-C1) is één regel per beurt uit `agent_node`, bij de eerste
