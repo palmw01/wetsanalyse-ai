@@ -40,7 +40,13 @@ _INHOUD_RE = re.compile(r"\b(?:staat\s+er|zegt|zeggen|samenvat\w*|inhoud|uitleg|
 #: "Geef alle …": een volle pagina, niet de standaard tien (meting Rechtspraak ronde 2, R23: 10 van de 11).
 _ALLE_RE = re.compile(r"\balle\b", re.IGNORECASE)
 _BEGRIP_RE = re.compile(r"^\s*wat\s+(?:is|zijn|was|waren)\b", re.IGNORECASE)
-_DOSSIER_RE = re.compile(r"\b(?:dossier(?:nummer)?|kamerstukdossier|kamerdossier)\s+(?P<d>\d{4,6}(?:[- ](?:[IVXLC]{1,6}|[A-Z]))?)\b",
+#: Een dossier met zijn woord ("dossier 33755"), of een kaal nummer van vijf cijfers na "bij", "in", "uit" of "van"
+#: ("Hoeveel amendementen zijn er bij 36602?", Kamerstukken ronde 6, K10: zonder het woord ging de telvraag naar het model).
+#: Vijf cijfers, want een jaartal heeft er vier; alleen met een streepje een subdossier ("36200-IX"). Het geldt alleen voor
+#: een connector met een dossierfilter (`_arg(c, "reeks")`); bij een andere blijft het nummer over en is het geen lijstvraag.
+_DOSSIER_RE = re.compile(r"\b(?:(?:dossier(?:nummer)?|kamerstukdossier|kamerdossier)\s+(?P<d>\d{4,6}(?:[- ](?:[IVXLC]{1,6}|[A-Z]))?)"
+                         r"|(?<=\b(?:bij|uit|van) )(?:het\s+)?(?P<k>\d{5}(?:-(?:[IVXLC]{1,6}|[A-Z]))?)"
+                         r"|(?<=\bin )(?P<i>\d{5}(?:-(?:[IVXLC]{1,6}|[A-Z]))?))\b",
                          re.IGNORECASE)
 _JAAR = r"(?:19|20)\d{2}"
 #: Een periode: "uit 2023 en 2024", "2023-2024", "tussen 2020 en 2022", "van 2020 tot en met 2022". Vóór de losse jaren,
@@ -167,7 +173,7 @@ def lees(vraag: str, aan: frozenset[str],
     # de pagina: relevantie bij woorden of tekst, een dossier op nummer, anders de nieuwste. Dan moet er wel een filter
     # zijn.
     if (d := _DOSSIER_RE.search(tekst)) and (arg := _arg(c, "reeks")):
-        args[arg] = re.sub(r"\s+", "-", d.group("d")).upper()
+        args[arg] = re.sub(r"\s+", "-", d.group("d") or d.group("k") or d.group("i")).upper()
         rest = rest.replace(d.group(0), " ")
     for label, patroon in c.soorten:
         if (s := re.search(patroon, rest, re.IGNORECASE)) and (arg := _arg(c, "soort")):

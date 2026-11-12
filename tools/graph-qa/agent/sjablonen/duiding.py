@@ -142,8 +142,9 @@ def _citaat(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace
                           "die de uitleg draagt")
         else:
             aangewezen = " … ".join(_kort(x) for x in (van, tot) if x)
-            fouten.append(f"„{aangewezen}” staat niet in {vindplaats_van(iri).label}. Geef de eerste en de laatste woorden van "
-                          "een passage uit één lid of onderdeel, letterlijk, en wijs de bepaling aan waar ze staan")
+            fouten.append(f"„{aangewezen}” staat niet in {vindplaats_van(iri).label}. "
+                          + _waar_wel(van, tot, onder, rijen) + " Geef de eerste en de laatste woorden van een passage uit "
+                          "één lid of onderdeel, letterlijk, en wijs de bepaling aan waar ze staan")
         return None
     # De vindplaats is de diepste node met deze tekst. Staat de passage in meer leden, dan klopt alleen wat het model aanwees.
     plekken = {plek for plek, _ in treffers.values()}
@@ -154,6 +155,28 @@ def _citaat(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace
     return Citaat(tekst=tekst, waarom=_lex(stuk.get("waarom"), trace),
                   vindplaats=vindplaats_van(plek, jci=met_toestand(rij.get("jci", ""), toestanden(trace)), regeling=rij.get("citeertitel", ""),
                                             label=rij.get("inLabel") or rij.get("label", "")))
+
+
+def _waar_wel(van: str, tot: str, onder: dict[str, tuple[str, dict[str, Any]]], rijen: dict[str, dict[str, Any]]) -> str:
+    """Wat de weigering erbij zegt om de tweede poging te laten slagen (wetgeving_live ronde 6, I28 en L-R1: twee weigeringen
+    van een passage, daarna tekst zonder de vorm van de duiding): waar `van` en `tot` wél staan, of hoe de aangewezen
+    tekst begint. Alleen wat in de opgehaalde rijen staat, nooit een raad."""
+    def staat(anker: str, tekst: str) -> bool:
+        return bool(anker) and bool(_ankers(anker, _normaliseer(tekst)))
+
+    eigen = [(k, r) for k, (_, r) in onder.items()]
+    if van and any(staat(van, r["tekst"]) for _, r in eigen):
+        plek = next(k for k, r in eigen if staat(van, r["tekst"]))
+        if tot and staat(tot, rijen[plek]["tekst"]):
+            return (f"„{_kort(van)}” en „{_kort(tot)}” staan allebei in {vindplaats_van(plek).label}, maar „{_kort(tot)}” "
+                    "niet ná „" + _kort(van) + "”: draai ze om of kies het einde uit dezelfde zin.")
+        return (f"„{_kort(van)}” staat in {vindplaats_van(plek).label}, „{_kort(tot)}” daar niet: kies het einde uit "
+                "hetzelfde lid of onderdeel.")
+    elders = [k for k, r in rijen.items() if k not in onder and van and staat(van, r.get("tekst", ""))]
+    if len(elders) == 1:
+        return f"„{_kort(van)}” staat wel in {vindplaats_van(elders[0]).label} ({elders[0]}): wijs die bepaling aan."
+    begin = [f"{vindplaats_van(k).label}: „{_kort(_normaliseer(r['tekst']))}”" for k, r in eigen[:3]]
+    return ("Zo begint de tekst die je aanwees: " + "; ".join(begin) + ".") if begin else ""
 
 
 def _live_van(bepaling: str, trace: Trace) -> list[str]:

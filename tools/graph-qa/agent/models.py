@@ -517,18 +517,19 @@ class Verbruiksmeter:
         self.calls = 0
         # Per modelaanroep wat hij kostte en duurde, in volgorde van terugkomst (`beurtmeting`). Begrensd: een
         # beurt met meer aanroepen is zelf het signaal, en de som staat hierboven toch compleet.
-        self.aanroepen: list[dict[str, int]] = []
+        # Met de opbouw van het verzoek erbij (`verzoekopbouw.opbouw`): tekens en vingerafdrukken, geen inhoud.
+        self.aanroepen: list[dict[str, Any]] = []
         # Wat er met de sjablonen gebeurde (`beurtmeting.tel_sjabloon`), uit de state; zoals `route`.
         self.sjabloon: dict[str, Any] = {}
 
-    def tel_response(self, resp: Any, ms: int | None = None) -> None:
+    def tel_response(self, resp: Any, ms: int | None = None, opbouw: dict[str, Any] | None = None) -> None:
         """Neem het `usage`-blok van één antwoord op. Zonder usage (of bij een fake) telt het niets.
 
-        `ms` is hoe lang de aanroep duurde, als de adapter het weet."""
+        `ms` is hoe lang de aanroep duurde, als de adapter het weet; `opbouw` waaruit het verzoek bestond."""
         u = getattr(resp, "usage", None)
         if u is None:
             return
-        aanroep = {
+        aanroep: dict[str, Any] = {
             "invoer": int(getattr(u, "input_tokens", 0) or 0),
             "uitvoer": int(getattr(u, "output_tokens", 0) or 0),
             "cache_lees": int(getattr(u, "cache_read_input_tokens", 0) or 0),
@@ -536,6 +537,8 @@ class Verbruiksmeter:
         }
         if ms is not None:
             aanroep["ms"] = int(ms)
+        if opbouw:
+            aanroep.update(opbouw)
         with self._lock:
             self.calls += 1
             self.invoer += aanroep["invoer"]

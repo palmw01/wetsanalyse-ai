@@ -95,7 +95,7 @@ describe("een object stuurt alleen soort en id's", () => {
     const k: Onderwerp = { soort: "bepaling", bron_iri: "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k", label: "Artikel 2, lid 1, onderdeel k" };
     expect(verzoekVan(k)).toEqual({ onderwerp: { soort: "bepaling", bron_iri: k.bron_iri, label: k.label } });
     const [annoteer, ...rest] = suggestiesVan(k);
-    expect(annoteer).toEqual({ tekst: "Annoteer dit onderdeel", doel: { bron_iri: k.bron_iri, bwbId: "BWBR0004770" } });
+    expect(annoteer).toMatchObject({ tekst: "Annoteer dit onderdeel", doel: { bron_iri: k.bron_iri, bwbId: "BWBR0004770" } });
     expect(rest.every((x) => !x.actie && !x.doel)).toBe(true);
     expect(suggestiesVan({ ...k, annotatie: true })[0]).toMatchObject({ tekst: "Annoteer dit onderdeel opnieuw", hergebruik: "opnieuw" });
     const stuk: Onderwerp = { soort: "stuk", connector: "kamerstukken", stuk_id: "kst-32140-342", label: "Kamerstuk 32140, nr. 342" };
@@ -163,7 +163,7 @@ describe("buiten de werkplek", () => {
     const url = vraagUrl(leeg)!;
     expect(url).toContain("vraag_veld=uitleg");
     expect(onderwerpUitUrl(new URL(url, "http://x").searchParams)).toEqual(leeg);
-    expect(suggestiesVan(leeg)[0]).toEqual({ tekst: "Schrijf de uitleg in B1", actie: "uitleg" });
+    expect(suggestiesVan(leeg)[0]).toMatchObject({ tekst: "Schrijf de uitleg in B1", actie: "uitleg" });
     expect(suggestiesVan(leeg)).toHaveLength(suggestiesVan(begrip).length);
     expect(verzoekVan(leeg)).toEqual(verzoekVan(begrip));
   });

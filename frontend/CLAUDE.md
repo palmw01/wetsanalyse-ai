@@ -516,6 +516,33 @@ connector): "Kamerstukken · 16 gevonden", "Begrippen · niets gevonden", "Kamer
 is meer dan dit", "Wetgeving · niet bereikbaar". Het `tool_execution`-event en `Bericht.tool_executions` blijven voor
 eval en audit; de werkplek leest ze niet. `app/eenSpoor.test.ts` bewaakt dat het tweede blok niet terugkomt.
 
+### Commando's in het invoerveld (`/`)
+
+Een `/` als eerste teken in het invoerveld opent een menu met wat Lex hier kan (`lib/commandos.ts`, `CommandoMenu`).
+Het is een versneller naast de suggesties, geen vervanging, en **geen tweede router**:
+
+- **Een commando ís een suggestie.** Een regel in `SUGGESTIES` (`lib/vraagLex.ts`) met `commando: {naam, hulp}` is ook
+  `/naam`; welke er zijn, volgt het onderwerp of anders het werkgebied – dezelfde suggesties als de rij boven het veld,
+  ook als je typt. Uitvoeren is `voerSuggestieUit`, dezelfde functie als de klik: dezelfde tekst in de thread, dezelfde
+  `actie` of hetzelfde `doel`, dus zonder supervisor-aanroep bij graph-qa. Een nieuw commando is een `commando` op een
+  suggestie, geen eigen lijst.
+- **Clientcommando's** (`CLIENT_COMMANDOS`) zijn geen beurt en kosten geen tokens: `/nieuw` (*Nieuw gesprek*, in het
+  werkgebied), `/bron <naam>` (een bron naast de wet om, via `kiesConnector`; de namen uit het connectormenu, alleen wat
+  aan te zetten is) en `/help` (de hele lijst). Geen `/compact`: de historie is al begrensd en wordt gecachet gelezen
+  (sessie contextbeheer, 12 nov 2026), dus samenvatten levert bijna geen tokens op.
+- **De catalogus (ADR-014)**: een suggestiecommando wijst naar een actie uit graph-qa (`ACTIE_TAAK` en de andere
+  actielijsten), en die actie is een ingang van een `Onderdeel`. Er komt dus geen eigen lijst van wat Lex kan. Vanaf
+  C1 toetst een drift-test dat elke actie van een commando een ingang van een onderdeel is.
+- **Toetsen**: ↑/↓ kiest, Tab vult aan, Enter voert uit (een commando met een argument vult eerst aan), Escape sluit het menu
+  en laat de tekst staan. Geen treffer: het menu zegt dat en Enter verstuurt de tekst als vraag. `/` is tekst, geen
+  sneltoets: niets reageert op `/` buiten het veld (`app/commandos.test.ts`).
+- **Toegankelijk**: zolang het menu openstaat is het veld een combobox (`aria-expanded`, `aria-controls`,
+  `aria-activedescendant`) met een listbox; de focus blijft in het veld en een `aria-live`-regel telt de treffers.
+  Daarbuiten is het een gewoon tekstveld. Op een telefoon zijn de regels 44 px en voert een tik uit.
+- Tijdens een beurt of zonder budget staat een suggestiecommando er met de reden, en doet Enter niets.
+- Tests: `lib/commandos.test.ts` (register, context, menu), `app/commandos.test.ts` (één ingang) en
+  `scripts/test-commandos.mjs`.
+
 ### Bronnen en tools boven het invoerveld (ADR-013)
 
 `ConnectorsMenu` (rekenkern `lib/connectorsMenu.ts`) staat boven het invoerveld zodra de beheerder een bronconnector

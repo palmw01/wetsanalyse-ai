@@ -70,7 +70,13 @@ _WEG = (
 _IN_NAAM = re.compile(r"\b(?:\w*(?:wet|besluit|regeling|leidraad|verdrag|code|richtlijn|verordening|reglement)|"
                       r"[A-Z]{2,5}|Invordering)\s+(?:\d{4})\b")
 #: Een getal, ook met punten voor de duizendtallen ("6.772").
-_GETAL = re.compile(r"(?<![\w.,/:-])(\d{1,3}(?:\.\d{3})+|\d+)(?![\w,]|[.:/-]\d)")
+# Een komma erna sluit alleen een decimaal uit ("4,5"), geen opsomming: "dossier 20588, 1988-1989" viel er anders helemaal
+# buiten (Kamerstukken ronde 6, K16).
+_GETAL = re.compile(r"(?<![\w.,/:-])(\d{1,3}(?:\.\d{3})+|\d+)(?!\w|,\d|[.:/-]\d)")
+#: Een vergaderjaar: "1987/88", "1987-1988", "1987/1988", "1987–88". Het tweede jaar volgt op het eerste.
+_VERGADERJAAR = re.compile(r"(?<![\w/-])((?:18|19|20)\d\d)\s*[/–-]\s*(\d{4}|\d{2})(?![\w/-])")
+#: Een getal in de notatie van een Kamerdossier: "20 588" is 20588.
+_DOSSIERNOTATIE = re.compile(r"(?<![\d.,])(\d{2,3}) (\d{3})(?!\d|[.,]\d)")
 #: Een getal met een woord erachter, eventueel "van de N" ertussen: een telling.
 _TELLING = re.compile(r"(?<![\w.,/:-])(\d{1,3}(?:\.\d{3})+|\d+)\s+(?:van\s+de\s+\d+\s+)?([a-zà-ÿ][a-zà-ÿ-]{2,})\b")
 #: Woorden achter een getal die geen telling maken.
@@ -94,10 +100,19 @@ _BLOKCITAAT = re.compile(r"^[ \t]*>.*$", re.MULTILINE)
 _CITAAT = re.compile(r"[\"“„][^\"“”„\n]{2,}[\"”“]")
 
 
+@lru_cache(maxsize=1)
+def _citeervormen() -> tuple[re.Pattern[str], ...]:
+    """De citeervormen van de connectors ("Stb. 2009, 610", "Kamerstukken II 1987/88, 20 588, nr. 3"): een id met een
+    eigen toets (`unsupported`), dus zijn getallen tellen hier niet."""
+    from bronmodel.connectors import CONNECTORS
+
+    return tuple(re.compile(p, re.IGNORECASE) for c in CONNECTORS.values() for p, _ in c.citeervormen)
+
+
 def _zonder_citaten(tekst: str) -> str:
     tekst = _BLOKCITAAT.sub(" ", tekst or "")
     tekst = _CITAAT.sub(" ", tekst)
-    for patroon in _WEG:
+    for patroon in (*_WEG, *_citeervormen()):
         tekst = patroon.sub(" ", tekst)
     return tekst
 
@@ -114,9 +129,46 @@ def _vorm(getal: str) -> str:
 
 
 def _getallen(bron: str) -> set[str]:
-    """Elk getal in de bron, als losse cijferreeks én in de vorm met duizendtallen ("6.772" → "6772")."""
+    """Elk getal in de bron, als losse cijferreeks, in de vorm met duizendtallen ("6.772" → "6772") en in de notatie van
+    een Kamerdossier ("20 588" → "20588")."""
     uit = {_vorm(g) for g in re.findall(r"\d+", bron or "")}
     uit |= {_vorm(g) for g in re.findall(r"\d{1,3}(?:\.\d{3})+", bron or "")}
+    uit |= {_vorm(a + b) for a, b in _DOSSIERNOTATIE.findall(bron or "")}
+    return uit
+
+
+def _vergaderjaren(tekst: str) -> set[str]:
+    """De vergaderjaren in een tekst in één vorm ("1987/88" → "1987-1988"); een paar dat niet opeenvolgt, telt niet."""
+    uit = set()
+    for begin, eind in _VERGADERJAAR.findall(tekst or ""):
+        volgend = int(eind) if len(eind) == 4 else int(begin[:2] + eind)
+        if volgend == int(begin) + 1:
+            uit.add(f"{begin}-{volgend}")
+    return uit
+
+
+def _zonder_vergaderjaren(tekst: str) -> str:
+    return _VERGADERJAAR.sub(" ", tekst)
+
+
+#: Een dossiernummer: een getal van vier tot zes cijfers dat geen jaar is.
+def _dossiernummers(zin: str) -> set[str]:
+    kandidaten = {_vorm(a + b) for a, b in _DOSSIERNOTATIE.findall(zin)}
+    kandidaten |= {_vorm(g) for g in _GETAL.findall(_zonder_vergaderjaren(zin))}
+    return {g for g in kandidaten if 4 <= len(g) <= 6 and not _is_jaar(g)}
+
+
+def _paren_zonder_bron(tekst: str, bronnen: list[str]) -> list[str]:
+    """Een dossier en een vergaderjaar in één zin horen samen in één bron te staan: "dossier 20588, 1988-1989" was een
+    juist nummer met een fout jaar (de uitspraak zegt 1987/88), en elk apart stond wel ergens in de trace (K16)."""
+    uit: list[str] = []
+    per_bron = [(_getallen(b), _vergaderjaren(b)) for b in bronnen]
+    for zin in re.split(r"(?<=[.;!?])\s+|\n+", tekst):
+        jaren, dossiers = _vergaderjaren(zin), _dossiernummers(zin)
+        for jaar in sorted(jaren):
+            for d in sorted(dossiers):
+                if not any(d in getallen and jaar in jaren_b for getallen, jaren_b in per_bron):
+                    uit.append(f"dossier {d} in {jaar}")
     return uit
 
 
@@ -203,16 +255,23 @@ def tellingen_uit(resultaten: list[str]) -> set[int]:
     return uit
 
 
-def beweringen(tekst: str, bron: str, *, bekend: str = "", tellingen: set[int] | None = None) -> list[str]:
+def beweringen(tekst: str, bron: str, *, bekend: str = "", tellingen: set[int] | None = None,
+               bronnen: list[str] | None = None) -> list[str]:
     """De feiten in `tekst` die niet in `bron` (de opgehaalde tekst) of `bekend` (de vraag) staan, in vaste volgorde.
 
     `bron` hoort ook de ruwe resultaten te dragen: een telling staat als getal in de JSON (`totaal`, `per_instantie`), en
     `resultaat.waarden` neemt alleen de tekstwaarden. `tellingen`: de aantallen uit de trace (`tellingen_uit`); daarmee
-    toetst een aantal tegen een aantal, niet tegen elk getal."""
+    toetst een aantal tegen een aantal, niet tegen elk getal. `bronnen`: de toolresultaten apart; daarmee moet een dossier
+    met zijn vergaderjaar samen in één ervan staan."""
     tegen = f"{bron}\n{bekend}"
     zonder = _zonder_citaten(tekst)
     uit = list(hoeveelheden_buiten(zonder, tegen))
-    schoon = _zonder_hoeveelheden(zonder)
+    # Een vergaderjaar is een eigen bewering, en zijn jaren tellen daarna niet nog eens als getal.
+    jaren_bron = _vergaderjaren(tegen)
+    uit += [f"vergaderjaar {j}" for j in sorted(_vergaderjaren(zonder)) if j not in jaren_bron]
+    if bronnen is not None:
+        uit += _paren_zonder_bron(zonder, [*bronnen, bekend])
+    schoon = _DOSSIERNOTATIE.sub(r"\1\2", _zonder_vergaderjaren(_zonder_hoeveelheden(zonder)))
     kent = _getallen(tegen)
     gezien: set[str] = set()
     operanden = _operanden(_zonder_hoeveelheden(zonder), kent)
@@ -225,8 +284,9 @@ def beweringen(tekst: str, bron: str, *, bekend: str = "", tellingen: set[int] |
             return _vorm(getal) in kent
         n = int(_vorm(getal))
         # Een aantal uit de trace, uit de vraag, een rekensom van genoemde getallen, of letterlijk zo in de bron
-        # ("12 leden" in de tekst van een stuk).
-        return (n in tellingen or _vorm(getal) in vraag or n in sommen
+        # ("12 leden" in de tekst van een stuk). Een getal van vier cijfers of meer dat in de bron staat, is een nummer
+        # met een werkwoord erachter, geen eigen telling ("dossier 20588 valt", ronde 5, X5).
+        return (n in tellingen or (n >= 1000 and _vorm(getal) in kent) or _vorm(getal) in vraag or n in sommen
                 or re.search(rf"(?<![\d.]){n}\s+{re.escape(woord)}", tegen_klein) is not None)
 
     for m in _TELLING.finditer(schoon):

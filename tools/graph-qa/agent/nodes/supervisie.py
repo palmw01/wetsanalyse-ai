@@ -373,11 +373,15 @@ def _bronkeuze(b: Bouw, state: State, upd: dict[str, Any]) -> dict[str, Any]:
     teksten = [state.get("question", ""), upd.get("zelfstandige_vraag") or ""]
     buiten = bool((stand.get(bronkeuze.BUITEN_GRAAF) or {}).get("aan")) and any(
         noemt_regeling_buiten_graaf(t, b.graph) for t in teksten if t)
-    nieuw, keuze = bronkeuze.kies(stand, bronkeuze.genoemd(teksten, buiten_graaf=buiten), state.get("bronkeuze"))
+    genoemd = bronkeuze.genoemd(teksten) | bronkeuze.van_route(upd)
+    erbij = bronkeuze.filters_in(teksten) | ({bronkeuze.BUITEN_GRAAF} if buiten else set())
+    nieuw, keuze = bronkeuze.kies(stand, genoemd, state.get("bronkeuze"), erbij)
     uit: dict[str, Any] = {"bronkeuze": keuze}
     if nieuw is not stand:
         uit.update(bronstand=nieuw, bronnen=bronkeuze.actief(nieuw))
-        get_stream_writer()(bronstand.event(nieuw))
+        writer = get_stream_writer()
+        writer(bronstand.event(nieuw))
+        _stap(writer, "Lex", bronstand.keuze_regel(nieuw))
         logger.info("bronnen per vraag", extra={"categorie": "functioneel", "bronstand": bronstand.als_tekst(nieuw)})
     return uit
 

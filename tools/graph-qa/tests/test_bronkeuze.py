@@ -7,6 +7,7 @@ bron blijft alles aan, en een vervolgvraag houdt de keuze van het gesprek. De br
 from __future__ import annotations
 
 import asyncio
+import re
 import json
 from pathlib import Path
 
@@ -58,7 +59,7 @@ def test_een_genoemde_bron_houdt_alleen_zijn_eigen_tools():
     assert keuze == ["kamerstukken"]
     assert bronkeuze.actief(stand) == ["kamerstukken"]
     assert {n: s["reden"] for n, s in stand.items() if not s["aan"]} == {
-        "rechtspraak": "vraag", "bekendmakingen": "vraag", "wetgeving_live": "vraag"}
+        "rechtspraak": "niet_nodig", "bekendmakingen": "niet_nodig", "wetgeving_live": "niet_nodig"}
 
 
 def test_zonder_genoemde_bron_blijft_alles_aan():
@@ -88,7 +89,8 @@ def test_het_promptblok_zegt_waarom_een_bron_deze_beurt_niet_meedoet():
     stand, _ = bronkeuze.kies(_stand(), {"kamerstukken"}, None)
     blok = prompt_blok(stand, MVT)
     assert "- Kamerstukken: aan." in blok
-    assert "Rechtspraak doet in deze beurt niet mee, omdat je vraag een andere bron noemt." in blok
+    assert "- Rechtspraak: staat aan, maar is niet nodig voor deze vraag" in blok
+    assert "Rechtspraak: uit" not in blok, "niet nodig is iets anders dan uit (Staatsblad ronde 6, B18)"
 
 
 def test_de_beurt_biedt_alleen_de_genoemde_connector_aan():
@@ -122,10 +124,56 @@ def test_een_orgaan_noemt_zijn_bron():
     assert bronkeuze.genoemd(["Hoeveel uitspraken deed de Hoge Raad?"]) == {"rechtspraak"}
 
 
-def test_een_wet_buiten_de_graaf_beperkt_alleen_niet():
-    """B23: een wijzigingswet die de graaf niet kent, kan over het Staatsblad gaan; alleen een andere genoemde bron beperkt."""
-    assert bronkeuze.genoemd(["Wat verandert de Wet X 2025?"], buiten_graaf=True) == set()
-    assert bronkeuze.genoemd([MVT], buiten_graaf=True) == {"kamerstukken", "wetgeving_live"}
+def test_een_wet_buiten_de_graaf_of_een_filter_beperkt_alleen_niet():
+    """B23: een wijzigingswet die de graaf niet kent, kan over het Staatsblad gaan; een filterwaarde zegt wat er gezocht
+    wordt, niet waar. Ze komen alleen bij een keuze, en beperken nooit zelf."""
+    stand, keuze = bronkeuze.kies(_stand(), set(), None, erbij={"wetgeving_live", "rechtspraak"})
+    assert keuze is None and len(bronkeuze.actief(stand)) == 4
+    stand, _ = bronkeuze.kies(_stand(), {"kamerstukken"}, None, erbij={"wetgeving_live"})
+    assert bronkeuze.actief(stand) == ["kamerstukken", "wetgeving_live"]
+
+
+B18 = "Welke publicaties horen bij Kamerdossier 36602?"
+K16 = "Wat bedoelde de wetgever met artikel 36 van de Invorderingswet 1990?"
+
+
+def test_een_filterwaarde_neemt_elke_connector_met_dat_filter_mee():
+    """B18: het dossiernummer is een filter van Kamerstukken én van het Staatsblad (`w.behandeldDossier`). Uit de
+    beschrijving, niet per connector: elke connector waarvan een veld het filter `dossier` draagt."""
+    met_dossier = {n for n, c in CONNECTORS.items() if any("dossier" in v.filters for v in c.metadata)}
+    assert bronkeuze.filters_in([B18]) == met_dossier == {"kamerstukken", "bekendmakingen"}
+    stand, _ = bronkeuze.kies(_stand(), bronkeuze.genoemd([B18]), None, bronkeuze.filters_in([B18]))
+    assert set(bronkeuze.actief(stand)) == {"kamerstukken", "bekendmakingen"}
+    assert bronkeuze.filters_in(["uitspraken in het belastingrecht"]) == {"rechtspraak"}
+
+
+def test_een_artikel_of_datum_is_geen_filter_van_een_bron():
+    """Daar gaat elke vraag aan Lex over; anders zou elke vraag over een artikel Rechtspraak en het Staatsblad erbij nemen."""
+    assert bronkeuze.filters_in(["Wat zegt de MvT over artikel 29 van de Invorderingswet 1990 sinds 2024?"]) == set()
+
+
+def test_een_aanwijzing_noemt_geen_bron():
+    """K16: "wat bedoelde de wetgever" wijst naar Kamerstukken, maar een uitspraak is net zo goed de weg (een memorie van
+    vóór 1994 staat niet bij KOOP). Het mechanisme: een `aanwijzing` in de beschrijving telt bij `herkent`, niet bij `noemt`."""
+    assert herkende(K16) == ("kamerstukken",)
+    assert bronkeuze.genoemd([K16]) == set()
+    assert all(not c.noemt(K16) or not any(re.search(p, K16, re.IGNORECASE) for p in c.aanwijzingen)
+               for c in CONNECTORS.values())
+    stand, keuze = bronkeuze.kies(_stand(), bronkeuze.genoemd([K16]), None, bronkeuze.filters_in([K16]))
+    assert keuze is None and len(bronkeuze.actief(stand)) == 4
+
+
+def test_de_vraag_van_k16_krijgt_alle_connectors():
+    events, llm = _run(K16)
+    assert _connectortools("kamerstukken", "rechtspraak", "bekendmakingen", "wetgeving_live") <= _toolnamen(llm)
+    assert len([e for e in events if e["type"] == "bronstand"]) == 1
+
+
+def test_het_denkproces_zegt_wat_niet_nodig_is():
+    events, _ = _run(MVT)
+    regels = [e["message"] for e in events if e["type"] == "status"]
+    assert any("zoekt voor deze vraag in de wetgeving en Kamerstukken" in r and "niet nodig" in r for r in regels), regels
+    assert not any("uit" in r.split(";")[-1].split() for r in regels if "niet nodig" in r)
 
 
 @pytest.mark.parametrize("bestand,eigen", [
@@ -136,5 +184,29 @@ def test_geen_vraag_uit_de_vragensets_verliest_haar_eigen_bron(bestand, eigen):
     for q in vragen:
         vraag = q.get("vraag") or q.get("tekst") or ""
         for buiten in (False, True):
-            stand, _ = bronkeuze.kies(_stand(), bronkeuze.genoemd([vraag], buiten_graaf=buiten), None)
+            erbij = bronkeuze.filters_in([vraag]) | ({"wetgeving_live"} if buiten else set())
+            stand, _ = bronkeuze.kies(_stand(), bronkeuze.genoemd([vraag]), None, erbij)
             assert eigen in bronkeuze.actief(stand), (q.get("id"), vraag)
+
+
+def test_een_route_in_code_houdt_haar_connector():
+    """Meting ronde 6, B18: de vraag noemt het Staatsblad, de lijstroute koos Kamerstukken. Die connector hoort erbij."""
+    upd = {"bron_lijst": {"connector": "kamerstukken", "tool": "zoek_kamerstukken", "args": {"dossier": "36602"}}}
+    assert bronkeuze.van_route(upd) == {"kamerstukken"}
+    assert bronkeuze.van_route({"bron_lezen": [{"name": "get_bekendmaking", "input": {"id": "stb-2010-176"}}]}) == {"bekendmakingen"}
+    stand, _ = bronkeuze.kies(_stand(), {"bekendmakingen"} | bronkeuze.van_route(upd), None)
+    assert set(bronkeuze.actief(stand)) == {"bekendmakingen", "kamerstukken"}
+
+
+def test_de_lijstroute_krijgt_haar_eigen_bron_ook_als_de_vraag_een_andere_noemt(monkeypatch):
+    from agent.nodes import supervisie
+
+    monkeypatch.setattr(supervisie, "get_stream_writer", lambda: (lambda _e: None))
+    state = {"question": "Welke publicaties horen bij Kamerdossier 36602?", "bronstand": _stand()}
+    upd = {"bron_lijst": {"connector": "kamerstukken", "tool": "zoek_kamerstukken", "args": {"dossier": "36602"}}}
+
+    class _B:
+        graph = FakeGraph(result="")
+
+    uit = supervisie._bronkeuze(_B(), state, upd)
+    assert set(uit["bronnen"]) == {"bekendmakingen", "kamerstukken"}

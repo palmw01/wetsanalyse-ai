@@ -123,6 +123,14 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     draagt (`MAX_LIJST`, een opbouw): de tekst is het antwoord (`lijst_aangenomen`). Het herhaalverzoek blijft alleen als
     de lijst geen gevonden stuk noemt (een tabel met kale nummers, B03), er naast de lijst geen uitleg staat, of het
     sjabloon niet te vullen is.
+  - **welke stukken een lijst noemt** (`genoemde_stukken`, ronde 7): alleen de lijstregels (opsomming of tabelrij, niet de
+    lopende tekst: I30 "van artikel 1 tot en met artikel 86"), bij id of label als heel woord, of met het begin van de regel
+    (de eerste cel, de tekst na het opsommingsteken, zonder opmaak) gelijk aan de kern van een label: het label vanaf het eerste
+    cijfer (`_kern`: "19a", "2010, 176", "34273, nr. 7"), alleen als die kern bij één stuk uit de trace hoort (I14: "**19a**" in een
+    tabel). Een lijst zonder stukken na alleen een zoekvraag is tekst (`lijst_aangenomen`); na een gelezen stuk het herhaalverzoek
+    (B22). Een korte kale kern ("4", "19a") telt aan het begin van een opsomming alleen als de regel precies dat nummer is of het
+    voorvoegsel van het label draagt (`_KAAL`; ronde 7, I30: "**4** nog niet in werking"). Een blokcitaat dat niet letterlijk in het
+    opgehaalde staat, wordt gewone tekst (`kanttekening_als_tekst`, I28);
   - **na een tweede weigering in dezelfde beurt** vraagt `vul_aanroep` geen derde poging maar tekst (`TEKST_NU`; ronde 5: I12
     en L-R1 tot negen rondes), behalve als de code bij die weigering iets ophaalde; na een weigering komt geen herhaalverzoek
     meer (`sjabloon_gevraagd`). AFRONDEN_EXTERN zegt: zonder stuk en zonder passage antwoord je in tekst (I30, I13: een lege
@@ -134,7 +142,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   `antwoord_duiding` (uitleg): het model wijst per passage de bepaling en de eerste en laatste woorden aan (`van`/`tot`,
   D5), de code neemt de tekst ertussen uit de bron; gezocht wordt met typografische tekens als hun gewone vorm (’ = '),
   een slotzin uit `get_lid` telt onder zijn lid en een jci wordt de iri van de rij. Ze toetst tegen de tekst van de aangewezen bepaling, niet tegen de hele trace, en
-  weigert een bepaling die de uitleg noemt zonder passage; kort antwoord, waarom en twijfel gaan als tekst door `verify`.
+  weigert een bepaling die de uitleg noemt zonder passage; kort antwoord, waarom en twijfel gaan als tekst door `verify`. Staan de aangewezen woorden er niet, dan zegt de weigering waar ze wél staan of hoe de aangewezen tekst begint (`duiding._waar_wel`, uit de opgehaalde rijen; ronde 6, I28 en L-R1: twee weigeringen en daarna tekst).
   **Wat de uitleg noemt, is gelezen** (D, besluit gebruiker 7 nov 2026; `duiding._genoemd_is_gelezen`): wijst de opgehaalde
   tekst het genoemde artikel aan zonder zijn tekst (een verwijzing in `get_context`, in precies één regeling,
   `vullen.artikel_in_trace`), dan haalt `sjabloon_node` het op via `execute_tool` (hoogstens `MAX_OPHALEN`), zet het in het
@@ -186,7 +194,10 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   166") blijft het een bewering. Een **aantal** ("12 publicaties", "vijf wetten") toetst tegen de aantallen in de trace
   (`tellingen_uit`: elk geheel getal in de JSON en de lengte van elke lijst), niet tegen elk getal: een klein getal staat
   vaak toevallig in een datum (Staatsblad ronde 5, B03/B26). Een telwoord van twee tot twintig telt mee, tenzij de gelezen
-  tekst het zelf gebruikt. Terugmeting zonder model: `docs/architectuur/metingen/rechtspraak-iteratie-2026-11-11/beweringen-terugmeting.md`.
+  tekst het zelf gebruikt. Een **vergaderjaar** ("1987/88", "1987-1988": één vorm) is een eigen bewering, en een dossier
+met een vergaderjaar in één zin moet samen in één toolresultaat staan (`bronnen`; Kamerstukken ronde 6, K16: "dossier
+20588, 1988-1989" was een juist nummer met een fout jaar). Een getal vóór een komma telt (alleen ",\d" is een decimaal),
+"20 588" is één getal, en een citeervorm van een connector ("Stb. 2009, 610") heeft de toets van een id. Terugmeting zonder model: `docs/architectuur/metingen/rechtspraak-iteratie-2026-11-11/beweringen-terugmeting.md`.
   `tests/test_beweringen.py`.
 - **`finalize_node`** – de enige plek in de antwoordketen die `token` uitstuurt (ook voor het overzicht; `tests/test_uitgifte_na_controle.py` bewaakt het). Een controle die volgt op publicatie
   houdt niets tegen, dus de jurist ziet een antwoord pas ná `verify` en afgekeurde tekst nooit, ook niet in
@@ -247,7 +258,10 @@ bruikbaar is.
   `cache_control` (op Foundry een beta-functie), dan zet de adapter zichzelf uit en herhaalt de call
   zonder – caching mag nooit "de dienst ligt plat" kosten. Knop: `PROMPT_CACHING=false`.
 - **`llm_stap.py`** – de gedeelde modelstap (H5). `aanroep(llm, rol, **verzoek)` geeft de kwargs ongewijzigd door,
-  geeft een `Stopreden` terug, logt één `model_aanroep` (rol, model, stopreden, duur, gebruik; geen inhoud) en eist dat
+  geeft een `Stopreden` terug, logt één `model_aanroep` (rol, model, stopreden, duur, gebruik en de opbouw van het verzoek uit
+  `agent/verzoekopbouw.py`: tekens van tools, systeemdelen, historie en lopende beurt, plus `tools_hash`/`system_hash`,
+  en `methode_sha` = `methode.vingerafdruk(rol)` uit de sectie-sha's van `PAKKET`, dezelfde bron als de catalogus van
+  ADR-014; geen inhoud) en eist dat
   de systeemprompt de methodetekst van de rol draagt (`Rol.methoderol`, of `methoderol=` voor de specialist van de
   antwoordlus). `stroom` doet hetzelfde voor de streamende antwoordlus en logt bij `final_message()`. Supervisor,
   antwoordlus, ophaal-agent en de toelichting van de bepalingsroute lopen erlangs. `vraag_tool` is de vorm voor één tool (meestal strict):
@@ -291,13 +305,19 @@ bruikbaar is.
   beperkt verder** (`ChatRequest.bronnen`, `State.bronnen`, per beurt): weggelaten = wat de straat aanbiedt, een lege
   lijst = alleen wetgeving, en een connector die de straat niet aanbiedt gaat nooit aan (`actieve_connectors`). **Daarbinnen alleen
   wat de vraag noemt** (`agent/bronkeuze.py`, ronde 6, 12 nov 2026; elke aangezette connector kostte ~2k tokens per
-  modelronde): `supervisor_node` kiest na de route uit de vraag en de herschreven vraag de connectors die hun beschrijving
-  herkent (`herkende`: signalen en id's) of waarvan een orgaan genoemd wordt (`organen`). Alleen die krijgen hun tools; de
-  rest krijgt in de bronstand de reden `vraag` (event opnieuw, en een regel in BRONNEN IN DEZE BEURT). Een regeling buiten
-  de graaf (`buiten_graaf.noemt_regeling_buiten_graaf`, zonder zoekdienst) neemt `wetgeving_live` erbij maar beperkt alleen
-  niet. Noemt de vraag niets, dan houdt een vervolgvraag de keuze van het gesprek (`State.bronkeuze`, niet in de
-  per-beurt-reset), en anders blijft alles aan. `tests/test_bronkeuze.py` eist dat geen vraag uit de vier vragensets haar
-  eigen bron verliest.
+  modelronde). `supervisor_node` kiest na de route, uit de vraag en de herschreven vraag, welke connectors meedoen.
+  - **Wat beperkt**: een bron die de vraag noemt (`ConnectorBeschrijving.noemt`: een signaal of een id; een `aanwijzing` als
+    "wat bedoelde de wetgever" telt wel bij `herkent`, niet hier, K16), een van zijn `organen`, en de connector van een
+    route in code (`van_route`: `bron_lezen`, `bron_lijst`; B18).
+  - **Wat erbij komt maar nooit zelf beperkt**: een filterwaarde in de vraag (`filters_in`: een dossier, een vergaderjaar,
+    een waarde uit `MetadataVeld.waarden`; elke connector met dat filter, B18) en een regeling buiten de graaf
+    (`buiten_graaf.noemt_regeling_buiten_graaf`). Een artikel of datum telt niet: daar gaat elke vraag over.
+  - Noemt de vraag niets, dan houdt een vervolgvraag de keuze van het gesprek (`State.bronkeuze`, niet in de
+    per-beurt-reset), en anders blijft alles aan.
+  - Wat wegvalt heet `niet_nodig` ("niet nodig voor deze vraag"), niet "uit": het bronstand-event opnieuw, een eigen regel in
+    BRONNEN IN DEZE BEURT ("zeg niet dat de bron uit staat") en een statusregel in het denkproces (`bronstand.keuze_regel`).
+    De werkplek telt `niet_nodig` niet als beschikbaarheid.
+  - `tests/test_bronkeuze.py` eist dat geen vraag uit de vier vragensets haar eigen bron verliest, en toetst K16 en B18.
   `tool_execution` geeft de stand aan `dispatch`, dus ook een workflow die een tool in code aanroept valt eronder.
   **De bronstand** (`agent/bronstand.py`, `State.bronstand`) zegt per connector waaróm hij uit staat (`straat`,
   `gesprek`/`werkgebied` uit `ChatRequest.bronnen_herkomst`, `register_onleesbaar`, `beheerder`) en gaat als eerste
@@ -310,7 +330,8 @@ bruikbaar is.
   (filters, te combineren: een dossier of subdossier, `w.dossiernummer=="36200-IX"`, met `nummer` voor één stuk; woorden in
   de titel; `soort` in `w.subrubriek`, en bij een stuk zonder rubriek (of "Overig") op zijn plek in de titel: de tool toetst
   die stukken zelf en neemt ze op id op, zodat een brief met het woord in zijn titel niet meekomt (`_soort_cql`,
-  `MAX_SOORT_TITEL`); `tekst` in de hele tekst
+  `MAX_SOORT_TITEL`); begint de titel niet met de dossiertitel, dan telt een deel dat met het soort begint, en wat de toets niet kan
+  beoordelen gaat mee en staat in de `kanttekening` (`_soort_in_titel` ja/nee/None; ronde 6, L-K2: kst-24172-3 viel stil weg); `tekst` in de hele tekst
   (`cql.textAndIndexes`: een zinsdeel tussen aanhalingstekens als `adj`, losse woorden als `all`, hoogstens zes; meting
   `kamerstukken-tekstzoeken-2026-11-09`: 8 van 8 tegen 3 in de titel); `vanaf`/`tot` op de
   documentdatum, ook `JJJJ` of `JJJJ-MM`; `vergaderjaar`; `kamer`. De `volgorde` is de enum uit
@@ -340,7 +361,7 @@ bruikbaar is.
   een onopgemaakt stuk (32140 nr. 342 = `kst-1278484`), en een lettercode van de Eerste Kamer die in een gezamenlijke
   behandeling naar het eerste dossier heet (`kst-33755-L` → `kst-33752-L`, alleen een letter en alleen eenduidig; ronde 3,
   K22); het `stuk` noemt het echte id en de toelichting zegt het. `get_kamerstuk(woorden=)` geeft de alinea's van één stuk die
-  elk woord noemen (stam van zeven letters, tekst of kop) met hun offset (ronde 3, K07: tien offsets in drie stukken); bij nul treffers telt `per_woord` hoe vaak elk woord los staat en zegt de toelichting welk woord weg kan (ronde 4, K07/K16: vijf keer nul op woorden die samen nergens staan). Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
+  elk woord noemen (stam van zeven letters, tekst of kop) met hun offset (ronde 3, K07: tien offsets in drie stukken); bij nul treffers telt `per_woord` hoe vaak elk woord los staat en zegt de toelichting welk woord weg kan (ronde 4, K07/K16: vijf keer nul op woorden die samen nergens staan). Boven `MAX_TREFFERS_ZONDER_KOPPEN` draagt de eerste pagina `per_kop` (`stuk_tekst.treffers_per_kop`, voor elke leestool die binnen een stuk zoekt): per kop het aantal treffers en `vanaf`, zodat het model kiest in plaats van alles door te bladeren (ronde 6, K15: 223 alinea's, vier pagina's). Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
   sjabloon citeert er dus niet uit als passage van een bepaling. **Cache met versiecontrole** (een Kamerstuk verandert
   na publicatie: onopgemaakt → opgemaakt, herdruk, rectificatie): binnen `VERS_S` geen aanroep, daarna een lichte
   metadatavraag op `dt.modified`/documentstatus/versie en alleen bij een verschil de XML opnieuw (log
@@ -466,7 +487,7 @@ bruikbaar is.
   `extern.lijsten` neemt pagina's van dezelfde zoekvraag (`_zoeksleutel`) als één lijst en houdt een gelezen stuk bij zijn
   zoekvraag; `van_orgaan` kiest het lidwoord ("van het College"); `provenance.collect_sources` slaat een foutresultaat over
   (`is_fout`: het voorbeeld in een foutmelding is geen bron); `bron_lijst` leest een maand, laat een werkwoord achter het
-  onderwerp weg (`_WERKWOORDEN`), kent "kamerdossier" en telt een naam binnen een langere regelingnaam niet
+  onderwerp weg (`_WERKWOORDEN`), kent "kamerdossier" en een kaal dossiernummer van vijf cijfers na bij/in/uit/van (ronde 6, K10: "Hoeveel amendementen zijn er bij 36602?"), en telt een naam binnen een langere regelingnaam niet
   (`_zonder_ingesloten`). **Na ronde 2**: `zoek_uitspraken` met alleen `bwb_id` zoekt de uitspraken die de regeling als
   geheel noemen (LiDO op `juriconnect-ref=<bwb>`; de Leidraad Invordering 2008: 204); een regeling buiten de graaf krijgt haar
   titel uit de BWB-zoekdienst (`LidoRechtspraak.titel`); een buitenlandse of Europese ECLI is `buiten_bereik` met een `stuk`
@@ -816,7 +837,8 @@ markeringen op, dan meldt hij dat ze niet zijn vastgelegd.
 
 **Tokenverbruik wordt niet via een event geboekt.** Wie meekijkt krijgt het wel te zien: vlak vóór `done` gaat
 een `meting`-event mee met dezelfde cijfers als de logregel `beurt_meting`, plus het verbruik en de duur per
-modelaanroep (`Verbruiksmeter.aanroepen`, hoogstens `MAX_AANROEPEN`). Alleen de run-events, niet `/v1/chat`;
+modelaanroep (`Verbruiksmeter.aanroepen`, hoogstens `MAX_AANROEPEN`), met dezelfde opbouw als `model_aanroep`: daaraan
+zie je of een koude cache uit een andere toolset kwam (een andere `tools_hash` dan de vorige aanroep) of uit de tijd. Alleen de run-events, niet `/v1/chat`;
 de werkplek negeert het. Het boeken zelf blijft zoals hieronder. `AnthropicLLM` telt elk `usage`-blok op in een `Verbruiksmeter`
 (`agent/models.py`, met een lock: takken kunnen parallel lopen). De aanroeper geeft dezelfde meter aan
 `answer_stream` én `voer_beurt_uit`; de driver boekt hem in een `finally` (`POST /v1/verbruik`,

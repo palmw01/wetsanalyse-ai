@@ -1057,3 +1057,16 @@ def test_een_citaat_draagt_de_jci_van_zijn_lid_met_de_toestand():
                                           "artikel": {"iri": TIEN, "delen": 2, "jci": f"jci1.3:c:BWBR0004770&artikel=10{STAART}"}}))]
     a = vul("antwoord_duiding", duiding(), trace)
     assert a.blokken[1].items[0].vindplaats.jci == f"jci1.3:c:BWBR0004770&artikel=10&lid=1{STAART}"
+
+
+def test_een_weigering_van_een_passage_zegt_waar_de_woorden_wel_staan():
+    """Wetgeving_live ronde 6, I28 en L-R1: twee weigeringen van `duiding.vul`, daarna tekst zonder de vorm van de duiding.
+    De weigering zegt nu wat er te herstellen is, uit de opgehaalde rijen en nooit geraden."""
+    with pytest.raises(Onvulbaar, match="staat wel in Artikel 10, lid 1 .*wijs die bepaling aan"):
+        vul("antwoord_duiding", duiding(bepaling=TIEN_2), [tien()])
+    with pytest.raises(Onvulbaar, match="„De ontvanger kan uitstel” staat in Artikel 10, lid 1, „zes weken.” daar niet"):
+        vul("antwoord_duiding", duiding(tot="zes weken."), [tien()])
+    with pytest.raises(Onvulbaar, match="allebei in Artikel 10, lid 1.*niet ná"):
+        vul("antwoord_duiding", duiding(van="zes maanden.", tot="De ontvanger"), [tien()])
+    with pytest.raises(Onvulbaar, match="Zo begint de tekst die je aanwees: Artikel 10, lid 1: „De ontvanger kan uitstel"):
+        vul("antwoord_duiding", duiding(van="Iets anders", tot="geheel"), [tien()])
