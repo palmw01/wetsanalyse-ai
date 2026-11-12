@@ -55,7 +55,7 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 - Testrijen.
 
 **Route** (een vaste weg zonder model vóór de supervisor)
-- Een rij in de routeringstabel (ADR-010; tot C3 de volgorde in `nodes/supervisie.py`), met zijn negatieven in
+- Een rij in de routeringstabel (ADR-010; tot S3 de volgorde in `nodes/supervisie.py`), met zijn negatieven in
   `eval/golden_gesprek.jsonl` (ADR-005).
 - Het routecontract in `tests/poort/routeboek.py`.
 
@@ -86,10 +86,16 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 | C0 | ADR-014 en dit document | #1275 |
 | C1 | `Onderdeel` + adapters voor connector, sjabloon, specialist en methode/rol + drift-test | #1279 |
 | C2 | agents en taken, regie, regelsets, workflows met stappen | #1281 |
-| C3 | de routeringstabel (ADR-010) | – |
-| C4 | de generator voor meerdere skills | – |
-| C5 | `GET /v1/catalogus` + BFF | – |
-| C6 | de werkplek: *Werkwijze van Lex* | – |
+| C5 | `GET /v1/catalogus` + BFF | #1285 |
+| C6 | de werkplek: *Werkwijze van Lex* | #1286 |
+| S1 | ADR-014 §7 *Samenwerking* | – |
+| S2 | concepten, de soorten `tool` en `controle`, aanroepregels als test | – |
+| S3 | de routeringstabel (ADR-010) | – |
+| S4 | context per agent (`test_context_per_agent`) | – |
+| S5 | meerdere skills, binding per rol, nep-skill | – |
+| S6 | regelsets uit een skill | – |
+| S7 | werkplek per concept | – |
+| S8 | commando's wijzen naar één onderdeel (na #1276) | – |
 | C7 | een wijziging voorstellen → concept-PR (acceptatie) | – |
 | C8 | de skill `wetsuitvoering` (trap 1) | – |
 | C9 | regels voorstellen, met hun eigen tests als poort | – |
