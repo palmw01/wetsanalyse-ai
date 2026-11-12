@@ -103,6 +103,7 @@ import type {
   WerkgebiedWijziging,
 } from "./types";
 import { parseArtefact } from "./artefact";
+import { parseCatalogus, parseOnderdeel, type Catalogus, type OnderdeelDetail } from "./catalogus";
 import { isRelatiesAntwoord } from "./begripRelaties";
 import { isDekking, isHerbeoordelingen } from "./herbeoordeling";
 import { pathSegment } from "./url";
@@ -187,6 +188,21 @@ export function isApiError(e: unknown): e is ApiError {
 export function foutTekst(e: unknown, terugval = "Er ging iets mis."): string {
   if (isApiError(e)) return e.detail;
   return (e as Error)?.message || terugval;
+}
+
+// --- De catalogus van Lex (ADR-014): alleen lezen -----------------------------
+
+export async function haalCatalogus(): Promise<Catalogus> {
+  const uit = parseCatalogus(await json<unknown>(await fetch("/api/catalogus", { cache: "no-store" })));
+  if (!uit) throw new Error("Onverwacht antwoord van de catalogus.");
+  return uit;
+}
+
+export async function haalOnderdeel(soort: string, naam: string): Promise<OnderdeelDetail> {
+  const uit = parseOnderdeel(await json<unknown>(await fetch(
+    `/api/catalogus/${pathSegment(soort)}/${pathSegment(naam)}`, { cache: "no-store" })));
+  if (!uit) throw new Error("Onverwacht antwoord van de catalogus.");
+  return uit;
 }
 
 // --- Admin: LLM-modelprofielen ----------------------------------------------

@@ -191,3 +191,29 @@ def test_het_werkdocument_noemt_elke_soort():
     doc = (WORTEL / "docs" / "architectuur/catalogus.md").read_text().lower()
     for soort in bc.SOORTEN:
         assert re.search(rf"\*\*[^*\n]*\b{soort}\b[^*\n]*\*\*", doc), f"soort {soort} heeft geen checklist in catalogus.md"
+
+
+def test_het_endpoint_geeft_de_lijst_zonder_inhoud_en_het_detail_met(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    import api.main as main
+
+    monkeypatch.setattr(main.settings, "qa_api_token", "", raising=False)
+    monkeypatch.setattr(main.settings, "connector_kamerstukken", True, raising=False)
+    monkeypatch.setattr(main.settings, "connector_rechtspraak", False, raising=False)
+    client = TestClient(main.app)   # zonder `with`: de lifespan hoort niet bij deze lichte route
+    r = client.get("/v1/catalogus")
+    assert r.status_code == 200
+    lijst = r.json()
+    assert lijst["soorten"] == list(bc.SOORTEN)
+    assert [o["id"] for o in lijst["onderdelen"]] == IDS
+    assert all("inhoud" not in o for o in lijst["onderdelen"])
+    per_id = {o["id"]: o for o in lijst["onderdelen"]}
+    assert per_id["connector/kamerstukken"]["aan"] is True
+    assert per_id["connector/rechtspraak"]["aan"] is False
+    assert per_id["specialist/duiding"]["aan"] is True
+
+    d = client.get("/v1/catalogus/rol/duiding").json()
+    assert d["inhoud"]["secties"] and d["inhoud"]["secties"][0]["tekst"]
+    assert "specialist/duiding" in d["gebruikt_door"]
+    assert client.get("/v1/catalogus/rol/bestaat_niet").status_code == 404
