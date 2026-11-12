@@ -90,6 +90,9 @@ def main() -> None:
     p.add_argument("--relatie-voorstellen", action="store_true", default=None,
                    help="De annotatieketen relaties laten voorstellen (proefvlag, alleen acceptatie; zie "
                         "main.bicep:relatieVoorstellen).")
+    p.add_argument("--skill-regels", action="store_true", default=None,
+                   help="De regels uit methode-skills meenemen in de ketens (proefvlag, alleen acceptatie; zie "
+                        "main.bicep:skillRegels).")
     p.add_argument("--graphdb-proxy-extern", action="store_true", default=None,
                    help="De externe GraphDB-MCP-proxy uitrollen (alleen acceptatie; zie "
                         "main.bicep:graphdbProxyExtern). Vereist WA_GRAPHDB_PROXY_TOKEN.")
@@ -179,6 +182,7 @@ def main() -> None:
         (None if args.connectoren is None else [n.strip() for n in args.connectoren.split(",") if n.strip()],
          "connectoren"),
         (args.relatie_voorstellen, "relatieVoorstellen"),
+        (args.skill_regels, "skillRegels"),
         (args.graphdb_proxy_extern, "graphdbProxyExtern"),
         (args.api_image, "apiImage"),
         (args.frontend_image, "frontendImage"),

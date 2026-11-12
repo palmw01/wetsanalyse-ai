@@ -84,8 +84,10 @@ def _regel(d: dict[str, Any]) -> Regel:
 
 @cache
 def alle_regels() -> tuple[Regel, ...]:
+    from .. import skill_regels   # regels uit een methode-skill, alleen met de proefvlag SKILL_REGELS (ADR-014 §7)
     regels = [_regel(d) for pad in sorted(MAP.glob("*.yaml"))
               for d in yaml.safe_load(pad.read_text(encoding="utf-8"))]
+    regels += [_regel(d) for items in skill_regels.actief("begrippen").values() for d in items]
     ids = [r.id for r in regels]
     if len(set(ids)) != len(ids):
         raise ValueError("dubbel regel-id in het begrippenregister")

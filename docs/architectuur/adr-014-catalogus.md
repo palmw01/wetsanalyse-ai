@@ -195,7 +195,11 @@ catalogus om bij komt, wordt rood. De `versie` van een rol ís die vingerafdruk.
 - een eigen bronregister;
 - eventueel regelsets onder `regels/`, in de vorm van een bestaande regelmap en met dezelfde verplichte tests.
 
-De generator bundelt alle skills, dus het image heeft de skillmap niet nodig. Een nieuwe rol of agent vraagt wel code
+De generator bundelt alle skills, dus het image heeft de skillmap niet nodig. **Regels uit een skill staan achter
+de proefvlag `SKILL_REGELS`** (besluit van de gebruiker, 12 nov 2026): standaard uit, alleen op acceptatie aan, met een
+poort-guard, tot een meting beslist. Zo'n regel verandert wat Lex annoteert. Een skillregel hergebruikt een bewijscode die
+al een verklaring heeft, en draagt het voorvoegsel `jas.<skill>.` of `begrip.<skill>.` en de vier testsoorten. Met de vlag
+uit is de uitkomst bitgelijk. Een nieuwe rol of agent vraagt wel code
 en een meting (§5, trap 2). Een nep-skill in de test bewijst het, zoals de nep-connector dat voor connectors doet: een
 sectie bij `duiding` en een detectorregel komen mee zonder één regel code buiten de map.
 

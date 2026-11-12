@@ -8,6 +8,8 @@ import pprint
 import re
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[3]
 SKILL = ROOT / '.claude/skills/wetsanalyse'
 DOEL = ROOT / 'tools/graph-qa/agent/methodepakket.py'
@@ -23,6 +25,42 @@ def sha(tekst: str) -> str:
 
 
 SKILLS = ROOT / '.claude/skills'
+AGENT = ROOT / 'tools/graph-qa/agent'
+#: De ketens waarvoor een skill regels mag meebrengen (S6, achter de proefvlag `SKILL_REGELS`): per keten het id-voorvoegsel
+#: en de verklaringen waarin elke bewijscode al moet staan. Een skillregel hergebruikt een bestaande code, zodat de
+#: werkplek, de exports en de vocabulairegraaf hem al kunnen uitleggen.
+REGELKETENS = {
+    'jas': ('jas.{skill}.', AGENT / 'jas_pipeline/verklaringen.yaml', 'detectie'),
+    'begrippen': ('begrip.{skill}.', AGENT / 'begrippen_pipeline/verklaringen.yaml', 'signalen'),
+}
+TESTSOORTEN = ('positief', 'negatief', 'rand', 'overlap')
+
+
+def _regels(skill: Path) -> dict[str, dict[str, list]]:
+    """De regelsets onder `regels/<keten>/<familie>.yaml`, per keten op `<skill>.<familie>`. De vorm toetst de lader in
+    graph-qa (`Regel.van`, `patronen._regel`); hier de grenzen die een skill raken: het id-voorvoegsel, de vier
+    testsoorten en een bewijscode die al een verklaring heeft."""
+    uit: dict[str, dict[str, list]] = {}
+    if not (skill / 'regels').exists():
+        return uit
+    for map_ in sorted((skill / 'regels').iterdir()):
+        if map_.name not in REGELKETENS:
+            raise ValueError(f'{skill.name}: regels/{map_.name} is geen keten ({sorted(REGELKETENS)})')
+        voorvoegsel, verklaringen, sectie = REGELKETENS[map_.name]
+        codes = set(yaml.safe_load(verklaringen.read_text())[sectie])
+        for pad in sorted(map_.glob('*.yaml')):
+            items = yaml.safe_load(pad.read_text())
+            if not isinstance(items, list) or not items:
+                raise ValueError(f'{skill.name}: {pad.name} is geen lijst regels')
+            for d in items:
+                if not str(d.get('id', '')).startswith(voorvoegsel.format(skill=skill.name)):
+                    raise ValueError(f'{skill.name}: regel {d.get("id")} begint niet met {voorvoegsel.format(skill=skill.name)}')
+                if ontbreekt := [s for s in TESTSOORTEN if not (d.get('tests') or {}).get(s)]:
+                    raise ValueError(f'{skill.name}: regel {d["id"]} mist de tests {ontbreekt}')
+                if d.get('code') not in codes:
+                    raise ValueError(f'{skill.name}: regel {d["id"]}: code {d.get("code")} heeft geen verklaring ({sectie})')
+            uit.setdefault(map_.name, {})[f'{skill.name}.{pad.stem}'] = items
+    return uit
 
 
 def methode_skills(basis: Path = SKILL) -> list[Path]:
@@ -81,6 +119,8 @@ def _lees(skill: Path, *, basis: bool) -> tuple[str, dict, dict, dict, set[str]]
     bestanden = {'SKILL.md', 'agentrollen.json', 'references/bronnen.md'} | {s['bestand'] for s in secties.values()}
     if basis:
         bestanden.add('references/jas-klassen-referentie.md')
+    bestanden |= {p.relative_to(skill).as_posix() for p in (skill / 'regels').glob('*/*.yaml')} \
+        if (skill / 'regels').exists() else set()
     return versie[0], lex, mapping['rollen'], secties, bestanden | ({'BRON.md'} if (skill / 'BRON.md').exists() else set())
 
 
@@ -92,6 +132,7 @@ def compileer(skill: Path = SKILL, extra: list[Path] | None = None) -> dict:
     bronbestanden = {p: sha((skill / p).read_text()) for p in sorted(bestanden)}
     codes = {c: skill.name for s in secties.values() for c in s['bronnen']}
     skills = {skill.name: {'versie': versie, 'lex': lex, 'map': f'.claude/skills/{skill.name}'}}
+    regels = _regels(skill)
     for ander in (methode_skills(skill) if extra is None else extra):
         v, l, r, s, b = _lees(ander, basis=False)
         if dubbel := secties.keys() & s.keys():
@@ -105,8 +146,10 @@ def compileer(skill: Path = SKILL, extra: list[Path] | None = None) -> dict:
             rollen[rol] += ids
         bronbestanden |= {f'{ander.name}/{p}': sha((ander / p).read_text()) for p in sorted(b)}
         skills[ander.name] = {'versie': v, 'lex': l, 'map': f'.claude/skills/{ander.name}'}
+        for keten, sets in _regels(ander).items():
+            regels.setdefault(keten, {}).update(sets)
     pakket = {'versie': versie, 'lex': lex, 'rollen': rollen, 'secties': secties, 'bronbestanden': bronbestanden,
-              'skills': skills}
+              'skills': skills, 'regels': regels}
     pakket['sha256'] = sha(json.dumps(pakket, sort_keys=True, ensure_ascii=False))
     return pakket
 

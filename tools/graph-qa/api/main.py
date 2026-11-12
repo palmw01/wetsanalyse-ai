@@ -36,6 +36,7 @@ httpx of httpcore importeert; vandaar de plek bovenaan en de E402-uitzonderingen
 from __future__ import annotations
 
 # MOET vóór elke andere import staan – zie de noot onderaan de docstring hierboven.
+import os
 import httpx2
 
 httpx2.alias_httpx()
@@ -548,7 +549,12 @@ def _met_straat(o) -> dict:
     """Een onderdeel als dict, met of deze straat het aanbiedt (`straat` is de naam van de vlag; de waarde staat in
     `Settings` onder dezelfde naam in kleine letters, zoals `connector_kamerstukken`)."""
     d = o.als_dict()
-    d["aan"] = True if o.straat is None else bool(getattr(settings, o.straat.lower(), False))
+    if o.straat is None:
+        d["aan"] = True
+    elif hasattr(settings, o.straat.lower()):
+        d["aan"] = bool(getattr(settings, o.straat.lower()))
+    else:   # een vlag die één module leest, zoals SKILL_REGELS (`agent/skill_regels.py`)
+        d["aan"] = os.environ.get(o.straat, "").strip().lower() in ("1", "true", "ja", "yes")
     return d
 
 
