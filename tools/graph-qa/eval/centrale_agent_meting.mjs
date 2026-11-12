@@ -8,6 +8,7 @@
 //       maakt het meetwerkgebied uit de eerste regel van de set en print zijn id;
 //   node eval/centrale_agent_meting.mjs run <nr> --werkgebied <id> --commit <sha> --uit <map> [id ...]
 //       draait de set (of de genoemde opdrachten) en schrijft per opdracht één regel in <map>/ruw-run<nr>.jsonl.
+//       Met `--set golden_centrale_agent_breed.jsonl` draait een aanvulling naast de 30 (uitvoer ruw-breed-…).
 //       Met `--vorm <naam> --extra '<json>'` gaan de velden uit <json> mee op elke beurt van de run, en heet het
 //       bestand ruw-<naam>-run<nr>.jsonl. Zo zijn twee vormen op dezelfde versie te meten: de vorm zonder het veld en de
 //       vorm met het veld waarmee een run de centrale agent kiest (ADR-016 §A7). De naam staat op elke regel (`vorm`).
@@ -31,7 +32,13 @@ import { AcceptatieClient } from "../../wetsanalyse-acceptatie-mcp/dist/client.j
 import { lexStart } from "../../wetsanalyse-acceptatie-mcp/dist/beurt.js";
 
 const HIER = path.dirname(fileURLToPath(import.meta.url));
-const SET = path.join(HIER, "golden_centrale_agent.jsonl");
+// `--set <bestand>` (alleen bij `run`): een aanvulling naast de 30, zoals golden_centrale_agent_breed.jsonl. Het bestand
+// komt in de naam van de uitvoer, zodat het de runs van de set niet raakt.
+const setOptie = process.argv.indexOf("--set");
+const SETNAAM = setOptie < 0 ? "golden_centrale_agent.jsonl" : path.basename(process.argv.splice(setOptie, 2)[1]);
+if (!/^golden_centrale_agent[a-z_]*\.jsonl$/.test(SETNAAM)) { console.error("--set: een bestand golden_centrale_agent….jsonl in eval/"); process.exit(2); }
+const SET = path.join(HIER, SETNAAM);
+const SETDEEL = SETNAAM === "golden_centrale_agent.jsonl" ? "" : SETNAAM.replace(/^golden_centrale_agent_|\.jsonl$/g, "") + "-";
 const MAX_HERHALEN = 2;
 const NAMEN = { BWBR0004770: "Invorderingswet 1990", BWBR0024096: "Leidraad Invordering 2008" };
 
@@ -39,7 +46,7 @@ const { WETSANALYSE_ACC_URL: url, WETSANALYSE_ACC_TOKEN: token } = process.env;
 if (!url || !token) { console.error("Zet WETSANALYSE_ACC_URL en WETSANALYSE_ACC_TOKEN."); process.exit(2); }
 const c = new AcceptatieClient(url.replace(/\/$/, ""), token);
 const rijen = fs.readFileSync(SET, "utf8").split("\n").filter(r => r.trim() && !r.startsWith("#")).map(r => JSON.parse(r));
-const fixture = rijen.find(r => r.id === "_werkgebied");
+const fixture = rijen.find(r => r.id === "_werkgebied");      // alleen in de set van 30
 const set = rijen.filter(r => r.id !== "_werkgebied");
 const perId = Object.fromEntries(set.map(r => [r.id, r]));
 
@@ -176,7 +183,7 @@ if (commando === "werkgebied") {
     if (!velden || typeof velden !== "object" || Array.isArray(velden)) { console.error("--extra is een JSON-object"); process.exit(2); }
     if (!vorm) { console.error("--extra vraagt --vorm: zo zijn de bestanden van twee vormen uit elkaar te houden"); process.exit(2); }
   }
-  const uit = path.join(map, `ruw-${vorm ? vorm + "-" : ""}run${nr}.jsonl`);
+  const uit = path.join(map, `ruw-${SETDEEL}${vorm ? vorm + "-" : ""}run${nr}.jsonl`);
   const gedaan = new Set(fs.existsSync(uit) ? fs.readFileSync(uit, "utf8").split("\n").filter(Boolean).map(r => JSON.parse(r).id) : []);
   console.log("account vóór", await verbruik());
   for (const o of set) {
