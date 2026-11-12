@@ -178,7 +178,9 @@ def test_het_meting_event_telt_wat_er_met_de_sjablonen_gebeurde(monkeypatch):
         return [e async for e in gemeten(stroom, meter=meter, run=None, gesprek_id="", model="m")]
     events = asyncio.run(verzamel())
     [meting] = [e for e in events if e["type"] == "meting"]
-    assert meting["sjabloon"] == {"gevraagd": 1, "geweigerd": {f"{EXTERN}:extern.blokken": 1}, "gevuld": {EXTERN: 1}}
+    assert meting["sjabloon"] == {"gevraagd": 1, "geweigerd": {f"{EXTERN}:extern.blokken": 1}, "gevuld": {EXTERN: 1},
+                                  # Dezelfde weigering, per reden uit de code; een weigering zonder eigen code is `overig`.
+                                  "geweigerd_reden": {f"{EXTERN}:extern.blokken:overig": 1}}
     assert json.dumps(meting["sjabloon"]).isascii(), "alleen namen uit de code, geen inhoud"
 
 
