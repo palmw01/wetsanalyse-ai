@@ -257,3 +257,65 @@ gesprek, één run. Basis: dezelfde vragen in ronde 6 op `66e73f75`, vóór ADR-
   - het voorvoegsel per ronde is gelijk gebleven: de context van de beurt is even groot, alleen verplaatst.
 - Een zuivere vergelijking vraagt beide varianten op dezelfde code, met drie runs per vraag. Daarvoor is een vlag
   nodig die de context terugzet in de systeemprompt. Dat is een eigen stap.
+
+## A/B: de context van de beurt in de vraag of in de systeemprompt (12 nov, `af87a6f0`)
+
+**Vraag:** krijgt Lex meer sjabloonweigeringen doordat de context van de beurt als tekst in de vraag staat (ADR-015),
+en niet in de systeemprompt? De vorige vergelijking kon dat niet zeggen: de code was anders en er was één run per vraag.
+
+**Opzet:**
+- dezelfde code (bundel 72, met de meetvlag `beurtcontext_plek` uit #1328), per run gekozen via het verzoek:
+  - `vraag`: de context staat als eerste blok in de vraag (ADR-015, de standaard);
+  - `systeem`: de context staat als tweede systeemblok, zonder cachepunten op de berichten (zoals vóór ADR-015).
+- Vier vragen, elk in een eigen gesprek per run. Het zijn de drie die in de vorige vergelijking een weigering
+  hadden, plus één vervolgbeurt:
+  - I12 (met een connector);
+  - I24 (`duiding.vul`);
+  - I28;
+  - I28-vervolg, een tweede beurt in het I28-gesprek, met historie.
+- Drie rondes, beide varianten per ronde tegelijk: 24 runs.
+- Ruwe gegevens staan in [`ab-beurtcontext-plek.jsonl`](ab-beurtcontext-plek.jsonl). `tokens` is invoer + uitvoer +
+  cache lezen + cache schrijven uit het `meting`-event.
+
+| | `vraag` (ADR-015) | `systeem` |
+|---|---|---|
+| runs | 12 | 12 |
+| sjabloonweigeringen (totaal) | 20 | 19 |
+| runs met een weigering | 12 | 11 |
+| geëindigd als tekst (`gemist`) | 9 | 10 |
+| `gegrond` | 10 | 6 |
+| tokens (totaal) | 1.567.996 | 1.555.654 |
+| tokens per run (gemiddeld) | 130,7k | 129,6k |
+| modelrondes per run | 5,0 | 5,0 |
+| duur per run | 62,1 s | 57,5 s |
+
+**Per vraag (ronde 1/2/3, als weigeringen · modelrondes):**
+- I12: `vraag` 1·7, 1·6, 1·7; `systeem` 1·6, 2·8, 1·6;
+- I24: `vraag` 2·3, 2·3, 2·3; `systeem` 2·3, 2·3, 2·4;
+- I28: `vraag` 2·5, 2·5, 2·6; `systeem` 2·7, 1·4, 2·6;
+- I28-vervolg: `vraag` 1·4, 2·6, 2·5; `systeem` 2·5, 2·5, 0·3.
+
+**Oordeel:**
+- De plek van de context verklaart de weigeringen niet: 20 tegen 19, en 9 tegen 10 geëindigd als tekst.
+  - De weigeringen hangen aan de vraag, niet aan de variant. I24 weigert in alle zes de runs twee keer
+    (`duiding.vul` of `bepaling.vul`). I28 doet dat in vijf van de zes.
+  - Het verschil met ronde 6 (vorige sectie) komt dus niet van ADR-015. De weigeringen zijn een eigenschap van de
+    sjablonen: `duiding.vul` met de aangewezen woorden van een passage.
+- Tokens, modelrondes en duur zijn gelijk. De spreiding per run (I12: 175k–276k) is veel groter dan het verschil
+  tussen de varianten (1%).
+- `gegrond` 10 tegen 6 is niet significant (Fisher tweezijdig p = 0,19, n = 12 per variant). Waar het niet gegrond is,
+  is het oordeel `onbepaald`, nooit `ongegrond`. Het is geen reden om terug te gaan, maar wel om bij een volgende
+  meting op te letten.
+- **Besluit:** ADR-015 blijft zoals hij is: de context in de vraag. De vlag `beurtcontext_plek` blijft alleen voor
+  metingen.
+
+**Bijvangst bij de vervolgbeurt:** in beide varianten schrijft de eerste vervolgbeurt de historie opnieuw (9,7k–11,0k
+in de eerste ronde van de antwoordlus).
+- Bij `systeem` is dat de bekende oorzaak: de context staat vóór de berichten.
+- Bij `vraag` komt het doordat beurt 1 in de cache staat mét de context in de vraag. In de historie staat die vraag
+  zonder context, dus beurt 1 wordt bij de eerste vervolgbeurt één keer opnieuw geschreven. Dat is eenmalig per
+  beurt. Vanaf de derde beurt komt de historie van de vorige beurten uit de cache (controlemeting hierboven).
+
+**Verbruik:** 24 runs, 3.123.650 tokens (ronde 1 en 2: 2.107.218; ronde 3: 1.016.432), binnen het budget na de reset
+van 17:09 UTC. Er was één 429 (`budget_op`) in ronde 1, vóór de reset. Die is aan de hoofdsessie gemeld; de run is
+na de reset opnieuw gedraaid.
