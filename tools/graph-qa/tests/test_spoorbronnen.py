@@ -115,8 +115,9 @@ def test_elke_reden_in_de_code_heeft_een_zin():
     bron = "\n".join(p.read_text(encoding="utf-8") for p in AGENT.rglob("*.py"))
     redenen = set(re.findall(r'fout\(\s*"([a-z_]+)"', bron)) | set(re.findall(r'"reden": "([a-z_]+)"', bron))
     redenen |= {"tool_mislukt", "tool_resultaat_te_groot"}
-    # Geen toolresultaat: de bronstand (waarom een connector uit staat) en de leesroute (geeft geen event).
-    redenen -= {"straat", "tool_niet_toegestaan_in_leesroute"}
+    # Geen toolresultaat: de bronstand (waarom een connector uit staat, of deze beurt niet meedoet: `bronkeuze`) en de
+    # leesroute (geeft geen event).
+    redenen -= {"straat", "vraag", "tool_niet_toegestaan_in_leesroute"}
     assert redenen <= set(REDEN_ZIN), redenen - set(REDEN_ZIN)
 
 
