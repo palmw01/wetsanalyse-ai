@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   VAKJES, adviezen, beginKoud, beginTekst, beurtenUitBerichten, boomVerbruik, contextRegel, grootste, grootsteRest,
-  hoofdagent, kindRijen, kort, legenda, lijn, metBeurt, parseContextopbouw, procent, raster, rolLabel, signaal,
+  hoofdagent, kindRijen, kort, legenda, lijn, metBeurt, parseContextopbouw, procent, profielTekst, raster, rolLabel, signaal,
   totaalVerbruik, verloop, type Contextopbouw,
 } from "./contextweergave";
 
@@ -41,6 +41,14 @@ describe("lezen", () => {
     expect(c.agenten[0].laatste.voorvoegsel).toEqual({ omvang: 25009, exact: true });
     expect(c.verbruik.map((v) => v.rol)).toEqual(["supervisor", "antwoord"]);
     expect("nieuw_veld" in c).toBe(false);
+  });
+
+  it("leest het profiel per agent, en een agent zonder profiel heeft er geen", () => {
+    expect(profielTekst(hoofdagent(opbouw())!)).toBe("");
+    const met = hoofdagent(opbouw((r) => { r.agenten[0].profiel_id = "bronnenzoeker"; r.agenten[0].profiel_versie = "3"; }))!;
+    expect([met.profiel_id, met.profiel_versie]).toEqual(["bronnenzoeker", "3"]);
+    expect(profielTekst(met)).toBe("bronnenzoeker, versie 3");
+    expect(profielTekst({ profiel_id: "bronnenzoeker", profiel_versie: "" })).toBe("bronnenzoeker");
   });
 
   it("een vorm die niet past is geen meting, nooit een fout", () => {

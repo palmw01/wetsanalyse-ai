@@ -9,7 +9,7 @@ import { Meter } from "@/components/ui/Meter";
 import { haalContextBoom } from "@/lib/api";
 import {
   adviezen, beginKoud, beginTekst, boomVerbruik, contextRegel, grootste, hoofdagent, kindRijen, kort, legenda, lijn,
-  procent, raster, rolLabel, signaal, totaalVerbruik, verloop,
+  procent, profielTekst, raster, rolLabel, signaal, totaalVerbruik, verloop,
   type Beurt, type ContextAgent, type ContextBoom, type Contextopbouw, type KindRij,
 } from "@/lib/contextweergave";
 
@@ -153,6 +153,7 @@ function AgentContext({ agent, meer }: { agent: ContextAgent; meer: boolean }) {
   return (
     <Sectie titel={meer ? `Context · ${rolLabel(agent.rol)}` : "Context"} niveau={3} data-context-agent={agent.rol}
       toelichting="Het laatste verzoek van deze beurt. Lex bouwt de context bij elke beurt opnieuw op.">
+      {profielTekst(agent) && <p data-context-profiel className="break-words text-xs text-muted">Profiel: {profielTekst(agent)}</p>}
       <p data-context-regel className="text-sm text-ink">
         <span className="font-semibold tabular-nums">{kort(agent.laatste.totaal)}</span>
         {agent.venster > 0 && <> · {procent(agent.laatste.totaal, agent.venster)} van het venster ({kort(agent.venster)})</>}
@@ -235,7 +236,8 @@ function Boom({ c, kinderen, fout }: { c: Contextopbouw; kinderen: KindRij[]; fo
                   <span className="block truncate text-sm font-medium text-ink">{k.titel || "Deelgesprek"}</span>
                   <span className="block text-xs text-muted">
                     {k.gemeten
-                      ? <>{k.context ? `context ${contextRegel(k.context)} · ` : ""}verbruik {kort(k.verbruik)}</>
+                      ? <>{k.context && profielTekst(k.context) ? `${profielTekst(k.context)} · ` : ""}
+                          {k.context ? `context ${contextRegel(k.context)} · ` : ""}verbruik {kort(k.verbruik)}</>
                       : "loopt nog, of niet gemeten"}
                   </span>
                 </span>

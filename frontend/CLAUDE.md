@@ -571,7 +571,8 @@ component (`components/werkplek/Contextweergave.tsx`) met twee ingangen, rekenke
   het verloop. De inhoud komt uit `ContextopbouwContext`, niet uit het doel: de tab wordt bewaard, de meting niet.
 - **De boom** komt van `GET /api/gesprekken/{id}/contextopbouw` (`haalContextBoom`): per deelgesprek een rij met zijn
   context en verbruik, die dezelfde kaart opent. Een kind hoort bij de beurt die het startte (`ouder_run_id`); een kind
-  zonder meting staat bij de laatste beurt als *niet gemeten*, en het totaal zegt dan "minstens".
+  zonder meting staat bij de laatste beurt als *niet gemeten*, en het totaal zegt dan "minstens". Heeft een agent een
+  profiel (`profiel_id`, `profiel_versie` per agent, ADR-016), dan staat het bij zijn context en in de rij (`profielTekst`).
 - **De adviezen zijn vaste regels** (`adviezen`), zonder model, over deze en de vorige beurt. De cache is van iedereen
   met hetzelfde vaste deel: de tekst zegt nooit "jij was een uur stil".
 - **Een weergave, geen artefact**: geen besluit, geen knop die Lex start, geen *Vraag Lex*. Het advies "begin een nieuw

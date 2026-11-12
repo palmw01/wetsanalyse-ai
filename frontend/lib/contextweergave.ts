@@ -16,6 +16,9 @@ export interface ContextAgent {
   rol: string;
   model: string;
   venster: number;
+  /** Het profiel waarmee deze agent is opgebouwd (ADR-016), of leeg: de vaste agents van nu hebben er geen. */
+  profiel_id: string;
+  profiel_versie: string;
   laatste: { delen: Deel[]; totaal: number; voorvoegsel: { omvang: number; exact: boolean }; cache: Cache };
   begin: { totaal: number; cache: Cache; tools_hash: string; system_hash: string };
   historiegrens: number | null;
@@ -71,6 +74,7 @@ function agent(v: Record<string, unknown>): ContextAgent | undefined {
   const beurten = isObject(v.venster_beurten) ? v.venster_beurten : undefined;
   return {
     rol: tekst(v.rol), model: tekst(v.model), venster: getal(v.venster),
+    profiel_id: tekst(v.profiel_id), profiel_versie: tekst(v.profiel_versie),
     laatste: {
       delen: rijen(laatste.delen).map((d) => ({ categorie: tekst(d.categorie), omvang: getal(d.omvang) })).filter((d) => d.categorie),
       totaal: getal(laatste.totaal), voorvoegsel: { omvang: getal(voor.omvang), exact: voor.exact === true }, cache: cache(laatste.cache),
@@ -144,6 +148,12 @@ export function totaalVerbruik(v: Verbruik): number {
 /** De agent waarvan de context getoond wordt als er één regel is (de meter): die met het grootste laatste verzoek. */
 export function hoofdagent(c: Contextopbouw | undefined): ContextAgent | undefined {
   return c?.agenten.reduce<ContextAgent | undefined>((beste, a) => (!beste || a.laatste.totaal > beste.laatste.totaal ? a : beste), undefined);
+}
+
+/** Het profiel van een agent als tekst ("bronnenzoeker, versie 3"), of leeg als hij er geen heeft. */
+export function profielTekst(a: Pick<ContextAgent, "profiel_id" | "profiel_versie">): string {
+  if (!a.profiel_id) return "";
+  return a.profiel_versie ? `${a.profiel_id}, versie ${a.profiel_versie}` : a.profiel_id;
 }
 
 /** De regel bij het raster en op de meter: `31k · 3,1%` (van het venster). */

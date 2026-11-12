@@ -8,7 +8,7 @@
  *  - de meter toont de omvang van het laatste verzoek en het deel van het venster, met een signaal bij een koud begin;
  *  - een klik opent het paneel naast het gesprek: de regel, het raster (100 vakjes = het verzoek), de legenda met ≈, hoe
  *    de beurt begon, en het verbruik van de hele beurt als een ander getal dan de context;
- *  - de boom: een gemeten deelgesprek met zijn context en verbruik (een klik opent dezelfde kaart), een deelgesprek
+ *  - de boom: een gemeten deelgesprek met zijn profiel (ADR-016), context en verbruik (een klik opent dezelfde kaart), een deelgesprek
  *    zonder meting, en een totaal dat zegt dat het onvolledig is;
  *  - de beurtkiezer toont een eerdere beurt (warm), het verloop staat er bij meer dan één beurt, de details klappen uit;
  *  - `/context` opent hetzelfde paneel zonder beurt; meter en commando delen één tab;
@@ -28,7 +28,7 @@ const errors = [], runs = [], boomVerzoeken = [];
 const schermafdruk = process.env.CONTEXT_SCREENSHOT;
 
 /** Eén contextopbouw zoals graph-qa haar levert (`agent/contextopbouw.py`). */
-function opbouw(run, { ouder = "", koud = true, totaal = 30890, tools = "758623c1266b" } = {}) {
+function opbouw(run, { ouder = "", koud = true, totaal = 30890, tools = "758623c1266b", profiel = "" } = {}) {
   const begin = koud ? { lees: 0, schrijf: 27864, nieuw: 3 } : { lees: 27000, schrijf: 864, nieuw: 3 };
   const schaal = totaal / 30890;
   const delen = [["systeem", 3300], ["methode", 1081], ["graaftools", 8284], ["connectortools", 9363], ["sjablonen", 2981],
@@ -38,6 +38,7 @@ function opbouw(run, { ouder = "", koud = true, totaal = 30890, tools = "758623c
     versie: 1, run_id: run, ouder_run_id: ouder, profiel_id: "", profiel_versie: "",
     agenten: [{
       rol: "antwoord", model: "claude-sonnet-4-6", venster: 1_000_000, historiegrens: 13806,
+      profiel_id: profiel, profiel_versie: profiel ? "3" : "",
       venster_beurten: { in_venster: 1, gekrompen: 0, weggevallen: 0 },
       begin: { totaal: 27867, cache: begin, tools_hash: tools, system_hash: "5cc1b4215950" },
       laatste: { delen, totaal, voorvoegsel: { omvang: Math.round(25009 * schaal), exact: true }, cache: { lees: totaal - 742, schrijf: 741, nieuw: 1 } },
@@ -72,7 +73,7 @@ const gesprekken = {
 };
 const boom = { gesprek_id: "g1", kinderen: [
   { gesprek_id: "k1", titel: "Deelvraag 1: de termijn", updated: null,
-    berichten: [{ bericht_id: 9, run_id: "k1r", created: null, contextopbouw: opbouw("k1r", { ouder: "r2", koud: false, totaal: 18000 }) }] },
+    berichten: [{ bericht_id: 9, run_id: "k1r", created: null, contextopbouw: opbouw("k1r", { ouder: "r2", koud: false, totaal: 18000, profiel: "bronnenzoeker" }) }] },
   { gesprek_id: "k2", titel: "Deelvraag 2: loopt nog", updated: null, berichten: [] },
 ] };
 const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
@@ -152,13 +153,15 @@ try {
   // In dev draait StrictMode een effect twee keer: het gaat om welk gesprek, niet om hoe vaak.
   assert.deepEqual([...new Set(boomVerzoeken)], ["g1"], "de boom komt van de leesroute van dit gesprek");
   assert.equal(await kinderen.count(), 2);
-  assert.match(await kinderen.nth(0).innerText(), /Deelvraag 1: de termijn\s*context 18k · 1,8% · verbruik 93k/);
+  assert.match(await kinderen.nth(0).innerText(), /Deelvraag 1: de termijn\s*bronnenzoeker, versie 3 ·\s*context 18k · 1,8% · verbruik 93k/);
+  assert.equal(await paneel.locator("[data-context-profiel]").count(), 0, "de vaste agent heeft geen profiel");
   assert.match(await kinderen.nth(1).innerText(), /loopt nog, of niet gemeten/);
   assert.equal(await kinderen.nth(1).getByRole("button").isDisabled(), true);
   assert.match(await paneel.locator("[data-boom-totaal]").innerText(), /minstens 186k.*onvolledig/s);
   await kinderen.nth(0).getByRole("button").click();
   assert.equal(await kinderen.nth(0).locator("[data-context-raster] [data-vakje]").count(), 100, "dezelfde kaart voor het kind");
   assert.equal(await kinderen.nth(0).locator("[data-context-adviezen]").count(), 0, "adviezen horen bij de eigen beurt");
+  assert.equal(await kinderen.nth(0).locator("[data-context-profiel]").innerText(), "Profiel: bronnenzoeker, versie 3");
   await kinderen.nth(0).getByRole("button").first().click();
 
   if (schermafdruk) await page.screenshot({ path: `${schermafdruk}/contextweergave-breed.png` });
