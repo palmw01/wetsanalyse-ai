@@ -79,15 +79,21 @@ export function ContextopbouwInhoud() {
   const beurt = beurten[plek];
   const boom = useBoom(gesprekId, beurten.length);
 
+  const bekend = beurten.map((b) => b.run_id);
   if (!beurt) {
-    return <p data-context-leeg className="text-sm text-muted">
-      In dit gesprek is nog geen beurt gemeten. Een beurt zonder model (een overzicht uit de kennisgraaf, een vaste
-      handeling) heeft geen context, en een bericht van vóór de meting ook niet.
-    </p>;
+    // Geen gemeten beurt in dit gesprek zelf. Een regie gebruikt geen model, maar haar deelgesprekken wel: die staan er dan.
+    const los = kindRijen(boom.boom, "", true, bekend);
+    return <>
+      <p data-context-leeg className="text-sm text-muted">
+        In dit gesprek is nog geen beurt gemeten. Een beurt zonder model (een overzicht uit de kennisgraaf, een vaste
+        handeling, het verdelen van werk over deelgesprekken) heeft geen context, en een bericht van vóór de meting ook niet.
+      </p>
+      {(los.length > 0 || boom.fout) && <Boom kinderen={los} fout={boom.fout} />}
+    </>;
   }
   const c = beurt.contextopbouw;
   const vorige = beurten[plek - 1]?.contextopbouw;
-  const kinderen = kindRijen(boom.boom, c.run_id, plek === beurten.length - 1);
+  const kinderen = kindRijen(boom.boom, c.run_id, plek === beurten.length - 1, bekend);
   const punten = verloop(beurten);
   return <>
     {beurten.length > 1 && (
@@ -218,7 +224,7 @@ function Getal({ n, van }: { n: number; van: number }) {
 }
 
 /** De deelgesprekken van deze beurt: per kind een rij die dezelfde kaart opent, en het verbruik van de boom. */
-function Boom({ c, kinderen, fout }: { c: Contextopbouw; kinderen: KindRij[]; fout: boolean }) {
+function Boom({ c, kinderen, fout }: { c?: Contextopbouw; kinderen: KindRij[]; fout: boolean }) {
   const [open, setOpen] = useState<string | null>(null);
   const som = boomVerbruik(c, kinderen);
   return (
@@ -237,22 +243,25 @@ function Boom({ c, kinderen, fout }: { c: Contextopbouw; kinderen: KindRij[]; fo
                   <span className="block text-xs text-muted">
                     {k.gemeten
                       ? <>{k.context && profielTekst(k.context) ? `${profielTekst(k.context)} · ` : ""}
-                          {k.context ? `context ${contextRegel(k.context)} · ` : ""}verbruik {kort(k.verbruik)}</>
+                          {k.context ? `context ${contextRegel(k.context)} · ` : ""}
+                          {k.beurten.length > 1 ? `${k.beurten.length} beurten · ` : ""}verbruik {kort(k.verbruik)}</>
                       : "loopt nog, of niet gemeten"}
                   </span>
                 </span>
                 {!k.gemeten && <StatusLabel toon="neutraal">niet gemeten</StatusLabel>}
               </button>
-              {open === k.gesprek_id && k.beurten.at(-1) && (
-                <div className="space-y-4 border-l border-line py-2 pl-3">
-                  <Beurtkaart c={k.beurten.at(-1)!.contextopbouw} kind />
+              {open === k.gesprek_id && k.beurten.map((b, i) => (
+                // Elke beurt van het kind: de rij telt ze samen, dus de kaart toont ze allemaal.
+                <div key={b.run_id || i} data-kind-beurt className="space-y-4 border-l border-line py-2 pl-3">
+                  {k.beurten.length > 1 && <p className="text-xs font-semibold text-muted">Beurt {i + 1} van {k.beurten.length}</p>}
+                  <Beurtkaart c={b.contextopbouw} kind />
                 </div>
-              )}
+              ))}
             </li>
           ))}
         </ul>
         <p data-boom-totaal className="text-sm text-ink">
-          Deze beurt met haar deelgesprekken: <span className="font-semibold tabular-nums">{som.volledig ? "" : "minstens "}{kort(som.totaal)}</span>.
+          {c ? "Deze beurt met haar deelgesprekken" : "De deelgesprekken samen"}: <span className="font-semibold tabular-nums">{som.volledig ? "" : "minstens "}{kort(som.totaal)}</span>.
           {!som.volledig && " Niet elk deelgesprek is gemeten, dus het totaal is onvolledig."}
         </p>
       </>}
