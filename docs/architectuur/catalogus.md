@@ -105,7 +105,7 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 | S2 | concepten, de soorten `tool` en `controle`, aanroepregels als test | #1291 |
 | S3 | de routeringstabel (ADR-010) | #1292 |
 | S4 | context per agent (`test_context_per_agent`) | #1294 |
-| S5 | meerdere skills, binding per rol, nep-skill | – |
+| S5 | meerdere skills, binding per rol, nep-skill | #1296 |
 | S6 | regelsets uit een skill | – |
 | S7 | werkplek per concept | – |
 | S8 | commando's wijzen naar één onderdeel (na #1276) | – |

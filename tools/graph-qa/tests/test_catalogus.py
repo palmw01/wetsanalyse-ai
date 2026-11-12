@@ -328,3 +328,24 @@ def test_de_routeringstabel_en_supervisie_zijn_gelijk():
         assert re.search(rf"\b{re.escape(lokaal)}\(", bron), f"route {r.naam}: {lokaal} wordt in supervisie niet aangeroepen"
         in_tabel.add(lokaal)
     assert herkenners | helpers <= in_tabel, f"herkenners zonder route: {sorted((herkenners | helpers) - in_tabel)}"
+
+
+# --- commando's (#1276, ADR-014 §7) -----------------------------------------------------------------------------------
+
+def test_elk_commando_wijst_naar_precies_een_onderdeel():
+    """Een `/commando` is een suggestie uit `frontend/lib/vraagLex.ts`: met een `actie` wijst hij via die actie naar
+    precies één workflow of agent; met een `doel` (annoteren) naar de route die een aangewezen bepaling annoteert; met
+    `invullen` zet hij alleen een vraag klaar, die langs de supervisor gaat. De clientcommando's (`/nieuw`, `/bron`, `/help`) zijn bediening van de werkplek en vallen erbuiten."""
+    bron = (WORTEL / "frontend" / "lib/vraagLex.ts").read_text()
+    regels = [r for r in bron.splitlines() if "commando: {" in r]
+    assert regels, "geen commando's gevonden in vraagLex.ts"
+    for r in regels:
+        naam = re.search(r'commando: \{ naam: "([a-z-]+)"', r)[1]
+        if actie := re.search(r'actie: "([a-z_]+)"', r):
+            doelen = [o.id for o in ALLE if o.concept in ("agent", "workflow") and actie[1] in o.ingang]
+            assert len(doelen) == 1, f"/{naam} (actie {actie[1]}) wijst naar {doelen}"
+        elif "invullen: true" in r:
+            continue   # zet alleen een vraag klaar die de jurist afmaakt: die gaat langs de supervisor
+        else:
+            assert re.search(r"\bdoel\b", r), f"/{naam}: geen actie, doel of invullen"
+            assert PER_ID["route/annotatie_doel"].hangt_af_van == ("workflow/annotatieketen",)
