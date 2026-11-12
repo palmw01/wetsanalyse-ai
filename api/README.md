@@ -103,6 +103,7 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | `GET` | `/v1/gesprekken?ouder_id=` | De deelgesprekken van een regiegesprek (ADR-012) |
 | `GET` `PATCH` `DELETE` | `/v1/gesprekken/{id}` | Ophalen / hernoemen, aan een werkgebied koppelen of archiveren / verwijderen |
 | `POST` | `/v1/gesprekken/{id}/berichten` | Bericht toevoegen (idempotent op `run_id`) |
+| `GET` | `/v1/gesprekken/{id}/contextopbouw` | De contextopbouw van de deelgesprekken (de boom van de contextweergave) |
 
 **Login** (de BFF is de enige client), onder `/v1/auth`:
 

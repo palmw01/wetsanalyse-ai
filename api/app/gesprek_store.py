@@ -16,7 +16,8 @@ from sqlalchemy.exc import IntegrityError
 
 from . import db
 from .gesprek_contracts import (
-    Bericht, BerichtInvoer, Gesprek, GesprekGroep, GesprekSamenvatting, GesprekTelling,
+    Bericht, BerichtContext, BerichtInvoer, Contextopbouw, Gesprek, GesprekGroep, GesprekSamenvatting, GesprekTelling,
+    KindContext,
 )
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,11 @@ logger = logging.getLogger(__name__)
 #: soort –, dan valt alleen dat veld weg. Anders weigerde de api het hele gesprek (500), en daarmee ook
 #: laden én verwijderen: een gesprek is een verslag en moet altijd te openen en weg te halen zijn.
 _OPTIONEEL = ("hergebruik", "dekking", "overzicht", "antwoord", "annotatie_doel", "tool_executions", "reeks", "artefact",
-              "bevestiging", "bevestiging_antwoord", "vraagkaart", "intake_antwoord", "uitkomst")
+              "bevestiging", "bevestiging_antwoord", "vraagkaart", "intake_antwoord", "uitkomst", "contextopbouw")
+
+
+#: Hoeveel deelgesprekken de boom van de contextopbouw hooguit leest: ruim boven een regie (hoogstens tientallen).
+MAX_KINDEREN = 200
 
 
 def _bericht_uit_row(row) -> Bericht:
@@ -56,6 +61,7 @@ def _bericht_uit_row(row) -> Bericht:
         intake_antwoord=inhoud.get("intake_antwoord") or None,
         uitkomst=inhoud.get("uitkomst") or None,
         grounding=inhoud.get("grounding", {}) or {},
+        contextopbouw=inhoud.get("contextopbouw") or None,
         created=db.aware(d["created"]),
     )
     try:
@@ -111,6 +117,8 @@ def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
         inhoud["uitkomst"] = inv.uitkomst.model_dump()
     if inv.grounding:
         inhoud["grounding"] = inv.grounding
+    if inv.contextopbouw:
+        inhoud["contextopbouw"] = inv.contextopbouw.model_dump()
     return inhoud
 
 
@@ -212,6 +220,39 @@ class GesprekStore:
             )
             for r in rows
         ]
+
+    async def contextopbouw_van_kinderen(self, ouder_id: str, user_id: str) -> list[KindContext]:
+        """De deelgesprekken van `ouder_id` (alleen die van deze gebruiker) met de contextopbouw van hun
+        assistentberichten, oudste gesprek eerst. Een kind zonder meting staat erin met een lege lijst: de werkplek
+        zegt dan "loopt nog" of "niet gemeten". Een veld dat niet meer bij het contract past, valt weg zoals bij het
+        laden van een gesprek; het breekt de boom niet."""
+        g, b = db.gesprekken, db.gesprek_berichten
+        async with db.get_engine().connect() as conn:
+            kinderen = (await conn.execute(
+                select(g.c.id, g.c.titel, g.c.updated)
+                .where(g.c.ouder_id == ouder_id, g.c.user_id == user_id)
+                .order_by(g.c.created, g.c.id).limit(MAX_KINDEREN)
+            )).all()
+            ids = [k.id for k in kinderen]
+            rijen = (await conn.execute(
+                select(b.c.id, b.c.gesprek_id, b.c.inhoud, b.c.created)
+                .where(b.c.gesprek_id.in_(ids), b.c.rol == "assistant").order_by(b.c.id)
+            )).all() if ids else []
+        per_kind: dict[str, list[BerichtContext]] = {i: [] for i in ids}
+        for r in rijen:
+            inhoud = r.inhoud or {}
+            if not inhoud.get("contextopbouw"):
+                continue
+            try:
+                opbouw = Contextopbouw(**inhoud["contextopbouw"])
+            except (ValidationError, TypeError):
+                logger.warning("bericht: veraald veld weggelaten",
+                               extra={"categorie": "functioneel", "bericht_id": r.id, "velden": ["contextopbouw"]})
+                continue
+            per_kind[r.gesprek_id].append(BerichtContext(
+                bericht_id=r.id, run_id=inhoud.get("run_id", ""), created=db.aware(r.created), contextopbouw=opbouw))
+        return [KindContext(gesprek_id=k.id, titel=k.titel or "", updated=db.aware(k.updated), berichten=per_kind[k.id])
+                for k in kinderen]
 
     @staticmethod
     async def _bericht_van_run(conn, gesprek_id: str, run_id: str) -> Bericht | None:

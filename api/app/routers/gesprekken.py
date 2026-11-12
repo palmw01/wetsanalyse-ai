@@ -11,6 +11,7 @@ GET    /v1/gesprekken?limit=&offset=&werkgebied_id=&ouder_id=&gearchiveerd=&q=
                                             – eigen gesprekken (samenvatting, nieuwste eerst);
                                               `q` zoekt in de titel en de tekst van de berichten
 GET    /v1/gesprekken/{id}                  – volledig gesprek (met berichten)
+GET    /v1/gesprekken/{id}/contextopbouw    – de contextopbouw van de deelgesprekken (de boom, alleen lezen)
 POST   /v1/gesprekken/{id}/berichten        – bericht toevoegen
 PATCH  /v1/gesprekken/{id}                  – titel, werkgebied (koppelen/loskoppelen), archief
 DELETE /v1/gesprekken/{id}                  – verwijder eigen gesprek
@@ -32,7 +33,7 @@ from ..agent_toegang import AGENT_CLIENT
 from ..auth import huidige_client, require_client
 from ..deps import get_gesprek_store
 from ..gesprek_contracts import (
-    Bericht, BerichtInvoer, Gesprek, GesprekCreate, GesprekGroep, GesprekIds, GesprekkenBulk,
+    Bericht, BerichtInvoer, ContextopbouwBoom, Gesprek, GesprekCreate, GesprekGroep, GesprekIds, GesprekkenBulk,
     GesprekkenBulkUitkomst, GesprekPatch, GesprekSamenvatting, GesprekTelling, Rol,
 )
 from ..gesprek_store import GesprekStore
@@ -187,6 +188,20 @@ async def haal_gesprek(
     store: GesprekStore = Depends(get_gesprek_store),
 ):
     return await _gesprek_or_404(store, gesprek_id, user_id)
+
+
+@router.get("/{gesprek_id}/contextopbouw", response_model=ContextopbouwBoom)
+async def contextopbouw_van_kinderen(
+    gesprek_id: str,
+    user_id: str = Depends(actieve_userid),
+    store: GesprekStore = Depends(get_gesprek_store),
+):
+    """De boom van de contextweergave: per deelgesprek de contextopbouw van zijn beurten. De eigen contextopbouw van
+    het gesprek staat op zijn berichten (`GET /{id}`); hier staat alleen wat eronder hangt. Voor iedereen hetzelfde,
+    zonder rolfilter; andermans gesprek geeft 404, en andermans deelgesprekken tellen niet mee."""
+    await _eigen_gesprek_of_404(store, gesprek_id, user_id)
+    return ContextopbouwBoom(gesprek_id=gesprek_id,
+                             kinderen=await store.contextopbouw_van_kinderen(gesprek_id, user_id))
 
 
 @router.post("/{gesprek_id}/berichten", status_code=status.HTTP_201_CREATED, response_model=Bericht)
