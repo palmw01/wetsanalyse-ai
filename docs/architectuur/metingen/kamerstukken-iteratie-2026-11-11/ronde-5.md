@@ -99,7 +99,7 @@ Beide zijn één keer opnieuw gedraaid. Bij RX1 staan beide runs in de gegevens.
 
 ## Bevindingen, per oorzaak
 
-### A. Eigen code (opgelost in de PR van deze ronde)
+### A. Eigen en gedeelde code (opgelost in de PR van deze ronde)
 
 1. **Een zoekvraag op de regeling als geheel heette "artikel  van BWBR0004770"** (BX1). Onder de lijst stond "Gezocht bij
    artikel  van BWBR0004770.", met een leeg artikel en het bwb-id in plaats van de naam.
@@ -112,28 +112,30 @@ Beide zijn één keer opnieuw gedraaid. Bij RX1 staan beide runs in de gegevens.
 2. **"In de titel" stond er twee keer** (K17): "Gezocht op „Invorderingswet 1990” in de titel. … ik zocht op
    „Invorderingswet 1990” in de titel, dus …". De zoekvraag zegt het al, dus de kanttekening zegt nu alleen wat het
    betekent.
+3. **Een fout van de bron in de lijstroute ging naar het model** (RX1, eerste run). `zoek_uitspraken` gaf na 92 s
+   `zoekvraag_geweigerd` (een 4xx van LiDO, `foutcode_van_status`); een herhaling een kwartier later gaf gewoon 1.191.
+   Daarna nam het model het over: drie rondes en 90k tokens om de fout uit te leggen en `search_wetgeving` aan te roepen.
+   Bij een fout van de bron zelf kan het model niets beters dan een vaste melding, en die geeft de lijstroute nu
+   (`nodes/bron_lijst.BRONFOUT`: `bron_onbereikbaar`, `bron_bezet`, `zoekvraag_geweigerd`), zoals
+   `bron_lezen._zonder_tekst` bij een genoemd stuk. Een andere fout (een argument dat de tool niet aanneemt) blijft naar
+   de agent gaan, die het kan herstellen.
+4. **Regressie uit #1252: "horen bij" zonder regeling** (gemeld door de Staatsblad-sessie, B18 0 → 184k tokens). "Welke
+   publicaties horen bij Kamerdossier 36602?" noemt geen regeling; `_bij_regeling` gaf dan "niet eenduidig" en de hele
+   lijstvraag viel weg. Nu geldt het patroon dan niet (`None`), en alleen meer dan één regeling is niet eenduidig.
+
+5. **Een woordgroep zonder treffer** (gemeld door de wetgeving_live-sessie, L-K2): de lijstroute zocht de hele woordgroep
+   in de tekst (`"…"`, `adj`) en vond niets. Nu zoekt hij dan de losse woorden, allemaal, en zegt de zoekvraag "Als
+   woordgroep staat „…” in geen stuk; dit zijn de stukken met elk van de woorden." Zoals `per_woord` bij één stuk (ronde 4).
 
 ### B. Gedeelde code of een andere connector (vervolgwerk, niet gebouwd)
 
-3. **Een fout van de bron in de lijstroute gaat naar het model** (RX1, eerste run).
-   - `zoek_uitspraken` gaf na 92 s `zoekvraag_geweigerd`, want LiDO gaf een 4xx (`foutcode_van_status`). Een herhaling
-     een kwartier later gaf gewoon 1.191.
-   - Daarna nam het model het over: drie rondes en 90k tokens om de fout uit te leggen en `search_wetgeving` aan te
-     roepen. Zo werkt het ontwerp: bij een fout krijgt de agent het resultaat, met de tools voor een tweede poging
-     (`nodes/bron_lijst.py`).
-   - Bij een storing of een weigering van de bron kan het model niets beters dan een vaste melding.
-     `bron_lezen._zonder_tekst` doet dat al voor een genoemd stuk.
-   - De lijstroute zou bij `bron_onbereikbaar`, `bron_bezet` en `zoekvraag_geweigerd` dezelfde vaste melding kunnen
-     geven, en alleen bij `ongeldige_argumenten` naar het model kunnen gaan. Dat is een ontwerpkeuze in gedeelde code, dus
-     hier alleen voorgesteld.
-   - Dat LiDO een 4xx gaf, en dat pas na 92 s, is iets voor de Rechtspraak-sessie: is het een time-out die als 4xx
-     terugkomt?
-4. **LiDO is traag bij een telvraag**: R21, R22 en RX1 duurden elk ongeveer 60 s, voor één aanroep zonder model. Dat
+6. **Waarom LiDO een 4xx gaf, en pas na 92 s**, is voor de Rechtspraak-sessie: een time-out die als 4xx terugkomt?
+7. **LiDO is traag bij een telvraag**: R21, R22 en RX1 duurden elk ongeveer 60 s, voor één aanroep zonder model. Dat
    ligt aan de koppelingen per versie, voor de Rechtspraak-sessie.
 
 ### C. Wat het model doet
 
-5. **K10 telt de amendementen zelf, en fout.**
+8. **K10 telt de amendementen zelf, en fout.**
    - De toelichting zegt "90 amendementen bij het Belastingplan 2025 (36602)" en "2 bij dossier 36604".
    - De bron telt er 88 en 3 (SRU, `dt.type==Kamerstuk`, `w.subrubriek==Amendement`). Het totaal van de zoekvraag was
      94.
@@ -142,24 +144,31 @@ Beide zijn één keer opnieuw gedraaid. Bij RX1 staan beide runs in de gegevens.
      een totaal dat wel in de trace staat.
    - Een vraag als "geef de amendementen bij X" is pas in code te lezen als de code het dossier van een wetsvoorstel uit
      zijn naam kan halen. Dat is een nieuw mechanisme, geen fix.
-6. **K16: het jaar bij 20 588 klopt niet.**
+9. **K16: het jaar bij 20 588 klopt niet.**
    - Het dossiernummer komt nu uit de gelezen uitspraak (Kamerstukken II 1987/88, 20 588, nr. 3). Dat is beter dan in
      ronde 4: daar stond het nummer er zonder bron, al was het nummer juist.
    - Wel zegt de toelichting "ingediend in 1988-1989", en de uitspraak zegt 1987/88.
    - De rest van het antwoord rust op de wettekst (vier leden, letterlijk) en de Hoge Raad.
-7. **Tekst naast een sjabloon** (1.494 tekens, 8 vragen): klein, en sinds #1257 onzichtbaar.
+10. **Tekst naast een sjabloon** (1.494 tekens, 8 vragen): klein, en sinds #1257 onzichtbaar.
 
 ## Wat de PR van ronde 5 verandert
 
 1. `zoek_bekendmakingen` met `bwb_id` zet `zoekvraag.bepaling` met de naam uit de graaf (`regelingnamen`), zoals
    Rechtspraak.
 2. `zoekvraag_tekst`: zonder artikel de regeling, niet "artikel  van …".
-3. `bron_lijst._bij_regeling`: de kanttekening zegt "in de titel" niet nog eens.
+3. `bron_lijst._bij_regeling`: de kanttekening zegt "in de titel" niet nog eens, en zonder genoemde regeling geldt het
+   patroon niet (`None`; de regressie B18).
+4. De lijstroute geeft bij een fout van de bron een vaste melding zonder model (`BRONFOUT`).
+5. Een woordgroep zonder treffer: de lijstroute zoekt de losse woorden (`_losse_woorden`).
 
 Tests:
 - `test_de_zoekvraag_noemt_de_bepaling_bij_naam`: met en zonder artikel, en met en zonder naam;
 - `test_een_regeling_zonder_artikel_is_geen_leeg_artikel`;
-- de K17-test eist "in de titel" één keer.
+- de K17-test eist "in de titel" één keer;
+- `test_een_fout_van_de_bron_is_een_vaste_melding_zonder_model`: bij Kamerstukken en Rechtspraak, vier foutcodes;
+- `test_een_fout_in_de_vraag_gaat_naar_de_agent_met_het_resultaat`;
+- `test_horen_bij_zonder_regeling_is_een_gewone_lijstvraag`: bij Staatsblad en Staatscourant en bij Kamerstukken;
+- `test_een_woordgroep_zonder_treffer_zoekt_de_losse_woorden`.
 
 ## Wat deze meting niet zegt
 

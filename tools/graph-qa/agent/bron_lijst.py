@@ -286,7 +286,8 @@ def _bij_regeling(c: ConnectorBeschrijving, tekst: str,
     """Stukken die bij een regeling horen, zonder artikel ("Welke Kamerstukken horen bij de Invorderingswet 1990?"):
     (argumenten, de rest van de tekst, een kanttekening). Een connector die stukken aan een regeling koppelt (het veld
     `wetsverwijzing`) zoekt op het bwb-id; een andere zoekt op de naam in de titel (`MetadataVeld("titel")`), en dat zegt
-    de kanttekening. None als de vraag dit niet vraagt; een lege tuple als de code de regeling niet eenduidig plaatst.
+    de kanttekening. None als de vraag dit niet vraagt of geen regeling noemt; een lege tuple als de code de regeling niet
+    eenduidig plaatst (meer dan één, of zonder graaf).
 
     Ronde 4 Kamerstukken, K17: het model zocht zelf, noemde een dossier 20588 dat KOOP niet kent en zette een
     intrekking bij het verkeerde dossier. Deze vraag is een zoekvraag die de code helemaal leest."""
@@ -295,7 +296,11 @@ def _bij_regeling(c: ConnectorBeschrijving, tekst: str,
     if regelingen is None:
         return ()
     genoemd = _zonder_ingesloten(regelingen(tekst), tekst)
-    if len(genoemd) != 1 or not (plekken := _plekken(genoemd[0][1], tekst)):
+    if not genoemd:
+        # Geen regeling: het patroon geldt niet, en de rest van de lijstvraag gaat door ("Welke publicaties horen bij
+        # Kamerdossier 36602?", Staatsblad B18: met () viel de hele lijstvraag weg, 0 → 184k tokens).
+        return None
+    if len(genoemd) > 1 or not (plekken := _plekken(genoemd[0][1], tekst)):
         return ()
     bwb_id, _ = genoemd[0]
     a, b = max(plekken, key=lambda p: p[1] - p[0])
