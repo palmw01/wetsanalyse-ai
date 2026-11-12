@@ -13,6 +13,7 @@ GRENZEN = ap.Grenzen(
     tools=frozenset({"get_artikel", "get_lid", "zoek_definitie", "subagent", "besluit_nemen"}),
     skills=frozenset({"wetsanalyse"}), connectors=frozenset({"kamerstukken"}),
     sjablonen=frozenset({"antwoord_bepaling"}), verboden_tools=frozenset({"besluit_nemen"}),
+    methoderollen=frozenset({"definitie", "algemeen"}),
     max_rondes=12, budget=100_000)
 
 BESTAND = """---
@@ -51,6 +52,7 @@ def test_zonder_tools_krijgt_een_profiel_alle_tools_behalve_wat_nooit_mag():
     assert p.tools is None and p.kiesbaar and p.modelklasse == "zwaar" and p.max_rondes is None
     assert ap.toets(p, GRENZEN) == []
     assert ap.toegestane_tools(p, GRENZEN) == {"get_artikel", "get_lid", "zoek_definitie"}
+    assert p.rol == "algemeen" and p.model_copy(update={"methoderol": "definitie"}).rol == "definitie"
     smal = p.model_copy(update={"tools": ("get_lid",)})
     assert ap.toegestane_tools(smal, GRENZEN) == {"get_lid"}
 
@@ -86,6 +88,7 @@ def test_een_bestand_met_de_verkeerde_vorm_wordt_geweigerd(oud, nieuw):
     ("sjablonen", ("antwoord_vrij",)),
     ("max_rondes", 13),
     ("budget", 100_001),
+    ("methoderol", "bestaat_niet"),
 ])
 def test_een_profiel_buiten_de_grenzen_wordt_geweigerd(veld, waarde):
     p = ap.uit_markdown("definitie", BESTAND).model_copy(update={veld: waarde})

@@ -2,7 +2,7 @@
 
 Een bronconnector is code (getypeerde tools in graph-qa, `agent/tools/`), maar wát hij is, staat hier: naam en label,
 het soort vindplaats, wat hij dekt, welke tools erbij horen, hoe je eruit citeert en waar hij in een antwoord voor
-staat. Daaruit leiden de api (het register, de toegestane namen) en graph-qa (toollaag, specialisten, routering,
+staat. Daaruit leiden de api (het register, de toegestane namen) en graph-qa (toollaag, routering,
 scope, prompt en verificatie) alles af. Een nieuwe connector is dus: een beschrijving hier, zijn tools in graph-qa en
 een straatvlag (`CONNECTOR_<NAAM>`). De poorttest `tests/poort/test_connectorbeschrijving.py` maakt een onvolledige
 beschrijving rood.
@@ -119,8 +119,6 @@ class ConnectorBeschrijving:
     lees_argument: str
     #: De vorm van het id dat het antwoord noemt (`extern.externe_vindplaats` leest het).
     id_prefixen: tuple[str, ...]
-    #: De rollen (specialisten) die de tools krijgen, als de connector aanstaat.
-    specialisten: frozenset[str]
     #: Waar de bron in een antwoord voor staat, en waarvoor niet.
     rol_in_antwoord: str
     #: De kop boven het blok `extern` in een antwoord ("Uit de parlementaire geschiedenis").
@@ -259,7 +257,6 @@ KAMERSTUKKEN = ConnectorBeschrijving(
     lees_argument="id",
     id_prefixen=("kst-",),
     voorbeeld_id="kst-33755-3",
-    specialisten=frozenset({"definitie", "duiding", "algemeen"}),
     rol_in_antwoord=("een Kamerstuk laat zien wat de wetgever bedoelde; het onderbouwt nooit wat de wet zegt – dat "
                      "doet alleen de opgehaalde bepaling"),
     kop_in_antwoord="Uit de parlementaire geschiedenis",
@@ -399,7 +396,6 @@ RECHTSPRAAK = ConnectorBeschrijving(
     lees_argument="id",
     id_prefixen=("ECLI:NL:",),
     voorbeeld_id="ECLI:NL:HR:2022:50",
-    specialisten=frozenset({"definitie", "duiding", "algemeen"}),
     rol_in_antwoord=("een uitspraak laat zien hoe een rechter een bepaling toepaste of uitlegde; ze onderbouwt nooit "
                      "wat de wet zegt – dat doet alleen de opgehaalde bepaling. Een uitspraak die een artikel noemt, "
                      "gaat er niet altijd over. De uitspraken zijn gepseudonimiseerd: herleid nooit wie een partij is"),
@@ -525,7 +521,6 @@ BEKENDMAKINGEN = ConnectorBeschrijving(
     lees_argument="id",
     id_prefixen=("stb-", "stcrt-"),
     voorbeeld_id="stb-2010-176",
-    specialisten=frozenset({"definitie", "duiding", "algemeen"}),
     rol_in_antwoord=("een bekendmaking laat zien wanneer en hoe een tekst is vastgesteld, gewijzigd of in werking trad; "
                      "wat de wet nu zegt, onderbouwt alleen de opgehaalde bepaling. Een wijzigingsbesluit geeft de "
                      "wijzigingsopdracht, niet de geldende tekst"),
@@ -647,7 +642,6 @@ WETGEVING_LIVE = ConnectorBeschrijving(
     lees_argument="id",
     id_prefixen=("bwbt:",),
     voorbeeld_id="bwbt:BWBR0015703:2026-07-01_0:artikel:31",
-    specialisten=frozenset({"definitie", "duiding", "algemeen"}),
     rol_in_antwoord=("wat de wet zegt, letterlijk uit een toestand van het Basiswettenbestand die niet in de kennisgraaf "
                      "staat: een regeling die niet geïmporteerd is, of de tekst op een andere peildatum dan de graaf. Noem "
                      "altijd welke tekst het is (geldig van … tot …) en dat de bepaling niet in de kennisgraaf staat; "

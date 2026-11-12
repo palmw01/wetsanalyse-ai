@@ -37,6 +37,7 @@ from ..prompts import SYSTEM_PROMPT
 from ..provenance import alleen_genoemde_regelingen, collect_sources
 from ..regelingnamen import met_regelingnamen
 from ..resultaat import is_fout
+from ..profielen import bedient
 from ..specialists import DEFAULT as DEFAULT_SPECIALIST
 from ..specialists import get as get_specialist
 from ..specialists import methoderol as specialist_methoderol
@@ -82,7 +83,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     # wet (het subsjabloon) en is er het eigen sjabloon `antwoord_extern`. Anders blijven de schema's gelijk.
     rol = spec_naam or DEFAULT_SPECIALIST
     extern_namen = tuple(n for n, s in (state.get("bronstand") or {}).items()
-                         if s.get("aan") and n in CONNECTORS and rol in CONNECTORS[n].specialisten) if spec.sjablonen else ()
+                         if s.get("aan") and n in CONNECTORS and bedient(rol, n)) if spec.sjablonen else ()
     extern_aan = bool(extern_namen)
     sjablonen = spec.sjablonen | {EXTERN} if extern_aan else spec.sjablonen
     # Het stabiele deel (identiteit + specialist) is bij elke tool-ronde van elke beurt hetzelfde en is de

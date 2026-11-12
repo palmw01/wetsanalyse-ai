@@ -19,10 +19,11 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from bronmodel.agentprofiel import Agentprofiel
 from bronmodel.catalogus import EIGEN, Herkomst, Onderdeel, Stap, oid, versie, zwaarste
 from bronmodel.connectors import CONNECTORS, ConnectorBeschrijving
 
-from . import bronnen_vinden, bronselectie, specialists, werkgebied_intake
+from . import bronnen_vinden, bronselectie, profielen, werkgebied_intake
 from .agents.register import AGENTS, NAAM
 from .begrippen_pipeline import keten as begrippenketen
 from .jas_pipeline import keten as annotatieketen
@@ -83,7 +84,7 @@ def uit_methode() -> list[Onderdeel]:
 def _aanroepers(rol: str) -> tuple[str, ...]:
     """Wie de methodetekst van deze rol krijgt: modelaanroepen uit `llm_stap.Rol` en specialisten."""
     namen = {r.naam for r in Rol if r.methoderol == rol}
-    namen |= {n for n in specialists.SPECIALISTS if specialists.methoderol(n) == rol}
+    namen |= {n for n, p in profielen.PROFIELEN.items() if p.rol == rol}
     return tuple(sorted(namen))
 
 
@@ -109,23 +110,27 @@ def uit_rollen() -> list[Onderdeel]:
     return uit
 
 
-# --- specialisten ----------------------------------------------------------------------------------------------------
+# --- agentprofielen --------------------------------------------------------------------------------------------------
 
-def uit_specialisten() -> list[Onderdeel]:
+def uit_agentprofielen() -> list[Onderdeel]:
+    """Eén onderdeel per profiel uit het register (ADR-016 §A2). De specialisten van de supervisor zijn de eerste."""
     uit: list[Onderdeel] = []
-    for naam, spec in specialists.SPECIALISTS.items():
-        tools = tuple(sorted(_tools_van(spec)))
+    for naam, p in profielen.PROFIELEN.items():
+        tools = tuple(sorted(_tools_van(p)))
+        sjablonen = sorted(p.sjablonen)
         uit.append(Onderdeel(
-            id=oid("specialist", naam), soort="specialist", label=naam.replace("_", " ").capitalize(),
-            doel=spec.doel, model="agent", herkomst=EIGEN, bestand=("tools/graph-qa/agent/specialists.py",),
-            versie=versie(spec.system, tools, sorted(spec.sjablonen)), tools=tools,
-            uitvoer=", ".join(sorted(spec.sjablonen)) or "doel-JSON voor de annotatieroute",
+            id=oid("agentprofiel", naam), soort="agentprofiel", label=naam.replace("_", " ").capitalize(),
+            doel=p.beschrijving, model="agent", herkomst=EIGEN, bestand=(f".claude/lex-agents/{naam}.md",),
+            versie=versie(p.instructie, tools, sjablonen), tools=tools,
+            ingang=("de supervisor kiest het",) if p.kiesbaar else ("een route in code",),
+            uitvoer=", ".join(sjablonen) or "doel-JSON voor de annotatieroute",
             twijfel="leemte of doorvragen; een citaat dat niet letterlijk in de opgehaalde tekst staat, valt weg (grounding)",
-            tests=("tools/graph-qa/tests/test_specialists.py",),
-            hangt_af_van=(oid("rol", specialists.methoderol(naam)), *(oid("sjabloon", s) for s in sorted(_sjablonen_van(naam, spec))),
-                          *(oid("connector", c.naam) for c in CONNECTORS.values() if naam in c.specialisten),
-                          *(oid("tool", t) for t in sorted(_tools_van(spec))), *ANTWOORD_CONTROLES),
-            inhoud={"systeemtekst": spec.system},
+            tests=("tools/graph-qa/tests/test_profielregister.py", "tools/graph-qa/tests/test_specialists.py"),
+            hangt_af_van=(oid("rol", p.rol), *(oid("methode", s) for s in p.skills),
+                          *(oid("sjabloon", s) for s in sorted(_sjablonen_van(p))),
+                          *(oid("connector", c) for c in CONNECTORS if c in p.connectors),
+                          *(oid("tool", t) for t in tools), *ANTWOORD_CONTROLES),
+            inhoud={"systeemtekst": p.instructie, "kiesbaar": p.kiesbaar, "modelklasse": p.modelklasse},
         ))
     return uit
 
@@ -463,19 +468,20 @@ def uit_routes() -> list[Onderdeel]:
 
 # --- tools ----------------------------------------------------------------------------------------------------------
 
-def _sjablonen_van(naam: str, spec: specialists.Specialist) -> frozenset[str]:
-    """De sjablonen die de specialist kan krijgen: zijn eigen, en `antwoord_extern` als een connector zijn rol bedient
+def _sjablonen_van(p: Agentprofiel) -> frozenset[str]:
+    """De sjablonen die het profiel kan krijgen: zijn eigen, en `antwoord_extern` als het een connector noemt
     (`nodes/antwoord.py`, ADR-013)."""
     from .sjablonen import EXTERN
-    bediend = any(naam in c.specialisten for c in CONNECTORS.values())
-    return spec.sjablonen | {EXTERN} if spec.sjablonen and bediend else spec.sjablonen
+    eigen = frozenset(p.sjablonen)
+    return eigen | {EXTERN} if eigen and p.connectors else eigen
 
 
-def _tools_van(spec: specialists.Specialist) -> frozenset[str]:
-    """Wat de specialist mag krijgen: `None` is elke tool die het model aangeboden kan krijgen (de JAS-kennistools zijn
+def _tools_van(p: Agentprofiel) -> frozenset[str]:
+    """Wat het profiel mag krijgen: `None` is elke tool die het model aangeboden kan krijgen (de JAS-kennistools zijn
     opt-in, `anthropic_schemas`). Of een connector in een beurt aanstaat, beslist `toegestane_tools`."""
     from .tools import TOOLS
-    return frozenset(t["name"] for t in TOOLS) if spec.tools is None else spec.tools
+    eigen = profielen.tools_van(p)
+    return frozenset(t["name"] for t in TOOLS) if eigen is None else eigen
 
 
 def _bronbestand(obj: Any) -> str:
@@ -538,7 +544,7 @@ def uit_controles() -> list[Onderdeel]:
 # --- de catalogus ----------------------------------------------------------------------------------------------------
 
 ADAPTERS = (uit_methode, uit_rollen, uit_regelsets, uit_tools, uit_connectors, uit_sjablonen, uit_workflows,
-            uit_specialisten, uit_agents, uit_routes, uit_controles)
+            uit_agentprofielen, uit_agents, uit_routes, uit_controles)
 
 
 @cache

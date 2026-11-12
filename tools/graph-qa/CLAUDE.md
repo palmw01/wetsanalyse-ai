@@ -85,7 +85,17 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   user-bericht in de historie blijft de echte vraag. Een vraag óver een gemaakte markering is
   `duiding`, geen `annotatie`. Bij de eerste vraag van een gesprek verandert er niets (geen extra
   tekst, geen extra call).
-- **`agent_node`** – draait de specialist (`agent/specialists.py`): `SYSTEM_PROMPT` + methode-instructies
+- **De specialisten zijn agentprofielen** (ADR-016 §A2). Een profiel is een bestand `.claude/lex-agents/<naam>.md`:
+  frontmatter (`name`, `description`, `tools`, `connectors`, `sjablonen`, `kiesbaar`, `methoderol`) en de instructie
+  eronder. `scripts/genereer_agentprofielen.py` bundelt ze in `agent/agentprofielen.py` (`genereer_jas_klassen.py`
+  draait hem mee, ook met `--check`); `agent/profielen.py` laadt ze als `Agentprofiel` en toetst ze bij het importeren
+  tegen wat er bestaat (`bronmodel.agentprofiel`): een profiel dat een onbekende tool, connector, sjabloon of
+  methoderol noemt, laat de dienst niet starten. `specialists.SPECIALISTS` en de keuze van de supervisor
+  (`_QA_SPECIALISTS`, de profielen met `kiesbaar: true`) zijn daarvan afgeleid; schrijf geen tweede lijst. Een profiel
+  noemt de connector, nooit diens tools. Wie een profiel wijzigt, verandert het gedrag van Lex: dat vraagt een meting,
+  en de hash in `tests/test_profielregister.py` bewaakt dat het niet ongemerkt gebeurt. Een profiel is configuratie
+  die een Python-agent laadt, nooit een agent op zichzelf.
+- **`agent_node`** – draait de specialist (`agent/specialists.py`, afgeleid uit het profielregister): `SYSTEM_PROMPT` + methode-instructies
   (`agent/methode.py`, uit het gegenereerde `methodepakket.py`) + addendum + plan, met
   `anthropic_schemas(only=spec.tools)`. Tekst stroomt niet mee: pas na de ronde is bekend of het narratie
   is. Een ronde mét tools gaat dan als `reason` naar het denkproces (`narratie.ronde_in_denk`, met `\n\n`

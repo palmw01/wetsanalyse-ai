@@ -13,6 +13,7 @@ from bronmodel.connectors import CONNECTORS
 
 from agent import catalogus as cat
 from agent import specialists
+from agent.profielen import PROFIELEN
 from agent.llm_stap import Rol
 from agent.methode import vingerafdruk
 from agent.methodepakket import PAKKET
@@ -31,7 +32,7 @@ NAMEN = sorted(specialists.SPECIALISTS)
 
 
 def _onderdeel(naam: str) -> bc.Onderdeel:
-    o = cat.onderdeel(bc.oid("specialist", naam))
+    o = cat.onderdeel(bc.oid("agentprofiel", naam))
     assert o is not None
     return o
 
@@ -48,7 +49,7 @@ def test_de_tools_van_een_specialist_zijn_die_van_de_catalogus(naam: str):
 @pytest.mark.parametrize("naam", NAMEN)
 def test_de_sjablonen_van_een_specialist_zijn_die_van_de_catalogus(naam: str):
     spec = specialists.SPECIALISTS[naam]
-    bediend = any(naam in c.specialisten for c in CONNECTORS.values())
+    bediend = bool(PROFIELEN[naam].connectors)
     namen = spec.sjablonen | {EXTERN} if spec.sjablonen and bediend else spec.sjablonen
     runtime = {s["name"] for s in sjabloon_schemas(namen, extern=tuple(CONNECTORS) if bediend else False)}
     in_catalogus = {d.split("/", 1)[1] for d in _onderdeel(naam).hangt_af_van if d.startswith("sjabloon/")}

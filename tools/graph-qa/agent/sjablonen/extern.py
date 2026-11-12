@@ -3,7 +3,7 @@
 Een antwoord met een Kamerstuk (of later een uitspraak, EU-recht) krijgt een vaste vorm in plaats van vrije tekst
 waarin de wetsgeschiedenis door de uitleg loopt. Eén herbruikbaar blok, generiek per brontype:
 
-- **Als subsjabloon.** De sjablonen van een specialist die een connector bedient (`ConnectorBeschrijving.specialisten`)
+- **Als subsjabloon.** De sjablonen van een specialist die een connector bedient (het profiel noemt hem: `Agentprofiel.connectors`)
   krijgen één extra veld, `extern`: een lijst platte objecten `{id, van_nr, tot_nr}`. Zonder union, zonder recursie en
   verplicht maar mag leeg zijn: binnen de grenzen die strict tools stellen. Het veld staat er alleen als er een
   connector aanstaat, dus zonder connector is het schema byte-gelijk aan vóór ADR-013 (open keuze 6, aanbeveling a).

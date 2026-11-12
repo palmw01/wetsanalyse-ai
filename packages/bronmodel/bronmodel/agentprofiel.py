@@ -46,6 +46,7 @@ VELDEN: dict[str, str] = {
     "connectors": "connectors",
     "sjablonen": "sjablonen",
     "budget": "budget",
+    "methoderol": "methoderol",
 }
 
 
@@ -74,6 +75,13 @@ class Agentprofiel(BaseModel):
     #: Hoe lang en hoe duur; `None` is de grens van het platform.
     max_rondes: int | None = Field(default=None, ge=1)
     budget: int | None = Field(default=None, ge=1)
+    #: De methoderol waarvan hij de tekst uit de skill krijgt; `None` is de rol met zijn eigen naam. Een profiel maakt
+    #: geen rol: het leent er een die bestaat (ADR-014 §5).
+    methoderol: str | None = None
+
+    @property
+    def rol(self) -> str:
+        return self.methoderol or self.naam
 
 
 @dataclass(frozen=True)
@@ -87,6 +95,8 @@ class Grenzen:
     connectors: frozenset[str]
     sjablonen: frozenset[str]
     mcp: frozenset[str] = frozenset()
+    #: De methoderollen die bestaan; `None` toetst ze niet.
+    methoderollen: frozenset[str] | None = None
     #: Tools die een besluit van de jurist nemen, of anderszins niet aan een profiel horen. `NOOIT` geldt altijd.
     verboden_tools: frozenset[str] = frozenset()
     max_rondes: int | None = None
@@ -134,6 +144,8 @@ def toets(profiel: Agentprofiel, grenzen: Grenzen) -> list[Bevinding]:
     kies("connectors", profiel.connectors, grenzen.connectors)
     kies("mcp", profiel.mcp, grenzen.mcp)
     kies("sjablonen", profiel.sjablonen, grenzen.sjablonen)
+    if grenzen.methoderollen is not None and profiel.rol not in grenzen.methoderollen:
+        uit.append(Bevinding("methoderol", f"methoderol: de rol {profiel.rol!r} bestaat niet"))
     for veld, grens in (("max_rondes", grenzen.max_rondes), ("budget", grenzen.budget)):
         waarde = getattr(profiel, veld)
         if waarde is not None and grens is not None and waarde > grens:

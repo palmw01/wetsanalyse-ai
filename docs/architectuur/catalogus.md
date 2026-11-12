@@ -9,7 +9,7 @@ Dit is het werkdocument bij [ADR-014](adr-014-catalogus.md). Het hoort bij de so
 | Methode en rollen | `.claude/skills/wetsanalyse/` + `agentrollen.json` → `agent/methodepakket.py` | md + JSON, gegenereerd | `genereer_methodepakket.py --check`, `test_methodepakket`, `test_methoderollen` |
 | JAS-klassen | `references/jas-klassen-referentie.md` → `agent/jas_klassen.py` | md, gegenereerd | `genereer_jas_klassen.py --check`, `test_methode_drift` |
 | Relatiecatalogus | `relaties.json` → api, graph-qa, frontend | JSON, gegenereerd | `genereer_jas_relaties.py --check`, `tests/poort/test_relatiecatalogus.py` |
-| Specialisten | `agent/specialists.py` `SPECIALISTS` | dataclass | `test_specialists` |
+| Agentprofielen (de specialisten) | `.claude/lex-agents/` → `agent/agentprofielen.py` → `agent/profielen.py` `PROFIELEN` | md met frontmatter, gegenereerd | `genereer_agentprofielen.py --check`, `test_profielregister` |
 | Agents en taken | `agent/agents/register.py` `AGENTS` + `models.ACTIE_TAAK` | modules met `Taak`/`MODEL_TAKEN` | `test_agents`, `test_agent_contracten` |
 | Sjablonen | `agent/sjablonen/` `SJABLONEN` + `bronmodel/antwoord.py` | dataclass + Literal | `test_sjablonen` |
 | Regie | `agent/regie/` | dataclasses + tabellen | `test_regie_*`, `test_regisseur` |
@@ -41,10 +41,20 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
    onder `.claude/skills/` met `lex_soort: "methode"`. Er is geen code nodig: `tests/test_skill_zonder_code.py` bewijst
    het met een nep-skill.
 
-**Rol of specialist**
+**Rol**
 - Een `Rol`-member in `agent/llm_stap.py` en secties in `agentrollen.json`.
-- Een entry in `SPECIALISTS` met `doel`.
 - Routeringsrijen in `eval/golden_routering.jsonl` en een meting (ADR-010).
+
+**Agentprofiel** (ADR-016 §A2; de specialisten van de supervisor zijn de eerste)
+- Een bestand `.claude/lex-agents/<naam>.md`: frontmatter (`name`, `description`, `tools`, `connectors`, `sjablonen`,
+  `kiesbaar`, `methoderol`, …) en de instructie eronder. Zonder `tools` krijgt het profiel alle tools; de tools van een
+  connector noemt het niet, het noemt de connector.
+- Draai `uv run python scripts/genereer_jas_klassen.py`: die bundelt de profielen in `agent/agentprofielen.py`. Het
+  register (`agent/profielen.py`) toetst ze bij het laden tegen wat er bestaat (`bronmodel.agentprofiel`).
+- `kiesbaar: false` voor een profiel dat een stap van een route in code is; een kiesbaar profiel mag de supervisor
+  kiezen.
+- Een nieuw of gewijzigd profiel verandert het gedrag van Lex: een meting (ADR-010), en de hash in
+  `tests/test_profielregister.py`.
 
 **Agent of taak**
 - De module in `agent/agents/` met `DOEL`, `Taak`, `MODEL_TAKEN`, `Invoer` en `voer_uit`.

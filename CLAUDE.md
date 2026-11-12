@@ -243,6 +243,11 @@ uit de skill. Daarvan zijn **afgeleid**:
 - `tools/graph-qa/agent/methodepakket.py` – de methodetekst per agentrol (`agentrollen.json` +
   `references/agentrollen.md`), gegenereerd door `scripts/genereer_methodepakket.py`, bewaakt door
   `tests/test_methodepakket.py`;
+- `tools/graph-qa/agent/agentprofielen.py` – de agentprofielen (ADR-016 §A2), **niet uit de skill maar uit
+  `.claude/lex-agents/<naam>.md`**: de specialisten van Lex als profiel (instructie, tools, connectors, sjablonen).
+  Gegenereerd door `scripts/genereer_agentprofielen.py` (dat `genereer_jas_klassen.py` meedraait), bewaakt door
+  `tests/test_profielregister.py`. Bewust niet in `.claude/agents/`: daar staan de Claude Code-subagents van het
+  acceptatieteam;
 - `api/app/jas_relaties.py` en `frontend/lib/jasRelaties.ts` – de relatiecatalogus (ADR-011) uit `relaties.json`,
   gegenereerd door `tools/graph-qa/scripts/genereer_jas_relaties.py` (dat `genereer_jas_klassen.py` meedraait), bewaakt
   door `tests/poort/test_relatiecatalogus.py`.
