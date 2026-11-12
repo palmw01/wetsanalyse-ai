@@ -85,7 +85,7 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 |---|---|---|
 | C0 | ADR-014 en dit document | #1275 |
 | C1 | `Onderdeel` + adapters voor connector, sjabloon, specialist en methode/rol + drift-test | #1279 |
-| C2 | agents en taken, regie, regelsets, workflows met stappen | – |
+| C2 | agents en taken, regie, regelsets, workflows met stappen | #1281 |
 | C3 | de routeringstabel (ADR-010) | – |
 | C4 | de generator voor meerdere skills | – |
 | C5 | `GET /v1/catalogus` + BFF | – |

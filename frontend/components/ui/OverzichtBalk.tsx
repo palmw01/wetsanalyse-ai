@@ -17,8 +17,9 @@ export function OverzichtBalk<T extends string>({
   gekozen: T;
   onKies: (waarde: T) => void;
   filterLabel: string;
-  mijn: boolean;
-  onMijn: (mijn: boolean) => void;
+  /** *Door mij bewerkt*; weg als het overzicht niets kent dat iemand bewerkt (de catalogus van Lex). */
+  mijn?: boolean;
+  onMijn?: (mijn: boolean) => void;
   extra?: React.ReactNode;
   zoekterm: string;
   onZoek: (term: string) => void;
@@ -45,18 +46,22 @@ export function OverzichtBalk<T extends string>({
         className="w-full rounded-field border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-faint focus:border-lint focus:ring-2 focus:ring-lint/20 coarse:min-h-[48px] sm:w-72"
       />
 
-      <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:items-center">
-        <label className="inline-flex items-center gap-1.5 text-xs text-muted">
-          <input
-            type="checkbox"
-            checked={mijn}
-            onChange={(e) => onMijn(e.target.checked)}
-            className="focus-ring h-3.5 w-3.5 accent-lint"
-          />
-          Door mij bewerkt
-        </label>
-        {extra}
-      </div>
+      {(onMijn || extra) && (
+        <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:items-center">
+          {onMijn && (
+            <label className="inline-flex items-center gap-1.5 text-xs text-muted">
+              <input
+                type="checkbox"
+                checked={!!mijn}
+                onChange={(e) => onMijn(e.target.checked)}
+                className="focus-ring h-3.5 w-3.5 accent-lint"
+              />
+              Door mij bewerkt
+            </label>
+          )}
+          {extra}
+        </div>
+      )}
     </div>
   );
 }
