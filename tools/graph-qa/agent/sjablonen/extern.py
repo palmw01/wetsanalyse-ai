@@ -498,8 +498,25 @@ def lijsten(items: Any, trace: Trace) -> list[Stukken]:
             items=[Stuk(**{k: v for k, v in r.items() if k in velden},
                         **({"zonder_tekst": c.zonder_tekst} if r.get("leesbaar") is False else {}))
                    for _, r, _ in rijen],
-            zoekvraag=" ".join(filter(None, [zoekvraag_tekst(c, zoekvraag), kanttekening])), totaal=totaal))
+            zoekvraag=" ".join(filter(None, [zoekvraag_tekst(c, zoekvraag) if data else _per_zoekvraag(c, rijen),
+                                             kanttekening])), totaal=totaal))
     return uit
+
+
+def _per_zoekvraag(c: ConnectorBeschrijving, rijen: list[tuple[int, dict[str, Any], dict[str, Any] | None]]) -> str:
+    """Een lijst uit meer zoekvragen: per zoekvraag een zin met haar totaal, in de volgorde waarin ze gesteld zijn. Het
+    blok zelf draagt dan geen totaal: dat is er niet (meting Kamerstukken ronde 3, K17: de jurist zag niet waarop gezocht
+    was). Een stuk dat alleen gelezen is, heeft geen zoekvraag en geen zin."""
+    zinnen: list[str] = []
+    gezien: set[str] = set()
+    for _, _, d in rijen:
+        if (sleutel := _zoeksleutel(d)) is None or sleutel in gezien or d is None:
+            continue
+        gezien.add(sleutel)
+        totaal = d.get("totaal") if isinstance(d.get("totaal"), int) else None
+        zin = zoekvraag_tekst(c, d["zoekvraag"])
+        zinnen.append(f"{zin} Totaal {totaal}." if zin and totaal is not None else zin)
+    return " ".join(z for z in zinnen if z)
 
 
 def _zoeksleutel(data: dict[str, Any] | None) -> str | None:

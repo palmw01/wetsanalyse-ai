@@ -428,7 +428,8 @@ bruikbaar is.
   een lijst regelingen ook (`provenance._zoektools`, `REGELINGTOOLS`); een stuk in een foutresultaat houdt zijn label (`_labels`); een artikel met boeknummer
   (`boek=6&…&artikel=162`) telt als "6:162" (`grounding._BOEK_ARTIKEL`); de grens van het blok `stukken` geldt per bron. Een stuk van een connector is alleen een bron als het gelezen is,
   niet omdat een gelezen stuk het noemt (een voetnoot, `alleen_gelezen_extern`; Staatsblad B12); de titel van een regeling buiten
-  de graaf komt uit de nieuwste toestand (`nieuwste_titel`; wetgeving_live I02). `tests/test_rechtspraak_tools.py`,
+  de graaf komt uit de nieuwste toestand (`nieuwste_titel`; wetgeving_live I02). Een lijst uit meer zoekvragen toont per zoekvraag een zin met haar
+  totaal (`extern._per_zoekvraag`), en het blok draagt dan geen totaal (Kamerstukken K17). `tests/test_rechtspraak_tools.py`,
   live `tests/test_rechtspraak_live.py`, meting `docs/architectuur/metingen/lido-spike-2026-11-10/`.
 - **Wetgeving buiten de kennisgraaf** (`tools/wetgeving_tools.py`, transport `adapters/sru_bwb.py`, ADR-013 fase 1e):
   wettekst van het BWB die niet in de graaf staat, live bij overheid.nl. **De graaf blijft de bron voor wat erin staat**,
