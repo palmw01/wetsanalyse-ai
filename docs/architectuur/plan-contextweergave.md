@@ -1,8 +1,8 @@
 # Plan – de context van een beurt zichtbaar maken
 
 Status: plan, goedgekeurd door de gebruiker (12 nov 2026) en dezelfde dag herzien na een review tegen de code, de
-ADR's en de Claude-documentatie (zie *Herziening*). Hoort bij ADR-015 (contextbeheer). Stap 1 tot en met 5 zijn gebouwd
-(12 nov 2026, zie *Stand van de bouw*); de meting en de docs (6) nog niet.
+ADR's en de Claude-documentatie (zie *Herziening*). Hoort bij ADR-015 (contextbeheer). Alle zes de stappen zijn gedaan
+(12 nov 2026, zie *Stand van de bouw*); de meting staat in `metingen/contextweergave-2026-11-12/`.
 
 ## Doel
 
