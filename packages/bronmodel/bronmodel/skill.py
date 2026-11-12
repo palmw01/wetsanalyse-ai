@@ -48,6 +48,14 @@ MAX_BESCHRIJVING = 1024
 MAX_COMPATIBILITEIT = 500
 SPEC_VELDEN = frozenset({"name", "description", "license", "compatibility", "metadata", "allowed-tools"})
 
+#: De basis-skill: hij vult alle methoderollen; een andere skill vult een deel.
+BASIS = "wetsanalyse"
+#: De methoderollen die bestaan. Een rol hoort hier alleen als een modelaanroep hem draagt (`llm_stap.Rol` in graph-qa,
+#: bewaakt door `tests/test_methoderollen.py`); een skill kan er geen maken (ADR-014 §5). Geen annotatierollen: de
+#: annotatieketen (ADR-001) gebruikt geen generatieve prompts met methodetekst. `agent` is de generieke rol van de
+#: centrale agent (ADR-016 §A2). Eén lijst voor de generator van het methodepakket en voor de werkplaats in de api.
+ROLLEN = frozenset({"supervisor", "retrieval", "definitie", "duiding", "algemeen", "deelvragen", "agent"})
+
 #: De regels van Lex.
 LEX_VELDEN = frozenset({"soort", "label", "herkomst", "licentie", "letterlijk"})
 SOORT = "methode"
@@ -245,7 +253,7 @@ def _rollen(mapping: dict[str, Any], secties: Collection[str], rollen: Collectio
     return uit
 
 
-def toets(naam: str, bestanden: Mapping[str, str], *, rollen: Collection[str],
+def toets(naam: str, bestanden: Mapping[str, str], *, rollen: Collection[str] = ROLLEN,
           basis: bool = False) -> tuple[Skill | None, list[Bevinding]]:
     """De skill `naam` (de mapnaam) tegen de specificatie en de regels van Lex. Geeft de skill en alle bevindingen; de
     skill is None zodra er één bevinding is.
@@ -284,7 +292,8 @@ def toets(naam: str, bestanden: Mapping[str, str], *, rollen: Collection[str],
     ), []
 
 
-def valideer(naam: str, bestanden: Mapping[str, str], *, rollen: Collection[str], basis: bool = False) -> Skill:
+def valideer(naam: str, bestanden: Mapping[str, str], *, rollen: Collection[str] = ROLLEN,
+             basis: bool = False) -> Skill:
     """Zoals `toets`, maar gooit `ValidatieFout` met alle bevindingen."""
     skill, bevindingen = toets(naam, bestanden, rollen=rollen, basis=basis)
     if skill is None:

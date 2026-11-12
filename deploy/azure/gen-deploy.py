@@ -96,6 +96,8 @@ def main() -> None:
     p.add_argument("--centrale-agent", choices=("uit", "meten", "aan"), default=None,
                    help="De centrale agent van graph-qa (ADR-016 §A7; alleen acceptatie zet iets anders dan uit; zie "
                         "main.bicep:centraleAgent). Weglaten laat de bicep-default (uit).")
+    p.add_argument("--werkplaats", action="store_true", default=None,
+                   help="De werkplaats van de api aanzetten (ADR-016 deel B; alleen acceptatie; zie main.bicep:werkplaats).")
     p.add_argument("--catalogus-voorstellen", action="store_true", default=None,
                    help="Voorstellen voor de methode vanuit de werkplek als concept-PR (alleen acceptatie; zie "
                         "main.bicep:catalogusVoorstellen). Zonder de GitHub App (WA_GITHUB_APP_ID, "
@@ -198,6 +200,7 @@ def main() -> None:
         (args.skill_regels, "skillRegels"),
         (args.centrale_agent, "centraleAgent"),
         (args.catalogus_voorstellen, "catalogusVoorstellen"),
+        (args.werkplaats, "werkplaats"),
         (args.github_repo, "githubRepo"),
         (args.graphdb_proxy_extern, "graphdbProxyExtern"),
         (args.api_image, "apiImage"),

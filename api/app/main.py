@@ -172,6 +172,8 @@ app.include_router(gesprekken.router, prefix="/v1")
 app.include_router(verbruik.router, prefix="/v1")
 from .routers import connectors as connectors_router  # noqa: E402 – ADR-013: het register voor graph-qa
 app.include_router(connectors_router.router, prefix="/v1")
+from . import werkplaats  # noqa: E402 – ADR-016 deel B: het register van de werkplaats, achter de vlag WERKPLAATS
+app.include_router(werkplaats.router, prefix="/v1")
 
 
 @app.get("/health", tags=["meta"])

@@ -7,18 +7,13 @@ import pprint
 from pathlib import Path
 
 import yaml
-from bronmodel.skill import Skill, is_methode, lees_map, sha, toets_samen, valideer
+from bronmodel.skill import BASIS, ROLLEN, Skill, is_methode, lees_map, sha, toets_samen, valideer
 from bronmodel.validatie import ValidatieFout
 
 ROOT = Path(__file__).resolve().parents[3]
-SKILL = ROOT / '.claude/skills/wetsanalyse'
+SKILL = ROOT / '.claude/skills' / BASIS
 DOEL = ROOT / 'tools/graph-qa/agent/methodepakket.py'
-# Geen annotatierollen: de annotatieketen (ADR-001) gebruikt geen generatieve prompts met
-# methodetekst.
-# Een rol hoort hier alleen als een modelaanroep hem draagt (`llm_stap.Rol`, `tests/test_methoderollen.py`).
-# `agent` is de generieke rol van de centrale agent (ADR-016 §A2): hij vervangt de keuze tussen de specialisten en draagt
-# daarom hun secties.
-ROLLEN = frozenset({'supervisor', 'retrieval', 'definitie', 'duiding', 'algemeen', 'deelvragen', 'agent'})
+# De methoderollen staan in bronmodel: de werkplaats in de api toetst een skill tegen dezelfde lijst (ADR-016 §B2).
 
 SKILLS = ROOT / '.claude/skills'
 AGENT = ROOT / 'tools/graph-qa/agent'

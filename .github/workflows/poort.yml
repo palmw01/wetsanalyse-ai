@@ -384,6 +384,17 @@ jobs:
               if "--catalogus-voorstellen" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
                   fout.append(f"azure-infra.yml: `--catalogus-voorstellen` zonder acceptatie-conditie: {regel.strip()}")
 
+          # De werkplaats (ADR-016 deel B): standaard uit, alleen op acceptatie aan.
+          m = re.search(r"^param werkplaats bool = (\w+)$", bicep, re.M)
+          if not m or m.group(1) != "false":
+              fout.append("main.bicep: `param werkplaats bool = false` niet gevonden")
+          for regel in re.findall(r".*name: 'WERKPLAATS'.*", bicep):
+              if "value: werkplaats ?" not in regel:
+                  fout.append(f"main.bicep: WERKPLAATS zonder de parameter: {regel.strip()}")
+          for regel in flow.splitlines():
+              if "--werkplaats" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
+                  fout.append(f"azure-infra.yml: `--werkplaats` zonder acceptatie-conditie: {regel.strip()}")
+
           if fout:
               print("\n".join(f"  {f}" for f in fout))
               sys.exit(1)
