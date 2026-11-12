@@ -32,8 +32,6 @@ from .methode import vingerafdruk
 from .methodepakket import PAKKET
 from .sjablonen import SJABLONEN, Sjabloon
 
-_SKILL = ".claude/skills/wetsanalyse"
-METHODE = oid("methode", "wetsanalyse")
 
 
 def _eerste_zin(tekst: str) -> str:
@@ -44,25 +42,41 @@ def _eerste_zin(tekst: str) -> str:
 
 # --- methode en rollen ---------------------------------------------------------------------------------------------
 
-def _methode_herkomst(codes: tuple[str, ...] = ()) -> Herkomst:
-    lex = PAKKET["lex"]
+def _methode_herkomst(codes: tuple[str, ...] = (), skill: str | None = None) -> Herkomst:
+    lex = PAKKET["skills"][skill or _basis()]["lex"]
     return Herkomst(bron=lex["herkomst"], licentie=lex["licentie"], letterlijk=lex["letterlijk"] == "ja",
                     verwijzing=codes)
 
 
+def _basis() -> str:
+    return next(iter(PAKKET["skills"]))
+
+
+def _andere_skills() -> tuple[str, ...]:
+    """De voorvoegsels van de bronbestanden van de skills naast de basis (`<naam>/…`)."""
+    return tuple(f"{n}/" for n in PAKKET["skills"] if n != _basis())
+
+
 def uit_methode() -> list[Onderdeel]:
-    lex = PAKKET["lex"]
-    codes = tuple(sorted({c for s in PAKKET["secties"].values() for c in s["bronnen"]}))
-    return [Onderdeel(
-        id=METHODE, soort="methode", label=lex["label"], doel=lex["beschrijving"], model="geen",
-        herkomst=_methode_herkomst(codes),
-        bestand=tuple(f"{_SKILL}/{p}" for p in sorted(PAKKET["bronbestanden"])),
-        versie=PAKKET["sha256"][:12], uitvoer="methodetekst per rol",
-        tests=("tools/graph-qa/tests/test_methodepakket.py", "tools/graph-qa/tests/test_methode_drift.py"),
-        bewerkbaar=tuple(sorted(PAKKET["secties"])),
-        inhoud={"methode_versie": PAKKET["versie"], "rollen": PAKKET["rollen"],
-                "secties": {k: {"bestand": s["bestand"], "bronnen": s["bronnen"]} for k, s in PAKKET["secties"].items()}},
-    )]
+    """Eén onderdeel per methode-skill. De basis bepaalt de rollen; een andere skill vult ze aan (ADR-014 §7)."""
+    uit: list[Onderdeel] = []
+    for naam, meta in PAKKET["skills"].items():
+        eigen = {k: x for k, x in PAKKET["secties"].items() if x["skill"] == naam}
+        codes = tuple(sorted({c for x in eigen.values() for c in x["bronnen"]}))
+        rollen = {r: [k for k in ids if k in eigen] for r, ids in PAKKET["rollen"].items()}
+        prefix = "" if naam == _basis() else f"{naam}/"
+        uit.append(Onderdeel(
+            id=oid("methode", naam), soort="methode", label=meta["lex"]["label"], doel=meta["lex"]["beschrijving"],
+            model="geen", herkomst=_methode_herkomst(codes, naam),
+            bestand=tuple(f"{meta['map']}/{p.removeprefix(prefix)}" for p in sorted(PAKKET["bronbestanden"])
+                          if (p.startswith(prefix) if prefix else not p.startswith(_andere_skills()))),
+            versie=versie(meta["versie"], *(x["sha256"] for x in eigen.values())), uitvoer="methodetekst per rol",
+            tests=("tools/graph-qa/tests/test_methodepakket.py", "tools/graph-qa/tests/test_methode_drift.py"),
+            bewerkbaar=tuple(sorted(eigen)),
+            inhoud={"methode_versie": meta["versie"], "rollen": {r: ids for r, ids in rollen.items() if ids},
+                    "secties": {k: {"bestand": x["bestand"], "bronnen": x["bronnen"]} for k, x in eigen.items()}},
+        ))
+    return uit
 
 
 def _aanroepers(rol: str) -> tuple[str, ...]:
@@ -82,11 +96,12 @@ def uit_rollen() -> list[Onderdeel]:
             doel=f"De methodetekst die {', '.join(_aanroepers(rol)) or 'geen aanroeper'} krijgt: "
                  f"de secties {', '.join(ids)}.",
             model="geen", herkomst=_methode_herkomst(codes),
-            bestand=tuple(sorted({f"{_SKILL}/{s['bestand']}" for s in secties.values()} | {f"{_SKILL}/agentrollen.json"})),
+            bestand=tuple(sorted({f".claude/skills/{s['skill']}/{s['bestand']}" for s in secties.values()}
+                                 | {f".claude/skills/{s['skill']}/agentrollen.json" for s in secties.values()})),
             versie=vingerafdruk(rol), ingang=_aanroepers(rol),
             context="vóór de systeemprompt, in het stabiele deel (cache-prefix)", uitvoer="systeemprompt",
-            tests=("tools/graph-qa/tests/test_methoderollen.py",), deel_van=METHODE, bewerkbaar=tuple(ids),
-            inhoud={"secties": [{"id": k, "bronnen": s["bronnen"], "sha256": s["sha256"], "tekst": s["tekst"]}
+            tests=("tools/graph-qa/tests/test_methoderollen.py",), deel_van=oid("methode", _basis()), bewerkbaar=tuple(ids),
+            inhoud={"secties": [{"id": k, "skill": s["skill"], "bronnen": s["bronnen"], "sha256": s["sha256"], "tekst": s["tekst"]}
                                 for k, s in secties.items()]},
         ))
     return uit

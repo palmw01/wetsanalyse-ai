@@ -34,8 +34,12 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
    - `SKILL.md`: `name`, `description` en `metadata.lex` (`soort: methode`, `herkomst`, `licentie`, `letterlijk`);
    - `agentrollen.json`;
    - `references/bronnen.md` met eigen broncodes.
-3. Begin met methodetekst voor **bestaande** rollen. Een nieuwe rol of eigen classificaties volgen ADR-014 §5.
-4. Draai `uv run python scripts/genereer_jas_klassen.py`. Die draait de methodepakketgenerator mee.
+3. Begin met methodetekst voor **bestaande** rollen: `agentrollen.json` noemt zijn secties en per rol welke hij
+   toevoegt. Sectie-ids en broncodes zijn uniek over de skills; een nieuwe rol of eigen classificaties volgen ADR-014 §5.
+   Met `lex_letterlijk: "ja"` hoort er een `BRON.md` met de licentie in de skillmap.
+4. Draai `uv run python scripts/genereer_jas_klassen.py`. Die draait de methodepakketgenerator mee; hij vindt elke map
+   onder `.claude/skills/` met `lex_soort: "methode"`. Er is geen code nodig: `tests/test_skill_zonder_code.py` bewijst
+   het met een nep-skill.
 
 **Rol of specialist**
 - Een `Rol`-member in `agent/llm_stap.py` en secties in `agentrollen.json`.
@@ -99,8 +103,8 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
 | C6 | de werkplek: *Werkwijze van Lex* | #1286 |
 | S1 | ADR-014 §7 *Samenwerking* | #1290 |
 | S2 | concepten, de soorten `tool` en `controle`, aanroepregels als test | #1291 |
-| S3 | de routeringstabel (ADR-010) | – |
-| S4 | context per agent (`test_context_per_agent`) | – |
+| S3 | de routeringstabel (ADR-010) | #1292 |
+| S4 | context per agent (`test_context_per_agent`) | #1294 |
 | S5 | meerdere skills, binding per rol, nep-skill | – |
 | S6 | regelsets uit een skill | – |
 | S7 | werkplek per concept | – |

@@ -41,7 +41,7 @@ def test_elk_register_in_de_catalogus_en_omgekeerd():
     assert _ids("sjabloon") == set(SJABLONEN)
     assert _ids("connector") == set(bm.CONNECTORS)
     assert _ids("rol") == set(PAKKET["rollen"])
-    assert _ids("methode") == {"wetsanalyse"}
+    assert _ids("methode") == set(PAKKET["skills"])
     assert _ids("agent") == set(AGENTS)
     assert _ids("tool") == set(_BY_NAME)
     assert _ids("controle") == {m.CONTROLE["naam"] for m in cat._controlemodules()}
@@ -121,9 +121,10 @@ def test_bewerkbaar_bij_een_rol_zijn_haar_secties():
 
 
 def test_verwijzingen_van_de_methode_staan_in_het_bronregister():
-    register = (WORTEL / ".claude/skills/wetsanalyse/references/bronnen.md").read_text()
+    """Elke broncode van een methode staat in het bronregister van díe skill."""
     for o in ALLE:
-        if o.soort in ("methode", "rol"):
+        if o.soort == "methode":
+            register = (WORTEL / PAKKET["skills"][o.naam]["map"] / "references/bronnen.md").read_text()
             for code in o.herkomst.verwijzing:
                 assert f"| {code} |" in register, f"{o.id}: broncode {code} niet in het bronregister"
 
