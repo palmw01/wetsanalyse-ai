@@ -84,10 +84,21 @@ def test_python_shards_gebruiken_de_plugin(naam):
 @pytest.mark.parametrize("totaal", [1, 2, 3, 5])
 def test_pytest_shard_verliest_niets(totaal):
     aantallen = {f"tests/test_{i}.py": (i * 7) % 13 + 1 for i in range(40)}
-    shards = pytest_shard.verdeel(aantallen, totaal)
+    gemeten = {f"tests/test_{i}.py": float(i) for i in range(0, 40, 3)}  # deels gemeten, de rest weegt als de mediaan
+    shards = pytest_shard.verdeel(pytest_shard.gewichten(aantallen, gemeten), totaal)
     alles = [p for s in shards for p in s]
     assert sorted(alles) == sorted(aantallen), "een bestand zit in geen of in twee shards"
-    assert pytest_shard.verdeel(aantallen, totaal) == shards, "de verdeling is niet deterministisch"
+    assert pytest_shard.verdeel(pytest_shard.gewichten(aantallen, gemeten), totaal) == shards, "niet deterministisch"
+
+
+def test_de_gemeten_tijden_horen_bij_bestaande_suites():
+    """Een tijd voor een bestand dat niet bestaat is onschuldig, maar een verkeerde suitesleutel maakt de tijden dood."""
+    tijden = json.loads((WORTEL / "scripts" / "pytest_shard_duur.json").read_text(encoding="utf-8"))
+    for suite, per_bestand in tijden.items():
+        if suite.startswith("_"):
+            continue
+        assert (WORTEL / suite / "tests").is_dir(), f"pytest_shard_duur.json: onbekende suite {suite!r}"
+        assert any((WORTEL / suite / p).is_file() for p in per_bestand), f"{suite}: geen enkel gemeten bestand bestaat"
 
 
 def test_pytest_shard_zonder_env_doet_niets(monkeypatch):
