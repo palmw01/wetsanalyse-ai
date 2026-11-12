@@ -7,8 +7,8 @@ nodig: staat Kamerstukken uit, dan moet Lex kunnen zeggen wie hem aanzet. De red
   veranderen;
 - `gesprek` of `werkgebied`: de beurt vraagt hem niet, omdat de jurist (of de standaard van het werkgebied) hem
   uitzette; de werkplek geeft de herkomst mee (`ChatRequest.bronnen_herkomst`);
-- `vraag`: de connector staat aan, maar deze beurt biedt hem niet aan, omdat de vraag (of het gesprek) een andere bron
-  noemt (`agent/bronkeuze.py`); de jurist neemt hem erbij door hem te noemen;
+- `niet_nodig`: de connector staat aan, maar deze beurt biedt hem niet aan, omdat de vraag (of het gesprek) een andere bron
+  noemt (`agent/bronkeuze.py`). Dat is geen "uit": de jurist neemt hem erbij door hem te noemen;
 - `register_onleesbaar`: het register van de beheerder kon niet worden gelezen, dus staat alles uit;
 - `beheerder`: de beheerder zette hem uit in het register;
 - `aan`.
@@ -24,7 +24,7 @@ from typing import Any, Literal
 
 from bronmodel.connectors import CONNECTORS
 
-Reden = Literal["aan", "straat", "register_onleesbaar", "beheerder", "gesprek", "werkgebied", "vraag"]
+Reden = Literal["aan", "straat", "register_onleesbaar", "beheerder", "gesprek", "werkgebied", "niet_nodig"]
 Herkomst = Literal["gesprek", "werkgebied", "standaard"]
 
 #: Waarom een connector uit staat en wie hem aanzet, in de woorden van de jurist (`{label}` wordt ingevuld).
@@ -35,8 +35,8 @@ WIE_ZET_AAN: dict[str, str] = {
     "beheerder": "{label} staat uit: de beheerder heeft deze bron uitgezet.",
     "gesprek": "{label} staat uit in dit gesprek. Je kunt de bron aanzetten bij *Bronnen en tools* boven het "
                "invoerveld.",
-    "vraag": "{label} doet in deze beurt niet mee, omdat je vraag een andere bron noemt. Noem {label} in je vraag om de "
-             "bron erbij te nemen.",
+    "niet_nodig": "{label} staat aan, maar is niet nodig voor deze vraag: je vraag noemt een andere bron. Noem {label} "
+                  "in je vraag om de bron erbij te nemen.",
     "werkgebied": "{label} staat uit in de standaard van dit werkgebied. Je kunt de bron aanzetten bij *Bronnen en "
                   "tools* boven het invoerveld.",
 }
@@ -98,6 +98,10 @@ def prompt_blok(stand: dict[str, dict[str, Any]], vraag: str = "") -> str:
                           f"stuk met zijn id ({' of '.join(p + '…' for p in c.id_prefixen)}). Vraagt de vraag om een lijst "
                           "stukken, geef de stukken die je vond dan in het veld 'stukken' van je antwoordsjabloon: de code "
                           "toont label, soort, datum en titel uit de bron. Schrijf zo'n lijst niet zelf uit.")
+        elif s["reden"] == "niet_nodig":
+            regels.append(f"- {c.label}: staat aan, maar is niet nodig voor deze vraag en heeft deze beurt geen tools. "
+                          "Zeg niet dat de bron uit staat; vraagt de jurist erom, dan neemt hij haar erbij door haar te "
+                          "noemen.")
         elif s["reden"] != "straat" or naam in genoemd:
             regels.append(f"- {c.label}: uit. {uit_zin(stand, naam)} Zoek er niet in en vul niet uit eigen kennis "
                           "in wat erin staat.")
@@ -124,3 +128,14 @@ def waar(stand: dict[str, dict[str, Any]] | None) -> str:
     from bronmodel.connectors import bronnen_tekst
 
     return bronnen_tekst([s["label"] for s in (stand or {}).values() if s.get("aan")])
+
+
+def keuze_regel(stand: dict[str, dict[str, Any]]) -> str:
+    """De statusregel in het denkproces als de bronkeuze per vraag (`agent/bronkeuze.py`) bronnen weglaat: welke bronnen
+    deze vraag gebruikt, en dat de andere niet nodig zijn – niet uit."""
+    from bronmodel.connectors import bronnen_tekst
+
+    weg = [s["label"] for s in stand.values() if s.get("reden") == "niet_nodig"]
+    opsomming = weg[0] if len(weg) == 1 else f"{', '.join(weg[:-1])} en {weg[-1]}"
+    return (f"zoekt voor deze vraag in {bronnen_tekst([s['label'] for s in stand.values() if s.get('aan')])}; "
+            f"{opsomming} {'is' if len(weg) == 1 else 'zijn'} niet nodig (noem een bron in je vraag om haar erbij te nemen)")
