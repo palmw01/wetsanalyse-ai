@@ -107,7 +107,14 @@ def _bekend_stuk(waarde: str, tekst: str) -> bool:
 
 def toets(tool: str, args: dict[str, Any], state: dict[str, Any], *, graph: Any = None) -> str | None:
     """None als elk id in de aanroep uit het gesprek komt; anders de zin voor het model: welk id, waarom, en hoe het
-    wel te vinden is."""
+    wel te vinden is.
+
+    De regel (besluit hoofdsessie, 12 nov 2026), bewust zo smal; maak hem niet breder zonder nieuw besluit:
+    - een stuk-id (het id-argument van een leestool) en een dossiernummer moeten uit het gesprek komen, zonder uitzondering;
+    - een BWB-id moet uit het gesprek komen, óf de graaf bevestigt de regeling: dan is het gecontroleerd, niet verzonnen;
+    - geweigerd wordt dus een BWB-id dat de graaf weerlegt (een geldig leeg antwoord) en niet in het gesprek staat;
+    - een graaf die niet of onleesbaar antwoordt, weerlegt niets: dan beslist de tool zelf.
+    """
     ids = id_argumenten(tool, args)
     if not ids:
         return None
