@@ -66,6 +66,24 @@ Waar het net niet zit:
 
 De besluiten zijn van de gebruiker (12 nov 2026, vijf vragenrondes), steeds de aanbevolen richting.
 
+## Randvoorwaarde: echte Python-agents
+
+De gebruiker (12 nov 2026, letterlijk): "Wat ik wel belangrijk vind is dat die centrale agent en de sub-agents wel
+allemaal in Python een basis kennen. Dus die agents moeten wel echt Python agents zijn."
+
+- **De centrale agent en elke subagent zijn Python-agents in graph-qa, met één gedeelde basis.** Die basis is een klasse
+  `Agent` in `agent/agentvorm.py`, met de lus, de gedeelde modelstap (`llm_stap`), de contextopbouw, de toollaag
+  (`dispatch` met het filter), de controles, het kindmechanisme, het verbruik en de events. `CentraleAgent` en
+  `Subagent` zijn de enige twee subklassen. Ze verschillen alleen in hun eigen tools (`subagent` en `vraag_jurist`
+  tegenover `vraag_naar_boven` en `klaar`).
+- **Skills, profielen, MCP's en connectors zijn configuratie die zo'n agent laadt.** Ze vervangen nooit code. Een profiel
+  is een getypeerd object (`bronmodel.agentprofiel.Agentprofiel`), gevalideerd voordat het een agent opbouwt.
+- **Een gemaakte skill of een gemaakt profiel stelt dus een Python-agent samen.** Het levert geen losse prompt-agent op.
+  Er bestaat geen weg waarop een profiel buiten de basisklasse draait: zonder `Agent` geen modelaanroep, geen tool en
+  geen kind. Een test bewaakt dat (`test_agentvorm.py`: elke modelaanroep in de open laag komt uit een `Agent`).
+- Dit sluit aan op ADR-014. Het contract hoort bij de code die het nakomt; het profiel kiest alleen uit wat die code
+  aanbiedt.
+
 ## Deel A — De centrale agent
 
 ### A1. Eén centrale agent, één agentvorm
@@ -280,7 +298,7 @@ versies. *Nieuw* begint vanuit een lege map met de verplichte velden; *Bewerken*
 
 ## Wat generiek is
 
-- **Eén agentvorm**: de generieke toollus voor elke subagent; alleen het profiel en de opdracht verschillen.
+- **Eén agentvorm in Python**: de basisklasse `Agent`, met `CentraleAgent` en `Subagent`; alleen het profiel en de opdracht verschillen.
 - **Eén profieltype** voor vaste, werkplaats- en ad-hocprofielen, met één validator in `bronmodel`.
 - **Eén kindmechanisme**: de kind-run met `ouder_run_id` uit ADR-012 (budgetaandeel, gelijktijdigheid, *Stop alles*,
   botsingen), voor elke subagent. De regisseur gebruikt hetzelfde mechanisme.
@@ -298,7 +316,7 @@ Twee sporen die naast elkaar kunnen: **A** (de centrale agent) en **B** (de werk
 | **T0** | dit ADR | docs | – |
 | **T1** | de validatoren naar `bronmodel`: `bronmodel.skill` (Agent Skills-spec + Lex-regels) en `bronmodel.agentprofiel` (de grenzen van A2); de generator gebruikt ze; het methodepakket blijft byte-gelijk | bronmodel, graph-qa | – |
 | **A1** | het profieltype: de zes specialisten worden vaste profielen, `SPECIALISTS` wordt eruit afgeleid; `.claude/lex-agents/` en de generator; de soort `agentprofiel` in de catalogus. Gedrag bitgelijk | graph-qa, bronmodel | T1 |
-| **A2** | de generieke subagent: één toollus die elk profiel draait, `vraag_naar_boven` en `klaar`, het kindmechanisme van de regisseur generiek gemaakt (de regisseur gebruikt het, bitgelijk), hervatten na een antwoord | graph-qa, api | A1 |
+| **A2** | de Python-basis `agent/agentvorm.py` (`Agent`, `Subagent`) en de generieke subagent: één toollus die elk profiel draait, `vraag_naar_boven` en `klaar`, het kindmechanisme van de regisseur generiek gemaakt (de regisseur gebruikt het, bitgelijk), hervatten na een antwoord | graph-qa, api | A1 |
 | **A3** | de centrale agent achter `centraleAgent`: de modellus met de workflows als tool, `subagent`, `vraag_jurist`, de bevestigingskaart, de bundel; de boom in de werkplek en de contextweergave | graph-qa, api, frontend, deploy (vlag) | A2 |
 | **A4** | de meting tegen de huidige weg (A6) en het besluit in het meetlogboek | metingen | A3 |
 | **A5** | opruimen bij winst: de supervisor-modelstap, het `WORKERS:`-formaat en de regie-opdrachten gaan op in de centrale agent | graph-qa | A4 |
