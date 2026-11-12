@@ -23,7 +23,7 @@ def test_volledige_stroom_plan_tools_verify_finalize():
     llm = FakeLLM([
         response([text_block("Aanpak: get_artikel 9 IW.")], "end_turn"),                      # plan (create)
         response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),
-        response([text_block(f"Artikel 9 IW ({ART_IRI}): zes weken.")], "end_turn"),           # eindantwoord
+        response([text_block(f"Artikel 9 IW ({ART_IRI}) regelt de betaaltermijn.")], "end_turn"),  # eindantwoord
     ])
     events = _run(answer_stream("vraag", settings=settings, llm=llm, graph=graph))
     types = [e["type"] for e in events]

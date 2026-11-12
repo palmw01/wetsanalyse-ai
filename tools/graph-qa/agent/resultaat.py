@@ -42,7 +42,7 @@ _VRAAG_KLOPTE_NIET = "de zoekvraag klopte niet"
 #: zo wat er ontbrak, zonder code (`spoorbronnen.uitkomstregel`). Voer je een nieuwe reden in, zet hem hier;
 #: `tests/test_spoorbronnen.py` zoekt elke reden in de code op. Een onbekende reden heet "gaf een fout".
 REDEN_ZIN: dict[str, str] = {
-    "bron_onbereikbaar": _NIET_BEREIKBAAR, "graaf_onbereikbaar": _NIET_BEREIKBAAR,
+    "bron_onbereikbaar": _NIET_BEREIKBAAR, "bron_bezet": "is even te druk", "graaf_onbereikbaar": _NIET_BEREIKBAAR,
     "annotatie_api_onbereikbaar": _NIET_BEREIKBAAR, "begrippen_api_onbereikbaar": _NIET_BEREIKBAAR,
     "annotatie_api_niet_ingesteld": _NIET_BESCHIKBAAR, "begrippen_api_niet_ingesteld": _NIET_BESCHIKBAAR,
     "annotatie_gebruikerscontext_ontbreekt": _NIET_BESCHIKBAAR,

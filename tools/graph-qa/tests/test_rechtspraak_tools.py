@@ -871,3 +871,105 @@ def test_lido_zoekt_de_regeling_op_haar_ref_zonder_artikel():
     d = Dienst(ref={IW: V_NU}, links={V_NU: _get_links(V_NU, [("ECLI:NL:HR:2022:50", "y")])})
     k = _bron(d).koppelingen(IW, "")
     assert [ln.ecli for ln in k.links] == ["ECLI:NL:HR:2022:50"]
+
+
+# --- K16 (Kamerstukken ronde 4): "niet bereikbaar" alleen bij een echte storing, en LiDO als terugval -------------------
+
+_LIDO_RDF = ('<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dct="http://purl.org/dc/terms/" '
+             'xmlns:overheidrl="http://linkeddata.overheid.nl/terms/"><rdf:Description>'
+             '<dct:identifier>ECLI:NL:HR:2023:563</dct:identifier>'
+             '<dct:title>ECLI:NL:HR:2023:563 - Hoge Raad, 14-04-2023 / 20/02401</dct:title>'
+             '<overheidrl:heeftUitspraakdatum>2023-04-14</overheidrl:heeftUitspraakdatum>'
+             '<overheidrl:heeftZaaknummer>20/02401</overheidrl:heeftZaaknummer>'
+             '<overheidrl:heeftRechtsgebied>Bestuursrecht; Belastingrecht</overheidrl:heeftRechtsgebied>'
+             '</rdf:Description></rdf:RDF>')
+
+
+def _rechtspraak_met(status_reeks: list[int], *, lido: bool = True):
+    """Een Rechtspraak die de statussen uit de reeks na elkaar geeft (daarna 200 met de uitspraak), en LiDO met de RDF."""
+    gezien: list[tuple[str, int]] = []
+    reeks = list(status_reeks)
+
+    def dienst(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "linkeddata.overheid.nl":
+            gezien.append(("lido", 200))
+            return httpx.Response(200, text=_LIDO_RDF) if lido else httpx.Response(404, text="<lido/>")
+        status = reeks.pop(0) if reeks else 200
+        gezien.append(("rechtspraak", status))
+        if status == 200:
+            return httpx.Response(200, text=_uitspraak_xml("ECLI:NL:HR:2023:563"))
+        return httpx.Response(status, text="", headers={"Retry-After": "2"} if status == 429 else {})
+
+    return LidoRechtspraak(client=httpx.Client(transport=httpx.MockTransport(dienst)), slaap=lambda _s: None), gezien
+
+
+def _uitspraak_xml(ecli: str) -> str:
+    return (f'<open-rechtspraak><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" '
+            f'xmlns:dcterms="http://purl.org/dc/terms/"><rdf:Description><dcterms:identifier>{ecli}</dcterms:identifier>'
+            f'</rdf:Description></rdf:RDF><uitspraak xmlns="http://www.rechtspraak.nl/schema/rechtspraak-1.0">'
+            f'<para>De Hoge Raad verwerpt het beroep.</para></uitspraak></open-rechtspraak>')
+
+
+@pytest.mark.parametrize("status,code", [(500, "onbereikbaar"), (503, "onbereikbaar"), (429, "bezet"),
+                                         (403, "verzoek_geweigerd"), (400, "verzoek_geweigerd"), (404, "niet_gevonden")])
+def test_de_code_volgt_de_status(status, code):
+    assert L.foutcode_van_status(status) == code
+
+
+def test_een_storing_van_twee_keer_wordt_opgevangen():
+    """Twee keer een 503 achter elkaar (K16 faalde binnen 1,1 s: één herhaling) en dan de tekst: geen fout meer."""
+    bron, gezien = _rechtspraak_met([503, 503])
+    assert bron.document("ECLI:NL:HR:2023:563").xml
+    assert [s for _, s in gezien] == [503, 503, 200]
+
+
+def test_een_429_wacht_op_retry_after_en_is_daarna_bezet_niet_onbereikbaar():
+    geslapen: list[float] = []
+    bron, _ = _rechtspraak_met([429, 429, 429])
+    bron._slaap = geslapen.append  # type: ignore[assignment]
+    with pytest.raises(RechtspraakFout) as exc:
+        bron.document("ECLI:NL:HR:2023:563")
+    assert exc.value.code == "bezet" and exc.value.status == 429 and 2.0 in geslapen
+
+
+def test_een_403_wordt_niet_herhaald_en_is_geen_storing():
+    bron, gezien = _rechtspraak_met([403])
+    with pytest.raises(RechtspraakFout) as exc:
+        bron.document("ECLI:NL:HR:2023:563")
+    assert exc.value.code == "verzoek_geweigerd" and gezien == [("rechtspraak", 403)]
+
+
+def test_bij_een_storing_noemt_get_uitspraak_de_uitspraak_uit_lido():
+    """De tekst is er niet, de uitspraak wel: het foutresultaat draagt het stuk zoals LiDO het kent, zodat het antwoord
+    haar kan noemen (met haar label), maar er niet uit citeert."""
+    bron, gezien = _rechtspraak_met([500, 500, 500])
+    uit = json.loads(tools.dispatch("get_uitspraak", None, {"id": "ECLI:NL:HR:2023:563"}, AAN, rechtspraak=bron))
+    assert uit["status"] == "error" and uit["reden"] == "bron_onbereikbaar"
+    assert uit["stuk"]["label"] == "Hoge Raad 14 april 2023, ECLI:NL:HR:2023:563"
+    assert uit["stuk"]["nummer"] == "20/02401" and uit["stuk"]["gevalideerd"] is False
+    assert "LiDO kent de uitspraak" in uit["melding"] and ("lido", 200) in gezien
+
+
+def test_zonder_lido_blijft_het_een_kale_storing():
+    bron, _ = _rechtspraak_met([429, 429, 429], lido=False)
+    uit = json.loads(tools.dispatch("get_uitspraak", None, {"id": "ECLI:NL:HR:2023:563"}, AAN, rechtspraak=bron))
+    assert uit["reden"] == "bron_bezet" and "stuk" not in uit
+
+
+def test_een_geweigerd_verzoek_vraagt_lido_niet():
+    bron, gezien = _rechtspraak_met([403])
+    uit = json.loads(tools.dispatch("get_uitspraak", None, {"id": "ECLI:NL:HR:2023:563"}, AAN, rechtspraak=bron))
+    assert uit["reden"] == "zoekvraag_geweigerd" and ("lido", 200) not in gezien
+
+
+def test_een_drukke_bron_zegt_bron_lezen_als_te_druk():
+    """Het genoemde stuk is niet te lezen omdat de bron te druk is: de code zegt dat, zonder model, en niet "niet te
+    bereiken"."""
+    from agent.nodes.bron_lezen import _zonder_tekst
+
+    raw = json.dumps({"status": "error", "reden": "bron_bezet", "melding": "te druk"})
+    antwoord = _zonder_tekst([{"content": raw}], [("get_uitspraak", raw)],
+                             [{"name": "get_uitspraak", "input": {"id": "ECLI:NL:HR:2023:563"}}])
+    assert antwoord is not None
+    tekst = " ".join(getattr(b, "tekst", "") for b in antwoord.blokken)
+    assert "te druk" in tekst and "ECLI:NL:HR:2023:563" in tekst
