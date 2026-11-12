@@ -167,3 +167,44 @@ def test_de_inhoud_neemt_het_diepste_niveau_dat_past_ook_onder_het_tweede():
     assert not ingekort and len(lijst) == 32 <= MAX_INHOUD
     assert {k["kop"].count(" › ") for k in lijst} == {2}, "niveau 3, niet niveau 2"
     assert lijst[5] == {"kop": "A › 2. Hoofdstuk › Artikel 2.2", "offset": 15}
+
+
+def _begroting():
+    """Een stuk met vier niveaus: twee delen, elk vier hoofdstukken met vier artikelen, elk met drie paragrafen."""
+    rijen = []
+    for d in "AB":
+        for h in range(1, 5):
+            for a in range(1, 5):
+                for p in range(1, 4):
+                    rijen.append({"nr": len(rijen) + 1, "kop": f"{d}. Deel › {h}. Hoofdstuk › Artikel {h}.{a} › §{p}",
+                                  "tekst": "Een alinea van de toelichting bij dit artikel, met wat woorden erin."})
+    return rijen
+
+
+def test_de_inhoudpagina_gaat_zo_diep_als_in_een_antwoord_past_met_eigen_naam_en_diepte():
+    """Ronde 3 Kamerstukken (12 nov 2026, K15): `inhoud: true` gaf alleen niveau 1 (twee koppen bij kst-36200-IX-2), dus
+    leidde ook die weg niet naar "Artikel 1 Belastingen". Gemeten tegen een kop met het hele pad op de eerste pagina
+    (variant 1): die paste niet (2.330 tekens bij een grens van 2.000) en maakte een verzamelwet groter."""
+    d = json.loads(inhoudpagina(_begroting(), tool="get_kamerstuk", args={"id": "kst-1-1"}, offset=0, stuk={"id": "kst-1-1"}))
+    assert d["volledig"]
+    rijen = d["resultaten"]
+    assert {r.get("diepte", 1) for r in rijen} == {1, 2, 3}, "niveau 4 past niet, niveau 3 wel"
+    assert rijen[0]["kop"] == "A. Deel" and "diepte" not in rijen[0], "het bovenste niveau zoals eerst"
+    assert rijen[1:3] == [{"kop": "1. Hoofdstuk", "diepte": 2, "offset": 0}, {"kop": "Artikel 1.1", "diepte": 3, "offset": 0}]
+    assert {"kop": "Artikel 2.3", "diepte": 3, "offset": 18} in rijen, "eigen naam, geen pad"
+    assert "diepte" in d["toelichting"]
+
+
+def test_de_eerste_pagina_zegt_dat_de_inhoudpagina_dieper_gaat():
+    from agent.tools.stuk_tekst import _met_inhoud
+    m = _met_inhoud(_begroting(), "get_kamerstuk", {"id": "kst-1-1"}, sleutel="inhoud")
+    assert m.get("inhoud_dieper") and m["inhoud_openen"] == {"tool": "get_kamerstuk", "args": {"id": "kst-1-1", "inhoud": True}}
+
+
+def test_een_verzamelwet_houdt_haar_inhoudpagina_op_het_bovenste_niveau():
+    """B16 (Stb. 2009, 610): dertig artikelen met hun aanhef; niveau 2 past daar niet bij, dus niets verandert."""
+    from pathlib import Path
+    from agent.tools.op_xml import lees
+    _, rijen, _, _ = lees((Path(__file__).parent / "fixtures" / "koop" / "stb-2009-610.xml").read_bytes(), met_onderdeel=True)
+    d = json.loads(inhoudpagina(rijen, tool="get_bekendmaking", args={"id": "stb-2009-610"}, offset=0, stuk={"id": "x"}))
+    assert d["aantal"] == 30 and not any("diepte" in r for r in d["resultaten"]) and "diepte" not in d["toelichting"]

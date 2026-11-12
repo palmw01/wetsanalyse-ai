@@ -281,12 +281,16 @@ bruikbaar is.
   (`KAMERSTUKKEN.metadata`, sleutels uit `bronmodel.connectors.METADATA_SLEUTELS`): `Record` leest elk veld apart (de
   documentdatum `dt.date` en de publicatiedatum `dt.available` lopen soms weken uiteen), en `kamerstuk_tools.metadata`
   zet ze in de rij en in `stuk` (`label`, `soort`, `titel`, `datum`, `jaar`, `orgaan`, `indieners`; `gepubliceerd`,
-  `reeks`, `status`, `leesbaar` alleen in de uitzondering; een stuk met een `reeks` heet in de lijst "(gezamenlijk
-  behandeld: 33752–33755)", `bronmodel.antwoord.reeks_tekst`, ronde 2). Een lege uitkomst noemt de grens van de
+  `reeks`, `gezamenlijk`, `status`, `leesbaar` alleen in de uitzondering; een stuk met `gezamenlijk` heet in de lijst
+  "(gezamenlijk behandeld: 33752–33755)", `bronmodel.antwoord.gezamenlijk_tekst`, ronde 2 – een eigen sleutel, want `reeks`
+  is bij wetgeving buiten de kennisgraaf de plek in de regeling, ronde 3). Een lege uitkomst noemt de grens van de
   zoekdienst (`GRENS`: Kamerstukken vanaf het vergaderjaar 1994-1995, ouder staat er niet in). Het label komt uit dossier en nummer, niet uit het id; een
   `w.subrubriek` "Overig" (oudere stukken) wordt het soort uit de titel. **Een id dat KOOP niet kent** zoekt
   `SruKamerstukken.record` op dossier en nummer in het hoofddossier: een herdruk (`kst-32740-1` → `kst-32740-1-n1`) en
-  een onopgemaakt stuk (32140 nr. 342 = `kst-1278484`); het `stuk` noemt het echte id en de toelichting zegt het. Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
+  een onopgemaakt stuk (32140 nr. 342 = `kst-1278484`), en een lettercode van de Eerste Kamer die in een gezamenlijke
+  behandeling naar het eerste dossier heet (`kst-33755-L` → `kst-33752-L`, alleen een letter en alleen eenduidig; ronde 3,
+  K22); het `stuk` noemt het echte id en de toelichting zegt het. `get_kamerstuk(woorden=)` geeft de alinea's van één stuk die
+  elk woord noemen (stam van zeven letters, tekst of kop) met hun offset (ronde 3, K07: tien offsets in drie stukken). Een rij draagt haar tekst onder `id`, niet onder `iri`/`uri`: een
   sjabloon citeert er dus niet uit als passage van een bepaling. **Cache met versiecontrole** (een Kamerstuk verandert
   na publicatie: onopgemaakt → opgemaakt, herdruk, rectificatie): binnen `VERS_S` geen aanroep, daarna een lichte
   metadatavraag op `dt.modified`/documentstatus/versie en alleen bij een verschil de XML opnieuw (log
@@ -322,8 +326,11 @@ bruikbaar is.
   B16 338k tokens). Past de inhoud niet in haar deel van de begroting, dan gaan de koppen voor het begin (het bronvenster
   en de sprong hebben ze nodig): eerst alle koppen zonder `begint` (`inhoud_zonder_begin`), en pas daarna een ingekorte
   lijst (`inhoud_ingekort`); in beide gevallen noemt de pagina `inhoud_openen` (`stuk_tekst.inhoud_van`, `_met_inhoud`).
-  Elke leestool leest met `inhoud: true` (`INHOUD_ARG`, `stuk_tekst.inhoudpagina`) alleen de koppen op het
-  bovenste niveau, per pagina, elk met zijn eerste alinea als rij (`nr`, `tekst`: te citeren in `extern`) tot
+  Elke leestool leest met `inhoud: true` (`INHOUD_ARG`, `stuk_tekst.inhoudpagina`) de koppen op het
+  bovenste niveau en daaronder zo diep als in één antwoord past (`_diepte_inhoudpagina`; een diepere kop met alleen zijn
+  eigen naam en `diepte`, per niveau zodat een ouder zonder eigen alinea's er ook staat; staat de eerste pagina daardoor
+  minder diep, dan `inhoud_dieper` met `inhoud_openen`; ronde 3 Kamerstukken, K15: gemeten tegen het pad korter maken op de
+  eerste pagina, dat niet paste en een verzamelwet groter maakte), per pagina, het bovenste niveau elk met zijn eerste alinea als rij (`nr`, `tekst`: te citeren in `extern`) tot
   `MAX_AANHEF` tekens, en anders het begin (hermeting 11 nov 2026: 11 van de 30 artikelen van Stb. 2009, 610 op de eerste
   pagina, en een aanhef boven 160 tekens viel weg; controle: zonder `nr` citeerde het model de hele eerste pagina). Een
   stuk zonder koppen zegt `zonder_koppen` met het aantal alinea's en `lezen` (offset 0), en de statusregel "heeft geen
@@ -338,7 +345,8 @@ bruikbaar is.
   het veld las het model ze niet (ronde 2, B12). Is geen enkel genoemd stuk
   te lezen, dan antwoordt de code zonder model, voor elke connector hetzelfde (`bron_lezen._zonder_tekst`): geen tekst bij
   de bron, alleen een PDF (`alleen_pdf`, met het stuk in de lijst en `zonder_tekst` van de connector) of niet gevonden
-  (`niet_gevonden`, met het id in de melding; ronde 1 Kamerstukken, K12/K27). Een oud stuk heeft vaak alleen een PDF
+  (`niet_gevonden`, met het id in de melding; ronde 1 Kamerstukken, K12/K27) of een bron die niet te bereiken is
+  (`bron_onbereikbaar`; ronde 3, K11: het model verwees bij een storing naar een site die het niet kende). Een oud stuk heeft vaak alleen een PDF
   (`alleen_pdf`, met de metadata); een id dat KOOP niet kent zoekt de adapter op blad, jaargang en nummer. `geldigheid`
   noemt naast de BWB-vorm het id (`bekendmakingen`). Citeervormen "Stb. 2010, 176", "Stb.2009-610", "Staatscourant 2026,
   nr. 37344". **Uit de Staatscourant alleen regelgeving en beleid** (`REGELGEVENDE_SOORTEN`, een witte lijst op `dt.type`;

@@ -801,7 +801,7 @@ def test_een_stuk_uit_een_gezamenlijke_behandeling_zegt_dat_in_de_lijst():
     from bronmodel.antwoord import Antwoord, Stuk, Stukken, antwoord_tekst
     blok = Stukken(brontype="kamerstuk", kop="Gevonden Kamerstukken", totaal=2, items=[
         Stuk(id="kst-33755-3", label="Kamerstukken 33755, nr. 3"),
-        Stuk(id="kst-33752-L", label="Kamerstukken 33752, nr. L", reeks=["33752", "33753", "33754", "33755"])])
+        Stuk(id="kst-33752-L", label="Kamerstukken 33752, nr. L", gezamenlijk=["33752", "33753", "33754", "33755"])])
     regels = [r for r in antwoord_tekst(Antwoord(sjabloon="extern", blokken=[blok])).splitlines() if r.startswith("- ")]
     assert regels[0] == "- Kamerstukken 33755, nr. 3"
     assert regels[1] == "- Kamerstukken 33752, nr. L (gezamenlijk behandeld: 33752–33755)"
@@ -819,3 +819,72 @@ def test_de_vaste_pdf_zin_herhaalt_de_connector_niet(connector, verwacht):
     c = CONNECTORS[connector]
     extra = _wat_nieuw(c.zonder_tekst, "alleen als PDF")
     assert (f" ({extra})" if extra else "") == verwacht
+
+
+@pytest.mark.parametrize("connector", ["kamerstukken", "bekendmakingen", "rechtspraak", "wetgeving_live"])
+def test_een_onbereikbare_bron_is_een_melding_uit_code_voor_elke_connector(connector):
+    """Ronde 3 Kamerstukken (12 nov 2026, K11): bij een storing van KOOP verwees het model naar "kamerstukken.nl …
+    onderdeel 3", en de controle zei ongegrond. De code zegt het nu zelf, met het id dat gevraagd was."""
+    from agent.nodes.bron_lezen import _zonder_tekst
+    from bronmodel.connectors import CONNECTORS
+    c = CONNECTORS[connector]
+    resultaten = [{"content": json.dumps({"status": "error", "reden": "bron_onbereikbaar", "melding": "time-out"})}]
+    gebruik = [{"name": c.leestool, "input": {c.lees_argument: c.voorbeeld_id}}]
+    antwoord = _zonder_tekst(resultaten, [], gebruik)
+    assert antwoord is not None
+    [leemte] = antwoord.blokken
+    assert leemte.tekst == (f"{c.label} is nu niet te bereiken, dus {c.voorbeeld_id} kan ik niet lezen. Vraag het over "
+                            "een paar minuten opnieuw; zonder tekst zeg ik er niets over.")
+
+
+def test_een_genoemd_stuk_bij_een_storing_gaat_niet_langs_het_model(monkeypatch):
+    [leemte] = _beurt("Wat staat er in kst-33755-3?", _koop(Koop({}, weg=True)), monkeypatch)
+    assert leemte["tekst"].startswith("Kamerstukken is nu niet te bereiken, dus kst-33755-3 kan ik niet lezen.")
+
+
+def test_woorden_geeft_de_alineas_van_een_stuk_die_ze_noemen_met_hun_offset():
+    """Ronde 3 Kamerstukken (12 nov 2026, K07): het model zocht de passages met tien offsets in drie stukken, 779k tokens.
+    Een woord telt ook in een vervoeging of samenstelling (de stam van zeven letters), en ook in de kop."""
+    d = roep("get_kamerstuk", {"id": "kst-99001-3", "woorden": "invorderingsrenten"})
+    assert d["status"] == "ok" and d["volledig"]
+    assert [(r["offset"], r["tekst"]) for r in d["resultaten"]] == [(0, "Dit voorstel regelt de invorderingsrente opnieuw.")]
+    assert d["totaal"] == 1 and d["alineas"] == 3 and "1 van de 3 alinea's" in d["toelichting"]
+    kop = roep("get_kamerstuk", {"id": "kst-99001-3", "woorden": "doel eenvoud"})
+    assert [r["offset"] for r in kop["resultaten"]] == [2], "elk woord, in tekst of kop"
+    niets = roep("get_kamerstuk", {"id": "kst-99001-3", "woorden": "bestuurder"})
+    assert niets["aantal"] == 0 and "inhoud: true" in niets["toelichting"]
+    assert roep("get_kamerstuk", {"id": "kst-99001-3", "woorden": "of"})["reden"] == "ongeldige_argumenten"
+
+
+def test_een_lettercode_in_een_gezamenlijke_behandeling_vindt_het_stuk_in_het_eerste_dossier():
+    """Ronde 3 Kamerstukken (12 nov 2026, K22): de lijst van dossier 33755 noemde 33752 nr. L, en de vervolgvraag "wat staat
+    erin?" werd kst-33755-L, dat KOOP niet kent. Een lettercode van de Eerste Kamer geldt voor de hele reeks."""
+    motie = _record_xml("kst-33752-L", dossiers=("33752", "33753", "33754", "33755"), nummer="L", xml=True)
+    d = roep("get_kamerstuk", {"id": "kst-33755-L"}, _koop(Koop({}, {("33755", "L"): [motie]})))
+    assert d["status"] == "ok" and d["stuk"]["id"] == "kst-33752-L" and "kst-33752-L" in d["toelichting"]
+
+
+@pytest.mark.parametrize("brontype,velden,zin", [
+    ("kamerstuk", {"reeks": ["33752", "33755"], "gezamenlijk": ["33752", "33755"]}, " (gezamenlijk behandeld: 33752 en 33755)"),
+    ("wettekst_live", {"reeks": ["Hoofdstuk 2", "§ 2.1"]}, ""),       # de plek in de regeling (wetgeving_live ronde 3, I13)
+    ("bekendmaking", {"reeks": ["36602"]}, ""),                      # het Kamerdossier
+    ("uitspraak", {}, ""),
+])
+def test_alleen_gezamenlijk_geeft_de_zin_niet_reeks(brontype, velden, zin):
+    """`reeks` betekent per connector iets anders; alleen het eigen veld `gezamenlijk` zegt dat dossiers samen zijn
+    behandeld (wetgeving_live ronde 3, I13/I14: elke artikelrij kreeg "gezamenlijk behandeld: Hoofdstuk 2–§ 2.1")."""
+    from bronmodel.antwoord import Antwoord, Stuk, Stukken, antwoord_tekst
+    blok = Stukken(brontype=brontype, kop="Gevonden", items=[Stuk(id="x-1", label="Stuk 1", **velden)])
+    regel = next(r for r in antwoord_tekst(Antwoord(sjabloon="extern", blokken=[blok])).splitlines() if r.startswith("- "))
+    assert regel == f"- Stuk 1{zin}"
+
+
+def test_de_metadata_van_een_kamerstuk_draagt_gezamenlijk_bij_meer_dossiers():
+    from agent.tools.kamerstuk_tools import metadata
+    from bronmodel.connectors import externe_vindplaats
+    een = Record(id="kst-33755-3", titel="MvT", datum="2013-09-17", vergaderjaar="2013-2014", dossiers=("33755",),
+                 ondernummer="3", xml_url="https://repository.overheid.nl/x.xml")
+    meer = Record(id="kst-33752-L", titel="Motie", datum="2013-12-17", vergaderjaar="2013-2014",
+                  dossiers=("33752", "33753", "33754", "33755"), ondernummer="L", xml_url="https://repository.overheid.nl/y.xml")
+    assert "gezamenlijk" not in metadata(een, externe_vindplaats("kst-33755-3"))
+    assert metadata(meer, externe_vindplaats("kst-33752-L"))["gezamenlijk"] == ["33752", "33753", "33754", "33755"]

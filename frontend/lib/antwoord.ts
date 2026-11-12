@@ -35,7 +35,7 @@ export interface TekstBij {
 /** Eén gevonden stuk in een lijst, met de metadata uit de zoektool (de sleutels van `METADATA_SLEUTELS`). */
 export interface StukRij extends TekstBij {
   id: string; label: string; link?: string; soort?: string; titel?: string; datum?: string; gepubliceerd?: string;
-  jaar?: string; orgaan?: string; indieners?: string[]; reeks?: string[]; status?: string; versie?: string; leesbaar?: boolean;
+  jaar?: string; orgaan?: string; indieners?: string[]; reeks?: string[]; gezamenlijk?: string[]; status?: string; versie?: string; leesbaar?: boolean;
   /** Waarom er geen tekst is (`leesbaar: false`), in de woorden van de connector: "onopgemaakt, alleen PDF", "geen tekst in de open data". */
   zonder_tekst?: string;
 }
@@ -153,9 +153,9 @@ export function externGroepen(passages: readonly ExternePassage[]): ExternGroep[
 }
 
 /** Een stuk uit een gezamenlijke behandeling van dossiers: "gezamenlijk behandeld: 33752–33755", de spiegel van
- *  `reeks_tekst` in `bronmodel/antwoord.py`. Zonder die zin stonden in de lijst van dossier 33755 tien stukken als
+ *  `gezamenlijk_tekst` in `bronmodel/antwoord.py`. Het veld `gezamenlijk`, niet `reeks`: dat is per connector iets anders. Zonder die zin stonden in de lijst van dossier 33755 tien stukken als
  *  "Kamerstukken 33752, nr. B" zonder uitleg (ronde 2 Kamerstukken, 11 nov 2026). Leeg bij één dossier. */
-export function reeksTekst(reeks: readonly string[] | undefined): string {
+export function gezamenlijkTekst(reeks: readonly string[] | undefined): string {
   if (!reeks || reeks.length < 2) return "";
   return reeks.length > 2 ? `gezamenlijk behandeld: ${reeks[0]}–${reeks[reeks.length - 1]}` : `gezamenlijk behandeld: ${reeks[0]} en ${reeks[1]}`;
 }
