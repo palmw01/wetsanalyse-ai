@@ -291,13 +291,19 @@ bruikbaar is.
   beperkt verder** (`ChatRequest.bronnen`, `State.bronnen`, per beurt): weggelaten = wat de straat aanbiedt, een lege
   lijst = alleen wetgeving, en een connector die de straat niet aanbiedt gaat nooit aan (`actieve_connectors`). **Daarbinnen alleen
   wat de vraag noemt** (`agent/bronkeuze.py`, ronde 6, 12 nov 2026; elke aangezette connector kostte ~2k tokens per
-  modelronde): `supervisor_node` kiest na de route uit de vraag en de herschreven vraag de connectors die hun beschrijving
-  herkent (`herkende`: signalen en id's) of waarvan een orgaan genoemd wordt (`organen`). Alleen die krijgen hun tools; de
-  rest krijgt in de bronstand de reden `vraag` (event opnieuw, en een regel in BRONNEN IN DEZE BEURT). Een regeling buiten
-  de graaf (`buiten_graaf.noemt_regeling_buiten_graaf`, zonder zoekdienst) neemt `wetgeving_live` erbij maar beperkt alleen
-  niet. Noemt de vraag niets, dan houdt een vervolgvraag de keuze van het gesprek (`State.bronkeuze`, niet in de
-  per-beurt-reset), en anders blijft alles aan. `tests/test_bronkeuze.py` eist dat geen vraag uit de vier vragensets haar
-  eigen bron verliest.
+  modelronde). `supervisor_node` kiest na de route, uit de vraag en de herschreven vraag, welke connectors meedoen.
+  - **Wat beperkt**: een bron die de vraag noemt (`ConnectorBeschrijving.noemt`: een signaal of een id; een `aanwijzing` als
+    "wat bedoelde de wetgever" telt wel bij `herkent`, niet hier, K16), een van zijn `organen`, en de connector van een
+    route in code (`van_route`: `bron_lezen`, `bron_lijst`; B18).
+  - **Wat erbij komt maar nooit zelf beperkt**: een filterwaarde in de vraag (`filters_in`: een dossier, een vergaderjaar,
+    een waarde uit `MetadataVeld.waarden`; elke connector met dat filter, B18) en een regeling buiten de graaf
+    (`buiten_graaf.noemt_regeling_buiten_graaf`). Een artikel of datum telt niet: daar gaat elke vraag over.
+  - Noemt de vraag niets, dan houdt een vervolgvraag de keuze van het gesprek (`State.bronkeuze`, niet in de
+    per-beurt-reset), en anders blijft alles aan.
+  - Wat wegvalt heet `niet_nodig` ("niet nodig voor deze vraag"), niet "uit": het bronstand-event opnieuw, een eigen regel in
+    BRONNEN IN DEZE BEURT ("zeg niet dat de bron uit staat") en een statusregel in het denkproces (`bronstand.keuze_regel`).
+    De werkplek telt `niet_nodig` niet als beschikbaarheid.
+  - `tests/test_bronkeuze.py` eist dat geen vraag uit de vier vragensets haar eigen bron verliest, en toetst K16 en B18.
   `tool_execution` geeft de stand aan `dispatch`, dus ook een workflow die een tool in code aanroept valt eronder.
   **De bronstand** (`agent/bronstand.py`, `State.bronstand`) zegt per connector waaróm hij uit staat (`straat`,
   `gesprek`/`werkgebied` uit `ChatRequest.bronnen_herkomst`, `register_onleesbaar`, `beheerder`) en gaat als eerste

@@ -170,11 +170,17 @@ class ConnectorBeschrijving:
     verzamelnamen: tuple[str, ...] = ()
     #: Andere woorden die in een lijstvraag naar deze bron staan zonder iets te zoeken ("dossier" bij Kamerstukken).
     vulwoorden: tuple[str, ...] = ()
+    #: Patronen die een vraag naar deze bron laten wijzen zonder de bron te noemen ("wat bedoelde de wetgever"). `herkent`
+    #: telt ze mee (de router, de bronprompt); de bronkeuze per vraag niet (`noemt`), want zo'n vraag kan net zo goed bij
+    #: een andere bron uitkomen (Kamerstukken ronde 6, K16: een uitspraak is de weg naar een memorie van vóór 1994).
+    aanwijzingen: tuple[str, ...] = ()
     _patronen: tuple[re.Pattern[str], ...] = field(init=False, repr=False, compare=False)
+    _aanwijzingen: tuple[re.Pattern[str], ...] = field(init=False, repr=False, compare=False)
     _citeer: tuple[tuple[re.Pattern[str], str], ...] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "_patronen", tuple(re.compile(s, re.IGNORECASE) for s in self.signalen))
+        object.__setattr__(self, "_aanwijzingen", tuple(re.compile(s, re.IGNORECASE) for s in self.aanwijzingen))
         object.__setattr__(self, "_citeer", tuple((re.compile(p, re.IGNORECASE), v) for p, v in self.citeervormen))
 
     def geciteerd(self, tekst: str) -> list[tuple[int, str]]:
@@ -226,7 +232,11 @@ class ConnectorBeschrijving:
         return f"CONNECTOR_{self.naam.upper()}"
 
     def herkent(self, tekst: str) -> bool:
-        """Gaat deze tekst (ook) over deze bron? Een signaalwoord, of een id van zijn soort."""
+        """Gaat deze tekst (ook) over deze bron? Een signaalwoord, een aanwijzing, of een id van zijn soort."""
+        return self.noemt(tekst) or any(p.search(tekst or "") for p in self._aanwijzingen)
+
+    def noemt(self, tekst: str) -> bool:
+        """Noemt deze tekst de bron zelf? Een signaalwoord of een id van zijn soort; een aanwijzing niet."""
         if any(p.search(tekst or "") for p in self._patronen):
             return True
         return any(e.brontype == self.brontype and e.id.startswith(self.id_prefixen)
@@ -242,8 +252,8 @@ KAMERSTUKKEN = ConnectorBeschrijving(
           "verslagen, het advies van de Raad van State en het nader rapport"),
     signalen=(r"\bkamerstuk", r"\bmemorie\s+van\s+toelichting\b", r"\bmvt\b", r"\bwetsgeschiedenis\b",
               r"\bparlementaire\s+(?:stukken|geschiedenis|behandeling)\b", r"\bnota\s+naar\s+aanleiding\b",
-              r"\bnader\s+rapport\b", r"\badvies\s+van\s+de\s+raad\s+van\s+state\b",
-              r"\bbedoel(?:de|ing\s+van)\s+de\s+wetgever\b"),
+              r"\bnader\s+rapport\b", r"\badvies\s+van\s+de\s+raad\s+van\s+state\b"),
+    aanwijzingen=(r"\bbedoel(?:de|ing\s+van)\s+de\s+wetgever\b",),
     tools=frozenset({"zoek_kamerstukken", "get_kamerstuk"}),
     leestool="get_kamerstuk",
     lees_argument="id",
@@ -739,6 +749,11 @@ NAMEN: tuple[str, ...] = tuple(CONNECTORS)
 def herkende(tekst: str) -> tuple[str, ...]:
     """De connectors waar deze tekst (ook) over gaat, in de volgorde van `CONNECTORS`."""
     return tuple(n for n, c in CONNECTORS.items() if c.herkent(tekst))
+
+
+def genoemde(tekst: str) -> tuple[str, ...]:
+    """De connectors die deze tekst zelf noemt (signaal of id, geen aanwijzing), in de volgorde van `CONNECTORS`."""
+    return tuple(n for n, c in CONNECTORS.items() if c.noemt(tekst))
 
 
 def van_id(ident: str) -> ConnectorBeschrijving | None:

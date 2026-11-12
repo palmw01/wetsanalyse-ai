@@ -103,6 +103,10 @@ describe("connectorsMenu", () => {
     const zelfde = uitBronstand(lijst, [{ naam: "kamerstukken", reden: "gesprek" }, { naam: "rechtspraak", reden: "beheerder" }]);
     expect(zelfde[0]).toBe(lijst[0]);
     expect(zelfde[1]).toBe(lijst[1]);
+    // Niet nodig voor deze vraag (graph-qa `bronkeuze`, Staatsblad ronde 6, B18) is geen "uit": de bron blijft aan.
+    const nietNodig = uitBronstand(lijst, [{ naam: "kamerstukken", reden: "niet_nodig" }]);
+    expect(nietNodig[0]).toBe(lijst[0]);
+    expect(nietNodig[0].beschikbaarheid).toBe("aan");
   });
 
   it("zonder graph-qa is de beschikbaarheid onbekend, en dan is er geen schakelaar (review ADR-013, punt 2)", () => {
