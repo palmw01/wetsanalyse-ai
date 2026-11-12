@@ -283,7 +283,7 @@ def _afgekapt(blokken: list[Extern]) -> list[Leemte]:
         b.passages, ruimte = houd, ruimte - len(houd)
     if not weg:
         return []
-    return [Leemte(tekst=f"Dit antwoord citeert hoogstens {MAX_ALINEAS} alinea's. Niet geciteerd: {_opsomming(weg)}. Lees "
+    return [Leemte(tekst=f"Dit antwoord citeert hoogstens {MAX_ALINEAS} alinea's. Niet geciteerd: {_en_opsomming(weg)}. Lees "
                          "die tekst via de link bij het stuk.")]
 
 
