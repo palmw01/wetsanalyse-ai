@@ -250,3 +250,19 @@ def test_bron_query_leest_vindplaats_en_inbepaling():
     q = bron_query(BWB)
     assert "bwb:vindplaats ?vindplaats" in q and "bwb:inBepaling ?bepaling" in q
     parseQuery(q)
+
+
+def test_de_validatoren_van_de_werkplaats_laden_in_de_api():
+    """De api toetst een skill en een agentprofiel met dezelfde validator als de generator (ADR-016 §B2, poort 1).
+    Wat hij weigert staat in graph-qa (`test_skillvalidator.py`, `test_agentprofiel.py`); hier dat hij er is."""
+    from bronmodel import agentprofiel, skill
+    from bronmodel.validatie import ValidatieFout
+
+    geen, bevindingen = skill.toets("leeg", {}, rollen=())
+    assert geen is None and [b.code for b in bevindingen] == ["frontmatter"]
+    try:
+        agentprofiel.uit_markdown("x", "geen frontmatter")
+    except ValidatieFout as fout:
+        assert fout.bevindingen
+    else:
+        raise AssertionError("een bestand zonder frontmatter is geen profiel")
