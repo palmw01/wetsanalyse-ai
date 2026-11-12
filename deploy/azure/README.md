@@ -421,6 +421,46 @@ tot een code van de nieuwe is bevestigd.
    achterdeur in de api. Herstellen vraagt dan een bewerking op de database door iemand met Azure-rechten.
    Houd daarom op elke straat twee beheerders met 2FA aan.
 
+### Voorstellen als concept-PR: de GitHub App
+
+Met `catalogusVoorstellen` opent de api een concept-PR voor een voorstel uit *Werkwijze van Lex* (ADR-014 C7). Dat gaat
+via een **GitHub App**, niet via een persoonlijk token (besluit 12 nov 2026):
+
+- Een fine-grained token kun je niet beperken tot "alleen branches en concept-PR's". Met schrijfrecht op contents en pull
+  requests kan het via de API ook een groene PR mergen, en een token van de eigenaar handelt als admin en valt in elke
+  bypass.
+- Een App heeft een eigen identiteit. De api tekent per voorstel een JWT van tien minuten met de sleutel van de App en ruilt
+  die in voor een installatietoken van een uur, beperkt tot deze repo met *contents* en *pull requests*. Er wordt geen token
+  bewaard.
+- Wat mergen tegenhoudt, is de ruleset op `master` (hieronder): de App staat niet op de bypasslijst. De branchbescherming
+  die er al is (verplichte checks, `enforce_admins`, geen force push) houdt direct pushen al tegen.
+
+De App, de ruleset en de secrets maakt de eigenaar van de repo; geen workflow doet het. Het stappenplan:
+
+1. **De App aanmaken** (Settings van je account of organisatie → Developer settings → GitHub Apps → *New GitHub App*):
+   - een naam, en als homepage de URL van de repo;
+   - *Webhook*: uit (*Active* niet aanvinken);
+   - *Repository permissions*: **Contents: Read and write** en **Pull requests: Read and write**; Metadata blijft
+     *Read-only* (verplicht). Verder niets;
+   - *Where can this GitHub App be installed?*: *Only on this account*.
+   Noteer het **App ID**. Maak onder *Private keys* een sleutel aan; je downloadt een `.pem`-bestand.
+2. **De App installeren** op alleen deze repo (*Install App* → *Only select repositories*). Het **installatie-ID** is het
+   getal aan het eind van de URL van de installatie (`…/installations/<id>`).
+3. **De ruleset op `master`** (Settings van de repo → Rules → Rulesets → *New branch ruleset*):
+   - *Target branches*: de default branch;
+   - *Require a pull request before merging*, met **1 vereiste goedkeurende review**;
+   - *Bypass list*: alleen de rol **Repository admin** (zo blijft het bundelen door de eigenaar werken); de App **niet**;
+   - *Enforcement status*: Active.
+   Daarmee maakt de App branches en concept-PR's, maar kan hij niets mergen.
+4. **De drie environment-secrets** op de environment `acceptatie`: `WA_GITHUB_APP_ID`, `WA_GITHUB_APP_INSTALLATION_ID` en
+   `WA_GITHUB_APP_KEY` (de volledige inhoud van het `.pem`-bestand). Bewaar het `.pem`-bestand daarna niet los: een nieuwe
+   sleutel maak je in de App aan, en de oude trek je daar in.
+5. **`azure-infra`** → straat `acceptatie` → `deploy`. Daarna zegt *Werkwijze van Lex* op een methoderol niet meer dat
+   voorstellen uitstaan.
+
+Intrekken: de App deïnstalleren (of de sleutel intrekken) zet de functie meteen stil; de api meldt dan een fout van GitHub
+(502) en opent niets.
+
 ### De graaf van buiten bevragen (MCP-proxy)
 
 Omdat de netwerkgrens de enige beveiliging is, mag GraphDB's eigen ingress **nooit** extern. Wil je
@@ -494,5 +534,5 @@ Vier vlaggen staan alleen op acceptatie aan, alle vier met default `false` en be
   (ADR-014 §7, `SKILL_REGELS`, een proefvlag). Op graph-qa en de eval-job; uit is de uitkomst gelijk aan zonder deze code.
 - `catalogusVoorstellen` (`--catalogus-voorstellen`, met `--github-repo`): een beheerder met 2FA stelt vanuit *Werkwijze van
   Lex* een wijziging van een methodesectie voor, en de api opent er een concept-PR voor (ADR-014 C7, `CATALOGUS_VOORSTELLEN`).
-  Alleen op de api, en alleen als ook het environment-secret `WA_GITHUB_PR_TOKEN` staat: een fine-grained token op deze ene
-  repo met alleen *Contents* en *Pull requests* (schrijven). Dat token genereert de workflow niet; zonder blijft het uit.
+  Alleen op de api, en alleen met een GitHub App (`WA_GITHUB_APP_ID`, `WA_GITHUB_APP_INSTALLATION_ID`, `WA_GITHUB_APP_KEY`);
+  zonder een van de drie blijft het uit. Zie §*Voorstellen als concept-PR: de GitHub App*.

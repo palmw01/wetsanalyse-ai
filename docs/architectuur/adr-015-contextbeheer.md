@@ -39,10 +39,13 @@ Het koude begin had drie oorzaken:
   - boven het budget krimpen de toolresultaten van alle beurten behalve de laatste. Dat hangt af van de hele
     historie, dus het springt niet aan en uit. Per beurt verandert alleen de vorige beurt, en elk toolresultaat
     wordt één keer heel en één keer gekrompen geschreven: het minimum voor een venster dat moet krimpen;
-  - de voorkant valt weg op een vast raster van knippunten (een halve begroting), in sprongen.
+  - de voorkant valt weg op een vast raster van knippunten over de gekrompen historie (een halve begroting). Het
+    knippunt hangt alleen af van het gekrompen oude deel zonder de laatste beurt, dus het schuift alleen naar voren.
+    De eerste versie hing ook af van de laatste beurt, en daardoor liep de voorkant op acceptatie heen en weer
+    (nameting G4-3/G4-4).
 
-  Gemeten op een gesprek van 40 beurten: gemiddeld 9,0k tekens per beurt opnieuw geschreven, tegen 29,2k met het
-  oude venster (`tests/test_trimming.py`).
+  Gesimuleerd met de echte cachepunten: per beurt ~16k tekens opnieuw geschreven (de vorige beurt gekrompen plus de
+  nieuwe), tegen 34–36k met het oude venster (`tests/test_trimming.py`).
 
 ## Wat niet
 

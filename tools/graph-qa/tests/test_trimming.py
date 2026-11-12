@@ -126,3 +126,39 @@ def test_per_beurt_verandert_alleen_het_eind_van_het_venster():
         herschreven.append(sum(_msg_lengte(m) for m in straks[k:]))
         assert sum(_msg_lengte(m) for m in nu) <= 40_000
     assert sum(herschreven) / len(herschreven) < 12_000
+
+
+def _beurt(i: int, resultaten: int, omvang: int) -> list[dict]:
+    uit = [vraag(f"Vraag {i}")]
+    for r in range(resultaten):
+        uit += toolbeurt(f"t{i}_{r}", chr(97 + (i + r) % 26) * omvang)
+    return uit + [{"role": "assistant", "content": "A" * 600}]
+
+
+def test_de_cache_leest_de_historie_via_de_cachepunten_van_de_vorige_beurt():
+    """Nameting G4 (12 nov 2026): de voorkant van het venster liep terug, want het knippunt hing af van de laatste beurt,
+    die de beurt erna krimpt. Hier telt alleen wat de cache echt kan hergebruiken: het voorvoegsel tot een cachepunt van
+    de vorige beurt (`met_beurtcontext`) dat byte-gelijk is gebleven. Ook met een grote eerste beurt (83k in G4)."""
+    from agent.berichten import met_beurtcontext
+
+    for groot_eerst in (False, True):
+        historie: list[dict] = []
+        vorige = None
+        begins: list[str] = []
+        geschreven: list[int] = []
+        for i in range(14):
+            historie += _beurt(i, 6 if groot_eerst and i == 0 else 3, 13_000 if groot_eerst and i == 0 else 4_000)
+            venster = _trim_messages(historie + [vraag("nieuw")], 40_000, "nieuw")
+            venster, punten = met_beurtcontext(venster, "nieuw", "CONTEXT")
+            hist = venster[:-1]
+            begins.append(hist[0]["content"])
+            if vorige is not None:
+                oud, oude_punten = vorige
+                gelezen = max((sum(_msg_lengte(m) for m in hist[:p + 1]) for p in oude_punten
+                               if p < len(hist) and hist[:p + 1] == oud[:p + 1]), default=0)
+                geschreven.append(sum(_msg_lengte(m) for m in hist) - gelezen)
+            vorige = (hist, punten)
+        nummers = [int(b.split()[-1]) for b in begins]
+        assert nummers == sorted(nummers), f"de voorkant liep terug: {begins}"
+        # Per beurt de nieuwe beurt (~13k) plus de vorige beurt gekrompen; het oude venster schreef 34–36k.
+        assert sum(geschreven) / len(geschreven) < 18_000, geschreven

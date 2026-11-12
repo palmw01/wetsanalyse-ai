@@ -49,7 +49,11 @@ class Settings:
         # Een wijziging van de methode voorstellen als concept-PR (ADR-014 C7). Default uit: alleen de acceptatiestraat
         # zet hem aan, met een poort-guard. Het token heeft alleen schrijfrecht op deze ene repo.
         self.catalogus_voorstellen = os.environ.get("CATALOGUS_VOORSTELLEN", "").lower() in {"1", "true"}
-        self.github_pr_token = _read_secret("GITHUB_PR_TOKEN")
+        # Een GitHub App, geen persoonlijk token (ADR-014 C7): een eigen identiteit buiten de bypass van de ruleset op master,
+        # en per voorstel een installatietoken van een uur. De sleutel is een PEM-bestand.
+        self.github_app_id = _read_secret("GITHUB_APP_ID")
+        self.github_app_installation_id = _read_secret("GITHUB_APP_INSTALLATION_ID")
+        self.github_app_key = _read_secret("GITHUB_APP_KEY")
         self.github_repo = os.environ.get("GITHUB_REPO", "").strip()
 
         # --- Admin-auth: aparte tokens voor /v1/admin/* (LLM-beheer) ---
