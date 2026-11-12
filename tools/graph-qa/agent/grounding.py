@@ -25,7 +25,7 @@ from typing import Any
 from urllib.parse import unquote
 
 from .annotatie import _normaliseer, komt_letterlijk_voor
-from .beweringen import beweringen as feiten_buiten
+from .beweringen import beweringen as feiten_buiten, tellingen_uit
 from .hoeveelheden import uit_tabellen
 from .models import Source
 from bronmodel.connectors import leestools, van_id
@@ -244,8 +244,12 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
     # De overzichtsroute heeft hierboven elke genoemde bepaling al hard getoetst.
     onbevestigd = [] if overzicht else _onbevestigd(answer_text, source_trace, trace_text)
     # `bekend`: wat de jurist zelf schreef (de vraag, het dossier). Een feit dat hij noemt, is geen bewering van Lex.
+    # De aantallen uit wat een bron teruggaf. Rust de beurt alleen op afgeleide tools (de annotaties), dan is er geen bron
+    # om een aantal tegen te toetsen, en geldt de toets zonder aantallen (een overzicht van annotaties telt per groep).
+    uit_bron = [t for name, t in source_trace if t and name not in AFGELEIDE_TOOL_NAMEN]
+    tellingen = tellingen_uit(uit_bron) if uit_bron else None
     feiten = [] if overzicht else [f for f in feiten_buiten(answer_text, _feitenbron(source_trace, trace_text),
-                                                              bekend=bekend)
+                                                              bekend=bekend, tellingen=tellingen)
                                    if f not in unsupported]
     # Een stuk van een bronconnector (ADR-013) dat het antwoord noemt en dat alleen in een zoekresultaat stond, is
     # gevonden, niet gelezen. Dat is geen signaal: het id bestaat en het zoekresultaat draagt zijn label, soort, datum

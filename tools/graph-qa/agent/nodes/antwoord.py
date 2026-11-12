@@ -33,7 +33,7 @@ from ..sjablonen.extern import MAX_LIJST
 from .overzicht import TOOL as OVERZICHT_TOOL
 from .sjabloon import vul_aanroep
 from ..prompts import SYSTEM_PROMPT
-from ..provenance import alleen_genoemde_overzichten, collect_sources
+from ..provenance import alleen_genoemde_regelingen, collect_sources
 from ..regelingnamen import met_regelingnamen
 from ..resultaat import is_fout
 from ..specialists import DEFAULT as DEFAULT_SPECIALIST
@@ -769,7 +769,10 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
         sources = alleen_gelezen_extern(sources, controletrace(state), state.get("answer", ""),
                                         state.get("question", ""), geciteerd)
     # Na het cureren: alleen de namen van regelingen die in de lijst blijven (één query per beurt).
-    sources = alleen_genoemde_overzichten(met_regelingnamen(b.graph, sources), state.get("answer", ""))
+    sources = met_regelingnamen(b.graph, sources)
+    if not state.get("overzicht"):
+        # In de overzichtsroute zijn de vindplaatsen van het overzicht het antwoord zelf.
+        sources = alleen_genoemde_regelingen(sources, state.get("answer", ""))
     src_dicts = [s.model_dump() for s in sources]
     _stap(writer, "Klaar", f"{len(src_dicts)} bron" + ("nen" if len(src_dicts) != 1 else ""))
     writer({"type": "sources", "sources": src_dicts})

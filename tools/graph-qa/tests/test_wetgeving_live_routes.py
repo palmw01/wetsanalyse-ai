@@ -597,7 +597,7 @@ def test_een_regeling_uit_een_overzicht_is_alleen_een_bron_als_het_antwoord_haar
     """Ronde 5, I20: na `list_regelingen` stonden alle zeven regelingen van de graaf in de bronnenlijst van een antwoord
     over de Wet op de inkomstenbelasting 1964. Een overzicht is geen lezing; "welke regelingen zitten erin?" noemt ze."""
     from agent.models import Source
-    from agent.provenance import alleen_genoemde_overzichten
+    from agent.provenance import alleen_genoemde_regelingen
 
     def bron(bwb: str, naam: str, afk: list[str], tool: str = "list_regelingen") -> Source:
         return Source(label=naam, uri=f"urn:bwb:{bwb}", origin_tool=tool, soort="regeling", bwb_id=bwb, regeling=naam,
@@ -605,5 +605,5 @@ def test_een_regeling_uit_een_overzicht_is_alleen_een_bron_als_het_antwoord_haar
 
     awr, iw = bron("BWBR0002320", "Algemene wet inzake rijksbelastingen", ["AWR"]), bron("BWBR0004770", "Invorderingswet 1990", ["IW"])
     gelezen = bron("BWBR0004770", "Invorderingswet 1990", ["IW"], tool="get_artikel")
-    assert alleen_genoemde_overzichten([awr, iw, gelezen], "De Wet op de inkomstenbelasting 1964 staat er niet in.") == [gelezen]
-    assert alleen_genoemde_overzichten([awr, iw], "In de graaf staan de AWR en de Invorderingswet 1990.") == [awr, iw]
+    assert alleen_genoemde_regelingen([awr, iw, gelezen], "De Wet op de inkomstenbelasting 1964 staat er niet in.") == [gelezen]
+    assert alleen_genoemde_regelingen([awr, iw], "In de graaf staan de AWR en de Invorderingswet 1990.") == [awr, iw]

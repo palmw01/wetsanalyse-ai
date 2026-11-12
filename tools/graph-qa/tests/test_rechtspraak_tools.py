@@ -973,3 +973,125 @@ def test_een_drukke_bron_zegt_bron_lezen_als_te_druk():
     assert antwoord is not None
     tekst = " ".join(getattr(b, "tekst", "") for b in antwoord.blokken)
     assert "te druk" in tekst and "ECLI:NL:HR:2023:563" in tekst
+
+
+# --- een lege uitkomst na een mislukte tussenstap (ronde 4, R09) -----------------------------------------------------
+
+class _Haperend(Dienst):
+    """Een LiDO die bij `get-id` eerst `leeg` keer een antwoord zonder id geeft, en daarna het id."""
+
+    def __init__(self, leeg: int, **kw):
+        super().__init__(**kw)
+        self.leeg = leeg
+
+    def __call__(self, request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/get-id") and self.leeg:
+            self.leeg -= 1
+            self.gezien.append(str(request.url))
+            return httpx.Response(200, text='<lido service="get-id"></lido>')
+        return super().__call__(request)
+
+
+def test_een_get_id_zonder_id_gaat_een_keer_opnieuw():
+    """Art. 3.111 Wet IB 2001 gaf op acceptatie "niets gevonden" waar LiDO er honderden kent: één hik bij `get-id`."""
+    dienst = _Haperend(1, ref={f"{IW}&artikel=9": V_NU}, links={V_NU: _get_links(V_NU, [("ECLI:NL:HR:2023:563", "x")])})
+    k = _bron(dienst).koppelingen(IW, "9")
+    assert len(k.links) == 1 and k.versies == (V_NU,)
+
+
+def test_geen_versie_gevonden_wordt_niet_bewaard_als_geen_uitspraken():
+    dienst = _Haperend(2, ref={f"{IW}&artikel=9": V_NU}, links={V_NU: _get_links(V_NU, [("ECLI:NL:HR:2023:563", "x")])})
+    bron = _bron(dienst)
+    assert bron.koppelingen(IW, "9").links == ()
+    assert len(bron.koppelingen(IW, "9").links) == 1, "de tweede vraag hoort LiDO opnieuw te bevragen"
+
+
+def test_een_echte_uitkomst_wordt_wel_bewaard():
+    dienst = Dienst(ref={f"{IW}&artikel=9": V_NU}, links={V_NU: _get_links(V_NU, [])})
+    bron = _bron(dienst)
+    bron.koppelingen(IW, "9")
+    voor = len(dienst.gezien)
+    assert bron.koppelingen(IW, "9").links == () and len(dienst.gezien) == voor
+
+
+def test_lege_metadata_en_een_lege_titel_worden_niet_bewaard():
+    antwoorden = ["<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'/>", _LIDO_RDF]
+
+    def dienst(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "linkeddata.overheid.nl":
+            return httpx.Response(200, text=antwoorden.pop(0))
+        return httpx.Response(406, text="<searchRetrieveResponse/>")
+
+    bron = LidoRechtspraak(client=httpx.Client(transport=httpx.MockTransport(dienst)), slaap=lambda _s: None)
+    assert bron.metadata_lido("ECLI:NL:HR:2023:563") == {}
+    assert bron.metadata_lido("ECLI:NL:HR:2023:563")["nummer"] == "20/02401"
+    assert bron.titel(IW) == "" and "t|" + IW not in bron._cache
+
+
+def test_een_hik_midden_in_de_keten_van_versies_kost_geen_versies():
+    """Art. 67f AWR telde op acceptatie 358 uitspraken in plaats van 487: een lege `get-id` voor een eerdere versie
+    brak de keten stil af. Die gaat nu één keer opnieuw."""
+    eerder = f"{IW}&artikel=9&g=2026-06-30&z=2026-06-30"
+
+    class Keten(Dienst):
+        hik_bij = {eerder}
+
+        def __call__(self, request: httpx.Request) -> httpx.Response:
+            ref = dict(request.url.params).get("juriconnect-ref")
+            if ref in self.hik_bij:
+                self.hik_bij = self.hik_bij - {ref}
+                return httpx.Response(200, text='<lido service="get-id"></lido>')
+            return super().__call__(request)
+
+    dienst = Keten(ref={f"{IW}&artikel=9": V_NU, eerder: V_2016},
+                   links={V_NU: _get_links(V_NU, [("ECLI:NL:HR:2026:1", "a")]),
+                          V_2016: _get_links(V_2016, [("ECLI:NL:HR:2017:2", "b")])})
+    k = _bron(dienst).koppelingen(IW, "9")
+    assert k.versies[:2] == (V_NU, V_2016) and {ln.ecli for ln in k.links} == {"ECLI:NL:HR:2026:1", "ECLI:NL:HR:2017:2"}
+
+
+# --- een stuk zonder koppen in één ronde lezen (Staatsblad ronde 5, I04) --------------------------------------------
+
+def test_de_eerste_pagina_noemt_alle_volgende_paginas():
+    """Een arrest uit 1959 zonder koppen kostte zes modelrondes: elke pagina noemde alleen de volgende. Nu noemt de
+    eerste pagina ze allemaal, en elke offset is precies waar een pagina begint."""
+    from agent.tools.stuk_tekst import tekstpagina
+
+    rijen = [{"nr": i, "kop": "Uitspraak", "soort": "alinea", "tekst": "dat " + "woord " * 80} for i in range(150)]
+    eerste = json.loads(tekstpagina(rijen, tool="get_uitspraak", args={"id": "x"}, offset=0, stuk={"id": "x"}))
+    offsets = eerste["paginas"]["offsets"]
+    assert len(offsets) >= 2 and eerste["paginas"]["volledig"] is True
+    assert offsets[0] == eerste["vervolg"]["args"]["offset"]
+    gelezen = len(eerste["resultaten"])
+    for i, o in enumerate(offsets):
+        p = json.loads(tekstpagina(rijen, tool="get_uitspraak", args={"id": "x", "offset": o}, offset=o, stuk={"id": "x"}))
+        assert o == gelezen, "geen gat en geen overlap"
+        gelezen += len(p["resultaten"])
+        assert (p.get("vervolg") or {}).get("args", {}).get("offset") == (offsets[i + 1] if i + 1 < len(offsets) else None)
+    assert gelezen == len(rijen)
+
+
+def test_een_stuk_van_twee_paginas_noemt_alleen_het_vervolg():
+    from agent.tools.stuk_tekst import tekstpagina
+
+    rijen = [{"nr": i, "kop": "Uitspraak", "soort": "alinea", "tekst": "dat " + "woord " * 80} for i in range(20)]
+    eerste = json.loads(tekstpagina(rijen, tool="get_uitspraak", args={"id": "x"}, offset=0, stuk={"id": "x"}))
+    assert eerste["vervolg"] and "paginas" not in eerste
+
+
+def test_een_zoektreffer_die_het_antwoord_niet_noemt_is_geen_bron():
+    """I04 (Staatsblad ronde 5): acht Awb-bepalingen uit één `semantic_search` stonden als bron bij een arrest uit 1959.
+    Dezelfde regel als een regeling uit een overzicht (`test_wetgeving_live_routes`)."""
+    from agent.provenance import Source, alleen_genoemde_regelingen
+
+    awb = Source(label="Artikel 8:79, lid 3", uri="urn:bwb:BWBR0005537:artikel:8%3A79:lid:3", bwb_id="BWBR0005537",
+                 soort="lid", origin_tool="semantic_search", regeling="Algemene wet bestuursrecht", afkortingen=["Awb"])
+    iw = Source(label="Artikel 36", uri="urn:bwb:BWBR0004770:artikel:36", bwb_id="BWBR0004770", soort="artikel",
+                origin_tool="semantic_search", regeling="Invorderingswet 1990")
+    arrest = Source(label="Hoge Raad 30 januari 1959", uri="ECLI:NL:HR:1959:AI1600", brontype="uitspraak",
+                    origin_tool="zoek_uitspraken")
+    assert alleen_genoemde_regelingen([awb, iw, arrest], "De Hoge Raad noemt de Invorderingswet 1990.") == [iw, arrest]
+    assert awb in alleen_genoemde_regelingen([awb], "Zie artikel 8:79 lid 3."), "het artikel zelf genoemd"
+    gelezen = Source(label="Artikel 8:79", uri="urn:bwb:BWBR0005537:artikel:8%3A79", bwb_id="BWBR0005537",
+                     soort="artikel", origin_tool="get_artikel")
+    assert awb in alleen_genoemde_regelingen([awb, gelezen], ""), "een gelezen regeling blijft"

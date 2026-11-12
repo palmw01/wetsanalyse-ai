@@ -212,6 +212,13 @@ from agent.adapters import sru_kamerstukken as sru  # noqa: E402
 from agent.adapters import sru_koop  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _geen_wachttijd(monkeypatch):
+    """Het gedeelde herhaalbeleid wacht tussen pogingen (`http_beleid`); in de tests niet."""
+    from agent.adapters import http_beleid
+    monkeypatch.setattr(http_beleid, "HERHAAL_S", 0)
+
+
 class Dienst:
     """Een nep-SRU-dienst over HTTP: één record met `dt.modified` en documentstatus, en het document zelf."""
 

@@ -4,6 +4,7 @@ haar niet kopieert en het bronvenster overal dezelfde vorm ziet."""
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from typing import Any, Sequence
 
 from ..resultaat import BUDGET, per_eenheid
@@ -253,11 +254,47 @@ def tekstpagina(rijen: list[dict[str, Any]], *, tool: str, args: dict[str, Any],
     if offset != 0:
         return maak(basis)
     if publicatie is not None:
-        return maak({**basis, **_met_inhoud(publicatie, tool, args, sleutel="inhoud_publicatie")})
+        return _met_paginas(maak, {**basis, **_met_inhoud(publicatie, tool, args, sleutel="inhoud_publicatie")},
+                            rijen, tool, args, basis, velden, toelichting)
     met = {**basis, **_met_inhoud(rijen, tool, args, sleutel="inhoud")}
     tekst = maak(met)
     if met.get("inhoud") and not json.loads(tekst).get("volledig"):
         zonder = maak(basis)
         if json.loads(zonder).get("volledig"):
             return zonder
+    return _met_paginas(maak, met, rijen, tool, args, basis, velden, toelichting)
+
+
+#: Zoveel vervolgpagina's noemt de eerste pagina hoogstens.
+MAX_PAGINAS = 12
+
+
+def _vervolg(tekst: str) -> int | None:
+    v = json.loads(tekst).get("vervolg") or {}
+    o = (v.get("args") or {}).get("offset")
+    return o if isinstance(o, int) else None
+
+
+def _met_paginas(maak: Callable[[dict[str, Any]], str], met: dict[str, Any], rijen: list[dict[str, Any]], tool: str,
+                 args: dict[str, Any], basis: dict[str, Any], velden: Sequence[str], toelichting: str) -> str:
+    """De eerste pagina van een stuk dat niet in één antwoord past, met de offsets van álle volgende pagina's
+    (`paginas`): zo vraagt het model de rest in één ronde op, in plaats van pagina voor pagina met telkens het hele
+    gesprek opnieuw (Staatsblad ronde 5, I04: zes modelrondes voor één arrest uit 1959 zonder koppen, 508k tokens). De
+    offsets volgen uit dezelfde begroting als de pagina's zelf, dus ze kloppen met wat een aanroep teruggeeft."""
+    tekst = maak(met)
+    for _ in range(3):  # het veld zelf kost ruimte en kan de eerste pagina korter maken: tot het vaststaat
+        offsets: list[int] = []
+        o = _vervolg(tekst)
+        while o is not None and len(offsets) < MAX_PAGINAS:
+            offsets.append(o)
+            o = _vervolg(per_eenheid(rijen, tool=tool, args=args, offset=o, extra=basis, toelichting=toelichting,
+                                     zonder_herhaling=velden))
+        if not offsets or len(offsets) < 2:
+            return tekst  # één vervolgpagina: dat zegt `vervolg` al
+        nieuw = maak({**met, "paginas": {"offsets": offsets, "volledig": o is None,
+                                         "uitleg": "De rest van de tekst staat op deze pagina's; vraag ze in één ronde "
+                                                   "tegelijk op, elk met zijn offset."}})
+        if _vervolg(nieuw) == offsets[0]:
+            return nieuw
+        tekst = nieuw
     return tekst

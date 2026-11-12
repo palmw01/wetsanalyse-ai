@@ -149,19 +149,38 @@ def _met_titel(label: str, uit_tool: str) -> str:
 REGELINGTOOLS = frozenset({"list_regelingen", "zoek_regelingen"})
 
 
-def alleen_genoemde_overzichten(sources: list[Any], tekst: str) -> list[Any]:
-    """Een regeling uit een tool die regelingen opsomt (`REGELINGTOOLS`) is alleen een bron als het antwoord haar noemt:
-    bij naam, afkorting of BWB-id. Een overzicht is geen lezing (wetgeving_live ronde 5, I20: de zeven regelingen van
-    `list_regelingen` in de bronnenlijst van een antwoord over een andere wet). "Welke regelingen zitten erin?" noemt ze,
-    en daar blijven ze staan. Na `met_regelingnamen`: dan draagt de bron haar naam en afkortingen."""
+def alleen_genoemde_regelingen(sources: list[Any], tekst: str) -> list[Any]:
+    """Een regeling uit een overzicht of een zoekresultaat is alleen een bron als het antwoord haar noemt, bij naam,
+    afkorting of BWB-id. Twee gevallen, één regel:
+
+    - een regeling uit een tool die regelingen opsomt (`REGELINGTOOLS`; wetgeving_live ronde 5, I20: de zeven regelingen
+      van `list_regelingen` bij een antwoord over een andere wet). "Welke regelingen zitten erin?" noemt ze, en daar
+      blijven ze staan;
+    - een bepaling die alleen een zoektool vond (`_zoektools`), uit een regeling die de beurt verder niet las (Staatsblad
+      ronde 5, I04: acht Awb-bepalingen uit één `semantic_search` bij een arrest uit 1959). Noemt het antwoord het
+      artikel zelf ("artikel 9"), dan blijft ze ook staan.
+
+    Na `met_regelingnamen`: dan draagt de bron haar naam en afkortingen."""
     laag = (tekst or "").lower()
+    zoek = _zoektools()
+    gelezen = {getattr(s, "bwb_id", "") for s in sources if getattr(s, "origin_tool", "") not in zoek | REGELINGTOOLS}
 
     def genoemd(naam: str) -> bool:
         return bool(naam) and re.search(rf"(?<!\w){re.escape(naam.lower())}(?!\w)", laag) is not None
 
-    return [s for s in sources if not (getattr(s, "origin_tool", "") in REGELINGTOOLS and getattr(s, "soort", "") == "regeling"
-                                       and not any(genoemd(n) for n in (s.regeling or "", s.bwb_id or "", s.label or "",
-                                                                        *(s.afkortingen or []))))]
+    def regeling_genoemd(s: Any) -> bool:
+        return any(genoemd(n) for n in (s.regeling or "", s.bwb_id or "", *(s.afkortingen or [])))
+
+    def weg(s: Any) -> bool:
+        tool, soort = getattr(s, "origin_tool", ""), getattr(s, "soort", "")
+        if tool in REGELINGTOOLS and soort == "regeling":
+            return not (regeling_genoemd(s) or genoemd(s.label or ""))
+        if tool in zoek and soort and soort != "regeling" and s.bwb_id and s.bwb_id not in gelezen:
+            artikel = re.match(r"(?:Artikel|Bepaling|Divisie)\s+([\w:.]+)", s.label or "")
+            return not (regeling_genoemd(s) or (artikel and genoemd(f"artikel {artikel.group(1)}")))
+        return False
+
+    return [s for s in sources if not weg(s)]
 
 
 def _zoektools() -> frozenset[str]:

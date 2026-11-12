@@ -44,6 +44,8 @@ from bronmodel.bwb.dekking import STANDAARD_DREMPEL, bron_tekens, bron_tekens_pe
 from bronmodel.bwb.models import Wet
 from bronmodel.bwb.parser import ParseError, ToestandParser
 
+from .http_beleid import STANDAARD, met_herhaling
+
 logger = logging.getLogger("graph_qa.bwb_live")
 
 SRU_URL = "https://zoekservice.overheid.nl/sru/Search"
@@ -67,7 +69,7 @@ VERS_S = 60 * 60
 OPEN_EIND = "9999-12-31"
 
 #: Waarom een zoekvraag of een toestand niet bruikbaar was.
-FOUTCODES = ("onbereikbaar", "geweigerd", "niet_gevonden", "onvolledig", "te_groot")
+FOUTCODES = ("onbereikbaar", "bezet", "verzoek_geweigerd", "geweigerd", "niet_gevonden", "onvolledig", "te_groot")
 
 
 class BwbFout(RuntimeError):
@@ -233,24 +235,18 @@ class SruBwb:
         u = urlparse(url)
         if u.scheme != "https" or u.hostname not in _HOSTS:
             raise BwbFout(f"host buiten de allowlist: {u.hostname}", code="geweigerd")
-        for poging in range(2):
-            self._wacht(u.hostname)
-            try:
-                r = self._client.get(url, params=params)
-            except httpx.HTTPError as exc:
-                if poging == 0:
-                    self._slaap(HERHAAL_S)
-                    continue
-                raise BwbFout(f"{u.hostname} is niet bereikbaar: {type(exc).__name__}") from exc
-            if poging == 0 and r.status_code >= 500:
-                self._slaap(HERHAAL_S)
-                continue
-            break
+        try:
+            r = met_herhaling(lambda: self._client.get(url, params=params), beleid=STANDAARD, host=u.hostname,
+                              slaap=self._slaap, logger=logger, gebeurtenis="bwb_verzoek_mislukt",
+                              voor_poging=lambda: self._wacht(u.hostname), wacht_s=HERHAAL_S)
+        except httpx.HTTPError as exc:
+            raise BwbFout(f"{u.hostname} is niet bereikbaar: {type(exc).__name__}") from exc
         if r.status_code == 404:
             raise BwbFout(f"{u.hostname} kent het niet (404)", code="niet_gevonden")
         # 406 met een geldige body is gewoon (de zoekdienst); de inhoud beslist.
         if r.status_code >= 400 and not (r.status_code == 406 and r.content):
-            raise BwbFout(f"{u.hostname} antwoordde met HTTP {r.status_code}")
+            # De code volgt het gedeelde beleid (`http_beleid`): een 4xx is geen storing, een 5xx na de herhalingen wel.
+            raise BwbFout(f"{u.hostname} antwoordde met HTTP {r.status_code}", code=STANDAARD.foutcode(r.status_code))
         if not r.content:
             raise BwbFout(f"leeg antwoord van {u.hostname}")
         if maximum is not None and len(r.content) > maximum:

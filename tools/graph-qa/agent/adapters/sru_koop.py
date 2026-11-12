@@ -33,6 +33,8 @@ from urllib.parse import urlparse
 import httpx
 from bronmodel import tekst_hash
 
+from .http_beleid import STANDAARD, met_herhaling
+
 SRU_URL = "https://repository.overheid.nl/sru"
 _HOSTS = {"repository.overheid.nl"}
 _NS = {
@@ -53,7 +55,7 @@ _EERSTE_JAAR = 1800
 #: Waarom een stuk of een zoekvraag niet bruikbaar was. Eén foutcode voor alles ("bron_onbereikbaar") maskeerde de
 #: oorzaak: een stuk met alleen een PDF heette onbereikbaar, en Lex zei dat het misschien niet bestond (acceptatie
 #: 9 nov 2026, gesprek e906567a).
-FOUTCODES = ("onbereikbaar", "geweigerd", "niet_gevonden", "alleen_pdf")
+FOUTCODES = ("onbereikbaar", "bezet", "verzoek_geweigerd", "geweigerd", "niet_gevonden", "alleen_pdf")
 
 
 class KoopFout(RuntimeError):
@@ -201,8 +203,9 @@ class SruKoop:
     _logger = logging.getLogger("graph_qa.koop")
 
     def __init__(self, *, sru_url: str = SRU_URL, timeout: float = 20.0, client: httpx.Client | None = None,
-                 klok: Callable[[], float] = time.monotonic):
+                 klok: Callable[[], float] = time.monotonic, slaap: Callable[[float], None] = time.sleep):
         self._url = sru_url
+        self._slaap = slaap
         self._client = client or httpx.Client(timeout=timeout, follow_redirects=False)
         self._cache: OrderedDict[str, _Plek] = OrderedDict()
         self._lock = threading.Lock()
@@ -212,12 +215,18 @@ class SruKoop:
         u = urlparse(url)
         if u.scheme != "https" or u.hostname not in _HOSTS:
             raise self.FOUT(f"host buiten de allowlist: {u.hostname}", code="geweigerd")
+        # Het gedeelde beleid (`http_beleid`): een storing gaat opnieuw, en alleen een storing heet "niet bereikbaar"; een
+        # 4xx was hier ook "onbereikbaar", zonder herhaling.
         try:
-            r = self._client.get(url, params=params or None)
-            r.raise_for_status()
+            r = met_herhaling(lambda: self._client.get(url, params=params or None), beleid=STANDAARD,
+                              host=u.hostname or "", slaap=self._slaap, logger=self._logger,
+                              gebeurtenis="koop_verzoek_mislukt")
         except httpx.HTTPError as exc:
             raise self.FOUT(f"de officiële publicaties zijn niet bereikbaar: {type(exc).__name__}",
                             code="onbereikbaar") from exc
+        if r.status_code >= 400:
+            code = STANDAARD.foutcode(r.status_code)
+            raise self.FOUT(f"de officiële publicaties antwoordden met HTTP {r.status_code}", code=code)
         return r.content
 
     def zoek(self, cql: str, *, start: int = 1, maximum: int = 50) -> tuple[int, list[Record]]:

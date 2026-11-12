@@ -814,7 +814,8 @@ def _get(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
 # --- fouten en dispatch -----------------------------------------------------------------------------------------------
 
 #: De reden in het foutresultaat per code van de adapter (`BwbFout.code`).
-FOUTREDEN = {"onbereikbaar": "bron_onbereikbaar", "geweigerd": "zoekvraag_geweigerd", "niet_gevonden": "niet_gevonden",
+FOUTREDEN = {"onbereikbaar": "bron_onbereikbaar", "bezet": "bron_bezet", "verzoek_geweigerd": "zoekvraag_geweigerd",
+             "geweigerd": "zoekvraag_geweigerd", "niet_gevonden": "niet_gevonden",
              "onvolledig": "toestand_onvolledig", "te_groot": "resultaat_te_groot"}
 
 

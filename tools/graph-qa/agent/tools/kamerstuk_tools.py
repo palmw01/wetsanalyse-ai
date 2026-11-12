@@ -514,7 +514,8 @@ def _zonder_treffer(rijen: list[dict[str, Any]], stammen: list[str], extra: dict
 
 
 #: De reden in het foutresultaat per code van de adapter (`KamerstukFout.code`).
-FOUTREDEN = {"onbereikbaar": "bron_onbereikbaar", "geweigerd": "zoekvraag_geweigerd", "niet_gevonden": "niet_gevonden",
+FOUTREDEN = {"onbereikbaar": "bron_onbereikbaar", "bezet": "bron_bezet", "verzoek_geweigerd": "zoekvraag_geweigerd",
+             "geweigerd": "zoekvraag_geweigerd", "niet_gevonden": "niet_gevonden",
              "alleen_pdf": "alleen_pdf"}
 
 
