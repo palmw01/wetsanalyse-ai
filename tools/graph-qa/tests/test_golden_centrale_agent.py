@@ -187,3 +187,45 @@ def test_de_samenvatting_toetst_een_run_tegen_de_set():
 
     s = vat({"id": "S01", "run": 1, "beurten": [{"label": "gemeten", "events": events}]}, PER_ID["S01"])
     assert not s["delegatie_past"] and "subagent" in s["tools_ontbreken"]
+
+
+def test_de_andere_sets_worden_met_hun_eigen_scorers_gescoord():
+    """`eval/centrale_agent_sets.py`: een beurt van de straat wordt een opname voor de scorers van de set zelf."""
+    from eval.centrale_agent_sets import gesprekken, kwaliteitsset, scoor_gesprek, scoor_kwaliteit
+
+    def beurt(tekst: str, route: str, *, tools=(), niveau="gegrond", bwb="BWBR0004770"):
+        return {"vraag": "v", "tekst": tekst, "gesprek": "g1", "events": [
+            *({"type": "tool_execution", "phase": "start", "tool": t} for t in tools),
+            {"type": "sources", "sources": [{"uri": f"urn:bwb:{bwb}:artikel:1", "bwb_id": bwb}]},
+            {"type": "grounding", "niveau": niveau, "grounded": niveau != "ongegrond", "cited": 1, "unsupported": []},
+            {"type": "meting", "route": route, "modelrondes": 2, "duur_ms": 10, "invoer": 10, "uitvoer": 2,
+             "cache_lees": 0, "cache_schrijf": 0}]}
+
+    # De kwaliteitsset: de weigervraag slaagt alleen zonder bronnen.
+    k_id, case = next((i, c) for i, c in kwaliteitsset().items() if c.get("should_refuse"))
+    geweigerd = {"id": k_id, "set": "kwaliteit", "vorm": "supervisor", "run": 1,
+                 "beurten": [{**beurt("Daar kan ik je niet mee helpen.", "afgewezen"), "events": [
+                     {"type": "meting", "route": "afgewezen", "modelrondes": 1, "invoer": 5, "uitvoer": 1}]}]}
+    assert scoor_kwaliteit(geweigerd, case)["geslaagd"]
+    met_bron = {**geweigerd, "beurten": [beurt("Het regent.", "algemeen")]}
+    assert not scoor_kwaliteit(met_bron, case)["refusal_ok"]
+
+    # Een gesprek: de route komt uit het meting-event; een agent met een taak telt ook als zijn agent.
+    case = gesprekken()["f-bronnen-dan-wetsvraag"]
+    rec = {"id": case["id"], "set": "gesprek", "vorm": "supervisor", "run": 1,
+           "beurten": [beurt("Bij deelvraag 2 ontbreekt nog een bron.", "deelvragen:dekking"),
+                       beurt("Artikel 9 regelt de betalingstermijn.", "algemeen", tools=["get_artikel"])]}
+    uit = scoor_gesprek(rec, case)
+    assert uit["geslaagd"] and uit["beurten"][0]["routes"] == ["deelvragen:dekking", "deelvragen"]
+    assert (uit["tokens"], uit["gewogen"]) == (24, 40)
+    fout = scoor_gesprek({**rec, "beurten": [beurt("Geen idee.", "afgewezen"), rec["beurten"][1]]}, case)
+    assert not fout["geslaagd"] and any("afgewezen" in f for f in fout["beurten"][0]["fouten"])
+
+    # Bij de centrale agent is een specialist bij naam niet te toetsen: dat is geen fout, en het staat erbij.
+    case = {"id": "x", "beurten": [{"vraag": "v", "verwacht": {"route": "definitie", "bevat": ["aanslag"]}}]}
+    centraal = scoor_gesprek({"id": "x", "set": "gesprek", "vorm": "centraal", "run": 1,
+                              "beurten": [beurt("Een belastingaanslag is …", "centraal")]}, case)
+    assert centraal["geslaagd"] and centraal["beurten"][0]["niet_getoetst"] == ["route definitie"]
+    supervisor = scoor_gesprek({"id": "x", "set": "gesprek", "vorm": "supervisor", "run": 1,
+                                "beurten": [beurt("Een belastingaanslag is …", "duiding")]}, case)
+    assert not supervisor["geslaagd"]

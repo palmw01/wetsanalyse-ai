@@ -12,6 +12,12 @@
 //       bestand ruw-<naam>-run<nr>.jsonl. Zo zijn twee vormen op dezelfde versie te meten: de vorm zonder het veld en de
 //       vorm met het veld waarmee een run de centrale agent kiest (ADR-016 §A7). De naam staat op elke regel (`vorm`).
 //
+//   node eval/centrale_agent_meting.mjs vragen <kwaliteit|gesprek> <nr> --commit <sha> --uit <map> --vormen '<json>' [id ...]
+//       stelt de vragen van de kwaliteitsset (`golden.jsonl`, K01, K02, …) of de gesprekken van `golden_gesprek.jsonl`
+//       in elke vorm uit <json> (`{"supervisor": {...}, "centraal": {...}}`: per vorm de velden op de beurt), per vraag
+//       om en om, zodat tijd en cachestand geen vorm bevoordelen. Eén bestand per vorm:
+//       ruw-<set>-<vorm>-run<nr>.jsonl. `python -m eval.centrale_agent_sets` scoort ze met de scorers van de sets.
+//
 // `--commit` is de commit van master waarop acceptatie draait; het script kan die niet zelf zien. Een run is hervatbaar:
 // een opdracht die al in het bestand staat, wordt overgeslagen. Breekt een beurt af (een nieuwe revisie van graph-qa
 // midden in een run), dan begint de opdracht opnieuw in een nieuw gesprek, hoogstens twee keer; de regel noemt het
@@ -113,6 +119,40 @@ async function opdracht(o, runnr, werkgebied, commit, vorm, velden) {
   return rec;
 }
 
+/** Draai één opdracht; breekt een beurt af (een revisiewissel), dan opnieuw in een nieuw gesprek, hoogstens twee keer. */
+async function metHerhalen(id, kop, draai) {
+  const afgebroken = [];
+  let rec = null;
+  for (let poging = 0; poging <= MAX_HERHALEN && !rec; poging++) {
+    try { rec = await draai(); }
+    catch (e) {
+      if (e instanceof BudgetOp) { console.log("429: het budget is op bij", id); process.exit(3); }
+      if (!(e instanceof Afgebroken) && !/fetch failed|ECONN|socket|terminated|aborted/i.test(String(e))) throw e;
+      afgebroken.push({ om: new Date().toISOString(), reden: String(e.message || e).slice(0, 200) });
+      await new Promise(r => setTimeout(r, 60_000));        // een revisiewissel duurt ongeveer een minuut
+    }
+  }
+  rec ??= { ...kop, beurten: [], mislukt: "na herhalen niet afgerond" };
+  if (afgebroken.length) Object.assign(rec, { herhaald: afgebroken.length, afgebroken });
+  return rec;
+}
+
+/** Eén case van een andere set: de beurten na elkaar in één nieuw gesprek, in één vorm. */
+async function vraagcase(c, kop, werkgebied, velden) {
+  const inWerkgebied = c.beurten.some(b => b.werkgebied_id);
+  if (inWerkgebied && !werkgebied) throw new Error(`${c.id} vraagt --werkgebied`);
+  const rec = { ...kop, begin: new Date().toISOString(), beurten: [] };
+  const hoofd = await gesprek(`Agentset ${kop.set} ${kop.vorm} run ${kop.run} – ${c.id}`, inWerkgebied ? werkgebied : undefined);
+  for (const [i, b] of c.beurten.entries()) {
+    await meet(rec, `beurt${i + 1}`, { vraag: b.vraag, conversation_id: hoofd, werkgebied_id: b.werkgebied_id ? werkgebied : undefined,
+                                       extra: { ...velden, bronnen: [], bronnen_herkomst: "gesprek" } });
+  }
+  rec.eind = new Date().toISOString();
+  return rec;
+}
+
+const leesSet = naam => fs.readFileSync(path.join(HIER, naam), "utf8").split("\n").filter(r => r.trim() && !r.startsWith("#")).map(r => JSON.parse(r));
+
 function optie(naam, args) { const i = args.indexOf(naam); return i < 0 ? undefined : args.splice(i, 2)[1]; }
 
 const [commando, ...rest] = process.argv.slice(2);
@@ -141,24 +181,46 @@ if (commando === "werkgebied") {
   console.log("account vóór", await verbruik());
   for (const o of set) {
     if ((ids.length && !ids.includes(o.id)) || gedaan.has(o.id)) continue;
-    const afgebroken = [];
-    let rec = null;
-    for (let poging = 0; poging <= MAX_HERHALEN && !rec; poging++) {
-      try { rec = await opdracht(o, Number(nr), werkgebied, commit, vorm, velden); }
-      catch (e) {
-        if (e instanceof BudgetOp) { console.log("429: het budget is op bij", o.id); process.exit(3); }
-        if (!(e instanceof Afgebroken) && !/fetch failed|ECONN|socket|terminated|aborted/i.test(String(e))) throw e;
-        afgebroken.push({ om: new Date().toISOString(), reden: String(e.message || e).slice(0, 200) });
-        await new Promise(r => setTimeout(r, 60_000));        // een revisiewissel duurt ongeveer een minuut
-      }
-    }
-    rec ??= { id: o.id, run: Number(nr), commit, vorm, beurten: [], mislukt: "na herhalen niet afgerond" };
-    if (afgebroken.length) Object.assign(rec, { herhaald: afgebroken.length, afgebroken });
+    const rec = await metHerhalen(o.id, { id: o.id, run: Number(nr), commit, vorm }, () => opdracht(o, Number(nr), werkgebied, commit, vorm, velden));
+    const afgebroken = rec.afgebroken ?? [];
     fs.appendFileSync(uit, JSON.stringify(rec) + "\n");
     console.log(o.id, rec.mislukt ?? "", `beurten ${rec.beurten.length}`, afgebroken.length ? `herhaald ${afgebroken.length}` : "");
   }
   console.log("account na", await verbruik());
+} else if (commando === "vragen") {
+  const werkgebied = optie("--werkgebied", rest), commit = optie("--commit", rest), map = optie("--uit", rest) ?? ".";
+  const vormenJson = optie("--vormen", rest);
+  const [setnaam, nr, ...ids] = rest;
+  if (!["kwaliteit", "gesprek"].includes(setnaam) || !nr || !commit || !vormenJson) {
+    console.error("vragen <kwaliteit|gesprek> <nr> --commit <sha> --vormen <json> [--werkgebied <id>] [--uit <map>] [id ...]"); process.exit(2);
+  }
+  let vormen;
+  try { vormen = Object.entries(JSON.parse(vormenJson)); } catch { console.error("--vormen is geen JSON"); process.exit(2); }
+  if (!vormen.length || vormen.some(([naam, v]) => !/^[a-z0-9-]+$/.test(naam) || !v || typeof v !== "object" || Array.isArray(v))) {
+    console.error("--vormen: een object van vormnaam (kleine letters, cijfers, streepjes) naar de velden op de beurt"); process.exit(2);
+  }
+  const cases = (setnaam === "kwaliteit"
+    ? leesSet("golden.jsonl").map((c, i) => ({ id: `K${String(i + 1).padStart(2, "0")}`, beurten: [{ vraag: c.question }] }))
+    : leesSet("golden_gesprek.jsonl").map(c => ({ id: c.id, beurten: c.beurten })))
+    .filter(c => !ids.length || ids.includes(c.id));
+  const onbekend = ids.filter(i => !cases.some(c => c.id === i));
+  if (onbekend.length) { console.error("onbekend:", onbekend.join(", ")); process.exit(2); }
+  const bestand = vorm => path.join(map, `ruw-${setnaam}-${vorm}-run${nr}.jsonl`);
+  const gedaan = Object.fromEntries(vormen.map(([vorm]) => [vorm, new Set(fs.existsSync(bestand(vorm))
+    ? fs.readFileSync(bestand(vorm), "utf8").split("\n").filter(Boolean).map(r => JSON.parse(r).id) : [])]));
+  console.log("account vóór", await verbruik());
+  for (const [i, c] of cases.entries()) {
+    // Om en om: de ene case begint met de eerste vorm, de volgende met de laatste.
+    for (const [vorm, velden] of i % 2 ? [...vormen].reverse() : vormen) {
+      if (gedaan[vorm].has(c.id)) continue;
+      const kop = { id: c.id, set: setnaam, run: Number(nr), commit, vorm };
+      const rec = await metHerhalen(c.id, kop, () => vraagcase(c, kop, werkgebied, velden));
+      fs.appendFileSync(bestand(vorm), JSON.stringify(rec) + "\n");
+      console.log(c.id, vorm, rec.mislukt ?? "", `beurten ${rec.beurten.length}`, rec.herhaald ? `herhaald ${rec.herhaald}` : "");
+    }
+  }
+  console.log("account na", await verbruik());
 } else {
-  console.error("gebruik: werkgebied | run <nr> --commit <sha> [--werkgebied <id>] [--uit <map>] [--vorm <naam> --extra <json>] [id ...]");
+  console.error("gebruik: werkgebied | run <nr> … | vragen <kwaliteit|gesprek> <nr> … (zie de kop van dit bestand)");
   process.exit(2);
 }
