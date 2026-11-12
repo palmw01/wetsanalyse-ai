@@ -99,25 +99,51 @@ _TOOLRESULT_KRIMP = 800
 _KRIMP_NOOT = "\n[… ingekort: ouder tool-resultaat, vraag het opnieuw op als je het nodig hebt]"
 
 
-def _krimp(messages: list[dict[str, Any]], tot: int) -> list[dict[str, Any]]:
-    """Kort de tool-resultaten in de berichten vóór index `tot` in tot `_TOOLRESULT_KRIMP` tekens.
+def _kort(m: dict[str, Any]) -> dict[str, Any]:
+    """Een bericht met zijn tool-resultaten afgekapt tot `_TOOLRESULT_KRIMP` tekens (de blokken blijven staan)."""
+    c = m.get("content")
+    if not isinstance(c, list):
+        return m
+    blokken = []
+    for blok in c:
+        if (isinstance(blok, dict) and blok.get("type") == "tool_result" and isinstance(blok.get("content"), str)
+                and len(blok["content"]) > _TOOLRESULT_KRIMP):
+            blok = {**blok, "content": blok["content"][:_TOOLRESULT_KRIMP] + _KRIMP_NOOT}
+        blokken.append(blok)
+    return {**m, "content": blokken}
 
-    De blokken zélf blijven staan; alleen hun tekst wordt afgekapt. Weggooien zou een `tool_use` zonder
-    `tool_result` achterlaten en dat weigert Anthropic."""
-    uit: list[dict[str, Any]] = []
-    for i, m in enumerate(messages):
-        c = m.get("content")
-        if i >= tot or not isinstance(c, list):
-            uit.append(m)
-            continue
-        nieuw_blokken = []
-        for blok in c:
-            if (isinstance(blok, dict) and blok.get("type") == "tool_result"
-                    and isinstance(blok.get("content"), str)
-                    and len(blok["content"]) > _TOOLRESULT_KRIMP):
-                blok = {**blok, "content": blok["content"][:_TOOLRESULT_KRIMP] + _KRIMP_NOOT}
-            nieuw_blokken.append(blok)
-        uit.append({**m, "content": nieuw_blokken})
+
+def _kern(beurt: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Wat er van een oude beurt overblijft: de vraag en het laatste antwoord, met het resultaat dat daarbij hoort.
+
+    De tussenrondes (zoeken, ophalen, een correctie) vallen weg als hele paren: een `tool_use` gaat alleen weg met zijn
+    `tool_result`, want een los resultaat weigert Anthropic. Het laatste antwoord blijft: dat is het gesprek. Bij een
+    sjabloon is het de sjabloonaanroep met de aanroepen ernaast en hun resultaten in één bericht (`tools_node`).
+    Wat de tussenrondes ophaalden, staat in het bronregister: de controle toetst ertegen, en het model kan het opnieuw
+    opvragen. Eerder bleven de tussenrondes staan, alleen afgekapt. Daardoor was een oude beurt nog 8–19k tekens, en
+    knipte het venster bijna elke beurt (nameting G5, 12 nov 2026)."""
+    if len(beurt) <= 2:
+        return [_kort(m) for m in beurt]
+    laatste = next((i for i in range(len(beurt) - 1, 0, -1) if beurt[i].get("role") == "assistant"), None)
+    if laatste is None:
+        return [_kort(m) for m in beurt]
+    staart = beurt[laatste:laatste + 2] if laatste + 1 < len(beurt) and _is_tool_result_user(beurt[laatste + 1]) \
+        else beurt[laatste:laatste + 1]
+    return [_kort(beurt[0]), *(_kort(m) for m in staart)]
+
+
+def _krimp(messages: list[dict[str, Any]], tot: int) -> list[dict[str, Any]]:
+    """De beurten die vóór index `tot` eindigen, teruggebracht tot hun kern (`_kern`); de rest ongewijzigd.
+
+    Een beurt begint bij een vraag van de jurist (`_is_vraag`). Wat vóór de eerste vraag staat, blijft zoals het is."""
+    begins = [i for i, m in enumerate(messages) if _is_vraag(m)]
+    if not begins:
+        return messages
+    uit: list[dict[str, Any]] = list(messages[:begins[0]])
+    for n, b in enumerate(begins):
+        e = begins[n + 1] if n + 1 < len(begins) else len(messages)
+        beurt = messages[b:e]
+        uit += _kern(beurt) if e <= tot else beurt
     return uit
 
 
@@ -202,16 +228,17 @@ def venster_telling(origineel: list[dict[str, Any]], venster: list[dict[str, Any
     """Wat `_trim_messages` van de historie overliet, als tellingen zonder inhoud (E6-C1).
 
     `origineel` is de historie vóór het trimmen, `venster` wat naar het model gaat. Een beurt is een
-    vraag van de jurist (geen correctie); `ingekort` telt de tool-resultaten met de krimpnoot. Vallen er
-    beurten weg, dan is `beurten_venster < beurten_historie`."""
-    ingekort = sum(
-        1
-        for m in venster
-        if isinstance(m.get("content"), list)
-        for b in m["content"]
-        if isinstance(b, dict) and b.get("type") == "tool_result"
-        and isinstance(b.get("content"), str) and b["content"].endswith(_KRIMP_NOOT)
-    )
+    vraag van de jurist (geen correctie); `ingekort` telt de tool-resultaten die korter of weg zijn: met de krimpnoot,
+    of als tussenronde van een oude beurt weggelaten (`_kern`), binnen het deel van het gesprek dat in het venster
+    staat. Vallen er beurten weg, dan is `beurten_venster < beurten_historie`."""
+    def resultaten(ms: list[dict[str, Any]]) -> dict[str, str]:
+        return {b.get("tool_use_id", ""): b["content"] for m in ms if isinstance(m.get("content"), list)
+                for b in m["content"] if isinstance(b, dict) and b.get("type") == "tool_result"
+                and isinstance(b.get("content"), str)}
+    in_venster = resultaten(venster)
+    begin = next((i for i, m in enumerate(origineel) if venster and m.get("content") == venster[0].get("content")), 0)
+    ingekort = sum(1 for tid in resultaten(origineel[begin:])
+                   if tid not in in_venster or in_venster[tid].endswith(_KRIMP_NOOT))
     return {
         "historie_tekens": sum(_msg_lengte(m) for m in origineel),
         "venster_tekens": sum(_msg_lengte(m) for m in venster),
