@@ -379,7 +379,11 @@ de digest van de eerste, `ghcr-cleanup` ruimt die op en de deploy van de eerste 
 ### De poort
 
 `poort.yml` heeft bewust **geen `paths`-filter**: een verplichte check die door een filter niet
-draait, laat een PR voorgoed op "expected" staan. Bij elke wijziging aan code draait hij
+draait, laat een PR voorgoed op "expected" staan. Hij draait **parallel**: per onderdeel een eigen job (api,
+graph-qa en de browserregressie in shards, via `scripts/pytest_shard.py` en `frontend/scripts/browsertests.mjs`), met
+Postgres alleen in de jobs die hem nodig hebben, en daarboven één aggregaatjob met exact de naam `poort` (`if:
+always()`): rood als een benodigde job faalt, groen als een job terecht is overgeslagen. Voeg je een job toe, zet hem
+dan in de `needs` van `poort`; `tests/poort/test_poort_parallel.py` bewaakt dat. Bij elke wijziging aan code draait hij
 `scripts/kruistests.sh`: het routecontract en de vormtests (`tests/poort/`, alleen stdlib) en alle tests die
 buiten hun onderdeel lezen, zodat drift ook rood wordt als alleen de andere kant wijzigt. De hook doet hetzelfde.
 De browsertests mocken `/api/**`; een methode- of padfout tussen de lagen vangt alleen dat contract. Daarnaast
