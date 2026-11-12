@@ -340,6 +340,17 @@ jobs:
               if "--relatie-voorstellen" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
                   fout.append(f"azure-infra.yml: `--relatie-voorstellen` zonder acceptatie-conditie: {regel.strip()}")
 
+          # Regels uit een methode-skill (ADR-014 §7) zijn een proefvlag: alleen acceptatie, tot een meting beslist.
+          m = re.search(r"^param skillRegels bool = (\w+)$", bicep, re.M)
+          if not m or m.group(1) != "false":
+              fout.append("main.bicep: `param skillRegels bool = false` niet gevonden")
+          for regel in re.findall(r".*name: 'SKILL_REGELS'.*", bicep):
+              if "value: skillRegels ?" not in regel:
+                  fout.append(f"main.bicep: SKILL_REGELS zonder de parameter: {regel.strip()}")
+          for regel in flow.splitlines():
+              if "--skill-regels" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
+                  fout.append(f"azure-infra.yml: `--skill-regels` zonder acceptatie-conditie: {regel.strip()}")
+
           if fout:
               print("\n".join(f"  {f}" for f in fout))
               sys.exit(1)

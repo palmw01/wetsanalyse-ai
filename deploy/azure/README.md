@@ -490,3 +490,5 @@ Vier vlaggen staan alleen op acceptatie aan, alle vier met default `false` en be
   de beheertab en het menu *Bronnen en tools*.
 - `relatieVoorstellen` (`--relatie-voorstellen`): de annotatieketen stelt relaties tussen markeringen voor (ADR-011,
   `RELATIE_VOORSTELLEN`, een proefvlag). Op graph-qa en de eval-job; uit is de uitkomst gelijk aan zonder deze code.
+- `skillRegels` (`--skill-regels`): de annotatie- en begrippenketen nemen de regels mee die een methode-skill meebrengt
+  (ADR-014 §7, `SKILL_REGELS`, een proefvlag). Op graph-qa en de eval-job; uit is de uitkomst gelijk aan zonder deze code.

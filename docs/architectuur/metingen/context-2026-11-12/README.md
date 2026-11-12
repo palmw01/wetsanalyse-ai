@@ -63,3 +63,26 @@ cache-lezen (10–20%) zijn kleiner. Er zijn drie oorzaken:
 - een supervisoraanroep per beurt (2,2k, in de tabel buiten "eerste ronde");
 - bundel 58 kwam tijdens de meting uit. Die raakte de modelverzoeken niet, maar een nieuwe revisie maakt de
   cache ook koud; G1-4 valt mogelijk daaronder. Bij de nameting herhaal ik de pauze van 6 minuten.
+
+## Nameting: TTL van een uur (bundel 59, `d43d6954`)
+
+Nieuw gesprek `522cabe397ad41dd` met twee duidingsvragen en daartussen ruim zes minuten, dezelfde hashes als in de
+nulmeting (`tools_hash` `67fda44cabed`, `system_hash` `5cc1b4215950`).
+
+| ronde 1 van de antwoordlus na een pauze van ruim 6 minuten | cache lezen | cache schrijven | gewogen |
+|---|---|---|---|
+| G1-4, TTL 5 minuten (nulmeting) | 0 | 42.055 | 52,6k |
+| G2-2, TTL 1 uur | 24.916 | 11.303 | 16,6k |
+
+- **Foundry accepteert de TTL** (geen terugval; de hit zelf is het bewijs). De supervisor las zijn prompt ook uit de
+  cache (2.189 tokens).
+- De winst zit in het voorvoegsel: tools + systeemprompt ≈ 24,9k tokens gelezen in plaats van geschreven, ≈ 28,7k
+  gewogen per beurt na een pauze. Dat komt overeen met de schatting (28k). Wat nog wordt geschreven, is de
+  historie met het variabele deel (oorzaak 2 hierboven). De historie was in G2-2 kleiner dan in G1-4, 22,6k tegen
+  40,3k tekens; daarom vergelijk ik alleen het voorvoegsel.
+- De totalen van de twee beurten zijn niet te vergelijken: G2-2 had 13 rondes, G1-4 er 4. Dat is spreiding van het
+  model, niet van de cache.
+- **Nieuw gezien in G2-2:** de lopende beurt werd groter dan `MAX_HISTORY_CHARS` (51k tekens in ronde 7). Toen viel
+  de historie van het gesprek in één keer weg (23 → 11 berichten) en werd de lopende beurt opnieuw geschreven
+  (23,2k). De lopende beurt zelf kromp niet; dat is de regel. Wel verliest het model in een lange beurt de
+  eerdere beurten. Dat is bestaand gedrag, maar het weegt mee in het vervolgvoorstel over de historie.
