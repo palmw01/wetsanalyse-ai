@@ -1080,19 +1080,18 @@ def test_een_stuk_van_twee_paginas_noemt_alleen_het_vervolg():
 
 
 def test_een_zoektreffer_die_het_antwoord_niet_noemt_is_geen_bron():
-    """I04 (Staatsblad ronde 5): acht Awb-bepalingen uit één `semantic_search` stonden als bron bij een arrest uit 1959."""
-    from agent.provenance import Source, alleen_genoemde_zoektreffers
+    """I04 (Staatsblad ronde 5): acht Awb-bepalingen uit één `semantic_search` stonden als bron bij een arrest uit 1959.
+    Dezelfde regel als een regeling uit een overzicht (`test_wetgeving_live_routes`)."""
+    from agent.provenance import Source, alleen_genoemde_regelingen
 
     awb = Source(label="Artikel 8:79, lid 3", uri="urn:bwb:BWBR0005537:artikel:8%3A79:lid:3", bwb_id="BWBR0005537",
-                 soort="lid", origin_tool="semantic_search")
+                 soort="lid", origin_tool="semantic_search", regeling="Algemene wet bestuursrecht", afkortingen=["Awb"])
     iw = Source(label="Artikel 36", uri="urn:bwb:BWBR0004770:artikel:36", bwb_id="BWBR0004770", soort="artikel",
-                origin_tool="semantic_search")
+                origin_tool="semantic_search", regeling="Invorderingswet 1990")
     arrest = Source(label="Hoge Raad 30 januari 1959", uri="ECLI:NL:HR:1959:AI1600", brontype="uitspraak",
                     origin_tool="zoek_uitspraken")
-    namen = {"BWBR0005537": "Algemene wet bestuursrecht", "BWBR0004770": "Invorderingswet 1990"}
-    uit = alleen_genoemde_zoektreffers([awb, iw, arrest], "De Hoge Raad noemt de Invorderingswet 1990.",
-                                       lambda ids: {i: namen[i] for i in ids})
-    assert uit == [iw, arrest]
+    assert alleen_genoemde_regelingen([awb, iw, arrest], "De Hoge Raad noemt de Invorderingswet 1990.") == [iw, arrest]
+    assert awb in alleen_genoemde_regelingen([awb], "Zie artikel 8:79 lid 3."), "het artikel zelf genoemd"
     gelezen = Source(label="Artikel 8:79", uri="urn:bwb:BWBR0005537:artikel:8%3A79", bwb_id="BWBR0005537",
                      soort="artikel", origin_tool="get_artikel")
-    assert awb in alleen_genoemde_zoektreffers([awb, gelezen], "", lambda ids: {}), "een gelezen regeling blijft"
+    assert awb in alleen_genoemde_regelingen([awb, gelezen], ""), "een gelezen regeling blijft"
