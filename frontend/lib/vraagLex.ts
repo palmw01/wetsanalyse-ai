@@ -79,6 +79,9 @@ export interface Suggestie {
   hergebruik?: "opnieuw";
   /** Niet versturen, maar in het invoerveld zetten: de analist maakt de vraag af. */
   invullen?: true;
+  /** Dezelfde handeling als `/commando` in het invoerveld (`lib/commandos.ts`): de naam en een korte hulptekst. Een
+   *  commando ís deze suggestie – geen tweede lijst en geen tweede router. */
+  commando?: { naam: string; hulp: string };
 }
 
 /** Wat er bij een gewone vraag over het onderwerp naar `startRun` gaat. */
@@ -121,12 +124,12 @@ const BEPALING: Module<Bepaling> = {
     const deel = ditDeel(o.bron_iri);
     const doel = { bron_iri: o.bron_iri, bwbId: bronDoel(o.bron_iri)?.bwb_id ?? "" };
     return o.annotatie ? [
-      { tekst: `Annoteer ${deel} opnieuw`, doel, hergebruik: "opnieuw" },
+      { tekst: `Annoteer ${deel} opnieuw`, doel, hergebruik: "opnieuw", commando: { naam: "annoteer", hulp: `Annoteer ${deel} opnieuw` } },
       { tekst: "Welke markeringen vragen nog aandacht?" },
       { tekst: `Wat betekent ${deel}?` },
       { tekst: `Naar welke bepalingen verwijst ${deel}?` },
     ] : [
-      { tekst: `Annoteer ${deel}`, doel },
+      { tekst: `Annoteer ${deel}`, doel, commando: { naam: "annoteer", hulp: `Annoteer ${deel}` } },
       { tekst: `Wat betekent ${deel}?` },
       { tekst: `Naar welke bepalingen verwijst ${deel}?` },
     ];
@@ -180,32 +183,32 @@ function objectModule(suggesties: (o: Object_) => Suggestie[] = () => []): Modul
  *  werkgebied ook zonder chip boven het invoerveld (`werkgebiedSuggesties`). */
 const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
   werkgebied: [
-    { tekst: "Vul het dossier aan", actie: "dossier_aanvullen" },
+    { tekst: "Vul het dossier aan", actie: "dossier_aanvullen", commando: { naam: "dossier", hulp: "Vul de lege velden van het dossier aan" } },
     // Een vraagkaart van het aanvullen (spoor I7): graph-qa leest het veld `thema` uit de tekst.
-    { tekst: "Kies een thema", actie: "dossier_aanvullen" },
-    { tekst: "Stel deelvragen voor", actie: "deelvragen_voorstellen" },
+    { tekst: "Kies een thema", actie: "dossier_aanvullen", commando: { naam: "thema", hulp: "Kies het thema van het werkgebied" } },
+    { tekst: "Stel deelvragen voor", actie: "deelvragen_voorstellen", commando: { naam: "deelvragen", hulp: "Lex stelt deelvragen voor bij de analysevraag" } },
     // De bronselectie per deelvraag (spoor J): beginnen, of verder waar je was – ook in een ander gesprek. Er is
     // geen losse zoekknop meer: de bronselectie zoekt zelf.
-    { tekst: "Bepaal de bronnen per deelvraag", actie: "bronselectie" },
+    { tekst: "Bepaal de bronnen per deelvraag", actie: "bronselectie", commando: { naam: "bronnen", hulp: "De bronselectie per deelvraag: beginnen of verder waar je was" } },
     // Zelf een bepaling toevoegen: Lex zoekt haar op en toont de tekst (geen zoekvenster op het artefact).
-    { tekst: "Noem een bepaling", actie: "bepaling_toevoegen" },
-    { tekst: "Annoteer de bepalingen van de deelvragen", actie: "deelvragen_annoteren" },
-    { tekst: "Annoteer wat nog niet geannoteerd is", actie: "werkgebied_annoteren" },
-    { tekst: "Stel begrippen voor", actie: "begrippen_voorstellen" },
-    { tekst: "Denk mee over de begrippen", actie: "begrippen_meedenken" },
+    { tekst: "Noem een bepaling", actie: "bepaling_toevoegen", commando: { naam: "bepaling", hulp: "Noem zelf een bepaling; Lex zet haar als voorstel in het paneel" } },
+    { tekst: "Annoteer de bepalingen van de deelvragen", actie: "deelvragen_annoteren", commando: { naam: "annoteer-deelvragen", hulp: "Annoteer alleen de bronnen onder de deelvragen (eerst een bevestiging)" } },
+    { tekst: "Annoteer wat nog niet geannoteerd is", actie: "werkgebied_annoteren", commando: { naam: "annoteer", hulp: "Annoteer de nieuwe bepalingen van het werkgebied (eerst een bevestiging)" } },
+    { tekst: "Stel begrippen voor", actie: "begrippen_voorstellen", commando: { naam: "begrippen", hulp: "Lex stelt begrippen voor uit de annotaties" } },
+    { tekst: "Denk mee over de begrippen", actie: "begrippen_meedenken", commando: { naam: "meedenken", hulp: "Lex denkt mee over twijfelparen en definities (eerst een bevestiging)" } },
     // Generieke begrippen (ADR-006): een vraag, geen actie; Lex zoekt ze zelf en koppelen doe je op het artefact.
     { tekst: "Welke generieke begrippen passen bij dit werkgebied?" },
     // De dekking als controle achteraf: hebben de deelvragen een bron en een geaccordeerd begrip?
-    { tekst: "Hoe staat de dekking ervoor?", actie: "dekking" },
+    { tekst: "Hoe staat de dekking ervoor?", actie: "dekking", commando: { naam: "dekking", hulp: "Hebben de deelvragen een bron en een geaccordeerd begrip?" } },
   ],
   deelvraag: [
     // Eerst de vraag zelf, dan haar bronnen.
-    { tekst: "Formuleer scherper", actie: "deelvraag_herformuleren" },
-    { tekst: "Splits deze deelvraag", actie: "deelvraag_splitsen" },
-    { tekst: "Bepaal de bronnen bij deze deelvraag", actie: "bronselectie" },
-    { tekst: "Noem een bepaling", actie: "bepaling_toevoegen" },
-    { tekst: "Annoteer de bepalingen hierbij", actie: "deelvragen_annoteren" },
-    { tekst: "Is deze deelvraag gedekt?", actie: "dekking" },
+    { tekst: "Formuleer scherper", actie: "deelvraag_herformuleren", commando: { naam: "scherper", hulp: "Lex stelt een scherpere formulering voor" } },
+    { tekst: "Splits deze deelvraag", actie: "deelvraag_splitsen", commando: { naam: "splits", hulp: "Lex stelt voor de deelvraag te splitsen" } },
+    { tekst: "Bepaal de bronnen bij deze deelvraag", actie: "bronselectie", commando: { naam: "bronnen", hulp: "De bronselectie bij deze deelvraag" } },
+    { tekst: "Noem een bepaling", actie: "bepaling_toevoegen", commando: { naam: "bepaling", hulp: "Noem zelf een bepaling; Lex zet haar als voorstel in het paneel" } },
+    { tekst: "Annoteer de bepalingen hierbij", actie: "deelvragen_annoteren", commando: { naam: "annoteer", hulp: "Annoteer de bronnen onder deze deelvraag (eerst een bevestiging)" } },
+    { tekst: "Is deze deelvraag gedekt?", actie: "dekking", commando: { naam: "dekking", hulp: "Heeft deze deelvraag een bron en een geaccordeerd begrip?" } },
   ],
   bron: [
     { tekst: "Waarom hoort deze bepaling bij het werkgebied?" },
@@ -218,12 +221,12 @@ const SUGGESTIES: Record<ObjectSoort, Suggestie[]> = {
     { tekst: "Bij welke deelvraag hoort deze bepaling?" },
   ],
   begrip: [
-    { tekst: "Werk het begrip volledig uit", actie: "begrip_uitwerken" },
-    { tekst: "Zoek de brondefinitie", actie: "brondefinitie" },
-    { tekst: "Schrijf de uitleg in B1", actie: "uitleg" },
-    { tekst: "Geef voorbeelden", actie: "voorbeelden" },
-    { tekst: "Stel relaties voor", actie: "relaties" },
-    { tekst: "Wat is het betekenisverschil met ", invullen: true },
+    { tekst: "Werk het begrip volledig uit", actie: "begrip_uitwerken", commando: { naam: "uitwerken", hulp: "Brondefinitie, scherpere definitie en voorbeelden, elk als voorstel" } },
+    { tekst: "Zoek de brondefinitie", actie: "brondefinitie", commando: { naam: "brondefinitie", hulp: "Zoek de definitie in de wet, zonder model" } },
+    { tekst: "Schrijf de uitleg in B1", actie: "uitleg", commando: { naam: "uitleg", hulp: "Een uitleg in eenvoudige taal, als voorstel" } },
+    { tekst: "Geef voorbeelden", actie: "voorbeelden", commando: { naam: "voorbeelden", hulp: "Voorbeelden die er wel en niet onder vallen" } },
+    { tekst: "Stel relaties voor", actie: "relaties", commando: { naam: "relaties", hulp: "Relaties met andere begrippen, als voorstel" } },
+    { tekst: "Wat is het betekenisverschil met ", invullen: true, commando: { naam: "verschil", hulp: "Zet de vraag klaar; jij noemt het andere begrip" } },
   ],
 };
 
