@@ -46,3 +46,4 @@ function browserOpslag(): Storage | undefined {
     return undefined;
   }
 }
+// proef poort: alleen frontend (tijdelijk)
