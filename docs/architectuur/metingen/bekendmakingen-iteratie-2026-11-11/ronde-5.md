@@ -106,3 +106,15 @@ Over de id-vragen: `gevuld` 4, `geweigerd` 2 (`extern.vul`, bij I03 en I05), `ge
 
 Eén run per vraag. De tekst is gelezen bij B03–B09, B12, B15, B16, B18, B21–B27, B30 en I01–I06. Bij de andere vragen
 zijn alleen de route, de tokens, de bronnen en de grounding nagelopen.
+
+## Fixes voor ronde 6 (deze PR)
+
+- **Bevinding 1** (`bron_lijst._bij_regeling`): noemt de vraag geen regeling bij naam, dan is het het patroon "stukken bij
+  een regeling" niet (`None`), en leest de rest van `lees` de vraag. Een naam die de graaf niet kent, blijft over en gaat
+  naar het model. Alleen bij meer dan één regeling, of zonder namenlijst, is het "niet eenduidig". De tests staan in
+  `tests/test_bron_lijst.py`: "horen bij Kamerdossier" leest het dossierfilter, en een onbekende naam gaat naar het model,
+  bij drie connectors.
+- **Bevinding 2** (`sjablonen/extern._bepaling_in_woorden`): als de tool geen `bepaling` gaf, maakt de code die zelf. Met
+  een artikel wordt dat "artikel 36 van de Invorderingswet 1990". Zonder artikel is het de regeling als geheel: met de naam
+  als het proces die kent, anders het id. Er blijft geen lege plek over. De test staat in `tests/test_extern_sjabloon.py`
+  en loopt voor elke connector met een veld `wetsverwijzing`.
