@@ -44,6 +44,12 @@ from itertools import combinations
 
 from .hoeveelheden import _DATUM, _HOEVEELHEID, _ISO_DATUM, buiten as hoeveelheden_buiten
 
+#: Deze controle in de catalogus (ADR-014 §7, concept hook): deterministisch, op een vast moment, niet door het model
+#: uit te zetten.
+CONTROLE = {"naam": "beweringen", "label": "Feiten zonder bron", "doel": ("Zoekt in de toelichting datums, bedragen, nummers, tellingen en instanties die niet in het opgehaalde staan; eerst een correctieronde, daarna een signaal."),
+            "moment": "na het antwoord, met de brongetrouwheid (verify_node)", "tests": ('tools/graph-qa/tests/test_beweringen.py',)}
+
+
 #: Wat er vóór de getallen uit de tekst gaat: links, ids en vindplaatsen hebben een eigen toets.
 _WEG = (
     re.compile(r"\]\([^)\s]*\)"),                                      # het doel van een markdown-link

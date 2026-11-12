@@ -21,7 +21,9 @@ from agent import specialists
 from agent.agents.register import AGENTS
 from agent.begrippen_pipeline import keten as begrippenketen
 from agent.jas_pipeline import keten as annotatieketen
-from agent.models import ACTIE_TAAK, Actie
+from agent.llm_stap import Rol
+from agent.models import ACTIE_TAAK, BRONSELECTIE_ACTIES, INTAKE_ACTIES, REGIE_ACTIES, Actie
+from agent.tools import _BY_NAME
 from agent.methodepakket import PAKKET
 from agent.sjablonen import SJABLONEN
 
@@ -41,6 +43,8 @@ def test_elk_register_in_de_catalogus_en_omgekeerd():
     assert _ids("rol") == set(PAKKET["rollen"])
     assert _ids("methode") == {"wetsanalyse"}
     assert _ids("agent") == set(AGENTS)
+    assert _ids("tool") == set(_BY_NAME)
+    assert _ids("controle") == {m.CONTROLE["naam"] for m in cat._controlemodules()}
 
 
 def test_elk_regelbestand_staat_in_de_catalogus():
@@ -217,3 +221,63 @@ def test_het_endpoint_geeft_de_lijst_zonder_inhoud_en_het_detail_met(monkeypatch
     assert d["inhoud"]["secties"] and d["inhoud"]["secties"][0]["tekst"]
     assert "specialist/duiding" in d["gebruikt_door"]
     assert client.get("/v1/catalogus/rol/bestaat_niet").status_code == 404
+
+
+# --- samenwerking (ADR-014 §7) ----------------------------------------------------------------------------------------
+
+PER_ID = {o.id: o for o in ALLE}
+
+
+@pytest.mark.parametrize("o", ALLE, ids=IDS)
+def test_wie_wat_mag_gebruiken(o: bc.Onderdeel):
+    """`hangt_af_van` volgt de aanroepregels per concept: een skill gebruikt niets, een workflow nooit een agent, een
+    ingang precies één workflow of agent. Een tool gebruikt alleen een tool als hij een connector is (een bundel)."""
+    for d in o.hangt_af_van:
+        doel = PER_ID[d]
+        assert doel.concept in bc.MAG_GEBRUIKEN[o.concept], f"{o.id} ({o.concept}) mag {d} ({doel.concept}) niet gebruiken"
+        if o.concept == "tool":
+            assert o.soort == "connector" and doel.soort == "tool", f"{o.id}: alleen een connector bundelt tools"
+
+
+@pytest.mark.parametrize("o", ALLE, ids=IDS)
+def test_het_model_past_bij_het_concept(o: bc.Onderdeel):
+    assert o.model in bc.MAG_MODEL[o.concept], f"{o.id}: model {o.model} past niet bij {o.concept}"
+
+
+def test_een_strict_stap_noemt_de_rol_die_hem_draagt():
+    rollen = {r.naam for r in Rol}
+    for o in ALLE:
+        for s in o.stappen:
+            if s.model == "strict":
+                assert s.rol in rollen, f"{o.id}, stap {s.naam}: strict zonder bestaande llm_stap.Rol"
+            else:
+                assert s.rol is None
+
+
+def test_een_tool_hoort_bij_hoogstens_een_connector():
+    for t in _ids("tool"):
+        bundels = [o.id for o in ALLE if o.soort == "connector" and bc.oid("tool", t) in o.hangt_af_van]
+        assert len(bundels) <= 1, f"{t} zit in {bundels}"
+
+
+def test_elke_actie_is_de_ingang_van_precies_een_onderdeel():
+    """Een klik op een suggestie, en dus een commando, kiest zonder model precies één onderdeel."""
+    for actie in (*ACTIE_TAAK, *BRONSELECTIE_ACTIES, *INTAKE_ACTIES, *REGIE_ACTIES):
+        doelen = [o.id for o in ALLE if o.concept in ("agent", "workflow") and actie in o.ingang]
+        assert len(doelen) == 1, f"actie {actie} wijst naar {doelen}"
+
+
+def test_elke_controle_staat_naast_zijn_code():
+    for m in cat._controlemodules():
+        assert set(m.CONTROLE) == {"naam", "label", "doel", "moment", "tests"}, m.__name__
+
+
+def test_een_deel_hoort_bij_een_geheel_van_hetzelfde_concept():
+    for o in ALLE:
+        if o.deel_van:
+            assert PER_ID[o.deel_van].concept == o.concept, o.id
+
+
+def test_een_agent_zonder_modelstap_is_een_workflow():
+    assert PER_ID["agent/annotatie"].concept == "workflow"
+    assert PER_ID["agent/begrippen"].concept == "agent"

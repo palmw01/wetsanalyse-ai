@@ -2,10 +2,13 @@
 // hem af uit zijn registers (`GET /v1/catalogus`). Alleen lezen: een onderdeel toevoegen of wijzigen gaat via de repo
 // (en later via een voorstel dat een concept-PR wordt). `catalogus.test.ts` toetst de soorten tegen de Python-bron.
 
-export const SOORTEN = ["methode", "rol", "specialist", "agent", "workflow", "route", "connector", "sjabloon",
-  "regelset"] as const;
+export const SOORTEN = ["methode", "rol", "regelset", "tool", "connector", "sjabloon", "workflow", "specialist", "agent",
+  "route", "controle"] as const;
 export type Soort = (typeof SOORTEN)[number];
 export type Model = "geen" | "strict" | "agent";
+/** Het concept uit Claude Code (ADR-014 §7): skill, tool, workflow, agent, ingang of hook. */
+export const CONCEPTEN = ["skill", "tool", "workflow", "agent", "ingang", "hook"] as const;
+export type Concept = (typeof CONCEPTEN)[number];
 
 export interface Herkomst {
   bron: string;
@@ -18,6 +21,7 @@ export interface Stap {
   naam: string;
   model: Model;
   onderdeel: string | null;
+  rol?: string | null;
 }
 
 export interface Onderdeel {
@@ -40,6 +44,8 @@ export interface Onderdeel {
   bewerkbaar: string[];
   laag: string | null;
   stappen: Stap[];
+  concept: Concept;
+  deel_van: string | null;
   /** Biedt deze omgeving het aan (de straatvlag); zonder vlag altijd waar. */
   aan: boolean;
 }
@@ -65,6 +71,8 @@ export const SOORT_LABEL: Record<Soort, { een: string; meer: string; uitleg: str
   connector: { een: "Bron", meer: "Bronnen naast de wet", uitleg: "Een bron buiten de kennisgraaf." },
   sjabloon: { een: "Antwoordsjabloon", meer: "Antwoordsjablonen", uitleg: "De vaste vorm van een antwoord." },
   regelset: { een: "Regelset", meer: "Regelsets", uitleg: "Vaste regels zonder model, met hun eigen tests." },
+  tool: { een: "Handeling", meer: "Handelingen", uitleg: "Eén getypte handeling op de kennisgraaf of een bron." },
+  controle: { een: "Controle", meer: "Controles", uitleg: "Een vaste controle op een vast moment, niet door het model uit te zetten." },
 };
 
 /** Of er een model aan te pas komt, in gewone woorden. Kleur draagt hier geen oordeel: lintblauw zegt wat het is. */

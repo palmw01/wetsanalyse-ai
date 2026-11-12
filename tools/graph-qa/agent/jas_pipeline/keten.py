@@ -199,8 +199,8 @@ FASEN: tuple[Stap, ...] = (
     Stap("Taalanalyse", "geen"),
     Stap("Detectie", "geen"),   # de detectorregels: regelset/jas.detector.*
     Stap("Besluit", "geen"),
-    Stap("Classificatie", "strict"),
-    Stap("Review", "strict"),
+    Stap("Classificatie", "strict", rol="jas_classifier"),
+    Stap("Review", "strict", rol="jas_reviewer"),
     Stap("Resultaat", "geen", "regelset/jas.verklaringen"),
     Stap("Relaties", "geen"),
 )

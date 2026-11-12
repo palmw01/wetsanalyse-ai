@@ -22,7 +22,7 @@ const o = (id, extra = {}) => ({
   id, soort: id.split("/")[0], label: id.split("/")[1], doel: `Doel van ${id}.`, model: "geen", versie: "abc123def456",
   herkomst, bestand: ["tools/graph-qa/agent/x.py"], ingang: [], context: "", tools: [], uitvoer: "", twijfel: "",
   tests: ["tools/graph-qa/tests/test_x.py"], hangt_af_van: [], straat: null, bewerkbaar: [], laag: null, stappen: [],
-  aan: true, ...extra,
+  aan: true, concept: "skill", deel_van: null, ...extra,
 });
 const INLINE = [
   o("rol/duiding", { model: "agent" }),
@@ -34,8 +34,8 @@ const INLINE = [
   o("regelset/jas.detector.tijd", { label: "jas.detector.tijd", doel: "Tijdsaanduiding (H2:107-109)." }),
 ];
 const fixture = process.env.WERKWIJZE_FIXTURE ? JSON.parse(readFileSync(process.env.WERKWIJZE_FIXTURE, "utf8")) : null;
-const LIJST = fixture?.lijst ?? { soorten: ["methode", "rol", "specialist", "agent", "workflow", "route", "connector",
-  "sjabloon", "regelset"], onderdelen: INLINE };
+const LIJST = fixture?.lijst ?? { soorten: ["methode", "rol", "regelset", "tool", "connector", "sjabloon", "workflow",
+  "specialist", "agent", "route", "controle"], onderdelen: INLINE };
 const detail = (id) => fixture?.detail?.[id] ?? { ...INLINE.find((x) => x.id === id),
   inhoud: id.startsWith("regelset/") ? { regels: [{ id: "jas.tijd.datum", code: "TEMPORAL_DATE", klassen: ["Tijdsaanduiding"],
     bron: "H2:109", versie: 2, voorbeelden: { positief: ["Deze wet treedt in werking op 1 september 2009."], negatief: ["Zie Stb. 2009, 1."] } }] } : {},
@@ -83,7 +83,7 @@ try {
       assert.equal(await page.getByRole("checkbox", { name: "Door mij bewerkt" }).count(), 0);
       // Een groep per soort met onderdelen, in de vaste volgorde; een soort zonder onderdelen staat er niet.
       assert.deepEqual(await page.locator("[data-soort]").evaluateAll((els) => els.map((e) => e.dataset.soort)),
-        ["rol", "workflow", "connector", "regelset"]);
+        ["rol", "regelset", "connector", "workflow"]);
       assert.equal(await page.getByRole("button", { name: /^Routes/ }).count(), 0);
       // Het modellabel, en *hier uit* bij een connector die deze omgeving niet aanbiedt.
       const keten = page.locator('[data-onderdeel="workflow/annotatieketen"]');

@@ -59,6 +59,15 @@ Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/gr
   `eval/golden_gesprek.jsonl` (ADR-005).
 - Het routecontract in `tests/poort/routeboek.py`.
 
+**Tool** (een graaftool, leestool of connectortool)
+- De declaratie in `agent/tools/` met een beschrijving die zegt wat er terugkomt, het resultaatcontract
+  (`tests/test_resultaatcontract.py`) en een plek in een specialist (`tests/test_toolverdeling.py`). De catalogus leest
+  `_BY_NAME`; geen eigen lijst.
+
+**Controle** (een hook: deterministisch, op een vast moment)
+- Een `CONTROLE`-beschrijving naast de code (naam, label, doel, moment, tests) en de module in
+  `agent/catalogus._controlemodules`. Een controle gebruikt hoogstens een skill.
+
 **Connector**
 - Zie ADR-013: de beschrijving, de tools en de straatvlag. De catalogus leest de beschrijving.
 

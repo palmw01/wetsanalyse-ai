@@ -13,7 +13,7 @@ function o(id: string, extra: Partial<Onderdeel> = {}): Onderdeel {
   const soort = id.split("/")[0] as Onderdeel["soort"];
   return { id, soort, label: id, doel: `doel van ${id}`, model: "geen", versie: "x", bestand: [], ingang: [],
     context: "", tools: [], uitvoer: "", twijfel: "", tests: [], hangt_af_van: [], straat: null, bewerkbaar: [],
-    laag: null, stappen: [], aan: true, herkomst: { bron: "b", licentie: "repo", letterlijk: false, verwijzing: [] },
+    laag: null, stappen: [], aan: true, concept: "skill", deel_van: null, herkomst: { bron: "b", licentie: "repo", letterlijk: false, verwijzing: [] },
     ...extra };
 }
 
@@ -53,7 +53,7 @@ describe("filteren en groeperen", () => {
   });
 
   it("per soort in de volgorde van SOORTEN, zonder lege soorten", () => {
-    expect(perSoort(lijst).map((g) => g.soort)).toEqual(["rol", "workflow", "regelset"]);
+    expect(perSoort(lijst).map((g) => g.soort)).toEqual(["rol", "regelset", "workflow"]);
   });
 
   it("het pad van een onderdeel", () => {

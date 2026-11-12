@@ -11,6 +11,12 @@ from bronmodel.vindplaats import vindplaats
 
 from ..tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
 
+#: Deze controle in de catalogus (ADR-014 §7, concept hook): deterministisch, op een vast moment, niet door het model
+#: uit te zetten.
+CONTROLE = {"naam": "sjabloon_vullen", "label": "Sjabloon vullen uit de bron", "doel": ("Vult de blokken van een antwoordsjabloon uit de rijen die de graaf of de bron in deze beurt teruggaf; het model wijst aan, de code neemt de tekst over, en wat niet te vullen is gaat als fout terug."),
+            "moment": "na de sjabloonaanroep van het model (sjabloon_node; PostToolUse-hook)", "tests": ('tools/graph-qa/tests/test_sjablonen.py',)}
+
+
 Trace = list[tuple[str, str]]
 
 

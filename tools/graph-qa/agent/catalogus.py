@@ -76,16 +76,15 @@ def uit_rollen() -> list[Onderdeel]:
     for rol, ids in sorted(PAKKET["rollen"].items()):
         secties = {k: PAKKET["secties"][k] for k in ids}
         codes = tuple(sorted({c for s in secties.values() for c in s["bronnen"]}))
-        agentisch = any(specialists.methoderol(n) == rol for n in specialists.SPECIALISTS)
         uit.append(Onderdeel(
             id=oid("rol", rol), soort="rol", label=f"Methoderol {rol}",
             doel=f"De methodetekst die {', '.join(_aanroepers(rol)) or 'geen aanroeper'} krijgt: "
                  f"de secties {', '.join(ids)}.",
-            model="agent" if agentisch else "strict", herkomst=_methode_herkomst(codes),
+            model="geen", herkomst=_methode_herkomst(codes),
             bestand=tuple(sorted({f"{_SKILL}/{s['bestand']}" for s in secties.values()} | {f"{_SKILL}/agentrollen.json"})),
             versie=versie(*(s["sha256"] for s in secties.values())), ingang=_aanroepers(rol),
             context="vóór de systeemprompt, in het stabiele deel (cache-prefix)", uitvoer="systeemprompt",
-            tests=("tools/graph-qa/tests/test_methoderollen.py",), hangt_af_van=(METHODE,), bewerkbaar=tuple(ids),
+            tests=("tools/graph-qa/tests/test_methoderollen.py",), deel_van=METHODE, bewerkbaar=tuple(ids),
             inhoud={"secties": [{"id": k, "bronnen": s["bronnen"], "sha256": s["sha256"], "tekst": s["tekst"]}
                                 for k, s in secties.items()]},
         ))
@@ -106,7 +105,8 @@ def uit_specialisten() -> list[Onderdeel]:
             twijfel="leemte of doorvragen; een citaat dat niet letterlijk in de opgehaalde tekst staat, valt weg (grounding)",
             tests=("tools/graph-qa/tests/test_specialists.py",),
             hangt_af_van=(oid("rol", specialists.methoderol(naam)), *(oid("sjabloon", s) for s in sorted(spec.sjablonen)),
-                          *(oid("connector", c.naam) for c in CONNECTORS.values() if naam in c.specialisten)),
+                          *(oid("connector", c.naam) for c in CONNECTORS.values() if naam in c.specialisten),
+                          *(oid("tool", t) for t in sorted(_tools_van(spec))), *ANTWOORD_CONTROLES),
             inhoud={"systeemtekst": spec.system},
         ))
     return uit
@@ -148,7 +148,7 @@ def _connector(c: ConnectorBeschrijving) -> Onderdeel:
         versie=versie(c.naam, c.dekt, sorted(c.tools), c.grenzen), ingang=tuple(sorted(c.tools)),
         tools=tuple(sorted(c.tools)), uitvoer=f"het blok extern ({c.brontype})", twijfel=c.grenzen,
         tests=("tools/graph-qa/tests/test_connectorbeschrijving.py",),
-        hangt_af_van=tuple(oid("specialist", s) for s in sorted(c.specialisten)), straat=c.env,
+        hangt_af_van=tuple(oid("tool", t) for t in sorted(c.tools)), straat=c.env,
         inhoud={"dekt": c.dekt, "beheer": c.beheer, "rol_in_antwoord": c.rol_in_antwoord, "levert": list(c.levert),
                 "niet_in_tekst": list(c.niet_in_tekst), "voorbeeldvragen": list(c.voorbeeldvragen)},
     )
@@ -156,6 +156,16 @@ def _connector(c: ConnectorBeschrijving) -> Onderdeel:
 
 def uit_connectors() -> list[Onderdeel]:
     return [_connector(c) for c in CONNECTORS.values()]
+
+
+#: De vaste keten die een agent gebruikt (een agent gebruikt workflows, nooit andersom; ADR-014 §7).
+AGENT_WORKFLOWS: dict[str, tuple[str, ...]] = {
+    "annotatie": ("workflow/annotatieketen",),
+    "begrippen": ("workflow/begrippenketen",),
+}
+#: De rol van `llm_stap` die een modelstap van de intake draagt.
+_INTAKE_ROL = {"naam": "intake", "aanleiding": "intake", "doel": "intake", "analysevraag": "intake",
+               "deelvragen": "deelvragen_voorstel"}
 
 
 # --- agents ----------------------------------------------------------------------------------------------------------
@@ -175,6 +185,7 @@ def uit_agents() -> list[Onderdeel]:
             uitvoer="een artefact, een bevestiging of een vraagkaart (`agents.Uitkomst`); altijd een voorstel",
             twijfel="geweigerd met een reden, of een vraagkaart; nooit een besluit",
             tests=("tools/graph-qa/tests/test_agents.py", "tools/graph-qa/tests/test_agent_contracten.py"),
+            hangt_af_van=AGENT_WORKFLOWS.get(naam, ()),
             inhoud={"taken": taken},
         ))
     return uit
@@ -306,7 +317,7 @@ def uit_workflows() -> list[Onderdeel]:
             "taakagent", annotatieketen.FASEN,
             bestand=("tools/graph-qa/agent/jas_pipeline/keten.py", "docs/architectuur/annotatieketen.md"),
             tests=("tools/graph-qa/tests/test_detectoren.py", "tools/graph-qa/tests/test_provenance_element.py"),
-            ingang=("annoteer",), hangt_af_van=(*detectoren, "regelset/jas.profielen", "agent/annotatie"),
+            ingang=("annoteer",), hangt_af_van=(*detectoren, "regelset/jas.profielen"),
             uitvoer="markeringen met ankers, trace en aandachtniveau; het beslisregister",
             twijfel="geel met alternatieven voor de jurist; nooit automatisch rood", ),
         _wf("begrippenketen", "Begrippenketen (ADR-004)",
@@ -315,8 +326,7 @@ def uit_workflows() -> list[Onderdeel]:
             "taakagent", begrippenketen.FASEN,
             bestand=("tools/graph-qa/agent/begrippen_pipeline/keten.py",),
             tests=("tools/graph-qa/tests/test_begrippen_patronen.py",),
-            ingang=("begrippen_voorstellen",),
-            hangt_af_van=("regelset/begrippen.berekening", "regelset/begrippen.verklaringen", "agent/begrippen"),
+            hangt_af_van=("regelset/begrippen.berekening", "regelset/begrippen.verklaringen"),
             uitvoer="betekenisgroepen, relaties en vragen (het begrippenartefact)",
             twijfel="een vraag aan de analist, of geel; sterk tegenbewijs wint altijd"),
         _wf("bronnen_vinden", "Bronnen vinden",
@@ -326,7 +336,7 @@ def uit_workflows() -> list[Onderdeel]:
             bestand=("tools/graph-qa/agent/bronnen_vinden.py", "tools/graph-qa/agent/zoekvragen.py",
                      ".claude/skills/wetsanalyse/references/zoekvragen-bronselectie.md"),
             tests=("tools/graph-qa/tests/test_bronnen_vinden.py", "tools/graph-qa/tests/test_zoekvragen.py"),
-            ingang=("bronnen_zoeken",), uitvoer="kandidaten per methode met hun bewijs",
+            uitvoer="kandidaten per methode met hun bewijs",
             twijfel="een methode die faalt wordt `volledig: false`; falen ze allemaal, dan een fout"),
         _wf("bronselectie", "Bronselectie per deelvraag (spoor J)",
             "Werkt de deelvragen één voor één af met vraagkaarten: kernbepalingen, wat eraan hangt, afronden; "
@@ -339,7 +349,7 @@ def uit_workflows() -> list[Onderdeel]:
         _wf("werkgebied_intake", "Werkgebied samenstellen (activiteit 1)",
             "Stelt met vraagkaarten in de volgorde van de methode een werkgebied samen of vult zijn dossier aan; "
             "het model doet alleen voorstellen, de volgorde is een stapmachine.",
-            "workflow", tuple(Stap(s, "strict" if s in werkgebied_intake.MODEL_STAPPEN else "geen")
+            "workflow", tuple(Stap(s, "strict", rol=_INTAKE_ROL[s]) if s in werkgebied_intake.MODEL_STAPPEN else Stap(s, "geen")
                               for s in werkgebied_intake.KAARTSTAPPEN),
             bestand=("tools/graph-qa/agent/werkgebied_intake.py",),
             tests=("tools/graph-qa/tests/test_werkgebied_intake.py",), ingang=INTAKE_ACTIES,
@@ -356,10 +366,73 @@ def uit_workflows() -> list[Onderdeel]:
     ]
 
 
+# --- tools ----------------------------------------------------------------------------------------------------------
+
+def _tools_van(spec: specialists.Specialist) -> frozenset[str]:
+    return frozenset(alle_tools()) if spec.tools is None else spec.tools
+
+
+def _bronbestand(obj: Any) -> str:
+    """Het repo-pad van de module of functie (een package wijst naar zijn `__init__.py`)."""
+    import inspect
+    pad = Path(inspect.getfile(obj)).resolve() if obj is not None else _AGENT / "tools" / "__init__.py"
+    return "tools/graph-qa/" + pad.relative_to(_AGENT.parent).as_posix()
+
+
+def alle_tools() -> dict[str, dict[str, Any]]:
+    """Elke tool die een agent kan krijgen of `dispatch` kan uitvoeren, op naam."""
+    from .tools import _BY_NAME
+    return dict(_BY_NAME)
+
+
+def uit_tools() -> list[Onderdeel]:
+    uit: list[Onderdeel] = []
+    for naam, t in sorted(alle_tools().items()):
+        bundel = next((c.naam for c in CONNECTORS.values() if naam in c.tools), None)
+        uit.append(Onderdeel(
+            id=oid("tool", naam), soort="tool", label=naam, doel=_eerste_zin(t.get("description", "")), model="geen",
+            herkomst=EIGEN, bestand=(_bronbestand(t.get("handler")),),
+            versie=versie(t.get("description", ""), t.get("input_schema", {})), ingang=(naam,), tools=(naam,),
+            uitvoer="het resultaatcontract (`agent/resultaat.py`)",
+            twijfel="een fout met een reden; nooit een stil afgekapt resultaat",
+            tests=("tools/graph-qa/tests/test_resultaatcontract.py", "tools/graph-qa/tests/test_toolverdeling.py"),
+            straat=CONNECTORS[bundel].env if bundel else None,
+            inhoud={"beschrijving": t.get("description", ""),
+                    "argumenten": sorted((t.get("input_schema") or {}).get("properties", {}))},
+        ))
+    return uit
+
+
+# --- controles (hooks) -----------------------------------------------------------------------------------------------
+
+def _controlemodules() -> tuple[Any, ...]:
+    from . import beweringen, grounding, id_herkomst
+    from .sjablonen import vullen
+    return (grounding, id_herkomst, beweringen, vullen)
+
+
+#: De controles rond de antwoordlus van elke specialist (verify_node, tools_node, sjabloon_node).
+ANTWOORD_CONTROLES: tuple[str, ...] = ("controle/brongetrouwheid", "controle/id_herkomst", "controle/beweringen",
+                                       "controle/sjabloon_vullen")
+
+
+def uit_controles() -> list[Onderdeel]:
+    uit: list[Onderdeel] = []
+    for mod in _controlemodules():
+        c = mod.CONTROLE
+        uit.append(Onderdeel(
+            id=oid("controle", c["naam"]), soort="controle", label=c["label"], doel=c["doel"], model="geen",
+            herkomst=EIGEN, bestand=(_bronbestand(mod),),
+            versie=versie(c), ingang=(c["moment"],), tests=tuple(c["tests"]),
+            twijfel="een afwijking gaat terug naar het model of wordt zichtbaar voor de jurist; nooit stil",
+        ))
+    return uit
+
+
 # --- de catalogus ----------------------------------------------------------------------------------------------------
 
-ADAPTERS = (uit_methode, uit_rollen, uit_specialisten, uit_agents, uit_workflows, uit_sjablonen, uit_connectors,
-            uit_regelsets)
+ADAPTERS = (uit_methode, uit_rollen, uit_regelsets, uit_tools, uit_connectors, uit_sjablonen, uit_workflows,
+            uit_specialisten, uit_agents, uit_controles)
 
 
 @cache
