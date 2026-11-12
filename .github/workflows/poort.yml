@@ -59,6 +59,8 @@ jobs:
           set -euo pipefail
           basis=$(git merge-base "origin/${{ github.base_ref }}" HEAD)
           gewijzigd=$(git diff --name-only "$basis" HEAD)
+          # TIJDELIJK (proef, wordt teruggedraaid): alleen de laatste commit van de PR telt, alsof dat de hele PR is.
+          gewijzigd=$(git diff --name-only HEAD^2~1 HEAD^2)
           echo "Gewijzigd ten opzichte van ${{ github.base_ref }}:"
           echo "$gewijzigd" | sed 's/^/  /'
 
