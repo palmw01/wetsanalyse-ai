@@ -112,8 +112,8 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   `uit` is; met `uit` is de graaf die van `tests/test_graafopbouw.py`. Zolang een vraagkaart van het samenstellen open
   staat, leest de supervisor de beurt nog (`_centraal`). Bouw voor een nieuwe overdracht geen tweede implementatie van
   de route. `tests/test_centrale_agent.py` legt de drie standen en de afwijzing vast.
-  **De kernset** (A2-2b): `centraal` heeft tien graaftools, gekozen op gebruik; elk schema staat in het voorvoegsel van
-  elke ronde, dus een tool erbij kost in elke beurt. De andere dertien staan in `centraal_breed`, dezelfde agent met
+  **De kernset** (A2-2b): `centraal` heeft elf graaftools, gekozen op gebruik; elk schema staat in het voorvoegsel van
+  elke ronde, dus een tool erbij kost in elke beurt. De andere twaalf staan in `centraal_breed`, dezelfde agent met
   dezelfde instructie plus de aanwijzingen voor die tools. De overdracht `meer_tools` zet `state["specialist"]` op het
   brede profiel en stuurt de beurt terug naar de agentnode: dezelfde beurt, een ander voorvoegsel. Een tool buiten het
   profiel voert `tools_node` voor de centrale agent niet uit (`CentraleAgent.mag`, resultaat `tool_buiten_profiel`); een

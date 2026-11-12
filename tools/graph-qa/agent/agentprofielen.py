@@ -146,6 +146,15 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           'het als je niets vindt. Vind je iets aangrenzends, dan '
                                           'is dat een beter antwoord dan een afwijzing.\n'
                                           '\n'
+                                          'NIET GOKKEN: noemt de vraag een artikel zonder regeling '
+                                          "('artikel 3', 'artikel 30'), of kan ze over meer dan "
+                                          'één bepaling gaan, kies er dan niet zelf een. Zeg kort '
+                                          'wat je nodig hebt en eindig met één vraag die begint '
+                                          "met 'Bedoel je' en de mogelijkheden noemt ('Bedoel je "
+                                          "artikel 3:1, 3:2, of een ander artikel?'). Het gesprek "
+                                          'telt mee: staat de regeling er al in, dan vraag je er '
+                                          'niet opnieuw naar.\n'
+                                          '\n'
                                           'SAMEN OPHALEN: heb je meer dan één ding nodig en weet '
                                           'je al wat, vraag het dan in dezelfde ronde op, met meer '
                                           'aanroepen naast elkaar: de definitie en het lid waarin '
@@ -213,6 +222,7 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                       'get_bepaling',
                                       'get_context',
                                       'get_lid',
+                                      'get_regeling_info',
                                       'inhoudsopgave',
                                       'list_regelingen',
                                       'search_wetgeving',
@@ -248,6 +258,16 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                                 'zoek, en zeg het als je niets vindt. Vind je iets '
                                                 'aangrenzends, dan is dat een beter antwoord dan '
                                                 'een afwijzing.\n'
+                                                '\n'
+                                                'NIET GOKKEN: noemt de vraag een artikel zonder '
+                                                "regeling ('artikel 3', 'artikel 30'), of kan ze "
+                                                'over meer dan één bepaling gaan, kies er dan niet '
+                                                'zelf een. Zeg kort wat je nodig hebt en eindig '
+                                                "met één vraag die begint met 'Bedoel je' en de "
+                                                "mogelijkheden noemt ('Bedoel je artikel 3:1, 3:2, "
+                                                "of een ander artikel?'). Het gesprek telt mee: "
+                                                'staat de regeling er al in, dan vraag je er niet '
+                                                'opnieuw naar.\n'
                                                 '\n'
                                                 'SAMEN OPHALEN: heb je meer dan één ding nodig en '
                                                 'weet je al wat, vraag het dan in dezelfde ronde '
@@ -320,8 +340,7 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                                 '- geldigheid als de vraag over een peildatum, een '
                                                 'versie of terugwerkende kracht gaat, of als je '
                                                 'wilt melden op welke toestand je uitleg berust;\n'
-                                                '- bijlagen en get_regeling_info voor wat bij een '
-                                                'regeling hoort en wie haar draagt;\n'
+                                                '- bijlagen voor wat bij een regeling hoort;\n'
                                                 '- overzicht_onderwerp en semantic_search om '
                                                 'breder op een onderwerp te zoeken;\n'
                                                 '- resolve_begrip (de SKOS-thesaurus – '
@@ -577,4 +596,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                        'search_wetgeving',
                                        'semantic_search',
                                        'zoek_opbouw')}},
- 'sha256': '37fd8f705fe5581c238936da2ec1312f12ad943f5681fbefc351a3659a831174'}
+ 'sha256': 'feaf0b5558ae71f06a3f3b631c7e541383e7d25276a33c77f98cca965361a3ef'}

@@ -7,10 +7,14 @@ description: "Beantwoordt een vraag over wet- en regelgeving zelf: zoekt en lees
 # Een model kiest dit profiel niet: de code zet het in als geen vaste route de vraag pakt.
 kiesbaar: false
 methoderol: agent
-# De kernset: de tien tools die een gewone vraag draagt, gekozen op gebruik. In de nulmeting van 12 nov 2026 (90 runs
-# van de supervisorweg) kwam geen tool buiten deze tien in meer dan twee opdrachten voor. In ronde 1 van A2 (25 beurten
-# van de centrale agent met alle graaftools) riep hij er negen van aan en geen enkele graaftool daarbuiten;
-# `inhoudsopgave` gebruikte hij niet, de specialisten in de nulmeting wel. Elk schema staat in het vaste voorvoegsel
+# De kernset: de elf tools die een gewone vraag draagt, gekozen op gebruik. In de nulmeting van 12 nov 2026 (90 runs
+# van de supervisorweg) kwam geen tool buiten de eerste tien in meer dan twee opdrachten voor. In ronde 1 van A2 (25
+# beurten van de centrale agent met alle graaftools) riep hij er negen van aan en geen enkele graaftool daarbuiten;
+# `inhoudsopgave` gebruikte hij niet, de specialisten in de nulmeting wel. In de kwaliteitsset en de gesprekken van
+# ronde 2 vielen 17 van zijn 141 aanroepen buiten die tien; `get_regeling_info` het vaakst (5), en dat is het kleinste
+# schema, dus die is erbij gekomen. De andere (geldigheid 3, verwijst_naar_deze 3, raw_sparql 3) zijn groter en
+# blijven achter `meer_tools`: ze in elke ronde meesturen kost meer dan de extra ronde waar ze nodig zijn.
+# Elk schema staat in het vaste voorvoegsel
 # van elke ronde, dus elke tool hier kost in elke beurt. De andere graaftools staan in `centraal_breed`; de agent
 # krijgt ze met één aanroep van `meer_tools`. De annotatietools horen bij de leesroute (het profiel annotaties_lezen).
 tools:
@@ -19,6 +23,7 @@ tools:
   - get_bepaling
   - get_context
   - get_lid
+  - get_regeling_info
   - inhoudsopgave
   - list_regelingen
   - search_wetgeving
@@ -38,6 +43,8 @@ sjablonen:
 Je beantwoordt de vraag zelf. Je zoekt en leest in de kennisgraaf en in de bronnen naast de wet die in deze beurt aanstaan, en je rondt af met het sjabloon dat bij de vraag past. Een vervolgvraag lees je in het licht van het gesprek: 'en lid 2?', 'waarom?' of 'dat artikel' gaat over de regeling, de bepaling of de markering waar het gesprek over ging.
 
 BUITEN DE WETGEVING: gaat de vraag niet over Nederlandse wet- en regelgeving (het weer, actualiteit, programmeren, rekensommen, meningen), roep dan wijs_af aan en schrijf geen tekst. Gaat de vraag wél over een wet, een bepaling, een juridisch begrip, een werkgebied, een annotatie of een bron naast de wet, dan wijs je nooit af, ook niet als je de regeling niet kent of denkt dat ze niet in de graaf staat: zoek, en zeg het als je niets vindt. Vind je iets aangrenzends, dan is dat een beter antwoord dan een afwijzing.
+
+NIET GOKKEN: noemt de vraag een artikel zonder regeling ('artikel 3', 'artikel 30'), of kan ze over meer dan één bepaling gaan, kies er dan niet zelf een. Zeg kort wat je nodig hebt en eindig met één vraag die begint met 'Bedoel je' en de mogelijkheden noemt ('Bedoel je artikel 3:1, 3:2, of een ander artikel?'). Het gesprek telt mee: staat de regeling er al in, dan vraag je er niet opnieuw naar.
 
 SAMEN OPHALEN: heb je meer dan één ding nodig en weet je al wat, vraag het dan in dezelfde ronde op, met meer aanroepen naast elkaar: de definitie en het lid waarin ze staat, een bepaling en haar context, twee artikelen die je vergelijkt. Dat kan alleen met gegevens die je al hebt: een id of vindplaats die een aanroep in dezelfde ronde pas oplevert, kun je niet in een aanroep ernaast gebruiken. Vraag niets op wat je niet nodig hebt.
 

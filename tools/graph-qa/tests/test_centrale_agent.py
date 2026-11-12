@@ -191,10 +191,9 @@ def _graaftools() -> set[str]:
 def test_de_kernset_en_de_rest_zijn_samen_de_graaftools():
     kern, breed = (set(profielen.PROFIELEN[n].tools) for n in (CENTRAAL, CENTRAAL_BREED))
     assert kern < breed == _graaftools(), "het brede profiel heeft elke graaftool; de kernset is een deel ervan"
-    assert len(kern) == 10
-    # De kernset op gebruik (de nulmeting van 12 nov 2026): wat een gewone vraag draagt.
+    # De kernset op gebruik (de nulmeting en de rondes van A2): wat een gewone vraag draagt.
     assert kern == {"search_wetgeving", "get_artikel", "get_lid", "list_regelingen", "get_bepaling", "zoek_opbouw",
-                    "inhoudsopgave", "get_context", "follow_verwijzingen", "zoek_definitie"}
+                    "inhoudsopgave", "get_context", "follow_verwijzingen", "zoek_definitie", "get_regeling_info"}
 
 
 def test_de_twee_profielen_verschillen_alleen_in_tools_en_de_aanwijzingen_daarvoor():
@@ -207,6 +206,19 @@ def test_de_twee_profielen_verschillen_alleen_in_tools_en_de_aanwijzingen_daarvo
         ontbreekt = {t for t in _graaftools() - set(p.tools) if t in p.instructie}
         assert not ontbreekt, f"{p.naam} noemt {sorted(ontbreekt)} maar heeft ze niet"
     assert "SAMEN OPHALEN" in kern.instructie and "in dezelfde ronde pas oplevert" in kern.instructie
+
+
+def test_een_keuzevraag_van_de_centrale_agent_heeft_de_vorm_die_de_doorvraagroute_herkent():
+    """De doorvraagroute in code (R3) herkent een open keuzevraag aan haar vorm ("Bedoel je …?"). De specialisten
+    schreven die vorm; de centrale agent niet altijd, en dan ging een vervolg ("En het tweede lid?") naar het model in
+    plaats van naar de vaste doorvraag (ronde 2 van A2, gesprek v-artikel-zonder-wet). De instructie legt de vorm vast."""
+    from agent.verduidelijken import doorvraag, open_keuzevraag
+
+    voorbeeld = "Bedoel je artikel 3:1, 3:2, of een ander artikel?"
+    for naam in (CENTRAAL, CENTRAAL_BREED):
+        assert "NIET GOKKEN" in profielen.PROFIELEN[naam].instructie and voorbeeld in profielen.PROFIELEN[naam].instructie
+    assert open_keuzevraag("De Awb heeft geen artikel 3. " + voorbeeld) == voorbeeld
+    assert doorvraag("En het tweede lid?", "De Awb heeft geen artikel 3. " + voorbeeld)
 
 
 def test_meer_tools_is_er_alleen_voor_de_kernset_en_wijs_af_voor_beide():

@@ -167,9 +167,10 @@ verzoek ─► routering in code ─┬─► vaste workflow                 (ge
 - **Een kernset tools, de rest na één overdracht** (ronde 1 van A2, 12 nov 2026). Eerst stond hier dat de centrale agent
   de graaf- en brontools van `algemeen` heeft. De meting liet zien wat dat kost: zijn voorvoegsel was 17,5k tokens, dat
   van `definitie` 9,8k, en elke ronde leest het opnieuw. De som per run daalde, maar de mediaan per opdracht steeg van
-  8,6k naar 11,2k gewogen warm. Het profiel `centraal` heeft daarom tien graaftools, gekozen op gebruik in de
-  nulmeting (`search_wetgeving`, `get_artikel`, `get_lid`, `list_regelingen`, `get_bepaling`, `zoek_opbouw`,
-  `inhoudsopgave`, `get_context`, `follow_verwijzingen`, `zoek_definitie`): 12,5k tokens. De andere dertien staan in
+  8,6k naar 11,2k gewogen warm. Het profiel `centraal` heeft daarom elf graaftools, gekozen op gebruik in de
+  nulmeting en de rondes van A2 (`search_wetgeving`, `get_artikel`, `get_lid`, `list_regelingen`, `get_bepaling`,
+  `zoek_opbouw`, `inhoudsopgave`, `get_context`, `follow_verwijzingen`, `zoek_definitie`, `get_regeling_info`): 12,8k
+  tokens. De andere twaalf staan in
   `centraal_breed`, waar hij met de overdracht `meer_tools` naar overstapt, binnen dezelfde beurt. Een tool buiten zijn
   profiel voert de code niet uit. De instructie vraagt hem daarnaast om wat hij samen nodig heeft in één ronde op te
   halen; een id uit dezelfde ronde kan niet in een aanroep ernaast. De annotatietools horen bij de leesroute.
