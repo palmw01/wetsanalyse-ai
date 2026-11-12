@@ -192,7 +192,10 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   166") blijft het een bewering. Een **aantal** ("12 publicaties", "vijf wetten") toetst tegen de aantallen in de trace
   (`tellingen_uit`: elk geheel getal in de JSON en de lengte van elke lijst), niet tegen elk getal: een klein getal staat
   vaak toevallig in een datum (Staatsblad ronde 5, B03/B26). Een telwoord van twee tot twintig telt mee, tenzij de gelezen
-  tekst het zelf gebruikt. Terugmeting zonder model: `docs/architectuur/metingen/rechtspraak-iteratie-2026-11-11/beweringen-terugmeting.md`.
+  tekst het zelf gebruikt. Een **vergaderjaar** ("1987/88", "1987-1988": één vorm) is een eigen bewering, en een dossier
+met een vergaderjaar in één zin moet samen in één toolresultaat staan (`bronnen`; Kamerstukken ronde 6, K16: "dossier
+20588, 1988-1989" was een juist nummer met een fout jaar). Een getal vóór een komma telt (alleen ",\d" is een decimaal),
+"20 588" is één getal, en een citeervorm van een connector ("Stb. 2009, 610") heeft de toets van een id. Terugmeting zonder model: `docs/architectuur/metingen/rechtspraak-iteratie-2026-11-11/beweringen-terugmeting.md`.
   `tests/test_beweringen.py`.
 - **`finalize_node`** – de enige plek in de antwoordketen die `token` uitstuurt (ook voor het overzicht; `tests/test_uitgifte_na_controle.py` bewaakt het). Een controle die volgt op publicatie
   houdt niets tegen, dus de jurist ziet een antwoord pas ná `verify` en afgekeurde tekst nooit, ook niet in
