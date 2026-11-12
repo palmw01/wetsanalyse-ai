@@ -49,10 +49,11 @@ _TEKST = frozenset({"reason", "token"})
 #: - `uitgesteld`: een sjabloon naast een graaftool, gevuld na die tool (`nodes/antwoord.tools_node`);
 #: - `tekst_ernaast`: tekens die het model naast een sjabloonaanroep schreef; dat zegt het sjabloon opnieuw, dus het
 #:   zijn verspilde tokens (de tekst gaat niet naar het denkproces, `narratie.ronde_in_denk`);
-#: - `gevuld` en `geweigerd`: per sjabloon, en per redencode (de functie die `Onvulbaar` gooide).
+#: - `gevuld` en `geweigerd`: per sjabloon, en per redencode (de functie die `Onvulbaar` gooide);
+#: - `geweigerd_reden`: dezelfde weigeringen, per reden uit de code (`Onvulbaar.code`, zonder inhoud).
 SJABLOON_TELLERS = ("gevraagd", "omgezet", "lijst_aangenomen", "tekst_zonder_lijst", "gemist", "als_tekst", "uitgesteld",
                     "tekst_ernaast")
-SJABLOON_PER = ("gevuld", "geweigerd")
+SJABLOON_PER = ("gevuld", "geweigerd", "geweigerd_reden")
 
 
 def tel_sjabloon(state: Mapping[str, Any], soort: str, sleutel: str = "", aantal: int = 1) -> dict[str, Any]:

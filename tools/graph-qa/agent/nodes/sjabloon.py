@@ -81,6 +81,15 @@ def redencode(fout: BaseException) -> str:
     return f"{module}.{tb.tb_frame.f_code.co_name}"
 
 
+def geweigerd(state: State, sjabloon: str, fout: Onvulbaar) -> dict[str, Any]:
+    """De telling na een weigering. `geweigerd` telt per sjabloon en functie, zoals altijd (zo blijft een meting
+    vergelijkbaar met een eerdere); `geweigerd_reden` telt daarnaast per reden uit de code (`Onvulbaar.code`), zonder
+    inhoud: daaraan is te zien waaróm een sjabloon een ronde kostte."""
+    sleutel = f"{sjabloon}:{redencode(fout)}"
+    eerste = tel_sjabloon(state, "geweigerd", sleutel)
+    return tel_sjabloon({**state, **eerste}, "geweigerd_reden", f"{sleutel}:{fout.code or 'overig'}")
+
+
 #: Na een tweede weigering in dezelfde beurt: geen derde poging, het antwoord in tekst.
 TEKST_NU = ("\n\nRoep het sjabloon niet opnieuw aan. Geef je antwoord nu in tekst, met wat je gelezen hebt; citeer "
             "letterlijk. Deze melding komt van de code, niet van de jurist: noem haar, het sjabloon of deze tool nooit in je "
@@ -101,7 +110,7 @@ def vul_aanroep(b: Bouw, state: State, tu: dict[str, Any]) -> tuple[dict[str, An
     except Onvulbaar as fout:
         logger.warning("sjabloon niet te vullen", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
                                                          "sjabloon": tu["name"], "reden": str(fout),
-                                                         "redencode": redencode(fout),
+                                                         "redencode": redencode(fout), "code": fout.code,
                                                          "opgehaald": len(fout.ophalen)})
         tekst, trace = _lees_wat_genoemd_is(b, state, fout)
         # Na een weigering schreef het model vaak vrije tekst (derde meting Rechtspraak, 10 nov 2026: 2 van 6 runs na een
@@ -114,7 +123,7 @@ def vul_aanroep(b: Bouw, state: State, tu: dict[str, Any]) -> tuple[dict[str, An
                 {**({"source_trace": trace} if fout.ophalen else {}),
                  # Een tekstantwoord na een weigering is het antwoord: geen herhaalverzoek meer (`nodes/antwoord`).
                  "sjabloon_gevraagd": True,
-                 **tel_sjabloon(state, "geweigerd", f"{tu['name']}:{redencode(fout)}")})
+                 **geweigerd(state, tu["name"], fout)})
     _met_regelingen(b, antwoord)
     tekst = antwoord_tekst(antwoord)
     return (resultaat(VASTGELEGD), [{"role": "assistant", "content": [{"type": "text", "text": tekst}]}],

@@ -317,8 +317,12 @@ def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace:
     if onbekend:
         zinnen.append(f"Je noemt {', '.join(onbekend)} zonder passage, en de tekst daarvan heb je niet opgehaald. Haal het op "
                       "met get_artikel als het ertoe doet en wijs dan een passage aan, of laat de vermelding weg.")
+    # De code zegt welke soorten vermelding zonder passage er waren: daaraan is te zien wat een ronde kostte.
+    soorten = [naam for naam, lijst in (("live", live), ("gelezen", gelezen), ("op_te_halen", ophalen), ("onbekend", onbekend))
+               if lijst]
     return Onvulbaar(" ".join([*zinnen, "Rond daarna opnieuw af."]),
-                     ophalen=[{"bwb_id": o["bwb_id"], "artikel": o["artikel"]} for o in ophalen])
+                     ophalen=[{"bwb_id": o["bwb_id"], "artikel": o["artikel"]} for o in ophalen],
+                     code="genoemd_" + "+".join(soorten))
 
 
 #: De ids die het subsjabloon `extern` in dezelfde aanroep aanwees (`sjablonen.vul` geeft ze mee): een artikel van
@@ -339,16 +343,17 @@ def _geen_passage(live: set[str]) -> str:
 def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
     kort = _lex(invoer.get("kort_antwoord"), trace)
     if not kort:
-        raise Onvulbaar("Schrijf het korte antwoord.")
+        raise Onvulbaar("Schrijf het korte antwoord.", code="kort_antwoord")
     stukken = invoer.get("onderbouwing") or []
     extern = frozenset(str(i) for i in invoer.get(EXTERN_IDS) or [])
     live = live_stukken(trace)
     if not stukken and not (extern & live):
-        raise Onvulbaar(_geen_passage(live))
+        raise Onvulbaar(_geen_passage(live), code="geen_passage_live" if live else "geen_passage")
     rijen, fouten = bron_rijen(trace), []
     citaten = [c for stuk in stukken if (c := _citaat(stuk, rijen, trace, fouten))]
     if fouten:
-        raise Onvulbaar("Niet te tonen, dus er wordt niets getoond. " + "; ".join(fouten) + ". Rond daarna opnieuw af.")
+        raise Onvulbaar("Niet te tonen, dus er wordt niets getoond. " + "; ".join(fouten) + ". Rond daarna opnieuw af.",
+                        code="passage_niet_te_tonen")
     twijfel = list(dict.fromkeys(t for x in invoer.get("twijfel") or [] if (t := _lex(x, trace))))
     if los := _niet_onderbouwd("\n".join([kort, *(c.waarom for c in citaten), *twijfel]), citaten, extern, trace):
         raise _genoemd_is_gelezen(los, rijen, trace)
