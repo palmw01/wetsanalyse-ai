@@ -128,8 +128,10 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     (de eerste cel, de tekst na het opsommingsteken, zonder opmaak) gelijk aan de kern van een label: het label vanaf het eerste
     cijfer (`_kern`: "19a", "2010, 176", "34273, nr. 7"), alleen als die kern bij één stuk uit de trace hoort (I14: "**19a**" in een
     tabel). Een lijst zonder stukken na alleen een zoekvraag is tekst (`lijst_aangenomen`); na een gelezen stuk het herhaalverzoek
-    (B22). Een blokcitaat dat niet letterlijk in het opgehaalde staat, wordt gewone tekst (`kanttekening_als_tekst`, I28);
- vraagt `vul_aanroep` geen derde poging maar tekst (`TEKST_NU`; ronde 5: I12
+    (B22). Een korte kale kern ("4", "19a") telt aan het begin van een opsomming alleen als de regel precies dat nummer is of het
+    voorvoegsel van het label draagt (`_KAAL`; ronde 7, I30: "**4** nog niet in werking"). Een blokcitaat dat niet letterlijk in het
+    opgehaalde staat, wordt gewone tekst (`kanttekening_als_tekst`, I28);
+  - **na een tweede weigering in dezelfde beurt** vraagt `vul_aanroep` geen derde poging maar tekst (`TEKST_NU`; ronde 5: I12
     en L-R1 tot negen rondes), behalve als de code bij die weigering iets ophaalde; na een weigering komt geen herhaalverzoek
     meer (`sjabloon_gevraagd`). AFRONDEN_EXTERN zegt: zonder stuk en zonder passage antwoord je in tekst (I30, I13: een lege
     aanroep weigerde `extern.vul`).

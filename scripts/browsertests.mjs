@@ -26,7 +26,7 @@ const GEWICHT = {
   "test-teststrook": 10, "test-runstanden": 19, "test-detailpaginas": 5, "test-contextpaneel": 5, "test-zijpaneel": 5,
   "test-bronvenster-stuk": 6, "test-bronvenster-bekendmaking": 4, "test-bronvenster-wettekst": 4,
   "test-rondleiding": 50, "test-api-tokens": 3, "test-connectors": 3, "test-connectors-menu": 24,
-  "test-instellingen": 17, "test-instellingen-breedte": 61, "test-antwoordweergave": 11,
+  "test-instellingen": 17, "test-instellingen-breedte": 61, "test-antwoordweergave": 11, "test-commandos": 8,
 };
 const ONBEKEND = 8;
 const FRONTEND = fileURLToPath(new URL("../frontend/", import.meta.url));
