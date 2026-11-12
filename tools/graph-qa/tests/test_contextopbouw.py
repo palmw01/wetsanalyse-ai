@@ -103,7 +103,7 @@ def test_elke_tool_van_de_antwoordlus_valt_in_een_voorvoegselcategorie():
 
 
 def test_alleen_de_toollussen_zijn_een_lus_en_elke_rol_kiest():
-    assert {r for r in Rol if r.lus} == {Rol.OPHAAL, Rol.ANTWOORD}
+    assert {r for r in Rol if r.lus} == {Rol.OPHAAL, Rol.ANTWOORD, Rol.CENTRAAL}
     assert all(isinstance(r.lus, bool) and len(r.value) == 3 for r in Rol)
 
 

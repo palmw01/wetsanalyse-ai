@@ -43,12 +43,15 @@ VOORHEEN = {
 }
 #: De specialisten die de supervisor mocht kiezen (`_QA_SPECIALISTS`), en de connectors die hun rol bedienden.
 KOOS = {"definitie", "duiding", "algemeen"}
+#: Profielen die er na het register bij kwamen. Ze raken de specialisten van voorheen niet: `centraal` draait alleen
+#: achter de vlag `CENTRALE_AGENT` (`tests/test_centrale_agent.py`).
+NIEUW = {"centraal"}
 
 
 # --- bitgelijk ---------------------------------------------------------------------------------------------------
 
 def test_dezelfde_specialisten():
-    assert set(specialists.SPECIALISTS) == set(VOORHEEN) == set(profielen.PROFIELEN)
+    assert set(specialists.SPECIALISTS) == set(VOORHEEN) | NIEUW == set(profielen.PROFIELEN)
 
 
 @pytest.mark.parametrize("naam", sorted(VOORHEEN))
@@ -80,7 +83,7 @@ def test_dezelfde_routering():
 def test_dezelfde_profielen_bedienen_een_connector():
     """Vóór het register noemde elke connector de rollen definitie, duiding en algemeen."""
     for connector in CONNECTORS:
-        assert {n for n in profielen.PROFIELEN if profielen.bedient(n, connector)} == KOOS
+        assert {n for n in profielen.PROFIELEN if profielen.bedient(n, connector)} - NIEUW == KOOS
     assert not profielen.bedient("bestaat_niet", "kamerstukken")
 
 

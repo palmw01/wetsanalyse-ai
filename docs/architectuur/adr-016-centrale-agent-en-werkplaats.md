@@ -374,7 +374,7 @@ gebruiker succes afleest.
 
 | Meetpunt | Hoe gemeten | Drempel |
 |---|---|---|
-| gewone vragen niet duurder | delta van het verbruik en de duur per beurt (`meting`-event), de tien enkelvoudige opdrachten | mediaan van tokens en duur ≤ de nulmeting; geen opdracht meer dan 25 % duurder zonder verklaring |
+| gewone vragen niet duurder | de prijsgewogen tokens (zie hieronder) en de duur per beurt (`meting`-event), de tien enkelvoudige opdrachten; de ruwe tokens staan er altijd naast | mediaan van de prijsgewogen tokens en van de duur ≤ de nulmeting; geen opdracht meer dan 25 % duurder zonder verklaring |
 | juiste delegatie (wel of niet, en hoeveel) | events `regie_taak` en de kindgesprekken, tegen de set | ≥ 27/30 |
 | juiste profielkeuze | `profiel_id` op `model_aanroep`, de opdrachten met een subagent | ≥ 13/15 |
 | brongetrouw en gegrond | elk antwoord, rapport en elke bundel tegen de officiële bron, zoals bij de connectors | 30/30 zonder onjuiste bron of verzonnen citaat |
@@ -383,6 +383,27 @@ gebruiker succes afleest.
 | grote opdracht in één keer | de opdrachten met fasen | het plan klopt, de eerste fase loopt af, de bundel noemt wat wacht, de volgende fase start na één klik |
 | kosten van delegatie | tokens per opdracht met subagents | binnen het plafond; gerapporteerd naast dezelfde opdracht als losse beurten |
 | regressie | de kwaliteitsset en de routeringsset van nu | geen case van goed naar fout zonder verklaring |
+
+**Niet duurder is naar prijs gewogen** (besluit van de gebruiker, 12 nov 2026: "Naar prijs gewogen"). Een gelezen
+cache-token telt naar zijn prijs, niet vol. De drempel rekent in invoertoken-equivalenten, met de prijsverhouding van
+de aanbieder voor het model, zoals de meting van ADR-015 (`metingen/context-2026-11-12`):
+
+| Soort token | Factor |
+|---|---|
+| invoer | 1 |
+| cache lezen | 0,1 |
+| cache schrijven, 5 minuten | 1,25 |
+| cache schrijven, een uur | 2 |
+| uitvoer | 5 |
+
+- Per modelaanroep staan `invoer`, `cache_lees`, `cache_schrijf` (het totaal) en `uitvoer` in de meting; het deel dat
+  een uur houdt staat apart (`cache_schrijf_1u`), dus het deel van 5 minuten is het verschil. Meldt de aanbieder het
+  uurdeel niet, dan telt al het schrijven als 5 minuten en zegt het verslag dat.
+- De som gaat per model: de supervisorstap kan op een ander model draaien dan de antwoordlus. Het verslag telt de
+  equivalenten per rol (`contextopbouw.verbruik`) en zegt het als de modellen verschillen.
+- **De ruwe tokens staan er altijd naast** (`invoer + cache_lees + cache_schrijf + uitvoer`): dat is wat het
+  tokenbudget van de gebruiker telt, en een opdracht mag dat budget niet onverwacht opmaken.
+- Prijzen staan bewust niet in de repo. Alleen de verhouding telt; verandert die, dan verandert deze tabel.
 
 **Nulmeting.** Eerst de agentset tegen de huidige Lex (supervisor, specialisten, regisseur), drie runs. Veel meervoudige
 opdrachten zullen nu mislukken: dat is het vertrekpunt.

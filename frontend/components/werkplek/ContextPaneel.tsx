@@ -16,6 +16,7 @@ import { bronDoel, samenhangBeschikbaar } from "@/lib/samenhang";
 import { useBepaling } from "@/lib/useBron";
 
 import { WaaromUitklap } from "@/components/annotaties/WaaromUitklap";
+import { ContextopbouwInhoud } from "@/components/werkplek/Contextweergave";
 import { OverzichtPaneel } from "@/components/werkplek/OverzichtPaneel";
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { StatusLabel } from "@/components/ui/Lijst";
@@ -54,6 +55,9 @@ export type ContextDoel =
    *  zoals *Bronnen* in de chatkop de bronnen van het werkgebied; een rij opent de bepaling als eigen tab. */
   | { soort: "bepalingen"; bepalingen: AntwoordVindplaats[]; titel: string }
   | { soort: "overzicht"; overzicht: Overzicht; titel: string }
+  /** De contextweergave (`/context`, de contextmeter): hoe de context van een beurt is opgebouwd en wat de beurt kostte.
+   *  De inhoud komt van de werkplek (`ContextopbouwContext`), niet uit het doel: de tab wordt bewaard, de meting niet. */
+  | { soort: "contextopbouw"; titel: string }
   /** Een stuk uit een bronconnector (ADR-013, het bronvenster PR 6): het brontype (of de naam) van de connector en het
    *  id. `gelezen` en `voorbeeld` komen uit het antwoord: wat Lex las, en wat het venster toont als de bron weg is. */
   | { soort: "stuk"; brontype: string; id: string; titel: string;
@@ -87,13 +91,16 @@ export function metSamenhang(b: BerichtSamenhang, bronIri: string): Samenhang {
 
 const KOP: Record<ContextDoel["soort"], string> = {
   bron: "Bepaling", element: "JAS-element", bibliotheek: "Bronnen van dit werkgebied", overzicht: "Overzicht uit de kennisgraaf",
-  stuk: "Stuk", bepalingen: "Bepalingen in dit antwoord",
+  stuk: "Stuk", bepalingen: "Bepalingen in dit antwoord", contextopbouw: "Context van deze beurt",
 };
 
 /** De sleutel van een context: één plek (`lib/paneelTabs.ts`), ook voor de tabs. */
 export function contextSleutel(d: ContextDoel): string {
   return contextSleutelVan(d);
 }
+
+/** Het doel van de contextweergave: één tab per gesprek, voor de meter en voor `/context`. */
+export const CONTEXTOPBOUW_DOEL: ContextDoel = { soort: "contextopbouw", titel: "Context van deze beurt" };
 
 export function overzichtContext(overzicht: Overzicht): ContextDoel {
   return { soort: "overzicht", overzicht, titel: overzicht.gevraagd };
@@ -104,7 +111,8 @@ export function overzichtContext(overzicht: Overzicht): ContextDoel {
 export function paginaVanContext(d: ContextDoel): string | undefined {
   return d.soort === "bron" ? bronPad(d.bron_iri, d.werkgebied_id)
     : d.soort === "element" ? elementPad(d.element_id)
-    : d.soort === "overzicht" || d.soort === "stuk" || d.soort === "bepalingen" ? undefined : projectPad(d.werkgebied_id, "bronnen");
+    : d.soort === "overzicht" || d.soort === "stuk" || d.soort === "bepalingen" || d.soort === "contextopbouw" ? undefined
+    : projectPad(d.werkgebied_id, "bronnen");
 }
 
 /** Het contextpaneel (spoor G4, mock-up v4 `sideRail`): dezelfde schil als de artefacten – een kolom vanaf
@@ -225,6 +233,7 @@ export function ContextPaneel({ doel, variant, onSluit, onVerberg, onWissel, onM
             : doel.soort === "stuk" ? <StukVenster stuk={stuk} gelezen={doel.gelezen} voorbeeld={doel.voorbeeld} tekst={doel.tekst}
               onOpenStuk={(v) => onWissel({ soort: "stuk", brontype: doel.brontype, id: v.id, titel: v.label })} />
             : doel.soort === "bepalingen" ? <BepalingenInhoud bepalingen={doel.bepalingen} onWissel={onWissel} />
+            : doel.soort === "contextopbouw" ? <ContextopbouwInhoud />
             : <BibliotheekInhoud werkgebiedId={doel.werkgebied_id} onWissel={onWissel} />}
         </div>
       </div>

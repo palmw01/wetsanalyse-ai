@@ -1,6 +1,7 @@
 // Client-side fetch-helpers. Praten UITSLUITEND met de eigen Next.js-origin (/api/**);
 // de BFF-laag injecteert het token server-side. Hier dus geen Authorization-header.
 
+import { parseContextopbouw, type ContextBoom } from "./contextweergave";
 import { parseAntwoord } from "./antwoord";
 import { parseBronselectie, type BronselectieOverzicht } from "./bronselectie";
 import {
@@ -632,6 +633,23 @@ export async function haalGesprek(id: string): Promise<Gesprek> {
   return json<Gesprek>(await fetch(`/api/gesprekken/${pathSegment(id)}`, { cache: "no-store" }));
 }
 
+/** De contextopbouw van de deelgesprekken van een gesprek: de boom van de contextweergave. Een vorm die niet past, is
+ *  een lege boom. */
+export async function haalContextBoom(id: string): Promise<ContextBoom> {
+  const v = await json<unknown>(await fetch(`/api/gesprekken/${pathSegment(id)}/contextopbouw`, { cache: "no-store" }));
+  const kinderen = typeof v === "object" && v !== null && Array.isArray((v as { kinderen?: unknown }).kinderen)
+    ? (v as { kinderen: unknown[] }).kinderen : [];
+  return {
+    gesprek_id: id,
+    kinderen: kinderen.filter((k): k is Record<string, unknown> => typeof k === "object" && k !== null).map((k) => ({
+      gesprek_id: typeof k.gesprek_id === "string" ? k.gesprek_id : "", titel: typeof k.titel === "string" ? k.titel : "",
+      berichten: (Array.isArray(k.berichten) ? k.berichten : [])
+        .filter((b): b is Record<string, unknown> => typeof b === "object" && b !== null)
+        .map((b) => ({ run_id: typeof b.run_id === "string" ? b.run_id : "", contextopbouw: b.contextopbouw })),
+    })).filter((k) => k.gesprek_id),
+  };
+}
+
 export async function voegBerichtToe(id: string, bericht: BerichtInvoer): Promise<Bericht> {
   const res = await fetch(`/api/gesprekken/${pathSegment(id)}/berichten`, {
     method: "POST",
@@ -712,6 +730,8 @@ export type AgentHandlers = {
   onReeksEvent?: (event: Record<string, unknown>) => void;
   /** Lex hergebruikte (een deel van) de gedeelde laag in plaats van opnieuw te annoteren. */
   onHergebruik?: (h: AgentHergebruik) => void;
+  /** De contextopbouw van de beurt (het `meting`-event, vlak vóór `done`): voor de contextmeter en `/context`. */
+  onContextopbouw?: (c: import("./contextweergave").Contextopbouw) => void;
   /** Een vraag van Lex bij het samenstellen van een werkgebied (activiteit 1). */
   onVraagkaart?: (k: import("./vraagkaart").Vraagkaart) => void;
   /** Het overzicht van een onderwerp, deterministisch uit de graaf; komt vóór de duiding. */
@@ -1049,6 +1069,10 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
         else if (ev.type === "hergebruik" && ev.hergebruik) {
           const hergebruik = geldig(parseHergebruik, ev.hergebruik, "hergebruik");
           if (hergebruik) handlers.onHergebruik?.(hergebruik);
+        }
+        else if (ev.type === "meting") {
+          const opbouw = parseContextopbouw((ev as { contextopbouw?: unknown }).contextopbouw);
+          if (opbouw) handlers.onContextopbouw?.(opbouw);
         }
         else if (ev.type === "opgeslagen")
           handlers.onOpgeslagen?.({ run_id: ev.run_id ?? "", annotatie_doel: ev.annotatie_doel,

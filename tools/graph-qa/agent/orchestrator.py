@@ -34,7 +34,7 @@ from .doel import (  # noqa: F401 – re-export: tests importeren _kandidaten_ui
     _heeft_opgegeven_doel,
     _kandidaten_uit_json,
 )
-from .agentvorm import voeg_keten_toe
+from .agentvorm import voeg_keten_toe, voeg_overdracht_toe
 from .nodes.annotatie import annoteer_node, emit_node
 from .nodes.context import Bouw
 from .nodes.annotatie_lezen import zoek_annotaties_node
@@ -225,8 +225,12 @@ def build_graph(
                        na_agent={"tools": "tools", "verify": "verify", "sjabloon": "sjabloon", "agent": "agent"})
         g.add_edge(START, "agent")
         return g
+    # Op een straat waar de centrale agent kan draaien (ADR-016 §A7), heeft de agentnode één uitgang meer: de overdracht
+    # aan een route in code. Met `uit` is de graaf die van voorheen.
+    centraal = settings.centrale_agent != "uit"
     voeg_keten_toe(g, add, b, na_finalize="advance", na_agent={
-        "tools": "tools", "verify": "verify", "annoteer": "annoteer", "sjabloon": "sjabloon", "agent": "agent"})
+        "tools": "tools", "verify": "verify", "annoteer": "annoteer", "sjabloon": "sjabloon", "agent": "agent",
+        **({"overdracht": "overdracht"} if centraal else {})})
 
     # Supervisor → worker → advance → (volgende worker | einde).
     add("supervisor", functools.partial(supervisor_node, b))
@@ -273,6 +277,8 @@ def build_graph(
         "agent", "annoteer", "annotaties_zoeken", "bron_lezen", "bron_lijst", "begrippen_zoeken", "overzicht_bouwen",
         "bepaling_lezen",
         "werkgebied_intake", "bronselectie", "agent_taak", "afwijzen")}
+    if centraal:
+        voeg_overdracht_toe(g, add, b)
     g.add_conditional_edges("supervisor", functools.partial(_entry_node, b), ingangen)
     g.add_conditional_edges("advance", functools.partial(route_after_advance, b), {**ingangen, "einde": END})
     return g

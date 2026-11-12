@@ -27,12 +27,15 @@ from bronmodel.connectors import CONNECTORS
 from . import profielen
 from .llm_stap import Rol, stroom
 from .methode import instructies
+from .overdracht import OVERDRACHT, Overdracht
 from .prompts import SYSTEM_PROMPT
 from .sjablonen import EXTERN, sjabloon_schemas
 from .tools import anthropic_schemas, toegestane_tools
 
 #: Het profiel van een agent zonder naam, of met een naam die niet bestaat.
 STANDAARD = "algemeen"
+#: Het profiel van de centrale agent (ADR-016 §A1).
+CENTRAAL = "centraal"
 
 #: De antwoordlus streamt, dus een ruime limiet kost alleen wat er echt geschreven wordt. 4096 kapte lange duidingen af.
 MAX_TOKENS_ANTWOORD = 16000
@@ -86,6 +89,11 @@ class Agent:
         """De tools die hij mag krijgen (`None` is elke tool); of een connector aanstaat, beslist `toolschemas`."""
         return profielen.tools_van(self.profiel)
 
+    @property
+    def eigen_tools(self) -> dict[str, Overdracht]:
+        """De tools die bij de agent zelf horen en niet bij zijn profiel. Een gewone agent heeft er geen."""
+        return {}
+
     def extern(self, bronstand: dict[str, Any] | None) -> tuple[str, ...]:
         """De connectors die in deze beurt aanstaan en die het profiel noemt (ADR-013). Alleen een agent die met een
         sjabloon afrondt, krijgt het veld voor bronnen naast de wet."""
@@ -103,6 +111,7 @@ class Agent:
     def toolschemas(self, settings: Any, bronnen: Any, bronstand: dict[str, Any] | None) -> list[dict[str, Any]]:
         """De schema's die het model ziet: zijn tools zonder die van een connector die uit staat, dan zijn sjablonen."""
         return (anthropic_schemas(only=toegestane_tools(self.tools, settings, bronnen))
+                + [o.schema for o in self.eigen_tools.values()]
                 + sjabloon_schemas(self.sjablonen(bronstand), extern=self.extern(bronstand)))
 
     def model(self, settings: Any) -> str:
@@ -130,10 +139,43 @@ class Agent:
             return stream.final_message()
 
 
+class CentraleAgent(Agent):
+    """De ene agent van de open laag (ADR-016 §A1): hij beantwoordt een gewone vraag zelf, en geeft de beurt met een
+    overdrachtstool aan een route in code. Hij verschilt van een andere agent alleen in die eigen tools."""
+
+    @property
+    def rol(self) -> Rol:
+        return Rol.CENTRAAL
+
+    @property
+    def eigen_tools(self) -> dict[str, Overdracht]:
+        return OVERDRACHT
+
+
 def agent_voor(naam: str | None) -> Agent:
     """De agent met het profiel `naam`; zonder naam of met een onbekende naam het brede profiel."""
     sleutel = (naam or "").strip().lower()
-    return Agent(profielen.PROFIELEN[sleutel if sleutel in profielen.PROFIELEN else STANDAARD])
+    sleutel = sleutel if sleutel in profielen.PROFIELEN else STANDAARD
+    return (CentraleAgent if sleutel == CENTRAAL else Agent)(profielen.PROFIELEN[sleutel])
+
+
+def vorm_van(stand: str, gevraagd: str | None) -> str:
+    """De agentvorm van een beurt (ADR-016 §A7): `centraal` of `supervisor`. De straat beslist of een run mag kiezen:
+    met `uit` nooit, met `meten` draait de supervisor tenzij de run om de centrale agent vraagt, met `aan` omgekeerd."""
+    if stand == "meten":
+        return "centraal" if gevraagd == "centraal" else "supervisor"
+    if stand == "aan":
+        return "supervisor" if gevraagd == "supervisor" else "centraal"
+    return "supervisor"
+
+
+def voeg_overdracht_toe(g: Any, add: Callable[[str, Any], None], b: Any) -> None:
+    """De node `overdracht` in de graaf: de uitgang van de centrale agent naar een route in code. Alleen op een straat
+    waar de centrale agent kan draaien; de doelnodes moeten al geregistreerd zijn."""
+    from .overdracht import doelen, overdracht_node, route_na_overdracht
+
+    add("overdracht", functools.partial(overdracht_node, b))
+    g.add_conditional_edges("overdracht", functools.partial(route_na_overdracht, b), doelen())
 
 
 def voeg_keten_toe(g: Any, add: Callable[[str, Any], None], b: Any, *, na_agent: dict[str, str], na_finalize: str) -> None:

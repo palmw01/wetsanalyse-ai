@@ -530,6 +530,9 @@ Vier vlaggen staan alleen op acceptatie aan, alle vier met default `false` en be
   de beheertab en het menu *Bronnen en tools*.
 - `relatieVoorstellen` (`--relatie-voorstellen`): de annotatieketen stelt relaties tussen markeringen voor (ADR-011,
   `RELATIE_VOORSTELLEN`, een proefvlag). Op graph-qa en de eval-job; uit is de uitkomst gelijk aan zonder deze code.
+- `centraleAgent` (`--centrale-agent uit|meten|aan`): de centrale agent van graph-qa (ADR-016 §A7, `CENTRALE_AGENT`).
+  `uit` is de supervisor en negeert een verzoek per run; `meten` laat een meetrun de centrale agent vragen; `aan` maakt
+  hem de standaard. Op graph-qa en de eval-job; alleen acceptatie zet iets anders dan `uit`.
 - `skillRegels` (`--skill-regels`): de annotatie- en begrippenketen nemen de regels mee die een methode-skill meebrengt
   (ADR-014 §7, `SKILL_REGELS`, een proefvlag). Op graph-qa en de eval-job; uit is de uitkomst gelijk aan zonder deze code.
 - `catalogusVoorstellen` (`--catalogus-voorstellen`, met `--github-repo`): een beheerder met 2FA stelt vanuit *Werkwijze van

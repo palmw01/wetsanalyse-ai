@@ -354,6 +354,18 @@ jobs:
               if "--skill-regels" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
                   fout.append(f"azure-infra.yml: `--skill-regels` zonder acceptatie-conditie: {regel.strip()}")
 
+          # De centrale agent (ADR-016 §A7): standaard uit, en alleen acceptatie zet `meten` of `aan`. Met `uit` negeert
+          # graph-qa het verzoek per run; dat is het slot voor productie.
+          m = re.search(r"^param centraleAgent string = '(\w+)'$", bicep, re.M)
+          if not m or m.group(1) != "uit":
+              fout.append("main.bicep: `param centraleAgent string = 'uit'` niet gevonden")
+          for regel in re.findall(r".*name: 'CENTRALE_AGENT'.*", bicep):
+              if "value: centraleAgent }" not in regel:
+                  fout.append(f"main.bicep: CENTRALE_AGENT zonder de parameter: {regel.strip()}")
+          for regel in flow.splitlines():
+              if "--centrale-agent" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
+                  fout.append(f"azure-infra.yml: `--centrale-agent` zonder acceptatie-conditie: {regel.strip()}")
+
           # Voorstellen voor de methode als concept-PR (ADR-014 C7): alleen acceptatie, alleen met een token.
           m = re.search(r"^param catalogusVoorstellen bool = (\w+)$", bicep, re.M)
           if not m or m.group(1) != "false":

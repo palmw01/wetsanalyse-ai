@@ -101,6 +101,17 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   meestuurt, volgt uit zijn profiel: systeemtekst, tools, sjablonen, model en `Rol`. **Zet geen modelstap met een
   lusrol buiten `agentvorm.py`** en bouw geen tweede lus: `tests/test_agentvorm.py` maakt dat rood. De ronde zet
   `profiel_id` en `profiel_versie` in het meetkader; ze staan op `model_aanroep` en per agent in de contextopbouw.
+- **De centrale agent (`CentraleAgent`, het profiel `centraal`; ADR-016 §A1), achter `CENTRALE_AGENT`.** De vlag heeft
+  drie standen (`Settings.centrale_agent`): `uit` (de supervisor; het veld `agentvorm` van een run wordt genegeerd),
+  `meten` (de supervisor, tenzij de run om `centraal` vraagt) en `aan` (omgekeerd). `agentvorm.vorm_van` beslist, één
+  keer per beurt, en zet `state["agentvorm"]`. De routes vóór het model in `supervisie._kies` gelden voor beide vormen;
+  waar de supervisor het model aanroept, gaat de beurt met `centraal` naar de antwoordketen met dat profiel
+  (`_naar_centraal`): geen supervisorstap, geen herschreven vraag. Zijn eigen tools staan in `agent/overdracht.py`
+  (nu alleen `wijs_af`): een **overdrachtstool bouwt niets na**, hij zet de state van een bestaande route en stuurt de
+  beurt via de node `overdracht` naar de node die er al is. Die node en zijn edges bestaan alleen als de vlag niet
+  `uit` is; met `uit` is de graaf die van `tests/test_graafopbouw.py`. Zolang een vraagkaart van het samenstellen open
+  staat, leest de supervisor de beurt nog (`_centraal`). Bouw voor een nieuwe overdracht geen tweede implementatie van
+  de route. `tests/test_centrale_agent.py` legt de drie standen en de afwijzing vast.
 - **`agent_node`** – vraagt de agent van de beurt op (`agent_voor`, uit het profielregister): `SYSTEM_PROMPT` + methode-instructies
   (`agent/methode.py`, uit het gegenereerde `methodepakket.py`) + addendum + plan, met
   de toolschema's van de agent (`Agent.toolschemas`). Tekst stroomt niet mee: pas na de ronde is bekend of het narratie
