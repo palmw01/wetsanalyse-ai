@@ -11,7 +11,17 @@ import json
 
 import httpx
 import pytest
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from httpx import ASGITransport, AsyncClient
+
+SLEUTEL = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+PEM = SLEUTEL.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                            serialization.NoEncryption()).decode()
+
+
+def _b64d(s: str) -> bytes:
+    return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
 
 _ADMIN = {"Authorization": "Bearer admin-token"}
 _BEHEERDER = {**_ADMIN, "X-User-Id": "gebruiker-a"}
@@ -25,10 +35,23 @@ VOORSTEL = {"onderdeel_id": "rol/duiding", "bestand": BESTAND, "sectie": "duidin
 class NepGithub:
     def __init__(self, tekst: str = TEKST, ref_bestaat: bool = False) -> None:
         self.tekst, self.ref_bestaat, self.verzoeken = tekst, ref_bestaat, []
+        self.weiger_token, self.token_verzoek = False, None
 
     def __call__(self, req: httpx.Request) -> httpx.Response:
         self.verzoeken.append(req)
         pad = req.url.path
+        if req.method == "POST" and pad == "/app/installations/77/access_tokens":
+            if self.weiger_token:
+                return httpx.Response(401, json={"message": "Bad credentials"})
+            # De JWT moet met de sleutel van de App getekend zijn, kort geldig en voor deze App.
+            kop, inhoud, handtekening = req.headers["Authorization"].removeprefix("Bearer ").split(".")
+            SLEUTEL.public_key().verify(_b64d(handtekening), f"{kop}.{inhoud}".encode(), padding.PKCS1v15(), hashes.SHA256())
+            claims = json.loads(_b64d(inhoud))
+            assert claims["iss"] == "123" and claims["exp"] - claims["iat"] <= 600
+            self.token_verzoek = json.loads(req.content)
+            return httpx.Response(201, json={"token": "inst-tok", "expires_at": "2026-11-12T16:00:00Z"})
+        if req.headers.get("Authorization") != "Bearer inst-tok":
+            return httpx.Response(401)
         if req.method == "GET" and "/contents/" in pad:
             return httpx.Response(200, json={"sha": "blob1", "content": base64.b64encode(self.tekst.encode()).decode()})
         if req.method == "GET" and pad.endswith("/git/ref/heads/master"):
@@ -47,7 +70,9 @@ async def client(monkeypatch):
     monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
     monkeypatch.setenv("WETSANALYSE_ADMIN_TOKENS", "adm:admin-token")
     monkeypatch.setenv("CATALOGUS_VOORSTELLEN", "true")
-    monkeypatch.setenv("GITHUB_PR_TOKEN", "tok")
+    monkeypatch.setenv("GITHUB_APP_ID", "123")
+    monkeypatch.setenv("GITHUB_APP_INSTALLATION_ID", "77")
+    monkeypatch.setenv("GITHUB_APP_KEY", PEM)
     monkeypatch.setenv("GITHUB_REPO", "eigenaar/repo")
     from sqlalchemy import update
 
@@ -90,7 +115,12 @@ async def test_een_voorstel_wordt_een_concept_pr_met_alleen_de_sectie_gewijzigd(
     pr = json.loads(next(v for v in github.verzoeken if v.url.path.endswith("/pulls")).content)
     assert pr["draft"] is True and pr["base"] == "master"
     assert "gebruiker-a" in pr["body"] and "Oude tekst." in pr["body"] and "Nieuwe tekst." in pr["body"]
-    assert all(v.headers["Authorization"] == "Bearer tok" for v in github.verzoeken)
+    # Eerst het installatietoken, beperkt tot deze repo en twee rechten; daarna alles met dat token.
+    assert github.verzoeken[0].url.path == "/app/installations/77/access_tokens"
+    assert github.token_verzoek == {"repositories": ["repo"], "permissions": {"contents": "write", "pull_requests": "write"}}
+    assert all(v.headers["Authorization"] == "Bearer inst-tok" for v in github.verzoeken[1:])
+    # Nooit een merge.
+    assert not any("/merge" in v.url.path for v in github.verzoeken)
 
 
 async def test_zonder_2fa_geen_voorstel(client, github):
@@ -108,7 +138,7 @@ async def test_zonder_2fa_geen_voorstel(client, github):
 async def test_wat_niet_kan_wordt_geweigerd_zonder_branch(client, github, veld, waarde, status):
     r = await client.post("/v1/admin/catalogus/voorstellen", json={**VOORSTEL, veld: waarde}, headers=_BEHEERDER)
     assert r.status_code == status, r.text
-    assert not any(v.method in ("POST", "PUT") for v in github.verzoeken)
+    assert not any(v.method in ("POST", "PUT") and "/app/installations/" not in v.url.path for v in github.verzoeken)
 
 
 async def test_een_sectie_die_niet_bestaat_is_422(client, github):
@@ -132,6 +162,30 @@ async def test_zonder_vlag_staat_het_uit(client, github, monkeypatch):
     assert r.status_code == 404 and not github.verzoeken
 
 
-async def test_de_stand_met_vlag_en_token(client):
+async def test_de_stand_met_vlag_en_app(client):
     st = await client.get("/v1/admin/catalogus/voorstellen/stand", headers=_ADMIN)
     assert st.json() == {"aan": True, "reden": ""}
+
+
+async def test_zonder_app_staat_het_uit(client, github, monkeypatch):
+    from app.config import get_settings
+    monkeypatch.delenv("GITHUB_APP_KEY")
+    get_settings.cache_clear()
+    st = await client.get("/v1/admin/catalogus/voorstellen/stand", headers=_ADMIN)
+    assert st.json()["aan"] is False and "GitHub App" in st.json()["reden"]
+    r = await client.post("/v1/admin/catalogus/voorstellen", json=VOORSTEL, headers=_BEHEERDER)
+    assert r.status_code == 404 and not github.verzoeken
+
+
+async def test_een_onleesbare_sleutel_is_een_nette_fout(client, github, monkeypatch):
+    from app.config import get_settings
+    monkeypatch.setenv("GITHUB_APP_KEY", "geen pem")
+    get_settings.cache_clear()
+    r = await client.post("/v1/admin/catalogus/voorstellen", json=VOORSTEL, headers=_BEHEERDER)
+    assert r.status_code == 500 and "sleutel" in r.json()["detail"] and not github.verzoeken
+
+
+async def test_een_geweigerd_installatietoken_is_502(client, github):
+    github.weiger_token = True
+    r = await client.post("/v1/admin/catalogus/voorstellen", json=VOORSTEL, headers=_BEHEERDER)
+    assert r.status_code == 502

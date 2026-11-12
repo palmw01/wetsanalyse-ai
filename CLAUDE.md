@@ -418,7 +418,8 @@ alleen lokaal bestaan. Daarvóór staan structurele guards:
 - de bronconnectors (`connectoren`, ADR-013: één lijst, één weg naar de env) staan default uit en alleen op acceptatie aan;
 - de regels uit een methode-skill (`skillRegels`, ADR-014 §7, een proefvlag) staan default uit en alleen op acceptatie aan;
 - een wijziging van de methode voorstellen als concept-PR (`catalogusVoorstellen`, ADR-014 C7) staat default uit, alleen op
-  acceptatie aan, en alleen met het token `WA_GITHUB_PR_TOKEN`;
+  acceptatie aan, en alleen met een GitHub App (`WA_GITHUB_APP_ID`, `…_INSTALLATION_ID`, `…_KEY`); een persoonlijk token is
+  verboden;
 - de relatievoorstellen uit de annotatieketen (`relatieVoorstellen`, ADR-011, een proefvlag) staan default uit en alleen op
   acceptatie aan;
 - GraphDB blijft `external: false`; de proxy staat default uit, alleen op acceptatie, alleen mét

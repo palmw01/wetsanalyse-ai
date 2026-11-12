@@ -86,12 +86,18 @@ param relatieVoorstellen bool = false
 @description('Nemen de annotatie- en begrippenketen van graph-qa de regels mee die een methode-skill meebrengt (ADR-014 §7, SKILL_REGELS)? Een proefvlag, alleen acceptatie; default false. Uit is de uitkomst gelijk aan zonder deze code.')
 param skillRegels bool = false
 
-@description('Mag een beheerder vanuit de werkplek een wijziging van een methodesectie voorstellen als concept-PR (ADR-014 C7, CATALOGUS_VOORSTELLEN)? Alleen acceptatie; default false. Zonder githubPrToken staat het ook uit.')
+@description('Mag een beheerder vanuit de werkplek een wijziging van een methodesectie voorstellen als concept-PR (ADR-014 C7, CATALOGUS_VOORSTELLEN)? Alleen acceptatie; default false. Zonder de GitHub App (githubAppId, githubAppInstallationId, githubAppKey) staat het ook uit.')
 param catalogusVoorstellen bool = false
 
+@description('De GitHub App waarmee de api een concept-PR opent (ADR-014 C7): het App-ID. Geen geheim, wel per straat. Leeg = geen voorstellen.')
+param githubAppId string = ''
+
+@description('Het installatie-ID van die App op deze repo. Leeg = geen voorstellen.')
+param githubAppInstallationId string = ''
+
 @secure()
-@description('Fine-grained GitHub-token met alleen contents en pull requests (schrijven) op deze ene repo, voor de concept-PR van een voorstel. Leeg = geen voorstellen. Wordt niet gegenereerd: zet het environment-secret WA_GITHUB_PR_TOKEN.')
-param githubPrToken string = ''
+@description('De private key (PEM) van de GitHub App. De App heeft alleen Contents en Pull requests (schrijven) op deze ene repo; mergen houdt de ruleset op master tegen (review vereist, geen bypass voor de App). Wordt niet gegenereerd: zet WA_GITHUB_APP_KEY. Leeg = geen voorstellen.')
+param githubAppKey string = ''
 
 @description('De repo (eigenaar/naam) waarop een voorstel zijn concept-PR opent.')
 param githubRepo string = ''
@@ -529,8 +535,8 @@ var graphdbInternalUrl = 'https://${graphdbApp.properties.configuration.ingress.
 // reproduceerbaar is uit overheid.nl (`vul-graaf`). Wil je harder, dan hoort daar GraphDB-security
 // met een read-only account bij – dat raakt bwb-import én graph-qa en is een eigen traject.
 var graphdbProxyAan = graphdbProxyExtern && !empty(graphdbProxyToken)
-// Voorstellen vanuit de werkplek (ADR-014 C7): alleen met de vlag én een token; het secret bestaat alleen dan.
-var catalogusVoorstellenAan = catalogusVoorstellen && !empty(githubPrToken)
+// Voorstellen vanuit de werkplek (ADR-014 C7): alleen met de vlag én de GitHub App; het secret bestaat alleen dan.
+var catalogusVoorstellenAan = catalogusVoorstellen && !empty(githubAppId) && !empty(githubAppInstallationId) && !empty(githubAppKey)
 
 // Placeholders in plaats van interpolatie: een Bicep multi-line string (''') doet GEEN `${}`, en
 // een nginx-config staat vol `$variabelen` die je daar juist met rust wilt laten. Zelfde aanpak als
@@ -831,7 +837,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
         { name: 'api-tokens', value: apiTokens }
         { name: 'admin-tokens', value: adminTokens }
         { name: 'database-url', value: dbUrl }
-      ], catalogusVoorstellenAan ? [{ name: 'github-pr-token', value: githubPrToken }] : [])
+      ], catalogusVoorstellenAan ? [{ name: 'github-app-key', value: githubAppKey }] : [])
     }
     template: {
       // Secrets als BESTANDEN, niet als env-var. Dat is een harde afspraak van de api
@@ -847,7 +853,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
             { secretRef: 'api-tokens', path: 'api_tokens' }
             { secretRef: 'admin-tokens', path: 'admin_tokens' }
             { secretRef: 'database-url', path: 'database_url' }
-          ], catalogusVoorstellenAan ? [{ secretRef: 'github-pr-token', path: 'github_pr_token' }] : [])
+          ], catalogusVoorstellenAan ? [{ secretRef: 'github-app-key', path: 'github_app_key' }] : [])
         }
       ]
       containers: [
@@ -884,10 +890,12 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'WETSANALYSE_ADMIN_TOKENS_FILE', value: '/run/secrets/admin_tokens' }
             { name: 'DATABASE_URL_FILE', value: '/run/secrets/database_url' }
             // Een wijziging van de methode voorstellen als concept-PR (ADR-014 C7). Zonder het secret leest de api geen
-            // token en staan voorstellen uit, ook als het bestand ontbreekt.
+            // sleutel en staan voorstellen uit, ook als het bestand ontbreekt.
             { name: 'CATALOGUS_VOORSTELLEN', value: catalogusVoorstellenAan ? 'true' : 'false' }
             { name: 'GITHUB_REPO', value: githubRepo }
-            { name: 'GITHUB_PR_TOKEN_FILE', value: '/run/secrets/github_pr_token' }
+            { name: 'GITHUB_APP_ID', value: githubAppId }
+            { name: 'GITHUB_APP_INSTALLATION_ID', value: githubAppInstallationId }
+            { name: 'GITHUB_APP_KEY_FILE', value: '/run/secrets/github_app_key' }
             // De api projecteert de gedeelde annotatielagen naar de kennisgraaf (named graphs
             // urn:jas:graph:*) en bouwt ze na een GraphDB-herstart opnieuw op uit Postgres. Hij is de
             // enige schrijver onder urn:jas:; graph-qa leest alleen.

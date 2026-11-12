@@ -95,7 +95,8 @@ def main() -> None:
                         "main.bicep:skillRegels).")
     p.add_argument("--catalogus-voorstellen", action="store_true", default=None,
                    help="Voorstellen voor de methode vanuit de werkplek als concept-PR (alleen acceptatie; zie "
-                        "main.bicep:catalogusVoorstellen). Zonder WA_GITHUB_PR_TOKEN blijft het uit.")
+                        "main.bicep:catalogusVoorstellen). Zonder de GitHub App (WA_GITHUB_APP_ID, "
+                        "WA_GITHUB_APP_INSTALLATION_ID, WA_GITHUB_APP_KEY) blijft het uit.")
     p.add_argument("--github-repo", default=None, help="eigenaar/naam van de repo voor die concept-PR's.")
     p.add_argument("--graphdb-proxy-extern", action="store_true", default=None,
                    help="De externe GraphDB-MCP-proxy uitrollen (alleen acceptatie; zie "
@@ -170,9 +171,11 @@ def main() -> None:
             "dbAdminPassword": {"value": db_pass},
             "graphdbToken": {"value": tok_graphdb},
             "graphdbProxyToken": {"value": tok_graphdb_proxy},
-            # Net als het proxytoken niet gegenereerd: een mens maakt het aan op GitHub, met alleen contents en pull
-            # requests op deze repo. Leeg = geen voorstellen (de bicep zet ze dan uit).
-            "githubPrToken": {"value": os.environ.get("WA_GITHUB_PR_TOKEN", "")},
+            # De GitHub App voor de concept-PR's (ADR-014 C7). Net als het proxytoken niet gegenereerd: een mens maakt
+            # de App aan, met alleen contents en pull requests op deze repo. Leeg = geen voorstellen (de bicep zet ze uit).
+            "githubAppId": {"value": os.environ.get("WA_GITHUB_APP_ID", "")},
+            "githubAppInstallationId": {"value": os.environ.get("WA_GITHUB_APP_INSTALLATION_ID", "")},
+            "githubAppKey": {"value": os.environ.get("WA_GITHUB_APP_KEY", "")},
             "qaApiToken": {"value": tok_qa},
             "graphQaApiToken": {"value": tok_qa_api},
             "graphdbLicenseBase64": {"value": licentie_b64},
