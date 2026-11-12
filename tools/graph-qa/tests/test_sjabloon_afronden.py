@@ -69,13 +69,37 @@ def test_tekst_zonder_lijst_na_een_vondst_is_het_antwoord_zonder_tweede_ronde(mo
     assert not any("stb" in json.dumps(b).lower() for b in bronnen), bronnen
 
 
-def test_een_lijst_in_tekst_vraagt_het_sjabloon_met_alleen_de_genoemde_stukken(monkeypatch):
-    llm = _llm(response([text_block("- Stb. 2010, 176: de inwerkingtreding\n- verder niets")], "end_turn"),
-               response([text_block("klaar")], "end_turn"))
-    _stream_met_graaf(VRAAG, monkeypatch, llm, FakeGraph(result=ART36))
-    assert len(llm.calls) == 4 and _gevraagd(llm) == 1
-    verzoek = [m for m in llm.calls[-1]["messages"] if m["role"] == "user"][-1]["content"]
-    assert "geen andere: stb-2010-176." in verzoek, "alleen wat de lijst noemt, geen lijst die niet gevraagd is"
+def test_een_lijst_in_tekst_zet_de_code_om_naar_het_sjabloon_zonder_modelronde(monkeypatch):
+    """Iteratie ronde 5 (I01, I14): het model schreef de lijst in tekst, en het herhaalverzoek kostte een ronde van ~25k.
+    Nu zet de code de stukken die de lijst noemt in het blok `stukken`, met de rest van de tekst als kort antwoord."""
+    llm = _llm(response([text_block("Artikel 36 trad in werking bij:\n- Stb. 2010, 176: de inwerkingtreding\n"
+                                    "- Stb. 2009, 610: de wijziging")], "end_turn"))
+    events = _stream_met_graaf(VRAAG, monkeypatch, llm, FakeGraph(result=ART36))
+    assert len(llm.calls) == 3 and _gevraagd(llm) == 0, "geen herhaalverzoek, geen tweede schrijfronde"
+    [antwoord] = [e["antwoord"] for e in events if e.get("type") == "antwoord"]
+    toelichting, lijst = antwoord["blokken"][:2]
+    assert toelichting["tekst"] == "Artikel 36 trad in werking bij:", "de lijstregels zijn eruit"
+    assert lijst["soort"] == "stukken" and {i["id"] for i in lijst["items"]} == {"stb-2010-176", "stb-2009-610"}
+    assert all(i["link"] for i in lijst["items"]), "met link uit de code"
+
+
+def test_een_lijst_van_meer_stukken_dan_een_blok_draagt_is_het_antwoord():
+    """I12: een opbouw van 52 paragrafen werd na het herhaalverzoek een lijst van 25 met twee weigeringen (213k)."""
+    from agent.nodes.antwoord import lijst_omzetten
+    from agent.sjablonen.extern import MAX_LIJST
+
+    gevonden = {"zoek_x": [(f"x-{n}", f"§ {n}") for n in range(1, MAX_LIJST + 3)]}
+    tekst = "Opbouw:\n" + "\n".join(f"- § {n}" for n in range(1, MAX_LIJST + 3))
+    assert lijst_omzetten(tekst, gevonden, {EXTERN}, []) == ("aangenomen", None)
+
+
+def test_zonder_uitleg_naast_de_lijst_of_zonder_extern_sjabloon_volgt_het_herhaalverzoek():
+    from agent.nodes.antwoord import lijst_omzetten, zonder_lijstregels
+
+    gevonden = {"zoek_x": [("x-1", "Artikel 1"), ("x-2", "Artikel 2")]}
+    assert zonder_lijstregels("- Artikel 1\n- Artikel 2", ["x-1", "x-2"], gevonden) == ""
+    assert lijst_omzetten("Kijk:\n- Artikel 1\n- Artikel 2", gevonden, {"antwoord_bepaling"}, []) is None
+    assert zonder_lijstregels("Uitleg.\n\n| art | titel |\n|---|---|\n| Artikel 1 | a |", ["x-1"], gevonden) == "Uitleg."
 
 
 def test_een_lijst_zonder_gevonden_stuk_vraagt_stukken_leeg_te_laten(monkeypatch):
@@ -122,3 +146,32 @@ def test_het_meting_event_telt_wat_er_met_de_sjablonen_gebeurde(monkeypatch):
     [meting] = [e for e in events if e["type"] == "meting"]
     assert meting["sjabloon"] == {"gevraagd": 1, "geweigerd": {f"{EXTERN}:extern.blokken": 1}, "gevuld": {EXTERN: 1}}
     assert json.dumps(meting["sjabloon"]).isascii(), "alleen namen uit de code, geen inhoud"
+
+
+def _fout():
+    return tool_block(f"s{id(object())}", EXTERN, {"kort_antwoord": "x", "extern": [{"id": "stb-2099-1", "van_nr": 1,
+                                                   "tot_nr": 1}], "stukken": [], "twijfel": []})
+
+
+def _resultaten(llm) -> list[str]:
+    return [json.dumps(b, ensure_ascii=False) for m in llm.calls[-1]["messages"] if m["role"] == "user"
+            and isinstance(m["content"], list) for b in m["content"] if b.get("type") == "tool_result"]
+
+
+def test_na_een_tweede_weigering_is_de_tekst_het_antwoord(monkeypatch):
+    """Ronde 5, I12 en I28: twee weigeringen achter elkaar, en het model probeerde door tot 8 rondes (213k)."""
+    from agent.nodes.sjabloon import OPNIEUW, TEKST_NU
+
+    llm = _llm(response([_fout()], "tool_use"), response([_fout()], "tool_use"),
+               response([text_block("- Stb. 2010, 176\n- Stb. 2009, 610")], "end_turn"))
+    events = _stream_met_graaf(VRAAG, monkeypatch, llm, FakeGraph(result=ART36))
+    assert len(llm.calls) == 5 and _gevraagd(llm) == 0, "geen derde poging en geen herhaalverzoek na een weigering"
+    eerste, tweede = _resultaten(llm)[-2:]
+    assert OPNIEUW.format(naam=EXTERN).split("{")[0][:30] in json.loads(eerste)["content"]
+    assert TEKST_NU.strip()[:40] in json.loads(tweede)["content"]
+    assert "Stb. 2010, 176" in "".join(e.get("content", "") for e in events if e.get("type") == "token")
+
+
+def test_de_prompt_zegt_tekst_als_er_niets_aan_te_wijzen_is():
+    """Ronde 5, I30: 'stukken' leeg bij een telling, en daarna weigerde het sjabloon omdat er niets aangewezen was."""
+    assert "antwoord dan in tekst" in AFRONDEN_EXTERN and "niet te vullen" in AFRONDEN_EXTERN
