@@ -66,7 +66,7 @@ def test_in_een_gesprek_binnen_een_werkgebied_krijgt_lex_het_dossier_mee(monkeyp
                                                werkgebied_id="wg-1")]
     asyncio.run(run())
     assert gevraagd == ["wg-1"]
-    systemen = [str(c["system"]) for c in llm.calls]
+    systemen = list(llm.prompts)
     assert all("Praktijkvoorbeeld: Een spaarder met een tweede huis." in s for s in systemen), systemen
 
 

@@ -21,7 +21,8 @@ from bronmodel.connectors import CONNECTORS
 from langgraph.config import get_stream_writer
 
 from ..beurtmeting import tel_sjabloon
-from ..berichten import CORRECTIE, _parse_final, _schoon_messages, _trim_messages, beurt_start, venster_telling
+from ..berichten import (CORRECTIE, _parse_final, _schoon_messages, _trim_messages, beurt_start, met_beurtcontext,
+                         venster_telling)
 from ..bronregister import bij, controletrace
 from ..focus import na_antwoord
 from ..grounding import alleen_gelezen_extern, check_grounding, curate_sources, herstel_citaten, live_niet_letterlijk
@@ -84,11 +85,10 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
                          if s.get("aan") and n in CONNECTORS and rol in CONNECTORS[n].specialisten) if spec.sjablonen else ()
     extern_aan = bool(extern_namen)
     sjablonen = spec.sjablonen | {EXTERN} if extern_aan else spec.sjablonen
-    # Twee delen, en de volgorde is betekenisdragend: het stabiele deel (identiteit +
-    # specialist) is bij elke tool-ronde van elke beurt hetzelfde en draagt daarom het
-    # prompt-cache-punt; het plan, de geheugen-context en de adviescontext verschillen per
-    # beurt en horen er dus áchter. Caching is een prefix-match – één byte verschil vóór het
-    # cache-punt maakt de cache waardeloos.
+    # Het stabiele deel (identiteit + specialist) is bij elke tool-ronde van elke beurt hetzelfde en is de
+    # systeemprompt, met het prompt-cache-punt. Het plan, de geheugen-context en de adviescontext verschillen per
+    # beurt; die gaan ná de historie, als eerste blok van de vraag (`met_beurtcontext`). Caching is een prefix-match:
+    # één byte verschil vóór een cache-punt maakt alles erna waardeloos.
     stabiel = SYSTEM_PROMPT + (f"\n\n{spec.system}" if spec.system else "")
     variabel = ""
     if state.get("plan"):
@@ -118,6 +118,9 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
             **venster_telling(historie, venster),
             "register_items": len(state.get("bronregister") or []),
         })
+    # De context van deze beurt staat ná de historie, als eerste blok van de vraag (`met_beurtcontext`): dan leest de
+    # prompt-cache de historie van de vorige beurt in plaats van haar opnieuw te schrijven.
+    venster, berichtpunten = met_beurtcontext(venster, state.get("question", ""), variabel)
     with stroom(
         b.llm, Rol.OPHAAL if spec_naam == "retrieval" else Rol.ANTWOORD, methoderol=specialist_methoderol(spec_naam),
         # Deze node draait twee verschillende rollen: de OPHAAL-agent (annotatieroute – zoeken
@@ -125,11 +128,12 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         # heeft een eigen modelknop.
         model=b.model_ophaal if spec_naam == "retrieval" else b.model,
         max_tokens=MAX_TOKENS_OPHALEN if spec_naam == "retrieval" else MAX_TOKENS_ANTWOORD,
-        system=[stabiel, variabel],
+        system=[stabiel],
         tools=anthropic_schemas(only=toegestane_tools(spec.tools, b.settings, state.get("bronnen"))) + sjabloon_schemas(sjablonen, extern=extern_namen),
         messages=venster,
         # Elke toolronde stuurt de hele historie opnieuw: een cache-punt aan het eind maakt die de volgende ronde goedkoop.
         historie_cache=True,
+        berichtpunten=berichtpunten,
     ) as stream:
         # Geen tekst tijdens het streamen: pas aan het eind van de ronde is bekend of dit narratie is
         # of een eindantwoord, en een eindantwoord mag pas na de controle in beeld (`finalize_node`).
@@ -292,7 +296,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         upd["answer"] = antwoord
     return upd
 
-#: Het afronden als er een bron naast de wet aanstaat; in het variabele deel van de prompt, na het cachepunt.
+#: Het afronden als er een bron naast de wet aanstaat; in de context van de beurt (`met_beurtcontext`), na de historie.
 AFRONDEN_EXTERN = (
     "\n\nAFRONDEN MET EEN BRON NAAST DE WET: vond of las je in deze beurt iets met een tool van zo'n bron, dan schrijf "
     "je geen antwoord in tekst maar rond je af met een sjabloontool, ook als de vraag om uitleg, een telling of een "

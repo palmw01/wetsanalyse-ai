@@ -64,7 +64,7 @@ def test_vervolgvraag_na_annotatie_kent_bepaling_en_element_ids(tmp_path):
     ])
     _run(answer_stream("waarom die klasse?", "focus-1", settings=settings, llm=llm2, graph=FakeGraph(result="")))
 
-    supervisor, specialist = (str(c.get("system")) for c in llm2.calls[:2])
+    supervisor, specialist = llm2.prompts[:2]
     for systeem in (supervisor, specialist):
         assert "urn:bwb:BWBR0004770:artikel:9:lid:1" in systeem, "de bepaling staat in de context"
         assert element["id"] in systeem, "het element is bij id aan te spreken"

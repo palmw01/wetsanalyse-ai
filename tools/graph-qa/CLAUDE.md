@@ -208,10 +208,19 @@ met een vergaderjaar in één zin moet samen in één toolresultaat staan (`bron
 
 ### Gespreksgeheugen (checkpointer)
 
-`thread_id = conversation_id`; de agent krijgt per beurt de gepersisteerde `messages`-historie mee
-(getrimd op `MAX_HISTORY_CHARS`; oudere tool-resultaten krimpen eerst, maar **de lopende beurt
-krimpt nooit** – `berichten.beurt_start` – anders leest het model zijn verse resultaat als
-"ingekort, vraag opnieuw op" en zoekt het in een lus; de opslagrem `berichten.MAX_HISTORIE_CHARS` hoort ruim daarboven te
+`thread_id = conversation_id`; de agent krijgt per beurt de gepersisteerde `messages`-historie mee. **De lopende beurt
+krimpt nooit en telt niet mee** (`berichten.beurt_start`): anders leest het model zijn verse resultaat als "ingekort,
+vraag opnieuw op" en zoekt het in een lus. `MAX_HISTORY_CHARS` begrenst de historie vóór de beurt
+(`berichten._historievenster`), en dat venster is gebouwd om over beurten heen byte-gelijk te blijven, zodat de
+prompt-cache het hergebruikt (nulmeting context 12 nov 2026):
+- past de historie niet, dan krimpen de tool-resultaten van alle beurten behalve de laatste. Dat hangt af van de hele
+  historie, dus het springt niet aan en uit, en per beurt verandert alleen de vorige beurt;
+- past het dan nog niet, dan valt de voorkant weg op een vast raster (`_knippunten`, stap een halve begroting), dus in
+  sprongen en niet bij elke beurt;
+- een lange beurt laat de historie niet meer in één keer vallen; de prompt is hoogstens `MAX_HISTORY_CHARS` plus de
+  lopende beurt.
+
+`tests/test_trimming.py` meet hoeveel er per beurt verandert. De opslagrem `berichten.MAX_HISTORIE_CHARS` hoort ruim daarboven te
 liggen, `Settings.controleer_historie_grens` waarschuwt). `agent_node` geeft daarom de vraag mee aan
 `_trim_messages`: zonder telt een correctiebericht als begin van de beurt, en krimpt de brontekst die het model
 moet herstellen. Hoe vaak er gesprek uit het venster valt, meet de logregel `venster` (`berichten.venster_telling`,
@@ -263,6 +272,13 @@ bruikbaar is.
   `docs/architectuur/metingen/context-2026-11-12/`: het koude begin van een beurt was 40–70% van de gewogen kosten.
   Server-compaction en context editing van de API gebruikt Lex bewust niet. Ze kunnen de lopende beurt inkorten,
   en de dure post is het herschrijven van het voorvoegsel, niet de omvang van de historie.
+  **De antwoordlus heeft geen variabel systeemdeel meer.** Plan, GESPREKSCONTEXT, werkgebied, onderwerp, BRONNEN IN DEZE
+  BEURT en AFRONDEN_EXTERN staan als eerste blok in de vraag van de lopende beurt, onder `berichten.BEURTCONTEXT_KOP`
+  (`berichten.met_beurtcontext`). Ze staan dus ná de historie, en de checkpoint krijgt ze niet. Daarbij komen twee
+  cachepunten op de berichten (`stream(berichtpunten=)`): het eind van de historie van deze beurt (schrijven) en dat
+  van de vorige beurt (lezen). Samen met de systeemprompt en het punt aan het eind zijn dat er vier, het maximum.
+  Zo leest een vervolgbeurt de historie uit de cache in plaats van haar opnieuw te schrijven. Een test die wil
+  weten wat het model te horen kreeg, leest `FakeLLM.prompts` (systeem plus beurtcontext, per aanroep); `calls` blijft de kwargs van de aanroeper.
 - **`llm_stap.py`** – de gedeelde modelstap (H5). `aanroep(llm, rol, **verzoek)` geeft de kwargs ongewijzigd door,
   geeft een `Stopreden` terug, logt één `model_aanroep` (rol, model, stopreden, duur, gebruik en de opbouw van het verzoek uit
   `agent/verzoekopbouw.py`: tekens van tools, systeemdelen, historie en lopende beurt, plus `tools_hash`/`system_hash`,

@@ -86,3 +86,35 @@ nulmeting (`tools_hash` `67fda44cabed`, `system_hash` `5cc1b4215950`).
   de historie van het gesprek in één keer weg (23 → 11 berichten) en werd de lopende beurt opnieuw geschreven
   (23,2k). De lopende beurt zelf kromp niet; dat is de regel. Wel verliest het model in een lange beurt de
   eerdere beurten. Dat is bestaand gedrag, maar het weegt mee in het vervolgvoorstel over de historie.
+
+## Bronwissel: de toolset per vraag (gesprek `fa4e52bf1dcb411c`)
+
+De bronkeuze (ronde 6) geeft elke combinatie van specialist en connectors een eigen toolset. De tools staan
+vooraan, dus elke combinatie is een eigen voorvoegsel. Een gesprek waarin de genoemde bron per beurt wisselt:
+
+| beurt | bron in de vraag | `tools_hash` | ronde 1: lezen / schrijven |
+|---|---|---|---|
+| G3-1 | Kamerstukken | `c602d5763ef5` (26 tools) | 0 / 19,0k – nieuw |
+| G3-2 | een uitspraak (ECLI) | `553624a51c9b` (26 tools) | 0 / 39,7k – nieuw, en de historie viel weg (lopende beurt 57k, oude venster) |
+| G3-3 | Kamerstukken | `c602d5763ef5` | 17,7k / 24,3k – tools en systeem uit de cache van een uur |
+
+**Wat een wissel kost:** het voorvoegsel van een nieuwe combinatie is ~19k tokens. Met de TTL van een uur kost het
+schrijven 2× en het lezen daarna 0,1×, dus ≈ 36k gewogen, één keer per combinatie per uur, voor alle juristen
+samen. Komt de combinatie binnen het uur terug, dan is ze warm (G3-3).
+
+**Het alternatief, een vaste toollijst per gesprek** met de keuze als tekst in BRONNEN IN DEZE BEURT:
+- de extra connectortools kosten ~2k tokens elk per ronde;
+- bij drie extra connectors en ~7 rondes is dat ≈ 4k gewogen per beurt, in elke beurt;
+- het omslagpunt ligt bij één wissel per ~9 beurten.
+
+Hoe vaak een combinatie in een gesprek echt wisselt, is niet bekend: de vragensets van ronde 6 hebben één vraag per
+gesprek. Bovendien beperkt de bronkeuze wat het model mag aanroepen. Een vaste lijst moet dat met tekst en een
+weigering in `dispatch` doen, en een geweigerde aanroep kost een ronde.
+
+**Besluit:** de toolset blijft per vraag. De logregel `model_aanroep` draagt nu `tools_hash`, dus de frequentie is
+over een week productieverkeer te meten. Pas dan is het omslagpunt te beoordelen.
+
+`defer_loading` met tool search valt af: dat loont boven ~10k tokens aan toolschema's (de connectortools zijn samen
+~8k), en de zoekstap kost een extra ronde.
+
+**Bevestigd in de oude code:** het venster sloeg midden in een beurt om (G3-2, G3-3). Dat lost #1305 op.

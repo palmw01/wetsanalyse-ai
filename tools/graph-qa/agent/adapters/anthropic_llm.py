@@ -170,24 +170,29 @@ class AnthropicLLM:
         tools: list[dict[str, Any]],
         messages: list[dict[str, Any]],
         historie_cache: bool = False,
+        berichtpunten: tuple[int, ...] = (),
     ) -> "_AnthropicStream":
         """`historie_cache`: ook een cache-punt op het eind van de berichten (F7, CL-4). Voor de toollus van de
         antwoordroute: elke ronde stuurt de hele historie opnieuw, en die is binnen een beurt een groeiend
-        voorvoegsel. Elders niet: een prompt die niet terugkomt, betaalt alleen de duurdere cache-write."""
+        voorvoegsel. Elders niet: een prompt die niet terugkomt, betaalt alleen de duurdere cache-write.
+
+        `berichtpunten`: indexen van berichten die een eigen cachepunt krijgen (`berichten.met_beurtcontext`: het eind
+        van de historie van deze en van de vorige beurt). Samen met de systeemprompt en het punt aan het eind zijn dat
+        er hoogstens vier, het maximum van de API. Ze vallen onder dezelfde terugval als het punt op de historie."""
         # Bij streamen valt een weigering pas bij het openen van de stream (daar gaat de call de
         # deur uit), dus de terugval zit in `_AnthropicStream.__enter__` – met deze fabriek als
         # tweede poging. Die leest de vlaggen opnieuw: de terugval heeft er één uitgezet.
         def met_historie() -> bool:
-            return historie_cache and self._caching and self._historie_caching
+            return (historie_cache or bool(berichtpunten)) and self._caching and self._historie_caching
 
         def open_stream():
             extra: dict[str, Any] = {}
-            if met_historie():
+            if met_historie() and historie_cache:
                 extra["cache_control"] = {"type": "ephemeral"}
             return self._client.messages.stream(
                 model=model, max_tokens=max_tokens,
                 system=self._system(system, caching=self._caching),
-                tools=tools, messages=messages, **extra,
+                tools=tools, messages=_met_punten(messages, berichtpunten if met_historie() else ()), **extra,
             )
 
         return _AnthropicStream(
@@ -195,6 +200,24 @@ class AnthropicLLM:
             terugval=lambda exc, h=met_historie(): self._zonder_caching(exc, historie=h),
             meter=self.meter, opbouw=opbouw(system=system, tools=tools, messages=messages),
         )
+
+
+def _met_punten(messages: list[dict[str, Any]], punten: tuple[int, ...]) -> list[dict[str, Any]]:
+    """Een cachepunt op het laatste blok van elk aangewezen bericht, in een kopie. Een tekst als string wordt één
+    tekstblok: dat is voor de provider dezelfde prompt."""
+    if not punten:
+        return messages
+    uit = list(messages)
+    for i in punten:
+        if not 0 <= i < len(uit):
+            continue
+        c = uit[i].get("content")
+        blokken = [{"type": "text", "text": c}] if isinstance(c, str) and c else list(c or []) if isinstance(c, list) else []
+        if not blokken or not isinstance(blokken[-1], dict):
+            continue
+        blokken[-1] = {**blokken[-1], "cache_control": {"type": "ephemeral"}}
+        uit[i] = {**uit[i], "content": blokken}
+    return uit
 
 
 class _AnthropicStream:
