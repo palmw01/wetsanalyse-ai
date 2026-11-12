@@ -111,14 +111,15 @@ def test_gewone_vraag_blijft_antwoord_geen_annotatie():
     llm = FakeLLM([
         response([text_block("SPECIALIST: algemeen\nPLAN: direct")], "end_turn"),  # supervisor → antwoord
         response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})], "tool_use"),
-        response([text_block("Zes weken (BWBR0004770 art. 9).")], "end_turn"),      # antwoord
+        # Een feit uit de opgehaalde tekst: een termijn die er niet in staat, kost een correctieronde (`beweringen`).
+        response([text_block("De ontvanger verleent uitstel (BWBR0004770 art. 9).")], "end_turn"),  # antwoord
     ])
     events = _run(answer_stream(
         "wat is de betaaltermijn?", settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
     assert not any(e["type"] in ("doel", "element") for e in events)
     tokens = "".join(e["content"] for e in events if e["type"] == "token")
-    assert "Zes weken" in tokens
+    assert "verleent uitstel" in tokens
 
 
 def test_run_event_draagt_de_herkomst_van_de_beurt():

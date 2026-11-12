@@ -25,7 +25,8 @@ from typing import Any
 from urllib.parse import unquote
 
 from .annotatie import _normaliseer, komt_letterlijk_voor
-from .hoeveelheden import buiten as hoeveelheden_buiten, uit_tabellen
+from .beweringen import beweringen as feiten_buiten
+from .hoeveelheden import uit_tabellen
 from .models import Source
 from bronmodel.connectors import leestools, van_id
 from bronmodel.extern import externe_verwijzingen, externe_vindplaats
@@ -75,6 +76,9 @@ class GroundingReport:
     citaten: int = 0
     # Wat niet is teruggevonden maar ook niet is afgekeurd (`_onbevestigd`). Telt niet in `grounded`: geen correctieronde.
     onbevestigd: list[str] = field(default_factory=list)
+    # Feiten in de tekst (een datum, een nummer, een telling, een instantie) die het opgehaalde en de vraag niet noemen
+    # (`beweringen`). Hier een signaal zoals `onbevestigd`; `verify_node` vraagt er eerst een correctieronde voor.
+    beweringen: list[str] = field(default_factory=list)
     # "gegrond" | "onbepaald" | "ongegrond" – fijner dan de bool, die voor het bestaande
     # event-contract blijft bestaan.
     niveau: str = "gegrond"
@@ -143,8 +147,7 @@ def _onbevestigd(answer_text: str, source_trace: list[tuple[str, str]], trace_te
     for passage in _blockquotes(answer_text):
         if "\\" not in passage and not komt_letterlijk_voor(trace_text, passage):
             uit.append(passage if len(passage) <= 80 else passage[:80].rstrip() + "…")
-    # Een termijn, bedrag of datum die het antwoord noemt en het opgehaalde niet (R4a): "1 oktober 2026" zonder bron.
-    uit += hoeveelheden_buiten(answer_text, f"{trace_text}\n{uit_tabellen(source_trace)}")
+    # Een termijn, bedrag of datum die het antwoord noemt en het opgehaalde niet (R4a) is een bewering: `beweringen`.
     return uit
 
 
@@ -186,8 +189,15 @@ def herstel_citaten(answer_text: str, source_trace: list[tuple[str, str]]) -> tu
     return answer_text, hersteld
 
 
+def _feitenbron(source_trace: list[tuple[str, str]], trace_text: str) -> str:
+    """Waartegen een bewering getoetst wordt: de waarden, de ruwe resultaten (een telling is een getal in de JSON) en de
+    getallen uit tabellen met hun eenheid. Zonder de afgeleide tools: een annotatie is geen bron."""
+    ruw = "\n".join(t for name, t in source_trace if t and name not in AFGELEIDE_TOOL_NAMEN)
+    return f"{trace_text}\n{ruw}\n{uit_tabellen(source_trace)}"
+
+
 def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
-                    overzicht: dict | None = None) -> GroundingReport:
+                    overzicht: dict | None = None, *, bekend: str = "") -> GroundingReport:
     """Markeer wat in het antwoord niet uit de trace te herleiden is: verwijzingen én citaten.
 
     Met een `overzicht` (de overzichtsroute) telt ook elk genoemd artikel dat niet in het overzicht
@@ -233,6 +243,10 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
 
     # De overzichtsroute heeft hierboven elke genoemde bepaling al hard getoetst.
     onbevestigd = [] if overzicht else _onbevestigd(answer_text, source_trace, trace_text)
+    # `bekend`: wat de jurist zelf schreef (de vraag, het dossier). Een feit dat hij noemt, is geen bewering van Lex.
+    feiten = [] if overzicht else [f for f in feiten_buiten(answer_text, _feitenbron(source_trace, trace_text),
+                                                              bekend=bekend)
+                                   if f not in unsupported]
     # Een stuk van een bronconnector (ADR-013) dat het antwoord noemt en dat alleen in een zoekresultaat stond, is
     # gevonden, niet gelezen. Dat is geen signaal: het id bestaat en het zoekresultaat draagt zijn label, soort, datum
     # en titel uit de bron. Tot 10 nov 2026 telde zo'n stuk als onbevestigd; op acceptatie gaf een lijst opvolgende
@@ -252,7 +266,7 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
         niveau = "onbepaald"
     elif niet_letterlijk:
         niveau = "ongegrond"
-    elif onbevestigd:
+    elif onbevestigd or feiten:
         # Niet afgekeurd, maar ook niet goedgekeurd.
         niveau = "onbepaald"
     else:
@@ -268,6 +282,7 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
         unsupported=unsupported,
         niet_letterlijk=niet_letterlijk,
         onbevestigd=onbevestigd,
+        beweringen=feiten,
         niveau=niveau,
     )
 
