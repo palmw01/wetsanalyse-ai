@@ -130,6 +130,7 @@ def test_andere_bepalingen_dan_de_voorbeelden_in_de_skill():
 
 def test_het_meetwerkgebied_draagt_de_opdrachten_met_een_werkgebied():
     assert WERKGEBIED["naam"] and WERKGEBIED["analysevraag"]
+    assert WERKGEBIED["gebeurtenis"], "zonder gebeurtenis vraagt de bronselectie daar eerst naar"
     assert len(WERKGEBIED["deelvragen"]) == 3
     assert all(re.fullmatch(r"BWB[RV]\d+", b) for b in WERKGEBIED["zoekbereik"])
     for rij in RIJEN:
@@ -137,3 +138,34 @@ def test_het_meetwerkgebied_draagt_de_opdrachten_met_een_werkgebied():
         if v["regisseur"]:
             assert v["subagents"] == [3, 3], "de regisseur start één kind per deelvraag"
     assert not any("verjaring" in d.lower() for d in WERKGEBIED["deelvragen"]), "V02 vraagt naar een deelvraag die ontbreekt"
+
+
+@pytest.mark.parametrize("rij", RIJEN, ids=lambda r: r["id"])
+def test_het_stoppunt_ligt_vast(rij):
+    """Elke ronde stopt op hetzelfde punt (nulmeting, afwijking van §A6: de meting annoteert niet)."""
+    v = rij["verwacht"]
+    assert rij["stoppunt"] in {"einde", "bundel_bronnen", "vraag"}
+    opzet_met_regie = any(PER_ID[s["opdracht"]]["verwacht"]["regisseur"] for s in rij.get("opzet", []) if "opdracht" in s)
+    assert (rij["stoppunt"] == "bundel_bronnen") == (v["regisseur"] or opzet_met_regie)
+    if rij["stoppunt"] == "vraag":
+        assert v["vraag_omhoog"]["landt_bij"] == "jurist"
+
+
+def test_de_samenvatting_toetst_een_run_tegen_de_set():
+    """`eval/centrale_agent_vat.py`: uit de events van een beurt de meetpunten, en wat daarvan tegen de set past."""
+    from eval.centrale_agent_vat import vat
+
+    meting = {"type": "meting", "route": "duiding", "modelrondes": 3, "invoer": 10, "uitvoer": 5, "cache_lees": 100,
+              "cache_schrijf": 20, "duur_ms": 900, "sjabloon": {"gevuld": {"antwoord_duiding": 1}}}
+    events = [{"type": "tool_execution", "phase": "start", "tool": "get_lid"},
+              {"type": "grounding", "niveau": "gegrond", "niet_letterlijk": [], "unsupported": []}, meting]
+    s = vat({"id": "E08", "run": 1, "beurten": [{"label": "gemeten", "events": events}]}, PER_ID["E08"])
+    assert (s["tokens"], s["modelrondes"], s["duur_ms"]) == (135, 3, 900)
+    assert s["route_past"] and s["delegatie_past"] and s["sjabloon_past"] and not s["tools_ontbreken"]
+
+    regie = [{"type": "regie", "fase": "start"}, {"type": "regie_taak", "fase": "start", "gesprek_id": "k1"}]
+    s = vat({"id": "M02", "run": 1, "beurten": [{"label": "gemeten", "events": regie}]}, PER_ID["M02"])
+    assert s["route"] == "regie" and s["kindgesprekken"] == 1 and not s["delegatie_past"]
+
+    s = vat({"id": "S01", "run": 1, "beurten": [{"label": "gemeten", "events": events}]}, PER_ID["S01"])
+    assert not s["delegatie_past"] and "subagent" in s["tools_ontbreken"]

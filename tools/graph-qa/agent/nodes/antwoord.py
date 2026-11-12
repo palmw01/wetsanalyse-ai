@@ -109,13 +109,18 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     historie = _schoon_messages(state["messages"])
     # Historie begrenzen (tegen onbegrensde promptgroei in een lange sessie); state blijft heel.
     venster = _trim_messages(historie, b.settings.max_history_chars, state.get("question", ""))
+    telling = venster_telling(historie, venster)
+    # Voor de contextweergave: waar deze beurt begint, wat het venster van de historie overliet en waar het begint op te
+    # ruimen. Het gaat met de rol naar de meter (`llm_stap`, `kader`), niet naar het model.
+    meetkader = {"beurt_start": beurt_start(venster, state.get("question", "")), "venster_telling": telling,
+                 "historiegrens_tekens": b.settings.max_history_chars}
     if not state.get("turns"):
         # E6-C1: hoe vaak valt er gesprek uit het venster? Eén regel per beurt, zonder inhoud.
         _beurtlog.info("venster", extra={
             "categorie": "functioneel",
             "run_id": state.get("run_id", "") or "",
             "chat_session_id": state.get("gesprek_id", "") or "",
-            **venster_telling(historie, venster),
+            **telling,
             "register_items": len(state.get("bronregister") or []),
         })
     # De context van deze beurt staat ná de historie, als eerste blok van de vraag (`met_beurtcontext`): dan leest de
@@ -129,6 +134,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         systeem = [stabiel]
     with stroom(
         b.llm, Rol.OPHAAL if spec_naam == "retrieval" else Rol.ANTWOORD, methoderol=specialist_methoderol(spec_naam),
+        kader=meetkader,
         # Deze node draait twee verschillende rollen: de OPHAAL-agent (annotatieroute – zoeken
         # en ophalen) en de QA-specialisten (die het antwoord zelf schrijven). Alleen de eerste
         # heeft een eigen modelknop.

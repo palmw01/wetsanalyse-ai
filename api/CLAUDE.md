@@ -1149,6 +1149,13 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   `BerichtInvoer` staan**, anders laat Pydantic het stil vallen en verdwijnen na het heropenen de
   chip naar het annotatiepaneel en het toolspoor. `tools/graph-qa/tests/test_contract_drift.py`
   toetst dat.
+- **`contextopbouw`** (plan contextweergave, ADR-015): hoe de verzoeken van de beurt waren opgebouwd en wat de beurt
+  kostte, door graph-qa uitgerekend. Alleen tellingen en vingerafdrukken; geen veld heet `token` (de logredactie laat
+  die naam weg). Het contract (`Contextopbouw`) legt het bovenste niveau vast en begrenst de lijsten; de lagen eronder
+  zijn van graph-qa. Het veld staat in `_OPTIONEEL`: een vorm die niet meer past, valt weg zonder het gesprek te
+  breken. Er is geen rolfilter. **`GET /v1/gesprekken/{id}/contextopbouw`** geeft de boom bij het lezen: per
+  deelgesprek (`ouder_id`, alleen de eigen) de contextopbouw van zijn assistentberichten; een kind zonder meting
+  staat erin met een lege lijst. Niets is dubbel opgeslagen. Tests: `tests/test_contextopbouw.py`.
 - De verwijzing heeft **geen foreign key**, dus draagt het bericht een eigen label
   (`artefact.titel`; bij oude berichten `annotatie_titel`). Een annotatie verwijderen raakt de
   berichten niet: het gesprek is een verslag.

@@ -14,7 +14,10 @@ Twee keuzes:
 Dezelfde cijfers gaan als **`meting`-event** vlak vóór `done` naar wie meekijkt, plus het verbruik en de
 duur per modelaanroep (`aanroepen`). Zonder dat event was een beurt alleen te meten met toegang tot App
 Insights: de acceptatie-MCP zag het tokentotaal van de gebruiker, niet wat één beurt kostte of hoeveel er uit
-de cache kwam (nulmeting 7 nov 2026). De werkplek negeert het event; de tekst van de beurt verandert niet.
+de cache kwam (nulmeting 7 nov 2026). De tekst van de beurt verandert niet. Het event draagt ook de
+**`contextopbouw`** (`agent/contextopbouw.py`): per agent met een toollus de opbouw van zijn laatste en eerste verzoek, en
+het verbruik per rol. Dezelfde `contextopbouw` staat op het bericht (`beurt.voer_beurt_uit`), zodat de contextweergave
+live en na herladen hetzelfde toont.
 Een stroom die zonder `done` eindigt (fout in de driver, afgebroken) krijgt geen event, wel de logregel.
 
 Wat dit niet ziet: de batchruns van `begrippen_verdieping`. Die hebben een eigen meter en zijn geen
@@ -27,6 +30,7 @@ import time
 from collections.abc import AsyncIterator, Mapping
 from typing import Any
 
+from .contextopbouw import contextopbouw
 from .models import Verbruiksmeter
 
 logger = logging.getLogger("graph_qa.beurt")
@@ -151,8 +155,13 @@ async def gemeten(
                 klaar = True
                 waarden = meting()
                 log(waarden)
+                # De contextopbouw (plan contextweergave): dezelfde meter, dezelfde stand als op het bericht, want na het
+                # vastleggen volgt geen modelaanroep meer. Zonder model geen veld.
+                opbouw = contextopbouw(meter, run_id=getattr(run, "run_id", "") or "",
+                                       ouder_run_id=getattr(run, "ouder_run_id", "") or "")
                 yield {"type": "meting", **waarden,
-                       "aanroepen": list(meter.aanroepen) if meter is not None else []}
+                       "aanroepen": list(meter.aanroepen) if meter is not None else [],
+                       **({"contextopbouw": opbouw} if opbouw else {})}
             yield event
     except Exception:
         fout = True

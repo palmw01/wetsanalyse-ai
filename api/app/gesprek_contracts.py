@@ -16,7 +16,7 @@ from typing import Literal
 
 from bronmodel.antwoord import Antwoord
 from bronmodel.connectors import NAMEN as CONNECTOR_NAMEN
-from pydantic import BaseModel, Field, model_serializer, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
 
 class Rol(str, Enum):
@@ -246,6 +246,42 @@ class BeurtUitkomst(BaseModel):
     melding: str = Field(default="", max_length=2000)
 
 
+#: Hoeveel modelaanroepen één `contextopbouw` hooguit opsomt: gelijk aan `MAX_AANROEPEN` van de meter in graph-qa.
+MAX_CONTEXT_AANROEPEN = 60
+
+
+class Contextopbouw(BaseModel):
+    """Hoe de verzoeken van één beurt waren opgebouwd en wat de beurt kostte (plan contextweergave, ADR-015).
+
+    Graph-qa rekent het uit aan het eind van de beurt (`agent/contextopbouw.py`) en zet het op het bericht; de api
+    bewaart het en geeft het terug. Alleen tellingen en korte vingerafdrukken, nooit inhoud. Geen veld heet `token`:
+    de logredactie laat een veld met die naam weg.
+
+    - `agenten`: per rol met een toollus de context: het laatste verzoek (`laatste`, met `delen` per categorie) en het
+      eerste (`begin`: warm of koud);
+    - `verbruik`: per rol wat de aanroepen samen kostten, ook de losse stappen;
+    - `som`: wat de beurt in totaal kostte, gelijk aan wat naar `/v1/verbruik` ging;
+    - `aanroepen`: het detail per modelaanroep, begrensd.
+
+    De lagen daaronder zijn van graph-qa en blijven vrij (`dict`): een nieuw veld per categorie vraagt hier geen
+    wijziging. Een nieuw veld op dit niveau wel; `tools/graph-qa/tests/test_contextopbouw.py` vergelijkt beide kanten.
+    Iedereen ziet hetzelfde: er is geen rolfilter."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    versie: int = Field(ge=1, le=99)
+    run_id: str = Field(default="", max_length=128)
+    # De run die deze startte (een kind van een regie, ADR-012; straks een subagent, ADR-016). Leeg = geen ouder.
+    ouder_run_id: str = Field(default="", max_length=128)
+    # Het profiel van een subagent (ADR-016). Leeg tot de agentvorm er is.
+    profiel_id: str = Field(default="", max_length=128)
+    profiel_versie: str = Field(default="", max_length=64)
+    agenten: list[dict] = Field(default_factory=list, max_length=16)
+    verbruik: list[dict] = Field(default_factory=list, max_length=64)
+    som: dict = {}
+    aanroepen: list[dict] = Field(default_factory=list, max_length=MAX_CONTEXT_AANROEPEN)
+
+
 class Bericht(BaseModel):
     """Eén beurt in het gesprek. Assistent-berichten dragen optioneel `denk`/`bronnen`, of een
     verwijzing naar een annotatie-document (`annotatie_slug`) of bronnode (`annotatie_doel`).
@@ -294,6 +330,8 @@ class Bericht(BaseModel):
     uitkomst: BeurtUitkomst | None = None
     # Het oordeel van de brongetrouwheidstoets (graph-qa `grounding`-event), met `afgekapt` als het antwoord niet paste.
     grounding: dict = {}
+    # De opbouw van de context en het verbruik van deze beurt. Oudere berichten en beurten zonder model hebben het niet.
+    contextopbouw: Contextopbouw | None = None
     created: datetime | None = None
 
 
@@ -394,6 +432,34 @@ class BerichtInvoer(BaseModel):
     intake_antwoord: IntakeAntwoord | None = None
     uitkomst: BeurtUitkomst | None = None
     grounding: dict = {}
+    contextopbouw: Contextopbouw | None = None
+
+
+class BerichtContext(BaseModel):
+    """De contextopbouw van één assistentbericht, zonder de rest van het bericht."""
+
+    bericht_id: int | None = None
+    run_id: str = ""
+    created: datetime | None = None
+    contextopbouw: Contextopbouw
+
+
+class KindContext(BaseModel):
+    """Een deelgesprek met de contextopbouw van zijn beurten. Zonder beurten met een meting is `berichten` leeg: de
+    run loopt nog, eindigde zonder bericht, of is van vóór de meting."""
+
+    gesprek_id: str
+    titel: str = ""
+    updated: datetime | None = None
+    berichten: list[BerichtContext] = []
+
+
+class ContextopbouwBoom(BaseModel):
+    """De boom bij het lezen: de deelgesprekken van één gesprek (`ouder_id`) met hun contextopbouw. Niets is dubbel
+    opgeslagen; de eigen contextopbouw van het gesprek staat op zijn berichten."""
+
+    gesprek_id: str
+    kinderen: list[KindContext] = []
 
 
 class GesprekSamenvatting(BaseModel):
