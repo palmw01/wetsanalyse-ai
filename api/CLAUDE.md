@@ -1291,14 +1291,19 @@ voor een methodesectie voor; de api opent er op GitHub een **concept-PR** voor. 
 de tekst gaat pas mee na review, meting (ADR-010), merge en uitrol.
 
 - `GET /v1/admin/catalogus/voorstellen/stand` (`{aan, reden}`) en `POST /v1/admin/catalogus/voorstellen` (201 `{pr_url,
-  branch, pr_nummer}`). Uit zonder `CATALOGUS_VOORSTELLEN` of zonder `GITHUB_PR_TOKEN`/`GITHUB_REPO` (404).
+  branch, pr_nummer}`). Uit zonder `CATALOGUS_VOORSTELLEN` of zonder de GitHub App (`GITHUB_APP_ID`,
+  `GITHUB_APP_INSTALLATION_ID`, `GITHUB_APP_KEY`, de sleutel als bestand) en `GITHUB_REPO` (404).
+- **Een App, geen persoonlijk token.** Per voorstel een JWT (RS256, tien minuten, getekend met `cryptography`) en daarmee een
+  installatietoken van een uur, beperkt tot deze repo met *contents* en *pull requests*; niets wordt bewaard. Mergen houdt de
+  ruleset op master tegen, niet deze code.
 - Alleen `.claude/skills/<skill>/references/*.md` (422). De sectie leest en vervangt `bronmodel.methodesectie`, dezelfde
   validator als de generator van het methodepakket: precies één markerpaar, niet leeg, hoogstens 6000 tekens, geen
   HTML-commentaar; de rest van het bestand blijft byte-gelijk. Gelijke tekst 409; hetzelfde voorstel nog eens 409 (de branch
   is een hash van bestand, sectie en tekst).
 - Het bestand komt van `master` op GitHub, niet uit het image. De PR-tekst draagt toen en nu, wie het voorstelde en de
   checklist voor de reviewer (meting, licentie, het methodepakket opnieuw genereren).
-- Tests: `tests/test_catalogus_voorstel.py` (GitHub als `httpx.MockTransport` via `catalogus_voorstel._TRANSPORT`).
+- Tests: `tests/test_catalogus_voorstel.py` (GitHub als `httpx.MockTransport` via `catalogus_voorstel._TRANSPORT`; de nep-GitHub
+  controleert de handtekening van de JWT met de publieke sleutel).
 
 ## Schema
 

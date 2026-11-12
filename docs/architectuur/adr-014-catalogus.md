@@ -227,6 +227,8 @@ sectie bij `duiding` en een detectorregel komen mee zonder één regel code buit
 
 - Een nieuw onderdeel zonder beschrijving maakt de poort rood.
 - De takenlijst in `SUPERVISOR_SYSTEM` en `_QA_SPECIALISTS` worden afgeleid in plaats van met de hand bijgehouden.
-- Acceptatie krijgt een GitHub-token met schrijfrecht op deze ene repo (`WA_GITHUB_PR_TOKEN`), en alleen voor concept-PR's.
+- Acceptatie krijgt een **GitHub App** met alleen *Contents* en *Pull requests* (schrijven) op deze ene repo, en per voorstel
+  een installatietoken van een uur. Geen persoonlijk token: dat valt als admin in elke bypass. Mergen houdt een ruleset op
+  `master` tegen (een review vereist, geen bypass voor de App). Stappenplan: `deploy/azure/README.md`.
 - De skill `wetsuitvoering` (JRM 2, W3C) staat er sinds 12 nov 2026, eerst zonder rolkoppeling: hij verandert Lex pas
   na een meting. `references/jrm-verrijking.md` in wetsanalyse blijft de korte vorm en verwijst naar die skill.

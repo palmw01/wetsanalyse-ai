@@ -355,8 +355,13 @@ jobs:
           m = re.search(r"^param catalogusVoorstellen bool = (\w+)$", bicep, re.M)
           if not m or m.group(1) != "false":
               fout.append("main.bicep: `param catalogusVoorstellen bool = false` niet gevonden")
-          if "var catalogusVoorstellenAan = catalogusVoorstellen && !empty(githubPrToken)" not in bicep:
-              fout.append("main.bicep: catalogusVoorstellenAan hangt niet aan vlag én token")
+          if ("var catalogusVoorstellenAan = catalogusVoorstellen && !empty(githubAppId) && !empty(githubAppInstallationId)"
+                  " && !empty(githubAppKey)") not in bicep:
+              fout.append("main.bicep: catalogusVoorstellenAan hangt niet aan vlag én GitHub App")
+          # Een persoonlijk token handelt als de eigenaar en valt in elke bypass: alleen een App (besluit 12 nov 2026).
+          for verboden in ("githubPrToken", "GITHUB_PR_TOKEN", "WA_GITHUB_PR_TOKEN"):
+              if verboden in bicep or verboden in flow:
+                  fout.append(f"{verboden}: voorstellen lopen via de GitHub App, niet via een persoonlijk token")
           for regel in re.findall(r".*name: 'CATALOGUS_VOORSTELLEN'.*", bicep):
               if "value: catalogusVoorstellenAan ?" not in regel:
                   fout.append(f"main.bicep: CATALOGUS_VOORSTELLEN zonder de parameter: {regel.strip()}")
