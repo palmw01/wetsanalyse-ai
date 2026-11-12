@@ -42,7 +42,7 @@ Het koude begin had drie oorzaken:
     beurt nog 8–19k tekens, en knipte het venster bijna elke beurt (nameting G5-4/G5-5). Dat hangt af van de hele
     historie, dus het springt niet aan en uit. Per beurt verandert alleen de vorige beurt, en elk toolresultaat
     wordt één keer heel en één keer gekrompen geschreven: het minimum voor een venster dat moet krimpen;
-  - de voorkant valt weg op een vast raster van knippunten over de gekrompen historie (een halve begroting). Het
+  - de voorkant valt weg op een vast raster van knippunten over de gekrompen beurten (een kwart begroting; per beurt, niet per berichtindex: nameting G6-5). Het
     knippunt hangt alleen af van het gekrompen oude deel zonder de laatste beurt, dus het schuift alleen naar voren.
     De eerste versie hing ook af van de laatste beurt, en daardoor liep de voorkant op acceptatie heen en weer
     (nameting G4-3/G4-4).

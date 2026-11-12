@@ -132,69 +132,68 @@ def _kern(beurt: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [_kort(beurt[0]), *(_kort(m) for m in staart)]
 
 
-def _krimp(messages: list[dict[str, Any]], tot: int) -> list[dict[str, Any]]:
-    """De beurten die vóór index `tot` eindigen, teruggebracht tot hun kern (`_kern`); de rest ongewijzigd.
-
-    Een beurt begint bij een vraag van de jurist (`_is_vraag`). Wat vóór de eerste vraag staat, blijft zoals het is."""
+def _beurten(messages: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+    """De berichten per beurt: een beurt begint bij een vraag van de jurist (`_is_vraag`). Wat vóór de eerste vraag staat,
+    hoort bij de eerste beurt."""
     begins = [i for i, m in enumerate(messages) if _is_vraag(m)]
     if not begins:
-        return messages
-    uit: list[dict[str, Any]] = list(messages[:begins[0]])
-    for n, b in enumerate(begins):
-        e = begins[n + 1] if n + 1 < len(begins) else len(messages)
-        beurt = messages[b:e]
-        uit += _kern(beurt) if e <= tot else beurt
-    return uit
+        return [list(messages)] if messages else []
+    grenzen = [0, *begins[1:], len(messages)]
+    return [list(messages[a:b]) for a, b in zip(grenzen, grenzen[1:])]
 
 
-def _knippunten(historie: list[dict[str, Any]], stap: int) -> list[int]:
-    """Een vast raster van plekken waar het venster mag beginnen of de krimp mag ophouden.
+def _omvang(beurten: list[list[dict[str, Any]]]) -> int:
+    return sum(_msg_lengte(m) for beurt in beurten for m in beurt)
 
-    Een knippunt is de eerste platte user-beurt op of na elk veelvoud van `stap` tekens, geteld vanaf het begin van
-    het gesprek. Omdat de historie alleen aangroeit, verschuift een bestaand knippunt nooit: er komen er alleen
-    achteraan bij. Daardoor blijft het venster een paar beurten lang byte-gelijk, en kan de prompt-cache de historie
-    van de vorige beurt hergebruiken (nulmeting context 12 nov 2026: per beurt werd de hele historie opnieuw
-    geschreven, omdat het venster bij elke beurt een stukje verschoof)."""
+
+def _knippunten(kernen: list[list[dict[str, Any]]], stap: int) -> list[int]:
+    """Een vast raster van beurten waar het venster mag beginnen: de eerste beurt op of na elk veelvoud van `stap`
+    tekens, geteld over de gekrompen beurten vanaf het begin van het gesprek.
+
+    Een beurt die gekrompen is, blijft gekrompen, en de historie groeit alleen aan. Een bestaand knippunt verschuift dus
+    nooit: er komen er alleen achteraan bij. Zo blijft het venster een paar beurten lang byte-gelijk, en kan de
+    prompt-cache de historie van de vorige beurt hergebruiken (nulmeting context 12 nov 2026)."""
     punten: list[int] = []
     totaal, vak = 0, -1
-    for i, m in enumerate(historie):
-        if _is_plain_user(m) and totaal // stap > vak:
-            punten.append(i)
+    for k, beurt in enumerate(kernen):
+        if totaal // stap > vak:
+            punten.append(k)
             vak = totaal // stap
-        totaal += _msg_lengte(m)
+        totaal += sum(_msg_lengte(m) for m in beurt)
     return punten
 
 
 def _historievenster(historie: list[dict[str, Any]], max_chars: int) -> list[dict[str, Any]]:
     """De historie vóór de lopende beurt, binnen `max_chars`. Gebouwd om over beurten heen byte-gelijk te blijven.
 
-    1. Past de hele historie, dan gebeurt er niets.
-    2. Anders krimpen de tool-resultaten van alle beurten behalve de laatste, zodat het gesprek zelf langer meegaat:
-       zonder dit weegt één SPARQL-dump van 8000 tekens even zwaar als twintig beurten proza. De laatste beurt van
-       de historie blijft heel; daar gaat een vervolgvraag meestal over. Omdat de historie alleen aangroeit, blijft
-       een gekrompen beurt gekrompen: per nieuwe beurt verandert alleen de vorige beurt. Eerder beschermde de krimp
-       een halve begroting die bij elke beurt opschoof, en verschoof het venster bij elke beurt een stukje. Dan kon
-       de prompt-cache de historie nooit hergebruiken (nulmeting context 12 nov 2026: per beurt opnieuw geschreven).
-    3. De voorkant valt weg op een knippunt van `_knippunten`, een vast raster over de gekrompen historie: het eerste
-       knippunt waarvandaan het gekrompen oude deel, zonder de laatste beurt, binnen een halve begroting past. Dat deel
-       groeit alleen aan, dus het knippunt schuift alleen naar voren, in sprongen van een halve begroting. De laatste
-       beurt komt er heel bij. Is het geheel dan nog te groot (een beurt met een groot resultaat), dan krimpt ook de
-       laatste beurt.
+    Het venster werkt per beurt, niet per bericht. Een oude beurt wordt korter (`_kern`), en dan verschuiven de indexen
+    van de berichten erna. Met berichtindexen knipte het venster daardoor op de verkeerde plek en viel de hele historie
+    weg (nameting G6-5, 12 nov 2026).
 
-    Gesimuleerd met de echte cachepunten (`met_beurtcontext`): per beurt ~16k tekens opnieuw geschreven (de vorige
-    beurt gekrompen plus de nieuwe), tegen 34–36k met het oude venster. Het minimum is de nieuwe beurt zelf."""
+    1. Past de hele historie, dan gebeurt er niets.
+    2. Anders blijven van alle beurten behalve de laatste alleen de vraag en het laatste antwoord over (`_kern`). Dat hangt
+       af van de hele historie, dus het springt niet aan en uit. Per nieuwe beurt verandert alleen de vorige beurt, en
+       elke beurt wordt één keer heel en één keer als kern geschreven: het minimum voor een venster dat moet krimpen.
+    3. De voorkant valt weg op een knippunt van `_knippunten`, een vast raster over de gekrompen beurten: het eerste
+       waarvandaan de kernen vóór de laatste beurt binnen een halve begroting passen. Dat deel groeit alleen aan, dus het
+       knippunt schuift alleen naar voren, in sprongen. De laatste beurt komt er heel bij. Is het geheel dan nog te groot
+       (een beurt met een groot resultaat), dan krimpt ook de laatste beurt.
+
+    Gesimuleerd met de echte cachepunten (`met_beurtcontext`): per beurt de nieuwe beurt plus de kern van de vorige
+    opnieuw geschreven, tegen 34–36k tekens met het oude venster."""
     if sum(_msg_lengte(m) for m in historie) <= max_chars:
         return historie
-    laatste = next((i for i in range(len(historie) - 1, -1, -1) if _is_plain_user(historie[i])), 0)
-    alles = _krimp(historie, len(historie))
-    # Het knippunt hangt alleen af van het gekrompen oude deel (alles vóór de laatste beurt). Dat groeit alleen aan, dus
-    # het knippunt schuift alleen naar voren. Hing het ook af van de laatste beurt (heel nu, gekrompen de beurt erna), dan
-    # liep de voorkant heen en weer en was de cache telkens weg (nameting G4-3/G4-4).
-    oud = lambda p: sum(_msg_lengte(m) for m in alles[p:laatste])  # noqa: E731
-    punten = sorted(set(_knippunten(alles, max(1, max_chars // 2))) | {laatste})
-    begin = next(p for p in punten if p >= laatste or oud(p) <= max_chars // 2)
-    venster = _krimp(historie, laatste)[begin:]
-    return venster if sum(_msg_lengte(m) for m in venster) <= max_chars else alles[begin:]
+    beurten = _beurten(historie)
+    if not beurten:
+        return historie
+    kernen = [_kern(b) for b in beurten]
+    laatste = len(beurten) - 1
+    punten = sorted(set(_knippunten(kernen, max(1, max_chars // 4))) | {laatste})
+    begin = next(k for k in punten if k >= laatste or _omvang(kernen[k:laatste]) <= max_chars // 2)
+    venster = [*kernen[begin:laatste], beurten[laatste]]
+    if _omvang(venster) > max_chars:
+        venster = kernen[begin:]
+    return [m for beurt in venster for m in beurt]
 
 
 def _trim_messages(messages: list[dict[str, Any]], max_chars: int, vraag: str = "") -> list[dict[str, Any]]:

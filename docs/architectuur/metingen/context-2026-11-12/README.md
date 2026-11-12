@@ -167,3 +167,34 @@ erbij hoort (`berichten._kern`). De tussenrondes vallen weg als hele paren, en h
 controle. Gesimuleerd met de echte cachepunten: 13,6k tekens per beurt opnieuw geschreven. Dat is vrijwel het minimum
 (de nieuwe beurt zelf, 13,0k), tegen 16k met #1316 en 34–36k met het oude venster. De nameting daarvan volgt na de
 uitrol.
+
+## Nameting ADR-015, deel 3 (bundel 67–68, `95382221`): de kern van oude beurten, en een indexfout
+
+Gesprek `b661556bf1fa4542`, dezelfde vijf vragen als G5.
+
+| beurt | ronde 1: lezen / schrijven | historie | wat er gebeurde |
+|---|---|---|---|
+| G6-1 | 25,0k / 2,9k | 0 | eerste beurt, tools en systeem warm |
+| G6-2 | 25,0k / 6,4k | 10,1k (3 berichten) | beurt 1 als kern (G5-2: 19 berichten, 19,4k) |
+| G6-3 | **28,5k / 9,1k** | 28,1k | de kern van beurt 1 uit de cache, alleen beurt 2 geschreven |
+| G6-4 | **28,5k / 5,6k** | 18,4k | geen knip meer: alleen de kernen van beurt 2 en 3 geschreven |
+| G6-5 | 25,0k / 3,3k | **0** | **fout: de hele historie viel weg** |
+
+- G6-2 t/m G6-4 laten zien wat bedoeld was: oude beurten zijn klein, het venster knipt niet meer, en per beurt wordt
+  alleen geschreven wat nieuw is.
+- **G6-5 is een fout in #1318.** `_kern` maakt de berichtenlijst korter, maar het knippunt werkte nog met indexen in
+  de oorspronkelijke lijst. Kwam het gekrompen oude deel boven de halve begroting (de kernen waren hier ~10k door het
+  sjabloonantwoord), dan knipte het venster voorbij het eind. De test en de simulatie hadden kleine antwoorden en
+  raakten dat niet.
+- Alle beurten waren gegrond en vulden hun sjabloon (twee keer na één weigering van `duiding.vul`, zoals vaker bij
+  dit sjabloon).
+
+**Hersteld** (vervolg-PR):
+- het venster werkt per beurt in plaats van per berichtindex (`_beurten`), dus er is maar één telling;
+- het raster heeft een stap van een kwart begroting, zodat bij kernen van ~8–10k niet alles vóór de laatste beurt in
+  één keer wegvalt;
+- een regressietest met grote antwoorden faalt op #1318 (venster leeg in beurt 2) en slaagt nu.
+
+Gesimuleerd met de echte cachepunten, per beurt opnieuw geschreven:
+- met kleine antwoorden 13,6k (het minimum, de nieuwe beurt, is 13,0k);
+- met antwoorden van 8k 32k tegen 45k met het oude venster (het minimum is 28k).
