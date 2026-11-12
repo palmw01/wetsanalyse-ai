@@ -7,8 +7,10 @@ description: "Beantwoordt een vraag over wet- en regelgeving zelf: zoekt en lees
 # Een model kiest dit profiel niet: de code zet het in als geen vaste route de vraag pakt.
 kiesbaar: false
 methoderol: agent
-# De kernset: de tien tools die een gewone vraag draagt, gekozen op gebruik (de nulmeting van 12 nov 2026: 90 runs,
-# waarin geen tool buiten deze tien in meer dan twee opdrachten voorkwam). Elk schema staat in het vaste voorvoegsel
+# De kernset: de tien tools die een gewone vraag draagt, gekozen op gebruik. In de nulmeting van 12 nov 2026 (90 runs
+# van de supervisorweg) kwam geen tool buiten deze tien in meer dan twee opdrachten voor. In ronde 1 van A2 (25 beurten
+# van de centrale agent met alle graaftools) riep hij er negen van aan en geen enkele graaftool daarbuiten;
+# `inhoudsopgave` gebruikte hij niet, de specialisten in de nulmeting wel. Elk schema staat in het vaste voorvoegsel
 # van elke ronde, dus elke tool hier kost in elke beurt. De andere graaftools staan in `centraal_breed`; de agent
 # krijgt ze met één aanroep van `meer_tools`. De annotatietools horen bij de leesroute (het profiel annotaties_lezen).
 tools:
