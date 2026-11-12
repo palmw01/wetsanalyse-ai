@@ -148,10 +148,18 @@ byte-gelijk zolang de oude weg bestaat (ADR-010, P19).
   - de werkgebiedcontext, begrensd per laag (ADR-010, `werkgebied_context.py`).
 - **De centrale agent ziet alleen wat naar boven komt**: het rapport, de artefacten en de vragen. Niet de toolresultaten
   van de subagent. Zo blijft zijn context klein, zoals bij een Claude Code-subagent.
-- **De contextweergave** (de sessie *contextweergave*) toont het gesprek als boom: de centrale agent met zijn
-  subagents (`ouder_run_id`), en per knoop dezelfde contextkaart als bij een gewone beurt (identiteit, methodesecties met
-  `methode.vingerafdruk`, `tools_hash`, `system_hash`, de opdracht in plaats van de historie). Er komt geen tweede vorm
-  van de contextopbouw.
+- **De contextweergave** (PR #1331, `plan-contextweergave.md`, de secties *Context per agent* en *Datacontract*) heeft
+  één bron: het veld `context`. Het staat live op het `meting`-event (`beurtmeting.py`) en bewaard op het
+  assistentbericht (`Bericht.context`), en wordt per `model_aanroep` opgebouwd uit `verzoekopbouw.opbouw`. Voor de
+  subagents betekent dat:
+  - een subagent is een run met `ouder_run_id` in een kindgesprek, met een eigen `context` op zijn eigen `meting`-event
+    en bericht; de boom komt uit `ouder_run_id`, en er komt geen tweede vorm;
+  - de categorie `opdracht` vervangt bij een subagent de historie;
+  - `profiel_id` en `profiel_versie` staan op `model_aanroep` en op het `meting`-event;
+  - in het raster van de centrale agent tellen het rapport en de vragen van een subagent als toolresultaat van de lopende
+    beurt.
+
+  Geen nieuw veld krijgt "token" in de naam: de logredactie (`GEHEIME_VELDEN`) filtert die weg.
 - **Cache** (ADR-015): subagents met hetzelfde profiel delen hun voorvoegsel. Een ad-hoc samenstelling bouwt een eigen
   cache; dat telt mee in de meting (A6).
 
@@ -188,14 +196,73 @@ Wat vrij wordt: welk profiel of welke samenstelling, de formulering van de opdra
 grenzen), de volgorde, het beantwoorden van een vraag uit wat er ligt, en de tekst van de bundel (de feiten komen uit
 code).
 
-### A6. Meten
+### A6. Meten: een meetlus per fase
 
-- De centrale agent en de generieke subagentvorm worden één keer gemeten tegen de huidige weg: de kwaliteitsset, de
-  routeringsset en de meting per beurt, drie runs (ADR-010). Daarbij: tokens per beurt, duur, cache-aandeel en het
-  aantal subagents.
-- Een vast profiel wordt gemeten als het verandert of erbij komt (deel B, poort 3).
-- Een ad-hoc samenstelling wordt niet apart gemeten: ze valt onder de meting van de vorm, haar hash staat in de
-  provenance, en de controles bewaken elke run.
+De gebruiker (12 nov 2026, letterlijk): "Wat ik wel belangrijk vind is dat je zodra het kan ook echt testen gaat
+uitvoeren. Eigenlijk een beetje zoals we de connectors ook hebben gedaan met die 30 vragen. […] je kent wel het principe
+van zoveel mogelijk testen en bij te stellen waar nodig."
+
+Het voorbeeld zijn de iteratierondes van de connectors (nov 2026): 30 vragen per connector, op acceptatie via de
+acceptatie-MCP, beoordeeld tegen de officiële bron, generiek verbeterd per ronde, hoogstens vier rondes, met de
+uitkomsten in `docs/architectuur/metingen/`. Voor de agents wordt dat het volgende.
+
+**De agentset** (`eval/golden_centrale_agent.jsonl`, 30 opdrachten, gespreid):
+
+| Groep | Aantal | Voorbeeld | Wat verwacht is |
+|---|---|---|---|
+| enkelvoudig, geen delegatie | 8 | "wat staat er in artikel 25 Iw 1990", "wat betekent belastingschuldige" | de code-route of de centrale agent zelf; geen subagent; dezelfde tekst en bronnen als nu |
+| één subagent | 6 | "zoek de rechtspraak bij artikel 9 Iw" | één subagent, het juiste profiel, de juiste tools en connectors |
+| meer subagents | 6 | "zoek per deelvraag de bronnen", "vergelijk de termijn in de Iw en de Awb", "werk een JRM-scenario uit en annoteer de bepaling" | het aantal subagents (een bereik), de profielen, de ketens als tool, de bevestigingskaart |
+| een vraag naar boven | 5 | een dubbelzinnige regeling, een deelvraag die ontbreekt | `vraag_naar_boven`; beantwoord door de centrale agent waar dat kan, anders een keuzekaart; nooit gokken |
+| vervolg | 5 | een vervolgvraag op een rapport, of de jurist wijzigt de opdracht halverwege | de centrale agent gebruikt het rapport, en start alleen opnieuw wat nodig is |
+
+Per opdracht legt de set vast: de route (code of centraal), het bereik aan subagents, de verwachte profielen, de
+verplichte en de verboden tools, of er een vraag naar boven hoort en bij wie hij landt, en het sjabloon. De opdrachten
+gebruiken andere bepalingen dan de voorbeelden in de skill.
+
+**Meetpunten en drempels.** Een ronde is goed als alle drempels gehaald zijn.
+
+| Meetpunt | Hoe gemeten | Drempel |
+|---|---|---|
+| juiste delegatie (wel of niet, en hoeveel) | events `regie_taak` en de kindgesprekken, tegen de set | ≥ 27/30 |
+| juiste profielkeuze | `profiel_id` op `model_aanroep`; ad hoc telt als goed binnen de verwachte set | ≥ 26/30 |
+| brongetrouw en gegrond | elk antwoord en rapport tegen de officiële bron, zoals bij de connectors | 30/30 zonder onjuiste bron of verzonnen citaat |
+| vragen naar boven | de 5 opdrachten met een vraag | 5/5 boven, geen enkele subagent die gokt |
+| tokens en duur | delta van het verbruik, en de duur per beurt (`meting`-event) | enkelvoudig: mediaan ≤ +10 % op de nulmeting; meervoudig: binnen het plafond per boom, en gerapporteerd |
+| regressie | de kwaliteitsset en de routeringsset van nu | geen case van goed naar fout zonder verklaring |
+
+**Nulmeting.** Eerst de agentset tegen de huidige Lex (supervisor, specialisten, regisseur), drie runs. Veel meervoudige
+opdrachten zullen nu mislukken: dat is het vertrekpunt.
+
+**Een ronde per fase.** Pas door naar de volgende fase als de ronde goed is.
+
+| Fase | Wat de ronde meet | Drempel |
+|---|---|---|
+| T1, A1 (validator, profieltype) | de kwaliteitsset en de routeringsset | bitgelijk: geen verschil |
+| A2 (generieke subagent, regisseur op het generieke mechanisme) | de regiemeting van `regie-2026-11-08` opnieuw, plus de kwaliteitsset | gelijk of beter, op tokens en uitkomst |
+| A3 (centrale agent achter de vlag) | de agentset, ronde na ronde, hoogstens vier rondes | de drempels hierboven |
+| A4 (eindmeting) | de agentset en de kwaliteitsset, drie runs, tegen de nulmeting | de drempels, over drie runs; dat besluit A5 |
+| B3, B4 (proef, promotie) | `wetsuitvoering` als conceptskill: 30 vragen over scenario's en relevante feiten, tegen de JRM-specificatie | 30/30 brongetrouw, ≥ 26/30 inhoudelijk juist |
+| B5 (profielen in de werkplaats) | een werkplaatsprofiel (bijv. JRM-scenario) in de agentset | dezelfde drempels als A3 voor zijn opdrachten |
+
+Een ronde die drie keer bij dezelfde drempel strandt, gaat met een voorstel terug naar de gebruiker in plaats van door
+te itereren. Runs verschillen sterk: een trend claimen we pas over drie runs.
+
+**Werkwijze.**
+- Elk meetspoor draait in een eigen subsessie, zoals bij de connectors:
+  - *agentset* (A3–A4);
+  - *regie en regressie* (A1–A2);
+  - *werkplaats-proef* (B3–B5).
+
+  De hoofdsessie bundelt de ronde-PR's (`claude/alles-samen-N`), volgt de merge en de uitrol, en geeft het sein voor de
+  volgende ronde.
+- Gemeten wordt op acceptatie via de acceptatie-MCP. Tokens zijn de delta van het verbruik (de cache telt vol mee).
+  Beoordeeld wordt tegen de officiële bron (`bron_lezen`), en de agent-jurist kan helpen bij de inhoud.
+- Elke subsessie werkt in een **eigen werkgebied** en wist niets in bulk. Het acceptatie-account is gedeeld.
+- De uitkomsten komen als meetbestanden in `docs/architectuur/metingen/centrale-agent-<datum>-r<n>/` (een `ronde-n.md`
+  plus `ronde-n-runs.jsonl`), en een regel in het meetlogboek. Meetbestanden worden achteraf niet gewijzigd.
+- Een vast profiel wordt opnieuw gemeten als het verandert of erbij komt (deel B, poort 3). Een ad-hoc samenstelling
+  valt onder de meting van de vorm; haar hash staat in de provenance.
 
 ### A7. De overgang: naast elkaar, de meting beslist
 
@@ -315,6 +382,7 @@ Twee sporen die naast elkaar kunnen: **A** (de centrale agent) en **B** (de werk
 |---|---|---|---|
 | **T0** | dit ADR | docs | – |
 | **T1** | de validatoren naar `bronmodel`: `bronmodel.skill` (Agent Skills-spec + Lex-regels) en `bronmodel.agentprofiel` (de grenzen van A2); de generator gebruikt ze; het methodepakket blijft byte-gelijk | bronmodel, graph-qa | – |
+| **M0** | de agentset (30 opdrachten, A6) en de nulmeting tegen de huidige Lex, drie runs | eval, metingen | T0 |
 | **A1** | het profieltype: de zes specialisten worden vaste profielen, `SPECIALISTS` wordt eruit afgeleid; `.claude/lex-agents/` en de generator; de soort `agentprofiel` in de catalogus. Gedrag bitgelijk | graph-qa, bronmodel | T1 |
 | **A2** | de Python-basis `agent/agentvorm.py` (`Agent`, `Subagent`) en de generieke subagent: één toollus die elk profiel draait, `vraag_naar_boven` en `klaar`, het kindmechanisme van de regisseur generiek gemaakt (de regisseur gebruikt het, bitgelijk), hervatten na een antwoord | graph-qa, api | A1 |
 | **A3** | de centrale agent achter `centraleAgent`: de modellus met de workflows als tool, `subagent`, `vraag_jurist`, de bevestigingskaart, de bundel; de boom in de werkplek en de contextweergave | graph-qa, api, frontend, deploy (vlag) | A2 |
