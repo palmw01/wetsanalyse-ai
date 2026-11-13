@@ -159,6 +159,9 @@ def alleen_genoemde_regelingen(sources: list[Any], tekst: str) -> list[Any]:
     - een regeling uit een tool die regelingen opsomt (`REGELINGTOOLS`; wetgeving_live ronde 5, I20: de zeven regelingen
       van `list_regelingen` bij een antwoord over een andere wet). "Welke regelingen zitten erin?" noemt ze, en daar
       blijven ze staan;
+    - een regeling die alleen bij een treffer van een zoektool stond (het BWB-id naast een gevonden bepaling): dezelfde
+      regel. Zonder genoemd te zijn is ze geen bron (wetgeving_live ronde 2, I03/I20); genoemd wel (ADR-016 ronde 3, K10:
+      een juist antwoord over de Leidraad met een lege bronnenlijst);
     - een bepaling die alleen een zoektool vond (`_zoektools`), uit een regeling die de beurt verder niet las (Staatsblad
       ronde 5, I04: acht Awb-bepalingen uit één `semantic_search` bij een arrest uit 1959). Noemt het antwoord het
       artikel zelf ("artikel 9"), dan blijft ze ook staan.
@@ -176,7 +179,7 @@ def alleen_genoemde_regelingen(sources: list[Any], tekst: str) -> list[Any]:
 
     def weg(s: Any) -> bool:
         tool, soort = getattr(s, "origin_tool", ""), getattr(s, "soort", "")
-        if tool in REGELINGTOOLS and soort == "regeling":
+        if (tool in REGELINGTOOLS or tool in zoek) and soort == "regeling":
             return not (regeling_genoemd(s) or genoemd(s.label or ""))
         if tool in zoek and soort and soort != "regeling" and s.bwb_id and s.bwb_id not in gelezen:
             artikel = re.match(r"(?:Artikel|Bepaling|Divisie)\s+([\w:.]+)", s.label or "")
@@ -229,15 +232,18 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
                     sources.append(bron)
                 continue
             vp = vindplaats(uri)
-            # Een regeling die alleen in een zoekresultaat staat (het BWB-id bij een treffer, een lijst regelingen), is
-            # niet gelezen en dus geen bron; een bepaling die de zoektool vond, wel (search_wetgeving geeft haar tekst).
-            # Meting wetgeving_live ronde 2, I03/I20: de Awb, AWR en Awir in de bronnenlijst na alleen een zoekvraag.
-            if vp is not None and vp.soort == "regeling" and tool in _zoektools():
-                continue
+            # Een regeling die alleen in een zoekresultaat staat (het BWB-id bij een treffer), is niet gelezen. Ze gaat
+            # mee met de zoektool als herkomst, en `alleen_genoemde_regelingen` houdt haar alleen als het antwoord haar
+            # noemt: zo stonden de Awb, AWR en Awir niet meer in de lijst na alleen een zoekvraag (wetgeving_live ronde 2,
+            # I03/I20), en ontbreekt de Leidraad niet bij "welke soort regeling is de Leidraad Invordering 2008?", waar
+            # de soort uit een eigen query kwam die de regeling alleen in de vraag noemt (ADR-016 ronde 3, K10).
             sleutel = vp.bron_iri if vp else uri
             if (bestaand := per_node.get(sleutel)) is not None:
                 bestaand.iri = bestaand.iri or iri
                 bestaand.jci = bestaand.jci or jci
+                # Later ook gelezen of opgesomd: dan is dat de herkomst, niet meer het zoekresultaat.
+                if bestaand.origin_tool in _zoektools() and tool not in _zoektools():
+                    bestaand.origin_tool = tool
                 continue
             if vp is None:
                 bron = Source(label=uri, uri=uri, iri=iri, jci=jci, origin_tool=tool)

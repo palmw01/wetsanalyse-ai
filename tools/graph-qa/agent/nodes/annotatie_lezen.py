@@ -24,7 +24,10 @@ from uuid import uuid4
 
 from langgraph.config import get_stream_writer
 
+from ..overzicht import regelingen_in_vraag
+from ..aanwijzing import lees_aanwijzing
 from ..doel import _bepaal_doel, _heeft_opgegeven_doel
+from ..graph import queries
 from ..jas_klassen import klassen_in_tekst
 from ..narratie import _stap
 from ..state import State
@@ -64,12 +67,45 @@ def overzichtfilters(state: State) -> dict[str, Any] | None:
     return filters
 
 
-def zoekfilters(state: State) -> dict[str, Any]:
+# "9.4" of "25.1" kan een lid zijn of een divisie van een beleidsregel; dat beslist de code hier niet.
+_DECIMAAL_RE = re.compile(r"\d\.\d")
+
+
+def bepaling_uit_vraag(vraag: str, graph: Any) -> dict[str, str]:
+    """De bepaling of regeling die de vraag zelf noemt, als filter voor `search_annotaties`.
+
+    "Welke annotaties zijn er bij artikel 36 Iw?" zocht zonder de bepaling (alleen `limit`), en haalde eerst achttien
+    annotaties van andere bepalingen op (ronde 3 van de meting van ADR-016, 13 nov 2026). Alleen wat zeker is, telt:
+    - precies één regeling bij naam of afkorting (dezelfde namen als het overzicht), anders niets;
+    - daarbij precies één artikel met een gewoon nummer: de bepaling (met haar leden en onderdelen), of dat ene lid;
+    - geen artikel, meer artikelen, of een nummer met een punt: alleen de regeling;
+    - een vraag naar "andere" of "elders": niets, want die gaat juist over wat er buiten valt.
+    Een artikel zonder regeling kiest de code niet."""
+    if graph is None or not vraag or _ANDERE_RE.search(vraag.casefold()):
+        return {}
+    regelingen = regelingen_in_vraag(graph, vraag)
+    if len(regelingen) != 1:
+        return {}
+    [bwb] = regelingen
+    wijst = lees_aanwijzing(vraag)
+    if len(wijst.artikelen) != 1 or _DECIMAAL_RE.search(vraag) or not queries.is_artikelnummer(wijst.artikelen[0]):
+        return {"bwb_id": bwb}
+    [artikel] = wijst.artikelen
+    try:
+        iri = (queries.lid_iri(bwb, artikel, wijst.leden[0]) if len(wijst.leden) == 1
+               else queries.artikel_iri(bwb, artikel))
+    except ValueError:
+        return {"bwb_id": bwb}
+    return {"bron_iri": iri, "scope": "subtree"}
+
+
+def zoekfilters(state: State, graph: Any = None) -> dict[str, Any]:
     """De filters voor de eerste zoekopdracht, afgeleid uit de vraag en het meegegeven doel.
 
     Bewust karig: wat hier niet met zekerheid uit de vraag volgt, laten we aan het model – dat heeft
     de tools nog en kan gericht verfijnen. Een verkeerd geraden filter is erger dan een breed
-    resultaat, want dat levert stil te weinig treffers op.
+    resultaat, want dat levert stil te weinig treffers op. Met de graaf erbij leest de code ook de
+    bepaling die de vraag zelf noemt (`bepaling_uit_vraag`); het meegegeven doel gaat voor.
     """
     filters: dict[str, Any] = {"limit": LIMIET}
     klassen = klassen_in_tekst(state.get("zelfstandige_vraag") or state.get("question", "") or "")
@@ -83,6 +119,8 @@ def zoekfilters(state: State) -> dict[str, Any]:
         filters["scope"] = "subtree"
     elif doel.get("bwbId") or doel.get("bwb_id"):
         filters["bwb_id"] = doel.get("bwbId") or doel.get("bwb_id")
+    else:
+        filters.update(bepaling_uit_vraag(state.get("zelfstandige_vraag") or state.get("question", "") or "", graph))
     return filters
 
 
@@ -101,7 +139,7 @@ def zoek_annotaties_node(b, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     overzicht = overzichtfilters(state)
     naam = "overzicht_annotaties" if overzicht is not None else "search_annotaties"
-    filters = overzicht if overzicht is not None else zoekfilters(state)
+    filters = overzicht if overzicht is not None else zoekfilters(state, b.graph)
     _stap(writer, "Annotaties", f"{'overzicht' if overzicht is not None else 'zoeken'}: {_filterregel(filters)}")
     call_id = uuid4().hex
     tool = {"id": call_id, "name": naam, "input": filters}

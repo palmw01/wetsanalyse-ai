@@ -19,10 +19,39 @@ _TERUG = re.compile(rf"\b(?:lid|leden|onderdeel|onderdelen|daarvan|daarin|dat\s+
                     rf"|\b(?:{'|'.join(RANGTELWOORDEN[:20])})\s+lid\b", re.IGNORECASE)
 
 
+#: Een regel van een opsomming: een streepje, ster, bolletje of nummer, en dan tekst.
+_LIJSTREGEL = re.compile(r"^\s*(?:[-*•–]|\d+[.)])\s+\S")
+#: Het kopje van zo'n opsomming, achter de vraag of op een eigen regel: "Bijvoorbeeld:", "Je kunt kiezen uit:".
+_AANLOOP = re.compile(r"(?<=[?\n])[ \t]*[^.!?\n]{0,60}:[ \t*_`]*\Z")
+#: Een langere opsomming of een langere regel is inhoud, geen rijtje mogelijkheden.
+MAX_OPTIES = 12
+MAX_OPTIE_TEKENS = 160
+
+
+def _zonder_opties(tekst: str) -> str:
+    """Het antwoord zonder het rijtje mogelijkheden waarmee het eindigt.
+
+    Soms zet het model de mogelijkheden niet in de vraag maar eronder: "Kun je aangeven welk artikel 3 je precies
+    bedoelt? Bijvoorbeeld:" en dan een opsomming. Het antwoord eindigt dan niet met een vraagteken, en de keuzevraag
+    werd niet herkend (ronde 3 van de meting van ADR-016, 13 nov 2026: een vervolg ging naar het model, dat zelf een
+    artikel koos). Een korte opsomming aan het eind, met of zonder kopje, hoort daarom bij de vraag ervoor. Staat er
+    geen vraag voor, dan verandert er niets: `_slotvragen` vindt dan geen vraag aan het eind."""
+    regels = tekst.rstrip().split("\n")
+    eind = len(regels)
+    while eind and (not regels[eind - 1].strip() or _LIJSTREGEL.match(regels[eind - 1])):
+        eind -= 1
+    opties = [x for x in regels[eind:] if x.strip()]
+    if not opties or len(opties) > MAX_OPTIES or any(len(x) > MAX_OPTIE_TEKENS for x in opties):
+        return tekst
+    rest = "\n".join(regels[:eind]).rstrip()
+    return _AANLOOP.sub("", rest).rstrip()
+
+
 def _slotvragen(antwoord: str) -> list[str]:
     """De vragen waarmee het antwoord eindigt: de aaneengesloten reeks vraagzinnen aan het eind, in volgorde. Een vraag
-    midden in het antwoord, met een gewone zin erna, hoort er niet bij."""
-    tekst = (antwoord or "").rstrip().rstrip("*_` ")
+    midden in het antwoord, met een gewone zin erna, hoort er niet bij. Een rijtje mogelijkheden onder de laatste vraag
+    hoort bij die vraag (`_zonder_opties`)."""
+    tekst = _zonder_opties((antwoord or "").rstrip().rstrip("*_` ")).rstrip("*_` ")
     uit: list[str] = []
     eind = len(tekst)
     for m in reversed(list(_ZIN.finditer(tekst))):
