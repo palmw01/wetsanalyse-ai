@@ -201,3 +201,51 @@ def test_een_lege_index_is_geen_geen_standpunten():
     data = json.loads(tools.dispatch("zoek_standpunten", graaf, {"woorden": "loon"}, AAN,
                                      kennisgroepen=KennisgroepenBron(client=_site([]))))
     assert data["reden"] == "bron_onbereikbaar" and "get_standpunt" in data["melding"]
+
+
+# ── in het antwoord (stap 5) ────────────────────────────────────────────────────────────────────────────────────
+
+def _trace(gelezen) -> list:
+    return [("get_standpunt", tools.dispatch("get_standpunt", None, {"id": gelezen.standpunt.kenmerk}, AAN,
+                                             kennisgroepen=NepBron(gelezen=gelezen)))]
+
+
+def test_het_blok_draagt_de_statusregel_uit_de_code():
+    from bronmodel.antwoord import Antwoord, antwoord_tekst
+    from agent import sjablonen
+    from agent.grounding import check_grounding
+
+    trace = _trace(Gelezen(kg.lees_publicatie(_item(22819)), [], []))
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "De Belastingdienst laat de aangifte toe.",
+                                          "extern": [{"id": "kg:013:2026:4", "van_nr": 3, "tot_nr": 4}], "twijfel": []},
+                      trace)
+    blok = next(b for b in a.blokken if b.soort == "extern")
+    assert blok.brontype == "standpunt" and blok.kop == "Uit het beleid van de Belastingdienst (kennisgroepstandpunt)"
+    assert blok.status_regel == ("Beleid van de Belastingdienst, bindend voor de inspecteur; geen wet en geen rechtspraak. "
+                                 "Stand op 12 november 2026.")
+    assert blok.status == "geldend" and blok.datum == "2026-11-12"
+    Antwoord.model_validate(a.model_dump())
+    tekst = antwoord_tekst(a)
+    assert tekst.index("*Beleid van de Belastingdienst") < tekst.index('> "')
+    assert check_grounding(tekst, trace).grounded
+
+
+def test_een_ingetrokken_standpunt_in_het_antwoord():
+    from bronmodel.antwoord import antwoord_tekst
+    from agent import sjablonen
+
+    gelezen = Gelezen(kg.lees_publicatie(_item(4785)), ["kg:070:2024:9"], [])
+    a = sjablonen.vul("antwoord_extern", {"kort_antwoord": "Dit standpunt gold vroeger.",
+                                          "extern": [{"id": gelezen.standpunt.id, "van_nr": 1, "tot_nr": 1}],
+                                          "twijfel": []}, _trace(gelezen))
+    blok = next(b for b in a.blokken if b.soort == "extern")
+    assert blok.status == "ingetrokken" and blok.vervangen_door == ["kg:070:2024:9"]
+    assert "**Dit standpunt is ingetrokken en is geen geldend beleid; ingetrokken door KG:070:2024:9.**" in antwoord_tekst(a)
+
+
+def test_andere_connectors_houden_hun_blok():
+    """Zonder `status_regel` verandert er niets: Kamerstukken krijgt geen regel en geen melding."""
+    from bronmodel.connectors import CONNECTORS
+    from agent.sjablonen.extern import status_velden
+
+    assert status_velden(CONNECTORS["kamerstukken"], {"datum": "2024-01-01", "status": "opgemaakt"}) == {"status": "opgemaakt"}
