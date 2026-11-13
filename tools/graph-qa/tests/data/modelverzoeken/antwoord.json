@@ -624,7 +624,7 @@
       "additionalProperties": false,
       "properties": {
        "naam": {
-        "description": "Exacte naam van de JAS-klasse, bijv. 'Rechtssubject'.",
+        "description": "Naam van de JAS-klasse, bijv. 'Rechtssubject'; ook een deel of gangbare naam als 'Parameterwaarde'.",
         "type": "string"
        }
       },
@@ -1358,7 +1358,7 @@
       "additionalProperties": false,
       "properties": {
        "naam": {
-        "description": "Exacte naam van de JAS-klasse, bijv. 'Rechtssubject'.",
+        "description": "Naam van de JAS-klasse, bijv. 'Rechtssubject'; ook een deel of gangbare naam als 'Parameterwaarde'.",
         "type": "string"
        }
       },

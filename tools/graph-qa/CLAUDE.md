@@ -418,7 +418,10 @@ bruikbaar is.
   `tools/jas_tools.py` (`JAS_TOOLS`): `jas_klasse_opvragen`, alleen in het profiel `duiding`. Hij geeft de bronvelden
   van een klasse uit `jas_klassen.py` en de toelichting uit de skill (subklassen, samenhang, afbakening) uit
   `agent/jas_toelichting.py`; die genereert `genereer_jas_klassen.py` apart, zodat de annotatieketen dezelfde
-  klasseduiding houdt (`tests/test_jas_klasse_opvragen.py`).
+  klasseduiding houdt (`tests/test_jas_klasse_opvragen.py`). Elke regel van de toelichting is zelfstandig leesbaar: geen
+  "hierboven" of "zie §8", want het model ziet alleen het resultaat (meting G2). De tool vindt een klasse ook bij een
+  deel van haar naam of een synoniem (`SYNONIEMEN`: "Parameterwaarde", "constante"); anders noemt de fout de naam die
+  het meest lijkt.
 - **Bronconnectors** (ADR-013): **de beschrijving in `bronmodel.connectors` is de enige bron** (naam, label, brontype,
   groep, wat hij dekt, signalen, tools, leestool, id-vorm, rollen, rol in het antwoord, grenzen, voorbeeldvragen).
   `CONNECTORS` (connector → tools), de connectortools van de specialisten (`specialists._met_connectors`), de

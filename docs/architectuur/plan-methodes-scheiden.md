@@ -572,6 +572,12 @@ Met gedragswijziging (elk een eigen PR en een eigen meting):
   niet noemt als interpretatie met haar vindplaats (B13); noem de soort rechtsbetrekking of rechtsfeit waar de tekst
   haar draagt, en anders niet (B6, B7). Raakt: de vingerafdruk van `duiding` en `agent`.
 - **G2. `jas_klasse_opvragen` met afbakening en subklassen** (T3). Na W2. Raakt: een toolresultaat.
+- **G2b. Het toolresultaat zelfstandig leesbaar** (na de meting van G2, 14 nov 2026). Geen afbakeningsregel verwijst nog
+  naar tekst die niet in het resultaat staat ("hierboven", "zie §8"); de afbakening van parameter tegenover
+  variabele zegt dat gelijk voor allen juist een parameter is (H2:89, H2:80), en hoe de tijdsaanduiding hem
+  verbijzondert (H2:107); en de tool vindt een klasse ook bij een deel of gangbare naam ("Parameterwaarde",
+  "constante"), of zegt welke naam wel bestaat. Raakt: een toolresultaat en een toolbeschrijving; de vingerafdrukken
+  per rol niet.
 - **G3. Twee begrippentoetsen** (T5). Na W5. Raakt: de signalen op een begripskaart; geen modeltekst.
 
 Niet in dit plan: subklassen als subtype in de annotatie (T4), een wijziging van een detector (T6), en wetsuitvoering
@@ -636,6 +642,10 @@ Voor elke meting geldt ADR-010 en P19: voor en na op dezelfde versie van al het 
     G2 raakt zijn verzoek niet (licht regime).
   - Drempel: het antwoord op een twijfelvraag noemt het onderscheid uit de referentie; brongetrouwheid gelijk; het
     toolresultaat blijft onder een vaste lengte.
+- **G2b** (de toelichting zelfstandig). `k-awb67` en `k-awb68` uit de set `klassen` (een `k-awb63` bestaat niet),
+  één run, alleen de supervisor, tegen de G2-meting als nulpunt. Drempel: bij k-awb67 verwerpt het antwoord de
+  parameter niet met de toets van een variabele, en noemt het dat de tijdsaanduiding de parameter verbijzondert;
+  geen ronde verloren aan een foute klassenaam; brongetrouw gelijk.
 - **G3** (de toetsen).
   - Sets: de referentieset begrippen (`v1`, `heldout-v1`, `heldout-v2`), zonder model.
   - Drempel: geen signaal op een begrip dat de referentie goed noemt, behalve waar de naam werkelijk een ontkenning of
