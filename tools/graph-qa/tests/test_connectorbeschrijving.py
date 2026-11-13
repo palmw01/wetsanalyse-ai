@@ -50,7 +50,8 @@ WETSVRAGEN = (
 def test_de_beschrijving_is_volledig(c: bm.ConnectorBeschrijving):
     # Een aanwijzing is alleen nodig waar een vraag naar de bron wijst zonder haar te noemen ("wat bedoelde de
     # wetgever"); de meeste connectors hebben er geen.
-    optioneel = {"aanwijzingen"}
+    # Een status-regel staat alleen bij een bron die je anders met de wet zou verwarren (een kennisgroepstandpunt).
+    optioneel = {"aanwijzingen", "status_regel"}
     for veld in dataclasses.fields(c):
         if veld.init and veld.name not in optioneel:
             assert getattr(c, veld.name), f"{c.naam}: veld '{veld.name}' is leeg"

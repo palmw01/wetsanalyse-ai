@@ -37,9 +37,10 @@ export interface Bronnenlijst {
 /** De naam van de groep per brontype (ADR-013), in de volgorde van `bronmodel.extern.BRONTYPEN`. */
 export const BRONTYPE_NAAM: Record<string, string> = {
   wettekst_live: "Wetgeving buiten de kennisgraaf", kamerstuk: "Parlementaire stukken",
-  bekendmaking: "Staatsblad en Staatscourant", uitspraak: "Uitspraken", eu: "EU-recht",
+  bekendmaking: "Staatsblad en Staatscourant", uitspraak: "Uitspraken", standpunt: "Kennisgroepstandpunten (beleid)",
+  eu: "EU-recht",
 };
-const BRONTYPE_VOLGORDE = ["wettekst_live", "kamerstuk", "bekendmaking", "uitspraak", "eu"];
+const BRONTYPE_VOLGORDE = ["wettekst_live", "kamerstuk", "bekendmaking", "uitspraak", "standpunt", "eu"];
 
 const STRUCTUUR = ["hoofdstuk", "titeldeel", "afdeling", "paragraaf"];
 const nummers = new Intl.Collator("nl", { numeric: true, sensitivity: "base" });

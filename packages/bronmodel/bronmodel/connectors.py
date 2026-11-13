@@ -36,6 +36,7 @@ METADATA_SLEUTELS: dict[str, str] = {
     "gepubliceerd": "datum",   # wanneer de dienst het publiceerde
     "gewijzigd": "datum",      # wanneer de dienst de publicatie het laatst bijwerkte
     "ondertekend": "datum",    # wanneer het besluit is ondertekend
+    "vastgesteld": "datum",    # wanneer het stuk is vastgesteld, als dat een andere datum is dan de publicatie
     "inwerking": "datum",      # wanneer de tekst waar het stuk bij hoort in werking trad
     "tekst_vanaf": "datum",    # sinds wanneer de tekst van de bepaling gold waaraan het stuk gekoppeld is
     "tekst_tot": "datum",      # tot wanneer die tekst gold; leeg: hij geldt nog, of het is onbekend
@@ -53,10 +54,15 @@ METADATA_SLEUTELS: dict[str, str] = {
     "indieners": "lijst",      # wie het stuk indiende of ondertekende
     "status": "tekst",         # de stand van de publicatie (onopgemaakt, opgemaakt)
     "versie": "tekst",         # herdruk, rectificatie
+    "vervangt": "lijst",       # de ids van de stukken die dit stuk intrekt of vervangt (uit de bron, niet afgeleid)
+    "vervangen_door": "lijst", # de ids van de stukken die dit stuk intrekken of vervangen
     "procedure": "tekst",      # de procedure waarin het stuk tot stand kwam (cassatie, hoger beroep)
     "rechtsgebied": "tekst",   # het rechtsgebied of de rechtsgebieden ("Bestuursrecht; Belastingrecht")
     "wetsverwijzing": "tekst", # de bepaling die het stuk noemt ("artikel 36 van de Invorderingswet 1990")
     "samenvatting": "tekst",   # een korte samenvatting van de bron zelf (de inhoudsindicatie), geen tekst van Lex
+    "noemt": "lijst",          # de bepalingen en stukken die het stuk noemt (jci, ECLI, kst-…), elk met de herkomst
+    "bijlagen": "lijst",       # links naar bijlagen bij het stuk die de leestool niet leest (een PDF)
+    "gebeurtenissen": "lijst", # wat de bron over het stuk meldde: gepubliceerd, geactualiseerd, ingetrokken, met datum
     "leesbaar": "waarheid",    # of de leestool de tekst kan lezen
     "in_graaf": "waarheid",    # of de bron (een regeling) ook in de kennisgraaf staat; dan leest Lex haar daar
 }
@@ -168,6 +174,10 @@ class ConnectorBeschrijving:
     verzamelnamen: tuple[str, ...] = ()
     #: Andere woorden die in een lijstvraag naar deze bron staan zonder iets te zoeken ("dossier" bij Kamerstukken).
     vulwoorden: tuple[str, ...] = ()
+    #: Een vaste regel die boven elk blok van deze bron staat, uit de code en nooit uit het model: wat de bron is
+    #: tegenover de wet ("Beleid van de Belastingdienst, bindend voor de inspecteur; geen wet en geen rechtspraak").
+    #: `{datum}` wordt de datum van het gelezen stuk. Leeg: geen regel.
+    status_regel: str = ""
     #: Patronen die een vraag naar deze bron laten wijzen zonder de bron te noemen ("wat bedoelde de wetgever"). `herkent`
     #: telt ze mee (de router, de bronprompt); de bronkeuze per vraag niet (`noemt`), want zo'n vraag kan net zo goed bij
     #: een andere bron uitkomen (Kamerstukken ronde 6, K16: een uitspraak is de weg naar een memorie van vóór 1994).
