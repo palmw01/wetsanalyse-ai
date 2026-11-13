@@ -1013,6 +1013,18 @@ wordt **per beurt gereset** in `answer_stream`, net als de andere annotatievelde
 levert een keuze, geen annotatie: de ophaal-agent geeft `{"kandidaten": [...]}` terug, `annoteer_node`
 emit één `kandidaten`-event en stopt. Welke bepaling de werkvoorraad in gaat, kiest de jurist.
 
+**Annoteren gaat alleen volgens het JAS** (`agent/methodekeuze.py`, plan methodes scheiden, S1). De annotatieketen, de
+annotatie-UI en de JAS-tools zijn van wetsanalyse. Vraagt een verzoek om annoteren, markeren of analyseren volgens een
+methode die aan geen rol gekoppeld is ("annoteer artikel 9 volgens JRM", "werk dit uit als scenario met aktes"), dan
+antwoordt `supervisie._kies` met een vaste zin en start er niets: geen JAS-annotatie onder een andere naam en geen
+model, ook niet met een aangewezen bepaling, en voor beide agentvormen. *Gekoppeld* leest de regel uit het
+methodepakket (een sectie van de skill hoort bij een rol), dus hij vervalt vanzelf als wetsuitvoering een rol krijgt.
+Een vraag óver de methode ("wat zegt het JRM over een rechtsfeit?") loopt gewoon door: de regel vraagt een werkwoord
+dat om werk vraagt en slaat een vraag met een vraagwoord over. De trefwoorden per methode staan in `TREFWOORDEN`;
+`tests/test_methodekeuze.py` eist een rij voor elke methode-skill behalve wetsanalyse, en dat geen vraag uit de
+routerings-, gespreks- en kwaliteitssets in de regel valt. Bekende grens: een vervolgvraag zonder werkwoord ("en volgens
+JRM?") herkent de regel niet; die leest het model.
+
 **Eén artikel per annotatievraag.** Noemt de vraag meer artikelen, dan wijst `aanwijzing.lees_aanwijzing`
 (deterministisch) haar af vóór de ophaal-agent draait; de ophaal-JSON `{"meerdere": [...]}` en
 `doel._meerdere_artikelen` vangen de rest. "Artikel 9 lid 1 en 3" wordt het artikel met die leden
