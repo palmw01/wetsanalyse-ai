@@ -95,6 +95,14 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   noemt de connector, nooit diens tools. Wie een profiel wijzigt, verandert het gedrag van Lex: dat vraagt een meting,
   en de hash in `tests/test_profielregister.py` bewaakt dat het niet ongemerkt gebeurt. Een profiel is configuratie
   die een Python-agent laadt, nooit een agent op zichzelf.
+- **Het bronpakket** (`agent/bronpakket.json`, gelezen door `agent/bronpakket.py`; ADR-016 §B1). Per methode-skill de
+  hele map en per agentprofiel het bestand, als pad naar tekst, met de hash van `bronmodel.werkplaats.hash_van`: dezelfde
+  rekenregel als een versie in het register van de api. De catalogus toont hem als `bronhash` op een methode en een
+  agentprofiel. Gegenereerd door `scripts/genereer_bronpakket.py`, dat elk onderdeel door poort 1 van de werkplaats
+  haalt; `genereer_jas_klassen.py` draait hem mee. Het staat náást het methodepakket: de vingerafdrukken per rol bewegen
+  er niet door. JSON en geen Python, omdat het alleen tekst is. Het wordt pas gelezen als iemand ernaar vraagt.
+  **Elke wijziging aan een skill of een profiel, ook in commentaar of een eval, verandert dit bestand**: draai de
+  generator, anders faalt `--check`. `tests/test_bronpakket.py`.
 - **Twee meetvelden voor de meetlus** (ADR-016 §A6). Elk `tool_execution`-event draagt `ronde`: de modelronde die om de
   aanroep vroeg (1 = de eerste van de beurt), of 0 als de code hem zelf deed. Twee aanroepen met dezelfde ronde liepen
   naast elkaar. En een sjabloonweigering telt twee keer in `meting.sjabloon`: in `geweigerd` per sjabloon en functie

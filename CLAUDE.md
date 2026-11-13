@@ -248,6 +248,9 @@ uit de skill. Daarvan zijn **afgeleid**:
   Gegenereerd door `scripts/genereer_agentprofielen.py` (dat `genereer_jas_klassen.py` meedraait), bewaakt door
   `tests/test_profielregister.py`. Bewust niet in `.claude/agents/`: daar staan de Claude Code-subagents van het
   acceptatieteam;
+- `tools/graph-qa/agent/bronpakket.json` – de bronbestanden van elke methode-skill en elk agentprofiel met hun hash
+  (ADR-016 §B1), gegenereerd door `scripts/genereer_bronpakket.py` (dat `genereer_jas_klassen.py` meedraait), bewaakt
+  door `tests/test_bronpakket.py`. Elke wijziging aan een skill of profiel verandert dit bestand;
 - `api/app/jas_relaties.py` en `frontend/lib/jasRelaties.ts` – de relatiecatalogus (ADR-011) uit `relaties.json`,
   gegenereerd door `tools/graph-qa/scripts/genereer_jas_relaties.py` (dat `genereer_jas_klassen.py` meedraait), bewaakt
   door `tests/poort/test_relatiecatalogus.py`.
@@ -255,7 +258,10 @@ uit de skill. Daarvan zijn **afgeleid**:
 Wil je het gedrag van de agent bijsturen, bewerk dan de markdown en draai het script; bewerk je de
 Python, dan faalt de test. Omdat de skill een build-input is, draait `poort` de graph-qa-suite ook
 bij een PR die alleen skill-markdown raakt, en bouwt `graph-qa-docker-publish.yml` op
-`.claude/skills/wetsanalyse/**`.
+`.claude/skills/**` en `.claude/lex-agents/**`. Dat geldt voor elke skill en elk profiel: het **bronpakket**
+(`tools/graph-qa/agent/bronpakket.json`, ADR-016 §B1) bundelt hun bestanden met een hash, zodat de werkplaats ziet welke
+versie in het image zit. `tests/poort/test_build_inputs.py` bewaakt dat de poort, de hook en de publish dezelfde mappen
+kennen.
 
 **Opbouw (skillversie 3.0, volgens de eisen voor Claude-skills).** `SKILL.md` is de router: drie dingen die altijd
 gelden, een tabel *Wat ga je doen?* per activiteit (A werkgebied, B markeren, C samenhang, D begrippen, E volledig
@@ -407,7 +413,7 @@ dan in de `needs` van `poort`; `tests/poort/test_poort_parallel.py` bewaakt dat.
 `scripts/kruistests.sh`: het routecontract en de vormtests (`tests/poort/`, alleen stdlib) en alle tests die
 buiten hun onderdeel lezen, zodat drift ook rood wordt als alleen de andere kant wijzigt. De hook doet hetzelfde.
 De browsertests mocken `/api/**`; een methode- of padfout tussen de lagen vangt alleen dat contract. Daarnaast
-bepaalt hij wat de PR raakt en draait alleen die suites (`*.md` telt niet mee, behalve onder `.claude/skills/wetsanalyse/`, en
+bepaalt hij wat de PR raakt en draait alleen die suites (`*.md` telt niet mee, behalve onder `.claude/skills/` en `.claude/lex-agents/`, en
 `packages/bronmodel/` triggert api én graph-qa). De frontend draait naast vitest/lint/typecheck een
 Playwright-browserregressie (`npm run test:browser`); graph-qa en api draaien tegen een
 PostgreSQL-servicecontainer (`RUNSTORE_TEST_DSN`, `ANNOTATIE_TEST_DSN`), zodat de databasetests niet

@@ -145,6 +145,10 @@ def main() -> int:
     from scripts import genereer_agentprofielen
     if genereer_agentprofielen.main(["--check"] if args.check else []):
         return 1
+    # Het bronpakket (ADR-016 §B1): de bestanden van elke skill en elk profiel, voor de werkplaats.
+    from scripts import genereer_bronpakket
+    if genereer_bronpakket.main(["--check"] if args.check else []):
+        return 1
     if args.check:
         if verwacht != DOEL.read_text(encoding="utf-8"):
             print(f"{DOEL.relative_to(WORTEL)} loopt uit de pas met de skill-referentie.\n"

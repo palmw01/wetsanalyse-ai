@@ -33,6 +33,9 @@ export interface Onderdeel {
   herkomst: Herkomst;
   bestand: string[];
   versie: string;
+  /** De hash van de bronbestanden in het image (een skill of een agentprofiel), anders leeg. Een versie in de
+   *  werkplaats met dezelfde hash is actief (ADR-016 §B1). */
+  bronhash?: string;
   ingang: string[];
   context: string;
   tools: string[];

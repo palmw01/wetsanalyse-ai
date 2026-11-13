@@ -9,6 +9,7 @@ Dit is het werkdocument bij [ADR-014](adr-014-catalogus.md). Het hoort bij de so
 | Methode en rollen | `.claude/skills/wetsanalyse/` + `agentrollen.json` → `agent/methodepakket.py` | md + JSON, gegenereerd | `genereer_methodepakket.py --check`, `test_methodepakket`, `test_methoderollen` |
 | JAS-klassen | `references/jas-klassen-referentie.md` → `agent/jas_klassen.py` | md, gegenereerd | `genereer_jas_klassen.py --check`, `test_methode_drift` |
 | Relatiecatalogus | `relaties.json` → api, graph-qa, frontend | JSON, gegenereerd | `genereer_jas_relaties.py --check`, `tests/poort/test_relatiecatalogus.py` |
+| Bronpakket (de bestanden van skills en profielen, voor de werkplaats) | `.claude/skills/`, `.claude/lex-agents/` → `agent/bronpakket.json` | JSON, gegenereerd | `genereer_bronpakket.py --check`, `test_bronpakket` |
 | Agentprofielen (de specialisten) | `.claude/lex-agents/` → `agent/agentprofielen.py` → `agent/profielen.py` `PROFIELEN` | md met frontmatter, gegenereerd | `genereer_agentprofielen.py --check`, `test_profielregister` |
 | Agents en taken | `agent/agents/register.py` `AGENTS` + `models.ACTIE_TAAK` | modules met `Taak`/`MODEL_TAKEN` | `test_agents`, `test_agent_contracten` |
 | Sjablonen | `agent/sjablonen/` `SJABLONEN` + `bronmodel/antwoord.py` | dataclass + Literal | `test_sjablonen` |
