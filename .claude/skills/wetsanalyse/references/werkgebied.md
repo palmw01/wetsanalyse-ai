@@ -1,6 +1,6 @@
 # Werkgebied afbakenen (activiteit 1)
 
-Grondslag: [bronnen en beslisregister](bronnen.md) — M03, P13, P14, P17. In eigen woorden, op basis van de Leidraad
+Grondslag: [bronnen en beslisregister](bronnen.md) — M02, M03, M04, P13, P14, P17. In eigen woorden, op basis van de Leidraad
 (startactiviteit a en activiteit 1) en de Handleiding (deelactiviteiten 1a–1g).
 
 Een werkgebied legt vast **wat** je onderzoekt, voordat je beslist **welke bronnen** daarbij horen. Wie bronnen kiest
@@ -11,6 +11,7 @@ voordat de vraag scherp is, analyseert wat toevallig gevonden werd in plaats van
 - De velden, in volgorde
 - Aanleiding en doel: de vaste lijsten
 - Een goede analysevraag
+- Praktijkvoorbeelden, en waar het scenario blijft
 - Van deelvraag naar bronnen
 - Wat je oplevert
 - Valkuilen
@@ -27,7 +28,7 @@ voordat de vraag scherp is, analyseert wat toevallig gevonden werd in plaats van
 | Praktijkvoorbeeld | Een echt of realistisch geval dat de vraag concreet maakt | Verzin geen details die de opdrachtgever niet gaf; vraag erom |
 | Deelvragen | Samen dekken ze de analysevraag; elk over één onderwerp | Zie [deelvragen en bronnen](deelvragen-en-bronnen.md) |
 | Wat valt erbuiten | Onderwerpen, regelingen of situaties die je bewust niet meeneemt | Expliciet, zodat niemand ze later mist |
-| Zoekbereik | De regeling(en) waarin je zoekt | Hoogste niveau eerst, lagere regelgeving waar de grondslag naar verwijst |
+| Zoekbereik | De regeling(en) waarin je zoekt | Hoogste niveau eerst, lagere regelgeving waar de grondslag naar verwijst. Een delegatie die gebruikt is, brengt de gedelegeerde regeling in het werkgebied; de wetstechnische informatie bij een artikel helpt haar vinden, maar is niet volledig (M04 H2:125) |
 | Gebeurtenis | Waar het werkgebied om draait, in de term van de wet | Zie [zoekvragen](zoekvragen-bronselectie.md) |
 
 Ontbreekt een veld en hangt de analyse ervan af, vraag het dan gericht. Werk ondertussen aan wat er niet van afhangt.
@@ -63,6 +64,19 @@ Een analysevraag is concreet genoeg om te weten wanneer hij beantwoord is, en br
 
 Het praktijkvoorbeeld toetst de vraag: kun je met het antwoord dat ene geval afhandelen? Zo niet, dan mist de vraag
 iets.
+
+## Praktijkvoorbeelden, en waar het scenario blijft
+
+Een praktijkvoorbeeld beschrijft hoe een burger of bedrijf het proces doorloopt. De methode vraagt er minstens één: het
+meest gangbare geval. Meer voorbeelden scherpen de afbakening aan; ga daarbij van gangbaar naar zeldzaam (M02 §3.3
+activiteit 1, deelactiviteit b). Elk voorbeeld levert vragen op die de analyse moet beantwoorden: daarmee toets je de
+analysevraag en de deelvragen. Verzin geen voorbeeld; vraag erom.
+
+De methode zet een praktijkvoorbeeld daarna om in een **juridisch scenario**: één pad van één burger of bedrijf, met de
+juridische gebeurtenissen op volgorde, en verbindt de deelvragen aan die gebeurtenissen (M02 §3.3, deelactiviteiten c
+en e). De volgorde mag wisselen: eerst de deelvragen en dan de voorbeelden kan ook. Dat scenario werk je uit met de
+skill **wetsuitvoering**; een werkgebied legt het niet vast. Hier volstaat de **gebeurtenis** waar het werkgebied om
+draait, in de term van de wet.
 
 ## Van deelvraag naar bronnen
 

@@ -1,6 +1,6 @@
 # Verwijzingen en brononderzoek
 
-Grondslag: [bronnen en beslisregister](bronnen.md) — P03, P06, P11.
+Grondslag: [bronnen en beslisregister](bronnen.md) — M01, P03, P06, P11.
 ## Volledig dossier
 
 Begin met de gekozen wetsversie en peildatum. Volg een verwijzing als zij nodig is voor
@@ -37,6 +37,11 @@ dezelfde functie. Leg vast welke claim elke bron ondersteunt. Gebruik het wetsdo
 onderbouwd interpretatieargument, niet als vrijbrief om tekst te herschrijven. Vermeld
 strijdige bronnen en alternatieven. Hanteer geen automatische 'nieuwste document wint'
 of 'beleid gaat vóór rechtspraak'-regel.
+
+Voor rechtspraak maakt de methode een onderscheid (M01 h.3 stap 3, onderdeel d). Bevestigt een uitspraak de gangbare
+uitleg, noem haar dan als onderbouwing bij de interpretatie. Wijkt een uitspraak af van de gangbare uitleg of van wat de
+wetgever bedoelde, neem haar dan niet zomaar over: dat vraagt eerst een standpunt van wie over de regeling gaat. Leg
+het vast als open punt met een reviewvraag, met de uitspraak en het verschil.
 
 ## Beperkte annotatie-runtime
 

@@ -12,7 +12,7 @@ Een concept is niet goedgekeurd omdat een model het zelf groen noemt. Beoordeel 
 | Interpretatie | Materiële keuzes onderbouwd, bronstatus onderscheiden, alternatieven zichtbaar. |
 | Dekking | Iedere normeenheid verantwoord; geen verborgen uitzondering of contextlacune. |
 | Praktijkvoorbeelden | Verwachte uitkomsten volgen uit bronnen; een normaal geval en een grensgeval getoetst; onbekende invoer benoemd. |
-| Reviewbaarheid | Open vragen hebben impact en vervolgstap; menselijke besluiten blijven traceerbaar. |
+| Reviewbaarheid | Open vragen hebben impact en vervolgstap; ontbrekend beleid is als zodanig gemeld; menselijke besluiten blijven traceerbaar. |
 
 Gebruik per aspect: voldoende / tekort / niet beoordeelbaar / niet van toepassing (met reden).
 Een verzonnen bron, betekenisveranderende omissie of onbewezen conclusie als zekerheid

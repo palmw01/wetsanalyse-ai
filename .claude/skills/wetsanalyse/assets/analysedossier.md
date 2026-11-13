@@ -52,8 +52,8 @@ Impliciete of onbekende elementen met onderbouwing: …
 | Norm-ID | Geanalyseerd / gemotiveerd buiten opdracht / onopgelost | Verantwoording |
 |---|---|---|
 
-| Open punt | Impact | Benodigde bron/beoordeling | Blokkeert welke conclusie? |
-|---|---|---|---|
+| Open punt | Soort (ontbrekende bron / interpretatie / ontbrekend beleid) | Impact | Benodigde bron, beoordeling of besluit, en van wie | Blokkeert welke conclusie? |
+|---|---|---|---|---|
 
 Rubriek: bronintegriteit …; grammatica …; JAS …; samenhang …;
 interpretatie …; dekking …; praktijkvoorbeelden …; reviewbaarheid …

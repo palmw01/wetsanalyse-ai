@@ -1,6 +1,6 @@
 # Analyseprotocol: een volledig dossier (activiteit 2 met context en samenhang)
 
-Grondslag: [bronnen en beslisregister](bronnen.md) — P01–P03, P08–P09. Uitvoer: het
+Grondslag: [bronnen en beslisregister](bronnen.md) — M01, M02, P01–P03, P08–P09. Uitvoer: het
 [dossiersjabloon](../assets/analysedossier.md). Lees samen met [fragmentgrenzen](markeren-fragmentgrenzen.md),
 [verwijzingen volgen](verwijzingen-volgen.md), [relaties](relaties.md) en [kwaliteit](kwaliteit.md).
 
@@ -112,11 +112,19 @@ een praktijkvoorbeeld. Een label alleen bewijst niet dat de juridische relatie b
 Leg de relaties vast volgens [relaties](relaties.md): wie rechthebbende en plichthebbende is, wat het voorwerp is,
 welke voorwaarden gelden, en welk rechtsfeit een rechtsbetrekking creëert, wijzigt of beëindigt.
 
-Toets de analyse daarna met praktijkvoorbeelden. Een praktijkvoorbeeld is een concreet geval waarop je de bepaling
-toepast: kloppen de markeringen, de relaties en de lezing met wat er in dat geval moet gebeuren? Gebruik minstens:
-- een normaal geval;
-- een grensgeval: een voorwaarde die net niet vervuld is, een uitzondering, of de precieze grens van een termijn of
-  bedrag.
+Toets de analyse daarna. De methode kent daarvoor drie manieren (M01 h.3 stap 4; M02 §3.6 activiteit 4):
+
+- **Een review.** Leg de uitkomsten opnieuw naast de wettekst, bij voorkeur door iemand van een andere discipline. Dat
+  kan al tijdens de analyse.
+- **Een praktijkvoorbeeld.** Een concreet geval waarop je de bepaling toepast: kloppen de markeringen, de relaties en
+  de lezing met wat er in dat geval moet gebeuren? Bij een begrip toetst een voorbeeld of iedereen het hetzelfde leest
+  ([begrippen](begrippen.md)).
+- **Een voorbeeldreeks bij een afleidingsregel.** Geef de invoer een reeks waarden en schrijf per geval de uitkomst op
+  die de regel geeft. Neem ook nul, een negatieve waarde en een onbekende waarde. Vraag per uitkomst: is dit juridisch
+  juist, en mag dit geval zich voordoen? Zo vind je een geval dat de regel niet dekt.
+
+Gebruik minstens een normaal geval en een grensgeval. Vier gevallen helpen een reeks te vullen: het normale geval, een
+voorwaarde die niet vervuld is, de uitzondering, en de precieze grens van een termijn of bedrag.
 
 Weet je een invoer niet en geeft de bron geen oplossing, schrijf dan 'niet bepaalbaar'. Herleid elke verwachte
 uitkomst tot normen en bronnen. Een hypothetisch feit is nooit bronbewijs, en het voorbeeld is als hypothetisch
@@ -132,7 +140,12 @@ Geef elke normeenheid een status:
 - gemotiveerd buiten de opdracht;
 - onopgelost.
 
-Een materiële lacune krijgt een reviewvraag, met de impact en de bron of deskundigheid die nodig is. Pas de
+Een materiële lacune krijgt een reviewvraag, met de impact en de bron of deskundigheid die nodig is.
+
+Eén soort open punt krijgt een eigen naam: **ontbrekend beleid**. Heeft de analyse een interpretatie of invulling nodig
+die nergens is vastgelegd (een open norm, een ruimte die "ten minste" laat, een keuze in de uitvoering), dan meld je
+dat, met de norm, de keuze die nodig is en wie haar moet maken. Signaleren is een eigen stap van de methode (M01 h.3
+stap 5; M02 §3.7); je vult de ruimte niet zelf in. Pas de
 [kwaliteitsrubriek](kwaliteit.md) toe. Rapporteer de technische juistheid, de inhoudelijke kwaliteit en de
 brondekking apart. Het dossier blijft concept tot een mens het beoordeelt.
 
