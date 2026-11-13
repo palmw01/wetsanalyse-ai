@@ -1,0 +1,195 @@
+{
+ "id": 586,
+ "date": "2022-12-12T10:39:22",
+ "date_gmt": "2022-12-12T09:39:22",
+ "modified": "2026-07-22T11:45:53",
+ "modified_gmt": "2026-07-22T09:45:53",
+ "slug": "vervallen-kg02420222-inkoopfaciliteit-artikel-4c-wet-op-de-dividendbelasting-1965-dividend-in-contanten-en-inhoudingsvrijstelling",
+ "status": "publish",
+ "type": "wt_publication",
+ "link": "https://kennisgroepen.belastingdienst.nl/publicaties/vervallen-kg02420222-inkoopfaciliteit-artikel-4c-wet-op-de-dividendbelasting-1965-dividend-in-contanten-en-inhoudingsvrijstelling/",
+ "title": {
+  "rendered": "[VERVALLEN] KG:024:2022:2 Inkoopfaciliteit artikel 4c Wet op de dividendbelasting 1965, dividend in contanten en inhoudingsvrijstelling"
+ },
+ "content": {
+  "rendered": "\n<div class=\"wt-block-notification is-style-validation\">\n\t<svg width=\"24\" height=\"24\" viewBox=\"0 0 16 16\"\n\t\tclass=\"wt-svg-icon  wt-svg-icon-waarschuwing\" inert aria-hidden=\"true\"><use\n\t\t\thref=\"https://kennisgroepen.belastingdienst.nl/wp-content/themes/webthema/build/icons/icons.svg?ver=8.0.0#waarschuwing\"></use></svg>\t<div>\n\t\t<h6 class=\"wt-block-notification-title\">\n\t\t\t<span class=\"wt-block-notification-icon-label\">Belangrijk!&nbsp;</span>\n\t\t\tVervallen\t\t</h6>\n\t\t\n\n<p class=\"wp-block-paragraph\">Dit standpunt is d.d. 29 november 2022 vervallen. Dit standpunt is opgenomen in het verzamelbesluit dividendbelasting van 29 november 2022, nr. 2022-25322, onderdeel 7.2.5.</p>\n\n\n\n<ul class=\"wp-block-wtblocks-linklist wt-arrow-linklist\">\n<li><a href=\"https://zoek.officielebekendmakingen.nl/stcrt-2022-32364.html\" data-type=\"URL\" data-id=\"https://zoek.officielebekendmakingen.nl/stcrt-2022-32364.html\" target=\"_blank\" rel=\"noreferrer noopener\">Naar het besluit</a></li>\n</ul>\n\n\t</div>\n\t</div>\n\n\n\n<h2 class=\"wp-block-heading\" id=\"aanleiding\">Aanleiding</h2>\n\n\n\n<p class=\"wp-block-paragraph\">Een vennootschap is gestart met een inkoopprogramma en past op deze inkopen de inkoopfaciliteit van artikel 4c van de Wet op de dividendbelasting 1965 (hierna: Wet DB) toe. In de voorafgaande kalenderjaren zijn dividenden in contanten uitgekeerd waarop een inhoudingsvrijstelling van toepassing was.</p>\n\n\n\n<h2 class=\"wp-block-heading\" id=\"vraag\">Vraag</h2>\n\n\n\n<p class=\"wp-block-paragraph\">Tellen voor de berekening van het gemiddeld uitgekeerd dividend in contanten in vijf voorafgaande kalenderjaren, zoals bedoeld in artikel 4c, tweede lid, Wet DB ook uitgekeerde dividenden in contanten mee die onder de inhoudingsvrijstellingen van artikel 4, eerste of tweede lid, Wet DB vallen?</p>\n\n\n\n<h2 class=\"wp-block-heading\" id=\"antwoord\">Antwoord</h2>\n\n\n\n<p class=\"wp-block-paragraph\">Ja, voor de berekening van het gemiddeld uitgekeerd dividend in contanten als bedoeld in artikel 4c, tweede lid, Wet DB tellen ook dividenden in contanten mee die onder de reikwijdte van de inhoudingsvrijstellingen als bedoeld in artikel 4 eerst of tweede lid, Wet DB vallen.</p>\n\n\n\n<h2 class=\"wp-block-heading\" id=\"beschouwing\">Beschouwing</h2>\n\n\n\n<p class=\"wp-block-paragraph\">Onder het begrip contant dividend wordt begrepen het reguliere dividend dat via interim- en slotdividenden wordt uitgekeerd (Besluit van 6 oktober 2021, nr. 2021-14557, Stcrt. 2021, 43758 onderdeel 7.2).</p>\n\n\n\n<p class=\"wp-block-paragraph\">De vraag hoe het contante dividend op het niveau van de aandeelhouder wordt behandeld, is hierbij niet van belang (Vrijstelling of teruggaaf op basis van een belastingverdrag). Een dividend dat onder de reikwijdte van een inhoudingsvrijstelling valt (artikel 4, eerste of tweede lid, Wet DB) moet derhalve als dividend in contanten worden aangemerkt in de zin van artikel 4c, tweede lid, Wet DB.</p>\n"
+ },
+ "meta": {
+  "_acf_changed": false,
+  "wt_navigation_list_enabled": false,
+  "wt_navigation_list_title": "",
+  "wt_navigation_list_strategy": "",
+  "footnotes": "",
+  "cmd_vaststellingsdatum": "20220204",
+  "belastingsoort": [
+   "Dividendbelasting (DB)"
+  ],
+  "rubriek": [
+   "Inkoop van aandelen"
+  ],
+  "subrubriek": [
+   "Inkoopfaciliteit beursaandelen"
+  ]
+ },
+ "wt_publication_category": [
+  52
+ ],
+ "wt_publication_tag": [
+  61
+ ],
+ "message_types": [
+  95
+ ],
+ "class_list": [
+  "post-586",
+  "wt_publication",
+  "type-wt_publication",
+  "status-publish",
+  "hentry",
+  "wt_publication_category-dividend-bron-belasting",
+  "wt_publication_tag-kg-dividendbelasting-en-bronbelasting-dbbb",
+  "message_types-standpunt"
+ ],
+ "_embedded": {
+  "wp:term": [
+   [
+    {
+     "id": 52,
+     "link": "https://kennisgroepen.belastingdienst.nl/publicatie-categorie/dividend-bron-belasting/",
+     "name": "Dividend- en bronbelasting",
+     "slug": "dividend-bron-belasting",
+     "taxonomy": "wt_publication_category",
+     "acf": [],
+     "_links": {
+      "self": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_category/52",
+        "targetHints": {
+         "allow": [
+          "GET"
+         ]
+        }
+       }
+      ],
+      "collection": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_category"
+       }
+      ],
+      "about": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/taxonomies/wt_publication_category"
+       }
+      ],
+      "wp:post_type": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication?wt_publication_category=52"
+       }
+      ],
+      "curies": [
+       {
+        "name": "wp",
+        "href": "https://api.w.org/{rel}",
+        "templated": true
+       }
+      ]
+     }
+    }
+   ],
+   [
+    {
+     "id": 61,
+     "link": "https://kennisgroepen.belastingdienst.nl/publicatie-tag/kg-dividendbelasting-en-bronbelasting-dbbb/",
+     "name": "KG Dividendbelasting en Bronbelasting (DB&amp;BB)",
+     "slug": "kg-dividendbelasting-en-bronbelasting-dbbb",
+     "taxonomy": "wt_publication_tag",
+     "acf": [],
+     "_links": {
+      "self": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_tag/61",
+        "targetHints": {
+         "allow": [
+          "GET"
+         ]
+        }
+       }
+      ],
+      "collection": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_tag"
+       }
+      ],
+      "about": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/taxonomies/wt_publication_tag"
+       }
+      ],
+      "wp:post_type": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication?wt_publication_tag=61"
+       }
+      ],
+      "curies": [
+       {
+        "name": "wp",
+        "href": "https://api.w.org/{rel}",
+        "templated": true
+       }
+      ]
+     }
+    }
+   ],
+   [
+    {
+     "id": 95,
+     "link": "https://kennisgroepen.belastingdienst.nl/informatiesoort/standpunt/",
+     "name": "Standpunt",
+     "slug": "standpunt",
+     "taxonomy": "message_types",
+     "acf": [],
+     "_links": {
+      "self": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/message_types/95",
+        "targetHints": {
+         "allow": [
+          "GET"
+         ]
+        }
+       }
+      ],
+      "collection": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/message_types"
+       }
+      ],
+      "about": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/taxonomies/message_types"
+       }
+      ],
+      "wp:post_type": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/posts?message_types=95"
+       },
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/pages?message_types=95"
+       },
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication?message_types=95"
+       }
+      ],
+      "curies": [
+       {
+        "name": "wp",
+        "href": "https://api.w.org/{rel}",
+        "templated": true
+       }
+      ]
+     }
+    }
+   ]
+  ]
+ }
+}

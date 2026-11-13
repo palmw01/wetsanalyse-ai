@@ -1,0 +1,238 @@
+{
+ "id": 7012,
+ "date": "2023-04-18T09:06:08",
+ "date_gmt": "2023-04-18T07:06:08",
+ "modified": "2023-04-18T09:06:08",
+ "modified_gmt": "2023-04-18T07:06:08",
+ "slug": "kg2042023-5-renseigneringsverplichting-leerlingenvervoer",
+ "status": "publish",
+ "type": "wt_publication",
+ "link": "https://kennisgroepen.belastingdienst.nl/publicaties/kg2042023-5-renseigneringsverplichting-leerlingenvervoer/",
+ "title": {
+  "rendered": "KG:204:2023: 5 Renseigneringsverplichting leerlingenvervoer"
+ },
+ "content": {
+  "rendered": "\n<h2 class=\"wp-block-heading\" id=\"aanleiding\"><strong>Aanleiding</strong></h2>\n\n\n\n<p class=\"wp-block-paragraph\">Gemeenten zijn onder voorwaarden verplicht vervoerskosten van en naar school te vergoeden aan ouders van in hun gemeente verblijvende leerlingen. De ouders organiseren het brengen en halen van hun kind dan zelf (bijvoorbeeld door gebruik van hun eigen auto of met het openbaar vervoer). De wettelijke grondslag voor de vergoeding is neergelegd in <a href=\"https://wetten.overheid.nl/jci1.3:c:BWBR0003420&amp;hoofdstuk=I&amp;titeldeel=I&amp;artikel=4&amp;z=2023-01-01&amp;g=2023-01-01\" target=\"_blank\" rel=\"noreferrer noopener\">artikel 4</a> van de Wet op het primair onderwijs, <a href=\"https://wetten.overheid.nl/jci1.3:c:BWBR0044212&amp;hoofdstuk=8&amp;paragraaf=4&amp;artikel=8.28&amp;z=2022-08-01&amp;g=2022-08-01\" target=\"_blank\" rel=\"noreferrer noopener\">artikel 8.28</a> van de Wet op het voortgezet onderwijs en <a href=\"https://wetten.overheid.nl/jci1.3:c:BWBR0003549&amp;titeldeel=I&amp;artikel=4&amp;z=2023-01-01&amp;g=2023-01-01\" target=\"_blank\" rel=\"noreferrer noopener\">artikel 4</a> van de Wet op de expertisecentra. Gemeenten betalen dergelijke vergoedingen onbelast uit.</p>\n\n\n\n<h2 class=\"wp-block-heading\" id=\"vraag\"><strong>Vraag</strong></h2>\n\n\n\n<p class=\"wp-block-paragraph\">Zijn gemeenten verplicht gegevens en inlichtingen te verstrekken aan de Belastingdienst over de uitbetaling van deze vergoedingen op grond van <a href=\"https://wetten.overheid.nl/BWBR0012066/2022-01-01#Hoofdstuk8_Artikel22a\" target=\"_blank\" rel=\"noreferrer noopener\">artikel 22a</a> van het Uitvoeringsbesluit inkomstenbelasting 2001 (hierna: UBIB)?</p>\n\n\n\n<h2 class=\"wp-block-heading\" id=\"antwoord\"><strong>Antwoord</strong></h2>\n\n\n\n<p class=\"wp-block-paragraph\">Nee, de renseigneringsverplichting van artikel 22a UBIB is niet van toepassing op deze betalingen. Er worden namelijk voor deze betalingen geen werkzaamheden of diensten ten behoeve van de gemeente verricht.</p>\n\n\n\n<h2 class=\"wp-block-heading\" id=\"beschouwing\"><strong>Beschouwing</strong></h2>\n\n\n\n<p class=\"wp-block-paragraph\">Op grond van <a href=\"https://wetten.overheid.nl/BWBR0011353/2022-04-01#Hoofdstuk10_Afdeling10.2\" target=\"_blank\" rel=\"noreferrer noopener\">artikel 10.8</a>, eerste lid, Wet IB 2001 in samenhang met artikel 22a, eerste lid, onderdeel a, UBIB geldt een renseigneringsverplichting voor </p>\n\n\n\n<blockquote class=\"wp-block-quote is-layout-flow wp-block-quote-is-layout-flow\">\n<p class=\"wp-block-paragraph\">“inhoudingsplichtigen als bedoeld in de Wet op de loonbelasting 1964 die een of meer betalingen doen aan een natuurlijk persoon inzake voor de inhoudingsplichtige (…) verrichte werkzaamheden en diensten”.</p>\n</blockquote>\n\n\n\n<p class=\"wp-block-paragraph\">De betreffende ouders hebben op grond van de in de aanleiding genoemde wetten onder voorwaarden recht op een vergoeding van de vervoerskosten van en naar school voor hun kind. De ouders verrichten hiervoor geen werkzaamheden of diensten voor de gemeente. De renseigneringsverplichting is daarom niet van toepassing op deze betalingen.</p>\n"
+ },
+ "meta": {
+  "_acf_changed": false,
+  "wt_navigation_list_enabled": false,
+  "wt_navigation_list_title": "",
+  "wt_navigation_list_strategy": "",
+  "footnotes": "",
+  "cmd_vaststellingsdatum": null,
+  "belastingsoort": [
+   "Inkomstenbelasting (IB)",
+   "Loonbelasting (LB)"
+  ],
+  "rubriek": [
+   "Verplichtingen ten dienste van de belastingheffing"
+  ],
+  "subrubriek": ""
+ },
+ "wt_publication_category": [
+  55,
+  80
+ ],
+ "wt_publication_tag": [
+  160
+ ],
+ "message_types": [
+  95
+ ],
+ "class_list": [
+  "post-7012",
+  "wt_publication",
+  "type-wt_publication",
+  "status-publish",
+  "hentry",
+  "wt_publication_category-inkomstenbelasting",
+  "wt_publication_category-loonheffingen",
+  "wt_publication_tag-kg-loonheffing-algemeen-lha",
+  "message_types-standpunt"
+ ],
+ "_embedded": {
+  "wp:term": [
+   [
+    {
+     "id": 55,
+     "link": "https://kennisgroepen.belastingdienst.nl/publicatie-categorie/inkomstenbelasting/",
+     "name": "Inkomstenbelasting",
+     "slug": "inkomstenbelasting",
+     "taxonomy": "wt_publication_category",
+     "acf": [],
+     "_links": {
+      "self": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_category/55",
+        "targetHints": {
+         "allow": [
+          "GET"
+         ]
+        }
+       }
+      ],
+      "collection": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_category"
+       }
+      ],
+      "about": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/taxonomies/wt_publication_category"
+       }
+      ],
+      "wp:post_type": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication?wt_publication_category=55"
+       }
+      ],
+      "curies": [
+       {
+        "name": "wp",
+        "href": "https://api.w.org/{rel}",
+        "templated": true
+       }
+      ]
+     }
+    },
+    {
+     "id": 80,
+     "link": "https://kennisgroepen.belastingdienst.nl/publicatie-categorie/loonheffingen/",
+     "name": "Loonheffingen",
+     "slug": "loonheffingen",
+     "taxonomy": "wt_publication_category",
+     "acf": [],
+     "_links": {
+      "self": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_category/80",
+        "targetHints": {
+         "allow": [
+          "GET"
+         ]
+        }
+       }
+      ],
+      "collection": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_category"
+       }
+      ],
+      "about": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/taxonomies/wt_publication_category"
+       }
+      ],
+      "wp:post_type": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication?wt_publication_category=80"
+       }
+      ],
+      "curies": [
+       {
+        "name": "wp",
+        "href": "https://api.w.org/{rel}",
+        "templated": true
+       }
+      ]
+     }
+    }
+   ],
+   [
+    {
+     "id": 160,
+     "link": "https://kennisgroepen.belastingdienst.nl/publicatie-tag/kg-loonheffing-algemeen-lha/",
+     "name": "KG Loonheffing Algemeen (LHA)",
+     "slug": "kg-loonheffing-algemeen-lha",
+     "taxonomy": "wt_publication_tag",
+     "acf": [],
+     "_links": {
+      "self": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_tag/160",
+        "targetHints": {
+         "allow": [
+          "GET"
+         ]
+        }
+       }
+      ],
+      "collection": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_tag"
+       }
+      ],
+      "about": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/taxonomies/wt_publication_tag"
+       }
+      ],
+      "wp:post_type": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication?wt_publication_tag=160"
+       }
+      ],
+      "curies": [
+       {
+        "name": "wp",
+        "href": "https://api.w.org/{rel}",
+        "templated": true
+       }
+      ]
+     }
+    }
+   ],
+   [
+    {
+     "id": 95,
+     "link": "https://kennisgroepen.belastingdienst.nl/informatiesoort/standpunt/",
+     "name": "Standpunt",
+     "slug": "standpunt",
+     "taxonomy": "message_types",
+     "acf": [],
+     "_links": {
+      "self": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/message_types/95",
+        "targetHints": {
+         "allow": [
+          "GET"
+         ]
+        }
+       }
+      ],
+      "collection": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/message_types"
+       }
+      ],
+      "about": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/taxonomies/message_types"
+       }
+      ],
+      "wp:post_type": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/posts?message_types=95"
+       },
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/pages?message_types=95"
+       },
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication?message_types=95"
+       }
+      ],
+      "curies": [
+       {
+        "name": "wp",
+        "href": "https://api.w.org/{rel}",
+        "templated": true
+       }
+      ]
+     }
+    }
+   ]
+  ]
+ }
+}
