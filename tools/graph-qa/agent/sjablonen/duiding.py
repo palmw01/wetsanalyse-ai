@@ -22,7 +22,8 @@ from bronmodel.vindplaats import vindplaats
 from ..annotatie import _normaliseer, komt_letterlijk_voor
 from ..grounding import _bekende_artikelen, herstel_citaten
 from ..overzicht import vermeldingen
-from .vullen import Onvulbaar, Trace, artikel_in_trace, bron_rijen, iri_van_jci, met_toestand, ouders, toestanden, vindplaats_van
+from .vullen import (Onvulbaar, Trace, artikel_in_trace, bron_rijen, iri_van_jci, met_toestand, ouders, toestanden,
+                     verwezen_buiten_graaf, vindplaats_van)
 
 SCHEMA: dict[str, Any] = {
     "name": "antwoord_duiding",
@@ -272,7 +273,12 @@ def _niet_onderbouwd(uitleg: str, citaten: list[Citaat], extern: frozenset[str] 
     (`live_opbouw`)."""
     live = {n for n, ids in live_artikelen(trace).items() if any(i in extern for i in ids)} | live_opbouw(trace)
     bekend = _bekende_artikelen([("", f"{c.vindplaats.iri} {c.vindplaats.label} {c.tekst}") for c in citaten]) | live
-    return [v for v in vermeldingen(uitleg) if v.startswith("artikel ") and v.removeprefix("artikel ").casefold() not in bekend]
+    # Een artikel waar de bepaling naar verwijst en dat niet in de graaf staat, mag de uitleg noemen als verwijzing: er is
+    # geen tekst om aan te wijzen (`verwezen_buiten_graaf`). Alleen als het nummer bij precies één regeling hoort.
+    buiten = verwezen_buiten_graaf(trace)
+    return [v for v in vermeldingen(uitleg) if v.startswith("artikel ")
+            and (n := v.removeprefix("artikel ")).casefold() not in bekend
+            and not ((iri := artikel_in_trace(n, trace)) and iri in buiten)]
 
 
 #: Zoveel artikelen haalt de code in één weigering zelf op; de rest moet het model ophalen of weglaten.

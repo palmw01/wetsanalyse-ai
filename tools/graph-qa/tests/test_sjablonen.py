@@ -971,6 +971,32 @@ def test_een_opgehaald_maar_niet_aangewezen_artikel_wordt_niet_nog_eens_opgehaal
     assert fout.value.ophalen == []
 
 
+# ADR-016 ronde 4, E03: Iw 24 verwijst naar de Faillissementswet, die niet in de graaf staat. De verwijzing is wat de graaf
+# erover weet; een tekst om aan te wijzen is er niet, dus noemen mag zonder passage, en ophalen vraagt de code niet.
+def verwijzing_naar(naar: str, label: str, regeling: str = "") -> tuple[str, str]:
+    rij = {"vanuit": "Lid 1", "ankerTekst": "307 van de Faillissementswet", "naar": naar, "doelLabel": label,
+           "doelBwb": naar.split(":")[2], **({"doelRegeling": regeling} if regeling else {})}
+    return "follow_verwijzingen", json.dumps({"status": "ok", "volledig": True, "aantal": 1, "resultaten": [rij]})
+
+
+def test_een_verwijzing_naar_een_artikel_buiten_de_graaf_mag_zonder_passage():
+    fw = verwijzing_naar("urn:bwb:BWBR0001860:artikel:307", "art. 307 (BWBR0001860)")
+    a = vul("antwoord_duiding", duiding(twijfel=["Het verwijst naar artikel 307 van de Faillissementswet."]), [tien(), fw])
+    assert a.sjabloon == "duiding"
+
+
+def test_een_verwijzing_naar_een_artikel_in_de_graaf_vraagt_nog_steeds_een_passage():
+    awr = verwijzing_naar("urn:bwb:BWBR0002320:artikel:13:lid:2", "Lid 2", "Algemene wet inzake rijksbelastingen")
+    with pytest.raises(Onvulbaar, match="tekst staat hieronder") as fout:
+        vul("antwoord_duiding", duiding(twijfel=["Het verwijst naar artikel 13 AWR."]), [tien(), awr])
+    assert fout.value.ophalen == [{"bwb_id": "BWBR0002320", "artikel": "13"}]
+
+
+def test_een_artikel_buiten_de_graaf_dat_niemand_aanwijst_blijft_geweigerd():
+    with pytest.raises(Onvulbaar, match="niet opgehaald"):
+        vul("antwoord_duiding", duiding(twijfel=["Het verwijst naar artikel 307 van de Faillissementswet."]), [tien()])
+
+
 def test_artikel_2_is_niet_artikel_28():
     from agent.sjablonen.vullen import artikel_in_trace
     assert artikel_in_trace("2", [context_met_28()]) == ""

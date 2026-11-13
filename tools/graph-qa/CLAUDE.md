@@ -206,7 +206,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   tekst het genoemde artikel aan zonder zijn tekst (een verwijzing in `get_context`, in precies één regeling,
   `vullen.artikel_in_trace`), dan haalt `sjabloon_node` het op via `execute_tool` (hoogstens `MAX_OPHALEN`), zet het in het
   bronspoor en geeft de tekst bij de weigering mee; het model wijst daarna een passage aan of laat het weg. Uit het geheugen
-  van het model haalt de code niets op. Een markering "niet opgehaald" bestaat bewust niet.
+  van het model haalt de code niets op. Een markering "niet opgehaald" bestaat bewust niet. Een artikel waar de opgehaalde bepaling naar verwijst en dat de graaf niet heeft (`vullen.verwezen_buiten_graaf`: het label van de importer, "art. 53 (BWBR0001860)", zonder `doelRegeling`), mag de uitleg zonder passage noemen: de verwijzing is wat er over te weten valt (ADR-016 ronde 4, E03: na de weigering zocht het model de Faillissementswet op).
   Citeren kan alleen uit rijen met een iri bij hun tekst, dus niet uit `get_context`.
   `verify_node` toetst de blokken `annotaties`, `begrippen` en `leemte` niet (`NIET_GETOETST`): afgeleide duiding en tekst van de code.
   **Bronnen naast de wet** (`sjablonen/extern.py`, ADR-013): het blok `extern` (brontype, id, label, link, kop uit
