@@ -72,6 +72,16 @@ def per_rol(metingen: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return uit
 
 
+def per_ronde(events: list[dict[str, Any]]) -> list[list[str]]:
+    """De tools per modelronde, uit het veld `ronde` op `tool_execution` (vanaf A2-2b). Ronde 0 is wat de code zelf deed
+    en telt niet mee. Zonder het veld (oudere runs) een lege lijst: de grens is dan niet hard te tellen."""
+    rondes: dict[int, list[str]] = {}
+    for e in events:
+        if e.get("type") == "tool_execution" and e.get("phase") == "start" and e.get("ronde"):
+            rondes.setdefault(int(e["ronde"]), []).append(e.get("tool", ""))
+    return [rondes[r] for r in sorted(rondes)]
+
+
 def _een_van(ingangen: list[str], gezien: set[str]) -> list[str]:
     """De ingangen (`a|b` = één van beide) waarvan niets is gezien."""
     return [i for i in ingangen if not set(i.split("|")) & gezien]
@@ -94,7 +104,13 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
     rondes = sum(m.get("modelrondes", 0) for m in metingen)
     annoteerde = any(e["type"] in {"element", "run"} for e in events)
 
-    gezien = set(tools) | set(sjabloon.get("gevuld") or {}) | ({"annoteer"} if annoteerde else set())
+    agenten = [a for m in metingen for a in (m.get("contextopbouw") or {}).get("agenten") or []]
+    profielen = sorted({a.get("profiel_id") for a in agenten if a.get("profiel_id")})
+    # De overdracht naar de brede toolset (A2-2b): een aanroep van `meer_tools`, of het profiel dat erna geldt.
+    overdracht = "meer_tools" in tools or "centraal_breed" in profielen or any("centraal_breed" in (m.get("route") or "") for m in metingen)
+    rondes_tools = per_ronde(events)
+    gezien = (set(tools) | set(sjabloon.get("gevuld") or {}) | ({"annoteer"} if annoteerde else set())
+              | ({"meer_tools"} if overdracht else set()))
     laag, hoog = v["subagents"]
     gevuld = set(sjabloon.get("gevuld") or {})
     soorten = per_soort(metingen)
@@ -114,6 +130,13 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
         "gewogen": gewogen(soorten), "gewogen_warm": gewogen(soorten, warm=True),
         "opzet_gewogen": gewogen(opzet_soorten), "opzet_gewogen_warm": gewogen(opzet_soorten, warm=True),
         "per_rol": per_rol(metingen),
+        "profielen": profielen, "meer_tools": overdracht,
+        "tools_hashes": len({a.get("tools_hash") for m in metingen for a in m.get("aanroepen") or []
+                             if a.get("rol") == "centraal" and a.get("tools_hash")}),
+        "tools_per_ronde": rondes_tools, "rondes_met_meer_tools": sum(len(r) > 1 for r in rondes_tools),
+        "tool_buiten_profiel": sum(1 for e in events if e.get("type") == "tool_execution" and e.get("phase") == "end"
+                                   and "tool_buiten_profiel" in json.dumps(e, ensure_ascii=False)),
+        "geweigerd_reden": dict(sjabloon.get("geweigerd_reden") or {}),
         # Welke vorm echt draaide, uit de run zelf en niet uit wat het verzoek vroeg: een agent met de rol `centraal` in
         # `contextopbouw.agenten`, of een aanroep met de rol `supervisor`. Leeg bij een route zonder model.
         "vorm_gezien": sorted(({"centraal"} if any(a.get("rol") == "centraal" for m in metingen
