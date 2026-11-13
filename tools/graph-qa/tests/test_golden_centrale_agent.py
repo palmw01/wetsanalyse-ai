@@ -231,6 +231,7 @@ def test_de_andere_sets_worden_met_hun_eigen_scorers_gescoord():
     uit = scoor_gesprek(rec, case)
     assert uit["geslaagd"] and uit["beurten"][0]["routes"] == ["deelvragen:dekking", "deelvragen"]
     assert (uit["tokens"], uit["gewogen"]) == (24, 40)
+    assert uit["tools"] == ["get_artikel"] and not uit["meer_tools"] and uit["tool_buiten_profiel"] == 0
     fout = scoor_gesprek({**rec, "beurten": [beurt("Geen idee.", "afgewezen"), rec["beurten"][1]]}, case)
     assert not fout["geslaagd"] and any("afgewezen" in f for f in fout["beurten"][0]["fouten"])
 
