@@ -1,5 +1,7 @@
 # Uitgewerkte voorbeelden
 
+Grondslag: [bronnen en beslisregister](bronnen.md) — P04, P05, P18, P19.
+
 Twee bepalingen uit de Invorderingswet 1990, letterlijk zoals ze in de kennisgraaf staan (wettekst is vrij van
 auteursrecht). De duiding is een **voorbeeld van de werkwijze**, geen gouden standaard: een jurist kan op punten
 anders kiezen, en dat is precies waarom alternatieven zichtbaar blijven.

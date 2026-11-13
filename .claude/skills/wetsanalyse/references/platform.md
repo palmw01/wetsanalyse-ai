@@ -1,5 +1,7 @@
 # De skill in het platform (voor wie hem wijzigt)
 
+Grondslag: [bronnen en beslisregister](bronnen.md) — P11, P12, P19, P20.
+
 Deze skill is ook een **build-input** van Lex, de agent in `tools/graph-qa/`. Lees dit voordat je iets aan de skill
 verandert: een paar onderdelen gaan letterlijk als prompt of als data naar de draaiende dienst.
 
