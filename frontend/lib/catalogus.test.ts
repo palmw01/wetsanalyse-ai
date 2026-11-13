@@ -4,7 +4,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  CONCEPTEN, CONCEPT_LABEL, CONCEPT_VOLGORDE, SOORTEN, SOORT_LABEL, filterOnderdelen, onderdeelPad, parseCatalogus,
+  CONCEPTEN, CONCEPT_LABEL, CONCEPT_VOLGORDE, NEUTRAAL, SOORTEN, SOORT_LABEL, filterOnderdelen, methodeLabel, onderdeelPad,
+  parseCatalogus,
   parseOnderdeel, perConcept, perSoort, type Onderdeel,
 } from "./catalogus";
 
@@ -32,6 +33,19 @@ describe("de catalogus volgt het bronmodel", () => {
     expect([...literal.matchAll(/"([a-z]+)"/g)].map((m) => m[1])).toEqual([...CONCEPTEN]);
     expect([...CONCEPT_VOLGORDE].sort()).toEqual([...CONCEPTEN].sort());
     for (const c of CONCEPTEN) expect(CONCEPT_LABEL[c].kop).toBeTruthy();
+  });
+});
+
+describe("de methode van een onderdeel", () => {
+  it("neutraal heet zoals in het bronmodel", () => {
+    expect(readFileSync(BRONMODEL, "utf8")).toContain(`NEUTRAAL = "${NEUTRAAL}"`);
+  });
+
+  it("de werkplek noemt de skill bij naam en zegt het als een onderdeel van geen methode is", () => {
+    expect(methodeLabel("wetsanalyse")).toBe("Wetsanalyse");
+    expect(methodeLabel("wetsuitvoering")).toBe("Wetsuitvoering");
+    expect(methodeLabel(NEUTRAAL)).toBe("Geen: voor elke methode");
+    expect(methodeLabel(undefined)).toBe("");
   });
 });
 

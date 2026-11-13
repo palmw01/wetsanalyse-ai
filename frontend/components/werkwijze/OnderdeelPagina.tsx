@@ -12,7 +12,7 @@ import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { ConceptBewerken } from "@/components/werkwijze/Concepten";
 import { ModelLabel } from "@/components/werkwijze/ModelLabel";
 import { foutTekst, haalOnderdeel } from "@/lib/api";
-import { CONCEPT_LABEL, SOORT_LABEL, onderdeelPad, soortVan, type OnderdeelDetail, type Soort } from "@/lib/catalogus";
+import { CONCEPT_LABEL, SOORT_LABEL, methodeLabel, onderdeelPad, soortVan, type OnderdeelDetail, type Soort } from "@/lib/catalogus";
 import { werkplaatsSoortVan } from "@/lib/werkplaats";
 
 type Rij = Record<string, unknown>;
@@ -70,7 +70,7 @@ export function OnderdeelPagina({ soort, naam }: { soort: Soort; naam: string })
 
 function Contract({ o }: { o: OnderdeelDetail }) {
   const regels: [string, string][] = ([
-    ["Ingang", tekst(o.ingang)], ["Context", o.context], ["Tools", tekst(o.tools)], ["Uitvoer", o.uitvoer],
+    ["Methode", methodeLabel(o.methode)], ["Ingang", tekst(o.ingang)], ["Context", o.context], ["Tools", tekst(o.tools)], ["Uitvoer", o.uitvoer],
     ["Bij twijfel", o.twijfel], ["Straat", o.straat ? `${o.straat} · ${o.aan ? "hier aan" : "hier uit"}` : ""],
   ] as [string, string][]).filter(([, w]) => w);
   if (!regels.length) return null;
