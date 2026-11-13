@@ -1,0 +1,203 @@
+"""De tools en de bron van de connector Kennisgroepstandpunten (plan-connector-kennisgroepen.md stap 4).
+
+Zonder netwerk: de index is een `FakeGraph` die op de vorm van de query antwoordt, de site een `httpx.MockTransport` met
+echte publicaties uit `tests/data/kennisgroepen/` (CC0).
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import httpx
+import pytest
+
+from agent import tools
+from agent.adapters import kennisgroepen_bron as kb
+from agent.adapters.kennisgroepen_bron import Gelezen, Gevonden, KennisgroepenBron, KennisgroepenFout, Zoekvraag
+from bronmodel import kennisgroepen as kg
+from fakes import FakeGraph, make_settings
+
+DATA = Path(__file__).parent / "data" / "kennisgroepen"
+AAN = make_settings(connector_kennisgroepen=True)
+
+
+def _item(wp_id: int) -> dict:
+    return json.loads((DATA / f"wp-{wp_id}.json").read_text(encoding="utf-8"))
+
+
+def _tsv(kop: list[str], *rijen: list[str]) -> str:
+    def term(w: str) -> str:
+        return f"<{w}>" if w.startswith("urn:") else '"' + w.replace('"', '\\"') + '"'
+    return "\n".join(["\t".join("?" + k for k in kop)] + ["\t".join(term(w) if w else "" for w in r) for r in rijen])
+
+
+class NepBron:
+    def __init__(self, rijen=None, per_status=None, per_herkomst=None, gelezen=None):
+        self.rijen, self.vragen = rijen or [], []
+        self.per_status = per_status if per_status is not None else {"geldend": len(self.rijen)}
+        self.per_herkomst, self.gelezen = per_herkomst or {}, gelezen
+
+    def zoek(self, graph, vraag, *, offset, limit):
+        self.vragen.append(vraag)
+        return Gevonden(sum(n for s, n in self.per_status.items() if vraag.status in ("alle", s)),
+                        self.rijen[offset:offset + limit], self.per_status, self.per_herkomst)
+
+    def publicatie(self, graph, ident):
+        return self.gelezen
+
+
+def _roep(naam: str, args: dict, bron, graph=None) -> dict:
+    return json.loads(tools.dispatch(naam, graph, args, AAN, kennisgroepen=bron))
+
+
+# ── de SPARQL ───────────────────────────────────────────────────────────────────────────────────────────────────
+
+def test_een_waarde_van_de_jurist_is_altijd_een_literal():
+    q = kb.q_pagina(Zoekvraag(woorden=('x") } } DROP GRAPH <urn:bwb:x> #',), kennisgroep='a"b'), 0, 11)
+    assert 'DROP GRAPH <urn:bwb:x>' not in q.replace('\\"', "")  or '\\"' in q
+    assert '"x\\") } } drop graph <urn:bwb:x> #"' in q and '"a\\"b"' in q
+
+
+def test_de_filters_staan_in_de_query():
+    q = kb.q_pagina(Zoekvraag(bwb_id="BWBR0004770", artikel="36", lid="2", kennisgroep="Invordering", middel="ib",
+                              rubriek="loon", noemt="ECLI:NL:HR:2013:64", vanaf="2024-01-01", tot="2024-12-31"), 0, 11)
+    for deel in ('kgo:bwbId "BWBR0004770"', 'kgo:artikel "36"', '?anderlid != "2"', '"invordering"', 'kgo:doel '
+                 '"ECLI:NL:HR:2013:64"', '>= "2024-01-01"', '<= "2024-12-31"', 'FILTER(?status = "geldend")',
+                 f"GRAPH <{kg.GRAAF}>", "DESC(?datum)"):
+        assert deel in q, deel
+    assert "urn:bwb:" not in q.split("GRAPH", 1)[0]
+    assert 'FILTER(?status' not in kb.q_pagina(Zoekvraag(status="alle"), 0, 1)
+    assert "ASC(?datum)" in kb.q_pagina(Zoekvraag(volgorde="oudste"), 0, 1)
+
+
+# ── zoek_standpunten ────────────────────────────────────────────────────────────────────────────────────────────
+
+RIJ = {"id": "kg:202:2025:26", "kenmerk": "KG:202:2025:26", "titel": "Reiskosten vrijwilliger", "status": "geldend",
+       "datum": "2025-06-01", "link": "https://kennisgroepen.belastingdienst.nl/publicaties/x/",
+       "kennisgroep": "KG Inkomstenbelasting Niet Winst (IB-NW)", "middelen": "Inkomstenbelasting|Inkomstenbelasting (IB)",
+       "rubrieken": "Persoonsgebonden aftrek", "vervangt": "", "vervangen_door": "", "herkomsten": "link|tekst"}
+
+
+def test_zoeken_per_artikel_met_herkomst_en_tekststand():
+    graaf = FakeGraph(results=lambda q: _tsv(["inwerking"], ["2026-01-01"]) if "bwb:inwerking" in q else "")
+    bron = NepBron([RIJ], per_status={"geldend": 1, "ingetrokken": 2}, per_herkomst={"link": 1, "tekst": 1})
+    data = _roep("zoek_standpunten", {"bwb_id": "BWBR0004770", "artikel": "36"}, bron, graaf)
+    assert data["status"] == "ok" and data["totaal"] == 1
+    [rij] = data["resultaten"]
+    assert rij["id"] == "kg:202:2025:26" and rij["label"] == "KG:202:2025:26"
+    assert rij["wetsverwijzing"] == "noemt artikel 36 (een link van de Belastingdienst en in de tekst herkend)"
+    assert rij["tekststand"] == "eerdere tekst"
+    assert rij["reeks"] == ["Persoonsgebonden aftrek"] and "Inkomstenbelasting (IB)" in rij["rechtsgebied"]
+    assert data["per_status"] == {"geldend": 1, "ingetrokken": 2} and data["koppelingen"] == {"link": 1, "tekst": 1}
+    assert "2 ingetrokken of vervallen" in data["toelichting"]
+    assert bron.vragen[0].status == "geldend", "standaard alleen geldende standpunten (V5)"
+
+
+def test_niets_gevonden_is_niet_geen_standpunt():
+    data = _roep("zoek_standpunten", {"woorden": "zeppelin"}, NepBron([], per_status={}))
+    assert data["totaal"] == 0 if "totaal" in data else True
+    assert "Niet elk standpunt wordt gepubliceerd" in data["toelichting"]
+
+
+@pytest.mark.parametrize("args,reden", [
+    ({"artikel": "36"}, "ongeldige_argumenten"), ({"bwb_id": "BWBR0004770", "lid": "2"}, "ongeldige_argumenten"),
+    ({"bwb_id": "Iw"}, "ongeldig_id"), ({"status": "vervangen"}, "ongeldige_status"),
+    ({"noemt": "artikel 36"}, "ongeldig_id"), ({"vanaf": "vorig jaar"}, "ongeldige_datum"),
+    ({"woorden": "a b"}, "ongeldige_tekst"), ({"aantal": 99}, "ongeldig_aantal"),
+])
+def test_invoerfouten_met_een_voorbeeld(args, reden):
+    data = _roep("zoek_standpunten", args, NepBron([RIJ]))
+    assert data["status"] == "error" and data["reden"] == reden and "bijvoorbeeld" in data["melding"]
+
+
+def test_noemt_wordt_canoniek():
+    bron = NepBron([RIJ])
+    _roep("zoek_standpunten", {"noemt": "ecli:nl:hr:2013:64"}, bron)
+    _roep("zoek_standpunten", {"noemt": "KG:013:2018:0173"}, bron)
+    assert [v.noemt for v in bron.vragen] == ["ECLI:NL:HR:2013:64", "kg:013:2018:173"]
+
+
+def test_connector_uit():
+    data = json.loads(tools.dispatch("zoek_standpunten", None, {"woorden": "loon"}, make_settings()))
+    assert data["reden"] == "connector_uit"
+
+
+# ── get_standpunt ───────────────────────────────────────────────────────────────────────────────────────────────
+
+def test_lezen_geeft_het_stuk_en_de_rijen():
+    gelezen = Gelezen(kg.lees_publicatie(_item(22819)), [], [{"soort": "geactualiseerd", "datum": "2026-11-12"}])
+    data = _roep("get_standpunt", {"id": "KG:013:2026:4"}, NepBron(gelezen=gelezen))
+    assert data["status"] == "ok"
+    stuk = data["stuk"]
+    assert (stuk["id"], stuk["label"], stuk["status"], stuk["datum"]) == ("kg:013:2026:4", "KG:013:2026:4", "geldend",
+                                                                          "2026-11-12")
+    assert stuk["vervangt"] == ["kg:013:2018:173"] and "ECLI:NL:HR:2013:64" in stuk["noemt"]
+    assert stuk["gebeurtenissen"][0]["soort"] == "geactualiseerd" and len(stuk["bron_hash"]) == 64
+    assert data["resultaten"][0]["kop"] == "Aanleiding"
+
+
+def test_een_ingetrokken_standpunt_zegt_het():
+    gelezen = Gelezen(kg.lees_publicatie(_item(4785)), ["kg:070:2024:9"], [])
+    data = _roep("get_standpunt", {"id": gelezen.standpunt.kenmerk}, NepBron(gelezen=gelezen))
+    assert data["stuk"]["status"] == "ingetrokken" and data["stuk"]["vervangen_door"] == ["kg:070:2024:9"]
+    assert "geen geldend beleid" in data["toelichting"] and "KG:070:2024:9" in data["toelichting"]
+
+
+def test_lezen_vraagt_een_kenmerk():
+    data = _roep("get_standpunt", {"id": "ECLI:NL:HR:2013:64"}, NepBron())
+    assert data["reden"] == "ongeldig_id"
+
+
+# ── de bron: index, site, cache ─────────────────────────────────────────────────────────────────────────────────
+
+def _site(teller: list, *, faal: bool = False) -> httpx.Client:
+    def antwoord(req: httpx.Request) -> httpx.Response:
+        teller.append(str(req.url))
+        if faal:
+            raise httpx.ConnectError("weg")
+        if "search=" in str(req.url):
+            return httpx.Response(200, json=[{"id": 22819, "title": {"rendered": "KG:013:2026:4 Aangifte BPM"}},
+                                             {"id": 1, "title": {"rendered": "KG:013:2026:44 Iets anders"}}])
+        return httpx.Response(200, json=_item(22819))
+    return httpx.Client(transport=httpx.MockTransport(antwoord))
+
+
+def test_het_wp_id_komt_uit_de_index():
+    teller: list = []
+    graaf = FakeGraph(results=lambda q: _tsv(["wp", "vervangen_door"], ["22819", ""]) if "kgo:id" in q
+                      else _tsv(["soort", "datum", "link", "titel"], ["geactualiseerd", "2026-11-12", "https://x", "t"]))
+    bron = KennisgroepenBron(client=_site(teller), slaap=lambda _: None)
+    g = bron.publicatie(graaf, "kg:013:2026:4")
+    assert g.standpunt.id == "kg:013:2026:4" and g.gevalideerd and g.gebeurtenissen[0]["soort"] == "geactualiseerd"
+    assert teller == [kg.item_url(22819)]
+
+
+def test_zonder_index_zoekt_de_bron_het_kenmerk_bij_de_site():
+    teller: list = []
+    bron = KennisgroepenBron(client=_site(teller), slaap=lambda _: None)
+    assert bron.publicatie(None, "kg:013:2026:4").standpunt.wp_id == 22819
+    assert "search=KG%3A013%3A2026%3A4" in teller[0]
+
+
+def test_cache_en_bewaarde_versie_bij_een_storing():
+    teller: list = []
+    klok = [0.0]
+    bron = KennisgroepenBron(client=_site(teller), slaap=lambda _: None, klok=lambda: klok[0])
+    graaf = FakeGraph(results=lambda q: _tsv(["wp", "vervangen_door"], ["22819", ""]) if "kgo:id" in q else "")
+    bron.publicatie(graaf, "kg:013:2026:4")
+    bron.publicatie(graaf, "kg:013:2026:4")
+    assert len(teller) == 1, "binnen VERS_S geen tweede verzoek"
+    klok[0] = kb.VERS_S + 1
+    bron._http = _site(teller, faal=True)
+    g = bron.publicatie(graaf, "kg:013:2026:4")
+    assert not g.gevalideerd and g.standpunt.id == "kg:013:2026:4"
+
+
+def test_een_lege_index_is_geen_geen_standpunten():
+    graaf = FakeGraph(results=lambda q: "?status\t?n\n" if "COUNT" in q else "?s\n")
+    with pytest.raises(KennisgroepenFout) as exc:
+        KennisgroepenBron(client=_site([])).zoek(graaf, Zoekvraag(woorden=("loon",)), offset=0, limit=11)
+    assert exc.value.code == "geen_index"
+    data = json.loads(tools.dispatch("zoek_standpunten", graaf, {"woorden": "loon"}, AAN,
+                                     kennisgroepen=KennisgroepenBron(client=_site([]))))
+    assert data["reden"] == "bron_onbereikbaar" and "get_standpunt" in data["melding"]

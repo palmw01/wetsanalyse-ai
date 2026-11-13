@@ -380,6 +380,35 @@ class NepBwb:
         return self.gelezen
 
 
+class NepKennisgroepen:
+    """De index en de site van de kennisgroepen: `n` standpunten met de langste metadata die de site geeft, en een
+    standpunt met `alineas` lange alinea's."""
+
+    def __init__(self, n: int, alineas: int = 400) -> None:
+        self.rijen = [{"id": f"kg:204:2099:{i}", "kenmerk": f"KG:204:2099:{i}", "titel": "Onderwerp " + _LANG[:200],
+                       "status": "geldend", "datum": "2099-01-02", "link": f"https://kennisgroepen.belastingdienst.nl/p/{i}",
+                       "kennisgroep": "KG Loonheffing Algemeen (LHA)", "middelen": "Loonheffingen|Loonbelasting (LB)",
+                       "rubrieken": "Loon|Overig", "vervangt": "", "vervangen_door": "", "herkomsten": "link|tekst"}
+                      for i in range(1, n + 1)]
+        als = "".join(f"<p>{i}. {_LANG[:1500]}</p>" for i in range(alineas))
+        self.item = {"id": 1, "date": "2099-01-02T10:00:00", "modified": "2099-01-03T10:00:00", "slug": "kg20420991-x",
+                     "link": "https://kennisgroepen.belastingdienst.nl/publicaties/kg20420991-x/",
+                     "title": {"rendered": "KG:204:2099:1 Onderwerp"},
+                     "content": {"rendered": f"<h2>Beschouwing</h2>{als}"}, "meta": {"belastingsoort": ["Loonbelasting (LB)"]},
+                     "_embedded": {"wp:term": [[{"taxonomy": "message_types", "name": "Standpunt"}],
+                                               [{"taxonomy": "wt_publication_tag", "name": "KG Loonheffing Algemeen (LHA)"}]]}}
+
+    def zoek(self, graph, vraag, *, offset, limit):
+        from agent.adapters.kennisgroepen_bron import Gevonden
+        return Gevonden(len(self.rijen), self.rijen[offset:offset + limit], {"geldend": len(self.rijen)},
+                        {"link": len(self.rijen)} if vraag.bwb_id else {})
+
+    def publicatie(self, graph, ident):
+        from agent.adapters.kennisgroepen_bron import Gelezen
+        from bronmodel.kennisgroepen import lees_publicatie
+        return Gelezen(lees_publicatie(self.item), [], [])
+
+
 def nepgraaf(connector: str):
     """De graaf in de harnas: geen, behalve voor een connector die vraagt of een regeling in de graaf staat (dan een
     graaf zonder die regeling)."""
@@ -391,7 +420,7 @@ def nepgraaf(connector: str):
 
 #: Per connector: een nepbron per omvang, en per tool de argumenten en de omvang van de dataset die terug moet komen.
 NEPBRONNEN = {"kamerstukken": NepSru, "rechtspraak": NepRechtspraak, "bekendmakingen": NepKoopBekendmakingen,
-              "wetgeving_live": NepBwb}
+              "wetgeving_live": NepBwb, "kennisgroepen": NepKennisgroepen}
 CONNECTOR_ARGS: dict[str, list[tuple[dict, str]]] = {
     "zoek_kamerstukken": [({"dossier": "99001"}, "dossier"), ({"woorden": "Invorderingswet"}, "dossier"),
                           ({"dossier": "99001", "woorden": "stuk"}, "dossier")],
@@ -406,6 +435,9 @@ CONNECTOR_ARGS: dict[str, list[tuple[dict, str]]] = {
                         ({"orgaan": "Financiën", "aantal": 25}, "dossier")],
     "zoek_artikelen": [({"bwb_id": NepBwb.BWB}, "dossier")],
     "get_wettekst": [({"bwb_id": NepBwb.BWB, "artikel": "1"}, "alineas")],
+    "zoek_standpunten": [({"bwb_id": "BWBR0004770", "artikel": "36"}, "dossier"),
+                         ({"kennisgroep": "Invordering", "volgorde": "oudste", "aantal": 25}, "dossier")],
+    "get_standpunt": [({"id": "KG:204:2099:1"}, "alineas")],
 }
 OMVANGEN = (1, 40, 300, 301, 1000, 1001, 1200)
 
