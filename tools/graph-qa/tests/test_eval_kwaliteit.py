@@ -158,6 +158,19 @@ def test_de_duidingset_is_geldig_en_vraagt_het_duidingsjabloon():
         assert c["expected_sources"] and c["expected_contains"] and c["should_refuse"] is False, c["id"]
 
 
+def test_de_meetset_bij_g1_is_geldig_en_raakt_de_voorbeelden_van_de_skill_niet():
+    """G1 (plan methodes scheiden, deel 2): tien Awb-bepalingen, vijf met een partij die de tekst niet noemt en vijf met
+    een bekende soort bevoegdheid of plicht; geen bepaling uit de voorbeelden van de skill."""
+    from pathlib import Path
+    cases = run_eval.load_golden(Path(run_eval.__file__).parent / "golden_duiding_partijen.jsonl")
+    assert len(cases) == 10 and len({c["id"] for c in cases}) == 10
+    assert sorted(c["toets"] for c in cases) == ["partij"] * 5 + ["soort"] * 5
+    for c in cases:
+        assert vraagtype_van(c) == "duiding" and c["sjabloon"] == "duiding" and c["beoordeling"], c["id"]
+        assert c["expected_sources"] == ["BWBR0005537"] and c["expected_contains"] and c["should_refuse"] is False
+    assert not any("4:13" in c["question"] for c in cases)
+
+
 # --- verbruik en weigeringen per case -----------------------------------------------------------------
 
 def test_een_qa_case_meldt_tokens_rondes_duur_en_waarom_het_sjabloon_weigerde(capsys, monkeypatch):

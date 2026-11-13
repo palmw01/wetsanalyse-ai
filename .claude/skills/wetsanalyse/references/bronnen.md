@@ -67,6 +67,12 @@ stil bijgewerkte webpagina onder een oude versieaanduiding.
 
 ## Historie
 
+**Methodeversie 3.0, tweede stap (13 nov 2026): `duiding` maakt de partij die de tekst niet noemt expliciet.** De
+sectie vraagt Lex de andere partij van een rechtsbetrekking te zoeken en te benoemen als interpretatie met haar
+vindplaats, of te zeggen dat zij onbekend is, en de soort rechtsbetrekking of rechtsfeit te noemen waar de tekst haar
+draagt (M01 h.4 §3, §4, §4.2.2 en §4.3.1; P18). Dit verandert de vingerafdruk van `duiding` en `agent`; gemeten met
+de vorige stap als nulpunt.
+
 **Methodeversie 3.0 (13 nov 2026): de methodetekst zonder JRM.** De sectie `duiding` beschrijft de rechtsbetrekking
 volgens het JAS (partijen, voorwerp, voorwaarden, en het rechtsfeit dat haar creëert, wijzigt of beëindigt) in plaats
 van "volgens JRM 2"; de slotzin over de JRM-verrijking vervalt. De sectie `supervisor` belooft geen "JAS/JRM-dossier"
