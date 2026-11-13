@@ -38,19 +38,66 @@ centrale klassen: de rechtsbetrekking, het rechtsfeit, de afleidingsregel en de 
 4. **Volgorde telt bij `invoer` en `operand`.** "A verminderd met B" is iets anders dan "B verminderd met A".
    Geef de operanden van een operator en de invoer van een regel een volgnummer zodra de volgorde de
    uitkomst verandert. Dat volgnummer is uniek per operator of regel.
-5. **Een impliciete partij is alleen een rechtssubject, en alleen de jurist legt haar vast.** Noemt de tekst de
-   wederpartij niet, verzin dan geen anker. Koppel eerst aan een markering elders waar de partij wél letterlijk
-   staat. Lukt dat niet, maak dan een impliciete partij met een toelichting die zegt waaruit ze volgt.
+5. **De partij die de tekst niet noemt, benoem je; alleen de jurist legt haar vast.** Zie *De partij die de tekst
+   niet noemt* hieronder.
 6. **Tekstuele relaties alleen waar de tekst ze uitdrukt.** `uitzondering_op` ("in afwijking van", "met
    uitzondering van") en `toepassing` ("is van toepassing", "vindt toepassing") leg je alleen als die
    woorden er staan. Ze zijn geen regelstructuur.
+
+## De partij die de tekst niet noemt
+
+De wet noemt vaak maar één van de twee partijen van een rechtsbetrekking: wie een recht heeft, of wie iets moet. De
+andere partij volgt dan uit de regeling. Het boek noemt dat de dieptestructuur onder de tekst, en zegt dat je de andere
+partij expliciet moet maken om de rechtsbetrekking te kunnen duiden (M01 h.4, §4.2.2 *Rechten en plichten* en §4.3.1).
+Een rechtsbetrekking met één partij is dus niet af.
+
+Zo doe je dat, zonder iets te verzinnen:
+
+1. **Zoek eerst waar de partij wel staat.** In een ander lid, in de definities van de regeling, of in de bepaling die
+   de bevoegdheid toekent. Staat zij daar letterlijk, koppel de relatie dan aan die markering.
+2. **Staat zij nergens letterlijk, benoem haar dan als interpretatie.** Zeg wie het vermoedelijk is en uit welke
+   bepaling dat volgt ("de ontvanger, op grond van artikel 3"). Het is een lezing, geen citaat: zet haar nooit tussen
+   aanhalingstekens en geef haar geen tekstanker.
+3. **Kun je haar niet onderbouwen, schrijf dan "onbekend"** en maak er een open punt van, met de bron die nodig is. Een
+   waarschijnlijke partij zonder vindplaats ("de Staat", "de inspecteur") vul je niet in.
+
+In de annotatie van Lex geldt daarnaast: alleen de jurist legt een impliciete partij vast (ADR-011). Lex noemt haar in
+een antwoord of toelichting, als interpretatie met de vindplaats, en legt haar niet zelf als relatie vast.
+
+## Het diagram rond een centrale klasse
+
+De samenhang van activiteit 2 is in de methode een diagram per centrale klasse (M02 §3.4 activiteit 2,
+deelactiviteit c). Het toont de brontekst, de markeringen met hun klasse, en de verbanden daartussen. Het is een
+tussenresultaat: zodra de begrippen er zijn, kan hetzelfde diagram met begrippen in plaats van formuleringen worden
+getekend.
+
+Loop per centrale klasse deze verbanden na (zie per klasse *Samenhang* in de [klassenreferentie](jas-klassen-referentie.md)):
+
+- **rechtsbetrekking**: rechthebbende, plichthebbende, voorwerp, voorwaarden, duur;
+- **rechtsfeit**: de rechtsbetrekking die het creëert, wijzigt of beëindigt, wie het verricht, het voorwerp, het
+  tijdstip;
+- **afleidingsregel**: precies één uitvoer, de invoer op volgorde, de operatoren, de voorwaarden;
+- **voorwaarde**: waar zij op werkt, wat zij vergelijkt, de operator.
+
+Een verband dat ontbreekt, is een signaal: de tekst noemt het niet, of de markering mist nog.
+
+## Specialisatie en afleidingshiërarchie
+
+Twee verbanden uit het boek die geen relatietype in de catalogus zijn, en waar je ze dan laat:
+
+- **Specialisatie** (M01 h.4 §1 en §2): een rechtssubject of rechtsobject is een bijzondere vorm van een ander. Noteer
+  het in de toelichting van de markering. Als begripsrelatie *soort van* krijgt het later een plek bij de begrippen
+  (activiteit 3).
+- **Afleidingshiërarchie** (M01 h.4 §6): een regel heeft de uitkomst van een andere regel nodig. Signaleer het bij de
+  samenhang met de relatie `invoer`, die naar een andere bepaling mag wijzen. De keten van regels zelf (volgorde,
+  vertakking) werk je uit bij het opstellen van regels (activiteit 3b).
 
 ## Zorgvuldig duiden
 
 Vier dingen die bij het leggen van relaties vaak misgaan (M01 h.4, rechtsbetrekking en rechtsfeit):
 
 - **Forceer geen volledige relatie.** Een verband dat de tekst niet draagt of dat nog niet vaststaat, krijgt die
-  status; je verzint geen wederpartij om de relatie rond te krijgen.
+  status. Een partij die de tekst niet noemt, benoem je met haar vindplaats of als onbekend (zie hierboven).
 - **Een immuniteit is een eigen soort rechtsbetrekking.** Laat een onderbouwde immuniteit staan; maak er geen
   bevoegdheid onder een voorwaarde van zonder dat de tekst dat zegt.
 - **Eén passage zonder sanctie maakt een verplichting nog niet zwak.** Of nakoming is af te dwingen, staat vaak in een
@@ -83,7 +130,8 @@ verbonden zijn.
   regels (3b).
 - Een waarde of tak als label op een lijn ("is gesteld op zes weken", "wel of geen schrikkeljaar"). Dat is
   regelinhoud.
-- Specialisatie van een begrip. Dat is de begripsrelatie *soort van* (activiteit 3).
+- Specialisatie als relatietype. In activiteit 2 staat zij in de toelichting; als begripsrelatie *soort van* hoort
+  zij bij activiteit 3.
 - Rechtsgevolg en juridisch relevant feit als eigen element. Die horen bij de methode wetsuitvoering (JRM), niet bij
   een wetsanalyse. Dat een rechtsfeit een rechtsbetrekking creëert, wijzigt of beëindigt, leg je hier wel vast: als
   relatie.

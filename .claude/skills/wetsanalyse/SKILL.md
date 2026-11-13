@@ -90,8 +90,11 @@ Uitvoer: de [markeringslijst](references/markeringslijst.md), of de tabel Annota
 Begin bij een centrale klasse (rechtsbetrekking, rechtsfeit, afleidingsregel of voorwaarde) en verbind de
 markeringen eraan met een type uit de [relatiecatalogus](references/relaties.md). Een rol (rechthebbende,
 plichthebbende) hoort bij de relatie, niet bij de markering. Dat een rechtsfeit een rechtsbetrekking creëert,
-wijzigt of beëindigt, leg je vast als relatie; een rechtsgevolg is geen eigen element en geen eigen klasse. Verzin
-geen wederpartij: een impliciete partij noteer je met onderbouwing, of als 'onbekend'.
+wijzigt of beëindigt, leg je vast als relatie; een rechtsgevolg is geen eigen element en geen eigen klasse.
+
+Noemt de tekst maar één partij van een rechtsbetrekking, maak de andere dan expliciet: zoek waar zij wel staat, of
+benoem haar als interpretatie met de bepaling waaruit zij volgt. Kun je haar niet onderbouwen, schrijf dan 'onbekend'.
+Nooit als citaat, en nooit geraden.
 
 Wil je laten zien hoe de bepaling uitpakt voor één burger of bedrijf, met een juridisch scenario, aktes, toestanden
 en juridisch relevante feiten? Dat is een andere methode: gebruik de skill **wetsuitvoering**. Een wetsanalyse legt
@@ -145,7 +148,8 @@ parameter*; een getal in cijfers daarin is een eigen, geneste parameterwaarde.
 - Een opsommingsonderdeel lezen zonder de aanhef, of "en"/"of" als juridische klasse behandelen.
 - Een uitzondering of ontkenning missen die verderop in het artikel of in een ander lid staat.
 - Een zoekresultaat of snippet behandelen als gelezen bron.
-- "De Staat" of "de inspecteur" invullen als partij die de tekst niet noemt.
+- "De Staat" of "de inspecteur" invullen als partij die de tekst niet noemt, zonder de bepaling waaruit dat volgt. Of
+  het omgekeerde: een rechtsbetrekking met één partij laten staan zonder te zeggen wie de andere is of dat dat onbekend is.
 - Een parameter én een tijdsaanduiding op dezelfde termijn zetten.
 
 ## Grenzen

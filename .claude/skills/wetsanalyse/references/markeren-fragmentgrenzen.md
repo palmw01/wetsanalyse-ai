@@ -83,8 +83,8 @@ kennisgeving' kan in context verwijzen naar een handeling of een bericht. Erf ee
 niet automatisch van een woord of grammaticale voorganger. Synoniemen en homoniemen
 vereisen controle van definitie, bereik en context.
 
-Een verzwegen partij wordt niet automatisch 'de Staat'. Noteer een impliciete rol met
-onderbouwing of 'onbekend'. Een grammaticaal onderwerp is niet automatisch rechtssubject;
+Een verzwegen partij wordt niet automatisch 'de Staat'. Benoem haar met de bepaling waaruit zij volgt, of als
+'onbekend' ([relaties](relaties.md), *De partij die de tekst niet noemt*); zij krijgt geen tekstanker. Een grammaticaal onderwerp is niet automatisch rechtssubject;
 een persoon genoemd in een kwalificatie kan een andere juridische functie hebben.
 
 ## Opsommingen en getallen

@@ -1,6 +1,6 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
-PAKKET = {'bronbestanden': {'SKILL.md': '75263d386b223fc7362ca3a56ece18cb9e711b254b3daca2ac05a489c9f0126e',
+PAKKET = {'bronbestanden': {'SKILL.md': '658a2e00c70216bfacc093ec02f07a23a64ffe680200f697c144107688be06e3',
                    'agentrollen.json': '72e87f25dc6b5f96ddb0c3873cf88a382378196c9f03d8c076e1d0efdd3adf4d',
                    'references/agentrollen.md': 'bc6a35e64c9147183d56044bec9c4579fa3b757b613248d3604c7eed0a073405',
                    'references/bronnen.md': '4b8cbdcb735d7fa86b3485b610f9593a7ee4974166fe97d616061d9d0342822f',
@@ -228,7 +228,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': '75263d386b223fc7362ca3a56ece18cb9e711b2
                                      'JAS/JRM-dossier via een route die alleen markeringen of een '
                                      'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
                                      'rol over.'}},
- 'sha256': 'fe84b8c1e77e8dcb01b9f478da5d416d59683bb3741e49ebd6651fc17bac2732',
+ 'sha256': '1c676673d8363964d1dc76a7c2232ef8392dcdd641b69bcb625612346b6c5311',
  'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving '
                                                     'volgens de methode Wetsanalyse en het '
                                                     'Juridisch Analyseschema (JAS): een werkgebied '
