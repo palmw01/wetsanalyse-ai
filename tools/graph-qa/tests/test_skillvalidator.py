@@ -129,7 +129,8 @@ def test_de_basis_vult_alle_rollen_en_een_andere_skill_een_deel():
 def test_sectie_ids_en_broncodes_zijn_van_een_skill():
     een = sk.valideer("nepmethode", _skill(), rollen=ROLLEN)
     ander = lambda **a: sk.valideer("tweede", _skill(kop={"name": "tweede"}, **a), rollen=ROLLEN)  # noqa: E731
-    assert {b.code for b in sk.toets_samen([een, ander()])} == {"sectie", "broncode"}
+    # Een tweede skill die dezelfde rollen vult, botst ook op de rol: een rol draagt één methode (S3).
+    assert {b.code for b in sk.toets_samen([een, ander()])} == {"sectie", "broncode", "rol"}
     assert not sk.toets_samen([een, een])
     los = ander(secties={"eigen": {"bestand": "references/nep.md", "bronnen": ["NY1"]}}, rollen={},
                 bestanden={"references/bronnen.md": "| NY1 | bron |\n",
