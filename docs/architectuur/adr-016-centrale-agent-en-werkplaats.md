@@ -431,6 +431,19 @@ opdracht meer dan 25% duurder" geldt niet voor een vraag die Lex afwijst omdat z
   staan in elk verslag naast de gewogen. Een verslag noemt de uitzondering bij de drempel; ze geldt alleen voor de
   afwijzing, niet voor een andere korte beurt.
 
+**Stap A2 is geslaagd** (besluit van de gebruiker, 13 nov 2026, na ronde 4: `metingen/centrale-agent-2026-11-13-r4/`).
+
+- **De mediaandrempel toetst op de opdrachten die de centrale agent zelf doet.** Dat zijn er vijf van de tien
+  enkelvoudige (E03, E06–E09); de andere vijf gaan langs een route in code en zijn in beide vormen gelijk. Daarop is
+  de mediaan, gewogen warm, gedaald van 32,3k in de nulmeting naar 25,1k.
+- **Tegen de supervisor op dezelfde versie is niets duurder.** Ronde 4 mat beide vormen om en om op één commit. Op
+  geen enkele opdracht is de centrale agent meer dan 25 % duurder, op de afwijzing na: die is hierboven als
+  uitzondering verklaard. De som per run is lager (164–185k tegen 213–272k, gewogen warm).
+- **Wat er nog openstond, wordt opgelost met fixes voor beide vormen, vóór A3.** Het gaat om V01 (een gegokte
+  regeling), K12 (een afwijzing in plaats van "staat niet in de graaf"), K13 (een regeling ontbrak in de bronnenlijst),
+  E03 (extra zoekrondes na een sjabloonweigering) en de citaatcontrole (een rechte tegen een gekrulde apostrof). E03
+  is ook tegen de nulmeting +43 %. De oorzaak zit in een regel die beide vormen raakt, niet in de agentvorm.
+
 **Nulmeting.** Eerst de agentset tegen de huidige Lex (supervisor, specialisten, regisseur), drie runs. Veel meervoudige
 opdrachten zullen nu mislukken: dat is het vertrekpunt.
 
