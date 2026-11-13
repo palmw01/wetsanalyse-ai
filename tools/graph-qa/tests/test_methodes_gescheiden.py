@@ -30,8 +30,15 @@ UITZONDERINGEN = {
 }
 
 
+def _grenseval(pad: Path) -> bool:
+    """Een eval die de grens met een andere methode toetst (`evals/grens-…`), noemt die methode in zijn vraag."""
+    rel = pad.relative_to(SKILL).parts
+    return len(rel) > 1 and rel[0] == "evals" and rel[1].startswith("grens-")
+
+
 def _bestanden() -> list[Path]:
-    return sorted(p for p in SKILL.rglob("*") if p.is_file() and p.suffix in {".md", ".json", ".yaml"})
+    return sorted(p for p in SKILL.rglob("*") if p.is_file() and p.suffix in {".md", ".json", ".yaml"}
+                  and not _grenseval(p))
 
 
 def _alineas(tekst: str) -> list[str]:

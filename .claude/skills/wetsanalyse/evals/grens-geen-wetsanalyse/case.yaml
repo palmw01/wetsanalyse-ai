@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: grens-geen-wetsanalyse
+expected_outcome: |
+  Het antwoord herkent dat het opstellen van een bezwaarschrift geen wetsanalyse is en geen onderdeel van deze skill:
+  het levert geen markeringslijst of analysedossier als antwoord op de vraag, zegt dat een wetsanalyse geen juridisch
+  advies is, en zegt wat de skill wel kan (een bepaling ontleden of duiden).

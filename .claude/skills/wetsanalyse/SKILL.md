@@ -15,7 +15,8 @@ description: >-
   voorwaarden), begrippen formuleren volgens NL-SBB en een brononderbouwd conceptanalysedossier opstellen. Gebruik deze skill zodra iemand een wetsartikel wil ontleden, annoteren of duiden, vraagt welke
   JAS-klasse een formulering heeft, een werkgebied of deelvragen wil opstellen, bronnen bij een analysevraag zoekt,
   een begrip of definitie uit wetgeving wil vastleggen, of een wetsanalyse, regelanalyse of juridische analyse van
-  een regeling noemt, ook als het woord JAS niet valt.
+  een regeling noemt, ook als het woord JAS niet valt. Niet voor een juridisch scenario met aktes (dat is de skill
+  wetsuitvoering) en niet voor juridisch advies.
 ---
 
 # Wetsanalyse
@@ -48,8 +49,13 @@ jurist beoordeelt en beslist. Methodeversie 2.1, Wetsanalyse met het JAS.
 Niet duidelijk welke? Kies de kleinste werkstroom die de vraag beantwoordt, en zeg wat je níét hebt gedaan. Een
 markeringslijst is geen volledig dossier, en een antwoord is geen annotatie.
 
-Een uitgewerkt voorbeeld van B en C op een echte bepaling staat in [voorbeelden](references/voorbeelden.md). Lees het
-als je deze skill voor het eerst gebruikt.
+Past de vraag niet? Een juridisch scenario, een tijdlijn met toestanden of de stap naar gegevens is de skill
+wetsuitvoering: zeg dat en maak geen markeringen onder een andere naam. Een bezwaarschrift, een besluit of een advies
+over een concreet geval is geen wetsanalyse: zeg wat deze skill wel kan.
+
+Vier uitgewerkte voorbeelden van B en C op echte bepalingen staan in [voorbeelden](references/voorbeelden.md): een
+normzin, een uitzondering, een plicht zonder genoemde partij en een rekenregel. Lees ze als je deze skill voor het
+eerst gebruikt.
 
 ## A. Werkgebied afbakenen
 

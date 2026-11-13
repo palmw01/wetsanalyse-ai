@@ -1,6 +1,6 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
-PAKKET = {'bronbestanden': {'SKILL.md': '658a2e00c70216bfacc093ec02f07a23a64ffe680200f697c144107688be06e3',
+PAKKET = {'bronbestanden': {'SKILL.md': 'e974d377f37f4b218257ee9607525fc42838376b905fcfeab021087db7d9a093',
                    'agentrollen.json': '72e87f25dc6b5f96ddb0c3873cf88a382378196c9f03d8c076e1d0efdd3adf4d',
                    'references/agentrollen.md': 'bc6a35e64c9147183d56044bec9c4579fa3b757b613248d3604c7eed0a073405',
                    'references/bronnen.md': 'a24fa236896ccc453e3701c754839403572dd61eb1ae66c7d42d2ac778920ef6',
@@ -24,7 +24,9 @@ PAKKET = {'bronbestanden': {'SKILL.md': '658a2e00c70216bfacc093ec02f07a23a64ffe6
                          'een formulering heeft, een werkgebied of deelvragen wil opstellen, '
                          'bronnen bij een analysevraag zoekt, een begrip of definitie uit '
                          'wetgeving wil vastleggen, of een wetsanalyse, regelanalyse of juridische '
-                         'analyse van een regeling noemt, ook als het woord JAS niet valt.',
+                         'analyse van een regeling noemt, ook als het woord JAS niet valt. Niet '
+                         'voor een juridisch scenario met aktes (dat is de skill wetsuitvoering) '
+                         'en niet voor juridisch advies.',
          'herkomst': 'Methode Wetsanalyse (Ausems, Bulles & Lokin) en het JAS (BZK); de bronnen '
                      'staan in references/bronnen.md',
          'label': 'Wetsanalyse: JAS',
@@ -228,7 +230,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': '658a2e00c70216bfacc093ec02f07a23a64ffe6
                                      'JAS/JRM-dossier via een route die alleen markeringen of een '
                                      'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
                                      'rol over.'}},
- 'sha256': 'a0d034028eb28ae7ea8be28154c9d1421cd858c28379f3fcdb519b38f672055a',
+ 'sha256': 'd2f81967b9636d62f2325c94aa0f751b3d6a12e16992dba78999a2675121df43',
  'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving '
                                                     'volgens de methode Wetsanalyse en het '
                                                     'Juridisch Analyseschema (JAS): een werkgebied '
@@ -248,7 +250,10 @@ PAKKET = {'bronbestanden': {'SKILL.md': '658a2e00c70216bfacc093ec02f07a23a64ffe6
                                                     'uit wetgeving wil vastleggen, of een '
                                                     'wetsanalyse, regelanalyse of juridische '
                                                     'analyse van een regeling noemt, ook als het '
-                                                    'woord JAS niet valt.',
+                                                    'woord JAS niet valt. Niet voor een juridisch '
+                                                    'scenario met aktes (dat is de skill '
+                                                    'wetsuitvoering) en niet voor juridisch '
+                                                    'advies.',
                                     'herkomst': 'Methode Wetsanalyse (Ausems, Bulles & Lokin) en '
                                                 'het JAS (BZK); de bronnen staan in '
                                                 'references/bronnen.md',
