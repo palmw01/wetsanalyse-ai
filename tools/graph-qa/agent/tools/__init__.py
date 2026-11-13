@@ -323,7 +323,39 @@ def _h_grondslagen(g: GraphPort, a: dict[str, Any]) -> str:
     # `_aanduiding` niet gebruiken: die EIST een aanduiding, en hier is 'geen' een geldige vraag
     # (de grondslag van de regeling als geheel).
     aanduiding = a.get("artikel") or a.get("nummer") or None
-    return _lijst(g, a, "grondslagen", lambda **p: queries.grondslagen(a["bwb_id"], aanduiding, **p), 50, 200)
+    if aanduiding:
+        return _lijst(g, a, "grondslagen", lambda **p: queries.grondslagen(a["bwb_id"], aanduiding, **p), 50, 200)
+    # De regeling als geheel: ook de artikelen waar een regeling aan hangt, in één keer (`_grondslagen_regeling`).
+    limit, offset = _geheel(a.get("limit"), 50, 1, 200), _offset(a)
+    rijen = parse_select(g.sparql(queries.grondslagen(a["bwb_id"], None, limit=limit, offset=offset, meer=True)))
+    # Hoeveel regelingen buiten de graaf aan de artikelen hangen, staat als kolom op elke rij; het wordt de toelichting.
+    buiten = max((_geheel(r.pop("buitenGraaf", None), 0, 0, 10**6) for r in rijen), default=0)
+    return pagina([_met_vanuit(r) for r in rijen], tool="grondslagen", args={**a, "limit": limit}, limit=limit, offset=offset,
+                  toelichting=_buiten_graaf(buiten) if offset == 0 else "")
+
+
+def _natuurlijk(tekst: str) -> list[Any]:
+    return [int(d) if d.isdigit() else d for d in re.split(r"(\d+)", tekst)]
+
+
+def _met_vanuit(rij: dict[str, Any]) -> dict[str, Any]:
+    """De artikelen waar een regeling aan hangt: leesbaar en op nummer in `vanuit`, en als IRI's in `vanuit_iri`, zodat
+    het sjabloon een artikel dat het antwoord noemt zelf kan ophalen (`vullen.artikel_in_trace`)."""
+    iris = sorted((i for i in (rij.pop("vanuitIri", "") or "").split(" | ") if i), key=_natuurlijk)
+    labels = sorted((x for x in (rij.get("vanuit", "") or "").split(" | ") if x), key=_natuurlijk)
+    rij["vanuit"] = ", ".join(labels)
+    if iris:
+        rij["vanuit_iri"] = iris
+    return rij
+
+
+def _buiten_graaf(aantal: int) -> str:
+    """De zin over regelingen die de graaf niet bevat."""
+    if not aantal:
+        return ""
+    return (f"Dit zijn de regelingen in de kennisgraaf, met in 'vanuit' de artikelen waaraan ze hangen. Aan de artikelen van "
+            f"deze regeling hangen daarnaast {aantal} regelingen die niet in de kennisgraaf staan; daarvan is alleen het "
+            "BWB-id bekend. Vraag ze per artikel op als de vraag daarom gaat; zoek ze niet zelf met SPARQL.")
 
 
 #: De velden van `geldigheid` met een publicatie in de vorm van de BWB ("Stb.2009-610").
@@ -816,7 +848,9 @@ TOOLS: list[dict[str, Any]] = [
             "en 'bevoegdheid-voor' (regelingen die op DIT tekstdeel berusten), 'in-familie' "
             "(verwante regelingen) en 'berust-op-mij'.\n"
             "Gebruik dit bij vragen over delegatie, uitvoeringsregelingen en bevoegdheid. Laat "
-            "'artikel' weg voor de regeling als geheel." + _CONTRACT
+            "'artikel' weg voor de regeling als geheel: dat geeft in één aanroep ook de regelingen in de "
+            "kennisgraaf die op haar artikelen berusten, met die artikelen in 'vanuit'. Vraag het dan niet "
+            "nog eens per artikel." + _CONTRACT
         ),
         "input_schema": _obj({"bwb_id": _BWB, "artikel": _ART, "nummer": _NUM, "limit": {"type": "integer", "description": "Max. aantal (1-200, default 50)."},
                               "offset": _OFFSET}, ["bwb_id"]),

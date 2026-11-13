@@ -735,6 +735,12 @@ dan de graaf.
   OPTIONALs vermenigvuldigen elkaar: gebruik `GROUP_CONCAT`. Beide glippen door elke leegte-controle
   heen – vandaar `min_rijen`/`max_rijen` in de smoke en de kardinaliteitsguard in
   `tests/test_predicaat_dekking.py`.
+- **`grondslagen` voor een regeling als geheel geeft ook haar artikelen** (`queries._grondslagen_regeling`, ADR-016
+  ronde 3, B02). `grondslagVoor` en `bevoegdheidVoor` hangen aan de artikelen; wie naar de regeling vroeg, kreeg ze niet en
+  vroeg ze één voor één op. Een regeling in de graaf die op deze berust, draagt nu `vanuit` (de artikelen, op nummer) en
+  `vanuit_iri` (zodat het sjabloon een artikel dat het antwoord noemt zelf ophaalt, `vullen.artikel_in_trace`). Regelingen
+  waarvan de graaf alleen het BWB-id kent, worden geteld in de toelichting (een losse subquery in dezelfde query, als kolom op elke rij),
+  niet opgesomd. Met een artikel is de tool ongewijzigd.
 - **Verwijzingen hangen aan het LID, niet aan het artikel.** `follow_verwijzingen` en `context()` volgen
   `(heeftLid|heeftOnderdeel)+` mee en melden in `?vanuit` waar de verwijzing vandaan komt.
 - **De graaf bevat ook de JAS-annotatielagen** (`urn:jas:graph:*`, door de api geprojecteerd). Omdat de

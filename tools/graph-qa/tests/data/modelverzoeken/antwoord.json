@@ -434,7 +434,7 @@
      "name": "inhoudsopgave"
     },
     {
-     "description": "De delegatieketen: waarop berust deze regeling/bepaling, en wat berust erop?\nGEEFT TERUG per relatie: 'berust-op' (grondslag van deze regeling), 'grondslag-voor' en 'bevoegdheid-voor' (regelingen die op DIT tekstdeel berusten), 'in-familie' (verwante regelingen) en 'berust-op-mij'.\nGebruik dit bij vragen over delegatie, uitvoeringsregelingen en bevoegdheid. Laat 'artikel' weg voor de regeling als geheel.\nRESULTAAT: JSON met 'resultaten' en 'volledig'. Is 'volledig' false, dan staat in 'vervolg' de exacte aanroep voor het volgende deel – vul niets aan dat je niet hebt opgehaald.",
+     "description": "De delegatieketen: waarop berust deze regeling/bepaling, en wat berust erop?\nGEEFT TERUG per relatie: 'berust-op' (grondslag van deze regeling), 'grondslag-voor' en 'bevoegdheid-voor' (regelingen die op DIT tekstdeel berusten), 'in-familie' (verwante regelingen) en 'berust-op-mij'.\nGebruik dit bij vragen over delegatie, uitvoeringsregelingen en bevoegdheid. Laat 'artikel' weg voor de regeling als geheel: dat geeft in één aanroep ook de regelingen in de kennisgraaf die op haar artikelen berusten, met die artikelen in 'vanuit'. Vraag het dan niet nog eens per artikel.\nRESULTAAT: JSON met 'resultaten' en 'volledig'. Is 'volledig' false, dan staat in 'vervolg' de exacte aanroep voor het volgende deel – vul niets aan dat je niet hebt opgehaald.",
      "input_schema": {
       "additionalProperties": false,
       "properties": {
@@ -1168,7 +1168,7 @@
      "name": "inhoudsopgave"
     },
     {
-     "description": "De delegatieketen: waarop berust deze regeling/bepaling, en wat berust erop?\nGEEFT TERUG per relatie: 'berust-op' (grondslag van deze regeling), 'grondslag-voor' en 'bevoegdheid-voor' (regelingen die op DIT tekstdeel berusten), 'in-familie' (verwante regelingen) en 'berust-op-mij'.\nGebruik dit bij vragen over delegatie, uitvoeringsregelingen en bevoegdheid. Laat 'artikel' weg voor de regeling als geheel.\nRESULTAAT: JSON met 'resultaten' en 'volledig'. Is 'volledig' false, dan staat in 'vervolg' de exacte aanroep voor het volgende deel – vul niets aan dat je niet hebt opgehaald.",
+     "description": "De delegatieketen: waarop berust deze regeling/bepaling, en wat berust erop?\nGEEFT TERUG per relatie: 'berust-op' (grondslag van deze regeling), 'grondslag-voor' en 'bevoegdheid-voor' (regelingen die op DIT tekstdeel berusten), 'in-familie' (verwante regelingen) en 'berust-op-mij'.\nGebruik dit bij vragen over delegatie, uitvoeringsregelingen en bevoegdheid. Laat 'artikel' weg voor de regeling als geheel: dat geeft in één aanroep ook de regelingen in de kennisgraaf die op haar artikelen berusten, met die artikelen in 'vanuit'. Vraag het dan niet nog eens per artikel.\nRESULTAAT: JSON met 'resultaten' en 'volledig'. Is 'volledig' false, dan staat in 'vervolg' de exacte aanroep voor het volgende deel – vul niets aan dat je niet hebt opgehaald.",
      "input_schema": {
       "additionalProperties": false,
       "properties": {
