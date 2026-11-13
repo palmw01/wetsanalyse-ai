@@ -85,7 +85,7 @@ def test_met_uit_is_de_graaf_die_van_voorheen():
         oud = {(e.source, e.target) for e in uit.compile().get_graph().edges}
         assert edges - oud == {("agent", "overdracht"), ("overdracht", "agent"), ("overdracht", "afwijzen"),
                                ("overdracht", "agent_taak"), ("overdracht", "werkgebied_intake"),
-                               ("overdracht", "bronselectie")}
+                               ("overdracht", "bronselectie"), ("overdracht", "bepaling_lezen")}
         assert not oud - edges
 
 
@@ -125,7 +125,7 @@ def test_het_profiel_centraal_is_een_python_agent_met_zijn_eigen_tools():
     agent = agent_voor(CENTRAAL)
     assert isinstance(agent, CentraleAgent) and isinstance(agent, Agent)
     assert agent.rol is Rol.CENTRAAL and agent.methoderol == "agent"
-    assert set(agent.eigen_tools) == set(overdracht.OVERDRACHT) == {"wijs_af", "meer_tools", "taakagent", "werkgebied"}
+    assert set(agent.eigen_tools) == set(overdracht.OVERDRACHT) == {"wijs_af", "meer_tools", "taakagent", "werkgebied", "toon_bepaling"}
     p = profielen.PROFIELEN[CENTRAAL]
     assert not p.kiesbaar and CENTRAAL not in profielen.KIESBAAR, "een model kiest dit profiel niet"
     # De eigen tools staan niet in de toollaag: een profiel kan ze niet noemen, en een andere agent krijgt ze niet.
@@ -224,8 +224,8 @@ def test_een_keuzevraag_van_de_centrale_agent_heeft_de_vorm_die_de_doorvraagrout
 
 
 def test_meer_tools_is_er_alleen_voor_de_kernset_en_wijs_af_voor_beide():
-    assert set(agent_voor(CENTRAAL).eigen_tools) == {"wijs_af", "meer_tools", "taakagent", "werkgebied"}
-    assert set(agent_voor(CENTRAAL_BREED).eigen_tools) == {"wijs_af", "taakagent", "werkgebied"}
+    assert set(agent_voor(CENTRAAL).eigen_tools) == {"wijs_af", "meer_tools", "taakagent", "werkgebied", "toon_bepaling"}
+    assert set(agent_voor(CENTRAAL_BREED).eigen_tools) == {"wijs_af", "taakagent", "werkgebied", "toon_bepaling"}
     assert isinstance(agent_voor(CENTRAAL_BREED), CentraleAgent) and agent_voor(CENTRAAL_BREED).rol is Rol.CENTRAAL
     # De beschrijving noemt elke tool die erachter zit: zo weet het model wanneer het erom vraagt.
     rest = set(profielen.PROFIELEN[CENTRAAL_BREED].tools) - set(profielen.PROFIELEN[CENTRAAL].tools)
@@ -328,3 +328,52 @@ def test_de_overdrachten_volgen_de_registers():
     assert all(f"{t} (" in o.beschrijving for t in taken)
     w = overdracht.OVERDRACHT["werkgebied"]
     assert all(f"{t}:" in w.beschrijving for t in overdracht.WERKGEBIED_TAKEN)
+
+
+# --- de tekst van een bepaling alleen via code (A2-3b) ----------------------------------------------------------
+# Meetronde S6, golden_duiding: bij "wat betekent lid X" koos de centrale agent het bepalingssjabloon (12/18 tegen 17/18).
+# Dat sjabloon heeft hij niet meer; de tekst toont de workflow van de route vóór het model, via `toon_bepaling`.
+
+def test_de_centrale_agent_heeft_het_bepalingssjabloon_niet_en_toont_de_tekst_via_code():
+    for naam in (CENTRAAL, CENTRAAL_BREED):
+        p = profielen.PROFIELEN[naam]
+        assert "antwoord_bepaling" not in p.sjablonen and "antwoord_bepaling" not in p.instructie
+        assert "toon_bepaling" in p.instructie
+
+
+def _tool_resultaat(verzoek: dict) -> dict:
+    [resultaat] = [b for m in verzoek["messages"] if isinstance(m["content"], list)
+                   for b in m["content"] if b.get("type") == "tool_result"]
+    return resultaat
+
+
+def test_toon_bepaling_gaat_naar_de_bepalingsroute_en_de_terugval_is_dezelfde_agent():
+    llm = FakeLLM([response([tool_block("t1", "toon_bepaling", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "2"})],
+                            "tool_use"),
+                   response([text_block("Antwoord.")], "end_turn")])
+    events = _beurt("Geef de tekst van artikel 9 lid 2 (BWBR0004770).", llm, stand="meten", gevraagd="centraal")
+    assert any(e["type"] == "status" and e.get("route") == "bepaling" for e in events)
+    # De lege nepgraaf levert geen tekst: de beurt gaat terug naar de agent, en dat is de centrale agent.
+    assert "rol agent" in llm.calls[-1]["system"]
+
+
+@pytest.mark.parametrize(("vraag", "invoer", "reden"), [
+    ("Wat betekent artikel 9 lid 2 (BWBR0004770)?", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "2"},
+     "antwoord_duiding"),
+    ("Geef de tekst van artikel 9 lid 2.", {"bwb_id": "Invorderingswet", "artikel": "9", "lid": "2"}, "geen BWB-id"),
+    ("Geef de tekst van bepaling 25.1 (BWBR0024096).", {"bwb_id": "BWBR0024096", "artikel": "25.1", "lid": ""},
+     "get_bepaling"),
+])
+def test_toon_bepaling_weigert_wat_geen_vraag_naar_de_tekst_is(vraag, invoer, reden):
+    llm = FakeLLM([response([tool_block("t1", "toon_bepaling", invoer)], "tool_use"),
+                   response([text_block("Antwoord.")], "end_turn")])
+    events = _beurt(vraag, llm, stand="meten", gevraagd="centraal")
+    resultaat = _tool_resultaat(llm.calls[1])
+    assert resultaat["is_error"] is True and reden in resultaat["content"]
+    assert not any(e["type"] == "status" and e.get("route") == "bepaling" for e in events)
+
+
+def test_de_uitlegregel_is_dezelfde_als_voor_het_model():
+    from agent.bepaling_workflow import _is_tekstvraag, is_uitlegvraag
+    assert is_uitlegvraag("Wat betekent artikel 9 lid 2 Iw?") and not _is_tekstvraag("Wat staat er in artikel 9 lid 2? Wat betekent dat?")
+    assert not is_uitlegvraag("Wat staat er in artikel 9 lid 2 Iw?") and _is_tekstvraag("Wat staat er in artikel 9 lid 2 Iw?")
