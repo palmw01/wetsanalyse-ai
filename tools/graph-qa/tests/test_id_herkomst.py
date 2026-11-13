@@ -226,3 +226,18 @@ def test_een_gegokte_regeling_gaat_niet_naar_de_bron(graaf_met_namen, monkeypatc
     raw = tool_execution.execute_tool(_bouw(graaf_met_namen), _state(V01), events.append, tool, van_model=True)
     assert is_fout(raw) and json.loads(raw)["reden"] == "id_niet_uit_gesprek" and not aanroepen
     assert "vraag de jurist welke regeling" in json.loads(raw)["melding"]
+
+
+def test_het_eerste_woord_van_een_naam_telt_als_het_maar_een_regeling_aanwijst(graaf_met_namen):
+    """"Artikel 25 van de Leidraad" is de Leidraad Invordering 2008: geen andere regeling in de graaf begint zo. "De
+    algemene wet" of "de wet" wijst er geen aan, en dan vraagt Lex terug."""
+    leidraad = {"bwb_id": "BWBR0024096", "nummer": "25"}
+    assert id_herkomst.toets("get_bepaling", leidraad, _state("Wat zegt artikel 25 van de Leidraad?"), graph=graaf_met_namen) is None
+    assert id_herkomst.toets("get_bepaling", leidraad, _state("Wat zegt artikel 25 van de wet?"), graph=graaf_met_namen)
+    # Twee regelingen die met hetzelfde woord beginnen: het woord wijst er geen aan.
+    from agent import overzicht
+    overzicht._REGELINGEN_CACHE.clear()
+    twee = FakeGraph(results=lambda q: (_NAMEN + "<urn:bwb:BWBR0000001>\tLeidraad Douane\tbeleidsregel\t\n") if "citeertitel" in q
+                     else "?r\n<urn:bwb:BWBR0024096>\n")
+    assert id_herkomst.toets("get_bepaling", leidraad, _state("Wat zegt artikel 25 van de Leidraad?"), graph=twee)
+    overzicht._REGELINGEN_CACHE.clear()

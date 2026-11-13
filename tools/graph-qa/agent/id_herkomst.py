@@ -43,6 +43,9 @@ class Soort:
 BWB = Soort("BWB-id", "zoek de regeling eerst op naam of woorden (search_wetgeving of list_regelingen in de kennisgraaf"
                       "{buiten}), en gebruik het id uit het resultaat")
 STUK = Soort("id", "zoek het stuk eerst met {zoektools}, en gebruik het id uit het resultaat")
+#: Het eerste woord van een naam telt als de regeling genoemd, als het zo lang is en geen andere regeling zo begint.
+MIN_EERSTE_WOORD = 6
+
 #: Een regeling die in de graaf staat, maar die het gesprek niet noemt bij een vraag naar een artikel: een gok.
 GOK = Soort("BWB-id", "de vraag noemt een artikel maar niet deze regeling. Kies er niet zelf een: vraag de jurist welke "
                       "regeling hij bedoelt, en noem de mogelijkheden")
@@ -178,8 +181,9 @@ def _gegokt(bwb_id: str, tekst: str, state: dict[str, Any], graph: Any) -> bool:
 
     Dan koos het model de regeling zelf. Bewust smal, zodat een gewone vraag geen zoekronde extra kost:
     - alleen bij een vraag die een artikel noemt ("artikel 30"); een vraag zonder artikel valt er niet onder;
-    - de regeling telt als genoemd bij haar citeertitel of een afkorting (dezelfde namen als het overzicht), ergens in
-      het gesprek: de vraag, een eerder antwoord, een toolresultaat, het werkgebied of de focus;
+    - de regeling telt als genoemd bij haar citeertitel of een afkorting (dezelfde namen als het overzicht), of bij
+      het eerste woord van haar naam als geen andere regeling in de graaf zo begint ("de Leidraad"), ergens in het
+      gesprek: de vraag, een eerder antwoord, een toolresultaat, het werkgebied of de focus;
     - zonder graaf, zonder namen of bij een storing is er geen bewijs, en beslist de tool zelf."""
     from .aanwijzing import lees_aanwijzing
     vraag = f"{state.get('question', '')} {state.get('zelfstandige_vraag', '')}"
@@ -187,11 +191,17 @@ def _gegokt(bwb_id: str, tekst: str, state: dict[str, Any], graph: Any) -> bool:
         return False
     from . import overzicht
     try:
-        namen = next((r["namen"] for r in overzicht._regelingen(graph) if r["bwb_id"] == bwb_id), None)
+        regelingen = overzicht._regelingen(graph)
     except Exception:  # noqa: BLE001 – zonder namen geen bewijs
         return False
+    namen = next((list(r["namen"]) for r in regelingen if r["bwb_id"] == bwb_id), None)
     if not namen:
         return False
+    # "De Leidraad" is de Leidraad Invordering 2008 zolang geen andere regeling in de graaf zo begint; "de
+    # Uitvoeringsregeling" wijst er geen aan.
+    eerste = {n.split()[0].casefold() for n in namen if len(n.split()[0]) >= MIN_EERSTE_WOORD}
+    andere = {n.split()[0].casefold() for r in regelingen if r["bwb_id"] != bwb_id for n in r["namen"] if n.split()}
+    namen += sorted(eerste - andere)
     laag = tekst.casefold()
     return not any(re.search(rf"(?<![\w.]){re.escape(n.casefold())}(?![\w])", laag) for n in namen)
 
