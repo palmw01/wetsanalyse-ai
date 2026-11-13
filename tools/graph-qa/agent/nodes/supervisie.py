@@ -30,6 +30,7 @@ from ..kaart_beurt import KAARTPREFIX, uit_keuze
 from ..narratie import _stap
 from ..state import State
 from ..methode import instructies
+from .. import methodekeuze
 from ..berichten import eerdere_beurten
 from ..agents import register
 from ..agents.deelvragen import is_dekkingsvraag
@@ -430,6 +431,15 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # Een klik op een suggestie: agent en taak liggen vast, dus geen modelaanroep – net als een doel.
         agent, taak = ACTIE_TAAK[actie]
         return _agent(writer, state, agent, taak, "", actie=actie)
+    if not _open_kaartje(state) and (skill := methodekeuze.niet_gekoppeld(state.get("question", ""))):
+        # Werk volgens een methode die aan geen rol gekoppeld is (plan methodes scheiden, S1): een vaste zin, geen
+        # annotatie volgens het JAS onder een andere naam en geen model. Ook met een aangewezen bepaling, en voor beide
+        # vormen. Een getypt antwoord op een vraagkaart is geen verzoek en loopt door.
+        _stap(writer, "Lex", "zegt dat annoteren alleen volgens het JAS kan", route="methode_niet_gekoppeld")
+        logger.info("verzoek volgens een niet-gekoppelde methode", extra={"categorie": "functioneel", "methode": skill})
+        return {"specialist": "", "plan": "", "worker_plan": [], "worker_idx": 0, "afwijzen": True,
+                "afwijs_melding": methodekeuze.melding(skill), "afwijs_stap": "niets gestart: deze methode voer ik nog niet uit",
+                "annotaties_lezen": False}
     if modus == "auto" and state.get("werkgebied_id") and is_bronselectievraag(state.get("question", "")):
         return _bronselectie(writer, "bepaalt met je de bronnen per deelvraag")
     if modus == "auto" and is_werkgebiedvraag(state.get("question", "")):
