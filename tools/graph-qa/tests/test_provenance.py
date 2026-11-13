@@ -155,13 +155,29 @@ def test_een_gelezen_stuk_in_een_citeervorm_blijft_een_bron(leestool, ident, bro
     assert bron in curate_sources([wet, bron], f"{tekst} Zie ook BWBR0004770.")
 
 
-# --- een regeling uit een zoekresultaat is geen bron (meting wetgeving_live ronde 2, I03/I20) ------------------------
+# --- een regeling uit een zoekresultaat is alleen een bron als het antwoord haar noemt -------------------------------
+# (meting wetgeving_live ronde 2, I03/I20: niet genoemd, dus geen bron; ADR-016 ronde 3, K10: genoemd, dus wel)
+
+_GEZOCHT = _json.dumps({"status": "ok", "volledig": True, "aantal": 2, "resultaten": [
+    {"bwb_id": "BWBR0005537", "citeertitel": "Algemene wet bestuursrecht"},
+    {"iri": "urn:bwb:BWBR0004770:artikel:9", "bwb_id": "BWBR0004770", "tekst": "De belastingschuldige …"}]})
+
+
+def _met_namen(bronnen):
+    namen = {"BWBR0005537": ("Algemene wet bestuursrecht", ["Awb"]), "BWBR0004770": ("Invorderingswet 1990", ["Iw"]),
+             "BWBR0024096": ("Leidraad Invordering 2008", ["LI 2008"]), "BWBR0018472": ("Awir", [])}
+    for s in bronnen:
+        if s.bwb_id in namen:
+            s.regeling, s.afkortingen = namen[s.bwb_id][0], list(namen[s.bwb_id][1])
+    return bronnen
+
 
 def test_een_regeling_die_alleen_gezocht_is_is_geen_bron_maar_een_gevonden_bepaling_wel():
-    gezocht = _json.dumps({"status": "ok", "volledig": True, "aantal": 2, "resultaten": [
-        {"bwb_id": "BWBR0005537", "citeertitel": "Algemene wet bestuursrecht"},
-        {"iri": "urn:bwb:BWBR0004770:artikel:9", "bwb_id": "BWBR0004770", "tekst": "De belastingschuldige …"}]})
-    uris = [s.uri for s in collect_sources([("search_wetgeving", gezocht)])]
+    from agent.provenance import alleen_genoemde_regelingen
+
+    bronnen = _met_namen(collect_sources([("search_wetgeving", _GEZOCHT)]))
+    # Een antwoord dat de Awb niet noemt: de Awb stond alleen bij een treffer en is geen bron.
+    uris = [s.uri for s in alleen_genoemde_regelingen(bronnen, "Artikel 9 van de Invorderingswet 1990 regelt de betalingstermijn.")]
     assert "urn:bwb:BWBR0005537" not in uris, "de Awb is alleen gezocht"
     assert any("artikel:9" in u for u in uris), "een gevonden bepaling met tekst is een bron"
     # Een lijst regelingen is wel een bron: daar zijn de regelingen het antwoord ("welke regelingen zitten erin?").
@@ -170,6 +186,41 @@ def test_een_regeling_die_alleen_gezocht_is_is_geen_bron_maar_een_gevonden_bepal
     assert [s.uri for s in collect_sources([("list_regelingen", lijst)])] == ["urn:bwb:BWBR0018472"]
     gelezen = _json.dumps({"status": "ok", "volledig": True, "aantal": 1, "resultaten": [{"iri": "urn:bwb:BWBR0018472"}]})
     assert [s.uri for s in collect_sources([("get_artikel", gelezen)])] == ["urn:bwb:BWBR0018472"]
+
+
+def test_een_regeling_uit_een_zoekresultaat_die_het_antwoord_noemt_is_een_bron():
+    """ADR-016 ronde 3, K10 op de supervisorweg: "Welke soort regeling is de Leidraad Invordering 2008, en welke wet
+    regelt de invordering van rijksbelastingen?" De soort kwam uit een eigen query, waarvan het resultaat de regeling
+    niet noemt (alleen de vraag doet dat). De regeling stond wel bij de treffers van de zoekvraag. Het antwoord was
+    juist en de bronnenlijst leeg."""
+    from agent.provenance import alleen_genoemde_regelingen
+
+    gezocht = _json.dumps({"status": "ok", "volledig": True, "aantal": 3, "resultaten": [
+        {"bwb_id": "BWBR0024096", "citeertitel": "Leidraad Invordering 2008"},
+        {"bwb_id": "BWBR0004770", "citeertitel": "Invorderingswet 1990"},
+        {"bwb_id": "BWBR0005537", "citeertitel": "Algemene wet bestuursrecht"}]})
+    eigen_query = _json.dumps({"status": "ok", "volledig": True, "aantal": 1, "resultaten": [{"soort": "beleidsregel"}]})
+    trace = [("search_wetgeving", gezocht), ("graph_schema", "De wet staat onder urn:bwb:{BWB-id}:artikel:{nr}."),
+             ("raw_sparql", eigen_query)]
+    antwoord = ("De Leidraad Invordering 2008 is een beleidsregel. De invordering van rijksbelastingen is geregeld in "
+                "de Invorderingswet 1990.")
+    bronnen = alleen_genoemde_regelingen(_met_namen(collect_sources(trace)), antwoord)
+    assert sorted(s.uri for s in bronnen) == ["urn:bwb:BWBR0004770", "urn:bwb:BWBR0024096"]
+    # Bij een afkorting of het BWB-id geldt hetzelfde; zonder de regeling te noemen blijft de lijst leeg.
+    assert [s.uri for s in alleen_genoemde_regelingen(_met_namen(collect_sources(trace)), "Zie de Awb.")] == ["urn:bwb:BWBR0005537"]
+    assert alleen_genoemde_regelingen(_met_namen(collect_sources(trace)), "Het is een beleidsregel.") == []
+
+
+def test_een_regeling_die_na_het_zoeken_ook_gelezen_is_blijft_een_bron():
+    """Eerst gevonden, daarna gelezen: de herkomst is dan de leestool, en de regeling hangt niet meer af van of het
+    antwoord haar noemt."""
+    from agent.provenance import alleen_genoemde_regelingen
+
+    gelezen = _json.dumps({"status": "ok", "volledig": True, "aantal": 1, "resultaten": [{"iri": "urn:bwb:BWBR0005537"}]})
+    bronnen = _met_namen(collect_sources([("search_wetgeving", _GEZOCHT), ("get_regeling_info", gelezen)]))
+    [awb] = [s for s in bronnen if s.uri == "urn:bwb:BWBR0005537"]
+    assert awb.origin_tool == "get_regeling_info"
+    assert awb in alleen_genoemde_regelingen(bronnen, "Het is een wet.")
 
 
 @_pytest.mark.parametrize("vindplaats,genoemd", [
