@@ -1,6 +1,6 @@
 # JAS-klassen – volledige referentie
 
-Grondslag: [bronnen en beslisregister](bronnen.md) — M04, P05.
+Grondslag: [bronnen en beslisregister](bronnen.md) — M04, M01, P05, P07, P18.
 De dertien klassen van het Juridisch Analyseschema, zoals vastgelegd in de officiële
 Rijksspecificatie. Dit zijn de **enige** toegestane klassen; verzin er geen bij.
 
@@ -21,6 +21,10 @@ uitdrukkingswijze van een klasse precies wilt weten.
 - 1 Rechtssubject · 2 Rechtsobject · 3 Rechtsbetrekking · 4 Rechtsfeit · 5 Voorwaarde · 6 Afleidingsregel
 - 7 Variabele en variabelewaarde · 8 Parameter en parameterwaarde · 9 Operator · 10 Tijdsaanduiding
 - 11 Plaatsaanduiding · 12 Delegatiebevoegdheid en delegatie-invulling · 13 Brondefinitie
+
+Per klasse staan eerst de drie bronvelden uit de Rijksspecificatie, daarna wat het boek ernaast zet (M01 h.4, in
+eigen woorden): subklassen, de samenhang met andere klassen, en de afbakening tegenover klassen waarmee zij verward
+wordt. Alleen de drie bronvelden gaan naar de annotatieketen van Lex; de rest is voor wie de skill leest.
 
 Zoek je één klasse, ga dan direct naar haar kop; je hoeft dit bestand niet helemaal te lezen.
 
@@ -72,6 +76,25 @@ rechtspersoon. Partij in een rechtsbetrekking **of bij een rechtsfeit**."
 > De tabel is hier ruimer dan de prozatekst: een rechtssubject kan ook partij zijn bij een
 > *rechtsfeit*, niet alleen bij een rechtsbetrekking.
 
+**Specialisatie** (M01 h.4 §1, *Relatie met eigen klasse*) — Een rechtssubject kan een bijzondere vorm van een ander
+zijn: een binnenlandse belastingplichtige is een natuurlijke persoon. Wat voor het algemene subject geldt (kenmerken,
+rechtsbetrekkingen, rechtsfeiten), geldt dan ook voor het bijzondere. Bovenaan staat de persoon, met daaronder de
+natuurlijke persoon en de rechtspersoon. Noteer een specialisatie in de toelichting; het is geen relatietype (zie
+[relaties](relaties.md)).
+
+**Samenhang** (M01 h.4 §1, *Relatie met andere klassen*) — Een rechtssubject is partij in een of meer
+rechtsbetrekkingen, verricht een rechtsfeit of ondervindt de gevolgen ervan, en kan eigenaar of houder van een
+rechtsobject zijn. In de catalogus: `rechthebbende`, `plichthebbende`, `verricht`, `bevoegde`.
+
+**Afbakening**
+
+- *Rechtsobject* — beide zijn een naamwoordgroep. De toets is de functie: draagt het een recht of plicht (subject), of
+  gaat het recht of de plicht erover (object)? Ook een persoon kan voorwerp zijn.
+- *Variabele en variabelewaarde* — een kenmerk van een persoon ("gehuwd", "ouder dan 18") is een variabele, niet een
+  tweede subject. Markeer het subject en het kenmerk apart als beide een functie dragen.
+- *Plaatsaanduiding* — "de gemeente" is een subject als zij handelt of iets moet, en een plaats als zij een gebied
+  aanwijst.
+
 ---
 
 ## 2. Rechtsobject
@@ -90,6 +113,21 @@ bijvoorbeeld ‘dat’, ‘hetgeen’ en ‘welk(e)’.
 
 **Uit de JAS-tabel** (rij 2) — "Voorwerp van een rechtsbetrekking of rechtsfeit met een fysieke of
 een niet-fysieke verschijningsvorm."
+
+**Specialisatie** (M01 h.4 §2, *Relatie met eigen klasse*) — Ook een rechtsobject kan een bijzondere vorm van een ander
+zijn: een personenauto is een motorrijtuig. De kenmerken van het algemene object gelden voor het bijzondere.
+
+**Samenhang** (M01 h.4 §2, *Relatie met andere klassen*) — Een rechtsobject is het voorwerp van een rechtsbetrekking
+of rechtsfeit, en heeft kenmerken met een waarde (het loon bij een dienstbetrekking). In de catalogus: `voorwerp`,
+`kenmerk`, `onderdeel`.
+
+**Afbakening**
+
+- *Rechtssubject* — zie daar: de functie beslist, niet het woord.
+- *Variabele en variabelewaarde* — een bedrag of toeslag is voorwerp als het recht of de plicht erover gaat ("recht
+  op een toeslag"), en een variabele als het een kenmerk met een waarde is ("de hoogte van de toeslag").
+- *Rechtsfeit* — een handeling als zelfstandig naamwoord ("de betaling") is voorwerp als de norm erover gaat, en
+  rechtsfeit als zij de juridische toestand verandert.
 
 ---
 
@@ -116,6 +154,39 @@ herkenningsroutes:
 **Uit de JAS-tabel** (rij 3) — "Juridische relatie tussen twee rechtssubjecten waarvan het ene
 rechtssubject rechthebbend en het andere rechtssubject plichthebbend is."
 
+**Subklassen** (M01 h.4 §3, *Subklassen*; in eigen woorden) — Het boek onderscheidt vier soorten, naar Hohfeld. Noem
+een soort alleen als de tekst haar draagt; een markering krijgt er geen eigen label voor.
+
+- *Aanspraak tegenover verplichting* — de ene partij moet iets doen of laten, de andere kan daarop aanspraak maken. Dit
+  is de meest voorkomende soort. Drie varianten, naar wat er kan als de verplichting niet wordt nagekomen: direct af te
+  dwingen; pas af te dwingen na een ingebrekestelling of aanmaning; of niet af te dwingen. Of nakoming af te dwingen
+  is, staat vaak in een andere bepaling: één passage zonder sanctie maakt een verplichting niet zwak.
+- *Bevoegdheid tegenover gehoudenheid* — de ene partij kan een rechtshandeling verrichten, de andere is daaraan
+  onderworpen. *Gebonden*: de bevoegdheid moet worden uitgeoefend als aan de voorwaarden is voldaan; te herkennen aan
+  de tegenwoordige tijd ("kent toe", "neemt het besluit"). *Discretionair*: er is ruimte om haar wel of niet uit te
+  oefenen, of om af te wegen; te herkennen aan "kan", "naar zijn oordeel", "naar zijn mening" (M01 h.4 §4.2.2).
+- *Immuniteit tegenover geen bevoegdheid* — een partij is gevrijwaard van de bevoegdheid van een ander. Lastig te
+  onderscheiden van een bevoegdheid onder een voorwaarde: een termijn waarna een bevoegdheid vervalt, is een voorwaarde
+  in de tijd, geen immuniteit. Laat een onderbouwde immuniteit staan.
+- *Vrijheid tegenover geen aanspraak* — een partij mag kiezen, en een ander kan daar niets tegen inbrengen. Hier horen
+  geen rechtsfeiten bij.
+
+**Samenhang** (M01 h.4 §3, *Relatie met andere klassen*) — Een rechtsbetrekking heeft altijd twee partijen en een
+voorwerp, vaak een duur, en ontstaat, wijzigt of eindigt door een rechtsfeit. Loop bij elke rechtsbetrekking na: wie
+is rechthebbende, wie plichthebbende, wat is het voorwerp, welke voorwaarden gelden, en hoe lang geldt zij? Noemt de
+tekst een partij niet, zie dan [relaties](relaties.md). In de catalogus: `rechthebbende`, `plichthebbende`,
+`voorwerp`, `voorwaarde`, `tijd`, en vanuit het rechtsfeit `creeert`, `wijzigt`, `beeindigt`.
+
+**Afbakening**
+
+- *Rechtsfeit* — zie het onderscheid hieronder bij §4: toestand tegenover verandering. "Mag oversteken" is de norm; het
+  oversteken zelf is een handeling.
+- *Afleidingsregel* — "is … verschuldigd" kan een plicht uitdrukken of de uitkomst van een berekening inleiden. Staat
+  er hoe het bedrag wordt bepaald, dan is dat deel de afleidingsregel; de plicht om te betalen blijft de
+  rechtsbetrekking.
+- *Delegatiebevoegdheid en delegatie-invulling* — "kunnen regels worden gesteld" is een bevoegdheid, maar de meer
+  specifieke klasse gaat voor: delegatie.
+
 ---
 
 ## 4. Rechtsfeit
@@ -137,6 +208,32 @@ de juridische toestand teweegbrengt."
 **Onderscheid met rechtsbetrekking.** Beide zijn werkwoordelijk. Een rechtsbetrekking beschrijft
 een *toestand* (‘mag’, ‘moet’, ‘heeft recht op’); een rechtsfeit beschrijft een *verandering* en
 staat vaak in genominaliseerde vorm (‘indienen van…’).
+
+**Subklassen** (M01 h.4 §4, *Subklassen*; in eigen woorden) — Vier soorten. Noem een soort alleen als de tekst haar
+draagt.
+
+- *Rechtshandeling* — een handeling die op het rechtsgevolg gericht is (een bezwaarschrift indienen, een besluit
+  nemen). Niet elke handeling is een rechtshandeling: controleer of het gevolg beoogd is en of de wet het eraan
+  verbindt.
+- *Feitelijke handeling met rechtsgevolg* — het gevolg treedt in zonder dat het beoogd was (schade veroorzaken).
+- *Gebeurtenis met rechtsgevolg* — niemand handelt (een overlijden).
+- *Tijdsverloop met rechtsgevolg* — een termijn verstrijkt en daardoor verandert er iets.
+
+**Samenhang** (M01 h.4 §4, *Relatie met andere klassen*) — Een rechtsfeit werkt altijd op een rechtsbetrekking (het
+creëert, wijzigt of beëindigt haar), heeft een voorwerp, en hangt aan een tijdstip of periode. Een handeling heeft
+bovendien een subject dat haar verricht. Loop na: welke rechtsbetrekking raakt het, wie verricht het, wat is het
+voorwerp, en wanneer? Vind je geen rechtsbetrekking waarop het werkt, dan is het waarschijnlijk geen rechtsfeit. In de
+catalogus: `creeert`, `wijzigt`, `beeindigt`, `verricht`, `voorwerp`, `tijd`.
+
+**Afbakening**
+
+- *Voorwaarde* — dezelfde handeling kan rechtsfeit zijn (zij verandert de toestand) of een eis voor een gevolg
+  ("indien hij betaalt"). In een voorwaardelijke bijzin is zij een voorwaarde; de handeling daarbinnen kan daarnaast
+  een eigen markering krijgen als zij elders als rechtsfeit werkt.
+- *Tijdsaanduiding* — "het verstrijken van de termijn" is tijdsverloop met rechtsgevolg; "zes weken na de dagtekening"
+  is de tijdsaanduiding. De startgebeurtenis in een termijn hoort bij de tijdsaanduiding.
+- *Rechtsobject* — een handeling als zelfstandig naamwoord is voorwerp als de norm erover gaat. Heeft zij een eigen
+  voorwerp ("het indienen van een bezwaarschrift"), dan is dat voorwerp het rechtsobject.
 
 ---
 
@@ -171,6 +268,24 @@ rechtsfeit **of afleidingsregel**. Bepaalt aan welke eisen voldaan moet worden."
 **Let op** — een voorwaarde hoeft geen voegwoord te hebben. Een bijwoord (‘schriftelijk’) of een
 voorzetselbepaling draagt hem net zo goed.
 
+**Samengestelde voorwaarden** (M01 h.4 §5; M04 H2:64) — Naast "en" en "of" zeggen ook "in elk geval" en "ten minste"
+iets over de samenhang. "Bevat ten minste a en b" is cumulatief en vaak niet uitputtend: zoek dan of een andere
+bepaling of een beleidsregel er eisen aan toevoegt. Een voorwaarde kan zelf weer een samengestelde voorwaarde
+bevatten; leg het bereik vast voor je classificeert.
+
+**Samenhang** (M01 h.4 §5, *Relatie met andere klassen*) — Een voorwaarde hoort bij een rechtsfeit, rechtsbetrekking,
+rechtssubject of rechtsobject, of is deel van een afleidingsregel. Een voorwaarde zonder iets waarop zij werkt, is
+onvolledig. Wat zij vergelijkt, is haar invoer. In de catalogus: `voorwaarde`, `invoer`, `operator_in`.
+
+**Afbakening**
+
+- *Rechtsfeit* — zie §4: een handeling als eis is een voorwaarde.
+- *Operator* — de vergelijking binnen de voorwaarde ("meer bedraagt dan") is de operator; de voorwaarde is het geheel.
+- *Afleidingsregel* — een regel die bepaalt óf een recht bestaat, is een beslisregel (afleidingsregel) met voorwaarden
+  erin. Een losse eis is alleen een voorwaarde.
+- *Brondefinitie* — een definitie bevat vaak eisen ("voor zover …"). Het geheel is de brondefinitie; de eis daarin kan
+  een eigen markering Voorwaarde krijgen.
+
 ---
 
 ## 6. Afleidingsregel
@@ -197,6 +312,24 @@ afleiding, zoals ‘is (…) verminderd met’, ‘bedraagt (…) vermeerderd me
 
 **Uit de JAS-tabel** (rij 6) — "Regel die op basis van bestaande feiten of waarden nieuwe feiten of
 waarden creëert."
+
+**Specialisaties afleiden en afleidingshiërarchie** (M01 h.4 §6) — "Wordt beschouwd als" en "zijn" leiden af of
+iemand of iets tot een groep hoort: ook dat is een afleidingsregel, met een rechtssubject of rechtsobject als uitvoer.
+Een afleidingsregel kan de uitkomst van een andere regel nodig hebben (eerst het dagloon, dan de uitkering). Signaleer
+dat bij de samenhang: de invoer van deze regel is de uitvoer van een andere bepaling. Het uitwerken van die keten hoort
+bij het opstellen van regels (activiteit 3b).
+
+**Samenhang** (M01 h.4 §6, *Relatie met andere klassen*) — Een afleidingsregel heeft altijd precies één uitvoer (een
+variabele, rechtssubject of rechtsobject), en invoer, operatoren en vaak voorwaarden. In de catalogus: `uitvoer`,
+`invoer`, `operator_in`, `voorwaarde`.
+
+**Afbakening**
+
+- *Parameter en parameterwaarde* — "bedraagt € 23" legt een waarde vast en is geen berekening: parameter. Pas met
+  invoer en een bewerking is het een afleidingsregel.
+- *Rechtsbetrekking* — zie §3: "is verschuldigd" als plicht of als uitkomst.
+- *Voorwaarde* — een beslisregel bevat voorwaarden; de voorwaarden zijn deel van de regel, niet de regel.
+- *Operator* — zie §9: de regel is het geheel, de operator het verbindende woord.
 
 ---
 
@@ -227,6 +360,17 @@ of welke hoogte hoort bij deze variabele?
 rechtsobject, rechtsbetrekking of rechtsfeit kan verschillen." / "Concrete waarde die een bepaalde
 variabele kan hebben."
 
+**Samenhang** (M01 h.4 §7–8, *Relatie met andere klassen*) — Een variabele is een kenmerk van een rechtssubject,
+rechtsobject, rechtsfeit of rechtsbetrekking; een variabelewaarde hoort bij een variabele. Kenmerken van een algemeen
+subject of object gelden ook voor de specialisaties ervan. Zoek bij elke variabele waar zij een kenmerk van is. In de
+catalogus: `kenmerk`, `waarde`, `invoer`, `uitvoer`.
+
+**Afbakening**
+
+- *Parameter en parameterwaarde* — zie de toets hieronder bij §8: per geval verschillend of voor iedereen gelijk.
+- *Tijdsaanduiding* en *Plaatsaanduiding* — de specifiekere klasse gaat voor bij dezelfde functie (H2:107, H2:116).
+- *Rechtsobject* — zie §2: voorwerp van het recht of kenmerk met een waarde.
+
 ---
 
 ## 8. Parameter en parameterwaarde
@@ -255,6 +399,24 @@ rechtsfeiten." / "Concrete waarde die een parameter over een periode kan hebben.
 **Toets variabele of parameter** — varieert de waarde per rechtssubject of rechtsobject binnen de
 periode? Ja → variabele. Nee, gelijk voor allen → parameter. Een constante zonder periodegebonden
 waarde blijft een parameter; "onbepaalde duur" telt mee.
+
+**Eenheid en losse waarde** (M01 h.4 §9–10) — De eenheid (procent, weken, euro) hoort bij de parameter, niet bij de
+waarde: bij "een wachttijd van 104 weken" is *wachttijd* de parameter, *weken* de eenheid en *104* de waarde. Een
+parameterwaarde komt ook voor zonder dat de parameter is uitgedrukt ("ten minste vijf arbeidsuren minder"): markeer dan
+de waarde en zeg in de toelichting welke parameter je erbij leest. Parameter en waarde staan vaak in verschillende
+regelingen: de wet noemt "een percentage", de ministeriële regeling het getal.
+
+**Samenhang** (M01 h.4 §9–10, *Relaties met andere klassen*) — Een parameter is invoer van een afleidingsregel of deel
+van een voorwaarde; een parameterwaarde geeft de parameter zijn waarde voor de periode waarin hij geldt. In de
+catalogus: `invoer`, `waarde`, `tijd`.
+
+**Afbakening**
+
+- *Variabele en variabelewaarde* — zie de toets hierboven.
+- *Tijdsaanduiding* en *Plaatsaanduiding* — een vaste termijn of een vast gebied is de specifiekere klasse (H2:107,
+  H2:116); zie §10, *Verbijzondering*.
+- *Operator* — "tweemaal" en "de helft van" drukken een bewerking uit: de operator. Het getal daarin is geen eigen
+  parameter, tenzij de tekst het als waarde vastlegt.
 
 ---
 
@@ -293,6 +455,16 @@ samengestelde voorwaarde, een gelijkstelling of een vergelijking."
 is de regel als geheel (de hele bepaling die een waarde vaststelt), de **operator** is het woord of
 de woordgroep die de verbinding maakt binnen die regel. Beide markeren mag; zie
 `markeren-fragmentgrenzen.md` over overlappende markeringen. Noteer je keuze in de `toelichting`.
+
+**Samenhang** (M01 h.4 §11, *Relatie met andere klassen*) — Een operator hoort bij de afleidingsregel of voorwaarde
+waarin hij staat, en verbindt operanden. De volgorde van de operanden telt bij aftrekken en vergelijken. In de
+catalogus: `operator_in`, `operand`.
+
+**Afbakening**
+
+- *Afleidingsregel* — zie de samenloop hierboven.
+- *Voorwaarde* — de vergelijking is de operator, de hele eis de voorwaarde. Een voegwoord dat een voorwaarde inleidt
+  ("indien", "tenzij") is geen operator; "en" tussen twee woorden van één naamwoordgroep ook niet.
 
 ---
 
@@ -341,6 +513,17 @@ hetzelfde element:
   subtype: of zij een parameter of een variabele verbijzondert, hangt van de context af en wordt
   niet geraden.
 
+**Samenhang** (M01 h.4 §12, *Relatie met andere klassen*) — Een tijdsaanduiding neemt de verbanden over van de klasse
+die zij verbijzondert: als parameter is zij invoer van een regel of deel van een voorwaarde, als variabele een kenmerk.
+Daarnaast zegt zij wanneer een rechtsbetrekking geldt of een rechtsfeit plaatsvindt. In de catalogus: `tijd`, en via
+de verbijzondering `invoer`, `operand`, `waarde`.
+
+**Afbakening**
+
+- *Variabele en variabelewaarde*, *Parameter en parameterwaarde* — de prioriteitsregel hierboven.
+- *Rechtsfeit* — de termijn is de tijdsaanduiding; dat zij verstrijkt en daardoor iets verandert, is het rechtsfeit.
+  De startgebeurtenis ("na de dagtekening") hoort bij de tijdsaanduiding.
+
 ---
 
 ## 11. Plaatsaanduiding
@@ -365,6 +548,15 @@ kiezen we voor de meest specifieke klasse, namelijk de plaatsaanduiding."
 
 **Let op** — markeer geen plaatsaanduiding waar er geen staat. Het landelijke bereik is impliciet
 en is dus géén markering.
+
+**Samenhang** (M01 h.4 §13, *Relatie met andere klassen*) — Net als de tijdsaanduiding neemt een plaatsaanduiding de
+verbanden over van de klasse die zij verbijzondert. Vaak is zij deel van een voorwaarde of bepaalt zij wie tot een
+groep hoort ("in Nederland wonen"). In de catalogus: `plaats`.
+
+**Afbakening**
+
+- *Variabele en variabelewaarde*, *Parameter en parameterwaarde* — de prioriteitsregel hierboven.
+- *Rechtssubject* — "de gemeente" als bestuursorgaan is een subject, als gebied een plaats.
 
 ---
 
@@ -407,6 +599,20 @@ regels worden gesteld’. Bij ‘**bij of krachtens**’ kan subdelegatie plaats
 **Uit de JAS-tabel** (rij 14 + 15) — "Bevoegdheid om in lagere regelgeving (nadere) regels te
 stellen." / "Gedelegeerde regeling waarin (nadere) regels zijn gesteld."
 
+**Andere vormen** (M01 h.4 §14–15) — Een delegatie staat niet altijd als "worden regels gesteld". Ook "het door Onze
+Minister vastgestelde bedrag" of "wordt vastgesteld bij regeling van Onze Minister" draagt een opdracht om iets in
+lagere regelgeving vast te leggen. Een delegatie-invulling herken je aan de verwijzing terug naar de grondslag ("het
+loon, bedoeld in artikel 42, tweede lid, van de wet").
+
+**Samenhang** (M01 h.4 §14–15, *Relatie met andere klassen*) — Delegatiebevoegdheid en delegatie-invulling horen bij
+elkaar, en de bevoegdheid komt toe aan een rechtssubject (de regering, een minister). In de catalogus:
+`delegatie_over`, `bevoegde`.
+
+**Afbakening**
+
+- *Rechtsbetrekking* — elke delegatie is een bevoegdheid, maar de specifiekere klasse gaat voor. Een bevoegdheid om
+  iets anders te doen dan regels stellen (een besluit nemen, uitstel verlenen) is een rechtsbetrekking.
+
 ---
 
 ## 13. Brondefinitie
@@ -442,3 +648,14 @@ specifiek onderdeel gelden** — een hoofdstuk, paragraaf of zelfs één artikel
 - Een brondefinitie is een markering van tekst die in de wet staat. Een omschrijving die jij zelf
   formuleert om een markering te benoemen, is géén brondefinitie — die hoort bij activiteit 3 en
   valt buiten de huidige scope.
+
+**Samenhang** (M01 h.4 §16, *Relatie met andere klassen*) — Een brondefinitie hoort bij een term die voor een
+rechtssubject, rechtsobject, variabele of parameter wordt gebruikt. De catalogus staat `definieert` ook toe naar een
+rechtsbetrekking, rechtsfeit, tijds- of plaatsaanduiding: dat is ruimer dan het boek en een projectkeuze (P18).
+
+**Afbakening**
+
+- *Voorwaarde* — de omschrijving bevat vaak eisen. Het geheel is de brondefinitie; een eis daarin kan een eigen
+  markering krijgen.
+- *Rechtssubject* — de gedefinieerde term kan een partij aanduiden. Markeer de definitie als brondefinitie en de term,
+  waar hij in een norm voorkomt, als rechtssubject.
