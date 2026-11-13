@@ -1512,7 +1512,7 @@ Wat een gebruiker zelf maakt of aanpast (nu: een skill) is een **concept** met v
 - **De ingangen** (`components/werkwijze/Concepten.tsx`): de groep *Concepten* bovenaan het overzicht (`ConceptenGroep`:
   mijn concepten, wat met mij gedeeld is, ingetrokken onderaan; alleen bij *Alles* en *Kennis en methode*; de zoekterm
   filtert op naam), *Nieuw concept* (alleen de naam; de api begint met de verplichte bestanden) en *Bewerken* op de
-  pagina van een methode (`BewerkKnop`: een concept met de versie die draait, `uit_image`; heb ik er al een, dan *Open
+  pagina van een methode (`ConceptBewerken`: een concept met de versie die draait, `uit_image`; heb ik er al een, dan *Open
   mijn concept*). Een methode in de catalogus is een skill met dezelfde naam (`werkplaatsSoortVan`). Wie niet mag maken
   (`mag_maken`), ziet geen knop.
 - **Eén stand, één functie** (`standLabel` in `lib/werkplaats.ts`, getoond door `ConceptLabels`): *Concept*, *Draait nu*,
@@ -1520,14 +1520,36 @@ Wat een gebruiker zelf maakt of aanpast (nu: een skill) is een **concept** met v
   ***Concept · nog onbekend wat er draait*** zolang de api niet weet welke versie Lex gebruikt. **Onbekend is nooit "draait
   niet"**: `parseOnderdeel` maakt de afgeleide velden dan `null`, wat de rij ook zegt. Daarnaast of de laatste versie de
   controle haalt (`geldigLabel`). Schrijf geen eigen zin over de stand.
-- **De pagina van een concept** (B2-1: lezen): de bestanden van de laatste versie in een vaste volgorde
+- **De pagina van een concept**: de bestanden van de laatste versie in een vaste volgorde
   (`bestandsvolgorde`: `SKILL.md`, de wortel, dan de mappen), het gekozen bestand in de URL (`?bestand=`), en wat de
   controle vond, per bestand. Op een telefoon staan lijst en bestand onder elkaar; een lange regel of bestandsnaam breekt af.
-  Bewerken, versies en vergelijken volgen in B2-2 en B2-3; "loopt achter" met de twee verschillen in B2-4. **Er wordt
-  niet automatisch samengevoegd**: de pagina toont de verschillen en laat opnieuw beginnen, en zegt vooraf wat er met de
-  eigen wijzigingen gebeurt.
-- **BFF**: `app/api/werkplaats/**` (stand, onderdelen, één onderdeel, één versie), elk met `X-User-Id` uit de sessie en de
-  query ongewijzigd door. `PUT /v1/werkplaats/image` is van graph-qa en heeft geen BFF-route.
+  Versies en vergelijken volgen in B2-3; "loopt achter" met de twee verschillen in B2-4. **Er wordt niet automatisch
+  samengevoegd**: de pagina toont de verschillen en laat opnieuw beginnen, en zegt vooraf wat er met de eigen
+  wijzigingen gebeurt.
+- **Bewerken** (B2-2, `ConceptEditor`; rekenkern in `lib/werkplaats.ts`): alleen de eigenaar, op een concept dat niet is
+  ingetrokken. Anders is het dezelfde pagina om te lezen.
+  - **Een gewoon tekstvak** per bestand (`AutoTextarea`, vaste letterbreedte, regels breken af), met de omvang tegen de
+    grenzen van de api (`omvang`, in codepoints zoals de api telt). Een Markdown-bestand heeft *Lezen* / *Bewerken*: de
+    leesweergave toont de frontmatter los boven de opgemaakte tekst (`splitsFrontmatter`).
+  - **De controle draait live**: na een korte pauze gaat de hele stand naar `POST /toets` (poort 1, zonder op te slaan).
+    Een antwoord op een stand die intussen veranderde, telt niet (`ronde`). De kaart *Controle* zegt dan "Wat er nu
+    staat …"; zonder wijzigingen toont ze de bevindingen van de bewaarde versie. De labels in de kop gaan altijd over
+    de bewaarde versie.
+  - **Bestanden**: *+ Bestand*, en in het menu ⋯ van het bestand *Hernoemen* en *Verwijderen* (tweede klik). `padFout`
+    zegt een pad dat de api zou weigeren meteen. Een verwijderd bestand staat onder de lijst tot er is opgeslagen.
+  - **De balk onderaan** verschijnt zodra er iets gewijzigd is: wat er gewijzigd is (`wijzigingZin`), een toelichting,
+    *Opslaan als versie n* en *Verwerpen* (tweede klik). Opslaan maakt een volgende versie; ook een versie die de
+    controle niet haalt wordt bewaard, en de balk zegt dat.
+  - **Een nieuwere versie** (een ander venster sloeg op, 409): de editor leest bij de api na welke versie er is, laat de
+    tekst staan en legt de keuze voor, met wat er met de eigen wijzigingen gebeurt: opslaan als de volgende versie (de
+    andere blijft bewaard), of de eigen wijzigingen verwerpen. Lees een conflict niet uit de tekst van de fout.
+  - **Niet-opgeslagen werk** staat in de browser per concept en versie (`werkSleutel`, na de pauze en bij `pagehide`) en
+    staat er na herladen weer, met een melding. Weggaan vraagt eerst (`beforeunload`, `useOnbewaardBewaker` met
+    `OnbewaardMelding`); wie dan toch weggaat, gooit het ook uit de browser weg. Opslaan en verwerpen ruimen het op.
+  - **Intrekken** staat in het menu ⋯ van de kop (tweede klik); daarna is het concept alleen te lezen.
+  - Geen sneltoets met een letter, dus ook geen Ctrl+S.
+- **BFF**: `app/api/werkplaats/**` (stand, onderdelen, één onderdeel, één versie, een volgende versie, intrekken en de
+  toets), elk met `X-User-Id` uit de sessie en de query ongewijzigd door. `PUT /v1/werkplaats/image` is van graph-qa en heeft geen BFF-route.
 - **De spiegel** (`lib/werkplaats.ts`): de soorten en de naamvorm volgen `bronmodel`, de velden de api;
   `werkplaats.test.ts` leest die bronnen. De editor opent alleen wat in `IN_EDITOR` staat (nu skills; profielen in B5).
 - Browserregressie: `scripts/test-werkplaats.mjs` (met `WERKPLAATS_SCREENSHOT=<map>` beelden op 1280 en 375 px). Die

@@ -9,7 +9,7 @@ import { Melding } from "@/components/ui/Melding";
 import { Kaart, PaginaKop, SplitDetail } from "@/components/ui/Pagina";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
-import { BewerkKnop } from "@/components/werkwijze/Concepten";
+import { ConceptBewerken } from "@/components/werkwijze/Concepten";
 import { ModelLabel } from "@/components/werkwijze/ModelLabel";
 import { Button } from "@/components/ui/Button";
 import { Field, Textarea } from "@/components/ui/Field";
@@ -56,7 +56,7 @@ export function OnderdeelPagina({ soort, naam }: { soort: Soort; naam: string })
             meta={<><StatusLabel toon="lint" uitleg={CONCEPT_LABEL[o.concept].uitleg} data-concept={o.concept}>
               {SOORT_LABEL[soort].een}</StatusLabel><ModelLabel model={o.model} aan={o.aan} />
               {o.laag && <span>laag: {o.laag}</span>}<span>versie <span className="font-mono">{o.versie}</span></span></>}
-            acties={werkplaatsSoort ? <BewerkKnop soort={werkplaatsSoort} naam={naam} /> : undefined} />
+            acties={werkplaatsSoort ? <ConceptBewerken soort={werkplaatsSoort} naam={naam} /> : undefined} />
           <SplitDetail
             hoofd={<>
               <Contract o={o} />

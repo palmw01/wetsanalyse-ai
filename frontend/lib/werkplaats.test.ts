@@ -4,9 +4,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  IN_EDITOR, MAX_SKILL_NAAM, SKILL_NAAM, UIT, WERKPLAATS_SOORTEN, WERKPLAATS_SOORT_LABEL, bestandsvolgorde, conceptPad,
-  eigenConcept, geldigLabel, naamFout, parseOnderdeel, parseOnderdelen, parseStand, parseVersie, standLabel, voorOverzicht,
-  werkplaatsSoortVan, type WerkplaatsOnderdeel,
+  IN_EDITOR, MAX_PAD, MAX_SKILL_NAAM, PAD, SKILL_NAAM, UIT, WERKPLAATS_SOORTEN, WERKPLAATS_SOORT_LABEL, bestandsvolgorde, conceptPad,
+  eigenConcept, geldigLabel, leesWerk, naamFout, omvang, padFout, parseOnderdeel, parseOnderdelen, parseStand, parseToets, parseVersie,
+  splitsFrontmatter, standLabel, voorOverzicht, werkSleutel, werkplaatsSoortVan, wijzigingZin, wijzigingen, type WerkplaatsOnderdeel,
 } from "./werkplaats";
 
 const WORTEL = join(__dirname, "..", "..");
@@ -146,5 +146,58 @@ describe("de lijst en de ingangen", () => {
     expect(bestandsvolgorde(["references/b.md", "agentrollen.json", "evals/x/prompt.md", "SKILL.md", "references/a.md"]))
       .toEqual(["SKILL.md", "agentrollen.json", "evals/x/prompt.md", "references/a.md", "references/b.md"]);
     expect(conceptPad("o 1")).toBe("/werkwijze/concepten/o%201");
+  });
+});
+
+describe("bewerken", () => {
+  it("dezelfde padvorm en lengte als bronmodel.werkplaats, en dezelfde vormen bij de api", () => {
+    const patroon = BRONMODEL.match(/^PAD = re\.compile\(r"([^"]+)"\)/m)?.[1] ?? "";
+    expect(PAD.source).toBe(`^${patroon.replaceAll("/", "\\/")}$`);
+    expect(Number(BRONMODEL.match(/^MAX_PAD = (\d+)/m)?.[1])).toBe(MAX_PAD);
+    // Wat de editor stuurt en leest: de velden van `VersieIn` en `ToetsIn`, en het antwoord van de toets.
+    for (const veld of ["bestanden: Bestanden", "toelichting: str", "na_versie: int", "soort: str", "naam: str"]) expect(ROUTER, veld).toContain(veld);
+    expect(ROUTER).toMatch(/"geldig": not bevindingen, "bevindingen": bevindingen, "hash"/);
+  });
+
+  it("een pad dat de api zou weigeren, zegt het formulier al", () => {
+    const er = ["SKILL.md", "references/a.md"];
+    for (const goed of ["references/b.md", "evals/x/prompt.md", "BRON.md", "_x.json"]) expect(padFout(goed, er), goed).toBe("");
+    for (const fout of ["../buiten.md", "/abs.md", "a//b.md", "met spatie.md", ".verborgen", "a/../b", "references/a.md", "references",
+      "SKILL.md/x", "a".repeat(MAX_PAD + 1)]) expect(padFout(fout, er), fout).not.toBe("");
+    expect(padFout("", er)).toBe("");
+  });
+
+  it("de wijzigingen per bestand: gewijzigd, nieuw en verwijderd", () => {
+    const w = wijzigingen({ a: "1", b: "2", c: "3" }, { a: "1", b: "anders", d: "4" });
+    expect(w).toEqual({ gewijzigd: ["b"], toegevoegd: ["d"], verwijderd: ["c"], aantal: 3 });
+    expect(wijzigingZin(w)).toBe("1 gewijzigd, 1 nieuw, 1 verwijderd");
+    expect(wijzigingen({ a: "1" }, { a: "1" }).aantal).toBe(0);
+    expect(wijzigingZin(wijzigingen({ a: "1" }, { a: "2" }))).toBe("1 gewijzigd");
+  });
+
+  it("de omvang tegen de grenzen van de api; zonder grens geen oordeel", () => {
+    const grenzen = { bestanden: 2, tekens_per_bestand: 5, tekens: 8, versies: 0, onderdelen: 0 };
+    expect(omvang({ a: "12345", b: "123" }, grenzen)).toEqual({ tekens: 8, bestanden: 2, teVeel: [] });
+    expect(omvang({ a: "123456", b: "123", c: "" }, grenzen).teVeel).toHaveLength(3);
+    expect(omvang({ a: "x".repeat(99) }, UIT.grenzen).teVeel).toEqual([]);
+    // Tekens zoals de api ze telt (codepoints), niet UTF-16.
+    expect(omvang({ a: "𝒜𝒜" }, grenzen).tekens).toBe(2);
+  });
+
+  it("de frontmatter staat los van de tekst", () => {
+    expect(splitsFrontmatter("---\nname: x\n---\n\n# Kop\n")).toEqual({ frontmatter: "name: x", rest: "\n# Kop\n" });
+    expect(splitsFrontmatter("# Kop\n---\nx")).toEqual({ frontmatter: "", rest: "# Kop\n---\nx" });
+  });
+
+  it("niet-opgeslagen werk hoort bij een concept en een versie, en alleen pad naar tekst telt", () => {
+    expect(werkSleutel("o1", 3)).toBe("lex.concept.o1.3");
+    expect(leesWerk({ "SKILL.md": "x", "references/a.md": "" })).toEqual({ "SKILL.md": "x", "references/a.md": "" });
+    for (const fout of [null, [], "x", { "SKILL.md": 3 }, { "../x": "y" }]) expect(leesWerk(fout)).toBeUndefined();
+  });
+
+  it("het antwoord van de toets", () => {
+    expect(parseToets({ geldig: true, bevindingen: [], hash: "h" })).toEqual({ geldig: true, bevindingen: [], hash: "h" });
+    expect(parseToets({ geldig: false, bevindingen: [{ code: "naam", melding: "m", bestand: "" }, { x: 1 }] })?.bevindingen).toHaveLength(1);
+    expect(parseToets({})).toBeNull();
   });
 });
