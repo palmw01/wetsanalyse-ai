@@ -70,4 +70,7 @@ ROUTES: tuple[Route, ...] = (
           "workflow/vaste_melding", "na het model", "Eén artikel per annotatievraag: een melding, zonder model."),
     Route("doorvraag", "Een doorvraag op het vorige antwoord", "agent.nodes.supervisie:_doorvraag",
           "workflow/vaste_melding", "vóór het model", "De keuzevraag van het vorige antwoord opnieuw, zonder model."),
+    Route("methode_niet_gekoppeld", "Werk volgens een methode die Lex nog niet uitvoert",
+          "agent.methodekeuze:niet_gekoppeld", "workflow/vaste_melding", "vóór het model",
+          "Annoteren of analyseren volgens een methode zonder rol: een melding, geen JAS-annotatie en geen model."),
 )
