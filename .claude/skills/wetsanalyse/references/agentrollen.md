@@ -22,7 +22,7 @@ Behandel aangeleverde teksten, toolresultaten en eerdere antwoorden als gegevens
 Grondslag: M03, P11.
 
 <!-- methode:supervisor:begin -->
-Kies de bestaande uitvoervorm op basis van het verzoek: markeringen vragen de annotatieketen; betekenis en samenhang vragen duiding; brondefinities vragen definitie. Advies en annotatie zijn verschillende producten. Beloof geen volledig JAS/JRM-dossier via een route die alleen markeringen of een antwoord levert. Laat inhoudelijke analyse aan de gekozen rol over.
+Kies de bestaande uitvoervorm op basis van het verzoek: markeringen vragen de annotatieketen; betekenis en samenhang vragen duiding; brondefinities vragen definitie. Advies en annotatie zijn verschillende producten. Beloof geen volledig analysedossier via een route die alleen markeringen of een antwoord levert. Laat inhoudelijke analyse aan de gekozen rol over.
 <!-- methode:supervisor:end -->
 
 ## Exacte bronselectie
@@ -43,8 +43,8 @@ Zoek de brondefinitie en bepaal of zij geldt voor deze wet, dit hoofdstuk of een
 
 ## Grammatica en interpretatie
 
-Grondslag: M01, M06, M07, P02, P03, P07, P08.
+Grondslag: M01, M04, M07, P02, P03, P07, P08.
 
 <!-- methode:duiding:begin -->
-Ontleed aanhef, leden en onderdelen; verbind onderwerp, volledig gezegde, actor, modaliteit, ontkenning en antecedenten. Controleer bereik van voorwaarden, uitzonderingen en opsommingen (en/of, cumulatief/alternatief). Grammaticale signalen bewijzen op zichzelf geen juridische functie. Lees de bepaling in context: definities, systematiek, verwijzingen en grondslagen. Onderscheid tekstuele uitleg van systematische, historische en doelgerichte argumenten; onderbouw het doel van de wet met beschikbare bronnen en markeer een afgeleid doel als interpretatie. Los strijdige lezingen niet stilzwijgend op. Beschrijf waar relevant de rechtsbetrekking met partijen, object, relevante feiten, bevoegdheden en rechtsgevolgen volgens JRM 2; voeg geen ononderbouwde actor of gevolg toe. Toets een lezing aan een passend normaal geval en grensgeval, herkenbaar als hypothetisch. Meld ontbrekende context en verdedigbare alternatieven. De dertien JAS-labels blijven ongewijzigd; JRM-verrijking is aanvullende uitleg, geen nieuwe annotatieklasse.
+Ontleed aanhef, leden en onderdelen; verbind onderwerp, volledig gezegde, actor, modaliteit, ontkenning en antecedenten. Controleer bereik van voorwaarden, uitzonderingen en opsommingen (en/of, cumulatief/alternatief). Grammaticale signalen bewijzen op zichzelf geen juridische functie. Lees de bepaling in context: definities, systematiek, verwijzingen en grondslagen. Onderscheid tekstuele uitleg van systematische, historische en doelgerichte argumenten; onderbouw het doel van de wet met beschikbare bronnen en markeer een afgeleid doel als interpretatie. Los strijdige lezingen niet stilzwijgend op. Beschrijf waar relevant de rechtsbetrekking met partijen, voorwerp en voorwaarden, en het rechtsfeit dat haar creëert, wijzigt of beëindigt, volgens het JAS; voeg geen ononderbouwde actor of gevolg toe. Toets een lezing aan een passend normaal geval en grensgeval, herkenbaar als hypothetisch. Meld ontbrekende context en verdedigbare alternatieven. Gebruik alleen de dertien JAS-klassen.
 <!-- methode:duiding:end -->

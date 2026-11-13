@@ -606,13 +606,17 @@ kunnen naast S4–W7 lopen.
 Voor elke meting geldt ADR-010 en P19: voor en na op dezelfde versie van al het andere, drie runs, en het resultaat in
 `docs/architectuur/metingen/README.md`. Ik vraag een meting op acceptatie aan bij de hoofdsessie en start er zelf geen.
 
-- **S6** (JRM uit `duiding` en `supervisor`).
-  - Sets: de kwaliteitsset, `golden_gesprek`, `golden_duiding` en `golden_routering`; in beide vormen (supervisor en
-    centrale agent).
-  - Drempel: brongetrouwheid gelijk; kwaliteit niet slechter; de routering gelijk (geen vraag die van route wisselt);
-    niet duurder, gewogen.
+- **S6** (JRM uit `duiding` en `supervisor`). Een gerichte meting (besluit van de gebruiker, 13 nov 2026):
+  - **Voor**: meetronde 4, de kwaliteitsset in beide vormen op `43ff91a0`. Dat geldt als nulpunt omdat de stappen
+    daarna (S1–S5, W1–W7) de methodetekst per rol byte-gelijk laten.
+  - **Na**, op S6 en alleen wat S6 raakt: de duidingsvragen drie runs en de kwaliteitsset één run, in beide vormen
+    (supervisor en centrale agent), plus één keer de vragen van de deelvragen-agent (de kop van zijn prompt verandert
+    door methodeversie 3.0). Ongeveer 8M tokens.
+  - Drempel: brongetrouwheid gelijk; kwaliteit niet slechter; niet duurder, gewogen. Of de routering gelijk blijft,
+    toetst `golden_routering` gratis in CI.
   - Waar ik op let: een duidingsantwoord noemt nog de partijen en het voorwerp, en voegt geen rechtsgevolg toe dat de
     tekst niet draagt.
+  - G1 gaat pas naar master als deze meting binnen is.
 - **G1** (`duiding` sterker).
   - Sets: `golden_duiding` en de kwaliteitsset; in beide vormen. Erbij een kleine vaste set van tien bepalingen met
     een bekende soort (vijf met een partij die de tekst niet noemt, vijf met een gebonden of discretionaire

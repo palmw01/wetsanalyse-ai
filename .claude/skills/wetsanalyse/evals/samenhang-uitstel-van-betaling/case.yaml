@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: samenhang-uitstel-van-betaling
+expected_outcome: |
+  Een relatietabel bij de markeringen van het lid: de rechtsbetrekking (de bevoegdheid om uitstel te verlenen) met de
+  ontvanger als rechthebbende en de belastingschuldige als de partij die eraan onderworpen is, het voorwerp, de
+  voorwaarden en de tijd. Een rol staat op de relatie, niet als label op een markering. De typen komen uit de
+  relatiecatalogus; wat de tekst niet draagt, wordt niet als relatie gelegd.

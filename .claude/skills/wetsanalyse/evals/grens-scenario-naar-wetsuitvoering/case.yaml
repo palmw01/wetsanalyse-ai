@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: grens-scenario-naar-wetsuitvoering
+expected_outcome: |
+  Het antwoord zegt dat een juridisch scenario met aktes bij de skill wetsuitvoering hoort en niet bij een wetsanalyse,
+  en verwijst daarnaar. Het maakt geen scenario dat het als wetsanalyse of als JAS-annotatie presenteert. Het biedt aan
+  wat een wetsanalyse wel doet: het lid markeren en classificeren, de samenhang vastleggen, of de lezing toetsen met een
+  praktijkvoorbeeld.

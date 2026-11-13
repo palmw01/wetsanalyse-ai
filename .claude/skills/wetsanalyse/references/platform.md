@@ -45,7 +45,7 @@ uv run --extra dev pytest -q tests/test_methodepakket.py tests/test_methode_drif
 - **De tekst van een methodesectie.** Die gaat letterlijk naar het model. Een wijziging verandert het gedrag van Lex
   en de vingerafdruk van de rol (`methode.vingerafdruk`). Doe het als bewuste stap, met een meting (ADR-010: drie
   runs, kwaliteitsset en meting per beurt) en een P-regel in het [beslisregister](bronnen.md).
-- **`methode_versie`.** Die staat in de kop van elke systeemprompt ("WETSANALYSE 2.1 — rol …"). Verhoog hem alleen
+- **`methode_versie`.** Die staat in de kop van elke systeemprompt ("WETSANALYSE 3.0 — rol …"). Verhoog hem alleen
   bij een betekeniswijziging van de methode, niet bij een herschikking van de skill (`skill_versie` is daarvoor).
 - **De koppen en velden van de klassenreferentie.** De generator leest ze; een andere vorm laat hem luid falen.
 - **Bestandsnamen.** Code, tests en documentatie verwijzen naar `agentrollen.md`, `bronnen.md`,

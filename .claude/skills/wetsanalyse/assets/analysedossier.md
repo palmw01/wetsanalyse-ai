@@ -1,6 +1,6 @@
 # Conceptanalysedossier — [regeling en werkgebied]
 
-Status: concept, niet juridisch vastgesteld. Methode: Wetsanalyse met het JAS, 2.1.
+Status: concept, niet juridisch vastgesteld. Methode: Wetsanalyse met het JAS, 3.0.
 Identiteiten: B bron, N normeenheid, E element, R relatie, I interpretatie.
 Analist: … | Datum: … | Reviewer: nog niet beoordeeld.
 

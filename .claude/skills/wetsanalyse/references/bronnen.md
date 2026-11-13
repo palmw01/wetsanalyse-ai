@@ -1,4 +1,4 @@
-# Bronnen en herleidbaarheid — methode 2.1
+# Bronnen en herleidbaarheid — methode 3.0
 
 Dit register hoort bij de skill. M-ID's verwijzen naar oorspronkelijke methodebronnen;
 P-ID's hieronder zijn **projectbesluiten**, geen citaten of wetenschappelijke claims.
@@ -66,6 +66,14 @@ opnieuw. Een SHA-wijziging vereist controle van het nieuwe bronexemplaar; gebrui
 stil bijgewerkte webpagina onder een oude versieaanduiding.
 
 ## Historie
+
+**Methodeversie 3.0 (13 nov 2026): de methodetekst zonder JRM.** De sectie `duiding` beschrijft de rechtsbetrekking
+volgens het JAS (partijen, voorwerp, voorwaarden, en het rechtsfeit dat haar creëert, wijzigt of beëindigt) in plaats
+van "volgens JRM 2"; de slotzin over de JRM-verrijking vervalt. De sectie `supervisor` belooft geen "JAS/JRM-dossier"
+meer maar een analysedossier. M06 is geen grondslag van `duiding` meer; wat over het JRM ging, staat in de skill
+wetsuitvoering. Dit verandert de vingerafdruk van de rollen
+`duiding`, `agent` en `supervisor`, en de kop van elke systeemprompt met methodetekst; gemeten volgens P19 (zie
+`docs/architectuur/metingen/README.md`).
 
 **Skillversie 4.0 (13 nov 2026): wetsanalyse en wetsuitvoering gescheiden.** Alles wat uit het JRM komt (het
 juridische scenario met aktes, het rechtsgevolg als eigen element, het juridisch relevante feit, de juridische toestand)

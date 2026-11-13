@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: dossier-uitstel-schenk-en-erfbelasting
+expected_outcome: |
+  Een conceptanalysedossier in de vorm van het sjabloon: opdracht en bronbasis, structuur en grammatica, annotaties,
+  samenhang, interpretaties en verwijzingen, toetsing met praktijkvoorbeelden, dekking en review. De status is concept.
+  De verwijzingen naar de Successiewet 1956 staan als open punt; een praktijkvoorbeeld is als hypothetisch herkenbaar.
+  Het dossier bevat geen scenario's met aktes en legt geen rechtsgevolg als eigen element vast; dat hoort bij de
+  skill wetsuitvoering.
