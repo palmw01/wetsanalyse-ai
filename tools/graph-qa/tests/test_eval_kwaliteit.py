@@ -171,6 +171,30 @@ def test_de_meetset_bij_g1_is_geldig_en_raakt_de_voorbeelden_van_de_skill_niet()
     assert not any("4:13" in c["question"] for c in cases)
 
 
+def test_de_meetset_bij_g2_is_geldig_en_raakt_geen_andere_set():
+    """G2 (plan methodes scheiden, deel 2): vijf twijfelvragen tussen twee bestaande JAS-klassen, over bepalingen die
+    niet in de duidings- of partijenset en niet in de voorbeelden of evals van de skill staan."""
+    import re
+    from pathlib import Path
+
+    from agent.jas_klassen import JAS_KLASSEN
+    map_ = Path(run_eval.__file__).parent
+    cases = run_eval.load_golden(map_ / "golden_klasse_twijfel.jsonl")
+    assert len(cases) == 5 and len({c["id"] for c in cases}) == 5
+    namen = {k.naam for k in JAS_KLASSEN}
+    artikel = re.compile(r"artikel (\d+:\d+[a-z]?)")
+    elders = set()
+    for pad in [map_ / "golden_duiding.jsonl", map_ / "golden_duiding_partijen.jsonl",
+                *(map_.parents[2] / ".claude/skills/wetsanalyse").rglob("*.md"),
+                *(map_.parents[2] / ".claude/skills/wetsanalyse/evals").rglob("*.json")]:
+        elders |= set(artikel.findall(pad.read_text(encoding="utf-8")))
+    for c in cases:
+        assert vraagtype_van(c) == "duiding" and c["sjabloon"] == "duiding" and c["beoordeling"], c["id"]
+        assert c["expected_sources"] == ["BWBR0005537"] and c["expected_contains"] and c["should_refuse"] is False
+        assert len(c["klassen"]) == 2 and set(c["klassen"]) <= namen, c["id"]
+        assert not set(artikel.findall(c["question"])) & elders, c["id"]
+
+
 # --- verbruik en weigeringen per case -----------------------------------------------------------------
 
 def test_een_qa_case_meldt_tokens_rondes_duur_en_waarom_het_sjabloon_weigerde(capsys, monkeypatch):
