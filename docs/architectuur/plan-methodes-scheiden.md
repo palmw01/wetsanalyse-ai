@@ -252,13 +252,13 @@ JAS-tools van Lex tegen de bronnen van de methode, en zegt per bevinding wat het
 - **De methode Wetsanalyse kent zelf juridische scenario's.** Het boek (stap 4) en de Handleiding (deelactiviteiten 1c,
   1e en 4a) gebruiken ze, de Handleiding met begintoestand, rechtsfeit, rechtsgevolgen en eindtoestand. Besluit 1 legt
   het scenario bij wetsuitvoering. Dat kan, maar de skill moet dan zeggen waar de methode het scenario gebruikt en
-  waar je het uitwerkt. Dit is vraag 1.
+  waar je het uitwerkt (besluit 1 van deel 2).
 - **De modeltekst noemt JRM op drie plekken, niet op één.** Twee zinnen in `duiding` en één in `supervisor`. S6 wordt
   daardoor iets breder (zie §2 van deel 1).
 - **Tien stappen erbij:** zeven zonder gedragswijziging (W1–W7: leestekst, bronregister, evals, tests) en drie met
   (G1–G3), elk met een eigen meting. Aan de drie bronvelden van de klassen verandert niets: de annotatieketen krijgt
   dezelfde klasseduiding.
-- **Zeven vragen** staan onderaan, elk met een voorstel.
+- **De zeven vragen** onderaan zijn beantwoord (13 nov 2026): alle voorstellen zijn overgenomen.
 
 ## Wat ik heb getoetst
 
@@ -291,7 +291,7 @@ betekent: alleen tekst die het platform niet laadt. *Gedrag* betekent: modelteks
   deelvragen worden aan die gebeurtenissen verbonden. De volgorde van 1b–1c en 1d mag wisselen.
 - Skill: het praktijkvoorbeeld en de gebeurtenis staan erin; het scenario niet. P13 zegt dat 1c en 1e "nog niet"
   gedaan worden.
-- Voorstel: afhankelijk van vraag 1. In elk geval zegt `werkgebied.md` dat de methode hier een scenario kent, en waar
+- Voorstel (besluit 1 van deel 2): `werkgebied.md` zegt dat de methode hier een scenario kent, en waar
   je het uitwerkt.
 - Raakt: leestekst (W6).
 
@@ -645,7 +645,23 @@ Naast de vijf van deel 1:
 
 Test 1 van deel 1 krijgt één verfijning: de woordenlijst volgt de uitkomst van vraag 1.
 
-## Vragen voor de gebruiker (deel 2)
+## Besluiten op de zeven vragen van deel 2 (13 nov 2026)
+
+De gebruiker is op 13 november 2026 akkoord gegaan met alle zeven voorstellen. De vragen staan eronder, met het
+voorstel dat nu het besluit is.
+
+1. **Het scenario blijft bij wetsuitvoering.** Wetsanalyse zegt in een paar zinnen waar de methode het scenario
+   gebruikt, met de bron, en verwijst door. Een wetsanalyse legt zelf geen scenario vast.
+2. **De subklassen komen in de skill en in het duidingsantwoord.** Vastleggen als subtype bij een markering wordt een
+   open keuze in `docs/PLAN.md`.
+3. **Lex benoemt de partij die de tekst niet noemt als interpretatie**, met de bepaling waaruit zij volgt, nooit als
+   citaat. Bij annoteren legt alleen de jurist haar vast.
+4. **S6 en G1 worden apart gemeten**, S6 eerst.
+5. **`methode_versie` gaat bij S6 naar 3.0, `skill_versie` bij S5 naar 4.0.**
+6. **Een begrip krijgt geen JAS-klasse of begripstype.** De afwijking van het boek staat met de reden in P15.
+7. **G2 en G3 worden in dit spoor gebouwd.** Subklassen als subtype en een wijziging van een detector niet.
+
+## De vragen van deel 2, met het voorstel
 
 **1. Het juridische scenario: waar ligt de grens precies?**
 Het boek (stap 4) en de Handleiding (1c, 1e, 4a) gebruiken het juridische scenario binnen Wetsanalyse zelf, de
