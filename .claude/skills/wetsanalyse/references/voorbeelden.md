@@ -1,5 +1,7 @@
 # Uitgewerkte voorbeelden
 
+Grondslag: [bronnen en beslisregister](bronnen.md) — P04, P05, P18, P19.
+
 Twee bepalingen uit de Invorderingswet 1990, letterlijk zoals ze in de kennisgraaf staan (wettekst is vrij van
 auteursrecht). De duiding is een **voorbeeld van de werkwijze**, geen gouden standaard: een jurist kan op punten
 anders kiezen, en dat is precies waarom alternatieven zichtbaar blijven.
@@ -42,8 +44,10 @@ E02 tot en met E06 liggen binnen E01: dat is overlap met verschillende functies,
 | R02 | E03 (variabele) | kenmerk | E02 | Invorderbaar is een eigenschap van de aanslag. |
 | R03 | E01 | tijd | E04 | Wanneer het rechtsfeit intreedt. |
 
-**Open punt.** Wie vordert in (de partij in de rechtsbetrekking)? Lid 1 noemt haar niet. Vul geen partij in; noteer
-"impliciet, niet in deze bepaling" en volg de definities van de wet als de analysevraag dat vraagt.
+**De partij die lid 1 niet noemt.** Wie vordert in? Lid 1 zegt het niet. Zoek eerst waar de regeling haar wel noemt
+(de definities, de bepaling die de bevoegdheid toekent) en koppel daaraan. Vind je haar daar, noem haar dan als
+interpretatie met die vindplaats; vind je haar niet, noteer "onbekend, niet in deze bepaling" als open punt. Raad haar
+niet.
 
 ## Voorbeeld 2: een uitzondering met een opsomming
 

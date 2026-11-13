@@ -23,7 +23,9 @@ extern onderzoek en je maakt geen volledigheidsclaim over de regeling. Wil ieman
    definitie. Zoek daarna de partijen, objecten, voorwaarden, waarden, tijd en plaats die erbij horen.
 4. **Markeer en classificeer** met de grenzen uit [fragmentgrenzen](markeren-fragmentgrenzen.md) en de klassen uit de
    [klassenreferentie](jas-klassen-referentie.md).
-5. **Loop de dekking na** per normeenheid, ook voor ongemarkeerde tekst.
+5. **Loop de dekking na** per normeenheid, ook voor ongemarkeerde tekst. Hangt een markering aan geen centrale
+   klasse (rechtsbetrekking, rechtsfeit, afleidingsregel, voorwaarde) en is zij er zelf geen, vraag je dan af of zij
+   een functie draagt ([fragmentgrenzen](markeren-fragmentgrenzen.md)).
 
 ## Uitvoerformaat
 

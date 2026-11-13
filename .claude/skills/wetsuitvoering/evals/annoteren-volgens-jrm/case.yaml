@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: annoteren-volgens-jrm
+expected_outcome: |
+  Het antwoord zegt dat annoteren (markeren en classificeren van tekst) volgens het JAS gaat en niet volgens het JRM,
+  en levert geen lijst markeringen met JRM-classificaties. Het biedt aan wat het JRM wel oplevert: een scenario met
+  aktes als tekst, met per beslispunt meer dan alleen het normale geval, en met wat in een toestand onbekend is als
+  open punt in plaats van ingevuld.

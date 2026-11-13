@@ -1,5 +1,7 @@
 # De skill in het platform (voor wie hem wijzigt)
 
+Grondslag: [bronnen en beslisregister](bronnen.md) — P11, P12, P19, P20.
+
 Deze skill is ook een **build-input** van Lex, de agent in `tools/graph-qa/`. Lees dit voordat je iets aan de skill
 verandert: een paar onderdelen gaan letterlijk als prompt of als data naar de draaiende dienst.
 
@@ -54,9 +56,18 @@ uv run --extra dev pytest -q tests/test_methodepakket.py tests/test_methode_drif
 
 ## Een tweede methode-skill
 
-Een andere methode (zoals wetsuitvoering, JRM) is een eigen map onder `.claude/skills/` met `lex_soort: "methode"`.
-Zo'n skill vult **bestaande** rollen aan met eigen secties en een eigen bronregister, en kan regelsets meebrengen
-achter de proefvlag. Er is geen code nodig; zie ADR-014 §7 en `docs/architectuur/catalogus.md`.
+Een andere methode (zoals wetsuitvoering, JRM) is een eigen map onder `.claude/skills/` met `lex_soort: "methode"`,
+met een eigen bronregister. Methodes zijn zuiver gescheiden (besluit 13 nov 2026, `docs/architectuur/plan-methodes-scheiden.md`):
+
+- elke methode heeft een eigen skill, eigen tools, workflows en profielen, en een eigen resultaatvorm;
+- de annotatieketen, de annotatie-UI en de JAS-tools zijn van wetsanalyse; een andere methode krijgt er geen toegang toe;
+- een rol krijgt secties van één methode (alleen de rol `agent` van de centrale agent mag er meer dragen), dus een
+  tweede methode krijgt eigen rollen en profielen en geen extra sectie in een rol van wetsanalyse;
+- een nieuwe methode levert eerst tekst in het gesprek of een eigen zijpaneel, nooit JAS-markeringen;
+- zolang een methode aan geen rol gekoppeld is, zegt Lex bij een verzoek om werk volgens die methode dat hij dat nog
+  niet kan.
+
+Zie ADR-014 §5 en §7, ADR-016 deel B en `docs/architectuur/catalogus.md`.
 
 ## Kwaliteit meten
 

@@ -8,7 +8,7 @@ empirisch bewezen; de juridische validatie is [`../PLAN.md`](../PLAN.md), spoor 
 
 Dit document legt uit **wat de methode inhoudt, waarop zij berust en hoe zij in de agents
 terechtkomt**. De methode zelf staat in de skill [`.claude/skills/wetsanalyse/`](../../.claude/skills/wetsanalyse/SKILL.md):
-- het [annotatieprotocol](../../.claude/skills/wetsanalyse/references/annotatieprotocol.md);
+- het [annotatieprotocol](../../.claude/skills/wetsanalyse/references/markeringslijst.md) (sinds 13 nov 2026 `markeringslijst.md`);
 - de [klassereferentie](../../.claude/skills/wetsanalyse/references/jas-klassen-referentie.md);
 - het [bronnen- en beslisregister](../../.claude/skills/wetsanalyse/references/bronnen.md) (M- en
   P-codes).

@@ -2,7 +2,7 @@
 name: wetsuitvoering
 metadata:
   methode_versie: "JRM 2 (2025-03)"
-  skill_versie: "1.0"
+  skill_versie: "1.1"
   lex_soort: "methode"
   lex_label: "Wetsuitvoering: juridische scenario's (JRM 2)"
   lex_herkomst: "Juridisch Referentiemodel (JRM 2), specificatie van BZK (minbzk/wetsuitvoering, commit 4a9b584); zie BRON.md"
@@ -26,7 +26,8 @@ naar een eindtoestand. Zo wordt zichtbaar wat er juridisch verandert, en welke g
 
 Deze skill hoort naast de skill **wetsanalyse**. Gebruik wetsanalyse om bepalingen te ontleden en in de dertien
 JAS-klassen te markeren; gebruik deze skill om met die bepalingen scenario's, rechtsgevolgen en juridisch relevante
-feiten op te bouwen. De herkomst en licentie staan in [BRON.md](BRON.md).
+feiten op te bouwen. De twee zijn gescheiden: een scenario verwijst naar een wetsanalyse en maakt zelf geen
+markeringen (zie [koppeling](references/koppeling-wetsanalyse.md)). De herkomst en licentie staan in [BRON.md](BRON.md).
 
 ## Drie dingen die altijd gelden
 
@@ -44,6 +45,8 @@ feiten op te bouwen. De herkomst en licentie staan in [BRON.md](BRON.md).
 | "Wat is het rechtsgevolg", wat ontstaat, wijzigt of eindigt | **B. Rechtsgevolgen** | [scenario §Rechtsgevolg](references/scenario.md) |
 | Welke gegevens zijn nodig, feittypen, de stap naar een gegevensmodel | **C. Juridisch relevante feiten** | [relevant feit](references/relevant-feit.md) |
 | Hoe verhouden JRM en JAS zich, welke classificatie is dit | **D. Classificeren** | [classificaties](references/classificaties.md) |
+| Wat geldt er vóór en na een gebeurtenis, wat is onbekend | **Bij A en B: de juridische toestand** | [juridische toestand](references/juridische-toestand.md) |
+| Er ligt al een wetsanalyse (JAS); hoe sluit het scenario daarop aan | **Bij A: de koppeling** | [koppeling met een wetsanalyse](references/koppeling-wetsanalyse.md) |
 
 Een uitgewerkt scenario op een echte bepaling staat in [voorbeelden](references/voorbeelden.md).
 
@@ -57,6 +60,8 @@ Scenario – voortgang
 - [ ] De eindtoestand van een akte is de begintoestand van de volgende
 - [ ] Per element de bepaling (artikel, lid) of "toevoeging team"
 - [ ] Bewust gekozen: welke andere scenario's (niet alleen de happy flow) en welke niet
+- [ ] Per beslispunt dat ertoe doet: het normale geval, een niet vervulde voorwaarde, de uitzondering en de grens
+- [ ] Per deel van een toestand: bekend uit de bepaling, aangenomen of onbekend
 - [ ] Het type achter de instantie: dezelfde akte zonder concrete namen en waarden
 ```
 
