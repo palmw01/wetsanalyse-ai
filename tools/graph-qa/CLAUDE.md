@@ -657,7 +657,7 @@ bruikbaar is.
   antwoord staan, en een stuk mag ook in een citeervorm in de vraag staan. Anders gaat het niet naar de bron maar terug als
   fout (`id_niet_uit_gesprek`), met de zoektool die het wel vindt. Declaratief per parameter (`ARGUMENTEN`), niet per tool. Een
   BWB-id van een regeling in de graaf mag ook (het resultaat noemt haar en de controle toetst het id); de weigering geldt
-  als de graaf aantoont dat ze er niet in staat (wetgeving_live I20: een id uit het geheugen). Wat het model in deze beurt
+  als de graaf aantoont dat ze er niet in staat (wetgeving_live I20: een id uit het geheugen). **Bij een vraag die een artikel noemt, moet het gesprek de regeling noemen** (`_gegokt`, ADR-016 ronde 3, V01: "artikel 30" zonder regeling werd de Invorderingswet 1990): bij naam of afkorting (of het eerste woord van de naam als geen andere regeling zo begint: "de Leidraad"), in de vraag, een eerder antwoord, een toolresultaat, het werkgebied of de focus. Anders gaat de aanroep terug met de zin dat Lex de jurist vraagt welke regeling hij bedoelt. Een vraag zonder artikel valt er niet onder, en zonder namen of graaf is er geen bewijs. Wat het model in deze beurt
   zelf schreef, telt niet. Code die een tool aanroept, leidt haar ids zelf af en valt er niet onder. `tests/test_id_herkomst.py`.
 - **`agent/spoorbronnen.py`** – één register van wat Lex raadpleegt, intern (`WETGEVING`, `ANNOTATIES`, `BEGRIPPEN`,
   `METHODE`) en per connector afgeleid uit zijn beschrijving (`uit_connector`: label, werkwoorden, leestool = lezen, de
