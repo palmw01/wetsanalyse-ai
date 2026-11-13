@@ -1,0 +1,252 @@
+{
+ "annotaties": {
+  "events": [
+   {
+    "message": "Lex · leest je vraag als: Welke annotaties zijn er al bij artikel 9 lid 2 van de Invorderingswet 1990?",
+    "type": "status"
+   },
+   {
+    "message": "Lex · raadpleegt bestaande annotaties",
+    "route": "annotaties_lezen",
+    "type": "status"
+   }
+  ],
+  "upd": {
+   "afwijzen": false,
+   "annotaties_lezen": true,
+   "plan": "bestaande annotaties raadplegen\nDe vraag, zelfstandig geformuleerd: Welke annotaties zijn er al bij artikel 9 lid 2 van de Invorderingswet 1990?",
+   "specialist": "annotaties_lezen",
+   "worker_idx": 0,
+   "worker_plan": [
+    "annotaties_lezen"
+   ],
+   "zelfstandige_vraag": "Welke annotaties zijn er al bij artikel 9 lid 2 van de Invorderingswet 1990?"
+  }
+ },
+ "begrippen": {
+  "events": [
+   {
+    "message": "Lex · leest je vraag als: Welke begrippen hebben we al vastgelegd over de belastingschuldige?",
+    "type": "status"
+   },
+   {
+    "message": "Lex · raadpleegt vastgelegde begrippen",
+    "route": "begrippen_lezen",
+    "type": "status"
+   }
+  ],
+  "upd": {
+   "afwijzen": false,
+   "annotaties_lezen": false,
+   "begrippen_lezen": true,
+   "plan": "vastgelegde begrippen raadplegen\nDe vraag, zelfstandig geformuleerd: Welke begrippen hebben we al vastgelegd over de belastingschuldige?",
+   "specialist": "begrippen_lezen",
+   "worker_idx": 0,
+   "worker_plan": [
+    "begrippen_lezen"
+   ],
+   "zelfstandige_vraag": "Welke begrippen hebben we al vastgelegd over de belastingschuldige?"
+  }
+ },
+ "bepaling": {
+  "events": [
+   {
+    "message": "Lex · leest je vraag als: Wat staat er in artikel 9 van de Invorderingswet 1990?",
+    "type": "status"
+   },
+   {
+    "message": "Lex · haalt de tekst van de bepaling op",
+    "route": "bepaling",
+    "type": "status"
+   }
+  ],
+  "upd": {
+   "afwijzen": false,
+   "annotaties_lezen": false,
+   "bepalingsvraag": {
+    "artikel": "9",
+    "bwb_id": "BWBR0004770",
+    "lid": ""
+   },
+   "plan": "de tekst van een bepaling",
+   "specialist": "algemeen",
+   "worker_idx": 0,
+   "worker_plan": [
+    "algemeen"
+   ],
+   "zelfstandige_vraag": "Wat staat er in artikel 9 van de Invorderingswet 1990?"
+  }
+ },
+ "dekking": {
+  "events": [
+   {
+    "message": "Lex · leest je vraag als: Welke bronnen horen bij de deelvraag die het minst is uitgewerkt?",
+    "type": "status"
+   },
+   {
+    "message": "Lex · kijkt naar de deelvragen van het werkgebied",
+    "route": "deelvragen",
+    "type": "status"
+   }
+  ],
+  "upd": {
+   "afwijzen": false,
+   "agent_taak": {
+    "agent": "deelvragen",
+    "parameters": {
+     "vraag": "Welke bronnen horen bij de deelvraag die het minst is uitgewerkt?",
+     "werkgebied_id": "wg1"
+    },
+    "taak": "dekking"
+   },
+   "annotaties_lezen": false,
+   "plan": "deelvragen: dekking",
+   "specialist": "agent_taak",
+   "worker_idx": 0,
+   "worker_plan": [
+    "agent_taak"
+   ],
+   "zelfstandige_vraag": "Welke bronnen horen bij de deelvraag die het minst is uitgewerkt?"
+  }
+ },
+ "lijst": {
+  "events": [
+   {
+    "message": "Lex · leest je vraag als: Wat is het laatste Kamerstuk in dossier 32140?",
+    "type": "status"
+   },
+   {
+    "message": "Lex · maakt een lijst uit de Kamerstukken",
+    "route": "bron_lijst",
+    "type": "status"
+   }
+  ],
+  "upd": {
+   "afwijzen": false,
+   "annotaties_lezen": false,
+   "bron_lijst": {
+    "args": {
+     "aantal": 1,
+     "dossier": "32140",
+     "volgorde": "nieuwste"
+    },
+    "connector": "kamerstukken",
+    "gevraagd": 0,
+    "kanttekening": "",
+    "tellen": false,
+    "tool": "zoek_kamerstukken",
+    "verdeling": ""
+   },
+   "plan": "Een lijst stukken uit een bron naast de wet; de zoekvraag staat in de historie.",
+   "specialist": "algemeen",
+   "worker_idx": 0,
+   "worker_plan": [
+    "algemeen"
+   ],
+   "zelfstandige_vraag": "Wat is het laatste Kamerstuk in dossier 32140?"
+  }
+ },
+ "lijst_uit": {
+  "events": [
+   {
+    "message": "Lex · leest je vraag als: Wat is het laatste Kamerstuk in dossier 32140?",
+    "type": "status"
+   },
+   {
+    "message": "Lex · kamerstukken staat uit in deze beurt",
+    "route": "bron_uit",
+    "type": "status"
+   },
+   {
+    "bronnen": [
+     {
+      "label": "kamerstukken",
+      "naam": "kamerstukken",
+      "reden": "straat"
+     }
+    ],
+    "type": "bron_uit"
+   }
+  ],
+  "upd": {
+   "afwijs_melding": "Kamerstukken is op deze omgeving niet beschikbaar. Dat regelt de beheerder van de omgeving. Uit mijn eigen kennis vul ik niet in wat daar staat. Over de wet- en regelgeving zelf kan ik je wel helpen.",
+   "afwijs_stap": "niet gezocht – de gevraagde bron staat uit",
+   "afwijzen": true,
+   "annotaties_lezen": false,
+   "plan": "",
+   "specialist": "",
+   "worker_idx": 0,
+   "worker_plan": [],
+   "zelfstandige_vraag": "Wat is het laatste Kamerstuk in dossier 32140?"
+  }
+ },
+ "overzicht": {
+  "events": [
+   {
+    "message": "Lex · leest je vraag als: Welke artikelen gaan over verrekening?",
+    "type": "status"
+   },
+   {
+    "message": "Lex · maakt een overzicht van het onderwerp",
+    "route": "overzicht",
+    "type": "status"
+   }
+  ],
+  "upd": {
+   "afwijzen": false,
+   "annotaties_lezen": false,
+   "overzicht_route": true,
+   "plan": "overzicht van een onderwerp\nDe vraag, zelfstandig geformuleerd: Welke artikelen gaan over verrekening?",
+   "specialist": "algemeen",
+   "worker_idx": 0,
+   "worker_plan": [
+    "algemeen"
+   ],
+   "zelfstandige_vraag": "Welke artikelen gaan over verrekening?"
+  }
+ },
+ "uitleg": {
+  "events": [
+   {
+    "message": "Lex · leest je vraag als: Wat betekent artikel 9 van de Invorderingswet 1990?",
+    "type": "status"
+   },
+   {
+    "message": "Lex · legt de bepaling uit",
+    "route": "duiding",
+    "type": "status"
+   }
+  ],
+  "upd": {
+   "afwijzen": false,
+   "annotaties_lezen": false,
+   "plan": "p\nDe vraag, zelfstandig geformuleerd: Wat betekent artikel 9 van de Invorderingswet 1990?",
+   "specialist": "duiding",
+   "worker_idx": 0,
+   "worker_plan": [
+    "duiding"
+   ],
+   "zelfstandige_vraag": "Wat betekent artikel 9 van de Invorderingswet 1990?"
+  }
+ },
+ "zonder_herschrijven": {
+  "events": [
+   {
+    "message": "Lex · legt de bepaling uit",
+    "route": "duiding",
+    "type": "status"
+   }
+  ],
+  "upd": {
+   "afwijzen": false,
+   "annotaties_lezen": false,
+   "plan": "p",
+   "specialist": "duiding",
+   "worker_idx": 0,
+   "worker_plan": [
+    "duiding"
+   ],
+   "zelfstandige_vraag": ""
+  }
+ }
+}
