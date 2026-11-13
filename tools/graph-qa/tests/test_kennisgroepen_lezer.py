@@ -181,3 +181,30 @@ def test_een_bepaling_als_link_en_in_de_tekst_telt_een_keer():
     sleutels = [(v.bwb_id, dict(v.delen).get("artikel"), dict(v.delen).get("lid")) for v in s.verwijzingen
                 if v.soort == "bepaling"]
     assert len(sleutels) == len(set(sleutels))
+
+
+@pytest.mark.parametrize("tekst, verwacht", [
+    ("Kamerstukken II 2008/09, 31 930, nr. 3, p. 5", ["kst-31930-3"]),
+    ("zie Kamerstukken II, vergaderjaar 2017–2018, 34 788, nr. 3, blz. 12", ["kst-34788-3"]),
+    ("Kamerstukken II 2014-2015, 34.003, nr. 6", ["kst-34003-6"]),
+    ("Kamerstukken II 2023/24, 36 200 IX, nr. 5", ["kst-36200-IX-5"]),
+    ("Kamerstukken II​​ 2023/24, 31140, nr. 12", ["kst-31140-12"]),
+    ("Kamerstukken II 2008/09, 31 930, nr. 3 en Kamerstukken II 2008/09, 31 930, nr. 3", ["kst-31930-3"]),
+    # Een brief van de Eerste Kamer met een letter, of een citaat zonder dossier of zonder nummer: geen zeker id.
+    ("Kamerstukken I 2008/09, 31 459, nr. C, blz. 11", []),
+    ("Kamerstukken II 1992/93, nr. 516, antwoord 4", []),
+    ("Kamerstukken II 1987/88, 20506, p. 7", []),
+])
+def test_kamerstukken_in_de_gewone_citeervorm(tekst, verwacht):
+    from bronmodel.kennisgroepen import kamerstukken_in_tekst
+    gevonden = kamerstukken_in_tekst(tekst)
+    assert [v.id for v in gevonden] == verwacht
+    assert all(v.brontype == "kamerstuk" for v in gevonden)
+
+
+def test_een_kamerstuk_als_link_en_in_de_tekst_telt_een_keer():
+    from bronmodel.kennisgroepen import Link, Rij, verwijzingen
+    rij = Rij(nr=1, tekst="Kamerstukken II 2017/18, 35 026, nr. 22, p. 3", kop="", soort="alinea",
+              links=[Link(href="https://zoek.officielebekendmakingen.nl/kst-35026-22.html", tekst="35 026, nr. 22")])
+    kst = [(v.doel, v.herkomst) for v in verwijzingen([rij]) if v.soort == "kamerstuk"]
+    assert kst == [("kst-35026-22", "link")]

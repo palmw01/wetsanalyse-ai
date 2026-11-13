@@ -29,7 +29,7 @@ from typing import Any
 from urllib.parse import unquote, urlencode
 
 from . import tekst_hash
-from .extern import externe_verwijzingen, kg_id, kg_kenmerk
+from .extern import ExterneVindplaats, externe_verwijzingen, externe_vindplaats, kg_id, kg_kenmerk
 
 SITE = "https://kennisgroepen.belastingdienst.nl"
 API = SITE + "/wp-json/wp/v2"
@@ -370,6 +370,8 @@ def verwijzingen(rijen: list[Rij], eigen_id: str | None = None) -> list[Verwijzi
     for r in rijen:
         for vp in externe_verwijzingen(r.tekst):
             zet(Verwijzing(vp.brontype, vp.id, "tekst", r.nr))
+        for vp in kamerstukken_in_tekst(r.tekst):
+            zet(Verwijzing(vp.brontype, vp.id, "tekst", r.nr))
         for bwb, artikel, lid, _ in bepalingen_in_tekst(r.tekst):
             delen = (("artikel", artikel),) + ((("lid", lid),) if lid else ())
             zet(Verwijzing("bepaling", f"jci1.3:c:{bwb}" + "".join(f"&{k}={v}" for k, v in delen), "tekst", r.nr,
@@ -435,6 +437,28 @@ def bepalingen_in_tekst(tekst: str) -> list[tuple[str, str, str, int]]:
 
 _INTREKKING_RE = re.compile(r"\b(ingetrokken|intrekking|vervalt|vervallen|komt te vervallen|vervangt|vervangen)\b", re.I)
 _ZIN_RE = re.compile(r"(?<=[.;!?])\s+(?=[A-Z])")
+
+
+#: Een Kamerstuk zoals een standpunt het citeert: "Kamerstukken II 2008/09, 31 930, nr. 3", ook met een vergaderjaar
+#: als "2014-2015", een dossiernummer met spatie of punt ("31 930", "31.930") en een begrotingshoofdstuk in Romeinse
+#: cijfers ("36 200 IX, nr. 5"). Alleen met een genummerd stuk: een brief van de Eerste Kamer met een letter ("31 459, E")
+#: of een citaat zonder nummer koppelt niet, want het id is dan niet zeker af te leiden. Op de 1180 publicaties van
+#: 14 nov 2026 vond dit 1121 van de 1264 citaten; het id komt in de vorm van de Kamerstukken-connector (`kst-31930-3`).
+_KAMERSTUK_RE = re.compile(
+    r"\bKamerstukken\s+I{1,2}\b,?\s+(?:vergaderjaar\s+)?\d{4}\s*[/–-]\s*\d{2,4},?\s+"
+    r"(\d{1,3}(?:[ .]\d{3})|\d{4,6})(?:[ -]([IVXL]+))?,?\s+nr\.?\s*(\d+)\b")
+
+
+def kamerstukken_in_tekst(tekst: str) -> list[ExterneVindplaats]:
+    """De Kamerstukken die de tekst in de gewone citeervorm noemt, als vindplaats `kst-…`, in de volgorde van de tekst."""
+    uit: list[ExterneVindplaats] = []
+    # Een zero-width space (de site zet ze soms achter "Kamerstukken II") breekt het patroon en draagt niets.
+    for m in _KAMERSTUK_RE.finditer((tekst or "").replace("\u200b", "")):
+        dossier = re.sub(r"[ .]", "", m.group(1))
+        ident = "-".join(["kst", dossier] + ([m.group(2)] if m.group(2) else []) + [m.group(3)])
+        if (vp := externe_vindplaats(ident)) and vp.id not in {u.id for u in uit}:
+            uit.append(vp)
+    return uit
 
 
 def vervangt(rijen: list[Rij], eigen_id: str | None = None) -> list[str]:
