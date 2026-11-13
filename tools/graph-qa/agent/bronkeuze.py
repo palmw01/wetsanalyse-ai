@@ -102,5 +102,12 @@ def kies(stand: dict[str, dict[str, Any]], genoemde: set[str], vorige: list[str]
             for n, s in stand.items()}, keuze
 
 
+def heropend(stand: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """De stand met elke bron die alleen deze beurt buiten de keuze viel (`niet_nodig`) weer aan. Voor een route die de
+    code pas na het model kiest (ADR-016 A2-3c, `toon_stukken`): de keuze vóór de eerste ronde viel op de getypte vraag,
+    en "Wat is het laatste?" noemt geen bron. Een bron die uit staat, blijft uit."""
+    return {n: ({**s, "aan": True, "reden": "aan"} if s.get("reden") == NIET_NODIG else s) for n, s in stand.items()}
+
+
 def actief(stand: dict[str, dict[str, Any]]) -> list[str]:
     return [n for n, s in stand.items() if s.get("aan")]

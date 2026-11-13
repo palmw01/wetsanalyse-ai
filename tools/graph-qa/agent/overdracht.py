@@ -151,6 +151,41 @@ def _vaste_route(regel: str, weigering: str) -> Callable[[Any, State, dict[str, 
     return zet
 
 
+def _toon_stukken(b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any] | str:
+    """Een lijst stukken uit een bron naast de wet: de regel `lijst` van de supervisor (`bron_lijst.lees`) op de vraag
+    die het model zelfstandig formuleerde. De bronkeuze viel vóór de eerste ronde op de getypte vraag; een bron die
+    daarbij alleen deze beurt buiten de keuze viel, gaat weer mee (`bronkeuze.heropend`), en de keuze volgt daarna de
+    route, zoals bij de supervisor (`_bronkeuze`, `van_route`). Staat de gevraagde bron echt uit, dan dezelfde melding
+    als bij de supervisor (`_bron_uit`: de vaste tekst en het event voor *Zet aan*)."""
+    from . import bronkeuze, bronstand
+    from .nodes.supervisie import _bron_uit, _bronkeuze, na_herschrijven
+
+    vraag = " ".join((invoer.get("vraag") or "").split())
+    if not vraag:
+        return _GEEN_LIJST
+    writer = get_stream_writer()
+    stand = state.get("bronstand") or {}
+    open_stand = bronkeuze.heropend(stand)
+    st = {**state, "bronstand": open_stand}
+    route = na_herschrijven(b, writer, st, vraag, alleen="lijst")
+    if route is None:
+        if (uit := _bron_uit(writer, st, vraag)) is not None:
+            return {**uit, "zelfstandige_vraag": vraag}
+        return _GEEN_LIJST
+    route = {**route, "zelfstandige_vraag": vraag, "specialist": state.get("specialist") or CENTRAAL}
+    keuze = _bronkeuze(b, st, route)
+    if "bronstand" not in keuze and open_stand != stand:
+        writer(bronstand.event(open_stand))
+        keuze = {**keuze, "bronstand": open_stand, "bronnen": bronkeuze.actief(open_stand)}
+    return {**route, **keuze}
+
+
+TOON_STUKKEN = "toon_stukken"
+
+_GEEN_LIJST = ("De code leest dit niet als een lijstvraag (welke bron, welke volgorde of hoeveel, en waarover). Zoek dan "
+               "zelf met de zoektool van de bron.")
+
+
 #: Het argument van een vaste route: de vraag zoals de supervisor haar zou herschrijven.
 _VRAAG = {"vraag": {"type": "string", "description": (
     "De vraag van de gebruiker, zelfstandig geformuleerd: zonder 'dat', 'die' of 'en …?', met de regeling, het "
@@ -226,6 +261,14 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
         invoer=_VRAAG, naar="begrippen_zoeken",
         zet=_vaste_route("begrippen", "Dit is geen vraag naar vastgelegde begrippen ('welke begrippen hebben we al "
                                       "vastgelegd …'). Beantwoord haar zelf.")),
+    Overdracht(
+        naam=TOON_STUKKEN,
+        beschrijving=(
+            "Roep dit aan als de gebruiker een LIJST of een aantal stukken uit een bron naast de wet vraagt (de nieuwste "
+            "Kamerstukken, het laatste stuk van een dossier, uitspraken bij een artikel, hoeveel moties), ook in een "
+            "vervolgvraag ('wat is het laatste?'). De code zoekt en de werkplek toont de stukken; schrijf zelf niets. "
+            "Niet om één stuk te lezen of voor wat een stuk inhoudt."),
+        invoer=_VRAAG, naar=INGANG, zet=_toon_stukken, ingangen=("bron_lijst", "afwijzen")),
     Overdracht(
         naam="taakagent",
         beschrijving=(

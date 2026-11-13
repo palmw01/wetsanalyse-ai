@@ -198,7 +198,10 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           '- welke annotaties of markeringen er al zijn → '
                                           'lees_annotaties;\n'
                                           '- welke begrippen er al zijn vastgelegd → '
-                                          'lees_begrippen.\n'
+                                          'lees_begrippen;\n'
+                                          '- een lijst of een aantal stukken uit een bron naast de '
+                                          'wet (de nieuwste Kamerstukken, het laatste stuk van een '
+                                          'dossier) → toon_stukken.\n'
                                           '\n'
                                           'EEN BEGRIP: begin bij zoek_definitie: die vindt het '
                                           'tekstdeel waar de wet het begrip zélf definieert, mét '
@@ -330,7 +333,10 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                                 '- welke annotaties of markeringen er al zijn → '
                                                 'lees_annotaties;\n'
                                                 '- welke begrippen er al zijn vastgelegd → '
-                                                'lees_begrippen.\n'
+                                                'lees_begrippen;\n'
+                                                '- een lijst of een aantal stukken uit een bron '
+                                                'naast de wet (de nieuwste Kamerstukken, het '
+                                                'laatste stuk van een dossier) → toon_stukken.\n'
                                                 '\n'
                                                 'EEN BEGRIP: begin bij zoek_definitie: die vindt '
                                                 'het tekstdeel waar de wet het begrip zélf '
@@ -621,4 +627,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                        'search_wetgeving',
                                        'semantic_search',
                                        'zoek_opbouw')}},
- 'sha256': '102a9134ed0bee63f7f9d7be62d11f33aa81a2ea04590e55c5d98cfb0ef8e902'}
+ 'sha256': '9e60404c06ea3510aa52882e2a05b751165b5ed6e70f2267f2727c62d31834dc'}
