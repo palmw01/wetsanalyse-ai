@@ -1548,6 +1548,23 @@ Wat een gebruiker zelf maakt of aanpast (nu: een skill) is een **concept** met v
     `OnbewaardMelding`); wie dan toch weggaat, gooit het ook uit de browser weg. Opslaan en verwerpen ruimen het op.
   - **Intrekken** staat in het menu ⋯ van de kop (tweede klik); daarna is het concept alleen te lezen.
   - Geen sneltoets met een letter, dus ook geen Ctrl+S.
+- **Versies en vergelijken** (B2-3, `components/werkwijze/ConceptVersies.tsx`). Versies groeien alleen aan; hier wordt
+  niets gewijzigd.
+  - **`VersiesKaart`** staat onder de bestanden en de controle: de nieuwste boven, met wie, wanneer, de toelichting, of de
+    versie de controle haalt en welke er draait (`actief`; `null` = onbekend, dan geen label). Meer dan acht klapt uit.
+  - **Een versie lezen** staat in de URL (`?versie=n`, `versiePad`, `versieKeuze`): `VersieWeergave`, zonder tekstvak. Zonder
+    `met` vergelijkt ze met haar voorganger, `met=k` met een andere versie, `met=0` zonder vergelijking. De lijst noemt per
+    bestand *gewijzigd*, *nieuw* of *verwijderd* (een verwijderd bestand blijft in de lijst staan, anders is het niet te
+    zien), en het eerste bestand met een verschil staat open. Wat gelezen is, wordt niet opnieuw gehaald: een versie
+    verandert nooit.
+  - **`components/ui/Tekstverschil`** (rekenkern `lib/tekstverschil.ts`) is de ene weergave van twee teksten naast elkaar:
+    per regel wat erbij kwam (groen, +) en wat wegviel (rood, −), met een paar gelijke regels eromheen en de rest
+    ingeklapt. Eén kolom, dus ook op een telefoon zonder zijwaarts scrollen. Kleur draagt het nooit alleen: het teken staat
+    ervoor en een schermlezer hoort "erbij" of "weg". Twee heel lange teksten vergelijkt het grof (`MAX_CELLEN`), en zegt
+    dat. Gebruik dit voor een volgende vergelijking; bouw er geen tweede naast.
+  - **`components/ui/Bestandenlijst`** is de ene lijst van bestanden om er één uit te kiezen (de editor en de versieweergave).
+  - ***Zet terug als concept*** (de eigenaar, op een eerdere versie) zet de bestanden van die versie klaar als wijziging op
+    de laatste. Er verandert niets tot er is opgeslagen, en de melding zegt welke versie het wordt en welke blijft staan.
 - **BFF**: `app/api/werkplaats/**` (stand, onderdelen, één onderdeel, één versie, een volgende versie, intrekken en de
   toets), elk met `X-User-Id` uit de sessie en de query ongewijzigd door. `PUT /v1/werkplaats/image` is van graph-qa en heeft geen BFF-route.
 - **De spiegel** (`lib/werkplaats.ts`): de soorten en de naamvorm volgen `bronmodel`, de velden de api;

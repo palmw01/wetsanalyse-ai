@@ -14,6 +14,9 @@
  *   verwijderen; niet-opgeslagen werk staat er na herladen weer; opslaan maakt een volgende versie met de toelichting;
  *   is er intussen een nieuwere versie, dan blijft de tekst staan en kiest de gebruiker; weggaan vraagt eerst;
  *   verwerpen; een Markdown-bestand lezen; intrekken; andermans concept is alleen te lezen;
+ * - versies (B2-3): de lijst met wie, wanneer, de toelichting en welke draait; een eerdere versie lezen; vergelijken
+ *   met de voorganger en met een andere versie (wat erbij kwam en wat wegviel, ook een verwijderd bestand); een
+ *   eerdere versie terugzetten als wijziging, die pas na opslaan een nieuwe versie wordt;
  * - op 375 px scrolt geen van die schermen zijwaarts.
  */
 import assert from "node:assert/strict";
@@ -273,7 +276,10 @@ try {
         return { json: versieVan(api.versies.length - 1) };
       }
       if (p === "/api/werkplaats/onderdelen/o1/intrekken") { api.ingetrokken = true; return { json: o1() }; }
-      if (p === "/api/werkplaats/onderdelen/o1") return { json: { ...o1(), versielijst: [] } };
+      if (p === "/api/werkplaats/onderdelen/o1") {
+        return { json: { ...o1(), versielijst: api.versies.slice(1).map((_, i) => ({ ...versieVan(i + 1),
+          toelichting: api.opgeslagen.find((x) => x.na_versie === i)?.toelichting ?? "", actief: i + 1 === 1 })) } };
+      }
       const m = p.match(/^\/api\/werkplaats\/onderdelen\/o1\/versies\/(\d+)$/);
       if (m) return { json: { ...versieVan(Number(m[1])), bestanden: api.versies[Number(m[1])] } };
       return null;
@@ -380,13 +386,72 @@ try {
     await page.locator('[data-concept-versie="5"][data-gewijzigd="nee"]').waitFor();
     assert.doesNotMatch(await vak.inputValue(), /weg hiermee/);
 
+    // --- Versies (B2-3) ---
+    // De lijst: de nieuwste boven, met de toelichting, en welke versie draait.
+    const versies = page.locator('[data-blok="versies"]');
+    assert.deepEqual(await versies.locator("[data-versie]").evaluateAll((els) => els.map((e) => e.dataset.versie)), ["5", "4", "3", "2", "1"]);
+    assert.match(await versies.locator('[data-versie="3"]').innerText(), /Versie 3[\s\S]*browser-test[\s\S]*Beschrijving erbij/);
+    assert.match(await versies.locator('[data-versie="1"]').innerText(), /draait nu/);
+    assert.match(await versies.locator('[data-versie="2"]').innerText(), /1 bevinding/);
+    assert.equal(await versies.locator('[data-versie="5"]').getAttribute("aria-current"), "true");
+    // Een eerdere versie: alleen lezen, standaard vergeleken met haar voorganger.
+    await versies.locator('[data-versie="3"]').click();
+    const weergave = page.locator('[data-versie-weergave="3"][data-vergeleken-met="2"]');
+    await weergave.waitFor();
+    assert.match(page.url(), /versie=3$/);
+    assert.match(await page.locator('[data-melding="oude-versie"]').innerText(),
+      /Je bekijkt versie 3[\s\S]*alleen te lezen[\s\S]*Vergeleken met versie 2: 1 gewijzigd, 1 nieuw, 1 verwijderd/);
+    assert.equal(await vak.count(), 0);
+    assert.equal(await page.locator("[data-opslaan]").count(), 0);
+    // Het eerste bestand met een verschil staat open: wat erbij kwam, met een plus; de gelijke regels ingeklapt of ernaast.
+    assert.equal(await page.locator('[data-bestand="SKILL.md"]').getAttribute("data-bestand-stand"), "gewijzigd");
+    assert.equal(await page.locator('[data-bestand="references/anders.md"]').getAttribute("data-bestand-stand"), "nieuw");
+    assert.equal(await page.locator('[data-bestand="agentrollen.json"]').getAttribute("data-bestand-stand"), "verwijderd");
+    assert.equal(await page.locator("[data-verschil]").getAttribute("data-verschil"), "1+0");
+    assert.match(await page.locator('[data-regel="erbij"]').innerText(), /description: goed/);
+    assert.match(await page.locator('[data-regel="erbij"] .sr-only').innerText(), /erbij/);
+    await zonderOverloop(page, "een versie met een verschil");
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/werkplaats-versie-${breedte}.png`, fullPage: true });
+    // Een verwijderd bestand is te zien: alles weg. De inhoud van een bestand zonder het verschil kan ook.
+    await page.locator('[data-bestand="agentrollen.json"]').click();
+    await page.locator('[data-verschil="0+1"]').waitFor();
+    assert.match(await page.locator('[data-regel="weg"]').innerText(), /"secties"/);
+    await page.locator('[data-bestand="SKILL.md"]').click();
+    await page.locator('[data-actie="verschil-of-inhoud"]').click();
+    await page.locator('pre[data-bestand-inhoud="SKILL.md"]').waitFor();
+    // Vergelijken met een andere versie, en zonder vergelijking; de keuze staat in de URL.
+    await page.locator("[data-vergelijk-met] select, select[data-vergelijk-met]").selectOption("5");
+    await page.locator('[data-versie-weergave="3"][data-vergeleken-met="5"]').waitFor();
+    assert.match(page.url(), /met=5/);
+    await page.locator("[data-vergelijk-met] select, select[data-vergelijk-met]").selectOption("");
+    await page.locator('[data-versie-weergave="3"][data-vergeleken-met=""]').waitFor();
+    assert.equal(await page.locator("[data-bestand-stand]").count(), 0);
+    await page.reload();
+    await page.locator('[data-versie-weergave="3"][data-vergeleken-met=""]').waitFor();
+    // Terugzetten: de bestanden van versie 3 staan klaar als wijziging op versie 5; pas opslaan maakt versie 6.
+    await page.locator('[data-actie="terugzetten"]').click();
+    await page.locator('[data-melding="teruggezet"]').waitFor();
+    assert.match(await page.locator('[data-melding="teruggezet"]').innerText(), /versie 3 staan klaar[\s\S]*nog niets[\s\S]*versie 6[\s\S]*laat versie 5 staan/);
+    assert.equal(api.opgeslagen.length, 2);
+    await page.locator('[data-actie="opslaan"]').click();
+    await page.locator('[data-concept-versie="6"][data-gewijzigd="nee"]').waitFor();
+    assert.equal(api.opgeslagen[2].na_versie, 5);
+    assert.deepEqual(api.opgeslagen[2].bestanden, api.versies[3]);
+    assert.equal(await page.locator('[data-melding="teruggezet"]').count(), 0);
+    // De laatste versie vergelijken met haar voorganger: geen terugzetten, wel terug naar het concept.
+    await page.locator('[data-actie="vergelijk-laatste"]').click();
+    await page.locator('[data-versie-weergave="6"][data-vergeleken-met="5"]').waitFor();
+    assert.equal(await page.locator('[data-actie="terugzetten"]').count(), 0);
+    await page.getByRole("link", { name: "Terug naar het concept" }).click();
+    await vak.waitFor();
+
     // Een Markdown-bestand lezen: opgemaakt, met de frontmatter erboven; en terug naar bewerken.
     await page.locator('[data-actie="lezen"]').click();
     const gelezen = page.locator('[data-bestand-gelezen="SKILL.md"]');
     await gelezen.waitFor();
     assert.match(await gelezen.locator("pre").innerText(), /^name: jrm-proef$/);
     assert.doesNotMatch(await gelezen.innerText(), /# jrm-proef|---/);
-    assert.match(await gelezen.innerText(), /jrm-proef[\s\S]*mijn regel/);
+    assert.match(await gelezen.innerText(), /jrm-proef[\s\S]*description: goed/);
     assert.equal(await vak.count(), 0);
     await page.locator('[data-actie="lezen"]').click();
     await vak.waitFor();

@@ -6,7 +6,8 @@ import { describe, expect, it } from "vitest";
 import {
   IN_EDITOR, MAX_PAD, MAX_SKILL_NAAM, PAD, SKILL_NAAM, UIT, WERKPLAATS_SOORTEN, WERKPLAATS_SOORT_LABEL, bestandsvolgorde, conceptPad,
   eigenConcept, geldigLabel, leesWerk, naamFout, omvang, padFout, parseOnderdeel, parseOnderdelen, parseStand, parseToets, parseVersie,
-  splitsFrontmatter, standLabel, voorOverzicht, werkSleutel, werkplaatsSoortVan, wijzigingZin, wijzigingen, type WerkplaatsOnderdeel,
+  splitsFrontmatter, standLabel, versieKeuze, versiePad, voorOverzicht, werkSleutel, werkplaatsSoortVan, wijzigingZin, wijzigingen,
+  type WerkplaatsOnderdeel,
 } from "./werkplaats";
 
 const WORTEL = join(__dirname, "..", "..");
@@ -199,5 +200,27 @@ describe("bewerken", () => {
     expect(parseToets({ geldig: true, bevindingen: [], hash: "h" })).toEqual({ geldig: true, bevindingen: [], hash: "h" });
     expect(parseToets({ geldig: false, bevindingen: [{ code: "naam", melding: "m", bestand: "" }, { x: 1 }] })?.bevindingen).toHaveLength(1);
     expect(parseToets({})).toBeNull();
+  });
+});
+
+describe("versies", () => {
+  it("de versie en de vergelijking uit de URL: zonder keuze de laatste, standaard tegen de voorganger", () => {
+    const n = [1, 2, 3, 5];
+    expect(versieKeuze(null, null, n)).toEqual({ versie: null, met: null });
+    expect(versieKeuze("5", null, n)).toEqual({ versie: 5, met: 3 });
+    expect(versieKeuze("1", null, n)).toEqual({ versie: 1, met: null });
+    expect(versieKeuze("3", "1", n)).toEqual({ versie: 3, met: 1 });
+    expect(versieKeuze("3", "0", n)).toEqual({ versie: 3, met: null });
+    // Een nummer dat niet bestaat, of een versie tegen zichzelf, telt niet.
+    expect(versieKeuze("4", null, n)).toEqual({ versie: null, met: null });
+    expect(versieKeuze("x", "1", n)).toEqual({ versie: null, met: null });
+    expect(versieKeuze("3", "3", n)).toEqual({ versie: 3, met: null });
+    expect(versieKeuze("3", "9", n)).toEqual({ versie: 3, met: null });
+  });
+
+  it("het pad van een versie", () => {
+    expect(versiePad("o1", 3)).toBe("/werkwijze/concepten/o1?versie=3");
+    expect(versiePad("o1", 3, 1)).toBe("/werkwijze/concepten/o1?versie=3&met=1");
+    expect(versiePad("o1", 3, null)).toBe("/werkwijze/concepten/o1?versie=3&met=0");
   });
 });

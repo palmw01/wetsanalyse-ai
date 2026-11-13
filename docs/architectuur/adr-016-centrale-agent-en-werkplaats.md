@@ -641,6 +641,10 @@ Bij het bouwen (B2, 13 nov 2026) vastgelegd:
 - **Met de vlag `werkplaats` uit verandert er niets aan wat de jurist ziet.**
 - **De knip**: B2-1 de ingangen en het lezen van een concept, B2-2 bewerken met de controle live, B2-3 versies en
   vergelijken, B2-4 het achterlopen en het weghalen van C7.
+- **Vergelijken is één kolom.** Wat erbij kwam en wat wegviel staat regel voor regel onder elkaar, met een teken ervoor.
+  Twee kolommen naast elkaar passen niet op een telefoon, en één weergave voor elke breedte is eenvoudiger te toetsen.
+- **De bestanden en de controle staan naast het bestand**, niet elk op een eigen tab: de bevindingen zijn dan te zien
+  terwijl je typt.
 
 ## Wat generiek is
 
