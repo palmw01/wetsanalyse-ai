@@ -245,7 +245,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   register plus trace, de waarden én de ruwe JSON, want een telling is een getal. Wat de jurist zelf schreef, telt niet als
   bewering: de vraag, het dossier en het aangewezen object (`_bekend`). Dat geldt voor elk sjabloon en voor vrije tekst.
   Citaten, vindplaatsen, ids en artikelnummers hebben hun eigen toets; een afkorting en het jaar in een wetsnaam tellen
-  niet. `check_grounding` zet ze in `beweringen` (niveau onbepaald). `verify_node` vraagt er eerst één correctieronde voor
+  niet. **Ook een regeling die nergens vandaan komt** (ADR-016 ronde 3, K12: "de Belastingwet" als voorbeeld): een naam met de vorm van een regeling (`regelingen_genoemd`, de vormen van `buiten_graaf`, geen afkortingen) die de graaf niet kent en die niet in het opgehaalde of in de vraag staat. `verify_node` vraagt de namen van de graaf alleen op als het antwoord zo'n naam draagt; zonder namen geldt de toets niet. `check_grounding` zet ze in `beweringen` (niveau onbepaald). `verify_node` vraagt er eerst één correctieronde voor
   ("haal het op of laat het weg"); staan ze er daarna nog, dan gaan ze naar `onbevestigd`. Een afgeleid getal telt niet als
   bewering als de rekensom in de tekst staat: een som van twee of drie getallen, het verschil van twee, of een percentage van
   zulke getallen, waarbij elke operand in de tekst én in de bron staat (ronde 5: in ronde 4 vuurde de correctieronde op elke

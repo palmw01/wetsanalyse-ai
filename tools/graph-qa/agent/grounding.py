@@ -203,7 +203,8 @@ def _feitenbron(source_trace: list[tuple[str, str]], trace_text: str) -> str:
 
 
 def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
-                    overzicht: dict | None = None, *, bekend: str = "") -> GroundingReport:
+                    overzicht: dict | None = None, *, bekend: str = "",
+                    regelingen: set[str] | None = None) -> GroundingReport:
     """Markeer wat in het antwoord niet uit de trace te herleiden is: verwijzingen én citaten.
 
     Met een `overzicht` (de overzichtsroute) telt ook elk genoemd artikel dat niet in het overzicht
@@ -256,7 +257,8 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
     tellingen = tellingen_uit(uit_bron) if uit_bron else None
     feiten = [] if overzicht else [f for f in feiten_buiten(answer_text, _feitenbron(source_trace, trace_text),
                                                               bekend=bekend, tellingen=tellingen,
-                                                              bronnen=[f"{waarden(t)}\n{t}" for t in uit_bron])
+                                                              bronnen=[f"{waarden(t)}\n{t}" for t in uit_bron],
+                                                              regelingen=regelingen)
                                    if f not in unsupported]
     # Een stuk van een bronconnector (ADR-013) dat het antwoord noemt en dat alleen in een zoekresultaat stond, is
     # gevonden, niet gelezen. Dat is geen signaal: het id bestaat en het zoekresultaat draagt zijn label, soort, datum

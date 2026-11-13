@@ -260,3 +260,80 @@ def test_een_nummer_uit_de_bron_met_een_werkwoord_erachter_is_geen_telling():
 
     bron = json.dumps({"resultaten": [{"bron": "Kamerstukken II 20588"}]})
     assert beweringen("Dossier 20588 valt daarbuiten.", bron, tellingen=tellingen_uit([bron])) == []
+
+
+# --- een regeling die nergens vandaan komt (ADR-016 ronde 3, K12) -----------------------------------------------------
+
+#: De namen zoals de kennisgraaf ze geeft, klein geschreven (`buiten_graaf._graafnamen`).
+GRAAFNAMEN = {"invorderingswet 1990", "invorderingswet", "iw", "iw 1990", "algemene wet bestuursrecht", "awb",
+              "leidraad invordering 2008", "leidraad invordering", "algemene wet inzake rijksbelastingen", "awr",
+              "uitvoeringsregeling invorderingswet 1990", "wet op de omzetbelasting 1968", "wet op de omzetbelasting"}
+K12_VRAAG = "wat is bekend over het milieu in de milieuwet?"
+K12_ZOEK = json.dumps({"status": "ok", "volledig": True, "aantal": 0, "resultaten": []})
+
+
+def test_een_regeling_die_de_graaf_niet_kent_en_nergens_is_opgehaald_is_een_bewering():
+    """K12: geen regeling met die naam in de graaf; het antwoord noemde daarbij "de Belastingwet" als voorbeeld, uit
+    eigen kennis. De regelingen die de graaf wel kent, en de naam uit de vraag, zijn geen bewering."""
+    antwoord = ("In de kennisgraaf staat geen regeling met de naam Milieuwet. De graaf bevat fiscale regelingen, "
+                "bijvoorbeeld de Invorderingswet 1990 en de Belastingwet.")
+    assert beweringen(antwoord, K12_ZOEK, bekend=K12_VRAAG, regelingen=GRAAFNAMEN) == ["de regeling Belastingwet"]
+    # Zonder de namen van de graaf (geen graaf, een storing) geldt de toets niet.
+    assert beweringen(antwoord, K12_ZOEK, bekend=K12_VRAAG) == []
+    assert beweringen(antwoord, K12_ZOEK, bekend=K12_VRAAG, regelingen=set()) == []
+
+
+@pytest.mark.parametrize("antwoord, bron, vraag", [
+    # Een regeling uit de graaf, met en zonder jaartal, en met een langere naam.
+    ("De Invorderingswet 1990 regelt de invordering; de Invorderingswet kent ook rente.", "", "wat regelt de wet?"),
+    ("De Wet op de omzetbelasting 1968 staat in de kennisgraaf.",
+     json.dumps({"resultaten": [{"citeertitel": "Wet op de omzetbelasting 1968"}]}), "welke wetten zijn er?"),
+    ("De Uitvoeringsregeling Invorderingswet 1990 berust op de wet.", "", "wat berust erop?"),
+    # Een regeling buiten de graaf die de jurist zelf noemde.
+    ("De Wet op de loonbelasting 1964 staat niet in de kennisgraaf.", "", "Wat zegt de Wet op de loonbelasting 1964?"),
+    ("De Milieuwet staat niet in de kennisgraaf.", "", K12_VRAAG),
+    # Een regeling buiten de graaf die in een toolresultaat staat (gezocht bij overheid.nl, of genoemd in een gelezen tekst).
+    ("De Wet inkomstenbelasting 2001 is gevonden bij overheid.nl.",
+     json.dumps({"resultaten": [{"titel": "Wet inkomstenbelasting 2001", "bwb_id": "BWBR0011353"}]}), "zoek de wet ib"),
+    ("Artikel 9 verwijst naar de Faillissementswet.", json.dumps({"tekst": "onverminderd de Faillissementswet"}), "artikel 9"),
+    # Geen naam van een regeling: een gewoon woord, een afkorting, een citaat.
+    ("De wet regelt dit in artikel 9. Deze wetgeving is omvangrijk.", "", "wat regelt de wet?"),
+    ("Volgens de Awb en de AWR geldt dit ook.", "", "wat geldt?"),
+    ('De tekst luidt: "de Belastingwet is van toepassing".', "", "wat staat er?"),
+])
+def test_een_bekende_of_gevraagde_regeling_is_geen_bewering(antwoord, bron, vraag):
+    """Tegenvoorbeelden die goed moeten blijven: een juist antwoord mag hier niet op afgekeurd worden."""
+    assert beweringen(antwoord, bron, bekend=vraag, regelingen=GRAAFNAMEN) == []
+
+
+def test_de_controle_meldt_de_regeling_als_bewering_en_keurt_niet_af():
+    """In `check_grounding`: een bewering is een signaal voor één correctieronde, geen afkeuring van het antwoord."""
+    antwoord = "In de kennisgraaf staat geen Milieuwet. Wel bijvoorbeeld de Belastingwet."
+    rapport = check_grounding(antwoord, [("search_wetgeving", K12_ZOEK)], bekend=K12_VRAAG, regelingen=GRAAFNAMEN)
+    assert rapport.beweringen == ["de regeling Belastingwet"] and rapport.grounded is True
+    assert check_grounding(antwoord, [("search_wetgeving", K12_ZOEK)], bekend=K12_VRAAG).beweringen == []
+
+
+def test_in_de_keten_krijgt_een_verzonnen_regeling_een_correctieronde():
+    """K12 in de keten: na de zoekvraag noemt het antwoord "de Belastingwet". De controle haalt de namen uit de graaf,
+    vraagt één correctieronde, en het herstelde antwoord is niet afgekeurd."""
+    from agent import overzicht
+    namen = ("?regeling\t?citeertitel\t?soort\t?afkortingen\n"
+             "<urn:bwb:BWBR0004770>\tInvorderingswet 1990\twet\tIW | Iw 1990\n")
+    graph = FakeGraph(results=lambda q: namen if "?afkortingen" in q or "bwb:afkorting" in q else "?hit\n")
+    llm = FakeLLM([
+        response([tool_block("t1", "search_wetgeving", {"query": "milieu"})], "tool_use"),
+        response([text_block("In de kennisgraaf staat geen Milieuwet. Wel bijvoorbeeld de Invorderingswet 1990 en de Belastingwet.")], "end_turn"),
+        response([text_block("In de kennisgraaf staat geen Milieuwet. Wel bijvoorbeeld de Invorderingswet 1990.")], "end_turn"),
+    ])
+    overzicht._REGELINGEN_CACHE.clear()
+    try:
+        events = _run(answer_stream(K12_VRAAG, settings=make_settings(enable_planning=False, grounding_correct=True), llm=llm, graph=graph))
+    finally:
+        overzicht._REGELINGEN_CACHE.clear()
+    assert llm.index == 3, "de correctieronde hoort te zijn gedraaid"
+    assert "de regeling Belastingwet" in llm.calls[-1]["messages"][-1]["content"]
+    grounding = next(e for e in events if e["type"] == "grounding")
+    assert grounding["grounded"] is True and not grounding.get("onbevestigd")
+    tekst = json.dumps([e for e in events if e["type"] == "token"], ensure_ascii=False)
+    assert "Belastingwet" not in tekst and "Invorderingswet 1990" in tekst
