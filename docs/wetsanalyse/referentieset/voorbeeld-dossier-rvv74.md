@@ -1,5 +1,9 @@
 # Conceptanalysedossier — rood voetgangerslicht
 
+> **Bewijs van toen (12 sep 2026).** Dit dossier volgt de methode zoals zij toen in de skill stond: JAS met
+> JRM 2-verrijking. Sinds 13 nov 2026 zijn wetsanalyse (JAS) en wetsuitvoering (JRM) gescheiden; scenario's en
+> rechtsgevolgen als eigen element horen nu bij de skill wetsuitvoering. Het dossier blijft ongewijzigd staan.
+
 Status: concept, niet juridisch vastgesteld. Methode: JAS met JRM 2-verrijking 2.1.
 Analist: agent | Datum: 2026-09-12 | Menselijke reviewer: nog niet beoordeeld.
 

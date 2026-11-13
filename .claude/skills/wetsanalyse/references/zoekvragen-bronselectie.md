@@ -1,5 +1,7 @@
 # Zoekvragen bij de bronselectie
 
+Grondslag: [bronnen en beslisregister](bronnen.md) — M14, M02, P17.
+
 Hoe je bij activiteit 1 (deelactiviteit 1f, bronnen selecteren) systematisch naar bronnen zoekt: vanaf de
 gebeurtenis waar het werkgebied om draait, met vier soorten zoekvragen. Dit staat in eigen woorden. De
 indeling komt uit intern materiaal van het Expertisecentrum BRM (M14), dat bewust niet in deze publieke repo

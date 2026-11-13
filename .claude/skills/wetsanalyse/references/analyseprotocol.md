@@ -1,8 +1,8 @@
 # Analyseprotocol: een volledig dossier (activiteit 2 met context en samenhang)
 
-Grondslag: [bronnen en beslisregister](bronnen.md) — P01–P03, P08–P09. Uitvoer: het
+Grondslag: [bronnen en beslisregister](bronnen.md) — M01, M02, P01–P03, P08–P09. Uitvoer: het
 [dossiersjabloon](../assets/analysedossier.md). Lees samen met [fragmentgrenzen](markeren-fragmentgrenzen.md),
-[verwijzingen volgen](verwijzingen-volgen.md), [JRM-verrijking](jrm-verrijking.md) en [kwaliteit](kwaliteit.md).
+[verwijzingen volgen](verwijzingen-volgen.md), [relaties](relaties.md) en [kwaliteit](kwaliteit.md).
 
 ## Inhoud
 
@@ -11,7 +11,7 @@ Grondslag: [bronnen en beslisregister](bronnen.md) — P01–P03, P08–P09. Uit
 - 2. Structuurkaart en grammaticale ontleding
 - 3. Context en interpretatie
 - 4. Markeren en classificeren
-- 5. Samenhang en toetsing met scenario's
+- 5. Samenhang en toetsen met praktijkvoorbeelden
 - 6. Review en oplevering
 - Identiteiten in het dossier
 
@@ -25,7 +25,7 @@ Dossier – voortgang
 - [ ] 2. Normeenheden (N-ID's) ontleed met de controletabel
 - [ ] 3. Context gelezen: definities, verwijzingen, delegatie, toelichting; interpretatiekeuzes vastgelegd
 - [ ] 4. Elementen (E-ID's) gemarkeerd en geclassificeerd, met alternatieven
-- [ ] 5. Relaties (R-ID's) en gevolgen (G-ID's) vastgelegd; scenario's (S-ID's) gedraaid
+- [ ] 5. Relaties (R-ID's) vastgelegd; getoetst met praktijkvoorbeelden (normaal geval en grensgeval)
 - [ ] 6. Dekking per normeenheid, kwaliteitsrubriek, open punten met reviewvragen
 ```
 
@@ -93,7 +93,7 @@ Een materiële interpretatiekeuze leg je vast in de tabel Interpretaties, met:
 - de bronpassages;
 - je conceptkeuze;
 - de beperking van de zekerheid;
-- het gevolg voor de scenario's.
+- het gevolg voor de uitkomst van een praktijkvoorbeeld.
 
 Er is geen vaste rangorde tussen deze interpretatiemethoden.
 
@@ -103,27 +103,35 @@ verdienen eigen aandacht waar ze voorkomen.
 ## 4. Markeren en classificeren
 
 Bepaal eerst de hoofdfunctie van elke normeenheid, daarna haar onderdelen. De werkwijze en de regels staan in de
-[markeringslijst](annotatieprotocol.md) en de [fragmentgrenzen](markeren-fragmentgrenzen.md). Koppel elk element aan
+[markeringslijst](markeringslijst.md) en de [fragmentgrenzen](markeren-fragmentgrenzen.md). Koppel elk element aan
 zijn norm- en bron-ID. Houd een abstract type (*de belastingschuldige*) apart van een concrete partij of waarde in
-een scenario. Een label alleen bewijst niet dat de juridische relatie begrepen is.
+een praktijkvoorbeeld. Een label alleen bewijst niet dat de juridische relatie begrepen is.
 
-## 5. Samenhang en toetsing met scenario's
+## 5. Samenhang en toetsen met praktijkvoorbeelden
 
-Leg de relaties en toestandsveranderingen vast volgens [relaties](relaties.md) en de
-[JRM-verrijking](jrm-verrijking.md). Gebruik scenario's om de analyse te beproeven, niet als een parallelle boom van
-deelvragen.
+Leg de relaties vast volgens [relaties](relaties.md): wie rechthebbende en plichthebbende is, wat het voorwerp is,
+welke voorwaarden gelden, en welk rechtsfeit een rechtsbetrekking creëert, wijzigt of beëindigt.
 
-Draai per beslispunt dat ertoe doet vier scenario's:
-- het normale geval;
-- een voorwaarde die niet voldaan is;
-- de uitzondering;
-- de precieze grens.
+Toets de analyse daarna. De methode kent daarvoor drie manieren (M01 h.3 stap 4; M02 §3.6 activiteit 4):
+
+- **Een review.** Leg de uitkomsten opnieuw naast de wettekst, bij voorkeur door iemand van een andere discipline. Dat
+  kan al tijdens de analyse.
+- **Een praktijkvoorbeeld.** Een concreet geval waarop je de bepaling toepast: kloppen de markeringen, de relaties en
+  de lezing met wat er in dat geval moet gebeuren? Bij een begrip toetst een voorbeeld of iedereen het hetzelfde leest
+  ([begrippen](begrippen.md)).
+- **Een voorbeeldreeks bij een afleidingsregel.** Geef de invoer een reeks waarden en schrijf per geval de uitkomst op
+  die de regel geeft. Neem ook nul, een negatieve waarde en een onbekende waarde. Vraag per uitkomst: is dit juridisch
+  juist, en mag dit geval zich voordoen? Zo vind je een geval dat de regel niet dekt.
+
+Gebruik minstens een normaal geval en een grensgeval. Vier gevallen helpen een reeks te vullen: het normale geval, een
+voorwaarde die niet vervuld is, de uitzondering, en de precieze grens van een termijn of bedrag.
 
 Weet je een invoer niet en geeft de bron geen oplossing, schrijf dan 'niet bepaalbaar'. Herleid elke verwachte
-uitkomst tot normen en bronnen. Een hypothetisch feit is nooit bronbewijs.
+uitkomst tot normen en bronnen. Een hypothetisch feit is nooit bronbewijs, en het voorbeeld is als hypothetisch
+herkenbaar.
 
-Dit profiel combineert scenario's met een dekkingscontrole van het gekozen corpus. Dat is een projectkeuze (P08),
-geen zuivere JRM 2-werkwijze.
+Een praktijkvoorbeeld is geen juridisch scenario. Wil je per gebeurtenis de toestand ervoor en erna en de
+rechtsgevolgen uitwerken, gebruik dan de skill wetsuitvoering; het analysedossier legt dat niet vast.
 
 ## 6. Review en oplevering
 
@@ -132,7 +140,12 @@ Geef elke normeenheid een status:
 - gemotiveerd buiten de opdracht;
 - onopgelost.
 
-Een materiële lacune krijgt een reviewvraag, met de impact en de bron of deskundigheid die nodig is. Pas de
+Een materiële lacune krijgt een reviewvraag, met de impact en de bron of deskundigheid die nodig is.
+
+Eén soort open punt krijgt een eigen naam: **ontbrekend beleid**. Heeft de analyse een interpretatie of invulling nodig
+die nergens is vastgelegd (een open norm, een ruimte die "ten minste" laat, een keuze in de uitvoering), dan meld je
+dat, met de norm, de keuze die nodig is en wie haar moet maken. Signaleren is een eigen stap van de methode (M01 h.3
+stap 5; M02 §3.7); je vult de ruimte niet zelf in. Pas de
 [kwaliteitsrubriek](kwaliteit.md) toe. Rapporteer de technische juistheid, de inhoudelijke kwaliteit en de
 brondekking apart. Het dossier blijft concept tot een mens het beoordeelt.
 
@@ -144,8 +157,6 @@ brondekking apart. Het dossier blijft concept tot een mens het beoordeelt.
 | N | Normeenheid | N01 |
 | E | Element (een markering) | E01 |
 | R | Relatie tussen elementen | R01 |
-| G | Gebeurtenis of rechtsgevolg | G01 |
 | I | Interpretatievraag | I01 |
-| S | Scenario | S01 |
 
 ID's zijn stabiel binnen een dossier: hernummer niet als je iets toevoegt.

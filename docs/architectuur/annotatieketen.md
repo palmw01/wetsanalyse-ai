@@ -256,6 +256,30 @@ Bewust **niet** te wijzigen: alle uitgebreide duurspans inkorten (N01: de startg
 volgens het profiel bij T) en *dagtekening* als woord uitsluiten (N02: strijdig met de
 profielvoorbeelden, eerst context).
 
+### De markeerregels van de Handleiding tegenover de detectoren
+
+De skill beschrijft sinds 13 november 2026 de markeerregels van de Handleiding
+(`.claude/skills/wetsanalyse/references/markeren-fragmentgrenzen.md`; plan methodes scheiden, deel 2, bevinding T6). De
+detectoren kiezen hun grenzen in code. Waar die twee uiteenlopen, staat hier. Het zijn open punten, geen besluiten: een
+wijziging van een detector is een eigen stap met een annotatiemeting.
+
+Bekend uit de detectortabel hierboven:
+
+- **Een voorwaarde is de hele zin of het hele zinsdeel.** De detector `voorwaarde` kapt een bijzin af op een komma, en
+  samengestelde eisen vallen uiteen.
+- **Een afleidingsregel gaat met werkwoord en voorwaarden.** De detector `afleiding` modelleert invoer en uitvoer niet;
+  de toewijzing en de kalenderpositie van `functie` staan nog op het segment.
+- **Je markeert wat aan een centrale klasse hangt.** De detector `naamwoordgroep` biedt elke naamwoordgroep aan, ook
+  waar zij aan geen norm hangt (casus IW05: 14 keer Rechtsobject, geen Afleidingsregel).
+
+Nog niet per detector nagegaan:
+
+- of de verwijzing in een formulering ("het overeenkomstig het eerste lid berekende bedrag") in de span van
+  `naamwoordgroep` en `numeriek` meegaat;
+- of het lidwoord in elke span meegaat (de regel dient de controle op dekking);
+- of een variabele zonder werkwoord en zonder voorwaarden wordt aangeboden als de naamwoordgroep een beperkende bijzin
+  heeft.
+
 ## Verificatie en reproductie
 
 Vanuit `tools/graph-qa`:
