@@ -43,6 +43,8 @@ TEKST: dict[str, str] = {
     "MODEL_GEEN_DEFINITIE": "Lex gaf voor deze groep geen bruikbare definitie.",
     "CIRCULAIR_VERWORPEN": "Lex formuleerde een definitie met de naam van het begrip zelf; die is niet overgenomen.",
     "DOOR_LEX_GEFORMULEERD": "De definitie is door Lex geformuleerd; toets haar aan de passages.",
+    "NAAM_MET_ONTKENNING": "De naam bevat een ontkenning; in een regel geeft dat later een dubbele ontkenning.",
+    "NAAM_MET_AFKORTING": "De naam bevat een afkorting; schrijf haar voluit, tenzij de wet haar zo gebruikt.",
     # signalen met het betekenisdossier (spoor M)
     "ALGEMENE_NAAM_SPECIFIEKE_DEFINITIE": "De naam is algemeen, maar de definitie beschrijft één variant uit parallelle bepalingen; kies een specifiekere naam of een algemenere definitie.",
     "RECHTSGEVOLG_IN_DEFINITIE": "De definitie noemt een rechtsgevolg (wat er met het begrip gebeurt); dat hoort niet in de omschrijving.",
@@ -58,6 +60,11 @@ GARANTIES = ("FRAGMENT_ONBEKEND", "FRAGMENT_NIET_LETTERLIJK", "LETTERLIJK_NIET_I
              "SAMENGESTELD_NIET_UIT_FRAGMENTEN")
 
 _GEEN_BEGRIP = {"Tijdsaanduiding", "Parameter en parameterwaarde", "Operator"}
+#: De richtlijnen voor de naam van een begrip (skill wetsanalyse, `references/begrippen.md`; M01 h.3 stap 3a): geen
+#: ontkenning, zo min mogelijk afkortingen. Een aandachtspunt, nooit een weigering; niet bij een letterlijke definitie,
+#: want dan is de naam de term van de wet.
+_ONTKENNING = re.compile(r"\b(?:niet|geen|zonder|nooit)\b|\bniet-", re.IGNORECASE)
+_AFKORTING = re.compile(r"\b[A-Z]{2,}\b|(?<![\w.])(?:[a-z]{1,4}\.)+(?=\s|$)")
 _REKEN = re.compile(r"\b(?:bedraagt|wordt berekend|berekend als|vermenigvuldigd|gedeeld door|vermeerderd met|"
                     r"verminderd met|percent|procent)\b|%|\d+\s*[x×*/+−-]\s*\d+", re.IGNORECASE)
 
@@ -143,6 +150,10 @@ def signalen(kaart: Kaart, klassen: list[str], dossier: Dossier | None = None) -
             uit.append("REKENREGEL")
     elif not kaart.definitie:
         uit.append("GEEN_DEFINITIE")
+    if not wettelijk and _ONTKENNING.search(kaart.naam):
+        uit.append("NAAM_MET_ONTKENNING")
+    if not wettelijk and _AFKORTING.search(kaart.naam):
+        uit.append("NAAM_MET_AFKORTING")
     eigen = {k for k in klassen if k and k != "Brondefinitie"}
     if len(eigen) > 1:
         uit.append("GEMENGDE_KLASSEN")

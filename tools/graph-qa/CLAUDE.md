@@ -1242,7 +1242,8 @@ JAS-classifier, en draait op `LLM_MODEL` (een oordeel, dus geen eigen modelknop)
 - **Fragmenten** (`fragmenten.knip`): zinsdelen met een id uit bron en offsets. Het model typt nooit
   brontekst over.
 - **Toetsen** (`toetsen.py`): garanties (id bestaat, tekst letterlijk op offsets, over manifest +
-  onderzoek) halen een definitie weg; signalen (circulair, rekenregel, gemengde klassen, geen begrip, en
+  onderzoek) halen een definitie weg; signalen (circulair, rekenregel, gemengde klassen, geen begrip, een ontkenning of afkorting in de naam (G3, niet bij
+  een letterlijke definitie), en
   met het dossier: algemene naam met specifieke definitie, rechtsgevolg of afleiding in de definitie,
   onderbouwing uit één voorkomen, fragment draagt niet, tegenbewijs, context niet onderzocht) maken haar
   geel. Het model geeft per voorstel een `Duiding` (soort, bereik, voorkeursterm, ontbreekt): een

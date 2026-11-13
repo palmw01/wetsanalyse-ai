@@ -1,0 +1,20 @@
+{
+ "v1": {
+  "kaarten": 6,
+  "per_code": {},
+  "geraakt": [],
+  "geel": 5
+ },
+ "heldout-v1": {
+  "kaarten": 4,
+  "per_code": {},
+  "geraakt": [],
+  "geel": 0
+ },
+ "heldout-v2": {
+  "kaarten": 4,
+  "per_code": {},
+  "geraakt": [],
+  "geel": 2
+ }
+}
