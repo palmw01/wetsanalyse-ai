@@ -152,3 +152,39 @@ def test_regeling_info_bundelt_meerwaardige_velden():
             f"{veld} is meerwaardig en moet met GROUP_CONCAT worden gebundeld"
         )
     assert "SAMPLE(" in sparql, "enkelwaardige velden horen ook geaggregeerd, anders groepeert niets"
+
+
+def test_geldigheid_is_een_rij_per_bepaling():
+    """Eén bepaling hoort één rij te zijn, met haar eigen Kamerdossiers.
+
+    De dossiers kwamen uit een subquery in een OPTIONAL, die op `?drager` moest aansluiten: een variabele uit een
+    `BIND(COALESCE(…))`. In de graaf sloot die niet aan. Voor artikel 28 van de Invorderingswet 1990 gaf de query 974
+    rijen, elk met de dossiers van een ándere bepaling (meting ADR-016 ronde 3: B01 las vier pagina's, K17 ging over op
+    eigen SPARQL). Nu staat alles over de drager in één OPTIONAL en worden de dossiers op het buitenste niveau
+    samengevoegd. Tegen de echte graaf toetst `eval/retrieval_smoke.py` het (`max_rijen=1`)."""
+    for args in (("BWBR0004770", "28"), ("BWBR0004770", "36", "4"), ("BWBR0004770",), ("BWBR0024096", "25.1")):
+        sparql = queries.geldigheid(*args)
+        buiten, _, binnen = sparql.partition("WHERE {")
+        assert 'GROUP_CONCAT(DISTINCT ?ds; separator=" | ") AS ?dossiersBepaling' in buiten, "de dossiers horen in de buitenste projectie"
+        assert "BIND(COALESCE" not in sparql and "GROUP BY ?drager" not in sparql
+        # Alles wat de drager nodig heeft, staat in het blok dat hem bindt.
+        blok = binnen[binnen.index("?drager (bwb:heeftLid|bwb:heeftOnderdeel)* ?node"):binnen.index("OPTIONAL { ?node bwb:inwerking")]
+        for patroon in ("FILTER NOT EXISTS { ?boven (bwb:heeftLid|bwb:heeftOnderdeel) ?drager }", "?drager bwb:dossier ?ds",
+                        "?drager bwb:inwerkingtredingsbron ?inwerkingtredingsbron", "?drager bwb:opmerking ?opmerking"):
+            assert patroon in blok, patroon
+        assert binnen.count("?drager") == blok.count("?drager"), "?drager wordt buiten zijn blok gebruikt"
+        # Elke kolom die geen aggregaat is, staat in de GROUP BY: anders groepeert de graaf niet.
+        groep = sparql[sparql.rindex("GROUP BY"):sparql.rindex("ORDER BY")]
+        for kolom in ("?bepalingInwerking", "?terugwerkendTot", "?bron", "?effect", "?status", "?wijzigingsbron",
+                      "?inwerkingtredingsbron", "?opmerking", "?geldigVanaf", "?geldigTot", "?toestandUrl",
+                      "?ondertekeningsdatum", "?uitgiftedatum", "?dossier"):
+            assert kolom in groep.split() and kolom in buiten, kolom
+
+
+def test_geen_subquery_in_een_optional():
+    """Een subquery in een OPTIONAL rekent de graaf los van de rest uit; sluit ze aan op een variabele uit een BIND,
+    dan sluit ze niet aan en vermenigvuldigen de rijen zich (zie `geldigheid`). Samenvoegen hoort op het buitenste niveau."""
+    import re
+    from test_sparql_syntax import GEVALLEN
+    for naam, bouw in GEVALLEN:
+        assert not re.search(r"OPTIONAL\s*\{\s*SELECT", bouw), naam
