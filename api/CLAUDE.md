@@ -1107,6 +1107,11 @@ Achter `WERKPLAATS` (default uit, alleen acceptatie, met een poort-guard): zonde
     zodat te zien is van wanneer de stand is.
 - **Bewerken** (`POST /onderdelen` met `uit_image: true`): versie 1 is de versie uit het image, met haar hash als
   `basis_hash`. 409 `image_onbekend` zolang graph-qa zich niet meldde, 404 `niet_in_image`.
+- **Een concept dat achterloopt** (B2-4). `GET /v1/werkplaats/image/onderdelen/{soort}/{naam}` geeft de versie die nu
+  draait met haar bestanden (alleen lezen, voor elke ingelogde gebruiker, achter de vlag; niet voor het agent-token), om
+  te vergelijken. Een volgende versie mag `basis_hash` meesturen: de gebruiker heeft verwerkt wat er draait. Alleen de
+  hash die nu in het image zit telt (anders 409 `basis_niet_actueel`); de versie wordt dan ook bewaard als de bestanden
+  gelijk bleven, en volgende versies erven die basis. Er wordt nergens samengevoegd.
 - **Een skill toetst ook tegen de andere skills in het image** (`_andere_skills` → `wp.toets(andere=)`): een sectie-id
   en een broncode zijn van één skill. Het concept vervangt zijn eigen versie. Zonder image toetst een skill alleen op
   zichzelf.
@@ -1117,7 +1122,7 @@ Achter `WERKPLAATS` (default uit, alleen acceptatie, met een poort-guard): zonde
 - **De audit en de logregels dragen geen inhoud en geen naam van een concept**: het onderdeel-id, het versienummer, de
   hash en wie. Een concept kan tekst bevatten die niet openbaar mag worden.
 - **Stijl C**: de store gooit de HTTP-fouten (`{melding, bevindingen?}`), de router toetst alleen wie het vraagt.
-- Nog niet: de editor en het samenvoegen bij een verouderde basis (B2), de proef (B3), promotie (B4). Een account
+- Nog niet: de proef (B3), promotie (B4). Een account
   verwijderen laat zijn concepten staan; een beheerder kan ze intrekken.
 - Tests: `tests/test_werkplaats.py`, `tests/test_werkplaats_image.py` (ook met het echte bronpakket van graph-qa).
 

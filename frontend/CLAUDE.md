@@ -1487,8 +1487,9 @@ van een workflow, de inhoud per soort (methodetekst, regels met hun voorbeeldzin
 herkomst, *Leunt op* / *Gebruikt door* en waar het in de repo staat. **De catalogus is alleen lezen**: dit is geen
 ontwikkelhulpmiddel maar uitleg voor de jurist hoe een voorstel ontstaat; drift en testuitslagen horen er niet. Wat Lex
 gebruikt, verandert alleen via de repo. Zelf iets maken of aanpassen gaat in de werkplaats (hieronder), als concept.
-De sectie-editor van C7 (*Wijziging voorstellen* op een methodesectie, een concept-PR) staat er nog en verdwijnt uit de
-frontend in B2-4; de api-route en de vlag `catalogusVoorstellen` blijven tot de promotie van B4 ze vervangt. De rekenkern en de spiegel van het bronmodel staan
+De sectie-editor van C7 (*Wijziging voorstellen* op een methodesectie, een concept-PR) is uit de frontend (B2-4): de
+knop, de BFF-routes en de api-functies. De api-route en de vlag `catalogusVoorstellen` blijven tot de promotie van B4 ze
+vervangt; `scripts/test-werkwijze.mjs` toetst dat de werkplek die routes niet meer aanroept. De rekenkern en de spiegel van het bronmodel staan
 in `lib/catalogus.ts` (`catalogus.test.ts` toetst de soorten tegen `bronmodel/catalogus.py`). Browserregressie:
 `scripts/test-werkwijze.mjs` (`WERKWIJZE_FIXTURE` en `WERKWIJZE_SCREENSHOT` voor een controle met de echte catalogus). Op een telefoon past alles: `scripts/test-werkwijze-breedte.mjs` loopt op 375 px het overzicht, elk concept en elk
 onderdeel na (zonder fixture één onderdeel per soort uit `lib/catalogus.ts` met de langste waarden, met `WERKWIJZE_FIXTURE`
@@ -1523,9 +1524,7 @@ Wat een gebruiker zelf maakt of aanpast (nu: een skill) is een **concept** met v
 - **De pagina van een concept**: de bestanden van de laatste versie in een vaste volgorde
   (`bestandsvolgorde`: `SKILL.md`, de wortel, dan de mappen), het gekozen bestand in de URL (`?bestand=`), en wat de
   controle vond, per bestand. Op een telefoon staan lijst en bestand onder elkaar; een lange regel of bestandsnaam breekt af.
-  Versies en vergelijken volgen in B2-3; "loopt achter" met de twee verschillen in B2-4. **Er wordt niet automatisch
-  samengevoegd**: de pagina toont de verschillen en laat opnieuw beginnen, en zegt vooraf wat er met de eigen
-  wijzigingen gebeurt.
+  **Er wordt niet automatisch samengevoegd** (zie *Loopt achter* hieronder).
 - **Bewerken** (B2-2, `ConceptEditor`; rekenkern in `lib/werkplaats.ts`): alleen de eigenaar, op een concept dat niet is
   ingetrokken. Anders is het dezelfde pagina om te lezen.
   - **Een gewoon tekstvak** per bestand (`AutoTextarea`, vaste letterbreedte, regels breken af), met de omvang tegen de
@@ -1563,10 +1562,25 @@ Wat een gebruiker zelf maakt of aanpast (nu: een skill) is een **concept** met v
     ervoor en een schermlezer hoort "erbij" of "weg". Twee heel lange teksten vergelijkt het grof (`MAX_CELLEN`), en zegt
     dat. Gebruik dit voor een volgende vergelijking; bouw er geen tweede naast.
   - **`components/ui/Bestandenlijst`** is de ene lijst van bestanden om er één uit te kiezen (de editor en de versieweergave).
+- **Loopt achter** (B2-4, `components/werkwijze/ConceptAchter.tsx`): er draait intussen een andere versie dan waar het
+  concept op voortbouwt (`basis_verouderd`).
+  - De melding op het concept heeft *Bekijk wat er veranderde* (`achterPad`, `?achter=1`). `LooptAchter` toont twee
+    verschillen om uit te kiezen, met `Bestandenlijst` en `Tekstverschil`: *Wat er intussen veranderde* (de basis tegen
+    wat er draait) en *Wat jij veranderde* (de basis tegen de laatste versie). De basis is de nieuwste eigen versie met
+    de hash van `basis_hash` (`basisVersie`); staat die er niet meer bij, dan is er één vergelijking: wat er draait tegen
+    het concept. Wat er draait komt van `GET /api/werkplaats/image/<soort>/<naam>` (`haalImageOnderdeel`).
+  - **Er wordt niets automatisch samengevoegd.** Onder de verschillen staat hoe het verder kan, met wat er met de eigen
+    wijzigingen gebeurt, en dat er niets verandert tot er is opgeslagen:
+    - *Verder met mijn concept*: de gebruiker verwerkt het zelf. De balk onderaan staat er bij een concept dat
+      achterloopt altijd, met het vinkje *Ik heb verwerkt wat er nu draait*; opslaan stuurt dan `basis_hash` (de hash
+      van wat er draait) mee, ook als de bestanden niet veranderden. Daarna loopt het concept niet meer achter.
+    - *Begin opnieuw vanaf wat er draait*: de bestanden die draaien staan klaar als wijziging (zoals *Zet terug*), het
+      vinkje staat aan, en de melding zegt in welke versie de eigen wijzigingen bewaard blijven.
+  - De api weigert een basis die intussen weer veranderde (409 `basis_niet_actueel`); de editor toont die melding.
   - ***Zet terug als concept*** (de eigenaar, op een eerdere versie) zet de bestanden van die versie klaar als wijziging op
     de laatste. Er verandert niets tot er is opgeslagen, en de melding zegt welke versie het wordt en welke blijft staan.
-- **BFF**: `app/api/werkplaats/**` (stand, onderdelen, één onderdeel, één versie, een volgende versie, intrekken en de
-  toets), elk met `X-User-Id` uit de sessie en de query ongewijzigd door. `PUT /v1/werkplaats/image` is van graph-qa en heeft geen BFF-route.
+- **BFF**: `app/api/werkplaats/**` (stand, onderdelen, één onderdeel, één versie, een volgende versie, intrekken, de
+  toets en de versie die draait), elk met `X-User-Id` uit de sessie en de query ongewijzigd door. `PUT /v1/werkplaats/image` is van graph-qa en heeft geen BFF-route.
 - **De spiegel** (`lib/werkplaats.ts`): de soorten en de naamvorm volgen `bronmodel`, de velden de api;
   `werkplaats.test.ts` leest die bronnen. De editor opent alleen wat in `IN_EDITOR` staat (nu skills; profielen in B5).
 - Browserregressie: `scripts/test-werkplaats.mjs` (met `WERKPLAATS_SCREENSHOT=<map>` beelden op 1280 en 375 px). Die

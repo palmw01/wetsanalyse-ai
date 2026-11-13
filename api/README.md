@@ -150,8 +150,9 @@ zijn gedeeld tussen gebruikers; wie wat deed staat in de audit. Specificatie:
 | `GET` | `/v1/werkplaats/stand` | Staat de werkplaats aan, welke soorten zijn er en wat mag deze gebruiker (ADR-016 deel B) |
 | `GET` `POST` | `/v1/werkplaats/onderdelen` | Eigen en gedeelde concepten / een nieuw concept met versie 1, leeg of met `uit_image` de versie die draait (alleen met `WERKPLAATS`) |
 | `GET` | `/v1/werkplaats/onderdelen/{id}` · `…/versies/{nummer}` · `…/audit` | Een concept met zijn versies / één versie met de bestanden / de audit |
-| `POST` | `/v1/werkplaats/onderdelen/{id}/versies` · `…/intrekken` | Een volgende versie (`na_versie`, 409 bij een nieuwere) / het eigen concept intrekken |
+| `POST` | `/v1/werkplaats/onderdelen/{id}/versies` · `…/intrekken` | Een volgende versie (`na_versie`, 409 bij een nieuwere; met `basis_hash` bouwt ze voort op wat er nu draait) / het eigen concept intrekken |
 | `POST` | `/v1/werkplaats/toets` | Poort 1 zonder op te slaan |
+| `GET` | `/v1/werkplaats/image/onderdelen/{soort}/{naam}` | De versie van een skill of profiel die nu draait, met de bestanden; om een concept dat achterloopt te vergelijken |
 | `PUT` | `/v1/werkplaats/image` | Graph-qa meldt wat er aan skills en agentprofielen in zijn image zit; alleen het agent-token, idempotent op de hash van het pakket |
 | `PUT` | `/v1/admin/werkplaats/onderdelen/{id}/delen` · `/v1/admin/werkplaats/beleid` | Delen voor de proef van anderen / mogen analisten concepten maken (beheerder met 2FA) |
 | `POST` | `/v1/admin/werkplaats/onderdelen/{id}/intrekken` | Een concept van een ander intrekken (beheerder met 2FA) |
