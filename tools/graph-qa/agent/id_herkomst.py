@@ -67,22 +67,30 @@ def id_argumenten(tool: str, args: dict[str, Any]) -> list[tuple[str, Soort, str
     return uit
 
 
-def bekende_tekst(state: dict[str, Any]) -> str:
+def bekende_tekst(state: dict[str, Any], *, deze_beurt: bool = True) -> str:
     """Alles waaruit een id mag komen: de woorden van de jurist, de toolresultaten (deze beurt, het register en de
     berichten), de context die de code meegaf, en eerdere antwoorden (die zijn gecontroleerd). Niet wat het model in
-    deze beurt schreef: daar staat het id uit eigen kennis zelf in."""
+    deze beurt schreef: daar staat het id uit eigen kennis zelf in.
+
+    `deze_beurt=False`: zonder wat het model in deze beurt vond of plande (de toolresultaten van deze beurt en het plan van
+    de supervisor). Daaruit blijkt welke regeling de jurist bedoelt: een zoekresultaat van deze beurt wijst er een aan, maar
+    dat koos het model (ADR-016 ronde 4, V01: "artikel 30" en "de rente" vonden de Invorderingswet 1990)."""
     from .berichten import beurt_start
-    delen: list[str] = [state.get("question", ""), state.get("zelfstandige_vraag", ""), state.get("plan", ""),
+    delen: list[str] = [state.get("question", ""), state.get("zelfstandige_vraag", ""),
+                        state.get("plan", "") if deze_beurt else "",
                         state.get("werkgebied_context", ""), state.get("onderwerp_context", "")]
     for sleutel in ("focus", "onderwerp", "context", "opgegeven_doel"):
         if state.get(sleutel):
             delen.append(json.dumps(state[sleutel], ensure_ascii=False))
     delen += [t for _, t in state.get("bronregister") or []]
-    delen += [t for _, t in state.get("source_trace") or []]
+    if deze_beurt:
+        delen += [t for _, t in state.get("source_trace") or []]
     messages = state.get("messages") or []
     begin = beurt_start(messages, state.get("question", ""))
     for i, m in enumerate(messages):
         inhoud = m.get("content")
+        if not deze_beurt and i >= begin:
+            break
         if m.get("role") == "assistant":
             if i < begin:
                 delen += [inhoud] if isinstance(inhoud, str) else [b.get("text", "") for b in inhoud or []
@@ -135,6 +143,7 @@ def toets(tool: str, args: dict[str, Any], state: dict[str, Any], *, graph: Any 
     if not ids:
         return None
     tekst = bekende_tekst(state)
+    jurist = bekende_tekst(state, deze_beurt=False)
     onbekend: list[tuple[str, Soort, str]] = []
     for p, soort, waarde in ids:
         if soort is DOSSIER:
@@ -152,12 +161,14 @@ def toets(tool: str, args: dict[str, Any], state: dict[str, Any], *, graph: Any 
         # staat: dan noemt het resultaat haar titel en toetst de controle het id tegen de trace. Een id van een regeling
         # buiten de graaf (I20: BWBR0002471 uit het geheugen) weigert de code. Een graaf die niet antwoordt, bewijst niets.
         for bwb in _BWB_RE.findall(waarde):
+            # Eerst de gok: wat het model in deze beurt vond, zegt niet welke regeling de jurist bedoelde (ronde 4, V01).
+            if not _staat_in(bwb, jurist) and _gegokt(bwb.upper(), jurist, state, graph):
+                onbekend.append((p, GOK, bwb.upper()))
+                continue
             if _staat_in(bwb, tekst):
                 continue
             if _niet_in_graaf(graph, bwb.upper()):
                 onbekend.append((p, BWB, bwb.upper()))
-            elif _gegokt(bwb.upper(), tekst, state, graph):
-                onbekend.append((p, GOK, bwb.upper()))
     if not onbekend:
         return None
     return melding(tool, onbekend, state)
