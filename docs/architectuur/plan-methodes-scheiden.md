@@ -1,7 +1,8 @@
 # Plan: wetsanalyse (JAS) en wetsuitvoering (JRM) zuiver scheiden
 
-Status: plan, 13 november 2026, op master `2be1f804`. Er is nog niets gewijzigd aan de methodetekst, aan graph-qa, de
-api of de frontend. Dit document is de inventaris, het voorstel per vondst, de volgorde en de vragen.
+Status: plan, 13 november 2026, op master `2be1f804`; de open vragen zijn dezelfde dag beantwoord. Er is nog niets
+gewijzigd aan de methodetekst, aan graph-qa, de api of de frontend. Dit document is de inventaris, wat er per vondst
+gebeurt, de volgorde en de besluiten. De bouwstappen beginnen na meetronde 4.
 
 ## Kort
 
@@ -23,7 +24,8 @@ api of de frontend. Dit document is de inventaris, het voorstel per vondst, de v
   tool, workflow en profiel. In de code van graph-qa, de api en de frontend staat het woord JRM nergens buiten wat uit de
   skills is gegenereerd.
 - **Zeven PR's**, waarvan één een meting vraagt (de zin in `duiding`). Zie *De volgorde*.
-- **Zes vragen voor de gebruiker**, onderaan.
+- **De zes vragen uit dit plan zijn beantwoord** (13 nov 2026); de besluiten staan onderaan en zijn in de inventaris
+  verwerkt.
 
 ## Wat JAS is en wat JRM is
 
@@ -50,10 +52,10 @@ juridische toestand"). Die woorden blijven in wetsanalyse waar de bron van het J
 | "Rechtsgevolgen, juridisch relevante feiten en scenario's leg je vast volgens de JRM-verrijking" | `SKILL.md`, de werkstroom samenhang | vervalt hier; één zin verwijst naar de skill wetsuitvoering voor wie de stap naar uitvoering wil zetten |
 | `references/jrm-verrijking.md` | de hele reference (2,9 kB) | **gesplitst.** De rijen rechtsbetrekking, rechtsfeit, afleidingsregel en waarde zijn JAS-inhoud: die gaan naar `relaties.md` of het analyseprotocol, voor zover ze er nog niet staan. De rijen rechtsgevolg, juridisch relevant feit, juridische toestand en scenario gaan naar wetsuitvoering. Het bestand zelf verdwijnt |
 | "Verschillen expliciet houden" (immuniteit, zwakke verplichting, rechtshandeling) | `jrm-verrijking.md` | de punten over JAS-duiding (immuniteit niet stilzwijgend verwijderen, geen definitief subtype uit één passage, niet elke handeling is een rechtshandeling) blijven in wetsanalyse, zonder verwijzing naar JRM. De vergelijking met de JRM-werkversie gaat naar wetsuitvoering (`classificaties.md`) |
-| Stap 5 "Samenhang en toetsing met scenario's", de identiteiten G (gevolg) en S (scenario), de vier scenario's per beslispunt | `references/analyseprotocol.md` | zie vraag 1: toetsen met een praktijkvoorbeeld hoort bij de methode Wetsanalyse zelf; het JRM-scenario met aktes niet. Voorstel: wetsanalyse houdt "toetsen met praktijkvoorbeelden" (normaal geval, grensgeval), zonder S- en G-identiteiten; die gaan naar wetsuitvoering |
+| Stap 5 "Samenhang en toetsing met scenario's", de identiteiten G (gevolg) en S (scenario), de vier scenario's per beslispunt | `references/analyseprotocol.md` | toetsen met een praktijkvoorbeeld hoort bij de methode Wetsanalyse zelf; het JRM-scenario met aktes niet (besluit 1 onderaan). Wetsanalyse houdt "toetsen met praktijkvoorbeelden" (normaal geval, grensgeval), zonder S- en G-identiteiten; die gaan naar wetsuitvoering |
 | "Methode: JAS met JRM 2-verrijking 2.1", §6 Scenario's, de regel over juridisch relevante feiten, de identiteiten G en S | `assets/analysedossier.md` | het dossier van wetsanalyse eindigt bij samenhang en interpretatie. Scenario's en relevante feiten krijgen het sjabloon van wetsuitvoering (`assets/scenario.md` bestaat al) |
-| De rij "Scenario's" in de kwaliteitseisen | `references/kwaliteit.md` | wordt "Praktijkvoorbeelden", of verhuist (vraag 1) |
-| P07 (JRM-verrijking) en P08 (scenario's en dekking) in het beslisregister; M06 als bron | `references/bronnen.md` | P07 en P08 verhuizen naar het beslisregister van wetsuitvoering. M06 blijft bron van wetsanalyse waar hij een JAS-keuze draagt (zie vraag 2) |
+| De rij "Scenario's" in de kwaliteitseisen | `references/kwaliteit.md` | wordt "Praktijkvoorbeelden" (besluit 1 onderaan) |
+| P07 (JRM-verrijking) en P08 (scenario's en dekking) in het beslisregister; M06 als bron | `references/bronnen.md` | P07 en P08 verhuizen naar het beslisregister van wetsuitvoering. M06 blijft bron van wetsanalyse waar hij een JAS-keuze draagt (besluit 2 onderaan) |
 | "Rechtsgevolg en juridisch relevant feit als eigen element … horen bij de JRM-werkversie" | `references/relaties.md` | blijft, als grens: de zin zegt juist dat ze er niet bij horen. De relatiecatalogus zelf blijft ongemoeid (besluit 4) |
 | "Een andere methode (zoals wetsuitvoering, JRM) is een eigen map" | `references/platform.md` | blijft, aangevuld met de regel van besluit 5 |
 
@@ -88,7 +90,7 @@ Wat erbij moet, uit wat nu in wetsanalyse staat:
 **Let op de bron.** De verrijking in wetsanalyse rust op de werkversie van Bulles en Van der Hoven (M06); de skill
 wetsuitvoering rust op de specificatie van BZK. Wat uit M06 komt, krijgt in wetsuitvoering een eigen regel in het
 bronregister en wordt in eigen woorden geschreven: er gaat geen tekst van derden letterlijk mee. Waar M06 en de
-BZK-specificatie verschillen, zegt de skill welke hij volgt (vraag 3).
+BZK-specificatie verschillen, gaat de specificatie voor; M06 vult aan waar ze zwijgt (besluit 3 onderaan).
 
 ### 4. De routering
 
@@ -114,7 +116,7 @@ krijgt een afgeleid veld `methode`: de naam van één methode-skill, of uitdrukk
 | de begrippenketen, de begrippen-agent en het begrippenkader (activiteit 3a) | de contextweergave, het tokenbudget, de gesprekken |
 | het sjabloonblok `annotaties` en `antwoord_annotaties`; het profiel `annotaties_lezen` | de regisseur (hij verdeelt werk; wát hij verdeelt, is van een methode) |
 | de vraag over een markering (*Vraag Lex* bij een element) | |
-| het werkgebied, de deelvragen en de bronselectie (activiteit 1): zie vraag 4 | |
+| het werkgebied, de deelvragen en de bronselectie (activiteit 1); delen bekijken we pas als wetsuitvoering gekoppeld wordt (besluit 4 onderaan) | |
 
 De profielen `definitie`, `duiding`, `algemeen`, `centraal` en `centraal_breed` beantwoorden vragen over wetgeving en
 dragen daarbij de methodetekst van wetsanalyse. Ze zijn van wetsanalyse zolang er één methode gekoppeld is; een tweede
@@ -137,7 +139,7 @@ methode krijgt eigen profielen (besluit 5), geen extra secties in deze.
 | `references/jrm-verrijking.md` in de lijst van references | root `CLAUDE.md` | uit de lijst |
 | De scope "activiteit 2, en het begin van activiteit 3" | root `CLAUDE.md` | ongewijzigd |
 | ADR-001 en ADR-011 noemen JRM als achtergrond | `docs/architectuur/` | ongewijzigd: het zijn besluiten van toen; ADR-011 wordt niet herzien |
-| Het voorbeelddossier noemt de methode "JAS met JRM 2-verrijking" | `docs/wetsanalyse/referentieset/voorbeeld-dossier-rvv74.md` | zie vraag 5: de referentieset is bewijs bij metingen |
+| Het voorbeelddossier noemt de methode "JAS met JRM 2-verrijking" | `docs/wetsanalyse/referentieset/voorbeeld-dossier-rvv74.md` | blijft staan als bewijs van toen, met een regel erboven dat de methode sindsdien gesplitst is (besluit 5 onderaan) |
 | `docs/wetsanalyse/methode-onderzoek.md`, de eisenmatrix, het verbeterplan van oktober | onderzoek | ongewijzigd: onderzoek mag verouderen (`docs/README.md`) |
 | De briefing van het acceptatieteam noemt JRM | `docs/acceptatie/briefing-team.md` | nalopen bij de wijziging van de skill |
 
@@ -191,7 +193,7 @@ De zin staat in de sectie `duiding`. Die gaat naar de rol `duiding` en naar de r
 
 - **Wat verandert:** de vingerafdruk van `duiding` en `agent`, en daarmee het voorvoegsel van die twee (één keer koud).
 - **Wat niet verandert:** de annotatieketen. De classifier en de reviewer krijgen het JAS_KLASSEN-blok, en dat noemt
-  JRM niet. Een meting van de annotatie voor en na is alleen nodig als de eigenaar dat als controle wil (vraag 6).
+  JRM niet. Er komt geen meting van de annotatie; de test op de vingerafdrukken volstaat (besluit 6 onderaan).
 - **De meting** (ADR-010, P19): de kwaliteitsset en `golden_gesprek`, voor en na, drie runs, in beide vormen; de
   vragen van het type duiding apart. De drempels: brongetrouw gelijk, niet slechter, niet duurder (gewogen).
 - **Waar ik op let:** of het antwoord op een duidingsvraag nog de partijen en het object van een rechtsbetrekking
@@ -203,24 +205,19 @@ De zin staat in de sectie `duiding`. Die gaat naar de rol `duiding` en naar de r
 - Wetsuitvoering aan een rol koppelen: dat is een eigen stap met een eigen meting (ADR-010, ADR-014 §7).
 - Een resultaatvorm voor wetsuitvoering bouwen (een scenario-paneel): dat volgt als de methode gekoppeld wordt.
 
-## Vragen voor de gebruiker
+## Besluiten op de zes vragen (13 nov 2026)
 
-1. **Toetsen met praktijkvoorbeelden.** De methode Wetsanalyse toetst een analyse zelf ook met voorbeelden. Blijft in
-   wetsanalyse "toetsen met een praktijkvoorbeeld" (een normaal geval en een grensgeval, zonder aktes en toestanden), en
-   gaat alleen het JRM-scenario naar wetsuitvoering? Of gaat elke vorm van scenario weg uit wetsanalyse? Mijn voorstel:
-   het eerste.
-2. **De bron M06 (Bulles en Van der Hoven).** Die werkversie draagt in wetsanalyse ook keuzes die over het JAS gaan
-   (onder meer bij de duiding). Mag M06 als bron in wetsanalyse blijven waar hij een JAS-keuze onderbouwt, en verhuizen
-   alleen de keuzes P07 en P08? Mijn voorstel: ja.
-3. **Twee bronnen in wetsuitvoering.** De skill volgt nu de specificatie van BZK. Wat uit M06 komt, wijkt daar op
-   punten van af. Welke gaat voor bij een verschil: de BZK-specificatie, met M06 als aanvulling waar de specificatie
-   zwijgt? Mijn voorstel: ja.
-4. **Het werkgebied.** Zijn het werkgebied, de deelvragen en de bronselectie (activiteit 1) van wetsanalyse, of
-   gedeeld tussen methodes? Een scenario gaat ook over een afgebakende set bepalingen. Mijn voorstel: nu van
-   wetsanalyse; pas delen als wetsuitvoering gekoppeld wordt.
-5. **De referentieset.** Het voorbeelddossier in `docs/wetsanalyse/referentieset/` noemt de methode "JAS met JRM
-   2-verrijking" en heeft een deel met scenario's. Meetbestanden wijzigen we niet achteraf. Laat ik het dossier staan
-   als bewijs van toen, met een regel erboven dat de methode sindsdien gesplitst is? Mijn voorstel: ja.
-6. **De annotatie meten bij S6.** De annotatieketen krijgt geen andere tekst. Wil je toch een meting van de annotatie
-   voor en na, als controle? Dat kost tokens en bewijst naar verwachting alleen dat er niets veranderde. Mijn voorstel:
-   alleen de test op de vingerafdrukken, geen meting.
+De vragen uit de eerste versie van dit plan zijn beantwoord; de eerste vier door de gebruiker, de laatste twee door de
+hoofdsessie, telkens volgens het voorstel.
+
+1. **Toetsen met een praktijkvoorbeeld blijft in wetsanalyse.** Een normaal geval en een grensgeval, zonder aktes en
+   toestanden en zonder S- en G-identiteiten. Alleen het JRM-scenario verhuist naar wetsuitvoering.
+2. **M06 (Bulles en Van der Hoven) blijft bron in wetsanalyse** waar hij een JAS-keuze onderbouwt. Alleen de
+   projectkeuzes P07 en P08 verhuizen.
+3. **In wetsuitvoering gaat de specificatie van BZK voor.** M06 vult aan waar de specificatie zwijgt, in eigen woorden en
+   met een eigen regel in het bronregister.
+4. **Het werkgebied, de deelvragen en de bronselectie zijn nu van wetsanalyse.** Of ze gedeeld worden, bekijken we pas
+   als wetsuitvoering aan een rol gekoppeld wordt.
+5. **De referentieset blijft staan als bewijs van toen**, met een regel erboven dat de methode sindsdien gesplitst is.
+6. **Geen meting van de annotatie bij S6.** De test op de vingerafdrukken bewijst dat de annotatieketen dezelfde tekst
+   krijgt.
