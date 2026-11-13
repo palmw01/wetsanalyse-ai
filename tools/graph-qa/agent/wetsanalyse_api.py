@@ -114,10 +114,12 @@ class WetsanalyseApi:
         return await self._verstuur("POST", pad, payload, herhaal=herhaal)
 
     async def _verstuur(self, methode: str, pad: str, payload: dict[str, Any], *,
-                        herhaal: bool = False) -> dict[str, Any]:
+                        herhaal: bool = False, verwacht: frozenset[int] = frozenset()) -> dict[str, Any]:
         """`herhaal` alleen voor een schrijfactie die de api ontdubbelt (een sleutel in de payload): dan mag een
         weggevallen verbinding of een tijdelijke 5xx één keer opnieuw. Elders niet: een tweede PATCH na een
-        geslaagde eerste gaf een valse 412 (ROB-06)."""
+        geslaagde eerste gaf een valse 412 (ROB-06).
+
+        `verwacht`: statussen die voor deze aanroep een gewoon antwoord zijn. De fout komt terug, zonder foutregel."""
         try:
             antwoord = await self._client.request(
                 methode, f"{self._basis}{pad}", json=payload, headers=self._headers,
@@ -137,6 +139,8 @@ class WetsanalyseApi:
             # De ruwe body kan gebruikersinhoud bevatten; log de status, het pad en alleen de reden
             # die de api zelf formuleert. Zonder die reden was een 409 achteraf niet te duiden.
             reden = api_reden(antwoord)
+            if antwoord.status_code in verwacht:
+                raise WetsanalyseApiFout(f"{methode} {pad} → {antwoord.status_code}", antwoord.status_code, reden)
             logger.error(
                 "api-schrijffout",
                 extra={"categorie": "technisch", "http_status": antwoord.status_code, "http_path": pad,
@@ -144,6 +148,13 @@ class WetsanalyseApi:
             )
             raise WetsanalyseApiFout(f"{methode} {pad} → {antwoord.status_code}", antwoord.status_code, reden)
         return antwoord.json() if antwoord.content else {}
+
+    # -- de werkplaats: wat er in dit image zit (ADR-016 §B1) -------------------------------------
+
+    async def meld_image(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Meld wat dit image aan skills en agentprofielen bevat. Idempotent op de hash van het pakket, dus herhalen
+        mag. Een 404 is een gewoon antwoord: de werkplaats staat op die omgeving niet aan."""
+        return await self._verstuur("PUT", "/v1/werkplaats/image", payload, herhaal=True, verwacht=frozenset({404}))
 
     # -- annotatie-domein ------------------------------------------------------------------------
 

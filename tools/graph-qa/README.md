@@ -289,6 +289,7 @@ Secrets kunnen ook als `<NAAM>_FILE` (pad naar een bestand) worden gezet: `GRAPH
 | `LLM_TIMEOUT_SECONDS` / `LLM_MAX_RETRIES` | `120` / `2` | Wachttijd en herhalingen per LLM-call (de eval-job zet 45 s). |
 | `PROMPT_CACHING` | `true` | Prompt-caching op het stabiele deel van de systeemprompt. |
 | `PROMPT_CACHE_TTL` | `1h` | Hoe lang het cachepunt op een gesplitste systeemprompt (met de tools ervóór) blijft: `1h` of `5m`. |
+| `LEX_REVISIE` | leeg | De commit waaruit het image is gebouwd; de publish-workflow zet hem als build-arg. Gaat mee met de melding van wat er in het image zit (ADR-016 §B1). |
 | `WETSANALYSE_API_URL` / `WETSANALYSE_API_TOKEN` | leeg | De wetsanalyse-API: vastleggen van beurten, annotatieleestools en dekkingscontrole. Beide gezet = de agent legt zelf vast. |
 | `ANNOTATIE_READ_USER_ID` | leeg | Alleen voor CLI/MCP: namens wie de annotatietools lezen. Over HTTP geldt de rungebruiker. |
 | `PORT` | `8080` | Luisterpoort. |

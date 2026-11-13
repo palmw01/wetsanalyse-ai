@@ -1068,7 +1068,7 @@ verdeelt het werk in een werkgebied over deelgesprekken; de api houdt het object
 
 ## De werkplaats
 
-`werkplaats.py`, `werkplaats_store.py`, de beheerroutes in `routers/admin.py`; het ontwerp is ADR-016 deel B (stap B1-1).
+`werkplaats.py`, `werkplaats_store.py`, de beheerroutes in `routers/admin.py`; het ontwerp is ADR-016 deel B (stap B1-1 en B1-2).
 Achter `WERKPLAATS` (default uit, alleen acceptatie, met een poort-guard): zonder de vlag geven alle routes 404, behalve
 `GET /v1/werkplaats/stand` (`{aan: false}`).
 
@@ -1087,8 +1087,29 @@ Achter `WERKPLAATS` (default uit, alleen acceptatie, met een poort-guard): zonde
   per gebruiker (409).
 - **Een onderdeel heeft een eigenaar**; de naam is uniek per soort en eigenaar zolang het niet is ingetrokken (in de
   transactie bewaakt). `zelfde_naam` op het onderdeel telt de concepten van anderen met dezelfde soort en naam.
-- **De stand wordt afgeleid**: `concept` of `ingetrokken`. Er komt geen kolom `status`; *voorgesteld* en *actief* komen
-  er in latere stappen bij, ook afgeleid.
+- **De stand wordt afgeleid**: `concept`, `actief` of `ingetrokken`. Er komt geen kolom `status`; *voorgesteld* komt
+  er in een latere stap bij, ook afgeleid.
+- **Wat er in het image zit, meldt graph-qa** (`PUT /v1/werkplaats/image`, tabel `werkplaats_image`: één rij). De api
+  roept graph-qa nergens aan, dus graph-qa stuurt bij het starten zijn bronpakket: per skill en per agentprofiel de
+  bestanden en de hash, met de hash van het hele pakket (`bronmodel.werkplaats.pakkethash`) en de commit.
+  - **Idempotent op de pakkethash.** Kent de api hem, dan schrijft hij niets. Stuurde graph-qa alleen de hash en kent
+    de api hem niet, dan is het antwoord `bekend: false` en volgt het hele pakket. Het schrijven is één upsert op rij 1:
+    twee replica's die tegelijk melden, botsen niet. Een melding moet met zichzelf kloppen (`_toets_pakket`: elke hash
+    is die van de bestanden, de pakkethash die over alle hashes), anders 422.
+  - **Alleen graph-qa** (`AGENT_CLIENT`, anders 403), en het is de enige route van de werkplaats in
+    `agent_toegang.TOEGESTAAN`: het agent-token maakt, leest of wijzigt geen concept.
+  - **De stand volgt uit de hashes, bij het lezen** (`_stand`): `actief_versie` (de nieuwste versie met de hash van het
+    image; `stand` is `actief` als dat de laatste is), `in_image`, `basis_verouderd` (de basis van het concept is niet
+    meer wat er draait en het concept zelf ook niet: master veranderde) en per versie `actief`. **Kent de api het image
+    niet, dan zijn ze `None`** (`image_bekend: false`): onbekend is nooit "niet actief". Lees `None` niet als nee.
+  - Een image dat ouder is dan master maakt een versie dus niet actief: dat wordt ze pas als graph-qa met het nieuwe
+    image start en zich meldt. `GET /stand` toont `image: {bekend, pakket_hash, revisie, gemeld_op, onderdelen}`,
+    zodat te zien is van wanneer de stand is.
+- **Bewerken** (`POST /onderdelen` met `uit_image: true`): versie 1 is de versie uit het image, met haar hash als
+  `basis_hash`. 409 `image_onbekend` zolang graph-qa zich niet meldde, 404 `niet_in_image`.
+- **Een skill toetst ook tegen de andere skills in het image** (`_andere_skills` → `wp.toets(andere=)`): een sectie-id
+  en een broncode zijn van één skill. Het concept vervangt zijn eigen versie. Zonder image toetst een skill alleen op
+  zichzelf.
 - **Rechten (§B4).** Lezen: de eigenaar, iedereen bij een gedeeld onderdeel, een beheerder met 2FA alles; anders 404.
   Wijzigen en intrekken: alleen de eigenaar (403). Maken: een analist alleen als het beleid dat toestaat (default aan).
   Delen, andermans concept intrekken en het beleid: `/v1/admin/werkplaats/*`, achter het admin-token én
@@ -1096,9 +1117,9 @@ Achter `WERKPLAATS` (default uit, alleen acceptatie, met een poort-guard): zonde
 - **De audit en de logregels dragen geen inhoud en geen naam van een concept**: het onderdeel-id, het versienummer, de
   hash en wie. Een concept kan tekst bevatten die niet openbaar mag worden.
 - **Stijl C**: de store gooit de HTTP-fouten (`{melding, bevindingen?}`), de router toetst alleen wie het vraagt.
-- Nog niet: vullen uit het image en de stand *actief* (B1-2), de proef (B3), promotie (B4). Een account verwijderen
-  laat zijn concepten staan; een beheerder kan ze intrekken.
-- Tests: `tests/test_werkplaats.py`.
+- Nog niet: de editor en het samenvoegen bij een verouderde basis (B2), de proef (B3), promotie (B4). Een account
+  verwijderen laat zijn concepten staan; een beheerder kan ze intrekken.
+- Tests: `tests/test_werkplaats.py`, `tests/test_werkplaats_image.py` (ook met het echte bronpakket van graph-qa).
 
 ## Versies van artefacten
 

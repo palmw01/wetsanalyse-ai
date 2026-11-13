@@ -792,6 +792,22 @@ werkplaats_audit = Table(
     Index("ix_werkplaats_audit_onderdeel", "onderdeel_id", "id"),
 )
 
+# Wat er aan skills en agentprofielen in het draaiende image van graph-qa zit (ADR-016 §B1): één rij (id 1), zoals
+# graph-qa het bij het starten meldt. `hashes` (`<soort>/<naam>` → hash) is klein en genoeg voor de stand; `onderdelen`
+# draagt ook de bestanden, voor *Bewerken* en de toets over de skills heen. Een kopie van een feit, geen oordeel: of een
+# versie actief is, wordt bij het lezen afgeleid en nergens opgeslagen.
+werkplaats_image = Table(
+    "werkplaats_image",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("pakket_hash", String(64), nullable=False),
+    # De commit waaruit het image is gebouwd, zoals graph-qa hem kent; leeg als het image hem niet draagt.
+    Column("revisie", String(64), nullable=False, default=""),
+    Column("hashes", _JSON, nullable=False),
+    Column("onderdelen", _JSON, nullable=False),
+    Column("gemeld_op", _DT, nullable=False),
+)
+
 # Het beleid van de werkplaats: één rij (id 1). Zonder rij geldt de standaard (`werkplaats_store.BELEID`).
 werkplaats_beleid = Table(
     "werkplaats_beleid",

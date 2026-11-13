@@ -21,6 +21,8 @@ from typing import Any
 from bronmodel import werkplaats as wp
 from fastapi import HTTPException
 from sqlalchemy import func, insert, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import IntegrityError
 
 from . import db
@@ -45,23 +47,51 @@ def _tijd(waarde) -> str:
     return db.aware(waarde).isoformat() if waarde else ""
 
 
-def _onderdeel(r, versies: int, laatste: dict[str, Any] | None, zelfde_naam: int) -> dict[str, Any]:
+def _stand(r, versies: list, image: dict[str, str] | None) -> dict[str, Any]:
+    """De stand van een onderdeel, afgeleid uit zijn versies en wat er in het image zit (`image`: `<soort>/<naam>` →
+    hash, of None als de api het image niet kent). Niets hiervan is opgeslagen.
+
+    - `actief_versie`: de nieuwste versie met de hash van het image. `stand` is `actief` als dat de laatste versie is;
+    - `in_image`: er zit een onderdeel met deze soort en naam in het image;
+    - `basis_verouderd`: het concept bouwt voort op een versie die niet meer in het image zit, en is zelf ook niet wat
+      er draait: master is intussen veranderd;
+    - kent de api het image niet, dan zijn deze drie None: onbekend is nooit "niet actief"."""
+    laatste = versies[-1] if versies else None
+    if image is None:
+        afgeleid = {"in_image": None, "actief_versie": None, "basis_verouderd": None, "image_bekend": False}
+        actief = False
+    else:
+        doel = image.get(f"{r['soort']}/{r['naam']}")
+        gelijk = [v["nummer"] for v in versies if doel and v["hash"] == doel]
+        actief = bool(laatste and doel and laatste["hash"] == doel)
+        basis = (laatste["basis_hash"] or "") if laatste else ""
+        afgeleid = {"in_image": doel is not None, "actief_versie": gelijk[-1] if gelijk else None,
+                    "basis_verouderd": bool(basis) and basis != doel and not actief, "image_bekend": True}
+    stand = "ingetrokken" if r["ingetrokken_op"] else "actief" if actief else "concept"
+    return {"stand": stand, **afgeleid}
+
+
+def _onderdeel(r, versies: list, zelfde_naam: int, image: dict[str, str] | None) -> dict[str, Any]:
+    laatste = _versie(versies[-1], met_inhoud=False, image=image, onderdeel=r) if versies else None
     return {
         "id": r["id"], "soort": r["soort"], "naam": r["naam"], "eigenaar": r["eigenaar"], "gedeeld": bool(r["gedeeld"]),
-        "stand": "ingetrokken" if r["ingetrokken_op"] else "concept",
+        **_stand(r, versies, image),
         "ingetrokken_op": _tijd(r["ingetrokken_op"]), "ingetrokken_door": r["ingetrokken_door"] or "",
         "gemaakt": _tijd(r["gemaakt"]), "bijgewerkt": _tijd(r["bijgewerkt"]),
-        "versies": versies, "laatste": laatste,
+        "versies": len(versies), "laatste": laatste,
         # Hoeveel andere concepten van dezelfde soort en naam er zijn (van andere eigenaren): twee juristen kunnen elk
         # een concept van dezelfde skill hebben.
         "zelfde_naam": zelfde_naam,
     }
 
 
-def _versie(r, *, met_inhoud: bool) -> dict[str, Any]:
+def _versie(r, *, met_inhoud: bool, image: dict[str, str] | None = None, onderdeel=None) -> dict[str, Any]:
+    """Een versie. Met het onderdeel erbij ook `actief`: draait precies deze versie? None als de api het image niet kent."""
     uit = {"id": r["id"], "nummer": r["nummer"], "hash": r["hash"], "basis_hash": r["basis_hash"] or "",
            "toelichting": r["toelichting"] or "", "geldig": bool(r["geldig"]), "bevindingen": r["bevindingen"] or [],
            "door": r["door"], "gemaakt": _tijd(r["gemaakt"])}
+    if onderdeel is not None:
+        uit["actief"] = None if image is None else image.get(f"{onderdeel['soort']}/{onderdeel['naam']}") == r["hash"]
     if met_inhoud:
         uit["bestanden"] = r["bestanden"]
     return uit
@@ -75,9 +105,27 @@ async def _audit(conn, onderdeel_id: str, actie: str, door: str, **details: Any)
         onderdeel_id=onderdeel_id, actie=actie, door=door, details=details, tijdstip=db.utcnow()))
 
 
-def toets(soort: str, naam: str, bestanden: dict[str, str]) -> list[dict[str, str]]:
-    """Poort 1, zonder op te slaan."""
-    return _bevindingen(wp.toets(soort, naam, bestanden))
+async def _image_hashes(conn) -> dict[str, str] | None:
+    """`<soort>/<naam>` → hash van wat er in het image zit, of None als graph-qa zich nog niet meldde."""
+    return (await conn.execute(select(db.werkplaats_image.c.hashes).where(db.werkplaats_image.c.id == 1))).scalar()
+
+
+async def _andere_skills(conn, soort: str) -> dict[str, dict[str, str]] | None:
+    """De skills in het image (naam → bestanden), voor de toets over de skills heen. None bij een andere soort, of als
+    de api het image niet kent: dan toetst een skill alleen op zichzelf."""
+    if soort != "skill":
+        return None
+    onderdelen = (await conn.execute(select(db.werkplaats_image.c.onderdelen).where(db.werkplaats_image.c.id == 1))).scalar()
+    if onderdelen is None:
+        return None
+    return {o["naam"]: o["bestanden"] for o in onderdelen.values() if o["soort"] == "skill"}
+
+
+async def toets(soort: str, naam: str, bestanden: dict[str, str]) -> list[dict[str, str]]:
+    """Poort 1, zonder op te slaan. Een skill ook tegen de andere skills in het image."""
+    async with db.get_engine().connect() as conn:
+        andere = await _andere_skills(conn, soort)
+    return _bevindingen(wp.toets(soort, naam, bestanden, andere=andere))
 
 
 def _weiger(soort: str, naam: str, bestanden: dict[str, str]) -> None:
@@ -90,7 +138,7 @@ def _weiger(soort: str, naam: str, bestanden: dict[str, str]) -> None:
 
 async def _schrijf_versie(conn, onderdeel_id: str, soort: str, naam: str, nummer: int, bestanden: dict[str, str],
                           toelichting: str, basis_hash: str, door: str) -> dict[str, Any]:
-    bevindingen = _bevindingen(wp.toets(soort, naam, bestanden))
+    bevindingen = _bevindingen(wp.toets(soort, naam, bestanden, andere=await _andere_skills(conn, soort)))
     rij = {"id": uuid.uuid4().hex, "onderdeel_id": onderdeel_id, "nummer": nummer, "hash": wp.hash_van(bestanden),
            "basis_hash": basis_hash, "bestanden": bestanden, "toelichting": toelichting, "geldig": not bevindingen,
            "bevindingen": bevindingen, "door": door, "gemaakt": db.utcnow()}
@@ -101,6 +149,21 @@ async def _schrijf_versie(conn, onderdeel_id: str, soort: str, naam: str, nummer
     logger.info("werkplaats versie", extra={"categorie": "functioneel", "soort": soort, "nummer": nummer,
                                              "geldig": rij["geldig"], "bestanden": len(bestanden)})
     return _versie(rij, met_inhoud=False)
+
+
+async def maak_uit_image(soort: str, naam: str, eigenaar: str, toelichting: str) -> dict[str, Any]:
+    """*Bewerken*: een concept dat begint met de versie uit het image. Versie 1 is die versie, met haar hash als basis."""
+    if fout := wp.naam_fout(soort, naam):
+        raise _fout(422, fout)
+    async with db.get_engine().connect() as conn:
+        onderdelen = (await conn.execute(select(db.werkplaats_image.c.onderdelen)
+                                         .where(db.werkplaats_image.c.id == 1))).scalar()
+    if onderdelen is None:
+        raise _fout(409, "Lex weet nog niet wat er draait; probeer het zo opnieuw.", fout="image_onbekend")
+    bron = onderdelen.get(f"{soort}/{naam}")
+    if bron is None:
+        raise _fout(404, f"{naam} zit niet in wat er nu draait.", fout="niet_in_image")
+    return await maak(soort, naam, eigenaar, bron["bestanden"], toelichting, basis_hash=bron["hash"])
 
 
 async def maak(soort: str, naam: str, eigenaar: str, bestanden: dict[str, str] | None, toelichting: str,
@@ -173,11 +236,12 @@ async def _samenvatting(conn, rijen) -> list[dict[str, Any]]:
         versies.setdefault(r["onderdeel_id"], []).append(r)
     telling = {(r[0], r[1]): r[2] for r in (await conn.execute(
         select(t.c.soort, t.c.naam, func.count()).where(t.c.ingetrokken_op.is_(None)).group_by(t.c.soort, t.c.naam))).all()}
+    image = await _image_hashes(conn)
     uit = []
     for r in rijen:
         eigen = versies.get(r["id"], [])
         anderen = telling.get((r["soort"], r["naam"]), 0) - (0 if r["ingetrokken_op"] else 1)
-        uit.append(_onderdeel(r, len(eigen), _versie(eigen[-1], met_inhoud=False) if eigen else None, max(anderen, 0)))
+        uit.append(_onderdeel(r, eigen, max(anderen, 0), image))
     return uit
 
 
@@ -202,17 +266,20 @@ async def lees(onderdeel_id: str) -> dict[str, Any]:
             raise _fout(404, "Onbekend onderdeel.")
         [uit] = await _samenvatting(conn, [r])
         rijen = (await conn.execute(select(*_KOP).where(v.c.onderdeel_id == onderdeel_id).order_by(v.c.nummer))).mappings().all()
-    return {**uit, "versielijst": [_versie(x, met_inhoud=False) for x in rijen]}
+        image = await _image_hashes(conn)
+    return {**uit, "versielijst": [_versie(x, met_inhoud=False, image=image, onderdeel=r) for x in rijen]}
 
 
 async def versie(onderdeel_id: str, nummer: int) -> dict[str, Any]:
     """Eén versie, met de bestanden en de bevindingen."""
-    v = db.werkplaats_versies
+    t, v = db.werkplaats_onderdelen, db.werkplaats_versies
     async with db.get_engine().connect() as conn:
         r = (await conn.execute(select(v).where(v.c.onderdeel_id == onderdeel_id, v.c.nummer == nummer))).mappings().first()
-    if r is None:
-        raise _fout(404, "Onbekende versie.")
-    return _versie(r, met_inhoud=True)
+        if r is None:
+            raise _fout(404, "Onbekende versie.")
+        o = (await conn.execute(select(t).where(t.c.id == onderdeel_id))).mappings().first()
+        image = await _image_hashes(conn)
+    return _versie(r, met_inhoud=True, image=image, onderdeel=o)
 
 
 def bruikbaar(versie: dict[str, Any], onderdeel: dict[str, Any]) -> bool:
@@ -281,3 +348,63 @@ async def zet_beleid(analist_mag_maken: bool, door: str) -> dict[str, Any]:
         if was != analist_mag_maken:
             await _audit(conn, "", "beleid", door, analist_mag_maken=analist_mag_maken, was=was)
     return await beleid()
+
+
+# --- wat er in het image zit (ADR-016 §B1) -----------------------------------------------------------------------------
+
+async def image_stand() -> dict[str, Any]:
+    """Wat de api van het draaiende image weet: de hash van het pakket, de commit en wanneer graph-qa het meldde. Zonder
+    melding `bekend: false`; dan is elke afgeleide stand onbekend."""
+    i = db.werkplaats_image
+    async with db.get_engine().connect() as conn:
+        r = (await conn.execute(select(i.c.pakket_hash, i.c.revisie, i.c.gemeld_op, i.c.hashes)
+                                .where(i.c.id == 1))).mappings().first()
+    if r is None:
+        return {"bekend": False, "pakket_hash": "", "revisie": "", "gemeld_op": "", "onderdelen": 0}
+    return {"bekend": True, "pakket_hash": r["pakket_hash"], "revisie": r["revisie"] or "",
+            "gemeld_op": _tijd(r["gemeld_op"]), "onderdelen": len(r["hashes"] or {})}
+
+
+def _toets_pakket(pakket_hash: str, onderdelen: dict[str, dict[str, Any]]) -> None:
+    """Een melding moet kloppen met zichzelf: de sleutel is `<soort>/<naam>`, de soort staat open, elke hash is die van
+    de bestanden, en de hash van het pakket is die over alle hashes. Anders 422 en wordt er niets bewaard."""
+    hashes = {}
+    for sleutel, o in onderdelen.items():
+        if sleutel != f"{o.get('soort')}/{o.get('naam')}" or wp.naam_fout(str(o.get("soort")), str(o.get("naam"))):
+            raise _fout(422, f"Ongeldig onderdeel in het pakket: {sleutel[:80]}")
+        bestanden = o.get("bestanden")
+        if not isinstance(bestanden, dict) or wp.weiger(bestanden) or wp.hash_van(bestanden) != o.get("hash"):
+            raise _fout(422, f"De hash of de bestanden van {sleutel[:80]} kloppen niet.")
+        hashes[sleutel] = o["hash"]
+    if not hashes or wp.pakkethash(hashes) != pakket_hash:
+        raise _fout(422, "De hash van het pakket klopt niet met zijn onderdelen.")
+
+
+async def meld_image(pakket_hash: str, revisie: str, onderdelen: dict[str, dict[str, Any]] | None) -> dict[str, Any]:
+    """Graph-qa meldt wat zijn image bevat. Idempotent op de hash van het pakket: kent de api hem al, dan wordt er niets
+    geschreven. Kent de api hem niet en stuurde graph-qa alleen de hash, dan vraagt het antwoord om het hele pakket
+    (`bekend: false`).
+
+    Twee replica's die tegelijk melden, schrijven dezelfde ene rij: de laatste wint. Is het hetzelfde pakket, dan is het
+    resultaat gelijk; zijn het er twee (een oude replica naast een nieuwe), dan toont de stand welke het laatst meldde."""
+    i = db.werkplaats_image
+    async with db.get_engine().connect() as conn:
+        huidig = (await conn.execute(select(i.c.pakket_hash).where(i.c.id == 1))).scalar()
+    if huidig == pakket_hash:
+        return {**await image_stand(), "geschreven": False}
+    if onderdelen is None:
+        return {"bekend": False, "pakket_hash": huidig or "", "geschreven": False}
+    _toets_pakket(pakket_hash, onderdelen)
+    waarden = {"pakket_hash": pakket_hash, "revisie": revisie, "gemeld_op": db.utcnow(),
+               "hashes": {k: o["hash"] for k, o in onderdelen.items()},
+               "onderdelen": {k: {"soort": o["soort"], "naam": o["naam"], "hash": o["hash"], "bestanden": o["bestanden"]}
+                              for k, o in onderdelen.items()}}
+    async with db.get_engine().begin() as conn:
+        # Eén atomaire upsert op de ene rij: twee replica's die allebei een lege tabel zien, botsen niet.
+        voeg_in = pg_insert if conn.engine.url.get_backend_name() == "postgresql" else sqlite_insert
+        await conn.execute(voeg_in(i).values(id=1, **waarden).on_conflict_do_update(index_elements=["id"], set_=waarden))
+        await _audit(conn, "", "image", "graph-qa", pakket_hash=pakket_hash, revisie=revisie,
+                     onderdelen=len(onderdelen), was=huidig or "")
+    logger.info("werkplaats image gemeld", extra={"categorie": "technisch", "pakket_hash": pakket_hash,
+                                                 "revisie": revisie, "onderdelen": len(onderdelen)})
+    return {**await image_stand(), "geschreven": True}

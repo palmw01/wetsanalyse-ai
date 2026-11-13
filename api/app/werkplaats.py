@@ -20,6 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import users, werkplaats_store as store
+from .agent_toegang import AGENT_CLIENT
 from .auth import require_client
 from .config import get_settings
 from .routers.auth import actieve_userid
@@ -35,7 +36,27 @@ class OnderdeelIn(BaseModel):
     naam: str = Field(max_length=64)
     # Weggelaten: het lege begin van de soort, met de verplichte velden.
     bestanden: Bestanden | None = None
+    # *Bewerken*: begin met de versie uit het image, met haar hash als basis. Dan geen `bestanden`.
+    uit_image: bool = False
     toelichting: str = Field(default="", max_length=500)
+
+
+class ImageOnderdeel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    soort: str = Field(max_length=32)
+    naam: str = Field(max_length=64)
+    hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    bestanden: Bestanden
+
+
+class ImageIn(BaseModel):
+    """De melding van graph-qa: wat zijn image aan skills en agentprofielen bevat. Zonder `onderdelen` is het een
+    vraag: ken je dit pakket al?"""
+
+    model_config = ConfigDict(extra="forbid")
+    pakket_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    revisie: str = Field(default="", max_length=64, pattern=r"^[0-9A-Za-z._-]*$")
+    onderdelen: dict[str, ImageOnderdeel] | None = Field(default=None, max_length=200)
 
 
 class VersieIn(BaseModel):
@@ -98,9 +119,22 @@ async def stand(userid: str = Depends(actieve_userid)) -> dict[str, Any]:
         "mag_maken": await _mag_maken(userid),
         "beheerder": await _is_beheerder(userid),
         "beleid": beleid,
+        # Wat er draait, zoals graph-qa het meldde: de hash van het pakket, de commit en het tijdstip. Zonder melding
+        # `bekend: false`, en dan is of een versie actief is onbekend, niet "nee".
+        "image": await store.image_stand(),
         "grenzen": {"bestanden": wp.MAX_BESTANDEN, "tekens_per_bestand": wp.MAX_TEKENS_BESTAND, "tekens": wp.MAX_TEKENS,
                     "versies": wp.MAX_VERSIES, "onderdelen": wp.MAX_ONDERDELEN},
     }
+
+
+@router.put("/image", dependencies=[Depends(vereis_aan)])
+async def meld_image(body: ImageIn, client: str = Depends(require_client)) -> dict[str, Any]:
+    """Graph-qa meldt bij het starten wat zijn image bevat (ADR-016 §B1). Alleen graph-qa: een andere client zegt niet
+    wat er draait. Dit is de enige schrijfactie van het agent-token in de werkplaats (`agent_toegang.TOEGESTAAN`)."""
+    if client != AGENT_CLIENT:
+        raise HTTPException(403, {"melding": "Alleen graph-qa meldt wat er in zijn image zit."})
+    onderdelen = {k: o.model_dump() for k, o in body.onderdelen.items()} if body.onderdelen is not None else None
+    return await store.meld_image(body.pakket_hash, body.revisie, onderdelen)
 
 
 @router.get("/onderdelen", dependencies=[Depends(vereis_aan)])
@@ -113,13 +147,17 @@ async def lijst(soort: str | None = Query(default=None, max_length=32),
 async def maak(body: OnderdeelIn, userid: str = Depends(actieve_userid)) -> dict[str, Any]:
     if not await _mag_maken(userid):
         raise HTTPException(403, {"melding": "Een beheerder heeft het maken van concepten voor analisten uitgezet."})
+    if body.uit_image:
+        if body.bestanden is not None:
+            raise HTTPException(422, {"melding": "Bewerken vanuit het image begint met de bestanden uit het image."})
+        return await store.maak_uit_image(body.soort, body.naam, userid, body.toelichting)
     return await store.maak(body.soort, body.naam, userid, body.bestanden, body.toelichting)
 
 
 @router.post("/toets", dependencies=[Depends(vereis_aan)])
 async def toets(body: ToetsIn, _userid: str = Depends(actieve_userid)) -> dict[str, Any]:
     """Poort 1 zonder op te slaan, voor de editor."""
-    bevindingen = store.toets(body.soort, body.naam, body.bestanden)
+    bevindingen = await store.toets(body.soort, body.naam, body.bestanden)
     return {"geldig": not bevindingen, "bevindingen": bevindingen, "hash": wp.hash_van(body.bestanden)}
 
 

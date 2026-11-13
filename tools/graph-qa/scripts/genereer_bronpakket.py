@@ -20,7 +20,7 @@ import json
 from pathlib import Path
 
 from bronmodel import werkplaats as wp
-from bronmodel.skill import is_methode, lees_map, sha
+from bronmodel.skill import is_methode, lees_map
 from bronmodel.validatie import ValidatieFout
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -47,7 +47,7 @@ def compileer(skills: Path = SKILLS, profielen: Path = PROFIELEN) -> dict:
     # De identiteit van het pakket: verandert één bestand, dan verandert deze hash. De melding aan de api is er
     # idempotent op.
     hashes = {sleutel: o['hash'] for sleutel, o in onderdelen.items()}
-    return {'onderdelen': onderdelen, 'sha256': sha(json.dumps(hashes, sort_keys=True))}
+    return {'onderdelen': onderdelen, 'sha256': wp.pakkethash(hashes)}
 
 
 def genereer() -> str:
