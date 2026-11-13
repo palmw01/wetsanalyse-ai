@@ -1,11 +1,11 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
-PAKKET = {'bronbestanden': {'SKILL.md': 'd876d83ff5a5fe6d2c189b7faf0af29566445cf03f95bf9bfa60791aae6756b5',
+PAKKET = {'bronbestanden': {'SKILL.md': '75263d386b223fc7362ca3a56ece18cb9e711b254b3daca2ac05a489c9f0126e',
                    'agentrollen.json': '72e87f25dc6b5f96ddb0c3873cf88a382378196c9f03d8c076e1d0efdd3adf4d',
                    'references/agentrollen.md': 'bc6a35e64c9147183d56044bec9c4579fa3b757b613248d3604c7eed0a073405',
                    'references/bronnen.md': '4b8cbdcb735d7fa86b3485b610f9593a7ee4974166fe97d616061d9d0342822f',
                    'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
-                   'references/jas-klassen-referentie.md': 'd38124d05cf7806cdb7259c1c4317111485ecb779efb1008175034b931b46536',
+                   'references/jas-klassen-referentie.md': '14f62a170d1c3f46f9af778caf220a6ceb0f6d81f1c4157dd3cc75e521db755f',
                    'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411',
                    'wetsuitvoering/BRON.md': '1860919287fd49783ead620f664ffc5abe302ffdcdcc62b78138f0d1b31a1a31',
                    'wetsuitvoering/SKILL.md': 'ed21ad044b2d0a661a8f5a6fbc19c2f34247d8ac8d732e37ec4d8046c5af2807',
@@ -228,7 +228,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': 'd876d83ff5a5fe6d2c189b7faf0af29566445cf
                                      'JAS/JRM-dossier via een route die alleen markeringen of een '
                                      'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
                                      'rol over.'}},
- 'sha256': '68f8ba9da8aca1fece0d6d7299491b87c1063f810fa221205b38da2684a3fc08',
+ 'sha256': 'fe84b8c1e77e8dcb01b9f478da5d416d59683bb3741e49ebd6651fc17bac2732',
  'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving '
                                                     'volgens de methode Wetsanalyse en het '
                                                     'Juridisch Analyseschema (JAS): een werkgebied '

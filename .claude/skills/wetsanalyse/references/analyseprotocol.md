@@ -103,7 +103,7 @@ verdienen eigen aandacht waar ze voorkomen.
 ## 4. Markeren en classificeren
 
 Bepaal eerst de hoofdfunctie van elke normeenheid, daarna haar onderdelen. De werkwijze en de regels staan in de
-[markeringslijst](annotatieprotocol.md) en de [fragmentgrenzen](markeren-fragmentgrenzen.md). Koppel elk element aan
+[markeringslijst](markeringslijst.md) en de [fragmentgrenzen](markeren-fragmentgrenzen.md). Koppel elk element aan
 zijn norm- en bron-ID. Houd een abstract type (*de belastingschuldige*) apart van een concrete partij of waarde in
 een praktijkvoorbeeld. Een label alleen bewijst niet dat de juridische relatie begrepen is.
 

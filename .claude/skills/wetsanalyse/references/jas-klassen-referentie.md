@@ -52,7 +52,7 @@ Alleen de expliciete tijd/plaats-voorrang boven variabele/parameter geldt bij de
 functie; een duur of hoeveelheid in een tijdsaanduiding houdt de parameter vast als subtype
 *verbijzondert parameter* (zie §10, *Verbijzondering*). Andere samenloop: onderscheid overlap van
 concurrerende interpretaties.
-Lees [fragmentgrenzen](markeren-fragmentgrenzen.md) en de [markeringslijst](annotatieprotocol.md) voor de
+Lees [fragmentgrenzen](markeren-fragmentgrenzen.md) en de [markeringslijst](markeringslijst.md) voor de
 projectregels, en [voorbeelden](voorbeelden.md) voor een uitgewerkte bepaling.
 
 ---

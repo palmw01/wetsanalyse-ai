@@ -273,7 +273,7 @@ uitwerking, één niveau diep:
   code.** Verzin er geen klassen bij.
 - `references/werkgebied.md` (activiteit 1), `deelvragen-en-bronnen.md`, `zoekvragen-bronselectie.md` en
   `verwijzingen-volgen.md` – een werkgebied afbakenen en bronnen kiezen.
-- `references/annotatieprotocol.md` (de markeringslijst), `markeren-fragmentgrenzen.md` en `relaties.md` – markeren, classificeren en samenhang. Afgeleid uit het boek en de BRM-readers, in eigen
+- `references/markeringslijst.md`, `markeren-fragmentgrenzen.md` en `relaties.md` – markeren, classificeren en samenhang. Afgeleid uit het boek en de BRM-readers, in eigen
   woorden – dat materiaal is van derden en mag niet letterlijk in deze publieke repo.
 - `references/begrippen.md` en `nl-sbb-en-b1.md` – begrippen (activiteit 3a).
 - `references/analyseprotocol.md`, `kwaliteit.md` en `assets/analysedossier.md` – het volledige dossier.

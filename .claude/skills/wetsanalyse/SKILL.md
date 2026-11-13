@@ -39,7 +39,7 @@ jurist beoordeelt en beslist. Methodeversie 2.1, Wetsanalyse met het JAS.
 | Vraag of opdracht | Werkstroom | Lees |
 |---|---|---|
 | "Ik wil een wetsanalyse doen", een analysevraag, deelvragen, welke bronnen horen erbij | **A. Werkgebied afbakenen** (activiteit 1) | [werkgebied](references/werkgebied.md), [deelvragen en bronnen](references/deelvragen-en-bronnen.md), [zoekvragen](references/zoekvragen-bronselectie.md) |
-| "Markeer / annoteer / classificeer artikel X", "welke JAS-klasse is dit" | **B. Markeren en classificeren** (activiteit 2a–b) | [fragmentgrenzen](references/markeren-fragmentgrenzen.md), [klassenreferentie](references/jas-klassen-referentie.md), [markeringslijst](references/annotatieprotocol.md) |
+| "Markeer / annoteer / classificeer artikel X", "welke JAS-klasse is dit" | **B. Markeren en classificeren** (activiteit 2a–b) | [fragmentgrenzen](references/markeren-fragmentgrenzen.md), [klassenreferentie](references/jas-klassen-referentie.md), [markeringslijst](references/markeringslijst.md) |
 | Hoe hangen de elementen samen, wie heeft welk recht, wat is het rekenschema | **C. Samenhang** (activiteit 2c) | [relaties](references/relaties.md) |
 | Een begrip of definitie vastleggen, een uitleg in B1 | **D. Begrippen** (activiteit 3a) | [begrippen](references/begrippen.md), [NL-SBB en B1](references/nl-sbb-en-b1.md) |
 | Een volledig analysedossier over een bepaling of regeling | **E. Volledig dossier** (A t/m D samen) | [analyseprotocol](references/analyseprotocol.md), [sjabloon](assets/analysedossier.md), [kwaliteit](references/kwaliteit.md) |
@@ -78,12 +78,12 @@ Markeren – voortgang
 - [ ] 3. Per normeenheid de dragende functie kiezen: rechtsbetrekking, rechtsfeit, afleidingsregel of definitie
 - [ ] 4. Fragmenten markeren met de grenzen uit de fragmentgrenzen; overlap mag bij een andere functie
 - [ ] 5. Elke markering een klasse geven; bij twijfel een alternatief met reden
-- [ ] 6. Dekking nalopen: elke normeenheid geanalyseerd, of gemotiveerd niet
+- [ ] 6. Dekking nalopen: elke normeenheid geanalyseerd, of gemotiveerd niet; elke markering is een centrale klasse of hangt eraan
 ```
 
 Ontleed de grammatica vóór je classificeert: het grammaticale onderwerp is niet vanzelf de juridische actor, en
 "kan" is niet vanzelf een bevoegdheid. Signaalwoorden helpen zoeken, maar de klasse volgt uit de functie in context.
-Uitvoer: de [markeringslijst](references/annotatieprotocol.md), of de tabel Annotaties in het dossier.
+Uitvoer: de [markeringslijst](references/markeringslijst.md), of de tabel Annotaties in het dossier.
 
 ## C. Samenhang
 
