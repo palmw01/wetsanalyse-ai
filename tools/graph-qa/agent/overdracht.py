@@ -16,9 +16,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from bronmodel.connectors import herkende as bronnen_in_vraag
 from langgraph.config import get_stream_writer
 
+from .binnen_scope import niet_afwijzen
 from .narratie import _stap
 from .state import State
 
@@ -51,11 +51,11 @@ class Overdracht:
 
 
 def _wijs_af(state: State, _invoer: dict[str, Any]) -> dict[str, Any] | str:
-    """Buiten de wetgeving: de vaste tekst uit code (`afwijs_node`). Een vraag over een bron naast de wet is nooit buiten
-    de scope (ADR-013): die weigert de code, zoals ze een afwijzing van de supervisor terugdraait."""
-    if bronnen_in_vraag(state.get("question", "")):
-        return ("Deze vraag gaat over een bron naast de wet en valt binnen de wetgeving. Zoek in die bron, of zeg dat ze "
-                "in deze beurt uit staat. Wijs de vraag niet af.")
+    """Buiten de wetgeving: de vaste tekst uit code (`afwijs_node`). Een vraag over een bron naast de wet (ADR-013) of een
+    vraag die een regeling noemt (ADR-016 ronde 4, K12) is nooit buiten de scope: die weigert de code, zoals ze een
+    afwijzing van de supervisor terugdraait (`binnen_scope`, één regel voor beide vormen)."""
+    if reden := niet_afwijzen(state.get("question", "")):
+        return reden
     return {"afwijzen": True}
 
 
