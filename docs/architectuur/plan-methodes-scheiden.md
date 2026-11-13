@@ -629,7 +629,11 @@ Voor elke meting geldt ADR-010 en P19: voor en na op dezelfde versie van al het 
     gewogen.
 - **G2** (de tool).
   - Sets: de vragen in `golden_duiding` en `golden_gesprek` waar de tool wordt aangeroepen; als dat er minder dan vijf
-    zijn, eerst vijf twijfelvragen toevoegen ("is dit een voorwaarde of een rechtsfeit?").
+    zijn, eerst vijf twijfelvragen toevoegen ("is dit een voorwaarde of een rechtsfeit?"). Geen eerdere meting riep de
+    tool aan, dus die vijf staan in `eval/golden_klasse_twijfel.jsonl` (Awb 6:7, 3:40, 6:11, 1:2 lid 1, 6:8 lid 1,
+    letterlijk nagelezen), en het meetscript kent ze als set `klassen`.
+  - Vorm: alleen de supervisor. De tool staat alleen in het profiel `duiding`; de centrale agent heeft haar niet, en
+    G2 raakt zijn verzoek niet (licht regime).
   - Drempel: het antwoord op een twijfelvraag noemt het onderscheid uit de referentie; brongetrouwheid gelijk; het
     toolresultaat blijft onder een vaste lengte.
 - **G3** (de toetsen).

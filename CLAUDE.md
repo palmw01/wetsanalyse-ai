@@ -239,7 +239,9 @@ De **inhoudelijke duiding** – omschrijving, herkenningsvraag en uitdrukkingswi
 uit de skill. Daarvan zijn **afgeleid**:
 
 - `tools/graph-qa/agent/jas_klassen.py` – het JAS_KLASSEN-blok, gegenereerd door
-  `tools/graph-qa/scripts/genereer_jas_klassen.py`, bewaakt door `tests/test_methode_drift.py`;
+  `tools/graph-qa/scripts/genereer_jas_klassen.py`, bewaakt door `tests/test_methode_drift.py`; en daarnaast
+  `agent/jas_toelichting.py` (subklassen, samenhang en afbakening per klasse, alleen voor de tool
+  `jas_klasse_opvragen`);
 - `tools/graph-qa/agent/methodepakket.py` – de methodetekst per agentrol (`agentrollen.json` +
   `references/agentrollen.md`), gegenereerd door `scripts/genereer_methodepakket.py`, bewaakt door
   `tests/test_methodepakket.py`;

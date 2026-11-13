@@ -2,7 +2,9 @@
 JAS-kennistool – een pure Python-functie over de JAS-specificatie.
 
 `jas_klasse_opvragen` geeft de omschrijving, herkenningsvraag en uitdrukkingswijze
-van één klasse. De duiding-specialist krijgt hem (`agent/specialists.py`); hij
+van één klasse (de bronvelden uit de Rijksspecificatie), en daarnaast de toelichting uit
+de skill: subklassen, samenhang en afbakening tegenover verwarbare klassen
+(`agent/jas_toelichting.py`, plan methodes scheiden G2). De duiding-specialist krijgt hem (`agent/specialists.py`); hij
 staat in `JAS_TOOLS`, apart van `TOOLS`, zodat hij alleen meedoet als een
 specialist hem bij naam noemt (`anthropic_schemas(only=...)`).
 
@@ -15,6 +17,7 @@ import json
 from typing import Any
 
 from ..jas_klassen import GELDIGE_JAS_KLASSEN, JAS_KLASSEN
+from ..jas_toelichting import TOELICHTING
 
 # ---------------------------------------------------------------------------
 # Handlers (pure functies – geen GraphPort)
@@ -39,6 +42,7 @@ def _jas_klasse_opvragen(naam: str) -> str:
         "omschrijving": klasse.omschrijving,
         "vraag": klasse.vraag,
         "uitdrukkingswijze": klasse.uitdrukkingswijze,
+        **TOELICHTING.get(klasse.naam, {}),
     }, ensure_ascii=False)
 
 
@@ -51,8 +55,9 @@ JAS_TOOLS: list[dict[str, Any]] = [
         "name": "jas_klasse_opvragen",
         "description": (
             "Geef de volledige JAS-specificatie van één klasse: omschrijving, herkenningsvraag "
-            "en uitdrukkingswijze. Gebruik dit als je twijfelt of een fragment bij een bepaalde "
-            "klasse past."
+            "en uitdrukkingswijze, en uit de methode de subklassen, de samenhang met andere klassen "
+            "en de afbakening tegenover klassen waarmee zij verward wordt. Gebruik dit als je "
+            "twijfelt of een fragment bij een bepaalde klasse past, of tussen twee klassen."
         ),
         "input_schema": {
             "type": "object",
