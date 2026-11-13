@@ -27,15 +27,14 @@ from bronmodel.connectors import CONNECTORS
 from . import profielen
 from .llm_stap import Rol, stroom
 from .methode import instructies
-from .overdracht import OVERDRACHT, Overdracht
+from . import overdracht
+from .overdracht import CENTRAAL, CENTRAAL_BREED, Overdracht  # noqa: F401 – CENTRAAL: re-export voor de nodes
 from .prompts import SYSTEM_PROMPT
 from .sjablonen import EXTERN, sjabloon_schemas
 from .tools import anthropic_schemas, toegestane_tools
 
 #: Het profiel van een agent zonder naam, of met een naam die niet bestaat.
 STANDAARD = "algemeen"
-#: Het profiel van de centrale agent (ADR-016 §A1).
-CENTRAAL = "centraal"
 
 #: De antwoordlus streamt, dus een ruime limiet kost alleen wat er echt geschreven wordt. 4096 kapte lange duidingen af.
 MAX_TOKENS_ANTWOORD = 16000
@@ -108,6 +107,11 @@ class Agent:
         eigen = frozenset(self.profiel.sjablonen)
         return eigen | {EXTERN} if self.extern(bronstand) else eigen
 
+    def mag(self, tool: str) -> bool:
+        """Of deze agent de tool `tool` mag aanroepen. Een gewone agent wordt hier niet op getoetst: zijn toolbereik
+        stuurt wat het model ziet (`toolschemas`). De centrale agent wel, zie `CentraleAgent.mag`."""
+        return True
+
     def toolschemas(self, settings: Any, bronnen: Any, bronstand: dict[str, Any] | None) -> list[dict[str, Any]]:
         """De schema's die het model ziet: zijn tools zonder die van een connector die uit staat, dan zijn sjablonen."""
         return (anthropic_schemas(only=toegestane_tools(self.tools, settings, bronnen))
@@ -149,14 +153,20 @@ class CentraleAgent(Agent):
 
     @property
     def eigen_tools(self) -> dict[str, Overdracht]:
-        return OVERDRACHT
+        return overdracht.voor(self.naam)
+
+    def mag(self, tool: str) -> bool:
+        """Een tool buiten zijn profiel voert de code niet uit, ook als het model hem toch aanroept: een tool buiten de
+        kernset kan alleen na de overdracht `meer_tools`."""
+        return self.tools is None or tool in self.tools or tool in self.eigen_tools or tool in self.profiel.sjablonen \
+            or tool == EXTERN
 
 
 def agent_voor(naam: str | None) -> Agent:
     """De agent met het profiel `naam`; zonder naam of met een onbekende naam het brede profiel."""
     sleutel = (naam or "").strip().lower()
     sleutel = sleutel if sleutel in profielen.PROFIELEN else STANDAARD
-    return (CentraleAgent if sleutel == CENTRAAL else Agent)(profielen.PROFIELEN[sleutel])
+    return (CentraleAgent if sleutel in (CENTRAAL, CENTRAAL_BREED) else Agent)(profielen.PROFIELEN[sleutel])
 
 
 def vorm_van(stand: str, gevraagd: str | None) -> str:

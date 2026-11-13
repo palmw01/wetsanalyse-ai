@@ -19,11 +19,30 @@ _TERUG = re.compile(rf"\b(?:lid|leden|onderdeel|onderdelen|daarvan|daarin|dat\s+
                     rf"|\b(?:{'|'.join(RANGTELWOORDEN[:20])})\s+lid\b", re.IGNORECASE)
 
 
+def _slotvragen(antwoord: str) -> list[str]:
+    """De vragen waarmee het antwoord eindigt: de aaneengesloten reeks vraagzinnen aan het eind, in volgorde. Een vraag
+    midden in het antwoord, met een gewone zin erna, hoort er niet bij."""
+    tekst = (antwoord or "").rstrip().rstrip("*_` ")
+    uit: list[str] = []
+    eind = len(tekst)
+    for m in reversed(list(_ZIN.finditer(tekst))):
+        if tekst[m.end():eind].strip(" \n*_`"):
+            break
+        uit.append(m.group(0).strip(" \n*_`"))
+        eind = m.start()
+    return uit[::-1]
+
+
 def open_keuzevraag(antwoord: str) -> str:
-    """De laatste vraag in het antwoord als Lex daarin een keuze voorlegt ("Bedoel je …?"), anders leeg."""
-    vragen = _ZIN.findall(antwoord or "")
-    laatste = vragen[-1].strip() if vragen else ""
-    return laatste if _KEUZE.search(laatste) else ""
+    """De keuzevraag waarmee het antwoord eindigt ("Bedoel je …?"), anders leeg.
+
+    Meestal is dat de laatste zin. Soms zet het model de mogelijkheden in een losse slotvraag erachter ("Bedoel je een
+    specifiek artikel? Bijvoorbeeld artikel 3:1, 3:2 of een ander artikel?"): dan is de laatste zin geen keuzevraag meer,
+    en ging een vervolg ("En het tweede lid?") naar het model, dat er zelf een artikel bij koos (ronde 2 van de meting
+    van ADR-016, 12 nov 2026). Daarom telt de hele reeks vragen aan het eind, vanaf de eerste die een keuze voorlegt."""
+    vragen = _slotvragen(antwoord)
+    eerste = next((i for i, v in enumerate(vragen) if _KEUZE.search(v)), None)
+    return " ".join(vragen[eerste:]) if eerste is not None else ""
 
 
 def doorvraag(vraag: str, vorig_antwoord: str) -> str:

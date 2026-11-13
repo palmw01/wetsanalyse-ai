@@ -48,6 +48,7 @@ REDEN_ZIN: dict[str, str] = {
     "annotatie_gebruikerscontext_ontbreekt": _NIET_BESCHIKBAAR,
     "begrippen_gebruikerscontext_ontbreekt": _NIET_BESCHIKBAAR,
     "connector_uit": "staat uit in dit gesprek",
+    "tool_buiten_profiel": "hoort niet bij de tools van deze agent",
     "tool_mislukt": "mislukt",
     "tool_resultaat_te_groot": _TE_GROOT, "resultaatcontract_overschreden": _TE_GROOT,
     "resultaat_te_groot": _TE_GROOT, "ondeelbare_eenheid_te_groot": _TE_GROOT,

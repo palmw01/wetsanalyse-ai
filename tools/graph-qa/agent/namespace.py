@@ -32,5 +32,7 @@ SEP = ":"
 
 def vindplaats_patroon(basis: str = BASIS) -> str:
     """Regex-patroon dat een vindplaats-IRI in vrije tekst herkent. Een backtick of sterretje hoort er niet bij:
-    dat is Markdown rond de IRI (`` `urn:bwb:…` ``, **…**)."""
-    return re.escape(basis) + r"[^\s\"'<>)\]}\\`*]+"
+    dat is Markdown rond de IRI (`` `urn:bwb:…` ``, **…**). Een accolade ook niet: `urn:bwb:{BWB-id}` is een patroon
+    dat uitlegt hoe een IRI is opgebouwd (`graph_schema`), geen vindplaats. Zonder die uitsluiting stond
+    `urn:bwb:{BWB-id` in de bronnenlijst (ronde 2 van de meting van ADR-016, K04 en K10)."""
+    return re.escape(basis) + r"[^\s\"'<>)\]{}\\`*]+"

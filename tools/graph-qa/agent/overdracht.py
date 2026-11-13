@@ -22,8 +22,9 @@ from langgraph.config import get_stream_writer
 from .narratie import _stap
 from .state import State
 
-#: Wat het model ziet als de overdracht slaagt. De code schrijft daarna het antwoord.
-OVERGEDRAGEN = "Overgedragen."
+#: De profielen van de centrale agent (ADR-016 §A1): de kernset, en dezelfde agent met alle graaftools.
+CENTRAAL = "centraal"
+CENTRAAL_BREED = "centraal_breed"
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,10 @@ class Overdracht:
     #: `(state, invoer) -> de state-update van de route`, of een tekst als de code de overdracht weigert: het model
     #: krijgt die als toolresultaat en werkt verder.
     zet: Callable[[State, dict[str, Any]], dict[str, Any] | str]
+    #: De profielen waarvan de agent deze tool krijgt; leeg = elk profiel van de centrale agent.
+    van: frozenset[str] = frozenset()
+    #: Wat het model ziet als de overdracht slaagt.
+    resultaat: str = "Overgedragen."
 
     @property
     def schema(self) -> dict[str, Any]:
@@ -54,6 +59,12 @@ def _wijs_af(state: State, _invoer: dict[str, Any]) -> dict[str, Any] | str:
     return {"afwijzen": True}
 
 
+def _meer_tools(_state: State, _invoer: dict[str, Any]) -> dict[str, Any]:
+    """De overdracht aan het brede profiel, binnen dezelfde beurt: de volgende ronde draait dezelfde agent met alle
+    graaftools. Het gesprek van de beurt blijft; alleen het voorvoegsel wisselt."""
+    return {"specialist": CENTRAAL_BREED}
+
+
 OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
     Overdracht(
         naam="wijs_af",
@@ -62,7 +73,23 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
                       "Niet voor een vraag over een wet, een bepaling, een juridisch begrip, een werkgebied, een "
                       "annotatie of een bron naast de wet, ook niet als je er niets over vindt: zeg dat dan in tekst."),
         invoer={}, naar="afwijzen", zet=_wijs_af),
+    Overdracht(
+        naam="meer_tools",
+        beschrijving=("Roep dit aan als je een tool nodig hebt die je nu niet hebt. Je krijgt er dan in de volgende ronde "
+                      "bij: geldigheid (peildatum, versie, terugwerkende kracht), grondslagen (delegatie), "
+                      "verwijst_naar_deze en referenced_by (wie verwijst naar een bepaling), bijlagen, "
+                      "overzicht_onderwerp en semantic_search (breder zoeken op een onderwerp), resolve_begrip, "
+                      "search_begrippen en get_begrip (vastgelegde begrippen van een werkgebied), graph_schema en "
+                      "raw_sparql. Roep het alleen aan als de vraag daarom gaat; voor de tekst, de context en de "
+                      "verwijzingen van een bepaling heb je alles al. Schrijf er geen tekst naast."),
+        invoer={}, naar="agent", zet=_meer_tools, van=frozenset({CENTRAAL}),
+        resultaat="De extra tools staan nu aan. Ga verder met de vraag."),
 )}
+
+
+def voor(profiel: str) -> dict[str, Overdracht]:
+    """De overdrachtstools van de centrale agent met dit profiel."""
+    return {n: o for n, o in OVERDRACHT.items() if not o.van or profiel in o.van}
 
 
 def overdracht_node(_b: Any, state: State) -> dict[str, Any]:
@@ -80,7 +107,8 @@ def overdracht_node(_b: Any, state: State) -> dict[str, Any]:
         return {"messages": [resultaat(uitkomst, is_error=True)], "pending_tools": [], "overdracht_naar": ""}
     if o.naar == "afwijzen":
         _stap(get_stream_writer(), "Lex", "deze vraag valt buiten de wet- en regelgeving in de graaf", route="afgewezen")
-    return {"messages": [resultaat(OVERGEDRAGEN)], "pending_tools": [], "overdracht_naar": o.naar, **uitkomst}
+    return {"messages": [resultaat(o.resultaat)], "pending_tools": [],
+            "overdracht_naar": "" if o.naar == "agent" else o.naar, **uitkomst}
 
 
 def route_na_overdracht(_b: Any, state: State) -> str:
