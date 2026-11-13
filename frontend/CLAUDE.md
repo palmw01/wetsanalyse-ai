@@ -1484,15 +1484,54 @@ Een leesingang in de sidebar (*Werkwijze*): wat Lex kan, uit graph-qa `GET /v1/c
 aanbiedt. De balk is `OverzichtBalk` zonder *Door mij bewerkt* (de props zijn optioneel); concept en zoekterm staan in de
 URL. De pagina van een onderdeel (`/werkwijze/<soort>/<naam>`, `OnderdeelPagina`) toont het contract (ADR-010), de stappen
 van een workflow, de inhoud per soort (methodetekst, regels met hun voorbeeldzinnen, de beschrijving van een bron), de
-herkomst, *Leunt op* / *Gebruikt door* en waar het in de repo staat. **Alleen lezen**: dit is geen ontwikkelhulpmiddel
-maar uitleg voor de jurist hoe een voorstel ontstaat; drift en testuitslagen horen er niet. Wijzigen gaat via een PR
-(later een voorstel dat een concept-PR wordt, alleen op acceptatie). De rekenkern en de spiegel van het bronmodel staan
+herkomst, *Leunt op* / *Gebruikt door* en waar het in de repo staat. **De catalogus is alleen lezen**: dit is geen
+ontwikkelhulpmiddel maar uitleg voor de jurist hoe een voorstel ontstaat; drift en testuitslagen horen er niet. Wat Lex
+gebruikt, verandert alleen via de repo. Zelf iets maken of aanpassen gaat in de werkplaats (hieronder), als concept.
+De sectie-editor van C7 (*Wijziging voorstellen* op een methodesectie, een concept-PR) staat er nog en verdwijnt uit de
+frontend in B2-4; de api-route en de vlag `catalogusVoorstellen` blijven tot de promotie van B4 ze vervangt. De rekenkern en de spiegel van het bronmodel staan
 in `lib/catalogus.ts` (`catalogus.test.ts` toetst de soorten tegen `bronmodel/catalogus.py`). Browserregressie:
 `scripts/test-werkwijze.mjs` (`WERKWIJZE_FIXTURE` en `WERKWIJZE_SCREENSHOT` voor een controle met de echte catalogus). Op een telefoon past alles: `scripts/test-werkwijze-breedte.mjs` loopt op 375 px het overzicht, elk concept en elk
 onderdeel na (zonder fixture één onderdeel per soort uit `lib/catalogus.ts` met de langste waarden, met `WERKWIJZE_FIXTURE`
 de echte catalogus) en faalt als de pagina zijwaarts scrolt of iets buiten zijn kaart steekt. Een pad of id als label is
 `Tag` (`components/ui/Badge`), dat binnen zijn breedte afbreekt; een `Kaart` breekt een lang woord zonder spaties af
 (`overflow-wrap: anywhere`) in plaats van breder te worden.
+
+### De werkplaats: concepten (ADR-016 deel B, stap B2)
+
+Wat een gebruiker zelf maakt of aanpast (nu: een skill) is een **concept** met versies bij de api (`/v1/werkplaats/*`,
+`api/CLAUDE.md` §*De werkplaats*). Het staat onder de werkwijze, achter de vlag `WERKPLAATS`.
+
+- **Met de vlag uit is er niets te zien.** `haalWerkplaatsStand` geeft dan (en bij elke fout of onleesbaar antwoord)
+  `UIT`; geen component tekent iets en niemand vraagt de concepten op. De andere routes bestaan dan niet (404), dus lees
+  altijd eerst de stand. `scripts/test-werkplaats.mjs` legt vast dat de werkwijze dan gelijk is aan voorheen, en de
+  andere browsertests draaien zonder de werkplaats.
+- **Een concept is een artefact** (besluit 13 nov 2026): je leest het, bewerkt het en besluit erover op zijn eigen
+  pagina, `/werkwijze/concepten/<id>` (`ConceptPagina`). Niets op die pagina start Lex; iets laten opstellen door Lex gaat
+  via het gesprek en hoort niet bij deze stap. Een eigen pagina en geen paneel naast het gesprek: een skill heeft tot
+  tientallen bestanden.
+- **De ingangen** (`components/werkwijze/Concepten.tsx`): de groep *Concepten* bovenaan het overzicht (`ConceptenGroep`:
+  mijn concepten, wat met mij gedeeld is, ingetrokken onderaan; alleen bij *Alles* en *Kennis en methode*; de zoekterm
+  filtert op naam), *Nieuw concept* (alleen de naam; de api begint met de verplichte bestanden) en *Bewerken* op de
+  pagina van een methode (`BewerkKnop`: een concept met de versie die draait, `uit_image`; heb ik er al een, dan *Open
+  mijn concept*). Een methode in de catalogus is een skill met dezelfde naam (`werkplaatsSoortVan`). Wie niet mag maken
+  (`mag_maken`), ziet geen knop.
+- **Eén stand, één functie** (`standLabel` in `lib/werkplaats.ts`, getoond door `ConceptLabels`): *Concept*, *Draait nu*,
+  *Concept · loopt achter* (er draait intussen een andere versie dan waar het concept op voortbouwt), *Ingetrokken*, en
+  ***Concept · nog onbekend wat er draait*** zolang de api niet weet welke versie Lex gebruikt. **Onbekend is nooit "draait
+  niet"**: `parseOnderdeel` maakt de afgeleide velden dan `null`, wat de rij ook zegt. Daarnaast of de laatste versie de
+  controle haalt (`geldigLabel`). Schrijf geen eigen zin over de stand.
+- **De pagina van een concept** (B2-1: lezen): de bestanden van de laatste versie in een vaste volgorde
+  (`bestandsvolgorde`: `SKILL.md`, de wortel, dan de mappen), het gekozen bestand in de URL (`?bestand=`), en wat de
+  controle vond, per bestand. Op een telefoon staan lijst en bestand onder elkaar; een lange regel of bestandsnaam breekt af.
+  Bewerken, versies en vergelijken volgen in B2-2 en B2-3; "loopt achter" met de twee verschillen in B2-4. **Er wordt
+  niet automatisch samengevoegd**: de pagina toont de verschillen en laat opnieuw beginnen, en zegt vooraf wat er met de
+  eigen wijzigingen gebeurt.
+- **BFF**: `app/api/werkplaats/**` (stand, onderdelen, één onderdeel, één versie), elk met `X-User-Id` uit de sessie en de
+  query ongewijzigd door. `PUT /v1/werkplaats/image` is van graph-qa en heeft geen BFF-route.
+- **De spiegel** (`lib/werkplaats.ts`): de soorten en de naamvorm volgen `bronmodel`, de velden de api;
+  `werkplaats.test.ts` leest die bronnen. De editor opent alleen wat in `IN_EDITOR` staat (nu skills; profielen in B5).
+- Browserregressie: `scripts/test-werkplaats.mjs` (met `WERKPLAATS_SCREENSHOT=<map>` beelden op 1280 en 375 px). Die
+  draait tegen een gemockte BFF; zolang de vlag op acceptatie uit staat, is er geen controle tegen de echte api.
 
 ## De artefact-werkbank
 
