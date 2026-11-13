@@ -9,6 +9,8 @@ BESLISSING draagt: welke node wordt aangewezen.
 """
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from agent import tools
@@ -166,3 +168,63 @@ def test_zoek_opbouw_noemt_de_bepalingen_en_verdiept_een_groot_deel():
     assert "bepalingen" not in titeldeel
     assert titeldeel["openen"] == {"tool": "inhoudsopgave", "args": {
         "bwb_id": "BWBR0005537", "vanaf": "urn:bwb:BWBR0005537:hoofdstuk:4:titeldeel:4.4"}}
+
+
+# --- grondslagen voor een regeling als geheel (ADR-016 ronde 3, B02) -------------------------------------------------
+
+_REGELING = ("?relatie\t?doel\t?citeertitel\t?label\t?vanuit\t?vanuitIri\n"
+             '"berust-op-mij"\t<urn:bwb:BWBR0024096>\t"Leidraad Invordering 2008"@nl\t"Leidraad Invordering 2008"@nl\t""\t""\n'
+             '"berust-op-mij"\t<urn:bwb:BWBR0004766>\t"Uitvoeringsregeling Invorderingswet 1990"@nl\t'
+             '"Uitvoeringsregeling Invorderingswet 1990"@nl\t"Artikel 26 | Artikel 31 | Artikel 53 | Artikel 35 | Artikel 5 | Artikel 43"\t'
+             '"urn:bwb:BWBR0004770:artikel:26 | urn:bwb:BWBR0004770:artikel:31 | urn:bwb:BWBR0004770:artikel:53 | '
+             'urn:bwb:BWBR0004770:artikel:35 | urn:bwb:BWBR0004770:artikel:5 | urn:bwb:BWBR0004770:artikel:43"\n')
+
+
+def _graaf_met_telling(aantal: int = 100):
+    kop, rijen = _REGELING.split("\n", 1)
+    telrij = f'"aantal-buiten-de-graaf"\t<urn:bwb:BWBR0004770>\t\t\t""\t""\t"{aantal}"\n'
+    return FakeGraph(result=f"{kop}\t?buitenGraaf\n{telrij}{rijen}")
+
+
+def test_grondslagen_voor_een_regeling_noemt_de_artikelen_in_een_aanroep():
+    """De rijen zoals de graaf van acceptatie ze op 13 nov 2026 gaf voor de Invorderingswet 1990. `grondslagVoor` hangt
+    aan de artikelen; wie naar de regeling vroeg, kreeg de artikelen niet en vroeg ze één voor één op (B02: negen
+    aanroepen naast elkaar, daarna eigen SPARQL)."""
+    g = _graaf_met_telling()
+    d = json.loads(tools.dispatch("grondslagen", g, {"bwb_id": IW}))
+    assert d["status"] == "ok" and d["volledig"] is True and d["aantal"] == 2
+    leidraad, uitvoering = d["resultaten"]
+    assert leidraad["citeertitel"] == "Leidraad Invordering 2008" and "vanuit" not in leidraad and "vanuit_iri" not in leidraad
+    # Op nummer, niet op tekst: artikel 5 voor artikel 26.
+    assert uitvoering["vanuit"] == "Artikel 5, Artikel 26, Artikel 31, Artikel 35, Artikel 43, Artikel 53"
+    assert uitvoering["vanuit_iri"][0] == "urn:bwb:BWBR0004770:artikel:5" and len(uitvoering["vanuit_iri"]) == 6
+    # De regelingen buiten de graaf worden geteld, niet opgesomd, en het model zoekt ze niet zelf.
+    assert "100 regelingen die niet in de kennisgraaf staan" in d["toelichting"] and "niet zelf met SPARQL" in d["toelichting"]
+    # Eén query: de regeling staat er letterlijk in, en de artikelen en de telling komen uit dezelfde query.
+    [rijen_query] = g.queries
+    assert "aantal-buiten-de-graaf" in rijen_query and "COUNT(DISTINCT ?stub)" in rijen_query
+    assert "<urn:bwb:BWBR0004770> bwb:heeftGrondslag ?doel" in rijen_query and "?doel bwb:heeftGrondslag <urn:bwb:BWBR0004770>" in rijen_query
+    assert "GROUP BY ?relatie ?doel" in rijen_query and "BIND(<urn:bwb:BWBR0004770> AS ?node)" not in rijen_query
+
+
+def test_het_sjabloon_vindt_een_artikel_dat_grondslagen_noemt():
+    """Een artikel dat het antwoord als grondslag noemt, is niet gelezen. Met de IRI in het resultaat haalt het sjabloon
+    het zelf op in plaats van te weigeren (K15: twee keer `genoemd_gelezen`)."""
+    from agent.sjablonen.vullen import artikel_in_trace
+    raw = tools.dispatch("grondslagen", _graaf_met_telling(), {"bwb_id": IW})
+    assert artikel_in_trace("26", [("grondslagen", raw)]) == "urn:bwb:BWBR0004770:artikel:26"
+    assert artikel_in_trace("99", [("grondslagen", raw)]) == ""
+
+
+def test_grondslagen_zonder_regelingen_buiten_de_graaf_heeft_geen_toelichting():
+    d = json.loads(tools.dispatch("grondslagen", _graaf_met_telling(0), {"bwb_id": IW}))
+    assert "toelichting" not in d and d["aantal"] == 2
+    # Een graaf zonder telrij (een oudere stand) geeft gewoon de rijen.
+    d = json.loads(tools.dispatch("grondslagen", FakeGraph(result=_REGELING), {"bwb_id": IW}))
+    assert d["status"] == "ok" and d["aantal"] == 2 and "toelichting" not in d
+
+
+def test_grondslagen_voor_een_artikel_is_ongewijzigd():
+    g = FakeGraph(result="x")
+    tools.dispatch("grondslagen", g, {"bwb_id": IW, "artikel": "26"})
+    assert len(g.queries) == 1 and "GROUP BY" not in g.queries[0] and "?node bwb:grondslagVoor ?doel" in g.queries[0]

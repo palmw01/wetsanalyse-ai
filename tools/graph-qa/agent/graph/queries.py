@@ -994,7 +994,9 @@ def grondslagen(bwb_id: str, aanduiding: str | None = None, limit: int = 50, off
     een aanduiding over die ene bepaling. De richting staat in `?relatie`, want beide kanten zijn
     even relevant en ze in twee tools splitsen zou betekenen dat het model de goede moet raden.
     """
-    node = node_patroon(bwb_id, aanduiding) if aanduiding else f'BIND(<{regeling_iri(bwb_id)}> AS ?node)'
+    if not aanduiding:
+        return _grondslagen_regeling(bwb_id, limit, offset, meer)
+    node = node_patroon(bwb_id, aanduiding)
     return PREFIXES + f"""SELECT ?relatie ?doel ?citeertitel ?label WHERE {{
   {node}
   {{ BIND("berust-op" AS ?relatie) ?node bwb:heeftGrondslag ?doel . }}
@@ -1006,6 +1008,57 @@ def grondslagen(bwb_id: str, aanduiding: str | None = None, limit: int = 50, off
   OPTIONAL {{ ?doel bwb:citeertitel ?citeertitel }}
   OPTIONAL {{ ?doel rdfs:label ?label }}
 }} ORDER BY ?relatie ?citeertitel ?doel ?label {_pagina(max(1, min(int(limit), 200)), offset, meer)}"""
+
+
+#: De telrij van `_grondslagen_regeling`: geen relatie, maar hoeveel regelingen buiten de graaf aan de artikelen hangen.
+#: De naam sorteert vóór elke relatie, dus ze staat op de eerste pagina.
+BUITEN_GRAAF = "aantal-buiten-de-graaf"
+
+#: De relaties die aan een tekstdeel hangen: welke regeling berust op dít artikel.
+_PER_TEKSTDEEL = '(bwb:grondslagVoor "grondslag-voor") (bwb:bevoegdheidVoor "bevoegdheid-voor")'
+
+
+def _grondslagen_regeling(bwb_id: str, limit: int, offset: int, meer: bool) -> str:
+    """De delegatierelaties van een regeling als geheel, in één keer.
+
+    `grondslagVoor` en `bevoegdheidVoor` hangen aan de artikelen, niet aan de regeling. Wie naar de regeling vroeg, kreeg
+    ze dus niet en moest ze artikel voor artikel ophalen: bij "welke regelingen berusten op de Invorderingswet 1990, en
+    op welke artikelen?" negen aanroepen naast elkaar en daarna eigen SPARQL (meting ADR-016 ronde 3, B02). Nu draagt
+    een regeling die op deze berust haar artikelen in `?vanuit` (de labels) en `?vanuitIri`.
+
+    Alleen regelingen die zelf in de graaf staan worden een rij: aan de artikelen van de Invorderingswet 1990 hangen
+    ook ruim honderd regelingen waarvan de graaf alleen het BWB-id kent. Die telt de eerste rij (`BUITEN_GRAAF`, in
+    `?buitenGraaf`; ze sorteert vooraan), zodat het één query blijft; per artikel zijn ze op te vragen. De regeling
+    staat letterlijk in de query, niet in een BIND: een deelpatroon in een UNION rekent de graaf los uit (zie
+    `geldigheid`)."""
+    reg = regeling_iri(bwb_id)
+    vanuit = f"""?deel ?p ?doel . FILTER(STRSTARTS(STR(?deel), "{reg}{SEP}"))
+      OPTIONAL {{ ?deel rdfs:label ?deelLabel }}"""
+    return PREFIXES + f"""SELECT ?relatie ?doel (SAMPLE(?ct) AS ?citeertitel) (SAMPLE(?lb) AS ?label)
+       (GROUP_CONCAT(DISTINCT STR(?deelLabel); separator=" | ") AS ?vanuit)
+       (GROUP_CONCAT(DISTINCT STR(?deel); separator=" | ") AS ?vanuitIri) (SAMPLE(?nBuiten) AS ?buitenGraaf) WHERE {{
+  {{ {{ SELECT (COUNT(DISTINCT ?stub) AS ?nBuiten) WHERE {{
+        VALUES ?q {{ bwb:grondslagVoor bwb:bevoegdheidVoor }}
+        ?tekstdeel ?q ?stub . FILTER(STRSTARTS(STR(?tekstdeel), "{reg}{SEP}"))
+        FILTER(STRSTARTS(STR(?stub), "{NS}"))
+        FILTER NOT EXISTS {{ ?stub bwb:citeertitel ?stubtitel }} }} }}
+    BIND("{BUITEN_GRAAF}" AS ?relatie) BIND(<{reg}> AS ?doel) }}
+  UNION {{ BIND("berust-op" AS ?relatie) <{reg}> bwb:heeftGrondslag ?doel . }}
+  UNION {{ BIND("grondslag-voor" AS ?relatie) <{reg}> bwb:grondslagVoor ?doel . }}
+  UNION {{ BIND("bevoegdheid-voor" AS ?relatie) <{reg}> bwb:bevoegdheidVoor ?doel . }}
+  UNION {{ BIND("in-familie" AS ?relatie) <{reg}> bwb:inFamilie ?doel . }}
+  UNION {{ BIND("berust-op-mij" AS ?relatie) ?doel bwb:heeftGrondslag <{reg}> .
+    OPTIONAL {{ VALUES (?p ?soort) {{ {_PER_TEKSTDEEL} }}
+      {vanuit} }} }}
+  UNION {{ VALUES (?p ?relatie) {{ {_PER_TEKSTDEEL} }}
+      {vanuit}
+      ?doel bwb:citeertitel ?inGraaf .
+      FILTER NOT EXISTS {{ ?doel bwb:heeftGrondslag <{reg}> }} }}
+  FILTER(STRSTARTS(STR(?doel), "{NS}"))
+  OPTIONAL {{ ?doel bwb:citeertitel ?ct }}
+  OPTIONAL {{ ?doel rdfs:label ?lb }}
+}} GROUP BY ?relatie ?doel
+ORDER BY ?relatie ?citeertitel ?doel {_pagina(max(1, min(int(limit), 200)), offset, meer)}"""
 
 
 def geldigheid(bwb_id: str, aanduiding: str | None = None, lid: str | None = None, limit: int = 50,
