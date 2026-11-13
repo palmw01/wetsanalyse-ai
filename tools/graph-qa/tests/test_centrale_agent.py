@@ -83,7 +83,9 @@ def test_met_uit_is_de_graaf_die_van_voorheen():
         assert set(g.nodes) == set(uit.nodes) | {"overdracht"}
         edges = {(e.source, e.target) for e in g.compile().get_graph().edges}
         oud = {(e.source, e.target) for e in uit.compile().get_graph().edges}
-        assert edges - oud == {("agent", "overdracht"), ("overdracht", "agent"), ("overdracht", "afwijzen")}
+        assert edges - oud == {("agent", "overdracht"), ("overdracht", "agent"), ("overdracht", "afwijzen"),
+                               ("overdracht", "agent_taak"), ("overdracht", "werkgebied_intake"),
+                               ("overdracht", "bronselectie")}
         assert not oud - edges
 
 
@@ -123,7 +125,7 @@ def test_het_profiel_centraal_is_een_python_agent_met_zijn_eigen_tools():
     agent = agent_voor(CENTRAAL)
     assert isinstance(agent, CentraleAgent) and isinstance(agent, Agent)
     assert agent.rol is Rol.CENTRAAL and agent.methoderol == "agent"
-    assert set(agent.eigen_tools) == set(overdracht.OVERDRACHT) == {"wijs_af", "meer_tools"}
+    assert set(agent.eigen_tools) == set(overdracht.OVERDRACHT) == {"wijs_af", "meer_tools", "taakagent", "werkgebied"}
     p = profielen.PROFIELEN[CENTRAAL]
     assert not p.kiesbaar and CENTRAAL not in profielen.KIESBAAR, "een model kiest dit profiel niet"
     # De eigen tools staan niet in de toollaag: een profiel kan ze niet noemen, en een andere agent krijgt ze niet.
@@ -137,7 +139,7 @@ def test_een_overdrachtstool_heeft_een_strict_schema():
         s = o.schema
         assert s["strict"] is True and s["input_schema"]["additionalProperties"] is False
         assert s["input_schema"]["required"] == sorted(o.invoer)
-        assert o.naar in overdracht.doelen()
+        assert all(n in overdracht.doelen() for n in (o.ingangen if o.naar == overdracht.INGANG else (o.naar,)))
 
 
 def test_afwijzen_is_een_tool_en_de_tekst_komt_uit_code():
@@ -222,8 +224,8 @@ def test_een_keuzevraag_van_de_centrale_agent_heeft_de_vorm_die_de_doorvraagrout
 
 
 def test_meer_tools_is_er_alleen_voor_de_kernset_en_wijs_af_voor_beide():
-    assert set(agent_voor(CENTRAAL).eigen_tools) == {"wijs_af", "meer_tools"}
-    assert set(agent_voor(CENTRAAL_BREED).eigen_tools) == {"wijs_af"}
+    assert set(agent_voor(CENTRAAL).eigen_tools) == {"wijs_af", "meer_tools", "taakagent", "werkgebied"}
+    assert set(agent_voor(CENTRAAL_BREED).eigen_tools) == {"wijs_af", "taakagent", "werkgebied"}
     assert isinstance(agent_voor(CENTRAAL_BREED), CentraleAgent) and agent_voor(CENTRAAL_BREED).rol is Rol.CENTRAAL
     # De beschrijving noemt elke tool die erachter zit: zo weet het model wanneer het erom vraagt.
     rest = set(profielen.PROFIELEN[CENTRAAL_BREED].tools) - set(profielen.PROFIELEN[CENTRAAL].tools)
@@ -270,3 +272,59 @@ def test_de_eigen_tools_hebben_een_eigen_categorie_in_de_contextopbouw():
     for naam in overdracht.OVERDRACHT:
         assert contextdelen.tool_categorie(naam) == contextdelen.AGENTTOOLS
     assert contextdelen.AGENTTOOLS in contextdelen.VOORVOEGSEL
+
+
+# --- de taakagents en het werkgebied (A2-3a) --------------------------------------------------------------------
+# Meetronde S6 (13 nov 2026): de centrale agent bereikte de deelvragen-agent en het aanvullen van het werkgebied niet;
+# "stel deelvragen voor" werd vrije tekst. De overdrachten gaan naar dezelfde routes als de keuze van de supervisor.
+
+def _werkgebiedbeurt(vraag: str, llm: FakeLLM) -> list[dict]:
+    from tests.test_agents import NepApi, _api_settings
+
+    async def verzamel():
+        return [e async for e in answer_stream(vraag, None, settings=_api_settings(centrale_agent="meten"), llm=llm,
+                                               graph=FakeGraph(), user_id="jurist", run_id="r1", werkgebied_id="wg1",
+                                               agent_api=lambda s, u: NepApi(), agentvorm="centraal")]
+    return asyncio.run(verzamel())
+
+
+def test_een_taak_van_de_deelvragenagent_gaat_naar_dezelfde_route_als_bij_de_supervisor():
+    llm = FakeLLM([response([tool_block("t1", "taakagent", {"agent": "deelvragen", "taak": "dekking"})], "tool_use")])
+    events = _werkgebiedbeurt("Hoe sta ik ervoor met deelvraag 2?", llm)
+    assert len(llm.calls) == 1 and "rol agent" in llm.calls[0]["system"], "één ronde van de centrale agent, geen supervisor"
+    assert any(e["type"] == "status" and e.get("route") == "deelvragen" for e in events)
+    token = "".join(e["content"] for e in events if e["type"] == "token")
+    assert token.startswith("Dekking in werkgebied *Invorderbaarheid*") and "Wanneer vervalt" not in token
+
+
+def test_een_taak_die_niet_bij_de_agent_hoort_weigert_de_code():
+    llm = FakeLLM([response([tool_block("t1", "taakagent", {"agent": "begrippen", "taak": "dekking"})], "tool_use"),
+                   response([text_block("Welke deelvraag bedoel je?")], "end_turn")])
+    events = _werkgebiedbeurt("Hoe sta ik ervoor met deelvraag 2?", llm)
+    assert len(llm.calls) == 2
+    [resultaat] = [b for m in llm.calls[1]["messages"] if isinstance(m["content"], list)
+                   for b in m["content"] if b.get("type") == "tool_result"]
+    assert resultaat["is_error"] is True and "voorstellen" in resultaat["content"] and "relaties" in resultaat["content"]
+    assert not any(e["type"] == "status" and e.get("route") == "deelvragen" for e in events)
+
+
+@pytest.mark.parametrize(("taak", "route", "stap"), [
+    ("aanvullen", "werkgebied", "vult met je het dossier aan"),
+    ("bronselectie", "bronselectie", "bepaalt met je de bronnen per deelvraag"),
+])
+def test_het_werkgebied_gaat_naar_dezelfde_route_als_bij_de_supervisor(taak, route, stap):
+    llm = FakeLLM([response([tool_block("t1", "werkgebied", {"taak": taak})], "tool_use")])
+    events = _werkgebiedbeurt("Kun je het praktijkvoorbeeld toevoegen?", llm)
+    assert len(llm.calls) >= 1 and "rol agent" in llm.calls[0]["system"]
+    assert any(e["type"] == "status" and e.get("route") == route and stap in e["message"] for e in events)
+
+
+def test_de_overdrachten_volgen_de_registers():
+    """De taken komen uit het register van de agents; de beschrijving noemt elke taak, zodat het model weet wanneer."""
+    from agent.agents import register
+    o = overdracht.OVERDRACHT["taakagent"]
+    taken = {t for a in overdracht.TAAKAGENTS for t in register.taken(a)}
+    assert set(o.invoer["taak"]["enum"]) == taken and set(o.invoer["agent"]["enum"]) == set(overdracht.TAAKAGENTS)
+    assert all(f"{t} (" in o.beschrijving for t in taken)
+    w = overdracht.OVERDRACHT["werkgebied"]
+    assert all(f"{t}:" in w.beschrijving for t in overdracht.WERKGEBIED_TAKEN)

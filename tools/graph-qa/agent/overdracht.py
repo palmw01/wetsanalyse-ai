@@ -8,7 +8,8 @@ De tools zijn van de agent, niet van het profiel: `CentraleAgent` voegt ze toe (
 noemen, en een agent met alle tools (`tools: None`) krijgt ze niet: ze staan niet in de toollaag.
 
 Een nieuwe overdracht is: een `Overdracht` hier, de doelnode in de uitgangen van `overdracht` (`voeg_overdracht_toe`) en
-een test in `tests/test_centrale_agent.py`.
+een test in `tests/test_centrale_agent.py`. Kiest de route zelf haar node (het werkgebied: intake, bronselectie of een
+agenttaak), dan is `naar` `INGANG`: de node volgt uit de state van de route, met dezelfde `_entry_node` als de supervisor.
 """
 from __future__ import annotations
 
@@ -22,6 +23,9 @@ from .binnen_scope import niet_afwijzen
 from .narratie import _stap
 from .state import State
 
+#: `naar` als de route zelf haar node kiest: dezelfde ingang als na de supervisor (`supervisie._entry_node`).
+INGANG = "ingang"
+
 #: De profielen van de centrale agent (ADR-016 §A1): de kernset, en dezelfde agent met alle graaftools.
 CENTRAAL = "centraal"
 CENTRAAL_BREED = "centraal_breed"
@@ -33,7 +37,7 @@ class Overdracht:
     beschrijving: str
     #: De eigenschappen van de invoer (JSON-schema); leeg = geen argumenten.
     invoer: dict[str, Any]
-    #: De node waar de beurt heen gaat.
+    #: De node waar de beurt heen gaat, of `INGANG`.
     naar: str
     #: `(state, invoer) -> de state-update van de route`, of een tekst als de code de overdracht weigert: het model
     #: krijgt die als toolresultaat en werkt verder.
@@ -42,6 +46,8 @@ class Overdracht:
     van: frozenset[str] = frozenset()
     #: Wat het model ziet als de overdracht slaagt.
     resultaat: str = "Overgedragen."
+    #: Bij `INGANG`: de nodes waar de route kan uitkomen (de uitgangen van de node `overdracht`).
+    ingangen: tuple[str, ...] = ()
 
     @property
     def schema(self) -> dict[str, Any]:
@@ -65,6 +71,42 @@ def _meer_tools(_state: State, _invoer: dict[str, Any]) -> dict[str, Any]:
     return {"specialist": CENTRAAL_BREED}
 
 
+def _taakagent(state: State, invoer: dict[str, Any]) -> dict[str, Any] | str:
+    """Eén taak van de deelvragen- of begrippenagent: dezelfde `_agent` als na de keuze van de supervisor, met de
+    parameters uit wat er ligt (werkgebied, aangewezen object, de vraag). Een taak die niet bij de agent hoort, weigert
+    de code met de taken die er wel zijn."""
+    from .agents import register
+    from .nodes.supervisie import _agent
+
+    agent, taak = invoer.get("agent", ""), invoer.get("taak", "")
+    if not register.is_taak(agent, taak):
+        return (f"De {register.NAAM.get(agent, agent)} kent de taak '{taak}' niet. Kies uit: "
+                f"{', '.join(register.taken(agent)) if agent in register.AGENTS else ''}.")
+    return _agent(get_stream_writer(), state, agent, taak, state.get("question", ""))
+
+
+def _werkgebied(state: State, invoer: dict[str, Any]) -> dict[str, Any]:
+    """Het werkgebied samenstellen, het dossier aanvullen of de bronselectie: dezelfde route als bij de supervisor."""
+    from .nodes.supervisie import werkgebied_route
+
+    taak = invoer.get("taak", "")
+    return werkgebied_route(get_stream_writer(), state, "" if taak == "samenstellen" else taak,
+                            state.get("question", ""))
+
+
+#: De agents die de centrale agent een taak kan geven (ADR-016 A2-3a). De annotatieagent komt met `annoteer` (A2-4).
+TAAKAGENTS = ("deelvragen", "begrippen")
+
+
+def _taken() -> list[str]:
+    from .agents import register
+    return sorted({t for a in TAAKAGENTS for t in register.taken(a)})
+
+
+#: De taken van het werkgebied zelf (geen agent): samenstellen is bij de supervisor de lege taak.
+WERKGEBIED_TAKEN = ("samenstellen", "aanvullen", "bronselectie")
+
+
 OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
     Overdracht(
         naam="wijs_af",
@@ -84,6 +126,35 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
                       "verwijzingen van een bepaling heb je alles al. Schrijf er geen tekst naast."),
         invoer={}, naar="agent", zet=_meer_tools, van=frozenset({CENTRAAL}),
         resultaat="De extra tools staan nu aan. Ga verder met de vraag."),
+    Overdracht(
+        naam="taakagent",
+        beschrijving=(
+            "Roep dit aan als de gebruiker in een werkgebied iets met de deelvragen of de begrippen wil laten DOEN. "
+            "De agent voert de taak uit en de werkplek toont het voorstel; schrijf zelf niets. "
+            "deelvragen: voorstellen (deelvragen opstellen bij de analysevraag), verbeteren (één deelvraag scherper "
+            "formuleren of splitsen), dekking (is een deelvraag, of zijn de deelvragen, gedekt door bronnen). "
+            "begrippen: voorstellen (begrippen voorstellen uit de annotaties), meedenken (meedenken over twijfelpunten "
+            "en definities), brondefinitie (de definitie van een vastgelegd begrip in de wet zoeken), scherper (een "
+            "scherpere definitie), uitleg (de uitleg bij een vastgelegd begrip, in eenvoudige taal of B1), voorbeelden "
+            "(voorbeelden bij een begrip), betekenisverschil (het verschil tussen twee begrippen), uitwerken (een begrip "
+            "volledig uitwerken), relaties (de relaties van een begrip). "
+            "Niet voor een vraag om UITLEG over een deelvraag, bron of begrip ('waarom hoort artikel 9 bij deelvraag "
+            "2?'), en niet voor de wettelijke definitie van een term: die beantwoord je zelf."),
+        invoer={"agent": {"type": "string", "enum": list(TAAKAGENTS)},
+                "taak": {"type": "string", "enum": _taken()}},
+        naar="agent_taak", zet=_taakagent),
+    Overdracht(
+        naam="werkgebied",
+        beschrijving=(
+            "Roep dit aan voor het werkgebied zelf; de werkplek stelt de vragen, schrijf zelf niets. "
+            "samenstellen: de gebruiker wil een werkgebied samenstellen of een wetsanalyse beginnen. "
+            "aanvullen: de gebruiker wil in een bestaand werkgebied een gegeven van het dossier invullen of wijzigen "
+            "(naam, aanleiding, context, doel, analysevraag, praktijkvoorbeeld, thema, afbakening); deelvragen horen bij "
+            "taakagent. bronselectie: de gebruiker wil in een werkgebied bronnen of bepalingen zoeken, bepalen of "
+            "beoordelen, voor het werkgebied of een deelvraag, of verder met de bronselectie ('help me de bronnen bij "
+            "dit werkgebied te bepalen', 'zoek bepalingen bij deelvraag 2')."),
+        invoer={"taak": {"type": "string", "enum": list(WERKGEBIED_TAKEN)}},
+        naar=INGANG, zet=_werkgebied, ingangen=("werkgebied_intake", "bronselectie", "agent_taak")),
 )}
 
 
@@ -107,8 +178,13 @@ def overdracht_node(_b: Any, state: State) -> dict[str, Any]:
         return {"messages": [resultaat(uitkomst, is_error=True)], "pending_tools": [], "overdracht_naar": ""}
     if o.naar == "afwijzen":
         _stap(get_stream_writer(), "Lex", "deze vraag valt buiten de wet- en regelgeving in de graaf", route="afgewezen")
+    naar = o.naar
+    if naar == INGANG:
+        from .nodes.supervisie import _entry_node
+        naar = _entry_node(_b, {**state, **uitkomst})
+        assert naar in o.ingangen, f"overdracht {o.naam} kwam uit bij {naar}"
     return {"messages": [resultaat(o.resultaat)], "pending_tools": [],
-            "overdracht_naar": "" if o.naar == "agent" else o.naar, **uitkomst}
+            "overdracht_naar": "" if naar == "agent" else naar, **uitkomst}
 
 
 def route_na_overdracht(_b: Any, state: State) -> str:
@@ -117,4 +193,5 @@ def route_na_overdracht(_b: Any, state: State) -> str:
 
 def doelen() -> dict[str, str]:
     """De uitgangen van de node `overdracht`: elke doelnode, en terug naar de agent."""
-    return {"agent": "agent", **{o.naar: o.naar for o in OVERDRACHT.values()}}
+    nodes = {n for o in OVERDRACHT.values() for n in (o.ingangen if o.naar == INGANG else (o.naar,))}
+    return {"agent": "agent", **{n: n for n in sorted(nodes)}}
