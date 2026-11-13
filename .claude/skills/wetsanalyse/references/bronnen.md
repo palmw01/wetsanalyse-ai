@@ -67,6 +67,12 @@ stil bijgewerkte webpagina onder een oude versieaanduiding.
 
 ## Historie
 
+**Methodeversie 3.0, derde stap (G1b): een lijdende vorm noemt de handelende partij niet.** De meting van G1 liet zien
+dat Lex bij een passieve zin ("De motivering wordt vermeld …") de handelende partij als genoemd behandelde, soms zelfs
+tussen aanhalingstekens. De sectie `duiding` zegt nu dat een partij alleen genoemd is als haar woord letterlijk in de
+tekst staat, en dat een lijdende vorm de handelende partij niet noemt (M01 h.4 §4.2.2 en §4.3.1). Dit verandert de
+vingerafdruk van `duiding` en `agent`; gemeten met G1 als nulpunt.
+
 **Methodeversie 3.0, tweede stap (13 nov 2026): `duiding` maakt de partij die de tekst niet noemt expliciet.** De
 sectie vraagt Lex de andere partij van een rechtsbetrekking te zoeken en te benoemen als interpretatie met haar
 vindplaats, of te zeggen dat zij onbekend is, en de soort rechtsbetrekking of rechtsfeit te noemen waar de tekst haar

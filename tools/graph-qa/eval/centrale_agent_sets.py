@@ -1,6 +1,6 @@
 """Scoor de kwaliteitsset en de gesprekken die via acceptatie zijn gesteld (ADR-016 §A6, de ronde voor A2).
 
-    uv run python -m eval.centrale_agent_sets <map>/ruw-kwaliteit-*-run1.jsonl <map>/ruw-duiding-*-run1.jsonl <map>/ruw-gesprek-*-run1.jsonl [--uit runs.jsonl]
+    uv run python -m eval.centrale_agent_sets <map>/ruw-kwaliteit-*-run1.jsonl <map>/ruw-duiding-*-run1.jsonl <map>/ruw-partijen-*-run1.jsonl <map>/ruw-gesprek-*-run1.jsonl [--uit runs.jsonl]
 
 De sets draaien anders in-process (`eval/run_eval.py`). `eval/centrale_agent_meting.mjs vragen …` stelt dezelfde vragen
 via de werkplek op de straat, in twee vormen (supervisor en centrale agent). Dit script maakt uit de events van elke
@@ -36,6 +36,10 @@ def _lees(pad: Path) -> list[dict[str, Any]]:
 
 def kwaliteitsset() -> dict[str, dict[str, Any]]:
     return {f"K{i + 1:02d}": c for i, c in enumerate(_lees(EVAL / "golden.jsonl"))}
+
+
+def partijenset() -> dict[str, dict[str, Any]]:
+    return {c["id"]: c for c in _lees(EVAL / "golden_duiding_partijen.jsonl")}
 
 
 def duidingset() -> dict[str, dict[str, Any]]:
@@ -112,6 +116,7 @@ def main() -> None:
     p.add_argument("--uit", type=Path)
     a = p.parse_args()
     sets = {"kwaliteit": (kwaliteitsset(), scoor_kwaliteit), "duiding": (duidingset(), scoor_kwaliteit),
+            "partijen": (partijenset(), scoor_kwaliteit),
             "gesprek": (gesprekken(), scoor_gesprek)}
     regels = []
     for pad in a.ruw:
