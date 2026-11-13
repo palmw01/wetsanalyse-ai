@@ -157,3 +157,27 @@ def test_lege_of_rare_html():
     assert rijen_uit_html("") == []
     rijen = rijen_uit_html("<h2>Vraag</h2><p>Een <b>vraag</b>?<br>Ja.</p><script>x()</script><ul><li><p>a</p></li></ul>")
     assert [(r.kop, r.tekst) for r in rijen] == [("Vraag", "Een vraag? Ja."), ("Vraag", "a")]
+
+
+@pytest.mark.parametrize("tekst,verwacht", [
+    ("Op grond van artikel 10, eerste lid, Wet BPM 1992 geldt", [("BWBR0005806", "10", "1")]),
+    ("zie artikel 3.125, eerste lid, onderdeel c, Wet IB 2001 (tekst 2005)", [("BWBR0011353", "3.125", "1")]),
+    ("artikel 67 AWR", [("BWBR0002320", "67", "")]),
+    ("art. 13a SW 1956 beoogt", [("BWBR0002226", "13a", "")]),
+    ("artikel 36 van de Invorderingswet 1990", [("BWBR0004770", "36", "")]),
+    ("artikel 1, onderdeel a, van de Wet op belastingen van rechtsverkeer", [("BWBR0002740", "1", "")]),
+    ("Wet op de belasting van personenauto’s en motorrijwielen 1992: artikel 10", []),
+    # Zonder regelingnaam erachter is de regeling een gok: geen koppeling.
+    ("artikel 10, eerste lid, van die wet", []),
+    ("artikel 5 Wet IB 1964", []),
+])
+def test_bepalingen_in_lopende_tekst(tekst, verwacht):
+    from bronmodel.kennisgroepen import bepalingen_in_tekst
+    assert [b[:3] for b in bepalingen_in_tekst(tekst)] == verwacht
+
+
+def test_een_bepaling_als_link_en_in_de_tekst_telt_een_keer():
+    s = lees_publicatie(_item(8488))
+    sleutels = [(v.bwb_id, dict(v.delen).get("artikel"), dict(v.delen).get("lid")) for v in s.verwijzingen
+                if v.soort == "bepaling"]
+    assert len(sleutels) == len(set(sleutels))

@@ -43,6 +43,22 @@ STATUS_VERVALLEN = "vervallen"
 STATUSSEN = (STATUS_GELDEND, STATUS_INGETROKKEN, STATUS_VERVALLEN)
 
 
+# ── De index in de graaf (bwb-import --kennisgroepen; graph-qa leest hem) ─────────────────────────────────────────
+
+#: De eigen named graph van de index: nooit onder `urn:bwb:` en zonder `bwb:`-typen, zodat de FTS-connector, de
+#: similarity-index en de provenance van de wet hem niet zien; de graafwacht van de wet telt hem niet mee.
+GRAAF = "urn:wa:graph:kennisgroepen"
+#: Het vocabulaire van de index. Geen prefix-relatie met `urn:bwb:` (zie `rdf_vocab.DEFAULT_ONTOLOGY_IRI`).
+NS = "urn:wa-kg-ns:"
+#: Een publicatie heet in de graaf naar haar WordPress-id: stabiel en uniek, ook voor een titel zonder kenmerk. Bewust
+#: zonder `KG:` erin, anders herkent `extern` de IRI als een kenmerk.
+SUBJECT = "urn:wa:kennisgroepen:wp:"
+
+
+def subject_iri(wp_id: int) -> str:
+    return f"{SUBJECT}{int(wp_id)}"
+
+
 # ── URL's ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 def lijst_url(pagina: int = 1, *, per_pagina: int = PER_PAGINA, gewijzigd_na: str | None = None,
@@ -330,7 +346,10 @@ def verwijzingen(rijen: list[Rij], eigen_id: str | None = None) -> list[Verwijzi
     def zet(v: Verwijzing) -> None:
         if v.soort == "standpunt" and v.doel == eigen_id:
             return
-        uit.setdefault((v.soort, v.doel), v)
+        # Een bepaling is één verwijzing, of ze nu als link (met hoofdstuk en afdeling in de jci) of in de tekst staat.
+        sleutel = (v.soort, v.bwb_id, dict(v.delen).get("artikel", ""), dict(v.delen).get("lid", "")) \
+            if v.soort == "bepaling" else (v.soort, v.doel)
+        uit.setdefault(sleutel, v)
 
     for r in rijen:
         for link in r.links:
@@ -351,7 +370,67 @@ def verwijzingen(rijen: list[Rij], eigen_id: str | None = None) -> list[Verwijzi
     for r in rijen:
         for vp in externe_verwijzingen(r.tekst):
             zet(Verwijzing(vp.brontype, vp.id, "tekst", r.nr))
+        for bwb, artikel, lid, _ in bepalingen_in_tekst(r.tekst):
+            delen = (("artikel", artikel),) + ((("lid", lid),) if lid else ())
+            zet(Verwijzing("bepaling", f"jci1.3:c:{bwb}" + "".join(f"&{k}={v}" for k, v in delen), "tekst", r.nr,
+                           bwb_id=bwb, delen=delen))
     return list(uit.values())
+
+
+#: Namen van fiscale regelingen zoals standpunten ze schrijven, met hun BWB-id: zo koppelt de index een artikel dat
+#: alleen in de lopende tekst staat ("artikel 10, eerste lid, Wet BPM 1992") aan zijn regeling. Elk paar is op 13 nov
+#: 2026 getoetst bij de BWB-zoekdienst (`overheidbwb.afkorting` of de exacte titel); een naam die daar niet eenduidig
+#: was, staat er niet in. Liever een gemiste koppeling dan een verkeerde: wat hier niet staat, koppelt alleen via een link.
+FISCALE_REGELINGEN: dict[str, str] = {
+    "Wet IB 2001": "BWBR0011353", "Wet inkomstenbelasting 2001": "BWBR0011353",
+    "Wet Vpb 1969": "BWBR0002672", "Wet op de vennootschapsbelasting 1969": "BWBR0002672",
+    "Wet LB 1964": "BWBR0002471", "Wet op de loonbelasting 1964": "BWBR0002471",
+    "Wet DB 1965": "BWBR0002515", "Wet op de dividendbelasting 1965": "BWBR0002515",
+    "Wet OB 1968": "BWBR0002629", "Wet op de omzetbelasting 1968": "BWBR0002629",
+    "Wet BPM 1992": "BWBR0005806", "Wet op de belasting van personenauto's en motorrijwielen 1992": "BWBR0005806",
+    "Wet BB 2021": "BWBR0042952", "Wet bronbelasting 2021": "BWBR0042952",
+    "Wet MRB 1994": "BWBR0006324", "Wet op de motorrijtuigenbelasting 1994": "BWBR0006324",
+    "SW 1956": "BWBR0002226", "Successiewet 1956": "BWBR0002226",
+    "WBR": "BWBR0002740", "Wet op belastingen van rechtsverkeer": "BWBR0002740",
+    "URLB 2011": "BWBR0028236", "Uitvoeringsregeling loonbelasting 2011": "BWBR0028236",
+    "UBLB 1965": "BWBR0002489", "Uitvoeringsbesluit loonbelasting 1965": "BWBR0002489",
+    "Uitvoeringsregeling inkomstenbelasting 2001": "BWBR0012031",
+    "Uitvoeringsbesluit inkomstenbelasting 2001": "BWBR0012066",
+    "Uitvoeringsbesluit omzetbelasting 1968": "BWBR0002633",
+    "Uitvoeringsregeling Algemene wet inzake rijksbelastingen 1994": "BWBR0006736",
+    "Uitvoeringsregeling belasting van personenauto's en motorrijwielen 1992": "BWBR0005813",
+    "Wet minimumbelasting 2024": "BWBR0049111",
+    "Wbm": "BWBR0007168", "Wet belastingen op milieugrondslag": "BWBR0007168",
+    "Iw 1990": "BWBR0004770", "Invorderingswet 1990": "BWBR0004770",
+    "Uitvoeringsregeling Invorderingswet 1990": "BWBR0004766", "Leidraad Invordering 2008": "BWBR0024096",
+    "AWR": "BWBR0002320", "Algemene wet inzake rijksbelastingen": "BWBR0002320",
+    "Awb": "BWBR0005537", "Algemene wet bestuursrecht": "BWBR0005537",
+    "Awir": "BWBR0018472", "Algemene wet inkomensafhankelijke regelingen": "BWBR0018472",
+}
+_ORDINAAL = {w: i for i, w in enumerate(
+    ("eerste tweede derde vierde vijfde zesde zevende achtste negende tiende elfde twaalfde dertiende veertiende "
+     "vijftiende zestiende zeventiende achttiende negentiende twintigste").split(), start=1)}
+_NAMEN = "|".join(re.escape(n).replace("\\'", "['’]").replace("'", "['’]")
+                  for n in sorted(FISCALE_REGELINGEN, key=len, reverse=True))
+_NAAM_BWB = {n.lower().replace("’", "'"): b for n, b in FISCALE_REGELINGEN.items()}
+_BEPALING_RE = re.compile(
+    r"\bart(?:ikel|\.)\s+(\d+[a-z]*(?:\.\d+[a-z]*)*)"
+    r"(?:,?\s+(" + "|".join(_ORDINAAL) + r")\s+lid)?"
+    r"(?:,?\s+(?:aanhef\s+en\s+)?onderdeel\s+[a-z0-9°]+(?:,?\s+onder\s+\d+°?)?)?"
+    r",?\s+(?:van\s+)?(?:de\s+|het\s+)?(" + _NAMEN + r")(?![\w])", re.I)
+
+
+def bepalingen_in_tekst(tekst: str) -> list[tuple[str, str, str, int]]:
+    """(bwb_id, artikel, lid, plek) van elk artikel dat de tekst bij een bekende regelingnaam noemt; het lid is leeg
+    als de tekst het niet noemt. Een artikel zonder naam erachter koppelt niet: welke regeling bedoeld is, is dan een
+    gok."""
+    uit = []
+    for m in _BEPALING_RE.finditer(tekst or ""):
+        bwb = _NAAM_BWB.get(re.sub(r"\s+", " ", m.group(3)).lower().replace("’", "'"))
+        if bwb:
+            lid = str(_ORDINAAL[m.group(2).lower()]) if m.group(2) else ""
+            uit.append((bwb, m.group(1), lid, m.start()))
+    return uit
 
 
 _INTREKKING_RE = re.compile(r"\b(ingetrokken|intrekking|vervalt|vervallen|komt te vervallen|vervangt|vervangen)\b", re.I)
