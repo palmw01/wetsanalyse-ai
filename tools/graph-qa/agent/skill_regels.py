@@ -1,6 +1,7 @@
 """Regels uit een methode-skill (ADR-014 §7, S6), achter de proefvlag `SKILL_REGELS`.
 
-Een skill mag regelsets meebrengen onder `regels/jas/` en `regels/begrippen/`. De generator bundelt ze in het
+De skill wetsanalyse mag regelsets meebrengen onder `regels/jas/` en `regels/begrippen/`; een andere methode niet, want
+beide ketens zijn van wetsanalyse (plan methodes scheiden, S3). De generator bundelt ze in het
 methodepakket (`PAKKET["regels"]`), want het image bevat de skillmap niet. Hij toetst ook het id-voorvoegsel, de vier
 testsoorten en dat de bewijscode al een verklaring heeft.
 

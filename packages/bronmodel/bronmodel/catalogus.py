@@ -54,6 +54,10 @@ CONCEPT: dict[str, str] = {
 }
 
 
+#: Een onderdeel dat van geen methode is: de graaftools, de bronconnectors, de controles.
+NEUTRAAL = "neutraal"
+
+
 def concept_van(soort: str, model: str) -> str:
     """Het concept volgt het gedrag: een taak onder de supervisor zonder enige modelstap is een vaste keten, geen
     agent (de annotatie-agent annoteert een werkgebied als reeks, zonder model)."""
@@ -135,6 +139,10 @@ class Onderdeel:
     #: een skill of een agentprofiel. Een versie in de werkplaats met dezelfde hash is *actief* (ADR-016 §B1). Iets anders
     #: dan `versie`: commentaar in een bestand verandert het gedrag niet, de bronbestanden wel.
     bronhash: str = ""
+    #: Van welke methode dit onderdeel is: de naam van één methode-skill, of `NEUTRAAL`. De annotatieketen, de
+    #: annotatie-UI en de JAS-tools zijn van wetsanalyse; een andere methode krijgt er geen toegang toe (ADR-014 §5,
+    #: plan methodes scheiden). Leeg bestaat alleen onderweg: de catalogus vult het voor elk onderdeel in.
+    methode: str = ""
     #: Acties, routes of tools die het kiezen (contractpunt 2).
     ingang: tuple[str, ...] = ()
     #: Benodigde context en de bovengrens ervan (contractpunt 3).

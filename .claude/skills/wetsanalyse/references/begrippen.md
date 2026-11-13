@@ -17,3 +17,55 @@ Lees een begrip in zijn context: de andere leden van het artikel, een definitie 
 Voorbeelden toetsen een definitie. Ze komen pas als er een overgenomen definitie is, en een grensgeval of tegenvoorbeeld hoort erbij. Elk voorbeeld toetst één kenmerk van de definitie en zegt of het het begrip toetst of iets anders (een scenario, een voorwaarde, een rechtsgevolg); twee voorbeelden die alleen in getallen of namen verschillen, toetsen hetzelfde. Een betekenisverschil leg je uit met de context van beide begrippen, niet met het woord alleen; waar de grens ligt, hoort in de toelichting.
 Relaties houden hun type – kwalificatie, inclusie, uitsluiting, soort van, verwant – en hun richting. Een begrip met een andere betekenis wordt een opvolger, het oude wordt vervangen. Het begrippenkader volgt NL-SBB.
 Lex stelt voor; de analist neemt over, past aan of wijst af, en alleen de analist accordeert.
+
+## Naam en omschrijving: de richtlijnen van de methode
+
+Grondslag: M01 h.3 stap 3, onderdeel a (begrippen maken met eigenschappen); P15. In eigen woorden.
+
+Voor elke geclassificeerde formulering maakt de methode een begrip dat haar betekenis zo precies mogelijk weergeeft,
+en dat begrip gebruik je opnieuw voor elke formulering met dezelfde betekenis. Dat levert twee toetsen op:
+
+- **Eén formulering, meer betekenissen** (een homoniem): maak meer begrippen. Hetzelfde woord kan in drie leden iets
+  anders aanduiden doordat er telkens een berekening bij komt.
+- **Meer formuleringen, één betekenis** (synoniemen): maak één begrip. Of twee termen hetzelfde betekenen, weet je pas
+  na het lezen van de andere bepalingen; vraag het een jurist als de tekst het niet beslist.
+
+**De naam**
+
+- Blijf zo dicht mogelijk bij de woorden van de wet.
+- Voeg je een aspect toe dat de betekenis verandert (uit een ander lid of een andere regeling), dan is het een nieuw
+  begrip met een eigen naam.
+- Begin met het zelfstandig naamwoord dat de kern uitdrukt. Gebruik lidwoorden en voorzetsels alleen waar de naam
+  anders onleesbaar wordt.
+- Geen ontkenning in de naam: in een regel levert dat later een dubbele ontkenning op.
+- Zo kort als kan. Schrijf eerst volledig op wat het begrip moet uitdrukken, en kort dan in.
+- Dezelfde opbouw voor gelijksoortige begrippen: één basisterm, aangevuld met wat het onderscheidt.
+- Een afleiding krijgt een eigen begrip, met een werkwoord vooraan ("bepalen …").
+- Zo min mogelijk afkortingen.
+
+**De omschrijving**
+
+- Zeg wat het begrip is (de wezenlijke kenmerken) en waarvoor het dient (het doel), waar de tekst dat zegt.
+- De omschrijving moet het begrip in een zin kunnen vervangen. Lees een zin uit de wet met de omschrijving op de plek
+  van de term: klopt de zin nog?
+- Gebruik de naam van het begrip niet in zijn eigen omschrijving. Gebruik wel begrippen die al zijn vastgelegd: dan
+  werkt een wijziging daarvan vanzelf door.
+- Geen berekening of redenering in de omschrijving. Die hoort bij de afleidingsregel.
+
+Twee van deze regels toetst Lex in code (een kringdefinitie, een rekenregel in de definitie); de andere zijn
+aandachtspunten voor wie het begrip beoordeelt.
+
+## De vorm van een voorbeeld
+
+Grondslag: M01 h.3 stap 3, onderdeel a, en stap 4, onderdeel a (valideren met concrete voorbeelden).
+
+Een voorbeeld beschrijft één concreet geval, in een vaste vorm: eerst het begrip, dan het rechtssubject met een
+verzonnen naam, dan het tijdvak of tijdstip, dan de waarde.
+
+> *De betalingstermijn* van *belastingschuldige* A. de Vries voor de *belastingaanslag* met dagtekening 3 maart 2025
+> eindigt op 14 april 2025.
+
+Zo'n zin laat meteen zien met welke andere begrippen het begrip samenhangt (hier: de belastingschuldige en de
+belastingaanslag). Neem er een grensgeval bij: een geval waarover je kunt twisten of het onder het begrip valt. Valt het
+erbuiten terwijl de omschrijving het toelaat, dan is de omschrijving niet scherp genoeg; pas haar aan en toets
+opnieuw. Een verzonnen naam en een verzonnen bedrag zijn herkenbaar als voorbeeld; het is nooit bronbewijs.

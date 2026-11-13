@@ -1,7 +1,7 @@
 # Fragmentgrenzen en juridische functies
 
-Grondslag: [bronnen en beslisregister](bronnen.md) — P04–P05, P10.
-Projectregels versie 2.1. Gebruik met de [markeringslijst](annotatieprotocol.md), het
+Grondslag: [bronnen en beslisregister](bronnen.md) — M02, P04–P05, P10.
+Projectregels versie 2.1. Gebruik met de [markeringslijst](markeringslijst.md), het
 [analyseprotocol](analyseprotocol.md) en de [klassenreferentie](jas-klassen-referentie.md).
 
 ## Drie verschillende eenheden
@@ -11,6 +11,20 @@ Projectregels versie 2.1. Gebruik met de [markeringslijst](annotatieprotocol.md)
 - Het **bronfragment** is een letterlijk, aaneengesloten tekstbereik met vindplaats.
 - Het **semantische element** verbindt eventueel meerdere bronfragmenten in het dossier.
   Plak verspreide woorden nooit samen tot een zogenaamd letterlijk citaat.
+
+## Wat je markeert: wat aan een centrale klasse hangt
+
+De analyse loopt niet woord voor woord, maar per centrale klasse: een rechtsbetrekking, rechtsfeit, afleidingsregel of
+voorwaarde, met alles wat eraan hangt (M02 §3.4 activiteit 2, deelactiviteit c). Dat geeft een criterium voor wat je
+markeert:
+
+- een markering **is** een centrale klasse, of **hangt aan** een centrale klasse (de partij, het voorwerp, een
+  voorwaarde, een waarde, een tijd of plaats);
+- een formulering die nergens aan hangt, markeer je niet. Zij krijgt een regel in de dekking: waarom niet.
+
+Begin waar het element **ontstaat of wordt afgeleid**: de bepaling die het recht toekent, de rekenregel die het bedrag
+bepaalt. Herken daarna dezelfde betekenis op andere plekken (M02 §3.4, deelactiviteit a). Zo voorkom je losse
+markeringen zonder verband, en markeringen van woorden die alleen de zin dragen.
 
 ## Grenzen kiezen
 
@@ -28,6 +42,21 @@ beperkende bepalingen mee als die de referent bepalen; geen mechanische woordlim
 | Operator | Bewerking met in het dossier expliciet bereik en operanden. |
 | Tijd/plaats | Volledige bepaling inclusief startgebeurtenis, duur of territoriale beperking. |
 | Definitie/delegatie | Dragende formulering inclusief bereik en gedelegeerd onderwerp. |
+
+De Handleiding geeft daarbij vaste regels (M02 §3.4 activiteit 2, deelactiviteit a; in eigen woorden):
+
+- **Het lidwoord gaat mee.** Dan kun je achteraf nalopen of alle tekst behandeld is.
+- **Een verwijzing in de formulering gaat mee.** "Het overeenkomstig het eerste lid berekende bedrag" is één
+  markering: de verwijzing bepaalt mee wat er bedoeld is.
+- **Een variabele markeer je zonder werkwoord en zonder voorwaarden.** Alleen de naamwoordgroep die de grootheid
+  aanduidt, met haar lidwoord.
+- **Een afleidingsregel markeer je met werkwoord en voorwaarden**, en met lidwoord, verwijzing en het zinseinde.
+- **Een voorwaarde is bij voorkeur de hele zin of het hele zinsdeel** waarin zij staat.
+- **De grens volgt het begrip dat je wilt vastleggen.** Twijfel je over de grens, maak dan een concreet voorbeeld van
+  wat de markering moet aanduiden: dat laat zien wat erbij hoort en wat niet.
+
+Omdat de klasse de grens bepaalt, mogen markeringen dezelfde woorden delen: in een voorwaarde staat altijd een
+variabele (M02 §3.4, deelactiviteit b). Zie *Overlap en alternatieven*.
 
 Interpunctie volgt de betekenisgrens; neem het zinseinde mee bij een volledig geciteerde
 zin. Normaliseer nooit de opgeslagen bron. Bij herhaald identiek fragment onderscheid je
@@ -54,8 +83,8 @@ kennisgeving' kan in context verwijzen naar een handeling of een bericht. Erf ee
 niet automatisch van een woord of grammaticale voorganger. Synoniemen en homoniemen
 vereisen controle van definitie, bereik en context.
 
-Een verzwegen partij wordt niet automatisch 'de Staat'. Noteer een impliciete rol met
-onderbouwing of 'onbekend'. Een grammaticaal onderwerp is niet automatisch rechtssubject;
+Een verzwegen partij wordt niet automatisch 'de Staat'. Benoem haar met de bepaling waaruit zij volgt, of als
+'onbekend' ([relaties](relaties.md), *De partij die de tekst niet noemt*); zij krijgt geen tekstanker. Een grammaticaal onderwerp is niet automatisch rechtssubject;
 een persoon genoemd in een kwalificatie kan een andere juridische functie hebben.
 
 ## Opsommingen en getallen

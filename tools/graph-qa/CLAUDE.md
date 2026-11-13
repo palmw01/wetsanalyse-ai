@@ -103,6 +103,19 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   er niet door. JSON en geen Python, omdat het alleen tekst is. Het wordt pas gelezen als iemand ernaar vraagt.
   **Elke wijziging aan een skill of een profiel, ook in commentaar of een eval, verandert dit bestand**: draai de
   generator, anders faalt `--check`. `tests/test_bronpakket.py`.
+- **Elk onderdeel van de catalogus is van één methode, of neutraal** (`Onderdeel.methode`, `catalogus._methode`; plan
+  methodes scheiden, S2). Een methode is van zichzelf en een rol van zijn skill; de annotatieketen, de begrippen, het
+  werkgebied met de bronselectie en hun tools en sjablonen staan in `catalogus.VAN_WETSANALYSE`; een agentprofiel of agent
+  erft van zijn rol en een route van wat ze kiest; de graaftools, de bronconnectors en de controles zijn `neutraal`. Voeg je
+  een onderdeel toe dat alleen bij de JAS-annotatie of de begrippen hoort, zet het dan in die tabel:
+  `tests/test_catalogus_methode.py` houdt een eigen lijst aan, en eist dat elke annotatieleestool en elke JAS-tool van
+  wetsanalyse is.
+- **De grenzen tussen methodes** (plan methodes scheiden, S3). Twee regels in `bronmodel`, die graph-qa bij het laden en
+  de werkplaats bij poort 1 toepassen: een rol krijgt secties van één methode, behalve `agent`
+  (`skill.toets_samen`, `GEDEELDE_ROLLEN`), en een profiel waarvan de rol geen sectie van wetsanalyse draagt, krijgt geen
+  annotatieleestool, begrippenleestool of JAS-tool (`agentprofiel.toets` en `toegestane_tools`, met
+  `Grenzen.methode_tools` en `rol_methodes` uit `profielen.grenzen()`). `profielen.TOOLS_VAN_WETSANALYSE` is gelijk aan
+  de tools die de catalogus van wetsanalyse noemt. `tests/test_methodegrenzen.py`.
 - **De melding van het image** (`agent/imagemelding.py`, ADR-016 §B1). Bij het starten zegt graph-qa de api wat er in
   zijn image zit (`PUT /v1/werkplaats/image`): eerst alleen de hash van het bronpakket en de commit (`Settings.revisie`,
   env `LEX_REVISIE`, een build-arg van de publish-workflow), en het hele pakket alleen als de api die hash niet kent.
@@ -1012,6 +1025,18 @@ wordt **per beurt gereset** in `answer_stream`, net als de andere annotatievelde
 **Een ONDERWERP in plaats van een bepaling** ("annoteer alles over aansprakelijkheid van de bestuurder")
 levert een keuze, geen annotatie: de ophaal-agent geeft `{"kandidaten": [...]}` terug, `annoteer_node`
 emit één `kandidaten`-event en stopt. Welke bepaling de werkvoorraad in gaat, kiest de jurist.
+
+**Annoteren gaat alleen volgens het JAS** (`agent/methodekeuze.py`, plan methodes scheiden, S1). De annotatieketen, de
+annotatie-UI en de JAS-tools zijn van wetsanalyse. Vraagt een verzoek om annoteren, markeren of analyseren volgens een
+methode die aan geen rol gekoppeld is ("annoteer artikel 9 volgens JRM", "werk dit uit als scenario met aktes"), dan
+antwoordt `supervisie._kies` met een vaste zin en start er niets: geen JAS-annotatie onder een andere naam en geen
+model, ook niet met een aangewezen bepaling, en voor beide agentvormen. *Gekoppeld* leest de regel uit het
+methodepakket (een sectie van de skill hoort bij een rol), dus hij vervalt vanzelf als wetsuitvoering een rol krijgt.
+Een vraag óver de methode ("wat zegt het JRM over een rechtsfeit?") loopt gewoon door: de regel vraagt een werkwoord
+dat om werk vraagt en slaat een vraag met een vraagwoord over. De trefwoorden per methode staan in `TREFWOORDEN`;
+`tests/test_methodekeuze.py` eist een rij voor elke methode-skill behalve wetsanalyse, en dat geen vraag uit de
+routerings-, gespreks- en kwaliteitssets in de regel valt. Bekende grens: een vervolgvraag zonder werkwoord ("en volgens
+JRM?") herkent de regel niet; die leest het model.
 
 **Eén artikel per annotatievraag.** Noemt de vraag meer artikelen, dan wijst `aanwijzing.lees_aanwijzing`
 (deterministisch) haar af vóór de ophaal-agent draait; de ophaal-JSON `{"meerdere": [...]}` en

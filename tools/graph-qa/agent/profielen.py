@@ -21,7 +21,18 @@ from bronmodel.connectors import CONNECTORS
 from .agentprofielen import REGISTER
 from .methodepakket import PAKKET
 from .sjablonen import SJABLONEN
-from .tools import CONNECTOR_TOOLS, JAS_TOOL_NAMEN, TOOLS
+from .tools import ANNOTATIE_TOOL_NAMEN, BEGRIP_TOOL_NAMEN, CONNECTOR_TOOLS, JAS_TOOL_NAMEN, TOOLS
+
+
+#: De tools die alleen van wetsanalyse zijn: de annotatieleestools, de begrippenleestools en de JAS-tools. Een profiel
+#: waarvan de rol geen sectie van wetsanalyse draagt, krijgt ze niet (plan methodes scheiden, S3). Gelijk aan de tools
+#: die de catalogus van wetsanalyse noemt; `tests/test_methodegrenzen.py` bewaakt dat.
+TOOLS_VAN_WETSANALYSE: frozenset[str] = frozenset(ANNOTATIE_TOOL_NAMEN) | frozenset(BEGRIP_TOOL_NAMEN) | frozenset(JAS_TOOL_NAMEN)
+
+
+def rol_methodes(pakket: dict = PAKKET) -> dict[str, frozenset[str]]:
+    """Per methoderol de methode-skills waarvan hij secties draagt, uit het methodepakket."""
+    return {rol: frozenset(pakket["secties"][s]["skill"] for s in secties) for rol, secties in pakket["rollen"].items()}
 
 
 def grenzen() -> Grenzen:
@@ -33,6 +44,8 @@ def grenzen() -> Grenzen:
         connectors=frozenset(CONNECTORS),
         sjablonen=frozenset(SJABLONEN),
         methoderollen=frozenset(PAKKET["rollen"]),
+        methode_tools={"wetsanalyse": TOOLS_VAN_WETSANALYSE},
+        rol_methodes=rol_methodes(),
     )
 
 

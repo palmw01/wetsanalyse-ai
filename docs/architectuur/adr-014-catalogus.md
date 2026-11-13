@@ -213,8 +213,14 @@ de proefvlag `SKILL_REGELS`** (besluit van de gebruiker, 12 nov 2026): standaard
 poort-guard, tot een meting beslist. Zo'n regel verandert wat Lex annoteert. Een skillregel hergebruikt een bewijscode die
 al een verklaring heeft, en draagt het voorvoegsel `jas.<skill>.` of `begrip.<skill>.` en de vier testsoorten. Met de vlag
 uit is de uitkomst bitgelijk. Een nieuwe rol of agent vraagt wel code
-en een meting (§5, trap 2). Een nep-skill in de test bewijst het, zoals de nep-connector dat voor connectors doet: een
-sectie bij `duiding` en een detectorregel komen mee zonder één regel code buiten de map.
+en een meting (§5, trap 2).
+
+**Sinds de scheiding van de methodes** (plan `plan-methodes-scheiden.md`, S3, 13 nov 2026) geldt daarbij: een rol
+draagt secties van één methode, behalve de rol `agent` van de centrale agent, dus een andere methode vult geen rol van
+wetsanalyse aan. En de annotatieketen en de begrippenketen zijn van wetsanalyse, dus regels voor die ketens komen alleen
+uit de skill wetsanalyse. Een nep-skill in de test bewijst het, zoals de nep-connector dat voor connectors doet: een
+methode zonder rollen komt zonder code in het pakket en de catalogus en verandert geen prompt; een sectie bij `duiding`
+en regels voor de twee ketens uit een andere methode worden geweigerd.
 
 ## Aansluiting op Claude Code
 

@@ -41,7 +41,7 @@ Grondslag: M01, M04, P03, P06.
 Zoek de brondefinitie en bepaal of zij geldt voor deze wet, dit hoofdstuk of een specifiek gebruik. Neem de aanhef en noodzakelijke onderdelen mee. Onderscheid expliciete definitie, verwijzing naar een definitie elders en eigen interpretatie. Een thesaurusterm is geen wettelijke definitie. Volg relevante definitieverwijzingen voor zover je tools dit toelaten; meld ontbrekende schakels. Een definitie hoeft niet in artikel 1 of 2 te staan: bepaal de vindplaats uit bronresultaten. Behoud ficties, uitzonderingen en beperkende formuleringen.
 <!-- methode:definitie:end -->
 
-## Grammatica, interpretatie en JRM 2
+## Grammatica en interpretatie
 
 Grondslag: M01, M06, M07, P02, P03, P07, P08.
 

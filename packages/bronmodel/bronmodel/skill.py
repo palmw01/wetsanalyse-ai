@@ -16,7 +16,8 @@ hem van schijf (`lees_map`), de werkplaats uit een opgeslagen versie.
 - `agentrollen.json` wijst de methodesecties aan en verdeelt ze over de rollen. Een skill vult alleen rollen die
   bestaan: een nieuwe rol vraagt code en een meting (ADR-014 §5);
 - elke sectie noemt broncodes uit het bronregister van de skill (`references/bronnen.md`);
-- sectie-id's en broncodes zijn uniek over alle skills heen (`toets_samen`);
+- sectie-id's en broncodes zijn uniek over alle skills heen, en een rol krijgt secties van één methode, behalve de rol
+  van de centrale agent (`toets_samen`, `GEDEELDE_ROLLEN`);
 - een skill geeft geen tools (`allowed-tools`): wat mag, zegt het agentprofiel (ADR-016 §A2);
 - een grens op de omvang: een skill gaat als tekst in de context van een model.
 
@@ -55,6 +56,10 @@ BASIS = "wetsanalyse"
 #: annotatieketen (ADR-001) gebruikt geen generatieve prompts met methodetekst. `agent` is de generieke rol van de
 #: centrale agent (ADR-016 §A2). Eén lijst voor de generator van het methodepakket en voor de werkplaats in de api.
 ROLLEN = frozenset({"supervisor", "retrieval", "definitie", "duiding", "algemeen", "deelvragen", "agent"})
+#: De rollen die secties van meer dan één methode mogen dragen: alleen de centrale agent. Elke andere rol krijgt
+#: secties van één methode, zodat een tweede skill zich niet aan een rol van wetsanalyse hangt (plan methodes scheiden,
+#: S3). Een andere methode krijgt eigen rollen en profielen.
+GEDEELDE_ROLLEN = frozenset({"agent"})
 
 #: De regels van Lex.
 LEX_VELDEN = frozenset({"soort", "label", "herkomst", "licentie", "letterlijk"})
@@ -302,12 +307,18 @@ def valideer(naam: str, bestanden: Mapping[str, str], *, rollen: Collection[str]
 
 
 def toets_samen(skills: list[Skill]) -> list[Bevinding]:
-    """Wat alleen over de skills heen te toetsen is: een sectie-id en een broncode zijn van één skill. De eerste skill
-    in de lijst houdt hem; de bevinding valt bij de latere."""
+    """Wat alleen over de skills heen te toetsen is: een sectie-id en een broncode zijn van één skill, en een rol krijgt
+    secties van één methode (behalve `GEDEELDE_ROLLEN`). De eerste skill in de lijst houdt hem; de bevinding valt bij de
+    latere."""
     uit = []
     secties: dict[str, str] = {}
     codes: dict[str, str] = {}
+    rollen: dict[str, str] = {}
     for skill in skills:
+        for rol in sorted(r for r, ids in skill.rollen.items() if ids and r not in GEDEELDE_ROLLEN):
+            if rollen.setdefault(rol, skill.naam) != skill.naam:
+                uit.append(Bevinding("rol", f"{skill.naam}: de rol {rol} draagt al de methode {rollen[rol]}; een rol "
+                                            "krijgt secties van één methode", ROLBESTAND))
         if dubbel := sorted(k for k in skill.secties if secties.get(k, skill.naam) != skill.naam):
             uit.append(Bevinding("sectie", f"{skill.naam}: sectie-id al in gebruik: {dubbel}", ROLBESTAND))
         for c in sorted({c for s in skill.secties.values() for c in s["bronnen"]}):

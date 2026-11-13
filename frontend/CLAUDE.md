@@ -1484,7 +1484,8 @@ Een leesingang in de sidebar (*Werkwijze*): wat Lex kan, uit graph-qa `GET /v1/c
 aanbiedt. De balk is `OverzichtBalk` zonder *Door mij bewerkt* (de props zijn optioneel); concept en zoekterm staan in de
 URL. De pagina van een onderdeel (`/werkwijze/<soort>/<naam>`, `OnderdeelPagina`) toont het contract (ADR-010), de stappen
 van een workflow, de inhoud per soort (methodetekst, regels met hun voorbeeldzinnen, de beschrijving van een bron), de
-herkomst, *Leunt op* / *Gebruikt door* en waar het in de repo staat. **De catalogus is alleen lezen**: dit is geen
+herkomst, *Leunt op* / *Gebruikt door* en waar het in de repo staat. Bij *Hoe het werkt* staat van welke methode het
+onderdeel is (`methodeLabel`: de naam van de skill, of "Geen: voor elke methode"; plan methodes scheiden, S2). **De catalogus is alleen lezen**: dit is geen
 ontwikkelhulpmiddel maar uitleg voor de jurist hoe een voorstel ontstaat; drift en testuitslagen horen er niet. Wat Lex
 gebruikt, verandert alleen via de repo. Zelf iets maken of aanpassen gaat in de werkplaats (hieronder), als concept.
 De sectie-editor van C7 (*Wijziging voorstellen* op een methodesectie, een concept-PR) is uit de frontend (B2-4): de

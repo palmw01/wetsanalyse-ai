@@ -8,11 +8,11 @@ Een concept is niet goedgekeurd omdat een model het zelf groen noemt. Beoordeel 
 | Bronintegriteit | Citaten, vindplaatsen en versie kloppen; geen verzonnen passages. |
 | Grammatica | Materiële scope, negatie, antecedenten en opsommingen correct verklaard. |
 | JAS | Klassen en grenzen dragen de functie; relevante overlap en alternatieven verantwoord. |
-| Samenhang | Partijen, voorwaarden, feiten en gevolgen consistent verbonden waar van toepassing. |
+| Samenhang | Partijen, voorwaarden, rechtsfeiten en de rechtsbetrekkingen waarop ze werken consistent verbonden waar van toepassing. |
 | Interpretatie | Materiële keuzes onderbouwd, bronstatus onderscheiden, alternatieven zichtbaar. |
 | Dekking | Iedere normeenheid verantwoord; geen verborgen uitzondering of contextlacune. |
-| Scenario's | Verwachte uitkomsten volgen uit bronnen; grens en onbekende invoer gecontroleerd. |
-| Reviewbaarheid | Open vragen hebben impact en vervolgstap; menselijke besluiten blijven traceerbaar. |
+| Praktijkvoorbeelden | Verwachte uitkomsten volgen uit bronnen; een normaal geval en een grensgeval getoetst; onbekende invoer benoemd. |
+| Reviewbaarheid | Open vragen hebben impact en vervolgstap; ontbrekend beleid is als zodanig gemeld; menselijke besluiten blijven traceerbaar. |
 
 Gebruik per aspect: voldoende / tekort / niet beoordeelbaar / niet van toepassing (met reden).
 Een verzonnen bron, betekenisveranderende omissie of onbewezen conclusie als zekerheid

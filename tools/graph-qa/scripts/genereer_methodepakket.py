@@ -27,13 +27,17 @@ REGELKETENS = {
 TESTSOORTEN = ('positief', 'negatief', 'rand', 'overlap')
 
 
-def _regels(skill: Path) -> dict[str, dict[str, list]]:
+def _regels(skill: Path, *, basis: bool = True) -> dict[str, dict[str, list]]:
     """De regelsets onder `regels/<keten>/<familie>.yaml`, per keten op `<skill>.<familie>`. De vorm toetst de lader in
     graph-qa (`Regel.van`, `patronen._regel`); hier de grenzen die een skill raken: het id-voorvoegsel, de vier
-    testsoorten en een bewijscode die al een verklaring heeft."""
+    testsoorten en een bewijscode die al een verklaring heeft. De annotatieketen en de begrippenketen zijn van
+    wetsanalyse (plan methodes scheiden, S3): alleen de basis-skill mag er regels voor meebrengen."""
     uit: dict[str, dict[str, list]] = {}
     if not (skill / 'regels').exists():
         return uit
+    if not basis:
+        raise ValueError(f'{skill.name}: regels voor de annotatieketen of de begrippenketen komen alleen uit de skill '
+                         f'{BASIS}; een andere methode krijgt geen toegang tot die ketens')
     for map_ in sorted((skill / 'regels').iterdir()):
         if map_.name not in REGELKETENS:
             raise ValueError(f'{skill.name}: regels/{map_.name} is geen keten ({sorted(REGELKETENS)})')
@@ -96,7 +100,7 @@ def compileer(skill: Path = SKILL, extra: list[Path] | None = None) -> dict:
         voorvoegsel = '' if pad is skill else f'{s.naam}/'
         bronbestanden |= {f'{voorvoegsel}{p}': sha((pad / p).read_text()) for p in sorted(bestanden)}
         skills[s.naam] = {'versie': s.versie, 'lex': s.lex, 'map': f'.claude/skills/{s.naam}'}
-        for keten, sets in _regels(pad).items():
+        for keten, sets in _regels(pad, basis=pad is skill).items():
             regels.setdefault(keten, {}).update(sets)
     pakket = {'versie': basis.versie, 'lex': basis.lex, 'rollen': rollen, 'secties': secties,
               'bronbestanden': bronbestanden, 'skills': skills, 'regels': regels}
