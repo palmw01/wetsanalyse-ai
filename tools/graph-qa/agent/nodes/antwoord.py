@@ -861,14 +861,16 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
         # vervolgvraag de lijst met alles wat het gesprek ooit ophaalde.
         sources += hergebruikte_bronnen(state.get("bronregister") or [], state.get("answer", ""), sources)
         if b.settings.curate_sources:
-            sources = curate_sources(sources, state.get("answer", ""))
+            # De namen eerst: een regeling die het antwoord bij naam noemt, is aangehaald (K13, ronde 4). De namen staan
+            # in een cache per proces, dus de aanroep hieronder vraagt niets opnieuw.
+            sources = curate_sources(met_regelingnamen(b.graph, sources), state.get("answer", ""))
     if not state.get("overzicht"):
         # Een bron naast de wet alleen als ze gelezen en genoemd is; een zoekresultaat is geen bron (ADR-013).
         geciteerd = frozenset(b["id"] for b in (state.get("antwoord") or {}).get("blokken") or []
                               if b.get("soort") == "extern" and b.get("id"))
         sources = alleen_gelezen_extern(sources, controletrace(state), state.get("answer", ""),
                                         state.get("question", ""), geciteerd)
-    # Na het cureren: alleen de namen van regelingen die in de lijst blijven (één query per beurt).
+    # De namen van de regelingen in de lijst (één query per beurt; na het cureren al uit de cache).
     sources = met_regelingnamen(b.graph, sources)
     if not state.get("overzicht"):
         # In de overzichtsroute zijn de vindplaatsen van het overzicht het antwoord zelf.

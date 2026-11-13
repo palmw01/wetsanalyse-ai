@@ -343,3 +343,24 @@ def test_een_ander_woord_blijft_een_afwijking_ook_met_een_rechte_apostrof():
     rapport = check_grounding("Artikel 21: \"'s Rijks schatkist heeft een voorrecht op sommige goederen van de "
                               "belastingschuldige.\" BWBR0004770", BRON_21)
     assert rapport.niet_letterlijk and rapport.niveau == "ongegrond"
+
+
+# ── een regeling bij naam is aangehaald (ADR-016 ronde 4, K13) ─────────────────────────────────────────────────────
+
+def _met_naam(uri: str, bwb: str, naam: str, afk: list[str]) -> Source:
+    return Source(label=uri, uri=uri, bwb_id=bwb, regeling=naam, afkortingen=afk)
+
+
+def test_curate_houdt_een_regeling_die_het_antwoord_bij_naam_noemt():
+    iw = _met_naam("urn:bwb:BWBR0004770:artikel:33a:lid:3", "BWBR0004770", "Invorderingswet 1990", ["IW 1990"])
+    leidraad = _met_naam(LEIDRAAD, "BWBR0024096", "Leidraad Invordering 2008", ["Leidr. Inv."])
+    antwoord = ("Binnen de Invorderingswet 1990: artikel 33a, lid 3. "
+                "In de Leidraad Invordering 2008 (BWBR0024096): artikel 26.")
+    assert [s.uri for s in curate_sources([iw, leidraad], antwoord)] == [iw.uri, LEIDRAAD]
+
+
+def test_curate_laat_een_regeling_vallen_die_het_antwoord_niet_noemt():
+    awr = _met_naam("urn:bwb:BWBR0002320:artikel:1", "BWBR0002320", "Algemene wet inzake rijksbelastingen", ["AWR"])
+    leidraad = _met_naam(LEIDRAAD, "BWBR0024096", "Leidraad Invordering 2008", ["Leidr. Inv."])
+    antwoord = "In de Leidraad Invordering 2008 (BWBR0024096): artikel 26 noemt de awards niet."
+    assert [s.uri for s in curate_sources([awr, leidraad], antwoord)] == [LEIDRAAD]
