@@ -124,6 +124,27 @@ def artikel_in_trace(nummer: str, trace: Trace) -> str:
     return f"urn:bwb:{regelingen.pop()}:artikel:{nummer}" if len(regelingen) == 1 else ""
 
 
+#: Het label dat de importer een verwijzingsdoel geeft dat niet in de graaf staat (`bwb:doelLabel`, "art. 53 (BWBR0001860)").
+#: Een doel dat er wél in staat, draagt zijn eigen label, en dat wint in de verwijzingsquery's.
+_STOMP_LABEL = re.compile(r"art\.\s+\S+\s+\((BWB[RV]\d+)\)")
+_ARTIKEL_IRI = re.compile(r"urn:bwb:BWB[RV]\d+:artikel:[^:\s\"]+")
+
+
+def verwezen_buiten_graaf(trace: Trace) -> set[str]:
+    """De artikelen waar een opgehaalde bepaling naar verwijst en die de graaf niet heeft: een rij met `naar`, het label
+    dat de importer zo'n doel geeft en zonder `doelRegeling`. De verwijzing zelf is wat de graaf erover weet; de tekst kan
+    geen tool ophalen. Iw 24 verwijst zo naar de Faillissementswet en de Wet Vpb 1969 (ADR-016 ronde 4, E03: na de
+    weigering zocht het model die wetten op, drie modelrondes extra in beide vormen)."""
+    uit: set[str] = set()
+    for naam, tekst in trace:
+        for rij in _rijen_diep(None if naam in AFGELEIDE_TOOL_NAMEN else _data(tekst)):
+            naar, label = rij.get("naar"), rij.get("doelLabel")
+            if (isinstance(naar, str) and isinstance(label, str) and not rij.get("doelRegeling")
+                    and _STOMP_LABEL.fullmatch(label.strip()) and (m := _ARTIKEL_IRI.match(naar))):
+                uit.add(m.group(0))
+    return uit
+
+
 def volledige_tekst(iri: str, trace: Trace) -> str:
     return bron_rijen(trace).get(iri, {}).get("tekst", "")
 
