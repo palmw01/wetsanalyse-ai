@@ -14,6 +14,13 @@ from .models import Anker
 
 _WS = re.compile(r"\s+")
 
+#: Typografische tekens die het model als hun gewone vorm schrijft: de wet heeft "personenauto’s" en "’s Rijks", het
+#: model "personenauto's" en "'s Rijks" (Iw 9 lid 8 in de eval van 7 nov 2026; Iw 21 lid 1 in ronde 4 van de centrale
+#: agent, 13 nov 2026: een terecht citaat werd *ongegrond*). Eén teken voor één teken, dus een plek in de zoekvorm is
+#: dezelfde plek in de brontekst. De letterlijkheid vergelijkt in deze vorm; wat de jurist ziet, blijft de bron.
+TYPOGRAFISCH = str.maketrans({"’": "'", "‘": "'", "‚": "'", "‛": "'", "“": '"', "”": '"', "„": '"', "‟": '"',
+                              "–": "-", "—": "-", "‑": "-", "\u00a0": " "})
+
 # De offsets slaan op de *originele* brontekst (vóór normalisatie), zodat de UI exact het juiste
 # teken kan markeren. De hash is FNV-1a 32-bit – identiek aan `bronHash()` in
 # `frontend/lib/selectie.ts`, zodat de UI kan detecteren of de brontekst verschoven is na een
@@ -57,11 +64,12 @@ def _normaliseer(s: str) -> str:
 def komt_letterlijk_voor(corpus: str, fragment: str) -> bool:
     """Staat dit fragment letterlijk in de opgehaalde tekst?
 
-    Witruimte-ongevoelig, met dezelfde normalisatie als `sleutel_van`. De eval gebruikt deze eis om
-    te toetsen dat elke markering in de opgehaalde bepaling staat.
+    Witruimte-ongevoelig, met dezelfde normalisatie als `sleutel_van`, en ongevoelig voor de typografische vorm van
+    apostroffen, aanhalingstekens en streepjes (`TYPOGRAFISCH`). De eval gebruikt deze eis om te toetsen dat elke
+    markering in de opgehaalde bepaling staat.
     """
-    norm = _normaliseer(fragment)
-    return bool(norm) and _normaliseer(corpus).find(norm) >= 0
+    norm = _normaliseer(fragment).translate(TYPOGRAFISCH)
+    return bool(norm) and _normaliseer(corpus).translate(TYPOGRAFISCH).find(norm) >= 0
 
 
 def sleutel_van(tekst: str, lid: str) -> tuple[str, str]:

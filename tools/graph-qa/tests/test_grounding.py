@@ -325,3 +325,21 @@ def test_melding_zonder_aanhaling_heeft_geen_lege_telling():
 
     report = SimpleNamespace(niveau="gegrond", onbevestigd=[], unsupported=[], niet_letterlijk=[], cited=[], citaten=0)
     assert _grounding_melding(report) == "brongetrouwheid: gecontroleerd, niets aangehaald"
+
+
+# ── typografische tekens (ronde 4 van de centrale agent, 13 nov 2026: B04, Iw 21 lid 1) ─────────────────────────
+
+BRON_21 = [("get_lid", "urn:bwb:BWBR0004770:artikel:21:lid:1\n?tekst\n"
+                       "’s Rijks schatkist heeft een voorrecht op alle goederen van de belastingschuldige.")]
+
+
+def test_een_rechte_apostrof_tegen_een_gekrulde_is_letterlijk():
+    rapport = check_grounding("Artikel 21: \"'s Rijks schatkist heeft een voorrecht op alle goederen van de "
+                              "belastingschuldige.\" BWBR0004770", BRON_21)
+    assert rapport.niet_letterlijk == [] and rapport.niveau != "ongegrond"
+
+
+def test_een_ander_woord_blijft_een_afwijking_ook_met_een_rechte_apostrof():
+    rapport = check_grounding("Artikel 21: \"'s Rijks schatkist heeft een voorrecht op sommige goederen van de "
+                              "belastingschuldige.\" BWBR0004770", BRON_21)
+    assert rapport.niet_letterlijk and rapport.niveau == "ongegrond"

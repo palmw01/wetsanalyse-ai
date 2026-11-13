@@ -19,7 +19,7 @@ from typing import Any
 from bronmodel.antwoord import Antwoord, Citaat, Citaten, Toelichting, Twijfel
 from bronmodel.vindplaats import vindplaats
 
-from ..annotatie import _normaliseer, komt_letterlijk_voor
+from ..annotatie import TYPOGRAFISCH, _normaliseer, komt_letterlijk_voor
 from ..grounding import _bekende_artikelen, herstel_citaten
 from ..overzicht import vermeldingen
 from .vullen import Onvulbaar, Trace, artikel_in_trace, bron_rijen, iri_van_jci, met_toestand, ouders, toestanden, vindplaats_van
@@ -70,18 +70,11 @@ def _lex(tekst: Any, trace: Trace) -> str:
 MAX_HELE_TEKST = 600
 
 
-# Typografische tekens die het model als hun gewone vorm schrijft: de wet heeft "personenauto’s", het model
-# "personenauto's" (Iw 9 lid 8, vier weigeringen in de eval van 7 nov 2026). Eén teken voor één teken, dus een plek in de
-# zoekvorm is dezelfde plek in de brontekst: de jurist ziet de bron, niet de zoekvorm.
-_ZOEKVORM = str.maketrans({"’": "'", "‘": "'", "‚": "'", "‛": "'", "“": '"', "”": '"', "„": '"', "‟": '"',
-                           "–": "-", "—": "-", "‑": "-", "\u00a0": " "})
-
-
 def _ankers(anker: str, tekst: str) -> list[tuple[int, int]]:
-    """Waar het anker in de (genormaliseerde) tekst staat, als (begin, eind). Gezocht wordt in de zoekvorm (`_ZOEKVORM`).
+    """Waar het anker in de (genormaliseerde) tekst staat, als (begin, eind). Gezocht wordt in de zoekvorm (`TYPOGRAFISCH`).
     Bijna-letterlijk herstelt `herstel_citaten`; die leest aanhalingstekens, dus een anker dat er zelf een bevat kan alleen
     letterlijk."""
-    tekst, vorm = tekst.translate(_ZOEKVORM), _normaliseer(anker).translate(_ZOEKVORM)
+    tekst, vorm = tekst.translate(TYPOGRAFISCH), _normaliseer(anker).translate(TYPOGRAFISCH)
     if not komt_letterlijk_voor(tekst, vorm) and '"' not in vorm:
         _, hersteld = herstel_citaten(f'"{vorm}"', [("", tekst)])
         vorm = hersteld[0][1] if hersteld else ""

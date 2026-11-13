@@ -811,7 +811,9 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
   opgehaald.
 - `grounding.check_grounding` toetst op BWB-granulariteit of elk aangehaald BWB-id in de trace staat, en
   of elk citaat (≥ 5 woorden tussen aanhalingstekens; kortere zijn begrippen) letterlijk,
-  witruimte-ongevoelig, in de trace staat – dezelfde eis als `annotatie.komt_letterlijk_voor`. Het
+  witruimte-ongevoelig, in de trace staat – dezelfde eis als `annotatie.komt_letterlijk_voor`. Een rechte apostrof,
+  aanhalingsteken of streepje telt als zijn typografische vorm (`annotatie.TYPOGRAFISCH`, één register, ook voor de
+  ankers van het duidingssjabloon; ronde 4 van de centrale agent: "'s Rijks" tegen "’s Rijks" was *ongegrond*). Het
   oordeel is `niveau`: **gegrond** / **ongegrond** / **onbepaald** (niets te controleren – géén
   goedkeuring). `grounded` blijft bestaan voor het event-contract en de eval: er is niets aangetroffen
   dat níét klopt.
