@@ -627,6 +627,25 @@ Een editor per onderdeel: de bestanden in een boom, de validatie live ernaast, d
 versies. *Nieuw* begint vanuit een lege map met de verplichte velden; *Bewerken* vanuit het image. Niet in deze stap
 (besluit van de gebruiker): een ZIP uploaden, en een skill laten opstellen door Lex in het gesprek.
 
+Bij het bouwen (B2, 13 nov 2026) vastgelegd:
+
+- **De editor is een eigen pagina onder de werkwijze** (`/werkwijze/concepten/<id>`), geen paneel naast het gesprek. Een
+  concept is een artefact: lezen, bewerken, besluiten. Maken en zoeken met hulp van Lex blijft via het gesprek.
+- **Er wordt niet automatisch samengevoegd.** Loopt een concept achter (zijn basis is niet meer wat er draait), dan toont
+  de pagina de twee verschillen (het concept tegen zijn basis, de basis tegen wat er draait) en kan de gebruiker opnieuw
+  beginnen vanaf wat er draait. Vooraf staat er wat er met zijn eigen wijzigingen gebeurt; er gaat niets stil verloren.
+- **De versie uit het image is te lezen** via een eigen leesroute, achter dezelfde vlag en rechten als de rest van de
+  werkplaats (B2-4).
+- **De sectie-editor van C7 verdwijnt in B2-4 uit de frontend** (de knop en de BFF-routes). De api-route en de vlag
+  `catalogusVoorstellen` blijven tot de promotie van B4 ze vervangt.
+- **Met de vlag `werkplaats` uit verandert er niets aan wat de jurist ziet.**
+- **De knip**: B2-1 de ingangen en het lezen van een concept, B2-2 bewerken met de controle live, B2-3 versies en
+  vergelijken, B2-4 het achterlopen en het weghalen van C7.
+- **Vergelijken is één kolom.** Wat erbij kwam en wat wegviel staat regel voor regel onder elkaar, met een teken ervoor.
+  Twee kolommen naast elkaar passen niet op een telefoon, en één weergave voor elke breedte is eenvoudiger te toetsen.
+- **De bestanden en de controle staan naast het bestand**, niet elk op een eigen tab: de bevindingen zijn dan te zien
+  terwijl je typt.
+
 ## Wat generiek is
 
 - **Eén agentvorm in Python**: de basisklasse `Agent`, met `CentraleAgent` en `Subagent`, op de ene antwoordlus die er

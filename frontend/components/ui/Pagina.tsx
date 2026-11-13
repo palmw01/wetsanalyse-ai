@@ -54,7 +54,7 @@ export function PaginaKop({ kruimels, titel, sub, meta, acties }: {
           {sub && <p className="mt-1 max-w-3xl text-sm text-muted">{sub}</p>}
           {meta && <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">{meta}</div>}
         </div>
-        {acties && <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">{acties}</div>}
+        {acties && <div className="flex shrink-0 flex-col gap-2 empty:hidden sm:flex-row sm:items-center">{acties}</div>}
       </div>
     </header>
   );

@@ -3,6 +3,10 @@
 
 import { parseContextopbouw, type ContextBoom } from "./contextweergave";
 import { parseAntwoord } from "./antwoord";
+import {
+  UIT as WERKPLAATS_UIT, parseOnderdeel as parseWerkplaatsOnderdeel, parseOnderdelen, parseStand, parseToets, parseVersie,
+  type Toets, type WerkplaatsOnderdeel, type WerkplaatsSoort, type WerkplaatsStand, type WerkplaatsVersie,
+} from "./werkplaats";
 import { parseBronselectie, type BronselectieOverzicht } from "./bronselectie";
 import {
   geldig,
@@ -222,6 +226,68 @@ export async function dienVoorstelIn(v: { onderdeel_id: string; bestand: string;
   return json<VoorstelUit>(await fetch("/api/admin/catalogus/voorstellen", {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(v),
   }));
+}
+
+// --- De werkplaats (ADR-016 deel B): concepten met versies --------------------------------
+
+/** Staat de werkplaats aan en wat mag deze gebruiker. Nooit een fout: wat niet te lezen is, is "uit", zodat een
+ *  omgeving zonder werkplaats er precies zo uitziet als voorheen. */
+export async function haalWerkplaatsStand(): Promise<WerkplaatsStand> {
+  try {
+    const res = await fetch("/api/werkplaats/stand", { cache: "no-store" });
+    return res.ok ? parseStand(await res.json()) : WERKPLAATS_UIT;
+  } catch {
+    return WERKPLAATS_UIT;
+  }
+}
+
+export async function haalConcepten(): Promise<WerkplaatsOnderdeel[]> {
+  return parseOnderdelen(await json<unknown>(await fetch("/api/werkplaats/onderdelen", { cache: "no-store" })));
+}
+
+/** Een nieuw concept: leeg (met de verplichte velden), of met `uit_image` de versie die nu draait (*Bewerken*). */
+export async function maakConcept(v: { soort: WerkplaatsSoort; naam: string; uit_image?: boolean }): Promise<WerkplaatsOnderdeel> {
+  const uit = parseWerkplaatsOnderdeel(await json<unknown>(await fetch("/api/werkplaats/onderdelen", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(v),
+  })));
+  if (!uit) throw new Error("Onverwacht antwoord van de werkplaats.");
+  return uit;
+}
+
+export async function haalConcept(id: string): Promise<WerkplaatsOnderdeel> {
+  const uit = parseWerkplaatsOnderdeel(await json<unknown>(await fetch(
+    `/api/werkplaats/onderdelen/${pathSegment(id)}`, { cache: "no-store" })));
+  if (!uit) throw new Error("Onverwacht antwoord van de werkplaats.");
+  return uit;
+}
+
+export async function haalConceptVersie(id: string, nummer: number): Promise<WerkplaatsVersie> {
+  const uit = parseVersie(await json<unknown>(await fetch(
+    `/api/werkplaats/onderdelen/${pathSegment(id)}/versies/${nummer}`, { cache: "no-store" })));
+  if (!uit) throw new Error("Onverwacht antwoord van de werkplaats.");
+  return uit;
+}
+
+/** Poort 1 zonder op te slaan: wat de controle van deze bestanden vindt. */
+export async function toetsConcept(v: { soort: WerkplaatsSoort; naam: string; bestanden: Record<string, string> }, signal?: AbortSignal): Promise<Toets> {
+  const uit = parseToets(await json<unknown>(await fetch("/api/werkplaats/toets", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(v), signal,
+  })));
+  if (!uit) throw new Error("Onverwacht antwoord van de werkplaats.");
+  return uit;
+}
+
+/** Een volgende versie. `na_versie` is de versie waarop deze voortbouwt: is er intussen een nieuwere, dan 409. */
+export async function slaConceptOp(id: string, v: { bestanden: Record<string, string>; na_versie: number; toelichting: string }): Promise<WerkplaatsVersie> {
+  const uit = parseVersie(await json<unknown>(await fetch(`/api/werkplaats/onderdelen/${pathSegment(id)}/versies`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(v),
+  })));
+  if (!uit) throw new Error("Onverwacht antwoord van de werkplaats.");
+  return uit;
+}
+
+export async function trekConceptIn(id: string): Promise<void> {
+  await json<unknown>(await fetch(`/api/werkplaats/onderdelen/${pathSegment(id)}/intrekken`, { method: "POST" }));
 }
 
 // --- Admin: LLM-modelprofielen ----------------------------------------------
