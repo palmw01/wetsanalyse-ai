@@ -195,9 +195,13 @@ async def maak(soort: str, naam: str, eigenaar: str, bestanden: dict[str, str] |
 
 
 async def nieuwe_versie(onderdeel_id: str, bestanden: dict[str, str], toelichting: str, na_versie: int,
-                        door: str) -> dict[str, Any]:
+                        door: str, basis_hash: str | None = None) -> dict[str, Any]:
     """Een volgende versie. `na_versie` is de versie waarop de aanroeper voortbouwt: is er intussen een nieuwere, dan
-    weigert het register (409). Dezelfde inhoud als de laatste versie geeft die versie terug, zonder nieuwe."""
+    weigert het register (409). Dezelfde inhoud als de laatste versie geeft die versie terug, zonder nieuwe.
+
+    `basis_hash`: de gebruiker heeft verwerkt wat er intussen draait, en deze versie bouwt voort op díé versie uit het
+    image. Alleen de hash die nu in het image zit, telt: anders is er intussen weer iets veranderd (409
+    `basis_niet_actueel`). Zo'n versie wordt ook bewaard als de inhoud gelijk bleef: de basis is dan het nieuws."""
     t, v = db.werkplaats_onderdelen, db.werkplaats_versies
     try:
         async with db.get_engine().begin() as conn:
@@ -211,12 +215,19 @@ async def nieuwe_versie(onderdeel_id: str, bestanden: dict[str, str], toelichtin
                                           .order_by(v.c.nummer.desc()).limit(1))).mappings().first()
             if laatste["nummer"] != na_versie:
                 raise _fout(409, f"Er is intussen versie {laatste['nummer']}; bouw daarop voort.")
-            if laatste["hash"] == wp.hash_van(bestanden):
+            basis = laatste["basis_hash"] or ""
+            if basis_hash is not None:
+                nu = (await _image_hashes(conn) or {}).get(f"{o['soort']}/{o['naam']}")
+                if nu != basis_hash:
+                    raise _fout(409, "Wat er draait, is intussen weer veranderd. Bekijk de verschillen opnieuw.",
+                                fout="basis_niet_actueel")
+                basis = basis_hash
+            if laatste["hash"] == wp.hash_van(bestanden) and basis == (laatste["basis_hash"] or ""):
                 return _versie(laatste, met_inhoud=False)
             if laatste["nummer"] >= wp.MAX_VERSIES:
                 raise _fout(409, f"Dit onderdeel heeft het maximum van {wp.MAX_VERSIES} versies.")
             versie = await _schrijf_versie(conn, onderdeel_id, o["soort"], o["naam"], laatste["nummer"] + 1, bestanden,
-                                           toelichting, laatste["basis_hash"] or "", door)
+                                           toelichting, basis, door)
             await conn.execute(update(t).where(t.c.id == onderdeel_id).values(bijgewerkt=db.utcnow()))
             return versie
     except IntegrityError as exc:
@@ -363,6 +374,23 @@ async def image_stand() -> dict[str, Any]:
         return {"bekend": False, "pakket_hash": "", "revisie": "", "gemeld_op": "", "onderdelen": 0}
     return {"bekend": True, "pakket_hash": r["pakket_hash"], "revisie": r["revisie"] or "",
             "gemeld_op": _tijd(r["gemeld_op"]), "onderdelen": len(r["hashes"] or {})}
+
+
+async def image_onderdeel(soort: str, naam: str) -> dict[str, Any]:
+    """De versie van een onderdeel die nu draait, met de bestanden: om te vergelijken met een concept dat achterloopt.
+    Wat hier staat, staat ook in de repo; het is alleen lezen."""
+    if fout := wp.naam_fout(soort, naam):
+        raise _fout(422, fout)
+    i = db.werkplaats_image
+    async with db.get_engine().connect() as conn:
+        r = (await conn.execute(select(i.c.onderdelen, i.c.revisie, i.c.gemeld_op).where(i.c.id == 1))).mappings().first()
+    if r is None:
+        raise _fout(409, "Lex weet nog niet wat er draait; probeer het zo opnieuw.", fout="image_onbekend")
+    bron = (r["onderdelen"] or {}).get(f"{soort}/{naam}")
+    if bron is None:
+        raise _fout(404, f"{naam} zit niet in wat er nu draait.", fout="niet_in_image")
+    return {"soort": soort, "naam": naam, "hash": bron["hash"], "bestanden": bron["bestanden"],
+            "revisie": r["revisie"] or "", "gemeld_op": _tijd(r["gemeld_op"])}
 
 
 def _toets_pakket(pakket_hash: str, onderdelen: dict[str, dict[str, Any]]) -> None:

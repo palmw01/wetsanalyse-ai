@@ -10,12 +10,14 @@ import { MeerMenu, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { PaginaKop } from "@/components/ui/Pagina";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
+import { LinkButton } from "@/components/ui/Button";
+import { LooptAchter } from "@/components/werkwijze/ConceptAchter";
 import { ConceptEditor } from "@/components/werkwijze/ConceptEditor";
 import { ConceptLabels } from "@/components/werkwijze/Concepten";
 import { VersieWeergave, VersiesKaart } from "@/components/werkwijze/ConceptVersies";
-import { foutTekst, haalConcept, haalConceptVersie, haalWerkplaatsStand, isApiError, trekConceptIn } from "@/lib/api";
+import { foutTekst, haalConcept, haalConceptVersie, haalImageOnderdeel, haalWerkplaatsStand, isApiError, trekConceptIn } from "@/lib/api";
 import {
-  WERKPLAATS_SOORT_LABEL, conceptPad, versieKeuze, type Bestanden, type WerkplaatsOnderdeel, type WerkplaatsStand,
+  WERKPLAATS_SOORT_LABEL, achterPad, basisVersie, conceptPad, versieKeuze, type Bestanden, type ImageOnderdeel, type WerkplaatsOnderdeel, type WerkplaatsStand,
   type WerkplaatsVersie,
 } from "@/lib/werkplaats";
 
@@ -32,7 +34,9 @@ export function ConceptPagina({ id }: { id: string }) {
   // Na een nieuwe versie of intrekken: opnieuw lezen.
   const [lading, setLading] = useState(0);
   // De bestanden van een eerdere versie, teruggezet als wijziging op de laatste (*Zet terug als concept*).
-  const [klaargezet, setKlaargezet] = useState<{ bestanden: Bestanden; van: number } | null>(null);
+  const [klaargezet, setKlaargezet] = useState<{ bestanden: Bestanden; van: number | "draait" } | null>(null);
+  // Loopt het concept achter, dan hoort de versie die nu draait erbij: om te vergelijken, en als nieuwe basis bij opslaan.
+  const [draait, setDraait] = useState<ImageOnderdeel | null>(null);
   const herlaad = useCallback(() => { setKlaargezet(null); setLading((n) => n + 1); }, []);
   // Een eerdere versie om te lezen, en de versie waarmee ze vergeleken wordt: uit de URL.
   const router = useRouter();
@@ -44,7 +48,19 @@ export function ConceptPagina({ id }: { id: string }) {
   const [gelezen, setGelezen] = useState<Record<number, WerkplaatsVersie>>({});
   const bekeken = keuze.versie !== null ? gelezen[keuze.versie] ?? null : null;
   const vergeleken = keuze.met !== null ? gelezen[keuze.met] ?? null : null;
-  const teLezen = [keuze.versie, keuze.versie !== null ? keuze.met : null].filter((n): n is number => n !== null && !gelezen[n]).join(",");
+  const achter = zoekParams.get("achter") === "1" && !!o?.basis_verouderd;
+  const basisNummer = o ? basisVersie(o) : null;
+  const teLezen = [keuze.versie, keuze.versie !== null ? keuze.met : null, achter ? basisNummer : null]
+    .filter((n): n is number => n !== null && !gelezen[n]).join(",");
+  const loopt = !!o?.basis_verouderd, soort = o?.soort, naam = o?.naam, laatsteHash = o?.laatste?.hash;
+
+  useEffect(() => {
+    if (!loopt || !soort || !naam) return;
+    let weg = false;
+    haalImageOnderdeel(soort, naam).then((d) => { if (!weg) setDraait(d); })
+      .catch((e) => { if (!weg) setMelding(foutTekst(e, "De versie die nu draait kon niet worden geladen.")); });
+    return () => { weg = true; };
+  }, [loopt, soort, naam, laatsteHash]);
 
   useEffect(() => {
     if (!teLezen) return;
@@ -128,10 +144,26 @@ export function ConceptPagina({ id }: { id: string }) {
           {melding && <Melding type="fout" className="mb-4">{melding}</Melding>}
           {o.basis_verouderd && (
             <div className="mb-4" data-melding="loopt-achter">
-              <Melding type="waarschuwing">Er draait intussen een andere versie dan waar dit concept op voortbouwt.</Melding>
+              <Melding type="waarschuwing">
+                Er draait intussen een andere versie dan waar dit concept op voortbouwt.
+                {!achter && (
+                  <span className="mt-2 block">
+                    <LinkButton href={achterPad(o.id)} variant="secondary" size="xs" className="w-full sm:w-auto">Bekijk wat er veranderde</LinkButton>
+                  </span>
+                )}
+              </Melding>
             </div>
           )}
           {!versie || !stand ? <Skeleton className="h-40 w-full" />
+            : achter ? (!draait || (basisNummer !== null && !gelezen[basisNummer]) ? <Skeleton className="h-40 w-full" /> : (
+              <LooptAchter o={o} laatste={versie} basis={basisNummer !== null ? gelezen[basisNummer] : null} draait={draait}
+                bestand={zoekParams.get("bestand") ?? ""} onKiesBestand={(p) => zetParam("bestand", p)}
+                onOpnieuw={bewerkbaar ? () => {
+                  setKlaargezet({ bestanden: draait.bestanden, van: "draait" });
+                  router.push(conceptPad(o.id));
+                } : undefined}
+                zij={<VersiesKaart o={o} gekozen={null} />} />
+            ))
             : keuze.versie !== null ? (!bekeken || (keuze.met !== null && !vergeleken) ? <Skeleton className="h-40 w-full" /> : (
               <VersieWeergave o={o} versie={bekeken} met={keuze.met !== null ? vergeleken : null}
                 andere={nummers.filter((n) => n !== keuze.versie).sort((a, b) => b - a)}
@@ -146,6 +178,7 @@ export function ConceptPagina({ id }: { id: string }) {
             // Een nieuwe versie is een nieuwe editor: de bewaarde stand is dan het vertrekpunt.
             : <ConceptEditor key={`${o.id}.${versie.nummer}`} o={o} versie={versie} grenzen={stand.grenzen} bewerkbaar={bewerkbaar}
                 onOpgeslagen={herlaad} klaargezet={klaargezet} onVerworpen={() => setKlaargezet(null)}
+                draait={o.basis_verouderd && draait ? { hash: draait.hash } : null}
                 zij={<VersiesKaart o={o} gekozen={null} />} />}
         </>
       )}

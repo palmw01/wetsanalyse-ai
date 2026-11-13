@@ -47,6 +47,7 @@ try {
   for (const breedte of SHOTS ? [1280, 390] : [1280]) {
     const page = await browser.newPage({ viewport: { width: breedte, height: 900 } });
     const errors = [];
+    // Elke aanroep van een voorstelroute van ADR-014 C7: de werkplek hoort die niet meer te doen.
     const voorstellen = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await page.context().addCookies(await sessieCookies(base));
@@ -61,12 +62,7 @@ try {
         return d?.id ? route.fulfill({ json: d }) : route.fulfill({ status: 404, json: { detail: "Onbekend onderdeel" } });
       }
       if (p === "/api/gesprekken") return route.fulfill({ json: [] });
-      // Voorstellen voor de methode (ADR-014 C7): aan, en een concept-PR als antwoord.
-      if (p === "/api/admin/catalogus/voorstellen/stand") return route.fulfill({ json: { aan: true, reden: "" } });
-      if (p === "/api/admin/catalogus/voorstellen") {
-        voorstellen.push(route.request().postDataJSON());
-        return route.fulfill({ status: 201, json: { pr_url: "https://example.test/pull/7", branch: "claude/x", pr_nummer: 7 } });
-      }
+      if (p.startsWith("/api/admin/catalogus/")) voorstellen.push(p);
       return route.fulfill({ json: {} });
     });
     const shot = async (naam) => SHOTS && page.screenshot({ path: `${SHOTS}/werkwijze-${naam}-${breedte}.png`, fullPage: true });
@@ -134,18 +130,15 @@ try {
     await shot("regelset");
 
     if (!fixture) {
-      // Een methoderol: per sectie *Wijziging voorstellen*, dat een concept-PR opent (ADR-014 C7).
+      // Een methoderol: de secties om te lezen. Aanpassen gaat via een concept van de skill (ADR-016 §B7); de
+      // sectie-editor van ADR-014 C7 is weg, en er wordt niets meer naar de voorstelroutes gevraagd.
       await page.goto(`${base}/werkwijze/rol/duiding`);
       await page.locator('[data-sectie="duiding"]').waitFor();
-      await page.locator('[data-actie="voorstel-openen"]').click();
-      await page.getByLabel("Voorgestelde tekst").fill("Nieuwe methodetekst.");
-      await page.getByLabel("Toelichting voor de reviewer").fill("Scherper.");
-      await page.locator('[data-actie="voorstel-indienen"]').click();
-      await page.getByRole("link", { name: "#7" }).waitFor();
-      assert.deepEqual(voorstellen, [{ onderdeel_id: "rol/duiding", bestand: ".claude/skills/wetsanalyse/references/agentrollen.md",
-        sectie: "duiding", tekst: "Nieuwe methodetekst.", toelichting: "Scherper." }]);
       assert.match(await page.locator('[data-sectie="duiding"]').innerText(), /Oude methodetekst/);
-      await shot("voorstel");
+      await page.waitForLoadState("networkidle");
+      assert.equal(await page.getByRole("button", { name: "Wijziging voorstellen" }).count(), 0);
+      assert.deepEqual(voorstellen, []);
+      await shot("rol");
     }
 
     // Een onbekend onderdeel is een melding, geen lege pagina.

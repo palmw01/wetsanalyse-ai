@@ -4,8 +4,8 @@
 import { parseContextopbouw, type ContextBoom } from "./contextweergave";
 import { parseAntwoord } from "./antwoord";
 import {
-  UIT as WERKPLAATS_UIT, parseOnderdeel as parseWerkplaatsOnderdeel, parseOnderdelen, parseStand, parseToets, parseVersie,
-  type Toets, type WerkplaatsOnderdeel, type WerkplaatsSoort, type WerkplaatsStand, type WerkplaatsVersie,
+  UIT as WERKPLAATS_UIT, parseImageOnderdeel, parseOnderdeel as parseWerkplaatsOnderdeel, parseOnderdelen, parseStand, parseToets,
+  parseVersie, type ImageOnderdeel, type Toets, type WerkplaatsOnderdeel, type WerkplaatsSoort, type WerkplaatsStand, type WerkplaatsVersie,
 } from "./werkplaats";
 import { parseBronselectie, type BronselectieOverzicht } from "./bronselectie";
 import {
@@ -210,24 +210,6 @@ export async function haalOnderdeel(soort: string, naam: string): Promise<Onderd
   return uit;
 }
 
-// --- Een wijziging van de methode voorstellen (ADR-014 C7): een concept-PR -----------------
-
-export type VoorstelStand = { aan: boolean; reden: string };
-export type VoorstelUit = { pr_url: string; branch: string; pr_nummer: number };
-
-/** `null` als deze gebruiker geen beheerder is (403): dan is er geen knop. */
-export async function haalVoorstelStand(): Promise<VoorstelStand | null> {
-  const res = await fetch("/api/admin/catalogus/voorstellen/stand", { cache: "no-store" });
-  if (res.status === 401 || res.status === 403) return null;
-  return json<VoorstelStand>(res);
-}
-
-export async function dienVoorstelIn(v: { onderdeel_id: string; bestand: string; sectie: string; tekst: string; toelichting: string }): Promise<VoorstelUit> {
-  return json<VoorstelUit>(await fetch("/api/admin/catalogus/voorstellen", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(v),
-  }));
-}
-
 // --- De werkplaats (ADR-016 deel B): concepten met versies --------------------------------
 
 /** Staat de werkplaats aan en wat mag deze gebruiker. Nooit een fout: wat niet te lezen is, is "uit", zodat een
@@ -278,10 +260,20 @@ export async function toetsConcept(v: { soort: WerkplaatsSoort; naam: string; be
 }
 
 /** Een volgende versie. `na_versie` is de versie waarop deze voortbouwt: is er intussen een nieuwere, dan 409. */
-export async function slaConceptOp(id: string, v: { bestanden: Record<string, string>; na_versie: number; toelichting: string }): Promise<WerkplaatsVersie> {
+export async function slaConceptOp(id: string, v: { bestanden: Record<string, string>; na_versie: number; toelichting: string;
+  /** De gebruiker heeft verwerkt wat er nu draait: de versie bouwt voort op deze hash uit het image. */
+  basis_hash?: string }): Promise<WerkplaatsVersie> {
   const uit = parseVersie(await json<unknown>(await fetch(`/api/werkplaats/onderdelen/${pathSegment(id)}/versies`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(v),
   })));
+  if (!uit) throw new Error("Onverwacht antwoord van de werkplaats.");
+  return uit;
+}
+
+/** De versie die nu draait, met de bestanden; voor een concept dat achterloopt. */
+export async function haalImageOnderdeel(soort: WerkplaatsSoort, naam: string): Promise<ImageOnderdeel> {
+  const uit = parseImageOnderdeel(await json<unknown>(await fetch(
+    `/api/werkplaats/image/${pathSegment(soort)}/${pathSegment(naam)}`, { cache: "no-store" })));
   if (!uit) throw new Error("Onverwacht antwoord van de werkplaats.");
   return uit;
 }
