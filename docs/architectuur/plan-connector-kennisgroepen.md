@@ -453,7 +453,7 @@ niets tegelijk met de G1-meting op acceptatie.
    Browsertest: een blok met een geldend en een met een ingetrokken standpunt.
 6. **Profielen en aanzetten op acceptatie.** Deze PR zet de connector in de agentprofielen en draait de generatoren. Daarna
    volgt een `azure-infra`-deploy op acceptatie door de gebruiker. Dat gebeurt pas na de G1-meting.
-7. **Meting en iteratierondes** (§4).
+7. **Meting** (§4): één run van 20 vragen met de centrale agent, hoogstens één verbeterronde.
 
 Stap 1 en 2 kunnen tegelijk. Stap 3 hangt af van 2, en stap 4 van 1, 2 en 3. Stap 5 kan na 1 beginnen.
 
@@ -463,11 +463,14 @@ Op verzoek van de gebruiker (13 nov 2026) volgen na de bouw **20 verschillende v
 lukt en wat er nog beter kan. De opzet volgt
 [`../acceptatie/connectors-meting.md`](../acceptatie/connectors-meting.md) en de iteratierondes van de andere connectors:
 
+- **licht** (besluit gebruiker, 13 nov 2026): **één run** van de 20 vragen, alleen in de vorm waarin de connector aan
+  staat (de centrale agent, `centraal`), dus geen vergelijking met de supervisorweg en geen drie runs;
 - elke vraag in een nieuw gesprek, via de acceptatie-MCP, met `bronnen: ["kennisgroepen", "wetgeving_live", …]`;
 - elk antwoord wordt beoordeeld tegen de officiële bron: de publicatie op de site en de wettekst;
 - per vraag wordt vastgelegd: route, toolaanroepen, grounding, het sjabloon en de blokken, de status-regel, de
   bronnenlijst, de tokens en de duur;
-- een afwijking wordt **generiek** opgelost, gevolgd door een PR en een nieuwe ronde, met hoogstens 4 rondes;
+- een afwijking wordt **generiek** opgelost, gevolgd door een PR; een **tweede ronde alleen als de eerste fouten laat
+  zien**, en **hoogstens 2 rondes**;
 - de uitkomst komt in `docs/architectuur/metingen/kennisgroepen-<datum>/`, met een rij in het meetlogboek.
 
 **De vragen**, vooraf vastgelegd. De ids en kenmerken worden vlak voor de meting tegen de live-bron gecontroleerd.
@@ -497,13 +500,14 @@ lukt en wat er nog beter kan. De opzet volgt
 
 **Criteria**, vooraf vastgelegd:
 
-- **Garanties, 3/3 per run en 20/20:**
+- **Garanties, 20/20 in de run:**
   - geen standpunt onder een `doel` of als wettekst;
   - elk standpuntblok heeft de status-regel en een datum;
   - een ingetrokken of vervallen standpunt wordt nooit als geldend gepresenteerd;
   - elk citaat staat letterlijk in de gelezen tekst;
   - een uitgezette connector wordt niet gebruikt.
-- **Kwaliteit:** goed, matig of fout per vraag, met als doel minstens 17 goed en 0 fout na de laatste ronde.
+- **Kwaliteit:** goed, matig of fout per vraag, met als doel minstens 17 goed en 0 fout na de laatste ronde (de eerste,
+  of de tweede als die nodig was).
 - **Kosten:** tokens per vraag, naast de vergelijkbare vragen van Rechtspraak en Kamerstukken.
 
 ## 5. Tests en bewaking (samenvatting)
@@ -549,6 +553,9 @@ rechtspraak en de Kamerstukken die Lex al kan lezen. De voorwaarde is dat het ve
 vastgelegd (§2.5) en niet aan het model wordt overgelaten.
 
 ## 8. Besluiten van de gebruiker (13 nov 2026)
+
+**Meten, lichter** (later op 13 nov 2026): de meting is één run van de 20 vragen, alleen met de centrale agent (de vorm
+waarin de connector aan staat). Een tweede ronde alleen als de eerste fouten laat zien, en hoogstens 2 rondes (§4).
 
 Op alle open vragen hieronder volgde de gebruiker het advies:
 
