@@ -4,6 +4,12 @@ Status: plan, 13 november 2026, op master `2be1f804`; de open vragen zijn dezelf
 gewijzigd aan de methodetekst, aan graph-qa, de api of de frontend. Dit document is de inventaris, wat er per vondst
 gebeurt, de volgorde en de besluiten. De bouwstappen beginnen na meetronde 4.
 
+**Aanvulling, 13 november 2026 (deel 2, *Wetsanalyse versterken*).** De gebruiker wil dat wetsanalyse met het JAS bij
+de scheiding ook inhoudelijk beter wordt neergezet, op basis van de bronnen, en dat de bijbehorende tools van Lex
+meegaan. Deel 2 staat onderaan: de toets van de skill en de JAS-tools tegen de bronnen, de voorstellen, de gezamenlijke
+volgorde met S1–S6, de metingen en de open vragen. Deel 2 corrigeert één vondst van deel 1 (de sectie `supervisor`,
+zie §2). Eén sessie voert beide delen uit.
+
 ## Kort
 
 - **Wat de gebruiker zag:** een vraag om een annotatie "volgens JRM" gaat de JAS-annotatieketen in. De annotatieketen,
@@ -66,7 +72,9 @@ juridische toestand"). Die woorden blijven in wetsanalyse waar de bron van het J
 | De kop "Grammatica, interpretatie en JRM 2" | `agentrollen.md` | de kop staat buiten de markers en gaat niet naar het model; hij wordt "Grammatica en interpretatie" |
 | "Beschrijf waar relevant de rechtsbetrekking met partijen, object, relevante feiten, bevoegdheden en rechtsgevolgen volgens JRM 2" | de sectie `duiding`, tussen de markers | **dit is modeltekst.** De zin wordt: de rechtsbetrekking met partijen, object en voorwaarden, volgens het JAS. Dat verandert de vingerafdruk van de rollen `duiding` en `agent` (de centrale agent draagt `duiding` ook) en vraagt een meting |
 | De secties `jrm-scenario` en `jrm-relevant-feit` | `wetsuitvoering/agentrollen.json` | blijven waar ze zijn; `"rollen": {}` blijft tot een eigen meting |
-| De andere secties (`basis`, `supervisor`, `retrieval`, `definitie`, `deelvragen`, `nl-sbb-taalniveau`) | `agentrollen.md` en de references | noemen JRM niet; ongewijzigd |
+| "Beloof geen volledig JAS/JRM-dossier via een route die alleen markeringen of een antwoord levert" | de sectie `supervisor`, tussen de markers | **ook modeltekst** (correctie van 13 nov, deel 2: de eerste versie van dit plan zag deze zin niet). Wordt "geen volledig analysedossier". Verandert de vingerafdruk van de rol `supervisor`; gaat mee in S6 |
+| "De dertien JAS-labels blijven ongewijzigd; JRM-verrijking is aanvullende uitleg, geen nieuwe annotatieklasse" | de slotzin van de sectie `duiding`, tussen de markers | modeltekst; vervalt in S6, samen met de andere JRM-zin van `duiding` |
+| De andere secties (`basis`, `retrieval`, `definitie`, `deelvragen`, `nl-sbb-taalniveau`) | `agentrollen.md` en de references | noemen JRM niet; ongewijzigd |
 | Het JAS_KLASSEN-blok van de classifier en de reviewer | `agent/jas_klassen.py`, uit `jas-klassen-referentie.md` | noemt JRM niet; ongewijzigd. De annotatieketen krijgt dus geen andere tekst |
 
 ### 3. De skill wetsuitvoering: wat er staat en wat erbij moet
@@ -184,12 +192,15 @@ Deze regel staat nu in ADR-016 (deel B) en ADR-014 (§5):
 | **S5** | de skill wetsanalyse opschonen buiten de markers: het label, `SKILL.md`, `jrm-verrijking.md` weg, het analyseprotocol, het dossier, de kwaliteitseisen, het bronregister; test 1 voor alles buiten de markers; de CLAUDE.md's en de briefing | skill, bronpakket, docs | nee: de methodetekst per rol blijft byte-gelijk, en de test op de vingerafdrukken bewijst dat |
 | **S6** | de zin in de sectie `duiding`; test 1 voor de methodetekst | skill, methodepakket | **ja**, zie hieronder |
 
-S1 kan meteen na meetronde 4. S2 tot en met S5 volgen elkaar op en kunnen zonder meting. S6 is de enige wijziging van
-modeltekst en komt als laatste, in een eigen PR.
+S1 kan meteen na meetronde 4. S2 tot en met S5 volgen elkaar op en kunnen zonder meting. S6 is in deel 1 de enige
+wijziging van modeltekst en komt in een eigen PR. De gezamenlijke volgorde met de stappen van deel 2 (W en G) staat in
+*Deel 2, De volgorde samen met S1–S6*.
 
 ### De meting bij S6
 
-De zin staat in de sectie `duiding`. Die gaat naar de rol `duiding` en naar de rol `agent` (de centrale agent).
+De zinnen staan in de secties `duiding` (twee zinnen) en `supervisor` (één zin, zie de correctie in §2). `duiding` gaat
+naar de rol `duiding` en naar de rol `agent` (de centrale agent); `supervisor` naar de rol `supervisor`. De meting krijgt
+daarom ook de routeringsset (`golden_routering`).
 
 - **Wat verandert:** de vingerafdruk van `duiding` en `agent`, en daarmee het voorvoegsel van die twee (één keer koud).
 - **Wat niet verandert:** de annotatieketen. De classifier en de reviewer krijgen het JAS_KLASSEN-blok, en dat noemt
@@ -221,3 +232,456 @@ hoofdsessie, telkens volgens het voorstel.
 5. **De referentieset blijft staan als bewijs van toen**, met een regel erboven dat de methode sindsdien gesplitst is.
 6. **Geen meting van de annotatie bij S6.** De test op de vingerafdrukken bewijst dat de annotatieketen dezelfde tekst
    krijgt.
+
+---
+
+# Deel 2: Wetsanalyse versterken
+
+Status: plan, 13 november 2026. Er is niets gebouwd. Dit deel toetst de skill `.claude/skills/wetsanalyse/` en de
+JAS-tools van Lex tegen de bronnen van de methode, en zegt per bevinding wat het voorstel is en wat het raakt.
+
+## Kort
+
+- **De skill volgt de Rijksspecificatie goed, en het boek en de Handleiding maar half.** De drie bronvelden per klasse
+  (omschrijving, vraag, uitdrukkingswijze) staan er volledig. Wat het boek daarnaast per klasse geeft, ontbreekt: de
+  subklassen van de rechtsbetrekking en het rechtsfeit, de samenhang met andere klassen, en de specialisatie. De
+  markeerregels van de Handleiding staan er voor een deel.
+- **Een deel van wat nu "JRM-verrijking" heet, is JAS.** Immuniteit, de zwakke verplichting en de rechtshandeling komen
+  uit hoofdstuk 4 van het boek. Ze staan in de skill onder een JRM-kop. Bij de scheiding horen ze in de
+  klassenreferentie, met hun eigen bron.
+- **De methode Wetsanalyse kent zelf juridische scenario's.** Het boek (stap 4) en de Handleiding (deelactiviteiten 1c,
+  1e en 4a) gebruiken ze, de Handleiding met begintoestand, rechtsfeit, rechtsgevolgen en eindtoestand. Besluit 1 legt
+  het scenario bij wetsuitvoering. Dat kan, maar de skill moet dan zeggen waar de methode het scenario gebruikt en
+  waar je het uitwerkt. Dit is vraag 1.
+- **De modeltekst noemt JRM op drie plekken, niet op één.** Twee zinnen in `duiding` en één in `supervisor`. S6 wordt
+  daardoor iets breder (zie §2 van deel 1).
+- **Tien stappen erbij:** zeven zonder gedragswijziging (W1–W7: leestekst, bronregister, evals, tests) en drie met
+  (G1–G3), elk met een eigen meting. Aan de drie bronvelden van de klassen verandert niets: de annotatieketen krijgt
+  dezelfde klasseduiding.
+- **Zeven vragen** staan onderaan, elk met een voorstel.
+
+## Wat ik heb getoetst
+
+Gelezen en vergeleken:
+
+- de hele skill wetsanalyse: `SKILL.md`, alle `references/`, `agentrollen.json`, `relaties.json`, `evals/`, `assets/`;
+- de skill wetsuitvoering, voor de grens;
+- M04, de Rijksspecificatie: `docs/wetsanalyse/wetsanalyse-rijk/` (H1, H2-JAS, H3);
+- M01, het boek: hoofdstuk 3 (de stappen, vooral 1 tot en met 4) en hoofdstuk 4 (het analyseschema, alle klassen);
+- M02, de Handleiding 1.0: §3.3 (activiteit 1, deelactiviteiten a–g), §3.4 (activiteit 2) en §3.6 (activiteit 4);
+- de JAS-tools van Lex: de annotatieketen (`agent/jas_pipeline/`: systeemprompt van de classifier, de dertien
+  klasseprofielen, de detectoren, de subtypen), `jas_klasse_opvragen`, de begrippentoetsen
+  (`agent/begrippen_pipeline/toetsen.py`) en `docs/architectuur/annotatieketen.md`.
+
+Niet opnieuw getoetst, en dat zeg ik erbij: de Leidraad (M03; P13 steunt erop), WetsTaal (M05) en de
+begrippenregels in code tegen NL-SBB. Die toets hoort bij de stap die ze raakt (W5, W6) en komt in die PR.
+
+Het boek en de readers staan niet in deze repo. Alles hieronder is in eigen woorden, met bron en sectie.
+
+## Bevindingen per activiteit
+
+Elke bevinding heeft vier regels: wat de bron zegt, wat de skill nu zegt, het voorstel, en wat het raakt. *Leestekst*
+betekent: alleen tekst die het platform niet laadt. *Gedrag* betekent: modeltekst, een tool of een toets van Lex.
+
+### Activiteit 1: het werkgebied
+
+**B1. Juridische scenario's horen in de methode bij activiteit 1.**
+- Bron: M02 §3.3.2, deelactiviteiten 1c en 1e. Een praktijkvoorbeeld wordt een juridisch scenario: één pad van één
+  burger of bedrijf, met de juridische gebeurtenissen op volgorde, te beginnen met het meest gangbare geval. De
+  deelvragen worden aan die gebeurtenissen verbonden. De volgorde van 1b–1c en 1d mag wisselen.
+- Skill: het praktijkvoorbeeld en de gebeurtenis staan erin; het scenario niet. P13 zegt dat 1c en 1e "nog niet"
+  gedaan worden.
+- Voorstel: afhankelijk van vraag 1. In elk geval zegt `werkgebied.md` dat de methode hier een scenario kent, en waar
+  je het uitwerkt.
+- Raakt: leestekst (W6).
+
+**B2. Meer dan één praktijkvoorbeeld, van gangbaar naar zeldzaam.**
+- Bron: M02 §3.3.2, deelactiviteit 1b. Minstens één gangbaar voorbeeld; meer voorbeelden scherpen de afbakening aan.
+- Skill: één praktijkvoorbeeld, en de regel dat je het niet verzint.
+- Voorstel: `werkgebied.md` noemt de volgorde gangbaar → minder gangbaar en zegt wat een tweede voorbeeld oplevert.
+- Raakt: leestekst (W6). De vraagkaarten van Lex blijven zoals ze zijn.
+
+**B3. Delegatie en wetstechnische informatie bepalen het werkgebied.**
+- Bron: M01 h.3 stap 1 en h.4 §14–15; M04 H2:125. Gedelegeerde regelgeving die gebruikt is, hoort in het werkgebied;
+  de wetstechnische informatie bij een artikel helpt, maar is niet volledig.
+- Skill: staat in de klassenreferentie (§12) en in `verwijzingen-volgen.md`, niet in `werkgebied.md`.
+- Voorstel: één zin in `werkgebied.md` bij het zoekbereik, met de verwijzing.
+- Raakt: leestekst (W6).
+
+### Activiteit 2a: markeren
+
+**B4. De markeerregels van de Handleiding staan er maar voor een deel.**
+- Bron: M02 §3.4.2, deelactiviteit a. Je neemt het lidwoord mee (dan kun je nalopen of alle tekst behandeld is); je
+  neemt een verwijzing in de formulering mee; een variabele markeer je zonder werkwoord en zonder voorwaarden; een
+  afleidingsregel juist met werkwoord, voorwaarden, verwijzing en punt; een voorwaarde bij voorkeur als hele zin of
+  zinsdeel; je begint waar het element ontstaat of wordt afgeleid, en herkent het daarna elders; een concreet
+  voorbeeld helpt de grens te kiezen.
+- Skill: `markeren-fragmentgrenzen.md` noemt het lidwoord en het zinseinde, en geeft per functie een controle. De
+  verwijzing, de variabele zonder werkwoord, het beginpunt en het voorbeeld als hulpmiddel ontbreken.
+- Voorstel: de tabel *Grenzen kiezen* per klasse aanvullen met deze regels, elk met de bron erbij.
+- Raakt: leestekst (W3). De detectoren kiezen hun grenzen in code; of die hiermee stroken, is bevinding T4.
+
+**B5. Je markeert wat aan een centrale klasse hangt.**
+- Bron: M02 §3.4.2, deelactiviteit c en *Iteraties*. De analyse loopt per gebeurtenis: je werkt een centrale klasse
+  uit en neemt mee wat ermee samenhangt. Dat voorkomt losse markeringen zonder verband.
+- Skill: de werkstroom B gaat per normeenheid en eindigt met een dekkingscontrole. "Markeer niet alles om dekking te
+  halen" staat er, het positieve criterium niet.
+- Voorstel: in werkstroom B en in de markeringslijst het criterium toevoegen: een markering hoort bij een centrale
+  klasse of is er zelf een; wat nergens aan hangt, verantwoord je in de dekking.
+- Raakt: leestekst (W3).
+
+### Activiteit 2b: classificeren, per klasse
+
+De drie bronvelden staan volledig en letterlijk in `jas-klassen-referentie.md`. Daar verandert niets aan. De
+bevindingen gaan over wat het boek er per klasse naast zet (M01 h.4, per klasse de onderdelen *Subklassen*, *Relatie
+met eigen klasse* en *Relatie met andere klassen*) en wat de skill daarvan mist.
+
+**B6. Rechtsbetrekking: de subklassen ontbreken.**
+- Bron: M01 h.4 §3, *Subklassen*. Vier soorten, naar Hohfeld: aanspraak tegenover verplichting (met drie varianten,
+  naar wat er bij niet-nakomen kan), bevoegdheid tegenover gehoudenheid (discretionair of gebonden), immuniteit
+  tegenover geen bevoegdheid, en vrijheid tegenover geen aanspraak. M01 h.4 §4.2.2 geeft de herkenning: een gebonden
+  bevoegdheid staat in de tegenwoordige tijd, een discretionaire aan "kan" of "naar zijn oordeel". Het boek waarschuwt
+  dat een immuniteit moeilijk te onderscheiden is van een bevoegdheid onder een voorwaarde.
+- Skill: de klassenreferentie noemt ze niet. `jrm-verrijking.md` noemt immuniteit en de zwakke verplichting, onder een
+  JRM-kop. `SKILL.md` zegt alleen dat "kan" niet vanzelf een bevoegdheid is.
+- Voorstel: een onderdeel *Subklassen* bij §3 van de klassenreferentie, in eigen woorden, met de herkenning en de
+  waarschuwingen. De regel blijft: een subklasse noem je alleen als de tekst haar draagt.
+- Raakt: leestekst (W2). De generator leest alleen de drie bronvelden; `agent/jas_klassen.py` blijft byte-gelijk, en
+  de drifttest bewijst dat. Of Lex de subklasse ook noemt of vastlegt, is G1 en vraag 2.
+
+**B7. Rechtsfeit: de vier soorten ontbreken.**
+- Bron: M01 h.4 §4, *Subklassen*: rechtshandeling, feitelijke handeling met rechtsgevolg, gebeurtenis met
+  rechtsgevolg, tijdsverloop met rechtsgevolg. En *Relatie met andere klassen*: een rechtsfeit werkt altijd op een
+  rechtsbetrekking, heeft een voorwerp, en is aan een tijdstip of periode gekoppeld.
+- Skill: de omschrijving noemt handeling, gebeurtenis en tijdsverloop; de rechtshandeling staat alleen in
+  `jrm-verrijking.md`.
+- Voorstel: een onderdeel *Subklassen* bij §4, en de drie vaste verbanden als controle.
+- Raakt: leestekst (W2).
+
+**B8. Rechtssubject en rechtsobject: specialisatie.**
+- Bron: M01 h.4 §1 en §2, *Relatie met eigen klasse*. Een subject of object kan een specialisatie van een ander zijn;
+  eigenschappen, betrekkingen en feiten van het algemene gelden ook voor het bijzondere. M01 h.4 §6: een
+  afleidingsregel kan zo'n specialisatie afleiden ("wordt beschouwd als").
+- Skill: het woord staat in het bronveld van de afleidingsregel. `relaties.md` zet specialisatie bij activiteit 3.
+- Voorstel: bij §1, §2 en §6 uitleggen wat specialisatie is en hoe je haar herkent; `relaties.md` zegt waarom ze
+  geen relatietype is (ADR-011 wordt niet herzien) en waar ze dan wel landt: in de toelichting, en later als
+  begripsrelatie *soort van*.
+- Raakt: leestekst (W2, W4).
+
+**B9. Per klasse de samenhang met andere klassen.**
+- Bron: M01 h.4, per klasse *Relatie met andere klassen*. Voorbeelden: een rechtsbetrekking heeft altijd twee
+  partijen en een voorwerp, en vaak een duur; een tijds- of plaatsaanduiding neemt de verbanden over van de klasse die
+  zij verbijzondert; een brondefinitie hoort bij een term voor een subject, object, variabele of parameter.
+- Skill: `relaties.md` vat de verbanden samen vanuit de catalogus. Per klasse staat het niet in de referentie.
+- Voorstel: een kort onderdeel *Samenhang* per klasse, dat naar het relatietype in de catalogus wijst. Eén afwijking
+  benoemen: de catalogus staat `definieert` ook toe naar een betrekking, feit, tijd of plaats; dat is ruimer dan het
+  boek en blijft een projectkeuze (P18).
+- Raakt: leestekst (W2).
+
+**B10. De afbakening tussen klassen staat in de code en niet in de skill.**
+- Bron: de dertien klasseprofielen van de annotatieketen (`jas_pipeline/profielen/*.yaml`, `confusable_classes` en
+  `negative_patterns`), elk met een verwijzing naar H2 of een projectregel.
+- Skill: één onderscheid (rechtsbetrekking tegenover rechtsfeit), de samenloop van operator en afleidingsregel, en de
+  voorrang van tijd en plaats. Rechtsfeit tegenover voorwaarde of tijdsaanduiding, rechtsbetrekking tegenover
+  afleidingsregel of delegatie en subject tegenover object staan er niet.
+- Voorstel: een onderdeel *Afbakening* per klasse in de referentie, met dezelfde paren als de profielen. Een test eist
+  dat elk paar uit een profiel in de referentie staat, zodat skill en keten niet uiteenlopen.
+- Raakt: leestekst en een test (W2). Geen gedrag: de profielen veranderen niet.
+
+**B11. Voorwaarde, parameter en delegatie: details uit het boek.**
+- Bron: M01 h.4 §5 (ook "in elk geval" en "ten minste" zeggen iets over cumulatie, en "ten minste" kan een
+  niet-uitputtende lijst zijn die elders is ingevuld), §9–10 (de eenheid hoort bij de parameter; een parameterwaarde
+  kan voorkomen zonder dat de parameter is uitgedrukt), §14–15 (een delegatie kan ook als "het door Onze Minister
+  vastgestelde bedrag" staan; een invulling herken je aan de verwijzing terug naar de grondslag).
+- Skill: de opsomming met "ten minste" staat in `markeren-fragmentgrenzen.md`; de rest ontbreekt.
+- Voorstel: aanvullen in de referentie, buiten de drie bronvelden.
+- Raakt: leestekst (W2).
+
+**B12. De versie-aanduiding "JAS 1.0.10" heeft geen bron in het register.**
+- Bron: `jas_pipeline/keten.py` en de systeemprompts van classifier en reviewer noemen die versie. `bronnen.md` (M04)
+  noemt een commit en een datum, geen versienummer.
+- Voorstel: in W1 uitzoeken waar het nummer vandaan komt en het in M04 en het manifest vastleggen. De prompt blijft
+  zoals hij is.
+- Raakt: leestekst (W1).
+
+### Activiteit 2c: samenhang
+
+**B13. De partij die de tekst niet noemt.**
+- Bron: M01 h.4 §4.2.2 (*Rechten en plichten*) en §4.3.1. De wet noemt vaak één partij; de andere moet expliciet
+  gemaakt worden om de rechtsbetrekking te duiden. Het boek noemt dat de dieptestructuur naast de oppervlaktestructuur.
+- Skill: vooral een verbod. "Verzin geen wederpartij", "vul geen partij in", en in het voorbeeld "noteer impliciet,
+  niet in deze bepaling". `relaties.md` zegt het zorgvuldiger: eerst koppelen aan een plek waar de partij wel staat.
+- Voorstel: de regel omdraaien zonder hem losser te maken. Je benoemt de wederpartij als interpretatie, met de
+  bepaling waaruit zij volgt; je citeert haar nooit en je raadt niet. In de annotatie blijft gelden wat ADR-011 zegt:
+  alleen de jurist legt een impliciete partij vast.
+- Raakt: leestekst (W4), en de modeltekst van `duiding` (G1) als Lex het ook zo moet doen. Dit is vraag 3.
+
+**B14. Het diagram rond een centrale klasse is een product van activiteit 2.**
+- Bron: M02 §3.4.2, deelactiviteit c. Het diagram toont de brontekst, de markeringen met hun klasse en de verbanden,
+  en is een tussenresultaat dat later door een diagram van begrippen vervangen kan worden.
+- Skill: `relaties.md` noemt het diagram; het dossier heeft een relatietabel en noemt een diagram "aanvullend".
+- Voorstel: in `relaties.md` zeggen wat het diagram minimaal toont, en per centrale klasse welke verbanden je naloopt
+  (uit B7 en B9). Geen nieuw type in de catalogus.
+- Raakt: leestekst (W4).
+
+**B15. De afleidingshiërarchie.**
+- Bron: M01 h.4 §6, *Afleidingshiërarchie*: een regel kan de uitkomst van een andere regel nodig hebben.
+- Skill: `relaties.md` zet verbanden tussen regels bij activiteit 3b.
+- Voorstel: het verband noemen als iets wat je bij 2c signaleert (de invoer van deze regel is de uitvoer van een
+  andere bepaling) en bij 3b uitwerkt. De catalogus blijft gelijk: de relatie `invoer` mag al naar een andere bepaling
+  wijzen.
+- Raakt: leestekst (W4).
+
+### Activiteit 3a: begrippen
+
+**B16. De richtlijnen voor de naam en de omschrijving van een begrip.**
+- Bron: M01 h.3 stap 3a. Onder meer: sluit aan bij de woorden van de wet; begin met het kernwoord; geen ontkenning in
+  de naam; de omschrijving moet het begrip in een zin kunnen vervangen; gebruik eerder vastgelegde begrippen opnieuw;
+  zo min mogelijk afkortingen; een afleiding krijgt een eigen begrip ("bepalen …"); één formulering met meer
+  betekenissen levert meer begrippen op, en verschillende formuleringen met één betekenis één begrip.
+- Skill: `begrippen.md` heeft de kern (geen eigen naam als soortbegrip, geen rekenregel, het doel, de herkomst). De
+  vervangtoets, de ontkenning, het kernwoord, het hergebruik en de afkortingen ontbreken.
+- Voorstel: `begrippen.md` aanvullen met een lijst *Naam* en een lijst *Omschrijving*, elk met de bron.
+- Raakt: leestekst (W5); `begrippen.md` is geen modeltekst. Twee van deze regels zijn in code te toetsen: zie T5.
+
+**B17. Een voorbeeld bij een begrip heeft een vaste vorm.**
+- Bron: M01 h.3 stap 3a en stap 4a. Het begrip vooraan, dan het subject met een verzonnen naam, dan het tijdvak, dan
+  de waarde. Een grensgeval hoort erbij: het toetst of iedereen het begrip hetzelfde leest.
+- Skill: voorbeelden toetsen een definitie, met een grensgeval; de vorm staat er niet.
+- Voorstel: de vorm opnemen, met een eigen voorbeeld.
+- Raakt: leestekst (W5).
+
+**B18. Het begrip en zijn klasse.**
+- Bron: M01 h.3 stap 3a: bij een begrip leg je onder meer de soort vast, en een verdieping van de klasse (het type
+  rechtsbetrekking of rechtsfeit).
+- Skill: "een begripstype of JAS-duiding stel je niet voor" (het slanke NL-SBB-begrip, ADR-003).
+- Voorstel: de afwijking van de bron uitdrukkelijk als projectkeuze vastleggen in P15, met de reden. Of het anders
+  moet, is vraag 6.
+- Raakt: leestekst (W1).
+
+### Valideren en het dossier (activiteit 4 en 5)
+
+**B19. De methode kent drie manieren van valideren; de skill noemt er één.**
+- Bron: M01 h.3 stap 4 (een review door de disciplines, concrete voorbeelden, juridische scenario's) en M02 §3.6.2
+  (afleidingsregels toetsen met de scenario's; voorbeeldreeksen: alle varianten van de invoer met de verwachte
+  uitkomst, ook nul, negatief en onbekend, en per uitkomst de vraag of zij juridisch juist is).
+- Skill: stap 5 van het analyseprotocol draait "vier scenario's per beslispunt" en heet een projectkeuze (P08).
+- Voorstel: stap 5 wordt *Toetsen*: de review, het voorbeeld bij een begrip, en de voorbeeldreeks bij een
+  afleidingsregel. De vier gevallen van P08 blijven als hulpmiddel om een reeks te vullen (normaal, voorwaarde niet
+  vervuld, uitzondering, grens), nu met de bron erbij. Het scenario volgt vraag 1.
+- Raakt: leestekst (W6). Het sluit aan op besluit 1 van deel 1.
+
+**B20. Ontbrekend uitvoeringsbeleid signaleren is een eigen stap.**
+- Bron: M01 h.3 stap 5; M02 §3.7. Waar de analyse een interpretatie of invulling nodig heeft die nergens is
+  vastgelegd, meld je dat, zodat het beleid er komt.
+- Skill: "een open norm krijgt geen verzonnen drempel", en open punten met een reviewvraag.
+- Voorstel: in het dossier een eigen soort open punt: *ontbrekend beleid*, met de norm, de keuze die nodig is en wie
+  haar maakt.
+- Raakt: leestekst (W6).
+
+**B21. Rechtspraak naast de gangbare uitleg.**
+- Bron: M01 h.3 stap 3d. Rechtspraak die de gangbare uitleg bevestigt, noem je als onderbouwing; rechtspraak die
+  afwijkt, neem je niet zomaar over: eerst een standpunt van wie over de regeling gaat.
+- Skill: "geen automatische regel dat beleid voor rechtspraak gaat".
+- Voorstel: de twee gevallen noemen in `verwijzingen-volgen.md`, als open punt met een reviewvraag.
+- Raakt: leestekst (W6).
+
+## Bevindingen over de opbouw van de skill
+
+**O1. JRM zit op meer plekken dan het woord.** Naast de vondsten van deel 1: de G-identiteit ("gebeurtenis of
+rechtsgevolg") in het protocol en het dossier; de kolom *Ontstaat/wijzigt/eindigt* in §4 van het dossier, die een
+rechtsgevolg als eigen rij vastlegt; "het gevolg voor de scenario's" in de tabel Interpretaties; "werk terug als een
+scenario een tegenspraak blootlegt" in `SKILL.md`; en de zin in `relaties.json` onder `buiten_activiteit_2`. Dat een
+rechtsfeit een rechtsbetrekking creëert, wijzigt of beëindigt, is JAS (H2:53) en blijft: als relatie, niet als eigen
+element. Gaat mee in S5.
+
+**O2. Het bronregister dekt niet elke methodestap.** `relaties.md`, `begrippen.md` en `werkgebied.md` noemen hun
+grondslag; `analyseprotocol.md` §2 en §3 doen dat met een P-regel die naar "M01 h.3" of "M01 h.7" wijst zonder
+paragraaf. Voorstel (W1): elke reference begint met een regel *Grondslag*; elke P-regel noemt bron en paragraaf, of
+zegt "projectkeuze"; en een test eist dat. Dat maakt "volgt de bronnen aantoonbaar" toetsbaar.
+
+**O3. Namen lopen uiteen.** Het bestand heet `annotatieprotocol.md`, de tekst noemt het de markeringslijst. Voorstel
+(W3): hernoemen naar `markeringslijst.md`. Het staat niet in de lijst van vaste bestandsnamen in `platform.md`.
+
+**O4. De evals dekken twee van de vijf werkstromen.** Er zijn er drie: werkgebied, markeren, en klassen bij een
+delegatie. Voorstel (W7): erbij een geval voor samenhang (relaties leggen, met een partij die de tekst niet noemt),
+voor een begrip (een definitie met herkomst), voor het dossier, en twee grensgevallen: een verzoek om een scenario
+(de skill verwijst door naar wetsuitvoering en maakt geen JAS-markeringen) en een vraag die geen wetsanalyse is.
+
+**O5. De voorbeelden tonen één soort bepaling.** Beide komen uit artikel 9 Invorderingswet en gaan over een toestand
+en een uitzondering. Voorstel (W7): een derde voorbeeld met een rechtsbetrekking waarvan de wederpartij niet genoemd
+is, en een vierde met een afleidingsregel (invoer, bewerking, uitvoer). Uit andere bepalingen dan de evals.
+
+**O6. De router en de omschrijving.** `SKILL.md` is 12 kB en volgt de eisen: werkstromen met checklists, verwijzingen
+één niveau diep, references met een inhoudsopgave. Na S5 noemt de omschrijving JRM niet meer; ze noemt dan wel wanneer
+de skill níét past (een scenario, de stap naar gegevens), zodat Claude de goede skill kiest.
+
+## Bevindingen over de tools van Lex
+
+De gebruiker vroeg de bijbehorende tools mee te nemen. Dit zijn de tools die van wetsanalyse zijn (deel 1, §5).
+
+**T1. De klasseduiding in de keten komt uit de skill, en dat is bewaakt.** De classifier bouwt zijn klassenblok uit
+`jas_klassen.py`; `test_detectieprofielen` eist dat de officiële tekst daar vandaan komt en niet uit een profiel. Geen
+actie.
+
+**T2. De systeemprompts van classifier en reviewer staan in code, niet in de skill.** Ze dragen methoderegels ("een
+rechtsfeit vereist een rechtsgevolg", "verzin geen tekstankers voor impliciete partijen"). Die regels kloppen met het
+JAS en noemen JRM niet. Geen wijziging; in W1 krijgen ze een regel in het bronregister, zodat ook deze modeltekst naar
+een bron wijst.
+
+**T3. `jas_klasse_opvragen` geeft alleen de drie bronvelden.** Wie twijfelt tussen twee klassen, heeft juist de
+afbakening nodig (B10). Voorstel (G2): de tool geeft ook de afbakening en de subklassen, gegenereerd uit de skill.
+Raakt: gedrag van de rollen die de tool hebben.
+
+**T4. De subtypen.** `jas_subtype` bestaat voor de paren en voor de tijdsaanduiding. De subklassen van rechtsbetrekking
+en rechtsfeit (B6, B7) hebben er geen. Vastleggen in de annotatie raakt het contract van de api en de werkplek en
+vraagt bewijs dat de keten zelden heeft. Voorstel: nu niet; zie vraag 2.
+
+**T5. De begrippentoetsen.** De toetsen dekken een kringdefinitie, een rekenregel, een rechtsgevolg en een afleiding
+in de definitie. Uit B16 zijn er twee bij te maken zonder model: een ontkenning in de naam, en een afkorting in de
+naam. Voorstel (G3): twee signalen erbij, als aandachtspunt en nooit als weigering.
+
+**T6. De grenzen van de detectoren tegenover de Handleiding (B4).** Niet in deze ronde getoetst: het vraagt een
+vergelijking per detector. Voorstel: bij W3 een lijst maken van waar de detectoren afwijken van de markeerregels
+(bijvoorbeeld de verwijzing in de formulering), en die als open punten in `annotatieketen.md` zetten. Een wijziging
+van een detector is een eigen stap met een annotatiemeting en valt buiten dit plan.
+
+## De stappen van deel 2
+
+Zonder gedragswijziging (de methodetekst per rol en `jas_klassen.py` blijven byte-gelijk; de tests op de
+vingerafdrukken en de drift bewijzen dat per PR):
+
+- **W1. Het bronregister.** Elke reference een regel *Grondslag*; elke P-regel met bron en paragraaf of
+  "projectkeuze"; P15 met de afwijking van B18; een regel voor de prompts van de keten (T2); de versie van B12; de
+  test van O2. Raakt: skill (leestekst), bronpakket, een test.
+- **W2. De klassenreferentie.** Per klasse *Subklassen* (B6, B7), *Samenhang* (B9), *Afbakening* (B10) en de details
+  van B8 en B11, buiten de drie bronvelden; de test van B10. Raakt: skill (leestekst), bronpakket, een test.
+- **W3. Markeren.** De markeerregels (B4), het criterium van de centrale klasse (B5), de hernoeming (O3), de lijst
+  van T6. Raakt: skill (leestekst), bronpakket, docs.
+- **W4. Samenhang.** De partij die de tekst niet noemt (B13, volgens vraag 3), het diagram (B14), specialisatie (B8)
+  en de afleidingshiërarchie (B15). `relaties.json` blijft gelijk. Raakt: skill (leestekst), bronpakket.
+- **W5. Begrippen.** De richtlijnen (B16) en de vorm van een voorbeeld (B17). Raakt: skill (leestekst), bronpakket.
+- **W6. Werkgebied, toetsen en dossier.** B1–B3, B19–B21; het analyseprotocol en het dossier in hun nieuwe vorm.
+  Raakt: skill (leestekst), bronpakket, het analysedossier.
+- **W7. De skill als geheel.** De omschrijving en de router (O6), de evals (O4), de voorbeelden (O5). Raakt: skill
+  (leestekst), bronpakket.
+
+Met gedragswijziging (elk een eigen PR en een eigen meting):
+
+- **G1. De sectie `duiding` sterker.** Na S6. Wat erbij komt, in de woorden van de bron: benoem de partij die de tekst
+  niet noemt als interpretatie met haar vindplaats (B13); noem de soort rechtsbetrekking of rechtsfeit waar de tekst
+  haar draagt, en anders niet (B6, B7). Raakt: de vingerafdruk van `duiding` en `agent`.
+- **G2. `jas_klasse_opvragen` met afbakening en subklassen** (T3). Na W2. Raakt: een toolresultaat.
+- **G3. Twee begrippentoetsen** (T5). Na W5. Raakt: de signalen op een begripskaart; geen modeltekst.
+
+Niet in dit plan: subklassen als subtype in de annotatie (T4), een wijziging van een detector (T6), en wetsuitvoering
+aan een rol koppelen.
+
+## De volgorde samen met S1–S6
+
+De stappen staan in de volgorde waarin ik ze aanbied. Elke regel is één PR. De hoofdsessie bundelt en merget.
+
+1. **S0b**: dit deel 2. Alleen docs. Nu.
+2. **S1**: de regel in code voor een verzoek volgens een niet-gekoppelde methode. Na het sein. Geen meting.
+3. **S2**: het veld `methode` in de catalogus. Geen meting.
+4. **S3**: de grenzen (een rol krijgt secties van één methode; geen JAS-tool in een profiel van een andere methode).
+   Geen meting.
+5. **S4**: wetsuitvoering aanvullen, met wat uit wetsanalyse verhuist. Geen meting.
+6. **S5**: wetsanalyse opschonen buiten de markers, met O1; test 1 buiten de markers. Geen meting. Let op: P07 en P08
+   staan in de bronnenlijst van de sectie `duiding` in `agentrollen.json`. Verandert het weghalen van die codes de
+   vingerafdruk, dan blijven de codes staan tot S6. De test wijst het uit.
+7. **W1**, **W2**, **W3**, **W4**, **W5**, **W6**, **W7**: de versterking van de leestekst, in die volgorde. Geen
+   meting. W2 komt voor W4 omdat de samenhang op de subklassen steunt; W7 komt als laatste omdat de evals de nieuwe
+   tekst toetsen.
+8. **S6**: JRM uit de modeltekst van `duiding` en `supervisor`; test 1 voor de methodetekst. **Meting.**
+9. **G1**: `duiding` sterker. **Meting**, met S6 als nulpunt.
+10. **G2**: de tool. **Meting.**
+11. **G3**: de twee toetsen. **Meting zonder model.**
+
+S5 en W1–W7 raken dezelfde bestanden en gaan daarom na elkaar, niet naast elkaar. S1–S3 raken de skill niet en
+kunnen naast S4–W7 lopen.
+
+## De metingen
+
+Voor elke meting geldt ADR-010 en P19: voor en na op dezelfde versie van al het andere, drie runs, en het resultaat in
+`docs/architectuur/metingen/README.md`. Ik vraag een meting op acceptatie aan bij de hoofdsessie en start er zelf geen.
+
+- **S6** (JRM uit `duiding` en `supervisor`).
+  - Sets: de kwaliteitsset, `golden_gesprek`, `golden_duiding` en `golden_routering`; in beide vormen (supervisor en
+    centrale agent).
+  - Drempel: brongetrouwheid gelijk; kwaliteit niet slechter; de routering gelijk (geen vraag die van route wisselt);
+    niet duurder, gewogen.
+  - Waar ik op let: een duidingsantwoord noemt nog de partijen en het voorwerp, en voegt geen rechtsgevolg toe dat de
+    tekst niet draagt.
+- **G1** (`duiding` sterker).
+  - Sets: `golden_duiding` en de kwaliteitsset; in beide vormen. Erbij een kleine vaste set van tien bepalingen met
+    een bekende soort (vijf met een partij die de tekst niet noemt, vijf met een gebonden of discretionaire
+    bevoegdheid), uit andere bepalingen dan de voorbeelden in de skill. Die set komt in de PR van S6, zodat het nulpunt
+    hem al heeft.
+  - Drempel: brongetrouwheid gelijk; op de nieuwe set noemt Lex de wederpartij met een vindplaats in minstens acht van
+    de tien, en nooit als citaat; geen verzonnen partij op de bestaande sets; niet meer dan tien procent duurder,
+    gewogen.
+- **G2** (de tool).
+  - Sets: de vragen in `golden_duiding` en `golden_gesprek` waar de tool wordt aangeroepen; als dat er minder dan vijf
+    zijn, eerst vijf twijfelvragen toevoegen ("is dit een voorwaarde of een rechtsfeit?").
+  - Drempel: het antwoord op een twijfelvraag noemt het onderscheid uit de referentie; brongetrouwheid gelijk; het
+    toolresultaat blijft onder een vaste lengte.
+- **G3** (de toetsen).
+  - Sets: de referentieset begrippen (`v1`, `heldout-v1`, `heldout-v2`), zonder model.
+  - Drempel: geen signaal op een begrip dat de referentie goed noemt, behalve waar de naam werkelijk een ontkenning of
+    afkorting draagt; het aantal nieuwe signalen staat in de meting.
+- **S5 en W1–W7**: geen meting. Het bewijs per PR is dat de vingerafdrukken per rol en `agent/jas_klassen.py` gelijk
+  zijn (`test_methodepakket`, `test_methode_drift`), en dat `test_bronpakket` en `test_profielregister` slagen.
+
+## De tests van deel 2
+
+Naast de vijf van deel 1:
+
+6. **Elke methodestap heeft een bron** (O2): elke reference heeft een regel *Grondslag* met bekende codes; elke
+   P-regel noemt een bron met paragraaf, of het woord "projectkeuze".
+7. **De afbakening loopt gelijk** (B10): elk paar uit `confusable_classes` van een klasseprofiel staat in de
+   klassenreferentie bij die klasse.
+8. **De evals noemen geen bepaling uit de voorbeelden** (O4, O5): een voorbeeld in de skill is geen testgeval.
+
+Test 1 van deel 1 krijgt één verfijning: de woordenlijst volgt de uitkomst van vraag 1.
+
+## Vragen voor de gebruiker (deel 2)
+
+**1. Het juridische scenario: waar ligt de grens precies?**
+Het boek (stap 4) en de Handleiding (1c, 1e, 4a) gebruiken het juridische scenario binnen Wetsanalyse zelf, de
+Handleiding met begintoestand, rechtsfeit, rechtsgevolgen en eindtoestand. Besluit 1 legt het scenario bij
+wetsuitvoering.
+*Voorstel:* besluit 1 blijft. Wetsanalyse zegt in een paar zinnen waar de methode het scenario gebruikt (bij het
+werkgebied en bij het toetsen), met de bron, en verwijst voor het uitwerken naar wetsuitvoering. Een wetsanalyse legt
+zelf geen scenario vast. Wetsuitvoering krijgt in S4 een regel in het bronregister voor het boek en de Handleiding,
+naast de specificatie van BZK. De test staat het woord toe in die verwijzende zinnen.
+*Het alternatief:* wetsanalyse houdt het eenvoudige scenario van de Handleiding (gebeurtenissen op volgorde) en alleen
+de akte gaat naar wetsuitvoering.
+
+**2. De subklassen van rechtsbetrekking en rechtsfeit: alleen uitleg, of ook vastleggen?**
+*Voorstel:* nu alleen in de skill (W2) en in het antwoord van Lex bij een duiding (G1). Vastleggen als subtype bij
+een markering raakt de api en de werkplek en komt als open keuze in `docs/PLAN.md`.
+
+**3. De partij die de tekst niet noemt.**
+De bron zegt: maak haar expliciet. De skill zegt nu vooral: vul niets in.
+*Voorstel:* Lex benoemt de wederpartij in een duiding als interpretatie, met de bepaling waaruit zij volgt, en nooit
+als citaat. Bij annoteren verandert niets: alleen de jurist legt een impliciete partij vast (ADR-011).
+
+**4. S6 en G1: twee metingen of één?**
+S6 haalt JRM uit `duiding`, G1 zet er iets voor in de plaats. Apart meten geeft per meting één oorzaak; samen scheelt
+één meetronde.
+*Voorstel:* apart, S6 eerst.
+
+**5. De versienummers.**
+`methode_versie` (nu 2.1) staat in de kop van elke systeemprompt. Zonder JRM is de methode een andere.
+*Voorstel:* bij S6 naar 3.0, in dezelfde meting, omdat die meting alle rollen al raakt. `skill_versie` gaat bij S5
+naar 4.0; dat is geen modeltekst.
+
+**6. Het begrip en zijn JAS-klasse.**
+Het boek legt bij een begrip de soort en het type rechtsbetrekking of rechtsfeit vast. De skill stelt geen
+begripstype voor (het slanke NL-SBB-begrip).
+*Voorstel:* zo laten, en de afwijking van de bron met de reden in het beslisregister zetten (P15).
+
+**7. De tools: hoe ver in dit spoor?**
+*Voorstel:* G2 (de tool geeft ook de afbakening) en G3 (twee begrippentoetsen) bouw ik in dit spoor. De subklassen als
+subtype (T4) en een wijziging van een detector (T6) niet: die krijgen een regel bij de open keuzes.

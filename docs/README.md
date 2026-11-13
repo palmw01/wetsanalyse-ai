@@ -84,7 +84,8 @@ Toelichting bij enkele documenten:
   [`architectuur/plan-betekenisonderzoek.md`](architectuur/plan-betekenisonderzoek.md) (spoor M) en
   [`architectuur/plan-contextweergave.md`](architectuur/plan-contextweergave.md) (spoor T). Los daarvan staat
   [`architectuur/plan-methodes-scheiden.md`](architectuur/plan-methodes-scheiden.md): de inventaris en de volgorde om
-  wetsanalyse (JAS) en wetsuitvoering (JRM) te scheiden (13 nov 2026; nog niets gebouwd).
+  wetsanalyse (JAS) en wetsuitvoering (JRM) te scheiden, met in deel 2 de toets van de skill en de JAS-tools tegen de
+  bronnen en de stappen om wetsanalyse te versterken (13 nov 2026; nog niets gebouwd).
 - **`architectuur/verbeterplan-jas-pipeline-2026-10-08.md`** is *onderzoek*: het ontwerp voor de
   kandidaten na V7 uit spoor A (bewijs per hypothese, frames, relaties), met eigen meet- en
   acceptatiecriteria. Het start na V7.
