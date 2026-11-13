@@ -34,6 +34,8 @@ from ..sjablonen.extern import MAX_LIJST
 from .overzicht import TOOL as OVERZICHT_TOOL
 from .sjabloon import vul_aanroep
 from ..provenance import alleen_genoemde_regelingen, collect_sources
+from ..beweringen import regelingen_genoemd
+from ..buiten_graaf import _graafnamen
 from ..regelingnamen import met_regelingnamen
 from ..resultaat import is_fout
 from ..agentvorm import STANDAARD as DEFAULT_SPECIALIST, agent_voor
@@ -587,7 +589,11 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     # dat een citaat uit het vorige antwoord herhaalt, is niet minder brongetrouw dan dat antwoord.
     # Bij een sjabloon niet de blokken die afgeleide duiding of tekst van de code dragen (`NIET_GETOETST`).
     tekst = antwoord_tekst(Antwoord.model_validate(state["antwoord"]), zonder=NIET_GETOETST) if state.get("antwoord") else state.get("answer", "")
-    report = check_grounding(tekst, controletrace(state), overzicht=state.get("overzicht") or None, bekend=_bekend(state))
+    # De namen van de regelingen in de graaf (per proces bewaard): daarmee is een regeling die nergens vandaan komt een
+    # bewering. Alleen opgevraagd als het antwoord iets noemt met de vorm van een regeling; zonder namen geldt de toets niet.
+    namen = (_graafnamen(b.graph) or None) if regelingen_genoemd(tekst) else None
+    report = check_grounding(tekst, controletrace(state), overzicht=state.get("overzicht") or None, bekend=_bekend(state),
+                             regelingen=namen)
     # Wettekst uit een sjabloon staat zonder aanhalingstekens, dus de toets ziet "niets te controleren". Maar de code
     # toonde hem uit de tool-rijen, met de vindplaats erbij: de melding dat er geen vindplaats is, zou onwaar zijn.
     if report.niveau == "onbepaald" and not report.onbevestigd and (state.get("antwoord") or {}).get("doelen"):
