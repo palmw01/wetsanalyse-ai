@@ -146,12 +146,16 @@ try {
     const groep = page.locator("[data-concepten]");
     await groep.waitFor();
     await page.locator('[data-concept-id="o1"]').waitFor();
-    // De eigen concepten eerst, dan wat gedeeld is, ingetrokken onderaan; een profiel opent de editor nog niet.
-    assert.deepEqual(await groep.locator("[data-concept-id]").evaluateAll((els) => els.map((e) => e.dataset.conceptId)),
-      ["o3", "o1", "o4", "o2", "o5"]);
+    // De eigen concepten eerst, dan wat gedeeld is; een profiel opent de editor nog niet. Ingetrokken staat standaard
+    // verborgen (intrekken is hier de manier om een concept weg te doen) en komt onderaan terug met *Toon ingetrokken*.
+    const ids = () => groep.locator("[data-concept-id]").evaluateAll((els) => els.map((e) => e.dataset.conceptId));
+    assert.deepEqual(await ids(), ["o3", "o1", "o4", "o2"]);
+    await page.locator('[data-actie="concepten-ingetrokken"]', { hasText: "Toon ingetrokken (1)" }).click();
+    await page.locator('[data-concept-id="o5"]').waitFor();
+    assert.deepEqual(await ids(), ["o3", "o1", "o4", "o2", "o5"]);
     assert.match(await page.locator('[data-concept-id="o1"]').innerText(), /Concept[\s\S]*1 bevinding/);
     assert.match(await page.locator('[data-concept-id="o2"]').innerText(), /van piet[\s\S]*Draait nu[\s\S]*Geldig/);
-    assert.match(await page.locator('[data-concept-id="o3"]').innerText(), /loopt achter/);
+    assert.match(await page.locator('[data-concept-id="o3"]').innerText(), /op oudere versie/);
     // Weet Lex niet wat er draait, dan zegt het label dat, en niet dat het concept niet draait.
     const onbekend = await page.locator('[data-concept-id="o4"]').innerText();
     assert.match(onbekend, /nog onbekend wat er draait/);

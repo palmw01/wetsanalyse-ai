@@ -139,7 +139,7 @@ export function ConceptPagina({ id }: { id: string }) {
             acties={bewerkbaar ? (
               <MeerMenu label="Meer over dit concept" maat="sm">
                 {() => <MenuVerwijder vraag="Intrekken?" ariaLabel="Concept intrekken" onBevestig={trekIn}
-                  titel="Het concept is daarna alleen nog te lezen; de versies blijven bewaard en de naam is weer vrij.">Intrekken</MenuVerwijder>}
+                  titel="Intrekken haalt het concept uit gebruik en uit het overzicht. Verwijderen kan niet: de versies blijven bewaard en te lezen, en de naam is weer vrij.">Intrekken</MenuVerwijder>}
               </MeerMenu>) : undefined} />
           {melding && <Melding type="fout" className="mb-4">{melding}</Melding>}
           {o.basis_verouderd && (
