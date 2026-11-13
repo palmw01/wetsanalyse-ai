@@ -4,6 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AutoTextarea } from "@/components/ui/AutoTextarea";
+import { Bestandenlijst } from "@/components/ui/Bestandenlijst";
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { Button, knopKlasse } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
@@ -36,7 +37,7 @@ type Controle = { stand: "bewaard" | "bezig" | "klaar" | "mislukt"; geldig: bool
  *    bewaard. Is er intussen een nieuwere versie, dan blijft de tekst staan en kiest de gebruiker.
  *  - Niet-opgeslagen werk staat in de browser tot het is opgeslagen of verworpen, en weggaan vraagt eerst.
  *  - Geen sneltoetsen met een letter; niets hier start Lex. */
-export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen }: {
+export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen, zij, klaargezet, onVerworpen }: {
   o: WerkplaatsOnderdeel;
   versie: WerkplaatsVersie;
   grenzen: WerkplaatsStand["grenzen"];
@@ -44,6 +45,11 @@ export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen }: 
   bewerkbaar: boolean;
   /** Er is een nieuwe versie: laad het concept opnieuw. */
   onOpgeslagen: () => void;
+  /** Onder de bestanden en de controle: de versies. */
+  zij?: React.ReactNode;
+  /** De bestanden van een eerdere versie, teruggezet als wijziging op deze (*Zet terug als concept*). */
+  klaargezet?: { bestanden: Bestanden; van: number } | null;
+  onVerworpen?: () => void;
 }) {
   const router = useRouter();
   const pad = usePathname();
@@ -51,7 +57,7 @@ export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen }: 
   const bewaard = useMemo<Bestanden>(() => versie.bestanden ?? {}, [versie]);
   const sleutel = werkSleutel(o.id, versie.nummer);
 
-  const [werk, setWerk] = useState<Bestanden>(bewaard);
+  const [werk, setWerk] = useState<Bestanden>(klaargezet && bewerkbaar ? klaargezet.bestanden : bewaard);
   const [hersteld, setHersteld] = useState(false);
   const [controle, setControle] = useState<Controle>({ stand: "bewaard", geldig: versie.geldig, bevindingen: versie.bevindingen });
   const [lezen, setLezen] = useState(false);
@@ -64,10 +70,11 @@ export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen }: 
 
   // Niet-opgeslagen werk van een vorig bezoek staat er weer (na het mounten: de server kent geen opslag).
   useEffect(() => {
-    if (!bewerkbaar) return;
+    // Wat net is teruggezet, gaat voor werk van een vorig bezoek.
+    if (!bewerkbaar || klaargezet) return;
     const oud = leesOpslag(sleutel, leesWerk);
     if (oud && wijzigingen(bewaard, oud).aantal > 0) { setWerk(oud); setHersteld(true); }
-  }, [sleutel, bewaard, bewerkbaar]);
+  }, [sleutel, bewaard, bewerkbaar, klaargezet]);
 
   const w = useMemo(() => wijzigingen(bewaard, werk), [bewaard, werk]);
   // Na het opslaan is dit de editor van een versie die er niet meer toe doet: de nieuwe versie krijgt een nieuwe editor.
@@ -129,6 +136,7 @@ export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen }: 
 
   function verwerp() {
     setWerk(bewaard); setHersteld(false); setNieuwer(null); setFout(null); setToelichting("");
+    onVerworpen?.();
   }
 
   async function slaOp(naVersie: number) {
@@ -182,6 +190,14 @@ export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen }: 
           <Melding type="uitleg">Je niet-opgeslagen wijzigingen van de vorige keer staan er weer. Sla ze op, of verwerp ze onderaan.</Melding>
         </div>
       )}
+      {klaargezet && gewijzigd && !hersteld && (
+        <div className="mb-4" data-melding="teruggezet">
+          <Melding type="uitleg">
+            De bestanden van versie {klaargezet.van} staan klaar als wijziging op versie {versie.nummer}. Er is nog niets
+            veranderd: opslaan maakt er versie {versie.nummer + 1} van, verwerpen laat versie {versie.nummer} staan.
+          </Melding>
+        </div>
+      )}
       <div className="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
         <div className="min-w-0 space-y-4">
           <Kaart titel="Bestanden" telling={paden.length} data-blok="bestanden"
@@ -201,23 +217,16 @@ export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen }: 
                 </div>
               </form>
             )}
-            <ul aria-label="Bestanden van dit concept" className="-mx-1 space-y-0.5">
-              {paden.map((p) => {
+            <Bestandenlijst paden={paden} gekozen={gekozen} onKies={kies} label="Bestanden van dit concept"
+              stand={(p) => (w.gewijzigd.includes(p) ? "gewijzigd" : w.toegevoegd.includes(p) ? "nieuw" : "")}
+              bij={(p) => {
                 const n = perBestand(p).length;
                 const anders = w.gewijzigd.includes(p) ? "gewijzigd" : w.toegevoegd.includes(p) ? "nieuw" : "";
-                return (
-                  <li key={p}>
-                    <button type="button" onClick={() => kies(p)} aria-current={p === gekozen ? "true" : undefined} data-bestand={p}
-                      data-bestand-stand={anders || undefined}
-                      className="focus-ring flex min-h-[32px] w-full items-center gap-2 rounded-knop px-2 py-1 text-left text-sm text-ink transition-colors hover:bg-surface aria-[current=true]:bg-lint/[0.06] aria-[current=true]:font-medium aria-[current=true]:text-lint coarse:min-h-[44px]">
-                      <span className="min-w-0 flex-1 font-mono text-xs [overflow-wrap:anywhere]">{p}</span>
-                      {anders && <StatusLabel toon="lint" uitleg={anders === "nieuw" ? "Nieuw, nog niet opgeslagen" : "Gewijzigd, nog niet opgeslagen"}>{anders}</StatusLabel>}
-                      {n > 0 && <StatusLabel toon="geel" uitleg={n === 1 ? "1 bevinding in dit bestand" : `${n} bevindingen in dit bestand`}>{n}</StatusLabel>}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                return (<>
+                  {anders && <StatusLabel toon="lint" uitleg={anders === "nieuw" ? "Nieuw, nog niet opgeslagen" : "Gewijzigd, nog niet opgeslagen"}>{anders}</StatusLabel>}
+                  {n > 0 && <StatusLabel toon="geel" uitleg={n === 1 ? "1 bevinding in dit bestand" : `${n} bevindingen in dit bestand`}>{n}</StatusLabel>}
+                </>);
+              }} />
             {w.verwijderd.length > 0 && (
               <p className="mt-3 text-xs text-muted [overflow-wrap:anywhere]" data-bestanden-verwijderd>
                 Verwijderd, nog niet opgeslagen: <span className="font-mono">{w.verwijderd.join(", ")}</span>
@@ -245,6 +254,7 @@ export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen }: 
               </ul>
             )}
           </Kaart>
+          {zij}
         </div>
 
         <Kaart data-blok="inhoud" titel={<span className="font-mono text-sm [overflow-wrap:anywhere]">{gekozen || "Geen bestanden"}</span>}

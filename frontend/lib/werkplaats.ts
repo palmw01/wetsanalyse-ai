@@ -268,3 +268,24 @@ export function parseToets(x: unknown): Toets | null {
   if (!t || typeof t.geldig !== "boolean") return null;
   return { geldig: t.geldig, bevindingen: parseBevindingen(t.bevindingen), hash: tekst(t.hash) };
 }
+
+// --- Versies (B2-3) ------------------------------------------------------------------------------------------------
+
+/** De pagina van één versie van een concept, om te lezen en te vergelijken. */
+export function versiePad(id: string, nummer: number, met?: number | null): string {
+  return `${conceptPad(id)}?versie=${nummer}${met === undefined ? "" : `&met=${met ?? 0}`}`;
+}
+
+/** Welke versie de pagina toont en waarmee ze vergelijkt, uit de URL. Zonder `versie`: de laatste, zoals ze is.
+ *  Zonder `met` vergelijkt een versie met haar voorganger; `met=0` is zonder vergelijking. Een nummer dat niet bestaat,
+ *  telt niet. */
+export function versieKeuze(versie: string | null, met: string | null, nummers: readonly number[]): { versie: number | null; met: number | null } {
+  const n = Number(versie);
+  if (!versie || !nummers.includes(n)) return { versie: null, met: null };
+  if (met === null) {
+    const vorige = Math.max(...nummers.filter((x) => x < n), 0);
+    return { versie: n, met: vorige || null };
+  }
+  const k = Number(met);
+  return { versie: n, met: nummers.includes(k) && k !== n ? k : null };
+}
