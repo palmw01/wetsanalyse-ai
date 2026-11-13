@@ -1096,3 +1096,24 @@ def test_een_weigering_van_een_passage_zegt_waar_de_woorden_wel_staan():
         vul("antwoord_duiding", duiding(van="zes maanden.", tot="De ontvanger"), [tien()])
     with pytest.raises(Onvulbaar, match="Zo begint de tekst die je aanwees: Artikel 10, lid 1: „De ontvanger kan uitstel"):
         vul("antwoord_duiding", duiding(van="Iets anders", tot="geheel"), [tien()])
+
+
+# Meting A2-3c (F05): de Leidraad bij artikel 24 Iw noemt een artikel van een andere wet. Dat is gelezen: de weigering
+# zegt waar het staat en vraagt een passage, niet ophalen (dat vond het model niet, en na twee weigeringen viel het terug
+# op tekst).
+ZIN_29 = "Een teruggaaf als bedoeld in artikel 29 van de Wet op de omzetbelasting 1968 kan worden verrekend."
+
+
+def test_een_artikel_dat_de_opgehaalde_tekst_noemt_vraagt_een_passage_en_geen_ophalen():
+    with pytest.raises(Onvulbaar, match="Het staat in de tekst die je al ophaalde") as fout:
+        vul("antwoord_duiding", duiding(twijfel=["Ook artikel 29 Wet OB 1968 speelt mee."]), [tien(tekst=ZIN_29)])
+    assert fout.value.code == "genoemd_in_tekst" and fout.value.ophalen == []
+    assert TIEN_2 in str(fout.value) and "niet opgehaald" not in str(fout.value)
+
+
+def test_met_die_passage_aangewezen_mag_het_artikel_genoemd_worden():
+    a = vul("antwoord_duiding", {**duiding(twijfel=["Ook artikel 29 Wet OB 1968 speelt mee."]), "onderbouwing": [
+        {"bepaling": TIEN_1, "van": "De ontvanger kan uitstel", "tot": "van zes maanden.", "waarom": "De bevoegdheid."},
+        {"bepaling": TIEN_2, "van": "Een teruggaaf", "tot": "kan worden verrekend.", "waarom": "De verrekening."}]},
+        [tien(tekst=ZIN_29)])
+    assert a.sjabloon == "duiding"
