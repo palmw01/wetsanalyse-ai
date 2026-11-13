@@ -2,8 +2,8 @@
 # Draai scripts/genereer_jas_klassen.py.
 PAKKET = {'bronbestanden': {'SKILL.md': '1b2c685d8f23ca6a5b949efa427f004050aaf6daa26a77d90b554a6d9d633a96',
                    'agentrollen.json': 'a04df78efa9b83ae698c6086fbcd51926402330af86230056737dd953ad50932',
-                   'references/agentrollen.md': '06f09622380e143642c3fa4f31a298c6f27c6b7ffe6e7a55c371e7937bdce36f',
-                   'references/bronnen.md': 'c17155f1a387371fb8f73f59ce7942d22ed7580e20776885b4140c7a576612ac',
+                   'references/agentrollen.md': '0dd07b69189f7983eab7c8543537b4e53b74a720b28905a6ecf16ccc0110da21',
+                   'references/bronnen.md': 'c7f83e329cde3c6d25215793c6866510624225c5bda555112737a798a18dde6b',
                    'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
                    'references/jas-klassen-referentie.md': '14f62a170d1c3f46f9af778caf220a6ceb0f6d81f1c4157dd3cc75e521db755f',
                    'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411',
@@ -107,7 +107,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': '1b2c685d8f23ca6a5b949efa427f004050aaf6d
                                     'beperkende formuleringen.'},
              'duiding': {'bestand': 'references/agentrollen.md',
                          'bronnen': ['M01', 'M04', 'M07', 'P02', 'P03', 'P07', 'P08', 'P12', 'P18'],
-                         'sha256': 'f9e97dee5b47106ffae86436eb0d8b51f8966e30ce5676325bf02a3d6e5780f2',
+                         'sha256': 'dee4e9099491bda5c653c863564775d77d5845c17b7c38b9efd1c2c87ca4f45f',
                          'skill': 'wetsanalyse',
                          'tekst': 'Ontleed aanhef, leden en onderdelen; verbind onderwerp, '
                                   'volledig gezegde, actor, modaliteit, ontkenning en '
@@ -122,19 +122,22 @@ PAKKET = {'bronbestanden': {'SKILL.md': '1b2c685d8f23ca6a5b949efa427f004050aaf6d
                                   'Beschrijf waar relevant de rechtsbetrekking met partijen, '
                                   'voorwerp en voorwaarden, en het rechtsfeit dat haar creëert, '
                                   'wijzigt of beëindigt, volgens het JAS; voeg geen ononderbouwde '
-                                  'actor of gevolg toe. Noemt de tekst maar één partij, zoek dan '
-                                  'waar de regeling de andere noemt; vind je haar, benoem haar als '
-                                  'interpretatie met die vindplaats, nooit als citaat; vind je '
-                                  'haar niet, zeg dan dat zij onbekend is in plaats van haar te '
-                                  'raden. Noem de soort rechtsbetrekking (aanspraak en '
-                                  'verplichting; bevoegdheid en gehoudenheid, gebonden of '
-                                  'discretionair; immuniteit; vrijheid) of rechtsfeit '
-                                  '(rechtshandeling, feitelijke handeling, gebeurtenis of '
-                                  'tijdsverloop met rechtsgevolg) alleen waar de tekst haar '
-                                  'draagt. Toets een lezing aan een passend normaal geval en '
-                                  'grensgeval, herkenbaar als hypothetisch. Meld ontbrekende '
-                                  'context en verdedigbare alternatieven. Gebruik alleen de '
-                                  'dertien JAS-klassen.'},
+                                  'actor of gevolg toe. Een partij is alleen genoemd als haar '
+                                  'woord letterlijk in de tekst staat; een lijdende vorm ("wordt … '
+                                  'vastgesteld", "dient te worden gegeven") noemt de handelende '
+                                  'partij niet. Ontbreekt een partij in de tekst, zoek dan waar de '
+                                  'regeling haar noemt; vind je haar, benoem haar als '
+                                  'interpretatie met die vindplaats, nooit als citaat en nooit als '
+                                  'iets wat de bepaling zelf zegt; vind je haar niet, zeg dan dat '
+                                  'zij onbekend is in plaats van haar te raden. Noem de soort '
+                                  'rechtsbetrekking (aanspraak en verplichting; bevoegdheid en '
+                                  'gehoudenheid, gebonden of discretionair; immuniteit; vrijheid) '
+                                  'of rechtsfeit (rechtshandeling, feitelijke handeling, '
+                                  'gebeurtenis of tijdsverloop met rechtsgevolg) alleen waar de '
+                                  'tekst haar draagt. Toets een lezing aan een passend normaal '
+                                  'geval en grensgeval, herkenbaar als hypothetisch. Meld '
+                                  'ontbrekende context en verdedigbare alternatieven. Gebruik '
+                                  'alleen de dertien JAS-klassen.'},
              'jrm-relevant-feit': {'bestand': 'references/relevant-feit.md',
                                    'bronnen': ['J01', 'JP02', 'JP03'],
                                    'sha256': '6e954636c73b5e5e912ca188a0db62b6dfb6639b60d7a4aa1e0507ffd2d38abb',
@@ -238,7 +241,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': '1b2c685d8f23ca6a5b949efa427f004050aaf6d
                                      'analysedossier via een route die alleen markeringen of een '
                                      'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
                                      'rol over.'}},
- 'sha256': '646170154a70613a8fd8218f033adee1a29885f20c9e238c40bcb80f49bceccb',
+ 'sha256': '1cb35e6cff5f9d54608dc40e13d04da25815554573eb36befab461ed9a19537f',
  'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving '
                                                     'volgens de methode Wetsanalyse en het '
                                                     'Juridisch Analyseschema (JAS): een werkgebied '
