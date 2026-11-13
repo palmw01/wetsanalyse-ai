@@ -14,13 +14,14 @@ Of er een model aan te pas komt, wordt afgeleid, niet met de hand gezet:
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from functools import cache
 from pathlib import Path
 from typing import Any
 
 import yaml
 from bronmodel.agentprofiel import Agentprofiel
-from bronmodel.catalogus import EIGEN, Herkomst, Onderdeel, Stap, oid, versie, zwaarste
+from bronmodel.catalogus import EIGEN, NEUTRAAL, Herkomst, Onderdeel, Stap, oid, versie, zwaarste
 from bronmodel.connectors import CONNECTORS, ConnectorBeschrijving
 
 from . import bronnen_vinden, bronpakket, bronselectie, profielen, werkgebied_intake
@@ -551,15 +552,61 @@ ADAPTERS = (uit_methode, uit_rollen, uit_regelsets, uit_tools, uit_connectors, u
             uit_agentprofielen, uit_agents, uit_routes, uit_controles)
 
 
+#: De methode waar de annotatieketen, de annotatie-UI en de JAS-tools van zijn.
+WETSANALYSE = "wetsanalyse"
+
+#: Wat van wetsanalyse is zonder dat het uit een rol of een deel volgt (plan methodes scheiden, §5): de annotatieketen
+#: en haar leestools, de begrippen, en het werkgebied met de bronselectie. Rollen, agentprofielen en routes staan hier
+#: niet: die erven (`_methode`). Een id dat niet meer bestaat, maakt `tests/test_catalogus_methode.py` rood.
+VAN_WETSANALYSE: frozenset[str] = frozenset({
+    "workflow/annotatieketen", "workflow/begrippenketen", "workflow/bronnen_vinden", "workflow/bronselectie",
+    "workflow/werkgebied_intake",
+    "agent/annotatie", "agent/begrippen", "agent/deelvragen",
+    "tool/get_annotatie", "tool/get_annotatiedekking", "tool/overzicht_annotaties", "tool/search_annotaties",
+    "tool/get_begrip", "tool/search_begrippen", "tool/jas_klasse_opvragen",
+    "sjabloon/antwoord_annotaties", "sjabloon/antwoord_begrip",
+    "route/meerdere_artikelen",
+})
+
+#: De regelsets van de annotatieketen en de begrippenketen; een regelset uit een andere skill is van die skill.
+_REGELSETS_VAN_WETSANALYSE = ("jas.", "begrippen.")
+
+
+def _methode(o: Onderdeel, per_id: dict[str, Onderdeel], gezien: frozenset[str] = frozenset()) -> str:
+    """Van welke methode een onderdeel is. Eén regel per soort, in deze volgorde:
+
+    - een methode is van zichzelf, en een deel (een rol) van zijn geheel;
+    - wat in `VAN_WETSANALYSE` staat, en de regelsets van de twee ketens, zijn van wetsanalyse;
+    - een agentprofiel of agent is van de methode van zijn rol, een route van de methode van wat ze kiest;
+    - al het andere is neutraal."""
+    if o.soort == "methode":
+        return o.naam
+    if o.id in gezien:
+        return NEUTRAAL
+    gezien = gezien | {o.id}
+    if o.deel_van and o.deel_van in per_id:
+        return _methode(per_id[o.deel_van], per_id, gezien)
+    if o.id in VAN_WETSANALYSE or (o.soort == "regelset" and o.naam.startswith(_REGELSETS_VAN_WETSANALYSE)):
+        return WETSANALYSE
+    if o.soort in ("agentprofiel", "agent"):
+        rollen = [per_id[i] for i in o.hangt_af_van if i.startswith("rol/") and i in per_id]
+        if rollen:
+            return _methode(rollen[0], per_id, gezien)
+    if o.soort == "route" and o.hangt_af_van and o.hangt_af_van[0] in per_id:
+        return _methode(per_id[o.hangt_af_van[0]], per_id, gezien)
+    return NEUTRAAL
+
+
 @cache
 def catalogus() -> tuple[Onderdeel, ...]:
-    """Alle onderdelen, op soort en naam. Een id dat twee keer voorkomt, is een fout."""
+    """Alle onderdelen, op soort en naam, elk met zijn methode. Een id dat twee keer voorkomt, is een fout."""
     alle = [o for adapter in ADAPTERS for o in adapter()]
     ids = [o.id for o in alle]
     dubbel = {i for i in ids if ids.count(i) > 1}
     if dubbel:
         raise ValueError(f"dubbele onderdelen in de catalogus: {sorted(dubbel)}")
-    return tuple(alle)
+    per_id = {o.id: o for o in alle}
+    return tuple(replace(o, methode=_methode(o, per_id)) for o in alle)
 
 
 def onderdeel(id_: str) -> Onderdeel | None:

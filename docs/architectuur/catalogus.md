@@ -27,6 +27,12 @@ Dit is het werkdocument bij [ADR-014](adr-014-catalogus.md). Het hoort bij de so
 
 Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/graph-qa/tests/test_catalogus.py` rood.
 
+Elk onderdeel is van één methode, of uitdrukkelijk `neutraal` (het veld `methode`, afgeleid in
+`tools/graph-qa/agent/catalogus.py`; plan `plan-methodes-scheiden.md`, S2). De annotatieketen, de annotatie-UI en de
+JAS-tools zijn van wetsanalyse. Hoort een nieuw onderdeel alleen bij één methode, zet het dan in de tabel van die
+methode; `tools/graph-qa/tests/test_catalogus_methode.py` bewaakt dat een onderdeel van de annotatieketen niet stil
+neutraal wordt.
+
 **Methode** (een nieuwe skill, zoals wetsuitvoering)
 1. Leg de bron vast in `docs/wetsanalyse/<bron>/` met een `BRON.md`. Die bevat herkomst, commit of datum, de licentie
    met notice, en de wijzigingen. Zet de bron ook in `docs/wetsanalyse/bronnen/manifest.json`. Materiaal dat niet
