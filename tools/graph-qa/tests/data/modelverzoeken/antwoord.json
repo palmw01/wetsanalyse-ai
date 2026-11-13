@@ -619,7 +619,7 @@
      "name": "get_annotatie"
     },
     {
-     "description": "Geef de volledige JAS-specificatie van één klasse: omschrijving, herkenningsvraag en uitdrukkingswijze. Gebruik dit als je twijfelt of een fragment bij een bepaalde klasse past.",
+     "description": "Geef de volledige JAS-specificatie van één klasse: omschrijving, herkenningsvraag en uitdrukkingswijze, en uit de methode de subklassen, de samenhang met andere klassen en de afbakening tegenover klassen waarmee zij verward wordt. Gebruik dit als je twijfelt of een fragment bij een bepaalde klasse past, of tussen twee klassen.",
      "input_schema": {
       "additionalProperties": false,
       "properties": {
@@ -1353,7 +1353,7 @@
      "name": "get_annotatie"
     },
     {
-     "description": "Geef de volledige JAS-specificatie van één klasse: omschrijving, herkenningsvraag en uitdrukkingswijze. Gebruik dit als je twijfelt of een fragment bij een bepaalde klasse past.",
+     "description": "Geef de volledige JAS-specificatie van één klasse: omschrijving, herkenningsvraag en uitdrukkingswijze, en uit de methode de subklassen, de samenhang met andere klassen en de afbakening tegenover klassen waarmee zij verward wordt. Gebruik dit als je twijfelt of een fragment bij een bepaalde klasse past, of tussen twee klassen.",
      "input_schema": {
       "additionalProperties": false,
       "properties": {
