@@ -620,10 +620,12 @@ Voor elke meting geldt ADR-010 en P19: voor en na op dezelfde versie van al het 
 - **G1** (`duiding` sterker).
   - Sets: `golden_duiding` en de kwaliteitsset; in beide vormen. Erbij een kleine vaste set van tien bepalingen met
     een bekende soort (vijf met een partij die de tekst niet noemt, vijf met een gebonden of discretionaire
-    bevoegdheid), uit andere bepalingen dan de voorbeelden in de skill. Die set komt in de PR van S6, zodat het nulpunt
-    hem al heeft.
-  - Drempel: brongetrouwheid gelijk; op de nieuwe set noemt Lex de wederpartij met een vindplaats in minstens acht van
-    de tien, en nooit als citaat; geen verzonnen partij op de bestaande sets; niet meer dan tien procent duurder,
+    bevoegdheid), uit andere bepalingen dan de voorbeelden in de skill: `eval/golden_duiding_partijen.jsonl`. De set
+    staat in de PR van G1; omdat een evalbestand het gedrag niet raakt, draait het nulpunt dezelfde set op de code van
+    S6.
+  - Drempel: brongetrouwheid gelijk; op de vijf vragen met `toets: partij` noemt Lex de wederpartij met een vindplaats,
+    of zegt hij dat zij onbekend is, en nooit als citaat; op de vijf met `toets: soort` noemt hij de juiste soort; samen
+    minstens acht van de tien; geen verzonnen partij op de bestaande sets; niet meer dan tien procent duurder,
     gewogen.
 - **G2** (de tool).
   - Sets: de vragen in `golden_duiding` en `golden_gesprek` waar de tool wordt aangeroepen; als dat er minder dan vijf
