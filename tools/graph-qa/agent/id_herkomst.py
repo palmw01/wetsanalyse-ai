@@ -43,6 +43,12 @@ class Soort:
 BWB = Soort("BWB-id", "zoek de regeling eerst op naam of woorden (search_wetgeving of list_regelingen in de kennisgraaf"
                       "{buiten}), en gebruik het id uit het resultaat")
 STUK = Soort("id", "zoek het stuk eerst met {zoektools}, en gebruik het id uit het resultaat")
+#: Het eerste woord van een naam telt als de regeling genoemd, als het zo lang is en geen andere regeling zo begint.
+MIN_EERSTE_WOORD = 6
+
+#: Een regeling die in de graaf staat, maar die het gesprek niet noemt bij een vraag naar een artikel: een gok.
+GOK = Soort("BWB-id", "de vraag noemt een artikel maar niet deze regeling. Kies er niet zelf een: vraag de jurist welke "
+                      "regeling hij bedoelt, en noem de mogelijkheden")
 DOSSIER = Soort("dossiernummer", "zoek het dossier eerst met {zoektools} op woorden, en gebruik het nummer uit het "
                                  "resultaat")
 
@@ -120,6 +126,10 @@ def toets(tool: str, args: dict[str, Any], state: dict[str, Any], *, graph: Any 
     - een BWB-id moet uit het gesprek komen, óf de graaf bevestigt de regeling: dan is het gecontroleerd, niet verzonnen;
     - geweigerd wordt dus een BWB-id dat de graaf weerlegt (een geldig leeg antwoord) en niet in het gesprek staat;
     - een graaf die niet of onleesbaar antwoordt, weerlegt niets: dan beslist de tool zelf.
+
+    Eén aanscherping (besluit hoofdsessie, 13 nov 2026, ronde 4 van de meting van ADR-016): noemt de vraag een artikel
+    en noemt het gesprek de regeling van dit BWB-id nergens, dan is het id een gok, ook als de regeling in de graaf staat
+    (V01: "Zoek de rechtspraak over artikel 30 …" → de Invorderingswet 1990). Zie `_gegokt`.
     """
     ids = id_argumenten(tool, args)
     if not ids:
@@ -142,8 +152,12 @@ def toets(tool: str, args: dict[str, Any], state: dict[str, Any], *, graph: Any 
         # staat: dan noemt het resultaat haar titel en toetst de controle het id tegen de trace. Een id van een regeling
         # buiten de graaf (I20: BWBR0002471 uit het geheugen) weigert de code. Een graaf die niet antwoordt, bewijst niets.
         for bwb in _BWB_RE.findall(waarde):
-            if not _staat_in(bwb, tekst) and _niet_in_graaf(graph, bwb.upper()):
+            if _staat_in(bwb, tekst):
+                continue
+            if _niet_in_graaf(graph, bwb.upper()):
                 onbekend.append((p, BWB, bwb.upper()))
+            elif _gegokt(bwb.upper(), tekst, state, graph):
+                onbekend.append((p, GOK, bwb.upper()))
     if not onbekend:
         return None
     return melding(tool, onbekend, state)
@@ -162,6 +176,36 @@ def _niet_in_graaf(graph: Any, bwb_id: str) -> bool:
     return not parse_select(ruw) and "?r" in str(ruw or "")
 
 
+def _gegokt(bwb_id: str, tekst: str, state: dict[str, Any], graph: Any) -> bool:
+    """Noemt de vraag een artikel, terwijl het gesprek deze regeling nergens noemt?
+
+    Dan koos het model de regeling zelf. Bewust smal, zodat een gewone vraag geen zoekronde extra kost:
+    - alleen bij een vraag die een artikel noemt ("artikel 30"); een vraag zonder artikel valt er niet onder;
+    - de regeling telt als genoemd bij haar citeertitel of een afkorting (dezelfde namen als het overzicht), of bij
+      het eerste woord van haar naam als geen andere regeling in de graaf zo begint ("de Leidraad"), ergens in het
+      gesprek: de vraag, een eerder antwoord, een toolresultaat, het werkgebied of de focus;
+    - zonder graaf, zonder namen of bij een storing is er geen bewijs, en beslist de tool zelf."""
+    from .aanwijzing import lees_aanwijzing
+    vraag = f"{state.get('question', '')} {state.get('zelfstandige_vraag', '')}"
+    if graph is None or not lees_aanwijzing(vraag).artikelen:
+        return False
+    from . import overzicht
+    try:
+        regelingen = overzicht._regelingen(graph)
+    except Exception:  # noqa: BLE001 – zonder namen geen bewijs
+        return False
+    namen = next((list(r["namen"]) for r in regelingen if r["bwb_id"] == bwb_id), None)
+    if not namen:
+        return False
+    # "De Leidraad" is de Leidraad Invordering 2008 zolang geen andere regeling in de graaf zo begint; "de
+    # Uitvoeringsregeling" wijst er geen aan.
+    eerste = {n.split()[0].casefold() for n in namen if len(n.split()[0]) >= MIN_EERSTE_WOORD}
+    andere = {n.split()[0].casefold() for r in regelingen if r["bwb_id"] != bwb_id for n in r["namen"] if n.split()}
+    namen += sorted(eerste - andere)
+    laag = tekst.casefold()
+    return not any(re.search(rf"(?<![\w.]){re.escape(n.casefold())}(?![\w])", laag) for n in namen)
+
+
 def _zoektools(tool: str) -> str:
     c = next((k for k in CONNECTORS.values() if tool in k.tools), None)
     namen = sorted((c.tools - {c.leestool}) if c else set()) or ["de zoektool van de bron"]
@@ -176,6 +220,8 @@ def melding(tool: str, onbekend: Iterable[tuple[str, Soort, str]], state: dict[s
                     if buiten and (state.get("bronnen") is None or buiten.naam in (state.get("bronnen") or [])) else "")
     wat = "; ".join(f"{w} ({p})" for p, _, w in onbekend)
     hoe = {s.zoek.format(buiten=buiten_tekst, zoektools=_zoektools(tool)) for _, s, _ in onbekend}
+    if all(s is GOK for _, s, _ in onbekend):
+        return (f"{wat}: {GOK.zoek}. Een regeling die de jurist niet noemde, kies ik niet zelf.")
     eerst = "Een id uit eigen kennis gebruik ik niet"
     return (f"{wat} {'staat' if len(onbekend) == 1 else 'staan'} niet in de vraag of in een eerder resultaat van dit "
             f"gesprek. {eerst}: {'; '.join(sorted(hoe))}.")

@@ -260,3 +260,50 @@ async def test_een_skill_wordt_ook_tegen_de_andere_skills_in_het_image_getoetst(
     # Een concept van de skill zelf vervangt haar eigen versie in het image en botst dus niet met zichzelf.
     r = await _bewerk(client, "wetsuitvoering", "skill")
     assert r.status_code == 201 and (await _lees(client, r.json()["id"]))["laatste"]["geldig"] is True
+
+
+# --- een concept dat achterloopt (B2-4) --------------------------------------------------------------------------------
+
+async def test_de_versie_die_draait_is_te_lezen_voor_een_gebruiker_en_niet_voor_de_agent(client):
+    assert (await client.get("/v1/werkplaats/image/onderdelen/agentprofiel/jrm-scenario", headers=B)).json()["detail"]["fout"] == "image_onbekend"
+    pakket = _pakket(**{"jrm-scenario": PROFIEL})
+    await _meld(client, pakket)
+    r = await client.get("/v1/werkplaats/image/onderdelen/agentprofiel/jrm-scenario", headers=B)
+    assert r.status_code == 200
+    d = r.json()
+    assert d["bestanden"] == {"jrm-scenario.md": PROFIEL} and d["hash"] == wp.hash_van(d["bestanden"]) and d["revisie"] == "abc1234"
+    r = await client.get("/v1/werkplaats/image/onderdelen/agentprofiel/bestaat-niet", headers=B)
+    assert r.status_code == 404 and r.json()["detail"]["fout"] == "niet_in_image"
+    assert (await client.get("/v1/werkplaats/image/onderdelen/regelset/x", headers=B)).status_code == 422
+    # Het agent-token leest in de werkplaats niets.
+    r = await client.get("/v1/werkplaats/image/onderdelen/agentprofiel/jrm-scenario", headers={**AGENT, "X-User-Id": "gebruiker-b"})
+    assert r.status_code == 403
+
+
+async def test_wie_verwerkt_wat_er_draait_bouwt_daarna_voort_op_die_versie(client):
+    """Een concept loopt achter: master veranderde. De gebruiker verwerkt dat en slaat op met de hash van wat er nu
+    draait als basis. Daarna loopt het concept niet meer achter, ook niet na een volgende wijziging."""
+    await _meld(client, _pakket(**{"jrm-scenario": PROFIEL}))
+    oid = (await _bewerk(client)).json()["id"]
+    mijn = PROFIEL.replace("stap voor stap", "zorgvuldig")
+    await _sla_op(client, oid, mijn, 1)
+    nieuw = _pakket(**{"jrm-scenario": ANDERS})
+    await _meld(client, nieuw)
+    assert (await _lees(client, oid))["basis_verouderd"] is True
+    nu = nieuw["onderdelen"]["agentprofiel/jrm-scenario"]["hash"]
+    pad = f"/v1/werkplaats/onderdelen/{oid}/versies"
+    # Een hash die niet (meer) in het image zit, is geen basis.
+    r = await client.post(pad, json={"bestanden": {"jrm-scenario.md": mijn}, "na_versie": 2, "basis_hash": "0" * 64}, headers=B)
+    assert r.status_code == 409 and r.json()["detail"]["fout"] == "basis_niet_actueel"
+    # Dezelfde inhoud met een nieuwe basis is een nieuwe versie: de basis is het nieuws.
+    r = await client.post(pad, json={"bestanden": {"jrm-scenario.md": mijn}, "na_versie": 2, "basis_hash": nu,
+                                     "toelichting": "verwerkt wat er draait"}, headers=B)
+    assert r.status_code == 200 and (r.json()["nummer"], r.json()["basis_hash"]) == (3, nu)
+    o = await _lees(client, oid)
+    assert (o["stand"], o["basis_verouderd"]) == ("concept", False)
+    # Een volgende wijziging erft de nieuwe basis.
+    r = await client.post(pad, json={"bestanden": {"jrm-scenario.md": mijn + "\nNog een regel.\n"}, "na_versie": 3}, headers=B)
+    assert r.json()["basis_hash"] == nu and (await _lees(client, oid))["basis_verouderd"] is False
+    # Opnieuw beginnen vanaf wat er draait: de inhoud van het image met die basis is meteen de versie die draait.
+    r = await client.post(pad, json={"bestanden": {"jrm-scenario.md": ANDERS}, "na_versie": 4, "basis_hash": nu}, headers=B)
+    assert r.status_code == 200 and (await _lees(client, oid))["stand"] == "actief"

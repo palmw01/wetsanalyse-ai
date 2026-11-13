@@ -24,6 +24,9 @@ from .tools.annotatie_tools import vindplaats_label
 
 MAX_ELEMENTEN = 30
 MAX_BRONNEN = 6
+#: Hoeveel dingen uit het vorige antwoord de focus onthoudt, en hoe lang een label mag zijn: het blok blijft klein.
+MAX_GENOEMD = 12
+MAX_GENOEMD_LABEL = 90
 
 
 def _element(e: dict[str, Any]) -> dict[str, str]:
@@ -58,7 +61,47 @@ def _zelfde_bepaling(a: str, b: str) -> bool:
     return a == b or a.startswith(b + SEP) or b.startswith(a + SEP)
 
 
-def na_antwoord(oud: dict[str, Any] | None, specialist: str, bronnen: list[str]) -> dict[str, Any]:
+def genoemd_in_antwoord(antwoord: dict[str, Any] | None, tekst: str, bronnen: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """Wat het antwoord noemde, in de volgorde van het antwoord: `[{id, label}]`.
+
+    "De eerste uitspraak uit je overzicht" is de eerste die het antwoord noemde, niet de eerste die Lex las (meting
+    ADR-016 ronde 3, F01: het vervolg ging over de eerst gelezen uitspraak). De volgorde komt uit code:
+    - bij een sjabloon de stukken van de blokken `stukken` en `extern`, in de volgorde van de blokken, en anders de
+      bepalingen waar het antwoord over gaat (`doelen`);
+    - bij vrije tekst de bronnen van de beurt, op de plek waar de tekst hun id of label voor het eerst noemt.
+    Eén ding heeft geen volgorde: dan is de lijst leeg."""
+    uit: dict[str, str] = {}
+    a = antwoord or {}
+    for blok in a.get("blokken") or []:
+        if blok.get("soort") == "stukken":
+            for item in blok.get("items") or []:
+                if item.get("id"):
+                    uit.setdefault(str(item["id"]), str(item.get("label") or ""))
+        elif blok.get("soort") == "extern" and blok.get("id"):
+            uit.setdefault(str(blok["id"]), str(blok.get("label") or ""))
+    if not uit:
+        for doel in a.get("doelen") or []:
+            if doel.get("iri"):
+                uit.setdefault(str(doel["iri"]), " ".join(x for x in (str(doel.get("label") or ""), str(doel.get("regeling") or "")) if x))
+    if not uit and tekst:
+        laag = tekst.casefold()
+        plekken = []
+        for b in bronnen:
+            ident, label = str(b.get("uri") or ""), str(b.get("label") or "")
+            gevonden = [i for i in (laag.find(x.casefold()) for x in (ident, label) if len(x) >= 4) if i >= 0]
+            if ident and gevonden:
+                plekken.append((min(gevonden), ident, label))
+        uit = {ident: label for _, ident, label in sorted(plekken)}
+    if len(uit) < 2:
+        return []
+    # Een eigen, korte afkap: `truncate` zet er een zin achter die voor een toolresultaat bedoeld is.
+    def kort(label: str) -> str:
+        return label if len(label) <= MAX_GENOEMD_LABEL else label[:MAX_GENOEMD_LABEL - 1].rstrip() + "…"
+    return [{"id": i, "label": kort(l)} for i, l in list(uit.items())[:MAX_GENOEMD]]
+
+
+def na_antwoord(oud: dict[str, Any] | None, specialist: str, bronnen: list[str],
+                genoemd: list[dict[str, str]] | None = None) -> dict[str, Any]:
     """Een antwoord over dezelfde bepaling vóegt toe: de bepaling en markeringen van een eerdere annotatie blijven het
     onderwerp, want "en waarom die klasse?" na een uitleg gaat nog steeds daarover. Gaat het antwoord over een andere
     bepaling, dan vervalt die annotatiefocus: anders las de supervisor "en lid 2?" na een antwoord over artikel 26 nog
@@ -70,6 +113,10 @@ def na_antwoord(oud: dict[str, Any] | None, specialist: str, bronnen: list[str])
     focus["laatste_route"] = specialist or "antwoord"
     if bronnen:
         focus["bronnen"] = bronnen[:MAX_BRONNEN]
+    # Altijd die van het laatste antwoord: een lijst van twee beurten terug is niet meer "je overzicht".
+    focus.pop("genoemd", None)
+    if genoemd:
+        focus["genoemd"] = genoemd[:MAX_GENOEMD]
     return focus
 
 
@@ -128,6 +175,11 @@ def als_context(focus: dict[str, Any] | None, gezien: list[str] | None,
     if open_:
         regels.append("Markeringen in de bepaling die de jurist nu open heeft:")
         regels += [f"- {e.get('klasse', '')} · \"{e.get('tekst', '')}\"" for e in open_ if e.get("tekst")]
+    if f.get("genoemd"):
+        regels.append("In je vorige antwoord genoemd, in deze volgorde ('de eerste', 'de tweede', 'de laatste' slaat hierop, "
+                      "niet op de volgorde waarin je las):")
+        regels += [f"{n}. {g.get('label') or g.get('id', '')}" + (f" ({g['id']})" if g.get("label") and g.get("id") else "")
+                   for n, g in enumerate(f["genoemd"], start=1)]
     if f.get("laatste_route"):
         regels.append(f"Vorige beurt: {f['laatste_route']}")
     # Oudste eerst en de bronnen van het laatste antwoord achteraan, zodat `[-12:]` de recentste houdt; stonden die

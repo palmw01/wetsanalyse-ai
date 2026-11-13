@@ -271,6 +271,32 @@ export function parseToets(x: unknown): Toets | null {
 
 // --- Versies (B2-3) ------------------------------------------------------------------------------------------------
 
+// --- Loopt achter (B2-4) -------------------------------------------------------------------------------------------
+
+/** De versie van een onderdeel die nu draait, zoals Lex haar meldde. */
+export interface ImageOnderdeel { hash: string; bestanden: Bestanden; revisie: string; gemeld_op: string }
+
+export function parseImageOnderdeel(x: unknown): ImageOnderdeel | null {
+  const o = x as Record<string, unknown> | null;
+  if (!o || typeof o.hash !== "string" || !o.bestanden || typeof o.bestanden !== "object") return null;
+  const bestanden = Object.fromEntries(Object.entries(o.bestanden as Record<string, unknown>).filter(([, t]) => typeof t === "string")) as Bestanden;
+  return { hash: o.hash, bestanden, revisie: tekst(o.revisie), gemeld_op: tekst(o.gemeld_op) };
+}
+
+/** De versie van het concept waarop het voortbouwt: de nieuwste met de hash van de basis. `null` als die versie er
+ *  niet (meer) bij staat; dan is alleen het concept tegen wat er draait te vergelijken. */
+export function basisVersie(o: Pick<WerkplaatsOnderdeel, "laatste" | "versielijst">): number | null {
+  const basis = o.laatste?.basis_hash;
+  if (!basis) return null;
+  const met = (o.versielijst ?? []).filter((v) => v.hash === basis).map((v) => v.nummer);
+  return met.length ? Math.max(...met) : null;
+}
+
+/** De pagina waar een concept dat achterloopt zijn twee verschillen toont. */
+export function achterPad(id: string): string {
+  return `${conceptPad(id)}?achter=1`;
+}
+
 /** De pagina van één versie van een concept, om te lezen en te vergelijken. */
 export function versiePad(id: string, nummer: number, met?: number | null): string {
   return `${conceptPad(id)}?versie=${nummer}${met === undefined ? "" : `&met=${met ?? 0}`}`;

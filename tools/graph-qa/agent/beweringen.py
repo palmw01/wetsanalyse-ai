@@ -255,14 +255,40 @@ def tellingen_uit(resultaten: list[str]) -> set[int]:
     return uit
 
 
+def regelingen_genoemd(tekst: str) -> list[str]:
+    """De namen in `tekst` met de vorm van een regeling: een samenstelling op -wet ("Belastingwet"), een titel die met
+    "Wet" begint, of een besluit of regeling met een jaartal of hoofdletters. Dezelfde vormen als
+    `agent/buiten_graaf.py`; een afkorting telt niet, want die vorm is te los om er een bewering van te maken."""
+    from . import buiten_graaf as bg
+    uit: dict[str, None] = {}
+    for patroon in (bg._SAMENSTELLING_RE, bg._WET_RE, *bg._TITEL_RES):
+        for m in patroon.finditer(tekst):
+            naam = re.sub(r"^(.*?\b(?:18|19|20)\d{2})\b.*$", r"\1", m.group("naam")).strip()
+            if naam.casefold() not in bg._GEEN:
+                uit.setdefault(naam)
+    return list(uit)
+
+
+def _regeling_bekend(naam: str, regelingen: set[str], tegen_klein: str) -> bool:
+    """Kent de graaf deze regeling, of staat haar naam in het opgehaalde of in wat de jurist schreef? Ook zonder het
+    jaartal: "de Invorderingswet" is de Invorderingswet 1990."""
+    laag = naam.casefold()
+    kaal = re.sub(r"\s+(?:18|19|20)\d{2}$", "", laag)
+    return (laag in regelingen or kaal in regelingen or any(n.startswith(f"{kaal} ") for n in regelingen)
+            or laag in tegen_klein or kaal in tegen_klein)
+
+
 def beweringen(tekst: str, bron: str, *, bekend: str = "", tellingen: set[int] | None = None,
-               bronnen: list[str] | None = None) -> list[str]:
+               bronnen: list[str] | None = None, regelingen: set[str] | None = None) -> list[str]:
     """De feiten in `tekst` die niet in `bron` (de opgehaalde tekst) of `bekend` (de vraag) staan, in vaste volgorde.
 
     `bron` hoort ook de ruwe resultaten te dragen: een telling staat als getal in de JSON (`totaal`, `per_instantie`), en
     `resultaat.waarden` neemt alleen de tekstwaarden. `tellingen`: de aantallen uit de trace (`tellingen_uit`); daarmee
     toetst een aantal tegen een aantal, niet tegen elk getal. `bronnen`: de toolresultaten apart; daarmee moet een dossier
-    met zijn vergaderjaar samen in één ervan staan."""
+    met zijn vergaderjaar samen in één ervan staan. `regelingen`: de namen van de regelingen in de kennisgraaf (klein
+    geschreven); daarmee is een regeling die de graaf niet kent en die nergens is opgehaald of gevraagd, een bewering
+    (meting ADR-016 ronde 3, K12: "de Belastingwet" als voorbeeld, in een antwoord zonder bronnen). Zonder namen
+    (geen graaf, een storing) geldt die toets niet."""
     tegen = f"{bron}\n{bekend}"
     zonder = _zonder_citaten(tekst)
     uit = list(hoeveelheden_buiten(zonder, tegen))
@@ -310,4 +336,6 @@ def beweringen(tekst: str, bron: str, *, bekend: str = "", tellingen: set[int] |
             uit.append(getal)
             gezien.add(_vorm(getal))
     uit += [n for n in _instanties(schoon) if n.casefold() not in tegen_klein]
+    if regelingen:
+        uit += [f"de regeling {n}" for n in regelingen_genoemd(zonder) if not _regeling_bekend(n, regelingen, tegen_klein)]
     return [b for b in dict.fromkeys(uit) if not _afgeleid(b, operanden, sommen)]

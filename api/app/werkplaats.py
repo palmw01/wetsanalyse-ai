@@ -65,6 +65,9 @@ class VersieIn(BaseModel):
     toelichting: str = Field(default="", max_length=500)
     # De versie waarop deze voortbouwt: is er intussen een nieuwere, dan 409.
     na_versie: int = Field(ge=1)
+    # De gebruiker heeft verwerkt wat er nu draait: deze versie bouwt voort op die hash uit het image (409 als die
+    # intussen weer veranderde).
+    basis_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
 
 
 class ToetsIn(BaseModel):
@@ -137,6 +140,13 @@ async def meld_image(body: ImageIn, client: str = Depends(require_client)) -> di
     return await store.meld_image(body.pakket_hash, body.revisie, onderdelen)
 
 
+@router.get("/image/onderdelen/{soort}/{naam}", dependencies=[Depends(vereis_aan)])
+async def image_onderdeel(soort: str, naam: str, _userid: str = Depends(actieve_userid)) -> dict[str, Any]:
+    """De versie van een skill of profiel die nu draait, met de bestanden (ADR-016 §B7): om een concept dat achterloopt
+    te vergelijken met wat er intussen veranderde. Alleen lezen, voor elke ingelogde gebruiker; het is wat in de repo staat."""
+    return await store.image_onderdeel(soort, naam)
+
+
 @router.get("/onderdelen", dependencies=[Depends(vereis_aan)])
 async def lijst(soort: str | None = Query(default=None, max_length=32),
                 userid: str = Depends(actieve_userid)) -> list[dict[str, Any]]:
@@ -176,7 +186,8 @@ async def versie(onderdeel_id: str, nummer: int, userid: str = Depends(actieve_u
 @router.post("/onderdelen/{onderdeel_id}/versies", dependencies=[Depends(vereis_aan)])
 async def nieuwe_versie(onderdeel_id: str, body: VersieIn, userid: str = Depends(actieve_userid)) -> dict[str, Any]:
     await _eigen(onderdeel_id, userid)
-    return await store.nieuwe_versie(onderdeel_id, body.bestanden, body.toelichting, body.na_versie, userid)
+    return await store.nieuwe_versie(onderdeel_id, body.bestanden, body.toelichting, body.na_versie, userid,
+                                     basis_hash=body.basis_hash)
 
 
 @router.post("/onderdelen/{onderdeel_id}/intrekken", dependencies=[Depends(vereis_aan)])

@@ -37,7 +37,7 @@ type Controle = { stand: "bewaard" | "bezig" | "klaar" | "mislukt"; geldig: bool
  *    bewaard. Is er intussen een nieuwere versie, dan blijft de tekst staan en kiest de gebruiker.
  *  - Niet-opgeslagen werk staat in de browser tot het is opgeslagen of verworpen, en weggaan vraagt eerst.
  *  - Geen sneltoetsen met een letter; niets hier start Lex. */
-export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen, zij, klaargezet, onVerworpen }: {
+export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen, zij, klaargezet, onVerworpen, draait }: {
   o: WerkplaatsOnderdeel;
   versie: WerkplaatsVersie;
   grenzen: WerkplaatsStand["grenzen"];
@@ -48,8 +48,10 @@ export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen, zi
   /** Onder de bestanden en de controle: de versies. */
   zij?: React.ReactNode;
   /** De bestanden van een eerdere versie, teruggezet als wijziging op deze (*Zet terug als concept*). */
-  klaargezet?: { bestanden: Bestanden; van: number } | null;
+  klaargezet?: { bestanden: Bestanden; van: number | "draait" } | null;
   onVerworpen?: () => void;
+  /** Het concept loopt achter: de hash van wat er nu draait. Opslaan met het vinkje maakt dat de nieuwe basis. */
+  draait?: { hash: string } | null;
 }) {
   const router = useRouter();
   const pad = usePathname();
@@ -62,6 +64,8 @@ export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen, zi
   const [controle, setControle] = useState<Controle>({ stand: "bewaard", geldig: versie.geldig, bevindingen: versie.bevindingen });
   const [lezen, setLezen] = useState(false);
   const [toelichting, setToelichting] = useState("");
+  // "Ik heb verwerkt wat er nu draait": wie opnieuw begon vanaf wat er draait, heeft dat per definitie.
+  const [verwerkt, setVerwerkt] = useState(klaargezet?.van === "draait");
   const [bezig, setBezig] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
   const [nieuwer, setNieuwer] = useState<WerkplaatsVersie | null>(null);
@@ -79,6 +83,7 @@ export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen, zi
   const w = useMemo(() => wijzigingen(bewaard, werk), [bewaard, werk]);
   // Na het opslaan is dit de editor van een versie die er niet meer toe doet: de nieuwe versie krijgt een nieuwe editor.
   const gewijzigd = bewerkbaar && !afgerond && w.aantal > 0;
+  const looptAchter = bewerkbaar && !afgerond && !!draait;
   const paden = useMemo(() => bestandsvolgorde(Object.keys(werk)), [werk]);
   const gevraagd = zoekParams.get("bestand") ?? "";
   const gekozen = paden.includes(gevraagd) ? gevraagd : paden[0] ?? "";
@@ -135,14 +140,15 @@ export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen, zi
   }, [router, pad, zoekParams]);
 
   function verwerp() {
-    setWerk(bewaard); setHersteld(false); setNieuwer(null); setFout(null); setToelichting("");
+    setWerk(bewaard); setHersteld(false); setNieuwer(null); setFout(null); setToelichting(""); setVerwerkt(false);
     onVerworpen?.();
   }
 
   async function slaOp(naVersie: number) {
     setBezig(true); setFout(null);
     try {
-      await slaConceptOp(o.id, { bestanden: werk, na_versie: naVersie, toelichting: toelichting.trim() });
+      await slaConceptOp(o.id, { bestanden: werk, na_versie: naVersie, toelichting: toelichting.trim(),
+        ...(draait && verwerkt ? { basis_hash: draait.hash } : {}) });
       schrijfOpslag(sleutel, undefined);
       setAfgerond(true); setNieuwer(null); setHersteld(false); setToelichting("");
       onOpgeslagen();
@@ -193,8 +199,10 @@ export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen, zi
       {klaargezet && gewijzigd && !hersteld && (
         <div className="mb-4" data-melding="teruggezet">
           <Melding type="uitleg">
-            De bestanden van versie {klaargezet.van} staan klaar als wijziging op versie {versie.nummer}. Er is nog niets
-            veranderd: opslaan maakt er versie {versie.nummer + 1} van, verwerpen laat versie {versie.nummer} staan.
+            {klaargezet.van === "draait" ? "De bestanden die nu draaien staan" : `De bestanden van versie ${klaargezet.van} staan`} klaar
+            als wijziging op versie {versie.nummer}. Er is nog niets veranderd: opslaan maakt er versie {versie.nummer + 1} van,
+            verwerpen laat versie {versie.nummer} staan.
+            {klaargezet.van === "draait" && ` Wat jij veranderde zit hier niet in; het blijft bewaard in versie ${versie.nummer} en eerder.`}
           </Melding>
         </div>
       )}
@@ -290,8 +298,16 @@ export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen, zi
         </Kaart>
       </div>
 
-      {gewijzigd && (
+      {(gewijzigd || looptAchter) && (
         <div className="sticky bottom-0 z-10 -mx-1 mt-4 rounded-kaart border border-line bg-paper p-3 shadow-kaart" data-opslaan>
+          {looptAchter && !nieuwer && (
+            <label className="mb-3 flex items-start gap-2 text-sm text-ink" data-verwerkt>
+              <input type="checkbox" checked={verwerkt} onChange={(e) => setVerwerkt(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[rgb(var(--lint))]" />
+              <span>Ik heb verwerkt wat er nu draait. Na het opslaan bouwt dit concept voort op de versie die nu draait, en
+                loopt het niet meer achter.</span>
+            </label>
+          )}
           {nieuwer ? (
             <div data-conflict={nieuwer.nummer}>
               <Melding type="waarschuwing" titel={`Er is intussen versie ${nieuwer.nummer} opgeslagen`}>
@@ -309,13 +325,14 @@ export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen, zi
           ) : (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="min-w-0 flex-1">
-                <Field label="Toelichting bij deze versie" hint={wijzigingZin(w)}>
+                <Field label="Toelichting bij deze versie" hint={wijzigingZin(w) || "geen wijziging in de bestanden"}>
                   <Input value={toelichting} onChange={(e) => setToelichting(e.target.value)} maxLength={500} autoComplete="off"
                     placeholder="Wat heb je veranderd? (mag leeg)" />
                 </Field>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Button size="sm" onClick={() => slaOp(versie.nummer)} disabled={bezig || maat.teVeel.length > 0} data-actie="opslaan">
+                <Button size="sm" onClick={() => slaOp(versie.nummer)} data-actie="opslaan"
+                  disabled={bezig || maat.teVeel.length > 0 || !(gewijzigd || (looptAchter && verwerkt))}>
                   {bezig ? "Bezig…" : `Opslaan als versie ${versie.nummer + 1}`}</Button>
                 <BevestigKnop bevestigTekst="Verwerpen?" onBevestig={verwerp} className={`${knopKlasse("secondary", "sm")} w-full sm:w-auto`}
                   ariaLabel="Wijzigingen verwerpen">Verwerpen</BevestigKnop>

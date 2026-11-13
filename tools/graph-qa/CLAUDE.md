@@ -245,7 +245,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   register plus trace, de waarden én de ruwe JSON, want een telling is een getal. Wat de jurist zelf schreef, telt niet als
   bewering: de vraag, het dossier en het aangewezen object (`_bekend`). Dat geldt voor elk sjabloon en voor vrije tekst.
   Citaten, vindplaatsen, ids en artikelnummers hebben hun eigen toets; een afkorting en het jaar in een wetsnaam tellen
-  niet. `check_grounding` zet ze in `beweringen` (niveau onbepaald). `verify_node` vraagt er eerst één correctieronde voor
+  niet. **Ook een regeling die nergens vandaan komt** (ADR-016 ronde 3, K12: "de Belastingwet" als voorbeeld): een naam met de vorm van een regeling (`regelingen_genoemd`, de vormen van `buiten_graaf`, geen afkortingen) die de graaf niet kent en die niet in het opgehaalde of in de vraag staat. `verify_node` vraagt de namen van de graaf alleen op als het antwoord zo'n naam draagt; zonder namen geldt de toets niet. `check_grounding` zet ze in `beweringen` (niveau onbepaald). `verify_node` vraagt er eerst één correctieronde voor
   ("haal het op of laat het weg"); staan ze er daarna nog, dan gaan ze naar `onbevestigd`. Een afgeleid getal telt niet als
   bewering als de rekensom in de tekst staat: een som van twee of drie getallen, het verschil van twee, of een percentage van
   zulke getallen, waarbij elke operand in de tekst én in de bron staat (ronde 5: in ronde 4 vuurde de correctieronde op elke
@@ -299,7 +299,12 @@ de thread een kleine, gestructureerde toestand bij:
 
 - na een annotatie: de bepaling (`bron_iri`, label) en haar markeringen als `id · klasse · tekst`;
 - na een antwoord: de geraadpleegde bronnen (de markeringen blijven staan);
-- bij advies: het aangewezen element.
+- bij advies: het aangewezen element;
+- na een antwoord ook wat het antwoord noemde, in de volgorde van het antwoord (`genoemd_in_antwoord`, ADR-016 ronde 3,
+  F01: "de eerste uitspraak uit je overzicht" werd de eerst gelezene). Uit code: de stukken van de blokken `stukken` en
+  `extern`, anders de doelen, en bij vrije tekst de bronnen op de plek waar de tekst ze noemt. Alleen bij twee of meer,
+  hoogstens `MAX_GENOEMD` met een afgekapt label, en altijd die van het laatste antwoord. Het blok zegt zelf dat "de
+  eerste" hierop slaat; er staat niets over in een instructie, dus het voorvoegsel beweegt niet.
 
 `focus.als_context` maakt er het GESPREKSCONTEXT-blok van. Dat gaat naar de supervisor én elke
 specialist (`Bouw.memory_context`), samen met de markeringen van de open bepaling
@@ -657,7 +662,7 @@ bruikbaar is.
   antwoord staan, en een stuk mag ook in een citeervorm in de vraag staan. Anders gaat het niet naar de bron maar terug als
   fout (`id_niet_uit_gesprek`), met de zoektool die het wel vindt. Declaratief per parameter (`ARGUMENTEN`), niet per tool. Een
   BWB-id van een regeling in de graaf mag ook (het resultaat noemt haar en de controle toetst het id); de weigering geldt
-  als de graaf aantoont dat ze er niet in staat (wetgeving_live I20: een id uit het geheugen). Wat het model in deze beurt
+  als de graaf aantoont dat ze er niet in staat (wetgeving_live I20: een id uit het geheugen). **Bij een vraag die een artikel noemt, moet het gesprek de regeling noemen** (`_gegokt`, ADR-016 ronde 3, V01: "artikel 30" zonder regeling werd de Invorderingswet 1990): bij naam of afkorting (of het eerste woord van de naam als geen andere regeling zo begint: "de Leidraad"), in de vraag, een eerder antwoord, een toolresultaat, het werkgebied of de focus. Anders gaat de aanroep terug met de zin dat Lex de jurist vraagt welke regeling hij bedoelt. Een vraag zonder artikel valt er niet onder, en zonder namen of graaf is er geen bewijs. Wat het model in deze beurt
   zelf schreef, telt niet. Code die een tool aanroept, leidt haar ids zelf af en valt er niet onder. `tests/test_id_herkomst.py`.
 - **`agent/spoorbronnen.py`** – één register van wat Lex raadpleegt, intern (`WETGEVING`, `ANNOTATIES`, `BEGRIPPEN`,
   `METHODE`) en per connector afgeleid uit zijn beschrijving (`uit_connector`: label, werkwoorden, leestool = lezen, de

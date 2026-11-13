@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   IN_EDITOR, MAX_PAD, MAX_SKILL_NAAM, PAD, SKILL_NAAM, UIT, WERKPLAATS_SOORTEN, WERKPLAATS_SOORT_LABEL, bestandsvolgorde, conceptPad,
   eigenConcept, geldigLabel, leesWerk, naamFout, omvang, padFout, parseOnderdeel, parseOnderdelen, parseStand, parseToets, parseVersie,
-  splitsFrontmatter, standLabel, versieKeuze, versiePad, voorOverzicht, werkSleutel, werkplaatsSoortVan, wijzigingZin, wijzigingen,
+  achterPad, basisVersie, parseImageOnderdeel, splitsFrontmatter, standLabel, versieKeuze, versiePad, voorOverzicht, werkSleutel, werkplaatsSoortVan, wijzigingZin, wijzigingen,
   type WerkplaatsOnderdeel,
 } from "./werkplaats";
 
@@ -222,5 +222,27 @@ describe("versies", () => {
     expect(versiePad("o1", 3)).toBe("/werkwijze/concepten/o1?versie=3");
     expect(versiePad("o1", 3, 1)).toBe("/werkwijze/concepten/o1?versie=3&met=1");
     expect(versiePad("o1", 3, null)).toBe("/werkwijze/concepten/o1?versie=3&met=0");
+  });
+});
+
+describe("loopt achter", () => {
+  it("de versie die draait: de hash en de bestanden, zoals de api ze geeft", () => {
+    const d = parseImageOnderdeel({ soort: "skill", naam: "x", hash: "h", bestanden: { "SKILL.md": "a", "x.bin": 3 }, revisie: "abc", gemeld_op: "t" });
+    expect(d).toEqual({ hash: "h", bestanden: { "SKILL.md": "a" }, revisie: "abc", gemeld_op: "t" });
+    expect(parseImageOnderdeel({ hash: "h" })).toBeNull();
+    expect(parseImageOnderdeel(null)).toBeNull();
+    const route = STORE.slice(STORE.indexOf("async def image_onderdeel("), STORE.indexOf("def _toets_pakket("));
+    for (const veld of ["hash", "bestanden", "revisie", "gemeld_op"]) expect(route, veld).toContain(`"${veld}"`);
+    // Opslaan met een nieuwe basis: het veld dat de editor stuurt, kent de api.
+    expect(ROUTER).toContain("basis_hash: str | None");
+    expect(ROUTER).toContain('"/image/onderdelen/{soort}/{naam}"');
+  });
+
+  it("de basis is de nieuwste versie met de hash waarop het concept voortbouwt", () => {
+    const lijst = [versie({ nummer: 1, hash: "a" }), versie({ nummer: 2, hash: "b", basis_hash: "a" }), versie({ nummer: 3, hash: "a", basis_hash: "a" })];
+    expect(basisVersie(o({ laatste: versie({ nummer: 4, hash: "c", basis_hash: "a" }), versielijst: lijst }))).toBe(3);
+    expect(basisVersie(o({ laatste: versie({ nummer: 2, hash: "c", basis_hash: "zzz" }), versielijst: lijst }))).toBeNull();
+    expect(basisVersie(o({ laatste: versie({ basis_hash: "" }), versielijst: lijst }))).toBeNull();
+    expect(achterPad("o 1")).toBe("/werkwijze/concepten/o%201?achter=1");
   });
 });

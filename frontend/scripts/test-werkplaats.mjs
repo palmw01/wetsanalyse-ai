@@ -17,6 +17,10 @@
  * - versies (B2-3): de lijst met wie, wanneer, de toelichting en welke draait; een eerdere versie lezen; vergelijken
  *   met de voorganger en met een andere versie (wat erbij kwam en wat wegviel, ook een verwijderd bestand); een
  *   eerdere versie terugzetten als wijziging, die pas na opslaan een nieuwe versie wordt;
+ * - loopt achter (B2-4): de melding met *Bekijk wat er veranderde*, de twee verschillen (wat er intussen veranderde en
+ *   wat jij veranderde), zonder automatisch samenvoegen; verder met het eigen concept en opslaan met het vinkje (de
+ *   hash van wat er draait als nieuwe basis); opnieuw beginnen vanaf wat er draait, met vooraf wat er met de eigen
+ *   wijzigingen gebeurt;
  * - op 375 px scrolt geen van die schermen zijwaarts.
  */
 import assert from "node:assert/strict";
@@ -471,6 +475,100 @@ try {
     await page.locator("pre[data-bestand-inhoud]").waitFor();
     assert.equal(await vak.count(), 0);
     assert.equal(await page.getByRole("button", { name: "Meer over dit concept" }).count(), 0);
+    assert.ok(!gezien.paden.some((x) => /^(PUT|DELETE|PATCH)/.test(x)));
+    assert.deepEqual(gezien.errors, []);
+    await page.close();
+  }
+  // --- Loopt achter (B2-4) ------------------------------------------------------------------------------------------
+  for (const breedte of [1280, 375]) {
+    const BASIS = { "SKILL.md": "---\nname: achterloper\ndescription: x\n---\n\n# achterloper\nregel een\nregel twee\n" };
+    const MIJN = { "SKILL.md": BASIS["SKILL.md"] + "mijn regel\n" };
+    const DRAAIT = { "SKILL.md": BASIS["SKILL.md"].replace("regel een", "regel een van master"), "references/nieuw.md": "van master\n" };
+    const HASH = { basis: "a".repeat(64), mijn: "b".repeat(64), draait: "d".repeat(64) };
+    const api = { versies: [null, { hash: HASH.basis, basis: HASH.basis, bestanden: BASIS }, { hash: HASH.mijn, basis: HASH.basis, bestanden: MIJN }],
+      opgeslagen: [] };
+    const v = (n) => versie(n, { hash: api.versies[n].hash, basis_hash: api.versies[n].basis });
+    const a1 = () => {
+      const laatste = api.versies.at(-1);
+      const actief = laatste.hash === HASH.draait;
+      return concept("a1", "achterloper", { versies: api.versies.length - 1, laatste: v(api.versies.length - 1), in_image: true,
+        stand: actief ? "actief" : "concept", basis_verouderd: !actief && laatste.basis !== HASH.draait,
+        versielijst: api.versies.slice(1).map((_, i) => v(i + 1)) });
+    };
+    const eerst = (p, req) => {
+      if (p === "/api/werkplaats/image/skill/achterloper") {
+        return { json: { soort: "skill", naam: "achterloper", hash: HASH.draait, bestanden: DRAAIT, revisie: "abc1234", gemeld_op: "2026-11-13T09:00:00+00:00" } };
+      }
+      if (p === "/api/werkplaats/toets") return { json: { geldig: true, bevindingen: [], hash: "h" } };
+      if (p === "/api/werkplaats/onderdelen/a1/versies" && req.method() === "POST") {
+        const body = req.postDataJSON();
+        api.opgeslagen.push(body);
+        const zelfde = JSON.stringify(body.bestanden) === JSON.stringify(DRAAIT);
+        api.versies.push({ hash: zelfde ? HASH.draait : "c".repeat(64), basis: body.basis_hash ?? api.versies.at(-1).basis, bestanden: body.bestanden });
+        return { json: v(api.versies.length - 1) };
+      }
+      if (p === "/api/werkplaats/onderdelen/a1") return { json: a1() };
+      const m = p.match(/^\/api\/werkplaats\/onderdelen\/a1\/versies\/(\d+)$/);
+      if (m) return { json: { ...v(Number(m[1])), bestanden: api.versies[Number(m[1])].bestanden } };
+      return null;
+    };
+    const { page, gezien } = await open(browser, breedte, { stand: STAND, concepten: [], maak: () => ({}), eerst });
+    page.on("dialog", (d) => d.accept());
+    const achter = page.locator("[data-loopt-achter]");
+
+    // De melding op het concept, en van daar naar de twee verschillen.
+    await page.goto(`${base}/werkwijze/concepten/a1`);
+    await page.locator('[data-melding="loopt-achter"]').getByRole("link", { name: "Bekijk wat er veranderde" }).click();
+    await achter.waitFor();
+    assert.match(page.url(), /achter=1/);
+    assert.match(await page.locator('[data-melding="achter-uitleg"]').innerText(),
+      /bouwt voort op versie 1[\s\S]*Intussen draait er een andere versie[\s\S]*niets automatisch samengevoegd/);
+    // Wat er intussen veranderde: de basis tegen wat er draait.
+    assert.equal(await achter.getAttribute("data-kant"), "intussen");
+    assert.equal(await page.locator('[data-bestand="SKILL.md"]').getAttribute("data-bestand-stand"), "gewijzigd");
+    assert.equal(await page.locator('[data-bestand="references/nieuw.md"]').getAttribute("data-bestand-stand"), "nieuw");
+    assert.match(await page.locator('[data-regel="erbij"]').innerText(), /regel een van master/);
+    assert.match(await page.locator('[data-regel="weg"]').innerText(), /regel een/);
+    await zonderOverloop(page, "loopt achter");
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/werkplaats-achter-${breedte}.png`, fullPage: true });
+    // Wat jij veranderde: de basis tegen je laatste versie. Het bestand van master staat daar niet bij.
+    await page.locator('[data-kant-keuze="mijn"]').click();
+    await page.locator('[data-loopt-achter][data-kant="mijn"]').waitFor();
+    assert.match(await page.locator('[data-regel="erbij"]').innerText(), /mijn regel/);
+    assert.equal(await page.locator('[data-bestand="references/nieuw.md"]').count(), 0);
+    // Vooraf staat wat er met de eigen wijzigingen gebeurt, en er is nog niets opgeslagen.
+    assert.match(await page.locator("[data-achter-keuze]").innerText(),
+      /Je eigen wijzigingen blijven staan[\s\S]*zit daar niet in; het blijft bewaard in versie 2[\s\S]*verandert er niets tot je opslaat/);
+    assert.equal(api.opgeslagen.length, 0);
+
+    // Opnieuw beginnen vanaf wat er draait: de bestanden staan klaar, het vinkje staat aan, en pas opslaan verandert iets.
+    await page.locator('[data-actie="opnieuw-vanaf-draait"]').click();
+    await page.locator('[data-melding="teruggezet"]').waitFor();
+    assert.match(await page.locator('[data-melding="teruggezet"]').innerText(),
+      /De bestanden die nu draaien staan klaar[\s\S]*nog niets veranderd[\s\S]*Wat jij veranderde zit hier niet in; het blijft bewaard in versie 2/);
+    assert.ok(await page.locator("[data-verwerkt] input").isChecked());
+    assert.equal(api.opgeslagen.length, 0);
+    // Verwerpen laat het concept zoals het was; daarna de andere weg: verder met het eigen concept.
+    await page.getByRole("button", { name: "Wijzigingen verwerpen" }).click();
+    await page.getByRole("button", { name: "Verwerpen?" }).click();
+    await page.locator('[data-concept-versie="2"][data-gewijzigd="nee"]').waitFor();
+    // Het concept loopt nog achter: de balk staat er, met het vinkje uit en opslaan uit tot het is aangevinkt.
+    const vinkje = page.locator("[data-verwerkt] input");
+    assert.equal(await vinkje.isChecked(), false);
+    assert.ok(await page.locator('[data-actie="opslaan"]').isDisabled());
+    await zonderOverloop(page, "de balk van een concept dat achterloopt");
+    await vinkje.check();
+    await page.locator('[data-actie="opslaan"]').click();
+    await page.locator('[data-concept-versie="3"]').waitFor();
+    assert.deepEqual([api.opgeslagen[0].na_versie, api.opgeslagen[0].basis_hash], [2, HASH.draait]);
+    assert.deepEqual(api.opgeslagen[0].bestanden, MIJN);
+    // Daarna loopt het concept niet meer achter: geen melding, geen vinkje, en de pagina met de verschillen is de gewone.
+    await page.locator('[data-concept-versie="3"][data-gewijzigd="nee"]').waitFor();
+    assert.equal(await page.locator('[data-melding="loopt-achter"]').count(), 0);
+    assert.equal(await page.locator("[data-verwerkt]").count(), 0);
+    await page.goto(`${base}/werkwijze/concepten/a1?achter=1`);
+    await page.locator("textarea[data-bestand-inhoud]").waitFor();
+    assert.equal(await achter.count(), 0);
     assert.ok(!gezien.paden.some((x) => /^(PUT|DELETE|PATCH)/.test(x)));
     assert.deepEqual(gezien.errors, []);
     await page.close();

@@ -651,8 +651,9 @@ Bij het bouwen (B2, 13 nov 2026) vastgelegd:
   de pagina de twee verschillen (het concept tegen zijn basis, de basis tegen wat er draait) en kan de gebruiker opnieuw
   beginnen vanaf wat er draait. Vooraf staat er wat er met zijn eigen wijzigingen gebeurt; er gaat niets stil verloren.
 - **De versie uit het image is te lezen** via een eigen leesroute, achter dezelfde vlag en rechten als de rest van de
-  werkplaats (B2-4).
-- **De sectie-editor van C7 verdwijnt in B2-4 uit de frontend** (de knop en de BFF-routes). De api-route en de vlag
+  werkplaats (B2-4). Wie heeft verwerkt wat er draait, slaat op met de hash van die versie als nieuwe basis; de api
+  aanvaardt alleen de hash die op dat moment in het image zit. Daarna loopt het concept niet meer achter.
+- **De sectie-editor van C7 is in B2-4 uit de frontend gehaald** (de knop en de BFF-routes). De api-route en de vlag
   `catalogusVoorstellen` blijven tot de promotie van B4 ze vervangt.
 - **Met de vlag `werkplaats` uit verandert er niets aan wat de jurist ziet.**
 - **De knip**: B2-1 de ingangen en het lezen van een concept, B2-2 bewerken met de controle live, B2-3 versies en
