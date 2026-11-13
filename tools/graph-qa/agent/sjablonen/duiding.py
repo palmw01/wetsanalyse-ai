@@ -278,16 +278,33 @@ def _niet_onderbouwd(uitleg: str, citaten: list[Citaat], extern: frozenset[str] 
 MAX_OPHALEN = 2
 
 
+def _genoemd_in_tekst(nummer: str, rijen: dict[str, dict[str, Any]]) -> list[str]:
+    """De opgehaalde bepalingen waarvan de tekst artikel `nummer` noemt (hoogstens drie, op het adres dat in `bepaling`
+    hoort). Een artikel van
+    een andere regeling staat vaak alleen zo in beeld: de Leidraad bij artikel 24 Iw noemt "artikel 29, eerste lid, Wet op
+    de omzetbelasting 1968" (meting A2-3c, F05). Dan is het gelezen, en de weigering "niet opgehaald, haal het op" stuurde
+    het model naar een tool die het niet vindt: na twee weigeringen viel het antwoord terug op tekst."""
+    doel = f"artikel {nummer}".casefold()
+    uit: list[str] = []
+    for iri, rij in rijen.items():
+        if doel in {v.casefold() for v in vermeldingen(str(rij.get("tekst") or ""))}:
+            if iri not in uit:
+                uit.append(iri)
+    return uit[:3]
+
+
 def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace: Trace) -> Onvulbaar:
     """Wat het antwoord noemt, moet gelezen zijn (D, besluit gebruiker 7 nov 2026). Per artikel zonder passage:
 
     - de tekst is opgehaald maar niet aangewezen: wijs een passage aan of laat het weg;
     - de opgehaalde resultaten wijzen het aan zonder tekst (een verwijzing in `get_context`): de code haalt het op, en
       het model kiest daarna een passage of laat het weg;
+    - de tekst van een opgehaalde bepaling noemt het (een artikel van een andere regeling): wijs die passage aan of laat het
+      weg; ophalen hoeft niet (`_genoemd_in_tekst`);
     - het staat nergens in wat er is opgehaald: dan komt het uit het geheugen van het model. Ophalen of weglaten.
 
     Een markering "niet opgehaald" bestaat niet: een artikel staat in beeld met een passage, of niet."""
-    gelezen, ophalen, onbekend, live = [], [], [], []
+    gelezen, ophalen, onbekend, live, in_tekst = [], [], [], [], []
     live_ids = live_artikelen(trace)
     for vermelding in los:
         nummer = vermelding.removeprefix("artikel ")
@@ -298,6 +315,8 @@ def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace:
             gelezen.append(vermelding)
         elif iri and len(ophalen) < MAX_OPHALEN:
             ophalen.append({"bwb_id": iri.split(":")[2], "artikel": nummer, "vermelding": vermelding})
+        elif waar := _genoemd_in_tekst(nummer, rijen):
+            in_tekst.append((vermelding, waar))
         else:
             onbekend.append(vermelding)
     zinnen = []
@@ -313,12 +332,17 @@ def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace:
         zinnen.append(f"Je noemt {', '.join(o['vermelding'] for o in ophalen)} zonder passage. Wat je noemt, moet gelezen zijn: "
                       "de tekst staat hieronder. Wijs er een passage uit aan met `bepaling`, `van` en `tot`, of laat de "
                       "vermelding weg als het artikel er na lezing niet toe doet.")
+    for vermelding, waar in in_tekst:
+        zinnen.append(f"Je noemt {vermelding} zonder passage. Het staat in de tekst die je al ophaalde ({', '.join(waar)}): "
+                      "wijs daaruit de passage aan die het noemt, met dat adres als `bepaling` en met `van` en `tot`, of laat de vermelding weg. "
+                      "Ophalen hoeft niet.")
     if onbekend:
         zinnen.append(f"Je noemt {', '.join(onbekend)} zonder passage, en de tekst daarvan heb je niet opgehaald. Haal het op "
-                      "met get_artikel als het ertoe doet en wijs dan een passage aan, of laat de vermelding weg.")
+                      "met get_artikel (een onderdeel van een beleidsregel met get_bepaling) als het ertoe doet en wijs dan "
+                      "een passage aan, of laat de vermelding weg.")
     # De code zegt welke soorten vermelding zonder passage er waren: daaraan is te zien wat een ronde kostte.
-    soorten = [naam for naam, lijst in (("live", live), ("gelezen", gelezen), ("op_te_halen", ophalen), ("onbekend", onbekend))
-               if lijst]
+    soorten = [naam for naam, lijst in (("live", live), ("gelezen", gelezen), ("op_te_halen", ophalen),
+                                        ("in_tekst", in_tekst), ("onbekend", onbekend)) if lijst]
     return Onvulbaar(" ".join([*zinnen, "Rond daarna opnieuw af."]),
                      ophalen=[{"bwb_id": o["bwb_id"], "artikel": o["artikel"]} for o in ophalen],
                      code="genoemd_" + "+".join(soorten))
