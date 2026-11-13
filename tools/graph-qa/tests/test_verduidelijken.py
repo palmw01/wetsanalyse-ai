@@ -47,3 +47,24 @@ def test_een_vage_keuzevraag_staat_er_niet_twee_keer():
     """Acceptatie 7 nov 2026: "Kun je aangeven welk artikel je precies bedoelt?" en daarna nog eens "Noem het artikel"."""
     tekst = doorvraag("En het tweede lid?", "Kun je aangeven welk artikel je precies bedoelt, zodat ik het kan ophalen?")
     assert "Kun je aangeven" not in tekst and "Noem het artikel" in tekst
+
+
+def test_een_keuzevraag_met_de_mogelijkheden_in_een_slotvraag_wordt_herkend():
+    """Het antwoord van de centrale agent in de meting van 12 nov 2026 (gesprek v-artikel-zonder-wet, beurt 2): de
+    keuzevraag, en daarna de voorbeelden in een eigen vraag. De herkenner keek alleen naar de laatste zin."""
+    antwoord = ('De Awb gebruikt een bijzondere nummering voor artikelen, in de vorm van hoofdstuk:artikel (bijvoorbeeld 3:1, '
+                '3:2). Er is geen artikel met alleen het nummer "3" in de Awb. Bedoel je een specifiek artikel uit een bepaald '
+                'hoofdstuk of afdeling? Bijvoorbeeld artikel 3:1, 3:2 of een ander artikel uit hoofdstuk 3?')
+    keuze = open_keuzevraag(antwoord)
+    assert keuze.startswith("Bedoel je een specifiek artikel") and keuze.endswith("uit hoofdstuk 3?")
+    tekst = doorvraag("En het tweede lid?", antwoord)
+    assert tekst.startswith("Ik weet nog niet welk artikel je bedoelt") and "3:1, 3:2" in tekst
+    # Wie een artikel noemt, heeft gekozen.
+    assert doorvraag("Artikel 3:2, het tweede lid.", antwoord) == ""
+
+
+def test_een_keuzevraag_midden_in_het_antwoord_telt_niet():
+    """Alleen de vragen waarmee het antwoord eindigt: een vraag met een gewone zin erna is beantwoord of retorisch."""
+    assert open_keuzevraag("Bedoel je artikel 3:1? Dat artikel regelt de zorgvuldigheid.") == ""
+    assert open_keuzevraag("Welk artikel bedoel je? Ik ga uit van artikel 9. Klopt dat?") == ""
+    assert open_keuzevraag("Het staat in de Awb. **Bedoel je artikel 3:1 of 3:2?**") == "Bedoel je artikel 3:1 of 3:2?"

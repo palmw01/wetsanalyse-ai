@@ -126,6 +126,16 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   `uit` is; met `uit` is de graaf die van `tests/test_graafopbouw.py`. Zolang een vraagkaart van het samenstellen open
   staat, leest de supervisor de beurt nog (`_centraal`). Bouw voor een nieuwe overdracht geen tweede implementatie van
   de route. `tests/test_centrale_agent.py` legt de drie standen en de afwijzing vast.
+  **De kernset** (A2-2b): `centraal` heeft elf graaftools, gekozen op gebruik; elk schema staat in het voorvoegsel van
+  elke ronde, dus een tool erbij kost in elke beurt. De andere twaalf staan in `centraal_breed`, dezelfde agent met
+  dezelfde instructie plus de aanwijzingen voor die tools. De overdracht `meer_tools` zet `state["specialist"]` op het
+  brede profiel en stuurt de beurt terug naar de agentnode: dezelfde beurt, een ander voorvoegsel. Een tool buiten het
+  profiel voert `tools_node` voor de centrale agent niet uit (`CentraleAgent.mag`, resultaat `tool_buiten_profiel`); een
+  gewone specialist wordt daar niet op getoetst, want dat zou de supervisorweg veranderen. Zet je een tool in de
+  kernset of eruit, pas dan beide profielen aan en de beschrijving van `meer_tools`: `test_centrale_agent.py` toetst dat
+  de kernset en de rest samen de graaftools zijn, dat geen instructie een tool noemt die het profiel niet heeft, en
+  dat de beschrijving elke tool achter de overdracht noemt. De eigen tools van de agent hebben een eigen categorie in
+  de contextopbouw (`contextdelen.AGENTTOOLS`, met een label in `frontend/lib/contextdelen.ts`).
 - **`agent_node`** – vraagt de agent van de beurt op (`agent_voor`, uit het profielregister): `SYSTEM_PROMPT` + methode-instructies
   (`agent/methode.py`, uit het gegenereerde `methodepakket.py`) + addendum + plan, met
   de toolschema's van de agent (`Agent.toolschemas`). Tekst stroomt niet mee: pas na de ronde is bekend of het narratie

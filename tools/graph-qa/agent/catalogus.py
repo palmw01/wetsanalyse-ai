@@ -24,7 +24,7 @@ from bronmodel.catalogus import EIGEN, Herkomst, Onderdeel, Stap, oid, versie, z
 from bronmodel.connectors import CONNECTORS, ConnectorBeschrijving
 
 from . import bronnen_vinden, bronpakket, bronselectie, profielen, werkgebied_intake
-from .agentvorm import CENTRAAL
+from .agentvorm import CENTRAAL, CENTRAAL_BREED
 from .agents.register import AGENTS, NAAM
 from .begrippen_pipeline import keten as begrippenketen
 from .jas_pipeline import keten as annotatieketen
@@ -125,7 +125,8 @@ def uit_agentprofielen() -> list[Onderdeel]:
             doel=p.beschrijving, model="agent", herkomst=EIGEN, bestand=(f".claude/lex-agents/{naam}.md",),
             versie=profielen.versie(p), bronhash=bronpakket.bronhash("agentprofiel", naam), tools=tools,
             ingang=(("de supervisor kiest het",) if p.kiesbaar else ("de vlag CENTRALE_AGENT (ADR-016 §A7)",)
-                    if naam == CENTRAAL else ("een route in code",)),
+                    if naam == CENTRAAL else ("de overdracht meer_tools van het profiel centraal",)
+                    if naam == CENTRAAL_BREED else ("een route in code",)),
             uitvoer=", ".join(sjablonen) or "doel-JSON voor de annotatieroute",
             twijfel="leemte of doorvragen; een citaat dat niet letterlijk in de opgehaalde tekst staat, valt weg (grounding)",
             tests=("tools/graph-qa/tests/test_profielregister.py", "tools/graph-qa/tests/test_specialists.py"),
