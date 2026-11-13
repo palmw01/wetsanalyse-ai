@@ -153,10 +153,10 @@ voorvoegsel van `centraal_breed`). De drempel staat op gewogen warm, waarin dat 
 - **Tools naast elkaar:** 129 modelrondes met tools, waarvan 46 met meer dan één; 212 aanroepen, 1,6 per ronde. Voor
   ronde 2 is er geen harde telling om mee te vergelijken. Het aantal modelrondes per run van de enkelvoudige opdrachten
   ging van 32 / 28 / 30 naar 27 / 30 / 30.
-- **Uitspraken lezen** gaat nog vaak één per ronde: in de opzet van F01 vijftien keer `get_uitspraak`, waarvan er zes
-  een uitspraak opnieuw lezen.
+- **Uitspraken lezen** gaat nog vaak één per ronde: in de opzet van F01 vijftien keer `get_uitspraak`, over tien
+  uitspraken (een lange uitspraak komt in pagina's).
 - **Het sjabloon:** 14 weigeringen in 10 van de 47 beurten van de agentset en de aanvulling, alle bij `antwoord_duiding`:
-  `genoemd_onbekend` 7 keer (E03 in elke run: de uitleg noemt een bepaling die niet is opgehaald),
+  `genoemd_onbekend` 7 keer (E03 in elke run en E09 één keer: de uitleg noemt een bepaling die niet is opgehaald),
   `passage_niet_te_tonen` 6 keer (E08, B01, F05) en `genoemd_gelezen` 1 keer (B02).
 
 ## Brongetrouwheid
