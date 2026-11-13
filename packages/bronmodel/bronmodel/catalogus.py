@@ -131,6 +131,10 @@ class Onderdeel:
     bestand: tuple[str, ...]
     #: Een hash van de inhoud. Die verandert als het gedrag verandert.
     versie: str
+    #: De hash van de bronbestanden van dit onderdeel in het image (`bronmodel.werkplaats.hash_van`), als het die heeft:
+    #: een skill of een agentprofiel. Een versie in de werkplaats met dezelfde hash is *actief* (ADR-016 §B1). Iets anders
+    #: dan `versie`: commentaar in een bestand verandert het gedrag niet, de bronbestanden wel.
+    bronhash: str = ""
     #: Acties, routes of tools die het kiezen (contractpunt 2).
     ingang: tuple[str, ...] = ()
     #: Benodigde context en de bovengrens ervan (contractpunt 3).

@@ -512,6 +512,27 @@ concept ──► proef (acceptatie) ──► voorgesteld (concept-PR) ──�
   het register en voor wat in het image zit. De stand wordt afgeleid en nergens opgeslagen.
 - **De lijst van methoderollen staat in bronmodel** (`bronmodel.skill.ROLLEN`), zodat de api "alleen bestaande rollen"
   toetst met dezelfde lijst als de generator.
+- **Hoe de api weet wat er in het image zit (besluit 13 nov 2026): graph-qa meldt het bij het starten.** De generator
+  bundelt per skill de hele map en per profiel het bestand in het **bronpakket** (`agent/bronpakket.json`), met dezelfde
+  hash als een versie in het register. Graph-qa stuurt dat pakket bij het starten naar de api, met het agent-token dat
+  hij al heeft; de api bewaart het en leidt de stand bij het lezen af: `actief` (de hash van een versie is die in het
+  image), `in_image`, `basis_verouderd` (master is intussen veranderd) en `onbekend` als de api het image niet kent.
+  `onbekend` is nooit "niet actief". De melding is idempotent en draagt de hash van het hele pakket, de commit en het
+  tijdstip; de api toont die bij de stand. `actief` wordt nergens opgeslagen: wat graph-qa meldt, is een feit over zijn
+  eigen image, geen oordeel over een versie.
+
+  Twee andere wegen vielen af:
+  - *De BFF legt catalogus en register naast elkaar.* Dan is de stand logica in de frontend, krijgt wie de api
+    rechtstreeks leest hem niet, en kan de api de basis van een concept niet controleren: die komt dan van de client.
+    De promotie moet server-side weten of de basis nog het image is.
+  - *De api leest graph-qa.* De api hangt nu nergens van graph-qa af; dat wordt een kring. Graph-qa kent één token en
+    dat opent alles, ook een beurt starten namens een gebruiker; dat token zou de api krijgen. En graph-qa staat op nul
+    replica's: elke blik op de werkplaats wekt hem, of toont "onbekend".
+
+  De prijs van de gekozen weg is een kopie die kan achterlopen. De rooktest na elke uitrol start graph-qa, dus dan is de
+  melding vers; de pakkethash en het tijdstip maken een achterstand zichtbaar.
+- **Elke methode-skill is een build-input** zodra hij in het bronpakket zit: de poort, de hook en de publish van
+  graph-qa kijken naar `.claude/skills/` en `.claude/lex-agents/`, niet meer alleen naar de basis-skill.
 - **Grenzen:** hoogstens 200 versies per onderdeel en 50 onderdelen per gebruiker, naast de grenzen op de omvang van een
   skill. De audit en de logregels dragen geen inhoud en geen naam van een concept.
 
@@ -581,6 +602,9 @@ zijn eigen gesprekken; anderen bereikt het pas als een beheerder het deelt of pr
   niet maken (ADR-014 §5).
 - Een profiel noemt zijn skills, tools, connectors en sjabloon (A2).
 - De catalogus toont beide richtingen (`hangt_af_van`); `test_catalogus.py` houdt ze kloppend.
+- Ook de koppeling tussen een versie in de werkplaats en wat er draait, heeft geen tabel: het is één hash
+  (`bronmodel.werkplaats.hash_van`), berekend over de bestanden. De catalogus toont hem als `bronhash`, het register bij
+  elke versie. Gelijk is *actief* (zie B1 voor hoe de api de hash van het image kent).
 
 ### B6. Openbaar of niet
 

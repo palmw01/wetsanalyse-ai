@@ -23,7 +23,7 @@ from bronmodel.agentprofiel import Agentprofiel
 from bronmodel.catalogus import EIGEN, Herkomst, Onderdeel, Stap, oid, versie, zwaarste
 from bronmodel.connectors import CONNECTORS, ConnectorBeschrijving
 
-from . import bronnen_vinden, bronselectie, profielen, werkgebied_intake
+from . import bronnen_vinden, bronpakket, bronselectie, profielen, werkgebied_intake
 from .agentvorm import CENTRAAL, CENTRAAL_BREED
 from .agents.register import AGENTS, NAAM
 from .begrippen_pipeline import keten as begrippenketen
@@ -73,7 +73,8 @@ def uit_methode() -> list[Onderdeel]:
                 codes + ((f"{meta['map']}/BRON.md",) if meta["lex"]["letterlijk"] == "ja" else ()), naam),
             bestand=tuple(f"{meta['map']}/{p.removeprefix(prefix)}" for p in sorted(PAKKET["bronbestanden"])
                           if (p.startswith(prefix) if prefix else not p.startswith(_andere_skills()))),
-            versie=versie(meta["versie"], *(x["sha256"] for x in eigen.values())), uitvoer="methodetekst per rol",
+            versie=versie(meta["versie"], *(x["sha256"] for x in eigen.values())), bronhash=bronpakket.bronhash("skill", naam),
+            uitvoer="methodetekst per rol",
             tests=("tools/graph-qa/tests/test_methodepakket.py", "tools/graph-qa/tests/test_methode_drift.py"),
             bewerkbaar=tuple(sorted(eigen)),
             inhoud={"methode_versie": meta["versie"], "rollen": {r: ids for r, ids in rollen.items() if ids},
@@ -122,7 +123,7 @@ def uit_agentprofielen() -> list[Onderdeel]:
         uit.append(Onderdeel(
             id=oid("agentprofiel", naam), soort="agentprofiel", label=naam.replace("_", " ").capitalize(),
             doel=p.beschrijving, model="agent", herkomst=EIGEN, bestand=(f".claude/lex-agents/{naam}.md",),
-            versie=profielen.versie(p), tools=tools,
+            versie=profielen.versie(p), bronhash=bronpakket.bronhash("agentprofiel", naam), tools=tools,
             ingang=(("de supervisor kiest het",) if p.kiesbaar else ("de vlag CENTRALE_AGENT (ADR-016 §A7)",)
                     if naam == CENTRAAL else ("de overdracht meer_tools van het profiel centraal",)
                     if naam == CENTRAAL_BREED else ("een route in code",)),

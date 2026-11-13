@@ -77,7 +77,7 @@ jobs:
           #
           # Hetzelfde geldt voor de agentprofielen (`.claude/lex-agents/`, ADR-016): `agent/agentprofielen.py` wordt
           # eruit gegenereerd en `tests/test_profielregister.py` bewaakt dat.
-          skill=$(echo "$gewijzigd" | grep -E '^\.claude/(skills/wetsanalyse|lex-agents)/' || true)
+          skill=$(echo "$gewijzigd" | grep -E '^\.claude/(skills|lex-agents)/' || true)
 
           heeft() { echo "$code" | grep -q "^$1" && echo true || echo false; }
           graph_qa=$(heeft 'tools/graph-qa/')
