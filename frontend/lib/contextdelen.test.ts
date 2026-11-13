@@ -12,7 +12,7 @@ describe("het register van contextdelen", () => {
     // De constanten (`SYSTEEM = "systeem"`) en de volgorde van `CATEGORIEEN` in agent/contextdelen.py.
     const py = bron("contextdelen.py");
     const naam = Object.fromEntries([...py.matchAll(/^([A-Z]+) = "([a-z]+)"$/gm)].map((m) => [m[1], m[2]]));
-    const register = [...py.matchAll(/^    Categorie\((\w+), "[^"]*"(, voorvoegsel=True)?\),$/gm)]
+    const register = [...py.matchAll(/^    Categorie\((\w+), "[^"]*"(,\s+voorvoegsel=True)?\),$/gm)]
       .map((m) => ({ id: naam[m[1]], voorvoegsel: !!m[2] }));
     expect(register.length).toBeGreaterThan(5);
     expect(CONTEXTDELEN.map((d) => ({ id: d.id, voorvoegsel: d.voorvoegsel }))).toEqual(register);
