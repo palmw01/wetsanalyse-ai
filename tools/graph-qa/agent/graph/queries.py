@@ -1029,17 +1029,29 @@ def geldigheid(bwb_id: str, aanduiding: str | None = None, lid: str | None = Non
     """
     node = node_patroon(bwb_id, aanduiding, lid) if aanduiding else f'BIND(<{regeling_iri(bwb_id)}> AS ?node)'
     reg = regeling_iri(bwb_id)
+    # De drager is de bepaling zelf, of bij een lid of onderdeel de bepaling erboven: de voorouder langs
+    # heeftLid/heeftOnderdeel die zelf geen lid of onderdeel is. Alles over de drager staat in dezelfde OPTIONAL, en de
+    # dossiers worden op het buitenste niveau samengevoegd.
+    #
+    # Eerst stond hier `BIND(COALESCE(?artikel, ?node) AS ?drager)` met een subquery die de dossiers per drager
+    # samenvoegde. Die subquery sloot in de graaf niet aan op de bepaling: voor artikel 28 van de Invorderingswet 1990
+    # kwamen er 974 rijen terug in plaats van één, elk met de dossiers van een ándere bepaling (meting ADR-016 ronde 3,
+    # B01 en K17: pagina na pagina, en daarna eigen SPARQL). Een nepgraaf ziet dat niet; `eval/retrieval_smoke.py`
+    # toetst het nu tegen de echte graaf (`max_rijen`).
+    vast = ("?bepalingInwerking ?terugwerkendTot ?bron ?effect ?status ?wijzigingsbron ?inwerkingtredingsbron ?opmerking "
+            "?geldigVanaf ?geldigTot ?toestandUrl ?ondertekeningsdatum ?uitgiftedatum ?dossier")
     return PREFIXES + f"""SELECT ?bepalingInwerking ?terugwerkendTot ?bron ?effect ?status ?wijzigingsbron
-       ?dossiersBepaling ?inwerkingtredingsbron ?opmerking
+       (GROUP_CONCAT(DISTINCT ?ds; separator=" | ") AS ?dossiersBepaling) ?inwerkingtredingsbron ?opmerking
        ?geldigVanaf ?geldigTot ?toestandUrl ?ondertekeningsdatum ?uitgiftedatum ?dossier WHERE {{
   {node}
-  OPTIONAL {{ ?artikel (bwb:heeftLid|bwb:heeftOnderdeel)+ ?node . ?artikel a bwb:Artikel . }}
-  BIND(COALESCE(?artikel, ?node) AS ?drager)
-  OPTIONAL {{ SELECT ?drager (GROUP_CONCAT(DISTINCT ?ds; separator=" | ") AS ?dossiersBepaling) WHERE {{
-    ?drager bwb:dossier ?ds . FILTER(STRSTARTS(STR(?drager), "{NS}"))
-  }} GROUP BY ?drager }}
-  OPTIONAL {{ ?drager bwb:inwerkingtredingsbron ?inwerkingtredingsbron }}
-  OPTIONAL {{ ?drager bwb:opmerking ?opmerking }}
+  OPTIONAL {{
+    ?drager (bwb:heeftLid|bwb:heeftOnderdeel)* ?node .
+    FILTER NOT EXISTS {{ ?boven (bwb:heeftLid|bwb:heeftOnderdeel) ?drager }}
+    FILTER(STRSTARTS(STR(?drager), "{NS}"))
+    OPTIONAL {{ ?drager bwb:dossier ?ds }}
+    OPTIONAL {{ ?drager bwb:inwerkingtredingsbron ?inwerkingtredingsbron }}
+    OPTIONAL {{ ?drager bwb:opmerking ?opmerking }}
+  }}
   OPTIONAL {{ ?node bwb:inwerking ?bepalingInwerking }}
   OPTIONAL {{ ?node bwb:terugwerkendTot ?terugwerkendTot }}
   OPTIONAL {{ ?node bwb:bron ?bron }}
@@ -1052,7 +1064,8 @@ def geldigheid(bwb_id: str, aanduiding: str | None = None, lid: str | None = Non
   OPTIONAL {{ <{reg}> bwb:ondertekeningsdatum ?ondertekeningsdatum }}
   OPTIONAL {{ <{reg}> bwb:uitgiftedatum ?uitgiftedatum }}
   OPTIONAL {{ <{reg}> bwb:dossier ?dossier }}
-}} ORDER BY ?wijzigingsbron ?bron ?effect ?status ?bepalingInwerking ?terugwerkendTot ?dossiersBepaling {_pagina(max(1, min(int(limit), 200)), offset, meer)}"""
+}} GROUP BY {vast}
+ORDER BY ?wijzigingsbron ?bron ?effect ?status ?bepalingInwerking ?terugwerkendTot {_pagina(max(1, min(int(limit), 200)), offset, meer)}"""
 
 
 def bijlagen(bwb_id: str, sleutel: str | None = None, limit: int = 50, offset: int = 0,

@@ -725,6 +725,11 @@ dan de graaf.
   weestool (in geen enkele specialist-set), een rolnaam die niet bestaat (die negeert
   `anthropic_schemas(only=)` stil), een beschrijving die niet zegt wát er terugkomt, en een tool zonder
   controle in `eval/retrieval_smoke.py`.
+- **Geen subquery in een OPTIONAL.** GraphDB rekent zo'n subquery los uit; sluit ze aan op een variabele uit een `BIND`,
+  dan sluit ze niet aan. `geldigheid` gaf zo voor één artikel 974 rijen, elk met de Kamerdossiers van een andere bepaling
+  (13 nov 2026; een nepgraaf ziet dat niet). Zet wat bij een afgeleide knoop hoort in de OPTIONAL die hem bindt, en voeg
+  samen op het buitenste niveau. `tests/test_predicaat_dekking.py` weigert het patroon; `eval/retrieval_smoke.py` eist
+  tegen de echte graaf één rij.
 - **Te véél rijen is net zo fout als te weinig.** `?node a ?type` matcht ook gematerialiseerde
   superklassen: bind `?soort` met `FILTER(?t IN (…CONCRETE_TYPES…))`. Meerwaardige properties in losse
   OPTIONALs vermenigvuldigen elkaar: gebruik `GROUP_CONCAT`. Beide glippen door elke leegte-controle
