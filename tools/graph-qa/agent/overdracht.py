@@ -13,6 +13,7 @@ agenttaak), dan is `naar` `INGANG`: de node volgt uit de state van de route, met
 """
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -39,9 +40,9 @@ class Overdracht:
     invoer: dict[str, Any]
     #: De node waar de beurt heen gaat, of `INGANG`.
     naar: str
-    #: `(state, invoer) -> de state-update van de route`, of een tekst als de code de overdracht weigert: het model
-    #: krijgt die als toolresultaat en werkt verder.
-    zet: Callable[[State, dict[str, Any]], dict[str, Any] | str]
+    #: `(b, state, invoer) -> de state-update van de route`, of een tekst als de code de overdracht weigert: het model
+    #: krijgt die als toolresultaat en werkt verder. `b` is de `Bouw` van de graaf (de graaf voor een controle).
+    zet: Callable[[Any, State, dict[str, Any]], dict[str, Any] | str]
     #: De profielen waarvan de agent deze tool krijgt; leeg = elk profiel van de centrale agent.
     van: frozenset[str] = frozenset()
     #: Wat het model ziet als de overdracht slaagt.
@@ -56,7 +57,7 @@ class Overdracht:
                                  "additionalProperties": False}}
 
 
-def _wijs_af(state: State, _invoer: dict[str, Any]) -> dict[str, Any] | str:
+def _wijs_af(_b: Any, state: State, _invoer: dict[str, Any]) -> dict[str, Any] | str:
     """Buiten de wetgeving: de vaste tekst uit code (`afwijs_node`). Een vraag over een bron naast de wet (ADR-013) of een
     vraag die een regeling noemt (ADR-016 ronde 4, K12) is nooit buiten de scope: die weigert de code, zoals ze een
     afwijzing van de supervisor terugdraait (`binnen_scope`, één regel voor beide vormen)."""
@@ -65,13 +66,13 @@ def _wijs_af(state: State, _invoer: dict[str, Any]) -> dict[str, Any] | str:
     return {"afwijzen": True}
 
 
-def _meer_tools(_state: State, _invoer: dict[str, Any]) -> dict[str, Any]:
+def _meer_tools(_b: Any, _state: State, _invoer: dict[str, Any]) -> dict[str, Any]:
     """De overdracht aan het brede profiel, binnen dezelfde beurt: de volgende ronde draait dezelfde agent met alle
     graaftools. Het gesprek van de beurt blijft; alleen het voorvoegsel wisselt."""
     return {"specialist": CENTRAAL_BREED}
 
 
-def _taakagent(state: State, invoer: dict[str, Any]) -> dict[str, Any] | str:
+def _taakagent(_b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any] | str:
     """Eén taak van de deelvragen- of begrippenagent: dezelfde `_agent` als na de keuze van de supervisor, met de
     parameters uit wat er ligt (werkgebied, aangewezen object, de vraag). Een taak die niet bij de agent hoort, weigert
     de code met de taken die er wel zijn."""
@@ -85,7 +86,7 @@ def _taakagent(state: State, invoer: dict[str, Any]) -> dict[str, Any] | str:
     return _agent(get_stream_writer(), state, agent, taak, state.get("question", ""))
 
 
-def _werkgebied(state: State, invoer: dict[str, Any]) -> dict[str, Any]:
+def _werkgebied(_b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any]:
     """Het werkgebied samenstellen, het dossier aanvullen of de bronselectie: dezelfde route als bij de supervisor."""
     from .nodes.supervisie import werkgebied_route
 
@@ -93,6 +94,38 @@ def _werkgebied(state: State, invoer: dict[str, Any]) -> dict[str, Any]:
     return werkgebied_route(get_stream_writer(), state, "" if taak == "samenstellen" else taak,
                             state.get("question", ""))
 
+
+def _toon_bepaling(b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any] | str:
+    """De tekst van een bepaling: dezelfde workflow als de route vóór het model (`bepaling_workflow`, ADR-010 D1), die
+    ophaalt en het sjabloon `antwoord_bepaling` vult. Dat sjabloon heeft de centrale agent zelf niet (meetronde S6,
+    golden_duiding: "wat betekent lid X" kreeg het bepalingssjabloon). Dezelfde regel als vóór het model: een vraag om
+    uitleg of over een stuk naast de wet is geen vraag naar de tekst, en die weigert de code. Het BWB-id moet uit het
+    gesprek komen (`id_herkomst`), zoals bij een graaftool. Lukt het ophalen niet, dan werkt dezelfde agent verder."""
+    from . import id_herkomst
+    from .bepaling_workflow import Bepalingsvraag, is_uitlegvraag
+    from .graph import queries
+    from .nodes.supervisie import _bepaling
+
+    vraag = state.get("question", "")
+    if is_uitlegvraag(vraag):
+        return ("Deze vraag vraagt om uitleg, niet alleen om de tekst. Haal de bepaling op met get_artikel, get_lid of "
+                "get_bepaling en rond af met antwoord_duiding.")
+    artikel, lid = (invoer.get("artikel") or "").strip(), (invoer.get("lid") or "").strip()
+    if not queries.is_artikelnummer(artikel):
+        return (f"'{artikel}' is geen artikelnummer (een divisie van een beleidsregel lees je met get_bepaling). Toon de "
+                "tekst dan zelf, of rond af met antwoord_duiding.")
+    bwb_id = (invoer.get("bwb_id") or "").strip().upper()
+    if not re.fullmatch(r"BWB[RV]\d{7}", bwb_id):
+        return f"'{bwb_id}' is geen BWB-id (BWBR of BWBV met zeven cijfers)."
+    if weigering := id_herkomst.toets(TOON_BEPALING, invoer, state, graph=getattr(b, "graph", None)):
+        return weigering
+    upd = _bepaling(get_stream_writer(), Bepalingsvraag(bwb_id=bwb_id, artikel=artikel, lid=lid))
+    # Lukt het ophalen niet, dan gaat de beurt terug naar de agent: dezelfde centrale agent, niet de specialist van de
+    # supervisor.
+    return {**upd, "specialist": state.get("specialist") or CENTRAAL}
+
+
+TOON_BEPALING = "toon_bepaling"
 
 #: De agents die de centrale agent een taak kan geven (ADR-016 A2-3a). De annotatieagent komt met `annoteer` (A2-4).
 TAAKAGENTS = ("deelvragen", "begrippen")
@@ -126,6 +159,17 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
                       "verwijzingen van een bepaling heb je alles al. Schrijf er geen tekst naast."),
         invoer={}, naar="agent", zet=_meer_tools, van=frozenset({CENTRAAL}),
         resultaat="De extra tools staan nu aan. Ga verder met de vraag."),
+    Overdracht(
+        naam=TOON_BEPALING,
+        beschrijving=(
+            "Roep dit aan als de gebruiker ALLEEN wil weten wat er in een bepaling staat of wat ze regelt ('en lid 2?', "
+            "'wat staat er in artikel 9?', 'geef de tekst van dat artikel'). De code haalt de tekst op en toont hem met een "
+            "korte toelichting; schrijf zelf niets. Niet voor uitleg ('wat betekent', 'wat houdt in', 'waarom', 'hoe "
+            "verhoudt'): die beantwoord je zelf met antwoord_duiding. bwb_id komt uit het gesprek; lid is leeg voor het "
+            "hele artikel."),
+        invoer={"bwb_id": {"type": "string"},
+                "artikel": {"type": "string"}, "lid": {"type": "string"}},
+        naar="bepaling_lezen", zet=_toon_bepaling),
     Overdracht(
         naam="taakagent",
         beschrijving=(
@@ -168,7 +212,7 @@ def overdracht_node(_b: Any, state: State) -> dict[str, Any]:
     beurt heen gaat. Weigert de code, dan gaat de beurt terug naar de agent met de reden."""
     tu = state["pending_tools"][0]
     o = OVERDRACHT[tu["name"]]
-    uitkomst = o.zet(state, tu.get("input") or {})
+    uitkomst = o.zet(_b, state, tu.get("input") or {})
     geweigerd = isinstance(uitkomst, str)
 
     def resultaat(tekst: str, **extra: Any) -> dict[str, Any]:

@@ -142,13 +142,18 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   keer per beurt, en zet `state["agentvorm"]`. De routes vóór het model in `supervisie._kies` gelden voor beide vormen;
   waar de supervisor het model aanroept, gaat de beurt met `centraal` naar de antwoordketen met dat profiel
   (`_naar_centraal`): geen supervisorstap, geen herschreven vraag. Zijn eigen tools staan in `agent/overdracht.py`
-  (`wijs_af`, `meer_tools`, `taakagent`, `werkgebied`; een vraag over een bron naast de wet of een vraag die een regeling noemt, ook buiten de graaf, wijst de code niet af: `agent/binnen_scope.py`, dezelfde regel waarmee de supervisor een afwijzing terugdraait, ADR-016 ronde 4, K12): een **overdrachtstool bouwt niets na**, hij zet de state van een bestaande route en stuurt de
+  (`wijs_af`, `meer_tools`, `taakagent`, `werkgebied`, `toon_bepaling`; een vraag over een bron naast de wet of een vraag die een regeling noemt, ook buiten de graaf, wijst de code niet af: `agent/binnen_scope.py`, dezelfde regel waarmee de supervisor een afwijzing terugdraait, ADR-016 ronde 4, K12): een **overdrachtstool bouwt niets na**, hij zet de state van een bestaande route en stuurt de
   beurt via de node `overdracht` naar de node die er al is. **`taakagent` en `werkgebied`** (A2-3a; meetronde S6: "stel
   deelvragen voor" werd vrije tekst) gaan naar dezelfde routes als de keuze van de supervisor: `supervisie._agent` voor een
   taak van de deelvragen- of begrippenagent (de taken uit `agents/register.py`; een taak die niet bij de agent hoort,
   weigert de code), en `supervisie.werkgebied_route` voor samenstellen, aanvullen en de bronselectie. Kiest de route zelf
   haar node, dan is `naar` `INGANG` en kiest `_entry_node` (de ingang na de supervisor) binnen `ingangen`. Het
-  annoteren van het werkgebied komt met `annoteer` (A2-4). Die node en zijn edges bestaan alleen als de vlag niet
+  annoteren van het werkgebied komt met `annoteer` (A2-4). **Het bepalingssjabloon heeft de centrale agent niet** (A2-3b; S6,
+  golden_duiding: "wat betekent lid X" kreeg het bepalingssjabloon, 12/18 tegen 17/18): de tekst van een bepaling toont
+  `toon_bepaling`, met de workflow van de route vóór het model (`_bepaling` → `bepaling_lezen`). Een uitlegvraag of een
+  vraag over een stuk naast de wet weigert de code met dezelfde regel als vóór het model
+  (`bepaling_workflow.is_uitlegvraag`), het BWB-id gaat langs `id_herkomst`, en de terugval bij een mislukte ophaal is
+  dezelfde centrale agent. Die node en zijn edges bestaan alleen als de vlag niet
   `uit` is; met `uit` is de graaf die van `tests/test_graafopbouw.py`. Zolang een vraagkaart van het samenstellen open
   staat, leest de supervisor de beurt nog (`_centraal`). Bouw voor een nieuwe overdracht geen tweede implementatie van
   de route. `tests/test_centrale_agent.py` legt de drie standen en de afwijzing vast.
