@@ -181,6 +181,19 @@ def test_de_samenvatting_toetst_een_run_tegen_de_set():
     assert gezien == [["supervisor"], ["centraal"], []]
     assert s["route_past"] and s["delegatie_past"] and s["sjabloon_past"] and not s["tools_ontbreken"]
 
+    # De overdracht naar de brede toolset en de tools per modelronde (A2-2b).
+    breed = {**meting, "route": "centraal_breed", "sjabloon": {"geweigerd": {"antwoord_duiding:duiding.vul": 1},
+                                                              "geweigerd_reden": {"antwoord_duiding:duiding.vul:geen_passage": 1}},
+             "contextopbouw": {"agenten": [{"rol": "centraal", "profiel_id": "centraal_breed"}]},
+             "aanroepen": [{"rol": "centraal", "tools_hash": "a"}, {"rol": "centraal", "tools_hash": "b"}]}
+    tools = [{"type": "tool_execution", "phase": "start", "tool": t, "ronde": r}
+             for t, r in (("get_lid", 0), ("meer_tools", 1), ("geldigheid", 2), ("get_artikel", 2))]
+    s_breed = vat({"id": "B01", "run": 1, "beurten": [{"label": "gemeten", "events": [*tools, breed]}]}, _lees(EVAL / "golden_centrale_agent_breed.jsonl")[0])
+    assert s_breed["meer_tools"] and s_breed["tools_hashes"] == 2 and not s_breed["tools_ontbreken"]
+    assert s_breed["tools_per_ronde"] == [["meer_tools"], ["geldigheid", "get_artikel"]] and s_breed["rondes_met_meer_tools"] == 1
+    assert s_breed["geweigerd_reden"] == {"antwoord_duiding:duiding.vul:geen_passage": 1}
+    assert not s["meer_tools"] and s["tools_per_ronde"] == []
+
     regie = [{"type": "regie", "fase": "start"}, {"type": "regie_taak", "fase": "start", "gesprek_id": "k1"}]
     s = vat({"id": "M02", "run": 1, "beurten": [{"label": "gemeten", "events": regie}]}, PER_ID["M02"])
     assert s["route"] == "regie" and s["kindgesprekken"] == 1 and not s["delegatie_past"]
