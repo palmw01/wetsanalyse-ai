@@ -142,7 +142,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   keer per beurt, en zet `state["agentvorm"]`. De routes vóór het model in `supervisie._kies` gelden voor beide vormen;
   waar de supervisor het model aanroept, gaat de beurt met `centraal` naar de antwoordketen met dat profiel
   (`_naar_centraal`): geen supervisorstap, geen herschreven vraag. Zijn eigen tools staan in `agent/overdracht.py`
-  (nu alleen `wijs_af`): een **overdrachtstool bouwt niets na**, hij zet de state van een bestaande route en stuurt de
+  (nu alleen `wijs_af`; een vraag over een bron naast de wet of een vraag die een regeling noemt, ook buiten de graaf, wijst de code niet af: `agent/binnen_scope.py`, dezelfde regel waarmee de supervisor een afwijzing terugdraait, ADR-016 ronde 4, K12): een **overdrachtstool bouwt niets na**, hij zet de state van een bestaande route en stuurt de
   beurt via de node `overdracht` naar de node die er al is. Die node en zijn edges bestaan alleen als de vlag niet
   `uit` is; met `uit` is de graaf die van `tests/test_graafopbouw.py`. Zolang een vraagkaart van het samenstellen open
   staat, leest de supervisor de beurt nog (`_centraal`). Bouw voor een nieuwe overdracht geen tweede implementatie van

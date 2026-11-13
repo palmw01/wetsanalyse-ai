@@ -12,6 +12,8 @@ import re
 from typing import Any
 
 from bronmodel.connectors import genoemde_stukken, herkende as bronnen_in_vraag
+
+from ..binnen_scope import genoemde_regelingen
 from langgraph.config import get_stream_writer
 
 from dataclasses import asdict
@@ -619,6 +621,14 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         afwijzen = False
         worker_plan = worker_plan or ["duiding"]
         plan = "Zoek in de bron naast de wet die de vraag noemt, en zeg het als die uit staat." + _herschreven(vraag)
+    elif afwijzen and (namen := genoemde_regelingen(zelfstandig)):
+        # Een vraag die een regeling noemt, ook een die niet in de graaf staat, is evenmin buiten de scope
+        # (`binnen_scope`, ADR-016 ronde 4, K12): zoeken en zeggen wat er niet in staat, in beide vormen dezelfde regel.
+        logger.info("afwijzing teruggedraaid: regeling genoemd", extra={"categorie": "functioneel"})
+        afwijzen = False
+        worker_plan = worker_plan or ["algemeen"]
+        plan = (f"Zoek {', '.join(namen)} in de kennisgraaf; staat de regeling er niet in, zeg dat dan en noem welke "
+                "regelingen er wel in staan." + _herschreven(vraag))
     if afwijzen:
         # Buiten de scope. Dit hoort hier te eindigen en niet als "AANPAK: AFWIJZEN" de
         # systeemprompt van een specialist in te gaan, waar een tweede modelbeslissing bepaalt
