@@ -51,7 +51,7 @@ export function LooptAchter({ o, laatste, basis, draait, bestand, onKiesBestand,
   return (
     <div data-loopt-achter data-kant={basis ? kant : "draait"}>
       <div className="mb-4" data-melding="achter-uitleg">
-        <Melding type="uitleg" titel="Dit concept loopt achter">
+        <Melding type="uitleg" titel="Dit concept bouwt voort op een oudere versie">
           {basis ? `Je concept bouwt voort op versie ${basis.nummer}. ` : ""}
           Intussen draait er een andere versie{draait.gemeld_op ? ` (gemeld ${datumTijd(draait.gemeld_op)})` : ""}. Hieronder staat
           {basis ? " wat er intussen veranderde en wat jij veranderde" : " het verschil tussen wat er draait en je concept"}.

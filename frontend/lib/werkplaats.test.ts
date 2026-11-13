@@ -100,7 +100,7 @@ describe("standLabel", () => {
   it("zegt in elk geval hetzelfde, en nooit 'draait niet' als onbekend is wat er draait", () => {
     expect(standLabel(o()).tekst).toBe("Concept");
     expect(standLabel(o({ stand: "actief", actief_versie: 1 }))).toMatchObject({ tekst: "Draait nu", toon: "groen" });
-    expect(standLabel(o({ basis_verouderd: true }))).toMatchObject({ tekst: "Concept · loopt achter", toon: "geel" });
+    expect(standLabel(o({ basis_verouderd: true }))).toMatchObject({ tekst: "Concept · op oudere versie", toon: "geel" });
     expect(standLabel(o({ stand: "ingetrokken", basis_verouderd: true })).tekst).toBe("Ingetrokken");
     expect(standLabel(o({ actief_versie: 1 })).uitleg).toContain("Versie 1 draait");
     const onbekend = standLabel(o({ image_bekend: false }));
@@ -135,6 +135,7 @@ describe("de lijst en de ingangen", () => {
     const lijst = [o({ id: "1", naam: "z", eigenaar: "piet" }), o({ id: "2", naam: "b", stand: "ingetrokken" }), o({ id: "3", naam: "m" }),
       o({ id: "4", naam: "a" }), o({ id: "5", soort: "agentprofiel", naam: "p" })];
     expect(voorOverzicht(lijst, "jan").map((x) => x.id)).toEqual(["4", "3", "1", "2"]);
+    expect(voorOverzicht(lijst, "jan", false).map((x) => x.id)).toEqual(["4", "3", "1"]);
   });
 
   it("een naam die de api zou weigeren, zegt het formulier al", () => {

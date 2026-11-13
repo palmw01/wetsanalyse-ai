@@ -143,8 +143,8 @@ export function standLabel(o: Pick<WerkplaatsOnderdeel, "stand" | "image_bekend"
   if (!o.image_bekend) return { tekst: "Concept · nog onbekend wat er draait", toon: "neutraal",
     uitleg: "Lex heeft nog niet gemeld welke versie er draait. Of dit concept daarvan afwijkt, is nu niet te zeggen." };
   if (o.stand === "actief") return { tekst: "Draait nu", toon: "groen", uitleg: "De laatste versie van dit concept is de versie die Lex gebruikt." };
-  if (o.basis_verouderd) return { tekst: "Concept · loopt achter", toon: "geel",
-    uitleg: "Er draait intussen een andere versie dan waar dit concept op voortbouwt." };
+  if (o.basis_verouderd) return { tekst: "Concept · op oudere versie", toon: "geel",
+    uitleg: "Lex gebruikt intussen een nieuwere versie dan waar dit concept op voortbouwt. Neem eerst over wat er veranderde, anders draai je die wijzigingen terug." };
   return { tekst: "Concept", toon: "lint", uitleg: o.actief_versie
     ? `Versie ${o.actief_versie} draait; de laatste versie nog niet.` : "Dit concept draait niet; het is alleen hier te lezen en te bewerken." };
 }
@@ -173,10 +173,12 @@ export function eigenConcept(lijst: WerkplaatsOnderdeel[], soort: WerkplaatsSoor
   return lijst.find((o) => o.soort === soort && o.naam === naam && o.eigenaar === userid && o.stand !== "ingetrokken") ?? null;
 }
 
-/** De concepten voor het overzicht: wat de editor opent, de eigen eerst, ingetrokken onderaan, dan op naam. */
-export function voorOverzicht(lijst: WerkplaatsOnderdeel[], userid: string | undefined): WerkplaatsOnderdeel[] {
+/** De concepten voor het overzicht: wat de editor opent, de eigen eerst, ingetrokken onderaan, dan op naam.
+ *  Verbergt `metIngetrokken` onwaar, dan vallen de ingetrokken concepten weg: intrekken is hier de manier om een concept
+ *  weg te doen, want verwijderen kan niet (de versies en de audit blijven bewaard). */
+export function voorOverzicht(lijst: WerkplaatsOnderdeel[], userid: string | undefined, metIngetrokken = true): WerkplaatsOnderdeel[] {
   const rang = (o: WerkplaatsOnderdeel) => (o.stand === "ingetrokken" ? 2 : o.eigenaar === userid ? 0 : 1);
-  return lijst.filter((o) => IN_EDITOR.includes(o.soort))
+  return lijst.filter((o) => IN_EDITOR.includes(o.soort) && (metIngetrokken || o.stand !== "ingetrokken"))
     .sort((a, b) => rang(a) - rang(b) || a.naam.localeCompare(b.naam, "nl") || a.id.localeCompare(b.id));
 }
 

@@ -142,7 +142,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   keer per beurt, en zet `state["agentvorm"]`. De routes vóór het model in `supervisie._kies` gelden voor beide vormen;
   waar de supervisor het model aanroept, gaat de beurt met `centraal` naar de antwoordketen met dat profiel
   (`_naar_centraal`): geen supervisorstap, geen herschreven vraag. Zijn eigen tools staan in `agent/overdracht.py`
-  (`wijs_af`, `meer_tools`, `taakagent`, `werkgebied`, `toon_bepaling`; een vraag over een bron naast de wet of een vraag die een regeling noemt, ook buiten de graaf, wijst de code niet af: `agent/binnen_scope.py`, dezelfde regel waarmee de supervisor een afwijzing terugdraait, ADR-016 ronde 4, K12): een **overdrachtstool bouwt niets na**, hij zet de state van een bestaande route en stuurt de
+  (`wijs_af`, `meer_tools`, `taakagent`, `werkgebied`, `toon_bepaling`, `toon_overzicht`, `lees_annotaties`, `lees_begrippen`, `toon_stukken`; een vraag over een bron naast de wet of een vraag die een regeling noemt, ook buiten de graaf, wijst de code niet af: `agent/binnen_scope.py`, dezelfde regel waarmee de supervisor een afwijzing terugdraait, ADR-016 ronde 4, K12): een **overdrachtstool bouwt niets na**, hij zet de state van een bestaande route en stuurt de
   beurt via de node `overdracht` naar de node die er al is. **`taakagent` en `werkgebied`** (A2-3a; meetronde S6: "stel
   deelvragen voor" werd vrije tekst) gaan naar dezelfde routes als de keuze van de supervisor: `supervisie._agent` voor een
   taak van de deelvragen- of begrippenagent (de taken uit `agents/register.py`; een taak die niet bij de agent hoort,
@@ -153,7 +153,13 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   `toon_bepaling`, met de workflow van de route vóór het model (`_bepaling` → `bepaling_lezen`). Een uitlegvraag of een
   vraag over een stuk naast de wet weigert de code met dezelfde regel als vóór het model
   (`bepaling_workflow.is_uitlegvraag`), het BWB-id gaat langs `id_herkomst`, en de terugval bij een mislukte ophaal is
-  dezelfde centrale agent. Die node en zijn edges bestaan alleen als de vlag niet
+  dezelfde centrale agent. **De routes op de herschreven vraag** (A2-3c): in een gesprek herschreef de supervisor een
+  vervolgvraag, en daarop draaiden de regels in `supervisie.NA_HERSCHRIJVEN` (begrippen, annotaties, overzicht,
+  bepaling, buiten de graaf, dekking, lijst; `na_herschrijven`, één register voor beide vormen, byte-gelijk bewaakt door
+  `tests/test_na_herschrijven.py` met de momentopname `tests/data/na_herschrijven.json`). De centrale agent herschrijft
+  niet: `toon_overzicht`, `lees_annotaties` en `lees_begrippen` nemen de vraag zelfstandig geformuleerd mee
+  (`vraag`), en de code draait daarop alleen de regel van die route; past hij niet, dan weigert de code. De vraag wordt
+  `zelfstandige_vraag`, en valt de route terug op een specialist van de supervisor, dan is dat de centrale agent. `toon_stukken` (A2-3c-2) draait de regel `lijst`; een bron die deze beurt alleen buiten de bronkeuze viel (`niet_nodig`) gaat daarvoor weer mee (`bronkeuze.heropend`, daarna `_bronkeuze` met `van_route`), en een bron die uit staat geeft dezelfde melding als bij de supervisor (`_bron_uit`, het event voor *Zet aan*). Die node en zijn edges bestaan alleen als de vlag niet
   `uit` is; met `uit` is de graaf die van `tests/test_graafopbouw.py`. Zolang een vraagkaart van het samenstellen open
   staat, leest de supervisor de beurt nog (`_centraal`). Bouw voor een nieuwe overdracht geen tweede implementatie van
   de route. `tests/test_centrale_agent.py` legt de drie standen en de afwijzing vast.

@@ -449,13 +449,26 @@ opdrachten zullen nu mislukken: dat is het vertrekpunt.
 
 **Een ronde per fase.** Pas door naar de volgende fase als de ronde goed is.
 
+**Licht meten per fase, zwaar alleen aan het eind** (besluit van de gebruiker, 13 nov 2026: het regime van drie runs
+per fase is te zwaar).
+
+- **Een fase krijgt een kleine, gerichte meting:** één run, alleen de opdrachten die de stap raakt, en alleen de vorm
+  die verandert. Blijft de supervisorweg gelijk, dan bewijst een test dat (zoals `tests/test_na_herschrijven.py` bij
+  A2-3c); die vorm wordt dan niet gemeten.
+- **Drie runs alleen bij twijfel**, bijvoorbeeld een uitkomst op de rand van een drempel of een verschil dat de
+  spreiding tussen runs kan verklaren, **en bij de eindmeting A6.** Die blijft zoals ze was: de agentset en de
+  kwaliteitsset, drie runs.
+- **Het nulpunt van een fasemeting is de vorige meting**, niet telkens de nulmeting van M0. De eindmeting vergelijkt
+  wel met M0.
+- **A3 tot en met A5 worden samen gemeten waar dat kan:** één ronde met de opdrachten van de fasen die dan klaarliggen.
+
 | Fase | Wat de ronde meet | Drempel |
 |---|---|---|
 | T1, A1 (validator, profieltype) | de kwaliteitsset en de routeringsset | bitgelijk: geen verschil |
-| A2 (de centrale agent, zonder subagents) | de enkelvoudige en de vervolgopdrachten, de kwaliteitsset en `golden_gesprek`, drie runs, hoogstens vier rondes. Dit is de vergelijking die ADR-010 als optie C openliet | niet duurder, niet slechter, brongetrouw 100 % |
-| A3 (één subagent) | daarbij de opdrachten met één subagent; de regiemeting van `regie-2026-11-08` opnieuw (de regisseur op de delegatie) | de drempels hierboven; de regie gelijk of beter |
-| A4 (vragen omhoog en hervatten) | daarbij de opdrachten met een vraag en met een vervolg | de drempels hierboven |
-| A5 (meer tegelijk, fasen) | de hele agentset | de drempels hierboven |
+| A2 (de centrale agent, zonder subagents) | de enkelvoudige en de vervolgopdrachten, de kwaliteitsset en `golden_gesprek`, drie runs, hoogstens vier rondes (gedaan t/m ronde 4). Dit is de vergelijking die ADR-010 als optie C openliet. De stappen daarna (A2-3 en verder) volgen het lichte regime: één run, alleen de opdrachten die de stap raakt, alleen de vorm die verandert (A2-3c: de vervolgopdrachten en drie nieuwe vervolgvragen, alleen centraal) | niet duurder, niet slechter, brongetrouw 100 %; tegen de vorige meting |
+| A3 (één subagent) | de opdrachten met één subagent; de regiemeting van `regie-2026-11-08` opnieuw (de regisseur op de delegatie). Eén run, waar het kan samen met A4 en A5 | de drempels hierboven; de regie gelijk of beter |
+| A4 (vragen omhoog en hervatten) | de opdrachten met een vraag en met een vervolg. Eén run, waar het kan samen met A3 en A5 | de drempels hierboven |
+| A5 (meer tegelijk, fasen) | de opdrachten met meer subagents of fasen. Eén run, waar het kan samen met A3 en A4 | de drempels hierboven |
 | A6 (eindmeting) | de agentset en de kwaliteitsset, drie runs, tegen de nulmeting | de drempels, over drie runs; dat besluit A7 |
 | B3, B4 (proef, promotie) | `wetsuitvoering` als conceptskill: 30 vragen over scenario's en relevante feiten, tegen de JRM-specificatie, plus 10 vragen die er niet over gaan | 30/30 brongetrouw, ≥ 26/30 inhoudelijk juist, de skill geladen bij ≥ 27/30 en bij hoogstens 1 van de 10 andere |
 | B5 (profielen in de werkplaats) | een werkplaatsprofiel (bijv. JRM-scenario) in de agentset | dezelfde drempels als A3 voor zijn opdrachten |

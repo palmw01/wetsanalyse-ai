@@ -59,10 +59,14 @@ export function ConceptLabels({ o }: { o: WerkplaatsOnderdeel }) {
 export function ConceptenGroep({ werkplaats, zoek }: { werkplaats: ReturnType<typeof useWerkplaats>; zoek: string }) {
   const { stand, concepten, userid, fout } = werkplaats;
   const [nieuw, setNieuw] = useState(false);
+  const [toonIngetrokken, setToonIngetrokken] = useState(false);
   if (!stand.aan) return null;
   const woorden = zoek.toLowerCase().split(/\s+/).filter(Boolean);
-  const lijst = voorOverzicht(concepten, userid).filter((o) => woorden.every((w) => o.naam.toLowerCase().includes(w)));
-  if (lijst.length === 0 && !stand.mag_maken && !fout) return null;
+  const opNaam = (o: WerkplaatsOnderdeel) => woorden.every((w) => o.naam.toLowerCase().includes(w));
+  const alles = voorOverzicht(concepten, userid).filter(opNaam);
+  const ingetrokken = alles.filter((o) => o.stand === "ingetrokken").length;
+  const lijst = toonIngetrokken ? alles : alles.filter((o) => o.stand !== "ingetrokken");
+  if (alles.length === 0 && !stand.mag_maken && !fout) return null;
   return (
     <section className="space-y-3" data-concepten>
       <Groep kop="Concepten" telling={lijst.length} label="Concepten"
@@ -76,6 +80,11 @@ export function ConceptenGroep({ werkplaats, zoek }: { werkplaats: ReturnType<ty
             status={<ConceptLabels o={o} />} />
         ))}
       </Groep>
+      {ingetrokken > 0 && (
+        <Button variant="secondary" size="sm" aria-pressed={toonIngetrokken} onClick={() => setToonIngetrokken((t) => !t)}
+          data-actie="concepten-ingetrokken">
+          {toonIngetrokken ? "Verberg ingetrokken" : `Toon ingetrokken (${ingetrokken})`}</Button>
+      )}
       {fout && <Melding type="fout" compact>{fout}</Melding>}
       {nieuw && <NieuwConcept soort="skill" onAnnuleer={() => setNieuw(false)} />}
     </section>

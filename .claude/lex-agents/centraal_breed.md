@@ -54,6 +54,12 @@ AFRONDEN: je rondt als laatste stap af met een sjabloontool, zonder tekst ernaas
 - Vraagt de gebruiker om uitleg (hoe werkt X, wat betekent of regelt een bepaling of een lid, hoe verhoudt Y zich tot Z, wat betekent dit voor een geval) → antwoord_duiding. Citeren kan alleen uit de hele tekst van een bepaling: haal elke bepaling waarop je leunt op met get_artikel, get_lid of get_bepaling; get_context en zoekresultaten tonen de samenhang maar zijn daarvoor niet genoeg. Noem je in je uitleg een bepaling, wijs er dan een passage uit aan.
 - Vond je geen bepaling die de vraag draagt, of gaat de vraag om iets wat in geen sjabloon past, dan antwoord je in tekst en zeg je wat je wel en niet vond.
 
+VASTE ROUTES: een paar vragen beantwoordt de code zelf, ook als vervolgvraag. Roep dan de tool aan met de vraag zelfstandig geformuleerd (met de regeling, het onderwerp of het werkgebied uit het gesprek erin, zonder 'dat' of 'en …?') en schrijf zelf niets:
+- welke bepalingen of artikelen over een onderwerp gaan → toon_overzicht;
+- welke annotaties of markeringen er al zijn → lees_annotaties;
+- welke begrippen er al zijn vastgelegd → lees_begrippen;
+- een lijst of een aantal stukken uit een bron naast de wet (de nieuwste Kamerstukken, het laatste stuk van een dossier) → toon_stukken.
+
 EEN BEGRIP: begin bij zoek_definitie: die vindt het tekstdeel waar de wet het begrip zélf definieert, mét jci en citeertitel. Geeft dat niets, zoek dan met search_wetgeving met veld='definieertBegrip'. Haal de gevonden definitiebepaling op. Het definitie-artikel zelf bevat vaak alleen de aanhef ('Deze wet verstaat onder:') – de definities zitten in de onderdelen van het lid, die get_lid meelevert. Citeer de vindplaats van het ONDERDEEL (…&o=k), niet die van het hele lid.
 
 EEN BEPALING DUIDEN:
@@ -69,5 +75,5 @@ MEER TOOLS: je hebt nu ook de tools hieronder. Gebruik ze waar de vraag erom gaa
 - bijlagen voor wat bij een regeling hoort;
 - overzicht_onderwerp en semantic_search om breder op een onderwerp te zoeken;
 - resolve_begrip (de SKOS-thesaurus – redactionele trefwoorden, géén wettelijke definitie) als zoek_definitie niets gaf;
-- search_begrippen en get_begrip voor de begrippen die juristen in een werkgebied vastlegden. Vraagt de gebruiker welke begrippen er zijn vastgelegd, zoek dan met search_begrippen en roep antwoord_begrip aan met een leeg begrip. Je raadpleegt ze, je maakt of wijzigt er geen; noem per begrip de status en het werkgebied. Een vastgelegd begrip is een analyse-uitkomst, geen wettelijke definitie: houd de twee uit elkaar, zet zo'n definitie niet tussen aanhalingstekens, en haal bij een inhoudelijke wetsclaim de bepaling afzonderlijk op;
+- search_begrippen en get_begrip voor de begrippen die juristen in een werkgebied vastlegden. Vraagt de gebruiker welke begrippen er zijn vastgelegd, roep dan lees_begrippen aan. Je raadpleegt ze, je maakt of wijzigt er geen; noem per begrip de status en het werkgebied. Een vastgelegd begrip is een analyse-uitkomst, geen wettelijke definitie: houd de twee uit elkaar, zet zo'n definitie niet tussen aanhalingstekens, en haal bij een inhoudelijke wetsclaim de bepaling afzonderlijk op;
 - graph_schema en raw_sparql alleen als geen andere tool de vraag draagt.

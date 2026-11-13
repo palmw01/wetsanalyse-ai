@@ -597,33 +597,10 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # (eval 21 okt 2026, 3 van 3 runs). De regels hieronder gelden alleen voor de andere workers.
         return {**upd, **_agent(writer, state, agent, taak, zelfstandig)}
 
-    # De harde regel ná het lezen van het gesprek: "welke zijn er nog meer?" na een vraag over
-    # rechtssubjecten is pas als herschreven vraag herkenbaar als leesvraag.
-    if modus == "auto" and is_begrip_leesvraag(zelfstandig):
-        return {**upd, **_begrippen_lees(writer, vraag)}
-    if is_leesvraag(zelfstandig, modus):
-        return {**upd, **_lees(writer, vraag)}
-    if is_overzichtsvraag(zelfstandig):
-        return {**upd, **_overzicht(writer, vraag)}
-    if modus == "auto" and vraag and (bepaling := lees_bepalingsvraag(zelfstandig, b.graph, live_aan=_live_aan(state),
-                                                                         getypt=state.get("question", ""))):
-        # "Wat staat er in artikel 9?" na een vraag over de Invorderingswet: pas de herschreven vraag noemt de regeling.
-        # Op acceptatie ging zo'n vervolgvraag de open lus in (4 rondes, 18 s) in plaats van de workflow (1 ronde).
-        # De regeling raadt de code niet zelf uit de vorige beurt: het model leest het gesprek, de code beslist daarna.
-        return {**upd, **_bepaling(writer, bepaling)}
-    if modus == "auto" and vraag and _live_aan(state) and (live_bepaling := lees_buiten(
-            zelfstandig, _buiten_graaf(b, state, zelfstandig), getypt=state.get("question", ""))):
-        # Hetzelfde voor een regeling buiten de graaf: "En wat staat er in artikel 32?" na artikel 31 Pw noemt de regeling
-        # pas herschreven (iteratie ronde 1, I25: anders 4 rondes, 83k en de leden in eigen woorden).
-        return {**upd, **_bepaling(writer, live_bepaling)}
-    if modus == "auto" and vraag and state.get("werkgebied_id") and is_dekkingsvraag(zelfstandig):
-        # "Welke bronnen horen daarbij?" is pas herschreven een vraag naar de stand ("… bij de deelvraag '…'"). Op
-        # acceptatie ging hij de open lus in: 188 s en 7 rondes voor wat de api zonder model weet.
-        return {**upd, **_agent(writer, state, "deelvragen", "dekking", zelfstandig)}
-
-    if modus == "auto" and vraag and (lijst := _lijst(state, zelfstandig, b.graph)):
-        # "Wat is het laatste stuk?" na een vraag over dossier 32140: pas de herschreven vraag noemt het dossier.
-        return {**upd, **_bron_lijst(writer, lijst)}
+    # De harde regels ná het lezen van het gesprek: "welke zijn er nog meer?" na een vraag over rechtssubjecten is pas als
+    # herschreven vraag herkenbaar als leesvraag.
+    if (route := na_herschrijven(b, writer, state, vraag)) is not None:
+        return {**upd, **route}
 
     plan += _herschreven(vraag)
     if vraag and modus == "auto" and (uit := _bron_uit(writer, state, zelfstandig)):
@@ -684,6 +661,86 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     logger.info("worker gekozen", extra={"categorie": "functioneel", "worker": eerste})
     return {**upd, "specialist": eerste, "plan": plan, "worker_plan": worker_plan, "worker_idx": 0,
             "afwijzen": False, "annotaties_lezen": False}
+
+
+def _regel_begrippen(b: Bouw, writer, state: State, vraag: str, zelfstandig: str, modus: str):
+    if modus == "auto" and is_begrip_leesvraag(zelfstandig):
+        return _begrippen_lees(writer, vraag)
+    return None
+
+
+def _regel_annotaties(b: Bouw, writer, state: State, vraag: str, zelfstandig: str, modus: str):
+    if is_leesvraag(zelfstandig, modus):
+        return _lees(writer, vraag)
+    return None
+
+
+def _regel_overzicht(b: Bouw, writer, state: State, vraag: str, zelfstandig: str, modus: str):
+    if is_overzichtsvraag(zelfstandig):
+        return _overzicht(writer, vraag)
+    return None
+
+
+def _regel_bepaling(b: Bouw, writer, state: State, vraag: str, zelfstandig: str, modus: str):
+    # "Wat staat er in artikel 9?" na een vraag over de Invorderingswet: pas de herschreven vraag noemt de regeling.
+    # Op acceptatie ging zo'n vervolgvraag de open lus in (4 rondes, 18 s) in plaats van de workflow (1 ronde).
+    # De regeling raadt de code niet zelf uit de vorige beurt: het model leest het gesprek, de code beslist daarna.
+    if modus == "auto" and vraag and (bepaling := lees_bepalingsvraag(zelfstandig, b.graph, live_aan=_live_aan(state),
+                                                                         getypt=state.get("question", ""))):
+        return _bepaling(writer, bepaling)
+    return None
+
+
+def _regel_buiten(b: Bouw, writer, state: State, vraag: str, zelfstandig: str, modus: str):
+    # Hetzelfde voor een regeling buiten de graaf: "En wat staat er in artikel 32?" na artikel 31 Pw noemt de regeling
+    # pas herschreven (iteratie ronde 1, I25: anders 4 rondes, 83k en de leden in eigen woorden).
+    if modus == "auto" and vraag and _live_aan(state) and (live_bepaling := lees_buiten(
+            zelfstandig, _buiten_graaf(b, state, zelfstandig), getypt=state.get("question", ""))):
+        return _bepaling(writer, live_bepaling)
+    return None
+
+
+def _regel_dekking(b: Bouw, writer, state: State, vraag: str, zelfstandig: str, modus: str):
+    # "Welke bronnen horen daarbij?" is pas herschreven een vraag naar de stand ("… bij de deelvraag '…'"). Op
+    # acceptatie ging hij de open lus in: 188 s en 7 rondes voor wat de api zonder model weet.
+    if modus == "auto" and vraag and state.get("werkgebied_id") and is_dekkingsvraag(zelfstandig):
+        return _agent(writer, state, "deelvragen", "dekking", zelfstandig)
+    return None
+
+
+def _regel_lijst(b: Bouw, writer, state: State, vraag: str, zelfstandig: str, modus: str):
+    # "Wat is het laatste stuk?" na een vraag over dossier 32140: pas de herschreven vraag noemt het dossier.
+    if modus == "auto" and vraag and (lijst := _lijst(state, zelfstandig, b.graph)):
+        return _bron_lijst(writer, lijst)
+    return None
+
+
+#: De regels op de herschreven vraag, in deze volgorde (ADR-016 A2-3c). De supervisor draait ze allemaal na het
+#: herschrijven; een overdracht van de centrale agent draait er één, op de vraag die het model zelfstandig formuleerde.
+#: Eén regel per route, twee aanroepers: de code beslist in beide vormen of het die route is.
+NA_HERSCHRIJVEN = {
+    "begrippen": _regel_begrippen,
+    "annotaties": _regel_annotaties,
+    "overzicht": _regel_overzicht,
+    "bepaling": _regel_bepaling,
+    "buiten": _regel_buiten,
+    "dekking": _regel_dekking,
+    "lijst": _regel_lijst,
+}
+
+
+def na_herschrijven(b: Bouw, writer, state: State, vraag: str, *, alleen: str = "") -> dict[str, Any] | None:
+    """De route voor een herschreven vraag (`vraag`; leeg = niet herschreven, dan geldt de getypte vraag), of None als
+    geen regel haar pakt. Met `alleen` draait één regel uit `NA_HERSCHRIJVEN`."""
+    modus = state.get("modus", "auto")
+    zelfstandig = vraag or state.get("question", "")
+    for naam, regel in NA_HERSCHRIJVEN.items():
+        if alleen and naam != alleen:
+            continue
+        if (route := regel(b, writer, state, vraag, zelfstandig, modus)) is not None:
+            return route
+    return None
+
 
 def _entry_node(b: Bouw, state: State) -> str:
     """Ingang voor de huidige worker: een eigen route als die er is, anders de agent⇄tools-lus.

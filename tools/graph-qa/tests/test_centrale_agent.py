@@ -44,6 +44,10 @@ def _supervisor_dan_antwoord() -> FakeLLM:
                     response([text_block("Antwoord.")], "end_turn")])
 
 
+#: De overdrachten die elk profiel van de centrale agent heeft, naast wijs_af (en meer_tools in de kernset).
+VASTE_ROUTES = ("taakagent", "werkgebied", "toon_bepaling", "toon_overzicht", "lees_annotaties", "lees_begrippen",
+                "toon_stukken")
+
 VRAAG = "Hoe hangt de aansprakelijkheid van een bestuurder samen met de invordering?"
 
 
@@ -85,7 +89,9 @@ def test_met_uit_is_de_graaf_die_van_voorheen():
         oud = {(e.source, e.target) for e in uit.compile().get_graph().edges}
         assert edges - oud == {("agent", "overdracht"), ("overdracht", "agent"), ("overdracht", "afwijzen"),
                                ("overdracht", "agent_taak"), ("overdracht", "werkgebied_intake"),
-                               ("overdracht", "bronselectie"), ("overdracht", "bepaling_lezen")}
+                               ("overdracht", "bronselectie"), ("overdracht", "bepaling_lezen"),
+                               ("overdracht", "overzicht_bouwen"), ("overdracht", "annotaties_zoeken"),
+                               ("overdracht", "begrippen_zoeken"), ("overdracht", "bron_lijst")}
         assert not oud - edges
 
 
@@ -125,7 +131,7 @@ def test_het_profiel_centraal_is_een_python_agent_met_zijn_eigen_tools():
     agent = agent_voor(CENTRAAL)
     assert isinstance(agent, CentraleAgent) and isinstance(agent, Agent)
     assert agent.rol is Rol.CENTRAAL and agent.methoderol == "agent"
-    assert set(agent.eigen_tools) == set(overdracht.OVERDRACHT) == {"wijs_af", "meer_tools", "taakagent", "werkgebied", "toon_bepaling"}
+    assert set(agent.eigen_tools) == set(overdracht.OVERDRACHT) == {"wijs_af", "meer_tools", *VASTE_ROUTES}
     p = profielen.PROFIELEN[CENTRAAL]
     assert not p.kiesbaar and CENTRAAL not in profielen.KIESBAAR, "een model kiest dit profiel niet"
     # De eigen tools staan niet in de toollaag: een profiel kan ze niet noemen, en een andere agent krijgt ze niet.
@@ -224,8 +230,8 @@ def test_een_keuzevraag_van_de_centrale_agent_heeft_de_vorm_die_de_doorvraagrout
 
 
 def test_meer_tools_is_er_alleen_voor_de_kernset_en_wijs_af_voor_beide():
-    assert set(agent_voor(CENTRAAL).eigen_tools) == {"wijs_af", "meer_tools", "taakagent", "werkgebied", "toon_bepaling"}
-    assert set(agent_voor(CENTRAAL_BREED).eigen_tools) == {"wijs_af", "taakagent", "werkgebied", "toon_bepaling"}
+    assert set(agent_voor(CENTRAAL).eigen_tools) == {"wijs_af", "meer_tools", *VASTE_ROUTES}
+    assert set(agent_voor(CENTRAAL_BREED).eigen_tools) == {"wijs_af", *VASTE_ROUTES}
     assert isinstance(agent_voor(CENTRAAL_BREED), CentraleAgent) and agent_voor(CENTRAAL_BREED).rol is Rol.CENTRAAL
     # De beschrijving noemt elke tool die erachter zit: zo weet het model wanneer het erom vraagt.
     rest = set(profielen.PROFIELEN[CENTRAAL_BREED].tools) - set(profielen.PROFIELEN[CENTRAAL].tools)
@@ -377,3 +383,116 @@ def test_de_uitlegregel_is_dezelfde_als_voor_het_model():
     from agent.bepaling_workflow import _is_tekstvraag, is_uitlegvraag
     assert is_uitlegvraag("Wat betekent artikel 9 lid 2 Iw?") and not _is_tekstvraag("Wat staat er in artikel 9 lid 2? Wat betekent dat?")
     assert not is_uitlegvraag("Wat staat er in artikel 9 lid 2 Iw?") and _is_tekstvraag("Wat staat er in artikel 9 lid 2 Iw?")
+
+
+# --- de routes op de herschreven vraag (A2-3c) ------------------------------------------------------------------
+# In een gesprek herschreef de supervisor een vervolgvraag, en daarop draaiden de regels voor een overzicht en voor het
+# lezen van annotaties en begrippen. De centrale agent herschrijft niet: hij geeft de vraag zelfstandig geformuleerd
+# mee aan een overdracht, en de code draait dezelfde regel (`supervisie.NA_HERSCHRIJVEN`).
+
+VERVOLG = [("toon_overzicht", "overzicht", "Welke artikelen gaan over verrekening?"),
+           ("lees_annotaties", "annotaties", "Welke annotaties zijn er al bij artikel 9 lid 2 van de Invorderingswet 1990?"),
+           ("lees_begrippen", "begrippen", "Welke begrippen hebben we al vastgelegd over de belastingschuldige?")]
+
+
+def test_elke_vaste_route_draait_een_regel_van_de_supervisor_en_staat_in_het_profiel():
+    from agent.nodes.supervisie import NA_HERSCHRIJVEN
+    for tool, regel, _ in VERVOLG:
+        assert regel in NA_HERSCHRIJVEN
+        assert overdracht.OVERDRACHT[tool].schema["input_schema"]["required"] == ["vraag"]
+        for naam in (CENTRAAL, CENTRAAL_BREED):
+            assert tool in profielen.PROFIELEN[naam].instructie
+
+
+@pytest.mark.parametrize(("tool", "route", "vraag"), [
+    ("toon_overzicht", "overzicht", VERVOLG[0][2]),
+    ("lees_annotaties", "annotaties_lezen", VERVOLG[1][2]),
+    ("lees_begrippen", "begrippen_lezen", VERVOLG[2][2]),
+])
+def test_een_vervolgvraag_gaat_via_de_overdracht_naar_de_route_van_de_supervisor(tool, route, vraag):
+    llm = FakeLLM([response([tool_block("t1", tool, {"vraag": vraag})], "tool_use"),
+                   response([text_block("Antwoord.")], "end_turn")])
+    events = _beurt("En die?", llm, stand="meten", gevraagd="centraal")
+    assert "rol agent" in llm.calls[0]["system"], "de eerste ronde is de centrale agent, geen supervisor"
+    assert any(e["type"] == "status" and e.get("route") == route for e in events)
+    assert not any(e["type"] == "status" and e.get("route") == "afgewezen" for e in events)
+
+
+def test_valt_het_overzicht_terug_dan_is_dat_de_centrale_agent():
+    llm = FakeLLM([response([tool_block("t1", "toon_overzicht", {"vraag": VERVOLG[0][2]})], "tool_use"),
+                   response([text_block("Antwoord.")], "end_turn")])
+    _beurt("En over verrekening?", llm, stand="meten", gevraagd="centraal")
+    # De lege nepgraaf bouwt geen overzicht: terug naar de agent, en dat is de centrale agent, niet `algemeen`.
+    assert "rol agent" in llm.calls[-1]["system"]
+
+
+@pytest.mark.parametrize(("tool", "vraag"), [
+    ("toon_overzicht", "Wat betekent artikel 9 van de Invorderingswet 1990?"),
+    ("lees_annotaties", "Wat betekent artikel 9 van de Invorderingswet 1990?"),
+    ("lees_begrippen", "Wat betekent het begrip belastingschuldige?"),
+    ("toon_overzicht", ""),
+])
+def test_een_vraag_die_niet_bij_de_route_past_weigert_de_code(tool, vraag):
+    llm = FakeLLM([response([tool_block("t1", tool, {"vraag": vraag})], "tool_use"),
+                   response([text_block("Antwoord.")], "end_turn")])
+    _beurt("En dat?", llm, stand="meten", gevraagd="centraal")
+    resultaat = _tool_resultaat(llm.calls[1])
+    assert resultaat["is_error"] is True and "Beantwoord haar zelf" in resultaat["content"]
+
+
+# --- een lijst stukken in een vervolgvraag, en de bronkeuze daarna (A2-3c-2) --------------------------------------
+# "Wat is het laatste?" na een vraag over dossier 32140 noemt geen bron. De bronkeuze viel vóór de eerste ronde op de
+# getypte vraag; wat daarbij alleen deze beurt buiten de keuze viel, gaat voor de lijstroute weer mee.
+
+LAATSTE = "Wat is het laatste Kamerstuk in dossier 32140?"
+
+
+def _stukken(stand: dict, vraag: str = LAATSTE, monkeypatch=None):
+    from agent.nodes import supervisie
+    from tests.test_na_herschrijven import _bouw
+
+    events: list = []
+    monkeypatch.setattr(overdracht, "get_stream_writer", lambda: events.append)
+    monkeypatch.setattr(supervisie, "get_stream_writer", lambda: events.append)
+    state = {"question": "Wat is het laatste?", "modus": "auto", "specialist": CENTRAAL, "bronstand": stand,
+             "bronkeuze": ["rechtspraak"], "messages": []}
+    b = _bouw("")
+    uit = overdracht.OVERDRACHT["toon_stukken"].zet(b, state, {"vraag": vraag})
+    return b, state, uit, events
+
+
+def _bron(aan: bool, reden: str, label: str) -> dict:
+    return {"aan": aan, "reden": reden, "label": label}
+
+
+def test_een_lijst_uit_een_bron_die_deze_beurt_buiten_de_keuze_viel_zet_die_bron_weer_aan(monkeypatch):
+    from agent.nodes.supervisie import _entry_node
+    stand = {"kamerstukken": _bron(False, "niet_nodig", "Kamerstukken"), "rechtspraak": _bron(True, "aan", "Rechtspraak")}
+    b, state, uit, events = _stukken(stand, monkeypatch=monkeypatch)
+    assert uit["bron_lijst"]["connector"] == "kamerstukken" and uit["zelfstandige_vraag"] == LAATSTE
+    assert uit["bronstand"]["kamerstukken"]["aan"] is True and uit["bronkeuze"] == ["kamerstukken"]
+    assert uit["specialist"] == CENTRAAL
+    assert any(e.get("type") == "bronstand" for e in events)
+    assert _entry_node(b, {**state, **uit}) == "bron_lijst"
+
+
+def test_staat_de_gevraagde_bron_uit_dan_dezelfde_melding_als_bij_de_supervisor(monkeypatch):
+    from agent.nodes.supervisie import _entry_node
+    stand = {"kamerstukken": _bron(False, "straat", "Kamerstukken"), "rechtspraak": _bron(True, "aan", "Rechtspraak")}
+    b, state, uit, events = _stukken(stand, monkeypatch=monkeypatch)
+    assert uit["afwijzen"] is True and "Kamerstukken" in uit["afwijs_melding"]
+    assert any(e.get("type") == "bron_uit" for e in events)
+    assert _entry_node(b, {**state, **uit}) == "afwijzen"
+
+
+@pytest.mark.parametrize("vraag", ["Wat betekent artikel 9 van de Invorderingswet 1990?", ""])
+def test_een_vraag_die_geen_lijstvraag_is_weigert_de_code(monkeypatch, vraag):
+    stand = {"kamerstukken": _bron(True, "aan", "Kamerstukken")}
+    _, _, uit, _ = _stukken(stand, vraag, monkeypatch=monkeypatch)
+    assert isinstance(uit, str) and "zoektool" in uit
+
+
+def test_heropend_zet_alleen_niet_nodig_terug():
+    from agent import bronkeuze
+    stand = {"a": _bron(False, "niet_nodig", "A"), "b": _bron(False, "straat", "B"), "c": _bron(True, "aan", "C")}
+    assert bronkeuze.actief(bronkeuze.heropend(stand)) == ["a", "c"]
