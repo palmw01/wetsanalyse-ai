@@ -1,6 +1,6 @@
 # Plan: de kennisgroepstandpunten van de Belastingdienst als bronconnector
 
-> Onderzoek en plan, 13 nov 2026. Er is niets gebouwd. Bouwen gebeurt pas na akkoord van de gebruiker op de open
+> Onderzoek en plan, 13 nov 2026. De open vragen zijn beantwoord (§8); het bouwen is begonnen. Oorspronkelijk: bouwen pas na akkoord van de gebruiker op de open
 > vragen (§8). Dit plan sluit aan op [ADR-013](adr-013-connectors-en-externe-bronnen.md) (connectors), ADR-008
 > (sjablonen), ADR-014 (catalogus) en ADR-016 §B5 (het agentprofiel noemt zijn connectors).
 
@@ -548,7 +548,24 @@ bepalingen: hij laat zien hoe de uitvoerder een bepaling uitlegt, naast wat de w
 rechtspraak en de Kamerstukken die Lex al kan lezen. De voorwaarde is dat het verschil tussen beleid en wet in code is
 vastgelegd (§2.5) en niet aan het model wordt overgelaten.
 
-## 8. Open vragen voor de gebruiker
+## 8. Besluiten van de gebruiker (13 nov 2026)
+
+Op alle open vragen hieronder volgde de gebruiker het advies:
+
+- **V1:** de gebruiker neemt zelf contact op met de Belastingdienst. Dat is geen voorwaarde om te bouwen.
+- **V2:** de index wordt een eigen modus van `bwb-import`, met een eigen named graph. Daarbij gelden twee eisen:
+  - de import blijft idempotent per named graph;
+  - de graafwacht leest de nieuwe graaf niet als verlies van de wetgraaf.
+- **V3:** de volledige tekst per kop gaat in de index, in de eigen named graph, en nooit in de FTS van de wet.
+- **V4:** de connector komt in de profielen `centraal`, `centraal_breed`, `duiding` en `algemeen`, niet in `definitie`.
+- **V5:** standaard toont Lex alleen geldende standpunten. Ingetrokken of vervallen standpunten alleen op verzoek, of als
+  ze bij naam genoemd worden.
+- **V6:** de groep heet "Kennisgroepstandpunten (beleid)", met de status-regel uit §2.5.
+
+Het bouwen van stap 1 tot en met 6 mag beginnen. De meting van 20 vragen (stap 7) draait pas op sein van de
+hoofdsessie, na de G1-meting op acceptatie. De hoofdsessie merget.
+
+### Open vragen zoals ze voorlagen
 
 - **V1 – Contact met de Belastingdienst.** De pagina *Integratie* nodigt uit om vragen te stellen aan het ontwikkelteam.
   Willen we melden dat Lex de API gebruikt, en vragen naar de 401 op de taxonomieën en naar een veld voor de
