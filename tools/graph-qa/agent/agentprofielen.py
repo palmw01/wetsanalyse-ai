@@ -171,10 +171,12 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           '- Vraagt de gebruiker wat een begrip betekent → '
                                           'antwoord_begrip.\n'
                                           '- Vraagt de gebruiker alleen wat er in een bepaling '
-                                          'staat of wat ze regelt → haal de bepaling op met '
-                                          'get_artikel, get_lid of get_bepaling en roep '
-                                          'antwoord_bepaling aan.\n'
-                                          '- Vraagt de gebruiker om uitleg (hoe werkt X, hoe '
+                                          'staat → roep toon_bepaling aan met het BWB-id, het '
+                                          'artikel en het lid; de code haalt de tekst op en toont '
+                                          "hem. Een divisie van een beleidsregel ('25.1') haal je "
+                                          'op met get_bepaling.\n'
+                                          '- Vraagt de gebruiker om uitleg (hoe werkt X, wat '
+                                          'betekent of regelt een bepaling of een lid, hoe '
                                           'verhoudt Y zich tot Z, wat betekent dit voor een geval) '
                                           '→ antwoord_duiding. Citeren kan alleen uit de hele '
                                           'tekst van een bepaling: haal elke bepaling waarop je '
@@ -213,9 +215,7 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                             'methoderol': 'agent',
                             'modelklasse': 'zwaar',
                             'naam': 'centraal',
-                            'sjablonen': ('antwoord_begrip',
-                                          'antwoord_bepaling',
-                                          'antwoord_duiding'),
+                            'sjablonen': ('antwoord_begrip', 'antwoord_duiding'),
                             'skills': (),
                             'tools': ('follow_verwijzingen',
                                       'get_artikel',
@@ -287,10 +287,13 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                                 '- Vraagt de gebruiker wat een begrip betekent → '
                                                 'antwoord_begrip.\n'
                                                 '- Vraagt de gebruiker alleen wat er in een '
-                                                'bepaling staat of wat ze regelt → haal de '
-                                                'bepaling op met get_artikel, get_lid of '
-                                                'get_bepaling en roep antwoord_bepaling aan.\n'
-                                                '- Vraagt de gebruiker om uitleg (hoe werkt X, hoe '
+                                                'bepaling staat → roep toon_bepaling aan met het '
+                                                'BWB-id, het artikel en het lid; de code haalt de '
+                                                'tekst op en toont hem. Een divisie van een '
+                                                "beleidsregel ('25.1') haal je op met "
+                                                'get_bepaling.\n'
+                                                '- Vraagt de gebruiker om uitleg (hoe werkt X, wat '
+                                                'betekent of regelt een bepaling of een lid, hoe '
                                                 'verhoudt Y zich tot Z, wat betekent dit voor een '
                                                 'geval) → antwoord_duiding. Citeren kan alleen uit '
                                                 'de hele tekst van een bepaling: haal elke '
@@ -366,9 +369,7 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                   'methoderol': 'agent',
                                   'modelklasse': 'zwaar',
                                   'naam': 'centraal_breed',
-                                  'sjablonen': ('antwoord_begrip',
-                                                'antwoord_bepaling',
-                                                'antwoord_duiding'),
+                                  'sjablonen': ('antwoord_begrip', 'antwoord_duiding'),
                                   'skills': (),
                                   'tools': ('bijlagen',
                                             'follow_verwijzingen',
@@ -596,4 +597,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                        'search_wetgeving',
                                        'semantic_search',
                                        'zoek_opbouw')}},
- 'sha256': 'feaf0b5558ae71f06a3f3b631c7e541383e7d25276a33c77f98cca965361a3ef'}
+ 'sha256': 'e796430b8756c60b2530d24cca21f60b3bf55fa1e191da74f50f41b3ae1bb4eb'}

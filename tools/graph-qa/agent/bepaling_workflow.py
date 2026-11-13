@@ -109,8 +109,14 @@ def wijst_stuk_aan(vraag: str) -> bool:
     return any(c.brontype != "wettekst_live" and c.herkent(vraag or "") for c in CONNECTORS.values())
 
 
+def is_uitlegvraag(vraag: str) -> bool:
+    """Vraagt de vraag om uitleg ("wat betekent", "waarom") of over een stuk naast de wet? Dan is ze geen vraag naar de
+    tekst van een bepaling: niet vóór het model (`lees`) en niet bij de overdracht `toon_bepaling` van de centrale agent."""
+    return bool(_UITLEG.search(vraag or "")) or wijst_stuk_aan(vraag or "")
+
+
 def _is_tekstvraag(vraag: str) -> bool:
-    return bool(_TEKSTVRAAG.search(vraag)) and not _UITLEG.search(vraag) and not wijst_stuk_aan(vraag)
+    return bool(_TEKSTVRAAG.search(vraag)) and not is_uitlegvraag(vraag)
 
 
 def lees(vraag: str, graph: GraphPort, *, live_aan: bool = False, getypt: str | None = None) -> Bepalingsvraag | None:
