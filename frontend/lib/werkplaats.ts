@@ -192,3 +192,79 @@ export function bestandsvolgorde(paden: string[]): string[] {
   const rang = (p: string) => (p === "SKILL.md" ? 0 : p.includes("/") ? 2 : 1);
   return [...paden].sort((a, b) => rang(a) - rang(b) || a.localeCompare(b, "nl"));
 }
+
+// --- Bewerken (B2-2) -----------------------------------------------------------------------------------------------
+
+/** Een pad binnen een onderdeel (`bronmodel.werkplaats.PAD`). De api beslist; dit zegt een tikfout meteen. */
+export const PAD = /^[A-Za-z0-9_][A-Za-z0-9_.-]*(?:\/[A-Za-z0-9_][A-Za-z0-9_.-]*)*$/;
+export const MAX_PAD = 200;
+
+export type Bestanden = Record<string, string>;
+
+/** Wat er fout is aan een nieuw pad, of leeg. `bestaande` zijn de paden die er al zijn. */
+export function padFout(pad: string, bestaande: readonly string[]): string {
+  if (!pad) return "";
+  if (pad.length > MAX_PAD) return `Hoogstens ${MAX_PAD} tekens.`;
+  if (!PAD.test(pad) || pad.split("/").includes("..")) {
+    return "Alleen letters, cijfers, punt, koppelteken en liggend streepje, met / tussen mappen. Bijvoorbeeld references/uitleg.md.";
+  }
+  if (bestaande.includes(pad)) return "Dit bestand bestaat al.";
+  // Een bestand kan niet tegelijk een map zijn.
+  if (bestaande.some((b) => b.startsWith(`${pad}/`) || pad.startsWith(`${b}/`))) return "Een bestand en een map kunnen niet dezelfde naam hebben.";
+  return "";
+}
+
+export interface Wijzigingen { gewijzigd: string[]; toegevoegd: string[]; verwijderd: string[]; aantal: number }
+
+/** Het verschil tussen de bewaarde versie en wat er nu in het tekstvak staat, per bestand. */
+export function wijzigingen(bewaard: Bestanden, werk: Bestanden): Wijzigingen {
+  const gewijzigd = Object.keys(werk).filter((p) => p in bewaard && bewaard[p] !== werk[p]).sort();
+  const toegevoegd = Object.keys(werk).filter((p) => !(p in bewaard)).sort();
+  const verwijderd = Object.keys(bewaard).filter((p) => !(p in werk)).sort();
+  return { gewijzigd, toegevoegd, verwijderd, aantal: gewijzigd.length + toegevoegd.length + verwijderd.length };
+}
+
+/** De wijzigingen in één zin, voor de balk onderaan: "2 gewijzigd, 1 nieuw, 1 verwijderd". */
+export function wijzigingZin(w: Wijzigingen): string {
+  return [w.gewijzigd.length && `${w.gewijzigd.length} gewijzigd`, w.toegevoegd.length && `${w.toegevoegd.length} nieuw`,
+    w.verwijderd.length && `${w.verwijderd.length} verwijderd`].filter(Boolean).join(", ");
+}
+
+/** Hoeveel tekens de versie telt, tegen de grenzen van de api. Een grens van 0 is "niet bekend". */
+export function omvang(werk: Bestanden, grenzen: WerkplaatsStand["grenzen"]): { tekens: number; bestanden: number; teVeel: string[] } {
+  const tekens = Object.values(werk).reduce((som, t) => som + [...t].length, 0);
+  const bestanden = Object.keys(werk).length;
+  const teVeel = [
+    grenzen.tekens > 0 && tekens > grenzen.tekens && `De versie is langer dan ${grenzen.tekens.toLocaleString("nl-NL")} tekens.`,
+    grenzen.bestanden > 0 && bestanden > grenzen.bestanden && `Meer dan ${grenzen.bestanden} bestanden.`,
+    ...Object.entries(werk).filter(([, t]) => grenzen.tekens_per_bestand > 0 && [...t].length > grenzen.tekens_per_bestand)
+      .map(([p]) => `${p} is langer dan ${grenzen.tekens_per_bestand.toLocaleString("nl-NL")} tekens.`),
+  ].filter((x): x is string => typeof x === "string");
+  return { tekens, bestanden, teVeel };
+}
+
+/** De frontmatter van een Markdown-bestand los van de tekst, voor de leesweergave. */
+export function splitsFrontmatter(tekst: string): { frontmatter: string; rest: string } {
+  const m = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/.exec(tekst);
+  return m ? { frontmatter: m[1], rest: tekst.slice(m[0].length) } : { frontmatter: "", rest: tekst };
+}
+
+/** Waar het niet-opgeslagen werk van een concept in deze browser staat: per concept en per versie waarop het voortbouwt. */
+export function werkSleutel(id: string, versie: number): string {
+  return `lex.concept.${id}.${versie}`;
+}
+
+/** Niet-opgeslagen werk uit de opslag: alleen een object van pad naar tekst telt. */
+export function leesWerk(ruw: unknown): Bestanden | undefined {
+  if (!ruw || typeof ruw !== "object" || Array.isArray(ruw)) return undefined;
+  const paren = Object.entries(ruw as Record<string, unknown>);
+  return paren.every(([p, t]) => typeof t === "string" && PAD.test(p)) ? Object.fromEntries(paren) as Bestanden : undefined;
+}
+
+export interface Toets { geldig: boolean; bevindingen: Bevinding[]; hash: string }
+
+export function parseToets(x: unknown): Toets | null {
+  const t = x as Record<string, unknown> | null;
+  if (!t || typeof t.geldig !== "boolean") return null;
+  return { geldig: t.geldig, bevindingen: parseBevindingen(t.bevindingen), hash: tekst(t.hash) };
+}

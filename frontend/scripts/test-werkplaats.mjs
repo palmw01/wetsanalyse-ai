@@ -10,6 +10,10 @@
  *   draait"), *Nieuw concept* (een ongeldige naam, dan aanmaken en openen), de pagina van een concept (bestanden,
  *   het gekozen bestand in de URL, de bevindingen van de controle), *Bewerken* op een methode (`uit_image`), *Open
  *   mijn concept* als ik er al een heb, en de melding als Lex nog niet weet wat er draait;
+ * - bewerken (B2-2): typen laat de controle draaien en toont wat gewijzigd is; een bestand toevoegen, hernoemen en
+ *   verwijderen; niet-opgeslagen werk staat er na herladen weer; opslaan maakt een volgende versie met de toelichting;
+ *   is er intussen een nieuwere versie, dan blijft de tekst staan en kiest de gebruiker; weggaan vraagt eerst;
+ *   verwerpen; een Markdown-bestand lezen; intrekken; andermans concept is alleen te lezen;
  * - op 375 px scrolt geen van die schermen zijwaarts.
  */
 import assert from "node:assert/strict";
@@ -49,7 +53,7 @@ const STAND = { aan: true, soorten: [], mag_maken: true, beheerder: false, belei
   image: { bekend: true, pakket_hash: "p", revisie: "abc1234", gemeld_op: "2026-11-13T09:00:00+00:00", onderdelen: 10 },
   grenzen: { bestanden: 60, tekens_per_bestand: 100000, tekens: 400000, versies: 200, onderdelen: 50 } };
 
-async function open(browser, breedte, { stand, concepten, maak }) {
+async function open(browser, breedte, { stand, concepten, maak, eerst }) {
   const page = await browser.newPage({ viewport: { width: breedte, height: 900 } });
   const gezien = { errors: [], paden: [], gemaakt: [] };
   page.on("pageerror", (e) => gezien.errors.push(e.message));
@@ -60,6 +64,9 @@ async function open(browser, breedte, { stand, concepten, maak }) {
     const p = new URL(req.url()).pathname;
     if (p.startsWith("/api/auth/")) return route.continue();
     if (p.startsWith("/api/werkplaats/")) gezien.paden.push(`${req.method()} ${p}`);
+    // Een scenario met een eigen stand (de editor) antwoordt eerst.
+    const eigen = eerst?.(p, req);
+    if (eigen) return route.fulfill(eigen);
     if (p === "/api/catalogus") return route.fulfill({ json: { soorten: [], onderdelen: CATALOGUS } });
     const m = p.match(/^\/api\/catalogus\/([a-z]+)\/(.+)$/);
     if (m) {
@@ -176,7 +183,8 @@ try {
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/werkplaats-concept-${breedte}.png`, fullPage: true });
     await page.locator('[data-bestand="agentrollen.json"]').click();
     await page.waitForURL(/bestand=agentrollen\.json/);
-    assert.match(await page.locator("[data-bestand-inhoud]").innerText(), /"secties"/);
+    // Het eigen concept staat in een tekstvak, andermans concept als tekst.
+    assert.match(await page.locator("[data-bestand-inhoud]").evaluate((el) => el.value ?? el.textContent), /"secties"/);
     await page.reload();
     await page.locator('[data-bestand-inhoud="agentrollen.json"]').waitFor();
     await page.locator("[data-bestand]").last().click();
@@ -238,6 +246,168 @@ try {
     await page.getByTestId("werkwijze").waitFor();
     await page.waitForLoadState("networkidle");
     assert.equal(await page.locator("[data-concepten]").count(), 0);
+    await page.close();
+  }
+  // --- Bewerken (B2-2) ----------------------------------------------------------------------------------------------
+  for (const breedte of [1280, 375]) {
+    // De stand van de nep-api: de versies van o1, en of er intussen een ander venster opsloeg.
+    const api = { versies: [null, { 1: "x" }, { ...BESTANDEN }], ingetrokken: false, anderVenster: false, toetsen: [], opgeslagen: [] };
+    const geldig = (b) => /^description: /m.test(b["SKILL.md"] ?? "");
+    const versieVan = (n) => versie(n, { geldig: geldig(api.versies[n]), bevindingen: geldig(api.versies[n]) ? [] : [BEVINDING] });
+    const o1 = () => concept("o1", "jrm-proef", { versies: api.versies.length - 1, laatste: versieVan(api.versies.length - 1),
+      stand: api.ingetrokken ? "ingetrokken" : "concept" });
+    const eerst = (p, req) => {
+      if (p === "/api/werkplaats/toets") {
+        const body = req.postDataJSON();
+        api.toetsen.push(body);
+        return { json: { geldig: geldig(body.bestanden), bevindingen: geldig(body.bestanden) ? [] : [BEVINDING], hash: "h" } };
+      }
+      if (p === "/api/werkplaats/onderdelen/o1/versies" && req.method() === "POST") {
+        const body = req.postDataJSON();
+        if (api.anderVenster) { api.anderVenster = false; api.versies.push({ ...BESTANDEN, "SKILL.md": "van het andere venster" }); }
+        if (body.na_versie !== api.versies.length - 1) {
+          return { status: 409, json: { detail: { melding: `Er is intussen versie ${api.versies.length - 1}; bouw daarop voort.` } } };
+        }
+        api.opgeslagen.push(body);
+        api.versies.push(body.bestanden);
+        return { json: versieVan(api.versies.length - 1) };
+      }
+      if (p === "/api/werkplaats/onderdelen/o1/intrekken") { api.ingetrokken = true; return { json: o1() }; }
+      if (p === "/api/werkplaats/onderdelen/o1") return { json: { ...o1(), versielijst: [] } };
+      const m = p.match(/^\/api\/werkplaats\/onderdelen\/o1\/versies\/(\d+)$/);
+      if (m) return { json: { ...versieVan(Number(m[1])), bestanden: api.versies[Number(m[1])] } };
+      return null;
+    };
+    const { page, gezien } = await open(browser, breedte, { stand: STAND, maak: () => ({}), eerst,
+      concepten: [concept("o2", "wetsanalyse", { eigenaar: "piet", gedeeld: true })] });
+    // Herladen met niet-opgeslagen werk vraagt de browser; de test zegt ja.
+    page.on("dialog", (d) => d.accept());
+    const vak = page.locator("textarea[data-bestand-inhoud]");
+    const editor = page.locator("[data-concept-versie]");
+    const typ = async (tekst) => { await vak.click(); await page.keyboard.press("Control+End"); await page.keyboard.type(tekst); };
+
+    await page.goto(`${base}/werkwijze/concepten/o1`);
+    await vak.waitFor();
+    assert.equal(await editor.getAttribute("data-gewijzigd"), "nee");
+    assert.equal(await page.locator("[data-opslaan]").count(), 0);
+    assert.match(await page.locator('[data-blok="controle"]').innerText(), /haalt de controle niet/);
+
+    // Typen: het bestand heet gewijzigd, de balk verschijnt, en de controle draait op de hele stand.
+    await typ("\ndescription: goed");
+    await page.locator("[data-opslaan]").waitFor();
+    assert.equal(await page.locator('[data-bestand="SKILL.md"]').getAttribute("data-bestand-stand"), "gewijzigd");
+    await page.locator('[data-blok="controle"][data-controle="klaar"]').waitFor();
+    assert.match(await page.locator('[data-blok="controle"]').innerText(), /Wat er nu staat haalt de controle\./);
+    assert.deepEqual(Object.keys(api.toetsen.at(-1).bestanden).sort(), Object.keys(BESTANDEN).sort());
+    assert.deepEqual([api.toetsen.at(-1).soort, api.toetsen.at(-1).naam], ["skill", "jrm-proef"]);
+    assert.match(await page.locator("[data-omvang]").innerText(), /van 100\.000 tekens in dit bestand/);
+
+    // Een bestand toevoegen: een pad dat de api zou weigeren, zegt het formulier al.
+    await page.locator('[data-actie="bestand-nieuw"]').click();
+    const formulier = page.locator("[data-bestand-formulier]");
+    await formulier.getByRole("textbox").fill("../buiten.md");
+    await formulier.getByText(/Alleen letters, cijfers/).waitFor();
+    assert.ok(await page.locator('[data-actie="bestand-bevestigen"]').isDisabled());
+    await formulier.getByRole("textbox").fill("references/nieuw.md");
+    await page.locator('[data-actie="bestand-bevestigen"]').click();
+    await page.locator('textarea[data-bestand-inhoud="references/nieuw.md"]').waitFor();
+    assert.equal(await page.locator('[data-bestand="references/nieuw.md"]').getAttribute("data-bestand-stand"), "nieuw");
+    await typ("Hallo");
+    // Hernoemen en verwijderen staan in het menu van het bestand; verwijderen vraagt een tweede klik.
+    await page.getByRole("button", { name: "Meer bij references/nieuw.md" }).click();
+    await page.getByRole("menuitem", { name: "Hernoemen" }).click();
+    await page.locator('[data-bestand-formulier="hernoem"]').getByRole("textbox").fill("references/anders.md");
+    await page.locator('[data-actie="bestand-bevestigen"]').click();
+    await page.locator('textarea[data-bestand-inhoud="references/anders.md"]').waitFor();
+    assert.equal(await page.locator('[data-bestand="references/nieuw.md"]').count(), 0);
+    await page.locator('[data-bestand="agentrollen.json"]').click();
+    await page.locator('textarea[data-bestand-inhoud="agentrollen.json"]').waitFor();
+    await page.getByRole("button", { name: "Meer bij agentrollen.json" }).click();
+    await page.getByRole("menuitem", { name: "agentrollen.json verwijderen" }).click();
+    await page.getByRole("menuitem", { name: "Verwijderen?" }).click();
+    await page.locator("[data-bestanden-verwijderd]").waitFor();
+    assert.match(await page.locator("[data-bestanden-verwijderd]").innerText(), /agentrollen\.json/);
+    assert.match(await page.locator("[data-opslaan]").innerText(), /1 gewijzigd, 1 nieuw, 1 verwijderd/);
+    await zonderOverloop(page, "de editor met wijzigingen");
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/werkplaats-editor-${breedte}.png`, fullPage: true });
+
+    // Herladen: het niet-opgeslagen werk staat er weer, en de pagina zegt dat.
+    // Meteen, zonder op de pauze te wachten: wat er op dit moment staat, is wat terugkomt.
+    await page.reload();
+    await page.locator('[data-melding="hersteld"]').waitFor();
+    assert.match(await page.locator("[data-opslaan]").innerText(), /1 gewijzigd, 1 nieuw, 1 verwijderd/);
+
+    // Opslaan maakt de volgende versie, met de toelichting; daarna is er niets meer gewijzigd en niets meer bewaard in de browser.
+    await page.getByLabel("Toelichting bij deze versie").fill("Beschrijving erbij");
+    await page.locator('[data-actie="opslaan"]').click();
+    await page.locator('[data-concept-versie="3"][data-gewijzigd="nee"]').waitFor();
+    assert.equal(api.opgeslagen.length, 1);
+    assert.deepEqual([api.opgeslagen[0].na_versie, api.opgeslagen[0].toelichting], [2, "Beschrijving erbij"]);
+    assert.deepEqual(Object.keys(api.opgeslagen[0].bestanden).sort(), ["SKILL.md", Object.keys(BESTANDEN)[0], "references/anders.md"].sort());
+    assert.equal(api.opgeslagen[0].bestanden["references/anders.md"], "Hallo");
+    assert.match(api.opgeslagen[0].bestanden["SKILL.md"], /description: goed$/);
+    assert.match(await page.locator("[data-paginakop]").innerText(), /Geldig[\s\S]*versie 3/);
+    assert.equal(await page.evaluate(() => localStorage.getItem("lex.concept.o1.2")), null);
+    assert.equal(await page.locator("[data-opslaan]").count(), 0);
+
+    // Intussen sloeg een ander venster op: de tekst blijft staan en de gebruiker kiest. Er gaat niets stil verloren.
+    await page.locator('[data-bestand="SKILL.md"]').click();
+    await page.locator('textarea[data-bestand-inhoud="SKILL.md"]').waitFor();
+    await typ("\nmijn regel");
+    api.anderVenster = true;
+    await page.locator('[data-actie="opslaan"]').click();
+    await page.locator('[data-conflict="4"]').waitFor();
+    assert.match(await page.locator("[data-conflict]").innerText(), /er is niets weggegooid[\s\S]*wordt jouw tekst versie 5[\s\S]*blijft versie 4 bewaard/);
+    assert.match(await vak.inputValue(), /mijn regel$/);
+    assert.equal(api.opgeslagen.length, 1);
+    await zonderOverloop(page, "de melding over een nieuwere versie");
+    await page.locator('[data-actie="toch-opslaan"]').click();
+    await page.locator('[data-concept-versie="5"][data-gewijzigd="nee"]').waitFor();
+    assert.equal(api.opgeslagen[1].na_versie, 4);
+    assert.match(api.opgeslagen[1].bestanden["SKILL.md"], /mijn regel$/);
+
+    // Weggaan met niet-opgeslagen werk vraagt eerst; verwerpen zet de bewaarde versie terug.
+    await page.locator('[data-bestand="SKILL.md"]').click();
+    await page.locator('textarea[data-bestand-inhoud="SKILL.md"]').waitFor();
+    await typ("\nweg hiermee");
+    await page.locator("[data-opslaan]").waitFor();
+    await page.locator("[data-paginakop]").getByRole("link", { name: "Werkwijze van Lex" }).click();
+    await page.getByText("Niet-bewaarde wijzigingen").waitFor();
+    await page.getByRole("button", { name: "Blijf hier" }).click();
+    assert.match(page.url(), /\/werkwijze\/concepten\/o1/);
+    await page.getByRole("button", { name: "Wijzigingen verwerpen" }).click();
+    await page.getByRole("button", { name: "Verwerpen?" }).click();
+    await page.locator('[data-concept-versie="5"][data-gewijzigd="nee"]').waitFor();
+    assert.doesNotMatch(await vak.inputValue(), /weg hiermee/);
+
+    // Een Markdown-bestand lezen: opgemaakt, met de frontmatter erboven; en terug naar bewerken.
+    await page.locator('[data-actie="lezen"]').click();
+    const gelezen = page.locator('[data-bestand-gelezen="SKILL.md"]');
+    await gelezen.waitFor();
+    assert.match(await gelezen.locator("pre").innerText(), /^name: jrm-proef$/);
+    assert.doesNotMatch(await gelezen.innerText(), /# jrm-proef|---/);
+    assert.match(await gelezen.innerText(), /jrm-proef[\s\S]*mijn regel/);
+    assert.equal(await vak.count(), 0);
+    await page.locator('[data-actie="lezen"]').click();
+    await vak.waitFor();
+
+    // Intrekken: daarna alleen nog lezen, en de versies blijven.
+    await page.getByRole("button", { name: "Meer over dit concept" }).click();
+    await page.getByRole("menuitem", { name: "Concept intrekken" }).click();
+    await page.getByRole("menuitem", { name: "Intrekken?" }).click();
+    await page.locator('[data-conceptstand="ingetrokken"]').waitFor();
+    await page.locator("pre[data-bestand-inhoud]").waitFor();
+    assert.equal(await vak.count(), 0);
+    assert.equal(await page.locator('[data-actie="bestand-nieuw"]').count(), 0);
+    assert.equal(await page.getByRole("button", { name: "Meer over dit concept" }).count(), 0);
+
+    // Andermans concept dat met mij gedeeld is, lees ik alleen.
+    await page.goto(`${base}/werkwijze/concepten/o2`);
+    await page.locator("pre[data-bestand-inhoud]").waitFor();
+    assert.equal(await vak.count(), 0);
+    assert.equal(await page.getByRole("button", { name: "Meer over dit concept" }).count(), 0);
+    assert.ok(!gezien.paden.some((x) => /^(PUT|DELETE|PATCH)/.test(x)));
+    assert.deepEqual(gezien.errors, []);
     await page.close();
   }
   console.log("OK test-werkplaats");

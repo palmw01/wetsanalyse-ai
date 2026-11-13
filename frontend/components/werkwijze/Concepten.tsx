@@ -119,7 +119,7 @@ function NieuwConcept({ soort, onAnnuleer }: { soort: WerkplaatsSoort; onAnnulee
 
 /** *Bewerken* op de pagina van een methode: maakt een concept met de versie die draait en opent het. Heb ik er al
  *  een, dan opent de knop dat. Staat de werkplaats uit of mag ik niet maken, dan staat er niets. */
-export function BewerkKnop({ soort, naam }: { soort: WerkplaatsSoort; naam: string }) {
+export function ConceptBewerken({ soort, naam }: { soort: WerkplaatsSoort; naam: string }) {
   const router = useRouter();
   const { stand, concepten, userid } = useWerkplaats();
   const [bezig, setBezig] = useState(false);

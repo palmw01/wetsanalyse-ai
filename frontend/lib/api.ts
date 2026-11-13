@@ -4,8 +4,8 @@
 import { parseContextopbouw, type ContextBoom } from "./contextweergave";
 import { parseAntwoord } from "./antwoord";
 import {
-  UIT as WERKPLAATS_UIT, parseOnderdeel as parseWerkplaatsOnderdeel, parseOnderdelen, parseStand, parseVersie,
-  type WerkplaatsOnderdeel, type WerkplaatsSoort, type WerkplaatsStand, type WerkplaatsVersie,
+  UIT as WERKPLAATS_UIT, parseOnderdeel as parseWerkplaatsOnderdeel, parseOnderdelen, parseStand, parseToets, parseVersie,
+  type Toets, type WerkplaatsOnderdeel, type WerkplaatsSoort, type WerkplaatsStand, type WerkplaatsVersie,
 } from "./werkplaats";
 import { parseBronselectie, type BronselectieOverzicht } from "./bronselectie";
 import {
@@ -266,6 +266,28 @@ export async function haalConceptVersie(id: string, nummer: number): Promise<Wer
     `/api/werkplaats/onderdelen/${pathSegment(id)}/versies/${nummer}`, { cache: "no-store" })));
   if (!uit) throw new Error("Onverwacht antwoord van de werkplaats.");
   return uit;
+}
+
+/** Poort 1 zonder op te slaan: wat de controle van deze bestanden vindt. */
+export async function toetsConcept(v: { soort: WerkplaatsSoort; naam: string; bestanden: Record<string, string> }, signal?: AbortSignal): Promise<Toets> {
+  const uit = parseToets(await json<unknown>(await fetch("/api/werkplaats/toets", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(v), signal,
+  })));
+  if (!uit) throw new Error("Onverwacht antwoord van de werkplaats.");
+  return uit;
+}
+
+/** Een volgende versie. `na_versie` is de versie waarop deze voortbouwt: is er intussen een nieuwere, dan 409. */
+export async function slaConceptOp(id: string, v: { bestanden: Record<string, string>; na_versie: number; toelichting: string }): Promise<WerkplaatsVersie> {
+  const uit = parseVersie(await json<unknown>(await fetch(`/api/werkplaats/onderdelen/${pathSegment(id)}/versies`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(v),
+  })));
+  if (!uit) throw new Error("Onverwacht antwoord van de werkplaats.");
+  return uit;
+}
+
+export async function trekConceptIn(id: string): Promise<void> {
+  await json<unknown>(await fetch(`/api/werkplaats/onderdelen/${pathSegment(id)}/intrekken`, { method: "POST" }));
 }
 
 // --- Admin: LLM-modelprofielen ----------------------------------------------
