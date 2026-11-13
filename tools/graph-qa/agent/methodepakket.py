@@ -1,9 +1,9 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
-PAKKET = {'bronbestanden': {'SKILL.md': '658a2e00c70216bfacc093ec02f07a23a64ffe680200f697c144107688be06e3',
-                   'agentrollen.json': '72e87f25dc6b5f96ddb0c3873cf88a382378196c9f03d8c076e1d0efdd3adf4d',
-                   'references/agentrollen.md': 'bc6a35e64c9147183d56044bec9c4579fa3b757b613248d3604c7eed0a073405',
-                   'references/bronnen.md': 'a24fa236896ccc453e3701c754839403572dd61eb1ae66c7d42d2ac778920ef6',
+PAKKET = {'bronbestanden': {'SKILL.md': '1b2c685d8f23ca6a5b949efa427f004050aaf6daa26a77d90b554a6d9d633a96',
+                   'agentrollen.json': '51f7a33c9f91c3d0162bcc9ee582cebab14fd18efab653f6126e6bd44178df0a',
+                   'references/agentrollen.md': 'b0dc0f1bd82b117f27d44b8915ebe5991e50c8c099eec995aed6f68315b1261b',
+                   'references/bronnen.md': 'be67949758c4bbab8dbce56f5d27850a1b7bdf8a6fd381268822f9e48818174c',
                    'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
                    'references/jas-klassen-referentie.md': '14f62a170d1c3f46f9af778caf220a6ceb0f6d81f1c4157dd3cc75e521db755f',
                    'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411',
@@ -24,7 +24,9 @@ PAKKET = {'bronbestanden': {'SKILL.md': '658a2e00c70216bfacc093ec02f07a23a64ffe6
                          'een formulering heeft, een werkgebied of deelvragen wil opstellen, '
                          'bronnen bij een analysevraag zoekt, een begrip of definitie uit '
                          'wetgeving wil vastleggen, of een wetsanalyse, regelanalyse of juridische '
-                         'analyse van een regeling noemt, ook als het woord JAS niet valt.',
+                         'analyse van een regeling noemt, ook als het woord JAS niet valt. Niet '
+                         'voor een juridisch scenario met aktes (dat is de skill wetsuitvoering) '
+                         'en niet voor juridisch advies.',
          'herkomst': 'Methode Wetsanalyse (Ausems, Bulles & Lokin) en het JAS (BZK); de bronnen '
                      'staan in references/bronnen.md',
          'label': 'Wetsanalyse: JAS',
@@ -104,8 +106,8 @@ PAKKET = {'bronbestanden': {'SKILL.md': '658a2e00c70216bfacc093ec02f07a23a64ffe6
                                     'uit bronresultaten. Behoud ficties, uitzonderingen en '
                                     'beperkende formuleringen.'},
              'duiding': {'bestand': 'references/agentrollen.md',
-                         'bronnen': ['M01', 'M06', 'M07', 'P02', 'P03', 'P07', 'P08', 'P12'],
-                         'sha256': 'e0dea2c1319f57549bb8d098d56196949716a666765a7ca317891562b47b3808',
+                         'bronnen': ['M01', 'M04', 'M07', 'P02', 'P03', 'P07', 'P08', 'P12'],
+                         'sha256': '32358b66114b0586a6778ee535a2bd20077d77037a7afacf2ddf9dd8022f5ba7',
                          'skill': 'wetsanalyse',
                          'tekst': 'Ontleed aanhef, leden en onderdelen; verbind onderwerp, '
                                   'volledig gezegde, actor, modaliteit, ontkenning en '
@@ -118,13 +120,12 @@ PAKKET = {'bronbestanden': {'SKILL.md': '658a2e00c70216bfacc093ec02f07a23a64ffe6
                                   'de wet met beschikbare bronnen en markeer een afgeleid doel als '
                                   'interpretatie. Los strijdige lezingen niet stilzwijgend op. '
                                   'Beschrijf waar relevant de rechtsbetrekking met partijen, '
-                                  'object, relevante feiten, bevoegdheden en rechtsgevolgen '
-                                  'volgens JRM 2; voeg geen ononderbouwde actor of gevolg toe. '
-                                  'Toets een lezing aan een passend normaal geval en grensgeval, '
-                                  'herkenbaar als hypothetisch. Meld ontbrekende context en '
-                                  'verdedigbare alternatieven. De dertien JAS-labels blijven '
-                                  'ongewijzigd; JRM-verrijking is aanvullende uitleg, geen nieuwe '
-                                  'annotatieklasse.'},
+                                  'voorwerp en voorwaarden, en het rechtsfeit dat haar creëert, '
+                                  'wijzigt of beëindigt, volgens het JAS; voeg geen ononderbouwde '
+                                  'actor of gevolg toe. Toets een lezing aan een passend normaal '
+                                  'geval en grensgeval, herkenbaar als hypothetisch. Meld '
+                                  'ontbrekende context en verdedigbare alternatieven. Gebruik '
+                                  'alleen de dertien JAS-klassen.'},
              'jrm-relevant-feit': {'bestand': 'references/relevant-feit.md',
                                    'bronnen': ['J01', 'JP02', 'JP03'],
                                    'sha256': '6e954636c73b5e5e912ca188a0db62b6dfb6639b60d7a4aa1e0507ffd2d38abb',
@@ -219,16 +220,16 @@ PAKKET = {'bronbestanden': {'SKILL.md': '658a2e00c70216bfacc093ec02f07a23a64ffe6
                                     'geldigheid.'},
              'supervisor': {'bestand': 'references/agentrollen.md',
                             'bronnen': ['M03', 'P11', 'P12'],
-                            'sha256': '89e1c5aa8ec6d2b2dfc2a93889cedd0e0ec44ca47cb0d5ca3472663c141088dd',
+                            'sha256': '8cc6c6c545707067c89349a266ff0464a8e2340e707f0b3d47dc4f4fb56cb78c',
                             'skill': 'wetsanalyse',
                             'tekst': 'Kies de bestaande uitvoervorm op basis van het verzoek: '
                                      'markeringen vragen de annotatieketen; betekenis en samenhang '
                                      'vragen duiding; brondefinities vragen definitie. Advies en '
                                      'annotatie zijn verschillende producten. Beloof geen volledig '
-                                     'JAS/JRM-dossier via een route die alleen markeringen of een '
+                                     'analysedossier via een route die alleen markeringen of een '
                                      'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
                                      'rol over.'}},
- 'sha256': 'a0d034028eb28ae7ea8be28154c9d1421cd858c28379f3fcdb519b38f672055a',
+ 'sha256': '27680ee80876f228042e7b9e754719ebedb04a3a15f8b7db2482618909c98c38',
  'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving '
                                                     'volgens de methode Wetsanalyse en het '
                                                     'Juridisch Analyseschema (JAS): een werkgebied '
@@ -248,7 +249,10 @@ PAKKET = {'bronbestanden': {'SKILL.md': '658a2e00c70216bfacc093ec02f07a23a64ffe6
                                                     'uit wetgeving wil vastleggen, of een '
                                                     'wetsanalyse, regelanalyse of juridische '
                                                     'analyse van een regeling noemt, ook als het '
-                                                    'woord JAS niet valt.',
+                                                    'woord JAS niet valt. Niet voor een juridisch '
+                                                    'scenario met aktes (dat is de skill '
+                                                    'wetsuitvoering) en niet voor juridisch '
+                                                    'advies.',
                                     'herkomst': 'Methode Wetsanalyse (Ausems, Bulles & Lokin) en '
                                                 'het JAS (BZK); de bronnen staan in '
                                                 'references/bronnen.md',
@@ -258,7 +262,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': '658a2e00c70216bfacc093ec02f07a23a64ffe6
                                                 'BRM-readers alleen in eigen woorden',
                                     'soort': 'methode'},
                             'map': '.claude/skills/wetsanalyse',
-                            'versie': '2.1'},
+                            'versie': '3.0'},
             'wetsuitvoering': {'lex': {'beschrijving': 'Beschrijft hoe wet- en regelgeving in de '
                                                        'uitvoering uitpakt volgens het Juridisch '
                                                        'Referentiemodel (JRM 2), de methode '
@@ -289,4 +293,4 @@ PAKKET = {'bronbestanden': {'SKILL.md': '658a2e00c70216bfacc093ec02f07a23a64ffe6
                                        'soort': 'methode'},
                                'map': '.claude/skills/wetsuitvoering',
                                'versie': 'JRM 2 (2025-03)'}},
- 'versie': '2.1'}
+ 'versie': '3.0'}

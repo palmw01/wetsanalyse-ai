@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: begrip-uitstel-van-betaling
+expected_outcome: |
+  Een voorstel voor een begrip met naam, definitie, toelichting en de passage waarop het rust. De definitie is als
+  voorstel gemarkeerd, met haar herkomst: het lid geeft geen wettelijke definitie, dus zij is samengesteld of zelf
+  geformuleerd. De definitie gebruikt de naam van het begrip niet, bevat geen rechtsgevolg en geen berekening, en het
+  antwoord houdt het begrip uit elkaar van een brondefinitie.

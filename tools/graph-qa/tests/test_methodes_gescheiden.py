@@ -5,8 +5,7 @@ scenario, de akte en het juridisch relevante feit alleen in een alinea die naar 
 alinea zegt waar de grens ligt. Woorden die het JAS zelf gebruikt ("rechtsgevolg", "juridische toestand") vallen er
 niet onder.
 
-De methodetekst per rol (tussen de methodemarkers) telt hier nog niet mee: die verandert in een eigen stap met een
-meting (S6). Tot dan toetst `MODELTEKST_MEE = False` alleen de leestekst.
+Sinds S6 telt ook de methodetekst per rol (tussen de methodemarkers) mee: die gaat letterlijk naar het model.
 """
 from __future__ import annotations
 
@@ -17,8 +16,8 @@ import pytest
 
 SKILL = Path(__file__).resolve().parents[3] / ".claude" / "skills" / "wetsanalyse"
 
-#: Zet op True in S6, als de methodetekst van `duiding` en `supervisor` geen JRM meer noemt.
-MODELTEKST_MEE = False
+#: Sinds S6 (methodeversie 3.0) telt ook de methodetekst tussen de markers mee.
+MODELTEKST_MEE = True
 
 VERBODEN = re.compile(r"\bjrm|juridisch relevante? feit|juridische? scenario|\baktes?\b", re.I)
 VERWIJST = re.compile(r"wetsuitvoering", re.I)
@@ -30,8 +29,15 @@ UITZONDERINGEN = {
 }
 
 
+def _grenseval(pad: Path) -> bool:
+    """Een eval die de grens met een andere methode toetst (`evals/grens-…`), noemt die methode in zijn vraag."""
+    rel = pad.relative_to(SKILL).parts
+    return len(rel) > 1 and rel[0] == "evals" and rel[1].startswith("grens-")
+
+
 def _bestanden() -> list[Path]:
-    return sorted(p for p in SKILL.rglob("*") if p.is_file() and p.suffix in {".md", ".json", ".yaml"})
+    return sorted(p for p in SKILL.rglob("*") if p.is_file() and p.suffix in {".md", ".json", ".yaml"}
+                  and not _grenseval(p))
 
 
 def _alineas(tekst: str) -> list[str]:

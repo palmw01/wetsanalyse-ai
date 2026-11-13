@@ -1,7 +1,7 @@
 # Fragmentgrenzen en juridische functies
 
 Grondslag: [bronnen en beslisregister](bronnen.md) — M02, P04–P05, P10.
-Projectregels versie 2.1. Gebruik met de [markeringslijst](markeringslijst.md), het
+Projectregels versie 3.0. Gebruik met de [markeringslijst](markeringslijst.md), het
 [analyseprotocol](analyseprotocol.md) en de [klassenreferentie](jas-klassen-referentie.md).
 
 ## Drie verschillende eenheden
