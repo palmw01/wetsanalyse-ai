@@ -1512,13 +1512,14 @@ Wat een gebruiker zelf maakt of aanpast (nu: een skill) is een **concept** met v
   via het gesprek en hoort niet bij deze stap. Een eigen pagina en geen paneel naast het gesprek: een skill heeft tot
   tientallen bestanden.
 - **De ingangen** (`components/werkwijze/Concepten.tsx`): de groep *Concepten* bovenaan het overzicht (`ConceptenGroep`:
-  mijn concepten, wat met mij gedeeld is, ingetrokken onderaan; alleen bij *Alles* en *Kennis en methode*; de zoekterm
+  mijn concepten, wat met mij gedeeld is; ingetrokken staat standaard verborgen en komt met *Toon ingetrokken* onderaan
+  terug, want intrekken is de manier om een concept weg te doen en verwijderen kan niet; alleen bij *Alles* en *Kennis en methode*; de zoekterm
   filtert op naam), *Nieuw concept* (alleen de naam; de api begint met de verplichte bestanden) en *Bewerken* op de
   pagina van een methode (`ConceptBewerken`: een concept met de versie die draait, `uit_image`; heb ik er al een, dan *Open
   mijn concept*). Een methode in de catalogus is een skill met dezelfde naam (`werkplaatsSoortVan`). Wie niet mag maken
   (`mag_maken`), ziet geen knop.
 - **Eén stand, één functie** (`standLabel` in `lib/werkplaats.ts`, getoond door `ConceptLabels`): *Concept*, *Draait nu*,
-  *Concept · loopt achter* (er draait intussen een andere versie dan waar het concept op voortbouwt), *Ingetrokken*, en
+  *Concept · op oudere versie* (Lex gebruikt intussen een nieuwere versie dan waar het concept op voortbouwt), *Ingetrokken*, en
   ***Concept · nog onbekend wat er draait*** zolang de api niet weet welke versie Lex gebruikt. **Onbekend is nooit "draait
   niet"**: `parseOnderdeel` maakt de afgeleide velden dan `null`, wat de rij ook zegt. Daarnaast of de laatste versie de
   controle haalt (`geldigLabel`). Schrijf geen eigen zin over de stand.
