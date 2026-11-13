@@ -85,7 +85,10 @@ Toelichting bij enkele documenten:
   [`architectuur/plan-contextweergave.md`](architectuur/plan-contextweergave.md) (spoor T). Los daarvan staat
   [`architectuur/plan-methodes-scheiden.md`](architectuur/plan-methodes-scheiden.md): de inventaris en de volgorde om
   wetsanalyse (JAS) en wetsuitvoering (JRM) te scheiden, met in deel 2 de toets van de skill en de JAS-tools tegen de
-  bronnen en de stappen om wetsanalyse te versterken (13 nov 2026; nog niets gebouwd).
+  bronnen en de stappen om wetsanalyse te versterken (13 nov 2026; nog niets gebouwd). Ook los:
+  [`architectuur/plan-connector-kennisgroepen.md`](architectuur/plan-connector-kennisgroepen.md), het onderzoek en
+  plan voor de kennisgroepstandpunten van de Belastingdienst als bronconnector (ADR-013), met alle metadata in de
+  koppeling en een meting van 20 vragen (13 nov 2026; nog niets gebouwd).
 - **`architectuur/verbeterplan-jas-pipeline-2026-10-08.md`** is *onderzoek*: het ontwerp voor de
   kandidaten na V7 uit spoor A (bewijs per hypothese, frames, relaties), met eigen meet- en
   acceptatiecriteria. Het start na V7.
