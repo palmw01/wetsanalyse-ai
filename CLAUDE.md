@@ -298,8 +298,9 @@ methode levert eerst tekst in het gesprek of een eigen zijpaneel, nooit JAS-mark
 JRM alleen in een alinea die naar wetsuitvoering verwijst: `tools/graph-qa/tests/test_methodes_gescheiden.py` maakt
 vermenging rood.
 
-**De methodetekst per rol is bij de herinrichting byte-gelijk gebleven** (de vingerafdrukken zijn ongewijzigd): een
-wijziging van de tekst tussen de methodemarkers verandert het gedrag van Lex en vraagt een meting (ADR-010, P19).
+**Een wijziging van de tekst tussen de methodemarkers verandert het gedrag van Lex** en vraagt een meting (ADR-010,
+P19). De herinrichting naar skillversie 3.0 en 4.0 liet die tekst byte-gelijk; methodeversie 3.0 (13 nov 2026) haalde
+het JRM uit de secties `duiding` en `supervisor`, met een eigen meting.
 
 ## Observability
 

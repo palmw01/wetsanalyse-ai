@@ -1,7 +1,7 @@
 ---
 name: wetsanalyse
 metadata:
-  methode_versie: "2.1"
+  methode_versie: "3.0"
   skill_versie: "4.0"
   lex_soort: "methode"
   lex_label: "Wetsanalyse: JAS"
@@ -23,7 +23,7 @@ description: >-
 
 Wetsanalyse maakt wetgeving uitvoerbaar door de tekst gestructureerd te duiden: welke partijen, rechten en plichten,
 voorwaarden, termijnen en rekenregels er staan, en hoe ze samenhangen. Jij levert een **controleerbaar concept**; een
-jurist beoordeelt en beslist. Methodeversie 2.1, Wetsanalyse met het JAS.
+jurist beoordeelt en beslist. Methodeversie 3.0, Wetsanalyse met het JAS.
 
 ## Drie dingen die altijd gelden
 

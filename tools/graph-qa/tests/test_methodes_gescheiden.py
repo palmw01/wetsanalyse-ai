@@ -5,8 +5,7 @@ scenario, de akte en het juridisch relevante feit alleen in een alinea die naar 
 alinea zegt waar de grens ligt. Woorden die het JAS zelf gebruikt ("rechtsgevolg", "juridische toestand") vallen er
 niet onder.
 
-De methodetekst per rol (tussen de methodemarkers) telt hier nog niet mee: die verandert in een eigen stap met een
-meting (S6). Tot dan toetst `MODELTEKST_MEE = False` alleen de leestekst.
+Sinds S6 telt ook de methodetekst per rol (tussen de methodemarkers) mee: die gaat letterlijk naar het model.
 """
 from __future__ import annotations
 
@@ -17,8 +16,8 @@ import pytest
 
 SKILL = Path(__file__).resolve().parents[3] / ".claude" / "skills" / "wetsanalyse"
 
-#: Zet op True in S6, als de methodetekst van `duiding` en `supervisor` geen JRM meer noemt.
-MODELTEKST_MEE = False
+#: Sinds S6 (methodeversie 3.0) telt ook de methodetekst tussen de markers mee.
+MODELTEKST_MEE = True
 
 VERBODEN = re.compile(r"\bjrm|juridisch relevante? feit|juridische? scenario|\baktes?\b", re.I)
 VERWIJST = re.compile(r"wetsuitvoering", re.I)
