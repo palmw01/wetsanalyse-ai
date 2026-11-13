@@ -114,7 +114,11 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | O | Acceptatietesten via MCP | Accounttoken en acceptatie-MCP gebouwd, eerste scenario gedraaid; open: de fixtures voor de Playwright-mocks |
 | R | Verbeterplan uit de applicatiereview (6 nov 2026) | Ronde 1 en 2 gemerged (t/m #951); ronde 3 als losse PR's (#963–#985), zie de sectie. Uitgesteld: F2, F3, E4, E6, H5; bij de eigenaar: G2 (meldkanaal), G4, G9 |
 | S | Multi-agent regie binnen een werkgebied (ADR-012) | Gebouwd (#1081, #1082, #1085, #1087, #1088, #1100) en op acceptatie gemeten (8 nov 2026); open: zie de sectie |
+<<<<<<< Updated upstream
 | T | De context van een beurt zichtbaar: contextmeter en `/context` (ADR-015) | Plan goedgekeurd en na review herzien (12 nov 2026), niets gebouwd: context én verbruik per beurt, geen extra telaanroepen, de boom via de api, niets wacht op ADR-016. [`architectuur/plan-contextweergave.md`](architectuur/plan-contextweergave.md) |
+=======
+| T | Regressiebenchmark voor annotaties (ADR-014) | Ontwerp (concept), wacht op akkoord en op de keuze hoe een run start; niets gebouwd |
+>>>>>>> Stashed changes
 
 ---
 
@@ -1378,6 +1382,22 @@ agent-token #1100). Stap 7, de meting op acceptatie, staat in `architectuur/meti
 - Een schatting naar de lengte van een bepaling, als een meting dat waard blijkt.
 - *Stop alles* en de trace op acceptatie meten.
 - Begrippen in de regie, een reservering bij de api, `minReplicas: 1` voor graph-qa, en een Grafana-paneel.
+
+### T. Regressiebenchmark voor annotaties
+
+**Doel.** Ontwikkelaars zien snel wat een wijziging aan de annotatieketen met de uitvoer doet, tegen annotaties
+die een analist afrondde en een beheerder als casus koos. Een regressietest naast de andere tests, geen oordeel
+over juistheid. Het ontwerp staat in [ADR-014](architectuur/adr-014-benchmark-annotaties.md).
+
+**Levering.** Vier PR's: api (casussen en sets met versies, runs met manifest, een begrensde client
+`benchmark`), graph-qa (meetmodus, scorers op ankers en de verschillen), infra (de eval-job met set
+`benchmark`), frontend (beheertab *Benchmark*). Eerste meting: één casus, vijf herhalingen, alleen acceptatie.
+
+**Grens.** De scores zijn een indicatie, zonder totaalcijfer en zonder poort in de pipeline. Een benchmarkcasus
+is geen `adjudicated` casus; de meetmodus voegt geen semantiek aan de keten toe, dus spoor A blijft staan. Open
+keuzes: zie de ADR.
+
+---
 
 ## Volgorde en samenhang
 
