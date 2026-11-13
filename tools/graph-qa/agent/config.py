@@ -91,6 +91,9 @@ class Settings(BaseModel):
     # – zo blijft lokaal draaien zonder api mogelijk.
     wetsanalyse_api_url: str = ""
     wetsanalyse_api_token: str | None = None
+    # De commit waaruit dit image is gebouwd (`LEX_REVISIE`, een build-arg van de publish-workflow). Leeg buiten een
+    # image. Gaat mee met de melding van wat er in het image zit (`agent/imagemelding.py`).
+    revisie: str = ""
     # Alleen voor machine-lokale MCP/CLI-clients; nooit door een modelargument instelbaar.
     annotatie_read_user_id: str = ""
 
@@ -237,6 +240,7 @@ class Settings(BaseModel):
             "llm_max_retries": e.get("LLM_MAX_RETRIES"),
             "wetsanalyse_api_url": e.get("WETSANALYSE_API_URL"),
             "wetsanalyse_api_token": _read_secret(e, "WETSANALYSE_API_TOKEN"),
+            "revisie": e.get("LEX_REVISIE"),
             "annotatie_read_user_id": e.get("ANNOTATIE_READ_USER_ID"),
             "qa_api_token": _read_secret(e, "QA_API_TOKEN"),
             "cors_origins": cors or None,

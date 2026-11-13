@@ -133,11 +133,36 @@ def naam_fout(soort: str, naam: str) -> str:
     return ""
 
 
-def toets(soort: str, naam: str, bestanden: Mapping[str, str]) -> list[Bevinding]:
-    """Poort 1 voor een versie van een onderdeel: alle bevindingen. Een lege lijst betekent: geldig."""
+def _over_skills_heen(naam: str, bestanden: Mapping[str, str], andere: Mapping[str, Mapping[str, str]]) -> list[Bevinding]:
+    """Wat alleen over de skills heen te toetsen is: een sectie-id en een broncode zijn van één skill. `andere` zijn de
+    andere skills (naam → bestanden), bijvoorbeeld die in het image; een versie van dezelfde skill telt niet mee, want
+    het concept vervangt haar. Een andere skill die zelf niet geldig is, doet niet mee."""
+    eigen, _ = skill.toets(naam, bestanden, basis=naam == skill.BASIS)
+    if eigen is None:
+        return []
+    rest = [s for n, b in sorted(andere.items()) if n != naam
+            and (s := skill.toets(n, b, basis=n == skill.BASIS)[0]) is not None]
+    return skill.toets_samen([*rest, eigen])
+
+
+def toets(soort: str, naam: str, bestanden: Mapping[str, str], *,
+          andere: Mapping[str, Mapping[str, str]] | None = None) -> list[Bevinding]:
+    """Poort 1 voor een versie van een onderdeel: alle bevindingen. Een lege lijst betekent: geldig.
+
+    Met `andere` (de andere skills, naam → bestanden) toetst een skill ook wat alleen over de skills heen te toetsen
+    is. Zonder: alleen het onderdeel op zichzelf."""
     if fout := naam_fout(soort, naam):
         return [Bevinding("naam", fout)]
-    return [*weiger(bestanden), *REGISTER[soort].toets(naam, bestanden)]
+    uit = [*weiger(bestanden), *REGISTER[soort].toets(naam, bestanden)]
+    if soort == "skill" and andere and not uit:
+        uit += _over_skills_heen(naam, bestanden, andere)
+    return uit
+
+
+def pakkethash(hashes: Mapping[str, str]) -> str:
+    """De identiteit van een pakket onderdelen (`<soort>/<naam>` → hash): één hash over alle hashes. Graph-qa rekent
+    hem bij het genereren van zijn bronpakket, de api bij een melding: verandert één bestand, dan verandert hij."""
+    return hashlib.sha256(json.dumps(dict(hashes), sort_keys=True).encode()).hexdigest()
 
 
 def begin(soort: str, naam: str) -> dict[str, str]:

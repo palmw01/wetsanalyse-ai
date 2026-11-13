@@ -103,6 +103,14 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   er niet door. JSON en geen Python, omdat het alleen tekst is. Het wordt pas gelezen als iemand ernaar vraagt.
   **Elke wijziging aan een skill of een profiel, ook in commentaar of een eval, verandert dit bestand**: draai de
   generator, anders faalt `--check`. `tests/test_bronpakket.py`.
+- **De melding van het image** (`agent/imagemelding.py`, ADR-016 §B1). Bij het starten zegt graph-qa de api wat er in
+  zijn image zit (`PUT /v1/werkplaats/image`): eerst alleen de hash van het bronpakket en de commit (`Settings.revisie`,
+  env `LEX_REVISIE`, een build-arg van de publish-workflow), en het hele pakket alleen als de api die hash niet kent.
+  De api leidt daaruit af welke versie in de werkplaats actief is. De melding is een achtergrondtaak van de lifespan:
+  de dienst is gezond zonder haar, een storing wordt later herhaald (`WACHT_S`) en daarna een waarschuwing, en een 404
+  (de werkplaats staat op die omgeving uit) is een gewoon antwoord (`_verstuur(verwacht=)`, geen foutregel). Graph-qa
+  zegt alleen wat er in zijn image zit, nooit of een versie actief is, en de logregels dragen geen inhoud.
+  `tests/test_imagemelding.py`.
 - **Twee meetvelden voor de meetlus** (ADR-016 §A6). Elk `tool_execution`-event draagt `ronde`: de modelronde die om de
   aanroep vroeg (1 = de eerste van de beurt), of 0 als de code hem zelf deed. Twee aanroepen met dezelfde ronde liepen
   naast elkaar. En een sjabloonweigering telt twee keer in `meting.sjabloon`: in `geweigerd` per sjabloon en functie

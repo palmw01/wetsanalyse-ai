@@ -12,7 +12,6 @@ import subprocess
 import sys
 
 from bronmodel import werkplaats as wp
-from bronmodel.skill import sha
 
 from agent import bronpakket, profielen
 from agent import catalogus as cat
@@ -40,7 +39,7 @@ def test_elk_onderdeel_is_een_geldige_versie_met_de_hash_van_de_werkplaats():
     for sleutel, o in ONDERDELEN.items():
         assert wp.toets(o["soort"], o["naam"], o["bestanden"]) == [], sleutel
         assert o["hash"] == wp.hash_van(o["bestanden"]), sleutel
-    assert PAKKET["sha256"] == sha(json.dumps({k: o["hash"] for k, o in ONDERDELEN.items()}, sort_keys=True))
+    assert PAKKET["sha256"] == wp.pakkethash({k: o["hash"] for k, o in ONDERDELEN.items()})
 
 
 def test_een_skill_draagt_zijn_hele_map_en_een_profiel_zijn_ene_bestand():

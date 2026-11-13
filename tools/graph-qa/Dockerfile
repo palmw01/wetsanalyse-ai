@@ -58,6 +58,11 @@ RUN useradd -u 10001 -m appuser && mkdir -p /data && chown appuser:appuser /data
     && chmod -R a+rX /app
 USER appuser
 
+# De commit waaruit dit image is gebouwd, voor de melding van wat er in het image zit (`agent/imagemelding.py`,
+# ADR-016 §B1). Onderaan, zodat een nieuwe commit geen laag hierboven ongeldig maakt.
+ARG REVISIE=""
+ENV LEX_REVISIE=${REVISIE}
+
 EXPOSE 8080
 
 # `--timeout-graceful-shutdown`: na zoveel seconden sluit uvicorn de open SSE-verbindingen (een kijker haakt opnieuw aan

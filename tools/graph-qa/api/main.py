@@ -41,6 +41,7 @@ import httpx2
 
 httpx2.alias_httpx()
 
+import asyncio  # noqa: E402
 import functools  # noqa: E402
 import json  # noqa: E402
 import logging  # noqa: E402
@@ -74,6 +75,7 @@ from agent.runstore import Run, RunBestaatAl, RunStore  # noqa: E402
 from agent.regie.regisseur import opdracht_in, regie_stroom  # noqa: E402
 from agent.runstore.geheugen import GeheugenStore  # noqa: E402
 from agent.wetsanalyse_api import WetsanalyseApi  # noqa: E402
+from agent import imagemelding  # noqa: E402
 
 logger = logging.getLogger("graph_qa.chat")
 
@@ -134,7 +136,10 @@ async def _lifespan(_app: FastAPI):
         await voorbereiden()
         logger.info("run-store gereed", extra={"categorie": "technisch",
                                                "soort": type(runs).__name__})
+    # Zeg de api wat er in dit image zit (ADR-016 §B1). Op de achtergrond: de dienst wacht er niet op.
+    melding = asyncio.create_task(imagemelding.meld_met_herhaling(settings), name="imagemelding")
     yield
+    melding.cancel()
     afsluiten = getattr(runs, "sluit", None)
     if afsluiten is not None:
         await afsluiten()

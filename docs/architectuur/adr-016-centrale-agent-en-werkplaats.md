@@ -521,6 +521,13 @@ concept ──► proef (acceptatie) ──► voorgesteld (concept-PR) ──�
   tijdstip; de api toont die bij de stand. `actief` wordt nergens opgeslagen: wat graph-qa meldt, is een feit over zijn
   eigen image, geen oordeel over een versie.
 
+  Zo is het gebouwd (B1-2b): `PUT /v1/werkplaats/image`, alleen voor het agent-token en de enige route van de
+  werkplaats die dat token mag. Graph-qa stuurt eerst alleen de hash van het pakket en pas het hele pakket als de api
+  die niet kent; de api schrijft één rij met één upsert, dus twee replica's die tegelijk melden botsen niet. De commit
+  komt uit het image (`LEX_REVISIE`, een build-arg). De melding loopt bij graph-qa op de achtergrond: de dienst wacht er
+  niet op en probeert het bij een storing later opnieuw. Een image dat ouder is dan master maakt een versie niet
+  actief; dat wordt ze als graph-qa met het nieuwe image start. *Bewerken* is `uit_image` op het maken van een concept.
+
   Twee andere wegen vielen af:
   - *De BFF legt catalogus en register naast elkaar.* Dan is de stand logica in de frontend, krijgt wie de api
     rechtstreeks leest hem niet, en kan de api de basis van een concept niet controleren: die komt dan van de client.

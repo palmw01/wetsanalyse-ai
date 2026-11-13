@@ -66,6 +66,8 @@ TOEGESTAAN: frozenset[tuple[str, str]] = frozenset({
     ("PUT", "/v1/werkgebieden/{}/begrippen-runs/{}/verdieping"),
     ("PUT", "/v1/werkgebieden/{}/begrippen/{}/kaart-runs/{}/uitkomst"),
     ("PUT", "/v1/werkgebieden/{}/bronnen-runs/{}/uitkomst"),
+    # Wat er in het image van graph-qa zit (ADR-016 §B1). De enige route van de werkplaats voor dit token.
+    ("PUT", "/v1/werkplaats/image"),
 })
 
 
