@@ -439,7 +439,7 @@ opdracht meer dan 25% duurder" geldt niet voor een vraag die Lex afwijst omdat z
 - **Tegen de supervisor op dezelfde versie is niets duurder.** Ronde 4 mat beide vormen om en om op één commit. Op
   geen enkele opdracht is de centrale agent meer dan 25 % duurder, op de afwijzing na: die is hierboven als
   uitzondering verklaard. De som per run is lager (164–185k tegen 213–272k, gewogen warm).
-- **Wat er nog openstond, wordt opgelost met fixes voor beide vormen, vóór A3.** Het gaat om V01 (een gegokte
+- **Wat er nog openstond, wordt opgelost met fixes voor beide vormen, vóór A2-3.** Het gaat om V01 (een gegokte
   regeling), K12 (een afwijzing in plaats van "staat niet in de graaf"), K13 (een regeling ontbrak in de bronnenlijst),
   E03 (extra zoekrondes na een sjabloonweigering) en de citaatcontrole (een rechte tegen een gekrulde apostrof). E03
   is ook tegen de nulmeting +43 %. De oorzaak zit in een regel die beide vormen raakt, niet in de agentvorm.
