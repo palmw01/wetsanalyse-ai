@@ -1419,3 +1419,13 @@ agent-token #1100). Stap 7, de meting op acceptatie, staat in `architectuur/meti
    queries, enterprise-authenticatie en clustering. Overstappen naar Jena/Fuseki is geen doel: dan
    vervallen de ingebouwde MCP-server, de Lucene-connector en de similarity-plugin waar graph-qa
    en de importer op leunen.
+10. **A — subklassen als subtype** (plan methodes scheiden, deel 2, T4): moet een markering de soort rechtsbetrekking
+    (aanspraak en verplichting, bevoegdheid en gehoudenheid, immuniteit, vrijheid) of rechtsfeit (rechtshandeling,
+    feitelijke handeling, gebeurtenis, tijdsverloop) als `jas_subtype` dragen? *Besloten 13 nov 2026*: nu niet. De
+    subklassen staan in de skill en Lex noemt ze in een duiding waar de tekst ze draagt (G1). Vastleggen raakt het
+    contract van de api, de werkplek en de exports, en vraagt bewijs dat de keten zelden heeft; het blijft open.
+11. **A — detectorgrenzen tegen de markeerregels van de Handleiding** (plan methodes scheiden, deel 2, T6): waar de
+    detectoren afwijken van de markeerregels (een voorwaarde als heel zinsdeel, een afleidingsregel met werkwoord en
+    voorwaarden, alleen markeren wat aan een centrale klasse hangt), staat in
+    [annotatieketen.md](architectuur/annotatieketen.md), *De markeerregels van de Handleiding tegenover de
+    detectoren*. Een detector wijzigen is een eigen stap met een annotatiemeting; welke eerst, blijft open.
