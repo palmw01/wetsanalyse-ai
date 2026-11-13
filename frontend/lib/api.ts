@@ -3,6 +3,10 @@
 
 import { parseContextopbouw, type ContextBoom } from "./contextweergave";
 import { parseAntwoord } from "./antwoord";
+import {
+  UIT as WERKPLAATS_UIT, parseOnderdeel as parseWerkplaatsOnderdeel, parseOnderdelen, parseStand, parseVersie,
+  type WerkplaatsOnderdeel, type WerkplaatsSoort, type WerkplaatsStand, type WerkplaatsVersie,
+} from "./werkplaats";
 import { parseBronselectie, type BronselectieOverzicht } from "./bronselectie";
 import {
   geldig,
@@ -222,6 +226,46 @@ export async function dienVoorstelIn(v: { onderdeel_id: string; bestand: string;
   return json<VoorstelUit>(await fetch("/api/admin/catalogus/voorstellen", {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(v),
   }));
+}
+
+// --- De werkplaats (ADR-016 deel B): concepten met versies --------------------------------
+
+/** Staat de werkplaats aan en wat mag deze gebruiker. Nooit een fout: wat niet te lezen is, is "uit", zodat een
+ *  omgeving zonder werkplaats er precies zo uitziet als voorheen. */
+export async function haalWerkplaatsStand(): Promise<WerkplaatsStand> {
+  try {
+    const res = await fetch("/api/werkplaats/stand", { cache: "no-store" });
+    return res.ok ? parseStand(await res.json()) : WERKPLAATS_UIT;
+  } catch {
+    return WERKPLAATS_UIT;
+  }
+}
+
+export async function haalConcepten(): Promise<WerkplaatsOnderdeel[]> {
+  return parseOnderdelen(await json<unknown>(await fetch("/api/werkplaats/onderdelen", { cache: "no-store" })));
+}
+
+/** Een nieuw concept: leeg (met de verplichte velden), of met `uit_image` de versie die nu draait (*Bewerken*). */
+export async function maakConcept(v: { soort: WerkplaatsSoort; naam: string; uit_image?: boolean }): Promise<WerkplaatsOnderdeel> {
+  const uit = parseWerkplaatsOnderdeel(await json<unknown>(await fetch("/api/werkplaats/onderdelen", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(v),
+  })));
+  if (!uit) throw new Error("Onverwacht antwoord van de werkplaats.");
+  return uit;
+}
+
+export async function haalConcept(id: string): Promise<WerkplaatsOnderdeel> {
+  const uit = parseWerkplaatsOnderdeel(await json<unknown>(await fetch(
+    `/api/werkplaats/onderdelen/${pathSegment(id)}`, { cache: "no-store" })));
+  if (!uit) throw new Error("Onverwacht antwoord van de werkplaats.");
+  return uit;
+}
+
+export async function haalConceptVersie(id: string, nummer: number): Promise<WerkplaatsVersie> {
+  const uit = parseVersie(await json<unknown>(await fetch(
+    `/api/werkplaats/onderdelen/${pathSegment(id)}/versies/${nummer}`, { cache: "no-store" })));
+  if (!uit) throw new Error("Onverwacht antwoord van de werkplaats.");
+  return uit;
 }
 
 // --- Admin: LLM-modelprofielen ----------------------------------------------

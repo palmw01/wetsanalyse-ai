@@ -9,6 +9,7 @@ import { StatusLabel } from "@/components/ui/Lijst";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
+import { ConceptenGroep, useWerkplaats } from "@/components/werkwijze/Concepten";
 import { ModelLabel } from "@/components/werkwijze/ModelLabel";
 import { foutTekst, haalCatalogus } from "@/lib/api";
 import {
@@ -16,8 +17,9 @@ import {
 } from "@/lib/catalogus";
 
 /** De werkwijze van Lex (ADR-014): wat Lex kan, per concept (§7: kennis, vaste ketens, agents, handelingen, ingangen,
- *  controles), met per onderdeel zijn soort en of er een model aan te pas komt. Een leesingang voor iedereen; een
- *  onderdeel toevoegen of wijzigen gaat via de repo. Concept en zoekterm staan in de URL. */
+ *  controles), met per onderdeel zijn soort en of er een model aan te pas komt. Een leesingang voor iedereen. Staat de
+ *  werkplaats aan (ADR-016 deel B), dan staan bovenaan de eigen concepten en *Nieuw concept*; wat Lex gebruikt,
+ *  verandert pas via de repo. Concept en zoekterm staan in de URL. */
 export function WerkwijzeClient() {
   const router = useRouter();
   const pad = usePathname();
@@ -27,6 +29,7 @@ export function WerkwijzeClient() {
   const [zoek, setZoek] = useState(zoekParams.get("q") ?? "");
   const [data, setData] = useState<Catalogus | null>(null);
   const [fout, setFout] = useState<string | null>(null);
+  const werkplaats = useWerkplaats();
 
   function zet(nieuw: { concept: Concept | ""; q: string }) {
     const qs = new URLSearchParams();
@@ -74,6 +77,11 @@ export function WerkwijzeClient() {
       />
 
       {fout && <Melding type="fout" className="mb-4">{fout}</Melding>}
+
+      {/* De eigen concepten (ADR-016 §B7) horen bij kennis en methode; met de werkplaats uit staat hier niets. */}
+      {(concept === "" || concept === "skill") && (
+        <div className="mb-6 empty:hidden"><ConceptenGroep werkplaats={werkplaats} zoek={zoek} /></div>
+      )}
 
       {data === null && !fout ? (
         <div className="space-y-3">

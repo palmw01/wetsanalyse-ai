@@ -9,11 +9,13 @@ import { Melding } from "@/components/ui/Melding";
 import { Kaart, PaginaKop, SplitDetail } from "@/components/ui/Pagina";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
+import { BewerkKnop } from "@/components/werkwijze/Concepten";
 import { ModelLabel } from "@/components/werkwijze/ModelLabel";
 import { Button } from "@/components/ui/Button";
 import { Field, Textarea } from "@/components/ui/Field";
 import { dienVoorstelIn, foutTekst, haalOnderdeel, haalVoorstelStand, type VoorstelStand, type VoorstelUit } from "@/lib/api";
 import { CONCEPT_LABEL, SOORT_LABEL, onderdeelPad, soortVan, type OnderdeelDetail, type Soort } from "@/lib/catalogus";
+import { werkplaatsSoortVan } from "@/lib/werkplaats";
 
 type Rij = Record<string, unknown>;
 const lijst = (x: unknown): Rij[] => (Array.isArray(x) ? (x as Rij[]) : []);
@@ -39,6 +41,8 @@ export function OnderdeelPagina({ soort, naam }: { soort: Soort; naam: string })
     return () => { weg = true; };
   }, [soort, naam]);
 
+  // Een methode is in de werkplaats een skill met dezelfde naam (ADR-016 §B5).
+  const werkplaatsSoort = werkplaatsSoortVan(soort);
   const kruimels = [{ label: "Werkwijze van Lex", href: "/werkwijze" },
     ...(o ? [{ label: CONCEPT_LABEL[o.concept].kop, href: `/werkwijze?concept=${o.concept}` }] : []),
     { label: o?.label ?? naam }];
@@ -51,7 +55,8 @@ export function OnderdeelPagina({ soort, naam }: { soort: Soort; naam: string })
           <PaginaKop kruimels={kruimels} titel={o.label} sub={o.doel}
             meta={<><StatusLabel toon="lint" uitleg={CONCEPT_LABEL[o.concept].uitleg} data-concept={o.concept}>
               {SOORT_LABEL[soort].een}</StatusLabel><ModelLabel model={o.model} aan={o.aan} />
-              {o.laag && <span>laag: {o.laag}</span>}<span>versie <span className="font-mono">{o.versie}</span></span></>} />
+              {o.laag && <span>laag: {o.laag}</span>}<span>versie <span className="font-mono">{o.versie}</span></span></>}
+            acties={werkplaatsSoort ? <BewerkKnop soort={werkplaatsSoort} naam={naam} /> : undefined} />
           <SplitDetail
             hoofd={<>
               <Contract o={o} />
