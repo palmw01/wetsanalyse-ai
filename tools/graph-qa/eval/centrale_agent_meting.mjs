@@ -13,8 +13,9 @@
 //       bestand ruw-<naam>-run<nr>.jsonl. Zo zijn twee vormen op dezelfde versie te meten: de vorm zonder het veld en de
 //       vorm met het veld waarmee een run de centrale agent kiest (ADR-016 §A7). De naam staat op elke regel (`vorm`).
 //
-//   node eval/centrale_agent_meting.mjs vragen <kwaliteit|gesprek> <nr> --commit <sha> --uit <map> --vormen '<json>' [id ...]
-//       stelt de vragen van de kwaliteitsset (`golden.jsonl`, K01, K02, …) of de gesprekken van `golden_gesprek.jsonl`
+//   node eval/centrale_agent_meting.mjs vragen <kwaliteit|duiding|gesprek> <nr> --commit <sha> --uit <map> --vormen '<json>' [id ...]
+//       stelt de vragen van de kwaliteitsset (`golden.jsonl`, K01, K02, …), de duidingset (`golden_duiding.jsonl`, op id)
+//       of de gesprekken van `golden_gesprek.jsonl`
 //       in elke vorm uit <json> (`{"supervisor": {...}, "centraal": {...}}`: per vorm de velden op de beurt), per vraag
 //       om en om, zodat tijd en cachestand geen vorm bevoordelen. Eén bestand per vorm:
 //       ruw-<set>-<vorm>-run<nr>.jsonl. `python -m eval.centrale_agent_sets` scoort ze met de scorers van de sets.
@@ -198,8 +199,8 @@ if (commando === "werkgebied") {
   const werkgebied = optie("--werkgebied", rest), commit = optie("--commit", rest), map = optie("--uit", rest) ?? ".";
   const vormenJson = optie("--vormen", rest);
   const [setnaam, nr, ...ids] = rest;
-  if (!["kwaliteit", "gesprek"].includes(setnaam) || !nr || !commit || !vormenJson) {
-    console.error("vragen <kwaliteit|gesprek> <nr> --commit <sha> --vormen <json> [--werkgebied <id>] [--uit <map>] [id ...]"); process.exit(2);
+  if (!["kwaliteit", "duiding", "gesprek"].includes(setnaam) || !nr || !commit || !vormenJson) {
+    console.error("vragen <kwaliteit|duiding|gesprek> <nr> --commit <sha> --vormen <json> [--werkgebied <id>] [--uit <map>] [id ...]"); process.exit(2);
   }
   let vormen;
   try { vormen = Object.entries(JSON.parse(vormenJson)); } catch { console.error("--vormen is geen JSON"); process.exit(2); }
@@ -208,7 +209,9 @@ if (commando === "werkgebied") {
   }
   const cases = (setnaam === "kwaliteit"
     ? leesSet("golden.jsonl").map((c, i) => ({ id: `K${String(i + 1).padStart(2, "0")}`, beurten: [{ vraag: c.question }] }))
-    : leesSet("golden_gesprek.jsonl").map(c => ({ id: c.id, beurten: c.beurten })))
+    : setnaam === "duiding"
+      ? leesSet("golden_duiding.jsonl").map(c => ({ id: c.id, beurten: [{ vraag: c.question }] }))
+      : leesSet("golden_gesprek.jsonl").map(c => ({ id: c.id, beurten: c.beurten })))
     .filter(c => !ids.length || ids.includes(c.id));
   const onbekend = ids.filter(i => !cases.some(c => c.id === i));
   if (onbekend.length) { console.error("onbekend:", onbekend.join(", ")); process.exit(2); }
@@ -228,6 +231,6 @@ if (commando === "werkgebied") {
   }
   console.log("account na", await verbruik());
 } else {
-  console.error("gebruik: werkgebied | run <nr> … | vragen <kwaliteit|gesprek> <nr> … (zie de kop van dit bestand)");
+  console.error("gebruik: werkgebied | run <nr> … | vragen <kwaliteit|duiding|gesprek> <nr> … (zie de kop van dit bestand)");
   process.exit(2);
 }
