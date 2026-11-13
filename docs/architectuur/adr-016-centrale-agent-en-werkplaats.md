@@ -415,6 +415,22 @@ de aanbieder voor het model, zoals de meting van ADR-015 (`metingen/context-2026
   tokenbudget van de gebruiker telt, en een opdracht mag dat budget niet onverwacht opmaken.
 - Prijzen staan bewust niet in de repo. Alleen de verhouding telt; verandert die, dan verandert deze tabel.
 
+**Een verklaarde uitzondering: de afwijzing** (besluit van de gebruiker, 13 nov 2026: "Uitzondering"). De regel "geen
+opdracht meer dan 25% duurder" geldt niet voor een vraag die Lex afwijst omdat ze niet over wet- en regelgeving gaat
+(E06 in de agentset).
+
+- **Het cijfer:** gewogen warm 2,3k bij de centrale agent tegen 0,5k op de supervisorweg (ronde 3, drie runs); ruw 13,0k
+  tegen 2,3k.
+- **De reden:** de supervisor wijst af in één korte stap zonder tools. De centrale agent heeft die stap niet: hij leest
+  bij elke aanroep zijn hele voorvoegsel (tools en instructie, ongeveer 12,9k tokens, uit de cache) en roept dan
+  `wijs_af` aan. Dat voorvoegsel is de vaste prijs van één agent die alles zelf kan beantwoorden.
+- **Wat er niet komt:** een poort in code die vóór het model beslist of een vraag over wetgeving gaat. Zo'n poort zou
+  de afwijzing goedkoop maken, maar is een tweede beoordelaar naast de agent, en een foute afwijzing kost de jurist meer
+  dan deze tokens.
+- **Wat blijft gelden:** de mediaan over de enkelvoudige opdrachten telt de afwijzing gewoon mee, en de ruwe tokens
+  staan in elk verslag naast de gewogen. Een verslag noemt de uitzondering bij de drempel; ze geldt alleen voor de
+  afwijzing, niet voor een andere korte beurt.
+
 **Nulmeting.** Eerst de agentset tegen de huidige Lex (supervisor, specialisten, regisseur), drie runs. Veel meervoudige
 opdrachten zullen nu mislukken: dat is het vertrekpunt.
 
