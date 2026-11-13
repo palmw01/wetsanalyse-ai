@@ -1,6 +1,6 @@
 # JRM-classificaties en het Juridisch Analyseschema
 
-Grondslag: [bronnen](bronnen.md) — J01 H1, H3, H4, H5, JP03.
+Grondslag: [bronnen](bronnen.md) — J01 H1, H3, H4, H5, J02 §3.2.3, JP03, JP05.
 
 Het JRM 2 ordent de classificaties anders dan het JAS. Deze tabel zegt hoe ze zich verhouden, en waar je ze in Lex
 vastlegt. De dertien JAS-klassen blijven het annotatiecontract (zie de skill wetsanalyse).
@@ -31,10 +31,25 @@ De zes hoofdclassificaties beschrijf je elk op zichzelf, maar ze hangen samen. Z
 aktes van een scenario. De ondersteunende classificaties hangen aan een hoofdclassificatie: een voorwaarde zonder
 subject, betrekking, feit of afleidingsregel waarop zij werkt, is onvolledig.
 
+## Soorten rechtsbetrekkingen: JAS en JRM delen anders in
+
+De twee bronnen verdelen de rechtsbetrekking niet hetzelfde. Zeg welke indeling je gebruikt.
+
+- **Het JAS** (het boek Wetsanalyse) kent vier soorten: aanspraak tegenover verplichting, bevoegdheid tegenover
+  gehoudenheid, immuniteit tegenover geen bevoegdheid, en vrijheid tegenover geen aanspraak.
+- **De werkversie van het JRM** (J02 §3.2.3) kent er drie: aanspraak tegenover verplichting, verlof tegenover geen
+  aanspraak, en bevoegdheid tegenover gehoudenheid. Zij noemt de twee kanten de voordeel- en de nadeelkant, en wijst
+  per soort aan welke partij handelt.
+- **De specificatie van BZK** (J01) werkt de soorten niet uit.
+
+Het verlof van het JRM komt overeen met de vrijheid van het JAS. De immuniteit heeft in de werkversie geen eigen
+soort. Laat een immuniteit die de wetsanalyse onderbouwd heeft vastgesteld, daarom staan, en noteer in het scenario
+dat de werkversie haar niet kent (JP05).
+
 ## Wat je níét doet
 
 - Rechtsgevolg of juridisch relevant feit als nieuwe JAS-klasse op een markering zetten. In Lex zijn dat geen labels;
   een annotatie met zo'n klasse wordt geweigerd.
-- Een rechtsgevolg als afleidingsregel markeren omdat er geen eigen label is (zie de skill wetsanalyse,
-  JRM-verrijking).
+- Een rechtsgevolg als afleidingsregel markeren omdat er geen eigen label is. De JAS-klasse volgt uit haar eigen
+  omschrijving; het rechtsgevolg leg je vast in de akte.
 - Een immuniteit of onbevoegdheid weglaten omdat het JRM die niet uitwerkt: het JAS-boek kent ze wel.

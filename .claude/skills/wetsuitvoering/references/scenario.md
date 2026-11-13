@@ -9,6 +9,7 @@ Grondslag: [bronnen](bronnen.md) — J01 H2 en H3, JP01.
 - Rechtsgevolg
 - Werkwijze
 - Welke scenario's je kiest
+- Vier gevallen per beslispunt
 - Methodetekst voor Lex
 
 ## Wat een juridisch scenario is
@@ -71,6 +72,22 @@ Kies bewust, in plaats van alleen de *happy flow* uit te werken. Denk aan:
 
 Werk één scenario volledig uit voor je het volgende begint. Zo blijft het voor het hele team te volgen. De
 scenario's leveren meteen testgevallen op voor de uitvoering.
+
+## Vier gevallen per beslispunt
+
+Een beslispunt is een plek waar de uitkomst van de bepaling twee kanten op kan: een voorwaarde, een uitzondering, een
+grens. Werk per beslispunt dat ertoe doet vier gevallen uit (JP06):
+
+- het normale geval;
+- een voorwaarde die niet vervuld is;
+- de uitzondering;
+- de precieze grens (de laatste dag van een termijn, het bedrag dat net wel of net niet telt).
+
+Weet je een invoer niet en geeft de bron geen oplossing, schrijf dan "niet bepaalbaar". Herleid elke verwachte uitkomst
+tot de bepalingen. De gevallen toetsen de analyse van de gekozen bepalingen; ze zijn geen bewijs dat alle denkbare
+scenario's zijn bekeken.
+
+De eindtoestand van elk geval leg je vast zoals in [de juridische toestand](juridische-toestand.md).
 
 ## Methodetekst voor Lex
 

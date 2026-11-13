@@ -8,11 +8,11 @@ PAKKET = {'bronbestanden': {'SKILL.md': '2ff0a7db13d296db4d426d305cac6065ba9f095
                    'references/jas-klassen-referentie.md': 'b1f0949a33bd7f7388cc1778a7dce69c42db5d585715cd3f2843594d2564855d',
                    'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411',
                    'wetsuitvoering/BRON.md': '1860919287fd49783ead620f664ffc5abe302ffdcdcc62b78138f0d1b31a1a31',
-                   'wetsuitvoering/SKILL.md': '06d20666288ef468bd26429390339c5d7186a552899356c974990d8d71b2dbfa',
+                   'wetsuitvoering/SKILL.md': 'ed21ad044b2d0a661a8f5a6fbc19c2f34247d8ac8d732e37ec4d8046c5af2807',
                    'wetsuitvoering/agentrollen.json': '9db3cfa57d88e61a3968ba86f41c32dbe7f38be066d63c8587c10da3454a8fa9',
-                   'wetsuitvoering/references/bronnen.md': 'f7aecfe045216d22fa741e2e0cfa48cbc77198da9eb93e6c6fcdeddb5c0c1e74',
+                   'wetsuitvoering/references/bronnen.md': 'a9a40cf65edc3c8f2798afcd7e760fb7e6af8f306ecb0cb755d6e2f98dc3b380',
                    'wetsuitvoering/references/relevant-feit.md': '6ea63fafb8bf89e6e554accfd922369acbb835eaa3f43eebe33b0a8cb4fa3d3a',
-                   'wetsuitvoering/references/scenario.md': '6cfccfe8757bf88132ff47d9ba811d85f8076b419f994339b10619691e528bf0'},
+                   'wetsuitvoering/references/scenario.md': '367dc6ccf5960675b83a5a41793a2a06eb4471bb05b4fc3d9bd4fc954e5628b9'},
  'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving volgens de methode '
                          'Wetsanalyse en het Juridisch Analyseschema (JAS), met JRM 2-verrijking: '
                          'een werkgebied afbakenen (analysevraag, deelvragen, bronselectie), '
@@ -229,7 +229,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': '2ff0a7db13d296db4d426d305cac6065ba9f095
                                      'JAS/JRM-dossier via een route die alleen markeringen of een '
                                      'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
                                      'rol over.'}},
- 'sha256': 'bba1908fe585b49909492cd8e94faac203d7c0aad21130ea73ba6a6524abb27a',
+ 'sha256': '6e8da89059b03ce7fb436e0af2719847c060b58b0771b1120d133a7b78dca85c',
  'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving '
                                                     'volgens de methode Wetsanalyse en het '
                                                     'Juridisch Analyseschema (JAS), met JRM '

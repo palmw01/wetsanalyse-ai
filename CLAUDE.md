@@ -287,8 +287,9 @@ uitwerking, één niveau diep:
 - `evals/` – testgevallen in de vorm die `claude plugin eval` leest (andere bepalingen dan in de voorbeelden).
 
 **Een tweede methode-skill: `.claude/skills/wetsuitvoering/`** (JRM 2, de specificatie van BZK onder de W3C-licentie;
-bron ongewijzigd in `docs/wetsanalyse/wetsuitvoering/` met `BRON.md`). Juridische scenario's en aktes, rechtsgevolgen,
-juridisch relevante feiten en de verhouding tot het JAS. Zijn methodesecties zijn nog aan geen rol van Lex gekoppeld
+bron ongewijzigd in `docs/wetsanalyse/wetsuitvoering/` met `BRON.md`). Juridische scenario's en aktes, de juridische
+toestand, rechtsgevolgen, juridisch relevante feiten, de verhouding tot het JAS en de koppeling met een wetsanalyse: een
+scenario verwijst naar een JAS-dossier en maakt zelf geen markeringen. Zijn methodesecties zijn nog aan geen rol van Lex gekoppeld
 (`"rollen": {}`): dat volgt na een meting (ADR-010, ADR-014 §7).
 
 **De methodetekst per rol is bij de herinrichting byte-gelijk gebleven** (de vingerafdrukken zijn ongewijzigd): een
