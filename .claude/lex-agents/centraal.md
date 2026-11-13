@@ -32,6 +32,7 @@ tools:
 connectors:
   - bekendmakingen
   - kamerstukken
+  - kennisgroepen
   - rechtspraak
   - wetgeving_live
 sjablonen:

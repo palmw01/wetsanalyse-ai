@@ -128,7 +128,10 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
     <Sectie kop={blok.kop}>
       {blok.brontype === WETTEKST_LIVE
         ? <p className="text-xs text-muted">Wettekst van overheid.nl, letterlijk, maar niet uit de kennisgraaf.</p>
-        : <p className="text-xs text-muted">{BRONTYPE_NAAM[blok.brontype] ?? "Bron naast de wet"}, geen wettekst: het onderbouwt een uitleg, niet wat de wet zegt.</p>}
+        // De regel van de connector zelf (een kennisgroepstandpunt: beleid, bindend voor de inspecteur), uit de code.
+        : blok.status_regel
+          ? <p className="text-xs font-medium text-muted" data-status-regel>{blok.status_regel}</p>
+          : <p className="text-xs text-muted">{BRONTYPE_NAAM[blok.brontype] ?? "Bron naast de wet"}, geen wettekst: het onderbouwt een uitleg, niet wat de wet zegt.</p>}
       {/* Bij welke tekst van de bepaling het stuk hoort (een uitspraak bij een eerdere versie van het artikel); bij een
           wettekst buiten de graaf welke tekst het is. */}
       <StandMelding meldingen={tekstBijMeldingen(blok, blok.brontype)} />

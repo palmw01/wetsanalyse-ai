@@ -328,13 +328,49 @@ def main(argv: list[str] | None = None) -> int:
             "De stand van de graafwacht-job; zie GraphDbWriter.graaf_is_compleet."
         ),
     )
+    parser.add_argument(
+        "--kennisgroepen",
+        action="store_true",
+        help=(
+            "Ververs daarna ook de index van de kennisgroepstandpunten (eigen named graph, "
+            "app/kennisgroepen.py). Met --alleen-bij-verlies alleen als die index ontbreekt."
+        ),
+    )
     args = parser.parse_args(argv)
     bwb_ids = args.bwb_ids or [settings.default_bwb_id]
 
+    # De index van de kennisgroepen staat naast de wet, nooit erin: hij wordt apart gepeild en apart geschreven, en een
+    # fout of een poort daar telt in de exitcode maar houdt de wet niet tegen (en andersom).
     if args.alleen_bij_verlies and maak_writer(settings).graaf_is_compleet(bwb_ids):
         logger.info("Graaf is compleet; niets te doen (--alleen-bij-verlies).")
-        return 0
+        code = 0
+    else:
+        code = _wetten(bwb_ids, settings)
+    code_index = _kennisgroepen(settings, args.alleen_bij_verlies) if args.kennisgroepen else 0
+    return 1 if 1 in (code, code_index) else max(code, code_index)
 
+
+def _kennisgroepen(settings: Settings, alleen_bij_verlies: bool) -> int:
+    """0 = goed (of niets te doen), 1 = de bron of de graaf faalde, 2 = de poort hield de index tegen."""
+    from app.kennisgroepen import IndexSchrijver, KennisgroepenFout, index_is_compleet, ververs
+
+    schrijver = IndexSchrijver(url=settings.graphdb_url, repository=settings.graphdb_repository,
+                               user=settings.graphdb_user, password=settings.graphdb_password)
+    if alleen_bij_verlies and index_is_compleet(schrijver):
+        return 0
+    try:
+        uitkomst = ververs(schrijver)
+    except (KennisgroepenFout, OSError, ValueError) as exc:
+        # requests.RequestException is een OSError.
+        logger.error("Kennisgroepen-index niet ververst: %s", exc)
+        return 1
+    print(f"\n=== Kennisgroepen-index ===\n  Standpunten : {uitkomst.standpunten} {uitkomst.per_status}\n"
+          f"  Berichten   : {uitkomst.berichten}\n  Bepalingen  : {uitkomst.bepalingen}\n"
+          f"  Geschreven  : {'ja' if uitkomst.geschreven else 'NEE – ' + uitkomst.reden}\n")
+    return 0 if uitkomst.geschreven else 2
+
+
+def _wetten(bwb_ids: list[str], settings: Settings) -> int:
     resultaten = run_imports(bwb_ids, settings)
     for resultaat in resultaten:
         if resultaat.ok and resultaat.overzicht:

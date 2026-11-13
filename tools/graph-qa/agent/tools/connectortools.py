@@ -77,9 +77,18 @@ def _wetgeving_live() -> ConnectorModule:
         dispatch=w.dispatch_wetgeving, fout=BwbFout, fout_van=w.fout_van, foutredenen=w.FOUTREDEN)
 
 
+def _kennisgroepen() -> ConnectorModule:
+    from ..adapters.kennisgroepen_bron import KennisgroepenBron, KennisgroepenFout
+    from . import kennisgroep_tools as k
+
+    return ConnectorModule(
+        naam=k.CONNECTOR, tools=k.KENNISGROEP_TOOLS, maak_bron=lambda _s: KennisgroepenBron(),
+        dispatch=k.dispatch_kennisgroep, fout=KennisgroepenFout, fout_van=k.fout_van, foutredenen=k.FOUTREDEN)
+
+
 #: Per connector (de naam uit `bronmodel.connectors`) zijn module.
 MODULES: dict[str, ConnectorModule] = {m.naam: m for m in (_kamerstukken(), _bekendmakingen(), _rechtspraak(),
-                                                           _wetgeving_live())}
+                                                           _kennisgroepen(), _wetgeving_live())}
 
 
 def module_van(tool: str) -> ConnectorModule | None:

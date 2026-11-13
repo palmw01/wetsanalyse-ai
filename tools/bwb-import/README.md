@@ -277,6 +277,23 @@ ook als TOOI-URI op `bwb:eerstverantwoordelijkeOrganisatie` (met `rdfs:label`), 
 `app/tooi_ministeries.json` (CC0, met bron en datum; ook historische namen). Een onbekende naam blijft
 alleen tekst en wordt gelogd (`app/tooi.py`).
 
+## Kennisgroepstandpunten (`--kennisgroepen`, optioneel)
+
+Met `--kennisgroepen` ververst de import daarna ook de index van de kennisgroepstandpunten van de Belastingdienst
+(`app/kennisgroepen.py`; plan `docs/architectuur/plan-connector-kennisgroepen.md`). Hij haalt alle publicaties en
+nieuwsberichten op bij de openbare REST API (CC0, ~25 verzoeken, één per seconde), leest ze met de gedeelde lezer
+`bronmodel.kennisgroepen` (dezelfde als de leestool van graph-qa) en schrijft één named graph `urn:wa:graph:kennisgroepen`
+met een eigen vocabulaire (`urn:wa-kg-ns:`): per standpunt alle metadata, de tekst per rij, de bepalingen die het noemt
+(met herkomst `link` of `tekst`), de andere bronnen en standpunten, de intrekkingen en de nieuwsberichten als gebeurtenis.
+
+- **Idempotent**: één PUT vervangt de hele index.
+- **Nooit minder**: alleen als alles binnen is (`X-WP-Total`) en de index niet meer dan 5% krimpt; anders blijft de oude
+  staan en is de exitcode 2.
+- **Los van de wet**: geen `urn:bwb:`-subject en geen `bwb:`-term, dus buiten de FTS-connector, de similarity-index en de
+  provenance. Met `--alleen-bij-verlies` peilt de graafwacht de index apart; een lege index telt nooit als verlies van de
+  wetgraaf, en een fout bij de index houdt de wet niet tegen.
+- Op Azure alleen waar de connector `kennisgroepen` in de lijst `connectoren` staat (`main.bicep`, `kennisgroepenIndex`).
+
 ## Installatie
 
 ```bash

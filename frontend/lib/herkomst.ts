@@ -145,6 +145,8 @@ export type StandSoort = "nog-niet-in-werking" | "gelezen-ouder" | "na-peildatum
   | "stuk-gewijzigd" | "bewaarde-versie" | "alleen-pdf"
   // Bij welke tekst van de bepaling een stuk hoort (`tekstBijMeldingen`).
   | "eerdere-tekst" | "buiten-peildatum" | "tekststand-onbekend"
+  // Een kennisgroepstandpunt dat geen geldend beleid meer is (`tekstBijMeldingen`, brontype `standpunt`).
+  | "ingetrokken" | "vervallen-standpunt"
   // Een wettekst die Lex buiten de kennisgraaf las (brontype `wettekst_live`, `wettekstMeldingen`).
   | "toekomstige-tekst" | "vervallen" | "buiten-graaf";
 export interface StandMeldingData { soort: StandSoort; tekst: string }
@@ -195,7 +197,11 @@ export function tekstPeriode(t: TekstBij): string {
 export const TEKSTSTAND_LABEL: Partial<Record<StandSoort, string>> = {
   "eerdere-tekst": "eerdere tekst", "buiten-peildatum": "niet op de peildatum", "tekststand-onbekend": "tekst onbekend",
   "toekomstige-tekst": "toekomstige tekst", "vervallen": "vervallen", "nog-niet-in-werking": "nog niet in werking",
+  "ingetrokken": "ingetrokken", "vervallen-standpunt": "vervallen",
 };
+
+/** Het brontype van een kennisgroepstandpunt: beleid van de Belastingdienst, geen wet (plan-connector-kennisgroepen.md). */
+export const STANDPUNT = "standpunt";
 
 /** Het brontype van een wettekst die Lex live bij overheid.nl las, buiten de kennisgraaf (ADR-013, fase 1e). */
 export const WETTEKST_LIVE = "wettekst_live";
@@ -224,6 +230,13 @@ export function wettekstMeldingen(t: TekstBij & { status?: string }): StandMeldi
 export function tekstBijMeldingen(t: TekstBij, brontype?: string): StandMeldingData[] {
   if (brontype === WETTEKST_LIVE) return wettekstMeldingen(t);
   const uit: StandMeldingData[] = [];
+  // Een ingetrokken of vervallen standpunt is geen geldend beleid; alleen bij een standpunt, want `status` is bij een
+  // Kamerstuk de stand van de publicatie (onopgemaakt, opgemaakt).
+  if (brontype === STANDPUNT && (t.status === "ingetrokken" || t.status === "vervallen")) {
+    const door = (t.vervangen_door ?? []).map((i) => i.toUpperCase()).join(", ");
+    uit.push({ soort: t.status === "ingetrokken" ? "ingetrokken" : "vervallen-standpunt",
+      tekst: `Dit standpunt is ${t.status} en is geen geldend beleid${door ? `; ingetrokken door ${door}` : ""}.` });
+  }
   if (t.tekststand === "eerdere tekst") {
     const periode = tekstPeriode(t);
     uit.push({ soort: "eerdere-tekst", tekst: `Dit stuk noemt ${periode || "een eerdere tekst van de bepaling"}. De bepaling is daarna gewijzigd: als uitleg van de huidige tekst geldt het niet zonder meer.` });

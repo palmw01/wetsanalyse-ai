@@ -1,0 +1,166 @@
+{
+ "id": 22821,
+ "date": "2026-11-12T15:12:05",
+ "modified": "2026-11-12T15:12:05",
+ "slug": "standpunt-geactualiseerd-over-indienen-aangifte-bpm-voor-afronding-onderzoek-rdw",
+ "link": "https://kennisgroepen.belastingdienst.nl/standpunt-geactualiseerd-over-indienen-aangifte-bpm-voor-afronding-onderzoek-rdw/",
+ "title": {
+  "rendered": "Standpunt  geactualiseerd over indienen aangifte BPM voor afronding onderzoek RDW"
+ },
+ "content": {
+  "rendered": "\n<p class=\"wp-block-paragraph\">De Kennisgroep auto&nbsp;heeft een standpunt geactualiseerd.&nbsp;Het standpunt betreft de vraag over het indienen van een aangifte BPM voor een motorrijtuig, zonder dat de RDW het onderzoek tot de inschrijving in het kentekenregister heeft afgerond. Het standpunt <a href=\"https://www.rijksoverheid.nl/documenten/2025/11/13/tweede-deelbesluit-op-woo-verzoek-over-beleidsdocumenten-belastingen\">KG:013:2018:0173</a> (document ID 333427) wordt hierbij ingetrokken.</p>\n\n\n\n<p class=\"wp-block-paragraph\"><a href=\"https://kennisgroepen.belastingdienst.nl/publicaties/kg01320264-aangifte-bpm-voor-afronding-onderzoek-rdw/\">Naar het standpunt</a></p>\n\n\n\n<p class=\"wp-block-paragraph\"></p>\n"
+ },
+ "categories": [
+  149
+ ],
+ "tags": [
+  100
+ ],
+ "message_types": [
+  94
+ ],
+ "_embedded": {
+  "wp:term": [
+   [
+    {
+     "id": 149,
+     "link": "https://kennisgroepen.belastingdienst.nl/category/autobelastingen/",
+     "name": "Autobelastingen",
+     "slug": "autobelastingen",
+     "taxonomy": "category",
+     "acf": [],
+     "_links": {
+      "self": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/categories/149",
+        "targetHints": {
+         "allow": [
+          "GET"
+         ]
+        }
+       }
+      ],
+      "collection": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/categories"
+       }
+      ],
+      "about": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/taxonomies/category"
+       }
+      ],
+      "wp:post_type": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/posts?categories=149"
+       }
+      ],
+      "curies": [
+       {
+        "name": "wp",
+        "href": "https://api.w.org/{rel}",
+        "templated": true
+       }
+      ]
+     }
+    }
+   ],
+   [
+    {
+     "id": 100,
+     "link": "https://kennisgroepen.belastingdienst.nl/tag/kg-auto-a/",
+     "name": "KG Auto (A)",
+     "slug": "kg-auto-a",
+     "taxonomy": "post_tag",
+     "_links": {
+      "self": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/tags/100",
+        "targetHints": {
+         "allow": [
+          "GET"
+         ]
+        }
+       }
+      ],
+      "collection": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/tags"
+       }
+      ],
+      "about": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/taxonomies/post_tag"
+       }
+      ],
+      "wp:post_type": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/posts?tags=100"
+       },
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/pages?tags=100"
+       }
+      ],
+      "curies": [
+       {
+        "name": "wp",
+        "href": "https://api.w.org/{rel}",
+        "templated": true
+       }
+      ]
+     }
+    }
+   ],
+   [
+    {
+     "id": 94,
+     "link": "https://kennisgroepen.belastingdienst.nl/informatiesoort/nieuwsbericht/",
+     "name": "Nieuwsbericht",
+     "slug": "nieuwsbericht",
+     "taxonomy": "message_types",
+     "acf": [],
+     "_links": {
+      "self": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/message_types/94",
+        "targetHints": {
+         "allow": [
+          "GET"
+         ]
+        }
+       }
+      ],
+      "collection": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/message_types"
+       }
+      ],
+      "about": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/taxonomies/message_types"
+       }
+      ],
+      "wp:post_type": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/posts?message_types=94"
+       },
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/pages?message_types=94"
+       },
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication?message_types=94"
+       }
+      ],
+      "curies": [
+       {
+        "name": "wp",
+        "href": "https://api.w.org/{rel}",
+        "templated": true
+       }
+      ]
+     }
+    }
+   ]
+  ]
+ }
+}

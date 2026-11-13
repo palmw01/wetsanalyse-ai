@@ -111,3 +111,15 @@ describe("wettekst buiten de kennisgraaf (connector wetgeving_live)", () => {
     expect(tekstBijMeldingen(t, "uitspraak")[0].tekst).toContain("Dit stuk noemt");
   });
 });
+
+describe("kennisgroepstandpunt (plan-connector-kennisgroepen.md §2.5)", () => {
+  it("meldt een ingetrokken of vervallen standpunt, met wie het introk", () => {
+    expect(tekstBijMeldingen({ status: "ingetrokken", vervangen_door: ["kg:070:2024:9"] }, "standpunt")).toEqual([
+      { soort: "ingetrokken", tekst: "Dit standpunt is ingetrokken en is geen geldend beleid; ingetrokken door KG:070:2024:9." }]);
+    expect(tekstBijMeldingen({ status: "vervallen" }, "standpunt").map((m) => m.soort)).toEqual(["vervallen-standpunt"]);
+    expect(tekstBijMeldingen({ status: "geldend" }, "standpunt")).toEqual([]);
+  });
+  it("leest `status` alleen bij een standpunt: bij een Kamerstuk is het de stand van de publicatie", () => {
+    expect(tekstBijMeldingen({ status: "ingetrokken" }, "kamerstuk")).toEqual([]);
+  });
+});

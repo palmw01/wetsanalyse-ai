@@ -408,6 +408,9 @@ var collectorEndpoint = 'http://${collectorApp.name}'
 //   • Herstel van de graaf zelf loopt via de graafwacht-job (4b), niet via de hand.
 // Eén env-variabele per aangeboden connector; een connector die er niet in staat, staat uit (Settings: default false).
 var connectorEnv = [for c in connectoren: { name: 'CONNECTOR_${toUpper(c)}', value: 'true' }]
+// De index van de kennisgroepstandpunten (eigen named graph, `bwb-import --kennisgroepen`) alleen waar de connector
+// aanstaat: zonder connector leest niemand hem. De import en de graafwacht verversen hem naast de wet, nooit erin.
+var kennisgroepenIndex = contains(connectoren, 'kennisgroepen') ? ['--kennisgroepen'] : []
 
 var heeftLicentie = !empty(graphdbLicenseBase64)
 
@@ -716,7 +719,7 @@ resource bwbImportJob 'Microsoft.App/jobs@2024-03-01' = {
           // De CLI (app/main.py), niet de HTTP-service uit de Dockerfile-CMD: een job heeft geen
           // webserver nodig en de exitcode is meteen het resultaat van de import.
           command: ['python', '-m', 'app.main']
-          args: bwbIds
+          args: concat(bwbIds, kennisgroepenIndex)
           env: [
             { name: 'GRAPHDB_URL', value: graphdbInternalUrl }
             { name: 'GRAPHDB_REPOSITORY', value: 'inning' }
@@ -785,7 +788,7 @@ resource graafwachtJob 'Microsoft.App/jobs@2024-03-01' = {
             memory: '1Gi'
           }
           command: ['python', '-m', 'app.main']
-          args: concat(bwbIds, ['--alleen-bij-verlies'])
+          args: concat(bwbIds, ['--alleen-bij-verlies'], kennisgroepenIndex)
           env: [
             { name: 'GRAPHDB_URL', value: graphdbInternalUrl }
             { name: 'GRAPHDB_REPOSITORY', value: 'inning' }

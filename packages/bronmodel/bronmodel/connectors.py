@@ -36,6 +36,7 @@ METADATA_SLEUTELS: dict[str, str] = {
     "gepubliceerd": "datum",   # wanneer de dienst het publiceerde
     "gewijzigd": "datum",      # wanneer de dienst de publicatie het laatst bijwerkte
     "ondertekend": "datum",    # wanneer het besluit is ondertekend
+    "vastgesteld": "datum",    # wanneer het stuk is vastgesteld, als dat een andere datum is dan de publicatie
     "inwerking": "datum",      # wanneer de tekst waar het stuk bij hoort in werking trad
     "tekst_vanaf": "datum",    # sinds wanneer de tekst van de bepaling gold waaraan het stuk gekoppeld is
     "tekst_tot": "datum",      # tot wanneer die tekst gold; leeg: hij geldt nog, of het is onbekend
@@ -53,10 +54,15 @@ METADATA_SLEUTELS: dict[str, str] = {
     "indieners": "lijst",      # wie het stuk indiende of ondertekende
     "status": "tekst",         # de stand van de publicatie (onopgemaakt, opgemaakt)
     "versie": "tekst",         # herdruk, rectificatie
+    "vervangt": "lijst",       # de ids van de stukken die dit stuk intrekt of vervangt (uit de bron, niet afgeleid)
+    "vervangen_door": "lijst", # de ids van de stukken die dit stuk intrekken of vervangen
     "procedure": "tekst",      # de procedure waarin het stuk tot stand kwam (cassatie, hoger beroep)
     "rechtsgebied": "tekst",   # het rechtsgebied of de rechtsgebieden ("Bestuursrecht; Belastingrecht")
     "wetsverwijzing": "tekst", # de bepaling die het stuk noemt ("artikel 36 van de Invorderingswet 1990")
     "samenvatting": "tekst",   # een korte samenvatting van de bron zelf (de inhoudsindicatie), geen tekst van Lex
+    "noemt": "lijst",          # de bepalingen en stukken die het stuk noemt (jci, ECLI, kst-…), elk met de herkomst
+    "bijlagen": "lijst",       # links naar bijlagen bij het stuk die de leestool niet leest (een PDF)
+    "gebeurtenissen": "lijst", # wat de bron over het stuk meldde: gepubliceerd, geactualiseerd, ingetrokken, met datum
     "leesbaar": "waarheid",    # of de leestool de tekst kan lezen
     "in_graaf": "waarheid",    # of de bron (een regeling) ook in de kennisgraaf staat; dan leest Lex haar daar
 }
@@ -168,6 +174,10 @@ class ConnectorBeschrijving:
     verzamelnamen: tuple[str, ...] = ()
     #: Andere woorden die in een lijstvraag naar deze bron staan zonder iets te zoeken ("dossier" bij Kamerstukken).
     vulwoorden: tuple[str, ...] = ()
+    #: Een vaste regel die boven elk blok van deze bron staat, uit de code en nooit uit het model: wat de bron is
+    #: tegenover de wet ("Beleid van de Belastingdienst, bindend voor de inspecteur; geen wet en geen rechtspraak").
+    #: `{datum}` wordt de datum van het gelezen stuk. Leeg: geen regel.
+    status_regel: str = ""
     #: Patronen die een vraag naar deze bron laten wijzen zonder de bron te noemen ("wat bedoelde de wetgever"). `herkent`
     #: telt ze mee (de router, de bronprompt); de bronkeuze per vraag niet (`noemt`), want zo'n vraag kan net zo goed bij
     #: een andere bron uitkomen (Kamerstukken ronde 6, K16: een uitspraak is de weg naar een memorie van vóór 1994).
@@ -735,9 +745,126 @@ WETGEVING_LIVE = ConnectorBeschrijving(
     vulwoorden=("regeling", "regelingen", "toestand", "toestanden"),
 )
 
+#: De kennisgroepen van de Belastingdienst zoals de site ze noemt (taxonomie `wt_publication_tag`, 13 nov 2026).
+KENNISGROEPEN_NAMEN = (
+    "KG Aanmerkelijk belang (AB)", "KG Auto (A)", "KG AVG en Privacy (AVG)",
+    "KG Belastingplicht en Kwalificatie Rechtsvormen (BP&KRV)", "KG Bijzondere Winstbepalingen Vennootschapsbelasting (BWB)",
+    "KG Collectieve Arbeidsovereenkomst (CAO)", "KG Deelnemingsvrijstelling (DVS)",
+    "KG Dividendbelasting en Bronbelasting (DB&BB)", "KG Formeel Recht (FR)", "KG Inkomstenbelasting Niet Winst (IB-NW)",
+    "KG Internationaal Belastingrecht niet winst (IBR-NW)", "KG Internationaal Belastingrecht Vennootschapsbelasting (IBR-VPB)",
+    "KG Invordering (INV)", "KG Loonheffing Algemeen (LHA)", "KG Milieubelastingen (MB)", "KG Omzetbelasting (OB)",
+    "KG Onroerende zaken (OZ)", "KG Overdrachtsbelasting (OVB)", "KG Pensioenen (CAP)", "KG Pijler 2 (WMB)",
+    "KG Premieheffing en Wet tegemoetkomingen loondomein (PH)", "KG Reorganisatiefaciliteiten en Fiscale Eenheden (RFE)",
+    "KG Resultaat uit Overige Werkzaamheden (ROW)", "KG Successiewet (SW)", "KG Verzekeringsproducten (VZP)",
+    "KG Winstbepaling (WB)", "KG Winstfaciliteiten en Firmaproblematiek (WF)",
+)
+
+KENNISGROEPEN = ConnectorBeschrijving(
+    naam="kennisgroepen",
+    label="Kennisgroepstandpunten",
+    brontype="standpunt",
+    groep="Kennisgroepstandpunten (beleid)",
+    dekt=("de gepubliceerde standpunten van de kennisgroepen van de Belastingdienst (vanaf 2022): hoe de Belastingdienst "
+          "een fiscale bepaling uitlegt en toepast in een specifiek geval; per wetsartikel de standpunten die het noemen"),
+    # Niet het kale "standpunt" of "beleid": dat zijn gewone woorden in een vraag.
+    signalen=(r"\bkennisgroep(?:en|s)?\b", r"\bkennisgroepstandpunt(?:en)?\b", r"\bKG:\d{3}:\d{4}:\d+",
+              r"\bstandpunt(?:en)?\s+van\s+(?:de\s+)?(?:kennisgroep|belastingdienst)\b",
+              r"\b(?:belastingdienst|inspecteur)\s+(?:standpunt|beleid)\b"),
+    aanwijzingen=(r"\bhoe\s+(?:past|legt)\s+de\s+belastingdienst\b", r"\bwat\s+vindt\s+de\s+(?:belastingdienst|inspecteur)\b",
+                  r"\buitvoeringspraktijk\b"),
+    tools=frozenset({"zoek_standpunten", "get_standpunt"}),
+    leestool="get_standpunt",
+    lees_argument="id",
+    id_prefixen=("kg:",),
+    voorbeeld_id="kg:013:2026:4",
+    rol_in_antwoord=("een kennisgroepstandpunt laat zien hoe de Belastingdienst een bepaling uitlegt en toepast: het is "
+                     "beleid dat de inspecteur bindt, geen wet en geen rechtspraak. Het onderbouwt nooit wat de wet zegt; "
+                     "dat doet alleen de opgehaalde bepaling, en die komt eerst. Noem altijd het kenmerk en de datum. Een "
+                     "ingetrokken of vervallen standpunt is geen geldend beleid: zeg dat, en noem het standpunt dat het "
+                     "verving. Of iemand zich op een standpunt kan beroepen, beoordeel je niet. De casus is "
+                     "geanonimiseerd: herleid nooit wie een partij is"),
+    kop_in_antwoord="Uit het beleid van de Belastingdienst (kennisgroepstandpunt)",
+    status_regel=("Beleid van de Belastingdienst, bindend voor de inspecteur; geen wet en geen rechtspraak. Stand op "
+                  "{datum}."),
+    zonder_tekst="geen tekst bij de Belastingdienst",
+    grenzen=("alleen de gepubliceerde standpunten vanaf 2022; niet elk standpunt wordt gepubliceerd (herleidbaar naar "
+             "een belastingplichtige, of een weigeringsgrond van de Woo), dus geen treffer betekent niet dat er geen "
+             "standpunt is. Oudere standpunten, die alleen via Woo-besluiten openbaar zijn, staan er niet in. Een "
+             "standpunt geldt naar de wet op zijn datum. De koppeling met een artikel komt uit de links van de "
+             "Belastingdienst en uit herkenning in de tekst (artikel plus regelingnaam); een artikel dat de tekst zonder "
+             "regelingnaam noemt, koppelt niet. Standaard alleen geldende standpunten"),
+    levert=("alinea's per kop (aanleiding, vraag, antwoord, beschouwing)", "voetnoten", "tabellen"),
+    niet_in_tekst=("afbeeldingen", "gekoppelde PDF's"),
+    werkwoorden={
+        "zoek_standpunten": ("zoekt de kennisgroepstandpunten bij artikel {artikel} van {bwb_id}",
+                             "zoekt de kennisgroepstandpunten bij {bwb_id}",
+                             "zoekt kennisgroepstandpunten die {noemt} noemen",
+                             "zoekt kennisgroepstandpunten over „{woorden}”",
+                             "zoekt de standpunten van {kennisgroep}", "zoekt kennisgroepstandpunten"),
+        "get_standpunt": ("leest kennisgroepstandpunt {id}", "leest een kennisgroepstandpunt"),
+    },
+    beheer=("De gepubliceerde standpunten van de kennisgroepen van de Belastingdienst (kennisgroepen.belastingdienst.nl, "
+            "CC0). Openbaar, zonder sleutel. Beleid, geen wet. Zoeken gaat via de index die de import naast de wet zet."),
+    voorbeeldvragen=(
+        "Welke kennisgroepstandpunten gaan over artikel 36 van de Invorderingswet 1990?",
+        "Wat staat er in kennisgroepstandpunt KG:013:2026:4?",
+        "Heeft de kennisgroep Invordering een standpunt over de betalingsregeling?",
+        "Geef de 5 nieuwste standpunten van de kennisgroep Formeel Recht",
+        "Welke kennisgroepstandpunten noemen ECLI:NL:HR:2013:64?",
+    ),
+    # Uit de REST API van de site, live getoetst op 13 nov 2026 over alle 1180 publicaties (plan §1.3).
+    metadata=(
+        MetadataVeld("datum", "datum", "cmd_vaststellingsdatum, anders date",
+                     "de datum van het standpunt: tot 30 maart 2023 de vaststellingsdatum, daarna de publicatiedatum (die "
+                     "zijn dan gelijk); daarop ordenen 'nieuwste' en 'oudste'", filters=("vanaf", "tot"), sorteerbaar=True),
+        MetadataVeld("gepubliceerd", "gepubliceerd", "date", "wanneer de Belastingdienst het standpunt publiceerde"),
+        MetadataVeld("vastgesteld", "vastgesteld", "meta.cmd_vaststellingsdatum",
+                     "wanneer de kennisgroep het standpunt vaststelde; alleen bij standpunten van vóór 30 maart 2023"),
+        MetadataVeld("gewijzigd", "gewijzigd", "modified",
+                     "wanneer de publicatie het laatst werd bijgewerkt, niet wanneer het standpunt veranderde"),
+        MetadataVeld("titel", "onderwerp", "title (zonder kenmerk)", "het onderwerp van het standpunt",
+                     filters=("woorden",)),
+        MetadataVeld("soort", "soort", "message_types", "altijd 'Standpunt'"),
+        MetadataVeld("status", "status", "voorvoegsel [INGETROKKEN] of [VERVALLEN] in de titel",
+                     "geldend, ingetrokken of vervallen", filters=("status",)),
+        MetadataVeld("orgaan", "kennisgroep", "wt_publication_tag", "de kennisgroep die het standpunt innam",
+                     filters=("kennisgroep",)),
+        MetadataVeld("rechtsgebied", "middel", "wt_publication_category, meta.belastingsoort",
+                     "het belastingmiddel en de belastingsoort", filters=("middel",)),
+        MetadataVeld("reeks", "rubriek", "meta.rubriek, meta.subrubriek", "de rubrieken van de site",
+                     filters=("rubriek",)),
+        MetadataVeld("nummer", "volgnummer", "titel", "het volgnummer in het kenmerk"),
+        MetadataVeld("jaar", "jaar", "titel", "het jaar in het kenmerk"),
+        MetadataVeld("wetsverwijzing", "bepaling", "de index: links (jci) en herkenning in de tekst",
+                     "welke bepaling het standpunt noemt en hoe de koppeling ontstond: een link van de Belastingdienst of "
+                     "herkend in de tekst; een vermelding is geen uitleg", filters=("bwb_id", "artikel", "lid")),
+        MetadataVeld("tekststand", "tekststand", "de datum tegenover bwb:inwerking in de graaf",
+                     "'eerdere tekst' als het artikel sinds het standpunt is gewijzigd, anders 'huidige tekst'; alleen bij "
+                     "een regeling in de graaf"),
+        MetadataVeld("vervangt", "trekt in", "de tekst onder 'Intrekking'", "de standpunten die dit standpunt intrekt"),
+        MetadataVeld("vervangen_door", "ingetrokken door", "de index", "het standpunt dat dit standpunt intrekt"),
+        MetadataVeld("noemt", "noemt", "de links en ids in de tekst",
+                     "de uitspraken, Kamerstukken, bekendmakingen en andere standpunten die het standpunt noemt",
+                     filters=("noemt",)),
+        MetadataVeld("bijlagen", "bijlagen", "links naar bestanden en afbeeldingen", "wat de leestool niet leest"),
+        MetadataVeld("gebeurtenissen", "nieuws", "de nieuwsberichten van de site",
+                     "wanneer de site meldde dat het standpunt gepubliceerd, geactualiseerd of ingetrokken werd"),
+        MetadataVeld("leesbaar", "leesbaar", "content", "of de publicatie tekst heeft"),
+    ),
+    standaard_datum="datum",
+    volgordes=("nieuwste", "oudste"),
+    citeervormen=((r"\bKG\s*:\s*(?P<groep>\d{3})\s*:\s*(?P<jaar>(?:19|20)\d{2})\s*:\s*(?P<nummer>\d{1,4})\b",
+                   "KG:{groep}:{jaar}:{nummer}"),),
+    # Eén soort, gelijk aan het brontype: de algemene naam van een stuk, geen filter (`bron_lijst`).
+    soorten=(("standpunt", r"\b(?:kennisgroep)?standpunt(?:en)?\b"),),
+    organen=KENNISGROEPEN_NAMEN,
+    verzamelnamen=("kennisgroepstandpunten", "standpunten van de kennisgroepen", "kennisgroepen"),
+    vulwoorden=("kennisgroep", "kennisgroepstandpunt", "standpunt", "standpunten"),
+)
+
 #: De bronconnectors, in de volgorde van het menu en de beheertab.
 CONNECTORS: dict[str, ConnectorBeschrijving] = {
-    c.naam: c for c in (KAMERSTUKKEN, BEKENDMAKINGEN, RECHTSPRAAK, WETGEVING_LIVE)}
+    c.naam: c for c in (KAMERSTUKKEN, BEKENDMAKINGEN, RECHTSPRAAK, KENNISGROEPEN, WETGEVING_LIVE)}
 
 #: De namen, als tuple voor een `Literal[NAMEN]` in de contracten.
 NAMEN: tuple[str, ...] = tuple(CONNECTORS)
