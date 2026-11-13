@@ -629,6 +629,20 @@ zijn eigen gesprekken; anderen bereikt het pas als een beheerder het deelt of pr
   (`bronmodel.werkplaats.hash_van`), berekend over de bestanden. De catalogus toont hem als `bronhash`, het register bij
   elke versie. Gelijk is *actief* (zie B1 voor hoe de api de hash van het image kent).
 
+**Een skill of profiel van een andere methode krijgt geen toegang tot de annotatieketen** (besluit van de gebruiker,
+13 nov 2026; ADR-014 §5, `plan-methodes-scheiden.md`). De werkplaats maakt het mogelijk een tweede methode toe te voegen;
+dat mag de eerste niet ongemerkt veranderen.
+
+- Elke methode heeft een eigen skill, eigen tools, workflows en profielen, en een eigen resultaatvorm.
+- De annotatieketen, de annotatie-UI en de JAS-tools zijn van wetsanalyse. Een conceptskill van een andere methode kan
+  zijn secties alleen aan de rol `agent` hangen, niet aan een rol van de annotatieketen of aan een rol die de tekst van
+  wetsanalyse draagt. Een conceptprofiel van een andere methode noemt geen annotatietool en geen annotatie-actie.
+- Poort 1 toetst dat, met dezelfde validator als de generator (`bronmodel`): voor een concept in de werkplaats en voor
+  wat in de repo staat.
+- Een nieuwe methode levert eerst tekst in het gesprek, of een eigen zijpaneel. Nooit JAS-markeringen.
+- In de proef (B3) geldt hetzelfde: een concept voegt toe of vervangt zichzelf, en verandert nooit wat de annotatieketen
+  te lezen krijgt.
+
 ### B6. Openbaar of niet
 
 - Promotie kan alleen bij vrije tekst: eigen woorden, of een vrije licentie met een `BRON.md`. De validator toetst

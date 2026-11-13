@@ -136,6 +136,19 @@ Er komt geen gegenereerd catalogusbestand. Dan kan wat je ziet niet afwijken van
   2. een **eigen rol of specialist**, alleen met een meting (ADR-010);
   3. **eigen classificaties of detectieprofielen**, alleen met een eigen ADR, want die raken het `act2`-contract.
 
+**Methodes blijven gescheiden** (aanvulling 13 nov 2026, besluit van de gebruiker; uitwerking in
+`plan-methodes-scheiden.md`). De aanleiding: een vraag om een annotatie "volgens JRM" ging de JAS-annotatieketen in.
+
+- Elke methode heeft een eigen skill, eigen tools, workflows en profielen, en een eigen resultaatvorm.
+- **De annotatieketen, de annotatie-UI en de JAS-tools zijn van wetsanalyse.** Een andere methode krijgt er geen
+  toegang toe. Trap 1 hierboven betekent dus: methodetekst voor de rol `agent` of voor een eigen profiel, nooit voor een
+  rol van de annotatieketen of voor een rol die al de tekst van een andere methode draagt.
+- Een nieuwe methode levert eerst tekst in het gesprek, of een eigen zijpaneel. Nooit JAS-markeringen.
+- Elk onderdeel van de catalogus hoort bij precies één methode, of is uitdrukkelijk methode-neutraal (een graaftool, een
+  bronconnector, een controle). Dat wordt een afgeleid veld met een test.
+- Noemt een verzoek een methode die aan geen rol is gekoppeld, dan zegt Lex dat hij dat nog niet kan, uit code. Hij voert
+  het werk niet uit volgens een andere methode.
+
 ### 6. Herkomst en licentie
 
 De repo is publiek. Per bron geldt het volgende:
