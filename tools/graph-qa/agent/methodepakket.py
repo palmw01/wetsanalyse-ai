@@ -1,9 +1,9 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
-PAKKET = {'bronbestanden': {'SKILL.md': '2ff0a7db13d296db4d426d305cac6065ba9f09538001974520cdb626b9eef5c0',
+PAKKET = {'bronbestanden': {'SKILL.md': 'd876d83ff5a5fe6d2c189b7faf0af29566445cf03f95bf9bfa60791aae6756b5',
                    'agentrollen.json': '72e87f25dc6b5f96ddb0c3873cf88a382378196c9f03d8c076e1d0efdd3adf4d',
-                   'references/agentrollen.md': 'd5fd6a2a5a9d00d4ae2950f2a1aa4bdda8f1625f1a3b6a4661cc09d509c038e6',
-                   'references/bronnen.md': '4a9bf2867a412550a8239aaa05f72e2f64aab414136588e0fe9ae1ec1442a25d',
+                   'references/agentrollen.md': 'bc6a35e64c9147183d56044bec9c4579fa3b757b613248d3604c7eed0a073405',
+                   'references/bronnen.md': '02019921452599a8429b6b602593fd4c7d23bde262f5f00249f1db968fa26c3e',
                    'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
                    'references/jas-klassen-referentie.md': 'b1f0949a33bd7f7388cc1778a7dce69c42db5d585715cd3f2843594d2564855d',
                    'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411',
@@ -14,21 +14,20 @@ PAKKET = {'bronbestanden': {'SKILL.md': '2ff0a7db13d296db4d426d305cac6065ba9f095
                    'wetsuitvoering/references/relevant-feit.md': '6ea63fafb8bf89e6e554accfd922369acbb835eaa3f43eebe33b0a8cb4fa3d3a',
                    'wetsuitvoering/references/scenario.md': '367dc6ccf5960675b83a5a41793a2a06eb4471bb05b4fc3d9bd4fc954e5628b9'},
  'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving volgens de methode '
-                         'Wetsanalyse en het Juridisch Analyseschema (JAS), met JRM 2-verrijking: '
-                         'een werkgebied afbakenen (analysevraag, deelvragen, bronselectie), '
-                         'bepalingen ontleden, markeren en classificeren in de dertien '
-                         'JAS-klassen, de samenhang vastleggen (rechtsbetrekkingen, rechtsfeiten, '
-                         'afleidingsregels, voorwaarden), begrippen formuleren volgens NL-SBB en '
-                         'een brononderbouwd conceptanalysedossier opstellen. Gebruik deze skill '
-                         'zodra iemand een wetsartikel wil ontleden, annoteren of duiden, vraagt '
-                         'welke JAS-klasse een formulering heeft, een werkgebied of deelvragen wil '
-                         'opstellen, bronnen bij een analysevraag zoekt, een begrip of definitie '
-                         'uit wetgeving wil vastleggen, of een wetsanalyse, regelanalyse of '
-                         'juridische analyse van een regeling noemt, ook als het woord JAS niet '
-                         'valt.',
+                         'Wetsanalyse en het Juridisch Analyseschema (JAS): een werkgebied '
+                         'afbakenen (analysevraag, deelvragen, bronselectie), bepalingen ontleden, '
+                         'markeren en classificeren in de dertien JAS-klassen, de samenhang '
+                         'vastleggen (rechtsbetrekkingen, rechtsfeiten, afleidingsregels, '
+                         'voorwaarden), begrippen formuleren volgens NL-SBB en een brononderbouwd '
+                         'conceptanalysedossier opstellen. Gebruik deze skill zodra iemand een '
+                         'wetsartikel wil ontleden, annoteren of duiden, vraagt welke JAS-klasse '
+                         'een formulering heeft, een werkgebied of deelvragen wil opstellen, '
+                         'bronnen bij een analysevraag zoekt, een begrip of definitie uit '
+                         'wetgeving wil vastleggen, of een wetsanalyse, regelanalyse of juridische '
+                         'analyse van een regeling noemt, ook als het woord JAS niet valt.',
          'herkomst': 'Methode Wetsanalyse (Ausems, Bulles & Lokin) en het JAS (BZK); de bronnen '
                      'staan in references/bronnen.md',
-         'label': 'Wetsanalyse: JAS met JRM 2-verrijking',
+         'label': 'Wetsanalyse: JAS',
          'letterlijk': 'nee',
          'licentie': 'eigen tekst in deze repo; het boek en de BRM-readers alleen in eigen woorden',
          'soort': 'methode'},
@@ -229,15 +228,14 @@ PAKKET = {'bronbestanden': {'SKILL.md': '2ff0a7db13d296db4d426d305cac6065ba9f095
                                      'JAS/JRM-dossier via een route die alleen markeringen of een '
                                      'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
                                      'rol over.'}},
- 'sha256': '6e8da89059b03ce7fb436e0af2719847c060b58b0771b1120d133a7b78dca85c',
+ 'sha256': 'b9ca598707f89fd9372076c8df9cd7559b5375eb8beb26f0f7ed8aed83a8a9db',
  'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving '
                                                     'volgens de methode Wetsanalyse en het '
-                                                    'Juridisch Analyseschema (JAS), met JRM '
-                                                    '2-verrijking: een werkgebied afbakenen '
-                                                    '(analysevraag, deelvragen, bronselectie), '
-                                                    'bepalingen ontleden, markeren en '
-                                                    'classificeren in de dertien JAS-klassen, de '
-                                                    'samenhang vastleggen (rechtsbetrekkingen, '
+                                                    'Juridisch Analyseschema (JAS): een werkgebied '
+                                                    'afbakenen (analysevraag, deelvragen, '
+                                                    'bronselectie), bepalingen ontleden, markeren '
+                                                    'en classificeren in de dertien JAS-klassen, '
+                                                    'de samenhang vastleggen (rechtsbetrekkingen, '
                                                     'rechtsfeiten, afleidingsregels, voorwaarden), '
                                                     'begrippen formuleren volgens NL-SBB en een '
                                                     'brononderbouwd conceptanalysedossier '
@@ -254,7 +252,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': '2ff0a7db13d296db4d426d305cac6065ba9f095
                                     'herkomst': 'Methode Wetsanalyse (Ausems, Bulles & Lokin) en '
                                                 'het JAS (BZK); de bronnen staan in '
                                                 'references/bronnen.md',
-                                    'label': 'Wetsanalyse: JAS met JRM 2-verrijking',
+                                    'label': 'Wetsanalyse: JAS',
                                     'letterlijk': 'nee',
                                     'licentie': 'eigen tekst in deze repo; het boek en de '
                                                 'BRM-readers alleen in eigen woorden',

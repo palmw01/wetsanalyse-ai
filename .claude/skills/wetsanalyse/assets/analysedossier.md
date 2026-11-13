@@ -1,7 +1,7 @@
 # Conceptanalysedossier — [regeling en werkgebied]
 
-Status: concept, niet juridisch vastgesteld. Methode: JAS met JRM 2-verrijking 2.1.
-Identiteiten: B bron, N normeenheid, E element, R relatie, G gebeurtenis/gevolg, I interpretatie, S scenario.
+Status: concept, niet juridisch vastgesteld. Methode: Wetsanalyse met het JAS, 2.1.
+Identiteiten: B bron, N normeenheid, E element, R relatie, I interpretatie.
 Analist: … | Datum: … | Reviewer: nog niet beoordeeld.
 
 ## 1. Opdracht en bronbasis
@@ -28,10 +28,10 @@ Eventuele analytische herformulering, afzonderlijk van letterlijk citaat: …
 
 ## 4. Juridische samenhang
 
-| Relatie/gevolg-ID (R/G) | Soort en betrokken elementen | Partijen/rollen/object | Voorwaarden | Ontstaat/wijzigt/eindigt | Bronnen/status |
-|---|---|---|---|---|---|
+| Relatie-ID (R) | Type en betrokken elementen | Partijen/rollen/object | Voorwaarden | Bronnen/status |
+|---|---|---|---|---|
 
-Juridisch relevante feiten, waarden en abstract type versus scenario-instantie: …
+Waarden, en abstract type tegenover een concreet geval: …
 Impliciete of onbekende elementen met onderbouwing: …
 
 ## 5. Interpretaties en verwijzingen
@@ -42,9 +42,9 @@ Impliciete of onbekende elementen met onderbouwing: …
 | Verwijzing | Functie | Doelbron/versie | Gelezen passage | Uitkomst/open vervolg |
 |---|---|---|---|---|
 
-## 6. Scenario's
+## 6. Toetsing met praktijkvoorbeelden
 
-| Scenario-ID (S) | Hypothetische beginfeiten | Gebeurtenis | Normen | Verwachte eindtoestand | Onderbouwing/onbekend |
+| Praktijkvoorbeeld | Normaal geval of grensgeval | Hypothetische feiten | Normen | Verwachte uitkomst | Onderbouwing/onbekend |
 |---|---|---|---|---|---|
 
 ## 7. Dekking en review
@@ -56,7 +56,7 @@ Impliciete of onbekende elementen met onderbouwing: …
 |---|---|---|---|
 
 Rubriek: bronintegriteit …; grammatica …; JAS …; samenhang …;
-interpretatie …; dekking …; scenario's …; reviewbaarheid …
+interpretatie …; dekking …; praktijkvoorbeelden …; reviewbaarheid …
 
 Reviewbesluiten (datum, reviewer, beslissing, reden en gevolgen): …
 Geen menselijke vaststelling invullen zonder daadwerkelijke beoordeling.

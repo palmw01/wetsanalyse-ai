@@ -2,18 +2,17 @@
 name: wetsanalyse
 metadata:
   methode_versie: "2.1"
-  skill_versie: "3.0"
+  skill_versie: "4.0"
   lex_soort: "methode"
-  lex_label: "Wetsanalyse: JAS met JRM 2-verrijking"
+  lex_label: "Wetsanalyse: JAS"
   lex_herkomst: "Methode Wetsanalyse (Ausems, Bulles & Lokin) en het JAS (BZK); de bronnen staan in references/bronnen.md"
   lex_licentie: "eigen tekst in deze repo; het boek en de BRM-readers alleen in eigen woorden"
   lex_letterlijk: "nee"
 description: >-
-  Analyseert Nederlandse wet- en regelgeving volgens de methode Wetsanalyse en het Juridisch Analyseschema (JAS),
-  met JRM 2-verrijking: een werkgebied afbakenen (analysevraag, deelvragen, bronselectie), bepalingen ontleden,
-  markeren en classificeren in de dertien JAS-klassen, de samenhang vastleggen (rechtsbetrekkingen, rechtsfeiten,
-  afleidingsregels, voorwaarden), begrippen formuleren volgens NL-SBB en een brononderbouwd conceptanalysedossier
-  opstellen. Gebruik deze skill zodra iemand een wetsartikel wil ontleden, annoteren of duiden, vraagt welke
+  Analyseert Nederlandse wet- en regelgeving volgens de methode Wetsanalyse en het Juridisch Analyseschema (JAS):
+  een werkgebied afbakenen (analysevraag, deelvragen, bronselectie), bepalingen ontleden, markeren en classificeren
+  in de dertien JAS-klassen, de samenhang vastleggen (rechtsbetrekkingen, rechtsfeiten, afleidingsregels,
+  voorwaarden), begrippen formuleren volgens NL-SBB en een brononderbouwd conceptanalysedossier opstellen. Gebruik deze skill zodra iemand een wetsartikel wil ontleden, annoteren of duiden, vraagt welke
   JAS-klasse een formulering heeft, een werkgebied of deelvragen wil opstellen, bronnen bij een analysevraag zoekt,
   een begrip of definitie uit wetgeving wil vastleggen, of een wetsanalyse, regelanalyse of juridische analyse van
   een regeling noemt, ook als het woord JAS niet valt.
@@ -23,7 +22,7 @@ description: >-
 
 Wetsanalyse maakt wetgeving uitvoerbaar door de tekst gestructureerd te duiden: welke partijen, rechten en plichten,
 voorwaarden, termijnen en rekenregels er staan, en hoe ze samenhangen. Jij levert een **controleerbaar concept**; een
-jurist beoordeelt en beslist. Methodeversie 2.1, JAS met JRM 2-verrijking.
+jurist beoordeelt en beslist. Methodeversie 2.1, Wetsanalyse met het JAS.
 
 ## Drie dingen die altijd gelden
 
@@ -41,7 +40,7 @@ jurist beoordeelt en beslist. Methodeversie 2.1, JAS met JRM 2-verrijking.
 |---|---|---|
 | "Ik wil een wetsanalyse doen", een analysevraag, deelvragen, welke bronnen horen erbij | **A. Werkgebied afbakenen** (activiteit 1) | [werkgebied](references/werkgebied.md), [deelvragen en bronnen](references/deelvragen-en-bronnen.md), [zoekvragen](references/zoekvragen-bronselectie.md) |
 | "Markeer / annoteer / classificeer artikel X", "welke JAS-klasse is dit" | **B. Markeren en classificeren** (activiteit 2a–b) | [fragmentgrenzen](references/markeren-fragmentgrenzen.md), [klassenreferentie](references/jas-klassen-referentie.md), [markeringslijst](references/annotatieprotocol.md) |
-| Hoe hangen de elementen samen, wie heeft welk recht, wat is het rekenschema | **C. Samenhang** (activiteit 2c) | [relaties](references/relaties.md), [JRM-verrijking](references/jrm-verrijking.md) |
+| Hoe hangen de elementen samen, wie heeft welk recht, wat is het rekenschema | **C. Samenhang** (activiteit 2c) | [relaties](references/relaties.md) |
 | Een begrip of definitie vastleggen, een uitleg in B1 | **D. Begrippen** (activiteit 3a) | [begrippen](references/begrippen.md), [NL-SBB en B1](references/nl-sbb-en-b1.md) |
 | Een volledig analysedossier over een bepaling of regeling | **E. Volledig dossier** (A t/m D samen) | [analyseprotocol](references/analyseprotocol.md), [sjabloon](assets/analysedossier.md), [kwaliteit](references/kwaliteit.md) |
 | "Wat betekent deze bepaling", interpretatie, wetsdoel | **B + C, als antwoord** zonder volledig dossier | [analyseprotocol §3](references/analyseprotocol.md), [verwijzingen volgen](references/verwijzingen-volgen.md) |
@@ -90,9 +89,13 @@ Uitvoer: de [markeringslijst](references/annotatieprotocol.md), of de tabel Anno
 
 Begin bij een centrale klasse (rechtsbetrekking, rechtsfeit, afleidingsregel of voorwaarde) en verbind de
 markeringen eraan met een type uit de [relatiecatalogus](references/relaties.md). Een rol (rechthebbende,
-plichthebbende) hoort bij de relatie, niet bij de markering. Rechtsgevolgen, juridisch relevante feiten en
-scenario's leg je vast volgens de [JRM-verrijking](references/jrm-verrijking.md), zonder nieuwe JAS-klassen. Verzin
+plichthebbende) hoort bij de relatie, niet bij de markering. Dat een rechtsfeit een rechtsbetrekking creëert,
+wijzigt of beëindigt, leg je vast als relatie; een rechtsgevolg is geen eigen element en geen eigen klasse. Verzin
 geen wederpartij: een impliciete partij noteer je met onderbouwing, of als 'onbekend'.
+
+Wil je laten zien hoe de bepaling uitpakt voor één burger of bedrijf, met een juridisch scenario, aktes, toestanden
+en juridisch relevante feiten? Dat is een andere methode: gebruik de skill **wetsuitvoering**. Een wetsanalyse legt
+dat niet vast.
 
 ## D. Begrippen
 
@@ -105,7 +108,7 @@ taalniveau B1. Zie [begrippen](references/begrippen.md) en [NL-SBB en B1](refere
 
 Volg het [analyseprotocol](references/analyseprotocol.md) en vul het [sjabloon](assets/analysedossier.md). Controleer
 het resultaat met de [kwaliteitsrubriek](references/kwaliteit.md) vóór je het oplevert, en werk terug naar de
-ontleding als een scenario een tegenspraak blootlegt. Volg alleen de verwijzingen die je nodig hebt
+ontleding als een praktijkvoorbeeld een tegenspraak blootlegt. Volg alleen de verwijzingen die je nodig hebt
 ([verwijzingen volgen](references/verwijzingen-volgen.md)); een bron die je niet kon lezen is een open punt, geen
 bewijs dat er niets staat.
 
@@ -148,7 +151,8 @@ parameter*; een getal in cijfers daarin is een eigen, geneste parameterwaarde.
 ## Grenzen
 
 Deze skill dekt activiteit 1 tot en met het begin van activiteit 3 (begrippen). Regels in RegelSpraak opstellen,
-gegevensmodellen en uitvoeringsbesluiten vallen erbuiten. Een antwoord van deze skill is nooit juridisch advies.
+gegevensmodellen en uitvoeringsbesluiten vallen erbuiten. Juridische scenario's met aktes, rechtsgevolgen als eigen
+element en juridisch relevante feiten horen bij de skill wetsuitvoering (JRM), niet hier. Een antwoord van deze skill is nooit juridisch advies.
 
 Herkomst van de methode, licenties en projectkeuzes: [bronnen en beslisregister](references/bronnen.md). Het boek en
 de BRM-readers staan alleen in eigen woorden in deze skill; citeer ze niet. Hoe het platform Lex deze skill gebruikt,

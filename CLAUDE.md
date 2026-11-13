@@ -171,7 +171,7 @@ overzien.
    Weghalen doe je met de actie `mcp-proxy-afbreken` – de vlag weer uitzetten is niet genoeg, want
    een bicep-deploy verwijdert niets. De registratie van die MCP-server hoort **machine-lokaal**
    (`claude mcp add`), niet in de repo: die is publiek.
-7. **`.claude/skills/wetsanalyse/`** – de inhoudelijke skill: de JAS-methode met JRM 2-verrijking (de
+7. **`.claude/skills/wetsanalyse/`** – de inhoudelijke skill: de methode Wetsanalyse met het JAS (de
    dertien klassen, fragmentgrenzen, het volg-beleid voor verwijzingen, de agentrollen). Hij is
    tegelijk een **build-input** van graph-qa. Zie §*De wetsanalyse-skill*.
 
@@ -223,8 +223,8 @@ Per onderdeel gelden eigen commando's – zie de respectievelijke `CLAUDE.md`/`R
 ## De wetsanalyse-skill
 
 `.claude/skills/wetsanalyse/SKILL.md` beschrijft de JAS-methode: de scope (activiteit 2), het
-onderscheid werkgebied/bron, de dertien platformlabels, de JRM 2-verrijking en het volg-beleid voor
-verwijzingen. Twee dingen om te weten:
+onderscheid werkgebied/bron, de dertien platformlabels, de relaties en het volg-beleid voor
+verwijzingen. Het JRM staat er niet in: dat is de skill wetsuitvoering (zie hieronder). Twee dingen om te weten:
 
 **De skill draagt de methode; het platform voert hem uit.** De kennisgraaf levert de wettekst, de
 agent stelt markeringen voor en de jurist beoordeelt ze in de werkplek. De skill bevat geen
@@ -263,7 +263,7 @@ bij een PR die alleen skill-markdown raakt, en bouwt `graph-qa-docker-publish.ym
 versie in het image zit. `tests/poort/test_build_inputs.py` bewaakt dat de poort, de hook en de publish dezelfde mappen
 kennen.
 
-**Opbouw (skillversie 3.0, volgens de eisen voor Claude-skills).** `SKILL.md` is de router: drie dingen die altijd
+**Opbouw (skillversie 4.0, volgens de eisen voor Claude-skills).** `SKILL.md` is de router: drie dingen die altijd
 gelden, een tabel *Wat ga je doen?* per activiteit (A werkgebied, B markeren, C samenhang, D begrippen, E volledig
 dossier), werkstromen met checklists, de dertien klassen en de veelgemaakte fouten. De `references/` zijn de
 uitwerking, één niveau diep:
@@ -273,8 +273,7 @@ uitwerking, één niveau diep:
   code.** Verzin er geen klassen bij.
 - `references/werkgebied.md` (activiteit 1), `deelvragen-en-bronnen.md`, `zoekvragen-bronselectie.md` en
   `verwijzingen-volgen.md` – een werkgebied afbakenen en bronnen kiezen.
-- `references/annotatieprotocol.md` (de markeringslijst), `markeren-fragmentgrenzen.md`, `relaties.md` en
-  `jrm-verrijking.md` – markeren, classificeren en samenhang. Afgeleid uit het boek en de BRM-readers, in eigen
+- `references/annotatieprotocol.md` (de markeringslijst), `markeren-fragmentgrenzen.md` en `relaties.md` – markeren, classificeren en samenhang. Afgeleid uit het boek en de BRM-readers, in eigen
   woorden – dat materiaal is van derden en mag niet letterlijk in deze publieke repo.
 - `references/begrippen.md` en `nl-sbb-en-b1.md` – begrippen (activiteit 3a).
 - `references/analyseprotocol.md`, `kwaliteit.md` en `assets/analysedossier.md` – het volledige dossier.
@@ -291,6 +290,13 @@ bron ongewijzigd in `docs/wetsanalyse/wetsuitvoering/` met `BRON.md`). Juridisch
 toestand, rechtsgevolgen, juridisch relevante feiten, de verhouding tot het JAS en de koppeling met een wetsanalyse: een
 scenario verwijst naar een JAS-dossier en maakt zelf geen markeringen. Zijn methodesecties zijn nog aan geen rol van Lex gekoppeld
 (`"rollen": {}`): dat volgt na een meting (ADR-010, ADR-014 §7).
+
+**Wetsanalyse (JAS) en wetsuitvoering (JRM) zijn zuiver gescheiden** (besluit 13 nov 2026,
+`docs/architectuur/plan-methodes-scheiden.md`). Elke methode heeft een eigen skill, eigen tools, workflows en profielen,
+en een eigen resultaatvorm. De annotatieketen, de annotatie-UI en de JAS-tools zijn alleen van wetsanalyse; een nieuwe
+methode levert eerst tekst in het gesprek of een eigen zijpaneel, nooit JAS-markeringen. De skill wetsanalyse noemt het
+JRM alleen in een alinea die naar wetsuitvoering verwijst: `tools/graph-qa/tests/test_methodes_gescheiden.py` maakt
+vermenging rood.
 
 **De methodetekst per rol is bij de herinrichting byte-gelijk gebleven** (de vingerafdrukken zijn ongewijzigd): een
 wijziging van de tekst tussen de methodemarkers verandert het gedrag van Lex en vraagt een meting (ADR-010, P19).

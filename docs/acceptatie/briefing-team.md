@@ -88,7 +88,7 @@ Haal op wat de stap nodig heeft, niet alles vooraf. Laad de skill `wetsanalyse` 
 |---|---|
 | het werkgebied en de deelvragen bepalen | `references/deelvragen-en-bronnen.md`, `references/analyseprotocol.md` |
 | bronnen zoeken en kiezen | `references/zoekvragen-bronselectie.md`, `references/verwijzingen-volgen.md`, `docs/architectuur/bronselectie-per-deelvraag.md` |
-| markeringen beoordelen | `references/jas-klassen-referentie.md`, `references/markeren-fragmentgrenzen.md`, `references/jrm-verrijking.md` |
+| markeringen beoordelen | `references/jas-klassen-referentie.md`, `references/markeren-fragmentgrenzen.md`, `references/relaties.md` |
 | twijfelen aan een klasse | `docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md`, `H3-Kader.md` |
 | begrippen uitwerken | `references/begrippen.md`, `references/nl-sbb-en-b1.md`, `docs/architectuur/adr-003-nl-sbb-begrippencontract.md` |
 | betekenisgroepen of generieke begrippen beoordelen | `docs/architectuur/adr-004-begrippenketen.md`, `adr-006-generieke-begrippen.md` |

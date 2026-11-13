@@ -45,6 +45,24 @@ centrale klassen: de rechtsbetrekking, het rechtsfeit, de afleidingsregel en de 
    uitzondering van") en `toepassing` ("is van toepassing", "vindt toepassing") leg je alleen als die
    woorden er staan. Ze zijn geen regelstructuur.
 
+## Zorgvuldig duiden
+
+Vier dingen die bij het leggen van relaties vaak misgaan (M01 h.4, rechtsbetrekking en rechtsfeit):
+
+- **Forceer geen volledige relatie.** Een verband dat de tekst niet draagt of dat nog niet vaststaat, krijgt die
+  status; je verzint geen wederpartij om de relatie rond te krijgen.
+- **Een immuniteit is een eigen soort rechtsbetrekking.** Laat een onderbouwde immuniteit staan; maak er geen
+  bevoegdheid onder een voorwaarde van zonder dat de tekst dat zegt.
+- **Eén passage zonder sanctie maakt een verplichting nog niet zwak.** Of nakoming is af te dwingen, staat vaak in een
+  andere bepaling.
+- **Niet elke handeling is een rechtshandeling.** Controleer of het rechtsgevolg beoogd is en of de wet het eraan
+  verbindt.
+
+Markeer een formulering ook niet als afleidingsregel omdat zij een gevolg beschrijft: de klasse volgt uit haar eigen
+omschrijving, en het verband leg je vast als relatie.
+
+Een relatietabel is verplicht waar relaties voorkomen; een diagram is aanvullend. De tabel blijft leidend.
+
 ## Kardinaliteit is een signaal
 
 Een afleidingsregel heeft precies één uitvoer en minstens één invoer. Een regel zonder uitvoer of zonder
@@ -66,6 +84,7 @@ verbonden zijn.
 - Een waarde of tak als label op een lijn ("is gesteld op zes weken", "wel of geen schrikkeljaar"). Dat is
   regelinhoud.
 - Specialisatie van een begrip. Dat is de begripsrelatie *soort van* (activiteit 3).
-- Rechtsgevolg en juridisch relevant feit als eigen element. Die komen uit de JRM 2-werkversie en horen
-  in het dossier (P07).
+- Rechtsgevolg en juridisch relevant feit als eigen element. Die horen bij de methode wetsuitvoering (JRM), niet bij
+  een wetsanalyse. Dat een rechtsfeit een rechtsbetrekking creëert, wijzigt of beëindigt, leg je hier wel vast: als
+  relatie.
 - Feittypen, objecttypen, datatypen en de syntaxis van RegelSpraak (3b en 6).
