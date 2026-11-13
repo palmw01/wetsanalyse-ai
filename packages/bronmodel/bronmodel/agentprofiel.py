@@ -12,7 +12,8 @@ ze en dit pakket niet.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -99,6 +100,11 @@ class Grenzen:
     methoderollen: frozenset[str] | None = None
     #: Tools die een besluit van de jurist nemen, of anderszins niet aan een profiel horen. `NOOIT` geldt altijd.
     verboden_tools: frozenset[str] = frozenset()
+    #: methode-skill → de tools die alleen van die methode zijn (de annotatieleestools en de JAS-tools van
+    #: wetsanalyse). Een profiel van een andere methode krijgt ze niet (plan methodes scheiden, S3).
+    methode_tools: Mapping[str, frozenset[str]] = field(default_factory=dict)
+    #: methoderol → de methode-skills waarvan hij secties draagt; `None` toetst de methode niet.
+    rol_methodes: Mapping[str, frozenset[str]] | None = None
     max_rondes: int | None = None
     budget: int | None = None
 
@@ -125,6 +131,15 @@ def uit_markdown(naam: str, tekst: str) -> Agentprofiel:
     return profiel
 
 
+def tools_van_andere_methode(profiel: Agentprofiel, grenzen: Grenzen) -> frozenset[str]:
+    """De tools die van een methode zijn waarvan de rol van dit profiel geen sectie draagt. Zonder `rol_methodes` is er
+    niets te toetsen."""
+    if grenzen.rol_methodes is None:
+        return frozenset()
+    eigen = grenzen.rol_methodes.get(profiel.rol, frozenset())
+    return frozenset().union(*(tools for methode, tools in grenzen.methode_tools.items() if methode not in eigen))
+
+
 def toets(profiel: Agentprofiel, grenzen: Grenzen) -> list[Bevinding]:
     """Het profiel tegen de grenzen van §A2. Een lege lijst betekent: dit profiel mag een agent opbouwen."""
     uit = []
@@ -140,6 +155,11 @@ def toets(profiel: Agentprofiel, grenzen: Grenzen) -> list[Bevinding]:
         if mag_niet := sorted(set(profiel.tools) & verboden):
             uit.append(Bevinding("tools", f"tools: {mag_niet} hoort nooit bij een profiel"))
         kies("tools", tuple(t for t in profiel.tools if t not in verboden), grenzen.tools)
+        # Een rol die niet bestaat, meldt de toets op de methoderol al.
+        kent_rol = grenzen.rol_methodes is None or profiel.rol in grenzen.rol_methodes
+        if kent_rol and (vreemd := sorted(set(profiel.tools) & tools_van_andere_methode(profiel, grenzen))):
+            uit.append(Bevinding("tools", f"tools: {vreemd} is van een andere methode dan de rol {profiel.rol!r}; de "
+                                          "annotatieketen en de JAS-tools zijn alleen van wetsanalyse"))
     kies("skills", profiel.skills, grenzen.skills)
     kies("connectors", profiel.connectors, grenzen.connectors)
     kies("mcp", profiel.mcp, grenzen.mcp)
@@ -156,7 +176,7 @@ def toets(profiel: Agentprofiel, grenzen: Grenzen) -> list[Bevinding]:
 def toegestane_tools(profiel: Agentprofiel, grenzen: Grenzen) -> frozenset[str]:
     """De tools die een agent met dit profiel krijgt. Ook een profiel met alle tools (`tools` is `None`) krijgt nooit
     wat verboden is."""
-    alle = grenzen.tools - NOOIT - grenzen.verboden_tools
+    alle = grenzen.tools - NOOIT - grenzen.verboden_tools - tools_van_andere_methode(profiel, grenzen)
     return alle if profiel.tools is None else frozenset(profiel.tools) & alle
 
 

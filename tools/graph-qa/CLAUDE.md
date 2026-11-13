@@ -103,6 +103,19 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   er niet door. JSON en geen Python, omdat het alleen tekst is. Het wordt pas gelezen als iemand ernaar vraagt.
   **Elke wijziging aan een skill of een profiel, ook in commentaar of een eval, verandert dit bestand**: draai de
   generator, anders faalt `--check`. `tests/test_bronpakket.py`.
+- **Elk onderdeel van de catalogus is van één methode, of neutraal** (`Onderdeel.methode`, `catalogus._methode`; plan
+  methodes scheiden, S2). Een methode is van zichzelf en een rol van zijn skill; de annotatieketen, de begrippen, het
+  werkgebied met de bronselectie en hun tools en sjablonen staan in `catalogus.VAN_WETSANALYSE`; een agentprofiel of agent
+  erft van zijn rol en een route van wat ze kiest; de graaftools, de bronconnectors en de controles zijn `neutraal`. Voeg je
+  een onderdeel toe dat alleen bij de JAS-annotatie of de begrippen hoort, zet het dan in die tabel:
+  `tests/test_catalogus_methode.py` houdt een eigen lijst aan, en eist dat elke annotatieleestool en elke JAS-tool van
+  wetsanalyse is.
+- **De grenzen tussen methodes** (plan methodes scheiden, S3). Twee regels in `bronmodel`, die graph-qa bij het laden en
+  de werkplaats bij poort 1 toepassen: een rol krijgt secties van één methode, behalve `agent`
+  (`skill.toets_samen`, `GEDEELDE_ROLLEN`), en een profiel waarvan de rol geen sectie van wetsanalyse draagt, krijgt geen
+  annotatieleestool, begrippenleestool of JAS-tool (`agentprofiel.toets` en `toegestane_tools`, met
+  `Grenzen.methode_tools` en `rol_methodes` uit `profielen.grenzen()`). `profielen.TOOLS_VAN_WETSANALYSE` is gelijk aan
+  de tools die de catalogus van wetsanalyse noemt. `tests/test_methodegrenzen.py`.
 - **De melding van het image** (`agent/imagemelding.py`, ADR-016 §B1). Bij het starten zegt graph-qa de api wat er in
   zijn image zit (`PUT /v1/werkplaats/image`): eerst alleen de hash van het bronpakket en de commit (`Settings.revisie`,
   env `LEX_REVISIE`, een build-arg van de publish-workflow), en het hele pakket alleen als de api die hash niet kent.

@@ -36,6 +36,8 @@ export interface Onderdeel {
   /** De hash van de bronbestanden in het image (een skill of een agentprofiel), anders leeg. Een versie in de
    *  werkplaats met dezelfde hash is actief (ADR-016 §B1). */
   bronhash?: string;
+  /** Van welke methode dit onderdeel is: de naam van een methode-skill, of "neutraal" (plan methodes scheiden). */
+  methode?: string;
   ingang: string[];
   context: string;
   tools: string[];
@@ -51,6 +53,16 @@ export interface Onderdeel {
   deel_van: string | null;
   /** Biedt deze omgeving het aan (de straatvlag); zonder vlag altijd waar. */
   aan: boolean;
+}
+
+/** Een onderdeel dat van geen methode is (`bronmodel.catalogus.NEUTRAAL`). */
+export const NEUTRAAL = "neutraal";
+
+/** Hoe de werkplek de methode van een onderdeel noemt. De naam komt uit de skill; een onbekende naam blijft staan. */
+export function methodeLabel(methode: string | undefined): string {
+  if (!methode) return "";
+  if (methode === NEUTRAAL) return "Geen: voor elke methode";
+  return methode.charAt(0).toUpperCase() + methode.slice(1);
 }
 
 export interface OnderdeelDetail extends Onderdeel {
