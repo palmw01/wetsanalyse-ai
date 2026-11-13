@@ -24,7 +24,7 @@ from ..beurtmeting import tel_sjabloon
 from ..berichten import (CORRECTIE, _parse_final, _schoon_messages, _trim_messages, beurt_start, met_beurtcontext,
                          venster_telling)
 from ..bronregister import bij, controletrace
-from ..focus import na_antwoord
+from ..focus import genoemd_in_antwoord, na_antwoord
 from ..grounding import alleen_gelezen_extern, check_grounding, curate_sources, herstel_citaten, live_niet_letterlijk
 from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk, zonder_aanloop
 from ..overzicht import bronrijen as overzicht_bronrijen
@@ -892,5 +892,6 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
     upd: dict[str, Any] = {"sources": src_dicts, "entities_seen": new,
                            "bronregister": bij(state.get("bronregister"), state.get("source_trace")),
                            "focus": na_antwoord(state.get("focus"), state.get("specialist", ""),
-                                                [s["uri"] for s in src_dicts])}
+                                                [s["uri"] for s in src_dicts],
+                                                genoemd_in_antwoord(state.get("antwoord"), state.get("answer", ""), src_dicts))}
     return upd
