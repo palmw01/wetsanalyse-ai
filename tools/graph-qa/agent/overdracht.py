@@ -127,6 +127,35 @@ def _toon_bepaling(b: Any, state: State, invoer: dict[str, Any]) -> dict[str, An
 
 TOON_BEPALING = "toon_bepaling"
 
+#: De specialisten van de supervisor. Valt een vaste route terug op de agent, dan is dat in deze vorm de centrale agent.
+_SPECIALISTEN = frozenset({"algemeen", "duiding", "definitie"})
+
+
+def _vaste_route(regel: str, weigering: str) -> Callable[[Any, State, dict[str, Any]], dict[str, Any] | str]:
+    """Een overdracht naar een route op de herschreven vraag (ADR-016 A2-3c): het model geeft de vraag zelfstandig
+    geformuleerd, met de regeling, het onderwerp of het dossier uit het gesprek, en de code draait daarop dezelfde regel
+    als de supervisor na het herschrijven (`supervisie.NA_HERSCHRIJVEN`). Pakt de regel de vraag niet, dan weigert de
+    code met wat wel kan. De vraag wordt `zelfstandige_vraag`: de route en de controle lezen hem zoals bij de supervisor."""
+
+    def zet(b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any] | str:
+        from .nodes.supervisie import na_herschrijven
+
+        vraag = " ".join((invoer.get("vraag") or "").split())
+        route = na_herschrijven(b, get_stream_writer(), state, vraag, alleen=regel) if vraag else None
+        if route is None:
+            return weigering
+        if route.get("specialist") in _SPECIALISTEN:
+            route = {**route, "specialist": state.get("specialist") or CENTRAAL}
+        return {**route, "zelfstandige_vraag": vraag}
+
+    return zet
+
+
+#: Het argument van een vaste route: de vraag zoals de supervisor haar zou herschrijven.
+_VRAAG = {"vraag": {"type": "string", "description": (
+    "De vraag van de gebruiker, zelfstandig geformuleerd: zonder 'dat', 'die' of 'en …?', met de regeling, het "
+    "artikel, het onderwerp of het werkgebied uit het gesprek erin.")}}
+
 #: De agents die de centrale agent een taak kan geven (ADR-016 A2-3a). De annotatieagent komt met `annoteer` (A2-4).
 TAAKAGENTS = ("deelvragen", "begrippen")
 
@@ -170,6 +199,33 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
         invoer={"bwb_id": {"type": "string"},
                 "artikel": {"type": "string"}, "lid": {"type": "string"}},
         naar="bepaling_lezen", zet=_toon_bepaling),
+    Overdracht(
+        naam="toon_overzicht",
+        beschrijving=(
+            "Roep dit aan als de gebruiker wil weten WELKE bepalingen of artikelen over een onderwerp gaan, ook in een "
+            "vervolgvraag ('en over verrekening?'). De code bouwt het overzicht uit de graaf en de werkplek toont het; "
+            "schrijf zelf niets. Niet voor wat er in één bepaling staat (toon_bepaling) of voor uitleg."),
+        invoer=_VRAAG, naar="overzicht_bouwen",
+        zet=_vaste_route("overzicht", "Dit is geen vraag naar welke bepalingen over een onderwerp gaan ('welke artikelen "
+                                      "gaan over …'). Beantwoord haar zelf.")),
+    Overdracht(
+        naam="lees_annotaties",
+        beschrijving=(
+            "Roep dit aan als de gebruiker vraagt naar BESTAANDE annotaties of markeringen ('welke markeringen zijn er al "
+            "bij lid 2?', 'hoeveel rechtssubjecten zijn gemarkeerd?'), ook in een vervolgvraag. De code zoekt ze op; "
+            "daarna formuleer je het antwoord. Niet om te annoteren, en niet voor een vraag over de JAS-methode zelf."),
+        invoer=_VRAAG, naar="annotaties_zoeken",
+        zet=_vaste_route("annotaties", "Dit is geen vraag naar bestaande annotaties of markeringen. Beantwoord haar "
+                                       "zelf.")),
+    Overdracht(
+        naam="lees_begrippen",
+        beschrijving=(
+            "Roep dit aan als de gebruiker vraagt naar begrippen die al VASTGELEGD zijn ('welke begrippen hebben we al?', "
+            "'welke zijn er nog meer?'), ook in een vervolgvraag. De code zoekt ze op; daarna formuleer je het antwoord. "
+            "Niet voor de wettelijke definitie van een term, en niet om begrippen voor te stellen (taakagent)."),
+        invoer=_VRAAG, naar="begrippen_zoeken",
+        zet=_vaste_route("begrippen", "Dit is geen vraag naar vastgelegde begrippen ('welke begrippen hebben we al "
+                                      "vastgelegd …'). Beantwoord haar zelf.")),
     Overdracht(
         naam="taakagent",
         beschrijving=(

@@ -188,6 +188,18 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           'vraag om iets wat in geen sjabloon past, dan antwoord '
                                           'je in tekst en zeg je wat je wel en niet vond.\n'
                                           '\n'
+                                          'VASTE ROUTES: een paar vragen beantwoordt de code zelf, '
+                                          'ook als vervolgvraag. Roep dan de tool aan met de vraag '
+                                          'zelfstandig geformuleerd (met de regeling, het '
+                                          'onderwerp of het werkgebied uit het gesprek erin, '
+                                          "zonder 'dat' of 'en …?') en schrijf zelf niets:\n"
+                                          '- welke bepalingen of artikelen over een onderwerp gaan '
+                                          '→ toon_overzicht;\n'
+                                          '- welke annotaties of markeringen er al zijn → '
+                                          'lees_annotaties;\n'
+                                          '- welke begrippen er al zijn vastgelegd → '
+                                          'lees_begrippen.\n'
+                                          '\n'
                                           'EEN BEGRIP: begin bij zoek_definitie: die vindt het '
                                           'tekstdeel waar de wet het begrip zélf definieert, mét '
                                           'jci en citeertitel. Geeft dat niets, zoek dan met '
@@ -307,6 +319,19 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                                 'dan antwoord je in tekst en zeg je wat je wel en '
                                                 'niet vond.\n'
                                                 '\n'
+                                                'VASTE ROUTES: een paar vragen beantwoordt de code '
+                                                'zelf, ook als vervolgvraag. Roep dan de tool aan '
+                                                'met de vraag zelfstandig geformuleerd (met de '
+                                                'regeling, het onderwerp of het werkgebied uit het '
+                                                "gesprek erin, zonder 'dat' of 'en …?') en schrijf "
+                                                'zelf niets:\n'
+                                                '- welke bepalingen of artikelen over een '
+                                                'onderwerp gaan → toon_overzicht;\n'
+                                                '- welke annotaties of markeringen er al zijn → '
+                                                'lees_annotaties;\n'
+                                                '- welke begrippen er al zijn vastgelegd → '
+                                                'lees_begrippen.\n'
+                                                '\n'
                                                 'EEN BEGRIP: begin bij zoek_definitie: die vindt '
                                                 'het tekstdeel waar de wet het begrip zélf '
                                                 'definieert, mét jci en citeertitel. Geeft dat '
@@ -352,8 +377,7 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                                 '- search_begrippen en get_begrip voor de '
                                                 'begrippen die juristen in een werkgebied '
                                                 'vastlegden. Vraagt de gebruiker welke begrippen '
-                                                'er zijn vastgelegd, zoek dan met search_begrippen '
-                                                'en roep antwoord_begrip aan met een leeg begrip. '
+                                                'er zijn vastgelegd, roep dan lees_begrippen aan. '
                                                 'Je raadpleegt ze, je maakt of wijzigt er geen; '
                                                 'noem per begrip de status en het werkgebied. Een '
                                                 'vastgelegd begrip is een analyse-uitkomst, geen '
@@ -597,4 +621,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                        'search_wetgeving',
                                        'semantic_search',
                                        'zoek_opbouw')}},
- 'sha256': 'e796430b8756c60b2530d24cca21f60b3bf55fa1e191da74f50f41b3ae1bb4eb'}
+ 'sha256': '102a9134ed0bee63f7f9d7be62d11f33aa81a2ea04590e55c5d98cfb0ef8e902'}
