@@ -142,7 +142,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   keer per beurt, en zet `state["agentvorm"]`. De routes vóór het model in `supervisie._kies` gelden voor beide vormen;
   waar de supervisor het model aanroept, gaat de beurt met `centraal` naar de antwoordketen met dat profiel
   (`_naar_centraal`): geen supervisorstap, geen herschreven vraag. Zijn eigen tools staan in `agent/overdracht.py`
-  (nu alleen `wijs_af`): een **overdrachtstool bouwt niets na**, hij zet de state van een bestaande route en stuurt de
+  (nu alleen `wijs_af`; een vraag over een bron naast de wet of een vraag die een regeling noemt, ook buiten de graaf, wijst de code niet af: `agent/binnen_scope.py`, dezelfde regel waarmee de supervisor een afwijzing terugdraait, ADR-016 ronde 4, K12): een **overdrachtstool bouwt niets na**, hij zet de state van een bestaande route en stuurt de
   beurt via de node `overdracht` naar de node die er al is. Die node en zijn edges bestaan alleen als de vlag niet
   `uit` is; met `uit` is de graaf die van `tests/test_graafopbouw.py`. Zolang een vraagkaart van het samenstellen open
   staat, leest de supervisor de beurt nog (`_centraal`). Bouw voor een nieuwe overdracht geen tweede implementatie van
@@ -219,7 +219,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   tekst het genoemde artikel aan zonder zijn tekst (een verwijzing in `get_context`, in precies één regeling,
   `vullen.artikel_in_trace`), dan haalt `sjabloon_node` het op via `execute_tool` (hoogstens `MAX_OPHALEN`), zet het in het
   bronspoor en geeft de tekst bij de weigering mee; het model wijst daarna een passage aan of laat het weg. Uit het geheugen
-  van het model haalt de code niets op. Een markering "niet opgehaald" bestaat bewust niet.
+  van het model haalt de code niets op. Een markering "niet opgehaald" bestaat bewust niet. Een artikel waar de opgehaalde bepaling naar verwijst en dat de graaf niet heeft (`vullen.verwezen_buiten_graaf`: het label van de importer, "art. 53 (BWBR0001860)", zonder `doelRegeling`), mag de uitleg zonder passage noemen: de verwijzing is wat er over te weten valt (ADR-016 ronde 4, E03: na de weigering zocht het model de Faillissementswet op).
   Citeren kan alleen uit rijen met een iri bij hun tekst, dus niet uit `get_context`.
   `verify_node` toetst de blokken `annotaties`, `begrippen` en `leemte` niet (`NIET_GETOETST`): afgeleide duiding en tekst van de code.
   **Bronnen naast de wet** (`sjablonen/extern.py`, ADR-013): het blok `extern` (brontype, id, label, link, kop uit
@@ -676,7 +676,7 @@ bruikbaar is.
   fout (`id_niet_uit_gesprek`), met de zoektool die het wel vindt. Declaratief per parameter (`ARGUMENTEN`), niet per tool. Een
   BWB-id van een regeling in de graaf mag ook (het resultaat noemt haar en de controle toetst het id); de weigering geldt
   als de graaf aantoont dat ze er niet in staat (wetgeving_live I20: een id uit het geheugen). **Bij een vraag die een artikel noemt, moet het gesprek de regeling noemen** (`_gegokt`, ADR-016 ronde 3, V01: "artikel 30" zonder regeling werd de Invorderingswet 1990): bij naam of afkorting (of het eerste woord van de naam als geen andere regeling zo begint: "de Leidraad"), in de vraag, een eerder antwoord, een toolresultaat, het werkgebied of de focus. Anders gaat de aanroep terug met de zin dat Lex de jurist vraagt welke regeling hij bedoelt. Een vraag zonder artikel valt er niet onder, en zonder namen of graaf is er geen bewijs. Wat het model in deze beurt
-  zelf schreef, telt niet. Code die een tool aanroept, leidt haar ids zelf af en valt er niet onder. `tests/test_id_herkomst.py`.
+  zelf schreef, telt niet; voor die regel ook niet wat het in deze beurt vond of plande (zoekresultaten van deze beurt, het plan van de supervisor: `bekende_tekst(deze_beurt=False)`, ADR-016 ronde 4, V01: "artikel 30" en "de rente" vonden de Invorderingswet 1990). Code die een tool aanroept, leidt haar ids zelf af en valt er niet onder. `tests/test_id_herkomst.py`.
 - **`agent/spoorbronnen.py`** – één register van wat Lex raadpleegt, intern (`WETGEVING`, `ANNOTATIES`, `BEGRIPPEN`,
   `METHODE`) en per connector afgeleid uit zijn beschrijving (`uit_connector`: label, werkwoorden, leestool = lezen, de
   rest zoekt). Daaruit komen het werkwoord van de statusregel (`toolregel`, achter `narratie._toolregel`) en de
@@ -824,7 +824,9 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
   opgehaald.
 - `grounding.check_grounding` toetst op BWB-granulariteit of elk aangehaald BWB-id in de trace staat, en
   of elk citaat (≥ 5 woorden tussen aanhalingstekens; kortere zijn begrippen) letterlijk,
-  witruimte-ongevoelig, in de trace staat – dezelfde eis als `annotatie.komt_letterlijk_voor`. Het
+  witruimte-ongevoelig, in de trace staat – dezelfde eis als `annotatie.komt_letterlijk_voor`. Een rechte apostrof,
+  aanhalingsteken of streepje telt als zijn typografische vorm (`annotatie.TYPOGRAFISCH`, één register, ook voor de
+  ankers van het duidingssjabloon; ronde 4 van de centrale agent: "'s Rijks" tegen "’s Rijks" was *ongegrond*). Het
   oordeel is `niveau`: **gegrond** / **ongegrond** / **onbepaald** (niets te controleren – géén
   goedkeuring). `grounded` blijft bestaan voor het event-contract en de eval: er is niets aangetroffen
   dat níét klopt.
@@ -847,7 +849,7 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
   aanhalingsteken. Alles daarbuiten (een ander woord, een weglating, eigen woorden) blijft voor
   `check_grounding` en de correctieronde. Een citaat wordt hier alleen letterlijker, nooit losser;
   annotaties zijn geen bron.
-- `curate_sources` snoeit tot aangehaalde regelingen, en binnen een regeling met een precieze
+- `curate_sources` snoeit tot aangehaalde regelingen (bij BWB-id, naam of afkorting: de namen staan er vóór het cureren al op, `met_regelingnamen`; ADR-016 ronde 4, K13), en binnen een regeling met een precieze
   vindplaats tot bronnen op het pad daarvan. Omhulsels (`hoofdstuk`, `afdeling`) en datums tellen niet
   mee in het pad: een jci draagt ze vaak, de graaf-IRI niet.
 

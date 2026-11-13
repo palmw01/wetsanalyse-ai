@@ -190,7 +190,11 @@ def test_een_vervolg_op_een_gesprek_over_die_regeling_mag(graaf_met_namen):
     """"En artikel 30?" na een beurt over de Invorderingswet: de regeling staat in het gesprek, op een van vier manieren."""
     args = {"bwb_id": IW, "artikel": "30"}
     vraag = "En artikel 30?"
-    eerder_resultaat = _state(vraag, resultaten=(json.dumps({"resultaten": [{"iri": f"urn:bwb:{IW}:artikel:28"}]}),))
+    # Een resultaat uit een eerdere beurt: wat het model in déze beurt vond, telt niet (ronde 4, V01; zie hieronder).
+    eerder = _state("Wat zegt artikel 28?", resultaten=(json.dumps({"resultaten": [{"iri": f"urn:bwb:{IW}:artikel:28"}]}),))
+    eerder_resultaat = {"question": vraag, "messages": [*eerder["messages"],
+                                                        {"role": "assistant", "content": "Artikel 28 gaat over uitstel."},
+                                                        {"role": "user", "content": vraag}]}
     eerder_antwoord = {"question": vraag, "messages": [
         {"role": "user", "content": "Wat regelt de Invorderingswet 1990 over rente?"},
         {"role": "assistant", "content": "De Invorderingswet 1990 kent invorderingsrente."},
@@ -199,6 +203,19 @@ def test_een_vervolg_op_een_gesprek_over_die_regeling_mag(graaf_met_namen):
     focus = {**_state(vraag), "focus": {"bron_iri": f"urn:bwb:{IW}:artikel:28", "label": "Artikel 28"}}
     for naam, state in (("resultaat", eerder_resultaat), ("antwoord", eerder_antwoord), ("werkgebied", werkgebied), ("focus", focus)):
         assert id_herkomst.toets("get_artikel", args, state, graph=graaf_met_namen) is None, naam
+
+
+def test_een_zoekresultaat_van_deze_beurt_kiest_de_regeling_niet(graaf_met_namen):
+    """Ronde 4, V01: het model zocht "artikel 30" en "rente", vond de Invorderingswet 1990 en las daar uitspraken. Het
+    zoekresultaat van deze beurt noemt de regeling, maar dat koos het model, niet de jurist: Lex vraagt welke hij bedoelt.
+    Ook het plan van de supervisor telt niet ("zoek artikel 30 van de Invorderingswet")."""
+    args = {"bwb_id": IW, "artikel": "30"}
+    zoek = json.dumps({"resultaten": [{"iri": f"urn:bwb:{IW}:artikel:30", "regeling": "Invorderingswet 1990"},
+                                      {"iri": f"urn:bwb:{AWR}:artikel:30", "regeling": "Algemene wet inzake rijksbelastingen"}]})
+    state = {**_state(V01, resultaten=(zoek,)), "source_trace": [("search_wetgeving", zoek)],
+             "plan": "Zoek artikel 30 van de Invorderingswet 1990."}
+    melding = id_herkomst.toets("zoek_uitspraken", args, state, graph=graaf_met_namen)
+    assert melding and "vraag de jurist welke regeling" in melding
 
 
 def test_zonder_bewijs_beslist_de_tool_zelf():

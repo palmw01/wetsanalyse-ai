@@ -172,10 +172,10 @@ def alleen_genoemde_regelingen(sources: list[Any], tekst: str) -> list[Any]:
     gelezen = {getattr(s, "bwb_id", "") for s in sources if getattr(s, "origin_tool", "") not in zoek | REGELINGTOOLS}
 
     def genoemd(naam: str) -> bool:
-        return bool(naam) and re.search(rf"(?<!\w){re.escape(naam.lower())}(?!\w)", laag) is not None
+        return _noemt(laag, naam)
 
     def regeling_genoemd(s: Any) -> bool:
-        return any(genoemd(n) for n in (s.regeling or "", s.bwb_id or "", *(s.afkortingen or [])))
+        return noemt_regeling(laag, s)
 
     def weg(s: Any) -> bool:
         tool, soort = getattr(s, "origin_tool", ""), getattr(s, "soort", "")
@@ -187,6 +187,18 @@ def alleen_genoemde_regelingen(sources: list[Any], tekst: str) -> list[Any]:
         return False
 
     return [s for s in sources if not weg(s)]
+
+
+def _noemt(laag: str, naam: str) -> bool:
+    return bool(naam) and re.search(rf"(?<!\w){re.escape(naam.lower())}(?!\w)", laag) is not None
+
+
+def noemt_regeling(tekst: str, s: Any) -> bool:
+    """Noemt de tekst de regeling van deze bron, bij naam, afkorting of BWB-id? Na `met_regelingnamen`: dan draagt de bron
+    haar naam en afkortingen. Eén regel voor het cureren (`grounding.curate_sources`) en `alleen_genoemde_regelingen`."""
+    laag = (tekst or "").lower()
+    return any(_noemt(laag, n) for n in (getattr(s, "regeling", "") or "", getattr(s, "bwb_id", "") or "",
+                                          *(getattr(s, "afkortingen", None) or [])))
 
 
 def _zoektools() -> frozenset[str]:
