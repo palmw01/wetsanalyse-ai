@@ -90,3 +90,100 @@ def test_de_recentste_bronnen_blijven_in_een_lang_gesprek():
     gezien = [f"urn:bwb:BWBR0004770:artikel:{n}" for n in range(1, 20)]
     tekst = als_context({"bronnen": ["urn:bwb:BWBR0004770:artikel:99"]}, gezien)
     assert "artikel:99" in tekst and "artikel:1," not in tekst
+
+
+# --- de volgorde van het vorige antwoord (ADR-016 ronde 3, F01) -------------------------------------------------------
+
+from agent.focus import MAX_GENOEMD, MAX_GENOEMD_LABEL, genoemd_in_antwoord  # noqa: E402
+
+#: Het overzicht van S01: het antwoord noemt de uitspraak uit 2023 eerst; Lex las die uit 2026 als eerste.
+OVERZICHT = {"sjabloon": "antwoord_extern", "blokken": [
+    {"soort": "stukken", "brontype": "uitspraak", "kop": "Uitspraken", "items": [
+        {"id": "ECLI:NL:HR:2023:1371", "label": "Hoge Raad 6 oktober 2023, ECLI:NL:HR:2023:1371"},
+        {"id": "ECLI:NL:HR:2026:586", "label": "Hoge Raad 10 april 2026, ECLI:NL:HR:2026:586"},
+        {"id": "ECLI:NL:GHARL:2024:12", "label": "Gerechtshof Arnhem-Leeuwarden 9 januari 2024, ECLI:NL:GHARL:2024:12"}]}],
+    "doelen": []}
+GELEZEN = [{"uri": "ECLI:NL:HR:2026:586", "label": "Hoge Raad 10 april 2026"},
+           {"uri": "ECLI:NL:HR:2023:1371", "label": "Hoge Raad 6 oktober 2023"}]
+
+
+def test_de_eerste_uit_je_overzicht_is_de_eerste_van_het_antwoord_niet_de_eerst_gelezene():
+    """F01: "Wat zei de eerste uitspraak uit je overzicht precies over de bewijslast?" ging over ECLI:NL:HR:2026:586 (de
+    eerste die Lex las), niet over ECLI:NL:HR:2023:1371 (de eerste van het antwoord)."""
+    genoemd = genoemd_in_antwoord(OVERZICHT, "", GELEZEN)
+    assert [g["id"] for g in genoemd] == ["ECLI:NL:HR:2023:1371", "ECLI:NL:HR:2026:586", "ECLI:NL:GHARL:2024:12"]
+    focus = na_antwoord({}, "algemeen", [b["uri"] for b in GELEZEN], genoemd)
+    tekst = als_context(focus, [])
+    regels = tekst.splitlines()
+    kop = next(i for i, r in enumerate(regels) if r.startswith("In je vorige antwoord genoemd, in deze volgorde"))
+    assert "'de eerste'" in regels[kop] and "niet op de volgorde waarin je las" in regels[kop]
+    assert regels[kop + 1] == "1. Hoge Raad 6 oktober 2023, ECLI:NL:HR:2023:1371 (ECLI:NL:HR:2023:1371)"
+    assert regels[kop + 2].startswith("2. Hoge Raad 10 april 2026") and regels[kop + 3].startswith("3. Gerechtshof")
+
+
+def test_de_volgorde_bij_andere_vormen_van_een_antwoord():
+    # Twee blokken met een gelezen stuk elk: de volgorde van de blokken.
+    twee = {"blokken": [{"soort": "extern", "id": "kst-35496-3", "label": "Kamerstukken II 35496, nr. 3"},
+                        {"soort": "wettekst"},
+                        {"soort": "extern", "id": "stb-2010-176", "label": "Stb. 2010, 176"}], "doelen": []}
+    assert [g["id"] for g in genoemd_in_antwoord(twee, "", [])] == ["kst-35496-3", "stb-2010-176"]
+    # Een sjabloon over bepalingen: de doelen, met de regeling erbij.
+    doelen = {"blokken": [{"soort": "wettekst"}], "doelen": [
+        {"iri": "urn:bwb:BWBR0004770:artikel:25", "label": "Artikel 25", "regeling": "Invorderingswet 1990"},
+        {"iri": "urn:bwb:BWBR0004770:artikel:9", "label": "Artikel 9", "regeling": "Invorderingswet 1990"}]}
+    assert [g["label"] for g in genoemd_in_antwoord(doelen, "", [])] == ["Artikel 25 Invorderingswet 1990", "Artikel 9 Invorderingswet 1990"]
+    # Vrije tekst: waar de tekst de bron voor het eerst noemt, niet de volgorde van de bronnenlijst.
+    tekst = "De Hoge Raad oordeelde op 6 oktober 2023 anders dan in het arrest van Hoge Raad 10 april 2026."
+    bronnen = [{"uri": "ECLI:NL:HR:2026:586", "label": "Hoge Raad 10 april 2026"},
+               {"uri": "ECLI:NL:HR:2023:1371", "label": "6 oktober 2023"},
+               {"uri": "ECLI:NL:HR:2020:1", "label": "Hoge Raad 1 januari 2020"}]   # gelezen, niet genoemd
+    assert [g["id"] for g in genoemd_in_antwoord(None, tekst, bronnen)] == ["ECLI:NL:HR:2023:1371", "ECLI:NL:HR:2026:586"]
+
+
+def test_zonder_lijst_geen_blok_en_een_nieuw_antwoord_vervangt_de_vorige_lijst():
+    """Tegenvoorbeelden: één ding heeft geen volgorde, en een gewoon antwoord laat geen oude lijst staan."""
+    een = {"blokken": [{"soort": "extern", "id": "kst-35496-3", "label": "x"}], "doelen": []}
+    assert genoemd_in_antwoord(een, "", []) == [] and genoemd_in_antwoord(None, "Een antwoord zonder bronnen.", []) == []
+    assert genoemd_in_antwoord(None, "Artikel 9 regelt dit.", [{"uri": "urn:bwb:BWBR0004770:artikel:9", "label": "Artikel 9"}]) == []
+    met = na_antwoord({}, "algemeen", [], genoemd_in_antwoord(OVERZICHT, "", []))
+    assert "In je vorige antwoord genoemd" in als_context(met, [])
+    daarna = na_antwoord(met, "duiding", ["urn:bwb:BWBR0004770:artikel:9"], [])
+    assert "genoemd" not in daarna and "In je vorige antwoord genoemd" not in als_context(daarna, [])
+    # Zonder lijst is de context byte-gelijk aan voorheen.
+    assert als_context(na_antwoord({}, "duiding", ["urn:bwb:BWBR0004770:artikel:9"]), []) == \
+        als_context(na_antwoord({}, "duiding", ["urn:bwb:BWBR0004770:artikel:9"], []), [])
+
+
+def test_het_blok_is_klein_en_vast_van_vorm():
+    """Hoogstens twaalf regels met een afgekapt label: wat de lijst in de context kost, heeft een bovengrens."""
+    veel = {"blokken": [{"soort": "stukken", "items": [
+        {"id": f"ECLI:NL:HR:2024:{i}", "label": f"Hoge Raad {i} januari 2024, ECLI:NL:HR:2024:{i}, " + "een heel lange titel " * 20}
+        for i in range(1, 31)]}], "doelen": []}
+    genoemd = genoemd_in_antwoord(veel, "", [])
+    assert len(genoemd) == MAX_GENOEMD and all(len(g["label"]) <= MAX_GENOEMD_LABEL for g in genoemd)
+    zonder = als_context(na_antwoord({}, "algemeen", []), [])
+    met = als_context(na_antwoord({}, "algemeen", [], genoemd), [])
+    # De bovengrens in tekens; met 0,354 token per teken (de ijking van de contextopbouw) is dat hoogstens zo'n 600 tokens.
+    assert 0 < len(met) - len(zonder) <= 1700
+    gewoon = als_context(na_antwoord({}, "algemeen", [], genoemd_in_antwoord(OVERZICHT, "", [])), [])
+    assert len(gewoon) - len(zonder) <= 450
+
+
+def test_het_vervolg_krijgt_de_volgorde_na_de_historie_en_het_voorvoegsel_blijft_gelijk(tmp_path):
+    """In de keten: na een antwoord dat twee bepalingen noemt, staat de lijst in de context van de volgende beurt. Die
+    context staat in de vraag van de beurt, na de historie (ADR-015); de systeemprompt is dezelfde als zonder lijst."""
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"), enable_planning=False)
+    rijen = ("?node\t?tekst\n<urn:bwb:BWBR0004770:artikel:25>\tUitstel van betaling.\n"
+             "<urn:bwb:BWBR0004770:artikel:9>\tDe betalingstermijn.\n")
+    from fakes import tool_block
+    llm1 = FakeLLM([response([tool_block("t1", "search_wetgeving", {"query": "betaling"})], "tool_use"),
+                    response([text_block("Zie urn:bwb:BWBR0004770:artikel:25 over uitstel en urn:bwb:BWBR0004770:artikel:9 over de termijn.")], "end_turn")])
+    _run(answer_stream("welke artikelen gaan over betaling?", "volgorde-1", settings=settings, llm=llm1, graph=FakeGraph(result=rijen)))
+    llm2 = FakeLLM([response([text_block("Het eerste artikel regelt uitstel.")], "end_turn")])
+    _run(answer_stream("wat regelt de eerste precies?", "volgorde-1", settings=settings, llm=llm2, graph=FakeGraph(result=rijen)))
+    aanroep = llm2.calls[0]
+    berichten = str(aanroep.get("messages"))
+    assert "In je vorige antwoord genoemd, in deze volgorde" in berichten
+    assert berichten.index("urn:bwb:BWBR0004770:artikel:25") < berichten.index("In je vorige antwoord genoemd")
+    assert "In je vorige antwoord genoemd" not in str(aanroep.get("system")), "niet in het voorvoegsel"
+    assert str(aanroep.get("system")) == str(llm1.calls[0].get("system")), "het voorvoegsel beweegt niet"

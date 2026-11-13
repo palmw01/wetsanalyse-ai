@@ -299,7 +299,12 @@ de thread een kleine, gestructureerde toestand bij:
 
 - na een annotatie: de bepaling (`bron_iri`, label) en haar markeringen als `id · klasse · tekst`;
 - na een antwoord: de geraadpleegde bronnen (de markeringen blijven staan);
-- bij advies: het aangewezen element.
+- bij advies: het aangewezen element;
+- na een antwoord ook wat het antwoord noemde, in de volgorde van het antwoord (`genoemd_in_antwoord`, ADR-016 ronde 3,
+  F01: "de eerste uitspraak uit je overzicht" werd de eerst gelezene). Uit code: de stukken van de blokken `stukken` en
+  `extern`, anders de doelen, en bij vrije tekst de bronnen op de plek waar de tekst ze noemt. Alleen bij twee of meer,
+  hoogstens `MAX_GENOEMD` met een afgekapt label, en altijd die van het laatste antwoord. Het blok zegt zelf dat "de
+  eerste" hierop slaat; er staat niets over in een instructie, dus het voorvoegsel beweegt niet.
 
 `focus.als_context` maakt er het GESPREKSCONTEXT-blok van. Dat gaat naar de supervisor én elke
 specialist (`Bouw.memory_context`), samen met de markeringen van de open bepaling
