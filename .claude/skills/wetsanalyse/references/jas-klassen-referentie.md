@@ -123,7 +123,8 @@ of rechtsfeit, en heeft kenmerken met een waarde (het loon bij een dienstbetrekk
 
 **Afbakening**
 
-- *Rechtssubject* — zie daar: de functie beslist, niet het woord.
+- *Rechtssubject* — beide zijn een naamwoordgroep; de functie beslist, niet het woord. Draagt het een recht of plicht,
+  dan is het een subject; gaat het recht of de plicht erover, dan een object.
 - *Variabele en variabelewaarde* — een bedrag of toeslag is voorwerp als het recht of de plicht erover gaat ("recht
   op een toeslag"), en een variabele als het een kenmerk met een waarde is ("de hoogte van de toeslag").
 - *Rechtsfeit* — een handeling als zelfstandig naamwoord ("de betaling") is voorwerp als de norm erover gaat, en
@@ -174,13 +175,15 @@ een soort alleen als de tekst haar draagt; een markering krijgt er geen eigen la
 **Samenhang** (M01 h.4 §3, *Relatie met andere klassen*) — Een rechtsbetrekking heeft altijd twee partijen en een
 voorwerp, vaak een duur, en ontstaat, wijzigt of eindigt door een rechtsfeit. Loop bij elke rechtsbetrekking na: wie
 is rechthebbende, wie plichthebbende, wat is het voorwerp, welke voorwaarden gelden, en hoe lang geldt zij? Noemt de
-tekst een partij niet, zie dan [relaties](relaties.md). In de catalogus: `rechthebbende`, `plichthebbende`,
+tekst een partij niet, maak haar dan expliciet als interpretatie met de bepaling waar de regeling haar noemt, nooit
+als citaat (uitgewerkt in relaties.md). In de catalogus: `rechthebbende`, `plichthebbende`,
 `voorwerp`, `voorwaarde`, `tijd`, en vanuit het rechtsfeit `creeert`, `wijzigt`, `beeindigt`.
 
 **Afbakening**
 
-- *Rechtsfeit* — zie het onderscheid hieronder bij §4: toestand tegenover verandering. "Mag oversteken" is de norm; het
-  oversteken zelf is een handeling.
+- *Rechtsfeit* — een rechtsbetrekking is een toestand (een recht of plicht die geldt), een rechtsfeit een verandering
+  die zo'n toestand doet ontstaan, wijzigen of eindigen. "Mag oversteken" is de norm; het oversteken zelf is een
+  handeling.
 - *Afleidingsregel* — "is … verschuldigd" kan een plicht uitdrukken of de uitkomst van een berekening inleiden. Staat
   er hoe het bedrag wordt bepaald, dan is dat deel de afleidingsregel; de plicht om te betalen blijft de
   rechtsbetrekking.
@@ -279,7 +282,8 @@ onvolledig. Wat zij vergelijkt, is haar invoer. In de catalogus: `voorwaarde`, `
 
 **Afbakening**
 
-- *Rechtsfeit* — zie §4: een handeling als eis is een voorwaarde.
+- *Rechtsfeit* — dezelfde handeling is een rechtsfeit als zij de toestand verandert, en een voorwaarde als zij een eis
+  is voor een gevolg ("indien hij betaalt").
 - *Operator* — de vergelijking binnen de voorwaarde ("meer bedraagt dan") is de operator; de voorwaarde is het geheel.
 - *Afleidingsregel* — een regel die bepaalt óf een recht bestaat, is een beslisregel (afleidingsregel) met voorwaarden
   erin. Een losse eis is alleen een voorwaarde.
@@ -327,9 +331,11 @@ variabele, rechtssubject of rechtsobject), en invoer, operatoren en vaak voorwaa
 
 - *Parameter en parameterwaarde* — "bedraagt € 23" legt een waarde vast en is geen berekening: parameter. Pas met
   invoer en een bewerking is het een afleidingsregel.
-- *Rechtsbetrekking* — zie §3: "is verschuldigd" als plicht of als uitkomst.
+- *Rechtsbetrekking* — "is … verschuldigd" kan een plicht uitdrukken (rechtsbetrekking) of de uitkomst van een
+  berekening inleiden. Staat er hoe het bedrag wordt bepaald, dan is dat deel de afleidingsregel.
 - *Voorwaarde* — een beslisregel bevat voorwaarden; de voorwaarden zijn deel van de regel, niet de regel.
-- *Operator* — zie §9: de regel is het geheel, de operator het verbindende woord.
+- *Operator* — de afleidingsregel is de regel als geheel, de operator het woord dat daarbinnen verbindt ("vermeerderd
+  met"); beide markeren mag.
 
 ---
 
@@ -367,9 +373,13 @@ catalogus: `kenmerk`, `waarde`, `invoer`, `uitvoer`.
 
 **Afbakening**
 
-- *Parameter en parameterwaarde* — zie de toets hieronder bij §8: per geval verschillend of voor iedereen gelijk.
-- *Tijdsaanduiding* en *Plaatsaanduiding* — de specifiekere klasse gaat voor bij dezelfde functie (H2:107, H2:116).
-- *Rechtsobject* — zie §2: voorwerp van het recht of kenmerk met een waarde.
+- *Parameter en parameterwaarde* — de toets: kan de waarde per rechtssubject, rechtsobject, rechtsbetrekking of
+  rechtsfeit verschillen, dan is het een variabele (H2:80); is zij voor allen gelijk over een bepaalde of onbepaalde
+  periode, dan een parameter (H2:89).
+- *Tijdsaanduiding* en *Plaatsaanduiding* — kan een formulering zowel tijd of plaats als variabele zijn, dan krijgt zij
+  de specifiekere klasse: de tijds- of plaatsaanduiding (H2:107, H2:116).
+- *Rechtsobject* — een bedrag of toeslag is voorwerp als het recht of de plicht erover gaat ("recht op een toeslag"),
+  en een variabele als het een kenmerk met een waarde is ("de hoogte van de toeslag").
 
 ---
 
@@ -412,9 +422,15 @@ catalogus: `invoer`, `waarde`, `tijd`.
 
 **Afbakening**
 
-- *Variabele en variabelewaarde* — zie de toets hierboven.
-- *Tijdsaanduiding* en *Plaatsaanduiding* — een vaste termijn of een vast gebied is de specifiekere klasse (H2:107,
-  H2:116); zie §10, *Verbijzondering*.
+- *Variabele en variabelewaarde* — de toets: een parameter is gelijk voor alle rechtssubjecten, rechtsobjecten,
+  rechtsbetrekkingen en rechtsfeiten, over een bepaalde of onbepaalde periode (H2:89–90); een variabele kan per geval
+  een andere waarde hebben (H2:80). Dat een waarde niet per rechtssubject verschilt, pleit dus vóór een parameter, niet
+  ertegen. Een vaste wettelijke waarde zonder einddatum blijft een parameter.
+- *Tijdsaanduiding* en *Plaatsaanduiding* — kan een formulering zowel tijd of plaats als parameter zijn, dan krijgt zij
+  de specifiekere klasse: de tijds- of plaatsaanduiding (H2:107, H2:116). De parameter gaat daarbij niet verloren: de
+  tijdsaanduiding verbijzondert hem. Een duur als "zes weken" is één element Tijdsaanduiding met het subtype
+  *verbijzondert parameter*, niet nog eens een Parameter; een los getal in cijfers erin (de "48" in "binnen 48 uur")
+  is een geneste parameterwaarde.
 - *Operator* — "tweemaal" en "de helft van" drukken een bewerking uit: de operator. Het getal daarin is geen eigen
   parameter, tenzij de tekst het als waarde vastlegt.
 
@@ -462,7 +478,9 @@ catalogus: `operator_in`, `operand`.
 
 **Afbakening**
 
-- *Afleidingsregel* — zie de samenloop hierboven.
+- *Afleidingsregel* — woorden als "vermeerderd met" en "het gezamenlijke bedrag van" staan in beide
+  uitdrukkingswijzen (H2:73, H2:100), en de bron geeft geen voorrang. Werkafspraak: de afleidingsregel is de regel als
+  geheel, de operator het woord dat daarbinnen verbindt; beide markeren mag.
 - *Voorwaarde* — de vergelijking is de operator, de hele eis de voorwaarde. Een voegwoord dat een voorwaarde inleidt
   ("indien", "tenzij") is geen operator; "en" tussen twee woorden van één naamwoordgroep ook niet.
 
@@ -520,7 +538,10 @@ de verbijzondering `invoer`, `operand`, `waarde`.
 
 **Afbakening**
 
-- *Variabele en variabelewaarde*, *Parameter en parameterwaarde* — de prioriteitsregel hierboven.
+- *Variabele en variabelewaarde*, *Parameter en parameterwaarde* — kan een formulering zowel tijdsaanduiding als
+  parameter of variabele zijn, dan krijgt zij de specifiekere klasse: de tijdsaanduiding (H2:107). Zij verbijzondert
+  dan die parameter of variabele: een duur als "zes weken" is één element met het subtype *verbijzondert parameter*;
+  een los getal in cijfers erin is een geneste parameterwaarde.
 - *Rechtsfeit* — de termijn is de tijdsaanduiding; dat zij verstrijkt en daardoor iets verandert, is het rechtsfeit.
   De startgebeurtenis ("na de dagtekening") hoort bij de tijdsaanduiding.
 
@@ -555,7 +576,8 @@ groep hoort ("in Nederland wonen"). In de catalogus: `plaats`.
 
 **Afbakening**
 
-- *Variabele en variabelewaarde*, *Parameter en parameterwaarde* — de prioriteitsregel hierboven.
+- *Variabele en variabelewaarde*, *Parameter en parameterwaarde* — kan een formulering zowel plaatsaanduiding als
+  parameter of variabele zijn, dan krijgt zij de specifiekere klasse: de plaatsaanduiding (H2:116).
 - *Rechtssubject* — "de gemeente" als bestuursorgaan is een subject, als gebied een plaats.
 
 ---
