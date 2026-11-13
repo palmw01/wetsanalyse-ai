@@ -415,7 +415,10 @@ bruikbaar is.
   `tools/annotatie_tools.py`, de twee begrippenleestools uit `tools/begrip_tools.py`, de twee Kamerstuktools uit
   `tools/kamerstuk_tools.py`, de twee bekendmakingtools uit `tools/bekendmaking_tools.py` en de twee Rechtspraaktools uit `tools/rechtspraak_tools.py`), `anthropic_schemas(only=)` en `dispatch()` (vangt
   `ValueError`/`MCPError`/`KeyError` als tekst). Een tool met `needs_settings` krijgt `settings` mee.
-  `tools/jas_tools.py` (`JAS_TOOLS`) is dispatchbaar maar wordt in de draaiende keten niet aangeroepen.
+  `tools/jas_tools.py` (`JAS_TOOLS`): `jas_klasse_opvragen`, alleen in het profiel `duiding`. Hij geeft de bronvelden
+  van een klasse uit `jas_klassen.py` en de toelichting uit de skill (subklassen, samenhang, afbakening) uit
+  `agent/jas_toelichting.py`; die genereert `genereer_jas_klassen.py` apart, zodat de annotatieketen dezelfde
+  klasseduiding houdt (`tests/test_jas_klasse_opvragen.py`).
 - **Bronconnectors** (ADR-013): **de beschrijving in `bronmodel.connectors` is de enige bron** (naam, label, brontype,
   groep, wat hij dekt, signalen, tools, leestool, id-vorm, rollen, rol in het antwoord, grenzen, voorbeeldvragen).
   `CONNECTORS` (connector → tools), de connectortools van de specialisten (`specialists._met_connectors`), de
@@ -1239,7 +1242,8 @@ JAS-classifier, en draait op `LLM_MODEL` (een oordeel, dus geen eigen modelknop)
 - **Fragmenten** (`fragmenten.knip`): zinsdelen met een id uit bron en offsets. Het model typt nooit
   brontekst over.
 - **Toetsen** (`toetsen.py`): garanties (id bestaat, tekst letterlijk op offsets, over manifest +
-  onderzoek) halen een definitie weg; signalen (circulair, rekenregel, gemengde klassen, geen begrip, en
+  onderzoek) halen een definitie weg; signalen (circulair, rekenregel, gemengde klassen, geen begrip, een ontkenning of afkorting in de naam (G3, niet bij
+  een letterlijke definitie), en
   met het dossier: algemene naam met specifieke definitie, rechtsgevolg of afleiding in de definitie,
   onderbouwing uit één voorkomen, fragment draagt niet, tegenbewijs, context niet onderzocht) maken haar
   geel. Het model geeft per voorstel een `Duiding` (soort, bereik, voorkeursterm, ontbreekt): een

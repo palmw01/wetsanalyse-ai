@@ -38,6 +38,8 @@ export const AANDACHTSPUNT: Record<string, string> = {
   MODEL_GEEN_DEFINITIE: "Lex gaf voor deze groep geen bruikbare definitie.",
   CIRCULAIR_VERWORPEN: "Lex formuleerde een definitie met de naam van het begrip zelf; die is niet overgenomen.",
   DOOR_LEX_GEFORMULEERD: "De definitie is door Lex geformuleerd; toets haar aan de passages.",
+  NAAM_MET_ONTKENNING: "De naam bevat een ontkenning; in een regel geeft dat later een dubbele ontkenning.",
+  NAAM_MET_AFKORTING: "De naam bevat een afkorting; schrijf haar voluit, tenzij de wet haar zo gebruikt.",
   ALGEMENE_NAAM_SPECIFIEKE_DEFINITIE: "De naam is algemeen, maar de definitie beschrijft één variant uit parallelle bepalingen; kies een specifiekere naam of een algemenere definitie.",
   RECHTSGEVOLG_IN_DEFINITIE: "De definitie noemt een rechtsgevolg (wat er met het begrip gebeurt); dat hoort niet in de omschrijving.",
   AFLEIDING_IN_DEFINITIE: "De definitie beschrijft een afleiding of verrekening; die is een eigen begrip ('bepalen …').",

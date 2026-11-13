@@ -19,6 +19,10 @@ from pathlib import Path
 WORTEL = Path(__file__).resolve().parents[3]
 REFERENTIE = WORTEL / ".claude" / "skills" / "wetsanalyse" / "references" / "jas-klassen-referentie.md"
 DOEL = WORTEL / "tools" / "graph-qa" / "agent" / "jas_klassen.py"
+#: De toelichting per klasse (subklassen, samenhang, afbakening) voor `jas_klasse_opvragen`, apart van `jas_klassen.py`:
+#: de annotatieketen krijgt zo dezelfde klasseduiding, en `methode_versie()` blijft gelijk.
+TOELICHTING_DOEL = WORTEL / "tools" / "graph-qa" / "agent" / "jas_toelichting.py"
+TOELICHTING_VELDEN = ("Subklassen", "Samenhang", "Afbakening")
 
 BEGIN = "# --- BEGIN GEGENEREERD uit de wetsanalyse-skill (scripts/genereer_jas_klassen.py) ---"
 EINDE = "# --- EINDE GEGENEREERD ---"
@@ -113,6 +117,33 @@ def bouw_blok(klassen: list[tuple[str, str, str, str]]) -> str:
     return "\n".join(delen)
 
 
+def lees_toelichting(pad: Path = REFERENTIE) -> dict[str, dict[str, object]]:
+    """Per klasse de blokken *Subklassen*, *Samenhang* en *Afbakening*, als die er zijn. De afbakening is een lijst
+    (één regel per verwarbare klasse); de andere twee zijn lopende tekst. De bronverwijzing tussen haakjes valt weg."""
+    uit: dict[str, dict[str, object]] = {}
+    for sectie in re.split(r"\n## (?=\d+\. )", pad.read_text(encoding="utf-8"))[1:]:
+        naam = sectie.split("\n", 1)[0].split(". ", 1)[1].strip()
+        velden: dict[str, object] = {}
+        for veld in TOELICHTING_VELDEN:
+            m = re.search(rf"\*\*{veld}\*\*[^\n]*?(?:—\s*|\n\n)(.+?)(?=\n\n\*\*|\n---|\Z)", sectie, re.S)
+            if not m:
+                continue
+            if veld == "Afbakening":
+                items = re.split(r"\n(?=- )", m.group(1).strip())
+                velden[veld.lower()] = [_schoon(i) for i in items if i.strip()]
+            else:
+                velden[veld.lower()] = _schoon(m.group(1))
+        uit[naam] = velden
+    return uit
+
+
+def bouw_toelichting(toelichting: dict[str, dict[str, object]]) -> str:
+    import pprint
+    return ("# Gegenereerd uit .claude/skills/wetsanalyse/references/jas-klassen-referentie.md door\n"
+            "# scripts/genereer_jas_klassen.py; niet met de hand bewerken. Alleen voor `jas_klasse_opvragen`.\n"
+            "TOELICHTING: dict[str, dict[str, object]] = " + pprint.pformat(toelichting, width=120, sort_dicts=False) + "\n")
+
+
 def vervang(huidig: str, blok: str) -> str:
     start, stop = huidig.find(BEGIN), huidig.find(EINDE)
     if start == -1 or stop == -1:
@@ -149,7 +180,11 @@ def main() -> int:
     from scripts import genereer_bronpakket
     if genereer_bronpakket.main(["--check"] if args.check else []):
         return 1
+    toelichting = bouw_toelichting(lees_toelichting())
     if args.check:
+        if not TOELICHTING_DOEL.exists() or TOELICHTING_DOEL.read_text(encoding="utf-8") != toelichting:
+            print(f"{TOELICHTING_DOEL.relative_to(WORTEL)} loopt uit de pas met de skill-referentie.", file=sys.stderr)
+            return 1
         if verwacht != DOEL.read_text(encoding="utf-8"):
             print(f"{DOEL.relative_to(WORTEL)} loopt uit de pas met de skill-referentie.\n"
                   f"Draai: .venv/bin/python scripts/genereer_jas_klassen.py", file=sys.stderr)
@@ -158,6 +193,7 @@ def main() -> int:
         return 0
 
     DOEL.write_text(verwacht, encoding="utf-8")
+    TOELICHTING_DOEL.write_text(toelichting, encoding="utf-8")
     print(f"{DOEL.relative_to(WORTEL)} bijgewerkt uit {REFERENTIE.relative_to(WORTEL)}")
     return 0
 
