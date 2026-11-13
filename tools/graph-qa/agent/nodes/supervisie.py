@@ -113,6 +113,21 @@ def _werkgebied(writer, waarom: str, *, aanvullen: bool = False) -> dict[str, An
             "annotaties_lezen": False, "intake_modus": "aanvullen" if aanvullen else ""}
 
 
+def werkgebied_route(writer, state: State, taak: str, vraag: str) -> dict[str, Any]:
+    """De route voor het werkgebied, voor de supervisor en de overdracht `werkgebied` van de centrale agent (ADR-016
+    A2-3a): de bronselectie, het dossier aanvullen, of samenstellen. In een bestaand werkgebied is een vraag zonder taak
+    over zijn deelvragen of bronnen geen verzoek om een nieuw samen te stellen: op acceptatie (7 nov 2026) startte "Welke
+    bronnen horen daarbij?" de intake ("Hoe noemen we het werkgebied?"). De stand per deelvraag komt uit de api: de taak
+    `dekking`, zonder model."""
+    if taak == "bronselectie":
+        return _bronselectie(writer, "bepaalt met je de bronnen per deelvraag")
+    if taak == "aanvullen":
+        return _werkgebied(writer, "vult met je het dossier aan", aanvullen=True)
+    if state.get("werkgebied_id") and not is_werkgebiedvraag(vraag):
+        return _agent(writer, state, "deelvragen", "dekking", vraag)
+    return _werkgebied(writer, "stelt met je een werkgebied samen")
+
+
 def _bronselectie(writer, waarom: str) -> dict[str, Any]:
     """De bronselectie per deelvraag (spoor J): de bronselectie-worker, op de stand die de api bewaart."""
     _stap(writer, "Lex", waarom, route="bronselectie")
@@ -643,17 +658,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # koos het model dat toch, voor "Wat staat er in Kamerstuk 35496, onderdeel F?" (acceptatie 8 nov 2026).
         logger.info("werkgebied teruggedraaid: vraag over een bron naast de wet", extra={"categorie": "functioneel"})
         eerste, worker_plan = "duiding", ["duiding"]
-    if eerste == "werkgebied" and taak == "bronselectie":
-        return {**upd, **_bronselectie(writer, "bepaalt met je de bronnen per deelvraag")}
-    if eerste == "werkgebied" and taak == "aanvullen":
-        return {**upd, **_werkgebied(writer, "vult met je het dossier aan", aanvullen=True)}
-    if eerste == "werkgebied" and state.get("werkgebied_id") and not is_werkgebiedvraag(zelfstandig):
-        # In een bestaand werkgebied is een vraag over zijn deelvragen of bronnen geen verzoek om een nieuw samen te
-        # stellen. Op acceptatie (7 nov 2026) startte "Welke bronnen horen daarbij?" de intake ("Hoe noemen we het
-        # werkgebied?"). De stand per deelvraag komt uit de api: de taak `dekking`, zonder model.
-        return {**upd, **_agent(writer, state, "deelvragen", "dekking", zelfstandig)}
     if eerste == "werkgebied":
-        return {**upd, **_werkgebied(writer, "stelt met je een werkgebied samen")}
+        return {**upd, **werkgebied_route(writer, state, taak, zelfstandig)}
     if eerste == "annotatie":
         # Eén artikel per annotatievraag. Meer artikelen is een werkgebied afbakenen – een andere
         # functie. Deterministisch en vóór de ophaal-agent: die zou er anders stil één uitkiezen.
