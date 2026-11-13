@@ -45,7 +45,8 @@ def _supervisor_dan_antwoord() -> FakeLLM:
 
 
 #: De overdrachten die elk profiel van de centrale agent heeft, naast wijs_af (en meer_tools in de kernset).
-VASTE_ROUTES = ("taakagent", "werkgebied", "toon_bepaling", "toon_overzicht", "lees_annotaties", "lees_begrippen")
+VASTE_ROUTES = ("taakagent", "werkgebied", "toon_bepaling", "toon_overzicht", "lees_annotaties", "lees_begrippen",
+                "toon_stukken")
 
 VRAAG = "Hoe hangt de aansprakelijkheid van een bestuurder samen met de invordering?"
 
@@ -90,7 +91,7 @@ def test_met_uit_is_de_graaf_die_van_voorheen():
                                ("overdracht", "agent_taak"), ("overdracht", "werkgebied_intake"),
                                ("overdracht", "bronselectie"), ("overdracht", "bepaling_lezen"),
                                ("overdracht", "overzicht_bouwen"), ("overdracht", "annotaties_zoeken"),
-                               ("overdracht", "begrippen_zoeken")}
+                               ("overdracht", "begrippen_zoeken"), ("overdracht", "bron_lijst")}
         assert not oud - edges
 
 
@@ -437,3 +438,61 @@ def test_een_vraag_die_niet_bij_de_route_past_weigert_de_code(tool, vraag):
     _beurt("En dat?", llm, stand="meten", gevraagd="centraal")
     resultaat = _tool_resultaat(llm.calls[1])
     assert resultaat["is_error"] is True and "Beantwoord haar zelf" in resultaat["content"]
+
+
+# --- een lijst stukken in een vervolgvraag, en de bronkeuze daarna (A2-3c-2) --------------------------------------
+# "Wat is het laatste?" na een vraag over dossier 32140 noemt geen bron. De bronkeuze viel vóór de eerste ronde op de
+# getypte vraag; wat daarbij alleen deze beurt buiten de keuze viel, gaat voor de lijstroute weer mee.
+
+LAATSTE = "Wat is het laatste Kamerstuk in dossier 32140?"
+
+
+def _stukken(stand: dict, vraag: str = LAATSTE, monkeypatch=None):
+    from agent.nodes import supervisie
+    from tests.test_na_herschrijven import _bouw
+
+    events: list = []
+    monkeypatch.setattr(overdracht, "get_stream_writer", lambda: events.append)
+    monkeypatch.setattr(supervisie, "get_stream_writer", lambda: events.append)
+    state = {"question": "Wat is het laatste?", "modus": "auto", "specialist": CENTRAAL, "bronstand": stand,
+             "bronkeuze": ["rechtspraak"], "messages": []}
+    b = _bouw("")
+    uit = overdracht.OVERDRACHT["toon_stukken"].zet(b, state, {"vraag": vraag})
+    return b, state, uit, events
+
+
+def _bron(aan: bool, reden: str, label: str) -> dict:
+    return {"aan": aan, "reden": reden, "label": label}
+
+
+def test_een_lijst_uit_een_bron_die_deze_beurt_buiten_de_keuze_viel_zet_die_bron_weer_aan(monkeypatch):
+    from agent.nodes.supervisie import _entry_node
+    stand = {"kamerstukken": _bron(False, "niet_nodig", "Kamerstukken"), "rechtspraak": _bron(True, "aan", "Rechtspraak")}
+    b, state, uit, events = _stukken(stand, monkeypatch=monkeypatch)
+    assert uit["bron_lijst"]["connector"] == "kamerstukken" and uit["zelfstandige_vraag"] == LAATSTE
+    assert uit["bronstand"]["kamerstukken"]["aan"] is True and uit["bronkeuze"] == ["kamerstukken"]
+    assert uit["specialist"] == CENTRAAL
+    assert any(e.get("type") == "bronstand" for e in events)
+    assert _entry_node(b, {**state, **uit}) == "bron_lijst"
+
+
+def test_staat_de_gevraagde_bron_uit_dan_dezelfde_melding_als_bij_de_supervisor(monkeypatch):
+    from agent.nodes.supervisie import _entry_node
+    stand = {"kamerstukken": _bron(False, "straat", "Kamerstukken"), "rechtspraak": _bron(True, "aan", "Rechtspraak")}
+    b, state, uit, events = _stukken(stand, monkeypatch=monkeypatch)
+    assert uit["afwijzen"] is True and "Kamerstukken" in uit["afwijs_melding"]
+    assert any(e.get("type") == "bron_uit" for e in events)
+    assert _entry_node(b, {**state, **uit}) == "afwijzen"
+
+
+@pytest.mark.parametrize("vraag", ["Wat betekent artikel 9 van de Invorderingswet 1990?", ""])
+def test_een_vraag_die_geen_lijstvraag_is_weigert_de_code(monkeypatch, vraag):
+    stand = {"kamerstukken": _bron(True, "aan", "Kamerstukken")}
+    _, _, uit, _ = _stukken(stand, vraag, monkeypatch=monkeypatch)
+    assert isinstance(uit, str) and "zoektool" in uit
+
+
+def test_heropend_zet_alleen_niet_nodig_terug():
+    from agent import bronkeuze
+    stand = {"a": _bron(False, "niet_nodig", "A"), "b": _bron(False, "straat", "B"), "c": _bron(True, "aan", "C")}
+    assert bronkeuze.actief(bronkeuze.heropend(stand)) == ["a", "c"]
