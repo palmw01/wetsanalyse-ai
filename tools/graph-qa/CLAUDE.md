@@ -834,7 +834,7 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
   aanhalingsteken. Alles daarbuiten (een ander woord, een weglating, eigen woorden) blijft voor
   `check_grounding` en de correctieronde. Een citaat wordt hier alleen letterlijker, nooit losser;
   annotaties zijn geen bron.
-- `curate_sources` snoeit tot aangehaalde regelingen, en binnen een regeling met een precieze
+- `curate_sources` snoeit tot aangehaalde regelingen (bij BWB-id, naam of afkorting: de namen staan er vóór het cureren al op, `met_regelingnamen`; ADR-016 ronde 4, K13), en binnen een regeling met een precieze
   vindplaats tot bronnen op het pad daarvan. Omhulsels (`hoofdstuk`, `afdeling`) en datums tellen niet
   mee in het pad: een jci draagt ze vaak, de graaf-IRI niet.
 

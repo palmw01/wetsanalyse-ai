@@ -31,7 +31,7 @@ from .models import Source
 from bronmodel.connectors import leestools, van_id
 from bronmodel.extern import externe_verwijzingen, externe_vindplaats
 
-from .provenance import _BWB_RE, citations_in, first_bwb
+from .provenance import _BWB_RE, citations_in, first_bwb, noemt_regeling
 from .resultaat import is_contract, waarden
 from .tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
 
@@ -354,10 +354,15 @@ def curate_sources(sources: list[Source], answer_text: str) -> list[Source]:
     Noemt het antwoord een regeling alleen met haar BWB-id, dan blijven al haar bronnen staan. Valt
     terug op de volledige lijst als het antwoord geen BWB-id noemt (dan niets
     weggooien), en op de regelingsfilter als de padfilter niets overlaat.
+
+    Een regeling die het antwoord bij naam of afkorting noemt, telt als aangehaald, net als een BWB-id (ADR-016 ronde 4,
+    K13: het antwoord noemde de Leidraad met haar BWB-id en de Invorderingswet 1990 bij naam, en de bepalingen uit de
+    Invorderingswet vielen uit de lijst). Daarvoor draagt de bron haar naam al (`met_regelingnamen` vóór het cureren).
     """
     bwbs = set(_BWB_RE.findall(answer_text))
     if not bwbs:
         return sources
+    bwbs |= {s.bwb_id for s in sources if s.bwb_id and noemt_regeling(answer_text, s)}
     # Een externe bron (ADR-013) blijft staan als het antwoord haar id noemt; zonder id volgt ze de regel
     # van de regelingen: onbesproken, dus weg zodra het antwoord wél regelingen noemt.
     genoemd = genoemd_extern(answer_text)
