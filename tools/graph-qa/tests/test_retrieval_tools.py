@@ -181,9 +181,8 @@ _REGELING = ("?relatie\t?doel\t?citeertitel\t?label\t?vanuit\t?vanuitIri\n"
 
 
 def _graaf_met_telling(aantal: int = 100):
-    kop, rijen = _REGELING.split("\n", 1)
-    telrij = f'"aantal-buiten-de-graaf"\t<urn:bwb:BWBR0004770>\t\t\t""\t""\t"{aantal}"\n'
-    return FakeGraph(result=f"{kop}\t?buitenGraaf\n{telrij}{rijen}")
+    kop, *rijen = _REGELING.rstrip("\n").split("\n")
+    return FakeGraph(result="\n".join([f"{kop}\t?buitenGraaf", *(f'{r}\t"{aantal}"' for r in rijen)]) + "\n")
 
 
 def test_grondslagen_voor_een_regeling_noemt_de_artikelen_in_een_aanroep():
@@ -202,7 +201,7 @@ def test_grondslagen_voor_een_regeling_noemt_de_artikelen_in_een_aanroep():
     assert "100 regelingen die niet in de kennisgraaf staan" in d["toelichting"] and "niet zelf met SPARQL" in d["toelichting"]
     # Eén query: de regeling staat er letterlijk in, en de artikelen en de telling komen uit dezelfde query.
     [rijen_query] = g.queries
-    assert "aantal-buiten-de-graaf" in rijen_query and "COUNT(DISTINCT ?stub)" in rijen_query
+    assert "COUNT(DISTINCT ?stub) AS ?nBuiten" in rijen_query and "buitenGraaf" not in json.dumps(d["resultaten"])
     assert "<urn:bwb:BWBR0004770> bwb:heeftGrondslag ?doel" in rijen_query and "?doel bwb:heeftGrondslag <urn:bwb:BWBR0004770>" in rijen_query
     assert "GROUP BY ?relatie ?doel" in rijen_query and "BIND(<urn:bwb:BWBR0004770> AS ?node)" not in rijen_query
 
@@ -219,7 +218,7 @@ def test_het_sjabloon_vindt_een_artikel_dat_grondslagen_noemt():
 def test_grondslagen_zonder_regelingen_buiten_de_graaf_heeft_geen_toelichting():
     d = json.loads(tools.dispatch("grondslagen", _graaf_met_telling(0), {"bwb_id": IW}))
     assert "toelichting" not in d and d["aantal"] == 2
-    # Een graaf zonder telrij (een oudere stand) geeft gewoon de rijen.
+    # Een antwoord zonder de telkolom geeft gewoon de rijen.
     d = json.loads(tools.dispatch("grondslagen", FakeGraph(result=_REGELING), {"bwb_id": IW}))
     assert d["status"] == "ok" and d["aantal"] == 2 and "toelichting" not in d
 

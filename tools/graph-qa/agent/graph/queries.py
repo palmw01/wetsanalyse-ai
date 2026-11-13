@@ -1010,10 +1010,6 @@ def grondslagen(bwb_id: str, aanduiding: str | None = None, limit: int = 50, off
 }} ORDER BY ?relatie ?citeertitel ?doel ?label {_pagina(max(1, min(int(limit), 200)), offset, meer)}"""
 
 
-#: De telrij van `_grondslagen_regeling`: geen relatie, maar hoeveel regelingen buiten de graaf aan de artikelen hangen.
-#: De naam sorteert vóór elke relatie, dus ze staat op de eerste pagina.
-BUITEN_GRAAF = "aantal-buiten-de-graaf"
-
 #: De relaties die aan een tekstdeel hangen: welke regeling berust op dít artikel.
 _PER_TEKSTDEEL = '(bwb:grondslagVoor "grondslag-voor") (bwb:bevoegdheidVoor "bevoegdheid-voor")'
 
@@ -1027,23 +1023,22 @@ def _grondslagen_regeling(bwb_id: str, limit: int, offset: int, meer: bool) -> s
     een regeling die op deze berust haar artikelen in `?vanuit` (de labels) en `?vanuitIri`.
 
     Alleen regelingen die zelf in de graaf staan worden een rij: aan de artikelen van de Invorderingswet 1990 hangen
-    ook ruim honderd regelingen waarvan de graaf alleen het BWB-id kent. Die telt de eerste rij (`BUITEN_GRAAF`, in
-    `?buitenGraaf`; ze sorteert vooraan), zodat het één query blijft; per artikel zijn ze op te vragen. De regeling
-    staat letterlijk in de query, niet in een BIND: een deelpatroon in een UNION rekent de graaf los uit (zie
-    `geldigheid`)."""
+    ook ruim honderd regelingen waarvan de graaf alleen het BWB-id kent. Die telt een losse subquery, die als kolom
+    `?buitenGraaf` op elke rij staat (zo blijft het één query en telt de paginering gewoon rijen); per artikel zijn ze
+    op te vragen. De regeling staat letterlijk in de query, niet in een BIND: een deelpatroon in een UNION rekent de
+    graaf los uit (zie `geldigheid`)."""
     reg = regeling_iri(bwb_id)
     vanuit = f"""?deel ?p ?doel . FILTER(STRSTARTS(STR(?deel), "{reg}{SEP}"))
       OPTIONAL {{ ?deel rdfs:label ?deelLabel }}"""
     return PREFIXES + f"""SELECT ?relatie ?doel (SAMPLE(?ct) AS ?citeertitel) (SAMPLE(?lb) AS ?label)
        (GROUP_CONCAT(DISTINCT STR(?deelLabel); separator=" | ") AS ?vanuit)
        (GROUP_CONCAT(DISTINCT STR(?deel); separator=" | ") AS ?vanuitIri) (SAMPLE(?nBuiten) AS ?buitenGraaf) WHERE {{
-  {{ {{ SELECT (COUNT(DISTINCT ?stub) AS ?nBuiten) WHERE {{
-        VALUES ?q {{ bwb:grondslagVoor bwb:bevoegdheidVoor }}
-        ?tekstdeel ?q ?stub . FILTER(STRSTARTS(STR(?tekstdeel), "{reg}{SEP}"))
-        FILTER(STRSTARTS(STR(?stub), "{NS}"))
-        FILTER NOT EXISTS {{ ?stub bwb:citeertitel ?stubtitel }} }} }}
-    BIND("{BUITEN_GRAAF}" AS ?relatie) BIND(<{reg}> AS ?doel) }}
-  UNION {{ BIND("berust-op" AS ?relatie) <{reg}> bwb:heeftGrondslag ?doel . }}
+  {{ SELECT (COUNT(DISTINCT ?stub) AS ?nBuiten) WHERE {{
+      VALUES ?q {{ bwb:grondslagVoor bwb:bevoegdheidVoor }}
+      ?tekstdeel ?q ?stub . FILTER(STRSTARTS(STR(?tekstdeel), "{reg}{SEP}"))
+      FILTER(STRSTARTS(STR(?stub), "{NS}"))
+      FILTER NOT EXISTS {{ ?stub bwb:citeertitel ?stubtitel }} }} }}
+  {{ BIND("berust-op" AS ?relatie) <{reg}> bwb:heeftGrondslag ?doel . }}
   UNION {{ BIND("grondslag-voor" AS ?relatie) <{reg}> bwb:grondslagVoor ?doel . }}
   UNION {{ BIND("bevoegdheid-voor" AS ?relatie) <{reg}> bwb:bevoegdheidVoor ?doel . }}
   UNION {{ BIND("in-familie" AS ?relatie) <{reg}> bwb:inFamilie ?doel . }}

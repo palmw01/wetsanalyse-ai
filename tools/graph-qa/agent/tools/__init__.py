@@ -327,14 +327,11 @@ def _h_grondslagen(g: GraphPort, a: dict[str, Any]) -> str:
         return _lijst(g, a, "grondslagen", lambda **p: queries.grondslagen(a["bwb_id"], aanduiding, **p), 50, 200)
     # De regeling als geheel: ook de artikelen waar een regeling aan hangt, in één keer (`_grondslagen_regeling`).
     limit, offset = _geheel(a.get("limit"), 50, 1, 200), _offset(a)
-    # De telrij staat vooraan op de eerste pagina en is geen relatie; ze wordt de toelichting. De paginering telt haar
-    # niet mee: de eerste pagina vraagt een rij extra, een volgende begint een rij verder.
-    alle = parse_select(g.sparql(queries.grondslagen(a["bwb_id"], None, limit=limit if offset else limit + 1,
-                                                     offset=offset + 1 if offset else 0, meer=True)))
-    buiten = sum(_geheel(r.get("buitenGraaf"), 0, 0, 10**6) for r in alle if r.get("relatie") == queries.BUITEN_GRAAF)
-    rijen = [_met_vanuit(r) for r in alle if r.get("relatie") != queries.BUITEN_GRAAF]
-    return pagina(rijen, tool="grondslagen", args={**a, "limit": limit}, limit=limit, offset=offset,
-                  toelichting=_buiten_graaf(buiten))
+    rijen = parse_select(g.sparql(queries.grondslagen(a["bwb_id"], None, limit=limit, offset=offset, meer=True)))
+    # Hoeveel regelingen buiten de graaf aan de artikelen hangen, staat als kolom op elke rij; het wordt de toelichting.
+    buiten = max((_geheel(r.pop("buitenGraaf", None), 0, 0, 10**6) for r in rijen), default=0)
+    return pagina([_met_vanuit(r) for r in rijen], tool="grondslagen", args={**a, "limit": limit}, limit=limit, offset=offset,
+                  toelichting=_buiten_graaf(buiten) if offset == 0 else "")
 
 
 def _natuurlijk(tekst: str) -> list[Any]:
