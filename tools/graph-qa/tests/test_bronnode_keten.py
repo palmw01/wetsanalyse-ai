@@ -657,3 +657,87 @@ def test_leidraad_subbepalingen_vooraf_aangevinkt():
     assert [(k["nummer"], k.get("gekozen", False)) for k in kaart["kandidaten"]] == [
         ("9.1", True), ("9.2", False), ("9.3", True)]
 
+
+
+class _Regelingnamen:
+    """De namen zoals de graaf ze geeft, voor de bepaling die een leesvraag zelf noemt."""
+
+    def sparql(self, query: str) -> str:
+        return ("?regeling\t?citeertitel\t?soort\t?afkortingen\n"
+                "<urn:bwb:BWBR0004770>\tInvorderingswet 1990\twet\tIW | Iw | Iw 1990\n"
+                "<urn:bwb:BWBR0024096>\tLeidraad Invordering 2008\tbeleidsregel\tLI 2008\n"
+                "<urn:bwb:BWBR0005537>\tAlgemene wet bestuursrecht\twet\tAwb\n")
+
+
+@pytest.fixture
+def regelingnamen():
+    from agent import overzicht
+    overzicht._REGELINGEN_CACHE.clear()
+    yield _Regelingnamen()
+    overzicht._REGELINGEN_CACHE.clear()
+
+
+IW = "urn:bwb:BWBR0004770"
+
+
+@pytest.mark.parametrize(("vraag", "verwacht"), [
+    # De vraag uit ronde 3 van de meting van ADR-016: de eerste zoekopdracht ging zonder de bepaling.
+    ("Welke annotaties zijn er bij artikel 36 Iw?", {"bron_iri": f"{IW}:artikel:36", "scope": "subtree"}),
+    ("Welke annotaties staan er op artikel 36, vierde lid, van de Invorderingswet 1990?",
+     {"bron_iri": f"{IW}:artikel:36:lid:4", "scope": "subtree"}),
+    ("Wat is er geannoteerd in artikel 22a van de Invorderingswet?", {"bron_iri": f"{IW}:artikel:22a", "scope": "subtree"}),
+    # Alleen een regeling, meer artikelen, of een nummer met een punt: de regeling, niet een geraden bepaling.
+    ("Welke annotaties zijn er in de Invorderingswet 1990?", {"bwb_id": "BWBR0004770"}),
+    ("Welke annotaties zijn er bij artikel 9 en 10 Iw?", {"bwb_id": "BWBR0004770"}),
+    ("Welke annotaties zijn er bij 25.1 van de Leidraad Invordering 2008?", {"bwb_id": "BWBR0024096"}),
+    # Een artikel zonder regeling, twee regelingen, of een vraag naar wat erbuiten valt: de code kiest niet.
+    ("Welke annotaties zijn er bij artikel 36?", {}),
+    ("Welke annotaties zijn er bij artikel 36 Iw en de Awb?", {}),
+    ("Welke rechtssubjecten staan er in andere bepalingen dan artikel 36 Iw?", {}),
+    ("Welke annotaties zijn er?", {}),
+])
+def test_de_eerste_zoekopdracht_neemt_de_bepaling_uit_de_vraag_mee(regelingnamen, vraag, verwacht):
+    from agent.nodes.annotatie_lezen import bepaling_uit_vraag, zoekfilters
+    assert bepaling_uit_vraag(vraag, regelingnamen) == verwacht
+    filters = zoekfilters({"question": vraag}, regelingnamen)
+    assert {k: v for k, v in filters.items() if k not in ("limit", "jas_klassen")} == verwacht and filters["limit"] == 25
+    # Zonder graaf, of met een graaf die niet antwoordt, zoekt de route breed, zoals voorheen.
+    assert bepaling_uit_vraag(vraag, None) == {}
+
+
+def test_het_meegegeven_doel_gaat_voor_de_bepaling_uit_de_vraag(regelingnamen):
+    from agent.nodes.annotatie_lezen import zoekfilters
+    filters = zoekfilters({"question": "Welke annotaties zijn er bij artikel 36 Iw?", "opgegeven_doel": {"bron_iri": L1}}, regelingnamen)
+    assert filters["bron_iri"] == L1
+    # De herschreven vraag van een vervolg telt, niet de korte vraag zelf.
+    filters = zoekfilters({"question": "En welke annotaties zijn daar?", "zelfstandige_vraag": "Welke annotaties zijn er bij artikel 36 Iw?"},
+                          regelingnamen)
+    assert filters["bron_iri"] == f"{IW}:artikel:36"
+
+
+def test_een_graaf_die_niet_antwoordt_kost_alleen_het_filter():
+    from agent import overzicht
+    from agent.nodes.annotatie_lezen import zoekfilters
+
+    class Kapot:
+        def sparql(self, query: str) -> str:
+            raise RuntimeError("graaf weg")
+
+    overzicht._REGELINGEN_CACHE.clear()
+    assert zoekfilters({"question": "Welke annotaties zijn er bij artikel 36 Iw?"}, Kapot()) == {"limit": 25}
+
+
+def test_de_leesroute_zoekt_meteen_bij_de_genoemde_bepaling(regelingnamen):
+    """In de keten: de eerste `search_annotaties` draagt de bepaling, en het spoor zegt waar gezocht is."""
+    from agent import overzicht
+    namen = regelingnamen.sparql("")
+    llm = FakeLLM([response([text_block("Antwoord.")], "end_turn")])
+    api = ReadApi(snapshot())
+    try:
+        events = run(answer_stream("Welke annotaties zijn er bij artikel 36 Iw?", llm=llm, graph=FakeGraph(results=lambda q: namen),
+                                   annotaties=api, settings=make_settings(), conversation_id="t-bepaling"))
+    finally:
+        overzicht._REGELINGEN_CACHE.clear()
+    aanroepen = [e for e in events if e["type"] == "tool_execution" and e.get("tool") == "search_annotaties"]
+    assert aanroepen, [e["type"] for e in events]
+    assert any(f"{IW}:artikel:36" in json.dumps(e, ensure_ascii=False) for e in aanroepen)
