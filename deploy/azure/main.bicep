@@ -83,6 +83,9 @@ param connectoren array = []
 @description('Stelt de annotatieketen van graph-qa relaties tussen markeringen voor (ADR-011, RELATIE_VOORSTELLEN)? Een proefvlag, alleen acceptatie; default false. Uit is de uitkomst van de keten gelijk aan zonder deze code.')
 param relatieVoorstellen bool = false
 
+@description('Het lichte model voor een subagent van de centrale agent (ADR-016 §A2, LLM_MODEL_LICHT). Een proefvlag, alleen acceptatie; default leeg. Leeg = graph-qa valt terug op LLM_MODEL_ROUTER en anders LLM_MODEL; een model dat de straat niet heeft (404) valt tijdens de beurt terug op LLM_MODEL.')
+param llmModelLicht string = ''
+
 @description('Nemen de annotatie- en begrippenketen van graph-qa de regels mee die een methode-skill meebrengt (ADR-014 §7, SKILL_REGELS)? Een proefvlag, alleen acceptatie; default false. Uit is de uitkomst gelijk aan zonder deze code.')
 param skillRegels bool = false
 
@@ -1031,6 +1034,7 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'WETSANALYSE_API_TOKEN_FILE', value: '/run/secrets/wetsanalyse_api_token' }
             { name: 'SIMILARITY_INDEX', value: 'bwb_similarity' }
             { name: 'RELATIE_VOORSTELLEN', value: relatieVoorstellen ? 'true' : 'false' }
+            { name: 'LLM_MODEL_LICHT', value: llmModelLicht }
             { name: 'SKILL_REGELS', value: skillRegels ? 'true' : 'false' }
             { name: 'CENTRALE_AGENT', value: centraleAgent }
             // Gespreksgeheugen in Postgres, NIET op schijf: het filesystem van een container-app is
@@ -1160,6 +1164,7 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
             { name: 'GRAPHDB_REPOSITORY_ID', value: 'inning' }
             { name: 'SIMILARITY_INDEX', value: 'bwb_similarity' }
             { name: 'RELATIE_VOORSTELLEN', value: relatieVoorstellen ? 'true' : 'false' }
+            { name: 'LLM_MODEL_LICHT', value: llmModelLicht }
             { name: 'SKILL_REGELS', value: skillRegels ? 'true' : 'false' }
             { name: 'CENTRALE_AGENT', value: centraleAgent }
             // Korter wachten dan de werkplek (120 s). Een jurist die zit te wachten heeft baat bij
