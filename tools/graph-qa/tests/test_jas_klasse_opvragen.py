@@ -7,6 +7,7 @@ annotatieketen krijgt dezelfde klasseduiding als voorheen.
 from __future__ import annotations
 
 import json
+import re
 
 import pytest
 
@@ -51,3 +52,58 @@ def test_de_toelichting_raakt_de_methodeversie_van_de_keten_niet():
     """`methode_versie()` gaat mee in de run van elke annotatie; de toelichting staat er los van."""
     import agent.jas_klassen as jk
     assert "TOELICHTING" not in vars(jk) and len(methode_versie()) == 12
+
+
+# --- G2b (meting G2, 14 nov 2026) --------------------------------------------------------------------
+
+#: Een verwijzing naar tekst die niet in het toolresultaat staat: het model kan haar niet nalezen.
+_VERWIJZING = re.compile(r"hierboven|hieronder|\bzie §|\bzie daar\b|\]\(")
+
+
+@pytest.mark.parametrize("klasse", sorted(GELDIGE_JAS_KLASSEN))
+def test_de_toelichting_is_zelfstandig_leesbaar(klasse):
+    for veld, waarde in TOELICHTING[klasse].items():
+        for regel in waarde if isinstance(waarde, list) else [waarde]:
+            assert not _VERWIJZING.search(regel), (klasse, veld, regel[:80])
+
+
+def test_parameter_tegenover_variabele_noemt_de_toets_en_de_verbijzondering():
+    """Meting G2, k-awb67: het model verwierp de parameter met de toets van een variabele ("verschilt niet per
+    rechtssubject"). De afbakening zegt nu dat gelijk voor allen juist een parameter is, en hoe de tijdsaanduiding hem
+    verbijzondert."""
+    regels = TOELICHTING["Parameter en parameterwaarde"]["afbakening"]
+    variabele = next(r for r in regels if r.startswith("Variabele"))
+    assert "gelijk voor alle" in variabele and "pleit dus vóór een parameter" in variabele and "H2:89" in variabele
+    tijd = next(r for r in regels if r.startswith("Tijdsaanduiding"))
+    assert "verbijzondert" in tijd and "H2:107" in tijd
+    assert "verbijzondert" in " ".join(TOELICHTING["Tijdsaanduiding"]["afbakening"])
+
+
+@pytest.mark.parametrize("gevraagd,klasse", [
+    ("Parameterwaarde", "Parameter en parameterwaarde"),
+    ("parameter", "Parameter en parameterwaarde"),
+    ("constante", "Parameter en parameterwaarde"),
+    ("Variabele", "Variabele en variabelewaarde"),
+    ("variabelewaarde", "Variabele en variabelewaarde"),
+    ("Delegatie-invulling", "Delegatiebevoegdheid en delegatie-invulling"),
+    ("rechtssubject", "Rechtssubject"),
+    ("  TIJDSAANDUIDING ", "Tijdsaanduiding"),
+    ("begripsbepaling", "Brondefinitie"),
+])
+def test_een_gangbare_naam_vindt_de_klasse(gevraagd, klasse):
+    uit = json.loads(_jas_klasse_opvragen(gevraagd))
+    assert uit["naam"] == klasse and uit["gevraagd"] == gevraagd.strip()
+
+
+def test_de_exacte_naam_noemt_geen_gevraagd():
+    assert "gevraagd" not in json.loads(_jas_klasse_opvragen("Rechtsfeit"))
+
+
+def test_een_bijna_goede_naam_krijgt_de_naam_die_wel_bestaat():
+    fout = json.loads(_jas_klasse_opvragen("Parameterwaardes"))["fout"]
+    assert "Bedoel je 'Parameter en parameterwaarde'?" in fout
+
+
+def test_elk_synoniem_wijst_een_bestaande_klasse_aan():
+    from agent.tools.jas_tools import SYNONIEMEN
+    assert set(SYNONIEMEN.values()) <= GELDIGE_JAS_KLASSEN

@@ -5,7 +5,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': '1b2c685d8f23ca6a5b949efa427f004050aaf6d
                    'references/agentrollen.md': '0dd07b69189f7983eab7c8543537b4e53b74a720b28905a6ecf16ccc0110da21',
                    'references/bronnen.md': 'c7f83e329cde3c6d25215793c6866510624225c5bda555112737a798a18dde6b',
                    'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
-                   'references/jas-klassen-referentie.md': '14f62a170d1c3f46f9af778caf220a6ceb0f6d81f1c4157dd3cc75e521db755f',
+                   'references/jas-klassen-referentie.md': '4ed318a29ad2c691e31271618c42b333fd405a9335e891a9d1fb845287da4e5d',
                    'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411',
                    'wetsuitvoering/BRON.md': '1860919287fd49783ead620f664ffc5abe302ffdcdcc62b78138f0d1b31a1a31',
                    'wetsuitvoering/SKILL.md': 'ed21ad044b2d0a661a8f5a6fbc19c2f34247d8ac8d732e37ec4d8046c5af2807',
@@ -241,7 +241,7 @@ PAKKET = {'bronbestanden': {'SKILL.md': '1b2c685d8f23ca6a5b949efa427f004050aaf6d
                                      'analysedossier via een route die alleen markeringen of een '
                                      'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
                                      'rol over.'}},
- 'sha256': '1cb35e6cff5f9d54608dc40e13d04da25815554573eb36befab461ed9a19537f',
+ 'sha256': '69c2a418ea1999a51f5a5a4a567ca21e4dbad1390ed1374f1102a1109da46377',
  'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving '
                                                     'volgens de methode Wetsanalyse en het '
                                                     'Juridisch Analyseschema (JAS): een werkgebied '

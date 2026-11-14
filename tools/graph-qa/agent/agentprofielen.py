@@ -5,6 +5,7 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                             'budget': None,
                             'connectors': ('bekendmakingen',
                                            'kamerstukken',
+                                           'kennisgroepen',
                                            'rechtspraak',
                                            'wetgeving_live'),
                             'instructie': 'AFRONDEN: vraagt de gebruiker wat er in een bepaling '
@@ -125,6 +126,7 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                             'budget': None,
                             'connectors': ('bekendmakingen',
                                            'kamerstukken',
+                                           'kennisgroepen',
                                            'rechtspraak',
                                            'wetgeving_live'),
                             'instructie': 'Je beantwoordt de vraag zelf. Je zoekt en leest in de '
@@ -250,6 +252,7 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                   'budget': None,
                                   'connectors': ('bekendmakingen',
                                                  'kamerstukken',
+                                                 'kennisgroepen',
                                                  'rechtspraak',
                                                  'wetgeving_live'),
                                   'instructie': 'Je beantwoordt de vraag zelf. Je zoekt en leest '
@@ -482,6 +485,7 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                            'budget': None,
                            'connectors': ('bekendmakingen',
                                           'kamerstukken',
+                                          'kennisgroepen',
                                           'rechtspraak',
                                           'wetgeving_live'),
                            'instructie': 'Je bent de DUIDINGS-specialist. Je legt de betekenis, '
@@ -627,4 +631,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                        'search_wetgeving',
                                        'semantic_search',
                                        'zoek_opbouw')}},
- 'sha256': '9e60404c06ea3510aa52882e2a05b751165b5ed6e70f2267f2727c62d31834dc'}
+ 'sha256': 'f95bddb269ef4445e9e29bbc2386a21ed2f4a48800961338a6f6a3f56887ad76'}

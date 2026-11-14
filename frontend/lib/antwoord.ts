@@ -18,6 +18,8 @@ export type AntwoordBlok =
         verwijst_naar?: { id: string; label: string; link: string }[] | null; plek?: string }[];
       /** De versie die Lex las: de hash van het document en de stand bij de bron. Leeg bij een ouder bericht. */
       bron_hash?: string; gewijzigd?: string;
+      /** Wat de bron tegenover de wet is, uit de code (`status_regel` van de connector); leeg bij een ouder bericht. */
+      status_regel?: string;
       /** Uit de metadata van het gelezen stuk: de datum en het soort ("Motie"). Leeg bij een ouder bericht. */
       datum?: string; soort_stuk?: string } & TekstBij
   | { soort: "stukken"; door: "bron"; brontype: string; kop: string; items: StukRij[];
@@ -44,6 +46,8 @@ export function tellingTekst(t: Telling): string {
 export interface TekstBij {
   tekst_vanaf?: string; tekst_tot?: string; tekststand?: "huidige tekst" | "eerdere tekst" | "onbekend" | string;
   op_peildatum?: boolean | null;
+  /** De stand van het stuk bij de bron; bij een kennisgroepstandpunt geldend, ingetrokken of vervallen. */
+  status?: string; vervangen_door?: string[];
 }
 
 /** Eén gevonden stuk in een lijst, met de metadata uit de zoektool (de sleutels van `METADATA_SLEUTELS`). */

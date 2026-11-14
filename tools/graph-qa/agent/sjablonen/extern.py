@@ -189,6 +189,19 @@ def _verwijzingen(rij: dict[str, Any]) -> list[ExterneVerwijzing] | None:
 TEKSTVELDEN = ("tekst_vanaf", "tekst_tot", "tekststand", "op_peildatum")
 
 
+def status_velden(c: ConnectorBeschrijving, stuk: dict[str, Any]) -> dict[str, Any]:
+    """De statusregel uit de beschrijving (met de datum van het stuk voluit) en de stand van het stuk bij de bron. Uit de
+    code: het model schrijft niet wat een bron tegenover de wet is (plan-connector-kennisgroepen.md §2.5)."""
+    uit: dict[str, Any] = {}
+    if c.status_regel:
+        uit["status_regel"] = c.status_regel.format(datum=_voluit(str(stuk.get("datum") or "")) or "onbekend")
+    if stuk.get("status"):
+        uit["status"] = str(stuk["status"])
+    if isinstance(stuk.get("vervangen_door"), list):
+        uit["vervangen_door"] = [str(x) for x in stuk["vervangen_door"]]
+    return uit
+
+
 def _tekst_bij(trace: Trace, c: ConnectorBeschrijving, ident: str) -> dict[str, Any]:
     """De tekstvelden uit de zoekrij van dit stuk, als het in een zoekresultaat van dit gesprek stond."""
     rij = _gevonden(trace, c).get(ident, ({}, None, 0))[0]
@@ -252,7 +265,7 @@ def blokken(items: Any, trace: Trace) -> list[Extern | Leemte]:
             link=str(stuk.get("link") or vp.uri), kop=c.kop_in_antwoord, passages=[],
             bron_hash=str(stuk.get("bron_hash") or ""), gewijzigd=str(stuk.get("gewijzigd") or ""),
             datum=str(stuk.get("datum") or ""), soort_stuk=str(stuk.get("soort") or ""),
-            **_tekst_bij(trace, c, vp.id)))
+            **_tekst_bij(trace, c, vp.id), **status_velden(c, stuk)))
         al = {p.nr for p in blok.passages}
         blok.passages += [ExternePassage(nr=n, tekst=rijen[n]["tekst"], kop=str(rijen[n].get("kop") or ""),
                                          soort=str(rijen[n].get("soort") or "alinea"),
@@ -303,7 +316,7 @@ def heel_stuk(trace: Trace, ident: str) -> Extern | None:
         brontype=vp.brontype, id=vp.id, label=str(stuk.get("label") or vp.label), link=str(stuk.get("link") or vp.uri),
         kop=c.kop_in_antwoord, bron_hash=str(stuk.get("bron_hash") or ""), gewijzigd=str(stuk.get("gewijzigd") or ""),
         datum=str(stuk.get("datum") or ""), soort_stuk=str(stuk.get("soort") or ""),
-        **{**tekstvelden, **_tekst_bij(trace, c, vp.id)},
+        **{**tekstvelden, **_tekst_bij(trace, c, vp.id)}, **status_velden(c, stuk),
         passages=[ExternePassage(nr=n, tekst=r["tekst"], kop=str(r.get("kop") or ""), soort=str(r.get("soort") or "alinea"),
                                  verwijst_naar=_verwijzingen(r), plek=str(r.get("plek") or ""))
                   for n, r in sorted(rijen.items())])

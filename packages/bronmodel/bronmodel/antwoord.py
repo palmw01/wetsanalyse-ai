@@ -173,6 +173,14 @@ class Extern(BaseModel):
     tekst_tot: str = ""
     tekststand: str = ""
     op_peildatum: bool | None = None
+    #: Wat de bron is tegenover de wet, uit de code (`ConnectorBeschrijving.status_regel`, met de datum van het stuk):
+    #: "Beleid van de Belastingdienst, bindend voor de inspecteur; geen wet en geen rechtspraak. Stand op 12 november
+    #: 2026." Leeg bij een bron zonder regel en bij een ouder bericht.
+    status_regel: str = ""
+    #: De stand van het stuk bij de bron (`METADATA_SLEUTELS["status"]`): bij een kennisgroepstandpunt "geldend",
+    #: "ingetrokken" of "vervallen", met de standpunten die het introkken. De werkplek meldt een ingetrokken standpunt.
+    status: str = ""
+    vervangen_door: list[str] = []
 
 
 class Stuk(BaseModel):
@@ -325,7 +333,14 @@ def _blok_tekst(b: BaseModel) -> str:
     if isinstance(b, Extern):
         regel = (f"[{b.label}]({b.link})" if b.link else b.label) + (
             f" ({', '.join(x for x in (b.soort_stuk, b.datum) if x)})" if b.soort_stuk or b.datum else "")
-        return "\n\n".join(f'> "{p.tekst}"' + (f" ({p.plek})" if p.plek else "") for p in b.passages) + f"\n\n{regel}"
+        # De statusregel en een ingetrokken standpunt staan vóór de passages: de lezer weet eerst wat de bron is.
+        vooraf = [f"*{b.status_regel}*"] if b.status_regel else []
+        if b.brontype == "standpunt" and b.status in ("ingetrokken", "vervallen"):
+            door = ", ".join(x.upper() for x in b.vervangen_door)
+            vooraf.append(f"**Dit standpunt is {b.status} en is geen geldend beleid" + (f"; ingetrokken door {door}" if door
+                                                                                       else "") + ".**")
+        return "\n\n".join([*vooraf, *(f'> "{p.tekst}"' + (f" ({p.plek})" if p.plek else "") for p in b.passages)]) \
+            + f"\n\n{regel}"
     if isinstance(b, Stukken):
         def regel(x: Stuk) -> str:
             naam = f"[{x.label}]({x.link})" if x.link else x.label

@@ -15,7 +15,11 @@ Herkend worden alleen identifiers met een vaste, officiële vorm, en nooit een l
 - een bepaling uit een toestand van het BWB die Lex live las, buiten de kennisgraaf (connector `wetgeving_live`):
   `bwbt:BWBR0015703:2026-07-01_0:artikel:31`, brontype `wettekst_live`. Na `bwbt:` staan het BWB-id, de toestand zoals
   het repository hem noemt en de staart van de graaf-IRI (`urn:bwb:BWBR0015703:artikel:31` na een import). Een jci of een
-  `urn:bwb:`-IRI kan het niet zijn: die opent de werkplek uit de graaf, en de graaf draagt ook jci's met `g=`/`z=`.
+  `urn:bwb:`-IRI kan het niet zijn: die opent de werkplek uit de graaf, en de graaf draagt ook jci's met `g=`/`z=`;
+- het kenmerk van een kennisgroepstandpunt van de Belastingdienst (`KG:013:2026:4`, id `kg:013:2026:4`): brontype
+  `standpunt`. Een standpunt is beleid van de Belastingdienst, geen wet en geen rechtspraak
+  (`docs/architectuur/plan-connector-kennisgroepen.md`). Alleen de vaste vorm met drie cijfers voor de kennisgroep en vier
+  voor het jaar; een afwijkende titel bij de bron normaliseert de connector zelf.
 """
 from __future__ import annotations
 
@@ -24,7 +28,7 @@ from dataclasses import dataclass
 from urllib.parse import unquote
 
 #: De brontypen, in de volgorde waarin de werkplek ze toont. `wettekst` is de BWB (`vindplaats`).
-BRONTYPEN = ("wettekst", "wettekst_live", "kamerstuk", "bekendmaking", "uitspraak", "eu")
+BRONTYPEN = ("wettekst", "wettekst_live", "kamerstuk", "bekendmaking", "uitspraak", "standpunt", "eu")
 
 _STOP = r"(?![0-9A-Za-z])"
 _KOOP_RE = re.compile(
@@ -32,6 +36,12 @@ _KOOP_RE = re.compile(
 _ECLI_RE = re.compile(r"(?<![0-9A-Za-z])ECLI:[A-Z]{2}:[A-Z0-9]{1,7}:\d{4}:[A-Z0-9.]{1,25}", re.I)
 _CELEX_RE = re.compile(r"(?<![0-9A-Za-z])CELEX:([0-9CE]\d{4}[A-Z]{1,2}\d{4}[0-9A-Z_]*(?:\(\d{2}\))?)", re.I)
 _ELI_RE = re.compile(r"https?://data\.europa\.eu/eli/[a-z_]+/\d{4}/\d+(?:/[0-9A-Za-z_-]+)*")
+#: Het kenmerk van een kennisgroepstandpunt: kennisgroep (3 cijfers), jaar, volgnummer. Niet midden in een woord of een
+#: langer kenmerk, en niet gevolgd door nog een `:`-deel.
+_KG_RE = re.compile(r"(?<![0-9A-Za-z:])KG:(\d{3}):((?:19|20)\d{2}):(\d{1,4})(?![0-9A-Za-z]|:\d)", re.I)
+#: De publieke vindplaats van een standpunt: de site kent geen URL op het kenmerk, wel een zoekopdracht die precies het
+#: standpunt vindt (getoetst 13 nov 2026). De connector geeft bij het lezen de echte link (`stuk.link`).
+KG_ZOEK_URL = "https://kennisgroepen.belastingdienst.nl/?s="
 #: De sleutels van de staart, zoals de importer ze in de graaf-IRI schrijft (`Vocab.by_ref_key`); een waarde is
 #: percent-escaped, dus zonder dubbele punt.
 _BWBT_SLEUTELS = r"(?:hoofdstuk|titeldeel|afdeling|paragraaf|artikel|lid|o|bijlage|divisie|id)"
@@ -123,6 +133,22 @@ def _ecli(ident: str) -> ExterneVindplaats:
     return ExterneVindplaats("uitspraak", ident, uri, ident)
 
 
+def kg_id(groep: str | int, jaar: str | int, nummer: str | int) -> str:
+    """Het canonieke id van een standpunt: `kg:013:2026:4` (kennisgroep met drie cijfers, nummer zonder voorloopnullen)."""
+    return f"kg:{int(groep):03d}:{int(jaar)}:{int(nummer)}"
+
+
+def kg_kenmerk(ident: str) -> str:
+    """Het kenmerk zoals de Belastingdienst het schrijft, bij een id: `kg:013:2026:4` → `KG:013:2026:4`."""
+    return ident.upper()
+
+
+def _kg(m: re.Match[str]) -> ExterneVindplaats:
+    ident = kg_id(m.group(1), m.group(2), m.group(3))
+    kenmerk = kg_kenmerk(ident)
+    return ExterneVindplaats("standpunt", ident, KG_ZOEK_URL + kenmerk.replace(":", "%3A"), f"Kennisgroepstandpunt {kenmerk}")
+
+
 def _celex(nummer: str) -> ExterneVindplaats:
     nummer = nummer.upper()
     label = f"CELEX {nummer}"
@@ -168,6 +194,8 @@ def externe_vindplaats(ref: str) -> ExterneVindplaats | None:
         return _bwbt(m)
     if m := _CELEX_RE.fullmatch(ref.rstrip(".")):
         return _celex(m.group(1))
+    if m := _KG_RE.fullmatch(ref.rstrip(".")):
+        return _kg(m)
     return None
 
 
@@ -180,6 +208,7 @@ def externe_verwijzingen_met_plek(tekst: str) -> list[tuple[int, ExterneVindplaa
         gevonden += [(m.start(), maak(m.group(0).rstrip("."))) for m in patroon.finditer(tekst or "")]
     gevonden += [(m.start(), _celex(m.group(1))) for m in _CELEX_RE.finditer(tekst or "")]
     gevonden += [(m.start(), _bwbt(m)) for m in _BWBT_RE.finditer(tekst or "")]
+    gevonden += [(m.start(), _kg(m)) for m in _KG_RE.finditer(tekst or "")]
     uit: dict[str, tuple[int, ExterneVindplaats]] = {}
     for plek, vp in sorted(gevonden, key=lambda p: p[0]):
         uit.setdefault(vp.id, (plek, vp))

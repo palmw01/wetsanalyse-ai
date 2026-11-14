@@ -527,7 +527,11 @@ Vier vlaggen staan alleen op acceptatie aan, alle vier met default `false` en be
 - `connectoren` (`--connectoren kamerstukken,rechtspraak`): de bronconnectors (ADR-013) die graph-qa aanbiedt; elke
   naam wordt `CONNECTOR_<NAAM>=true` voor graph-qa en de eval-job. `azure-infra.yml` geeft op acceptatie alle namen uit
   `bronmodel.connectors` mee, op productie geen. Of een connector in een gesprek draait, bepalen daarna het register in
-  de beheertab en het menu *Bronnen en tools*.
+  de beheertab en het menu *Bronnen en tools*. Een nieuwe connector gaat dus aan met een `deploy` op acceptatie; een
+  gewone publish (image-swap) zet geen env. Staat `kennisgroepen` in de lijst, dan krijgen de import-job en de
+  graafwacht ook `--kennisgroepen` (`kennisgroepenIndex`) en vult de import-job die de deploy start de index van de
+  kennisgroepstandpunten (eigen named graph, ongeveer 25 verzoeken bij de Belastingdienst). Daarna staat de connector
+  nog uit in het register: zet hem aan in de beheertab. `tests/poort/test_kennisgroepen_uitrol.py` bewaakt die keten.
 - `relatieVoorstellen` (`--relatie-voorstellen`): de annotatieketen stelt relaties tussen markeringen voor (ADR-011,
   `RELATIE_VOORSTELLEN`, een proefvlag). Op graph-qa en de eval-job; uit is de uitkomst gelijk aan zonder deze code.
 - `centraleAgent` (`--centrale-agent uit|meten|aan`): de centrale agent van graph-qa (ADR-016 §A7, `CENTRALE_AGENT`).

@@ -21,7 +21,7 @@ from agent.bronstand import bepaal, prompt_blok
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block
 
 ALLE = dict(connector_kamerstukken=True, connector_rechtspraak=True, connector_bekendmakingen=True,
-            connector_wetgeving_live=True)
+            connector_wetgeving_live=True, connector_kennisgroepen=True)
 KIES = response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: zoek")], "end_turn")
 MVT = "Wat zegt de memorie van toelichting over de bestuurdersaansprakelijkheid?"
 ZONDER = "Hoe werkt de bestuurdersaansprakelijkheid?"
@@ -59,7 +59,8 @@ def test_een_genoemde_bron_houdt_alleen_zijn_eigen_tools():
     assert keuze == ["kamerstukken"]
     assert bronkeuze.actief(stand) == ["kamerstukken"]
     assert {n: s["reden"] for n, s in stand.items() if not s["aan"]} == {
-        "rechtspraak": "niet_nodig", "bekendmakingen": "niet_nodig", "wetgeving_live": "niet_nodig"}
+        "rechtspraak": "niet_nodig", "bekendmakingen": "niet_nodig", "kennisgroepen": "niet_nodig",
+        "wetgeving_live": "niet_nodig"}
 
 
 def test_zonder_genoemde_bron_blijft_alles_aan():
@@ -128,7 +129,7 @@ def test_een_wet_buiten_de_graaf_of_een_filter_beperkt_alleen_niet():
     """B23: een wijzigingswet die de graaf niet kent, kan over het Staatsblad gaan; een filterwaarde zegt wat er gezocht
     wordt, niet waar. Ze komen alleen bij een keuze, en beperken nooit zelf."""
     stand, keuze = bronkeuze.kies(_stand(), set(), None, erbij={"wetgeving_live", "rechtspraak"})
-    assert keuze is None and len(bronkeuze.actief(stand)) == 4
+    assert keuze is None and len(bronkeuze.actief(stand)) == len(ALLE)
     stand, _ = bronkeuze.kies(_stand(), {"kamerstukken"}, None, erbij={"wetgeving_live"})
     assert bronkeuze.actief(stand) == ["kamerstukken", "wetgeving_live"]
 
@@ -160,7 +161,7 @@ def test_een_aanwijzing_noemt_geen_bron():
     assert all(not c.noemt(K16) or not any(re.search(p, K16, re.IGNORECASE) for p in c.aanwijzingen)
                for c in CONNECTORS.values())
     stand, keuze = bronkeuze.kies(_stand(), bronkeuze.genoemd([K16]), None, bronkeuze.filters_in([K16]))
-    assert keuze is None and len(bronkeuze.actief(stand)) == 4
+    assert keuze is None and len(bronkeuze.actief(stand)) == len(ALLE)
 
 
 def test_de_vraag_van_k16_krijgt_alle_connectors():

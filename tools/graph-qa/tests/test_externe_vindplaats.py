@@ -32,6 +32,11 @@ VECTOREN = [
     ("celex:32019L1024", "eu", "CELEX:32019L1024", "Richtlijn (EU) 2019/1024"),
     ("https://data.europa.eu/eli/reg/2016/679/oj", "eu", "http://data.europa.eu/eli/reg/2016/679/oj",
      "Verordening 2016/679"),
+    # Een kennisgroepstandpunt van de Belastingdienst: beleid, geen wet (plan-connector-kennisgroepen.md).
+    ("KG:013:2026:4", "standpunt", "kg:013:2026:4", "Kennisgroepstandpunt KG:013:2026:4"),
+    ("kg:204:2023:46", "standpunt", "kg:204:2023:46", "Kennisgroepstandpunt KG:204:2023:46"),
+    # Een oud kenmerk uit een Woo-besluit draagt voorloopnullen; het id niet.
+    ("KG:013:2018:0173", "standpunt", "kg:013:2018:173", "Kennisgroepstandpunt KG:013:2018:173"),
 ]
 
 
@@ -45,7 +50,9 @@ def test_externe_vindplaats(ref, brontype, ident, label):
 
 
 @pytest.mark.parametrize("ref", ["BWBR0004770", "jci1.3:c:BWBR0004770&artikel=9", "kst-", "12345",
-                                 "32016R0679", "ECLI:NL", "mkst-36123-3", "urn:bwb:BWBR0004770:artikel:9"])
+                                 "32016R0679", "ECLI:NL", "mkst-36123-3", "urn:bwb:BWBR0004770:artikel:9",
+                                 # een kenmerk zonder vaste vorm normaliseert de connector, niet de vindplaats
+                                 "KG:13:2026:4", "KG:2026:211:19", "KG 202:2025:26", "KG:013:2026:4:5", "XKG:013:2026:4"])
 def test_geen_externe_vindplaats(ref):
     assert externe_vindplaats(ref) is None
 
@@ -58,6 +65,13 @@ def test_publieke_links():
     assert externe_vindplaats("kst-36123-3").uri == "https://zoek.officielebekendmakingen.nl/kst-36123-3"
     assert externe_vindplaats("ECLI:NL:HR:2020:1234").uri.startswith("https://deeplink.rechtspraak.nl/")
     assert externe_vindplaats("ECLI:EU:C:2019:123").uri == ""
+    assert externe_vindplaats("KG:013:2026:4").uri == "https://kennisgroepen.belastingdienst.nl/?s=KG%3A013%3A2026%3A4"
+
+
+def test_kenmerken_in_een_tekst():
+    tekst = ("Met dit standpunt wordt het eerder geopenbaarde standpunt KG:013:2018:0173 ingetrokken; zie ook "
+             "KG:209:2022:2 en ECLI:NL:HR:2013:64.")
+    assert [vp.id for vp in externe_verwijzingen(tekst)] == ["kg:013:2018:173", "kg:209:2022:2", "ECLI:NL:HR:2013:64"]
     assert externe_vindplaats("CELEX:32016R0679").uri.startswith("https://eur-lex.europa.eu/")
 
 

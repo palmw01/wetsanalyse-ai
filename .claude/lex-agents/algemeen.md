@@ -4,6 +4,7 @@ description: "Beantwoordt de overige vragen over wet- en regelgeving uit de kenn
 connectors:
   - bekendmakingen
   - kamerstukken
+  - kennisgroepen
   - rechtspraak
   - wetgeving_live
 sjablonen:

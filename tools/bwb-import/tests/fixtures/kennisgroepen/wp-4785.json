@@ -1,0 +1,195 @@
+{
+ "id": 4785,
+ "date": "2023-03-10T09:50:43",
+ "date_gmt": "2023-03-10T08:50:43",
+ "modified": "2026-07-22T11:45:44",
+ "modified_gmt": "2026-07-22T09:45:44",
+ "slug": "ingetrokken-kg07020224-overgaan-van-het-recht-op-de-resterende-termijnen-van-een-lijfrenterekening-middels-een-legaat-naar-goed-doel",
+ "status": "publish",
+ "type": "wt_publication",
+ "link": "https://kennisgroepen.belastingdienst.nl/publicaties/ingetrokken-kg07020224-overgaan-van-het-recht-op-de-resterende-termijnen-van-een-lijfrenterekening-middels-een-legaat-naar-goed-doel/",
+ "title": {
+  "rendered": "[INGETROKKEN] KG:070:2022:4 Overgaan van het recht op de resterende termijnen van een lijfrenterekening middels een legaat naar goed doel"
+ },
+ "content": {
+  "rendered": "\n<div class=\"wt-block-notification is-style-validation\">\n\t<svg width=\"24\" height=\"24\" viewBox=\"0 0 16 16\"\n\t\tclass=\"wt-svg-icon  wt-svg-icon-waarschuwing\" inert aria-hidden=\"true\"><use\n\t\t\thref=\"https://kennisgroepen.belastingdienst.nl/wp-content/themes/webthema/build/icons/icons.svg?ver=8.0.0#waarschuwing\"></use></svg>\t<div>\n\t\t<h6 class=\"wt-block-notification-title\">\n\t\t\t<span class=\"wt-block-notification-icon-label\">Belangrijk!&nbsp;</span>\n\t\t\tIngetrokken\t\t</h6>\n\t\t\n\n<p class=\"wp-block-paragraph\">Dit standpunt is op 11 februari 2025 ingetrokken in verband met de codificatie per 1 januari 2025.</p>\n\n\t</div>\n\t</div>\n\n\n\n<h2 class=\"wp-block-heading\" id=\"aanleiding\">Aanleiding</h2>\n\n\n\n<p class=\"wp-block-paragraph\">De genieter van de termijnen van een lijfrenterekening overlijdt vóór uitkering van de laatste termijn. Men wil het recht op de nog niet uitgekeerde termijnen middels een legaat laten overgaan naar een goed doel.</p>\n\n\n\n<h2 class=\"wp-block-heading\" id=\"vraag\">Vraag</h2>\n\n\n\n<p class=\"wp-block-paragraph\">Is het fiscaal toegestaan dat het recht op de nog niet uitgekeerde termijnen van een lijfrenterekening, waarvan de genieter vóór uitkering van de laatste termijn overlijdt, middels een legaat overgaat naar een goed doel?</p>\n\n\n\n<h2 class=\"wp-block-heading\" id=\"antwoord\">Antwoord</h2>\n\n\n\n<p class=\"wp-block-paragraph\">Op grond van artikel 3.126a, zesde lid, van de Wet inkomstenbelasting 2001 moet het recht op de nog niet uitgekeerde termijnen van een lijfrenterekening, waarvan de genieter vóór uitkering van de laatste termijn overlijdt, overgaan op zijn erfgenamen. Als de legataris erfgenaam is, luidt het antwoord op de vraag bevestigend.<br>Is de legataris echter geen erfgenaam, dan voldoet de lijfrenterekening niet meer aan de fiscale voorwaarden waardoor negatieve uitgaven voor inkomensvoorzieningen in aanmerking worden genomen en revisierente is verschuldigd.</p>\n\n\n\n<p class=\"wp-block-paragraph\"></p>\n"
+ },
+ "meta": {
+  "_acf_changed": false,
+  "wt_navigation_list_enabled": false,
+  "wt_navigation_list_title": "",
+  "wt_navigation_list_strategy": "",
+  "footnotes": "",
+  "cmd_vaststellingsdatum": "20220309",
+  "belastingsoort": [
+   "Inkomstenbelasting (IB)"
+  ],
+  "rubriek": [
+   "Heffingsgrondslag bij werk en woning (Box 1)"
+  ],
+  "subrubriek": [
+   "Belastbare periodieke uitkeringen en verstrekkingen"
+  ]
+ },
+ "wt_publication_category": [
+  55
+ ],
+ "wt_publication_tag": [
+  76
+ ],
+ "message_types": [
+  95
+ ],
+ "class_list": [
+  "post-4785",
+  "wt_publication",
+  "type-wt_publication",
+  "status-publish",
+  "hentry",
+  "wt_publication_category-inkomstenbelasting",
+  "wt_publication_tag-kg-verzekeringsproducten-vzp",
+  "message_types-standpunt"
+ ],
+ "_embedded": {
+  "wp:term": [
+   [
+    {
+     "id": 55,
+     "link": "https://kennisgroepen.belastingdienst.nl/publicatie-categorie/inkomstenbelasting/",
+     "name": "Inkomstenbelasting",
+     "slug": "inkomstenbelasting",
+     "taxonomy": "wt_publication_category",
+     "acf": [],
+     "_links": {
+      "self": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_category/55",
+        "targetHints": {
+         "allow": [
+          "GET"
+         ]
+        }
+       }
+      ],
+      "collection": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_category"
+       }
+      ],
+      "about": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/taxonomies/wt_publication_category"
+       }
+      ],
+      "wp:post_type": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication?wt_publication_category=55"
+       }
+      ],
+      "curies": [
+       {
+        "name": "wp",
+        "href": "https://api.w.org/{rel}",
+        "templated": true
+       }
+      ]
+     }
+    }
+   ],
+   [
+    {
+     "id": 76,
+     "link": "https://kennisgroepen.belastingdienst.nl/publicatie-tag/kg-verzekeringsproducten-vzp/",
+     "name": "KG Verzekeringsproducten (VZP)",
+     "slug": "kg-verzekeringsproducten-vzp",
+     "taxonomy": "wt_publication_tag",
+     "acf": [],
+     "_links": {
+      "self": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_tag/76",
+        "targetHints": {
+         "allow": [
+          "GET"
+         ]
+        }
+       }
+      ],
+      "collection": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_tag"
+       }
+      ],
+      "about": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/taxonomies/wt_publication_tag"
+       }
+      ],
+      "wp:post_type": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication?wt_publication_tag=76"
+       }
+      ],
+      "curies": [
+       {
+        "name": "wp",
+        "href": "https://api.w.org/{rel}",
+        "templated": true
+       }
+      ]
+     }
+    }
+   ],
+   [
+    {
+     "id": 95,
+     "link": "https://kennisgroepen.belastingdienst.nl/informatiesoort/standpunt/",
+     "name": "Standpunt",
+     "slug": "standpunt",
+     "taxonomy": "message_types",
+     "acf": [],
+     "_links": {
+      "self": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/message_types/95",
+        "targetHints": {
+         "allow": [
+          "GET"
+         ]
+        }
+       }
+      ],
+      "collection": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/message_types"
+       }
+      ],
+      "about": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/taxonomies/message_types"
+       }
+      ],
+      "wp:post_type": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/posts?message_types=95"
+       },
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/pages?message_types=95"
+       },
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication?message_types=95"
+       }
+      ],
+      "curies": [
+       {
+        "name": "wp",
+        "href": "https://api.w.org/{rel}",
+        "templated": true
+       }
+      ]
+     }
+    }
+   ]
+  ]
+ }
+}

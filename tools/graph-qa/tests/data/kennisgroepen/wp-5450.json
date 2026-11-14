@@ -1,0 +1,195 @@
+{
+ "id": 5450,
+ "date": "2023-03-21T13:35:30",
+ "date_gmt": "2023-03-21T12:35:30",
+ "modified": "2023-03-21T13:35:30",
+ "modified_gmt": "2023-03-21T12:35:30",
+ "slug": "kg21220224-per-abuis-gemeld-door-verkeerde-ondernemer-energie-investeringsaftrek-artikel-3-42-wet-ib-2001",
+ "status": "publish",
+ "type": "wt_publication",
+ "link": "https://kennisgroepen.belastingdienst.nl/publicaties/kg21220224-per-abuis-gemeld-door-verkeerde-ondernemer-energie-investeringsaftrek-artikel-3-42-wet-ib-2001/",
+ "title": {
+  "rendered": "KG:212:2022:4 Per abuis gemeld door verkeerde ondernemer. Energie-investeringsaftrek. Artikel 3.42, Wet IB 2001."
+ },
+ "content": {
+  "rendered": "\n<h2 class=\"wp-block-heading\" id=\"aanleiding\">Aanleiding</h2>\n\n\n\n<p class=\"wp-block-paragraph\">Een ondernemer is op enigerlei wijze gelieerd aan een of meer andere ondernemers. De ondernemer investeert in een energie-bedrijfsmiddel. De investering wordt tijdig gemeld bij RVO, maar per abuis op naam van een gelieerde onderneming. De door RVO afgegeven energieverklaring staat daardoor ook ten onrechte op naam van die melder.</p>\n\n\n\n<h2 class=\"wp-block-heading\" id=\"vraag\">Vraag</h2>\n\n\n\n<p class=\"wp-block-paragraph\">Is het mogelijk om ondanks deze fout energie-investeringsaftrek te claimen?</p>\n\n\n\n<h2 class=\"wp-block-heading\" id=\"antwoord\">Antwoord</h2>\n\n\n\n<p class=\"wp-block-paragraph\">Ja, het is mogelijk om in deze situatie energie-investeringsaftrek te claimen. Van belang is dat de investering tijdig is gemeld en dat de verkeerde melding en tenaamstelling per abuis heeft plaatsgevonden. De inspecteur mag de afgegeven verklaring beschouwen als een op naam van de investerende ondernemer afgegeven beschikking.</p>\n\n\n\n<h2 class=\"wp-block-heading\" id=\"beschouwing\">Beschouwing<em></em></h2>\n\n\n\n<p class=\"wp-block-paragraph\">In incidentele gevallen komt het voor dat een investering in een energie-bedrijfsmiddel per abuis niet wordt gemeld door de investerende ondernemer die het bedrijfsmiddel op zijn balans zal mogen activeren, maar door een gelieerde ondernemer. Dit kan zich zowel voordoen in de IB als in de Vpb. De door RVO afgegeven verklaring zal in dat geval ook op naam van de verkeerde belastingplichtige zijn afgegeven.</p>\n\n\n\n<p class=\"wp-block-paragraph\">Als de inspecteur van mening is dat er voor de investering een tijdige melding is gedaan, maar per abuis door de verkeerde ondernemer, dan mag hij de voor die melding afgegeven verklaring beschouwen als een verklaring ten behoeve van de investerende ondernemer.</p>\n\n\n\n<h3 class=\"wp-block-heading\" id=\"milieu-investeringsaftrek\">Milieu-investeringsaftrek</h3>\n\n\n\n<p class=\"wp-block-paragraph\">Voor de milieu-investeringsaftrek is een aanmelding vereist, maar is geen verklaring van RVO nodig. Dit betekent dat de inspecteur de ruimte heeft om een eventuele vergissing te herstellen. Bij een melding voor de milieu-investeringsaftrek/Vamil die per abuis op naam van een verkeerde ondernemer is gedaan, kan de inspecteur derhalve ook uitgaan van een melding door de investerende ondernemer. Indien ook overigens aan alle eisen is voldaan staat niets het verlenen van milieu-investeringsaftrek en/of Vamil in de weg.</p>\n"
+ },
+ "meta": {
+  "_acf_changed": false,
+  "wt_navigation_list_enabled": false,
+  "wt_navigation_list_title": "",
+  "wt_navigation_list_strategy": "",
+  "footnotes": "",
+  "cmd_vaststellingsdatum": "20220616",
+  "belastingsoort": [
+   "Inkomstenbelasting (IB)"
+  ],
+  "rubriek": [
+   "Heffingsgrondslag bij werk en woning (Box 1)"
+  ],
+  "subrubriek": [
+   "Belastbare winst uit onderneming"
+  ]
+ },
+ "wt_publication_category": [
+  55
+ ],
+ "wt_publication_tag": [
+  78
+ ],
+ "message_types": [
+  95
+ ],
+ "class_list": [
+  "post-5450",
+  "wt_publication",
+  "type-wt_publication",
+  "status-publish",
+  "hentry",
+  "wt_publication_category-inkomstenbelasting",
+  "wt_publication_tag-kg-winstfaciliteiten-en-firmaproblematiek-wf",
+  "message_types-standpunt"
+ ],
+ "_embedded": {
+  "wp:term": [
+   [
+    {
+     "id": 55,
+     "link": "https://kennisgroepen.belastingdienst.nl/publicatie-categorie/inkomstenbelasting/",
+     "name": "Inkomstenbelasting",
+     "slug": "inkomstenbelasting",
+     "taxonomy": "wt_publication_category",
+     "acf": [],
+     "_links": {
+      "self": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_category/55",
+        "targetHints": {
+         "allow": [
+          "GET"
+         ]
+        }
+       }
+      ],
+      "collection": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_category"
+       }
+      ],
+      "about": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/taxonomies/wt_publication_category"
+       }
+      ],
+      "wp:post_type": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication?wt_publication_category=55"
+       }
+      ],
+      "curies": [
+       {
+        "name": "wp",
+        "href": "https://api.w.org/{rel}",
+        "templated": true
+       }
+      ]
+     }
+    }
+   ],
+   [
+    {
+     "id": 78,
+     "link": "https://kennisgroepen.belastingdienst.nl/publicatie-tag/kg-winstfaciliteiten-en-firmaproblematiek-wf/",
+     "name": "KG Winstfaciliteiten en Firmaproblematiek (WF)",
+     "slug": "kg-winstfaciliteiten-en-firmaproblematiek-wf",
+     "taxonomy": "wt_publication_tag",
+     "acf": [],
+     "_links": {
+      "self": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_tag/78",
+        "targetHints": {
+         "allow": [
+          "GET"
+         ]
+        }
+       }
+      ],
+      "collection": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication_tag"
+       }
+      ],
+      "about": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/taxonomies/wt_publication_tag"
+       }
+      ],
+      "wp:post_type": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication?wt_publication_tag=78"
+       }
+      ],
+      "curies": [
+       {
+        "name": "wp",
+        "href": "https://api.w.org/{rel}",
+        "templated": true
+       }
+      ]
+     }
+    }
+   ],
+   [
+    {
+     "id": 95,
+     "link": "https://kennisgroepen.belastingdienst.nl/informatiesoort/standpunt/",
+     "name": "Standpunt",
+     "slug": "standpunt",
+     "taxonomy": "message_types",
+     "acf": [],
+     "_links": {
+      "self": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/message_types/95",
+        "targetHints": {
+         "allow": [
+          "GET"
+         ]
+        }
+       }
+      ],
+      "collection": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/message_types"
+       }
+      ],
+      "about": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/taxonomies/message_types"
+       }
+      ],
+      "wp:post_type": [
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/posts?message_types=95"
+       },
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/pages?message_types=95"
+       },
+       {
+        "href": "https://kennisgroepen.belastingdienst.nl/wp-json/wp/v2/wt_publication?message_types=95"
+       }
+      ],
+      "curies": [
+       {
+        "name": "wp",
+        "href": "https://api.w.org/{rel}",
+        "templated": true
+       }
+      ]
+     }
+    }
+   ]
+  ]
+ }
+}

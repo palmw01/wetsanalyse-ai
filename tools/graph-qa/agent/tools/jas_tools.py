@@ -13,6 +13,7 @@ weggehaald: geen specialist bood hem aan. Hij staat in de git-historie.
 """
 from __future__ import annotations
 
+import difflib
 import json
 from typing import Any
 
@@ -24,21 +25,68 @@ from ..jas_toelichting import TOELICHTING
 # ---------------------------------------------------------------------------
 
 
+#: Gangbare namen die geen klassenaam zijn, naar de klasse (plan methodes scheiden, G2b; meting G2: "Parameterwaarde"
+#: gaf een fout en kostte een ronde). De delen van een samengestelde naam ("Parameter", "parameterwaarde") vindt
+#: `_klasse_van` zelf; hier staan alleen synoniemen uit de bron of de praktijk.
+SYNONIEMEN: dict[str, str] = {
+    "constante": "Parameter en parameterwaarde",  # H2:89: "wordt een parameter ook wel constante genoemd"
+    "subject": "Rechtssubject",
+    "object": "Rechtsobject",
+    "plicht": "Rechtsbetrekking",
+    "bevoegdheid": "Rechtsbetrekking",
+    "rechtshandeling": "Rechtsfeit",
+    "gebeurtenis": "Rechtsfeit",
+    "afleiding": "Afleidingsregel",
+    "berekening": "Afleidingsregel",
+    "rekenregel": "Afleidingsregel",
+    "beslisregel": "Afleidingsregel",
+    "termijn": "Tijdsaanduiding",
+    "tijd": "Tijdsaanduiding",
+    "plaats": "Plaatsaanduiding",
+    "delegatie": "Delegatiebevoegdheid en delegatie-invulling",
+    "definitie": "Brondefinitie",
+    "begripsbepaling": "Brondefinitie",
+}
+
+
+def _sleutel(naam: str) -> str:
+    return " ".join(naam.casefold().replace("_", " ").split())
+
+
+def _namen() -> dict[str, str]:
+    """Elke naam waaronder een klasse te vinden is: de klassenaam, de delen van een samengestelde naam en de synoniemen."""
+    namen = {_sleutel(k): v for k, v in SYNONIEMEN.items()}
+    for k in JAS_KLASSEN:
+        namen[_sleutel(k.naam)] = k.naam
+        for deel in k.naam.split(" en "):
+            namen[_sleutel(deel)] = k.naam
+    return namen
+
+
+def _klasse_van(naam: str):
+    gevonden = _namen().get(_sleutel(naam))
+    return next((k for k in JAS_KLASSEN if k.naam == gevonden), None)
+
+
 def _jas_klasse_opvragen(naam: str) -> str:
     """Geef de volledige JAS-specificatie van één klasse als JSON-string.
 
-    Returns JSON met: naam, omschrijving, vraag, uitdrukkingswijze.
-    Geeft een foutmelding als de klasse niet bestaat.
+    Returns JSON met: naam, omschrijving, vraag, uitdrukkingswijze en de toelichting uit de skill. Een gangbare naam
+    ("Parameterwaarde", "variabele", "constante") vindt de klasse; het resultaat noemt dan ook `gevraagd`. Een naam die
+    niet te vinden is, geeft een fout met de naam die het meest lijkt en de dertien klassen.
     """
     naam = naam.strip()
-    klasse = next((k for k in JAS_KLASSEN if k.naam == naam), None)
+    klasse = _klasse_van(naam)
     if klasse is None:
+        lijkt = difflib.get_close_matches(_sleutel(naam), list(_namen()), n=1, cutoff=0.6)
         geldige = ", ".join(sorted(GELDIGE_JAS_KLASSEN))
+        hint = f" Bedoel je '{_namen()[lijkt[0]]}'?" if lijkt else ""
         return json.dumps({
-            "fout": f"Onbekende JAS-klasse: '{naam}'. Geldige klassen: {geldige}.",
+            "fout": f"Onbekende JAS-klasse: '{naam}'.{hint} Geldige klassen: {geldige}.",
         }, ensure_ascii=False)
     return json.dumps({
         "naam": klasse.naam,
+        **({"gevraagd": naam} if naam != klasse.naam else {}),
         "omschrijving": klasse.omschrijving,
         "vraag": klasse.vraag,
         "uitdrukkingswijze": klasse.uitdrukkingswijze,
@@ -64,7 +112,7 @@ JAS_TOOLS: list[dict[str, Any]] = [
             "properties": {
                 "naam": {
                     "type": "string",
-                    "description": "Exacte naam van de JAS-klasse, bijv. 'Rechtssubject'.",
+                    "description": "Naam van de JAS-klasse, bijv. 'Rechtssubject'; ook een deel of gangbare naam als 'Parameterwaarde'.",
                 },
             },
             "required": ["naam"],
