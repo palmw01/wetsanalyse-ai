@@ -181,46 +181,8 @@ export const ThreadRij = memo(function ThreadRij({
         {/* Bij een overzicht linkt het paneel elke vindplaats: een bronnenlijst van 40–90 regels ernaast
             zegt niets nieuws. De bronnen blijven in het bericht (herkomst, eval). */}
         {!item.overzicht && !item.antwoord?.doelen.length && restBronnen.length > 0 && <Bronnen bronnen={restBronnen} />}
-        {/* Lex begint niet zonder akkoord: het voorstel noemt aantal en kosten, de knop start. */}
-        {item.bevestiging && item.bevestiging.aantal > 0 && !demo && keuze && (
-          <p className="mt-3 text-xs text-muted" data-bevestiging-keuze={keuze}>
-            {keuze === "geannuleerd" ? "Geannuleerd: Lex is niet begonnen." : "Gestart."}
-          </p>
-        )}
-        {item.bevestiging && item.bevestiging.aantal > 0 && !demo && !keuze && (
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-          {item.bevestiging.soort === "regie" && item.bevestiging.plan_id && item.bevestiging.opdracht ? (
-            <Button size="sm" className="w-full sm:w-auto" disabled={bezig || geblokkeerd}
-              data-bevestiging={item.bevestiging.aantal}
-              onClick={() => acties.verstuur({ prompt: regiePrompt(item.bevestiging!.opdracht!), regie:
-                { werkgebiedId: item.bevestiging!.werkgebied_id, opdracht: item.bevestiging!.opdracht!,
-                  planId: item.bevestiging!.plan_id! } })}>
-              Start de regie ({deelgesprekken(item.bevestiging.aantal)})
-            </Button>
-          ) : item.bevestiging.soort === "begrippen_verdiepen" ? (
-            <Button size="sm" className="w-full sm:w-auto" disabled={bezig || geblokkeerd}
-              data-bevestiging={item.bevestiging.aantal}
-              onClick={() => acties.verstuur({ prompt: MEEDENK_PROMPT, annoteren:
-                { werkgebiedId: item.bevestiging!.werkgebied_id, bevestigd: item.bevestiging!.aantal,
-                  modus: "begrippen_verdiepen",
-                  ...(item.bevestiging!.werkvoorraad_id ? { werkvoorraadId: item.bevestiging!.werkvoorraad_id } : {}) } })}>
-              Laat Lex meedenken ({item.bevestiging.aantal})
-            </Button>
-          ) : (
-            <Button size="sm" className="w-full sm:w-auto" disabled={bezig || geblokkeerd}
-              data-bevestiging={item.bevestiging.aantal}
-              onClick={() => acties.verstuur({ prompt: ANNOTEER_PROMPT, annoteren:
-                { werkgebiedId: item.bevestiging!.werkgebied_id, bevestigd: item.bevestiging!.aantal,
-                  ...(item.bevestiging!.bereik ? { bereik: item.bevestiging!.bereik } : {}),
-                  ...(item.bevestiging!.deelvraag_id ? { deelvraagId: item.bevestiging!.deelvraag_id } : {}) } })}>
-              Laat Lex annoteren ({bepalingen(Math.min(item.bevestiging.aantal, PLAFOND))})
-            </Button>
-          )}
-            <Button size="sm" variant="secondary" className="w-full sm:w-auto" disabled={bezig}
-              onClick={() => acties.annuleer()}>
-              Annuleren
-            </Button>
-          </div>
+        {item.bevestiging && !demo && (
+          <BevestigingBlok bevestiging={item.bevestiging} keuze={keuze} bezig={bezig} geblokkeerd={geblokkeerd} acties={acties} />
         )}
         {/* Een antwoord met alleen afgeleide duiding of tekst van de code (een leemte) heeft niets van het model te controleren. */}
         {item.tekst && item.grounding && !(item.grounding.niveau === "onbepaald" && alleenNietGetoetst(item.antwoord)) && <Brongetrouwheid grounding={item.grounding} />}
@@ -282,6 +244,10 @@ export const ThreadRij = memo(function ThreadRij({
         <ArtefactChip artefact={item.artefact} onOpen={() => acties.openArtefactVan(item.artefact)} />
         {item.delegatie && !demo && (
           <DelegatieBlok weergave={item.delegatie} gesprekId={gesprekId} loopt={streamt} onOpenGesprek={acties.openGesprek} />
+        )}
+        {/* De bundel van een regie draagt de knop voor de volgende fase (graph-qa #1521). */}
+        {item.bevestiging && !demo && (
+          <BevestigingBlok bevestiging={item.bevestiging} keuze={keuze} bezig={bezig} geblokkeerd={geblokkeerd} acties={acties} />
         )}
         {item.denk && <div className="mt-3"><DenkProces tekst={item.denk} actief={false} label="Zo is dit tot stand gekomen" /></div>}
       </div>
@@ -484,6 +450,63 @@ function Punten() {
       <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-muted" />
       <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-muted" />
     </span>
+  );
+}
+
+/** Een voorstel dat Lex niet zonder akkoord start: de knop die het start en *Annuleren*, of wat er gekozen is. Eén blok voor
+ *  een gewoon antwoord en een artefact (de bundel van een regie met de knop voor de volgende fase). */
+function BevestigingBlok({ bevestiging, keuze, bezig, geblokkeerd, acties }: {
+  bevestiging: import("@/lib/types").Bevestiging;
+  keuze?: BevestigingKeuze;
+  bezig: boolean;
+  geblokkeerd: boolean;
+  acties: ThreadActies;
+}) {
+  if (bevestiging.aantal <= 0) return null;
+  return (
+    <>
+      {/* Lex begint niet zonder akkoord: het voorstel noemt aantal en kosten, de knop start. */}
+      {keuze && (
+        <p className="mt-3 text-xs text-muted" data-bevestiging-keuze={keuze}>
+          {keuze === "geannuleerd" ? "Geannuleerd: Lex is niet begonnen." : "Gestart."}
+        </p>
+      )}
+      {!keuze && (
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        {bevestiging.soort === "regie" && bevestiging.plan_id && bevestiging.opdracht ? (
+          <Button size="sm" className="w-full sm:w-auto" disabled={bezig || geblokkeerd}
+            data-bevestiging={bevestiging.aantal}
+            onClick={() => acties.verstuur({ prompt: regiePrompt(bevestiging.opdracht!), regie:
+              { werkgebiedId: bevestiging.werkgebied_id, opdracht: bevestiging.opdracht!,
+                planId: bevestiging.plan_id! } })}>
+            Start de regie ({deelgesprekken(bevestiging.aantal)})
+          </Button>
+        ) : bevestiging.soort === "begrippen_verdiepen" ? (
+          <Button size="sm" className="w-full sm:w-auto" disabled={bezig || geblokkeerd}
+            data-bevestiging={bevestiging.aantal}
+            onClick={() => acties.verstuur({ prompt: MEEDENK_PROMPT, annoteren:
+              { werkgebiedId: bevestiging.werkgebied_id, bevestigd: bevestiging.aantal,
+                modus: "begrippen_verdiepen",
+                ...(bevestiging.werkvoorraad_id ? { werkvoorraadId: bevestiging.werkvoorraad_id } : {}) } })}>
+            Laat Lex meedenken ({bevestiging.aantal})
+          </Button>
+        ) : (
+          <Button size="sm" className="w-full sm:w-auto" disabled={bezig || geblokkeerd}
+            data-bevestiging={bevestiging.aantal}
+            onClick={() => acties.verstuur({ prompt: ANNOTEER_PROMPT, annoteren:
+              { werkgebiedId: bevestiging.werkgebied_id, bevestigd: bevestiging.aantal,
+                ...(bevestiging.bereik ? { bereik: bevestiging.bereik } : {}),
+                ...(bevestiging.deelvraag_id ? { deelvraagId: bevestiging.deelvraag_id } : {}) } })}>
+            Laat Lex annoteren ({bepalingen(Math.min(bevestiging.aantal, PLAFOND))})
+          </Button>
+        )}
+          <Button size="sm" variant="secondary" className="w-full sm:w-auto" disabled={bezig}
+            onClick={() => acties.annuleer()}>
+            Annuleren
+          </Button>
+        </div>
+      )}
+    </>
   );
 }
 

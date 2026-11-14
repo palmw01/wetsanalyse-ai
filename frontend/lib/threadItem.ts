@@ -56,7 +56,9 @@ export type ThreadItem = (
   // Lex met een chip die het artefactpaneel van die soort opent (`lib/artefact.ts`). Een annotatie
   // blijft hierboven, met haar eigen hergebruik, opnieuw-knop en meting.
   | { id: string; type: "artefact"; artefact: import("./artefact").Artefact; tekst?: string; denk?: string;
-      delegatie?: DelegatieWeergave }
+      delegatie?: DelegatieWeergave;
+      // De bundel van een regie met de knop voor de volgende fase (graph-qa #1521).
+      bevestiging?: import("./types").Bevestiging }
   // De vraag noemde een onderwerp: de agent vond bepalingen, de jurist kiest er één.
   // `keuze` gezet: de onderdelen van één bepaling (leden, subbepalingen) of een dubbelzinnig nummer.
   | { id: string; type: "kandidaten"; tekst: string; kandidaten: AgentKandidaat[]; keuze?: AgentKeuze }

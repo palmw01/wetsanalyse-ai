@@ -40,8 +40,9 @@ export function itemsUitGesprek(berichten: Bericht[], uid: () => string): Geschi
     // kaartje (een oud bericht *Gevonden bepalingen*, nu een bronselectie) blijft het gewoon een chip.
     if (art && !annotatieDoel && (art.soort !== "bronselectie" || !b.vraagkaart)) {
       const delegatie = weergaveUitBericht(b.delegaties);
+      const bevestiging = parseBevestiging(b.bevestiging);
       return [{ id: uid(), type: "artefact" as const, artefact: art, tekst: b.tekst?.trim() || undefined, denk: b.denk,
-        ...(delegatie ? { delegatie } : {}) }];
+        ...(delegatie ? { delegatie } : {}), ...(bevestiging ? { bevestiging } : {}) }];
     }
     return [b.rol === "user"
       ? { id: uid(), type: "user" as const, tekst: b.tekst, antwoordOp: parseAntwoordOp(b.intake_antwoord),

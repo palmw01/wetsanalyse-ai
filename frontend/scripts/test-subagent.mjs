@@ -11,6 +11,8 @@
  *  - de sidebar toont de stand van elk deelgesprek uit `/api/delegaties` (wacht op antwoord, klaar);
  *  - *Stop* stopt de beurt, en het blok zegt dat de subagent gestopt is;
  *  - herladen tijdens de run hangt weer aan en toont hetzelfde blok; daarna staat de stand van de api er;
+ *  - de bundel van een regie (een artefact) draagt de knop voor de volgende fase (graph-qa #1521, `plan_id` zestien
+ *    nullen), live en na herladen, en een regiekind toont zijn profiel zonder "subagent";
  *  - op 375 px past alles, zonder horizontaal scrollen;
  *  - de werkplek schrijft geen assistent-bericht.
  */
@@ -88,6 +90,23 @@ const runs = {
     ] : []),
   ],
 };
+const VOLGENDE_FASE = { soort: "regie", werkgebied_id: "wg1", opdracht: "annoteren", plan_id: "0".repeat(16), aantal: 2, schatting: null };
+const NU = new Date().toISOString();
+const WG1 = { id: "wg1", naam: "Invordering", analysevraag: "Wie is aansprakelijk?", afbakening: "", aanleiding: "", context: "",
+  doel: "", praktijkvoorbeeld: "", peildatum: null, status: "in_voorbereiding", revisie: 1, aangemaakt_door: "t",
+  aangemaakt: NU, gewijzigd: NU, gearchiveerd: null, bronnen: [], deelvragen: [] };
+const REGIE_ARTEFACT = { soort: "regie", ref: { werkgebied_id: "wg1", regie_id: "r5" }, titel: "Regie · bronnen" };
+runs.regie = () => [
+  { type: "regie", fase: "start", regie_id: "r5", plan: { opdracht: "bronnen", taken: [{ titel: "Deelvraag 1" }, { titel: "Deelvraag 2" }] } },
+  { type: "regie_taak", fase: "start", regie_id: "r5", index: 0, titel: "Deelvraag 1", gesprek_id: "g5", profiel: "retrieval" },
+  { type: "regie_taak", fase: "eind", regie_id: "r5", index: 0, titel: "Deelvraag 1", gesprek_id: "g5", uitkomst: "klaar" },
+  { type: "regie_taak", fase: "start", regie_id: "r5", index: 1, titel: "Deelvraag 2", gesprek_id: "g6", profiel: "retrieval" },
+  { type: "regie_taak", fase: "eind", regie_id: "r5", index: 1, titel: "Deelvraag 2", gesprek_id: "g6", uitkomst: "klaar" },
+  { type: "regie", fase: "eind", regie_id: "r5", uitkomst: "klaar", opgeleverd: 2, wacht: 0, mislukt: 0 },
+  { type: "token", content: "De bronnen per deelvraag staan klaar." },
+  { type: "opgeslagen", run_id: "regie", artefact: REGIE_ARTEFACT, bevestiging: VOLGENDE_FASE },
+  { type: "done", uitkomst: "klaar" },
+];
 const delegatie = (id, gesprek, status, taken, kinderen) => ({ id, soort: "subagent", werkgebied_id: "", gesprek_id: gesprek,
   user_id: "browser-test", opdracht: "subagent", plan_id: "p".repeat(16), plan: { taken }, status,
   uitkomst: kinderen ? { kinderen } : {}, budget_aandeel: 0, later_gewijzigd: false });
@@ -97,6 +116,8 @@ const delegaties = (gesprek) => gesprek === "sub" ? [delegatie("d1", "sub", stan
     { gesprek_id: "g2", uitkomst: stand.sub === "klaar" ? "klaar" : "vraag" }])]
   : gesprek === "stopg" ? [delegatie("d3", "stopg", stand.stopg, [taak("Uitspraak C", "algemeen")],
     stand.stopg === "loopt" ? undefined : [{ gesprek_id: "g3", uitkomst: "gestopt" }])]
+  : gesprek === "regieg" ? [{ ...delegatie("r5", "regieg", "klaar", [{ titel: "Deelvraag 1" }, { titel: "Deelvraag 2" }]),
+    soort: "regie", opdracht: "bronnen", werkgebied_id: "wg1", uitkomst: { opgeleverd: 2 } }]
   : gesprek === "herlaad" ? [delegatie("d4", "herlaad", stand.herlaad, [taak("Uitspraak D", "definitie")],
     stand.herlaad === "loopt" ? undefined : [{ gesprek_id: "g4", uitkomst: "klaar" }])] : [];
 
@@ -113,11 +134,15 @@ const berichten = {
     { rol: "assistant", tekst: "De bundel van beide uitspraken.", ...leeg, run_id: "sub2", delegaties: ["d1"] },
   ],
   herlaad: [{ rol: "user", tekst: "Zoek de definitie op", ...leeg }],
+  regieg: [{ rol: "user", tekst: "Zoek per deelvraag de bronnen", ...leeg },
+    { rol: "assistant", tekst: "De bronnen per deelvraag staan klaar.", ...leeg, run_id: "regie", artefact: REGIE_ARTEFACT,
+      bevestiging: VOLGENDE_FASE, delegaties: ["r5"] }],
   g1: [{ rol: "user", tekst: "OPDRACHT: vat uitspraak A samen.", ...leeg, doorgegeven: "opdracht" },
     { rol: "assistant", tekst: "Rapport van uitspraak A.", ...leeg, run_id: "k1" },
     { rol: "user", tekst: "ANTWOORD OP JE VRAGEN: 2024", ...leeg, doorgegeven: "antwoorden" }],
 };
 let volgendeRun = "sub1", gid = "sub", actief = null;
+const gestart = [];
 
 await page.route("**/api/**", async (route) => {
   const req = route.request(), url = new URL(req.url()), p = url.pathname, m = req.method();
@@ -125,6 +150,7 @@ await page.route("**/api/**", async (route) => {
   if (p === "/api/annotatie/run") {
     if (m === "GET") return route.fulfill({ json: actief && url.searchParams.get("gesprek") === actief.conversation_id ? actief : null });
     const run = volgendeRun;
+    gestart.push(req.postDataJSON());
     if (run === "sub2") stand.sub = "klaar";
     return route.fulfill({ json: { run_id: run, conversation_id: gid, status: "loopt", vraag: "", volgende_seq: 0, weggevallen: 0 } });
   }
@@ -141,6 +167,9 @@ await page.route("**/api/**", async (route) => {
     if (events.at(-1)?.type !== "done") await new Promise((r) => setTimeout(r, 400));
     return route.fulfill({ contentType: "text/event-stream", body: sse(events) });
   }
+  // Het werkgebied van de regie: de bundel opent het naast het gesprek.
+  if (p === "/api/werkgebieden/wg1") return route.fulfill({ json: WG1 });
+  if (p.startsWith("/api/werkgebieden/wg1/")) return route.fulfill({ json: {} });
   if (p === "/api/delegaties") {
     assert.equal(m, "GET");
     return route.fulfill({ json: delegaties(url.searchParams.get("gesprek_id")) });
@@ -236,7 +265,27 @@ await page.getByText("Het rapport van de subagent.").waitFor({ timeout: 10_000 }
 await page.locator("[data-delegatie=d4] [data-delegatie-taak=klaar]").waitFor();
 actief = null;
 
-// 7. Mobiel (375 px): het blok past, zonder horizontaal scrollen; de link is een volle knop.
+// 7. De bundel van een regie: de knop voor de volgende fase, live en na herladen; een regiekind heet geen subagent.
+await vraag("regieg", "regie", "Zoek per deelvraag de bronnen");
+await page.getByText("De bronnen per deelvraag staan klaar.").waitFor();
+await page.locator("[data-delegatie=r5] [data-delegatie-taak=klaar]").first().waitFor();
+const regieBlok = await page.locator("[data-delegatie=r5]").innerText();
+assert.match(regieBlok, /Regie[\s\S]*2 deelgesprekken · 2 klaar/);
+assert.ok(!/subagent retrieval/.test(regieBlok), "een regiekind is geen subagent");
+await page.getByRole("button", { name: "Start de regie (2 deelgesprekken)" }).waitFor();
+await page.goto(`${base}/workbench?gesprek=regieg`);
+const knop = page.getByRole("button", { name: "Start de regie (2 deelgesprekken)" });
+await knop.waitFor();
+volgendeRun = "sub2";
+await knop.click();
+for (let i = 0; i < 50 && !gestart.some((b) => b.actie === "regie_annoteren"); i++) await page.waitForTimeout(100);
+const volgende = gestart.find((b) => b.actie === "regie_annoteren");
+assert.ok(volgende, "de knop start de volgende fase");
+assert.equal(volgende.plan_id, "0".repeat(16));
+assert.equal(volgende.werkgebied_id, "wg1");
+assert.ok(geschreven.some((b) => b.bevestiging_antwoord?.keuze === "gestart"), "de keuze wordt bewaard");
+
+// 8. Mobiel (375 px): het blok past, zonder horizontaal scrollen; de link is een volle knop.
 await page.setViewportSize({ width: 375, height: 812 });
 gid = "sub";
 await page.goto(`${base}/workbench?gesprek=sub`);

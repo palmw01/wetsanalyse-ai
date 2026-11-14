@@ -821,7 +821,9 @@ export function WerkplekClient({
     if (uitkomst.artefact && begrippen) {
       const artefact = uitkomst.artefact;
       setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "artefact", artefact, tekst: tekst?.trim() || undefined, denk,
-        ...(x.type === "antwoord" && x.delegatie ? { delegatie: x.delegatie } : {}) } : x));
+        ...(x.type === "antwoord" && x.delegatie ? { delegatie: x.delegatie } : {}),
+        // De knop voor de volgende fase van een regie (graph-qa #1521).
+        ...(uitkomst.bevestiging ? { bevestiging: uitkomst.bevestiging } : {}) } : x));
       wisselPaneel(begrippen, { opnieuw: true, ook: () => setNodeDoel(undefined) });
       // Een werkgebied dat Lex met je samenstelde: het gesprek gaat erin verder (de shell koppelt het,
       // de suggesties bieden bepalingen zoeken en begrippen voorstellen), het paneel toont wat er staat.

@@ -6,6 +6,7 @@ import {
 } from "./delegatie";
 import { LEGE_STAND, stroomReducer } from "./beurtStroom";
 import { itemsUitGesprek } from "./geschiedenis";
+import { afgehandeld } from "./werkgebiedAnnoteren";
 import type { Delegatie } from "./types";
 
 // De events zoals graph-qa ze stuurt (`agent/subagent.py`): start met het plan, per kind start en eind, dan het eind.
@@ -168,6 +169,18 @@ describe("het bewaarde bericht", () => {
     ], () => `i${n++}`);
     expect(items[0]).toMatchObject({ type: "antwoord", delegatie: { ids: ["d1"] } });
     expect(items[1]).not.toHaveProperty("delegatie");
+  });
+
+  it("de bundel van een regie houdt de knop voor de volgende fase, ook na herladen, tot hij gekozen is", () => {
+    let n = 0;
+    const bevestiging = { soort: "regie", werkgebied_id: "wg1", opdracht: "annoteren", plan_id: "0".repeat(16), aantal: 2, schatting: null };
+    const bericht = { rol: "assistant" as const, tekst: "Klaar.", denk: "", bronnen: [], run_id: "r", delegaties: ["r5"],
+      artefact: { soort: "regie" as const, ref: { werkgebied_id: "wg1", regie_id: "r5" }, titel: "Regie" }, bevestiging };
+    const { items } = itemsUitGesprek([bericht as never], () => `i${n++}`);
+    expect(items[0]).toMatchObject({ type: "artefact", bevestiging: { plan_id: "0".repeat(16), opdracht: "annoteren" } });
+    const gekozen = itemsUitGesprek([bericht as never,
+      { rol: "user", tekst: "Annoteer", denk: "", bronnen: [], run_id: "", bevestiging_antwoord: { keuze: "gestart" } }], () => `j${n++}`);
+    expect(afgehandeld(gekozen.items).get(gekozen.items[0].id)).toBe("gestart");
   });
 
   it("een bericht dat de code in een deelgesprek doorgaf, is geen bericht van de jurist", () => {
