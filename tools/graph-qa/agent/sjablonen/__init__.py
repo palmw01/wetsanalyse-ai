@@ -26,6 +26,7 @@ from .annotaties import SCHEMA as _ANNOTATIES, vul as _vul_annotaties
 from .begrip import SCHEMA as _BEGRIP, vul as _vul_begrip
 from .bepaling import SCHEMA as _BEPALING, vul as _vul_bepaling
 from .duiding import SCHEMA as _DUIDING, vul as _vul_duiding
+from .rapport import SCHEMA as _RAPPORT, vul as _vul_rapport
 from . import extern as _extern
 from .vullen import Onvulbaar, Trace
 
@@ -43,6 +44,8 @@ SJABLONEN: dict[str, Sjabloon] = {
     _BEGRIP["name"]: Sjabloon(_BEGRIP, _vul_begrip),
     _BEPALING["name"]: Sjabloon(_BEPALING, _vul_bepaling),
     _DUIDING["name"]: Sjabloon(_DUIDING, _vul_duiding),
+    # De uitgang van een subagent (ADR-016 §A4): geen profiel noemt hem, de agentvorm `Subagent` geeft hem.
+    _RAPPORT["name"]: Sjabloon(_RAPPORT, _vul_rapport),
     _extern.SCHEMA["name"]: Sjabloon(_extern.SCHEMA, _extern.vul),
 }
 

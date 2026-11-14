@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
 import { GesprekStatus } from "@/components/ui/GesprekStatus";
 import { GesprekActies } from "@/components/werkplek/GesprekActies";
-import { bewaarDicht, deelIn, leesDicht } from "@/lib/gesprekGroepen";
+import { bewaarDicht, deelgesprekProfiel, deelIn, leesDicht } from "@/lib/gesprekGroepen";
 import type { GesprekRunStand } from "@/lib/runStanden";
 import type { GesprekSamenvatting } from "@/lib/types";
 
@@ -309,6 +309,7 @@ function Rij({ gesprek, actief, acties, toonPlek = false, status }: {
           <span className={`mt-0.5 block text-[0.65rem] ${actief ? "text-muted" : "text-faint"}`}>
             {gesprek.aantal_berichten} berichten{korteDatum(gesprek.updated) ? ` · ${korteDatum(gesprek.updated)}` : ""}
             {toonPlek && (gesprek.gearchiveerd ? " · archief" : gesprek.werkgebied_naam ? ` · ${gesprek.werkgebied_naam}` : "")}
+            {deelgesprekProfiel(gesprek) && ` · ${deelgesprekProfiel(gesprek)}`}
           </span>
         </button>
         {/* Alleen op fijne pointers verborgen tot hover; op touch altijd zichtbaar. */}

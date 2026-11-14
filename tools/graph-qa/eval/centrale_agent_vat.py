@@ -100,7 +100,11 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
     kinderen = [e for e in events if e["type"] == "regie_taak" and e.get("fase") == "start"]
     bevestigingen = [e["bevestiging"] for e in events if e.get("bevestiging")]
     controles = [e for e in events if e["type"] == "grounding"]
-    regie = any(e["type"] == "regie" for e in events) or any(b.get("soort") == "regie" for b in bevestigingen)
+    # Een subagent van de centrale agent (ADR-016 §A3) draagt dezelfde events als een regie, met `soort: subagent`.
+    subagent = any(e["type"] == "regie" and e.get("soort") == "subagent" for e in events)
+    regie = (any(e["type"] == "regie" and e.get("soort") != "subagent" for e in events)
+             or any(b.get("soort") == "regie" for b in bevestigingen))
+    kind_profielen = sorted({k.get("profiel") for k in kinderen if k.get("profiel")})
     rondes = sum(m.get("modelrondes", 0) for m in metingen)
     annoteerde = any(e["type"] in {"element", "run"} for e in events)
 
@@ -110,7 +114,7 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
     overdracht = "meer_tools" in tools or "centraal_breed" in profielen or any("centraal_breed" in (m.get("route") or "") for m in metingen)
     rondes_tools = per_ronde(events)
     gezien = (set(tools) | set(sjabloon.get("gevuld") or {}) | ({"annoteer"} if annoteerde else set())
-              | ({"meer_tools"} if overdracht else set()))
+              | ({"meer_tools"} if overdracht else set()) | ({"subagent"} if subagent else set()))
     laag, hoog = v["subagents"]
     gevuld = set(sjabloon.get("gevuld") or {})
     soorten = per_soort(metingen)
@@ -147,6 +151,9 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
         "delta_account": sum(b.get("delta_account") or 0 for b in rec["beurten"]),
         "tools": tools, "sjabloon": sjabloon,
         "kindgesprekken": len(kinderen),
+        # Het profiel van elk kind (`regie_taak`), tegen de set: elk kind heeft een van de verwachte profielen.
+        "kind_profielen": kind_profielen,
+        "profiel_past": (all(p in v["profielen"] for p in kind_profielen) and bool(kind_profielen)) if subagent else None,
         "bevestiging": [f"{b.get('soort')}:{b.get('opdracht', '')}".rstrip(":") for b in bevestigingen],
         "vraagkaart": [e["vraagkaart"].get("stap") for e in events if e["type"] == "vraagkaart"],
         "niveau": [c.get("niveau", "") for c in controles],

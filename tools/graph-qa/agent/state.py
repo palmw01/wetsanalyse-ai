@@ -97,6 +97,14 @@ class State(TypedDict, total=False):
     bronregister: list[list[str]]
     specialist: str
     plan: str
+    # Een subagent (ADR-016 §A3): de opdracht van de centrale agent (`SubagentOpdracht`). Leeg = een gewone beurt. Per
+    # beurt gezet, net als de vraag.
+    opdracht: dict[str, Any]
+    # Wat een subagent rapporteerde (`sjablonen/rapport.py`): status, gedaan en open. Per beurt gereset.
+    rapport: dict[str, Any]
+    # De subagents die de centrale agent deze beurt aan het werk zette (`agent/subagent.py`): per subagent het profiel,
+    # het kindgesprek, de run en de status. Per beurt gereset.
+    subagenten: list[dict[str, Any]]
     worker_plan: list[str]   # geordende worker-keten (specialist-namen) die de supervisor koos
     afwijzen: bool           # supervisor plaatste de vraag buiten de scope → geen worker draait
     afwijs_melding: str      # eigen afwijstekst (b.v. meer dan één artikel); leeg = buiten de scope

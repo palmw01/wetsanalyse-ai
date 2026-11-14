@@ -38,7 +38,7 @@ from ..beweringen import regelingen_genoemd
 from ..buiten_graaf import _graafnamen
 from ..regelingnamen import met_regelingnamen
 from ..resultaat import is_fout
-from ..agentvorm import STANDAARD as DEFAULT_SPECIALIST, agent_voor
+from ..agentvorm import STANDAARD as DEFAULT_SPECIALIST, agent_van
 from ..overdracht import OVERDRACHT
 from ..state import State
 from ..bronstand import prompt_blok as bronstand_blok
@@ -72,7 +72,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     # De agent van deze beurt (ADR-016): het profiel bepaalt de systeemtekst, de tools, de sjablonen, het model en de
     # rol, en de agent doet de modelaanroep. ADR-013: staat er een connector aan die het profiel noemt, dan krijgt elk
     # sjabloon het veld voor bronnen naast de wet (het subsjabloon) en is er het eigen sjabloon `antwoord_extern`.
-    agent = agent_voor(spec_naam)
+    agent = agent_van(state)
     extern_aan = bool(agent.extern(state.get("bronstand")))
     sjablonen = agent.sjablonen(state.get("bronstand"))
     stabiel = agent.systeemtekst
@@ -100,6 +100,9 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     # ruimen. Het gaat met de rol naar de meter (`llm_stap`, `kader`), niet naar het model.
     meetkader = {"beurt_start": beurt_start(venster, state.get("question", "")), "venster_telling": telling,
                  "historiegrens_tekens": b.settings.max_history_chars}
+    if state.get("opdracht"):
+        # Een subagent (ADR-016 §A3): zijn eerste bericht is de opdracht van de centrale agent (categorie `opdracht`).
+        meetkader["opdracht"] = True
     if not state.get("turns"):
         # E6-C1: hoe vaak valt er gesprek uit het venster? Eén regel per beurt, zonder inhoud.
         _beurtlog.info("venster", extra={
@@ -553,7 +556,7 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
     _stap(writer, "Lex", "; ".join(_toolregel(t) for t in uit_te_voeren) or "gebruikt wat er al is opgehaald")
     trace = list(state.get("source_trace", []))
     results = []
-    agent = agent_voor("retrieval" if state.get("specialist") == "annotatie" else state.get("specialist"))
+    agent = agent_van(state)
     for tu in pending:
         sleutel = _sleutel(tu)
         if sleutel in gedaan:

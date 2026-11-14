@@ -21,6 +21,7 @@ from bronmodel.connectors import CONNECTORS
 from .agentprofielen import REGISTER
 from .methodepakket import PAKKET
 from .sjablonen import SJABLONEN
+from .sjablonen.rapport import NAAM as RAPPORT
 from .tools import ANNOTATIE_TOOL_NAMEN, BEGRIP_TOOL_NAMEN, CONNECTOR_TOOLS, JAS_TOOL_NAMEN, TOOLS
 
 
@@ -42,7 +43,8 @@ def grenzen() -> Grenzen:
         tools=frozenset(t["name"] for t in TOOLS) - CONNECTOR_TOOLS | frozenset(JAS_TOOL_NAMEN),
         skills=frozenset(PAKKET["skills"]),
         connectors=frozenset(CONNECTORS),
-        sjablonen=frozenset(SJABLONEN),
+        # Het rapport is de uitgang van een subagent (ADR-016 §A4): de agentvorm geeft hem, geen profiel noemt hem.
+        sjablonen=frozenset(SJABLONEN) - {RAPPORT},
         methoderollen=frozenset(PAKKET["rollen"]),
         methode_tools={"wetsanalyse": TOOLS_VAN_WETSANALYSE},
         rol_methodes=rol_methodes(),

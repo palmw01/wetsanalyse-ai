@@ -112,8 +112,9 @@ def test_de_centrale_agent_antwoordt_zelf_zonder_supervisorstap():
     for sectie in PAKKET["rollen"]["agent"]:
         assert PAKKET["secties"][sectie]["tekst"] in verzoek["system"]
     namen = {t["name"] for t in verzoek["tools"]}
-    assert {"wijs_af", "meer_tools", "get_artikel", "zoek_definitie", "get_context", "antwoord_duiding", "antwoord_begrip"} <= namen
-    assert not namen & {"subagent", "search_annotaties", "geldigheid", "raw_sparql"}
+    assert {"wijs_af", "meer_tools", "subagent", "get_artikel", "zoek_definitie", "get_context", "antwoord_duiding",
+            "antwoord_begrip"} <= namen
+    assert not namen & {"rapport", "search_annotaties", "geldigheid", "raw_sparql"}
     assert any(e["type"] == "status" and e.get("route") == CENTRAAL for e in events)
     assert "".join(e["content"] for e in events if e["type"] == "token") == "Antwoord."
 
@@ -131,13 +132,15 @@ def test_het_profiel_centraal_is_een_python_agent_met_zijn_eigen_tools():
     agent = agent_voor(CENTRAAL)
     assert isinstance(agent, CentraleAgent) and isinstance(agent, Agent)
     assert agent.rol is Rol.CENTRAAL and agent.methoderol == "agent"
-    assert set(agent.eigen_tools) == set(overdracht.OVERDRACHT) == {"wijs_af", "meer_tools", *VASTE_ROUTES}
+    assert set(agent.eigen_tools) == set(overdracht.OVERDRACHT) == {"wijs_af", "meer_tools", "subagent", *VASTE_ROUTES}
     p = profielen.PROFIELEN[CENTRAAL]
     assert not p.kiesbaar and CENTRAAL not in profielen.KIESBAAR, "een model kiest dit profiel niet"
     # De eigen tools staan niet in de toollaag: een profiel kan ze niet noemen, en een andere agent krijgt ze niet.
     assert not set(overdracht.OVERDRACHT) & profielen.grenzen().tools
     for naam in set(profielen.PROFIELEN) - {CENTRAAL, CENTRAAL_BREED}:
         assert type(agent_voor(naam)) is Agent and not agent_voor(naam).eigen_tools
+        # Ook als subagent: één laag, geen overdracht en geen `subagent` (ADR-016 §A1).
+        assert not agent_voor(naam, subagent=True).eigen_tools
 
 
 def test_een_overdrachtstool_heeft_een_strict_schema():
@@ -230,8 +233,8 @@ def test_een_keuzevraag_van_de_centrale_agent_heeft_de_vorm_die_de_doorvraagrout
 
 
 def test_meer_tools_is_er_alleen_voor_de_kernset_en_wijs_af_voor_beide():
-    assert set(agent_voor(CENTRAAL).eigen_tools) == {"wijs_af", "meer_tools", *VASTE_ROUTES}
-    assert set(agent_voor(CENTRAAL_BREED).eigen_tools) == {"wijs_af", *VASTE_ROUTES}
+    assert set(agent_voor(CENTRAAL).eigen_tools) == {"wijs_af", "meer_tools", "subagent", *VASTE_ROUTES}
+    assert set(agent_voor(CENTRAAL_BREED).eigen_tools) == {"wijs_af", "subagent", *VASTE_ROUTES}
     assert isinstance(agent_voor(CENTRAAL_BREED), CentraleAgent) and agent_voor(CENTRAAL_BREED).rol is Rol.CENTRAAL
     # De beschrijving noemt elke tool die erachter zit: zo weet het model wanneer het erom vraagt.
     rest = set(profielen.PROFIELEN[CENTRAAL_BREED].tools) - set(profielen.PROFIELEN[CENTRAAL].tools)

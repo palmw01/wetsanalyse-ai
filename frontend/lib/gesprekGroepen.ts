@@ -58,6 +58,12 @@ export function metDeelgesprekken(lijst: GesprekSamenvatting[]): GesprekSamenvat
   return uit;
 }
 
+/** Het profiel van een deelgesprek dat een subagent voerde (ADR-016 §A3), voor de metaregel in de lijst; leeg bij een
+ *  regie of een gewoon gesprek. */
+export function deelgesprekProfiel(g: Pick<GesprekSamenvatting, "ouder_id" | "profiel">): string {
+  return g.ouder_id && g.profiel ? `subagent ${g.profiel}` : "";
+}
+
 /** Welke werkgebiedgroepen dichtgeklapt staan, per browser. Een open groep is de standaard: wie een
  *  gesprek in een werkgebied begint, wil het terugzien. */
 const SLEUTEL = "lex.sidebar.dicht";

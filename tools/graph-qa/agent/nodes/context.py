@@ -45,6 +45,9 @@ class Bouw:
     loop: Any = None
     # Voor tests: een eigen api-client voor de agents, `(settings, user_id) -> api`.
     agent_api: Callable[[Settings, str], Any] | None = None
+    # Een subagent starten en stoppen (ADR-016 §A3): `agent.subagent.Kinderen`, gegeven door `api.main` (de ene ingang).
+    # None zonder api (een test, een straat zonder vastleggen): dan weigert de overdracht `subagent`.
+    kinderen: Any = None
 
 
 @asynccontextmanager

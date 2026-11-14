@@ -10,7 +10,8 @@ agent is de code die haar nakomt. Hij doet twee dingen, en alleen hij:
    methodetekst van zijn rol, zijn instructie), de tools, de sjablonen, het model en de `Rol`.
 
 De specialisten van de supervisor zijn agents met hun eigen profiel; er is geen klasse per specialist. De subklassen
-die ADR-016 noemt (`CentraleAgent`, `Subagent`) verschillen alleen in hun eigen tools en komen in latere stappen.
+die ADR-016 noemt verschillen alleen in hun eigen tools en hun uitgang: `CentraleAgent` (de overdrachtstools, waaronder
+`subagent`) en `Subagent` (één uitgang, het rapport; ADR-016 §A3).
 
 Zonder `Agent` geen modelaanroep, geen tool en geen kind: een profiel draait nooit buiten deze klasse.
 """
@@ -31,6 +32,7 @@ from . import overdracht
 from .overdracht import CENTRAAL, CENTRAAL_BREED, Overdracht  # noqa: F401 – CENTRAAL: re-export voor de nodes
 from .prompts import SYSTEM_PROMPT
 from .sjablonen import EXTERN, sjabloon_schemas
+from .sjablonen.rapport import NAAM as RAPPORT
 from .tools import anthropic_schemas, toegestane_tools
 
 #: Het profiel van een agent zonder naam, of met een naam die niet bestaat.
@@ -162,11 +164,48 @@ class CentraleAgent(Agent):
             or tool == EXTERN
 
 
-def agent_voor(naam: str | None) -> Agent:
-    """De agent met het profiel `naam`; zonder naam of met een onbekende naam het brede profiel."""
+#: Wat een subagent bovenop zijn profiel hoort (ADR-016 §A3, §A4). Na de instructie van het profiel, want die zegt
+#: waarmee hij als specialist afrondt.
+SUBAGENT_INSTRUCTIE = (
+    "JE BENT EEN SUBAGENT. Je werkt aan één opdracht van de centrale agent van Lex; je spreekt de gebruiker niet en je "
+    "stelt hem geen vragen. De opdracht staat in het eerste bericht. Doe wat de opdracht vraagt, binnen wat erbij hoort, "
+    "en haal in één ronde op wat je samen nodig hebt. Je rondt altijd af met het sjabloon rapport, als laatste stap en "
+    "zonder tekst ernaast: niet met een antwoordsjabloon en niet in tekst, ook niet als het niet lukte (status "
+    "niet_gelukt). Weigert de code het rapport, verbeter dan de aanroep zoals de melding zegt en roep het opnieuw aan.")
+
+
+class Subagent(Agent):
+    """Een agent die werkt aan één opdracht van de centrale agent (ADR-016 §A3): zijn eigen profiel, met één uitgang,
+    het rapport (§A4). Hij heeft geen eigen tools: geen overdracht en geen `subagent` (één laag)."""
+
+    @property
+    def instructie(self) -> str:
+        return super().instructie + "\n\n" + SUBAGENT_INSTRUCTIE
+
+    def extern(self, bronstand: dict[str, Any] | None) -> tuple[str, ...]:
+        """Het rapport krijgt het veld voor bronnen naast de wet, als er een connector aanstaat die zijn profiel noemt."""
+        return tuple(n for n, s in (bronstand or {}).items()
+                     if s.get("aan") and n in CONNECTORS and n in self.profiel.connectors)
+
+    def sjablonen(self, bronstand: dict[str, Any] | None) -> frozenset[str]:
+        return frozenset({RAPPORT})
+
+
+def agent_voor(naam: str | None, *, subagent: bool = False) -> Agent:
+    """De agent met het profiel `naam`; zonder naam of met een onbekende naam het brede profiel. Met `subagent` dezelfde
+    agent als subagent: het profiel van een kiesbare specialist, met het rapport als uitgang."""
     sleutel = (naam or "").strip().lower()
     sleutel = sleutel if sleutel in profielen.PROFIELEN else STANDAARD
+    if subagent and sleutel in profielen.KIESBAAR:
+        return Subagent(profielen.PROFIELEN[sleutel])
     return (CentraleAgent if sleutel in (CENTRAAL, CENTRAAL_BREED) else Agent)(profielen.PROFIELEN[sleutel])
+
+
+def agent_van(state: Any) -> Agent:
+    """De agent van deze beurt, uit de state: de annotatie-route draait de lus als ophaal-agent, en een beurt met een
+    opdracht (`opdracht`, ADR-016 §A3) is een subagent."""
+    naam = "retrieval" if state.get("specialist") == "annotatie" else state.get("specialist")
+    return agent_voor(naam, subagent=bool(state.get("opdracht")))
 
 
 def vorm_van(stand: str, gevraagd: str | None) -> str:
