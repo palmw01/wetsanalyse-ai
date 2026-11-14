@@ -50,13 +50,13 @@ class NepApi:
     async def start_bronnen_run(self, wid, zoekversie=""):
         return {"id": "b1", "status": "klaar"}
 
-    async def start_regie(self, wid, invoer):
+    async def start_delegatie(self, invoer):
         if self.regie_409:
-            raise WetsanalyseApiFout("nee", 409, "regie_loopt_al")
+            raise WetsanalyseApiFout("nee", 409, "delegatie_loopt_al")
         self.regie = invoer
         return {"id": "regie-1"}
 
-    async def wijzig_regie(self, wid, rid, wijziging):
+    async def wijzig_delegatie(self, rid, wijziging):
         self.regie_wijzigingen.append(wijziging)
         return {}
 
@@ -135,7 +135,7 @@ def _plan_id(api) -> str:
 def test_zonder_bevestiging_alleen_het_plan_met_een_knop():
     api, kinderen = NepApi(klaar=("d1",)), Kinderen()
     events = _draai(_verzoek(), api, kinderen)
-    assert not kinderen.verzoeken and "start_regie" not in api.aanroepen
+    assert not kinderen.verzoeken and "start_delegatie" not in api.aanroepen
     bericht = api.berichten[-1]
     assert bericht["bevestiging"] == {"soort": "regie", "werkgebied_id": WG, "aantal": 2, "schatting": 0,
                                       "plan_id": _plan_id(api), "opdracht": "bronnen"}
@@ -155,7 +155,7 @@ def test_bevestigd_start_per_deelvraag_een_kindgesprek_en_bundelt():
     events = _draai(_verzoek(plan_id=_plan_id(api)), api, kinderen)
     assert not [e for e in events if e["type"] == "error"], events
     # Per deelvraag een deelgesprek onder het regiegesprek, met de regie erbij.
-    assert [(g["titel"], g["ouder_id"], g["regie_id"]) for g in api.gesprekken] == [
+    assert [(g["titel"], g["ouder_id"], g["delegatie_id"]) for g in api.gesprekken] == [
         (f"Bronnen · deelvraag {i}", "regie", "regie-1") for i in (1, 2, 3)]
     # Elk kind is een gewone run met de actie van een klik, in zijn eigen gesprek.
     assert sorted((v.actie, v.onderwerp.id, v.conversation_id) for v in kinderen.verzoeken) == [

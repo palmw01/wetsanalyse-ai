@@ -66,42 +66,44 @@ async def _bestaand_werkgebied(werkgebied_id: str) -> None:
 
 
 async def _geldige_ouder(store: GesprekStore, req: GesprekCreate, user_id: str):
-    """Een deelgesprek (ADR-012) hangt onder een eigen gesprek in hetzelfde werkgebied, één niveau diep. De regie
-    hoort dan bij die ouder. Een ouder van een ander geeft 404, zoals elk vreemd gesprek."""
+    """Een deelgesprek (ADR-012, ADR-016 §A3) hangt onder een eigen gesprek in hetzelfde werkgebied (of allebei los),
+    één niveau diep. De delegatie hoort dan bij die ouder. Een ouder van een ander geeft 404, zoals elk vreemd gesprek."""
     if not req.ouder_id:
-        if req.regie_id:
-            raise HTTPException(422, {"fout": "regie_zonder_ouder", "melding": "Een regie hoort bij een regiegesprek."})
-        return
+        if req.delegatie_id or req.profiel:
+            raise HTTPException(422, {"fout": "delegatie_zonder_ouder",
+                                      "melding": "Een delegatie hoort bij het gesprek dat haar startte."})
+        return None
     ouder = await store.laad_gesprek(req.ouder_id)
     if ouder is None or ouder.user_id != user_id:
         raise HTTPException(404, f"Onbekend gesprek: {req.ouder_id}")
-    if not req.werkgebied_id or ouder.werkgebied_id != req.werkgebied_id:
+    if ouder.werkgebied_id != req.werkgebied_id:
         raise HTTPException(409, {"fout": "ander_werkgebied",
                                   "melding": "Een deelgesprek hoort bij het werkgebied van zijn ouder."})
     if ouder.ouder_id:
         raise HTTPException(409, {"fout": "te_diep", "melding": "Een deelgesprek heeft zelf geen deelgesprekken."})
-    if req.regie_id:
-        from .. import regie_store
-        regie = await regie_store.haal(req.werkgebied_id, req.regie_id)
-        if regie.gesprek_id != req.ouder_id:
-            raise HTTPException(409, {"fout": "andere_regie", "melding": "De regie hoort bij een ander gesprek."})
-        if regie.user_id != user_id:
-            raise HTTPException(404, f"Onbekende regie: {req.regie_id}")
-        return regie
+    if req.delegatie_id:
+        from .. import delegatie_store
+        delegatie = await delegatie_store.haal(req.delegatie_id)
+        if delegatie.user_id != user_id:
+            raise HTTPException(404, f"Onbekende delegatie: {req.delegatie_id}")
+        if delegatie.gesprek_id != req.ouder_id:
+            raise HTTPException(409, {"fout": "andere_delegatie",
+                                      "melding": "De delegatie hoort bij een ander gesprek."})
+        return delegatie
     return None
 
 
-def _agent_mag_alleen_een_deelgesprek(req: GesprekCreate, regie) -> None:
-    """Het agent-token (graph-qa) maakt alleen het deelgesprek van een regie die loopt (ADR-012), voor de gebruiker van
-    die regie. Een los gesprek, of een gesprek onder een afgeronde of verweesde regie, maakt alleen de webapp: anders kan
-    het agent-token namens elke `X-User-Id` gesprekken aanmaken."""
+def _agent_mag_alleen_een_deelgesprek(req: GesprekCreate, delegatie) -> None:
+    """Het agent-token (graph-qa) maakt alleen het deelgesprek van een delegatie die loopt (ADR-012, ADR-016 §A5), voor
+    de gebruiker van die delegatie. Een los gesprek, of een gesprek onder een afgeronde of verweesde delegatie, maakt
+    alleen de webapp: anders kan het agent-token namens elke `X-User-Id` gesprekken aanmaken."""
     if huidige_client.get() != AGENT_CLIENT:
         return
-    if not (req.ouder_id and req.regie_id) or regie is None:
+    if not (req.ouder_id and req.delegatie_id) or delegatie is None:
         raise HTTPException(403, {"fout": "alleen_deelgesprek",
-                                  "melding": "Lex maakt alleen een deelgesprek van een regie."})
-    if regie.status != "loopt":
-        raise HTTPException(409, {"fout": "regie_afgerond", "melding": "De regie loopt niet meer."})
+                                  "melding": "Lex maakt alleen een deelgesprek van een delegatie."})
+    if delegatie.status != "loopt":
+        raise HTTPException(409, {"fout": "delegatie_afgerond", "melding": "De delegatie loopt niet meer."})
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=Gesprek)
@@ -113,7 +115,8 @@ async def maak_gesprek(
     await _bestaand_werkgebied(req.werkgebied_id)
     _agent_mag_alleen_een_deelgesprek(req, await _geldige_ouder(store, req, user_id))
     gesprek = Gesprek(id=uuid.uuid4().hex[:16], user_id=user_id, titel=req.titel,
-                      werkgebied_id=req.werkgebied_id, ouder_id=req.ouder_id, regie_id=req.regie_id)
+                      werkgebied_id=req.werkgebied_id, ouder_id=req.ouder_id, delegatie_id=req.delegatie_id,
+                      profiel=req.profiel)
     await store.maak_gesprek(gesprek)
     return await store.laad_gesprek(gesprek.id)
 

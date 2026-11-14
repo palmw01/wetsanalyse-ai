@@ -1514,8 +1514,8 @@ opdracht met "per deelvraag" (`opdracht_in`, alleen een verzoek; met bronnen én
 
 - **Eerst een bevestiging** (`soort: "regie"`, `plan_id`): zonder `plan_id` gelijk aan het plan van nu alleen het voorstel,
   met kosten, de grens op tegelijk en wat niet meegaat.
-- **Dan de regie bij de api** (409: er loopt er al een), een hartslag elke `HARTSLAG_S`, en per taak een kindgesprek
-  (`ouder_id`, `regie_id`) met een gewone run langs `start_beurt` (`ouder_run_id`, budgetpoort aan). Hoogstens
+- **Dan de regie bij de api** (een delegatie van soort `regie`, `/v1/delegaties`; 409: er loopt er al een), een hartslag
+  elke `HARTSLAG_S`, en per taak een kindgesprek (`ouder_id`, `delegatie_id`) met een gewone run langs `start_beurt` (`ouder_run_id`, budgetpoort aan). Hoogstens
   `REGIE_PARALLEL` (2, max 3) tegelijk, met een semafoor; volgen is `await` op de taak van het kind. De bronnenronde zoekt
   vooraf één keer (`zoek_run`), zodat de kinderen niet op elkaar wachten.
 - **Stoppen** van de regierun stopt de lopende kinderen (`_stopwacht`), en wie nog wacht, start niet.

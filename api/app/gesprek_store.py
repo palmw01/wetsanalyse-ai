@@ -132,7 +132,8 @@ class GesprekStore:
                 titel=gesprek.titel,
                 werkgebied_id=gesprek.werkgebied_id,
                 ouder_id=gesprek.ouder_id,
-                regie_id=gesprek.regie_id,
+                delegatie_id=gesprek.delegatie_id,
+                profiel=gesprek.profiel,
                 created=now,
                 updated=now,
             ))
@@ -163,7 +164,8 @@ class GesprekStore:
             titel=d["titel"],
             werkgebied_id=d["werkgebied_id"] or "",
             ouder_id=d["ouder_id"] or "",
-            regie_id=d["regie_id"] or "",
+            delegatie_id=d["delegatie_id"] or "",
+            profiel=d["profiel"] or "",
             gearchiveerd=db.aware(d["gearchiveerd"]),
             connectors=d["connectors"],
             berichten=[_bericht_uit_row(b) for b in berichten],
@@ -215,7 +217,8 @@ class GesprekStore:
                 werkgebied_id=r._mapping["werkgebied_id"] or "",
                 werkgebied_naam=r._mapping["werkgebied_naam"] or "",
                 ouder_id=r._mapping["ouder_id"] or "",
-                regie_id=r._mapping["regie_id"] or "",
+                delegatie_id=r._mapping["delegatie_id"] or "",
+                profiel=r._mapping["profiel"] or "",
                 gearchiveerd=db.aware(r._mapping["gearchiveerd"]),
             )
             for r in rows
@@ -332,7 +335,7 @@ class GesprekStore:
             waarden.update(titel=titel, updated=db.utcnow())
         if werkgebied_id is not None:
             # Een ander werkgebied maakt een deelgesprek los: de ouder hoort bij het oude.
-            waarden.update(werkgebied_id=werkgebied_id, ouder_id="", regie_id="")
+            waarden.update(werkgebied_id=werkgebied_id, ouder_id="", delegatie_id="")
         if gearchiveerd is not None:
             waarden["gearchiveerd"] = db.utcnow() if gearchiveerd else None
         if connectors_zetten:
@@ -355,7 +358,7 @@ class GesprekStore:
         for stuk in _stukken(ids):
             await conn.execute(delete(b).where(b.c.gesprek_id.in_(stuk)))
             await conn.execute(delete(g).where(g.c.id.in_(stuk)))
-            await conn.execute(update(g).where(g.c.ouder_id.in_(stuk)).values(ouder_id="", regie_id=""))
+            await conn.execute(update(g).where(g.c.ouder_id.in_(stuk)).values(ouder_id="", delegatie_id=""))
 
     # ── Opruimen per groep (instellingen → Gesprekken) ────────────────────────────────────────────
 

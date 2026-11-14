@@ -5,8 +5,9 @@ de reeks, omdat hij zelf runs start:
 
 1. **Het plan** komt uit de stand bij de api (`plan.py`). Zonder `plan_id` gelijk aan dat van nu: alleen het voorstel
    met een bevestiging (`soort: "regie"`). De jurist start, nooit Lex.
-2. **De regie** wordt een object bij de api (één per werkgebied en één per gebruiker, 409 anders), met een hartslag.
-3. **Per taak een kindgesprek** (`ouder_id`, `regie_id`) en een gewone run met de actie van de taak, langs de ene
+2. **De regie** wordt een delegatie bij de api (soort `regie`; één per werkgebied en één per gebruiker, 409 anders),
+   met een hartslag.
+3. **Per taak een kindgesprek** (`ouder_id`, `delegatie_id`) en een gewone run met de actie van de taak, langs de ene
    ingang (`start_kind` = `api.main.start_beurt`, met `ouder_run_id`). Hoogstens `REGIE_PARALLEL` tegelijk.
 4. **Volgen** met `await` op de taak van het kind, op deze replica; stoppen van de regie stopt de kinderen.
 5. **De bundel** leest de stand bij de api na afloop (nooit modeltekst): opgeleverd, wacht op jou, mislukt of niet
@@ -46,7 +47,7 @@ OPDRACHT_VAN_ACTIE: dict[str, Opdracht] = {"regie_bronnen": "bronnen", "regie_an
 API_AANROEPEN = frozenset({
     "haal_werkgebied", "haal_bronselectie", "haal_annotatie_werkvoorraad", "start_bronnen_run", "haal_bronnen_run",
     "meld_bronnen_loopt", "zet_bronnen_uitkomst", "meld_bronnen_mislukt",
-    "start_regie", "wijzig_regie", "maak_gesprek", "voeg_bericht_toe", "aclose"})
+    "start_delegatie", "wijzig_delegatie", "maak_gesprek", "voeg_bericht_toe", "aclose"})
 
 # "zoek per deelvraag de bronnen", "annoteer per deelvraag de kern", "laat Lex per deelvraag de bronnen bepalen".
 _PER_DEELVRAAG = re.compile(r"\bper\s+deelvraag\b|\bvoor\s+(?:elke|iedere)\s+deelvraag\b|\bper\s+deelvragen\b", re.I)
@@ -239,8 +240,8 @@ async def regie_stroom(
             return
 
         try:
-            regie = await api.start_regie(werkgebied_id, {
-                "gesprek_id": gesprek_id, "opdracht": plan.opdracht, "plan_id": plan.plan_id, "plan": plan.als_dict(),
+            regie = await api.start_delegatie({
+                "soort": "regie", "werkgebied_id": werkgebied_id, "gesprek_id": gesprek_id, "opdracht": plan.opdracht, "plan_id": plan.plan_id, "plan": plan.als_dict(),
                 "budget_aandeel": sum(t.aandeel or 0 for t in plan.taken)})
         except WetsanalyseApiFout as fout:
             if fout.status != 409:
@@ -269,7 +270,7 @@ async def regie_stroom(
         alles_mis = all(a.uitkomst not in ("klaar",) for a in aflopen)
         eind = "gestopt" if gestopt else "mislukt" if alles_mis else "klaar"
         with contextlib.suppress(WetsanalyseApiFout):
-            await api.wijzig_regie(werkgebied_id, regie_id, {"status": eind, "uitkomst": tellingen})
+            await api.wijzig_delegatie(regie_id, {"status": eind, "uitkomst": tellingen})
         logger.info("regie_afloop", extra={"categorie": "functioneel", "regie_id": regie_id, "run_id": run_id,
                                            "opdracht": plan.opdracht, "eind": eind, "taken": len(plan.taken),
                                            "opgeleverd": tellingen["opgeleverd"], "mislukt": tellingen["mislukt"]})
@@ -337,7 +338,7 @@ async def _draai_kind(index: int, taak: Taak, afloop: Afloop, span: Any, *, regi
     begin = time.perf_counter()
     try:
         gesprek = await api.maak_gesprek({"titel": taak.titel, "werkgebied_id": werkgebied_id,
-                                          "ouder_id": request.conversation_id or "", "regie_id": regie_id})
+                                          "ouder_id": request.conversation_id or "", "delegatie_id": regie_id})
         afloop.gesprek_id = str(gesprek["id"])
         await wachtrij.put({"type": "regie_taak", "fase": "start", "regie_id": regie_id, "index": index,
                             "titel": taak.titel, "gesprek_id": afloop.gesprek_id})
@@ -389,7 +390,7 @@ async def _hartslag(api: Any, werkgebied_id: str, regie_id: str, elke_s: float) 
     while True:
         await asyncio.sleep(elke_s)
         with contextlib.suppress(Exception):
-            await api.wijzig_regie(werkgebied_id, regie_id, {"status": "loopt"})
+            await api.wijzig_delegatie(regie_id, {"status": "loopt"})
 
 
 async def _stopwacht(stop: Callable[[], bool], lopend: dict[int, Any], stop_kind: StopKind) -> None:

@@ -738,9 +738,11 @@ export interface GesprekSamenvatting {
   updated?: string;
   werkgebied_id?: string;
   werkgebied_naam?: string;
-  /** Een deelgesprek van een regiegesprek (ADR-012): de sidebar zet het eronder. */
+  /** Een deelgesprek (ADR-012, ADR-016 §A3): de sidebar zet het onder zijn ouder. `delegatie_id` is de regie of subagent
+   * die het startte; `profiel` het profiel van de subagent (leeg bij een regie). */
   ouder_id?: string;
-  regie_id?: string;
+  delegatie_id?: string;
+  profiel?: string;
   gearchiveerd?: string | null;
 }
 
