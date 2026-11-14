@@ -80,6 +80,8 @@ class Rol(Enum):
     DEELVRAGEN_VOORSTEL = ("deelvragen_voorstel", "deelvragen", False)
     DEELVRAAG_VERBETER = ("deelvraag_verbeter", "deelvragen", False)
     INTAKE = ("intake", None, False)
+    # De controle per stuk na een rapport van een subagent (`stukcontrole.py`): één losse stap, zonder methode.
+    STUKCONTROLE = ("stukcontrole", None, False)
 
     def __init__(self, naam: str, methoderol: str | None, lus: bool) -> None:
         self.naam = naam

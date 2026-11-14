@@ -279,6 +279,12 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     van zijn eerste deel alleen de tekst van stukken die zijn eerste rapport noemt (`berichten.eerste_deel_ingekort`; de
     berichten en de trace blijven heel). Een letter uit een ander schrift in een woord (`vreemd_schrift`) is een spelfout
     voor de correctie; `tests/test_d01_gelezen_via_ander_stuk.py`;
+  - **de controle per stuk** (`stukcontrole.py`): na een rapport van een subagent leest één modelaanroep in `verify` van
+    de centrale agent elke zin die een stuk duidt tegen de passages die het rapport eruit citeerde, met per zin `steunt`,
+    `spreekt_tegen` of `niet_te_zien`. `spreekt_tegen` is een bewering (correctieronde). Zo valt ook een omgedraaide
+    bewering in de woorden van de passage op, die de toetsen op woorden niet zien (bundel 119, HR:2023:181/184). Alleen als
+    de goedkopere toetsen niets vonden, begrensd op `MAX_STUKKEN`, `MAX_ZINNEN` en `MAX_PASSAGE`; een fout is geen bewering.
+    Kosten met het gewone model: ~5–6k invoertokens bij vier stukken, hoogstens ~10k; `tests/test_d01_samenvatting_per_stuk.py`;
   - **een open vraag van een subagent sluit de beurt**: staat een kind op `vraag`, dan doet `agent_node` geen modelronde
     meer en eindigt de beurt met één zin uit code (`VRAAG_VAN_SUBAGENT`) en de vraagkaart (`finalize_node`). De subagent
     stelt de vragen die de opdracht openlaat in één keer (`SUBAGENT_INSTRUCTIE`, de hervattekst `antwoord_tekst`). Meting

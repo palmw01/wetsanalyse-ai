@@ -834,6 +834,15 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     report = check_grounding(tekst, controletrace(state), overzicht=state.get("overzicht") or None, bekend=_bekend(state),
                              regelingen=namen, steun=rapport_steun(state), vraag=_vraag(state),
                              periode=_periode(state))
+    # Een omgedraaide bewering in de woorden van de passage zien de toetsen op woorden niet: de controle per stuk leest de
+    # duidingen tegen de passages die het rapport citeerde (`stukcontrole.py`). Alleen in het antwoord van de centrale
+    # agent, en alleen als de goedkopere toetsen niets vonden: vonden zij iets, dan volgt de correctie toch, en daarna
+    # toetst deze ronde opnieuw.
+    if not report.beweringen and not state.get("opdracht") and not state.get("overzicht"):
+        from ..stukcontrole import controleer
+
+        if tegen := controleer(b.llm, b.settings, tekst, rapport_steun(state), controletrace(state)):
+            report = replace(report, beweringen=[*report.beweringen, *tegen])
     # Wettekst uit een sjabloon staat zonder aanhalingstekens, dus de toets ziet "niets te controleren". Maar de code
     # toonde hem uit de tool-rijen, met de vindplaats erbij: de melding dat er geen vindplaats is, zou onwaar zijn.
     if report.niveau == "onbepaald" and not report.onbevestigd and (state.get("antwoord") or {}).get("doelen"):
