@@ -6,6 +6,7 @@ import { vindplaatsTekst } from "@/lib/herkomst";
 import { ThreadRij, type ThreadActies } from "@/components/werkplek/ThreadRij";
 import { reeksNavigatie } from "@/lib/reeks";
 import { afronding } from "@/lib/beurtStroom";
+import { weergaveUitStroom } from "@/lib/delegatie";
 import { useBeurt, type BeurtScherm } from "@/lib/useBeurt";
 import { type NodeDoel } from "@/lib/annotatieNode";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -35,6 +36,7 @@ import {
   haalWerkgebied,
   wijzigGesprek,
   wijzigWerkgebied,
+  vergeetDelegaties,
 } from "@/lib/api";
 import { resetdatum } from "@/lib/tokenbudget";
 import type {
@@ -138,6 +140,8 @@ interface Props {
   beginInvoer?: string | null;
   /** `/nieuw` in het invoerveld: een nieuw gesprek, zoals *Nieuw gesprek* (in een werkgebied: in dat werkgebied). */
   onNieuwGesprek?: () => void;
+  /** Een ander gesprek openen, zoals in de sidebar: het deelgesprek van een subagent (ADR-016 §A5). */
+  onOpenGesprek?: (id: string) => void;
 }
 
 export function WerkplekClient({
@@ -147,6 +151,7 @@ export function WerkplekClient({
   beginOnderwerp = null,
   beginInvoer = null,
   onNieuwGesprek,
+  onOpenGesprek,
 }: Props) {
   // Budget op? Dan gaat de invoer dicht. Alleen bij een actieve begrenzing – staat die uit, dan is
   // `geblokkeerd` per definitie false en verandert er niets.
@@ -726,6 +731,15 @@ export function WerkplekClient({
         onBronUit: (bronnen) => setBronUit(bronnen),
         onBronstand: (regels) => connectorLijst.legBronstandOver(regels),
         onRegieTaak: () => onGewijzigd(),
+        // De subagents of de regie van deze beurt: het voortgangsblok op de bubbel. Daarnaast halen de blokken op
+        // eerdere berichten en de sidebar hun stand bij elk event opnieuw (een kind dat begon, een vraag die nu
+        // beantwoord is); het zijn er een paar per kind.
+        onDelegatie: (ev) => {
+          p.pas({ type: "delegatie", event: ev });
+          const delegatie = weergaveUitStroom(p.stand().delegaties);
+          if (delegatie) updateItem(antId, { delegatie });
+          vergeetDelegaties();
+        },
       }),
       opKlaar: async (antId, stand) => {
         const { tekst, denk, kandidaten, keuze, opgeslagen } = stand;
@@ -751,6 +765,8 @@ export function WerkplekClient({
             break;
           case "tekst": break;
         }
+        // Het blok van deze beurt gaat nu van de stroom naar de api: de stand die er na herladen ook staat.
+        if (stand.delegaties.length) vergeetDelegaties();
         onGewijzigd();
       },
       opMislukt: (antId, stand, fout) => {
@@ -804,7 +820,10 @@ export function WerkplekClient({
     }
     if (uitkomst.artefact && begrippen) {
       const artefact = uitkomst.artefact;
-      setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "artefact", artefact, tekst: tekst?.trim() || undefined, denk } : x));
+      setItems((xs) => xs.map((x) => x.id === antId ? { id: antId, type: "artefact", artefact, tekst: tekst?.trim() || undefined, denk,
+        ...(x.type === "antwoord" && x.delegatie ? { delegatie: x.delegatie } : {}),
+        // De knop voor de volgende fase van een regie (graph-qa #1521).
+        ...(uitkomst.bevestiging ? { bevestiging: uitkomst.bevestiging } : {}) } : x));
       wisselPaneel(begrippen, { opnieuw: true, ook: () => setNodeDoel(undefined) });
       // Een werkgebied dat Lex met je samenstelde: het gesprek gaat erin verder (de shell koppelt het,
       // de suggesties bieden bepalingen zoeken en begrippen voorstellen), het paneel toont wat er staat.
@@ -854,6 +873,7 @@ export function WerkplekClient({
       annuleer: () => void annuleer(),
       openOverzicht: (ov) => openContext(overzichtContext(ov)),
       openVraag: () => setWeggeklikt(null),
+      openGesprek: (id) => onOpenGesprek?.(id),
     };
   });
   const [acties] = useState<ThreadActies>(() => ({
@@ -865,6 +885,7 @@ export function WerkplekClient({
     annuleer: () => actiesRef.current?.annuleer(),
     openOverzicht: (ov) => actiesRef.current?.openOverzicht(ov),
     openVraag: () => actiesRef.current?.openVraag(),
+    openGesprek: (id) => actiesRef.current?.openGesprek(id),
   }));
 
   /** Een suggestie uitvoeren: een klik op de rij boven het invoerveld én een `/commando` (`lib/commandos.ts`) – één weg. */
@@ -1301,6 +1322,7 @@ export function WerkplekClient({
                 geblokkeerd={geblokkeerd}
                 demo={!!demo}
                 loopt={item.type === "reeks" && !!runId && runId === item.reeks.runId}
+                gesprekId={gesprekId}
                 acties={acties}
               />
             </div>
