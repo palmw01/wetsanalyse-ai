@@ -175,10 +175,35 @@ def _plan_id(profiel: str, opdracht: SubagentOpdracht) -> str:
                                      ensure_ascii=False).encode()).hexdigest()[:16]
 
 
+async def _in_span(state: dict[str, Any], profiel: str, hervat: bool,
+                   werk: Awaitable[tuple[Afloop, dict[str, Any], str]]) -> tuple[Afloop, dict[str, Any], str]:
+    """Eén span `graph_qa.subagent` rond een subagent, met de delegatie, het profiel, de run van het kind en de uitkomst
+    (analyse centrale agent, gat 8: de regie had `graph_qa.regie.taak`, de subagent niets). Het kind start binnen de span,
+    dus zijn run erft de trace van de ouder (`tests/test_subagent.py`)."""
+    from .observability import get_tracer
+
+    with get_tracer(__name__).start_as_current_span("graph_qa.subagent", attributes={
+            "ouder_run_id": state.get("run_id", "") or "", "profiel": profiel, "hervat": hervat}) as span:
+        afloop, kind, weigering = await werk
+        for sleutel, waarde in (("delegatie_id", afloop.delegatie_id), ("profiel", afloop.profiel),
+                                ("kind_run_id", afloop.run_id), ("uitkomst", afloop.uitkomst)):
+            if waarde:
+                span.set_attribute(sleutel, waarde)
+        return afloop, kind, weigering
+
+
 async def voer_uit(state: dict[str, Any], profiel: str, opdracht: SubagentOpdracht, stuur: Callable[[dict], None], *,
                    settings: Any, kinderen: Kinderen, gestopt: Callable[[], bool], api: Any | None = None,
                    hartslag_s: float = HARTSLAG_S) -> tuple[Afloop, dict[str, Any], str]:
     """Draai de subagent: (de afloop, wat het kind opleverde, een weigering voor het model of leeg)."""
+    return await _in_span(state, profiel, False, _voer_uit(state, profiel, opdracht, stuur, settings=settings,
+                                                           kinderen=kinderen, gestopt=gestopt, api=api,
+                                                           hartslag_s=hartslag_s))
+
+
+async def _voer_uit(state: dict[str, Any], profiel: str, opdracht: SubagentOpdracht, stuur: Callable[[dict], None], *,
+                    settings: Any, kinderen: Kinderen, gestopt: Callable[[], bool], api: Any | None,
+                    hartslag_s: float) -> tuple[Afloop, dict[str, Any], str]:
     user_id, gesprek_id = state.get("user_id", "") or "", state.get("gesprek_id", "") or ""
     werkgebied_id = state.get("werkgebied_id", "") or ""
     afloop = Afloop(profiel=profiel)
@@ -288,6 +313,14 @@ async def hervat(state: dict[str, Any], delegatie_id: str, antwoorden: list[str]
     """Hervat de eerste wachtende subagent van de delegatie met de antwoorden op zijn vragen: een nieuwe beurt in
     hetzelfde deelgesprek, met zijn eigen geschiedenis. De andere kinderen blijven zoals ze stonden. (de afloop, wat het
     kind opleverde, een weigering of leeg)."""
+    return await _in_span(state, "", True, _hervat(state, delegatie_id, antwoorden, stuur, settings=settings,
+                                                   kinderen=kinderen, gestopt=gestopt, van=van, api=api,
+                                                   hartslag_s=hartslag_s))
+
+
+async def _hervat(state: dict[str, Any], delegatie_id: str, antwoorden: list[str], stuur: Callable[[dict], None], *,
+                  settings: Any, kinderen: Kinderen, gestopt: Callable[[], bool], van: str, api: Any | None,
+                  hartslag_s: float) -> tuple[Afloop, dict[str, Any], str]:
     user_id = state.get("user_id", "") or ""
     eigen_api = api is None
     api = api or WetsanalyseApi(settings, user_id)

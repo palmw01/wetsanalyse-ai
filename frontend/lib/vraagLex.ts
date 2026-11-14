@@ -18,7 +18,8 @@ import type { DossierVeld } from "./werkgebied";
  *  - **Een suggestie met een `actie`** is een vaste handeling: graph-qa kiest er zonder model een agent
  *    en een taak bij (`models.ACTIE_TAAK`). Wat duur is vraagt daar eerst een bevestiging, zoals altijd.
  *  - **Een suggestie zonder actie** is een vraag die je zo ook had kunnen typen: ze gaat met het onderwerp
- *    langs de supervisor. Met `invullen` komt ze in het invoerveld in plaats van verstuurd te worden –
+ *    langs de centrale agent (met `CENTRALE_AGENT=uit` de supervisor). Met `invullen` komt ze in het
+ *    invoerveld in plaats van verstuurd te worden –
  *    voor een vraag die de analist zelf moet afmaken ("Wat is het betekenisverschil met …").
  *  - **Het dossier aanvullen** (`dossier_aanvullen`) is geen taak van een agent maar de vraagkaarten van de
  *    intake (graph-qa `INTAKE_ACTIES`); welk veld leest graph-qa uit de tekst ("Vul het praktijkvoorbeeld

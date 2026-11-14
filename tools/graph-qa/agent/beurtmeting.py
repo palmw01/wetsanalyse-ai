@@ -91,6 +91,8 @@ async def gemeten(
     gesprek_id: str,
     model: str,
     bronnen: str = "",
+    agentvorm: str = "",
+    subagent: bool = False,
 ) -> AsyncIterator[dict[str, Any]]:
     """Geef de events ongewijzigd door en log aan het eind één `beurt_meting`."""
     begin = time.perf_counter()
@@ -119,8 +121,14 @@ async def gemeten(
             "uitvoer": verbruik.get("uitvoer", 0),
             "cache_lees": verbruik.get("cache_lees", 0),
             "cache_schrijf": verbruik.get("cache_schrijf", 0),
-            "model": model,
+            # Het model dat werkelijk draaide (de laatste aanroep: een subagent kan licht draaien, of terugvallen), en
+            # anders het ingestelde.
+            "model": next((a["model"] for a in reversed(getattr(meter, "aanroepen", None) or [])
+                           if a.get("model")), "") or model,
             "sjabloon": dict(meter.sjabloon) if meter is not None else {},
+            **({"agentvorm": agentvorm} if agentvorm else {}),
+            **({"subagent": True} if subagent else {}),
+            **({"ouder_run_id": o} if (o := getattr(run, "ouder_run_id", "") or "") else {}),
         }
 
     def log(waarden: dict[str, Any] | None = None) -> None:
@@ -144,7 +152,8 @@ async def gemeten(
                 if eerste_tekst is None and event.get("content"):
                     eerste_tekst = time.perf_counter() - begin
             elif soort == "tool_execution":
-                toolaanroepen += event.get("phase") == "start"
+                # Een aanroep die de code weigerde, draaide niet (`antwoord.weiger_event`).
+                toolaanroepen += event.get("phase") == "start" and event.get("status") != "geweigerd"
             elif soort == "error":
                 fout = True
             elif soort == "bronstand":
