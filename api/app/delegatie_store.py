@@ -4,7 +4,11 @@ Het slot is een partiële unieke index op `status = 'loopt'`, geen check-then-in
 tegelijk een start krijgen. Een delegatie die `VERWEESD_NA` geen hartslag gaf (graph-qa herstartte, een replica viel
 om), telt als `mislukt`. Bij een nieuwe start wordt hij eerst zo vastgelegd, anders zou een verweesde delegatie het
 werkgebied of de gebruiker voor altijd blokkeren. Alleen de eigenaar wijzigt zijn delegatie; een afgeronde delegatie
-verandert niet meer."""
+verandert niet meer, behalve de markering `later_gewijzigd`.
+
+Een wachtende delegatie (`wacht`, ADR-016 §A4) houdt geen slot vast en verweest niet: er draait niets, dus er komt ook
+geen hartslag. Hervatten is `wacht → loopt` met dezelfde unieke index als een start; loopt er intussen ander werk van de
+gebruiker, dan 409 `delegatie_loopt_al`."""
 from __future__ import annotations
 
 import uuid
@@ -77,7 +81,7 @@ async def start(user_id: str, inv: DelegatieStart) -> Delegatie:
             async with conn.begin_nested():
                 await conn.execute(insert(db.delegaties).values(
                     id=delegatie_id, soort=inv.soort, werkgebied_id=inv.werkgebied_id, gesprek_id=inv.gesprek_id,
-                    user_id=user_id, opdracht=inv.opdracht, plan_id=inv.plan_id, plan=inv.plan, status="loopt",
+                    user_id=user_id, opdracht=inv.opdracht, plan_id=inv.plan_id, plan=inv.plan, status=inv.status,
                     uitkomst={}, budget_aandeel=inv.budget_aandeel, gestart=nu, hartslag=nu))
         except IntegrityError:
             bestaand = await _lopende(conn, inv.werkgebied_id, user_id)
@@ -113,18 +117,47 @@ async def lijst(*, werkgebied_id: str | None = None, gesprek_id: str | None = No
 
 
 async def wijzig(delegatie_id: str, user_id: str, inv: DelegatieWijziging) -> Delegatie:
-    """Hartslag of afronden. Een delegatie van een ander geeft 404; een afgeronde delegatie 409, behalve dezelfde
-    eindstand nog eens (een herhaald verzoek)."""
+    """Hartslag, wachten, hervatten of afronden. Een delegatie van een ander geeft 404; een afgeronde delegatie 409,
+    behalve dezelfde eindstand nog eens (een herhaald verzoek) of alleen `later_gewijzigd`.
+
+    De overgangen: `loopt → loopt` (hartslag), `loopt → wacht` en `wacht → wacht` (de vragen of de antwoorden
+    vastleggen), `wacht → loopt` (hervatten, met het slot), en `loopt`/`wacht` → een eindstand."""
     huidig = await haal(delegatie_id)
     if huidig.user_id != user_id:
         raise HTTPException(404, f"Onbekende delegatie: {delegatie_id}")
     t = db.delegaties
     nu = db.utcnow()
+    if inv.status is None:
+        async with db.get_engine().begin() as conn:
+            await conn.execute(update(t).where(t.c.id == delegatie_id).values(later_gewijzigd=bool(inv.later_gewijzigd)))
+            row = (await conn.execute(select(t).where(t.c.id == delegatie_id))).first()
+        return _delegatie(row)
     waarden: dict = {"hartslag": nu}
+    if inv.later_gewijzigd is not None:
+        waarden["later_gewijzigd"] = inv.later_gewijzigd
+    van: tuple[str, ...] = ("loopt", "wacht")
     if inv.status in EINDSTANDEN:
         waarden.update(status=inv.status, afgerond=nu, uitkomst=inv.uitkomst or {})
+    elif inv.status == "wacht":
+        waarden["status"] = "wacht"
+        if inv.uitkomst is not None:
+            waarden["uitkomst"] = inv.uitkomst
+    else:
+        waarden["status"] = "loopt"
+        if inv.uitkomst is not None:
+            waarden["uitkomst"] = inv.uitkomst
     async with db.get_engine().begin() as conn:
-        uit = await conn.execute(update(t).where(and_(t.c.id == delegatie_id, t.c.status == "loopt")).values(**waarden))
+        if inv.status == "loopt" and huidig.status == "wacht":
+            await _sluit_verweesde(conn, huidig.werkgebied_id if huidig.soort == "regie" else "", user_id)
+        try:
+            async with conn.begin_nested():
+                uit = await conn.execute(update(t).where(and_(t.c.id == delegatie_id, t.c.status.in_(van)))
+                                         .values(**waarden))
+        except IntegrityError:
+            bestaand = await _lopende(conn, "", user_id)
+            raise HTTPException(409, {"fout": "delegatie_loopt_al", "delegatie_id": bestaand.id if bestaand else "",
+                                      "werkgebied_id": bestaand.werkgebied_id if bestaand else "",
+                                      "melding": "Er loopt al ander werk van jou."}) from None
         if uit.rowcount == 0:
             row = (await conn.execute(select(t).where(t.c.id == delegatie_id))).first()
             if row is not None and row.status == inv.status:

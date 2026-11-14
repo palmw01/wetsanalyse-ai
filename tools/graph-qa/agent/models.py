@@ -76,7 +76,9 @@ class IntakeActie(BaseModel):
                   "bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder",
                   "bs_toevoegen",
                   # De keuzekaart van de begrippen-agent (`intake_id` `bk-…`): welk begrip bedoel je?
-                  "begrip_kiezen"]
+                  "begrip_kiezen",
+                  # Een subagent (`intake_id` `sa-<delegatie>`, ADR-016 §A4, §A5): zijn vraag, en de bevestiging.
+                  "sa_vraag", "sa_start"]
     # `aanmaken` sluit het samenstellen af, `opslaan` het aanvullen van een bestaand werkgebied.
     actie: Literal["antwoord", "overslaan", "wijzig", "aanmaken", "opslaan", "afbreken", "klaar"] = "antwoord"
     keuzes: list[str] = Field(default_factory=list, max_length=20)
