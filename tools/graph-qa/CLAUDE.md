@@ -216,6 +216,14 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     node `regie_voorstel`, die alleen in het voorvoegsel staat van een beurt met een werkgebied (`Overdracht.werkgebied`,
     per beurt vast) en het plan uit de stand bij de api maakt met dezelfde tekst en knop als de regie zelf
     (`regisseur.plan_van`, `voorstel`). De centrale agent stelt geen plan per deelvraag zelf op.
+  - **het rapport valt niet om op één passage** (meting 14 nov 2026, S03 en D01): elke passage gaat door de toets van een
+    uitleg (`duiding._citaat`); wat niet te tonen is, laat de code weg en noemt ze onder *Niet als citaat getoond*, ook in
+    `extern` (`extern.blokken(overgeslagen=)`, met stukken boven `MAX_STUKKEN`). Alleen zonder enige passage weigert de
+    code. De controle op genoemde bepalingen zonder passage geldt voor een rapport niet: wat de centrale agent de gebruiker
+    zegt, toetst `verify` tegen dezelfde trace;
+  - **een eigen rondegrens**: een subagent heeft `MAX_RONDES_SUBAGENT` (8) modelrondes, de laatste alleen voor het rapport
+    (`nodes/antwoord.max_rondes`; de instructie zegt het). Rondt hij niet af, dan noemt het rapport uit code wat hij las
+    (`subagent.rapport_tekst`, de labels uit zijn toolresultaten);
   - **routes in code naar delegatie** (meting 14 nov 2026): "vat per uitspraak/stuk/Kamerstuk samen …" met een bron naast
     de wet aan gaat zonder model naar de node `subagent_route` (`nodes/subagent_route.py`, `past`): een subagent
     `algemeen` met de vraag als doel, daarna vat de centrale agent het rapport samen (`State.rapporten`). Een vraag die een

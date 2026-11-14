@@ -28,6 +28,7 @@ from .bepaling import SCHEMA as _BEPALING, vul as _vul_bepaling
 from .duiding import SCHEMA as _DUIDING, vul as _vul_duiding
 from .rapport import SCHEMA as _RAPPORT, vul as _vul_rapport
 from . import extern as _extern
+from . import rapport as _rapport
 from .vullen import Onvulbaar, Trace
 
 __all__ = ["EXTERN", "Onvulbaar", "Sjabloon", "SJABLONEN", "sjabloon_schemas", "sjabloon_uit_tekst", "vul"]
@@ -72,8 +73,15 @@ def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:
     rest = {k: v for k, v in invoer.items() if k not in {_extern.VELD, _extern.STUKKEN}}
     # Wat het subsjabloon aanwijst, telt in de uitleg als onderbouwd (een artikel van overheid.nl, `duiding.EXTERN_IDS`).
     rest["_extern_ids"] = [str((x or {}).get("id") or "") for x in invoer.get(_extern.VELD) or [] if isinstance(x, dict)]
+    # Een rapport van een subagent valt niet om op één aanwijzing die niet klopt (`rapport.vul`): de code toont wat te tonen
+    # is, en zegt wat niet.
+    overgeslagen: list[str] | None = [] if naam == _rapport.NAAM else None
     # Een lijst gevonden stukken vóór de passages: eerst wat er is, dan wat erin staat.
-    extra = [*_extern.lijsten(invoer.get(_extern.STUKKEN), trace), *_extern.blokken(invoer.get(_extern.VELD), trace)]
+    extra = [*_extern.lijsten(invoer.get(_extern.STUKKEN), trace),
+             *_extern.blokken(invoer.get(_extern.VELD), trace, overgeslagen=overgeslagen)]
+    if overgeslagen is not None:
+        rest[_rapport.NIET_GETOOND] = overgeslagen
+        rest[_rapport.EXTERN_GETOOND] = sum(1 for b in extra if b.soort == "extern")
     antwoord = SJABLONEN[naam].vul(rest, trace)
     if extra:
         plek = next((i for i, b in enumerate(antwoord.blokken) if b.soort in ("twijfel", "leemte")), len(antwoord.blokken))
