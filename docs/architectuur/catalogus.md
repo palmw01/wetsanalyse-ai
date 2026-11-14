@@ -112,6 +112,21 @@ of JAS-tool. Een nieuwe methode die een modelrol nodig heeft, krijgt dus een eig
 - De code van het item in `verklaringen.yaml`.
 - Bij een detectorregel ook `candidate_rules` in het profiel van zijn klasse.
 
+**Overdracht van de centrale agent** (ADR-016)
+- Een `Overdracht` in `agent/overdracht.py`. De werkwijze leidt haar doel af uit haar nodes (`catalogus._NODE_ONDERDEEL`);
+  een nieuwe doelnode krijgt daar een regel, en een overdracht die bij de node `agent` blijft een regel in `_via_agent`.
+  Ze wordt vanzelf een ingang van dat onderdeel en staat bij het profiel `centraal`. `tests/test_catalogus_agentvorm.py`
+  maakt een overdracht of doelnode zonder plek rood.
+
+## Hoe een vraag binnenkomt (ADR-016)
+
+`catalogus.agentvorm(stand)` is het blok bovenaan de werkwijze: welke ingang op deze straat een getypte vraag leest. De
+stand komt uit `Settings.centrale_agent` (`GET /v1/catalogus` geeft hem mee als `agentvorm`); de rest uit de registers:
+wat altijd in code blijft (acties, vraagkaarten, routes), de plek van elk profiel (`profielplek`: de centrale agent,
+kiesbaar, het doel van een route of de ophaal-agent) en wat die plek per stand betekent. Een profiel zonder plek maakt
+`tests/test_catalogus_agentvorm.py` rood. De subagents zijn de workflow `workflow/subagent` (profielen, limieten,
+controles op het rapport); de regie draagt ook `regie_plan` en de fasen.
+
 ## Afspraken met de andere sporen
 
 - **Slash-commando's.** Een commando verwijst naar een `Onderdeel.id` of naar een `ingang` daarvan, en houdt geen eigen
@@ -137,6 +152,7 @@ of JAS-tool. Een nieuwe methode die een modelrol nodig heeft, krijgt dus een eig
 | S7 | werkplek per concept | #1299 |
 | S8 | commando's wijzen naar één onderdeel | #1298 |
 | C7 | een wijziging voorstellen → concept-PR (acceptatie, `CATALOGUS_VOORSTELLEN` + een GitHub App) | #1310, App: – |
+| A16 | de werkwijze volgt de centrale agent: agentvorm, overdrachten, subagents, de regie als tool | dit PR |
 | v3 | de skill wetsanalyse 3.0 volgens de eisen voor Claude-skills, methodetekst byte-gelijk | #1307 |
 | C8 | de skill `wetsuitvoering` (JRM 2), eerst zonder rolkoppeling | #1309 |
 | C9 | regels voorstellen, met hun eigen tests als poort | – |

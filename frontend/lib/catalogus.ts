@@ -70,9 +70,31 @@ export interface OnderdeelDetail extends Onderdeel {
   gebruikt_door: string[];
 }
 
+/** De standen van de vlag CENTRALE_AGENT (graph-qa `Settings.centrale_agent`, ADR-016). */
+export const AGENTVORM_STANDEN = ["uit", "meten", "aan"] as const;
+export type AgentvormStand = (typeof AGENTVORM_STANDEN)[number];
+
+/** Hoe een getypte vraag op deze omgeving binnenkomt (graph-qa `catalogus.agentvorm`): de stand komt uit de
+ *  configuratie, de rest uit de registers. De werkplek rekent hier niets bij. */
+export interface Agentvorm {
+  vlag: string;
+  stand: AgentvormStand;
+  standen: Record<AgentvormStand, string>;
+  /** Het onderdeel dat een getypte vraag leest: de supervisor (zijn methoderol) of het profiel van de centrale agent. */
+  ingang: string;
+  centrale_agent: string;
+  subagents: string;
+  regie: string;
+  altijd_in_code: { wat: string; aantal: number; uitleg: string }[];
+  profielen: { id: string; plek: string | null; label: string; nu: string }[];
+  vooruitblik: string;
+}
+
 export interface Catalogus {
   soorten: Soort[];
   onderdelen: Onderdeel[];
+  /** Ontbreekt bij een oudere graph-qa, of als het antwoord niet klopt: dan toont de pagina het blok niet. */
+  agentvorm?: Agentvorm | null;
 }
 
 /** Hoe de werkplek een soort noemt, enkelvoud en meervoud. */
@@ -157,11 +179,31 @@ function isOnderdeel(x: unknown): x is Onderdeel {
     && typeof o.doel === "string" && ["geen", "strict", "agent"].includes(o.model) && Array.isArray(o.hangt_af_van);
 }
 
+const isTekst = (x: unknown): x is string => typeof x === "string";
+
+/** Streng: een vorm die niet klopt is geen agentvorm (`null`), nooit een half blok. */
+export function parseAgentvorm(x: unknown): Agentvorm | null {
+  const a = x as Agentvorm;
+  if (!a || typeof a !== "object" || !(AGENTVORM_STANDEN as readonly string[]).includes(a.stand)) return null;
+  if (![a.vlag, a.ingang, a.centrale_agent, a.subagents, a.regie, a.vooruitblik].every(isTekst)) return null;
+  if (!a.standen || !AGENTVORM_STANDEN.every((s) => isTekst(a.standen[s]))) return null;
+  if (!Array.isArray(a.altijd_in_code) || !a.altijd_in_code.every((r) => r && isTekst(r.wat) && isTekst(r.uitleg)
+    && typeof r.aantal === "number")) return null;
+  if (!Array.isArray(a.profielen) || !a.profielen.every((p) => p && isTekst(p.id) && isTekst(p.label) && isTekst(p.nu)
+    && (p.plek === null || isTekst(p.plek)))) return null;
+  return a;
+}
+
+/** Wie een getypte vraag leest, in gewone woorden. */
+export function ingangTekst(a: Agentvorm): string {
+  return a.stand === "aan" ? "De centrale agent" : "De supervisor";
+}
+
 /** Streng: een onbekende soort of een rij zonder de vaste velden valt weg, zodat de pagina nooit half tekent. */
 export function parseCatalogus(x: unknown): Catalogus | null {
   const c = x as Catalogus;
   if (!c || !Array.isArray(c.onderdelen)) return null;
-  return { soorten: [...SOORTEN], onderdelen: c.onderdelen.filter(isOnderdeel) };
+  return { soorten: [...SOORTEN], onderdelen: c.onderdelen.filter(isOnderdeel), agentvorm: parseAgentvorm(c.agentvorm) };
 }
 
 export function parseOnderdeel(x: unknown): OnderdeelDetail | null {

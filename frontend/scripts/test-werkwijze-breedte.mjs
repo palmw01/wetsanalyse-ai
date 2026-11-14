@@ -48,13 +48,26 @@ const inhoud = {
   tool: { beschrijving: `Een handeling met ${PAD}.`, argumenten: [ID, `${ID}_2`] },
   connector: { dekt: PAD, rol_in_antwoord: ID, levert: TEST, niet_in_tekst: ID, voorbeeldvragen: [`Wat zegt ${ID}?`] },
   sjabloon: { beschrijving: ID, velden: { [ID]: PAD } },
-  agentprofiel: { systeemtekst: `Instructie met ${PAD}.` },
+  agentprofiel: { systeemtekst: `Instructie met ${PAD}.`, kernset: [ID, `${ID}_2`], alleen_breed: [ID],
+    skills: { tools: [ID], methodes: [`methode/${ID}`] },
+    overdrachten: [{ naam: ID, doel: `Als ${PAD}.`, naar: [`workflow/${ID}`, `regelset/${ID}`], alleen_in_werkgebied: true }] },
+  workflow: { profielen: [`agentprofiel/${ID}`], een_laag: PAD, vragen: PAD, meer: ID,
+    limieten: [{ naam: ID.toUpperCase(), waarde: 300000, uitleg: PAD }], controles: [{ naam: ID, uitleg: PAD }],
+    als_tool: { tool: ID, opdrachten: [ID, `${ID}_2`] }, fasen: [PAD, ID] },
   agent: { taken: [{ taak: ID, acties: [ID, `${ID}_2`], model: true }] },
   route: { moment: ID, herkenner: `agent.supervisie:${ID}` },
 };
 
 const ONDERDELEN = fixture ? fixture.lijst.onderdelen : SOORTEN.map(lang);
-const LIJST = fixture?.lijst ?? { soorten: SOORTEN, onderdelen: ONDERDELEN };
+// Het blok *Hoe een vraag binnenkomt* (ADR-016) met de langste waarden: een id zonder spaties en lange zinnen.
+const AGENTVORM = {
+  vlag: `CENTRALE_AGENT_${ID.toUpperCase()}`, stand: "meten", ingang: `rol/${ID}`, centrale_agent: `agentprofiel/${ID}`,
+  subagents: `workflow/${ID}`, regie: `workflow/${ID}_2`, vooruitblik: `Na de eindmeting ${PAD}.`,
+  standen: { uit: PAD, meten: `${PAD} ${PAD}`, aan: ID },
+  altijd_in_code: [{ wat: ID, aantal: 17, uitleg: PAD }],
+  profielen: [{ id: `agentprofiel/${ID}`, plek: null, label: ID, nu: PAD }],
+};
+const LIJST = fixture?.lijst ?? { soorten: SOORTEN, onderdelen: ONDERDELEN, agentvorm: AGENTVORM };
 const detail = (id) => fixture?.detail?.[id]
   ?? (() => { const o = ONDERDELEN.find((x) => x.id === id); return o && { ...o, inhoud: inhoud[o.soort] ?? {}, gebruikt_door: [ID] }; })();
 
