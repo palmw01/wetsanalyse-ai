@@ -293,6 +293,11 @@ def build_graph(
         g.add_conditional_edges("subagent_vervolg", functools.partial(route_na_vervolg, b),
                                 {"agent": "agent", "einde": END})
         ingangen["subagent_vervolg"] = "subagent_vervolg"
+        # "Vat per uitspraak samen …": een subagent in code, daarna vat de centrale agent het rapport samen.
+        from .nodes.subagent_route import subagent_route_node
+        add("subagent_route", functools.partial(subagent_route_node, b))
+        g.add_edge("subagent_route", "agent")
+        ingangen["subagent_route"] = "subagent_route"
     g.add_conditional_edges("supervisor", functools.partial(_entry_node, b), ingangen)
     g.add_conditional_edges("advance", functools.partial(route_after_advance, b), {**ingangen, "einde": END})
     return g

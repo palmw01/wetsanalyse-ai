@@ -48,8 +48,11 @@ class Overdracht:
     van: frozenset[str] = frozenset()
     #: Wat het model ziet als de overdracht slaagt.
     resultaat: str = "Overgedragen."
-    #: Bij `INGANG`: de nodes waar de route kan uitkomen (de uitgangen van de node `overdracht`).
+    #: Bij `INGANG`: de nodes waar de route kan uitkomen (de uitgangen van de node `overdracht`). Anders de nodes waar `zet`
+    #: de beurt behalve naar `naar` nog heen kan sturen (met `overdracht_naar` in zijn update: twee of meer subagents).
     ingangen: tuple[str, ...] = ()
+    #: Alleen in een beurt met een werkgebied (in het voorvoegsel alleen daar: per beurt vast, dus de cache blijft).
+    werkgebied: bool = False
     #: Of het schema `strict` is. De strict schema's van een verzoek worden samen één grammatica, en die heeft een grens
     #: bij de API ("Schema is too complex for compilation", 400). Een overdracht met een ruime invoer die de code toch
     #: zelf toetst (de delegatietools), is daarom niet strict; `tests/test_strict_grenzen.py` begrenst het geheel.
@@ -209,27 +212,44 @@ def _met_kind(state: State, afloop: Any, kind: dict[str, Any], profiel: str) -> 
     return {"source_trace": trace, "subagenten": [*eerder, afloop.als_dict()]}, tekst
 
 
-def _subagent(b: Any, state: State, invoer: dict[str, Any]) -> tuple[dict[str, Any], str] | str:
-    """Eén subagent (ADR-016 §A3): de code start hem in een kindgesprek, wacht, en geeft zijn rapport als toolresultaat.
-    De centrale agent werkt daarna verder in dezelfde beurt. Zijn toolresultaten gaan mee in de trace, zodat `verify` de
-    samenvatting ertegen toetst. Eén laag: een subagent heeft deze tool niet (`Subagent` heeft geen eigen tools)."""
+def _subagent(b: Any, state: State, invoer: dict[str, Any]) -> tuple[dict[str, Any], str] | dict[str, Any] | str:
+    """Subagents (ADR-016 §A3, §A5), één tool voor één tot `MAX_SUBAGENTS` opdrachten.
+
+    - **Eén opdracht**: de code start hem in een kindgesprek, wacht, en geeft zijn rapport als toolresultaat. De centrale
+      agent werkt daarna verder in dezelfde beurt; de toolresultaten van het kind gaan mee in de trace, zodat `verify` de
+      samenvatting ertegen toetst.
+    - **Twee of drie**: de code legt het plan eerst aan de gebruiker voor (`nodes/delegatie_plan.py`); ze beginnen pas na
+      de bevestiging (`nodes/subagent_vervolg.py`).
+
+    Eén laag: een subagent heeft deze tool niet (`Subagent` heeft geen eigen tools). Niet strict
+    (`tests/test_strict_grenzen.py`), dus de code toetst de vorm zelf."""
     from pydantic import ValidationError
 
     from . import subagent as sub
     from .agents.uitvoering import draai
     from .models import SubagentOpdracht
 
-    profiel = invoer.get("profiel", "")
-    if profiel not in sub.kiesbaar():
-        return f"Het profiel '{profiel}' bestaat niet. Kies uit: {', '.join(sub.kiesbaar())}."
-    try:
-        opdracht = SubagentOpdracht(**{v: str(invoer.get(v) or "").strip() for v in sub.VELDEN})
-    except ValidationError:
-        return "Schrijf het doel van de opdracht; de andere velden mogen leeg zijn."
+    lijst = invoer.get("opdrachten") if isinstance(invoer.get("opdrachten"), list) else []
+    if not all(isinstance(o, dict) for o in lijst):
+        return "Geef elke opdracht als een object met profiel, doel, onderwerp, oplevering, bronnen en buiten."
+    if not 1 <= len(lijst) <= sub.MAX_SUBAGENTS:
+        return f"Geef één tot {sub.MAX_SUBAGENTS} opdrachten; meer past niet in één fase."
+    plan: list[tuple[str, SubagentOpdracht]] = []
+    for o in lijst:
+        if o.get("profiel") not in sub.kiesbaar():
+            return f"Het profiel '{o.get('profiel', '')}' bestaat niet. Kies uit: {', '.join(sub.kiesbaar())}."
+        try:
+            plan.append((o["profiel"], SubagentOpdracht(**{v: str(o.get(v) or "").strip() for v in sub.VELDEN})))
+        except ValidationError:
+            return "Schrijf bij elke opdracht het doel; de andere velden mogen leeg zijn."
     if reden := _start_kind(b, state):
         return reden
-    if any(a.get("uitkomst") != "niet_gestart" for a in state.get("subagenten") or []):
+    if state.get("subagenten"):
         return "Je zette in deze beurt al een subagent aan het werk. Beantwoord de vraag met zijn rapport."
+    if len(plan) > 1:
+        return {"subagent_plan": [{"profiel": p, "opdracht": o.model_dump()} for p, o in plan],
+                "overdracht_naar": "subagent_plan"}
+    profiel, opdracht = plan[0]
     writer = get_stream_writer()
     _stap(writer, "Lex", f"zet een subagent ({profiel}) aan het werk", route=SUBAGENT)
     afloop, kind, weigering = draai(
@@ -239,69 +259,6 @@ def _subagent(b: Any, state: State, invoer: dict[str, Any]) -> tuple[dict[str, A
     if weigering:
         return weigering
     return _met_kind(state, afloop, kind, profiel)
-
-
-HERVAT_SUBAGENT = "hervat_subagent"
-
-
-def _hervat_subagent(b: Any, state: State, invoer: dict[str, Any]) -> tuple[dict[str, Any], str] | str:
-    """De subagent van deze beurt met een vraag, hervat met een antwoord uit wat er ligt (ADR-016 §A4): een nieuwe beurt
-    in zijn deelgesprek. Eén keer per subagent per beurt; daarna gaat een vraag naar de gebruiker."""
-    from . import subagent as sub
-    from .agents.uitvoering import draai
-
-    antwoord = " ".join(str(invoer.get("antwoord") or "").split())
-    if not antwoord:
-        return "Schrijf het antwoord op de vragen van de subagent."
-    open_ = sub.open_vraag(state.get("subagenten") or [])
-    if open_ is None:
-        return "Er is in deze beurt geen subagent met een vraag. Rond af."
-    if open_.get("hervat"):
-        return ("Je hervatte deze subagent in deze beurt al. Rond af: de gebruiker krijgt zijn vragen als kaart.")
-    if reden := _start_kind(b, state):
-        return reden
-    writer = get_stream_writer()
-    _stap(writer, "Lex", f"beantwoordt de vraag van de subagent ({open_.get('profiel', '')})", route=SUBAGENT)
-    afloop, kind, weigering = draai(
-        lambda stuur: sub.hervat(state, open_["delegatie_id"], [antwoord], stuur,
-                                 settings=b.settings, kinderen=b.kinderen, van="van de agent die je de opdracht gaf",
-                                 gestopt=lambda: bool(b.stop_check and b.stop_check())),
-        loop=b.loop, schrijf=writer)
-    if weigering:
-        return weigering
-    return _met_kind(state, afloop, kind, afloop.profiel)
-
-SUBAGENTEN = "subagenten"
-
-
-def _subagenten(b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any] | str:
-    """Meer subagents (ADR-016 §A5): de code legt het plan voor, en ze beginnen pas na de bevestiging van de gebruiker
-    (`nodes/delegatie_plan.py`, daarna `nodes/subagent_vervolg.py`). Hoogstens `MAX_SUBAGENTS` in één fase."""
-    from pydantic import ValidationError
-
-    from . import subagent as sub
-    from .models import SubagentOpdracht
-
-    lijst = invoer.get("opdrachten") if isinstance(invoer.get("opdrachten"), list) else []
-    if not all(isinstance(o, dict) for o in lijst):
-        return "Geef elke opdracht als een object met profiel, doel, onderwerp, oplevering, bronnen en buiten."
-    if not 2 <= len(lijst) <= sub.MAX_SUBAGENTS:
-        return (f"Geef twee tot {sub.MAX_SUBAGENTS} opdrachten; voor één opdracht is er subagent, en meer past niet in "
-                "één fase.")
-    plan = []
-    for o in lijst:
-        if o.get("profiel") not in sub.kiesbaar():
-            return f"Het profiel '{o.get('profiel', '')}' bestaat niet. Kies uit: {', '.join(sub.kiesbaar())}."
-        try:
-            opdracht = SubagentOpdracht(**{v: str(o.get(v) or "").strip() for v in sub.VELDEN})
-        except ValidationError:
-            return "Schrijf bij elke opdracht het doel; de andere velden mogen leeg zijn."
-        plan.append({"profiel": o["profiel"], "opdracht": opdracht.model_dump()})
-    if reden := _start_kind(b, state):
-        return reden
-    if state.get("subagenten"):
-        return "Je zette in deze beurt al een subagent aan het werk. Beantwoord de vraag met zijn rapport."
-    return {"subagent_plan": plan}
 
 
 REGIE_PLAN = "regie_plan"
@@ -347,10 +304,9 @@ def _subagent_invoer() -> dict[str, Any]:
     return invoer_schema()
 
 
-_SUBAGENT_INVOER = _subagent_invoer()
-#: Meer subagents: dezelfde velden per opdracht, als lijst (strict).
-_SUBAGENTEN_INVOER = {"opdrachten": {"type": "array", "items": {
-    "type": "object", "properties": _SUBAGENT_INVOER, "required": sorted(_SUBAGENT_INVOER),
+#: De opdrachten van `subagent`: per opdracht het profiel en de vaste velden.
+_SUBAGENT_INVOER = {"opdrachten": {"type": "array", "items": {
+    "type": "object", "properties": _subagent_invoer(), "required": sorted(_subagent_invoer()),
     "additionalProperties": False}}}
 
 OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
@@ -421,38 +377,20 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
     Overdracht(
         naam=SUBAGENT,
         beschrijving=(
-            "Zet één subagent aan het werk op een opdracht die op zichzelf staat en veel leest: lange stukken, veel "
-            "uitspraken of Kamerstukken, een heel hoofdstuk doorlopen. De subagent begint schoon (hij ziet dit gesprek "
-            "niet), werkt in een eigen deelgesprek en komt terug met een rapport; daarna beantwoord je de vraag zelf met "
-            "dat rapport. Niet voor een vraag die je in een paar toolrondes zelf beantwoordt, niet voor werk dat heen en "
-            "weer vraagt met de gebruiker, en niet voor een vaste route hierboven. Schrijf de opdracht volledig: hij kent "
-            "alleen wat erin staat."),
-        invoer=_SUBAGENT_INVOER, naar="agent", zet=_subagent, strict=False),
-    Overdracht(
-        naam=SUBAGENTEN,
-        beschrijving=(
-            "Zet twee of drie subagents aan het werk op opdrachten die los van elkaar kunnen (bijvoorbeeld de rechtspraak "
-            "en de Kamerstukken bij een artikel, of drie lange stukken). De code legt het plan eerst aan de gebruiker voor; "
-            "schrijf zelf niets. Niet voor delen die elkaars uitkomst nodig hebben, en niet per deelvraag van een "
-            "werkgebied: daarvoor is regie_plan."),
-        invoer=_SUBAGENTEN_INVOER, naar="subagent_plan", zet=_subagenten, strict=False),
+            "Zet subagents aan het werk op opdrachten die op zichzelf staan en veel lezen: een reeks uitspraken, "
+            "Kamerstukken of publicaties samenvatten, een lang stuk of een heel hoofdstuk doorlopen. Eén opdracht start "
+            "meteen en komt terug met een rapport; twee of drie die los van elkaar kunnen, legt de code eerst aan de "
+            "gebruiker voor. Een subagent ziet dit gesprek niet: schrijf elke opdracht volledig. Niet voor een vraag die je "
+            "in een paar toolrondes zelf beantwoordt, en niet per deelvraag van een werkgebied (regie_plan)."),
+        invoer=_SUBAGENT_INVOER, naar="agent", zet=_subagent, strict=False, ingangen=("subagent_plan",)),
     Overdracht(
         naam=REGIE_PLAN,
         beschrijving=(
-            "In een werkgebied: verdeel het werk per deelvraag over deelgesprekken, met een plan uit de stand van het "
-            "werkgebied. bronnen: de bronnen per deelvraag zoeken. annoteren: de bronnen die de gebruiker per deelvraag "
-            "opnam annoteren (de volgende fase, na de bronnen). De werkplek toont het plan met een knop; schrijf zelf "
-            "niets."),
+            "Verdeel het werk per deelvraag van het werkgebied over deelgesprekken, met een plan uit de stand van het "
+            "werkgebied. bronnen: de bronnen per deelvraag zoeken. annoteren: wat de gebruiker per deelvraag opnam "
+            "annoteren. De werkplek toont het plan met een knop; schrijf zelf niets."),
         invoer={"opdracht": {"type": "string", "enum": ["bronnen", "annoteren"]}}, naar="regie_voorstel", zet=_regie_plan,
-        strict=False),
-    Overdracht(
-        naam=HERVAT_SUBAGENT,
-        beschrijving=(
-            "Alleen na een rapport met status vraag: beantwoord de vragen van de subagent met wat er al ligt (het gesprek, "
-            "het werkgebied, de vraag van de gebruiker), en hij gaat verder in zijn deelgesprek. Eén antwoord voor al zijn "
-            "vragen, in eigen woorden. Eén keer per subagent per beurt. Weet je het antwoord niet zeker, roep dit dan niet "
-            "aan: de gebruiker krijgt de vragen dan als kaart."),
-        invoer={"antwoord": {"type": "string"}}, naar="agent", zet=_hervat_subagent, strict=False),
+        strict=False, werkgebied=True),
     Overdracht(
         naam="taakagent",
         beschrijving=(
@@ -485,9 +423,9 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
 )}
 
 
-def voor(profiel: str) -> dict[str, Overdracht]:
-    """De overdrachtstools van de centrale agent met dit profiel."""
-    return {n: o for n, o in OVERDRACHT.items() if not o.van or profiel in o.van}
+def voor(profiel: str, *, werkgebied: bool = True) -> dict[str, Overdracht]:
+    """De overdrachtstools van de centrale agent met dit profiel; zonder werkgebied zonder die van het werkgebied."""
+    return {n: o for n, o in OVERDRACHT.items() if (not o.van or profiel in o.van) and (werkgebied or not o.werkgebied)}
 
 
 def overdracht_node(_b: Any, state: State) -> dict[str, Any]:
@@ -523,5 +461,5 @@ def route_na_overdracht(_b: Any, state: State) -> str:
 
 def doelen() -> dict[str, str]:
     """De uitgangen van de node `overdracht`: elke doelnode, en terug naar de agent."""
-    nodes = {n for o in OVERDRACHT.values() for n in (o.ingangen if o.naar == INGANG else (o.naar,))}
+    nodes = {n for o in OVERDRACHT.values() for n in (o.ingangen if o.naar == INGANG else (o.naar, *o.ingangen))}
     return {"agent": "agent", **{n: n for n in sorted(nodes)}}

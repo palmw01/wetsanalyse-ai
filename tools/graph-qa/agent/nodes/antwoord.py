@@ -127,7 +127,8 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         venster, berichtpunten = met_beurtcontext(venster, state.get("question", ""), variabel)
         systeem = [stabiel]
     final = agent.ronde(b.llm, b.settings, systeem=systeem, berichten=venster, berichtpunten=berichtpunten,
-                        bronnen=state.get("bronnen"), bronstand=state.get("bronstand"), kader=meetkader)
+                        bronnen=state.get("bronnen"), bronstand=state.get("bronstand"), kader=meetkader,
+                        werkgebied=bool(state.get("werkgebied_id")))
 
     tool_uses, text_parts = _parse_final(final)
     telling: dict[str, Any] = {}
@@ -166,7 +167,8 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     # de volgende beurt in dezelfde conversatie crasht op Anthropic 400) én blijft het antwoord
     # leeg. Laat de tools dan vallen en lever een net eind-antwoord (desnoods een korte melding).
     # Een sjabloon mag de laatste beurt nog afronden, maar een sjabloon dat onvulbaar blijft mag er niet voorbij.
-    limiet = b.settings.max_turns if tool_uses and tool_uses[0]["name"] in SJABLONEN else b.settings.max_turns - 1
+    grens = max_rondes(b.settings, state)
+    limiet = grens if tool_uses and tool_uses[0]["name"] in SJABLONEN else grens - 1
     if tool_uses and state.get("turns", 0) >= limiet:
         tool_uses = []
         if not any(p and p.strip() for p in text_parts):
@@ -467,7 +469,7 @@ def _gevonden_zonder_sjabloon(b: Bouw, state: State) -> dict[str, list[tuple[str
     tekst, zonder links, zoekvraag of totaal, soms als markdown-tabel (iteratie 11 nov 2026: bekendmakingen B03, B05,
     B18, B20; rechtspraak R06, R17, R18, R22, R23). Hoogstens één keer per beurt (`sjabloon_gevraagd`), en niet na een
     correctieronde. Of het verzoek ook komt, beslist de lijst in de tekst (`heeft_lijst`)."""
-    if state.get("sjabloon_gevraagd") or state.get("corrected") or state.get("turns", 0) + 1 >= b.settings.max_turns:
+    if state.get("sjabloon_gevraagd") or state.get("corrected") or state.get("turns", 0) + 1 >= max_rondes(b.settings, state):
         return {}
     # Ook een gelezen stuk: in tekst noemde het model nummers die het zelf afleidde, zonder citaat (iteratie ronde 2,
     # B22: "25.2.10 (nieuw)" voor "na artikel 25.2.9 een nieuw artikel"). Een fout (alleen PDF, buiten bereik, niet
@@ -485,6 +487,13 @@ def _gevonden_zonder_sjabloon(b: Bouw, state: State) -> dict[str, list[tuple[str
     return gevonden
 
 
+def max_rondes(settings: Any, state: State) -> int:
+    """Hoeveel modelrondes deze beurt heeft: een subagent `MAX_RONDES_SUBAGENT` (ADR-016 §A2), anders `max_turns`."""
+    from ..agentvorm import MAX_RONDES_SUBAGENT
+
+    return min(MAX_RONDES_SUBAGENT, settings.max_turns) if state.get("opdracht") else settings.max_turns
+
+
 def route_after_agent(b: Bouw, state: State) -> str:
     if state.get("sjabloon_nu"):
         return "agent"  # één keer terug: om het sjabloon gevraagd (`_gevonden_zonder_sjabloon`)
@@ -493,7 +502,7 @@ def route_after_agent(b: Bouw, state: State) -> str:
         return "sjabloon"
     if pending and pending[0]["name"] in OVERDRACHT:
         return "overdracht"
-    if pending and state.get("turns", 0) < b.settings.max_turns:
+    if pending and state.get("turns", 0) < max_rondes(b.settings, state):
         return "tools"
     if state.get("specialist") == "annotatie":
         return "annoteer"  # ophaal-agent klaar → de aparte annoteer-stap

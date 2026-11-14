@@ -137,38 +137,17 @@ def test_hervatten_weigert_als_de_vraag_niet_meer_openstaat_of_er_ander_werk_loo
     assert weigering in (sub.AL_BEANTWOORD, sub.BEZET) and not gestart
 
 
-# -- de centrale agent: één keer hervatten, anders de jurist -----------------------------------------------
+# -- de centrale agent: de vraag gaat naar de jurist -----------------------------------------------------
 
 def _bouw(kinderen):
     return SimpleNamespace(kinderen=kinderen, settings=SimpleNamespace(legt_zelf_vast=True), loop=None, stop_check=None,
                            graph=None)
 
 
-def test_de_centrale_agent_hervat_een_subagent_een_keer(monkeypatch):
-    monkeypatch.setattr(overdracht, "get_stream_writer", lambda: (lambda _e: None))
-    monkeypatch.setattr(sub, "WetsanalyseApi", lambda *_a: Api())
-    kinderen, gestart, _ = _kinderen(VRAAG_KIND)
-    open_ = {"profiel": "duiding", "delegatie_id": "d1", "uitkomst": "vraag", "vragen": VRAGEN, "gesprek_id": "kind-1"}
-    tu = {"id": "t2", "name": "hervat_subagent", "input": {"antwoord": "Belastingjaar 2024, een gewone aanslag."}}
-    state = {**STATE, "pending_tools": [tu], "subagenten": [open_], "source_trace": []}
-    upd = overdracht.overdracht_node(_bouw(kinderen), state)
-    blok = upd["messages"][0]["content"][0]
-    assert not blok.get("is_error") and "status: vraag" in blok["content"]
-    [(verzoek, _, _)] = gestart
-    assert "Antwoord: Belastingjaar 2024, een gewone aanslag." in verzoek.question
-    [nu] = upd["subagenten"]
-    assert nu["hervat"] is True and nu["uitkomst"] == "vraag", "een hervatte vervangt zijn vorige stand"
-    # Een tweede keer in dezelfde beurt weigert de code: dan gaat de vraag naar de jurist.
-    nog = overdracht.overdracht_node(_bouw(kinderen), {**state, **upd, "pending_tools": [tu]})
-    assert nog["messages"][0]["content"][0]["is_error"] is True and len(gestart) == 1
-    # Zonder subagent met een vraag ook.
-    zonder = overdracht.overdracht_node(_bouw(kinderen), {**state, "subagenten": []})
-    assert zonder["messages"][0]["content"][0]["is_error"] is True
-
-
 def test_een_rapport_met_een_vraag_zegt_de_centrale_agent_wat_hij_kan():
     tekst = sub.als_toolresultaat("duiding", "vraag", "Vragen: …")
-    assert "hervat_subagent" in tekst and "als kaart" in tekst and "raad niet" in tekst
+    # De vraag gaat naar de gebruiker; de centrale agent beantwoordt haar niet zelf (geen hervat_subagent in het voorvoegsel).
+    assert "als kaart" in tekst and "niet zelf" in tekst and "hervat_subagent" not in tekst
 
 
 def test_de_vraagkaart_volgt_het_contract_van_de_werkplek():
