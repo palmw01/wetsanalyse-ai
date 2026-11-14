@@ -21,8 +21,8 @@ from bronmodel.connectors import CONNECTORS
 from langgraph.config import get_stream_writer
 
 from ..beurtmeting import tel_sjabloon
-from ..berichten import (CORRECTIE, _parse_final, _schoon_messages, _trim_messages, beurt_start, hervatting_van,
-                         met_beurtcontext, toolresultaten, venster_telling)
+from ..berichten import (CORRECTIE, _parse_final, _schoon_messages, _trim_messages, beurt_start,
+                         eerste_deel_ingekort, hervatting_van, met_beurtcontext, toolresultaten, venster_telling)
 from ..bronregister import bij, controletrace
 from ..focus import genoemd_in_antwoord, na_antwoord
 from ..grounding import alleen_gelezen_extern, check_grounding, curate_sources, herstel_citaten, live_niet_letterlijk
@@ -121,6 +121,11 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     # Historie begrenzen (tegen onbegrensde promptgroei in een lange sessie); state blijft heel.
     venster = _trim_messages(historie, b.settings.max_history_chars, state.get("question", ""))
     telling = venster_telling(historie, venster)
+    if state.get("opdracht"):
+        # Een hervatte subagent: van wat het eerste deel las, alleen de tekst die zijn eerste rapport noemt (bundel 120).
+        from bronmodel.connectors import leestools
+
+        venster = eerste_deel_ingekort(venster, state.get("question", "") or "", leestools())
     # Voor de contextweergave: waar deze beurt begint, wat het venster van de historie overliet en waar het begint op te
     # ruimen. Het gaat met de rol naar de meter (`llm_stap`, `kader`), niet naar het model.
     meetkader = {"beurt_start": beurt_start(venster, state.get("question", "")), "venster_telling": telling,
@@ -802,7 +807,8 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     # bewering. Alleen opgevraagd als het antwoord iets noemt met de vorm van een regeling; zonder namen geldt de toets niet.
     namen = (_graafnamen(b.graph) or None) if regelingen_genoemd(tekst) else None
     report = check_grounding(tekst, controletrace(state), overzicht=state.get("overzicht") or None, bekend=_bekend(state),
-                             regelingen=namen, steun=rapport_steun(state), vraag=_vraag(state))
+                             regelingen=namen, steun=rapport_steun(state), vraag=_vraag(state),
+                             periode=_periode(state))
     # Wettekst uit een sjabloon staat zonder aanhalingstekens, dus de toets ziet "niets te controleren". Maar de code
     # toonde hem uit de tool-rijen, met de vindplaats erbij: de melding dat er geen vindplaats is, zou onwaar zijn.
     if report.niveau == "onbepaald" and not report.onbevestigd and (state.get("antwoord") or {}).get("doelen"):
@@ -864,6 +870,21 @@ def _vraag(state: State) -> str:
     return "\n".join([_bekend(state), *(str(v) for v in opdracht.values() if isinstance(v, str))])
 
 
+def _periode(state: State) -> tuple[int, int] | None:
+    """De periode die de jurist koos, voor `gelezen.buiten_periode`: uit de vraag (bij een hervatte subagent staan zijn
+    antwoorden erin) of de opdracht, en anders uit wat een subagent ervan doorgaf (`Afloop.periode`). Niet uit het dossier:
+    daar staan jaartallen die over iets anders gaan."""
+    from ..gelezen import gekozen_periode
+
+    opdracht = state.get("opdracht") or {}
+    # De laatste periode telt: de opdracht eerst, dan de vraag (bij een hervatting de antwoorden van de jurist).
+    eigen = gekozen_periode("\n".join([*(str(v) for v in opdracht.values() if isinstance(v, str)),
+                                       str(state.get("zelfstandige_vraag") or ""), str(state.get("question") or "")]))
+    if eigen or opdracht:
+        return eigen
+    return next((tuple(a["periode"]) for a in state.get("subagenten") or [] if len(a.get("periode") or []) == 2), None)
+
+
 def route_after_verify(b: Bouw, state: State) -> str:
     if state.get("overzicht"):
         # De tekst komt uit het overzicht zelf; een correctieronde zou het model alsnog laten
@@ -888,9 +909,14 @@ def correct_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     unsupported = state.get("unsupported") or []
     niet_letterlijk = state.get("niet_letterlijk") or []
-    beweringen = state.get("beweringen") or []
+    alle = state.get("beweringen") or []
+    # Een letter uit een ander schrift (`gelezen.vreemd_schrift`) is geen feit zonder bron, maar een spelfout.
+    spelling = [b.removeprefix("spelling: ") for b in alle if b.startswith("spelling: ")]
+    beweringen = [b for b in alle if not b.startswith("spelling: ")]
 
     opdrachten: list[str] = []
+    if spelling:
+        opdrachten.append(f"Herstel de spelling: {', '.join(spelling)}. Verander daarvoor alleen dat woord.")
     if unsupported:
         opdrachten.append(
             f"Je noemde verwijzing(en) {', '.join(unsupported)} die niet uit de graaf-resultaten "
@@ -914,11 +940,17 @@ def correct_node(b: Bouw, state: State) -> dict[str, Any]:
             "hebt. Haal het op met de tools en noem de bron, of laat het weg; schrijf geen datum, nummer, aantal of "
             "instantie uit eigen kennis."
         )
+        if any(b.startswith("samenvatting van ") for b in beweringen):
+            # Meting bundel 120, D01: HR:2023:1371 samengevat uit de conclusie die hem besprak, zonder dat te zeggen.
+            opdrachten.append(
+                "Ken je een stuk alleen uit een ander stuk dat je wel las, zeg dat dan in de kop of in de zin: "
+                "\"volgens <het gelezen stuk> …\". Anders noem je het alleen.")
     wat = " en ".join(
         deel for deel in (
             "niet-onderbouwde verwijzingen" if unsupported else "",
             "citaten die niet letterlijk zijn" if niet_letterlijk else "",
             "feiten zonder bron" if beweringen else "",
+            "een spelfout" if spelling else "",
         ) if deel
     )
     _stap(writer, "Correctie", f"antwoord bijstellen op {wat}")
@@ -1011,6 +1043,19 @@ def zonder_interne_taal(tekst: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", "\n".join(regels)).strip()
 
 
+def afbakening_regel(state: State, antwoord: str) -> str:
+    """De regel uit code over wat een subagent zelf afbakende zonder dat de jurist het vroeg (`Afloop.afbakening`), of
+    leeg: bij een subagent zelf, zonder afbakening, of als het antwoord elke waarde al noemt."""
+    if state.get("opdracht"):
+        return ""
+    punten = list(dict.fromkeys(p for a in state.get("subagenten") or [] for p in a.get("afbakening") or []))
+    tekst = antwoord.casefold()
+    if not punten or all(p.split(": ", 1)[-1].casefold() in tekst for p in punten):
+        return ""
+    return ("De subagent beperkte het zoeken zelf, zonder dat je daarom vroeg: " + "; ".join(punten)
+            + ". Wil je dat breder, zeg het dan.")
+
+
 def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
 
@@ -1035,6 +1080,18 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
                                                                          "run_id": state.get("run_id", "")})
         antwoord = schoon
         state = {**state, "answer": antwoord}
+    if antwoord.strip() and (regel := afbakening_regel(state, antwoord)):
+        # Een afbakening die de jurist niet koos, staat uit code onder het antwoord (meting bundel 120, D01: ze stond in
+        # het rapport, en het antwoord noemde haar niet).
+        if state.get("antwoord"):
+            blokken = {**state["antwoord"], "blokken": [*(state["antwoord"].get("blokken") or []),
+                                                        {"soort": "toelichting", "kop": "Afbakening", "tekst": regel}]}
+            schoon_antwoord = Antwoord.model_validate(blokken)
+            antwoord = antwoord_tekst(schoon_antwoord)
+            state = {**state, "antwoord": schoon_antwoord.model_dump(), "answer": antwoord}
+        else:
+            antwoord = f"{antwoord.rstrip()}\n\n{regel}"
+            state = {**state, "answer": antwoord}
     if not antwoord.strip():
         reden = "grounding-correctie leverde geen antwoord" if state.get("corrected") else "lege antwoordbeurt"
         logger.warning(

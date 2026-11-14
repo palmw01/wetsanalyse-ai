@@ -26,8 +26,8 @@ from urllib.parse import unquote
 
 from .annotatie import _normaliseer, komt_letterlijk_voor
 from .beweringen import beweringen as feiten_buiten, tellingen_uit
-from .gelezen import (gelezen_en_gevonden, ongelezen_samengevat, vraag_niet_in_stuk, verwijzing_als_duiding,
-                      zonder_steun)
+from .gelezen import (buiten_periode, gelezen_en_gevonden, ongelezen_samengevat, vraag_niet_in_stuk,
+                      verwijzing_als_duiding, vreemd_schrift, zonder_steun)
 from .hoeveelheden import uit_tabellen
 from .models import Source
 from bronmodel.connectors import CONNECTORS, leestools, van_id
@@ -207,7 +207,7 @@ def _feitenbron(source_trace: list[tuple[str, str]], trace_text: str) -> str:
 def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
                     overzicht: dict | None = None, *, bekend: str = "",
                     regelingen: set[str] | None = None, steun: dict[str, str] | None = None,
-                    vraag: str | None = None) -> GroundingReport:
+                    vraag: str | None = None, periode: tuple[int, int] | None = None) -> GroundingReport:
     """Markeer wat in het antwoord niet uit de trace te herleiden is: verwijzingen én citaten.
 
     Met een `overzicht` (de overzichtsroute) telt ook elk genoemd artikel dat niet in het overzicht
@@ -273,6 +273,10 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
         # Het onderwerp van de vraag aan een stuk toeschrijven dat het woord niet bevat (meting bundel 119, D01).
         feiten += [f for f in vraag_niet_in_stuk(answer_text, source_trace, bekend if vraag is None else vraag)
                    if f not in feiten]
+        # De periode die de jurist koos: een stuk van daarbuiten noemen mag, samenvatten niet (meting bundel 120, D01).
+        feiten += [f for f in buiten_periode(answer_text, source_trace, periode) if f not in feiten]
+        # Een letter uit een ander schrift midden in een woord (bundel 120: "niet-melدende"): een tokenfout van het model.
+        feiten += [f for f in vreemd_schrift(answer_text) if f not in feiten]
     # Na een rapport van een subagent (`steun`: per stuk de passages die het rapport en het antwoord eruit tonen): een
     # duiding van een stuk rust op die passages, niet op "het stond in de trace" (meting bundel 117, D01).
     if steun is not None and not overzicht:

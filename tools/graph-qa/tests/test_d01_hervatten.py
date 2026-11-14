@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+
+from agent.berichten import INGEKORT
 from types import SimpleNamespace
 
 from agent import berichten
@@ -97,8 +99,10 @@ def test_het_hervatte_deel_ziet_wat_het_eerste_deel_las_en_leest_het_niet_opnieu
     llm, tweede, gelezen = _beurt(monkeypatch, tmp_path, _hervatting(),
                                   [_lees(3, HR), response([tool_block("r2", "rapport", klaar)], "tool_use")])
     eerste_ronde = json.dumps(llm.calls[0]["messages"], ensure_ascii=False)
-    # De toolresultaten van het eerste deel staan in het venster, ook met een venster van 2.000 tekens.
-    assert "una-via-beginsel" in eerste_ronde and "aanmerkelijk belang" in eerste_ronde
+    # De toolresultaten van het eerste deel staan in het venster, ook met een venster van 2.000 tekens: de tekst van wat
+    # het eerste rapport noemde, en de rest ingekort (bundel 120, `berichten.eerste_deel_ingekort`).
+    assert "una-via-beginsel" in eerste_ronde and "aanmerkelijk belang" not in eerste_ronde
+    assert INGEKORT in eerste_ronde and HOF in eerste_ronde
     # Dezelfde aanroep in het hervatte deel gaat niet opnieuw naar de bron.
     assert gelezen == [], "HR:2026:586 is niet opnieuw opgehaald"
     assert "al uitgevoerd" in json.dumps(llm.calls[1]["messages"][-1], ensure_ascii=False)

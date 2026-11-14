@@ -83,22 +83,83 @@ _ALINEA = re.compile(r"\n\s*\n")
 _URL = re.compile(r"https?://\S+?(?=\)|\s|$)")
 
 
-def per_stuk(tekst: str) -> list[tuple[str, list[str]]]:
-    """De zinnen en lijstregels van `tekst` met de stukken naast de wet waar ze over gaan: de stukken die de regel bij id
-    noemt, en anders de stukken uit de kop van haar alinea (de eerste regel, als die een stuk noemt; een lijstregel met een stuk erin is
-    zo'n kop voor zichzelf). Een samenvatting staat
-    vaak onder een kop met het id ("**2. HR 14 april 2023 (ECLI:…)**" en dan de tekst): zonder deze toewijzing toetste de
-    controle alleen de kop (meting bundel 119, D01: twee foute samenvattingen, *gegrond*)."""
+_MAAND = "januari februari maart april mei juni juli augustus september oktober november december".split()
+_DATUM = re.compile(rf"\b(\d{{1,2}}) ({'|'.join(_MAAND)}) (\d{{4}})\b", re.IGNORECASE)
+#: Hoe een kop de instantie noemt, en waarmee het label van het stuk begint (`provenance.collect_sources`: "Parket bij de
+#: Hoge Raad 13 september 2024, ECLI:…"). Een kop zonder instantie laat alle stukken van die datum toe.
+_INSTANTIES = ((re.compile(r"\b(PHR|A-G|AG|Parket|conclusie)\b", re.IGNORECASE), ("Parket",)),
+               (re.compile(r"\b(HR|Hoge Raad)\b"), ("Hoge Raad",)),
+               (re.compile(r"\b(Hof|Gerechtshof)\b", re.IGNORECASE), ("Gerechtshof",)),
+               (re.compile(r"\b(Rb|Rechtbank)\b", re.IGNORECASE), ("Rechtbank",)))
+#: Een zin die zegt uit welk stuk ze haar inhoud heeft ("volgens de conclusie in …", "aangehaald in …").
+_HERKOMST = re.compile(r"\b(volgens|aangehaald|besproken|beschreven|blijkens|weergegeven|samengevat\s+(?:in|door))\b",
+                       re.IGNORECASE)
+
+
+def _ids(tekst: str) -> list[str]:
     from bronmodel.extern import externe_verwijzingen
 
+    return list(dict.fromkeys(vp.id for vp in externe_verwijzingen(tekst)))
+
+
+def _uit_kop(kop: str, labels: dict[str, str]) -> list[str]:
+    """De stukken die een kop zonder id noemt met instantie en datum ("**HR 6 oktober 2023 — …**"): de stukken uit de
+    trace met die datum in hun label (meting bundel 120, D01: de kop noemde het stuk zo, en de regels eronder telden voor
+    geen enkel stuk). De eerste datum: daarna noemt een kop soms een ander stuk ("*(voortbouwend op HR 10 februari
+    2023)*")."""
+    m = _DATUM.search(kop)
+    if m is None or not labels:
+        return []
+    dag, maand, jaar = m.groups()
+    datum = f"{int(dag)} {maand.casefold()} {jaar}"
+    voor = kop[:m.start()]
+    begin = next((b for patroon, b in _INSTANTIES if patroon.search(voor)), ())
+    return [i for i, lab in labels.items() if datum in lab.casefold()
+            and (not begin or lab.startswith(begin) and not (begin == ("Hoge Raad",) and lab.startswith("Parket")))]
+
+
+def _herkomst(segment: str, ids: list[str], gelezen: set[str]) -> list[str]:
+    """Zegt de regel uit welk gelezen stuk ze een ongelezen stuk weergeeft ("volgens de conclusie in PHR:2025:435 oordeelde
+    de Hoge Raad in HR:2023:1371 …"), dan gaat ze over dat gelezen stuk en rust ze op zijn tekst. Anders de ids zelf."""
+    bron = [i for i in ids if i in gelezen]
+    return bron if bron and len(bron) < len(ids) and _HERKOMST.search(segment) else ids
+
+
+def per_stuk(tekst: str, gelezen: Iterable[str] | None = None,
+             labels: dict[str, str] | None = None) -> list[tuple[str, list[str]]]:
+    """De zinnen en lijstregels van `tekst` met de stukken naast de wet waar ze over gaan: de stukken die de regel bij id
+    noemt, en anders het onderwerp van haar alinea. Een samenvatting staat vaak onder een kop met het id ("**2. HR 14 april
+    2023 (ECLI:…)**" en dan de tekst): zonder deze toewijzing toetste de controle alleen de kop (meting bundel 119, D01: twee
+    foute samenvattingen, *gegrond*).
+
+    Het onderwerp: de stukken uit de eerste regel (de kop), met id of met instantie en datum (`_uit_kop`, via `labels`:
+    id → label uit de trace), en anders de stukken van de eerste zin die er een noemt (meting bundel 120, D01: "**HR 6
+    oktober 2023 — …**", dan "De Hoge Raad (ECLI:…) verwerpt …" en zes zinnen zonder id). Met `gelezen`: een regel die zegt
+    uit welk gelezen stuk ze een ander stuk weergeeft, gaat over het gelezen stuk (`_herkomst`)."""
+    gelezen = set(gelezen or ())
     uit: list[tuple[str, list[str]]] = []
     for alinea in _ALINEA.split(tekst or ""):
+        segmenten = [s for s in _SEGMENT.split(alinea) if s.strip()]
         kop = alinea.strip().split("\n", 1)[0]
-        onderwerp = list(dict.fromkeys(vp.id for vp in externe_verwijzingen(kop)))
-        for segment in (s for s in _SEGMENT.split(alinea) if s.strip()):
-            ids = list(dict.fromkeys(vp.id for vp in externe_verwijzingen(segment)))
+        onderwerp = _herkomst(kop, _ids(kop) or _uit_kop(kop, labels or {}), gelezen)
+        if not onderwerp:
+            eerste = next((s for s in segmenten if _ids(s)), "")
+            onderwerp = _herkomst(eerste, _ids(eerste), gelezen)
+        # Een kop die zegt uit welk gelezen stuk de alinea komt ("**HR 6 oktober 2023, volgens de conclusie in …**"): een
+        # ongelezen stuk dat een zin eronder noemt, geeft de alinea weer uit dat gelezen stuk.
+        bron = onderwerp if onderwerp and set(onderwerp) <= gelezen and _HERKOMST.search(kop) else []
+        for segment in segmenten:
+            ids = _herkomst(segment, _ids(segment), gelezen)
+            if bron and ids and not set(ids) & gelezen:
+                ids = bron
             uit.append((_URL.sub("", segment), ids or onderwerp))
     return uit
+
+
+def _context(items: list[tuple[str, str]]) -> tuple[set[str], dict[str, str]]:
+    """(de gelezen stukken, id → label van elk stuk in de trace): wat `per_stuk` nodig heeft."""
+    gelezen, gevonden = gelezen_en_gevonden(items)
+    return {i for i, _ in gelezen}, {**dict(gevonden), **dict(gelezen)}
 
 
 def ongelezen_samengevat(tekst: str, trace: Iterable[Any]) -> list[str]:
@@ -108,9 +169,9 @@ def ongelezen_samengevat(tekst: str, trace: Iterable[Any]) -> list[str]:
     id noemt, of onder een kop die het noemt (`per_stuk`): meer dan `MAX_EIGEN_WOORDEN` woorden die niet uit zijn
     zoekresultaat komen, is een samenvatting."""
     items = [(str(x[0]), str(x[1])) for x in trace]
-    gelezen = {i for i, _ in gelezen_en_gevonden(items)[0]}
+    gelezen, labels = _context(items)
     uit: list[str] = []
-    for segment, ids in per_stuk(tekst):
+    for segment, ids in per_stuk(tekst, gelezen, labels):
         for ident in ids:
             if ident in gelezen or ident in uit:
                 continue
@@ -157,7 +218,7 @@ def zonder_steun(tekst: str, steun: dict[str, str], trace: Iterable[Any]) -> lis
     hun stam. Zonder passage van het stuk is een duiding een bewering."""
     items = [(str(x[0]), str(x[1])) for x in trace]
     uit: dict[str, str] = {}
-    for segment, ids in per_stuk(tekst):
+    for segment, ids in per_stuk(tekst, *_context(items)):
         ids = [i for i in ids if i not in uit]
         if not ids:
             continue
@@ -251,7 +312,7 @@ def vraag_niet_in_stuk(tekst: str, trace: Iterable[Any], vraag: str) -> list[str
         return []
     teksten: dict[str, str] = {}
     uit: dict[str, str] = {}
-    for segment, ids in per_stuk(tekst):
+    for segment, ids in per_stuk(tekst, *_context(items)):
         if _ONTKENNING.search(segment):
             continue
         genoemd = sorted(w for w in woorden if re.search(rf"\b{re.escape(w)}\b", segment.casefold()))
@@ -299,4 +360,62 @@ def zelf_afgebakend(trace: Iterable[Any], gevraagd: str) -> list[str]:
             gevonden = all(j in tekst for j in jaren) if jaren else w.casefold() in tekst
             if not gevonden:
                 uit[f"{velden[arg].label}: {w}"] = None
+    return list(uit)
+
+
+#: Een periode in de woorden van de jurist: "2022 tot en met 2024", "2022–2024", "van 2022 tot 2024".
+_PERIODE = re.compile(r"\b(1[89]\d\d|20\d\d)\s*(?:–|—|-|t/m|tot en met|tot)\s*(1[89]\d\d|20\d\d)\b")
+_ECLI_JAAR = re.compile(r"^ECLI:[A-Z]{2}:[A-Z0-9]+:(\d{4}):")
+
+
+def gekozen_periode(tekst: str) -> tuple[int, int] | None:
+    """De periode die de jurist noemde (de laatste, want een later antwoord gaat voor), of None."""
+    treffers = _PERIODE.findall(tekst or "")
+    if not treffers:
+        return None
+    a, b = (int(j) for j in treffers[-1])
+    return (a, b) if a <= b else (b, a)
+
+
+def jaar_van(ident: str) -> int | None:
+    """Het jaar uit een ECLI (het jaar van de uitspraak of de conclusie), of None."""
+    m = _ECLI_JAAR.match(ident or "")
+    return int(m.group(1)) if m else None
+
+
+def buiten_periode(tekst: str, trace: Iterable[Any], periode: tuple[int, int] | None) -> list[str]:
+    """De stukken van buiten de periode die de jurist koos en die `tekst` toch duidt (meting bundel 120, D01: de jurist koos
+    2022–2024, en twee van de vier blokken waren uitspraken uit 2025, met "buiten de periode" erbij). Noemen mag (hoogstens
+    `MAX_EIGEN_WOORDEN` eigen woorden, zoals bij een vermelding); een samenvatting is een bewering. Het jaar komt uit het
+    ECLI."""
+    if periode is None:
+        return []
+    items = [(str(x[0]), str(x[1])) for x in trace]
+    uit: dict[str, str] = {}
+    for segment, ids in per_stuk(tekst, *_context(items)):
+        buiten = [i for i in ids if i not in uit and (j := jaar_van(i)) is not None and not periode[0] <= j <= periode[1]]
+        if not buiten:
+            continue
+        bekend = set().union(*(_rijwoorden(items, i) for i in buiten))
+        eigen = [w for w in _WOORD.findall(segment.casefold()) if w not in bekend and w not in _FUNCTIEWOORDEN]
+        if len(eigen) > MAX_EIGEN_WOORDEN:
+            for i in buiten:
+                uit[i] = f"duiding van {i} van buiten de gekozen periode {periode[0]}–{periode[1]}"
+    return list(uit.values())
+
+
+_WOORDVORM = re.compile(r"[^\W\d_]+(?:-[^\W\d_]+)*")
+
+
+def vreemd_schrift(tekst: str) -> list[str]:
+    """De woorden met Latijnse letters waarin een letter uit een ander schrift staat (meting bundel 120, D01: "niet-melدende",
+    een Arabische letter midden in een Nederlands woord, een tokenfout van het model). Een woord helemaal in een ander schrift
+    blijft staan; welke letter bedoeld was, weet de code niet, dus het model herstelt het."""
+    import unicodedata
+
+    uit: dict[str, None] = {}
+    for w in _WOORDVORM.findall(tekst or ""):
+        schriften = {unicodedata.name(c, "?").split(" ")[0] for c in w if c.isalpha()}
+        if "LATIN" in schriften and len(schriften) > 1:
+            uit[f"spelling: '{w}' bevat een letter uit een ander schrift"] = None
     return list(uit)

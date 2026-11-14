@@ -420,3 +420,59 @@ def met_beurtcontext(venster: list[dict[str, Any]], vraag: str, context: str) ->
     c = m.get("content")
     inhoud = [blok, {"type": "text", "text": c}] if isinstance(c, str) else [blok, *(c or [])]
     return [*venster[:b], {**m, "content": inhoud}, *venster[b + 1:]], punten
+
+
+#: Wat een hervatte subagent ziet in plaats van de tekst van een stuk uit zijn eerste deel dat zijn eerste rapport niet
+#: noemde. De tekst blijft in de trace: het rapport kan eruit citeren, en een nieuwe leesaanroep geeft hem terug.
+INGEKORT = ("In het eerste deel gelezen en niet in je eerste rapport genoemd; de tekst staat hier ingekort. Wil je eruit "
+            "citeren, lees het dan opnieuw.")
+
+
+def eerste_deel_ingekort(messages: list[dict[str, Any]], vraag: str, leestools: Iterable[str]) -> list[dict[str, Any]]:
+    """Het venster van een hervatte subagent: de toolresultaten van het eerste deel van stukken die zijn eerste rapport
+    niet noemt, als één regel met id en label (meting bundel 120, D01: het hervatte deel begon op 70k met de tekst van negen
+    uitspraken, kwam na twee zoekaanroepen aan zijn plafond en las niets meer). De rest blijft zoals hij was, en `messages`
+    zelf ook: `_al_gedaan` en `_eerder_gelezen` lezen de volle tekst. Geen hervatting: `messages` ongewijzigd."""
+    import json
+
+    from bronmodel.extern import externe_verwijzingen, externe_vindplaats
+
+    h = hervatting_van(messages, vraag)
+    if h is None:
+        return messages
+    start = beurt_start(messages, vraag)
+    namen = set(leestools)
+    aanroepen: dict[str, str] = {}
+    genoemd: set[str] = set()
+    for m in messages[start:h]:
+        for blok in m.get("content") if isinstance(m.get("content"), list) else []:
+            if isinstance(blok, dict) and blok.get("type") == "tool_use":
+                aanroepen[str(blok.get("id", ""))] = str(blok.get("name", ""))
+                if blok.get("name") == "rapport":
+                    genoemd |= {vp.id for vp in externe_verwijzingen(json.dumps(blok.get("input"), ensure_ascii=False))}
+    if not genoemd:
+        return messages  # geen rapport om op te kiezen: alles blijft
+
+    def kort(blok: dict[str, Any]) -> dict[str, Any]:
+        if (blok.get("type") != "tool_result" or blok.get("is_error")
+                or aanroepen.get(str(blok.get("tool_use_id", ""))) not in namen
+                or not isinstance(blok.get("content"), str)):
+            return blok
+        try:
+            stuk = json.loads(blok["content"]).get("stuk") or {}
+        except (ValueError, AttributeError):
+            return blok
+        if not isinstance(stuk, dict) or not stuk.get("id"):
+            return blok
+        vp = externe_vindplaats(str(stuk["id"]))
+        if (vp.id if vp else str(stuk["id"])) in genoemd:
+            return blok
+        return {**blok, "content": json.dumps({"status": "ok", "stuk": {"id": stuk["id"], "label": stuk.get("label", "")},
+                                               "ingekort": INGEKORT}, ensure_ascii=False)}
+
+    uit = list(messages)
+    for i in range(start, h):
+        c = uit[i].get("content")
+        if uit[i].get("role") == "user" and isinstance(c, list):
+            uit[i] = {**uit[i], "content": [kort(b) if isinstance(b, dict) else b for b in c]}
+    return uit

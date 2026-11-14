@@ -268,6 +268,17 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     (`gelezen.zelf_afgebakend`, uit de `zoekvraag` van het resultaat), zegt de code in het rapport; het eind-event van de
     taak draagt `afbakening` en `gelezen`. Een omgedraaide bewering met de woorden van de passage ziet een toets op woorden
     niet (`tests/test_d01_samenvatting_per_stuk.py`, `xfail`);
+  - **een stuk dat alleen via een ander stuk bekend is, heet zo; de periode van de jurist geldt** (meting bundel 120, D01).
+    Het onderwerp van een alinea komt uit de kop met id, of met instantie en eerste datum tegen de labels in de trace
+    ("**HR 6 oktober 2023 — …**", `gelezen._uit_kop`), en anders uit de eerste zin met een id. Een regel of kop die zegt
+    uit welk gelezen stuk ze komt ("volgens de conclusie in …", `_herkomst`), gaat over dat gelezen stuk. De periode komt
+    uit de antwoorden van de jurist (`gekozen_periode`; bij de centrale agent via `Afloop.periode`, nooit uit het dossier);
+    een duiding van een stuk van daarbuiten (jaar uit het ECLI) is een bewering (`buiten_periode`), een vermelding niet, en
+    het rapport noemt wat er binnen de periode gelezen is (`subagent.periode_tekst`). Een zelf gekozen afbakening staat uit
+    code onder het eindantwoord (`antwoord.afbakening_regel`) en op de kindregel van het eind-event. Een hervat deel ziet
+    van zijn eerste deel alleen de tekst van stukken die zijn eerste rapport noemt (`berichten.eerste_deel_ingekort`; de
+    berichten en de trace blijven heel). Een letter uit een ander schrift in een woord (`vreemd_schrift`) is een spelfout
+    voor de correctie; `tests/test_d01_gelezen_via_ander_stuk.py`;
   - **een open vraag van een subagent sluit de beurt**: staat een kind op `vraag`, dan doet `agent_node` geen modelronde
     meer en eindigt de beurt met één zin uit code (`VRAAG_VAN_SUBAGENT`) en de vraagkaart (`finalize_node`). De subagent
     stelt de vragen die de opdracht openlaat in één keer (`SUBAGENT_INSTRUCTIE`, de hervattekst `antwoord_tekst`). Meting
