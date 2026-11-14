@@ -66,5 +66,5 @@ def test_een_subagent_heeft_een_eigen_rondegrens():
 def test_zonder_rapport_noemt_de_code_wat_er_lag():
     afloop = sub.Afloop(profiel="duiding", uitkomst="niet_gelukt")
     tekst = sub.rapport_tekst(afloop, {"answer": "vrije tekst", "source_trace": [ARTIKEL]})
-    assert tekst.startswith(sub.GEEN_RAPPORT["niet_gelukt"]) and "Wat hij las" in tekst and "vrije tekst" not in tekst
+    assert tekst.startswith(sub.GEEN_RAPPORT["niet_gelukt"]) and "Gelezen (" in tekst and "vrije tekst" not in tekst
     assert sub.rapport_tekst(afloop, {}) == sub.GEEN_RAPPORT["niet_gelukt"]

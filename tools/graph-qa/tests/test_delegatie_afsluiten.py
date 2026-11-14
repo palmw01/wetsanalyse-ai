@@ -60,14 +60,36 @@ def test_leest_het_kind_in_zijn_laatste_ronde_toch_door_dan_sluit_de_code_af_met
     assert len(llm.calls) == MAX_RONDES_SUBAGENT, "geen ronde meer na de laatste, ook geen correctieronde"
     assert resultaat["answer"] == SUBAGENT_AFGESLOTEN and not (resultaat.get("rapport") or {}).get("status")
     tekst = sub.rapport_tekst(sub.Afloop(profiel="duiding", uitkomst="niet_gelukt"), resultaat)
-    assert "Wat hij las" in tekst
+    assert "Gelezen (" in tekst
 
 
-def test_bij_het_tokenplafond_is_de_volgende_ronde_de_laatste(monkeypatch):
-    meter = SimpleNamespace(invoer=MAX_TOKENS_SUBAGENT, uitvoer=0, cache_lees=0, cache_schrijf=0)
+def test_het_plafond_gaat_vooraf_af_op_een_schatting_van_de_volgende_ronde(monkeypatch):
+    """Meting bundel 115: bij 300k volgde nog een ronde, en de kinderen eindigden op 408k en 369k. Nu is een ronde de
+    laatste als de ronde erna er naar schatting niet meer in past."""
+    ronde = {"invoer": 40_000, "uitvoer": 0, "cache_lees": 0, "cache_schrijf": 0}
+    meter = SimpleNamespace(invoer=MAX_TOKENS_SUBAGENT - 70_000, uitvoer=0, cache_lees=0, cache_schrijf=0,
+                            aanroepen=[ronde])
     llm, resultaat = _kindbeurt(monkeypatch, [_lees(0), _lees(1)], meter=meter)
     assert len(llm.calls) == 1 and "LAATSTE RONDE (het tokenplafond" in _laatste_bericht(llm.calls[0])
     assert resultaat["answer"] == SUBAGENT_AFGESLOTEN
+    # Met ruimte voor twee rondes is deze niet de laatste.
+    b = SimpleNamespace(settings=make_settings(), llm=SimpleNamespace(meter=SimpleNamespace(
+        invoer=MAX_TOKENS_SUBAGENT - 90_000, uitvoer=0, cache_lees=0, cache_schrijf=0, aanroepen=[ronde])))
+    assert laatste_ronde(b, {"opdracht": OPDRACHT.model_dump(), "turns": 1}) == ""
+    # De groei van de laatste ronde telt mee: 40k na 30k schat 50k.
+    b.llm.meter.aanroepen = [{**ronde, "invoer": 30_000}, ronde]
+    assert antwoordnodes.volgende_ronde(b.llm) == 50_000
+
+
+def test_over_het_plafond_of_na_de_laatste_ronde_komt_er_geen_modelronde_meer(monkeypatch):
+    """Ook niet na een geweigerd rapport in de laatste ronde (meting bundel 115: elk kind deed 9 aanroepen bij 8)."""
+    meter = SimpleNamespace(invoer=MAX_TOKENS_SUBAGENT, uitvoer=0, cache_lees=0, cache_schrijf=0)
+    llm, resultaat = _kindbeurt(monkeypatch, [_lees(0)], meter=meter)
+    assert not llm.calls and resultaat["answer"] == SUBAGENT_AFGESLOTEN
+    weiger = response([tool_block("r", "rapport", {**_rapport(), "gedaan": ""})], "tool_use")
+    lezen = [_lees(i) for i in range(MAX_RONDES_SUBAGENT - 1)]
+    llm, resultaat = _kindbeurt(monkeypatch, [*lezen, weiger, _lees(99)])
+    assert len(llm.calls) == MAX_RONDES_SUBAGENT and resultaat["answer"] == SUBAGENT_AFGESLOTEN
 
 
 def test_alleen_een_subagent_heeft_een_laatste_ronde_en_een_plafond():
@@ -92,7 +114,7 @@ def test_na_een_subagent_die_niet_afrondde_leest_de_centrale_agent_niet_zelf_opn
     # Sjablonen en eigen tools blijven: afronden en de gebruiker vragen kan altijd.
     assert na_subagent(niet_af, "antwoord_duiding") == "" and na_subagent(niet_af, "wijs_af") == ""
     # Een subagent die klaar was, een vraag stelde of niet startte (een 409, het budget): dan mag het wel.
-    for uitkomst in ("klaar", "vraag", "niet_gestart", "budget_op"):
+    for uitkomst in ("niet_gestart", "budget_op", "gestopt"):
         assert na_subagent({"subagenten": [{"uitkomst": uitkomst}]}, "get_artikel") == ""
     # Het kind zelf valt er niet onder.
     assert na_subagent({**niet_af, "opdracht": OPDRACHT.model_dump()}, "get_artikel") == ""

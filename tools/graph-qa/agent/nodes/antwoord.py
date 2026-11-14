@@ -62,6 +62,12 @@ AFGEKAPT_ZONDER_TEKST = "Ik kon deze vraag niet afronden: het antwoord paste nie
 
 def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
+    if voorbij_laatste(b, state):
+        # Een subagent na zijn laatste ronde, of over zijn rondegrens of plafond (een geweigerd rapport in de laatste
+        # ronde): geen modelronde meer, de code sluit af met wat hij las (meting bundel 115: elk kind 9 aanroepen).
+        return {"messages": [{"role": "assistant", "content": [{"type": "text", "text": SUBAGENT_AFGESLOTEN}]}],
+                "pending_tools": [], "turns": state.get("turns", 0) + 1, "afgekapt": False, "sjabloon_nu": False,
+                "corrected": True, "sjabloon_gevraagd": True, "answer": SUBAGENT_AFGESLOTEN}
     # Alleen bij de eerste beurt: daarna is elke ronde al herkenbaar aan de graafbevragingen, en
     # zou dit bij elke tool-lus opnieuw voorbijkomen.
     if not state.get("turns"):
@@ -213,6 +219,8 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     }
     if afgesloten:
         upd.update(corrected=True, sjabloon_gevraagd=True)
+    if laatste:
+        upd["laatste_gehad"] = True
     upd["sjabloon_nu"] = False
     upd.update(telling)
     gevonden = _gevonden_zonder_sjabloon(b, state) if not tool_uses and sjablonen else {}
@@ -515,28 +523,52 @@ SUBAGENT_AFGESLOTEN = ("De subagent rondde niet af met een rapport voor zijn laa
                        "wat hij las.")
 
 
+_TELLERS = ("invoer", "uitvoer", "cache_lees", "cache_schrijf")
+
+
 def verbruikt(llm: Any) -> int:
     """Wat de beurt tot nu toe kostte, ruw, uit de meter van de adapter (0 zonder meter)."""
     m = getattr(llm, "meter", None)
-    return sum(int(getattr(m, v, 0) or 0) for v in ("invoer", "uitvoer", "cache_lees", "cache_schrijf")) if m else 0
+    return sum(int(getattr(m, v, 0) or 0) for v in _TELLERS) if m else 0
+
+
+def volgende_ronde(llm: Any) -> int:
+    """Wat de volgende ronde naar schatting kost, ruw: de laatste plus de groei van de laatste ronde. Een ronde stuurt
+    het hele venster opnieuw, dus ze groeit met wat de vorige ronde toevoegde (meting bundel 115: bij 300k volgde nog
+    een ronde, en de kinderen eindigden op 408k en 369k)."""
+    aanroepen = [a for a in getattr(getattr(llm, "meter", None), "aanroepen", None) or [] if not a.get("mislukt")]
+    kosten = [sum(int(a.get(v, 0) or 0) for v in _TELLERS) for a in aanroepen[-2:]]
+    if not kosten:
+        return 0
+    return kosten[-1] + max(0, kosten[-1] - kosten[0]) if len(kosten) == 2 else kosten[-1]
 
 
 def laatste_ronde(b: Any, state: State) -> str:
-    """Waarom dit de laatste ronde van een subagent is (`rondegrens` of `plafond`), of leeg. Alleen een subagent."""
+    """Waarom dit de laatste ronde van een subagent is (`rondegrens` of `plafond`), of leeg. Alleen een subagent. Het
+    plafond gaat vooraf af: als deze ronde er naar schatting overheen zou gaan, is de ronde daarna er niet meer, dus is
+    deze de laatste."""
     if not state.get("opdracht"):
         return ""
     if state.get("turns", 0) >= max_rondes(b.settings, state) - 1:
         return "rondegrens"
-    if verbruikt(b.llm) >= MAX_TOKENS_SUBAGENT:
+    if verbruikt(b.llm) + 2 * volgende_ronde(b.llm) >= MAX_TOKENS_SUBAGENT:
         return "plafond"
     return ""
+
+
+def voorbij_laatste(b: Any, state: State) -> bool:
+    """Een subagent na zijn laatste ronde (of erover): er komt geen modelronde meer, ook niet na een geweigerd rapport."""
+    return bool(state.get("opdracht")) and bool(
+        state.get("laatste_gehad") or state.get("turns", 0) >= max_rondes(b.settings, state)
+        or verbruikt(b.llm) >= MAX_TOKENS_SUBAGENT)
 
 
 def met_laatste_ronde(venster: list[dict[str, Any]], reden: str) -> list[dict[str, Any]]:
     """Het venster met de melding van de laatste ronde achter het laatste bericht (een user-bericht met toolresultaten)."""
     tekst = (f"LAATSTE RONDE ({LAATSTE_RONDE.get(reden, reden)}, van de code): je kunt niets meer lezen. Rond nu af met "
-             "het sjabloon rapport, met wat je al hebt: status klaar als het genoeg is, anders niet_gelukt met wat je "
-             "vond en wat ontbreekt. Roep geen andere tool aan.")
+             "het sjabloon rapport, met wat je al hebt: status klaar als het genoeg is, status vraag als je niet verder "
+             "kunt zonder een antwoord van de gebruiker (met je vragen en wat je al vond), anders niet_gelukt met wat "
+             "je vond en wat ontbreekt. Roep geen andere tool aan.")
     if not venster or venster[-1].get("role") != "user":
         return venster
     m = venster[-1]
@@ -615,20 +647,35 @@ NA_SUBAGENT = json.dumps({"status": "unavailable", "volledig": False, "reden": "
                                          "of vraag de gebruiker hoe verder.")}, ensure_ascii=False)
 
 
-#: De uitkomsten van een subagent die werkte en niet afrondde. Niet gestart (een 409, het budget) valt erbuiten: dan
+#: Wat de centrale agent ziet als hij na een rapport `klaar` (of een vraag) zelf wil lezen (meting bundel 115, S01: na
+#: `klaar` nog 17 toolaanroepen voor 376k).
+NA_RAPPORT = json.dumps({"status": "unavailable", "volledig": False, "reden": "na_subagent",
+                         "aanwijzing": ("Een subagent deed dit werk al en rondde af met een rapport. Lees niet zelf opnieuw: "
+                                        "beantwoord de vraag met het rapport. De stukken die hij las, staan in je trace: "
+                                        "die kun je in het sjabloon aanwijzen.")}, ensure_ascii=False)
+
+#: De uitkomsten van een subagent die niet afrondde. Niet gestart (een 409, het budget) of gestopt valt erbuiten: dan
 #: deed niemand het werk, en mag de centrale agent het zelf doen.
 NIET_AF = frozenset({"niet_gelukt", "mislukt"})
+#: De uitkomsten van een subagent die afrondde.
+AF = frozenset({"klaar", "vraag"})
 
 
 def na_subagent(state: State, tool: str) -> str:
-    """De weigering voor een lees- of zoektool van de centrale agent na een subagent die niet klaar was, of leeg. Een
-    sjabloon of een overdracht valt er niet onder: afronden en de gebruiker vragen kan altijd."""
+    """De weigering voor een lees- of zoektool van de centrale agent na een subagent die het werk deed, of leeg: na een
+    rapport (`klaar`, `vraag`) vat hij het samen, na een kind dat niet afrondde zegt hij wat er gelezen is en wat
+    ontbreekt. Een sjabloon of een overdracht valt er niet onder: afronden en de gebruiker vragen kan altijd. Een
+    uitzondering voor een bepaling die het rapport noemt zonder citaat is niet nodig: die haalt het sjabloon zelf op
+    (`duiding._genoemd_is_gelezen`, in code)."""
     from ..tools import TOOLS
 
     if state.get("opdracht") or tool not in {t["name"] for t in TOOLS}:
         return ""
-    if any(a.get("uitkomst") in NIET_AF for a in state.get("subagenten") or []):
+    uitkomsten = {a.get("uitkomst") for a in state.get("subagenten") or []}
+    if uitkomsten & NIET_AF:
         return NA_SUBAGENT
+    if uitkomsten & AF:
+        return NA_RAPPORT
     return ""
 
 

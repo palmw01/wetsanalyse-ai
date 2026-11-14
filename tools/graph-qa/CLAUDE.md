@@ -222,21 +222,32 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     code. De controle op genoemde bepalingen zonder passage geldt voor een rapport niet: wat de centrale agent de gebruiker
     zegt, toetst `verify` tegen dezelfde trace;
   - **een eigen rondegrens en een tokenplafond**: een subagent heeft `MAX_RONDES_SUBAGENT` (8) modelrondes
-    (`nodes/antwoord.max_rondes`) en `MAX_TOKENS_SUBAGENT` (300k, ruw uit de meter van het kind). In de laatste ronde
-    (`laatste_ronde`: de rondegrens, of het plafond) zegt de code het, als tekst achter de toolresultaten
-    (`met_laatste_ronde`, na de cachepunten: tools en voorvoegsel blijven gelijk, geen `tool_choice`). Rondt hij dan nog
-    niet af met het rapport, dan sluit de code af (`SUBAGENT_AFGESLOTEN`, zonder correctieronde) en noemt het rapport uit
-    code wat hij las (`subagent.rapport_tekst`, de labels uit zijn toolresultaten). Meting bundel 114: geen kind rondde af;
-    `tests/test_delegatie_afsluiten.py`;
-  - **na een subagent die niet afrondde, leest de centrale agent niet zelf opnieuw** (`niet_gelukt` of `mislukt`,
-    `antwoord.na_subagent`): `tools_node` weigert elke tool uit `TOOLS` (graaf en connectors) met `na_subagent`; sjablonen
-    en eigen tools blijven, en de kop van het rapport zegt het vooraf (`NIET_AF_AANWIJZING`). Een subagent die niet
-    startte (409, budget) valt erbuiten. Meting bundel 114: P01 deed het werk daarna opnieuw, 21 aanroepen voor 1,5M;
+    (`nodes/antwoord.max_rondes`) en `MAX_TOKENS_SUBAGENT` (300k, ruw uit de meter van het kind). Het plafond gaat vooraf
+    af: een ronde is de laatste als de ronde erna er naar schatting niet meer in past (`volgende_ronde`: de laatste ronde
+    plus haar groei). In de laatste ronde (`laatste_ronde`) zegt de code het, als tekst achter de toolresultaten
+    (`met_laatste_ronde`, na de cachepunten: tools en voorvoegsel blijven gelijk, geen `tool_choice`), met de drie statussen.
+    Daarna komt er geen modelronde meer (`voorbij_laatste`, `State.laatste_gehad`), ook niet na een geweigerd rapport: de
+    code sluit af (`SUBAGENT_AFGESLOTEN`, zonder correctieronde). Meting bundel 114 en 115: geen kind rondde af, en daarna
+    deed elk kind 9 aanroepen en eindigde boven het plafond (408k, 369k); `tests/test_delegatie_afsluiten.py`;
+  - **een vraag in de verkeerde vorm weigert het rapport niet** (`rapport.genormaliseerd`, meting bundel 115, D01): een
+    `niet_gelukt` met vragen is een `vraag`, een `klaar` met vragen zet ze onder *Open*, een vraagteken erbij, opties en
+    vragen begrensd. Alleen een vraag boven `MAX_VRAAG` tekens of `vraag` zonder vraag weigert de code nog;
+  - **gelezen is niet gevonden** (`agent/gelezen.py`): gelezen is wat een leestool gaf (bij een connector het `stuk`),
+    gevonden wat alleen een zoektool noemde; een verwijzing in een gelezen stuk telt niet. Het rapport uit code en het
+    rapport `klaar` krijgen beide lijsten (`subagent.gelezen_tekst`), de kop zegt het, en `verify` toetst een aantal
+    gelezen stukken ("de subagent las 16 uitspraken") tegen wat er gelezen is (`beweringen.gelezen_aantallen`). Meting
+    bundel 115, D01: 16 "gelezen", waarvan 7 alleen gevonden; `tests/test_delegatie_na_rapport.py`;
+  - **na een subagent leest de centrale agent niet zelf opnieuw** (`antwoord.na_subagent`): `tools_node` weigert elke tool
+    uit `TOOLS` (graaf en connectors) met de reden `na_subagent`. Na een rapport (`klaar`, `vraag`) vat hij het samen
+    (`NA_RAPPORT`), na `niet_gelukt` of `mislukt` zegt hij wat er gelezen is en wat ontbreekt (`NA_SUBAGENT`). Sjablonen en
+    eigen tools blijven, en de kop van het rapport zegt het vooraf. Een bepaling die het rapport noemt zonder citaat
+    haalt het sjabloon zelf op, dus een uitzondering is niet nodig. Een subagent die niet startte (409, budget) of gestopt
+    werd, valt erbuiten. Meting bundel 114: P01 las 21 keer opnieuw (1,5M); bundel 115: S01 na `klaar` nog 17 keer (376k);
   - **een lichter model**: een subagent draait op de lichte modelklasse (`agentvorm.SUBAGENT_MODELKLASSE`,
     `subagent_model`: `LLM_MODEL_LICHT`, anders `LLM_MODEL_ROUTER`, anders `LLM_MODEL` met de logregel `subagent_model`).
     Faalt het lichte model met een 400 of 404, dan draait de ronde opnieuw op `LLM_MODEL` en de rest van het proces ook
     (`_LICHT_KAPOT`), zodat het voorvoegsel van het kind per model vast blijft. De centrale agent en elke specialist van de
-    supervisor houden hun model. Het model van het kind staat in `regie_taak` en in de meetsamenvatting (`kind_modellen`);
+    supervisor houden hun model. Het model van het kind staat in `regie_taak`, in de afloop van het kind in het eind-event van de regie (`Afloop.modellen`) en in de meetsamenvatting (`kind_modellen`, uit beide);
   - **routes in code naar delegatie** (meting 14 nov 2026): "vat per uitspraak/stuk/Kamerstuk samen …" met een bron naast
     de wet aan gaat zonder model naar de node `subagent_route` (`nodes/subagent_route.py`, `past`): een subagent
     `algemeen` met de vraag als doel, daarna vat de centrale agent het rapport samen (`State.rapporten`). Een vraag die een

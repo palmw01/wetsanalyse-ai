@@ -94,6 +94,29 @@ TELWOORDEN = {w: i for i, w in enumerate(
     "twee drie vier vijf zes zeven acht negen tien elf twaalf dertien veertien vijftien zestien zeventien achttien "
     "negentien twintig".split(), start=2)}
 _TELWOORD = re.compile(rf"\b({'|'.join(TELWOORDEN)})\s+(?:van\s+de\s+\d+\s+)?([a-zà-ÿ][a-zà-ÿ-]{{2,}})\b", re.IGNORECASE)
+_AANTAL = rf"(\d+|{'|'.join(TELWOORDEN)})"
+_STUKKEN = r"(?:\w+\s+){0,2}?(uitspraken|arresten|vonnissen|stukken|kamerstukken|publicaties|bekendmakingen|documenten)"
+_LEZEN = r"(?:gelezen|las|lazen|opgevraagd|opvroeg|doorgenomen|doornam|bestudeerd|bestudeerde)"
+#: Een bewering over hoeveel stukken er gelezen zijn ("de subagent las 16 uitspraken", "16 uitspraken die hij las"). Zo'n
+#: aantal toetst tegen de gelezen stukken (`gelezen.gelezen_en_gevonden`), niet tegen de aantallen in de trace: een
+#: zoekresultaat met 16 treffers maakt geen 16 gelezen uitspraken (meting bundel 115, D01).
+_GELEZEN_AANTAL = (
+    re.compile(rf"\b{_AANTAL}\s+{_STUKKEN}\b[^.\n]{{0,40}}?\b{_LEZEN}\b", re.IGNORECASE),
+    re.compile(rf"\b{_LEZEN}\b[^.\n]{{0,30}}?\b{_AANTAL}\s+{_STUKKEN}\b", re.IGNORECASE),
+)
+
+
+def gelezen_aantallen(tekst: str, gelezen: int) -> list[str]:
+    """De aantallen gelezen stukken in `tekst` die groter zijn dan wat er gelezen is."""
+    uit = []
+    for patroon in _GELEZEN_AANTAL:
+        for m in patroon.finditer(tekst):
+            n = int(m.group(1)) if m.group(1).isdigit() else TELWOORDEN[m.group(1).casefold()]
+            if n > gelezen:
+                uit.append(f"{m.group(1)} {m.group(2).casefold()} gelezen (gelezen: {gelezen})")
+    return uit
+
+
 #: Een blokcitaat: wettekst of een passage uit het blok `extern`, met een eigen toets.
 _BLOKCITAAT = re.compile(r"^[ \t]*>.*$", re.MULTILINE)
 #: Een citaat tussen aanhalingstekens: idem.
@@ -279,7 +302,8 @@ def _regeling_bekend(naam: str, regelingen: set[str], tegen_klein: str) -> bool:
 
 
 def beweringen(tekst: str, bron: str, *, bekend: str = "", tellingen: set[int] | None = None,
-               bronnen: list[str] | None = None, regelingen: set[str] | None = None) -> list[str]:
+               bronnen: list[str] | None = None, regelingen: set[str] | None = None,
+               gelezen: int | None = None) -> list[str]:
     """De feiten in `tekst` die niet in `bron` (de opgehaalde tekst) of `bekend` (de vraag) staan, in vaste volgorde.
 
     `bron` hoort ook de ruwe resultaten te dragen: een telling staat als getal in de JSON (`totaal`, `per_instantie`), en
@@ -338,4 +362,7 @@ def beweringen(tekst: str, bron: str, *, bekend: str = "", tellingen: set[int] |
     uit += [n for n in _instanties(schoon) if n.casefold() not in tegen_klein]
     if regelingen:
         uit += [f"de regeling {n}" for n in regelingen_genoemd(zonder) if not _regeling_bekend(n, regelingen, tegen_klein)]
-    return [b for b in dict.fromkeys(uit) if not _afgeleid(b, operanden, sommen)]
+    uit = [b for b in dict.fromkeys(uit) if not _afgeleid(b, operanden, sommen)]
+    # `gelezen`: hoeveel stukken er gelezen zijn. Een groter aantal "gelezen" is een bewering, ook als het aantal als
+    # telling in de trace staat.
+    return uit + gelezen_aantallen(zonder, gelezen) if gelezen is not None else uit

@@ -39,15 +39,33 @@ def test_een_vraag_is_een_rapport_met_status_vraag_en_de_vragen_erin():
 
 @pytest.mark.parametrize("invoer", [
     _vraag(vragen=[]),                                                     # vraag zonder vraag
-    {**_rapport(), "vragen": VRAGEN},                                      # klaar met vragen
-    _vraag(vragen=[{"tekst": f"Vraag {i}?", "opties": []} for i in range(4)]),  # meer dan drie
-    _vraag(vragen=[{"tekst": "Welk jaar", "opties": []}]),                 # geen vraagteken
-    _vraag(vragen=[{"tekst": "Welk jaar?", "opties": list("abcde")}]),     # te veel opties
+    _vraag(vragen=[{"tekst": "Welk jaar " * 40 + "?", "opties": []}]),     # te lang
 ])
 def test_de_code_toetst_de_vragen(invoer):
     with pytest.raises(Onvulbaar) as fout:
         vul("rapport", invoer, [ARTIKEL])
     assert fout.value.code == "rapport_vragen"
+
+
+def test_een_vraag_in_de_verkeerde_vorm_weigert_het_rapport_niet():
+    """Meting bundel 115, D01: het kind wilde vragen, het rapport werd geweigerd op `rapport_vragen`, en het eindigde
+    `niet_gelukt` zonder bevindingen. De code herstelt de vorm."""
+    from agent.sjablonen.rapport import MAX_OPTIES, MAX_VRAGEN, genormaliseerd, status_van, vragen_van
+
+    # niet_gelukt met een vraag is een vraag: het kind kan niet verder zonder antwoord.
+    niet = {**_vraag(), "status": "niet_gelukt"}
+    assert status_van(niet) == "vraag" and vragen_van(niet)
+    assert [b.kop for b in vul("rapport", niet, [ARTIKEL]).blokken if b.soort == "toelichting"][-1] == "Vragen"
+    # klaar met vragen blijft klaar; de vragen staan onder Open.
+    klaar = genormaliseerd({**_rapport(), "vragen": VRAGEN})
+    assert klaar["status"] == "klaar" and not klaar["vragen"] and any(p.startswith("Open vraag: ") for p in klaar["open"])
+    vul("rapport", {**_rapport(), "vragen": VRAGEN}, [ARTIKEL])
+    # Een vraagteken erbij, opties en vragen begrensd, de rest onder Open.
+    n = genormaliseerd(_vraag(vragen=[{"tekst": f"Welk jaar {i}.", "opties": list("abcde")} for i in range(5)]))
+    assert len(n["vragen"]) == MAX_VRAGEN and all(v["tekst"].endswith("jaar 0?") or v["tekst"].endswith("?")
+                                                   for v in n["vragen"])
+    assert n["vragen"][0]["tekst"] == "Welk jaar 0?" and len(n["vragen"][0]["opties"]) == MAX_OPTIES
+    assert sum(p.startswith("Open vraag: ") for p in n["open"]) == 2
 
 
 # -- de afloop: wachten, en hervatten ---------------------------------------------------------------------

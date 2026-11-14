@@ -160,7 +160,9 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
         # Het model waarop elk kind echt draaide (`regie_taak` eind), en apart wat er gekozen werd: verschillen ze, dan
         # viel de lichte klasse terug (ADR-016 §A2).
         "kind_modellen": sorted({m for e in events if e["type"] == "regie_taak" and e.get("fase") == "eind"
-                                 for m in (e.get("modellen") or ([e["model"]] if e.get("model") else []))}),
+                                 for m in (e.get("modellen") or ([e["model"]] if e.get("model") else []))}
+                                | {m for e in events if e["type"] == "regie" and e.get("fase") == "eind"
+                                   for k in e.get("kinderen") or [] for m in k.get("modellen") or []}),
         "kind_gekozen_modellen": sorted({k.get("gekozen_model") for k in kinderen if k.get("gekozen_model")}),
         "profiel_past": (all(p in v["profielen"] for p in kind_profielen) and bool(kind_profielen)) if subagent else None,
         "bevestiging": [f"{b.get('soort')}:{b.get('opdracht', '')}".rstrip(":") for b in bevestigingen],
