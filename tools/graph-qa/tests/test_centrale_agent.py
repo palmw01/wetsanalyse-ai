@@ -496,3 +496,18 @@ def test_heropend_zet_alleen_niet_nodig_terug():
     from agent import bronkeuze
     stand = {"a": _bron(False, "niet_nodig", "A"), "b": _bron(False, "straat", "B"), "c": _bron(True, "aan", "C")}
     assert bronkeuze.actief(bronkeuze.heropend(stand)) == ["a", "c"]
+
+
+# --- de afrondregel gelijk aan die van de duiding-specialist (meting #1457) ----------------------------------------
+# Na een weigering volgde de supervisor de melding en vulde het sjabloon (2/2); de centrale agent viel terug op tekst
+# (0/2), en F04 probeerde het sjabloon niet. Het verschil zat in de instructie: duiding zegt "je schrijft geen antwoord
+# in tekst", centraal had een ruimere uitweg naar tekst.
+
+def test_de_centrale_agent_heeft_de_afrondregel_van_de_duiding_specialist():
+    duiding = profielen.PROFIELEN["duiding"].instructie
+    assert "je schrijft geen antwoord in tekst" in duiding
+    for naam in (CENTRAAL, CENTRAAL_BREED):
+        p = profielen.PROFIELEN[naam].instructie
+        assert "je schrijft geen antwoord in tekst" in p
+        assert "Weigert de code het sjabloon, verbeter dan de aanroep" in p
+        assert "of gaat de vraag om iets wat in geen sjabloon past" not in p

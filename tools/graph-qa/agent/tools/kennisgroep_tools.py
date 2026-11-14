@@ -66,8 +66,9 @@ KENNISGROEP_TOOLS: list[dict[str, Any]] = [
             "(de kennisgroep), rechtsgebied (middel en belastingsoort), reeks (rubrieken), link, vervangt en "
             "vervangen_door, en met een artikel wetsverwijzing en tekststand ('eerdere tekst' als het artikel sinds het "
             "standpunt is gewijzigd). Daarnaast 'zoekvraag', 'totaal', 'per_status' (ook de ingetrokken en vervallen, "
-            "die standaard niet getoond worden), 'per_belastingsoort' en 'per_kennisgroep' (de verdeling van het totaal, "
-            "geteld in de index: gebruik die voor een telvraag, en blader niet door de pagina's) en met een artikel "
+            "die standaard niet getoond worden), 'per_belastingsoort', 'per_middel' en 'per_kennisgroep' (de verdeling van "
+            "het totaal, geteld in de index; belastingsoort en middel zijn twee indelingen van de site, voeg ze niet samen: "
+            "gebruik die voor een telvraag, en blader niet door de pagina's) en met een artikel "
             "'koppelingen' (via link, via tekst). Lees een standpunt met get_standpunt voor je zegt wat het "
             "inhoudt." + _CONTRACT
         ),
@@ -108,8 +109,10 @@ KENNISGROEP_TOOLS: list[dict[str, Any]] = [
             " Citeer letterlijk uit 'tekst'. Voor 'wat is het standpunt' volstaan Vraag en Antwoord.\n"
             "GEEFT TERUG: het stuk (id, label, titel, datum, gepubliceerd, vastgesteld, gewijzigd, status, orgaan, "
             "rechtsgebied, reeks, vervangt, vervangen_door, noemt, bijlagen, gebeurtenissen, link, bron_hash, en "
-            "'tekststanden': per genoemd artikel in de kennisgraaf sinds wanneer de tekst geldt en of die 'gewijzigd na "
-            "dit standpunt' of 'ongewijzigd sinds dit standpunt' is; vergelijk zelf geen datums) en per alinea nr, kop, "
+            "'tekststanden': per genoemd artikel in de kennisgraaf sinds wanneer de tekst van het ARTIKEL geldt en of het "
+            "artikel gewijzigd is na dit standpunt; vergelijk zelf geen datums. Dat zegt niets over één lid: noemt de vraag "
+            "een lid, zeg dan dat het artikel wijzigde en lees het lid op beide data (geldigheid met peildatum) voor je zegt "
+            "dat het lid wijzigde) en per alinea nr, kop, "
             "soort (alinea, voetnoot, tabel, tabelrij) en tekst. Noem de datum en de status uit 'stuk'. Staat het "
             "kenmerk niet bij de gepubliceerde standpunten maar trekt een ander het in, dan geeft de fout "
             "'vervangen_door'."
@@ -166,8 +169,11 @@ def tekststanden(graph: Any, noemt: list[str], datum: str) -> list[dict[str, str
     for bwb, artikel in paren:
         if not (vanaf := sinds.get(f"urn:bwb:{bwb}:artikel:{artikel}")):
             continue
-        uit.append({"bwb_id": bwb, "artikel": artikel, "tekst_vanaf": vanaf,
-                    "tekststand": "gewijzigd na dit standpunt" if vanaf > datum else "ongewijzigd sinds dit standpunt"})
+        # De graaf kent de inwerking per artikel, niet per lid. Een artikel dat na het standpunt wijzigde, kan het lid dat
+        # het standpunt noemt ongewijzigd laten (meting ronde 2, vraag 13: art. 25 Iw gewijzigd, lid 17 woordelijk gelijk).
+        uit.append({"bwb_id": bwb, "artikel": artikel, "tekst_vanaf": vanaf, "niveau": "artikel",
+                    "tekststand": ("het artikel is gewijzigd na dit standpunt; of het genoemde lid anders luidt, zegt dit "
+                                   "niet" if vanaf > datum else "het artikel is ongewijzigd sinds dit standpunt")})
     return uit
 
 
@@ -281,12 +287,13 @@ def _zoek(bron: KennisgroepenBron, graph: Any, a: dict[str, Any]) -> str:
         kant.append("Niet elk standpunt wordt gepubliceerd.")
     extra = compact({"zoekvraag": _zoekvraag_tekst(v), "totaal": gevonden.totaal, "per_status": gevonden.per_status,
                      "koppelingen": gevonden.per_herkomst, "per_belastingsoort": gevonden.per_belastingsoort,
-                     "per_kennisgroep": gevonden.per_kennisgroep, "kanttekening": " ".join(kant)})
+                     "per_kennisgroep": gevonden.per_kennisgroep, "per_middel": gevonden.per_middel,
+                     "kanttekening": " ".join(kant)})
     toelichting = [] if gevonden.totaal else [
         "Geen gepubliceerd kennisgroepstandpunt bij deze zoekvraag; dat betekent niet dat er geen standpunt is."]
     if gevonden.totaal > len(rijen):
-        toelichting.append("Een telling of verdeling staat in totaal, per_status, per_belastingsoort en per_kennisgroep: "
-                           "blader daarvoor niet door de pagina's.")
+        toelichting.append("Een telling of verdeling staat in totaal, per_status, per_belastingsoort, per_middel en "
+                           "per_kennisgroep: blader daarvoor niet door de pagina's, en tel de verdelingen niet bij elkaar op.")
     return pagina(rijen, tool="zoek_standpunten", args=args, limit=aantal, offset=offset, extra=extra,
                   toelichting=" ".join(toelichting))
 

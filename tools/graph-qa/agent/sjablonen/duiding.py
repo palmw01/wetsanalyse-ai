@@ -14,6 +14,7 @@ gaat terug naar het model.
 """
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from bronmodel.antwoord import Antwoord, Citaat, Citaten, Toelichting, Twijfel
@@ -278,19 +279,31 @@ def _niet_onderbouwd(uitleg: str, citaten: list[Citaat], extern: frozenset[str] 
 MAX_OPHALEN = 2
 
 
-def _genoemd_in_tekst(nummer: str, rijen: dict[str, dict[str, Any]]) -> list[str]:
-    """De opgehaalde bepalingen waarvan de tekst artikel `nummer` noemt (hoogstens drie, op het adres dat in `bepaling`
-    hoort). Een artikel van
-    een andere regeling staat vaak alleen zo in beeld: de Leidraad bij artikel 24 Iw noemt "artikel 29, eerste lid, Wet op
-    de omzetbelasting 1968" (meting A2-3c, F05). Dan is het gelezen, en de weigering "niet opgehaald, haal het op" stuurde
-    het model naar een tool die het niet vindt: na twee weigeringen viel het antwoord terug op tekst."""
+#: Zoveel woorden geeft de weigering als begin en als einde van de zin die een artikel noemt.
+_ANKERWOORDEN = 6
+
+
+def _zin_met(doel: str, tekst: str) -> str:
+    """De zin uit `tekst` die `doel` ("artikel 29") noemt, of leeg."""
+    for zin in re.split(r"(?<=[.;:])\s+", " ".join(tekst.split())):
+        if doel in {v.casefold() for v in vermeldingen(zin)}:
+            return zin
+    return ""
+
+
+def _genoemd_in_tekst(nummer: str, rijen: dict[str, dict[str, Any]]) -> list[tuple[str, str, str]]:
+    """Waar de opgehaalde tekst artikel `nummer` noemt: per bepaling (hoogstens twee) het adres dat in `bepaling` hoort, en
+    het begin en het einde van de zin die het noemt, letterlijk, als `van` en `tot`. Een artikel van een andere regeling
+    staat vaak alleen zo in beeld: de Leidraad bij artikel 24 Iw noemt "artikel 29, eerste lid, Wet op de omzetbelasting
+    1968" (meting A2-3c, F05). Met alleen het adres vond de centrale agent de passage twee keer niet, en na de tweede
+    weigering zegt de code "antwoord in tekst" (meting #1457, F05); met de zin zelf is de aanroep over te nemen."""
     doel = f"artikel {nummer}".casefold()
-    uit: list[str] = []
+    uit: list[tuple[str, str, str]] = []
     for iri, rij in rijen.items():
-        if doel in {v.casefold() for v in vermeldingen(str(rij.get("tekst") or ""))}:
-            if iri not in uit:
-                uit.append(iri)
-    return uit[:3]
+        if (zin := _zin_met(doel, str(rij.get("tekst") or ""))) and all(iri != u[0] for u in uit):
+            woorden = zin.split()
+            uit.append((iri, " ".join(woorden[:_ANKERWOORDEN]), " ".join(woorden[-_ANKERWOORDEN:])))
+    return uit[:2]
 
 
 def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace: Trace) -> Onvulbaar:
@@ -333,9 +346,9 @@ def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace:
                       "de tekst staat hieronder. Wijs er een passage uit aan met `bepaling`, `van` en `tot`, of laat de "
                       "vermelding weg als het artikel er na lezing niet toe doet.")
     for vermelding, waar in in_tekst:
-        zinnen.append(f"Je noemt {vermelding} zonder passage. Het staat in de tekst die je al ophaalde ({', '.join(waar)}): "
-                      "wijs daaruit de passage aan die het noemt, met dat adres als `bepaling` en met `van` en `tot`, of laat de vermelding weg. "
-                      "Ophalen hoeft niet.")
+        plekken = "; of ".join(f"bepaling {iri}, van „{van}”, tot „{tot}”" for iri, van, tot in waar)
+        zinnen.append(f"Je noemt {vermelding} zonder passage. Het staat in de tekst die je al ophaalde. Neem deze passage "
+                      f"op in 'onderbouwing': {plekken}. Of laat de vermelding weg. Ophalen hoeft niet.")
     if onbekend:
         zinnen.append(f"Je noemt {', '.join(onbekend)} zonder passage, en de tekst daarvan heb je niet opgehaald. Haal het op "
                       "met get_artikel (een onderdeel van een beleidsregel met get_bepaling) als het ertoe doet en wijs dan "
