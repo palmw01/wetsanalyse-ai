@@ -221,9 +221,17 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     `extern` (`extern.blokken(overgeslagen=)`, met stukken boven `MAX_STUKKEN`). Alleen zonder enige passage weigert de
     code. De controle op genoemde bepalingen zonder passage geldt voor een rapport niet: wat de centrale agent de gebruiker
     zegt, toetst `verify` tegen dezelfde trace;
-  - **een eigen rondegrens**: een subagent heeft `MAX_RONDES_SUBAGENT` (8) modelrondes, de laatste alleen voor het rapport
-    (`nodes/antwoord.max_rondes`; de instructie zegt het). Rondt hij niet af, dan noemt het rapport uit code wat hij las
-    (`subagent.rapport_tekst`, de labels uit zijn toolresultaten);
+  - **een eigen rondegrens en een tokenplafond**: een subagent heeft `MAX_RONDES_SUBAGENT` (8) modelrondes
+    (`nodes/antwoord.max_rondes`) en `MAX_TOKENS_SUBAGENT` (300k, ruw uit de meter van het kind). In de laatste ronde
+    (`laatste_ronde`: de rondegrens, of het plafond) zegt de code het, als tekst achter de toolresultaten
+    (`met_laatste_ronde`, na de cachepunten: tools en voorvoegsel blijven gelijk, geen `tool_choice`). Rondt hij dan nog
+    niet af met het rapport, dan sluit de code af (`SUBAGENT_AFGESLOTEN`, zonder correctieronde) en noemt het rapport uit
+    code wat hij las (`subagent.rapport_tekst`, de labels uit zijn toolresultaten). Meting bundel 114: geen kind rondde af;
+    `tests/test_delegatie_afsluiten.py`;
+  - **na een subagent die niet afrondde, leest de centrale agent niet zelf opnieuw** (`niet_gelukt` of `mislukt`,
+    `antwoord.na_subagent`): `tools_node` weigert elke tool uit `TOOLS` (graaf en connectors) met `na_subagent`; sjablonen
+    en eigen tools blijven, en de kop van het rapport zegt het vooraf (`NIET_AF_AANWIJZING`). Een subagent die niet
+    startte (409, budget) valt erbuiten. Meting bundel 114: P01 deed het werk daarna opnieuw, 21 aanroepen voor 1,5M;
   - **een lichter model**: een subagent draait op de lichte modelklasse (`agentvorm.SUBAGENT_MODELKLASSE`,
     `subagent_model`: `LLM_MODEL_LICHT`, anders `LLM_MODEL_ROUTER`, anders `LLM_MODEL` met de logregel `subagent_model`).
     Faalt het lichte model met een 400 of 404, dan draait de ronde opnieuw op `LLM_MODEL` en de rest van het proces ook
@@ -302,6 +310,12 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   D5), de code neemt de tekst ertussen uit de bron; gezocht wordt met typografische tekens als hun gewone vorm (’ = '),
   een slotzin uit `get_lid` telt onder zijn lid en een jci wordt de iri van de rij. Ze toetst tegen de tekst van de aangewezen bepaling, niet tegen de hele trace, en
   weigert een bepaling die de uitleg noemt zonder passage; kort antwoord, waarom en twijfel gaan als tekst door `verify`. Staan de aangewezen woorden er niet, dan zegt de weigering waar ze wél staan of hoe de aangewezen tekst begint (`duiding._waar_wel`, uit de opgehaalde rijen; ronde 6, I28 en L-R1: twee weigeringen en daarna tekst).
+  **Een passage die niet te tonen is, valt weg als er iets anders te tonen is** (meting bundel 114: S03 en D02 twee
+  weigeringen en dan een leeg sjabloon, P01 twee op `extern.blokken`): een andere passage of een stuk in `extern`. De code
+  zegt het in een `Leemte` uit code (`duiding.niet_getoond_tekst`, `extern.niet_getoond_tekst`: alleen hoeveel, geen
+  modeltekst), en de bepaling van een weggelaten passage telt als gelezen als haar tekst in de trace staat
+  (`_gelezen_bepaling`). Zonder iets te tonen geldt de weigering zoals altijd. Hetzelfde in `extern` als subsjabloon en
+  in `antwoord_extern`; alleen wat getoond is, telt in de uitleg als onderbouwd (`EXTERN_IDS`).
   **Wat de uitleg noemt, is gelezen** (D, besluit gebruiker 7 nov 2026; `duiding._genoemd_is_gelezen`): wijst de opgehaalde
   tekst het genoemde artikel aan zonder zijn tekst (een verwijzing in `get_context`, in precies één regeling,
   `vullen.artikel_in_trace`), dan haalt `sjabloon_node` het op via `execute_tool` (hoogstens `MAX_OPHALEN`), zet het in het
