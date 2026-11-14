@@ -68,6 +68,13 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         return {"messages": [{"role": "assistant", "content": [{"type": "text", "text": SUBAGENT_AFGESLOTEN}]}],
                 "pending_tools": [], "turns": state.get("turns", 0) + 1, "afgekapt": False, "sjabloon_nu": False,
                 "corrected": True, "sjabloon_gevraagd": True, "answer": SUBAGENT_AFGESLOTEN}
+    if not state.get("opdracht") and open_vraag(state.get("subagenten") or []):
+        # Een subagent wacht op een antwoord van de jurist (ADR-016 §A4): de beurt eindigt met zijn vraag als kaart
+        # (`finalize_node`), en daarvoor alleen een zin uit code. Een antwoord van de centrale agent had geen gelezen
+        # stukken onder zich (meting bundel 116, D01: samenvattingen van uitspraken die niemand las, toch *gegrond*).
+        return {"messages": [{"role": "assistant", "content": [{"type": "text", "text": VRAAG_VAN_SUBAGENT}]}],
+                "pending_tools": [], "turns": state.get("turns", 0) + 1, "afgekapt": False, "sjabloon_nu": False,
+                "corrected": True, "sjabloon_gevraagd": True, "answer": VRAAG_VAN_SUBAGENT}
     # Alleen bij de eerste beurt: daarna is elke ronde al herkenbaar aan de graafbevragingen, en
     # zou dit bij elke tool-lus opnieuw voorbijkomen.
     if not state.get("turns"):
@@ -518,6 +525,8 @@ LAATSTE_RONDE = {
     "rondegrens": "de rondegrens",
     "plafond": "het tokenplafond van een subagent",
 }
+
+VRAAG_VAN_SUBAGENT = "Voordat ik verder kan, heb ik een vraag voor je. Kies hieronder een antwoord of typ er zelf een."
 
 SUBAGENT_AFGESLOTEN = ("De subagent rondde niet af met een rapport voor zijn laatste ronde; de code sloot hem af met "
                        "wat hij las.")

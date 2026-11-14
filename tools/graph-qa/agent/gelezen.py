@@ -9,6 +9,7 @@ geen gelezen stuk.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterable
 from typing import Any
 
@@ -61,3 +62,38 @@ def gelezen_en_gevonden(trace: Iterable[Any]) -> tuple[list[tuple[str, str]], li
             gelezen.setdefault(ident, label)
     gevonden = {i: lab for i, lab in _bronnen(zoeken) if i not in gelezen}
     return list(gelezen.items()), list(gevonden.items())
+
+
+#: Hoeveel eigen woorden een zin of lijstregel over een stuk hoogstens heeft zonder dat het een samenvatting is: woorden
+#: die niet in het zoekresultaat van dat stuk staan (titel, label, instantie, datum) en geen functiewoord zijn. "ECLI:… (Hoge
+#: Raad, 12 maart 2026), over de melding" is een vermelding; wat de rechter oordeelde is een samenvatting.
+MAX_EIGEN_WOORDEN = 5
+
+_WOORD = re.compile(r"[a-zà-ÿ]{3,}")
+_SEGMENT = re.compile(r"(?<=[.!?])\s+(?=[A-ZÀ-Ý(])|\n+")
+_FUNCTIEWOORDEN = frozenset(
+    "de het een en van in op over met voor door aan bij dat die dit deze zijn is was wordt werd worden heeft hebben had "
+    "naar uit ook niet als zoals dan maar om tot onder tegen hij zij ze er hier daar wat welke wie waar wel nog al geen "
+    "kan kon zou zal moet mag uitspraak uitspraken arrest arresten vonnis rechter rechtbank hof hoge raad gerechtshof "
+    "zaak stuk stukken waarin waarbij volgens gaat ging betreft".split())
+
+
+def ongelezen_samengevat(tekst: str, trace: Iterable[Any]) -> list[str]:
+    """De stukken die `tekst` inhoudelijk samenvat terwijl hun tekst niet gelezen is (meting bundel 116, D01: twee
+    uitspraken samengevat die niemand las, en het oordeel *gegrond* omdat de blokcitaten letterlijk waren). Een stuk is pas
+    bron als het gelezen is; dezelfde regel geldt voor wat het antwoord erover zegt. Per zin of lijstregel die het stuk bij
+    id noemt: meer dan `MAX_EIGEN_WOORDEN` woorden die niet uit zijn zoekresultaat komen, is een samenvatting."""
+    from bronmodel.extern import externe_verwijzingen
+
+    items = [(str(x[0]), str(x[1])) for x in trace]
+    gelezen = {i for i, _ in gelezen_en_gevonden(items)[0]}
+    uit: list[str] = []
+    for segment in _SEGMENT.split(tekst or ""):
+        for vp in externe_verwijzingen(segment):
+            if vp.id in gelezen or vp.id in uit:
+                continue
+            bekend = set(_WOORD.findall(" ".join(t for _, t in items if vp.id in t).casefold()))
+            eigen = [w for w in _WOORD.findall(segment.casefold()) if w not in bekend and w not in _FUNCTIEWOORDEN]
+            if len(eigen) > MAX_EIGEN_WOORDEN:
+                uit.append(vp.id)
+    return [f"samenvatting van {i} zonder gelezen tekst" for i in uit]

@@ -237,6 +237,14 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     rapport `klaar` krijgen beide lijsten (`subagent.gelezen_tekst`), de kop zegt het, en `verify` toetst een aantal
     gelezen stukken ("de subagent las 16 uitspraken") tegen wat er gelezen is (`beweringen.gelezen_aantallen`). Meting
     bundel 115, D01: 16 "gelezen", waarvan 7 alleen gevonden; `tests/test_delegatie_na_rapport.py`;
+  - **een open vraag van een subagent sluit de beurt**: staat een kind op `vraag`, dan doet `agent_node` geen modelronde
+    meer en eindigt de beurt met één zin uit code (`VRAAG_VAN_SUBAGENT`) en de vraagkaart (`finalize_node`). De subagent
+    stelt de vragen die de opdracht openlaat in één keer (`SUBAGENT_INSTRUCTIE`, de hervattekst `antwoord_tekst`). Meting
+    bundel 116, D01: de centrale agent schreef naast de kaart al samenvattingen van uitspraken die niemand las, en na het
+    antwoord vroeg het kind nog iets wat het de eerste keer al kon vragen; `tests/test_vraag_sluit_beurt.py`;
+  - **een samenvatting van een stuk rust op zijn gelezen tekst** (`gelezen.ongelezen_samengevat`, in `check_grounding`):
+    een zin of lijstregel die een stuk naast de wet bij id noemt dat niet gelezen is, met meer dan `MAX_EIGEN_WOORDEN`
+    woorden die niet uit zijn zoekresultaat komen, is een bewering. Een vermelding (label, datum, titel) niet;
   - **na een subagent leest de centrale agent niet zelf opnieuw** (`antwoord.na_subagent`): `tools_node` weigert elke tool
     uit `TOOLS` (graaf en connectors) met de reden `na_subagent`. Na een rapport (`klaar`, `vraag`) vat hij het samen
     (`NA_RAPPORT`), na `niet_gelukt` of `mislukt` zegt hij wat er gelezen is en wat ontbreekt (`NA_SUBAGENT`). Sjablonen en

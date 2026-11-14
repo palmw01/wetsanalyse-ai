@@ -26,7 +26,7 @@ from urllib.parse import unquote
 
 from .annotatie import _normaliseer, komt_letterlijk_voor
 from .beweringen import beweringen as feiten_buiten, tellingen_uit
-from .gelezen import gelezen_en_gevonden
+from .gelezen import gelezen_en_gevonden, ongelezen_samengevat
 from .hoeveelheden import uit_tabellen
 from .models import Source
 from bronmodel.connectors import CONNECTORS, leestools, van_id
@@ -262,6 +262,10 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
                                                               regelingen=regelingen,
                                                               gelezen=len(gelezen_en_gevonden(source_trace)[0]))
                                    if f not in unsupported]
+    # Wat het antwoord over een stuk naast de wet zegt, rust op zijn gelezen tekst: een inhoudelijke samenvatting van een
+    # stuk dat alleen in een zoekresultaat stond, is een bewering (meting bundel 116, D01). Een vermelding niet: zie hieronder.
+    if not overzicht:
+        feiten += [f for f in ongelezen_samengevat(answer_text, source_trace) if f not in feiten]
     # Een stuk van een bronconnector (ADR-013) dat het antwoord noemt en dat alleen in een zoekresultaat stond, is
     # gevonden, niet gelezen. Dat is geen signaal: het id bestaat en het zoekresultaat draagt zijn label, soort, datum
     # en titel uit de bron. Tot 10 nov 2026 telde zo'n stuk als onbevestigd; op acceptatie gaf een lijst opvolgende

@@ -73,7 +73,11 @@ async function beurt(args) {
   let vanaf = 0, tekst = "", events = [], klaar = false;
   for (let n = 0; !klaar && n < 12; n++) {
     const r = await c.runEvents(run_id, vanaf, 110);
-    tekst += r.tekst; events.push(...r.events); vanaf = r.vanaf + 1; klaar = r.klaar;
+    tekst += r.tekst; events.push(...r.events); klaar = r.klaar;
+    // `r.vanaf` is de seq van het laatste event dat binnenkwam, of de oude `vanaf` als er in het venster niets kwam.
+    // Altijd +1 sloeg na een stil venster (een kind dat minuten draait) het eerste event daarna over: het eind-event
+    // van het kind dat als eerste klaar was (bundel 115 S01, bundel 116 P01 taak 0).
+    if (r.vanaf > vanaf || r.tekst || r.events.some(e => e.seq === vanaf)) vanaf = r.vanaf + 1;
   }
   const done = events.find(e => e.type === "done");
   // Een run die niet zelf kon eindigen (replica weg) of nooit `done` gaf: de opdracht gaat opnieuw.
