@@ -26,7 +26,7 @@ from urllib.parse import unquote
 
 from .annotatie import _normaliseer, komt_letterlijk_voor
 from .beweringen import beweringen as feiten_buiten, tellingen_uit
-from .gelezen import gelezen_en_gevonden, ongelezen_samengevat, zonder_steun
+from .gelezen import gelezen_en_gevonden, ongelezen_samengevat, verwijzing_als_duiding, zonder_steun
 from .hoeveelheden import uit_tabellen
 from .models import Source
 from bronmodel.connectors import CONNECTORS, leestools, van_id
@@ -266,6 +266,8 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
     # stuk dat alleen in een zoekresultaat stond, is een bewering (meting bundel 116, D01). Een vermelding niet: zie hieronder.
     if not overzicht:
         feiten += [f for f in ongelezen_samengevat(answer_text, source_trace) if f not in feiten]
+        # "Zie de toelichting bij …" bij een ander stuk is geen duiding van dit stuk (meting bundel 118, D01).
+        feiten += [f for f in verwijzing_als_duiding(answer_text, source_trace) if f not in feiten]
     # Na een rapport van een subagent (`steun`: per stuk de passages die het rapport en het antwoord eruit tonen): een
     # duiding van een stuk rust op die passages, niet op "het stond in de trace" (meting bundel 117, D01).
     if steun is not None and not overzicht:

@@ -247,6 +247,16 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     van de taak draagt de inhoud van het rapport (`subagent.rapport_inhoud`: status, gedaan, bevindingen, open, de ids
     waaruit het citeert), de meetsamenvatting `kind_rapporten`. Meting bundel 117, D01: zeven samenvattingen, geen enkele
     klopte, *gegrond*; `tests/test_d01_zonder_duiding.py`;
+  - **een hervat kind zet zijn opdracht voort** (meting bundel 118, D01): de hervatting (`berichten.HERVATTING`, het
+    eerste bericht uit `subagent.antwoord_tekst`) is een bericht van de code, geen vraag. De beurt begint bij de opdracht
+    (`beurt_start`), dus het venster houdt het eerste deel heel, de opslagrem knipt er niet op en dezelfde aanroep gaat niet
+    opnieuw naar de bron (`_al_gedaan`). De eerste ronde zet wat het eerste deel las in de trace (`_eerder_gelezen`,
+    `berichten.toolresultaten`): het rapport citeert eruit en de ouder noemt het gelezen. De hervattekst vraagt de
+    bevindingen van het eerste rapport mee te nemen, want de jurist ziet alleen het laatste. Een subagent zonder ronde meer
+    krijgt geen correctieronde (`voorbij_laatste` in `verify_node` en `route_after_verify`): zijn rapport blijft, en wat de
+    controle vond gaat mee (`subagent.controle_tekst`). Een correctie haalt het rapport weg, en sloot de code af, dan is het
+    kind `afgesloten`, ook met een rapport ervoor. Het plafond geldt per deel (één meter per beurt). Een regel die over een
+    stuk alleen "zie … <ander stuk>" zegt, is een bewering (`gelezen.verwijzing_als_duiding`). `tests/test_d01_hervatten.py`;
   - **een open vraag van een subagent sluit de beurt**: staat een kind op `vraag`, dan doet `agent_node` geen modelronde
     meer en eindigt de beurt met één zin uit code (`VRAAG_VAN_SUBAGENT`) en de vraagkaart (`finalize_node`). De subagent
     stelt de vragen die de opdracht openlaat in één keer (`SUBAGENT_INSTRUCTIE`, de hervattekst `antwoord_tekst`). Meting

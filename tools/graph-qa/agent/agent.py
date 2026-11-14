@@ -442,6 +442,11 @@ async def answer_stream(
                                      answer=laatste.get("answer") or "", grounded=grounded,
                                      # De code sloot het kind af (geen rapport): de ouder maakt er `afgesloten` van.
                                      afgesloten=bool(laatste.get("afgesloten")),
+                                     # Wat de controle in het rapport niet terugvond: een subagent zonder ronde meer krijgt
+                                     # geen correctie, dus het gaat met het rapport mee (meting bundel 118).
+                                     onbevestigd=list(laatste.get("onbevestigd") or []),
+                                     niet_onderbouwd=[*(laatste.get("unsupported") or []),
+                                                      *(laatste.get("niet_letterlijk") or [])],
                                      source_trace=[tuple(x) for x in laatste.get("source_trace") or []],
                                      # Waarop het kind echt draaide (ADR-016 §A2): niet het gekozen model, want het
                                      # lichte kan teruggevallen zijn.
