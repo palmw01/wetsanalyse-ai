@@ -139,3 +139,45 @@ def test_op_de_loop_zelf_wachten_wordt_geweigerd():
             draai(coro_maak, loop=loop, schrijf=lambda e: None)
 
     asyncio.run(hoofd())
+
+
+def test_een_agent_die_niet_klaar_wordt_houdt_de_node_niet_eeuwig_vast():
+    """Bugonderzoek ADR-016 (twijfelgeval): de node wacht met een grens, annuleert de taak en geeft een nette fout."""
+    from agent.agents.uitvoering import AgentWachtTeLang
+
+    loop = asyncio.new_event_loop()
+    t = threading.Thread(target=loop.run_forever, daemon=True)
+    t.start()
+    geannuleerd = threading.Event()
+
+    async def hangt(_stuur):
+        try:
+            await asyncio.sleep(60)
+        except asyncio.CancelledError:
+            geannuleerd.set()
+            raise
+
+    try:
+        with pytest.raises(AgentWachtTeLang, match="niet klaar binnen"):
+            draai(hangt, loop=loop, schrijf=lambda _e: None, max_wacht_s=0.2)
+        assert geannuleerd.wait(2), "de taak is geannuleerd"
+    finally:
+        loop.call_soon_threadsafe(loop.stop)
+        t.join(2)
+
+
+def test_een_loop_die_stopt_zonder_te_annuleren_laat_de_node_niet_hangen():
+    from agent.agents.uitvoering import AgentWachtTeLang
+
+    loop = asyncio.new_event_loop()
+    t = threading.Thread(target=loop.run_forever, daemon=True)
+    t.start()
+
+    async def hangt(_stuur):
+        await asyncio.sleep(60)
+
+    threading.Timer(0.2, lambda: loop.call_soon_threadsafe(loop.stop)).start()
+    with pytest.raises(AgentWachtTeLang, match="event loop"):
+        draai(hangt, loop=loop, schrijf=lambda _e: None, max_wacht_s=30)
+    t.join(2)
+    loop.close()

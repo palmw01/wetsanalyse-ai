@@ -17,12 +17,20 @@ from __future__ import annotations
 
 import asyncio
 import queue
+import time
 from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar
 
 T = TypeVar("T")
 
 _WACHT_S = 0.05
+#: Hoe lang een node hoogstens op een agent wacht. Een subagent is begrensd in rondes en tokens, en een api-aanroep heeft
+#: zijn eigen timeout; dit is het vangnet daarboven, ruim boven de langste gemeten beurt (bugonderzoek ADR-016).
+MAX_WACHT_S = 1800.0
+
+
+class AgentWachtTeLang(RuntimeError):
+    """De agent werd niet klaar binnen `MAX_WACHT_S`, of de event loop van de beurt stopte terwijl hij liep."""
 
 
 def op_de_loop(loop: asyncio.AbstractEventLoop | None) -> bool:
@@ -34,9 +42,14 @@ def op_de_loop(loop: asyncio.AbstractEventLoop | None) -> bool:
 
 
 def draai(maak: Callable[[Callable[[dict[str, Any]], None]], Awaitable[T]], *,
-          loop: asyncio.AbstractEventLoop | None, schrijf: Callable[[dict[str, Any]], None]) -> T:
+          loop: asyncio.AbstractEventLoop | None, schrijf: Callable[[dict[str, Any]], None],
+          max_wacht_s: float = MAX_WACHT_S) -> T:
     """Voer `maak(stuur)` uit en geef zijn uitkomst. `stuur(event)` mag vanaf elke thread; elk event komt,
-    in volgorde, bij `schrijf` in de thread van de aanroeper."""
+    in volgorde, bij `schrijf` in de thread van de aanroeper.
+
+    De node wacht niet zonder grens: stopt de loop zonder de taak te annuleren (bij een gewone afsluiting annuleert
+    `asyncio.run` haar wel, en dan is de toekomst meteen klaar), of verstrijkt `max_wacht_s`, dan annuleert hij de taak
+    en geeft `AgentWachtTeLang`. De beurt eindigt dan met een fout in plaats van een thread die blijft hangen."""
     wachtrij: queue.SimpleQueue[dict[str, Any]] = queue.SimpleQueue()
 
     def leeg() -> None:
@@ -50,7 +63,13 @@ def draai(maak: Callable[[Callable[[dict[str, Any]], None]], Awaitable[T]], *,
         if op_de_loop(loop):
             raise RuntimeError("een agent wacht nooit op de event loop waarop hij zelf draait")
         toekomst = asyncio.run_coroutine_threadsafe(maak(wachtrij.put), loop)
+        tot = time.monotonic() + max_wacht_s
         while not toekomst.done():
+            if loop.is_closed() or not loop.is_running() or time.monotonic() > tot:
+                toekomst.cancel()
+                leeg()
+                raise AgentWachtTeLang("de event loop van de beurt stopte" if loop.is_closed() or not loop.is_running()
+                                       else f"de agent werd niet klaar binnen {max_wacht_s:.0f} s")
             try:
                 schrijf(wachtrij.get(timeout=_WACHT_S))
             except queue.Empty:
