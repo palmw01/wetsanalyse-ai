@@ -1489,7 +1489,7 @@ Een leesingang in de sidebar (*Werkwijze*): wat Lex kan, uit graph-qa `GET /v1/c
 `agent: true`). Per concept (ADR-014 §7: kennis en methode, vaste ketens, agents, handelingen, ingangen, controles;
 `CONCEPT_LABEL`) een `Groep` met `GroepRij`'s, per rij de soort als label en of er een model aan te pas komt (`ModelLabel`:
 *Zonder model*, *Model in één stap*, *Model met tools*; lintblauw, geen oordeel) en *hier uit* als de straat het niet
-aanbiedt. De balk is `OverzichtBalk` zonder *Door mij bewerkt* (de props zijn optioneel); concept en zoekterm staan in de
+aanbiedt. Bovenaan staat bij *Alles* en *Agents* (niet tijdens het zoeken) *Hoe een vraag binnenkomt* (`AgentvormBlok`, ADR-016): de stand van `CENTRALE_AGENT` uit de catalogus (`agentvorm`, `parseAgentvorm`), wie een getypte vraag leest, wat altijd in code blijft en de plek van elk profiel; de werkplek rekent er niets bij. De pagina van de centrale agent toont zijn overdrachten en de kernset, die van `workflow/subagent` de profielen, grenzen en controles. De balk is `OverzichtBalk` zonder *Door mij bewerkt* (de props zijn optioneel); concept en zoekterm staan in de
 URL. De pagina van een onderdeel (`/werkwijze/<soort>/<naam>`, `OnderdeelPagina`) toont het contract (ADR-010), de stappen
 van een workflow, de inhoud per soort (methodetekst, regels met hun voorbeeldzinnen, de beschrijving van een bron), de
 herkomst, *Leunt op* / *Gebruikt door* en waar het in de repo staat. Bij *Hoe het werkt* staat van welke methode het

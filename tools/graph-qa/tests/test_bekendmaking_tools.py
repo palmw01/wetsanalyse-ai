@@ -607,8 +607,8 @@ def test_een_lange_reeks_splitst_de_code_zelf():
 
 def test_boven_het_totaal_kapt_de_code_af_met_een_melding():
     """Iteratie ronde 4, B21 en B22: boven `MAX_ALINEAS` weigerde het sjabloon, en het model kortte zijn aanwijzingen in
-    tot het er precies zoveel waren (twee rondes van ~1.500 tokens uitvoer). Nu kapt de code af in de volgorde van het
-    antwoord, en zegt een melding achter de blokken welke alinea's van welk stuk niet geciteerd zijn."""
+    tot het er precies zoveel waren (twee rondes van ~1.500 tokens uitvoer). Nu kapt de code af, eerlijk verdeeld over de
+    stukken, en zegt een melding achter de blokken welke alinea's van welk stuk niet geciteerd zijn."""
     from agent.sjablonen import extern
     from agent.sjablonen.vullen import Onvulbaar
 
@@ -622,9 +622,12 @@ def test_boven_het_totaal_kapt_de_code_af_met_een_melding():
     trace = [gelezen("stb-2009-610", 40), gelezen("stcrt-2025-22266", 30)]
     eerste, tweede, melding = extern.blokken([{"id": "stb-2009-610", "van_nr": 1, "tot_nr": 40},
                                               {"id": "stcrt-2025-22266", "van_nr": 1, "tot_nr": 30}], trace)
-    assert len(eerste.passages) == 40 and [p.nr for p in tweede.passages] == list(range(1, extern.MAX_ALINEAS - 40 + 1))
+    # Eerlijk verdeeld (meting bundel 122): om de beurt een alinea per stuk, dus elk de helft van het totaal.
+    half = extern.MAX_ALINEAS // 2
+    assert [p.nr for p in eerste.passages] == list(range(1, half + 1))
+    assert [p.nr for p in tweede.passages] == list(range(1, half + 1))
     assert f"hoogstens {extern.MAX_ALINEAS} alinea's" in melding.tekst
-    assert f"(alinea {extern.MAX_ALINEAS - 40 + 1}–30)" in melding.tekst and "stb-2009-610" not in melding.tekst
+    assert f"stb-2009-610 (alinea {half + 1}–40)" in melding.tekst and f"(alinea {half + 1}–30)" in melding.tekst
 
     passend = extern.blokken([{"id": "stb-2009-610", "van_nr": 1, "tot_nr": 40}], trace)
     assert [b.soort for b in passend] == ["extern"], "binnen het totaal geen melding"

@@ -4,7 +4,9 @@
  *
  * Toetst: het sidebar-item, de balk (een soortkeuze met tellers en het zoekveld, zonder *Door mij bewerkt*), de
  * groepen per soort met het modellabel, soort en zoekterm in de URL, de pagina van een workflow (stappen met hun
- * model, herkomst, repo) en van een regelset (regels met hun voorbeeldzinnen), en doorklikken via *Leunt op*.
+ * model, herkomst, repo) en van een regelset (regels met hun voorbeeldzinnen), en doorklikken via *Leunt op*. Ook het
+ * blok *Hoe een vraag binnenkomt* (ADR-016): de stand van CENTRALE_AGENT uit de catalogus, bij Alles en Agents, niet
+ * bij een ander concept of tijdens het zoeken, en de overdrachten op de pagina van de centrale agent.
  *
  * `WERKWIJZE_FIXTURE=<pad>` laat de pagina's de echte catalogus tonen (een dump van `agent.catalogus`), en
  * `WERKWIJZE_SCREENSHOT=<map>` bewaart een screenshot van elk scherm, op 1280 en 390 px.
@@ -32,14 +34,29 @@ const INLINE = [
   o("workflow/bronnen_vinden", { label: "Bronnen vinden", laag: "workflow", concept: "workflow" }),
   o("connector/kamerstukken", { label: "Kamerstukken", straat: "CONNECTOR_KAMERSTUKKEN", aan: false, concept: "tool" }),
   o("regelset/jas.detector.tijd", { label: "jas.detector.tijd", doel: "Tijdsaanduiding (H2:107-109)." }),
+  o("agentprofiel/centraal", { label: "Centraal", model: "agent", concept: "agent", straat: "CENTRALE_AGENT" }),
 ];
+const AGENTVORM = {
+  vlag: "CENTRALE_AGENT", stand: "meten", ingang: "rol/duiding", centrale_agent: "agentprofiel/centraal",
+  subagents: "workflow/bronnen_vinden", regie: "workflow/annotatieketen",
+  standen: { uit: "De supervisor leest elke vraag.", meten: "De supervisor, tenzij de run om de centrale agent vraagt.",
+    aan: "De centrale agent leest elke vraag." },
+  altijd_in_code: [{ wat: "Een route in code", aantal: 17, uitleg: "zonder model naar haar keten" }],
+  profielen: [{ id: "agentprofiel/centraal", plek: "centraal", label: "De centrale agent", nu: "alleen als de run erom vraagt" }],
+  vooruitblik: "Na de eindmeting beslist de eigenaar of aan de standaard wordt.",
+};
 const fixture = process.env.WERKWIJZE_FIXTURE ? JSON.parse(readFileSync(process.env.WERKWIJZE_FIXTURE, "utf8")) : null;
 const LIJST = fixture?.lijst ?? { soorten: ["methode", "rol", "regelset", "tool", "connector", "sjabloon", "workflow",
-  "agentprofiel", "agent", "route", "controle"], onderdelen: INLINE };
+  "agentprofiel", "agent", "route", "controle"], onderdelen: INLINE, agentvorm: AGENTVORM };
 const detail = (id) => fixture?.detail?.[id] ?? { ...INLINE.find((x) => x.id === id),
   inhoud: id === "rol/duiding" ? { secties: [{ id: "duiding", skill: "wetsanalyse", bestand: ".claude/skills/wetsanalyse/references/agentrollen.md",
     bronnen: ["M01"], sha256: "x", tekst: "Oude methodetekst." }] } : id.startsWith("regelset/") ? { regels: [{ id: "jas.tijd.datum", code: "TEMPORAL_DATE", klassen: ["Tijdsaanduiding"],
     bron: "H2:109", versie: 2, voorbeelden: { positief: ["Deze wet treedt in werking op 1 september 2009."], negatief: ["Zie Stb. 2009, 1."] } }] } : {},
+  ...(id === "agentprofiel/centraal" ? { inhoud: { systeemtekst: "Instructie.", kernset: ["get_artikel"], alleen_breed: ["raw_sparql"],
+    skills: { tools: ["laad_skill", "lees_skill"], methodes: ["rol/duiding"] },
+    overdrachten: [{ naam: "toon_bepaling", doel: "Als de gebruiker de tekst van een bepaling wil.", naar: ["workflow/annotatieketen"],
+      alleen_in_werkgebied: false }, { naam: "regie_plan", doel: "Verdeel het werk per deelvraag.", naar: ["workflow/bronnen_vinden"],
+      alleen_in_werkgebied: true }] } } : {}),
   gebruikt_door: id === "regelset/jas.detector.tijd" ? ["workflow/annotatieketen"] : [] };
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -88,7 +105,22 @@ try {
       // Een groep per concept met onderdelen, in de vaste volgorde; een concept zonder onderdelen staat er niet. Binnen
       // een concept staat bij elke rij zijn soort.
       assert.deepEqual(await page.locator("[data-concept]").evaluateAll((els) => els.map((e) => e.dataset.concept)),
-        ["skill", "workflow", "tool"]);
+        ["skill", "workflow", "agent", "tool"]);
+      // Hoe een vraag binnenkomt: de stand uit de catalogus, met wie een getypte vraag leest.
+      const vorm = page.locator('[data-blok="agentvorm"]');
+      assert.equal(await vorm.getAttribute("data-stand"), "meten");
+      assert.match(await vorm.innerText(), /CENTRALE_AGENT op meten/);
+      assert.match(await vorm.innerText(), /De supervisor/);
+      assert.equal(await vorm.locator("[data-stand-uitleg]").count(), 2);
+      assert.equal(await vorm.locator('[data-profiel="agentprofiel/centraal"]').count(), 1);
+      await page.getByRole("button", { name: /^Agents/ }).click();
+      await page.waitForURL(/concept=agent/);
+      await vorm.waitFor();
+      await page.getByRole("button", { name: /^Vaste ketens/ }).click();
+      await page.waitForURL(/concept=workflow/);
+      assert.equal(await vorm.count(), 0);
+      await page.goto(`${base}/werkwijze`);
+      await lijst.waitFor();
       assert.equal(await page.getByRole("button", { name: /^Ingangen/ }).count(), 0);
       assert.match(await page.locator('[data-onderdeel="regelset/jas.detector.tijd"] [data-soort]').innerText(), /Regelset/);
       // Het modellabel, en *hier uit* bij een connector die deze omgeving niet aanbiedt.
@@ -139,6 +171,17 @@ try {
       assert.equal(await page.getByRole("button", { name: "Wijziging voorstellen" }).count(), 0);
       assert.deepEqual(voorstellen, []);
       await shot("rol");
+    }
+
+    if (!fixture) {
+      // De centrale agent: zijn overdrachten met waar ze heen leiden, en de kernset tegenover het brede profiel.
+      await page.goto(`${base}/werkwijze/agentprofiel/centraal`);
+      await page.locator('[data-blok="overdrachten"]').waitFor();
+      assert.equal(await page.locator("[data-overdracht]").count(), 2);
+      assert.match(await page.locator('[data-overdracht="regie_plan"]').innerText(), /in een werkgebied/);
+      assert.match(await page.locator('[data-overdracht="toon_bepaling"]').innerText(), /Naar: annotatieketen/);
+      assert.match(await page.locator('[data-blok="kernset"]').innerText(), /raw_sparql/);
+      await shot("centraal");
     }
 
     // Een onbekend onderdeel is een melding, geen lege pagina.

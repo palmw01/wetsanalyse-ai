@@ -285,6 +285,15 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     bewering in de woorden van de passage op, die de toetsen op woorden niet zien (bundel 119, HR:2023:181/184). Alleen als
     de goedkopere toetsen niets vonden, begrensd op `MAX_STUKKEN`, `MAX_ZINNEN` en `MAX_PASSAGE`; een fout is geen bewering.
     Kosten met het gewone model: ~5–6k invoertokens bij vier stukken, hoogstens ~10k; `tests/test_d01_samenvatting_per_stuk.py`;
+  - **een samenvatting in een rapport draagt een passage met inhoud** (meting bundel 122, D01): een kopregel (minder dan
+    `MIN_WOORDEN_INHOUD` woorden of alleen hoofdletters; een inhoudsindicatie nooit) telt in een rapport en in de steun
+    niet als passage (`extern.is_kopregel`, `subagent.passagetekst`). Dragen de aangewezen passages een samenvatting niet,
+    dan kiest de code uit dat stuk de alinea's die het best passen (`extern.aanvulling`, hoogstens `MAX_GEKOZEN`), zonder
+    extra ronde. Een rapport mag `MAX_STUKKEN_RAPPORT` stukken citeren, en de grens van `MAX_ALINEAS` gaat om de beurt per
+    stuk (`_afgekapt`). De duidingtoetsen (`zonder_steun`, `vraag_niet_in_stuk`, `buiten_periode`) lezen alleen wat Lex
+    schreef, zonder 'Gedaan' en 'Niet als citaat getoond' (`antwoord._zonder_gedaan`); een zin die zegt dat iets niet
+    samengevat is, is geen duiding (`gelezen._WEGGELATEN`), behalve voor `ongelezen_samengevat`;
+    `tests/test_d01_bundel122.py`;
   - **een open vraag van een subagent sluit de beurt**: staat een kind op `vraag`, dan doet `agent_node` geen modelronde
     meer en eindigt de beurt met één zin uit code (`VRAAG_VAN_SUBAGENT`) en de vraagkaart (`finalize_node`). De subagent
     stelt de vragen die de opdracht openlaat in één keer (`SUBAGENT_INSTRUCTIE`, de hervattekst `antwoord_tekst`). Meting

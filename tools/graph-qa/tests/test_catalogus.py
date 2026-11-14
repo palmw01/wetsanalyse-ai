@@ -27,6 +27,7 @@ from agent.llm_stap import Rol
 from agent.models import ACTIE_TAAK, BRONSELECTIE_ACTIES, INTAKE_ACTIES, REGIE_ACTIES, Actie
 from agent.tools import _BY_NAME
 from agent.methodepakket import PAKKET
+from agent.overdracht import OVERDRACHT
 from agent.sjablonen import SJABLONEN
 
 WORTEL = Path(__file__).resolve().parents[3]
@@ -63,7 +64,8 @@ def test_een_agent_noemt_al_zijn_taken_en_acties():
         o = cat.onderdeel(bc.oid("agent", naam))
         assert {t["taak"] for t in o.inhoud["taken"]} == {t.value for t in mod.Taak}
         assert {t["taak"] for t in o.inhoud["taken"] if t["model"]} == {t.value for t in mod.MODEL_TAKEN}
-        assert set(o.ingang) == {a for a, (ag, _) in ACTIE_TAAK.items() if ag == naam}
+        # Naast de acties is een overdracht van de centrale agent een ingang (`catalogus._met_overdrachten`).
+        assert set(o.ingang) - set(OVERDRACHT) == {a for a, (ag, _) in ACTIE_TAAK.items() if ag == naam}
 
 
 @pytest.mark.parametrize("keten,fn", [(annotatieketen, "fasen.klaar"), (begrippenketen, "fase")])
@@ -79,7 +81,7 @@ def test_ingangen_van_workflows_en_agents_bestaan():
     for o in ALLE:
         if o.soort in ("agent", "workflow"):
             for i in o.ingang:
-                assert i in acties or i == "annoteer", f"{o.id}: ingang {i} is geen actie"
+                assert i in acties or i in OVERDRACHT, f"{o.id}: ingang {i} is geen actie of overdracht"
 
 
 def test_een_workflow_heeft_stappen_en_een_laag():

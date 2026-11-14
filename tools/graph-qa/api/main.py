@@ -593,7 +593,9 @@ def _met_straat(o) -> dict:
     if o.straat is None:
         d["aan"] = True
     elif hasattr(settings, o.straat.lower()):
-        d["aan"] = bool(getattr(settings, o.straat.lower()))
+        # Een vlag met standen (CENTRALE_AGENT: uit, meten, aan) is aan zodra ze niet `uit` is.
+        waarde = getattr(settings, o.straat.lower())
+        d["aan"] = waarde != "uit" if isinstance(waarde, str) else bool(waarde)
     else:   # een vlag die één module leest, zoals SKILL_REGELS (`agent/skill_regels.py`)
         d["aan"] = os.environ.get(o.straat, "").strip().lower() in ("1", "true", "ja", "yes")
     return d
@@ -605,9 +607,11 @@ async def catalogus_lijst(_auth: None = Depends(_check_auth)) -> dict:
     de inhoud. Introspectie van wat draait, geen gegenereerd bestand."""
     from bronmodel.catalogus import SOORTEN
 
-    from agent.catalogus import catalogus
+    from agent.catalogus import agentvorm, catalogus
 
-    return {"soorten": list(SOORTEN), "onderdelen": [_met_straat(o) for o in catalogus()]}
+    # De agentvorm hangt af van de straat (`CENTRALE_AGENT`): een feit uit de configuratie, niet uit de catalogus.
+    return {"soorten": list(SOORTEN), "onderdelen": [_met_straat(o) for o in catalogus()],
+            "agentvorm": agentvorm(settings.centrale_agent)}
 
 
 @app.get("/v1/catalogus/{soort}/{naam}")

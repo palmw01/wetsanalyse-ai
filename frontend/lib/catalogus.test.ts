@@ -4,12 +4,13 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  CONCEPTEN, CONCEPT_LABEL, CONCEPT_VOLGORDE, NEUTRAAL, SOORTEN, SOORT_LABEL, filterOnderdelen, methodeLabel, onderdeelPad,
+  AGENTVORM_STANDEN, CONCEPTEN, ingangTekst, parseAgentvorm, CONCEPT_LABEL, CONCEPT_VOLGORDE, NEUTRAAL, SOORTEN, SOORT_LABEL, filterOnderdelen, methodeLabel, onderdeelPad,
   parseCatalogus,
   parseOnderdeel, perConcept, perSoort, type Onderdeel,
 } from "./catalogus";
 
 const BRONMODEL = join(__dirname, "..", "..", "packages", "bronmodel", "bronmodel", "catalogus.py");
+const CONFIG = join(__dirname, "..", "..", "tools", "graph-qa", "agent", "config.py");
 
 function o(id: string, extra: Partial<Onderdeel> = {}): Onderdeel {
   const soort = id.split("/")[0] as Onderdeel["soort"];
@@ -89,5 +90,36 @@ describe("filteren en groeperen", () => {
   it("het pad van een onderdeel", () => {
     expect(onderdeelPad("regelset/jas.detector.tijd")).toBe("/werkwijze/regelset/jas.detector.tijd");
     expect(onderdeelPad("onzin")).toBe("/werkwijze");
+  });
+});
+
+describe("de agentvorm (ADR-016)", () => {
+  const vorm = {
+    vlag: "CENTRALE_AGENT", stand: "meten", ingang: "rol/supervisor", centrale_agent: "agentprofiel/centraal",
+    subagents: "workflow/subagent", regie: "workflow/regie", vooruitblik: "Na A6 beslist de eigenaar.",
+    standen: { uit: "u", meten: "m", aan: "a" },
+    altijd_in_code: [{ wat: "Een route in code", aantal: 17, uitleg: "zonder model" }],
+    profielen: [{ id: "agentprofiel/duiding", plek: "specialist", label: "Specialist", nu: "de supervisor kiest het" }],
+  };
+
+  it("dezelfde standen als Settings.centrale_agent in graph-qa", () => {
+    const literal = readFileSync(CONFIG, "utf8").match(/centrale_agent: Literal\[([^\]]*)\]/)?.[1] ?? "";
+    expect([...literal.matchAll(/"([a-z]+)"/g)].map((m) => m[1])).toEqual([...AGENTVORM_STANDEN]);
+  });
+
+  it("een geldige vorm komt door, met wie een getypte vraag leest", () => {
+    const a = parseAgentvorm(vorm);
+    expect(a?.stand).toBe("meten");
+    expect(ingangTekst(a!)).toBe("De supervisor");
+    expect(ingangTekst({ ...a!, stand: "aan" })).toBe("De centrale agent");
+    expect(parseCatalogus({ onderdelen: [], agentvorm: vorm })?.agentvorm?.ingang).toBe("rol/supervisor");
+  });
+
+  it("een vorm die niet klopt is geen agentvorm, en de catalogus blijft staan", () => {
+    expect(parseAgentvorm({ ...vorm, stand: "half" })).toBeNull();
+    expect(parseAgentvorm({ ...vorm, standen: { uit: "u" } })).toBeNull();
+    expect(parseAgentvorm({ ...vorm, profielen: [{ id: "x" }] })).toBeNull();
+    expect(parseAgentvorm(undefined)).toBeNull();
+    expect(parseCatalogus({ onderdelen: [o("rol/duiding")] })?.agentvorm).toBeNull();
   });
 });
