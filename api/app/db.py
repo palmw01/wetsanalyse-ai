@@ -848,10 +848,12 @@ gesprekken = Table(
     # Het werkgebied waar dit gesprek bij hoort (leeg = een los gesprek). Geen foreign key: een
     # gewist werkgebied maakt het gesprek los (`werkgebied_store.wis`), het verslag blijft staan.
     Column("werkgebied_id", String(64), nullable=False, default="", server_default=""),
-    # Het regiegesprek waar dit gesprek een deelgesprek van is (ADR-012; leeg = geen). Zelfde werkgebied en
-    # dezelfde gebruiker; verdwijnt de ouder of verhuist het gesprek, dan wordt het weer los.
+    # Het gesprek waar dit gesprek een deelgesprek van is (ADR-012, ADR-016 §A3; leeg = geen), de delegatie die het
+    # startte, en het profiel van de subagent dat op het deelgesprek vastligt (leeg bij een regie). Zelfde werkgebied
+    # (of allebei los) en dezelfde gebruiker; verdwijnt de ouder of verhuist het gesprek, dan wordt het weer los.
     Column("ouder_id", String(64), nullable=False, default="", server_default=""),
-    Column("regie_id", String(64), nullable=False, default="", server_default=""),
+    Column("delegatie_id", String(64), nullable=False, default="", server_default=""),
+    Column("profiel", String(64), nullable=False, default="", server_default=""),
     # Gearchiveerd = uit de navigatie, niet weg.
     Column("gearchiveerd", _DT, nullable=True),
     # ADR-013: de bronconnectors die in dit gesprek aanstaan (het menu boven het invoerveld); NULL = de standaard van
@@ -860,15 +862,17 @@ gesprekken = Table(
     Index("ix_gesprekken_user_updated", "user_id", "updated"),
 )
 
-# Een regie (ADR-012): een regisseur in graph-qa verdeelt het werk in een werkgebied over kindgesprekken. De api houdt
-# het object bij: het plan dat de jurist bevestigde, de stand en de uitkomst. Er loopt hoogstens één regie per werkgebied
-# en één per gebruiker (de partiële unieke indexen); een regie die `VERWEESD_NA` niets van zich liet horen, telt als
-# mislukt en houdt geen slot meer vast (`regie_store`).
-regies = Table(
-    "regies",
+# Een delegatie (ADR-016 §A5, ADR-012): graph-qa zet werk uit in kindgesprekken – een regie (de regisseur verdeelt het
+# werk in een werkgebied per deelvraag) of een subagent van de centrale agent (ook in een los gesprek, `werkgebied_id`
+# leeg). De api houdt het object bij: het plan, de stand en de uitkomst. Er loopt hoogstens één delegatie per gebruiker
+# en één regie per werkgebied (de partiële unieke indexen); een delegatie die `VERWEESD_NA` niets van zich liet horen,
+# telt als mislukt en houdt geen slot meer vast (`delegatie_store`).
+delegaties = Table(
+    "delegaties",
     metadata,
     Column("id", String(64), primary_key=True),
-    Column("werkgebied_id", String(64), nullable=False),
+    Column("soort", String(16), nullable=False, default="regie", server_default="regie"),
+    Column("werkgebied_id", String(64), nullable=False, default="", server_default=""),
     Column("gesprek_id", String(64), nullable=False),
     Column("user_id", String(64), nullable=False),
     Column("opdracht", String(32), nullable=False),
@@ -880,10 +884,12 @@ regies = Table(
     Column("gestart", _DT, nullable=False),
     Column("hartslag", _DT, nullable=False),
     Column("afgerond", _DT, nullable=True),
-    Index("ix_regies_werkgebied", "werkgebied_id", "gestart"),
-    Index("ux_regies_lopend_werkgebied", "werkgebied_id", unique=True,
-          sqlite_where=text("status = 'loopt'"), postgresql_where=text("status = 'loopt'")),
-    Index("ux_regies_lopend_gebruiker", "user_id", unique=True,
+    Index("ix_delegaties_werkgebied", "werkgebied_id", "gestart"),
+    Index("ix_delegaties_gesprek", "gesprek_id", "gestart"),
+    Index("ux_delegaties_lopend_regie_werkgebied", "werkgebied_id", unique=True,
+          sqlite_where=text("status = 'loopt' AND soort = 'regie'"),
+          postgresql_where=text("status = 'loopt' AND soort = 'regie'")),
+    Index("ux_delegaties_lopend_gebruiker", "user_id", unique=True,
           sqlite_where=text("status = 'loopt'"), postgresql_where=text("status = 'loopt'")),
 )
 

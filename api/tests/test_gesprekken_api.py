@@ -694,10 +694,10 @@ async def test_bulk_wist_alleen_eigen_ids_in_de_groep(client):
 async def test_bulk_maakt_deelgesprekken_los(client):
     ids = await _opruimset(client)
     kind = await _maak(client, titel="kind")
-    await _zet(kind, werkgebied_id="wg-1", ouder_id=ids["wg_archief"], regie_id="r-1")
+    await _zet(kind, werkgebied_id="wg-1", ouder_id=ids["wg_archief"], delegatie_id="r-1")
     await client.post(f"{BASIS}/verwijderen", json={"groep": "archief", "ids": [ids["wg_archief"]]}, headers=A)
     doc = (await client.get(f"{BASIS}/{kind}", headers=A)).json()
-    assert (doc["ouder_id"], doc["regie_id"], doc["werkgebied_id"]) == ("", "", "wg-1")
+    assert (doc["ouder_id"], doc["delegatie_id"], doc["werkgebied_id"]) == ("", "", "wg-1")
 
 
 async def test_recent_archiveren(client):

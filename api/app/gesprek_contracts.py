@@ -347,9 +347,11 @@ class Gesprek(BaseModel):
     titel: str = ""
     # Leeg = een los gesprek. Met een werkgebied krijgt elke beurt dat dossier als context mee.
     werkgebied_id: str = ""
-    # Een deelgesprek van een regiegesprek (ADR-012): de ouder en de regie die het startte. Leeg = geen.
+    # Een deelgesprek (ADR-012, ADR-016 §A3): de ouder en de delegatie die het startte, en het profiel van de subagent
+    # dat op het gesprek vastligt (leeg bij een regie). Leeg = geen.
     ouder_id: str = ""
-    regie_id: str = ""
+    delegatie_id: str = ""
+    profiel: str = ""
     gearchiveerd: datetime | None = None
     # ADR-013: de bronconnectors die in dit gesprek aanstaan; None = de standaard (werkgebied, anders de beheerder).
     connectors: list[str] | None = None
@@ -363,9 +365,11 @@ class Gesprek(BaseModel):
 class GesprekCreate(BaseModel):
     titel: str = ""
     werkgebied_id: str = ""
-    # Een deelgesprek (ADR-012): de ouder is een eigen gesprek in hetzelfde werkgebied, zelf zonder ouder.
+    # Een deelgesprek (ADR-012, ADR-016 §A3): de ouder is een eigen gesprek in hetzelfde werkgebied (of allebei los),
+    # zelf zonder ouder; de delegatie hoort bij die ouder. `profiel` is het profiel van de subagent.
     ouder_id: str = Field(default="", max_length=64)
-    regie_id: str = Field(default="", max_length=64)
+    delegatie_id: str = Field(default="", max_length=64)
+    profiel: str = Field(default="", pattern=r"^([a-z][a-z0-9_]{0,63})?$")
 
 
 class GesprekPatch(BaseModel):
@@ -473,5 +477,6 @@ class GesprekSamenvatting(BaseModel):
     # De naam erbij, zodat de sidebar per werkgebied kan groeperen zonder tweede call.
     werkgebied_naam: str = ""
     ouder_id: str = ""
-    regie_id: str = ""
+    delegatie_id: str = ""
+    profiel: str = ""
     gearchiveerd: datetime | None = None
