@@ -124,6 +124,7 @@ def test_de_contextopbouw_draagt_het_profiel_van_de_run_bovenaan():
 
 def test_een_subagent_heeft_een_span_en_het_kind_erft_de_trace():
     trace = pytest.importorskip("opentelemetry.trace")
+    pytest.importorskip("opentelemetry.sdk.trace")
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import SimpleSpanProcessor
     from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
