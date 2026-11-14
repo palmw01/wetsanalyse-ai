@@ -745,6 +745,16 @@ BUITEN_PROFIEL = json.dumps({"status": "unavailable", "volledig": False, "reden"
                              "aanwijzing": "Deze tool heb je nu niet. Roep eerst meer_tools aan."}, ensure_ascii=False)
 
 
+def weiger_event(writer: Any, state: State, tu: dict[str, Any], reden: str) -> None:
+    """De events van een aanroep die de code weigerde: start en eind met `status: geweigerd` en de reden als
+    `foutcode`, in de vorm van `tool_execution.execute_tool` (één regel per `call_id`)."""
+    event = {"type": "tool_execution", "run_id": state.get("run_id", ""), "call_id": tu.get("id") or "",
+             "tool": tu["name"], "actie": "bron_lezen", "filters": {}, "doel": {},
+             "ronde": int(state.get("turns", 0) or 0), "status": "geweigerd"}
+    writer({**event, "phase": "start"})
+    writer({**event, "phase": "end", "foutcode": reden, "duur_ms": 0, "aantal": None})
+
+
 def tools_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     # Een sjabloon naast graaftools (`agent_node` zet hem achteraan): eerst de graaftools, dan het sjabloon met wat ze
@@ -756,29 +766,38 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
     # 2026: drie gelijke zoekopdrachten, 63.867 tokens voor één vraag). Elke aanroep krijgt een resultaat, want het
     # model eist er een; alleen de eerste voert hem uit.
     gedaan = _al_gedaan(state)
-    uit_te_voeren = list({_sleutel(t): t for t in reversed(pending) if _sleutel(t) not in gedaan}.values())[::-1]
-    _stap(writer, "Lex", "; ".join(_toolregel(t) for t in uit_te_voeren) or "gebruikt wat er al is opgehaald")
+    agent = agent_van(state)
+
+    def weigering(tu: dict[str, Any]) -> str:
+        # Wat de code niet uitvoert (ADR-016 §A1/§A4): na een subagent leest de centrale agent niet zelf, en een tool
+        # buiten zijn profiel draait niet. Het resultaat voor het model; leeg als de aanroep mag.
+        if (reden := na_subagent(state, tu["name"])):
+            return reden
+        return "" if agent.mag(tu["name"]) else BUITEN_PROFIEL
+
+    geweigerd = {id(t): w for t in pending if _sleutel(t) not in gedaan and (w := weigering(t))}
+    uit_te_voeren = list({_sleutel(t): t for t in reversed(pending)
+                          if _sleutel(t) not in gedaan and id(t) not in geweigerd}.values())[::-1]
+    # De statusregel noemt alleen wat werkelijk draait (bundel 120: "leest uitspraak …" bij vier geweigerde aanroepen).
+    if uit_te_voeren or not geweigerd:
+        _stap(writer, "Lex", "; ".join(_toolregel(t) for t in uit_te_voeren) or "gebruikt wat er al is opgehaald")
     trace = list(state.get("source_trace", []))
     results = []
-    agent = agent_van(state)
     for tu in pending:
         sleutel = _sleutel(tu)
         if sleutel in gedaan:
             results.append(_tool_result(tu, gedaan[sleutel].removesuffix(HERHAALD) + HERHAALD))
             continue
-        if (reden := na_subagent(state, tu["name"])):
-            # Na een subagent die niet klaar was, leest de centrale agent niet zelf opnieuw (ADR-016 §A4, meting 14 nov
-            # 2026: P01 deed het werk daarna nog eens voor 1,5M). Hij vat samen wat het kind las en zegt wat ontbreekt.
-            logger.info("tool na subagent geweigerd", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
-                                                             "tool": tu["name"]})
-            results.append(_tool_result(tu, reden))
-            continue
-        if not agent.mag(tu["name"]):
-            # De centrale agent riep een tool aan die niet bij zijn profiel hoort (ADR-016 §A1): niet uitvoeren, wel
-            # zeggen hoe het wel kan. Het resultaat is geen bron en komt niet in het spoor.
-            logger.info("tool buiten profiel", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
-                                                      "profiel": agent.naam, "tool": tu["name"]})
-            results.append(_tool_result(tu, BUITEN_PROFIEL))
+        if id(tu) in geweigerd:
+            reden = json.loads(geweigerd[id(tu)]).get("reden", "")
+            # Een poging die de code weigerde, is zichtbaar: een `tool_execution` met `status: geweigerd` en de reden,
+            # zodat de meting hem telt (`tool_buiten_profiel`, `tools_verboden_gezien`). Het resultaat is geen bron en
+            # komt niet in het spoor.
+            logger.info("tool na subagent geweigerd" if reden == "na_subagent" else "tool buiten profiel",
+                        extra={"categorie": "functioneel", "run_id": state.get("run_id", ""), "profiel": agent.naam,
+                               "tool": tu["name"]})
+            weiger_event(writer, state, tu, reden)
+            results.append(_tool_result(tu, geweigerd[id(tu)]))
             continue
         result_text = execute_tool(b, state, writer, tu, van_model=True)
         gedaan[sleutel] = result_text

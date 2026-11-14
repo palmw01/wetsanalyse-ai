@@ -93,7 +93,14 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
     opzet = [b for b in rec["beurten"] if not b["label"].startswith("gemeten")]
     events = [e for b in gemeten for e in b.get("events", [])]
     metingen = [e for e in events if e["type"] == "meting"]
-    tools = [e["tool"] for e in events if e["type"] == "tool_execution" and e.get("phase") == "start"]
+    # Wat werkelijk draaide, en apart elke poging: een aanroep die de code weigerde (`status: geweigerd`, een tool buiten
+    # het profiel of na een subagent) telt als poging, niet als gebruikt (analyse centrale agent, gat 2).
+    pogingen = [e["tool"] for e in events if e["type"] == "tool_execution" and e.get("phase") == "start"]
+    tools = [e["tool"] for e in events if e["type"] == "tool_execution" and e.get("phase") == "start"
+             and e.get("status") != "geweigerd"]
+    # Wat de opdracht vraagt en nog niet gebouwd is (besluit gebruiker 14 nov 2026): uit de score, met een eigen regel.
+    niet_gebouwd = list(opdracht.get("niet_gebouwd") or [])
+    verplicht = [t for t in v["tools_verplicht"] if not set(t.split("|")) & {n.removeprefix("tool:") for n in niet_gebouwd}]
     sjabloon: dict[str, Any] = {}
     for m in metingen:
         sjabloon.update(m.get("sjabloon") or {})
@@ -142,7 +149,9 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
                              if a.get("rol") == "centraal" and a.get("tools_hash")}),
         "tools_per_ronde": rondes_tools, "rondes_met_meer_tools": sum(len(r) > 1 for r in rondes_tools),
         "tool_buiten_profiel": sum(1 for e in events if e.get("type") == "tool_execution" and e.get("phase") == "end"
-                                   and "tool_buiten_profiel" in json.dumps(e, ensure_ascii=False)),
+                                   and e.get("foutcode") == "tool_buiten_profiel"),
+        "geweigerd": sorted(e["tool"] for e in events if e.get("type") == "tool_execution" and e.get("phase") == "end"
+                            and e.get("status") == "geweigerd"),
         "geweigerd_reden": dict(sjabloon.get("geweigerd_reden") or {}),
         # Welke vorm echt draaide, uit de run zelf en niet uit wat het verzoek vroeg: een agent met de rol `centraal` in
         # `contextopbouw.agenten`, of een aanroep met de rol `supervisor`. Leeg bij een route zonder model.
@@ -169,7 +178,10 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
                                                                if e.get("rapport") else {})}
                            for e in events if e["type"] == "regie_taak" and e.get("fase") == "eind"],
         "kind_gekozen_modellen": sorted({k.get("gekozen_model") for k in kinderen if k.get("gekozen_model")}),
-        "profiel_past": (all(p in v["profielen"] for p in kind_profielen) and bool(kind_profielen)) if subagent else None,
+        "profiel_past": ((all(p in v["profielen"] for p in kind_profielen) and bool(kind_profielen)) if subagent else None)
+                        if "profiel" not in niet_gebouwd else None,
+        # Wat uit de score is gehaald omdat het niet gebouwd is; de regel bij de drempel telt deze opdrachten apart.
+        "niet_gebouwd": niet_gebouwd,
         "bevestiging": [f"{b.get('soort')}:{b.get('opdracht', '')}".rstrip(":") for b in bevestigingen],
         "vraagkaart": [e["vraagkaart"].get("stap") for e in events if e["type"] == "vraagkaart"],
         # Vragen naar boven (ADR-016 §A4): of een subagent hervat werd (door de centrale agent of na een klik).
@@ -186,8 +198,9 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
         "route_past": (rondes <= MAX_RONDES_CODE and not regie or (regie and v["regisseur"])) if v["route"] == "code"
                       else (rondes >= 1 or (regie and v["regisseur"])),
         "delegatie_past": laag <= len(kinderen) <= hoog,
-        "tools_ontbreken": _een_van(v["tools_verplicht"], gezien),
-        "tools_verboden_gezien": sorted(set(v["tools_verboden"]) & gezien),
+        "tools_ontbreken": _een_van(verplicht, gezien),
+        # Verboden is ook een poging die de code tegenhield: het model probeerde het.
+        "tools_verboden_gezien": sorted(set(v["tools_verboden"]) & (gezien | set(pogingen))),
         "sjabloon_past": (not gevuld) if v["sjabloon"] is None else bool(set(v["sjabloon"].split("|")) & gevuld),
         "bevestiging_past": bool(bevestigingen) == v["bevestiging"],
     }

@@ -78,13 +78,15 @@ def kosten(beurten: list[dict[str, Any]]) -> dict[str, Any]:
 def toolgebruik(beurten: list[dict[str, Any]], metingen: list[dict[str, Any]]) -> dict[str, Any]:
     """Welke tools de beurt vroeg, per modelronde, en of de overdracht naar de brede toolset viel (A2-2b)."""
     events = [e for b in beurten for e in b.get("events") or []]
-    tools = [e.get("tool", "") for e in events if e.get("type") == "tool_execution" and e.get("phase") == "start"]
+    # Een aanroep die de code weigerde (`status: geweigerd`), draaide niet; hij telt bij `tool_buiten_profiel`.
+    tools = [e.get("tool", "") for e in events if e.get("type") == "tool_execution" and e.get("phase") == "start"
+             and e.get("status") != "geweigerd"]
     profielen = sorted({a.get("profiel_id") for m in metingen for a in (m.get("contextopbouw") or {}).get("agenten") or []
                         if a.get("profiel_id")})
     return {"tools": tools, "tools_per_ronde": per_ronde(events), "profielen": profielen,
             "meer_tools": "meer_tools" in tools or "centraal_breed" in profielen,
             "tool_buiten_profiel": sum(1 for e in events if e.get("type") == "tool_execution" and e.get("phase") == "end"
-                                       and "tool_buiten_profiel" in json.dumps(e, ensure_ascii=False)),
+                                       and e.get("foutcode") == "tool_buiten_profiel"),
             "sjabloon": {k: v for m in metingen for k, v in (m.get("sjabloon") or {}).items()}}
 
 

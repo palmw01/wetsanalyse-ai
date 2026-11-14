@@ -377,8 +377,13 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                 user_id=gebruiker,
                 meter=meter,
             )
+            from agent.agentvorm import vorm_van
+
+            # De vorm, of het een subagent is en de ouder: zo valt een kind niet in dezelfde rij als de specialist van
+            # de supervisor (analyse centrale agent, gat 8).
             return gemeten(beurt, meter=meter, run=run, gesprek_id=request.conversation_id or "",
-                           model=settings.llm_model)
+                           model=settings.llm_model, agentvorm=vorm_van(settings.centrale_agent, request.agentvorm),
+                           subagent=bool(request.profiel))
 
         if request.intake_actie is not None:
             # Een klik op een vraagkaartje (activiteit 1): altijd de werkgebied-worker.
