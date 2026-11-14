@@ -32,18 +32,25 @@ def _tsv(kop: list[str], *rijen: list[str]) -> str:
 
 
 class NepBron:
-    def __init__(self, rijen=None, per_status=None, per_herkomst=None, gelezen=None):
+    def __init__(self, rijen=None, per_status=None, per_herkomst=None, gelezen=None, per_belastingsoort=None,
+                 opvolgers=None):
         self.rijen, self.vragen = rijen or [], []
         self.per_status = per_status if per_status is not None else {"geldend": len(self.rijen)}
         self.per_herkomst, self.gelezen = per_herkomst or {}, gelezen
+        self.per_belastingsoort, self._opvolgers = per_belastingsoort or {}, opvolgers or []
 
     def zoek(self, graph, vraag, *, offset, limit):
         self.vragen.append(vraag)
         return Gevonden(sum(n for s, n in self.per_status.items() if vraag.status in ("alle", s)),
-                        self.rijen[offset:offset + limit], self.per_status, self.per_herkomst)
+                        self.rijen[offset:offset + limit], self.per_status, self.per_herkomst, self.per_belastingsoort)
 
     def publicatie(self, graph, ident):
+        if self.gelezen is None:
+            raise KennisgroepenFout("niet_gevonden", f"{ident} staat niet bij de gepubliceerde kennisgroepstandpunten")
         return self.gelezen
+
+    def opvolgers(self, graph, ident):
+        return self._opvolgers
 
 
 def _roep(naam: str, args: dict, bron, graph=None) -> dict:
@@ -89,14 +96,18 @@ def test_zoeken_per_artikel_met_herkomst_en_tekststand():
     assert rij["tekststand"] == "eerdere tekst"
     assert rij["reeks"] == ["Persoonsgebonden aftrek"] and "Inkomstenbelasting (IB)" in rij["rechtsgebied"]
     assert data["per_status"] == {"geldend": 1, "ingetrokken": 2} and data["koppelingen"] == {"link": 1, "tekst": 1}
-    assert "2 ingetrokken of vervallen" in data["toelichting"]
+    # In het blok (`kanttekening`), niet alleen voor het model: de lijstroute toont het zonder model (meting vraag 2).
+    assert "2 ingetrokken of vervallen standpunten" in data["kanttekening"]
+    assert "1 via een link van de Belastingdienst, 1 in de tekst herkend" in data["kanttekening"]
+    assert "ten minste" in data["kanttekening"]
     assert bron.vragen[0].status == "geldend", "standaard alleen geldende standpunten (V5)"
 
 
 def test_niets_gevonden_is_niet_geen_standpunt():
     data = _roep("zoek_standpunten", {"woorden": "zeppelin"}, NepBron([], per_status={}))
     assert data["totaal"] == 0 if "totaal" in data else True
-    assert "Niet elk standpunt wordt gepubliceerd" in data["toelichting"]
+    assert "dat betekent niet dat er geen standpunt is" in data["toelichting"]
+    assert "Niet elk standpunt wordt gepubliceerd" in data["kanttekening"]
 
 
 @pytest.mark.parametrize("args,reden", [
@@ -249,3 +260,47 @@ def test_andere_connectors_houden_hun_blok():
     from agent.sjablonen.extern import status_velden
 
     assert status_velden(CONNECTORS["kamerstukken"], {"datum": "2024-01-01", "status": "opgemaakt"}) == {"status": "opgemaakt"}
+
+
+
+# ── na de meting van 14 nov 2026 ────────────────────────────────────────────────────────────────────────────────
+
+def test_een_telvraag_krijgt_de_verdeling_uit_de_index():
+    """Vraag 8: zonder verdeling bladerde het model door 93 standpunten en schatte het per belastingsoort."""
+    bron = NepBron([RIJ] * 3, per_status={"geldend": 30}, per_belastingsoort={"Inkomstenbelasting (IB)": 20, "AWR": 12})
+    data = _roep("zoek_standpunten", {"bwb_id": "BWBR0002320", "aantal": 2}, bron)
+    assert data["per_belastingsoort"] == {"Inkomstenbelasting (IB)": 20, "AWR": 12}
+    assert "blader daarvoor niet" in data["toelichting"]
+
+
+def test_de_verdeling_telt_in_de_index_met_de_status():
+    q = kb.q_verdeling(Zoekvraag(bwb_id="BWBR0002320"), "belastingsoort")
+    assert "COUNT(DISTINCT ?s)" in q and "GROUP BY ?w" in q and 'FILTER(?status = "geldend")' in q
+    assert "kgo:middel ?w" in q and "kgo:belastingsoort ?w" in q
+    assert "kgo:kennisgroep ?w" in kb.q_verdeling(Zoekvraag(), "kennisgroep")
+
+
+def test_een_niet_gepubliceerd_kenmerk_noemt_zijn_opvolger():
+    """Vraag 10: KG:013:2018:0173 staat niet op de site; KG:013:2026:4 trekt het in."""
+    data = _roep("get_standpunt", {"id": "KG:013:2018:0173"}, NepBron(opvolgers=[("kg:013:2026:4", "geldend")]))
+    assert data["status"] == "error" and data["reden"] == "niet_gevonden"
+    assert data["vervangen_door"] == ["kg:013:2026:4"] and "KG:013:2026:4 (geldend)" in data["melding"]
+    assert "Woo" in data["melding"]
+    zonder = _roep("get_standpunt", {"id": "KG:013:2018:0174"}, NepBron())
+    assert zonder["reden"] == "niet_gevonden" and "vervangen_door" not in zonder
+
+
+def test_de_tekststand_per_genoemd_artikel_komt_uit_de_code():
+    """Vraag 13: het model las 1 oktober 2026 als toekomst. De code vergelijkt: tekst van na het standpunt of niet."""
+    gelezen = Gelezen(kg.lees_publicatie(_item(22819)), [], [])
+
+    def antwoord(q):
+        if "bwb:inwerking" not in q:
+            return ""
+        return _tsv(["a", "inwerking"], ["urn:bwb:BWBR0005806:artikel:10", "2027-01-01"],
+                    ["urn:bwb:BWBR0005806:artikel:6", "2020-01-01"])
+
+    data = _roep("get_standpunt", {"id": "KG:013:2026:4"}, NepBron(gelezen=gelezen), FakeGraph(results=antwoord))
+    standen = {t["artikel"]: t["tekststand"] for t in data["stuk"]["tekststanden"]}
+    assert standen == {"10": "gewijzigd na dit standpunt", "6": "ongewijzigd sinds dit standpunt"}
+    assert "tekststanden" not in _roep("get_standpunt", {"id": "KG:013:2026:4"}, NepBron(gelezen=gelezen))["stuk"]

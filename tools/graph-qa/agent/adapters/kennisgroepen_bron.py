@@ -74,6 +74,10 @@ class Gevonden:
     rijen: list[dict[str, str]]
     per_status: dict[str, int] = field(default_factory=dict)
     per_herkomst: dict[str, int] = field(default_factory=dict)
+    #: De verdeling van het totaal, geteld in de index (meting 14 nov 2026, vraag 8: zonder telling bladerde het model
+    #: door 93 standpunten en schatte het per belastingsoort). Een standpunt met twee belastingsoorten telt bij beide.
+    per_belastingsoort: dict[str, int] = field(default_factory=dict)
+    per_kennisgroep: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass
@@ -152,6 +156,26 @@ def q_tellingen(v: Zoekvraag) -> str:
             f"GROUP BY ?status {herkomst}")
 
 
+#: De velden waarover `q_verdeling` telt, met hun patroon in de index.
+VERDELINGEN = {
+    "belastingsoort": "{ ?s kgo:middel ?w } UNION { ?s kgo:belastingsoort ?w }",
+    "kennisgroep": "?s kgo:kennisgroep ?w .",
+}
+
+
+def q_verdeling(v: Zoekvraag, veld: str) -> str:
+    """Hoeveel standpunten van deze zoekvraag (met haar status) er per waarde van `veld` zijn, grootste eerst."""
+    return (_P + f"SELECT ?w (COUNT(DISTINCT ?s) AS ?n) WHERE {{ GRAPH {_G} {{\n{patronen(v)}\n{_status_filter(v)}\n"
+            f"{VERDELINGEN[veld]}\n}} }} GROUP BY ?w ORDER BY DESC(?n) ?w")
+
+
+def q_opvolgers(ident: str) -> str:
+    """De standpunten die `ident` intrekken of vervangen, ook als `ident` zelf niet gepubliceerd is (een standpunt van
+    vóór 2022, alleen via de Woo openbaar)."""
+    return (_P + f"SELECT DISTINCT ?id ?status WHERE {{ GRAPH {_G} {{ ?s kgo:vervangtId {literal(ident)} ; kgo:id ?id ; "
+            "kgo:status ?status } } ORDER BY ?id")
+
+
 def q_publicatie(ident: str) -> str:
     return (_P + "SELECT ?wp (GROUP_CONCAT(DISTINCT ?vd; separator=\"|\") AS ?vervangen_door) "
             f"WHERE {{ GRAPH {_G} {{ ?s kgo:id {literal(ident)} ; kgo:wpId ?wp . "
@@ -204,12 +228,22 @@ class KennisgroepenBron:
             # Een standpunt met een koppeling via link én via tekst telt in beide herkomsten; het totaal telt het één keer.
             totaal = min(totaal, sum(per_herkomst.values())) if per_herkomst else totaal
         rijen = _select(graph, q_pagina(vraag, offset, limit)) if totaal else []
+        verdeling = {veld: {r["w"]: int(r.get("n") or 0) for r in _select(graph, q_verdeling(vraag, veld)) if r.get("w")}
+                     for veld in VERDELINGEN} if totaal else {}
         if not per_status:
             # Een lege index is geen "geen standpunten": de import draaide (nog) niet.
             if not _select(graph, q_index_leeg()):
                 raise KennisgroepenFout("geen_index", "de index van de kennisgroepstandpunten is leeg; de import heeft "
                                         "nog niet gedraaid")
-        return Gevonden(totaal, rijen, per_status, per_herkomst)
+        return Gevonden(totaal, rijen, per_status, per_herkomst, verdeling.get("belastingsoort", {}),
+                        verdeling.get("kennisgroep", {}))
+
+    def opvolgers(self, graph: Any, ident: str) -> list[tuple[str, str]]:
+        """(id, status) van de standpunten die `ident` intrekken; leeg als de index het niet weet of er niet is."""
+        try:
+            return [(r["id"], r.get("status", "")) for r in _select(graph, q_opvolgers(ident)) if r.get("id")]
+        except KennisgroepenFout:
+            return []
 
     # ── lezen bij de bron ─────────────────────────────────────────────────────────────────────────────────────
 

@@ -113,6 +113,10 @@ GEVALLEN: list[tuple[str, str]] = [
     ("adapters.kennisgroepen_bron.q_publicatie+aanhalingsteken", kgb.q_publicatie('kg:"} DROP')),
     ("adapters.kennisgroepen_bron.q_gebeurtenissen", kgb.q_gebeurtenissen(22819)),
     ("adapters.kennisgroepen_bron.q_index_leeg", kgb.q_index_leeg()),
+    ("adapters.kennisgroepen_bron.q_verdeling", kgb.q_verdeling(KG_ALLES, "belastingsoort")),
+    ("adapters.kennisgroepen_bron.q_verdeling+kennisgroep", kgb.q_verdeling(kgb.Zoekvraag(status="alle"), "kennisgroep")),
+    ("adapters.kennisgroepen_bron.q_opvolgers", kgb.q_opvolgers('kg:013:2018:173')),
+    ("tools.kennisgroep_tools._q_inwerkingen", kennisgroep_tools._q_inwerkingen([(IW, "36"), ("BWBR0005806", "10")])),
     ("tools.kennisgroep_tools._q_inwerking", kennisgroep_tools._q_inwerking(IW, "36")),
 ]
 

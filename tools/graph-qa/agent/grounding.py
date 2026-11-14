@@ -28,7 +28,7 @@ from .annotatie import _normaliseer, komt_letterlijk_voor
 from .beweringen import beweringen as feiten_buiten, tellingen_uit
 from .hoeveelheden import uit_tabellen
 from .models import Source
-from bronmodel.connectors import leestools, van_id
+from bronmodel.connectors import CONNECTORS, leestools, van_id
 from bronmodel.extern import externe_verwijzingen, externe_vindplaats
 
 from .provenance import _BWB_RE, citations_in, first_bwb, noemt_regeling
@@ -397,7 +397,7 @@ def alleen_gelezen_extern(sources: list[Source], trace: list[tuple[str, str]], a
     "alleen gevonden, niet gelezen" in `onbevestigd` (acceptatie 8 nov 2026: "Klaar · 32 bronnen" voor één gelezen
     Kamerstuk, omdat `curate_sources` zonder BWB-id in het antwoord niets snoeit). Een extern id zonder connector (een
     EHRM-uitspraak waar een gelezen uitspraak naar verwijst, `ECLI:CE:…`) staat er alleen als het antwoord het noemt
-    (nameting 10 nov 2026). Wettekst blijft ongemoeid.
+    (nameting 10 nov 2026). Wettekst blijft staan, behalve een bepaling die alleen een connector noemt.
 
     Het gelezen stuk zelf (het `stuk` van de leestool) staat er ook als de vraag het noemt: een antwoord óver
     ECLI:NL:HR:2022:50 noemt die ECLI vaak niet meer, en dan miste de bronnenlijst precies het stuk dat gelezen is
@@ -421,8 +421,12 @@ def alleen_gelezen_extern(sources: list[Source], trace: list[tuple[str, str]], a
             stukken.add(vp.id)
     genoemd = genoemd_extern(answer_text)
     gevraagd = genoemd_extern(vraag)
+    # Een bepaling die alleen in het resultaat van een connector staat (een standpunt of uitspraak noemt haar), is niet
+    # gelezen: zelfde regel als B12 hieronder, nu voor wettekst (meting kennisgroepen 14 nov 2026: "8 bronnen" voor één
+    # gelezen standpunt, waarvan zeven artikelen die het alleen noemt). Wettekst van overheid.nl heeft een eigen brontype.
+    van_connector = {t for c in CONNECTORS.values() if c.brontype != "wettekst_live" for t in c.tools}
     return [s for s in sources
-            if s.brontype in (None, "wettekst")
+            if (s.brontype in (None, "wettekst") and s.origin_tool not in van_connector)
             # Een stuk van een connector telt alleen als het gelezen is; dat een gelezen stuk het noemt (een voetnoot,
             # `verwijst_naar`), maakt het geen bron (meting Staatsblad ronde 4, B12: Stcrt. 2021, 12238 en Stb. 2023, 381
             # en 408). Een id zonder connector (EHRM) staat er als het gelezen stuk het noemt en het antwoord ook.
