@@ -300,6 +300,33 @@ def _subagent(b: Any, state: State, invoer: dict[str, Any]) -> tuple[dict[str, A
     return _met_kind(state, afloop, kind, profiel)
 
 
+LAAD_SKILL = "laad_skill"
+LEES_SKILL = "lees_skill"
+
+
+def _skill(soort: str) -> Callable[[Any, State, dict[str, Any]], tuple[dict[str, Any], str] | str]:
+    """`laad_skill` en `lees_skill` (ADR-016 §A2, niveau 2 en 3): de tekst uit het bronpakket als toolresultaat. Methode,
+    geen bron: er komt niets in de trace of het bronregister; het spoor noemt het onder *Methode*."""
+
+    def zet(_b: Any, _state: State, invoer: dict[str, Any]) -> tuple[dict[str, Any], str] | str:
+        from . import skills
+
+        skill, sectie = str(invoer.get("skill") or ""), str(invoer.get("sectie") or "")
+        tekst, gelukt = skills.antwoord(soort, skill, sectie)
+        if not gelukt:
+            return tekst
+        _stap(get_stream_writer(), "Methode", f"leest de skill {skill}" + (f", {sectie}" if sectie else ""),
+              route=LAAD_SKILL if soort == "laad" else LEES_SKILL)
+        return {}, tekst
+
+    return zet
+
+
+def _skillnamen() -> list[str]:
+    from . import skills
+    return list(skills.namen())
+
+
 BEANTWOORD_KAART = "beantwoord_kaart"
 
 #: Wat de centrale agent in de context van de beurt leest als er een vraagkaart van het samenstellen of het aanvullen
@@ -528,6 +555,17 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
             "gebruiker voor. Een subagent ziet dit gesprek niet: schrijf elke opdracht volledig. Niet voor een vraag die je "
             "in een paar toolrondes zelf beantwoordt, en niet per deelvraag van een werkgebied (regie_plan)."),
         invoer=_SUBAGENT_INVOER, naar="agent", zet=_subagent, strict=False, ingangen=("subagent_plan",)),
+    Overdracht(
+        naam=LAAD_SKILL,
+        beschrijving=("Laad de kern van een methode-skill (zie SKILLS in je instructie) als de vraag om die methode gaat. "
+                      "Het resultaat is methode, geen bron."),
+        invoer={"skill": {"type": "string", "enum": _skillnamen()}}, naar="agent", zet=_skill("laad"), strict=False),
+    Overdracht(
+        naam=LEES_SKILL,
+        beschrijving=("Lees één reference van een methode-skill (de namen staan onder References in de kern van de "
+                      "skill). Het resultaat is methode, geen bron."),
+        invoer={"skill": {"type": "string", "enum": _skillnamen()}, "sectie": {"type": "string"}}, naar="agent",
+        zet=_skill("lees"), strict=False),
     Overdracht(
         naam=BEANTWOORD_KAART,
         beschrijving=(
