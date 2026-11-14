@@ -64,6 +64,9 @@ class DelegatieWijziging(BaseModel):
     status: DelegatieStatus | None = None
     uitkomst: dict | None = None
     later_gewijzigd: bool | None = None
+    #: Een teken van leven, geen hervatting: raakt alleen een delegatie die loopt. Zo zet een hartslag die nog onderweg
+    #: was een delegatie die intussen op een antwoord wacht niet terug op `loopt` (bugonderzoek ADR-016, twijfelgeval).
+    hartslag: bool = False
 
     @model_validator(mode="after")
     def _iets(self) -> DelegatieWijziging:

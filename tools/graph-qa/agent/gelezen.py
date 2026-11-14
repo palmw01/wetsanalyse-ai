@@ -368,9 +368,17 @@ _PERIODE = re.compile(r"\b(1[89]\d\d|20\d\d)\s*(?:–|—|-|t/m|tot en met|tot)\
 _ECLI_JAAR = re.compile(r"^ECLI:[A-Z]{2}:[A-Z0-9]+:(\d{4}):")
 
 
+#: Een jaartalbereik direct na zo'n woord is geen periode van uitspraken maar een vergaderjaar van Kamerstukken
+#: ("vergaderjaar 2023-2024"; bugonderzoek ADR-016, twijfelgeval).
+_GEEN_PERIODE = re.compile(r"(vergaderjaar|vergaderjaren|zitting|zittingsjaar)\s*$", re.IGNORECASE)
+
+
 def gekozen_periode(tekst: str) -> tuple[int, int] | None:
-    """De periode die de jurist noemde (de laatste, want een later antwoord gaat voor), of None."""
-    treffers = _PERIODE.findall(tekst or "")
+    """De periode die de jurist noemde (de laatste, want een later antwoord gaat voor), of None. Een vergaderjaar telt
+    niet."""
+    tekst = tekst or ""
+    treffers = [m.groups() for m in _PERIODE.finditer(tekst)
+                if not _GEEN_PERIODE.search(tekst[max(0, m.start() - 20):m.start()])]
     if not treffers:
         return None
     a, b = (int(j) for j in treffers[-1])

@@ -281,3 +281,19 @@ async def test_later_gewijzigd_ook_na_afloop(client):
         True, "klaar", {"x": 1})
     assert (await client.patch(f"{D}/{d['id']}", json={})).status_code == 422
     assert (await client.patch(f"{D}/{d['id']}", headers=B, json={"later_gewijzigd": True})).status_code == 404
+
+
+async def test_een_hartslag_zet_een_wachtende_delegatie_niet_terug_op_loopt(client):
+    """Een hartslag die nog onderweg was, mag een vraag aan de jurist niet wegpoetsen (bugonderzoek ADR-016)."""
+    ouder = await _gesprek(client)
+    d = (await _subagent(client, ouder)).json()
+    r = await client.patch(f"{D}/{d['id']}", json={"status": "wacht", "uitkomst": {"kinderen": [{"uitkomst": "vraag"}]}})
+    assert r.status_code == 200 and r.json()["status"] == "wacht"
+    r = await client.patch(f"{D}/{d['id']}", json={"status": "loopt", "hartslag": True})
+    assert r.status_code == 200 and r.json()["status"] == "wacht", "de hartslag raakt alleen wat loopt"
+    # Hervatten (zonder hartslag) zet hem wel op loopt.
+    assert (await client.patch(f"{D}/{d['id']}", json={"status": "loopt"})).json()["status"] == "loopt"
+    assert (await client.patch(f"{D}/{d['id']}", json={"status": "loopt", "hartslag": True})).json()["status"] == "loopt"
+    # Op een afgeronde delegatie is een hartslag geen fout.
+    await client.patch(f"{D}/{d['id']}", json={"status": "klaar", "uitkomst": {}})
+    assert (await client.patch(f"{D}/{d['id']}", json={"status": "loopt", "hartslag": True})).status_code == 200

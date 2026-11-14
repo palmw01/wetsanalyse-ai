@@ -603,7 +603,7 @@ async def _hartslag(api: Any, delegatie_id: str, elke_s: float) -> None:
     while True:
         await asyncio.sleep(elke_s)
         with contextlib.suppress(Exception):
-            await api.wijzig_delegatie(delegatie_id, {"status": "loopt"})
+            await api.wijzig_delegatie(delegatie_id, {"status": "loopt", "hartslag": True})
 
 
 async def _stopwacht(gestopt: Callable[[], bool], kind_run: Any, kinderen: Kinderen) -> None:

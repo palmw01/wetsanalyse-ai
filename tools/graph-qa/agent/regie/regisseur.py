@@ -428,7 +428,7 @@ async def _hartslag(api: Any, werkgebied_id: str, regie_id: str, elke_s: float) 
     while True:
         await asyncio.sleep(elke_s)
         with contextlib.suppress(Exception):
-            await api.wijzig_delegatie(regie_id, {"status": "loopt"})
+            await api.wijzig_delegatie(regie_id, {"status": "loopt", "hartslag": True})
 
 
 async def _stopwacht(stop: Callable[[], bool], lopend: dict[int, Any], stop_kind: StopKind) -> None:
