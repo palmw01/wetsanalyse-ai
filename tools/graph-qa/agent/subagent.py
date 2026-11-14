@@ -14,8 +14,7 @@ rest, en alleen de code:
    de beurt: zo toetst `verify` zijn samenvatting ertegen en staan ze in het bronregister van het hoofdgesprek.
 
 **Een vraag naar boven** (§A4) is een rapport met `status: vraag`. De delegatie gaat dan op `wacht` (geen slot, er draait
-niets) met de vragen in haar uitkomst. De centrale agent mag de subagent één keer per beurt hervatten met een antwoord uit
-wat er ligt (`hervat`, de overdracht `hervat_subagent`); wat overblijft gaat naar de jurist als vraagkaart
+niets) met de vragen in haar uitkomst. De vraag gaat naar de jurist als vraagkaart
 (`vraagkaart`, `modus: subagent`, `intake_id` `sa-<delegatie>`). Een klik daarop routeert de code zonder model
 (`nodes/subagent_vervolg.py`): het antwoord bij de delegatie, en na de laatste vraag hervat de code de subagent in
 hetzelfde deelgesprek, met diens eigen geschiedenis.
@@ -74,8 +73,8 @@ def kiesbaar() -> list[str]:
 
 def invoer_schema() -> dict[str, Any]:
     """De eigenschappen van de overdracht `subagent` (strict): het profiel en de velden van de opdracht."""
-    return {"profiel": {"type": "string", "enum": kiesbaar(),
-                        "description": "; ".join(f"{n}: {PROFIELEN[n].beschrijving}" for n in kiesbaar())},
+    # Geen beschrijving per profiel: welk profiel bij welk werk past, zegt de instructie van de centrale agent één keer.
+    return {"profiel": {"type": "string", "enum": kiesbaar()},
             **{veld: {"type": "string", "description": uitleg} for veld, uitleg in VELDEN.items()}}
 
 
@@ -102,10 +101,8 @@ def onschadelijk(tekst: str) -> str:
 
 #: Wat de centrale agent doet met een rapport met vragen (§A4): zelf antwoorden als het er ligt, anders de jurist.
 VRAAG_AANWIJZING = (
-    "De subagent kan niet verder zonder antwoord op zijn vragen. Staat het antwoord in wat er ligt (het gesprek, het "
-    "werkgebied, de vraag van de gebruiker), roep dan hervat_subagent aan met dat antwoord; raad niet. Anders rond je af: "
-    "zeg kort wat de subagent al vond en dat hij een vraag heeft. De gebruiker krijgt de vragen daarna als kaart, en "
-    "schrijf ze daarom niet zelf uit.")
+    "De subagent kan niet verder zonder antwoord op zijn vragen. Rond af: zeg kort wat hij al vond en dat hij een vraag "
+    "heeft. De gebruiker krijgt de vragen daarna als kaart; schrijf ze niet zelf uit en beantwoord ze niet zelf.")
 
 
 def als_toolresultaat(profiel: str, uitkomst: str, tekst: str) -> str:
@@ -182,7 +179,7 @@ async def voer_uit(state: dict[str, Any], profiel: str, opdracht: SubagentOpdrac
         kind = await _met_hartslag(api, afloop, hartslag_s, _draai_kind(
             afloop, titel, profiel, opdracht, stuur, gesprek_id=gesprek_id, werkgebied_id=werkgebied_id,
             run_id=state.get("run_id", "") or "", user_id=user_id, bronnen=state.get("bronnen"), api=api,
-            kinderen=kinderen, gestopt=gestopt))
+            kinderen=kinderen, gestopt=gestopt, model=kindmodel(settings, profiel)))
         await _leg_vast(api, afloop.delegatie_id, [afloop.als_dict()], stuur, run_id=state.get("run_id", "") or "",
                         nu=[afloop])
         return afloop, kind, ""
@@ -291,7 +288,8 @@ async def hervat(state: dict[str, Any], delegatie_id: str, antwoorden: list[str]
             afloop, titel, profiel, opdracht, stuur, gesprek_id=state.get("gesprek_id", "") or "",
             werkgebied_id=delegatie.get("werkgebied_id", "") or "", run_id=state.get("run_id", "") or "",
             user_id=user_id, bronnen=state.get("bronnen"), api=api, kinderen=kinderen, gestopt=gestopt,
-            vraag=antwoord_tekst(list(vorige.get("vragen") or []), antwoorden, van=van)))
+            vraag=antwoord_tekst(list(vorige.get("vragen") or []), antwoorden, van=van),
+            model=kindmodel(settings, profiel)))
         alle[i] = afloop.als_dict()
         await _leg_vast(api, delegatie_id, alle, stuur, run_id=state.get("run_id", "") or "", nu=[afloop])
         return afloop, kind, ""
@@ -324,7 +322,7 @@ def open_vraag(subagenten: list[dict[str, Any]]) -> dict[str, Any] | None:
 async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: SubagentOpdracht, stuur, *, gesprek_id: str,
                       werkgebied_id: str, run_id: str, user_id: str, bronnen: Any, api: Any, kinderen: Kinderen,
                       gestopt: Callable[[], bool], vraag: str = "", index: int = 0,
-                      bij_start: Callable[[Any], None] | None = None) -> dict[str, Any]:
+                      bij_start: Callable[[Any], None] | None = None, model: str = "") -> dict[str, Any]:
     """Eén beurt van het kind. Zonder `afloop.gesprek_id` eerst het deelgesprek; met (hervatten) dezelfde, met `vraag`
     als eerste bericht. `index` is zijn plek in het plan; `bij_start` krijgt de run zodra hij loopt."""
     begin = time.perf_counter()
@@ -336,7 +334,7 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
                                               "delegatie_id": delegatie_id, "profiel": profiel})
             afloop.gesprek_id = str(gesprek["id"])
         stuur({"type": "regie_taak", "fase": "start", "regie_id": delegatie_id, "index": index, "titel": titel,
-               "gesprek_id": afloop.gesprek_id, "profiel": profiel})
+               "gesprek_id": afloop.gesprek_id, "profiel": profiel, **({"model": model} if model else {})})
         verzoek = ChatRequest(question=vraag or opdracht_tekst(opdracht), conversation_id=afloop.gesprek_id,
                               werkgebied_id=werkgebied_id or None, profiel=profiel, opdracht=opdracht,
                               delegatie_id=delegatie_id,
@@ -379,6 +377,20 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
                "gesprek_id": afloop.gesprek_id, "uitkomst": afloop.uitkomst, "profiel": profiel})
 
 
+def kindmodel(settings: Any, profiel: str) -> str:
+    """Het model waarop het kind draait (de lichte klasse, `agentvorm.subagent_model`), met een logregel als het het gewone
+    model werd. Zonder instellingen (een test) leeg."""
+    if settings is None or not getattr(settings, "llm_model", ""):
+        return ""
+    from .agentvorm import SUBAGENT_MODELKLASSE, subagent_model
+
+    model, reden = subagent_model(settings)
+    if reden:
+        logger.info("subagent_model", extra={"categorie": "functioneel", "profiel": profiel, "model": model,
+                                             "modelklasse": SUBAGENT_MODELKLASSE, "terugval": reden})
+    return model
+
+
 async def _hartslag(api: Any, delegatie_id: str, elke_s: float) -> None:
     while True:
         await asyncio.sleep(elke_s)
@@ -401,17 +413,39 @@ GEEN_RAPPORT = {
     "budget_op": "De subagent is niet gestart: het tokenbudget van de gebruiker is op.",
     "gestopt": "De subagent is gestopt.",
     "mislukt": "De subagent liep vast door een storing.",
-    "niet_gelukt": "De subagent rondde niet af met een rapport.",
+    "niet_gelukt": "De subagent rondde niet af met een rapport (zijn rondegrens, of een rapport dat de code niet kon vullen).",
     "niet_gestart": "De subagent is niet gestart.",
 }
 
 
+#: Hoeveel gelezen bronnen het rapport uit code hoogstens noemt.
+MAX_GELEZEN = 20
+
+
 def rapport_tekst(afloop: Afloop, kind: dict[str, Any]) -> str:
     """De tekst van het rapport voor de centrale agent: wat het kind schreef als het met een rapport afrondde en de
-    controle doorstond, anders de reden uit code."""
+    controle doorstond, anders de reden uit code. Las het kind wel iets (de rondegrens, een rapport dat niet te vullen
+    was), dan noemt de code wat er lag: de bronnen uit zijn toolresultaten, die ook in de trace van de centrale agent
+    staan (ADR-016 §A4: afsluiten met wat er lag)."""
     if (kind.get("rapport") or {}).get("status") and kind.get("answer"):
         return kind["answer"]
-    return GEEN_RAPPORT.get(afloop.uitkomst, GEEN_RAPPORT["niet_gelukt"]) + (f" ({afloop.reden})" if afloop.reden else "")
+    tekst = GEEN_RAPPORT.get(afloop.uitkomst, GEEN_RAPPORT["niet_gelukt"]) + (f" ({afloop.reden})" if afloop.reden else "")
+    if gelezen := _gelezen(kind):
+        tekst += ("\nWat hij las (de toolresultaten staan in je trace; je kunt ze citeren):\n"
+                  + "\n".join(f"- {g}" for g in gelezen[:MAX_GELEZEN])
+                  + (f"\n- en nog {len(gelezen) - MAX_GELEZEN}" if len(gelezen) > MAX_GELEZEN else ""))
+    return tekst
+
+
+def _gelezen(kind: dict[str, Any]) -> list[str]:
+    """De bronnen uit de toolresultaten van het kind, als leesbare labels (uit code, nooit uit modeltekst)."""
+    from .provenance import collect_sources
+
+    try:
+        bronnen = collect_sources([tuple(x) for x in kind.get("source_trace") or []])
+    except Exception:  # noqa: BLE001 – een label is een gemak; zonder labels blijft de reden staan
+        return []
+    return list(dict.fromkeys(str(getattr(b, "label", "") or getattr(b, "uri", "")) for b in bronnen if b))
 
 
 # -- meer subagents tegelijk (ADR-016 §A5) ---------------------------------------------------------------------
@@ -565,7 +599,8 @@ async def voer_plan_uit(state: dict[str, Any], delegatie_id: str, stuur: Callabl
                     aflopen[i], _titel(opdracht), taak["profiel"], opdracht, stuur,
                     gesprek_id=state.get("gesprek_id", "") or "", werkgebied_id=delegatie.get("werkgebied_id", "") or "",
                     run_id=state.get("run_id", "") or "", user_id=user_id, bronnen=state.get("bronnen"), api=api,
-                    kinderen=kinderen, gestopt=gestopt, index=i, bij_start=gestart)
+                    kinderen=kinderen, gestopt=gestopt, index=i, bij_start=gestart,
+                    model=kindmodel(settings, taak["profiel"]))
 
         hart = asyncio.create_task(_hartslag(api, delegatie_id, hartslag_s))
         try:

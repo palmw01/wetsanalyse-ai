@@ -1,6 +1,6 @@
 """Twee nodes die een plan van de centrale agent voorleggen, zonder model (ADR-016 §A5).
 
-- `subagent_plan`: meer dan één subagent. De overdracht `subagenten` zette de opdrachten in `State.subagent_plan`; deze
+- `subagent_plan`: meer dan één subagent. De overdracht `subagent` met twee of meer opdrachten zette de opdrachten in `State.subagent_plan`; deze
   node bewaart het plan bij de api als delegatie die wacht, en eindigt met de bevestiging als vraagkaart (`sa_start`).
   Een klik start ze (`nodes/subagent_vervolg.py`).
 - `regie_voorstel`: de regisseur als tool. De overdracht `regie_plan` zette de opdracht (bronnen of annoteren); deze

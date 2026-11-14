@@ -101,7 +101,7 @@ def test_de_supervisor_stuurt_een_subagent_zonder_model_naar_zijn_profiel(monkey
 
 def test_de_opdracht_heeft_vaste_velden_en_het_profiel_komt_uit_het_register():
     o = overdracht.OVERDRACHT["subagent"].schema
-    velden = o["input_schema"]["properties"]
+    velden = o["input_schema"]["properties"]["opdrachten"]["items"]["properties"]
     assert o["strict"] is False and set(velden) == {"profiel", *sub.VELDEN} == {"profiel", *SubagentOpdracht.model_fields}
     assert velden["profiel"]["enum"] == list(profielen.KIESBAAR)
     tekst = sub.opdracht_tekst(SubagentOpdracht(doel="Zoek X.", buiten="De Awb."))
@@ -251,7 +251,7 @@ def test_de_overdracht_geeft_het_rapport_en_zet_de_bronnen_van_het_kind_in_de_tr
     monkeypatch.setattr(sub, "WetsanalyseApi", lambda *_a: Api())
     kinderen, _, _ = _kinderen({"rapport": {"status": "klaar"}, "answer": "Bevindingen: uitstel kan.",
                                 "source_trace": [ARTIKEL]})
-    tu = {"id": "t1", "name": "subagent", "input": {"profiel": "duiding", **OPDRACHT.model_dump()}}
+    tu = {"id": "t1", "name": "subagent", "input": {"opdrachten": [{"profiel": "duiding", **OPDRACHT.model_dump()}]}}
     state = {**STATE, "pending_tools": [tu], "source_trace": [("search_wetgeving", "{}")], "subagenten": []}
     upd = overdracht.overdracht_node(_bouw(kinderen), state)
     [bericht] = upd["messages"]
@@ -273,7 +273,7 @@ def test_de_overdracht_geeft_het_rapport_en_zet_de_bronnen_van_het_kind_in_de_tr
     ({"profiel": "algemeen", **OPDRACHT.model_dump()}, False, "niet starten"),
 ])
 def test_de_code_weigert_een_subagent_die_niet_kan(invoer, kinderen, melding):
-    tu = {"id": "t1", "name": "subagent", "input": invoer}
+    tu = {"id": "t1", "name": "subagent", "input": {"opdrachten": [invoer]}}
     b = _bouw(_kinderen({})[0] if kinderen else None)
     upd = overdracht.overdracht_node(b, {**STATE, "pending_tools": [tu]})
     blok = upd["messages"][0]["content"][0]

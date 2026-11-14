@@ -76,6 +76,10 @@ class Settings(BaseModel):
     # met `eval/run_eval.py`.
     llm_model_router: str = ""
     llm_model_ophaal: str = ""
+    # De lichte modelklasse (ADR-016 §A2 `modelklasse: licht`): een subagent draait erop, de centrale agent en elk oordeel
+    # over wetgeving niet. Leeg = de bestaande lichte knop (`llm_model_router`), en anders `llm_model`, met een logregel
+    # (`agentvorm.subagent_model`). Besluit gebruiker 14 nov 2026: "Ja, probeer het".
+    llm_model_licht: str = ""
     # Herkomst die met elke annotatie meereist: welk model/welke agentversie het voorstel maakte.
     # `llm_provider` is beschrijvend (de adapter praat via Azure AI Foundry met de Anthropic-SDK);
     # `agent_versie` komt uit de image-tag/env en valt terug op de pakketversie.
@@ -222,6 +226,7 @@ class Settings(BaseModel):
             "llm_model": e.get("LLM_MODEL"),
             "llm_model_router": e.get("LLM_MODEL_ROUTER"),
             "llm_model_ophaal": e.get("LLM_MODEL_OPHAAL"),
+            "llm_model_licht": e.get("LLM_MODEL_LICHT"),
             "llm_provider": e.get("LLM_PROVIDER"),
             "agent_versie": e.get("AGENT_VERSION") or _pakketversie(),
             "max_turns": e.get("MAX_TURNS"),

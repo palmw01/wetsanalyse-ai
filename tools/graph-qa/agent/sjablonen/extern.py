@@ -221,13 +221,19 @@ def _reeksen(nummers: Any) -> str:
     return ", ".join(uit)
 
 
-def blokken(items: Any, trace: Trace) -> list[Extern | Leemte]:
+def blokken(items: Any, trace: Trace, *, overgeslagen: list[str] | None = None) -> list[Extern | Leemte]:
     """De blokken `extern` uit de aanwijzingen van het model; elk feit uit de trace. Wat niet klopt, staat in één
     weigering voor alle aanwijzingen samen: per fout een weigering kostte per fout een ronde waarin het model het hele
     antwoord opnieuw schreef (iteratie bekendmakingen ronde 1, 11 nov 2026: B16 vijf rondes, ~120k tokens). Meer dan
-    `MAX_ALINEAS` is geen fout: de code kapt af en zegt het in een `Leemte` achter de blokken."""
+    `MAX_ALINEAS` is geen fout: de code kapt af en zegt het in een `Leemte` achter de blokken.
+
+    Met `overgeslagen` (het rapport van een subagent) weigert de code niet: wat niet klopt of boven `MAX_STUKKEN` valt,
+    laat ze weg en zet ze in die lijst, zodat het rapport het onder 'Open' noemt."""
     if not items:
         return []
+    if overgeslagen is not None and isinstance(items, list) and len(items) > MAX_ALINEAS:
+        overgeslagen.append(f"meer dan {MAX_ALINEAS} aanwijzingen in '{VELD}': alleen de eerste {MAX_ALINEAS} getoond")
+        items = items[:MAX_ALINEAS]
     if not isinstance(items, list) or len(items) > MAX_ALINEAS:
         raise Onvulbaar(f"'{VELD}' is een lijst van hoogstens {MAX_ALINEAS} aanwijzingen. Wijs alleen de alinea's aan die "
                         "het antwoord dragen, en vat de rest samen in het korte antwoord.")
@@ -273,8 +279,16 @@ def blokken(items: Any, trace: Trace) -> list[Extern | Leemte]:
                                          else None, verwijst_naar=_verwijzingen(rijen[n]),
                                          plek=str(rijen[n].get("plek") or ""))
                           for n in range(van, tot + 1) if n not in al and n in rijen]
-    if len(per_stuk) > MAX_STUKKEN:
+    if len(per_stuk) > MAX_STUKKEN and overgeslagen is not None:
+        weg = list(per_stuk)[MAX_STUKKEN:]
+        overgeslagen.append(f"{len(weg)} stukken boven de grens van {MAX_STUKKEN} niet als citaat getoond: "
+                            + ", ".join(per_stuk[i].label for i in weg))
+        per_stuk = {k: v for k, v in per_stuk.items() if k not in weg}
+    elif len(per_stuk) > MAX_STUKKEN:
         fouten.append(f"Hoogstens {MAX_STUKKEN} stukken per antwoord.")
+    if overgeslagen is not None:
+        overgeslagen.extend(fouten)
+        fouten = []
     if len(fouten) == 1:
         raise Onvulbaar(fouten[0])
     if fouten:

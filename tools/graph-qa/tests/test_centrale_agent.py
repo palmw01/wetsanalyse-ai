@@ -85,7 +85,8 @@ def test_met_uit_is_de_graaf_die_van_voorheen():
     for stand in ("meten", "aan"):
         g = build_graph(make_settings(centrale_agent=stand), FakeLLM([]), FakeGraph())
         # De overdracht, en de klik op de vraagkaart van een subagent (ADR-016 §A4).
-        assert set(g.nodes) == set(uit.nodes) | {"overdracht", "subagent_vervolg", "subagent_plan", "regie_voorstel"}
+        assert set(g.nodes) == set(uit.nodes) | {"overdracht", "subagent_vervolg", "subagent_plan", "regie_voorstel",
+                                                 "subagent_route"}
         edges = {(e.source, e.target) for e in g.compile().get_graph().edges}
         oud = {(e.source, e.target) for e in uit.compile().get_graph().edges}
         assert edges - oud == {("agent", "overdracht"), ("overdracht", "agent"), ("overdracht", "afwijzen"),
@@ -96,7 +97,9 @@ def test_met_uit_is_de_graaf_die_van_voorheen():
                                ("supervisor", "subagent_vervolg"), ("advance", "subagent_vervolg"),
                                ("subagent_vervolg", "agent"), ("subagent_vervolg", "__end__"),
                                ("overdracht", "subagent_plan"), ("subagent_plan", "__end__"),
-                               ("overdracht", "regie_voorstel"), ("regie_voorstel", "__end__")}
+                               ("overdracht", "regie_voorstel"), ("regie_voorstel", "__end__"),
+                               ("supervisor", "subagent_route"), ("advance", "subagent_route"),
+                               ("subagent_route", "agent")}
         assert not oud - edges
 
 
@@ -117,9 +120,10 @@ def test_de_centrale_agent_antwoordt_zelf_zonder_supervisorstap():
     for sectie in PAKKET["rollen"]["agent"]:
         assert PAKKET["secties"][sectie]["tekst"] in verzoek["system"]
     namen = {t["name"] for t in verzoek["tools"]}
-    assert {"wijs_af", "meer_tools", "subagent", "subagenten", "regie_plan", "hervat_subagent", "get_artikel", "zoek_definitie", "get_context", "antwoord_duiding",
+    assert {"wijs_af", "meer_tools", "subagent", "get_artikel", "zoek_definitie", "get_context", "antwoord_duiding",
             "antwoord_begrip"} <= namen
-    assert not namen & {"rapport", "search_annotaties", "geldigheid", "raw_sparql"}
+    # Zonder werkgebied geen regie_plan: dat staat alleen in het voorvoegsel van een beurt in een werkgebied.
+    assert not namen & {"rapport", "search_annotaties", "geldigheid", "raw_sparql", "regie_plan"}
     assert any(e["type"] == "status" and e.get("route") == CENTRAAL for e in events)
     assert "".join(e["content"] for e in events if e["type"] == "token") == "Antwoord."
 
@@ -137,7 +141,7 @@ def test_het_profiel_centraal_is_een_python_agent_met_zijn_eigen_tools():
     agent = agent_voor(CENTRAAL)
     assert isinstance(agent, CentraleAgent) and isinstance(agent, Agent)
     assert agent.rol is Rol.CENTRAAL and agent.methoderol == "agent"
-    assert set(agent.eigen_tools) == set(overdracht.OVERDRACHT) == {"wijs_af", "meer_tools", "subagent", "subagenten", "regie_plan", "hervat_subagent", *VASTE_ROUTES}
+    assert set(agent.eigen_tools) == set(overdracht.OVERDRACHT) == {"wijs_af", "meer_tools", "subagent", "regie_plan", *VASTE_ROUTES}
     p = profielen.PROFIELEN[CENTRAAL]
     assert not p.kiesbaar and CENTRAAL not in profielen.KIESBAAR, "een model kiest dit profiel niet"
     # De eigen tools staan niet in de toollaag: een profiel kan ze niet noemen, en een andere agent krijgt ze niet.
@@ -153,7 +157,7 @@ def test_een_overdrachtstool_heeft_een_strict_schema():
     (`tests/test_strict_grenzen.py`). Hun schema heeft wel dezelfde vorm."""
     for o in overdracht.OVERDRACHT.values():
         s = o.schema
-        assert s["strict"] is (o.naam not in {"subagent", "subagenten", "regie_plan", "hervat_subagent"})
+        assert s["strict"] is (o.naam not in {"subagent", "regie_plan"})
         assert s["input_schema"]["additionalProperties"] is False
         assert s["input_schema"]["required"] == sorted(o.invoer)
         assert all(n in overdracht.doelen() for n in (o.ingangen if o.naar == overdracht.INGANG else (o.naar,)))
@@ -241,8 +245,8 @@ def test_een_keuzevraag_van_de_centrale_agent_heeft_de_vorm_die_de_doorvraagrout
 
 
 def test_meer_tools_is_er_alleen_voor_de_kernset_en_wijs_af_voor_beide():
-    assert set(agent_voor(CENTRAAL).eigen_tools) == {"wijs_af", "meer_tools", "subagent", "subagenten", "regie_plan", "hervat_subagent", *VASTE_ROUTES}
-    assert set(agent_voor(CENTRAAL_BREED).eigen_tools) == {"wijs_af", "subagent", "subagenten", "regie_plan", "hervat_subagent", *VASTE_ROUTES}
+    assert set(agent_voor(CENTRAAL).eigen_tools) == {"wijs_af", "meer_tools", "subagent", "regie_plan", *VASTE_ROUTES}
+    assert set(agent_voor(CENTRAAL_BREED).eigen_tools) == {"wijs_af", "subagent", "regie_plan", *VASTE_ROUTES}
     assert isinstance(agent_voor(CENTRAAL_BREED), CentraleAgent) and agent_voor(CENTRAAL_BREED).rol is Rol.CENTRAAL
     # De beschrijving noemt elke tool die erachter zit: zo weet het model wanneer het erom vraagt.
     rest = set(profielen.PROFIELEN[CENTRAAL_BREED].tools) - set(profielen.PROFIELEN[CENTRAAL].tools)

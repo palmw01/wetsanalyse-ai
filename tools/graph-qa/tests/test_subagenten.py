@@ -29,20 +29,20 @@ def _bouw(kinderen=True, **settings):
 # -- de overdracht: een plan, geen start --------------------------------------------------------------------
 
 def test_subagenten_zet_het_plan_klaar_en_start_niets():
-    upd = overdracht.OVERDRACHT["subagenten"].zet(_bouw(), {**STATE, "subagenten": []}, _invoer(A, B))
+    upd = overdracht.OVERDRACHT["subagent"].zet(_bouw(), {**STATE, "subagenten": []}, _invoer(A, B))
+    assert upd["overdracht_naar"] == "subagent_plan" and "subagent_plan" in overdracht.doelen()
     assert [p["profiel"] for p in upd["subagent_plan"]] == ["algemeen", "algemeen"]
     assert upd["subagent_plan"][1]["opdracht"]["doel"] == B.doel
-    assert overdracht.OVERDRACHT["subagenten"].naar == "subagent_plan"
-    schema = overdracht.OVERDRACHT["subagenten"].schema
+    schema = overdracht.OVERDRACHT["subagent"].schema
     items = schema["input_schema"]["properties"]["opdrachten"]["items"]
     assert schema["strict"] is False and items["additionalProperties"] is False and set(items["required"]) == set(
         items["properties"])
 
 
 def test_subagenten_weigert_een_plan_dat_niet_past():
-    zet = overdracht.OVERDRACHT["subagenten"].zet
-    assert "twee tot 3" in zet(_bouw(), STATE, _invoer(A))
-    assert "twee tot 3" in zet(_bouw(), STATE, _invoer(A, B, C, A))
+    zet = overdracht.OVERDRACHT["subagent"].zet
+    assert "één tot 3" in zet(_bouw(), STATE, {"opdrachten": []})
+    assert "één tot 3" in zet(_bouw(), STATE, _invoer(A, B, C, A))
     assert "bestaat niet" in zet(_bouw(), STATE, _invoer(A, B, profiel="centraal"))
     assert "niet starten" in zet(_bouw(kinderen=None), STATE, _invoer(A, B))
     assert "al een subagent" in zet(_bouw(), {**STATE, "subagenten": [{"uitkomst": "klaar"}]}, _invoer(A, B))
@@ -260,3 +260,23 @@ def test_regie_plan_legt_het_plan_van_de_regisseur_voor_met_zijn_knop(monkeypatc
     [bevestiging] = [e["bevestiging"] for e in events if e["type"] == "bevestiging"]
     assert (bevestiging["soort"], bevestiging["opdracht"], bevestiging["aantal"]) == ("regie", "bronnen", 2)
     assert "deelgesprek" in upd["answer"] and "start_delegatie" not in api.aanroepen, "eerst de bevestiging"
+
+
+def test_regie_plan_staat_alleen_in_het_voorvoegsel_van_een_beurt_met_een_werkgebied():
+    """Per beurt vast, dus binnen de beurt blijft het voorvoegsel gelijk; buiten een werkgebied kost het niets."""
+    from agent.agentvorm import agent_voor
+    from fakes import make_settings
+
+    a = agent_voor("centraal")
+    namen = lambda wg: {s["name"] for s in a.toolschemas(make_settings(centrale_agent="aan"), None, {}, werkgebied=wg)}  # noqa: E731
+    assert "regie_plan" in namen(True) and "regie_plan" not in namen(False)
+    assert namen(True) - namen(False) == {"regie_plan"}
+    assert "subagenten" not in namen(True) and "hervat_subagent" not in namen(True), "één tool voor één tot drie opdrachten"
+
+
+def test_een_subagent_raadt_geen_afbakening():
+    """D01 (meting 14 nov 2026): de subagent koos zelf 'de meest recente' uitspraken. De instructie zegt dat hij dan vraagt."""
+    from agent.agentvorm import SUBAGENT_INSTRUCTIE
+
+    assert "status vraag" in SUBAGENT_INSTRUCTIE and "meest recente" in SUBAGENT_INSTRUCTIE
+    assert "stelt hem geen vragen" not in SUBAGENT_INSTRUCTIE
