@@ -296,6 +296,8 @@ export const STAP_NAAM: Record<IntakeStap, string> = {
   bs_verder: "hoe we verder gaan",
   bs_toevoegen: "de bepaling",
   begrip_kiezen: "het begrip",
+  sa_vraag: "de vraag van de subagent",
+  sa_start: "het plan met subagents",
 };
 
 export function parseAntwoordOp(ruw: unknown): AntwoordOp | undefined {
