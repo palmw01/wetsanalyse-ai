@@ -31,6 +31,8 @@ export interface DelegatieTaak {
   /** De afbakening die het kind zelf koos, en de periode (`[van, tot]`), als het rapport ze noemt. */
   afbakening?: string[];
   periode?: number[];
+  /** Hoeveel vragen van dit kind Lex zelf uit het dossier beantwoordde (`zelf_beantwoord` op de kindregel). */
+  zelfBeantwoord?: number;
 }
 
 export interface DelegatieVoortgang {
@@ -106,7 +108,9 @@ function extraVan(v: Record<string, unknown>): Partial<DelegatieTaak> {
   const rapport = isObject(v.rapport) ? v.rapport : v;
   const afbakening = teksten(rapport.afbakening);
   const periode = getallen(rapport.periode);
+  const zelf = Array.isArray(v.zelf_beantwoord) ? v.zelf_beantwoord.filter(isObject).length : 0;
   return {
+    ...(zelf ? { zelfBeantwoord: zelf } : {}),
     ...(model ? { model } : {}),
     ...(afbakening.length ? { afbakening } : {}),
     ...(periode.length ? { periode } : {}),
@@ -230,6 +234,7 @@ export function taakMeta(t: DelegatieTaak): string {
     t.model ?? "",
     t.afbakening?.length ? `afbakening: ${t.afbakening.join(", ")}` : "",
     t.periode?.length ? `periode ${t.periode.join("–")}` : "",
+    t.zelfBeantwoord ? `${t.zelfBeantwoord} ${t.zelfBeantwoord === 1 ? "vraag" : "vragen"} door Lex beantwoord uit het dossier` : "",
   ].filter(Boolean).join(" · ");
 }
 

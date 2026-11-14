@@ -107,6 +107,13 @@ describe("de stand bij de api", () => {
     expect(d.afgerond).toBe(true);
   });
 
+  it("noemt de vragen die Lex zelf uit het dossier beantwoordde", () => {
+    const d = voortgangUitDelegatie({ ...API, uitkomst: { kinderen: [
+      { gesprek_id: "g1", uitkomst: "klaar", zelf_beantwoord: [{ vraag: "Welke periode?", antwoord: "2024" }] }] } });
+    expect(d.taken[0].zelfBeantwoord).toBe(1);
+    expect(taakMeta(d.taken[0])).toBe("subagent algemeen · 1 vraag door Lex beantwoord uit het dossier");
+  });
+
   it("een plan dat op de bevestiging wacht, is gepland; een lopende delegatie loopt", () => {
     expect(voortgangUitDelegatie({ ...API, uitkomst: {} }).taken.map((t) => t.stand)).toEqual(["gepland", "gepland"]);
     expect(voortgangUitDelegatie({ ...API, status: "loopt", uitkomst: {} }).taken.map((t) => t.stand)).toEqual(["loopt", "gepland"]);
