@@ -114,7 +114,10 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
     overdracht = "meer_tools" in tools or "centraal_breed" in profielen or any("centraal_breed" in (m.get("route") or "") for m in metingen)
     rondes_tools = per_ronde(events)
     gezien = (set(tools) | set(sjabloon.get("gevuld") or {}) | ({"annoteer"} if annoteerde else set())
-              | ({"meer_tools"} if overdracht else set()) | ({"subagent"} if subagent else set()))
+              | ({"meer_tools"} if overdracht else set()) | ({"subagent"} if subagent else set())
+              # Meer subagents (ADR-016 §A5): de bevestiging als vraagkaart `sa_start`.
+              | ({"subagenten"} if any(e["type"] == "vraagkaart" and e["vraagkaart"].get("stap") == "sa_start"
+                                       for e in events) else set()))
     laag, hoog = v["subagents"]
     gevuld = set(sjabloon.get("gevuld") or {})
     soorten = per_soort(metingen)
@@ -156,6 +159,8 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
         "profiel_past": (all(p in v["profielen"] for p in kind_profielen) and bool(kind_profielen)) if subagent else None,
         "bevestiging": [f"{b.get('soort')}:{b.get('opdracht', '')}".rstrip(":") for b in bevestigingen],
         "vraagkaart": [e["vraagkaart"].get("stap") for e in events if e["type"] == "vraagkaart"],
+        # Vragen naar boven (ADR-016 §A4): of een subagent hervat werd (door de centrale agent of na een klik).
+        "hervat": any(e["type"] == "regie" and e.get("fase") == "start" and e.get("hervat") for e in events),
         "niveau": [c.get("niveau", "") for c in controles],
         "niet_letterlijk": sum(len(c.get("niet_letterlijk") or []) for c in controles),
         "unsupported": sum(len(c.get("unsupported") or []) for c in controles),

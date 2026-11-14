@@ -26,10 +26,13 @@ export const BRONSELECTIE_STAPPEN = ["bs_gebeurtenis", "bs_kies", "bs_bepalingen
   "bs_toevoegen"] as const;
 /** De keuzekaart van de begrippen-agent (`modus: "begrip"`, graph-qa `kaart_beurt.keuzekaart`). */
 export const BEGRIP_STAPPEN = ["begrip_kiezen"] as const;
+/** Een subagent van de centrale agent (`modus: "subagent"`, graph-qa `agent/subagent.py`): zijn vraag aan de jurist,
+ *  en de bevestiging vóór meer dan één subagent. */
+export const SUBAGENT_STAPPEN = ["sa_vraag", "sa_start"] as const;
 /** `thema` (spoor I7) is een kaartje van het aanvullen alleen: het samenstellen kent het niet (`STAPPEN`). */
 /** `bepalingen`: een kaartje van vóór 4 nov 2026, alleen nog om te lezen. */
 export type IntakeStap = (typeof STAPPEN)[number] | "thema" | "samenvatting" | "bepalingen" | (typeof BRONSELECTIE_STAPPEN)[number]
-  | (typeof BEGRIP_STAPPEN)[number];
+  | (typeof BEGRIP_STAPPEN)[number] | (typeof SUBAGENT_STAPPEN)[number];
 
 /** Bij de bepalingen: het kaartje van welke deelvraag (zonder deelvragen: de analysevraag). */
 export interface IntakeDeel {
@@ -67,7 +70,7 @@ export function regelNamen(r: Regel | null) {
 export interface Vraagkaart {
   intake_id: string;
   /** Een werkgebied samenstellen, het dossier van een bestaand werkgebied aanvullen, de bronselectie, of welk begrip. */
-  modus: "samenstellen" | "aanvullen" | "bronselectie" | "begrip";
+  modus: "samenstellen" | "aanvullen" | "bronselectie" | "begrip" | "subagent";
   /** Bij de bronselectie: de deelvraag van het kaartje (`analysevraag` zonder deelvragen; leeg bij de keuze). */
   deelvraag_id: string;
   soort: "vraag" | "samenvatting";
@@ -154,7 +157,8 @@ export interface IntakeActie {
 const tekst = (v: unknown) => (typeof v === "string" ? v : "");
 const lijst = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
 // `bepalingen`: een bewaard kaartje van vóór 4 nov 2026 blijft leesbaar in de thread.
-const STAP_SET = new Set<string>([...STAPPEN, "thema", "samenvatting", "bepalingen", ...BRONSELECTIE_STAPPEN, ...BEGRIP_STAPPEN]);
+const STAP_SET = new Set<string>([...STAPPEN, "thema", "samenvatting", "bepalingen", ...BRONSELECTIE_STAPPEN, ...BEGRIP_STAPPEN,
+  ...SUBAGENT_STAPPEN]);
 const DEELVRAAG_ID = /^[A-Za-z0-9-]{0,64}$/;
 
 /** Streng: een kaartje zonder intake, met een onbekende stap of zonder vraag wordt niet getoond. Liever
@@ -183,7 +187,8 @@ export function parseVraagkaart(ruw: unknown): Vraagkaart | undefined {
   }) : [];
   return {
     intake_id, stap: stap as IntakeStap, vraag, deel,
-    modus: r.modus === "aanvullen" || r.modus === "bronselectie" || r.modus === "begrip" ? r.modus : "samenstellen",
+    modus: r.modus === "aanvullen" || r.modus === "bronselectie" || r.modus === "begrip" || r.modus === "subagent"
+      ? r.modus : "samenstellen",
     deelvraag_id: DEELVRAAG_ID.test(tekst(r.deelvraag_id)) ? tekst(r.deelvraag_id) : "",
     soort: r.soort === "samenvatting" ? "samenvatting" : "vraag",
     nr: getal(r.nr, 1), totaal: getal(r.totaal, STAPPEN.length),
@@ -235,7 +240,7 @@ export function antwoordTekst(k: Vraagkaart, actie: IntakeActie): string {
   if (actie.actie === "opslaan") return "Sla de wijziging op.";
   if (actie.actie === "afbreken") {
     return k.modus === "aanvullen" ? "Stop met aanvullen." : k.modus === "bronselectie" ? "Zet de bronselectie even stil."
-      : k.modus === "begrip" ? "Laat maar." : "Stop met samenstellen.";
+      : k.modus === "begrip" || k.modus === "subagent" ? "Laat maar." : "Stop met samenstellen.";
   }
   if (actie.actie === "overslaan") {
     if (k.stap === "bs_gebeurtenis") return "Zonder gebeurtenis verder.";
@@ -291,6 +296,8 @@ export const STAP_NAAM: Record<IntakeStap, string> = {
   bs_verder: "hoe we verder gaan",
   bs_toevoegen: "de bepaling",
   begrip_kiezen: "het begrip",
+  sa_vraag: "de vraag van de subagent",
+  sa_start: "het plan met subagents",
 };
 
 export function parseAntwoordOp(ruw: unknown): AntwoordOp | undefined {
@@ -327,7 +334,7 @@ export function vorige(k: Vraagkaart): { naar: IntakeStap; naar_deel?: number } 
  *  laatste gevraagde stap. */
 export function isLaatsteVraag(k: Vraagkaart): boolean {
   // Bij de bronselectie staat elk kaartje op zichzelf: wat erna komt, hangt af van het antwoord.
-  if (k.modus === "bronselectie" || k.modus === "begrip") return true;
+  if (k.modus === "bronselectie" || k.modus === "begrip" || k.modus === "subagent") return true;
   if (k.modus === "aanvullen") return k.soort === "vraag" && k.nr >= k.totaal;
   return k.stap === STAPPEN[STAPPEN.length - 1];
 }
@@ -398,7 +405,8 @@ export function groepeerVragen<T extends GroepItem>(items: T[], bezig: boolean):
         // Bij de bepalingen is elk deel een eigen vraag: het antwoord op deelvraag 2 vervangt dat op 1 niet.
         // Bij de bronselectie komt dezelfde stap per deelvraag terug, en ook bij dezelfde deelvraag (verder
         // onderzoeken): dat is een nieuw antwoord in de reeks, geen vervanging van het vorige.
-        const eerder = k.modus === "bronselectie" ? -1
+        // Een subagent stelt elke vraag één keer, en een volgende ronde is een nieuwe vraag.
+        const eerder = k.modus === "bronselectie" || k.modus === "subagent" ? -1
           : huidig.paren.findIndex((p) => p.stap === k.stap && p.deel === k.deel?.index);
         if (eerder >= 0) huidig.paren.splice(eerder);
         huidig.paren.push({ stap: k.stap, ...(k.deel ? { deel: k.deel.index } : {}),

@@ -190,8 +190,33 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     toolresultaten van het kind in zijn eigen `source_trace`: `verify` toetst de samenvatting ertegen en ze komen in het
     bronregister. Zonder rapport krijgt de ouder een reden uit code, nooit vrije modeltekst;
   - stoppen van de beurt stopt het kind (`_stopwacht`); de events zijn `regie`/`regie_taak` met `soort: subagent` en het
-    profiel. Eén subagent per beurt (A3); meer tegelijk en vragen naar boven komen met A4 en A5.
-  `tests/test_subagent.py` legt dit vast, ook een kindbeurt door de echte graaf.
+    profiel. Eén subagent per beurt (A3); meer tegelijk komt met A5.
+  - **een vraag naar boven** (A4) is een rapport met `status: vraag` en `vragen` (hoogstens drie, elk met hoogstens vier
+    opties; `rapport.vragen_van`). De delegatie gaat op `wacht`; per kind staan de vragen en de antwoorden tot nu toe in
+    `uitkomst.kinderen` (`subagent.eindstand`, `eerste_vraag`). De centrale agent mag
+    de subagent één keer per beurt hervatten met een antwoord uit wat er ligt (de overdracht `hervat_subagent`,
+    `subagent.hervat`: een nieuwe beurt in hetzelfde deelgesprek, met de antwoorden als eerste bericht). Wat overblijft:
+    `finalize_node` sluit de beurt af met de eerste vraag als vraagkaart (`subagent.vraagkaart`, `modus: subagent`,
+    `intake_id` `sa-<delegatie>`). Een klik gaat zonder model naar de node `subagent_vervolg`
+    (`nodes/subagent_vervolg.py`, alleen als de vlag niet `uit` is): het antwoord bij de delegatie, de volgende kaart, en
+    na de laatste vraag hervat de code de subagent; daarna schrijft de centrale agent de bundel met het rapport in de
+    context van de beurt (`State.rapporten`, alleen dan: zonder is het verzoek byte-gelijk);
+  - **een deelgesprek onthoudt zijn delegatie** (`State.deelgesprek`, niet per beurt gereset, uit `ChatRequest.delegatie_id`
+    dat alleen met een opdracht mag en niet via HTTP). Een beurt van de jurist daar loopt langs de routes in code en dan
+    naar het profiel van het deelgesprek, en zet de delegatie op `later_gewijzigd`.
+  - **meer subagents** (A5): de overdracht `subagenten` (twee tot `MAX_SUBAGENTS` opdrachten, strict) start niets. De
+    node `subagent_plan` (`nodes/delegatie_plan.py`) bewaart het plan als delegatie die wacht, met een plafond
+    (`DELEGATIE_AANDEEL` van wat de gebruiker deze week nog heeft, ook als `budget_aandeel`), en eindigt met de bevestiging
+    als vraagkaart (`sa_start`, `subagent.startkaart`). De klik start ze (`subagent.voer_plan_uit`): hoogstens
+    `REGIE_PARALLEL` tegelijk, de rest pas als de eerste zijn eerste modelronde begon (de cache), en bij het plafond
+    (`verbruik_van`, uit de `meting` van de kinderen) start er niets nieuws. Daarna schrijft de centrale agent de bundel
+    met alle rapporten (`bundel_rapporten`), of komt de eerste vraag als kaart;
+  - **de regisseur als tool**: de overdracht `regie_plan` (bronnen of annoteren, alleen in een werkgebied) gaat naar de
+    node `regie_voorstel`, die het plan uit de stand bij de api maakt met dezelfde tekst en knop als de regie zelf
+    (`regisseur.plan_van`, `voorstel`). De centrale agent stelt geen plan per deelvraag zelf op.
+  `tests/test_subagent.py` legt dit vast, ook een kindbeurt door de echte graaf; `tests/test_subagent_vragen.py` de
+  vragen, het hervatten, de kaart en het deelgesprek; `tests/test_subagenten.py` het plan, de bevestiging, de
+  parallelliteit, het plafond en `regie_plan`.
 - **`agent_node`** – vraagt de agent van de beurt op (`agent_van`, uit het profielregister): `SYSTEM_PROMPT` + methode-instructies
   (`agent/methode.py`, uit het gegenereerde `methodepakket.py`) + addendum + plan, met
   de toolschema's van de agent (`Agent.toolschemas`). Tekst stroomt niet mee: pas na de ronde is bekend of het narratie

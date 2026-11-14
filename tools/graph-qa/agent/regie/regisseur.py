@@ -182,6 +182,26 @@ async def _stand_na(api: Any, plan: Plan) -> dict[str, Any]:
         return {}
 
 
+async def plan_van(api: Any, werkgebied_id: str, opdracht: Opdracht) -> Plan:
+    """Het plan uit de stand bij de api: dezelfde stand geeft hetzelfde plan, zonder tokens."""
+    if opdracht == "bronnen":
+        return plan_bronnen(werkgebied_id, await api.haal_bronselectie(werkgebied_id))
+    return plan_annoteren(await api.haal_werkgebied(werkgebied_id), await api.haal_annotatie_werkvoorraad(werkgebied_id))
+
+
+def voorstel(plan: Plan, parallel: int, *, bevestigd: str = "") -> tuple[str, dict[str, Any] | None]:
+    """Wat Lex vóór een regie zegt, en de bevestiging die de jurist start (geen als er niets te verdelen is). Dezelfde
+    tekst en knop voor de regie zelf en voor de tool `regie_plan` van de centrale agent (ADR-016 §A5)."""
+    if not plan.taken:
+        return ("Er is nu niets te verdelen." if not plan.buiten
+                else "Er is nu niets te verdelen:\n" + "\n".join(f"- {z}" for z in plan.buiten)), None
+    tekst = voorstel_tekst(plan, parallel)
+    if bevestigd:
+        tekst = "Het plan veranderde sinds je het bevestigde; ik ben niet begonnen. Dit is het plan van nu.\n\n" + tekst
+    return tekst, {"soort": "regie", "werkgebied_id": plan.werkgebied_id, "aantal": len(plan.taken),
+                   "schatting": plan.schatting, "plan_id": plan.plan_id, "opdracht": plan.opdracht}
+
+
 async def regie_stroom(
     request: Any,
     run: Any,
@@ -216,26 +236,11 @@ async def regie_stroom(
 
     try:
         yield {"type": "status", "message": "Lex · Regie: het plan maken uit de stand van het werkgebied"}
-        werkgebied = await api.haal_werkgebied(werkgebied_id)
-        if opdracht == "bronnen":
-            plan = plan_bronnen(werkgebied_id, await api.haal_bronselectie(werkgebied_id))
-        else:
-            plan = plan_annoteren(werkgebied, await api.haal_annotatie_werkvoorraad(werkgebied_id))
-
-        if not plan.taken:
-            tekst = ("Er is nu niets te verdelen." if not plan.buiten
-                     else "Er is nu niets te verdelen:\n" + "\n".join(f"- {z}" for z in plan.buiten))
-            async for ev in leg_vast(tekst):
-                yield ev
-            return
+        plan = await plan_van(api, werkgebied_id, opdracht)
         bevestigd = getattr(request, "plan_id", "") or ""
-        if bevestigd != plan.plan_id:
-            tekst = voorstel_tekst(plan, parallel)
-            if bevestigd:
-                tekst = "Het plan veranderde sinds je het bevestigde; ik ben niet begonnen. Dit is het plan van nu.\n\n" + tekst
-            bevestiging = {"soort": "regie", "werkgebied_id": werkgebied_id, "aantal": len(plan.taken),
-                           "schatting": plan.schatting, "plan_id": plan.plan_id, "opdracht": plan.opdracht}
-            async for ev in leg_vast(tekst, bevestiging=bevestiging):
+        if not plan.taken or bevestigd != plan.plan_id:
+            tekst, bevestiging = voorstel(plan, parallel, bevestigd=bevestigd)
+            async for ev in leg_vast(tekst, **({"bevestiging": bevestiging} if bevestiging else {})):
                 yield ev
             return
 

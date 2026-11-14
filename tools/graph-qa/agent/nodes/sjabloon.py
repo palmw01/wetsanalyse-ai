@@ -21,7 +21,7 @@ from ..narratie import _stap, _toolregel
 from ..tool_execution import execute_tool
 from ..regelingnamen import regelingnamen
 from ..sjablonen import Onvulbaar, vul
-from ..sjablonen.rapport import NAAM as RAPPORT, status_van as rapport_status
+from ..sjablonen.rapport import NAAM as RAPPORT, status_van as rapport_status, vragen_van as rapport_vragen
 from ..state import State
 from .context import Bouw
 
@@ -127,9 +127,10 @@ def vul_aanroep(b: Bouw, state: State, tu: dict[str, Any]) -> tuple[dict[str, An
                  **geweigerd(state, tu["name"], fout)})
     _met_regelingen(b, antwoord)
     tekst = antwoord_tekst(antwoord)
-    # Het rapport van een subagent (ADR-016 §A4): de status en wat open bleef gaan als gegeven naar de ouder.
+    # Het rapport van een subagent (ADR-016 §A4): de status, wat open bleef en de vragen gaan als gegeven naar de ouder.
     rapport = ({"rapport": {"status": rapport_status(tu.get("input") or {}),
-                            "open": list((tu.get("input") or {}).get("open") or [])}}
+                            "open": list((tu.get("input") or {}).get("open") or []),
+                            "vragen": rapport_vragen(tu.get("input") or {})}}
                if tu["name"] == RAPPORT else {})
     return (resultaat(VASTGELEGD), [{"role": "assistant", "content": [{"type": "text", "text": tekst}]}],
             {"answer": tekst, "antwoord": antwoord.model_dump(), **rapport, **tel_sjabloon(state, "gevuld", tu["name"])})
