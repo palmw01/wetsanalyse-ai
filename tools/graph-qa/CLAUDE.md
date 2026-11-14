@@ -237,6 +237,16 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     rapport `klaar` krijgen beide lijsten (`subagent.gelezen_tekst`), de kop zegt het, en `verify` toetst een aantal
     gelezen stukken ("de subagent las 16 uitspraken") tegen wat er gelezen is (`beweringen.gelezen_aantallen`). Meting
     bundel 115, D01: 16 "gelezen", waarvan 7 alleen gevonden; `tests/test_delegatie_na_rapport.py`;
+  - **zonder rapport geen duiding**: sloot de code een kind af, dan is zijn uitkomst `afgesloten` (`State.afgesloten`,
+    niet `niet_gelukt` en zeker niet `klaar`; het eind-event van de regie telt per uitkomst). Gaf geen kind een rapport,
+    dan eindigt de beurt met tekst uit code (`subagent.zonder_rapport`: wat er gelezen is, de labels uit code, en of de
+    jurist het kleiner wil maken), zonder modelronde. Na een rapport rust een duiding van een stuk op een passage van dat
+    stuk (`State.rapport_steun` uit `subagent.steun_van`, plus de blokken `extern` van het antwoord;
+    `gelezen.zonder_steun` in `check_grounding`): een zin of lijstregel met meer dan `MAX_EIGEN_WOORDEN` eigen woorden
+    over een stuk zonder passage, of met woorden die de passages niet dragen (`MIN_STEUN`), is een bewering. Het eind-event
+    van de taak draagt de inhoud van het rapport (`subagent.rapport_inhoud`: status, gedaan, bevindingen, open, de ids
+    waaruit het citeert), de meetsamenvatting `kind_rapporten`. Meting bundel 117, D01: zeven samenvattingen, geen enkele
+    klopte, *gegrond*; `tests/test_d01_zonder_duiding.py`;
   - **een open vraag van een subagent sluit de beurt**: staat een kind op `vraag`, dan doet `agent_node` geen modelronde
     meer en eindigt de beurt met één zin uit code (`VRAAG_VAN_SUBAGENT`) en de vraagkaart (`finalize_node`). De subagent
     stelt de vragen die de opdracht openlaat in één keer (`SUBAGENT_INSTRUCTIE`, de hervattekst `antwoord_tekst`). Meting

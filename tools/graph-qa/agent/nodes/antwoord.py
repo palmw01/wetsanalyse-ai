@@ -41,7 +41,7 @@ from ..resultaat import is_fout
 from ..agentvorm import STANDAARD as DEFAULT_SPECIALIST, agent_van
 from ..overdracht import OVERDRACHT
 from ..state import State
-from ..subagent import open_vraag, vraagkaart
+from ..subagent import open_vraag, vraagkaart, zonder_rapport
 from ..bronstand import prompt_blok as bronstand_blok
 from ..bronstand import waar as bronstand_waar
 from ..tool_execution import execute_tool
@@ -67,7 +67,14 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         # ronde): geen modelronde meer, de code sluit af met wat hij las (meting bundel 115: elk kind 9 aanroepen).
         return {"messages": [{"role": "assistant", "content": [{"type": "text", "text": SUBAGENT_AFGESLOTEN}]}],
                 "pending_tools": [], "turns": state.get("turns", 0) + 1, "afgekapt": False, "sjabloon_nu": False,
-                "corrected": True, "sjabloon_gevraagd": True, "answer": SUBAGENT_AFGESLOTEN}
+                "corrected": True, "sjabloon_gevraagd": True, "answer": SUBAGENT_AFGESLOTEN, "afgesloten": True}
+    if not state.get("opdracht") and (tekst := zonder_rapport(state.get("subagenten") or [])):
+        # Geen subagent gaf een rapport (de code sloot af, of hij rondde niet af): de beurt eindigt met tekst uit code,
+        # wat er gelezen is en een vraag om het kleiner te maken. Geen modelronde: die schreef samenvattingen die nergens
+        # op rustten (meting bundel 117, D01: zeven, geen enkele klopte, en toch *gegrond*).
+        return {"messages": [{"role": "assistant", "content": [{"type": "text", "text": tekst}]}],
+                "pending_tools": [], "turns": state.get("turns", 0) + 1, "afgekapt": False, "sjabloon_nu": False,
+                "corrected": True, "sjabloon_gevraagd": True, "answer": tekst}
     if not state.get("opdracht") and open_vraag(state.get("subagenten") or []):
         # Een subagent wacht op een antwoord van de jurist (ADR-016 §A4): de beurt eindigt met zijn vraag als kaart
         # (`finalize_node`), en daarvoor alleen een zin uit code. Een antwoord van de centrale agent had geen gelezen
@@ -225,7 +232,7 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         "afgekapt": afgekapt,
     }
     if afgesloten:
-        upd.update(corrected=True, sjabloon_gevraagd=True)
+        upd.update(corrected=True, sjabloon_gevraagd=True, afgesloten=True)
     if laatste:
         upd["laatste_gehad"] = True
     upd["sjabloon_nu"] = False
@@ -665,9 +672,23 @@ NA_RAPPORT = json.dumps({"status": "unavailable", "volledig": False, "reden": "n
 
 #: De uitkomsten van een subagent die niet afrondde. Niet gestart (een 409, het budget) of gestopt valt erbuiten: dan
 #: deed niemand het werk, en mag de centrale agent het zelf doen.
-NIET_AF = frozenset({"niet_gelukt", "mislukt"})
+NIET_AF = frozenset({"niet_gelukt", "mislukt", "afgesloten"})
 #: De uitkomsten van een subagent die afrondde.
 AF = frozenset({"klaar", "vraag"})
+
+
+def rapport_steun(state: State) -> dict[str, str] | None:
+    """Na een rapport van een subagent in deze beurt: per stuk naast de wet de passages waarop een duiding mag rusten, uit
+    het rapport (`State.rapport_steun`) en uit de blokken `extern` van het antwoord zelf (de code vulde ze uit de bron).
+    Zonder rapport None: dan geldt de toets niet."""
+    if state.get("opdracht") or not any(a.get("uitkomst") in AF for a in state.get("subagenten") or []):
+        return None
+    steun = dict(state.get("rapport_steun") or {})
+    for blok in (state.get("antwoord") or {}).get("blokken") or []:
+        if blok.get("soort") == "extern" and blok.get("id"):
+            tekst = " ".join(str(p.get("tekst") or "") for p in blok.get("passages") or [])
+            steun[blok["id"]] = f"{steun.get(blok['id'], '')} {tekst}".strip()
+    return steun
 
 
 def na_subagent(state: State, tool: str) -> str:
@@ -755,7 +776,7 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     # bewering. Alleen opgevraagd als het antwoord iets noemt met de vorm van een regeling; zonder namen geldt de toets niet.
     namen = (_graafnamen(b.graph) or None) if regelingen_genoemd(tekst) else None
     report = check_grounding(tekst, controletrace(state), overzicht=state.get("overzicht") or None, bekend=_bekend(state),
-                             regelingen=namen)
+                             regelingen=namen, steun=rapport_steun(state))
     # Wettekst uit een sjabloon staat zonder aanhalingstekens, dus de toets ziet "niets te controleren". Maar de code
     # toonde hem uit de tool-rijen, met de vindplaats erbij: de melding dat er geen vindplaats is, zou onwaar zijn.
     if report.niveau == "onbepaald" and not report.onbevestigd and (state.get("antwoord") or {}).get("doelen"):

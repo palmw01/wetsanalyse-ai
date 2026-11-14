@@ -163,6 +163,11 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
                                  for m in (e.get("modellen") or ([e["model"]] if e.get("model") else []))}
                                 | {m for e in events if e["type"] == "regie" and e.get("fase") == "eind"
                                    for k in e.get("kinderen") or [] for m in k.get("modellen") or []}),
+        # Wat elk kind opleverde (ADR-016 §A4): zijn uitkomst en, met een rapport, de status en de ids waaruit het citeert.
+        "kind_rapporten": [{"uitkomst": e.get("uitkomst"), **({k: (e["rapport"].get(k) or [])
+                                                                for k in ("status", "stukken", "bepalingen")}
+                                                               if e.get("rapport") else {})}
+                           for e in events if e["type"] == "regie_taak" and e.get("fase") == "eind"],
         "kind_gekozen_modellen": sorted({k.get("gekozen_model") for k in kinderen if k.get("gekozen_model")}),
         "profiel_past": (all(p in v["profielen"] for p in kind_profielen) and bool(kind_profielen)) if subagent else None,
         "bevestiging": [f"{b.get('soort')}:{b.get('opdracht', '')}".rstrip(":") for b in bevestigingen],

@@ -209,7 +209,8 @@ def _met_kind(state: State, afloop: Any, kind: dict[str, Any], profiel: str) -> 
     trace = list(state.get("source_trace") or []) + [tuple(x) for x in kind.get("source_trace") or []]
     eerder = [a for a in state.get("subagenten") or [] if a.get("delegatie_id") != afloop.delegatie_id]
     tekst = sub.als_toolresultaat(profiel, afloop.uitkomst, sub.rapport_tekst(afloop, kind))
-    return {"source_trace": trace, "subagenten": [*eerder, afloop.als_dict()]}, tekst
+    return {"source_trace": trace, "subagenten": [*eerder, afloop.als_dict()],
+            "rapport_steun": sub.steun_van([kind], state.get("rapport_steun"))}, tekst
 
 
 def _subagent(b: Any, state: State, invoer: dict[str, Any]) -> tuple[dict[str, Any], str] | dict[str, Any] | str:

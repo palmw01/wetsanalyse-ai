@@ -92,8 +92,62 @@ def ongelezen_samengevat(tekst: str, trace: Iterable[Any]) -> list[str]:
         for vp in externe_verwijzingen(segment):
             if vp.id in gelezen or vp.id in uit:
                 continue
-            bekend = set(_WOORD.findall(" ".join(t for _, t in items if vp.id in t).casefold()))
+            bekend = _rijwoorden(items, vp.id)
             eigen = [w for w in _WOORD.findall(segment.casefold()) if w not in bekend and w not in _FUNCTIEWOORDEN]
             if len(eigen) > MAX_EIGEN_WOORDEN:
                 uit.append(vp.id)
     return [f"samenvatting van {i} zonder gelezen tekst" for i in uit]
+
+
+def _rijwoorden(items: list[tuple[str, str]], ident: str) -> set[str]:
+    """De woorden van de zoekrijen van één stuk (label, titel, instantie, datum): wat het zoekresultaat over dat stuk zegt,
+    niet over de andere treffers in hetzelfde resultaat."""
+    woorden: set[str] = set()
+    for tool, tekst in items:
+        bron = bron_van(tool)
+        if bron is not None and tool in bron.leestools:
+            continue
+        try:
+            data = json.loads(tekst)
+        except (TypeError, ValueError):
+            continue
+        for rij in (data.get("resultaten") if isinstance(data, dict) else None) or []:
+            if isinstance(rij, dict) and ident in json.dumps(rij, ensure_ascii=False):
+                woorden |= set(_WOORD.findall(json.dumps(rij, ensure_ascii=False).casefold()))
+    return woorden
+
+
+#: Hoeveel van de eigen woorden van een duiding in de passages van het stuk moeten staan (op hun stam).
+MIN_STEUN = 0.5
+_STAM = 5
+
+
+def _stammen(woorden: Iterable[str]) -> set[str]:
+    return {w[:_STAM] for w in woorden}
+
+
+def zonder_steun(tekst: str, steun: dict[str, str], trace: Iterable[Any]) -> list[str]:
+    """Na een rapport van een subagent: de stukken die `tekst` duidt zonder dat een passage van dat stuk het draagt
+    (meting bundel 117, D01: zeven samenvattingen van gelezen uitspraken, geen enkele klopte, en toch *gegrond*, want de
+    stukken stonden in de trace). Een stuk mag het antwoord noemen, met wat het zoekresultaat erover zegt; wie meer zegt
+    (meer dan `MAX_EIGEN_WOORDEN` eigen woorden in een zin of lijstregel), moet dat uit de passages van dat stuk halen:
+    die van het rapport, en die het antwoord zelf toont (`steun`). Ten minste `MIN_STEUN` van die woorden staat erin, op
+    hun stam. Zonder passage van het stuk is een duiding een bewering."""
+    from bronmodel.extern import externe_verwijzingen
+
+    items = [(str(x[0]), str(x[1])) for x in trace]
+    uit: dict[str, str] = {}
+    for segment in _SEGMENT.split(tekst or ""):
+        for vp in externe_verwijzingen(segment):
+            if vp.id in uit:
+                continue
+            bekend = _rijwoorden(items, vp.id)
+            eigen = [w for w in _WOORD.findall(segment.casefold()) if w not in bekend and w not in _FUNCTIEWOORDEN]
+            if len(eigen) <= MAX_EIGEN_WOORDEN:
+                continue
+            passages = _stammen(_WOORD.findall((steun.get(vp.id) or "").casefold()))
+            if not passages:
+                uit[vp.id] = f"duiding van {vp.id} zonder passage van dat stuk in het rapport"
+            elif sum(w[:_STAM] in passages for w in eigen) < MIN_STEUN * len(eigen):
+                uit[vp.id] = f"duiding van {vp.id} die de passages van dat stuk niet dragen"
+    return list(uit.values())

@@ -141,6 +141,13 @@ class State(TypedDict, total=False):
     # Een subagent kreeg zijn laatste ronde (`nodes.antwoord.laatste_ronde`): daarna komt er geen modelronde meer, ook niet
     # na een geweigerd rapport. Per beurt gereset.
     laatste_gehad: bool
+    # De code sloot een subagent af zonder rapport (`SUBAGENT_AFGESLOTEN`): zijn uitkomst is dan `afgesloten`, niet
+    # `niet_gelukt` en zeker niet `klaar` (meting bundel 117, D01). Per beurt gereset.
+    afgesloten: bool
+    # Na een rapport van een subagent: per stuk naast de wet de passages die het rapport eruit citeert
+    # (`subagent.steun_van`). Wat de centrale agent over een stuk zegt, rust daarop (`gelezen.zonder_steun`, meting
+    # bundel 117, D01). Leeg zonder subagent. Per beurt gereset.
+    rapport_steun: dict[str, str]
     # Wat er deze beurt met de sjablonen gebeurde (`beurtmeting.tel_sjabloon`), voor het `meting`-event. Per beurt gereset.
     sjabloon_telling: dict[str, Any]
     # Het doel dat de AANROEPER meegaf ({bwbId, artikel, lid?, citeertitel?}). Weet de werkplek de

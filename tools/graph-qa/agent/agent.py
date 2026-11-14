@@ -390,6 +390,8 @@ async def answer_stream(
         "sjabloon_gevraagd": False,
         "sjabloon_nu": False,
         "laatste_gehad": False,
+        "afgesloten": False,
+        "rapport_steun": {},
         "sjabloon_telling": {},
         "afgekapt": False,
         "onbevestigd": [],
@@ -438,6 +440,8 @@ async def answer_stream(
                     # modeltekst die niet door de controle ging.
                     resultaat.update(rapport=laatste.get("rapport") or {}, antwoord=laatste.get("antwoord") or {},
                                      answer=laatste.get("answer") or "", grounded=grounded,
+                                     # De code sloot het kind af (geen rapport): de ouder maakt er `afgesloten` van.
+                                     afgesloten=bool(laatste.get("afgesloten")),
                                      source_trace=[tuple(x) for x in laatste.get("source_trace") or []],
                                      # Waarop het kind echt draaide (ADR-016 §A2): niet het gekozen model, want het
                                      # lichte kan teruggevallen zijn.
