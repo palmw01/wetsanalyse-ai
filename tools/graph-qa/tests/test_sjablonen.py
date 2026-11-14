@@ -1109,6 +1109,22 @@ def test_een_artikel_dat_de_opgehaalde_tekst_noemt_vraagt_een_passage_en_geen_op
         vul("antwoord_duiding", duiding(twijfel=["Ook artikel 29 Wet OB 1968 speelt mee."]), [tien(tekst=ZIN_29)])
     assert fout.value.code == "genoemd_in_tekst" and fout.value.ophalen == []
     assert TIEN_2 in str(fout.value) and "niet opgehaald" not in str(fout.value)
+    # De zin zelf, als begin en einde letterlijk uit de bron: over te nemen als `van` en `tot` (meting #1457, F05).
+    assert "van „Een teruggaaf als bedoeld in artikel”, tot „de omzetbelasting 1968 kan worden verrekend.”" in str(fout.value)
+
+
+def test_de_passage_uit_de_weigering_overnemen_vult_het_sjabloon():
+    melding = ""
+    try:
+        vul("antwoord_duiding", duiding(twijfel=["Ook artikel 29 Wet OB 1968 speelt mee."]), [tien(tekst=ZIN_29)])
+    except Onvulbaar as fout:
+        melding = str(fout)
+    import re
+    bepaling, van, tot = re.search(r"bepaling (\S+), van „(.+?)”, tot „(.+?)”", melding).groups()
+    a = vul("antwoord_duiding", {**duiding(twijfel=["Ook artikel 29 Wet OB 1968 speelt mee."]), "onderbouwing": [
+        {"bepaling": TIEN_1, "van": "De ontvanger kan uitstel", "tot": "van zes maanden.", "waarom": "De bevoegdheid."},
+        {"bepaling": bepaling, "van": van, "tot": tot, "waarom": "De verrekening."}]}, [tien(tekst=ZIN_29)])
+    assert a.sjabloon == "duiding"
 
 
 def test_met_die_passage_aangewezen_mag_het_artikel_genoemd_worden():
