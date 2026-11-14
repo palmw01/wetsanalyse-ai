@@ -304,3 +304,16 @@ describe("de keuzekaart van de begrippen-agent", () => {
     expect(antwoordTekst(k!, { ...{ intake_id: "bk-wg1", stap: "begrip_kiezen" }, actie: "afbreken" } as never)).toBe("Laat maar.");
   });
 });
+
+describe("de kaart van een subagent (ADR-016 §A4, §A5)", () => {
+  it("leest een vraag en een bevestiging, elk op zichzelf", () => {
+    for (const stap of ["sa_vraag", "sa_start"]) {
+      const k = parseVraagkaart({ intake_id: "sa-0123456789abcdef", modus: "subagent", stap, nr: 1, totaal: 2,
+        vraag: "Welk jaar bedoel je?", opties: [{ label: "2024", waarde: "2024" }] });
+      expect(k?.modus).toBe("subagent");
+      expect([k?.stap, k?.nr, k?.totaal]).toEqual([stap, 1, 2]);
+      expect(isLaatsteVraag(k!)).toBe(true);
+      expect(antwoordTekst(k!, { intake_id: k!.intake_id, stap, actie: "afbreken" } as never)).toBe("Laat maar.");
+    }
+  });
+});

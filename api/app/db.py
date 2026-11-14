@@ -881,6 +881,8 @@ delegaties = Table(
     Column("status", String(16), nullable=False),
     Column("uitkomst", _JSON, nullable=False, default=dict),
     Column("budget_aandeel", Integer, nullable=False, default=0, server_default="0"),
+    # De jurist vroeg in een deelgesprek zelf door (ADR-016 §A4): wat er nu ligt, kan afwijken van het rapport.
+    Column("later_gewijzigd", Boolean, nullable=False, default=False, server_default=text("false")),
     Column("gestart", _DT, nullable=False),
     Column("hartslag", _DT, nullable=False),
     Column("afgerond", _DT, nullable=True),

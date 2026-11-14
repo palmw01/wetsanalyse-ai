@@ -1066,6 +1066,13 @@ veralgemeent. graph-qa zet werk uit in deelgesprekken; de api houdt het object b
   {reden: "verweesd"}`), anders blokkeert een omgevallen replica de gebruiker of het werkgebied.
 - **Afronden is eenmalig**: een eindstand (`klaar`, `gestopt`, `mislukt`) met de `uitkomst`; dezelfde nog eens is
   idempotent, een andere 409 `delegatie_afgerond`. Alleen de eigenaar wijzigt (anders 404).
+- **Wachten** (ADR-016 §A4, §A5): `wacht` is een delegatie waarin niets draait – een subagent stelde een vraag aan de
+  jurist, of meer subagents wachten op de bevestiging (`DelegatieStart.status: "wacht"`, niet voor een regie). Ze houdt
+  geen slot vast en verweest niet. De overgangen: `loopt → wacht`, `wacht → wacht` (de vragen of antwoorden in
+  `uitkomst`), `wacht → loopt` (hervatten, met hetzelfde slot als een start: 409 `delegatie_loopt_al`) en beide naar een
+  eindstand.
+- **`later_gewijzigd`**: de jurist vroeg in een deelgesprek zelf door. Een wijziging zonder `status` zet alleen die vlag,
+  ook op een afgeronde delegatie.
 - **Lezen**: `GET /v1/delegaties?werkgebied_id=` (gedeeld, zoals het werkgebied) of `?gesprek_id=` (alleen de eigen);
   precies één van beide, anders 422.
 - De api voert niets uit: het plan is wat de jurist bevestigde of wat de centrale agent opdroeg, bewaard als JSON.

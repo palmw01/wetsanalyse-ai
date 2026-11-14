@@ -225,3 +225,59 @@ async def test_een_deelgesprek_van_een_los_gesprek_blijft_los(client):
     assert r.status_code == 409 and r.json()["detail"]["fout"] == "ander_werkgebied"
     assert (await client.post(G, json={"profiel": "algemeen"})).status_code == 422
     assert (await client.post(G, json={"ouder_id": ouder["id"], "profiel": "Niet Goed"})).status_code == 422
+
+
+async def test_een_subagent_met_een_vraag_wacht_zonder_slot_en_hervat(client):
+    """ADR-016 §A4: een subagent met een vraag wacht op de jurist. Er draait dan niets, dus hij houdt geen slot vast en
+    verweest niet; met het antwoord loopt hij weer, en dan geldt het slot weer."""
+    ouder = await _gesprek(client)
+    d = (await _subagent(client, ouder)).json()
+    vragen = {"kinderen": [{"profiel": "algemeen", "uitkomst": "vraag", "vragen": [{"tekst": "Welk jaar?"}]}]}
+    r = await client.patch(f"{D}/{d['id']}", json={"status": "wacht", "uitkomst": vragen})
+    assert r.status_code == 200 and (r.json()["status"], r.json()["uitkomst"]) == ("wacht", vragen)
+    # Geen slot: ander werk van dezelfde gebruiker mag starten.
+    ander = (await _subagent(client, await _gesprek(client))).json()
+    assert ander["status"] == "loopt"
+    # Geen verweesd: ook zonder hartslag blijft hij wachten.
+    async with db.get_engine().begin() as conn:
+        await conn.execute(update(db.delegaties).where(db.delegaties.c.id == d["id"])
+                           .values(hartslag=db.utcnow() - timedelta(minutes=10)))
+    assert (await client.get(f"{D}/{d['id']}")).json()["status"] == "wacht"
+    # Hervatten terwijl er ander werk loopt: 409, met wie het slot heeft.
+    r = await client.patch(f"{D}/{d['id']}", json={"status": "loopt"})
+    assert r.status_code == 409 and r.json()["detail"] == {**r.json()["detail"], "fout": "delegatie_loopt_al",
+                                                           "delegatie_id": ander["id"]}
+    await client.patch(f"{D}/{ander['id']}", json={"status": "klaar"})
+    r = await client.patch(f"{D}/{d['id']}", json={"status": "loopt"})
+    assert r.status_code == 200 and r.json()["status"] == "loopt" and r.json()["uitkomst"] == vragen
+    assert (await _subagent(client, await _gesprek(client))).status_code == 409
+    # Uit wachten kan hij ook afronden.
+    await client.patch(f"{D}/{d['id']}", json={"status": "wacht"})
+    assert (await client.patch(f"{D}/{d['id']}", json={"status": "klaar"})).json()["status"] == "klaar"
+    assert (await client.patch(f"{D}/{d['id']}", json={"status": "wacht"})).status_code == 409
+
+
+async def test_meer_subagents_wachten_op_de_bevestiging(client):
+    """ADR-016 §A5: meer subagents starten pas na de bevestiging; het plan staat dan al bij de delegatie."""
+    g = await _gesprek(client)
+    r = await client.post(D, json={"soort": "subagent", "opdracht": "subagent", "gesprek_id": g["id"],
+                                   "plan_id": "abcdef0123456789", "status": "wacht", "plan": {"taken": [{}, {}]}})
+    assert r.status_code == 201 and r.json()["status"] == "wacht"
+    assert (await _subagent(client, await _gesprek(client))).status_code == 201
+    wg = await _nieuw(client)
+    gw = await _gesprek(client, werkgebied_id=wg["id"])
+    r = await client.post(D, json={"werkgebied_id": wg["id"], "gesprek_id": gw["id"], "opdracht": "bronnen",
+                                   "plan_id": "abcdef0123456789", "status": "wacht"})
+    assert r.status_code == 422
+
+
+async def test_later_gewijzigd_ook_na_afloop(client):
+    """Doorvragen in een deelgesprek markeert de delegatie, ook als ze al klaar is; meer verandert er niet."""
+    d = (await _subagent(client, await _gesprek(client))).json()
+    assert d["later_gewijzigd"] is False
+    await client.patch(f"{D}/{d['id']}", json={"status": "klaar", "uitkomst": {"x": 1}})
+    r = await client.patch(f"{D}/{d['id']}", json={"later_gewijzigd": True})
+    assert r.status_code == 200 and (r.json()["later_gewijzigd"], r.json()["status"], r.json()["uitkomst"]) == (
+        True, "klaar", {"x": 1})
+    assert (await client.patch(f"{D}/{d['id']}", json={})).status_code == 422
+    assert (await client.patch(f"{D}/{d['id']}", headers=B, json={"later_gewijzigd": True})).status_code == 404

@@ -150,7 +150,10 @@ IntakeStap = Literal["naam", "aanleiding", "context", "doel", "analysevraag", "p
                      "bs_gebeurtenis", "bs_kies", "bs_bepalingen", "bs_afhankelijkheden", "bs_afronden", "bs_verder",
                      "bs_toevoegen",
                      # De keuzekaart van de begrippen-agent: welk begrip bedoel je?
-                     "begrip_kiezen"]
+                     "begrip_kiezen",
+                     # Een subagent van de centrale agent (ADR-016 §A4, §A5; `intake_id` `sa-<delegatie>`): zijn vraag aan
+                     # de jurist, en de bevestiging vóór meer dan één subagent.
+                     "sa_vraag", "sa_start"]
 
 
 class IntakeDeel(BaseModel):
@@ -186,7 +189,9 @@ class Vraagkaart(BaseModel):
     # `begrip`: de begrippen-agent vraagt welk begrip de analist bedoelt (`intake_id` `bk-<werkgebied>`).
     # `bronselectie` (spoor J): de kaartjes van de bronselectie per deelvraag; `intake_id` is dan
     # `bs-<werkgebied>` en `deelvraag_id` de deelvraag waar het kaartje over gaat.
-    modus: Literal["samenstellen", "aanvullen", "bronselectie", "begrip"] = "samenstellen"
+    # `subagent` (ADR-016 §A4): de vraag van een subagent, of de bevestiging vóór meer subagents; `intake_id` is dan
+    # `sa-<delegatie>` en "n van N" telt de open vragen.
+    modus: Literal["samenstellen", "aanvullen", "bronselectie", "begrip", "subagent"] = "samenstellen"
     deelvraag_id: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,64}$")
     soort: Literal["vraag", "samenvatting"] = "vraag"
     stap: IntakeStap

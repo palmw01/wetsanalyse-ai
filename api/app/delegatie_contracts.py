@@ -9,6 +9,11 @@ Een delegatie veralgemeent de regie van ADR-012. Er zijn twee soorten:
 
 Voor beide geldt: hoogstens één lopende delegatie per gebruiker (en dus per gesprek).
 
+Een delegatie van soort `subagent` kan ook **wachten** (§A4): een subagent stelde een vraag die alleen de jurist kan
+beantwoorden, of de jurist moet meer subagents eerst bevestigen (§A5). Wie wacht, houdt geen slot vast: er draait niets.
+Met het antwoord of de bevestiging gaat ze weer lopen (`wacht → loopt`), en dan geldt het slot weer. Een deelgesprek
+waarin de jurist zelf doorvroeg, markeert de delegatie als `later_gewijzigd`.
+
 graph-qa stuurt deze velden: de regisseur (`agent/regie/regisseur.py`) en de subagent van de centrale agent."""
 from __future__ import annotations
 
@@ -19,7 +24,7 @@ from pydantic import BaseModel, Field, model_validator
 
 Soort = Literal["regie", "subagent"]
 Opdracht = Literal["bronnen", "annoteren", "subagent"]
-DelegatieStatus = Literal["loopt", "klaar", "gestopt", "mislukt"]
+DelegatieStatus = Literal["loopt", "wacht", "klaar", "gestopt", "mislukt"]
 EINDSTANDEN = ("klaar", "gestopt", "mislukt")
 
 #: Welke opdrachten bij welke soort horen.
@@ -36,6 +41,8 @@ class DelegatieStart(BaseModel):
     plan_id: str = Field(pattern=r"^[A-Za-z0-9]{8,64}$")
     plan: dict = Field(default_factory=dict)
     budget_aandeel: int = Field(default=0, ge=0)
+    #: `wacht`: het plan staat klaar, maar er draait nog niets (meer subagents wachten op de bevestiging, §A5).
+    status: Literal["loopt", "wacht"] = "loopt"
 
     @model_validator(mode="after")
     def _past(self) -> DelegatieStart:
@@ -43,13 +50,26 @@ class DelegatieStart(BaseModel):
             raise ValueError(f"de opdracht {self.opdracht} hoort niet bij een {self.soort}")
         if self.soort == "regie" and not self.werkgebied_id:
             raise ValueError("een regie hoort bij een werkgebied")
+        if self.soort == "regie" and self.status == "wacht":
+            raise ValueError("een regie wacht niet: zijn plan bevestigt de jurist vóór de start")
         return self
 
 
 class DelegatieWijziging(BaseModel):
-    """`loopt` is een teken van leven (de hartslag); een eindstand sluit de delegatie af, met de uitkomst."""
-    status: DelegatieStatus
+    """`loopt` is een teken van leven (de hartslag), of het hervatten van een wachtende delegatie; `wacht` legt de
+    vragen of het plan vast; een eindstand sluit de delegatie af. Elk met de uitkomst als die meekomt.
+
+    Zonder `status` verandert alleen `later_gewijzigd`: dat mag ook op een afgeronde delegatie, want doorvragen in een
+    deelgesprek kan na afloop."""
+    status: DelegatieStatus | None = None
     uitkomst: dict | None = None
+    later_gewijzigd: bool | None = None
+
+    @model_validator(mode="after")
+    def _iets(self) -> DelegatieWijziging:
+        if self.status is None and self.later_gewijzigd is None:
+            raise ValueError("geef een status of later_gewijzigd")
+        return self
 
 
 class Delegatie(BaseModel):
@@ -64,6 +84,7 @@ class Delegatie(BaseModel):
     status: DelegatieStatus
     uitkomst: dict = {}
     budget_aandeel: int = 0
+    later_gewijzigd: bool = False
     gestart: datetime | None = None
     hartslag: datetime | None = None
     afgerond: datetime | None = None
