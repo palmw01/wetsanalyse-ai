@@ -94,6 +94,11 @@ class Api:
         self.aanroepen.append(("haal_delegatie", did))
         return self.delegatie
 
+    async def voeg_bericht_toe(self, gesprek_id, bericht):
+        # Apart van `aanroepen`: de tests hieronder tellen de aanroepen op de delegatie.
+        object.__getattribute__(self, "__dict__").setdefault("berichten", []).append((gesprek_id, bericht))
+        return {}
+
     async def wijzig_delegatie(self, did, wijziging):
         if self.conflict and wijziging.get("status") == "loopt":
             raise WetsanalyseApiFout("bezet", 409, "delegatie_loopt_al")
@@ -146,6 +151,8 @@ def test_hervatten_is_een_nieuwe_beurt_in_hetzelfde_deelgesprek():
         sub.antwoord_tekst([], [], van="").splitlines()[-1]]
     assert "eerste keer al kon stellen" in verzoek.question, "vragen in één keer (meting bundel 116, D01)"
     assert events[0]["hervat"] is True
+    # De antwoorden staan als bericht in het deelgesprek (analyse centrale agent, gat 6).
+    assert api.__dict__["berichten"] == [("kind-1", {"rol": "user", "tekst": verzoek.question})]
 
 
 @pytest.mark.parametrize("api", [Api(status="klaar"), Api(conflict=True)])
