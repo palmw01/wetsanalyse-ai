@@ -231,6 +231,11 @@ class Subagent(Agent):
             logger.warning("subagent_model_terugval", extra={"categorie": "technisch", "model": model,
                                                              "naar": settings.llm_model,
                                                              "http_status": getattr(fout, "status_code", None)})
+            # De mislukte aanroep staat in `aanroepen`, met de reden: zo ziet de meting dat het lichte model gekozen
+            # werd en niet draaide.
+            if (meter := getattr(llm, "meter", None)) is not None and hasattr(meter, "tel_mislukt"):
+                meter.tel_mislukt(rol=str(getattr(self.rol, "value", self.rol)), model=model,
+                                  reden="subagent_model_terugval", http_status=getattr(fout, "status_code", None))
             return super().ronde(llm, settings, **kw)
 
     @property

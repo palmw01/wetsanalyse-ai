@@ -437,7 +437,11 @@ async def answer_stream(
                     # modeltekst die niet door de controle ging.
                     resultaat.update(rapport=laatste.get("rapport") or {}, antwoord=laatste.get("antwoord") or {},
                                      answer=laatste.get("answer") or "", grounded=grounded,
-                                     source_trace=[tuple(x) for x in laatste.get("source_trace") or []])
+                                     source_trace=[tuple(x) for x in laatste.get("source_trace") or []],
+                                     # Waarop het kind echt draaide (ADR-016 §A2): niet het gekozen model, want het
+                                     # lichte kan teruggevallen zijn.
+                                     modellen=(llm.meter.gedraaid() if hasattr(getattr(llm, "meter", None), "gedraaid")
+                                               else []))
                 logger.info(
                     "antwoord klaar",
                     extra={"grounded": grounded, "chat_session_id": conversation_id or ""},
