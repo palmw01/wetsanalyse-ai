@@ -18,6 +18,7 @@ Zonder `Agent` geen modelaanroep, geen tool en geen kind: een profiel draait noo
 from __future__ import annotations
 
 import functools
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -34,6 +35,8 @@ from .prompts import SYSTEM_PROMPT
 from .sjablonen import EXTERN, sjabloon_schemas
 from .sjablonen.rapport import NAAM as RAPPORT
 from .tools import anthropic_schemas, toegestane_tools
+
+logger = logging.getLogger("graph_qa.agentvorm")
 
 #: Het profiel van een agent zonder naam, of met een naam die niet bestaat.
 STANDAARD = "algemeen"
@@ -187,9 +190,48 @@ SUBAGENT_INSTRUCTIE = (
     "niet_gelukt). Weigert de code het rapport, verbeter dan de aanroep zoals de melding zegt en roep het opnieuw aan.")
 
 
+#: De modelklasse van een profiel als subagent (ADR-016 §A2): de lichte, voor elk kiesbaar profiel. Als specialist van de
+#: supervisor houdt een profiel zijn eigen `modelklasse` (zwaar).
+SUBAGENT_MODELKLASSE = "licht"
+
+#: Lichte modellen die in dit proces faalden (400 of 404): daarna draait een subagent op het gewone model, ook in de
+#: volgende rondes, zodat zijn voorvoegsel per model vast blijft en de cache niet tussen twee modellen wisselt.
+_LICHT_KAPOT: set[str] = set()
+
+
+def subagent_model(settings: Any) -> tuple[str, str]:
+    """(het model van een subagent, waarom het het gewone model werd of leeg). De lichte klasse is `llm_model_licht`, of de
+    bestaande lichte knop `llm_model_router`; zonder valt hij terug op `llm_model`."""
+    licht = getattr(settings, "llm_model_licht", "") or getattr(settings, "llm_model_router", "")
+    if not licht:
+        return settings.llm_model, "geen_lichte_klasse"
+    if licht in _LICHT_KAPOT:
+        return settings.llm_model, "lichte_klasse_faalde"
+    return licht, ""
+
+
 class Subagent(Agent):
     """Een agent die werkt aan één opdracht van de centrale agent (ADR-016 §A3): zijn eigen profiel, met één uitgang,
-    het rapport (§A4). Hij heeft geen eigen tools: geen overdracht en geen `subagent` (één laag)."""
+    het rapport (§A4). Hij heeft geen eigen tools: geen overdracht en geen `subagent` (één laag). Hij draait op de lichte
+    modelklasse (`subagent_model`)."""
+
+    def model(self, settings: Any) -> str:
+        return subagent_model(settings)[0]
+
+    def ronde(self, llm: Any, settings: Any, **kw: Any) -> Any:
+        """Faalt het lichte model (een 400 of 404: het bestaat niet in deze omgeving, of het kan dit verzoek niet), dan
+        draait de ronde opnieuw op het gewone model, en de rest van het proces ook (`_LICHT_KAPOT`)."""
+        model = self.model(settings)
+        try:
+            return super().ronde(llm, settings, **kw)
+        except Exception as fout:
+            if model == settings.llm_model or getattr(fout, "status_code", None) not in (400, 404):
+                raise
+            _LICHT_KAPOT.add(model)
+            logger.warning("subagent_model_terugval", extra={"categorie": "technisch", "model": model,
+                                                             "naar": settings.llm_model,
+                                                             "http_status": getattr(fout, "status_code", None)})
+            return super().ronde(llm, settings, **kw)
 
     @property
     def instructie(self) -> str:

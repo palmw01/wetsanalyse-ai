@@ -179,7 +179,7 @@ async def voer_uit(state: dict[str, Any], profiel: str, opdracht: SubagentOpdrac
         kind = await _met_hartslag(api, afloop, hartslag_s, _draai_kind(
             afloop, titel, profiel, opdracht, stuur, gesprek_id=gesprek_id, werkgebied_id=werkgebied_id,
             run_id=state.get("run_id", "") or "", user_id=user_id, bronnen=state.get("bronnen"), api=api,
-            kinderen=kinderen, gestopt=gestopt))
+            kinderen=kinderen, gestopt=gestopt, model=kindmodel(settings, profiel)))
         await _leg_vast(api, afloop.delegatie_id, [afloop.als_dict()], stuur, run_id=state.get("run_id", "") or "",
                         nu=[afloop])
         return afloop, kind, ""
@@ -288,7 +288,8 @@ async def hervat(state: dict[str, Any], delegatie_id: str, antwoorden: list[str]
             afloop, titel, profiel, opdracht, stuur, gesprek_id=state.get("gesprek_id", "") or "",
             werkgebied_id=delegatie.get("werkgebied_id", "") or "", run_id=state.get("run_id", "") or "",
             user_id=user_id, bronnen=state.get("bronnen"), api=api, kinderen=kinderen, gestopt=gestopt,
-            vraag=antwoord_tekst(list(vorige.get("vragen") or []), antwoorden, van=van)))
+            vraag=antwoord_tekst(list(vorige.get("vragen") or []), antwoorden, van=van),
+            model=kindmodel(settings, profiel)))
         alle[i] = afloop.als_dict()
         await _leg_vast(api, delegatie_id, alle, stuur, run_id=state.get("run_id", "") or "", nu=[afloop])
         return afloop, kind, ""
@@ -321,7 +322,7 @@ def open_vraag(subagenten: list[dict[str, Any]]) -> dict[str, Any] | None:
 async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: SubagentOpdracht, stuur, *, gesprek_id: str,
                       werkgebied_id: str, run_id: str, user_id: str, bronnen: Any, api: Any, kinderen: Kinderen,
                       gestopt: Callable[[], bool], vraag: str = "", index: int = 0,
-                      bij_start: Callable[[Any], None] | None = None) -> dict[str, Any]:
+                      bij_start: Callable[[Any], None] | None = None, model: str = "") -> dict[str, Any]:
     """Eén beurt van het kind. Zonder `afloop.gesprek_id` eerst het deelgesprek; met (hervatten) dezelfde, met `vraag`
     als eerste bericht. `index` is zijn plek in het plan; `bij_start` krijgt de run zodra hij loopt."""
     begin = time.perf_counter()
@@ -333,7 +334,7 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
                                               "delegatie_id": delegatie_id, "profiel": profiel})
             afloop.gesprek_id = str(gesprek["id"])
         stuur({"type": "regie_taak", "fase": "start", "regie_id": delegatie_id, "index": index, "titel": titel,
-               "gesprek_id": afloop.gesprek_id, "profiel": profiel})
+               "gesprek_id": afloop.gesprek_id, "profiel": profiel, **({"model": model} if model else {})})
         verzoek = ChatRequest(question=vraag or opdracht_tekst(opdracht), conversation_id=afloop.gesprek_id,
                               werkgebied_id=werkgebied_id or None, profiel=profiel, opdracht=opdracht,
                               delegatie_id=delegatie_id,
@@ -374,6 +375,20 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
                                          "profiel": profiel, "duur_ms": round((time.perf_counter() - begin) * 1000)})
         stuur({"type": "regie_taak", "fase": "eind", "regie_id": delegatie_id, "index": index, "titel": titel,
                "gesprek_id": afloop.gesprek_id, "uitkomst": afloop.uitkomst, "profiel": profiel})
+
+
+def kindmodel(settings: Any, profiel: str) -> str:
+    """Het model waarop het kind draait (de lichte klasse, `agentvorm.subagent_model`), met een logregel als het het gewone
+    model werd. Zonder instellingen (een test) leeg."""
+    if settings is None or not getattr(settings, "llm_model", ""):
+        return ""
+    from .agentvorm import SUBAGENT_MODELKLASSE, subagent_model
+
+    model, reden = subagent_model(settings)
+    if reden:
+        logger.info("subagent_model", extra={"categorie": "functioneel", "profiel": profiel, "model": model,
+                                             "modelklasse": SUBAGENT_MODELKLASSE, "terugval": reden})
+    return model
 
 
 async def _hartslag(api: Any, delegatie_id: str, elke_s: float) -> None:
@@ -584,7 +599,8 @@ async def voer_plan_uit(state: dict[str, Any], delegatie_id: str, stuur: Callabl
                     aflopen[i], _titel(opdracht), taak["profiel"], opdracht, stuur,
                     gesprek_id=state.get("gesprek_id", "") or "", werkgebied_id=delegatie.get("werkgebied_id", "") or "",
                     run_id=state.get("run_id", "") or "", user_id=user_id, bronnen=state.get("bronnen"), api=api,
-                    kinderen=kinderen, gestopt=gestopt, index=i, bij_start=gestart)
+                    kinderen=kinderen, gestopt=gestopt, index=i, bij_start=gestart,
+                    model=kindmodel(settings, taak["profiel"]))
 
         hart = asyncio.create_task(_hartslag(api, delegatie_id, hartslag_s))
         try:

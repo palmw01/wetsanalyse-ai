@@ -224,6 +224,11 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   - **een eigen rondegrens**: een subagent heeft `MAX_RONDES_SUBAGENT` (8) modelrondes, de laatste alleen voor het rapport
     (`nodes/antwoord.max_rondes`; de instructie zegt het). Rondt hij niet af, dan noemt het rapport uit code wat hij las
     (`subagent.rapport_tekst`, de labels uit zijn toolresultaten);
+  - **een lichter model**: een subagent draait op de lichte modelklasse (`agentvorm.SUBAGENT_MODELKLASSE`,
+    `subagent_model`: `LLM_MODEL_LICHT`, anders `LLM_MODEL_ROUTER`, anders `LLM_MODEL` met de logregel `subagent_model`).
+    Faalt het lichte model met een 400 of 404, dan draait de ronde opnieuw op `LLM_MODEL` en de rest van het proces ook
+    (`_LICHT_KAPOT`), zodat het voorvoegsel van het kind per model vast blijft. De centrale agent en elke specialist van de
+    supervisor houden hun model. Het model van het kind staat in `regie_taak` en in de meetsamenvatting (`kind_modellen`);
   - **routes in code naar delegatie** (meting 14 nov 2026): "vat per uitspraak/stuk/Kamerstuk samen …" met een bron naast
     de wet aan gaat zonder model naar de node `subagent_route` (`nodes/subagent_route.py`, `past`): een subagent
     `algemeen` met de vraag als doel, daarna vat de centrale agent het rapport samen (`State.rapporten`). Een vraag die een

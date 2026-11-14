@@ -156,6 +156,8 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
         "kindgesprekken": len(kinderen),
         # Het profiel van elk kind (`regie_taak`), tegen de set: elk kind heeft een van de verwachte profielen.
         "kind_profielen": kind_profielen,
+        # Het model van elk kind (`regie_taak`, ADR-016 §A2: de lichte klasse, of het gewone model na een terugval).
+        "kind_modellen": sorted({k.get("model") for k in kinderen if k.get("model")}),
         "profiel_past": (all(p in v["profielen"] for p in kind_profielen) and bool(kind_profielen)) if subagent else None,
         "bevestiging": [f"{b.get('soort')}:{b.get('opdracht', '')}".rstrip(":") for b in bevestigingen],
         "vraagkaart": [e["vraagkaart"].get("stap") for e in events if e["type"] == "vraagkaart"],
