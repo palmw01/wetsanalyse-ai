@@ -203,3 +203,19 @@ def test_onoplosbare_bronnode_valt_niet_terug_op_de_trace():
     elementen = [e["element"] for e in events if e["type"] == "element"]
     assert elementen == []
     assert llm.index == 3 and len(llm.calls) == 3, "geen classifier-call op een onoplosbare bron"
+
+
+def test_de_centrale_agent_annoteert_via_annoteer_het_gewone_pad():
+    """Analyse centrale agent, gat 4 (#1516), het gewone pad: de centrale agent roept `annoteer` aan, de ophaal-agent zoekt
+    de bepaling en de hybride keten annoteert. Dezelfde events als via de supervisor (`doel`, `element`)."""
+    from agent.agentvorm import CENTRAAL  # noqa: F401 – de vorm van de beurt
+
+    vraag = "Annoteer artikel 9 lid 1 van de Invorderingswet 1990."
+    centraal = response([tool_block("c1", "annoteer", {"vraag": vraag})], "tool_use")
+    llm = KetenLLM([centraal, *_aanloop()[1:]], kies=_alleen(**{"De ontvanger": "Rechtssubject"}))
+    events = _run(answer_stream(vraag, settings=make_settings(centrale_agent="meten"), llm=llm,
+                                graph=FakeGraph(result=LID_TSV), agentvorm="centraal"))
+    doel = next(e for e in events if e["type"] == "doel")["doel"]
+    assert (doel["bwbId"], doel["artikel"], doel["lid"]) == ("BWBR0004770", "9", "1")
+    assert ("Rechtssubject", "De ontvanger") in {(el["klasse"], el["tekst"]) for el in _elementen(events)}
+    assert any(e.get("type") == "status" and e.get("route") == "annotatie" for e in events)

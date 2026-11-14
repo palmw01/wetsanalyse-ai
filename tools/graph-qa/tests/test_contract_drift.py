@@ -289,6 +289,8 @@ GESPREK_CONTRACT = CONTRACT.parent / "gesprek_contracts.py"
       {"type": "overzicht", "overzicht": {"a": 1}}, {"type": "vraagkaart", "vraagkaart": {"stap": "naam"}},
       {"type": "artefact", "artefact": {"soort": "begrip"}}, {"type": "bevestiging", "bevestiging": {"aantal": 1}},
       {"type": "tool_execution", "call_id": "c", "phase": "start"},
+      # Een delegatie van de beurt (bugonderzoek ADR-016, B4): het bericht draagt dan `delegaties`.
+      {"type": "regie", "fase": "start", "regie_id": "0123456789abcdef", "soort": "subagent"},
       {"type": "grounding", "grounded": True, "niveau": "gegrond"}], False),
     ([{"type": "error", "message": "stuk"}], False),
     ([{"type": "token", "content": "x"}], True),
@@ -329,3 +331,24 @@ def test_elk_veld_van_het_bericht_bestaat_bij_de_api(monkeypatch, events, stop):
     asyncio.run(draai())
     velden = set(_api_velden("BerichtInvoer", GESPREK_CONTRACT))
     assert bewaard and set(bewaard[0]) <= velden, f"niet in BerichtInvoer: {sorted(set(bewaard[0]) - velden)}"
+    if any(e["type"] == "regie" for e in events):
+        assert bewaard[0]["delegaties"] == ["0123456789abcdef"]
+
+
+@pytest.mark.skipif(not GESPREK_CONTRACT.exists(), reason="api-contract niet beschikbaar (los uitgecheckt)")
+def test_het_bericht_van_de_code_in_een_deelgesprek_bestaat_bij_de_api():
+    """De opdracht of de doorgegeven antwoorden in het deelgesprek (`subagent._schrijf_doorgegeven`): elk veld kent de
+    api, anders valt `doorgegeven` stil weg en toont de werkplek de tekst als bericht van de jurist."""
+    from agent import subagent as sub
+
+    bewaard: list[dict] = []
+
+    class Api:
+        async def voeg_bericht_toe(self, _gesprek, bericht):
+            bewaard.append(bericht)
+            return {}
+
+    asyncio.run(sub._schrijf_doorgegeven(Api(), "k", "Opdracht.", "opdracht", "d"))
+    velden = set(_api_velden("BerichtInvoer", GESPREK_CONTRACT))
+    assert bewaard and set(bewaard[0]) <= velden, f"niet in BerichtInvoer: {sorted(set(bewaard[0]) - velden)}"
+    assert bewaard[0]["rol"] == "assistant" and bewaard[0]["doorgegeven"] == "opdracht"
