@@ -207,7 +207,8 @@ def _feitenbron(source_trace: list[tuple[str, str]], trace_text: str) -> str:
 def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
                     overzicht: dict | None = None, *, bekend: str = "",
                     regelingen: set[str] | None = None, steun: dict[str, str] | None = None,
-                    vraag: str | None = None, periode: tuple[int, int] | None = None) -> GroundingReport:
+                    vraag: str | None = None, periode: tuple[int, int] | None = None,
+                    duiding_tekst: str | None = None) -> GroundingReport:
     """Markeer wat in het antwoord niet uit de trace te herleiden is: verwijzingen én citaten.
 
     Met een `overzicht` (de overzichtsroute) telt ook elk genoemd artikel dat niet in het overzicht
@@ -271,16 +272,20 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
         # "Zie de toelichting bij …" bij een ander stuk is geen duiding van dit stuk (meting bundel 118, D01).
         feiten += [f for f in verwijzing_als_duiding(answer_text, source_trace) if f not in feiten]
         # Het onderwerp van de vraag aan een stuk toeschrijven dat het woord niet bevat (meting bundel 119, D01).
-        feiten += [f for f in vraag_niet_in_stuk(answer_text, source_trace, bekend if vraag is None else vraag)
+        # Op de tekst die duidt (`duiding_tekst`: wat Lex schreef, zonder 'Gedaan' van een rapport; meting bundel 122).
+        feiten += [f for f in vraag_niet_in_stuk(answer_text if duiding_tekst is None else duiding_tekst, source_trace,
+                                                 bekend if vraag is None else vraag)
                    if f not in feiten]
         # De periode die de jurist koos: een stuk van daarbuiten noemen mag, samenvatten niet (meting bundel 120, D01).
-        feiten += [f for f in buiten_periode(answer_text, source_trace, periode) if f not in feiten]
+        feiten += [f for f in buiten_periode(answer_text if duiding_tekst is None else duiding_tekst, source_trace,
+                                             periode) if f not in feiten]
         # Een letter uit een ander schrift midden in een woord (bundel 120: "niet-melدende"): een tokenfout van het model.
         feiten += [f for f in vreemd_schrift(answer_text) if f not in feiten]
     # Na een rapport van een subagent (`steun`: per stuk de passages die het rapport en het antwoord eruit tonen): een
     # duiding van een stuk rust op die passages, niet op "het stond in de trace" (meting bundel 117, D01).
     if steun is not None and not overzicht:
-        feiten += [f for f in zonder_steun(answer_text, steun, source_trace) if f not in feiten]
+        feiten += [f for f in zonder_steun(answer_text if duiding_tekst is None else duiding_tekst, steun, source_trace)
+                   if f not in feiten]
     # Een stuk van een bronconnector (ADR-013) dat het antwoord noemt en dat alleen in een zoekresultaat stond, is
     # gevonden, niet gelezen. Dat is geen signaal: het id bestaat en het zoekresultaat draagt zijn label, soort, datum
     # en titel uit de bron. Tot 10 nov 2026 telde zo'n stuk als onbevestigd; op acceptatie gaf een lijst opvolgende

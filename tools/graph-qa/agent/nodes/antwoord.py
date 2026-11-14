@@ -723,7 +723,9 @@ def rapport_steun(state: State) -> dict[str, str] | None:
         steun = dict(state.get("rapport_steun") or {})
     for blok in (state.get("antwoord") or {}).get("blokken") or []:
         if blok.get("soort") == "extern" and blok.get("id"):
-            tekst = " ".join(str(p.get("tekst") or "") for p in blok.get("passages") or [])
+            from ..subagent import passagetekst
+
+            tekst = passagetekst(blok.get("passages") or [])
             steun[blok["id"]] = f"{steun.get(blok['id'], '')} {tekst}".strip()
     return steun
 
@@ -833,7 +835,7 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     namen = (_graafnamen(b.graph) or None) if regelingen_genoemd(tekst) else None
     report = check_grounding(tekst, controletrace(state), overzicht=state.get("overzicht") or None, bekend=_bekend(state),
                              regelingen=namen, steun=rapport_steun(state), vraag=_vraag(state),
-                             periode=_periode(state))
+                             periode=_periode(state), duiding_tekst=_zonder_gedaan(state))
     # Een omgedraaide bewering in de woorden van de passage zien de toetsen op woorden niet: de controle per stuk leest de
     # duidingen tegen de passages die het rapport citeerde (`stukcontrole.py`). Alleen in het antwoord van de centrale
     # agent, en alleen als de goedkopere toetsen niets vonden: vonden zij iets, dan volgt de correctie toch, en daarna
@@ -902,6 +904,23 @@ def _vraag(state: State) -> str:
     hervatte beurt is de vraag de hervatting). Geen `_bekend`: de opdracht schreef de centrale agent, niet de jurist."""
     opdracht = state.get("opdracht") or {}
     return "\n".join([_bekend(state), *(str(v) for v in opdracht.values() if isinstance(v, str))])
+
+
+#: De blokken van een rapport die geen duiding dragen: wat de subagent deed, en wat de code over de citaten zegt.
+_GEEN_DUIDING = frozenset({"Gedaan", "Niet als citaat getoond"})
+
+
+def _zonder_gedaan(state: State) -> str | None:
+    """De tekst die Lex zelf schreef in een sjabloon (de blokken `door: lex`), zonder het blok 'Gedaan' van een rapport
+    (wat de subagent deed, geen duiding), of None zonder sjabloon. Voor de toetsen op duidingen: een geciteerde passage
+    is letterlijk uit de bron en wordt als citaat getoetst, niet als duiding (meting bundel 122, D01: in een rapport las
+    `zonder_steun` de passages van het ene stuk als duiding van het andere)."""
+    antwoord = state.get("antwoord") or {}
+    if not antwoord.get("blokken"):
+        return None
+    blokken = [b for b in antwoord["blokken"] if b.get("door") == "lex"
+               and not (b.get("soort") == "toelichting" and b.get("kop") in _GEEN_DUIDING)]
+    return antwoord_tekst(Antwoord.model_validate({**antwoord, "blokken": blokken}), zonder=NIET_GETOETST)
 
 
 def _periode(state: State) -> tuple[int, int] | None:

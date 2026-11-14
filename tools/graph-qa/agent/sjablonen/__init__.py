@@ -69,6 +69,10 @@ def sjabloon_schemas(namen: frozenset[str], *, extern: Any = False) -> list[dict
 def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:
     """Vul het sjabloon uit de trace. Draagt de aanroep het veld `extern` (het subsjabloon), dan komen de blokken met
     de bronnen naast de wet ná de wettekst en de uitleg, vóór de twijfel."""
+    if naam == _rapport.NAAM and _extern.VELD not in invoer and invoer.get("bevindingen") \
+            and _extern.aanvulling(str(invoer.get("bevindingen")), [], trace)[0]:
+        # Een rapport dat gelezen stukken samenvat zonder 'extern': de code wijst hun passages aan (hieronder).
+        invoer = {**invoer, _extern.VELD: []}
     if naam == EXTERN or not ({_extern.VELD, _extern.STUKKEN} & set(invoer)):
         return SJABLONEN[naam].vul(invoer, trace)
     rest = {k: v for k, v in invoer.items() if k not in {_extern.VELD, _extern.STUKKEN}}
@@ -77,14 +81,23 @@ def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:
     # bundel 114 ook een antwoord: P01 kreeg twee weigeringen op `extern.blokken`). De code toont wat te tonen is en zegt wat
     # niet. Alleen als er niets te tonen is, geldt de weigering, zodat het model kan herstellen.
     overgeslagen: list[str] = []
+    items = invoer.get(_extern.VELD)
+    max_stukken = _extern.MAX_STUKKEN
+    if naam == _rapport.NAAM:
+        # Een rapport: elk samengevat stuk draagt een passage met inhoud, en de grens is ruimer (meting bundel 122).
+        bij, regels = _extern.aanvulling(str(invoer.get("bevindingen") or ""), items, trace)
+        items = [*(items if isinstance(items, list) else []), *bij] if bij else items
+        overgeslagen += regels
+        max_stukken = _extern.MAX_STUKKEN_RAPPORT
     # Een lijst gevonden stukken vóór de passages: eerst wat er is, dan wat erin staat.
     extra = [*_extern.lijsten(invoer.get(_extern.STUKKEN), trace),
-             *_extern.blokken(invoer.get(_extern.VELD), trace, overgeslagen=overgeslagen)]
+             *_extern.blokken(items, trace, overgeslagen=overgeslagen, max_stukken=max_stukken,
+                              zonder_kopregels=naam == _rapport.NAAM)]
     getoond = sum(1 for b in extra if b.soort == "extern")
     # Wat het subsjabloon toont, telt in de uitleg als onderbouwd (een artikel van overheid.nl, `duiding.EXTERN_IDS`); een
     # weggelaten aanwijzing niet.
     ids = {b.id for b in extra if b.soort == "extern"}
-    rest[_duiding.EXTERN_IDS] = [i for x in invoer.get(_extern.VELD) or [] if isinstance(x, dict)
+    rest[_duiding.EXTERN_IDS] = [i for x in (items if isinstance(items, list) else []) if isinstance(x, dict)
                                  and (vp := _extern.externe_vindplaats(i := str(x.get("id") or ""))) and vp.id in ids]
     if naam == _rapport.NAAM:
         rest[_rapport.NIET_GETOOND] = overgeslagen
@@ -95,7 +108,7 @@ def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:
     antwoord = SJABLONEN[naam].vul(rest, trace)
     if overgeslagen:
         if not getoond and not any(b.soort == "citaten" for b in antwoord.blokken):
-            _extern.blokken(invoer.get(_extern.VELD), trace)   # niets anders te tonen: de weigering zoals altijd
+            _extern.blokken(items, trace)   # niets anders te tonen: de weigering zoals altijd
         extra.append(Leemte(tekst=_extern.niet_getoond_tekst(overgeslagen)))
     if extra:
         plek = next((i for i, b in enumerate(antwoord.blokken) if b.soort in ("twijfel", "leemte")), len(antwoord.blokken))

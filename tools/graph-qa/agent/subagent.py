@@ -484,9 +484,17 @@ def steun_van(kinderen: Iterable[dict[str, Any]], eerder: dict[str, str] | None 
     for kind in kinderen:
         for blok in (kind.get("antwoord") or {}).get("blokken") or []:
             if blok.get("soort") == "extern" and blok.get("id"):
-                tekst = " ".join(str(p.get("tekst") or "") for p in blok.get("passages") or [])
+                tekst = passagetekst(blok.get("passages") or [])
                 steun[blok["id"]] = f"{steun.get(blok['id'], '')} {tekst}".strip()
     return steun
+
+
+def passagetekst(passages: Iterable[dict[str, Any]]) -> str:
+    """De tekst van de passages die inhoud dragen: een kopregel ("HOGE RAAD DER NEDERLANDEN") steunt geen duiding (meting
+    bundel 122, D01: "gedragen door de passages", en de passages waren de kop van het arrest)."""
+    from .sjablonen.extern import is_kopregel
+
+    return " ".join(t for p in passages if not is_kopregel(t := str(p.get("tekst") or ""), str(p.get("kop") or "")))
 
 
 def open_vraag(subagenten: list[dict[str, Any]]) -> dict[str, Any] | None:

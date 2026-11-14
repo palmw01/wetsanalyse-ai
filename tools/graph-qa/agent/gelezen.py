@@ -96,6 +96,11 @@ _HERKOMST = re.compile(r"\b(volgens|aangehaald|besproken|beschreven|blijkens|wee
                        re.IGNORECASE)
 
 
+#: Een zin of kop die zegt dat een stuk níét samengevat of gelezen is: geen duiding van dat stuk.
+_WEGGELATEN = re.compile(r"\bniet\s+(?:inhoudelijk\s+)?(?:samengevat|gelezen|besproken|opgenomen|meegenomen)\b"
+                         r"|\bweggelaten\b|\bbuiten\s+beschouwing\b|\blaat\s+ik\s+weg\b", re.IGNORECASE)
+
+
 def _ids(tekst: str) -> list[str]:
     from bronmodel.extern import externe_verwijzingen
 
@@ -126,7 +131,7 @@ def _herkomst(segment: str, ids: list[str], gelezen: set[str]) -> list[str]:
 
 
 def per_stuk(tekst: str, gelezen: Iterable[str] | None = None,
-             labels: dict[str, str] | None = None) -> list[tuple[str, list[str]]]:
+             labels: dict[str, str] | None = None, *, weglating: bool = True) -> list[tuple[str, list[str]]]:
     """De zinnen en lijstregels van `tekst` met de stukken naast de wet waar ze over gaan: de stukken die de regel bij id
     noemt, en anders het onderwerp van haar alinea. Een samenvatting staat vaak onder een kop met het id ("**2. HR 14 april
     2023 (ECLI:…)**" en dan de tekst): zonder deze toewijzing toetste de controle alleen de kop (meting bundel 119, D01: twee
@@ -141,6 +146,10 @@ def per_stuk(tekst: str, gelezen: Iterable[str] | None = None,
     for alinea in _ALINEA.split(tekst or ""):
         segmenten = [s for s in _SEGMENT.split(alinea) if s.strip()]
         kop = alinea.strip().split("\n", 1)[0]
+        if weglating and _WEGGELATEN.search(kop):
+            # Een alinea onder "**Niet samengevat**" zegt wat er weggelaten is: geen duiding (meting bundel 122, D01).
+            uit += [(_URL.sub("", s), []) for s in segmenten]
+            continue
         onderwerp = _herkomst(kop, _ids(kop) or _uit_kop(kop, labels or {}), gelezen)
         if not onderwerp:
             eerste = next((s for s in segmenten if _ids(s)), "")
@@ -149,6 +158,9 @@ def per_stuk(tekst: str, gelezen: Iterable[str] | None = None,
         # ongelezen stuk dat een zin eronder noemt, geeft de alinea weer uit dat gelezen stuk.
         bron = onderwerp if onderwerp and set(onderwerp) <= gelezen and _HERKOMST.search(kop) else []
         for segment in segmenten:
+            if weglating and _WEGGELATEN.search(segment):
+                uit.append((_URL.sub("", segment), []))
+                continue
             ids = _herkomst(segment, _ids(segment), gelezen)
             if bron and ids and not set(ids) & gelezen:
                 ids = bron
@@ -171,7 +183,9 @@ def ongelezen_samengevat(tekst: str, trace: Iterable[Any]) -> list[str]:
     items = [(str(x[0]), str(x[1])) for x in trace]
     gelezen, labels = _context(items)
     uit: list[str] = []
-    for segment, ids in per_stuk(tekst, gelezen, labels):
+    # Ook een zin die zegt dat iets niet gelezen is, kan een ongelezen stuk samenvatten ("… niet gelezen, maar de Hoge
+    # Raad oordeelde …"): deze toets slaat zulke zinnen niet over (`weglating=False`).
+    for segment, ids in per_stuk(tekst, gelezen, labels, weglating=False):
         for ident in ids:
             if ident in gelezen or ident in uit:
                 continue
