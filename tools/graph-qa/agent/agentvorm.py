@@ -184,7 +184,9 @@ SUBAGENT_INSTRUCTIE = (
     "één ronde op wat je samen nodig hebt: je hebt hoogstens " + str(MAX_RONDES_SUBAGENT) + " rondes, en in de laatste kan "
     "alleen het rapport nog. Hangt wat je oplevert af van een afbakening of een feit dat de opdracht niet "
     "geeft (een periode, een regeling, welke situatie of lezing), kies die dan niet zelf, ook niet 'de meest recente': rond "
-    "af met status vraag en stel de vraag in 'vragen', met wat je al zonder die keuze vond in de bevindingen. Je rondt "
+    "af met status vraag en stel de vraag in 'vragen', met wat je al zonder die keuze vond in de bevindingen. Stel dan "
+    "alle vragen die de opdracht openlaat in één keer (hoogstens drie): na het antwoord vraag je alleen nog iets dat uit "
+    "dat antwoord volgt. Je rondt "
     "altijd af met het sjabloon rapport, als laatste stap en "
     "zonder tekst ernaast: niet met een antwoordsjabloon en niet in tekst, ook niet als het niet lukte (status "
     "niet_gelukt). Weigert de code het rapport, verbeter dan de aanroep zoals de melding zegt en roep het opnieuw aan.")

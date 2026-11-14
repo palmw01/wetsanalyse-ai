@@ -143,7 +143,8 @@ def test_hervatten_is_een_nieuwe_beurt_in_hetzelfde_deelgesprek():
     assert verzoek.question.splitlines() == [
         "ANTWOORD OP JE VRAGEN (van de gebruiker)", "- Over welk belastingjaar gaat het?", "  Antwoord: 2024",
         "- Gaat het om een naheffingsaanslag?", "  Antwoord: nee",
-        "Ga verder met je opdracht en rond af met het rapport, zoals altijd."]
+        sub.antwoord_tekst([], [], van="").splitlines()[-1]]
+    assert "eerste keer al kon stellen" in verzoek.question, "vragen in één keer (meting bundel 116, D01)"
     assert events[0]["hervat"] is True
 
 

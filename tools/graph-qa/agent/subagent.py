@@ -258,7 +258,9 @@ def antwoord_tekst(vragen: list[dict[str, Any]], antwoorden: list[str], *, van: 
         regels += [f"- {v.get('tekst', '')}" for v in vragen] + [f"Antwoord: {antwoorden[0]}"]
     for i, v in enumerate(vragen if len(antwoorden) != 1 or len(vragen) == 1 else []):
         regels += [f"- {v.get('tekst', '')}", f"  Antwoord: {antwoorden[i] if i < len(antwoorden) else '(geen antwoord)'}"]
-    regels.append("Ga verder met je opdracht en rond af met het rapport, zoals altijd.")
+    regels.append("Ga verder met je opdracht en rond af met het rapport, zoals altijd. Vraag niet opnieuw wat hierboven "
+                  "beantwoord is, en stel geen vraag die je de eerste keer al kon stellen: alleen een vraag die uit een "
+                  "antwoord hierboven volgt.")
     return "\n".join(regels)
 
 
