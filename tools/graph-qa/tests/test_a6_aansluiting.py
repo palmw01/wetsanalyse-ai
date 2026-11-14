@@ -165,11 +165,15 @@ def test_een_subagent_heeft_een_span_en_het_kind_erft_de_trace():
 
 def test_wat_niet_gebouwd_is_gaat_uit_de_score():
     opdrachten = vat.lees_set()
+    # F03 (delegatie_stand) en V03 (zelf beantwoorden) zijn gebouwd: ze tellen weer mee.
     assert {i: opdrachten[i].get("niet_gebouwd") for i in ("F03", "V03", "M04", "M05")} == {
-        "F03": ["tool:delegatie_stand"], "V03": ["vraag_omhoog"], "M04": ["fasen", "profiel"], "M05": ["profiel"]}
-    assert sum(1 for o in opdrachten.values() if o.get("niet_gebouwd")) == 4
-    s = vat.vat({"id": "F03", "run": 1, "beurten": [{"label": "gemeten", "events": []}]}, opdrachten["F03"])
+        "F03": None, "V03": None, "M04": ["fasen", "profiel"], "M05": ["profiel"]}
+    assert sum(1 for o in opdrachten.values() if o.get("niet_gebouwd")) == 2
+    s = vat.vat({"id": "F03", "run": 1, "beurten": [{"label": "gemeten", "events": []}]},
+                {**opdrachten["F03"], "niet_gebouwd": ["tool:delegatie_stand"]})
     assert s["tools_ontbreken"] == [] and s["niet_gebouwd"] == ["tool:delegatie_stand"]
+    assert vat.vat({"id": "F03", "run": 1, "beurten": [{"label": "gemeten", "events": []}]},
+                   opdrachten["F03"])["tools_ontbreken"] == ["delegatie_stand"]
     m = vat.vat({"id": "M04", "run": 1, "beurten": [{"label": "gemeten", "events": [
         {"type": "regie", "soort": "subagent", "fase": "start"},
         {"type": "regie_taak", "fase": "start", "profiel": "algemeen"}]}]}, opdrachten["M04"])
