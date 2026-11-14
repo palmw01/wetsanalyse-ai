@@ -328,13 +328,14 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
     begin = time.perf_counter()
     kind_run = None
     delegatie_id = afloop.delegatie_id
+    gedraaid: list[str] = []
     try:
         if not afloop.gesprek_id:
             gesprek = await api.maak_gesprek({"titel": titel, "werkgebied_id": werkgebied_id, "ouder_id": gesprek_id,
                                               "delegatie_id": delegatie_id, "profiel": profiel})
             afloop.gesprek_id = str(gesprek["id"])
         stuur({"type": "regie_taak", "fase": "start", "regie_id": delegatie_id, "index": index, "titel": titel,
-               "gesprek_id": afloop.gesprek_id, "profiel": profiel, **({"model": model} if model else {})})
+               "gesprek_id": afloop.gesprek_id, "profiel": profiel, **({"gekozen_model": model} if model else {})})
         verzoek = ChatRequest(question=vraag or opdracht_tekst(opdracht), conversation_id=afloop.gesprek_id,
                               werkgebied_id=werkgebied_id or None, profiel=profiel, opdracht=opdracht,
                               delegatie_id=delegatie_id,
@@ -351,6 +352,7 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
             with contextlib.suppress(asyncio.CancelledError):
                 await wacht
         kind = dict(getattr(kind_run, "resultaat", None) or {})
+        gedraaid = [str(m) for m in kind.get("modellen") or []]
         status = (kind.get("rapport") or {}).get("status", "")
         afloop.vragen = list((kind.get("rapport") or {}).get("vragen") or []) if status == "vraag" else []
         uitkomst = kind_run.uitkomst or kind_run.status or "klaar"
@@ -374,7 +376,10 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
                                          "run_id": afloop.run_id, "index": index, "uitkomst": afloop.uitkomst,
                                          "profiel": profiel, "duur_ms": round((time.perf_counter() - begin) * 1000)})
         stuur({"type": "regie_taak", "fase": "eind", "regie_id": delegatie_id, "index": index, "titel": titel,
-               "gesprek_id": afloop.gesprek_id, "uitkomst": afloop.uitkomst, "profiel": profiel})
+               "gesprek_id": afloop.gesprek_id, "uitkomst": afloop.uitkomst, "profiel": profiel,
+               # Het model waarop het kind echt draaide (de laatste aanroep), niet het gekozen: het lichte kan zijn
+               # teruggevallen (ADR-016 §A2).
+               **({"model": gedraaid[-1], "modellen": gedraaid} if gedraaid else {})})
 
 
 def kindmodel(settings: Any, profiel: str) -> str:

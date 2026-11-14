@@ -139,7 +139,12 @@ def _regel(aanroep: dict[str, Any]) -> dict[str, Any]:
             "invoer": int(aanroep.get("invoer", 0)), "uitvoer": int(aanroep.get("uitvoer", 0)),
             "ms": int(aanroep.get("ms", 0)), "tools_hash": _sleutel(aanroep)[0], "system_hash": _sleutel(aanroep)[1],
             # Het profiel van de agent die aanriep (ADR-016 §A3); een losse stap heeft er geen en draagt het veld niet.
-            **{veld: str(aanroep[veld]) for veld in ("profiel_id", "profiel_versie") if aanroep.get(veld)}}
+            **{veld: str(aanroep[veld]) for veld in ("profiel_id", "profiel_versie") if aanroep.get(veld)},
+            # Een aanroep die mislukte en niets kostte (de lichte modelklasse die de omgeving niet heeft, ADR-016 §A2):
+            # het model en de reden. Alleen dan, zodat een gewone regel gelijk blijft.
+            **({"mislukt": str(aanroep["mislukt"]), "model": str(aanroep.get("model") or ""),
+                **({"http_status": int(aanroep["http_status"])} if aanroep.get("http_status") is not None else {})}
+               if aanroep.get("mislukt") else {})}
 
 
 def contextopbouw(meter: Any, *, run_id: str = "", ouder_run_id: str = "", profiel_id: str = "",

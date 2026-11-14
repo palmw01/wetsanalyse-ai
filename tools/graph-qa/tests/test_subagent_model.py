@@ -79,4 +79,51 @@ def test_het_model_van_het_kind_staat_in_regie_taak_en_in_de_meetsamenvatting():
                              settings=make_settings(llm_model="zwaar-m", llm_model_licht="licht-m"),
                              kinderen=kinderen, gestopt=lambda: False, api=Api()))
     [start] = [e for e in events if e["type"] == "regie_taak" and e["fase"] == "start"]
-    assert start["model"] == "licht-m"
+    assert start["gekozen_model"] == "licht-m"
+
+
+def test_de_mislukte_aanroep_staat_in_aanroepen_en_het_gedraaide_model_telt(monkeypatch):
+    from agent.models import Verbruiksmeter
+
+    s = make_settings(llm_model="zwaar-m", llm_model_licht="licht-m")
+    meter = Verbruiksmeter()
+    llm = SimpleNamespace(meter=meter)
+
+    def ronde(self, llm, settings, **kw):
+        if self.model(settings) == "licht-m":
+            raise Fout(404)
+        meter.tel_response(SimpleNamespace(usage=SimpleNamespace(input_tokens=1, output_tokens=1)), rol="antwoord",
+                           model="zwaar-m")
+        return "antwoord"
+
+    monkeypatch.setattr(agentvorm.Agent, "ronde", ronde)
+    agent_voor("algemeen", subagent=True).ronde(llm, s)
+    mislukt, gelukt = meter.aanroepen
+    assert (mislukt["model"], mislukt["mislukt"], mislukt["http_status"], mislukt["invoer"]) == (
+        "licht-m", "subagent_model_terugval", 404, 0)
+    assert gelukt["model"] == "zwaar-m" and meter.gedraaid() == ["zwaar-m"]
+    assert meter.calls == 1, "de mislukte aanroep telt niet in de sommen"
+
+
+def test_het_eind_event_toont_het_model_dat_echt_draaide():
+    import asyncio
+
+    from test_subagent import OPDRACHT, STATE, Api, _kinderen
+
+    events = []
+    kinderen, _, _ = _kinderen({"rapport": {"status": "klaar"}, "answer": "x", "source_trace": [], "modellen": ["zwaar-m"]})
+    asyncio.run(sub.voer_uit(STATE, "duiding", OPDRACHT, events.append,
+                             settings=make_settings(llm_model="zwaar-m", llm_model_licht="licht-m"),
+                             kinderen=kinderen, gestopt=lambda: False, api=Api()))
+    [eind] = [e for e in events if e["type"] == "regie_taak" and e["fase"] == "eind"]
+    assert (eind["model"], eind["modellen"]) == ("zwaar-m", ["zwaar-m"])
+
+
+def test_de_contextopbouw_toont_de_mislukte_aanroep():
+    from agent.contextopbouw import _regel
+
+    regel = _regel({"rol": "antwoord", "model": "licht-m", "mislukt": "subagent_model_terugval", "http_status": 404,
+                    "invoer": 0, "uitvoer": 0, "cache_lees": 0, "cache_schrijf": 0})
+    assert (regel["mislukt"], regel["model"], regel["http_status"], regel["totaal"]) == (
+        "licht-m" and "subagent_model_terugval", "licht-m", 404, 0)
+    assert "mislukt" not in _regel({"rol": "antwoord", "model": "zwaar-m", "invoer": 3})

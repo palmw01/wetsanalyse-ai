@@ -634,6 +634,22 @@ class Verbruiksmeter:
                 if kader:
                     stand["kader"] = {**stand["kader"], **kader}
 
+    def tel_mislukt(self, *, rol: str, model: str, reden: str, http_status: int | None = None) -> None:
+        """Een aanroep die geen antwoord gaf en daarom niets kostte, maar wel in de lijst `aanroepen` hoort: de lichte
+        modelklasse die de omgeving niet heeft (ADR-016 §A2, `agentvorm.Subagent.ronde`). Telt niet in de sommen."""
+        aanroep: dict[str, Any] = {"invoer": 0, "uitvoer": 0, "cache_lees": 0, "cache_schrijf": 0, "rol": rol,
+                                   "model": model, "mislukt": reden}
+        if http_status is not None:
+            aanroep["http_status"] = int(http_status)
+        with self._lock:
+            if len(self.aanroepen) < MAX_AANROEPEN:
+                self.aanroepen.append(aanroep)
+
+    def gedraaid(self) -> list[str]:
+        """De modellen waarop deze beurt echt draaide, in volgorde: zonder de aanroepen die mislukten."""
+        with self._lock:
+            return list(dict.fromkeys(a["model"] for a in self.aanroepen if a.get("model") and not a.get("mislukt")))
+
     def stand(self) -> dict[str, Any]:
         """Een momentopname voor de contextopbouw: de sommen, het verbruik per rol, de lussen en de (begrensde) lijst
         aanroepen. Kopieën, onder het slot genomen."""
