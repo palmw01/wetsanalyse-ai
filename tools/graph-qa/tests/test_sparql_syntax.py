@@ -25,13 +25,18 @@ import agent
 from agent import begrip_kaart, bronnen_vinden, plekken, regelingnamen, zoekvragen
 from agent.graph import queries as q
 from agent import tools as _tools
-from agent.tools import begrip_tools, bekendmaking_tools, rechtspraak_tools, wetgeving_tools
+from agent.adapters import kennisgroepen_bron as kgb
+from agent.tools import begrip_tools, bekendmaking_tools, kennisgroep_tools, rechtspraak_tools, wetgeving_tools
 
 rdflib = pytest.importorskip("rdflib", reason="rdflib is een dev-only parser-afhankelijkheid")
 from rdflib.plugins.sparql import prepareQuery  # noqa: E402
 
 IW = "BWBR0004770"
 LEIDRAAD = "BWBR0024096"
+#: Een zoekvraag met elk filter, zodat elke tak van `patronen` en de herkomst per bepaling meedoen.
+KG_ALLES = kgb.Zoekvraag(bwb_id=IW, artikel="36", lid="1", woorden=("aansprakelijk", 'bestuur"der'),
+                         kennisgroep="KG Invordering (INV)", middel="Invordering", rubriek="Aansprakelijkheid",
+                         noemt="ECLI:NL:HR:2013:64", vanaf="2022-01-01", tot="2026-12-31", status="ingetrokken")
 
 # (naam, sparql) – elke publieke bouwer minstens één keer, en de takken die van een parameter
 # afhangen apart. Een bouwer die hier niet in staat wordt nergens op syntaxis getoetst.
@@ -99,6 +104,16 @@ GEVALLEN: list[tuple[str, str]] = [
     ("tools.begrip_tools.q_begrippen", begrip_tools.q_begrippen("bestuurder", ["onderzocht"], "wg", 10)),
     ("tools.__init__._q_regeling_bestaat", _tools._q_regeling_bestaat(IW)),
     ("tools.wetgeving_tools.q_in_graaf", wetgeving_tools.q_in_graaf([IW, "BWBR0015703"])),
+    ("adapters.kennisgroepen_bron.q_pagina", kgb.q_pagina(kgb.Zoekvraag(woorden=("reisbureau",)), 0, 25)),
+    ("adapters.kennisgroepen_bron.q_pagina+alles", kgb.q_pagina(KG_ALLES, 25, 25)),
+    ("adapters.kennisgroepen_bron.q_pagina+status_alle", kgb.q_pagina(kgb.Zoekvraag(status="alle", volgorde="oudste"), 0, 5)),
+    ("adapters.kennisgroepen_bron.q_tellingen", kgb.q_tellingen(kgb.Zoekvraag(kennisgroep="KG Invordering (INV)"))),
+    ("adapters.kennisgroepen_bron.q_tellingen+bepaling", kgb.q_tellingen(KG_ALLES)),
+    ("adapters.kennisgroepen_bron.q_publicatie", kgb.q_publicatie('kg:013:2026:4')),
+    ("adapters.kennisgroepen_bron.q_publicatie+aanhalingsteken", kgb.q_publicatie('kg:"} DROP')),
+    ("adapters.kennisgroepen_bron.q_gebeurtenissen", kgb.q_gebeurtenissen(22819)),
+    ("adapters.kennisgroepen_bron.q_index_leeg", kgb.q_index_leeg()),
+    ("tools.kennisgroep_tools._q_inwerking", kennisgroep_tools._q_inwerking(IW, "36")),
 ]
 
 

@@ -164,6 +164,11 @@ def q_gebeurtenissen(wp_id: int) -> str:
             "OPTIONAL { ?g kgo:datum ?datum } OPTIONAL { ?g kgo:titel ?titel } } } ORDER BY ?datum")
 
 
+def q_index_leeg() -> str:
+    """Eén standpunt, of niets: zo onderscheidt `zoek` een lege index van een zoekvraag zonder treffers."""
+    return _P + f"SELECT ?s WHERE {{ GRAPH {_G} {{ ?s a kgo:Standpunt }} }} LIMIT 1"
+
+
 def _select(graph: Any, query: str) -> list[dict[str, str]]:
     if graph is None:
         raise KennisgroepenFout("geen_index", "de index van de kennisgroepstandpunten is niet te bereiken")
@@ -201,7 +206,7 @@ class KennisgroepenBron:
         rijen = _select(graph, q_pagina(vraag, offset, limit)) if totaal else []
         if not per_status:
             # Een lege index is geen "geen standpunten": de import draaide (nog) niet.
-            if not _select(graph, _P + f"SELECT ?s WHERE {{ GRAPH {_G} {{ ?s a kgo:Standpunt }} }} LIMIT 1"):
+            if not _select(graph, q_index_leeg()):
                 raise KennisgroepenFout("geen_index", "de index van de kennisgroepstandpunten is leeg; de import heeft "
                                         "nog niet gedraaid")
         return Gevonden(totaal, rijen, per_status, per_herkomst)
