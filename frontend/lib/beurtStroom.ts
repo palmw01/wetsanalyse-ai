@@ -10,6 +10,7 @@ import type { AgentDoel, AgentHergebruik, AgentKandidaat, AgentKeuze, BeurtMetin
 import type { Artefact } from "./artefact";
 import { type NodeDoel } from "./annotatieNode";
 import { verwerkReeksEvent, type Reeks } from "./reeks";
+import { verwerkDelegatieEvent, type DelegatieVoortgang } from "./delegatie";
 import { denkBij } from "./denkproces";
 import type { Vervolg } from "./vraagLex";
 
@@ -33,12 +34,14 @@ export interface StroomStand {
   hergebruik?: AgentHergebruik;
   meting?: BeurtMeting;
   opgeslagen: Opgeslagen | null;
+  /** Wat de subagents of de regie van deze beurt doen (`lib/delegatie.ts`), in de volgorde waarin ze begonnen. */
+  delegaties: DelegatieVoortgang[];
   /** Kwam er iets over déze verbinding binnen? Dan telt een volgende breuk als een verse onderbreking. */
   ontving: boolean;
 }
 
 export const LEGE_STAND: StroomStand = {
-  tekst: "", denk: "", reeks: null, kandidaten: [], doel: null, opgeslagen: null, ontving: false,
+  tekst: "", denk: "", reeks: null, kandidaten: [], doel: null, opgeslagen: null, delegaties: [], ontving: false,
 };
 
 export type StroomEvent =
@@ -51,6 +54,8 @@ export type StroomEvent =
   | { type: "reeks"; event: Record<string, unknown> }
   | { type: "hergebruik"; hergebruik: AgentHergebruik }
   | { type: "meting"; meting?: BeurtMeting }
+  /** Een `regie`- of `regie_taak`-event, ruw. */
+  | { type: "delegatie"; event: Record<string, unknown> }
   /** De eventlog van de run is gecapt: er viel narratie weg. */
   | { type: "gat" }
   | { type: "opgeslagen"; uitkomst: Opgeslagen };
@@ -73,6 +78,10 @@ export function stroomReducer(s: StroomStand, e: StroomEvent): StroomStand {
     }
     case "hergebruik": return { ...s, hergebruik: e.hergebruik };
     case "meting": return { ...s, meting: e.meting };
+    case "delegatie": {
+      const volgende = verwerkDelegatieEvent(s.delegaties, e.event);
+      return !volgende || volgende === s.delegaties ? s : { ...s, delegaties: volgende };
+    }
     case "gat": return s.tekst
       ? { ...s, tekst: s.tekst + GAT_IN_TEKST }
       : { ...s, denk: denkBij(s.denk, "gat") };

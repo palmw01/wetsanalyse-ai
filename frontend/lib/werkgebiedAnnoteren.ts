@@ -59,7 +59,7 @@ export function afgehandeld(items: ThreadItem[]): Map<string, BevestigingKeuze> 
   const uit = new Map<string, BevestigingKeuze>();
   let open: string | undefined;
   for (const it of items) {
-    if (it.type === "antwoord" && it.bevestiging) open = it.id;
+    if ((it.type === "antwoord" || it.type === "artefact") && it.bevestiging) open = it.id;
     else if (open && it.type === "user" && it.bevestigingKeuze) {
       uit.set(open, it.bevestigingKeuze);
       open = undefined;

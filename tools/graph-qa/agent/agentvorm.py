@@ -164,6 +164,14 @@ class CentraleAgent(Agent):
     def eigen_tools(self) -> dict[str, Overdracht]:
         return overdracht.voor(self.naam)
 
+    @property
+    def systeemtekst(self) -> str:
+        """Het stabiele deel, met de naam en beschrijving van elke methode-skill (ADR-016 §A2, niveau 1): de kern laadt
+        hij met `laad_skill`, een reference leest hij met `lees_skill`."""
+        from . import skills
+
+        return super().systeemtekst + "\n\n" + skills.beschrijvingen()
+
     def mag(self, tool: str) -> bool:
         """Een tool buiten zijn profiel voert de code niet uit, ook als het model hem toch aanroept: een tool buiten de
         kernset kan alleen na de overdracht `meer_tools`."""

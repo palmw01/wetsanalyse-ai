@@ -149,6 +149,9 @@ def test_de_periode_uit_de_antwoorden_van_de_jurist():
     assert gekozen_periode(ANTWOORDEN) == (2022, 2024)
     assert gekozen_periode("Over welke periode? 2020–2025\nAntwoord: van 2022 tot 2024") == (2022, 2024)
     assert gekozen_periode("Alle instanties.") is None
+    # Een vergaderjaar van Kamerstukken is geen periode van uitspraken.
+    assert gekozen_periode("Kamerstukken II, vergaderjaar 2023-2024, 36 418.") is None
+    assert gekozen_periode("Vergaderjaar 2023-2024; uitspraken uit 2020-2022.") == (2020, 2022)
     # Bij een subagent: de antwoorden staan in de hervatting, die zijn vraag is; de opdracht telt eerder.
     hervat = {"opdracht": {"doel": "Rechtspraak over de melding, 2015–2020."},
               "question": f"{HERVATTING}de gebruiker)\n- Periode?\n  Antwoord: Uitspraken uit 2022 tot en met 2024."}

@@ -140,6 +140,9 @@ class BeurtSchrijver:
         self.grounding: dict[str, Any] = {}
         # De fout waarop de beurt strandde: de melding komt letterlijk op het bericht (live = na herladen).
         self.fout = ""
+        # De delegaties die deze beurt startte of hervatte (de `regie_id` van elk `regie`-event met fase start, in
+        # volgorde): de werkplek haalt hun stand na herladen bij `/v1/delegaties`.
+        self.delegaties: list[str] = []
 
     def verwerk(self, event: dict[str, Any]) -> None:
         """Eén event bijhouden. Dezelfde toewijzing als de handlers in de werkplek."""
@@ -168,6 +171,9 @@ class BeurtSchrijver:
             self.overzicht = event.get("overzicht") or {}
         elif soort == "antwoord":
             self.antwoord = event.get("antwoord") or {}
+        elif soort == "regie" and event.get("fase") == "start" and event.get("regie_id"):
+            if (rid := str(event["regie_id"])) not in self.delegaties:
+                self.delegaties.append(rid)
         elif soort == "vraagkaart":
             self.vraagkaart = event.get("vraagkaart") or {}
         elif soort == "werkgebied_aanmaken":
@@ -411,7 +417,8 @@ async def _leg_vast(
         bericht: dict[str, Any] = {"rol": "assistant", "run_id": run.run_id,
                                  "tool_executions": schrijver.tool_executions,
                                  **({"reeks": reeks} if reeks else {}),
-                                 **({"contextopbouw": contextopbouw} if contextopbouw else {})}
+                                 **({"contextopbouw": contextopbouw} if contextopbouw else {}),
+                                 **({"delegaties": schrijver.delegaties} if schrijver.delegaties else {})}
         annotatie_bewaard = False
         opgeslagen_doel = None
         bericht_poging = False

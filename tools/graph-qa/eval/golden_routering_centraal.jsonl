@@ -1,0 +1,23 @@
+# De routeringsset van de centrale agent (ADR-016 A2-4, analyse centrale agent gat 4): de rijen waar het model kiest
+# (`model: true` in golden_routering.jsonl) en de getypte annotatieverzoeken, met wat de centrale agent dan hoort te doen.
+# `tool`: de overdrachtstool, met `invoer` zoals het model hem vult, en `naar`: de node waar de code de beurt heen stuurt.
+# `tool: null`: geen overdracht, de agent beantwoordt de vraag zelf met zijn tools en een sjabloon (`naar: agent`).
+# tests/test_routering_centraal.py draait elke overdracht door de code (zonder model) en toetst de node; welke tool het
+# model echt kiest, meet de agentset (eval/golden_centrale_agent.jsonl).
+{"id": "duiding", "vraag": "Wat betekent artikel 9 van de Invorderingswet 1990?", "centraal": {"tool": null, "naar": "agent"}}
+{"id": "begrip", "vraag": "Wat is een belastingschuld?", "centraal": {"tool": null, "naar": "agent"}}
+{"id": "bepaling-zonder-regeling", "vraag": "Wat staat er in artikel 3?", "centraal": {"tool": null, "naar": "agent"}}
+{"id": "jas-methodevraag", "vraag": "Wat is de JAS-klasse Rechtsfeit?", "centraal": {"tool": null, "naar": "agent"}}
+{"id": "jas-element-hoe", "vraag": "Hoe herken ik het element voorwaarde?", "centraal": {"tool": null, "naar": "agent"}}
+{"id": "dekking-geen-handeling", "vraag": "Annoteer deelvraag 2.", "context": {"werkgebied_id": "w1"}, "centraal": {"tool": "taakagent", "invoer": {"agent": "annotatie", "taak": "deelvragen"}, "naar": "agent_taak"}}
+{"id": "dekking-buiten-werkgebied", "vraag": "Welke deelvraag is het minst uitgewerkt?", "centraal": {"tool": null, "naar": "agent"}}
+{"id": "bron-uit-gemengd", "vraag": "Wat bedoelde de wetgever met artikel 36 van de Invorderingswet 1990?", "centraal": {"tool": null, "naar": "agent"}}
+{"id": "bron-lijst-inhoud-is-geen-lijst", "vraag": "Wat staat er in het laatste kamerstuk van dossier 32140?", "centraal": {"tool": null, "naar": "agent"}}
+{"id": "bron-lijst-wetswijziging-is-geen-lijst", "vraag": "Wat is de laatste wijziging van artikel 9 Invorderingswet 1990?", "centraal": {"tool": null, "naar": "agent"}}
+{"id": "uitspraak-op-bezwaar-geen-connector", "vraag": "Wat is een uitspraak op bezwaar?", "centraal": {"tool": null, "naar": "agent"}}
+{"id": "bron-uitspraken-artikel-zonder-regeling", "vraag": "Welke uitspraken noemen artikel 36?", "centraal": {"tool": null, "naar": "agent"}}
+{"id": "methode-vraag-over-jrm", "vraag": "Wat zegt het JRM over een rechtsfeit?", "centraal": {"tool": null, "naar": "agent"}}
+{"id": "annoteer-lid", "vraag": "Annoteer artikel 9 lid 1 van de Invorderingswet 1990.", "centraal": {"tool": "annoteer", "invoer": {"vraag": "Annoteer artikel 9 lid 1 van de Invorderingswet 1990."}, "naar": "agent", "specialist": "annotatie"}}
+{"id": "annoteer-vervolg", "vraag": "Doe hetzelfde voor lid 2.", "gesprek": true, "centraal": {"tool": "annoteer", "invoer": {"vraag": "Annoteer artikel 9 lid 2 van de Invorderingswet 1990."}, "naar": "agent", "specialist": "annotatie"}}
+{"id": "annoteer-twee-artikelen", "vraag": "Annoteer artikel 9 en artikel 10 van de Invorderingswet 1990.", "centraal": {"tool": "annoteer", "invoer": {"vraag": "Annoteer artikel 9 en artikel 10 van de Invorderingswet 1990."}, "naar": "afwijzen"}}
+{"id": "annoteer-werkgebied", "vraag": "Annoteer wat nog niet geannoteerd is.", "context": {"werkgebied_id": "w1"}, "centraal": {"tool": "taakagent", "invoer": {"agent": "annotatie", "taak": "werkgebied"}, "naar": "agent_taak"}}

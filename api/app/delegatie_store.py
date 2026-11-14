@@ -135,7 +135,7 @@ async def wijzig(delegatie_id: str, user_id: str, inv: DelegatieWijziging) -> De
     waarden: dict = {"hartslag": nu}
     if inv.later_gewijzigd is not None:
         waarden["later_gewijzigd"] = inv.later_gewijzigd
-    van: tuple[str, ...] = ("loopt", "wacht")
+    van: tuple[str, ...] = ("loopt",) if inv.hartslag else ("loopt", "wacht")
     if inv.status in EINDSTANDEN:
         waarden.update(status=inv.status, afgerond=nu, uitkomst=inv.uitkomst or {})
     elif inv.status == "wacht":
@@ -147,7 +147,7 @@ async def wijzig(delegatie_id: str, user_id: str, inv: DelegatieWijziging) -> De
         if inv.uitkomst is not None:
             waarden["uitkomst"] = inv.uitkomst
     async with db.get_engine().begin() as conn:
-        if inv.status == "loopt" and huidig.status == "wacht":
+        if inv.status == "loopt" and huidig.status == "wacht" and not inv.hartslag:
             await _sluit_verweesde(conn, huidig.werkgebied_id if huidig.soort == "regie" else "", user_id)
         try:
             async with conn.begin_nested():
@@ -160,7 +160,8 @@ async def wijzig(delegatie_id: str, user_id: str, inv: DelegatieWijziging) -> De
                                       "melding": "Er loopt al ander werk van jou."}) from None
         if uit.rowcount == 0:
             row = (await conn.execute(select(t).where(t.c.id == delegatie_id))).first()
-            if row is not None and row.status == inv.status:
+            if row is not None and (row.status == inv.status or inv.hartslag):
+                # Dezelfde stand nog eens, of een hartslag op een delegatie die niet meer loopt: niets te doen.
                 return _delegatie(row)
             raise HTTPException(409, {"fout": "delegatie_afgerond", "status": row.status if row else "",
                                       "melding": "Deze delegatie is al afgerond."})

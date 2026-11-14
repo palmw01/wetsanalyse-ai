@@ -159,6 +159,11 @@ def contextopbouw(meter: Any, *, run_id: str = "", ouder_run_id: str = "", profi
     stand = meter.stand()
     if not stand["calls"]:
         return None
+    if not profiel_id:
+        # Het profiel van de run: dat van zijn eerste aanroep met een profiel (de centrale agent of het profiel van een
+        # subagent). Eerst bleef het hier leeg, en toonde de contextweergave bij een deelgesprek geen profiel.
+        eerste = next((a for a in stand["aanroepen"] if a.get("profiel_id")), {})
+        profiel_id, profiel_versie = str(eerste.get("profiel_id") or ""), str(eerste.get("profiel_versie") or "")
     return {
         "versie": VERSIE,
         "run_id": run_id or "",

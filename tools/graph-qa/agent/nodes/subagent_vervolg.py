@@ -34,6 +34,29 @@ logger = logging.getLogger("graph_qa.subagent")
 PREFIX = "sa-"
 GESTOPT = "Dan laat ik deze vraag rusten; de subagent gaat niet verder. Wat hij al vond, staat in zijn deelgesprek."
 VOLGENDE = "Dank je. De subagent heeft nog een vraag."
+#: Na de bevestiging van meer subagents, als er een een vraag heeft: de andere zijn klaar, en hun rapport wacht.
+EEN_VRAAG = ("De subagents zijn aan het werk geweest; een ervan heeft eerst een vraag. Wat de andere opleverden, vat ik "
+             "samen zodra die vraag beantwoord is.")
+
+#: Wat van een kind nodig is om hem later te bundelen: het rapport, wat de controle vond, en de toolresultaten voor `verify`.
+_KIND_VELDEN = ("rapport", "answer", "antwoord", "source_trace", "onbevestigd", "niet_onderbouwd", "afbakening", "periode")
+
+
+def _wachtend(paren: list[tuple[sub.Afloop, dict[str, Any]]], delegatie_id: str) -> list[dict[str, Any]]:
+    """De kinderen met een rapport (niet die met een vraag) om in het checkpoint te bewaren tot de bundel."""
+    return [{"delegatie_id": delegatie_id, "afloop": a.als_dict(), "kind": {k: kind[k] for k in _KIND_VELDEN if k in kind}}
+            for a, kind in paren if a.uitkomst != "vraag"]
+
+
+def _terug(wacht: list[dict[str, Any]], delegatie_id: str, al: set[str]) -> list[tuple[sub.Afloop, dict[str, Any]]]:
+    """De bewaarde kinderen van deze delegatie als paren, behalve die nu opnieuw liepen (`al`: hun gesprek)."""
+    uit = []
+    for w in wacht:
+        if w.get("delegatie_id") != delegatie_id or (w.get("afloop") or {}).get("gesprek_id") in al:
+            continue
+        velden = {k: v for k, v in (w.get("afloop") or {}).items() if k in sub.Afloop.__dataclass_fields__}
+        uit.append((sub.Afloop(**velden), dict(w.get("kind") or {})))
+    return uit
 NIET_GESTART = "Dan begin ik er niet aan; er is niets gestart."
 STORING = "Dat lukte nu niet: de wetsanalyse-api haperde. Probeer het zo opnieuw; je antwoord is niet verloren gegaan."
 
@@ -109,16 +132,29 @@ def subagent_vervolg_node(b: Bouw, state: State) -> dict[str, Any]:
             logger.warning("subagent_vervolg: api-fout", extra={"categorie": "technisch"})
             uit = {"tekst": STORING}
     paren = uit.get("paren")
+    delegatie_id = delegatie_van(state)
+    wacht = list(state.get("wachtende_rapporten") or [])
     if paren:
         if uit.get("kaart"):
-            uit = {"tekst": VOLGENDE, "kaart": uit["kaart"]}
+            # Een ander kind heeft nog een vraag: de rapporten die er al zijn, wachten in het checkpoint tot de bundel
+            # (bugonderzoek ADR-016, B1: ze vielen hier weg, en de centrale agent vatte alleen het laatste kind samen).
+            klaar = _wachtend(paren, delegatie_id)
+            nu = {(w["afloop"].get("gesprek_id")) for w in klaar}
+            wacht = [w for w in wacht if (w.get("afloop") or {}).get("gesprek_id") not in nu] + klaar
+            tekst = EEN_VRAAG if klaar and len(paren) > 1 else VOLGENDE
+            writer({"type": "token", "content": tekst})
+            writer({"type": "vraagkaart", "vraagkaart": uit["kaart"]})
+            return {"answer": tekst, "messages": [{"role": "assistant", "content": tekst}], "wachtende_rapporten": wacht}
         else:
-            # Klaar of niet gelukt: de centrale agent schrijft de bundel met de rapporten als gegeven. Hun toolresultaten
-            # gaan in de trace, zodat `verify` de samenvatting ertegen toetst.
+            # Klaar of niet gelukt: de centrale agent schrijft de bundel met de rapporten als gegeven, ook die van
+            # kinderen die al klaar waren terwijl een ander een vraag had. Hun toolresultaten gaan in de trace, zodat
+            # `verify` de samenvatting ertegen toetst.
+            paren = _terug(wacht, delegatie_id, {a.gesprek_id for a, _ in paren}) + list(paren)
             trace = list(state.get("source_trace") or [])
             for _a, kind in paren:
                 trace += [tuple(x) for x in kind.get("source_trace") or []]
             return {"specialist": CENTRAAL, "source_trace": trace, "subagenten": [a.als_dict() for a, _ in paren],
+                    "wachtende_rapporten": [w for w in wacht if w.get("delegatie_id") != delegatie_id],
                     "rapport_steun": sub.steun_van(kind for _a, kind in paren),
                     "rapporten": ("RAPPORTEN VAN DE SUBAGENTS (de gebruiker bevestigde het plan of beantwoordde hun "
                                   "vragen; vat ze samen voor de gebruiker):\n" + sub.bundel_rapporten(paren) + "\n\n")}

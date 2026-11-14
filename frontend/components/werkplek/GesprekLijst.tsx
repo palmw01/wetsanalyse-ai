@@ -11,6 +11,7 @@ import { BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
 import { GesprekStatus } from "@/components/ui/GesprekStatus";
 import { GesprekActies } from "@/components/werkplek/GesprekActies";
 import { bewaarDicht, deelgesprekProfiel, deelIn, leesDicht } from "@/lib/gesprekGroepen";
+import { STAND_TEKST, type TaakStand } from "@/lib/delegatie";
 import type { GesprekRunStand } from "@/lib/runStanden";
 import type { GesprekSamenvatting } from "@/lib/types";
 
@@ -43,6 +44,8 @@ export interface GesprekLijstStand {
   zoek: Gepagineerd & { term: string; onTerm: (term: string) => void };
   /** Per gesprek: Lex is bezig, of er staat een antwoord dat je nog niet zag (E6, `useRunStanden`). */
   runStanden?: Record<string, GesprekRunStand>;
+  /** Per deelgesprek de stand van zijn subagent of regie (ADR-016 §A5, `useDelegatieStanden`). */
+  delegatieStanden?: Record<string, TaakStand>;
 }
 
 interface Props {
@@ -117,7 +120,7 @@ export function GesprekLijst({ gesprekken, stand, activeId, onNieuwInWerkgebied,
     <ul className="flex flex-col gap-0.5">
       {lijst.map((g) => (
         <Rij key={g.id} gesprek={g} actief={g.id === activeId} acties={acties} toonPlek={toonPlek}
-          status={stand?.runStanden?.[g.id]} />
+          status={stand?.runStanden?.[g.id]} delegatie={stand?.delegatieStanden?.[g.id]} />
       ))}
     </ul>
   );
@@ -258,9 +261,11 @@ export function GesprekLijst({ gesprekken, stand, activeId, onNieuwInWerkgebied,
   );
 }
 
-function Rij({ gesprek, actief, acties, toonPlek = false, status }: {
+function Rij({ gesprek, actief, acties, toonPlek = false, status, delegatie }: {
   gesprek: GesprekSamenvatting; actief: boolean; acties: RijActies;
   status?: GesprekRunStand;
+  /** Een deelgesprek: de stand van zijn subagent of regie. */
+  delegatie?: TaakStand;
   /** In de zoekresultaten staan alle groepen door elkaar: daar zegt de rij waar het gesprek staat. */
   toonPlek?: boolean;
 }) {
@@ -310,6 +315,12 @@ function Rij({ gesprek, actief, acties, toonPlek = false, status }: {
             {gesprek.aantal_berichten} berichten{korteDatum(gesprek.updated) ? ` · ${korteDatum(gesprek.updated)}` : ""}
             {toonPlek && (gesprek.gearchiveerd ? " · archief" : gesprek.werkgebied_naam ? ` · ${gesprek.werkgebied_naam}` : "")}
             {deelgesprekProfiel(gesprek) && ` · ${deelgesprekProfiel(gesprek)}`}
+            {delegatie && (
+              <span data-deelgesprek-stand={delegatie}
+                className={delegatie === "vraag" ? "font-medium text-aandacht-geel-tekst" : undefined}>
+                {` · ${STAND_TEKST[delegatie]}`}
+              </span>
+            )}
           </span>
         </button>
         {/* Alleen op fijne pointers verborgen tot hover; op touch altijd zichtbaar. */}

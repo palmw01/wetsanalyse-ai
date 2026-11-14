@@ -386,6 +386,14 @@ testomgeving*). Browserregressie: `scripts/test-teststrook.mjs`. Er is
     bronnen met rol *analyseren*. Komt het binnen via `opgeslagen`, dan opent het
     paneel én gaat de werkplek verder in dat werkgebied (`onKiesWerkgebied`; het gesprek wordt eraan gekoppeld, de chatkop noemt het).
   - **regels** – gereserveerd voor de afleidingsregels: de kaart staat er, maar is geen knop.
+  - **De delegatie** (ADR-016 §A5, en de regie van ADR-012) is geen artefact maar een blok op de beurt: `DelegatieBlok`,
+    rekenkern `lib/delegatie.ts`. De events `regie` en `regie_taak` worden in de stroomstand (`StroomStand.delegaties`) het
+    plan met per subagent de stand (loopt, wacht op antwoord, klaar, afgesloten, niet gelukt, gestopt, mislukt), het
+    profiel, het model, de afbakening en de periode, en een link naar het deelgesprek. Zolang de beurt loopt is de stroom
+    de bron; daarna, en na herladen, de stand van nu bij de api (`GET /api/delegaties?gesprek_id=`, één verzoek per gesprek
+    via `haalDelegaties`, opnieuw na `vergeetDelegaties`). Het bericht draagt alleen de id's (`Bericht.delegaties`, graph-qa
+    schrijft ze), zodat een vraag die de jurist later beantwoordde niet als open blijft staan. De sidebar toont de stand per
+    deelgesprek uit dezelfde delegaties (`useDelegatieStanden`). Browserregressie: `scripts/test-subagent.mjs`.
   - **De versiekiezer** (deel 2 van de artefacten, `components/ui/VersieKiezer`, rekenkern `lib/artefactVersie.ts`):
     - een versie is de stand direct na een beurt van Lex (`artefact.ref.versie`, api §*Versies van artefacten*);
     - in het slot `onder` van `PaneelKop` staat ‹ *Versie n van m* › en daarachter *Nu*;
@@ -410,7 +418,7 @@ testomgeving*). Browserregressie: `scripts/test-teststrook.mjs`. Er is
     in de topbar), het werkgebied of *Los gesprek*, en het menu van het gesprek; hij vervangt de
     werkgebiedbalk met *Verlaten* (dat heet nu *Naar recente gesprekken* en koppelt echt los). Wat Lex met het werkgebied kan, staat sinds F3d als **suggesties boven het
     invoerveld** (`werkgebiedSuggesties`, zonder chip; ze wijken zodra je typt of er een onderwerp is).
-    Elke beurt draagt dan `werkgebied_id`; een getypte vraag kiest graph-qa's supervisor de agent, een
+    Elke beurt draagt dan `werkgebied_id`; bij een getypte vraag kiest graph-qa de agent (de supervisor, of de centrale agent van ADR-016), een
     suggestie met actie doet dat zonder model. *Annoteer wat nog niet geannoteerd is* gaat zonder
     `bevestigd`: de bevestiging komt in het gesprek.
   - **Een context naast het gesprek** (spoor G4, `ContextPaneel`): wat geen artefact van een beurt is – een

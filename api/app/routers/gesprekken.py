@@ -214,6 +214,11 @@ async def voeg_bericht_toe(
     user_id: str = Depends(actieve_userid),
     store: GesprekStore = Depends(get_gesprek_store),
 ):
+    if req.rol == Rol.user and huidige_client.get() == AGENT_CLIENT:
+        # Een bericht van de jurist schrijft alleen de werkplek. Wat graph-qa zelf in een gesprek zet (de opdracht aan
+        # een subagent, de antwoorden die het doorgaf), is een bericht van Lex.
+        raise HTTPException(status.HTTP_403_FORBIDDEN, {"fout": "rol_niet_toegestaan",
+                                                        "melding": "Deze client schrijft geen bericht van de gebruiker."})
     await _eigen_gesprek_of_404(store, gesprek_id, user_id)
     if req.rol == Rol.assistant and req.artefact and req.run_id:
         # De versie van het artefact bij deze beurt (`artefact_versies`): een gemak, nooit een voorwaarde.

@@ -77,7 +77,11 @@ def test_de_antwoordketen_staat_een_keer_in_de_code():
 def test_wat_een_agent_meestuurt_volgt_uit_zijn_profiel(naam: str):
     agent, p = agent_voor(naam), profielen.PROFIELEN[naam]
     assert isinstance(agent, Agent) and agent.profiel is p
-    assert agent.systeemtekst == SYSTEM_PROMPT + "\n\n" + instructies(p.rol) + "\n\n" + p.instructie
+    basis = SYSTEM_PROMPT + "\n\n" + instructies(p.rol) + "\n\n" + p.instructie
+    # De centrale agent draagt daarachter de beschrijvingen van de skills (ADR-016 §A2, niveau 1).
+    from agent import skills
+    assert agent.systeemtekst == (basis + "\n\n" + skills.beschrijvingen() if naam in ("centraal", "centraal_breed")
+                                  else basis)
     assert agent.instructie == specialists.get(naam).system
     assert agent.tools == specialists.SPECIALISTS[naam].tools
     assert agent.methoderol == p.rol and agent.versie == profielen.versie(p)

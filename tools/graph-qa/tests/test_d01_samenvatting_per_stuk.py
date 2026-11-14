@@ -116,20 +116,34 @@ def test_een_duiding_onder_een_kop_zonder_passage_van_dat_stuk_is_een_bewering()
     assert fout.niveau != "gegrond"
 
 
-@pytest.mark.xfail(strict=True, reason="Een omgedraaide bewijslast met de woorden van de passage ziet een toets op "
-                                       "woorden niet; daarvoor is een controle per stuk nodig (plan, stap 2).")
-def test_met_alle_passages_geciteerd_ziet_de_toets_de_omgedraaide_bewijslast_niet():
+def test_met_alle_passages_geciteerd_vangt_de_controle_per_stuk_de_omgedraaide_bewijslast():
+    """De toets op woorden ziet een omgedraaide bewijslast in de woorden van de passage niet (dat blijft zo); de controle
+    per stuk (`stukcontrole.py`) legt de zin met de passages aan een lezer voor. Hier speelt een nepmodel die lezer: de
+    test legt vast wat de controle meestuurt en wat ze met het oordeel doet. Of het model het echt ziet, meet A6."""
+    from agent import stukcontrole
+    from fakes import FakeLLM, make_settings, response, tool_block
+
     steun = {**STEUN, HR181: _passages(HR181, "Voor", "Het Hof", "De Hoge Raad")}
-    # De juiste weergave gaat erdoor, zoals het hoort.
-    goed = ANTWOORD_181.replace(
-        "Voor twee tijdvakken was wél tijdig en rechtsgeldig gemeld; voor de overige tijdvakken was de bewijslast verlegd "
-        "naar de ontvanger (artikel 36 lid 3).",
-        "Voor twee tijdvakken deed de BV tijdig en rechtsgeldig mededeling; voor die tijdvakken moet de ontvanger "
-        "kennelijk onbehoorlijk bestuur aannemelijk maken (artikel 36, lid 3).")
-    assert not check_grounding(goed, TRACE, steun=steun, bekend=VRAAG).beweringen
-    # De omgedraaide gebruikt bijna dezelfde woorden, dus ook die gaat erdoor: dit is de grens van een toets op woorden.
-    fout = check_grounding(ANTWOORD_181, TRACE, steun=steun, bekend=VRAAG)
-    assert any(b.startswith(f"duiding van {HR181}") for b in fout.beweringen)
+    # De toets op woorden alleen: geen bewering (de grens die de xfail vastlegde).
+    assert not [b for b in check_grounding(ANTWOORD_181, TRACE, steun=steun, bekend=VRAAG).beweringen if HR181 in b]
+    [stuk] = [s for s in stukcontrole.te_controleren(ANTWOORD_181, steun, TRACE) if s["id"] == HR181]
+    omgedraaid = next(i for i, z in enumerate(stuk["zinnen"], 1) if "bewijslast verlegd" in z)
+    assert "moet de ontvanger aannemelijk maken" in stuk["passages"], "de passage die het tegenspreekt, gaat mee"
+    stukken = stukcontrole.te_controleren(ANTWOORD_181, steun, TRACE)
+    nr = next(i for i, s in enumerate(stukken, 1) if s["id"] == HR181)
+    llm = FakeLLM([response([tool_block("o", "oordelen", {"oordelen": [
+        {"stuk": nr, "zin": omgedraaid, "oordeel": "spreekt_tegen"},
+        {"stuk": nr, "zin": omgedraaid + 1, "oordeel": "steunt"}]})], "tool_use")])
+    uit = stukcontrole.controleer(llm, make_settings(), ANTWOORD_181, steun, TRACE)
+    assert len(uit) == 1 and uit[0].startswith(f"duiding van {HR181} die de passages van dat stuk tegenspreekt")
+    verzoek = llm.calls[0]
+    assert verzoek["tool_choice"] == {"type": "tool", "name": "oordelen"} and "tools" in verzoek
+    assert "bewijslast" in verzoek["messages"][0]["content"] and len(llm.calls) == 1, "één aanroep per beurt"
+    # Steunt alles, of geeft het model niets bruikbaars, dan geen bewering.
+    assert not stukcontrole.controleer(FakeLLM([response([tool_block("o", "oordelen", {"oordelen": []})], "tool_use")]),
+                                       make_settings(), ANTWOORD_181, steun, TRACE)
+    assert not stukcontrole.controleer(None, make_settings(), ANTWOORD_181, steun, TRACE)
+    assert not stukcontrole.controleer(llm, make_settings(), ANTWOORD_181, None, TRACE), "zonder rapport geen controle"
 
 
 def test_ook_het_rapport_van_het_kind_rust_op_zijn_eigen_passages():
@@ -159,3 +173,30 @@ def test_een_afbakening_die_de_jurist_niet_koos_zegt_de_code():
     assert "Zelf afgebakend door de subagent, niet gevraagd door de gebruiker" in tekst and "instantie: Hoge Raad" in tekst
     inhoud = sub.rapport_inhoud(kind)
     assert inhoud["afbakening"] == ["instantie: Hoge Raad"] and inhoud["gelezen"] == list(TEKST)
+
+
+def test_verify_leest_de_duidingen_na_een_rapport_tegen_de_passages(monkeypatch):
+    """Na een rapport van een subagent draait de controle per stuk in `verify` van de centrale agent; een zin die de
+    passages tegenspreekt, wordt een bewering, en dan volgt de correctieronde."""
+    from types import SimpleNamespace
+
+    from agent import stukcontrole
+    from fakes import FakeGraph, FakeLLM, make_settings, response, tool_block
+
+    monkeypatch.setattr(antwoordnodes, "get_stream_writer", lambda: (lambda _e: None))
+    steun = {**STEUN, HR181: _passages(HR181, "Voor", "Het Hof", "De Hoge Raad")}
+    stukken = stukcontrole.te_controleren(ANTWOORD_181, steun, TRACE)
+    nr = next(i for i, s in enumerate(stukken, 1) if s["id"] == HR181)
+    zin = next(i for i, z in enumerate(stukken[nr - 1]["zinnen"], 1) if "bewijslast verlegd" in z)
+    llm = FakeLLM([response([tool_block("o", "oordelen", {"oordelen": [
+        {"stuk": nr, "zin": zin, "oordeel": "spreekt_tegen"}]})], "tool_use")])
+    b = SimpleNamespace(llm=llm, settings=make_settings(), graph=FakeGraph(result=""))
+    state = {"answer": ANTWOORD_181, "question": VRAAG, "messages": [], "source_trace": TRACE, "run_id": "r",
+             "subagenten": [{"uitkomst": "klaar"}], "rapport_steun": steun, "specialist": "centraal"}
+    uit = antwoordnodes.verify_node(b, state)
+    assert any("tegenspreekt" in x for x in uit["beweringen"]) and uit["grounded"] is False
+    # Een subagent zelf krijgt de controle niet (zijn rapport gaat naar de centrale agent, die wordt getoetst).
+    llm2 = FakeLLM([])
+    antwoordnodes.verify_node(SimpleNamespace(llm=llm2, settings=make_settings(), graph=FakeGraph(result="")),
+                              {**state, "opdracht": {"doel": VRAAG}})
+    assert not llm2.calls

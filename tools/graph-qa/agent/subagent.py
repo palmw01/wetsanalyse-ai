@@ -43,7 +43,8 @@ from .wetsanalyse_api import GesprekVerdwenen, WetsanalyseApi, WetsanalyseApiFou
 logger = logging.getLogger("graph_qa.subagent")
 
 #: De api-methoden die een subagent gebruikt. Geen besluit.
-API_AANROEPEN = frozenset({"start_delegatie", "haal_delegatie", "wijzig_delegatie", "maak_gesprek", "aclose"})
+API_AANROEPEN = frozenset({"start_delegatie", "haal_delegatie", "wijzig_delegatie", "maak_gesprek", "voeg_bericht_toe",
+                           "aclose"})
 
 #: Hoe vaak de delegatie laat weten dat ze leeft, en hoe vaak er naar een stopverzoek wordt gekeken.
 HARTSLAG_S = 30.0
@@ -154,6 +155,9 @@ class Afloop:
     #: (meting bundel 120, D01: de afbakening stond in het rapport en bereikte de jurist niet).
     afbakening: list[str] = field(default_factory=list)
     periode: list[int] = field(default_factory=list)
+    #: De vragen die de centrale agent zelf beantwoordde uit wat er lag (`zelf_antwoorden`), als {vraag, antwoord}: de
+    #: jurist hoort het (`antwoord.code_regels`), en de meting ziet het.
+    zelf_beantwoord: list[dict[str, str]] = field(default_factory=list)
 
     def als_dict(self) -> dict[str, Any]:
         return {"profiel": self.profiel, "gesprek_id": self.gesprek_id, "run_id": self.run_id,
@@ -162,7 +166,8 @@ class Afloop:
                 **({"modellen": self.modellen} if self.modellen else {}),
                 **({"gelezen": self.gelezen} if self.gelezen else {}),
                 **({"afbakening": self.afbakening} if self.afbakening else {}),
-                **({"periode": self.periode} if self.periode else {})}
+                **({"periode": self.periode} if self.periode else {}),
+                **({"zelf_beantwoord": self.zelf_beantwoord} if self.zelf_beantwoord else {})}
 
 
 def _titel(opdracht: SubagentOpdracht) -> str:
@@ -175,10 +180,35 @@ def _plan_id(profiel: str, opdracht: SubagentOpdracht) -> str:
                                      ensure_ascii=False).encode()).hexdigest()[:16]
 
 
+async def _in_span(state: dict[str, Any], profiel: str, hervat: bool,
+                   werk: Awaitable[tuple[Afloop, dict[str, Any], str]]) -> tuple[Afloop, dict[str, Any], str]:
+    """Eén span `graph_qa.subagent` rond een subagent, met de delegatie, het profiel, de run van het kind en de uitkomst
+    (analyse centrale agent, gat 8: de regie had `graph_qa.regie.taak`, de subagent niets). Het kind start binnen de span,
+    dus zijn run erft de trace van de ouder (`tests/test_subagent.py`)."""
+    from .observability import get_tracer
+
+    with get_tracer(__name__).start_as_current_span("graph_qa.subagent", attributes={
+            "ouder_run_id": state.get("run_id", "") or "", "profiel": profiel, "hervat": hervat}) as span:
+        afloop, kind, weigering = await werk
+        for sleutel, waarde in (("delegatie_id", afloop.delegatie_id), ("profiel", afloop.profiel),
+                                ("kind_run_id", afloop.run_id), ("uitkomst", afloop.uitkomst)):
+            if waarde:
+                span.set_attribute(sleutel, waarde)
+        return afloop, kind, weigering
+
+
 async def voer_uit(state: dict[str, Any], profiel: str, opdracht: SubagentOpdracht, stuur: Callable[[dict], None], *,
                    settings: Any, kinderen: Kinderen, gestopt: Callable[[], bool], api: Any | None = None,
                    hartslag_s: float = HARTSLAG_S) -> tuple[Afloop, dict[str, Any], str]:
     """Draai de subagent: (de afloop, wat het kind opleverde, een weigering voor het model of leeg)."""
+    return await _in_span(state, profiel, False, _voer_uit(state, profiel, opdracht, stuur, settings=settings,
+                                                           kinderen=kinderen, gestopt=gestopt, api=api,
+                                                           hartslag_s=hartslag_s))
+
+
+async def _voer_uit(state: dict[str, Any], profiel: str, opdracht: SubagentOpdracht, stuur: Callable[[dict], None], *,
+                    settings: Any, kinderen: Kinderen, gestopt: Callable[[], bool], api: Any | None,
+                    hartslag_s: float) -> tuple[Afloop, dict[str, Any], str]:
     user_id, gesprek_id = state.get("user_id", "") or "", state.get("gesprek_id", "") or ""
     werkgebied_id = state.get("werkgebied_id", "") or ""
     afloop = Afloop(profiel=profiel)
@@ -261,6 +291,50 @@ async def _leg_vast(api: Any, delegatie_id: str, kinderen: list[dict[str, Any]],
     return eind
 
 
+#: Wie de vragen beantwoordde als de centrale agent het uit wat er ligt deed (`zelf_antwoorden`).
+VAN_LEX = "van Lex, uit het dossier of het gesprek"
+#: Een optie die zoveel zegt als "alles" of "geen": die staat in elke tekst, en is geen antwoord uit het dossier.
+_ALGEMEEN = frozenset("alle alles geen beide anders overig overige weet niet nee ja onbekend".split())
+
+
+def wat_er_ligt(state: dict[str, Any]) -> str:
+    """Wat de jurist zelf schreef of vastlegde: het dossier van het werkgebied, het aangewezen object en zijn eigen
+    berichten in dit gesprek. Geen tekst van Lex of van de code."""
+    from .berichten import CODEBERICHTEN
+
+    eigen = [str(m.get("content")) for m in state.get("messages") or []
+             if m.get("role") == "user" and isinstance(m.get("content"), str)
+             and not str(m.get("content")).startswith(CODEBERICHTEN)]
+    return "\n".join([str(state.get("werkgebied_context") or ""), str(state.get("onderwerp_context") or ""),
+                      str(state.get("question") or ""), *eigen])
+
+
+def _komt_voor(optie: str, tekst: str) -> bool:
+    woorden = re.findall(r"\w+", optie.casefold())
+    if not woorden or set(woorden) & _ALGEMEEN or len("".join(woorden)) < 4:
+        return False
+    return re.search(r"\b" + r"\W+".join(map(re.escape, re.findall(r"\w+", optie.casefold()))) + r"\b",
+                     tekst.casefold()) is not None
+
+
+def zelf_antwoorden(vragen: list[dict[str, Any]], ligt: str) -> list[str] | None:
+    """De antwoorden op de vragen van een subagent die al vastliggen (ADR-016 §A4, stap 2; agentset V03), of None.
+
+    De grens: een vraag is alleen beantwoord als precies één van haar opties letterlijk (op woordgrenzen, zonder hoofd-
+    letters) staat in wat de jurist schreef of vastlegde (`wat_er_ligt`). Een optie die "alles" of "geen" zegt, telt niet.
+    Is één vraag niet zo te beantwoorden, dan gaan ze alle naar de jurist, als kaart: de centrale agent gokt niet, en
+    vult geen vrije tekst in."""
+    if not vragen:
+        return None
+    uit: list[str] = []
+    for v in vragen:
+        treffers = [o for o in v.get("opties") or [] if _komt_voor(str(o), ligt)]
+        if len(treffers) != 1:
+            return None
+        uit.append(str(treffers[0]))
+    return uit
+
+
 def eerste_vraag(kinderen: list[dict[str, Any]]) -> int | None:
     """Het eerste kind met een open vraag (zijn plek in de delegatie), of None."""
     return next((i for i, k in enumerate(kinderen) if k.get("uitkomst") == "vraag" and k.get("vragen")), None)
@@ -288,6 +362,14 @@ async def hervat(state: dict[str, Any], delegatie_id: str, antwoorden: list[str]
     """Hervat de eerste wachtende subagent van de delegatie met de antwoorden op zijn vragen: een nieuwe beurt in
     hetzelfde deelgesprek, met zijn eigen geschiedenis. De andere kinderen blijven zoals ze stonden. (de afloop, wat het
     kind opleverde, een weigering of leeg)."""
+    return await _in_span(state, "", True, _hervat(state, delegatie_id, antwoorden, stuur, settings=settings,
+                                                   kinderen=kinderen, gestopt=gestopt, van=van, api=api,
+                                                   hartslag_s=hartslag_s))
+
+
+async def _hervat(state: dict[str, Any], delegatie_id: str, antwoorden: list[str], stuur: Callable[[dict], None], *,
+                  settings: Any, kinderen: Kinderen, gestopt: Callable[[], bool], van: str, api: Any | None,
+                  hartslag_s: float) -> tuple[Afloop, dict[str, Any], str]:
     user_id = state.get("user_id", "") or ""
     eigen_api = api is None
     api = api or WetsanalyseApi(settings, user_id)
@@ -413,6 +495,19 @@ def open_vraag(subagenten: list[dict[str, Any]]) -> dict[str, Any] | None:
                  and a.get("delegatie_id")), None)
 
 
+async def _schrijf_doorgegeven(api: Any, gesprek_id: str, tekst: str, soort: str, delegatie_id: str) -> None:
+    """De opdracht van een subagent, of bij het hervatten de antwoorden die de code doorgaf, als bericht in zijn
+    deelgesprek (analyse centrale agent, gat 6): wie het opent of erin doorvraagt, ziet wat de subagent moest doen. Een
+    bericht van de code, geen bericht van de jurist: rol `assistant` met `doorgegeven` (de werkplek toont het als
+    "Opdracht aan de subagent"). Pas na een geslaagde start, anders stond er een opdracht zonder run (bugonderzoek
+    ADR-016, B5). Best-effort: zonder dit bericht draait het kind net zo."""
+    try:
+        await api.voeg_bericht_toe(gesprek_id, {"rol": "assistant", "tekst": tekst, "doorgegeven": soort})
+    except Exception:  # noqa: BLE001 – zie hierboven
+        logger.warning("opdracht niet in het deelgesprek gezet", exc_info=True,
+                       extra={"categorie": "technisch", "delegatie_id": delegatie_id})
+
+
 async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: SubagentOpdracht, stuur, *, gesprek_id: str,
                       werkgebied_id: str, run_id: str, user_id: str, bronnen: Any, api: Any, kinderen: Kinderen,
                       gestopt: Callable[[], bool], vraag: str = "", index: int = 0,
@@ -437,6 +532,8 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
                               bronnen=list(bronnen) if bronnen is not None else None)
         kind_run = await kinderen.start(verzoek, user_id, run_id)
         afloop.run_id = kind_run.run_id
+        await _schrijf_doorgegeven(api, afloop.gesprek_id, verzoek.question, "antwoorden" if vraag else "opdracht",
+                                   delegatie_id)
         if bij_start is not None:
             bij_start(kind_run)
         wacht = asyncio.create_task(_stopwacht(gestopt, kind_run, kinderen))
@@ -506,7 +603,7 @@ async def _hartslag(api: Any, delegatie_id: str, elke_s: float) -> None:
     while True:
         await asyncio.sleep(elke_s)
         with contextlib.suppress(Exception):
-            await api.wijzig_delegatie(delegatie_id, {"status": "loopt"})
+            await api.wijzig_delegatie(delegatie_id, {"status": "loopt", "hartslag": True})
 
 
 async def _stopwacht(gestopt: Callable[[], bool], kind_run: Any, kinderen: Kinderen) -> None:

@@ -161,6 +161,10 @@ class Api:
         self.aanroepen.append(("maak_gesprek", invoer))
         return {"id": "kind-1"}
 
+    async def voeg_bericht_toe(self, gesprek_id, bericht):
+        self.aanroepen.append(("voeg_bericht_toe", {"gesprek_id": gesprek_id, **bericht}))
+        return {}
+
     async def aclose(self):
         pass
 
@@ -201,7 +205,11 @@ def test_een_subagent_start_een_kindgesprek_wacht_en_geeft_zijn_rapport():
     afloop, uit, weigering = asyncio.run(sub.voer_uit(STATE, "duiding", OPDRACHT, events.append, settings=None,
                                                       kinderen=kinderen, gestopt=lambda: False, api=api))
     assert not weigering and afloop.uitkomst == "klaar" and uit == kind
-    [(_, start), (_, gesprek), (_, eind)] = api.aanroepen
+    [(_, start), (_, gesprek), (_, opdracht), (_, eind)] = api.aanroepen
+    # De opdracht staat in het deelgesprek (analyse centrale agent, gat 6), als bericht van de code: nooit met de rol
+    # van de jurist.
+    assert opdracht == {"gesprek_id": "kind-1", "rol": "assistant", "tekst": sub.opdracht_tekst(OPDRACHT),
+                        "doorgegeven": "opdracht"}
     assert (start["soort"], start["opdracht"], start["werkgebied_id"], start["gesprek_id"]) == ("subagent", "subagent", "", "hoofd")
     assert start["plan"]["taken"][0]["profiel"] == "duiding" and start["plan"]["taken"][0]["profiel_versie"]
     assert (gesprek["ouder_id"], gesprek["delegatie_id"], gesprek["profiel"], gesprek["werkgebied_id"]) == ("hoofd", "d1", "duiding", "")
@@ -309,3 +317,28 @@ def test_een_kindbeurt_draait_het_profiel_zonder_supervisorstap_en_rondt_af_met_
     assert ZIN_1 in resultaat["answer"]
     antwoord = next(e for e in events if e["type"] == "antwoord")["antwoord"]
     assert antwoord["sjabloon"] == "rapport"
+
+
+def test_zonder_bericht_in_het_deelgesprek_draait_het_kind_toch():
+    class Stuk(Api):
+        async def voeg_bericht_toe(self, gesprek_id, bericht):
+            raise RuntimeError("api weg")
+
+    kinderen, gestart, _ = _kinderen({"rapport": {"status": "klaar"}, "answer": "Gedaan."})
+    afloop, _, _ = asyncio.run(sub.voer_uit(STATE, "algemeen", OPDRACHT, lambda _e: None, settings=None,
+                                            kinderen=kinderen, gestopt=lambda: False, api=Stuk()))
+    assert gestart and afloop.uitkomst == "klaar"
+
+
+def test_mislukt_de_start_dan_staat_er_geen_opdracht_in_het_deelgesprek():
+    """Bugonderzoek ADR-016, B5: het bericht kwam vóór de start, en een start die faalde liet een opdracht zonder run."""
+    api = Api()
+    kinderen, _, _ = _kinderen({})
+
+    async def faalt(verzoek, wie, ouder):
+        raise RuntimeError("budget op")
+
+    afloop, _, _ = asyncio.run(sub.voer_uit(STATE, "algemeen", OPDRACHT, lambda _e: None, settings=None,
+                                            kinderen=sub.Kinderen(start=faalt, stop=kinderen.stop),
+                                            gestopt=lambda: False, api=api))
+    assert afloop.uitkomst == "mislukt" and "voeg_bericht_toe" not in [n for n, _ in api.aanroepen]

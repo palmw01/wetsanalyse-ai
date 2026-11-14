@@ -5,8 +5,8 @@ import type { Suggestie } from "./vraagLex";
  *
  *  Een commando is geen tweede router. Er zijn drie soorten:
  *  - **suggestie**: een suggestie uit het register van `lib/vraagLex.ts` die een `commando` draagt. Uitvoeren is precies
- *    een klik op die suggestie: dezelfde tekst in de thread, dezelfde `actie` of hetzelfde `doel`, dus zonder
- *    supervisor-aanroep bij graph-qa. Welke er zijn, hangt af van de context: het onderwerp, of anders het werkgebied
+ *    een klik op die suggestie: dezelfde tekst in de thread, dezelfde `actie` of hetzelfde `doel`, dus zonder dat een
+ *    model bij graph-qa de route kiest (geen supervisor, geen centrale agent). Welke er zijn, hangt af van de context: het onderwerp, of anders het werkgebied
  *    (de suggesties die de werkplek nu toont).
  *  - **client**: een handeling in de werkplek zelf, zonder beurt en dus zonder tokens: een nieuw gesprek, een bron aan of
  *    uit, de lijst met commando's.

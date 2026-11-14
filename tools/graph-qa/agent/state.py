@@ -108,6 +108,10 @@ class State(TypedDict, total=False):
     # De rapporten die de code na een klik op een vraagkaart ophaalde (`nodes/subagent_vervolg.py`): de centrale agent
     # krijgt ze in de context van de beurt en schrijft de bundel. Per beurt gereset.
     rapporten: str
+    # De rapporten van subagents die klaar waren terwijl een ander kind van dezelfde delegatie nog een vraag had
+    # (`nodes/subagent_vervolg.py`): ze wachten in het checkpoint van het gesprek tot de vraag beantwoord is, en gaan dan
+    # mee in de bundel (bugonderzoek ADR-016, B1). Niet per beurt gereset: ze overbruggen de beurt van de kaart.
+    wachtende_rapporten: list[dict[str, Any]]
     # Meer subagents die de centrale agent opstelde (`overdracht._subagent`, twee of meer): `[{profiel, opdracht}]`, voor de node
     # `subagent_plan`. En de opdracht van een regie die hij voorlegt (`regie_plan`). Per beurt gereset.
     subagent_plan: list[dict[str, Any]]

@@ -106,6 +106,12 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         variabel += state["rapporten"]
     variabel += b.memory_context(state)
     variabel += b.advies_context(state)
+    if state.get("specialist") in ("centraal", "centraal_breed"):
+        # Een open vraagkaart van het werkgebied: de centrale agent leest hem hier, en beantwoordt hem met
+        # `beantwoord_kaart` (de supervisor leest dezelfde kaart in zijn eigen prompt).
+        from ..overdracht import open_kaartje
+
+        variabel += open_kaartje(state)
     # Welke bronnen naast de wet aanstaan, en waarom niet (ADR-013): na het cachepunt, want het verschilt per beurt.
     variabel += bronstand_blok(state.get("bronstand") or {}, state.get("zelfstandige_vraag") or state.get("question", ""))
     if extern_aan:
@@ -745,6 +751,16 @@ BUITEN_PROFIEL = json.dumps({"status": "unavailable", "volledig": False, "reden"
                              "aanwijzing": "Deze tool heb je nu niet. Roep eerst meer_tools aan."}, ensure_ascii=False)
 
 
+def weiger_event(writer: Any, state: State, tu: dict[str, Any], reden: str) -> None:
+    """De events van een aanroep die de code weigerde: start en eind met `status: geweigerd` en de reden als
+    `foutcode`, in de vorm van `tool_execution.execute_tool` (één regel per `call_id`)."""
+    event = {"type": "tool_execution", "run_id": state.get("run_id", ""), "call_id": tu.get("id") or "",
+             "tool": tu["name"], "actie": "bron_lezen", "filters": {}, "doel": {},
+             "ronde": int(state.get("turns", 0) or 0), "status": "geweigerd"}
+    writer({**event, "phase": "start"})
+    writer({**event, "phase": "end", "foutcode": reden, "duur_ms": 0, "aantal": None})
+
+
 def tools_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     # Een sjabloon naast graaftools (`agent_node` zet hem achteraan): eerst de graaftools, dan het sjabloon met wat ze
@@ -756,29 +772,38 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
     # 2026: drie gelijke zoekopdrachten, 63.867 tokens voor één vraag). Elke aanroep krijgt een resultaat, want het
     # model eist er een; alleen de eerste voert hem uit.
     gedaan = _al_gedaan(state)
-    uit_te_voeren = list({_sleutel(t): t for t in reversed(pending) if _sleutel(t) not in gedaan}.values())[::-1]
-    _stap(writer, "Lex", "; ".join(_toolregel(t) for t in uit_te_voeren) or "gebruikt wat er al is opgehaald")
+    agent = agent_van(state)
+
+    def weigering(tu: dict[str, Any]) -> str:
+        # Wat de code niet uitvoert (ADR-016 §A1/§A4): na een subagent leest de centrale agent niet zelf, en een tool
+        # buiten zijn profiel draait niet. Het resultaat voor het model; leeg als de aanroep mag.
+        if (reden := na_subagent(state, tu["name"])):
+            return reden
+        return "" if agent.mag(tu["name"]) else BUITEN_PROFIEL
+
+    geweigerd = {id(t): w for t in pending if _sleutel(t) not in gedaan and (w := weigering(t))}
+    uit_te_voeren = list({_sleutel(t): t for t in reversed(pending)
+                          if _sleutel(t) not in gedaan and id(t) not in geweigerd}.values())[::-1]
+    # De statusregel noemt alleen wat werkelijk draait (bundel 120: "leest uitspraak …" bij vier geweigerde aanroepen).
+    if uit_te_voeren or not geweigerd:
+        _stap(writer, "Lex", "; ".join(_toolregel(t) for t in uit_te_voeren) or "gebruikt wat er al is opgehaald")
     trace = list(state.get("source_trace", []))
     results = []
-    agent = agent_van(state)
     for tu in pending:
         sleutel = _sleutel(tu)
         if sleutel in gedaan:
             results.append(_tool_result(tu, gedaan[sleutel].removesuffix(HERHAALD) + HERHAALD))
             continue
-        if (reden := na_subagent(state, tu["name"])):
-            # Na een subagent die niet klaar was, leest de centrale agent niet zelf opnieuw (ADR-016 §A4, meting 14 nov
-            # 2026: P01 deed het werk daarna nog eens voor 1,5M). Hij vat samen wat het kind las en zegt wat ontbreekt.
-            logger.info("tool na subagent geweigerd", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
-                                                             "tool": tu["name"]})
-            results.append(_tool_result(tu, reden))
-            continue
-        if not agent.mag(tu["name"]):
-            # De centrale agent riep een tool aan die niet bij zijn profiel hoort (ADR-016 §A1): niet uitvoeren, wel
-            # zeggen hoe het wel kan. Het resultaat is geen bron en komt niet in het spoor.
-            logger.info("tool buiten profiel", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
-                                                      "profiel": agent.naam, "tool": tu["name"]})
-            results.append(_tool_result(tu, BUITEN_PROFIEL))
+        if id(tu) in geweigerd:
+            reden = json.loads(geweigerd[id(tu)]).get("reden", "")
+            # Een poging die de code weigerde, is zichtbaar: een `tool_execution` met `status: geweigerd` en de reden,
+            # zodat de meting hem telt (`tool_buiten_profiel`, `tools_verboden_gezien`). Het resultaat is geen bron en
+            # komt niet in het spoor.
+            logger.info("tool na subagent geweigerd" if reden == "na_subagent" else "tool buiten profiel",
+                        extra={"categorie": "functioneel", "run_id": state.get("run_id", ""), "profiel": agent.naam,
+                               "tool": tu["name"]})
+            weiger_event(writer, state, tu, reden)
+            results.append(_tool_result(tu, geweigerd[id(tu)]))
             continue
         result_text = execute_tool(b, state, writer, tu, van_model=True)
         gedaan[sleutel] = result_text
@@ -809,6 +834,15 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     report = check_grounding(tekst, controletrace(state), overzicht=state.get("overzicht") or None, bekend=_bekend(state),
                              regelingen=namen, steun=rapport_steun(state), vraag=_vraag(state),
                              periode=_periode(state))
+    # Een omgedraaide bewering in de woorden van de passage zien de toetsen op woorden niet: de controle per stuk leest de
+    # duidingen tegen de passages die het rapport citeerde (`stukcontrole.py`). Alleen in het antwoord van de centrale
+    # agent, en alleen als de goedkopere toetsen niets vonden: vonden zij iets, dan volgt de correctie toch, en daarna
+    # toetst deze ronde opnieuw.
+    if not report.beweringen and not state.get("opdracht") and not state.get("overzicht"):
+        from ..stukcontrole import controleer
+
+        if tegen := controleer(b.llm, b.settings, tekst, rapport_steun(state), controletrace(state)):
+            report = replace(report, beweringen=[*report.beweringen, *tegen])
     # Wettekst uit een sjabloon staat zonder aanhalingstekens, dus de toets ziet "niets te controleren". Maar de code
     # toonde hem uit de tool-rijen, met de vindplaats erbij: de melding dat er geen vindplaats is, zou onwaar zijn.
     if report.niveau == "onbepaald" and not report.onbevestigd and (state.get("antwoord") or {}).get("doelen"):
@@ -1056,6 +1090,24 @@ def afbakening_regel(state: State, antwoord: str) -> str:
             + ". Wil je dat breder, zeg het dan.")
 
 
+def zelf_beantwoord_regel(state: State) -> str:
+    """De regel uit code over de vragen van een subagent die Lex zelf beantwoordde uit wat er lag (`Afloop.zelf_beantwoord`):
+    de jurist ziet wat er voor hem gekozen is, en kan het rechtzetten."""
+    if state.get("opdracht"):
+        return ""
+    paren = [p for a in state.get("subagenten") or [] for p in a.get("zelf_beantwoord") or []]
+    if not paren:
+        return ""
+    return ("De subagent vroeg iets wat al in het dossier of in dit gesprek stond; Lex antwoordde voor je: "
+            + "; ".join(f"{p['vraag']} → {p['antwoord']}" for p in paren) + ". Klopt dat niet, zeg het dan.")
+
+
+def code_regels(state: State, antwoord: str) -> str:
+    """Wat de code onder het antwoord zet over het werk van een subagent: een zelf gekozen afbakening en zelf beantwoorde
+    vragen."""
+    return " ".join(r for r in (afbakening_regel(state, antwoord), zelf_beantwoord_regel(state)) if r)
+
+
 def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
 
@@ -1080,12 +1132,12 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
                                                                          "run_id": state.get("run_id", "")})
         antwoord = schoon
         state = {**state, "answer": antwoord}
-    if antwoord.strip() and (regel := afbakening_regel(state, antwoord)):
+    if antwoord.strip() and (regel := code_regels(state, antwoord)):
         # Een afbakening die de jurist niet koos, staat uit code onder het antwoord (meting bundel 120, D01: ze stond in
         # het rapport, en het antwoord noemde haar niet).
         if state.get("antwoord"):
-            blokken = {**state["antwoord"], "blokken": [*(state["antwoord"].get("blokken") or []),
-                                                        {"soort": "toelichting", "kop": "Afbakening", "tekst": regel}]}
+            blok = {"soort": "toelichting", "kop": "Over het werk van de subagent", "tekst": regel}
+            blokken = {**state["antwoord"], "blokken": [*(state["antwoord"].get("blokken") or []), blok]}
             schoon_antwoord = Antwoord.model_validate(blokken)
             antwoord = antwoord_tekst(schoon_antwoord)
             state = {**state, "antwoord": schoon_antwoord.model_dump(), "answer": antwoord}

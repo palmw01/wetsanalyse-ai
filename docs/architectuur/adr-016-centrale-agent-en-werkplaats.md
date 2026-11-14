@@ -394,6 +394,13 @@ gebruiker succes afleest.
 | kosten van delegatie | tokens per opdracht met subagents | binnen het plafond; gerapporteerd naast dezelfde opdracht als losse beurten |
 | regressie | de kwaliteitsset en de routeringsset van nu | geen case van goed naar fout zonder verklaring |
 
+**Wat nog niet gebouwd is, telt apart** (besluit van de gebruiker, 14 nov 2026). Een opdracht die iets vraagt wat er
+nog niet is, draagt `niet_gebouwd` (`eval/golden_centrale_agent.jsonl`); dat meetpunt telt dan niet mee in de noemer van
+zijn drempel, en het verslag noemt het op een eigen regel. Sinds 14 nov 2026 draagt geen opdracht het: `delegatie_stand`
+(F03), een vraag die de centrale agent zelf beantwoordt (V03), het plan in fasen (M04) en het profiel `retrieval` van een
+regiekind (M02–M05) zijn gebouwd. A6 meet met het gewone model, want de straat heeft geen licht model; dat staat in het
+verslag.
+
 **Niet duurder is naar prijs gewogen** (besluit van de gebruiker, 12 nov 2026: "Naar prijs gewogen"). Een gelezen
 cache-token telt naar zijn prijs, niet vol. De drempel rekent in invoertoken-equivalenten, met de prijsverhouding van
 de aanbieder voor het model, zoals de meting van ADR-015 (`metingen/context-2026-11-12`):

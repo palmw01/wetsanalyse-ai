@@ -241,7 +241,8 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
           <button type="button" disabled={uitgeschakeld} onClick={() => stuur({ ...basis, actie: "afbreken" })}
             className="focus-ring self-center rounded text-xs text-muted underline-offset-2 hover:underline disabled:opacity-50 sm:mr-auto sm:self-auto">
             {aanvullen ? "Stop met aanvullen" : kaart.modus === "bronselectie" ? "Zet de bronselectie stil"
-              : kaart.modus === "begrip" ? "Laat maar" : "Stop met samenstellen"}
+              // Een vraag van een subagent (ADR-016 §A4) of van de begrippen-agent: niets samen te stellen.
+              : kaart.modus === "begrip" || kaart.modus === "subagent" ? "Laat maar" : "Stop met samenstellen"}
           </button>
           <div className="flex gap-2 sm:justify-end">
             {kaart.overslaanbaar && (

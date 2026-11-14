@@ -281,6 +281,11 @@ class WetsanalyseApi:
         loopt."""
         return await self._post("/v1/delegaties", invoer)
 
+    async def lijst_delegaties(self, gesprek_id: str) -> list[dict[str, Any]]:
+        """De laatste delegaties van een eigen gesprek, nieuwste eerst (ADR-016 §A4, `delegatie_stand`)."""
+        uit = await self._haal("/v1/delegaties", gesprek_id=gesprek_id)
+        return list(uit) if isinstance(uit, list) else []
+
     async def haal_delegatie(self, delegatie_id: str) -> dict[str, Any]:
         """Eén delegatie met haar plan en uitkomst (ADR-016 §A4: de vragen van een wachtende subagent)."""
         return await self._haal(f"/v1/delegaties/{quote(delegatie_id, safe='')}")
