@@ -495,6 +495,19 @@ def open_vraag(subagenten: list[dict[str, Any]]) -> dict[str, Any] | None:
                  and a.get("delegatie_id")), None)
 
 
+async def _schrijf_doorgegeven(api: Any, gesprek_id: str, tekst: str, soort: str, delegatie_id: str) -> None:
+    """De opdracht van een subagent, of bij het hervatten de antwoorden die de code doorgaf, als bericht in zijn
+    deelgesprek (analyse centrale agent, gat 6): wie het opent of erin doorvraagt, ziet wat de subagent moest doen. Een
+    bericht van de code, geen bericht van de jurist: rol `assistant` met `doorgegeven` (de werkplek toont het als
+    "Opdracht aan de subagent"). Pas na een geslaagde start, anders stond er een opdracht zonder run (bugonderzoek
+    ADR-016, B5). Best-effort: zonder dit bericht draait het kind net zo."""
+    try:
+        await api.voeg_bericht_toe(gesprek_id, {"rol": "assistant", "tekst": tekst, "doorgegeven": soort})
+    except Exception:  # noqa: BLE001 – zie hierboven
+        logger.warning("opdracht niet in het deelgesprek gezet", exc_info=True,
+                       extra={"categorie": "technisch", "delegatie_id": delegatie_id})
+
+
 async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: SubagentOpdracht, stuur, *, gesprek_id: str,
                       werkgebied_id: str, run_id: str, user_id: str, bronnen: Any, api: Any, kinderen: Kinderen,
                       gestopt: Callable[[], bool], vraag: str = "", index: int = 0,
@@ -517,16 +530,10 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
                               werkgebied_id=werkgebied_id or None, profiel=profiel, opdracht=opdracht,
                               delegatie_id=delegatie_id,
                               bronnen=list(bronnen) if bronnen is not None else None)
-        try:
-            # De opdracht (of bij het hervatten de antwoorden van de jurist) als eerste bericht van de beurt: wie het
-            # deelgesprek opent of erin doorvraagt, ziet wat de subagent moest doen (analyse centrale agent, gat 6: er
-            # stonden alleen rapporten). Best-effort: zonder dit bericht draait het kind net zo.
-            await api.voeg_bericht_toe(afloop.gesprek_id, {"rol": "user", "tekst": verzoek.question})
-        except Exception:  # noqa: BLE001 – zie hierboven
-            logger.warning("opdracht niet in het deelgesprek gezet", exc_info=True,
-                           extra={"categorie": "technisch", "delegatie_id": delegatie_id})
         kind_run = await kinderen.start(verzoek, user_id, run_id)
         afloop.run_id = kind_run.run_id
+        await _schrijf_doorgegeven(api, afloop.gesprek_id, verzoek.question, "antwoorden" if vraag else "opdracht",
+                                   delegatie_id)
         if bij_start is not None:
             bij_start(kind_run)
         wacht = asyncio.create_task(_stopwacht(gestopt, kind_run, kinderen))

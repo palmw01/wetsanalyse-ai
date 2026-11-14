@@ -80,3 +80,14 @@ async def test_het_agent_token_maakt_alleen_een_deelgesprek_van_een_lopende_dele
     await client.patch(f"/v1/delegaties/{regie['id']}", headers=AGENT, json={"status": "klaar"})
     res = await client.post("/v1/gesprekken", headers=AGENT, json=kind)
     assert res.status_code == 409 and res.json()["detail"]["fout"] == "delegatie_afgerond"
+
+
+async def test_het_agent_token_schrijft_geen_bericht_van_de_gebruiker(client):
+    """Wat graph-qa zelf in een gesprek zet, is een bericht van Lex (rol assistant, eventueel met `doorgegeven`); een
+    bericht van de gebruiker schrijft alleen de werkplek."""
+    gesprek = (await client.post("/v1/gesprekken", headers=WEBAPP, json={"titel": "x"})).json()
+    pad = f"/v1/gesprekken/{gesprek['id']}/berichten"
+    res = await client.post(pad, headers=AGENT, json={"rol": "user", "tekst": "Opdracht."})
+    assert res.status_code == 403 and res.json()["detail"]["fout"] == "rol_niet_toegestaan"
+    assert (await client.post(pad, headers=WEBAPP, json={"rol": "user", "tekst": "Vraag."})).status_code == 201
+    assert (await client.post(pad, headers=AGENT, json={"rol": "assistant", "tekst": "Antwoord."})).status_code == 201
