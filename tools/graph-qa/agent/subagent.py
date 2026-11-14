@@ -149,13 +149,20 @@ class Afloop:
     modellen: list[str] = field(default_factory=list)
     #: De labels van wat het kind las (`gelezen.gelezen_en_gevonden`, uit code): voor de afsluiting zonder rapport.
     gelezen: list[str] = field(default_factory=list)
+    #: Wat het kind zelf afbakende zonder dat de jurist het vroeg (`gelezen.zelf_afgebakend`), en de periode die de jurist
+    #: koos (`gelezen.gekozen_periode`): op de kindregel van het eind-event en voor de controle van de centrale agent
+    #: (meting bundel 120, D01: de afbakening stond in het rapport en bereikte de jurist niet).
+    afbakening: list[str] = field(default_factory=list)
+    periode: list[int] = field(default_factory=list)
 
     def als_dict(self) -> dict[str, Any]:
         return {"profiel": self.profiel, "gesprek_id": self.gesprek_id, "run_id": self.run_id,
                 "uitkomst": self.uitkomst, "delegatie_id": self.delegatie_id,
                 **({"vragen": self.vragen} if self.vragen else {}), **({"hervat": True} if self.hervat else {}),
                 **({"modellen": self.modellen} if self.modellen else {}),
-                **({"gelezen": self.gelezen} if self.gelezen else {})}
+                **({"gelezen": self.gelezen} if self.gelezen else {}),
+                **({"afbakening": self.afbakening} if self.afbakening else {}),
+                **({"periode": self.periode} if self.periode else {})}
 
 
 def _titel(opdracht: SubagentOpdracht) -> str:
@@ -382,6 +389,7 @@ def rapport_inhoud(kind: dict[str, Any]) -> dict[str, Any]:
             # rapport citeerde de stukken van het eerste en geen van de zes nieuwe).
             "gelezen": [i for i, _ in gelezen_en_gevonden(kind.get("source_trace") or [])[0]],
             **({"afbakening": list(kind["afbakening"])} if kind.get("afbakening") else {}),
+            **({"periode": list(kind["periode"])} if kind.get("periode") else {}),
             "stukken": [b["id"] for b in blokken if b.get("soort") == "extern" and b.get("id")],
             "bepalingen": [str((c.get("vindplaats") or {}).get("iri") or "") for b in blokken if b.get("soort") == "citaten"
                            for c in b.get("items") or [] if (c.get("vindplaats") or {}).get("iri")]}
@@ -445,6 +453,8 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
         from .gelezen import gelezen_en_gevonden
 
         afloop.gelezen = [lab for _, lab in gelezen_en_gevonden(kind.get("source_trace") or [])[0]]
+        afloop.afbakening = [str(a) for a in kind.get("afbakening") or []]
+        afloop.periode = [int(j) for j in kind.get("periode") or []][:2]
         status = (kind.get("rapport") or {}).get("status", "")
         afloop.vragen = list((kind.get("rapport") or {}).get("vragen") or []) if status == "vraag" else []
         uitkomst = kind_run.uitkomst or kind_run.status or "klaar"
@@ -563,6 +573,27 @@ def controle_tekst(kind: dict[str, Any]) -> str:
         # Parket, terwijl hij "alle instanties" zei).
         tekst += ("\nZelf afgebakend door de subagent, niet gevraagd door de gebruiker (zeg dit de gebruiker):\n"
                   + "\n".join(f"- {a}" for a in afbakening[:MAX_CONTROLE]))
+    if len(periode := kind.get("periode") or []) == 2:
+        tekst += periode_tekst(kind, (int(periode[0]), int(periode[1])))
+    return tekst
+
+
+def periode_tekst(kind: dict[str, Any], periode: tuple[int, int]) -> str:
+    """De gekozen periode tegen wat het kind las, uit code (meting bundel 120, D01: de jurist koos 2022–2024, het antwoord
+    vatte vooral uitspraken uit 2025 samen). Een stuk van buiten de periode noemt de centrale agent, hij vat het niet samen;
+    las het kind binnen de periode niets, dan zegt hij dat."""
+    from .gelezen import gelezen_en_gevonden, jaar_van
+
+    gelezen = [i for i, _ in gelezen_en_gevonden(kind.get("source_trace") or [])[0] if jaar_van(i) is not None]
+    binnen = [i for i in gelezen if periode[0] <= (jaar_van(i) or 0) <= periode[1]]
+    buiten = [i for i in gelezen if i not in binnen]
+    van = f"{periode[0]}–{periode[1]}"
+    tekst = f"\nGekozen periode (door de gebruiker): {van}. Gelezen binnen de periode: {len(binnen)}."
+    if not binnen and gelezen:
+        tekst += " Binnen de periode is niets gelezen: zeg dat de gebruiker."
+    if buiten:
+        tekst += (" Buiten de periode gelezen (noem ze hoogstens, vat ze niet samen): "
+                  + ", ".join(buiten[:MAX_CONTROLE]) + ".")
     return tekst
 
 

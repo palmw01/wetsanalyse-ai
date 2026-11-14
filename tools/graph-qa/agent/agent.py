@@ -31,7 +31,7 @@ from .observability import get_tracer
 from .ports import GraphPort, LLMPort
 from .tools.annotatie_tools import is_leesvraag
 from .agentvorm import vorm_van
-from .gelezen import zelf_afgebakend
+from .gelezen import gekozen_periode, zelf_afgebakend
 
 logger = logging.getLogger(__name__)
 
@@ -453,6 +453,15 @@ async def answer_stream(
                                                        if m.get("role") == "user" and isinstance(m.get("content"), str)),
                                                      *(str(v) for v in (laatste.get("opdracht") or {}).values()
                                                        if isinstance(v, str))]))
+                                     if laatste.get("opdracht") else [],
+                                     # De periode die de jurist koos, uit zijn antwoorden (de hervatting) of de
+                                     # opdracht: de centrale agent toetst er zijn antwoord aan (bundel 120, D01).
+                                     # De laatste periode telt (`gekozen_periode`), dus de opdracht eerst.
+                                     periode=list(gekozen_periode("\n".join(
+                                         [*(str(v) for v in (laatste.get("opdracht") or {}).values()
+                                            if isinstance(v, str)),
+                                          *(str(m.get("content")) for m in laatste.get("messages") or []
+                                            if m.get("role") == "user" and isinstance(m.get("content"), str))])) or [])
                                      if laatste.get("opdracht") else [],
                                      niet_onderbouwd=[*(laatste.get("unsupported") or []),
                                                       *(laatste.get("niet_letterlijk") or [])],
