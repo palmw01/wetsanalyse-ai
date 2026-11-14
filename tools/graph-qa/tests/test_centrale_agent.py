@@ -81,17 +81,20 @@ def test_met_uit_negeert_lex_het_verzoek_per_run():
 
 def test_met_uit_is_de_graaf_die_van_voorheen():
     uit = build_graph(make_settings(), FakeLLM([]), FakeGraph())
-    assert "overdracht" not in uit.nodes
+    assert "overdracht" not in uit.nodes and "subagent_vervolg" not in uit.nodes
     for stand in ("meten", "aan"):
         g = build_graph(make_settings(centrale_agent=stand), FakeLLM([]), FakeGraph())
-        assert set(g.nodes) == set(uit.nodes) | {"overdracht"}
+        # De overdracht, en de klik op de vraagkaart van een subagent (ADR-016 §A4).
+        assert set(g.nodes) == set(uit.nodes) | {"overdracht", "subagent_vervolg"}
         edges = {(e.source, e.target) for e in g.compile().get_graph().edges}
         oud = {(e.source, e.target) for e in uit.compile().get_graph().edges}
         assert edges - oud == {("agent", "overdracht"), ("overdracht", "agent"), ("overdracht", "afwijzen"),
                                ("overdracht", "agent_taak"), ("overdracht", "werkgebied_intake"),
                                ("overdracht", "bronselectie"), ("overdracht", "bepaling_lezen"),
                                ("overdracht", "overzicht_bouwen"), ("overdracht", "annotaties_zoeken"),
-                               ("overdracht", "begrippen_zoeken"), ("overdracht", "bron_lijst")}
+                               ("overdracht", "begrippen_zoeken"), ("overdracht", "bron_lijst"),
+                               ("supervisor", "subagent_vervolg"), ("advance", "subagent_vervolg"),
+                               ("subagent_vervolg", "agent"), ("subagent_vervolg", "__end__")}
         assert not oud - edges
 
 
@@ -112,7 +115,7 @@ def test_de_centrale_agent_antwoordt_zelf_zonder_supervisorstap():
     for sectie in PAKKET["rollen"]["agent"]:
         assert PAKKET["secties"][sectie]["tekst"] in verzoek["system"]
     namen = {t["name"] for t in verzoek["tools"]}
-    assert {"wijs_af", "meer_tools", "subagent", "get_artikel", "zoek_definitie", "get_context", "antwoord_duiding",
+    assert {"wijs_af", "meer_tools", "subagent", "hervat_subagent", "get_artikel", "zoek_definitie", "get_context", "antwoord_duiding",
             "antwoord_begrip"} <= namen
     assert not namen & {"rapport", "search_annotaties", "geldigheid", "raw_sparql"}
     assert any(e["type"] == "status" and e.get("route") == CENTRAAL for e in events)
@@ -132,7 +135,7 @@ def test_het_profiel_centraal_is_een_python_agent_met_zijn_eigen_tools():
     agent = agent_voor(CENTRAAL)
     assert isinstance(agent, CentraleAgent) and isinstance(agent, Agent)
     assert agent.rol is Rol.CENTRAAL and agent.methoderol == "agent"
-    assert set(agent.eigen_tools) == set(overdracht.OVERDRACHT) == {"wijs_af", "meer_tools", "subagent", *VASTE_ROUTES}
+    assert set(agent.eigen_tools) == set(overdracht.OVERDRACHT) == {"wijs_af", "meer_tools", "subagent", "hervat_subagent", *VASTE_ROUTES}
     p = profielen.PROFIELEN[CENTRAAL]
     assert not p.kiesbaar and CENTRAAL not in profielen.KIESBAAR, "een model kiest dit profiel niet"
     # De eigen tools staan niet in de toollaag: een profiel kan ze niet noemen, en een andere agent krijgt ze niet.
@@ -233,8 +236,8 @@ def test_een_keuzevraag_van_de_centrale_agent_heeft_de_vorm_die_de_doorvraagrout
 
 
 def test_meer_tools_is_er_alleen_voor_de_kernset_en_wijs_af_voor_beide():
-    assert set(agent_voor(CENTRAAL).eigen_tools) == {"wijs_af", "meer_tools", "subagent", *VASTE_ROUTES}
-    assert set(agent_voor(CENTRAAL_BREED).eigen_tools) == {"wijs_af", "subagent", *VASTE_ROUTES}
+    assert set(agent_voor(CENTRAAL).eigen_tools) == {"wijs_af", "meer_tools", "subagent", "hervat_subagent", *VASTE_ROUTES}
+    assert set(agent_voor(CENTRAAL_BREED).eigen_tools) == {"wijs_af", "subagent", "hervat_subagent", *VASTE_ROUTES}
     assert isinstance(agent_voor(CENTRAAL_BREED), CentraleAgent) and agent_voor(CENTRAAL_BREED).rol is Rol.CENTRAAL
     # De beschrijving noemt elke tool die erachter zit: zo weet het model wanneer het erom vraagt.
     rest = set(profielen.PROFIELEN[CENTRAAL_BREED].tools) - set(profielen.PROFIELEN[CENTRAAL].tools)

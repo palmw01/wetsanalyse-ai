@@ -62,7 +62,7 @@ def test_niet_gelukt_kan_zonder_passage_maar_zegt_wat_open_bleef():
 def test_het_rapport_is_strict_en_geen_profiel_mag_het_noemen():
     schema = SJABLONEN["rapport"].schema
     assert schema["strict"] is True and schema["input_schema"]["additionalProperties"] is False
-    assert schema["input_schema"]["properties"]["status"]["enum"] == ["klaar", "niet_gelukt"]
+    assert schema["input_schema"]["properties"]["status"]["enum"] == ["klaar", "vraag", "niet_gelukt"]
     assert "rapport" not in profielen.grenzen().sjablonen
     p = profielen.PROFIELEN["algemeen"]
     with pytest.raises(ValueError):

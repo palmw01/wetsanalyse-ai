@@ -281,6 +281,12 @@ def build_graph(
         "werkgebied_intake", "bronselectie", "agent_taak", "afwijzen")}
     if centraal:
         voeg_overdracht_toe(g, add, b)
+        # Een klik op de vraagkaart van een subagent (ADR-016 §A4): het antwoord in code, dan een kaart of de bundel.
+        from .nodes.subagent_vervolg import route_na_vervolg, subagent_vervolg_node
+        add("subagent_vervolg", functools.partial(subagent_vervolg_node, b))
+        g.add_conditional_edges("subagent_vervolg", functools.partial(route_na_vervolg, b),
+                                {"agent": "agent", "einde": END})
+        ingangen["subagent_vervolg"] = "subagent_vervolg"
     g.add_conditional_edges("supervisor", functools.partial(_entry_node, b), ingangen)
     g.add_conditional_edges("advance", functools.partial(route_after_advance, b), {**ingangen, "einde": END})
     return g

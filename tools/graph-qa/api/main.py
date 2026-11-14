@@ -366,6 +366,7 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                     # Een subagent (ADR-016 §A3): zijn profiel en opdracht, en wat hij oplevert voor de ouder.
                     profiel=request.profiel,
                     opdracht=request.opdracht,
+                    delegatie_id=request.delegatie_id,
                     resultaat=run.resultaat,
                     # De centrale agent zet een subagent langs dezelfde ingang aan het werk.
                     kinderen=_KINDEREN,
@@ -471,7 +472,7 @@ async def start_run(
 
     Een subagent (`profiel`, `opdracht`, ADR-016 §A3) start alleen de centrale agent; hier is dat 422.
     """
-    if request.profiel or request.opdracht is not None:
+    if request.profiel or request.opdracht is not None or request.delegatie_id:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail={"reden": "subagent_intern", "melding": "Een subagent start alleen Lex zelf."})
     try:

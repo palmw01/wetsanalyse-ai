@@ -360,6 +360,47 @@ def _centraal(state: State) -> bool:
     return state.get("agentvorm") == "centraal" and state.get("modus", "auto") == "auto" and not _open_kaartje(state)
 
 
+SUBAGENT_PREFIX = "sa-"
+
+
+def register_kiesbaar() -> frozenset[str]:
+    from ..profielen import KIESBAAR
+    return frozenset(KIESBAAR)
+
+
+def _subagent_vervolg(b: Bouw, writer) -> dict[str, Any]:
+    """Een klik op de vraagkaart van een subagent: de node `subagent_vervolg`, zonder model. Die bestaat alleen waar de
+    centrale agent kan draaien; elders een vaste zin."""
+    if b.settings.centrale_agent == "uit":
+        return {"specialist": "", "plan": "", "worker_plan": [], "worker_idx": 0, "afwijzen": True,
+                "afwijs_melding": "Deze vraag van een subagent kan ik hier niet meer beantwoorden.",
+                "afwijs_stap": "niets gestart", "annotaties_lezen": False}
+    _stap(writer, "Lex", "verwerkt je antwoord voor de subagent", route="subagent")
+    return {"specialist": "subagent_vervolg", "plan": "", "worker_plan": ["subagent_vervolg"], "worker_idx": 0,
+            "afwijzen": False, "annotaties_lezen": False}
+
+
+def _deelgesprek(b: Bouw, writer, state: State, dg: dict[str, Any]) -> dict[str, Any]:
+    """Een beurt van de jurist in het deelgesprek van een subagent: het profiel van het gesprek, en de delegatie op
+    `later_gewijzigd` (best effort: een storing kost alleen de markering)."""
+    profiel = dg["profiel"]
+    if dg.get("delegatie_id") and b.settings.legt_zelf_vast:
+        from ..agents.uitvoering import draai
+        from .context import met_api
+
+        async def markeer(_stuur) -> None:
+            async with met_api(b, state.get("user_id", "")) as api:
+                await api.wijzig_delegatie(dg["delegatie_id"], {"later_gewijzigd": True})
+        try:
+            draai(markeer, loop=b.loop, schrijf=writer)
+        except Exception:  # noqa: BLE001 – de markering is een signaal, geen voorwaarde voor de beurt
+            logger.warning("deelgesprek: later_gewijzigd niet gezet", extra={"categorie": "technisch"})
+    _stap(writer, "Lex", f"werkt verder als {profiel}, het profiel van dit deelgesprek", route=profiel)
+    logger.info("worker gekozen", extra={"categorie": "functioneel", "worker": profiel, "deelgesprek": True})
+    return {"zelfstandige_vraag": "", "specialist": profiel, "plan": "", "worker_plan": [profiel], "worker_idx": 0,
+            "afwijzen": False, "annotaties_lezen": False}
+
+
 def _naar_centraal(writer, state: State) -> dict[str, Any]:
     """De centrale agent als enige worker van de beurt: de antwoordketen met het profiel `centraal`."""
     _stap(writer, "Lex", f"zoekt het antwoord in {bronstand.waar(state.get('bronstand'))}", route=CENTRAAL)
@@ -445,6 +486,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
             return _bronselectie(writer, "verwerkt je keuze in de bronselectie")
         if str((state.get("intake_actie") or {}).get("intake_id", "")).startswith(KAARTPREFIX):
             return _begrip_keuze(writer, state)
+        if str((state.get("intake_actie") or {}).get("intake_id", "")).startswith(SUBAGENT_PREFIX):
+            return _subagent_vervolg(b, writer)
         return _werkgebied(writer, "verwerkt het antwoord op het kaartje")
     if state.get("actie") == "bepaling_toevoegen":
         return _bronselectie(writer, "zoekt met je een bepaling op")
@@ -562,6 +605,11 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # "Wat is het laatste stuk van dossier 32140?": een zoekvraag met een volgorde, die de code helemaal leest. Ook in
         # een gesprek: de vraag noemt zelf wat er gezocht wordt (acceptatie 9 nov 2026: elf rondes, twee foute antwoorden).
         return _bron_lijst(writer, lijst)
+
+    if (dg := state.get("deelgesprek") or {}).get("profiel") in register_kiesbaar():
+        # Doorvragen in het deelgesprek van een subagent (ADR-016 §A4): het profiel ligt op het gesprek vast, en de
+        # delegatie hoort dat er later iets veranderde. Geen supervisorstap en geen centrale agent.
+        return _deelgesprek(b, writer, state, dg)
 
     if _centraal(state):
         # ADR-016 §A1: geen vaste route pakte de vraag, dus de centrale agent beantwoordt hem zelf. De supervisorstap en
@@ -763,6 +811,8 @@ def _entry_node(b: Bouw, state: State) -> str:
         return "bronselectie"
     if state.get("specialist") == "agent_taak":
         return "agent_taak"
+    if state.get("specialist") == "subagent_vervolg":
+        return "subagent_vervolg"
     if state.get("bepalingsvraag"):
         return "bepaling_lezen"
     if state.get("bron_lijst"):

@@ -281,8 +281,12 @@ class WetsanalyseApi:
         loopt."""
         return await self._post("/v1/delegaties", invoer)
 
+    async def haal_delegatie(self, delegatie_id: str) -> dict[str, Any]:
+        """Eén delegatie met haar plan en uitkomst (ADR-016 §A4: de vragen van een wachtende subagent)."""
+        return await self._haal(f"/v1/delegaties/{quote(delegatie_id, safe='')}")
+
     async def wijzig_delegatie(self, delegatie_id: str, wijziging: dict[str, Any]) -> dict[str, Any]:
-        """De hartslag (`{status: "loopt"}`) of de eindstand met de uitkomst."""
+        """De hartslag (`{status: "loopt"}`), wachten of hervatten, of de eindstand met de uitkomst."""
         return await self._verstuur("PATCH", f"/v1/delegaties/{quote(delegatie_id, safe='')}", wijziging)
 
     async def maak_gesprek(self, invoer: dict[str, Any]) -> dict[str, Any]:

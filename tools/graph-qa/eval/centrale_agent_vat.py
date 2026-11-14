@@ -156,6 +156,8 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
         "profiel_past": (all(p in v["profielen"] for p in kind_profielen) and bool(kind_profielen)) if subagent else None,
         "bevestiging": [f"{b.get('soort')}:{b.get('opdracht', '')}".rstrip(":") for b in bevestigingen],
         "vraagkaart": [e["vraagkaart"].get("stap") for e in events if e["type"] == "vraagkaart"],
+        # Vragen naar boven (ADR-016 §A4): of een subagent hervat werd (door de centrale agent of na een klik).
+        "hervat": any(e["type"] == "regie" and e.get("fase") == "start" and e.get("hervat") for e in events),
         "niveau": [c.get("niveau", "") for c in controles],
         "niet_letterlijk": sum(len(c.get("niet_letterlijk") or []) for c in controles),
         "unsupported": sum(len(c.get("unsupported") or []) for c in controles),
