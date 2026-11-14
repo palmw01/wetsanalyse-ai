@@ -6,6 +6,7 @@ node-modules ze kunnen gebruiken.
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Any
 
 def _parse_final(final: Any) -> tuple[list[dict[str, Any]], list[str]]:
@@ -53,9 +54,15 @@ CORRECTIE = "Let op: "
 #: code midden in een beurt.
 HERHAALVERZOEK = "Je antwoordde met een lijst in tekst"
 
+#: Waarmee het eerste bericht van een hervatte subagent begint (`subagent.antwoord_tekst`, ADR-016 §A4): de antwoorden van
+#: de jurist op zijn vragen. Dat is geen nieuwe vraag maar het vervolg van zijn opdracht, dus geen begin van een beurt: het
+#: hervatte deel ziet wat het eerste deel las (meting bundel 118, D01: het hervatte deel begon op 30k zonder de
+#: toolresultaten en las drie uitspraken opnieuw).
+HERVATTING = "ANTWOORD OP JE VRAGEN ("
+
 #: De user-berichten die de code midden in een beurt zet. Ze zijn geen vraag van de jurist, dus geen begin van een beurt
 #: en geen grens om op te knippen.
-CODEBERICHTEN = (CORRECTIE, HERHAALVERZOEK)
+CODEBERICHTEN = (CORRECTIE, HERHAALVERZOEK, HERVATTING)
 
 
 def beurt_start(messages: list[dict[str, Any]], vraag: str = "") -> int:
@@ -65,12 +72,53 @@ def beurt_start(messages: list[dict[str, Any]], vraag: str = "") -> int:
     DEZE beurt gaat – welke bepaling de agent net ophaalde, welk resultaat hij nu leest – hoort
     alleen hier gezocht te worden. Met `vraag` telt een correctiebericht ("Let op: …") van
     `correct_node` niet als begin: dat is een platte user-beurt midden in dezelfde beurt.
-    Zonder geschikte kandidaat: 0 (alles is deze beurt)."""
+    Zonder geschikte kandidaat: 0 (alles is deze beurt).
+
+    Een hervatte subagent (`HERVATTING`) zet zijn opdracht voort: zijn beurt begint bij de vraag vóór de hervatting, zodat
+    het venster en de ontdubbeling (`_al_gedaan`) het eerste deel als deze beurt zien."""
     for i in range(len(messages) - 1, -1, -1):
         m = messages[i]
         if _is_plain_user(m) and (not vraag or m.get("content") == vraag):
+            if _is_hervatting(m):
+                # Een hervatting is geen vraag (`CODEBERICHTEN`), dus dit is de opdracht vóór de eerste hervatting.
+                return next((j for j in range(i - 1, -1, -1) if _is_vraag(messages[j])), i)
             return i
     return 0
+
+
+def _is_hervatting(m: dict[str, Any]) -> bool:
+    c = m.get("content")
+    return m.get("role") == "user" and isinstance(c, str) and c.startswith(HERVATTING)
+
+
+def hervatting_van(messages: list[dict[str, Any]], vraag: str) -> int | None:
+    """De index van de hervatting met deze vraag (het laatste bericht met die tekst), of None als de beurt geen hervatting
+    is."""
+    if not vraag.startswith(HERVATTING):
+        return None
+    return next((i for i in range(len(messages) - 1, -1, -1)
+                 if _is_plain_user(messages[i]) and messages[i].get("content") == vraag), None)
+
+
+def toolresultaten(messages: list[dict[str, Any]], namen: Iterable[str]) -> list[tuple[str, str]]:
+    """De resultaten van de geslaagde aanroepen in `messages` als (tool, resultaat), voor de tools in `namen`: de trace van
+    een eerder deel van dezelfde beurt."""
+    namen = set(namen)
+    aanroepen: dict[str, str] = {}
+    uit: list[tuple[str, str]] = []
+    for m in messages:
+        inhoud = m.get("content")
+        for blok in inhoud if isinstance(inhoud, list) else []:
+            if not isinstance(blok, dict):
+                continue
+            if blok.get("type") == "tool_use":
+                aanroepen[str(blok.get("id", ""))] = str(blok.get("name", ""))
+            elif (blok.get("type") == "tool_result" and not blok.get("is_error")
+                  and aanroepen.get(str(blok.get("tool_use_id", ""))) in namen):
+                tekst = blok.get("content")
+                if isinstance(tekst, str):
+                    uit.append((aanroepen[str(blok["tool_use_id"])], tekst))
+    return uit
 
 
 def eerdere_beurten(messages: list[dict[str, Any]], vraag: str = "", *, aantal: int = 3,

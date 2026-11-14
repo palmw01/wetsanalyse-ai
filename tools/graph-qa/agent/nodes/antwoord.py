@@ -21,8 +21,8 @@ from bronmodel.connectors import CONNECTORS
 from langgraph.config import get_stream_writer
 
 from ..beurtmeting import tel_sjabloon
-from ..berichten import (CORRECTIE, _parse_final, _schoon_messages, _trim_messages, beurt_start, met_beurtcontext,
-                         venster_telling)
+from ..berichten import (CORRECTIE, _parse_final, _schoon_messages, _trim_messages, beurt_start, hervatting_van,
+                         met_beurtcontext, toolresultaten, venster_telling)
 from ..bronregister import bij, controletrace
 from ..focus import genoemd_in_antwoord, na_antwoord
 from ..grounding import alleen_gelezen_extern, check_grounding, curate_sources, herstel_citaten, live_niet_letterlijk
@@ -237,6 +237,8 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         upd["laatste_gehad"] = True
     upd["sjabloon_nu"] = False
     upd.update(telling)
+    if eerder := _eerder_gelezen(state, historie):
+        upd["source_trace"] = [*eerder, *(state.get("source_trace") or [])]
     gevonden = _gevonden_zonder_sjabloon(b, state) if not tool_uses and sjablonen else {}
     tekst = "\n\n".join(p for p in text_parts if p)
     lijst = bool(gevonden) and heeft_lijst(tekst)
@@ -525,7 +527,9 @@ def _gevonden_zonder_sjabloon(b: Bouw, state: State) -> dict[str, list[tuple[str
 
 #: Hoeveel tokens een subagent hoogstens verbruikt (ruw: invoer, uitvoer, cache lezen en schrijven, zoals het budget telt).
 #: Bij het plafond is de volgende ronde de laatste. Gemeten (14 nov 2026): het S03-kind deed het voor ~160k, het D01-kind
-#: zat na 7 rondes op ~490k, het rechtspraak-kind van P01 kostte 452k.
+#: zat na 7 rondes op ~490k, het rechtspraak-kind van P01 kostte 452k. Het geldt per beurt van het kind: de meter is per
+#: beurt (`api.main._stroom_voor`), dus een hervat deel heeft zijn eigen plafond (bundel 118: 254k en 249k waren twee
+#: meters). Het hervatte deel begint met wat het eerste deel las (`berichten.HERVATTING`), dus het heeft geen kleiner nodig.
 MAX_TOKENS_SUBAGENT = 300_000
 
 LAATSTE_RONDE = {
@@ -622,6 +626,21 @@ def _sleutel(tu: dict[str, Any]) -> str:
 #: Hoe vaak dezelfde aanroep in één beurt mag mislukken voor het resultaat vaststaat. Een tijdelijke fout
 #: verdient een tweede kans, een blijvende (ongeldig argument) mag de beurtlimiet niet opeten.
 MAX_POGINGEN = 2
+
+
+def _eerder_gelezen(state: State, historie: list[dict[str, Any]]) -> list[tuple[str, str]]:
+    """De eerste ronde van een hervatte subagent: wat het eerste deel van zijn opdracht ophaalde, voor de trace van deze
+    beurt. Dan toetst `verify` ertegen, kan het rapport eruit citeren en noemt de ouder het gelezen (meting bundel 118,
+    D01: het hervatte deel las drie uitspraken opnieuw). Anders leeg."""
+    if not state.get("opdracht") or state.get("turns") or state.get("source_trace"):
+        return []
+    vraag = state.get("question", "") or ""
+    h = hervatting_van(historie, vraag)
+    if h is None:
+        return []
+    from ..tools import TOOLS
+
+    return toolresultaten(historie[beurt_start(historie, vraag):h], {t["name"] for t in TOOLS})
 
 
 def _al_gedaan(state: State) -> dict[str, str]:
@@ -797,7 +816,11 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     # `beweringen`): eerst één correctieronde, net als een vindplaats zonder bron; staat het er daarna nog, dan is het
     # onbevestigd (Rechtspraak ronde 4, 12 nov 2026: "dossier 20588" en een intrekking bij het verkeerde dossier stonden
     # als feit in de toelichting, en de controle zag ze niet).
-    if report.beweringen and not state.get("corrected") and b.settings.grounding_correct and not state.get("overzicht"):
+    # Een subagent die geen ronde meer heeft, krijgt geen correctieronde: die kan er niet komen, en de code sloot hem dan af
+    # en gooide zijn rapport weg (meting bundel 118, D01: een rapport `klaar`, een correctie, en een leeg rapport naar de
+    # centrale agent). Wat de controle vond, gaat met het rapport mee (`onbevestigd`, `subagent.rapport_tekst`).
+    if (report.beweringen and not state.get("corrected") and b.settings.grounding_correct and not state.get("overzicht")
+            and not voorbij_laatste(b, state)):
         report = replace(report, grounded=False, niveau="ongegrond")
     elif report.beweringen:
         report = replace(report, onbevestigd=[*report.onbevestigd, *report.beweringen])
@@ -833,7 +856,8 @@ def route_after_verify(b: Bouw, state: State) -> str:
         # schrijven. Keurt de controle iets af, dan is dat een fout in `samenvatting` – zichtbaar in
         # het grounding-event, niet stil weggepoetst.
         return "finalize"
-    if not state.get("grounded", True) and b.settings.grounding_correct and not state.get("corrected"):
+    if (not state.get("grounded", True) and b.settings.grounding_correct and not state.get("corrected")
+            and not voorbij_laatste(b, state)):
         return "correct"
     return "finalize"
 
@@ -893,6 +917,8 @@ def correct_node(b: Bouw, state: State) -> dict[str, Any]:
         "corrected": True,
         "answer": "",
         "antwoord": {},
+        # Het rapport van een subagent hoort bij het antwoord dat de correctie vervangt: zonder antwoord geen rapport.
+        "rapport": {},
     }
 
 

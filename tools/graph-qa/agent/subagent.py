@@ -35,6 +35,7 @@ from collections.abc import Iterable, Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from .berichten import HERVATTING
 from .models import ChatRequest, SubagentOpdracht
 from .profielen import KIESBAAR, PROFIELEN, versie
 from .wetsanalyse_api import GesprekVerdwenen, WetsanalyseApi, WetsanalyseApiFout
@@ -260,15 +261,17 @@ def eerste_vraag(kinderen: list[dict[str, Any]]) -> int | None:
 
 def antwoord_tekst(vragen: list[dict[str, Any]], antwoorden: list[str], *, van: str) -> str:
     """Het eerste bericht van een hervatte beurt: per vraag het antwoord, en de opdracht om verder te gaan."""
-    regels = [f"ANTWOORD OP JE VRAGEN ({van})"]
+    regels = [f"{HERVATTING}{van})"]
     if len(antwoorden) == 1 and len(vragen) != 1:
         # Eén antwoord op alle vragen (de centrale agent): eerst de vragen, dan het antwoord.
         regels += [f"- {v.get('tekst', '')}" for v in vragen] + [f"Antwoord: {antwoorden[0]}"]
     for i, v in enumerate(vragen if len(antwoorden) != 1 or len(vragen) == 1 else []):
         regels += [f"- {v.get('tekst', '')}", f"  Antwoord: {antwoorden[i] if i < len(antwoorden) else '(geen antwoord)'}"]
-    regels.append("Ga verder met je opdracht en rond af met het rapport, zoals altijd. Vraag niet opnieuw wat hierboven "
-                  "beantwoord is, en stel geen vraag die je de eerste keer al kon stellen: alleen een vraag die uit een "
-                  "antwoord hierboven volgt.")
+    regels.append("Ga verder met je opdracht en rond af met het rapport, zoals altijd. Wat je al las en je eerste rapport "
+                  "staan hierboven: lees het niet opnieuw, je kunt eruit citeren. Neem de bevindingen uit je eerste "
+                  "rapport die bij deze antwoorden passen op in je rapport, met hun passages: de gebruiker ziet alleen je "
+                  "laatste rapport. Vraag niet opnieuw wat hierboven beantwoord is, en stel geen vraag die je de eerste "
+                  "keer al kon stellen: alleen een vraag die uit een antwoord hierboven volgt.")
     return "\n".join(regels)
 
 
@@ -439,8 +442,10 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
         status = (kind.get("rapport") or {}).get("status", "")
         afloop.vragen = list((kind.get("rapport") or {}).get("vragen") or []) if status == "vraag" else []
         uitkomst = kind_run.uitkomst or kind_run.status or "klaar"
-        afloop.uitkomst = "gestopt" if uitkomst == "gestopt" else status or (
-            "mislukt" if uitkomst == "mislukt" else "afgesloten" if kind.get("afgesloten") else "niet_gelukt")
+        # Sloot de code het kind af, dan is het `afgesloten`, ook als er eerder in de beurt een rapport stond (meting bundel
+        # 118, D01: een rapport `klaar`, dan een correctieronde en de afsluiting; het kind heette `klaar` met een leeg rapport).
+        afloop.uitkomst = ("gestopt" if uitkomst == "gestopt" else "afgesloten" if kind.get("afgesloten") else status or (
+            "mislukt" if uitkomst == "mislukt" else "niet_gelukt"))
         return kind
     except GesprekVerdwenen:
         afloop.uitkomst, afloop.reden = "mislukt", "het gesprek is verwijderd"
@@ -536,13 +541,28 @@ def gelezen_tekst(kind: dict[str, Any]) -> str:
                      gevonden, MAX_GEVONDEN))
 
 
+#: Hoeveel punten van de controle het rapport hoogstens noemt.
+MAX_CONTROLE = 8
+
+
+def controle_tekst(kind: dict[str, Any]) -> str:
+    """Wat de controle in het rapport niet terugvond in wat het kind las: de punten uit `verify`, uit code. Een subagent
+    zonder ronde meer krijgt geen correctie (meting bundel 118, D01), dus de centrale agent hoort het; hij neemt ze niet
+    over."""
+    punten = list(dict.fromkeys([*(kind.get("niet_onderbouwd") or []), *(kind.get("onbevestigd") or [])]))
+    if not punten:
+        return ""
+    return ("\nNiet teruggevonden in wat de subagent las (de controle; neem dit niet over):\n"
+            + "\n".join(f"- {p}" for p in punten[:MAX_CONTROLE]))
+
+
 def rapport_tekst(afloop: Afloop, kind: dict[str, Any]) -> str:
     """De tekst van het rapport voor de centrale agent: wat het kind schreef als het met een rapport afrondde en de
     controle doorstond, anders de reden uit code. Las het kind wel iets (de rondegrens, een rapport dat niet te vullen
     was), dan noemt de code wat er lag: de bronnen uit zijn toolresultaten, die ook in de trace van de centrale agent
     staan (ADR-016 §A4: afsluiten met wat er lag)."""
     if (kind.get("rapport") or {}).get("status") and kind.get("answer"):
-        return kind["answer"] + ("\n" + lijsten if (lijsten := gelezen_tekst(kind)) else "")
+        return kind["answer"] + controle_tekst(kind) + ("\n" + lijsten if (lijsten := gelezen_tekst(kind)) else "")
     tekst = GEEN_RAPPORT.get(afloop.uitkomst, GEEN_RAPPORT["niet_gelukt"]) + (f" ({afloop.reden})" if afloop.reden else "")
     return tekst + gelezen_tekst(kind)
 

@@ -151,3 +151,42 @@ def zonder_steun(tekst: str, steun: dict[str, str], trace: Iterable[Any]) -> lis
             elif sum(w[:_STAM] in passages for w in eigen) < MIN_STEUN * len(eigen):
                 uit[vp.id] = f"duiding van {vp.id} die de passages van dat stuk niet dragen"
     return list(uit.values())
+
+
+_ZIE = re.compile(r"\bzie\b", re.IGNORECASE)
+#: De woorden van een verwijzing zelf ("zie de toelichting bij …"): geen duiding.
+_VERWIJSWOORDEN = frozenset("zie toelichting bij hierboven hieronder onder eerder genoemde vorige volgende".split())
+
+
+def verwijzing_als_duiding(tekst: str, trace: Iterable[Any]) -> list[str]:
+    """De stukken die `tekst` niet duidt maar met "zie …" naar een ander stuk verwijst (meting bundel 118, D01: bij
+    HR:2023:176 en :183 stond "Zie toelichting bij HR:2023:181", en die gaat over iets anders). Een verwijzing naar een
+    ander stuk is geen duiding van dit stuk. Per zin of lijstregel: noemt ze stuk A en na "zie" een ander stuk B, en zegt ze
+    over A verder niets (hoogstens `MAX_EIGEN_WOORDEN` eigen woorden), dan is het een bewering. Ook als A de kop erboven
+    is en de regel met "zie" begint."""
+    from bronmodel.extern import externe_verwijzingen
+
+    items = [(str(x[0]), str(x[1])) for x in trace]
+    uit: dict[str, str] = {}
+    vorige: list[str] = []
+    for segment in _SEGMENT.split(tekst or ""):
+        if not segment.strip():
+            continue
+        ids = list(dict.fromkeys(vp.id for vp in externe_verwijzingen(segment)))
+        zie = _ZIE.search(segment)
+        if zie is None:
+            vorige = ids
+            continue
+        voor = list(dict.fromkeys(vp.id for vp in externe_verwijzingen(segment[:zie.start()])))
+        na = [i for i in dict.fromkeys(vp.id for vp in externe_verwijzingen(segment[zie.end():]))]
+        onderwerp = voor[0] if voor else (vorige[0] if len(vorige) == 1 and not segment[:zie.start()].strip(" -*•\t") else "")
+        anders = [b for b in na if b != onderwerp]
+        vorige = ids
+        if not onderwerp or not anders or onderwerp in uit:
+            continue
+        bekend = set().union(*(_rijwoorden(items, i) for i in [onderwerp, *anders]))
+        eigen = [w for w in _WOORD.findall(segment.casefold())
+                 if w not in bekend and w not in _FUNCTIEWOORDEN and w not in _VERWIJSWOORDEN]
+        if len(eigen) <= MAX_EIGEN_WOORDEN:
+            uit[onderwerp] = f"verwijzing van {onderwerp} naar {anders[0]} in plaats van een duiding"
+    return list(uit.values())
