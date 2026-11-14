@@ -647,7 +647,30 @@ export interface Bericht {
   /** De opbouw van de context en het verbruik van de beurt (graph-qa); `parseContextopbouw` in `lib/contextweergave.ts`
    *  leest het. Oudere berichten en beurten zonder model hebben het niet. */
   contextopbouw?: unknown;
+  /** De delegaties die deze beurt startte of hervatte (ADR-016 §A5): hun stand haalt de werkplek bij de api
+   *  (`lib/delegatie.ts`), zodat er na herladen de stand van nu staat. */
+  delegaties?: string[];
+  /** Een bericht dat de code in een deelgesprek schreef (graph-qa: `rol: assistant`): de opdracht aan de subagent, of de
+   *  antwoorden van de jurist die bij het hervatten zijn doorgegeven. Nooit een bericht van de jurist zelf (bugonderzoek
+   *  ADR-016, B5). */
+  doorgegeven?: "opdracht" | "antwoorden" | null;
   created?: string;
+}
+
+/** Een delegatie zoals de api haar geeft (`api/app/delegatie_contracts.py`): de regie van ADR-012 of de subagent(s) van
+ *  de centrale agent (ADR-016). `plan` en `uitkomst` zijn van graph-qa; `lib/delegatie.ts` leest ze defensief. */
+export interface Delegatie {
+  id: string;
+  soort: "regie" | "subagent";
+  werkgebied_id: string;
+  gesprek_id: string;
+  opdracht: "bronnen" | "annoteren" | "subagent";
+  plan: Record<string, unknown>;
+  status: "loopt" | "wacht" | "klaar" | "gestopt" | "mislukt";
+  uitkomst: Record<string, unknown>;
+  later_gewijzigd: boolean;
+  gestart?: string | null;
+  afgerond?: string | null;
 }
 
 /** Hoe een beurt afliep (graph-qa `agent/beurt.py`). De melding is letterlijk de fout die de jurist live zag. */

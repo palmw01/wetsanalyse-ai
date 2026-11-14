@@ -66,7 +66,11 @@ het gaat naar de browser en naar het chatbericht, niet naar Log Analytics.
 `uitvoer`, `cache_lees`, `cache_schrijf`, `model` en `sjabloon` (wat er met de antwoordsjablonen gebeurde: het
 herhaalverzoek, aangenomen tekst, weigeringen per redencode en gevulde sjablonen; `beurtmeting.tel_sjabloon`). Geen
 inhoud. Hij voedt de panelen *Wachttijd per beurtsoort* en
-*Tokens en cachetreffer per beurtsoort*. Bedragen staan er niet bij: prijzen staan nergens in de repo, en de
+*Tokens en cachetreffer per beurtsoort*, gesplitst op `agentvorm` (`supervisor` of `centraal`) en `subagent` (ADR-016;
+die velden en `ouder_run_id` komen van graph-qa, een oudere regel heet `onbekend`). Het paneel *Delegatie* telt per dag
+de kinderen per uitkomst (`subagent_afloop`), het verbruik van een beurt met haar kinderen (`beurt_meting` met
+`ouder_run_id`), de terugval van het lichte model (`subagent_model_terugval`, `subagent_model`) en de geweigerde
+toolaanroepen (`tool buiten profiel`, `tool na subagent geweigerd`). Bedragen staan er niet bij: prijzen staan nergens in de repo, en de
 boekhouding blijft het verbruiksjournaal van de api. De batchruns van `begrippen_verdieping` zijn geen beurt en
 vallen erbuiten. Welke stap traag was, staat in de spans `graph_qa.node.<naam>`. Dezelfde cijfers gaan als
 `meting`-event vlak vóór `done` naar wie de run volgt, met daarbij per modelaanroep `invoer`, `uitvoer`,

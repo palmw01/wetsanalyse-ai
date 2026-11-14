@@ -4,6 +4,7 @@
 // functie is te toetsen, en dit is precies de plek waar een herladen gesprek er anders uit kan gaan zien dan live.
 // Het laden zelf, de pogingteller en het weer aanhaken blijven in het component.
 
+import { weergaveUitBericht } from "./delegatie";
 import { parseGrounding, parseHergebruik, parseOverzicht, parseUitkomst, metingUitDekking } from "./agentEvents";
 import { parseAntwoord } from "./antwoord";
 import { annotatieDoelVan, artefactVanBericht } from "./artefact";
@@ -26,6 +27,11 @@ export function itemsUitGesprek(berichten: Bericht[], uid: () => string): Geschi
   const reeksen = new Map<string, Bericht[]>();
   for (const b of berichten) if (b.reeks) reeksen.set(b.reeks.run_id, [...(reeksen.get(b.reeks.run_id) ?? []), b]);
   const items = berichten.flatMap((b): ThreadItem[] => {
+    // Wat de code in een deelgesprek doorgaf (de opdracht, of de antwoorden van de jurist): een blok van Lex, welke rol het
+    // bericht ook draagt (graph-qa schrijft `assistant`; een ouder bericht kan `user` zijn). Nooit een bubbel van de jurist.
+    if (b.doorgegeven === "opdracht" || b.doorgegeven === "antwoorden") {
+      return [{ id: uid(), type: "user" as const, tekst: b.tekst, doorgegeven: b.doorgegeven }];
+    }
     if (b.reeks) {
       const groep = reeksen.get(b.reeks.run_id) ?? [];
       const reeks = groep[0] === b ? reeksUitBerichten(groep) : null;
@@ -38,7 +44,10 @@ export function itemsUitGesprek(berichten: Bericht[], uid: () => string): Geschi
     // is de open vraag na herladen weg. Het paneel opent de werkplek zelf (`toonVastgelegdeBeurt`). Zonder
     // kaartje (een oud bericht *Gevonden bepalingen*, nu een bronselectie) blijft het gewoon een chip.
     if (art && !annotatieDoel && (art.soort !== "bronselectie" || !b.vraagkaart)) {
-      return [{ id: uid(), type: "artefact" as const, artefact: art, tekst: b.tekst?.trim() || undefined, denk: b.denk }];
+      const delegatie = weergaveUitBericht(b.delegaties);
+      const bevestiging = parseBevestiging(b.bevestiging);
+      return [{ id: uid(), type: "artefact" as const, artefact: art, tekst: b.tekst?.trim() || undefined, denk: b.denk,
+        ...(delegatie ? { delegatie } : {}), ...(bevestiging ? { bevestiging } : {}) }];
     }
     return [b.rol === "user"
       ? { id: uid(), type: "user" as const, tekst: b.tekst, antwoordOp: parseAntwoordOp(b.intake_antwoord),
@@ -60,6 +69,8 @@ export function itemsUitGesprek(berichten: Bericht[], uid: () => string): Geschi
             // Het kaartje van het samenstellen: na herladen nog te beantwoorden als het het laatste is.
             vraagkaart: parseVraagkaart(b.vraagkaart),
             uitkomst: parseUitkomst(b.uitkomst),
+            // De subagents of de regie van deze beurt: hun stand van nu haalt het blok bij de api.
+            ...(weergaveUitBericht(b.delegaties) ? { delegatie: weergaveUitBericht(b.delegaties) } : {}),
             // Het oordeel en de aanwijzing in de tekst blijven zo na herladen staan.
             grounding: parseGrounding(b.grounding) }];
   });

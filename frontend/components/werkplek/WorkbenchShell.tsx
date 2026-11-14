@@ -488,6 +488,7 @@ export function WorkbenchShell({
             initialGesprekId={activeId}
             werkgebiedId={werkgebiedId}
             onNieuwGesprek={() => nieuwGesprek(werkgebiedId ?? null)}
+            onOpenGesprek={openGesprek}
             // Alleen het venster waarmee de pagina opende; een nieuw gesprek start niets.
             beginOnderwerp={mountKey === 0 && !beginGesprekId ? beginOnderwerp : null}
             beginInvoer={mountKey === 0 && !beginGesprekId ? beginInvoer : null}

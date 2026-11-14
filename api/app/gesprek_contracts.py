@@ -12,11 +12,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Literal
+from typing import Annotated, Literal
 
 from bronmodel.antwoord import Antwoord
 from bronmodel.connectors import NAMEN as CONNECTOR_NAMEN
-from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_serializer, model_validator
 
 
 class Rol(str, Enum):
@@ -287,6 +287,14 @@ class Contextopbouw(BaseModel):
     aanroepen: list[dict] = Field(default_factory=list, max_length=MAX_CONTEXT_AANROEPEN)
 
 
+#: Het id van een delegatie (`delegatie_store`: een uuid-hex van zestien tekens; ruimer, zodat een ander id-formaat past).
+DelegatieId = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9]{1,64}$")]
+#: Hoeveel delegaties één beurt hooguit noemt: een beurt start er een, of hervat er een; de grens is een vangnet.
+MAX_DELEGATIES = 10
+#: Wat de code in een deelgesprek doorgeeft: de opdracht aan de subagent, of de antwoorden van de jurist bij het hervatten.
+Doorgegeven = Literal["opdracht", "antwoorden"]
+
+
 class Bericht(BaseModel):
     """Eén beurt in het gesprek. Assistent-berichten dragen optioneel `denk`/`bronnen`, of een
     verwijzing naar een annotatie-document (`annotatie_slug`) of bronnode (`annotatie_doel`).
@@ -337,6 +345,15 @@ class Bericht(BaseModel):
     grounding: dict = {}
     # De opbouw van de context en het verbruik van deze beurt. Oudere berichten en beurten zonder model hebben het niet.
     contextopbouw: Contextopbouw | None = None
+    # De delegaties die deze beurt startte of hervatte (ADR-016 §A5, ADR-012): hun id's, in volgorde. De stand staat
+    # niet op het bericht maar bij de delegatie (`/v1/delegaties`), zodat de werkplek na herladen de stand van nu
+    # toont, ook als de jurist een vraag van een subagent later beantwoordde.
+    delegaties: list[DelegatieId] = []
+    # Een bericht dat de code in een deelgesprek schrijft (bugonderzoek ADR-016, B5): de opdracht aan de subagent, of de
+    # antwoorden van de jurist die bij het hervatten worden doorgegeven. graph-qa schrijft het met `rol: assistant`, zodat
+    # er geen tekst van de code als bericht van de jurist in het gesprek staat; het veld is aan geen rol gebonden. De
+    # werkplek toont het als blok van Lex, nooit als bericht van de jurist. Leeg = een gewoon bericht.
+    doorgegeven: Doorgegeven | None = None
     created: datetime | None = None
 
 
@@ -442,6 +459,8 @@ class BerichtInvoer(BaseModel):
     uitkomst: BeurtUitkomst | None = None
     grounding: dict = {}
     contextopbouw: Contextopbouw | None = None
+    delegaties: list[DelegatieId] = Field(default_factory=list, max_length=MAX_DELEGATIES)
+    doorgegeven: Doorgegeven | None = None
 
 
 class BerichtContext(BaseModel):
