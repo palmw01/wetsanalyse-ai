@@ -242,10 +242,12 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           'rond af zoals hierboven. Heeft de subagent een vraag, '
                                           'rond dan af met wat hij al vond: de gebruiker krijgt de '
                                           'vraag als kaart. Werk per deelvraag van een werkgebied '
-                                          'gaat met regie_plan, nooit met subagents. Gaat een '
-                                          'vervolgvraag over werk dat je eerder uitbesteedde (wat '
-                                          'er veranderde, hoe het staat), lees dan eerst de stand '
-                                          'met delegatie_stand en start alleen wat niet af is.\n'
+                                          "gaat met regie_plan, nooit met subagents; 'werk dit "
+                                          "werkgebied uit' is regie_plan met uitwerken, een plan "
+                                          'in fasen. Gaat een vervolgvraag over werk dat je eerder '
+                                          'uitbesteedde (wat er veranderde, hoe het staat), lees '
+                                          'dan eerst de stand met delegatie_stand en start alleen '
+                                          'wat niet af is.\n'
                                           '\n'
                                           'EEN BEGRIP: begin bij zoek_definitie: die vindt het '
                                           'tekstdeel waar de wet het begrip zélf definieert, mét '
@@ -424,10 +426,12 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                                 'af met wat hij al vond: de gebruiker krijgt de '
                                                 'vraag als kaart. Werk per deelvraag van een '
                                                 'werkgebied gaat met regie_plan, nooit met '
-                                                'subagents. Gaat een vervolgvraag over werk dat je '
-                                                'eerder uitbesteedde (wat er veranderde, hoe het '
-                                                'staat), lees dan eerst de stand met '
-                                                'delegatie_stand en start alleen wat niet af is.\n'
+                                                "subagents; 'werk dit werkgebied uit' is "
+                                                'regie_plan met uitwerken, een plan in fasen. Gaat '
+                                                'een vervolgvraag over werk dat je eerder '
+                                                'uitbesteedde (wat er veranderde, hoe het staat), '
+                                                'lees dan eerst de stand met delegatie_stand en '
+                                                'start alleen wat niet af is.\n'
                                                 '\n'
                                                 'EEN BEGRIP: begin bij zoek_definitie: die vindt '
                                                 'het tekstdeel waar de wet het begrip zélf '
@@ -719,4 +723,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                        'search_wetgeving',
                                        'semantic_search',
                                        'zoek_opbouw')}},
- 'sha256': 'b0a71b2de666e8e62acb26cc7fefbed7276eedb01e4dbe0b01e67fb39666e5a3'}
+ 'sha256': '3425dc50dcb2f0545f1d1a57ab7078bcd85f574c374c9179e688abb5b0afd994'}

@@ -178,8 +178,9 @@ def vat(rec: dict[str, Any], opdracht: dict[str, Any]) -> dict[str, Any]:
                                                                if e.get("rapport") else {})}
                            for e in events if e["type"] == "regie_taak" and e.get("fase") == "eind"],
         "kind_gekozen_modellen": sorted({k.get("gekozen_model") for k in kinderen if k.get("gekozen_model")}),
-        "profiel_past": ((all(p in v["profielen"] for p in kind_profielen) and bool(kind_profielen)) if subagent else None)
-                        if "profiel" not in niet_gebouwd else None,
+        # Een regiekind draagt ook een profiel (`retrieval`, `regie_taak` start), dus ook een regie scoort hier.
+        "profiel_past": ((all(p in v["profielen"] for p in kind_profielen) and bool(kind_profielen))
+                         if subagent or regie else None) if "profiel" not in niet_gebouwd else None,
         # Wat uit de score is gehaald omdat het niet gebouwd is; de regel bij de drempel telt deze opdrachten apart.
         "niet_gebouwd": niet_gebouwd,
         "bevestiging": [f"{b.get('soort')}:{b.get('opdracht', '')}".rstrip(":") for b in bevestigingen],

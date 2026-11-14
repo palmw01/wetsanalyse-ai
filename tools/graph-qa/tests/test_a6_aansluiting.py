@@ -164,17 +164,21 @@ def test_een_subagent_heeft_een_span_en_het_kind_erft_de_trace():
 # -- 4. de meetset -------------------------------------------------------------------------------------------------
 
 def test_wat_niet_gebouwd_is_gaat_uit_de_score():
+    """Sinds 14 nov 2026 is alles gebouwd wat de set vraagt; het veld werkt nog voor een volgende opdracht."""
     opdrachten = vat.lees_set()
-    # F03 (delegatie_stand) en V03 (zelf beantwoorden) zijn gebouwd: ze tellen weer mee.
-    assert {i: opdrachten[i].get("niet_gebouwd") for i in ("F03", "V03", "M04", "M05")} == {
-        "F03": None, "V03": None, "M04": ["fasen", "profiel"], "M05": ["profiel"]}
-    assert sum(1 for o in opdrachten.values() if o.get("niet_gebouwd")) == 2
-    s = vat.vat({"id": "F03", "run": 1, "beurten": [{"label": "gemeten", "events": []}]},
-                {**opdrachten["F03"], "niet_gebouwd": ["tool:delegatie_stand"]})
+    assert not [i for i, o in opdrachten.items() if o.get("niet_gebouwd")]
+    leeg = {"id": "F03", "run": 1, "beurten": [{"label": "gemeten", "events": []}]}
+    s = vat.vat(leeg, {**opdrachten["F03"], "niet_gebouwd": ["tool:delegatie_stand"]})
     assert s["tools_ontbreken"] == [] and s["niet_gebouwd"] == ["tool:delegatie_stand"]
-    assert vat.vat({"id": "F03", "run": 1, "beurten": [{"label": "gemeten", "events": []}]},
-                   opdrachten["F03"])["tools_ontbreken"] == ["delegatie_stand"]
-    m = vat.vat({"id": "M04", "run": 1, "beurten": [{"label": "gemeten", "events": [
-        {"type": "regie", "soort": "subagent", "fase": "start"},
-        {"type": "regie_taak", "fase": "start", "profiel": "algemeen"}]}]}, opdrachten["M04"])
-    assert m["profiel_past"] is None, "het profiel retrieval bestaat niet voor een regiekind"
+    assert vat.vat(leeg, opdrachten["F03"])["tools_ontbreken"] == ["delegatie_stand"]
+
+
+def test_een_regiekind_scoort_op_zijn_profiel():
+    opdrachten = vat.lees_set()
+    events = [{"type": "regie", "fase": "start", "regie_id": "r"},
+              {"type": "regie_taak", "fase": "start", "profiel": "retrieval"}]
+    m = vat.vat({"id": "M02", "run": 1, "beurten": [{"label": "gemeten", "events": events}]}, opdrachten["M02"])
+    assert m["profiel_past"] is True and m["kind_profielen"] == ["retrieval"]
+    m = vat.vat({"id": "M04", "run": 1, "beurten": [{"label": "gemeten", "events": events}]},
+                {**opdrachten["M04"], "niet_gebouwd": ["profiel"]})
+    assert m["profiel_past"] is None

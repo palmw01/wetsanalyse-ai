@@ -262,6 +262,23 @@ def test_regie_plan_legt_het_plan_van_de_regisseur_voor_met_zijn_knop(monkeypatc
     assert "deelgesprek" in upd["answer"] and "start_delegatie" not in api.aanroepen, "eerst de bevestiging"
 
 
+def test_werk_dit_werkgebied_uit_is_een_plan_in_fasen(monkeypatch):
+    """Agentset M04 (ADR-016 §A5, *Fasen*): de eerste fase is de bronnen, de tekst noemt de fasen en de jurist ertussen."""
+    from agent.regie.regisseur import FASEN_TEKST
+
+    events = []
+    monkeypatch.setattr(delegatie_plan, "get_stream_writer", lambda: events.append)
+    zet = overdracht.OVERDRACHT["regie_plan"].zet
+    assert zet(_bouw(), {**STATE, "werkgebied_id": "w1"}, {"opdracht": "uitwerken"}) == {"regie_plan": "uitwerken"}
+    api = NepApi(deelvragen=2)
+    b = SimpleNamespace(settings=SimpleNamespace(legt_zelf_vast=True, regie_parallel=2), loop=None,
+                        agent_api=lambda *_a: api)
+    upd = delegatie_plan.regie_voorstel_node(b, {**STATE, "werkgebied_id": "w1", "regie_plan": "uitwerken"})
+    [bevestiging] = [e["bevestiging"] for e in events if e["type"] == "bevestiging"]
+    assert bevestiging["opdracht"] == "bronnen", "de eerste fase"
+    assert upd["answer"].startswith(FASEN_TEKST) and "ik neem zelf niets op" in upd["answer"]
+
+
 def test_regie_plan_staat_alleen_in_het_voorvoegsel_van_een_beurt_met_een_werkgebied():
     """Per beurt vast, dus binnen de beurt blijft het voorvoegsel gelijk; buiten een werkgebied kost het niets."""
     from agent.agentvorm import agent_voor

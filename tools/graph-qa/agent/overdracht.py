@@ -361,8 +361,8 @@ def _regie_plan(b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any] 
     """De regisseur als tool (ADR-016 §A5): het plan per deelvraag komt uit de stand bij de api, zonder tokens, met de
     bevestiging van de regie (`regisseur.voorstel`). De centrale agent stelt het niet zelf op."""
     opdracht = invoer.get("opdracht", "")
-    if opdracht not in ("bronnen", "annoteren"):
-        return "Kies de opdracht: bronnen of annoteren."
+    if opdracht not in ("bronnen", "annoteren", "uitwerken"):
+        return "Kies de opdracht: bronnen, annoteren of uitwerken."
     if not state.get("werkgebied_id"):
         return "Een regie per deelvraag hoort bij een werkgebied, en dit gesprek hoort bij geen werkgebied."
     if not getattr(b.settings, "legt_zelf_vast", False):
@@ -503,8 +503,11 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
         beschrijving=(
             "Verdeel het werk per deelvraag van het werkgebied over deelgesprekken, met een plan uit de stand van het "
             "werkgebied. bronnen: de bronnen per deelvraag zoeken. annoteren: wat de gebruiker per deelvraag opnam "
-            "annoteren. De werkplek toont het plan met een knop; schrijf zelf niets."),
-        invoer={"opdracht": {"type": "string", "enum": ["bronnen", "annoteren"]}}, naar="regie_voorstel", zet=_regie_plan,
+            "annoteren. uitwerken: het hele werkgebied uitwerken ('werk dit werkgebied uit'), een plan in fasen "
+            "(bronnen, dan annoteren, dan begrippen) waarvan de eerste fase de bronnen zijn. De werkplek toont het plan "
+            "met een knop; schrijf zelf niets."),
+        invoer={"opdracht": {"type": "string", "enum": ["bronnen", "annoteren", "uitwerken"]}}, naar="regie_voorstel",
+        zet=_regie_plan,
         strict=False, werkgebied=True),
     Overdracht(
         naam="taakagent",
