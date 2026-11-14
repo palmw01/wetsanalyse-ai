@@ -85,7 +85,8 @@ def test_met_uit_is_de_graaf_die_van_voorheen():
     for stand in ("meten", "aan"):
         g = build_graph(make_settings(centrale_agent=stand), FakeLLM([]), FakeGraph())
         # De overdracht, en de klik op de vraagkaart van een subagent (ADR-016 §A4).
-        assert set(g.nodes) == set(uit.nodes) | {"overdracht", "subagent_vervolg", "subagent_plan", "regie_voorstel"}
+        assert set(g.nodes) == set(uit.nodes) | {"overdracht", "subagent_vervolg", "subagent_plan", "regie_voorstel",
+                                                 "subagent_route"}
         edges = {(e.source, e.target) for e in g.compile().get_graph().edges}
         oud = {(e.source, e.target) for e in uit.compile().get_graph().edges}
         assert edges - oud == {("agent", "overdracht"), ("overdracht", "agent"), ("overdracht", "afwijzen"),
@@ -96,7 +97,9 @@ def test_met_uit_is_de_graaf_die_van_voorheen():
                                ("supervisor", "subagent_vervolg"), ("advance", "subagent_vervolg"),
                                ("subagent_vervolg", "agent"), ("subagent_vervolg", "__end__"),
                                ("overdracht", "subagent_plan"), ("subagent_plan", "__end__"),
-                               ("overdracht", "regie_voorstel"), ("regie_voorstel", "__end__")}
+                               ("overdracht", "regie_voorstel"), ("regie_voorstel", "__end__"),
+                               ("supervisor", "subagent_route"), ("advance", "subagent_route"),
+                               ("subagent_route", "agent")}
         assert not oud - edges
 
 

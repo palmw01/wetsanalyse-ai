@@ -236,6 +236,13 @@ def test_de_regisseur_neemt_geen_besluit():
     ("Welke bronnen horen bij deelvraag 2?", None),
     ("Help mij de bronnen bij dit werkgebied te bepalen", None),
     ("Wat staat er per deelvraag aan bronnen?", None),
+    # Meting ADR-016 A5 (M03): het werk over alle deelvragen is een regie, in code, zonder model.
+    ("Kun je voor al mijn deelvragen tegelijk uitzoeken welke bepalingen erbij horen?", "bronnen"),
+    ("Zoek voor alle deelvragen de bepalingen", "bronnen"),
+    ("Annoteer alle deelvragen", "annoteren"),
+    ("Hoeveel bronnen hebben al mijn deelvragen?", None),
+    ("Welke bepalingen horen bij al mijn deelvragen?", None),
+    ("Zoek uit wat de memorie van toelichting zegt over de bepalingen en vat dat per deelvraag samen.", None),
 ])
 def test_een_getypte_opdracht(tekst, opdracht):
     assert rg.opdracht_in(tekst) == opdracht
@@ -317,3 +324,14 @@ def test_een_getypte_opdracht_gaat_naar_de_regie(monkeypatch):
 
 async def _leeg(stroom):
     return [e async for e in stroom]
+
+
+def test_in_de_agentset_valt_alleen_onder_de_regie_wat_een_regie_verwacht():
+    """De agentset van de centrale agent (ADR-016 §A6): de tekstroute pakt alleen een opdracht met `regisseur: true`."""
+    import json
+    rijen = [json.loads(r) for r in (Path(__file__).resolve().parents[1] / "eval" / "golden_centrale_agent.jsonl")
+             .read_text().splitlines() if r.strip().startswith("{")]
+    gevangen = [r["id"] for r in rijen if "opdracht" in r and rg.opdracht_in(r["opdracht"])
+                and not (r.get("verwacht") or {}).get("regisseur")]
+    assert not gevangen, gevangen
+    assert any(rg.opdracht_in(r["opdracht"]) for r in rijen if r.get("id") == "M03")
