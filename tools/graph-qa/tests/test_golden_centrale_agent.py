@@ -273,3 +273,23 @@ def test_de_aanvulling_meet_de_overdracht_naar_de_brede_toolset(rij):
 def test_de_aanvulling_heeft_een_controle_zonder_overdracht():
     assert sum("meer_tools" in r["verwacht"]["tools_verboden"] for r in BREED) >= 1
     assert sum("meer_tools" in r["verwacht"]["tools_verplicht"] for r in BREED) >= 2
+
+
+DELEGATIE = _lees(EVAL / "golden_centrale_agent_delegatie.jsonl")
+
+
+@pytest.mark.parametrize("rij", DELEGATIE, ids=lambda r: r["id"])
+def test_de_aanvulling_voor_a4_en_a5_zegt_op_welke_kaart_het_script_klikt(rij):
+    """`golden_centrale_agent_delegatie.jsonl` (meting A3–A5): dezelfde vorm als de set, met wat het meetscript op een
+    kaart van een subagent antwoordt. Een vraag naar boven heeft antwoorden; meer subagents een bevestiging met
+    `kaarten.start`. Zonder die velden klikt het script niets."""
+    assert rij["id"] not in PER_ID and rij["groep"] in {"vraag_omhoog", "meer_subagents"}
+    v = rij["verwacht"]
+    assert set(v) == VELDEN and v["route"] == "centraal" and rij["stoppunt"] == "einde" and rij["goed"].strip()
+    tools = {t["name"] for t in TOOLS + JAS_TOOLS} | set(SJABLONEN) | NIEUW | {"subagenten", "hervat_subagent"}
+    assert _namen(v["tools_verplicht"]) | _namen(v["tools_verboden"]) <= tools
+    if rij["groep"] == "vraag_omhoog":
+        assert v["vraag_omhoog"]["landt_bij"] == "jurist" and rij["antwoorden"] and "kaarten" not in rij
+    else:
+        assert v["bevestiging"] and v["subagents"][0] >= 2 and rij["kaarten"] == {"start": True} and "antwoorden" not in rij
+    assert not SKILLVOORBEELD.search(rij["opdracht"])
