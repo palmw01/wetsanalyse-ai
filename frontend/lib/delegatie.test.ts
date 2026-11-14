@@ -186,10 +186,12 @@ describe("het bewaarde bericht", () => {
   it("een bericht dat de code in een deelgesprek doorgaf, is geen bericht van de jurist", () => {
     let n = 0;
     const { items } = itemsUitGesprek([
-      { rol: "user", tekst: "OPDRACHT …", denk: "", bronnen: [], run_id: "", doorgegeven: "opdracht" },
+      { rol: "assistant", tekst: "OPDRACHT …", denk: "", bronnen: [], run_id: "", doorgegeven: "opdracht" },
       { rol: "user", tekst: "Mijn vraag", denk: "", bronnen: [], run_id: "" },
-      { rol: "user", tekst: "ANTWOORD OP JE VRAGEN …", denk: "", bronnen: [], run_id: "", doorgegeven: "antwoorden" },
+      { rol: "assistant", tekst: "ANTWOORD OP JE VRAGEN …", denk: "", bronnen: [], run_id: "", doorgegeven: "antwoorden" },
+      // Een ouder bericht met `rol: user` is evengoed doorgegeven.
+      { rol: "user", tekst: "OPDRACHT oud", denk: "", bronnen: [], run_id: "", doorgegeven: "opdracht" },
     ], () => `i${n++}`);
-    expect(items.map((i) => (i.type === "user" ? i.doorgegeven ?? "jurist" : i.type))).toEqual(["opdracht", "jurist", "antwoorden"]);
+    expect(items.map((i) => (i.type === "user" ? i.doorgegeven ?? "jurist" : i.type))).toEqual(["opdracht", "jurist", "antwoorden", "opdracht"]);
   });
 });

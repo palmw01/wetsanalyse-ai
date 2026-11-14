@@ -27,6 +27,11 @@ export function itemsUitGesprek(berichten: Bericht[], uid: () => string): Geschi
   const reeksen = new Map<string, Bericht[]>();
   for (const b of berichten) if (b.reeks) reeksen.set(b.reeks.run_id, [...(reeksen.get(b.reeks.run_id) ?? []), b]);
   const items = berichten.flatMap((b): ThreadItem[] => {
+    // Wat de code in een deelgesprek doorgaf (de opdracht, of de antwoorden van de jurist): een blok van Lex, welke rol het
+    // bericht ook draagt (graph-qa schrijft `assistant`; een ouder bericht kan `user` zijn). Nooit een bubbel van de jurist.
+    if (b.doorgegeven === "opdracht" || b.doorgegeven === "antwoorden") {
+      return [{ id: uid(), type: "user" as const, tekst: b.tekst, doorgegeven: b.doorgegeven }];
+    }
     if (b.reeks) {
       const groep = reeksen.get(b.reeks.run_id) ?? [];
       const reeks = groep[0] === b ? reeksUitBerichten(groep) : null;
@@ -46,8 +51,7 @@ export function itemsUitGesprek(berichten: Bericht[], uid: () => string): Geschi
     }
     return [b.rol === "user"
       ? { id: uid(), type: "user" as const, tekst: b.tekst, antwoordOp: parseAntwoordOp(b.intake_antwoord),
-          bevestigingKeuze: parseBevestigingKeuze(b.bevestiging_antwoord),
-          ...(b.doorgegeven === "opdracht" || b.doorgegeven === "antwoorden" ? { doorgegeven: b.doorgegeven } : {}) }
+          bevestigingKeuze: parseBevestigingKeuze(b.bevestiging_antwoord) }
       : annotatieDoel
         ? { id: uid(), type: "annotatie" as const, slug: annotatieDoel.bron_iri,
             titel: art?.titel || b.annotatie_titel || undefined, annotatie_doel: annotatieDoel,

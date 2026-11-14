@@ -18,7 +18,8 @@ export type ThreadItem = (
       antwoordOp?: import("./vraagkaart").AntwoordOp;
       // Het antwoord op een bevestiging erboven (de knop of *Annuleren*): het voorstel is afgehandeld.
       bevestigingKeuze?: import("./werkgebiedAnnoteren").BevestigingKeuze;
-      // Door de code doorgegeven in een deelgesprek (de opdracht, of de antwoorden van de jurist): geen bubbel van de jurist.
+      // Door de code doorgegeven in een deelgesprek (de opdracht, of de antwoorden van de jurist), van elke rol: geen bubbel
+      // van de jurist maar een blok van Lex (`ThreadRij`).
       doorgegeven?: "opdracht" | "antwoorden" }
   | { id: string; type: "antwoord"; tekst: string; denk?: string; bronnen?: Bron[];
       // De brongetrouwheidstoets van déze beurt: live uit de stroom, na herladen van het bericht.

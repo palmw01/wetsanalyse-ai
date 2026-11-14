@@ -349,9 +349,10 @@ class Bericht(BaseModel):
     # niet op het bericht maar bij de delegatie (`/v1/delegaties`), zodat de werkplek na herladen de stand van nu
     # toont, ook als de jurist een vraag van een subagent later beantwoordde.
     delegaties: list[DelegatieId] = []
-    # Een bericht dat de code in een deelgesprek schrijft, met `rol: user` omdat het de vraag van die beurt is
-    # (bugonderzoek ADR-016, B5): de opdracht aan de subagent, of de antwoorden van de jurist die bij het hervatten
-    # worden doorgegeven. De werkplek toont het nooit als bericht van de jurist zelf. Leeg = een gewoon bericht.
+    # Een bericht dat de code in een deelgesprek schrijft (bugonderzoek ADR-016, B5): de opdracht aan de subagent, of de
+    # antwoorden van de jurist die bij het hervatten worden doorgegeven. graph-qa schrijft het met `rol: assistant`, zodat
+    # er geen tekst van de code als bericht van de jurist in het gesprek staat; het veld is aan geen rol gebonden. De
+    # werkplek toont het als blok van Lex, nooit als bericht van de jurist. Leeg = een gewoon bericht.
     doorgegeven: Doorgegeven | None = None
     created: datetime | None = None
 

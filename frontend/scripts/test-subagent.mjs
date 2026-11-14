@@ -137,9 +137,9 @@ const berichten = {
   regieg: [{ rol: "user", tekst: "Zoek per deelvraag de bronnen", ...leeg },
     { rol: "assistant", tekst: "De bronnen per deelvraag staan klaar.", ...leeg, run_id: "regie", artefact: REGIE_ARTEFACT,
       bevestiging: VOLGENDE_FASE, delegaties: ["r5"] }],
-  g1: [{ rol: "user", tekst: "OPDRACHT: vat uitspraak A samen.", ...leeg, doorgegeven: "opdracht" },
+  g1: [{ rol: "assistant", tekst: "OPDRACHT: vat uitspraak A samen.", ...leeg, doorgegeven: "opdracht" },
     { rol: "assistant", tekst: "Rapport van uitspraak A.", ...leeg, run_id: "k1" },
-    { rol: "user", tekst: "ANTWOORD OP JE VRAGEN: 2024", ...leeg, doorgegeven: "antwoorden" }],
+    { rol: "assistant", tekst: "ANTWOORD OP JE VRAGEN: 2024", ...leeg, doorgegeven: "antwoorden" }],
 };
 let volgendeRun = "sub1", gid = "sub", actief = null;
 const gestart = [];

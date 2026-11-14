@@ -465,7 +465,7 @@ async def test_een_doorgegeven_bericht_blijft_herkenbaar(client):
     """B5: de opdracht aan een subagent en de doorgegeven antwoorden zijn geen berichten van de jurist."""
     gid = await _maak(client)
     for soort in ("opdracht", "antwoorden"):
-        r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "user", "tekst": "t", "doorgegeven": soort}, headers=A)
+        r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "t", "doorgegeven": soort}, headers=A)
         assert r.status_code == 201 and r.json()["doorgegeven"] == soort
     r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "user", "tekst": "gewoon"}, headers=A)
     assert r.json()["doorgegeven"] is None
