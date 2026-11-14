@@ -204,8 +204,19 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   - **een deelgesprek onthoudt zijn delegatie** (`State.deelgesprek`, niet per beurt gereset, uit `ChatRequest.delegatie_id`
     dat alleen met een opdracht mag en niet via HTTP). Een beurt van de jurist daar loopt langs de routes in code en dan
     naar het profiel van het deelgesprek, en zet de delegatie op `later_gewijzigd`.
+  - **meer subagents** (A5): de overdracht `subagenten` (twee tot `MAX_SUBAGENTS` opdrachten, strict) start niets. De
+    node `subagent_plan` (`nodes/delegatie_plan.py`) bewaart het plan als delegatie die wacht, met een plafond
+    (`DELEGATIE_AANDEEL` van wat de gebruiker deze week nog heeft, ook als `budget_aandeel`), en eindigt met de bevestiging
+    als vraagkaart (`sa_start`, `subagent.startkaart`). De klik start ze (`subagent.voer_plan_uit`): hoogstens
+    `REGIE_PARALLEL` tegelijk, de rest pas als de eerste zijn eerste modelronde begon (de cache), en bij het plafond
+    (`verbruik_van`, uit de `meting` van de kinderen) start er niets nieuws. Daarna schrijft de centrale agent de bundel
+    met alle rapporten (`bundel_rapporten`), of komt de eerste vraag als kaart;
+  - **de regisseur als tool**: de overdracht `regie_plan` (bronnen of annoteren, alleen in een werkgebied) gaat naar de
+    node `regie_voorstel`, die het plan uit de stand bij de api maakt met dezelfde tekst en knop als de regie zelf
+    (`regisseur.plan_van`, `voorstel`). De centrale agent stelt geen plan per deelvraag zelf op.
   `tests/test_subagent.py` legt dit vast, ook een kindbeurt door de echte graaf; `tests/test_subagent_vragen.py` de
-  vragen, het hervatten, de kaart en het deelgesprek.
+  vragen, het hervatten, de kaart en het deelgesprek; `tests/test_subagenten.py` het plan, de bevestiging, de
+  parallelliteit, het plafond en `regie_plan`.
 - **`agent_node`** – vraagt de agent van de beurt op (`agent_van`, uit het profielregister): `SYSTEM_PROMPT` + methode-instructies
   (`agent/methode.py`, uit het gegenereerde `methodepakket.py`) + addendum + plan, met
   de toolschema's van de agent (`Agent.toolschemas`). Tekst stroomt niet mee: pas na de ronde is bekend of het narratie

@@ -230,7 +230,12 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           '(status vraag): staat het antwoord in wat er ligt, geef '
                                           'het dan met hervat_subagent; anders rond je af met wat '
                                           'hij al vond, en de gebruiker krijgt zijn vragen als '
-                                          'kaart.\n'
+                                          'kaart. Zijn er twee of drie opdrachten die los van '
+                                          'elkaar kunnen, gebruik dan subagenten: de gebruiker '
+                                          'bevestigt het plan eerst. Werk per deelvraag van een '
+                                          'werkgebied (de bronnen zoeken, of daarna annoteren wat '
+                                          'de gebruiker opnam) gaat met regie_plan, nooit met '
+                                          'subagents.\n'
                                           '\n'
                                           'EEN BEGRIP: begin bij zoek_definitie: die vindt het '
                                           'tekstdeel waar de wet het begrip zélf definieert, mét '
@@ -394,7 +399,13 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                                 'vraag): staat het antwoord in wat er ligt, geef '
                                                 'het dan met hervat_subagent; anders rond je af '
                                                 'met wat hij al vond, en de gebruiker krijgt zijn '
-                                                'vragen als kaart.\n'
+                                                'vragen als kaart. Zijn er twee of drie opdrachten '
+                                                'die los van elkaar kunnen, gebruik dan '
+                                                'subagenten: de gebruiker bevestigt het plan '
+                                                'eerst. Werk per deelvraag van een werkgebied (de '
+                                                'bronnen zoeken, of daarna annoteren wat de '
+                                                'gebruiker opnam) gaat met regie_plan, nooit met '
+                                                'subagents.\n'
                                                 '\n'
                                                 'EEN BEGRIP: begin bij zoek_definitie: die vindt '
                                                 'het tekstdeel waar de wet het begrip zélf '
@@ -686,4 +697,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                        'search_wetgeving',
                                        'semantic_search',
                                        'zoek_opbouw')}},
- 'sha256': 'bfc74fcba221418213af4ab5f9604b34e92202489499eeb382fef8570e1e24aa'}
+ 'sha256': 'abde66f35024589a907a9f0b26c6a28f0c9595fba7f0429a8852b905d4713cb9'}
