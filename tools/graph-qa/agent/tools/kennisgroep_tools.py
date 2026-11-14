@@ -66,8 +66,10 @@ KENNISGROEP_TOOLS: list[dict[str, Any]] = [
             "(de kennisgroep), rechtsgebied (middel en belastingsoort), reeks (rubrieken), link, vervangt en "
             "vervangen_door, en met een artikel wetsverwijzing en tekststand ('eerdere tekst' als het artikel sinds het "
             "standpunt is gewijzigd). Daarnaast 'zoekvraag', 'totaal', 'per_status' (ook de ingetrokken en vervallen, "
-            "die standaard niet getoond worden) en met een artikel 'koppelingen' (via link, via tekst). Lees een standpunt "
-            "met get_standpunt voor je zegt wat het inhoudt." + _CONTRACT
+            "die standaard niet getoond worden), 'per_belastingsoort' en 'per_kennisgroep' (de verdeling van het totaal, "
+            "geteld in de index: gebruik die voor een telvraag, en blader niet door de pagina's) en met een artikel "
+            "'koppelingen' (via link, via tekst). Lees een standpunt met get_standpunt voor je zegt wat het "
+            "inhoudt." + _CONTRACT
         ),
         "input_schema": {
             "type": "object",
@@ -105,8 +107,12 @@ KENNISGROEP_TOOLS: list[dict[str, Any]] = [
             "intrekt). Gebruik het kenmerk uit zoek_standpunten of uit de vraag." + _BELEID +
             " Citeer letterlijk uit 'tekst'. Voor 'wat is het standpunt' volstaan Vraag en Antwoord.\n"
             "GEEFT TERUG: het stuk (id, label, titel, datum, gepubliceerd, vastgesteld, gewijzigd, status, orgaan, "
-            "rechtsgebied, reeks, vervangt, vervangen_door, noemt, bijlagen, gebeurtenissen, link, bron_hash) en per "
-            "alinea nr, kop, soort (alinea, voetnoot, tabel, tabelrij) en tekst. Noem de datum en de status uit 'stuk'."
+            "rechtsgebied, reeks, vervangt, vervangen_door, noemt, bijlagen, gebeurtenissen, link, bron_hash, en "
+            "'tekststanden': per genoemd artikel in de kennisgraaf sinds wanneer de tekst geldt en of die 'gewijzigd na "
+            "dit standpunt' of 'ongewijzigd sinds dit standpunt' is; vergelijk zelf geen datums) en per alinea nr, kop, "
+            "soort (alinea, voetnoot, tabel, tabelrij) en tekst. Noem de datum en de status uit 'stuk'. Staat het "
+            "kenmerk niet bij de gepubliceerde standpunten maar trekt een ander het in, dan geeft de fout "
+            "'vervangen_door'."
             + _CONTRACT
         ),
         "input_schema": {
@@ -133,6 +139,36 @@ def _wetsverwijzing(a: dict[str, Any], herkomsten: str) -> str:
 def _q_inwerking(bwb_id: str, artikel: str) -> str:
     return ("PREFIX bwb: <urn:bwb-ns:>\nSELECT ?inwerking WHERE { "
             f"<urn:bwb:{bwb_id}:artikel:{artikel}> bwb:inwerking ?inwerking }} LIMIT 1")
+
+
+def _q_inwerkingen(paren: list[tuple[str, str]]) -> str:
+    waarden = " ".join(f"<urn:bwb:{b}:artikel:{a}>" for b, a in paren)
+    return ("PREFIX bwb: <urn:bwb-ns:>\nSELECT ?a ?inwerking WHERE { VALUES ?a { " + waarden + " } "
+            "?a bwb:inwerking ?inwerking }")
+
+
+_JCI_RE = re.compile(r"^jci1\.3:c:(BWB[RV]\d{7})(?:&[^&=]+=[^&]*)*?&artikel=([0-9A-Za-z.:]+)")
+
+
+def tekststanden(graph: Any, noemt: list[str], datum: str) -> list[dict[str, str]]:
+    """Per artikel dat het standpunt noemt en dat in de graaf staat: sinds wanneer de tekst geldt en of die tekst van na
+    het standpunt is. Uit de code, zodat het model geen datums vergelijkt (meting 14 nov 2026, vraag 13: "1 oktober 2026
+    ligt in de toekomst" op 14 november 2026)."""
+    paren = list(dict.fromkeys(m.groups() for j in noemt if (m := _JCI_RE.match(j or ""))))[:MAX_NOEMT]
+    if graph is None or not paren or not datum:
+        return []
+    try:
+        rijen = parse_select(graph.sparql(_q_inwerkingen(paren)))
+    except Exception:  # noqa: BLE001 - de stand is een extra, geen voorwaarde
+        return []
+    sinds = {str(r.get("a") or ""): str(r.get("inwerking") or "")[:10] for r in rijen if r.get("inwerking")}
+    uit = []
+    for bwb, artikel in paren:
+        if not (vanaf := sinds.get(f"urn:bwb:{bwb}:artikel:{artikel}")):
+            continue
+        uit.append({"bwb_id": bwb, "artikel": artikel, "tekst_vanaf": vanaf,
+                    "tekststand": "gewijzigd na dit standpunt" if vanaf > datum else "ongewijzigd sinds dit standpunt"})
+    return uit
 
 
 def _inwerking(graph: Any, bwb_id: str, artikel: str) -> str:
@@ -228,21 +264,34 @@ def _zoek(bron: KennisgroepenBron, graph: Any, a: dict[str, Any]) -> str:
     args = {k: a[k] for k in ("bwb_id", "artikel", "lid", "woorden", "kennisgroep", "middel", "rubriek", "noemt", "vanaf",
                               "tot", "status", "volgorde") if a.get(k)} | {"aantal": aantal}
     verborgen = sum(n for s, n in gevonden.per_status.items() if s != v.status) if v.status != "alle" else 0
-    extra = compact({"zoekvraag": _zoekvraag_tekst(v), "totaal": gevonden.totaal, "per_status": gevonden.per_status,
-                     "koppelingen": gevonden.per_herkomst})
-    toelichting = []
+    # Wat onder de lijst hoort te staan, in het blok zelf (`kanttekening`, zoals de andere connectors), niet alleen in de
+    # toelichting voor het model: een lijst zonder model (de lijstroute) toonde anders niet dat er een ingetrokken
+    # standpunt verborgen was, en niet hoe de koppeling met het artikel tot stand kwam (meting 14 nov 2026, vraag 2).
+    kant = []
     if verborgen and v.status == "geldend":
-        toelichting.append(f"Er {'is' if verborgen == 1 else 'zijn'} daarnaast {verborgen} ingetrokken of vervallen "
-                           "standpunt(en) bij deze zoekvraag; die zijn geen geldend beleid en staan er niet bij "
-                           "(status 'alle' toont ze).")
+        kant.append(f"Daarnaast {'is er' if verborgen == 1 else 'zijn er'} {verborgen} ingetrokken of vervallen "
+                    f"{'standpunt' if verborgen == 1 else 'standpunten'} bij deze zoekvraag; "
+                    f"{'dat is' if verborgen == 1 else 'die zijn'} geen geldend beleid.")
+    if v.bwb_id and gevonden.totaal:
+        hoe = {"link": "via een link van de Belastingdienst", "tekst": "in de tekst herkend"}
+        delen = [f"{n} {hoe[h]}" for h, n in sorted(gevonden.per_herkomst.items()) if h in hoe]
+        kant.append("Gekoppeld aan de bepaling" + (f": {', '.join(delen)}" if delen else "") + ". Dit zijn ten minste "
+                    "de standpunten die de bepaling bij naam noemen; een standpunt dat haar anders aanduidt, ontbreekt.")
     if not gevonden.totaal:
-        toelichting.append("Geen gepubliceerd kennisgroepstandpunt bij deze zoekvraag. Niet elk standpunt wordt "
-                           "gepubliceerd: dit betekent niet dat er geen standpunt is.")
+        kant.append("Niet elk standpunt wordt gepubliceerd.")
+    extra = compact({"zoekvraag": _zoekvraag_tekst(v), "totaal": gevonden.totaal, "per_status": gevonden.per_status,
+                     "koppelingen": gevonden.per_herkomst, "per_belastingsoort": gevonden.per_belastingsoort,
+                     "per_kennisgroep": gevonden.per_kennisgroep, "kanttekening": " ".join(kant)})
+    toelichting = [] if gevonden.totaal else [
+        "Geen gepubliceerd kennisgroepstandpunt bij deze zoekvraag; dat betekent niet dat er geen standpunt is."]
+    if gevonden.totaal > len(rijen):
+        toelichting.append("Een telling of verdeling staat in totaal, per_status, per_belastingsoort en per_kennisgroep: "
+                           "blader daarvoor niet door de pagina's.")
     return pagina(rijen, tool="zoek_standpunten", args=args, limit=aantal, offset=offset, extra=extra,
                   toelichting=" ".join(toelichting))
 
 
-def stuk_van(g: Gelezen) -> dict[str, Any]:
+def stuk_van(g: Gelezen, graph: Any = None) -> dict[str, Any]:
     s, m = g.standpunt, g.standpunt.metadata
     noemt = [n["id"] for n in m.get("noemt", []) if n.get("soort") not in ("publicatie",)][:MAX_NOEMT]
     stuk = compact({
@@ -252,6 +301,8 @@ def stuk_van(g: Gelezen) -> dict[str, Any]:
         "rechtsgebied": m.get("rechtsgebied", ""), "reeks": m.get("reeks", []), "nummer": m.get("nummer", ""),
         "jaar": m.get("jaar", ""), "vervangt": s.vervangt, "vervangen_door": g.vervangen_door, "noemt": noemt,
         "bijlagen": m.get("bijlagen", []), "gebeurtenissen": g.gebeurtenissen, "link": s.link, "bron_hash": s.bron_hash,
+        "tekststanden": tekststanden(graph, [n["id"] for n in m.get("noemt", []) if n.get("soort") == "bepaling"],
+                                     m.get("datum", "")),
     })
     if not g.gevalideerd:
         stuk["gevalideerd"] = False
@@ -262,8 +313,18 @@ def _get(bron: KennisgroepenBron, graph: Any, a: dict[str, Any]) -> str:
     vp = externe_vindplaats(str(a.get("id") or "").strip())
     if vp is None or vp.brontype != "standpunt":
         return fout("ongeldig_id", "geef het kenmerk van een kennisgroepstandpunt, bijvoorbeeld 'KG:013:2026:4'")
-    gelezen = bron.publicatie(graph, vp.id)
-    stuk = stuk_van(gelezen)
+    try:
+        gelezen = bron.publicatie(graph, vp.id)
+    except KennisgroepenFout as exc:
+        if exc.code != "niet_gevonden" or not (opvolgers := bron.opvolgers(graph, vp.id)):
+            raise
+        # Niet gepubliceerd, maar een gepubliceerd standpunt trekt het in: dat is het antwoord (meting 14 nov 2026, vraag
+        # 10). Standpunten van vóór 2022 staan niet op de site; ze zijn alleen via een Woo-verzoek openbaar.
+        door = ", ".join(f"{i.upper()} ({st})" if st else i.upper() for i, st in opvolgers)
+        return fout("niet_gevonden", f"{vp.id.upper()} staat niet bij de gepubliceerde kennisgroepstandpunten (een "
+                    f"standpunt van vóór 2022 is alleen via de Woo openbaar). Het is ingetrokken door {door}; lees dat "
+                    f"met get_standpunt.", vervangen_door=[i for i, _ in opvolgers])
+    stuk = stuk_van(gelezen, graph)
     rijen = [r.als_dict() for r in gelezen.standpunt.rijen]
     toelichting = []
     if gelezen.standpunt.status != "geldend":

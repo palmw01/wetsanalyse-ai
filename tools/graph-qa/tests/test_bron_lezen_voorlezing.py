@@ -63,3 +63,19 @@ def test_de_harde_grens_op_pagina_s(tool, arg, ident):
 
 def test_een_gefilterde_lezing_leest_de_code_niet_verder():
     assert len(_lees("get_bekendmaking", "id", "stcrt-2026-37344", totaal=100, extra={"regeling": "Leidraad"})) == 1
+
+
+
+def test_een_niet_gevonden_stuk_met_opvolger_noemt_die():
+    """Meting kennisgroepen 14 nov 2026, vraag 10: "Welk standpunt vervangt KG:013:2018:0173?" kreeg "Controleer het
+    id", terwijl de index wist dat KG:013:2026:4 het intrekt."""
+    fout = {"status": "error", "reden": "niet_gevonden", "melding": "…", "vervangen_door": ["kg:013:2026:4"]}
+    antwoord = bl._zonder_tekst([{"content": json.dumps(fout)}], [], [{"name": "get_standpunt",
+                                                                       "input": {"id": "kg:013:2018:173"}}])
+    [leemte] = antwoord.blokken
+    assert "ingetrokken door Kennisgroepstandpunt KG:013:2026:4" in leemte.tekst
+    assert "Controleer het id" not in leemte.tekst
+    zonder = dict(fout, vervangen_door=[])
+    [kaal] = bl._zonder_tekst([{"content": json.dumps(zonder)}], [], [{"name": "get_standpunt",
+                                                                        "input": {"id": "kg:013:2018:173"}}]).blokken
+    assert "Controleer het id" in kaal.tekst
