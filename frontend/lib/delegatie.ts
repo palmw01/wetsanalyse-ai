@@ -235,10 +235,11 @@ export function delegatieSamenvatting(d: DelegatieVoortgang): string {
   return [`${n} ${wie}`, ...delen].join(" · ");
 }
 
-/** De metaregel van één kind: profiel, model, afbakening en periode. */
-export function taakMeta(t: DelegatieTaak): string {
+/** De metaregel van één kind: profiel, model, afbakening en periode. Een kind van de regie heet geen subagent; zijn profiel
+ *  (`retrieval`, graph-qa #1521) staat er als profiel. */
+export function taakMeta(t: DelegatieTaak, soort: DelegatieVoortgang["soort"] = "subagent"): string {
   return [
-    t.profiel ? `subagent ${t.profiel}` : "",
+    t.profiel ? (soort === "regie" ? `profiel ${t.profiel}` : `subagent ${t.profiel}`) : "",
     t.model ?? "",
     t.afbakening?.length ? `afbakening: ${t.afbakening.join(", ")}` : "",
     t.periode?.length ? `periode ${t.periode.join("–")}` : "",

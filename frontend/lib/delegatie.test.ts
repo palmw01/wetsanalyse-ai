@@ -92,6 +92,10 @@ describe("verwerkDelegatieEvent", () => {
     expect(d.soort).toBe("regie");
     expect(d.taken).toEqual([{ titel: "Deelvraag 1", profiel: "", gesprek_id: "g9", stand: "klaar" }]);
     expect(delegatieSamenvatting(d)).toBe("1 deelgesprek · 1 klaar");
+    // Sinds graph-qa #1521 draagt de start van een regiekind `profiel: retrieval`: dat is geen subagent.
+    const [r] = speel({ type: "regie", fase: "start", regie_id: "r2", plan: { taken: [{ titel: "Deelvraag 1" }] } },
+      { type: "regie_taak", fase: "start", regie_id: "r2", index: 0, titel: "Deelvraag 1", gesprek_id: "g9", profiel: "retrieval" });
+    expect(taakMeta(r.taken[0], r.soort)).toBe("profiel retrieval");
   });
 
   it("de stroomstand houdt de delegaties bij", () => {

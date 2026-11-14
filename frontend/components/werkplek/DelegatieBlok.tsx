@@ -43,7 +43,7 @@ function Een({ d, onOpenGesprek }: { d: DelegatieVoortgang; onOpenGesprek?: (id:
         {d.taken.map((t, i) => (
           <LijstRij key={t.gesprek_id || i} data-delegatie-taak={t.stand}
             titel={t.titel}
-            meta={taakMeta(t) || undefined}
+            meta={taakMeta(t, d.soort) || undefined}
             status={<StatusLabel toon={standToon(t.stand)}>{STAND_TEKST[t.stand]}</StatusLabel>}
             acties={t.gesprek_id && onOpenGesprek ? (
               // Een echte link (een nieuw tabblad kan), die in de werkplek zelf het deelgesprek opent.
