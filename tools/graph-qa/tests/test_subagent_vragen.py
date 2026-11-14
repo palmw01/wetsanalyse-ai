@@ -60,7 +60,7 @@ class Api:
         self.delegatie = {"id": "d1", "soort": "subagent", "status": status, "werkgebied_id": "",
                           "plan": {"taken": [{"profiel": "duiding", "opdracht": OPDRACHT.model_dump()}]},
                           "uitkomst": {"kinderen": [{"profiel": "duiding", "gesprek_id": "kind-1", "uitkomst": "vraag",
-                                                     "vragen": VRAGEN}], "antwoorden": []}}
+                                                     "vragen": VRAGEN}]}}
         self.conflict = conflict
 
     def __getattribute__(self, naam):
@@ -104,7 +104,7 @@ def test_een_subagent_met_een_vraag_wacht_bij_de_api():
                                                     kinderen=kinderen, gestopt=lambda: False, api=api))
     assert not weigering and (afloop.uitkomst, afloop.vragen, afloop.delegatie_id) == ("vraag", VRAGEN, "d1")
     eind = api.aanroepen[-1][1]
-    assert eind == {"status": "wacht", "uitkomst": {"kinderen": [afloop.als_dict()], "antwoorden": []}}
+    assert eind == {"status": "wacht", "uitkomst": {"kinderen": [afloop.als_dict()]}}
     assert events[-1]["uitkomst"] == "wacht" and events[-1]["wacht"] == 1
 
 
@@ -117,6 +117,7 @@ def test_hervatten_is_een_nieuwe_beurt_in_hetzelfde_deelgesprek():
                                                      api=api))
     assert not weigering and afloop.hervat and afloop.uitkomst == "klaar" and kind["answer"] == "Bevindingen: 2024."
     assert [n for n, _ in api.aanroepen] == ["haal_delegatie", "wijzig_delegatie", "wijzig_delegatie"]
+    assert api.delegatie["uitkomst"]["kinderen"][0]["uitkomst"] == "klaar"
     assert api.aanroepen[1][1] == {"status": "loopt"} and api.aanroepen[2][1]["status"] == "klaar"
     [(verzoek, _, _)] = gestart
     assert verzoek.conversation_id == "kind-1", "hetzelfde deelgesprek, geen nieuw"
@@ -218,7 +219,8 @@ def test_een_klik_legt_het_antwoord_vast_en_toont_de_volgende_vraag(monkeypatch)
     api = Api()
     kinderen, gestart, _ = _kinderen({})
     upd, events = _draai_vervolg(monkeypatch, api, kinderen, _klik(keuzes=["2024"]))
-    assert api.aanroepen[-1][1]["uitkomst"]["antwoorden"] == ["2024"] and api.delegatie["status"] == "wacht"
+    assert api.aanroepen[-1][1]["uitkomst"]["kinderen"][0]["antwoorden"] == ["2024"]
+    assert api.delegatie["status"] == "wacht"
     [kaart] = [e["vraagkaart"] for e in events if e["type"] == "vraagkaart"]
     assert (kaart["nr"], kaart["totaal"]) == (2, 2) and not gestart
     assert vervolg.route_na_vervolg(None, {**_klik(), **upd}) == "einde"
@@ -226,7 +228,7 @@ def test_een_klik_legt_het_antwoord_vast_en_toont_de_volgende_vraag(monkeypatch)
 
 def test_na_de_laatste_vraag_hervat_de_code_en_schrijft_de_centrale_agent_de_bundel(monkeypatch):
     api = Api()
-    api.delegatie["uitkomst"]["antwoorden"] = ["2024"]
+    api.delegatie["uitkomst"]["kinderen"][0]["antwoorden"] = ["2024"]
     kinderen, gestart, _ = _kinderen({"rapport": {"status": "klaar"}, "answer": "Bevindingen: gewone aanslag.",
                                       "source_trace": [ARTIKEL]})
     upd, events = _draai_vervolg(monkeypatch, api, kinderen, _klik(tekst="Nee, een gewone aanslag."))
@@ -282,3 +284,12 @@ def test_de_delegatie_reist_alleen_met_een_opdracht_en_niet_via_http(monkeypatch
             "question": "x", "conversation_id": "g", "profiel": "algemeen", "opdracht": OPDRACHT.model_dump(),
             "delegatie_id": "d1"})
     assert r.status_code == 422 and r.json()["detail"]["reden"] == "subagent_intern"
+
+
+def test_met_meer_kinderen_wacht_de_delegatie_zolang_er_een_een_vraag_heeft():
+    vraag, klaar = {"uitkomst": "vraag", "vragen": VRAGEN}, {"uitkomst": "klaar"}
+    assert sub.eindstand([klaar, vraag]) == "wacht" and sub.eerste_vraag([klaar, vraag]) == 1
+    assert sub.eindstand([klaar, {"uitkomst": "niet_gelukt"}]) == "klaar"
+    assert sub.eindstand([klaar, {"uitkomst": "mislukt"}]) == "klaar"
+    assert sub.eindstand([{"uitkomst": "mislukt"}]) == "mislukt" and sub.eindstand([{"uitkomst": "gestopt"}]) == "gestopt"
+    assert sub.eerste_vraag([klaar]) is None

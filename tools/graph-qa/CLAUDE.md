@@ -192,7 +192,8 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   - stoppen van de beurt stopt het kind (`_stopwacht`); de events zijn `regie`/`regie_taak` met `soort: subagent` en het
     profiel. Eén subagent per beurt (A3); meer tegelijk komt met A5.
   - **een vraag naar boven** (A4) is een rapport met `status: vraag` en `vragen` (hoogstens drie, elk met hoogstens vier
-    opties; `rapport.vragen_van`). De delegatie gaat op `wacht` met de vragen en `antwoorden: []`. De centrale agent mag
+    opties; `rapport.vragen_van`). De delegatie gaat op `wacht`; per kind staan de vragen en de antwoorden tot nu toe in
+    `uitkomst.kinderen` (`subagent.eindstand`, `eerste_vraag`). De centrale agent mag
     de subagent één keer per beurt hervatten met een antwoord uit wat er ligt (de overdracht `hervat_subagent`,
     `subagent.hervat`: een nieuwe beurt in hetzelfde deelgesprek, met de antwoorden als eerste bericht). Wat overblijft:
     `finalize_node` sluit de beurt af met de eerste vraag als vraagkaart (`subagent.vraagkaart`, `modus: subagent`,

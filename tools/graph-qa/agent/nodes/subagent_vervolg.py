@@ -53,23 +53,31 @@ async def _verwerk(b: Bouw, state: State, stuur) -> dict[str, Any]:
             delegatie = await api.haal_delegatie(delegatie_id)
         except WetsanalyseApiFout:
             return {"tekst": sub.AL_BEANTWOORD}
-        uitkomst = dict(delegatie.get("uitkomst") or {})
-        vorige = (uitkomst.get("kinderen") or [{}])[0]
-        vragen = list(vorige.get("vragen") or [])
-        if delegatie.get("soort") != "subagent" or delegatie.get("status") != "wacht" or not vragen:
+        kinderen = list((delegatie.get("uitkomst") or {}).get("kinderen") or [])
+        i = sub.eerste_vraag(kinderen)
+        if delegatie.get("soort") != "subagent" or delegatie.get("status") != "wacht" or i is None:
             return {"tekst": sub.AL_BEANTWOORD}
         if actie.get("actie") == "afbreken":
-            await api.wijzig_delegatie(delegatie_id, {"status": "gestopt", "uitkomst": {**uitkomst, "door": "gebruiker"}})
+            await api.wijzig_delegatie(delegatie_id, {"status": "gestopt", "uitkomst": {"kinderen": kinderen,
+                                                                                         "door": "gebruiker"}})
             return {"tekst": GESTOPT}
-        antwoorden = [*(uitkomst.get("antwoorden") or []),
+        vragen = list(kinderen[i].get("vragen") or [])
+        antwoorden = [*(kinderen[i].get("antwoorden") or []),
                       _antwoord(actie) if actie.get("actie") != "overslaan" else "(geen antwoord)"]
         if len(antwoorden) < len(vragen):
-            await api.wijzig_delegatie(delegatie_id, {"status": "wacht", "uitkomst": {**uitkomst, "antwoorden": antwoorden}})
+            kinderen[i] = {**kinderen[i], "antwoorden": antwoorden}
+            await api.wijzig_delegatie(delegatie_id, {"status": "wacht", "uitkomst": {"kinderen": kinderen}})
             return {"tekst": VOLGENDE, "kaart": sub.vraagkaart(delegatie_id, vragen, len(antwoorden) + 1)}
         afloop, kind, weigering = await sub.hervat(
             state, delegatie_id, antwoorden, stuur, settings=b.settings, kinderen=b.kinderen, api=api,
             van="van de gebruiker", gestopt=lambda: bool(b.stop_check and b.stop_check()))
-        return {"afloop": afloop, "kind": kind, "tekst": weigering}
+        if weigering:
+            return {"tekst": weigering}
+        # Wacht er nog een kind (dit kind met een nieuwe vraag, of een ander), dan de kaart voor de eerste.
+        na = list(((await api.haal_delegatie(delegatie_id)).get("uitkomst") or {}).get("kinderen") or [])
+        j = sub.eerste_vraag(na)
+        kaart = sub.vraagkaart(delegatie_id, na[j]["vragen"], 1) if j is not None else None
+        return {"afloop": afloop, "kind": kind, "kaart": kaart}
 
 
 def subagent_vervolg_node(b: Bouw, state: State) -> dict[str, Any]:
@@ -84,9 +92,9 @@ def subagent_vervolg_node(b: Bouw, state: State) -> dict[str, Any]:
             logger.warning("subagent_vervolg: api-fout", extra={"categorie": "technisch"})
             uit = {"tekst": STORING}
     afloop = uit.get("afloop")
-    if afloop is not None and not uit.get("tekst"):
-        if afloop.uitkomst == "vraag" and afloop.vragen:
-            uit = {"tekst": VOLGENDE, "kaart": sub.vraagkaart(afloop.delegatie_id, afloop.vragen, 1)}
+    if afloop is not None:
+        if uit.get("kaart"):
+            uit = {"tekst": VOLGENDE, "kaart": uit["kaart"]}
         else:
             # Klaar of niet gelukt: de centrale agent schrijft de bundel met het rapport als gegeven.
             kind = uit.get("kind") or {}

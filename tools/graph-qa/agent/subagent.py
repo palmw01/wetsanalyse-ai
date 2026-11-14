@@ -183,7 +183,8 @@ async def voer_uit(state: dict[str, Any], profiel: str, opdracht: SubagentOpdrac
             afloop, titel, profiel, opdracht, stuur, gesprek_id=gesprek_id, werkgebied_id=werkgebied_id,
             run_id=state.get("run_id", "") or "", user_id=user_id, bronnen=state.get("bronnen"), api=api,
             kinderen=kinderen, gestopt=gestopt))
-        await _rond_af(api, afloop, stuur, run_id=state.get("run_id", "") or "")
+        await _leg_vast(api, afloop.delegatie_id, [afloop.als_dict()], stuur, run_id=state.get("run_id", "") or "",
+                        nu=[afloop])
         return afloop, kind, ""
     finally:
         if eigen_api:
@@ -205,24 +206,40 @@ async def _met_hartslag(api: Any, afloop: Afloop, hartslag_s: float, werk: Await
             await hart
 
 
-async def _rond_af(api: Any, afloop: Afloop, stuur: Callable[[dict], None], *, run_id: str) -> None:
-    """De stand bij de api en het eind-event. Een subagent met een vraag gaat op `wacht`, met de vragen en nog geen
-    antwoorden; de rest sluit af."""
-    if afloop.uitkomst == "vraag":
-        eind, wijziging = "wacht", {"status": "wacht",
-                                    "uitkomst": {"kinderen": [afloop.als_dict()], "antwoorden": []}}
-    else:
-        eind = {"klaar": "klaar", "niet_gelukt": "klaar", "gestopt": "gestopt"}.get(afloop.uitkomst, "mislukt")
-        wijziging = {"status": eind, "uitkomst": {"kinderen": [afloop.als_dict()]}}
+def eindstand(kinderen: list[dict[str, Any]]) -> str:
+    """De stand van de delegatie uit die van haar kinderen: `wacht` zolang er een een vraag heeft."""
+    standen = {k.get("uitkomst") for k in kinderen}
+    if "vraag" in standen:
+        return "wacht"
+    if standen <= {"klaar", "niet_gelukt"}:
+        return "klaar"
+    if "gestopt" in standen:
+        return "gestopt"
+    return "klaar" if "klaar" in standen else "mislukt"
+
+
+async def _leg_vast(api: Any, delegatie_id: str, kinderen: list[dict[str, Any]], stuur: Callable[[dict], None], *,
+                    run_id: str, nu: list[Afloop]) -> str:
+    """De stand bij de api en het eind-event, per kind: wie een vraag heeft, staat er met zijn vragen en de antwoorden
+    tot nu toe (`antwoorden`); de delegatie wacht dan. Geeft de eindstand."""
+    eind = eindstand(kinderen)
     with contextlib.suppress(WetsanalyseApiFout):
-        await api.wijzig_delegatie(afloop.delegatie_id, wijziging)
-    stuur({"type": "regie", "fase": "eind", "regie_id": afloop.delegatie_id, "soort": "subagent", "uitkomst": eind,
-           "opgeleverd": int(afloop.uitkomst == "klaar"), "wacht": int(afloop.uitkomst == "vraag"),
-           "mislukt": int(afloop.uitkomst not in ("klaar", "vraag")), "kinderen": [afloop.als_dict()]})
-    logger.info("subagent_afloop", extra={"categorie": "functioneel", "delegatie_id": afloop.delegatie_id,
-                                          "run_id": run_id, "kind_run_id": afloop.run_id, "profiel": afloop.profiel,
-                                          "uitkomst": afloop.uitkomst, "vragen": len(afloop.vragen),
-                                          "hervat": afloop.hervat})
+        await api.wijzig_delegatie(delegatie_id, {"status": eind, "uitkomst": {"kinderen": kinderen}})
+    tel = [k.get("uitkomst") for k in kinderen]
+    stuur({"type": "regie", "fase": "eind", "regie_id": delegatie_id, "soort": "subagent", "uitkomst": eind,
+           "opgeleverd": tel.count("klaar"), "wacht": tel.count("vraag"),
+           "mislukt": sum(1 for u in tel if u not in ("klaar", "vraag")), "kinderen": kinderen})
+    for afloop in nu:
+        logger.info("subagent_afloop", extra={"categorie": "functioneel", "delegatie_id": delegatie_id,
+                                              "run_id": run_id, "kind_run_id": afloop.run_id, "profiel": afloop.profiel,
+                                              "uitkomst": afloop.uitkomst, "vragen": len(afloop.vragen),
+                                              "hervat": afloop.hervat})
+    return eind
+
+
+def eerste_vraag(kinderen: list[dict[str, Any]]) -> int | None:
+    """Het eerste kind met een open vraag (zijn plek in de delegatie), of None."""
+    return next((i for i, k in enumerate(kinderen) if k.get("uitkomst") == "vraag" and k.get("vragen")), None)
 
 
 def antwoord_tekst(vragen: list[dict[str, Any]], antwoorden: list[str], *, van: str) -> str:
@@ -240,8 +257,9 @@ def antwoord_tekst(vragen: list[dict[str, Any]], antwoorden: list[str], *, van: 
 async def hervat(state: dict[str, Any], delegatie_id: str, antwoorden: list[str], stuur: Callable[[dict], None], *,
                  settings: Any, kinderen: Kinderen, gestopt: Callable[[], bool], van: str, api: Any | None = None,
                  hartslag_s: float = HARTSLAG_S) -> tuple[Afloop, dict[str, Any], str]:
-    """Hervat een wachtende subagent met de antwoorden op zijn vragen: een nieuwe beurt in hetzelfde deelgesprek, met
-    zijn eigen geschiedenis. (de afloop, wat het kind opleverde, een weigering of leeg)."""
+    """Hervat de eerste wachtende subagent van de delegatie met de antwoorden op zijn vragen: een nieuwe beurt in
+    hetzelfde deelgesprek, met zijn eigen geschiedenis. De andere kinderen blijven zoals ze stonden. (de afloop, wat het
+    kind opleverde, een weigering of leeg)."""
     user_id = state.get("user_id", "") or ""
     eigen_api = api is None
     api = api or WetsanalyseApi(settings, user_id)
@@ -250,13 +268,15 @@ async def hervat(state: dict[str, Any], delegatie_id: str, antwoorden: list[str]
             delegatie = await api.haal_delegatie(delegatie_id)
         except WetsanalyseApiFout:
             return Afloop(profiel=""), {}, AL_BEANTWOORD
-        taken = (delegatie.get("plan") or {}).get("taken") or [{}]
-        vorige = ((delegatie.get("uitkomst") or {}).get("kinderen") or [{}])[0]
-        profiel = str(taken[0].get("profiel", ""))
-        if (delegatie.get("soort") != "subagent" or delegatie.get("status") != "wacht" or profiel not in KIESBAAR
-                or not vorige.get("gesprek_id")):
+        taken = (delegatie.get("plan") or {}).get("taken") or []
+        alle = list((delegatie.get("uitkomst") or {}).get("kinderen") or [])
+        i = eerste_vraag(alle)
+        if delegatie.get("soort") != "subagent" or delegatie.get("status") != "wacht" or i is None or i >= len(taken):
+            return Afloop(profiel=""), {}, AL_BEANTWOORD
+        vorige, profiel = alle[i], str(taken[i].get("profiel", ""))
+        if profiel not in KIESBAAR or not vorige.get("gesprek_id"):
             return Afloop(profiel=profiel), {}, AL_BEANTWOORD
-        opdracht = SubagentOpdracht(**(taken[0].get("opdracht") or {}))
+        opdracht = SubagentOpdracht(**(taken[i].get("opdracht") or {}))
         afloop = Afloop(profiel=profiel, delegatie_id=delegatie_id, gesprek_id=str(vorige["gesprek_id"]), hervat=True)
         try:
             await api.wijzig_delegatie(delegatie_id, {"status": "loopt"})
@@ -272,7 +292,8 @@ async def hervat(state: dict[str, Any], delegatie_id: str, antwoorden: list[str]
             werkgebied_id=delegatie.get("werkgebied_id", "") or "", run_id=state.get("run_id", "") or "",
             user_id=user_id, bronnen=state.get("bronnen"), api=api, kinderen=kinderen, gestopt=gestopt,
             vraag=antwoord_tekst(list(vorige.get("vragen") or []), antwoorden, van=van)))
-        await _rond_af(api, afloop, stuur, run_id=state.get("run_id", "") or "")
+        alle[i] = afloop.als_dict()
+        await _leg_vast(api, delegatie_id, alle, stuur, run_id=state.get("run_id", "") or "", nu=[afloop])
         return afloop, kind, ""
     finally:
         if eigen_api:
