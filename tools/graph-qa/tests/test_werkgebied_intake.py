@@ -12,7 +12,7 @@ import pytest
 
 from agent import werkgebied_intake as wi
 from agent.models import ChatRequest
-from fakes import FakeGraph, FakeLLM, make_settings, response, text_block
+from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block
 from test_contract_drift import _bericht_velden
 
 IB = "BWBR0011353"
@@ -453,6 +453,35 @@ def test_een_getypt_antwoord_op_het_open_kaartje(tmp_path, graaf):
     _beurt(settings, llm, "Kunnen we een werkgebied samenstellen?")
     k = _kaart(_beurt(settings, llm, "Invordering van de erfbelasting"))
     assert k["stap"] == "aanleiding"
+
+
+def test_een_getypt_antwoord_op_het_open_kaartje_bij_de_centrale_agent(tmp_path, graaf):
+    """Analyse centrale agent, gat 5: de centrale agent leest het open kaartje in de context van zijn beurt en geeft het
+    antwoord met `beantwoord_kaart` aan de werkgebied-worker, zoals de supervisor met `WORKERS: werkgebied`."""
+    from agent.agent import answer_stream
+
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"), centrale_agent="meten")
+    llm = FakeLLM([response([tool_block("t1", "beantwoord_kaart", {})], "tool_use"), _voorstel()])
+
+    def beurt(vraag):
+        async def run():
+            return [e async for e in answer_stream(vraag, "g1", settings=settings, llm=llm, graph=FakeGraph(),
+                                                   agentvorm="centraal")]
+        return asyncio.run(run())
+
+    beurt("Kunnen we een werkgebied samenstellen?")
+    k = _kaart(beurt("Invordering van de erfbelasting"))
+    assert k["stap"] == "aanleiding"
+    eerste = json.dumps(llm.calls[0], ensure_ascii=False)
+    assert "OPEN KAARTJE" in eerste and "beantwoord_kaart" in eerste and "WORKERS" not in eerste
+
+
+def test_beantwoord_kaart_zonder_open_kaartje_is_een_weigering():
+    from agent import overdracht
+
+    zet = overdracht.OVERDRACHT["beantwoord_kaart"].zet
+    assert "geen vraagkaart open" in zet(None, {"intake": {}}, {})
+    assert overdracht.open_kaartje({"intake": {}}) == ""
 
 
 def test_een_kaartje_van_een_oude_intake(tmp_path, graaf):
