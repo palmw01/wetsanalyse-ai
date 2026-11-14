@@ -267,6 +267,53 @@ def _hervat_subagent(b: Any, state: State, invoer: dict[str, Any]) -> tuple[dict
         return weigering
     return _met_kind(state, afloop, kind, afloop.profiel)
 
+SUBAGENTEN = "subagenten"
+
+
+def _subagenten(b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any] | str:
+    """Meer subagents (ADR-016 §A5): de code legt het plan voor, en ze beginnen pas na de bevestiging van de gebruiker
+    (`nodes/delegatie_plan.py`, daarna `nodes/subagent_vervolg.py`). Hoogstens `MAX_SUBAGENTS` in één fase."""
+    from pydantic import ValidationError
+
+    from . import subagent as sub
+    from .models import SubagentOpdracht
+
+    lijst = list(invoer.get("opdrachten") or [])
+    if not 2 <= len(lijst) <= sub.MAX_SUBAGENTS:
+        return (f"Geef twee tot {sub.MAX_SUBAGENTS} opdrachten; voor één opdracht is er subagent, en meer past niet in "
+                "één fase.")
+    plan = []
+    for o in lijst:
+        if o.get("profiel") not in sub.kiesbaar():
+            return f"Het profiel '{o.get('profiel', '')}' bestaat niet. Kies uit: {', '.join(sub.kiesbaar())}."
+        try:
+            opdracht = SubagentOpdracht(**{v: str(o.get(v) or "").strip() for v in sub.VELDEN})
+        except ValidationError:
+            return "Schrijf bij elke opdracht het doel; de andere velden mogen leeg zijn."
+        plan.append({"profiel": o["profiel"], "opdracht": opdracht.model_dump()})
+    if reden := _start_kind(b, state):
+        return reden
+    if state.get("subagenten"):
+        return "Je zette in deze beurt al een subagent aan het werk. Beantwoord de vraag met zijn rapport."
+    return {"subagent_plan": plan}
+
+
+REGIE_PLAN = "regie_plan"
+
+
+def _regie_plan(b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any] | str:
+    """De regisseur als tool (ADR-016 §A5): het plan per deelvraag komt uit de stand bij de api, zonder tokens, met de
+    bevestiging van de regie (`regisseur.voorstel`). De centrale agent stelt het niet zelf op."""
+    opdracht = invoer.get("opdracht", "")
+    if opdracht not in ("bronnen", "annoteren"):
+        return "Kies de opdracht: bronnen of annoteren."
+    if not state.get("werkgebied_id"):
+        return "Een regie per deelvraag hoort bij een werkgebied, en dit gesprek hoort bij geen werkgebied."
+    if not getattr(b.settings, "legt_zelf_vast", False):
+        return "Een regie kan hier niet starten. Beantwoord de vraag zelf."
+    return {"regie_plan": opdracht}
+
+
 _GEEN_LIJST = ("De code leest dit niet als een lijstvraag (welke bron, welke volgorde of hoeveel, en waarover). Zoek dan "
                "zelf met de zoektool van de bron.")
 
@@ -295,6 +342,10 @@ def _subagent_invoer() -> dict[str, Any]:
 
 
 _SUBAGENT_INVOER = _subagent_invoer()
+#: Meer subagents: dezelfde velden per opdracht, als lijst (strict).
+_SUBAGENTEN_INVOER = {"opdrachten": {"type": "array", "items": {
+    "type": "object", "properties": _SUBAGENT_INVOER, "required": sorted(_SUBAGENT_INVOER),
+    "additionalProperties": False}}}
 
 OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
     Overdracht(
@@ -371,6 +422,22 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
             "weer vraagt met de gebruiker, en niet voor een vaste route hierboven. Schrijf de opdracht volledig: hij kent "
             "alleen wat erin staat."),
         invoer=_SUBAGENT_INVOER, naar="agent", zet=_subagent),
+    Overdracht(
+        naam=SUBAGENTEN,
+        beschrijving=(
+            "Zet twee of drie subagents aan het werk op opdrachten die los van elkaar kunnen (bijvoorbeeld de rechtspraak "
+            "en de Kamerstukken bij een artikel, of drie lange stukken). De code legt het plan eerst aan de gebruiker voor; "
+            "schrijf zelf niets. Niet voor delen die elkaars uitkomst nodig hebben, en niet per deelvraag van een "
+            "werkgebied: daarvoor is regie_plan."),
+        invoer=_SUBAGENTEN_INVOER, naar="subagent_plan", zet=_subagenten),
+    Overdracht(
+        naam=REGIE_PLAN,
+        beschrijving=(
+            "In een werkgebied: verdeel het werk per deelvraag over deelgesprekken, met een plan uit de stand van het "
+            "werkgebied. bronnen: de bronnen per deelvraag zoeken. annoteren: de bronnen die de gebruiker per deelvraag "
+            "opnam annoteren (de volgende fase, na de bronnen). De werkplek toont het plan met een knop; schrijf zelf "
+            "niets."),
+        invoer={"opdracht": {"type": "string", "enum": ["bronnen", "annoteren"]}}, naar="regie_voorstel", zet=_regie_plan),
     Overdracht(
         naam=HERVAT_SUBAGENT,
         beschrijving=(

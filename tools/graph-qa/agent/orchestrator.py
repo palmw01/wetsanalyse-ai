@@ -280,6 +280,12 @@ def build_graph(
         "bepaling_lezen",
         "werkgebied_intake", "bronselectie", "agent_taak", "afwijzen")}
     if centraal:
+        # De plannen van de centrale agent (ADR-016 §A5): meer subagents, en de regisseur als tool. Eén stap en klaar.
+        from .nodes.delegatie_plan import regie_voorstel_node, subagent_plan_node
+        add("subagent_plan", functools.partial(subagent_plan_node, b))
+        g.add_edge("subagent_plan", END)
+        add("regie_voorstel", functools.partial(regie_voorstel_node, b))
+        g.add_edge("regie_voorstel", END)
         voeg_overdracht_toe(g, add, b)
         # Een klik op de vraagkaart van een subagent (ADR-016 §A4): het antwoord in code, dan een kaart of de bundel.
         from .nodes.subagent_vervolg import route_na_vervolg, subagent_vervolg_node

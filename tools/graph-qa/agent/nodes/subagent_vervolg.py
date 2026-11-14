@@ -1,4 +1,6 @@
-"""De node `subagent_vervolg`: een klik op de vraagkaart van een subagent (ADR-016 §A4), zonder model.
+"""De node `subagent_vervolg`: een klik op de vraagkaart van een subagent (ADR-016 §A4, §A5), zonder model.
+
+De bevestiging vóór meer subagents (`sa_start`) start ze (`subagent.voer_plan_uit`); daarna zoals hieronder.
 
 De kaart (`subagent.vraagkaart`, `intake_id` `sa-<delegatie>`) stelt de vragen van een subagent één voor één. Een klik:
 
@@ -32,6 +34,7 @@ logger = logging.getLogger("graph_qa.subagent")
 PREFIX = "sa-"
 GESTOPT = "Dan laat ik deze vraag rusten; de subagent gaat niet verder. Wat hij al vond, staat in zijn deelgesprek."
 VOLGENDE = "Dank je. De subagent heeft nog een vraag."
+NIET_GESTART = "Dan begin ik er niet aan; er is niets gestart."
 STORING = "Dat lukte nu niet: de wetsanalyse-api haperde. Probeer het zo opnieuw; je antwoord is niet verloren gegaan."
 
 
@@ -54,6 +57,20 @@ async def _verwerk(b: Bouw, state: State, stuur) -> dict[str, Any]:
         except WetsanalyseApiFout:
             return {"tekst": sub.AL_BEANTWOORD}
         kinderen = list((delegatie.get("uitkomst") or {}).get("kinderen") or [])
+        if delegatie.get("soort") == "subagent" and delegatie.get("status") == "wacht" and not kinderen:
+            # De bevestiging vóór meer subagents (ADR-016 §A5): nog niets gestart.
+            if actie.get("actie") == "afbreken":
+                await api.wijzig_delegatie(delegatie_id, {"status": "gestopt", "uitkomst": {"door": "gebruiker"}})
+                return {"tekst": NIET_GESTART}
+            paren, weigering = await sub.voer_plan_uit(
+                state, delegatie_id, stuur, settings=b.settings, kinderen=b.kinderen, api=api,
+                gestopt=lambda: bool(b.stop_check and b.stop_check()))
+            if weigering:
+                return {"tekst": weigering}
+            j = sub.eerste_vraag([a.als_dict() for a, _ in paren])
+            if j is not None:
+                return {"paren": paren, "kaart": sub.vraagkaart(delegatie_id, paren[j][0].vragen, 1)}
+            return {"paren": paren}
         i = sub.eerste_vraag(kinderen)
         if delegatie.get("soort") != "subagent" or delegatie.get("status") != "wacht" or i is None:
             return {"tekst": sub.AL_BEANTWOORD}
@@ -77,7 +94,7 @@ async def _verwerk(b: Bouw, state: State, stuur) -> dict[str, Any]:
         na = list(((await api.haal_delegatie(delegatie_id)).get("uitkomst") or {}).get("kinderen") or [])
         j = sub.eerste_vraag(na)
         kaart = sub.vraagkaart(delegatie_id, na[j]["vragen"], 1) if j is not None else None
-        return {"afloop": afloop, "kind": kind, "kaart": kaart}
+        return {"paren": [(afloop, kind)], "kaart": kaart}
 
 
 def subagent_vervolg_node(b: Bouw, state: State) -> dict[str, Any]:
@@ -91,19 +108,19 @@ def subagent_vervolg_node(b: Bouw, state: State) -> dict[str, Any]:
         except WetsanalyseApiFout:
             logger.warning("subagent_vervolg: api-fout", extra={"categorie": "technisch"})
             uit = {"tekst": STORING}
-    afloop = uit.get("afloop")
-    if afloop is not None:
+    paren = uit.get("paren")
+    if paren:
         if uit.get("kaart"):
             uit = {"tekst": VOLGENDE, "kaart": uit["kaart"]}
         else:
-            # Klaar of niet gelukt: de centrale agent schrijft de bundel met het rapport als gegeven.
-            kind = uit.get("kind") or {}
-            trace = list(state.get("source_trace") or []) + [tuple(x) for x in kind.get("source_trace") or []]
-            rapport = sub.als_toolresultaat(afloop.profiel, afloop.uitkomst, sub.rapport_tekst(afloop, kind))
-            return {"specialist": CENTRAAL, "source_trace": trace,
-                    "subagenten": [afloop.als_dict()],
-                    "rapporten": ("RAPPORT NA JE ANTWOORD (de gebruiker beantwoordde de vragen van de subagent; vat het "
-                                  "rapport samen voor de gebruiker):\n" + rapport + "\n\n")}
+            # Klaar of niet gelukt: de centrale agent schrijft de bundel met de rapporten als gegeven. Hun toolresultaten
+            # gaan in de trace, zodat `verify` de samenvatting ertegen toetst.
+            trace = list(state.get("source_trace") or [])
+            for _a, kind in paren:
+                trace += [tuple(x) for x in kind.get("source_trace") or []]
+            return {"specialist": CENTRAAL, "source_trace": trace, "subagenten": [a.als_dict() for a, _ in paren],
+                    "rapporten": ("RAPPORTEN VAN DE SUBAGENTS (de gebruiker bevestigde het plan of beantwoordde hun "
+                                  "vragen; vat ze samen voor de gebruiker):\n" + sub.bundel_rapporten(paren) + "\n\n")}
     tekst = uit.get("tekst") or sub.AL_BEANTWOORD
     writer({"type": "token", "content": tekst})
     if uit.get("kaart"):

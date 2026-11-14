@@ -234,7 +234,7 @@ def test_na_de_laatste_vraag_hervat_de_code_en_schrijft_de_centrale_agent_de_bun
     upd, events = _draai_vervolg(monkeypatch, api, kinderen, _klik(tekst="Nee, een gewone aanslag."))
     [(verzoek, _, _)] = gestart
     assert "Antwoord: 2024" in verzoek.question and "Antwoord: Nee, een gewone aanslag." in verzoek.question
-    assert upd["rapporten"].startswith("RAPPORT NA JE ANTWOORD") and "Bevindingen: gewone aanslag." in upd["rapporten"]
+    assert upd["rapporten"].startswith("RAPPORTEN VAN DE SUBAGENTS") and "Bevindingen: gewone aanslag." in upd["rapporten"]
     assert ARTIKEL in upd["source_trace"] and upd["specialist"] == "centraal"
     assert vervolg.route_na_vervolg(None, upd) == "agent"
     assert not any(e["type"] == "vraagkaart" for e in events)

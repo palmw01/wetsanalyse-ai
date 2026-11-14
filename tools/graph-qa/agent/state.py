@@ -108,6 +108,10 @@ class State(TypedDict, total=False):
     # De rapporten die de code na een klik op een vraagkaart ophaalde (`nodes/subagent_vervolg.py`): de centrale agent
     # krijgt ze in de context van de beurt en schrijft de bundel. Per beurt gereset.
     rapporten: str
+    # Meer subagents die de centrale agent opstelde (`overdracht._subagenten`): `[{profiel, opdracht}]`, voor de node
+    # `subagent_plan`. En de opdracht van een regie die hij voorlegt (`regie_plan`). Per beurt gereset.
+    subagent_plan: list[dict[str, Any]]
+    regie_plan: str
     # Een deelgesprek van een subagent: `{delegatie_id, profiel}`. Niet per beurt gereset: doorvragen van de jurist houdt
     # het profiel en zet de delegatie op `later_gewijzigd`.
     deelgesprek: dict[str, Any]

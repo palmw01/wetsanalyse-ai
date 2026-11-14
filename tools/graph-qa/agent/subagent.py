@@ -323,9 +323,10 @@ def open_vraag(subagenten: list[dict[str, Any]]) -> dict[str, Any] | None:
 
 async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: SubagentOpdracht, stuur, *, gesprek_id: str,
                       werkgebied_id: str, run_id: str, user_id: str, bronnen: Any, api: Any, kinderen: Kinderen,
-                      gestopt: Callable[[], bool], vraag: str = "") -> dict[str, Any]:
+                      gestopt: Callable[[], bool], vraag: str = "", index: int = 0,
+                      bij_start: Callable[[Any], None] | None = None) -> dict[str, Any]:
     """Eén beurt van het kind. Zonder `afloop.gesprek_id` eerst het deelgesprek; met (hervatten) dezelfde, met `vraag`
-    als eerste bericht."""
+    als eerste bericht. `index` is zijn plek in het plan; `bij_start` krijgt de run zodra hij loopt."""
     begin = time.perf_counter()
     kind_run = None
     delegatie_id = afloop.delegatie_id
@@ -334,7 +335,7 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
             gesprek = await api.maak_gesprek({"titel": titel, "werkgebied_id": werkgebied_id, "ouder_id": gesprek_id,
                                               "delegatie_id": delegatie_id, "profiel": profiel})
             afloop.gesprek_id = str(gesprek["id"])
-        stuur({"type": "regie_taak", "fase": "start", "regie_id": delegatie_id, "index": 0, "titel": titel,
+        stuur({"type": "regie_taak", "fase": "start", "regie_id": delegatie_id, "index": index, "titel": titel,
                "gesprek_id": afloop.gesprek_id, "profiel": profiel})
         verzoek = ChatRequest(question=vraag or opdracht_tekst(opdracht), conversation_id=afloop.gesprek_id,
                               werkgebied_id=werkgebied_id or None, profiel=profiel, opdracht=opdracht,
@@ -342,6 +343,8 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
                               bronnen=list(bronnen) if bronnen is not None else None)
         kind_run = await kinderen.start(verzoek, user_id, run_id)
         afloop.run_id = kind_run.run_id
+        if bij_start is not None:
+            bij_start(kind_run)
         wacht = asyncio.create_task(_stopwacht(gestopt, kind_run, kinderen))
         try:
             await kind_run.taak
@@ -370,9 +373,9 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
         return {}
     finally:
         logger.info("regie_taak", extra={"categorie": "functioneel", "regie_id": delegatie_id, "ouder_run_id": run_id,
-                                         "run_id": afloop.run_id, "index": 0, "uitkomst": afloop.uitkomst,
+                                         "run_id": afloop.run_id, "index": index, "uitkomst": afloop.uitkomst,
                                          "profiel": profiel, "duur_ms": round((time.perf_counter() - begin) * 1000)})
-        stuur({"type": "regie_taak", "fase": "eind", "regie_id": delegatie_id, "index": 0, "titel": titel,
+        stuur({"type": "regie_taak", "fase": "eind", "regie_id": delegatie_id, "index": index, "titel": titel,
                "gesprek_id": afloop.gesprek_id, "uitkomst": afloop.uitkomst, "profiel": profiel})
 
 
@@ -409,3 +412,177 @@ def rapport_tekst(afloop: Afloop, kind: dict[str, Any]) -> str:
     if (kind.get("rapport") or {}).get("status") and kind.get("answer"):
         return kind["answer"]
     return GEEN_RAPPORT.get(afloop.uitkomst, GEEN_RAPPORT["niet_gelukt"]) + (f" ({afloop.reden})" if afloop.reden else "")
+
+
+# -- meer subagents tegelijk (ADR-016 §A5) ---------------------------------------------------------------------
+
+#: Hoeveel subagents de centrale agent hoogstens in één fase opstelt.
+MAX_SUBAGENTS = 3
+#: Hoeveel er tegelijk lopen: dezelfde grens als een regie (ADR-012).
+REGIE_PARALLEL = 2
+#: Het plafond van een opdracht: dit deel van wat de gebruiker deze week nog heeft (ADR-016 §A5, `DELEGATIE_AANDEEL`).
+#: Een eerste waarde, tot de meting een betere geeft.
+DELEGATIE_AANDEEL = 0.25
+#: Hoe lang de rest wacht tot de eerste zijn eerste modelronde begon (dan lezen ze het voorvoegsel uit de cache).
+CACHE_WACHT_S = 30.0
+#: Een event dat zegt dat het kind zijn eerste modelronde begon of al iets deed.
+_BEGONNEN = frozenset({"reason", "token", "tool_execution", "antwoord", "meting"})
+
+
+def _titels(taken: list[dict[str, Any]]) -> list[str]:
+    return [f"- {t.get('titel', '')} ({t.get('profiel', '')})" for t in taken]
+
+
+def startkaart(delegatie_id: str, taken: list[dict[str, Any]], plafond: int | None, parallel: int) -> dict[str, Any]:
+    """De bevestiging vóór meer dan één subagent, als vraagkaart (`sa_start`): het plan, de profielen, wat het kost en
+    het plafond. Een schatting per profiel is er pas met eerdere runs; tot dan zegt de kaart dat."""
+    regels = [*_titels(taken), "",
+              "Een schatting van de tokens kan ik nog niet geven: er zijn nog geen eerdere runs om op te baseren."]
+    if plafond:
+        regels.append(f"Ze stoppen bij ~{plafond:,} tokens samen, een kwart van wat je deze week nog hebt: daarna start "
+                      "er geen nieuwe meer, en wat loopt maakt af.".replace(",", "."))
+    regels.append(f"Er lopen er hoogstens {parallel} tegelijk. Laat dit venster open tot ze klaar zijn.")
+    toelichting = "\n".join(regels)
+    if len(toelichting) > 1000:
+        toelichting = toelichting[:999].rsplit("\n", 1)[0] + "\n…"
+    return {"intake_id": f"sa-{delegatie_id}", "modus": "subagent", "soort": "vraag", "stap": "sa_start", "nr": 1,
+            "totaal": 1, "vraag": f"Zal ik deze {len(taken)} subagents aan het werk zetten?", "toelichting": toelichting,
+            "opties": [{"label": "Start de subagents", "waarde": "start"}], "meerkeuze": False, "vrije_tekst": False,
+            "overslaanbaar": False}
+
+
+async def plan_klaar(state: dict[str, Any], opdrachten: list[tuple[str, SubagentOpdracht]], *, settings: Any,
+                     api: Any | None = None, parallel: int = REGIE_PARALLEL) -> tuple[str, dict[str, Any] | None]:
+    """Meer subagents: het plan bij de api, als delegatie die wacht (geen slot), en de kaart voor de jurist. (de tekst
+    voor het gesprek, de kaart; zonder kaart is de tekst een weigering)."""
+    user_id = state.get("user_id", "") or ""
+    eigen_api = api is None
+    api = api or WetsanalyseApi(settings, user_id)
+    try:
+        _ok, stand = await api.budget_toegestaan()
+        resterend = stand.get("resterend") if stand.get("actief", True) else None
+        plafond = int(resterend * DELEGATIE_AANDEEL) if isinstance(resterend, int) and resterend > 0 else None
+        taken = [{"titel": _titel(o), "profiel": p, "profiel_versie": versie(PROFIELEN[p]), "opdracht": o.model_dump()}
+                 for p, o in opdrachten]
+        plan_id = hashlib.sha256(json.dumps(taken, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:16]
+        delegatie = await api.start_delegatie({
+            "soort": "subagent", "werkgebied_id": state.get("werkgebied_id", "") or "",
+            "gesprek_id": state.get("gesprek_id", "") or "", "opdracht": "subagent", "plan_id": plan_id,
+            "plan": {"taken": taken, **({"plafond": plafond} if plafond else {})}, "budget_aandeel": plafond or 0,
+            "status": "wacht"})
+        tekst = (f"Ik leg je het plan voor: **{len(taken)}** subagents, elk in een eigen deelgesprek. Ze beginnen pas als "
+                 "je het bevestigt.")
+        return tekst, startkaart(str(delegatie["id"]), taken, plafond, parallel)
+    except WetsanalyseApiFout:
+        logger.warning("subagents: het plan kon niet bewaard worden", extra={"categorie": "technisch"})
+        return "Het plan kon ik niet bewaren: de wetsanalyse-api haperde. Vraag het zo opnieuw.", None
+    finally:
+        if eigen_api:
+            await api.aclose()
+
+
+def verbruik_van(run: Any) -> int:
+    """Wat een kind-run kostte, uit zijn `meting`-events (het volle promptvolume, zoals het budget telt)."""
+    return sum(int(e.get(v) or 0) for e in getattr(run, "events", None) or [] if e.get("type") == "meting"
+               for v in ("invoer", "uitvoer", "cache_lees", "cache_schrijf"))
+
+
+async def _begonnen(run: Any, wacht_s: float) -> None:
+    """Wacht tot het kind zijn eerste modelronde begon of klaar is, hoogstens `wacht_s`."""
+    eind = time.monotonic() + wacht_s
+    while time.monotonic() < eind:
+        taak = getattr(run, "taak", None)
+        if (taak is not None and taak.done()) or any(e.get("type") in _BEGONNEN for e in getattr(run, "events", None) or []):
+            return
+        await asyncio.sleep(0.2)
+
+
+async def voer_plan_uit(state: dict[str, Any], delegatie_id: str, stuur: Callable[[dict], None], *, settings: Any,
+                        kinderen: Kinderen, gestopt: Callable[[], bool], api: Any | None = None,
+                        parallel: int = REGIE_PARALLEL, hartslag_s: float = HARTSLAG_S,
+                        cache_wacht_s: float = CACHE_WACHT_S) -> tuple[list[tuple[Afloop, dict[str, Any]]], str]:
+    """De bevestigde subagents: hoogstens `parallel` tegelijk, de rest pas als de eerste zijn eerste modelronde begon
+    (zo lezen ze het voorvoegsel van hun profiel uit de cache), en bij het plafond start er niets nieuws.
+    (per kind de afloop en wat het opleverde, in de volgorde van het plan; een weigering of leeg)."""
+    user_id = state.get("user_id", "") or ""
+    eigen_api = api is None
+    api = api or WetsanalyseApi(settings, user_id)
+    try:
+        try:
+            delegatie = await api.haal_delegatie(delegatie_id)
+        except WetsanalyseApiFout:
+            return [], AL_BEANTWOORD
+        plan = delegatie.get("plan") or {}
+        taken = [t for t in plan.get("taken") or [] if t.get("profiel") in KIESBAAR]
+        if (delegatie.get("soort") != "subagent" or delegatie.get("status") != "wacht" or len(taken) < 2
+                or (delegatie.get("uitkomst") or {}).get("kinderen")):
+            return [], AL_BEANTWOORD
+        try:
+            await api.wijzig_delegatie(delegatie_id, {"status": "loopt"})
+        except WetsanalyseApiFout as fout:
+            if fout.status != 409:
+                raise
+            return [], BEZET
+        plafond = plan.get("plafond")
+        aflopen = [Afloop(profiel=t["profiel"], delegatie_id=delegatie_id) for t in taken]
+        runs: list[Any] = []
+        eerste = asyncio.Event()
+        slot = asyncio.Semaphore(max(1, parallel))
+        stuur({"type": "regie", "fase": "start", "regie_id": delegatie_id, "soort": "subagent",
+               "plan": {"opdracht": "subagent", "taken": [{"titel": t.get("titel", ""), "profiel": t["profiel"]}
+                                                          for t in taken]}})
+
+        async def een(i: int, taak: dict[str, Any]) -> dict[str, Any]:
+            if i > 0:
+                await eerste.wait()
+                return await _een(i, taak)
+            try:
+                return await _een(i, taak)
+            finally:
+                # Kwam de eerste niet aan zijn eerste ronde toe (gestopt, plafond, een storing), dan wacht de rest niet.
+                eerste.set()
+
+        async def _een(i: int, taak: dict[str, Any]) -> dict[str, Any]:
+            async with slot:
+                if gestopt():
+                    aflopen[i].uitkomst = "gestopt"
+                    return {}
+                if plafond and sum(verbruik_van(r) for r in runs) >= plafond:
+                    aflopen[i].reden = "het plafond van de opdracht is bereikt"
+                    return {}
+
+                def gestart(run: Any) -> None:
+                    runs.append(run)
+                    if i == 0:
+                        asyncio.get_running_loop().create_task(_na_begin(run))
+
+                async def _na_begin(run: Any) -> None:
+                    await _begonnen(run, cache_wacht_s)
+                    eerste.set()
+
+                opdracht = SubagentOpdracht(**(taak.get("opdracht") or {}))
+                return await _draai_kind(
+                    aflopen[i], _titel(opdracht), taak["profiel"], opdracht, stuur,
+                    gesprek_id=state.get("gesprek_id", "") or "", werkgebied_id=delegatie.get("werkgebied_id", "") or "",
+                    run_id=state.get("run_id", "") or "", user_id=user_id, bronnen=state.get("bronnen"), api=api,
+                    kinderen=kinderen, gestopt=gestopt, index=i, bij_start=gestart)
+
+        hart = asyncio.create_task(_hartslag(api, delegatie_id, hartslag_s))
+        try:
+            uit = await asyncio.gather(*(een(i, t) for i, t in enumerate(taken)))
+        finally:
+            hart.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await hart
+        await _leg_vast(api, delegatie_id, [a.als_dict() for a in aflopen], stuur,
+                        run_id=state.get("run_id", "") or "", nu=aflopen)
+        return list(zip(aflopen, uit)), ""
+    finally:
+        if eigen_api:
+            await api.aclose()
+
+
+def bundel_rapporten(paren: list[tuple[Afloop, dict[str, Any]]]) -> str:
+    """De rapporten van de subagents voor de centrale agent, elk met zijn kop: wat hij de gebruiker samenvat."""
+    return "\n\n".join(f"{i}. " + als_toolresultaat(a.profiel, a.uitkomst, rapport_tekst(a, k))
+                        for i, (a, k) in enumerate(paren, 1))
