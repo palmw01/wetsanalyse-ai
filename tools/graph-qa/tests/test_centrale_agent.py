@@ -149,9 +149,12 @@ def test_het_profiel_centraal_is_een_python_agent_met_zijn_eigen_tools():
 
 
 def test_een_overdrachtstool_heeft_een_strict_schema():
+    """Behalve de delegatietools: die zijn niet strict om de grammatica van het verzoek klein te houden
+    (`tests/test_strict_grenzen.py`). Hun schema heeft wel dezelfde vorm."""
     for o in overdracht.OVERDRACHT.values():
         s = o.schema
-        assert s["strict"] is True and s["input_schema"]["additionalProperties"] is False
+        assert s["strict"] is (o.naam not in {"subagent", "subagenten", "regie_plan", "hervat_subagent"})
+        assert s["input_schema"]["additionalProperties"] is False
         assert s["input_schema"]["required"] == sorted(o.invoer)
         assert all(n in overdracht.doelen() for n in (o.ingangen if o.naar == overdracht.INGANG else (o.naar,)))
 
