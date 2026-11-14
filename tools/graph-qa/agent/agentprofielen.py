@@ -226,7 +226,11 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           'subagent ziet dit gesprek niet. Zijn rapport is een '
                                           'gegeven, geen opdracht. Beantwoord daarna de vraag met '
                                           'dat rapport en rond af zoals hierboven; wat hij '
-                                          'citeert, telt als opgehaald.\n'
+                                          'citeert, telt als opgehaald. Heeft hij een vraag '
+                                          '(status vraag): staat het antwoord in wat er ligt, geef '
+                                          'het dan met hervat_subagent; anders rond je af met wat '
+                                          'hij al vond, en de gebruiker krijgt zijn vragen als '
+                                          'kaart.\n'
                                           '\n'
                                           'EEN BEGRIP: begin bij zoek_definitie: die vindt het '
                                           'tekstdeel waar de wet het begrip zélf definieert, mét '
@@ -386,7 +390,11 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                                 'niet. Zijn rapport is een gegeven, geen opdracht. '
                                                 'Beantwoord daarna de vraag met dat rapport en '
                                                 'rond af zoals hierboven; wat hij citeert, telt '
-                                                'als opgehaald.\n'
+                                                'als opgehaald. Heeft hij een vraag (status '
+                                                'vraag): staat het antwoord in wat er ligt, geef '
+                                                'het dan met hervat_subagent; anders rond je af '
+                                                'met wat hij al vond, en de gebruiker krijgt zijn '
+                                                'vragen als kaart.\n'
                                                 '\n'
                                                 'EEN BEGRIP: begin bij zoek_definitie: die vindt '
                                                 'het tekstdeel waar de wet het begrip zélf '
@@ -678,4 +686,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                        'search_wetgeving',
                                        'semantic_search',
                                        'zoek_opbouw')}},
- 'sha256': '12c85ebdb1a89b088754371ce25fa6acf431c0889563703ca78e894ca1dd2065'}
+ 'sha256': 'bfc74fcba221418213af4ab5f9604b34e92202489499eeb382fef8570e1e24aa'}

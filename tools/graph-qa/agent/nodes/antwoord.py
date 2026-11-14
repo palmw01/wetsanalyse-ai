@@ -41,6 +41,7 @@ from ..resultaat import is_fout
 from ..agentvorm import STANDAARD as DEFAULT_SPECIALIST, agent_van
 from ..overdracht import OVERDRACHT
 from ..state import State
+from ..subagent import open_vraag, vraagkaart
 from ..bronstand import prompt_blok as bronstand_blok
 from ..bronstand import waar as bronstand_waar
 from ..tool_execution import execute_tool
@@ -79,6 +80,10 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     variabel = ""
     if state.get("plan"):
         variabel += f"AANPAK (door jou gepland):\n{state['plan']}"
+    if state.get("rapporten"):
+        # Na een klik op een vraagkaart van een subagent (ADR-016 §A4): het rapport dat de code ophaalde, met de kop die
+        # zegt dat het een gegeven is. Alleen dan: zonder rapporten is het verzoek byte-gelijk.
+        variabel += state["rapporten"]
     variabel += b.memory_context(state)
     variabel += b.advies_context(state)
     # Welke bronnen naast de wet aanstaan, en waarom niet (ADR-013): na het cachepunt, want het verschilt per beurt.
@@ -841,6 +846,10 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
     if state.get("antwoord"):
         writer({"type": "antwoord", "antwoord": state["antwoord"]})
     writer({"type": "token", "content": antwoord})
+    if open_ := open_vraag(state.get("subagenten") or []):
+        # Een subagent wacht op een antwoord dat de centrale agent niet had (ADR-016 §A4): de beurt eindigt met zijn
+        # eerste vraag als kaart, uit code. Een klik gaat zonder model naar `subagent_vervolg`.
+        writer({"type": "vraagkaart", "vraagkaart": vraagkaart(open_["delegatie_id"], open_["vragen"], 1)})
 
     if state.get("overzicht"):
         # De overzichtsroute: de bronnen zijn de vindplaatsen van het overzicht, en hangen dus niet af

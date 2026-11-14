@@ -264,11 +264,16 @@ class ChatRequest(BaseModel):
     # de ene ingang (`api.main.start_beurt`); `POST /v1/runs` neemt ze niet aan. Samen of geen van beide.
     profiel: str = Field(default="", pattern=r"^([a-z][a-z0-9_]{0,63})?$")
     opdracht: SubagentOpdracht | None = None
+    # De delegatie van de subagent (ADR-016 §A4): het deelgesprek onthoudt haar, zodat doorvragen er later bij de
+    # delegatie als `later_gewijzigd` staat. Alleen met een opdracht.
+    delegatie_id: str = Field(default="", pattern=r"^[A-Za-z0-9]{0,64}$")
 
     @model_validator(mode="after")
     def _subagent_heeft_profiel_en_opdracht(self) -> "ChatRequest":
         if bool(self.profiel) != (self.opdracht is not None):
             raise ValueError("een subagent heeft een profiel en een opdracht")
+        if self.delegatie_id and self.opdracht is None:
+            raise ValueError("een delegatie hoort bij de opdracht van een subagent")
         return self
 
     @model_validator(mode="after")
