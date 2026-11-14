@@ -276,7 +276,9 @@ def test_een_telvraag_krijgt_de_verdeling_uit_de_index():
 def test_de_verdeling_telt_in_de_index_met_de_status():
     q = kb.q_verdeling(Zoekvraag(bwb_id="BWBR0002320"), "belastingsoort")
     assert "COUNT(DISTINCT ?s)" in q and "GROUP BY ?w" in q and 'FILTER(?status = "geldend")' in q
-    assert "kgo:middel ?w" in q and "kgo:belastingsoort ?w" in q
+    # Belastingsoort en middel zijn twee indelingen van de site: niet samentellen (meting ronde 2, vraag 8).
+    assert "kgo:belastingsoort ?w" in q and "kgo:middel" not in q
+    assert "?s kgo:middel ?w" in kb.q_verdeling(Zoekvraag(), "middel")
     assert "kgo:kennisgroep ?w" in kb.q_verdeling(Zoekvraag(), "kennisgroep")
 
 
@@ -302,5 +304,7 @@ def test_de_tekststand_per_genoemd_artikel_komt_uit_de_code():
 
     data = _roep("get_standpunt", {"id": "KG:013:2026:4"}, NepBron(gelezen=gelezen), FakeGraph(results=antwoord))
     standen = {t["artikel"]: t["tekststand"] for t in data["stuk"]["tekststanden"]}
-    assert standen == {"10": "gewijzigd na dit standpunt", "6": "ongewijzigd sinds dit standpunt"}
+    assert standen["10"].startswith("het artikel is gewijzigd na dit standpunt") and "lid" in standen["10"]
+    assert standen["6"] == "het artikel is ongewijzigd sinds dit standpunt"
+    assert {t["niveau"] for t in data["stuk"]["tekststanden"]} == {"artikel"}, "de graaf kent geen inwerking per lid"
     assert "tekststanden" not in _roep("get_standpunt", {"id": "KG:013:2026:4"}, NepBron(gelezen=gelezen))["stuk"]

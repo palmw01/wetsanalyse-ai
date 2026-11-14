@@ -78,6 +78,7 @@ class Gevonden:
     #: door 93 standpunten en schatte het per belastingsoort). Een standpunt met twee belastingsoorten telt bij beide.
     per_belastingsoort: dict[str, int] = field(default_factory=dict)
     per_kennisgroep: dict[str, int] = field(default_factory=dict)
+    per_middel: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass
@@ -157,8 +158,12 @@ def q_tellingen(v: Zoekvraag) -> str:
 
 
 #: De velden waarover `q_verdeling` telt, met hun patroon in de index.
+#: Belastingsoort en middel zijn twee taxonomieën van de site met bijna gelijke namen ("Inkomstenbelasting (IB)" en
+#: "Inkomstenbelasting"): elk een eigen verdeling, want samengeteld maakte het model er reeksen van ("12–13", meting
+#: ronde 2, vraag 8).
 VERDELINGEN = {
-    "belastingsoort": "{ ?s kgo:middel ?w } UNION { ?s kgo:belastingsoort ?w }",
+    "belastingsoort": "?s kgo:belastingsoort ?w .",
+    "middel": "?s kgo:middel ?w .",
     "kennisgroep": "?s kgo:kennisgroep ?w .",
 }
 
@@ -236,7 +241,7 @@ class KennisgroepenBron:
                 raise KennisgroepenFout("geen_index", "de index van de kennisgroepstandpunten is leeg; de import heeft "
                                         "nog niet gedraaid")
         return Gevonden(totaal, rijen, per_status, per_herkomst, verdeling.get("belastingsoort", {}),
-                        verdeling.get("kennisgroep", {}))
+                        verdeling.get("kennisgroep", {}), verdeling.get("middel", {}))
 
     def opvolgers(self, graph: Any, ident: str) -> list[tuple[str, str]]:
         """(id, status) van de standpunten die `ident` intrekken; leeg als de index het niet weet of er niet is."""
