@@ -114,17 +114,21 @@ class Agent:
         stuurt wat het model ziet (`toolschemas`). De centrale agent wel, zie `CentraleAgent.mag`."""
         return True
 
-    def toolschemas(self, settings: Any, bronnen: Any, bronstand: dict[str, Any] | None) -> list[dict[str, Any]]:
-        """De schema's die het model ziet: zijn tools zonder die van een connector die uit staat, dan zijn sjablonen."""
+    def toolschemas(self, settings: Any, bronnen: Any, bronstand: dict[str, Any] | None, *,
+                    werkgebied: bool = True) -> list[dict[str, Any]]:
+        """De schema's die het model ziet: zijn tools zonder die van een connector die uit staat, dan zijn eigen tools
+        (zonder werkgebied zonder die van het werkgebied: per beurt vast, dus het voorvoegsel blijft binnen de beurt
+        gelijk), dan zijn sjablonen."""
         return (anthropic_schemas(only=toegestane_tools(self.tools, settings, bronnen))
-                + [o.schema for o in self.eigen_tools.values()]
+                + [o.schema for o in self.eigen_tools.values() if werkgebied or not o.werkgebied]
                 + sjabloon_schemas(self.sjablonen(bronstand), extern=self.extern(bronstand)))
 
     def model(self, settings: Any) -> str:
         return settings.model_voor(_MODELKNOP.get(self.rol, ""))
 
     def ronde(self, llm: Any, settings: Any, *, systeem: list[str], berichten: list[dict[str, Any]],
-              berichtpunten: Any, bronnen: Any, bronstand: dict[str, Any] | None, kader: dict[str, Any]) -> Any:
+              berichtpunten: Any, bronnen: Any, bronstand: dict[str, Any] | None, kader: dict[str, Any],
+              werkgebied: bool = True) -> Any:
         """Eén ronde van de toollus: de modelaanroep met wat het profiel meegeeft. Geeft het volledige antwoord terug.
 
         Geen tekst tijdens het streamen: pas aan het eind van de ronde is bekend of dit narratie is of een eindantwoord,
@@ -135,7 +139,7 @@ class Agent:
             model=self.model(settings),
             max_tokens=_MAX_TOKENS.get(self.rol, MAX_TOKENS_ANTWOORD),
             system=systeem,
-            tools=self.toolschemas(settings, bronnen, bronstand),
+            tools=self.toolschemas(settings, bronnen, bronstand, werkgebied=werkgebied),
             messages=berichten,
             # Elke toolronde stuurt de hele historie opnieuw: een cache-punt aan het eind maakt die de volgende ronde
             # goedkoop.
@@ -167,9 +171,12 @@ class CentraleAgent(Agent):
 #: Wat een subagent bovenop zijn profiel hoort (ADR-016 §A3, §A4). Na de instructie van het profiel, want die zegt
 #: waarmee hij als specialist afrondt.
 SUBAGENT_INSTRUCTIE = (
-    "JE BENT EEN SUBAGENT. Je werkt aan één opdracht van de centrale agent van Lex; je spreekt de gebruiker niet en je "
-    "stelt hem geen vragen. De opdracht staat in het eerste bericht. Doe wat de opdracht vraagt, binnen wat erbij hoort, "
-    "en haal in één ronde op wat je samen nodig hebt. Je rondt altijd af met het sjabloon rapport, als laatste stap en "
+    "JE BENT EEN SUBAGENT. Je werkt aan één opdracht van de centrale agent van Lex; je spreekt de gebruiker niet "
+    "rechtstreeks. De opdracht staat in het eerste bericht. Doe wat de opdracht vraagt, binnen wat erbij hoort, en haal in "
+    "één ronde op wat je samen nodig hebt. Hangt wat je oplevert af van een afbakening of een feit dat de opdracht niet "
+    "geeft (een periode, een regeling, welke situatie of lezing), kies die dan niet zelf, ook niet 'de meest recente': rond "
+    "af met status vraag en stel de vraag in 'vragen', met wat je al zonder die keuze vond in de bevindingen. Je rondt "
+    "altijd af met het sjabloon rapport, als laatste stap en "
     "zonder tekst ernaast: niet met een antwoordsjabloon en niet in tekst, ook niet als het niet lukte (status "
     "niet_gelukt). Weigert de code het rapport, verbeter dan de aanroep zoals de melding zegt en roep het opnieuw aan.")
 

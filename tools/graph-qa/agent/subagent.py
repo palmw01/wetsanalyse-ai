@@ -14,8 +14,7 @@ rest, en alleen de code:
    de beurt: zo toetst `verify` zijn samenvatting ertegen en staan ze in het bronregister van het hoofdgesprek.
 
 **Een vraag naar boven** (§A4) is een rapport met `status: vraag`. De delegatie gaat dan op `wacht` (geen slot, er draait
-niets) met de vragen in haar uitkomst. De centrale agent mag de subagent één keer per beurt hervatten met een antwoord uit
-wat er ligt (`hervat`, de overdracht `hervat_subagent`); wat overblijft gaat naar de jurist als vraagkaart
+niets) met de vragen in haar uitkomst. De vraag gaat naar de jurist als vraagkaart
 (`vraagkaart`, `modus: subagent`, `intake_id` `sa-<delegatie>`). Een klik daarop routeert de code zonder model
 (`nodes/subagent_vervolg.py`): het antwoord bij de delegatie, en na de laatste vraag hervat de code de subagent in
 hetzelfde deelgesprek, met diens eigen geschiedenis.
@@ -74,8 +73,8 @@ def kiesbaar() -> list[str]:
 
 def invoer_schema() -> dict[str, Any]:
     """De eigenschappen van de overdracht `subagent` (strict): het profiel en de velden van de opdracht."""
-    return {"profiel": {"type": "string", "enum": kiesbaar(),
-                        "description": "; ".join(f"{n}: {PROFIELEN[n].beschrijving}" for n in kiesbaar())},
+    # Geen beschrijving per profiel: welk profiel bij welk werk past, zegt de instructie van de centrale agent één keer.
+    return {"profiel": {"type": "string", "enum": kiesbaar()},
             **{veld: {"type": "string", "description": uitleg} for veld, uitleg in VELDEN.items()}}
 
 
@@ -102,10 +101,8 @@ def onschadelijk(tekst: str) -> str:
 
 #: Wat de centrale agent doet met een rapport met vragen (§A4): zelf antwoorden als het er ligt, anders de jurist.
 VRAAG_AANWIJZING = (
-    "De subagent kan niet verder zonder antwoord op zijn vragen. Staat het antwoord in wat er ligt (het gesprek, het "
-    "werkgebied, de vraag van de gebruiker), roep dan hervat_subagent aan met dat antwoord; raad niet. Anders rond je af: "
-    "zeg kort wat de subagent al vond en dat hij een vraag heeft. De gebruiker krijgt de vragen daarna als kaart, en "
-    "schrijf ze daarom niet zelf uit.")
+    "De subagent kan niet verder zonder antwoord op zijn vragen. Rond af: zeg kort wat hij al vond en dat hij een vraag "
+    "heeft. De gebruiker krijgt de vragen daarna als kaart; schrijf ze niet zelf uit en beantwoord ze niet zelf.")
 
 
 def als_toolresultaat(profiel: str, uitkomst: str, tekst: str) -> str:

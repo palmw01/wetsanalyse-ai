@@ -127,7 +127,8 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         venster, berichtpunten = met_beurtcontext(venster, state.get("question", ""), variabel)
         systeem = [stabiel]
     final = agent.ronde(b.llm, b.settings, systeem=systeem, berichten=venster, berichtpunten=berichtpunten,
-                        bronnen=state.get("bronnen"), bronstand=state.get("bronstand"), kader=meetkader)
+                        bronnen=state.get("bronnen"), bronstand=state.get("bronstand"), kader=meetkader,
+                        werkgebied=bool(state.get("werkgebied_id")))
 
     tool_uses, text_parts = _parse_final(final)
     telling: dict[str, Any] = {}

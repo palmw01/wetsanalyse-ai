@@ -193,18 +193,19 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     profiel. Eén subagent per beurt (A3); meer tegelijk komt met A5.
   - **een vraag naar boven** (A4) is een rapport met `status: vraag` en `vragen` (hoogstens drie, elk met hoogstens vier
     opties; `rapport.vragen_van`). De delegatie gaat op `wacht`; per kind staan de vragen en de antwoorden tot nu toe in
-    `uitkomst.kinderen` (`subagent.eindstand`, `eerste_vraag`). De centrale agent mag
-    de subagent één keer per beurt hervatten met een antwoord uit wat er ligt (de overdracht `hervat_subagent`,
-    `subagent.hervat`: een nieuwe beurt in hetzelfde deelgesprek, met de antwoorden als eerste bericht). Wat overblijft:
-    `finalize_node` sluit de beurt af met de eerste vraag als vraagkaart (`subagent.vraagkaart`, `modus: subagent`,
+    `uitkomst.kinderen` (`subagent.eindstand`, `eerste_vraag`). De vraag gaat altijd naar
+    de jurist: de centrale agent beantwoordt haar niet zelf (een tool daarvoor kostte elke ronde ruimte in het voorvoegsel,
+    en de meting toonde geen geval waarin hij het kon). `finalize_node` sluit de beurt af met de eerste vraag als vraagkaart (`subagent.vraagkaart`, `modus: subagent`,
     `intake_id` `sa-<delegatie>`). Een klik gaat zonder model naar de node `subagent_vervolg`
     (`nodes/subagent_vervolg.py`, alleen als de vlag niet `uit` is): het antwoord bij de delegatie, de volgende kaart, en
-    na de laatste vraag hervat de code de subagent; daarna schrijft de centrale agent de bundel met het rapport in de
+    na de laatste vraag hervat de code de subagent (`subagent.hervat`: een nieuwe beurt in hetzelfde deelgesprek, met de
+    antwoorden als eerste bericht); daarna schrijft de centrale agent de bundel met het rapport in de
     context van de beurt (`State.rapporten`, alleen dan: zonder is het verzoek byte-gelijk);
   - **een deelgesprek onthoudt zijn delegatie** (`State.deelgesprek`, niet per beurt gereset, uit `ChatRequest.delegatie_id`
     dat alleen met een opdracht mag en niet via HTTP). Een beurt van de jurist daar loopt langs de routes in code en dan
     naar het profiel van het deelgesprek, en zet de delegatie op `later_gewijzigd`.
-  - **meer subagents** (A5): de overdracht `subagenten` (twee tot `MAX_SUBAGENTS` opdrachten, strict) start niets. De
+  - **meer subagents** (A5): dezelfde overdracht `subagent` neemt één tot `MAX_SUBAGENTS` opdrachten. Eén start meteen;
+    twee of meer starten niets (`overdracht_naar: subagent_plan`). De
     node `subagent_plan` (`nodes/delegatie_plan.py`) bewaart het plan als delegatie die wacht, met een plafond
     (`DELEGATIE_AANDEEL` van wat de gebruiker deze week nog heeft, ook als `budget_aandeel`), en eindigt met de bevestiging
     als vraagkaart (`sa_start`, `subagent.startkaart`). De klik start ze (`subagent.voer_plan_uit`): hoogstens
@@ -212,12 +213,13 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     (`verbruik_van`, uit de `meting` van de kinderen) start er niets nieuws. Daarna schrijft de centrale agent de bundel
     met alle rapporten (`bundel_rapporten`), of komt de eerste vraag als kaart;
   - **de regisseur als tool**: de overdracht `regie_plan` (bronnen of annoteren, alleen in een werkgebied) gaat naar de
-    node `regie_voorstel`, die het plan uit de stand bij de api maakt met dezelfde tekst en knop als de regie zelf
+    node `regie_voorstel`, die alleen in het voorvoegsel staat van een beurt met een werkgebied (`Overdracht.werkgebied`,
+    per beurt vast) en het plan uit de stand bij de api maakt met dezelfde tekst en knop als de regie zelf
     (`regisseur.plan_van`, `voorstel`). De centrale agent stelt geen plan per deelvraag zelf op.
   - **de grammatica van een verzoek is begrensd**: de API maakt van alle strict schema's samen één grammatica, met
     gedocumenteerde grenzen (20 strict tools, 24 optionele, 16 union-parameters) en een interne grens op de omvang
-    ("Schema is too complex for compilation", 400 zonder tokens). De delegatietools (`subagent`, `subagenten`,
-    `regie_plan`, `hervat_subagent`) zijn daarom niet strict (`Overdracht.strict`); de code toetst hun invoer.
+    ("Schema is too complex for compilation", 400 zonder tokens). De delegatietools (`subagent`,
+    `regie_plan`) zijn daarom niet strict (`Overdracht.strict`); de code toetst hun invoer.
     `tests/test_strict_grenzen.py` begrenst elk profiel met alle connectors aan op de laatst bewezen omvang (12 strict
     tools, ~9,4k tekens: centraal met een connector op 23eb57bb had er 16 en gaf die 400 bij elke eerste aanroep).
   `tests/test_subagent.py` legt dit vast, ook een kindbeurt door de echte graaf; `tests/test_subagent_vragen.py` de

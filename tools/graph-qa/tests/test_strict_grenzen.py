@@ -74,10 +74,10 @@ def test_de_strict_schemas_van_elk_profiel_passen_bij_de_api(naam, agent):
 
 def test_de_delegatietools_zijn_niet_strict_en_de_code_toetst_hun_invoer():
     """Hun invoer is ruim (een lijst opdrachten met zes velden), en de code toetst hem toch zelf (`overdracht`)."""
-    for naam in ("subagent", "subagenten", "regie_plan", "hervat_subagent"):
+    for naam in ("subagent", "regie_plan"):
         assert overdracht.OVERDRACHT[naam].schema["strict"] is False, naam
-    zet = overdracht.OVERDRACHT["subagenten"].zet
+    zet = overdracht.OVERDRACHT["subagent"].zet
     assert "object" in zet(None, {}, {"opdrachten": ["geen object", "nog een"]})
-    assert "twee tot" in zet(None, {}, {"opdrachten": "geen lijst"})
-    assert "bestaat niet" in overdracht.OVERDRACHT["subagent"].zet(None, {}, {"profiel": ["x"], "doel": "Zoek."})
+    assert "één tot" in zet(None, {}, {"opdrachten": "geen lijst"})
+    assert "bestaat niet" in zet(None, {}, {"opdrachten": [{"profiel": ["x"], "doel": "Zoek."}]})
     assert "Kies de opdracht" in overdracht.OVERDRACHT["regie_plan"].zet(None, {}, {"opdracht": 3})
