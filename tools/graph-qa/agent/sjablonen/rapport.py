@@ -85,15 +85,46 @@ def _open(invoer: dict[str, Any]) -> list[str]:
     return list(dict.fromkeys(p for x in invoer.get("open") or [] if (p := _tekst(x))))
 
 
-def vragen_van(invoer: dict[str, Any]) -> list[dict[str, Any]]:
-    """De vragen van het rapport zoals de code ze doorgeeft: tekst en opties ontdubbeld, lege weg."""
+def _ruwe_vragen(invoer: dict[str, Any]) -> list[dict[str, Any]]:
+    """De vragen zoals het model ze schreef: tekst en opties ontdubbeld, lege weg."""
     uit: list[dict[str, Any]] = []
     for v in invoer.get("vragen") or []:
-        tekst = _tekst((v or {}).get("tekst"))
+        if not isinstance(v, dict):
+            continue
+        tekst = _tekst(v.get("tekst"))
         if tekst and tekst not in (x["tekst"] for x in uit):
-            uit.append({"tekst": tekst, "opties": list(dict.fromkeys(
-                o for x in (v or {}).get("opties") or [] if (o := _tekst(x))))})
+            uit.append({"tekst": tekst, "opties": list(dict.fromkeys(o for x in v.get("opties") or [] if (o := _tekst(x))))})
     return uit
+
+
+def genormaliseerd(invoer: dict[str, Any]) -> dict[str, Any]:
+    """Het rapport zoals de code het leest. Een vraag in de verkeerde vorm is geen reden om het rapport te weigeren
+    (meting bundel 115, D01: het kind wilde vragen, het rapport werd geweigerd op `rapport_vragen`, en daarna eindigde het
+    `niet_gelukt` zonder bevindingen):
+
+    - `niet_gelukt` met vragen is een vraag: het kind kan niet verder zonder antwoord;
+    - `klaar` met vragen blijft klaar; de vragen staan dan onder 'Open';
+    - een vraag zonder vraagteken krijgt er een, meer dan `MAX_OPTIES` opties worden er `MAX_OPTIES`, en vragen boven
+      `MAX_VRAGEN` gaan naar 'Open'.
+
+    Alleen wat niet te herstellen is, weigert `vul` nog: een vraag boven `MAX_VRAAG` tekens, of `vraag` zonder vraag."""
+    status = invoer.get("status") if invoer.get("status") in STATUS else "niet_gelukt"
+    vragen = [{"tekst": v["tekst"] if v["tekst"].endswith("?") else v["tekst"].rstrip(".!:; ") + "?",
+               "opties": v["opties"][:MAX_OPTIES]} for v in _ruwe_vragen(invoer)]
+    open_ = _open(invoer)
+    if vragen and status == "niet_gelukt":
+        status = "vraag"
+    if vragen and status == "klaar":
+        open_, vragen = [*open_, *(f"Open vraag: {v['tekst']}" for v in vragen)], []
+    if len(vragen) > MAX_VRAGEN:
+        open_ += [f"Open vraag: {v['tekst']}" for v in vragen[MAX_VRAGEN:]]
+        vragen = vragen[:MAX_VRAGEN]
+    return {**invoer, "status": status, "vragen": vragen, "open": list(dict.fromkeys(open_))}
+
+
+def vragen_van(invoer: dict[str, Any]) -> list[dict[str, Any]]:
+    """De vragen van het rapport zoals de code ze doorgeeft (`genormaliseerd`)."""
+    return genormaliseerd(invoer)["vragen"]
 
 
 def _toets_vragen(status: str, vragen: list[dict[str, Any]]) -> None:
@@ -114,9 +145,10 @@ def _toets_vragen(status: str, vragen: list[dict[str, Any]]) -> None:
 
 
 def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
-    status = invoer.get("status")
-    if status not in STATUS:
+    if invoer.get("status") not in STATUS:
         raise Onvulbaar("Kies de status: klaar, vraag of niet_gelukt.", code="rapport_status")
+    invoer = genormaliseerd(invoer)
+    status = invoer["status"]
     gedaan = _tekst(invoer.get("gedaan"))
     if not gedaan:
         raise Onvulbaar("Schrijf in 'gedaan' wat je deed.", code="rapport_gedaan")
@@ -160,5 +192,6 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
 
 
 def status_van(invoer: dict[str, Any]) -> str:
-    """De status die de code doorgeeft aan de ouder: wat het model koos, als het een geldige waarde is."""
-    return invoer.get("status") if invoer.get("status") in STATUS else "niet_gelukt"
+    """De status die de code doorgeeft aan de ouder (`genormaliseerd`): wat het model koos, als het een geldige waarde is,
+    en `vraag` als een `niet_gelukt` vragen draagt."""
+    return genormaliseerd(invoer)["status"]

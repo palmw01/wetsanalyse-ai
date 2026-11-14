@@ -138,6 +138,9 @@ class State(TypedDict, total=False):
     # één keer per beurt, en `sjabloon_nu` stuurt de agent dan één keer naar zichzelf terug. Per beurt gereset.
     sjabloon_gevraagd: bool
     sjabloon_nu: bool
+    # Een subagent kreeg zijn laatste ronde (`nodes.antwoord.laatste_ronde`): daarna komt er geen modelronde meer, ook niet
+    # na een geweigerd rapport. Per beurt gereset.
+    laatste_gehad: bool
     # Wat er deze beurt met de sjablonen gebeurde (`beurtmeting.tel_sjabloon`), voor het `meting`-event. Per beurt gereset.
     sjabloon_telling: dict[str, Any]
     # Het doel dat de AANROEPER meegaf ({bwbId, artikel, lid?, citeertitel?}). Weet de werkplek de

@@ -26,6 +26,7 @@ from urllib.parse import unquote
 
 from .annotatie import _normaliseer, komt_letterlijk_voor
 from .beweringen import beweringen as feiten_buiten, tellingen_uit
+from .gelezen import gelezen_en_gevonden
 from .hoeveelheden import uit_tabellen
 from .models import Source
 from bronmodel.connectors import CONNECTORS, leestools, van_id
@@ -258,7 +259,8 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
     feiten = [] if overzicht else [f for f in feiten_buiten(answer_text, _feitenbron(source_trace, trace_text),
                                                               bekend=bekend, tellingen=tellingen,
                                                               bronnen=[f"{waarden(t)}\n{t}" for t in uit_bron],
-                                                              regelingen=regelingen)
+                                                              regelingen=regelingen,
+                                                              gelezen=len(gelezen_en_gevonden(source_trace)[0]))
                                    if f not in unsupported]
     # Een stuk van een bronconnector (ADR-013) dat het antwoord noemt en dat alleen in een zoekresultaat stond, is
     # gevonden, niet gelezen. Dat is geen signaal: het id bestaat en het zoekresultaat draagt zijn label, soort, datum

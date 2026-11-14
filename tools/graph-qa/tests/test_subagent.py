@@ -213,7 +213,8 @@ def test_een_subagent_start_een_kindgesprek_wacht_en_geeft_zijn_rapport():
                                                           ("regie", "eind")]
     assert all(e.get("soort") == "subagent" for e in events if e["type"] == "regie")
     assert all(e.get("profiel") == "duiding" for e in events if e["type"] == "regie_taak")
-    assert sub.rapport_tekst(afloop, uit) == "Gedaan: gelezen."
+    # Het rapport, en uit code wat het kind las (`gelezen_tekst`).
+    assert sub.rapport_tekst(afloop, uit).startswith("Gedaan: gelezen.\n\nGelezen (")
 
 
 def test_zonder_rapport_zegt_de_code_waarom():
