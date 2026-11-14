@@ -152,7 +152,8 @@ def test_hervatten_is_een_nieuwe_beurt_in_hetzelfde_deelgesprek():
     assert "eerste keer al kon stellen" in verzoek.question, "vragen in één keer (meting bundel 116, D01)"
     assert events[0]["hervat"] is True
     # De antwoorden staan als bericht in het deelgesprek (analyse centrale agent, gat 6).
-    assert api.__dict__["berichten"] == [("kind-1", {"rol": "user", "tekst": verzoek.question})]
+    assert api.__dict__["berichten"] == [("kind-1", {"rol": "assistant", "tekst": verzoek.question,
+                                                     "doorgegeven": "antwoorden"})]
 
 
 @pytest.mark.parametrize("api", [Api(status="klaar"), Api(conflict=True)])
@@ -298,3 +299,37 @@ def test_met_meer_kinderen_wacht_de_delegatie_zolang_er_een_een_vraag_heeft():
     assert sub.eindstand([klaar, {"uitkomst": "mislukt"}]) == "klaar"
     assert sub.eindstand([{"uitkomst": "mislukt"}]) == "mislukt" and sub.eindstand([{"uitkomst": "gestopt"}]) == "gestopt"
     assert sub.eerste_vraag([klaar]) is None
+
+
+def test_een_rapport_dat_klaar_was_terwijl_een_ander_kind_een_vraag_had_komt_in_de_bundel(monkeypatch):
+    """Bugonderzoek ADR-016, B1: na de bevestiging van twee subagents was A klaar en had B een vraag. De kaart verving
+    de uitkomst, het rapport van A viel weg, en na het antwoord bundelde de code alleen B. Nu wacht A in het checkpoint
+    (`wachtende_rapporten`) en komt hij in de bundel, met zijn toolresultaten in de trace."""
+    a = sub.Afloop(profiel="algemeen", gesprek_id="kind-0", uitkomst="klaar", delegatie_id="d1")
+    b = sub.Afloop(profiel="duiding", gesprek_id="kind-1", uitkomst="vraag", delegatie_id="d1", vragen=VRAGEN)
+    kind_a = {"rapport": {"status": "klaar"}, "answer": "Bevindingen A.", "source_trace": [ARTIKEL]}
+
+    async def eerste(_b, _state, _stuur):
+        return {"paren": [(a, kind_a), (b, {"rapport": {"status": "vraag"}})],
+                "kaart": sub.vraagkaart("d1", VRAGEN, 1)}
+
+    monkeypatch.setattr(vervolg, "_verwerk", eerste)
+    start = {**STATE, "intake_actie": {"intake_id": "sa-d1", "stap": "sa_start", "actie": "antwoord"}}
+    upd, events = _draai_vervolg(monkeypatch, Api(), _kinderen({})[0], start)
+    assert upd["answer"] == vervolg.EEN_VRAAG and [e["type"] for e in events].count("vraagkaart") == 1
+    [wacht] = upd["wachtende_rapporten"]
+    assert wacht["afloop"]["gesprek_id"] == "kind-0" and wacht["kind"]["answer"] == "Bevindingen A."
+    assert vervolg.route_na_vervolg(None, {**start, **upd}) == "einde"
+
+    # De jurist beantwoordt de laatste vraag van B: de code hervat B, en de bundel heeft A en B.
+    monkeypatch.undo()
+    api = Api()
+    api.delegatie["uitkomst"]["kinderen"][0]["antwoorden"] = ["2024"]
+    kinderen, _, _ = _kinderen({"rapport": {"status": "klaar"}, "answer": "Bevindingen B.", "source_trace": [ARTIKEL]})
+    upd2, _ = _draai_vervolg(monkeypatch, api, kinderen,
+                             {**_klik(tekst="Nee."), "wachtende_rapporten": upd["wachtende_rapporten"]})
+    assert "1. RAPPORT" in upd2["rapporten"] and "2. RAPPORT" in upd2["rapporten"]
+    assert "Bevindingen A." in upd2["rapporten"] and "Bevindingen B." in upd2["rapporten"]
+    assert {s["gesprek_id"] for s in upd2["subagenten"]} == {"kind-0", "kind-1"}
+    assert len(upd2["source_trace"]) == 2, "de toolresultaten van A en van B, voor verify"
+    assert upd2["wachtende_rapporten"] == [], "na de bundel wacht er niets meer"

@@ -182,3 +182,32 @@ def test_een_regiekind_scoort_op_zijn_profiel():
     m = vat.vat({"id": "M04", "run": 1, "beurten": [{"label": "gemeten", "events": events}]},
                 {**opdrachten["M04"], "niet_gebouwd": ["profiel"]})
     assert m["profiel_past"] is None
+
+
+def test_een_subagent_draagt_in_beurt_meting_de_vorm_van_de_centrale_agent(monkeypatch):
+    """Bugonderzoek ADR-016, B2: het verzoek van een kind noemt geen vorm, en bij `meten` werd dat "supervisor"."""
+    from agent.models import ChatRequest, SubagentOpdracht
+    from agent.runs import Run
+    from api import main
+
+    gezien: dict = {}
+
+    def nep_gemeten(beurt, **kw):
+        gezien.update(kw)
+
+        async def leeg():
+            if False:
+                yield {}
+        return leeg()
+
+    monkeypatch.setattr(main, "gemeten", nep_gemeten)
+    monkeypatch.setattr(main.settings, "centrale_agent", "meten", raising=False)
+    kind = ChatRequest(question="Zoek.", conversation_id="k", profiel="algemeen",
+                       opdracht=SubagentOpdracht(doel="Zoek de uitspraken."))
+    maak = main._stroom_voor(kind, "jurist")
+    maak(Run(run_id="r", conversation_id="k"))
+    assert (gezien["agentvorm"], gezien["subagent"]) == ("centraal", True)
+    gezien.clear()
+    main._stroom_voor(ChatRequest(question="Wat is een aanslag?", conversation_id="g"), "jurist")(
+        Run(run_id="r2", conversation_id="g"))
+    assert (gezien["agentvorm"], gezien["subagent"]) == ("supervisor", False)
