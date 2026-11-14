@@ -190,6 +190,31 @@ def _toon_stukken(b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any
 
 TOON_STUKKEN = "toon_stukken"
 
+ANNOTEER = "annoteer"
+
+
+def _annoteer(_b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any] | str:
+    """Eén bepaling annoteren (ADR-016 A2-4): dezelfde route als de keuze `annotatie` van de supervisor, op de vraag die het
+    model zelfstandig formuleerde ("doe hetzelfde voor lid 2" wordt "annoteer artikel 9 lid 2 Invorderingswet 1990"). De
+    ophaal-agent zoekt de bepaling en de annotatieketen annoteert. Eén artikel per vraag: noemt de vraag er meer, dan
+    dezelfde weigering als bij de supervisor, vóór er iets gezocht wordt (`aanwijzing.melding_meerdere`). Het werkgebied of
+    de deelvragen annoteren is een taak van de annotatie-agent (`taakagent`)."""
+    from .aanwijzing import lees_aanwijzing, melding_meerdere
+    from .nodes.supervisie import _WORKER_STAP, _herschreven
+
+    vraag = " ".join((invoer.get("vraag") or "").split())
+    if not vraag:
+        return "Geef de bepaling die de gebruiker wil laten annoteren, met de regeling erbij."
+    writer = get_stream_writer()
+    aanwijzing = lees_aanwijzing(vraag)
+    if aanwijzing.meerdere_artikelen:
+        _stap(writer, "Lex", f"meer dan één artikel genoemd ({', '.join(aanwijzing.artikelen)})", route="afgewezen")
+        return {"zelfstandige_vraag": vraag, "specialist": "", "plan": "", "worker_plan": [], "worker_idx": 0,
+                "afwijzen": True, "afwijs_melding": melding_meerdere(aanwijzing.artikelen), "annotaties_lezen": False}
+    _stap(writer, "Lex", _WORKER_STAP["annotatie"], route="annotatie")
+    return {"zelfstandige_vraag": vraag, "specialist": "annotatie", "worker_plan": ["annotatie"], "worker_idx": 0,
+            "plan": "annotatie" + _herschreven(vraag), "afwijzen": False, "annotaties_lezen": False}
+
 SUBAGENT = "subagent"
 
 
@@ -287,8 +312,9 @@ _VRAAG = {"vraag": {"type": "string", "description": (
     "De vraag van de gebruiker, zelfstandig geformuleerd: zonder 'dat', 'die' of 'en …?', met de regeling, het "
     "artikel, het onderwerp of het werkgebied uit het gesprek erin.")}}
 
-#: De agents die de centrale agent een taak kan geven (ADR-016 A2-3a). De annotatieagent komt met `annoteer` (A2-4).
-TAAKAGENTS = ("deelvragen", "begrippen")
+#: De agents die de centrale agent een taak kan geven (ADR-016 A2-3a, A2-4): de annotatie-agent annoteert het werkgebied of de
+#: bronnen onder de deelvragen, met de bevestiging uit de agent zelf; één bepaling is `annoteer`.
+TAAKAGENTS = ("deelvragen", "begrippen", "annotatie")
 
 
 def _taken() -> list[str]:
@@ -376,6 +402,17 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
             "Niet om één stuk te lezen of voor wat een stuk inhoudt."),
         invoer=_VRAAG, naar=INGANG, zet=_toon_stukken, ingangen=("bron_lijst", "afwijzen")),
     Overdracht(
+        naam=ANNOTEER,
+        beschrijving=(
+            "Roep dit aan als de gebruiker één bepaling wil laten ANNOTEREN (markeren en classificeren in JAS-klassen): "
+            "'annoteer artikel 9 lid 1 Invorderingswet 1990', ook in een vervolgvraag ('doe hetzelfde voor lid 2'). De "
+            "code zoekt de bepaling en annoteert; schrijf zelf niets. Eén artikel per keer. Het werkgebied of de "
+            "bepalingen onder de deelvragen annoteren is taakagent (annotatie). Niet voor een vraag over bestaande "
+            "markeringen (lees_annotaties) of over de JAS-methode."),
+        # Niet strict: de strict schema's van de kernset zitten aan hun grens (`tests/test_strict_grenzen.py`), en de code
+        # toetst de vraag zelf (leeg, of meer dan één artikel).
+        invoer=_VRAAG, naar=INGANG, zet=_annoteer, ingangen=("agent", "afwijzen"), strict=False),
+    Overdracht(
         naam=SUBAGENT,
         beschrijving=(
             "Zet subagents aan het werk op opdrachten die op zichzelf staan en veel lezen: een reeks uitspraken, "
@@ -395,7 +432,8 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
     Overdracht(
         naam="taakagent",
         beschrijving=(
-            "Roep dit aan als de gebruiker in een werkgebied iets met de deelvragen of de begrippen wil laten DOEN. "
+            "Roep dit aan als de gebruiker in een werkgebied iets met de deelvragen, de begrippen of het annoteren wil "
+            "laten DOEN. "
             "De agent voert de taak uit en de werkplek toont het voorstel; schrijf zelf niets. "
             "deelvragen: voorstellen (deelvragen opstellen bij de analysevraag), verbeteren (één deelvraag scherper "
             "formuleren of splitsen), dekking (is een deelvraag, of zijn de deelvragen, gedekt door bronnen). "
@@ -404,6 +442,8 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
             "scherpere definitie), uitleg (de uitleg bij een vastgelegd begrip, in eenvoudige taal of B1), voorbeelden "
             "(voorbeelden bij een begrip), betekenisverschil (het verschil tussen twee begrippen), uitwerken (een begrip "
             "volledig uitwerken), relaties (de relaties van een begrip). "
+            "annotatie: werkgebied (wat in het werkgebied nog niet geannoteerd is), deelvragen (alleen de bepalingen "
+            "onder de deelvragen, of onder één deelvraag); de code vraagt eerst een bevestiging. "
             "Niet voor een vraag om UITLEG over een deelvraag, bron of begrip ('waarom hoort artikel 9 bij deelvraag "
             "2?'), en niet voor de wettelijke definitie van een term: die beantwoord je zelf."),
         invoer={"agent": {"type": "string", "enum": list(TAAKAGENTS)},

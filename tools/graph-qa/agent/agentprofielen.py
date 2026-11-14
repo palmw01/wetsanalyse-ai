@@ -207,6 +207,11 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           'lees_annotaties;\n'
                                           '- welke begrippen er al zijn vastgelegd → '
                                           'lees_begrippen;\n'
+                                          '- één bepaling annoteren (markeren en classificeren in '
+                                          "JAS-klassen, ook 'doe hetzelfde voor lid 2') → "
+                                          'annoteer, één artikel per keer; het werkgebied of de '
+                                          'bepalingen onder de deelvragen annoteren → taakagent '
+                                          'met de annotatie-agent;\n'
                                           '- een lijst of een aantal stukken uit een bron naast de '
                                           'wet (de nieuwste Kamerstukken, het laatste stuk van een '
                                           'dossier) → toon_stukken.\n'
@@ -376,6 +381,12 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                                 'lees_annotaties;\n'
                                                 '- welke begrippen er al zijn vastgelegd → '
                                                 'lees_begrippen;\n'
+                                                '- één bepaling annoteren (markeren en '
+                                                "classificeren in JAS-klassen, ook 'doe hetzelfde "
+                                                "voor lid 2') → annoteer, één artikel per keer; "
+                                                'het werkgebied of de bepalingen onder de '
+                                                'deelvragen annoteren → taakagent met de '
+                                                'annotatie-agent;\n'
                                                 '- een lijst of een aantal stukken uit een bron '
                                                 'naast de wet (de nieuwste Kamerstukken, het '
                                                 'laatste stuk van een dossier) → toon_stukken.\n'
@@ -702,4 +713,4 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                        'search_wetgeving',
                                        'semantic_search',
                                        'zoek_opbouw')}},
- 'sha256': '913a89dd49d7bdcb9304f7166160f3cac1d2861733665ab0dea51a6493b579ed'}
+ 'sha256': 'b1c3ae65e82ab0512c53e770e8b2fbec1e0bfea161f7c4a372252111bb932693'}
