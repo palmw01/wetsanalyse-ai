@@ -107,6 +107,7 @@ import type {
   WerkgebiedSamenvatting,
   WerkgebiedWijziging,
 } from "./types";
+import { parseDelegaties } from "./delegatie";
 import { parseArtefact } from "./artefact";
 import { parseCatalogus, parseOnderdeel, type Catalogus, type OnderdeelDetail } from "./catalogus";
 import { isRelatiesAntwoord } from "./begripRelaties";
@@ -655,6 +656,42 @@ export async function lijstGesprekken(
   return json<GesprekSamenvatting[]>(await fetch(qs.size ? `/api/gesprekken?${qs}` : "/api/gesprekken", { cache: "no-store" }));
 }
 
+/** De delegaties van één eigen gesprek (ADR-016 §A5, ADR-012), nieuwste eerst: de stand van zijn subagents of regie.
+ *  Eén verzoek per gesprek, gedeeld door alle blokken en de sidebar, tot `vergeetDelegaties` (een `regie_taak`, het eind
+ *  van een beurt). Faalt het, dan een lege lijst en de volgende keer opnieuw: de stand is een hulpmiddel. */
+const delegatieCache = new Map<string, Promise<import("./types").Delegatie[]>>();
+
+export function haalDelegaties(gesprekId: string): Promise<import("./types").Delegatie[]> {
+  const bestaand = delegatieCache.get(gesprekId);
+  if (bestaand) return bestaand;
+  const qs = new URLSearchParams({ gesprek_id: gesprekId, limit: "50" });
+  const belofte = fetch(`/api/delegaties?${qs}`, { cache: "no-store" })
+    .then((res) => json<unknown>(res))
+    .then((body) => parseDelegaties(body))
+    .catch(() => {
+      delegatieCache.delete(gesprekId);
+      return [];
+    });
+  delegatieCache.set(gesprekId, belofte);
+  return belofte;
+}
+
+const delegatieLuisteraars = new Set<(gesprekId?: string) => void>();
+
+/** De stand van de delegaties van dit gesprek (of van alle) is veranderd: de volgende vraag haalt hem opnieuw, en wie
+ *  luistert (een blok op een eerder bericht, de sidebar) haalt hem nu. */
+export function vergeetDelegaties(gesprekId?: string): void {
+  if (gesprekId) delegatieCache.delete(gesprekId);
+  else delegatieCache.clear();
+  for (const f of delegatieLuisteraars) f(gesprekId);
+}
+
+/** Luister naar `vergeetDelegaties`; geeft de functie die de luisteraar weghaalt. */
+export function luisterNaarDelegaties(f: (gesprekId?: string) => void): () => void {
+  delegatieLuisteraars.add(f);
+  return () => { delegatieLuisteraars.delete(f); };
+}
+
 /** De api geeft hoogstens zoveel gesprekken per verzoek (`limit`, `le=200`). */
 export const GESPREKKEN_PER_VERZOEK = 200;
 
@@ -822,6 +859,9 @@ export type AgentHandlers = {
   /** Een regie (ADR-012) startte of sloot een deelgesprek: de sidebar haalt de lijst opnieuw, zodat het deelgesprek
    *  onder het regiegesprek verschijnt en zijn stand toont. */
   onRegieTaak?: (fase: "start" | "eind") => void;
+  /** Een `regie`- of `regie_taak`-event, ruw: `lib/delegatie.ts` valideert en verwerkt het tot de voortgang van de
+   *  subagents (ADR-016 §A5) of de regie (ADR-012). */
+  onDelegatie?: (event: Record<string, unknown>) => void;
   /** De beurt is afgelopen. Een mislukte beurt gooit al bij het `error`-event, dus dit is klaar of gestopt. */
   onDone?: (uitkomst: BeurtUitkomst["status"]) => void;
 };
@@ -1150,7 +1190,10 @@ async function verwerkSseStroom(res: Response, handlers: AgentHandlers): Promise
             typeof b === "object" && b !== null && typeof (b as { naam?: unknown }).naam === "string" &&
             typeof (b as { reden?: unknown }).reden === "string"));
         }
-        else if (ev.type === "regie_taak") handlers.onRegieTaak?.((ev as { fase?: unknown }).fase === "eind" ? "eind" : "start");
+        else if (ev.type === "regie" || ev.type === "regie_taak") {
+          handlers.onDelegatie?.(ev as Record<string, unknown>);
+          if (ev.type === "regie_taak") handlers.onRegieTaak?.((ev as { fase?: unknown }).fase === "eind" ? "eind" : "start");
+        }
         // `agentFout` onderscheidt dit van een 502 die zegt "de BFF kon graph-qa niet bereiken":
         // die is tijdelijk en mag opnieuw, deze is een uitkomst van de beurt zelf.
         else if (ev.type === "error")

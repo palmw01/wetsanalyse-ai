@@ -445,6 +445,21 @@ async def test_de_uitkomst_van_een_beurt_overleeft_het_heropenen(client):
     assert fout.status_code == 422
 
 
+@pytest.mark.asyncio
+async def test_de_delegaties_van_een_beurt_overleven_het_heropenen(client):
+    """ADR-016 §A5: het bericht noemt de delegaties van zijn beurt; de werkplek haalt hun stand na herladen op."""
+    gid = await _maak(client)
+    r = await client.post(f"{BASIS}/{gid}/berichten",
+                          json={"rol": "assistant", "run_id": "rd", "delegaties": ["a1b2c3d4e5f60718"]}, headers=A)
+    assert r.status_code == 201 and r.json()["delegaties"] == ["a1b2c3d4e5f60718"]
+    doc = (await client.get(f"{BASIS}/{gid}", headers=A)).json()
+    assert doc["berichten"][-1]["delegaties"] == ["a1b2c3d4e5f60718"]
+    # Een id met een vreemd teken, of meer id's dan één beurt kan noemen, wijst de api af.
+    for fout in (["a/b"], [f"d{i}" for i in range(11)]):
+        r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "delegaties": fout}, headers=A)
+        assert r.status_code == 422
+
+
 async def test_een_vraagkaart_overleeft_het_heropenen(client):
     """Activiteit 1: het kaartje waarmee Lex een werkgebied samenstelt staat na herladen nog."""
     gid = await _maak(client)

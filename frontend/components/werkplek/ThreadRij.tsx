@@ -24,6 +24,7 @@ import { Melding } from "@/components/ui/Melding";
 import { KeuzeKaart } from "@/components/werkplek/KeuzeKaart";
 import { Markdown, StreamendeTekst } from "@/components/werkplek/Markdown";
 import { ReeksBlok } from "@/components/werkplek/ReeksBlok";
+import { DelegatieBlok } from "@/components/werkplek/DelegatieBlok";
 import { VragenKaart } from "@/components/werkplek/VragenKaart";
 import {
   doelVanKandidaat, kandidaatLabel, kandidaatPrompt,
@@ -67,6 +68,8 @@ export interface ThreadActies {
   openOverzicht: (overzicht: Overzicht) => void;
   /** "Een vraag stellen ›": de weggeklikte vraag onderaan weer openen (activiteit 1). */
   openVraag: () => void;
+  /** Een ander gesprek openen: het deelgesprek van een subagent of regie. */
+  openGesprek: (id: string) => void;
 }
 
 interface Props {
@@ -83,11 +86,13 @@ interface Props {
   vragen?: VragenGroep;
   /** Een voorstel van Lex met een bevestiging: al beantwoord (gestart of geannuleerd)? Dan geen knoppen. */
   keuze?: BevestigingKeuze;
+  /** Het gesprek van deze thread: de stand van zijn delegaties staat bij de api per gesprek. */
+  gesprekId?: string | null;
   acties: ThreadActies;
 }
 
 export const ThreadRij = memo(function ThreadRij({
-  item, streamt, bezig, geblokkeerd, demo, loopt, vragen, keuze, acties,
+  item, streamt, bezig, geblokkeerd, demo, loopt, vragen, keuze, gesprekId, acties,
 }: Props) {
   // De kaarten onder een antwoord (ontdubbelen PR 2): per bepaling één, en de samenhang van het bericht voor elke ingang
   // erin (kaart, vindplaats, citatie). De bronnenlijst laat weg wat een kaart heeft.
@@ -104,6 +109,11 @@ export const ThreadRij = memo(function ThreadRij({
         <div className="min-w-0 flex-1 text-sm text-ink">
           <p className="mb-1 text-xs font-medium text-muted">Lex</p>
           {vragen.tekst && <div className="mb-2"><Markdown tekst={vragen.tekst} /></div>}
+          {/* De vraag van een subagent (ADR-016 §A4): wat de subagents deden, boven de vraag. */}
+          {(item.type === "antwoord" || item.type === "artefact") && item.delegatie && !demo && (
+            <div className="mb-2"><DelegatieBlok weergave={item.delegatie} gesprekId={gesprekId} loopt={streamt}
+              onOpenGesprek={acties.openGesprek} /></div>
+          )}
           <VragenKaart groep={vragen} onOpen={acties.openVraag} />
         </div>
       </div>
@@ -132,6 +142,9 @@ export const ThreadRij = memo(function ThreadRij({
       <div className="min-w-0 flex-1 text-sm text-ink">
         <p className="mb-1 text-xs font-medium text-muted">Lex</p>
         {item.denk && <DenkProces tekst={item.denk} actief={bezig && !item.tekst} />}
+        {item.delegatie && !demo && (
+          <DelegatieBlok weergave={item.delegatie} gesprekId={gesprekId} loopt={streamt} onOpenGesprek={acties.openGesprek} />
+        )}
         {item.antwoord ? (
           <Antwoord antwoord={item.antwoord} bronnen={item.bronnen} nietLetterlijk={item.grounding?.niet_letterlijk} />
         ) : item.tekst ? (
@@ -254,6 +267,9 @@ export const ThreadRij = memo(function ThreadRij({
         <p className="mb-1 text-xs font-medium text-muted">Lex</p>
         {item.tekst && <div className="mb-3"><Markdown tekst={item.tekst} /></div>}
         <ArtefactChip artefact={item.artefact} onOpen={() => acties.openArtefactVan(item.artefact)} />
+        {item.delegatie && !demo && (
+          <DelegatieBlok weergave={item.delegatie} gesprekId={gesprekId} loopt={streamt} onOpenGesprek={acties.openGesprek} />
+        )}
         {item.denk && <div className="mt-3"><DenkProces tekst={item.denk} actief={false} label="Zo is dit tot stand gekomen" /></div>}
       </div>
     </div>

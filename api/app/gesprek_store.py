@@ -28,7 +28,8 @@ logger = logging.getLogger(__name__)
 #: soort –, dan valt alleen dat veld weg. Anders weigerde de api het hele gesprek (500), en daarmee ook
 #: laden én verwijderen: een gesprek is een verslag en moet altijd te openen en weg te halen zijn.
 _OPTIONEEL = ("hergebruik", "dekking", "overzicht", "antwoord", "annotatie_doel", "tool_executions", "reeks", "artefact",
-              "bevestiging", "bevestiging_antwoord", "vraagkaart", "intake_antwoord", "uitkomst", "contextopbouw")
+              "bevestiging", "bevestiging_antwoord", "vraagkaart", "intake_antwoord", "uitkomst", "contextopbouw",
+              "delegaties")
 
 
 #: Hoeveel deelgesprekken de boom van de contextopbouw hooguit leest: ruim boven een regie (hoogstens tientallen).
@@ -62,6 +63,7 @@ def _bericht_uit_row(row) -> Bericht:
         uitkomst=inhoud.get("uitkomst") or None,
         grounding=inhoud.get("grounding", {}) or {},
         contextopbouw=inhoud.get("contextopbouw") or None,
+        delegaties=inhoud.get("delegaties", []) or [],
         created=db.aware(d["created"]),
     )
     try:
@@ -119,6 +121,8 @@ def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
         inhoud["grounding"] = inv.grounding
     if inv.contextopbouw:
         inhoud["contextopbouw"] = inv.contextopbouw.model_dump()
+    if inv.delegaties:
+        inhoud["delegaties"] = list(inv.delegaties)
     return inhoud
 
 

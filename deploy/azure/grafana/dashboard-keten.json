@@ -524,7 +524,7 @@
             ],
             "dashboardTime": true,
             "timeColumn": "TimeGenerated",
-            "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == '__APPNAME__-graph-qa'\n| extend j = parse_json(Log_s)\n| where tostring(j.bericht) == 'beurt_meting'\n| extend route = tostring(j.route), uitkomst = tostring(j.uitkomst), duur = toreal(j.duur_ms) / 1000, eerste = toreal(j.eerste_tekst_ms) / 1000, rondes = toint(j.modelrondes)\n| summarize beurten = count(), duur_p50 = round(percentile(duur, 50), 1), duur_p95 = round(percentile(duur, 95), 1), eerste_tekst_p50 = round(percentile(eerste, 50), 1), eerste_tekst_p95 = round(percentile(eerste, 95), 1), rondes_p50 = percentile(rondes, 50), fout = countif(uitkomst == 'fout'), gestopt = countif(uitkomst == 'gestopt'), afgebroken = countif(uitkomst == 'afgebroken') by route\n| order by beurten desc"
+            "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == '__APPNAME__-graph-qa'\n| extend j = parse_json(Log_s)\n| where tostring(j.bericht) == 'beurt_meting'\n| extend route = tostring(j.route), uitkomst = tostring(j.uitkomst), duur = toreal(j.duur_ms) / 1000, eerste = toreal(j.eerste_tekst_ms) / 1000, rondes = toint(j.modelrondes), agentvorm = iff(isempty(tostring(j.agentvorm)), 'onbekend', tostring(j.agentvorm)), subagent = iff(tobool(j.subagent), 'ja', 'nee')\n| summarize beurten = count(), duur_p50 = round(percentile(duur, 50), 1), duur_p95 = round(percentile(duur, 95), 1), eerste_tekst_p50 = round(percentile(eerste, 50), 1), eerste_tekst_p95 = round(percentile(eerste, 95), 1), rondes_p50 = percentile(rondes, 50), fout = countif(uitkomst == 'fout'), gestopt = countif(uitkomst == 'gestopt'), afgebroken = countif(uitkomst == 'afgebroken') by route, agentvorm, subagent\n| order by beurten desc"
           }
         }
       ],
@@ -535,7 +535,7 @@
         "defaults": {},
         "overrides": []
       },
-      "description": "Eén rij per beurtsoort, uit de logregel `beurt_meting` (`agent/beurtmeting.py`). **duur** loopt van de start van de beurt tot `done`; **eerste_tekst** tot de eerste `reason` of `token`, het moment dat de jurist tekst ziet. De tijden zijn in seconden."
+      "description": "Eén rij per beurtsoort, uit de logregel `beurt_meting` (`agent/beurtmeting.py`). **duur** loopt van de start van de beurt tot `done`; **eerste_tekst** tot de eerste `reason` of `token`, het moment dat de jurist tekst ziet. De tijden zijn in seconden. Gesplitst op **agentvorm** (`supervisor` of `centraal`, ADR-016; `onbekend` voor een beurt van vóór het veld) en **subagent** (`ja` voor de beurt van een kind in een deelgesprek): zo valt een subagent met het profiel `algemeen` niet samen met de specialist `algemeen` van de supervisor."
     },
     {
       "id": 12,
@@ -561,7 +561,7 @@
             ],
             "dashboardTime": true,
             "timeColumn": "TimeGenerated",
-            "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == '__APPNAME__-graph-qa'\n| extend j = parse_json(Log_s)\n| where tostring(j.bericht) == 'beurt_meting'\n| extend route = tostring(j.route), invoer = tolong(j.invoer), uitvoer = tolong(j.uitvoer), lees = tolong(j.cache_lees), schrijf = tolong(j.cache_schrijf)\n| summarize beurten = count(), invoer = sum(invoer), uitvoer = sum(uitvoer), cache_lees = sum(lees), cache_schrijf = sum(schrijf) by route\n| extend cachetreffer = round(100.0 * cache_lees / iff(invoer + cache_lees + cache_schrijf == 0, 1, invoer + cache_lees + cache_schrijf), 1)\n| order by uitvoer desc"
+            "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == '__APPNAME__-graph-qa'\n| extend j = parse_json(Log_s)\n| where tostring(j.bericht) == 'beurt_meting'\n| extend route = tostring(j.route), invoer = tolong(j.invoer), uitvoer = tolong(j.uitvoer), lees = tolong(j.cache_lees), schrijf = tolong(j.cache_schrijf), agentvorm = iff(isempty(tostring(j.agentvorm)), 'onbekend', tostring(j.agentvorm)), subagent = iff(tobool(j.subagent), 'ja', 'nee')\n| summarize beurten = count(), invoer = sum(invoer), uitvoer = sum(uitvoer), cache_lees = sum(lees), cache_schrijf = sum(schrijf) by route, agentvorm, subagent\n| extend cachetreffer = round(100.0 * cache_lees / iff(invoer + cache_lees + cache_schrijf == 0, 1, invoer + cache_lees + cache_schrijf), 1)\n| order by uitvoer desc"
           }
         }
       ],
@@ -572,7 +572,7 @@
         "defaults": {},
         "overrides": []
       },
-      "description": "Het verbruik per beurtsoort, uit `beurt_meting`. **cachetreffer** is `cache_lees / (invoer + cache_lees + cache_schrijf)` in procenten. Geen bedragen: prijzen staan nergens in de repo, en de boekhouding is het verbruiksjournaal van de api. De batchruns van de begrippenverdieping vallen erbuiten."
+      "description": "Het verbruik per beurtsoort, uit `beurt_meting`. **cachetreffer** is `cache_lees / (invoer + cache_lees + cache_schrijf)` in procenten. Geen bedragen: prijzen staan nergens in de repo, en de boekhouding is het verbruiksjournaal van de api. De batchruns van de begrippenverdieping vallen erbuiten. Gesplitst op **agentvorm** en **subagent**, zoals de wachttijd hierboven."
     },
     {
       "id": 13,
@@ -616,6 +616,74 @@
         },
         "overrides": []
       }
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Delegatie (centrale agent en subagents)",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 39
+      },
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "__DSUID__"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "Azure Log Analytics",
+          "azureLogAnalytics": {
+            "resources": [
+              "__WORKSPACE__"
+            ],
+            "dashboardTime": true,
+            "timeColumn": "TimeGenerated",
+            "query": "let logs = ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == '__APPNAME__-graph-qa'\n| extend j = parse_json(Log_s)\n| extend b = tostring(j.bericht), dag = bin(TimeGenerated, 1d);\nlet kinderen = logs\n| where b == 'subagent_afloop'\n| extend u = tostring(j.uitkomst)\n| summarize kinderen = count(), klaar = countif(u == 'klaar'), vraag = countif(u == 'vraag'), niet_gelukt = countif(u == 'niet_gelukt'),\n            afgesloten = countif(u == 'afgesloten'), gestopt = countif(u == 'gestopt'), budget_op = countif(u == 'budget_op'),\n            mislukt = countif(u !in ('klaar', 'vraag', 'niet_gelukt', 'afgesloten', 'gestopt', 'budget_op')) by dag;\nlet meting = logs\n| where b == 'beurt_meting'\n| extend run = tostring(j.run_id), ouder = tostring(j.ouder_run_id),\n         tokens = tolong(j.invoer) + tolong(j.uitvoer) + tolong(j.cache_lees) + tolong(j.cache_schrijf);\nlet bomen = meting\n| where isnotempty(ouder)\n| summarize kind_tokens = sum(tokens), kinderen_in_boom = count() by run = ouder\n| join kind=inner (meting | where isempty(ouder) | project run, dag, eigen = tokens) on run\n| extend boom = eigen + kind_tokens\n| summarize bomen = count(), boom_tokens_p50 = percentile(boom, 50), boom_tokens_p95 = percentile(boom, 95), boom_tokens_max = max(boom),\n            kind_aandeel_pct = round(100.0 * sum(kind_tokens) / iff(sum(boom) == 0, 1, sum(boom)), 1) by dag;\nlet model = logs\n| where b in ('subagent_model_terugval', 'subagent_model')\n| summarize licht_teruggevallen = countif(b == 'subagent_model_terugval'), zonder_licht_model = countif(b == 'subagent_model') by dag;\nlet geweigerd = logs\n| where b in ('tool buiten profiel', 'tool na subagent geweigerd')\n| summarize tool_buiten_profiel = countif(b == 'tool buiten profiel'), tool_na_subagent = countif(b == 'tool na subagent geweigerd') by dag;\nunion kinderen, bomen, model, geweigerd\n| summarize kinderen = sum(kinderen), klaar = sum(klaar), vraag = sum(vraag), niet_gelukt = sum(niet_gelukt), afgesloten = sum(afgesloten),\n            gestopt = sum(gestopt), budget_op = sum(budget_op), mislukt = sum(mislukt), bomen = sum(bomen),\n            boom_tokens_p50 = max(boom_tokens_p50), boom_tokens_p95 = max(boom_tokens_p95), boom_tokens_max = max(boom_tokens_max),\n            kind_aandeel_pct = max(kind_aandeel_pct), licht_teruggevallen = sum(licht_teruggevallen), zonder_licht_model = sum(zonder_licht_model),\n            tool_buiten_profiel = sum(tool_buiten_profiel), tool_na_subagent = sum(tool_na_subagent) by dag\n| order by dag desc"
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "^(mislukt|budget_op|tool_buiten_profiel|tool_na_subagent|licht_teruggevallen)$"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "text",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Wat de centrale agent delegeert (ADR-016), per dag. **kinderen** per uitkomst uit de logregel `subagent_afloop` (één per afloop: een hervatte subagent telt opnieuw); `vraag` wacht op de jurist, `afgesloten` sloot de code af zonder rapport. **bomen** zijn de beurten met kinderen, uit `beurt_meting` met `ouder_run_id`: het verbruik van de ouder plus dat van zijn kinderen (invoer, uitvoer en cache, in tokens), en `kind_aandeel_pct` het deel dat de kinderen kostten. **licht_teruggevallen** telt `subagent_model_terugval` (het lichte model gaf een 400 of 404, de ronde draaide op het gewone model), **zonder_licht_model** de kinderen die op het gewone model draaiden omdat de straat geen lichte klasse heeft (`subagent_model`). **tool_buiten_profiel** en **tool_na_subagent** zijn geweigerde toolaanroepen. Leeg tot de straat de centrale agent draait (`CENTRALE_AGENT` op `meten` of `aan`); de bomen pas als `beurt_meting` `ouder_run_id` draagt."
     }
   ]
 }

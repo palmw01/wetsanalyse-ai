@@ -6,6 +6,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { GesprekSidebar } from "@/components/werkplek/GesprekSidebar";
 import type { GesprekLijstStand } from "@/components/werkplek/GesprekLijst";
 import type { GesprekRunStand } from "@/lib/runStanden";
+import { useDelegatieStanden } from "@/lib/useDelegatieStanden";
 import { foutTekst, hernoemGesprek, laadGesprekken, verwijderGesprek, wijzigGesprek } from "@/lib/api";
 import { metSpoor } from "@/lib/uiSpoor";
 import type { GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
@@ -70,6 +71,8 @@ export function AppSidebar({
   drawerOpen = false, onDrawerSluit, onRondleiding, demoGesprekken, verbruik = null, runStanden,
 }: Props) {
   const [gesprekken, setGesprekken] = useState<GesprekSamenvatting[]>(demoGesprekken ?? []);
+  // De stand van elk deelgesprek (ADR-016 §A5), uit de delegaties van zijn ouder; niet in de rondleiding.
+  const delegatieStanden = useDelegatieStanden(demoGesprekken ? [] : gesprekken);
   const [laden, setLaden] = useState(!demoGesprekken);
   // Een mislukte lijst is iets anders dan een lege: anders staat er "Nog geen gesprekken" terwijl de api
   // alleen even niet antwoordde (acceptatie, 28 okt 2026).
@@ -310,6 +313,7 @@ export function AppSidebar({
     archief: { open: archiefOpen, onWissel: wisselArchief, ...archief, onMeer: meerArchief },
     zoek: { term: zoekterm, onTerm: zetZoekterm, ...zoek, onMeer: meerZoek },
     runStanden,
+    delegatieStanden,
   };
 
   const inhoud = (extra?: { onSluit: () => void }) => (
