@@ -1,8 +1,13 @@
 # De centrale agent in de breedte: aansluiting vóór de eindmeting A6
 
-Status: **analyse**, 14 nov 2026, op `c45cfd19` (na bundel 120). Er is niets gebouwd en op acceptatie niets gemeten.
+Status: **analyse**, 14 nov 2026, op `1aad39e7` (bundel 121: hervatten #1505, de samenvatting per stuk #1508, gelezen
+via een ander stuk met de afbakening onder het antwoord #1511). Er is niets gebouwd en op acceptatie niets gemeten.
 Gelezen is de code van frontend, api en graph-qa, de agentset en de metingen. Op acceptatie is alleen gelezen
-(gesprekken via de BFF, GET).
+(gesprekken via de BFF, GET), op een D01-gesprek uit de meting van bundel 120.
+
+Bundel 121 raakt alleen graph-qa: de periode die de jurist koos (`gekozen_periode`, `Afloop.periode`), de afbakening
+onder het antwoord (`antwoord.afbakening_regel`) en een stuk dat alleen via een ander stuk bekend is. Frontend, api,
+`tools_node` en de overdrachtstools bleven gelijk, dus de gaten hieronder gelden ook na bundel 121.
 
 Hoort bij [ADR-016](adr-016-centrale-agent-en-werkplaats.md). De vraag: is de centrale agent in de hele applicatie goed
 aangesloten (UI-ingangen, SSE, componenten, toegang, logging, configuratie), zodat de eindmeting A6 (drie runs) iets
@@ -88,9 +93,14 @@ niet op.
 | `meting` van het kind | de contextopbouw van het kind | komt niet in de stroom van de ouder; de contextweergave haalt de boom bij de api | op het bericht van het kind |
 | `tool_execution` | elk toolgebruik | nergens gelezen (ook niet bij gewone beurten) | op het bericht |
 
-Wat de meting als `kind_modellen`, `afgesloten`, `afbakening` en `gelezen` leest, bestaat dus alleen in de stroom en
-bij de delegatie. In de werkplek is het nergens te zien, en na herladen alleen via het deelgesprek en de
+Wat de meting als `kind_modellen`, `afgesloten`, `afbakening`, `periode` en `gelezen` leest, bestaat dus alleen in de
+stroom en bij de delegatie. In de werkplek is het nergens te zien, en na herladen alleen via het deelgesprek en de
 contextweergave. Dat hoort bij gat 7.
+
+Sinds bundel 121 bereikt één ervan de jurist toch: een afbakening die de subagent zelf koos, zet de code als regel of
+blok *Afbakening* onder het antwoord (`afbakening_regel`), en zo staat ze op het bericht. Dat is de goede weg (uit code,
+op het bericht, ook na herladen). Voor de rest van de kindregel (uitkomst, gelezen, periode, model) is die weg er nog
+niet.
 
 **Omgekeerd** stuurt de werkplek niets wat graph-qa negeert. `profiel`, `opdracht` en `delegatie_id` neemt
 `POST /v1/runs` terecht niet aan van buiten.
