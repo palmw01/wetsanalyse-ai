@@ -374,8 +374,14 @@ def rapport_inhoud(kind: dict[str, Any]) -> dict[str, Any]:
         return {}
     blokken = antwoord.get("blokken") or []
     tekst = {str(b.get("kop") or ""): str(b.get("tekst") or "") for b in blokken if b.get("soort") == "toelichting"}
+    from .gelezen import gelezen_en_gevonden
+
     return {"status": rapport["status"], "gedaan": tekst.get("Gedaan", ""), "bevindingen": tekst.get("Bevindingen", ""),
             "open": tekst.get("Open", ""),
+            # Wat het kind las (uit code, ook wat een eerder deel las) naast wat het rapport citeert (bundel 119: het tweede
+            # rapport citeerde de stukken van het eerste en geen van de zes nieuwe).
+            "gelezen": [i for i, _ in gelezen_en_gevonden(kind.get("source_trace") or [])[0]],
+            **({"afbakening": list(kind["afbakening"])} if kind.get("afbakening") else {}),
             "stukken": [b["id"] for b in blokken if b.get("soort") == "extern" and b.get("id")],
             "bepalingen": [str((c.get("vindplaats") or {}).get("iri") or "") for b in blokken if b.get("soort") == "citaten"
                            for c in b.get("items") or [] if (c.get("vindplaats") or {}).get("iri")]}
@@ -550,10 +556,14 @@ def controle_tekst(kind: dict[str, Any]) -> str:
     zonder ronde meer krijgt geen correctie (meting bundel 118, D01), dus de centrale agent hoort het; hij neemt ze niet
     over."""
     punten = list(dict.fromkeys([*(kind.get("niet_onderbouwd") or []), *(kind.get("onbevestigd") or [])]))
-    if not punten:
-        return ""
-    return ("\nNiet teruggevonden in wat de subagent las (de controle; neem dit niet over):\n"
-            + "\n".join(f"- {p}" for p in punten[:MAX_CONTROLE]))
+    tekst = ("\nNiet teruggevonden in wat de subagent las (de controle; neem dit niet over):\n"
+             + "\n".join(f"- {p}" for p in punten[:MAX_CONTROLE])) if punten else ""
+    if afbakening := kind.get("afbakening"):
+        # Een afbakening die de jurist niet koos, hoort hij te zien (meting bundel 119, D01: alleen de Hoge Raad en het
+        # Parket, terwijl hij "alle instanties" zei).
+        tekst += ("\nZelf afgebakend door de subagent, niet gevraagd door de gebruiker (zeg dit de gebruiker):\n"
+                  + "\n".join(f"- {a}" for a in afbakening[:MAX_CONTROLE]))
+    return tekst
 
 
 def rapport_tekst(afloop: Afloop, kind: dict[str, Any]) -> str:
