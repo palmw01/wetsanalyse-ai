@@ -42,6 +42,7 @@ from ..overzicht import is_overzichtsvraag
 from ..tools.annotatie_tools import is_leesvraag
 from ..tools.begrip_tools import is_begrip_leesvraag
 from ..werkgebied_intake import is_aanvullen, is_open, is_werkgebiedvraag, kaart
+from . import subagent_route
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
@@ -611,6 +612,13 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # delegatie hoort dat er later iets veranderde. Geen supervisorstap en geen centrale agent.
         return _deelgesprek(b, writer, state, dg)
 
+    if _centraal(state) and modus == "auto" and subagent_route.past(state.get("question", ""), state.get("bronstand")):
+        # "Vat per uitspraak samen …" (ADR-016 §A5): een subagent in code, met de vraag als opdracht; de centrale agent
+        # vat daarna het rapport samen (`nodes/subagent_route.py`).
+        _stap(writer, "Lex", "geeft het lezen van de stukken aan een subagent", route="subagent")
+        return {"specialist": "subagent_route", "plan": "", "worker_plan": ["subagent_route"], "worker_idx": 0,
+                "afwijzen": False, "annotaties_lezen": False}
+
     if _centraal(state):
         # ADR-016 §A1: geen vaste route pakte de vraag, dus de centrale agent beantwoordt hem zelf. De supervisorstap en
         # de keuze tussen specialisten vervallen; het gesprek leest hij zelf, dus er wordt niets herschreven. Een
@@ -813,6 +821,8 @@ def _entry_node(b: Bouw, state: State) -> str:
         return "agent_taak"
     if state.get("specialist") == "subagent_vervolg":
         return "subagent_vervolg"
+    if state.get("specialist") == "subagent_route":
+        return "subagent_route"
     if state.get("bepalingsvraag"):
         return "bepaling_lezen"
     if state.get("bron_lijst"):

@@ -214,6 +214,12 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   - **de regisseur als tool**: de overdracht `regie_plan` (bronnen of annoteren, alleen in een werkgebied) gaat naar de
     node `regie_voorstel`, die het plan uit de stand bij de api maakt met dezelfde tekst en knop als de regie zelf
     (`regisseur.plan_van`, `voorstel`). De centrale agent stelt geen plan per deelvraag zelf op.
+  - **routes in code naar delegatie** (meting 14 nov 2026): "vat per uitspraak/stuk/Kamerstuk samen …" met een bron naast
+    de wet aan gaat zonder model naar de node `subagent_route` (`nodes/subagent_route.py`, `past`): een subagent
+    `algemeen` met de vraag als doel, daarna vat de centrale agent het rapport samen (`State.rapporten`). Een vraag die een
+    artikel noemt zonder regeling niet (V01: eerst de vraag welke regeling). Het werk over alle deelvragen ("voor al mijn
+    deelvragen … welke bepalingen") herkent `regisseur.opdracht_in` als regie, vóór de graaf. `tests/test_subagent_route.py`
+    en `tests/test_regisseur.py` toetsen dat geen vraag uit de vragensets er onbedoeld in valt;
   - **de grammatica van een verzoek is begrensd**: de API maakt van alle strict schema's samen één grammatica, met
     gedocumenteerde grenzen (20 strict tools, 24 optionele, 16 union-parameters) en een interne grens op de omvang
     ("Schema is too complex for compilation", 400 zonder tokens). De delegatietools (`subagent`, `subagenten`,
