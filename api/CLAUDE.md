@@ -1296,6 +1296,11 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   security-log (`2fa_reset`) is een persoon. De uitvoerder heeft zelf 2FA en reset zichzelf niet. Secret en
   herstelcodes gaan weg, `sessions_valid_from` wordt nu. De laatste beheerder heeft geen collega: daar dragen
   de herstelcodes het, zie `deploy/azure/README.md` §*2FA voor beheerders*.
+- **Noodherstel zonder collega** (`herstel_2fa.py`, `python -m app.herstel_2fa`): geen route, maar een eenmalige job
+  van `azure-infra` → `2fa-herstel`. Weigert (`Weigering`, vaste codes) bij een onbekend, inactief of niet-beheerders-account,
+  zonder 2FA, of zolang er een andere actieve beheerder met 2FA is; anders `users.reset_2fa` met `door: github:<login>`
+  (een dubbele punt is nooit een userid). Op stdout alleen `UITKOMST:`/`UITLEG:` zonder userid: de workflowlog is openbaar.
+  Tests: `tests/test_herstel_2fa.py`.
 - **Zelfregistratie** (`registraties.py`): een aanvraag is **geen account** – tot de goedkeuring
   bestaat er geen rij in `users`. De userid wordt afgeleid uit de naam (vier letters achternaam +
   eerste letter voornaam + volgnummer) en is bij goedkeuren corrigeerbaar; de bcrypt-hash gaat
