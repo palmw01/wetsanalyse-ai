@@ -115,10 +115,15 @@ function Inhoud({ o }: { o: OnderdeelDetail }) {
       );
     case "agentprofiel":
       return (
-        <Kaart titel="Instructie" toelichting="Bovenop de identiteit van Lex en de methodetekst van zijn rol." data-blok="inhoud">
-          <p className="whitespace-pre-wrap text-sm text-ink">{tekst(i.systeemtekst)}</p>
-        </Kaart>
+        <>
+          {lijst(i.overdrachten).length > 0 && <Overdrachten i={i} />}
+          <Kaart titel="Instructie" toelichting="Bovenop de identiteit van Lex en de methodetekst van zijn rol." data-blok="inhoud">
+            <p className="whitespace-pre-wrap text-sm text-ink">{tekst(i.systeemtekst)}</p>
+          </Kaart>
+        </>
       );
+    case "workflow":
+      return <WorkflowInhoud i={i} />;
     case "agent":
       return (
         <Kaart titel="Taken" data-blok="inhoud">
@@ -167,6 +172,92 @@ function Inhoud({ o }: { o: OnderdeelDetail }) {
     default:
       return null;
   }
+}
+
+const OnderdeelLink = ({ id }: { id: string }) => (
+  <Link className="focus-ring rounded text-lint hover:underline" href={onderdeelPad(id)}>{id.slice(id.indexOf("/") + 1)}</Link>
+);
+
+/** De overdrachten van de centrale agent (ADR-016): per tool waar de beurt heen gaat, en de kernset tegenover het
+ *  brede profiel. Alles uit `catalogus._centraal_inhoud`. */
+function Overdrachten({ i }: { i: Record<string, unknown> }) {
+  const skills = (i.skills as { tools?: string[]; methodes?: string[] }) ?? {};
+  return (
+    <>
+      <Kaart titel="Overdrachten" telling={lijst(i.overdrachten).length} data-blok="overdrachten"
+        toelichting="Een overdracht bouwt niets na: ze geeft de beurt aan een route of workflow die er al is.">
+        <Lijst label="Overdrachten">{lijst(i.overdrachten).map((o) => (
+          <LijstRij key={tekst(o.naam)} titel={<span className="font-mono text-xs">{tekst(o.naam)}</span>} data-overdracht={tekst(o.naam)}
+            meta={tekst(o.doel)}
+            status={o.alleen_in_werkgebied ? <StatusLabel klein>in een werkgebied</StatusLabel> : undefined}>
+            <p className="mt-1 text-xs text-muted">Naar: {(o.naar as string[]).map((id, n) => (
+              <span key={id}>{n > 0 && ", "}<OnderdeelLink id={id} /></span>))}</p>
+          </LijstRij>
+        ))}</Lijst>
+      </Kaart>
+      <Kaart titel="Tools" data-blok="kernset">
+        <Regels className="text-sm">
+          <Regel naam="Kernset">{tekst(i.kernset)}</Regel>
+          {lijst(i.alleen_breed).length > 0 && <Regel naam="Na meer_tools">{tekst(i.alleen_breed)}</Regel>}
+          {skills.tools?.length ? <Regel naam="Methode">
+            {skills.tools.join(" en ")} lezen de kern of een reference van {(skills.methodes ?? []).map((id, n) => (
+              <span key={id}>{n > 0 && ", "}<OnderdeelLink id={id} /></span>))}; het resultaat is methode, geen bron.
+          </Regel> : null}
+        </Regels>
+      </Kaart>
+    </>
+  );
+}
+
+/** Wat een workflow naast zijn stappen meebrengt: de subagents (profielen, limieten, controles) en de regie als tool.
+ *  Alleen wat graph-qa meegeeft; zonder die velden staat er niets. */
+function WorkflowInhoud({ i }: { i: Record<string, unknown> }) {
+  const alsTool = i.als_tool as { tool?: string; opdrachten?: string[] } | undefined;
+  const regels = ([["Eén laag", i.een_laag], ["Vragen naar de jurist", i.vragen], ["Meer tegelijk", i.meer]] as [string, unknown][])
+    .filter(([, w]) => tekst(w));
+  const blokken = [
+    lijst(i.profielen).length > 0 || regels.length > 0,
+    lijst(i.limieten).length > 0, lijst(i.controles).length > 0, !!alsTool || lijst(i.fasen).length > 0,
+  ];
+  if (!blokken.some(Boolean)) return null;
+  return (
+    <>
+      {blokken[0] && (
+        <Kaart titel="Hoe het samenwerkt" data-blok="samenwerking">
+          <Regels className="text-sm">
+            {lijst(i.profielen).length > 0 && <Regel naam="Kiesbare profielen">{(i.profielen as string[]).map((id, n) => (
+              <span key={id}>{n > 0 && ", "}<OnderdeelLink id={id} /></span>))}</Regel>}
+            {regels.map(([n, w]) => <Regel key={n} naam={n}>{tekst(w)}</Regel>)}
+          </Regels>
+        </Kaart>
+      )}
+      {blokken[1] && (
+        <Kaart titel="Grenzen" telling={lijst(i.limieten).length} data-blok="limieten">
+          <Regels className="text-sm">{lijst(i.limieten).map((l) => (
+            <Regel key={tekst(l.naam)} naam={<span className="font-mono text-xs">{tekst(l.naam)}</span>}>
+              <strong>{tekst(l.waarde)}</strong> <span className="text-muted">· {tekst(l.uitleg)}</span></Regel>
+          ))}</Regels>
+        </Kaart>
+      )}
+      {blokken[2] && (
+        <Kaart titel="Controles op het rapport" telling={lijst(i.controles).length} data-blok="controles">
+          <Lijst label="Controles">{lijst(i.controles).map((c) => (
+            <LijstRij key={tekst(c.naam)} titel={tekst(c.naam)} meta={tekst(c.uitleg)} />
+          ))}</Lijst>
+        </Kaart>
+      )}
+      {blokken[3] && (
+        <Kaart titel="Ook als tool van de centrale agent" data-blok="als-tool">
+          <Regels className="text-sm">
+            {alsTool?.tool && <Regel naam="Tool"><span className="font-mono text-xs">{alsTool.tool}</span>
+              {alsTool.opdrachten?.length ? <span className="text-muted"> · {alsTool.opdrachten.join(", ")}</span> : null}</Regel>}
+            {lijst(i.fasen).length > 0 && <Regel naam="Fasen">
+              <ol className="list-decimal pl-4">{(i.fasen as string[]).map((f) => <li key={f}>{f}</li>)}</ol></Regel>}
+          </Regels>
+        </Kaart>
+      )}
+    </>
+  );
 }
 
 /** Eén methodesectie: alleen lezen. Wie de methode wil aanpassen, maakt een concept van de skill (*Bewerken* op de

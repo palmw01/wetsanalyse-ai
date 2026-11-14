@@ -9,6 +9,7 @@ import { StatusLabel } from "@/components/ui/Lijst";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
+import { AgentvormBlok } from "@/components/werkwijze/Agentvorm";
 import { ConceptenGroep, useWerkplaats } from "@/components/werkwijze/Concepten";
 import { ModelLabel } from "@/components/werkwijze/ModelLabel";
 import { foutTekst, haalCatalogus } from "@/lib/api";
@@ -81,6 +82,11 @@ export function WerkwijzeClient() {
       {/* De eigen concepten (ADR-016 §B7) horen bij kennis en methode; met de werkplaats uit staat hier niets. */}
       {(concept === "" || concept === "skill") && (
         <div className="mb-6 empty:hidden"><ConceptenGroep werkplaats={werkplaats} zoek={zoek} /></div>
+      )}
+
+      {/* Hoe een vraag binnenkomt (ADR-016): bij Alles en bij Agents, niet tijdens het zoeken. */}
+      {data?.agentvorm && !zoek && (concept === "" || concept === "agent") && (
+        <div className="mb-6"><AgentvormBlok vorm={data.agentvorm} onderdelen={data.onderdelen} /></div>
       )}
 
       {data === null && !fout ? (
