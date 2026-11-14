@@ -12,7 +12,7 @@ from agent.agentvorm import MAX_RONDES_SUBAGENT
 from agent.nodes import antwoord as antwoordnodes
 from agent.nodes.antwoord import (MAX_TOKENS_SUBAGENT, NA_SUBAGENT, SUBAGENT_AFGESLOTEN, laatste_ronde,
                                   met_laatste_ronde, na_subagent)
-from fakes import FakeGraph, FakeLLM, make_settings, response, tool_block
+from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block
 from test_subagent import ARTIKEL, OPDRACHT, ZIN_1, _rapport
 
 
@@ -168,3 +168,30 @@ def test_als_subsjabloon_toont_de_uitleg_de_wettekst_en_laat_de_foute_aanwijzing
     # Alleen een foute aanwijzing in extern en geen passage: de weigering zoals altijd.
     with pytest.raises(Onvulbaar):
         vul("antwoord_duiding", {"kort_antwoord": "x", "onderbouwing": [], "extern": [fout], "twijfel": []}, trace)
+
+
+# -- een grote beurt houdt haar gesprek in de correctieronde -----------------------------------------------------------
+
+def test_de_correctieronde_na_een_grote_beurt_krijgt_de_hele_beurt(monkeypatch):
+    """Meting bundel 114: P01 (2,34M) eindigde met één zin. De correctie was het enige platte user-bericht in de lopende
+    beurt, de opslagrem knipte daarop, en de laatste aanroep kreeg alleen de correctie."""
+    from agent import berichten
+    from agent.agent import answer_stream
+
+    groot = json.dumps({"status": "ok", "volledig": True, "aantal": 1, "resultaten": [{"tekst": "x " * 3000}]})
+    monkeypatch.setattr(antwoordnodes, "execute_tool", lambda *_a, **_k: groot)
+    monkeypatch.setattr(berichten, "MAX_HISTORIE_CHARS", 20_000)
+    lezen = [response([tool_block(f"t{i}", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": str(i)})], "tool_use")
+             for i in range(6)]
+    llm = FakeLLM([*lezen, response([text_block("Volgens BWBR0009999 is het zo.")], "end_turn"),
+                   response([text_block("Hersteld antwoord.")], "end_turn")])
+
+    async def alles():
+        return [e async for e in answer_stream("Wat zegt artikel 10 van de Invorderingswet 1990?",
+                                               settings=make_settings(centrale_agent="meten"), llm=llm,
+                                               graph=FakeGraph(result=""), agentvorm="centraal")]
+
+    asyncio.run(alles())
+    correctie, vorige = llm.calls[-1]["messages"], llm.calls[-2]["messages"]
+    assert json.dumps(correctie[-1], ensure_ascii=False).find("Let op") >= 0
+    assert correctie[:len(vorige)] == vorige, "de correctieronde houdt de beurt"

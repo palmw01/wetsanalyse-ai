@@ -141,6 +141,28 @@ def test_zonder_veilige_grens_wordt_er_niet_gesnoeid():
     assert _snoei_historie(msgs, 100) == msgs
 
 
+def test_snoeien_knipt_nooit_op_een_bericht_van_de_code_midden_in_de_beurt():
+    """Een correctie of een herhaalverzoek is geen vraag van de jurist. Knippen daar gooide de hele lopende beurt uit de
+    checkpoint: het model kreeg in de correctieronde alleen de correctie (meting bundel 114, P01 en het D01-kind)."""
+    from agent.berichten import CORRECTIE, HERHAALVERZOEK
+    from agent.nodes.antwoord import SJABLOON_GEVRAAGD
+
+    assert SJABLOON_GEVRAAGD.startswith(HERHAALVERZOEK)
+    lang = "x" * 400
+    beurt = [
+        _u("de vraag"),
+        {"role": "assistant", "content": [{"type": "tool_use", "id": "t1", "name": "get_lid", "input": {}}]},
+        {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t1", "content": lang}]},
+        _a("antwoord met een fout"),
+    ]
+    for code in (CORRECTIE + "je noemde iets.", HERHAALVERZOEK + "."):
+        msgs = [*beurt, _u(code)]
+        assert _snoei_historie(msgs, 300) == msgs, "de beurt blijft heel: geen vraag binnen het budget"
+        # Met een eerdere beurt ervoor knipt hij op de vraag van deze beurt, niet op het codebericht.
+        ouder = [_u("eerdere vraag"), _a(lang), *msgs]
+        assert _snoei_historie(ouder, 900) == msgs
+
+
 def test_de_reducer_voegt_toe_en_snoeit():
     msgs = _voeg_toe_en_snoei([_u("a")], [_a("b")])
     assert [m["role"] for m in msgs] == ["user", "assistant"]

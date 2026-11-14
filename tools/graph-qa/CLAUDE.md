@@ -396,7 +396,10 @@ prompt-cache het hergebruikt (nulmeting context 12 nov 2026):
   lopende beurt.
 
 `tests/test_trimming.py` meet hoeveel er per beurt verandert. De opslagrem `berichten.MAX_HISTORIE_CHARS` hoort ruim daarboven te
-liggen, `Settings.controleer_historie_grens` waarschuwt). `agent_node` geeft daarom de vraag mee aan
+liggen, `Settings.controleer_historie_grens` waarschuwt). **De opslagrem knipt alleen op een vraag van de jurist**
+(`_is_vraag`), nooit op een bericht van de code midden in een beurt (`berichten.CODEBERICHTEN`: de correctie, het
+herhaalverzoek om een sjabloon). Knippen daar gooide een beurt boven de 160k tekens uit de checkpoint, en de correctieronde
+kreeg alleen de correctie (meting bundel 114: P01 eindigde na 2,34M met één zin, het D01-kind verloor zijn beurt). `agent_node` geeft daarom de vraag mee aan
 `_trim_messages`: zonder telt een correctiebericht als begin van de beurt, en krimpt de brontekst die het model
 moet herstellen. Hoe vaak er gesprek uit het venster valt, meet de logregel `venster` (`berichten.venster_telling`,
 één per beurt; zie `docs/observability.md`) – eerst meten, dan pas een index, samenvatting of ruimer venster. **Een `tool_use` zonder `tool_result` gaat niet naar het model** (`_schoon_messages`): de

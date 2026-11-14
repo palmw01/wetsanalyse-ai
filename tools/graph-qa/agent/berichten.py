@@ -49,6 +49,14 @@ def _is_plain_user(m: dict[str, Any]) -> bool:
 #: user-bericht in de historie, maar is geen vraag van de jurist.
 CORRECTIE = "Let op: "
 
+#: Waarmee het herhaalverzoek om een sjabloon begint (`nodes.antwoord.SJABLOON_GEVRAAGD`): ook een user-bericht van de
+#: code midden in een beurt.
+HERHAALVERZOEK = "Je antwoordde met een lijst in tekst"
+
+#: De user-berichten die de code midden in een beurt zet. Ze zijn geen vraag van de jurist, dus geen begin van een beurt
+#: en geen grens om op te knippen.
+CODEBERICHTEN = (CORRECTIE, HERHAALVERZOEK)
+
 
 def beurt_start(messages: list[dict[str, Any]], vraag: str = "") -> int:
     """Index waar de huidige beurt begint: de laatste platte user-beurt met deze vraag.
@@ -75,7 +83,7 @@ def eerdere_beurten(messages: list[dict[str, Any]], vraag: str = "", *, aantal: 
     beurten: list[tuple[str, str]] = []
     huidig: list[str] | None = None
     for m in messages[:beurt_start(messages, vraag)]:
-        if _is_plain_user(m) and isinstance(m.get("content"), str) and not m["content"].startswith(CORRECTIE):
+        if _is_vraag(m) and isinstance(m.get("content"), str):
             huidig = [m["content"], ""]
             beurten.append(huidig)  # type: ignore[arg-type]
         elif m.get("role") == "assistant" and huidig is not None:
@@ -218,9 +226,9 @@ def _trim_messages(messages: list[dict[str, Any]], max_chars: int, vraag: str = 
 
 
 def _is_vraag(m: dict[str, Any]) -> bool:
-    """Een platte user-beurt die geen correctiebericht is: een vraag van de jurist."""
+    """Een platte user-beurt die geen bericht van de code is (`CODEBERICHTEN`): een vraag van de jurist."""
     c = m.get("content")
-    return _is_plain_user(m) and not (isinstance(c, str) and c.startswith(CORRECTIE))
+    return _is_plain_user(m) and not (isinstance(c, str) and c.startswith(CODEBERICHTEN))
 
 
 def venster_telling(origineel: list[dict[str, Any]], venster: list[dict[str, Any]]) -> dict[str, int]:
@@ -274,13 +282,15 @@ def _snoei_historie(messages: list[dict[str, Any]], max_chars: int) -> list[dict
     totaal = sum(_msg_lengte(m) for m in messages)
     if totaal <= max_chars:
         return messages
-    # Zoek van achter naar voren de eerste platte user-beurt die het geheel binnen budget brengt.
+    # Zoek van achter naar voren de eerste vraag van de jurist die het geheel binnen budget brengt. Alleen een vraag: een
+    # correctie of een herhaalverzoek staat midden in de lopende beurt, en knippen daar gooide de hele beurt uit de
+    # checkpoint (meting bundel 114: het D01-kind en P01 kregen in hun laatste ronde alleen de correctie).
     opgeteld = 0
     for i in range(len(messages) - 1, -1, -1):
         opgeteld += _msg_lengte(messages[i])
         if opgeteld >= max_chars:
             for j in range(i, len(messages)):
-                if _is_plain_user(messages[j]):
+                if _is_vraag(messages[j]):
                     return messages[j:]
             return messages
     return messages
