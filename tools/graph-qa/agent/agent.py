@@ -250,6 +250,10 @@ async def answer_stream(
     bronnen_herkomst: str | None = None,
     beurtcontext_plek: str = "vraag",
     agentvorm: str | None = None,
+    profiel: str = "",
+    opdracht: Any = None,
+    kinderen: Any = None,
+    resultaat: dict[str, Any] | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """
     Async generator die SSE-events yield:
@@ -298,8 +302,10 @@ async def answer_stream(
 
     from .orchestrator import build_graph
 
+    # `kinderen` start en stopt een subagent langs de ene ingang (`api.main.start_beurt`, ADR-016 §A3); `resultaat`
+    # krijgt na afloop wat een subagent opleverde, voor de ouder op deze replica.
     builder = build_graph(settings, llm, graph, stop_check=stop_check, annotaties=annotaties, begrippen=begrippen,
-                          agent_api=agent_api)
+                          agent_api=agent_api, kinderen=kinderen)
     thread_id = conversation_id or uuid.uuid4().hex
     onderwerp_dict = onderwerp.model_dump() if hasattr(onderwerp, "model_dump") else dict(onderwerp or {})
     config = {
@@ -311,12 +317,13 @@ async def answer_stream(
         settings, user_id, list(bronnen) if bronnen is not None else None, bronnen_herkomst)
     werkgebied_blok, werkgebied_peildatum = (await _werkgebied_stand(settings, user_id, werkgebied_id)
                                              if werkgebied_id else ("", ""))
+    opdracht_dict = (opdracht.model_dump() if hasattr(opdracht, "model_dump") else dict(opdracht or {})) if profiel else {}
     init: dict[str, Any] = {
         "question": question,
         "run_id": run_id or uuid.uuid4().hex,
         "user_id": user_id,
-        "annotaties_lezen": is_leesvraag(question, modus),
-        "specialist": "annotaties_lezen" if is_leesvraag(question, modus) else "",
+        "annotaties_lezen": is_leesvraag(question, modus) and not opdracht_dict,
+        "specialist": profiel if opdracht_dict else "annotaties_lezen" if is_leesvraag(question, modus) else "",
         "begrippen_lezen": False,
         "werkgebied_id": werkgebied_id or "",
         # De bronnen van deze beurt (ADR-013): toollaag en dispatch filteren erop; de stand zegt per connector waarom.
@@ -326,6 +333,10 @@ async def answer_stream(
         "beurtcontext_plek": beurtcontext_plek,
         # De agentvorm van deze beurt (ADR-016 §A7): de straat beslist of het verzoek mag kiezen.
         "agentvorm": vorm_van(settings.centrale_agent, agentvorm),
+        # Een subagent (ADR-016 §A3): de supervisor stuurt de beurt zonder model naar de agent met dit profiel.
+        "opdracht": opdracht_dict,
+        "rapport": {},
+        "subagenten": [],
         "overdracht_naar": "",
         "bron_lezen": [],
         "bron_lijst": {},
@@ -394,6 +405,7 @@ async def answer_stream(
 
     tracer = get_tracer(__name__)
     grounded = True
+    laatste: dict[str, Any] = {}
     if any(s["reden"] != "straat" for s in bronstand_nu.values()):
         # Vóór alles: de werkplek en de meting weten zo welke bronnen deze beurt had, en waarom niet. Biedt de straat
         # geen connector aan, dan is er niets te melden en blijft de stroom gelijk aan een straat zonder connectors.
@@ -407,11 +419,18 @@ async def answer_stream(
                     if mode == "custom":
                         yield chunk
                     elif mode == "values":
+                        laatste = chunk
                         grounded = chunk.get("grounded", grounded)
                         if meter is not None:
                             meter.route = route_van(chunk)
                             meter.sjabloon = chunk.get("sjabloon_telling") or {}
                 span.set_attribute("graph_qa.grounded", grounded)
+                if resultaat is not None and laatste:
+                    # Wat de ouder van een subagent leest (`agent/subagent.py`): het rapport en de toolresultaten, nooit
+                    # modeltekst die niet door de controle ging.
+                    resultaat.update(rapport=laatste.get("rapport") or {}, antwoord=laatste.get("antwoord") or {},
+                                     answer=laatste.get("answer") or "", grounded=grounded,
+                                     source_trace=[tuple(x) for x in laatste.get("source_trace") or []])
                 logger.info(
                     "antwoord klaar",
                     extra={"grounded": grounded, "chat_session_id": conversation_id or ""},

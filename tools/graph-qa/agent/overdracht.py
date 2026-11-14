@@ -41,8 +41,9 @@ class Overdracht:
     #: De node waar de beurt heen gaat, of `INGANG`.
     naar: str
     #: `(b, state, invoer) -> de state-update van de route`, of een tekst als de code de overdracht weigert: het model
-    #: krijgt die als toolresultaat en werkt verder. `b` is de `Bouw` van de graaf (de graaf voor een controle).
-    zet: Callable[[Any, State, dict[str, Any]], dict[str, Any] | str]
+    #: krijgt die als toolresultaat en werkt verder. `b` is de `Bouw` van de graaf (de graaf voor een controle). Een paar
+    #: `(update, tekst)` geeft het toolresultaat zelf (de subagent: zijn rapport).
+    zet: Callable[[Any, State, dict[str, Any]], dict[str, Any] | str | tuple[dict[str, Any], str]]
     #: De profielen waarvan de agent deze tool krijgt; leeg = elk profiel van de centrale agent.
     van: frozenset[str] = frozenset()
     #: Wat het model ziet als de overdracht slaagt.
@@ -182,6 +183,43 @@ def _toon_stukken(b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any
 
 TOON_STUKKEN = "toon_stukken"
 
+SUBAGENT = "subagent"
+
+
+def _subagent(b: Any, state: State, invoer: dict[str, Any]) -> tuple[dict[str, Any], str] | str:
+    """Eén subagent (ADR-016 §A3): de code start hem in een kindgesprek, wacht, en geeft zijn rapport als toolresultaat.
+    De centrale agent werkt daarna verder in dezelfde beurt. Zijn toolresultaten gaan mee in de trace, zodat `verify` de
+    samenvatting ertegen toetst. Eén laag: een subagent heeft deze tool niet (`Subagent` heeft geen eigen tools)."""
+    from pydantic import ValidationError
+
+    from . import subagent as sub
+    from .agents.uitvoering import draai
+    from .models import SubagentOpdracht
+
+    profiel = invoer.get("profiel", "")
+    if profiel not in sub.kiesbaar():
+        return f"Het profiel '{profiel}' bestaat niet. Kies uit: {', '.join(sub.kiesbaar())}."
+    try:
+        opdracht = SubagentOpdracht(**{v: str(invoer.get(v) or "").strip() for v in sub.VELDEN})
+    except ValidationError:
+        return "Schrijf het doel van de opdracht; de andere velden mogen leeg zijn."
+    kinderen = getattr(b, "kinderen", None)
+    if kinderen is None or not state.get("gesprek_id") or not getattr(b.settings, "legt_zelf_vast", False):
+        return "Een subagent kan hier niet starten. Beantwoord de vraag zelf."
+    if any(a.get("uitkomst") != "niet_gestart" for a in state.get("subagenten") or []):
+        return "Je zette in deze beurt al een subagent aan het werk. Beantwoord de vraag met zijn rapport."
+    writer = get_stream_writer()
+    _stap(writer, "Lex", f"zet een subagent ({profiel}) aan het werk", route=SUBAGENT)
+    afloop, kind, weigering = draai(
+        lambda stuur: sub.voer_uit(state, profiel, opdracht, stuur, settings=b.settings, kinderen=kinderen,
+                                   gestopt=lambda: bool(b.stop_check and b.stop_check())),
+        loop=b.loop, schrijf=writer)
+    if weigering:
+        return weigering
+    trace = list(state.get("source_trace") or []) + [tuple(x) for x in kind.get("source_trace") or []]
+    tekst = sub.als_toolresultaat(profiel, afloop.uitkomst, sub.rapport_tekst(afloop, kind))
+    return ({"source_trace": trace, "subagenten": [*(state.get("subagenten") or []), afloop.als_dict()]}, tekst)
+
 _GEEN_LIJST = ("De code leest dit niet als een lijstvraag (welke bron, welke volgorde of hoeveel, en waarover). Zoek dan "
                "zelf met de zoektool van de bron.")
 
@@ -203,6 +241,13 @@ def _taken() -> list[str]:
 #: De taken van het werkgebied zelf (geen agent): samenstellen is bij de supervisor de lege taak.
 WERKGEBIED_TAKEN = ("samenstellen", "aanvullen", "bronselectie")
 
+
+def _subagent_invoer() -> dict[str, Any]:
+    from .subagent import invoer_schema
+    return invoer_schema()
+
+
+_SUBAGENT_INVOER = _subagent_invoer()
 
 OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
     Overdracht(
@@ -270,6 +315,16 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
             "Niet om één stuk te lezen of voor wat een stuk inhoudt."),
         invoer=_VRAAG, naar=INGANG, zet=_toon_stukken, ingangen=("bron_lijst", "afwijzen")),
     Overdracht(
+        naam=SUBAGENT,
+        beschrijving=(
+            "Zet één subagent aan het werk op een opdracht die op zichzelf staat en veel leest: lange stukken, veel "
+            "uitspraken of Kamerstukken, een heel hoofdstuk doorlopen. De subagent begint schoon (hij ziet dit gesprek "
+            "niet), werkt in een eigen deelgesprek en komt terug met een rapport; daarna beantwoord je de vraag zelf met "
+            "dat rapport. Niet voor een vraag die je in een paar toolrondes zelf beantwoordt, niet voor werk dat heen en "
+            "weer vraagt met de gebruiker, en niet voor een vaste route hierboven. Schrijf de opdracht volledig: hij kent "
+            "alleen wat erin staat."),
+        invoer=_SUBAGENT_INVOER, naar="agent", zet=_subagent),
+    Overdracht(
         naam="taakagent",
         beschrijving=(
             "Roep dit aan als de gebruiker in een werkgebied iets met de deelvragen of de begrippen wil laten DOEN. "
@@ -312,6 +367,9 @@ def overdracht_node(_b: Any, state: State) -> dict[str, Any]:
     tu = state["pending_tools"][0]
     o = OVERDRACHT[tu["name"]]
     uitkomst = o.zet(_b, state, tu.get("input") or {})
+    tekst = o.resultaat
+    if isinstance(uitkomst, tuple):
+        uitkomst, tekst = uitkomst
     geweigerd = isinstance(uitkomst, str)
 
     def resultaat(tekst: str, **extra: Any) -> dict[str, Any]:
@@ -326,7 +384,7 @@ def overdracht_node(_b: Any, state: State) -> dict[str, Any]:
         from .nodes.supervisie import _entry_node
         naar = _entry_node(_b, {**state, **uitkomst})
         assert naar in o.ingangen, f"overdracht {o.naam} kwam uit bij {naar}"
-    return {"messages": [resultaat(o.resultaat)], "pending_tools": [],
+    return {"messages": [resultaat(tekst)], "pending_tools": [],
             "overdracht_naar": "" if naar == "agent" else naar, **uitkomst}
 
 

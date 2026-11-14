@@ -201,6 +201,15 @@ def test_de_samenvatting_toetst_een_run_tegen_de_set():
     s = vat({"id": "S01", "run": 1, "beurten": [{"label": "gemeten", "events": events}]}, PER_ID["S01"])
     assert not s["delegatie_past"] and "subagent" in s["tools_ontbreken"]
 
+    # Een subagent (ADR-016 §A3): dezelfde events als een regie met `soort: subagent`, en het profiel op het kind.
+    sub = [{"type": "regie", "fase": "start", "soort": "subagent"},
+           {"type": "regie_taak", "fase": "start", "gesprek_id": "k1", "profiel": "algemeen"}]
+    s = vat({"id": "S01", "run": 1, "beurten": [{"label": "gemeten", "events": sub}]}, PER_ID["S01"])
+    assert s["route"] != "regie" and s["delegatie_past"] and "subagent" not in s["tools_ontbreken"]
+    assert s["kind_profielen"] == ["algemeen"] and s["profiel_past"] is True
+    sub[1]["profiel"] = "definitie"
+    assert vat({"id": "S01", "run": 1, "beurten": [{"label": "gemeten", "events": sub}]}, PER_ID["S01"])["profiel_past"] is False
+
 
 def test_de_andere_sets_worden_met_hun_eigen_scorers_gescoord():
     """`eval/centrale_agent_sets.py`: een beurt van de straat wordt een opname voor de scorers van de set zelf."""

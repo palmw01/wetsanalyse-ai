@@ -251,7 +251,7 @@
   "tests/test_pdf_opmaak.py": 1.0,
   "tests/test_projectie_ronde.py": 0.2,
   "tests/test_projector_v2_integration.py": 2.6,
-  "tests/test_regies.py": 4.4,
+  "tests/test_delegaties.py": 5.5,
   "tests/test_registraties.py": 11.3,
   "tests/test_relatievoorstellen_batch.py": 0.8,
   "tests/test_run_status.py": 2.0,

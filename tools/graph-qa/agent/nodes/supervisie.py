@@ -429,6 +429,15 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     modus = state.get("modus", "auto")
 
+    # Een subagent (ADR-016 §A3): de centrale agent koos het profiel en schreef de opdracht. Geen route en geen model:
+    # de beurt gaat naar de agent met dat profiel, die met het rapport afrondt.
+    if state.get("opdracht"):
+        profiel = state.get("specialist") or ""
+        _stap(writer, "Lex", f"werkt als subagent ({profiel}) aan de opdracht", route=profiel)
+        logger.info("worker gekozen", extra={"categorie": "functioneel", "worker": profiel, "subagent": True})
+        return {"zelfstandige_vraag": "", "specialist": profiel, "plan": "", "worker_plan": [profiel], "worker_idx": 0,
+                "afwijzen": False, "annotaties_lezen": False}
+
     # Een klik op een vraagkaartje, of een verzoek om een werkgebied samen te stellen: vóór alles en
     # zonder modelaanroep. De klik weet al waar hij bij hoort; de startzin heeft een vaste vorm.
     if state.get("intake_actie"):
