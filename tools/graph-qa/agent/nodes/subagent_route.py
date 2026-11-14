@@ -65,5 +65,6 @@ def subagent_route_node(b: Bouw, state: State) -> dict[str, Any]:
     trace = list(state.get("source_trace") or []) + [tuple(x) for x in kind.get("source_trace") or []]
     rapport = sub.als_toolresultaat(PROFIEL, afloop.uitkomst, sub.rapport_tekst(afloop, kind))
     return {"specialist": CENTRAAL, "source_trace": trace, "subagenten": [afloop.als_dict()],
+            "rapport_steun": sub.steun_van([kind]),
             "rapporten": ("RAPPORT VAN EEN SUBAGENT (de code gaf hem de vraag van de gebruiker; vat het rapport samen voor "
                           "de gebruiker):\n" + rapport + "\n\n")}

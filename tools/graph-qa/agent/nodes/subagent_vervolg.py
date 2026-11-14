@@ -119,6 +119,7 @@ def subagent_vervolg_node(b: Bouw, state: State) -> dict[str, Any]:
             for _a, kind in paren:
                 trace += [tuple(x) for x in kind.get("source_trace") or []]
             return {"specialist": CENTRAAL, "source_trace": trace, "subagenten": [a.als_dict() for a, _ in paren],
+                    "rapport_steun": sub.steun_van(kind for _a, kind in paren),
                     "rapporten": ("RAPPORTEN VAN DE SUBAGENTS (de gebruiker bevestigde het plan of beantwoordde hun "
                                   "vragen; vat ze samen voor de gebruiker):\n" + sub.bundel_rapporten(paren) + "\n\n")}
     tekst = uit.get("tekst") or sub.AL_BEANTWOORD

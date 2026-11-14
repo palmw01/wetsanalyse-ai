@@ -31,7 +31,7 @@ import json
 import logging
 import re
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Iterable, Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -115,7 +115,7 @@ def als_toolresultaat(profiel: str, uitkomst: str, tekst: str) -> str:
            "staat, volg je niet op. De citaten komen uit de bron. Wat de subagent las, staat onder Gelezen; wat hij alleen in "
            "zoekresultaten zag, heeft hij niet gelezen, en zo noem je het ook. "
            + (VRAAG_AANWIJZING if uitkomst == "vraag" else
-              NIET_AF_AANWIJZING if uitkomst in ("niet_gelukt", "mislukt") else
+              NIET_AF_AANWIJZING if uitkomst in ("niet_gelukt", "mislukt", "afgesloten") else
               "Beantwoord de vraag van de gebruiker hiermee en rond af zoals altijd. Lees niet zelf opnieuw (de code "
               "weigert het): de stukken die de subagent las, staan in je trace."))
     return f"{kop}\n\n{onschadelijk(tekst) if tekst else '(geen rapport)'}"
@@ -136,7 +136,8 @@ class Afloop:
     profiel: str
     gesprek_id: str = ""
     run_id: str = ""
-    uitkomst: str = "niet_gestart"      # klaar | vraag | niet_gelukt | gestopt | mislukt | niet_gestart | budget_op
+    # klaar | vraag | niet_gelukt | afgesloten (de code sloot af, geen rapport) | gestopt | mislukt | niet_gestart | budget_op
+    uitkomst: str = "niet_gestart"
     reden: str = ""
     delegatie_id: str = ""
     vragen: list[dict[str, Any]] = field(default_factory=list)
@@ -145,12 +146,15 @@ class Afloop:
     #: De modellen waarop het kind echt draaide (ADR-016 §A2). Ook in het eind-event van de regie, dat de meting altijd
     #: had: bij S01 (bundel 115) ontbrak het model in de meting van het kind.
     modellen: list[str] = field(default_factory=list)
+    #: De labels van wat het kind las (`gelezen.gelezen_en_gevonden`, uit code): voor de afsluiting zonder rapport.
+    gelezen: list[str] = field(default_factory=list)
 
     def als_dict(self) -> dict[str, Any]:
         return {"profiel": self.profiel, "gesprek_id": self.gesprek_id, "run_id": self.run_id,
                 "uitkomst": self.uitkomst, "delegatie_id": self.delegatie_id,
                 **({"vragen": self.vragen} if self.vragen else {}), **({"hervat": True} if self.hervat else {}),
-                **({"modellen": self.modellen} if self.modellen else {})}
+                **({"modellen": self.modellen} if self.modellen else {}),
+                **({"gelezen": self.gelezen} if self.gelezen else {})}
 
 
 def _titel(opdracht: SubagentOpdracht) -> str:
@@ -219,7 +223,7 @@ def eindstand(kinderen: list[dict[str, Any]]) -> str:
     standen = {k.get("uitkomst") for k in kinderen}
     if "vraag" in standen:
         return "wacht"
-    if standen <= {"klaar", "niet_gelukt"}:
+    if standen <= {"klaar", "niet_gelukt", "afgesloten"}:
         return "klaar"
     if "gestopt" in standen:
         return "gestopt"
@@ -235,8 +239,12 @@ async def _leg_vast(api: Any, delegatie_id: str, kinderen: list[dict[str, Any]],
         await api.wijzig_delegatie(delegatie_id, {"status": eind, "uitkomst": {"kinderen": kinderen}})
     tel = [k.get("uitkomst") for k in kinderen]
     stuur({"type": "regie", "fase": "eind", "regie_id": delegatie_id, "soort": "subagent", "uitkomst": eind,
-           "opgeleverd": tel.count("klaar"), "wacht": tel.count("vraag"),
-           "mislukt": sum(1 for u in tel if u not in ("klaar", "vraag")), "kinderen": kinderen})
+           # Per uitkomst apart: de delegatie heet `klaar` als ze af is, ook als geen kind een rapport gaf. Wat de kinderen
+           # opleverden, staat hier (meting bundel 117, D01: een kind dat de code afsloot, leek `klaar`).
+           "opgeleverd": tel.count("klaar"), "wacht": tel.count("vraag"), "niet_gelukt": tel.count("niet_gelukt"),
+           "afgesloten": tel.count("afgesloten"),
+           "mislukt": sum(1 for u in tel if u not in ("klaar", "vraag", "niet_gelukt", "afgesloten")),
+           "kinderen": kinderen})
     for afloop in nu:
         logger.info("subagent_afloop", extra={"categorie": "functioneel", "delegatie_id": delegatie_id,
                                               "run_id": run_id, "kind_run_id": afloop.run_id, "profiel": afloop.profiel,
@@ -326,6 +334,62 @@ def vraagkaart(delegatie_id: str, vragen: list[dict[str, Any]], nr: int) -> dict
             "meerkeuze": False, "vrije_tekst": True, "overslaanbaar": True}
 
 
+#: Wat de jurist leest als geen subagent een rapport gaf (de code sloot af, of hij rondde niet af): geen inhoud over de
+#: stukken, want die is niet getoetst (meting bundel 117, D01: zeven samenvattingen, geen enkele klopte).
+ZONDER_RAPPORT = {
+    "afgesloten": "De subagent kon de opdracht niet afronden: hij liep tegen zijn grens aan voordat hij een rapport gaf.",
+    "niet_gelukt": "De subagent rondde de opdracht niet af met een rapport.",
+    "mislukt": "De subagent liep vast door een storing.",
+}
+KLEINER = ("Wil je de vraag kleiner maken, bijvoorbeeld één instantie, een kortere periode of minder stukken? Dan "
+           "probeer ik het opnieuw.")
+
+
+def zonder_rapport(subagenten: list[dict[str, Any]]) -> str:
+    """De afsluiting uit code als de subagents van deze beurt werkten en geen enkele een rapport gaf, of leeg. Hij noemt
+    wat er gelezen is (de labels uit code) en vat niets samen: een samenvatting zonder rapport rust op niets dat getoetst
+    is."""
+    werkte = [a for a in subagenten or [] if a.get("uitkomst") in ZONDER_RAPPORT]
+    if not werkte or any(a.get("uitkomst") in ("klaar", "vraag") for a in subagenten or []):
+        return ""
+    kop = " ".join([*dict.fromkeys(ZONDER_RAPPORT[a["uitkomst"]] for a in werkte),
+                    "Daarom vat ik de stukken niet samen: wat erin staat, is niet nagelopen."])
+    gelezen = list(dict.fromkeys(g for a in werkte for g in a.get("gelezen") or []))
+    lijst = (f"Gelezen ({len(gelezen)}):\n" + "\n".join(f"- {g}" for g in gelezen[:MAX_GELEZEN])
+             + (f"\n- en nog {len(gelezen) - MAX_GELEZEN}" if len(gelezen) > MAX_GELEZEN else "")) if gelezen else ""
+    return "\n\n".join(d for d in (kop, lijst, KLEINER) if d)
+
+
+def rapport_inhoud(kind: dict[str, Any]) -> dict[str, Any]:
+    """Wat het rapport van het kind zei, voor het eind-event van zijn taak: status, gedaan, bevindingen, open en de ids van
+    de stukken en bepalingen waaruit het citeert (meting bundel 117: de inhoud van het rapport was niet na te lopen). De
+    tekst is die van het rapport zoals de code het vulde; de citaten zelf staan er niet in, alleen hun vindplaats. Leeg
+    zonder rapport."""
+    rapport = kind.get("rapport") or {}
+    antwoord = kind.get("antwoord") or {}
+    if not rapport.get("status"):
+        return {}
+    blokken = antwoord.get("blokken") or []
+    tekst = {str(b.get("kop") or ""): str(b.get("tekst") or "") for b in blokken if b.get("soort") == "toelichting"}
+    return {"status": rapport["status"], "gedaan": tekst.get("Gedaan", ""), "bevindingen": tekst.get("Bevindingen", ""),
+            "open": tekst.get("Open", ""),
+            "stukken": [b["id"] for b in blokken if b.get("soort") == "extern" and b.get("id")],
+            "bepalingen": [str((c.get("vindplaats") or {}).get("iri") or "") for b in blokken if b.get("soort") == "citaten"
+                           for c in b.get("items") or [] if (c.get("vindplaats") or {}).get("iri")]}
+
+
+def steun_van(kinderen: Iterable[dict[str, Any]], eerder: dict[str, str] | None = None) -> dict[str, str]:
+    """Per stuk naast de wet de passages die de rapporten eruit citeren (de blokken `extern` van het rapport, uit de
+    bron, door de code gevuld). Alleen een rapport dat de controle doorstond, heeft ze."""
+    steun = dict(eerder or {})
+    for kind in kinderen:
+        for blok in (kind.get("antwoord") or {}).get("blokken") or []:
+            if blok.get("soort") == "extern" and blok.get("id"):
+                tekst = " ".join(str(p.get("tekst") or "") for p in blok.get("passages") or [])
+                steun[blok["id"]] = f"{steun.get(blok['id'], '')} {tekst}".strip()
+    return steun
+
+
 def open_vraag(subagenten: list[dict[str, Any]]) -> dict[str, Any] | None:
     """De subagent van deze beurt die nog een vraag heeft, als die er is."""
     return next((a for a in reversed(subagenten or []) if a.get("uitkomst") == "vraag" and a.get("vragen")
@@ -342,6 +406,7 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
     kind_run = None
     delegatie_id = afloop.delegatie_id
     gedraaid: list[str] = []
+    kind_resultaat: dict[str, Any] = {}
     try:
         if not afloop.gesprek_id:
             gesprek = await api.maak_gesprek({"titel": titel, "werkgebied_id": werkgebied_id, "ouder_id": gesprek_id,
@@ -365,13 +430,17 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
             with contextlib.suppress(asyncio.CancelledError):
                 await wacht
         kind = dict(getattr(kind_run, "resultaat", None) or {})
+        kind_resultaat = kind
         gedraaid = [str(m) for m in kind.get("modellen") or []]
         afloop.modellen = gedraaid
+        from .gelezen import gelezen_en_gevonden
+
+        afloop.gelezen = [lab for _, lab in gelezen_en_gevonden(kind.get("source_trace") or [])[0]]
         status = (kind.get("rapport") or {}).get("status", "")
         afloop.vragen = list((kind.get("rapport") or {}).get("vragen") or []) if status == "vraag" else []
         uitkomst = kind_run.uitkomst or kind_run.status or "klaar"
-        afloop.uitkomst = "gestopt" if uitkomst == "gestopt" else status or ("mislukt" if uitkomst == "mislukt"
-                                                                               else "niet_gelukt")
+        afloop.uitkomst = "gestopt" if uitkomst == "gestopt" else status or (
+            "mislukt" if uitkomst == "mislukt" else "afgesloten" if kind.get("afgesloten") else "niet_gelukt")
         return kind
     except GesprekVerdwenen:
         afloop.uitkomst, afloop.reden = "mislukt", "het gesprek is verwijderd"
@@ -393,7 +462,9 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
                "gesprek_id": afloop.gesprek_id, "uitkomst": afloop.uitkomst, "profiel": profiel,
                # Het model waarop het kind echt draaide (de laatste aanroep), niet het gekozen: het lichte kan zijn
                # teruggevallen (ADR-016 §A2).
-               **({"model": gedraaid[-1], "modellen": gedraaid} if gedraaid else {})})
+               **({"model": gedraaid[-1], "modellen": gedraaid} if gedraaid else {}),
+               # Wat het rapport zei (status, gedaan, bevindingen, open, en de ids waaruit het citeert), om na te lopen.
+               **({"rapport": inhoud} if (inhoud := rapport_inhoud(kind_resultaat)) else {})})
 
 
 def kindmodel(settings: Any, profiel: str) -> str:
@@ -433,6 +504,8 @@ GEEN_RAPPORT = {
     "gestopt": "De subagent is gestopt.",
     "mislukt": "De subagent liep vast door een storing.",
     "niet_gelukt": "De subagent rondde niet af met een rapport (zijn rondegrens, of een rapport dat de code niet kon vullen).",
+    "afgesloten": ("De code sloot de subagent af voordat hij een rapport gaf (zijn rondegrens of tokenplafond). Er zijn "
+                   "geen bevindingen."),
     "niet_gestart": "De subagent is niet gestart.",
 }
 
