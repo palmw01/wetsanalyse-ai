@@ -15,10 +15,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from bronmodel.antwoord import Antwoord, Toelichting
+from bronmodel.antwoord import Antwoord, Citaten, Toelichting
 
 from . import duiding
-from .vullen import Onvulbaar, Trace
+from .vullen import Onvulbaar, Trace, bron_rijen
+
+#: Wat `sjablonen.vul` meegeeft bij een rapport: de aanwijzingen in 'extern' die niet te tonen waren, en hoeveel stukken
+#: wél als blok getoond worden.
+NIET_GETOOND = "_niet_getoond"
+EXTERN_GETOOND = "_extern_getoond"
+#: Hoe lang één reden onder 'Open' hoogstens is: genoeg om te zien wat en waarom.
+MAX_REDEN = 200
 
 NAAM = "rapport"
 STATUS = ("klaar", "vraag", "niet_gelukt")
@@ -127,13 +134,29 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
         return Antwoord(sjabloon="rapport", blokken=[*kop, *staart], doelen=[])
     if not bevindingen:
         raise Onvulbaar("Schrijf in 'bevindingen' wat je vond, of kies status niet_gelukt.", code="rapport_bevindingen")
-    # Wat hij vond, toetst dezelfde code als een uitleg: elke passage in de aangewezen bepaling, elke genoemde bepaling
-    # met een passage. De twijfel staat bij het rapport onder 'Open'.
-    vond = duiding.vul({"kort_antwoord": bevindingen, "onderbouwing": invoer.get("onderbouwing") or [], "twijfel": [],
-                        **({duiding.EXTERN_IDS: invoer[duiding.EXTERN_IDS]} if duiding.EXTERN_IDS in invoer else {})},
-                       trace)
-    blokken = [b.model_copy(update={"kop": "Bevindingen"}) if b.soort == "toelichting" else b for b in vond.blokken]
-    return Antwoord(sjabloon="rapport", blokken=[*kop, *blokken, *staart], doelen=vond.doelen)
+    # Elke passage gaat door dezelfde toets als een uitleg (`duiding._citaat`: letterlijk in de aangewezen bepaling). Een
+    # passage die niet te tonen is, laat de code weg en noemt hij onder 'Open'; het rapport valt er niet meer om
+    # (meting 14 nov 2026, S03 en D01: twee geweigerde rapporten van elk ~4k uitvoertokens, daarna tekst). Een rapport is
+    # een gegeven voor de centrale agent, en wat die de gebruiker zegt, toetst `verify` tegen dezelfde trace. Alleen als
+    # er niets te tonen is, weigert de code: dan kan de subagent herstellen.
+    rijen, fouten = bron_rijen(trace), []
+    citaten = [c for stuk in invoer.get("onderbouwing") or [] if isinstance(stuk, dict)
+               and (c := duiding._citaat(stuk, rijen, trace, fouten))]
+    niet_getoond = [*fouten, *(str(x) for x in invoer.get(NIET_GETOOND) or [])]
+    if status == "klaar" and not citaten and not int(invoer.get(EXTERN_GETOOND) or 0):
+        if niet_getoond:
+            raise Onvulbaar("Geen enkele passage is te tonen. " + "; ".join(niet_getoond) + ". Rond daarna opnieuw af.",
+                            code="passage_niet_te_tonen")
+        raise Onvulbaar("Wijs ten minste één passage aan, in 'onderbouwing' (wettekst uit de kennisgraaf) of in 'extern' "
+                        "(een stuk uit een bron naast de wet), of kies status niet_gelukt.", code="geen_passage")
+    if niet_getoond:
+        regels = [f"- {r if len(r) <= MAX_REDEN else r[:MAX_REDEN - 1].rsplit(' ', 1)[0] + '…'}" for r in niet_getoond]
+        punt = Toelichting(kop="Niet als citaat getoond", tekst="\n".join(regels))
+        staart.insert(len(staart) - (1 if open_ else 0), punt)
+    blokken = [Toelichting(kop="Bevindingen", tekst=duiding._lex(bevindingen, trace) or bevindingen),
+               *([Citaten(items=citaten)] if citaten else [])]
+    return Antwoord(sjabloon="rapport", blokken=[*kop, *blokken, *staart],
+                    doelen=list({c.vindplaats.iri: c.vindplaats for c in citaten}.values()))
 
 
 def status_van(invoer: dict[str, Any]) -> str:

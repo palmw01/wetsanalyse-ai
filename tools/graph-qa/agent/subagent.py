@@ -398,17 +398,39 @@ GEEN_RAPPORT = {
     "budget_op": "De subagent is niet gestart: het tokenbudget van de gebruiker is op.",
     "gestopt": "De subagent is gestopt.",
     "mislukt": "De subagent liep vast door een storing.",
-    "niet_gelukt": "De subagent rondde niet af met een rapport.",
+    "niet_gelukt": "De subagent rondde niet af met een rapport (zijn rondegrens, of een rapport dat de code niet kon vullen).",
     "niet_gestart": "De subagent is niet gestart.",
 }
 
 
+#: Hoeveel gelezen bronnen het rapport uit code hoogstens noemt.
+MAX_GELEZEN = 20
+
+
 def rapport_tekst(afloop: Afloop, kind: dict[str, Any]) -> str:
     """De tekst van het rapport voor de centrale agent: wat het kind schreef als het met een rapport afrondde en de
-    controle doorstond, anders de reden uit code."""
+    controle doorstond, anders de reden uit code. Las het kind wel iets (de rondegrens, een rapport dat niet te vullen
+    was), dan noemt de code wat er lag: de bronnen uit zijn toolresultaten, die ook in de trace van de centrale agent
+    staan (ADR-016 §A4: afsluiten met wat er lag)."""
     if (kind.get("rapport") or {}).get("status") and kind.get("answer"):
         return kind["answer"]
-    return GEEN_RAPPORT.get(afloop.uitkomst, GEEN_RAPPORT["niet_gelukt"]) + (f" ({afloop.reden})" if afloop.reden else "")
+    tekst = GEEN_RAPPORT.get(afloop.uitkomst, GEEN_RAPPORT["niet_gelukt"]) + (f" ({afloop.reden})" if afloop.reden else "")
+    if gelezen := _gelezen(kind):
+        tekst += ("\nWat hij las (de toolresultaten staan in je trace; je kunt ze citeren):\n"
+                  + "\n".join(f"- {g}" for g in gelezen[:MAX_GELEZEN])
+                  + (f"\n- en nog {len(gelezen) - MAX_GELEZEN}" if len(gelezen) > MAX_GELEZEN else ""))
+    return tekst
+
+
+def _gelezen(kind: dict[str, Any]) -> list[str]:
+    """De bronnen uit de toolresultaten van het kind, als leesbare labels (uit code, nooit uit modeltekst)."""
+    from .provenance import collect_sources
+
+    try:
+        bronnen = collect_sources([tuple(x) for x in kind.get("source_trace") or []])
+    except Exception:  # noqa: BLE001 – een label is een gemak; zonder labels blijft de reden staan
+        return []
+    return list(dict.fromkeys(str(getattr(b, "label", "") or getattr(b, "uri", "")) for b in bronnen if b))
 
 
 # -- meer subagents tegelijk (ADR-016 §A5) ---------------------------------------------------------------------

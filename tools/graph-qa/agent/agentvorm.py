@@ -170,10 +170,16 @@ class CentraleAgent(Agent):
 
 #: Wat een subagent bovenop zijn profiel hoort (ADR-016 §A3, §A4). Na de instructie van het profiel, want die zegt
 #: waarmee hij als specialist afrondt.
+#: Hoeveel modelrondes een subagent heeft (ADR-016 §A2 `max_rondes`), de laatste alleen nog voor het rapport. Gemeten
+#: (14 nov 2026): S03 had er 5 nodig tot het rapport, D01 7 (6 keer lezen); daarboven groeit het verbruik met elke ronde
+#: door de hele beurt die opnieuw meegaat (D01: 13 rondes, 801k).
+MAX_RONDES_SUBAGENT = 8
+
 SUBAGENT_INSTRUCTIE = (
     "JE BENT EEN SUBAGENT. Je werkt aan één opdracht van de centrale agent van Lex; je spreekt de gebruiker niet "
     "rechtstreeks. De opdracht staat in het eerste bericht. Doe wat de opdracht vraagt, binnen wat erbij hoort, en haal in "
-    "één ronde op wat je samen nodig hebt. Hangt wat je oplevert af van een afbakening of een feit dat de opdracht niet "
+    "één ronde op wat je samen nodig hebt: je hebt hoogstens " + str(MAX_RONDES_SUBAGENT) + " rondes, en in de laatste kan "
+    "alleen het rapport nog. Hangt wat je oplevert af van een afbakening of een feit dat de opdracht niet "
     "geeft (een periode, een regeling, welke situatie of lezing), kies die dan niet zelf, ook niet 'de meest recente': rond "
     "af met status vraag en stel de vraag in 'vragen', met wat je al zonder die keuze vond in de bevindingen. Je rondt "
     "altijd af met het sjabloon rapport, als laatste stap en "
