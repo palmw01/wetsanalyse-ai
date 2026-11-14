@@ -31,6 +31,7 @@ from .observability import get_tracer
 from .ports import GraphPort, LLMPort
 from .tools.annotatie_tools import is_leesvraag
 from .agentvorm import vorm_van
+from .gelezen import zelf_afgebakend
 
 logger = logging.getLogger(__name__)
 
@@ -445,6 +446,14 @@ async def answer_stream(
                                      # Wat de controle in het rapport niet terugvond: een subagent zonder ronde meer krijgt
                                      # geen correctie, dus het gaat met het rapport mee (meting bundel 118).
                                      onbevestigd=list(laatste.get("onbevestigd") or []),
+                                     # Wat het kind zelf afbakende, zonder dat de opdracht of de jurist het vroeg (bundel 119).
+                                     afbakening=zelf_afgebakend(
+                                         laatste.get("source_trace") or [],
+                                         "\n".join([*(str(m.get("content")) for m in laatste.get("messages") or []
+                                                       if m.get("role") == "user" and isinstance(m.get("content"), str)),
+                                                     *(str(v) for v in (laatste.get("opdracht") or {}).values()
+                                                       if isinstance(v, str))]))
+                                     if laatste.get("opdracht") else [],
                                      niet_onderbouwd=[*(laatste.get("unsupported") or []),
                                                       *(laatste.get("niet_letterlijk") or [])],
                                      source_trace=[tuple(x) for x in laatste.get("source_trace") or []],

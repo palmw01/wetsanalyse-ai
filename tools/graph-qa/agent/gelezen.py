@@ -78,24 +78,46 @@ _FUNCTIEWOORDEN = frozenset(
     "zaak stuk stukken waarin waarbij volgens gaat ging betreft".split())
 
 
+_ALINEA = re.compile(r"\n\s*\n")
+#: Een link is geen tekst over het stuk (de bronregel onder een citaat: "[Hoge Raad …](https://…)").
+_URL = re.compile(r"https?://\S+?(?=\)|\s|$)")
+
+
+def per_stuk(tekst: str) -> list[tuple[str, list[str]]]:
+    """De zinnen en lijstregels van `tekst` met de stukken naast de wet waar ze over gaan: de stukken die de regel bij id
+    noemt, en anders de stukken uit de kop van haar alinea (de eerste regel, als die een stuk noemt; een lijstregel met een stuk erin is
+    zo'n kop voor zichzelf). Een samenvatting staat
+    vaak onder een kop met het id ("**2. HR 14 april 2023 (ECLI:…)**" en dan de tekst): zonder deze toewijzing toetste de
+    controle alleen de kop (meting bundel 119, D01: twee foute samenvattingen, *gegrond*)."""
+    from bronmodel.extern import externe_verwijzingen
+
+    uit: list[tuple[str, list[str]]] = []
+    for alinea in _ALINEA.split(tekst or ""):
+        kop = alinea.strip().split("\n", 1)[0]
+        onderwerp = list(dict.fromkeys(vp.id for vp in externe_verwijzingen(kop)))
+        for segment in (s for s in _SEGMENT.split(alinea) if s.strip()):
+            ids = list(dict.fromkeys(vp.id for vp in externe_verwijzingen(segment)))
+            uit.append((_URL.sub("", segment), ids or onderwerp))
+    return uit
+
+
 def ongelezen_samengevat(tekst: str, trace: Iterable[Any]) -> list[str]:
     """De stukken die `tekst` inhoudelijk samenvat terwijl hun tekst niet gelezen is (meting bundel 116, D01: twee
     uitspraken samengevat die niemand las, en het oordeel *gegrond* omdat de blokcitaten letterlijk waren). Een stuk is pas
     bron als het gelezen is; dezelfde regel geldt voor wat het antwoord erover zegt. Per zin of lijstregel die het stuk bij
-    id noemt: meer dan `MAX_EIGEN_WOORDEN` woorden die niet uit zijn zoekresultaat komen, is een samenvatting."""
-    from bronmodel.extern import externe_verwijzingen
-
+    id noemt, of onder een kop die het noemt (`per_stuk`): meer dan `MAX_EIGEN_WOORDEN` woorden die niet uit zijn
+    zoekresultaat komen, is een samenvatting."""
     items = [(str(x[0]), str(x[1])) for x in trace]
     gelezen = {i for i, _ in gelezen_en_gevonden(items)[0]}
     uit: list[str] = []
-    for segment in _SEGMENT.split(tekst or ""):
-        for vp in externe_verwijzingen(segment):
-            if vp.id in gelezen or vp.id in uit:
+    for segment, ids in per_stuk(tekst):
+        for ident in ids:
+            if ident in gelezen or ident in uit:
                 continue
-            bekend = _rijwoorden(items, vp.id)
+            bekend = _rijwoorden(items, ident)
             eigen = [w for w in _WOORD.findall(segment.casefold()) if w not in bekend and w not in _FUNCTIEWOORDEN]
             if len(eigen) > MAX_EIGEN_WOORDEN:
-                uit.append(vp.id)
+                uit.append(ident)
     return [f"samenvatting van {i} zonder gelezen tekst" for i in uit]
 
 
@@ -133,23 +155,23 @@ def zonder_steun(tekst: str, steun: dict[str, str], trace: Iterable[Any]) -> lis
     (meer dan `MAX_EIGEN_WOORDEN` eigen woorden in een zin of lijstregel), moet dat uit de passages van dat stuk halen:
     die van het rapport, en die het antwoord zelf toont (`steun`). Ten minste `MIN_STEUN` van die woorden staat erin, op
     hun stam. Zonder passage van het stuk is een duiding een bewering."""
-    from bronmodel.extern import externe_verwijzingen
-
     items = [(str(x[0]), str(x[1])) for x in trace]
     uit: dict[str, str] = {}
-    for segment in _SEGMENT.split(tekst or ""):
-        for vp in externe_verwijzingen(segment):
-            if vp.id in uit:
-                continue
-            bekend = _rijwoorden(items, vp.id)
-            eigen = [w for w in _WOORD.findall(segment.casefold()) if w not in bekend and w not in _FUNCTIEWOORDEN]
-            if len(eigen) <= MAX_EIGEN_WOORDEN:
-                continue
-            passages = _stammen(_WOORD.findall((steun.get(vp.id) or "").casefold()))
+    for segment, ids in per_stuk(tekst):
+        ids = [i for i in ids if i not in uit]
+        if not ids:
+            continue
+        bekend = set().union(*(_rijwoorden(items, i) for i in ids))
+        eigen = [w for w in _WOORD.findall(segment.casefold()) if w not in bekend and w not in _FUNCTIEWOORDEN]
+        if len(eigen) <= MAX_EIGEN_WOORDEN:
+            continue
+        # Een regel over twee stukken ("HR:2023:181 en :184") mag op de passages van elk van beide rusten.
+        passages = _stammen(_WOORD.findall(" ".join(steun.get(i) or "" for i in ids).casefold()))
+        for ident in ids:
             if not passages:
-                uit[vp.id] = f"duiding van {vp.id} zonder passage van dat stuk in het rapport"
+                uit[ident] = f"duiding van {ident} zonder passage van dat stuk in het rapport"
             elif sum(w[:_STAM] in passages for w in eigen) < MIN_STEUN * len(eigen):
-                uit[vp.id] = f"duiding van {vp.id} die de passages van dat stuk niet dragen"
+                uit[ident] = f"duiding van {ident} die de passages van dat stuk niet dragen"
     return list(uit.values())
 
 
@@ -190,3 +212,91 @@ def verwijzing_als_duiding(tekst: str, trace: Iterable[Any]) -> list[str]:
         if len(eigen) <= MAX_EIGEN_WOORDEN:
             uit[onderwerp] = f"verwijzing van {onderwerp} naar {anders[0]} in plaats van een duiding"
     return list(uit.values())
+
+
+#: Woorden uit de vraag die niets over de inhoud zeggen: wat er gevraagd wordt, niet waarover.
+_VRAAGVORM = frozenset("rechtspraak uitspraak uitspraken periode dossier samenvatten samengevat zoeken relevante "
+                       "conclusie conclusies arresten instanties instantie artikel artikelen bepaling bepalingen "
+                       "onderdeel".split())
+_REGELINGNAAM = re.compile(r"(wet|wetboek|leidraad|besluit|regeling|richtlijn|verordening)$")
+#: Een zin die zegt dat een stuk ergens níét over gaat, mag het woord uit de vraag noemen.
+_ONTKENNING = re.compile(r"\b(niet|geen|nergens|zonder)\b", re.IGNORECASE)
+#: Hoe lang een woord uit de vraag hoogstens is om mee te tellen: korte woorden staan in elke tekst.
+MIN_VRAAGWOORD = 7
+
+
+def _stuktekst(items: list[tuple[str, str]], ident: str) -> str:
+    """Alles wat een leestool van dit stuk gaf (alle pagina's), in kleine letters."""
+    delen = []
+    for tool, tekst in items:
+        bron = bron_van(tool)
+        if bron is None or tool not in bron.leestools or bron.connector is None:
+            continue
+        if (stuk := _stuk(tekst)) is not None and stuk[0] == ident:
+            delen.append(tekst)
+    return "\n".join(delen).casefold()
+
+
+def vraag_niet_in_stuk(tekst: str, trace: Iterable[Any], vraag: str) -> list[str]:
+    """De duidingen die het onderwerp van de vraag aan een stuk toeschrijven terwijl het stuk dat woord niet bevat (meting
+    bundel 119, D01: bij HR:2023:563 "tijdig betalingsonmacht gemeld"; in de uitspraak staat het woord niet. Bundel 117:
+    zeven uitspraken werden een meldingszaak). Per zin of lijstregel over een gelezen stuk (`per_stuk`): een inhoudswoord uit
+    de vraag (ten minste `MIN_VRAAGWOORD` letters, geen regelingnaam) dat niet in de gelezen tekst van dat stuk staat, is een
+    bewering. Een zin met een ontkenning ("gaat niet over de melding") niet: die zegt wat er ontbreekt."""
+    items = [(str(x[0]), str(x[1])) for x in trace]
+    woorden = {w for w in _WOORD.findall((vraag or "").casefold())
+               if len(w) >= MIN_VRAAGWOORD and w not in _FUNCTIEWOORDEN and w not in _VRAAGVORM
+               and not _REGELINGNAAM.search(w)}
+    if not woorden:
+        return []
+    teksten: dict[str, str] = {}
+    uit: dict[str, str] = {}
+    for segment, ids in per_stuk(tekst):
+        if _ONTKENNING.search(segment):
+            continue
+        genoemd = sorted(w for w in woorden if re.search(rf"\b{re.escape(w)}\b", segment.casefold()))
+        for ident in ids:
+            if ident in uit or not genoemd:
+                continue
+            stuk = teksten.setdefault(ident, _stuktekst(items, ident))
+            if not stuk:
+                continue  # niet gelezen: daarvoor is `ongelezen_samengevat`
+            if ontbreekt := [w for w in genoemd if w not in stuk]:
+                uit[ident] = f"duiding van {ident} met '{ontbreekt[0]}' uit de vraag, dat niet in dat stuk staat"
+    return list(uit.values())
+
+
+#: De filters die de opdracht zelf al geeft (de bepaling, de peildatum van het werkgebied): geen eigen afbakening.
+_UIT_OPDRACHT = frozenset({"bwb_id", "artikel", "peildatum"})
+_JAAR = re.compile(r"\b(1[89]\d\d|20\d\d)\b")
+
+
+def zelf_afgebakend(trace: Iterable[Any], gevraagd: str) -> list[str]:
+    """De filters waarmee een zoektool van een connector zocht en die niet uit `gevraagd` komen (de opdracht en de
+    antwoorden van de jurist), als "label: waarde" (meting bundel 119, D01: het kind zocht alleen bij de Hoge Raad en het
+    Parket, en de jurist had "alle instanties" gezegd). De filters komen uit de `zoekvraag` van het resultaat en uit de
+    beschrijving van de connector; een datum telt als gevraagd als haar jaar in `gevraagd` staat."""
+    tekst = (gevraagd or "").casefold()
+    uit: dict[str, None] = {}
+    for item in trace:
+        tool, resultaat = str(item[0]), str(item[1])
+        bron = bron_van(tool)
+        if bron is None or bron.connector is None or tool in bron.leestools:
+            continue
+        try:
+            data = json.loads(resultaat)
+        except (TypeError, ValueError):
+            continue
+        zoekvraag = data.get("zoekvraag") if isinstance(data, dict) else None
+        if not isinstance(zoekvraag, dict):
+            continue
+        velden = bron.connector.filters
+        for arg, waarde in zoekvraag.items():
+            if arg in _UIT_OPDRACHT or arg not in velden or waarde in ("", None, [], {}):
+                continue
+            w = str(waarde)
+            jaren = _JAAR.findall(w)
+            gevonden = all(j in tekst for j in jaren) if jaren else w.casefold() in tekst
+            if not gevonden:
+                uit[f"{velden[arg].label}: {w}"] = None
+    return list(uit)

@@ -257,6 +257,17 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     controle vond gaat mee (`subagent.controle_tekst`). Een correctie haalt het rapport weg, en sloot de code af, dan is het
     kind `afgesloten`, ook met een rapport ervoor. Het plafond geldt per deel (één meter per beurt). Een regel die over een
     stuk alleen "zie … <ander stuk>" zegt, is een bewering (`gelezen.verwijzing_als_duiding`). `tests/test_d01_hervatten.py`;
+  - **een samenvatting rust per stuk op dat stuk** (meting bundel 119, D01: bij HR:2023:563 "tijdig betalingsonmacht
+    gemeld", bij HR:2023:181/184 de bewijslast omgedraaid, beide *gegrond*). Een regel onder een kop die een stuk noemt,
+    gaat over dat stuk (`gelezen.per_stuk`, voor `ongelezen_samengevat` en `zonder_steun`): de controle keek eerst alleen
+    naar de kop. Een inhoudswoord uit de vraag (`vraag_niet_in_stuk`, ten minste `MIN_VRAAGWOORD` letters, geen
+    regelingnaam en geen woord als "artikel") in een duiding van een gelezen stuk dat dat woord niet bevat, is een bewering;
+    een zin met een ontkenning niet. De vraag is bij een subagent ook zijn opdracht (`antwoord._vraag`, niet `_bekend`: die
+    schreef de centrale agent). Ook het rapport van een subagent rust op zijn eigen passages (`rapport_steun` met een
+    opdracht). Wat het kind zelf afbakende met een filter van een connector dat de opdracht of de jurist niet noemde
+    (`gelezen.zelf_afgebakend`, uit de `zoekvraag` van het resultaat), zegt de code in het rapport; het eind-event van de
+    taak draagt `afbakening` en `gelezen`. Een omgedraaide bewering met de woorden van de passage ziet een toets op woorden
+    niet (`tests/test_d01_samenvatting_per_stuk.py`, `xfail`);
   - **een open vraag van een subagent sluit de beurt**: staat een kind op `vraag`, dan doet `agent_node` geen modelronde
     meer en eindigt de beurt met één zin uit code (`VRAAG_VAN_SUBAGENT`) en de vraagkaart (`finalize_node`). De subagent
     stelt de vragen die de opdracht openlaat in één keer (`SUBAGENT_INSTRUCTIE`, de hervattekst `antwoord_tekst`). Meting

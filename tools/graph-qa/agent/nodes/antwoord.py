@@ -699,10 +699,17 @@ AF = frozenset({"klaar", "vraag"})
 def rapport_steun(state: State) -> dict[str, str] | None:
     """Na een rapport van een subagent in deze beurt: per stuk naast de wet de passages waarop een duiding mag rusten, uit
     het rapport (`State.rapport_steun`) en uit de blokken `extern` van het antwoord zelf (de code vulde ze uit de bron).
-    Zonder rapport None: dan geldt de toets niet."""
-    if state.get("opdracht") or not any(a.get("uitkomst") in AF for a in state.get("subagenten") or []):
+    Zonder rapport None: dan geldt de toets niet.
+
+    Een subagent zelf: zijn rapport is zijn antwoord, en een duiding daarin rust op de passages die het rapport citeert
+    (meting bundel 119, D01: het tweede rapport duidde zes nieuwe uitspraken zonder er één te citeren, en het veld
+    `stukken` bleef dat van het eerste rapport)."""
+    if state.get("opdracht"):
+        steun: dict[str, str] = {}
+    elif not any(a.get("uitkomst") in AF for a in state.get("subagenten") or []):
         return None
-    steun = dict(state.get("rapport_steun") or {})
+    else:
+        steun = dict(state.get("rapport_steun") or {})
     for blok in (state.get("antwoord") or {}).get("blokken") or []:
         if blok.get("soort") == "extern" and blok.get("id"):
             tekst = " ".join(str(p.get("tekst") or "") for p in blok.get("passages") or [])
@@ -795,7 +802,7 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     # bewering. Alleen opgevraagd als het antwoord iets noemt met de vorm van een regeling; zonder namen geldt de toets niet.
     namen = (_graafnamen(b.graph) or None) if regelingen_genoemd(tekst) else None
     report = check_grounding(tekst, controletrace(state), overzicht=state.get("overzicht") or None, bekend=_bekend(state),
-                             regelingen=namen, steun=rapport_steun(state))
+                             regelingen=namen, steun=rapport_steun(state), vraag=_vraag(state))
     # Wettekst uit een sjabloon staat zonder aanhalingstekens, dus de toets ziet "niets te controleren". Maar de code
     # toonde hem uit de tool-rijen, met de vindplaats erbij: de melding dat er geen vindplaats is, zou onwaar zijn.
     if report.niveau == "onbepaald" and not report.onbevestigd and (state.get("antwoord") or {}).get("doelen"):
@@ -848,6 +855,13 @@ def _bekend(state: State) -> str:
     daaruit is geen bewering van Lex."""
     return "\n".join(str(state.get(k) or "") for k in ("question", "zelfstandige_vraag", "werkgebied_context",
                                                          "onderwerp_context"))
+
+
+def _vraag(state: State) -> str:
+    """Waar de beurt over gaat, voor `gelezen.vraag_niet_in_stuk`: de vraag, en bij een subagent ook zijn opdracht (in een
+    hervatte beurt is de vraag de hervatting). Geen `_bekend`: de opdracht schreef de centrale agent, niet de jurist."""
+    opdracht = state.get("opdracht") or {}
+    return "\n".join([_bekend(state), *(str(v) for v in opdracht.values() if isinstance(v, str))])
 
 
 def route_after_verify(b: Bouw, state: State) -> str:
