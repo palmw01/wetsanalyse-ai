@@ -285,6 +285,7 @@ Secrets kunnen ook als `<NAAM>_FILE` (pad naar een bestand) worden gezet: `GRAPH
 | `AZURE_FOUNDRY_BASE_URL` *(verplicht)* | – | Foundry-endpoint **met** `/anthropic`-suffix. |
 | `LLM_MODEL` | `claude-sonnet-4-6` | Draagt de classifier, de reviewer en de QA-specialisten; die hebben bewust geen eigen knop. |
 | `LLM_MODEL_ROUTER` | = `LLM_MODEL` | Model voor de supervisor. |
+| `LLM_MODEL_LICHT` | = `LLM_MODEL_ROUTER`, anders `LLM_MODEL` | De lichte modelklasse: een subagent van de centrale agent draait erop (ADR-016 §A2). Faalt het model (400/404), dan valt het proces terug op `LLM_MODEL`. |
 | `LLM_MODEL_OPHAAL` | = `LLM_MODEL` | Model voor de ophaal-agent. Verlaag pas na meting: kiest hij de verkeerde bepaling, dan is alles daarna brongetrouw én verkeerd. |
 | `LLM_TIMEOUT_SECONDS` / `LLM_MAX_RETRIES` | `120` / `2` | Wachttijd en herhalingen per LLM-call (de eval-job zet 45 s). |
 | `PROMPT_CACHING` | `true` | Prompt-caching op het stabiele deel van de systeemprompt. |
