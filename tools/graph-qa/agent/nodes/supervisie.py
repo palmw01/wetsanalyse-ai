@@ -356,9 +356,9 @@ def _bron_uit(writer, state: State, vraag: str) -> dict[str, Any] | None:
 
 def _centraal(state: State) -> bool:
     """Draait deze beurt de centrale agent (ADR-016 §A7)? De straat en het verzoek kozen dat al (`agentvorm.vorm_van`).
-    Zolang een vraagkaart van het samenstellen open staat, blijft de supervisor de beurt lezen: een getypt antwoord op
-    die kaart herkent de centrale agent pas als hij de tool daarvoor heeft (`beantwoord_kaart`, een latere stap)."""
-    return state.get("agentvorm") == "centraal" and state.get("modus", "auto") == "auto" and not _open_kaartje(state)
+    Ook met een open vraagkaart van het samenstellen: een getypt antwoord erop geeft de centrale agent met
+    `beantwoord_kaart` aan de werkgebied-worker (analyse centrale agent, gat 5)."""
+    return state.get("agentvorm") == "centraal" and state.get("modus", "auto") == "auto"
 
 
 SUBAGENT_PREFIX = "sa-"

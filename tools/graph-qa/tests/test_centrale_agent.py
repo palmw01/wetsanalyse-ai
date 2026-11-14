@@ -46,7 +46,7 @@ def _supervisor_dan_antwoord() -> FakeLLM:
 
 #: De overdrachten die elk profiel van de centrale agent heeft, naast wijs_af (en meer_tools in de kernset).
 VASTE_ROUTES = ("taakagent", "werkgebied", "toon_bepaling", "toon_overzicht", "lees_annotaties", "lees_begrippen",
-                "toon_stukken", "annoteer", "delegatie_stand")
+                "toon_stukken", "annoteer", "delegatie_stand", "beantwoord_kaart")
 
 VRAAG = "Hoe hangt de aansprakelijkheid van een bestuurder samen met de invordering?"
 
@@ -157,7 +157,7 @@ def test_een_overdrachtstool_heeft_een_strict_schema():
     (`tests/test_strict_grenzen.py`), en de code toetst hun invoer. Hun schema heeft wel dezelfde vorm."""
     for o in overdracht.OVERDRACHT.values():
         s = o.schema
-        assert s["strict"] is (o.naam not in {"subagent", "regie_plan", "annoteer", "delegatie_stand"})
+        assert s["strict"] is (o.naam not in {"subagent", "regie_plan", "annoteer", "delegatie_stand", "beantwoord_kaart"})
         assert s["input_schema"]["additionalProperties"] is False
         assert s["input_schema"]["required"] == sorted(o.invoer)
         assert all(n in overdracht.doelen() for n in (o.ingangen if o.naar == overdracht.INGANG else (o.naar,)))

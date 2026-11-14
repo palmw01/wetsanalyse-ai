@@ -300,6 +300,46 @@ def _subagent(b: Any, state: State, invoer: dict[str, Any]) -> tuple[dict[str, A
     return _met_kind(state, afloop, kind, profiel)
 
 
+BEANTWOORD_KAART = "beantwoord_kaart"
+
+#: Wat de centrale agent in de context van de beurt leest als er een vraagkaart van het samenstellen of het aanvullen
+#: openstaat (`OPEN_KAARTJE`), in de woorden van zijn tools; de supervisor leest `supervisor.INTAKE_SYSTEM`.
+OPEN_KAARTJE = ("OPEN KAARTJE: Lex {wat} en vroeg zojuist: \"{vraag}\". Is het bericht van de gebruiker een antwoord op "
+                "die vraag (een naam, een aanleiding, context of doel, een vraag, een praktijkvoorbeeld, deelvragen, wat "
+                "erbuiten valt, een regeling), roep dan beantwoord_kaart aan en schrijf zelf niets. Is het een andere "
+                "vraag, beantwoord haar zoals altijd; het kaartje blijft open staan.\n\n")
+
+
+def open_kaartje(state: State) -> str:
+    """De regel `OPEN_KAARTJE` als er een vraagkaart van het werkgebied openstaat, anders leeg."""
+    from .werkgebied_intake import is_aanvullen, is_open, kaart
+
+    intake = state.get("intake") or {}
+    if not is_open(intake):
+        return ""
+    try:
+        wat = ("vult met de gebruiker het dossier van het werkgebied aan" if is_aanvullen(intake)
+               else "stelt met de gebruiker een werkgebied samen")
+        return OPEN_KAARTJE.format(wat=wat, vraag=kaart(intake)["vraag"])
+    except Exception:  # noqa: BLE001 – een onleesbare intake is geen reden om de beurt te laten vallen
+        return ""
+
+
+def _beantwoord_kaart(_b: Any, state: State, _invoer: dict[str, Any]) -> dict[str, Any] | str:
+    """Een getypt antwoord op de open vraagkaart van het samenstellen of het aanvullen (ADR-016 §A7.3; analyse centrale
+    agent, gat 5): dezelfde werkgebied-worker als na de keuze `werkgebied` van de supervisor met een open kaartje. De
+    worker leest de vraag als antwoord. Staat er geen kaart open, dan weigert de code."""
+    from .nodes.supervisie import _werkgebied
+    from .werkgebied_intake import is_aanvullen, is_open
+
+    intake = state.get("intake") or {}
+    if not is_open(intake):
+        return "Er staat geen vraagkaart open. Beantwoord de vraag zelf."
+    aanvullen = is_aanvullen(intake)
+    return _werkgebied(get_stream_writer(), "vult met je het dossier aan" if aanvullen else
+                       "stelt met je een werkgebied samen", aanvullen=aanvullen)
+
+
 DELEGATIE_STAND = "delegatie_stand"
 #: Hoeveel delegaties van het gesprek de stand hoogstens noemt (de nieuwste eerst).
 MAX_STAND = 5
@@ -488,6 +528,15 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
             "gebruiker voor. Een subagent ziet dit gesprek niet: schrijf elke opdracht volledig. Niet voor een vraag die je "
             "in een paar toolrondes zelf beantwoordt, en niet per deelvraag van een werkgebied (regie_plan)."),
         invoer=_SUBAGENT_INVOER, naar="agent", zet=_subagent, strict=False, ingangen=("subagent_plan",)),
+    Overdracht(
+        naam=BEANTWOORD_KAART,
+        beschrijving=(
+            "Roep dit aan als het bericht van de gebruiker een antwoord is op de open vraagkaart van het werkgebied "
+            "(OPEN KAARTJE in de context van de beurt). De werkplek verwerkt het antwoord en stelt de volgende vraag; "
+            "schrijf zelf niets. Niet zonder open kaartje, en niet voor een andere vraag."),
+        # Niet strict, zoals de andere overdrachten zonder invoer na de grens (`tests/test_strict_grenzen.py`). Altijd in
+        # het voorvoegsel: per beurt wisselen zou de cache breken; zonder open kaart weigert de code.
+        invoer={}, naar=INGANG, zet=_beantwoord_kaart, ingangen=("werkgebied_intake",), strict=False),
     Overdracht(
         naam=DELEGATIE_STAND,
         beschrijving=(

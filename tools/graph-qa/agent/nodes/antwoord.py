@@ -106,6 +106,12 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         variabel += state["rapporten"]
     variabel += b.memory_context(state)
     variabel += b.advies_context(state)
+    if state.get("specialist") in ("centraal", "centraal_breed"):
+        # Een open vraagkaart van het werkgebied: de centrale agent leest hem hier, en beantwoordt hem met
+        # `beantwoord_kaart` (de supervisor leest dezelfde kaart in zijn eigen prompt).
+        from ..overdracht import open_kaartje
+
+        variabel += open_kaartje(state)
     # Welke bronnen naast de wet aanstaan, en waarom niet (ADR-013): na het cachepunt, want het verschilt per beurt.
     variabel += bronstand_blok(state.get("bronstand") or {}, state.get("zelfstandige_vraag") or state.get("question", ""))
     if extern_aan:
