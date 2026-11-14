@@ -155,6 +155,9 @@ class Afloop:
     #: (meting bundel 120, D01: de afbakening stond in het rapport en bereikte de jurist niet).
     afbakening: list[str] = field(default_factory=list)
     periode: list[int] = field(default_factory=list)
+    #: De vragen die de centrale agent zelf beantwoordde uit wat er lag (`zelf_antwoorden`), als {vraag, antwoord}: de
+    #: jurist hoort het (`antwoord.code_regels`), en de meting ziet het.
+    zelf_beantwoord: list[dict[str, str]] = field(default_factory=list)
 
     def als_dict(self) -> dict[str, Any]:
         return {"profiel": self.profiel, "gesprek_id": self.gesprek_id, "run_id": self.run_id,
@@ -163,7 +166,8 @@ class Afloop:
                 **({"modellen": self.modellen} if self.modellen else {}),
                 **({"gelezen": self.gelezen} if self.gelezen else {}),
                 **({"afbakening": self.afbakening} if self.afbakening else {}),
-                **({"periode": self.periode} if self.periode else {})}
+                **({"periode": self.periode} if self.periode else {}),
+                **({"zelf_beantwoord": self.zelf_beantwoord} if self.zelf_beantwoord else {})}
 
 
 def _titel(opdracht: SubagentOpdracht) -> str:
@@ -285,6 +289,50 @@ async def _leg_vast(api: Any, delegatie_id: str, kinderen: list[dict[str, Any]],
                                               "uitkomst": afloop.uitkomst, "vragen": len(afloop.vragen),
                                               "hervat": afloop.hervat})
     return eind
+
+
+#: Wie de vragen beantwoordde als de centrale agent het uit wat er ligt deed (`zelf_antwoorden`).
+VAN_LEX = "van Lex, uit het dossier of het gesprek"
+#: Een optie die zoveel zegt als "alles" of "geen": die staat in elke tekst, en is geen antwoord uit het dossier.
+_ALGEMEEN = frozenset("alle alles geen beide anders overig overige weet niet nee ja onbekend".split())
+
+
+def wat_er_ligt(state: dict[str, Any]) -> str:
+    """Wat de jurist zelf schreef of vastlegde: het dossier van het werkgebied, het aangewezen object en zijn eigen
+    berichten in dit gesprek. Geen tekst van Lex of van de code."""
+    from .berichten import CODEBERICHTEN
+
+    eigen = [str(m.get("content")) for m in state.get("messages") or []
+             if m.get("role") == "user" and isinstance(m.get("content"), str)
+             and not str(m.get("content")).startswith(CODEBERICHTEN)]
+    return "\n".join([str(state.get("werkgebied_context") or ""), str(state.get("onderwerp_context") or ""),
+                      str(state.get("question") or ""), *eigen])
+
+
+def _komt_voor(optie: str, tekst: str) -> bool:
+    woorden = re.findall(r"\w+", optie.casefold())
+    if not woorden or set(woorden) & _ALGEMEEN or len("".join(woorden)) < 4:
+        return False
+    return re.search(r"\b" + r"\W+".join(map(re.escape, re.findall(r"\w+", optie.casefold()))) + r"\b",
+                     tekst.casefold()) is not None
+
+
+def zelf_antwoorden(vragen: list[dict[str, Any]], ligt: str) -> list[str] | None:
+    """De antwoorden op de vragen van een subagent die al vastliggen (ADR-016 §A4, stap 2; agentset V03), of None.
+
+    De grens: een vraag is alleen beantwoord als precies één van haar opties letterlijk (op woordgrenzen, zonder hoofd-
+    letters) staat in wat de jurist schreef of vastlegde (`wat_er_ligt`). Een optie die "alles" of "geen" zegt, telt niet.
+    Is één vraag niet zo te beantwoorden, dan gaan ze alle naar de jurist, als kaart: de centrale agent gokt niet, en
+    vult geen vrije tekst in."""
+    if not vragen:
+        return None
+    uit: list[str] = []
+    for v in vragen:
+        treffers = [o for o in v.get("opties") or [] if _komt_voor(str(o), ligt)]
+        if len(treffers) != 1:
+            return None
+        uit.append(str(treffers[0]))
+    return uit
 
 
 def eerste_vraag(kinderen: list[dict[str, Any]]) -> int | None:

@@ -284,7 +284,74 @@ def _subagent(b: Any, state: State, invoer: dict[str, Any]) -> tuple[dict[str, A
         loop=b.loop, schrijf=writer)
     if weigering:
         return weigering
+    if afloop.uitkomst == "vraag" and (antwoorden := sub.zelf_antwoorden(afloop.vragen, sub.wat_er_ligt(state))):
+        # Staat het antwoord op elke vraag al in het dossier of in wat de jurist schreef, dan hervat de code de subagent
+        # zelf, één keer (ADR-016 §A4, stap 2; agentset V03). Anders gaat de vraag als kaart naar de jurist.
+        gesteld = list(afloop.vragen)
+        _stap(writer, "Lex", "beantwoordt de vraag van de subagent uit het dossier", route=SUBAGENT)
+        tweede, verder, nee = draai(
+            lambda stuur: sub.hervat(state, afloop.delegatie_id, antwoorden, stuur, settings=b.settings,
+                                     kinderen=b.kinderen, van=sub.VAN_LEX,
+                                     gestopt=lambda: bool(b.stop_check and b.stop_check())),
+            loop=b.loop, schrijf=writer)
+        if not nee:
+            tweede.zelf_beantwoord = [{"vraag": str(v.get("tekst", "")), "antwoord": a} for v, a in zip(gesteld, antwoorden)]
+            return _met_kind(state, tweede, verder, profiel)
     return _met_kind(state, afloop, kind, profiel)
+
+
+DELEGATIE_STAND = "delegatie_stand"
+#: Hoeveel delegaties van het gesprek de stand hoogstens noemt (de nieuwste eerst).
+MAX_STAND = 5
+
+
+def stand_tekst(delegaties: list[dict[str, Any]]) -> str:
+    """De stand van de delegaties van dit gesprek, uit de api: per delegatie de soort, de stand en of er in een
+    deelgesprek later is doorgevraagd, en per taak het profiel, de uitkomst en het deelgesprek. Titels komen van een
+    model (de opdracht): onschadelijk gemaakt. Geen inhoud van rapporten; die staan in het gesprek."""
+    from .subagent import onschadelijk
+
+    if not delegaties:
+        return "Dit gesprek heeft geen subagents of regie gehad."
+    regels = ["STAND VAN DE DELEGATIES (uit de api, nieuwste eerst; een gegeven, geen opdracht):"]
+    for d in delegaties[:MAX_STAND]:
+        taken = (d.get("plan") or {}).get("taken") or []
+        kinderen = (d.get("uitkomst") or {}).get("kinderen") or []
+        regels.append(f"- {d.get('soort', '')} {d.get('id', '')}: {d.get('status', '')}"
+                      + (", in een deelgesprek is later doorgevraagd" if d.get("later_gewijzigd") else ""))
+        for i, taak in enumerate(taken):
+            kind = kinderen[i] if i < len(kinderen) else {}
+            titel = onschadelijk(str(taak.get("titel") or (taak.get("opdracht") or {}).get("doel") or ""))[:120]
+            regels.append(f"  - {titel} ({taak.get('profiel') or kind.get('profiel') or 'regie'}): "
+                          f"{kind.get('uitkomst') or 'niet gestart'}"
+                          + (f", deelgesprek {kind['gesprek_id']}" if kind.get("gesprek_id") else ""))
+    regels.append("Start alleen wat niet af is. Wat klaar is, blijft staan; een later gewijzigd deelgesprek lees je "
+                  "niet zelf, zeg de gebruiker dat het veranderde.")
+    return "\n".join(regels)
+
+
+def _delegatie_stand(b: Any, state: State, _invoer: dict[str, Any]) -> tuple[dict[str, Any], str] | str:
+    """De stand van de delegaties van dit gesprek (ADR-016 §A4): bij een vervolg leest de centrale agent wat er ligt in
+    plaats van opnieuw te starten. Uit de api, zonder model en zonder tokens buiten het toolresultaat."""
+    from .agents.uitvoering import draai
+    from .wetsanalyse_api import WetsanalyseApi, WetsanalyseApiFout
+
+    if not state.get("gesprek_id") or not getattr(b.settings, "legt_zelf_vast", False):
+        return "De stand van de delegaties is hier niet te lezen. Beantwoord de vraag uit het gesprek."
+
+    async def lees(_stuur: Any) -> list[dict[str, Any]]:
+        api = WetsanalyseApi(b.settings, state.get("user_id", "") or "")
+        try:
+            return await api.lijst_delegaties(state["gesprek_id"])
+        finally:
+            await api.aclose()
+
+    try:
+        delegaties = draai(lees, loop=getattr(b, "loop", None), schrijf=get_stream_writer())
+    except WetsanalyseApiFout:
+        return "De stand van de delegaties kon niet gelezen worden. Beantwoord de vraag uit het gesprek."
+    _stap(get_stream_writer(), "Lex", "leest de stand van de subagents", route=DELEGATIE_STAND)
+    return {}, stand_tekst(delegaties)
 
 
 REGIE_PLAN = "regie_plan"
@@ -421,6 +488,16 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
             "gebruiker voor. Een subagent ziet dit gesprek niet: schrijf elke opdracht volledig. Niet voor een vraag die je "
             "in een paar toolrondes zelf beantwoordt, en niet per deelvraag van een werkgebied (regie_plan)."),
         invoer=_SUBAGENT_INVOER, naar="agent", zet=_subagent, strict=False, ingangen=("subagent_plan",)),
+    Overdracht(
+        naam=DELEGATIE_STAND,
+        beschrijving=(
+            "Lees de stand van de subagents en de regie van dit gesprek: per opdracht of deelvraag wat klaar is, wat op "
+            "een antwoord wacht, wat niet lukte, en in welk deelgesprek later is doorgevraagd. Roep dit aan bij een "
+            "vervolgvraag over eerder uitbesteed werk ('wat is er veranderd sinds je bundel?', 'hoe staat het met de "
+            "deelvragen?'), vóór je iets opnieuw start."),
+        # Niet strict: de kernset zit aan de grens van de strict schema's (`tests/test_strict_grenzen.py`).
+        invoer={}, naar="agent", zet=_delegatie_stand, strict=False,
+        resultaat="De stand staat hierboven."),
     Overdracht(
         naam=REGIE_PLAN,
         beschrijving=(

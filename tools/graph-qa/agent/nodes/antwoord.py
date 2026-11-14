@@ -1075,6 +1075,24 @@ def afbakening_regel(state: State, antwoord: str) -> str:
             + ". Wil je dat breder, zeg het dan.")
 
 
+def zelf_beantwoord_regel(state: State) -> str:
+    """De regel uit code over de vragen van een subagent die Lex zelf beantwoordde uit wat er lag (`Afloop.zelf_beantwoord`):
+    de jurist ziet wat er voor hem gekozen is, en kan het rechtzetten."""
+    if state.get("opdracht"):
+        return ""
+    paren = [p for a in state.get("subagenten") or [] for p in a.get("zelf_beantwoord") or []]
+    if not paren:
+        return ""
+    return ("De subagent vroeg iets wat al in het dossier of in dit gesprek stond; Lex antwoordde voor je: "
+            + "; ".join(f"{p['vraag']} → {p['antwoord']}" for p in paren) + ". Klopt dat niet, zeg het dan.")
+
+
+def code_regels(state: State, antwoord: str) -> str:
+    """Wat de code onder het antwoord zet over het werk van een subagent: een zelf gekozen afbakening en zelf beantwoorde
+    vragen."""
+    return " ".join(r for r in (afbakening_regel(state, antwoord), zelf_beantwoord_regel(state)) if r)
+
+
 def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
 
@@ -1099,12 +1117,12 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
                                                                          "run_id": state.get("run_id", "")})
         antwoord = schoon
         state = {**state, "answer": antwoord}
-    if antwoord.strip() and (regel := afbakening_regel(state, antwoord)):
+    if antwoord.strip() and (regel := code_regels(state, antwoord)):
         # Een afbakening die de jurist niet koos, staat uit code onder het antwoord (meting bundel 120, D01: ze stond in
         # het rapport, en het antwoord noemde haar niet).
         if state.get("antwoord"):
-            blokken = {**state["antwoord"], "blokken": [*(state["antwoord"].get("blokken") or []),
-                                                        {"soort": "toelichting", "kop": "Afbakening", "tekst": regel}]}
+            blok = {"soort": "toelichting", "kop": "Over het werk van de subagent", "tekst": regel}
+            blokken = {**state["antwoord"], "blokken": [*(state["antwoord"].get("blokken") or []), blok]}
             schoon_antwoord = Antwoord.model_validate(blokken)
             antwoord = antwoord_tekst(schoon_antwoord)
             state = {**state, "antwoord": schoon_antwoord.model_dump(), "answer": antwoord}
