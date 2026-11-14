@@ -454,8 +454,10 @@ alleen lokaal bestaan. Daarvóór staan structurele guards:
 
 **Infra blijft handmatig.** `azure-infra.yml` (bicep via `deploy/azure/gen-deploy.py`) kiest een
 straat en een actie: `wat-if` (default; valideert, maakt niets aan), `deploy`, `afbreken`,
-`opruimen`, `vul-graaf`, `eval`, `inventaris`, `telemetrie`, `grafana`, `grafana-afbreken` en
-`mcp-proxy-afbreken`. `wat-if` is de default omdat een deploy GraphDB raakt. Let vooral op de
+`opruimen`, `vul-graaf`, `eval`, `inventaris`, `telemetrie`, `grafana`, `grafana-afbreken`,
+`mcp-proxy-afbreken` en `2fa-herstel` (de 2FA van de enige beheerder wissen als die app én herstelcodes kwijt
+is; een eenmalige job, zie `deploy/azure/README.md` §*2FA voor beheerders*). `wat-if` is de default omdat een
+deploy GraphDB raakt. Let vooral op de
 GraphDB-licentie (`GRAPHDB_LICENSE_B64`), zonder welke de graaf read-only opkomt.
 
 **De applicatie-secrets roteren niet bij een infra-deploy.** `azure-infra.yml` neemt ze over —
