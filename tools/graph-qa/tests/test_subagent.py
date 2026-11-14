@@ -102,7 +102,7 @@ def test_de_supervisor_stuurt_een_subagent_zonder_model_naar_zijn_profiel(monkey
 def test_de_opdracht_heeft_vaste_velden_en_het_profiel_komt_uit_het_register():
     o = overdracht.OVERDRACHT["subagent"].schema
     velden = o["input_schema"]["properties"]
-    assert o["strict"] is True and set(velden) == {"profiel", *sub.VELDEN} == {"profiel", *SubagentOpdracht.model_fields}
+    assert o["strict"] is False and set(velden) == {"profiel", *sub.VELDEN} == {"profiel", *SubagentOpdracht.model_fields}
     assert velden["profiel"]["enum"] == list(profielen.KIESBAAR)
     tekst = sub.opdracht_tekst(SubagentOpdracht(doel="Zoek X.", buiten="De Awb."))
     assert tekst.splitlines() == ["OPDRACHT VAN DE CENTRALE AGENT", "Doel: Zoek X.", "Hoort er niet bij: De Awb."]

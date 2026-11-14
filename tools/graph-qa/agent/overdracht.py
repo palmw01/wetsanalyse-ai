@@ -50,10 +50,14 @@ class Overdracht:
     resultaat: str = "Overgedragen."
     #: Bij `INGANG`: de nodes waar de route kan uitkomen (de uitgangen van de node `overdracht`).
     ingangen: tuple[str, ...] = ()
+    #: Of het schema `strict` is. De strict schema's van een verzoek worden samen één grammatica, en die heeft een grens
+    #: bij de API ("Schema is too complex for compilation", 400). Een overdracht met een ruime invoer die de code toch
+    #: zelf toetst (de delegatietools), is daarom niet strict; `tests/test_strict_grenzen.py` begrenst het geheel.
+    strict: bool = True
 
     @property
     def schema(self) -> dict[str, Any]:
-        return {"name": self.naam, "description": self.beschrijving, "strict": True,
+        return {"name": self.naam, "description": self.beschrijving, "strict": self.strict,
                 "input_schema": {"type": "object", "properties": self.invoer, "required": sorted(self.invoer),
                                  "additionalProperties": False}}
 
@@ -278,7 +282,9 @@ def _subagenten(b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any] 
     from . import subagent as sub
     from .models import SubagentOpdracht
 
-    lijst = list(invoer.get("opdrachten") or [])
+    lijst = invoer.get("opdrachten") if isinstance(invoer.get("opdrachten"), list) else []
+    if not all(isinstance(o, dict) for o in lijst):
+        return "Geef elke opdracht als een object met profiel, doel, onderwerp, oplevering, bronnen en buiten."
     if not 2 <= len(lijst) <= sub.MAX_SUBAGENTS:
         return (f"Geef twee tot {sub.MAX_SUBAGENTS} opdrachten; voor één opdracht is er subagent, en meer past niet in "
                 "één fase.")
@@ -421,7 +427,7 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
             "dat rapport. Niet voor een vraag die je in een paar toolrondes zelf beantwoordt, niet voor werk dat heen en "
             "weer vraagt met de gebruiker, en niet voor een vaste route hierboven. Schrijf de opdracht volledig: hij kent "
             "alleen wat erin staat."),
-        invoer=_SUBAGENT_INVOER, naar="agent", zet=_subagent),
+        invoer=_SUBAGENT_INVOER, naar="agent", zet=_subagent, strict=False),
     Overdracht(
         naam=SUBAGENTEN,
         beschrijving=(
@@ -429,7 +435,7 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
             "en de Kamerstukken bij een artikel, of drie lange stukken). De code legt het plan eerst aan de gebruiker voor; "
             "schrijf zelf niets. Niet voor delen die elkaars uitkomst nodig hebben, en niet per deelvraag van een "
             "werkgebied: daarvoor is regie_plan."),
-        invoer=_SUBAGENTEN_INVOER, naar="subagent_plan", zet=_subagenten),
+        invoer=_SUBAGENTEN_INVOER, naar="subagent_plan", zet=_subagenten, strict=False),
     Overdracht(
         naam=REGIE_PLAN,
         beschrijving=(
@@ -437,7 +443,8 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
             "werkgebied. bronnen: de bronnen per deelvraag zoeken. annoteren: de bronnen die de gebruiker per deelvraag "
             "opnam annoteren (de volgende fase, na de bronnen). De werkplek toont het plan met een knop; schrijf zelf "
             "niets."),
-        invoer={"opdracht": {"type": "string", "enum": ["bronnen", "annoteren"]}}, naar="regie_voorstel", zet=_regie_plan),
+        invoer={"opdracht": {"type": "string", "enum": ["bronnen", "annoteren"]}}, naar="regie_voorstel", zet=_regie_plan,
+        strict=False),
     Overdracht(
         naam=HERVAT_SUBAGENT,
         beschrijving=(
@@ -445,7 +452,7 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
             "het werkgebied, de vraag van de gebruiker), en hij gaat verder in zijn deelgesprek. Eén antwoord voor al zijn "
             "vragen, in eigen woorden. Eén keer per subagent per beurt. Weet je het antwoord niet zeker, roep dit dan niet "
             "aan: de gebruiker krijgt de vragen dan als kaart."),
-        invoer={"antwoord": {"type": "string"}}, naar="agent", zet=_hervat_subagent),
+        invoer={"antwoord": {"type": "string"}}, naar="agent", zet=_hervat_subagent, strict=False),
     Overdracht(
         naam="taakagent",
         beschrijving=(

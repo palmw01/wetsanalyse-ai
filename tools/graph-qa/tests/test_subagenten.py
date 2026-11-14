@@ -35,7 +35,7 @@ def test_subagenten_zet_het_plan_klaar_en_start_niets():
     assert overdracht.OVERDRACHT["subagenten"].naar == "subagent_plan"
     schema = overdracht.OVERDRACHT["subagenten"].schema
     items = schema["input_schema"]["properties"]["opdrachten"]["items"]
-    assert schema["strict"] is True and items["additionalProperties"] is False and set(items["required"]) == set(
+    assert schema["strict"] is False and items["additionalProperties"] is False and set(items["required"]) == set(
         items["properties"])
 
 

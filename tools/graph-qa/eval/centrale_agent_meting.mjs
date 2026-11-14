@@ -123,9 +123,29 @@ async function opdracht(o, runnr, werkgebied, commit, vorm, velden) {
       await meet(rec, label, { vraag: stap.vraag, conversation_id: hoofd, werkgebied_id: wg, extra });
     }
   }
-  await metStoppunt(rec, "gemeten", { vraag: o.opdracht, conversation_id: hoofd, werkgebied_id: wg, extra }, o.stoppunt);
+  const [b0, bev] = await metStoppunt(rec, "gemeten", { vraag: o.opdracht, conversation_id: hoofd, werkgebied_id: wg, extra }, o.stoppunt);
+  await klikKaarten(rec, bev ?? b0, o, { conversation_id: hoofd, werkgebied_id: wg, extra });
   rec.eind = new Date().toISOString();
   return rec;
+}
+
+const MAX_KLIKKEN = 4;
+
+/** De kaarten van een subagent (ADR-016 §A4, §A5; `modus: subagent`), alleen zoals de set ze vastlegt: `kaarten.start`
+ *  bevestigt het plan (`sa_start`), `antwoorden` beantwoordt de vragen (`sa_vraag`) op volgorde. Een kaart die de set
+ *  niet beantwoordt, blijft staan: dat is de uitkomst. Elke klik is een beurt met het label `gemeten:kaart<n>:<stap>`. */
+async function klikKaarten(rec, b, o, args) {
+  const antwoorden = [...(o.antwoorden || [])];
+  for (let n = 1; n <= MAX_KLIKKEN; n++) {
+    const kaart = b.events.map(e => e.type === "vraagkaart" ? e.vraagkaart : null).filter(k => k && k.modus === "subagent").pop();
+    if (!kaart) return;
+    let klik, vraag;
+    if (kaart.stap === "sa_start" && o.kaarten?.start) { klik = { keuzes: ["start"] }; vraag = "Start de subagents"; }
+    else if (kaart.stap === "sa_vraag" && antwoorden.length) { vraag = antwoorden.shift(); klik = { tekst: vraag }; }
+    else return;
+    b = await meet(rec, `gemeten:kaart${n}:${kaart.stap}`, { ...args, vraag,
+      intake_actie: { intake_id: kaart.intake_id, stap: kaart.stap, actie: "antwoord", ...klik } });
+  }
 }
 
 /** Draai één opdracht; breekt een beurt af (een revisiewissel), dan opnieuw in een nieuw gesprek, hoogstens twee keer. */

@@ -214,6 +214,12 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   - **de regisseur als tool**: de overdracht `regie_plan` (bronnen of annoteren, alleen in een werkgebied) gaat naar de
     node `regie_voorstel`, die het plan uit de stand bij de api maakt met dezelfde tekst en knop als de regie zelf
     (`regisseur.plan_van`, `voorstel`). De centrale agent stelt geen plan per deelvraag zelf op.
+  - **de grammatica van een verzoek is begrensd**: de API maakt van alle strict schema's samen één grammatica, met
+    gedocumenteerde grenzen (20 strict tools, 24 optionele, 16 union-parameters) en een interne grens op de omvang
+    ("Schema is too complex for compilation", 400 zonder tokens). De delegatietools (`subagent`, `subagenten`,
+    `regie_plan`, `hervat_subagent`) zijn daarom niet strict (`Overdracht.strict`); de code toetst hun invoer.
+    `tests/test_strict_grenzen.py` begrenst elk profiel met alle connectors aan op de laatst bewezen omvang (12 strict
+    tools, ~9,4k tekens: centraal met een connector op 23eb57bb had er 16 en gaf die 400 bij elke eerste aanroep).
   `tests/test_subagent.py` legt dit vast, ook een kindbeurt door de echte graaf; `tests/test_subagent_vragen.py` de
   vragen, het hervatten, de kaart en het deelgesprek; `tests/test_subagenten.py` het plan, de bevestiging, de
   parallelliteit, het plafond en `regie_plan`.
