@@ -281,3 +281,17 @@ def test_een_iri_patroon_uit_het_schema_is_geen_bron():
     echt = f"{queries.NS}BWBR0004770:artikel:9"
     [bron] = collect_sources([("graph_schema", schema + " " + echt)])
     assert bron.uri == echt
+
+
+
+def test_een_bepaling_die_een_connector_alleen_noemt_is_geen_bron():
+    """Meting kennisgroepen 14 nov 2026: "8 bronnen" voor één gelezen standpunt, waarvan zeven artikelen die het noemt.
+    Dezelfde regel als B12 (een voetnoot is geen bron), nu voor wettekst; wat een graaftool las, blijft."""
+    from agent.grounding import alleen_gelezen_extern
+    from agent.models import Source
+
+    standpunt = Source(uri="kg:013:2026:4", label="KG:013:2026:4", brontype="standpunt", origin_tool="get_standpunt")
+    genoemd = Source(uri="urn:bwb:BWBR0005806:artikel:10", label="Artikel 10", origin_tool="get_standpunt")
+    gelezen = Source(uri="urn:bwb:BWBR0004770:artikel:9", label="Artikel 9", origin_tool="get_artikel")
+    trace = [("get_standpunt", _json.dumps({"status": "ok", "stuk": {"id": "kg:013:2026:4"}, "resultaten": []}))]
+    assert alleen_gelezen_extern([standpunt, genoemd, gelezen], trace, "KG:013:2026:4 zegt …") == [standpunt, gelezen]

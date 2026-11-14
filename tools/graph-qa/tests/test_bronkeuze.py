@@ -211,3 +211,14 @@ def test_de_lijstroute_krijgt_haar_eigen_bron_ook_als_de_vraag_een_andere_noemt(
 
     uit = supervisie._bronkeuze(_B(), state, upd)
     assert set(uit["bronnen"]) == {"bekendmakingen", "kamerstukken"}
+
+
+
+def test_standpunten_noemen_de_kennisgroepen():
+    """Meting kennisgroepen 14 nov 2026, vraag 3 en 14: een route in code (wettekst buiten de graaf, een genoemde
+    uitspraak) beperkte de beurt, en "standpunten" alleen telde niet. Nu wel; "beleid" alleen niet."""
+    assert "kennisgroepen" in bronkeuze.genoemd(["Zijn er standpunten over artikel 3.111 Wet IB 2001?"])
+    assert bronkeuze.genoemd(["Welke standpunten noemen ECLI:NL:HR:2013:64, en wat zegt die uitspraak?"]) >= {
+        "kennisgroepen", "rechtspraak"}
+    assert "kennisgroepen" in bronkeuze.genoemd(["Heeft de Belastingdienst een standpunt over de reisbureauregeling?"])
+    assert "kennisgroepen" not in bronkeuze.genoemd(["Wat is het beleid bij uitstel van betaling?"])

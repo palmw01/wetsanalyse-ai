@@ -766,10 +766,12 @@ KENNISGROEPEN = ConnectorBeschrijving(
     groep="Kennisgroepstandpunten (beleid)",
     dekt=("de gepubliceerde standpunten van de kennisgroepen van de Belastingdienst (vanaf 2022): hoe de Belastingdienst "
           "een fiscale bepaling uitlegt en toepast in een specifiek geval; per wetsartikel de standpunten die het noemen"),
-    # Niet het kale "standpunt" of "beleid": dat zijn gewone woorden in een vraag.
+    # Het kale "standpunt" telt (meting 14 nov 2026, vraag 3 en 14): "Zijn er standpunten over artikel 3.111 Wet IB
+    # 2001?" en "Welke standpunten noemen ECLI:NL:HR:2013:64?" vielen buiten de beurt, omdat een route in code (wettekst
+    # buiten de graaf, een genoemde uitspraak) de bronkeuze beperkte. Een bron te veel kost een toolschema; een te weinig
+    # een fout antwoord. "Beleid" blijft geen signaal: dat zegt elke vraag over beleidsregels.
     signalen=(r"\bkennisgroep(?:en|s)?\b", r"\bkennisgroepstandpunt(?:en)?\b", r"\bKG:\d{3}:\d{4}:\d+",
-              r"\bstandpunt(?:en)?\s+van\s+(?:de\s+)?(?:kennisgroep|belastingdienst)\b",
-              r"\b(?:belastingdienst|inspecteur)\s+(?:standpunt|beleid)\b"),
+              r"\bstandpunt(?:en)?\b", r"\b(?:belastingdienst|inspecteur)\s+beleid\b"),
     aanwijzingen=(r"\bhoe\s+(?:past|legt)\s+de\s+belastingdienst\b", r"\bwat\s+vindt\s+de\s+(?:belastingdienst|inspecteur)\b",
                   r"\buitvoeringspraktijk\b"),
     tools=frozenset({"zoek_standpunten", "get_standpunt"}),

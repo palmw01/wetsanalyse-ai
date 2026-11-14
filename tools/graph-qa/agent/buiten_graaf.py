@@ -166,6 +166,8 @@ def genoemd(vraag: str, graph: Any, bron: Any, *, vandaag: str) -> list[Genoemd]
         elif len(per_id) > 1:
             uit.append(Genoemd(naam, kandidaten=tuple(sorted(per_id.items(), key=lambda p: p[1]))))
             continue
+        elif (kort := _wet_afkorting(bron, titel, vandaag)) is not None:
+            gekozen = kort
         else:
             uit.append(Genoemd(naam, titel=titel, onbekend=True))
             continue
@@ -186,6 +188,22 @@ def genoemd(vraag: str, graph: Any, bron: Any, *, vandaag: str) -> list[Genoemd]
         uit = [Genoemd(g.naam, g.bwb_id, g.titel, artikel_in_regeling(artikel, g.titel),
                        next(iter(leden)) if len(leden) == 1 and artikel else "") if x is g else x for x in uit]
     return uit
+
+
+#: "Wet BPM 1992", "Wet IB 2001", "Wet LB 1964": de citeervorm van een fiscale wet. De BWB kent dan alleen de afkorting zonder
+#: "Wet" en jaar ("BPM"), dus de vorm zelf vindt niets (meting kennisgroepen 14 nov 2026, vraag 4).
+_WET_AFK_RE = re.compile(r"Wet\s+(?P<afk>[A-Z][A-Za-z]{1,6})(?:\s+(?P<jaar>(?:18|19|20)\d{2}))?")
+
+
+def _wet_afkorting(bron: Any, titel: str, peil: str) -> Any | None:
+    """De regeling bij "Wet <afkorting> <jaar>": de afkorting exact bij de zoekdienst, en alleen als dat één regeling is
+    waarvan de titel met "Wet" begint en het jaar draagt. Anders None: herkennen is nooit raden."""
+    m = _WET_AFK_RE.fullmatch(titel.strip())
+    if not m:
+        return None
+    afk, _ = _zoek(bron, m.group("afk"), peil)
+    passend = [t for t in afk if t.titel.startswith("Wet") and (not m.group("jaar") or t.titel.endswith(m.group("jaar")))]
+    return passend[0] if len({t.bwb_id for t in passend}) == 1 else None
 
 
 def artikel_in_regeling(artikel: str, titel: str) -> str:

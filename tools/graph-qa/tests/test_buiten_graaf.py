@@ -101,3 +101,36 @@ def test_samen_met_de_graaf_alleen_de_wet_buiten_de_graaf():
     uit = _genoemd("Verschilt artikel 33 Iw 1990 van artikel 2:9 BW?")
     assert [(g.titel, g.artikel) for g in uit] == [("Burgerlijk Wetboek Boek 2", "9")]
     assert IW not in {g.bwb_id for g in uit}
+
+
+
+class _Regeling:
+    def __init__(self, bwb_id: str, titel: str) -> None:
+        self.bwb_id, self.titel = bwb_id, titel
+
+
+class _AfkDienst:
+    """De zoekdienst zoals de BWB hem kent: de afkorting "BPM", niet "Wet BPM 1992" (SRU, 14 nov 2026)."""
+
+    def __init__(self, per_afkorting: dict[str, list[_Regeling]]) -> None:
+        self.per_afkorting, self.vragen = per_afkorting, []
+
+    def zoek(self, query: str, maximum: int = 20):
+        self.vragen.append(query)
+        if query.startswith("overheidbwb.afkorting="):
+            afk = query.split('"')[1]
+            return len(self.per_afkorting.get(afk, [])), self.per_afkorting.get(afk, [])
+        return 0, []
+
+
+BPM = _Regeling("BWBR0005806", "Wet op de belasting van personenauto's en motorrijwielen 1992")
+
+
+def test_wet_met_afkorting_en_jaar_via_de_afkorting():
+    """Meting kennisgroepen 14 nov 2026, vraag 4: "Wet BPM 1992" kende de zoekdienst niet; "BPM" wel."""
+    dienst = _AfkDienst({"BPM": [BPM, BPM]})
+    assert bg._wet_afkorting(dienst, "Wet BPM 1992", VANDAAG) is BPM
+    assert bg._wet_afkorting(dienst, "Wet BPM 1991", VANDAAG) is None, "het jaar hoort bij de titel"
+    assert bg._wet_afkorting(_AfkDienst({"XY": [BPM, _Regeling("BWBR0000001", "Wet XY 1992")]}), "Wet XY 1992",
+                             VANDAAG) is None, "twee regelingen: niet raden"
+    assert bg._wet_afkorting(dienst, "Wet op de loonbelasting 1964", VANDAAG) is None

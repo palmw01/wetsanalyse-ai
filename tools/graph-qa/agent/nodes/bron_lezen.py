@@ -18,6 +18,7 @@ from uuid import uuid4
 
 from bronmodel.antwoord import Antwoord, Leemte, antwoord_tekst
 from bronmodel.connectors import CONNECTORS, van_id
+from bronmodel.extern import externe_vindplaats
 from langgraph.config import get_stream_writer
 
 from ..narratie import _stap, _toolregel
@@ -163,7 +164,8 @@ def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]
 
     - geen tekst bij de bron (een uitspraak met alleen metadata, `leesbaar: false`);
     - alleen een PDF (`alleen_pdf`, met het `stuk` en zijn metadata: het bestaat);
-    - niet gevonden (`niet_gevonden`): het id staat in de melding, en er komt geen stuk in de lijst;
+    - niet gevonden (`niet_gevonden`): het id staat in de melding, en er komt geen stuk in de lijst; weet de bron wat
+      het intrekt (`vervangen_door`), dan zegt de melding dat;
     - de bron is niet te bereiken of te druk (`bron_onbereikbaar`, `bron_bezet`): zeggen en later opnieuw. Eerst ging dat langs het model, en
       dat verwees naar een site die het niet kende ("zoek het op via kamerstukken.nl … onderdeel 3", ronde 3
       Kamerstukken, 12 nov 2026: K11, grounding ongegrond).
@@ -173,7 +175,7 @@ def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]
     agent."""
     zonder: list[str] = []
     pdf: list[str] = []
-    weg: list[str] = []
+    weg: list[tuple[str, list[str]]] = []
     dicht: list[tuple[str, str]] = []
     for i, r in enumerate(resultaten):
         try:
@@ -189,7 +191,8 @@ def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]
         elif data.get("status") == "error" and data.get("reden") == "alleen_pdf" and ident:
             pdf.append(ident)
         elif data.get("status") == "error" and data.get("reden") == "niet_gevonden" and (genoemd := _genoemd(gebruik, i)):
-            weg.append(genoemd)
+            door = data.get("vervangen_door")
+            weg.append((genoemd, [str(d) for d in door if isinstance(d, str)] if isinstance(door, list) else []))
         elif data.get("status") == "error" and data.get("reden") in _TIJDELIJK and (genoemd := _genoemd(gebruik, i)):
             dicht.append((genoemd, _TIJDELIJK[data["reden"]]))
         else:
@@ -212,9 +215,17 @@ def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]
         blokken.append(Leemte(tekst=f"{'Dit stuk staat' if len(pdf) == 1 else 'Deze stukken staan'} bij de bron alleen "
                                     f"als PDF{hoe}: de tekst kan ik niet lezen of citeren. De beschrijving staat hieronder; "
                                     "lees het stuk via de link."))
-    for ident in weg:
+    for ident, door in weg:
         c = van_id(ident)
         bij = f" bij {c.label}" if c is not None else ""
+        if door:
+            # Het stuk zelf staat er niet, maar de bron weet wat het vervangt (een ingetrokken kennisgroepstandpunt van
+            # vóór 2022, meting 14 nov 2026, vraag 10): dat is het antwoord, met het id om verder te lezen.
+            namen = ", ".join(_label(d) for d in door)
+            blokken.append(Leemte(tekst=f"{_label(ident)} staat{bij} niet als gepubliceerd stuk. Het is ingetrokken door "
+                                        f"{namen}; vraag mij naar {'dat stuk' if len(door) == 1 else 'die stukken'} om "
+                                        "de tekst te lezen. Over het oude stuk zelf zeg ik zonder tekst niets."))
+            continue
         blokken.append(Leemte(tekst=f"{ident} is{bij} niet gevonden. Controleer het id, of vraag mij naar de stukken "
                                     "waar het bij hoort; zonder tekst zeg ik er niets over."))
     for ident, hoe in dicht:
@@ -223,6 +234,12 @@ def _zonder_tekst(resultaten: list[dict[str, Any]], trace: list[tuple[str, str]]
         blokken.append(Leemte(tekst=f"{waar} is nu {hoe}, dus {ident} kan ik niet lezen. Vraag het over een "
                                     "paar minuten opnieuw; zonder tekst zeg ik er niets over."))
     return Antwoord(sjabloon="extern", blokken=[*blokken, *stukken])
+
+
+def _label(ident: str) -> str:
+    """Het id zoals de jurist het kent: het label van de vindplaats ("Kennisgroepstandpunt KG:013:2026:4")."""
+    vp = externe_vindplaats(ident)
+    return vp.label if vp is not None else ident
 
 
 def _wat_nieuw(toevoeging: str, zin: str) -> str:
