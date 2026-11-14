@@ -17,7 +17,9 @@ export type ThreadItem = (
       // Een klik op een vraagkaartje (activiteit 1): geen bubbel, het antwoord staat in de Vragen-kaart.
       antwoordOp?: import("./vraagkaart").AntwoordOp;
       // Het antwoord op een bevestiging erboven (de knop of *Annuleren*): het voorstel is afgehandeld.
-      bevestigingKeuze?: import("./werkgebiedAnnoteren").BevestigingKeuze }
+      bevestigingKeuze?: import("./werkgebiedAnnoteren").BevestigingKeuze;
+      // Door de code doorgegeven in een deelgesprek (de opdracht, of de antwoorden van de jurist): geen bubbel van de jurist.
+      doorgegeven?: "opdracht" | "antwoorden" }
   | { id: string; type: "antwoord"; tekst: string; denk?: string; bronnen?: Bron[];
       // De brongetrouwheidstoets van déze beurt: live uit de stroom, na herladen van het bericht.
       grounding?: AgentGrounding;

@@ -650,6 +650,9 @@ export interface Bericht {
   /** De delegaties die deze beurt startte of hervatte (ADR-016 §A5): hun stand haalt de werkplek bij de api
    *  (`lib/delegatie.ts`), zodat er na herladen de stand van nu staat. */
   delegaties?: string[];
+  /** Een bericht dat de code in een deelgesprek schreef (`rol: user`): de opdracht aan de subagent, of de antwoorden van de
+   *  jurist die bij het hervatten zijn doorgegeven. Nooit een bericht van de jurist zelf (bugonderzoek ADR-016, B5). */
+  doorgegeven?: "opdracht" | "antwoorden" | null;
   created?: string;
 }
 

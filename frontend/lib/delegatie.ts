@@ -88,12 +88,20 @@ export function teTonen(w: DelegatieWeergave, api: Delegatie[] | null, loopt: bo
   });
 }
 
-/** De uitkomst van een kind als stand. Een onbekende uitkomst is `mislukt`: dat zei graph-qa ook (`eindstand`). Een kind
- *  van de regie draagt de uitkomst van zijn run (`klaar`, `gestopt`, `mislukt`). */
+/** Uitkomsten van graph-qa die hier anders heten. `niet_gestart` is de beginwaarde van een `Afloop`: het kind kwam niet aan
+ *  bod (het plafond van het plan, een stop), dus "niet aan bod", geen fout (bugonderzoek ADR-016, B3). */
+const UITKOMST_ALS: Record<string, TaakStand> = { niet_gestart: "overgeslagen" };
+
+/** De uitkomst van een kind als stand. Een onbekende uitkomst is `mislukt`: dat zei graph-qa ook (`eindstand`), en een
+ *  label dat een fout verzwijgt is erger dan een te streng label. Een kind van de regie draagt de uitkomst van zijn run
+ *  (`klaar`, `gestopt`, `mislukt`). */
 export function standVan(uitkomst: unknown): TaakStand {
   const u = tekst(uitkomst);
   if (!u) return "loopt";
-  return STANDEN.includes(u) ? (u as TaakStand) : "mislukt";
+  if (UITKOMST_ALS[u]) return UITKOMST_ALS[u];
+  if (STANDEN.includes(u)) return u as TaakStand;
+  console.warn(`Onbekende uitkomst van een subagent: ${u}`);
+  return "mislukt";
 }
 
 function taakUit(v: unknown): DelegatieTaak | undefined {

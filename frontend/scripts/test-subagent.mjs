@@ -113,7 +113,9 @@ const berichten = {
     { rol: "assistant", tekst: "De bundel van beide uitspraken.", ...leeg, run_id: "sub2", delegaties: ["d1"] },
   ],
   herlaad: [{ rol: "user", tekst: "Zoek de definitie op", ...leeg }],
-  g1: [{ rol: "assistant", tekst: "Rapport van uitspraak A.", ...leeg, run_id: "k1" }],
+  g1: [{ rol: "user", tekst: "OPDRACHT: vat uitspraak A samen.", ...leeg, doorgegeven: "opdracht" },
+    { rol: "assistant", tekst: "Rapport van uitspraak A.", ...leeg, run_id: "k1" },
+    { rol: "user", tekst: "ANTWOORD OP JE VRAGEN: 2024", ...leeg, doorgegeven: "antwoorden" }],
 };
 let volgendeRun = "sub1", gid = "sub", actief = null;
 
@@ -205,6 +207,10 @@ await page.locator("[data-gesprek-rij=g2] [data-deelgesprek-stand=klaar]").waitF
 await page.locator("[data-delegatie=d1] [data-deelgesprek-link=g1]").first().click();
 await page.getByText("Rapport van uitspraak A.").waitFor();
 assert.match(page.url(), /gesprek=g1/);
+// Wat de code in het deelgesprek doorgaf, is een blok van Lex, geen bubbel van de jurist (bugonderzoek B5).
+assert.match(await page.locator("[data-doorgegeven=opdracht]").innerText(), /Opdracht aan de subagent[\s\S]*vat uitspraak A samen/);
+assert.match(await page.locator("[data-doorgegeven=antwoorden]").innerText(), /Antwoorden van de jurist, doorgegeven/);
+assert.equal(await page.locator(".rounded-bubbel", { hasText: "OPDRACHT" }).count(), 0, "geen bubbel van de jurist");
 
 // 4. Na herladen: de blokken uit de api, met de stand van nu.
 await page.goto(`${base}/workbench?gesprek=sub`);

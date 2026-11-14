@@ -61,6 +61,15 @@ describe("verwerkDelegatieEvent", () => {
     expect(d.taken[0]).toMatchObject({ gesprek_id: "g2", stand: "klaar" });
   });
 
+  it("een kind dat niet startte (niet_gestart) kwam niet aan bod, het mislukte niet", () => {
+    const [d] = speel(START, KIND_START(0, "g1"), KIND_EIND(0, "g1", "klaar"), { ...EIND, uitkomst: "klaar",
+      kinderen: [{ gesprek_id: "g1", uitkomst: "klaar" }, { gesprek_id: "", uitkomst: "niet_gestart" }] });
+    expect(d.taken.map((t) => t.stand)).toEqual(["klaar", "overgeslagen"]);
+    expect(voortgangUitDelegatie({ ...API, status: "klaar",
+      uitkomst: { kinderen: [{ gesprek_id: "g1", uitkomst: "klaar" }, { uitkomst: "niet_gestart" }] } }).taken[1].stand)
+      .toBe("overgeslagen");
+  });
+
   it("een onbekende uitkomst is mislukt; een ongeldig event laat de stand staan", () => {
     const voor = speel(START, KIND_START(0, "g1"));
     expect(verwerkDelegatieEvent(voor, { type: "regie_taak", fase: "eind" })).toBeUndefined();
@@ -155,5 +164,15 @@ describe("het bewaarde bericht", () => {
     ], () => `i${n++}`);
     expect(items[0]).toMatchObject({ type: "antwoord", delegatie: { ids: ["d1"] } });
     expect(items[1]).not.toHaveProperty("delegatie");
+  });
+
+  it("een bericht dat de code in een deelgesprek doorgaf, is geen bericht van de jurist", () => {
+    let n = 0;
+    const { items } = itemsUitGesprek([
+      { rol: "user", tekst: "OPDRACHT …", denk: "", bronnen: [], run_id: "", doorgegeven: "opdracht" },
+      { rol: "user", tekst: "Mijn vraag", denk: "", bronnen: [], run_id: "" },
+      { rol: "user", tekst: "ANTWOORD OP JE VRAGEN …", denk: "", bronnen: [], run_id: "", doorgegeven: "antwoorden" },
+    ], () => `i${n++}`);
+    expect(items.map((i) => (i.type === "user" ? i.doorgegeven ?? "jurist" : i.type))).toEqual(["opdracht", "jurist", "antwoorden"]);
   });
 });

@@ -460,6 +460,21 @@ async def test_de_delegaties_van_een_beurt_overleven_het_heropenen(client):
         assert r.status_code == 422
 
 
+@pytest.mark.asyncio
+async def test_een_doorgegeven_bericht_blijft_herkenbaar(client):
+    """B5: de opdracht aan een subagent en de doorgegeven antwoorden zijn geen berichten van de jurist."""
+    gid = await _maak(client)
+    for soort in ("opdracht", "antwoorden"):
+        r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "user", "tekst": "t", "doorgegeven": soort}, headers=A)
+        assert r.status_code == 201 and r.json()["doorgegeven"] == soort
+    r = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "user", "tekst": "gewoon"}, headers=A)
+    assert r.json()["doorgegeven"] is None
+    berichten = (await client.get(f"{BASIS}/{gid}", headers=A)).json()["berichten"]
+    assert [b["doorgegeven"] for b in berichten] == ["opdracht", "antwoorden", None]
+    fout = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "user", "doorgegeven": "anders"}, headers=A)
+    assert fout.status_code == 422
+
+
 async def test_een_vraagkaart_overleeft_het_heropenen(client):
     """Activiteit 1: het kaartje waarmee Lex een werkgebied samenstelt staat na herladen nog."""
     gid = await _maak(client)

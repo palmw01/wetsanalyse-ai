@@ -45,7 +45,8 @@ export function itemsUitGesprek(berichten: Bericht[], uid: () => string): Geschi
     }
     return [b.rol === "user"
       ? { id: uid(), type: "user" as const, tekst: b.tekst, antwoordOp: parseAntwoordOp(b.intake_antwoord),
-          bevestigingKeuze: parseBevestigingKeuze(b.bevestiging_antwoord) }
+          bevestigingKeuze: parseBevestigingKeuze(b.bevestiging_antwoord),
+          ...(b.doorgegeven === "opdracht" || b.doorgegeven === "antwoorden" ? { doorgegeven: b.doorgegeven } : {}) }
       : annotatieDoel
         ? { id: uid(), type: "annotatie" as const, slug: annotatieDoel.bron_iri,
             titel: art?.titel || b.annotatie_titel || undefined, annotatie_doel: annotatieDoel,

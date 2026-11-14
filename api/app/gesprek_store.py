@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 #: laden én verwijderen: een gesprek is een verslag en moet altijd te openen en weg te halen zijn.
 _OPTIONEEL = ("hergebruik", "dekking", "overzicht", "antwoord", "annotatie_doel", "tool_executions", "reeks", "artefact",
               "bevestiging", "bevestiging_antwoord", "vraagkaart", "intake_antwoord", "uitkomst", "contextopbouw",
-              "delegaties")
+              "delegaties", "doorgegeven")
 
 
 #: Hoeveel deelgesprekken de boom van de contextopbouw hooguit leest: ruim boven een regie (hoogstens tientallen).
@@ -64,6 +64,7 @@ def _bericht_uit_row(row) -> Bericht:
         grounding=inhoud.get("grounding", {}) or {},
         contextopbouw=inhoud.get("contextopbouw") or None,
         delegaties=inhoud.get("delegaties", []) or [],
+        doorgegeven=inhoud.get("doorgegeven") or None,
         created=db.aware(d["created"]),
     )
     try:
@@ -123,6 +124,8 @@ def _inhoud(inv: BerichtInvoer | Bericht) -> dict:
         inhoud["contextopbouw"] = inv.contextopbouw.model_dump()
     if inv.delegaties:
         inhoud["delegaties"] = list(inv.delegaties)
+    if inv.doorgegeven:
+        inhoud["doorgegeven"] = inv.doorgegeven
     return inhoud
 
 

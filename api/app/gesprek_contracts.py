@@ -291,6 +291,8 @@ class Contextopbouw(BaseModel):
 DelegatieId = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9]{1,64}$")]
 #: Hoeveel delegaties één beurt hooguit noemt: een beurt start er een, of hervat er een; de grens is een vangnet.
 MAX_DELEGATIES = 10
+#: Wat de code in een deelgesprek doorgeeft: de opdracht aan de subagent, of de antwoorden van de jurist bij het hervatten.
+Doorgegeven = Literal["opdracht", "antwoorden"]
 
 
 class Bericht(BaseModel):
@@ -347,6 +349,10 @@ class Bericht(BaseModel):
     # niet op het bericht maar bij de delegatie (`/v1/delegaties`), zodat de werkplek na herladen de stand van nu
     # toont, ook als de jurist een vraag van een subagent later beantwoordde.
     delegaties: list[DelegatieId] = []
+    # Een bericht dat de code in een deelgesprek schrijft, met `rol: user` omdat het de vraag van die beurt is
+    # (bugonderzoek ADR-016, B5): de opdracht aan de subagent, of de antwoorden van de jurist die bij het hervatten
+    # worden doorgegeven. De werkplek toont het nooit als bericht van de jurist zelf. Leeg = een gewoon bericht.
+    doorgegeven: Doorgegeven | None = None
     created: datetime | None = None
 
 
@@ -453,6 +459,7 @@ class BerichtInvoer(BaseModel):
     grounding: dict = {}
     contextopbouw: Contextopbouw | None = None
     delegaties: list[DelegatieId] = Field(default_factory=list, max_length=MAX_DELEGATIES)
+    doorgegeven: Doorgegeven | None = None
 
 
 class BerichtContext(BaseModel):

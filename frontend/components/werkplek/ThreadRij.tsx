@@ -119,7 +119,20 @@ export const ThreadRij = memo(function ThreadRij({
       </div>
     );
   }
-  return item.type === "user" ? (
+  return item.type === "user" && item.doorgegeven ? (
+    // Wat de code in een deelgesprek doorgaf (B5): geen bubbel van de jurist, maar een blok van Lex met wat het is.
+    <div className="flex animate-rise gap-3" data-doorgegeven={item.doorgegeven}>
+      <LexAvatar />
+      <div className="min-w-0 flex-1 text-sm text-ink">
+        <p className="mb-1 text-xs font-medium text-muted">
+          Lex · {item.doorgegeven === "opdracht" ? "Opdracht aan de subagent" : "Antwoorden van de jurist, doorgegeven"}
+        </p>
+        <div className="whitespace-pre-wrap break-words rounded-kaart border border-line bg-surface px-4 py-2.5 text-sm text-ink">
+          {item.tekst}
+        </div>
+      </div>
+    </div>
+  ) : item.type === "user" ? (
     <div className="flex animate-rise flex-col items-end gap-1">
       {item.over && (
         <span className="max-w-[85%] truncate rounded-full bg-surface px-2.5 py-0.5 text-[0.7rem] text-muted">
