@@ -126,6 +126,12 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     else:
         venster, berichtpunten = met_beurtcontext(venster, state.get("question", ""), variabel)
         systeem = [stabiel]
+    laatste = laatste_ronde(b, state)
+    if laatste:
+        # Een subagent in zijn laatste ronde (de rondegrens of het tokenplafond, ADR-016 §A2): de code zegt het, als tekst
+        # achter de toolresultaten in het laatste bericht. Dat staat na de cachepunten, dus het voorvoegsel blijft gelijk;
+        # de tools beperken of `tool_choice` zouden de cache breken of op de nieuwste modellen een 400 geven.
+        venster = met_laatste_ronde(venster, laatste)
     final = agent.ronde(b.llm, b.settings, systeem=systeem, berichten=venster, berichtpunten=berichtpunten,
                         bronnen=state.get("bronnen"), bronstand=state.get("bronstand"), kader=meetkader,
                         werkgebied=bool(state.get("werkgebied_id")))
@@ -169,6 +175,12 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
     # Een sjabloon mag de laatste beurt nog afronden, maar een sjabloon dat onvulbaar blijft mag er niet voorbij.
     grens = max_rondes(b.settings, state)
     limiet = grens if tool_uses and tool_uses[0]["name"] in SJABLONEN else grens - 1
+    afgesloten = False
+    if laatste and not (tool_uses and tool_uses[0]["name"] in SJABLONEN):
+        # De laatste ronde van een subagent, en hij rondde niet af met het rapport: de code sluit af. Het rapport naar de
+        # ouder noemt dan wat hij las (`subagent.rapport_tekst`); een correctieronde komt er niet (`corrected`), want die
+        # kostte een kind de hele beurt opnieuw (meting 14 nov 2026, D01).
+        tool_uses, text_parts, afgesloten = [], [SUBAGENT_AFGESLOTEN], True
     if tool_uses and state.get("turns", 0) >= limiet:
         tool_uses = []
         if not any(p and p.strip() for p in text_parts):
@@ -199,6 +211,8 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
         "turns": state.get("turns", 0) + 1,
         "afgekapt": afgekapt,
     }
+    if afgesloten:
+        upd.update(corrected=True, sjabloon_gevraagd=True)
     upd["sjabloon_nu"] = False
     upd.update(telling)
     gevonden = _gevonden_zonder_sjabloon(b, state) if not tool_uses and sjablonen else {}
@@ -487,6 +501,50 @@ def _gevonden_zonder_sjabloon(b: Bouw, state: State) -> dict[str, list[tuple[str
     return gevonden
 
 
+#: Hoeveel tokens een subagent hoogstens verbruikt (ruw: invoer, uitvoer, cache lezen en schrijven, zoals het budget telt).
+#: Bij het plafond is de volgende ronde de laatste. Gemeten (14 nov 2026): het S03-kind deed het voor ~160k, het D01-kind
+#: zat na 7 rondes op ~490k, het rechtspraak-kind van P01 kostte 452k.
+MAX_TOKENS_SUBAGENT = 300_000
+
+LAATSTE_RONDE = {
+    "rondegrens": "de rondegrens",
+    "plafond": "het tokenplafond van een subagent",
+}
+
+SUBAGENT_AFGESLOTEN = ("De subagent rondde niet af met een rapport voor zijn laatste ronde; de code sloot hem af met "
+                       "wat hij las.")
+
+
+def verbruikt(llm: Any) -> int:
+    """Wat de beurt tot nu toe kostte, ruw, uit de meter van de adapter (0 zonder meter)."""
+    m = getattr(llm, "meter", None)
+    return sum(int(getattr(m, v, 0) or 0) for v in ("invoer", "uitvoer", "cache_lees", "cache_schrijf")) if m else 0
+
+
+def laatste_ronde(b: Any, state: State) -> str:
+    """Waarom dit de laatste ronde van een subagent is (`rondegrens` of `plafond`), of leeg. Alleen een subagent."""
+    if not state.get("opdracht"):
+        return ""
+    if state.get("turns", 0) >= max_rondes(b.settings, state) - 1:
+        return "rondegrens"
+    if verbruikt(b.llm) >= MAX_TOKENS_SUBAGENT:
+        return "plafond"
+    return ""
+
+
+def met_laatste_ronde(venster: list[dict[str, Any]], reden: str) -> list[dict[str, Any]]:
+    """Het venster met de melding van de laatste ronde achter het laatste bericht (een user-bericht met toolresultaten)."""
+    tekst = (f"LAATSTE RONDE ({LAATSTE_RONDE.get(reden, reden)}, van de code): je kunt niets meer lezen. Rond nu af met "
+             "het sjabloon rapport, met wat je al hebt: status klaar als het genoeg is, anders niet_gelukt met wat je "
+             "vond en wat ontbreekt. Roep geen andere tool aan.")
+    if not venster or venster[-1].get("role") != "user":
+        return venster
+    m = venster[-1]
+    c = m.get("content")
+    inhoud = [{"type": "text", "text": c}] if isinstance(c, str) else list(c or [])
+    return [*venster[:-1], {**m, "content": [*inhoud, {"type": "text", "text": tekst}]}]
+
+
 def max_rondes(settings: Any, state: State) -> int:
     """Hoeveel modelrondes deze beurt heeft: een subagent `MAX_RONDES_SUBAGENT` (ADR-016 §A2), anders `max_turns`."""
     from ..agentvorm import MAX_RONDES_SUBAGENT
@@ -550,6 +608,30 @@ def _tool_result(tu: dict[str, Any], tekst: str) -> dict[str, Any]:
     return {"type": "tool_result", "tool_use_id": tu["id"], "content": tekst, **({"is_error": True} if fout else {})}
 
 
+#: Wat de centrale agent ziet als hij na een subagent die niet afrondde zelf wil lezen (`na_subagent`).
+NA_SUBAGENT = json.dumps({"status": "unavailable", "volledig": False, "reden": "na_subagent",
+                          "aanwijzing": ("Een subagent deed dit werk al en rondde niet af. Lees niet zelf opnieuw: vat "
+                                         "samen wat hij las (zijn toolresultaten staan in je trace) en zeg wat ontbreekt, "
+                                         "of vraag de gebruiker hoe verder.")}, ensure_ascii=False)
+
+
+#: De uitkomsten van een subagent die werkte en niet afrondde. Niet gestart (een 409, het budget) valt erbuiten: dan
+#: deed niemand het werk, en mag de centrale agent het zelf doen.
+NIET_AF = frozenset({"niet_gelukt", "mislukt"})
+
+
+def na_subagent(state: State, tool: str) -> str:
+    """De weigering voor een lees- of zoektool van de centrale agent na een subagent die niet klaar was, of leeg. Een
+    sjabloon of een overdracht valt er niet onder: afronden en de gebruiker vragen kan altijd."""
+    from ..tools import TOOLS
+
+    if state.get("opdracht") or tool not in {t["name"] for t in TOOLS}:
+        return ""
+    if any(a.get("uitkomst") in NIET_AF for a in state.get("subagenten") or []):
+        return NA_SUBAGENT
+    return ""
+
+
 #: Wat het model ziet als het een tool aanroept die niet bij het profiel van de centrale agent hoort.
 BUITEN_PROFIEL = json.dumps({"status": "unavailable", "volledig": False, "reden": "tool_buiten_profiel",
                              "aanwijzing": "Deze tool heb je nu niet. Roep eerst meer_tools aan."}, ensure_ascii=False)
@@ -575,6 +657,13 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
         sleutel = _sleutel(tu)
         if sleutel in gedaan:
             results.append(_tool_result(tu, gedaan[sleutel].removesuffix(HERHAALD) + HERHAALD))
+            continue
+        if (reden := na_subagent(state, tu["name"])):
+            # Na een subagent die niet klaar was, leest de centrale agent niet zelf opnieuw (ADR-016 §A4, meting 14 nov
+            # 2026: P01 deed het werk daarna nog eens voor 1,5M). Hij vat samen wat het kind las en zegt wat ontbreekt.
+            logger.info("tool na subagent geweigerd", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
+                                                             "tool": tu["name"]})
+            results.append(_tool_result(tu, reden))
             continue
         if not agent.mag(tu["name"]):
             # De centrale agent riep een tool aan die niet bij zijn profiel hoort (ADR-016 §A1): niet uitvoeren, wel

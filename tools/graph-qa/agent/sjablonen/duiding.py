@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from bronmodel.antwoord import Antwoord, Citaat, Citaten, Toelichting, Twijfel
+from bronmodel.antwoord import Antwoord, Citaat, Citaten, Leemte, Toelichting, Twijfel
 from bronmodel.vindplaats import vindplaats
 
 from ..annotatie import TYPOGRAFISCH, _normaliseer, komt_letterlijk_voor
@@ -259,14 +259,34 @@ def live_opbouw(trace: Trace) -> set[str]:
     return uit
 
 
+#: Hoeveel stukken het subsjabloon `extern` toonde (`sjablonen.vul`): ook dat is iets te tonen.
+GETOOND_EXTERN = "_extern_getoond"
+
+
+def niet_getoond_tekst(aantal: int) -> str:
+    """De leemte voor wat de code wegliet, uit code: geen tekst van het model, want die stond niet in de bron."""
+    return (("Een passage die Lex aanwees, stond" if aantal == 1 else f"{aantal} passages die Lex aanwees, stonden")
+            + " niet zo in de opgehaalde tekst en " + ("is" if aantal == 1 else "zijn") + " daarom niet als citaat getoond.")
+
+
+def _gelezen_bepaling(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace) -> str:
+    """De iri van de aangewezen bepaling als haar tekst in de trace staat, anders leeg."""
+    iri = str(stuk.get("bepaling") or "").strip()
+    if iri.startswith("jci"):
+        vp = vindplaats(iri)
+        iri = (jcis := iri_van_jci(trace)).get(iri) or jcis.get(iri.split("&z=", 1)[0]) or (vp.bron_iri if vp else iri)
+    return iri if iri and any(_binnen(k, iri) for k in rijen) else ""
+
+
 def _niet_onderbouwd(uitleg: str, citaten: list[Citaat], extern: frozenset[str] = frozenset(),
-                     trace: Trace = ()) -> list[str]:
+                     trace: Trace = (), *, gelezen: list[str] = ()) -> list[str]:
     """De artikelen die de uitleg noemt en die geen enkele passage draagt of vermeldt. Een artikel van overheid.nl
     (`wettekst_live`) dat het blok `extern` aanwijst, is onderbouwd (iteratie ronde 1, I28: "artikel 2:9 BW" werd zes keer
     geweigerd, terwijl het gelezen en aangewezen was), en zo ook een artikel dat de opbouw van zo'n regeling noemt
     (`live_opbouw`)."""
     live = {n for n, ids in live_artikelen(trace).items() if any(i in extern for i in ids)} | live_opbouw(trace)
-    bekend = _bekende_artikelen([("", f"{c.vindplaats.iri} {c.vindplaats.label} {c.tekst}") for c in citaten]) | live
+    bekend = _bekende_artikelen([("", f"{c.vindplaats.iri} {c.vindplaats.label} {c.tekst}") for c in citaten]
+                                + [("", g) for g in gelezen]) | live
     # Een artikel waar de bepaling naar verwijst en dat niet in de graaf staat, mag de uitleg noemen als verwijzing: er is
     # geen tekst om aan te wijzen (`verwezen_buiten_graaf`). Alleen als het nummer bij precies één regeling hoort.
     buiten = verwezen_buiten_graaf(trace)
@@ -386,14 +406,28 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
     if not stukken and not (extern & live):
         raise Onvulbaar(_geen_passage(live), code="geen_passage_live" if live else "geen_passage")
     rijen, fouten = bron_rijen(trace), []
-    citaten = [c for stuk in stukken if (c := _citaat(stuk, rijen, trace, fouten))]
-    if fouten:
+    citaten, weg = [], []
+    for stuk in stukken:
+        if c := _citaat(stuk, rijen, trace, (eigen := [])):
+            citaten.append(c)
+        elif eigen:
+            fouten += eigen
+            weg.append(stuk)
+    # Een passage die niet te tonen is, laat de code weg als er iets anders te tonen is: een andere passage of een stuk
+    # in 'extern' (meting bundel 114, 14 nov 2026: S03 en D02 kregen twee weigeringen en daarna een leeg sjabloon; dezelfde
+    # aanpak als het rapport, #1487). Alleen zonder iets te tonen weigert de code, zodat het model kan herstellen.
+    if fouten and not (citaten or invoer.get(GETOOND_EXTERN)):
         raise Onvulbaar("Niet te tonen, dus er wordt niets getoond. " + "; ".join(fouten) + ". Rond daarna opnieuw af.",
                         code="passage_niet_te_tonen")
     twijfel = list(dict.fromkeys(t for x in invoer.get("twijfel") or [] if (t := _lex(x, trace))))
-    if los := _niet_onderbouwd("\n".join([kort, *(c.waarom for c in citaten), *twijfel]), citaten, extern, trace):
+    # De bepaling van een weggelaten passage is gelezen (haar tekst staat in de trace); de uitleg mag haar noemen.
+    gelezen = [g for stuk in weg if (g := _gelezen_bepaling(stuk, rijen, trace))]
+    if los := _niet_onderbouwd("\n".join([kort, *(c.waarom for c in citaten), *twijfel]), citaten, extern, trace,
+                               gelezen=gelezen):
         raise _genoemd_is_gelezen(los, rijen, trace)
     blokken: list[Any] = [Toelichting(kop="Kort antwoord", tekst=kort), *([Citaten(items=citaten)] if citaten else [])]
+    if fouten:
+        blokken.append(Leemte(tekst=niet_getoond_tekst(len(fouten))))
     if twijfel:
         blokken.append(Twijfel(punten=twijfel))
     return Antwoord(sjabloon="duiding", blokken=blokken, doelen=list({c.vindplaats.iri: c.vindplaats for c in citaten}.values()))

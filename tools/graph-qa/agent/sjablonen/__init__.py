@@ -20,13 +20,14 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
 
-from bronmodel.antwoord import Antwoord
+from bronmodel.antwoord import Antwoord, Leemte
 
 from .annotaties import SCHEMA as _ANNOTATIES, vul as _vul_annotaties
 from .begrip import SCHEMA as _BEGRIP, vul as _vul_begrip
 from .bepaling import SCHEMA as _BEPALING, vul as _vul_bepaling
 from .duiding import SCHEMA as _DUIDING, vul as _vul_duiding
 from .rapport import SCHEMA as _RAPPORT, vul as _vul_rapport
+from . import duiding as _duiding
 from . import extern as _extern
 from . import rapport as _rapport
 from .vullen import Onvulbaar, Trace
@@ -72,17 +73,30 @@ def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:
         return SJABLONEN[naam].vul(invoer, trace)
     rest = {k: v for k, v in invoer.items() if k not in {_extern.VELD, _extern.STUKKEN}}
     # Wat het subsjabloon aanwijst, telt in de uitleg als onderbouwd (een artikel van overheid.nl, `duiding.EXTERN_IDS`).
-    rest["_extern_ids"] = [str((x or {}).get("id") or "") for x in invoer.get(_extern.VELD) or [] if isinstance(x, dict)]
-    # Een rapport van een subagent valt niet om op één aanwijzing die niet klopt (`rapport.vul`): de code toont wat te tonen
-    # is, en zegt wat niet.
-    overgeslagen: list[str] | None = [] if naam == _rapport.NAAM else None
+    # Een aanwijzing die niet klopt, laat de code weg als er iets anders te tonen is (`rapport.vul`, en sinds de meting van
+    # bundel 114 ook een antwoord: P01 kreeg twee weigeringen op `extern.blokken`). De code toont wat te tonen is en zegt wat
+    # niet. Alleen als er niets te tonen is, geldt de weigering, zodat het model kan herstellen.
+    overgeslagen: list[str] = []
     # Een lijst gevonden stukken vóór de passages: eerst wat er is, dan wat erin staat.
     extra = [*_extern.lijsten(invoer.get(_extern.STUKKEN), trace),
              *_extern.blokken(invoer.get(_extern.VELD), trace, overgeslagen=overgeslagen)]
-    if overgeslagen is not None:
+    getoond = sum(1 for b in extra if b.soort == "extern")
+    # Wat het subsjabloon toont, telt in de uitleg als onderbouwd (een artikel van overheid.nl, `duiding.EXTERN_IDS`); een
+    # weggelaten aanwijzing niet.
+    ids = {b.id for b in extra if b.soort == "extern"}
+    rest[_duiding.EXTERN_IDS] = [i for x in invoer.get(_extern.VELD) or [] if isinstance(x, dict)
+                                 and (vp := _extern.externe_vindplaats(i := str(x.get("id") or ""))) and vp.id in ids]
+    if naam == _rapport.NAAM:
         rest[_rapport.NIET_GETOOND] = overgeslagen
-        rest[_rapport.EXTERN_GETOOND] = sum(1 for b in extra if b.soort == "extern")
+        rest[_rapport.EXTERN_GETOOND] = getoond
+        overgeslagen = []
+    else:
+        rest[_duiding.GETOOND_EXTERN] = getoond
     antwoord = SJABLONEN[naam].vul(rest, trace)
+    if overgeslagen:
+        if not getoond and not any(b.soort == "citaten" for b in antwoord.blokken):
+            _extern.blokken(invoer.get(_extern.VELD), trace)   # niets anders te tonen: de weigering zoals altijd
+        extra.append(Leemte(tekst=_extern.niet_getoond_tekst(overgeslagen)))
     if extra:
         plek = next((i for i, b in enumerate(antwoord.blokken) if b.soort in ("twijfel", "leemte")), len(antwoord.blokken))
         antwoord.blokken[plek:plek] = extra
