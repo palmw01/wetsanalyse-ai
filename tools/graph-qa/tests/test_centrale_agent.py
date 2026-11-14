@@ -46,7 +46,7 @@ def _supervisor_dan_antwoord() -> FakeLLM:
 
 #: De overdrachten die elk profiel van de centrale agent heeft, naast wijs_af (en meer_tools in de kernset).
 VASTE_ROUTES = ("taakagent", "werkgebied", "toon_bepaling", "toon_overzicht", "lees_annotaties", "lees_begrippen",
-                "toon_stukken")
+                "toon_stukken", "annoteer")
 
 VRAAG = "Hoe hangt de aansprakelijkheid van een bestuurder samen met de invordering?"
 
@@ -153,11 +153,11 @@ def test_het_profiel_centraal_is_een_python_agent_met_zijn_eigen_tools():
 
 
 def test_een_overdrachtstool_heeft_een_strict_schema():
-    """Behalve de delegatietools: die zijn niet strict om de grammatica van het verzoek klein te houden
-    (`tests/test_strict_grenzen.py`). Hun schema heeft wel dezelfde vorm."""
+    """Behalve de delegatietools en `annoteer`: die zijn niet strict om de grammatica van het verzoek klein te houden
+    (`tests/test_strict_grenzen.py`), en de code toetst hun invoer. Hun schema heeft wel dezelfde vorm."""
     for o in overdracht.OVERDRACHT.values():
         s = o.schema
-        assert s["strict"] is (o.naam not in {"subagent", "regie_plan"})
+        assert s["strict"] is (o.naam not in {"subagent", "regie_plan", "annoteer"})
         assert s["input_schema"]["additionalProperties"] is False
         assert s["input_schema"]["required"] == sorted(o.invoer)
         assert all(n in overdracht.doelen() for n in (o.ingangen if o.naar == overdracht.INGANG else (o.naar,)))
@@ -526,3 +526,17 @@ def test_de_centrale_agent_heeft_de_afrondregel_van_de_duiding_specialist():
         assert "je schrijft geen antwoord in tekst" in p
         assert "Weigert de code het sjabloon, verbeter dan de aanroep" in p
         assert "of gaat de vraag om iets wat in geen sjabloon past" not in p
+
+
+def test_een_getypt_annotatieverzoek_gaat_via_annoteer_naar_de_annotatieroute():
+    """Analyse centrale agent, gat 4: bij de centrale agent had "annoteer artikel 9 lid 1" geen tool. Nu draagt `annoteer`
+    het over aan dezelfde route als de keuze `annotatie` van de supervisor; meer dan één artikel weigert de code."""
+    graph = FakeGraph(result="")
+    llm = FakeLLM([response([tool_block("t1", "annoteer", {"vraag": "Annoteer artikel 9 en artikel 10 van de "
+                                                                      "Invorderingswet 1990."})], "tool_use")])
+    events = _run(answer_stream("Annoteer artikel 9 en 10 van de Invorderingswet 1990.",
+                                settings=make_settings(centrale_agent="meten"), llm=llm, graph=graph,
+                                agentvorm="centraal"))
+    assert len(llm.calls) == 1, "de weigering komt uit code, zonder tweede modelronde"
+    assert "artikel" in "".join(e["content"] for e in events if e["type"] == "token").lower()
+    assert not graph.queries
