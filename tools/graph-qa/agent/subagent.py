@@ -43,7 +43,8 @@ from .wetsanalyse_api import GesprekVerdwenen, WetsanalyseApi, WetsanalyseApiFou
 logger = logging.getLogger("graph_qa.subagent")
 
 #: De api-methoden die een subagent gebruikt. Geen besluit.
-API_AANROEPEN = frozenset({"start_delegatie", "haal_delegatie", "wijzig_delegatie", "maak_gesprek", "aclose"})
+API_AANROEPEN = frozenset({"start_delegatie", "haal_delegatie", "wijzig_delegatie", "maak_gesprek", "voeg_bericht_toe",
+                           "aclose"})
 
 #: Hoe vaak de delegatie laat weten dat ze leeft, en hoe vaak er naar een stopverzoek wordt gekeken.
 HARTSLAG_S = 30.0
@@ -468,6 +469,14 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
                               werkgebied_id=werkgebied_id or None, profiel=profiel, opdracht=opdracht,
                               delegatie_id=delegatie_id,
                               bronnen=list(bronnen) if bronnen is not None else None)
+        try:
+            # De opdracht (of bij het hervatten de antwoorden van de jurist) als eerste bericht van de beurt: wie het
+            # deelgesprek opent of erin doorvraagt, ziet wat de subagent moest doen (analyse centrale agent, gat 6: er
+            # stonden alleen rapporten). Best-effort: zonder dit bericht draait het kind net zo.
+            await api.voeg_bericht_toe(afloop.gesprek_id, {"rol": "user", "tekst": verzoek.question})
+        except Exception:  # noqa: BLE001 – zie hierboven
+            logger.warning("opdracht niet in het deelgesprek gezet", exc_info=True,
+                           extra={"categorie": "technisch", "delegatie_id": delegatie_id})
         kind_run = await kinderen.start(verzoek, user_id, run_id)
         afloop.run_id = kind_run.run_id
         if bij_start is not None:

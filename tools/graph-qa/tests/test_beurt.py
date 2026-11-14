@@ -506,3 +506,24 @@ def test_vervangen_zin_telt_in_woorden():
     assert vervangen_zin(0) == ""
     assert vervangen_zin(1).startswith("Eén voorstel uit een eerdere ronde")
     assert vervangen_zin(14).startswith("14 voorstellen")
+
+
+@asyncio_test
+async def test_het_bericht_noemt_de_delegaties_van_de_beurt(api):
+    """De werkplek haalt de stand van een delegatie na herladen bij de api; het bericht zegt welke (analyse centrale
+    agent, gat 7). Eén keer per delegatie, in volgorde; een eind-event telt niet."""
+    await _draai([
+        {"type": "regie", "fase": "start", "regie_id": "d1", "soort": "subagent"},
+        {"type": "regie", "fase": "eind", "regie_id": "d1", "soort": "subagent"},
+        {"type": "regie", "fase": "start", "regie_id": "d2", "soort": "subagent", "hervat": True},
+        {"type": "regie", "fase": "start", "regie_id": "d1", "soort": "subagent", "hervat": True},
+        {"type": "token", "content": "Bundel."},
+        {"type": "done"},
+    ])
+    assert api.berichten[0][1]["delegaties"] == ["d1", "d2"]
+
+
+@asyncio_test
+async def test_zonder_delegatie_geen_veld(api):
+    await _draai([{"type": "token", "content": "x"}, {"type": "done"}])
+    assert "delegaties" not in api.berichten[0][1]
