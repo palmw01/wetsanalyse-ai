@@ -49,10 +49,14 @@ API_AANROEPEN = frozenset({
     "meld_bronnen_loopt", "zet_bronnen_uitkomst", "meld_bronnen_mislukt",
     "start_delegatie", "wijzig_delegatie", "maak_gesprek", "voeg_bericht_toe", "aclose"})
 
-# "zoek per deelvraag de bronnen", "annoteer per deelvraag de kern", "laat Lex per deelvraag de bronnen bepalen".
-_PER_DEELVRAAG = re.compile(r"\bper\s+deelvraag\b|\bvoor\s+(?:elke|iedere)\s+deelvraag\b|\bper\s+deelvragen\b", re.I)
+# "zoek per deelvraag de bronnen", "annoteer per deelvraag de kern", "laat Lex per deelvraag de bronnen bepalen", en
+# (meting ADR-016 A5, M03) "kun je voor al mijn deelvragen tegelijk uitzoeken welke bepalingen erbij horen?".
+_PER_DEELVRAAG = re.compile(r"\bper\s+deelvraag\b|\b(?:voor\s+)?(?:elke|iedere)\s+deelvraag\b|\bper\s+deelvragen\b"
+                            r"|\b(?:al|alle)\s+(?:mijn\s+|de\s+|onze\s+)?deelvragen\b", re.I)
 _VRAAGWOORD = re.compile(r"^\s*(?:hoe|wat|waarom|welke|wanneer|wie|waar|is|zijn|kan\s+ik|moet)\b", re.I)
-_BRONNEN = re.compile(r"\b(?:zoek|bepaal|verzamel|vind)\w*\b.*\bbron", re.I)
+# De bronnen of bepalingen zijn wat er gezocht wordt, niet waar iets over gaat ("zoek uit wat de memorie van toelichting
+# zegt over de bepalingen", V03): geen "over" ertussen.
+_BRONNEN = re.compile(r"\b(?:uit)?(?:zoek|bepaal|verzamel|vind)\w*\b(?:(?!\bover\b).)*\b(?:bron|bepaling)", re.I)
 _ANNOTEER = re.compile(r"\bannote(?:er|ren)\b", re.I)
 
 
