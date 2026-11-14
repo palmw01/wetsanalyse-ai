@@ -188,6 +188,16 @@ class GesprekkenWissen(BaseModel):
     ids: list[str] = Field(default_factory=list, max_length=2000)
 
 
+class SubagentOpdracht(BaseModel):
+    """De opdracht van de centrale agent aan een subagent (ADR-016 §A3): vaste velden, zodat een vage opdracht geen dubbel
+    werk geeft. Dezelfde velden zijn het strict schema van de tool `subagent` (`agent/subagent.py`)."""
+    doel: str = Field(min_length=1, max_length=2000)
+    onderwerp: str = Field(default="", max_length=1000)
+    oplevering: str = Field(default="", max_length=1000)
+    bronnen: str = Field(default="", max_length=1000)
+    buiten: str = Field(default="", max_length=1000)
+
+
 class ChatRequest(BaseModel):
     question: str
     conversation_id: str | None = None  # stuur mee voor gespreksgeheugen
@@ -248,6 +258,16 @@ class ChatRequest(BaseModel):
     # Een meetvlag (ADR-016 §A7): welke agentvorm deze run draait. Telt alleen waar de straat het toelaat
     # (`CENTRALE_AGENT` is `meten` of `aan`); met `uit` wordt het veld genegeerd. De werkplek stuurt hem niet.
     agentvorm: Literal["supervisor", "centraal"] | None = None
+    # Een subagent (ADR-016 §A3): het profiel en de opdracht van de centrale agent. Alleen de centrale agent zet ze, via
+    # de ene ingang (`api.main.start_beurt`); `POST /v1/runs` neemt ze niet aan. Samen of geen van beide.
+    profiel: str = Field(default="", pattern=r"^([a-z][a-z0-9_]{0,63})?$")
+    opdracht: SubagentOpdracht | None = None
+
+    @model_validator(mode="after")
+    def _subagent_heeft_profiel_en_opdracht(self) -> "ChatRequest":
+        if bool(self.profiel) != (self.opdracht is not None):
+            raise ValueError("een subagent heeft een profiel en een opdracht")
+        return self
 
     @model_validator(mode="after")
     def _actie_kiest_de_route(self) -> "ChatRequest":

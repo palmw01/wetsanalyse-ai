@@ -92,6 +92,7 @@ def build_graph(
     annotaties=None,
     begrippen=None,
     agent_api=None,
+    kinderen=None,
 ) -> StateGraph:
     """Bouw de (ongecompileerde) toestandsgraaf; de wrapper compileert 'm met een checkpointer."""
     # `model` is het sterke model: de annotatie-classifier, de reviewer en de QA-specialisten. De router
@@ -185,6 +186,7 @@ def build_graph(
         model=model, model_router=model_router, model_ophaal=model_ophaal,
         memory_context=_memory_context, advies_context=_advies_context,
         annotaties=annotaties, begrippen=begrippen, loop=_lopende_loop(), agent_api=agent_api,
+        kinderen=kinderen,
     )
 
 

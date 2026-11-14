@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 
 VERSIE = 1
 
-Sjabloon = Literal["begrip", "bepaling", "duiding", "annotaties", "extern"]
+Sjabloon = Literal["begrip", "bepaling", "duiding", "annotaties", "extern", "rapport"]
 
 
 class Vindplaats(BaseModel):

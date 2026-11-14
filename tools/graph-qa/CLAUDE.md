@@ -173,7 +173,26 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   de kernset en de rest samen de graaftools zijn, dat geen instructie een tool noemt die het profiel niet heeft, en
   dat de beschrijving elke tool achter de overdracht noemt. De eigen tools van de agent hebben een eigen categorie in
   de contextopbouw (`contextdelen.AGENTTOOLS`, met een label in `frontend/lib/contextdelen.ts`).
-- **`agent_node`** – vraagt de agent van de beurt op (`agent_voor`, uit het profielregister): `SYSTEM_PROMPT` + methode-instructies
+- **Eén subagent (ADR-016 §A3, `agent/subagent.py`).** De overdracht `subagent` (een profiel uit `profielen.KIESBAAR` en
+  de opdracht in vaste velden, `SubagentOpdracht`, strict) start een kindgesprek en wacht erop, in dezelfde beurt:
+  - een delegatie van soort `subagent` bij de api (`/v1/delegaties`, ook in een los gesprek; 409 = er loopt al werk van
+    de gebruiker, en het model krijgt dat als weigering), een hartslag, en een kindgesprek met `ouder_id`, `delegatie_id`
+    en `profiel`;
+  - een gewone run langs `api.main.start_beurt` (`Kinderen`, met `ouder_run_id` en de budgetpoort). `POST /v1/runs` neemt
+    `profiel` en `opdracht` niet aan (422 `subagent_intern`). Het kind begint schoon: de opdracht is zijn eerste bericht
+    (categorie `opdracht` in de contextopbouw), met het werkgebied en de bronnen van de beurt, zonder de historie;
+  - in het kind kiest `_kies` zonder model het profiel (`state["opdracht"]`), en `agent_van` maakt er een `Subagent` van:
+    het profiel van een kiesbare specialist met **één uitgang, het sjabloon `rapport`** (`sjablonen/rapport.py`: status
+    `klaar` of `niet_gelukt`, gedaan, bevindingen met de passages van `duiding`, open). Geen eigen tools: één laag. Geen
+    profiel mag `rapport` noemen (`profielen.grenzen`);
+  - na afloop zet `answer_stream` het rapport en de `source_trace` in `Run.resultaat` (alleen in het proces). De ouder geeft
+    het rapport als toolresultaat met een kop van de code en onschadelijk gemaakt (`als_toolresultaat`), en zet de
+    toolresultaten van het kind in zijn eigen `source_trace`: `verify` toetst de samenvatting ertegen en ze komen in het
+    bronregister. Zonder rapport krijgt de ouder een reden uit code, nooit vrije modeltekst;
+  - stoppen van de beurt stopt het kind (`_stopwacht`); de events zijn `regie`/`regie_taak` met `soort: subagent` en het
+    profiel. Eén subagent per beurt (A3); meer tegelijk en vragen naar boven komen met A4 en A5.
+  `tests/test_subagent.py` legt dit vast, ook een kindbeurt door de echte graaf.
+- **`agent_node`** – vraagt de agent van de beurt op (`agent_van`, uit het profielregister): `SYSTEM_PROMPT` + methode-instructies
   (`agent/methode.py`, uit het gegenereerde `methodepakket.py`) + addendum + plan, met
   de toolschema's van de agent (`Agent.toolschemas`). Tekst stroomt niet mee: pas na de ronde is bekend of het narratie
   is. Een ronde mét tools gaat dan als `reason` naar het denkproces (`narratie.ronde_in_denk`, met `\n\n`

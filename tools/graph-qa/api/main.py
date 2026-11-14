@@ -73,6 +73,7 @@ from agent.models import (  # noqa: E402
 )
 from agent.runstore import Run, RunBestaatAl, RunStore  # noqa: E402
 from agent.regie.regisseur import opdracht_in, regie_stroom  # noqa: E402
+from agent.subagent import Kinderen  # noqa: E402
 from agent.runstore.geheugen import GeheugenStore  # noqa: E402
 from agent.wetsanalyse_api import WetsanalyseApi  # noqa: E402
 from agent import imagemelding  # noqa: E402
@@ -362,6 +363,12 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                     bronnen_herkomst=request.bronnen_herkomst,
                     beurtcontext_plek=request.beurtcontext_plek,
                     agentvorm=request.agentvorm,
+                    # Een subagent (ADR-016 §A3): zijn profiel en opdracht, en wat hij oplevert voor de ouder.
+                    profiel=request.profiel,
+                    opdracht=request.opdracht,
+                    resultaat=run.resultaat,
+                    # De centrale agent zet een subagent langs dezelfde ingang aan het werk.
+                    kinderen=_KINDEREN,
                 ),
                 settings=settings,
                 run=run,
@@ -397,6 +404,18 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
             return reeks_run(request, run, settings=settings, user_id=gebruiker)
         return gewone_beurt()
     return maak
+
+
+async def _kind_starten(verzoek: ChatRequest, wie: str, ouder: str) -> Run:
+    return await start_beurt(verzoek, wie, ouder_run_id=ouder, budget=True)
+
+
+async def _kind_stoppen(run: Run) -> None:
+    await runs.vraag_stop(run)
+
+
+#: Hoe de centrale agent een subagent start en stopt (ADR-016 §A3): de ene ingang, met de budgetpoort.
+_KINDEREN = Kinderen(start=_kind_starten, stop=_kind_stoppen)
 
 
 async def _budget_check(gebruiker: str = Depends(_aanroeper)) -> None:
@@ -449,7 +468,12 @@ async def start_run(
     409 als er al een run voor dit gesprek loopt – dat is geen nettigheid maar bescherming:
     `thread_id == conversation_id`, dus twee gelijktijdige lussen schrijven door elkaar heen in
     dezelfde checkpointer-thread. De aanroeper hoort dan aan te haken bij het meegegeven run_id.
+
+    Een subagent (`profiel`, `opdracht`, ADR-016 §A3) start alleen de centrale agent; hier is dat 422.
     """
+    if request.profiel or request.opdracht is not None:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail={"reden": "subagent_intern", "melding": "Een subagent start alleen Lex zelf."})
     try:
         run = await start_beurt(request, gebruiker)
     except RunBestaatAl as al:

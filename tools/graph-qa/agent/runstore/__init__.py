@@ -112,6 +112,9 @@ class Run:
     gewist: bool = False
     # De regierun die deze run startte (ADR-012; leeg = een gewone run). Stoppen van de ouder stopt de kinderen.
     ouder_run_id: str = ""
+    # Wat een subagent opleverde (ADR-016 §A3): het rapport en zijn toolresultaten, voor de ouder op deze replica
+    # (`agent/subagent.py`). Alleen in het proces; niet bewaard en niet naar de werkplek.
+    resultaat: dict[str, Any] = field(default_factory=dict)
     _wakker: asyncio.Condition = field(default_factory=asyncio.Condition)
 
     @property

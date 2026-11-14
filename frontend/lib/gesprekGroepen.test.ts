@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { deelIn } from "./gesprekGroepen";
+import { deelgesprekProfiel, deelIn } from "./gesprekGroepen";
 import type { GesprekSamenvatting } from "./types";
 
 const g = (id: string, extra: Partial<GesprekSamenvatting> = {}): GesprekSamenvatting => ({
@@ -50,5 +50,13 @@ describe("deelgesprekken van een regie (ADR-012)", () => {
   it("een deelgesprek zonder zijn ouder in de lijst blijft staan", () => {
     const uit = deelIn([g("k", { werkgebied_id: "w1", ouder_id: "weg" }), g("a", { werkgebied_id: "w1" })]);
     expect(uit.werkgebieden[0].gesprekken.map((x) => x.id)).toEqual(["k", "a"]);
+  });
+});
+
+describe("het profiel van een deelgesprek (ADR-016 §A3)", () => {
+  it("noemt het profiel van een subagent, niet bij een regie of een los gesprek", () => {
+    expect(deelgesprekProfiel({ ouder_id: "o", profiel: "duiding" })).toBe("subagent duiding");
+    expect(deelgesprekProfiel({ ouder_id: "o", profiel: "" })).toBe("");
+    expect(deelgesprekProfiel({ ouder_id: "", profiel: "duiding" })).toBe("");
   });
 });
