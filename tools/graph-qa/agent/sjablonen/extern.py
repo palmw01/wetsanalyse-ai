@@ -576,10 +576,25 @@ def leemte_tekst(c: ConnectorBeschrijving, data: dict[str, Any]) -> str:
                                   "Dat ik niets vond, betekent niet dat het niet bestaat."]))
 
 
+def niet_getoond_tekst(overgeslagen: list[str]) -> str:
+    """De leemte voor wat de code in een antwoord wegliet, uit code: alleen hoeveel. De meldingen voor het model ("haal het
+    vervolg op") horen niet in het antwoord."""
+    aantal = len(overgeslagen)
+    return (("Een aanwijzing in een bron naast de wet klopte" if aantal == 1 else
+             f"{aantal} aanwijzingen in een bron naast de wet klopten")
+            + " niet met wat er gelezen is en " + ("is" if aantal == 1 else "zijn") + " daarom niet als citaat getoond.")
+
+
 def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
-    """Het sjabloon `antwoord_extern`: kort antwoord, de lijst en de passages, en de twijfel."""
+    """Het sjabloon `antwoord_extern`: kort antwoord, de lijst en de passages, en de twijfel. Een aanwijzing die niet
+    klopt, laat de code weg als er iets anders te tonen is; anders weigert ze (meting bundel 114)."""
     lijst = lijsten(invoer.get(STUKKEN), trace)
-    gevonden = blokken(invoer.get(VELD), trace)
+    overgeslagen: list[str] = []
+    gevonden = blokken(invoer.get(VELD), trace, overgeslagen=overgeslagen)
+    if overgeslagen and not any(b.soort == "extern" for b in gevonden) and not lijst:
+        blokken(invoer.get(VELD), trace)   # niets anders te tonen: de weigering zoals altijd
+    if overgeslagen:
+        gevonden = [*gevonden, Leemte(tekst=niet_getoond_tekst(overgeslagen))]
     if not gevonden and not lijst:
         raise Onvulbaar("Wijs minstens één passage of één gevonden stuk aan, of antwoord in tekst als je niets vond.")
     kort = str(invoer.get("kort_antwoord") or "").strip()
