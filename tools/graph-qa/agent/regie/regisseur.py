@@ -43,6 +43,23 @@ STOP_PEIL_S = 0.5
 
 OPDRACHT_VAN_ACTIE: dict[str, Opdracht] = {"regie_bronnen": "bronnen", "regie_annoteren": "annoteren"}
 
+#: Het profiel van een regiekind (ADR-016 §A2: `retrieval`, de ophaalstap, `kiesbaar: false`): het kind zoekt de bronnen
+#: van één deelvraag of haalt op wat het annoteert, langs een route in code. Alleen op het event en in de meting: het
+#: deelgesprek krijgt het niet, want doorvragen daar loopt met het profiel van het gesprek, en `retrieval` geeft JSON.
+PROFIEL_KIND = "retrieval"
+
+#: Het `plan_id` van de knop voor de volgende fase (ADR-016 §A5, *Fasen*): geen bevestigd plan, maar "maak het plan op
+#: de stand van dat moment". De bundel van een fase kan het plan van de volgende niet vooraf vastleggen, want dat hangt af
+#: van de besluiten van de jurist ertussen. Een klik geeft daarom eerst het plan van nu, met de gewone bevestiging.
+VOLGENDE_FASE = "0" * 16
+
+#: De fasen van "werk dit werkgebied uit" (agentset M04): elke fase eindigt waar de jurist beslist.
+FASEN_TEKST = ("Dit doe ik in fasen, met jou ertussen:\n"
+               "1. de bronnen per deelvraag zoeken (nu);\n"
+               "2. annoteren wat je per deelvraag opnam;\n"
+               "3. de begrippen voorstellen uit die annotaties.\n"
+               "Elke volgende fase begint pas als jij de vorige hebt beoordeeld; ik neem zelf niets op.\n\n")
+
 #: De api-methoden die de regisseur gebruikt. Geen besluit: geen opnemen, uitsluiten, beoordelen, afronden of accorderen.
 API_AANROEPEN = frozenset({
     "haal_werkgebied", "haal_bronselectie", "haal_annotatie_werkvoorraad", "start_bronnen_run", "haal_bronnen_run",
@@ -163,10 +180,11 @@ def _bundel(plan: Plan, aflopen: list[Afloop], stand: dict[str, Any]) -> tuple[s
     if mislukt:
         delen += ["**Mislukt of niet aan bod**", *mislukt, ""]
     if plan.opdracht == "bronnen":
-        delen.append("Neem per deelvraag in het paneel op wat je wilt houden. Daarna kan ik annoteren wat je opnam: "
-                     "*Annoteer per deelvraag de kern*.")
+        delen.append("Neem per deelvraag in het paneel op wat je wilt houden. Daarna is de volgende fase annoteren wat je "
+                     "opnam: de knop hieronder maakt dat plan op de stand van dat moment.")
     else:
-        delen.append("Beoordeel de markeringen per bepaling; wat Lex voorstelt is geel tot jij beslist.")
+        delen.append("Beoordeel de markeringen per bepaling; wat Lex voorstelt is geel tot jij beslist. Daarna is de "
+                     "volgende fase de begrippen: *Stel begrippen voor*.")
     tellingen = {"opgeleverd": len(opgeleverd), "wacht": len(wacht), "mislukt": len(mislukt),
                  "kinderen": [{"titel": a.taak.titel, "gesprek_id": a.gesprek_id, "run_id": a.run_id,
                                "uitkomst": a.uitkomst} for a in aflopen]}
@@ -206,6 +224,15 @@ def voorstel(plan: Plan, parallel: int, *, bevestigd: str = "") -> tuple[str, di
                    "schatting": plan.schatting, "plan_id": plan.plan_id, "opdracht": plan.opdracht}
 
 
+def volgende_fase(plan: Plan) -> dict[str, Any] | None:
+    """De knop voor de volgende fase onder de bundel van de bronnen (ADR-016 §A5): annoteren wat de jurist opnam, met
+    het plan op de stand van het moment van de klik. Na annoteren volgt geen regie maar een taak (de begrippen)."""
+    if plan.opdracht != "bronnen" or not plan.taken:
+        return None
+    return {"soort": "regie", "werkgebied_id": plan.werkgebied_id, "aantal": len(plan.taken), "schatting": None,
+            "plan_id": VOLGENDE_FASE, "opdracht": "annoteren"}
+
+
 async def regie_stroom(
     request: Any,
     run: Any,
@@ -243,7 +270,8 @@ async def regie_stroom(
         plan = await plan_van(api, werkgebied_id, opdracht)
         bevestigd = getattr(request, "plan_id", "") or ""
         if not plan.taken or bevestigd != plan.plan_id:
-            tekst, bevestiging = voorstel(plan, parallel, bevestigd=bevestigd)
+            # De knop voor de volgende fase bevestigt geen plan: hij vraagt het plan van nu (`VOLGENDE_FASE`).
+            tekst, bevestiging = voorstel(plan, parallel, bevestigd="" if bevestigd == VOLGENDE_FASE else bevestigd)
             async for ev in leg_vast(tekst, **({"bevestiging": bevestiging} if bevestiging else {})):
                 yield ev
             return
@@ -284,7 +312,8 @@ async def regie_stroom(
                                            "opdracht": plan.opdracht, "eind": eind, "taken": len(plan.taken),
                                            "opgeleverd": tellingen["opgeleverd"], "mislukt": tellingen["mislukt"]})
         yield {"type": "regie", "fase": "eind", "regie_id": regie_id, "uitkomst": eind, **tellingen}
-        async for ev in leg_vast(tekst, artefact=artefact):
+        volgende = volgende_fase(plan) if eind == "klaar" else None
+        async for ev in leg_vast(tekst, artefact=artefact, **({"bevestiging": volgende} if volgende else {})):
             yield ev
     except WetsanalyseApiFout as fout:
         logger.error("regie: api-fout", extra={"categorie": "technisch", "http_status": fout.status})
@@ -350,7 +379,7 @@ async def _draai_kind(index: int, taak: Taak, afloop: Afloop, span: Any, *, regi
                                           "ouder_id": request.conversation_id or "", "delegatie_id": regie_id})
         afloop.gesprek_id = str(gesprek["id"])
         await wachtrij.put({"type": "regie_taak", "fase": "start", "regie_id": regie_id, "index": index,
-                            "titel": taak.titel, "gesprek_id": afloop.gesprek_id})
+                            "titel": taak.titel, "gesprek_id": afloop.gesprek_id, "profiel": PROFIEL_KIND})
         verzoek = maak_verzoek(**kind_verzoek(taak, werkgebied_id=werkgebied_id, gesprek_id=afloop.gesprek_id))
         kind_run = await start_kind(verzoek, user_id, run_id)
         afloop.run_id = kind_run.run_id

@@ -51,8 +51,12 @@ def subagent_plan_node(b: Bouw, state: State) -> dict[str, Any]:
 def regie_voorstel_node(b: Bouw, state: State) -> dict[str, Any]:
     from ..regie.regisseur import REGIE_PARALLEL, plan_van, voorstel
 
+    from ..regie.regisseur import FASEN_TEKST
+
     writer = get_stream_writer()
-    opdracht = state.get("regie_plan") or "bronnen"
+    # "Werk dit werkgebied uit" (agentset M04): een plan in fasen, waarvan de eerste de bronnen zijn.
+    fasen = state.get("regie_plan") == "uitwerken"
+    opdracht = "bronnen" if fasen else state.get("regie_plan") or "bronnen"
     _stap(writer, "Lex", "maakt het plan voor de regie uit de stand van het werkgebied", route="regie")
 
     async def maak(_stuur) -> tuple[str, dict[str, Any] | None]:
@@ -65,4 +69,5 @@ def regie_voorstel_node(b: Bouw, state: State) -> dict[str, Any]:
     except WetsanalyseApiFout:
         logger.warning("regie_plan: api-fout", extra={"categorie": "technisch"})
         return _klaar(writer, STORING)
-    return _klaar(writer, tekst, **({"bevestiging": bevestiging} if bevestiging else {}))
+    return _klaar(writer, (FASEN_TEKST if fasen and bevestiging else "") + tekst,
+                  **({"bevestiging": bevestiging} if bevestiging else {}))

@@ -146,8 +146,18 @@ def test_zonder_bevestiging_alleen_het_plan_met_een_knop():
 
 def test_een_veranderd_plan_start_niet():
     api, kinderen = NepApi(), Kinderen()
-    _draai(_verzoek(plan_id="0" * 16), api, kinderen)
+    _draai(_verzoek(plan_id="f" * 16), api, kinderen)
     assert not kinderen.verzoeken and api.berichten[-1]["tekst"].startswith("Het plan veranderde")
+
+
+def test_de_knop_voor_de_volgende_fase_geeft_het_plan_van_nu():
+    """ADR-016 §A5, *Fasen*: de knop onder de bundel vraagt het plan op de stand van het moment van de klik, zonder te
+    zeggen dat het plan veranderde."""
+    api, kinderen = NepApi(), Kinderen()
+    _draai(_verzoek(plan_id=rg.VOLGENDE_FASE), api, kinderen)
+    bericht = api.berichten[-1]
+    assert not kinderen.verzoeken and not bericht["tekst"].startswith("Het plan veranderde")
+    assert bericht["bevestiging"]["plan_id"] == _plan_id(api)
 
 
 def test_bevestigd_start_per_deelvraag_een_kindgesprek_en_bundelt():
@@ -167,7 +177,13 @@ def test_bevestigd_start_per_deelvraag_een_kindgesprek_en_bundelt():
     assert slot["artefact"] == {"soort": "regie", "ref": {"werkgebied_id": WG, "regie_id": "regie-1"},
                                 "titel": "Regie · bronnen"}
     assert "**Opgeleverd**" in slot["tekst"] and "**Wacht op jou**" in slot["tekst"]
-    assert "2 voorgestelde bronnen in het paneel" in slot["tekst"] and "Annoteer per deelvraag de kern" in slot["tekst"]
+    assert "2 voorgestelde bronnen in het paneel" in slot["tekst"] and "volgende fase annoteren" in slot["tekst"]
+    # De knop voor de volgende fase (ADR-016 §A5): annoteren, met het plan op de stand van de klik.
+    assert slot["bevestiging"] == {"soort": "regie", "werkgebied_id": WG, "aantal": 3, "schatting": None,
+                                   "plan_id": rg.VOLGENDE_FASE, "opdracht": "annoteren"}
+    # Elk regiekind draagt het profiel van de ophaalstap op zijn event; het deelgesprek niet.
+    assert {e.get("profiel") for e in events if e["type"] == "regie_taak" and e["fase"] == "start"} == {"retrieval"}
+    assert not any("profiel" in g for g in api.gesprekken)
     assert api.regie_wijzigingen[-1]["status"] == "klaar"
     assert api.regie["plan_id"] == _plan_id(api) and api.regie["gesprek_id"] == "regie"
 
