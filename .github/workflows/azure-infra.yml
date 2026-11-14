@@ -32,6 +32,11 @@
 #             graphdb-app (die geen persistente opslag heeft) doet de graafwacht dat zelf binnen
 #             een kwartier; deze actie is er voor wie daar niet op wil wachten.
 #   eval      draait de eval-job en herstelt daarna zijn args.
+#   2fa-herstel  wist de 2FA van één account (`herstel_userid`) als de enige beheerder authenticator
+#             én herstelcodes kwijt is. Vereist de groepsnaam ter bevestiging. Een eenmalige job met het
+#             api-image dat draait (deploy/azure/herstel-2fa.bicep, `python -m app.herstel_2fa`); die
+#             weigert zolang er een andere actieve beheerder met 2FA is. Zie deploy/azure/README.md
+#             §*2FA voor beheerders*.
 #
 # Een `deploy` start de import-job zelf en wacht hem af (stap *Graaf vullen*): GraphDB komt leeg op.
 #
@@ -52,7 +57,7 @@ on:
       actie:
         description: "Wat doen"
         type: choice
-        options: [wat-if, deploy, afbreken, opruimen, vul-graaf, eval, inventaris, telemetrie, grafana, grafana-afbreken, mcp-proxy-afbreken]
+        options: [wat-if, deploy, afbreken, opruimen, vul-graaf, eval, inventaris, telemetrie, grafana, grafana-afbreken, mcp-proxy-afbreken, 2fa-herstel]
         default: wat-if
       eval_set:
         description: "Alleen voor 'eval': alles (smoke + 3× annotatie + 3× gesprek), of alleen gesprek, annotatie, de conceptcasussen of de duidingset (smoke + 3×)"
@@ -68,7 +73,11 @@ on:
         type: boolean
         default: false
       bevestig_resource_group:
-        description: "Voor 'afbreken' en 'opruimen': typ de resource group ter bevestiging"
+        description: "Voor 'afbreken', 'opruimen', de '-afbreken'-acties en '2fa-herstel': typ de resource group ter bevestiging"
+        type: string
+        default: ""
+      herstel_userid:
+        description: "Alleen voor '2fa-herstel': de userid van de enige beheerder die authenticator én herstelcodes kwijt is"
         type: string
         default: ""
 
@@ -158,6 +167,24 @@ jobs:
           if [ "${{ inputs.actie }}" = "mcp-proxy-afbreken" ]; then
             if [ "$INVOER_BEVESTIGING" != "$RESOURCE_GROUP" ]; then
               echo "::error::Dit verwijdert de container app '$APP_NAME-graphdb-proxy'. Typ '$RESOURCE_GROUP' in het bevestigingsveld."
+              exit 1
+            fi
+            exit 0
+          fi
+
+          # Het noodherstel van 2FA wist een tweede factor, dus dezelfde bevestiging. De userid komt NIET via
+          # `env:` binnen: GitHub zet de env van een stap in de log vóór een `add-mask` kan werken, en deze
+          # repo (dus zijn run-logs) is openbaar. Hij wordt hier uit het event gelezen, gemaskeerd en
+          # getoetst; de stap *2FA herstellen* leest hem op dezelfde manier.
+          if [ "${{ inputs.actie }}" = "2fa-herstel" ]; then
+            userid=$(jq -r '.inputs.herstel_userid // ""' "$GITHUB_EVENT_PATH" | tr '[:upper:]' '[:lower:]' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+            [ -z "$userid" ] || echo "::add-mask::$userid"
+            if ! printf '%s' "$userid" | grep -Eq '^[a-z0-9._-]{3,64}$'; then
+              echo "::error::Vul bij herstel_userid de userid van het account in (3-64 tekens: a-z, 0-9, punt, liggend streepje, koppelteken)."
+              exit 1
+            fi
+            if [ "$INVOER_BEVESTIGING" != "$RESOURCE_GROUP" ]; then
+              echo "::error::Dit wist de 2FA van een account in '$APP_NAME'. Typ '$RESOURCE_GROUP' in het bevestigingsveld."
               exit 1
             fi
             exit 0
@@ -830,6 +857,107 @@ jobs:
             echo "\`$naam\` is verwijderd. De graaf is weer alleen intern bereikbaar."
             echo "Vergeet de MCP-registratie op je werkstation niet: \`claude mcp remove graphdb\`."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # De uitweg als de enige beheerder authenticator én herstelcodes kwijt is (README §*2FA voor
+      # beheerders*). Een eenmalige job in de straat, met het api-image dat er draait: zo bereikt hij de
+      # database langs de weg van de api, zonder firewallregel voor de runner, en is het effect dat van
+      # `users.reset_2fa`. Wat geweigerd wordt, beslist `app/herstel_2fa.py`, niet deze stap.
+      #
+      # De repo is openbaar, dus deze log ook: de userid gaat nergens in `env:` of in de samenvatting, en
+      # uit de job-log komen alleen de regels UITKOMST en UITLEG mee, die geen account noemen.
+      - name: 2FA herstellen (enige beheerder)
+        if: ${{ inputs.actie == '2fa-herstel' }}
+        run: |
+          set -euo pipefail
+          userid=$(jq -r '.inputs.herstel_userid // ""' "$GITHUB_EVENT_PATH" | tr '[:upper:]' '[:lower:]' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+          echo "::add-mask::$userid"
+          printf '%s' "$userid" | grep -Eq '^[a-z0-9._-]{3,64}$' || { echo "::error::ongeldige userid"; exit 1; }
+          JOB="$APP_NAME-2fa-herstel"
+
+          image=$(az containerapp show -n "$APP_NAME-api" -g "$RESOURCE_GROUP" \
+                    --query 'properties.template.containers[0].image' -o tsv)
+          db_url=$(az containerapp secret show -n "$APP_NAME-api" -g "$RESOURCE_GROUP" \
+                     --secret-name database-url --query value -o tsv)
+          [ -n "$image" ] && [ -n "$db_url" ] || { echo "::error::api-app van '$APP_NAME' niet gevonden"; exit 1; }
+          echo "::add-mask::$db_url"
+          echo "Image: $image"
+
+          # Een achtergebleven job van een afgebroken run eerst weg: hij draagt een oude opdracht.
+          if az containerapp job show -n "$JOB" -g "$RESOURCE_GROUP" --output none 2>/dev/null; then
+            az containerapp job delete -n "$JOB" -g "$RESOURCE_GROUP" --yes --output none
+          fi
+          az deployment group create \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$JOB" \
+            --template-file deploy/azure/herstel-2fa.bicep \
+            --parameters appName="$APP_NAME" apiImage="$image" databaseUrl="$db_url" \
+                         herstelUserid="$userid" herstelDoor="github:$GITHUB_ACTOR" \
+            --output none
+
+          gestart=$(date -u -d '2 minutes ago' +%Y-%m-%dT%H:%M:%SZ)
+          az containerapp job start -n "$JOB" -g "$RESOURCE_GROUP" --output none
+          uitvoering=$(az containerapp job execution list -n "$JOB" -g "$RESOURCE_GROUP" \
+                        --query "sort_by([], &properties.startTime)[-1].name" -o tsv)
+          status=Unknown
+          for i in $(seq 1 40); do
+            status=$(az containerapp job execution show -n "$JOB" -g "$RESOURCE_GROUP" \
+                       --job-execution-name "$uitvoering" --query properties.status -o tsv)
+            echo "[$i] $status"
+            case "$status" in Succeeded|Failed|Cancelled|Degraded) break ;; esac
+            sleep 10
+          done
+
+          # De uitkomst staat in de log van de job; die komt via Log Analytics, een minuut of twee later.
+          # Bij een job is `ContainerAppName_s` leeg en staat alleen `ContainerName_s` gevuld (zie de eval).
+          ws=$(az monitor log-analytics workspace show -g "$RESOURCE_GROUP" -n "log-$APP_NAME" \
+                 --query customerId -o tsv 2>/dev/null || true)
+          regels=""
+          if [ -n "$ws" ]; then
+            for poging in 1 2 3 4 5 6; do
+              regels=$(az monitor log-analytics query -w "$ws" --analytics-query \
+                "ContainerAppConsoleLogs_CL
+                 | where TimeGenerated >= datetime('$gestart') and ContainerName_s == 'herstel-2fa'
+                 | where Log_s startswith 'UITKOMST:' or Log_s startswith 'UITLEG:'
+                 | order by TimeGenerated asc
+                 | project Log_s" \
+                -o tsv 2>/dev/null || true)
+              [ -n "$regels" ] && break
+              echo "(uitkomst nog niet in Log Analytics – poging $poging)"
+              sleep 30
+            done
+          fi
+          uitkomst=$(printf '%s\n' "$regels" | sed -n 's/^UITKOMST: \([a-z_]*\).*/\1/p' | tail -1)
+          uitleg=$(printf '%s\n' "$regels" | sed -n 's/^UITLEG: //p' | tail -1)
+          echo "Status: $status · uitkomst: ${uitkomst:-onbekend}"
+          [ -z "$uitleg" ] || echo "$uitleg"
+          {
+            echo "## 2FA-noodherstel – \`$APP_NAME\`"
+            echo ""
+            echo "- Door: \`$GITHUB_ACTOR\` · Execution: \`$uitvoering\` · Status: **$status**"
+            echo "- Uitkomst: **${uitkomst:-onbekend}**"
+            [ -z "$uitleg" ] || echo "- $uitleg"
+            echo ""
+            if [ "$uitkomst" = "gereset" ]; then
+              echo "Het account logt nu in met alleen het wachtwoord, werkt als analist en koppelt in"
+              echo "*Instellingen → Beveiliging* een nieuwe authenticator-app. Pas dan gaat het beheer weer open."
+            elif [ -z "$uitkomst" ]; then
+              echo "De uitkomst stond niet (op tijd) in Log Analytics. Kijk in de portal bij de job, of draai"
+              echo "\`azure-infra\` → \`telemetrie\` met een query op \`ContainerName_s == 'herstel-2fa'\`."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ "$status" = "Succeeded" ] && [ "$uitkomst" = "gereset" ] || {
+            echo "::error::Geen reset (status $status, uitkomst ${uitkomst:-onbekend}) – zie de samenvatting"; exit 1; }
+
+      # Altijd weg, ook na een fout of annulering: de job draagt de verbindingsstring van de database.
+      - name: 2FA-herstel-job verwijderen
+        if: ${{ always() && inputs.actie == '2fa-herstel' }}
+        run: |
+          JOB="$APP_NAME-2fa-herstel"
+          if az containerapp job show -n "$JOB" -g "$RESOURCE_GROUP" --output none 2>/dev/null; then
+            az containerapp job delete -n "$JOB" -g "$RESOURCE_GROUP" --yes --output none \
+              && echo "Job '$JOB' verwijderd." \
+              || echo "::warning::Job '$JOB' niet verwijderd – draai 'opruimen', hij draagt een databasesecret."
+          fi
 
       - name: Graaf vullen (import-job)
         if: ${{ inputs.actie == 'vul-graaf' || inputs.actie == 'deploy' }}

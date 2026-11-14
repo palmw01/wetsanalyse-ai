@@ -297,6 +297,7 @@ Actions → **azure-infra** → *Run workflow*, met een keuze voor de straat en 
 | `grafana` | rolt alleen de Grafana-app uit (`grafana.bicep`). Raakt de applicatiestack niet. |
 | `grafana-afbreken` | verwijdert de Grafana-app van de gekozen straat. Vraagt de groepsnaam ter bevestiging. |
 | `mcp-proxy-afbreken` | verwijdert de GraphDB-MCP-proxy. Vraagt de groepsnaam ter bevestiging. |
+| `2fa-herstel` | wist de 2FA van één account (`herstel_userid`) als de enige beheerder authenticator én herstelcodes kwijt is, met een eenmalige job die daarna weer weg is. Weigert zolang er een andere actieve beheerder met 2FA is. Vraagt de groepsnaam ter bevestiging. Zie §*2FA voor beheerders*. |
 
 Dit is de enige workflow die resources aanmaakt, wijzigt of verwijdert. Vandaar `wat-if` als
 default: een deploy raakt GraphDB, en die is niet-persistent. Hij geeft de images die nu draaien mee
@@ -418,8 +419,31 @@ tot een code van de nieuwe is bevestigd.
 2. **Zonder herstelcodes:** een andere beheerder met 2FA kiest bij dat account in *Gebruikers* het menu ⋯ →
    *2FA resetten*. Het security-log noemt wie dat deed (`actie: 2fa_reset`).
 3. **Enige beheerder, telefoon én codes kwijt:** daarvoor is er geen weg in de app, en bewust ook geen
-   achterdeur in de api. Herstellen vraagt dan een bewerking op de database door iemand met Azure-rechten.
-   Houd daarom op elke straat twee beheerders met 2FA aan.
+   achterdeur in de api. De uitweg loopt via de workflow: `azure-infra` → de straat → actie **`2fa-herstel`**,
+   met de userid in `herstel_userid` en de resource group in het bevestigingsveld. Op productie wacht de run
+   op de reviewer van de environment.
+
+   - **Wat er gebeurt:** de workflow maakt een eenmalige job `<appName>-2fa-herstel`
+     (`deploy/azure/herstel-2fa.bicep`) met het api-image dat nu draait en de database-url van de api-app
+     als secret-bestand. De job draait `python -m app.herstel_2fa`: hetzelfde effect als *2FA resetten* in
+     het beheer (`users.reset_2fa`: secret en herstelcodes weg, de sessies vervallen). Daarna verwijdert de
+     workflow de job, ook als iets misging. De job bereikt de database langs de weg van de api, dus er gaat
+     geen firewallregel open.
+   - **Wanneer hij weigert:** zolang er een andere actieve beheerder met 2FA is (die doet het in het beheer),
+     en bij een account dat onbekend, inactief of geen beheerder is, of geen 2FA heeft. Een weigering
+     verandert niets; de reden staat in de samenvatting van de run.
+   - **Daarna:** het account logt in met alleen het wachtwoord, werkt als analist en koppelt in
+     *Instellingen → Beveiliging* een nieuwe app. Het wachtwoord blijft dus nodig; is dat ook kwijt, dan
+     helpt dit niet.
+   - **Spoor:** de samenvatting noemt wie de run startte, niet het account (de run-logs van deze repo zijn
+     openbaar). Het security-log van de straat (`actie: 2fa_reset`, `route: noodherstel`, met `door:
+     github:<login>`) noemt beide.
+   - **Werkt pas** als het image van de straat de module bevat, op productie dus na de `v*`-tag. Draait er
+     een ouder image, dan faalt de job zonder effect.
+   - **Een veilige proef** op acceptatie: kies een beheerder terwijl er nog een tweede beheerder met 2FA is.
+     De run hoort dan te weigeren met `andere_beheerder`, en dat laat de hele keten zien zonder iets te wissen.
+
+   Houd op elke straat twee beheerders met 2FA aan; dan is dit nooit nodig.
 
 ### Voorstellen als concept-PR: de GitHub App
 
