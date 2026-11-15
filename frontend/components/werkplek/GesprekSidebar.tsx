@@ -258,7 +258,7 @@ export function GesprekSidebar({
             </InstellingenLink>
             {isBeheerder && (
               <InstellingenLink
-                tab="modelprofielen"
+                tab="gebruikers"
                 className="block px-3 py-2.5 text-sm text-ink transition-colors hover:bg-surface"
                 onClick={() => setMenuOpen(false)}
               >

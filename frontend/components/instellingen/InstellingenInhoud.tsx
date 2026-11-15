@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AccountClient } from "@/components/account/AccountClient";
 import { GesprekkenPanel } from "@/components/account/GesprekkenPanel";
 import { PasswordPanel } from "@/components/account/PasswordPanel";
@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/Button";
 import { Melding } from "@/components/ui/Melding";
 import { Tabs, type TabDef } from "@/components/ui/Tabs";
 import { getAccount, getOngelezenFeedbackAantal, listRegistraties } from "@/lib/api";
-import { INSTELLINGEN_TABS, type TabKey } from "@/lib/instellingen";
+import { INSTELLINGEN_GROEPEN, INSTELLINGEN_TABS, tabsBijZoekterm, type TabKey } from "@/lib/instellingen";
 import { kiesInstellingenTab } from "@/lib/instellingenVenster";
 
 const PANEEL: Record<TabKey, React.ReactNode> = {
@@ -27,7 +27,7 @@ const PANEEL: Record<TabKey, React.ReactNode> = {
   verbruik: <VerbruikPanel />,
   gesprekken: <GesprekkenPanel />,
   rondleiding: <RondleidingPanel />,
-  modelprofielen: <ProfielenPanel />,
+  modellen: <ProfielenPanel />,
   gebruikers: <UsersPanel />,
   registraties: <RegistratiesPanel />,
   "api-tokens": <ApiTokensPanel />,
@@ -54,13 +54,17 @@ interface Props {
   isBeheerder: boolean;
 }
 
-/** De inhoud van het instellingenvenster: tabkolom links, paneel rechts. De actieve tab komt uit `?instellingen=`
- *  (`InstellingenVenster`). */
+/** De inhoud van het instellingenvenster: tabkolom links met een zoekveld en de groepen (*Persoonlijk*, *Aanpassingen*,
+ *  *Beheer*), paneel rechts. De actieve tab komt uit `?instellingen=` (`InstellingenVenster`). */
 export function InstellingenInhoud({ actief, isBeheerder }: Props) {
   const [ongelezenFeedback, setOngelezenFeedback] = useState(0);
   const [openAanvragen, setOpenAanvragen] = useState(0);
   const [tfaNodig, setTfaNodig] = useState(false);
-  const zichtbaar = INSTELLINGEN_TABS.filter((t) => !t.admin || isBeheerder);
+  const [zoekterm, setZoekterm] = useState("");
+  // De volgorde van de groepen, en daarbinnen die van `INSTELLINGEN_TABS`.
+  const zichtbaar = useMemo(() => INSTELLINGEN_GROEPEN.flatMap((g) =>
+    INSTELLINGEN_TABS.filter((t) => t.groep === g.key && (!t.alleenBeheerder || isBeheerder))), [isBeheerder]);
+  const gevonden = useMemo(() => new Set<string>(tabsBijZoekterm(zichtbaar, zoekterm).map((t) => t.key)), [zichtbaar, zoekterm]);
 
   // Opnieuw bij elke tabwissel: wie net gekoppeld heeft, loopt zo meteen door naar het beheer. Stil
   // falend: de melding is uitleg, de BFF houdt het beheer hoe dan ook dicht.
@@ -115,12 +119,13 @@ export function InstellingenInhoud({ actief, isBeheerder }: Props) {
     kiesInstellingenTab(key);
   }
 
-  const tabs: TabDef[] = zichtbaar.map((t, i) => ({
+  // De kop van een groep staat boven zijn eerste tab in de kolom, dus na het zoeken boven de eerste die overbleef.
+  const eersteVanGroep = new Set(INSTELLINGEN_GROEPEN.map((g) => zichtbaar.find((t) => t.groep === g.key && gevonden.has(t.key))?.key));
+  const tabs: TabDef[] = zichtbaar.map((t) => ({
     key: t.key,
     label: t.label,
-    // Alleen wie ook beheert ziet twee soorten tabs, en heeft dus een kop nodig.
-    groep: !isBeheerder ? undefined : i === 0 ? "Persoonlijk" : t.admin && !zichtbaar[i - 1].admin ? "Beheer" : undefined,
-    content: t.admin && tfaNodig ? <BeheerVraagt2fa onNaarBeveiliging={() => kiesTab("beveiliging")} /> : PANEEL[t.key],
+    groep: eersteVanGroep.has(t.key) ? INSTELLINGEN_GROEPEN.find((g) => g.key === t.groep)?.label : undefined,
+    content: t.alleenBeheerder && tfaNodig ? <BeheerVraagt2fa onNaarBeveiliging={() => kiesTab("beveiliging")} /> : PANEEL[t.key],
     badge:
       t.key === "feedback"
         ? ongelezenFeedback
@@ -137,6 +142,20 @@ export function InstellingenInhoud({ actief, isBeheerder }: Props) {
       orientation="vertical"
       lazy
       onChange={(key) => kiesTab(key as TabKey)}
+      verborgen={new Set(zichtbaar.filter((t) => !gevonden.has(t.key)).map((t) => t.key))}
+      zoek={
+        <input
+          type="search"
+          value={zoekterm}
+          onChange={(e) => setZoekterm(e.target.value)}
+          // Escape wist eerst het veld; pas een leeg veld laat Escape door naar het venster, dat dan sluit.
+          onKeyDown={(e) => { if (e.key === "Escape" && zoekterm) { e.stopPropagation(); setZoekterm(""); } }}
+          aria-label="Zoek in instellingen"
+          placeholder="Zoek in instellingen"
+          maxLength={100}
+          className="w-full rounded-field border border-line bg-paper px-2.5 py-1.5 text-sm text-ink outline-none transition-colors placeholder:text-faint focus:border-lint focus:ring-2 focus:ring-lint/20 coarse:min-h-[44px]"
+        />
+      }
     />
   );
 }

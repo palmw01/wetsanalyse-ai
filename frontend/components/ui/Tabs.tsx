@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useId, useRef, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { TABRIJ } from "./Pagina";
 
 export interface TabDef {
@@ -18,6 +18,10 @@ export interface TabDef {
 // Toegankelijke tablist in Rijkshuisstijl: lintblauw onderlijn-indicator op de actieve tab.
 // Beide panelen blijven gemount; het inactieve krijgt `hidden` (display:none) i.p.v. te unmounten,
 // zodat de print-/PDF-stylesheet ze allebei kan tonen. Pijltjestoetsen verplaatsen de focus.
+//
+// De tabkolom (`vertical`, het instellingenvenster) is op een telefoon een lijst naar het voorbeeld van de instellingen
+// van iOS en Claude: eerst de lijst, een gekozen tab vervangt hem, en *‹ <label>* gaat terug. Vanaf `sm:` staan lijst en
+// paneel naast elkaar en bestaat die terugknop niet.
 export function Tabs({
   tabs,
   active,
@@ -25,6 +29,8 @@ export function Tabs({
   orientation = "horizontal",
   lazy = false,
   label = "Fasen",
+  verborgen,
+  zoek,
 }: {
   tabs: TabDef[];
   active: string;
@@ -36,55 +42,49 @@ export function Tabs({
    *  wat de print-/PDF-stylesheet nodig heeft. */
   lazy?: boolean;
   label?: string;
+  /** Tabs die niet in de kolom staan (een zoekterm vond ze niet). Hun paneel blijft bereikbaar als ze actief zijn. */
+  verborgen?: ReadonlySet<string>;
+  /** Alleen bij `vertical`: boven de tabkolom, bijvoorbeeld een zoekveld. */
+  zoek?: ReactNode;
 }) {
   const base = useId();
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const verticaal = orientation === "vertical";
+  // Op een telefoon: staat de lijst open (en niet het paneel)? Vanaf `sm:` doet dit niets.
+  const [opLijst, setOpLijst] = useState(false);
+  const inKolom = tabs.filter((t) => !verborgen?.has(t.key));
 
-  // Op een smal scherm is de tabkolom een rij die scrolt: de actieve tab hoort in beeld te staan. Eén keer scrollen is niet
-  // genoeg: een telbadge of het webfont komt later en maakt een tab ervoor breder, en dat duwt de actieve tab weer uit beeld.
-  useEffect(() => {
-    if (!verticaal) return;
-    const inBeeld = () => tabRefs.current[active]?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
-    inBeeld();
-    if (typeof ResizeObserver === "undefined") return;
-    const waarnemer = new ResizeObserver(inBeeld);
-    for (const tab of Object.values(tabRefs.current)) if (tab) waarnemer.observe(tab);
-    return () => waarnemer.disconnect();
-  }, [active, verticaal]);
+  function kies(key: string) {
+    setOpLijst(false);
+    onChange(key);
+  }
 
   function onKeyDown(e: React.KeyboardEvent, index: number) {
     const [vorige, volgende] = verticaal ? ["ArrowUp", "ArrowDown"] : ["ArrowLeft", "ArrowRight"];
     if (e.key !== volgende && e.key !== vorige) return;
     e.preventDefault();
-    const next = e.key === volgende ? (index + 1) % tabs.length : (index - 1 + tabs.length) % tabs.length;
-    const nextKey = tabs[next].key;
+    const next = e.key === volgende ? (index + 1) % inKolom.length : (index - 1 + inKolom.length) % inKolom.length;
+    const nextKey = inKolom[next].key;
     onChange(nextKey);
     tabRefs.current[nextKey]?.focus();
   }
 
-  return (
-    <div className={verticaal ? "flex min-h-0 flex-1 flex-col sm:flex-row" : undefined}>
-      <div
-        role="tablist"
-        aria-label={label}
-        aria-orientation={verticaal ? "vertical" : undefined}
-        className={
-          verticaal
-            ? // Mobiel: horizontaal scrollbare rij bovenin; vanaf sm een kolom links.
-              "flex shrink-0 gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain border-b border-line px-2 py-2 sm:w-56 sm:flex-col sm:overflow-x-visible sm:overflow-y-auto sm:border-b-0 sm:border-r sm:px-2 sm:py-3"
-            : // Een rij die op een smal scherm niet past scrolt, in plaats van tabs af te kappen.
-              `${TABRIJ} print:hidden`
-        }
-      >
-        {tabs.map((t, i) => {
-          const selected = t.key === active;
-          const basis =
-            "min-h-[44px] text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint";
-          return (
-            <Fragment key={t.key}>
+  const lijstKlasse = verticaal
+    ? // Mobiel een lijst over de volle breedte (de `nav` verbergt hem als het paneel open is); vanaf sm een kolom links.
+      "flex flex-col gap-0.5 px-2 py-2 sm:py-3"
+    : // Een rij die op een smal scherm niet past scrolt, in plaats van tabs af te kappen.
+      `${TABRIJ} print:hidden`;
+
+  const tablist = (
+    <div role="tablist" aria-label={label} aria-orientation={verticaal ? "vertical" : undefined} className={lijstKlasse}>
+      {inKolom.map((t, i) => {
+        const selected = t.key === active;
+        const basis =
+          "min-h-[44px] text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint";
+        return (
+          <Fragment key={t.key}>
             {verticaal && t.groep && (
-              <span role="presentation" className="hidden px-3 pb-1 pt-3 text-xs font-medium text-faint first:pt-1 sm:block">
+              <span role="presentation" className="block px-3 pb-1 pt-3 text-xs font-medium text-faint first:pt-1">
                 {t.groep}
               </span>
             )}
@@ -96,12 +96,12 @@ export function Tabs({
               id={`${base}-tab-${t.key}`}
               aria-selected={selected}
               aria-controls={`${base}-panel-${t.key}`}
-              tabIndex={selected ? 0 : -1}
-              onClick={() => onChange(t.key)}
+              tabIndex={selected || (!inKolom.some((x) => x.key === active) && i === 0) ? 0 : -1}
+              onClick={() => kies(t.key)}
               onKeyDown={(e) => onKeyDown(e, i)}
               className={
                 verticaal
-                  ? `${basis} shrink-0 whitespace-nowrap rounded-kaart px-3 py-2 text-left sm:w-full ${
+                  ? `${basis} w-full shrink-0 whitespace-nowrap rounded-kaart px-3 py-2 text-left ${
                       selected ? "bg-surface text-lint" : "text-muted hover:bg-surface hover:text-lint"
                     }`
                   : `${basis} shrink-0 whitespace-nowrap border-b-2 px-4 py-2 ${
@@ -119,28 +119,55 @@ export function Tabs({
                 </span>
               )}
             </button>
-            </Fragment>
-          );
-        })}
-      </div>
-      {tabs.map((t) => {
-        const selected = t.key === active;
-        if (lazy && !selected) return null;
-        return (
-          <div
-            key={t.key}
-            role="tabpanel"
-            id={`${base}-panel-${t.key}`}
-            aria-labelledby={`${base}-tab-${t.key}`}
-            data-tabpanel
-            hidden={!selected}
-            // `min-w-0` en `anywhere`: een lang adres of een lange modelnaam breekt af in plaats van de kolom breder te maken.
-            className={verticaal ? "min-h-0 min-w-0 flex-1 overflow-y-auto px-5 py-5 [overflow-wrap:anywhere]" : "pt-6"}
-          >
-            {t.content}
-          </div>
+          </Fragment>
         );
       })}
+      {verticaal && inKolom.length === 0 && (
+        <p className="px-3 py-2 text-sm text-muted" role="presentation">Niets gevonden.</p>
+      )}
+    </div>
+  );
+
+  const panelen = tabs.map((t) => {
+    const selected = t.key === active;
+    if (lazy && !selected) return null;
+    return (
+      <div
+        key={t.key}
+        role="tabpanel"
+        id={`${base}-panel-${t.key}`}
+        aria-labelledby={`${base}-tab-${t.key}`}
+        data-tabpanel
+        hidden={!selected}
+        // `min-w-0` en `anywhere`: een lang adres of een lange modelnaam breekt af in plaats van de kolom breder te maken.
+        className={verticaal ? "min-h-0 min-w-0 flex-1 overflow-y-auto px-5 py-5 [overflow-wrap:anywhere]" : "pt-6"}
+      >
+        {t.content}
+      </div>
+    );
+  });
+
+  if (!verticaal) return <div>{tablist}{panelen}</div>;
+
+  const actieveTab = tabs.find((t) => t.key === active);
+  return (
+    <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
+      <nav
+        className={`flex min-h-0 shrink-0 flex-col overflow-y-auto overscroll-contain sm:w-56 sm:border-r sm:border-line ${opLijst ? "max-sm:flex-1" : "max-sm:hidden"}`}>
+        {zoek && <div className="px-3 pt-3">{zoek}</div>}
+        {tablist}
+      </nav>
+      <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${opLijst ? "max-sm:hidden" : ""}`}>
+        {/* Alleen op een telefoon: terug naar de lijst, met waar je bent. */}
+        <div className="flex shrink-0 items-center gap-2 border-b border-line px-3 py-2 sm:hidden">
+          <button type="button" onClick={() => setOpLijst(true)} data-naar-lijst
+            className="focus-ring inline-flex min-h-[44px] items-center gap-1 rounded-knop px-2 text-sm font-medium text-lint hover:bg-surface">
+            <span aria-hidden>‹</span> Alle {label.toLowerCase()}
+          </button>
+          {actieveTab && <span className="truncate text-sm text-muted" aria-hidden>{actieveTab.label}</span>}
+        </div>
+        {panelen}
+      </div>
     </div>
   );
 }

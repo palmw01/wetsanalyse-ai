@@ -82,6 +82,13 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   `InstellingenLink`. Geef in die state alleen de eigen markering mee: met `{...history.state}` erin volgt
   `useSearchParams` de stap niet en blijft het venster dicht. `app/instellingen/[[...tab]]`, `app/beheer` en `app/account`
   zijn doorverwijzingen naar de werkplek met het venster open; een losse instellingenpagina bestaat niet.
+  **De tabkolom heeft groepen met een kop** (`INSTELLINGEN_GROEPEN` in `lib/instellingen.ts`, naar het voorbeeld van Claude;
+  plan `docs/architectuur/plan-instellingen-aanpassingen.md`): *Persoonlijk*, *Aanpassingen* (wat Lex gebruikt: Connectors,
+  Modellen) en voor een beheerder *Beheer*. Elke tab draagt zijn `groep`, `alleenBeheerder` en `trefwoorden`; het zoekveld
+  boven de kolom filtert op label en trefwoord (`tabsBijZoekterm`), en Escape wist eerst het veld. Een oude sleutel of
+  pad staat in `vroeger` (`modelprofielen` → `modellen`). Een tab alleen voor beheerders houdt zijn pad onder `beheer/`:
+  daar zit de rolgate van `auth.config.ts`. Op een telefoon is de kolom een lijst (`Tabs` verticaal): een gekozen tab
+  vervangt de lijst, en *‹ Alle instellingen* gaat terug.
 - **`components/`**:
   - `werkplek/` – de hele chat-werkruimte: schil, sidebar, thread (`ThreadRij`,
     `KeuzeKaart`, `VraagDock`, `VragenKaart`, `ReeksBlok`, `HergebruikMelding`, `Markdown`) en het annotatiegereedschap in het
