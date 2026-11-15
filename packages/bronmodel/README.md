@@ -22,7 +22,7 @@ Pakketnaam `wetsanalyse-bronmodel`, import `bronmodel`. Python ≥ 3.11; de runt
 | `bronmodel.taal` | Kleine gedeelde lijsten: `RANGTELWOORDEN`, `rangnummers`, `normaliseer_vraag` (de sleutel van een deelvraag) en `BRON_IRI`. De importer en de logredactie houden een eigen kopie; `tests/poort/test_gedeelde_lijsten.py` bewaakt die. |
 | `bronmodel.definities` | Het geldingsbereik van een wettelijke definitie: `geldigheid_uit`, `Geldigheid`, `losse_termen`, `term_vindplaats`. |
 | `bronmodel.catalogus` | De vorm van de catalogus ([ADR-014](../../docs/architectuur/adr-014-catalogus.md)): `Onderdeel`, `Herkomst`, `Stap`. |
-| `bronmodel.methodesectie` | Een methodesectie in een skill lezen en vervangen: `lees_sectie`, `vervang_sectie`. |
+| `bronmodel.methodesectie` | Een methodesectie in een skill lezen: `lees_sectie`. |
 | `bronmodel.validatie` | De gedeelde vorm van een validatie ([ADR-016](../../docs/architectuur/adr-016-centrale-agent-en-werkplaats.md) §B2, poort 1): `Bevinding`, `ValidatieFout`, `frontmatter`. |
 | `bronmodel.skill` | De validator van een methode-skill: de Agent Skills-specificatie plus de regels van Lex. `toets` geeft alle bevindingen, `valideer` gooit ze; `toets_samen` bewaakt wat uniek is over de skills heen. Een skill is een afbeelding van pad naar tekst, zodat de generator van het methodepakket en de werkplaats dezelfde toets draaien. |
 | `bronmodel.werkplaats` | Het register van de soorten in de werkplaats (ADR-016 deel B): `SOORTEN`, `REGISTER`, de hash van een snapshot (`hash_van`), poort 1 per soort (`toets`), wat het register nooit bewaart (`weiger`) en het lege begin (`begin`). De api gebruikt het voor versies; graph-qa voor wat in het image zit. |

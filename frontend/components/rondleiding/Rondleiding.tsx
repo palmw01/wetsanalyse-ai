@@ -363,7 +363,7 @@ export function Rondleiding({
             naam linksonder.
             {isBeheerder && (
               <> Daar vind je als beheerder ook <span className="font-medium text-ink">Beheer</span>,
-              voor modelprofielen en gebruikers.</>
+              voor de modellen en de gebruikers.</>
             )}
           </p>
           {/* Jouw keuze en niet iets dat vanzelf gebeurt; terugdraaien kan in de instellingen, tab Rondleiding. */}

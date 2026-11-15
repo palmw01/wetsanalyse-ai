@@ -36,6 +36,7 @@ from ..narratie import _stap
 from ..state import State
 from .annotatie_samenvatting import aantal_bekend, samenvatting as annotatie_samenvatting
 from .context import Bouw
+from .. import modelkeuze
 from ..skill_regels import aan as skill_regels_aan
 
 logger = logging.getLogger("graph_qa.orchestrator")
@@ -223,6 +224,9 @@ def _instellingen(b: Bouw, state: State) -> dict[str, Any]:
     return {"taal_provider": s.taal_provider, "classifier_granulariteit": s.classifier_granulariteit,
             "classifier_temperature": s.classifier_temperature, "classifier_spankeuze": s.classifier_spankeuze,
             "classifier_parallel": s.classifier_parallel,
+            # Het model per stap van de keten, zoals het beheer het koos (`agent/modelkeuze.py`): de run noemt het
+            # model van de classifier, en de reviewer kan een ander hebben.
+            "reviewer_model": modelkeuze.model_voor(["stap:jas_reviewer"], b.model),
             "deterministisch_accepteren": s.deterministisch_accepteren, "gerichte_review": s.gerichte_review,
             "relatie_voorstellen": s.relatie_voorstellen,
             "skill_regels": skill_regels_aan(),
@@ -255,7 +259,8 @@ def emit_node(b: Bouw, state: State) -> dict[str, Any]:
     # Vóór de elementen: waarmee deze voorstellen zijn gemaakt. De werkplek legt het vast bij de api
     # en de export draagt het als herkomst; per element staat het spoor in `trace`.
     writer({"type": "run", "run": AgentRun(
-        model=b.model, provider=b.settings.llm_provider, agent_versie=b.settings.agent_versie,
+        model=modelkeuze.model_voor(["stap:jas_classifier"], b.model), provider=b.settings.llm_provider,
+        agent_versie=b.settings.agent_versie,
         modus="opnieuw" if state.get("hergebruik_modus") == "opnieuw" else "nieuw",
         prompt_hash=promptversie(b.settings.classifier_spankeuze), methode_versie=methode_versie(),
         instellingen=_instellingen(b, state), tijd=datetime.now(timezone.utc),
@@ -324,7 +329,8 @@ def _emit_hergebruik(
     aanduiding = doel.get("artikel") or doel.get("nummer") or ""
     plek = f"artikel {aanduiding}" + (f" lid {doel['lid']}" if doel.get("lid") else "")
     writer({"type": "run", "run": AgentRun(
-        model=b.model, provider=b.settings.llm_provider, agent_versie=b.settings.agent_versie,
+        model=modelkeuze.model_voor(["stap:jas_classifier"], b.model), provider=b.settings.llm_provider,
+        agent_versie=b.settings.agent_versie,
         stop_reden="hergebruikt", modus="hergebruik",
         leden=[str(ld.get("lid", "")) for ld in hergebruik["leden"]],
         prompt_hash=promptversie(b.settings.classifier_spankeuze), methode_versie=methode_versie(),

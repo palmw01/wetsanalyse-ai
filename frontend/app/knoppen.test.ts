@@ -91,7 +91,17 @@ describe("één bedieningsstijl", () => {
   });
 
   it("de panelen van de instellingen delen hun kop en hun verwijderknop", () => {
-    const panelen = ["admin/ProfielenPanel", "admin/UsersPanel", "admin/RegistratiesPanel", "admin/BerichtenBeheerPanel",
+    // De lijsten van Aanpassingen (Modellen, Connectors, Methodes, Agents) krijgen hun kop van AanpassingLijst.
+    expect(bron("components/instellingen/AanpassingLijst.tsx")).toContain("<SettingGroup");
+    for (const f of ["admin/ProfielenPanel", "instellingen/ConnectorsPanel", "instellingen/MethodesPanel", "instellingen/AgentsPanel"]) {
+      expect(bron(`components/${f}.tsx`), f).toContain("<AanpassingLijst");
+      expect(bron(`components/${f}.tsx`), f).not.toContain("Laden…");
+    }
+    // Eén lijstpatroon: alleen AanpassingLijst zet in de instellingen een eigen chiprij en groepen neer.
+    for (const f of readdirSync(join(ROOT, "components/instellingen")).filter((x) => x !== "AanpassingLijst.tsx").map((x) => `components/instellingen/${x}`)) {
+      expect(bron(f), f).not.toMatch(/<OverzichtBalk|<Groep\b|<GroepRij\b/);
+    }
+    const panelen = ["admin/UsersPanel", "admin/RegistratiesPanel", "admin/BerichtenBeheerPanel",
       "admin/FeedbackLijstClient", "berichten/BerichtenArchiefClient", "account/VerbruikPanel"];
     for (const f of panelen) {
       const s = bron(`components/${f}.tsx`);

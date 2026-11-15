@@ -11,6 +11,9 @@ GET    /v1/admin/profiles/{name}          – één profiel
 DELETE /v1/admin/profiles/{name}          – verwijder (niet de default)
 POST   /v1/admin/profiles/{name}/default  – markeer als default
 POST   /v1/admin/profiles/{name}/test     – test de verbinding (kleine LLM-call)
+GET    /v1/admin/modelkeuzes                  – welk modelprofiel elk agentprofiel en elke stap van Lex gebruikt
+PUT    /v1/admin/modelkeuzes/{sleutel}        – een profiel kiezen, of terug naar de standaard (2FA)
+GET    /v1/admin/modelkeuzes/{sleutel}/audit  – wie welk profiel koos
 GET    /v1/admin/registraties             – zelfregistratie-aanvragen (optioneel ?status=)
 POST   /v1/admin/registraties/{id}/goedkeuren  – maak het account aan
 POST   /v1/admin/registraties/{id}/afwijzen    – wijs af (verwijdert de aanvraag)
@@ -21,8 +24,6 @@ PUT    /v1/admin/budget                   – beleid wijzigen (resetperiode, aan
 PUT    /v1/admin/budget/rollen/{rol}      – het tokenbudget van een rol zetten
 GET    /v1/admin/verbruik                 – stand per gebruiker, zwaarste eerst
 POST   /v1/admin/users/{id}/verbruik/reset – geef een gebruiker zijn budget terug voor dit venster
-GET    /v1/admin/catalogus/voorstellen/stand – kan deze omgeving een methodevoorstel indienen (ADR-014 C7)
-POST   /v1/admin/catalogus/voorstellen    – een nieuwe tekst voor een methodesectie als concept-PR (2FA)
 """
 
 from __future__ import annotations
@@ -37,10 +38,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .. import (
     api_tokens,
-    catalogus_voorstel,
     connectors,
     berichten as berichten_svc,
     feedback as feedback_svc,
+    modelkeuzes,
     profiles,
     registraties,
     users,
@@ -106,6 +107,24 @@ async def werkplaats_beleid(body: WerkplaatsBeleid, door: str = Depends(beheerde
     return await werkplaats_store.zet_beleid(body.analist_mag_maken, door)
 
 
+# --- modelkeuzes van Lex (per agentprofiel en per stap) --------------------------
+
+@router.get("/modelkeuzes", response_model=modelkeuzes.Overzicht)
+async def lijst_modelkeuzes():
+    return await modelkeuzes.overzicht()
+
+
+@router.put("/modelkeuzes/{sleutel}", response_model=modelkeuzes.Keuze)
+async def zet_modelkeuze(sleutel: str, body: modelkeuzes.KeuzeIn, door: str = Depends(beheerder_met_2fa)):
+    """Een beheerder mét 2FA uit de sessie, zoals de connectors: de keuze draagt een naam in de audit."""
+    return await modelkeuzes.zet(sleutel, body.profiel, door)
+
+
+@router.get("/modelkeuzes/{sleutel}/audit", response_model=list[modelkeuzes.AuditRegel])
+async def modelkeuze_audit(sleutel: str):
+    return await modelkeuzes.audit(sleutel)
+
+
 # --- bronconnectors (ADR-013) -------------------------------------------------
 
 @router.get("/connectors", response_model=list[connectors.Connector])
@@ -126,29 +145,6 @@ async def connector_audit(naam: str):
     if naam not in connectors.BEKEND:
         raise HTTPException(status_code=404, detail=f"Onbekende connector: {naam}")
     return await connectors.audit(naam)
-
-
-# --- de catalogus: een wijziging voorstellen als concept-PR (ADR-014 C7) ---------
-
-class VoorstelStand(BaseModel):
-    aan: bool
-    reden: str = ""
-
-
-@router.get("/catalogus/voorstellen/stand", response_model=VoorstelStand)
-async def catalogus_voorstel_stand():
-    """Kan deze omgeving een voorstel indienen? De werkplek toont de knop alleen dan."""
-    st = catalogus_voorstel.stand()
-    return VoorstelStand(aan=st.aan, reden=st.reden)
-
-
-@router.post("/catalogus/voorstellen", response_model=catalogus_voorstel.VoorstelUit, status_code=201)
-async def catalogus_voorstel_indienen(body: catalogus_voorstel.VoorstelIn, door: str = Depends(beheerder_met_2fa)):
-    """Een beheerder met 2FA stelt een nieuwe tekst voor een methodesectie voor; de api opent een concept-PR."""
-    try:
-        return await catalogus_voorstel.dien_in(body, door)
-    except catalogus_voorstel.VoorstelFout as e:
-        raise HTTPException(status_code=e.status, detail=e.detail) from e
 
 
 # --- modellen ------------------------------------------------------------------
@@ -247,6 +243,9 @@ async def upsert_profiel(name: str, body: ProfileIn, admin_id: str = Depends(req
 async def verwijder_profiel(name: str):
     try:
         await profiles.delete_profile(name)
+    except profiles.ProfielInGebruik as e:
+        raise HTTPException(status_code=409, detail={"fout": "in_gebruik", "melding": str(e),
+                                                     "gebruikt_door": e.gebruikt_door})
     except profiles.ProfileError as e:
         raise HTTPException(status_code=409, detail=str(e))
 

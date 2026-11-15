@@ -3,14 +3,15 @@
  * en draai `node scripts/test-instellingen.mjs`.
  *
  * Bewaakt:
- *  - de kop *Beheer* in de tabkolom, alleen voor een beheerder;
+ *  - de groepen in de tabkolom: *Persoonlijk* en *Aanpassingen* voor iedereen, *Beheer* alleen voor een beheerder;
+ *  - het zoekveld van de tabkolom filtert de tabs, en Escape wist eerst het veld en sluit dan pas het venster;
  *  - een nieuwe gebruiker via *Nieuwe gebruiker*, en het tijdelijke wachtwoord dat je kunt kopiëren;
  *  - de acties van een gebruiker in het menu ⋯; Escape sluit het menu en niet het venster;
  *  - het tokenbudget: een samenvatting per rol, en bewerken ter plekke; alleen de gewijzigde rol gaat over de lijn;
  *  - per gebruiker geen budgetveld: alleen het budget van zijn rol, en een reset met twee klikken;
  *  - een tab op de volle pagina opent geen venster erbovenop, en een tab in het venster is geen navigatie;
  *  - de berichten verschijnen meteen, en de bulkknop van de aanvragen pas na een selectie;
- *  - op een smal scherm staat de actieve tab in beeld, ook nadat een telbadge de rij breder maakte;
+ *  - op een smal scherm eerst het paneel met *‹ Alle instellingen*, dan de lijst met groepen, en een tab vervangt die weer;
  *  - 2FA inschakelen vraagt eerst het huidige wachtwoord, en een fout wachtwoord toont geen QR-code;
  *  - een beheerder zonder 2FA ziet op de beheertabs waarom het dicht is, koppelt, ziet zijn herstelcodes
  *    één keer en loopt dan zonder herladen door naar het beheer;
@@ -100,7 +101,7 @@ async function open(role, viewport = { width: 1280, height: 860 }) {
 }
 
 try {
-  // Een analist ziet geen groepskop: er is maar één soort tab.
+  // Een analist ziet Persoonlijk en Aanpassingen (Methodes, Agents), geen Beheer en geen Modellen.
   const analist = await open("analist");
   // Een oude link naar /instellingen opent het venster als pop-up op de werkplek, nooit als losse pagina.
   await analist.page.goto(`${base}/instellingen/account`);
@@ -111,6 +112,22 @@ try {
   await analist.page.reload();
   await analist.page.getByRole("dialog", { name: "Instellingen" }).waitFor();
   assert.equal(await analist.page.getByText("Beheer", { exact: true }).count(), 0);
+  await analist.page.getByText("Persoonlijk", { exact: true }).waitFor();
+  await analist.page.getByText("Aanpassingen", { exact: true }).waitFor();
+  assert.equal(await analist.page.getByRole("tab", { name: "Modellen" }).count(), 0, "Modellen is alleen voor een beheerder");
+
+  // Zoeken in de tabkolom: alleen wat erbij past, met de kop van zijn groep; Escape wist eerst het veld.
+  const zoekveld = analist.page.getByRole("searchbox", { name: "Zoek in instellingen" });
+  await zoekveld.fill("2fa");
+  await analist.page.waitForFunction(() => document.querySelectorAll("[role=tab]").length === 1);
+  await analist.page.getByRole("tab", { name: "Beveiliging" }).waitFor();
+  assert.equal(await analist.page.getByText("Persoonlijk", { exact: true }).count(), 1);
+  await zoekveld.fill("bestaat-niet");
+  await analist.page.getByText("Niets gevonden.").waitFor();
+  await zoekveld.press("Escape");
+  assert.equal(await zoekveld.inputValue(), "");
+  await analist.page.getByRole("dialog", { name: "Instellingen" }).waitFor();
+  await analist.page.getByRole("tab", { name: "Rondleiding" }).waitFor();
 
   // 2FA koppelen vraagt het wachtwoord: de QR-code verschijnt pas na het juiste.
   await analist.page.goto(`${base}/workbench?instellingen=beveiliging`);
@@ -187,7 +204,7 @@ try {
   await venster.page.getByRole("dialog").waitFor();
   const serververzoeken = [];
   venster.page.on("request", (r) => { if (r.url().includes("_rsc=")) serververzoeken.push(r.url()); });
-  for (const naam of ["Verbruik", "Feedback", "Modelprofielen", "Gebruikers", "Account"]) {
+  for (const naam of ["Verbruik", "Feedback", "Modellen", "Gebruikers", "Account"]) {
     await venster.page.getByRole("dialog").getByRole("tab", { name: naam }).click();
     await venster.page.waitForFunction((n) => document.querySelector("[role=tab][aria-selected=true]")?.textContent?.startsWith(n), naam);
   }
@@ -199,18 +216,21 @@ try {
   await venster.page.waitForURL("**/workbench");
   await venster.page.getByRole("dialog").waitFor({ state: "detached" });
 
-  // Op een smal scherm is de tabkolom een rij: de actieve tab staat in beeld.
+  // Op een smal scherm: eerst het paneel van de gekozen tab, *‹ Alle instellingen* opent de lijst met groepen, en een
+  // tab kiezen vervangt de lijst weer door zijn paneel.
   const smal = await open("beheerder", { width: 390, height: 800 });
   await smal.page.goto(`${base}/workbench?instellingen=feedback`);
-  const tab = smal.page.getByRole("tab", { name: "Feedback" });
-  await tab.waitFor();
-  // Pas ná de telbadge meten: die maakt *Aanvragen* breder en duwt de tab erachter opzij. Daarvoor zegt de stand niets.
+  const naarLijst = smal.page.getByRole("button", { name: "Alle instellingen" });
+  await naarLijst.waitFor();
+  assert.equal(await smal.page.getByRole("tab", { name: "Feedback" }).isVisible(), false, "het paneel staat open, niet de lijst");
+  await naarLijst.click();
+  await smal.page.getByText("Aanpassingen", { exact: true }).waitFor();
   await smal.page.getByRole("tab", { name: "Aanvragen" }).getByText("1", { exact: true }).waitFor();
-  await smal.page.waitForFunction(() => {
-    const t = [...document.querySelectorAll("[role=tab]")].find((x) => x.textContent?.startsWith("Feedback"));
-    const r = t?.getBoundingClientRect();
-    return r && r.left >= 0 && r.right <= window.innerWidth;
-  });
+  await smal.page.getByRole("tab", { name: "Gebruikers" }).click();
+  await smal.page.waitForURL("**instellingen=gebruikers");
+  await naarLijst.waitFor();
+  assert.equal(await smal.page.getByRole("tab", { name: "Gebruikers" }).isVisible(), false, "na de keuze staat het paneel open");
+  assert.equal(await smal.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "niets scrolt zijwaarts");
   // Een beheerder zonder 2FA: het beheer legt uit waarom het dicht is, en koppelen opent het zonder herladen.
   const plicht = await open("beheerder");
   plicht.stand.account.tfa_nodig = true;

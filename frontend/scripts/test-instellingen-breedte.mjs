@@ -99,12 +99,13 @@ const SCHERMEN = [
   } },
   { naam: "verbruik", tab: "Verbruik", klaar: (p) => p.getByText("Reset op").waitFor() },
   { naam: "berichten", tab: "Berichten", klaar: (p) => p.getByText("Wat is er nieuw").first().waitFor() },
-  { naam: "modelprofielen", tab: "Modelprofielen", klaar: async (p) => {
-    await p.getByRole("button", { name: "Test verbinding" }).first().click();
+  { naam: "modelprofielen", tab: "Modellen", klaar: async (p) => {
+    await p.getByRole("button", { name: /^Acties voor / }).first().click();
+    await p.getByRole("menuitem", { name: "Test verbinding" }).click();
     await p.getByText(/Test mislukt/).waitFor();
   } },
-  { naam: "modelprofiel-bewerken", tab: "Modelprofielen", klaar: async (p) => {
-    await p.getByRole("button", { name: "Nieuw profiel" }).click();
+  { naam: "modelprofiel-bewerken", tab: "Modellen", klaar: async (p) => {
+    await p.getByRole("button", { name: "Voeg toe" }).click();
     await p.getByLabel(/Output-strategie/).waitFor();
   } },
   { naam: "gebruikers", tab: "Gebruikers", klaar: (p) => p.getByRole("button", { name: "Acties voor wpalm" }).waitFor() },
@@ -224,6 +225,14 @@ async function openVenster(page) {
   await page.getByRole("dialog", { name: "Instellingen" }).waitFor();
 }
 
+/** Een tab kiezen. Op een telefoon staat de lijst pas open na *‹ Alle instellingen* (het paneel vervangt de lijst). */
+async function kiesTab(page, naam) {
+  const naarLijst = page.getByRole("button", { name: "Alle instellingen" });
+  if (await naarLijst.isVisible()) await naarLijst.click();
+  await page.getByRole("tab", { name: naam }).first().click();
+  await page.getByRole("tab", { name: naam, selected: true, includeHidden: true }).first().waitFor({ state: "attached" });
+}
+
 const bevindingen = [];
 try {
   if (afdruk) mkdirSync(afdruk, { recursive: true });
@@ -233,8 +242,8 @@ try {
       const { page, context, stand } = await open({ width: breedte, height: 844 });
       if (vorm === "venster") await openVenster(page);
       else await page.goto(`${base}/workbench?instellingen=account`);
-      // Pas na de telbadge: die maakt de tabrij breder, en dan scrolt de rij terug naar de actieve tab.
-      await page.getByRole("tab", { name: "Feedback" }).getByText("12", { exact: true }).waitFor();
+      // Pas na de telbadge: die maakt de tabkolom breder.
+      await page.getByRole("tab", { name: "Feedback", includeHidden: true }).getByText("12", { exact: true }).waitFor({ state: "attached" });
       for (const scherm of SCHERMEN) {
         if (alleen && !`${vorm} ${breedte} ${scherm.naam}`.includes(alleen)) continue;
         Object.assign(stand.account, ACCOUNT);
@@ -242,9 +251,8 @@ try {
         try {
           // Een andere tab eerst: het paneel verdwijnt dan, en daarmee wat het vorige scherm openklikte.
           const tussenstap = scherm.tab === "Account" ? "Verbruik" : "Account";
-          await page.getByRole("tab", { name: tussenstap }).click();
-          await page.getByRole("tab", { name: tussenstap, selected: true }).waitFor();
-          await page.getByRole("tab", { name: scherm.tab }).first().click();
+          await kiesTab(page, tussenstap);
+          await kiesTab(page, scherm.tab);
           await scherm.klaar(page);
           await page.evaluate(() => document.fonts.ready);
           await page.waitForTimeout(200); // de open-animatie

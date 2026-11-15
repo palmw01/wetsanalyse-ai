@@ -77,6 +77,7 @@ from agent.subagent import Kinderen  # noqa: E402
 from agent.runstore.geheugen import GeheugenStore  # noqa: E402
 from agent.wetsanalyse_api import WetsanalyseApi  # noqa: E402
 from agent import imagemelding  # noqa: E402
+from agent import modelkeuze  # noqa: E402
 
 logger = logging.getLogger("graph_qa.chat")
 
@@ -503,6 +504,8 @@ async def start_beurt(request: ChatRequest, gebruiker: str, *, ouder_run_id: str
     de body), de regisseur hier. `ouder_run_id` maakt de run een kind van een regierun."""
     if budget:
         await controleer_budget(gebruiker)
+    # Het modelprofiel per rol uit het beheer (`agent/modelkeuze.py`): hoogstens elke minuut gelezen, gooit nooit.
+    await modelkeuze.ververs(settings)
     run = await runs.start(
         conversation_id=request.conversation_id or "",
         vraag=request.question or "",
@@ -607,11 +610,9 @@ async def catalogus_lijst(_auth: None = Depends(_check_auth)) -> dict:
     de inhoud. Introspectie van wat draait, geen gegenereerd bestand."""
     from bronmodel.catalogus import SOORTEN
 
-    from agent.catalogus import agentvorm, catalogus
+    from agent.catalogus import catalogus
 
-    # De agentvorm hangt af van de straat (`CENTRALE_AGENT`): een feit uit de configuratie, niet uit de catalogus.
-    return {"soorten": list(SOORTEN), "onderdelen": [_met_straat(o) for o in catalogus()],
-            "agentvorm": agentvorm(settings.centrale_agent)}
+    return {"soorten": list(SOORTEN), "onderdelen": [_met_straat(o) for o in catalogus()]}
 
 
 @app.get("/v1/catalogus/{soort}/{naam}")

@@ -162,8 +162,8 @@ class Onderdeel:
     deel_van: str | None = None
     #: De straatvlag die het aan- of uitzet (`CONNECTOR_KAMERSTUKKEN`, `RELATIE_VOORSTELLEN`); None = altijd aan.
     straat: str | None = None
-    #: Welke delen een beheerder via de app als wijziging mag voorstellen. Dat zijn sectie-ids of veldnamen. Zo'n
-    #: voorstel wordt een concept-PR, nooit een directe wijziging.
+    #: Welke delen van het onderdeel een eigen tekst zijn (sectie-ids of veldnamen). Wijzigen gaat via de repo; het
+    #: voorstellen als concept-PR vanuit de app (ADR-014 C7) is vervallen (15 nov 2026).
     bewerkbaar: tuple[str, ...] = ()
     #: Alleen bij een workflow: de laag en de stappen.
     laag: Laag | None = None

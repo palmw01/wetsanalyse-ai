@@ -28,14 +28,17 @@ export function OverzichtBalk<T extends string>({
 }) {
   return (
     <div data-overzichtbalk className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-x-4">
-      <KeuzeRij label={filterLabel}>
-        {filters.map((f) => (
-          <FilterChip key={f.waarde} gekozen={gekozen === f.waarde} onKies={() => onKies(f.waarde)}>
-            {f.label}
-            {typeof f.aantal === "number" ? ` (${f.aantal})` : ""}
-          </FilterChip>
-        ))}
-      </KeuzeRij>
+      {/* Zonder filters (Aanpassingen met de werkplaats uit) staat alleen het zoekveld er; rechts, zoals altijd. */}
+      {filters.length > 0 ? (
+        <KeuzeRij label={filterLabel}>
+          {filters.map((f) => (
+            <FilterChip key={f.waarde} gekozen={gekozen === f.waarde} onKies={() => onKies(f.waarde)}>
+              {f.label}
+              {typeof f.aantal === "number" ? ` (${f.aantal})` : ""}
+            </FilterChip>
+          ))}
+        </KeuzeRij>
+      ) : <span aria-hidden className="max-sm:hidden" />}
 
       <input
         type="search"

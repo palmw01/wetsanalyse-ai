@@ -1,12 +1,10 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
-import { OnderdeelPagina } from "@/components/werkwijze/OnderdeelPagina";
-import { SOORTEN, type Soort } from "@/lib/catalogus";
+import { werkwijzeDoorverwijzing } from "@/lib/aanpassingen";
 
-export const metadata = { title: "Werkwijze van Lex · Wetsanalyse" };
-
+/** Een oude link naar een onderdeel van de werkwijze: de tab in Instellingen › Aanpassingen waar het nu staat, met het
+ *  onderdeel open als het daar een eigen plek heeft (`werkwijzeDoorverwijzing`). */
 export default async function OnderdeelRoute({ params }: { params: Promise<{ soort: string; naam: string }> }) {
   const { soort, naam } = await params;
-  if (!(SOORTEN as readonly string[]).includes(soort)) notFound();
-  return <OnderdeelPagina soort={soort as Soort} naam={decodeURIComponent(naam)} />;
+  redirect(werkwijzeDoorverwijzing(soort, decodeURIComponent(naam)));
 }

@@ -312,7 +312,8 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     `subagent_model`: `LLM_MODEL_LICHT`, anders `LLM_MODEL_ROUTER`, anders `LLM_MODEL` met de logregel `subagent_model`).
     Faalt het lichte model met een 400 of 404, dan draait de ronde opnieuw op `LLM_MODEL` en de rest van het proces ook
     (`_LICHT_KAPOT`), zodat het voorvoegsel van het kind per model vast blijft. De centrale agent en elke specialist van de
-    supervisor houden hun model. Het model van het kind staat in `regie_taak`, in de afloop van het kind in het eind-event van de regie (`Afloop.modellen`) en in de meetsamenvatting (`kind_modellen`, uit beide);
+    supervisor houden hun model. Een modelkeuze in het beheer gaat hier nog voor: die van het agentprofiel, anders
+    `stap:subagent` (`modelkeuze`; zie *De modelkeuzes per agentprofiel en stap*). Het model van het kind staat in `regie_taak`, in de afloop van het kind in het eind-event van de regie (`Afloop.modellen`) en in de meetsamenvatting (`kind_modellen`, uit beide);
   - **routes in code naar delegatie** (meting 14 nov 2026): "vat per uitspraak/stuk/Kamerstuk samen …" met een bron naast
     de wet aan gaat zonder model naar de node `subagent_route` (`nodes/subagent_route.py`, `past`): een subagent
     `algemeen` met de vraag als doel, daarna vat de centrale agent het rapport samen (`State.rapporten`). Een vraag die een
@@ -573,6 +574,28 @@ bruikbaar is.
   eigen `Rol` en een scenario in `tests/test_modelverzoeken.py`: dat legt elk verzoek byte voor byte vast.
   `tests/test_methoderollen.py` eist dat elke methoderol uit de skill een aanroep heeft, dat elke `Rol` gebruikt wordt
   en dat niemand buiten de adapter en de stap `llm.create` of `llm.stream` aanroept.
+- **De modelkeuzes per agentprofiel en stap** (`agent/modelkeuze.py`; api §*Modelkeuzes van Lex*). Het model hoort op het
+  agentprofiel, zoals `model:` bij een subagent van Claude Code; de beheerder kiest het in het beheer, zonder uitrol. De
+  sleutels staan in `bronmodel.modelkeuzes`: `agent:<profiel>` (de acht profielen), `stap:<rol>` (elke `Rol` zonder
+  toollus) en `stap:subagent`; `tests/test_modelkeuze.py` eist dat elk profiel en elke stap er precies één keer in staat,
+  en dat elke lusrol met een profiel draait. Lex neemt alleen de modelnaam over: endpoint en sleutel blijven
+  `AZURE_FOUNDRY_*`.
+  - **Eén plek**: `llm_stap.aanroep` en `llm_stap.stroom` vragen vlak voor de aanroep `modelkeuze.kies(sleutels,
+    gevraagd)`, met de sleutels in volgorde van voorrang (`llm_stap._sleutels`): `agent:<profiel_id>` uit het kader van
+    de agentvorm, dan `stap:subagent` als `agentvorm.Subagent` `modelrol` zette, dan `stap:<rol>`. Een aanroeper weet er
+    niets van; zonder stand is het verzoek byte-gelijk (`tests/test_modelverzoeken.py`).
+  - **Voorrang**: de eerste sleutel met een keuze; anders vervangt het standaardprofiel alleen het gewone model
+    (`gevraagd == Settings.llm_model`), dus een eigen env-knop (`LLM_MODEL_ROUTER`, `_OPHAAL`, `_LICHT`) blijft wat hij was.
+  - **Lezen**: `modelkeuze.ververs` in `api.main.start_beurt`, hoogstens elke `VERS_S` (60 s), met `TIMEOUT_S`; een
+    onleesbare api houdt de vorige stand, zonder stand geldt de env. Alleen een eigen keuze met een `claude-`-model telt.
+  - **Een model dat de straat niet heeft** (404, of 400 over het model) valt terug op het gevraagde model, voor de rest
+    van het proces (`_KAPOT`, logregel `modelprofiel_terugval`).
+  - **De logregel `model_aanroep`** draagt `modelprofiel`, `modelsleutel` en `modelbron` (`keuze`, `standaard`, `env`,
+    `terugval`).
+  - **De herkomst van een annotatie noemt het echte model**: `run.model` en `prov.model` zijn het model van
+    `stap:jas_classifier` (`modelkeuze.model_voor`), en `run.instellingen.reviewer_model` dat van `stap:jas_reviewer`.
+  - Waar een id of cachesleutel `settings.llm_model` draagt (`werkvoorraad_id`, de begrippenbatches), staat nog het
+    env-model: een batch die al klaar is, draait dan na een nieuwe keuze niet vanzelf opnieuw.
 - **`adapters/graphdb_graph.py`** – `make_graph(settings)` → `MCPClient`; roept `require_graph()`.
 - **`mcp_client.py`** – synchrone MCP-client (Streamable HTTP): `sparql()` via `sparql_query`,
   `semantic_search()` via `similarity_search`, één persistente `httpx.Client`. `_reject_updates`

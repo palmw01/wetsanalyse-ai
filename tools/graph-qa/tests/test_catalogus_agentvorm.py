@@ -1,7 +1,8 @@
-"""De werkwijze toont de centrale agent en de subagents zoals ze werken (ADR-016), afgeleid uit de registers.
+"""De catalogus beschrijft de centrale agent en de subagents zoals ze werken (ADR-016), afgeleid uit de registers.
 
-Een overdracht, een doelnode van de overdrachten of een profiel zonder plek in de werkwijze maakt deze tests rood; de
-werkwijze houdt geen eigen lijst bij (`agent/catalogus.py`, §*de agentvorm*).
+Een overdracht, een doelnode van de overdrachten of een profiel zonder plek maakt deze tests rood; de catalogus houdt
+geen eigen lijst bij (`agent/catalogus.py`, §*de centrale agent en zijn overdrachten*). Het blok *Hoe een vraag
+binnenkomt* van de werkwijze-pagina is weg (plan instellingen-aanpassingen); de endpoint geeft het niet meer.
 """
 from __future__ import annotations
 
@@ -18,7 +19,7 @@ ALLE = {o.id: o for o in cat.catalogus()}
 
 @pytest.mark.parametrize("naam", sorted(OVERDRACHT))
 def test_elke_overdracht_leidt_naar_een_onderdeel(naam: str):
-    """Een nieuwe overdracht zonder doel in de werkwijze geeft hier een KeyError of een lege lijst."""
+    """Een nieuwe overdracht zonder doel in de catalogus geeft hier een KeyError of een lege lijst."""
     uit = cat.overdracht_doelen(naam)
     assert uit, f"{naam} leidt nergens heen"
     for d in uit:
@@ -32,11 +33,11 @@ def test_elke_doelnode_van_de_overdrachten_heeft_een_onderdeel():
             assert cat._node_onderdeel(node), node
 
 
-def test_elk_profiel_heeft_een_plek_in_de_werkwijze():
+def test_elk_profiel_heeft_een_plek():
     for naam in profielen.PROFIELEN:
         plek = cat.profielplek(naam)
-        assert plek in cat.PROFIELPLEK and plek != "onbekend", f"profiel {naam} heeft geen plek in de werkwijze"
-        assert set(cat.PROFIELPLEK[plek]["stand"]) == set(cat.standen()), plek
+        assert plek in cat.PROFIELPLEK and plek != "onbekend", f"profiel {naam} heeft geen plek"
+        assert cat.PROFIELPLEK[plek]["ingang"], plek
 
 
 def test_een_nieuw_profiel_zonder_plek_valt_op(monkeypatch):
@@ -44,25 +45,6 @@ def test_een_nieuw_profiel_zonder_plek_valt_op(monkeypatch):
                        methoderol="algemeen", kiesbaar=False)
     monkeypatch.setitem(profielen.PROFIELEN, "nep", nep)
     assert cat.profielplek("nep") is None
-    rij = next(p for p in cat.agentvorm("aan")["profielen"] if p["id"] == "agentprofiel/nep")
-    assert rij["plek"] is None and rij["label"] == cat.PROFIELPLEK["onbekend"]["label"]
-
-
-@pytest.mark.parametrize("stand", ["uit", "meten", "aan"])
-def test_de_ingang_volgt_de_stand_van_de_vlag(stand: str):
-    v = cat.agentvorm(stand)
-    assert set(v["standen"]) == set(cat.standen()) == {"uit", "meten", "aan"}
-    assert v["ingang"] == ("agentprofiel/centraal" if stand == "aan" else "rol/supervisor")
-    assert v["ingang"] in ALLE
-    for p in v["profielen"]:
-        assert p["nu"], p
-    for sleutel in ("centrale_agent", "subagents", "regie"):
-        assert v[sleutel] in ALLE
-
-
-def test_een_onbekende_stand_is_een_fout():
-    with pytest.raises(ValueError):
-        cat.agentvorm("half")
 
 
 def test_de_centrale_agent_noemt_zijn_overdrachten_en_de_kernset():
@@ -94,7 +76,7 @@ def test_de_regie_als_tool_naast_de_vaste_route():
 
 
 @pytest.mark.parametrize("stand", ["uit", "meten", "aan"])
-def test_het_endpoint_geeft_de_agentvorm_van_deze_straat(monkeypatch, stand: str):
+def test_het_endpoint_volgt_de_straat_zonder_agentvorm(monkeypatch, stand: str):
     from fastapi.testclient import TestClient
 
     import api.main as main
@@ -102,7 +84,7 @@ def test_het_endpoint_geeft_de_agentvorm_van_deze_straat(monkeypatch, stand: str
     monkeypatch.setattr(main.settings, "qa_api_token", "", raising=False)
     monkeypatch.setattr(main.settings, "centrale_agent", stand, raising=False)
     lijst = TestClient(main.app).get("/v1/catalogus").json()
-    assert lijst["agentvorm"]["stand"] == stand
+    assert "agentvorm" not in lijst
     per_id = {o["id"]: o for o in lijst["onderdelen"]}
     assert per_id["agentprofiel/centraal"]["aan"] is (stand != "uit")
     assert per_id["workflow/subagent"]["aan"] is (stand != "uit")
