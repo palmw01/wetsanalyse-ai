@@ -18,13 +18,13 @@ from bronmodel import connectors as bm
 
 from agent import bronstand
 from agent.agent import answer_stream
-from fakes import FakeGraph, FakeLLM, make_settings, response, text_block
+from fakes import tool_block, FakeGraph, FakeLLM, make_settings, response, text_block
 
 AAN = make_settings(connector_kamerstukken=True)
 UIT = make_settings()
 INCIDENT_1 = "wat kun je nog vinden in de kamerstukken?"
 INCIDENT_2 = "Wat staat er in de memorie van toelichting bij Kamerstuk 33755, nummer 3, over de aansprakelijkheid?"
-AFWIJZEN = response([text_block("WORKERS: antwoord\nSPECIALIST: algemeen\nTAAK:\nPLAN: AFWIJZEN")], "end_turn")
+AFWIJZEN = response([tool_block("ov", "wijs_af", {})], "tool_use")
 
 
 def _run(gen):
@@ -84,13 +84,12 @@ def test_een_vraag_over_een_bron_wordt_nooit_afgewezen_en_krijgt_de_tools():
 
 
 def test_een_gemengde_vraag_gaat_naar_het_model_ook_met_de_bron_uit():
-    """Een artikel is wetgeving om te zoeken; wat er uit staat, zegt het promptblok (PR 4)."""
-    llm = FakeLLM([response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nTAAK:\nPLAN: zoek art. 36")],
-                            "end_turn"),
-                   response([text_block("Artikel 36 gaat over aansprakelijkheid.")], "end_turn")])
+    """Een artikel is wetgeving om te zoeken; wat er uit staat, zegt het promptblok (PR 4). Sinds ADR-016 §A7 is dat
+    model de centrale agent, in één ronde."""
+    llm = FakeLLM([response([text_block("Artikel 36 gaat over aansprakelijkheid.")], "end_turn")])
     events = _run(answer_stream("Wat bedoelde de wetgever met artikel 36 van de Invorderingswet 1990?",
                                 settings=AAN, llm=llm, graph=FakeGraph(result=""), bronnen=[]))
-    assert len(llm.calls) == 2 and "aansprakelijkheid" in _tekst(events)
+    assert len(llm.calls) == 1 and "aansprakelijkheid" in _tekst(events)
 
 
 def test_een_gewone_vraag_buiten_de_wet_blijft_afgewezen():

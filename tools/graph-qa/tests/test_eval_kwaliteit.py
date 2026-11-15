@@ -202,7 +202,7 @@ def test_een_qa_case_meldt_tokens_rondes_duur_en_waarom_het_sjabloon_weigerde(ca
     from types import SimpleNamespace
 
     from fakes import FakeGraph, FakeLLM
-    from test_sjablonen import HAAL, KIES_DUIDING, TIEN_TSV, _sluit_af
+    from test_sjablonen import HAAL, TIEN_TSV, _sluit_af
 
     class GemetenLLM(FakeLLM):
         def _next(self):
@@ -212,7 +212,7 @@ def test_een_qa_case_meldt_tokens_rondes_duur_en_waarom_het_sjabloon_weigerde(ca
             return super()._next()
 
     fout = _sluit_af("t2", van="Dit staat nergens", tot="in de wet.")
-    llm = GemetenLLM([KIES_DUIDING, HAAL, fout, _sluit_af("t3")])
+    llm = GemetenLLM([HAAL, fout, _sluit_af("t3")])
     # Live bouwt answer_stream het model zelf en hangt de meter eraan; met een nepmodel doet de test dat.
     from agent.models import Verbruiksmeter
     llm.meter = Verbruiksmeter()
@@ -221,13 +221,13 @@ def test_een_qa_case_meldt_tokens_rondes_duur_en_waarom_het_sjabloon_weigerde(ca
             "should_refuse": False}
     [r] = asyncio.run(run_eval.run_suite([case], settings=make_settings(enable_planning=True), llm=llm,
                                          graph=FakeGraph(result=TIEN_TSV)))
-    assert r.verbruik["modelrondes"] == 4 and r.verbruik["uitvoer"] == 20 and r.verbruik["cache_lees"] == 400
+    assert r.verbruik["modelrondes"] == 3 and r.verbruik["uitvoer"] == 15 and r.verbruik["cache_lees"] == 300
     assert r.verbruik["duur_ms"] >= 0
     [w] = r.weigeringen
     assert "staat niet in" in w
     run_eval.print_report([r])
     uit = capsys.readouterr().out
-    assert "weigering: " in uit and "Verbruik over 1 cases: invoer 40, cache_lees 400" in uit.replace(".", "")
+    assert "weigering: " in uit and "Verbruik over 1 cases: invoer 30, cache_lees 300" in uit.replace(".", "")
     assert "1 weigeringen van het sjabloon" in uit
 
 

@@ -28,7 +28,7 @@ ZOEK = tool_block("t1", "zoek_bekendmakingen", {"bwb_id": "BWBR0004770", "artike
 
 
 def _llm(*antwoorden):
-    return FakeLLM([response([text_block("duiding")], "end_turn"), response([ZOEK], "tool_use"), *antwoorden])
+    return FakeLLM([response([ZOEK], "tool_use"), *antwoorden])
 
 
 def test_met_een_connector_aan_zegt_de_prompt_dat_een_vondst_met_het_sjabloon_afrondt(monkeypatch):
@@ -55,7 +55,7 @@ def test_zonder_connector_blijft_de_prompt_gelijk():
 def test_tekst_zonder_lijst_na_een_vondst_is_het_antwoord_zonder_tweede_ronde(monkeypatch):
     llm = _llm(response([text_block("Artikel 36 trad in werking bij Stb. 2010, 176.")], "end_turn"))
     events = _stream_met_graaf(VRAAG, monkeypatch, llm, FakeGraph(result=ART36))
-    assert len(llm.calls) == 3 and _gevraagd(llm) == 0, "geen herhaalverzoek: de tekst draagt geen lijst"
+    assert len(llm.calls) == 2 and _gevraagd(llm) == 0, "geen herhaalverzoek: de tekst draagt geen lijst"
     tekst = "".join(e.get("content", "") for e in events if e.get("type") == "token")
     assert "Stb. 2010, 176" in tekst
     # Zonder sjabloon komt de bronnenlijst nog steeds uit `finalize`: een gevonden stuk dat niet gelezen is, is geen bron,
@@ -70,7 +70,7 @@ def test_een_lijst_in_tekst_zet_de_code_om_naar_het_sjabloon_zonder_modelronde(m
     llm = _llm(response([text_block("Artikel 36 trad in werking bij:\n- Stb. 2010, 176: de inwerkingtreding\n"
                                     "- Stb. 2009, 610: de wijziging")], "end_turn"))
     events = _stream_met_graaf(VRAAG, monkeypatch, llm, FakeGraph(result=ART36))
-    assert len(llm.calls) == 3 and _gevraagd(llm) == 0, "geen herhaalverzoek, geen tweede schrijfronde"
+    assert len(llm.calls) == 2 and _gevraagd(llm) == 0, "geen herhaalverzoek, geen tweede schrijfronde"
     [antwoord] = [e["antwoord"] for e in events if e.get("type") == "antwoord"]
     toelichting, lijst = antwoord["blokken"][:2]
     assert toelichting["tekst"] == "Artikel 36 trad in werking bij:", "de lijstregels zijn eruit"
@@ -102,7 +102,7 @@ def test_een_lijst_zonder_stukken_na_een_zoekvraag_is_het_antwoord(monkeypatch):
     geen herhaalverzoek en geen omzetting: de tekst is het antwoord."""
     llm = _llm(response([text_block("Twee punten:\n1. de wet\n2. het besluit")], "end_turn"))
     events = _stream_met_graaf(VRAAG, monkeypatch, llm, FakeGraph(result=ART36))
-    assert len(llm.calls) == 3 and _gevraagd(llm) == 0
+    assert len(llm.calls) == 2 and _gevraagd(llm) == 0
     assert not [e for e in events if e.get("type") == "antwoord"], "geen sjabloon, dus geen lijst eronder"
 
 
@@ -201,7 +201,7 @@ def test_na_een_tweede_weigering_is_de_tekst_het_antwoord(monkeypatch):
     llm = _llm(response([_fout()], "tool_use"), response([_fout()], "tool_use"),
                response([text_block("- Stb. 2010, 176\n- Stb. 2009, 610")], "end_turn"))
     events = _stream_met_graaf(VRAAG, monkeypatch, llm, FakeGraph(result=ART36))
-    assert len(llm.calls) == 5 and _gevraagd(llm) == 0, "geen derde poging en geen herhaalverzoek na een weigering"
+    assert len(llm.calls) == 4 and _gevraagd(llm) == 0, "geen derde poging en geen herhaalverzoek na een weigering"
     eerste, tweede = _resultaten(llm)[-2:]
     assert OPNIEUW.format(naam=EXTERN).split("{")[0][:30] in json.loads(eerste)["content"]
     assert TEKST_NU.strip()[:40] in json.loads(tweede)["content"]

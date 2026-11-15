@@ -23,7 +23,7 @@ DOEL_91 = '{"bwbId":"BWBR0004770","artikel":"9","lid":"1","nummer":"","citeertit
 def _aanloop(tool: str = "get_lid", invoer: dict | None = None, doel: str = DOEL_91,
              plan: str = "annoteer art 9 lid 1") -> list:
     return [
-        response([text_block(f"WORKERS: annotatie\nPLAN: {plan}")], "end_turn"),                   # supervisor
+        response([tool_block("ov", "annoteer", {"vraag": "annoteer de aangewezen bepaling"})], "tool_use"),                   # supervisor
         response([tool_block("t1", tool, invoer or {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})],
                  "tool_use"),
         response([text_block(doel)], "end_turn"),
@@ -96,7 +96,6 @@ def test_annotatie_laat_leesbaar_spoor_in_geheugen(tmp_path):
 
     # Beurt 2: vervolgvraag; de agent moet de annotatie-samenvatting in de meegegeven historie zien.
     llm2 = FakeLLM([
-        response([text_block("SPECIALIST: algemeen\nPLAN: direct")], "end_turn"),  # supervisor
         response([text_block("Omdat 'De ontvanger' de dragende actor is.")], "end_turn"),  # agent
     ])
     _run(answer_stream("waarom markeerde je 'De ontvanger' als Rechtssubject?", "annot-mem",
@@ -109,7 +108,6 @@ def test_annotatie_laat_leesbaar_spoor_in_geheugen(tmp_path):
 
 def test_gewone_vraag_blijft_antwoord_geen_annotatie():
     llm = FakeLLM([
-        response([text_block("SPECIALIST: algemeen\nPLAN: direct")], "end_turn"),  # supervisor → antwoord
         response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})], "tool_use"),
         # Een feit uit de opgehaalde tekst: een termijn die er niet in staat, kost een correctieronde (`beweringen`).
         response([text_block("De ontvanger verleent uitstel (BWBR0004770 art. 9).")], "end_turn"),  # antwoord

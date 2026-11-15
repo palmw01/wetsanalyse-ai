@@ -132,13 +132,6 @@ def test_een_overdracht_naast_andere_tools_laat_alleen_de_overdracht_over():
     assert "".join(e["content"] for e in events if e["type"] == "token").startswith("Deze vraag gaat niet over")
 
 
-def test_de_centrale_agent_neemt_alleen_de_gewone_vraag_over():
-    """Een adviesvraag blijft de vaste route naar de duiding; de centrale agent is er voor wat geen route pakt."""
-    assert supervisie._centraal({"modus": "auto"})
-    assert not supervisie._centraal({"modus": "advies"})
-    assert not supervisie._centraal({"modus": "auto"})
-
-
 # --- de kernset en de overdracht aan het brede profiel (A2-2b) --------------------------------------------------
 
 def _graaftools() -> set[str]:
@@ -229,6 +222,19 @@ def test_de_eigen_tools_hebben_een_eigen_categorie_in_de_contextopbouw():
     for naam in overdracht.OVERDRACHT:
         assert contextdelen.tool_categorie(naam) == contextdelen.AGENTTOOLS
     assert contextdelen.AGENTTOOLS in contextdelen.VOORVOEGSEL
+
+
+_NAMEN = ("?regeling\t?citeertitel\t?soort\t?afkortingen\n"
+          "<urn:bwb:BWBR0004770>\t\"Invorderingswet 1990\"\t\"wet\"\t\"IW | Iw 1990\"\n")
+
+
+def _bouw(_tekst: str = ""):
+    """Een `Bouw` zonder model, met de regelingnamen van de graaf (voor de overdrachten die een route in code draaien)."""
+    from agent.nodes.context import Bouw
+
+    graaf = FakeGraph(results=lambda q: _NAMEN if "bwb:Regeling" in q else "")
+    return Bouw(settings=make_settings(), llm=FakeLLM([]), graph=graaf, stop_check=None, model="m", model_router="m",
+                model_ophaal="m", memory_context=lambda _s: "", advies_context=lambda _s: "")
 
 
 # --- de taakagents en het werkgebied (A2-3a) --------------------------------------------------------------------
@@ -400,7 +406,6 @@ LAATSTE = "Wat is het laatste Kamerstuk in dossier 32140?"
 
 def _stukken(stand: dict, vraag: str = LAATSTE, monkeypatch=None):
     from agent.nodes import supervisie
-    from tests.test_na_herschrijven import _bouw
 
     events: list = []
     monkeypatch.setattr(overdracht, "get_stream_writer", lambda: events.append)

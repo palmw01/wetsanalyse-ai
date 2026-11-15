@@ -24,7 +24,6 @@ K = "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k"
 RIJ = ("node\tbegrip\ttekst\tjci\tbwbId\tciteertitel\n"
        f'<{K}>\t"belastingschuldige"\t"belastingschuldige: degene te wiens naam de belastingaanslag is gesteld;"\t'
        '"jci1.3:c:BWBR0004770&artikel=2&lid=1&o=k"\t"BWBR0004770"\t"Invorderingswet 1990"\n')
-KIES = response([text_block("WORKERS: antwoord\nSPECIALIST: definitie\nPLAN: zoek de definitie")], "end_turn")
 NARRATIE = "Ik zoek eerst de definitie op."
 PROZA = "**Kort antwoord**\n\nDe belastingschuldige is degene op wiens naam de aanslag staat. Laat ik dat samenvatten."
 ZOEK = response([text_block(NARRATIE), tool_block("t1", "zoek_definitie", {"term": "belastingschuldige"})], "tool_use")
@@ -37,7 +36,7 @@ def _sjabloon(id: str = "t2", proza: str = "") -> object:
 
 
 def _beurt(*rondes):
-    llm, meter = FakeLLM([KIES, *rondes]), Verbruiksmeter()
+    llm, meter = FakeLLM([*rondes]), Verbruiksmeter()
 
     async def alles():
         return [e async for e in answer_stream("Wat betekent belastingschuldige?", settings=make_settings(enable_planning=True),
@@ -71,8 +70,8 @@ def test_proza_naast_het_sjabloon_gaat_niet_de_historie_in():
     """Weigert de code het sjabloon, dan gaat er nog een verzoek naar het model. Daarin staat de proza niet: anders las het
     model zijn eigen dubbele antwoord bij elke volgende ronde opnieuw."""
     events, llm, _ = _beurt(_sjabloon(id="t0", proza=PROZA), ZOEK, _sjabloon())
-    assert llm.index == 4
-    assert "Kort antwoord" not in json.dumps(llm.calls[2]["messages"], ensure_ascii=False)
+    assert llm.index == 3
+    assert "Kort antwoord" not in json.dumps(llm.calls[1]["messages"], ensure_ascii=False)
     assert "Kort antwoord" not in _denk(events)
 
 

@@ -36,14 +36,11 @@ def test_register_houdt_alleen_opgehaalde_wettekst():
 def _gesprek(tmp_path, tweede_antwoord: str):
     settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     llm1 = FakeLLM([
-        response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: lid 1")], "end_turn"),
         response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})], "tool_use"),
         response([text_block(f'Artikel 9 lid 1 (BWBR0004770): "{TEKST}"')], "end_turn"),
     ])
     _run(answer_stream("Wat zegt artikel 9 lid 1 IW 1990?", "g", settings=settings, llm=llm1, graph=FakeGraph(result=TSV)))
     llm2 = FakeLLM([
-        response([text_block("VRAAG: Wat betekent die termijn?\nWORKERS: antwoord\nSPECIALIST: duiding\nPLAN: leg uit")],
-                 "end_turn"),
         response([text_block(tweede_antwoord)], "end_turn"),
         # Alleen gebruikt als de controle een correctie vraagt.
         response([text_block("Gecorrigeerd antwoord.")], "end_turn"),
@@ -58,14 +55,14 @@ def test_een_eerder_opgehaald_citaat_is_gegrond(tmp_path):
     grounding, sources, llm = _gesprek(
         tmp_path, 'De termijn loopt vanaf de dagtekening: "invorderbaar zes weken na de dagtekening" (BWBR0004770).')
     assert grounding["niveau"] == "gegrond", grounding
-    assert len(llm.calls) == 2, "geen correctieronde nodig"
+    assert len(llm.calls) == 1, "geen correctieronde nodig"
     assert any("BWBR0004770" in s["uri"] for s in sources), "de hergebruikte bron staat in de lijst"
 
 
 def test_een_verzonnen_citaat_blijft_ongegrond(tmp_path):
     grounding, _, llm = _gesprek(tmp_path, 'De wet zegt: "de ontvanger mag altijd uitstel van betaling geven".')
-    assert len(llm.calls) == 3, "het register maakt geen modeltekst tot bron: de controle vraagt een correctie"
-    assert "Let op" in str(llm.calls[2]["messages"][-1])
+    assert len(llm.calls) == 2, "het register maakt geen modeltekst tot bron: de controle vraagt een correctie"
+    assert "Let op" in str(llm.calls[1]["messages"][-1])
 
 
 def test_een_annotatie_onderbouwt_geen_wettekst():
@@ -77,5 +74,5 @@ def test_de_correctie_vraagt_een_nieuw_antwoord_geen_reactie(tmp_path):
     """Het correctiebericht komt van de controle. Las het model het als de jurist, dan werd 'U heeft
     gelijk …' het antwoord – en het laatste wat Lex in die beurt zei, waar de volgende vraag op aansloot."""
     _, _, llm = _gesprek(tmp_path, 'De wet zegt: "de ontvanger mag altijd uitstel van betaling geven".')
-    melding = llm.calls[2]["messages"][-1]["content"]
+    melding = llm.calls[1]["messages"][-1]["content"]
     assert "niet van de jurist" in melding and "VOLLEDIGE antwoord op de oorspronkelijke vraag" in melding

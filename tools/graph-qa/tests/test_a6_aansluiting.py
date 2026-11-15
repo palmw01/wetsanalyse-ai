@@ -98,7 +98,7 @@ def test_beurt_meting_noemt_het_model_dat_draaide_en_de_vorm(caplog):
     meter.aanroepen.append({"invoer": 10, "uitvoer": 5, "model": "licht"})
     run = SimpleNamespace(run_id="kind", ouder_run_id="ouder", stop_gevraagd=False)
     with caplog.at_level("INFO", logger="graph_qa.beurt"):
-        m = _meting(meter, run, subagent=True)
+        m = _meting(meter, run, agentvorm="centraal", subagent=True)
     assert (m["model"], m["agentvorm"], m["subagent"], m["ouder_run_id"]) == ("licht", "centraal", True, "ouder")
     [regel] = [r for r in caplog.records if r.getMessage() == "beurt_meting"]
     assert (regel.model, regel.agentvorm, regel.subagent, regel.ouder_run_id) == ("licht", "centraal", True, "ouder")

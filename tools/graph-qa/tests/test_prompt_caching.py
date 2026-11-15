@@ -70,21 +70,22 @@ def test_provider_die_cache_control_weigert_zet_caching_uit():
 
 
 def test_orkestrator_zet_het_variabele_deel_achter_het_stabiele():
-    """De regressie die caching zinloos zou maken: plan/geheugen vóór de identiteit."""
+    """De regressie die caching zinloos zou maken: de context van de beurt vóór de identiteit. Sinds ADR-016 §A7 heeft
+    de centrale agent geen plan; het variabele deel is hier de stand van de bronnen (een connector staat aan)."""
     llm = FakeLLM([
-        response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: zoek art. 9 op")], "end_turn"),
         response([text_block("Artikel 9 gaat over de termijn.")], "end_turn"),
     ])
     _ = asyncio.run(_verzamel(answer_stream(
-        "Waar gaat artikel 9 over?", settings=make_settings(), llm=llm, graph=FakeGraph(result=""),
+        "Waar gaat artikel 9 over?", settings=make_settings(connector_kamerstukken=True), llm=llm,
+        graph=FakeGraph(result=""),
     )))
 
-    delen = llm.calls[1]["system_delen"]
+    delen = llm.calls[0]["system_delen"]
     assert len(delen) == 1 and delen[0].startswith("Je heet Lex"), "de systeemprompt is alleen het stabiele deel"
-    assert "AANPAK" not in delen[0], "het plan van deze beurt hoort NIET vóór het cache-punt"
-    # Het plan staat ná de historie: als eerste blok van de vraag, met de kop die zegt van wie het is.
-    vraag = llm.calls[1]["messages"][-1]["content"]
-    assert vraag[0]["text"].startswith(BEURTCONTEXT_KOP) and "AANPAK" in vraag[0]["text"]
+    assert "BRONNEN IN DEZE BEURT – de wet" not in delen[0], "de context van deze beurt hoort NIET vóór het cache-punt"
+    # De context staat ná de historie: als eerste blok van de vraag, met de kop die zegt van wie het is.
+    vraag = llm.calls[0]["messages"][-1]["content"]
+    assert vraag[0]["text"].startswith(BEURTCONTEXT_KOP) and "BRONNEN IN DEZE BEURT – de wet" in vraag[0]["text"]
     assert vraag[1] == {"type": "text", "text": "Waar gaat artikel 9 over?"}
 
 
@@ -238,15 +239,14 @@ def test_de_meetvlag_zet_de_beurtcontext_terug_in_de_systeemprompt():
 
     def draai(plek: str) -> dict:
         llm = FakeLLM([
-            response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: zoek art. 9 op")], "end_turn"),
             response([text_block("Artikel 9 gaat over de termijn.")], "end_turn"),
         ])
-        asyncio.run(_verzamel(answer_stream("Waar gaat artikel 9 over?", settings=make_settings(), llm=llm,
-                                            graph=FakeGraph(result=""), beurtcontext_plek=plek)))
-        return llm.calls[1]
+        asyncio.run(_verzamel(answer_stream("Waar gaat artikel 9 over?", settings=make_settings(connector_kamerstukken=True),
+                                            llm=llm, graph=FakeGraph(result=""), beurtcontext_plek=plek)))
+        return llm.calls[0]
 
     oud = draai("systeem")
-    assert len(oud["system_delen"]) == 2 and "AANPAK" in oud["system_delen"][1]
+    assert len(oud["system_delen"]) == 2 and "BRONNEN IN DEZE BEURT – de wet" in oud["system_delen"][1]
     assert oud["messages"][-1]["content"] == "Waar gaat artikel 9 over?"
     assert oud.get("berichtpunten") == ()
     nieuw = draai("vraag")

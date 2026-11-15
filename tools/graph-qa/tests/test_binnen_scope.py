@@ -14,7 +14,7 @@ from agent.binnen_scope import genoemde_regelingen, niet_afwijzen
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block
 
 K12 = "wat is bekend over het milieu in de milieuwet?"
-AFWIJZEN = response([text_block("WORKERS: antwoord\nSPECIALIST: algemeen\nTAAK:\nPLAN: AFWIJZEN")], "end_turn")
+AFWIJZEN = response([tool_block("ov", "wijs_af", {})], "tool_use")
 
 
 def _run(gen):

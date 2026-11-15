@@ -116,9 +116,8 @@ def _draai(gen) -> list[dict[str, Any]]:
 ART9 = "urn:bwb:BWBR0004770:artikel:9"
 
 
-def test_supervisor_en_antwoordlus():
+def test_centrale_agent_en_antwoordlus():
     llm = Opnemer([
-        response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: haal artikel 9 op")], "end_turn"),
         response([text_block("Ik haal het artikel op."),
                   tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),
         response([text_block("Artikel 9 gaat over uitstel van betaling.")], "end_turn"),
@@ -127,12 +126,12 @@ def test_supervisor_en_antwoordlus():
     _draai(answer_stream("Wat betekent artikel 9 van de Invorderingswet 1990 voor een belastingschuldige?",
                          settings=make_settings(grounding_correct=False),
                          llm=llm, graph=graaf))
-    # Supervisor, en twee rondes van de lus: de tweede draagt het toolresultaat in de historie.
-    assert [c["methode"] for c in llm.calls] == ["create", "stream", "stream"]
+    # Twee rondes van de centrale agent (ADR-016 §A7: geen supervisorstap): de tweede draagt het toolresultaat.
+    assert [c["methode"] for c in llm.calls] == ["stream", "stream"]
     _vergelijk("antwoord", llm.calls)
 
 
-# --- de annotatieketen: supervisor, ophaal-agent, classifier en reviewer -----------------------
+# --- de annotatieketen: centrale agent, ophaal-agent, classifier en reviewer ------------------
 
 LID = "De ontvanger verleent binnen zes weken uitstel van betaling, indien de belastingplichtige daarom verzoekt."
 LID_TSV = json.dumps(f'?nummer\t?tekst\t?jci\n"1"\t"{LID}"@nl\t"jci"')
@@ -141,7 +140,8 @@ DOEL_JSON = '{"bwbId":"BWBR0004770","artikel":"9","lid":"1","nummer":"","citeert
 
 def _aanloop() -> list[Any]:
     return [
-        response([text_block("WORKERS: annotatie\nPLAN: annoteer art 9 lid 1")], "end_turn"),
+        response([tool_block("ov", "annoteer", {"vraag": "annoteer artikel 9 lid 1 van de Invorderingswet 1990"})],
+                 "tool_use"),
         response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})], "tool_use"),
         response([text_block(DOEL_JSON)], "end_turn"),
     ]
