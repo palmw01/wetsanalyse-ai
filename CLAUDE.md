@@ -106,13 +106,14 @@ overzien.
    `docs/wetsanalyse/wa-table.png`), met een eigen beeldmerk voor Lex in plaats van een overheidslogo
    (`frontend/merk/`, zie `frontend/CLAUDE.md` §*Vormgeving*).
    Een `/` vooraan in het invoerveld opent de **commando's**: dezelfde vaste handelingen als de suggesties (dus zonder
-   supervisor-aanroep) plus een paar zonder beurt (`/nieuw`, `/bron`, `/help`); zie `frontend/CLAUDE.md` §*Commando's*.
+   modelstap voor de route) plus een paar zonder beurt (`/nieuw`, `/bron`, `/help`); zie `frontend/CLAUDE.md` §*Commando's*.
 3. **`tools/graph-qa/`** – de eigen **QA/annotatie-agent**, **Lex** (de naam die de gebruiker ziet; de
    code, het image en de env-variabelen heten `graph-qa`), die vragen over wet- en regelgeving
    beantwoordt door de BWB-**kennisgraaf** (GraphDB via MCP) te bevragen en het antwoord
    **brongetrouw** te onderbouwen (grounding + bronnen uit de tool-trace). Eén **unified
-   LangGraph-agent**: een **supervisor** kiest per vraag een worker-keten – de **antwoord-worker**
-   (specialisten `definitie`/`duiding`/`algemeen`: agent ⇄ tools → verify → finalize), de
+   LangGraph-agent**: de **ingang** kiest per vraag een route in code, en anders beantwoordt de **centrale agent**
+   (ADR-016; de supervisor is sinds 15 nov 2026 weg) haar zelf of geeft haar met een overdracht aan een keten – de
+   **antwoordketen** (agent ⇄ tools → verify → finalize, met subagents voor groter werk), de
    **annotatie-worker** (`annoteer → emit`: de hybride keten uit ADR-001 met deterministische
    detectoren, een kleine classifier en een gerichte reviewer op twijfelgevallen, met aandacht-niveau
    🟢🟡), de **werkgebied-worker** (`werkgebied_intake`: een werkgebied samenstellen met vraagkaarten,
@@ -304,7 +305,8 @@ vermenging rood.
 
 **Een wijziging van de tekst tussen de methodemarkers verandert het gedrag van Lex** en vraagt een meting (ADR-010,
 P19). De herinrichting naar skillversie 3.0 en 4.0 liet die tekst byte-gelijk; methodeversie 3.0 (13 nov 2026) haalde
-het JRM uit de secties `duiding` en `supervisor`, met een eigen meting.
+het JRM uit de secties `duiding` en `supervisor`, met een eigen meting. De sectie `supervisor` en de rollen `supervisor`
+en `definitie` vervielen met ADR-016 §A7 (15 nov 2026); de tekst van de andere secties bleef byte-gelijk.
 
 ## Observability
 
@@ -522,7 +524,7 @@ plan mag verouderen.
   (spaCy) vast. `adr-003-nl-sbb-begrippencontract.md` maakt NL-SBB het datacontract voor
   begrippen (activiteit 3), niet alleen het exportformaat. `adr-004-begrippenketen.md` ontwerpt
   de keten die betekenisgroepen voorstelt, in de vorm van `hybrid_v1`. `adr-005-vraag-lex-en-agents.md`
-  legt Vraag Lex en de agents onder de supervisor vast (F3). `adr-006-generieke-begrippen.md` legt
+  legt Vraag Lex en de agents vast (F3; de supervisor is met ADR-016 §A7 vervallen). `adr-006-generieke-begrippen.md` legt
   het generieke begrippenkader boven de werkgebieden vast (spoor N). `adr-007-llm-pad-en-verwerker.md` is
   een concept: wat vastligt over het LLM-pad en wat de eigenaar nog moet besluiten. `adr-008-antwoordsjablonen.md`
   legt het antwoord als toolaanroep vast: vaste blokken per vraagtype, de feiten uit de code. `adr-009-werkgebiedrapport.md` legt het rapport van een werkgebied vast: één JSON-document waaruit PDF en Markdown komen. `adr-010-agentarchitectuur.md` legt het eindbeeld van de agents vast: routering in code, vaste workflows voor vaste vragen, taakagents met een contract, en één open laag; met gedeelde modelstap, context en kwaliteitsmeting. `adr-011-relaties-tussen-markeringen.md` legt de relaties tussen markeringen vast (deelactiviteit 2c): een catalogus in de skill, opslag per drager, een impliciete partij alleen door de jurist, en het regelskelet als grondstof voor activiteit 3b. `adr-012-multi-agent-regie.md` legt de regie binnen een werkgebied vast: een regisseur in code die per deelvraag een kindgesprek met een gewone run start, met de jurist als poort tussen bronnen zoeken en annoteren. `adr-014-catalogus.md` (concept) legt de catalogus vast: één beschrijving per onderdeel (methode, rol, specialist, agent, workflow, route, connector, sjabloon, regelset), afgeleid uit de bestaande registers, in de app in te zien en via een PR in de repo te wijzigen (het voorstellen vanuit de app, C7, is vervallen); werkdocument `catalogus.md`. `adr-015-contextbeheer.md` legt het contextbeheer van de antwoordlus vast: een voorvoegsel dat een uur in de cache blijft, de context van de beurt ná de historie, en een venster dat aangroeit en alleen bij de grens opruimt; geen compaction of context editing van de API. `adr-016-centrale-agent-en-werkplaats.md` (concept) legt het totaalplan vast: één centrale agent per gesprek die een gewone vraag zelf beantwoordt en voor werk dat zich daarvoor leent subagents opstelt, elk met een profiel uit één register (skills, tools, connectors, MCP's), met de routes in code ervoor, de regisseur als tool, en rapporten en gebundelde vragen naar boven; en de werkplaats om skills, profielen en later MCP's in Lex te maken (concept, proef op acceptatie, concept-PR, actief na uitrol).

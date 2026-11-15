@@ -199,7 +199,7 @@ def test_een_nieuwe_connector_komt_er_zonder_code_bij(monkeypatch):
     # De profielen: het profiel dat de connector noemt krijgt de tool, een ander niet.
     duiding = PROFIELEN["duiding"]
     assert "zoek_testbron" in tools_van(duiding.model_copy(update={"connectors": (*duiding.connectors, "testbron")}))
-    assert "zoek_testbron" not in tools_van(PROFIELEN["definitie"])
+    assert "zoek_testbron" not in tools_van(PROFIELEN["begrippen_lezen"])
     # De dispatch: een module in het register, en `dispatch` voert de tool uit met de bron van die connector – zonder
     # één regel in `tools/__init__.py` (vroeger een tak, een singleton en een argument per connector).
     from agent.tools.connectortools import ConnectorModule

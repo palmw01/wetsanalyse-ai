@@ -1,9 +1,9 @@
 # Gegenereerd uit de wetsanalyse-skill; niet handmatig bewerken.
 # Draai scripts/genereer_jas_klassen.py.
 PAKKET = {'bronbestanden': {'SKILL.md': '1b2c685d8f23ca6a5b949efa427f004050aaf6daa26a77d90b554a6d9d633a96',
-                   'agentrollen.json': 'a04df78efa9b83ae698c6086fbcd51926402330af86230056737dd953ad50932',
-                   'references/agentrollen.md': '0dd07b69189f7983eab7c8543537b4e53b74a720b28905a6ecf16ccc0110da21',
-                   'references/bronnen.md': 'c7f83e329cde3c6d25215793c6866510624225c5bda555112737a798a18dde6b',
+                   'agentrollen.json': 'a87a8bc9a2c6cb16a46fa33150f32cc83f1f2a47c1f0e01184f38a8b7c5994fa',
+                   'references/agentrollen.md': '26e1550d15e59ed7fa2c7910b09337cb7e8aa7d476a80d8990a9d8e4cef5564f',
+                   'references/bronnen.md': 'ada9fb13ede9f0a1969de8cbc678fa9ee1087a9687753f510d849feca8f2b970',
                    'references/deelvragen-en-bronnen.md': '480d3ff17a613799e4f1cc380488e2c47d60bd1babe9256f85ba75c205c17490',
                    'references/jas-klassen-referentie.md': '4ed318a29ad2c691e31271618c42b333fd405a9335e891a9d1fb845287da4e5d',
                    'references/nl-sbb-en-b1.md': 'ceeb1110d57ed267ef04fe4289ae701562290689525b14c9783908dcb3575411',
@@ -37,10 +37,8 @@ PAKKET = {'bronbestanden': {'SKILL.md': '1b2c685d8f23ca6a5b949efa427f004050aaf6d
  'rollen': {'agent': ['basis', 'definitie', 'duiding', 'nl-sbb-taalniveau'],
             'algemeen': ['basis', 'nl-sbb-taalniveau'],
             'deelvragen': ['basis', 'deelvragen'],
-            'definitie': ['basis', 'definitie', 'nl-sbb-taalniveau'],
             'duiding': ['basis', 'duiding'],
-            'retrieval': ['basis', 'retrieval'],
-            'supervisor': ['basis', 'supervisor']},
+            'retrieval': ['basis', 'retrieval']},
  'secties': {'basis': {'bestand': 'references/agentrollen.md',
                        'bronnen': ['M01', 'M03', 'P01', 'P03', 'P11', 'P12'],
                        'sha256': '8c9420f83ecbe8cd1e08bace10eb37bc4de08a2706cdda498d6367310be3a306',
@@ -229,19 +227,8 @@ PAKKET = {'bronbestanden': {'SKILL.md': '1b2c685d8f23ca6a5b949efa427f004050aaf6d
                                     'bestaande kandidatenuitvoer. Lever bronselectie volgens het '
                                     'doelcontract; verricht geen juridische duiding. Gebruik '
                                     'alleen aangetroffen versiegegevens, geen veronderstelde '
-                                    'geldigheid.'},
-             'supervisor': {'bestand': 'references/agentrollen.md',
-                            'bronnen': ['M03', 'P11', 'P12'],
-                            'sha256': '8cc6c6c545707067c89349a266ff0464a8e2340e707f0b3d47dc4f4fb56cb78c',
-                            'skill': 'wetsanalyse',
-                            'tekst': 'Kies de bestaande uitvoervorm op basis van het verzoek: '
-                                     'markeringen vragen de annotatieketen; betekenis en samenhang '
-                                     'vragen duiding; brondefinities vragen definitie. Advies en '
-                                     'annotatie zijn verschillende producten. Beloof geen volledig '
-                                     'analysedossier via een route die alleen markeringen of een '
-                                     'antwoord levert. Laat inhoudelijke analyse aan de gekozen '
-                                     'rol over.'}},
- 'sha256': '69c2a418ea1999a51f5a5a4a567ca21e4dbad1390ed1374f1102a1109da46377',
+                                    'geldigheid.'}},
+ 'sha256': '2819880bbe46af9b6904cb92a5350a373395e3c6297bbe4020289b3d5a5362ba',
  'skills': {'wetsanalyse': {'lex': {'beschrijving': 'Analyseert Nederlandse wet- en regelgeving '
                                                     'volgens de methode Wetsanalyse en het '
                                                     'Juridisch Analyseschema (JAS): een werkgebied '

@@ -633,7 +633,7 @@ def test_zoekresultaat_hangt_als_toolbewijs_in_de_historie():
 
 
 def _via_ophaal(vraag, doel_json, rows, api):
-    llm = FakeLLM([response([text_block("WORKERS: annotatie\nPLAN: annoteer")], "end_turn"),
+    llm = FakeLLM([response([tool_block("ov", "annoteer", {"vraag": vraag})], "tool_use"),
                    response([text_block(json.dumps(doel_json))], "end_turn")])
     return run(answer_stream(vraag, llm=llm, graph=FakeGraph(result=rows), annotaties=api,
                              settings=make_settings())), llm

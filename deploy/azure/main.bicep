@@ -83,15 +83,8 @@ param connectoren array = []
 @description('Stelt de annotatieketen van graph-qa relaties tussen markeringen voor (ADR-011, RELATIE_VOORSTELLEN)? Een proefvlag, alleen acceptatie; default false. Uit is de uitkomst van de keten gelijk aan zonder deze code.')
 param relatieVoorstellen bool = false
 
-@description('Het lichte model voor een subagent van de centrale agent (ADR-016 §A2, LLM_MODEL_LICHT). Een proefvlag, alleen acceptatie; default leeg. Leeg = graph-qa valt terug op LLM_MODEL_ROUTER en anders LLM_MODEL; een model dat de straat niet heeft (404) valt tijdens de beurt terug op LLM_MODEL.')
-param llmModelLicht string = ''
-
 @description('Nemen de annotatie- en begrippenketen van graph-qa de regels mee die een methode-skill meebrengt (ADR-014 §7, SKILL_REGELS)? Een proefvlag, alleen acceptatie; default false. Uit is de uitkomst gelijk aan zonder deze code.')
 param skillRegels bool = false
-
-@description('De centrale agent van graph-qa (ADR-016 §A7, CENTRALE_AGENT). `uit`: de supervisor, en een verzoek per run wordt genegeerd. `meten`: de supervisor, tenzij een run om de centrale agent vraagt. `aan`: de centrale agent, tenzij een run om de supervisor vraagt. Alleen acceptatie zet iets anders dan `uit`; met `uit` is Lex gelijk aan zonder deze code.')
-@allowed(['uit', 'meten', 'aan'])
-param centraleAgent string = 'uit'
 
 @description('De werkplaats van de api (ADR-016 deel B, WERKPLAATS): zelf skills en agentprofielen maken, als concept met versies. Alleen acceptatie; default false. Uit bestaan de routes niet.')
 param werkplaats bool = false
@@ -1009,9 +1002,7 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'WETSANALYSE_API_TOKEN_FILE', value: '/run/secrets/wetsanalyse_api_token' }
             { name: 'SIMILARITY_INDEX', value: 'bwb_similarity' }
             { name: 'RELATIE_VOORSTELLEN', value: relatieVoorstellen ? 'true' : 'false' }
-            { name: 'LLM_MODEL_LICHT', value: llmModelLicht }
             { name: 'SKILL_REGELS', value: skillRegels ? 'true' : 'false' }
-            { name: 'CENTRALE_AGENT', value: centraleAgent }
             // Gespreksgeheugen in Postgres, NIET op schijf: het filesystem van een container-app is
             // ephemeer en de app kan schalen, dus een SQLite-bestand verliest het geheugen bij
             // elke herstart en is per-replica verschillend.
@@ -1139,9 +1130,7 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
             { name: 'GRAPHDB_REPOSITORY_ID', value: 'inning' }
             { name: 'SIMILARITY_INDEX', value: 'bwb_similarity' }
             { name: 'RELATIE_VOORSTELLEN', value: relatieVoorstellen ? 'true' : 'false' }
-            { name: 'LLM_MODEL_LICHT', value: llmModelLicht }
             { name: 'SKILL_REGELS', value: skillRegels ? 'true' : 'false' }
-            { name: 'CENTRALE_AGENT', value: centraleAgent }
             // Korter wachten dan de werkplek (120 s). Een jurist die zit te wachten heeft baat bij
             // doorwachten; een meting die tien cases achter elkaar draait niet. Geeft de provider
             // `overloaded_error`, dan kost elke call anders 120 s x 3 pogingen en duwt dat de run over

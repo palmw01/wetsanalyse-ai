@@ -11,14 +11,6 @@
         "P12"
       ]
     },
-    "supervisor": {
-      "bestand": "references/agentrollen.md",
-      "bronnen": [
-        "M03",
-        "P11",
-        "P12"
-      ]
-    },
     "retrieval": {
       "bestand": "references/agentrollen.md",
       "bronnen": [
@@ -72,18 +64,9 @@
     }
   },
   "rollen": {
-    "supervisor": [
-      "basis",
-      "supervisor"
-    ],
     "retrieval": [
       "basis",
       "retrieval"
-    ],
-    "definitie": [
-      "basis",
-      "definitie",
-      "nl-sbb-taalniveau"
     ],
     "duiding": [
       "basis",

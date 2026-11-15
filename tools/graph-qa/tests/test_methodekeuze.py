@@ -58,12 +58,11 @@ def test_een_gewoon_verzoek_of_een_vraag_over_de_methode_loopt_door(vraag):
     assert methodekeuze.niet_gekoppeld(vraag) == ""
 
 
-@pytest.mark.parametrize("vorm", ["supervisor", "centraal"])
 @pytest.mark.parametrize("vraag", VERZOEKEN[:3])
-def test_de_beurt_start_geen_annotatie_en_geen_model(vraag, vorm):
+def test_de_beurt_start_geen_annotatie_en_geen_model(vraag):
     b = _bouw()  # een model dat faalt als het wordt aangeroepen
-    state = _state(vraag, agentvorm=vorm)
-    upd = supervisie.supervisor_node(b, state)
+    state = _state(vraag)
+    upd = supervisie.ingang_node(b, state)
     assert supervisie._entry_node(b, {**state, **upd}) == "afwijzen"
     assert upd["worker_plan"] == [] and upd["specialist"] == ""
     assert "kan ik nog niet" in upd["afwijs_melding"] and "JAS" in upd["afwijs_melding"]
@@ -72,20 +71,21 @@ def test_de_beurt_start_geen_annotatie_en_geen_model(vraag, vorm):
 def test_ook_met_een_aangewezen_bepaling_start_de_jas_keten_niet():
     b = _bouw()
     state = _state("annoteer dit artikel volgens JRM", opgegeven_doel={"bwbId": "BWBR0004770", "artikel": "9"})
-    upd = supervisie.supervisor_node(b, state)
+    upd = supervisie.ingang_node(b, state)
     assert supervisie._entry_node(b, {**state, **upd}) == "afwijzen" and "annotatie" not in upd["worker_plan"]
 
 
 def test_een_vraag_over_de_methode_gaat_naar_het_model():
+    """Geen vaste zin: de vraag gaat naar de centrale agent (ADR-016 §A7), die het model daarna vraagt."""
     b = _bouw()
-    with pytest.raises(ModelGevraagd):
-        supervisie.supervisor_node(b, _state("wat zegt het JRM over een rechtsfeit?"))
+    upd = supervisie.ingang_node(b, _state("wat zegt het JRM over een rechtsfeit?"))
+    assert upd["specialist"] == "centraal" and not upd.get("afwijzen")
 
 
 def test_een_klik_op_een_actie_noemt_geen_methode_en_loopt_door():
     b = _bouw()
     state = _state("", actie="werkgebied_annoteren", werkgebied_id="w1")
-    upd = supervisie.supervisor_node(b, state)
+    upd = supervisie.ingang_node(b, state)
     assert not upd.get("afwijzen")
 
 

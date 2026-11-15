@@ -22,7 +22,6 @@ from fakes import FakeGraph, FakeLLM, make_settings, response, text_block
 
 ALLE = dict(connector_kamerstukken=True, connector_rechtspraak=True, connector_bekendmakingen=True,
             connector_wetgeving_live=True, connector_kennisgroepen=True)
-KIES = response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: zoek")], "end_turn")
 MVT = "Wat zegt de memorie van toelichting over de bestuurdersaansprakelijkheid?"
 ZONDER = "Hoe werkt de bestuurdersaansprakelijkheid?"
 
@@ -32,7 +31,7 @@ def _stand():
 
 
 def _run(vraag, gid=None, settings=None, *rondes):
-    llm = FakeLLM([KIES, *(rondes or [response([text_block("Klaar.")], "end_turn")])])
+    llm = FakeLLM([*(rondes or [response([text_block("Klaar.")], "end_turn")])])
 
     async def alles():
         return [e async for e in answer_stream(vraag, gid, settings=settings or make_settings(enable_planning=True, **ALLE),
@@ -42,7 +41,7 @@ def _run(vraag, gid=None, settings=None, *rondes):
 
 
 def _toolnamen(llm) -> set[str]:
-    return {t["name"] for t in llm.calls[1]["tools"]}
+    return {t["name"] for t in llm.calls[0]["tools"]}
 
 
 def _connectortools(*namen: str) -> set[str]:

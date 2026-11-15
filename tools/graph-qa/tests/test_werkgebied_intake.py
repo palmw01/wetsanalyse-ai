@@ -360,7 +360,6 @@ def test_een_heel_gesprek_tot_aanmaken(tmp_path, graaf):
                    _voorstel(doel=["webservices"]),
                    _voorstel(vraag=["Wie is belastingplichtig voor box 3?"]),
                    _deelvragen(DV1, DV2),
-                   response([text_block("WORKERS: antwoord\nSPECIALIST: algemeen\nPLAN: uitleg")], "end_turn"),
                    response([text_block("Box 3 is het inkomen uit sparen en beleggen.")], "end_turn"),
                    _voorstel(onderwerp="box 3")])
 
@@ -395,13 +394,14 @@ def test_een_heel_gesprek_tot_aanmaken(tmp_path, graaf):
     # Een tussenvraag: gewoon antwoord, het kaartje blijft open.
     tussen = _beurt(settings, llm, "Wat is box 3 eigenlijk?")
     assert not [x for x in tussen if x["type"] == "vraagkaart"]
-    assert "OPEN KAARTJE" in llm.calls[4]["system"]
+    # De centrale agent leest het open kaartje in de context van de beurt (`overdracht.open_kaartje`).
+    assert "OPEN KAARTJE" in llm.prompts[-1]
 
     k = klik(k, keuzes=[DV1], teksten=["Telt een tweede huis mee?"])
     assert k["stap"] == "buiten"
     k = klik(k, tekst="het overgangsrecht")
     assert k["stap"] == "regelingen" and k["meerkeuze"] and graaf[-1]["zoek"] == "box 3"
-    assert "Deelvragen:\n- Wie is belastingplichtig" in inhoud(6) and "Buiten de afbakening: het overgangsrecht." in inhoud(6)
+    assert "Deelvragen:\n- Wie is belastingplichtig" in inhoud(5) and "Buiten de afbakening: het overgangsrecht." in inhoud(5)
     assert [v for v, _ in graaf[-1]["deelvragen"]] == [DV1, "Telt een tweede huis mee?"]
     assert graaf[-1]["buiten"] == ["overgang"] and "overgangsrecht" not in graaf[-1]["genoemd_in"]
     assert [o["waarde"] for o in k["opties"]] == [IB, "BWBR0002320", wi.ONBEKEND]
@@ -423,7 +423,7 @@ def test_een_heel_gesprek_tot_aanmaken(tmp_path, graaf):
     # Geen bronnen bij het aanmaken: die komen per deelvraag uit de bronselectie; wel het zoekbereik en de gebeurtenis.
     assert aan["bronnen"] == [] and aan["werkgebied"]["gebeurtenis"] == "heffing"
     assert aan["werkgebied"]["regelingen"] == [{"bwb_id": IB, "label": OPTIES[0]["label"]}]
-    assert llm.index == 7, "geen modelaanroep voor de klikken zelf"
+    assert llm.index == 6, "geen modelaanroep voor de klikken zelf"
 
 
 def test_terugbladeren_zonder_wijziging_kost_niets_met_wijziging_nieuwe_voorstellen(tmp_path, graaf):
@@ -448,7 +448,7 @@ def test_terugbladeren_zonder_wijziging_kost_niets_met_wijziging_nieuwe_voorstel
 
 def test_een_getypt_antwoord_op_het_open_kaartje(tmp_path, graaf):
     settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
-    llm = FakeLLM([response([text_block("WORKERS: werkgebied\nPLAN: antwoord op het kaartje")], "end_turn"),
+    llm = FakeLLM([response([tool_block("ov", "beantwoord_kaart", {})], "tool_use"),
                    _voorstel()])
     _beurt(settings, llm, "Kunnen we een werkgebied samenstellen?")
     k = _kaart(_beurt(settings, llm, "Invordering van de erfbelasting"))
@@ -460,13 +460,12 @@ def test_een_getypt_antwoord_op_het_open_kaartje_bij_de_centrale_agent(tmp_path,
     antwoord met `beantwoord_kaart` aan de werkgebied-worker, zoals de supervisor met `WORKERS: werkgebied`."""
     from agent.agent import answer_stream
 
-    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"), centrale_agent="meten")
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     llm = FakeLLM([response([tool_block("t1", "beantwoord_kaart", {})], "tool_use"), _voorstel()])
 
     def beurt(vraag):
         async def run():
-            return [e async for e in answer_stream(vraag, "g1", settings=settings, llm=llm, graph=FakeGraph(),
-                                                   agentvorm="centraal")]
+            return [e async for e in answer_stream(vraag, "g1", settings=settings, llm=llm, graph=FakeGraph())]
         return asyncio.run(run())
 
     beurt("Kunnen we een werkgebied samenstellen?")
@@ -651,13 +650,6 @@ def test_een_klik_gaat_nooit_een_harde_route_in():
     assert r.intake_actie is not None
     with pytest.raises(Exception):
         ChatRequest(question="x", intake_actie={"intake_id": "ik 1", "stap": "naam"})
-
-
-def test_de_supervisor_kent_de_werkgebied_worker_en_ketent_hem_niet():
-    from agent.supervisor import parse_supervisor
-
-    assert parse_supervisor("WORKERS: werkgebied, antwoord\nPLAN: samenstellen") == (["werkgebied"], "samenstellen", False)
-    assert parse_supervisor("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: x")[0] == ["duiding"]
 
 
 def test_artikelnummers_in_eigen_tekst():
@@ -909,7 +901,7 @@ def test_kun_je_praktijkvoorbeeld_toevoegen_vraagt_het_zonder_model(tmp_path):
     na de supervisor geen enkele modelaanroep."""
     settings = _aanvulsettings(tmp_path)
     nep = AanvulApi()
-    llm = FakeLLM([response([text_block("WORKERS: werkgebied\nSPECIALIST: algemeen\nTAAK: aanvullen\nPLAN: dossier")], "end_turn")])
+    llm = FakeLLM([response([tool_block("ov", "werkgebied", {"taak": "aanvullen"})], "tool_use")])
     e = _aanvulbeurt(settings, llm, nep, "kun je praktijkvoorbeeld toevoegen?")
     k = _kaart(e)
     assert (k["modus"], k["stap"], k["totaal"], k["vooringevuld"]) == ("aanvullen", "praktijkvoorbeeld", 1, [])
@@ -948,7 +940,7 @@ def test_zonder_werkgebied_of_als_het_weg_is_zegt_lex_het(tmp_path):
     from agent.nodes.werkgebied import ZONDER_WERKGEBIED
 
     async def zonder():
-        llm = FakeLLM([response([text_block("WORKERS: werkgebied\nTAAK: aanvullen\nPLAN: x")], "end_turn")])
+        llm = FakeLLM([response([tool_block("ov", "werkgebied", {"taak": "aanvullen"})], "tool_use")])
         return [e async for e in answer_stream("kun je het praktijkvoorbeeld toevoegen?", "gz", settings=settings,
                                                llm=llm, graph=FakeGraph(), agent_api=lambda s, u: AanvulApi())]
     assert _tekst(asyncio.run(zonder())) == ZONDER_WERKGEBIED
@@ -957,7 +949,7 @@ def test_zonder_werkgebied_of_als_het_weg_is_zegt_lex_het(tmp_path):
 def test_opslaan_op_een_gewijzigd_werkgebied_legt_je_antwoord_naast_de_nieuwe_stand(tmp_path):
     settings = _aanvulsettings(tmp_path)
     nep = AanvulApi()
-    llm = FakeLLM([response([text_block("WORKERS: werkgebied\nTAAK: aanvullen\nPLAN: x")], "end_turn")])
+    llm = FakeLLM([response([tool_block("ov", "werkgebied", {"taak": "aanvullen"})], "tool_use")])
     k = _kaart(_aanvulbeurt(settings, llm, nep, "Voeg een praktijkvoorbeeld toe"))
     k = _kaart(_aanvulbeurt(settings, FakeLLM([]), nep, "x",
                             {"intake_id": k["intake_id"], "stap": "praktijkvoorbeeld", "tekst": "Een spaarder."}))

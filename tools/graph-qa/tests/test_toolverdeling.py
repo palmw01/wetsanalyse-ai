@@ -68,7 +68,8 @@ def test_elke_beschrijving_zegt_wat_de_tool_teruggeeft():
 @pytest.mark.parametrize(
     ("rol", "moet_hebben"),
     [
-        ("definitie", {"zoek_definitie", "resolve_begrip"}),
+        ("centraal", {"zoek_definitie", "get_lid"}),
+        ("centraal_breed", {"resolve_begrip"}),
         ("duiding", {"get_context", "verwijst_naar_deze", "grondslagen", "geldigheid", "inhoudsopgave"}),
         ("retrieval", {"get_bepaling", "inhoudsopgave", "search_wetgeving"}),
     ],

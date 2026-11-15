@@ -1,6 +1,6 @@
 # ADR-005 — Vraag Lex en de agents onder de supervisor
 
-Status: **aangenomen, gebouwd, met een aanvulling** (6 nov 2026, onderaan) · Datum: 2026-10-21 · Hoort bij: [PLAN spoor F3](../PLAN.md), [ADR-001](adr-001-hybride-jas-pijplijn.md), [ADR-004](adr-004-begrippenketen.md)
+Status: **aangenomen, gebouwd, met een aanvulling** (6 nov 2026, onderaan); **de supervisor is vervallen** (15 nov 2026, [ADR-016 §A7](adr-016-centrale-agent-en-werkplaats.md)) · Datum: 2026-10-21 · Hoort bij: [PLAN spoor F3](../PLAN.md), [ADR-001](adr-001-hybride-jas-pijplijn.md), [ADR-004](adr-004-begrippenketen.md)
 
 ## Context
 
@@ -85,3 +85,12 @@ een modelkeuze, en bronselectie en intake zijn stapmachines die een startzin nod
 **Open.** `_BRONSELECTIE` matcht ook uitleg: "Hoe moet een rechter deze bepalingen beoordelen?" gaat binnen een werkgebied naar de
 bronselectie, terwijl uitleg bij `antwoord` hoort. De regex is daarop getoetst, de route niet van begin tot eind. De oplossing
 is het patroon aanscherpen plus een negatief in de eval. Dat is een gedragswijziging en valt buiten deze aanvulling.
+
+## Aanvulling (15 nov 2026): de supervisor is vervallen
+
+Met [ADR-016 §A7](adr-016-centrale-agent-en-werkplaats.md) is de supervisor weg. De agents van dit besluit blijven,
+net als hun taken en de klik die zonder model kiest. Wat de supervisor op getypte tekst koos, kiest nu de centrale
+agent met een overdracht (`taakagent` voor de deelvragen- en begrippenagent, `werkgebied` voor samenstellen,
+aanvullen en de bronselectie, `annoteer`, `wijs_af`), en de tekstroutes van de aanvulling hierboven staan nog steeds
+vóór het model, in de ingang (`supervisie.ingang_node`). Waar dit besluit "de supervisor" zegt, lees je sindsdien
+"de centrale agent".

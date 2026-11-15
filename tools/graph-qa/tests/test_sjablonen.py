@@ -90,7 +90,6 @@ def test_de_tekst_volgt_uit_de_blokken_en_het_model_reist_rond():
 RIJ = ("node\tbegrip\ttekst\tjci\tbwbId\tciteertitel\n"
        f'<{K}>\t"belastingschuldige"\t"belastingschuldige: degene te wiens naam de belastingaanslag is gesteld;"\t'
        '"jci1.3:c:BWBR0004770&artikel=2&lid=1&o=k"\t"BWBR0004770"\t"Invorderingswet 1990"\n')
-KIES = response([text_block("WORKERS: antwoord\nSPECIALIST: definitie\nPLAN: zoek de definitie")], "end_turn")
 ZOEK = response([tool_block("t1", "zoek_definitie", {"term": "belastingschuldige"})], "tool_use")
 
 
@@ -99,7 +98,7 @@ def _sjabloon(toelichting: str = "De tenaamstelling beslist.", id: str = "t2"):
 
 
 def _beurt(*rondes):
-    llm = FakeLLM([KIES, *rondes])
+    llm = FakeLLM([*rondes])
     settings = make_settings(enable_planning=True, grounding_correct=True)
 
     async def alles():
@@ -126,7 +125,7 @@ def test_een_beurt_rondt_af_met_het_sjabloon():
 
 def test_een_onvulbaar_sjabloon_gaat_terug_naar_het_model():
     events, llm = _beurt(_sjabloon(id="t0"), ZOEK, _sjabloon())
-    assert llm.index == 4
+    assert llm.index == 3
     assert _eerste(events, "antwoord")["antwoord"]["blokken"][0]["soort"] == "definities"
 
 
@@ -138,7 +137,7 @@ def test_vrije_tekst_blijft_een_geldig_antwoord():
 
 def test_een_verzonnen_verwijzing_in_de_toelichting_gaat_door_de_correctie():
     events, llm = _beurt(ZOEK, _sjabloon("Zie BWBR9999999."), _sjabloon("Zonder verzinsel.", id="t3"))
-    assert llm.index == 4
+    assert llm.index == 3
     assert "BWBR9999999" not in _eerste(events, "token")["content"]
     assert [e for e in events if e["type"] == "antwoord"][-1]["antwoord"]["blokken"][-1]["tekst"] == "Zonder verzinsel."
 
@@ -149,14 +148,14 @@ def test_een_sjabloon_naast_een_graaftool_wordt_na_de_graaftool_gevuld():
     beide = response([tool_block("t1", "zoek_definitie", {"term": "belastingschuldige"}), tool_block("t2", "antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""})], "tool_use")
     from agent.models import Verbruiksmeter
 
-    llm, meter = FakeLLM([KIES, beide, _sjabloon()]), Verbruiksmeter()
+    llm, meter = FakeLLM([beide, _sjabloon()]), Verbruiksmeter()
 
     async def alles():
         return [e async for e in answer_stream("Wat betekent belastingschuldige?", settings=make_settings(enable_planning=True),
                                                llm=llm, graph=FakeGraph(result=RIJ), meter=meter)]
 
     events = asyncio.run(alles())
-    assert llm.index == 2, "geen ronde om het sjabloon opnieuw te schrijven"
+    assert llm.index == 1, "geen ronde om het sjabloon opnieuw te schrijven"
     assert [e for e in events if e["type"] == "antwoord"]
     assert meter.sjabloon["uitgesteld"] == 1 and meter.sjabloon["gevuld"] == {"antwoord_begrip": 1}
 
@@ -170,7 +169,7 @@ def test_het_model_krijgt_de_tool_echt_aangeboden():
 
 
 def test_zonder_definitie_blijven_de_opgehaalde_bronnen_herleidbaar():
-    llm = FakeLLM([KIES, response([tool_block("t1", "zoek_definitie", {"term": "draagkracht"})], "tool_use"), response([tool_block("t2", "get_artikel", {"bwb_id": "BWBR0018472", "artikel": "7"})], "tool_use"),
+    llm = FakeLLM([response([tool_block("t1", "zoek_definitie", {"term": "draagkracht"})], "tool_use"), response([tool_block("t2", "get_artikel", {"bwb_id": "BWBR0018472", "artikel": "7"})], "tool_use"),
                    response([tool_block("t3", "antwoord_begrip", {"begrip": "draagkracht", "toelichting": "Zie artikel 7."})], "tool_use")])
     graph = FakeGraph(results=lambda q: RIJ if "definieertBegrip" in q else "node\ttekst\n<urn:bwb:BWBR0018472:artikel:7>\t\"Tekst\"\n")
 
@@ -253,13 +252,12 @@ def test_een_container_noemt_zijn_subdivisies_en_toont_geen_begin():
 def test_de_specialisten_voor_een_tekstvraag_krijgen_het_sjabloon():
     from agent import specialists
     assert "antwoord_bepaling" in specialists.get("duiding").sjablonen and "antwoord_bepaling" in specialists.get("algemeen").sjablonen
-    assert "antwoord_bepaling" not in specialists.get("definitie").sjablonen
+    assert "antwoord_bepaling" not in specialists.get("begrippen_lezen").sjablonen
 
 
 def test_een_beurt_rondt_af_met_de_wettekst_uit_de_graaf():
     tsv = "?lid\t?lidnummer\t?lidtekst\t?lidonderdelen\n<urn:bwb:BWBR0004770:artikel:9:lid:1>\t\"1\"\t\"Een belastingaanslag is invorderbaar.\"\t\"false\"\n"
-    llm = FakeLLM([response([text_block("SPECIALIST: duiding\nPLAN: artikel ophalen.")], "end_turn"),
-                   response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),
+    llm = FakeLLM([                   response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),
                    response([tool_block("t2", "antwoord_bepaling", {"bepalingen": [ART], "toelichting": "Regelt de termijn."})], "tool_use")])
     settings = make_settings(enable_planning=True, grounding_correct=True)
 
@@ -477,7 +475,6 @@ def test_een_bijna_letterlijk_citaat_in_de_uitleg_wordt_hersteld():
 
 TIEN_TSV = ("?lid\t?lidnummer\t?lidtekst\t?lidonderdelen\n"
             f'<{TIEN_1}>\t"1"\t"{ZIN_1}"\t"false"\n<{TIEN_2}>\t"2"\t"{ZIN_2}"\t"false"\n')
-KIES_DUIDING = response([text_block("SPECIALIST: duiding\nPLAN: artikel ophalen.")], "end_turn")
 HAAL = response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "10"})], "tool_use")
 
 
@@ -486,7 +483,7 @@ def _sluit_af(id: str = "t2", **velden):
 
 
 def _duidingsbeurt(*rondes, **instellingen):
-    llm = FakeLLM([KIES_DUIDING, *rondes])
+    llm = FakeLLM([*rondes])
     settings = make_settings(enable_planning=True, grounding_correct=True, **instellingen)
 
     async def alles():
@@ -505,7 +502,7 @@ def test_de_duidingsspecialist_krijgt_beide_sjablonen_en_algemeen_niet():
 
 def test_een_beurt_rondt_af_met_de_duiding():
     events, llm = _duidingsbeurt(HAAL, _sluit_af())
-    assert llm.index == 3
+    assert llm.index == 2
     antwoord = _eerste(events, "antwoord")["antwoord"]
     assert antwoord["sjabloon"] == "duiding" and antwoord["blokken"][1]["items"][0]["tekst"] == ZIN_1
     grounding = _eerste(events, "grounding")
@@ -518,7 +515,7 @@ def test_een_verzonnen_verwijzing_in_de_uitleg_gaat_door_de_correctie(veld):
     fout = "Zie BWBR9999999."
     velden = {"twijfel": [fout]} if veld == "twijfel" else {veld: fout}
     events, llm = _duidingsbeurt(HAAL, _sluit_af(**velden), _sluit_af("t3"))
-    assert llm.index == 4
+    assert llm.index == 3
     assert "BWBR9999999" not in _eerste(events, "token")["content"]
     assert _eerste(events, "grounding")["grounded"] is True
 
@@ -528,20 +525,20 @@ def test_een_verzonnen_citaat_in_de_uitleg_gaat_door_de_correctie(veld):
     fout = '"De ontvanger mag altijd en zonder enige voorwaarde uitstel verlenen."'
     velden = {"twijfel": [fout]} if veld == "twijfel" else {veld: fout}
     events, llm = _duidingsbeurt(HAAL, _sluit_af(**velden), _sluit_af("t3"))
-    assert llm.index == 4
+    assert llm.index == 3
     assert "zonder enige voorwaarde" not in _eerste(events, "token")["content"]
 
 
 def test_een_passage_buiten_de_bron_komt_nooit_bij_de_controle_of_de_jurist():
     events, llm = _duidingsbeurt(HAAL, _sluit_af(van="Dit staat nergens in de wet,", tot="klinkt wel zo."), _sluit_af("t3"))
-    assert llm.index == 4 and len([e for e in events if e["type"] == "antwoord"]) == 1
+    assert llm.index == 3 and len([e for e in events if e["type"] == "antwoord"]) == 1
     assert "nergens in de wet" not in _eerste(events, "token")["content"]
 
 
 def test_een_sjabloon_dat_onvulbaar_blijft_stopt_bij_de_beurtlimiet():
     onvulbaar = [_sluit_af(f"t{n}", van="Dit staat nergens", tot="in de wet.") for n in range(2, 7)]
     events, llm = _duidingsbeurt(HAAL, *onvulbaar, max_turns=3)
-    assert llm.index == 5, "na de ronde op de limiet vraagt niets het model meer"
+    assert llm.index == 4, "na de ronde op de limiet vraagt niets het model meer"
     assert "beurtlimiet" in _eerste(events, "token")["content"]
     assert not [e for e in events if e["type"] == "antwoord"]
 
@@ -1020,7 +1017,7 @@ def test_een_beurt_leest_het_genoemde_artikel_en_citeert_het_daarna():
               "onderbouwing": [*duiding()["onderbouwing"],
                                {"bepaling": f"{ACHTTIEN}:lid:3", "van": "Over het bedrag", "tot": "invorderingsrente berekend.",
                                 "waarom": "Over uitstel loopt rente."}]}
-    llm = FakeLLM([KIES_DUIDING, haal_beide, _sluit_af(twijfel=["Of de rente meetelt, regelt artikel 28."]),
+    llm = FakeLLM([haal_beide, _sluit_af(twijfel=["Of de rente meetelt, regelt artikel 28."]),
                    response([tool_block("t3", "antwoord_duiding", met_28)], "tool_use")])
     settings = make_settings(enable_planning=True, grounding_correct=True)
 
@@ -1028,10 +1025,10 @@ def test_een_beurt_leest_het_genoemde_artikel_en_citeert_het_daarna():
         return [e async for e in answer_stream("Hoe werkt uitstel?", settings=settings, llm=llm, graph=FakeGraph(results=_graaf_met_28))]
 
     events = asyncio.run(alles())
-    assert llm.index == 4, "één weigering, daarna rondt het model af zonder zelf nog een tool te roepen"
+    assert llm.index == 3, "één weigering, daarna rondt het model af zonder zelf nog een tool te roepen"
     gelezen = [e for e in events if e["type"] == "tool_execution" and e["phase"] == "start" and e["doel"].get("artikel") == "28"]
     assert [e["tool"] for e in gelezen] == ["get_artikel"], "de code las artikel 28, en de jurist ziet dat"
-    assert ZIN_28 in json.dumps(llm.calls[3]["messages"][-1], ensure_ascii=False), "het model kreeg de tekst bij de weigering"
+    assert ZIN_28 in json.dumps(llm.calls[2]["messages"][-1], ensure_ascii=False), "het model kreeg de tekst bij de weigering"
     citaten = _eerste(events, "antwoord")["antwoord"]["blokken"][1]["items"]
     assert [c["vindplaats"]["iri"] for c in citaten] == [TIEN_1, f"{ACHTTIEN}:lid:3"] and citaten[1]["tekst"] == ZIN_28
     assert _eerste(events, "grounding")["grounded"] is True

@@ -1,9 +1,10 @@
-"""De supervisie-keten: welke worker draait er, en is de vraag er überhaupt een voor ons.
+"""De ingang van een beurt: de routes in code, en anders de centrale agent (ADR-016 §A1 en §A7).
 
-De supervisor kiest per vraag een worker-keten en een specialist. Hij heeft bewust géén tools en
-kijkt niet in de graaf: een afwijzing bij twijfel is duurder dan een zoekpoging die niets vindt.
-Zijn antwoord wordt hard gesaneerd (`parse_supervisor`), zodat een verzonnen workernaam nergens
-toe leidt. `advance` bepaalt daarna of er nog een worker volgt.
+Sinds A7 is er geen modelstap meer vóór de centrale agent. De ingang kiest zonder model: een klik op een kaart of
+suggestie, een aangewezen bepaling, een overzicht, een leesvraag, een genoemd stuk, een lijstvraag, een vraag naar boven
+of een route uit `routes.py`. Pakt geen route de vraag, dan beantwoordt de centrale agent haar, en die stuurt met zijn
+overdrachten zelf naar een route (afwijzen, annoteren, een werkgebied, de agents). `advance` bepaalt daarna of er nog
+een worker volgt. De module heet om historische redenen nog `supervisie`.
 """
 from __future__ import annotations
 
@@ -13,15 +14,13 @@ from typing import Any
 
 from bronmodel.connectors import genoemde_stukken, herkende as bronnen_in_vraag
 
-from ..binnen_scope import genoemde_regelingen
 from langgraph.config import get_stream_writer
 
 from dataclasses import asdict
 
 from .. import bronstand
-from ..aanwijzing import lees_aanwijzing, melding_meerdere
+from ..aanwijzing import lees_aanwijzing
 from ..agentvorm import CENTRAAL
-from ..llm_stap import Rol, aanroep
 from ..bepaling_workflow import lees as lees_bepalingsvraag
 from ..bepaling_workflow import lees_buiten, wijst_stuk_aan
 from ..doel import _heeft_opgegeven_doel
@@ -33,26 +32,24 @@ from ..focus import bij_advies, bij_onderwerp
 from ..kaart_beurt import KAARTPREFIX, uit_keuze
 from ..narratie import _stap
 from ..state import State
-from ..methode import instructies
 from .. import methodekeuze
 from ..berichten import eerdere_beurten
 from ..agents import register
 from ..agents.deelvragen import is_dekkingsvraag
 from ..verduidelijken import doorvraag
-from ..supervisor import INTAKE_SYSTEM, SUPERVISOR_SYSTEM, VERVOLG_SYSTEM, parse_supervisor, parse_taak, parse_vraag
 from ..overzicht import is_overzichtsvraag
 from ..tools.annotatie_tools import is_leesvraag
 from ..tools.begrip_tools import is_begrip_leesvraag
-from ..werkgebied_intake import is_aanvullen, is_open, is_werkgebiedvraag, kaart
+from ..werkgebied_intake import is_open, is_werkgebiedvraag
 from . import subagent_route
 from ..overdracht import _start_kind
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
 
-# Wat de jurist in het denkproces ziet: wat Lex gaat doen, niet welke worker of agent het doet (G2b). Het plan van de
-# supervisor gaat naar de specialist, niet in beeld; welke worker of agent het werd, staat in het log.
-_WORKER_STAP = {"duiding": "legt de bepaling uit", "definitie": "zoekt de definitie op", "annotatie": "zoekt de bepaling op om te annoteren"}
+# Wat de jurist in het denkproces ziet: wat Lex gaat doen, niet welke worker of agent het doet (G2b); welke het werd,
+# staat in het log.
+_WORKER_STAP = {"annotatie": "zoekt de bepaling op om te annoteren"}
 _AGENT_STAP = {"deelvragen": "kijkt naar de deelvragen van het werkgebied", "begrippen": "werkt aan de begrippen van het werkgebied",
                "annotatie": "annoteert de bronnen van het werkgebied"}
 
@@ -381,13 +378,6 @@ def _bron_uit(writer, state: State, vraag: str) -> dict[str, Any] | None:
             "afwijs_stap": "niet gezocht – de gevraagde bron staat uit", "annotaties_lezen": False}
 
 
-def _centraal(state: State) -> bool:
-    """Draait deze beurt de centrale agent (ADR-016 §A7)? De straat en het verzoek kozen dat al (`agentvorm.vorm_van`).
-    Ook met een open vraagkaart van het samenstellen: een getypt antwoord erop geeft de centrale agent met
-    `beantwoord_kaart` aan de werkgebied-worker (analyse centrale agent, gat 5)."""
-    return state.get("agentvorm") == "centraal" and state.get("modus", "auto") == "auto"
-
-
 SUBAGENT_PREFIX = "sa-"
 
 
@@ -397,12 +387,7 @@ def register_kiesbaar() -> frozenset[str]:
 
 
 def _subagent_vervolg(b: Bouw, writer) -> dict[str, Any]:
-    """Een klik op de vraagkaart van een subagent: de node `subagent_vervolg`, zonder model. Die bestaat alleen waar de
-    centrale agent kan draaien; elders een vaste zin."""
-    if b.settings.centrale_agent == "uit":
-        return {"specialist": "", "plan": "", "worker_plan": [], "worker_idx": 0, "afwijzen": True,
-                "afwijs_melding": "Deze vraag van een subagent kan ik hier niet meer beantwoorden.",
-                "afwijs_stap": "niets gestart", "annotaties_lezen": False}
+    """Een klik op de vraagkaart van een subagent: de node `subagent_vervolg`, zonder model."""
     _stap(writer, "Lex", "verwerkt je antwoord voor de subagent", route="subagent")
     return {"specialist": "subagent_vervolg", "plan": "", "worker_plan": ["subagent_vervolg"], "worker_idx": 0,
             "afwijzen": False, "annotaties_lezen": False}
@@ -434,31 +419,31 @@ def _deelgesprek(b: Bouw, writer, state: State, dg: dict[str, Any]) -> dict[str,
             "afwijzen": False, "annotaties_lezen": False}
 
 
+#: De eerste regel van het denkproces bij de centrale agent.
+NAAR_CENTRAAL = "bekijkt de vraag"
+
+
 def _naar_centraal(writer, state: State) -> dict[str, Any]:
-    """De centrale agent als enige worker van de beurt: de antwoordketen met het profiel `centraal`."""
-    _stap(writer, "Lex", f"zoekt het antwoord in {bronstand.waar(state.get('bronstand'))}", route=CENTRAAL)
+    """De centrale agent als enige worker van de beurt: de antwoordketen met het profiel `centraal`. Eén korte regel
+    als teken van leven, zonder de bronnen die aanstaan: welke Lex echt gebruikt, blijkt uit de toolstappen die volgen
+    ("Wetgeving · 1 gevonden"; ADR-016 §A7, de gebruiker begreep "zoekt in de wetgeving en Kamerstukken, …" niet)."""
+    _stap(writer, "Lex", NAAR_CENTRAAL, route=CENTRAAL)
     logger.info("worker gekozen", extra={"categorie": "functioneel", "worker": CENTRAAL})
     return {"zelfstandige_vraag": "", "specialist": CENTRAAL, "plan": "", "worker_plan": [CENTRAAL], "worker_idx": 0,
             "afwijzen": False, "annotaties_lezen": False}
 
 
-def _open_kaartje(state: State) -> str:
-    intake = state.get("intake") or {}
-    if not is_open(intake):
-        return ""
-    try:
-        wat = ("vult met de gebruiker het dossier van het werkgebied aan" if is_aanvullen(intake)
-               else "stelt met de gebruiker een werkgebied samen")
-        return INTAKE_SYSTEM.format(wat=wat, vraag=kaart(intake)["vraag"])
-    except Exception:  # noqa: BLE001 – een onleesbare intake is geen reden om de beurt te laten vallen
-        return ""
+def _open_kaartje(state: State) -> bool:
+    """Staat er een vraagkaart van het samenstellen of het aanvullen open? Een getypt antwoord erop is geen nieuwe vraag
+    (de centrale agent leest de kaart zelf: `overdracht.open_kaartje`)."""
+    return bool(is_open(state.get("intake") or {}))
 
 
 def _herschreven(vraag: str) -> str:
     return f"\nDe vraag, zelfstandig geformuleerd: {vraag}" if vraag else ""
 
 
-def supervisor_node(b: Bouw, state: State) -> dict[str, Any]:
+def ingang_node(b: Bouw, state: State) -> dict[str, Any]:
     """`kies`, en een object dat de analist met *Vraag Lex* aanwees (F3b) wordt het onderwerp van het
     gesprek: de focus houdt het vast voor de vervolgvraag zonder chip. Het onderwerp is een hint, geen
     route – de keuze zelf verandert er niet door."""
@@ -661,7 +646,7 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         return _deelgesprek(b, writer, state, dg)
 
     delegatie, opdracht = [], state.get("question", "")
-    if _centraal(state) and modus == "auto":
+    if modus == "auto":
         titels = _regelingtitels(b.graph)
         # Een antwoord op "welke regeling?" (F02) maakt de vorige opdracht af: de code stelt haar samen.
         if vorige := eerdere_beurten(state.get("messages") or [], opdracht, aantal=1):
@@ -681,118 +666,18 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
                 "afwijzen": False, "annotaties_lezen": False, "subagent_plan": subagent_route.als_state(delegatie),
                 **({"zelfstandige_vraag": opdracht} if opdracht != state.get("question", "") else {})}
 
-    if _centraal(state):
-        # ADR-016 §A1: geen vaste route pakte de vraag, dus de centrale agent beantwoordt hem zelf. De supervisorstap en
-        # de keuze tussen specialisten vervallen; het gesprek leest hij zelf, dus er wordt niets herschreven. Een
-        # leesvraag in de vraag zoals de analist haar stelde, gaat ook hier voor: de code zoekt eerst.
-        if begripvraag:
-            return _begrippen_lees(writer, "")
-        if leesvraag:
-            return _lees(writer, "")
-        if is_standvraag(state.get("question", "")) and isinstance(
-                stand := _delegatie_stand(b, state, {}), tuple):
-            # "Wat is er in de deelgesprekken veranderd?" (A6 eind, F03): de code leest de stand per deelgesprek bij de
-            # api en geeft hem mee als gegeven; het model riep `delegatie_stand` niet aan en noemde alle drie gewijzigd.
-            return {**_naar_centraal(writer, state), "rapporten": stand[1] + "\n\n"}
-        return _naar_centraal(writer, state)
-
-    resp = aanroep(
-        b.llm, Rol.SUPERVISOR,
-        model=b.model_router,
-        max_tokens=400,
-        system=[SUPERVISOR_SYSTEM + "\n\n" + instructies("supervisor"),
-                b.memory_context(state) + ((VERVOLG_SYSTEM + "\n" + gesprek) if gesprek else "")
-                + _open_kaartje(state)],
-        tools=[],
-        messages=[{"role": "user", "content": state["question"]}],
-    ).resp
-    text = "".join(b.text for b in resp.content if b.type == "text")
-    vraag = parse_vraag(text) if gesprek else ""
-    zelfstandig = vraag or state.get("question", "")
-    upd: dict[str, Any] = {"zelfstandige_vraag": vraag}
-    if vraag and vraag != state.get("question"):
-        _stap(writer, "Lex", f"leest je vraag als: {vraag[:120]}")
-
-    # Een leesvraag in de vraag zoals de analist haar stelde, gaat altijd voor.
+    # ADR-016 §A1 en §A7: geen vaste route pakte de vraag, dus de centrale agent beantwoordt hem. Er is geen modelstap
+    # vóór hem en niets wordt herschreven: het gesprek leest hij zelf. Een leesvraag in de vraag zoals de analist haar
+    # stelde, gaat ook hier voor: de code zoekt eerst.
     if begripvraag:
-        return {**upd, **_begrippen_lees(writer, vraag)}
+        return _begrippen_lees(writer, "")
     if leesvraag:
-        return {**upd, **_lees(writer, vraag)}
-
-    worker_plan, plan, afwijzen = parse_supervisor(text)
-    taak = parse_taak(text)
-    agent = worker_plan[0] if worker_plan and worker_plan[0] in ("deelvragen", "begrippen") else \
-        "annotatie" if worker_plan and worker_plan[0] == "annotatie" and taak in ("werkgebied", "deelvragen") else ""
-    if agent and not afwijzen:
-        # Koos het model een agent, dan mag het herschrijven die keuze niet omzetten: "Is deelvraag 2 al
-        # gedekt?" werd herschreven tot "…gedekt door de annotaties?" en viel dan in de leesroute
-        # (eval 21 okt 2026, 3 van 3 runs). De regels hieronder gelden alleen voor de andere workers.
-        return {**upd, **_agent(writer, state, agent, taak, zelfstandig)}
-
-    # De harde regels ná het lezen van het gesprek: "welke zijn er nog meer?" na een vraag over rechtssubjecten is pas als
-    # herschreven vraag herkenbaar als leesvraag.
-    if (route := na_herschrijven(b, writer, state, vraag)) is not None:
-        return {**upd, **route}
-
-    plan += _herschreven(vraag)
-    if vraag and modus == "auto" and (uit := _bron_uit(writer, state, zelfstandig)):
-        # "En wat zegt de MvT daarover?" is pas herschreven een vraag die alleen over die bron gaat.
-        return {**upd, **uit}
-    if afwijzen and bronnen_in_vraag(zelfstandig):
-        # Een vraag over een bron naast de wet is nooit buiten de scope (ADR-013); de worker zoekt, of zegt dat de
-        # bron uit staat. De prompt zegt het ook, maar de code beslist.
-        logger.info("afwijzing teruggedraaid: bron naast de wet", extra={"categorie": "functioneel"})
-        afwijzen = False
-        worker_plan = worker_plan or ["duiding"]
-        plan = "Zoek in de bron naast de wet die de vraag noemt, en zeg het als die uit staat." + _herschreven(vraag)
-    elif afwijzen and (namen := genoemde_regelingen(zelfstandig)):
-        # Een vraag die een regeling noemt, ook een die niet in de graaf staat, is evenmin buiten de scope
-        # (`binnen_scope`, ADR-016 ronde 4, K12): zoeken en zeggen wat er niet in staat, in beide vormen dezelfde regel.
-        logger.info("afwijzing teruggedraaid: regeling genoemd", extra={"categorie": "functioneel"})
-        afwijzen = False
-        worker_plan = worker_plan or ["algemeen"]
-        plan = (f"Zoek {', '.join(namen)} in de kennisgraaf; staat de regeling er niet in, zeg dat dan en noem welke "
-                "regelingen er wel in staan." + _herschreven(vraag))
-    if afwijzen:
-        # Buiten de scope. Dit hoort hier te eindigen en niet als "AANPAK: AFWIJZEN" de
-        # systeemprompt van een specialist in te gaan, waar een tweede modelbeslissing bepaalt
-        # wat er gebeurt – dat kost minstens één extra call en is bovendien geen garantie.
-        _stap(writer, "Lex", "deze vraag valt buiten de wet- en regelgeving in de graaf", route="afgewezen")
-        return {**upd, "specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
-                "afwijzen": True, "annotaties_lezen": False}
-    eerste = worker_plan[0]
-    if eerste == "werkgebied" and not taak and bronnen_in_vraag(zelfstandig) and not is_werkgebiedvraag(zelfstandig) \
-            and not _open_kaartje(state):
-        # Een vraag over een bron naast de wet is geen verzoek om een werkgebied samen te stellen. In een lang gesprek
-        # koos het model dat toch, voor "Wat staat er in Kamerstuk 35496, onderdeel F?" (acceptatie 8 nov 2026).
-        logger.info("werkgebied teruggedraaid: vraag over een bron naast de wet", extra={"categorie": "functioneel"})
-        eerste, worker_plan = "duiding", ["duiding"]
-    if eerste == "werkgebied":
-        return {**upd, **werkgebied_route(writer, state, taak, zelfstandig)}
-    if eerste == "annotatie":
-        # Eén artikel per annotatievraag. Meer artikelen is een werkgebied afbakenen – een andere
-        # functie. Deterministisch en vóór de ophaal-agent: die zou er anders stil één uitkiezen.
-        aanwijzing = lees_aanwijzing(zelfstandig)
-        if aanwijzing.meerdere_artikelen:
-            _stap(writer, "Lex", f"meer dan één artikel genoemd ({', '.join(aanwijzing.artikelen)})", route="afgewezen")
-            return {**upd, "specialist": "", "plan": plan, "worker_plan": [], "worker_idx": 0,
-                    "afwijzen": True, "afwijs_melding": melding_meerdere(aanwijzing.artikelen),
-                    "annotaties_lezen": False}
-    if eerste in ("duiding", "definitie", "algemeen") and (aanroepen := _te_lezen(state, zelfstandig)):
-        # Noemt de (herschreven) vraag ook een stuk bij id, dan leest de code het eerst; de agent zoekt de rest.
-        upd["bron_lezen"] = aanroepen
-    if eerste in ("duiding", "definitie", "algemeen") and modus == "auto" and (
-            buiten := _buiten_graaf(b, state, zelfstandig)):
-        # Een regeling buiten de kennisgraaf: het plan zegt welke, en een genoemd artikel leest de code eerst.
-        from .. import buiten_graaf
-        plan += buiten_graaf.plan_regel(buiten)
-        if not wijst_stuk_aan(zelfstandig) and (live := buiten_graaf.leesaanroepen(buiten)):
-            upd["bron_lezen"] = [*(upd.get("bron_lezen") or []), *live][:MAX_GENOEMD]
-    _stap(writer, "Lex", _WORKER_STAP.get(eerste, f"zoekt het antwoord in {bronstand.waar(state.get('bronstand'))}"),
-          route=eerste)
-    logger.info("worker gekozen", extra={"categorie": "functioneel", "worker": eerste})
-    return {**upd, "specialist": eerste, "plan": plan, "worker_plan": worker_plan, "worker_idx": 0,
-            "afwijzen": False, "annotaties_lezen": False}
+        return _lees(writer, "")
+    if is_standvraag(state.get("question", "")) and isinstance(stand := _delegatie_stand(b, state, {}), tuple):
+        # "Wat is er in de deelgesprekken veranderd?" (A6 eind, F03): de code leest de stand per deelgesprek bij de api
+        # en geeft hem mee als gegeven; het model riep `delegatie_stand` niet aan en noemde alle drie gewijzigd.
+        return {**_naar_centraal(writer, state), "rapporten": stand[1] + "\n\n"}
+    return _naar_centraal(writer, state)
 
 
 def _regel_begrippen(b: Bouw, writer, state: State, vraag: str, zelfstandig: str, modus: str):

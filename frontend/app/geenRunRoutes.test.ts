@@ -17,7 +17,7 @@ function bronnen(pad: string): string[] {
   return uit;
 }
 
-// F3e: wat Lex met een werkgebied doet, vraag je in het gesprek (de agents onder de supervisor, ADR-005).
+// F3e: wat Lex met een werkgebied doet, vraag je in het gesprek (de agents achter de centrale agent, ADR-005 en ADR-016).
 // De werkgebiedpagina startte vroeger zelf runs via vier statische BFF-routes en via `annoteer=`/`meedenk=`
 // op de werkplek; een tweede weg naar hetzelfde werk mag niet terugkomen.
 describe("één weg naar Lex", () => {

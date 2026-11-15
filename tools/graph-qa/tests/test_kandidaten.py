@@ -69,7 +69,7 @@ def _graaf(query: str) -> str:
 
 def _onderwerp_scenario():
     llm = FakeLLM([
-        response([text_block("WORKERS: annotatie\nPLAN: zoek de bepalingen over dit onderwerp")], "end_turn"),
+        response([tool_block("ov", "annoteer", {"vraag": "annoteer de aangewezen bepaling"})], "tool_use"),
         response([tool_block("t1", "semantic_search", {"query": "aansprakelijkheid bestuurder"})], "tool_use"),
         response([text_block(KANDIDATEN_JSON)], "end_turn"),
     ])

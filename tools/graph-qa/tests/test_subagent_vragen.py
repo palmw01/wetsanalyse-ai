@@ -257,12 +257,9 @@ def test_laat_maar_stopt_de_subagent_en_een_oude_klik_doet_niets(monkeypatch):
 
 def test_de_supervisor_stuurt_een_klik_zonder_model_naar_het_vervolg(monkeypatch):
     monkeypatch.setattr(supervisie, "get_stream_writer", lambda: (lambda _e: None))
-    b = SimpleNamespace(settings=SimpleNamespace(centrale_agent="aan"))
+    b = SimpleNamespace(settings=SimpleNamespace())
     upd = supervisie._kies(b, {**_klik(), "question": "2024"})
     assert upd["specialist"] == "subagent_vervolg" and supervisie._entry_node(b, upd) == "subagent_vervolg"
-    # Zonder centrale agent bestaat de node niet: een vaste zin.
-    upd = supervisie._kies(SimpleNamespace(settings=SimpleNamespace(centrale_agent="uit")), {**_klik(), "question": "x"})
-    assert upd["afwijzen"] is True and upd["afwijs_melding"]
 
 
 # -- doorvragen in een deelgesprek ------------------------------------------------------------------------
@@ -270,7 +267,7 @@ def test_de_supervisor_stuurt_een_klik_zonder_model_naar_het_vervolg(monkeypatch
 def test_doorvragen_in_een_deelgesprek_houdt_het_profiel_en_markeert_de_delegatie(monkeypatch):
     monkeypatch.setattr(supervisie, "get_stream_writer", lambda: (lambda _e: None))
     api = Api()
-    b = SimpleNamespace(settings=SimpleNamespace(centrale_agent="aan", legt_zelf_vast=True), loop=None,
+    b = SimpleNamespace(settings=SimpleNamespace(legt_zelf_vast=True), loop=None,
                         agent_api=lambda *_a: api, graph=None)
     state = {**STATE, "question": "En geldt dat ook voor een naheffing?", "modus": "auto",
              "deelgesprek": {"delegatie_id": "d1", "profiel": "bepalingen_duiden"}}

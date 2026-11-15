@@ -10,15 +10,17 @@
 //       draait de set (of de genoemde opdrachten) en schrijft per opdracht één regel in <map>/ruw-run<nr>.jsonl.
 //       Met `--set golden_centrale_agent_breed.jsonl` draait een aanvulling naast de 30 (uitvoer ruw-breed-…).
 //       Met `--vorm <naam> --extra '<json>'` gaan de velden uit <json> mee op elke beurt van de run, en heet het
-//       bestand ruw-<naam>-run<nr>.jsonl. Zo zijn twee vormen op dezelfde versie te meten: de vorm zonder het veld en de
-//       vorm met het veld waarmee een run de centrale agent kiest (ADR-016 §A7). De naam staat op elke regel (`vorm`).
+//       bestand ruw-<naam>-run<nr>.jsonl. Zo zijn twee varianten op dezelfde versie te meten (een meetvlag op het
+//       verzoek, zoals `beurtcontext_plek`). De centrale agent is sinds ADR-016 §A7 de enige agentvorm: een run vraagt
+//       er niet meer om. De naam staat op elke regel (`vorm`).
 //
-//   node eval/centrale_agent_meting.mjs vragen <kwaliteit|duiding|partijen|klassen|gesprek> <nr> --commit <sha> --uit <map> --vormen '<json>' [id ...]
+//   node eval/centrale_agent_meting.mjs vragen <kwaliteit|duiding|partijen|klassen|gesprek> <nr> --commit <sha> --uit <map> [--vormen '<json>'] [id ...]
 //       stelt de vragen van de kwaliteitsset (`golden.jsonl`, K01, K02, …), de duidingset (`golden_duiding.jsonl`, op id), de partijenset
 //       (`golden_duiding_partijen.jsonl`, op id), de klassenset (`golden_klasse_twijfel.jsonl`, op id, G2)
 //       of de gesprekken van `golden_gesprek.jsonl`
-//       in elke vorm uit <json> (`{"supervisor": {...}, "centraal": {...}}`: per vorm de velden op de beurt), per vraag
-//       om en om, zodat tijd en cachestand geen vorm bevoordelen. Eén bestand per vorm:
+//       zonder `--vormen` in één vorm (`centraal`, de enige agentvorm sinds ADR-016 §A7), en anders in elke vorm uit
+//       <json> (per vorm de velden op de beurt, zoals een meetvlag), per vraag om en om, zodat tijd en cachestand geen vorm
+//       bevoordelen. Eén bestand per vorm:
 //       ruw-<set>-<vorm>-run<nr>.jsonl. `python -m eval.centrale_agent_sets` scoort ze met de scorers van de sets.
 //
 // `--commit` is de commit van master waarop acceptatie draait; het script kan die niet zelf zien. Een run is hervatbaar:
@@ -234,11 +236,11 @@ if (commando === "werkgebied") {
   const werkgebied = optie("--werkgebied", rest), commit = optie("--commit", rest), map = optie("--uit", rest) ?? ".";
   const vormenJson = optie("--vormen", rest);
   const [setnaam, nr, ...ids] = rest;
-  if (!["kwaliteit", "duiding", "partijen", "klassen", "gesprek"].includes(setnaam) || !nr || !commit || !vormenJson) {
-    console.error("vragen <kwaliteit|duiding|partijen|klassen|gesprek> <nr> --commit <sha> --vormen <json> [--werkgebied <id>] [--uit <map>] [id ...]"); process.exit(2);
+  if (!["kwaliteit", "duiding", "partijen", "klassen", "gesprek"].includes(setnaam) || !nr || !commit) {
+    console.error("vragen <kwaliteit|duiding|partijen|klassen|gesprek> <nr> --commit <sha> [--vormen <json>] [--werkgebied <id>] [--uit <map>] [id ...]"); process.exit(2);
   }
   let vormen;
-  try { vormen = Object.entries(JSON.parse(vormenJson)); } catch { console.error("--vormen is geen JSON"); process.exit(2); }
+  try { vormen = Object.entries(JSON.parse(vormenJson ?? '{"centraal": {}}')); } catch { console.error("--vormen is geen JSON"); process.exit(2); }
   if (!vormen.length || vormen.some(([naam, v]) => !/^[a-z0-9-]+$/.test(naam) || !v || typeof v !== "object" || Array.isArray(v))) {
     console.error("--vormen: een object van vormnaam (kleine letters, cijfers, streepjes) naar de velden op de beurt"); process.exit(2);
   }

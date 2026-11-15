@@ -424,16 +424,6 @@ def test_de_vaste_zin_gaat_zonder_model_naar_de_bronselectie_en_niet_naar_het_sa
     assert _kaart_uit(e)["stap"] == "bs_kies" and not llm.calls
 
 
-def test_getypt_kiest_de_supervisor_de_bronselectie_met_een_taak(tmp_path):
-    from fakes import FakeLLM, response, text_block
-
-    nep = NepApi(kandidaten=_kandidaten())
-    llm = FakeLLM([response([text_block("WORKERS: werkgebied\nSPECIALIST: algemeen\nTAAK: bronselectie\nPLAN: x")],
-                            "end_turn")])
-    e, llm = _beurt(tmp_path, nep, "Zullen we per deelvraag kijken wat erbij hoort?", llm=llm)
-    assert _kaart_uit(e)["stap"] == "bs_kies" and len(llm.calls) == 1
-
-
 def test_zelf_toevoegen_zonder_eenduidige_regeling_of_artikel_laat_het_kaartje_staan():
     kand = {"k1": {"label": "Artikel 9", "rol": "kern", "bij": ["d1"]}}
     api = NepApi(vragen=VRAGEN[:1], kandidaten=kand)

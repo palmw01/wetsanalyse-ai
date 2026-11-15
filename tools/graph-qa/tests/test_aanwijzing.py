@@ -79,18 +79,18 @@ def _tekst(events):
 
 
 def test_vraag_met_twee_artikelen_stopt_voor_het_ophalen():
-    llm = FakeLLM([response([text_block("WORKERS: annotatie\nPLAN: annoteer")], "end_turn")])
+    llm = FakeLLM([response([tool_block("ov", "annoteer", {"vraag": "annoteer artikel 8 en 9 IW 1990"})], "tool_use"),
+                   response([text_block("Eén artikel per keer.")], "end_turn")])
     graph = FakeGraph()
     events = _run(answer_stream("annoteer artikel 8 en 9 IW 1990", settings=make_settings(), llm=llm, graph=graph))
-    assert llm.index == 1, "alleen de router; geen ophaal-agent"
+    assert llm.index == 1, "alleen de centrale agent; geen ophaal-agent"
     assert graph.queries == []
     assert not any(e["type"] in {"doel", "element", "kandidaten", "error"} for e in events), events
     assert "artikel 8 en artikel 9" in _tekst(events)
 
 
 def test_afwijzing_blijft_niet_hangen_in_het_gesprek():
-    llm = FakeLLM([response([text_block("WORKERS: annotatie\nPLAN: annoteer")], "end_turn"),
-                   response([text_block("WORKERS: definitie\nPLAN: leg uit")], "end_turn"),
+    llm = FakeLLM([response([tool_block("ov", "annoteer", {"vraag": "annoteer de aangewezen bepaling"})], "tool_use"),
                    response([text_block("Een belastingaanslag is invorderbaar.")], "end_turn")])
     _run(answer_stream("annoteer artikel 8 en 9", "gesprek", settings=make_settings(), llm=llm, graph=FakeGraph()))
     events = _run(answer_stream("wat is invorderbaar?", "gesprek", settings=make_settings(), llm=llm, graph=FakeGraph()))
@@ -100,7 +100,7 @@ def test_afwijzing_blijft_niet_hangen_in_het_gesprek():
 def test_ophaal_json_meerdere_wordt_afgewezen():
     """De vraag zelf verraadt het niet ("de twee artikelen over uitstel"), de ophaal-agent wel."""
     llm = FakeLLM([
-        response([text_block("WORKERS: annotatie\nPLAN: annoteer")], "end_turn"),
+        response([tool_block("ov", "annoteer", {"vraag": "annoteer de aangewezen bepaling"})], "tool_use"),
         response([text_block(json.dumps({"meerdere": ["25", "26"]}))], "end_turn"),
     ])
     events = _run(answer_stream("annoteer de twee bepalingen over uitstel", settings=make_settings(),
@@ -111,7 +111,7 @@ def test_ophaal_json_meerdere_wordt_afgewezen():
 
 def test_vangnet_twee_opgehaalde_artikelen_annoteert_niet_stil_de_laatste():
     llm = FakeLLM([
-        response([text_block("WORKERS: annotatie\nPLAN: annoteer")], "end_turn"),
+        response([tool_block("ov", "annoteer", {"vraag": "annoteer de aangewezen bepaling"})], "tool_use"),
         response([tool_block("t1", "get_artikel", {"bwb_id": IW, "artikel": "8"})], "tool_use"),
         response([tool_block("t2", "get_artikel", {"bwb_id": IW, "artikel": "9"})], "tool_use"),
         response([text_block(json.dumps({"bwbId": IW, "artikel": "9", "lid": "", "citeertitel": "IW 1990"}))], "end_turn"),

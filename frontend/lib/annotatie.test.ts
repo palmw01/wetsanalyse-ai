@@ -70,7 +70,7 @@ describe("kandidaten bij een onderwerp-vraag", () => {
   });
 
   it("levert de keuze ook als gestructureerd doel", () => {
-    // Hiermee slaat de agent de supervisor en de ophaal-agent over – en kan hij niet bij een
+    // Hiermee slaat de agent de ophaal-agent over – en kan hij niet bij een
     // andere bepaling uitkomen dan de jurist zojuist aanwees.
     expect(doelVanKandidaat(k)).toEqual({
       bwbId: "BWBR0004770",

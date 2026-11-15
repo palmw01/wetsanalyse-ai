@@ -3,7 +3,7 @@
     uv run python -m eval.centrale_agent_sets <map>/ruw-kwaliteit-*-run1.jsonl <map>/ruw-duiding-*-run1.jsonl <map>/ruw-partijen-*-run1.jsonl <map>/ruw-klassen-*-run1.jsonl <map>/ruw-gesprek-*-run1.jsonl [--uit runs.jsonl]
 
 De sets draaien anders in-process (`eval/run_eval.py`). `eval/centrale_agent_meting.mjs vragen …` stelt dezelfde vragen
-via de werkplek op de straat, in twee vormen (supervisor en centrale agent). Dit script maakt uit de events van elke
+via de werkplek op de straat (sinds ADR-016 §A7 alleen de centrale agent; oudere opnames ook met de supervisor). Dit script maakt uit de events van elke
 beurt een opname (`eval/opname.py`) en geeft die aan de scorers van de sets zelf: `scoring.score_opname` voor de
 kwaliteitsset en `gesprek.beurt_uit_opname` voor een gesprek. Er komt dus geen tweede maat bij.
 

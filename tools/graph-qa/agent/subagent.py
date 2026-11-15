@@ -665,17 +665,13 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
 
 
 def kindmodel(settings: Any, profiel: str) -> str:
-    """Het model waarop het kind draait (de lichte klasse, `agentvorm.subagent_model`), met een logregel als het het gewone
-    model werd. Zonder instellingen (een test) leeg."""
+    """Het model waarop het kind draait: de keuze van de beheerder voor zijn profiel of voor subagents (`modelkeuze`),
+    anders het gewone model. Zonder instellingen (een test) leeg."""
     if settings is None or not getattr(settings, "llm_model", ""):
         return ""
-    from .agentvorm import SUBAGENT_MODELKLASSE, subagent_model
+    from . import modelkeuze
 
-    model, reden = subagent_model(settings)
-    if reden:
-        logger.info("subagent_model", extra={"categorie": "functioneel", "profiel": profiel, "model": model,
-                                             "modelklasse": SUBAGENT_MODELKLASSE, "terugval": reden})
-    return model
+    return modelkeuze.model_voor([f"agent:{profiel}", "stap:subagent"], settings.llm_model)
 
 
 async def _hartslag(api: Any, delegatie_id: str, elke_s: float) -> None:

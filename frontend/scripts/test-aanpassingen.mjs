@@ -39,7 +39,7 @@ const INLINE = [
   o("methode/wetsanalyse", { label: "Wetsanalyse", doel: "De methode Wetsanalyse met het Juridisch Analyseschema." }),
   o("methode/wetsuitvoering", { label: "Wetsuitvoering", doel: "Het Juridisch Referentiemodel." }),
   o("rol/duiding", { deel_van: "methode/wetsanalyse", ingang: ["antwoord", "duiding"] }),
-  o("rol/supervisor", { deel_van: "methode/wetsanalyse", ingang: ["supervisor"] }),
+  o("rol/retrieval", { deel_van: "methode/wetsanalyse", ingang: ["ophaal"] }),
   o("agentprofiel/definitie", { label: "Definitie", model: "agent", concept: "agent", doel: "Wat een begrip in de wet betekent.",
     uitvoer: "antwoord_begrip", hangt_af_van: ["rol/duiding", "methode/wetsanalyse", "sjabloon/antwoord_begrip",
       "connector/kamerstukken", "connector/rechtspraak", "tool/get_artikel"] }),
@@ -62,12 +62,12 @@ const detail = (id) => fixture?.detail?.[id] ?? {
 
 const SLEUTELS = [
   { sleutel: "agent:definitie", soort: "agent", label: "Definitie", groep: "Agents", beschrijving: "Zoekt de definitie." },
-  { sleutel: "stap:supervisor", soort: "stap", label: "Router", groep: "Stappen zonder agentprofiel", beschrijving: "Kiest de route." },
+  { sleutel: "stap:intake", soort: "stap", label: "Werkgebied samenstellen", groep: "Stappen zonder agentprofiel", beschrijving: "Stelt de velden van een werkgebied voor." },
   { sleutel: "stap:jas_classifier", soort: "stap", label: "JAS-classifier", groep: "Stappen zonder agentprofiel", beschrijving: "Kiest de JAS-klasse." },
 ];
 const STAND = { standaard: { profiel: "std", model: "claude-sonnet", bron: "standaard" }, sleutels: SLEUTELS,
   keuzes: { "agent:definitie": { profiel: "snel", model: "claude-haiku", bron: "keuze" },
-    "stap:supervisor": { profiel: "std", model: "claude-sonnet", bron: "standaard" },
+    "stap:intake": { profiel: "std", model: "claude-sonnet", bron: "standaard" },
     "stap:jas_classifier": { profiel: "std", model: "claude-sonnet", bron: "standaard" } } };
 const OORDEEL = "Hier velt het model een oordeel over wetgeving; kies alleen iets anders na een meting.";
 function overzicht(keuzes) {
@@ -124,7 +124,7 @@ try {
     assert.match(await agents.locator('[data-onderdeel^="agentprofiel/centraal_breed"]').innerText(), /hier uit/);
     // Het model als tekst, bij een agent en bij een stap zonder agentprofiel; geen keuzelijst voor een analist.
     assert.equal(await agents.locator('[data-modelkeuze="agent:definitie"]').innerText(), "Model: snel (claude-haiku)");
-    assert.equal(await agents.locator('[data-stap="stap:supervisor"] [data-modelkeuze]').innerText(), "Model: standaard (claude-sonnet)");
+    assert.equal(await agents.locator('[data-stap="stap:intake"] [data-modelkeuze]').innerText(), "Model: standaard (claude-sonnet)");
     assert.equal(await agents.locator("select").count(), 0);
     await zonderOverloop(page, "Agents");
     await toetsToegankelijkheid(page, `aanpassingen – agents ${breedte}`);
@@ -170,7 +170,7 @@ try {
     // Een methode: haar rollen, de methodetekst pas als je hem opent.
     await methodes.getByRole("button", { name: "Open Wetsanalyse" }).click();
     await detailblok.locator('[data-blok="rollen"]').waitFor();
-    assert.match(await detailblok.locator('[data-blok="rollen"]').innerText(), /duiding[\s\S]*voor antwoord, duiding[\s\S]*supervisor/);
+    assert.match(await detailblok.locator('[data-blok="rollen"]').innerText(), /duiding[\s\S]*voor antwoord, duiding[\s\S]*retrieval/);
     await detailblok.locator('[data-rol="duiding"]').getByRole("button", { name: "Methodetekst" }).click();
     await detailblok.getByText("De methodetekst van duiding.").waitFor();
     await shot("methode");

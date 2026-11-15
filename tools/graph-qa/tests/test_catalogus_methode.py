@@ -27,7 +27,7 @@ VAN_WETSANALYSE = [
     "sjabloon/antwoord_begrip", "tool/search_begrippen", "tool/get_begrip",
     "workflow/werkgebied_intake", "workflow/bronselectie", "workflow/bronnen_vinden", "agent/deelvragen",
     "route/werkgebied_samenstellen", "route/bronselectie", "route/dekking",
-    "agentprofiel/definitie", "agentprofiel/duiding", "agentprofiel/algemeen", "agentprofiel/centraal",
+    "agentprofiel/duiding", "agentprofiel/algemeen", "agentprofiel/centraal",
     "agentprofiel/centraal_breed", "agentprofiel/retrieval",
 ]
 #: Wat neutraal moet blijven: de graaf, de bronnen naast de wet, de controles en de vaste routes daarop.

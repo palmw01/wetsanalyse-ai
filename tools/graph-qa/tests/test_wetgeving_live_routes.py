@@ -65,7 +65,7 @@ def _kies(vraag: str, stand: dict, graaf=None) -> dict:
     graaf = graaf if graaf is not None else _graaf()
     state = {"question": vraag, "modus": "auto", "focus": {}, "bronstand": stand,
              "messages": [{"role": "user", "content": vraag}]}
-    return supervisie.supervisor_node(_bouw(graaf), state)
+    return supervisie.ingang_node(_bouw(graaf), state)
 
 
 # --- 1. de bronnenlijst ----------------------------------------------------------------------------------------------
@@ -391,9 +391,9 @@ def test_een_stukvraag_leest_de_wettekst_niet_vooraf():
     from agent.bepaling_workflow import wijst_stuk_aan
     vraag = "Welke uitspraken van de Centrale Raad van Beroep gaan over artikel 31 van de Participatiewet?"
     assert wijst_stuk_aan(vraag)
-    from test_routering import ModelGevraagd
-    with pytest.raises(ModelGevraagd):  # geen vooraf-lezing: de beurt gaat naar het model, met de connectors
-        _kies(vraag, _AAN)
+    # Geen vooraf-lezing: de beurt gaat naar de centrale agent, met de connectors.
+    upd = _kies(vraag, _AAN)
+    assert upd["specialist"] == "centraal" and not upd.get("bron_lezen")
 
 
 def test_een_herschreven_vervolgvraag_buiten_de_graaf_gaat_de_workflow_in():

@@ -230,55 +230,15 @@ def subagent_instructie(rondes: int = MAX_RONDES_SUBAGENT) -> str:
 SUBAGENT_INSTRUCTIE = subagent_instructie()
 
 
-#: De modelklasse van een subagent: de lichte, voor elk kiesbaar profiel, tenzij de beheerder voor `agent:<profiel>` of
-#: `stap:subagent` een ander model koos (`modelkeuze`). Als specialist van de supervisor houdt een profiel het gewone model.
-SUBAGENT_MODELKLASSE = "licht"
-
-#: Lichte modellen die in dit proces faalden (400 of 404): daarna draait een subagent op het gewone model, ook in de
-#: volgende rondes, zodat zijn voorvoegsel per model vast blijft en de cache niet tussen twee modellen wisselt.
-_LICHT_KAPOT: set[str] = set()
-
-
-def subagent_model(settings: Any) -> tuple[str, str]:
-    """(het model van een subagent, waarom het het gewone model werd of leeg). De lichte klasse is `llm_model_licht`, of de
-    bestaande lichte knop `llm_model_router`; zonder valt hij terug op `llm_model`."""
-    licht = getattr(settings, "llm_model_licht", "") or getattr(settings, "llm_model_router", "")
-    if not licht:
-        return settings.llm_model, "geen_lichte_klasse"
-    if licht in _LICHT_KAPOT:
-        return settings.llm_model, "lichte_klasse_faalde"
-    return licht, ""
-
-
 class Subagent(Agent):
     """Een agent die werkt aan één opdracht van de centrale agent (ADR-016 §A3): zijn eigen profiel, met één uitgang,
-    het rapport (§A4). Hij heeft geen eigen tools: geen overdracht en geen `subagent` (één laag). Hij draait op de lichte
-    modelklasse (`subagent_model`)."""
-
-    def model(self, settings: Any) -> str:
-        return subagent_model(settings)[0]
+    het rapport (§A4). Hij heeft geen eigen tools: geen overdracht en geen `subagent` (één laag). Zijn model kiest de
+    beheerder (`agent:<profiel>`, anders `stap:subagent`); zonder keuze het gewone model."""
 
     def ronde(self, llm: Any, settings: Any, **kw: Any) -> Any:
-        """Faalt het lichte model (een 400 of 404: het bestaat niet in deze omgeving, of het kan dit verzoek niet), dan
-        draait de ronde opnieuw op het gewone model, en de rest van het proces ook (`_LICHT_KAPOT`)."""
-        model = self.model(settings)
         # Een subagent volgt de modelkeuze van zijn profiel, en anders die voor subagents (`stap:subagent`, `modelkeuze`).
         kw["kader"] = {**(kw.get("kader") or {}), "modelrol": "subagent"}
-        try:
-            return super().ronde(llm, settings, **kw)
-        except Exception as fout:
-            if model == settings.llm_model or getattr(fout, "status_code", None) not in (400, 404):
-                raise
-            _LICHT_KAPOT.add(model)
-            logger.warning("subagent_model_terugval", extra={"categorie": "technisch", "model": model,
-                                                             "naar": settings.llm_model,
-                                                             "http_status": getattr(fout, "status_code", None)})
-            # De mislukte aanroep staat in `aanroepen`, met de reden: zo ziet de meting dat het lichte model gekozen
-            # werd en niet draaide.
-            if (meter := getattr(llm, "meter", None)) is not None and hasattr(meter, "tel_mislukt"):
-                meter.tel_mislukt(rol=str(getattr(self.rol, "value", self.rol)), model=model,
-                                  reden="subagent_model_terugval", http_status=getattr(fout, "status_code", None))
-            return super().ronde(llm, settings, **kw)
+        return super().ronde(llm, settings, **kw)
 
     @property
     def instructie(self) -> str:
@@ -308,16 +268,6 @@ def agent_van(state: Any) -> Agent:
     opdracht (`opdracht`, ADR-016 §A3) is een subagent."""
     naam = "retrieval" if state.get("specialist") == "annotatie" else state.get("specialist")
     return agent_voor(naam, subagent=bool(state.get("opdracht")))
-
-
-def vorm_van(stand: str, gevraagd: str | None) -> str:
-    """De agentvorm van een beurt (ADR-016 §A7): `centraal` of `supervisor`. De straat beslist of een run mag kiezen:
-    met `uit` nooit, met `meten` draait de supervisor tenzij de run om de centrale agent vraagt, met `aan` omgekeerd."""
-    if stand == "meten":
-        return "centraal" if gevraagd == "centraal" else "supervisor"
-    if stand == "aan":
-        return "supervisor" if gevraagd == "supervisor" else "centraal"
-    return "supervisor"
 
 
 def voeg_overdracht_toe(g: Any, add: Callable[[str, Any], None], b: Any) -> None:

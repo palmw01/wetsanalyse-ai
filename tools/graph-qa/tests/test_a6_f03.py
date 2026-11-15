@@ -56,7 +56,7 @@ def _markeringen(monkeypatch) -> list[dict]:
 
 
 def _bouw():
-    return SimpleNamespace(settings=SimpleNamespace(centrale_agent="aan", legt_zelf_vast=True), graph=None,
+    return SimpleNamespace(settings=SimpleNamespace(legt_zelf_vast=True), graph=None,
                            kinderen=None, loop=None, llm=None)
 
 
@@ -64,7 +64,7 @@ def test_doorvragen_in_het_deelgesprek_van_een_regiekind_markeert_de_delegatie(m
     """De vraag uit de opzet van F03, in het deelgesprek van deelvraag 1."""
     gezet = _markeringen(monkeypatch)
     state = {**STATE, "gesprek_id": "k1", "question": "Waarom stel je de eerste bepaling voor bij deze deelvraag?",
-             "modus": "auto", "agentvorm": "centraal", "deelgesprek": {"delegatie_id": ECHT, "profiel": ""}}
+             "modus": "auto", "deelgesprek": {"delegatie_id": ECHT, "profiel": ""}}
     supervisie._kies(_bouw(), state)
     assert gezet == [{"later_gewijzigd": True, "deelgesprek": "k1"}]
 
@@ -87,13 +87,12 @@ def test_door_de_hele_graaf_markeert_een_vraag_in_het_deelgesprek_de_delegatie(m
 
     gezet = _markeringen(monkeypatch)
     llm = FakeLLM([response([text_block("De eerste bepaling draagt de deelvraag.")], "end_turn")] * 2)
-    settings = make_settings(wetsanalyse_api_url="http://api.test", wetsanalyse_api_token="t", qa_api_token="q",
-                             centrale_agent="aan")
+    settings = make_settings(wetsanalyse_api_url="http://api.test", wetsanalyse_api_token="t", qa_api_token="q")
 
     async def beurt():
         return [e async for e in answer_stream("Waarom stel je de eerste bepaling voor bij deze deelvraag?",
                                                conversation_id="k1", settings=settings, llm=llm,
-                                               graph=FakeGraph(result=""), agentvorm="centraal", delegatie_id=ECHT)]
+                                               graph=FakeGraph(result=""), delegatie_id=ECHT)]
 
     events = asyncio.run(beurt())
     assert not [e for e in events if e.get("type") == "error"], events

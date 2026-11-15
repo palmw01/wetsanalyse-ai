@@ -45,12 +45,12 @@ function opbouw(run, { ouder = "", koud = true, totaal = 30890, tools = "758623c
       laatste: { delen, totaal, voorvoegsel: { omvang: Math.round(25009 * schaal), exact: true }, cache: { lees: totaal - 742, schrijf: 741, nieuw: 1 } },
     }],
     verbruik: [
-      { rol: "supervisor", model: "claude-sonnet-4-6", aanroepen: 1, invoer: 34, cache_lees: 2189, cache_schrijf: 0, uitvoer: 68, duur: 2747 },
+      { rol: "intake", model: "claude-sonnet-4-6", aanroepen: 1, invoer: 34, cache_lees: 2189, cache_schrijf: 0, uitvoer: 68, duur: 2747 },
       { rol: "antwoord", model: "claude-sonnet-4-6", aanroepen: 3, invoer: 5, cache_lees: 58012, cache_schrijf: 30889, uitvoer: 1815, duur: 33908 },
     ],
     som: { invoer: 39, cache_lees: 60201, cache_schrijf: 30889, uitvoer: 1883 },
     aanroepen: [
-      { rol: "supervisor", totaal: 2223, cache_lees: 2189, cache_schrijf: 0, invoer: 34, uitvoer: 68, ms: 2747, tools_hash: "", system_hash: "a22ec1857baa" },
+      { rol: "intake", totaal: 2223, cache_lees: 2189, cache_schrijf: 0, invoer: 34, uitvoer: 68, ms: 2747, tools_hash: "", system_hash: "a22ec1857baa" },
       { rol: "antwoord", totaal: 27867, cache_lees: 0, cache_schrijf: 27864, invoer: 3, uitvoer: 82, ms: 3826, tools_hash: tools, system_hash: "5cc1b4215950" },
       { rol: "antwoord", totaal, cache_lees: totaal - 742, cache_schrijf: 741, invoer: 1, uitvoer: 1635, ms: 28054, tools_hash: tools, system_hash: "5cc1b4215950" },
     ],

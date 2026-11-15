@@ -77,14 +77,13 @@ def test_wat_de_deelvraagtoets_laat_gaan(vraag, context):
     assert geen_deelvraag_melding(vraag, context) == ""
 
 
-def test_de_supervisor_vraagt_het_zonder_model_en_voor_beide_vormen(monkeypatch):
+def test_de_supervisor_vraagt_het_zonder_model(monkeypatch):
     monkeypatch.setattr(supervisie, "get_stream_writer", lambda: (lambda _e: None))
-    b = SimpleNamespace(settings=SimpleNamespace(centrale_agent="aan", legt_zelf_vast=True), graph=None, kinderen=None)
-    for vorm in ("centraal", "supervisor"):
-        state = {**STATE, "question": AGENTSET["V02"]["opdracht"], "modus": "auto", "agentvorm": vorm,
-                 "werkgebied_id": "w1", "werkgebied_context": "\n\nWERKGEBIED (…):\n" + CONTEXT}
-        upd = supervisie._kies(b, state)
-        assert upd["afwijzen"] and upd["afwijs_melding"].startswith("Dit werkgebied heeft geen deelvraag over verjaring")
+    b = SimpleNamespace(settings=SimpleNamespace(legt_zelf_vast=True), graph=None, kinderen=None)
+    state = {**STATE, "question": AGENTSET["V02"]["opdracht"], "modus": "auto",
+             "werkgebied_id": "w1", "werkgebied_context": "\n\nWERKGEBIED (…):\n" + CONTEXT}
+    upd = supervisie._kies(b, state)
+    assert upd["afwijzen"] and upd["afwijs_melding"].startswith("Dit werkgebied heeft geen deelvraag over verjaring")
 
 
 def test_de_overdracht_werkgebied_start_de_bronselectie_niet_bij_een_onbekende_deelvraag_of_een_connector(monkeypatch):

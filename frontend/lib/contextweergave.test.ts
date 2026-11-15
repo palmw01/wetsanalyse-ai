@@ -24,11 +24,11 @@ function opbouw(wijzig: (c: Record<string, any>) => void = () => {}): Contextopb
       },
     }],
     verbruik: [
-      { rol: "supervisor", model: "m", aanroepen: 1, invoer: 34, cache_lees: 2189, cache_schrijf: 0, uitvoer: 68, duur: 2747 },
+      { rol: "intake", model: "m", aanroepen: 1, invoer: 34, cache_lees: 2189, cache_schrijf: 0, uitvoer: 68, duur: 2747 },
       { rol: "antwoord", model: "m", aanroepen: 3, invoer: 5, cache_lees: 58012, cache_schrijf: 30889, uitvoer: 1815, duur: 33908 },
     ],
     som: { invoer: 39, cache_lees: 60201, cache_schrijf: 30889, uitvoer: 1883 },
-    aanroepen: [{ rol: "supervisor", totaal: 2223, cache_lees: 2189, cache_schrijf: 0, invoer: 34, uitvoer: 68, ms: 2747, tools_hash: "", system_hash: "a22e" }],
+    aanroepen: [{ rol: "intake", totaal: 2223, cache_lees: 2189, cache_schrijf: 0, invoer: 34, uitvoer: 68, ms: 2747, tools_hash: "", system_hash: "a22e" }],
   };
   wijzig(ruw);
   return parseContextopbouw(ruw)!;
@@ -39,7 +39,7 @@ describe("lezen", () => {
     const c = opbouw((r) => { r.nieuw_veld = 1; });
     expect(c.agenten[0].laatste.totaal).toBe(30890);
     expect(c.agenten[0].laatste.voorvoegsel).toEqual({ omvang: 25009, exact: true });
-    expect(c.verbruik.map((v) => v.rol)).toEqual(["supervisor", "antwoord"]);
+    expect(c.verbruik.map((v) => v.rol)).toEqual(["intake", "antwoord"]);
     expect("nieuw_veld" in c).toBe(false);
   });
 
@@ -242,7 +242,7 @@ describe("het verloop en de boom", () => {
   });
 
   it("een rol heeft een naam in gewone taal, en een onbekende rol zijn eigen naam", () => {
-    expect(rolLabel("supervisor")).toBe("Vraag indelen");
+    expect(rolLabel("intake")).toBe("Werkgebied samenstellen");
     expect(rolLabel("nieuw_ding")).toBe("nieuw_ding");
   });
 });

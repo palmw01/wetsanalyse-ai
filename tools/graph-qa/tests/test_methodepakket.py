@@ -60,14 +60,6 @@ def test_logging(caplog):
     with pytest.raises(KeyError): instructies('onbekend')
 
 
-@pytest.mark.parametrize('rol',['definitie','duiding','algemeen'])
-def test_gewone_route(rol):
-    llm = FakeLLM([antwoord(f'SPECIALIST: {rol}\nPLAN: analyse'), antwoord('Antwoord.')])
-    _run(answer_stream('Leg uit', settings=make_settings(), llm=llm, graph=FakeGraph()))
-    check(llm.calls[0], 'supervisor'); check(llm.calls[1], rol)
-    assert llm.calls[0]['tools'] == []
-
-
 def test_advies():
     llm = FakeLLM([antwoord('Advies.')])
     events = _run(answer_stream('Waarom?', modus='advies', settings=make_settings(), llm=llm, graph=FakeGraph()))
@@ -78,7 +70,8 @@ def test_advies():
 def test_volledige_ophaalroute():
     llm = _keten(_aanloop())
     _run(answer_stream('Annoteer artikel 9 lid 1', settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV)))
-    for call,rol in zip(llm.calls[:3],['supervisor','retrieval','retrieval'], strict=True): check(call,rol)
+    # De centrale agent geeft het annoteren met `annoteer` aan de ophaal-agent (ADR-016 §A7: geen supervisor meer).
+    for call,rol in zip(llm.calls[:3],['agent','retrieval','retrieval'], strict=True): check(call,rol)
     assert llm.calls[3:] == _ketencalls(llm) != []
 
 
@@ -92,11 +85,10 @@ def test_explicit_doel():
 
 
 def test_correctie():
-    llm = FakeLLM([antwoord('SPECIALIST: duiding\nPLAN: uitleg'),
-                   antwoord('Zie [jci1.3:c:BWBR0004770&artikel=99].'), antwoord('Zonder onbewezen verwijzing.')])
+    llm = FakeLLM([antwoord('Zie [jci1.3:c:BWBR0004770&artikel=99].'), antwoord('Zonder onbewezen verwijzing.')])
     _run(answer_stream('Leg uit', settings=make_settings(), llm=llm, graph=FakeGraph()))
-    assert len(llm.calls) == 3
-    check(llm.calls[1], 'duiding'); check(llm.calls[2], 'duiding')
+    assert len(llm.calls) == 2
+    check(llm.calls[0], 'agent'); check(llm.calls[1], 'agent')
 
 
 def test_productiepackage_zonder_skill(tmp_path):

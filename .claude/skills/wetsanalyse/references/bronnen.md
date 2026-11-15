@@ -67,6 +67,11 @@ stil bijgewerkte webpagina onder een oude versieaanduiding.
 
 ## Historie
 
+**ADR-016 §A7 (15 nov 2026): de rollen `supervisor` en `definitie` vervallen.** De supervisor is weg, en het profiel
+`definitie` was alleen nog een specialist van de supervisor. De sectie `supervisor` vervalt met haar rol; de sectie
+`definitie` blijft, want de rol `agent` van de centrale agent draagt haar. De tekst van de andere secties is
+byte-gelijk, dus de vingerafdrukken van de overige rollen bewegen niet en er is geen meting nodig.
+
 **Methodeversie 3.0, derde stap (G1b): een lijdende vorm noemt de handelende partij niet.** De meting van G1 liet zien
 dat Lex bij een passieve zin ("De motivering wordt vermeld …") de handelende partij als genoemd behandelde, soms zelfs
 tussen aanhalingstekens. De sectie `duiding` zegt nu dat een partij alleen genoemd is als haar woord letterlijk in de

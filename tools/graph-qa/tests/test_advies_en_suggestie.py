@@ -147,16 +147,3 @@ def test_zonder_fragment_geen_afbakening():
     ))
     assert "AFBAKENING VAN DEZE VRAAG" not in llm.prompts[0]
 
-
-def test_gewone_vraag_gebruikt_de_supervisor_gewoon():
-    """De adviesmodus mag de normale route niet raken."""
-    llm = FakeLLM([
-        response([text_block("WORKERS: antwoord\nPLAN: beantwoord de vraag")], "end_turn"),
-        response([text_block("Een voorwaarde is een conditie.")], "end_turn"),
-        response([text_block("gegrond")], "end_turn"),
-    ])
-    _run(answer_stream(
-        "wat is een voorwaarde?",
-        settings=make_settings(), llm=llm, graph=FakeGraph(result=LID_TSV),
-    ))
-    assert "WORKERS" in llm.prompts[0], "zonder adviesmodus loopt het via de supervisor"

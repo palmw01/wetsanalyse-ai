@@ -18,7 +18,6 @@ from agent.agents import deelvragen as dva, register
 from agent.beurt import BeurtSchrijver
 from agent.deelvragen import TOOL_VERBETER, valideer_verbetering
 from agent.models import ACTIE_TAAK
-from agent.supervisor import parse_supervisor, parse_taak
 from fakes import FakeGraph, FakeLLM, agent_ctx, make_settings, response, text_block, tool_block
 
 WG = {"id": "wg1", "naam": "Invorderbaarheid", "analysevraag": "Wanneer is een aanslag invorderbaar?",
@@ -69,13 +68,6 @@ def _api_settings(**kw):
 
 
 # --- 1. de supervisor ------------------------------------------------------------------------------
-
-def test_de_taak_staat_op_een_eigen_regel_en_de_agents_ketenen_met_niets():
-    tekst = "WORKERS: deelvragen, antwoord\nSPECIALIST: algemeen\nTAAK: Dekking.\nPLAN: de dekking"
-    assert parse_taak(tekst) == "dekking"
-    assert parse_supervisor(tekst)[0] == ["deelvragen"]
-    assert parse_supervisor("WORKERS: begrippen\nPLAN: x")[0] == ["begrippen"]
-    assert parse_taak("WORKERS: antwoord\nPLAN: x") == ""
 
 
 def test_elke_actie_hoort_bij_een_bestaande_taak():
@@ -133,15 +125,6 @@ def test_een_getypte_vraag_naar_de_dekking_gaat_zonder_model_naar_de_agent():
     assert "Wanneer vervalt" not in token                       # alleen de aangewezen deelvraag
 
 
-def test_een_getypte_vraag_die_de_code_niet_leest_kiest_de_agent_met_het_model():
-    llm = FakeLLM([response([text_block("WORKERS: deelvragen\nSPECIALIST: algemeen\nTAAK: dekking\nPLAN: d")],
-                            "end_turn")])
-    events = _beurt("Hoe sta ik ervoor met deelvraag 2?", llm)
-    assert len(llm.calls) == 1                                   # alleen de supervisor
-    token = "".join(e["content"] for e in events if e["type"] == "token")
-    assert token.startswith("Dekking in werkgebied *Invorderbaarheid*")
-
-
 def _gesprek(beurten, llm, tmp_path):
     """Beurten in één thread (een echte checkpointer), zoals de gesprekseval."""
     settings = _api_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
@@ -182,35 +165,6 @@ def test_een_echte_leesvraag_blijft_de_leesroute_ook_als_het_model_een_agent_noe
     _, tweede = _gesprek([("Hoe staat de dekking ervoor?", {"actie": "dekking"}), (vraag, {})], llm, tmp_path)
     assert any("raadpleegt bestaande annotaties" in m for m in _statussen(tweede))
     assert not any("deelvragen-agent" in m for m in _statussen(tweede))
-
-
-def test_werk_aan_een_werkgebied_wijs_je_nooit_af():
-    from agent.supervisor import SUPERVISOR_SYSTEM, VERVOLG_SYSTEM
-    assert "deelvragen, bronnen, begrippen of annotaties gaat over wetgeving en wijs je nooit af" in SUPERVISOR_SYSTEM
-    assert "een vervolg op werk aan een werkgebied" in VERVOLG_SYSTEM
-
-
-def test_een_onbekende_taak_is_een_vraag_van_lex_geen_stille_beurt():
-    llm = FakeLLM([response([text_block("WORKERS: begrippen\nSPECIALIST: algemeen\nTAAK: toveren\nPLAN: x")],
-                            "end_turn")])
-    events = _beurt("Doe iets met de begrippen", llm)
-    token = "".join(e["content"] for e in events if e["type"] == "token")
-    assert "Wat wil je dat ik doe?" in token and "uitwerken" in token
-    assert not any(e["type"] == "artefact" for e in events)
-
-
-def test_het_hele_werkgebied_annoteren_is_een_taak_van_de_annotatie_agent():
-    class Werkvoorraad(NepApi):
-        async def haal_annotatie_werkvoorraad(self, wid, bereik="werkgebied", deelvraag_id=""):
-            return {"naam": "Inv", "te_annoteren": ["urn:bwb:X:artikel:1"], "eenheden": [], "schatting": None,
-                    "budget": {}}
-
-    llm = FakeLLM([response([text_block("WORKERS: annotatie\nSPECIALIST: algemeen\nTAAK: werkgebied\nPLAN: x")],
-                            "end_turn")])
-    events = _beurt("Annoteer wat nog niet geannoteerd is", llm, api=Werkvoorraad())
-    [bevestiging] = [e["bevestiging"] for e in events if e["type"] == "bevestiging"]
-    assert bevestiging["soort"] == "werkgebied_annoteren" and bevestiging["aantal"] == 1
-    assert not any(e["type"] in ("doel", "element") for e in events)    # niets geannoteerd zonder bevestiging
 
 
 def test_een_storing_van_de_api_is_een_zin_in_het_gesprek():

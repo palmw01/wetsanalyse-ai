@@ -41,8 +41,7 @@ def _tools_node(monkeypatch, state):
 def test_een_geweigerde_aanroep_is_een_tool_execution_zonder_statusregel(monkeypatch, geval):
     tu = ({"id": "t1", "name": "get_uitspraak", "input": {"id": A}} if geval == "na_subagent"
           else {"id": "t1", "name": "geldigheid", "input": {"bwb_id": "BWBR0004770"}})
-    state = {"pending_tools": [tu], "messages": [], "source_trace": [], "specialist": "centraal",
-             "agentvorm": "centraal", "run_id": "r", "turns": 2,
+    state = {"pending_tools": [tu], "messages": [], "source_trace": [], "specialist": "centraal", "run_id": "r", "turns": 2,
              **({"subagenten": [{"uitkomst": "klaar"}]} if geval == "na_subagent" else {})}
     upd, events, uitgevoerd = _tools_node(monkeypatch, state)
     assert not uitgevoerd and not upd["source_trace"], "niet uitgevoerd, en geen bron"
@@ -58,8 +57,7 @@ def test_een_geweigerde_aanroep_is_een_tool_execution_zonder_statusregel(monkeyp
 def test_naast_een_weigering_noemt_de_statusregel_alleen_wat_draait(monkeypatch):
     weg = {"id": "t1", "name": "geldigheid", "input": {"bwb_id": "BWBR0004770"}}
     mag = {"id": "t2", "name": "get_artikel", "input": {"bwb_id": "BWBR0004770", "artikel": "9"}}
-    state = {"pending_tools": [weg, mag], "messages": [], "source_trace": [], "specialist": "centraal",
-             "agentvorm": "centraal", "run_id": "r"}
+    state = {"pending_tools": [weg, mag], "messages": [], "source_trace": [], "specialist": "centraal", "run_id": "r"}
     _, events, uitgevoerd = _tools_node(monkeypatch, state)
     assert len(uitgevoerd) == 1
     [status] = [e for e in events if e.get("type") == "status"]
@@ -202,7 +200,6 @@ def test_een_subagent_draagt_in_beurt_meting_de_vorm_van_de_centrale_agent(monke
         return leeg()
 
     monkeypatch.setattr(main, "gemeten", nep_gemeten)
-    monkeypatch.setattr(main.settings, "centrale_agent", "meten", raising=False)
     kind = ChatRequest(question="Zoek.", conversation_id="k", profiel="algemeen",
                        opdracht=SubagentOpdracht(doel="Zoek de uitspraken."))
     maak = main._stroom_voor(kind, "jurist")
@@ -211,4 +208,4 @@ def test_een_subagent_draagt_in_beurt_meting_de_vorm_van_de_centrale_agent(monke
     gezien.clear()
     main._stroom_voor(ChatRequest(question="Wat is een aanslag?", conversation_id="g"), "jurist")(
         Run(run_id="r2", conversation_id="g"))
-    assert (gezien["agentvorm"], gezien["subagent"]) == ("supervisor", False)
+    assert (gezien["agentvorm"], gezien["subagent"]) == ("centraal", False), "de enige vorm sinds ADR-016 §A7"

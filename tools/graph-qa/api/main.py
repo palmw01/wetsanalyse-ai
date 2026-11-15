@@ -363,7 +363,6 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                     bronnen=request.bronnen,
                     bronnen_herkomst=request.bronnen_herkomst,
                     beurtcontext_plek=request.beurtcontext_plek,
-                    agentvorm=request.agentvorm,
                     # Een subagent (ADR-016 §A3): zijn profiel en opdracht, en wat hij oplevert voor de ouder.
                     profiel=request.profiel,
                     opdracht=request.opdracht,
@@ -378,17 +377,10 @@ def _stroom_voor(request: ChatRequest, gebruiker: str = ""):
                 user_id=gebruiker,
                 meter=meter,
             )
-            from agent.agentvorm import vorm_van
-
-            # De vorm, of het een subagent is en de ouder: zo valt een kind niet in dezelfde rij als de specialist van
-            # de supervisor (analyse centrale agent, gat 8).
+            # De vorm en of het een subagent is: sinds ADR-016 §A7 is de centrale agent de enige vorm; het veld blijft in
+            # de meting, zodat metingen van voor en na vergelijkbaar blijven.
             return gemeten(beurt, meter=meter, run=run, gesprek_id=request.conversation_id or "",
-                           # Een subagent start alleen vanuit de centrale agent, dus hij draagt diens vorm, ook bij
-                           # `meten`, waar het verzoek van het kind er geen noemt (bugonderzoek ADR-016, B2).
-                           model=settings.llm_model,
-                           agentvorm="centraal" if request.profiel else vorm_van(settings.centrale_agent,
-                                                                                 request.agentvorm),
-                           subagent=bool(request.profiel))
+                           model=settings.llm_model, agentvorm="centraal", subagent=bool(request.profiel))
 
         if request.intake_actie is not None:
             # Een klik op een vraagkaartje (activiteit 1): altijd de werkgebied-worker.

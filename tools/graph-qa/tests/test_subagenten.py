@@ -285,7 +285,7 @@ def test_regie_plan_staat_alleen_in_het_voorvoegsel_van_een_beurt_met_een_werkge
     from fakes import make_settings
 
     a = agent_voor("centraal")
-    namen = lambda wg: {s["name"] for s in a.toolschemas(make_settings(centrale_agent="aan"), None, {}, werkgebied=wg)}  # noqa: E731
+    namen = lambda wg: {s["name"] for s in a.toolschemas(make_settings(), None, {}, werkgebied=wg)}  # noqa: E731
     assert "regie_plan" in namen(True) and "regie_plan" not in namen(False)
     assert namen(True) - namen(False) == {"regie_plan"}
     assert "subagenten" not in namen(True) and "hervat_subagent" not in namen(True), "één tool voor één tot drie opdrachten"
