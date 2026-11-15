@@ -1347,11 +1347,11 @@ export function WerkplekClient({
             <div className="mb-1.5 flex items-center gap-1.5" data-onderwerp={onderwerp.soort}>
               <StatusLabel toon="lint" rekbaar className="gap-1.5 py-1 font-normal">
                 {onderwerp.soort === "markering" ? (
-                  <span className={`shrink-0 rounded px-1 text-[0.7rem] ${jasStyle(onderwerp.element.klasse)}`}>
+                  <span className={`shrink-0 rounded px-1 text-2xs ${jasStyle(onderwerp.element.klasse)}`}>
                     {klasseLabel(onderwerp.element.klasse)}
                   </span>
                 ) : (
-                  <span className="shrink-0 rounded bg-lint/10 px-1 text-[0.7rem] font-medium">{SOORT_LABEL[onderwerp.soort]}</span>
+                  <span className="shrink-0 rounded bg-lint/10 px-1 text-2xs font-medium">{SOORT_LABEL[onderwerp.soort]}</span>
                 )}
                 <span className="truncate">{onderwerp.soort === "markering" ? `“${chipTekst(onderwerp)}”` : chipTekst(onderwerp)}</span>
                 <button
@@ -1409,7 +1409,7 @@ export function WerkplekClient({
                 onOpen={() => openContext(CONTEXTOPBOUW_DOEL, "de contextmeter")} />
             </div>
           )}
-          <div data-tour="invoer" className="flex items-end gap-2 rounded-bubbel border border-line bg-white px-2 py-1.5 shadow-zacht transition-shadow focus-within:border-lint focus-within:shadow-kaart">
+          <div data-tour="invoer" className="flex items-end gap-2 rounded-bubbel border border-line bg-paper px-2 py-1.5 shadow-zacht transition-shadow focus-within:border-lint focus-within:shadow-kaart">
             <textarea
               ref={taRef}
               // Een klaargezette vraag (`beginInvoer`) krijgt de focus, zodat één Enter volstaat.

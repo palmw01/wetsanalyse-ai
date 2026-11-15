@@ -148,7 +148,7 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
               type="button"
               aria-pressed={filter.rol === k.waarde}
               onClick={() => setFilter({ ...filter, rol: k.waarde })}
-              className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
+              className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-2xs transition coarse:min-h-[44px] ${
                 filter.rol === k.waarde ? "border-lint bg-lint text-paper" : "border-line text-muted hover:border-lint hover:text-ink"
               }`}
             >
@@ -164,7 +164,7 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
                 aria-pressed={apart === soort}
                 title={soort === "vervangen" ? "Voorstellen die een nieuwe ronde van Lex niet meer maakte" : undefined}
                 onClick={() => setApart(apart === soort ? "" : soort)}
-                className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
+                className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-2xs transition coarse:min-h-[44px] ${
                   apart === soort ? "border-lint bg-lint text-paper" : "border-line text-muted hover:border-lint hover:text-ink"
                 }`}
               >
@@ -266,7 +266,7 @@ function DekkingBalk({ dekking: d }: { dekking: Dekking }) {
           begrippenronde van Lex nog niet; vraag Lex in het gesprek opnieuw om voorstellen.
         </p>
       )}
-      <p className="mt-1 text-[11px] text-faint">Dit zegt hoeveel er verwerkt is, niet of de analyse juridisch volledig is.</p>
+      <p className="mt-1 text-2xs text-faint">Dit zegt hoeveel er verwerkt is, niet of de analyse juridisch volledig is.</p>
     </section>
   );
 }
@@ -302,7 +302,7 @@ function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip, dekk
               {e.rol === "context" && (
                 <StatusLabel>context</StatusLabel>
               )}
-              <span className={`text-[11px] ${beoordeeld ? "text-muted" : "text-aandacht-geel-tekst"}`}>
+              <span className={`text-2xs ${beoordeeld ? "text-muted" : "text-aandacht-geel-tekst"}`}>
                 {beoordeeld ? LIFECYCLE_LABEL[e.lifecycle] : `${LIFECYCLE_LABEL[e.lifecycle]} · nog niet beoordeeld`}
               </span>
             </div>
@@ -337,7 +337,7 @@ function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip, dekk
         </div>
         <Link
           href={annotatieHref(e.eigenaar_iri, e.id)}
-          className="focus-ring inline-flex min-h-[24px] shrink-0 items-center self-start rounded-knop-xs border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]"
+          className="focus-ring inline-flex min-h-[24px] shrink-0 items-center self-start rounded-knop-xs border border-line px-2.5 py-0.5 text-2xs font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]"
         >
           Annotatie openen
         </Link>

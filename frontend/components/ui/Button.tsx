@@ -17,7 +17,7 @@ const variants: Record<Variant, string> = {
 // aanraakbediening. Met een fijne pointer oogt dat log, terwijl 40px daar ruim volstaat.
 // xs is de rijactie (spoor I4): klein in een rij of lijst, met het klikdoel van WCAG 2.5.8 (24px) en 44px op touch.
 const sizes: Record<Size, string> = {
-  xs: "min-h-[24px] coarse:min-h-[44px] px-2.5 py-0.5 text-[11px]",
+  xs: "min-h-[24px] coarse:min-h-[44px] px-2.5 py-0.5 text-2xs",
   sm: "min-h-[32px] coarse:min-h-[44px] px-3 py-1.5 text-sm",
   md: "min-h-[40px] coarse:min-h-[48px] px-4 py-2 text-sm",
 };

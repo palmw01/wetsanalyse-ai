@@ -171,7 +171,7 @@ export function StatusLabel({ toon = "neutraal", uitleg, klein = false, rekbaar 
   );
 }
 
-const LABEL_MAAT = { gewoon: "px-2 py-0.5 text-xs font-medium", klein: "px-1.5 text-[10px]" } as const;
+const LABEL_MAAT = { gewoon: "px-2 py-0.5 text-xs font-medium", klein: "px-1.5 text-3xs" } as const;
 
 /** Een JAS-klasse die alleen informeert (in de passages, de inventaris, de graaf): de pil van `StatusLabel` in de kleur
  *  van de klasse (`jasStyle`). Klikbaar is hij alleen op de reviewkaart, en daar is hij een knop met ▾. */

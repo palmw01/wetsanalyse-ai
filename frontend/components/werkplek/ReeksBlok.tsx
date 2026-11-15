@@ -73,7 +73,7 @@ function OnderdeelRegel({
         </button>
         {o.annotatie_doel && (
           <button type="button" onClick={onOpen}
-            className="focus-ring shrink-0 rounded-knop-xs border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint hover:bg-lint/5">
+            className="focus-ring shrink-0 rounded-knop-xs border border-line px-2.5 py-0.5 text-2xs font-medium text-lint hover:bg-lint/5">
             Open ›
           </button>
         )}
@@ -96,7 +96,7 @@ function detail(o: ReeksOnderdeel): string {
 }
 
 function StatusIcoon({ status }: { status: ReeksOnderdeel["status"] }) {
-  const basis = "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px]";
+  const basis = "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-3xs";
   if (status === "bezig") return <span className={`${basis} border-2 border-lint/30 border-t-lint animate-spin`} aria-label="bezig" />;
   if (status === "klaar" || status === "hergebruik") return <span className={`${basis} bg-lint text-white`} aria-label="klaar">✓</span>;
   if (status === "fout") return <span className={`${basis} bg-red-600 text-white`} aria-label="mislukt">!</span>;

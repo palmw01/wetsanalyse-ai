@@ -53,6 +53,21 @@ const config: Config = {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
+      // De tekstmaten buiten de schaal van Tailwind (generieke componenten, 15 nov 2026,
+      // docs/architectuur/plan-generieke-componenten.md §11). Zonder regelhoogte, zoals de losse waarden die ze
+      // vervangen: de regelhoogte komt van de plek (leading-*). Geen text-[..px] meer in de app (app/tokens.test.ts).
+      fontSize: {
+        // 10px: tellers in een badge, kleine meta in de graaf.
+        "3xs": "0.625rem",
+        // 11px: metaregels, kleine labels in de graaf en de inspector.
+        "2xs": "0.6875rem",
+        // 13px: de toelichting onder een instelling, de rondleiding, het commandomenu.
+        meta: "0.8125rem",
+        // 15px: de leestekst van een antwoord en de vraagkaart.
+        lees: "0.9375rem",
+        // Het getal op een teller.
+        teller: "1.65rem",
+      },
       borderRadius: {
         // Rijkshuisstijl: formulierveld ≈ 5% van de hoogte. Knoppen en kaarten delen `kaart` (spoor K).
         field: "3px",
@@ -65,6 +80,8 @@ const config: Config = {
         bubbel: "16px",
         // Vormelement: één grote afgeronde hoek als signatuur (RH-radius-stap).
         vorm: "32px",
+        // De vraagkaart en de bronselectiekaart in het gesprek (activiteit 1, spoor J).
+        vraag: "24px",
       },
       maxWidth: {
         prose: "72ch",

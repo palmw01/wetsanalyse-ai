@@ -241,6 +241,11 @@ Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` no
     Belastingdienst-logo niet terugkomen.
 - **De root-font-size is overal 100%.** Schaal met de Tailwind-tekstklassen, niet met een globale
   krimp.
+- **Tekstmaten, kleuren en hoeken komen uit de tokens** (generieke componenten, 15 nov 2026; `app/tokens.test.ts`). Buiten
+  de schaal van Tailwind staan in `tailwind.config.ts`: `text-3xs` (10px), `text-2xs` (11px), `text-meta` (13px),
+  `text-lees` (15px, de leestekst van een antwoord en de vraagkaart), `text-teller` en `rounded-vraag` (24px, de
+  vraagkaarten). Geen `text-[..px]`, geen `bg-white` (de achtergrond is `bg-paper`, die de donkere stand volgt) en geen
+  `rounded-[..px]`; `app/global-error.tsx` valt erbuiten.
 - **Primitives in `components/ui/`**: 40px-knoppen/velden die onder de `coarse:`-variant
   (`@media (pointer: coarse)`, `tailwind.config.ts`) naar 48px groeien.
 - **Knoppen zijn mobile-first.** `Button`/`LinkButton` zijn breedte-neutraal (`inline-flex

@@ -77,9 +77,9 @@ function SamenhangGraaf({ wg, muteer, onKiesBegrip }: {
     if (begripId) return onKiesBegrip
       ? <button type="button" className={KNOP} onClick={() => onKiesBegrip(begripId)}>Open het begrip</button> : null;
     if (!isBron(k) || k.soort === "regeling") return null;
-    if (doelen.includes(k.id)) return <span className="text-[11px] text-muted">Staat in dit werkgebied</span>;
-    if (scope.has(k.id)) return <span className="text-[11px] text-muted">Valt binnen dit werkgebied</span>;
-    if (k.soort === "extern" || !k.bwb_id) return <span className="text-[11px] text-muted">Niet in de graaf, niet op te nemen</span>;
+    if (doelen.includes(k.id)) return <span className="text-2xs text-muted">Staat in dit werkgebied</span>;
+    if (scope.has(k.id)) return <span className="text-2xs text-muted">Valt binnen dit werkgebied</span>;
+    if (k.soort === "extern" || !k.bwb_id) return <span className="text-2xs text-muted">Niet in de graaf, niet op te nemen</span>;
     return (
       <>
         <button type="button" className={KNOP} onClick={() => void neemOp(k.id, k.naam, "analyseren")}>

@@ -40,14 +40,14 @@ export function BronselectieKaart({ kaart, uitgeschakeld, onActie, onSluit, onBe
   const typ = typActie(kaart, eigen);
   return (
     <section aria-label="Bronselectie van Lex" data-vraagdock={kaart.stap} data-bronselectie-kaart={kaart.deelvraag_id}
-      className="relative w-full rounded-[24px] border border-line bg-white px-5 pb-4 pt-3 shadow-kaart">
+      className="relative w-full rounded-vraag border border-line bg-paper px-5 pb-4 pt-3 shadow-kaart">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm tabular-nums text-muted">{kaart.nr} van {kaart.totaal}</p>
           <h2 className="mt-0.5 font-display text-lg font-semibold leading-snug text-ink">{kaart.vraag}</h2>
         </div>
         <button type="button" aria-label="Vraag sluiten" onClick={onSluit}
-          className="focus-ring inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-knop border border-line bg-white text-ink shadow-zacht hover:bg-surface coarse:h-11 coarse:w-11">
+          className="focus-ring inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-knop border border-line bg-paper text-ink shadow-zacht hover:bg-surface coarse:h-11 coarse:w-11">
           <Kruis className="text-base" />
         </button>
       </div>

@@ -55,7 +55,7 @@ export function Teststrook() {
       {/* De klik opent de voorwaarden als dialog (intercepting route), zodat je je gesprek niet verlaat. */}
       <Link
         href="/disclaimer"
-        className="focus-ring block min-w-0 flex-1 py-1 pl-8 text-center text-[0.7rem] transition-colors hover:bg-waarschuwing/20"
+        className="focus-ring block min-w-0 flex-1 py-1 pl-8 text-center text-2xs transition-colors hover:bg-waarschuwing/20"
       >
         <span className="font-semibold">Testomgeving – proof of concept.</span>{" "}
         Analyses kunnen verloren gaan. <span className="underline">Lees de voorwaarden</span>

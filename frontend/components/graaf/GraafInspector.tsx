@@ -73,7 +73,7 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
     const genoemd = doelen.filter((d) => model.hasNode(d));
     return <div className="min-h-0 overflow-y-auto p-4 text-xs text-muted" data-testid="graaf-detail">
       {genoemd.length > 0 && <>
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-faint">{doelenKop}</p>
+        <p className="text-3xs font-semibold uppercase tracking-wide text-faint">{doelenKop}</p>
         <ul className="mb-3 mt-1 space-y-0.5">
           {genoemd.map((d) => { const a = model.getNodeAttributes(d); const n = markeringenOp(model, d); return <li key={d}>
             <button type="button" onClick={() => onKies(d)} className="focus-ring flex w-full items-baseline gap-2 rounded px-1 py-0.5 text-left text-xs hover:bg-surface coarse:min-h-11">
@@ -97,7 +97,7 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
   return <div className="flex min-h-0 flex-1 flex-col" data-testid="graaf-detail">
     <div className="flex items-start gap-2 px-4 pb-2 pt-3">
       <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-faint">
+        <p className="flex items-center gap-1.5 text-3xs font-semibold uppercase tracking-wide text-faint">
           <span className="h-2 w-2 shrink-0 rounded-full border border-black/10" style={{ background: eigenKleur(knoop) }} />
           {SOORT_LABEL[knoop.soort]}{knoop.rand && knoop.soort !== "extern" ? " · buiten wat geladen is" : ""}
         </p>
@@ -119,8 +119,8 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
 
     {!ingeklapt && <div className="min-h-0 space-y-3 overflow-y-auto border-t border-line px-4 py-3">
       {knoop.soort === "markering" && <div className="flex flex-wrap items-center gap-2">
-        <span className={`inline-block rounded border px-2 py-0.5 text-[11px] ${jasStyle(knoop.klasse)}`}>{knoop.klasse}</span>
-        {knoop.lifecycle && <span className="text-[11px] text-muted">{LIFECYCLE_LABEL[knoop.lifecycle as Lifecycle] || knoop.lifecycle}</span>}
+        <span className={`inline-block rounded border px-2 py-0.5 text-2xs ${jasStyle(knoop.klasse)}`}>{knoop.klasse}</span>
+        {knoop.lifecycle && <span className="text-2xs text-muted">{LIFECYCLE_LABEL[knoop.lifecycle as Lifecycle] || knoop.lifecycle}</span>}
         {/* Een onbeoordeeld voorstel zegt zijn herkomst al ("voorstel van Lex"). */}
         {knoop.herkomst && !(knoop.herkomst !== "mens" && knoop.lifecycle === "voorgesteld") && <StatusLabel>
           {knoop.herkomst === "mens" ? "door een jurist" : "voorstel van Lex"}</StatusLabel>}
@@ -129,21 +129,21 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
       </div>}
       {knoop.soort === "markering" && el && <MarkeringDetail el={el} />}
       {knoop.soort === "begrip" && knoop.begrip_bron === "wet" && <div className="space-y-2" data-testid="graaf-wetbegrip">
-        <p className="text-[11px] text-muted">Wettelijk begrip · de wet zelf legt de betekenis vast.</p>
+        <p className="text-2xs text-muted">Wettelijk begrip · de wet zelf legt de betekenis vast.</p>
         {knoop.definities?.map((d) => <div key={d.bron_iri} className="text-xs">
           {d.aanhef && <p className="text-muted">{d.aanhef}</p>}
           <blockquote className="mt-0.5 border-l-2 border-line pl-2 text-ink">{d.tekst}</blockquote>
-          <p className="mt-0.5 text-[11px] text-faint">
+          <p className="mt-0.5 text-2xs text-faint">
             <button type="button" onClick={() => onKies(d.bron_iri)} className="focus-ring rounded text-lint underline">{d.vindplaats || d.bron_iri}</button>
             {" · "}{GELDT[d.bereik] ?? "geldt voor de regeling"}{d.formule ? ` (“${d.formule}”)` : ""}
           </p>
         </div>)}
       </div>}
-      {knoop.soort === "begrip" && knoop.begrip_bron !== "wet" && <p className="text-[11px] text-muted" data-testid="graaf-begrip">
+      {knoop.soort === "begrip" && knoop.begrip_bron !== "wet" && <p className="text-2xs text-muted" data-testid="graaf-begrip">
         {BEGRIP_STATUS[knoop.status ?? ""] ?? "Begrip"} · een analyse-uitkomst van dit werkgebied, geen wettelijke definitie.
         {!knoop.tekst && " Er is nog geen definitie."}</p>}
       {knoop.soort === "impliciet" && <div className="space-y-1 text-xs" data-testid="graaf-impliciet">
-        <p className="text-[11px] text-muted">Impliciete partij · de tekst noemt haar niet; vastgelegd door een jurist.</p>
+        <p className="text-2xs text-muted">Impliciete partij · de tekst noemt haar niet; vastgelegd door een jurist.</p>
         {knoop.toelichting && <p className="border-l-2 border-line pl-2 text-ink">{knoop.toelichting}</p>}
       </div>}
       {knoop.begrip_bron !== "wet" && <KnoopWettekst detail={detail} knoop={knoop} gekozen={knoop.soort === "markering" ? knoop.element_id : undefined}
@@ -155,13 +155,13 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
         const sleutel = `${knoop.id}|dekking`;
         const toon = allesOpen[sleutel] ? ongedekt : ongedekt.slice(0, ZICHTBAAR_PER_GROEP);
         return <div data-testid="graaf-dekking">
-          <p className="text-[11px] font-semibold text-muted">Zonder detectortreffer <span className="font-normal text-faint">({ongedekt.length})</span></p>
+          <p className="text-2xs font-semibold text-muted">Zonder detectortreffer <span className="font-normal text-faint">({ongedekt.length})</span></p>
           <ul className="mt-1 space-y-0.5 pl-4">
             {toon.map((t, i) => <li key={i} className="text-xs text-muted">“{t}”</li>)}
           </ul>
           {ongedekt.length > ZICHTBAAR_PER_GROEP && !allesOpen[sleutel] && <button type="button" className={`${TEKSTKNOP} ml-4`}
             onClick={() => setAllesOpen((a) => ({ ...a, [sleutel]: true }))}>Alle {ongedekt.length} tonen</button>}
-          <p className="mt-1 pl-4 text-[10px] text-faint">Een meting van de detectoren, geen oordeel. Markeren doe je in de tekst.</p>
+          <p className="mt-1 pl-4 text-3xs text-faint">Een meting van de detectoren, geen oordeel. Markeren doe je in de tekst.</p>
         </div>;
       })()}
       {knoop.soort === "extern" && <p className="text-xs text-muted">Deze bepaling staat niet in de kennisgraaf; alleen de verwijzing ernaar is bekend.</p>}
@@ -185,7 +185,7 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
                   {richting && (() => {
                     const v = verwijzingVoor(verwijzingen, richting, ander, anker_tekst);
                     if (!v) return null;
-                    return <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-faint" data-testid="graaf-verwijzing">
+                    return <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-3xs text-faint" data-testid="graaf-verwijzing">
                       {verwijzingTekst(v)}
                       {v.betrouwbaarheid === "laag" && <StatusLabel toon="geel" klein className="ml-1">lage betrouwbaarheid</StatusLabel>}
                     </span>;
@@ -238,10 +238,10 @@ function MarkeringDetail({ el }: { el: NodeElement }) {
     {el.toelichting && <p className="text-ink"><span className="font-semibold text-muted">Toelichting: </span>{el.toelichting}</p>}
     {el.review_uitleg && <p className="text-ink"><span className="font-semibold text-muted">Review: </span>{el.review_uitleg}</p>}
     {!!el.alternatieven?.length && <div>
-      <p className="text-[11px] font-semibold text-muted">Alternatieven</p>
+      <p className="text-2xs font-semibold text-muted">Alternatieven</p>
       <div className="mt-1 flex flex-wrap gap-1">
         {el.alternatieven.map((a) => <span key={a.klasse} title={a.motivatie || undefined}
-          className={`inline-block rounded border px-1.5 py-0.5 text-[11px] ${jasStyle(a.klasse)}`}>{a.klasse}</span>)}
+          className={`inline-block rounded border px-1.5 py-0.5 text-2xs ${jasStyle(a.klasse)}`}>{a.klasse}</span>)}
       </div>
     </div>}
   </div>;

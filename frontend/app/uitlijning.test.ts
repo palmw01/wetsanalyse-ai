@@ -109,6 +109,6 @@ describe("suggesties en kleine knoprijen", () => {
       expect(zelf, f).toEqual([]);
     }
     // De hint in de voet krijgt op een telefoon een eigen regel en springt pas vanaf sm naar rechts.
-    expect(bron("components/werkplek/KeuzeKaart.tsx")).toMatch(/basis-full text-\[11px\] text-faint sm:ml-auto/);
+    expect(bron("components/werkplek/KeuzeKaart.tsx")).toMatch(/basis-full text-2xs text-faint sm:ml-auto/);
   });
 });

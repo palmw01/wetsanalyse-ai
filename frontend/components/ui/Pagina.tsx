@@ -340,7 +340,7 @@ export function Tellers({ children }: { children: React.ReactNode }) {
 export function Teller({ getal, label, href }: { getal: React.ReactNode; label: string; href: string }) {
   return (
     <Link href={href} data-teller={label} className={`${KLIK_KAART} flex flex-col px-4 py-3.5`}>
-      <span className="font-display text-[1.65rem] font-semibold leading-tight tabular-nums text-lint">{getal ?? "–"}</span>
+      <span className="font-display text-teller font-semibold leading-tight tabular-nums text-lint">{getal ?? "–"}</span>
       <span className="mt-1 text-xs text-muted">{label}</span>
     </Link>
   );

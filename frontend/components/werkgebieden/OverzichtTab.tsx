@@ -43,7 +43,7 @@ export function OverzichtTab() {
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="min-w-0 space-y-4">
           <Kaart titel="Analyseopdracht" meer={{ href: artefactPad(wg.id, "dossier"), label: "Dossier" }} data-kaart="analyseopdracht">
-            <p className="mb-3 rounded-md border-l-4 border-lint bg-lint/5 px-3 py-2.5 text-[0.95rem] font-medium leading-relaxed text-ink"
+            <p className="mb-3 rounded-md border-l-4 border-lint bg-lint/5 px-3 py-2.5 text-lees font-medium leading-relaxed text-ink"
               data-analysevraag>
               {wg.analysevraag.trim() || <LeegWaarde>Nog geen analysevraag.</LeegWaarde>}
             </p>

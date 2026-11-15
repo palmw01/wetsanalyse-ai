@@ -296,7 +296,7 @@ export function GesprekSidebar({
                 Zonder actieve begrenzing blijft het bij de rol – een meter zonder grens zegt niets. */}
             {verbruik && verbruik.actief ? (
               <>
-                <span className="block truncate text-[0.65rem] text-faint">
+                <span className="block truncate text-3xs text-faint">
                   {verbruikSamenvatting(verbruik)}
                 </span>
                 <Meter
@@ -308,7 +308,7 @@ export function GesprekSidebar({
                 />
               </>
             ) : (
-              <span className="block truncate text-[0.65rem] text-faint">
+              <span className="block truncate text-3xs text-faint">
                 {isBeheerder ? "Beheerder" : "Analist"} · instellingen
               </span>
             )}

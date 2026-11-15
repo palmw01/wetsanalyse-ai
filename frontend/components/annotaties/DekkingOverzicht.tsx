@@ -34,7 +34,7 @@ export function DekkingOverzicht({ dekking, volgorde, labelVan }: {
           </p>}
         </li>)}
       </ul>
-      <p className="mt-2 text-[11px] text-faint">
+      <p className="mt-2 text-2xs text-faint">
         Dit zegt welke patronen de detectoren konden bekijken – niet of de annotatie juist of volledig is.
       </p>
     </Uitklap>

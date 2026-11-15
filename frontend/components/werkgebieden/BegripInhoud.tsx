@@ -230,7 +230,7 @@ function Groep({ titel, nlsbb, children }: { titel: string; nlsbb: string; child
   return (
     <div className="space-y-4" data-kaart-groep={titel}>
       <p className="flex flex-wrap items-baseline gap-x-2 text-xs font-medium text-muted">
-        {titel}<span className="font-mono text-[0.65rem] font-normal text-faint">{nlsbb}</span>
+        {titel}<span className="font-mono text-3xs font-normal text-faint">{nlsbb}</span>
       </p>
       {children}
     </div>
@@ -508,14 +508,14 @@ function NlSbbStand({ stand: { api }, begrip }: { stand: BegripStand; begrip: Be
       <p className={stand.conform ? "text-muted" : "text-aandacht-geel-tekst"}>{zin}</p>
       {meldingen.length > 0 && (
         <Uitklap className="mt-1" samenvatting={<>Meldingen ({meldingen.length})</>}>
-          <ul className="mt-1 space-y-0.5 pl-4 text-[11px] text-muted">
+          <ul className="mt-1 space-y-0.5 pl-4 text-2xs text-muted">
             {meldingen.map((m, i) => (
               <li key={i}>
                 {m.laag === "nl_sbb" ? "NL-SBB" : "Platform"} · {m.ernst} · {veldVanPad(m.pad) || "begrip"}{m.melding ? `: ${m.melding}` : ""}
               </li>
             ))}
           </ul>
-          <p className="mt-1 text-[10px] text-faint">Een diagnose, geen blokkade: conform zegt iets over de vorm, niet over de juridische juistheid.</p>
+          <p className="mt-1 text-3xs text-faint">Een diagnose, geen blokkade: conform zegt iets over de vorm, niet over de juridische juistheid.</p>
         </Uitklap>
       )}
     </div>

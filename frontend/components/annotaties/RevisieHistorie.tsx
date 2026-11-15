@@ -45,7 +45,7 @@ export function RevisieHistorie({ lagen, labelVan, elementen, onKies }: {
         : lagen.map((laag) => {
           const lijst = geladen[laag.id] ?? [];
           return <div key={laag.id} className="mt-2">
-            {lagen.length > 1 && <h4 className="text-[11px] font-semibold text-muted">{labelVan(laag.bron_iri)}</h4>}
+            {lagen.length > 1 && <h4 className="text-2xs font-semibold text-muted">{labelVan(laag.bron_iri)}</h4>}
             {!lijst.length ? <Leeg klein>Geen historie vastgelegd.</Leeg> : (
               <ol className="mt-1 space-y-1.5">
                 {lijst.map((r) => <li key={r.revisie} className="text-xs">
@@ -61,7 +61,7 @@ export function RevisieHistorie({ lagen, labelVan, elementen, onKies }: {
                       {ids.map((id) => {
                         const el = perId.get(id)!;
                         return <button key={id} type="button" onClick={() => onKies(id)} title="Toon deze markering"
-                          className={`focus-ring inline-flex min-h-[24px] max-w-[14rem] items-center truncate rounded px-1.5 py-0.5 text-[11px] coarse:min-h-[44px] ${jasStyle(el.klasse)} hover:ring-1 hover:ring-lint`}>
+                          className={`focus-ring inline-flex min-h-[24px] max-w-[14rem] items-center truncate rounded px-1.5 py-0.5 text-2xs coarse:min-h-[44px] ${jasStyle(el.klasse)} hover:ring-1 hover:ring-lint`}>
                           {el.tekst}
                         </button>;
                       })}

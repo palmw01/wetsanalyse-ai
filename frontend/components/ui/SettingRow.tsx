@@ -33,7 +33,7 @@ export function SettingRow({
         <Label htmlFor={htmlFor} className="block text-sm font-medium text-ink">
           {label}
         </Label>
-        {omschrijving && <p className="mt-0.5 text-[0.8125rem] leading-snug text-muted">{omschrijving}</p>}
+        {omschrijving && <p className="mt-0.5 text-meta leading-snug text-muted">{omschrijving}</p>}
       </div>
       {children && (
         <div className={`flex min-w-0 max-w-full items-center gap-2 ${veld ? "flex-[1_1_16rem]" : "flex-wrap"}`}>{children}</div>
@@ -91,7 +91,7 @@ export function SettingGroup({
             {titel}
             {count !== undefined && <span className="font-mono text-xs font-normal text-faint">{count}</span>}
           </h3>
-          {omschrijving && <p className="mt-1 text-[0.8125rem] leading-snug text-muted">{omschrijving}</p>}
+          {omschrijving && <p className="mt-1 text-meta leading-snug text-muted">{omschrijving}</p>}
         </div>
         {acties && <div className="flex shrink-0 items-center gap-2">{acties}</div>}
       </div>

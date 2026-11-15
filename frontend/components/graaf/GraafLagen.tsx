@@ -46,7 +46,7 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen =
         <svg viewBox="0 0 24 12" className="h-3 w-6 shrink-0" aria-hidden="true">{l.voorbeeld}</svg>
         <span className="min-w-0">
           <span className={`block text-xs ${lagen[l.laag] ? "text-ink" : "text-faint"}`}>{l.naam}</span>
-          <span className="block text-[10px] text-faint">{l.uitleg}</span>
+          <span className="block text-3xs text-faint">{l.uitleg}</span>
         </span>
       </label>)}
       {dekking && <label className={rij}>
@@ -56,7 +56,7 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen =
         </svg>
         <span className="min-w-0">
           <span className={`block text-xs ${lagen.dekking ? "text-ink" : "text-faint"}`}>Dekking</span>
-          <span className="block text-[10px] text-faint">okeromtrek: zinsdelen zonder detectortreffer (geopende bepaling)</span>
+          <span className="block text-3xs text-faint">okeromtrek: zinsdelen zonder detectortreffer (geopende bepaling)</span>
         </span>
       </label>}
       {begrippen && <label className={rij}>
@@ -67,7 +67,7 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen =
         </svg>
         <span className="min-w-0">
           <span className={`block text-xs ${lagen.begrippen ? "text-ink" : "text-faint"}`}>Begrippen</span>
-          <span className="block text-[10px] text-faint">wettelijke begrippen en analyse-uitkomsten, met hun passages</span>
+          <span className="block text-3xs text-faint">wettelijke begrippen en analyse-uitkomsten, met hun passages</span>
         </span>
       </label>}
       {relaties && <label className={rij}>
@@ -78,7 +78,7 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen =
         </svg>
         <span className="min-w-0">
           <span className={`block text-xs ${lagen.relaties ? "text-ink" : "text-faint"}`}>Relaties</span>
-          <span className="block text-[10px] text-faint">op de hele kaart; uit: alleen bij je keuze of in de focus</span>
+          <span className="block text-3xs text-faint">op de hele kaart; uit: alleen bij je keuze of in de focus</span>
         </span>
       </label>}
       {lagen.annotaties && <div className="flex items-center gap-2 px-2 py-1.5">
@@ -89,7 +89,7 @@ export function GraafLagen({ lagen, onWissel, open, onOpen, dekking, begrippen =
         </select>
       </div>}
 
-      <div className="mt-1 space-y-1.5 border-t border-line px-2 pb-1 pt-2 text-[10px] leading-relaxed text-muted" data-testid="graaf-legenda">
+      <div className="mt-1 space-y-1.5 border-t border-line px-2 pb-1 pt-2 text-3xs leading-relaxed text-muted" data-testid="graaf-legenda">
         <ul className="flex flex-wrap gap-x-3 gap-y-1">
           {SOORTEN.map((s) => <li key={s.naam} className="flex items-center gap-1">
             <svg viewBox="0 0 10 10" className="h-2.5 w-2.5" aria-hidden="true"><circle cx="5" cy="5" r={s.r} fill={s.kleur} /></svg>{s.naam}

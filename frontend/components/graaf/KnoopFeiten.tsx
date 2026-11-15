@@ -34,9 +34,9 @@ export function KnoopFeiten({ info, opKaart, onKies }: {
   };
 
   return <section className="space-y-2" data-testid="graaf-feiten">
-    <p className="text-[10px] font-semibold uppercase tracking-wide text-faint">Uit de kennisgraaf</p>
+    <p className="text-3xs font-semibold uppercase tracking-wide text-faint">Uit de kennisgraaf</p>
     {info.groepen.map((g) => <div key={g.naam}>
-      <p className="text-[11px] font-semibold text-muted">{g.naam}</p>
+      <p className="text-2xs font-semibold text-muted">{g.naam}</p>
       <dl className="mt-0.5 space-y-1 pl-3">
         {g.feiten.map((f) => {
           const sleutel = `${g.naam}|${f.eigenschap}`;
@@ -46,7 +46,7 @@ export function KnoopFeiten({ info, opKaart, onKies }: {
           // de smalle zijkolom over zijn waarde heen.
           const zelfdeNaam = g.feiten.length === 1 && f.eigenschap === g.naam;
           return <div key={f.eigenschap} className="min-w-0 text-xs">
-            <dt className={zelfdeNaam ? "sr-only" : "text-[11px] text-faint [overflow-wrap:anywhere]"}>{f.eigenschap}{f.waarden.length > 1 ? ` (${f.waarden.length})` : ""}</dt>
+            <dt className={zelfdeNaam ? "sr-only" : "text-2xs text-faint [overflow-wrap:anywhere]"}>{f.eigenschap}{f.waarden.length > 1 ? ` (${f.waarden.length})` : ""}</dt>
             <dd className="min-w-0 text-ink [overflow-wrap:anywhere]">
               <span className="flex min-w-0 flex-col items-start">{toon.map(waarde)}</span>
               {f.waarden.length > ZICHTBAAR && !allesOpen[sleutel] && <button type="button" className={TEKSTKNOP}
@@ -57,7 +57,7 @@ export function KnoopFeiten({ info, opKaart, onKies }: {
       </dl>
     </div>)}
     {info.ruw.length > 0 && <Uitklap data-testid="graaf-ruw" samenvatting={<>Alle eigenschappen uit de graaf <span className="font-normal text-faint">({info.ruw.length})</span></>}>
-      <dl className="mt-1 space-y-1 pl-4 font-mono text-[10px] leading-relaxed">
+      <dl className="mt-1 space-y-1 pl-4 font-mono text-3xs leading-relaxed">
         {info.ruw.map((r, i) => <div key={i} className="min-w-0">
           <dt className="text-faint [overflow-wrap:anywhere]">{r.predicaat}</dt>
           <dd className="min-w-0 break-all text-ink">{r.iri && opKaart(r.iri)

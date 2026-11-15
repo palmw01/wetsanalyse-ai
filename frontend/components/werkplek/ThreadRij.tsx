@@ -133,7 +133,7 @@ export const ThreadRij = memo(function ThreadRij({
   ) : item.type === "user" ? (
     <div className="flex animate-rise flex-col items-end gap-1">
       {item.over && (
-        <span className="max-w-[85%] truncate rounded-full bg-surface px-2.5 py-0.5 text-[0.7rem] text-muted">
+        <span className="max-w-[85%] truncate rounded-full bg-surface px-2.5 py-0.5 text-2xs text-muted">
           bij {item.over}
         </span>
       )}
@@ -141,7 +141,7 @@ export const ThreadRij = memo(function ThreadRij({
         {item.tekst}
       </div>
       {item.nietVerstuurd && (
-        <span className="max-w-[85%] text-right text-[0.7rem] text-muted">
+        <span className="max-w-[85%] text-right text-2xs text-muted">
           Niet verstuurd: er liep al een vraag in dit gesprek. Je vraag staat weer in het invoerveld.
         </span>
       )}

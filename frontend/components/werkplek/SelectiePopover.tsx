@@ -124,12 +124,12 @@ export function SelectiePopover({
             className="w-full rounded-kaart border border-lint bg-lint/5 px-2 py-1.5 text-left text-xs transition hover:bg-lint/10 disabled:opacity-50"
           >
             <span className="font-medium text-lint">Fragment aanpassen</span>
-            <span className="mt-0.5 block text-[0.7rem] text-muted">
+            <span className="mt-0.5 block text-2xs text-muted">
               <span className={`rounded px-1 ${jasStyle(aanpasbaar.klasse)}`}>{aanpasbaar.klasse}</span>{" "}
               <span className="line-through">{aanpasbaar.tekst}</span> → “{doel.fragment}”
             </span>
           </button>
-          <p className="mt-1.5 text-[0.7rem] text-muted">of markeer als nieuw:</p>
+          <p className="mt-1.5 text-2xs text-muted">of markeer als nieuw:</p>
         </div>
       )}
 
