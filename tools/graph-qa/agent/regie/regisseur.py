@@ -380,7 +380,10 @@ async def _draai_kind(index: int, taak: Taak, afloop: Afloop, span: Any, *, regi
         afloop.gesprek_id = str(gesprek["id"])
         await wachtrij.put({"type": "regie_taak", "fase": "start", "regie_id": regie_id, "index": index,
                             "titel": taak.titel, "gesprek_id": afloop.gesprek_id, "profiel": PROFIEL_KIND})
-        verzoek = maak_verzoek(**kind_verzoek(taak, werkgebied_id=werkgebied_id, gesprek_id=afloop.gesprek_id))
+        # De delegatie gaat mee (F03), maar alleen in de vorm die het verzoek aanneemt: een id van een andere vorm mag
+        # het kind niet laten vallen (dan kost het alleen de markering bij doorvragen).
+        verzoek = maak_verzoek(**kind_verzoek(taak, werkgebied_id=werkgebied_id, gesprek_id=afloop.gesprek_id),
+                               **({"delegatie_id": regie_id} if re.fullmatch(r"[A-Za-z0-9]{1,64}", regie_id) else {}))
         kind_run = await start_kind(verzoek, user_id, run_id)
         afloop.run_id = kind_run.run_id
         if hasattr(span, "set_attribute"):

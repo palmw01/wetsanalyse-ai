@@ -170,6 +170,8 @@ def test_bevestigd_start_per_deelvraag_een_kindgesprek_en_bundelt():
     # Elk kind is een gewone run met de actie van een klik, in zijn eigen gesprek.
     assert sorted((v.actie, v.onderwerp.id, v.conversation_id) for v in kinderen.verzoeken) == [
         ("bronselectie", f"d{i}", f"kind-{i}") for i in (1, 2, 3)]
+    # Een id in een andere vorm dan de api uitdeelt ("regie-1"): de kinderen starten toch, zonder delegatie.
+    assert {v.delegatie_id for v in kinderen.verzoeken} == {""}
     assert kinderen.max_tegelijk <= 2
     assert [e["fase"] for e in events if e["type"] == "regie"] == ["start", "eind"]
     assert sum(1 for e in events if e["type"] == "regie_taak" and e["fase"] == "eind") == 3

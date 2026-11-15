@@ -415,10 +415,8 @@ def _subagent_vervolg(b: Bouw, writer) -> dict[str, Any]:
             "afwijzen": False, "annotaties_lezen": False}
 
 
-def _deelgesprek(b: Bouw, writer, state: State, dg: dict[str, Any]) -> dict[str, Any]:
-    """Een beurt van de jurist in het deelgesprek van een subagent: het profiel van het gesprek, en de delegatie op
-    `later_gewijzigd` (best effort: een storing kost alleen de markering)."""
-    profiel = dg["profiel"]
+def _markeer_doorvraag(b: Bouw, writer, state: State, dg: dict[str, Any]) -> None:
+    """De delegatie op `later_gewijzigd`, met dit deelgesprek (best effort: een storing kost alleen de markering)."""
     if dg.get("delegatie_id") and b.settings.legt_zelf_vast:
         from ..agents.uitvoering import draai
         from .context import met_api
@@ -431,6 +429,12 @@ def _deelgesprek(b: Bouw, writer, state: State, dg: dict[str, Any]) -> dict[str,
             draai(markeer, loop=b.loop, schrijf=writer)
         except Exception:  # noqa: BLE001 – de markering is een signaal, geen voorwaarde voor de beurt
             logger.warning("deelgesprek: later_gewijzigd niet gezet", extra={"categorie": "technisch"})
+
+
+def _deelgesprek(b: Bouw, writer, state: State, dg: dict[str, Any]) -> dict[str, Any]:
+    """Een beurt van de jurist in het deelgesprek van een subagent: het profiel van het gesprek, en de markering."""
+    profiel = dg["profiel"]
+    _markeer_doorvraag(b, writer, state, dg)
     _stap(writer, "Lex", f"werkt verder als {profiel}, het profiel van dit deelgesprek", route=profiel)
     logger.info("worker gekozen", extra={"categorie": "functioneel", "worker": profiel, "deelgesprek": True})
     return {"zelfstandige_vraag": "", "specialist": profiel, "plan": "", "worker_plan": [profiel], "worker_idx": 0,
@@ -514,6 +518,13 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         logger.info("worker gekozen", extra={"categorie": "functioneel", "worker": profiel, "subagent": True})
         return {"zelfstandige_vraag": "", "specialist": profiel, "plan": "", "worker_plan": [profiel], "worker_idx": 0,
                 "afwijzen": False, "annotaties_lezen": False}
+
+    # Doorvragen in het deelgesprek van een regiekind (A6 eind, F03): de delegatie hoort het, de beurt loopt verder de
+    # gewone weg (het profiel van het kind, `retrieval`, is niet kiesbaar). De eigen beurt van het kind draagt een actie.
+    dg = state.get("deelgesprek") or {}
+    if dg.get("delegatie_id") and dg.get("profiel") not in register_kiesbaar() and not state.get("actie") \
+            and not state.get("intake_actie"):
+        _markeer_doorvraag(b, writer, state, dg)
 
     # Een klik op een vraagkaartje, of een verzoek om een werkgebied samen te stellen: vóór alles en
     # zonder modelaanroep. De klik weet al waar hij bij hoort; de startzin heeft een vaste vorm.

@@ -874,6 +874,11 @@ def route_na_tools(b: Bouw, state: State) -> str:
     """Terug naar de agent, tenzij een sjabloon naast de graaftools het antwoord al vulde (`tools_node`)."""
     return "verify" if state.get("antwoord") else "agent"
 
+#: Een vraag om een samenvatting per stuk ("vat per uitspraak samen", "per Kamerstuk de kern").
+_PER_STUK_VRAAG = re.compile(r"\b(?:per|elke|iedere)\s+(?:uitspraak|arrest|vonnis|kamerstuk|stuk|publicatie|"
+                             r"bekendmaking|conclusie)\b", re.I)
+
+
 def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     # Getoetst tegen deze beurt én wat eerder in het gesprek letterlijk is opgehaald: een vervolgantwoord
@@ -896,6 +901,13 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
 
         if tegen := controleer(b.llm, b.settings, tekst, rapport_steun(state), controletrace(state)):
             report = replace(report, beweringen=[*report.beweringen, *tegen])
+    # Vraagt de jurist om een samenvatting per stuk, dan noemt het antwoord elk stuk dat het rapport samenvatte (A6 na de
+    # meting, F02: zes gelezen uitspraken, twee in het antwoord). Eén correctieronde, daarna `onbevestigd`.
+    if not state.get("opdracht") and state.get("rapport_steun") and _PER_STUK_VRAAG.search(_vraag(state)):
+        from ..gelezen import niet_genoemd
+
+        if weg := niet_genoemd(tekst, state.get("rapport_steun") or {}, controletrace(state)):
+            report = replace(report, beweringen=[*report.beweringen, *weg])
     # Wettekst uit een sjabloon staat zonder aanhalingstekens, dus de toets ziet "niets te controleren". Maar de code
     # toonde hem uit de tool-rijen, met de vindplaats erbij: de melding dat er geen vindplaats is, zou onwaar zijn.
     if report.niveau == "onbepaald" and not report.onbevestigd and (state.get("antwoord") or {}).get("doelen"):

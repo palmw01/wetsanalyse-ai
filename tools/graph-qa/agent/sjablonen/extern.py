@@ -265,14 +265,20 @@ def _reeksen(nummers: Any) -> str:
     return ", ".join(uit)
 
 
-#: Hoeveel alinea's de code hoogstens kiest bij een stuk dat het rapport samenvat zonder een passage met inhoud.
-MAX_GEKOZEN = 2
+#: Hoeveel alinea's de code hoogstens kiest bij een stuk dat een samenvatting duidt zonder een passage die haar draagt. Per
+#: punt van de samenvatting één (A6 na de meting, S01: HR:2023:1371 in zeven punten, en twee alinea's op de som van alle
+#: woorden droegen er geen; de toets meldde "die de passages niet dragen").
+MAX_GEKOZEN = 6
+#: Een rechtsoverweging draagt een uitleg eerder dan het procesverloop of de feiten (zoals `_rang`).
+GEWICHT_RO = 1.5
+#: Hoeveel nog ongedekte woorden van een punt een volgende alinea minstens moet dragen om erbij te komen.
+MIN_WINST = 2
 
 
 def samenvatting(tekst: str, trace: Trace) -> dict[str, set[str]]:
-    """Per gelezen stuk dat het rapport samenvat (een zin met meer dan `MAX_EIGEN_WOORDEN` woorden die het zoekresultaat
-    niet al noemt) de stammen van alles wat het erover zegt, ook in de kortere zinnen. Daarmee kiest de code de passages
-    van een stuk."""
+    """Per gelezen stuk dat de tekst samenvat (een zin met meer dan `MAX_EIGEN_WOORDEN` woorden die het zoekresultaat
+    niet al noemt) de stammen van alles wat het erover zegt, ook in de kortere zinnen. Daarmee kiest de code bij het
+    afkappen welke passages blijven."""
     from ..gelezen import MAX_EIGEN_WOORDEN, _FUNCTIEWOORDEN, _WOORD, _context, _rijwoorden, _stammen, per_stuk
 
     paren = [(str(x[0]), str(x[1])) for x in trace]
@@ -291,43 +297,122 @@ def samenvatting(tekst: str, trace: Trace) -> dict[str, set[str]]:
     return {i: s for i, s in per_id.items() if i in samengevat}
 
 
-def aanvulling(tekst: str, items: Any, trace: Trace) -> tuple[list[dict[str, Any]], list[str]]:
-    """De aanwijzingen die de code toevoegt aan een rapport: bij elk gelezen stuk dat de bevindingen samenvatten zonder een
-    alinea met inhoud in 'extern', de alinea's van dat stuk die het meest delen met wat erover gezegd wordt (hoogstens
-    `MAX_GEKOZEN`, geen kopregel). Zo draagt elke samenvatting een passage waartegen de centrale agent haar toetst, zonder
-    extra ronde (meting bundel 122, D01: vier juiste samenvattingen zonder passage, en de correctie haalde ze weg). De
-    passages zijn letterlijk uit het stuk; wat ze dragen toetst `verify`, en de controle per stuk leest ze na.
-    (de aanwijzingen, een regel voor 'Niet als citaat getoond' per stuk)."""
-    from ..gelezen import MIN_STEUN, _WOORD, _stammen
+def punten(tekst: str, trace: Trace) -> dict[str, list[list[str]]]:
+    """Per gelezen stuk naast de wet de punten die de tekst erover maakt: per zin of lijstregel met meer dan
+    `MAX_EIGEN_WOORDEN` eigen woorden (niet uit het zoekresultaat) die woorden, zoals `gelezen.zonder_steun` ze toetst."""
+    from ..gelezen import MAX_EIGEN_WOORDEN, _FUNCTIEWOORDEN, _WOORD, _context, _rijwoorden, per_stuk
 
-    lijst = [i for i in items if isinstance(i, dict)] if isinstance(items, list) else []
-    # Per stuk de tekst met inhoud die het model al aanwees (geen kopregel).
-    aangewezen: dict[str, str] = {}
-    for item in lijst:
-        vp, c = externe_vindplaats(str(item.get("id") or "")), van_id(str(item.get("id") or ""))
-        van, tot = item.get("van_nr"), item.get("tot_nr")
-        if vp is None or c is None or not isinstance(van, int) or not isinstance(tot, int):
+    paren = [(str(x[0]), str(x[1])) for x in trace]
+    gelezen, labels = _context(paren)
+    uit: dict[str, list[list[str]]] = {}
+    for segment, ids in per_stuk(tekst or "", gelezen, labels):
+        for ident in ids:
+            if ident not in gelezen or van_id(ident) is None:
+                continue
+            bekend = _rijwoorden(paren, ident)
+            eigen = [w for w in _WOORD.findall(segment.casefold()) if w not in bekend and w not in _FUNCTIEWOORDEN]
+            if len(eigen) > MAX_EIGEN_WOORDEN:
+                uit.setdefault(ident, []).append(eigen)
+    return uit
+
+
+def _gedekt(eigen: list[str], stammen: set[str]) -> bool:
+    from ..gelezen import MIN_STEUN, _STAM
+
+    return sum(w[:_STAM] in stammen for w in eigen) >= MIN_STEUN * len(eigen)
+
+
+def _kandidaten(rijen: dict[int, dict[str, Any]]) -> dict[int, tuple[set[str], float]]:
+    """De alinea's met inhoud (geen kopregel, geen formule), met hun stammen en hun gewicht."""
+    from ..gelezen import _WOORD, _stammen
+
+    return {n: (_stammen(_WOORD.findall(str(r.get("tekst", "")).casefold())),
+                GEWICHT_RO if str(r.get("plek") or "").strip().lower().startswith("r.o.") else 1.0)
+            for n, r in rijen.items()
+            if not is_kopregel(r.get("tekst", ""), str(r.get("kop") or ""))
+            and not is_formule(r.get("tekst", ""), str(r.get("kop") or ""))}
+
+
+def dragende(punten_: list[list[str]], rijen: dict[int, dict[str, Any]], al: set[int] = frozenset(),
+             maximum: int = MAX_GEKOZEN) -> list[int]:
+    """De alinea's die de punten dragen: per punt dat de alinea's in `al` (en de al gekozen) niet dragen, telkens de alinea
+    die de meeste nog ongedekte woorden van dat punt draagt (een rechtsoverweging zwaarder), zolang ze er ten minste
+    `MIN_WINST` bij draagt. Hoogstens `maximum`; een punt zonder zo'n alinea blijft open."""
+    from ..gelezen import _STAM
+
+    kand = _kandidaten(rijen)
+    stammen: set[str] = set().union(*(kand[n][0] for n in al if n in kand)) if al else set()
+    gekozen: list[int] = []
+    for eigen in punten_:
+        if _gedekt(eigen, stammen):
             continue
-        _s, rijen, _e, _t = _gelezen(trace, c, vp.id)
-        aangewezen[vp.id] = aangewezen.get(vp.id, "") + " " + " ".join(
-            rijen[n].get("tekst", "") for n in range(van, tot + 1)
-            if n in rijen and not is_kopregel(rijen[n].get("tekst", ""), str(rijen[n].get("kop") or "")))
-    per_id = samenvatting(tekst, trace)
+        while len(gekozen) < maximum:
+            open_ = {w[:_STAM] for w in eigen} - stammen
+            score = sorted(((len(open_ & st) * gewicht, len(open_ & st), -n, n) for n, (st, gewicht) in kand.items()
+                            if n not in gekozen and n not in al), reverse=True)
+            if not score or score[0][1] < MIN_WINST:
+                break
+            gekozen.append(score[0][3])
+            stammen |= kand[score[0][3]][0]
+    return sorted(gekozen)
+
+
+def _aangewezen_nrs(lijst: list[dict[str, Any]], trace: Trace) -> dict[str, set[int]]:
+    uit: dict[str, set[int]] = {}
+    for item in lijst:
+        vp = externe_vindplaats(str(item.get("id") or ""))
+        van, tot = item.get("van_nr"), item.get("tot_nr")
+        if vp is None or van_id(vp.id) is None or not isinstance(van, int) or not isinstance(tot, int):
+            continue
+        uit.setdefault(vp.id, set()).update(range(van, tot + 1))
+    return uit
+
+
+def aanvulling(tekst: str, items: Any, trace: Trace) -> tuple[list[dict[str, Any]], list[str]]:
+    """De aanwijzingen die de code toevoegt aan een rapport: bij elk gelezen stuk dat de bevindingen samenvatten, de
+    alinea's die de punten dragen die het model niet met een passage onderbouwde (`dragende`). Zo draagt elke samenvatting
+    een passage waartegen de centrale agent haar toetst, zonder extra ronde (meting bundel 122, D01). De passages zijn
+    letterlijk uit het stuk; wat ze dragen toetst `verify`, en de controle per stuk leest ze na.
+    (de aanwijzingen, een regel voor 'Niet als citaat getoond' per stuk)."""
+    lijst = [i for i in items if isinstance(i, dict)] if isinstance(items, list) else []
+    aangewezen = _aangewezen_nrs(lijst, trace)
     extra, regels = [], []
-    for ident, stammen in per_id.items():
-        al = _stammen(_WOORD.findall((aangewezen.get(ident) or "").casefold()))
-        if al and len(stammen & al) >= MIN_STEUN * len(stammen):
-            continue  # wat het model aanwees, draagt de samenvatting al
+    for ident, ps in punten(tekst, trace).items():
         stuk, rijen, _e, _t = _gelezen(trace, van_id(ident), ident)
-        score = sorted(((len(_stammen(_WOORD.findall(r.get("tekst", "").casefold())) & stammen), n)
-                        for n, r in rijen.items() if not is_kopregel(r.get("tekst", ""), str(r.get("kop") or ""))),
-                       reverse=True)
-        gekozen = sorted(n for k, n in score[:MAX_GEKOZEN] if k > 0)
-        if gekozen:
+        al = {n for n in aangewezen.get(ident, set()) if n in rijen}
+        if gekozen := dragende(ps, rijen, al):
             extra += [{"id": ident, "van_nr": n, "tot_nr": n} for n in gekozen]
             regels.append(f"{str(stuk.get('label') or ident)}: de aangewezen passages dragen de samenvatting niet; de "
                           f"code koos er alinea {_reeksen(gekozen)} bij")
     return extra, regels
+
+
+def herkies(tekst: str, items: Any, trace: Trace) -> list[dict[str, Any]]:
+    """De aanwijzingen van een antwoord (geen rapport) met per stuk de passages die de uitleg dragen (A6 na de meting:
+    bij S01 en F02 stonden het procesverloop en de feiten onder de samenvatting, r.o. 2.1 en 2.2). Een aangewezen alinea
+    die geen punt van de uitleg draagt, valt weg als de code er een dragende voor in de plaats vindt; draagt het
+    aangewezene alles, dan blijft het zoals het was. Een stuk dat de uitleg niet samenvat, blijft ongemoeid."""
+    from ..gelezen import _STAM
+
+    lijst = [i for i in items if isinstance(i, dict)] if isinstance(items, list) else []
+    aangewezen = _aangewezen_nrs(lijst, trace)
+    nieuw: dict[str, list[int]] = {}
+    for ident, ps in punten(tekst, trace).items():
+        if ident not in aangewezen:
+            continue
+        _s, rijen, _e, _t = _gelezen(trace, van_id(ident), ident)
+        kand = _kandidaten(rijen)
+        draagt = {n for n in aangewezen[ident] if n in kand
+                  and any(sum(w[:_STAM] in kand[n][0] for w in eigen) >= 2 for eigen in ps)}
+        gekozen = dragende(ps, rijen, draagt)
+        if not gekozen and draagt == {n for n in aangewezen[ident] if n in rijen}:
+            continue
+        if gekozen or draagt:
+            nieuw[ident] = sorted(draagt | set(gekozen))
+    if not nieuw:
+        return lijst
+    blijft = [i for i in lijst if (vp := externe_vindplaats(str(i.get("id") or ""))) is None or vp.id not in nieuw]
+    return blijft + [{"id": ident, "van_nr": n, "tot_nr": n} for ident, nrs in nieuw.items() for n in nrs]
 
 
 def blokken(items: Any, trace: Trace, *, overgeslagen: list[str] | None = None,

@@ -194,6 +194,24 @@ def _context(items: list[tuple[str, str]]) -> tuple[set[str], dict[str, str]]:
     return {i for i, _ in gelezen}, {**dict(gevonden), **dict(gelezen)}
 
 
+def niet_genoemd(tekst: str, steun: dict[str, str], trace: Iterable[Any]) -> list[str]:
+    """Na een rapport dat per stuk samenvat: de stukken waaruit het rapport passages citeert en die het antwoord niet noemt,
+    bij id, kort id ("HR:2023:1371") of label (A6 na de meting, F02: het kind las zes uitspraken, het antwoord noemde er
+    twee). Alleen als de vraag om een samenvatting per stuk vraagt; dat beslist de aanroeper."""
+    items = [(str(x[0]), str(x[1])) for x in trace]
+    _gelezen, labels = _context(items)
+    laag = (tekst or "").casefold()
+    uit = []
+    for ident in steun or {}:
+        if not (steun.get(ident) or "").strip():
+            continue
+        vormen = {ident, ident.split(":", 2)[-1] if ident.upper().startswith("ECLI:") else ident, labels.get(ident, "")}
+        if not any(v and v.casefold() in laag for v in vormen):
+            uit.append(f"{labels.get(ident) or ident} staat in het rapport met passages, maar het antwoord noemt het niet: "
+                       "geef per gelezen stuk de kern uit het rapport")
+    return uit
+
+
 def ongelezen_samengevat(tekst: str, trace: Iterable[Any]) -> list[str]:
     """De stukken die `tekst` inhoudelijk samenvat terwijl hun tekst niet gelezen is (meting bundel 116, D01: twee
     uitspraken samengevat die niemand las, en het oordeel *gegrond* omdat de blokcitaten letterlijk waren). Een stuk is pas
