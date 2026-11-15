@@ -188,6 +188,13 @@ of voorstel), `sectie` (de kop van een deel van een lijst: *Al besloten (3)*) en
 op touch). Altijd met de chevron die meedraait op de dichtstbijzijnde uitklap, nooit het driehoekje van de browser. Geen
 eigen `<details>` of `<summary>`.
 
+**De kop van een venster** (generieke componenten, 15 nov 2026; `app/dialoog.test.ts`): een venster geeft zijn `kop` aan
+`Dialog` (`titel`, eventueel `soort` erboven, `uitleg` eronder en `sluitLabel`), en `Dialog` tekent `DialoogKop`: dezelfde
+maat als een paneel, het kruisje rechtsboven (`SluitKnop`), ruimte voor de notch. Elk venster kan dus met het kruisje dicht,
+ook op een telefoon. Geen eigen `<h2>` in een venster en geen eigen kruisje: het kruisje staat alleen in `SluitKnop`
+(ook in de rondleiding en de zijbalk); alleen een tab (`Tabs`) heeft zijn eigen, kleinere. Een paneel (`PaneelKop`) en de
+rondleiding geven geen `kop` mee.
+
 **De graaf van een bron** (ontdubbelen PR 1): één `useBronGraaf` + `BronGraaf` (`components/wettekst/BronGraaf.tsx`) voor
 het venster naast het gesprek, de bronpagina en de annotatie, met één keuze Tekst | Graaf (`WeergaveBalk`). Alleen de tab
 Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` nog zelf aan.

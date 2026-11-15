@@ -1,5 +1,6 @@
 "use client";
 
+import { SluitKnop } from "@/components/ui/PaneelKop";
 import { Opstellen } from "@/components/ui/Icoon";
 import { LexLogo } from "@/components/ui/LexMerk";
 import Link from "next/link";
@@ -112,17 +113,7 @@ export function GesprekSidebar({
         <div className="flex items-center">
           <BerichtenPanel positie="inset-x-3 top-full mt-1" containerClassName="static" />
           {onSluit && (
-            <button
-              type="button"
-              onClick={onSluit}
-              aria-label="Menu sluiten"
-              className="focus-ring rounded-knop p-2 text-muted transition-colors hover:bg-surface hover:text-ink lg:hidden"
-            >
-              {/* Hetzelfde kruisje als de dialogen; een tekst-✕ weegt anders en lijnt anders uit. */}
-              <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-                <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
-              </svg>
-            </button>
+            <SluitKnop onSluit={onSluit} label="Menu sluiten" className="lg:hidden" />
           )}
         </div>
       </div>

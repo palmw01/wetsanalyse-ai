@@ -8,9 +8,14 @@ import { NaarPagina } from "@/components/ui/Icoon";
 import { MeerMenu } from "@/components/ui/MeerMenu";
 
 /** Het kruisje rechtsboven in elk paneel en venster: één icoon, één lijndikte, één plek. */
-export function SluitKnop({ onSluit, className = "" }: { onSluit: () => void; className?: string }) {
+export function SluitKnop({ onSluit, label = "Sluiten", className = "" }: {
+  onSluit: () => void;
+  /** De voorleesnaam, als "Sluiten" niet genoeg zegt ("Instellingen sluiten"). */
+  label?: string;
+  className?: string;
+}) {
   return (
-    <button type="button" onClick={onSluit} aria-label="Sluiten"
+    <button type="button" onClick={onSluit} aria-label={label}
       // `-mr-1` haalt de optische ruimte van het icoon weg, zodat het kruisje uitlijnt met de kantlijn.
       className={`focus-ring -mr-1 inline-flex shrink-0 items-center justify-center rounded-knop p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink coarse:h-11 coarse:w-11 ${className}`}>
       <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
