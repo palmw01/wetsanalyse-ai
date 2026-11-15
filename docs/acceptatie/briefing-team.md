@@ -13,6 +13,51 @@ resultaat en de werkplek. De stappen, wie trekt en waar jullie moeten overleggen
 Lex dekt activiteit 1, activiteit 2 en het begin van activiteit 3. De methode vraagt meer: valideren en
 uitvoeringsbeleid signaleren doe je zelf in je rapport. Dat de werkplek daar niets voor heeft, is een bevinding.
 
+## Alleen de methode wetsanalyse
+
+Jullie werken uitsluitend met de methode **wetsanalyse**: het werkgebied, markeren en classificeren in de dertien
+JAS-klassen, de samenhang tussen markeringen en de begrippen volgens NL-SBB. De methode **wetsuitvoering** (het
+Juridisch Referentiemodel, JRM: juridische scenario's, aktes, de juridische toestand, rechtsgevolgen en juridisch
+relevante feiten) gebruiken jullie niet. Lex houdt de twee strikt gescheiden (besluit 13 nov 2026,
+`docs/architectuur/plan-methodes-scheiden.md`), en deze acceptatietest toetst alleen wetsanalyse. Laad dus de skill
+`wetsuitvoering` niet, vraag Lex niet om een scenario of akte, en beoordeel de werkplek niet op wat het JRM zou vragen.
+Een praktijkvoorbeeld toets je als toetsgeval tegen de bronnen en de begrippen, niet als JRM-scenario.
+
+## Lex op 15 nov 2026
+
+Wat er sinds de vorige run veranderde, en wat je in de werkplek tegenkomt:
+
+- **De centrale agent.** Een vraag die geen vaste route pakt, beantwoordt één centrale agent (ADR-016); de supervisor
+  en de keuze tussen specialisten zijn weg. Voor groter werk stelt hij **subagents** op met een taakprofiel, onder
+  andere `rechtspraak_lezen` (uitspraken bij een bepaling, per uitspraak de kern met een passage),
+  `wetsgeschiedenis_lezen` (memorie van toelichting, nota's, amendementen, de bekendmaking) en `bepalingen_duiden`
+  (een reeks bepalingen naast elkaar). Elke subagent levert een rapport; wat hij niet zelf kan beslissen komt als
+  **vraag naar boven**, gebundeld aan het eind van de beurt met een keuzekaart per vraag (opgeleverd, wacht op jou,
+  mislukt of niet aan bod). Beantwoord zo'n kaart met haar actie. Een kind dat op zijn rondegrens stopt, stelt nog
+  geen vraag: noteer het als bevinding als stukken ongelezen blijven.
+- **Bronnen naast de wet.** Lex leest naast de graaf ook connectors (onder meer rechtspraak, kamerstukken,
+  bekendmakingen), aan of uit per gesprek via het bronnenmenu of `/bron`. Een antwoord daaruit is een citaat van die
+  bron, geen wettekst: scheid ze in je oordeel.
+- **Het denkproces staat bovenaan** elke beurt, ingeklapt, ook bij een annotatie. Daar lees je welke route, agent of
+  subagent werkte en welke bron (graaf, connector) iets opleverde. Er is geen apart toolblok meer.
+- **Werkplek-commando's.** Een `/` vooraan in het invoerveld opent de commando's: dezelfde vaste handelingen als de
+  suggesties (zonder modelstap voor de route), zoals `/deelvragen`, `/bronnen`, `/bepaling`, `/annoteer`,
+  `/begrippen`, `/meedenken`, `/dekking`, en bij een begrip `/uitwerken`, `/brondefinitie`, `/uitleg`, `/voorbeelden`,
+  `/relaties`. Zonder beurt: `/nieuw`, `/bron`, `/context` en `/help`. Via de MCP stuur je dezelfde `actie` mee.
+- **De bronselectie per deelvraag** (`docs/architectuur/bronselectie-per-deelvraag.md`). Lex werkt de deelvragen één
+  voor één af: een compact kaartje per fase (de kernbepalingen, wat eraan hangt), het paneel waar je opneemt of
+  uitsluit, *Klaar*, afronden en *Hoe wil je verder?*. De stand per deelvraag (niet gestart, in behandeling, voorlopig
+  afgerond, beoordeeld) staat bij de api. Een bron is één selectie met een rol per deelvraag; uitsluiten geldt per
+  deelvraag.
+- **Begrippen volgens NL-SBB.** Een begripskaart met de term en de vier velden (definitie, uitleg op B1, toelichting,
+  voorbeeld), gekoppeld aan de
+  dragende passages, met revisies, relaties (kwalificatie, inclusie, uitsluiting, soort van, verwant), opvolgers,
+  generieke begrippen boven het werkgebied (ADR-006), conformiteit (diagnostisch) en de Turtle-export.
+- **Instellingen › Aanpassingen.** Wat Lex gebruikt staat in het instellingenvenster onder *Aanpassingen*: Methodes
+  (de skills), Agents (de agentprofielen, met het model), Connectors en Modellen. De pagina *Werkwijze* bestaat niet
+  meer; `/werkwijze` verwijst door. Kijk daar welk profiel en welke methode een agent gebruikt als je een antwoord
+  beoordeelt.
+
 ## Samenwerken
 
 - **Tegelijk, niet na elkaar.** Jullie werken vanaf stap 1 samen. Praat rechtstreeks met `SendMessage`, met het
@@ -39,8 +84,11 @@ uitvoeringsbeleid signaleren doe je zelf in je rapport. Dat de werkplek daar nie
 - **Gebruik de vaste weg.** Beantwoord een vraagkaart met de `intake_actie` die de kaart aanbiedt en een suggestie met
   haar `actie`, zoals een klik dat doet. Lees de events: vraagkaart, artefact, bevestiging, grounding.
 - **Bevestig bewust.** Lex annoteert pas na een bevestiging met het aantal dat je zag (`bevestigd`).
-- **Stel goede vragen.** Eén onderwerp per vraag, met `werkgebied_id` en de bepaling erbij. Lex antwoordt alleen uit
-  de graaf; die bevat wet- en regelgeving, geen jurisprudentie of kamerstukken.
+- **Stel goede vragen.** Eén onderwerp per vraag, met `werkgebied_id` en de bepaling erbij. De graaf bevat wet- en
+  regelgeving; jurisprudentie en kamerstukken komen alleen via een connector die aan staat, en het denkproces zegt
+  welke bron gebruikt is.
+- **Gebruik de commando's** waar een vaste handeling bestaat, in plaats van een vrije vraag: dat is goedkoper en
+  herhaalbaar. Een vrije vraag gaat naar de centrale agent.
 - **Lees het aandachtsniveau.** Groen is geen goedkeuring: steekproef ook bij groen, en lees geel volledig.
 
 ## Bewijs tegen de bron
@@ -95,5 +143,7 @@ Haal op wat de stap nodig heeft, niet alles vooraf. Laad de skill `wetsanalyse` 
 | de kwaliteit beoordelen en rapporteren | `references/kwaliteit.md` |
 | de methode zelf nazoeken | `docs/wetsanalyse/methode-onderzoek.md`; lokaal ook `wetsanalyse-boek.md`, `handleiding.pages.md`, `leidraad.pages.md` |
 | weten wat Lex kan | `tools/graph-qa/CLAUDE.md`, en `ACTIE_TAAK` in `tools/graph-qa/agent/models.py` voor de vaste acties |
+| een subagent of zijn profiel beoordelen | `.claude/lex-agents/<naam>.md`, `docs/architectuur/adr-016-centrale-agent-en-werkplaats.md` §A4 (vragen naar boven) |
+| de commando's nakijken | `frontend/CLAUDE.md` §*Commando's in het invoerveld*, `frontend/lib/vraagLex.ts` |
 | weten wat een scherm doet | `frontend/CLAUDE.md`; of een route een scherm heeft, zie je aan een aanroeper in `frontend/` |
 | de tools van de MCP nakijken | `tools/wetsanalyse-acceptatie-mcp/README.md` |

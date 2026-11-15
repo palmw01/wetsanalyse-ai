@@ -21,9 +21,33 @@ startactiviteiten: aanleiding, context en doel, de projecttypologie en de keuze 
 nodig heeft. De aanleiding bepaalt dus de aanpak: je doet niet altijd alles, en je legt uit waarom.
 
 Lex dekt activiteit 1, activiteit 2 en het begin van activiteit 3. Wat de methode vraagt maar de werkplek niet
-draagt, doe je zelf in je rapport voor zover dat kan: valideren met de praktijkvoorbeelden als scenario's, en
+draagt, doe je zelf in je rapport voor zover dat kan: valideren met de praktijkvoorbeelden als toetsgevallen, en
 signaleren waar de wet ruimte laat die uitvoeringsbeleid moet invullen. Dat de werkplek daar niets voor heeft, is
 een bevinding. Het hoort niet weg te vallen.
+
+## Alleen wetsanalyse, geen wetsuitvoering
+
+Je werkt uitsluitend met de methode **wetsanalyse** en het JAS: werkgebied, markeren en classificeren, samenhang en
+begrippen. De methode **wetsuitvoering** (het JRM: juridische scenario's, aktes, de juridische toestand,
+rechtsgevolgen, juridisch relevante feiten) gebruik je niet. Lex houdt de twee strikt gescheiden (besluit 13 nov 2026),
+en deze test gaat alleen over wetsanalyse. Laad de skill `wetsuitvoering` niet, vraag Lex niet om een scenario of
+akte, en reken het de werkplek niet aan dat hij geen JRM-werk doet. Begint Lex daar zelf over, dan is dat een
+bevinding.
+
+## Lex zoals hij nu werkt
+
+De briefing beschrijft de stand van 15 nov 2026 (*Lex op 15 nov 2026*). Wat jij er vooral van nodig hebt:
+
+- Een vrije vraag gaat naar de **centrale agent**, die voor groter werk subagents opstelt (`rechtspraak_lezen`,
+  `wetsgeschiedenis_lezen`, `bepalingen_duiden`). Lees hun rapporten in het **denkproces** bovenaan de beurt, en
+  beantwoord een **vraag naar boven** met de keuzekaart. Beoordeel of de centrale agent de rapporten getrouw
+  samenvat, en of een subagent stukken ongelezen liet.
+- Een vaste handeling start je met haar **commando** of `actie` (`/deelvragen`, `/bronnen`, `/annoteer`, `/dekking`),
+  niet met een vrije vraag: zo test je de vaste weg die een jurist ook neemt.
+- De **bronselectie** loopt per deelvraag en de stand staat bij de api. Neem op of sluit uit per deelvraag, met een
+  reden, en kijk of de rol (analyseren of context) klopt.
+- Welke methode en welk profiel een agent gebruikt, zie je in Instellingen › Aanpassingen (Methodes, Agents). Er is
+  geen pagina *Werkwijze* meer.
 
 ## Kennis naast de methode
 
@@ -34,8 +58,9 @@ Een goede analist kijkt verder dan de tekst van één bepaling. Gebruik wat bij 
 - **Wetstechniek:** de Aanwijzingen voor de regelgeving (`docs/wetsanalyse/bronnen/`), delegatie, de rangorde
   tussen wet, amvb, regeling en beleid, en overgangsrecht en terugwerkende kracht.
 - **Interpretatie:** grammaticaal, systematisch, wetshistorisch en doelgericht uitleggen. Benoem welke je gebruikte.
-- **Bronnen buiten de graaf:** kamerstukken, memories van toelichting en uitspraken, via officiële bronnen
-  (overheid.nl, rechtspraak.nl). Scheid altijd wetstekst, toelichting, beleid, rechtspraak en je eigen uitleg.
+- **Bronnen buiten de graaf:** kamerstukken, memories van toelichting en uitspraken. Lex leest ze via zijn
+  connectors (aan te zetten met `/bron`); toets wat hij citeert. Scheid altijd wetstekst, toelichting, beleid,
+  rechtspraak en je eigen uitleg.
 - **Begrippen en uitvoering:** NL-SBB, de gevolgen voor gegevens en regels (RegelSpraak hoort nog niet bij het
   platform), en wat een uitvoerder aan je analyse moet hebben.
 - **Bescherming en grondrechten waar ze raken:** de AVG, en de rechtspositie van een belastingschuldige of derde.
