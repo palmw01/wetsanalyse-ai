@@ -317,8 +317,8 @@ try {
   await page.getByRole("button", { name: "Kies een klasse" }).first().waitFor();
   assert.equal(await page.getByRole("button", { name: "Akkoord", exact: true }).first().isDisabled(), true);
   await page.reload();
-  // Na herladen: het spoor staat in "Zo is dit tot stand gekomen", in woorden, zonder toolnaam of tweede blok.
-  await page.getByRole("button", { name: "Zo is dit tot stand gekomen" }).first().click();
+  // Na herladen: het spoor staat in "Denkproces", in woorden, zonder toolnaam of tweede blok.
+  await page.getByRole("button", { name: "Denkproces" }).first().click();
   await page.getByText("Annotaties · 2 gevonden, er is meer dan dit", { exact: false }).first().waitFor();
   assert.equal(await page.getByText("search_annotaties", { exact: false }).count(), 0);
   assert.equal(await page.getByText("geraadpleegd", { exact: false }).count(), 0);

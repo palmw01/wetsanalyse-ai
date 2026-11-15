@@ -114,9 +114,9 @@ export const STAPPEN: Stap[] = [
     fase: "opdracht",
     titel: "Een annotatie duurt even",
     tekst:
-      "Onder “Zo is dit tot stand gekomen” volg je live elke stap: de bron ophalen, de taalanalyse, " +
+      "Onder “Denkproces” volg je live elke stap: de bron ophalen, de taalanalyse, " +
       "de detectie, het besluit op vaste regels, de keuze van het model en de review van de " +
-      "twijfelgevallen. Daarboven zegt Lex in een paar zinnen wat hij vond.",
+      "twijfelgevallen. Daaronder zegt Lex in een paar zinnen wat hij vond.",
     waarom:
       "De beurt draait op de server. Je kunt herladen, van gesprek wisselen of even weglopen zonder " +
       "iets te verliezen.",

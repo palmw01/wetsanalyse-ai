@@ -522,7 +522,7 @@ ronde (`beurtSamenvatting` in `lib/waarom.ts`; de meting komt live uit `instelli
 resultaat, bronnodes zonder zinsontleding en de totale duur. Het `annotatie`-item is een beurt van
 Lex: naam, zijn **samenvatting** (`tekst`, hoogstens vier zinnen, door graph-qa uit de data opgebouwd
 in `agent/nodes/annotatie_samenvatting.py` en als berichttekst bewaard), dan de chip. Het draagt ook
-een `denk`-veld: de tijdlijn staat ingeklapt onderaan als *"Zo is dit tot stand gekomen"*, wordt met
+een `denk`-veld: de tijdlijn staat ingeklapt bovenaan als *"Denkproces"*, op dezelfde plek en met hetzelfde label als bij een antwoord (besluit gebruiker 15 nov 2026), wordt met
 de beurt bewaard en bij hydratatie teruggehaald. Achteraf moet te zien zijn hoe een annotatie tot
 stand kwam.
 

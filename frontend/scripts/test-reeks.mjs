@@ -149,7 +149,7 @@ try {
 
   // Het spoor van een lid klapt uit.
   await page.getByRole("button", { name: /Lid 1/ }).first().click();
-  await page.getByText("Zo is dit tot stand gekomen", { exact: true }).first().click();
+  await page.getByText("Denkproces", { exact: true }).first().click();
   await page.getByText("Bron · art. 9 lid 1 (120 tekens)", { exact: false }).first().waitFor();
 
   // Open › opent de annotatie van dat lid.
