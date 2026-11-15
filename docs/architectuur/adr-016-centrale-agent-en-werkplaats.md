@@ -538,7 +538,9 @@ concept ──► proef (acceptatie) ──► voorgesteld (concept-PR) ──�
   snapshot met een hash (zoals de Skills-API), append-only, met de audit erbij.
 - **Proef.** Op acceptatie is een conceptversie aan te zetten in een gesprek (B3).
 - **Voorgesteld.** Een beheerder met 2FA promoveert een versie tot concept-PR met de hele map. Dit vervangt de
-  sectie-editor van C7; een sectie bewerken is een conceptversie met één gewijzigd bestand.
+  sectie-editor van C7; een sectie bewerken is een conceptversie met één gewijzigd bestand. *C7 zelf is vervallen
+  (15 nov 2026): de api-routes, de vlag `catalogusVoorstellen` en de GitHub App zijn uit de repo. Hoe een versie wél
+  naar de repo gaat, ligt open tot B4.*
 - **Actief.** Een versie is actief als de catalogus van de draaiende graph-qa dezelfde hash toont. Lex leidt die stand
   af en schrijft hem nooit zelf. Er is één waarheid: wat in het image zit.
 - **Bestaande skills** komen er vanzelf in: bewerken begint met een conceptversie uit de catalogus, met de hash van het
@@ -700,8 +702,8 @@ Bij het bouwen (B2, 13 nov 2026) vastgelegd:
 - **De versie uit het image is te lezen** via een eigen leesroute, achter dezelfde vlag en rechten als de rest van de
   werkplaats (B2-4). Wie heeft verwerkt wat er draait, slaat op met de hash van die versie als nieuwe basis; de api
   aanvaardt alleen de hash die op dat moment in het image zit. Daarna loopt het concept niet meer achter.
-- **De sectie-editor van C7 is in B2-4 uit de frontend gehaald** (de knop en de BFF-routes). De api-route en de vlag
-  `catalogusVoorstellen` blijven tot de promotie van B4 ze vervangt.
+- **De sectie-editor van C7 is in B2-4 uit de frontend gehaald** (de knop en de BFF-routes). De api-route, de vlag
+  `catalogusVoorstellen` en de GitHub App zijn op 15 nov 2026 ook weg (C7 vervallen, ADR-014).
 - **Met de vlag `werkplaats` uit verandert er niets aan wat de jurist ziet.**
 - **De knip**: B2-1 de ingangen en het lezen van een concept, B2-2 bewerken met de controle live, B2-3 versies en
   vergelijken, B2-4 het achterlopen en het weghalen van C7.
@@ -746,7 +748,7 @@ werkplaats) start ernaast. Ze komen samen bij het profiel.
 | **B1-2** | vullen uit het image: de generator bundelt per skill en per profiel de bronbestanden en hun hash, graph-qa geeft ze door, een concept begint met die hash als basis, de stand *actief* wordt afgeleid, en de toets over de skills heen | graph-qa, bronmodel, api of BFF | B1-1 |
 | **B2** | de editor op *Werkwijze van Lex*, voor skills; vervangt de sectie-editor van C7 | frontend | B1 |
 | **B3** | de proef: de groep *Proef* in *Bronnen en tools*, de versie op de beurt, ophalen en valideren in graph-qa, label en provenance | graph-qa, api, frontend | B1; A2 voor een skill op beschrijving |
-| **B4** | evals in de proef en promotie tot concept-PR met de hele map, de licentietoets en *Dit wordt openbaar*; de stand *actief* uit de catalogushash | api, frontend | B3; de GitHub App op acceptatie |
+| **B4** | evals in de proef en promotie tot concept-PR met de hele map, de licentietoets en *Dit wordt openbaar*; de stand *actief* uit de catalogushash | api, frontend | B3; een weg naar de repo (de GitHub App van C7 is vervallen, 15 nov 2026) |
 | **B5** | profielen in de werkplaats: editor, proef, promotie, `/agent <naam>` | api, frontend, graph-qa | B4, A3 |
 | **B6** | de MCP-contextconnector als soort in de werkplaats, te noemen in een profiel (ADR-013 fase 2a) | alle | besluit ADR-007 |
 

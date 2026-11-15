@@ -7,6 +7,11 @@ Hangt samen met [ADR-005](adr-005-vraag-lex-en-agents.md), [ADR-008](adr-008-ant
 
 Werkdocument: [catalogus.md](catalogus.md).
 
+**Vervallen (15 nov 2026): C7, een wijziging voorstellen als concept-PR.** De gebruiker gebruikt die weg niet en wilde hem
+helemaal weg. De api-routes, de vlag `catalogusVoorstellen`, de GitHub App en de poort-guard zijn uit de repo; de App en
+zijn secrets zijn nooit aangemaakt. Een wijziging aan de catalogus gaat via een PR in de repo, en zelf iets maken via de
+werkplaats (ADR-016 deel B). De tekst hieronder over C7 blijft staan als verslag van het besluit van 12 nov 2026.
+
 ## Context
 
 De methode, de agents en de deterministische ketens van Lex staan verspreid over Python, YAML en de skill. Alleen wie
@@ -113,7 +118,7 @@ Er komt geen gegenereerd catalogusbestand. Dan kan wat je ziet niet afwijken van
 
   Het denkproces en het scherm "Waarom?" linken naar het onderdeel dat de stap zette. Dit is geen
   ontwikkelhulpmiddel: het laat de jurist zien hoe een voorstel ontstond. Drift-status en testuitslagen horen er niet op.
-- **Een wijziging voorstellen** (besluit van de gebruiker, 12 nov 2026):
+- **Een wijziging voorstellen** (besluit van de gebruiker, 12 nov 2026; **vervallen 15 nov 2026**, zie boven):
   - Alleen een beheerder kan het, met 2FA, en alleen op acceptatie. De vlag `catalogusVoorstellen` staat standaard uit en heeft een poort-guard.
   - De beheerder bewerkt een bewerkbare sectie.
   - De api valideert met **dezelfde validator als de generator**.
@@ -246,8 +251,8 @@ en regels voor de twee ketens uit een andere methode worden geweigerd.
 
 - Een nieuw onderdeel zonder beschrijving maakt de poort rood.
 - De takenlijst in `SUPERVISOR_SYSTEM` en `_QA_SPECIALISTS` worden afgeleid in plaats van met de hand bijgehouden.
-- Acceptatie krijgt een **GitHub App** met alleen *Contents* en *Pull requests* (schrijven) op deze ene repo, en per voorstel
+- *(Vervallen 15 nov 2026, met C7.)* Acceptatie krijgt een **GitHub App** met alleen *Contents* en *Pull requests* (schrijven) op deze ene repo, en per voorstel
   een installatietoken van een uur. Geen persoonlijk token: dat valt als admin in elke bypass. Mergen houdt een ruleset op
-  `master` tegen (een review vereist, geen bypass voor de App). Stappenplan: `deploy/azure/README.md`.
+  `master` tegen (een review vereist, geen bypass voor de App). Het stappenplan is met C7 uit `deploy/azure/README.md`.
 - De skill `wetsuitvoering` (JRM 2, W3C) staat er sinds 12 nov 2026, eerst zonder rolkoppeling: hij verandert Lex pas
   na een meting. `references/jrm-verrijking.md` in wetsanalyse blijft de korte vorm en verwijst naar die skill.

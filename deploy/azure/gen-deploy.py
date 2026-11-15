@@ -101,11 +101,6 @@ def main() -> None:
                         "main.bicep:centraleAgent). Weglaten laat de bicep-default (uit).")
     p.add_argument("--werkplaats", action="store_true", default=None,
                    help="De werkplaats van de api aanzetten (ADR-016 deel B; alleen acceptatie; zie main.bicep:werkplaats).")
-    p.add_argument("--catalogus-voorstellen", action="store_true", default=None,
-                   help="Voorstellen voor de methode vanuit de werkplek als concept-PR (alleen acceptatie; zie "
-                        "main.bicep:catalogusVoorstellen). Zonder de GitHub App (WA_GITHUB_APP_ID, "
-                        "WA_GITHUB_APP_INSTALLATION_ID, WA_GITHUB_APP_KEY) blijft het uit.")
-    p.add_argument("--github-repo", default=None, help="eigenaar/naam van de repo voor die concept-PR's.")
     p.add_argument("--graphdb-proxy-extern", action="store_true", default=None,
                    help="De externe GraphDB-MCP-proxy uitrollen (alleen acceptatie; zie "
                         "main.bicep:graphdbProxyExtern). Vereist WA_GRAPHDB_PROXY_TOKEN.")
@@ -179,11 +174,6 @@ def main() -> None:
             "dbAdminPassword": {"value": db_pass},
             "graphdbToken": {"value": tok_graphdb},
             "graphdbProxyToken": {"value": tok_graphdb_proxy},
-            # De GitHub App voor de concept-PR's (ADR-014 C7). Net als het proxytoken niet gegenereerd: een mens maakt
-            # de App aan, met alleen contents en pull requests op deze repo. Leeg = geen voorstellen (de bicep zet ze uit).
-            "githubAppId": {"value": os.environ.get("WA_GITHUB_APP_ID", "")},
-            "githubAppInstallationId": {"value": os.environ.get("WA_GITHUB_APP_INSTALLATION_ID", "")},
-            "githubAppKey": {"value": os.environ.get("WA_GITHUB_APP_KEY", "")},
             "qaApiToken": {"value": tok_qa},
             "graphQaApiToken": {"value": tok_qa_api},
             "graphdbLicenseBase64": {"value": licentie_b64},
@@ -203,9 +193,7 @@ def main() -> None:
         (args.llm_model_licht, "llmModelLicht"),
         (args.skill_regels, "skillRegels"),
         (args.centrale_agent, "centraleAgent"),
-        (args.catalogus_voorstellen, "catalogusVoorstellen"),
         (args.werkplaats, "werkplaats"),
-        (args.github_repo, "githubRepo"),
         (args.graphdb_proxy_extern, "graphdbProxyExtern"),
         (args.api_image, "apiImage"),
         (args.frontend_image, "frontendImage"),

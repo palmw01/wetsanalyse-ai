@@ -64,8 +64,6 @@ try {
   for (const breedte of SHOTS ? [1280, 390] : [1280]) {
     const page = await browser.newPage({ viewport: { width: breedte, height: 900 } });
     const errors = [];
-    // Elke aanroep van een voorstelroute van ADR-014 C7: de werkplek hoort die niet meer te doen.
-    const voorstellen = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await page.context().addCookies(await sessieCookies(base));
     await page.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true })));
@@ -79,7 +77,6 @@ try {
         return d?.id ? route.fulfill({ json: d }) : route.fulfill({ status: 404, json: { detail: "Onbekend onderdeel" } });
       }
       if (p === "/api/gesprekken") return route.fulfill({ json: [] });
-      if (p.startsWith("/api/admin/catalogus/")) voorstellen.push(p);
       return route.fulfill({ json: {} });
     });
     const shot = async (naam) => SHOTS && page.screenshot({ path: `${SHOTS}/werkwijze-${naam}-${breedte}.png`, fullPage: true });
@@ -162,14 +159,10 @@ try {
     await shot("regelset");
 
     if (!fixture) {
-      // Een methoderol: de secties om te lezen. Aanpassen gaat via een concept van de skill (ADR-016 §B7); de
-      // sectie-editor van ADR-014 C7 is weg, en er wordt niets meer naar de voorstelroutes gevraagd.
+      // Een methoderol: de secties om te lezen. Aanpassen gaat via een concept van de skill (ADR-016 §B7).
       await page.goto(`${base}/werkwijze/rol/duiding`);
       await page.locator('[data-sectie="duiding"]').waitFor();
       assert.match(await page.locator('[data-sectie="duiding"]').innerText(), /Oude methodetekst/);
-      await page.waitForLoadState("networkidle");
-      assert.equal(await page.getByRole("button", { name: "Wijziging voorstellen" }).count(), 0);
-      assert.deepEqual(voorstellen, []);
       await shot("rol");
     }
 

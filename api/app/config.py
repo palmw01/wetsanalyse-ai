@@ -46,18 +46,9 @@ class Settings:
         # Inloggen met een API-token per account (de acceptatie-MCP). Default uit: alleen de
         # acceptatiestraat zet hem aan, en een guard in `poort` bewaakt dat.
         self.api_token_login = os.environ.get("API_TOKEN_LOGIN", "").lower() in {"1", "true"}
-        # Een wijziging van de methode voorstellen als concept-PR (ADR-014 C7). Default uit: alleen de acceptatiestraat
-        # zet hem aan, met een poort-guard. Het token heeft alleen schrijfrecht op deze ene repo.
-        self.catalogus_voorstellen = os.environ.get("CATALOGUS_VOORSTELLEN", "").lower() in {"1", "true"}
         # De werkplaats (ADR-016 deel B): zelf skills en agentprofielen maken. Standaard uit, alleen op acceptatie aan
         # (`main.bicep:werkplaats`, met een poort-guard). Uit bestaan de routes niet (404).
         self.werkplaats = os.environ.get("WERKPLAATS", "").lower() in {"1", "true"}
-        # Een GitHub App, geen persoonlijk token (ADR-014 C7): een eigen identiteit buiten de bypass van de ruleset op master,
-        # en per voorstel een installatietoken van een uur. De sleutel is een PEM-bestand.
-        self.github_app_id = _read_secret("GITHUB_APP_ID")
-        self.github_app_installation_id = _read_secret("GITHUB_APP_INSTALLATION_ID")
-        self.github_app_key = _read_secret("GITHUB_APP_KEY")
-        self.github_repo = os.environ.get("GITHUB_REPO", "").strip()
 
         # --- Admin-auth: aparte tokens voor /v1/admin/* (LLM-beheer) ---
         raw_admin = _read_secret("WETSANALYSE_ADMIN_TOKENS") or ""
