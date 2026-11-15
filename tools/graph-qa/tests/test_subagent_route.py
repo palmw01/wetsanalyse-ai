@@ -52,8 +52,9 @@ def _vragen() -> list[tuple[str, str]]:
 
 
 def test_in_de_vragensets_pakt_de_route_alleen_wat_een_subagent_verwacht():
-    """Geen vraag uit de routerings-, gespreks- en agentset valt erin, behalve S01 (een subagent verwacht)."""
-    verwacht = {"S01"}
+    """Geen vraag uit de routerings-, gespreks- en agentset valt erin, behalve wat de agentset aan een subagent geeft (S01,
+    en sinds A6 run 1 ook de reeksen in de graaf: S03 en S04; `tests/test_a6_run1.py` toetst alle sets met alle bronnen)."""
+    verwacht = {"S01", "S03", "S04"}
     gevangen = {i for i, v in _vragen() if route.past(v, AAN)}
     assert gevangen <= verwacht, gevangen - verwacht
     assert "S01" in gevangen
@@ -85,4 +86,4 @@ def test_de_route_start_de_subagent_met_de_vraag_en_geeft_het_rapport_aan_de_cen
     assert upd["specialist"] == "centraal" and ARTIKEL in upd["source_trace"]
     assert upd["rapporten"].startswith("RAPPORT VAN EEN SUBAGENT") and "Per uitspraak: …" in upd["rapporten"]
     # Kan hij niet starten, dan beantwoordt de centrale agent de vraag zelf.
-    assert route.subagent_route_node(_bouw(None), {**STATE, "question": vraag}) == {"specialist": "centraal"}
+    assert route.subagent_route_node(_bouw(None), {**STATE, "question": vraag})["specialist"] == "centraal"

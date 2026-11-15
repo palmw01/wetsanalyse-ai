@@ -284,6 +284,8 @@ def build_graph(
         from .nodes.delegatie_plan import regie_voorstel_node, subagent_plan_node
         add("subagent_plan", functools.partial(subagent_plan_node, b))
         g.add_edge("subagent_plan", END)
+        # Twee of drie subagents die de code zelf herkent (`nodes/subagent_route.py`): ook rechtstreeks vanuit de supervisor.
+        ingangen["subagent_plan"] = "subagent_plan"
         add("regie_voorstel", functools.partial(regie_voorstel_node, b))
         g.add_edge("regie_voorstel", END)
         voeg_overdracht_toe(g, add, b)

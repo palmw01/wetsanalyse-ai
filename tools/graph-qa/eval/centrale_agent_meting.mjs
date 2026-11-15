@@ -159,7 +159,7 @@ async function metHerhalen(id, kop, draai) {
   for (let poging = 0; poging <= MAX_HERHALEN && !rec; poging++) {
     try { rec = await draai(); }
     catch (e) {
-      if (e instanceof BudgetOp) { console.log("429: het budget is op bij", id); process.exit(3); }
+      if (e instanceof BudgetOp) { budgetOp(id); }
       if (!(e instanceof Afgebroken) && !/fetch failed|ECONN|socket|terminated|aborted/i.test(String(e))) throw e;
       afgebroken.push({ om: new Date().toISOString(), reden: String(e.message || e).slice(0, 200) });
       await new Promise(r => setTimeout(r, 60_000));        // een revisiewissel duurt ongeveer een minuut
@@ -187,6 +187,16 @@ async function vraagcase(c, kop, werkgebied, velden) {
 const leesSet = naam => fs.readFileSync(path.join(HIER, naam), "utf8").split("\n").filter(r => r.trim() && !r.startsWith("#")).map(r => JSON.parse(r));
 
 function optie(naam, args) { const i = args.indexOf(naam); return i < 0 ? undefined : args.splice(i, 2)[1]; }
+
+/** Het budget is op (HTTP 429 bij de start van een run): exitcode 3, de regel `BUDGET_OP <id>` en het bestand
+ *  `<uit>/BUDGET_OP`. Wie de run bewaakt, wacht op dat bestand of die exitcode, niet op het getal 429 in de uitvoer: in A6
+ *  run 1 (15 nov 2026) las een wachtlus "account 2042912" als 429 en stopte daardoor een lopend kind (F01 ongeldig). */
+function budgetOp(id) {
+  const i = process.argv.indexOf("--uit");
+  fs.writeFileSync(path.join(i < 0 ? "." : process.argv[i + 1], "BUDGET_OP"), `${id}\n`);
+  console.log("BUDGET_OP", id);
+  process.exit(3);
+}
 
 const [commando, ...rest] = process.argv.slice(2);
 if (commando === "werkgebied") {

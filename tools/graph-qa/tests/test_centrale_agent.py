@@ -98,6 +98,8 @@ def test_met_uit_is_de_graaf_die_van_voorheen():
                                ("supervisor", "subagent_vervolg"), ("advance", "subagent_vervolg"),
                                ("subagent_vervolg", "agent"), ("subagent_vervolg", "__end__"),
                                ("overdracht", "subagent_plan"), ("subagent_plan", "__end__"),
+                               # Meer subagents die de code zelf herkent (`subagent_route.plan`, A6 run 1).
+                               ("supervisor", "subagent_plan"), ("advance", "subagent_plan"),
                                ("overdracht", "regie_voorstel"), ("regie_voorstel", "__end__"),
                                ("supervisor", "subagent_route"), ("advance", "subagent_route"),
                                ("subagent_route", "agent")}

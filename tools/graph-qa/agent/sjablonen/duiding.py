@@ -326,6 +326,18 @@ def _genoemd_in_tekst(nummer: str, rijen: dict[str, dict[str, Any]]) -> list[tup
     return uit[:2]
 
 
+def _eerste_plek(iri: str, rijen: dict[str, dict[str, Any]]) -> tuple[str, str, str] | None:
+    """De eerste zin van een opgehaalde bepaling als plek om aan te wijzen: het adres van de rij en het begin en het einde
+    van die zin, letterlijk (`van`, `tot`). Met alleen het adres van een artikel waarvan de tekst al is opgehaald, wees de
+    centrale agent twee keer geen passage aan en ging hij over op tekst (A6 run 1, E09: twee weigeringen, 204k tegen 124k
+    in M0); met de plek is de aanroep over te nemen, zoals bij een artikel dat in de tekst staat (`_genoemd_in_tekst`)."""
+    for rij_iri in sorted(k for k in rijen if _binnen(k, iri)):
+        zinnen = re.split(r"(?<=[.;:])\s+", " ".join(str(rijen[rij_iri].get("tekst") or "").split()))
+        if woorden := (zinnen[0] if zinnen else "").split():
+            return rij_iri, " ".join(woorden[:_ANKERWOORDEN]), " ".join(woorden[-_ANKERWOORDEN:])
+    return None
+
+
 def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace: Trace) -> Onvulbaar:
     """Wat het antwoord noemt, moet gelezen zijn (D, besluit gebruiker 7 nov 2026). Per artikel zonder passage:
 
@@ -345,7 +357,7 @@ def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace:
         if nummer.casefold() in live_ids:
             live.append((vermelding, live_ids[nummer.casefold()]))
         elif iri and any(_binnen(k, iri) for k in rijen):
-            gelezen.append(vermelding)
+            gelezen.append((vermelding, _eerste_plek(iri, rijen)))
         elif iri and len(ophalen) < MAX_OPHALEN:
             ophalen.append({"bwb_id": iri.split(":")[2], "artikel": nummer, "vermelding": vermelding})
         elif waar := _genoemd_in_tekst(nummer, rijen):
@@ -358,9 +370,10 @@ def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace:
                       "wijs de passages aan in 'extern' met het id (" + ", ".join(i for _, ids in live for i in ids) +
                       "), of laat de "
                       "vermelding weg.")
-    if gelezen:
-        zinnen.append(f"Je noemt {', '.join(gelezen)} zonder passage, terwijl de tekst al is opgehaald. Wijs er een passage uit "
-                      "aan, of laat de vermelding weg.")
+    for vermelding, plek in gelezen:
+        zinnen.append(f"Je noemt {vermelding} zonder passage, terwijl de tekst al is opgehaald. Wijs er een passage uit aan"
+                      + (f" in 'onderbouwing', bijvoorbeeld: bepaling {plek[0]}, van „{plek[1]}”, tot „{plek[2]}”" if plek
+                         else "") + ". Of laat de vermelding weg.")
     if ophalen:
         zinnen.append(f"Je noemt {', '.join(o['vermelding'] for o in ophalen)} zonder passage. Wat je noemt, moet gelezen zijn: "
                       "de tekst staat hieronder. Wijs er een passage uit aan met `bepaling`, `van` en `tot`, of laat de "
