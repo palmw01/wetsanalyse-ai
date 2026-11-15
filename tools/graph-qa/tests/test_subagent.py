@@ -342,3 +342,17 @@ def test_mislukt_de_start_dan_staat_er_geen_opdracht_in_het_deelgesprek():
                                             kinderen=sub.Kinderen(start=faalt, stop=kinderen.stop),
                                             gestopt=lambda: False, api=api))
     assert afloop.uitkomst == "mislukt" and "voeg_bericht_toe" not in [n for n, _ in api.aanroepen]
+
+
+def test_de_centrale_agent_kiest_een_profiel_op_zijn_beschrijving():
+    """ADR-016 §A2: `naam` en `beschrijving` zeggen wanneer de centrale agent een profiel kiest. Het schema van
+    `subagent` draagt ze, zodat een nieuw profiel (ook uit de werkplaats) meedoet zonder de instructie te wijzigen."""
+    from agent.profielen import KIESBAAR, PROFIELEN
+
+    veld = sub.invoer_schema()["profiel"]
+    assert veld["enum"] == list(KIESBAAR)
+    for n in KIESBAAR:
+        assert f"- {n}: {PROFIELEN[n].beschrijving}" in veld["description"]
+    for n in ("centraal", "centraal_breed"):
+        tekst = PROFIELEN[n].instructie
+        assert "op zijn beschrijving" in tekst and "definitie voor een begrip" not in tekst

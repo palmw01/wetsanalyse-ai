@@ -73,10 +73,16 @@ def kiesbaar() -> list[str]:
     return list(KIESBAAR)
 
 
+def profielkeuze() -> str:
+    """Wat bij elk kiesbaar profiel past: zijn naam en beschrijving, één regel per profiel, in de volgorde van het register."""
+    return "Het profiel van de subagent, gekozen op het werk:\n" + "\n".join(
+        f"- {n}: {PROFIELEN[n].beschrijving}" for n in kiesbaar())
+
+
 def invoer_schema() -> dict[str, Any]:
     """De eigenschappen van de overdracht `subagent` (strict): het profiel en de velden van de opdracht."""
-    # Geen beschrijving per profiel: welk profiel bij welk werk past, zegt de instructie van de centrale agent één keer.
-    return {"profiel": {"type": "string", "enum": kiesbaar()},
+    # Per profiel zijn beschrijving: de centrale agent kiest erop (ADR-016 §A2), ook een profiel uit de werkplaats.
+    return {"profiel": {"type": "string", "enum": kiesbaar(), "description": profielkeuze()},
             **{veld: {"type": "string", "description": uitleg} for veld, uitleg in VELDEN.items()}}
 
 
