@@ -241,6 +241,28 @@ def _reeksen(nummers: Any) -> str:
 MAX_GEKOZEN = 2
 
 
+def samenvatting(tekst: str, trace: Trace) -> dict[str, set[str]]:
+    """Per gelezen stuk dat het rapport samenvat (een zin met meer dan `MAX_EIGEN_WOORDEN` woorden die het zoekresultaat
+    niet al noemt) de stammen van alles wat het erover zegt, ook in de kortere zinnen. Daarmee kiest de code de passages
+    van een stuk."""
+    from ..gelezen import MAX_EIGEN_WOORDEN, _FUNCTIEWOORDEN, _WOORD, _context, _rijwoorden, _stammen, per_stuk
+
+    paren = [(str(x[0]), str(x[1])) for x in trace]
+    gelezen, labels = _context(paren)
+    per_id: dict[str, set[str]] = {}
+    samengevat: set[str] = set()
+    for segment, ids in per_stuk(tekst or "", gelezen, labels):
+        for ident in ids:
+            if ident not in gelezen or van_id(ident) is None:
+                continue
+            bekend = _rijwoorden(paren, ident)
+            eigen = [w for w in _WOORD.findall(segment.casefold()) if w not in bekend and w not in _FUNCTIEWOORDEN]
+            per_id.setdefault(ident, set()).update(_stammen(eigen))
+            if len(eigen) > MAX_EIGEN_WOORDEN:
+                samengevat.add(ident)
+    return {i: s for i, s in per_id.items() if i in samengevat}
+
+
 def aanvulling(tekst: str, items: Any, trace: Trace) -> tuple[list[dict[str, Any]], list[str]]:
     """De aanwijzingen die de code toevoegt aan een rapport: bij elk gelezen stuk dat de bevindingen samenvatten zonder een
     alinea met inhoud in 'extern', de alinea's van dat stuk die het meest delen met wat erover gezegd wordt (hoogstens
@@ -248,11 +270,9 @@ def aanvulling(tekst: str, items: Any, trace: Trace) -> tuple[list[dict[str, Any
     extra ronde (meting bundel 122, D01: vier juiste samenvattingen zonder passage, en de correctie haalde ze weg). De
     passages zijn letterlijk uit het stuk; wat ze dragen toetst `verify`, en de controle per stuk leest ze na.
     (de aanwijzingen, een regel voor 'Niet als citaat getoond' per stuk)."""
-    from ..gelezen import MAX_EIGEN_WOORDEN, MIN_STEUN, _FUNCTIEWOORDEN, _WOORD, _context, _rijwoorden, _stammen, per_stuk
+    from ..gelezen import MIN_STEUN, _WOORD, _stammen
 
     lijst = [i for i in items if isinstance(i, dict)] if isinstance(items, list) else []
-    paren = [(str(x[0]), str(x[1])) for x in trace]
-    gelezen, labels = _context(paren)
     # Per stuk de tekst met inhoud die het model al aanwees (geen kopregel).
     aangewezen: dict[str, str] = {}
     for item in lijst:
@@ -264,15 +284,7 @@ def aanvulling(tekst: str, items: Any, trace: Trace) -> tuple[list[dict[str, Any
         aangewezen[vp.id] = aangewezen.get(vp.id, "") + " " + " ".join(
             rijen[n].get("tekst", "") for n in range(van, tot + 1)
             if n in rijen and not is_kopregel(rijen[n].get("tekst", ""), str(rijen[n].get("kop") or "")))
-    per_id: dict[str, set[str]] = {}
-    for segment, ids in per_stuk(tekst or "", gelezen, labels):
-        for ident in ids:
-            if ident not in gelezen or van_id(ident) is None:
-                continue
-            bekend = _rijwoorden(paren, ident)
-            eigen = [w for w in _WOORD.findall(segment.casefold()) if w not in bekend and w not in _FUNCTIEWOORDEN]
-            if len(eigen) > MAX_EIGEN_WOORDEN:
-                per_id.setdefault(ident, set()).update(_stammen(eigen))
+    per_id = samenvatting(tekst, trace)
     extra, regels = [], []
     for ident, stammen in per_id.items():
         al = _stammen(_WOORD.findall((aangewezen.get(ident) or "").casefold()))
@@ -291,14 +303,18 @@ def aanvulling(tekst: str, items: Any, trace: Trace) -> tuple[list[dict[str, Any
 
 
 def blokken(items: Any, trace: Trace, *, overgeslagen: list[str] | None = None,
-            max_stukken: int = MAX_STUKKEN, zonder_kopregels: bool = False) -> list[Extern | Leemte]:
+            max_stukken: int = MAX_STUKKEN, zonder_kopregels: bool = False,
+            voorkeur: dict[str, set[str]] | None = None) -> list[Extern | Leemte]:
     """De blokken `extern` uit de aanwijzingen van het model; elk feit uit de trace. Wat niet klopt, staat in één
     weigering voor alle aanwijzingen samen: per fout een weigering kostte per fout een ronde waarin het model het hele
     antwoord opnieuw schreef (iteratie bekendmakingen ronde 1, 11 nov 2026: B16 vijf rondes, ~120k tokens). Meer dan
     `MAX_ALINEAS` is geen fout: de code kapt af en zegt het in een `Leemte` achter de blokken.
 
     Met `overgeslagen` (het rapport van een subagent) weigert de code niet: wat niet klopt of boven `MAX_STUKKEN` valt,
-    laat ze weg en zet ze in die lijst, zodat het rapport het onder 'Open' noemt."""
+    laat ze weg en zet ze in die lijst, zodat het rapport het onder 'Open' noemt.
+
+    Met `voorkeur` (per stuk de stammen van wat het rapport erover zegt, `samenvatting`) houdt het afkappen per stuk de
+    alinea's die dat het best dragen, in plaats van de eerste."""
     if not items:
         return []
     if overgeslagen is not None and isinstance(items, list) and len(items) > MAX_ALINEAS:
@@ -343,12 +359,15 @@ def blokken(items: Any, trace: Trace, *, overgeslagen: list[str] | None = None,
             datum=str(stuk.get("datum") or ""), soort_stuk=str(stuk.get("soort") or ""),
             **_tekst_bij(trace, c, vp.id), **status_velden(c, stuk)))
         al = {p.nr for p in blok.passages}
-        if zonder_kopregels and overgeslagen is not None:
+        if (zonder_kopregels or vp.brontype == "uitspraak") and overgeslagen is not None:
             # In een rapport telt een kopregel niet als passage: hij draagt geen duiding, en de centrale agent toetst erop.
+            # Bij een uitspraak ook niet in een antwoord: "Locatie Arnhem" en het zaaknummer zijn geen citaat (meting
+            # bundel 123, D01); daar zonder melding, want de kop van het blok noemt het stuk al.
             kop = [n for n in range(van, tot + 1) if n in rijen and n not in al
                    and is_kopregel(rijen[n].get("tekst", ""), str(rijen[n].get("kop") or ""))]
             if kop:
-                overgeslagen.append(f"{vp.label}: alinea {_reeksen(kop)} is een kopregel zonder inhoud")
+                if zonder_kopregels:
+                    overgeslagen.append(f"{vp.label}: alinea {_reeksen(kop)} is een kopregel zonder inhoud")
                 al |= set(kop)
         blok.passages += [ExternePassage(nr=n, tekst=rijen[n]["tekst"], kop=str(rijen[n].get("kop") or ""),
                                          soort=str(rijen[n].get("soort") or "alinea"),
@@ -374,10 +393,22 @@ def blokken(items: Any, trace: Trace, *, overgeslagen: list[str] | None = None,
                         + "\n".join(f"- {f}" for f in fouten))
     for b in per_stuk.values():
         b.passages.sort(key=lambda p: p.nr)
-    return [*per_stuk.values(), *_afgekapt(list(per_stuk.values()))]
+    return [*per_stuk.values(), *_afgekapt(list(per_stuk.values()), voorkeur)]
 
 
-def _afgekapt(blokken: list[Extern]) -> list[Leemte]:
+def _rang(p: ExternePassage, stammen: set[str]) -> float:
+    """Hoe goed een passage draagt wat het rapport over haar stuk zegt: de gedeelde stammen, en een rechtsoverweging
+    telt zwaarder dan het procesverloop en de feiten (meting bundel 123, D01: bij HR:2023:1371 bleven r.o. 1–3.1 staan en
+    vielen de dragende r.o. 3.3–3.8 weg). Een kopregel draagt niets."""
+    from ..gelezen import _WOORD, _stammen
+
+    if is_kopregel(p.tekst, p.kop):
+        return 0.0
+    gedeeld = len(_stammen(_WOORD.findall(p.tekst.casefold())) & stammen)
+    return gedeeld * (1.5 if p.plek.strip().lower().startswith("r.o.") else 1.0)
+
+
+def _afgekapt(blokken: list[Extern], voorkeur: dict[str, set[str]] | None = None) -> list[Leemte]:
     """Kap de passages af op `MAX_ALINEAS` en zeg welke alinea's eruit vielen: een melding in plaats van een weigering.
     Een lege lijst als alles past. Eerlijk verdeeld: om de beurt één alinea per stuk, in de volgorde van het antwoord,
     zodat een lange reeks bij het eerste stuk de andere niet leeg laat (meting bundel 122, D01: alinea 1–35 en 1–59 bij
@@ -391,9 +422,16 @@ def _afgekapt(blokken: list[Extern]) -> list[Leemte]:
                 ruimte -= 1
     weg = []
     for i, b in enumerate(blokken):
-        if b.passages[houd[i]:]:
-            weg.append(f"{b.label} (alinea {_reeksen([p.nr for p in b.passages[houd[i]:]])})")
-        b.passages = b.passages[:houd[i]]
+        if houd[i] < len(b.passages) and (voorkeur or {}).get(b.id):
+            # De best dragende alinea's eerst (bij gelijke rang de eerste), daarna weer op nummer.
+            beste = sorted(b.passages, key=lambda p: -_rang(p, voorkeur[b.id]))[:houd[i]]
+            gehouden = {p.nr for p in beste}
+            rest = [p for p in b.passages if p.nr not in gehouden]
+            b.passages = [p for p in b.passages if p.nr in gehouden]
+        else:
+            rest, b.passages = b.passages[houd[i]:], b.passages[:houd[i]]
+        if rest:
+            weg.append(f"{b.label} (alinea {_reeksen([p.nr for p in rest])})")
     if not weg:
         return []
     return [Leemte(tekst=f"Dit antwoord citeert hoogstens {MAX_ALINEAS} alinea's. Niet geciteerd: {_en_opsomming(weg)}. Lees "

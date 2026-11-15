@@ -96,9 +96,14 @@ _HERKOMST = re.compile(r"\b(volgens|aangehaald|besproken|beschreven|blijkens|wee
                        re.IGNORECASE)
 
 
-#: Een zin of kop die zegt dat een stuk níét samengevat of gelezen is: geen duiding van dat stuk.
-_WEGGELATEN = re.compile(r"\bniet\s+(?:inhoudelijk\s+)?(?:samengevat|gelezen|besproken|opgenomen|meegenomen)\b"
-                         r"|\bweggelaten\b|\bbuiten\s+beschouwing\b|\blaat\s+ik\s+weg\b", re.IGNORECASE)
+#: Een zin of kop die zegt dat een stuk níét samengevat of gelezen is, of dat iets uit de gelezen passages niet vast te
+#: stellen is: geen duiding van dat stuk, maar een zin over wat er gelezen is (meting bundel 123, D01: vier van de vijf
+#: onbevestigde zinnen waren "niet vast te stellen", "geen inhoudelijk oordeel" en "komt niet inhoudelijk aan bod").
+_WEGGELATEN = re.compile(r"\bniet\s+(?:inhoudelijk\s+|volledig\s+)?(?:samengevat|gelezen|besproken|opgenomen|meegenomen)\b"
+                         r"|\bweggelaten\b|\bbuiten\s+beschouwing\b|\blaat\s+ik\s+weg\b"
+                         r"|\bniet\s+vast\s+te\s+stellen\b|\bgeen\s+inhoudelijk\w*\s+oordeel\b"
+                         r"|\bniet\s+(?:inhoudelijk\s+)?aan\s+bod\b|\b(?:in|op\s+basis\s+van)\s+de\s+gelezen\s+passages\b",
+                         re.IGNORECASE)
 
 
 def _ids(tekst: str) -> list[str]:

@@ -839,8 +839,9 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     # Een omgedraaide bewering in de woorden van de passage zien de toetsen op woorden niet: de controle per stuk leest de
     # duidingen tegen de passages die het rapport citeerde (`stukcontrole.py`). Alleen in het antwoord van de centrale
     # agent, en alleen als de goedkopere toetsen niets vonden: vonden zij iets, dan volgt de correctie toch, en daarna
-    # toetst deze ronde opnieuw.
-    if not report.beweringen and not state.get("opdracht") and not state.get("overzicht"):
+    # toetst deze ronde opnieuw. Na de correctieronde draait ze altijd, op wat er dan staat: in drie metingen vonden de
+    # goedkopere toetsen telkens iets, en draaide ze nooit (meting bundel 123).
+    if (not report.beweringen or state.get("corrected")) and not state.get("opdracht") and not state.get("overzicht"):
         from ..stukcontrole import controleer
 
         if tegen := controleer(b.llm, b.settings, tekst, rapport_steun(state), controletrace(state)):
