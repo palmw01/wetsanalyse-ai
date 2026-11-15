@@ -114,6 +114,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | O | Acceptatietesten via MCP | Accounttoken en acceptatie-MCP gebouwd, eerste scenario gedraaid; open: de fixtures voor de Playwright-mocks |
 | R | Verbeterplan uit de applicatiereview (6 nov 2026) | Ronde 1 en 2 gemerged (t/m #951); ronde 3 als losse PR's (#963–#985), zie de sectie. Uitgesteld: F2, F3, E4, E6, H5; bij de eigenaar: G2 (meldkanaal), G4, G9 |
 | S | Multi-agent regie binnen een werkgebied (ADR-012) | Gebouwd (#1081, #1082, #1085, #1087, #1088, #1100) en op acceptatie gemeten (8 nov 2026); open: zie de sectie |
+| U | De centrale agent met subagents (ADR-016) | A1–A6 gebouwd en gemeten; acceptatie staat sinds 15 nov 2026 op `aan`. A6 afgesloten (15 nov 2026): 9 van 10 drempels, slotmeting #1562. Open: zie *Centrale agent na A6*; volgende stappen: de taakprofielen (plan agentprofielen), daarna A7 (supervisor en de vlag `CENTRALE_AGENT` weg, besluit gebruiker 15 nov 2026) en de uitrol naar productie |
 | T | De context van een beurt zichtbaar: contextmeter en `/context` (ADR-015) | Plan goedgekeurd en na review herzien (12 nov 2026), niets gebouwd: context én verbruik per beurt, geen extra telaanroepen, de boom via de api, niets wacht op ADR-016. [`architectuur/plan-contextweergave.md`](architectuur/plan-contextweergave.md) |
 
 ---
@@ -1378,6 +1379,30 @@ agent-token #1100). Stap 7, de meting op acceptatie, staat in `architectuur/meti
 - Een schatting naar de lengte van een bepaling, als een meting dat waard blijkt.
 - *Stop alles* en de trace op acceptatie meten.
 - Begrippen in de regie, een reservering bij de api, `minReplicas: 1` voor graph-qa, en een Grafana-paneel.
+
+
+## Centrale agent na A6 (ADR-016)
+
+A6 is afgesloten op 15 nov 2026 (besluit gebruiker: geen nieuwe meetronde per bevinding). Eindverslag en slotmeting in
+`docs/architectuur/metingen/` (A6, na A6, slot). Wat nog openstaat, op te pakken als het in gebruik opvalt of samen met
+het werk eromheen:
+
+1. **S01, regressie:** de tekst die het model naast `antwoord_extern` schrijft (`tekst_ernaast`) valt weg, dus het
+   overzicht per gelezen stuk ontbreekt.
+2. **Citaten bij uitspraken** zijn vaak trefwoorden, feiten of procedure in plaats van de dragende passage (S01, P01,
+   P02, deels F02).
+3. **Vragen naar boven:** een kind dat op zijn rondegrens stopt, vraagt niets (V03).
+4. **De controle per stuk** heeft een gerichte set met bekende tegenspraken nodig; sinds de nieuwe regel 4 keer gedraaid
+   zonder melding.
+5. **De toets op dragende passages** markeert juiste samenvattingen als niet-dragend (HR:2023:1371).
+6. **`delegatie_stand`** blijft onbenut: de stand komt uit de context. Bepalen of de set het nog moet eisen.
+7. **Kinderen lopen tegen hun rondegrens aan:** stukken blijven ongelezen (S04, F02, P01), 200–300k per kind. Hoort bij
+   het plan agentprofielen (`max_rondes`, `budget` per profiel).
+8. **P01:** het eindantwoord maakt van het rapport één alinea.
+9. **Klein:** E05 gaat via duiding, E08 toont een kale IRI, E03 krijgt twee sjabloonweigeringen, K18 heeft 61 keer
+   `onbevestigd`.
+10. **De meetset:** K03/K09 verwachten "14 dagen", S02 meet geen delegatie, de "goed"-teksten van F05/S04 zijn niet
+    scherp.
 
 ## Volgorde en samenhang
 
