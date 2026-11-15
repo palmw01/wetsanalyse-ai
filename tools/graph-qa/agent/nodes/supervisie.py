@@ -340,14 +340,7 @@ def _regelingtitels(graph: Any):
         return None
     from .. import overzicht
 
-    def genoemd(tekst: str) -> list[tuple[str, str]]:
-        ids = overzicht.regelingen_in_vraag(graph, tekst)
-        try:
-            titels = {r["bwb_id"]: r.get("citeertitel") or r["bwb_id"] for r in overzicht._regelingen(graph)}
-        except Exception:  # noqa: BLE001 – zonder namenlijst geen verdeling; de centrale agent leest de vraag dan
-            return []
-        return [(i, titels.get(i, i)) for i in ids]
-    return genoemd
+    return lambda tekst: overzicht.regelingtitels_in_vraag(graph, tekst)
 
 
 def _bron_lijst(writer, lijst) -> dict[str, Any]:

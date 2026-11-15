@@ -51,17 +51,16 @@ def laatste_wijziging(graph: Any, bwb_id: str, artikel: str) -> str:
 def melding(vraag: str, graph: Any) -> str:
     """De vraag aan de jurist, of leeg als de vraag zelf al zegt welke wijziging, of niet één artikel van één regeling noemt."""
     from .aanwijzing import lees_aanwijzing
-    from .overzicht import regelingen_in_vraag
+    from .overzicht import regelingtitels_in_vraag
 
     if not _DE_WIJZIGING.search(vraag or ""):
         return ""   # de gewone vraag: geen graafquery
     aanwijzing = lees_aanwijzing(vraag or "")
     if len(aanwijzing.artikelen) != 1 or graph is None:
         return ""
-    try:
-        regelingen = regelingen_in_vraag(graph, vraag)
-    except Exception:  # noqa: BLE001 – geen namen: de gewone weg
-        return ""
+    # (bwb-id, citeertitel): `regelingen_in_vraag` geeft alleen ids (A6 eind, bundel 129: V04 eindigde in een ValueError
+    # op het uitpakken, op acceptatie; de test bootste de functie na met paren en zag het niet).
+    regelingen = regelingtitels_in_vraag(graph, vraag)
     if len(regelingen) != 1:
         return ""
     bwb_id, titel = regelingen[0]

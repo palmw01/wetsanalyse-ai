@@ -134,6 +134,16 @@ def _voeg_uitvoeringsnamen_toe(regelingen: list[dict[str, Any]]) -> None:
                 r["namen"] |= {f"{v} {n}" for v in (voorvoegsel, _UITVOERING_AFGEKORT[voorvoegsel]) for n in namen}
 
 
+def regelingtitels_in_vraag(graph: GraphPort, vraag: str) -> list[tuple[str, str]]:
+    """De regelingen die de vraag noemt (`regelingen_in_vraag`) als (bwb-id, citeertitel). Zonder namenlijst leeg."""
+    ids = regelingen_in_vraag(graph, vraag)
+    try:
+        titels = {r["bwb_id"]: r.get("citeertitel") or r["bwb_id"] for r in _regelingen(graph)}
+    except Exception:  # noqa: BLE001 – zonder namenlijst geen titels
+        return []
+    return [(i, titels.get(i, i)) for i in ids]
+
+
 def regelingen_in_vraag(graph: GraphPort, vraag: str) -> list[str]:
     """De BWB-id's van de regelingen die de vraag bij naam of afkorting noemt (woordgrens, hoofdletter-
     ongevoelig), in vaste volgorde. Waar namen overlappen wint de langste: in "Uitvoeringsregeling Algemene wet
