@@ -25,6 +25,7 @@ from typing import Any
 from bronmodel import CorpusMap, Span
 from bronmodel.catalogus import Stap
 
+from .. import modelkeuze
 from . import relaties as relatieregels, uitleg
 from ..annotatie import _maak_anker
 from ..models import AnnotatieAlternatief, AnnotatieVoorstel
@@ -294,7 +295,8 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
 
     # Validatie vóór de uitgang: een structurele fout haalt het voorstel eruit en maakt
     # de beslissing REJECTED met de foutcode – zichtbaar in de meting, niet stil.
-    prov = {"model": model, **meting}
+    # Het model dat de classifier echt kreeg (`modelkeuze`: een keuze uit het beheer gaat voor het gevraagde).
+    prov = {"model": modelkeuze.model_voor("jas_classifier", model), **meting}
     voorstellen, bevindingen = valideer(paren, per_id, snapshot, prov)
     beslissingen = _verwerp(beslissingen, bevindingen)
 

@@ -11,6 +11,7 @@ import { SkeletonCard } from "@/components/ui/Skeleton";
 import { Tag } from "@/components/ui/Badge";
 import { deleteProfile, isApiError, listProfiles, setDefaultProfile, testProfile } from "@/lib/api";
 import type { LlmProfileOut, TestResult } from "@/lib/types";
+import { ModelrollenBlok } from "./ModelrollenBlok";
 import { ProfileEditor } from "./ProfileEditor";
 import { StatusLabel } from "@/components/ui/Lijst";
 
@@ -21,11 +22,14 @@ export function ProfielenPanel() {
   const [fout, setFout] = useState<string | null>(null);
   const [edit, setEdit] = useState<EditState>({ open: false });
   const [tests, setTests] = useState<Record<string, TestResult | "bezig">>({});
+  // Een profiel erbij, eraf of anders: het blok *Model per rol* leest dan opnieuw welke profielen Lex kan gebruiken.
+  const [profielVersie, setProfielVersie] = useState(0);
 
   const laad = useCallback(async () => {
     setFout(null);
     try {
       setProfielen(await listProfiles());
+      setProfielVersie((v) => v + 1);
     } catch (e) {
       setFout(isApiError(e) ? `${e.detail} (${e.status})` : (e as Error).message);
       setProfielen([]);
@@ -147,6 +151,7 @@ export function ProfielenPanel() {
           </div>
         )}
       </SettingGroup>
+      <ModelrollenBlok versie={profielVersie} />
     </div>
   );
 }

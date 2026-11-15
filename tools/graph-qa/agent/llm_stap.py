@@ -28,6 +28,7 @@ from dataclasses import dataclass
 from enum import Enum, StrEnum
 from typing import Any
 
+from . import modelkeuze
 from .methode import vingerafdruk
 from .verzoekopbouw import Aanroepkader, aanroepkader, opbouw
 
@@ -135,6 +136,24 @@ def _profiel(kader: dict[str, Any]) -> dict[str, str]:
     return {k: str(kader[k]) for k in ("profiel_id", "profiel_versie") if kader.get(k)}
 
 
+def _modelkeuze(rol: Rol, verzoek: dict[str, Any], kader: dict[str, Any] | None
+                ) -> tuple[str, str, dict[str, Any], dict[str, str], dict[str, Any]]:
+    """Het model dat de beheerder voor deze rol koos (`modelkeuze.kies`). De sleutel is de rol, of wat de aanroeper als
+    `modelrol` in het kader zette (een subagent). Zonder keuze blijft het verzoek byte-gelijk."""
+    kader = dict(kader or {})
+    sleutel = str(kader.pop("modelrol", "") or rol.naam)
+    gevraagd = verzoek.get("model", "")
+    model, velden = modelkeuze.kies(sleutel, gevraagd)
+    return sleutel, gevraagd, ({**verzoek, "model": model} if model != gevraagd else verzoek), velden, kader
+
+
+def _terugval(sleutel: str, gevraagd: str, verzoek: dict[str, Any], fout: BaseException
+              ) -> tuple[dict[str, Any], dict[str, str]]:
+    """De straat heeft het gekozen model niet: terug naar het gevraagde, en in dit proces voorgoed."""
+    modelkeuze.markeer_kapot(verzoek.get("model", ""), gevraagd, sleutel, fout)
+    return {**verzoek, "model": gevraagd}, {"modelbron": "terugval"}
+
+
 def _log(rol: Rol, model: str, resp: Any, begin: float, opbouw: dict[str, Any],
          methoderol: str | None = None) -> Antwoord:
     duur = round((time.perf_counter() - begin) * 1000)
@@ -155,11 +174,20 @@ def aanroep(llm: Any, rol: Rol, *, methoderol: str | None = None, kader: dict[st
     `kader` is wat de aanroeper over het verzoek weet en de meting nodig heeft (`beurt_start`, `opdracht`,
     `venster_telling`, `historiegrens_tekens`). Het gaat niet naar de provider: het verzoek blijft byte-gelijk."""
     _controleer_rol(rol, verzoek.get("system"), methoderol)
+    sleutel, gevraagd, verzoek, velden, kader = _modelkeuze(rol, verzoek, kader)
     k = _kader(rol, verzoek, kader)
     begin = time.perf_counter()
-    with aanroepkader(k):
-        resp = llm.create(**verzoek)
-    return _log(rol, verzoek.get("model", ""), resp, begin, {**k.opbouw, **_profiel(k.kader)}, methoderol)
+    try:
+        with aanroepkader(k):
+            resp = llm.create(**verzoek)
+    except Exception as fout:
+        if verzoek.get("model") == gevraagd or not modelkeuze.is_modelfout(fout):
+            raise
+        verzoek, velden = _terugval(sleutel, gevraagd, verzoek, fout)
+        k = _kader(rol, verzoek, kader)
+        with aanroepkader(k):
+            resp = llm.create(**verzoek)
+    return _log(rol, verzoek.get("model", ""), resp, begin, {**k.opbouw, **_profiel(k.kader), **velden}, methoderol)
 
 
 class Stroom:
@@ -187,13 +215,30 @@ def stroom(llm: Any, rol: Rol, *, methoderol: str | None = None, kader: dict[str
            **verzoek: Any) -> Iterator[Stroom]:
     """Eén `llm.stream`, met de kwargs zoals ze binnenkomen (ook `historie_cache`). `kader`: zie `aanroep`."""
     _controleer_rol(rol, verzoek.get("system"), methoderol)
+    sleutel, gevraagd, verzoek, velden, kader = _modelkeuze(rol, verzoek, kader)
     k = _kader(rol, verzoek, kader)
     begin = time.perf_counter()
     # De adapter leest het kader op het moment dat hij de stream maakt; daarna is het niet meer nodig.
     with aanroepkader(k):
         stream = llm.stream(**verzoek)
-    with stream as s:
-        yield Stroom(s, rol, verzoek.get("model", ""), begin, {**k.opbouw, **_profiel(k.kader)}, methoderol)
+    try:
+        # Een stream gaat pas bij het openen de deur uit: daar valt een model dat de straat niet heeft.
+        s = stream.__enter__()
+    except Exception as fout:
+        if verzoek.get("model") == gevraagd or not modelkeuze.is_modelfout(fout):
+            raise
+        verzoek, velden = _terugval(sleutel, gevraagd, verzoek, fout)
+        k = _kader(rol, verzoek, kader)
+        with aanroepkader(k):
+            stream = llm.stream(**verzoek)
+        s = stream.__enter__()
+    try:
+        yield Stroom(s, rol, verzoek.get("model", ""), begin, {**k.opbouw, **_profiel(k.kader), **velden}, methoderol)
+    except BaseException as fout:
+        if not stream.__exit__(type(fout), fout, fout.__traceback__):
+            raise
+    else:
+        stream.__exit__(None, None, None)
 
 
 def lees_tool(resp: Any, naam: str) -> dict[str, Any] | None:

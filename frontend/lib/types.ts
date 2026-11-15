@@ -105,6 +105,31 @@ export interface Connector {
   bijgewerkt: string;
 }
 
+/** Het modelprofiel van één rol van Lex (`/v1/admin/modelrollen`). `profiel: null` = de rol volgt de standaard. */
+export interface Modelrol {
+  naam: string;
+  label: string;
+  groep: string;
+  beschrijving: string;
+  waarschuwing: string;
+  profiel: string | null;
+  /** Het model dat Lex voor deze rol nu gebruikt. */
+  model: string;
+  /** Leeg, of waarom het gekozen profiel nu niet bruikbaar is (de rol volgt dan de standaard). */
+  niet_bruikbaar: string;
+  door: string;
+  bijgewerkt: string;
+}
+
+export interface ModelrollenOverzicht {
+  standaard: string | null;
+  standaard_model: string;
+  standaard_niet_bruikbaar: string;
+  rollen: Modelrol[];
+  /** Per profiel: leeg als Lex het kan gebruiken, anders waarom niet. */
+  profielen: Record<string, string>;
+}
+
 export interface ConnectorAuditRegel {
   actie: string;
   door: string;

@@ -37,6 +37,8 @@ import type {
   BudgetBeleid,
   Connector,
   ConnectorAuditRegel,
+  Modelrol,
+  ModelrollenOverzicht,
   RolBudget,
   MeAccount,
   RegistratieBulkRegel,
@@ -392,6 +394,27 @@ export async function zetConnector(naam: string, aan: boolean): Promise<Connecto
 
 export async function connectorAudit(naam: string): Promise<ConnectorAuditRegel[]> {
   const res = await fetch(`/api/admin/connectors/${pathSegment(naam)}/audit`, { cache: "no-store" });
+  return json<ConnectorAuditRegel[]>(res);
+}
+
+export async function listModelrollen(): Promise<ModelrollenOverzicht> {
+  const uit = await json<ModelrollenOverzicht>(await fetch("/api/admin/modelrollen", { cache: "no-store" }));
+  if (!Array.isArray(uit?.rollen) || typeof uit?.profielen !== "object") throw new Error("Onverwacht antwoord van de modelrollen.");
+  return uit;
+}
+
+/** `profiel: null` zet de rol terug op het standaardprofiel. */
+export async function zetModelrol(rol: string, profiel: string | null): Promise<Modelrol> {
+  const res = await fetch(`/api/admin/modelrollen/${pathSegment(rol)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ profiel }),
+  });
+  return json<Modelrol>(res);
+}
+
+export async function modelrolAudit(rol: string): Promise<ConnectorAuditRegel[]> {
+  const res = await fetch(`/api/admin/modelrollen/${pathSegment(rol)}/audit`, { cache: "no-store" });
   return json<ConnectorAuditRegel[]>(res);
 }
 

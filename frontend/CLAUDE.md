@@ -95,7 +95,11 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     `WerkgebiedSchil`, en
     `OpnemenInWerkgebied` voor de annotatiepagina).
   - `graaf/` – de samenhangsgraaf (sigma); de rekenkern staat in `lib/graaf/`.
-  - `admin/` – de beheertabs achter het admin-token: `ProfielenPanel` (+ `ProfileEditor`),
+  - `admin/` – de beheertabs achter het admin-token: `ProfielenPanel` (+ `ProfileEditor`, en daaronder `ModelrollenBlok`:
+    *Model per rol*, per rol van Lex een `Select` met *Standaard* en de profielen, gegroepeerd zoals de api ze levert; een
+    profiel dat Lex niet kan gebruiken staat uitgeschakeld met de reden, bij het JAS-oordeel staat een waarschuwing zodra
+    er een ander profiel gekozen is. Kiezen is een beheerder mét 2FA (`X-User-Id` in de BFF, zoals de connectors).
+    Rekenkern `lib/modelrollen.ts`, browserregressie `scripts/test-modelrollen.mjs`),
     `UsersPanel` (+ `BudgetBeleidBlok`), `RegistratiesPanel`, `ApiTokensPanel`,
     `BerichtenBeheerPanel` (+ `BerichtEditor`), `FeedbackLijstClient`, `ConnectorsPanel` (de bronconnectors van ADR-013: aan of
     uit per beheerder mét 2FA, met de audit ingeklapt; welke er bestaan staat in de code; browserregressie

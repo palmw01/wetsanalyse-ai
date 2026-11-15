@@ -205,7 +205,12 @@ async def delete_profile(name: str) -> None:
         raise ProfileError(f"Onbekend model_profile: {name!r}")
     if profile.is_default:
         raise ProfileError("Kan het default-profiel niet verwijderen; wijs eerst een ander aan.")
+    from .modelrollen import rollen_met_profiel  # modelrollen leest profielen; hier alleen bij verwijderen
     async with db.get_engine().begin() as conn:
+        # Een rol van Lex die dit profiel gebruikt, zou stil terugvallen op de standaard: liever een melding.
+        if rollen := await rollen_met_profiel(conn, name):
+            raise ProfileError(f"Het profiel is gekozen voor {', '.join(rollen)}; zet die rollen eerst op een "
+                               "ander profiel of op Standaard.")
         await conn.execute(delete(db.llm_profiles).where(db.llm_profiles.c.name == name))
 
 

@@ -11,6 +11,9 @@ GET    /v1/admin/profiles/{name}          – één profiel
 DELETE /v1/admin/profiles/{name}          – verwijder (niet de default)
 POST   /v1/admin/profiles/{name}/default  – markeer als default
 POST   /v1/admin/profiles/{name}/test     – test de verbinding (kleine LLM-call)
+GET    /v1/admin/modelrollen              – welk modelprofiel Lex per rol gebruikt
+PUT    /v1/admin/modelrollen/{rol}        – een profiel aan een rol geven, of terug naar de standaard (2FA)
+GET    /v1/admin/modelrollen/{rol}/audit  – wie welk profiel aan de rol gaf
 GET    /v1/admin/registraties             – zelfregistratie-aanvragen (optioneel ?status=)
 POST   /v1/admin/registraties/{id}/goedkeuren  – maak het account aan
 POST   /v1/admin/registraties/{id}/afwijzen    – wijs af (verwijdert de aanvraag)
@@ -41,6 +44,7 @@ from .. import (
     connectors,
     berichten as berichten_svc,
     feedback as feedback_svc,
+    modelrollen,
     profiles,
     registraties,
     users,
@@ -104,6 +108,24 @@ async def werkplaats_intrekken(onderdeel_id: str, door: str = Depends(beheerder_
 async def werkplaats_beleid(body: WerkplaatsBeleid, door: str = Depends(beheerder_met_2fa)):
     """Mogen analisten concepten maken?"""
     return await werkplaats_store.zet_beleid(body.analist_mag_maken, door)
+
+
+# --- modelprofiel per rol van Lex ---------------------------------------------
+
+@router.get("/modelrollen", response_model=modelrollen.Overzicht)
+async def lijst_modelrollen():
+    return await modelrollen.overzicht()
+
+
+@router.put("/modelrollen/{rol}", response_model=modelrollen.Modelrol)
+async def zet_modelrol(rol: str, body: modelrollen.ModelrolIn, door: str = Depends(beheerder_met_2fa)):
+    """Een beheerder mét 2FA uit de sessie, zoals de connectors: de keuze draagt een naam in de audit."""
+    return await modelrollen.zet(rol, body.profiel, door)
+
+
+@router.get("/modelrollen/{rol}/audit", response_model=list[modelrollen.AuditRegel])
+async def modelrol_audit(rol: str):
+    return await modelrollen.audit(rol)
 
 
 # --- bronconnectors (ADR-013) -------------------------------------------------

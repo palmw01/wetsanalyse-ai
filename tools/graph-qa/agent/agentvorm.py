@@ -232,6 +232,8 @@ class Subagent(Agent):
         """Faalt het lichte model (een 400 of 404: het bestaat niet in deze omgeving, of het kan dit verzoek niet), dan
         draait de ronde opnieuw op het gewone model, en de rest van het proces ook (`_LICHT_KAPOT`)."""
         model = self.model(settings)
+        # De beheerder kiest het model van een subagent apart (`modelkeuze`, rol `subagent`), los van zijn profiel.
+        kw["kader"] = {**(kw.get("kader") or {}), "modelrol": "subagent"}
         try:
             return super().ronde(llm, settings, **kw)
         except Exception as fout:

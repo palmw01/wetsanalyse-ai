@@ -74,6 +74,8 @@ class Settings(BaseModel):
     # De ophaal-agent is de gevaarlijkste om te verlagen: kiest hij de verkeerde bepaling, dan is
     # alles daarna brongetrouw én verkeerd, en dat ziet de jurist niet. Verlaag hem pas na meting
     # met `eval/run_eval.py`.
+    # Sinds 15 nov 2026 kiest de beheerder per rol een modelprofiel (`agent/modelkeuze.py`, ook voor de classifier en
+    # de reviewer, met een waarschuwing in het beheer). Dat gaat voor deze env-knoppen; zonder keuze gelden ze zoals hier.
     llm_model_router: str = ""
     llm_model_ophaal: str = ""
     # De lichte modelklasse (ADR-016 §A2 `modelklasse: licht`): een subagent draait erop, de centrale agent en elk oordeel

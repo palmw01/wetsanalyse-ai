@@ -122,6 +122,23 @@ const TOOLS: ToolDef[] = [
     input: S({ naam: z.string() }),
     run: (a) => apiFetch("GET", `/v1/admin/connectors/${seg(a.naam as string)}/audit`),
   },
+  // – model per rol van Lex —
+  // Alleen lezen, net als de connectors: een profiel aan een rol geven vraagt een beheerder mét 2FA uit de sessie.
+  {
+    name: "list_modelrollen",
+    description:
+      "Welk modelprofiel Lex per rol gebruikt (centrale agent, router, specialisten, subagents, JAS-classifier, …): " +
+      "per rol het gekozen profiel (null = het standaardprofiel), het model dat Lex nu krijgt en of het profiel bruikbaar " +
+      "is. Lex neemt van een profiel alleen de modelnaam over.",
+    input: S({}),
+    run: () => apiFetch("GET", "/v1/admin/modelrollen"),
+  },
+  {
+    name: "modelrol_audit",
+    description: "De auditregels van één rol van Lex: wie welk modelprofiel wanneer koos, of terugzette naar de standaard.",
+    input: S({ rol: z.string() }),
+    run: (a) => apiFetch("GET", `/v1/admin/modelrollen/${seg(a.rol as string)}/audit`),
+  },
   // – modelprofielen —
   {
     name: "list_profiles",

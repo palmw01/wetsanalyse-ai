@@ -21,7 +21,8 @@ ombouwen zonder reden.
 2. **De chatgeschiedenis** (`/v1/gesprekken/*`), per gebruiker gescopet.
 3. **Login en gebruikersbeheer** (`/v1/auth/*`, `/v1/admin/users`, `/v1/admin/registraties`): de API
    is de identiteitsbron van de webapp.
-4. **LLM-modelprofielbeheer** (`/v1/admin/profiles`).
+4. **LLM-modelprofielbeheer** (`/v1/admin/profiles`) en het **modelprofiel per rol van Lex** (`/v1/admin/modelrollen`,
+   `/v1/modelrollen`) – zie §*Model per rol van Lex*.
 5. **Tokenbudget** (`/v1/verbruik/*`, `/v1/admin/budget`, `/v1/admin/budget/rollen/{rol}`, `/v1/admin/verbruik`,
    `/v1/admin/users/{userid}/verbruik/reset`).
 6. **Berichten** (release notes, `/v1/berichten/*` + `/v1/admin/berichten/*`) met leesbewijzen per
@@ -76,6 +77,7 @@ ombouwen zonder reden.
 | `auth.py`, `api_tokens.py` | Client-bearer (`require_client`) en admin-bearer (`require_admin`). |
 | `user.py`, `users.py`, `registraties.py`, `routers/auth.py` | Login, 2FA, zelfregistratie. |
 | `llm_profile.py`, `profiles.py`, `secrets_crypto.py`, `llm/` | Modelprofielen, Fernet-versleuteling, LiteLLM-client, `llm/throttle.py`. |
+| `modelrollen.py`, `routers/modelrollen.py` + `bronmodel.modelrollen` | Welk modelprofiel Lex per rol gebruikt, met audit. |
 | `verbruik.py`, `verbruik_contracts.py`, `routers/verbruik.py` | Tokenbudget. |
 | `berichten.py`, `feedback.py` + routers | Release notes en feedback. |
 | `gesprek_contracts.py`, `gesprek_store.py`, `routers/gesprekken.py` | Chatgeschiedenis. |
@@ -1375,6 +1377,32 @@ een rij ontbreekt = uit), en elke wijziging is een regel in `connector_audit`.
   en `standaard_connectors` op het werkgebied (`PATCH` met de revisie). Niet `bronnen`: zo heten de bronselecties al in de
   uitvoer van een werkgebied. De werkplek rekent de stand en stuurt hem per beurt als `bronnen` naar graph-qa.
 - Credentials en een rate-limit per connector komen met de eerste connector die ze nodig heeft (EUR-Lex).
+
+## Model per rol van Lex
+
+`app/modelrollen.py` (stijl C), de beheerroutes in `routers/admin.py`, de leesroute voor graph-qa in `routers/modelrollen.py`.
+Welk modelprofiel Lex per rol gebruikt (besluit gebruiker 15 nov 2026: configureerbaar in het beheer, zonder code of env).
+
+- **De rollen staan in de code**, in `bronmodel.modelrollen` (naam, label, groep, beschrijving, waarschuwing): de waarden
+  van `llm_stap.Rol` van graph-qa plus `subagent`. graph-qa `tests/test_modelkeuze.py` maakt verschil rood.
+- **Een rij ontbreekt = de rol volgt het standaardprofiel** (tabel `modelrollen`, rol → profielnaam). Zonder keuze en met
+  een standaardprofiel gelijk aan `LLM_MODEL` verandert er voor Lex dus niets. Elke wijziging is een regel in
+  `modelrol_audit` (`gekozen` of `standaard`, `details: {was, wordt}`), append-only; dezelfde keuze nog eens niet.
+- **Lex neemt alleen de modelnaam over**; endpoint en sleutel blijven die van de straat. Een profiel is daarom alleen
+  te kiezen als `bronmodel.modelrollen.bruikbaar_voor_lex` niets zegt: een model dat met `claude-` begint, en een
+  `api_base` die leeg is of gelijk aan `LLM_API_BASE` (422 `niet_bruikbaar`). Wordt een gekozen profiel later
+  onbruikbaar (ander endpoint) of verdwijnt het, dan laat `voor_de_agent` de rol weg en volgt ze de standaard; de
+  beheertab toont `niet_bruikbaar`.
+- **Een gekozen profiel verwijderen weigert** (`profiles.delete_profile`, 409 met de rollen): anders viel een rol stil
+  terug. Geen foreign key: de toets staat in dezelfde transactie als het verwijderen.
+- `GET /v1/admin/modelrollen` (admin-token): per rol het profiel, het model dat Lex nu krijgt, `niet_bruikbaar`, wie en
+  wanneer; plus de standaard en per profiel of Lex het kan gebruiken (`profielen`). `GET …/{rol}/audit`.
+- `PUT /v1/admin/modelrollen/{rol}` `{profiel | null}`: een beheerder mét 2FA uit de sessie (`beheerder_met_2fa`), zoals
+  de connectors; de admin-MCP leest alleen (`list_modelrollen`, `modelrol_audit`).
+- `GET /v1/modelrollen` (`require_client`, in `agent_toegang.TOEGESTAAN`): `{standaard: {profiel, model} | null, rollen:
+  {rol: {profiel, model}}}`, alleen wat bruikbaar is. graph-qa leest het per beurt met een cache van een minuut.
+- De temperature van een profiel stuurt Lex niet (de nieuwste modellen weigeren sampling-parameters); dat blijft zo.
+- Tests: `tests/test_modelrollen.py`.
 
 ## Voorstellen voor de methode (ADR-014 C7)
 

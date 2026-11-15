@@ -734,6 +734,33 @@ connector_audit = Table(
     Index("ix_connector_audit_naam", "naam", "id"),
 )
 
+# Het modelprofiel per rol van Lex: welke rollen er zijn, staat in de code (`bronmodel.modelrollen`); een rij ontbreekt =
+# de rol volgt het standaardprofiel. Graph-qa leest de stand (`GET /v1/modelrollen`) en neemt alleen de modelnaam over.
+# Geen foreign key naar `llm_profiles`: het verwijderen van een profiel dat een rol gebruikt weigert de code met een
+# melding die de rollen noemt (`profiles.delete_profile`).
+modelrollen = Table(
+    "modelrollen",
+    metadata,
+    Column("rol", String(64), primary_key=True),
+    Column("profiel", String(128), nullable=False),
+    Column("door", String(128), nullable=False, default=""),
+    Column("bijgewerkt", _DT, nullable=False),
+)
+
+# Wie welk profiel aan een rol gaf, append-only (zoals `connector_audit`). `details` = {"was": …, "wordt": …}, met
+# `null` voor het standaardprofiel.
+modelrol_audit = Table(
+    "modelrol_audit",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("rol", String(64), nullable=False),
+    Column("actie", String(32), nullable=False),
+    Column("door", String(128), nullable=False),
+    Column("details", _JSON, nullable=False, default=dict),
+    Column("tijdstip", _DT, nullable=False),
+    Index("ix_modelrol_audit_rol", "rol", "id"),
+)
+
 # De werkplaats (ADR-016 deel B): wat een gebruiker zelf maakt. Eén levenscyclus voor elke soort (skill, agentprofiel,
 # later een MCP-server): geen tabel per soort; wat een soort is, staat in `bronmodel.werkplaats`. Een onderdeel heeft een
 # eigenaar; de naam is uniek per soort en eigenaar zolang het niet is ingetrokken (in code bewaakt, binnen de

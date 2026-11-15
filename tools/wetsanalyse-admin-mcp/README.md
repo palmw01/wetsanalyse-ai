@@ -16,6 +16,7 @@ het token wordt nooit gelogd.
 |---|---|---|
 | annotatiekwaliteit | `annotatie_statistiek` (optioneel `limit`), `annotatie_graafcontrole` (optioneel `shacl`) | `GET /v1/admin/annotatie-statistiek`, `GET /v1/admin/annotatie/graafcontrole` |
 | modelprofielen | `list_profiles`, `get_profile`, `upsert_profile`, `set_default_profile`, `test_profile`, `delete_profile` | `/v1/admin/profiles[/{name}[/default\|/test]]` |
+| model per rol (alleen lezen) | `list_modelrollen`, `modelrol_audit` | `/v1/admin/modelrollen[/{rol}/audit]` |
 | gebruikers | `list_users`, `create_user` (rol default `analist`), `patch_user` (rol en/of `active`) | `/v1/admin/users[/{userid}]` |
 | API-tokens | `list_api_tokens` (alleen metadata, nooit het token; ook accounttokens, scope `gebruiker`) | `GET /v1/admin/api-tokens` |
 

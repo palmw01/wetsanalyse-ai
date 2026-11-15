@@ -27,10 +27,10 @@ export function BlokKop({ id, titel, telling, toelichting, acties, niveau = 2, c
   telling?: React.ReactNode;
   toelichting?: React.ReactNode;
   acties?: React.ReactNode;
-  niveau?: 2 | 3;
+  niveau?: 2 | 3 | 4;
   className?: string;
 }) {
-  const Kop = niveau === 3 ? "h3" : "h2";
+  const Kop = niveau === 4 ? "h4" : niveau === 3 ? "h3" : "h2";
   return (
     <div data-blokkop className={`flex items-start justify-between gap-3 ${className}`}>
       <div className="min-w-0">

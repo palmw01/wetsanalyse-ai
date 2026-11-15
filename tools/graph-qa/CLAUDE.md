@@ -312,7 +312,8 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     `subagent_model`: `LLM_MODEL_LICHT`, anders `LLM_MODEL_ROUTER`, anders `LLM_MODEL` met de logregel `subagent_model`).
     Faalt het lichte model met een 400 of 404, dan draait de ronde opnieuw op `LLM_MODEL` en de rest van het proces ook
     (`_LICHT_KAPOT`), zodat het voorvoegsel van het kind per model vast blijft. De centrale agent en elke specialist van de
-    supervisor houden hun model. Het model van het kind staat in `regie_taak`, in de afloop van het kind in het eind-event van de regie (`Afloop.modellen`) en in de meetsamenvatting (`kind_modellen`, uit beide);
+    supervisor houden hun model. Een keuze in het beheer voor de rol `subagent` gaat hier nog voor (`modelkeuze`, de
+    `modelrol` in het kader; zie *Het modelprofiel per rol*). Het model van het kind staat in `regie_taak`, in de afloop van het kind in het eind-event van de regie (`Afloop.modellen`) en in de meetsamenvatting (`kind_modellen`, uit beide);
   - **routes in code naar delegatie** (meting 14 nov 2026): "vat per uitspraak/stuk/Kamerstuk samen …" met een bron naast
     de wet aan gaat zonder model naar de node `subagent_route` (`nodes/subagent_route.py`, `past`): een subagent
     `algemeen` met de vraag als doel, daarna vat de centrale agent het rapport samen (`State.rapporten`). Een vraag die een
@@ -566,6 +567,24 @@ bruikbaar is.
   eigen `Rol` en een scenario in `tests/test_modelverzoeken.py`: dat legt elk verzoek byte voor byte vast.
   `tests/test_methoderollen.py` eist dat elke methoderol uit de skill een aanroep heeft, dat elke `Rol` gebruikt wordt
   en dat niemand buiten de adapter en de stap `llm.create` of `llm.stream` aanroept.
+- **Het modelprofiel per rol** (`agent/modelkeuze.py`; api §*Model per rol van Lex*). De beheerder kiest per rol een
+  modelprofiel (Instellingen → Beheer → Modelprofielen). De rollen zijn de waarden van `Rol` plus `subagent`
+  (`bronmodel.modelrollen`, `tests/test_modelkeuze.py` toetst dat ze gelijk blijven). Lex neemt alleen de modelnaam
+  over: endpoint en sleutel blijven `AZURE_FOUNDRY_*`.
+  - **Eén plek**: `llm_stap.aanroep` en `llm_stap.stroom` vragen vlak voor de aanroep `modelkeuze.kies(sleutel,
+    gevraagd)`. De sleutel is de rol, of `kader["modelrol"]` (alleen `agentvorm.Subagent` zet `subagent`). Een aanroeper
+    weet er niets van; zonder stand is het verzoek byte-gelijk (`tests/test_modelverzoeken.py`).
+  - **Voorrang**: de keuze voor de rol; anders vervangt het standaardprofiel alleen het gewone model (`gevraagd ==
+    Settings.llm_model`), dus een eigen env-knop (`LLM_MODEL_ROUTER`, `_OPHAAL`, `_LICHT`) blijft wat hij was.
+  - **Lezen**: `modelkeuze.ververs` in `api.main.start_beurt`, hoogstens elke `VERS_S` (60 s), met `TIMEOUT_S`; een
+    onleesbare api houdt de vorige stand, zonder stand geldt de env. Alleen een `claude-`-model telt.
+  - **Een model dat de straat niet heeft** (404, of 400 over het model) valt terug op het gevraagde model, voor de rest
+    van het proces (`_KAPOT`, logregel `modelprofiel_terugval`).
+  - **De logregel `model_aanroep`** draagt `modelprofiel` en `modelbron` (`rol`, `standaard`, `env`, `terugval`).
+  - **De herkomst van een annotatie noemt het echte model**: `run.model` en `prov.model` zijn het model van
+    `jas_classifier` (`modelkeuze.model_voor`), en `run.instellingen.reviewer_model` dat van de reviewer.
+  - Waar een id of cachesleutel `settings.llm_model` draagt (`werkvoorraad_id`, de begrippenbatches), staat nog het
+    env-model: die sleutels gaan over de werkvoorraad, niet over de herkomst.
 - **`adapters/graphdb_graph.py`** – `make_graph(settings)` → `MCPClient`; roept `require_graph()`.
 - **`mcp_client.py`** – synchrone MCP-client (Streamable HTTP): `sparql()` via `sparql_query`,
   `semantic_search()` via `similarity_search`, één persistente `httpx.Client`. `_reject_updates`

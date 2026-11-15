@@ -313,6 +313,8 @@ Secrets kunnen ook als `<NAAM>_FILE` (pad naar een bestand) worden gezet: `GRAPH
 | `AGENT_VERSION` | pakketversie | Versie in de herkomst van een annotatie. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | leeg | OTLP-endpoint; leeg = alleen JSON-logs. Ook `OTEL_EXPORTER_OTLP_PROTOCOL`, `OTEL_SERVICE_NAME`, `LOG_FORMAT`, `LOG_LEVEL`. |
 
+Een modelprofiel per rol kies je in het beheer (Instellingen → Beheer → Modelprofielen, *Model per rol*); dat gaat voor de env-waarden in deze tabel en geldt binnen een minuut (`agent/modelkeuze.py`). Lex neemt van zo'n profiel alleen de modelnaam over.
+
 ## Uitrol
 
 Het image wordt vanaf de **projectroot** gebouwd (het neemt `packages/bronmodel` en de skill mee), door

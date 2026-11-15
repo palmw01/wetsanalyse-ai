@@ -182,6 +182,10 @@ class WetsanalyseApi:
         """De bronconnectors die de beheerder heeft aangezet (ADR-013, `GET /v1/connectors`)."""
         return list((await self._haal("/v1/connectors")).get("aan") or [])
 
+    async def modelrollen(self) -> dict[str, Any]:
+        """Het modelprofiel per rol dat de beheerder koos (`GET /v1/modelrollen`, `agent/modelkeuze.py`)."""
+        return await self._haal("/v1/modelrollen")
+
     async def haal_werkgebied(self, werkgebied_id: str) -> dict[str, Any]:
         return await self._haal(self._werkgebied_pad(werkgebied_id))
 
