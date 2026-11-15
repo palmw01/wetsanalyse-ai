@@ -1,5 +1,6 @@
 "use client";
 
+import { KOPIEER_MISLUKT, KOPIEER_MISLUKT_KORT, useKopieer } from "@/lib/kopieer";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { useEffect, useState } from "react";
 import { foutTekst } from "@/lib/api";
@@ -113,7 +114,7 @@ const TOON = { goed: "neutraal", neutraal: "neutraal", aandacht: "geel" } as con
 function GraafDetail({ id }: { id: string }) {
   const [data, setData] = useState<ElementGraaf>();
   const [fout, setFout] = useState("");
-  const [gekopieerd, setGekopieerd] = useState(false);
+  const { stand: kopie, kopieer } = useKopieer();
   useEffect(() => {
     let weg = false;
     haalElementGraaf(id).then((d) => { if (!weg) setData(d); }, (e) => { if (!weg) setFout(foutTekst(e)); });
@@ -128,8 +129,8 @@ function GraafDetail({ id }: { id: string }) {
     <p className={`${KOP} mt-1 flex items-center gap-2`}>
       RDF (Turtle)
       <button type="button" className="focus-ring rounded text-[11px] font-normal text-lint underline underline-offset-2 hover:no-underline"
-        onClick={() => { void navigator.clipboard?.writeText(data.turtle).then(() => setGekopieerd(true), () => {}); }}>
-        {gekopieerd ? "Gekopieerd" : "Kopiëren"}
+        onClick={() => void kopieer(data.turtle)} title={kopie === "mislukt" ? KOPIEER_MISLUKT : undefined}>
+        {kopie === "gekopieerd" ? "Gekopieerd" : kopie === "mislukt" ? KOPIEER_MISLUKT_KORT : "Kopiëren"}
       </button>
     </p>
     <pre className="mt-0.5 max-h-60 overflow-auto whitespace-pre-wrap break-words rounded bg-surface p-2 text-[11px] text-ink">{data.turtle}</pre>

@@ -206,6 +206,11 @@ rekent bewust in lokale kalenderdagen.
 zijn `Denkt` (`components/ui/Denkt.tsx`), bij een antwoord dat nog geen tekst heeft en bij een vraagkaart die nadenkt. Beweging
 alleen met `motion-safe:`. Geen eigen stippenrij; de ene stip van een lopend denkproces is een stand, geen wachten.
 
+**Kopiëren naar het klembord** (generieke componenten, 15 nov 2026; `app/kopieer.test.ts`) gaat via `lib/kopieer.ts`:
+`useKopieer` voor een knop (de stand gekopieerd of mislukt, na 1,5 s terug, of blijvend met `null` bij een eenmalig token)
+en `kopieerNaarKlembord` voor een menuregel. Een mislukte kopie zegt het altijd, met `KOPIEER_MISLUKT` (of `_KORT` in de
+knop zelf). Niemand anders roept `navigator.clipboard` aan.
+
 **De graaf van een bron** (ontdubbelen PR 1): één `useBronGraaf` + `BronGraaf` (`components/wettekst/BronGraaf.tsx`) voor
 het venster naast het gesprek, de bronpagina en de annotatie, met één keuze Tekst | Graaf (`WeergaveBalk`). Alleen de tab
 Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` nog zelf aan.

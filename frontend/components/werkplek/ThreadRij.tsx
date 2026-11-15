@@ -9,7 +9,7 @@
 // één `acties`-object dat `WerkplekClient` één keer maakt (zie `useThreadActies` daar), en per rij
 // alleen het eigen document en de eigen vlaggen – niet de hele `docs`-map.
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 
 import { GraafIcoon } from "@/components/graaf/GraafIcoon";
 import { Antwoord } from "@/components/antwoord/Antwoord";
@@ -36,6 +36,7 @@ import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
 import { kaartenVan, normaliseerBronnen, zonderKaarten } from "@/lib/bronnen";
 import { overzichtAlsMarkdown, telling } from "@/lib/overzicht";
 import { beurtSamenvatting } from "@/lib/waarom";
+import { KOPIEER_MISLUKT, KOPIEER_MISLUKT_KORT, useKopieer } from "@/lib/kopieer";
 import type { ThreadItem } from "@/lib/threadItem";
 import { ANNOTEER_PROMPT, PLAFOND, bepalingen, deelgesprekken, regiePrompt, type BevestigingKeuze } from "@/lib/werkgebiedAnnoteren";
 import { MEEDENK_PROMPT } from "@/lib/begripVoorstellen";
@@ -495,37 +496,17 @@ function LexAvatar() {
 
 /** Kopieert de letterlijke antwoordtekst; toont kort "Gekopieerd". Subtiel, hover-onthullend op desktop. */
 function KopieerKnop({ tekst }: { tekst: string }) {
-  const [gekopieerd, setGekopieerd] = useState(false);
-  const [mislukt, setMislukt] = useState(false);
-  // De "Gekopieerd"-melding weer weghalen, en de timer opruimen als het bericht ondertussen
-  // verdwijnt (bv. bij het wisselen van gesprek).
-  useEffect(() => {
-    if (!gekopieerd) return;
-    const id = window.setTimeout(() => setGekopieerd(false), 1500);
-    return () => window.clearTimeout(id);
-  }, [gekopieerd]);
-
-  async function kopieer() {
-    try {
-      await navigator.clipboard.writeText(tekst);
-      setGekopieerd(true);
-      setMislukt(false);
-    } catch {
-      // Het klembord is niet overal beschikbaar (onbeveiligde origin, geweigerde toestemming). Een
-      // klik waar niets van gebeurt leest als een kapotte knop – zeg dus dat het niet lukte.
-      setMislukt(true);
-    }
-  }
+  const { stand, kopieer } = useKopieer();
   return (
     <button
       type="button"
-      onClick={kopieer}
+      onClick={() => void kopieer(tekst)}
       aria-label="Antwoord kopiëren"
       className="mt-2 inline-flex items-center gap-1.5 rounded px-1.5 py-1 text-xs text-muted transition-opacity hover:text-lint focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 coarse:opacity-100"
     >
-      {mislukt ? (
-        <span className="text-fout">Kopiëren lukte niet</span>
-      ) : gekopieerd ? (
+      {stand === "mislukt" ? (
+        <span className="text-fout" title={KOPIEER_MISLUKT}>{KOPIEER_MISLUKT_KORT}</span>
+      ) : stand === "gekopieerd" ? (
         <>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M20 6 9 17l-5-5" />

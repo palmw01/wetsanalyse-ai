@@ -1,5 +1,6 @@
 "use client";
 
+import { KOPIEER_MISLUKT, kopieerNaarKlembord } from "@/lib/kopieer";
 import { useState } from "react";
 
 import { knopKlasse } from "@/components/ui/Button";
@@ -55,14 +56,17 @@ export function ExportRegels({ onFout, onDownload, formaten = FORMATEN, markdown
     try {
       const tekst = await markdown();
       if (hoe === "kopie") {
-        await navigator.clipboard.writeText(tekst);
+        if (!await kopieerNaarKlembord(tekst)) {
+          onFout(KOPIEER_MISLUKT);
+          return;
+        }
         onGekopieerd?.();
       } else {
         downloadTekst(tekst, bestandsnaam(kopVan(tekst) || titel), "text/markdown");
       }
       sluit();
     } catch (e) {
-      onFout(hoe === "kopie" ? "Kopiëren lukte niet (het klembord is hier niet beschikbaar)." : foutTekst(e, "Exporteren is niet gelukt."));
+      onFout(hoe === "kopie" ? KOPIEER_MISLUKT : foutTekst(e, "Exporteren is niet gelukt."));
     } finally {
       setBezig(null);
     }
