@@ -52,8 +52,9 @@ AGENTSET = _set("golden_centrale_agent.jsonl")
 # 1. Delegatie ----------------------------------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("id, profielen", [
-    ("S01", ["algemeen"]), ("S03", ["duiding"]), ("S04", ["duiding"]), ("S05", ["algemeen"]),
-    ("M01", ["duiding"] * 3), ("M06", ["algemeen"] * 3),
+    ("S01", ["rechtspraak_lezen"]), ("S03", ["bepalingen_duiden"]), ("S04", ["bepalingen_duiden"]),
+    ("S05", ["wetsgeschiedenis_lezen"]), ("M01", ["bepalingen_duiden"] * 3),
+    ("M06", ["wetsgeschiedenis_lezen", "wetsgeschiedenis_lezen", "rechtspraak_lezen"]),
 ])
 def test_een_opdracht_die_de_set_aan_subagents_geeft_herkent_de_code(id, profielen):
     rij = AGENTSET[id]
@@ -129,7 +130,7 @@ def test_de_supervisor_legt_meer_subagents_zonder_model_voor(monkeypatch):
              "bronstand": AAN, "gesprek_id": "g1"}
     upd = supervisie._kies(_bouw(), state)
     assert upd["specialist"] == "subagent_plan" and supervisie._entry_node(_bouw(), upd) == "subagent_plan"
-    assert [o["profiel"] for o in upd["subagent_plan"]] == ["duiding"] * 3
+    assert [o["profiel"] for o in upd["subagent_plan"]] == ["bepalingen_duiden"] * 3
     # Kan er geen kind starten (geen gesprek), dan beantwoordt de centrale agent de vraag zelf.
     upd = supervisie._kies(_bouw(), {**state, "gesprek_id": ""})
     assert upd["specialist"] == "centraal"
@@ -141,7 +142,7 @@ def test_de_supervisor_geeft_een_reeks_in_de_graaf_aan_een_subagent(monkeypatch)
     state = {**STATE, "question": AGENTSET["S03"]["opdracht"], "modus": "auto", "agentvorm": "centraal",
              "bronstand": {}, "gesprek_id": "g1"}
     upd = supervisie._kies(_bouw(), state)
-    assert upd["specialist"] == "subagent_route" and upd["subagent_plan"][0]["profiel"] == "duiding"
+    assert upd["specialist"] == "subagent_route" and upd["subagent_plan"][0]["profiel"] == "bepalingen_duiden"
     assert upd["subagent_plan"][0]["opdracht"]["doel"] == AGENTSET["S03"]["opdracht"]
 
 

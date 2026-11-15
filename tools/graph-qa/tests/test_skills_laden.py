@@ -47,3 +47,33 @@ def test_laden_is_methode_en_geen_bron(monkeypatch):
     assert any(e.get("type") == "status" and "Methode" in str(e) for e in events)
     fout = overdracht.overdracht_node(SimpleNamespace(), {"pending_tools": [{**tu, "input": {"skill": "x"}}]})
     assert fout["messages"][0]["content"][0]["is_error"]
+
+
+def test_een_profiel_met_skills_krijgt_hun_kern_vooraf_na_zijn_instructie(monkeypatch):
+    """ADR-016 §A2 niveau 2: `skills` in een profiel laadt de kern in het vaste voorvoegsel. Geen profiel in de repo
+    doet dat nog, dus elke systeemtekst blijft wat hij was."""
+    from agent import agentvorm, profielen
+
+    assert all(not p.skills for p in profielen.PROFIELEN.values())
+    assert all(agentvorm.agent_voor(n).skills_vooraf == "" for n in profielen.PROFIELEN)
+    met = profielen.PROFIELEN["algemeen"].model_copy(update={"skills": ("wetsanalyse",)})
+    monkeypatch.setitem(profielen.PROFIELEN, "algemeen", met)
+    agent = agentvorm.agent_voor("algemeen")
+    tekst = agent.systeemtekst
+    assert tekst.endswith(skills.kern("wetsanalyse"))
+    assert tekst.index(met.instructie) < tekst.index("SKILL wetsanalyse (methode, geen bron)")
+    kind = agentvorm.agent_voor("algemeen", subagent=True)
+    assert kind.systeemtekst.index("JE BENT EEN SUBAGENT") < kind.systeemtekst.index("SKILL wetsanalyse")
+
+
+def test_een_skill_vooraf_moet_van_de_methode_van_de_rol_zijn():
+    """De methodes blijven gescheiden: een profiel met een rol van wetsanalyse laadt wetsuitvoering niet vooraf."""
+    from bronmodel.agentprofiel import toets
+
+    from agent import profielen
+
+    g = profielen.grenzen()
+    p = profielen.PROFIELEN["algemeen"]
+    assert toets(p.model_copy(update={"skills": ("wetsanalyse",)}), g) == []
+    fout = toets(p.model_copy(update={"skills": ("wetsuitvoering",)}), g)
+    assert [b.code for b in fout] == ["skills"] and "andere methode" in fout[0].melding

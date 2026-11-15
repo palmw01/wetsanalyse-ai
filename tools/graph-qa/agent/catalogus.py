@@ -25,7 +25,7 @@ from bronmodel.catalogus import EIGEN, NEUTRAAL, Herkomst, Onderdeel, Stap, oid,
 from bronmodel.connectors import CONNECTORS, ConnectorBeschrijving
 
 from . import bronnen_vinden, bronpakket, bronselectie, profielen, werkgebied_intake
-from .agentvorm import CENTRAAL, CENTRAAL_BREED
+from .agentvorm import CENTRAAL, CENTRAAL_BREED, Agent
 from .agents.register import AGENTS, NAAM
 from .begrippen_pipeline import keten as begrippenketen
 from .jas_pipeline import keten as annotatieketen
@@ -134,8 +134,12 @@ def uit_agentprofielen() -> list[Onderdeel]:
                           *(oid("sjabloon", s) for s in sorted(_sjablonen_van(p))),
                           *(oid("connector", c) for c in CONNECTORS if c in p.connectors),
                           *(oid("tool", t) for t in tools), *ANTWOORD_CONTROLES),
-            inhoud={"systeemtekst": p.instructie, "kiesbaar": p.kiesbaar, "modelklasse": p.modelklasse,
-                    "plek": profielplek(naam), **(_centraal_inhoud(naam) if naam in (CENTRAAL, CENTRAAL_BREED) else {})},
+            inhoud={"systeemtekst": p.instructie, "kiesbaar": p.kiesbaar,
+                    "skills": list(p.skills),
+                    # De grenzen gelden alleen voor een subagent, dus alleen voor een kiesbaar profiel.
+                    **({"max_rondes": Agent(p).max_rondes, "budget": Agent(p).budget} if p.kiesbaar else {}),
+                    "plek": profielplek(naam),
+                    **(_centraal_inhoud(naam) if naam in (CENTRAAL, CENTRAAL_BREED) else {})},
         ))
     return uit
 
@@ -629,6 +633,10 @@ PROFIELPLEK: dict[str, dict[str, Any]] = {
     "specialist": {"label": "Specialist van de supervisor, en profiel van een subagent",
                    "ingang": ("de supervisor kiest het (CENTRALE_AGENT uit of meten)",
                               "de overdracht subagent van de centrale agent (een kiesbaar profiel)")},
+    "subagent": {"label": "Profiel van een subagent",
+                 "ingang": ("de overdracht subagent van de centrale agent (een kiesbaar profiel)",)},
+    "supervisor": {"label": "Specialist van de supervisor, en profiel van een route in code",
+                   "ingang": ("de supervisor kiest het (CENTRALE_AGENT uit of meten)", "een route in code")},
     "route": {"label": "Profiel van een route in code", "ingang": ("een route in code",)},
     "ophaal": {"label": "De ophaal-agent van de annotatieketen", "ingang": ("de annotatieketen en de regie",)},
     "onbekend": {"label": "Zonder plek", "ingang": ("een route in code",)},
@@ -636,13 +644,15 @@ PROFIELPLEK: dict[str, dict[str, Any]] = {
 
 
 def profielplek(naam: str) -> str | None:
-    """De plek van een profiel, afgeleid: de vorm van de centrale agent, kiesbaar (de supervisor en de subagents), het
-    doel van een route, of de rol van de ophaal-agent. Een profiel zonder plek is `None`."""
+    """De plek van een profiel, afgeleid: de vorm van de centrale agent, de supervisor en/of de subagents, het doel van
+    een route, of de rol van de ophaal-agent. Een profiel zonder plek is `None`."""
     from .routes import ROUTES
     if naam in (CENTRAAL, CENTRAAL_BREED):
         return naam
-    if naam in profielen.KIESBAAR:
-        return "specialist"
+    from .supervisor import _QA_SPECIALISTS
+    kiesbaar, supervisor = naam in profielen.KIESBAAR, naam in _QA_SPECIALISTS
+    if kiesbaar or supervisor:
+        return "specialist" if kiesbaar and supervisor else "subagent" if kiesbaar else "supervisor"
     if oid("agentprofiel", naam) in {r.doel for r in ROUTES}:
         return "route"
     p = profielen.PROFIELEN.get(naam)

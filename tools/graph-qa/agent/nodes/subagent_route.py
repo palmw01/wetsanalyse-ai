@@ -8,8 +8,8 @@ M01 en M06 begonnen zonder bevestiging. De vorm van zulke opdrachten ligt vast, 
 start de subagents zonder modelronde, met de vraag van de jurist als doel: die is de volledige opdracht.
 
 - **Eén subagent**: een reeks die doorlopen moet worden. Per uitspraak, Kamerstuk of publicatie iets samenvatten, of
-  wat een bron naast de wet zegt per deelvraag van het werkgebied (V03; profiel `algemeen`), of per artikel of
-  onderdeel van een hoofdstuk of een beleidsregel (de graaf, profiel `duiding`). Daarna gaat de beurt naar de centrale agent, met het rapport als gegeven in de context van de
+  wat een bron naast de wet zegt per deelvraag van het werkgebied (V03), met het taakprofiel van die bron
+  (`PROFIEL_VAN`), of per artikel of onderdeel van een hoofdstuk of een beleidsregel (de graaf, `bepalingen_duiden`). Daarna gaat de beurt naar de centrale agent, met het rapport als gegeven in de context van de
   beurt (`State.rapporten`, zoals na een klik op een vraagkaart), en die vat het samen. Heeft de subagent een vraag,
   dan sluit `finalize_node` af met de kaart.
 - **Twee of drie**: delen die naast elkaar kunnen. Per bron naast de wet (de rechtspraak, de Kamerstukken en het
@@ -38,10 +38,17 @@ from ..narratie import _stap
 from ..state import State
 from .context import Bouw
 
-#: Het profiel voor stukken uit een bron naast de wet (zoals de instructie van de centrale agent het noemt).
+#: Het brede profiel: voor een bron zonder taakprofiel, of een reeks die over meer soorten bronnen gaat.
 PROFIEL = "algemeen"
-#: Het profiel voor uitleg bij bepalingen in de graaf.
-DUIDING = "duiding"
+#: Het profiel voor een reeks bepalingen in de graaf (plan docs/architectuur/plan-agentprofielen.md).
+DUIDING = "bepalingen_duiden"
+RECHTSPRAAK, WETSGESCHIEDENIS = "rechtspraak_lezen", "wetsgeschiedenis_lezen"
+#: Per connector het taakprofiel dat hem leest. Een connector die hier niet staat, leest `algemeen`.
+PROFIEL_VAN = {"rechtspraak": RECHTSPRAAK, "kamerstukken": WETSGESCHIEDENIS, "bekendmakingen": WETSGESCHIEDENIS}
+#: Zonder herkende bron zegt het soort stuk in de vraag welk taakprofiel het is ("vat per uitspraak samen", S01).
+_SOORT_STUK = ((re.compile(r"\b(?:uitspra\w*|arrest\w*|vonnis\w*|conclusie\w*)\b", re.I), RECHTSPRAAK),
+               (re.compile(r"\b(?:kamerstuk\w*|memorie\w*|bekendmaking\w*|staatsblad|staatscourant)\b", re.I),
+                WETSGESCHIEDENIS))
 
 _STUK = r"(?:uitspraak|uitspraken|arrest|arresten|vonnis|vonnissen|kamerstuk|kamerstukken|stuk|stukken|publicatie|" \
         r"publicaties|bekendmaking|bekendmakingen)"
@@ -81,9 +88,19 @@ def _deel(vraag: str, wat: str, anderen: list[str], *, oplevering: str, bronnen:
         buiten=("Dit doen andere subagents: " + ", ".join(anderen) + ".") if anderen else "")
 
 
+def profiel_voor(vraag: str, aan: list[str]) -> str:
+    """Het taakprofiel voor één reeks: dat van de bronnen die de vraag noemt als ze er één delen, anders dat van het
+    soort stuk dat de vraag noemt, anders het brede profiel."""
+    if aan:
+        profielen = {PROFIEL_VAN.get(n, PROFIEL) for n in aan}
+        return profielen.pop() if len(profielen) == 1 else PROFIEL
+    soorten = {p for patroon, p in _SOORT_STUK if patroon.search(vraag)}
+    return soorten.pop() if len(soorten) == 1 else PROFIEL
+
+
 def _per_bron(vraag: str, aan: list[str], bronstand: dict[str, Any]) -> Plan:
     label = {n: (bronstand.get(n) or {}).get("label") or n for n in aan}
-    return [(PROFIEL, _deel(vraag, f"de bron {label[n]}", [label[m] for m in aan if m != n], bronnen=label[n],
+    return [(PROFIEL_VAN.get(n, PROFIEL), _deel(vraag, f"de bron {label[n]}", [label[m] for m in aan if m != n], bronnen=label[n],
                             oplevering="Per gelezen stuk (met zijn id) de kern, met de passages die haar dragen."))
             for n in aan]
 
@@ -121,12 +138,12 @@ def plan(vraag: str, bronstand: dict[str, Any] | None, regelingen: Regelingen | 
     een = SubagentOpdracht(doel=vraag, oplevering="Per stuk de kern, met de passages die haar dragen.")
     bron_aan = any((s or {}).get("aan") for s in stand.values())
     if bron_aan and _PER_STUK.search(vraag) and _SAMENVATTEN.search(vraag):
-        return [(PROFIEL, een)]
+        return [(profiel_voor(vraag, aan), een)]
     if aan and _STUKKEN.search(vraag) and _ELK.search(vraag) and _WAT_ELK.search(vraag):
-        return [(PROFIEL, een)]
+        return [(profiel_voor(vraag, aan), een)]
     if aan and _PER_DEELVRAAG.search(vraag) and _SAMENVATTEN.search(vraag):
         # De subagent krijgt het werkgebied van de beurt mee (`subagent.voer_uit`): de deelvragen en het zoekbereik.
-        return [(PROFIEL, SubagentOpdracht(
+        return [(profiel_voor(vraag, aan), SubagentOpdracht(
             doel=vraag, oplevering="Per deelvraag van het werkgebied de kern uit de gelezen stukken, elk met zijn id en "
                                    "de passages die haar dragen; noem een deelvraag waarvoor je niets vond."))]
     if _PER_DEEL.search(vraag) and _REEKS_GRAAF.search(vraag) and not aan:

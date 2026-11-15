@@ -105,6 +105,7 @@ function AgentDetail({ id, alle, modellen, onTerug }: { id: string; alle: Onderd
   const sjablonen = o ? afhankelijk(o, "sjabloon") : [];
   const methodes = o ? afhankelijk(o, "methode") : [];
   const rol = o ? afhankelijk(o, "rol")[0] : undefined;
+  const grens = o ? grenzen(o.inhoud) : null;
   return (
     <AanpassingDetail terug="Agents" onTerug={onTerug} laden={!o} fout={fout} titel={o?.label} sub={o?.doel}
       status={o && <><span>versie <span className="font-mono">{o.versie}</span></span>{!o.aan && <StatusLabel>hier uit</StatusLabel>}</>}>
@@ -116,6 +117,17 @@ function AgentDetail({ id, alle, modellen, onTerug }: { id: string; alle: Onderd
                 <div className="space-y-2"><ModelKeuzeVeld m={modellen} sleutel={sleutelVanProfiel(o.id)} label={o.label} />
                   <ModelKeuzeMelding m={modellen} sleutel={sleutelVanProfiel(o.id)} /></div>
               </Regel>
+              {grens?.kiesbaar !== undefined && (
+                <Regel naam="Ingezet">{grens.kiesbaar
+                  ? "als subagent: de centrale agent kiest het op zijn beschrijving"
+                  : "niet als subagent: de centrale agent of een route in code zet het in"}</Regel>
+              )}
+              {grens?.rondes && (
+                <Regel naam="Grenzen">
+                  hoogstens {grens.rondes} rondes{grens.budget ? `, ongeveer ${grens.budget.toLocaleString("nl-NL")} tokens` : ""}
+                </Regel>
+              )}
+              {grens?.skills && <Regel naam="Skills vooraf">{grens.skills.length ? grens.skills.join(", ") : "geen"}</Regel>}
               <Regel naam="Methode">
                 {methodes.length ? methodes.map((m, i) => (
                   <span key={m}>{i > 0 && ", "}<NaarTab tab="methodes" id={m}>{label(m)}</NaarTab></span>
@@ -124,7 +136,8 @@ function AgentDetail({ id, alle, modellen, onTerug }: { id: string; alle: Onderd
               </Regel>
               <Regel naam="Connectors">{connectors.length ? connectors.map((c, i) => (
                 <span key={c}>{i > 0 && ", "}{label(c)}</span>)) : "geen"}</Regel>
-              <Regel naam="Sjablonen">{sjablonen.length ? sjablonen.map(label).join(", ") : "geen: antwoordt in vrije tekst"}</Regel>
+              <Regel naam="Sjablonen">{sjablonen.length ? sjablonen.map(label).join(", ")
+                : grens?.kiesbaar ? "geen: rondt als subagent af met het rapport" : "geen: antwoordt in vrije tekst"}</Regel>
               {o.uitvoer && <Regel naam="Levert">{o.uitvoer}</Regel>}
               {o.twijfel && <Regel naam="Bij twijfel">{o.twijfel}</Regel>}
             </Regels>
@@ -137,6 +150,21 @@ function AgentDetail({ id, alle, modellen, onTerug }: { id: string; alle: Onderd
       )}
     </AanpassingDetail>
   );
+}
+
+/** Wat een profiel als subagent mag (ADR-016 §A2), uit de catalogus: of de centrale agent het kiest, de rondegrens en
+ *  het tokenbudget (alleen bij een kiesbaar profiel) en de skills die het vooraf krijgt. Ontbreekt een veld, dan geen
+ *  regel. */
+export function grenzen(inhoud: Record<string, unknown>): {
+  kiesbaar?: boolean; rondes?: number; budget?: number; skills?: string[];
+} {
+  const getal = (x: unknown) => (typeof x === "number" && x > 0 ? x : undefined);
+  return {
+    kiesbaar: typeof inhoud.kiesbaar === "boolean" ? inhoud.kiesbaar : undefined,
+    rondes: getal(inhoud.max_rondes),
+    budget: getal(inhoud.budget),
+    skills: Array.isArray(inhoud.skills) ? inhoud.skills.filter((x): x is string => typeof x === "string") : undefined,
+  };
 }
 
 /** Een onderdeel in een andere tab van het venster: een tabwissel met het onderdeel open, geen navigatie. */

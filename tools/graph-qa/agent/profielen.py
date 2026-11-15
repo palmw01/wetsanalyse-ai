@@ -6,9 +6,8 @@ skills, de connectors en de sjablonen die de code aanbiedt. De profielen staan a
 objecten en toetst ze tegen de grenzen **voordat** er een agent uit wordt opgebouwd. Een profiel dat iets noemt wat
 niet bestaat, laat graph-qa niet starten.
 
-De specialisten van de supervisor zijn de eerste profielen; `specialists.SPECIALISTS` is hiervan afgeleid. `kiesbaar`
-zegt of een model het profiel mag kiezen: nu de supervisor, straks de centrale agent. Een profiel met `kiesbaar: false`
-is een stap van een route in code.
+`specialists.SPECIALISTS` is hiervan afgeleid. `kiesbaar` zegt of de centrale agent het profiel voor een subagent mag
+kiezen (ADR-016 §A2). Een profiel met `kiesbaar: false` is de centrale agent zelf of een stap van een route in code.
 """
 from __future__ import annotations
 
@@ -36,6 +35,12 @@ def rol_methodes(pakket: dict = PAKKET) -> dict[str, frozenset[str]]:
     return {rol: frozenset(pakket["secties"][s]["skill"] for s in secties) for rol, secties in pakket["rollen"].items()}
 
 
+#: Wat een profiel hoogstens mag vragen, ook een profiel uit de werkplaats (ADR-016 §A2, §B2 poort 1). Daarboven geldt
+#: het plafond van de opdracht (`subagent.DELEGATIE_AANDEEL`).
+MAX_RONDES_PROFIEL = 12
+MAX_BUDGET_PROFIEL = 400_000
+
+
 def grenzen() -> Grenzen:
     """Waaruit een profiel mag kiezen, uit de registers van graph-qa. De tools van een connector noemt een profiel niet
     met de hand: het noemt de connector, en krijgt dan zijn tools."""
@@ -48,6 +53,8 @@ def grenzen() -> Grenzen:
         methoderollen=frozenset(PAKKET["rollen"]),
         methode_tools={"wetsanalyse": TOOLS_VAN_WETSANALYSE},
         rol_methodes=rol_methodes(),
+        max_rondes=MAX_RONDES_PROFIEL,
+        budget=MAX_BUDGET_PROFIEL,
     )
 
 
@@ -59,8 +66,9 @@ def laad(register: dict = REGISTER) -> dict[str, Agentprofiel]:
 #: Elk profiel op naam, gevalideerd.
 PROFIELEN: dict[str, Agentprofiel] = laad()
 
-#: De profielen die een model mag kiezen, op naam.
+#: De profielen die de centrale agent voor een subagent mag kiezen, op naam.
 KIESBAAR: tuple[str, ...] = tuple(n for n, p in PROFIELEN.items() if p.kiesbaar)
+
 
 
 def versie(profiel: Agentprofiel) -> str:

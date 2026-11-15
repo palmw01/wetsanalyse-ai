@@ -203,11 +203,11 @@ def test_de_samenvatting_toetst_een_run_tegen_de_set():
 
     # Een subagent (ADR-016 §A3): dezelfde events als een regie met `soort: subagent`, en het profiel op het kind.
     sub = [{"type": "regie", "fase": "start", "soort": "subagent"},
-           {"type": "regie_taak", "fase": "start", "gesprek_id": "k1", "profiel": "algemeen"}]
+           {"type": "regie_taak", "fase": "start", "gesprek_id": "k1", "profiel": "rechtspraak_lezen"}]
     s = vat({"id": "S01", "run": 1, "beurten": [{"label": "gemeten", "events": sub}]}, PER_ID["S01"])
     assert s["route"] != "regie" and s["delegatie_past"] and "subagent" not in s["tools_ontbreken"]
-    assert s["kind_profielen"] == ["algemeen"] and s["profiel_past"] is True
-    sub[1]["profiel"] = "definitie"
+    assert s["kind_profielen"] == ["rechtspraak_lezen"] and s["profiel_past"] is True
+    sub[1]["profiel"] = "algemeen"  # S01 is rechtspraak: het taakprofiel, niet het brede
     assert vat({"id": "S01", "run": 1, "beurten": [{"label": "gemeten", "events": sub}]}, PER_ID["S01"])["profiel_past"] is False
 
 

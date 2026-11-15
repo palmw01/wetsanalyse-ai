@@ -582,7 +582,7 @@ def laatste_ronde(b: Any, state: State) -> str:
         return ""
     if state.get("turns", 0) >= max_rondes(b.settings, state) - 1:
         return "rondegrens"
-    if verbruikt(b.llm) + 2 * volgende_ronde(b.llm) >= MAX_TOKENS_SUBAGENT:
+    if verbruikt(b.llm) + 2 * volgende_ronde(b.llm) >= max_tokens(state):
         return "plafond"
     return ""
 
@@ -591,7 +591,7 @@ def voorbij_laatste(b: Any, state: State) -> bool:
     """Een subagent na zijn laatste ronde (of erover): er komt geen modelronde meer, ook niet na een geweigerd rapport."""
     return bool(state.get("opdracht")) and bool(
         state.get("laatste_gehad") or state.get("turns", 0) >= max_rondes(b.settings, state)
-        or verbruikt(b.llm) >= MAX_TOKENS_SUBAGENT)
+        or verbruikt(b.llm) >= max_tokens(state))
 
 
 def met_laatste_ronde(venster: list[dict[str, Any]], reden: str) -> list[dict[str, Any]]:
@@ -609,10 +609,19 @@ def met_laatste_ronde(venster: list[dict[str, Any]], reden: str) -> list[dict[st
 
 
 def max_rondes(settings: Any, state: State) -> int:
-    """Hoeveel modelrondes deze beurt heeft: een subagent `MAX_RONDES_SUBAGENT` (ADR-016 §A2), anders `max_turns`."""
-    from ..agentvorm import MAX_RONDES_SUBAGENT
+    """Hoeveel modelrondes deze beurt heeft: een subagent die van zijn profiel (`max_rondes`, ADR-016 §A2; zonder waarde
+    `MAX_RONDES_SUBAGENT`), anders `max_turns`. Nooit meer dan `max_turns`."""
+    from ..agentvorm import agent_van
 
-    return min(MAX_RONDES_SUBAGENT, settings.max_turns) if state.get("opdracht") else settings.max_turns
+    return min(agent_van(state).max_rondes, settings.max_turns) if state.get("opdracht") else settings.max_turns
+
+
+def max_tokens(state: State) -> int:
+    """Het tokenplafond van een subagent: het `budget` van zijn profiel (ADR-016 §A2), zonder waarde
+    `MAX_TOKENS_SUBAGENT`."""
+    from ..agentvorm import agent_van
+
+    return agent_van(state).budget
 
 
 def route_after_agent(b: Bouw, state: State) -> str:
