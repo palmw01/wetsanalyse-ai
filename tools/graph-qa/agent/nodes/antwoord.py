@@ -1188,14 +1188,23 @@ def met_rapportcitaten(state: State, tekst: str) -> Antwoord | None:
     een subagent zelf, een open vraag of een rapport dat niet afrondde: dan is de tekst uit code."""
     from bronmodel.antwoord import Citaat, Citaten, Toelichting
 
-    if (state.get("antwoord") or state.get("opdracht") or not (citaten := state.get("rapport_citaten"))
-            or not tekst.strip() or _EIGEN_CITAAT.search(tekst)
+    if (state.get("antwoord") or state.get("opdracht") or not tekst.strip() or _EIGEN_CITAAT.search(tekst)
             or {a.get("uitkomst") for a in state.get("subagenten") or [] if not a.get("rapport")} & NIET_AF
             or tekst.strip() in (VRAAG_VAN_SUBAGENT, SUBAGENT_AFGESLOTEN)):
         return None
-    try:
-        items = [Citaat.model_validate(c) for c in citaten]
-    except ValueError:
+    if citaten := state.get("rapport_citaten"):
+        try:
+            items = [Citaat.model_validate(c) for c in citaten]
+        except ValueError:
+            return None
+    elif state.get("specialist") in ("centraal", "centraal_breed"):
+        # Zonder rapport: per kop die een gelezen bepaling noemt, de zin uit die bepaling die de alinea draagt (A6 eind,
+        # F05: de Leidraad 24.1–24.6 goed samengevat, zonder één citaat; `agent/tekstcitaten.py`).
+        from ..tekstcitaten import uit_tekst
+
+        if not (items := uit_tekst(tekst, controletrace(state))):
+            return None
+    else:
         return None
     return Antwoord(sjabloon="duiding", blokken=[Toelichting(tekst=tekst.strip()), Citaten(items=items)])
 

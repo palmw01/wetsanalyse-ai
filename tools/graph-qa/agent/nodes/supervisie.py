@@ -26,6 +26,8 @@ from ..bepaling_workflow import lees as lees_bepalingsvraag
 from ..bepaling_workflow import lees_buiten, wijst_stuk_aan
 from ..doel import _heeft_opgegeven_doel
 from ..bronselectie import is_bronselectievraag
+from ..welke_wijziging import melding as welke_wijziging
+from ..overdracht import _delegatie_stand, is_standvraag
 from ..models import ACTIE_TAAK, BRONSELECTIE_ACTIES, INTAKE_ACTIES
 from ..focus import bij_advies, bij_onderwerp
 from ..kaart_beurt import KAARTPREFIX, uit_keuze
@@ -423,7 +425,8 @@ def _deelgesprek(b: Bouw, writer, state: State, dg: dict[str, Any]) -> dict[str,
 
         async def markeer(_stuur) -> None:
             async with met_api(b, state.get("user_id", "")) as api:
-                await api.wijzig_delegatie(dg["delegatie_id"], {"later_gewijzigd": True})
+                await api.wijzig_delegatie(dg["delegatie_id"], {"later_gewijzigd": True,
+                                                                "deelgesprek": state.get("gesprek_id", "") or ""})
         try:
             draai(markeer, loop=b.loop, schrijf=writer)
         except Exception:  # noqa: BLE001 – de markering is een signaal, geen voorwaarde voor de beurt
@@ -586,6 +589,13 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # Zonder gesprek valt er niets te herschrijven: geen LLM-call, de vorm van de vraag beslist.
         return _overzicht(writer, "")
 
+    if modus == "auto" and not _open_kaartje(state) and (wijziging := welke_wijziging(state.get("question", ""), b.graph)):
+        # "Vóór en na de wijziging" van één artikel, zonder te zeggen welke (agentset V04, A6): de jurist kiest, niet het
+        # model. Zonder model; de laatste wijziging uit de graaf staat erbij.
+        _stap(writer, "Lex", "vraagt welke wijziging je bedoelt", route="wijziging_kiezen")
+        return {"specialist": "", "plan": "", "worker_plan": [], "worker_idx": 0, "afwijzen": True,
+                "afwijs_melding": wijziging, "afwijs_stap": "niet vergeleken – welke wijziging bedoeld is, is niet gezegd",
+                "annotaties_lezen": False}
     if modus == "auto" and (bepaling := lees_bepalingsvraag(state.get("question", ""), b.graph,
                                                                     live_aan=_live_aan(state))):
         # De tekst van een bepaling (ADR-010, D1): de vraag noemt zelf de regeling en het artikel, dus ook in een gesprek
@@ -646,8 +656,13 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # delegatie hoort dat er later iets veranderde. Geen supervisorstap en geen centrale agent.
         return _deelgesprek(b, writer, state, dg)
 
-    delegatie = subagent_route.plan(state.get("question", ""), state.get("bronstand"), _regelingtitels(b.graph)) \
-        if _centraal(state) and modus == "auto" else []
+    delegatie, opdracht = [], state.get("question", "")
+    if _centraal(state) and modus == "auto":
+        titels = _regelingtitels(b.graph)
+        # Een antwoord op "welke regeling?" (F02) maakt de vorige opdracht af: de code stelt haar samen.
+        if vorige := eerdere_beurten(state.get("messages") or [], opdracht, aantal=1):
+            opdracht = subagent_route.aangevuld(opdracht, vorige[-1][0], titels) or opdracht
+        delegatie = subagent_route.plan(opdracht, state.get("bronstand"), titels)
     if len(delegatie) > 1 and _start_kind(b, state):
         delegatie = []   # het plan kan niet bewaard en gestart worden: de centrale agent beantwoordt de vraag zelf
     if delegatie:
@@ -659,7 +674,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
                     "afwijzen": False, "annotaties_lezen": False, "subagent_plan": subagent_route.als_state(delegatie)}
         _stap(writer, "Lex", "geeft het lezen van de reeks aan een subagent", route="subagent")
         return {"specialist": "subagent_route", "plan": "", "worker_plan": ["subagent_route"], "worker_idx": 0,
-                "afwijzen": False, "annotaties_lezen": False, "subagent_plan": subagent_route.als_state(delegatie)}
+                "afwijzen": False, "annotaties_lezen": False, "subagent_plan": subagent_route.als_state(delegatie),
+                **({"zelfstandige_vraag": opdracht} if opdracht != state.get("question", "") else {})}
 
     if _centraal(state):
         # ADR-016 §A1: geen vaste route pakte de vraag, dus de centrale agent beantwoordt hem zelf. De supervisorstap en
@@ -669,6 +685,11 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
             return _begrippen_lees(writer, "")
         if leesvraag:
             return _lees(writer, "")
+        if is_standvraag(state.get("question", "")) and isinstance(
+                stand := _delegatie_stand(b, state, {}), tuple):
+            # "Wat is er in de deelgesprekken veranderd?" (A6 eind, F03): de code leest de stand per deelgesprek bij de
+            # api en geeft hem mee als gegeven; het model riep `delegatie_stand` niet aan en noemde alle drie gewijzigd.
+            return {**_naar_centraal(writer, state), "rapporten": stand[1] + "\n\n"}
         return _naar_centraal(writer, state)
 
     resp = aanroep(

@@ -64,6 +64,10 @@ class DelegatieWijziging(BaseModel):
     status: DelegatieStatus | None = None
     uitkomst: dict | None = None
     later_gewijzigd: bool | None = None
+    #: Het deelgesprek waarin de jurist doorvroeg: de markering komt dan ook op dat kind in `uitkomst.kinderen`, zodat de
+    #: stand per deelgesprek zegt wat er veranderde (A6 eind, F03: "alle drie later gewijzigd", terwijl alleen in
+    #: deelvraag 1 was doorgevraagd). Alleen samen met `later_gewijzigd`.
+    deelgesprek: str = ""
     #: Een teken van leven, geen hervatting: raakt alleen een delegatie die loopt. Zo zet een hartslag die nog onderweg
     #: was een delegatie die intussen op een antwoord wacht niet terug op `loopt` (bugonderzoek ADR-016, twijfelgeval).
     hartslag: bool = False
