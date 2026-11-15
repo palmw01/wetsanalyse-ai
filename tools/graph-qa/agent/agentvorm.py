@@ -98,8 +98,18 @@ class Agent:
 
     @property
     def systeemtekst(self) -> str:
-        """Het stabiele deel van de systeemprompt: bij elke ronde van elke beurt hetzelfde, met het cachepunt erop."""
-        return SYSTEM_PROMPT + f"\n\n{self.instructie}"
+        """Het stabiele deel van de systeemprompt: bij elke ronde van elke beurt hetzelfde, met het cachepunt erop. De
+        skills die het profiel vooraf noemt, staan erin na de instructie (ADR-016 §A2, niveau 2)."""
+        return SYSTEM_PROMPT + f"\n\n{self.instructie}" + self.skills_vooraf
+
+    @property
+    def skills_vooraf(self) -> str:
+        """De kern van elke skill die het profiel noemt (`skills.kern`), of leeg. Skilltekst is methode, geen bron."""
+        if not self.profiel.skills:
+            return ""
+        from . import skills
+
+        return "".join("\n\n" + skills.kern(s) for s in self.profiel.skills)
 
     @property
     def tools(self) -> frozenset[str] | None:

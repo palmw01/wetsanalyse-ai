@@ -181,6 +181,14 @@ def toets(profiel: Agentprofiel, grenzen: Grenzen) -> list[Bevinding]:
             uit.append(Bevinding("tools", f"tools: {vreemd} is van een andere methode dan de rol {profiel.rol!r}; de "
                                           "annotatieketen en de JAS-tools zijn alleen van wetsanalyse"))
     kies("skills", profiel.skills, grenzen.skills)
+    # Een skill vooraf is methodetekst. Die moet van de methode zijn waarvan de rol van het profiel zijn secties draagt:
+    # anders mengt het profiel twee methodes (plan methodes scheiden). Een skill van een methode zonder rol kan pas
+    # vooraf, als een meting zijn secties aan een rol koppelt (ADR-014 §7).
+    if grenzen.rol_methodes is not None and profiel.rol in grenzen.rol_methodes:
+        eigen = grenzen.rol_methodes[profiel.rol]
+        if vreemd := sorted(s for s in set(profiel.skills) & grenzen.skills if s not in eigen):
+            uit.append(Bevinding("skills", f"skills: {vreemd} is van een andere methode dan de rol {profiel.rol!r} "
+                                           f"({', '.join(sorted(eigen)) or 'geen methode'})"))
     kies("connectors", profiel.connectors, grenzen.connectors)
     kies("mcp", profiel.mcp, grenzen.mcp)
     kies("sjablonen", profiel.sjablonen, grenzen.sjablonen)
