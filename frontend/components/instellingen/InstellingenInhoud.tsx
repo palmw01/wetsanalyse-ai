@@ -8,7 +8,7 @@ import { RondleidingPanel } from "@/components/account/RondleidingPanel";
 import { VerbruikPanel } from "@/components/account/VerbruikPanel";
 import { ApiTokensPanel } from "@/components/admin/ApiTokensPanel";
 import { BerichtenBeheerPanel } from "@/components/admin/BerichtenBeheerPanel";
-import { ConnectorsPanel } from "@/components/admin/ConnectorsPanel";
+import { ConnectorsPanel } from "@/components/instellingen/ConnectorsPanel";
 import { FeedbackLijstClient } from "@/components/admin/FeedbackLijstClient";
 import { BerichtenArchiefClient } from "@/components/berichten/BerichtenArchiefClient";
 import { ProfielenPanel } from "@/components/admin/ProfielenPanel";

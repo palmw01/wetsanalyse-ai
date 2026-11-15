@@ -100,11 +100,12 @@ const SCHERMEN = [
   { naam: "verbruik", tab: "Verbruik", klaar: (p) => p.getByText("Reset op").waitFor() },
   { naam: "berichten", tab: "Berichten", klaar: (p) => p.getByText("Wat is er nieuw").first().waitFor() },
   { naam: "modelprofielen", tab: "Modellen", klaar: async (p) => {
-    await p.getByRole("button", { name: "Test verbinding" }).first().click();
+    await p.getByRole("button", { name: /^Acties voor / }).first().click();
+    await p.getByRole("menuitem", { name: "Test verbinding" }).click();
     await p.getByText(/Test mislukt/).waitFor();
   } },
   { naam: "modelprofiel-bewerken", tab: "Modellen", klaar: async (p) => {
-    await p.getByRole("button", { name: "Nieuw profiel" }).click();
+    await p.getByRole("button", { name: "Voeg toe" }).click();
     await p.getByLabel(/Output-strategie/).waitFor();
   } },
   { naam: "gebruikers", tab: "Gebruikers", klaar: (p) => p.getByRole("button", { name: "Acties voor wpalm" }).waitFor() },

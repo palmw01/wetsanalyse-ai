@@ -49,9 +49,9 @@ export const INSTELLINGEN_TABS = [
     trefwoorden: ["skills", "skill", "methode", "jas", "jrm", "wetsanalyse", "wetsuitvoering", "werkwijze", "concept"] },
   { key: "agents", pad: "aanpassingen/agents", label: "Agents", groep: "aanpassingen", alleenBeheerder: false,
     trefwoorden: ["subagents", "agentprofielen", "profiel", "specialist", "werkwijze", "concept"] },
-  // Nog alleen voor beheerders: het paneel leest de beheerlijst. Een lijst voor iedereen volgt (plan, PR 3).
-  { key: "connectors", pad: "beheer/connectors", label: "Connectors", groep: "aanpassingen", alleenBeheerder: true,
-    trefwoorden: ["bronnen", "kamerstukken", "rechtspraak", "bekendmakingen", "mcp"] },
+  // Voor iedereen te lezen; aan- en uitzetten blijft beheer (de BFF houdt `/api/admin/connectors` dicht).
+  { key: "connectors", pad: "aanpassingen/connectors", label: "Connectors", groep: "aanpassingen", alleenBeheerder: false,
+    trefwoorden: ["bronnen", "kamerstukken", "rechtspraak", "bekendmakingen", "mcp"], vroeger: ["beheer/connectors"] },
   { key: "modellen", pad: "beheer/modelprofielen", label: "Modellen", groep: "aanpassingen", alleenBeheerder: true,
     trefwoorden: ["modelprofielen", "model", "api-sleutel", "endpoint", "llm"], vroeger: ["modelprofielen"] },
   { key: "gebruikers", pad: "beheer/gebruikers", label: "Gebruikers", groep: "beheer", alleenBeheerder: true,

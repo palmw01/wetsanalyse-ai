@@ -26,6 +26,8 @@ export interface AanpassingRij {
   status?: React.ReactNode;
   /** Buiten de klikbare rij: een keuze die meteen geldt, of het menu ⋯. */
   eind?: React.ReactNode;
+  /** Onder de rij: de uitkomst van een handeling (een verbindingstest). */
+  onder?: React.ReactNode;
   href?: string;
   onOpen?: () => void;
   /** Waar de zoekterm op zoekt. */
@@ -123,7 +125,7 @@ export function AanpassingLijst({
                 leeg={zoek ? "Niets gevonden bij deze zoekterm." : g.leeg}>
                 {g.rijen.map((r) => (
                   <GroepRij key={r.id} href={r.href} onOpen={r.onOpen ? { doe: r.onOpen, label: `Open ${r.naam}` } : undefined}
-                    titel={r.titel} sub={r.sub} status={r.status} eind={r.eind} {...r.data} />
+                    titel={r.titel} sub={r.sub} status={r.status} eind={r.eind} onder={r.onder} {...r.data} />
                 ))}
               </Groep>
             ))}
@@ -134,8 +136,16 @@ export function AanpassingLijst({
   );
 }
 
-/** *+ Voeg toe* met een menu, rechts in de kop van een lijst (naar *Voeg toe* bij Skills in Claude). */
+/** *+ Voeg toe* met een menu, rechts in de kop van een lijst (naar *Voeg toe* bij Skills in Claude). Met één keuze is
+ *  het een gewone knop. */
 export function VoegToeMenu({ keuzes }: { keuzes: { label: string; onKies: () => void; data: string }[] }) {
+  if (keuzes.length === 1) {
+    return (
+      <Button variant="secondary" size="sm" onClick={keuzes[0].onKies} data-actie="voeg-toe" data-voeg-toe={keuzes[0].data}>
+        <Plus className="h-4 w-4" /> Voeg toe
+      </Button>
+    );
+  }
   return (
     <Popover ariaLabel="Voeg toe" className={`w-60 ${MENU_PANEEL}`}
       trigger={(open, toggle) => (

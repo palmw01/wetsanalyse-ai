@@ -27,6 +27,7 @@ describe("tabUitPad", () => {
 
   it("een oud pad komt uit op de tab waar het nu woont", () => {
     expect(tabUitPad(["beheer", "modelprofielen"])).toBe("modellen");
+    expect(tabUitPad(["beheer", "connectors"])).toBe("connectors");
   });
 
   it("valt terug op account bij leeg of onbekend", () => {
@@ -67,9 +68,9 @@ describe("isAdminTab", () => {
     expect(isAdminTab("beveiliging")).toBe(false);
     expect(isAdminTab("berichten")).toBe(false);
     expect(isAdminTab("verbruik")).toBe(false);
+    expect(isAdminTab("connectors")).toBe(false);
     for (const t of [
       "modellen",
-      "connectors",
       "gebruikers",
       "registraties",
       "api-tokens",

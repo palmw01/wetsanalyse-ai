@@ -83,8 +83,8 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   `useSearchParams` de stap niet en blijft het venster dicht. `app/instellingen/[[...tab]]`, `app/beheer` en `app/account`
   zijn doorverwijzingen naar de werkplek met het venster open; een losse instellingenpagina bestaat niet.
   **De tabkolom heeft groepen met een kop** (`INSTELLINGEN_GROEPEN` in `lib/instellingen.ts`, naar het voorbeeld van Claude;
-  plan `docs/architectuur/plan-instellingen-aanpassingen.md`): *Persoonlijk*, *Aanpassingen* (wat Lex gebruikt: Connectors,
-  Modellen) en voor een beheerder *Beheer*. Elke tab draagt zijn `groep`, `alleenBeheerder` en `trefwoorden`; het zoekveld
+  plan `docs/architectuur/plan-instellingen-aanpassingen.md`): *Persoonlijk*, *Aanpassingen* (wat Lex gebruikt: Methodes,
+  Agents, Connectors en, voor een beheerder, Modellen) en voor een beheerder *Beheer*. Elke tab draagt zijn `groep`, `alleenBeheerder` en `trefwoorden`; het zoekveld
   boven de kolom filtert op label en trefwoord (`tabsBijZoekterm`), en Escape wist eerst het veld. Een oude sleutel of
   pad staat in `vroeger` (`modelprofielen` → `modellen`). Een tab alleen voor beheerders houdt zijn pad onder `beheer/`:
   daar zit de rolgate van `auth.config.ts`. Op een telefoon is de kolom een lijst (`Tabs` verticaal): een gekozen tab
@@ -102,13 +102,15 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     `WerkgebiedSchil`, en
     `OpnemenInWerkgebied` voor de annotatiepagina).
   - `graaf/` – de samenhangsgraaf (sigma); de rekenkern staat in `lib/graaf/`.
-  - `admin/` – de beheertabs achter het admin-token: `ProfielenPanel` (+ `ProfileEditor`),
+  - `admin/` – de beheertabs achter het admin-token: `ProfielenPanel` (+ `ProfileEditor`; de tab *Modellen* onder
+    Aanpassingen, op `AanpassingLijst`: *Test verbinding*, *Als standaard* en *Verwijderen* in het menu ⋯),
     `UsersPanel` (+ `BudgetBeleidBlok`), `RegistratiesPanel`, `ApiTokensPanel`,
-    `BerichtenBeheerPanel` (+ `BerichtEditor`), `FeedbackLijstClient`, `ConnectorsPanel` (de bronconnectors van ADR-013: aan of
-    uit per beheerder mét 2FA, met de audit ingeklapt; welke er bestaan staat in de code; browserregressie
-    `scripts/test-connectors.mjs`).
+    `BerichtenBeheerPanel` (+ `BerichtEditor`), `FeedbackLijstClient`.
   - `account/`, `auth/` – account, login/2FA/setup/registratie, disclaimer, `AuthFrame`.
-  - `instellingen/` – `InstellingenVenster` (leest de parameter), `InstellingenDialog` (de dialoogschil),
+  - `instellingen/` – de lijsten van Aanpassingen (`AanpassingLijst`, `MethodesPanel`, `AgentsPanel`, `ConnectorsPanel`: de
+    bronconnectors van ADR-013 voor iedereen in één lijst, aan of uit per beheerder mét 2FA, de audit in het tweede
+    niveau; welke er bestaan staat in de code; browserregressie `scripts/test-connectors.mjs`), en
+    `InstellingenVenster` (leest de parameter), `InstellingenDialog` (de dialoogschil),
     `InstellingenInhoud` (de tabs) en `InstellingenLink`. De tabdefinities en helpers staan in `lib/instellingen.ts`,
     bewust **zonder** `"use client"`, zodat de doorverwijzing ze mag importeren.
   - `rondleiding/` – de rondleiding door de werkplek (zie §*Rondleiding*).
