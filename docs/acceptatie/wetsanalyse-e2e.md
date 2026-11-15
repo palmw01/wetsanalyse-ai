@@ -89,7 +89,8 @@ en accordeer de begrippen die af zijn. Dit zijn echte beslissingen, met een rede
 
 Bewijs: de beslissing staat in de audit en komt terug in de laag en de graaf.
 
-**6. Valideren en aansluiten.** Toets elk praktijkvoorbeeld als scenario: volgt de uitkomst uit de bronnen,
+**6. Valideren en aansluiten.** Toets elk praktijkvoorbeeld als toetsgeval (geen JRM-scenario: de methode
+wetsuitvoering valt buiten deze test, zie de briefing): volgt de uitkomst uit de bronnen,
 en is elk feit in de begrippen vast te leggen? De gegevensspecialist maakt een eerste mapping naar het gegevensmodel,
 als dat in `docs/acceptatie/lokaal/` staat; anders een lijst met vragen.
 

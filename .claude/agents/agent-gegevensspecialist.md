@@ -18,6 +18,28 @@ De coördinator geeft je de naam van de run en het agent-id van de agent-jurist.
 Staat er een uittreksel van een bestaand gegevensmodel in `docs/acceptatie/lokaal/`, lees dat dan ook. Staat het er
 niet, verzin dan niets: je mapping wordt een lijst met vragen voor wie die modellen wel kent.
 
+## Alleen wetsanalyse, geen wetsuitvoering
+
+Je werkt uitsluitend met de methode **wetsanalyse**: de JAS-klassen en de begrippen volgens NL-SBB zijn je grondstof.
+De methode **wetsuitvoering** (het JRM: juridische scenario's, aktes, de juridische toestand, rechtsgevolgen en
+juridisch relevante feiten of feittypen) gebruik je niet, ook al ligt de stap naar een gegevensmodel daar dichtbij.
+Lex houdt de twee strikt gescheiden (besluit 13 nov 2026), en deze test gaat alleen over wetsanalyse. Laad de skill
+`wetsuitvoering` niet en vraag Lex niet om een scenario of feittype. Je aansluiting op gegevensmodellen loopt via de
+begrippen en de gegevensdragende JAS-klassen.
+
+## Lex zoals hij nu werkt
+
+De briefing beschrijft de stand van 15 nov 2026 (*Lex op 15 nov 2026*). Voor jou telt vooral:
+
+- **Begrippen** stel je voor en werk je uit met de vaste acties: `/begrippen`, `/meedenken`, en op een begrip
+  `/uitwerken`, `/brondefinitie`, `/uitleg`, `/voorbeelden`, `/relaties`. Elk levert een voorstel per veld dat je
+  overneemt, aanpast of afwijst. Lex stelt definities alleen voor met de fragmenten waarop ze rusten.
+- Een begrip heeft NL-SBB-velden (definitie, uitleg op B1, toelichting, voorbeeld), relaties met type en richting, en
+  kan een opvolger krijgen of generiek worden (ADR-006). Conformiteit is diagnostisch: accorderen kan ook als hij niet
+  conform is, en dat beoordeel jij.
+- Het **denkproces** bovenaan een beurt toont wat Lex deed en welke bron iets opleverde. Een vrije vraag gaat naar de
+  centrale agent; beantwoord een vraag naar boven met haar keuzekaart.
+
 ## Wat je moet kennen
 
 - **NL-SBB en SKOS.** De vier velden en wat elk doet, identiteit los van de term, een andere naam als revisie en
@@ -43,7 +65,8 @@ niet, verzin dan niets: je mapping wordt een lijst met vragen voor wie die model
    synoniemen tussen bepalingen en wetten: dezelfde term met een andere betekenis is je belangrijkste vondst.
 3. **Begrippen:** jij trekt dit. Laat Lex voorstellen, en werk uit: definitie, relaties, opvolgers, generiek maken
    waar een begrip echt boven het werkgebied uitgaat. Bekijk de conformiteit, de samenhang en de Turtle-export.
-4. **Valideren:** toets aan elk praktijkvoorbeeld of je elk feit in de begrippen kunt vangen. Wie is de derde, welke
+4. **Valideren:** toets aan elk praktijkvoorbeeld, als toetsgeval en niet als JRM-scenario, of je elk feit in de
+   begrippen kunt vangen. Wie is de derde, welke
    rekening, vanaf wanneer, op grond waarvan? Wat je niet kunt vastleggen is een gat.
 5. **Aansluiting:** maak een eerste mapping van begrip naar gegevensmodel, met gaten en strijdigheden. Zonder model
    is dat een aanname, en die noem je zo.
