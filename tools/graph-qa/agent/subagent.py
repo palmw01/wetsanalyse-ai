@@ -158,6 +158,13 @@ class Afloop:
     #: De vragen die de centrale agent zelf beantwoordde uit wat er lag (`zelf_antwoorden`), als {vraag, antwoord}: de
     #: jurist hoort het (`antwoord.code_regels`), en de meting ziet het.
     zelf_beantwoord: list[dict[str, str]] = field(default_factory=list)
+    #: Het kind gaf een rapport dat de code kon vullen, ook met `niet_gelukt` (dan staan erin wat het vond en wat
+    #: ontbreekt). `niet_gelukt` zonder rapport is de terugval van de code (A6 run 3, S04: een rapport `niet_gelukt` met
+    #: bevindingen telde als geen rapport, en de beurt eindigde met 26 kale vindplaatsen uit code).
+    rapport: bool = False
+
+    def met_rapport(self) -> bool:
+        return self.rapport and self.uitkomst in ("klaar", "vraag", "niet_gelukt")
 
     def als_dict(self) -> dict[str, Any]:
         return {"profiel": self.profiel, "gesprek_id": self.gesprek_id, "run_id": self.run_id,
@@ -167,7 +174,8 @@ class Afloop:
                 **({"gelezen": self.gelezen} if self.gelezen else {}),
                 **({"afbakening": self.afbakening} if self.afbakening else {}),
                 **({"periode": self.periode} if self.periode else {}),
-                **({"zelf_beantwoord": self.zelf_beantwoord} if self.zelf_beantwoord else {})}
+                **({"zelf_beantwoord": self.zelf_beantwoord} if self.zelf_beantwoord else {}),
+                **({"rapport": True} if self.met_rapport() else {})}
 
 
 def _titel(opdracht: SubagentOpdracht) -> str:
@@ -441,8 +449,8 @@ def zonder_rapport(subagenten: list[dict[str, Any]]) -> str:
     """De afsluiting uit code als de subagents van deze beurt werkten en geen enkele een rapport gaf, of leeg. Hij noemt
     wat er gelezen is (de labels uit code) en vat niets samen: een samenvatting zonder rapport rust op niets dat getoetst
     is."""
-    werkte = [a for a in subagenten or [] if a.get("uitkomst") in ZONDER_RAPPORT]
-    if not werkte or any(a.get("uitkomst") in ("klaar", "vraag") for a in subagenten or []):
+    werkte = [a for a in subagenten or [] if a.get("uitkomst") in ZONDER_RAPPORT and not a.get("rapport")]
+    if not werkte or any(a.get("uitkomst") in ("klaar", "vraag") or a.get("rapport") for a in subagenten or []):
         return ""
     kop = " ".join([*dict.fromkeys(ZONDER_RAPPORT[a["uitkomst"]] for a in werkte),
                     "Daarom vat ik de stukken niet samen: wat erin staat, is niet nagelopen."])
@@ -581,6 +589,7 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
         # 118, D01: een rapport `klaar`, dan een correctieronde en de afsluiting; het kind heette `klaar` met een leeg rapport).
         afloop.uitkomst = ("gestopt" if uitkomst == "gestopt" else "afgesloten" if kind.get("afgesloten") else status or (
             "mislukt" if uitkomst == "mislukt" else "niet_gelukt"))
+        afloop.rapport = bool(status) and afloop.uitkomst == status
         return kind
     except GesprekVerdwenen:
         afloop.uitkomst, afloop.reden = "mislukt", "het gesprek is verwijderd"

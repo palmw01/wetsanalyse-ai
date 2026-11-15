@@ -134,12 +134,14 @@ def test_met_alle_passages_geciteerd_vangt_de_controle_per_stuk_de_omgedraaide_b
     llm = FakeLLM([response([tool_block("o", "oordelen", {"oordelen": [
         {"stuk": nr, "zin": omgedraaid, "oordeel": "spreekt_tegen", "tegen": "moet de ontvanger aannemelijk maken",
          "deel": " ".join(stuk["zinnen"][omgedraaid - 1].split()[:5])},
-        {"stuk": nr, "zin": omgedraaid + 1, "oordeel": "steunt", "tegen": ""}]})], "tool_use")])
+        {"stuk": nr, "zin": omgedraaid + 1, "oordeel": "steunt", "tegen": ""}]})], "tool_use"), response([tool_block("b", "bevestiging", {"gevallen": [{"geval": 1, "zelfde_onderwerp": True, "omgekeerd": True}]})], "tool_use")])
     uit = stukcontrole.controleer(llm, make_settings(), ANTWOORD_181, steun, TRACE)
     assert len(uit) == 1 and uit[0].startswith(f"duiding van {HR181} die de passages van dat stuk tegenspreekt")
     verzoek = llm.calls[0]
     assert verzoek["tool_choice"] == {"type": "tool", "name": "oordelen"} and "tools" in verzoek
-    assert "bewijslast" in verzoek["messages"][0]["content"] and len(llm.calls) == 1, "één aanroep per beurt"
+    # Eén aanroep per beurt, en een tweede lezing alleen voor een kandidaat-tegenspraak (A6 run 3).
+    assert "bewijslast" in verzoek["messages"][0]["content"] and len(llm.calls) == 2
+    assert llm.calls[1]["tool_choice"] == {"type": "tool", "name": "bevestiging"}
     # Steunt alles, of geeft het model niets bruikbaars, dan geen bewering.
     assert not stukcontrole.controleer(FakeLLM([response([tool_block("o", "oordelen", {"oordelen": []})], "tool_use")]),
                                        make_settings(), ANTWOORD_181, steun, TRACE)
@@ -192,7 +194,7 @@ def test_verify_leest_de_duidingen_na_een_rapport_tegen_de_passages(monkeypatch)
     llm = FakeLLM([response([tool_block("o", "oordelen", {"oordelen": [
         {"stuk": nr, "zin": zin, "oordeel": "spreekt_tegen", "tegen": "moet de ontvanger aannemelijk maken",
          "deel": " ".join(stukken[nr - 1]["zinnen"][zin - 1].split()[:5])}]})],
-        "tool_use")])
+        "tool_use"), response([tool_block("b", "bevestiging", {"gevallen": [{"geval": 1, "zelfde_onderwerp": True, "omgekeerd": True}]})], "tool_use")])
     b = SimpleNamespace(llm=llm, settings=make_settings(), graph=FakeGraph(result=""))
     state = {"answer": ANTWOORD_181, "question": VRAAG, "messages": [], "source_trace": TRACE, "run_id": "r",
              "subagenten": [{"uitkomst": "klaar"}], "rapport_steun": steun, "specialist": "centraal"}

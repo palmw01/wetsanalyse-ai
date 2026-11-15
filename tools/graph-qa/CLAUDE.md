@@ -328,7 +328,14 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     `tools_node` dan; A6 run 2, S03/S04: 11 en 9 geweigerde aanroepen), en een tekstantwoord zonder eigen citaat krijgt de
     citaten die het rapport uit de wettekst toonde (`State.rapport_citaten`, `subagent.citaten_van`,
     `antwoord.met_rapportcitaten` in `finalize_node`). De controle per stuk vraagt bij `spreekt_tegen` beide kanten
-    letterlijk (`deel` in de zin, `tegen` in de passages), en "zegt meer" is `niet_te_zien` (F01, PHR:2025:435);
+    letterlijk (`deel` in de zin, `tegen` in de passages), en "zegt meer" is `niet_te_zien` (F01, PHR:2025:435). Na A6
+    run 3 (`tests/test_a6_run3.py`): beide kanten dragen inhoud en niet alleen een verwijzing (`stukcontrole.heeft_inhoud`),
+    en een tweede, strengere lezing van alleen de kandidaten met de tekst rond de passage (`stukcontrole.bevestig`,
+    `OMGEVING`) telt een tegenspraak pas bij hetzelfde onderwerp én het omgekeerde; een fout bevestigt niets. Een rapport
+    `niet_gelukt` is een rapport (`Afloop.rapport`, `met_rapport`): `zonder_rapport`, `na_subagent` en
+    `met_rapportcitaten` kijken daarnaar, want `niet_gelukt` is ook de terugval zonder rapport (S04). Een vaste formule
+    (de aanhef van een besluit, het procesverloop van een uitspraak, een rij trefwoorden) valt in `extern.blokken` uit een
+    reeks als er iets met inhoud overblijft (`extern.is_formule`);
   - **de grammatica van een verzoek is begrensd**: de API maakt van alle strict schema's samen één grammatica, met
     gedocumenteerde grenzen (20 strict tools, 24 optionele, 16 union-parameters) en een interne grens op de omvang
     ("Schema is too complex for compilation", 400 zonder tokens). De delegatietools (`subagent`,
