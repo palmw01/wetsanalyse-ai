@@ -1,5 +1,6 @@
 "use client";
 
+import { datumLang } from "@/lib/datum";
 import { Leeg } from "@/components/ui/Leeg";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { InstellingenLink } from "@/components/instellingen/InstellingenLink";
@@ -23,11 +24,7 @@ const TYPE_BALK: Record<BerichtType, string> = {
 };
 
 function BerichtItem({ bericht }: { bericht: BerichtOut }) {
-  const datum = new Date(bericht.gepubliceerd_op ?? bericht.created).toLocaleDateString("nl-NL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  const datum = datumLang(bericht.gepubliceerd_op ?? bericht.created);
 
   return (
     <div

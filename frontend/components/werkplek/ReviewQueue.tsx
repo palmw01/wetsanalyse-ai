@@ -1,5 +1,6 @@
 "use client";
 
+import { tijd } from "@/lib/datum";
 import { Leeg } from "@/components/ui/Leeg";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import type { Onderwerp } from "@/lib/vraagLex";
@@ -80,8 +81,7 @@ function statusRegel(el: AnnotatieElement): string {
 function tijdstip(el: AnnotatieElement): string {
   const laatste = el.beslissingen[el.beslissingen.length - 1];
   if (!laatste?.tijd) return "";
-  const d = new Date(laatste.tijd);
-  return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
+  return tijd(laatste.tijd);
 }
 
 /** Een toelichting of opmerking ter plekke bewerken (`components/ui/Bewerkbaar`): Enter of *Opslaan* bewaart,

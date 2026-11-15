@@ -1,5 +1,6 @@
 "use client";
 
+import { datumTijd } from "@/lib/datum";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { Leeg, LeegWaarde } from "@/components/ui/Leeg";
 import { LaadStand } from "@/components/ui/LaadStand";
@@ -38,8 +39,7 @@ import { generiekPad, projectPad } from "@/lib/werkgebiedPaden";
 
 export const BEGRIP_STATUS_TOON = { geaccordeerd: "groen", concept: "neutraal", vervangen: "neutraal" } as const;
 
-const tijd = (iso: string) =>
-  new Date(iso).toLocaleString("nl-NL", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const tijd = datumTijd;
 
 /** Eén begrip, overal dezelfde inhoud (spoor N, naar `BronnenBijDeelvraag`): op de pagina naast elkaar (`SplitDetail`),
  *  naast het gesprek onder elkaar. Links wat het begrip betekent en waarop het rust, rechts het oordeel en de samenhang.

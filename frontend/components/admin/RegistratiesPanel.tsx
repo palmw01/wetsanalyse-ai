@@ -1,5 +1,6 @@
 "use client";
 
+import { datumLang } from "@/lib/datum";
 import { useCallback, useEffect, useState } from "react";
 import { Button, KNOP_GEVAAR, KNOP_GEVAAR_SCHERP } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
@@ -22,10 +23,7 @@ import type { RegistratieOut, Role } from "@/lib/types";
 
 /** Nette datumweergave; de API levert ISO-8601 met offset. */
 function datum(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? iso
-    : d.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
+  return datumLang(iso) || iso;
 }
 
 export function RegistratiesPanel() {

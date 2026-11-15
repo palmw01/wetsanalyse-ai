@@ -1,3 +1,5 @@
+import { momentKort } from "./datum";
+
 /** De versiekiezer van een artefact (deel 2 van de artefacten, besluit gebruiker 4 nov 2026, naar het voorbeeld van
  *  Claude): de versies zijn de standen direct na elke beurt van Lex (api `artefact_versies`), en daarachter *Nu*, de
  *  stand van nu. Een oudere versie is alleen te lezen. De rekenkern; het component is `components/ui/VersieKiezer`.
@@ -22,8 +24,5 @@ export function plekLabel(plek: number, aantal: number): string {
 
 /** "5 nov, 10:42", in Nederlandse tijd; leeg bij een onleesbare datum. */
 export function versieTijd(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleString("nl-NL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Amsterdam" })
-    .replace(" om ", ", ");
+  return momentKort(iso);
 }

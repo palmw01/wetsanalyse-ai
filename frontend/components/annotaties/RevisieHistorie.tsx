@@ -1,5 +1,6 @@
 "use client";
 
+import { datumTijd } from "@/lib/datum";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { Leeg } from "@/components/ui/Leeg";
 import { useEffect, useState } from "react";
@@ -51,7 +52,7 @@ export function RevisieHistorie({ lagen, labelVan, elementen, onKies }: {
                   <p className="text-ink">
                     <span className="font-mono text-faint">r{r.revisie}</span>{" "}
                     {revisieSamenvatting(r)}
-                    <span className="text-muted"> · {r.actor} · {new Date(r.tijdstip).toLocaleString("nl-NL", { dateStyle: "medium", timeStyle: "short" })}</span>
+                    <span className="text-muted"> · {r.actor} · {datumTijd(r.tijdstip)}</span>
                   </p>
                   {(() => {
                     const ids = geraakteElementen(r).filter((id) => perId.has(id));

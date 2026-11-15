@@ -1,5 +1,6 @@
 "use client";
 
+import { datumTijd } from "@/lib/datum";
 import { Leeg } from "@/components/ui/Leeg";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -94,7 +95,7 @@ export function ApiTokensPanel() {
 
   function datum(iso: string | null): string {
     if (!iso) return "nooit";
-    return new Date(iso).toLocaleString("nl-NL");
+    return datumTijd(iso);
   }
 
   return (

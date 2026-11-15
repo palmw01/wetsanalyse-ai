@@ -5,6 +5,7 @@
 // Een verwijderd werkgebied of begrip geeft een 404 met `{fout: "verwijderd", soort, op, door}`; een
 // paneel of een oud gesprek toont dan wanneer en door wie, zoals een verwijderde annotatie dat al deed.
 
+import { datumKort } from "./datum";
 import type { ApiError } from "./types";
 
 export type VerwijderSoort = "annotatie" | "werkgebied" | "begrip" | "gesprekken";
@@ -43,8 +44,7 @@ export function verwijderdUit(e: unknown): Verwijderd | null {
 
 /** "Dit werkgebied is verwijderd op 21 okt 2026 door jurist-a." */
 export function verwijderdZin(v: Verwijderd): string {
-  const datum = new Date(v.op);
-  const wanneer = Number.isNaN(datum.getTime()) ? "" :
-    ` op ${datum.toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" })}`;
+  const datum = datumKort(v.op);
+  const wanneer = datum ? ` op ${datum}` : "";
   return `${v.soort === "werkgebied" ? "Dit werkgebied" : "Dit begrip"} is verwijderd${wanneer}${v.door ? ` door ${v.door}` : ""}.`;
 }

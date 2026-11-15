@@ -1,5 +1,6 @@
 "use client";
 
+import { datumTijd } from "@/lib/datum";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Melding } from "@/components/ui/Melding";
@@ -8,8 +9,7 @@ import { foutTekst, haalWerkgebiedAudit, lijstBegrippen } from "@/lib/api";
 import type { Bronselectie, WerkgebiedAuditRegel } from "@/lib/types";
 import { auditZin } from "@/lib/werkgebied";
 
-const tijd = (iso: string) =>
-  new Date(iso).toLocaleString("nl-NL", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const tijd = datumTijd;
 
 /** Wie wat wanneer deed, nieuwste eerst. Alleen-lezend: de audit is append-only. */
 export function HistorieTab({ id, bronnen }: { id: string; bronnen: Bronselectie[] }) {

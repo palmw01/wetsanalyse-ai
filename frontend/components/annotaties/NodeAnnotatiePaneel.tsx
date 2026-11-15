@@ -1,5 +1,6 @@
 "use client";
 
+import { datumTijd } from "@/lib/datum";
 import { LaadStand } from "@/components/ui/LaadStand";
 import { ARTEFACT_SOORT_LABEL } from "@/lib/artefact";
 import Link from "next/link";
@@ -395,8 +396,7 @@ function NodeExtra({ view, doel, onKies, historie }: {
         volgorde={[...view.segmenten].sort((a, b) => a.volgorde - b.volgorde).map((x) => x.bron_iri)} />
       {view.verwijderd && (
         <Melding type="uitleg" compact>
-          Deze annotatie is verwijderd op {new Date(view.verwijderd.op).toLocaleString("nl-NL", {
-            dateStyle: "long", timeStyle: "short" })}. Vraag Lex om de bepaling opnieuw te annoteren, of markeer zelf.
+          Deze annotatie is verwijderd op {datumTijd(view.verwijderd.op)}. Vraag Lex om de bepaling opnieuw te annoteren, of markeer zelf.
         </Melding>
       )}
       {doel.snapshot_id && doel.snapshot_id !== view.snapshot_id && (

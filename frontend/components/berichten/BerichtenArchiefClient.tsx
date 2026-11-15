@@ -1,5 +1,6 @@
 "use client";
 
+import { datumLang } from "@/lib/datum";
 import { Leeg } from "@/components/ui/Leeg";
 import { useEffect, useState } from "react";
 import { isApiError, listBerichtenPagina, markeerAllesGelezen } from "@/lib/api";
@@ -13,11 +14,7 @@ import { Markdown } from "@/components/werkplek/Markdown";
 import { Pagination } from "@/components/Pagination";
 
 function BerichtArchiefItem({ bericht }: { bericht: BerichtenPaginaOut["items"][number] }) {
-  const datum = new Date(bericht.gepubliceerd_op ?? bericht.created).toLocaleDateString("nl-NL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  const datum = datumLang(bericht.gepubliceerd_op ?? bericht.created);
 
   return (
     <article className="rounded-kaart border border-line bg-surface p-4">

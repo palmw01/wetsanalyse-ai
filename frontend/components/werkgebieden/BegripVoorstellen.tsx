@@ -1,5 +1,6 @@
 "use client";
 
+import { momentKort } from "@/lib/datum";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -17,8 +18,7 @@ import { begripPad, termPad } from "@/lib/werkgebiedPaden";
 
 const telling = (n: number, een: string, meer: string) => `${n} ${n === 1 ? een : meer}`;
 
-const datum = (iso: string) =>
-  new Date(iso).toLocaleString("nl-NL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const datum = momentKort;
 
 /** De voorstellen van Lex (spoor D, levering 3a), op de pagina van het kader en in het artefactpaneel.
  *

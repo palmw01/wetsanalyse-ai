@@ -1,5 +1,6 @@
 "use client";
 
+import { datumTijd } from "@/lib/datum";
 import { LeegWaarde } from "@/components/ui/Leeg";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -174,7 +175,7 @@ export function ElementPagina({ id }: { id: string }) {
                   <ol className="mt-4 divide-y divide-line border-t border-line text-xs" aria-label="Beslissingen">
                     {el.beslissingen.map((b, i) => (
                       <li key={i} className="py-1.5 text-muted">
-                        <span className="text-ink">{BESLISSING[b.type] ?? b.type}</span> door {b.actor} · {new Date(b.tijd).toLocaleString("nl-NL")}
+                        <span className="text-ink">{BESLISSING[b.type] ?? b.type}</span> door {b.actor} · {datumTijd(b.tijd)}
                         {b.review_reason && ` · ${REDENEN.find((r) => r.waarde === b.review_reason)?.label ?? b.review_reason}`}
                         {b.comment && ` · ${b.comment}`}
                       </li>

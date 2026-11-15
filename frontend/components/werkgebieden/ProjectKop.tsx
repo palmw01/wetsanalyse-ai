@@ -1,5 +1,6 @@
 "use client";
 
+import { datumKort } from "@/lib/datum";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -77,8 +78,7 @@ export function ProjectKop({ tab }: { tab: ProjectTab }) {
 
 export function datum(iso: string | undefined): string {
   if (!iso) return "";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" });
+  return datumKort(iso);
 }
 
 // Startactiviteit a en activiteit 1b: wat de velden vragen, in de woorden van de vraagkaarten.

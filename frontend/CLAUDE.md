@@ -195,6 +195,13 @@ ook op een telefoon. Geen eigen `<h2>` in een venster en geen eigen kruisje: het
 (ook in de rondleiding en de zijbalk); alleen een tab (`Tabs`) heeft zijn eigen, kleinere. Een paneel (`PaneelKop`) en de
 rondleiding geven geen `kop` mee.
 
+**Datum en tijd** (generieke componenten, 15 nov 2026; `app/datum.test.ts`) komen uit `lib/datum.ts`, in Nederlandse tijd
+en een paar vaste vormen: `datumTijd` ("5 nov 2026, 10:42", een moment in een lijst), `datumKort` ("5 nov 2026", de dag
+waarop iets gebeurde), `datumLang` ("5 november 2026", in lopende tekst), `momentKort` ("5 nov, 10:42", een versie),
+`tijd` ("10:42"), `tijdOfDag` (de gesprekkenlijst: vandaag de tijd, anders de dag) en `datumTekst` (een datum uit een bron).
+Niemand anders roept `toLocaleDateString`/`toLocaleTimeString` aan; alleen de reset van het tokenbudget (`resetdatum`)
+rekent bewust in lokale kalenderdagen.
+
 **De graaf van een bron** (ontdubbelen PR 1): één `useBronGraaf` + `BronGraaf` (`components/wettekst/BronGraaf.tsx`) voor
 het venster naast het gesprek, de bronpagina en de annotatie, met één keuze Tekst | Graaf (`WeergaveBalk`). Alleen de tab
 Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` nog zelf aan.
