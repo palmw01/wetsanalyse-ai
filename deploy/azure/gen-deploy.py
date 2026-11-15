@@ -86,7 +86,7 @@ def main() -> None:
                         "main.bicep:apiTokenLogin).")
     p.add_argument("--connectoren", default=None,
                    help="De bronconnectors die de straat aanbiedt, komma-gescheiden bij naam uit bronmodel.connectors "
-                        "(alleen acceptatie; zie main.bicep:connectoren). Weglaten laat de bicep-default (geen).")
+                        "(zie main.bicep:connectoren). Weglaten laat de bicep-default (geen).")
     p.add_argument("--relatie-voorstellen", action="store_true", default=None,
                    help="De annotatieketen relaties laten voorstellen (proefvlag, alleen acceptatie; zie "
                         "main.bicep:relatieVoorstellen).")
