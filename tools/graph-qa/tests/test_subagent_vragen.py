@@ -276,7 +276,7 @@ def test_doorvragen_in_een_deelgesprek_houdt_het_profiel_en_markeert_de_delegati
              "deelgesprek": {"delegatie_id": "d1", "profiel": "duiding"}}
     upd = supervisie._kies(b, state)
     assert (upd["specialist"], upd["worker_plan"]) == ("duiding", ["duiding"])
-    assert api.aanroepen == [("wijzig_delegatie", {"later_gewijzigd": True})]
+    assert api.aanroepen == [("wijzig_delegatie", {"later_gewijzigd": True, "deelgesprek": "hoofd"})], "het deelgesprek erbij (A6 eind, F03)"
 
 
 def test_de_delegatie_reist_alleen_met_een_opdracht_en_niet_via_http(monkeypatch):

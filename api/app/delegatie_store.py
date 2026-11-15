@@ -116,6 +116,13 @@ async def lijst(*, werkgebied_id: str | None = None, gesprek_id: str | None = No
     return [_delegatie(r) for r in rows]
 
 
+def met_gewijzigd_kind(uitkomst: dict, deelgesprek: str) -> dict:
+    """De uitkomst met `later_gewijzigd` op het kind van dit deelgesprek; de rest van de uitkomst blijft zoals ze was."""
+    kinderen = [({**k, "later_gewijzigd": True} if isinstance(k, dict) and k.get("gesprek_id") == deelgesprek else k)
+                for k in (uitkomst or {}).get("kinderen") or []]
+    return {**(uitkomst or {}), "kinderen": kinderen} if kinderen else dict(uitkomst or {})
+
+
 async def wijzig(delegatie_id: str, user_id: str, inv: DelegatieWijziging) -> Delegatie:
     """Hartslag, wachten, hervatten of afronden. Een delegatie van een ander geeft 404; een afgeronde delegatie 409,
     behalve dezelfde eindstand nog eens (een herhaald verzoek) of alleen `later_gewijzigd`.
@@ -128,8 +135,11 @@ async def wijzig(delegatie_id: str, user_id: str, inv: DelegatieWijziging) -> De
     t = db.delegaties
     nu = db.utcnow()
     if inv.status is None:
+        waarden_lw: dict = {"later_gewijzigd": bool(inv.later_gewijzigd)}
+        if inv.later_gewijzigd and inv.deelgesprek:
+            waarden_lw["uitkomst"] = met_gewijzigd_kind(huidig.uitkomst, inv.deelgesprek)
         async with db.get_engine().begin() as conn:
-            await conn.execute(update(t).where(t.c.id == delegatie_id).values(later_gewijzigd=bool(inv.later_gewijzigd)))
+            await conn.execute(update(t).where(t.c.id == delegatie_id).values(**waarden_lw))
             row = (await conn.execute(select(t).where(t.c.id == delegatie_id))).first()
         return _delegatie(row)
     waarden: dict = {"hartslag": nu}

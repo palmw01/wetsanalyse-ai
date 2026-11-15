@@ -136,6 +136,29 @@ def plan(vraag: str, bronstand: dict[str, Any] | None, regelingen: Regelingen | 
     return []
 
 
+#: Een antwoord dat alleen een regeling noemt ("De Invorderingswet 1990."): hoogstens zoveel woorden.
+MAX_WOORDEN_ANTWOORD = 8
+_EERSTE_ARTIKEL = re.compile(r"\b(art(?:ikel|\.)\s*\d+[a-z]*(?::\d+[a-z]*)?)", re.I)
+
+
+def aangevuld(vraag: str, vorige: str, regelingen: Regelingen | None) -> str:
+    """De vorige opdracht met de regeling uit dit antwoord, of leeg (agentset F02, A6: op "artikel 30?" antwoordde de
+    jurist "De Invorderingswet 1990.", en de centrale agent zocht en stelde opnieuw een keuzevraag). Alleen als de vorige
+    opdracht een artikel noemde zonder regeling en dit antwoord niets anders noemt dan één regeling: dan is de opdracht
+    van de jurist samen te stellen, en gaat ze langs dezelfde route als wanneer hij haar meteen volledig had gesteld."""
+    from ..binnen_scope import genoemde_regelingen
+
+    vraag, vorige = " ".join((vraag or "").split()), " ".join((vorige or "").split())
+    if not (vraag and vorige and regelingen) or len(vraag.split()) > MAX_WOORDEN_ANTWOORD or _ARTIKEL.search(vraag):
+        return ""
+    if not _ARTIKEL.search(vorige) or genoemde_regelingen(vorige):
+        return ""
+    genoemd = regelingen(vraag)
+    if len(genoemd) != 1:
+        return ""
+    return _EERSTE_ARTIKEL.sub(lambda m: f"{m.group(1)} van de {genoemd[0][1]}", vorige, count=1)
+
+
 def past(vraag: str, bronstand: dict[str, Any] | None, regelingen: Regelingen | None = None) -> bool:
     """Vraagt deze opdracht om een of meer subagents (`plan`)?"""
     return bool(plan(vraag, bronstand, regelingen))

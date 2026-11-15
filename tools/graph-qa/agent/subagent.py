@@ -178,6 +178,43 @@ class Afloop:
                 **({"rapport": True} if self.met_rapport() else {})}
 
 
+
+#: De opties van de vraag uit code bij gevonden maar ongelezen stukken (`ongelezen_vraag`).
+LEES_ZE = "Ja, lees ze"
+NIET_LEZEN = "Nee, rond af met wat er is"
+#: Zoveel gevonden stukken noemt die vraag bij naam.
+MAX_ONGELEZEN = 3
+
+
+def ongelezen_vraag(opdracht: SubagentOpdracht, kind: dict[str, Any]) -> dict[str, Any] | None:
+    """De vraag uit code als de opdracht om een bron naast de wet vraagt (de memorie van toelichting, de rechtspraak) en
+    het kind van die bron stukken vond maar er geen las, of None. Zo komt een kind dat aan zijn grens niet verder kwam
+    naar boven in plaats van stil te stoppen (A6 eind, V03: kst-36369-3, kst-36207-3 en kst-36309-3 gevonden, niet
+    gelezen, rapport `klaar` over de wettekst). Het antwoord hervat het kind met een nieuwe begroting."""
+    from bronmodel.connectors import CONNECTORS, herkende, van_id
+
+    from .gelezen import gelezen_en_gevonden
+
+    namen = set(herkende(" ".join([opdracht.doel, opdracht.onderwerp, opdracht.bronnen])))
+    if not namen:
+        return None
+    gelezen, gevonden = gelezen_en_gevonden(kind.get("source_trace") or [])
+    van = {CONNECTORS[n].brontype for n in namen}
+    def hoort(ident: str) -> bool:
+        return (c := van_id(ident)) is not None and c.brontype in van
+    if any(hoort(i) for i, _ in gelezen):
+        return None
+    stukken = [(i, lab) for i, lab in gevonden if hoort(i)]
+    if not stukken:
+        return None
+    namen_tekst = ", ".join(lab or i for i, lab in stukken[:MAX_ONGELEZEN]) + (
+        f" en nog {len(stukken) - MAX_ONGELEZEN}" if len(stukken) > MAX_ONGELEZEN else "")
+    tekst = f"Ik vond {len(stukken)} stukken maar las ze niet ({namen_tekst}). Zal ik ze lezen?"
+    if len(tekst) > 300:
+        tekst = f"Ik vond {len(stukken)} stukken maar las ze niet. Zal ik ze lezen?"
+    return {"tekst": tekst, "opties": [LEES_ZE, NIET_LEZEN]}
+
+
 def _titel(opdracht: SubagentOpdracht) -> str:
     tekst = " ".join(opdracht.doel.split())
     return tekst if len(tekst) <= 80 else tekst[:79].rsplit(" ", 1)[0] + "…"
@@ -590,6 +627,11 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
         afloop.uitkomst = ("gestopt" if uitkomst == "gestopt" else "afgesloten" if kind.get("afgesloten") else status or (
             "mislukt" if uitkomst == "mislukt" else "niet_gelukt"))
         afloop.rapport = bool(status) and afloop.uitkomst == status
+        if afloop.uitkomst == "klaar" and not afloop.hervat and (vraag := ongelezen_vraag(opdracht, kind)):
+            # Eén keer: na het antwoord (ook "nee") rondt het hervatte kind af met wat het heeft.
+            # Een rapport `klaar` zonder één gelezen stuk van de bron waar de opdracht om vroeg (A6 eind, V03: drie memories
+            # van toelichting gevonden, "wegens rondegrens" niet gelezen): een vraag naar boven, uit code.
+            afloop.uitkomst, afloop.vragen = "vraag", [vraag]
         return kind
     except GesprekVerdwenen:
         afloop.uitkomst, afloop.reden = "mislukt", "het gesprek is verwijderd"

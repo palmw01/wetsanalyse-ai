@@ -283,6 +283,17 @@ async def test_later_gewijzigd_ook_na_afloop(client):
     assert (await client.patch(f"{D}/{d['id']}", headers=B, json={"later_gewijzigd": True})).status_code == 404
 
 
+async def test_later_gewijzigd_per_deelgesprek(client):
+    """Doorvragen in één deelgesprek markeert dat kind, niet de andere (A6 eind, F03: "alle drie later gewijzigd")."""
+    d = (await _subagent(client, await _gesprek(client))).json()
+    kinderen = [{"uitkomst": "klaar", "gesprek_id": "k1"}, {"uitkomst": "klaar", "gesprek_id": "k2"}]
+    await client.patch(f"{D}/{d['id']}", json={"status": "klaar", "uitkomst": {"kinderen": kinderen, "x": 1}})
+    r = await client.patch(f"{D}/{d['id']}", json={"later_gewijzigd": True, "deelgesprek": "k1"})
+    assert r.status_code == 200 and r.json()["later_gewijzigd"] is True and r.json()["status"] == "klaar"
+    assert r.json()["uitkomst"] == {"x": 1, "kinderen": [{"uitkomst": "klaar", "gesprek_id": "k1", "later_gewijzigd": True},
+                                                         {"uitkomst": "klaar", "gesprek_id": "k2"}]}
+
+
 async def test_een_hartslag_zet_een_wachtende_delegatie_niet_terug_op_loopt(client):
     """Een hartslag die nog onderweg was, mag een vraag aan de jurist niet wegpoetsen (bugonderzoek ADR-016)."""
     ouder = await _gesprek(client)

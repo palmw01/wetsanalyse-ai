@@ -73,4 +73,13 @@ ROUTES: tuple[Route, ...] = (
     Route("methode_niet_gekoppeld", "Werk volgens een methode die Lex nog niet uitvoert",
           "agent.methodekeuze:niet_gekoppeld", "workflow/vaste_melding", "vóór het model",
           "Annoteren of analyseren volgens een methode zonder rol: een melding, geen JAS-annotatie en geen model."),
+    Route("geen_deelvraag", "De bronnen bij een deelvraag die het werkgebied niet heeft",
+          "agent.nodes.supervisie:geen_deelvraag", "workflow/vaste_melding", "vóór het model",
+          "Een vraag aan de jurist met de deelvragen die er zijn, zonder model (A6 run 2, V02)."),
+    Route("wijziging_kiezen", "Vóór en na de wijziging, zonder te zeggen welke", "agent.welke_wijziging:melding",
+          "workflow/vaste_melding", "vóór het model",
+          "Een vraag aan de jurist met de laatste wijziging als kandidaat, zonder model (A6 eind, V04)."),
+    Route("stand_delegaties", "Wat er in de deelgesprekken veranderde", "agent.overdracht:is_standvraag",
+          "agentprofiel/centraal", "vóór het model",
+          "De stand per deelgesprek uit de api als gegeven voor de centrale agent (A6 eind, F03)."),
 )

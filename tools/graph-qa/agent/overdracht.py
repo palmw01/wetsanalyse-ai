@@ -382,6 +382,15 @@ def _beantwoord_kaart(_b: Any, state: State, _invoer: dict[str, Any]) -> dict[st
 
 
 DELEGATIE_STAND = "delegatie_stand"
+_STANDVRAAG = re.compile(
+    r"\bdeelgesprek(?:ken)?\b.{0,80}\b(?:veranderd|gewijzigd|doorgevraagd|stand|nieuw|gebeurd)\b"
+    r"|\b(?:veranderd|gewijzigd|doorgevraagd|gebeurd)\b.{0,80}\bdeelgesprek(?:ken)?\b"
+    r"|\b(?:stand|status)\s+van\s+de\s+(?:subagents?|deelgesprekken|regie|delegaties?)\b", re.I)
+
+
+def is_standvraag(vraag: str) -> bool:
+    """Gaat de vraag over wat er in de deelgesprekken of bij de subagents staat of veranderde (F03)?"""
+    return bool(_STANDVRAAG.search(" ".join((vraag or "").split())))
 #: Hoeveel delegaties van het gesprek de stand hoogstens noemt (de nieuwste eerst).
 MAX_STAND = 5
 
@@ -398,14 +407,21 @@ def stand_tekst(delegaties: list[dict[str, Any]]) -> str:
     for d in delegaties[:MAX_STAND]:
         taken = (d.get("plan") or {}).get("taken") or []
         kinderen = (d.get("uitkomst") or {}).get("kinderen") or []
+        # Per deelgesprek, uit de api (A6 eind, F03: de markering stond alleen op de delegatie, en het model las haar bij
+        # alle drie de taken). Zonder markering per kind (oudere delegaties) zegt de stand dat het niet bekend is welk.
+        gewijzigd = sum(1 for k in kinderen if isinstance(k, dict) and k.get("later_gewijzigd"))
         regels.append(f"- {d.get('soort', '')} {d.get('id', '')}: {d.get('status', '')}"
-                      + (", in een deelgesprek is later doorgevraagd" if d.get("later_gewijzigd") else ""))
+                      + ("" if not d.get("later_gewijzigd") else
+                         f", in {gewijzigd} van de {len(taken) or len(kinderen)} deelgesprekken is later doorgevraagd"
+                         if gewijzigd else ", in een deelgesprek is later doorgevraagd (welk, is niet bekend)"))
         for i, taak in enumerate(taken):
             kind = kinderen[i] if i < len(kinderen) else {}
             titel = onschadelijk(str(taak.get("titel") or (taak.get("opdracht") or {}).get("doel") or ""))[:120]
             regels.append(f"  - {titel} ({taak.get('profiel') or kind.get('profiel') or 'regie'}): "
                           f"{kind.get('uitkomst') or 'niet gestart'}"
-                          + (f", deelgesprek {kind['gesprek_id']}" if kind.get("gesprek_id") else ""))
+                          + (f", deelgesprek {kind['gesprek_id']}" if kind.get("gesprek_id") else "")
+                          + (", hierin is later doorgevraagd" if kind.get("later_gewijzigd") else
+                             ", hierin is niet doorgevraagd" if gewijzigd else ""))
     regels.append("Start alleen wat niet af is. Wat klaar is, blijft staan; een later gewijzigd deelgesprek lees je "
                   "niet zelf, zeg de gebruiker dat het veranderde.")
     return "\n".join(regels)
