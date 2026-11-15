@@ -143,6 +143,70 @@ Wat hier bewust niet bij staat:
   `bepalingen_duiden` al doen.
 - **Geen `definitie` als subagent.** Een begripsvraag is één of twee toolrondes, en dat doet de centrale agent zelf.
 
+## De tools: per profiel de leesweg, en niets daarbuiten
+
+**Wat de tools nu kosten.** Gemeten op `e95b1163` als de lengte van naam, beschrijving en schema (ongeveer vier tekens
+per token). De open laag heeft 38 tools, samen ongeveer **16.800 tokens**. `algemeen` heeft geen `tools`-lijst en krijgt
+als subagent dus allemaal, ook de JAS-, annotatie- en begrippentools. Die staan in elke ronde in het voorvoegsel.
+- Bij 8 rondes is dat ongeveer 135k van de ruwe 260k van een gemiddeld `algemeen`-kind. Dat is een schatting: de
+  toolresultaten groeien er nog bovenop.
+- De connectortools zijn de grootste schema's:
+  - `zoek_uitspraken` ~1.330 tokens;
+  - `zoek_kamerstukken` ~1.050;
+  - `zoek_bekendmakingen` ~1.010;
+  - `zoek_standpunten` ~990.
+- De graaftools zijn klein: `get_artikel` ~275, `get_bepaling` ~250, `get_regeling_info` ~140.
+
+**De regel voor een taakprofiel:** het krijgt precies de tools van zijn leesweg, en een tool die op die weg niet nodig
+is, komt er niet bij. Een smalle toolset is daarbij geen doel op zich. Hij doet twee dingen:
+- de instructie kan de weg voorschrijven, omdat er geen zijpad openligt (V03 zocht in `inhoudsopgave` en `zoek_opbouw`);
+- het voorvoegsel blijft klein.
+
+**De drie leeswegen**, afgeleid uit wat de tools kunnen. De connectors zijn gebouwd om per bepaling te zoeken, maar de
+kinderen gebruikten dat niet:
+- **Rechtspraak.**
+  - `zoek_uitspraken(bwb_id, artikel)` geeft de uitspraken die dat artikel noemen (LiDO), te filteren op `instantie` en
+    `soort` (uitspraak of conclusie).
+  - Daarna lees je ze naast elkaar met `get_uitspraak`. Bij een lange uitspraak eerst `inhoud: true`, en dan met de
+    offset naar de rechtsoverwegingen.
+  - In run 3 lazen de kinderen één uitspraak per ronde, na elkaar (zie `a2-toolgegevens`). Hier zit de winst.
+- **Wetsgeschiedenis.**
+  - `geldigheid(bwb_id, artikel)` geeft het Kamerdossier van de wet die de huidige tekst invoerde (`dossiersBepaling`)
+    en de Stb.
+  - Met dat dossier geeft `zoek_kamerstukken(dossier, soort: "memorie van toelichting")` de stukken.
+  - `get_kamerstuk(id, woorden: "<artikel>")` geeft alleen de alinea's over die bepaling, in plaats van een hele MvT.
+  - `zoek_bekendmakingen(bwb_id, artikel)` en `get_bekendmaking(id, artikel)` laten zien wat een wijziging aan die ene
+    bepaling veranderde.
+  - V03 riep `geldigheid` niet aan, zocht zes keer op titel, en las niets.
+- **Een reeks bepalingen.**
+  - `inhoudsopgave(bwb_id, vanaf)` of `zoek_opbouw` om de reeks vast te stellen.
+  - Daarna `get_bepaling`, `get_artikel` en `get_lid` naast elkaar.
+  - De `duiding`-kinderen gebruikten precies deze zes tools, en `get_context` en `follow_verwijzingen` geen enkele keer.
+
+**De tools en schemakosten per profiel** (zonder `rapport`, dat de agentvorm voor elk kind meegeeft):
+- **`rechtspraak_lezen`, ~2,6k:** `search_wetgeving`, `get_artikel`, `zoek_uitspraken`, `get_uitspraak`.
+  - Zonder `get_lid` en `list_regelingen`: een uitspraak hangt aan een artikel (LiDO koppelt geen leden), en
+    `list_regelingen` vond in de metingen niets wat `search_wetgeving` niet vond.
+- **`wetsgeschiedenis_lezen`, ~4,8k:** `search_wetgeving`, `get_artikel`, `geldigheid`, `zoek_kamerstukken`,
+  `get_kamerstuk`, `zoek_bekendmakingen`, `get_bekendmaking`.
+  - De bekendmakingen horen erbij, omdat de wijziging de brug is naar het dossier en naar wat er aan de bepaling
+    veranderde.
+- **`bepalingen_duiden`, ~2,0k:** `zoek_opbouw`, `inhoudsopgave`, `search_wetgeving`, `get_artikel`, `get_lid`,
+  `get_bepaling`.
+  - Zonder `wetgeving_live`: geen enkel kind gebruikte het, en een regeling buiten de graaf is werk voor `algemeen`.
+  - Zonder `get_context` en `follow_verwijzingen`: de samenhang duidt de centrale agent zelf, met het rapport.
+- **`algemeen`, ~16,8k:** ongewijzigd, zolang hij ook specialist van de supervisor is.
+  - Na de supervisor krijgt hij een expliciete lijst: de lees- en zoektools en alle connectors, zonder de JAS- en
+    annotatietools. Die horen bij de vaste routes (`annoteer`, `lees_annotaties`).
+  - Dat is dan nog ongeveer 12k. Het staat op de lijst open punten.
+
+**Geen twee taakprofielen delen een connector**, en elk van hun tools staat op hun eigen leesweg. Een gedeelde graaftool
+zoals `get_artikel` is het anker naar de bepaling, geen overlap in taak.
+
+**Wat dit voor het verbruik betekent:** de schatting is ongeveer 14k tokens ruw minder per ronde dan `algemeen`, alleen
+al aan schema's. De budgetten hieronder zijn daarom **voorlopige plafonds**, gezet op het verbruik van run 3. De meting
+stelt ze daarna bij op het hoogst gemeten verbruik van het profiel plus 15 %.
+
 ## De profielen
 
 Per profiel de velden zoals ze in `.claude/lex-agents/<naam>.md` komen. De instructie staat hier als kern: de precieze
@@ -156,8 +220,7 @@ tekst volgt in de PR en wordt gemeten. Voor de grenzen is de regel:
   letterlijke passage."
 - **methoderol:** `algemeen` (geleend: de basis en het taalniveau van wetsanalyse, byte-gelijk aan wat `algemeen` nu
   krijgt).
-- **tools:** `search_wetgeving`, `list_regelingen`, `get_artikel`, `get_lid`. Dat is wat deze kinderen gebruikten,
-  naast de connector.
+- **tools:** `search_wetgeving` en `get_artikel`. De connector geeft daarbij `zoek_uitspraken` en `get_uitspraak`.
 - **connectors:** `rechtspraak`.
 - **sjablonen:** geen. Een subagent rondt af met `rapport`, en dat geeft de agentvorm.
 - **skills:** geen.
@@ -165,7 +228,9 @@ tekst volgt in de PR en wordt gemeten. Voor de grenzen is de regel:
   meest per ronde.
 - **budget:** 340.000 (gemeten tot 295k).
 - **Kern van de instructie:**
-  - zoek de uitspraken met `zoek_uitspraken` op de bepaling of het onderwerp uit de opdracht;
+  - zoek de uitspraken met `zoek_uitspraken` op `bwb_id` en `artikel`; op een onderwerp alleen als de opdracht geen
+    bepaling noemt;
+  - lees een lange uitspraak via `inhoud: true` en de offset van de rechtsoverwegingen;
   - noemt de opdracht geen aantal of selectie, kies dan de hoogste instanties eerst en zeg welke je liet liggen;
   - lees de uitspraken naast elkaar in één ronde;
   - geef per uitspraak het ECLI, de kern en één letterlijke passage (r.o.);
@@ -177,8 +242,8 @@ tekst volgt in de PR en wordt gemeten. Voor de grenzen is de regel:
   bekendmaking in Staatsblad of Staatscourant) en vat per stuk samen wat het over de bepaling zegt, met een letterlijke
   passage."
 - **methoderol:** `algemeen`.
-- **tools:** `search_wetgeving`, `get_artikel`, `get_lid`, `geldigheid`. `geldigheid` geeft welke wijziging welke
-  versie bracht, en dus welk dossier erbij hoort. `inhoudsopgave` en `zoek_opbouw` niet: daarmee liep V03 vast.
+- **tools:** `search_wetgeving`, `get_artikel`, `geldigheid`. `geldigheid` geeft het Kamerdossier van de wet die de
+  huidige tekst invoerde. `inhoudsopgave` en `zoek_opbouw` niet: daarmee liep V03 vast.
 - **connectors:** `kamerstukken`, `bekendmakingen`. Kamerstukken en de bekendmaking horen bij dezelfde totstandkoming,
   en S05 en M06 vroegen de bekendmakingen in die lijn.
 - **sjablonen:** geen.
@@ -186,10 +251,11 @@ tekst volgt in de PR en wordt gemeten. Voor de grenzen is de regel:
 - **max_rondes:** 10. V03 strandde op 8, terwijl de stukken al gevonden waren.
 - **budget:** 350.000 (gemeten tot 302k, plus twee rondes van ongeveer 32k).
 - **Kern van de instructie:**
-  - vind eerst het dossier: het nummer uit de wijziging of de bekendmaking, en anders `zoek_kamerstukken` op de titel
-    van de wet;
-  - de memorie van toelichting is meestal stuk 3 van het dossier;
-  - zoek niet opnieuw zodra je de stukken hebt, maar lees ze, naast elkaar in één ronde;
+  - vind eerst het dossier met `geldigheid` op de bepaling, en pas daarna `zoek_kamerstukken` met `dossier`; op titel
+    alleen als `geldigheid` geen dossier geeft;
+  - lees met `get_kamerstuk(id, woorden: "<artikel>")` alleen de passages over de bepaling, en de stukken naast elkaar
+    in één ronde;
+  - zoek niet opnieuw zodra je de stukken hebt;
   - geef per stuk de vindplaats, wat het over de bepaling zegt en één letterlijke passage.
 
 ### `bepalingen_duiden` (nieuw, kiesbaar; neemt het werk van `duiding` als subagent over)
@@ -198,9 +264,8 @@ tekst volgt in de PR en wordt gemeten. Voor de grenzen is de regel:
   bij een artikel) en geeft per bepaling de kern met een letterlijke passage."
 - **methoderol:** `duiding`. De methodetekst blijft die van de rol `duiding`, byte-gelijk, dus er is geen
   methodemeting nodig (ADR-010).
-- **tools:** `zoek_opbouw`, `inhoudsopgave`, `search_wetgeving`, `get_artikel`, `get_lid`, `get_bepaling`,
-  `get_context`, `follow_verwijzingen`.
-- **connectors:** `wetgeving_live`, voor een regeling die niet in de graaf staat.
+- **tools:** `zoek_opbouw`, `inhoudsopgave`, `search_wetgeving`, `get_artikel`, `get_lid`, `get_bepaling`.
+- **connectors:** geen.
 - **sjablonen:** geen.
 - **skills:** geen.
 - **max_rondes:** 10. S04 had de laatste onderdelen niet gelezen bij 8.
@@ -384,8 +449,12 @@ een eigen werkgebied, met de vlag op `meten`.
   - **S04**: alle onderdelen 22.1–22.9.x gelezen, of de ongelezen nummers precies genoemd, binnen het budget;
   - **grenzen**: geen kind boven zijn budget plus één ronde, en geen `afgesloten` zonder rapport;
   - **brongetrouw**: geen onjuiste bron en geen verzonnen citaat (zoals A6);
-  - **verbruik**: per opdracht hoogstens run 3 plus 10 %, en de mediaan per taakprofiel niet boven die van
-    `algemeen`/`duiding` in run 3 voor hetzelfde werk;
+  - **verbruik**: per opdracht hoogstens run 3 plus 10 %. Voor `rechtspraak_lezen` en `wetsgeschiedenis_lezen` is de
+    verwachting dat de mediaan per kind duidelijk lager ligt dan die van `algemeen` in run 3 voor hetzelfde werk
+    (280k en 256k), door het kleinere voorvoegsel. Blijft dat uit, dan klopt de schatting over de schema's niet, en dat
+    komt in het verslag;
+  - **leesweg**: de rechtspraakkinderen zoeken op `bwb_id`/`artikel`, het wetsgeschiedeniskind begint bij
+    `geldigheid`, en in beide lezen de kinderen meer dan één stuk per ronde;
   - **E01–E05**: mediaan gewogen warm niet boven run 3 (30,6k);
   - **inhoud**: geen opdracht van goed naar fout zonder verklaring.
 - Een tweede run alleen bij twijfel over V03 of S04: geen trendclaim op één run. Strandt de meting drie keer op dezelfde
@@ -410,3 +479,5 @@ een eigen werkgebied, met de vlag op `meten`.
 - Een JRM-profiel (wetsuitvoering vooraf), na de meting die de JRM-secties aan een rol koppelt (ADR-014 §7; B5).
 - De schatting per profiel op de bevestigingskaart, uit de mediaan en het budget (A5).
 - `definitie`, `duiding` en `SUPERVISOR_SPECIALISTEN` weg, met de supervisor (na A7).
+- `algemeen` daarna met een expliciete toollijst, zonder de JAS-, annotatie- en begrippentools (~16,8k → ~12k).
+- De budgetten bijstellen op de meting: het hoogst gemeten verbruik per profiel plus 15 %.
