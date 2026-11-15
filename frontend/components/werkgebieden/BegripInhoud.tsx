@@ -12,7 +12,7 @@ import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import { Lijst, LijstRij, Regel, Regels, Sectie, StatusLabel } from "@/components/ui/Lijst";
 import { MeerMenu, MenuKnop, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { usePaneelKopVulling } from "@/components/ui/PaneelKop";
-import { Melding } from "@/components/ui/Melding";
+import { Melding, MeldingActie } from "@/components/ui/Melding";
 import { ObjectRij, ObjectRijen, SplitDetail } from "@/components/ui/Pagina";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { BegripBlok, type BegripWeergaveVorm } from "@/components/werkgebieden/BegripBlok";
@@ -145,9 +145,7 @@ function BegripLaadStand({ stand }: { stand: BegripStand }) {
   return (
     <Melding type="fout" titel="Het begrip kon niet worden geladen.">
       {stand.fout}{" "}
-      <button type="button" className="focus-ring rounded font-medium text-lint underline" onClick={() => void stand.laad()}>
-        Opnieuw proberen
-      </button>
+      <MeldingActie onClick={() => void stand.laad()}>Opnieuw proberen</MeldingActie>
     </Melding>
   );
 }

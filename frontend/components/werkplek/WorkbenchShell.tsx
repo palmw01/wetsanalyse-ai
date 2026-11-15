@@ -1,5 +1,6 @@
 "use client";
 
+import { Melding, MELDING_ACTIE, MeldingActie } from "@/components/ui/Melding";
 import { Opstellen } from "@/components/ui/Icoon";
 import { InstellingenLink } from "@/components/instellingen/InstellingenLink";
 import { INSTELLINGEN_PARAM } from "@/lib/instellingen";
@@ -372,39 +373,27 @@ export function WorkbenchShell({
           nadert. Wegklikken geldt voor deze sessie; bij 100% kan het niet, want dan is het geen
           waarschuwing meer maar de reden dat de invoer dicht is. */}
       {verbruik?.actief && verbruik.geblokkeerd && (
-        <div role="status" className="shrink-0 border-b border-fout/30 bg-fout/10 px-4 py-2 text-center text-[0.8125rem] text-fout">
+        <Melding type="fout" strook>
           <span className="font-semibold">Je tokenbudget is op.</span>{" "}
           Je kunt geen nieuwe vragen stellen tot {resetdatum(verbruik.reset_op)}.{" "}
-          <InstellingenLink tab="verbruik" className="focus-ring rounded font-medium underline underline-offset-2">
+          <InstellingenLink tab="verbruik" className={MELDING_ACTIE}>
             Bekijk je verbruik
           </InstellingenLink>
-        </div>
+        </Melding>
       )}
       {verbruik?.actief && !verbruik.geblokkeerd && verbruik.waarschuwing && !strookGesloten && (
-        <div role="status" className="shrink-0 border-b border-waarschuwing/30 bg-waarschuwing/10 px-4 py-2 text-center text-[0.8125rem] text-aandacht-geel-tekst">
+        <Melding type="waarschuwing" strook>
           <span className="font-semibold">{verbruik.percentage}% van je tokenbudget gebruikt.</span>{" "}
           Nog {tokensKort(verbruik.resterend)} tokens tot {resetdatum(verbruik.reset_op)}.{" "}
-          <button
-            type="button"
-            onClick={() => setStrookGesloten(true)}
-            className="focus-ring rounded font-medium underline underline-offset-2"
-          >
-            Sluiten
-          </button>
-        </div>
+          <MeldingActie onClick={() => setStrookGesloten(true)}>Sluiten</MeldingActie>
+        </Melding>
       )}
 
       {fout && (
-        <div role="status" className="shrink-0 border-b border-fout/30 bg-fout/10 px-4 py-2 text-center text-[0.8125rem] text-fout">
+        <Melding type="fout" strook>
           {fout}{" "}
-          <button
-            type="button"
-            onClick={() => setFout(null)}
-            className="focus-ring rounded font-medium underline underline-offset-2"
-          >
-            Sluiten
-          </button>
-        </div>
+          <MeldingActie onClick={() => setFout(null)}>Sluiten</MeldingActie>
+        </Melding>
       )}
 
       {/* Tijdens de rondleiding gaat de werkplek op slot: klikken vangt de dimlaag op, maar zonder

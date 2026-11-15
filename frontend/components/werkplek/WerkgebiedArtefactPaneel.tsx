@@ -20,7 +20,7 @@ import { BronnenBijDeelvraag } from "@/components/werkgebieden/BronnenBijDeelvra
 import { DeelvraagPaneel } from "@/components/werkgebieden/DeelvraagPaneel";
 import { OnbewaardMelding } from "@/components/werkgebieden/OnbewaardMelding";
 import { WerkgebiedSamenvatting } from "@/components/werkgebieden/WerkgebiedSamenvatting";
-import { Melding } from "@/components/ui/Melding";
+import { Melding, MeldingActie } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { MenuVerwijder } from "@/components/ui/MeerMenu";
 import { StatusLabel } from "@/components/ui/Lijst";
@@ -295,9 +295,7 @@ function WerkgebiedLive({ id, naarWerkgebied, onVerwijderd }: {
     return (
       <Melding type="fout" titel="Het werkgebied kon niet worden geladen.">
         {fout}{" "}
-        <button type="button" className="focus-ring rounded font-medium text-lint underline" onClick={() => { setFout(null); setPoging((p) => p + 1); }}>
-          Opnieuw proberen
-        </button>
+        <MeldingActie onClick={() => { setFout(null); setPoging((p) => p + 1); }}>Opnieuw proberen</MeldingActie>
       </Melding>
     );
   }

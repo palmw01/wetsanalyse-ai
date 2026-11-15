@@ -10,7 +10,7 @@ import { ImplicietePartijen, RelatieBlok, type RelatieBediening } from "@/compon
 import { ongedektPerBron } from "@/lib/dekking";
 import { RevisieHistorie } from "@/components/annotaties/RevisieHistorie";
 import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
-import { Melding } from "@/components/ui/Melding";
+import { Melding, MeldingActie } from "@/components/ui/Melding";
 import { PaneelKop } from "@/components/ui/PaneelKop";
 import { VersieKiezer } from "@/components/ui/VersieKiezer";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -447,7 +447,7 @@ function LaadStand({ fout, onOpnieuw }: { fout: string; onOpnieuw: () => void })
         {fout ? (
           <Melding type="fout" titel="Niet geladen">
             {fout}{" "}
-            <button type="button" onClick={onOpnieuw} className="underline">Opnieuw proberen</button>
+            <MeldingActie onClick={onOpnieuw}>Opnieuw proberen</MeldingActie>
           </Melding>
         ) : (
           <>

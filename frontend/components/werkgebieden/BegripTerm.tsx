@@ -8,7 +8,7 @@ import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { BronBoom } from "@/components/ui/BronBoom";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
-import { Melding } from "@/components/ui/Melding";
+import { Melding, MELDING_ACTIE } from "@/components/ui/Melding";
 import { Kaart, PaginaKop, Stip } from "@/components/ui/Pagina";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
@@ -194,7 +194,7 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
       {melding && (
         <Melding type="uitleg" compact>
           {melding.tekst}
-          {melding.begripId && <>{" "}<Link href={begripPad(werkgebiedId, melding.begripId)} className="focus-ring rounded text-lint underline">Open het begrip</Link></>}
+          {melding.begripId && <>{" "}<Link href={begripPad(werkgebiedId, melding.begripId)} className={MELDING_ACTIE}>Open het begrip</Link></>}
         </Melding>
       )}
 

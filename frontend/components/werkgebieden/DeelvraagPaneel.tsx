@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { Lijst, Sectie, StatusLabel } from "@/components/ui/Lijst";
-import { Melding } from "@/components/ui/Melding";
+import { Melding, MeldingActie } from "@/components/ui/Melding";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { BronnenBijDeelvraag } from "@/components/werkgebieden/BronnenBijDeelvraag";
 import { DeelvraagVoorstel } from "@/components/werkgebieden/Deelvragen";
@@ -124,9 +124,7 @@ function DeelvraagLive({ werkgebiedId, deelvraagId, onKies, onGewijzigd, opPagin
     return (
       <Melding type="fout" titel="De deelvraag kon niet worden geladen.">
         {fout}{" "}
-        <button type="button" className="focus-ring rounded font-medium text-lint underline" onClick={() => void laad()}>
-          Opnieuw proberen
-        </button>
+        <MeldingActie onClick={() => void laad()}>Opnieuw proberen</MeldingActie>
       </Melding>
     );
   }
@@ -157,8 +155,7 @@ function DeelvraagLive({ werkgebiedId, deelvraagId, onKies, onGewijzigd, opPagin
               <span key={o.id}>
                 {i > 0 && (i === detail.opvolgers.length - 1 ? " en " : ", ")}
                 {onKies ? (
-                  <button type="button" className="focus-ring rounded font-medium text-lint underline" data-opvolger={o.id}
-                    onClick={() => onKies(o)}>“{o.vraag}”</button>
+                  <MeldingActie onClick={() => onKies(o)} data-opvolger={o.id}>“{o.vraag}”</MeldingActie>
                 ) : <>“{o.vraag}”</>}
               </span>
             ))}

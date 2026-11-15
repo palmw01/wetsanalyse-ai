@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Select } from "@/components/ui/Field";
 import { StatusLabel } from "@/components/ui/Lijst";
-import { Melding } from "@/components/ui/Melding";
+import { Melding, MeldingActie } from "@/components/ui/Melding";
 import { foutTekst, getAccount, haalModelkeuzes, haalModelkeuzesBeheer, zetModelkeuze } from "@/lib/api";
 import { STANDAARD, keuzesVoor, modelTekst, type Keuze, type Overzicht, type Sleutel, type Stand } from "@/lib/modelkeuzes";
 
@@ -111,7 +111,7 @@ export function ModelkeuzesMelding({ m, onNaarBeveiliging }: { m: Modelkeuzes; o
     return (
       <Melding type="waarschuwing" compact>
         Een model kiezen gaat pas als er een authenticator-app aan je account hangt.{" "}
-        <button type="button" onClick={onNaarBeveiliging} className="focus-ring rounded font-medium underline">Naar Beveiliging</button>
+        <MeldingActie onClick={onNaarBeveiliging}>Naar Beveiliging</MeldingActie>
       </Melding>
     );
   }

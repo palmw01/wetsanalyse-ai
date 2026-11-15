@@ -161,6 +161,13 @@ Claude: een citaat in de tekst, één kaart per object, en het object opent in �
 - **Eén Vraag Lex** (`app/vraagLex.test.ts`): `VraagLexKnop` met een onderwerp, de suggesties uit één register per soort
   (`lib/vraagLex.ts`).
 
+**Een melding** (generieke componenten, 15 nov 2026; `app/melding.test.ts`) is `Melding` (`components/ui/Melding.tsx`):
+`fout`, `waarschuwing`, `bevestiging` of `uitleg`, gewoon, `compact` of als `strook` over de volle breedte boven een scherm
+(het tokenbudget, een fout van de werkplek, een gesprek dat niet bewaard wordt). Een handeling in de tekst (*Opnieuw
+proberen*, *Sluiten*, *Zet … aan*) is `MeldingActie`, een link erin krijgt `MELDING_ACTIE`; een rij knoppen onder een melding
+blijft `Button`. Geen eigen gekleurd vlak (`bg-fout/10` …) en geen eigen knop in een melding. Uitzonderingen: de tweede klik
+op *Verwijderen* in `MeerMenu` en de vaste band van de testomgeving (`Teststrook`).
+
 **De graaf van een bron** (ontdubbelen PR 1): één `useBronGraaf` + `BronGraaf` (`components/wettekst/BronGraaf.tsx`) voor
 het venster naast het gesprek, de bronpagina en de annotatie, met één keuze Tekst | Graaf (`WeergaveBalk`). Alleen de tab
 Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` nog zelf aan.

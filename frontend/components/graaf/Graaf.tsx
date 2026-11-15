@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Melding } from "@/components/ui/Melding";
+import { Melding, MeldingActie } from "@/components/ui/Melding";
 import { Meter } from "@/components/ui/Meter";
 import type { NodeDoel, NodeWeergave } from "@/lib/annotatieNode";
 import type { Onderwerp } from "@/lib/vraagLex";
@@ -227,7 +227,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
 
   if (!bronnen && fout) return <div className="p-5">
     <Melding type="fout" titel="Niet geladen">{fout.tekst}{" "}
-      <button type="button" onClick={fout.herstel} className="underline">Opnieuw proberen</button></Melding>
+      <MeldingActie onClick={fout.herstel}>Opnieuw proberen</MeldingActie></Melding>
   </div>;
 
   const titel = bereik === "kennisgraaf" ? "de hele kennisgraaf"
@@ -264,7 +264,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
         {!opBereik && !fout && <Laadbalk fase={laadfase} kennisgraaf={bereik === "kennisgraaf"} over={!!getekend} />}
         {/* Wat het tekenen in dit bereik tegenhoudt, midden op het canvas, met de weg terug. */}
         {fout && <CanvasMelding rol="alert"><span data-testid="graaf-fout">{fout.tekst}</span>{" "}
-          <button type="button" onClick={fout.herstel} className="focus-ring rounded text-lint underline">Opnieuw proberen</button></CanvasMelding>}
+          <MeldingActie onClick={fout.herstel}>Opnieuw proberen</MeldingActie></CanvasMelding>}
         {/* Bediening zweeft over het canvas; de lege ruimte ertussen laat klikken door naar de graaf. */}
         {getekend && <div ref={bedekking} className="pointer-events-none absolute inset-0 flex flex-col justify-between p-3">
           <div className="flex flex-col items-start gap-2">
