@@ -1,8 +1,9 @@
 "use client";
 
+import { LaadStand } from "@/components/ui/LaadStand";
 import dynamic from "next/dynamic";
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Melding, MeldingActie } from "@/components/ui/Melding";
+import { MeldingActie } from "@/components/ui/Melding";
 import { Meter } from "@/components/ui/Meter";
 import type { NodeDoel, NodeWeergave } from "@/lib/annotatieNode";
 import type { Onderwerp } from "@/lib/vraagLex";
@@ -225,10 +226,7 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
     }
   }
 
-  if (!bronnen && fout) return <div className="p-5">
-    <Melding type="fout" titel="Niet geladen">{fout.tekst}{" "}
-      <MeldingActie onClick={fout.herstel}>Opnieuw proberen</MeldingActie></Melding>
-  </div>;
+  if (!bronnen && fout) return <div className="p-5"><LaadStand wat="De graaf" fout={fout.tekst} onOpnieuw={fout.herstel} /></div>;
 
   const titel = bereik === "kennisgraaf" ? "de hele kennisgraaf"
     : ketting && (ketting.doelen?.length ?? 0) > 1 ? `${ketting.doelen!.length} ${ketting.knopen.some((k) => k.soort === "deel" && ketting.doelen!.includes(k.id)) ? "delen en bepalingen" : "bepalingen"}`

@@ -168,6 +168,14 @@ proberen*, *Sluiten*, *Zet … aan*) is `MeldingActie`, een link erin krijgt `ME
 blijft `Button`. Geen eigen gekleurd vlak (`bg-fout/10` …) en geen eigen knop in een melding. Uitzonderingen: de tweede klik
 op *Verwijderen* in `MeerMenu` en de vaste band van de testomgeving (`Teststrook`).
 
+**Een object laden** (generieke componenten, 15 nov 2026; `app/laadStand.test.ts`) is `LaadStand`
+(`components/ui/LaadStand.tsx`). Zolang het object laadt, staat er een skelet: `kaart`, `tekst` of `rijen`. Bij een fout staat
+er een `Melding` met de titel "{wat} kon niet worden geladen.", de reden (alleen als die iets anders zegt) en *Opnieuw
+proberen*. Na een verwijdering staat er de zin van `verwijderdZin`. `compact` is voor de zijbalk. Elk paneel, elke tab en de
+gesprekkenlijst gebruiken het; een kleine laadregel is `LaadRegel`. Geen eigen `…LaadStand`, geen titel "Niet geladen".
+*Opnieuw proberen* staat daarbuiten alleen op het graafcanvas, in het menu van de connectors en boven het gesprek (de
+geschiedenis).
+
 **De graaf van een bron** (ontdubbelen PR 1): één `useBronGraaf` + `BronGraaf` (`components/wettekst/BronGraaf.tsx`) voor
 het venster naast het gesprek, de bronpagina en de annotatie, met één keuze Tekst | Graaf (`WeergaveBalk`). Alleen de tab
 Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` nog zelf aan.
@@ -970,7 +978,7 @@ begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`
   is een object-literal, dus die test is altijd onwaar en vervangt elke serverreden door een
   generieke zin.
 - **Niets faalt stil.** Het artefact openen toont een laadstand en bij een fout een `Melding` met
-  *Opnieuw proberen* (`NodeAnnotatiePaneel`, `LaadStand`). Een mislukte beslissing landt in de
+  *Opnieuw proberen* (`NodeAnnotatiePaneel`, met `LaadStand` uit `components/ui`). Een mislukte beslissing landt in de
   `Melding` van het artefact (`ArtefactInhoud.beslis`/`wis` vangen), niet als chatbericht.
 - **Een verwijderde annotatie is een toestand, geen fout.** Een bericht verwijst naar zijn annotatie
   zonder foreign key. Een bronnode-annotatie die intussen is verwijderd, meldt het paneel zelf

@@ -1,12 +1,12 @@
 "use client";
 
+import { LaadStand } from "@/components/ui/LaadStand";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Archief, ChevronOmlaag, Mapje, Plus } from "@/components/ui/Icoon";
 import { MeerKnop } from "@/components/ui/MeerMenu";
 import { MENU_PANEEL } from "@/components/ui/Menu";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
 import { GesprekStatus } from "@/components/ui/GesprekStatus";
 import { GesprekActies } from "@/components/werkplek/GesprekActies";
@@ -146,24 +146,10 @@ export function GesprekLijst({ gesprekken, stand, activeId, onNieuwInWerkgebied,
     );
   }
 
-  if (gesprekken.length === 0 && laden) {
+  if (gesprekken.length === 0 && (laden || laadFout)) {
     return (
-      <div className="flex flex-col gap-1 px-1 py-1" aria-hidden>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-9 w-full" />
-        ))}
-      </div>
-    );
-  }
-  if (gesprekken.length === 0 && laadFout) {
-    return (
-      <div className="flex flex-col items-start gap-2 px-2 py-3 text-xs text-muted" role="status" data-gesprekken-fout>
-        <p>{laadFout}</p>
-        {onOpnieuw && (
-          <Button size="xs" variant="secondary" onClick={onOpnieuw}>
-            Opnieuw proberen
-          </Button>
-        )}
+      <div className="px-1 py-1" data-gesprekken-fout={laadFout && !laden ? "" : undefined}>
+        <LaadStand wat="De gesprekken" skelet="rijen" compact fout={laden ? null : laadFout} onOpnieuw={onOpnieuw} />
       </div>
     );
   }

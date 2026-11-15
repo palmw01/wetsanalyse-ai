@@ -1,5 +1,6 @@
 "use client";
 
+import { LaadStand } from "@/components/ui/LaadStand";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -9,7 +10,6 @@ import { MeerMenu, MenuKeuze, MenuKnop, MenuVerwijder } from "@/components/ui/Me
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding, MeldingActie } from "@/components/ui/Melding";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
-import { SkeletonCard } from "@/components/ui/Skeleton";
 import { useOpenBron } from "@/components/werkplek/ContextPaneel";
 import { PeildatumRegel } from "@/components/werkgebieden/Peildatum";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
@@ -137,15 +137,7 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
       </div>
     );
   }
-  if (fout) {
-    return (
-      <Melding type="fout" titel="De bronnen per deelvraag konden niet worden geladen.">
-        {fout}{" "}
-        <MeldingActie onClick={() => setPoging((p) => p + 1)}>Opnieuw proberen</MeldingActie>
-      </Melding>
-    );
-  }
-  if (!o) return <SkeletonCard regels={4} />;
+  if (fout || !o) return <LaadStand wat="De indeling per deelvraag" fout={fout} onOpnieuw={() => setPoging((p) => p + 1)} />;
 
   const beperkingen = zoekBeperkingen(o.zoekdekking);
   const huidig = huidigId || o.actief || "";

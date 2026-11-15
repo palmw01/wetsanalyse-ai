@@ -1,10 +1,10 @@
 "use client";
 
+import { LaadStand } from "@/components/ui/LaadStand";
 import { useCallback, useEffect, useState } from "react";
 
 import { Lijst, Sectie, StatusLabel } from "@/components/ui/Lijst";
 import { Melding, MeldingActie } from "@/components/ui/Melding";
-import { SkeletonCard } from "@/components/ui/Skeleton";
 import { BronnenBijDeelvraag } from "@/components/werkgebieden/BronnenBijDeelvraag";
 import { DeelvraagVoorstel } from "@/components/werkgebieden/Deelvragen";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
@@ -120,15 +120,7 @@ function DeelvraagLive({ werkgebiedId, deelvraagId, onKies, onGewijzigd, opPagin
   const actief = splits(wg?.deelvragen).actief;
   const selectie = useBronselectieStand(werkgebiedId, wg?.revisie ?? 0, actief.length);
 
-  if (fout) {
-    return (
-      <Melding type="fout" titel="De deelvraag kon niet worden geladen.">
-        {fout}{" "}
-        <MeldingActie onClick={() => void laad()}>Opnieuw proberen</MeldingActie>
-      </Melding>
-    );
-  }
-  if (!wg || !detail) return <SkeletonCard regels={4} />;
+  if (fout || !wg || !detail) return <LaadStand wat="De deelvraag" fout={fout} onOpnieuw={() => void laad()} />;
 
   const nummer = actief.findIndex((d) => d.id === detail.id) + 1;
   const hier = selectie?.deelvragen.find((d) => d.id === detail.id);
