@@ -182,6 +182,12 @@ gestippelde rand (`kader`), in een paneel, een menu of een beheerlijst een grijz
 Een veld zonder waarde ("Nog geen definitie.") is `LeegWaarde`: grijs, niet cursief en niet vet. `Groep` en `ObjectRijen`
 tekenen hun `leeg` met `Leeg`. Geen eigen grijze regel die met "Nog geen" of "Geen" begint, en geen eigen gestippeld kader.
 
+**Een uitklap** (generieke componenten, 15 nov 2026; `app/uitklap.test.ts`) is `Uitklap` (`components/ui/Uitklap.tsx`),
+in vier vormen: `kader` (een eigen blok in een paneel: *Historie*, *Dekking*), `regel` (een kleine grijze regel onder een rij
+of voorstel), `sectie` (de kop van een deel van een lijst: *Al besloten (3)*) en `actie` (*Waarom?* op de reviewkaart, 44 px
+op touch). Altijd met de chevron die meedraait op de dichtstbijzijnde uitklap, nooit het driehoekje van de browser. Geen
+eigen `<details>` of `<summary>`.
+
 **De graaf van een bron** (ontdubbelen PR 1): één `useBronGraaf` + `BronGraaf` (`components/wettekst/BronGraaf.tsx`) voor
 het venster naast het gesprek, de bronpagina en de annotatie, met één keuze Tekst | Graaf (`WeergaveBalk`). Alleen de tab
 Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` nog zelf aan.

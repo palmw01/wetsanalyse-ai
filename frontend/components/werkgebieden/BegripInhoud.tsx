@@ -1,5 +1,6 @@
 "use client";
 
+import { Uitklap } from "@/components/ui/Uitklap";
 import { Leeg, LeegWaarde } from "@/components/ui/Leeg";
 import { LaadStand } from "@/components/ui/LaadStand";
 import Link from "next/link";
@@ -9,7 +10,6 @@ import { AutoTextarea } from "@/components/ui/AutoTextarea";
 import { BewerkKnop, BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
 import { Button, knopKlasse } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
-import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import { Lijst, LijstRij, Regel, Regels, Sectie, StatusLabel } from "@/components/ui/Lijst";
 import { MeerMenu, MenuKnop, MenuVerwijder } from "@/components/ui/MeerMenu";
@@ -507,8 +507,7 @@ function NlSbbStand({ stand: { api }, begrip }: { stand: BegripStand; begrip: Be
     <div className="text-xs" data-testid="nl-sbb-stand">
       <p className={stand.conform ? "text-muted" : "text-aandacht-geel-tekst"}>{zin}</p>
       {meldingen.length > 0 && (
-        <details className="mt-1">
-          <summary className="focus-ring cursor-pointer text-[11px] text-muted">Meldingen ({meldingen.length})</summary>
+        <Uitklap className="mt-1" samenvatting={<>Meldingen ({meldingen.length})</>}>
           <ul className="mt-1 space-y-0.5 pl-4 text-[11px] text-muted">
             {meldingen.map((m, i) => (
               <li key={i}>
@@ -517,7 +516,7 @@ function NlSbbStand({ stand: { api }, begrip }: { stand: BegripStand; begrip: Be
             ))}
           </ul>
           <p className="mt-1 text-[10px] text-faint">Een diagnose, geen blokkade: conform zegt iets over de vorm, niet over de juridische juistheid.</p>
-        </details>
+        </Uitklap>
       )}
     </div>
   );
@@ -540,12 +539,8 @@ function Historie({ stand: { api }, begrip }: { stand: BegripStand; begrip: Begr
   }, [open, api, begrip.id, begrip.revisie]);
 
   return (
-    <details className="group rounded-kaart border border-line bg-surface/60 px-3 py-2 text-sm"
-      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
-      <summary className="focus-ring flex cursor-pointer list-none items-center gap-1.5 rounded text-xs font-medium text-muted">
-        <ChevronOmlaag className="-rotate-90 transition-transform group-open:rotate-0" />
-        Historie <span className="font-normal text-faint">({begrip.revisie} {begrip.revisie === 1 ? "revisie" : "revisies"})</span>
-      </summary>
+    <Uitklap vorm="kader"
+      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)} samenvatting={<>Historie <span className="font-normal text-faint">({begrip.revisie} {begrip.revisie === 1 ? "revisie" : "revisies"})</span></>}>
       {fout ? (
         <p className="mt-2 text-xs text-aandacht-rood-tekst">{fout}</p>
       ) : !revisies ? (
@@ -562,7 +557,7 @@ function Historie({ stand: { api }, begrip }: { stand: BegripStand; begrip: Begr
           ))}
         </ol>
       )}
-    </details>
+    </Uitklap>
   );
 }
 

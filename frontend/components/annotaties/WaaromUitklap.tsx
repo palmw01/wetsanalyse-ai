@@ -1,7 +1,7 @@
 "use client";
 
+import { Uitklap } from "@/components/ui/Uitklap";
 import { useEffect, useState } from "react";
-import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { foutTekst } from "@/lib/api";
 import { haalElementGraaf, type ElementGraaf } from "@/lib/annotatieNode";
 import { haalVerklaringen, type Verklaringen } from "@/lib/verklaringen";
@@ -49,18 +49,15 @@ export function WaaromUitklap({ el, laad, beginOpen = false }: {
   const [geladen, setGeladen] = useState<WaaromBron>();
   const [fout, setFout] = useState(false);
   const bron = el ?? geladen;
-  return <details className="group mt-1.5" data-testid="waarom" open={beginOpen || undefined} onClick={(e) => e.stopPropagation()}
+  return <Uitklap vorm="actie" className="mt-1.5" data-testid="waarom" open={beginOpen || undefined} onClick={(e) => e.stopPropagation()}
     onToggle={(e) => {
       if (!(e.currentTarget as HTMLDetailsElement).open || bron || !laad) return;
       setFout(false);
       laad().then(setGeladen, () => setFout(true));
-    }}>
-    <summary className="focus-ring inline-flex min-h-[24px] cursor-pointer list-none items-center gap-1 rounded text-xs text-lint coarse:min-h-[44px]">
-      <ChevronOmlaag className="-rotate-90 transition-transform group-open:rotate-0" />Waarom?
-    </summary>
+    }} samenvatting={<>Waarom?</>}>
     {bron ? <WaaromInhoud el={bron} />
       : <p className="mt-1 border-l-2 border-lint/20 pl-3 text-xs text-muted">{fout ? "Het spoor kon niet worden opgehaald." : "Laden…"}</p>}
-  </details>;
+  </Uitklap>;
 }
 
 function WaaromInhoud({ el }: { el: WaaromBron }) {
@@ -94,12 +91,9 @@ function WaaromInhoud({ el }: { el: WaaromBron }) {
       <Regels kop="Twijfel" regels={w.twijfel} />
       <Regels kop="Afgehandeld met" regels={w.resolutie} />
       <Regels kop="Controles" regels={w.validatie} />
-      {(w.trace || el.id) && <details className="group/tech" onToggle={(e) => {
+      {(w.trace || el.id) && <Uitklap onToggle={(e) => {
         if ((e.currentTarget as HTMLDetailsElement).open && el.id) setGraafOpen(true);
-      }}>
-        <summary className="focus-ring inline-flex cursor-pointer list-none items-center gap-1 rounded text-[11px] text-muted">
-          <ChevronOmlaag className="-rotate-90 transition-transform group-open/tech:rotate-0" />Technisch detail
-        </summary>
+      }} samenvatting={<>Technisch detail</>}>
         {w.vraag && <>
           <p className={`${KOP} mt-1`}>Wat het model zag</p>
           <pre className="mt-0.5 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded bg-surface p-2 text-[11px] text-ink">{w.vraag}</pre>
@@ -109,7 +103,7 @@ function WaaromInhoud({ el }: { el: WaaromBron }) {
           <pre className="mt-0.5 max-h-60 overflow-auto whitespace-pre-wrap break-words rounded bg-surface p-2 text-[11px] text-ink">{JSON.stringify(w.trace, null, 2)}</pre>
         </>}
         {graafOpen && el.id && <GraafDetail id={el.id} />}
-      </details>}
+      </Uitklap>}
   </div>;
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { Uitklap } from "@/components/ui/Uitklap";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -112,14 +113,11 @@ export function BegripVoorstellen({ id, runId, kop = "Voorstellen van Lex", sub,
                   een kaart per groep. Een definitie die Lex formuleerde, staat geel.</p>
               )}
               {run.overgeslagen.length > 0 && (
-                <details>
-                  <summary className="focus-ring cursor-pointer rounded">
-                    {run.overgeslagen.length === 1 ? "1 passage" : `${run.overgeslagen.length} passages`} niet meegenomen
-                  </summary>
+                <Uitklap samenvatting={<>{run.overgeslagen.length === 1 ? "1 passage" : `${run.overgeslagen.length} passages`} niet meegenomen</>}>
                   <ul className="mt-1 space-y-0.5 pl-4">
                     {run.overgeslagen.map((o) => <li key={o.element_id}>“{o.tekst}” – {o.reden}</li>)}
                   </ul>
-                </details>
+                </Uitklap>
               )}
             </div>
           )}
@@ -153,8 +151,7 @@ export function BegripVoorstellen({ id, runId, kop = "Voorstellen van Lex", sub,
             <p className="text-sm text-muted">Alle voorstellen van deze ronde zijn beoordeeld.</p>
           )}
           {data?.run && los.length > 0 && !opname && (
-            <details className="text-sm">
-              <summary className="focus-ring cursor-pointer rounded text-sm font-semibold text-lint">Losse twijfelvragen ({los.length})</summary>
+            <Uitklap vorm="sectie" samenvatting={<>Losse twijfelvragen ({los.length})</>}>
               <ul className="divide-y divide-line" aria-label="Losse twijfelvragen">
                 {los.map((v) => (
                   <VraagRegel key={v.kandidaat_id} vraag={v} data={data} bezig={bezig}
@@ -165,25 +162,21 @@ export function BegripVoorstellen({ id, runId, kop = "Voorstellen van Lex", sub,
                     })} />
                 ))}
               </ul>
-            </details>
+            </Uitklap>
           )}
           {besloten.length > 0 && (
-            <details className="text-sm">
-              <summary className="focus-ring cursor-pointer rounded text-sm font-semibold text-lint">Beoordeelde termen ({besloten.length})</summary>
+            <Uitklap vorm="sectie" samenvatting={<>Beoordeelde termen ({besloten.length})</>}>
               <ObjectRijen label="Beoordeelde termen">
                 {besloten.map((t) => (
                   <ObjectRij key={t.sleutel} href={termPad(id, t.sleutel)} titel={t.naam}
                     sub={[...new Set(t.besloten.map((g) => BESLUIT_LABEL[g.besluit]))].join(", ")} />
                 ))}
               </ObjectRijen>
-            </details>
+            </Uitklap>
           )}
 
           {relaties.length > 0 && data && (
-            <details className="text-sm">
-              <summary className="focus-ring cursor-pointer rounded text-sm font-semibold text-lint">
-                Relaties ({relaties.length}) – ter informatie
-              </summary>
+            <Uitklap vorm="sectie" samenvatting={<>Relaties ({relaties.length}) – ter informatie</>}>
               <ul className="mt-2 space-y-1 text-xs text-ink">
                 {relaties.map((r) => (
                   <li key={r.kandidaat_id}>
@@ -193,7 +186,7 @@ export function BegripVoorstellen({ id, runId, kop = "Voorstellen van Lex", sub,
                   </li>
                 ))}
               </ul>
-            </details>
+            </Uitklap>
           )}
     </section>
   );

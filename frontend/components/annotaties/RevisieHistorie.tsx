@@ -1,8 +1,8 @@
 "use client";
 
+import { Uitklap } from "@/components/ui/Uitklap";
 import { Leeg } from "@/components/ui/Leeg";
 import { useEffect, useState } from "react";
-import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { foutTekst } from "@/lib/api";
 import type { NodeElement, NodeLaag } from "@/lib/annotatieNode";
 import { jasStyle } from "@/lib/jas";
@@ -37,12 +37,8 @@ export function RevisieHistorie({ lagen, labelVan, elementen, onKies }: {
   const perId = new Map(elementen.map((e) => [e.id, e]));
   const totaal = lagen.reduce((s, l) => s + l.revisie, 0);
   return (
-    <details className="group rounded-kaart border border-line bg-surface/60 px-3 py-2 text-sm" data-testid="revisies"
-      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
-      <summary className="focus-ring flex cursor-pointer list-none items-center gap-1.5 rounded text-xs font-medium text-muted">
-        <ChevronOmlaag className="-rotate-90 transition-transform group-open:rotate-0" />
-        Historie <span className="font-normal text-faint">({totaal} {totaal === 1 ? "revisie" : "revisies"})</span>
-      </summary>
+    <Uitklap vorm="kader" data-testid="revisies"
+      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)} samenvatting={<>Historie <span className="font-normal text-faint">({totaal} {totaal === 1 ? "revisie" : "revisies"})</span></>}>
       {fout ? <p className="mt-2 text-xs text-aandacht-rood-tekst">{fout}</p>
         : !geladen ? <p className="mt-2 text-xs text-muted">Laden…</p>
         : lagen.map((laag) => {
@@ -75,6 +71,6 @@ export function RevisieHistorie({ lagen, labelVan, elementen, onKies }: {
             )}
           </div>;
         })}
-    </details>
+    </Uitklap>
   );
 }
