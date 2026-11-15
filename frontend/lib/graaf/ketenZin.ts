@@ -2,7 +2,7 @@
  *  uitkomst getest is: een graaf die niet zegt wat hij toont, is ruis. */
 import type { Samenhang } from "@/lib/samenhang";
 
-const aantal = (n: number, een: string, meer: string) => `${n} ${n === 1 ? een : meer}`;
+import { aantal } from "@/lib/aantal";
 
 function naamVan(k: Samenhang, id: string): string {
   const knoop = k.knopen.find((x) => x.id === id);

@@ -528,7 +528,7 @@ function Historie({ elementen }: { elementen: AnnotatieElement[] }) {
       <ul className="mt-2 space-y-1.5">
         {elementen.map((el) => (
           <li key={el.id} className="flex flex-wrap items-baseline gap-1.5 text-xs text-muted">
-            <span className={`shrink-0 rounded px-1 text-[0.7rem] ${jasStyle(el.klasse)}`}>{el.klasse}</span>
+            <span className={`shrink-0 rounded px-1 text-2xs ${jasStyle(el.klasse)}`}>{el.klasse}</span>
             <span className="line-through decoration-faint">“{el.tekst}”</span>
             <span className="text-faint">· {LIFECYCLE_LABEL[el.lifecycle] ?? el.lifecycle}</span>
           </li>

@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { Uitklap } from "@/components/ui/Uitklap";
 import type { NodeDekking } from "@/lib/annotatieNode";
 import { dekkingPerBron, gevondenTekst } from "@/lib/dekking";
@@ -22,7 +23,7 @@ export function DekkingOverzicht({ dekking, volgorde, labelVan }: {
         {regels.map((r) => <li key={r.bron_iri} className="text-xs">
           {regels.length > 1 && <span className="font-semibold text-muted">{labelVan(r.bron_iri)}: </span>}
           <span className="text-ink">{r.bekeken} van {r.totaal} dimensies volledig bekeken</span>
-          <span className="text-muted"> · {r.ongedekt} {r.ongedekt === 1 ? "zinsdeel" : "zinsdelen"} zonder treffer</span>
+          <span className="text-muted"> · {aantal(r.ongedekt, "zinsdeel", "zinsdelen")} zonder treffer</span>
           {/* Een kandidaat over de hele zin telt als treffer, terwijl er binnen de zin niets gevonden is. */}
           {!!r.alleenGeheel && <span className="text-muted" data-testid="dekking-geheel"
             title="Deze zinsdelen zijn alleen als geheel geraakt (bijvoorbeeld de hele normzin); binnen de zin vonden de detectoren niets.">
@@ -34,7 +35,7 @@ export function DekkingOverzicht({ dekking, volgorde, labelVan }: {
           </p>}
         </li>)}
       </ul>
-      <p className="mt-2 text-[11px] text-faint">
+      <p className="mt-2 text-2xs text-faint">
         Dit zegt welke patronen de detectoren konden bekijken – niet of de annotatie juist of volledig is.
       </p>
     </Uitklap>

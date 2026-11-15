@@ -58,7 +58,7 @@ export function GraafZoek({ model, verborgen, gekozen, onKies }: {
           <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: eigenKleur(a) }} />
           <span className="min-w-0">
             <span className="block truncate">{a.naam}</span>
-            <span className="text-[10px] text-faint">{SOORT_LABEL[a.soort]}{a.rand ? " · buiten wat geladen is" : ""}{verborgen.has(id) ? " · laag staat uit" : ""}</span>
+            <span className="text-3xs text-faint">{SOORT_LABEL[a.soort]}{a.rand ? " · buiten wat geladen is" : ""}{verborgen.has(id) ? " · laag staat uit" : ""}</span>
           </span>
         </li>;
       })}

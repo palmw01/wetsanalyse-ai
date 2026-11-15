@@ -12,13 +12,13 @@ export function VragenKaart({ groep, onOpen }: { groep: VragenGroep; onOpen: () 
   return (
     <div data-vragenkaart={groep.intake_id}>
       {groep.paren.length > 0 && (
-        <div className="mt-1 rounded-[20px] border border-line bg-white px-5 py-4 shadow-zacht">
+        <div className="mt-1 rounded-vraag border border-line bg-paper px-5 py-4 shadow-zacht">
           <p className="text-sm text-muted">{groep.paren.length === 1 ? "Vraag" : "Vragen"}</p>
           <dl className="mt-2 space-y-3">
             {groep.paren.map((p, i) => (
               <div key={`${p.stap}-${i}`} data-vraagpaar={p.stap}>
-                <dt className="text-[15px] text-muted">{p.vraag}</dt>
-                <dd className={`mt-0.5 whitespace-pre-line text-[15px] ${p.overgeslagen ? "italic text-faint" : "text-ink"}`}>
+                <dt className="text-lees text-muted">{p.vraag}</dt>
+                <dd className={`mt-0.5 whitespace-pre-line text-lees ${p.overgeslagen ? "italic text-faint" : "text-ink"}`}>
                   {p.overgeslagen ? "Overgeslagen" : p.antwoord}
                 </dd>
               </div>

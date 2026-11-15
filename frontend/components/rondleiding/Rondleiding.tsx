@@ -314,7 +314,7 @@ export function Rondleiding({
               Je was de vorige keer gebleven bij stap {hervatBij + 1}: {stappen[hervatBij].titel}.
             </p>
           )}
-          <p className="mt-3 text-[0.8125rem] leading-5 text-muted">
+          <p className="mt-3 text-meta leading-5 text-muted">
             Let op: dit is een testomgeving. Analyses kunnen verloren gaan.
           </p>
           <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
@@ -356,7 +356,7 @@ export function Rondleiding({
             Vraag of opdracht typen → Lex haalt de bepaling op en stelt markeringen voor → jij
             beoordeelt → afronden en exporteren.
           </p>
-          <p className="mt-3 text-[0.8125rem] leading-5 text-muted">
+          <p className="mt-3 text-meta leading-5 text-muted">
             Je werk vind je terug in de zijbalk: <span className="font-medium text-ink">Werkgebieden</span>,{" "}
             <span className="font-medium text-ink">Annotaties</span> en{" "}
             <span className="font-medium text-ink">Begrippen</span>. Deze rondleiding start je opnieuw via je
@@ -367,7 +367,7 @@ export function Rondleiding({
             )}
           </p>
           {/* Jouw keuze en niet iets dat vanzelf gebeurt; terugdraaien kan in de instellingen, tab Rondleiding. */}
-          <label className="mt-4 flex items-start gap-2 text-[0.8125rem] leading-5 text-ink">
+          <label className="mt-4 flex items-start gap-2 text-meta leading-5 text-ink">
             <input
               type="checkbox"
               className="mt-0.5 h-4 w-4 shrink-0 accent-lint"

@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { LaadStand } from "@/components/ui/LaadStand";
 import dynamic from "next/dynamic";
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -246,11 +247,11 @@ export function Graaf({ stand, zichtbaar, groot, actiefElementId, weergave, dekk
         {heelArtikel && <button type="button" data-testid="graaf-heel-artikel" disabled={!!laadtBij} onClick={() => void laadErbij(heelArtikel)}
           className="focus-ring rounded text-lint underline disabled:opacity-50">Toon het hele artikel</button>}</p>}
       {focus && !(ketting && bereik === "antwoord") && opBereik && <p className="mt-1 text-xs text-muted" data-testid="graaf-focus">Nadruk op {benaming.focus}{" "}
-        ({focus.doelen.size === 1 ? "1 deel of bepaling" : `${focus.doelen.size} delen en bepalingen`}<span className="hidden sm:inline">, met wat eronder valt en waarnaar het verwijst</span>)<span className="hidden sm:inline">; de rest staat gedimd op de kaart</span>.</p>}
+        ({aantal(focus.doelen.size, "deel of bepaling", "delen en bepalingen")}<span className="hidden sm:inline">, met wat eronder valt en waarnaar het verwijst</span>)<span className="hidden sm:inline">; de rest staat gedimd op de kaart</span>.</p>}
       {hoofd && !hoofd.verwijzingen_beschikbaar && <p className="mt-1 text-xs text-muted">Verwijzingen zijn nu niet beschikbaar; je ziet de bronstructuur en de annotaties.</p>}
       {bronnen?.some((d) => d.afgekapt) && <p className="mt-1 text-xs text-muted">Er zijn meer verwijzingen dan getoond; de eerste 200 per richting staan in beeld.</p>}
       {weergave && bronnen && bronnen.length > 1 && bereik === "antwoord" && <p className="mt-1 text-xs text-muted">De tekst en de annotatie in het paneel gaan over {hoofdNaam}; een knoop uit een ander artikel opent dat artikel in het paneel.{bronnen.some(isDeelCluster) ? " Een hoofdstuk of afdeling staat er met zijn artikelen; open een artikel voor leden, annotaties en verwijzingen." : ""}</p>}
-      {stand.nietGeladen > 0 && <p className="mt-1 text-xs text-muted">{stand.nietGeladen === 1 ? "1 deel is" : `${stand.nietGeladen} delen zijn`} niet geladen.</p>}
+      {stand.nietGeladen > 0 && <p className="mt-1 text-xs text-muted">{aantal(stand.nietGeladen, "deel is", "delen zijn")} niet geladen.</p>}
       {melding && <p role="alert" className="mt-1 text-xs text-fout" data-testid="graaf-melding">{melding}</p>}
     </div>
     <div className={`flex min-h-0 flex-1 ${groot ? "flex-col md:flex-row" : "flex-col"}`}>

@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { datumTijd } from "@/lib/datum";
 import { LaadStand } from "@/components/ui/LaadStand";
 import { ARTEFACT_SOORT_LABEL } from "@/lib/artefact";
@@ -151,7 +152,7 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
         if (besluiten.length) await opslag.beslisLaag(laag.id, { verwachte_revisie: laag.revisie, snapshot_id: view.snapshot_id, besluiten });
       }
     });
-    setMelding(`${groen.length === 1 ? "1 voorstel" : `${groen.length} voorstellen`} akkoord.`);
+    setMelding(`${aantal(groen.length, "voorstel", "voorstellen")} akkoord.`);
   }
 
   async function eigenMarkering(invoer: { klasse: string; toelichting: string; anker: Anker }) {

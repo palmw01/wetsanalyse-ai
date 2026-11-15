@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { useState } from "react";
 
 import { FilterChip, KeuzeRij } from "@/components/ui/FilterChip";
@@ -37,7 +38,7 @@ export function BronnenRegister() {
         <div className="min-w-0">
           <h2 className="font-display text-base font-semibold text-lint">Bronnen per deelvraag</h2>
           <p className="mt-0.5 text-xs text-muted">
-            {wg.bronnen.length} {wg.bronnen.length === 1 ? "bronselectie" : "bronselecties"}. Kiezen per deelvraag doe je
+            {aantal(wg.bronnen.length, "bronselectie", "bronselecties")}. Kiezen per deelvraag doe je
             hier of met Lex in het gesprek (<em>Bepaal de bronnen per deelvraag</em>); een bepaling toevoegen ook (<em>Voeg een
             bepaling toe</em>). Verwijderen uit het werkgebied laat de
             bepaling en haar annotaties staan.

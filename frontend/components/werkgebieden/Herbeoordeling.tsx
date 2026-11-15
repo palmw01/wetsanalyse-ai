@@ -54,16 +54,16 @@ export function Herbeoordeling({ id, begrip, geraakt: g, muteer }: {
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted">Toen (bij koppelen)</p>
+          <p className="text-2xs font-medium uppercase tracking-wide text-muted">Toen (bij koppelen)</p>
           <Stand tekst={g.toen.tekst} klasse={g.toen.klasse} />
           {g.bevestigingen.length > 0 && (
-            <p className="mt-1 text-[11px] text-muted">
+            <p className="mt-1 text-2xs text-muted">
               Laatst bevestigd door {g.bevestigingen.at(-1)!.door}: “{g.bevestigingen.at(-1)!.tekst}”
             </p>
           )}
         </div>
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted">Nu</p>
+          <p className="text-2xs font-medium uppercase tracking-wide text-muted">Nu</p>
           {g.nu ? (
             <Stand tekst={g.nu.tekst} klasse={g.nu.klasse} extra={g.nu.verouderd ? "annotatie verouderd" : undefined} />
           ) : (
@@ -149,7 +149,7 @@ function Stand({ tekst, klasse, extra }: { tekst: string; klasse: string; extra?
     <div className="mt-0.5 space-y-0.5">
       <KlasseLabel klasse={klasse} />
       <blockquote className="text-sm text-ink">“{tekst}”</blockquote>
-      {extra && <p className="text-[11px] text-aandacht-geel-tekst">{extra}</p>}
+      {extra && <p className="text-2xs text-aandacht-geel-tekst">{extra}</p>}
     </div>
   );
 }
@@ -162,9 +162,9 @@ function TekstNu({ bron: b }: { bron: BronSignaal }) {
   const staat = Boolean(markeer(b.tekst_nu ?? "", b.fragment));
   return (
     <div>
-      <p className="text-[11px] font-medium uppercase tracking-wide text-muted">Wettekst nu · {plek}</p>
+      <p className="text-2xs font-medium uppercase tracking-wide text-muted">Wettekst nu · {plek}</p>
       <div className="mt-0.5"><WettekstBlok groot tekst={b.tekst_nu ?? ""} markeer={b.fragment} /></div>
-      {!staat && <p className="text-[11px] text-aandacht-geel-tekst">Het gemarkeerde fragment “{b.fragment}” staat er niet meer.</p>}
+      {!staat && <p className="text-2xs text-aandacht-geel-tekst">Het gemarkeerde fragment “{b.fragment}” staat er niet meer.</p>}
     </div>
   );
 }
@@ -182,11 +182,11 @@ function OpvolgerRij({ opvolger: o, bezig, kanHerkoppelen, onHerkoppel }: {
           <KlasseLabel klasse={o.klasse} klein className="mr-1.5" />
           <span className="text-sm text-ink">“{o.tekst}”</span>
           {!o.annotatie_beoordeeld && (
-            <span className="block text-[11px] text-aandacht-geel-tekst">annotatie nog niet door een jurist beoordeeld</span>
+            <span className="block text-2xs text-aandacht-geel-tekst">annotatie nog niet door een jurist beoordeeld</span>
           )}
           <ul className="mt-1 space-y-0.5" aria-label="Signalen">
             {o.signalen.map((s) => (
-              <li key={s.uitleg} className={`text-[11px] ${RICHTING_KLEUR[s.richting]}`}>
+              <li key={s.uitleg} className={`text-2xs ${RICHTING_KLEUR[s.richting]}`}>
                 <span aria-hidden="true" className="mr-1 font-semibold">{RICHTING_TEKEN[s.richting]}</span>
                 <span className="sr-only">{RICHTING_LABEL[s.richting]}: </span>
                 {s.uitleg}

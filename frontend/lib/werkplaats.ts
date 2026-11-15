@@ -2,6 +2,7 @@
 // (`/v1/werkplaats/*`, `api/app/werkplaats_store.py`) en van `bronmodel/werkplaats.py`; `werkplaats.test.ts` toetst de
 // soorten en de naamvorm tegen de Python-bron. Hier staat ook de ene functie die van de velden van de api een stand
 // maakt, zodat de lijst, de pagina van een methode en de editor hetzelfde zeggen.
+import { aantal } from "./aantal";
 import type { StatusToon } from "@/components/ui/Lijst";
 import type { Soort as CatalogusSoort } from "@/lib/catalogus";
 
@@ -154,7 +155,7 @@ export function geldigLabel(v: Pick<WerkplaatsVersie, "geldig" | "bevindingen"> 
   if (!v) return null;
   if (v.geldig) return { tekst: "Geldig", toon: "groen", uitleg: "De laatste versie haalt de controle." };
   const n = v.bevindingen.length;
-  return { tekst: n === 1 ? "1 bevinding" : `${n} bevindingen`, toon: "geel",
+  return { tekst: aantal(n, "bevinding", "bevindingen"), toon: "geel",
     uitleg: "De laatste versie haalt de controle niet. Ze is bewaard, maar kan zo niet verder." };
 }
 

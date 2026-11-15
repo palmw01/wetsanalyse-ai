@@ -33,6 +33,7 @@ import {
   doelVanKandidaat, kandidaatLabel, kandidaatPrompt,
 } from "@/lib/annotatie";
 import type { NodeDoel } from "@/lib/annotatieNode";
+import { aantal } from "@/lib/aantal";
 import { ARTEFACT_SOORT_LABEL, artefactKop, isTeOpenen, type Artefact } from "@/lib/artefact";
 import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
 import { kaartenVan, normaliseerBronnen, zonderKaarten } from "@/lib/bronnen";
@@ -135,7 +136,7 @@ export const ThreadRij = memo(function ThreadRij({
   ) : item.type === "user" ? (
     <div className="flex animate-rise flex-col items-end gap-1">
       {item.over && (
-        <span className="max-w-[85%] truncate rounded-full bg-surface px-2.5 py-0.5 text-[0.7rem] text-muted">
+        <span className="max-w-[85%] truncate rounded-full bg-surface px-2.5 py-0.5 text-2xs text-muted">
           bij {item.over}
         </span>
       )}
@@ -143,7 +144,7 @@ export const ThreadRij = memo(function ThreadRij({
         {item.tekst}
       </div>
       {item.nietVerstuurd && (
-        <span className="max-w-[85%] text-right text-[0.7rem] text-muted">
+        <span className="max-w-[85%] text-right text-2xs text-muted">
           Niet verstuurd: er liep al een vraag in dit gesprek. Je vraag staat weer in het invoerveld.
         </span>
       )}
@@ -285,7 +286,7 @@ function OverzichtKaartje({ overzicht, onOpen }: { overzicht: Overzicht; onOpen:
   const n = t.bepalingen + t.ookGenoemd;
   return (
     <PaneelChip titel={`Overzicht: ${overzicht.gevraagd}`} icoon={<GraafIcoon />} onClick={onOpen} data-testid="overzicht-kaartje"
-      sub={`${t.regelingen === 1 ? "1 regeling" : `${t.regelingen} regelingen`} · ${n === 1 ? "1 bepaling" : `${n} bepalingen`}`} />
+      sub={`${aantal(t.regelingen, "regeling", "regelingen")} · ${aantal(n, "bepaling", "bepalingen")}`} />
   );
 }
 

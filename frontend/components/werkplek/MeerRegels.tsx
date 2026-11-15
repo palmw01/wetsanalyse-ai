@@ -46,7 +46,7 @@ export function MeerRegels({ teksten, onTeksten, regel, uitgeschakeld, onInsture
                   if (e.ctrlKey || e.metaKey) onInsturen();
                   else if (t.trim()) erbij(i);
                 }}
-                className="block w-full resize-none border-0 bg-transparent p-0 text-[15px] text-ink placeholder:text-faint focus:outline-none focus:ring-0 disabled:opacity-50"
+                className="block w-full resize-none border-0 bg-transparent p-0 text-lees text-ink placeholder:text-faint focus:outline-none focus:ring-0 disabled:opacity-50"
               />
             </label>
             {t.trim() && <Vinkje className="text-lg text-lint" />}

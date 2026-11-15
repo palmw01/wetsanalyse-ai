@@ -13,6 +13,7 @@
 // Zuiver, zodat vitest het zonder DOM toetst; een ongeldig event laat de stand staan (ontwerpregel 1 van
 // `agentEvents.ts`).
 
+import { aantal } from "./aantal";
 import type { Delegatie } from "./types";
 
 /** De stand van één kind. `gepland` is nog niet begonnen; `overgeslagen` kwam niet aan bod (gestopt, het plafond). */
@@ -243,7 +244,7 @@ export function taakMeta(t: DelegatieTaak, soort: DelegatieVoortgang["soort"] = 
     t.model ?? "",
     t.afbakening?.length ? `afbakening: ${t.afbakening.join(", ")}` : "",
     t.periode?.length ? `periode ${t.periode.join("–")}` : "",
-    t.zelfBeantwoord ? `${t.zelfBeantwoord} ${t.zelfBeantwoord === 1 ? "vraag" : "vragen"} door Lex beantwoord uit het dossier` : "",
+    t.zelfBeantwoord ? `${aantal(t.zelfBeantwoord, "vraag", "vragen")} door Lex beantwoord uit het dossier` : "",
   ].filter(Boolean).join(" · ");
 }
 

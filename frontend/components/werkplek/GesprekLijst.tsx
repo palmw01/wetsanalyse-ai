@@ -63,7 +63,7 @@ interface Props {
 
 type RijActies = Pick<Props, "onOpen" | "onHernoem" | "onVerwijder" | "onArchiveer" | "onVerplaats">;
 
-const KOP = "px-2 pb-1 pt-3 text-[0.65rem] font-semibold uppercase tracking-wide text-faint";
+const KOP = "px-2 pb-1 pt-3 text-3xs font-semibold uppercase tracking-wide text-faint";
 
 /** *Meer laden* onder een lijst die niet in één keer kwam: zonder deze knop verdween een ouder gesprek stil (UI-02). */
 function MeerLaden({ laden, onMeer }: { laden: boolean; onMeer: () => void }) {
@@ -292,7 +292,7 @@ function Rij({ gesprek, actief, acties, toonPlek = false, status, delegatie }: {
             {status && <GesprekStatus stand={status} />}
           </span>
           {/* Op de actieve rij (bg-lint/10) haalt faint de 4,5:1 niet: daar muted. */}
-          <span className={`mt-0.5 block text-[0.65rem] ${actief ? "text-muted" : "text-faint"}`}>
+          <span className={`mt-0.5 block text-3xs ${actief ? "text-muted" : "text-faint"}`}>
             {gesprek.aantal_berichten} berichten{korteDatum(gesprek.updated) ? ` · ${korteDatum(gesprek.updated)}` : ""}
             {toonPlek && (gesprek.gearchiveerd ? " · archief" : gesprek.werkgebied_naam ? ` · ${gesprek.werkgebied_naam}` : "")}
             {deelgesprekProfiel(gesprek) && ` · ${deelgesprekProfiel(gesprek)}`}

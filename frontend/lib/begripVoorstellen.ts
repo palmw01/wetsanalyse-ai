@@ -1,6 +1,7 @@
 // Rekenkern van de voorstellen van Lex (spoor D, levering 3a; per term in `begripTermen.ts`): wat een
 // overname wordt, en de woorden waarmee de werkplek de uitkomst van de keten noemt. Puur, voor vitest.
 
+import { aantal } from "./aantal";
 import type {
   Aanpassing, AkkoordInvoer, Betekenisgroep, DefinitieHerkomst, GroepBesluit, GroepenAntwoord,
   KaartFragment, ModelOordeelSoort, Passage, TwijfelVraag,
@@ -152,7 +153,7 @@ export function akkoordLabel(g: Betekenisgroep): { label: string; concept: boole
   const p = g.poort_vooraf;
   if (!p || p.mag) return { label: "Akkoord", concept: false, redenen: [] };
   const n = p.redenen.length;
-  return { label: `Akkoord als concept (${n} ${n === 1 ? "open punt" : "open punten"})`, concept: true, redenen: p.redenen };
+  return { label: `Akkoord als concept (${aantal(n, "open punt", "open punten")})`, concept: true, redenen: p.redenen };
 }
 
 /** Het akkoord voor de api. Zijn alle leden gekozen, dan hoeven ze niet mee (de api neemt de rest van

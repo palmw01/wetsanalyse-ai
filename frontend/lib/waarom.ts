@@ -1,4 +1,5 @@
 import type { LaagGraafcontrole } from "./annotatieNode";
+import { aantal } from "./aantal";
 import { datumKort } from "./datum";
 import type { AnnotatieElement, Beslissing, BeurtMeting, ElementTrace } from "./types";
 import { verklaar, type Verklaringen } from "./verklaringen";
@@ -108,7 +109,7 @@ export function beurtSamenvatting(meting?: BeurtMeting): string {
   const duur = fasen.reduce((s, f) => s + (f.ms || 0), 0);
   return [
     resultaat,
-    gedegradeerd ? `${gedegradeerd} ${gedegradeerd === 1 ? "bronnode" : "bronnodes"} zonder zinsontleding` : "",
+    gedegradeerd ? `${aantal(gedegradeerd, "bronnode", "bronnodes")} zonder zinsontleding` : "",
     duur ? seconden(duur) : "",
   ].filter(Boolean).join(" · ");
 }
@@ -123,7 +124,7 @@ export function graafStatusTekst(gc: LaagGraafcontrole): { tekst: string; ernst:
     case "onbeschikbaar": return { tekst: "De kennisgraaf is nu niet bereikbaar – geen oordeel.", ernst: "neutraal" };
     case "uit": return { tekst: "Deze omgeving projecteert niet naar de kennisgraaf.", ernst: "neutraal" };
     default: {
-      const delen = [gc.afwijkingen.length ? `${gc.afwijkingen.length} ${gc.afwijkingen.length === 1 ? "afwijking" : "afwijkingen"}` : "",
+      const delen = [gc.afwijkingen.length ? `${aantal(gc.afwijkingen.length, "afwijking", "afwijkingen")}` : "",
         shacl ? `${shacl} SHACL-${shacl === 1 ? "bevinding" : "bevindingen"}` : ""].filter(Boolean);
       return { tekst: `De graaf wijkt af van de database: ${delen.join(", ") || "zie de beheercontrole"}.`, ernst: "aandacht" };
     }

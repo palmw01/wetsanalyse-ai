@@ -138,7 +138,7 @@ export function BerichtenPanel({ positie, containerClassName }: { positie?: stri
           {ongelezen > 0 && (
             <span
               aria-hidden
-              className="absolute right-1 top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-fout px-0.5 text-[0.6rem] font-bold leading-none text-paper"
+              className="absolute right-1 top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-fout px-0.5 text-3xs font-bold leading-none text-paper"
             >
               {badgeLabel}
             </span>

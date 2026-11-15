@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -158,7 +159,7 @@ function BegripRij({ id, begrip: b, aandacht }: { id: string; begrip: BegripSame
         <StatusLabel toon={BEGRIP_STATUS_TOON[b.status]}>{BEGRIP_STATUS_LABEL[b.status]}</StatusLabel>
       </>}
       sub={<>
-        {b.aantal_koppelingen === 1 ? "1 passage" : `${b.aantal_koppelingen} passages`}
+        {aantal(b.aantal_koppelingen, "passage", "passages")}
         {b.inhoud.definitie && ` · ${kort(b.inhoud.definitie)}`}
         {b.vervangen_door && ` · vervangen door ${b.vervangen_door.naam}`}
         {aandacht && <span className="mt-0.5 block text-aandacht-geel-tekst">{aandacht}</span>}

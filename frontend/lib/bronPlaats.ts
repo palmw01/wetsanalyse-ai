@@ -3,6 +3,7 @@
 // (`POST /v1/annotatie/plaatsen`, uit de bronboom); zonder plek valt de boom terug op wat de IRI zelf zegt
 // (`vindplaatsVan`). Zuiver, zodat vitest het zonder DOM toetst.
 
+import { aantal } from "./aantal";
 import { vindplaatsVan } from "./samenhang";
 
 export interface PlaatsStap { iri: string; type: string; nummer: string; label: string }
@@ -139,7 +140,7 @@ export function rijenPerRegeling<T>(boom: readonly BoomKnoop<T>[]): { sleutel: s
 export function omvangZin<T>(boom: readonly BoomKnoop<T>[]): string {
   const n = boom.reduce((s, r) => s + bladerenVan(r).length, 0);
   if (!n) return "geen bepalingen";
-  const b = `${n} ${n === 1 ? "bepaling" : "bepalingen"}`;
+  const b = `${aantal(n, "bepaling", "bepalingen")}`;
   return boom.length > 1 ? `${b} in ${boom.length} regelingen` : b;
 }
 

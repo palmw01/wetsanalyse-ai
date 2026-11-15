@@ -1,3 +1,5 @@
+import { aantal } from "./aantal";
+
 // De bronselectie per deelvraag (spoor J; api `app/bronselectie.py`, `GET /v1/werkgebieden/{id}/bronselectie`).
 //
 // Lex begeleidt de bronselectie in het gesprek met vraagkaarten (`modus: "bronselectie"`, `lib/vraagkaart.ts`);
@@ -118,7 +120,7 @@ export function deelvraagStand(d: Pick<DeelvraagSelectie, "status" | "opnieuw_be
 
 /** "3 bronnen", "1 bron", "nog geen bronnen". */
 export function bronnenZin(n: number): string {
-  return n ? `${n} ${n === 1 ? "bron" : "bronnen"}` : "nog geen bronnen";
+  return n ? `${aantal(n, "bron", "bronnen")}` : "nog geen bronnen";
 }
 
 export const STAND_LABEL: Record<KandidaatStand, string> = {
@@ -223,7 +225,7 @@ export function zoekBeperkingen(z: Zoekdekking): string[] {
 export function voortgangZin(o: BronselectieOverzicht): string {
   const klaar = o.deelvragen.filter((d) => d.klaar).length;
   if (o.modus === "analysevraag") return o.deelvragen[0]?.klaar ? "Afgerond" : VOORTGANG_LABEL[o.deelvragen[0]?.status ?? "niet_gestart"];
-  return `${klaar} van ${o.deelvragen.length} ${o.deelvragen.length === 1 ? "deelvraag" : "deelvragen"} afgerond`;
+  return `${klaar} van ${aantal(o.deelvragen.length, "deelvraag", "deelvragen")} afgerond`;
 }
 
 /** De slotzin van de controle: nooit "volledig", altijd binnen de afbakening en wat er beschikbaar was. */

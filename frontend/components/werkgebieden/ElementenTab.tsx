@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { Leeg } from "@/components/ui/Leeg";
 import { LaadStand } from "@/components/ui/LaadStand";
 import Link from "next/link";
@@ -132,8 +133,8 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
       )}
 
       <p className="text-sm text-ink">
-        {inv.elementen.length === 1 ? "1 element" : `${inv.elementen.length} elementen`} in{" "}
-        {inv.selecties.length === 1 ? "1 bron" : `${inv.selecties.length} bronnen`} ·{" "}
+        {aantal(inv.elementen.length, "element", "elementen")} in{" "}
+        {aantal(inv.selecties.length, "bron", "bronnen")} ·{" "}
         {beoordeeld} van {totaal} in de werkvoorraad beoordeeld
       </p>
 
@@ -148,7 +149,7 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
               type="button"
               aria-pressed={filter.rol === k.waarde}
               onClick={() => setFilter({ ...filter, rol: k.waarde })}
-              className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
+              className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-2xs transition coarse:min-h-[44px] ${
                 filter.rol === k.waarde ? "border-lint bg-lint text-paper" : "border-line text-muted hover:border-lint hover:text-ink"
               }`}
             >
@@ -164,7 +165,7 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
                 aria-pressed={apart === soort}
                 title={soort === "vervangen" ? "Voorstellen die een nieuwe ronde van Lex niet meer maakte" : undefined}
                 onClick={() => setApart(apart === soort ? "" : soort)}
-                className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
+                className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-2xs transition coarse:min-h-[44px] ${
                   apart === soort ? "border-lint bg-lint text-paper" : "border-line text-muted hover:border-lint hover:text-ink"
                 }`}
               >
@@ -262,11 +263,11 @@ function DekkingBalk({ dekking: d }: { dekking: Dekking }) {
       </ul>
       {d.nieuw_sinds_run > 0 && (
         <p className="mt-1 text-xs text-aandacht-geel-tekst">
-          {d.nieuw_sinds_run === 1 ? "1 element zag" : `${d.nieuw_sinds_run} elementen zagen`} de laatste
+          {aantal(d.nieuw_sinds_run, "element zag", "elementen zagen")} de laatste
           begrippenronde van Lex nog niet; vraag Lex in het gesprek opnieuw om voorstellen.
         </p>
       )}
-      <p className="mt-1 text-[11px] text-faint">Dit zegt hoeveel er verwerkt is, niet of de analyse juridisch volledig is.</p>
+      <p className="mt-1 text-2xs text-faint">Dit zegt hoeveel er verwerkt is, niet of de analyse juridisch volledig is.</p>
     </section>
   );
 }
@@ -302,7 +303,7 @@ function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip, dekk
               {e.rol === "context" && (
                 <StatusLabel>context</StatusLabel>
               )}
-              <span className={`text-[11px] ${beoordeeld ? "text-muted" : "text-aandacht-geel-tekst"}`}>
+              <span className={`text-2xs ${beoordeeld ? "text-muted" : "text-aandacht-geel-tekst"}`}>
                 {beoordeeld ? LIFECYCLE_LABEL[e.lifecycle] : `${LIFECYCLE_LABEL[e.lifecycle]} · nog niet beoordeeld`}
               </span>
             </div>
@@ -337,7 +338,7 @@ function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip, dekk
         </div>
         <Link
           href={annotatieHref(e.eigenaar_iri, e.id)}
-          className="focus-ring inline-flex min-h-[24px] shrink-0 items-center self-start rounded-knop-xs border border-line px-2.5 py-0.5 text-[11px] font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]"
+          className="focus-ring inline-flex min-h-[24px] shrink-0 items-center self-start rounded-knop-xs border border-line px-2.5 py-0.5 text-2xs font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]"
         >
           Annotatie openen
         </Link>
@@ -391,11 +392,11 @@ function SelectieBalk({ id, selectie, begrippen, onWis, onKlaar, onBuiten }: {
     }
   }
 
-  const aantal = selectie.length === 1 ? "1 element" : `${selectie.length} elementen`;
+  const gekozen = aantal(selectie.length, "element", "elementen");
   return (
     <section aria-label="Gekozen elementen" className="sticky top-0 z-10 space-y-3 rounded-kaart border border-lint bg-paper p-3 shadow-kaart">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-lint">{aantal} gekozen</p>
+        <p className="text-sm font-medium text-lint">{gekozen} gekozen</p>
         <button type="button" onClick={onWis} className="focus-ring rounded text-xs text-muted underline hover:text-ink">
           Selectie wissen
         </button>

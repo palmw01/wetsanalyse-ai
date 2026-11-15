@@ -133,7 +133,7 @@ export function KeuzeKaart({
         )}
         {meer && geselecteerd.length > 0 && <Samenvatting gekozen={geselecteerd} />}
         {/* Op een telefoon een eigen regel: de hint duwt dan geen knop weg. */}
-        <span className="basis-full text-[11px] text-faint sm:ml-auto sm:basis-auto">
+        <span className="basis-full text-2xs text-faint sm:ml-auto sm:basis-auto">
           ↑↓ kiezen · Enter {meer ? (geselecteerd.length ? "annoteert selectie" : "annoteert dit onderdeel") : "annoteert"}{meer ? " · klik of spatie selecteert" : ""}
         </span>
       </div>
@@ -159,7 +159,7 @@ function Samenvatting({ gekozen }: { gekozen: AgentKandidaat[] }) {
   const nieuw = gekozen.filter((k) => !k.stand || k.stand.status === "nieuw").length;
   const al = gekozen.length - nieuw;
   return (
-    <span className="text-[11px] text-muted">
+    <span className="text-2xs text-muted">
       {gekozen.length} gekozen{nieuw && al ? ` · ${nieuw} nieuw · ${al} al geannoteerd` : al ? " · al geannoteerd" : ""}
     </span>
   );

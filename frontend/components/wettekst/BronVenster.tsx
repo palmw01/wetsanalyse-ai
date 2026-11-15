@@ -60,7 +60,7 @@ export function BronVenster({ bronIri, meldingen, onOpenElement, onOpenBron, var
           <ObjectRijen label="JAS-elementen" leeg="Deze bepaling is nog niet geannoteerd. Vraag Lex in het gesprek om haar te annoteren.">
             {actueel.map((e) => (
               <ObjectRij key={e.id} href={elementPad(e.id)} data-element-rij={e.id} titel={<>“{e.tekst}”</>}
-                sub={<span className={`inline-block rounded border px-1.5 text-[0.7rem] ${jasStyle(e.klasse)}`}>{klasseLabel(e.klasse)}</span>}
+                sub={<span className={`inline-block rounded border px-1.5 text-2xs ${jasStyle(e.klasse)}`}>{klasseLabel(e.klasse)}</span>}
                 status={<StatusLabel toon={e.lifecycle === "human_approved" ? "groen" : "neutraal"}>
                   {LIFECYCLE_LABEL[e.lifecycle as Lifecycle] ?? e.lifecycle}</StatusLabel>} />
             ))}
@@ -71,7 +71,7 @@ export function BronVenster({ bronIri, meldingen, onOpenElement, onOpenBron, var
               <li key={e.id}>
                 <button type="button" onClick={() => openElement(e.id)} data-context-element={e.id}
                   className="focus-ring flex w-full items-center gap-2 rounded-md px-1 py-2 text-left hover:bg-surface">
-                  <span className={`shrink-0 rounded border px-1.5 text-[0.7rem] ${jasStyle(e.klasse)}`}>{klasseLabel(e.klasse)}</span>
+                  <span className={`shrink-0 rounded border px-1.5 text-2xs ${jasStyle(e.klasse)}`}>{klasseLabel(e.klasse)}</span>
                   <span className="min-w-0 flex-1 truncate text-sm text-ink">“{e.tekst}”</span>
                   <StatusLabel>{LIFECYCLE_LABEL[e.lifecycle as Lifecycle] ?? e.lifecycle}</StatusLabel>
                 </button>
