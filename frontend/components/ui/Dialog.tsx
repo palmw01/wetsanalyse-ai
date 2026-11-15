@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 
+import { SluitKnop } from "@/components/ui/PaneelKop";
+
 /** Selector voor de elementen die de Tab-trap als focusbaar telt. */
 const FOCUSBAAR =
   'a[href],button:not([disabled]),textarea,input:not([disabled]),select,[tabindex]:not([tabindex="-1"])';
@@ -65,7 +67,37 @@ interface Props {
    *  aan `window`, en deze staat er als eerste op – een `stopPropagation` van binnenuit komt te laat.
    *  Dus geeft de eigenaar zijn eigen afhandeling mee. Achtergrondklik blijft `onSluit`. */
   onEscape?: () => void;
+  /** De kop van een venster: titel links, het kruisje rechts (`DialoogKop`). Zonder kop tekent de inhoud zelf wat
+   *  bovenaan staat (een paneel met `PaneelKop`, de rondleiding). */
+  kop?: DialoogKopProps;
   children: ReactNode;
+}
+
+interface DialoogKopProps {
+  titel: ReactNode;
+  /** Een regel boven de titel: wat voor venster het is ("Passages toevoegen"). */
+  soort?: ReactNode;
+  /** Een regel onder de titel. */
+  uitleg?: ReactNode;
+  /** De voorleesnaam van het kruisje, standaard "Sluiten". */
+  sluitLabel?: string;
+}
+
+/** De kop van een venster (generieke componenten, 15 nov 2026, `docs/architectuur/plan-generieke-componenten.md` §7):
+ *  dezelfde maat en hetzelfde kruisje (`SluitKnop`) als een paneel, met ruimte voor de notch. `app/dialoog.test.ts`
+ *  bewaakt dat een venster geen eigen kop bouwt. */
+function DialoogKop({ titel, soort, uitleg, sluitLabel, onSluit }: DialoogKopProps & { onSluit: () => void }) {
+  return (
+    <div data-dialoog-kop
+      className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-5 py-3.5 pt-[max(0.875rem,env(safe-area-inset-top))]">
+      <div className="min-w-0">
+        {soort && <p className="text-xs text-muted">{soort}</p>}
+        <h2 className="font-display text-base font-semibold text-lint">{titel}</h2>
+        {uitleg && <p className="mt-0.5 text-xs text-muted">{uitleg}</p>}
+      </div>
+      <SluitKnop onSluit={onSluit} label={sluitLabel} />
+    </div>
+  );
 }
 
 /** Venster in vijf vormen: gecentreerd met vaste hoogte (`center`), gecentreerd op inhoudshoogte
@@ -85,7 +117,7 @@ interface Props {
  *  **`kolom` is bewust niet modaal**: geen backdrop, geen `aria-modal`, en géén focus-trap. Het
  *  paneel staat dan náást de chat, en die moet juist bereikbaar blijven – een trap zou je erin
  *  opsluiten. Escape sluit wél, dat is in alle vormen dezelfde uitweg. */
-export function Dialog({ label, variant = "center", wrapperClassName = "", onSluit, onEscape, children }: Props) {
+export function Dialog({ label, variant = "center", wrapperClassName = "", onSluit, onEscape, kop, children }: Props) {
   const paneelRef = useRef<HTMLDivElement>(null);
   const modaal = variant !== "kolom";
   const idRef = useRef<symbol>(null);
@@ -161,6 +193,7 @@ export function Dialog({ label, variant = "center", wrapperClassName = "", onSlu
     <div className={`fixed inset-0 z-40 ${wrapperClassName}`} role="dialog" aria-modal="true" aria-label={label}>
       <div className="absolute inset-0 bg-ink/30" onClick={onSluit} />
       <div ref={paneelRef} tabIndex={-1} className={PANEEL_CLASS[variant]}>
+        {kop && <DialoogKop {...kop} onSluit={onSluit} />}
         {children}
       </div>
     </div>

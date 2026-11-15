@@ -1,23 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { FormRij } from "@/components/ui/SettingRow";
+import { KOPIEER_MISLUKT, useKopieer } from "@/lib/kopieer";
 
 /** Een waarde die maar één keer te zien is (een tijdelijk wachtwoord). Kopiëren zegt of het lukte; lukt het niet (geen
  *  beveiligde origin, toestemming geweigerd), dan kun je de waarde zelf selecteren. */
 export function KopieerVeld({ waarde, label }: { waarde: string; label: string }) {
-  const [stand, setStand] = useState<"" | "gekopieerd" | "mislukt">("");
-
-  async function kopieer() {
-    try {
-      await navigator.clipboard.writeText(waarde);
-      setStand("gekopieerd");
-    } catch {
-      setStand("mislukt");
-    }
-  }
+  const { stand, kopieer } = useKopieer(null);
 
   return (
     <div>
@@ -27,12 +18,12 @@ export function KopieerVeld({ waarde, label }: { waarde: string; label: string }
         ) : (
           <Input readOnly value={waarde} aria-label={label} className="font-mono" onFocus={(e) => e.currentTarget.select()} />
         )}
-        <Button size="sm" variant="secondary" onClick={() => void kopieer()}>
+        <Button size="sm" variant="secondary" onClick={() => void kopieer(waarde)}>
           {stand === "gekopieerd" ? "Gekopieerd" : "Kopiëren"}
         </Button>
       </FormRij>
       {stand === "mislukt" && (
-        <p role="alert" className="mt-1 text-xs text-fout">Kopiëren lukt niet in deze browser. Selecteer de waarde en kopieer die zelf.</p>
+        <p role="alert" className="mt-1 text-xs text-fout">{KOPIEER_MISLUKT}</p>
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { Uitklap } from "@/components/ui/Uitklap";
 import { Leeg } from "@/components/ui/Leeg";
 import { ARTEFACT_SOORT_LABEL } from "@/lib/artefact";
 import { annotatieAlsMarkdown } from "@/lib/artefactMarkdown";
@@ -519,10 +520,7 @@ function StatusKnop({
  *  aanwijzen dat er zo niet meer staat. */
 function Historie({ elementen }: { elementen: AnnotatieElement[] }) {
   return (
-    <details className="rounded-kaart border border-line bg-surface/60 px-3 py-2 text-sm">
-      <summary className="cursor-pointer text-xs font-medium text-muted">
-        Historie – tekst gewijzigd ({elementen.length})
-      </summary>
+    <Uitklap vorm="kader" samenvatting={<>Historie – tekst gewijzigd ({elementen.length})</>}>
       <p className="mt-2 text-xs text-faint">
         Deze markeringen horen bij een eerdere versie van de wettekst. Het oordeel dat er destijds
         over werd geveld staat erbij; wijzigen kan niet meer.
@@ -536,6 +534,6 @@ function Historie({ elementen }: { elementen: AnnotatieElement[] }) {
           </li>
         ))}
       </ul>
-    </details>
+    </Uitklap>
   );
 }

@@ -1,4 +1,5 @@
 import type { LaagGraafcontrole } from "./annotatieNode";
+import { datumKort } from "./datum";
 import type { AnnotatieElement, Beslissing, BeurtMeting, ElementTrace } from "./types";
 import { verklaar, type Verklaringen } from "./verklaringen";
 
@@ -52,7 +53,7 @@ function bewijsRegels(trace: ElementTrace, v?: Verklaringen): WaaromRegel[] {
 export function laatsteJuristBeslissing(beslissingen: Beslissing[] = []): string | undefined {
   const b = [...beslissingen].reverse().find((x) => JURIST[x.type]);
   if (!b) return;
-  const tijd = b.tijd ? new Date(b.tijd).toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" }) : "";
+  const tijd = datumKort(b.tijd);
   return `${JURIST[b.type]} door ${b.actor}${tijd ? ` op ${tijd}` : ""}`;
 }
 

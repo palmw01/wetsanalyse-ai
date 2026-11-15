@@ -1,5 +1,6 @@
 "use client";
 
+import { Uitklap } from "@/components/ui/Uitklap";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -100,10 +101,9 @@ export function BronPagina({ bronIri, werkgebiedId }: { bronIri: string; werkgeb
             hoofd={<BronVenster variant="pagina" bronIri={bronIri} meldingen={bronH.meldingen}
               onOpenElement={(id) => router.push(elementPad(id))}
               onOpenBron={(v) => router.push(bronPad(v.iri, werkgebiedId))}
-              naGraaf={<details className="mt-3 text-sm" data-alle-gegevens>
-                <summary className="focus-ring cursor-pointer rounded text-xs font-medium text-muted">Alle gegevens uit de kennisgraaf</summary>
+              naGraaf={<Uitklap className="mt-3" data-alle-gegevens samenvatting={<>Alle gegevens uit de kennisgraaf</>}>
                 <div className="mt-2"><KnoopFeiten info={info} opKaart={() => false} onKies={() => {}} /></div>
-              </details>} />}
+              </Uitklap>} />}
             zij={<>
               <Kaart titel="Werkgebieden" telling={werkgebieden?.length}
                 toelichting="Waar deze bepaling, of het artikel erboven, is opgenomen.">

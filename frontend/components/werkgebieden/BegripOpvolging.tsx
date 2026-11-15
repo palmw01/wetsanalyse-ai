@@ -57,12 +57,9 @@ export function BegripOpvolging({ soort, id, begrip, kandidaten, onSluit, onKlaa
   }
 
   return (
-    <Dialog label={titel} variant="compact" onSluit={onSluit}>
+    <Dialog label={titel} variant="compact" onSluit={onSluit}
+      kop={{ soort: titel, titel: begrip.inhoud.naam }}>
       <div className="flex min-h-0 flex-1 flex-col" data-opvolging={soort}>
-        <div className="shrink-0 border-b border-line px-5 py-3.5">
-          <p className="text-xs text-muted">{titel}</p>
-          <h2 className="font-display text-base font-semibold text-lint">{begrip.inhoud.naam}</h2>
-        </div>
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
           {fout && <Melding type="fout" compact>{fout}</Melding>}
           {soort === "nieuw" ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import { Uitklap } from "@/components/ui/Uitklap";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -205,8 +206,7 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
             vinkjes={{ gekozen, onZet: zet, naam: (b) => `Neem “${b.data.p.tekst}” mee (${b.data.p.vindplaats})` }}
             renderBlad={(b) => <PassageBlad item={b.data} label={b.label} />} />
           {(uitleg.length > 0 || conflicten > 0 || term.vragenBinnen.length > 0) && (
-            <details className="text-xs text-muted">
-              <summary className="focus-ring cursor-pointer rounded">Waarom stelt Lex dit voor?</summary>
+            <Uitklap samenvatting={<>Waarom stelt Lex dit voor?</>}>
               <ul className="mt-1 space-y-0.5 pl-4">
                 {uitleg.map((u) => <li key={u}>{u}</li>)}
                 {term.vragenBinnen.length > 0 && (
@@ -214,7 +214,7 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
                 )}
                 {conflicten > 0 && <li className="text-aandacht-geel-tekst">Er is ook bewijs dat niet alles hetzelfde betekent ({conflicten}); beoordeel de passages zelf.</li>}
               </ul>
-            </details>
+            </Uitklap>
           )}
         </div>
       </Kaart>
@@ -255,12 +255,9 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
             <p className="text-xs text-muted" data-herkomst-wordt={wordt}>Herkomst: {HERKOMST_LABEL[wordt]}</p>
           )}
           {def && def.fragmenten.length > 0 && (
-            <details className="text-xs text-muted">
-              <summary className="focus-ring cursor-pointer rounded">
-                Rust op {telling(def.fragmenten.length, "passage", "passages")} uit de bron
-              </summary>
+            <Uitklap samenvatting={<>Rust op {telling(def.fragmenten.length, "passage", "passages")} uit de bron</>}>
               <ul className="mt-1 space-y-0.5 pl-4">{def.fragmenten.map((f) => <li key={f.id}>“{f.tekst}”</li>)}</ul>
-            </details>
+            </Uitklap>
           )}
           {defGroep?.kaart?.motivatie && <p className="text-xs text-muted">Toelichting van Lex: {defGroep.kaart.motivatie}</p>}
           {punten.length > 0 && (
@@ -297,8 +294,7 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
       )}
 
       {term.besloten.length > 0 && (
-        <details className="text-sm">
-          <summary className="focus-ring cursor-pointer rounded text-sm font-semibold text-lint">Al besloten ({term.besloten.length})</summary>
+        <Uitklap vorm="sectie" samenvatting={<>Al besloten ({term.besloten.length})</>}>
           <ul className="mt-2 space-y-1 text-xs text-ink">
             {term.besloten.map((g) => (
               <li key={g.id}>
@@ -307,7 +303,7 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
               </li>
             ))}
           </ul>
-        </details>
+        </Uitklap>
       )}
 
       {items.length > 0 && (

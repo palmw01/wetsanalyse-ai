@@ -1,5 +1,6 @@
 "use client";
 
+import { Uitklap } from "@/components/ui/Uitklap";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import { Select } from "@/components/ui/Field";
@@ -298,10 +299,7 @@ function Verloop({ punten, plek }: { punten: { context: number; verbruik: number
 function Details({ c }: { c: Contextopbouw }) {
   if (!c.aanroepen.length) return null;
   return (
-    <details data-context-details className="text-sm">
-      <summary className="focus-ring cursor-pointer rounded-md py-1 text-muted hover:text-ink">
-        Details per aanroep ({c.aanroepen.length})
-      </summary>
+    <Uitklap data-context-details samenvatting={<>Details per aanroep ({c.aanroepen.length})</>}>
       <ol className="mt-2 divide-y divide-line">
         {c.aanroepen.map((a, i) => (
           <li key={i} className="py-1.5">
@@ -322,6 +320,6 @@ function Details({ c }: { c: Contextopbouw }) {
         De twee codes zijn vingerafdrukken van de tools en de instructies. Verschillen ze van de vorige beurt, dan is het
         vaste deel opnieuw geschreven.
       </p>
-    </details>
+    </Uitklap>
   );
 }

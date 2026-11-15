@@ -1,5 +1,6 @@
 "use client";
 
+import { Uitklap } from "@/components/ui/Uitklap";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import type { Onderwerp } from "@/lib/vraagLex";
 import { useState, type ReactNode } from "react";
@@ -171,10 +172,7 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
         const verwijzingen = richting && info && typeof info === "object" ? info.verwijzingen : [];
         const sleutel = `${knoop.id}|${naam}`;
         const toon = allesOpen[sleutel] ? regels : regels.slice(0, ZICHTBAAR_PER_GROEP);
-        return <details key={naam} open={regels.length <= ZICHTBAAR_PER_GROEP} className="group">
-          <summary className="focus-ring flex cursor-pointer list-none items-center gap-1.5 rounded py-0.5 text-[11px] font-semibold text-muted">
-            <ChevronOmlaag className="-rotate-90 transition-transform group-open:rotate-0" />{naam} <span className="font-normal text-faint">({regels.length})</span>
-          </summary>
+        return <Uitklap key={naam} open={regels.length <= ZICHTBAAR_PER_GROEP} samenvatting={<>{naam} <span className="font-normal text-faint">({regels.length})</span></>}>
           <ul className="mt-1 space-y-0.5 pl-4">
             {toon.map(({ id: ander, anker_tekst }) => { const a = model.getNodeAttributes(ander); return <li key={ander}>
               <button type="button" onClick={() => onKies(ander)} className="focus-ring flex w-full items-baseline gap-2 rounded px-1 py-0.5 text-left text-xs hover:bg-surface coarse:min-h-11">
@@ -198,7 +196,7 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
           </ul>
           {regels.length > ZICHTBAAR_PER_GROEP && !allesOpen[sleutel] && <button type="button" className={`${TEKSTKNOP} ml-4`}
             onClick={() => setAllesOpen((a) => ({ ...a, [sleutel]: true }))}>Alle {regels.length} tonen</button>}
-        </details>;
+        </Uitklap>;
       })}
     </div>}
   </div>;

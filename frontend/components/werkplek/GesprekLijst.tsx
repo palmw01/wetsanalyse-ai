@@ -1,5 +1,6 @@
 "use client";
 
+import { tijdOfDag } from "@/lib/datum";
 import { Leeg } from "@/components/ui/Leeg";
 import { LaadStand } from "@/components/ui/LaadStand";
 import { useEffect, useMemo, useState } from "react";
@@ -17,14 +18,7 @@ import type { GesprekRunStand } from "@/lib/runStanden";
 import type { GesprekSamenvatting } from "@/lib/types";
 
 function korteDatum(iso?: string): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const nu = new Date();
-  const zelfdeDag = d.toDateString() === nu.toDateString();
-  return zelfdeDag
-    ? d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" })
-    : d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" });
+  return tijdOfDag(iso);
 }
 
 /** Een lijst die per pagina groeit. `lijst: null` = nog niet opgehaald. */

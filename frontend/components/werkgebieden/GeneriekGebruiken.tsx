@@ -54,12 +54,9 @@ export function GeneriekGebruiken({ id, gebruikt, onSluit }: {
   }
 
   return (
-    <Dialog label="Generiek begrip gebruiken" variant="compact" onSluit={onSluit}>
+    <Dialog label="Generiek begrip gebruiken" variant="compact" onSluit={onSluit}
+      kop={{ soort: "Generiek begrip gebruiken", titel: "Eén definitie, jouw passages" }}>
       <div className="flex min-h-0 flex-1 flex-col" data-generiek-gebruiken>
-        <div className="shrink-0 border-b border-line px-5 py-3.5">
-          <p className="text-xs text-muted">Generiek begrip gebruiken</p>
-          <h2 className="font-display text-base font-semibold text-lint">Eén definitie, jouw passages</h2>
-        </div>
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
           <Input type="search" value={term} onChange={(e) => setTerm(e.target.value)} autoFocus
             aria-label="Zoeken in de generieke begrippen" placeholder="Zoek op naam, term of definitie" />

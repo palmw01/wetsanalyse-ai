@@ -1,5 +1,6 @@
 "use client";
 
+import { Uitklap } from "@/components/ui/Uitklap";
 import { Leeg } from "@/components/ui/Leeg";
 import { useEffect, useMemo, useState } from "react";
 
@@ -137,12 +138,11 @@ function Passage({ id, begrip, koppeling: k, muteer, geraakt }: {
         </MeerMenu>
       </>}>
       {k.vervangt && (
-        <details className="mt-1 text-xs text-muted">
-          <summary className="focus-ring cursor-pointer rounded">Vervangt een eerdere passage</summary>
+        <Uitklap className="mt-1" samenvatting={<>Vervangt een eerdere passage</>}>
           <p className="mt-0.5">
             Toen: “{k.vervangt.bewijs.tekst}” · {klasseLabel(k.vervangt.bewijs.klasse)} · {k.vervangt.bewijs.vindplaats}
           </p>
-        </details>
+        </Uitklap>
       )}
       {(k.bevestigingen?.length ?? 0) > 0 && (
         <p className="mt-1 text-xs text-muted">
@@ -214,12 +214,9 @@ function PassagesDialoog({ id, begrip, primair, muteer, onKlaar }: {
   }
 
   return (
-    <Dialog label={`Passages bij ${begrip.inhoud.naam}`} variant="compact" onSluit={onKlaar}>
+    <Dialog label={`Passages bij ${begrip.inhoud.naam}`} variant="compact" onSluit={onKlaar}
+      kop={{ soort: "Passages toevoegen", titel: begrip.inhoud.naam }}>
       <div className="flex min-h-0 flex-1 flex-col" data-passages-dialoog={begrip.id}>
-        <div className="shrink-0 border-b border-line px-5 py-3.5">
-          <p className="text-xs text-muted">Passages toevoegen</p>
-          <h2 className="font-display text-base font-semibold text-lint">{begrip.inhoud.naam}</h2>
-        </div>
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input type="search" value={term} onChange={(e) => setTerm(e.target.value)} aria-label="Zoeken in de inventaris"

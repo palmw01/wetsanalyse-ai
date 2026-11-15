@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronOmlaag } from "@/components/ui/Icoon";
+import { Uitklap } from "@/components/ui/Uitklap";
 import type { NodeDekking } from "@/lib/annotatieNode";
 import { dekkingPerBron, gevondenTekst } from "@/lib/dekking";
 
@@ -17,12 +17,7 @@ export function DekkingOverzicht({ dekking, volgorde, labelVan }: {
   if (!regels.length) return null;
   const onvolledig = regels.some((r) => r.onvolledig.length > 0);
   return (
-    <details className="group rounded-kaart border border-line bg-surface/60 px-3 py-2 text-sm" data-testid="dekking">
-      <summary className="focus-ring flex cursor-pointer list-none items-center gap-1.5 rounded text-xs font-medium text-muted">
-        <ChevronOmlaag className="-rotate-90 transition-transform group-open:rotate-0" />
-        Dekking
-        {onvolledig && <span className="font-normal text-faint">(niet alle dimensies volledig bekeken)</span>}
-      </summary>
+    <Uitklap vorm="kader" data-testid="dekking" samenvatting={<>Dekking {onvolledig && <span className="font-normal text-faint">(niet alle dimensies volledig bekeken)</span>}</>}>
       <ul className="mt-2 space-y-1.5">
         {regels.map((r) => <li key={r.bron_iri} className="text-xs">
           {regels.length > 1 && <span className="font-semibold text-muted">{labelVan(r.bron_iri)}: </span>}
@@ -42,6 +37,6 @@ export function DekkingOverzicht({ dekking, volgorde, labelVan }: {
       <p className="mt-2 text-[11px] text-faint">
         Dit zegt welke patronen de detectoren konden bekijken – niet of de annotatie juist of volledig is.
       </p>
-    </details>
+    </Uitklap>
   );
 }
