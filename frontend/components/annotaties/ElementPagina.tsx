@@ -1,5 +1,6 @@
 "use client";
 
+import { LeegWaarde } from "@/components/ui/Leeg";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -135,7 +136,7 @@ export function ElementPagina({ id }: { id: string }) {
                   </Regel>
                   {el.jas_subtype && <Regel naam="Subtype">{el.jas_subtype}</Regel>}
                   <Regel naam="Fragment">“{el.tekst}”</Regel>
-                  <Regel naam="Toelichting">{el.toelichting?.trim() || <span className="text-muted">Geen toelichting.</span>}</Regel>
+                  <Regel naam="Toelichting">{el.toelichting?.trim() || <LeegWaarde>Geen toelichting.</LeegWaarde>}</Regel>
                   {el.review_uitleg && <Regel naam="Review">{el.review_uitleg}</Regel>}
                   {!!el.alternatieven?.length && (
                     <Regel naam="Alternatieven">{el.alternatieven.map((a) => a.klasse).join(", ")}</Regel>

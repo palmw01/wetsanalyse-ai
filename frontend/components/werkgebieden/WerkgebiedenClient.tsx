@@ -1,12 +1,13 @@
 "use client";
 
+import { OverzichtRaster, OverzichtSkelet } from "@/components/ui/Pagina";
+import { Leeg } from "@/components/ui/Leeg";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { Melding } from "@/components/ui/Melding";
 import { OverzichtBalk } from "@/components/ui/OverzichtBalk";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { WerkgebiedKaart } from "@/components/werkgebieden/WerkgebiedKaart";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { foutTekst, lijstWerkgebieden, verwijderWerkgebied } from "@/lib/api";
@@ -106,26 +107,19 @@ export function WerkgebiedenClient() {
       )}
 
       {lijst === null ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {[1, 2].map((i) => (
-            <div key={i} className="space-y-3 rounded-kaart border border-line bg-paper shadow-zacht p-4">
-              <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-3 w-64" />
-            </div>
-          ))}
-        </div>
+        <OverzichtSkelet />
       ) : alles.length === 0 && !mijn ? (
-        <p className="rounded-kaart border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
+        <Leeg kader>
           Nog geen werkgebieden. Vraag Lex in het gesprek om er samen een samen te stellen: {samenstellen}.
-        </p>
+        </Leeg>
       ) : getoond.length === 0 ? (
-        <p className="rounded-kaart border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
+        <Leeg kader>
           Geen werkgebied dat hierop past.
-        </p>
+        </Leeg>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" data-testid="werkgebieden-overzicht">
+        <OverzichtRaster data-testid="werkgebieden-overzicht">
           {getoond.map((wg) => <WerkgebiedKaart key={wg.id} wg={wg} onVerwijder={() => verwijder(wg)} />)}
-        </div>
+        </OverzichtRaster>
       )}
     </WerkgebiedSchil>
   );

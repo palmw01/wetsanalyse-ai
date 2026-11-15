@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { useCallback, useEffect, useState } from "react";
 import { knopKlasse, KNOP_GEVAAR_SCHERP } from "@/components/ui/Button";
@@ -78,7 +79,7 @@ export function FeedbackLijstClient() {
       {data === null ? (
         <SkeletonCard regels={2} />
       ) : data.items.length === 0 ? (
-        <p className="text-sm text-muted">Nog geen feedback ingezonden.</p>
+        <Leeg>Nog geen feedback ingezonden.</Leeg>
       ) : (
         <div className="space-y-3">
           {data.items.map((item) => (

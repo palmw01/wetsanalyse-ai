@@ -1,10 +1,7 @@
 "use client";
 
-import Link from "next/link";
-
 import { KleurStrip } from "@/components/annotaties/KleurStrip";
-import { knopKlasse } from "@/components/ui/Button";
-import { KaartActies } from "@/components/ui/Pagina";
+import { OverzichtKaart } from "@/components/ui/Pagina";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
 import { documentStand } from "@/lib/annotatie";
 import { naamVan } from "@/lib/annotatieOverzicht";
@@ -35,23 +32,9 @@ export function AnnotatieKaart({ doc, onVerwijder }: {
   const beoordeeld = doc.aantal_elementen - doc.te_beoordelen;
   const stand = documentStand(doc);
   return (
-    <article className="flex min-w-0 flex-col gap-3 rounded-kaart border border-line bg-paper p-4 shadow-zacht transition hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart motion-reduce:hover:translate-y-0">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          {/* De hele kaart aanklikbaar maken zou de knoppen eronder onbereikbaar maken voor het
-              toetsenbord; daarom is de titel de link. */}
-          <h3 className="truncate font-display text-sm font-semibold text-lint">
-            <Link href={href} className="focus-ring rounded hover:underline">
-              {naamVan(doc)}
-            </Link>
-          </h3>
-          <p className="text-xs text-muted">
-            {bepalingKort(doc)} · {doc.bwbId}
-          </p>
-        </div>
-        <StatusLabel toon={stand.toon} uitleg={stand.uitleg}>{stand.label}</StatusLabel>
-      </div>
-
+    <OverzichtKaart titel={naamVan(doc)} href={href} sub={`${bepalingKort(doc)} · ${doc.bwbId}`}
+      status={<StatusLabel toon={stand.toon} uitleg={stand.uitleg}>{stand.label}</StatusLabel>}
+      verwijder={onVerwijder && doc.bron_iri && <VerwijderKnop soort="annotatie" maat="sm" onBevestig={onVerwijder} />}>
       <KleurStrip perKlasse={doc.per_klasse} />
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
@@ -73,11 +56,6 @@ export function AnnotatieKaart({ doc, onVerwijder }: {
         <span>bijgewerkt {geleden(doc.updated)}</span>
         {doc.laatste_model && <span className="font-mono text-[0.65rem]">{doc.laatste_model}</span>}
       </div>
-
-      <KaartActies>
-        <Link href={href} className={`focus-ring ${knopKlasse("secondary", "sm")}`}>Openen</Link>
-        {onVerwijder && doc.bron_iri && <VerwijderKnop soort="annotatie" maat="sm" onBevestig={onVerwijder} />}
-      </KaartActies>
-    </article>
+    </OverzichtKaart>
   );
 }

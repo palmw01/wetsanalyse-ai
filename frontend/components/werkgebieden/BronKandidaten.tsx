@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -102,7 +103,7 @@ export function BronKandidaten({ id, deelvraagId, labels }: {
           {deelvraagId ? "Lex vond bij deze deelvraag nog geen bepalingen." : "Nog niets gevonden. Bepaal de bronnen per deelvraag met Lex in het gesprek."}
         </p>
       )}
-      {alle.length > 0 && getoond.length === 0 && <p className="text-sm text-muted">Geen bepalingen in dit filter.</p>}
+      {alle.length > 0 && getoond.length === 0 && <Leeg>Geen bepalingen in dit filter.</Leeg>}
 
       {getoond.length > 0 && (
         <div role="group" aria-label={`Bepalingen – ${FILTER_LABEL[filter].toLowerCase()}`} className="space-y-5"

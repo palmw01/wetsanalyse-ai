@@ -1,7 +1,10 @@
 import Link from "next/link";
 
+import { knopKlasse } from "@/components/ui/Button";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
+import { Leeg } from "@/components/ui/Leeg";
 import { BlokKop } from "@/components/ui/Lijst";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 /** De bouwstenen van een objectpagina (spoor G2, naar de mock-up v4). Eén idioom op elke pagina:
  *
@@ -152,7 +155,7 @@ export function SplitDetail({ hoofd, zij }: { hoofd: React.ReactNode; zij: React
 
 export function ObjectRijen({ label, children, leeg }: { label: string; children: React.ReactNode; leeg?: React.ReactNode }) {
   const kinderen = Array.isArray(children) ? children.filter(Boolean) : children;
-  if (leeg && Array.isArray(kinderen) && kinderen.length === 0) return <p className="text-sm text-muted">{leeg}</p>;
+  if (leeg && Array.isArray(kinderen) && kinderen.length === 0) return <Leeg>{leeg}</Leeg>;
   // Elke rij een eigen rustig kader (de `itemrow` van de mock-up, spoor K), met wat lucht ertussen.
   return <ul aria-label={label} className="space-y-2">{kinderen}</ul>;
 }
@@ -206,7 +209,7 @@ export function Groep({ kop, sub, telling, status, label, children, leeg, ...res
         <ul aria-label={label} className="divide-y divide-line rounded-kaart border border-line bg-paper shadow-zacht [&>li:first-child]:rounded-t-kaart [&>li:last-child]:rounded-b-kaart [&>li>*:first-child]:rounded-[inherit]">
           {kinderen}
         </ul>
-      ) : leeg ? <p className="text-sm text-muted">{leeg}</p> : null}
+      ) : leeg ? <Leeg>{leeg}</Leeg> : null}
     </section>
   );
 }
@@ -274,6 +277,60 @@ export const KLIK_KAART = "focus-ring rounded-kaart border border-line bg-paper 
  *  verschillend hoog zijn. Ontbreekt *Verwijderen*, dan blijft *Openen* op zijn plek. */
 export function KaartActies({ children }: { children: React.ReactNode }) {
   return <div data-kaart-acties className="mt-auto grid grid-cols-2 gap-2 pt-1 [&>*]:w-full">{children}</div>;
+}
+
+/** Eén kaart in een overzicht (`/annotaties`, `/begrippen`, `/werkgebieden`; generieke componenten, 15 nov 2026,
+ *  `docs/architectuur/plan-generieke-componenten.md` §5). De titel is de link (de hele kaart aanklikbaar maken zou de
+ *  knoppen onbereikbaar maken voor het toetsenbord) en kapt af, met de volle naam in de tooltip; rechtsboven de status,
+ *  eronder `sub`, dan de inhoud, en onderaan `KaartActies` met *Openen* en (als die er is) *Verwijderen*.
+ *  `app/uitlijning.test.ts` bewaakt dat een overzichtskaart geen eigen vorm heeft. */
+export function OverzichtKaart({ titel, href, status, sub, verwijder, children, ...data }: {
+  titel: string;
+  href: string;
+  status?: React.ReactNode;
+  sub?: React.ReactNode;
+  /** De `VerwijderKnop maat="sm"`, of niets. */
+  verwijder?: React.ReactNode;
+  children?: React.ReactNode;
+} & Record<`data-${string}`, string | number | undefined>) {
+  return (
+    <article {...data} className={`${KLIK_KAART} flex min-w-0 flex-col gap-3 p-4`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="truncate font-display text-sm font-semibold text-lint">
+            <Link href={href} title={titel} className="focus-ring rounded hover:underline">{titel}</Link>
+          </h3>
+          {sub && <p className="text-xs text-muted">{sub}</p>}
+        </div>
+        {status}
+      </div>
+      {children}
+      <KaartActies>
+        <Link href={href} className={`focus-ring ${knopKlasse("secondary", "sm")}`}>Openen</Link>
+        {verwijder}
+      </KaartActies>
+    </article>
+  );
+}
+
+/** Het raster van een overzicht: één kolom, vanaf `sm:` twee. */
+export function OverzichtRaster({ children, ...data }: { children: React.ReactNode } & Record<`data-${string}`, string | number | undefined>) {
+  return <div {...data} className="grid grid-cols-1 gap-3 sm:grid-cols-2">{children}</div>;
+}
+
+/** Het overzicht zolang het laadt: kaarten in het raster, in de vorm van `OverzichtKaart`, zodat de pagina niet springt. */
+export function OverzichtSkelet({ aantal = 2 }: { aantal?: number }) {
+  return (
+    <OverzichtRaster data-overzicht-skelet>
+      {Array.from({ length: aantal }).map((_, i) => (
+        <div key={i} className="space-y-3 rounded-kaart border border-line bg-paper p-4 shadow-zacht" aria-hidden>
+          <Skeleton className="h-4 w-48 max-w-full" />
+          <Skeleton className="h-3 w-64 max-w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      ))}
+    </OverzichtRaster>
+  );
 }
 
 export function Tellers({ children }: { children: React.ReactNode }) {

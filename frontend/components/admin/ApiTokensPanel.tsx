@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ButtonRow } from "@/components/ui/ButtonRow";
@@ -170,7 +171,7 @@ export function ApiTokensPanel() {
       {tokens === null ? (
         <p className="text-sm text-muted">Laden…</p>
       ) : tokens.length === 0 ? (
-        <p className="text-sm text-muted">Nog geen API-tokens.</p>
+        <Leeg>Nog geen API-tokens.</Leeg>
       ) : (
         <div className="space-y-3">
           {tokens.map((t) => (

@@ -53,13 +53,16 @@ describe("een overzichtskaart eindigt in KaartActies", () => {
     const acties = pagina.slice(pagina.indexOf("export function KaartActies"), pagina.indexOf("export function Tellers"));
     expect(acties).toMatch(/grid grid-cols-2/);
     expect(acties).toMatch(/\[&>\*\]:w-full/);
+    // De overzichtskaart (`OverzichtKaart`) draagt de actierij; elke kaart geeft hem alleen zijn VerwijderKnop.
+    const kaart = pagina.slice(pagina.indexOf("export function OverzichtKaart"), pagina.indexOf("export function OverzichtRaster"));
+    expect(kaart).toMatch(/<KaartActies>/);
+    expect(kaart).toMatch(/knopKlasse\("secondary", "sm"\)\}`\}>Openen</);
     for (const f of KAARTEN) {
       const s = bron(f);
-      expect(s, f).toMatch(/<KaartActies>/);
-      expect(s, f).toMatch(/knopKlasse\("secondary", "sm"\)\}`\}>Openen</);
+      expect(s, f).toMatch(/<OverzichtKaart\b/);
       expect(s, f).toMatch(/<VerwijderKnop[^>]*maat="sm"/);
-      // Geen handgemaakte rijactie meer naast de knoppen.
-      expect(s, f).not.toMatch(/text-\[11px\]/);
+      // Geen eigen kaartvorm of rijactie naast OverzichtKaart.
+      expect(s, f).not.toMatch(/<article|<KaartActies|hover:-translate-y-0\.5|text-\[11px\]/);
     }
   });
 

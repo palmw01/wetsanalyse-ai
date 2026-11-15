@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -115,9 +116,9 @@ export function AanpassingLijst({
         {laden ? (
           <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
         ) : zichtbaar.length === 0 ? (
-          <p className="rounded-kaart border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
+          <Leeg kader>
             {zoek ? "Niets gevonden bij deze zoekterm." : "Hier staat nog niets."}
-          </p>
+          </Leeg>
         ) : (
           <div className="space-y-6">
             {zichtbaar.map((g) => (

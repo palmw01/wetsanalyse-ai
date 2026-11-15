@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { useEffect, useState } from "react";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { foutTekst } from "@/lib/api";
@@ -48,7 +49,7 @@ export function RevisieHistorie({ lagen, labelVan, elementen, onKies }: {
           const lijst = geladen[laag.id] ?? [];
           return <div key={laag.id} className="mt-2">
             {lagen.length > 1 && <h4 className="text-[11px] font-semibold text-muted">{labelVan(laag.bron_iri)}</h4>}
-            {!lijst.length ? <p className="text-xs text-faint">Geen historie vastgelegd.</p> : (
+            {!lijst.length ? <Leeg klein>Geen historie vastgelegd.</Leeg> : (
               <ol className="mt-1 space-y-1.5">
                 {lijst.map((r) => <li key={r.revisie} className="text-xs">
                   <p className="text-ink">

@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -166,7 +167,7 @@ function ConnectorDetail({ id, alle, beheer, mag, onWissel, bezig, onTerug }: {
               <li key={a.id}><button type="button" onClick={() => kiesInstellingenTab("agents", { onderdeel: a.id })}
                 className="focus-ring rounded text-lint hover:underline">{a.label}</button></li>
             ))}</ul>
-          ) : <p className="text-sm text-muted">Geen agent gebruikt deze bron.</p>}
+          ) : <Leeg>Geen agent gebruikt deze bron.</Leeg>}
         </Kaart>
         {mag && (
           <Kaart titel="Audit" data-blok="audit">

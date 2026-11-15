@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { useEffect, useState } from "react";
 import { isApiError, listBerichtenPagina, markeerAllesGelezen } from "@/lib/api";
 import type { BerichtenPaginaOut, BerichtType } from "@/lib/types";
@@ -66,7 +67,7 @@ export function BerichtenArchiefClient() {
   ) : fout ? (
     <Melding type="fout">{fout}</Melding>
   ) : !data || data.items.length === 0 ? (
-    <p className="text-sm text-muted">Nog geen berichten.</p>
+    <Leeg>Nog geen berichten.</Leeg>
   ) : null;
 
   return (
