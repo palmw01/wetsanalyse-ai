@@ -1,5 +1,6 @@
 "use client";
 
+import { LaadStand } from "@/components/ui/LaadStand";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -83,15 +84,7 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
     setDekking(await haalDekking(id).catch(() => null));
   }, [id]);
 
-  if (fout)
-    return (
-      <Melding type="fout">
-        <p>{fout}</p>
-        <Button variant="secondary" size="sm" className="mt-2" onClick={laad}>
-          Opnieuw proberen
-        </Button>
-      </Melding>
-    );
+  if (fout) return <LaadStand wat="De inventaris" fout={fout} onOpnieuw={laad} />;
   if (!inv)
     return (
       <div className="space-y-3" aria-busy="true">

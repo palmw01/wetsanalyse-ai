@@ -7,6 +7,13 @@ import type { ReactNode } from "react";
 
 export type MeldingType = "fout" | "waarschuwing" | "bevestiging" | "uitleg";
 
+const RAND: Record<MeldingType, string> = {
+  fout: "border-fout/30",
+  waarschuwing: "border-waarschuwing/30",
+  bevestiging: "border-succes/30",
+  uitleg: "border-info/30",
+};
+
 const STIJL: Record<MeldingType, { bg: string; icoon: string }> = {
   fout: { bg: "bg-fout/10", icoon: "text-fout" },
   waarschuwing: { bg: "bg-waarschuwing/10", icoon: "text-waarschuwing" },
@@ -77,27 +84,35 @@ export function Melding({
   type,
   titel,
   compact = false,
+  strook = false,
   className = "",
   children,
+  ...data
 }: {
   type: MeldingType;
   /** Optionele vetgedrukte kop boven de inhoud. */
   titel?: string;
   /** Kleine inline-variant: klein icoon, krappere padding, kleinere tekst. */
   compact?: boolean;
+  /** Over de volle breedte boven een scherm (het tokenbudget, een fout van de werkplek): geen afronding, een lijn
+   *  eronder, en de maat van `compact`. */
+  strook?: boolean;
   className?: string;
   children?: ReactNode;
-}) {
+} & Record<`data-${string}`, string | number | undefined>) {
   const isFout = type === "fout";
+  const klein = compact || strook;
+  const vorm = strook ? `shrink-0 border-b ${RAND[type]}` : "rounded-md";
   return (
     <div
       role={isFout ? "alert" : "status"}
       aria-live={isFout ? "assertive" : "polite"}
-      className={`flex items-start rounded-md text-ink ${STIJL[type].bg} ${
-        compact ? "gap-2 px-3 py-2 text-sm" : "gap-3 px-4 py-3"
+      {...data}
+      className={`flex items-start text-ink ${vorm} ${STIJL[type].bg} ${
+        klein ? `gap-2 py-2 text-sm ${strook ? "px-4" : "px-3"}` : "gap-3 px-4 py-3"
       } ${className}`}
     >
-      <Icoon type={type} className={compact ? "mt-0.5 h-4 w-4" : "h-7 w-7"} />
+      <Icoon type={type} className={klein ? "mt-0.5 h-4 w-4" : "h-7 w-7"} />
       <div className="min-w-0 flex-1">
         {titel && <p className="font-medium">{titel}</p>}
         {children}
@@ -105,3 +120,20 @@ export function Melding({
     </div>
   );
 }
+
+/** De handeling in een melding (*Opnieuw proberen*, *Sluiten*, *Bekijk je verbruik*): een onderstreept woord in de
+ *  tekst, in één stijl. Een rij knoppen onder een melding blijft `Button`. `app/melding.test.ts` bewaakt dat er geen
+ *  eigen knop in een melding staat. */
+export function MeldingActie({ onClick, children, ...data }: {
+  onClick: () => void;
+  children: ReactNode;
+} & Record<`data-${string}`, string | number | undefined>) {
+  return (
+    <button type="button" onClick={onClick} {...data} className={MELDING_ACTIE}>
+      {children}
+    </button>
+  );
+}
+
+/** De stijl van `MeldingActie`, voor een link (`Link`, `InstellingenLink`) in een melding. */
+export const MELDING_ACTIE = "focus-ring rounded font-medium text-lint underline underline-offset-2";

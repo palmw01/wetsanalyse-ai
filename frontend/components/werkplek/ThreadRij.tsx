@@ -18,9 +18,11 @@ import { BerichtSamenhangContext, type BerichtSamenhang } from "@/components/wer
 import { Vindplaats } from "@/components/antwoord/Vindplaats";
 import { alleenNietGetoetst } from "@/lib/antwoord";
 import { Button } from "@/components/ui/Button";
+import { ButtonRow } from "@/components/ui/ButtonRow";
 import { ChevronOmlaag, Cirkel, Waarschuwing } from "@/components/ui/Icoon";
 import { HergebruikMelding } from "@/components/werkplek/HergebruikMelding";
 import { Melding } from "@/components/ui/Melding";
+import { PaneelChip, chipSub } from "@/components/ui/PaneelChip";
 import { KeuzeKaart } from "@/components/werkplek/KeuzeKaart";
 import { Markdown, StreamendeTekst } from "@/components/werkplek/Markdown";
 import { ReeksBlok } from "@/components/werkplek/ReeksBlok";
@@ -278,100 +280,47 @@ function zelfdeRij(a: Props, b: Props): boolean {
 /** Het kaartje van een overzicht, in de vorm van de artefactchip: de inhoud staat naast het gesprek. */
 function OverzichtKaartje({ overzicht, onOpen }: { overzicht: Overzicht; onOpen: () => void }) {
   const t = telling(overzicht);
+  const n = t.bepalingen + t.ookGenoemd;
   return (
-    <button type="button" onClick={onOpen} data-testid="overzicht-kaartje"
-      className="flex w-full items-center gap-3 rounded-kaart border border-line bg-surface px-4 py-3 text-left shadow-zacht transition-all hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-lint/10 text-lint" aria-hidden><GraafIcoon /></span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium text-ink">Overzicht: {overzicht.gevraagd}</span>
-        <span className="block text-xs text-muted">
-          {t.regelingen} regeling{t.regelingen === 1 ? "" : "en"} · {t.bepalingen + t.ookGenoemd} bepaling{t.bepalingen + t.ookGenoemd === 1 ? "" : "en"}
-        </span>
-      </span>
-      <span className="shrink-0 text-muted" aria-hidden>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-      </span>
-    </button>
+    <PaneelChip titel={`Overzicht: ${overzicht.gevraagd}`} icoon={<GraafIcoon />} onClick={onOpen} data-testid="overzicht-kaartje"
+      sub={`${t.regelingen === 1 ? "1 regeling" : `${t.regelingen} regelingen`} · ${n === 1 ? "1 bepaling" : `${n} bepalingen`}`} />
   );
 }
+
+const ARTEFACTICOON = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="6" cy="6" r="3" /><circle cx="18" cy="18" r="3" /><circle cx="18" cy="6" r="3" />
+    <path d="M9 6h6M18 9v6M8.2 8.2l7.6 7.6" />
+  </svg>
+);
+
+const ANNOTATIEICOON = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+    <path d="M14 2v6h6M9 13l2 2 4-4" />
+  </svg>
+);
 
 /** De chip van een artefact dat geen annotatie is. Afleidingsregels zijn gereserveerd: de kaart staat
  *  er, maar opent nog niets – en zegt dat, in plaats van een knop die niets doet. */
 function ArtefactChip({ artefact, onOpen }: { artefact: Artefact; onOpen: () => void }) {
   const { soort, titel } = artefactKop(artefact);
   if (!isTeOpenen(artefact)) {
-    return (
-      <div className="flex w-full items-center gap-3 rounded-kaart border border-dashed border-line bg-surface px-4 py-3" data-artefact-soort={artefact.soort}>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-ink">{titel}</span>
-          <span className="block text-xs text-muted">{soort ? `${soort} · nog niet te openen` : "Nog niet te openen"} in de werkplek</span>
-        </span>
-      </div>
-    );
+    return <PaneelChip titel={titel} data-artefact-soort={artefact.soort}
+      sub={`${soort ? `${soort} · nog niet te openen` : "Nog niet te openen"} in de werkplek`} />;
   }
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      data-artefact-soort={artefact.soort}
-      className="flex w-full items-center gap-3 rounded-kaart border border-line bg-surface px-4 py-3 text-left shadow-zacht transition-all hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
-    >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-lint/10 text-lint" aria-hidden>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="6" cy="6" r="3" /><circle cx="18" cy="18" r="3" /><circle cx="18" cy="6" r="3" />
-          <path d="M9 6h6M18 9v6M8.2 8.2l7.6 7.6" />
-        </svg>
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium text-ink">{titel}</span>
-        <span className="block text-xs text-muted">{soort ? `${soort} · ` : ""}{artefact.soort === "werkgebied" ? "bekijken" : "beoordelen"}</span>
-      </span>
-      <span className="shrink-0 text-muted" aria-hidden>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m9 18 6-6-6-6" />
-        </svg>
-      </span>
-    </button>
-  );
+  return <PaneelChip titel={titel} icoon={ARTEFACTICOON} onClick={onOpen} data-artefact-soort={artefact.soort}
+    sub={chipSub(soort, artefact.soort === "werkgebied" ? "bekijken" : "beoordelen")} />;
 }
 
 /** Compacte kaart in de chatstroom die naar het annotatie-artefact leidt (opent het slide-in paneel). */
-function AnnotatieChip({
-  titel,
-  onOpen,
-}: {
+function AnnotatieChip({ titel, onOpen }: {
   /** Het label uit het bericht zelf (de titel van het artefact). */
   titel?: string;
   onOpen: () => void;
 }) {
-  const label = titel || "Annotatie";
-
-  return (
-    <button
-      type="button"
-      data-tour="chip"
-      onClick={onOpen}
-      className="flex w-full items-center gap-3 rounded-kaart border border-line bg-surface px-4 py-3 text-left shadow-zacht transition-all hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
-    >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-lint/10 text-lint" aria-hidden>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
-          <path d="M14 2v6h6M9 13l2 2 4-4" />
-        </svg>
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium text-ink">{label}</span>
-        <span className="block text-xs text-muted">
-          {ARTEFACT_SOORT_LABEL.annotatie} · review openen
-        </span>
-      </span>
-      <span className="shrink-0 text-muted" aria-hidden>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m9 18 6-6-6-6" />
-        </svg>
-      </span>
-    </button>
-  );
+  return <PaneelChip titel={titel || "Annotatie"} icoon={ANNOTATIEICOON} onClick={onOpen} data-tour="chip"
+    sub={chipSub(ARTEFACT_SOORT_LABEL.annotatie, "beoordelen")} />;
 }
 
 /** De keuzelijst bij een onderwerp-vraag: welke bepaling gaat de werkvoorraad in?
@@ -395,22 +344,8 @@ function KandidatenKeuze({
     <ul className="mt-2 flex flex-col gap-2">
       {kandidaten.map((k) => (
         <li key={`${k.bwbId}|${k.artikel}|${k.lid ?? ""}`}>
-          <button
-            type="button"
-            disabled={uitgeschakeld}
-            onClick={() => onKies(k)}
-            className="flex w-full items-center gap-3 rounded-kaart border border-line bg-surface px-4 py-3 text-left shadow-zacht transition-all hover:-translate-y-0.5 hover:border-lint/40 hover:shadow-kaart disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
-          >
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium text-ink">{kandidaatLabel(k)}</span>
-              {k.fragment && <span className="mt-0.5 block line-clamp-2 text-xs text-muted">{k.fragment}</span>}
-            </span>
-            <span className="shrink-0 text-muted" aria-hidden>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m9 18 6-6-6-6" />
-              </svg>
-            </span>
-          </button>
+          <PaneelChip titel={kandidaatLabel(k)} sub={k.fragment || undefined} subRegels={2}
+            uitgeschakeld={uitgeschakeld} onClick={() => onKies(k)} />
         </li>
       ))}
     </ul>
@@ -446,7 +381,7 @@ function BevestigingBlok({ bevestiging, keuze, bezig, geblokkeerd, acties }: {
         </p>
       )}
       {!keuze && (
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <ButtonRow align="start" className="mt-3">
         {bevestiging.soort === "regie" && bevestiging.plan_id && bevestiging.opdracht ? (
           <Button size="sm" className="w-full sm:w-auto" disabled={bezig || geblokkeerd}
             data-bevestiging={bevestiging.aantal}
@@ -478,7 +413,7 @@ function BevestigingBlok({ bevestiging, keuze, bezig, geblokkeerd, acties }: {
             onClick={() => acties.annuleer()}>
             Annuleren
           </Button>
-        </div>
+        </ButtonRow>
       )}
     </>
   );

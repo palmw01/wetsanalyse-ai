@@ -1,5 +1,6 @@
 "use client";
 
+import { LaadStand } from "@/components/ui/LaadStand";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import type { Onderwerp } from "@/lib/vraagLex";
 import { ExportRegels, type ExportKnop } from "@/components/werkplek/ExportKnop";
@@ -288,20 +289,10 @@ function WerkgebiedLive({ id, naarWerkgebied, onVerwijderd }: {
     menu: (sluit) => <MenuVerwijder onBevestig={async () => { await verwijder(); sluit(); }} ariaLabel={verwijderLabel("werkgebied")} titel={VERWIJDER_UITLEG.werkgebied} />,
   } : null, wg ? `${wg.status}|${wg.revisie}` : "");
 
-  if (verwijderd) {
-    return <Melding type="uitleg"><span data-verwijderd>{verwijderdZin(verwijderd)}</span></Melding>;
+  if (verwijderd || fout || !wg) {
+    return <LaadStand wat="Het werkgebied" verwijderd={verwijderd && verwijderdZin(verwijderd)} fout={fout}
+      onOpnieuw={() => { setFout(null); setPoging((p) => p + 1); }} />;
   }
-  if (fout) {
-    return (
-      <Melding type="fout" titel="Het werkgebied kon niet worden geladen.">
-        {fout}{" "}
-        <button type="button" className="focus-ring rounded font-medium text-lint underline" onClick={() => { setFout(null); setPoging((p) => p + 1); }}>
-          Opnieuw proberen
-        </button>
-      </Melding>
-    );
-  }
-  if (!wg) return <SkeletonCard regels={4} />;
   return (
     <div data-werkgebied-inhoud className="space-y-4 text-sm text-ink">
       {melding && <Melding type="waarschuwing" compact>{melding}</Melding>}

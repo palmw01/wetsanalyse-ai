@@ -161,6 +161,28 @@ Claude: een citaat in de tekst, één kaart per object, en het object opent in �
 - **Eén Vraag Lex** (`app/vraagLex.test.ts`): `VraagLexKnop` met een onderwerp, de suggesties uit één register per soort
   (`lib/vraagLex.ts`).
 
+**Een kaartje naar een paneel** (generieke componenten, 15 nov 2026; `app/paneelChip.test.ts`): elk kaartje in het gesprek
+dat iets naast het gesprek opent – een bepaling onder een antwoord, een annotatie, een ander artefact, een overzicht, een
+kandidaat om te annoteren – is `PaneelChip` (`components/ui/PaneelChip.tsx`): icoontegel, titel, ondertitel (afgekapt, of
+twee regels met `subRegels={2}`), chevron, en `uitgeschakeld` tijdens een beurt. Zonder `onClick` is het een kaart met een
+gestippelde rand die niets opent (een gereserveerd artefact). De ondertitel is `chipSub(soort, handeling)`, met één
+werkwoord per handeling: *bekijken* (een bepaling, een werkgebied) of *beoordelen* (een annotatie, begripsvoorstellen).
+Geen eigen tegel, chevron of chipklassen elders; het plan staat in `docs/architectuur/plan-generieke-componenten.md`.
+**Een melding** (generieke componenten, 15 nov 2026; `app/melding.test.ts`) is `Melding` (`components/ui/Melding.tsx`):
+`fout`, `waarschuwing`, `bevestiging` of `uitleg`, gewoon, `compact` of als `strook` over de volle breedte boven een scherm
+(het tokenbudget, een fout van de werkplek, een gesprek dat niet bewaard wordt). Een handeling in de tekst (*Opnieuw
+proberen*, *Sluiten*, *Zet … aan*) is `MeldingActie`, een link erin krijgt `MELDING_ACTIE`; een rij knoppen onder een melding
+blijft `Button`. Geen eigen gekleurd vlak (`bg-fout/10` …) en geen eigen knop in een melding. Uitzonderingen: de tweede klik
+op *Verwijderen* in `MeerMenu` en de vaste band van de testomgeving (`Teststrook`).
+
+**Een object laden** (generieke componenten, 15 nov 2026; `app/laadStand.test.ts`) is `LaadStand`
+(`components/ui/LaadStand.tsx`). Zolang het object laadt, staat er een skelet: `kaart`, `tekst` of `rijen`. Bij een fout staat
+er een `Melding` met de titel "{wat} kon niet worden geladen.", de reden (alleen als die iets anders zegt) en *Opnieuw
+proberen*. Na een verwijdering staat er de zin van `verwijderdZin`. `compact` is voor de zijbalk. Elk paneel, elke tab en de
+gesprekkenlijst gebruiken het; een kleine laadregel is `LaadRegel`. Geen eigen `…LaadStand`, geen titel "Niet geladen".
+*Opnieuw proberen* staat daarbuiten alleen op het graafcanvas, in het menu van de connectors en boven het gesprek (de
+geschiedenis).
+
 **De graaf van een bron** (ontdubbelen PR 1): één `useBronGraaf` + `BronGraaf` (`components/wettekst/BronGraaf.tsx`) voor
 het venster naast het gesprek, de bronpagina en de annotatie, met één keuze Tekst | Graaf (`WeergaveBalk`). Alleen de tab
 Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` nog zelf aan.
@@ -963,7 +985,7 @@ begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`
   is een object-literal, dus die test is altijd onwaar en vervangt elke serverreden door een
   generieke zin.
 - **Niets faalt stil.** Het artefact openen toont een laadstand en bij een fout een `Melding` met
-  *Opnieuw proberen* (`NodeAnnotatiePaneel`, `LaadStand`). Een mislukte beslissing landt in de
+  *Opnieuw proberen* (`NodeAnnotatiePaneel`, met `LaadStand` uit `components/ui`). Een mislukte beslissing landt in de
   `Melding` van het artefact (`ArtefactInhoud.beslis`/`wis` vangen), niet als chatbericht.
 - **Een verwijderde annotatie is een toestand, geen fout.** Een bericht verwijst naar zijn annotatie
   zonder foreign key. Een bronnode-annotatie die intussen is verwijderd, meldt het paneel zelf
@@ -1687,7 +1709,7 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   graaf eerst lagen, keuze en vergroten af (`escape`), dan verbergt het paneel.
 - **Eén ingang per plek** (`useOpenBron` in `ContextPaneel.tsx` is de enige opener; geen andere plek leest
   `ContextPaneelContext`):
-  - **onder een antwoord per bepaling één kaart** (ontdubbelen PR 3; `BronChip`/`BepalingChips`, `kaartenVan` in
+  - **onder een antwoord per bepaling één kaart** (ontdubbelen PR 3; `PaneelChip`/`BepalingChips`, `kaartenVan` in
     `lib/bronnen.ts`): bij een sjabloon de bepalingen die het draagt, bij vrije tekst de bepalingen die de tekst
     éénduidig noemt (geen kaart voor een gok). Bij meer dan drie (`MAX_BEPALINGCHIPS`) staat er één kaart met de telling
     ("6 bepalingen", `data-bepaling-lijst`), die de bepalingen als lijst in het paneel opent (`ContextDoel` soort

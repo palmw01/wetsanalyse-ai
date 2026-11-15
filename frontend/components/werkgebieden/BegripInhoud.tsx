@@ -1,5 +1,6 @@
 "use client";
 
+import { LaadStand } from "@/components/ui/LaadStand";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -14,7 +15,6 @@ import { MeerMenu, MenuKnop, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { usePaneelKopVulling } from "@/components/ui/PaneelKop";
 import { Melding } from "@/components/ui/Melding";
 import { ObjectRij, ObjectRijen, SplitDetail } from "@/components/ui/Pagina";
-import { SkeletonCard } from "@/components/ui/Skeleton";
 import { BegripBlok, type BegripWeergaveVorm } from "@/components/werkgebieden/BegripBlok";
 import { BegripOpvolging } from "@/components/werkgebieden/BegripOpvolging";
 import { BegripPassages } from "@/components/werkgebieden/BegripPassages";
@@ -71,7 +71,7 @@ export function BegripInhoud({ stand, weergave, onOnbewaard, onNaarBegrip, onGew
   }, [onbewaard]);
 
   const { begrip, alleenLezen } = stand;
-  if (!begrip) return <BegripLaadStand stand={stand} />;
+  if (!begrip) return <LaadStand wat="Het begrip" verwijderd={stand.verwijderd && verwijderdZin(stand.verwijderd)} fout={stand.fout} onOpnieuw={() => void stand.laad()} />;
 
   const betekenis = <BetekenisBlok stand={stand} begrip={begrip} weergave={weergave} onbewaard={onbewaard} onOnbewaard={meldBetekenis} />;
   const voorbeelden = <VoorbeeldenBlok stand={stand} begrip={begrip} weergave={weergave} onbewaard={onbewaard} onOnbewaard={meldVoorbeelden} />;
@@ -135,20 +135,6 @@ export function BegripInhoud({ stand, weergave, onOnbewaard, onNaarBegrip, onGew
       {relaties}
       {historie}
     </div>
-  );
-}
-
-/** Laden, een fout met *Opnieuw proberen*, of de stand van een verwijderd begrip. */
-function BegripLaadStand({ stand }: { stand: BegripStand }) {
-  if (stand.verwijderd) return <Melding type="uitleg"><span data-verwijderd>{verwijderdZin(stand.verwijderd)}</span></Melding>;
-  if (!stand.fout) return <SkeletonCard regels={4} />;
-  return (
-    <Melding type="fout" titel="Het begrip kon niet worden geladen.">
-      {stand.fout}{" "}
-      <button type="button" className="focus-ring rounded font-medium text-lint underline" onClick={() => void stand.laad()}>
-        Opnieuw proberen
-      </button>
-    </Melding>
   );
 }
 
