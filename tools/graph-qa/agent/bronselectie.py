@@ -81,8 +81,23 @@ _BRONSELECTIE = re.compile(
     rf"|\b{_HANDELING_BS}\b.*\b(?:bronnen|bepalingen)\b", re.I)
 
 
+#: "De bronnen bij de deelvraag over verjaring": een deelvraag bij haar onderwerp, niet bij haar nummer.
+_DEELVRAAG_OVER = re.compile(r"\bdeelvraag\s+(?:over|naar|bij|rond|inzake|met)\b", re.I)
+
+
 def is_bronselectievraag(vraag: str) -> bool:
-    return bool(_BRONSELECTIE.search(vraag or ""))
+    """De bronnen per deelvraag bepalen (spoor J). Twee vormen lijken erop en zijn het niet (agentset V02, V03; A6 run 1):
+
+    - een vraag die een bron naast de wet noemt ("wat zegt de memorie van toelichting over de bepalingen van dit
+      werkgebied"): die zoekt in een connector, niet in de graaf;
+    - een deelvraag bij haar onderwerp ("de bronnen bij de deelvraag over verjaring"): de bronselectie kiest de
+      volgende deelvraag zelf en zou stil bij een andere verder zoeken. De centrale agent leest het dossier, en vraagt
+      als er geen deelvraag over dat onderwerp is."""
+    from bronmodel.connectors import herkende
+
+    if not _BRONSELECTIE.search(vraag or ""):
+        return False
+    return not (herkende(vraag) or _DEELVRAAG_OVER.search(vraag))
 
 
 def deelvraag_nr_in(tekst: str) -> int | None:

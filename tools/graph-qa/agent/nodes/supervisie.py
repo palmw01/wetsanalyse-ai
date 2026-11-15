@@ -43,6 +43,7 @@ from ..tools.annotatie_tools import is_leesvraag
 from ..tools.begrip_tools import is_begrip_leesvraag
 from ..werkgebied_intake import is_aanvullen, is_open, is_werkgebiedvraag, kaart
 from . import subagent_route
+from ..overdracht import _start_kind
 from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
@@ -313,6 +314,23 @@ def _regelingen_genoemd(graph: Any):
         except Exception:  # noqa: BLE001 – zonder namenlijst geen route; de agent leest de vraag dan
             return []
         return [(i, namen.get(i, set())) for i in ids]
+    return genoemd
+
+
+def _regelingtitels(graph: Any):
+    """De regelingen die een tekst bij naam of afkorting noemt, als (bwb-id, citeertitel): voor een vergelijking van
+    regelingen die de code over subagents verdeelt (`subagent_route.plan`)."""
+    if graph is None:
+        return None
+    from .. import overzicht
+
+    def genoemd(tekst: str) -> list[tuple[str, str]]:
+        ids = overzicht.regelingen_in_vraag(graph, tekst)
+        try:
+            titels = {r["bwb_id"]: r.get("citeertitel") or r["bwb_id"] for r in overzicht._regelingen(graph)}
+        except Exception:  # noqa: BLE001 – zonder namenlijst geen verdeling; de centrale agent leest de vraag dan
+            return []
+        return [(i, titels.get(i, i)) for i in ids]
     return genoemd
 
 
@@ -612,12 +630,20 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # delegatie hoort dat er later iets veranderde. Geen supervisorstap en geen centrale agent.
         return _deelgesprek(b, writer, state, dg)
 
-    if _centraal(state) and modus == "auto" and subagent_route.past(state.get("question", ""), state.get("bronstand")):
-        # "Vat per uitspraak samen …" (ADR-016 §A5): een subagent in code, met de vraag als opdracht; de centrale agent
-        # vat daarna het rapport samen (`nodes/subagent_route.py`).
-        _stap(writer, "Lex", "geeft het lezen van de stukken aan een subagent", route="subagent")
+    delegatie = subagent_route.plan(state.get("question", ""), state.get("bronstand"), _regelingtitels(b.graph)) \
+        if _centraal(state) and modus == "auto" else []
+    if len(delegatie) > 1 and _start_kind(b, state):
+        delegatie = []   # het plan kan niet bewaard en gestart worden: de centrale agent beantwoordt de vraag zelf
+    if delegatie:
+        # "Vat per uitspraak samen …", "geef per artikel van het hoofdstuk …", "per bron apart" (ADR-016 §A5): subagents
+        # in code, met de vraag als opdracht (`nodes/subagent_route.py`). Eén start meteen en de centrale agent vat
+        # daarna het rapport samen; twee of drie legt de code eerst aan de jurist voor.
+        if len(delegatie) > 1:
+            return {"specialist": "subagent_plan", "plan": "", "worker_plan": ["subagent_plan"], "worker_idx": 0,
+                    "afwijzen": False, "annotaties_lezen": False, "subagent_plan": subagent_route.als_state(delegatie)}
+        _stap(writer, "Lex", "geeft het lezen van de reeks aan een subagent", route="subagent")
         return {"specialist": "subagent_route", "plan": "", "worker_plan": ["subagent_route"], "worker_idx": 0,
-                "afwijzen": False, "annotaties_lezen": False}
+                "afwijzen": False, "annotaties_lezen": False, "subagent_plan": subagent_route.als_state(delegatie)}
 
     if _centraal(state):
         # ADR-016 §A1: geen vaste route pakte de vraag, dus de centrale agent beantwoordt hem zelf. De supervisorstap en
@@ -823,6 +849,8 @@ def _entry_node(b: Bouw, state: State) -> str:
         return "subagent_vervolg"
     if state.get("specialist") == "subagent_route":
         return "subagent_route"
+    if state.get("specialist") == "subagent_plan":
+        return "subagent_plan"
     if state.get("bepalingsvraag"):
         return "bepaling_lezen"
     if state.get("bron_lijst"):

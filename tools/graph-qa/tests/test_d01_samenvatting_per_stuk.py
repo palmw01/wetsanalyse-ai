@@ -132,8 +132,8 @@ def test_met_alle_passages_geciteerd_vangt_de_controle_per_stuk_de_omgedraaide_b
     stukken = stukcontrole.te_controleren(ANTWOORD_181, steun, TRACE)
     nr = next(i for i, s in enumerate(stukken, 1) if s["id"] == HR181)
     llm = FakeLLM([response([tool_block("o", "oordelen", {"oordelen": [
-        {"stuk": nr, "zin": omgedraaid, "oordeel": "spreekt_tegen"},
-        {"stuk": nr, "zin": omgedraaid + 1, "oordeel": "steunt"}]})], "tool_use")])
+        {"stuk": nr, "zin": omgedraaid, "oordeel": "spreekt_tegen", "tegen": "moet de ontvanger aannemelijk maken"},
+        {"stuk": nr, "zin": omgedraaid + 1, "oordeel": "steunt", "tegen": ""}]})], "tool_use")])
     uit = stukcontrole.controleer(llm, make_settings(), ANTWOORD_181, steun, TRACE)
     assert len(uit) == 1 and uit[0].startswith(f"duiding van {HR181} die de passages van dat stuk tegenspreekt")
     verzoek = llm.calls[0]
@@ -189,7 +189,8 @@ def test_verify_leest_de_duidingen_na_een_rapport_tegen_de_passages(monkeypatch)
     nr = next(i for i, s in enumerate(stukken, 1) if s["id"] == HR181)
     zin = next(i for i, z in enumerate(stukken[nr - 1]["zinnen"], 1) if "bewijslast verlegd" in z)
     llm = FakeLLM([response([tool_block("o", "oordelen", {"oordelen": [
-        {"stuk": nr, "zin": zin, "oordeel": "spreekt_tegen"}]})], "tool_use")])
+        {"stuk": nr, "zin": zin, "oordeel": "spreekt_tegen", "tegen": "moet de ontvanger aannemelijk maken"}]})],
+        "tool_use")])
     b = SimpleNamespace(llm=llm, settings=make_settings(), graph=FakeGraph(result=""))
     state = {"answer": ANTWOORD_181, "question": VRAAG, "messages": [], "source_trace": TRACE, "run_id": "r",
              "subagenten": [{"uitkomst": "klaar"}], "rapport_steun": steun, "specialist": "centraal"}

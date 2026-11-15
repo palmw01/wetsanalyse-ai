@@ -37,19 +37,41 @@ SYSTEEM = (
     "Je controleert een samenvatting van rechtspraak of andere stukken tegen de passages eruit. Per stuk krijg je de "
     "passages die geciteerd zijn en de zinnen die er iets over zeggen. Geef per zin één oordeel:\n"
     "- steunt: de passages zeggen dit, ook als het anders geformuleerd is;\n"
-    "- spreekt_tegen: de passages zeggen iets anders of het omgekeerde (een andere partij, een andere richting van de "
+    "- spreekt_tegen: een passage zegt iets anders of het omgekeerde (een andere partij, een andere richting van de "
     "bewijslast, een andere uitkomst, ontkenning tegenover bevestiging);\n"
     "- niet_te_zien: de passages zeggen er niets over.\n"
+    "Bij spreekt_tegen geef je in `tegen` letterlijk het stukje passage dat het tegendeel zegt (een paar woorden tot een "
+    "zin, exact overgenomen); bij de andere oordelen laat je `tegen` leeg. Kun je zo'n stukje niet aanwijzen, dan is het "
+    "niet_te_zien. Een zin die een standpunt weergeeft dat het stuk noemt en zelf verwerpt, spreekt het niet tegen zolang "
+    "ze die verwerping niet omdraait; een zin met meer punten beoordeel je op elk punt.\n"
     "Oordeel alleen op de passages, niet op wat je zelf over het recht weet. Bij twijfel: niet_te_zien.")
+
+#: Hoeveel woorden het aangewezen stukje passage minstens telt: één woord ("niet") wijst niets aan.
+MIN_TEGEN_WOORDEN = 3
 
 
 def schema() -> dict[str, Any]:
     return {"name": "oordelen", "description": "Het oordeel per zin.", "strict": True,
             "input_schema": {"type": "object", "additionalProperties": False, "required": ["oordelen"], "properties": {
                 "oordelen": {"type": "array", "items": {
-                    "type": "object", "additionalProperties": False, "required": ["stuk", "zin", "oordeel"],
+                    "type": "object", "additionalProperties": False, "required": ["stuk", "zin", "oordeel", "tegen"],
                     "properties": {"stuk": {"type": "integer"}, "zin": {"type": "integer"},
-                                   "oordeel": {"type": "string", "enum": list(OORDELEN)}}}}}}}
+                                   "oordeel": {"type": "string", "enum": list(OORDELEN)},
+                                   "tegen": {"type": "string"}}}}}}}
+
+
+def _plat(tekst: str) -> str:
+    """Tekst om letterlijk te vergelijken: kleine letters, één soort aanhalingstekens en streepjes, enkele spaties."""
+    tekst = tekst.casefold().translate(str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"', "–": "-", "—": "-"}))
+    return " ".join(tekst.split()).strip(" .,;:'\"")
+
+
+def aangewezen(fragment: str, passages: str) -> bool:
+    """Staat het stukje dat het model als tegenspraak aanwijst letterlijk in de passages van het stuk (A6 run 1, S01: bij
+    PHR:2025:435 en HR:2020:1502 een tegenspraak die geen passage droeg)? Zonder zo'n stukje is het oordeel geen
+    bewering."""
+    frag = _plat(fragment)
+    return len(frag.split()) >= MIN_TEGEN_WOORDEN and frag in _plat(passages)
 
 
 def te_controleren(tekst: str, steun: dict[str, str], trace: Iterable[Any]) -> list[dict[str, Any]]:
@@ -98,16 +120,23 @@ def controleer(llm: Any, settings: Any, tekst: str, steun: dict[str, str] | None
         logger.warning("stukcontrole mislukt", exc_info=True, extra={"categorie": "technisch"})
         return []
     beweringen: dict[str, None] = {}
+    niet_aangewezen = 0
     for o in uit.waarde or []:
         try:
             stuk, zin = stukken[int(o["stuk"]) - 1], int(o["zin"]) - 1
         except (KeyError, TypeError, ValueError, IndexError):
             continue
-        if o.get("oordeel") == "spreekt_tegen" and 0 <= zin < len(stuk["zinnen"]):
-            kort = " ".join(stuk["zinnen"][zin].split())[:100]
-            beweringen[f"duiding van {stuk['id']} die de passages van dat stuk tegenspreekt: '{kort}'"] = None
+        if o.get("oordeel") != "spreekt_tegen" or not 0 <= zin < len(stuk["zinnen"]):
+            continue
+        if not aangewezen(str(o.get("tegen") or ""), stuk["passages"]):
+            niet_aangewezen += 1
+            continue
+        kort = " ".join(stuk["zinnen"][zin].split())[:100]
+        tegen = " ".join(str(o["tegen"]).split())[:120]
+        beweringen[f"duiding van {stuk['id']} die de passages van dat stuk tegenspreekt: '{kort}' (de passage: "
+                   f"'{tegen}')"] = None
     logger.info("stukcontrole", extra={"categorie": "functioneel", "stukken": len(stukken),
                                        "zinnen": sum(len(s["zinnen"]) for s in stukken),
-                                       "tegengesproken": len(beweringen)})
+                                       "tegengesproken": len(beweringen), "niet_aangewezen": niet_aangewezen})
     return list(beweringen)
 

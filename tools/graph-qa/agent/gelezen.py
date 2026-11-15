@@ -75,7 +75,10 @@ _FUNCTIEWOORDEN = frozenset(
     "de het een en van in op over met voor door aan bij dat die dit deze zijn is was wordt werd worden heeft hebben had "
     "naar uit ook niet als zoals dan maar om tot onder tegen hij zij ze er hier daar wat welke wie waar wel nog al geen "
     "kan kon zou zal moet mag uitspraak uitspraken arrest arresten vonnis rechter rechtbank hof hoge raad gerechtshof "
-    "zaak stuk stukken waarin waarbij volgens gaat ging betreft".split())
+    "zaak stuk stukken waarin waarbij volgens gaat ging betreft "
+    # Wie het verslag doet, niet wat het stuk zegt (A6 run 1, S01: "Het rapport vermeldt dat dit stuk gaat over …" telde
+    # "rapport" en "vermeldt" als woorden die de passages moesten dragen).
+    "rapport subagent vermeldt meldt noemt geeft rapporteert las gelezen opgehaald opgehaalde passage passages".split())
 
 
 _ALINEA = re.compile(r"\n\s*\n")
@@ -99,11 +102,23 @@ _HERKOMST = re.compile(r"\b(volgens|aangehaald|besproken|beschreven|blijkens|wee
 #: Een zin of kop die zegt dat een stuk níét samengevat of gelezen is, of dat iets uit de gelezen passages niet vast te
 #: stellen is: geen duiding van dat stuk, maar een zin over wat er gelezen is (meting bundel 123, D01: vier van de vijf
 #: onbevestigde zinnen waren "niet vast te stellen", "geen inhoudelijk oordeel" en "komt niet inhoudelijk aan bod").
+#: Wat een passage of rapport kan opleveren: dragen, beschikbaar zijn, te verankeren of aan te wijzen.
+_NIET_OPGELEVERD = r"(?:dragen|droegen|draagt|droeg|beschikbaar|verankeren|aan\s+te\s+wijzen|brongetrouw)"
 _WEGGELATEN = re.compile(r"\bniet\s+(?:inhoudelijk\s+|volledig\s+)?(?:samengevat|gelezen|besproken|opgenomen|meegenomen)\b"
                          r"|\bweggelaten\b|\bbuiten\s+beschouwing\b|\blaat\s+ik\s+weg\b"
                          r"|\bniet\s+vast\s+te\s+stellen\b|\bgeen\s+inhoudelijk\w*\s+oordeel\b"
-                         r"|\bniet\s+(?:inhoudelijk\s+)?aan\s+bod\b|\b(?:in|op\s+basis\s+van)\s+de\s+gelezen\s+passages\b",
+                         r"|\bniet\s+(?:inhoudelijk\s+)?aan\s+bod\b|\b(?:in|op\s+basis\s+van)\s+de\s+gelezen\s+passages\b"
+                         # Wat de passages of het rapport niet opleveren (A6 run 1, S01 en F02: "De passages die de subagent
+                         # ophaalde dragen geen inhoudelijke duiding", "Meer detail is niet beschikbaar", "Meer valt uit de
+                         # beschikbare informatie niet brongetrouw te zeggen"): een zin over het lezen, binnen één zinsdeel.
+                         rf"|\b(?:passages?|informatie|rapport)\b[^.;:]*?\b(?:niet|geen)\b[^.;:]*?\b{_NIET_OPGELEVERD}\b"
+                         rf"|\b(?:passages?|informatie|rapport)\b[^.;:]*?\b{_NIET_OPGELEVERD}\b[^.;:]*?\b(?:niet|geen)\b"
+                         r"|\bmeer\s+(?:detail|details|valt|is)\b[^.;:]*?\bniet\b[^.;:]*?\b(?:beschikbaar|te\s+zeggen)\b"
+                         r"|\bniet\s+brongetrouw\b",
                          re.IGNORECASE)
+#: Een kop die alleen het stuk noemt ("**Conclusie AG Koopman 11 april 2025 (ECLI:…) – vervolg na …**"): het onderwerp
+#: van de alinea, geen duiding (A6 run 1, S01: de controle per stuk kreeg de kop als zin om te toetsen).
+_KOPREGEL = re.compile(r"^\s*(?:#+\s*)?\*\*[^*]+\*\*\s*$")
 
 
 def _ids(tekst: str) -> list[str]:
@@ -163,7 +178,7 @@ def per_stuk(tekst: str, gelezen: Iterable[str] | None = None,
         # ongelezen stuk dat een zin eronder noemt, geeft de alinea weer uit dat gelezen stuk.
         bron = onderwerp if onderwerp and set(onderwerp) <= gelezen and _HERKOMST.search(kop) else []
         for segment in segmenten:
-            if weglating and _WEGGELATEN.search(segment):
+            if weglating and (_WEGGELATEN.search(segment) or _KOPREGEL.match(segment)):
                 uit.append((_URL.sub("", segment), []))
                 continue
             ids = _herkomst(segment, _ids(segment), gelezen)
