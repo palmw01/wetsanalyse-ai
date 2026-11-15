@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { AanpassingLijst, VoegToeMenu } from "@/components/instellingen/AanpassingLijst";
 import { MeerMenu, MenuKnop, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { Melding } from "@/components/ui/Melding";
-import { deleteProfile, isApiError, listProfiles, setDefaultProfile, testProfile } from "@/lib/api";
+import { deleteProfile, haalModelkeuzesBeheer, isApiError, listProfiles, setDefaultProfile, testProfile } from "@/lib/api";
+import { gebruiktDoor, type Overzicht } from "@/lib/modelkeuzes";
 import type { LlmProfileOut, TestResult } from "@/lib/types";
 import { ProfileEditor } from "./ProfileEditor";
 import { StatusLabel } from "@/components/ui/Lijst";
@@ -17,11 +18,14 @@ export function ProfielenPanel() {
   const [edit, setEdit] = useState<EditState>({ open: false });
   const [tests, setTests] = useState<Record<string, TestResult | "bezig">>({});
   const [zoek, setZoek] = useState("");
+  // Waar elk profiel gekozen is (de modelkeuzes per agent en stap). Stil falend: het is een toelichting.
+  const [keuzes, setKeuzes] = useState<Overzicht | null>(null);
 
   const laad = useCallback(async () => {
     setFout(null);
     try {
       setProfielen(await listProfiles());
+      setKeuzes(await haalModelkeuzesBeheer().catch(() => null));
     } catch (e) {
       setFout(isApiError(e) ? `${e.detail} (${e.status})` : (e as Error).message);
       setProfielen([]);
@@ -59,6 +63,13 @@ export function ProfielenPanel() {
       await deleteProfile(name);
       await laad();
     } catch (e) {
+      // Gekozen voor een agent of stap (409 `in_gebruik`): noem ze bij naam, niet bij hun sleutel.
+      const sleutels = isApiError(e) && Array.isArray(e.data?.gebruikt_door) ? (e.data.gebruikt_door as string[]) : null;
+      if (sleutels && keuzes) {
+        const label = Object.fromEntries(keuzes.keuzes.map((k) => [k.sleutel, k.label]));
+        setFout(`"${name}" is gekozen voor ${sleutels.map((s) => label[s] ?? s).join(", ")}. Zet die eerst bij Agents op een ander profiel of op Standaard.`);
+        return;
+      }
       setFout(isApiError(e) ? `${e.detail} (${e.status})` : (e as Error).message);
     }
   }
@@ -84,7 +95,8 @@ export function ProfielenPanel() {
     return {
       id: p.name, naam: p.name, titel: p.name, zoektekst: `${p.name} ${p.provider} ${p.model}`,
       onOpen: () => setEdit({ open: true, profile: p }),
-      sub: [p.provider, p.model || "geen model"].join(" · "),
+      sub: [p.provider, p.model || "geen model", keuzes && gebruiktDoor(keuzes, p.name).length
+        ? `gekozen voor ${gebruiktDoor(keuzes, p.name).join(", ")}` : ""].filter(Boolean).join(" · "),
       status: <>
         {p.is_default && <StatusLabel toon="lint">standaard</StatusLabel>}
         <StatusLabel toon={p.api_key_set ? "groen" : "geel"}>{p.api_key_set ? "API-key ingesteld" : "Geen API-key"}</StatusLabel>

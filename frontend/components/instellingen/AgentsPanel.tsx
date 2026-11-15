@@ -6,14 +6,20 @@ import { VoegToeFormulier, conceptGroep, magToevoegen, useWerkplaats } from "@/c
 import {
   AanpassingDetail, AanpassingLijst, VoegToeMenu, useLijstStand, type AanpassingGroep,
 } from "@/components/instellingen/AanpassingLijst";
+import {
+  ModelKeuzeMelding, ModelKeuzeVeld, ModelkeuzesMelding, WaarschuwingLabel, useModelkeuzes, type Modelkeuzes,
+} from "@/components/instellingen/ModelKeuze";
 import { HerkomstKaart, LangeTekst, tekst, useCatalogus, useOnderdeel } from "@/components/instellingen/OnderdeelKaarten";
 import { Regel, Regels, StatusLabel } from "@/components/ui/Lijst";
 import { Kaart } from "@/components/ui/Pagina";
 import { methodeLabel, naamVan, soortVan, type Onderdeel } from "@/lib/catalogus";
 import { kiesInstellingenTab } from "@/lib/instellingenVenster";
+import { sleutelVanProfiel } from "@/lib/modelkeuzes";
 
 /** Instellingen › Aanpassingen › Agents: de agentprofielen van Lex (`.claude/lex-agents/`), elk met wat het doet, zijn
- *  connectors en sjablonen, en met de werkplaats aan je eigen concepten ervan. */
+ *  connectors, sjablonen en model, en met de werkplaats aan je eigen concepten ervan. Het model hoort op het agentprofiel
+ *  (zoals `model:` bij een Claude Code-subagent); een stap zonder profiel (de router, de classifier, …) staat in een eigen
+ *  groep met dezelfde keuze. Een beheerder met 2FA kiest; iedereen ziet welk model Lex gebruikt (api `modelkeuzes`). */
 export function AgentsPanel() {
   const werkplaats = useWerkplaats();
   const lijst = useLijstStand(werkplaats.stand.aan);
@@ -25,6 +31,8 @@ export function AgentsPanel() {
   const profielen = alle.filter((o) => o.soort === "agentprofiel");
   const concepten = conceptGroep(werkplaats, "agentprofiel", toonIngetrokken, setToonIngetrokken);
   const open = lijst.onderdeel?.startsWith("agentprofiel/") ? lijst.onderdeel : null;
+  const modellen = useModelkeuzes();
+  const stappen = modellen.sleutels.filter((s) => s.soort === "stap");
 
   const groepen: AanpassingGroep[] = lijst.segment === "concepten" ? [concepten] : [{
     kop: "Agentprofielen",
@@ -34,15 +42,24 @@ export function AgentsPanel() {
         id: p.id, naam: p.label, titel: p.label, onOpen: () => lijst.open(p.id), zoektekst: `${p.label} ${p.doel} ${p.id}`,
         sub: [p.doel, n && `${n} ${n === 1 ? "connector" : "connectors"}`, s && `${s} ${s === 1 ? "sjabloon" : "sjablonen"}`]
           .filter(Boolean).join(" · "),
-        status: p.aan ? undefined : <StatusLabel>hier uit</StatusLabel>, data: { "data-onderdeel": p.id },
+        status: <>{!p.aan && <StatusLabel>hier uit</StatusLabel>}<WaarschuwingLabel m={modellen} sleutel={sleutelVanProfiel(p.id)} /></>,
+        onder: <ModelOnder m={modellen} sleutel={sleutelVanProfiel(p.id)} label={p.label} />, data: { "data-onderdeel": p.id },
       };
     }),
-  }];
+  }, ...(stappen.length ? [{
+    kop: "Stappen zonder agentprofiel",
+    sub: "Een losse modelstap in een vaste keten. Ook die krijgt een model.",
+    rijen: stappen.map((s) => ({
+      id: s.sleutel, naam: s.label, titel: s.label, sub: s.beschrijving, zoektekst: `${s.label} ${s.beschrijving} ${s.sleutel}`,
+      status: <WaarschuwingLabel m={modellen} sleutel={s.sleutel} />,
+      onder: <ModelOnder m={modellen} sleutel={s.sleutel} label={s.label} />, data: { "data-stap": s.sleutel },
+    })),
+  }] : [])];
 
   return (
     <AanpassingLijst
       titel="Agents"
-      uitleg="Wie een vraag beantwoordt: elk profiel met een eigen opdracht, connectors en sjablonen."
+      uitleg="Wie een vraag beantwoordt: elk profiel met een eigen opdracht, connectors, sjablonen en model."
       voegToe={magToevoegen(werkplaats, "agentprofiel") ? <VoegToeMenu keuzes={[
         { label: "Nieuw agentprofiel", data: "nieuw", onKies: () => { lijst.kiesSegment("concepten"); setVoegToe("nieuw"); } },
         { label: "Vanuit een agent in Lex …", data: "vanuit", onKies: () => { lijst.kiesSegment("concepten"); setVoegToe("vanuit"); } },
@@ -57,10 +74,10 @@ export function AgentsPanel() {
       boven={voegToe && lijst.segment === "concepten" ? (
         <VoegToeFormulier soort="agentprofiel" keuze={voegToe} onAnnuleer={() => setVoegToe(null)}
           vanuitLex={profielen.map((p) => ({ naam: naamVan(p.id), label: p.label }))} />
-      ) : undefined}
+      ) : lijst.segment === "lex" ? <ModelkeuzesMelding m={modellen} onNaarBeveiliging={() => kiesInstellingenTab("beveiliging")} /> : undefined}
       laden={!data && !fout}
       fout={fout ?? (lijst.segment === "concepten" ? werkplaats.fout : null)}
-      detail={open ? <AgentDetail id={open} alle={alle} onTerug={() => lijst.open(null)} /> : undefined}
+      detail={open ? <AgentDetail id={open} alle={alle} modellen={modellen} onTerug={() => lijst.open(null)} /> : undefined}
     />
   );
 }
@@ -70,7 +87,18 @@ function afhankelijk(o: Pick<Onderdeel, "hangt_af_van">, soort: "connector" | "s
   return o.hangt_af_van.filter((id) => soortVan(id) === soort);
 }
 
-function AgentDetail({ id, alle, onTerug }: { id: string; alle: Onderdeel[]; onTerug: () => void }) {
+/** Onder een rij: het model (een keuzelijst of tekst) en, als die er is, de waarschuwing of waarom het niet werkt. */
+function ModelOnder({ m, sleutel, label }: { m: Modelkeuzes; sleutel: string; label: string }) {
+  if (!m.geladen) return null;
+  return (
+    <div className="space-y-2 px-4 pb-3">
+      <ModelKeuzeVeld m={m} sleutel={sleutel} label={label} />
+      <ModelKeuzeMelding m={m} sleutel={sleutel} />
+    </div>
+  );
+}
+
+function AgentDetail({ id, alle, modellen, onTerug }: { id: string; alle: Onderdeel[]; modellen: Modelkeuzes; onTerug: () => void }) {
   const { o, fout } = useOnderdeel(id);
   const label = (x: string) => alle.find((a) => a.id === x)?.label ?? naamVan(x);
   const connectors = o ? afhankelijk(o, "connector") : [];
@@ -84,6 +112,10 @@ function AgentDetail({ id, alle, onTerug }: { id: string; alle: Onderdeel[]; onT
         <div className="space-y-4">
           <Kaart titel="Wat het gebruikt" data-blok="gebruikt">
             <Regels className="text-sm">
+              <Regel naam="Model">
+                <div className="space-y-2"><ModelKeuzeVeld m={modellen} sleutel={sleutelVanProfiel(o.id)} label={o.label} />
+                  <ModelKeuzeMelding m={modellen} sleutel={sleutelVanProfiel(o.id)} /></div>
+              </Regel>
               <Regel naam="Methode">
                 {methodes.length ? methodes.map((m, i) => (
                   <span key={m}>{i > 0 && ", "}<NaarTab tab="methodes" id={m}>{label(m)}</NaarTab></span>

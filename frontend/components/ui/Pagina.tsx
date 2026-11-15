@@ -227,6 +227,9 @@ export function GroepRij({ href, onOpen, uitklap, titel, sub, status, eind, onde
   eind?: React.ReactNode;
   onder?: React.ReactNode;
 } & Omit<React.LiHTMLAttributes<HTMLLIElement>, "title">) {
+  // Zonder `href`, `onOpen` of `uitklap` is de rij alleen tekst (met eventueel een bediening in `eind`): geen link, geen
+  // chevron, geen hover.
+  const klikbaar = !!(href || onOpen || uitklap);
   const binnen = (
     <>
       {/* De titel houdt een leesbare breedte: passen de labels er niet naast, dan gaan zij een regel omlaag. */}
@@ -237,21 +240,22 @@ export function GroepRij({ href, onOpen, uitklap, titel, sub, status, eind, onde
         </span>
         {status && <span className="flex min-w-0 max-w-full flex-wrap gap-1.5">{status}</span>}
       </span>
-      <ChevronOmlaag className={`shrink-0 text-faint transition-transform group-hover:text-lint ${
-        uitklap ? (uitklap.open ? "rotate-180" : "") : "-rotate-90"}`} />
+      {klikbaar && <ChevronOmlaag className={`shrink-0 text-faint transition-transform group-hover:text-lint ${
+        uitklap ? (uitklap.open ? "rotate-180" : "") : "-rotate-90"}`} />}
     </>
   );
   const klasse = "focus-ring group flex min-h-[48px] min-w-0 flex-1 items-center gap-3 rounded-md py-3 pl-4 text-left";
   return (
     <li {...rest}>
-      <div className="flex items-center gap-2 pr-2 transition-colors hover:bg-surface">
+      <div className={`flex items-center gap-2 pr-2 transition-colors ${klikbaar ? "hover:bg-surface" : ""}`}>
         {uitklap ? (
           <button type="button" onClick={uitklap.onWissel} aria-expanded={uitklap.open} aria-label={uitklap.label} className={klasse}>
             {binnen}
           </button>
         ) : onOpen ? (
           <button type="button" onClick={onOpen.doe} aria-label={onOpen.label} className={klasse}>{binnen}</button>
-        ) : <Link href={href ?? "#"} className={klasse}>{binnen}</Link>}
+        ) : href ? <Link href={href} className={klasse}>{binnen}</Link>
+          : <div className="flex min-h-[48px] min-w-0 flex-1 items-center gap-3 py-3 pl-4">{binnen}</div>}
         {eind}
       </div>
       {onder}

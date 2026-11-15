@@ -12,6 +12,9 @@
  * - Methodes: per methode haar rollen; het tweede niveau met de rollen en hun methodetekst; een oude link naar een rol
  *   opent de methode met die rol open;
  * - de stand (tab, onderdeel, zoekterm) staat in de URL en overleeft herladen; een tabwissel laat hem vallen;
+ * - het model per agent en per stap (PR 5): een analist ziet het als tekst; een beheerder kiest een profiel (een
+ *   onbruikbaar profiel staat uit), ziet de waarschuwing bij het JAS-oordeel na een andere keuze, en zonder 2FA geen
+ *   keuzelijst maar waarom;
  * - op 375 px scrolt geen scherm zijwaarts, en de schermen zijn toegankelijk (axe).
  *
  * `CATALOGUS_FIXTURE=<pad>` laat de echte catalogus zien (een dump van `agent.catalogus`: `{ lijst, detail }`), en
@@ -56,6 +59,26 @@ const detail = (id) => fixture?.detail?.[id] ?? {
       : id.startsWith("methode/") ? { rollen: { duiding: ["duiding"] } } : {},
 };
 
+const SLEUTELS = [
+  { sleutel: "agent:definitie", soort: "agent", label: "Definitie", groep: "Agents", beschrijving: "Zoekt de definitie." },
+  { sleutel: "stap:supervisor", soort: "stap", label: "Router", groep: "Stappen zonder agentprofiel", beschrijving: "Kiest de route." },
+  { sleutel: "stap:jas_classifier", soort: "stap", label: "JAS-classifier", groep: "Stappen zonder agentprofiel", beschrijving: "Kiest de JAS-klasse." },
+];
+const STAND = { standaard: { profiel: "std", model: "claude-sonnet", bron: "standaard" }, sleutels: SLEUTELS,
+  keuzes: { "agent:definitie": { profiel: "snel", model: "claude-haiku", bron: "keuze" },
+    "stap:supervisor": { profiel: "std", model: "claude-sonnet", bron: "standaard" },
+    "stap:jas_classifier": { profiel: "std", model: "claude-sonnet", bron: "standaard" } } };
+const OORDEEL = "Hier velt het model een oordeel over wetgeving; kies alleen iets anders na een meting.";
+function overzicht(keuzes) {
+  return { standaard: "std", standaard_model: "claude-sonnet", standaard_niet_bruikbaar: "",
+    keuzes: SLEUTELS.map((k) => ({ ...k, waarschuwing: k.sleutel === "stap:jas_classifier" ? OORDEEL : "",
+      profiel: keuzes[k.sleutel] ?? null, model: keuzes[k.sleutel] === "snel" ? "claude-haiku" : "claude-sonnet",
+      niet_bruikbaar: "", door: keuzes[k.sleutel] ? "wpalm" : "", bijgewerkt: "" })),
+    profielen: { std: { niet_bruikbaar: "", gebruikt_door: [] },
+      snel: { niet_bruikbaar: "", gebruikt_door: Object.keys(keuzes).filter((s) => keuzes[s] === "snel") },
+      extern: { niet_bruikbaar: "Het profiel heeft een ander endpoint dan de straat.", gebruikt_door: [] } } };
+}
+
 const zonderOverloop = async (page, naam) => assert.ok(await page.evaluate(() =>
   document.documentElement.scrollWidth <= document.documentElement.clientWidth), `${naam} scrolt zijwaarts`);
 
@@ -78,6 +101,7 @@ try {
         return d?.id ? route.fulfill({ json: d }) : route.fulfill({ status: 404, json: { detail: "Onbekend onderdeel" } });
       }
       if (p === "/api/werkplaats/stand") return route.fulfill({ json: { aan: false } });
+      if (p === "/api/modelkeuzes") return route.fulfill({ json: STAND });
       if (p === "/api/gesprekken") return route.fulfill({ json: [] });
       return route.fulfill({ json: {} });
     });
@@ -97,6 +121,10 @@ try {
     assert.match(await agents.locator('[data-onderdeel="agentprofiel/definitie"]').innerText(),
       /Definitie[\s\S]*Wat een begrip in de wet betekent\.[\s\S]*2 connectors · 1 sjabloon/);
     assert.match(await agents.locator('[data-onderdeel^="agentprofiel/centraal_breed"]').innerText(), /hier uit/);
+    // Het model als tekst, bij een agent en bij een stap zonder agentprofiel; geen keuzelijst voor een analist.
+    assert.equal(await agents.locator('[data-modelkeuze="agent:definitie"]').innerText(), "Model: snel (claude-haiku)");
+    assert.equal(await agents.locator('[data-stap="stap:supervisor"] [data-modelkeuze]').innerText(), "Model: standaard (claude-sonnet)");
+    assert.equal(await agents.locator("select").count(), 0);
     await zonderOverloop(page, "Agents");
     await toetsToegankelijkheid(page, `aanpassingen – agents ${breedte}`);
     await shot("agents");
@@ -166,6 +194,66 @@ try {
     await page.getByRole("tab", { name: "Methodes" }).click();
     await page.waitForURL(/\/workbench\?instellingen=methodes$/);
 
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+
+  // De modelkeuze van een beheerder (PR 5): kiezen, de waarschuwing na een andere keuze, en zonder 2FA geen keuzelijst.
+  for (const tfaNodig of [false, true]) {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+    await context.addCookies(await sessieCookies(base, { role: "beheerder", userid: "wpalm" }));
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true })));
+    const keuzes = { "agent:definitie": "snel" };
+    const puts = [];
+    await page.route("**/api/**", (route) => {
+      const req = route.request(), p = new URL(req.url()).pathname;
+      if (p.startsWith("/api/auth/")) return route.continue();
+      if (p === "/api/account/me") return route.fulfill({ json: { userid: "wpalm", email: "w@example.test", role: "beheerder",
+        totp_enabled: !tfaNodig, tfa_nodig: tfaNodig, herstelcodes_over: 5 } });
+      if (p === "/api/catalogus") return route.fulfill({ json: LIJST });
+      if (p === "/api/werkplaats/stand") return route.fulfill({ json: { aan: false } });
+      if (p === "/api/catalogus/agentprofiel/definitie") return route.fulfill({ json: detail("agentprofiel/definitie") });
+      if (p === "/api/admin/modelkeuzes") return route.fulfill({ json: overzicht(keuzes) });
+      const m = p.match(/^\/api\/admin\/modelkeuzes\/([^/]+)$/);
+      if (m && req.method() === "PUT") {
+        const sleutel = decodeURIComponent(m[1]), body = req.postDataJSON();
+        puts.push([sleutel, body.profiel]);
+        if (body.profiel) keuzes[sleutel] = body.profiel; else delete keuzes[sleutel];
+        return route.fulfill({ json: overzicht(keuzes).keuzes.find((k) => k.sleutel === sleutel) });
+      }
+      if (p === "/api/gesprekken") return route.fulfill({ json: [] });
+      return route.fulfill({ json: [] });
+    });
+    await page.goto(`${base}/workbench?instellingen=agents`);
+    const agents = page.locator('[data-aanpassing-lijst="agents"]');
+    await agents.locator('[data-stap="stap:jas_classifier"]').waitFor();
+    if (tfaNodig) {
+      await page.getByText("Een model kiezen gaat pas als er een authenticator-app aan je account hangt.").waitFor();
+      assert.equal(await agents.locator("select").count(), 0, "zonder 2FA geen keuzelijst");
+      assert.equal(await agents.locator('[data-modelkeuze="agent:definitie"]').innerText(), "Model: snel (claude-haiku)");
+    } else {
+      const definitie = agents.getByLabel("Model voor Definitie");
+      assert.equal(await definitie.inputValue(), "snel");
+      // Een profiel dat Lex niet kan gebruiken, staat uit.
+      assert.equal(await definitie.locator('option[value="extern"]').isDisabled(), true);
+      // Het JAS-oordeel: het label waarschuwt vooraf, de tekst pas na een andere keuze dan de standaard.
+      const classifier = agents.locator('[data-stap="stap:jas_classifier"]');
+      await classifier.getByText("meet eerst").waitFor();
+      assert.equal(await classifier.getByText(OORDEEL).count(), 0);
+      await agents.getByLabel("Model voor JAS-classifier").selectOption("snel");
+      await classifier.getByText(OORDEEL).waitFor();
+      // Terug naar de standaard stuurt `null`.
+      await definitie.selectOption("");
+      await page.waitForFunction(() => document.querySelector('select[aria-label="Model voor Definitie"]')?.value === "");
+      assert.deepEqual(puts, [["stap:jas_classifier", "snel"], ["agent:definitie", null]]);
+      // In het detail van de agent staat dezelfde keuze.
+      await agents.getByRole("button", { name: "Open Definitie" }).click();
+      await page.locator('[data-aanpassing-detail] [data-modelkeuze="agent:definitie"] select').waitFor();
+      await toetsToegankelijkheid(page, "aanpassingen – modelkeuze beheerder");
+    }
     assert.deepEqual(errors, []);
     await context.close();
   }

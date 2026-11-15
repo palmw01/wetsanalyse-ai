@@ -1512,6 +1512,14 @@ connector naar Connectors, en een keten, route, controle of handeling naar Agent
   opdracht (ingeklapt, `LangeTekst`) en de herkomst. Alles in één kolom: het paneel naast de tabkolom is te smal voor
   `SplitDetail`. Een methode of rol in een detail opent haar eigen tab (`kiesInstellingenTab(tab, { onderdeel })`), geen
   navigatie. De stappen van een keten, *Leunt op* / *Gebruikt door* en de tests staan er bewust niet meer.
+- **Het model hoort op het agentprofiel** (zoals `model:` bij een Claude Code-subagent; PR 5, api `modelkeuzes` van
+  #1544): onder elke agent en in zijn detail staat het model, en onderaan Agents de groep *Stappen zonder agentprofiel*
+  (de router, de classifier, … uit de catalogus van de api, `sleutels`). Een beheerder met 2FA kiest per sleutel een
+  profiel of *Standaard* (`ModelKeuzeVeld`, `PUT /api/admin/modelkeuzes/<sleutel>` met `X-User-Id`); een onbruikbaar
+  profiel staat uit met de reden, en bij een sleutel met een waarschuwing (het JAS-oordeel, het ophalen) staat *meet
+  eerst*, met de tekst zodra er iets anders dan de standaard gekozen is. Iedereen anders ziet het model als tekst
+  (`GET /api/modelkeuzes`, `modelTekst`). Modellen noemt per profiel waar het gekozen is, en verwijderen van een gekozen
+  profiel (409 `in_gebruik`) zegt bij welke agents. Rekenkern: `lib/modelkeuzes.ts`.
 - **De stand staat in de URL** naast `?instellingen=`: `onderdeel`, `q` en `segment` (`LIJST_PARAMS`, `useLijstStand`,
   `zetLijstStand`). Een tabwissel laat ze vallen; herladen houdt ze. `onderdeelPad` en `tabVoorSoort` beslissen waar een
   onderdeel van de catalogus staat (`lib/aanpassingen.test.ts` toetst dat elke soort een tab heeft).

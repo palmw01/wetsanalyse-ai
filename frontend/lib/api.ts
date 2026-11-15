@@ -1,6 +1,9 @@
 // Client-side fetch-helpers. Praten UITSLUITEND met de eigen Next.js-origin (/api/**);
 // de BFF-laag injecteert het token server-side. Hier dus geen Authorization-header.
 
+import {
+  parseOverzicht as parseModelOverzicht, parseStand as parseModelStand, type Overzicht as ModelOverzicht, type Stand as ModelStand,
+} from "@/lib/modelkeuzes";
 import { parseContextopbouw, type ContextBoom } from "./contextweergave";
 import { parseAntwoord } from "./antwoord";
 import {
@@ -388,6 +391,31 @@ export async function zetConnector(naam: string, aan: boolean): Promise<Connecto
     body: JSON.stringify({ aan }),
   });
   return json<Connector>(res);
+}
+
+/** Welk model Lex per agentprofiel en stap gebruikt, voor iedereen (plan instellingen-aanpassingen, PR 5). */
+export async function haalModelkeuzes(): Promise<ModelStand> {
+  const uit = parseModelStand(await json<unknown>(await fetch("/api/modelkeuzes", { cache: "no-store" })));
+  if (!uit) throw new Error("Onverwacht antwoord over de modelkeuzes.");
+  return uit;
+}
+
+/** De modelkeuzes voor het beheer: per sleutel het gekozen profiel, per profiel waar het gekozen is. */
+export async function haalModelkeuzesBeheer(): Promise<ModelOverzicht> {
+  const uit = parseModelOverzicht(await json<unknown>(await fetch("/api/admin/modelkeuzes", { cache: "no-store" })));
+  if (!uit) throw new Error("Onverwacht antwoord over de modelkeuzes.");
+  return uit;
+}
+
+/** Een profiel kiezen voor een agentprofiel of stap, of `null`: terug naar de standaard. */
+export async function zetModelkeuze(sleutel: string, profiel: string | null): Promise<void> {
+  await json<unknown>(await fetch(`/api/admin/modelkeuzes/${pathSegment(sleutel)}`, {
+    method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profiel }),
+  }));
+}
+
+export async function modelkeuzeAudit(sleutel: string): Promise<ConnectorAuditRegel[]> {
+  return json<ConnectorAuditRegel[]>(await fetch(`/api/admin/modelkeuzes/${pathSegment(sleutel)}/audit`, { cache: "no-store" }));
 }
 
 export async function connectorAudit(naam: string): Promise<ConnectorAuditRegel[]> {

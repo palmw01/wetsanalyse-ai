@@ -111,7 +111,7 @@ export function AanpassingLijst({
         <OverzichtBalk<Segment> filters={segmenten} gekozen={segment} onKies={onSegment} filterLabel="Wat je ziet"
           zoekterm={zoek} onZoek={onZoek} zoekLabel={zoekLabel} placeholder="Zoek op naam of doel" />
         {fout && <Melding type="fout" className="mb-4">{fout}</Melding>}
-        {boven && <div className="mb-4">{boven}</div>}
+        {boven && <div className="mb-4 empty:hidden">{boven}</div>}
         {laden ? (
           <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
         ) : zichtbaar.length === 0 ? (
