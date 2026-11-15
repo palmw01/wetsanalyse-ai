@@ -1,5 +1,6 @@
 "use client";
 
+import { SluitKnop } from "@/components/ui/PaneelKop";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { knopKlasse } from "@/components/ui/Button";
@@ -253,16 +254,7 @@ export function TourBubbel({
           >
             {stap.titel}
           </p>
-          <button
-            type="button"
-            onClick={onSluit}
-            aria-label="Rondleiding afsluiten"
-            className="focus-ring -mr-1 -mt-1 shrink-0 rounded-knop p-1.5 text-muted transition-colors hover:bg-surface hover:text-ink"
-          >
-            <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-              <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
-            </svg>
-          </button>
+          <SluitKnop onSluit={onSluit} label="Rondleiding afsluiten" className="-mt-1" />
         </div>
 
         <p className="text-[0.8125rem] leading-6 text-ink">{stap.tekst}</p>

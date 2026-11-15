@@ -30,4 +30,14 @@ describe("één denkproces-opbouw", () => {
     for (const pad of CODE.filter((p) => !p.endsWith(EIGENAAR)))
       expect(readFileSync(pad, "utf8"), pad).not.toMatch(/"· "\s*\+/);
   });
+
+  it("Lex is bezig: drie stippen, alleen in Denkt, alleen met beweging als de gebruiker die toestaat", () => {
+    // Generieke componenten, 15 nov 2026 (`docs/architectuur/plan-generieke-componenten.md` §9): grijze stippen die
+    // tegelijk knipperden bij een antwoord, blauwe die golfden bij een vraagkaart.
+    const anders = CODE.filter((p) => !p.endsWith(join("components", "ui", "Denkt.tsx")))
+      .filter((p) => /animationDelay|function Punten\b/.test(readFileSync(p, "utf8")));
+    expect(anders).toEqual([]);
+    for (const pad of CODE.filter((p) => p.includes(join("components", "werkplek"))))
+      expect(readFileSync(pad, "utf8"), pad).not.toMatch(/(?<!motion-safe:)animate-pulse/);
+  });
 });

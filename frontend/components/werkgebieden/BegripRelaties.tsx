@@ -1,5 +1,6 @@
 "use client";
 
+import { Uitklap } from "@/components/ui/Uitklap";
 import { Leeg } from "@/components/ui/Leeg";
 import { useCallback, useEffect, useState } from "react";
 
@@ -106,14 +107,13 @@ export function BegripRelaties({ id, begrip, andere, onGewijzigd, onNaarBegrip, 
         </Lijst>
       ) : !voorstellen.length && <Leeg>Nog geen relaties met andere begrippen.</Leeg>}
       {afgewezen.length > 0 && (
-        <details className="text-xs text-muted">
-          <summary className="focus-ring cursor-pointer rounded">Afgewezen voorstellen ({afgewezen.length})</summary>
+        <Uitklap samenvatting={<>Afgewezen voorstellen ({afgewezen.length})</>}>
           <ul className="mt-1 space-y-0.5">
             {afgewezen.map((r) => (
               <li key={r.id}>{relatieZin(r.type, r.van_naam, r.naar_naam).join(" ")} – {r.toelichting}</li>
             ))}
           </ul>
-        </details>
+        </Uitklap>
       )}
 
       {toevoegen && (

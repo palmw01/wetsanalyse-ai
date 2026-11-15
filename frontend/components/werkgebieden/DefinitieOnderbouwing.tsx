@@ -1,5 +1,6 @@
 "use client";
 
+import { Uitklap } from "@/components/ui/Uitklap";
 import Link from "next/link";
 
 import { plekNaam } from "@/lib/bronKandidaten";
@@ -14,8 +15,7 @@ import { bronPad } from "@/lib/werkgebiedPaden";
 export function DefinitieOnderbouwing({ onderbouwing: o, werkgebiedId }: { onderbouwing: Onderbouwing; werkgebiedId: string }) {
   const bron = o.herkomst === "letterlijk" && o.definitie_bron_iri && !o.fragmenten.length ? o.definitie_bron_iri : "";
   return (
-    <details className="mt-1 text-xs" data-definitie-onderbouwing>
-      <summary className="focus-ring cursor-pointer rounded text-muted">{onderbouwingKop(o)}</summary>
+    <Uitklap className="mt-1" data-definitie-onderbouwing samenvatting={onderbouwingKop(o)}>
       <ul className="mt-1 space-y-1 pl-1 text-ink">
         {o.fragmenten.map((f) => (
           <li key={`${f.bron_iri}:${f.start}:${f.eind}`}>
@@ -34,6 +34,6 @@ export function DefinitieOnderbouwing({ onderbouwing: o, werkgebiedId }: { onder
         )}
       </ul>
       {o.duiding && <p className="mt-1 text-muted">{duidingZin(o.duiding)}</p>}
-    </details>
+    </Uitklap>
   );
 }

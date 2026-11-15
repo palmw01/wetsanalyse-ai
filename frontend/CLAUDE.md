@@ -189,6 +189,35 @@ gestippelde rand (`kader`), in een paneel, een menu of een beheerlijst een grijz
 Een veld zonder waarde ("Nog geen definitie.") is `LeegWaarde`: grijs, niet cursief en niet vet. `Groep` en `ObjectRijen`
 tekenen hun `leeg` met `Leeg`. Geen eigen grijze regel die met "Nog geen" of "Geen" begint, en geen eigen gestippeld kader.
 
+**Een uitklap** (generieke componenten, 15 nov 2026; `app/uitklap.test.ts`) is `Uitklap` (`components/ui/Uitklap.tsx`),
+in vier vormen: `kader` (een eigen blok in een paneel: *Historie*, *Dekking*), `regel` (een kleine grijze regel onder een rij
+of voorstel), `sectie` (de kop van een deel van een lijst: *Al besloten (3)*) en `actie` (*Waarom?* op de reviewkaart, 44 px
+op touch). Altijd met de chevron die meedraait op de dichtstbijzijnde uitklap, nooit het driehoekje van de browser. Geen
+eigen `<details>` of `<summary>`.
+
+**De kop van een venster** (generieke componenten, 15 nov 2026; `app/dialoog.test.ts`): een venster geeft zijn `kop` aan
+`Dialog` (`titel`, eventueel `soort` erboven, `uitleg` eronder en `sluitLabel`), en `Dialog` tekent `DialoogKop`: dezelfde
+maat als een paneel, het kruisje rechtsboven (`SluitKnop`), ruimte voor de notch. Elk venster kan dus met het kruisje dicht,
+ook op een telefoon. Geen eigen `<h2>` in een venster en geen eigen kruisje: het kruisje staat alleen in `SluitKnop`
+(ook in de rondleiding en de zijbalk); alleen een tab (`Tabs`) heeft zijn eigen, kleinere. Een paneel (`PaneelKop`) en de
+rondleiding geven geen `kop` mee.
+
+**Datum en tijd** (generieke componenten, 15 nov 2026; `app/datum.test.ts`) komen uit `lib/datum.ts`, in Nederlandse tijd
+en een paar vaste vormen: `datumTijd` ("5 nov 2026, 10:42", een moment in een lijst), `datumKort` ("5 nov 2026", de dag
+waarop iets gebeurde), `datumLang` ("5 november 2026", in lopende tekst), `momentKort` ("5 nov, 10:42", een versie),
+`tijd` ("10:42"), `tijdOfDag` (de gesprekkenlijst: vandaag de tijd, anders de dag) en `datumTekst` (een datum uit een bron).
+Niemand anders roept `toLocaleDateString`/`toLocaleTimeString` aan; alleen de reset van het tokenbudget (`resetdatum`)
+rekent bewust in lokale kalenderdagen.
+
+**Lex is bezig** (generieke componenten, 15 nov 2026; `app/eenDenkproces.test.ts`): drie stippen die na elkaar oplichten
+zijn `Denkt` (`components/ui/Denkt.tsx`), bij een antwoord dat nog geen tekst heeft en bij een vraagkaart die nadenkt. Beweging
+alleen met `motion-safe:`. Geen eigen stippenrij; de ene stip van een lopend denkproces is een stand, geen wachten.
+
+**Kopiëren naar het klembord** (generieke componenten, 15 nov 2026; `app/kopieer.test.ts`) gaat via `lib/kopieer.ts`:
+`useKopieer` voor een knop (de stand gekopieerd of mislukt, na 1,5 s terug, of blijvend met `null` bij een eenmalig token)
+en `kopieerNaarKlembord` voor een menuregel. Een mislukte kopie zegt het altijd, met `KOPIEER_MISLUKT` (of `_KORT` in de
+knop zelf). Niemand anders roept `navigator.clipboard` aan.
+
 **De graaf van een bron** (ontdubbelen PR 1): één `useBronGraaf` + `BronGraaf` (`components/wettekst/BronGraaf.tsx`) voor
 het venster naast het gesprek, de bronpagina en de annotatie, met één keuze Tekst | Graaf (`WeergaveBalk`). Alleen de tab
 Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` nog zelf aan.

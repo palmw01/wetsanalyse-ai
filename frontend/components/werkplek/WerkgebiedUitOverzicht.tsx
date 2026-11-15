@@ -65,15 +65,11 @@ export function WerkgebiedUitOverzicht({ overzicht, onKlaar, onSluit }: {
   }
 
   return (
-    <Dialog label="Werkgebied maken uit het overzicht" variant="compact" onSluit={onSluit}>
+    <Dialog label="Werkgebied maken uit het overzicht" variant="compact" onSluit={onSluit} kop={{
+      titel: "Maak hier een werkgebied van",
+      uitleg: "De bepalingen uit het overzicht worden de bronnen om te analyseren. Vink uit wat er niet bij hoort; Lex kan daarna verder zoeken.",
+    }}>
       <form onSubmit={maak} className="flex min-h-0 flex-1 flex-col">
-        <div className="shrink-0 border-b border-line px-5 py-3.5">
-          <h2 className="font-display text-base font-semibold text-lint">Maak hier een werkgebied van</h2>
-          <p className="mt-0.5 text-xs text-muted">
-            De bepalingen uit het overzicht worden de bronnen om te analyseren. Vink uit wat er niet bij hoort; Lex
-            kan daarna verder zoeken.
-          </p>
-        </div>
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
           <Field label="Naam" required>
             <Input value={naam} onChange={(e) => setNaam(e.target.value)} maxLength={200} required />

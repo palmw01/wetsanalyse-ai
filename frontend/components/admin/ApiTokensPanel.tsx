@@ -1,5 +1,7 @@
 "use client";
 
+import { KOPIEER_MISLUKT, kopieerNaarKlembord } from "@/lib/kopieer";
+import { datumTijd } from "@/lib/datum";
 import { Leeg } from "@/components/ui/Leeg";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -23,17 +25,14 @@ export function ApiTokensPanel() {
   const [gekopieerd, setGekopieerd] = useState(false);
   const [bezig, setBezig] = useState(false);
 
-  /** Kopiëren mét terugkoppeling. `navigator.clipboard` bestaat niet op een niet-beveiligde origin
+  /** Kopiëren mét terugkoppeling (`lib/kopieer.ts`). Het klembord bestaat niet op een niet-beveiligde origin
    *  en kan geweigerd worden; dat stil laten gebeuren is bij een eenmalig token het slechtste
    *  antwoord – dan denk je dat je het hebt. */
   async function kopieer(token: string) {
-    try {
-      await navigator.clipboard.writeText(token);
+    if (await kopieerNaarKlembord(token)) {
       setGekopieerd(true);
       setFout(null);
-    } catch {
-      setFout("Kopiëren lukt niet in deze browser – selecteer het token hierboven en kopieer het zelf.");
-    }
+    } else setFout(KOPIEER_MISLUKT);
   }
   // Eenmalig getoond volledig token (na genereren) – daarna niet meer op te vragen.
   const [nieuw, setNieuw] = useState<{ label: string; token: string } | null>(null);
@@ -94,7 +93,7 @@ export function ApiTokensPanel() {
 
   function datum(iso: string | null): string {
     if (!iso) return "nooit";
-    return new Date(iso).toLocaleString("nl-NL");
+    return datumTijd(iso);
   }
 
   return (

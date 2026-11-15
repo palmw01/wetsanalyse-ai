@@ -1,7 +1,7 @@
 "use client";
 
+import { Uitklap } from "@/components/ui/Uitklap";
 import { Fragment, useState } from "react";
-import { ChevronOmlaag } from "@/components/ui/Icoon";
 import { datumTekst, type KnoopInfo, type KnoopWaarde } from "@/lib/graaf/knoopinfo";
 import { bronHref } from "@/lib/url";
 
@@ -56,10 +56,7 @@ export function KnoopFeiten({ info, opKaart, onKies }: {
         })}
       </dl>
     </div>)}
-    {info.ruw.length > 0 && <details className="group" data-testid="graaf-ruw">
-      <summary className="focus-ring flex cursor-pointer list-none items-center gap-1.5 rounded py-0.5 text-[11px] font-semibold text-muted">
-        <ChevronOmlaag className="-rotate-90 transition-transform group-open:rotate-0" />Alle eigenschappen uit de graaf <span className="font-normal text-faint">({info.ruw.length})</span>
-      </summary>
+    {info.ruw.length > 0 && <Uitklap data-testid="graaf-ruw" samenvatting={<>Alle eigenschappen uit de graaf <span className="font-normal text-faint">({info.ruw.length})</span></>}>
       <dl className="mt-1 space-y-1 pl-4 font-mono text-[10px] leading-relaxed">
         {info.ruw.map((r, i) => <div key={i} className="min-w-0">
           <dt className="text-faint [overflow-wrap:anywhere]">{r.predicaat}</dt>
@@ -68,7 +65,7 @@ export function KnoopFeiten({ info, opKaart, onKies }: {
             : r.waarde}</dd>
         </div>)}
       </dl>
-    </details>}
+    </Uitklap>}
   </section>;
 }
 

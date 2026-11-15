@@ -1,5 +1,6 @@
 "use client";
 
+import { tijdOfDag } from "@/lib/datum";
 import { LeegWaarde } from "@/components/ui/Leeg";
 import Link from "next/link";
 
@@ -109,9 +110,7 @@ export function OverzichtTab() {
 }
 
 export function gesprekSub(g: GesprekSamenvatting): string {
-  const d = g.updated ? new Date(g.updated) : null;
-  const wanneer = d && !Number.isNaN(d.getTime())
-    ? d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" }) : "";
+  const wanneer = tijdOfDag(g.updated);
   return [wanneer, `${g.aantal_berichten} berichten`].filter(Boolean).join(" · ");
 }
 
