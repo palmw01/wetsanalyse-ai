@@ -607,11 +607,9 @@ async def catalogus_lijst(_auth: None = Depends(_check_auth)) -> dict:
     de inhoud. Introspectie van wat draait, geen gegenereerd bestand."""
     from bronmodel.catalogus import SOORTEN
 
-    from agent.catalogus import agentvorm, catalogus
+    from agent.catalogus import catalogus
 
-    # De agentvorm hangt af van de straat (`CENTRALE_AGENT`): een feit uit de configuratie, niet uit de catalogus.
-    return {"soorten": list(SOORTEN), "onderdelen": [_met_straat(o) for o in catalogus()],
-            "agentvorm": agentvorm(settings.centrale_agent)}
+    return {"soorten": list(SOORTEN), "onderdelen": [_met_straat(o) for o in catalogus()]}
 
 
 @app.get("/v1/catalogus/{soort}/{naam}")
