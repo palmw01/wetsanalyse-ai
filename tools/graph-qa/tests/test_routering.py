@@ -101,7 +101,7 @@ _AAN = {"kamerstukken": {"naam": "kamerstukken", "label": "Kamerstukken", "aan":
 def test_een_genoemd_id_wordt_zonder_model_gelezen():
     state = {"question": "Wat staat er in kst-35496-F?", "modus": "auto", "focus": {}, "bronstand": _AAN,
              "messages": [{"role": "user", "content": "Wat staat er in kst-35496-F?"}]}
-    b = _bouw()  # _GeenModel faalt als de supervisor het model vraagt
+    b = _bouw()  # _GeenModel faalt als de ingang het model vraagt
     upd = supervisie.ingang_node(b, state)
     assert supervisie._entry_node(b, {**state, **upd}) == "bron_lezen"
     assert upd["bron_lezen"] == [{"name": "get_kamerstuk", "input": {"id": "kst-35496-F"}}]

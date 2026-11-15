@@ -88,7 +88,7 @@ def test_de_methodevingerafdruk_komt_uit_de_sectie_shas_van_het_pakket(caplog):
     from agent.methode import instructies, vingerafdruk
     from agent.methodepakket import PAKKET
 
-    assert len(vingerafdruk("duiding")) == 12 and vingerafdruk("duiding") != vingerafdruk("definitie")
+    assert len(vingerafdruk("duiding")) == 12 and vingerafdruk("duiding") != vingerafdruk("agent")
     assert vingerafdruk("bestaat_niet") == ""
     # Hangt alleen af van de secties van de rol: hun sha256 staan in het pakket, de catalogus leest dezelfde.
     assert all("sha256" in PAKKET["secties"][k] for k in PAKKET["rollen"]["duiding"])

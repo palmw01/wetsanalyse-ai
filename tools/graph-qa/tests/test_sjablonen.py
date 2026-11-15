@@ -252,7 +252,7 @@ def test_een_container_noemt_zijn_subdivisies_en_toont_geen_begin():
 def test_de_specialisten_voor_een_tekstvraag_krijgen_het_sjabloon():
     from agent import specialists
     assert "antwoord_bepaling" in specialists.get("duiding").sjablonen and "antwoord_bepaling" in specialists.get("algemeen").sjablonen
-    assert "antwoord_bepaling" not in specialists.get("definitie").sjablonen
+    assert "antwoord_bepaling" not in specialists.get("begrippen_lezen").sjablonen
 
 
 def test_een_beurt_rondt_af_met_de_wettekst_uit_de_graaf():

@@ -90,9 +90,6 @@ def main() -> None:
     p.add_argument("--relatie-voorstellen", action="store_true", default=None,
                    help="De annotatieketen relaties laten voorstellen (proefvlag, alleen acceptatie; zie "
                         "main.bicep:relatieVoorstellen).")
-    p.add_argument("--llm-model-licht", default=None,
-                   help="Het lichte model voor een subagent (proefvlag, alleen acceptatie; zie main.bicep:llmModelLicht). "
-                        "Weglaten laat de bicep-default (leeg).")
     p.add_argument("--skill-regels", action="store_true", default=None,
                    help="De regels uit methode-skills meenemen in de ketens (proefvlag, alleen acceptatie; zie "
                         "main.bicep:skillRegels).")
@@ -187,7 +184,6 @@ def main() -> None:
         (None if args.connectoren is None else [n.strip() for n in args.connectoren.split(",") if n.strip()],
          "connectoren"),
         (args.relatie_voorstellen, "relatieVoorstellen"),
-        (args.llm_model_licht, "llmModelLicht"),
         (args.skill_regels, "skillRegels"),
         (args.werkplaats, "werkplaats"),
         (args.graphdb_proxy_extern, "graphdbProxyExtern"),

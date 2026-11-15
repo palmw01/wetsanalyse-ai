@@ -26,11 +26,12 @@ def _agent_tools(llm: FakeLLM) -> set[str]:
     return {t["name"] for t in llm.calls[1]["tools"]}
 
 
-def test_definitie_prompt_volgt_bronvindplaats_en_onderdelen():
+def test_de_centrale_agent_volgt_bij_een_begrip_de_bronvindplaats_en_de_onderdelen():
+    """Wat eerst de specialist `definitie` droeg, staat in de instructie van de centrale agent (ADR-016 §A7)."""
     from agent.specialists import get
 
-    prompt = get("definitie").system
-    assert "bepaal de vindplaats uit bronresultaten" in prompt
+    prompt = get("centraal").system
+    assert "begin bij zoek_definitie" in prompt
     assert "Haal de gevonden definitiebepaling op" in prompt
     assert "&o=k" in prompt
 

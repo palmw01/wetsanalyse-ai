@@ -14,21 +14,23 @@ LLM (Anthropic via Azure AI Foundry).
 
 ## Wat de agent doet
 
-Eén LangGraph-graaf (`agent/orchestrator.py`). Een **supervisor** kiest per beurt de route. Een klik op
-een suggestie, een bevestiging of een vraagkaart gaat zonder model naar de juiste route; een getypte
-vraag leest hij met een klein model. Een vraag die niet over wetgeving gaat, wijst hij af.
+Eén LangGraph-graaf (`agent/orchestrator.py`). De **ingang** kiest per beurt de route. Een klik op
+een suggestie, een bevestiging of een vraagkaart gaat zonder model naar de juiste route, net als een getypte vraag met
+een vaste vorm; de rest gaat naar de **centrale agent** (ADR-016), die haar zelf beantwoordt of met een overdracht aan
+een route geeft. Een vraag die niet over wetgeving gaat, wijst hij af (`wijs_af`). De supervisor is sinds 15 nov 2026
+weg (ADR-016 §A7).
 
 ```
-supervisor ─┬→ agent ⇄ tools [→ sjabloon] → verify ─┬→ correct → agent   antwoord
-            │                                       └→ finalize → advance
-            ├→ annotaties_zoeken → agent …                       leesroute annotaties
-            ├→ begrippen_zoeken → agent …                        leesroute begrippen
-            ├→ overzicht_bouwen → verify …                       overzichtsroute
-            ├→ [agent ⇄ tools →] annoteer → emit → advance       annotatie-worker
-            ├→ werkgebied_intake                                 werkgebied-worker
-            ├→ bronselectie                                      bronselectie per deelvraag
-            ├→ agent_taak                                        deelvragen- en begrippen-agent
-            └→ afwijzen
+ingang ────┬→ agent ⇄ tools [→ sjabloon] → verify ─┬→ correct → agent   antwoord (centrale agent)
+           │                                       └→ finalize → advance
+           ├→ annotaties_zoeken → agent …                       leesroute annotaties
+           ├→ begrippen_zoeken → agent …                        leesroute begrippen
+           ├→ overzicht_bouwen → verify …                       overzichtsroute
+           ├→ [agent ⇄ tools →] annoteer → emit → advance       annotatie-worker
+           ├→ werkgebied_intake                                 werkgebied-worker
+           ├→ bronselectie                                      bronselectie per deelvraag
+           ├→ agent_taak                                        deelvragen- en begrippen-agent
+           └→ afwijzen (wijs_af)
 ```
 
 - **Antwoord** (vragen): een specialist redeneert en roept getypeerde tools aan tegen de graaf
@@ -64,14 +66,15 @@ De volledige keten en haar regels staan in [`CLAUDE.md`](CLAUDE.md) en in
 
 ### Specialisten
 
-De supervisor kiest voor een gewone vraag één van de eerste drie. De twee leesspecialisten horen bij de
-deterministische leesroutes. Elk is een **agentprofiel** (ADR-016): een bestand `.claude/lex-agents/<naam>.md` met een
+De centrale agent (`centraal`, met `centraal_breed` voor de tools buiten de kernset) beantwoordt een gewone vraag zelf;
+`duiding` en `algemeen` draaien als subagent, net als de taakprofielen. De twee leesspecialisten horen bij de
+deterministische leesroutes. Het profiel `definitie` verviel met de supervisor (ADR-016 §A7): een begripsvraag doet de
+centrale agent. Elk is een **agentprofiel** (ADR-016): een bestand `.claude/lex-agents/<naam>.md` met een
 eigen instructie en een **subset** van de tools, gebundeld in `agent/agentprofielen.py` en geladen door
 `agent/profielen.py`:
 
 | Specialist | Waarvoor | Kern-tools |
 |---|---|---|
-| `definitie` | Begrippen en definities herleiden en letterlijk citeren. | `zoek_definitie`, `resolve_begrip`, `search_begrippen`, `get_artikel`/`get_lid`, `verwijst_naar_deze` |
 | `duiding` | Betekenis, structuur en samenhang van een bepaling; kruisverwijzingen volgen. | `get_context`, `follow_verwijzingen`, `verwijst_naar_deze`, `inhoudsopgave`, `grondslagen`, `geldigheid` |
 | `algemeen` | Overige juridische vragen. | alle tools |
 | `annotaties_lezen` | Vragen over bestaande annotaties. | `search_annotaties`, `overzicht_annotaties`, `get_annotatie`, `get_annotatiedekking` + de ophaaltools |
@@ -283,8 +286,7 @@ Secrets kunnen ook als `<NAAM>_FILE` (pad naar een bestand) worden gezet: `GRAPH
 | `AZURE_FOUNDRY_API_KEY` *(verplicht)* | – | Azure-AI-Foundry-key. |
 | `AZURE_FOUNDRY_BASE_URL` *(verplicht)* | – | Foundry-endpoint **met** `/anthropic`-suffix. |
 | `LLM_MODEL` | `claude-sonnet-4-6` | Draagt de classifier, de reviewer en de QA-specialisten; die hebben bewust geen eigen knop. |
-| `LLM_MODEL_ROUTER` | = `LLM_MODEL` | Model voor de supervisor. |
-| `LLM_MODEL_LICHT` | = `LLM_MODEL_ROUTER`, anders `LLM_MODEL` | De lichte modelklasse: een subagent van de centrale agent draait erop (ADR-016 §A2). Faalt het model (400/404), dan valt het proces terug op `LLM_MODEL`. |
+| `LLM_MODEL_ROUTER` | = `LLM_MODEL` | Model voor de voorstellen bij het samenstellen van een werkgebied (tot ADR-016 §A7 ook de supervisor). |
 | `LLM_MODEL_OPHAAL` | = `LLM_MODEL` | Model voor de ophaal-agent. Verlaag pas na meting: kiest hij de verkeerde bepaling, dan is alles daarna brongetrouw én verkeerd. |
 | `LLM_TIMEOUT_SECONDS` / `LLM_MAX_RETRIES` | `120` / `2` | Wachttijd en herhalingen per LLM-call (de eval-job zet 45 s). |
 | `PROMPT_CACHING` | `true` | Prompt-caching op het stabiele deel van de systeemprompt. |

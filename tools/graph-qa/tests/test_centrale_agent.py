@@ -210,10 +210,10 @@ def test_een_tool_buiten_de_kernset_kan_alleen_na_de_overdracht():
                    for b in m["content"] if b.get("type") == "tool_result"]
     assert resultaat["content"] == BUITEN_PROFIEL and "meer_tools" in BUITEN_PROFIEL
     assert not graph.queries, "de tool is niet uitgevoerd"
-    # Het brede profiel mag hem wel; een gewone specialist wordt hier niet op getoetst (bitgelijk met de supervisor).
+    # Het brede profiel mag hem wel; een gewone specialist wordt hier niet op getoetst.
     assert agent_voor(CENTRAAL_BREED).mag("geldigheid") and not agent_voor(CENTRAAL).mag("geldigheid")
     assert agent_voor(CENTRAAL).mag("get_artikel") and agent_voor(CENTRAAL).mag("antwoord_duiding")
-    assert agent_voor("definitie").mag("geldigheid") and agent_voor("algemeen").mag("wat_dan_ook")
+    assert agent_voor("duiding").mag("geldigheid") and agent_voor("algemeen").mag("wat_dan_ook")
 
 
 def test_de_eigen_tools_hebben_een_eigen_categorie_in_de_contextopbouw():

@@ -427,7 +427,7 @@ testomgeving*). Browserregressie: `scripts/test-teststrook.mjs`. Er is
     in de topbar), het werkgebied of *Los gesprek*, en het menu van het gesprek; hij vervangt de
     werkgebiedbalk met *Verlaten* (dat heet nu *Naar recente gesprekken* en koppelt echt los). Wat Lex met het werkgebied kan, staat sinds F3d als **suggesties boven het
     invoerveld** (`werkgebiedSuggesties`, zonder chip; ze wijken zodra je typt of er een onderwerp is).
-    Elke beurt draagt dan `werkgebied_id`; bij een getypte vraag kiest graph-qa de agent (de supervisor, of de centrale agent van ADR-016), een
+    Elke beurt draagt dan `werkgebied_id`; bij een getypte vraag kiest graph-qa de route in code of de centrale agent (ADR-016), een
     suggestie met actie doet dat zonder model. *Annoteer wat nog niet geannoteerd is* gaat zonder
     `bevestigd`: de bevestiging komt in het gesprek.
   - **Een context naast het gesprek** (spoor G4, `ContextPaneel`): wat geen artefact van een beurt is – een
@@ -514,7 +514,7 @@ wie dat gesprek is, zoals `app/api/annotatie/run/route.ts`. Zet er geen tweede i
 
 ### De tijdlijn en het toolspoor van een beurt
 
-graph-qa stuurt per fase een `status`-regel met duur (supervisor → ophaal-agent → Bron →
+graph-qa stuurt per fase een `status`-regel met duur (ingang → ophaal-agent → Bron →
 Taalanalyse → Detectie → Besluit → Classificatie → Review → Resultaat → Klaar); `onStatus` plakt die
 als `· <regel>` aan `denk`, en `DenkProces` toont ze live. Onder de annotatiechip staat de **beurtsamenvatting** van de laatste
 ronde (`beurtSamenvatting` in `lib/waarom.ts`; de meting komt live uit `instellingen.meting` van het
@@ -541,7 +541,7 @@ Het is een versneller naast de suggesties, geen vervanging, en **geen tweede rou
 - **Een commando ís een suggestie.** Een regel in `SUGGESTIES` (`lib/vraagLex.ts`) met `commando: {naam, hulp}` is ook
   `/naam`; welke er zijn, volgt het onderwerp of anders het werkgebied – dezelfde suggesties als de rij boven het veld,
   ook als je typt. Uitvoeren is `voerSuggestieUit`, dezelfde functie als de klik: dezelfde tekst in de thread, dezelfde
-  `actie` of hetzelfde `doel`, dus zonder supervisor-aanroep bij graph-qa. Een nieuw commando is een `commando` op een
+  `actie` of hetzelfde `doel`, dus zonder modelstap voor de route bij graph-qa. Een nieuw commando is een `commando` op een
   suggestie, geen eigen lijst.
 - **Clientcommando's** (`CLIENT_COMMANDOS`) zijn geen beurt en kosten geen tokens: `/nieuw` (*Nieuw gesprek*, in het
   werkgebied), `/bron <naam>` (een bron naast de wet om, via `kiesConnector`; de namen uit het connectormenu, alleen wat
@@ -725,8 +725,8 @@ jci. Oudere berichten, met dezelfde bepaling als graaf-IRI én jci, worden zo oo
 
 Noemt de vraag een onderwerp in plaats van een bepaling, dan komt er een `kandidaten`-event: de
 thread toont `KandidatenKeuze` (in `ThreadRij`), en één klik stuurt `kandidaatPrompt(k)` als nieuwe
-beurt in, **met `doelVanKandidaat(k)` als gestructureerd `doel`**. Daarmee slaat de agent de supervisor
-en de ophaal-agent over en kan hij niet bij een andere bepaling uitkomen dan de jurist aanwees. De
+beurt in, **met `doelVanKandidaat(k)` als gestructureerd `doel`**. Daarmee slaat de agent de ophaal-agent
+over en kan hij niet bij een andere bepaling uitkomen dan de jurist aanwees. De
 prompt blijft als leesbare vraag in de thread staan, mét het bwbId, voor het geval een beurt tóch
 zonder doel loopt. Algemene regel: **kent de werkplek de bepaling al, geef dan `doel` mee aan
 `startRun`**. Een adviesvraag draagt nooit een doel – die route annoteert niet. Er is bewust geen
@@ -902,8 +902,8 @@ begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`
   (zoeken, de bepalingen hierbij annoteren, gedekt?, scherper, splitsen),
   begrip (uitwerken, brondefinitie, *Schrijf de uitleg in B1* (spoor I2), voorbeelden, relaties, en *Wat is
   het betekenisverschil met …* met `invullen`: in het veld, de analist noemt het andere begrip). De B1-aandachtspunten staan in `AANDACHTSPUNT_LEX` (gelijk aan graph-qa `kaartacties.TEKST`). Bron en kandidaat hebben alleen vragen
-  zonder actie (waarom deze bepaling, verwijzingen, bij welke deelvraag): die gaan met het object langs de
-  supervisor naar de antwoord-worker.
+  zonder actie (waarom deze bepaling, verwijzingen, bij welke deelvraag): die gaan met het object naar de
+  centrale agent.
 - **Het dossier aanvullen** (`dossier_aanvullen`) is in `ACTIES` maar geen taak van een agent: graph-qa
   routeert het naar de vraagkaarten (`INTAKE_ACTIES`; de test leest `Actie` en `ACTIE_TAAK`). Een onderwerp
   met `veld` (van een oude link met `vraag_veld`) zet *Vul het … aan* (`VELD_ZIN`) voorop; graph-qa leest het

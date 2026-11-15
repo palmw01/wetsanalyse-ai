@@ -103,7 +103,7 @@ Toelichting bij enkele documenten:
   voor begrippen; de projectie naar de graaf staat er. **ADR-004** ontwerpt de begrippenketen die
   betekenisgroepen voorstelt; de voorstellen staan er, de meting per deelkeuze loopt door.
   **ADR-005** legt Vraag Lex en de agents vast, met een aanvulling over de tekstroutes vóór de
-  supervisor. **ADR-006** legt de generieke begrippen vast, gebouwd en op acceptatie. **ADR-007** is een
+  supervisor, en een over het vervallen van de supervisor (ADR-016 §A7). **ADR-006** legt de generieke begrippen vast, gebouwd en op acceptatie. **ADR-007** is een
   concept over het LLM-pad en de verwerker, met open punten voor de eigenaar. **ADR-008** maakt van een
   antwoord een toolaanroep op een sjabloon; dat geldt nu voor het sjabloon `begrip`.
 - **`architectuur/onderzoek-empirische-validatie.md`** bevat de fouttaxonomie v2, de metrics, het

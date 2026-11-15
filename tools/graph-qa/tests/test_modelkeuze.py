@@ -85,7 +85,7 @@ def test_een_agent_draait_op_de_keuze_van_zijn_profiel():
     """De agentvorm zet `profiel_id` in het kader; daarop beslist de keuze, niet op de rol die vijf profielen delen."""
     modelkeuze.zet(_stand(agent_duiding="claude-haiku-4-5"))
     llm = _ok(2)
-    for profiel in ("duiding", "definitie"):
+    for profiel in ("duiding", "algemeen"):
         llm_stap.aanroep(llm, Rol.ANTWOORD, kader={"profiel_id": profiel}, model=BASIS, max_tokens=10, system="s",
                          tools=[], messages=[])
     assert [c["model"] for c in llm.calls] == ["claude-haiku-4-5", BASIS]
@@ -123,14 +123,13 @@ class _EenModelWeg(FakeLLM):
 
 
 def test_een_model_dat_de_straat_niet_heeft_valt_terug_en_blijft_terug(caplog):
-    modelkeuze.zet(_stand(stap_supervisor="claude-bestaat-niet"))
+    modelkeuze.zet(_stand(stap_intake="claude-bestaat-niet"))
     llm = _EenModelWeg("claude-bestaat-niet", [response([text_block("a")], "end_turn")])
     with caplog.at_level(logging.WARNING, logger="graph_qa.modelkeuze"):
-        llm_stap.aanroep(llm, Rol.SUPERVISOR, model=BASIS, max_tokens=10, system="— rol supervisor\n\n", tools=[],
-                         messages=[])
+        llm_stap.aanroep(llm, Rol.INTAKE, model=BASIS, max_tokens=10, system="s", tools=[], messages=[])
     assert [c["model"] for c in llm.calls] == [BASIS]
     assert any(r.getMessage() == "modelprofiel_terugval" for r in caplog.records)
-    assert modelkeuze.kies(["stap:supervisor"], BASIS)[0] == BASIS
+    assert modelkeuze.kies(["stap:intake"], BASIS)[0] == BASIS
 
 
 def test_een_stream_valt_ook_terug():

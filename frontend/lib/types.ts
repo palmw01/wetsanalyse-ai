@@ -442,7 +442,7 @@ export interface AgentDoel {
 /** De bepaling die geannoteerd moet worden, meegestuurd bij het starten van een run.
  *
  *  Weet de werkplek hem al (een gekozen kandidaat, een open document), dan slaat de agent de
- *  supervisor én de ophaal-agent over. Het echte winstpunt is niet de besparing maar de zekerheid:
+ *  ophaal-agent over. Het echte winstpunt is niet de besparing maar de zekerheid:
  *  de agent kan dan niet meer bij een ándere bepaling uitkomen dan de jurist aanwees.
  *  Spiegelt `AgentDoel` in `tools/graph-qa/agent/models.py`.
  */

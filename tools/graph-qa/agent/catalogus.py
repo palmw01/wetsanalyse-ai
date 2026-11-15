@@ -655,7 +655,7 @@ def profielplek(naam: str) -> str | None:
 def _subagent_limieten() -> list[dict[str, Any]]:
     from . import stukcontrole
     from . import subagent as sub
-    from .agentvorm import MAX_RONDES_SUBAGENT, SUBAGENT_MODELKLASSE
+    from .agentvorm import MAX_RONDES_SUBAGENT
     from .nodes.antwoord import MAX_TOKENS_SUBAGENT
     from .sjablonen import rapport
     return [
@@ -670,8 +670,6 @@ def _subagent_limieten() -> list[dict[str, Any]]:
         {"naam": "MAX_OPTIES", "waarde": rapport.MAX_OPTIES, "uitleg": "opties per vraag"},
         {"naam": "stukcontrole.MAX_STUKKEN", "waarde": stukcontrole.MAX_STUKKEN,
          "uitleg": "stukken die de controle per stuk leest"},
-        {"naam": "SUBAGENT_MODELKLASSE", "waarde": SUBAGENT_MODELKLASSE,
-         "uitleg": "de modelklasse van een subagent; de centrale agent houdt zijn eigen model"},
     ]
 
 

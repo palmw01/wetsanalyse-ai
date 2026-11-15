@@ -36,7 +36,7 @@ describe("modelTekst", () => {
 
 describe("het beheer", () => {
   const o = parseOverzicht({ standaard: "std", standaard_model: "claude-sonnet", standaard_niet_bruikbaar: "",
-    keuzes: [{ ...sleutel("agent:definitie"), label: "Definitie", profiel: "snel" }, { ...sleutel("stap:supervisor", "stap"), label: "Router", profiel: null }],
+    keuzes: [{ ...sleutel("agent:definitie"), label: "Definitie", profiel: "snel" }, { ...sleutel("stap:intake", "stap"), label: "Werkgebied samenstellen", profiel: null }],
     profielen: { snel: { niet_bruikbaar: "", gebruikt_door: ["agent:definitie"] },
       ander: { niet_bruikbaar: "Het profiel heeft een ander endpoint dan de straat.", gebruikt_door: [] } } })!;
 

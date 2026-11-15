@@ -60,9 +60,8 @@ class Settings(BaseModel):
     llm_model: str = "claude-sonnet-4-6"
     # Model per ROL. Leeg = `llm_model`, dus zonder deze env-vars draait alles op één model.
     #
-    # De rollen in deze keten verschillen sterk in wat ze vragen: de router kiest uit twee workers
-    # en drie specialisten binnen 300 tokens, en zijn antwoord wordt daarna toch hard gesaneerd
-    # (`parse_supervisor`). De ophaal-agent zoekt een bepaling op met getypeerde tools. Dat is ander
+    # De rollen in deze keten verschillen sterk in wat ze vragen: de router-knop draait de voorstellen van
+    # het werkgebied samenstellen (`nodes/werkgebied.py`; tot ADR-016 §A7 ook de supervisor). De ophaal-agent zoekt een bepaling op met getypeerde tools. Dat is ander
     # werk dan het JAS-oordeel van de classifier en de gerichte reviewer – en dáár mag je niet op
     # besparen: die twee blijven bewust op `llm_model`, zonder eigen knop, zodat niemand ze per
     # ongeluk degradeert. Een goedkopere reviewer degradeert precies het oordeel waarvoor hij bestaat.
@@ -75,10 +74,6 @@ class Settings(BaseModel):
     # gelden ze zoals hier.
     llm_model_router: str = ""
     llm_model_ophaal: str = ""
-    # De lichte modelklasse (ADR-016 §A2 `modelklasse: licht`): een subagent draait erop, de centrale agent en elk oordeel
-    # over wetgeving niet. Leeg = de bestaande lichte knop (`llm_model_router`), en anders `llm_model`, met een logregel
-    # (`agentvorm.subagent_model`). Besluit gebruiker 14 nov 2026: "Ja, probeer het".
-    llm_model_licht: str = ""
     # Herkomst die met elke annotatie meereist: welk model/welke agentversie het voorstel maakte.
     # `llm_provider` is beschrijvend (de adapter praat via Azure AI Foundry met de Anthropic-SDK);
     # `agent_versie` komt uit de image-tag/env en valt terug op de pakketversie.
@@ -224,7 +219,6 @@ class Settings(BaseModel):
             "llm_model": e.get("LLM_MODEL"),
             "llm_model_router": e.get("LLM_MODEL_ROUTER"),
             "llm_model_ophaal": e.get("LLM_MODEL_OPHAAL"),
-            "llm_model_licht": e.get("LLM_MODEL_LICHT"),
             "llm_provider": e.get("LLM_PROVIDER"),
             "agent_versie": e.get("AGENT_VERSION") or _pakketversie(),
             "max_turns": e.get("MAX_TURNS"),

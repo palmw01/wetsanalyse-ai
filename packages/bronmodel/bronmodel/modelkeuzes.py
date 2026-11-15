@@ -5,8 +5,8 @@ sleutel is daarom:
 
 - `agent:<profiel>` voor elk agentprofiel van Lex (`.claude/lex-agents/<profiel>.md`): de specialisten, de centrale agent
   en de ophaal-agent. Een profiel houdt zijn keuze, of het nu als specialist of als subagent draait;
-- `stap:<rol>` voor elke modelstap zonder agentprofiel (de waarden van `llm_stap.Rol` zonder toollus: supervisor,
-  classifier, reviewer, …), plus `stap:subagent` voor een subagent waarvan het profiel geen eigen keuze heeft.
+- `stap:<rol>` voor elke modelstap zonder agentprofiel (de waarden van `llm_stap.Rol` zonder toollus: classifier,
+  reviewer, …), plus `stap:subagent` voor een subagent waarvan het profiel geen eigen keuze heeft.
 
 De keuze is configuratie in het beheer, niet in het profielbestand: de beheerder wijzigt hem zonder uitrol. De api
 bewaart hem (`api/app/modelkeuzes.py`), graph-qa past hem toe (`agent/modelkeuze.py`). Zonder keuze volgt een sleutel het
@@ -67,12 +67,10 @@ KEUZES: tuple[Modelkeuze, ...] = (
     _agent("bepalingen_duiden", "Bepalingen duiden",
            "Subagent: doorloopt een reeks bepalingen en geeft per bepaling de kern met een passage."),
     _agent("algemeen", "Algemeen", "Beantwoordt de overige vragen over wet- en regelgeving uit de kennisgraaf."),
-    _agent("definitie", "Definitie", "Zoekt de wettelijke definitie van een begrip en geeft die letterlijk."),
     _agent("duiding", "Duiding", "Legt uit wat een bepaling betekent en hoe bepalingen samenhangen."),
     _agent("annotaties_lezen", "Annotaties lezen", "Beantwoordt vragen over bestaande annotaties; wijzigt niets."),
     _agent("begrippen_lezen", "Begrippen lezen", "Beantwoordt vragen over de vastgelegde begrippen; wijzigt niets."),
     _agent("retrieval", "Bepaling ophalen", "Zoekt met tools de bepaling op die geannoteerd wordt.", _OPHALEN),
-    _stap("supervisor", "Router", "Kiest per vraag de route en de specialist; het antwoord wordt in code gecontroleerd."),
     _stap("subagent", "Subagents",
           "Een subagent van de centrale agent, als zijn agentprofiel geen eigen keuze heeft."),
     _stap("stukcontrole", "Controle per stuk", "Toetst elk stuk uit het rapport van een subagent aan de bron."),

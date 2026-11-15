@@ -1,6 +1,6 @@
 # ADR-016 — De centrale agent en de werkplaats: één agentvorm, profielen en eigen onderdelen
 
-Status: **concept, wacht op akkoord**. Datum: 2026-11-12. Totaalplan. Deze versie is na een kritische review herzien;
+Status: **aangenomen** (15 nov 2026, besluit gebruiker na A6; deel A uitgevoerd tot en met A7). Datum: 2026-11-12. Totaalplan. Deze versie is na een kritische review herzien;
 wat de review veranderde, staat in [*Wat de review veranderde*](#wat-de-review-veranderde).
 
 Bouwt voort op [ADR-010](adr-010-agentarchitectuur.md) (vier lagen, contract, meetregel),
@@ -521,6 +521,15 @@ te itereren. Runs verschillen sterk: een trend claimen we pas over drie runs.
    volgt pas na de fixes voor de open punten en een besluit van de gebruiker.
 3. Bij winst vervallen de supervisor-modelstap, het `WORKERS:`-formaat en de keuze tussen specialisten. De regisseur
    blijft, als tool op de delegatie. Er blijven geen twee varianten bestaan.
+   *Uitgevoerd (15 nov 2026, besluit gebruiker):* de vlag `CENTRALE_AGENT` en de supervisor zijn weg, ook op
+   productie bij de volgende uitrol. De ingang (`supervisie.ingang_node`) kiest een route in code of de centrale
+   agent; er is geen modelstap meer vóór de agent. Elke route die alleen via de supervisor liep (afwijzen, annoteren,
+   het werkgebied, de deelvragen- en begrippenagent) loopt via een overdracht van de centrale agent, door de hele
+   graaf getoetst. Mee weg: de methoderollen `supervisor` en `definitie` (de sectie `definitie` blijft voor de rol
+   `agent`), het profiel `definitie`, de modelkeuzes `stap:supervisor` en `agent:definitie`, en de lichte modelklasse
+   voor subagents (`LLM_MODEL_LICHT`): het model van een subagent kiest nu de beheerder (`agent:<profiel>`,
+   `stap:subagent`). Het meetveld `agentvorm` blijft, met de vaste waarde `centraal`, zodat metingen vergelijkbaar
+   blijven.
 4. Bij verlies blijft de oude weg, en zegt het meetlogboek waarom. Valt alleen de delegatie tegen en de centrale agent
    zonder subagents niet, dan blijft A2 en vervalt de rest.
 
@@ -746,7 +755,7 @@ werkplaats) start ernaast. Ze komen samen bij het profiel.
 | **A4** | **vragen omhoog en hervatten**: `status: vraag`, de keuzekaarten in de bundel, het antwoord als klik, hervatten in het kindgesprek, `delegatie_stand` bij een vervolg, *later gewijzigd* na doorvragen in een deelgesprek | graph-qa, api, frontend | A3 |
 | **A5** | **meer tegelijk en fasen**: de bevestigingskaart met het plafond, hoogstens `REGIE_PARALLEL` tegelijk met de cache-wachtstap, het plan in fasen met de knop voor de volgende fase, `regie_plan` als tool | graph-qa, api, frontend | A4 |
 | **A6** | de eindmeting tegen de huidige weg (A6 hierboven) en het besluit in het meetlogboek | metingen | A5 |
-| **A7** | opruimen bij winst: de supervisor-modelstap, het `WORKERS:`-formaat en de keuze tussen specialisten vervallen | graph-qa | A6 |
+| **A7** | opruimen bij winst: de supervisor-modelstap, het `WORKERS:`-formaat en de keuze tussen specialisten vervallen (*uitgevoerd 15 nov 2026*) | graph-qa | A6 |
 | **B1-1** | het register `/v1/werkplaats/*`: onderdeel (met een eigenaar), versie (snapshot + hash), de toets van poort 1 bij elke opslag, audit, rechten, de vlag `werkplaats`. *Nieuw* werkt; *Bewerken vanuit het image* nog niet | bronmodel, api, deploy (vlag) | T1 |
 | **B1-2** | vullen uit het image: de generator bundelt per skill en per profiel de bronbestanden en hun hash, graph-qa geeft ze door, een concept begint met die hash als basis, de stand *actief* wordt afgeleid, en de toets over de skills heen | graph-qa, bronmodel, api of BFF | B1-1 |
 | **B2** | de editor op *Werkwijze van Lex*, voor skills; vervangt de sectie-editor van C7 | frontend | B1 |
@@ -819,7 +828,7 @@ Afhankelijkheden die niet uit de tabel blijken:
 - **ADR-012.** De regisseur blijft code. *"Een model als regisseur"* blijft afgewezen voor werk met een plan uit de
   stand. Nieuw is dat een model subagents opstelt voor werk zonder vast plan. `regies` wordt de delegatie; de poort en
   de bundel blijven. Het budgetaandeel per kind blijft voor annoteren, onder het plafond per opdracht.
-- **ADR-005.** De supervisor vervalt bij winst (A7). Een klik kiest nog steeds zonder model.
+- **ADR-005.** De supervisor vervalt bij winst (A7; vervallen op 15 nov 2026). Een klik kiest nog steeds zonder model.
 - **ADR-014.** De catalogus krijgt de soort `agentprofiel` en de methoderol `agent`; de sectie-editor van C7 gaat op in
   de werkplaats.
 - **ADR-015.** Het voorvoegsel per profiel vervangt het voorvoegsel per specialist. De skillbeschrijvingen horen bij

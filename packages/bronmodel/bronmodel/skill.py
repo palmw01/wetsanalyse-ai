@@ -55,7 +55,7 @@ BASIS = "wetsanalyse"
 #: bewaakt door `tests/test_methoderollen.py`); een skill kan er geen maken (ADR-014 §5). Geen annotatierollen: de
 #: annotatieketen (ADR-001) gebruikt geen generatieve prompts met methodetekst. `agent` is de generieke rol van de
 #: centrale agent (ADR-016 §A2). Eén lijst voor de generator van het methodepakket en voor de werkplaats in de api.
-ROLLEN = frozenset({"supervisor", "retrieval", "definitie", "duiding", "algemeen", "deelvragen", "agent"})
+ROLLEN = frozenset({"retrieval", "duiding", "algemeen", "deelvragen", "agent"})
 #: De rollen die secties van meer dan één methode mogen dragen: alleen de centrale agent. Elke andere rol krijgt
 #: secties van één methode, zodat een tweede skill zich niet aan een rol van wetsanalyse hangt (plan methodes scheiden,
 #: S3). Een andere methode krijgt eigen rollen en profielen.

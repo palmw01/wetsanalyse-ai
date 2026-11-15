@@ -47,9 +47,9 @@ from .context import Bouw
 
 logger = logging.getLogger("graph_qa.orchestrator")
 
-# Wat de jurist in het denkproces ziet: wat Lex gaat doen, niet welke worker of agent het doet (G2b). Het plan van de
-# supervisor gaat naar de specialist, niet in beeld; welke worker of agent het werd, staat in het log.
-_WORKER_STAP = {"duiding": "legt de bepaling uit", "definitie": "zoekt de definitie op", "annotatie": "zoekt de bepaling op om te annoteren"}
+# Wat de jurist in het denkproces ziet: wat Lex gaat doen, niet welke worker of agent het doet (G2b); welke het werd,
+# staat in het log.
+_WORKER_STAP = {"annotatie": "zoekt de bepaling op om te annoteren"}
 _AGENT_STAP = {"deelvragen": "kijkt naar de deelvragen van het werkgebied", "begrippen": "werkt aan de begrippen van het werkgebied",
                "annotatie": "annoteert de bronnen van het werkgebied"}
 

@@ -149,7 +149,7 @@ def _toon_bepaling(b: Any, state: State, invoer: dict[str, Any]) -> dict[str, An
 TOON_BEPALING = "toon_bepaling"
 
 #: De specialisten van de supervisor. Valt een vaste route terug op de agent, dan is dat in deze vorm de centrale agent.
-_SPECIALISTEN = frozenset({"algemeen", "duiding", "definitie"})
+_SPECIALISTEN = frozenset({"algemeen", "duiding"})
 
 
 def _vaste_route(regel: str, weigering: str) -> Callable[[Any, State, dict[str, Any]], dict[str, Any] | str]:
@@ -344,7 +344,7 @@ def _skillnamen() -> list[str]:
 BEANTWOORD_KAART = "beantwoord_kaart"
 
 #: Wat de centrale agent in de context van de beurt leest als er een vraagkaart van het samenstellen of het aanvullen
-#: openstaat (`OPEN_KAARTJE`), in de woorden van zijn tools; de supervisor leest `supervisor.INTAKE_SYSTEM`.
+#: openstaat (`OPEN_KAARTJE`), in de woorden van zijn tools.
 OPEN_KAARTJE = ("OPEN KAARTJE: Lex {wat} en vroeg zojuist: \"{vraag}\". Is het bericht van de gebruiker een antwoord op "
                 "die vraag (een naam, een aanleiding, context of doel, een vraag, een praktijkvoorbeeld, deelvragen, wat "
                 "erbuiten valt, een regeling), roep dan beantwoord_kaart aan en schrijf zelf niets. Is het een andere "
