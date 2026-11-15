@@ -258,6 +258,10 @@ Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` no
       `rounded-full`. Alleen de verstuurknop van het invoerveld is rond, als hoofdactie van het gesprek zoals bij Claude.
       Ook een sluitknop (✕) of icoonknop is een afgerond vierkant (`rounded-knop`). Een teller, voortgangsbalk of
       avatar mag rond blijven: die is niet klikbaar;
+  - **een overzichtskaart is `OverzichtKaart`** (generieke componenten, 15 nov 2026, `components/ui/Pagina`): de titel is de
+    link en kapt af (de volle naam in de tooltip), de status rechtsboven, `sub` eronder, en onderaan `KaartActies`. Het
+    raster is `OverzichtRaster`, het laden `OverzichtSkelet` (kaarten in het raster, zodat de pagina niet springt).
+    `components/ui/overzicht.test.ts` en `app/uitlijning.test.ts` bewaken het;
   - **de actierij van een overzichtskaart is `KaartActies`** (7 nov 2026): *Openen* (`knopKlasse("secondary", "sm")`)
     en `VerwijderKnop maat="sm"` als twee gelijke helften. `VerwijderKnop` deelt vorm en maat met `Button` (`knopVorm`):
     `xs` tussen de kleine gereedschappen van een paneelkop, `sm` op een kaart. `app/uitlijning.test.ts` bewaakt het;

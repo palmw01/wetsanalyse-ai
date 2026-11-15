@@ -1,5 +1,6 @@
 "use client";
 
+import { OverzichtRaster, OverzichtSkelet } from "@/components/ui/Pagina";
 import { Leeg } from "@/components/ui/Leeg";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -8,7 +9,6 @@ import { Select } from "@/components/ui/Field";
 import { Melding } from "@/components/ui/Melding";
 import { BegripOverzichtKaart } from "@/components/begrippen/BegripOverzichtKaart";
 import { OverzichtBalk } from "@/components/ui/OverzichtBalk";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { foutTekst, lijstWerkgebieden, verwijderBegrip, verwijderGeneriek, zoekBegrippen } from "@/lib/api";
 import {
@@ -127,14 +127,7 @@ export function BegrippenOverzichtClient() {
       )}
 
       {data === null ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {[1, 2].map((i) => (
-            <div key={i} className="space-y-3 rounded-kaart border border-line bg-paper shadow-zacht p-4">
-              <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-3 w-64" />
-            </div>
-          ))}
-        </div>
+        <OverzichtSkelet />
       ) : data.resultaten.length === 0 ? (
         <Leeg kader>
           {filters.q || filters.status || filters.werkgebied || filters.generiek || filters.mijn
@@ -147,9 +140,9 @@ export function BegrippenOverzichtClient() {
             {data.totaal === 1 ? "1 begrip" : `${data.totaal} begrippen`}
             {data.resultaten.length < data.totaal ? ` (de eerste ${data.resultaten.length})` : ""}
           </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" data-testid="begrippen-overzicht">
+          <OverzichtRaster data-testid="begrippen-overzicht">
             {data.resultaten.map((b) => <BegripOverzichtKaart key={b.id} b={b} onVerwijder={() => verwijder(b)} />)}
-          </div>
+          </OverzichtRaster>
         </>
       )}
     </WerkgebiedSchil>

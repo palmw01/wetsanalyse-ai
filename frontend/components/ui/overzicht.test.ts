@@ -9,16 +9,29 @@ import { describe, expect, it } from "vitest";
 // breedte. Chromium heeft het probleem niet, dus de browsertests zien het niet: vandaar deze bron-toets.
 const lees = (pad: string) => readFileSync(join(__dirname, "..", pad), "utf8");
 
-describe("overzichten blijven binnen de schermbreedte", () => {
-  it.each(["annotaties/AnnotatiesClient.tsx", "werkgebieden/WerkgebiedenClient.tsx", "begrippen/BegrippenOverzichtClient.tsx"])(
-    "%s zet elk kaartenraster op een expliciete kolom", (pad) => {
-      const rasters = lees(pad).match(/className="grid [^"]*"/g) ?? [];
-      expect(rasters.length).toBeGreaterThan(0);
-      for (const r of rasters) expect(r).toContain("grid-cols-1");
-    });
+const KAARTEN = ["annotaties/AnnotatieKaart.tsx", "werkgebieden/WerkgebiedKaart.tsx", "begrippen/BegripOverzichtKaart.tsx"];
+const OVERZICHTEN = ["annotaties/AnnotatiesClient.tsx", "werkgebieden/WerkgebiedenClient.tsx", "begrippen/BegrippenOverzichtClient.tsx"];
 
-  it.each(["annotaties/AnnotatieKaart.tsx", "werkgebieden/WerkgebiedKaart.tsx", "begrippen/BegripOverzichtKaart.tsx"])(
-    "%s mag krimpen (min-w-0)", (pad) => {
-      expect(lees(pad)).toMatch(/<article[^>]*className="flex min-w-0 /s);
-    });
+describe("overzichten blijven binnen de schermbreedte", () => {
+  it("het raster van een overzicht heeft een expliciete kolom", () => {
+    const pagina = lees("ui/Pagina.tsx");
+    const raster = pagina.slice(pagina.indexOf("export function OverzichtRaster"), pagina.indexOf("export function OverzichtSkelet"));
+    expect(raster).toMatch(/className="grid grid-cols-1 /);
+  });
+
+  it.each(OVERZICHTEN)("%s zet zijn kaarten in OverzichtRaster, zonder eigen raster", (pad) => {
+    const s = lees(pad);
+    expect(s).toMatch(/<OverzichtRaster\b/);
+    expect(s).not.toMatch(/className="grid /);
+  });
+
+  it("de overzichtskaart mag krimpen (min-w-0)", () => {
+    const pagina = lees("ui/Pagina.tsx");
+    const kaart = pagina.slice(pagina.indexOf("export function OverzichtKaart"), pagina.indexOf("export function OverzichtRaster"));
+    expect(kaart).toMatch(/<article[^>]*className=\{`\$\{KLIK_KAART\} flex min-w-0 /s);
+  });
+
+  it.each(KAARTEN)("%s is een OverzichtKaart", (pad) => {
+    expect(lees(pad)).toMatch(/<OverzichtKaart\b/);
+  });
 });
