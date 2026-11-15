@@ -81,8 +81,8 @@ def test_een_subagent_heeft_zijn_profiel_en_alleen_het_rapport_als_uitgang():
     # Een profiel dat een stap van een route is, of de centrale agent zelf, wordt geen subagent.
     assert not isinstance(agent_voor("centraal", subagent=True), Subagent)
     assert not isinstance(agent_voor("retrieval", subagent=True), Subagent)
-    assert isinstance(agent_van({"specialist": "duiding", "opdracht": OPDRACHT.model_dump()}), Subagent)
-    assert not isinstance(agent_van({"specialist": "duiding"}), Subagent)
+    assert isinstance(agent_van({"specialist": "bepalingen_duiden", "opdracht": OPDRACHT.model_dump()}), Subagent)
+    assert not isinstance(agent_van({"specialist": "bepalingen_duiden"}), Subagent)
 
 
 def test_het_rapport_krijgt_het_veld_voor_bronnen_naast_de_wet_als_een_connector_aanstaat():
@@ -93,8 +93,8 @@ def test_het_rapport_krijgt_het_veld_voor_bronnen_naast_de_wet_als_een_connector
 
 def test_de_supervisor_stuurt_een_subagent_zonder_model_naar_zijn_profiel(monkeypatch):
     monkeypatch.setattr(supervisie, "get_stream_writer", lambda: (lambda _e: None))
-    upd = supervisie._kies(None, {"opdracht": OPDRACHT.model_dump(), "specialist": "duiding", "question": "x"})
-    assert (upd["specialist"], upd["worker_plan"], upd["afwijzen"]) == ("duiding", ["duiding"], False)
+    upd = supervisie._kies(None, {"opdracht": OPDRACHT.model_dump(), "specialist": "bepalingen_duiden", "question": "x"})
+    assert (upd["specialist"], upd["worker_plan"], upd["afwijzen"]) == ("bepalingen_duiden", ["bepalingen_duiden"], False)
 
 
 # -- de opdracht ------------------------------------------------------------------------------------------
@@ -202,7 +202,7 @@ def test_een_subagent_start_een_kindgesprek_wacht_en_geeft_zijn_rapport():
     api, events = Api(), []
     kind = {"rapport": {"status": "klaar"}, "answer": "Gedaan: gelezen.", "source_trace": [ARTIKEL]}
     kinderen, gestart, _ = _kinderen(kind)
-    afloop, uit, weigering = asyncio.run(sub.voer_uit(STATE, "duiding", OPDRACHT, events.append, settings=None,
+    afloop, uit, weigering = asyncio.run(sub.voer_uit(STATE, "bepalingen_duiden", OPDRACHT, events.append, settings=None,
                                                       kinderen=kinderen, gestopt=lambda: False, api=api))
     assert not weigering and afloop.uitkomst == "klaar" and uit == kind
     [(_, start), (_, gesprek), (_, opdracht), (_, eind)] = api.aanroepen
@@ -211,16 +211,16 @@ def test_een_subagent_start_een_kindgesprek_wacht_en_geeft_zijn_rapport():
     assert opdracht == {"gesprek_id": "kind-1", "rol": "assistant", "tekst": sub.opdracht_tekst(OPDRACHT),
                         "doorgegeven": "opdracht"}
     assert (start["soort"], start["opdracht"], start["werkgebied_id"], start["gesprek_id"]) == ("subagent", "subagent", "", "hoofd")
-    assert start["plan"]["taken"][0]["profiel"] == "duiding" and start["plan"]["taken"][0]["profiel_versie"]
-    assert (gesprek["ouder_id"], gesprek["delegatie_id"], gesprek["profiel"], gesprek["werkgebied_id"]) == ("hoofd", "d1", "duiding", "")
+    assert start["plan"]["taken"][0]["profiel"] == "bepalingen_duiden" and start["plan"]["taken"][0]["profiel_versie"]
+    assert (gesprek["ouder_id"], gesprek["delegatie_id"], gesprek["profiel"], gesprek["werkgebied_id"]) == ("hoofd", "d1", "bepalingen_duiden", "")
     assert eind == {"status": "klaar", "uitkomst": {"kinderen": [afloop.als_dict()]}}
     [(verzoek, wie, ouder)] = gestart
-    assert (wie, ouder, verzoek.profiel, verzoek.opdracht, verzoek.conversation_id) == ("jurist", "ouder-run", "duiding", OPDRACHT, "kind-1")
+    assert (wie, ouder, verzoek.profiel, verzoek.opdracht, verzoek.conversation_id) == ("jurist", "ouder-run", "bepalingen_duiden", OPDRACHT, "kind-1")
     assert verzoek.question == sub.opdracht_tekst(OPDRACHT) and verzoek.bronnen == ["rechtspraak"]
     assert [(e["type"], e["fase"]) for e in events] == [("regie", "start"), ("regie_taak", "start"), ("regie_taak", "eind"),
                                                           ("regie", "eind")]
     assert all(e.get("soort") == "subagent" for e in events if e["type"] == "regie")
-    assert all(e.get("profiel") == "duiding" for e in events if e["type"] == "regie_taak")
+    assert all(e.get("profiel") == "bepalingen_duiden" for e in events if e["type"] == "regie_taak")
     # Het rapport, en uit code wat het kind las (`gelezen_tekst`).
     assert sub.rapport_tekst(afloop, uit).startswith("Gedaan: gelezen.\n\nGelezen (")
 
@@ -260,13 +260,13 @@ def test_de_overdracht_geeft_het_rapport_en_zet_de_bronnen_van_het_kind_in_de_tr
     monkeypatch.setattr(sub, "WetsanalyseApi", lambda *_a: Api())
     kinderen, _, _ = _kinderen({"rapport": {"status": "klaar"}, "answer": "Bevindingen: uitstel kan.",
                                 "source_trace": [ARTIKEL]})
-    tu = {"id": "t1", "name": "subagent", "input": {"opdrachten": [{"profiel": "duiding", **OPDRACHT.model_dump()}]}}
+    tu = {"id": "t1", "name": "subagent", "input": {"opdrachten": [{"profiel": "bepalingen_duiden", **OPDRACHT.model_dump()}]}}
     state = {**STATE, "pending_tools": [tu], "source_trace": [("search_wetgeving", "{}")], "subagenten": []}
     upd = overdracht.overdracht_node(_bouw(kinderen), state)
     [bericht] = upd["messages"]
     resultaat = bericht["content"][0]
     assert resultaat["tool_use_id"] == "t1" and not resultaat.get("is_error")
-    assert resultaat["content"].startswith("RAPPORT VAN DE SUBAGENT (duiding, status: klaar)")
+    assert resultaat["content"].startswith("RAPPORT VAN DE SUBAGENT (bepalingen_duiden, status: klaar)")
     assert "Bevindingen: uitstel kan." in resultaat["content"]
     assert upd["source_trace"] == [("search_wetgeving", "{}"), ARTIKEL]
     assert upd["overdracht_naar"] == "" and [a["uitkomst"] for a in upd["subagenten"]] == ["klaar"]
@@ -304,7 +304,7 @@ def test_een_kindbeurt_draait_het_profiel_zonder_supervisorstap_en_rondt_af_met_
 
     async def alles():
         return [e async for e in answer_stream(sub.opdracht_tekst(OPDRACHT), "kind-1", settings=make_settings(enable_planning=True),
-                                               llm=llm, graph=FakeGraph(result=ARTIKEL[1]), profiel="duiding",
+                                               llm=llm, graph=FakeGraph(result=ARTIKEL[1]), profiel="bepalingen_duiden",
                                                opdracht=OPDRACHT, resultaat=resultaat)]
 
     events = asyncio.run(alles())

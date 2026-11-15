@@ -47,6 +47,9 @@ KOOS = {"definitie", "duiding", "algemeen"}
 #: Profielen die er na het register bij kwamen. Ze raken de specialisten van voorheen niet: `centraal` draait alleen
 #: achter de vlag `CENTRALE_AGENT` (`tests/test_centrale_agent.py`).
 NIEUW = {"centraal", "centraal_breed"}
+#: De taakprofielen voor een subagent (plan docs/architectuur/plan-agentprofielen.md): alleen de centrale agent kiest ze.
+TAAK = {"rechtspraak_lezen", "wetsgeschiedenis_lezen", "bepalingen_duiden"}
+NIEUW |= TAAK
 
 
 # --- bitgelijk ---------------------------------------------------------------------------------------------------
@@ -73,7 +76,9 @@ def test_de_systeemtekst_is_de_methodetekst_van_de_rol_plus_de_instructie(naam: 
 
 
 def test_dezelfde_routering():
-    assert set(supervisor._QA_SPECIALISTS) == KOOS == {n for n, p in profielen.PROFIELEN.items() if p.kiesbaar}
+    assert set(supervisor._QA_SPECIALISTS) == KOOS
+    # De centrale agent kiest uit andere profielen: de taakprofielen en het brede profiel (ADR-016 §A2).
+    assert {n for n, p in profielen.PROFIELEN.items() if p.kiesbaar} == TAAK | {"algemeen"}
     assert supervisor.parse_supervisor("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: x")[0] == ["duiding"]
     # Een profiel dat een stap van een route is, kiest het model niet: de keuze valt terug op algemeen.
     assert supervisor.parse_supervisor("WORKERS: antwoord\nSPECIALIST: retrieval\nPLAN: x")[0] == ["algemeen"]

@@ -1,5 +1,8 @@
 ---
 name: definitie
+# Alleen nog een specialist van de supervisor; een begripsvraag doet de centrale agent zelf (0 van 34 subagents in A6,
+# plan docs/architectuur/plan-agentprofielen.md). Verdwijnt met de supervisor.
+kiesbaar: false
 description: "Zoekt de wettelijke definitie van een begrip en geeft die letterlijk, met vindplaats."
 tools:
   - get_artikel

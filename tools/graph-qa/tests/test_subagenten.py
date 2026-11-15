@@ -86,14 +86,14 @@ class Api:
 
 def test_het_plan_wacht_bij_de_api_met_een_plafond_en_een_kaart():
     api = Api()
-    tekst, kaart = asyncio.run(sub.plan_klaar(STATE, [("algemeen", A), ("duiding", B)], settings=None, api=api))
+    tekst, kaart = asyncio.run(sub.plan_klaar(STATE, [("algemeen", A), ("bepalingen_duiden", B)], settings=None, api=api))
     [(_, start)] = api.aanroepen
     assert start["status"] == "wacht" and start["budget_aandeel"] == 100_000 and start["plan"]["plafond"] == 100_000
-    assert [t["profiel"] for t in start["plan"]["taken"]] == ["algemeen", "duiding"]
+    assert [t["profiel"] for t in start["plan"]["taken"]] == ["algemeen", "bepalingen_duiden"]
     assert (kaart["stap"], kaart["intake_id"], kaart["vrije_tekst"], kaart["overslaanbaar"]) == ("sa_start", "sa-d9",
                                                                                                     False, False)
     assert "100.000 tokens" in kaart["toelichting"] and "schatting" in kaart["toelichting"]
-    assert "(duiding)" in kaart["toelichting"] and len(kaart["toelichting"]) <= 1000
+    assert "(bepalingen_duiden)" in kaart["toelichting"] and len(kaart["toelichting"]) <= 1000
     assert "bevestigt" in tekst
     # Zonder budgetstand geen plafond, en de kaart zegt het niet.
     _, kaart = asyncio.run(sub.plan_klaar(STATE, [("algemeen", A), ("algemeen", B)], settings=None, api=Api(None)))
