@@ -75,3 +75,26 @@ def test_de_eigen_beurt_van_het_kind_markeert_niets(monkeypatch):
              "actie": "bronselectie", "werkgebied_id": "w1", "deelgesprek": {"delegatie_id": ECHT, "profiel": ""}}
     supervisie._kies(_bouw(), state)
     assert gezet == []
+
+
+def test_door_de_hele_graaf_markeert_een_vraag_in_het_deelgesprek_de_delegatie(monkeypatch):
+    """De vraag uit de opzet van F03 door `answer_stream`: het deelgesprek kent zijn delegatie (zoals de checkpoint van de
+    eerste beurt van het kind haar bewaart), de supervisor markeert, en de centrale agent beantwoordt de vraag."""
+    import asyncio
+
+    from agent.agent import answer_stream
+    from fakes import FakeGraph, FakeLLM, make_settings, response, text_block
+
+    gezet = _markeringen(monkeypatch)
+    llm = FakeLLM([response([text_block("De eerste bepaling draagt de deelvraag.")], "end_turn")] * 2)
+    settings = make_settings(wetsanalyse_api_url="http://api.test", wetsanalyse_api_token="t", qa_api_token="q",
+                             centrale_agent="aan")
+
+    async def beurt():
+        return [e async for e in answer_stream("Waarom stel je de eerste bepaling voor bij deze deelvraag?",
+                                               conversation_id="k1", settings=settings, llm=llm,
+                                               graph=FakeGraph(result=""), agentvorm="centraal", delegatie_id=ECHT)]
+
+    events = asyncio.run(beurt())
+    assert not [e for e in events if e.get("type") == "error"], events
+    assert gezet == [{"later_gewijzigd": True, "deelgesprek": "k1"}]

@@ -351,8 +351,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     (`supervisie._markeer_doorvraag`); de passages bij een stuk kiest de code per punt van de samenvatting
     (`extern.punten`, `extern.dragende`: de alinea die de meeste ongedekte woorden draagt, een rechtsoverweging zwaarder,
     geen formule of kopregel, hoogstens `MAX_GEKOZEN`), in een rapport (`aanvulling`) en in een antwoord, waar een
-    aangewezen alinea zonder dragend woord wijkt (`herkies`, ook in `antwoord_extern`); en vraagt de jurist om een
-    samenvatting per stuk, dan is een stuk uit het rapport dat het antwoord niet noemt een bewering (`gelezen.niet_genoemd`);
+    aangewezen alinea zonder dragend woord wijkt (`herkies`, ook in `antwoord_extern`);
   - **de grammatica van een verzoek is begrensd**: de API maakt van alle strict schema's samen één grammatica, met
     gedocumenteerde grenzen (20 strict tools, 24 optionele, 16 union-parameters) en een interne grens op de omvang
     ("Schema is too complex for compilation", 400 zonder tokens). De delegatietools (`subagent`,

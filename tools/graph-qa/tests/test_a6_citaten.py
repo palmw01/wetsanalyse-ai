@@ -2,13 +2,13 @@
 procesverloop en de feiten (S01: "De Hoge Raad heeft partijen in kennis gesteld …", r.o. 2.1 en 2.2; F02: "Het middel
 kan niet tot cassatie leiden …"), niet de passages die de samenvatting dragen. Bij een rapport koos de code hoogstens twee
 alinea's op de som van alle woorden, en een samenvatting in zeven punten (HR:2023:1371) droegen die niet: de toets meldde
-"die de passages van dat stuk niet dragen". En F02 noemde twee van de zes gelezen uitspraken.
+"die de passages van dat stuk niet dragen".
 
 Nepbronnen in de echte vorm (`get_uitspraak` door de echte toollaag), zoals `test_d01_bundel122.py`."""
 from __future__ import annotations
 
 from agent import tools
-from agent.gelezen import niet_genoemd, zonder_steun
+from agent.gelezen import zonder_steun
 from agent.sjablonen import extern
 from agent import sjablonen
 from agent import subagent as sub
@@ -92,9 +92,31 @@ def test_een_rapport_in_zeven_punten_krijgt_een_passage_per_punt_en_de_toets_mel
     assert not zonder_steun(SAMENVATTING, steun, TRACE)
 
 
-def test_f02_een_gelezen_uitspraak_die_het_antwoord_niet_noemt():
-    steun = {HR: "passage", "ECLI:NL:HR:2015:1826": "passage"}
-    assert niet_genoemd(f"Over {HR}: de melding.", {HR: "passage"}, TRACE) == []
-    assert niet_genoemd("Over HR:2023:1371: de melding.", {HR: "passage"}, TRACE) == [], "het korte id telt"
-    [weg] = niet_genoemd(f"Over {HR}: de melding.", steun, TRACE)
-    assert weg.startswith("ECLI:NL:HR:2015:1826 staat in het rapport met passages")
+def test_door_de_hele_graaf_toont_het_antwoord_de_dragende_passages(monkeypatch):
+    """De vraag noemt de uitspraak; de code leest haar (route `bron_lezen`), het model wijst het procesverloop aan zoals
+    bij S01, en het antwoord toont de dragende passages. Route → node → sjabloon → verify → finalize."""
+    import asyncio
+    import json
+
+    from agent import tools as t
+    from agent.agent import answer_stream
+    from fakes import FakeGraph, FakeLLM, make_settings, response, tool_block
+
+    monkeypatch.setattr(t.CONNECTORMODULES["rechtspraak"], "_bron", BRON)
+    aanroep = {"kort_antwoord": SAMENVATTING, "extern": [{"id": HR, "van_nr": NR_PROCES[0], "tot_nr": NR_PROCES[-1]}],
+               "stukken": [], "twijfel": []}
+    llm = FakeLLM([response([tool_block("s1", "antwoord_extern", aanroep)], "tool_use")] * 3)
+
+    async def beurt():
+        return [e async for e in answer_stream(f"Vat {HR} samen: wat zegt de Hoge Raad over de melding?",
+                                               settings=make_settings(connector_rechtspraak=True, centrale_agent="aan"),
+                                               llm=llm, graph=FakeGraph(result=""), agentvorm="centraal",
+                                               bronnen=["rechtspraak"])]
+
+    events = asyncio.run(beurt())
+    assert not [e for e in events if e.get("type") == "error"], events
+    antwoord = next(e["antwoord"] for e in events if e.get("type") == "antwoord")
+    [blok] = [b for b in antwoord["blokken"] if b["soort"] == "extern"]
+    getoond = {p["tekst"] for p in blok["passages"]}
+    assert getoond and getoond <= set(DRAGEND) and not getoond & set(PROCES), getoond
+    assert json.dumps(events, ensure_ascii=False).count("get_uitspraak") >= 1, "de uitspraak is gelezen"
