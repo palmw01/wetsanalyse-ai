@@ -161,6 +161,13 @@ Claude: een citaat in de tekst, één kaart per object, en het object opent in �
 - **Eén Vraag Lex** (`app/vraagLex.test.ts`): `VraagLexKnop` met een onderwerp, de suggesties uit één register per soort
   (`lib/vraagLex.ts`).
 
+**Een kaartje naar een paneel** (generieke componenten, 15 nov 2026; `app/paneelChip.test.ts`): elk kaartje in het gesprek
+dat iets naast het gesprek opent – een bepaling onder een antwoord, een annotatie, een ander artefact, een overzicht, een
+kandidaat om te annoteren – is `PaneelChip` (`components/ui/PaneelChip.tsx`): icoontegel, titel, ondertitel (afgekapt, of
+twee regels met `subRegels={2}`), chevron, en `uitgeschakeld` tijdens een beurt. Zonder `onClick` is het een kaart met een
+gestippelde rand die niets opent (een gereserveerd artefact). De ondertitel is `chipSub(soort, handeling)`, met één
+werkwoord per handeling: *bekijken* (een bepaling, een werkgebied) of *beoordelen* (een annotatie, begripsvoorstellen).
+Geen eigen tegel, chevron of chipklassen elders; het plan staat in `docs/architectuur/plan-generieke-componenten.md`.
 **Een melding** (generieke componenten, 15 nov 2026; `app/melding.test.ts`) is `Melding` (`components/ui/Melding.tsx`):
 `fout`, `waarschuwing`, `bevestiging` of `uitleg`, gewoon, `compact` of als `strook` over de volle breedte boven een scherm
 (het tokenbudget, een fout van de werkplek, een gesprek dat niet bewaard wordt). Een handeling in de tekst (*Opnieuw
@@ -1746,7 +1753,7 @@ vaste kolom rechts, naar het voorbeeld van Claude Code.
   graaf eerst lagen, keuze en vergroten af (`escape`), dan verbergt het paneel.
 - **Eén ingang per plek** (`useOpenBron` in `ContextPaneel.tsx` is de enige opener; geen andere plek leest
   `ContextPaneelContext`):
-  - **onder een antwoord per bepaling één kaart** (ontdubbelen PR 3; `BronChip`/`BepalingChips`, `kaartenVan` in
+  - **onder een antwoord per bepaling één kaart** (ontdubbelen PR 3; `PaneelChip`/`BepalingChips`, `kaartenVan` in
     `lib/bronnen.ts`): bij een sjabloon de bepalingen die het draagt, bij vrije tekst de bepalingen die de tekst
     éénduidig noemt (geen kaart voor een gok). Bij meer dan drie (`MAX_BEPALINGCHIPS`) staat er één kaart met de telling
     ("6 bepalingen", `data-bepaling-lijst`), die de bepalingen als lijst in het paneel opent (`ContextDoel` soort
