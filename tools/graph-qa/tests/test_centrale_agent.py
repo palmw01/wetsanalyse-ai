@@ -226,7 +226,7 @@ def test_de_kernset_en_de_rest_zijn_samen_de_graaftools():
 def test_de_twee_profielen_verschillen_alleen_in_tools_en_de_aanwijzingen_daarvoor():
     kern, breed = profielen.PROFIELEN[CENTRAAL], profielen.PROFIELEN[CENTRAAL_BREED]
     assert breed.instructie.startswith(kern.instructie + "\n\nMEER TOOLS:")
-    for veld in ("kiesbaar", "methoderol", "connectors", "sjablonen", "skills", "modelklasse"):
+    for veld in ("kiesbaar", "methoderol", "connectors", "sjablonen", "skills", "max_rondes", "budget"):
         assert getattr(kern, veld) == getattr(breed, veld), veld
     # De instructie noemt geen tool die het profiel niet heeft: het model zou hem proberen aan te roepen.
     for p in (kern, breed):

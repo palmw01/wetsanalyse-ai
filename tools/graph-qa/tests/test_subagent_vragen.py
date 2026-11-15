@@ -76,8 +76,8 @@ class Api:
     def __init__(self, status: str = "wacht", conflict: bool = False):
         self.aanroepen: list[tuple[str, object]] = []
         self.delegatie = {"id": "d1", "soort": "subagent", "status": status, "werkgebied_id": "",
-                          "plan": {"taken": [{"profiel": "duiding", "opdracht": OPDRACHT.model_dump()}]},
-                          "uitkomst": {"kinderen": [{"profiel": "duiding", "gesprek_id": "kind-1", "uitkomst": "vraag",
+                          "plan": {"taken": [{"profiel": "bepalingen_duiden", "opdracht": OPDRACHT.model_dump()}]},
+                          "uitkomst": {"kinderen": [{"profiel": "bepalingen_duiden", "gesprek_id": "kind-1", "uitkomst": "vraag",
                                                      "vragen": VRAGEN}]}}
         self.conflict = conflict
 
@@ -123,7 +123,7 @@ VRAAG_KIND = {"rapport": {"status": "vraag", "vragen": VRAGEN}, "answer": "Gedaa
 def test_een_subagent_met_een_vraag_wacht_bij_de_api():
     api, events = Api(), []
     kinderen, _, _ = _kinderen(VRAAG_KIND)
-    afloop, _, weigering = asyncio.run(sub.voer_uit(STATE, "duiding", OPDRACHT, events.append, settings=None,
+    afloop, _, weigering = asyncio.run(sub.voer_uit(STATE, "bepalingen_duiden", OPDRACHT, events.append, settings=None,
                                                     kinderen=kinderen, gestopt=lambda: False, api=api))
     assert not weigering and (afloop.uitkomst, afloop.vragen, afloop.delegatie_id) == ("vraag", VRAGEN, "d1")
     eind = api.aanroepen[-1][1]
@@ -144,7 +144,7 @@ def test_hervatten_is_een_nieuwe_beurt_in_hetzelfde_deelgesprek():
     assert api.aanroepen[1][1] == {"status": "loopt"} and api.aanroepen[2][1]["status"] == "klaar"
     [(verzoek, _, _)] = gestart
     assert verzoek.conversation_id == "kind-1", "hetzelfde deelgesprek, geen nieuw"
-    assert (verzoek.profiel, verzoek.opdracht, verzoek.delegatie_id) == ("duiding", OPDRACHT, "d1")
+    assert (verzoek.profiel, verzoek.opdracht, verzoek.delegatie_id) == ("bepalingen_duiden", OPDRACHT, "d1")
     assert verzoek.question.splitlines() == [
         "ANTWOORD OP JE VRAGEN (van de gebruiker)", "- Over welk belastingjaar gaat het?", "  Antwoord: 2024",
         "- Gaat het om een naheffingsaanslag?", "  Antwoord: nee",
@@ -172,7 +172,7 @@ def _bouw(kinderen):
 
 
 def test_een_rapport_met_een_vraag_zegt_de_centrale_agent_wat_hij_kan():
-    tekst = sub.als_toolresultaat("duiding", "vraag", "Vragen: …")
+    tekst = sub.als_toolresultaat("bepalingen_duiden", "vraag", "Vragen: …")
     # De vraag gaat naar de gebruiker; de centrale agent beantwoordt haar niet zelf (geen hervat_subagent in het voorvoegsel).
     assert "als kaart" in tekst and "niet zelf" in tekst and "hervat_subagent" not in tekst
 
@@ -273,9 +273,9 @@ def test_doorvragen_in_een_deelgesprek_houdt_het_profiel_en_markeert_de_delegati
     b = SimpleNamespace(settings=SimpleNamespace(centrale_agent="aan", legt_zelf_vast=True), loop=None,
                         agent_api=lambda *_a: api, graph=None)
     state = {**STATE, "question": "En geldt dat ook voor een naheffing?", "modus": "auto",
-             "deelgesprek": {"delegatie_id": "d1", "profiel": "duiding"}}
+             "deelgesprek": {"delegatie_id": "d1", "profiel": "bepalingen_duiden"}}
     upd = supervisie._kies(b, state)
-    assert (upd["specialist"], upd["worker_plan"]) == ("duiding", ["duiding"])
+    assert (upd["specialist"], upd["worker_plan"]) == ("bepalingen_duiden", ["bepalingen_duiden"])
     assert api.aanroepen == [("wijzig_delegatie", {"later_gewijzigd": True, "deelgesprek": "hoofd"})], "het deelgesprek erbij (A6 eind, F03)"
 
 
@@ -306,7 +306,7 @@ def test_een_rapport_dat_klaar_was_terwijl_een_ander_kind_een_vraag_had_komt_in_
     de uitkomst, het rapport van A viel weg, en na het antwoord bundelde de code alleen B. Nu wacht A in het checkpoint
     (`wachtende_rapporten`) en komt hij in de bundel, met zijn toolresultaten in de trace."""
     a = sub.Afloop(profiel="algemeen", gesprek_id="kind-0", uitkomst="klaar", delegatie_id="d1")
-    b = sub.Afloop(profiel="duiding", gesprek_id="kind-1", uitkomst="vraag", delegatie_id="d1", vragen=VRAGEN)
+    b = sub.Afloop(profiel="bepalingen_duiden", gesprek_id="kind-1", uitkomst="vraag", delegatie_id="d1", vragen=VRAGEN)
     kind_a = {"rapport": {"status": "klaar"}, "answer": "Bevindingen A.", "source_trace": [ARTIKEL]}
 
     async def eerste(_b, _state, _stuur):

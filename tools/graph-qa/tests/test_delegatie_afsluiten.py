@@ -32,7 +32,7 @@ def _kindbeurt(monkeypatch, antwoorden, *, meter=None):
     async def alles():
         return [e async for e in answer_stream(sub.opdracht_tekst(OPDRACHT), "kind-1",
                                                settings=make_settings(enable_planning=True), llm=llm,
-                                               graph=FakeGraph(result=ARTIKEL[1]), profiel="duiding",
+                                               graph=FakeGraph(result=ARTIKEL[1]), profiel="algemeen",
                                                opdracht=OPDRACHT, resultaat=resultaat)]
 
     asyncio.run(alles())
@@ -59,7 +59,7 @@ def test_leest_het_kind_in_zijn_laatste_ronde_toch_door_dan_sluit_de_code_af_met
     llm, resultaat = _kindbeurt(monkeypatch, lezen)
     assert len(llm.calls) == MAX_RONDES_SUBAGENT, "geen ronde meer na de laatste, ook geen correctieronde"
     assert resultaat["answer"] == SUBAGENT_AFGESLOTEN and not (resultaat.get("rapport") or {}).get("status")
-    tekst = sub.rapport_tekst(sub.Afloop(profiel="duiding", uitkomst="niet_gelukt"), resultaat)
+    tekst = sub.rapport_tekst(sub.Afloop(profiel="bepalingen_duiden", uitkomst="niet_gelukt"), resultaat)
     assert "Gelezen (" in tekst
 
 
@@ -217,3 +217,43 @@ def test_de_correctieronde_na_een_grote_beurt_krijgt_de_hele_beurt(monkeypatch):
     correctie, vorige = llm.calls[-1]["messages"], llm.calls[-2]["messages"]
     assert json.dumps(correctie[-1], ensure_ascii=False).find("Let op") >= 0
     assert correctie[:len(vorige)] == vorige, "de correctieronde houdt de beurt"
+
+
+def test_de_grenzen_komen_van_het_profiel_en_anders_van_het_platform(monkeypatch):
+    """`max_rondes` en `budget` van een profiel doen wat ze zeggen (ADR-016 §A2); zonder waarde de codedefaults."""
+    from agent import agentvorm, profielen
+
+    kind = {"opdracht": OPDRACHT.model_dump(), "turns": 0, "specialist": "bepalingen_duiden"}
+    eigen = agentvorm.agent_van(kind)
+    assert (eigen.max_rondes, eigen.budget) == (10, 260_000), "de waarden uit .claude/lex-agents/bepalingen_duiden.md"
+    leeg = profielen.PROFIELEN["bepalingen_duiden"].model_copy(update={"max_rondes": None, "budget": None})
+    monkeypatch.setitem(profielen.PROFIELEN, "bepalingen_duiden", leeg)
+    zonder = agentvorm.agent_van(kind)
+    assert zonder.profiel.max_rondes is None and zonder.max_rondes == MAX_RONDES_SUBAGENT
+    assert zonder.budget == MAX_TOKENS_SUBAGENT
+    assert f"hoogstens {MAX_RONDES_SUBAGENT} rondes" in zonder.instructie
+    smal = profielen.PROFIELEN["bepalingen_duiden"].model_copy(update={"max_rondes": 3, "budget": 50_000})
+    monkeypatch.setitem(profielen.PROFIELEN, "bepalingen_duiden", smal)
+    agent = agentvorm.agent_van(kind)
+    assert (agent.max_rondes, agent.budget) == (3, 50_000) and "hoogstens 3 rondes" in agent.instructie
+    b = SimpleNamespace(settings=make_settings(), llm=SimpleNamespace(meter=SimpleNamespace(
+        invoer=0, uitvoer=0, cache_lees=0, cache_schrijf=0, aanroepen=[])))
+    assert antwoordnodes.max_rondes(b.settings, kind) == 3
+    assert laatste_ronde(b, {**kind, "turns": 2}) == "rondegrens" and laatste_ronde(b, {**kind, "turns": 1}) == ""
+    b.llm.meter.invoer = 50_000
+    assert laatste_ronde(b, kind) == "plafond"
+    # Nooit boven `max_turns`, en een gewone beurt (geen opdracht) houdt `max_turns`.
+    assert antwoordnodes.max_rondes(make_settings(max_turns=2), kind) == 2
+    assert antwoordnodes.max_rondes(b.settings, {"specialist": "bepalingen_duiden"}) == b.settings.max_turns
+
+
+def test_het_platform_begrenst_wat_een_profiel_mag_vragen():
+    from bronmodel.agentprofiel import toets
+
+    from agent import profielen
+
+    p = profielen.PROFIELEN["algemeen"]
+    g = profielen.grenzen()
+    assert toets(p.model_copy(update={"max_rondes": profielen.MAX_RONDES_PROFIEL}), g) == []
+    assert {b.code for b in toets(p.model_copy(update={"max_rondes": profielen.MAX_RONDES_PROFIEL + 1}), g)} == {"max_rondes"}
+    assert {b.code for b in toets(p.model_copy(update={"budget": profielen.MAX_BUDGET_PROFIEL + 1}), g)} == {"budget"}

@@ -19,7 +19,6 @@ from __future__ import annotations
 
 from bronmodel.connectors import CONNECTORS
 
-from .profielen import KIESBAAR
 
 
 def _scope_bronnen() -> str:
@@ -114,8 +113,9 @@ VERVOLG_SYSTEM = (
     "werkgebied (deelvragen, bronnen, begrippen, meedenken) ook niet."
 )
 
-#: De specialisten die de supervisor mag kiezen: de kiesbare profielen (ADR-016 §A2).
-_QA_SPECIALISTS = KIESBAAR
+#: De specialisten die de supervisor mag kiezen: de namen die zijn prompt noemt. Niet de kiesbare profielen van de centrale
+#: agent (ADR-016 §A2): die zijn voor een subagent gemaakt en ronden af met een rapport, niet met een antwoord.
+_QA_SPECIALISTS = ("algemeen", "definitie", "duiding")
 
 # De workers die bestaan. Alles daarbuiten is een verzinsel van het model en telt niet
 # mee: werd élke onbekende naam stilzwijgend een extra ANTWOORD-worker, dan beantwoordde "WORKERS:

@@ -100,7 +100,7 @@ def test_v03_gaat_naar_een_subagent_met_de_deelvragen_als_oplevering():
     rij = AGENTSET["V03"]
     stand = {n: AAN[n] for n in rij["context"]["bronnen"]}
     [(profiel, opdracht)] = route.plan(rij["opdracht"], stand, regelingen)
-    assert profiel == "algemeen" == rij["verwacht"]["profielen"][0] and opdracht.doel == rij["opdracht"]
+    assert profiel == "wetsgeschiedenis_lezen" == rij["verwacht"]["profielen"][0] and opdracht.doel == rij["opdracht"]
     assert "Per deelvraag" in opdracht.oplevering
     assert not route.plan(rij["opdracht"], {}, regelingen), "zonder bron naast de wet aan doet de centrale agent het"
 

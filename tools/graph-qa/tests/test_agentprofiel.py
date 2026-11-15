@@ -41,7 +41,7 @@ def test_het_bestand_wordt_een_getypeerd_profiel():
         naam="definitie", beschrijving="Zoekt de wettelijke definitie van een begrip.", kiesbaar=False,
         instructie="Je bent de DEFINITIE-specialist.\n\nBegin bij zoek_definitie.", skills=("wetsanalyse",),
         tools=("zoek_definitie", "get_artikel"), connectors=("kamerstukken",), sjablonen=("antwoord_bepaling",),
-        modelklasse="licht", max_rondes=8, budget=50_000)
+        max_rondes=8, budget=50_000)
     assert ap.toets(p, GRENZEN) == [] and ap.valideer(p, GRENZEN) is p
     with pytest.raises(Exception):
         p.naam = "anders"  # type: ignore[misc]
@@ -49,7 +49,7 @@ def test_het_bestand_wordt_een_getypeerd_profiel():
 
 def test_zonder_tools_krijgt_een_profiel_alle_tools_behalve_wat_nooit_mag():
     p = ap.uit_markdown("algemeen", "---\nname: algemeen\ndescription: Breed.\n---\nAntwoord uit de graaf.\n")
-    assert p.tools is None and p.kiesbaar and p.modelklasse == "zwaar" and p.max_rondes is None
+    assert p.tools is None and p.kiesbaar and p.max_rondes is None and p.budget is None
     assert ap.toets(p, GRENZEN) == []
     assert ap.toegestane_tools(p, GRENZEN) == {"get_artikel", "get_lid", "zoek_definitie"}
     assert p.rol == "algemeen" and p.model_copy(update={"methoderol": "definitie"}).rol == "definitie"
@@ -61,7 +61,8 @@ def test_zonder_tools_krijgt_een_profiel_alle_tools_behalve_wat_nooit_mag():
     ("name: definitie", "name: Definitie"),
     ("name: definitie", "name: anders"),
     ("description: Zoekt de wettelijke definitie van een begrip.", "description: ''"),
-    ("model: licht", "model: reusachtig"),
+    ("model: licht", "model: [licht, zwaar]"),
+    ("model: licht", "model: ''"),
     ("maxTurns: 8", "maxTurns: 0"),
     ("maxTurns: 8", "maxTurns: acht"),
     ("kiesbaar: false", "kiesbaar: nee, liever niet"),
@@ -75,6 +76,18 @@ def test_een_bestand_met_de_verkeerde_vorm_wordt_geweigerd(oud, nieuw):
     with pytest.raises(ValidatieFout) as fout:
         ap.uit_markdown("definitie", BESTAND.replace(oud, nieuw))
     assert fout.value.bevindingen
+
+
+def test_het_model_is_een_voorstel_en_hoort_niet_in_een_vast_profiel():
+    """Het model kiest de beheerder (`agent:<profiel>`, #1544). In een concept uit de werkplaats is `model:` een voorstel
+    dat het profiel niet draagt; in een profiel uit de repo is het een fout, want het zou lijken alsof het iets doet."""
+    p = ap.uit_markdown("definitie", BESTAND)
+    assert "model" not in p.model_dump() and ap.modelvoorstel(BESTAND) == "licht"
+    assert ap.modelvoorstel(BESTAND.replace("model: licht\n", "")) is None
+    with pytest.raises(ValidatieFout) as fout:
+        ap.uit_markdown("definitie", BESTAND, vast=True)
+    assert "de beheerder" in fout.value.bevindingen[0].melding
+    assert ap.uit_markdown("definitie", BESTAND.replace("model: licht\n", ""), vast=True) == p
 
 
 @pytest.mark.parametrize(("veld", "waarde"), [

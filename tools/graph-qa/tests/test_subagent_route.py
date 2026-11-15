@@ -87,3 +87,15 @@ def test_de_route_start_de_subagent_met_de_vraag_en_geeft_het_rapport_aan_de_cen
     assert upd["rapporten"].startswith("RAPPORT VAN EEN SUBAGENT") and "Per uitspraak: …" in upd["rapporten"]
     # Kan hij niet starten, dan beantwoordt de centrale agent de vraag zelf.
     assert route.subagent_route_node(_bouw(None), {**STATE, "question": vraag})["specialist"] == "centraal"
+
+
+def test_een_reeks_gaat_naar_het_taakprofiel_van_zijn_bron():
+    """Plan agentprofielen: per bron het taakprofiel dat hem leest; zonder taakprofiel, of bij een mengsel, `algemeen`."""
+    from agent.nodes.subagent_route import profiel_voor
+
+    assert profiel_voor("x", ["rechtspraak"]) == "rechtspraak_lezen"
+    assert profiel_voor("x", ["kamerstukken", "bekendmakingen"]) == "wetsgeschiedenis_lezen"
+    assert profiel_voor("x", ["kennisgroepen"]) == profiel_voor("x", ["rechtspraak", "kamerstukken"]) == "algemeen"
+    assert profiel_voor("Vat per uitspraak samen wat de rechter zegt.", []) == "rechtspraak_lezen"
+    assert profiel_voor("Vat per memorie van toelichting samen.", []) == "wetsgeschiedenis_lezen"
+    assert profiel_voor("Vat per stuk samen.", []) == "algemeen"

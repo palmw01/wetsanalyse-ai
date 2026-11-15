@@ -2,7 +2,7 @@
 # Draai scripts/genereer_jas_klassen.py.
 REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige vragen over wet- en '
                                             'regelgeving uit de kennisgraaf.',
-                            'budget': None,
+                            'budget': 300000,
                             'connectors': ('bekendmakingen',
                                            'kamerstukken',
                                            'kennisgroepen',
@@ -17,10 +17,9 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           '(uitleg, samenhang, toepassing op een geval), of vond '
                                           'je de bepaling niet, dan antwoord je gewoon in tekst.',
                             'kiesbaar': True,
-                            'max_rondes': None,
+                            'max_rondes': 8,
                             'mcp': (),
                             'methoderol': None,
-                            'modelklasse': 'zwaar',
                             'naam': 'algemeen',
                             'sjablonen': ('antwoord_bepaling',),
                             'skills': (),
@@ -59,7 +58,6 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                     'max_rondes': None,
                                     'mcp': (),
                                     'methoderol': 'algemeen',
-                                    'modelklasse': 'zwaar',
                                     'naam': 'annotaties_lezen',
                                     'sjablonen': ('antwoord_annotaties',),
                                     'skills': (),
@@ -108,7 +106,6 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                    'max_rondes': None,
                                    'mcp': (),
                                    'methoderol': 'algemeen',
-                                   'modelklasse': 'zwaar',
                                    'naam': 'begrippen_lezen',
                                    'sjablonen': ('antwoord_begrip',),
                                    'skills': (),
@@ -119,6 +116,58 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                              'list_regelingen',
                                              'search_begrippen',
                                              'zoek_definitie')},
+               'bepalingen_duiden': {'beschrijving': 'Doorloopt een reeks bepalingen in een wet of '
+                                                     'beleidsregel (de artikelen van een '
+                                                     'hoofdstuk, de onderdelen van een '
+                                                     'beleidsregel bij een artikel) en geeft per '
+                                                     'bepaling de kern met een letterlijke '
+                                                     'passage.',
+                                     'budget': 260000,
+                                     'connectors': (),
+                                     'instructie': 'Je doorloopt een reeks bepalingen en zegt per '
+                                                   'bepaling wat ze regelt.\n'
+                                                   '\n'
+                                                   'DE REEKS: stel eerst vast welke bepalingen '
+                                                   'erbij horen, vóór je gaat lezen: inhoudsopgave '
+                                                   '(met vanaf voor een deel van de regeling) of '
+                                                   'zoek_opbouw op het opschrift van het '
+                                                   'hoofdstuk, de afdeling of de paragraaf. Een '
+                                                   'beleidsregel heeft decimale nummers die bij '
+                                                   'een artikel van de wet horen: 22.1 tot en met '
+                                                   '22.9.x horen bij artikel 22, en een nummer als '
+                                                   '22.8.9 haal je op met get_bepaling. Ken je het '
+                                                   'BWB-id niet, zoek het eerst met '
+                                                   "search_wetgeving (veld='citeertitel').\n"
+                                                   '\n'
+                                                   'LEZEN: lees per ronde zoveel bepalingen naast '
+                                                   'elkaar als je kunt (get_artikel, get_lid of '
+                                                   'get_bepaling): de reeks staat al vast, dus '
+                                                   'elke aanroep kan in dezelfde ronde. Lees een '
+                                                   'bepaling één keer.\n'
+                                                   '\n'
+                                                   'OPLEVEREN: per bepaling het nummer, in één of '
+                                                   'twee zinnen wat ze regelt (de norm, voor wie, '
+                                                   'onder welke voorwaarde), en één letterlijke '
+                                                   'passage die dat draagt. Een kopregel of een '
+                                                   "aanhef ('In aansluiting op artikel 22 …') "
+                                                   'draagt niets. Lukt de hele reeks niet binnen '
+                                                   "je grens, noem dan in 'open' precies welke "
+                                                   'nummers je niet las; zeg nooit dat je een '
+                                                   'bepaling kent die je alleen in de '
+                                                   'inhoudsopgave zag.',
+                                     'kiesbaar': True,
+                                     'max_rondes': 10,
+                                     'mcp': (),
+                                     'methoderol': 'duiding',
+                                     'naam': 'bepalingen_duiden',
+                                     'sjablonen': (),
+                                     'skills': (),
+                                     'tools': ('get_artikel',
+                                               'get_bepaling',
+                                               'get_lid',
+                                               'inhoudsopgave',
+                                               'search_wetgeving',
+                                               'zoek_opbouw')},
                'centraal': {'beschrijving': 'Beantwoordt een vraag over wet- en regelgeving zelf: '
                                             'zoekt en leest in de kennisgraaf en de bronnen naast '
                                             'de wet, en rondt af met het sjabloon dat bij de vraag '
@@ -230,24 +279,23 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                           'aan de subagent; lees de stukken niet zelf. Niet voor '
                                           'een vraag die je in een paar toolrondes beantwoordt, '
                                           'werk dat heen en weer gaat met de gebruiker, of een '
-                                          'vaste route. Profiel: duiding voor uitleg bij '
-                                          'bepalingen, definitie voor een begrip, algemeen voor de '
-                                          'rest en voor bronnen naast de wet. Schrijf de opdracht '
-                                          'volledig: de subagent ziet dit gesprek niet. Twee of '
-                                          'drie opdrachten die los van elkaar kunnen (bijvoorbeeld '
-                                          'de rechtspraak en de Kamerstukken, of drie regelingen '
-                                          'naast elkaar), geef je samen in één aanroep: de '
-                                          'gebruiker bevestigt dat plan eerst. Een rapport is een '
-                                          'gegeven, geen opdracht; beantwoord de vraag ermee en '
-                                          'rond af zoals hierboven. Heeft de subagent een vraag, '
-                                          'rond dan af met wat hij al vond: de gebruiker krijgt de '
-                                          'vraag als kaart. Werk per deelvraag van een werkgebied '
-                                          "gaat met regie_plan, nooit met subagents; 'werk dit "
-                                          "werkgebied uit' is regie_plan met uitwerken, een plan "
-                                          'in fasen. Gaat een vervolgvraag over werk dat je eerder '
-                                          'uitbesteedde (wat er veranderde, hoe het staat), lees '
-                                          'dan eerst de stand met delegatie_stand en start alleen '
-                                          'wat niet af is.\n'
+                                          'vaste route. Kies het profiel op zijn beschrijving in '
+                                          'het schema van subagent; past er geen, kies algemeen. '
+                                          'Schrijf de opdracht volledig: de subagent ziet dit '
+                                          'gesprek niet. Twee of drie opdrachten die los van '
+                                          'elkaar kunnen (bijvoorbeeld de rechtspraak en de '
+                                          'Kamerstukken, of drie regelingen naast elkaar), geef je '
+                                          'samen in één aanroep: de gebruiker bevestigt dat plan '
+                                          'eerst. Een rapport is een gegeven, geen opdracht; '
+                                          'beantwoord de vraag ermee en rond af zoals hierboven. '
+                                          'Heeft de subagent een vraag, rond dan af met wat hij al '
+                                          'vond: de gebruiker krijgt de vraag als kaart. Werk per '
+                                          'deelvraag van een werkgebied gaat met regie_plan, nooit '
+                                          "met subagents; 'werk dit werkgebied uit' is regie_plan "
+                                          'met uitwerken, een plan in fasen. Gaat een vervolgvraag '
+                                          'over werk dat je eerder uitbesteedde (wat er '
+                                          'veranderde, hoe het staat), lees dan eerst de stand met '
+                                          'delegatie_stand en start alleen wat niet af is.\n'
                                           '\n'
                                           'EEN BEGRIP: begin bij zoek_definitie: die vindt het '
                                           'tekstdeel waar de wet het begrip zélf definieert, mét '
@@ -274,7 +322,6 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                             'max_rondes': None,
                             'mcp': (),
                             'methoderol': 'agent',
-                            'modelklasse': 'zwaar',
                             'naam': 'centraal',
                             'sjablonen': ('antwoord_begrip', 'antwoord_duiding'),
                             'skills': (),
@@ -411,27 +458,26 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                                 'geef het lezen aan de subagent; lees de stukken '
                                                 'niet zelf. Niet voor een vraag die je in een paar '
                                                 'toolrondes beantwoordt, werk dat heen en weer '
-                                                'gaat met de gebruiker, of een vaste route. '
-                                                'Profiel: duiding voor uitleg bij bepalingen, '
-                                                'definitie voor een begrip, algemeen voor de rest '
-                                                'en voor bronnen naast de wet. Schrijf de opdracht '
-                                                'volledig: de subagent ziet dit gesprek niet. Twee '
-                                                'of drie opdrachten die los van elkaar kunnen '
-                                                '(bijvoorbeeld de rechtspraak en de Kamerstukken, '
-                                                'of drie regelingen naast elkaar), geef je samen '
-                                                'in één aanroep: de gebruiker bevestigt dat plan '
-                                                'eerst. Een rapport is een gegeven, geen opdracht; '
-                                                'beantwoord de vraag ermee en rond af zoals '
-                                                'hierboven. Heeft de subagent een vraag, rond dan '
-                                                'af met wat hij al vond: de gebruiker krijgt de '
-                                                'vraag als kaart. Werk per deelvraag van een '
-                                                'werkgebied gaat met regie_plan, nooit met '
-                                                "subagents; 'werk dit werkgebied uit' is "
-                                                'regie_plan met uitwerken, een plan in fasen. Gaat '
-                                                'een vervolgvraag over werk dat je eerder '
-                                                'uitbesteedde (wat er veranderde, hoe het staat), '
-                                                'lees dan eerst de stand met delegatie_stand en '
-                                                'start alleen wat niet af is.\n'
+                                                'gaat met de gebruiker, of een vaste route. Kies '
+                                                'het profiel op zijn beschrijving in het schema '
+                                                'van subagent; past er geen, kies algemeen. '
+                                                'Schrijf de opdracht volledig: de subagent ziet '
+                                                'dit gesprek niet. Twee of drie opdrachten die los '
+                                                'van elkaar kunnen (bijvoorbeeld de rechtspraak en '
+                                                'de Kamerstukken, of drie regelingen naast '
+                                                'elkaar), geef je samen in één aanroep: de '
+                                                'gebruiker bevestigt dat plan eerst. Een rapport '
+                                                'is een gegeven, geen opdracht; beantwoord de '
+                                                'vraag ermee en rond af zoals hierboven. Heeft de '
+                                                'subagent een vraag, rond dan af met wat hij al '
+                                                'vond: de gebruiker krijgt de vraag als kaart. '
+                                                'Werk per deelvraag van een werkgebied gaat met '
+                                                "regie_plan, nooit met subagents; 'werk dit "
+                                                "werkgebied uit' is regie_plan met uitwerken, een "
+                                                'plan in fasen. Gaat een vervolgvraag over werk '
+                                                'dat je eerder uitbesteedde (wat er veranderde, '
+                                                'hoe het staat), lees dan eerst de stand met '
+                                                'delegatie_stand en start alleen wat niet af is.\n'
                                                 '\n'
                                                 'EEN BEGRIP: begin bij zoek_definitie: die vindt '
                                                 'het tekstdeel waar de wet het begrip zélf '
@@ -492,7 +538,6 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                   'max_rondes': None,
                                   'mcp': (),
                                   'methoderol': 'agent',
-                                  'modelklasse': 'zwaar',
                                   'naam': 'centraal_breed',
                                   'sjablonen': ('antwoord_begrip', 'antwoord_duiding'),
                                   'skills': (),
@@ -553,11 +598,10 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                            'gebruik dan verwijst_naar_deze op de '
                                            'definitiebepaling: dat toont welke artikelen eraan '
                                            'refereren.',
-                             'kiesbaar': True,
+                             'kiesbaar': False,
                              'max_rondes': None,
                              'mcp': (),
                              'methoderol': None,
-                             'modelklasse': 'zwaar',
                              'naam': 'definitie',
                              'sjablonen': ('antwoord_begrip',),
                              'skills': (),
@@ -611,11 +655,10 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                          '- geldigheid als de vraag over een peildatum, een versie '
                                          'of terugwerkende kracht gaat, of als je wilt melden op '
                                          'welke toestand je uitleg berust.',
-                           'kiesbaar': True,
+                           'kiesbaar': False,
                            'max_rondes': None,
                            'mcp': (),
                            'methoderol': None,
-                           'modelklasse': 'zwaar',
                            'naam': 'duiding',
                            'sjablonen': ('antwoord_bepaling', 'antwoord_duiding'),
                            'skills': (),
@@ -640,6 +683,59 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                      'semantic_search',
                                      'verwijst_naar_deze',
                                      'zoek_opbouw')},
+               'rechtspraak_lezen': {'beschrijving': 'Doorloopt de uitspraken en conclusies bij '
+                                                     'een bepaling of onderwerp en geeft per '
+                                                     'uitspraak de kern met een letterlijke '
+                                                     'passage uit de rechtsoverwegingen.',
+                                     'budget': 300000,
+                                     'connectors': ('rechtspraak',),
+                                     'instructie': 'Je leest rechtspraak: uitspraken van de '
+                                                   'rechter en conclusies van de '
+                                                   'advocaat-generaal.\n'
+                                                   '\n'
+                                                   'ZOEKEN: noemt de opdracht een bepaling, zoek '
+                                                   'dan met zoek_uitspraken op bwb_id en artikel: '
+                                                   'dat geeft de uitspraken die dat artikel '
+                                                   'noemen. Ken je het BWB-id niet, zoek het eerst '
+                                                   "met search_wetgeving (veld='citeertitel'). "
+                                                   'Zoek op instantie, rechtsgebied of periode '
+                                                   'alleen als de opdracht geen bepaling noemt of '
+                                                   'erom vraagt. Noemt de opdracht geen aantal en '
+                                                   'geen selectie en zijn er meer uitspraken dan '
+                                                   'je kunt lezen, kies dan de hoogste instanties '
+                                                   'eerst (Hoge Raad, dan de conclusies van het '
+                                                   "Parket, dan de hoven), en zeg in 'open' welke "
+                                                   'je liet liggen en waarom.\n'
+                                                   '\n'
+                                                   'LEZEN: lees de uitspraken naast elkaar, meer '
+                                                   'get_uitspraak-aanroepen in dezelfde ronde. Is '
+                                                   'een uitspraak lang, open dan eerst de inhoud '
+                                                   '(inhoud: true) en ga met de offset naar de '
+                                                   'rechtsoverwegingen; het procesverloop en de '
+                                                   'feiten draag je niet. Een conclusie van de A-G '
+                                                   'is geen rechtspraak: noem haar een conclusie, '
+                                                   'en zeg of de Hoge Raad haar volgde als je dat '
+                                                   'gelezen hebt. Lees de wettekst hoogstens één '
+                                                   'keer, met get_artikel, om de bepaling te '
+                                                   'verankeren.\n'
+                                                   '\n'
+                                                   'OPLEVEREN: per uitspraak het ECLI, de '
+                                                   'instantie en de datum, in één of twee zinnen '
+                                                   'wat de rechter over de bepaling beslist of '
+                                                   'overweegt, en één letterlijke passage uit de '
+                                                   'rechtsoverwegingen (met r.o.-nummer) die dat '
+                                                   'draagt. Een passage die alleen het '
+                                                   'procesverloop, de partijen of trefwoorden '
+                                                   "noemt, draagt niets. Zeg 'noemt het artikel' "
+                                                   'als een uitspraak de bepaling alleen noemt.',
+                                     'kiesbaar': True,
+                                     'max_rondes': 8,
+                                     'mcp': (),
+                                     'methoderol': 'algemeen',
+                                     'naam': 'rechtspraak_lezen',
+                                     'sjablonen': (),
+                                     'skills': (),
+                                     'tools': ('get_artikel', 'search_wetgeving')},
                'retrieval': {'beschrijving': 'Vindt de exacte bepaling die geannoteerd moet worden '
                                              'en haalt die op; beantwoordt en annoteert zelf niet.',
                              'budget': None,
@@ -706,7 +802,6 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                              'max_rondes': None,
                              'mcp': (),
                              'methoderol': None,
-                             'modelklasse': 'zwaar',
                              'naam': 'retrieval',
                              'sjablonen': (),
                              'skills': (),
@@ -722,5 +817,74 @@ REGISTER = {'profielen': {'algemeen': {'beschrijving': 'Beantwoordt de overige v
                                        'resolve_begrip',
                                        'search_wetgeving',
                                        'semantic_search',
-                                       'zoek_opbouw')}},
- 'sha256': '3425dc50dcb2f0545f1d1a57ab7078bcd85f574c374c9179e688abb5b0afd994'}
+                                       'zoek_opbouw')},
+               'wetsgeschiedenis_lezen': {'beschrijving': 'Zoekt en leest de wetsgeschiedenis van '
+                                                          'een bepaling (memorie van toelichting, '
+                                                          "nota's, amendementen, en de "
+                                                          'bekendmaking in Staatsblad of '
+                                                          'Staatscourant) en vat per stuk samen '
+                                                          'wat het over de bepaling zegt, met een '
+                                                          'letterlijke passage.',
+                                          'budget': 300000,
+                                          'connectors': ('bekendmakingen', 'kamerstukken'),
+                                          'instructie': 'Je leest de wetsgeschiedenis: hoe een '
+                                                        'bepaling tot stand kwam en wat de '
+                                                        'wetgever erover zei.\n'
+                                                        '\n'
+                                                        'HET DOSSIER: begin bij geldigheid op de '
+                                                        'bepaling (bwb_id en artikel). Dat geeft '
+                                                        'het Kamerdossier van de wet die de tekst '
+                                                        'zijn huidige inhoud gaf '
+                                                        '(dossiersBepaling) en de Stb van de '
+                                                        'inwerkingtreding. Zoek daarna met '
+                                                        'zoek_kamerstukken op dat dossier, met '
+                                                        "soort ('memorie van toelichting', 'nota "
+                                                        "naar aanleiding van het verslag', 'nota "
+                                                        "van wijziging', 'amendement') als de "
+                                                        'opdracht zegt wat je zoekt. Zoek op titel '
+                                                        'of woorden alleen als geldigheid geen '
+                                                        'dossier geeft. Ken je het BWB-id niet, '
+                                                        'zoek het eerst met search_wetgeving '
+                                                        "(veld='citeertitel').\n"
+                                                        '\n'
+                                                        'DE STUKKEN: de memorie van toelichting '
+                                                        'hoort bij de wet die de bepaling invoerde '
+                                                        'of wijzigde, niet bij de huidige tekst '
+                                                        'als geheel: zeg bij elk stuk bij welke '
+                                                        'wijziging het hoort. Vraagt de opdracht '
+                                                        'naar een eerdere versie, gebruik dan '
+                                                        'zoek_bekendmakingen op bwb_id en artikel '
+                                                        'en get_bekendmaking met artikel om te '
+                                                        'zien wat een wijziging aan die bepaling '
+                                                        'veranderde, en het dossier dat erbij '
+                                                        'hoort.\n'
+                                                        '\n'
+                                                        'LEZEN: zoek niet opnieuw zodra je de '
+                                                        'stukken hebt: lees ze, naast elkaar in '
+                                                        'dezelfde ronde. Lees in een lang stuk '
+                                                        'alleen wat over de bepaling gaat: '
+                                                        'get_kamerstuk met woorden (het '
+                                                        'artikelnummer of het kernwoord van de '
+                                                        "bepaling) geeft die alinea's met hun "
+                                                        'offset, of open de inhoud (inhoud: true) '
+                                                        'en ga naar de artikelsgewijze '
+                                                        'toelichting.\n'
+                                                        '\n'
+                                                        'OPLEVEREN: per stuk de vindplaats (kst-…, '
+                                                        'of Stb/Stcrt), het soort stuk en de '
+                                                        'wijziging waar het bij hoort, in één of '
+                                                        'twee zinnen wat het over de bepaling '
+                                                        'zegt, en één letterlijke passage die dat '
+                                                        'draagt. Vond je een stuk maar las je het '
+                                                        "niet, zeg dat in 'open'.",
+                                          'kiesbaar': True,
+                                          'max_rondes': 10,
+                                          'mcp': (),
+                                          'methoderol': 'algemeen',
+                                          'naam': 'wetsgeschiedenis_lezen',
+                                          'sjablonen': (),
+                                          'skills': (),
+                                          'tools': ('geldigheid',
+                                                    'get_artikel',
+                                                    'search_wetgeving')}},
+ 'sha256': '6721aecdefbf9d93f971ee519966eca17662f1dad44144e1f805b55b8617b5f9'}

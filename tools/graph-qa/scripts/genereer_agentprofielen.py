@@ -23,7 +23,7 @@ DOEL = ROOT / 'tools/graph-qa/agent/agentprofielen.py'
 
 def compileer(map_: Path = PROFIELEN) -> dict:
     """De profielen op naam, elk als de velden van `Agentprofiel`, met één hash over het geheel."""
-    profielen = {p.stem: uit_markdown(p.stem, p.read_text(encoding='utf-8')).model_dump() for p in sorted(map_.glob('*.md'))}
+    profielen = {p.stem: uit_markdown(p.stem, p.read_text(encoding='utf-8'), vast=True).model_dump() for p in sorted(map_.glob('*.md'))}
     if not profielen:
         raise ValueError(f'geen profielen in {map_}')
     return {'profielen': profielen, 'sha256': sha(json.dumps(profielen, sort_keys=True, ensure_ascii=False))}

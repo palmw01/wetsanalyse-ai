@@ -144,7 +144,7 @@ def test_f02_het_antwoord_maakt_de_vorige_opdracht_af():
     opdracht = route.aangevuld("De Invorderingswet 1990.", V01, regelingen)
     assert "artikel 30 van de Invorderingswet 1990" in opdracht and opdracht.endswith("over de rente zegt.")
     [(profiel, o)] = route.plan(opdracht, RECHTSPRAAK, regelingen)
-    assert profiel == "algemeen" and o.doel == opdracht
+    assert profiel == "rechtspraak_lezen" and o.doel == opdracht
     # Alleen een antwoord dat één regeling noemt, op een opdracht met een artikel zonder regeling.
     assert route.aangevuld("Ja, graag.", V01, regelingen) == ""
     assert route.aangevuld("De Invorderingswet 1990.", "Wat is invorderingsrente?", regelingen) == ""

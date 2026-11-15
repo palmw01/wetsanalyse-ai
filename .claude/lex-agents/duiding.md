@@ -1,5 +1,8 @@
 ---
 name: duiding
+# Een profiel van de routes in code (advies bij een markering, een genoemd stuk lezen), niet meer voor een subagent:
+# dat werk doet `bepalingen_duiden` (plan docs/architectuur/plan-agentprofielen.md).
+kiesbaar: false
 description: "Legt uit wat een bepaling betekent en hoe bepalingen samenhangen, onderbouwd met letterlijke passages."
 tools:
   - bijlagen

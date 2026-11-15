@@ -25,8 +25,8 @@ def test_de_lichte_klasse_en_haar_terugval():
 
 def test_alleen_een_subagent_draait_licht():
     s = make_settings(llm_model="zwaar-m", llm_model_licht="licht-m")
-    assert agent_voor("duiding", subagent=True).model(s) == "licht-m"
-    assert agent_voor("duiding").model(s) == "zwaar-m", "als specialist van de supervisor houdt een profiel zijn model"
+    assert agent_voor("bepalingen_duiden", subagent=True).model(s) == "licht-m"
+    assert agent_voor("bepalingen_duiden").model(s) == "zwaar-m", "als specialist van de supervisor houdt een profiel zijn model"
     assert agent_voor("centraal").model(s) == "zwaar-m", "de centrale agent blijft op zijn eigen model"
 
 
@@ -75,7 +75,7 @@ def test_het_model_van_het_kind_staat_in_regie_taak_en_in_de_meetsamenvatting():
 
     events = []
     kinderen, _, _ = _kinderen({"rapport": {"status": "klaar"}, "answer": "x", "source_trace": []})
-    asyncio.run(sub.voer_uit(STATE, "duiding", OPDRACHT, events.append,
+    asyncio.run(sub.voer_uit(STATE, "bepalingen_duiden", OPDRACHT, events.append,
                              settings=make_settings(llm_model="zwaar-m", llm_model_licht="licht-m"),
                              kinderen=kinderen, gestopt=lambda: False, api=Api()))
     [start] = [e for e in events if e["type"] == "regie_taak" and e["fase"] == "start"]
@@ -112,7 +112,7 @@ def test_het_eind_event_toont_het_model_dat_echt_draaide():
 
     events = []
     kinderen, _, _ = _kinderen({"rapport": {"status": "klaar"}, "answer": "x", "source_trace": [], "modellen": ["zwaar-m"]})
-    asyncio.run(sub.voer_uit(STATE, "duiding", OPDRACHT, events.append,
+    asyncio.run(sub.voer_uit(STATE, "bepalingen_duiden", OPDRACHT, events.append,
                              settings=make_settings(llm_model="zwaar-m", llm_model_licht="licht-m"),
                              kinderen=kinderen, gestopt=lambda: False, api=Api()))
     [eind] = [e for e in events if e["type"] == "regie_taak" and e["fase"] == "eind"]
