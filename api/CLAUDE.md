@@ -373,6 +373,10 @@ spoor D (*Werkgebied als node*).
   en een tweede `POST` met dezelfde id geeft hetzelfde werkgebied terug (unieke index
   `ux_werkgebieden_intake`; de race tussen replica's vangt de `IntegrityError`). Zonder `intake_id`
   is elk verzoek een nieuw werkgebied.
+- **Het gesprek komt mee** (15 nov 2026): graph-qa stuurt ook `gesprek_id`, en de api zet dat gesprek onder het nieuwe
+  werkgebied (`koppel_gesprek` in `werkgebieden.py`): alleen een eigen gesprek dat nog los staat, anders blijft het
+  zoals het is. Het veld wordt niet bij het werkgebied bewaard. Zo hangt de koppeling niet af van de werkplek in de
+  browser (een beurt via de acceptatie-MCP liet het gesprek los staan).
 - **Het dossier** (spoor F, F2): naast naam, analysevraag en afbakening draagt een werkgebied
   `aanleiding`, `context` en `doel` (startactiviteit a van de Leidraad) en een `praktijkvoorbeeld`
   (activiteit 1b), elk vrije tekst; wijzigen loopt door hetzelfde schrijfpad. Bij het aanmaken mogen

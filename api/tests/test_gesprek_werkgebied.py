@@ -99,3 +99,29 @@ async def test_andermans_gesprek_koppelen_kan_niet(client):
     await client.patch(f"{G}/{g['id']}", json={"werkgebied_id": wg["id"]})
     r = await client.get(G, params={"werkgebied_id": wg["id"]}, headers={"X-User-Id": "jurist-b"})
     assert r.json() == []
+
+
+# --- Het gesprek waarin Lex het werkgebied samenstelde (15 nov 2026) ----------------------------------------
+
+async def test_aanmaken_met_gesprek_koppelt_het_losse_gesprek(client):
+    g = await _gesprek(client)
+    r = await client.post("/v1/werkgebieden", json={"naam": "Rekeningafspraak", "intake_id": "i-1", "gesprek_id": g["id"]})
+    assert r.status_code == 201, r.text
+    wg = r.json()
+    assert "gesprek_id" not in wg
+    assert (await client.get(f"{G}/{g['id']}")).json()["werkgebied_id"] == wg["id"]
+
+
+async def test_een_gesprek_bij_een_ander_werkgebied_blijft_daar(client):
+    eerder = await _nieuw(client, "Eerder")
+    g = await _gesprek(client, werkgebied_id=eerder["id"])
+    r = await client.post("/v1/werkgebieden", json={"naam": "Nieuw", "gesprek_id": g["id"]})
+    assert r.status_code == 201
+    assert (await client.get(f"{G}/{g['id']}")).json()["werkgebied_id"] == eerder["id"]
+
+
+async def test_het_gesprek_van_een_ander_wordt_niet_gekoppeld(client):
+    g = (await client.post(G, json={"titel": "Van B"}, headers={"X-User-Id": "jurist-b"})).json()
+    r = await client.post("/v1/werkgebieden", json={"naam": "Van A", "gesprek_id": g["id"]})
+    assert r.status_code == 201
+    assert (await client.get(f"{G}/{g['id']}", headers={"X-User-Id": "jurist-b"})).json()["werkgebied_id"] == ""

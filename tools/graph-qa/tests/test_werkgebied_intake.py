@@ -1071,3 +1071,15 @@ def test_kies_een_thema_is_een_kaartje_met_het_voorstel_en_opslaan_stuurt_de_uri
     e = _aanvulbeurt(settings, FakeLLM([]), nep, "Sla het op.", opslaan)
     [ev] = [x for x in e if x["type"] == "werkgebied_wijzigen"]
     assert ev["wijziging"] == {"thema": BELASTING}
+
+
+
+def test_aanmaken_geeft_het_gesprek_mee():
+    """De api zet het gesprek onder het nieuwe werkgebied (15 nov 2026), zodat dat niet van de werkplek afhangt."""
+    import asyncio
+    from agent.beurt import _maak_werkgebied
+    api = NepApi()
+    wg = asyncio.run(_maak_werkgebied(api, {"werkgebied": {"naam": "R", "intake_id": "i-9", "deelvragen": []}}, "g-1"))
+    assert wg["gesprek_id"] == "g-1"
+    zonder = asyncio.run(_maak_werkgebied(api, {"werkgebied": {"naam": "S", "intake_id": "i-10", "deelvragen": []}}))
+    assert "gesprek_id" not in zonder
