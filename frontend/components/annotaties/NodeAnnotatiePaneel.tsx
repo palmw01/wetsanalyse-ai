@@ -1,5 +1,6 @@
 "use client";
 
+import { LaadStand } from "@/components/ui/LaadStand";
 import { ARTEFACT_SOORT_LABEL } from "@/lib/artefact";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -13,7 +14,6 @@ import { Dialog, type DialogVariant } from "@/components/ui/Dialog";
 import { Melding } from "@/components/ui/Melding";
 import { PaneelKop } from "@/components/ui/PaneelKop";
 import { VersieKiezer } from "@/components/ui/VersieKiezer";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { StandMelding } from "@/components/ui/StandMelding";
 import { AnnotatieKop, ArtefactInhoud } from "@/components/werkplek/ArtefactInhoud";
 import { foutTekst, type ExportFormaat } from "@/lib/api";
@@ -284,7 +284,9 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
   const inhoud = !view || !nb || !doc ? (
     <div data-artefact-schil className="flex min-h-0 flex-1 flex-col">
       <PaneelKop soort={ARTEFACT_SOORT_LABEL.annotatie} titel={view?.doel.label || doel.label || "Laden…"} onSluit={onSluit} onder={reeksBalk} />
-      <LaadStand fout={laadFout} onOpnieuw={() => void laad()} />
+      {/* De kop (met het kruisje op dezelfde plek) staat erboven, anders zit je op een smal scherm vast achter een
+          paneel dat niet opent. */}
+      <div className="min-h-0 flex-1 p-5"><LaadStand wat="De annotatie" skelet="tekst" fout={laadFout} onOpnieuw={() => void laad()} /></div>
     </div>
   ) : (
     <div data-artefact-schil className="flex min-h-0 flex-1 flex-col">
@@ -438,25 +440,3 @@ function NodeExtra({ view, doel, onKies, historie }: {
   );
 }
 
-/** Laden of niet geladen; de kop (met het kruisje op dezelfde plek) staat erboven in de paneelschil, anders zit je
- *  op een smal scherm vast achter een paneel dat niet opent. */
-function LaadStand({ fout, onOpnieuw }: { fout: string; onOpnieuw: () => void }) {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="space-y-3 p-5">
-        {fout ? (
-          <Melding type="fout" titel="Niet geladen">
-            {fout}{" "}
-            <button type="button" onClick={onOpnieuw} className="underline">Opnieuw proberen</button>
-          </Melding>
-        ) : (
-          <>
-            <Skeleton className="h-4 w-64" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-4 w-40" />
-          </>
-        )}
-      </div>
-    </div>
-  );
-}

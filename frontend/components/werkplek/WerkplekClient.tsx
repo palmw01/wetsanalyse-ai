@@ -21,7 +21,7 @@ import { WerkgebiedUitOverzicht } from "@/components/werkplek/WerkgebiedUitOverz
 import { annotatieDoelVan, artefactSleutel, bronselectieVanKaart, artefactKop, werkgebiedArtefactVan, type Artefact, type WerkgebiedArtefact } from "@/lib/artefact";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Suggestie, SuggestieRij } from "@/components/ui/Suggestie";
-import { Melding } from "@/components/ui/Melding";
+import { Melding, MeldingActie } from "@/components/ui/Melding";
 import { Zijpaneel } from "@/components/ui/Zijpaneel";
 import { PaneelTabsContext } from "@/components/ui/PaneelKop";
 import { TabRij } from "@/components/ui/Tabs";
@@ -1133,9 +1133,7 @@ export function WerkplekClient({
         <div className="shrink-0 px-4 py-2">
           <Melding type="uitleg" compact>
             {wgMelding}{" "}
-            <button type="button" className="focus-ring rounded font-medium text-lint underline" onClick={() => setWgMelding(null)}>
-              Sluiten
-            </button>
+            <MeldingActie onClick={() => setWgMelding(null)}>Sluiten</MeldingActie>
           </Melding>
         </div>
       )}
@@ -1188,13 +1186,7 @@ export function WerkplekClient({
           <Melding type={hydratieFout.weg ? "uitleg" : "fout"} compact>
             {hydratieFout.weg ? hydratieFout.melding : <>De eerdere berichten zijn niet geladen ({hydratieFout.melding}).</>}{" "}
             {!hydratieFout.weg && hydratieId && (
-              <button
-                type="button"
-                onClick={() => hydrateer(hydratieId)}
-                className="focus-ring rounded font-medium underline underline-offset-2"
-              >
-                Opnieuw proberen
-              </button>
+              <MeldingActie onClick={() => hydrateer(hydratieId)}>Opnieuw proberen</MeldingActie>
             )}
           </Melding>
         </div>
@@ -1222,16 +1214,10 @@ export function WerkplekClient({
             {zelfAanTeZetten(bronUit, connectorStand).map((b) => (
               <span key={b.naam} className="mr-3 inline-flex items-center gap-2">
                 {b.label} staat uit.
-                <button
-                  type="button"
-                  onClick={() => {
+                <MeldingActie onClick={() => {
                     zetGesprekConnectors(wisselConnector(connectorStand, b.naam));
                     setBronUit((nu) => nu.filter((x) => x.naam !== b.naam));
-                  }}
-                  className="focus-ring rounded font-medium underline underline-offset-2"
-                >
-                  Zet {b.label} aan
-                </button>
+                  }}>Zet {b.label} aan</MeldingActie>
               </span>
             ))}
             Stel je vraag daarna opnieuw.
@@ -1254,22 +1240,16 @@ export function WerkplekClient({
           <Melding type="waarschuwing" compact>
             De vorige vraag is afgebroken doordat de agent opnieuw is opgestart. Stel hem gerust nog
             een keer.{" "}
-            <button
-              type="button"
-              onClick={beurt.sluitRunVerdwenen}
-              className="focus-ring rounded font-medium underline underline-offset-2"
-            >
-              Sluiten
-            </button>
+            <MeldingActie onClick={beurt.sluitRunVerdwenen}>Sluiten</MeldingActie>
           </Melding>
         </div>
       )}
 
       {bewaarFout && (
-        <div role="status" className="shrink-0 border-b border-fout/30 bg-fout/10 px-4 py-2 text-center text-[0.8125rem] text-fout">
+        <Melding type="fout" strook>
           Dit gesprek wordt op dit moment niet bewaard ({bewaarFout}). Wat je hier ziet verdwijnt bij
           het herladen.
-        </div>
+        </Melding>
       )}
       {/* Thread – enige scrollende gebied; berichten in een gecentreerde leeskolom */}
       <div data-tour="thread" ref={lijstRef} onScroll={onThreadScroll} className="min-h-0 flex-1 overflow-y-auto">

@@ -1,5 +1,6 @@
 "use client";
 
+import { LaadStand } from "@/components/ui/LaadStand";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -7,9 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { MeerMenu, MenuKeuze, MenuKnop, MenuVerwijder } from "@/components/ui/MeerMenu";
 import { StatusLabel } from "@/components/ui/Lijst";
-import { Melding } from "@/components/ui/Melding";
+import { Melding, MeldingActie } from "@/components/ui/Melding";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
-import { SkeletonCard } from "@/components/ui/Skeleton";
 import { useOpenBron } from "@/components/werkplek/ContextPaneel";
 import { PeildatumRegel } from "@/components/werkgebieden/Peildatum";
 import type { Mutatie } from "@/components/werkgebieden/WerkgebiedProject";
@@ -121,9 +121,7 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
         {beheer.wg.bronnen.length > 0 && (
           <Melding type="uitleg" compact>
             De indeling per deelvraag is nu niet te laden; hieronder de bronnen van het werkgebied.{" "}
-            <button type="button" className="focus-ring rounded font-medium text-lint underline" onClick={() => setPoging((p) => p + 1)}>
-              Opnieuw proberen
-            </button>
+            <MeldingActie onClick={() => setPoging((p) => p + 1)}>Opnieuw proberen</MeldingActie>
           </Melding>
         )}
         <Groep kop="Bronnen" telling={bronnenZin(bronnen.length)} label="Bronnen" data-bronnen-groep="alle"
@@ -139,17 +137,7 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
       </div>
     );
   }
-  if (fout) {
-    return (
-      <Melding type="fout" titel="De bronnen per deelvraag konden niet worden geladen.">
-        {fout}{" "}
-        <button type="button" className="focus-ring rounded font-medium text-lint underline" onClick={() => setPoging((p) => p + 1)}>
-          Opnieuw proberen
-        </button>
-      </Melding>
-    );
-  }
-  if (!o) return <SkeletonCard regels={4} />;
+  if (fout || !o) return <LaadStand wat="De indeling per deelvraag" fout={fout} onOpnieuw={() => setPoging((p) => p + 1)} />;
 
   const beperkingen = zoekBeperkingen(o.zoekdekking);
   const huidig = huidigId || o.actief || "";
