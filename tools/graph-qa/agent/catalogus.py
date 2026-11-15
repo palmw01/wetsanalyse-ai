@@ -14,7 +14,6 @@ Of er een model aan te pas komt, wordt afgeleid, niet met de hand gezet:
 from __future__ import annotations
 
 import re
-import typing
 from dataclasses import replace
 from functools import cache
 from pathlib import Path
@@ -550,33 +549,16 @@ def uit_controles() -> list[Onderdeel]:
     return uit
 
 
-# --- de agentvorm: hoe een getypte vraag binnenkomt (ADR-016) ------------------------------------------------------------
+# --- de centrale agent en zijn overdrachten (ADR-016) -----------------------------------------------------------------
 #
-# Of de supervisor of de centrale agent een getypte vraag leest, zegt de vlag `CENTRALE_AGENT` (`Settings.centrale_agent`).
-# De catalogus zelf hangt niet van de straat af; `agentvorm(stand)` maakt er het blok van dat de werkplek bovenaan de
-# werkwijze toont, met de stand die de api uit de configuratie leest. Alles komt uit de registers: de overdrachten
-# (`overdracht.OVERDRACHT`), de profielen (`profielen.PROFIELEN`), de routes (`routes.ROUTES`), de acties en de
-# constanten van de subagents. `tests/test_catalogus_agentvorm.py` maakt een overdracht, een doelnode of een profiel
-# zonder plek hier rood.
+# Waar een overdracht van de centrale agent uitkomt en welke plek een profiel heeft, afgeleid uit de registers: de
+# overdrachten (`overdracht.OVERDRACHT`), de profielen (`profielen.PROFIELEN`) en de routes (`routes.ROUTES`).
+# `tests/test_catalogus_agentvorm.py` maakt een overdracht, een doelnode of een profiel zonder plek hier rood.
+# (Het blok *Hoe een vraag binnenkomt* van de werkwijze-pagina is weg, plan instellingen-aanpassingen.)
 
-#: De straatvlag van de centrale agent, met haar standen uit `Settings`.
+#: De straatvlag van de centrale agent.
 VLAG = "CENTRALE_AGENT"
 
-
-def standen() -> tuple[str, ...]:
-    from .config import Settings
-    return typing.get_args(typing.get_type_hints(Settings)["centrale_agent"])
-
-
-#: Wat elke stand betekent voor een getypte vraag (de routes in code gaan bij alle drie voor).
-STAND_TEKST: dict[str, str] = {
-    "uit": "De supervisor leest elke getypte vraag en kiest een specialist. De centrale agent en zijn subagents staan "
-           "uit; ook een run die erom vraagt, krijgt de supervisor.",
-    "meten": "De supervisor leest elke getypte vraag, tenzij de run om de centrale agent vraagt. Zo meten we beide "
-             "vormen op dezelfde code (ADR-016 §A6).",
-    "aan": "De centrale agent leest elke getypte vraag: hij beantwoordt haar zelf of geeft het werk aan een route of een "
-           "subagent. Zolang een vraagkaart van het samenstellen openstaat, leest de supervisor de beurt nog.",
-}
 
 #: Waar een overdracht uitkomt, per node van de graaf: het onderdeel van de catalogus dat die node uitvoert. De node
 #: `agent` staat er niet in: daar blijft de beurt bij een agent, en wat dat betekent zegt `_VIA_AGENT` per overdracht.
@@ -639,28 +621,17 @@ def _centraal_inhoud(naam: str) -> dict[str, Any]:
             "skills": {"tools": [LAAD_SKILL, LEES_SKILL], "methodes": [oid("methode", n) for n in _skillnamen()]}}
 
 
-#: Waar een profiel staat, met wat dat per stand van de vlag betekent. `profielplek` deelt elk profiel in.
+#: Waar een profiel staat. `profielplek` deelt elk profiel in; `ingang` gaat mee in de catalogus.
 PROFIELPLEK: dict[str, dict[str, Any]] = {
-    "centraal": {"label": "De centrale agent", "ingang": ("de vlag CENTRALE_AGENT (ADR-016 §A7)",),
-                 "stand": {"uit": "staat uit", "meten": "alleen als de run erom vraagt",
-                           "aan": "de ingang voor een getypte vraag"}},
+    "centraal": {"label": "De centrale agent", "ingang": ("de vlag CENTRALE_AGENT (ADR-016 §A7)",)},
     "centraal_breed": {"label": "De centrale agent met alle graaftools",
-                       "ingang": ("de overdracht meer_tools van het profiel centraal",),
-                       "stand": {"uit": "staat uit", "meten": "na meer_tools, als de run om de centrale agent vraagt",
-                                 "aan": "na meer_tools: dezelfde beurt, een ander voorvoegsel"}},
+                       "ingang": ("de overdracht meer_tools van het profiel centraal",)},
     "specialist": {"label": "Specialist van de supervisor, en profiel van een subagent",
                    "ingang": ("de supervisor kiest het (CENTRALE_AGENT uit of meten)",
-                              "de overdracht subagent van de centrale agent (een kiesbaar profiel)"),
-                   "stand": {"uit": "de supervisor kiest het voor een getypte vraag",
-                             "meten": "de supervisor kiest het; in een gemeten run het profiel van een subagent",
-                             "aan": "het profiel van een subagent; de supervisor kiest het niet meer"}},
-    "route": {"label": "Profiel van een route in code", "ingang": ("een route in code",),
-              "stand": {s: "een route in code kiest het, vóór de supervisor of de centrale agent"
-                        for s in ("uit", "meten", "aan")}},
-    "ophaal": {"label": "De ophaal-agent van de annotatieketen", "ingang": ("de annotatieketen en de regie",),
-               "stand": {s: "zoekt de bepaling bij een annotatievraag zonder aangewezen doel"
-                         for s in ("uit", "meten", "aan")}},
-    "onbekend": {"label": "Zonder plek in de werkwijze", "ingang": ("een route in code",), "stand": {}},
+                              "de overdracht subagent van de centrale agent (een kiesbaar profiel)")},
+    "route": {"label": "Profiel van een route in code", "ingang": ("een route in code",)},
+    "ophaal": {"label": "De ophaal-agent van de annotatieketen", "ingang": ("de annotatieketen en de regie",)},
+    "onbekend": {"label": "Zonder plek", "ingang": ("een route in code",)},
 }
 
 
@@ -761,36 +732,6 @@ def _regie_inhoud() -> dict[str, Any]:
     return {"als_tool": {"tool": REGIE_PLAN, "opdrachten": plan.invoer["opdracht"]["enum"],
                          "alleen_in_werkgebied": plan.werkgebied},
             "fasen": [r.split(". ", 1)[1].rstrip(";.") for r in FASEN_TEKST.splitlines() if r[:1].isdigit()]}
-
-
-def agentvorm(stand: str) -> dict[str, Any]:
-    """Hoe een getypte vraag op deze straat binnenkomt, en wat er altijd in code blijft. `stand` komt uit de
-    configuratie (`Settings.centrale_agent`); een onbekende stand is een fout."""
-    from .models import ACTIE_TAAK, BRONSELECTIE_ACTIES, INTAKE_ACTIES, REGIE_ACTIES
-    from .routes import ROUTES
-    if stand not in standen():
-        raise ValueError(f"onbekende stand van {VLAG}: {stand!r}")
-    return {
-        "vlag": VLAG, "stand": stand, "standen": {s: STAND_TEKST[s] for s in standen()},
-        "ingang": oid("agentprofiel", CENTRAAL) if stand == "aan" else oid("rol", "supervisor"),
-        "centrale_agent": oid("agentprofiel", CENTRAAL), "subagents": "workflow/subagent", "regie": "workflow/regie",
-        "altijd_in_code": [
-            {"wat": "Een klik met een actie", "aantal": len(ACTIE_TAAK) + len(REGIE_ACTIES),
-             "uitleg": "een suggestie of commando met een actie kiest zonder model een agent en een taak"},
-            {"wat": "Een vraagkaart", "aantal": len(INTAKE_ACTIES) + len(BRONSELECTIE_ACTIES),
-             "uitleg": "een antwoord op een vraagkaart gaat naar de volgende stap van het samenstellen of de "
-                       "bronselectie"},
-            {"wat": "Een route in code", "aantal": len(ROUTES),
-             "uitleg": "een herkenbare vraag gaat zonder model naar haar keten, vóór de supervisor of de centrale agent"},
-        ],
-        "profielen": [{"id": oid("agentprofiel", n), "plek": profielplek(n),
-                       "label": PROFIELPLEK[profielplek(n) or "onbekend"]["label"],
-                       "nu": PROFIELPLEK[profielplek(n) or "onbekend"]["stand"].get(stand, "")}
-                      for n in profielen.PROFIELEN],
-        "vooruitblik": "Na de eindmeting (ADR-016 §A6) beslist de eigenaar of aan de standaard wordt. Wint de centrale "
-                       "agent, dan vervallen de supervisor en zijn keuze van een specialist (§A7); de specialisten "
-                       "blijven dan als profiel van een subagent.",
-    }
 
 
 def _met_overdrachten(alle: list[Onderdeel]) -> list[Onderdeel]:
