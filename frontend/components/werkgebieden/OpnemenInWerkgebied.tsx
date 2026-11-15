@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -78,7 +79,7 @@ function Keuze({ bronIri }: { bronIri: string }) {
       {lijst === null ? (
         <p className="text-xs text-muted">Werkgebieden laden…</p>
       ) : lijst.length === 0 ? (
-        <p className="text-xs text-muted">Nog geen werkgebieden.</p>
+        <Leeg klein>Nog geen werkgebieden.</Leeg>
       ) : (
         <ul className="max-h-60 space-y-1 overflow-y-auto" aria-label="Werkgebieden">
           {lijst.map((wg) => (

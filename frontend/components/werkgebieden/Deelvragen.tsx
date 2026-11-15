@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -73,9 +74,9 @@ export function Deelvragen({ wg, muteer, onOnbewaard }: {
           ))}
         </Lijst>
       ) : (
-        <p className="text-sm text-muted" data-geen-deelvragen>
+        <Leeg data-geen-deelvragen>
           Nog geen deelvragen. Voeg ze toe met <em>Bewerken</em>, of vraag Lex in het gesprek om ze voor te stellen.
-        </p>
+        </Leeg>
       )}
     </Sectie>
   );

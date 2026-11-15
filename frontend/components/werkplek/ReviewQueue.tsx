@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import type { Onderwerp } from "@/lib/vraagLex";
 import { BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
@@ -687,9 +688,9 @@ export function ReviewQueue({
       </div>
 
       {getoond.length === 0 && (
-        <p className="rounded-kaart border border-dashed border-line px-3 py-4 text-center text-xs text-muted">
+        <Leeg kader klein>
           Geen elementen in deze selectie.
-        </p>
+        </Leeg>
       )}
 
       {getoond.map((el) => (

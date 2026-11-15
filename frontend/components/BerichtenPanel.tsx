@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { InstellingenLink } from "@/components/instellingen/InstellingenLink";
 import {
@@ -159,7 +160,7 @@ export function BerichtenPanel({ positie, containerClassName }: { positie?: stri
         </div>
       )}
       {!laden && berichten !== null && berichten.length === 0 && (
-        <p className="px-4 py-4 text-sm text-muted">Geen nieuwe berichten.</p>
+        <Leeg className="px-4 py-4">Geen nieuwe berichten.</Leeg>
       )}
       {!laden && berichten !== null && berichten.length > 0 && (
         <div>

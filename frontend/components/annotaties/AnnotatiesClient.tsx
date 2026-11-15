@@ -1,5 +1,7 @@
 "use client";
 
+import { OverzichtRaster, OverzichtSkelet } from "@/components/ui/Pagina";
+import { Leeg } from "@/components/ui/Leeg";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -8,7 +10,6 @@ import { AppSidebar } from "@/components/werkplek/AppSidebar";
 import { MobieleTopbar } from "@/components/werkplek/MobieleTopbar";
 import { Melding } from "@/components/ui/Melding";
 import { OverzichtBalk } from "@/components/ui/OverzichtBalk";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { SkipLink, HOOFDINHOUD_ID } from "@/components/ui/SkipLink";
 import { foutTekst, isApiError, lijstLagen } from "@/lib/api";
 import { verwijderAnnotatie } from "@/lib/annotatieNode";
@@ -129,29 +130,19 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
             )}
 
             {docs === null ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="space-y-3 rounded-kaart border border-line bg-paper shadow-zacht p-4">
-                    <Skeleton className="h-4 w-48" />
-                    <Skeleton className="h-1.5 w-full" />
-                    <Skeleton className="h-3 w-64" />
-                  </div>
-                ))}
-              </div>
+              <OverzichtSkelet />
             ) : alles.length === 0 ? (
-              <p className="text-sm text-muted">
-                Nog geen annotaties. Vraag Lex in de werkplek om een artikel te annoteren.
-              </p>
+              <Leeg kader>Nog geen annotaties. Vraag Lex in de werkplek om een artikel te annoteren.</Leeg>
             ) : getoond.length === 0 ? (
-              <p className="rounded-kaart border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
+              <Leeg kader>
                 {term.trim() ? "Geen annotatie die hierop past." : legeWeergave(weergave)}
-              </p>
+              </Leeg>
             ) : weergave === "te-beoordelen" ? (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <OverzichtRaster>
                 {sorteerTeBeoordelen(getoond).map((d) => (
                   <AnnotatieKaart key={d.slug} doc={d} onVerwijder={() => verwijder(d)} />
                 ))}
-              </div>
+              </OverzichtRaster>
             ) : (
               <div className="space-y-6">
                 {groepeerPerRegeling(getoond).map((regeling) => (
@@ -164,11 +155,11 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
                         {regeling.documenten.length}
                       </span>
                     </div>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <OverzichtRaster>
                       {regeling.documenten.map((d) => (
                         <AnnotatieKaart key={d.slug} doc={d} onVerwijder={() => verwijder(d)} />
                       ))}
-                    </div>
+                    </OverzichtRaster>
                   </section>
                 ))}
               </div>

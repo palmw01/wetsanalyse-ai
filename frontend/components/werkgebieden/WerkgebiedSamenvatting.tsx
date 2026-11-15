@@ -1,5 +1,6 @@
 "use client";
 
+import { LeegWaarde } from "@/components/ui/Leeg";
 import Link from "next/link";
 import { useContext } from "react";
 
@@ -53,7 +54,7 @@ export function WerkgebiedSamenvatting({ wg, bronselectie, className = "" }: {
       <Regel naam="Regelingen" data-dossier-veld="regelingen">
         {(wg.regelingen ?? []).length
           ? <ul className="space-y-0.5">{(wg.regelingen ?? []).map((r) => <li key={r.bwb_id}>{r.label || r.bwb_id}</li>)}</ul>
-          : <span className="text-muted">Nog geen regelingen.</span>}
+          : <LeegWaarde>Nog geen regelingen.</LeegWaarde>}
       </Regel>
       {/* Spoor I6: het TOOI-thema, als het gekozen is; kiezen gaat in *Gegevens bewerken*. */}
       {wg.thema && (
@@ -87,7 +88,7 @@ export function WerkgebiedSamenvatting({ wg, bronselectie, className = "" }: {
             {selectie?.modus === "deelvragen" && <p className="mt-1.5 text-xs text-muted">{voortgangZin(selectie)}</p>}
           </>
         ) : (
-          <span className="text-muted">Nog geen deelvragen.</span>
+          <LeegWaarde>Nog geen deelvragen.</LeegWaarde>
         )}
       </Regel>
       {/* Eén regel, geen tweede lijst (spoor K): de bronnen staan per deelvraag op de tab Bronnen. */}
@@ -98,7 +99,7 @@ export function WerkgebiedSamenvatting({ wg, bronselectie, className = "" }: {
             {analyse.length < wg.bronnen.length ? ` (${wg.bronnen.length - analyse.length} context)` : ""}
           </Link>
         ) : (
-          <span className="text-muted">Nog geen bronnen.</span>
+          <LeegWaarde>Nog geen bronnen.</LeegWaarde>
         )}
       </Regel>
     </Regels>

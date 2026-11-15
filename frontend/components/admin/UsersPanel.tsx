@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { useCallback, useEffect, useState } from "react";
 import { BewerkVoet } from "@/components/ui/Bewerkbaar";
 import { Button } from "@/components/ui/Button";
@@ -210,7 +211,7 @@ export function UsersPanel() {
       {users === null ? (
         <SkeletonCard regels={2} />
       ) : users.length === 0 ? (
-        <p className="text-sm text-muted">Nog geen gebruikers.</p>
+        <Leeg>Nog geen gebruikers.</Leeg>
       ) : (
         <div className="space-y-3">
           {users.map((u) => (

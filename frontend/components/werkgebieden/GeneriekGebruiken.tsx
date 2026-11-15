@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -64,7 +65,7 @@ export function GeneriekGebruiken({ id, gebruikt, onSluit }: {
             aria-label="Zoeken in de generieke begrippen" placeholder="Zoek op naam, term of definitie" />
           {fout && <Melding type="fout" compact>{fout}</Melding>}
           {rijen === null && !fout ? <p className="text-xs text-muted">Laden…</p>
-            : getoond.length === 0 ? <p className="text-sm text-muted">Geen generiek begrip gevonden.</p> : (
+            : getoond.length === 0 ? <Leeg>Geen generiek begrip gevonden.</Leeg> : (
               <Lijst label="Generieke begrippen">
                 {getoond.map((b) => (
                   <LijstRij key={b.id} titel={b.naam} meta={b.definitie ? kort(b.definitie, 140) : "Nog geen definitie."}

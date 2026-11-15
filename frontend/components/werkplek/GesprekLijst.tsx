@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { LaadStand } from "@/components/ui/LaadStand";
 import { useEffect, useMemo, useState } from "react";
 
@@ -164,7 +165,7 @@ export function GesprekLijst({ gesprekken, stand, activeId, onNieuwInWerkgebied,
   return (
     <div className="flex flex-col" data-gesprekken>
       {gesprekken.length === 0 && !archiefLijst?.length ? (
-        <p className="px-2 py-3 text-xs text-muted">Nog geen gesprekken.</p>
+        <Leeg klein className="px-2 py-3">Nog geen gesprekken.</Leeg>
       ) : (
         <>
           {indeling.werkgebieden.length > 0 && (

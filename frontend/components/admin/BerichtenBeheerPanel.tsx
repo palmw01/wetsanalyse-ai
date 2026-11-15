@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { BevestigKnop } from "@/components/ui/BevestigKnop";
 import { useCallback, useEffect, useState } from "react";
 import { Button, KNOP_GEVAAR, KNOP_GEVAAR_SCHERP } from "@/components/ui/Button";
@@ -103,7 +104,7 @@ export function BerichtenBeheerPanel() {
       {data === null && <SkeletonCard regels={2} />}
 
       {data !== null && data.items.length === 0 && (
-        <p className="text-sm text-muted">Nog geen berichten.</p>
+        <Leeg>Nog geen berichten.</Leeg>
       )}
 
       {data !== null && data.items.length > 0 && (

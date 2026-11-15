@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { ARTEFACT_SOORT_LABEL } from "@/lib/artefact";
 import { annotatieAlsMarkdown } from "@/lib/artefactMarkdown";
 import { PaneelKop } from "@/components/ui/PaneelKop";
@@ -382,9 +383,9 @@ export function ArtefactInhoud({
             />
           ) : (
             // De lege stand wijst de weg (ontdubbelen PR 5): *Vraag Lex* in de kop biedt *Annoteer dit …* aan.
-            <p className="text-sm text-muted" data-leeg-annotatie>
+            <Leeg data-leeg-annotatie>
               Nog geen markeringen. {kopVraag ? "Vraag Lex (in de kop) om dit te annoteren, of selecteer zelf tekst." : "Selecteer tekst om zelf te markeren."}
-            </p>
+            </Leeg>
           )}
           {historie.length > 0 && <Historie elementen={historie} />}
           {extra}

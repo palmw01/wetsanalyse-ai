@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
@@ -107,7 +108,7 @@ function Verplaats({ huidig, onKies, onTerug }: { huidig: string; onKies: (id: s
       <p className="px-2.5 pb-1 pt-1.5 text-xs font-medium text-muted">Naar welk werkgebied?</p>
       {fout && <p className="px-2.5 py-1.5 text-xs text-fout">De werkgebieden zijn niet geladen.</p>}
       {!fout && lijst === null && <p className="px-2.5 py-1.5 text-xs text-muted">Laden…</p>}
-      {lijst?.length === 0 && <p className="px-2.5 py-1.5 text-xs text-muted">Geen ander werkgebied.</p>}
+      {lijst?.length === 0 && <Leeg klein className="px-2.5 py-1.5">Geen ander werkgebied.</Leeg>}
       <ul className="max-h-60 overflow-y-auto">
         {lijst?.map((w) => (
           <li key={w.id}>

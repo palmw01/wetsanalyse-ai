@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { useCallback, useEffect, useState } from "react";
 
 import { BewerkVoet } from "@/components/ui/Bewerkbaar";
@@ -103,7 +104,7 @@ export function BegripRelaties({ id, begrip, andere, onGewijzigd, onNaarBegrip, 
               onWeg={() => doe(() => verwijderRelatie(id, r.id), "Relatie verwijderd.")} />
           ))}
         </Lijst>
-      ) : !voorstellen.length && <p className="text-sm text-muted">Nog geen relaties met andere begrippen.</p>}
+      ) : !voorstellen.length && <Leeg>Nog geen relaties met andere begrippen.</Leeg>}
       {afgewezen.length > 0 && (
         <details className="text-xs text-muted">
           <summary className="focus-ring cursor-pointer rounded">Afgewezen voorstellen ({afgewezen.length})</summary>

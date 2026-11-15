@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { KNOP_XS } from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -30,7 +31,7 @@ export function SamenhangTab({ wg, muteer, onKiesBegrip }: {
   onKiesBegrip?: (begripId: string) => void;
 }) {
   if (wg.bronnen.length === 0)
-    return <p className="text-sm text-muted">Nog geen bronnen, dus nog geen samenhang. Neem eerst een bepaling op.</p>;
+    return <Leeg kader>Nog geen bronnen, dus nog geen samenhang. Neem eerst een bepaling op.</Leeg>;
   // Opnieuw laden als de verzameling bronnen verandert; een andere rol of reden verandert de kaart niet.
   const sleutel = wg.bronnen.map((b) => `${b.bron_iri}:${b.bereik}`).sort().join("|");
   return <SamenhangGraaf key={sleutel} wg={wg} muteer={muteer} onKiesBegrip={onKiesBegrip} />;

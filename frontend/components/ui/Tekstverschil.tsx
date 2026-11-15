@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { useMemo, useState } from "react";
 
 import { blokken, tekstverschil, verschilZin, type VerschilRegel } from "@/lib/tekstverschil";
@@ -26,7 +27,7 @@ export function Tekstverschil({ oud, nieuw, label }: {
   const delen = useMemo(() => blokken(verschil.regels), [verschil]);
   const [open, setOpen] = useState<ReadonlySet<number>>(new Set());
 
-  if (!verschil.erbij && !verschil.weg) return <p className="text-sm text-muted" data-verschil="geen">Geen verschil in dit bestand.</p>;
+  if (!verschil.erbij && !verschil.weg) return <Leeg data-verschil="geen">Geen verschil in dit bestand.</Leeg>;
   return (
     <div role="group" aria-label={label} data-verschil={`${verschil.erbij}+${verschil.weg}`}>
       <p className="mb-2 text-xs text-muted">{verschilZin(verschil)}{verschil.grof && " · te lang om regel voor regel te vergelijken: het gewijzigde deel staat als één blok"}</p>

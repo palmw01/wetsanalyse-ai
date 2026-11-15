@@ -1,5 +1,6 @@
 "use client";
 
+import { LeegWaarde } from "@/components/ui/Leeg";
 import Link from "next/link";
 
 import { StatusLabel } from "@/components/ui/Lijst";
@@ -43,7 +44,7 @@ export function OverzichtTab() {
           <Kaart titel="Analyseopdracht" meer={{ href: artefactPad(wg.id, "dossier"), label: "Dossier" }} data-kaart="analyseopdracht">
             <p className="mb-3 rounded-md border-l-4 border-lint bg-lint/5 px-3 py-2.5 text-[0.95rem] font-medium leading-relaxed text-ink"
               data-analysevraag>
-              {wg.analysevraag.trim() || <span className="font-normal text-muted">Nog geen analysevraag.</span>}
+              {wg.analysevraag.trim() || <LeegWaarde>Nog geen analysevraag.</LeegWaarde>}
             </p>
             <dl className="divide-y divide-line text-sm">
               {([["aanleiding", "Aanleiding"], ["context", "Context"], ["doel", "Doel"]] as const).map(([veld, label]) => (
