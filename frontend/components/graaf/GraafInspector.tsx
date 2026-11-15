@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import type { Onderwerp } from "@/lib/vraagLex";
@@ -79,7 +80,7 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
             <button type="button" onClick={() => onKies(d)} className="focus-ring flex w-full items-baseline gap-2 rounded px-1 py-0.5 text-left text-xs hover:bg-surface coarse:min-h-11">
               <span className="mt-1 h-2 w-2 shrink-0 self-start rounded-full border border-black/10" style={{ background: eigenKleur(a) }} />
               <span className="truncate text-lint">{a.naam}</span>
-              {n > 0 && <span className="shrink-0 text-faint">{n === 1 ? "1 markering" : `${n} markeringen`}</span>}
+              {n > 0 && <span className="shrink-0 text-faint">{aantal(n, "markering", "markeringen")}</span>}
             </button>
           </li>; })}
         </ul>

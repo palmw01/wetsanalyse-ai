@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
@@ -210,7 +211,7 @@ function VerbruikBlok({ c }: { c: Contextopbouw }) {
           {c.verbruik.map((v) => (
             <li key={v.rol} className="flex items-baseline gap-2 py-1.5">
               <span className="min-w-0 flex-1 text-ink">{rolLabel(v.rol)}
-                <span className="block text-xs text-muted">{v.aanroepen === 1 ? "1 aanroep" : `${v.aanroepen} aanroepen`}</span></span>
+                <span className="block text-xs text-muted">{aantal(v.aanroepen, "aanroep", "aanroepen")}</span></span>
               <span className="shrink-0 tabular-nums text-muted">{kort(totaalVerbruik(v))}</span>
             </li>
           ))}

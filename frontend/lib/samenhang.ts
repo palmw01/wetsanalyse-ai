@@ -1,4 +1,5 @@
 import { veiligDecoderen } from "./url";
+import { aantal } from "./aantal";
 import { nodeRequest, type NodeDoel } from "./annotatieNode";
 
 /** Het antwoord van `GET /v1/annotatie/samenhang` (api/app/samenhang.py). */
@@ -238,7 +239,6 @@ export function isDeelCluster(d: Samenhang): boolean {
  *  "7 delen en 1 artikel" (een deel – hoofdstuk, afdeling – toont de api met zijn artikelen). */
 export function clusterOmschrijving(delen: readonly Samenhang[]): string {
   const n = delen.filter(isDeelCluster).length, m = delen.length - n;
-  const stuk = (x: number, een: string, meer: string) => `${x} ${x === 1 ? een : meer}`;
-  if (!n) return stuk(m, "artikel", "artikelen");
-  return stuk(n, "deel", "delen") + (m ? ` en ${stuk(m, "artikel", "artikelen")}` : "");
+  if (!n) return aantal(m, "artikel", "artikelen");
+  return aantal(n, "deel", "delen") + (m ? ` en ${aantal(m, "artikel", "artikelen")}` : "");
 }

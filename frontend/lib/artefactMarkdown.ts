@@ -3,6 +3,7 @@
 // (besluit gebruiker). Pure functies, zodat ze zonder DOM te testen zijn (lib/artefactMarkdown.test.ts); de vorm
 // volgt `overzichtAlsMarkdown` (lib/overzicht.ts).
 
+import { aantal } from "./aantal";
 import { OORDEEL_LABEL, definitieAard } from "./begrippen";
 import { BEWIJS_LABEL, STAND_LABEL, VOORTGANG_LABEL, zoekvraagZin, type BronselectieOverzicht, type DeelvraagSelectie } from "./bronselectie";
 import { jasVolgorde, klasseLabel } from "./jas";
@@ -109,6 +110,6 @@ export function voorstellenAlsMarkdown(titel: string, termen: readonly { naam: s
   const regels = [`# ${titel}`, ""];
   if (!termen.length) regels.push("Geen voorstellen.");
   for (const t of termen)
-    regels.push(`- ${t.naam} (${t.passages === 1 ? "1 passage" : `${t.passages} passages`}${t.open.length ? ", te beoordelen" : ", beoordeeld"})`);
+    regels.push(`- ${t.naam} (${aantal(t.passages, "passage", "passages")}${t.open.length ? ", te beoordelen" : ", beoordeeld"})`);
   return `${regels.join("\n")}\n`;
 }

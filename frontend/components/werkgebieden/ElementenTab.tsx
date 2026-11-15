@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { Leeg } from "@/components/ui/Leeg";
 import { LaadStand } from "@/components/ui/LaadStand";
 import Link from "next/link";
@@ -132,8 +133,8 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
       )}
 
       <p className="text-sm text-ink">
-        {inv.elementen.length === 1 ? "1 element" : `${inv.elementen.length} elementen`} in{" "}
-        {inv.selecties.length === 1 ? "1 bron" : `${inv.selecties.length} bronnen`} ·{" "}
+        {aantal(inv.elementen.length, "element", "elementen")} in{" "}
+        {aantal(inv.selecties.length, "bron", "bronnen")} ·{" "}
         {beoordeeld} van {totaal} in de werkvoorraad beoordeeld
       </p>
 
@@ -262,7 +263,7 @@ function DekkingBalk({ dekking: d }: { dekking: Dekking }) {
       </ul>
       {d.nieuw_sinds_run > 0 && (
         <p className="mt-1 text-xs text-aandacht-geel-tekst">
-          {d.nieuw_sinds_run === 1 ? "1 element zag" : `${d.nieuw_sinds_run} elementen zagen`} de laatste
+          {aantal(d.nieuw_sinds_run, "element zag", "elementen zagen")} de laatste
           begrippenronde van Lex nog niet; vraag Lex in het gesprek opnieuw om voorstellen.
         </p>
       )}
@@ -391,11 +392,11 @@ function SelectieBalk({ id, selectie, begrippen, onWis, onKlaar, onBuiten }: {
     }
   }
 
-  const aantal = selectie.length === 1 ? "1 element" : `${selectie.length} elementen`;
+  const gekozen = aantal(selectie.length, "element", "elementen");
   return (
     <section aria-label="Gekozen elementen" className="sticky top-0 z-10 space-y-3 rounded-kaart border border-lint bg-paper p-3 shadow-kaart">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-lint">{aantal} gekozen</p>
+        <p className="text-sm font-medium text-lint">{gekozen} gekozen</p>
         <button type="button" onClick={onWis} className="focus-ring rounded text-xs text-muted underline hover:text-ink">
           Selectie wissen
         </button>

@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { NodeAnnotatiePaneel } from "@/components/annotaties/NodeAnnotatiePaneel";
 import { bronDoel } from "@/lib/samenhang";
 import { vindplaatsTekst } from "@/lib/herkomst";
@@ -1146,7 +1147,7 @@ export function WerkplekClient({
             if (t) laad(t.inhoud);
           }}
           className="focus-ring flex w-full shrink-0 items-center gap-2 border-b border-line bg-surface px-4 py-2 text-left text-xs text-muted transition hover:bg-surface-2">
-          <span className="truncate"><span className="font-medium text-ink">Paneel</span> · {tabStand.tabs.length === 1 ? "1 open" : `${tabStand.tabs.length} open`}</span>
+          <span className="truncate"><span className="font-medium text-ink">Paneel</span> · {aantal(tabStand.tabs.length, "open", "open")}</span>
           <span className="ml-auto shrink-0 font-medium text-lint">Openen</span>
         </button>
       )}

@@ -33,6 +33,7 @@ import {
   doelVanKandidaat, kandidaatLabel, kandidaatPrompt,
 } from "@/lib/annotatie";
 import type { NodeDoel } from "@/lib/annotatieNode";
+import { aantal } from "@/lib/aantal";
 import { ARTEFACT_SOORT_LABEL, artefactKop, isTeOpenen, type Artefact } from "@/lib/artefact";
 import { doelenVanKandidaten, reeksPrompt } from "@/lib/reeks";
 import { kaartenVan, normaliseerBronnen, zonderKaarten } from "@/lib/bronnen";
@@ -285,7 +286,7 @@ function OverzichtKaartje({ overzicht, onOpen }: { overzicht: Overzicht; onOpen:
   const n = t.bepalingen + t.ookGenoemd;
   return (
     <PaneelChip titel={`Overzicht: ${overzicht.gevraagd}`} icoon={<GraafIcoon />} onClick={onOpen} data-testid="overzicht-kaartje"
-      sub={`${t.regelingen === 1 ? "1 regeling" : `${t.regelingen} regelingen`} · ${n === 1 ? "1 bepaling" : `${n} bepalingen`}`} />
+      sub={`${aantal(t.regelingen, "regeling", "regelingen")} · ${aantal(n, "bepaling", "bepalingen")}`} />
   );
 }
 

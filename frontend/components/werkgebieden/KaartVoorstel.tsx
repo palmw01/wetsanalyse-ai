@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { useState } from "react";
 
@@ -92,7 +93,7 @@ export function KaartVoorstelKaart({ v, verouderd, onbewaard, geaccordeerd, onOv
       {duidingTekst(v) && <p className="text-xs text-muted">{duidingTekst(v)}</p>}
       {v.motivatie && <p className="text-xs text-muted">{v.motivatie}</p>}
       {w.fragmenten && w.fragmenten.length > 0 && (
-        <Uitklap samenvatting={<>Rust op {w.fragmenten.length === 1 ? "1 fragment" : `${w.fragmenten.length} fragmenten`} uit de bron</>}>
+        <Uitklap samenvatting={<>Rust op {aantal(w.fragmenten.length, "fragment", "fragmenten")} uit de bron</>}>
           <ul className="mt-1 list-disc space-y-0.5 pl-5 text-ink">
             {w.fragmenten.map((f) => <li key={f.id}>“{f.tekst}”</li>)}
           </ul>

@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { datumTijd } from "@/lib/datum";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { Leeg, LeegWaarde } from "@/components/ui/Leeg";
@@ -540,7 +541,7 @@ function Historie({ stand: { api }, begrip }: { stand: BegripStand; begrip: Begr
 
   return (
     <Uitklap vorm="kader"
-      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)} samenvatting={<>Historie <span className="font-normal text-faint">({begrip.revisie} {begrip.revisie === 1 ? "revisie" : "revisies"})</span></>}>
+      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)} samenvatting={<>Historie <span className="font-normal text-faint">({aantal(begrip.revisie, "revisie", "revisies")})</span></>}>
       {fout ? (
         <p className="mt-2 text-xs text-aandacht-rood-tekst">{fout}</p>
       ) : !revisies ? (
@@ -635,7 +636,7 @@ function GebruiktIn({ begrip }: { begrip: Begrip }) {
     <BegripBlok weergave="pagina" titel="Gebruikt in" telling={gebruik.length} data-blok="gebruik">
       <ObjectRijen label="Werkgebieden die dit begrip gebruiken" leeg="Nog in geen enkel werkgebied.">
         {gebruik.map((g) => <ObjectRij key={g.werkgebied_id} href={projectPad(g.werkgebied_id)} titel={g.naam}
-          sub={g.passages === 1 ? "1 passage" : `${g.passages} passages`} />)}
+          sub={aantal(g.passages, "passage", "passages")} />)}
       </ObjectRijen>
     </BegripBlok>
   );

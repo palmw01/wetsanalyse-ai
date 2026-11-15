@@ -3,6 +3,7 @@
 // De api rekent wat er veranderde (toen, nu, bronsignalen, opvolgers); hier staat alleen hoe de werkplek
 // dat noemt en ordent. Een signaal heeft een richting en wordt nooit tot een score opgeteld.
 
+import { aantal } from "./aantal";
 import type { Dekking, DekkingStand, GeraakteKoppeling, Herbeoordelingen, Richting } from "./types";
 
 /** Is dit een herbeoordelingsantwoord? Een ander antwoord (een oudere api, een storing) mag de tab
@@ -41,8 +42,8 @@ export function geraakteBegrippen(h: Herbeoordelingen | null): Map<string, { pas
 
 export function herbeoordelingZin(passages: number, relaties = 0): string {
   const delen = [
-    passages ? (passages === 1 ? "1 passage veranderde" : `${passages} passages veranderden`) : "",
-    relaties ? (relaties === 1 ? "1 relatie vraagt aandacht" : `${relaties} relaties vragen aandacht`) : "",
+    passages ? (aantal(passages, "passage veranderde", "passages veranderden")) : "",
+    relaties ? (aantal(relaties, "relatie vraagt aandacht", "relaties vragen aandacht")) : "",
   ].filter(Boolean);
   return delen.join(", ");
 }
@@ -51,7 +52,7 @@ export function herbeoordelingZin(passages: number, relaties = 0): string {
 export function strookKop(h: Herbeoordelingen): string {
   const passages = h.begrippen.reduce((n, b) => n + b.koppelingen.length, 0);
   const relaties = h.begrippen.reduce((n, b) => n + (b.relaties?.length ?? 0), 0);
-  const begrippen = h.begrippen.length === 1 ? "1 begrip" : `${h.begrippen.length} begrippen`;
+  const begrippen = aantal(h.begrippen.length, "begrip", "begrippen");
   return `${begrippen} herbeoordelen · ${herbeoordelingZin(passages, relaties)}`;
 }
 

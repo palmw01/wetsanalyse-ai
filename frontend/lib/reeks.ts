@@ -10,6 +10,7 @@
 // De events komen ruw binnen (zie `onReeksEvent` in lib/api.ts) en worden hier gevalideerd:
 // een misvormd event slaat over, het breekt de reeks niet af.
 
+import { aantal } from "./aantal";
 import { parseHergebruik, parseUitkomst } from "./agentEvents";
 import { denkBij } from "./denkproces";
 import { annotatieDoelVan, artefactVanBericht } from "./artefact";
@@ -135,7 +136,7 @@ function zonderZinsontleding(dekking: unknown): number {
 export function reeksDegradatie(reeks: Reeks): string {
   const n = reeks.onderdelen.reduce((som, o) => som + (o.zonderZinsontleding ?? 0), 0);
   if (!n) return "";
-  return `De zinsontleding was niet beschikbaar voor ${n} ${n === 1 ? "bronnode" : "bronnodes"}. Alleen vaste patronen `
+  return `De zinsontleding was niet beschikbaar voor ${aantal(n, "bronnode", "bronnodes")}. Alleen vaste patronen `
     + "(termijnen, bedragen, verwijzingen, formules) zijn gezocht; onderwerpen, voorwerpen en bijzinnen kunnen ontbreken.";
 }
 

@@ -1,6 +1,7 @@
 // Rekenkern van de begrippenwerkplek (spoor D, levering 2): labels, de inhoud aanvullen en de
 // volgorde van passages. Puur, voor vitest.
 
+import { aantal } from "./aantal";
 import type {
   Actualiteit,
   Begrip,
@@ -155,19 +156,19 @@ export function revisieZin(r: Pick<BegripRevisie, "actie" | "detail">): string {
   if (r.actie === "begrip-gekoppeld" || r.actie === "begrip-aangemaakt") {
     const n = Array.isArray(d.element_ids) ? d.element_ids.length : 0;
     const basis = ACTIE[r.actie];
-    return n ? `${basis} (${n === 1 ? "1 passage" : `${n} passages`})` : basis;
+    return n ? `${basis} (${aantal(n, "passage", "passages")})` : basis;
   }
   if (r.actie === "voorstel-overgenomen") {
     // Lex naast de kaart (fase E): het voorstel, en of de analist het aanpaste.
     const veld = typeof d.veld === "string" ? (VELD[d.veld] ?? d.veld).toLowerCase() : "";
     return `${d.aangepast ? "Aangepast overgenomen" : "Overgenomen"} van Lex${veld ? `: ${veld}` : ""}`;
   }
-  const aantal = Array.isArray(d.koppelingen) ? d.koppelingen.length : 0;
+  const koppelingen = Array.isArray(d.koppelingen) ? d.koppelingen.length : 0;
   if (r.actie === "koppeling-gewijzigd" && typeof d.beoordeling === "string") {
     const uitkomst = BEOORDELING_LABEL[d.beoordeling as KoppelBeoordeling] ?? d.beoordeling;
-    return aantal ? `${aantal === 1 ? "Passage" : `${aantal} passages`} beoordeeld: ${uitkomst}` : `Passage beoordeeld: ${uitkomst}`;
+    return koppelingen ? `${koppelingen === 1 ? "Passage" : `${koppelingen} passages`} beoordeeld: ${uitkomst}` : `Passage beoordeeld: ${uitkomst}`;
   }
-  if (r.actie === "koppeling-bevestigd" && aantal > 1) return `${aantal} veranderde passages bevestigd`;
+  if (r.actie === "koppeling-bevestigd" && koppelingen > 1) return `${koppelingen} veranderde passages bevestigd`;
   if (r.actie === "begrip-geaccordeerd" && typeof d.reden === "string" && d.reden) return `Geaccordeerd: ${d.reden}`;
   return ACTIE[r.actie] ?? r.actie;
 }

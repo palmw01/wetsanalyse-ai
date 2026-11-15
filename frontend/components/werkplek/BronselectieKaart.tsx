@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
@@ -53,7 +54,7 @@ export function BronselectieKaart({ kaart, uitgeschakeld, onActie, onSluit, onBe
       </div>
       <div className="mt-3 rounded-kaart border border-line bg-surface/60 px-4 py-3" data-telling>
         <p className="text-sm font-medium text-ink">
-          {kern ? "Kernbepalingen" : "Wat eraan hangt"} · {telling.kandidaten} {telling.kandidaten === 1 ? "kandidaatbron" : "kandidaatbronnen"}
+          {kern ? "Kernbepalingen" : "Wat eraan hangt"} · {aantal(telling.kandidaten, "kandidaatbron", "kandidaatbronnen")}
           {telling.opgenomen > 0 && <span className="font-normal text-muted"> · {telling.opgenomen} opgenomen</span>}
         </p>
         <p className="mt-0.5 text-xs text-muted">

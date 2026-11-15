@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { useState, type ReactNode } from "react";
 import { Melding } from "@/components/ui/Melding";
 import { actiefOnderdeel, reeksDegradatie, reeksSamenvatting, type Reeks, type ReeksOnderdeel } from "@/lib/reeks";
@@ -87,7 +88,7 @@ function detail(o: ReeksOnderdeel): string {
   switch (o.status) {
     case "wacht": return "wacht";
     case "bezig": return "bezig…";
-    case "klaar": return o.voorstellen ? `${o.voorstellen} voorstel${o.voorstellen === 1 ? "" : "len"}` : "klaar – geen nieuwe voorstellen";
+    case "klaar": return o.voorstellen ? `${aantal(o.voorstellen, "voorstel", "voorstellen")}` : "klaar – geen nieuwe voorstellen";
     case "hergebruik": return "al geannoteerd – bestaande annotatie hergebruikt";
     case "fout": return o.fout || "mislukt";
     case "gestopt": return "gestopt";

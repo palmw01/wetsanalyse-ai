@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { Leeg } from "@/components/ui/Leeg";
 import type { Regel } from "@/lib/commandos";
 import { MENU_PANEEL, MENU_RIJ } from "@/components/ui/Menu";
@@ -42,7 +43,7 @@ export function CommandoMenu({ id, regels, actief, onKies, onActief }: {
         </Leeg>
       )}
       <p className="sr-only" aria-live="polite">
-        {regels.length ? `${regels.length} ${regels.length === 1 ? "commando" : "commando's"}` : "Geen commando"}
+        {regels.length ? `${aantal(regels.length, "commando", "commando's")}` : "Geen commando"}
       </p>
     </div>
   );

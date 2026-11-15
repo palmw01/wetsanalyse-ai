@@ -8,6 +8,7 @@
 // mee in het bericht: elk nummer staat er zoals de graaf het heeft, nooit als bereik, en dezelfde vraag
 // geeft hetzelfde paneel. De rekenkern staat in `lib/overzicht.ts`.
 
+import { aantal } from "@/lib/aantal";
 import { useState } from "react";
 
 import { Vindplaats } from "@/components/antwoord/Vindplaats";
@@ -62,7 +63,7 @@ function DeelRij({ deel, regeling }: { deel: OverzichtDeel; regeling: string }) 
   const kop = deelKop(deel);
   return (
     <GroepRij titel={kop} data-overzicht-deel={deel.iri}
-      sub={`${deel.bepalingen.length} bepaling${deel.bepalingen.length === 1 ? "" : "en"}${deel.subdelen.length ? ` · waarin ${deel.subdelen.map((s) => s.label).join(", ")}` : ""}`}
+      sub={`${aantal(deel.bepalingen.length, "bepaling", "bepalingen")}${deel.subdelen.length ? ` · waarin ${deel.subdelen.map((s) => s.label).join(", ")}` : ""}`}
       uitklap={{ open, onWissel: () => setOpen((o) => !o), label: kop }}
       onder={open ? <Bepalingen bepalingen={deel.bepalingen} regeling={regeling} /> : undefined} />
   );
@@ -84,8 +85,8 @@ export function OverzichtPaneel({ overzicht, onMaakWerkgebied }: { overzicht: Ov
   return (
     <div data-testid="overzicht" className="space-y-5 text-sm text-ink">
       <p className="text-xs text-muted">
-        {t.regelingen} regeling{t.regelingen === 1 ? "" : "en"} · {t.delen} {t.delen === 1 ? "deel" : "delen"} met
-        {" "}{t.bepalingen} bepaling{t.bepalingen === 1 ? "" : "en"}
+        {aantal(t.regelingen, "regeling", "regelingen")} · {aantal(t.delen, "deel", "delen")} met
+        {" "}{aantal(t.bepalingen, "bepaling", "bepalingen")}
         {t.ookGenoemd > 0 && <> · {t.ookGenoemd} die het onderwerp verder noemen</>}
       </p>
 
@@ -104,7 +105,7 @@ export function OverzichtPaneel({ overzicht, onMaakWerkgebied }: { overzicht: Ov
 
       {overzicht.regelingen.map((r) => (
         <Groep key={r.bwb_id} label={r.citeertitel} kop={<RegelingLink label={r.citeertitel} iri={`urn:bwb:${r.bwb_id}`} />}
-          telling={r.delen.length ? `${r.delen.length} ${r.delen.length === 1 ? "deel" : "delen"}` : undefined}>
+          telling={r.delen.length ? `${aantal(r.delen.length, "deel", "delen")}` : undefined}>
           {r.delen.map((d) => <DeelRij regeling={r.citeertitel} key={d.iri} deel={d} />)}
           {r.ook_genoemd.length > 0 && <OokGenoemdRij key="ook" regeling={r} />}
         </Groep>

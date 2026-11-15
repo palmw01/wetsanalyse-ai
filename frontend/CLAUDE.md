@@ -218,6 +218,10 @@ alleen met `motion-safe:`. Geen eigen stippenrij; de ene stip van een lopend den
 en `kopieerNaarKlembord` voor een menuregel. Een mislukte kopie zegt het altijd, met `KOPIEER_MISLUKT` (of `_KORT` in de
 knop zelf). Niemand anders roept `navigator.clipboard` aan.
 
+**Een aantal met het juiste woord** (generieke componenten, 15 nov 2026; `app/aantal.test.ts`) is `aantal(n, "bron",
+"bronnen")` uit `lib/aantal.ts`: "1 bron", "3 bronnen"; het woord mag een woordgroep zijn ("passage veranderde"). Niet
+zelf `n === 1 ? "1 …" : …`, `${n} ${n === 1 ? … }` of `regeling{n === 1 ? "" : "en"}`, en geen eigen hulpje.
+
 **De graaf van een bron** (ontdubbelen PR 1): één `useBronGraaf` + `BronGraaf` (`components/wettekst/BronGraaf.tsx`) voor
 het venster naast het gesprek, de bronpagina en de annotatie, met één keuze Tekst | Graaf (`WeergaveBalk`). Alleen de tab
 Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` nog zelf aan.

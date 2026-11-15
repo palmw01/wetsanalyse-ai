@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { datumTijd } from "@/lib/datum";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { Leeg } from "@/components/ui/Leeg";
@@ -39,7 +40,7 @@ export function RevisieHistorie({ lagen, labelVan, elementen, onKies }: {
   const totaal = lagen.reduce((s, l) => s + l.revisie, 0);
   return (
     <Uitklap vorm="kader" data-testid="revisies"
-      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)} samenvatting={<>Historie <span className="font-normal text-faint">({totaal} {totaal === 1 ? "revisie" : "revisies"})</span></>}>
+      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)} samenvatting={<>Historie <span className="font-normal text-faint">({aantal(totaal, "revisie", "revisies")})</span></>}>
       {fout ? <p className="mt-2 text-xs text-aandacht-rood-tekst">{fout}</p>
         : !geladen ? <p className="mt-2 text-xs text-muted">Laden…</p>
         : lagen.map((laag) => {

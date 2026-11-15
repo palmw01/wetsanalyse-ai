@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { Leeg } from "@/components/ui/Leeg";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -73,7 +74,7 @@ export function BronKandidaten({ id, deelvraagId, labels }: {
   return (
     <Sectie data-bronkandidaten titel={deelvraagId ? "Bepalingen die Lex hierbij vond" : "Bepalingen gevonden door Lex"}
       toelichting={deelvraagId ? undefined : run?.status === "klaar"
-        ? `Gezocht vanuit ${run.aantal_kern} ${run.aantal_kern === 1 ? "bepaling" : "bepalingen"}${run.verouderd ? " – de selectie is sindsdien veranderd" : ""}. Kiezen doe je per deelvraag, in de bronselectie.`
+        ? `Gezocht vanuit ${aantal(run.aantal_kern, "bepaling", "bepalingen")}${run.verouderd ? " – de selectie is sindsdien veranderd" : ""}. Kiezen doe je per deelvraag, in de bronselectie.`
         : "Lex zoekt in de bronselectie, per deelvraag (Bepaal de bronnen per deelvraag); hier kijk je rond in wat hij vond."}>
       {fout && <Melding type="fout" compact>{fout}</Melding>}
 
@@ -109,7 +110,7 @@ export function BronKandidaten({ id, deelvraagId, labels }: {
         <div role="group" aria-label={`Bepalingen – ${FILTER_LABEL[filter].toLowerCase()}`} className="space-y-5"
           data-bronregelingen>
           {rijenPerRegeling(boom).map((r) => (
-            <Groep key={r.sleutel} kop={r.regeling} telling={`${r.rijen.length} ${r.rijen.length === 1 ? "bepaling" : "bepalingen"}`}
+            <Groep key={r.sleutel} kop={r.regeling} telling={`${aantal(r.rijen.length, "bepaling", "bepalingen")}`}
               label={`${r.regeling} – ${FILTER_LABEL[filter].toLowerCase()}`}>
               {r.rijen.map(({ blad, plek }) => (
                 <li key={blad.sleutel} data-kandidaat={blad.bron_iri} className="px-4 py-2.5">

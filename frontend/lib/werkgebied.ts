@@ -1,6 +1,7 @@
 // Rekenkern van de werkgebiedpagina's (spoor D, levering 1): labels, foutherkenning, de invoer van
 // een bepaling en de indeling van de inventaris. Puur, zodat vitest (node-env) het kan toetsen.
 
+import { aantal } from "./aantal";
 import { BEOORDEELD_LIFECYCLES } from "./annotatie";
 import { isApiError } from "./api";
 import { TYPE_LABEL } from "./begripRelaties";
@@ -276,7 +277,7 @@ export function auditZin(regel: WerkgebiedAuditRegel, labels: Map<string, string
       return `Twijfelvraag beantwoord: ${d.antwoord === "samen" ? "samen" : "apart"}`;
     case "element-buiten-behandeling": {
       const n = Array.isArray(d.element_ids) ? d.element_ids.length : 0;
-      return `${n === 1 ? "1 element" : `${n} elementen`} buiten behandeling gezet${typeof d.reden === "string" && d.reden ? ` – ${d.reden}` : ""}`;
+      return `${aantal(n, "element", "elementen")} buiten behandeling gezet${typeof d.reden === "string" && d.reden ? ` – ${d.reden}` : ""}`;
     }
     case "element-in-behandeling":
       return "Element weer in behandeling";
@@ -299,10 +300,10 @@ export function auditZin(regel: WerkgebiedAuditRegel, labels: Map<string, string
     case "deelvraag-verwijderd":
       return "Deelvraag verwijderd";
     case "deelvraag-gekoppeld":
-      return `Bij een deelvraag ${d.bronnen ?? 0} ${d.bronnen === 1 ? "bron" : "bronnen"} en ${d.begrippen ?? 0} ${d.begrippen === 1 ? "begrip" : "begrippen"} vastgelegd`;
+      return `Bij een deelvraag ${aantal(Number(d.bronnen ?? 0), "bron", "bronnen")} en ${aantal(Number(d.begrippen ?? 0), "begrip", "begrippen")} vastgelegd`;
     case "deelvragen-voorgesteld": {
       const n = Array.isArray(d.nieuw) ? d.nieuw.length : 0;
-      return `Lex stelde ${n === 1 ? "1 deelvraag" : `${n} deelvragen`} voor`;
+      return `Lex stelde ${aantal(n, "deelvraag", "deelvragen")} voor`;
     }
     default:
       return regel.actie;

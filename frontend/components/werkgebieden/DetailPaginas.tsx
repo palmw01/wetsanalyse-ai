@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { LeegWaarde } from "@/components/ui/Leeg";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -225,7 +226,7 @@ export function DeelvraagPagina({ deelvraagId }: { deelvraagId: string }) {
               <ObjectRijen label="Andere deelvragen">
                 {actief.map((x, i) => x.id === deelvraagId ? null : (
                   <ObjectRij key={x.id} href={deelvraagPad(wg.id, x.id)} voor={`${i + 1}.`} titel={x.vraag}
-                    sub={x.bronnen.length === 1 ? "1 bron" : `${x.bronnen.length} bronnen`} />
+                    sub={aantal(x.bronnen.length, "bron", "bronnen")} />
                 ))}
               </ObjectRijen>
             </Kaart>
