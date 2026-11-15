@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { knopKlasse } from "@/components/ui/Button";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import type { Onderwerp } from "@/lib/vraagLex";
@@ -291,7 +292,7 @@ function BibliotheekInhoud({ werkgebiedId, onWissel }: { werkgebiedId: string; o
   }, [werkgebiedId]);
   if (fout) return <Melding type="fout" compact>{fout}</Melding>;
   if (!wg) return <Laden />;
-  if (!wg.bronnen.length) return <p className="text-sm text-muted">Nog geen bronnen in dit werkgebied.</p>;
+  if (!wg.bronnen.length) return <Leeg>Nog geen bronnen in dit werkgebied.</Leeg>;
   return <BronRijen intro="Open een bron naast het gesprek; je blijft in hetzelfde gesprek." onWissel={onWissel}
     groepen={(["analyseren", "context"] as const).map((rol) => ({
       kop: rol === "analyseren" ? "Om te analyseren" : ROL_LABEL.context,

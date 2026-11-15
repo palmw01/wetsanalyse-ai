@@ -176,6 +176,12 @@ gesprekkenlijst gebruiken het; een kleine laadregel is `LaadRegel`. Geen eigen `
 *Opnieuw proberen* staat daarbuiten alleen op het graafcanvas, in het menu van de connectors en boven het gesprek (de
 geschiedenis).
 
+**Een lege toestand** (generieke componenten, 15 nov 2026; `app/leeg.test.ts`): een lege lijst is `Leeg`
+(`components/ui/Leeg.tsx`). Op een pagina en in een tab (de overzichten, de elementen, de samenhang) is het een kader met een
+gestippelde rand (`kader`), in een paneel, een menu of een beheerlijst een grijze regel; `klein` is de maat van een paneelrij.
+Een veld zonder waarde ("Nog geen definitie.") is `LeegWaarde`: grijs, niet cursief en niet vet. `Groep` en `ObjectRijen`
+tekenen hun `leeg` met `Leeg`. Geen eigen grijze regel die met "Nog geen" of "Geen" begint, en geen eigen gestippeld kader.
+
 **De graaf van een bron** (ontdubbelen PR 1): één `useBronGraaf` + `BronGraaf` (`components/wettekst/BronGraaf.tsx`) voor
 het venster naast het gesprek, de bronpagina en de annotatie, met één keuze Tekst | Graaf (`WeergaveBalk`). Alleen de tab
 Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` nog zelf aan.

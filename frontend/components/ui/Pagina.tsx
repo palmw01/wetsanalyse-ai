@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ChevronOmlaag } from "@/components/ui/Icoon";
+import { Leeg } from "@/components/ui/Leeg";
 import { BlokKop } from "@/components/ui/Lijst";
 
 /** De bouwstenen van een objectpagina (spoor G2, naar de mock-up v4). Eén idioom op elke pagina:
@@ -152,7 +153,7 @@ export function SplitDetail({ hoofd, zij }: { hoofd: React.ReactNode; zij: React
 
 export function ObjectRijen({ label, children, leeg }: { label: string; children: React.ReactNode; leeg?: React.ReactNode }) {
   const kinderen = Array.isArray(children) ? children.filter(Boolean) : children;
-  if (leeg && Array.isArray(kinderen) && kinderen.length === 0) return <p className="text-sm text-muted">{leeg}</p>;
+  if (leeg && Array.isArray(kinderen) && kinderen.length === 0) return <Leeg>{leeg}</Leeg>;
   // Elke rij een eigen rustig kader (de `itemrow` van de mock-up, spoor K), met wat lucht ertussen.
   return <ul aria-label={label} className="space-y-2">{kinderen}</ul>;
 }
@@ -206,7 +207,7 @@ export function Groep({ kop, sub, telling, status, label, children, leeg, ...res
         <ul aria-label={label} className="divide-y divide-line rounded-kaart border border-line bg-paper shadow-zacht [&>li:first-child]:rounded-t-kaart [&>li:last-child]:rounded-b-kaart [&>li>*:first-child]:rounded-[inherit]">
           {kinderen}
         </ul>
-      ) : leeg ? <p className="text-sm text-muted">{leeg}</p> : null}
+      ) : leeg ? <Leeg>{leeg}</Leeg> : null}
     </section>
   );
 }

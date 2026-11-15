@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { useState } from "react";
 
 import { Bestandenlijst } from "@/components/ui/Bestandenlijst";
@@ -76,7 +77,7 @@ export function LooptAchter({ o, laatste, basis, draait, bestand, onKiesBestand,
         </div>
         <Kaart data-blok="inhoud" titel={<span className="font-mono text-sm [overflow-wrap:anywhere]">{gekozen || "Geen bestanden"}</span>}>
           {gekozen ? <Tekstverschil oud={van[gekozen] ?? ""} nieuw={naar[gekozen] ?? ""} label={`Verschil in ${gekozen} tussen ${tussen}`} />
-            : <p className="text-sm text-muted">Geen bestanden.</p>}
+            : <Leeg>Geen bestanden.</Leeg>}
         </Kaart>
       </div>
       <div className="mt-4 rounded-kaart border border-line bg-paper p-3 shadow-zacht" data-achter-keuze>

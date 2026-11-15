@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { useState } from "react";
 
 import { BewerkVoet } from "@/components/ui/Bewerkbaar";
@@ -71,7 +72,7 @@ export function RelatieBlok({ view, elementId, gebruiker, bediening }: {
             <RelatieRij key={r.relatie.id} regel={r} gebruiker={gebruiker} bediening={bediening} doe={doe} />
           ))}
         </Lijst>
-      ) : !verbinden && <p className="text-xs text-muted">Nog geen relaties met andere markeringen.</p>}
+      ) : !verbinden && <Leeg klein>Nog geen relaties met andere markeringen.</Leeg>}
       {verbinden && bediening && dit && (
         <Verbind dit={dit} anderen={anderen} onSluit={() => setVerbinden(false)}
           onLeg={async (invoer) => (await doe(() => bediening.leg(invoer))) && setVerbinden(false)} />

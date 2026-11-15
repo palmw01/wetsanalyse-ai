@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import type { Regel } from "@/lib/commandos";
 import { MENU_PANEEL, MENU_RIJ } from "@/components/ui/Menu";
 
@@ -36,9 +37,9 @@ export function CommandoMenu({ id, regels, actief, onKies, onActief }: {
           ))}
         </ul>
       ) : (
-        <p id={id} className="px-2.5 py-1.5 text-[13px] text-muted" data-geen-commando>
+        <Leeg id={id} klein className="px-2.5 py-1.5" data-geen-commando>
           Geen commando – Enter verstuurt je tekst als vraag. Typ <span className="font-mono">/help</span> voor de lijst.
-        </p>
+        </Leeg>
       )}
       <p className="sr-only" aria-live="polite">
         {regels.length ? `${regels.length} ${regels.length === 1 ? "commando" : "commando's"}` : "Geen commando"}

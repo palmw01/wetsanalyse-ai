@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import Link from "next/link";
 
 import { knopKlasse } from "@/components/ui/Button";
@@ -37,7 +38,7 @@ export function BegripOverzichtKaart({ b, onVerwijder }: { b: BegripOverzichtRij
       {b.definitie ? (
         <p className="text-sm text-ink">{kort(b.definitie)}</p>
       ) : (
-        <p className="text-sm italic text-faint">Nog geen definitie.</p>
+        <Leeg>Nog geen definitie.</Leeg>
       )}
       {b.vervangen_door && <p className="text-xs text-muted">Vervangen door {b.vervangen_door.naam}</p>}
       {!!b.herbeoordelen && (

@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
@@ -135,11 +136,11 @@ export function BegrippenOverzichtClient() {
           ))}
         </div>
       ) : data.resultaten.length === 0 ? (
-        <p className="rounded-kaart border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
+        <Leeg kader>
           {filters.q || filters.status || filters.werkgebied || filters.generiek || filters.mijn
             ? "Geen begrippen bij deze filters."
             : "Nog geen begrippen. Begrippen ontstaan in een werkgebied."}
-        </p>
+        </Leeg>
       ) : (
         <>
           <p className="mb-2 text-xs text-muted" aria-live="polite">

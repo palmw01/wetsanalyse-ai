@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -115,13 +116,13 @@ export function WerkgebiedenClient() {
           ))}
         </div>
       ) : alles.length === 0 && !mijn ? (
-        <p className="rounded-kaart border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
+        <Leeg kader>
           Nog geen werkgebieden. Vraag Lex in het gesprek om er samen een samen te stellen: {samenstellen}.
-        </p>
+        </Leeg>
       ) : getoond.length === 0 ? (
-        <p className="rounded-kaart border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
+        <Leeg kader>
           Geen werkgebied dat hierop past.
-        </p>
+        </Leeg>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" data-testid="werkgebieden-overzicht">
           {getoond.map((wg) => <WerkgebiedKaart key={wg.id} wg={wg} onVerwijder={() => verwijder(wg)} />)}

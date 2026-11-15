@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg, LeegWaarde } from "@/components/ui/Leeg";
 import { LaadStand } from "@/components/ui/LaadStand";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -339,15 +340,15 @@ function BetekenisBlok({ stand, begrip, weergave, onbewaard, onOnbewaard }: Blok
                   <DefinitieOnderbouwing onderbouwing={begrip.definitie_onderbouwing} werkgebiedId={stand.id} />
                 )}
               </div>
-            ) : <span className="text-muted">Nog geen definitie.</span>}
+            ) : <LeegWaarde>Nog geen definitie.</LeegWaarde>}
             {vanLex("definitie")}
           </Regel>
           <Regel naam="Uitleg">
-            {i.uitleg ? <span className="whitespace-pre-line">{i.uitleg}</span> : <span className="text-muted">Nog geen uitleg.</span>}
+            {i.uitleg ? <span className="whitespace-pre-line">{i.uitleg}</span> : <LeegWaarde>Nog geen uitleg.</LeegWaarde>}
             {vanLex("uitleg")}
           </Regel>
           <Regel naam="Toelichting">
-            {i.context ? <span className="whitespace-pre-line">{i.context}</span> : <span className="text-muted">Nog geen toelichting.</span>}
+            {i.context ? <span className="whitespace-pre-line">{i.context}</span> : <LeegWaarde>Nog geen toelichting.</LeegWaarde>}
             {vanLex("context")}
           </Regel>
         </Regels>
@@ -408,7 +409,7 @@ function VoorbeeldenBlok({ stand, begrip, weergave, onbewaard, onOnbewaard }: Bl
         </div>
       ) : (
         <>
-          {lijst.length ? <VoorbeeldRijen voorbeelden={lijst} /> : <p className="text-sm text-muted">Nog geen voorbeelden.</p>}
+          {lijst.length ? <VoorbeeldRijen voorbeelden={lijst} /> : <Leeg>Nog geen voorbeelden.</Leeg>}
           <VanLex stand={stand} begrip={begrip} veld="voorbeelden" onbewaard={onbewaard} />
         </>
       )}
@@ -619,7 +620,7 @@ function PassagesPerWerkgebied({ begrip }: { begrip: Begrip }) {
   return (
     <BegripBlok weergave="pagina" titel="Passages" telling={passages.length} data-blok="passages"
       toelichting="Per werkgebied; elk werkgebied beheert zijn eigen passages.">
-      {passages.length === 0 ? <p className="text-sm text-muted">Nog geen passages.</p> : per.map((wid) => (
+      {passages.length === 0 ? <Leeg>Nog geen passages.</Leeg> : per.map((wid) => (
         <div key={wid} data-passages-werkgebied={wid}>
           <h3 className="text-xs font-medium text-muted">{namen.get(wid) ?? "Werkgebied"}</h3>
           <Lijst label={`Passages in ${namen.get(wid) ?? "dit werkgebied"}`}>
@@ -653,7 +654,7 @@ function RelatiesGeneriek({ stand }: { stand: BegripStand }) {
         <Lijst label="Relaties">
           {r.map((x) => <LijstRij key={x.id} titel={relatieZin(x.type, x.van_naam, x.naar_naam).join(" ")} />)}
         </Lijst>
-      ) : <p className="text-sm text-muted">Nog geen relaties met andere begrippen.</p>}
+      ) : <Leeg>Nog geen relaties met andere begrippen.</Leeg>}
     </BegripBlok>
   );
 }

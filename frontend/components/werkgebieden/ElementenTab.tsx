@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { LaadStand } from "@/components/ui/LaadStand";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -95,7 +96,7 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
       </div>
     );
   if (inv.selecties.length === 0)
-    return <p className="text-sm text-muted">Nog geen bronnen, dus nog geen elementen. Neem eerst een bepaling op.</p>;
+    return <Leeg kader>Nog geen bronnen, dus nog geen elementen. Neem eerst een bepaling op.</Leeg>;
 
   const verworpenElementen = inv.afgewezen ?? [];
   const vervangenElementen = inv.vervangen ?? [];
@@ -197,9 +198,9 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
       </div>
 
       {groepen.length === 0 ? (
-        <p className="rounded-kaart border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
+        <Leeg kader>
           Geen element dat hierop past.
-        </p>
+        </Leeg>
       ) : (
         groepen.map(({ selectie: s, elementen }) => (
           <section key={s.id} aria-label={s.label || s.bron_iri}>

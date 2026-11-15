@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -139,13 +140,11 @@ export function AnnotatiesClient({ beginWeergave }: { beginWeergave: Weergave })
                 ))}
               </div>
             ) : alles.length === 0 ? (
-              <p className="text-sm text-muted">
-                Nog geen annotaties. Vraag Lex in de werkplek om een artikel te annoteren.
-              </p>
+              <Leeg kader>Nog geen annotaties. Vraag Lex in de werkplek om een artikel te annoteren.</Leeg>
             ) : getoond.length === 0 ? (
-              <p className="rounded-kaart border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
+              <Leeg kader>
                 {term.trim() ? "Geen annotatie die hierop past." : legeWeergave(weergave)}
-              </p>
+              </Leeg>
             ) : weergave === "te-beoordelen" ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {sorteerTeBeoordelen(getoond).map((d) => (

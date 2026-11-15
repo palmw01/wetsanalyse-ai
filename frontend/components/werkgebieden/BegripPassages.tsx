@@ -1,5 +1,6 @@
 "use client";
 
+import { Leeg } from "@/components/ui/Leeg";
 import { useEffect, useMemo, useState } from "react";
 
 import { BronBoom } from "@/components/ui/BronBoom";
@@ -68,10 +69,8 @@ export function BegripPassages({ id, begrip, primair, muteer, geraakt, weergave 
         <Button size="xs" variant="secondary" onClick={() => setKiezerOpen(true)}>Passages toevoegen</Button>
       </>}>
       {passages.length === 0 ? (
-        <p className="text-sm text-muted">
-          Nog geen passages. Een begrip krijgt zijn onderbouwing uit de annotaties: voeg de passages toe die
-          het aanduiden of de definitie dragen.
-        </p>
+        <Leeg>Nog geen passages. Een begrip krijgt zijn onderbouwing uit de annotaties: voeg de passages toe die
+          het aanduiden of de definitie dragen.</Leeg>
       ) : (
         <Lijst label="Passages van dit begrip">
           {passages.map((k) => (
@@ -233,7 +232,7 @@ function PassagesDialoog({ id, begrip, primair, muteer, onKlaar }: {
           {elementen === null && !fout ? (
             <p className="text-xs text-muted">De inventaris wordt opgehaald…</p>
           ) : getoond.length === 0 ? (
-            <p className="text-xs text-muted">Geen passage die hierop past.</p>
+            <Leeg klein>Geen passage die hierop past.</Leeg>
           ) : (
             <BronBoom boom={boom} label="Passages om toe te voegen"
               vinkjes={{ gekozen, naam: (b) => `Kies “${b.data.tekst}”`, onZet: (ids, aan) => setGekozen((s) => {
