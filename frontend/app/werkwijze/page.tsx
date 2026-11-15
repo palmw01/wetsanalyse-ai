@@ -1,14 +1,9 @@
-import { Suspense } from "react";
+import { redirect } from "next/navigation";
 
-import { WerkwijzeClient } from "@/components/werkwijze/WerkwijzeClient";
+import { aanpassingPad } from "@/lib/aanpassingen";
 
-export const metadata = { title: "Werkwijze van Lex · Wetsanalyse" };
-
+/** De werkwijze van Lex bestaat niet meer als pagina (plan instellingen-aanpassingen): methodes en agents staan onder
+ *  Instellingen › Aanpassingen. Een oude link of bladwijzer opent daar Agents. */
 export default function WerkwijzePagina() {
-  // De filters staan in de URL (useSearchParams), en dat vraagt een Suspense-grens bij het prerenderen.
-  return (
-    <Suspense fallback={null}>
-      <WerkwijzeClient />
-    </Suspense>
-  );
+  redirect(aanpassingPad("agents"));
 }

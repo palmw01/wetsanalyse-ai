@@ -14,6 +14,8 @@ import { BerichtenArchiefClient } from "@/components/berichten/BerichtenArchiefC
 import { ProfielenPanel } from "@/components/admin/ProfielenPanel";
 import { RegistratiesPanel } from "@/components/admin/RegistratiesPanel";
 import { UsersPanel } from "@/components/admin/UsersPanel";
+import { AgentsPanel } from "@/components/instellingen/AgentsPanel";
+import { MethodesPanel } from "@/components/instellingen/MethodesPanel";
 import { Button } from "@/components/ui/Button";
 import { Melding } from "@/components/ui/Melding";
 import { Tabs, type TabDef } from "@/components/ui/Tabs";
@@ -27,6 +29,8 @@ const PANEEL: Record<TabKey, React.ReactNode> = {
   verbruik: <VerbruikPanel />,
   gesprekken: <GesprekkenPanel />,
   rondleiding: <RondleidingPanel />,
+  methodes: <MethodesPanel />,
+  agents: <AgentsPanel />,
   modellen: <ProfielenPanel />,
   gebruikers: <UsersPanel />,
   registraties: <RegistratiesPanel />,

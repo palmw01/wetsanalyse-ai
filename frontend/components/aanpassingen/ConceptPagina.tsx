@@ -11,10 +11,11 @@ import { PaginaKop } from "@/components/ui/Pagina";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { WerkgebiedSchil } from "@/components/werkgebieden/WerkgebiedSchil";
 import { LinkButton } from "@/components/ui/Button";
-import { LooptAchter } from "@/components/werkwijze/ConceptAchter";
-import { ConceptEditor } from "@/components/werkwijze/ConceptEditor";
-import { ConceptLabels } from "@/components/werkwijze/Concepten";
-import { VersieWeergave, VersiesKaart } from "@/components/werkwijze/ConceptVersies";
+import { LooptAchter } from "@/components/aanpassingen/ConceptAchter";
+import { ConceptEditor } from "@/components/aanpassingen/ConceptEditor";
+import { ConceptLabels } from "@/components/aanpassingen/Concepten";
+import { VersieWeergave, VersiesKaart } from "@/components/aanpassingen/ConceptVersies";
+import { aanpassingPad } from "@/lib/aanpassingen";
 import { foutTekst, haalConcept, haalConceptVersie, haalImageOnderdeel, haalWerkplaatsStand, isApiError, trekConceptIn } from "@/lib/api";
 import {
   WERKPLAATS_SOORT_LABEL, achterPad, basisVersie, conceptPad, versieKeuze, type Bestanden, type ImageOnderdeel, type WerkplaatsOnderdeel, type WerkplaatsStand,
@@ -112,8 +113,11 @@ export function ConceptPagina({ id }: { id: string }) {
     }
   }
 
-  const kruimels = [{ label: "Werkwijze van Lex", href: "/werkwijze" },
-    { label: "Concepten", href: "/werkwijze?concept=skill" }, { label: o?.naam ?? "Concept" }];
+  // Terug naar de lijst in Instellingen › Aanpassingen waar het concept staat, op het segment Concepten.
+  const tab = o?.soort === "agentprofiel" ? "agents" : o?.soort === "mcp" ? "connectors" : "methodes";
+  const kruimels = [{ label: "Instellingen", href: aanpassingPad(tab) },
+    { label: { methodes: "Methodes", agents: "Agents", connectors: "Connectors" }[tab], href: `${aanpassingPad(tab)}&segment=concepten` },
+    { label: o?.naam ?? "Concept" }];
   const vanMij = !!o && o.eigenaar === sessie?.user?.userid;
   const bewerkbaar = vanMij && o?.stand !== "ingetrokken";
 

@@ -3,7 +3,7 @@
  * en draai `node scripts/test-instellingen.mjs`.
  *
  * Bewaakt:
- *  - de groepen in de tabkolom: *Persoonlijk* voor iedereen, *Aanpassingen* en *Beheer* (nu) alleen voor een beheerder;
+ *  - de groepen in de tabkolom: *Persoonlijk* en *Aanpassingen* voor iedereen, *Beheer* alleen voor een beheerder;
  *  - het zoekveld van de tabkolom filtert de tabs, en Escape wist eerst het veld en sluit dan pas het venster;
  *  - een nieuwe gebruiker via *Nieuwe gebruiker*, en het tijdelijke wachtwoord dat je kunt kopiëren;
  *  - de acties van een gebruiker in het menu ⋯; Escape sluit het menu en niet het venster;
@@ -101,8 +101,7 @@ async function open(role, viewport = { width: 1280, height: 860 }) {
 }
 
 try {
-  // Een analist ziet Persoonlijk, geen Beheer. (Aanpassingen heeft voor hem nog niets: Connectors en Modellen zijn
-  // beheer.)
+  // Een analist ziet Persoonlijk en Aanpassingen (Methodes, Agents), geen Beheer en geen Modellen.
   const analist = await open("analist");
   // Een oude link naar /instellingen opent het venster als pop-up op de werkplek, nooit als losse pagina.
   await analist.page.goto(`${base}/instellingen/account`);
@@ -114,6 +113,7 @@ try {
   await analist.page.getByRole("dialog", { name: "Instellingen" }).waitFor();
   assert.equal(await analist.page.getByText("Beheer", { exact: true }).count(), 0);
   await analist.page.getByText("Persoonlijk", { exact: true }).waitFor();
+  await analist.page.getByText("Aanpassingen", { exact: true }).waitFor();
   assert.equal(await analist.page.getByRole("tab", { name: "Modellen" }).count(), 0, "Modellen is alleen voor een beheerder");
 
   // Zoeken in de tabkolom: alleen wat erbij past, met de kop van zijn groep; Escape wist eerst het veld.

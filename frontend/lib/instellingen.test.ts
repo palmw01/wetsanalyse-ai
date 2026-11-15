@@ -103,9 +103,9 @@ describe("groepen", () => {
     expect([...indices].sort((a, b) => a - b)).toEqual(indices);
   });
 
-  it("Aanpassingen draagt de connectors en de modellen; Beheer alleen tabs voor beheerders", () => {
+  it("Aanpassingen draagt Methodes, Agents, Connectors en Modellen; Beheer alleen tabs voor beheerders", () => {
     const van = (g: string) => INSTELLINGEN_TABS.filter((t) => t.groep === g).map((t) => t.key);
-    expect(van("aanpassingen")).toEqual(["connectors", "modellen"]);
+    expect(van("aanpassingen")).toEqual(["methodes", "agents", "connectors", "modellen"]);
     expect(INSTELLINGEN_TABS.filter((t) => t.groep === "beheer").every((t) => t.alleenBeheerder)).toBe(true);
     expect(INSTELLINGEN_TABS.filter((t) => t.groep === "persoonlijk").some((t) => t.alleenBeheerder)).toBe(false);
   });

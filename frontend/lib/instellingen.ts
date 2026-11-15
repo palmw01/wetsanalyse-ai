@@ -45,6 +45,10 @@ export const INSTELLINGEN_TABS = [
     trefwoorden: ["nieuws", "updates", "meldingen"] },
   { key: "rondleiding", pad: "rondleiding", label: "Rondleiding", groep: "persoonlijk", alleenBeheerder: false,
     trefwoorden: ["uitleg", "tour", "help"] },
+  { key: "methodes", pad: "aanpassingen/methodes", label: "Methodes", groep: "aanpassingen", alleenBeheerder: false,
+    trefwoorden: ["skills", "skill", "methode", "jas", "jrm", "wetsanalyse", "wetsuitvoering", "werkwijze", "concept"] },
+  { key: "agents", pad: "aanpassingen/agents", label: "Agents", groep: "aanpassingen", alleenBeheerder: false,
+    trefwoorden: ["subagents", "agentprofielen", "profiel", "specialist", "werkwijze", "concept"] },
   // Nog alleen voor beheerders: het paneel leest de beheerlijst. Een lijst voor iedereen volgt (plan, PR 3).
   { key: "connectors", pad: "beheer/connectors", label: "Connectors", groep: "aanpassingen", alleenBeheerder: true,
     trefwoorden: ["bronnen", "kamerstukken", "rechtspraak", "bekendmakingen", "mcp"] },

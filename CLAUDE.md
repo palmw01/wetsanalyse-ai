@@ -93,7 +93,9 @@ overzien.
    graph-qa (SSE); de home leidt daarheen door. Naast de werkplek staan in de sidebar de
    **annotaties** (`/annotaties`) en de **werkgebieden** (`/werkgebieden`). Account, beheer en instellingen openen als
    **pop-up over de pagina waar je bent** (`?instellingen=<tab>`, ook na herladen); `/instellingen/*` en `/beheer` zijn alleen
-   nog een doorverwijzing daarheen. De beheertab (modelprofielen, gebruikers, aanvragen, API-tokens)
+   nog een doorverwijzing daarheen. Wat Lex gebruikt staat in de groep **Aanpassingen** van dat venster (Methodes,
+   Agents, Connectors, Modellen; plan `docs/architectuur/plan-instellingen-aanpassingen.md`); de werkwijze-pagina is weg
+   en `/werkwijze` verwijst daarheen. De beheertab (modelprofielen, gebruikers, aanvragen, API-tokens)
    zit achter een apart admin-token.
    De hele webapp zit achter een **login met userid + wachtwoord** (Auth.js; e-mail verplicht/uniek
    maar geen inlog-identiteit; de API is de identiteitsbron; rollen `beheerder`/`analist`; eenmalige

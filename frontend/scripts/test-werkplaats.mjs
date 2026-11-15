@@ -3,13 +3,14 @@
  * AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109
  * en draai `node scripts/test-werkplaats.mjs`.
  *
- * Toetst:
- * - met de werkplaats uit: geen groep *Concepten*, geen *Bewerken*, geen aanroep van de concepten, en de pagina van
- *   een concept zegt dat de werkplaats niet aanstaat;
- * - met de werkplaats aan: de groep met de eigen en gedeelde concepten en hun stand (ook "nog onbekend wat er
- *   draait"), *Nieuw concept* (een ongeldige naam, dan aanmaken en openen), de pagina van een concept (bestanden,
- *   het gekozen bestand in de URL, de bevindingen van de controle), *Bewerken* op een methode (`uit_image`), *Open
- *   mijn concept* als ik er al een heb, en de melding als Lex nog niet weet wat er draait;
+ * Toetst (de lijsten staan in Instellingen › Aanpassingen › Methodes, plan instellingen-aanpassingen):
+ * - met de werkplaats uit: geen segment *Concepten*, geen *Voeg toe*, geen *Bewerken*, geen aanroep van de concepten, en
+ *   de pagina van een concept zegt dat de werkplaats niet aanstaat;
+ * - met de werkplaats aan: het segment *Concepten* met de eigen en gedeelde concepten en hun stand (ook "nog onbekend
+ *   wat er draait"), *Voeg toe › Nieuwe methode* (een ongeldige naam, dan aanmaken en openen), *Voeg toe › Vanuit een
+ *   methode in Lex*, de pagina van een concept (bestanden, het gekozen bestand in de URL, de bevindingen van de
+ *   controle), een oude link naar een concept onder /werkwijze, *Bewerken* bij een methode (`uit_image`), *Open mijn
+ *   concept* als ik er al een heb, en de melding als Lex nog niet weet wat er draait;
  * - bewerken (B2-2): typen laat de controle draaien en toont wat gewijzigd is; een bestand toevoegen, hernoemen en
  *   verwijderen; niet-opgeslagen werk staat er na herladen weer; opslaan maakt een volgende versie met de toelichting;
  *   is er intussen een nieuwere versie, dan blijft de tekst staan en kiest de gebruiker; weggaan vraagt eerst;
@@ -39,7 +40,12 @@ const o = (id, extra = {}) => ({
   deel_van: null, ...extra,
 });
 const CATALOGUS = [o("methode/wetsanalyse", { label: "Wetsanalyse" }), o("methode/wetsuitvoering", { label: "Wetsuitvoering" }),
-  o("rol/duiding"), o("workflow/annotatieketen", { concept: "workflow" })];
+  o("rol/duiding", { deel_van: "methode/wetsanalyse" }), o("workflow/annotatieketen", { concept: "workflow" })];
+const METHODES = `${base}/workbench?instellingen=methodes`;
+const CONCEPTEN_LIJST = `${METHODES}&segment=concepten`;
+const methode = (naam) => `${METHODES}&onderdeel=methode%2F${naam}`;
+const lijst = (page) => page.locator('[data-aanpassing-lijst="methodes"]');
+const detail = (page) => page.locator("[data-aanpassing-detail] h3");
 
 const versie = (nummer, extra = {}) => ({
   id: `v${nummer}`, nummer, hash: String(nummer).repeat(64).slice(0, 64), basis_hash: "", toelichting: "", geldig: true,
@@ -112,18 +118,18 @@ try {
   // --- De werkplaats staat uit: er is niets te zien en niets wordt gevraagd -----------------------------------------
   for (const stand of [{ aan: false }, {}]) {
     const { page, gezien } = await open(browser, 1280, { stand, concepten: [], maak: () => ({}) });
-    await page.goto(`${base}/werkwijze`);
-    await page.getByTestId("werkwijze").waitFor();
+    // Ook met ?segment=concepten in de URL: zonder werkplaats is er geen segment, alleen wat in Lex draait.
+    await page.goto(CONCEPTEN_LIJST);
+    await lijst(page).locator('[data-onderdeel="methode/wetsanalyse"]').waitFor();
     await page.waitForLoadState("networkidle");
-    assert.equal(await page.locator("[data-concepten]").count(), 0);
-    assert.equal(await page.getByRole("button", { name: "Nieuw concept" }).count(), 0);
+    assert.equal(await lijst(page).locator("[data-overzichtbalk]").getByText("Concepten").count(), 0);
+    assert.equal(await page.locator("[data-concept-id]").count(), 0);
+    assert.equal(await page.locator('[data-actie="voeg-toe"]').count(), 0);
     await page.goto(`${base}/werkwijze/methode/wetsanalyse`);
-    await page.locator("[data-paginakop]").waitFor();
+    await detail(page).waitFor();
     await page.waitForLoadState("networkidle");
     assert.equal(await page.locator('[data-actie="concept-bewerken"], [data-actie="concept-openen"]').count(), 0);
-    // De kop van de pagina houdt geen lege ruimte over voor een knop die er niet is.
-    assert.equal(await page.locator("[data-paginakop] > div > div").evaluateAll((els) => els.filter((e) => e.getBoundingClientRect().height > 0).length), 1);
-    await page.goto(`${base}/werkwijze/concepten/o1`);
+    await page.goto(`${base}/aanpassingen/concepten/o1`);
     await page.locator('[data-werkplaats="uit"]').waitFor();
     assert.deepEqual([...new Set(gezien.paden)], ["GET /api/werkplaats/stand"]);
     assert.deepEqual(gezien.errors, []);
@@ -142,8 +148,10 @@ try {
   for (const breedte of [1280, 375]) {
     const { page, gezien } = await open(browser, breedte, { stand: STAND, concepten: CONCEPTEN,
       maak: (body) => (body.uit_image ? concept("uit-image-1", body.naam) : concept("nieuw-1", body.naam)) });
-    await page.goto(`${base}/werkwijze`);
-    const groep = page.locator("[data-concepten]");
+    await page.goto(METHODES);
+    await lijst(page).locator("[data-overzichtbalk]").getByText("Concepten").click();
+    await page.waitForURL(/segment=concepten/);
+    const groep = lijst(page);
     await groep.waitFor();
     await page.locator('[data-concept-id="o1"]').waitFor();
     // De eigen concepten eerst, dan wat gedeeld is; een profiel opent de editor nog niet. Ingetrokken staat standaard
@@ -163,14 +171,20 @@ try {
     assert.match(await page.locator('[data-concept-id="o5"]').innerText(), /Ingetrokken/);
     await zonderOverloop(page, "het overzicht");
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/werkplaats-overzicht-${breedte}.png`, fullPage: true });
-    // De groep hoort bij kennis en methode: bij een ander concept staat ze er niet, en de zoekterm filtert op naam.
-    await page.getByLabel("Zoeken in de werkwijze").fill("jrm");
+    // De zoekterm filtert op naam.
+    await page.getByLabel("Zoeken in de methodes").fill("jrm");
     await page.waitForFunction(() => document.querySelectorAll("[data-concept-id]").length === 1);
-    await page.getByLabel("Zoeken in de werkwijze").fill("");
+    await page.getByLabel("Zoeken in de methodes").fill("");
     await page.waitForFunction(() => document.querySelectorAll("[data-concept-id]").length === 5);
 
-    // Nieuw concept: een naam die de api zou weigeren, zegt het formulier al.
-    await page.locator('[data-actie="concept-nieuw"]').click();
+    // Vanuit een methode in Lex: kiezen uit wat draait. Annuleren laat de lijst staan.
+    await page.locator('[data-actie="voeg-toe"]').click();
+    await page.locator('[data-voeg-toe="vanuit"]').click();
+    await page.locator("[data-concept-vanuit]").getByRole("button", { name: "Wetsuitvoering" }).waitFor();
+    await page.locator("[data-concept-vanuit]").getByRole("button", { name: "Annuleren" }).click();
+    // Nieuwe methode: een naam die de api zou weigeren, zegt het formulier al.
+    await page.locator('[data-actie="voeg-toe"]').click();
+    await page.locator('[data-voeg-toe="nieuw"]').click();
     const formulier = page.locator("[data-concept-nieuw]");
     await formulier.getByRole("textbox").fill("Geen_Naam");
     await formulier.getByText(/Alleen kleine letters/).waitFor();
@@ -178,11 +192,13 @@ try {
     await zonderOverloop(page, "het formulier");
     await formulier.getByRole("textbox").fill("jrm-scenario");
     await page.locator('[data-actie="concept-maken"]').click();
-    await page.waitForURL(/\/werkwijze\/concepten\/nieuw-1$/);
+    await page.waitForURL(/\/aanpassingen\/concepten\/nieuw-1$/);
     assert.deepEqual(gezien.gemaakt, [{ soort: "skill", naam: "jrm-scenario" }]);
 
-    // De pagina van een concept: de bestanden in een vaste volgorde, het gekozen bestand in de URL.
-    await page.goto(`${base}/werkwijze/concepten/o1`);
+    // De pagina van een concept: de bestanden in een vaste volgorde, het gekozen bestand in de URL. Een oude link onder
+    // /werkwijze komt er ook uit, met zijn querystring.
+    await page.goto(`${base}/aanpassingen/concepten/o1?bestand=SKILL.md`);
+    await page.waitForURL(/\/aanpassingen\/concepten\/o1\?bestand=SKILL\.md$/);
     await page.locator('[data-blok="bestanden"]').waitFor();
     assert.match(await page.locator("[data-paginakop]").innerText(), /jrm-proef[\s\S]*Skill[\s\S]*1 bevinding[\s\S]*versie 2/);
     assert.deepEqual(await page.locator("[data-bestand]").evaluateAll((els) => els.map((e) => e.dataset.bestand)),
@@ -202,28 +218,27 @@ try {
     await page.locator(`[data-bestand-inhoud="${Object.keys(BESTANDEN)[0]}"]`).waitFor();
     await zonderOverloop(page, "een bestand met een lange naam");
     // Een concept dat achterloopt, zegt dat ook op zijn pagina; een onbekend concept is een melding.
-    await page.goto(`${base}/werkwijze/concepten/o3`);
+    await page.goto(`${base}/aanpassingen/concepten/o3`);
     await page.locator('[data-melding="loopt-achter"]').waitFor();
-    await page.goto(`${base}/werkwijze/concepten/bestaat-niet`);
+    await page.goto(`${base}/aanpassingen/concepten/bestaat-niet`);
     await page.getByText("Dit concept bestaat niet, of het is niet met je gedeeld.").waitFor();
 
-    // Bewerken op een methode: een concept met de versie die draait. Niets op de pagina start Lex.
+    // Bewerken bij een methode: een concept met de versie die draait. Niets in het venster start Lex.
     gezien.gemaakt.length = 0;
-    await page.goto(`${base}/werkwijze/methode/wetsuitvoering`);
+    await page.goto(methode("wetsuitvoering"));
     await page.locator('[data-actie="concept-bewerken"]').click();
-    await page.waitForURL(/\/werkwijze\/concepten\/uit-image-1$/);
+    await page.waitForURL(/\/aanpassingen\/concepten\/uit-image-1$/);
     assert.deepEqual(gezien.gemaakt, [{ soort: "skill", naam: "wetsuitvoering", uit_image: true }]);
     await page.locator('[data-blok="bestanden"]').waitFor();
     // Een methode waar ik al een concept van heb, opent dat. Het gedeelde concept van piet telt niet als het mijne.
-    await page.goto(`${base}/werkwijze/methode/wetsanalyse`);
+    await page.goto(methode("wetsanalyse"));
     await page.locator('[data-actie="concept-bewerken"]').waitFor();
     assert.equal(await page.locator('[data-actie="concept-openen"]').count(), 0);
-    await zonderOverloop(page, "de pagina van een methode");
-    // Een rol is geen skill: daar staat geen knop.
+    await zonderOverloop(page, "een methode");
+    // Een oude link naar een rol opent de methode waar die rol bij hoort.
     await page.goto(`${base}/werkwijze/rol/duiding`);
-    await page.locator("[data-paginakop]").waitFor();
-    await page.waitForLoadState("networkidle");
-    assert.equal(await page.locator('[data-actie="concept-bewerken"]').count(), 0);
+    await page.waitForURL(/instellingen=methodes&onderdeel=rol%2Fduiding/);
+    assert.equal(await detail(page).innerText(), "Wetsanalyse");
     assert.ok(!gezien.paden.some((p) => /^(PUT|DELETE|PATCH)/.test(p)));
     assert.deepEqual(gezien.errors, []);
     await page.close();
@@ -232,31 +247,32 @@ try {
   // Ik heb al een concept van deze methode: de knop opent het.
   {
     const { page } = await open(browser, 1280, { stand: STAND, concepten: [concept("o7", "wetsanalyse")], maak: () => ({}) });
-    await page.goto(`${base}/werkwijze/methode/wetsanalyse`);
+    await page.goto(methode("wetsanalyse"));
     await page.locator('[data-actie="concept-openen"]').click();
-    await page.waitForURL(/\/werkwijze\/concepten\/o7$/);
+    await page.waitForURL(/\/aanpassingen\/concepten\/o7$/);
     await page.close();
   }
   // Lex weet nog niet wat er draait: Bewerken zegt dat, en er ontstaat geen concept. Wie niet mag maken, ziet geen knop.
   {
     const { page } = await open(browser, 1280, { stand: STAND, concepten: [], maak: () => ({ status: 409,
       json: { detail: { melding: "Lex weet nog niet wat er draait; probeer het zo opnieuw.", fout: "image_onbekend" } } }) });
-    await page.goto(`${base}/werkwijze/methode/wetsanalyse`);
+    await page.goto(methode("wetsanalyse"));
     await page.locator('[data-actie="concept-bewerken"]').click();
     await page.getByText("Lex weet nog niet wat er draait; probeer het zo opnieuw.").waitFor();
-    assert.match(page.url(), /\/werkwijze\/methode\/wetsanalyse$/);
+    assert.match(page.url(), /instellingen=methodes&onderdeel=methode%2Fwetsanalyse$/);
     await page.close();
   }
   {
     const { page } = await open(browser, 1280, { stand: { ...STAND, mag_maken: false }, concepten: [], maak: () => ({}) });
-    await page.goto(`${base}/werkwijze/methode/wetsanalyse`);
-    await page.locator("[data-paginakop]").waitFor();
+    await page.goto(methode("wetsanalyse"));
+    await detail(page).waitFor();
     await page.waitForLoadState("networkidle");
     assert.equal(await page.locator('[data-actie="concept-bewerken"]').count(), 0);
-    await page.goto(`${base}/werkwijze`);
-    await page.getByTestId("werkwijze").waitFor();
+    // Wie niet mag maken, ziet wel de concepten die met hem gedeeld zijn, maar geen *Voeg toe*.
+    await page.goto(METHODES);
+    await lijst(page).locator('[data-onderdeel="methode/wetsanalyse"]').waitFor();
     await page.waitForLoadState("networkidle");
-    assert.equal(await page.locator("[data-concepten]").count(), 0);
+    assert.equal(await page.locator('[data-actie="voeg-toe"]').count(), 0);
     await page.close();
   }
   // --- Bewerken (B2-2) ----------------------------------------------------------------------------------------------
@@ -300,7 +316,7 @@ try {
     const editor = page.locator("[data-concept-versie]");
     const typ = async (tekst) => { await vak.click(); await page.keyboard.press("Control+End"); await page.keyboard.type(tekst); };
 
-    await page.goto(`${base}/werkwijze/concepten/o1`);
+    await page.goto(`${base}/aanpassingen/concepten/o1`);
     await vak.waitFor();
     assert.equal(await editor.getAttribute("data-gewijzigd"), "nee");
     assert.equal(await page.locator("[data-opslaan]").count(), 0);
@@ -385,10 +401,10 @@ try {
     await page.locator('textarea[data-bestand-inhoud="SKILL.md"]').waitFor();
     await typ("\nweg hiermee");
     await page.locator("[data-opslaan]").waitFor();
-    await page.locator("[data-paginakop]").getByRole("link", { name: "Werkwijze van Lex" }).click();
+    await page.locator("[data-paginakop]").getByRole("link", { name: "Instellingen" }).click();
     await page.getByText("Niet-bewaarde wijzigingen").waitFor();
     await page.getByRole("button", { name: "Blijf hier" }).click();
-    assert.match(page.url(), /\/werkwijze\/concepten\/o1/);
+    assert.match(page.url(), /\/aanpassingen\/concepten\/o1/);
     await page.getByRole("button", { name: "Wijzigingen verwerpen" }).click();
     await page.getByRole("button", { name: "Verwerpen?" }).click();
     await page.locator('[data-concept-versie="5"][data-gewijzigd="nee"]').waitFor();
@@ -475,7 +491,7 @@ try {
     assert.equal(await page.getByRole("button", { name: "Meer over dit concept" }).count(), 0);
 
     // Andermans concept dat met mij gedeeld is, lees ik alleen.
-    await page.goto(`${base}/werkwijze/concepten/o2`);
+    await page.goto(`${base}/aanpassingen/concepten/o2`);
     await page.locator("pre[data-bestand-inhoud]").waitFor();
     assert.equal(await vak.count(), 0);
     assert.equal(await page.getByRole("button", { name: "Meer over dit concept" }).count(), 0);
@@ -521,7 +537,7 @@ try {
     const achter = page.locator("[data-loopt-achter]");
 
     // De melding op het concept, en van daar naar de twee verschillen.
-    await page.goto(`${base}/werkwijze/concepten/a1`);
+    await page.goto(`${base}/aanpassingen/concepten/a1`);
     await page.locator('[data-melding="loopt-achter"]').getByRole("link", { name: "Bekijk wat er veranderde" }).click();
     await achter.waitFor();
     assert.match(page.url(), /achter=1/);
@@ -570,7 +586,7 @@ try {
     await page.locator('[data-concept-versie="3"][data-gewijzigd="nee"]').waitFor();
     assert.equal(await page.locator('[data-melding="loopt-achter"]').count(), 0);
     assert.equal(await page.locator("[data-verwerkt]").count(), 0);
-    await page.goto(`${base}/werkwijze/concepten/a1?achter=1`);
+    await page.goto(`${base}/aanpassingen/concepten/a1?achter=1`);
     await page.locator("textarea[data-bestand-inhoud]").waitFor();
     assert.equal(await achter.count(), 0);
     assert.ok(!gezien.paden.some((x) => /^(PUT|DELETE|PATCH)/.test(x)));
