@@ -1496,9 +1496,8 @@ herkomst, *Leunt op* / *Gebruikt door* en waar het in de repo staat. Bij *Hoe he
 onderdeel is (`methodeLabel`: de naam van de skill, of "Geen: voor elke methode"; plan methodes scheiden, S2). **De catalogus is alleen lezen**: dit is geen
 ontwikkelhulpmiddel maar uitleg voor de jurist hoe een voorstel ontstaat; drift en testuitslagen horen er niet. Wat Lex
 gebruikt, verandert alleen via de repo. Zelf iets maken of aanpassen gaat in de werkplaats (hieronder), als concept.
-De sectie-editor van C7 (*Wijziging voorstellen* op een methodesectie, een concept-PR) is uit de frontend (B2-4): de
-knop, de BFF-routes en de api-functies. De api-route en de vlag `catalogusVoorstellen` blijven tot de promotie van B4 ze
-vervangt; `scripts/test-werkwijze.mjs` toetst dat de werkplek die routes niet meer aanroept. De rekenkern en de spiegel van het bronmodel staan
+Een wijziging voorstellen als concept-PR (ADR-014 C7) is vervallen (15 nov 2026): er is geen knop, geen BFF-route en geen
+api-route meer. De rekenkern en de spiegel van het bronmodel staan
 in `lib/catalogus.ts` (`catalogus.test.ts` toetst de soorten tegen `bronmodel/catalogus.py`). Browserregressie:
 `scripts/test-werkwijze.mjs` (`WERKWIJZE_FIXTURE` en `WERKWIJZE_SCREENSHOT` voor een controle met de echte catalogus). Op een telefoon past alles: `scripts/test-werkwijze-breedte.mjs` loopt op 375 px het overzicht, elk concept en elk
 onderdeel na (zonder fixture één onderdeel per soort uit `lib/catalogus.ts` met de langste waarden, met `WERKWIJZE_FIXTURE`

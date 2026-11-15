@@ -1,6 +1,6 @@
 // De catalogus van Lex (ADR-014): wat Lex kan, op één plek. De spiegel van `bronmodel/catalogus.py`; graph-qa leidt
-// hem af uit zijn registers (`GET /v1/catalogus`). Alleen lezen: een onderdeel toevoegen of wijzigen gaat via de repo
-// (en later via een voorstel dat een concept-PR wordt). `catalogus.test.ts` toetst de soorten tegen de Python-bron.
+// hem af uit zijn registers (`GET /v1/catalogus`). Alleen lezen: een onderdeel toevoegen of wijzigen gaat via de repo.
+// `catalogus.test.ts` toetst de soorten tegen de Python-bron.
 
 export const SOORTEN = ["methode", "rol", "regelset", "tool", "connector", "sjabloon", "workflow", "agentprofiel", "agent",
   "route", "controle"] as const;

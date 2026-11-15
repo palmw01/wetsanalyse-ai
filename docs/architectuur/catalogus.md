@@ -151,7 +151,7 @@ controles op het rapport); de regie draagt ook `regie_plan` en de fasen.
 | S6 | regelsets uit een skill, achter de proefvlag `SKILL_REGELS` | #1301 (bundel 61) |
 | S7 | werkplek per concept | #1299 |
 | S8 | commando's wijzen naar één onderdeel | #1298 |
-| C7 | een wijziging voorstellen → concept-PR (acceptatie, `CATALOGUS_VOORSTELLEN` + een GitHub App) | #1310, App: – |
+| C7 | een wijziging voorstellen → concept-PR (acceptatie, `CATALOGUS_VOORSTELLEN` + een GitHub App); **vervallen 15 nov 2026**: uit de repo, de App is nooit aangemaakt | #1310, weg: dit PR |
 | A16 | de werkwijze volgt de centrale agent: agentvorm, overdrachten, subagents, de regie als tool | dit PR |
 | v3 | de skill wetsanalyse 3.0 volgens de eisen voor Claude-skills, methodetekst byte-gelijk | #1307 |
 | C8 | de skill `wetsuitvoering` (JRM 2), eerst zonder rolkoppeling | #1309 |
