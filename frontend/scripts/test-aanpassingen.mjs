@@ -54,7 +54,8 @@ const fixture = process.env.CATALOGUS_FIXTURE ? JSON.parse(readFileSync(process.
 const LIJST = fixture?.lijst ?? { soorten: [], onderdelen: INLINE };
 const detail = (id) => fixture?.detail?.[id] ?? {
   ...INLINE.find((x) => x.id === id), gebruikt_door: [],
-  inhoud: id === "agentprofiel/definitie" ? { systeemtekst: "AFRONDEN: haal eerst de definitie op." }
+  inhoud: id === "agentprofiel/definitie"
+    ? { systeemtekst: "AFRONDEN: haal eerst de definitie op.", kiesbaar: true, max_rondes: 10, budget: 260000, skills: [] }
     : id === "rol/duiding" ? { secties: [{ id: "duiding", skill: "wetsanalyse", bronnen: ["M01"], tekst: "De methodetekst van duiding." }] }
       : id.startsWith("methode/") ? { rollen: { duiding: ["duiding"] } } : {},
 };
@@ -142,7 +143,7 @@ try {
     const detailblok = venster.locator("[data-aanpassing-detail]");
     await detailblok.locator('[data-blok="gebruikt"]').waitFor();
     assert.match(await detailblok.locator('[data-blok="gebruikt"]').innerText(),
-      /Methode[\s\S]*Wetsanalyse[\s\S]*rol duiding[\s\S]*Connectors[\s\S]*Kamerstukken, Rechtspraak[\s\S]*Sjablonen[\s\S]*Begrip/);
+      /Ingezet[\s\S]*als subagent[\s\S]*Grenzen[\s\S]*hoogstens 10 rondes, ongeveer 260\.000 tokens[\s\S]*Skills vooraf[\s\S]*geen[\s\S]*Methode[\s\S]*Wetsanalyse[\s\S]*rol duiding[\s\S]*Connectors[\s\S]*Kamerstukken, Rechtspraak[\s\S]*Sjablonen[\s\S]*Begrip/);
     assert.doesNotMatch(await detailblok.innerText(), /AFRONDEN/, "de opdracht staat ingeklapt");
     await detailblok.locator('[data-blok="opdracht"]').getByRole("button", { name: "Lezen" }).click();
     await detailblok.getByText("AFRONDEN: haal eerst de definitie op.").waitFor();
