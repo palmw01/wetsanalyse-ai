@@ -318,7 +318,17 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     `algemeen` met de vraag als doel, daarna vat de centrale agent het rapport samen (`State.rapporten`). Een vraag die een
     artikel noemt zonder regeling niet (V01: eerst de vraag welke regeling). Het werk over alle deelvragen ("voor al mijn
     deelvragen … welke bepalingen") herkent `regisseur.opdracht_in` als regie, vóór de graaf. `tests/test_subagent_route.py`
-    en `tests/test_regisseur.py` toetsen dat geen vraag uit de vragensets er onbedoeld in valt;
+    en `tests/test_regisseur.py` toetsen dat geen vraag uit de vragensets er onbedoeld in valt. Na A6 run 2
+    (`tests/test_a6_run2.py`): wat een bron naast de wet zegt "per deelvraag" gaat ook naar één subagent (V03), en de
+    centrale agent leest zelf hoogstens `MAX_STUKKEN_CENTRAAL` stukken naast de wet per beurt (`stukken_plafond`, reden
+    `stukken_plafond`); "de bronnen bij de deelvraag over X" in een werkgebied zonder zo'n deelvraag is een vraag aan de
+    jurist uit code (`supervisie.geen_deelvraag`, `bronselectie.geen_deelvraag_melding`), en de overdracht `werkgebied`
+    weigert de bronselectie dan, en ook bij een vraag over een bron naast de wet (V02);
+  - **na een rapport verwijst geen weigering naar zelf ophalen** (`sjabloon.na_subagent_weigering`: die aanroep weigert
+    `tools_node` dan; A6 run 2, S03/S04: 11 en 9 geweigerde aanroepen), en een tekstantwoord zonder eigen citaat krijgt de
+    citaten die het rapport uit de wettekst toonde (`State.rapport_citaten`, `subagent.citaten_van`,
+    `antwoord.met_rapportcitaten` in `finalize_node`). De controle per stuk vraagt bij `spreekt_tegen` beide kanten
+    letterlijk (`deel` in de zin, `tegen` in de passages), en "zegt meer" is `niet_te_zien` (F01, PHR:2025:435);
   - **de grammatica van een verzoek is begrensd**: de API maakt van alle strict schema's samen één grammatica, met
     gedocumenteerde grenzen (20 strict tools, 24 optionele, 16 union-parameters) en een interne grens op de omvang
     ("Schema is too complex for compilation", 400 zonder tokens). De delegatietools (`subagent`,

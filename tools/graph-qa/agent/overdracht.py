@@ -99,6 +99,19 @@ def _werkgebied(_b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any]
     from .nodes.supervisie import werkgebied_route
 
     taak = invoer.get("taak", "")
+    if taak == "bronselectie":
+        from bronmodel.connectors import herkende
+
+        from .bronselectie import geen_deelvraag_melding
+
+        vraag = state.get("question", "")
+        # De bronselectie kiest zelf de volgende deelvraag en zoekt in de graaf (A6 run 2, V02 en V03).
+        if melding := geen_deelvraag_melding(vraag, state.get("werkgebied_context", "")):
+            return ("De bronselectie start niet: " + melding.split("\n", 1)[0] + " Zeg dat de gebruiker, noem de "
+                    "deelvragen uit WERKGEBIED en vraag of hij die deelvraag wil toevoegen of een bestaande bedoelt.")
+        if bronnen := herkende(vraag):
+            return ("De bronselectie zoekt bepalingen in de kennisgraaf; deze vraag gaat over een bron naast de wet ("
+                    + ", ".join(bronnen) + "). Zoek daar met de tools van die bron, of geef het werk aan een subagent.")
     return werkgebied_route(get_stream_writer(), state, "" if taak == "samenstellen" else taak,
                             state.get("question", ""))
 
@@ -235,7 +248,8 @@ def _met_kind(state: State, afloop: Any, kind: dict[str, Any], profiel: str) -> 
     eerder = [a for a in state.get("subagenten") or [] if a.get("delegatie_id") != afloop.delegatie_id]
     tekst = sub.als_toolresultaat(profiel, afloop.uitkomst, sub.rapport_tekst(afloop, kind))
     return {"source_trace": trace, "subagenten": [*eerder, afloop.als_dict()],
-            "rapport_steun": sub.steun_van([kind], state.get("rapport_steun"))}, tekst
+            "rapport_steun": sub.steun_van([kind], state.get("rapport_steun")),
+            "rapport_citaten": sub.citaten_van([kind], state.get("rapport_citaten"))}, tekst
 
 
 def _subagent(b: Any, state: State, invoer: dict[str, Any]) -> tuple[dict[str, Any], str] | dict[str, Any] | str:
