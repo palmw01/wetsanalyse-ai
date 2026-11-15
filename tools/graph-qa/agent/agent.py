@@ -344,7 +344,7 @@ async def answer_stream(
         "regie_plan": "",
         # Een deelgesprek onthoudt zijn delegatie en profiel (ADR-016 §A4); alleen gezet met een opdracht, dus niet in de
         # per-beurt-reset: een latere beurt van de jurist in dit gesprek leest het.
-        **({"deelgesprek": {"delegatie_id": delegatie_id, "profiel": profiel}} if opdracht_dict else {}),
+        **({"deelgesprek": {"delegatie_id": delegatie_id, "profiel": profiel}} if opdracht_dict or delegatie_id else {}),
         "overdracht_naar": "",
         "bron_lezen": [],
         "bron_lijst": {},
