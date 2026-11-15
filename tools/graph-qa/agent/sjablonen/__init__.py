@@ -83,16 +83,18 @@ def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:
     overgeslagen: list[str] = []
     items = invoer.get(_extern.VELD)
     max_stukken = _extern.MAX_STUKKEN
+    voorkeur = None
     if naam == _rapport.NAAM:
         # Een rapport: elk samengevat stuk draagt een passage met inhoud, en de grens is ruimer (meting bundel 122).
         bij, regels = _extern.aanvulling(str(invoer.get("bevindingen") or ""), items, trace)
         items = [*(items if isinstance(items, list) else []), *bij] if bij else items
         overgeslagen += regels
         max_stukken = _extern.MAX_STUKKEN_RAPPORT
+        voorkeur = _extern.samenvatting(str(invoer.get("bevindingen") or ""), trace)
     # Een lijst gevonden stukken vóór de passages: eerst wat er is, dan wat erin staat.
     extra = [*_extern.lijsten(invoer.get(_extern.STUKKEN), trace),
              *_extern.blokken(items, trace, overgeslagen=overgeslagen, max_stukken=max_stukken,
-                              zonder_kopregels=naam == _rapport.NAAM)]
+                              zonder_kopregels=naam == _rapport.NAAM, voorkeur=voorkeur)]
     getoond = sum(1 for b in extra if b.soort == "extern")
     # Wat het subsjabloon toont, telt in de uitleg als onderbouwd (een artikel van overheid.nl, `duiding.EXTERN_IDS`); een
     # weggelaten aanwijzing niet.
