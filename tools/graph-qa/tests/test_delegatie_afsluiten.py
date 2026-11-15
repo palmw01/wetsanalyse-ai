@@ -217,3 +217,39 @@ def test_de_correctieronde_na_een_grote_beurt_krijgt_de_hele_beurt(monkeypatch):
     correctie, vorige = llm.calls[-1]["messages"], llm.calls[-2]["messages"]
     assert json.dumps(correctie[-1], ensure_ascii=False).find("Let op") >= 0
     assert correctie[:len(vorige)] == vorige, "de correctieronde houdt de beurt"
+
+
+def test_de_grenzen_komen_van_het_profiel_en_anders_van_het_platform(monkeypatch):
+    """`max_rondes` en `budget` van een profiel doen wat ze zeggen (ADR-016 §A2); zonder waarde de codedefaults."""
+    from agent import agentvorm, profielen
+
+    kind = {"opdracht": OPDRACHT.model_dump(), "turns": 0, "specialist": "duiding"}
+    zonder = agentvorm.agent_van(kind)
+    assert zonder.profiel.max_rondes is None and zonder.max_rondes == MAX_RONDES_SUBAGENT
+    assert zonder.budget == MAX_TOKENS_SUBAGENT
+    assert f"hoogstens {MAX_RONDES_SUBAGENT} rondes" in zonder.instructie
+    smal = profielen.PROFIELEN["duiding"].model_copy(update={"max_rondes": 3, "budget": 50_000})
+    monkeypatch.setitem(profielen.PROFIELEN, "duiding", smal)
+    agent = agentvorm.agent_van(kind)
+    assert (agent.max_rondes, agent.budget) == (3, 50_000) and "hoogstens 3 rondes" in agent.instructie
+    b = SimpleNamespace(settings=make_settings(), llm=SimpleNamespace(meter=SimpleNamespace(
+        invoer=0, uitvoer=0, cache_lees=0, cache_schrijf=0, aanroepen=[])))
+    assert antwoordnodes.max_rondes(b.settings, kind) == 3
+    assert laatste_ronde(b, {**kind, "turns": 2}) == "rondegrens" and laatste_ronde(b, {**kind, "turns": 1}) == ""
+    b.llm.meter.invoer = 50_000
+    assert laatste_ronde(b, kind) == "plafond"
+    # Nooit boven `max_turns`, en een gewone beurt (geen opdracht) houdt `max_turns`.
+    assert antwoordnodes.max_rondes(make_settings(max_turns=2), kind) == 2
+    assert antwoordnodes.max_rondes(b.settings, {"specialist": "duiding"}) == b.settings.max_turns
+
+
+def test_het_platform_begrenst_wat_een_profiel_mag_vragen():
+    from bronmodel.agentprofiel import toets
+
+    from agent import profielen
+
+    p = profielen.PROFIELEN["algemeen"]
+    g = profielen.grenzen()
+    assert toets(p.model_copy(update={"max_rondes": profielen.MAX_RONDES_PROFIEL}), g) == []
+    assert {b.code for b in toets(p.model_copy(update={"max_rondes": profielen.MAX_RONDES_PROFIEL + 1}), g)} == {"max_rondes"}
+    assert {b.code for b in toets(p.model_copy(update={"budget": profielen.MAX_BUDGET_PROFIEL + 1}), g)} == {"budget"}

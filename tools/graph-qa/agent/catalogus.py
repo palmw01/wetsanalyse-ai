@@ -25,7 +25,7 @@ from bronmodel.catalogus import EIGEN, NEUTRAAL, Herkomst, Onderdeel, Stap, oid,
 from bronmodel.connectors import CONNECTORS, ConnectorBeschrijving
 
 from . import bronnen_vinden, bronpakket, bronselectie, profielen, werkgebied_intake
-from .agentvorm import CENTRAAL, CENTRAAL_BREED
+from .agentvorm import CENTRAAL, CENTRAAL_BREED, Agent
 from .agents.register import AGENTS, NAAM
 from .begrippen_pipeline import keten as begrippenketen
 from .jas_pipeline import keten as annotatieketen
@@ -134,8 +134,12 @@ def uit_agentprofielen() -> list[Onderdeel]:
                           *(oid("sjabloon", s) for s in sorted(_sjablonen_van(p))),
                           *(oid("connector", c) for c in CONNECTORS if c in p.connectors),
                           *(oid("tool", t) for t in tools), *ANTWOORD_CONTROLES),
-            inhoud={"systeemtekst": p.instructie, "kiesbaar": p.kiesbaar, "modelklasse": p.modelklasse,
-                    "plek": profielplek(naam), **(_centraal_inhoud(naam) if naam in (CENTRAAL, CENTRAAL_BREED) else {})},
+            inhoud={"systeemtekst": p.instructie, "kiesbaar": p.kiesbaar,
+                    "skills": list(p.skills),
+                    # De grenzen gelden alleen voor een subagent, dus alleen voor een kiesbaar profiel.
+                    **({"max_rondes": Agent(p).max_rondes, "budget": Agent(p).budget} if p.kiesbaar else {}),
+                    "plek": profielplek(naam),
+                    **(_centraal_inhoud(naam) if naam in (CENTRAAL, CENTRAAL_BREED) else {})},
         ))
     return uit
 

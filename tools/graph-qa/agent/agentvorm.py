@@ -79,6 +79,19 @@ class Agent:
         return next((r for r in Rol if r.lus and r.methoderol == self.methoderol), Rol.ANTWOORD)
 
     @property
+    def max_rondes(self) -> int:
+        """Hoeveel modelrondes hij als subagent heeft: `max_rondes` van zijn profiel, zonder waarde
+        `MAX_RONDES_SUBAGENT` (ADR-016 §A2)."""
+        return self.profiel.max_rondes or MAX_RONDES_SUBAGENT
+
+    @property
+    def budget(self) -> int:
+        """Zijn tokenplafond als subagent, ruw: `budget` van zijn profiel, zonder waarde `MAX_TOKENS_SUBAGENT`."""
+        from .nodes.antwoord import MAX_TOKENS_SUBAGENT
+
+        return self.profiel.budget or MAX_TOKENS_SUBAGENT
+
+    @property
     def instructie(self) -> str:
         """De methodetekst van zijn rol, dan de instructie van het profiel."""
         return instructies(self.methoderol) + "\n\n" + self.profiel.instructie
@@ -186,22 +199,29 @@ class CentraleAgent(Agent):
 #: door de hele beurt die opnieuw meegaat (D01: 13 rondes, 801k).
 MAX_RONDES_SUBAGENT = 8
 
-SUBAGENT_INSTRUCTIE = (
-    "JE BENT EEN SUBAGENT. Je werkt aan één opdracht van de centrale agent van Lex; je spreekt de gebruiker niet "
-    "rechtstreeks. De opdracht staat in het eerste bericht. Doe wat de opdracht vraagt, binnen wat erbij hoort, en haal in "
-    "één ronde op wat je samen nodig hebt: je hebt hoogstens " + str(MAX_RONDES_SUBAGENT) + " rondes, en in de laatste kan "
-    "alleen het rapport nog. Hangt wat je oplevert af van een afbakening of een feit dat de opdracht niet "
-    "geeft (een periode, een regeling, welke situatie of lezing), kies die dan niet zelf, ook niet 'de meest recente': rond "
-    "af met status vraag en stel de vraag in 'vragen', met wat je al zonder die keuze vond in de bevindingen. Stel dan "
-    "alle vragen die de opdracht openlaat in één keer (hoogstens drie): na het antwoord vraag je alleen nog iets dat uit "
-    "dat antwoord volgt. Je rondt "
-    "altijd af met het sjabloon rapport, als laatste stap en "
-    "zonder tekst ernaast: niet met een antwoordsjabloon en niet in tekst, ook niet als het niet lukte (status "
-    "niet_gelukt). Weigert de code het rapport, verbeter dan de aanroep zoals de melding zegt en roep het opnieuw aan.")
+
+def subagent_instructie(rondes: int = MAX_RONDES_SUBAGENT) -> str:
+    """Wat een subagent bovenop zijn profiel hoort, met de rondegrens van zijn profiel."""
+    return (
+        "JE BENT EEN SUBAGENT. Je werkt aan één opdracht van de centrale agent van Lex; je spreekt de gebruiker niet "
+        "rechtstreeks. De opdracht staat in het eerste bericht. Doe wat de opdracht vraagt, binnen wat erbij hoort, en haal in "
+        "één ronde op wat je samen nodig hebt: je hebt hoogstens " + str(rondes) + " rondes, en in de laatste kan "
+        "alleen het rapport nog. Hangt wat je oplevert af van een afbakening of een feit dat de opdracht niet "
+        "geeft (een periode, een regeling, welke situatie of lezing), kies die dan niet zelf, ook niet 'de meest recente': rond "
+        "af met status vraag en stel de vraag in 'vragen', met wat je al zonder die keuze vond in de bevindingen. Stel dan "
+        "alle vragen die de opdracht openlaat in één keer (hoogstens drie): na het antwoord vraag je alleen nog iets dat uit "
+        "dat antwoord volgt. Je rondt "
+        "altijd af met het sjabloon rapport, als laatste stap en "
+        "zonder tekst ernaast: niet met een antwoordsjabloon en niet in tekst, ook niet als het niet lukte (status "
+        "niet_gelukt). Weigert de code het rapport, verbeter dan de aanroep zoals de melding zegt en roep het opnieuw aan.")
 
 
-#: De modelklasse van een profiel als subagent (ADR-016 §A2): de lichte, voor elk kiesbaar profiel. Als specialist van de
-#: supervisor houdt een profiel zijn eigen `modelklasse` (zwaar).
+#: De tekst bij de standaardgrens; een profiel met een eigen `max_rondes` krijgt `subagent_instructie(n)`.
+SUBAGENT_INSTRUCTIE = subagent_instructie()
+
+
+#: De modelklasse van een subagent: de lichte, voor elk kiesbaar profiel, tenzij de beheerder voor `agent:<profiel>` of
+#: `stap:subagent` een ander model koos (`modelkeuze`). Als specialist van de supervisor houdt een profiel het gewone model.
 SUBAGENT_MODELKLASSE = "licht"
 
 #: Lichte modellen die in dit proces faalden (400 of 404): daarna draait een subagent op het gewone model, ook in de
@@ -252,7 +272,7 @@ class Subagent(Agent):
 
     @property
     def instructie(self) -> str:
-        return super().instructie + "\n\n" + SUBAGENT_INSTRUCTIE
+        return super().instructie + "\n\n" + subagent_instructie(self.max_rondes)
 
     def extern(self, bronstand: dict[str, Any] | None) -> tuple[str, ...]:
         """Het rapport krijgt het veld voor bronnen naast de wet, als er een connector aanstaat die zijn profiel noemt."""

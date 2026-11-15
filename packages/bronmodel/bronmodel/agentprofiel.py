@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -31,16 +31,20 @@ MAX_INSTRUCTIE = 12_000
 #: Wat geen profiel mag hebben, wat de aanroeper ook aanbiedt: een subagent stelt zelf geen subagents op (één laag).
 NOOIT = frozenset({"subagent"})
 
-Modelklasse = Literal["licht", "zwaar"]
+#: Het veld `model` van een Claude Code-subagent. Lex leest het niet: het model van een profiel kiest de beheerder
+#: (`agent:<profiel>`, `bronmodel.modelkeuzes`). In een concept uit de werkplaats is het een voorstel aan de beheerder;
+#: in een vast profiel (`.claude/lex-agents/`) hoort het niet, want daar zou het lijken alsof het iets doet.
+MODEL = "model"
+MAX_MODEL = 64
 
-#: Van het veld in de frontmatter naar het veld van het profiel. De eerste zes zijn de namen van een Claude
-#: Code-subagent; de rest kent alleen Lex. De instructie is de tekst onder de frontmatter.
+#: Van het veld in de frontmatter naar het veld van het profiel. De eerste namen zijn die van een Claude
+#: Code-subagent; de rest kent alleen Lex. De instructie is de tekst onder de frontmatter. `model` staat er niet in:
+#: zie `MODEL`.
 VELDEN: dict[str, str] = {
     "name": "naam",
     "description": "beschrijving",
     "tools": "tools",
     "skills": "skills",
-    "model": "modelklasse",
     "maxTurns": "max_rondes",
     "mcpServers": "mcp",
     "kiesbaar": "kiesbaar",
@@ -71,9 +75,8 @@ class Agentprofiel(BaseModel):
     mcp: tuple[str, ...] = ()
     #: De sjablonen waarmee hij afrondt (ADR-008).
     sjablonen: tuple[str, ...] = ()
-    #: Verwijst naar de modelprofielen in het beheer.
-    modelklasse: Modelklasse = "zwaar"
-    #: Hoe lang en hoe duur; `None` is de grens van het platform.
+    #: Hoe lang (modelrondes) en hoe duur (tokens, ruw: zoals het budget van de gebruiker telt) als subagent; `None` is
+    #: de standaard van het platform. Als specialist van de supervisor gelden ze niet.
     max_rondes: int | None = Field(default=None, ge=1)
     budget: int | None = Field(default=None, ge=1)
     #: De methoderol waarvan hij de tekst uit de skill krijgt; `None` is de rol met zijn eigen naam. Een profiel maakt
@@ -113,15 +116,22 @@ def _vorm(fout: ValidationError) -> list[Bevinding]:
     return [Bevinding("vorm", f"{'.'.join(str(d) for d in f['loc']) or 'profiel'}: {f['msg']}") for f in fout.errors()]
 
 
-def uit_markdown(naam: str, tekst: str) -> Agentprofiel:
-    """Het profiel uit `<naam>.md`. Gooit `ValidatieFout` als de vorm niet klopt; de grenzen toetst `toets`."""
+def uit_markdown(naam: str, tekst: str, *, vast: bool = False) -> Agentprofiel:
+    """Het profiel uit `<naam>.md`. Gooit `ValidatieFout` als de vorm niet klopt; de grenzen toetst `toets`. Met `vast`
+    (de profielen in de repo) is `model` een fout; anders een voorstel dat het profiel niet draagt (`modelvoorstel`)."""
     try:
         kop, instructie = frontmatter(tekst)
     except ValueError as f:
         raise ValidatieFout(naam, [Bevinding("frontmatter", str(f))]) from None
-    if vreemd := sorted(set(kop) - set(VELDEN)):
-        raise ValidatieFout(naam, [Bevinding("frontmatter", f"onbekende velden {vreemd}; toegestaan zijn {sorted(VELDEN)}")])
-    velden: dict[str, Any] = {VELDEN[k]: tuple(v) if isinstance(v, list) else v for k, v in kop.items()}
+    toegestaan = set(VELDEN) | (set() if vast else {MODEL})
+    if vreemd := sorted(set(kop) - toegestaan):
+        uitleg = (" `model` kiest de beheerder (Instellingen › Aanpassingen › Agents), niet het profiel."
+                  if MODEL in vreemd and vast else "")
+        raise ValidatieFout(naam, [Bevinding("frontmatter", f"onbekende velden {vreemd}; toegestaan zijn "
+                                                            f"{sorted(toegestaan)}.{uitleg}".rstrip("."))])
+    if MODEL in kop and not (isinstance(kop[MODEL], str) and 0 < len(kop[MODEL]) <= MAX_MODEL):
+        raise ValidatieFout(naam, [Bevinding("vorm", f"model: een naam van hoogstens {MAX_MODEL} tekens")])
+    velden: dict[str, Any] = {VELDEN[k]: tuple(v) if isinstance(v, list) else v for k, v in kop.items() if k != MODEL}
     try:
         profiel = Agentprofiel(**velden, instructie=instructie)
     except ValidationError as f:
@@ -129,6 +139,16 @@ def uit_markdown(naam: str, tekst: str) -> Agentprofiel:
     if profiel.naam != naam:
         raise ValidatieFout(naam, [Bevinding("naam", f"name is {profiel.naam!r}, maar het bestand heet {naam!r}")])
     return profiel
+
+
+def modelvoorstel(tekst: str) -> str | None:
+    """Het model dat een concept voorstelt (`model:` in de frontmatter), of `None`. Alleen een voorstel aan de beheerder."""
+    try:
+        kop, _ = frontmatter(tekst)
+    except ValueError:
+        return None
+    waarde = kop.get(MODEL)
+    return waarde if isinstance(waarde, str) and waarde else None
 
 
 def tools_van_andere_methode(profiel: Agentprofiel, grenzen: Grenzen) -> frozenset[str]:
