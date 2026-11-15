@@ -130,6 +130,20 @@ def werkgebied_route(writer, state: State, taak: str, vraag: str) -> dict[str, A
     return _werkgebied(writer, "stelt met je een werkgebied samen")
 
 
+def geen_deelvraag(state: State) -> dict[str, Any] | None:
+    """"Zoek de bronnen bij de deelvraag over verjaring" in een werkgebied zonder zo'n deelvraag: een vraag aan de jurist
+    uit code, zonder model (agentset V02, A6 run 2: de centrale agent koos zelf de bronselectie, die stil verder ging bij
+    deelvraag 3). Dezelfde toets staat in de overdracht `werkgebied` (`overdracht._werkgebied`)."""
+    from ..bronselectie import geen_deelvraag_melding
+
+    if not (melding := geen_deelvraag_melding(state.get("question", ""), state.get("werkgebied_context", ""))):
+        return None
+    _stap(get_stream_writer(), "Lex", "vindt geen deelvraag over dat onderwerp", route="geen_deelvraag")
+    return {"specialist": "", "plan": "", "worker_plan": [], "worker_idx": 0, "afwijzen": True,
+            "afwijs_melding": melding, "afwijs_stap": "niets gezocht – het werkgebied heeft die deelvraag niet",
+            "annotaties_lezen": False}
+
+
 def _bronselectie(writer, waarom: str) -> dict[str, Any]:
     """De bronselectie per deelvraag (spoor J): de bronselectie-worker, op de stand die de api bewaart."""
     _stap(writer, "Lex", waarom, route="bronselectie")
@@ -528,6 +542,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         return {"specialist": "", "plan": "", "worker_plan": [], "worker_idx": 0, "afwijzen": True,
                 "afwijs_melding": methodekeuze.melding(skill), "afwijs_stap": "niets gestart: deze methode voer ik nog niet uit",
                 "annotaties_lezen": False}
+    if modus == "auto" and state.get("werkgebied_id") and (melding := geen_deelvraag(state)):
+        return melding
     if modus == "auto" and state.get("werkgebied_id") and is_bronselectievraag(state.get("question", "")):
         return _bronselectie(writer, "bepaalt met je de bronnen per deelvraag")
     if modus == "auto" and is_werkgebiedvraag(state.get("question", "")):

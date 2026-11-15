@@ -112,6 +112,10 @@ def gelezen_aantallen(tekst: str, gelezen: int) -> list[str]:
     for patroon in _GELEZEN_AANTAL:
         for m in patroon.finditer(tekst):
             n = int(m.group(1)) if m.group(1).isdigit() else TELWOORDEN[m.group(1).casefold()]
+            # Een jaartal is geen aantal: "Invorderingswet 1990 uitspraken gelezen" (A6 run 2, F01: "1990 uitspraken
+            # gelezen (gelezen: 8)"). Wie echt meer dan 1800 stukken las, staat niet in één beurt.
+            if len(m.group(1)) == 4 and 1800 <= n <= 2100:
+                continue
             if n > gelezen:
                 uit.append(f"{m.group(1)} {m.group(2).casefold()} gelezen (gelezen: {gelezen})")
     return uit

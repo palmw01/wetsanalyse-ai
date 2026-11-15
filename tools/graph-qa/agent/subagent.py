@@ -489,6 +489,20 @@ def steun_van(kinderen: Iterable[dict[str, Any]], eerder: dict[str, str] | None 
     return steun
 
 
+def citaten_van(kinderen: Iterable[dict[str, Any]], eerder: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    """De citaten uit de wettekst die de rapporten toonden (de blokken `citaten`, door de code uit de bron gevuld), ontdubbeld
+    op tekst en vindplaats. Alleen een rapport dat de controle doorstond, heeft ze."""
+    uit = list(eerder or [])
+    gezien = {(c.get("tekst"), str(c.get("vindplaats"))) for c in uit}
+    for kind in kinderen:
+        for blok in (kind.get("antwoord") or {}).get("blokken") or []:
+            for c in blok.get("items") or [] if blok.get("soort") == "citaten" else []:
+                if isinstance(c, dict) and (sleutel := (c.get("tekst"), str(c.get("vindplaats")))) not in gezien:
+                    gezien.add(sleutel)
+                    uit.append(c)
+    return uit
+
+
 def passagetekst(passages: Iterable[dict[str, Any]]) -> str:
     """De tekst van de passages die inhoud dragen: een kopregel ("HOGE RAAD DER NEDERLANDEN") steunt geen duiding (meting
     bundel 122, D01: "gedragen door de passages", en de passages waren de kop van het arrest)."""

@@ -29,7 +29,7 @@ MAX_STUKKEN = 8
 MAX_ZINNEN = 8
 MAX_PASSAGE = 4000
 #: De uitvoer: per zin één oordeel van een paar woorden.
-MAX_TOKENS = 600
+MAX_TOKENS = 1200
 
 OORDELEN = ("steunt", "spreekt_tegen", "niet_te_zien")
 
@@ -40,9 +40,11 @@ SYSTEEM = (
     "- spreekt_tegen: een passage zegt iets anders of het omgekeerde (een andere partij, een andere richting van de "
     "bewijslast, een andere uitkomst, ontkenning tegenover bevestiging);\n"
     "- niet_te_zien: de passages zeggen er niets over.\n"
-    "Bij spreekt_tegen geef je in `tegen` letterlijk het stukje passage dat het tegendeel zegt (een paar woorden tot een "
-    "zin, exact overgenomen); bij de andere oordelen laat je `tegen` leeg. Kun je zo'n stukje niet aanwijzen, dan is het "
-    "niet_te_zien. Een zin die een standpunt weergeeft dat het stuk noemt en zelf verwerpt, spreekt het niet tegen zolang "
+    "Zegt een zin méér dan de passages (een punt, een aantal of een reden die ze niet noemen), dan is dat niet_te_zien, "
+    "niet spreekt_tegen: spreekt_tegen is alleen een passage die het omgekeerde zegt van wat de zin zegt.\n"
+    "Bij spreekt_tegen geef je in `deel` letterlijk het stuk van de zin dat niet klopt, en in `tegen` letterlijk het "
+    "stukje passage dat er het tegendeel van zegt (elk een paar woorden tot een zin, exact overgenomen); bij de andere "
+    "oordelen laat je beide leeg. Kun je ze niet aanwijzen, of zeggen ze hetzelfde, dan is het niet_te_zien. Een zin die een standpunt weergeeft dat het stuk noemt en zelf verwerpt, spreekt het niet tegen zolang "
     "ze die verwerping niet omdraait; een zin met meer punten beoordeel je op elk punt.\n"
     "Oordeel alleen op de passages, niet op wat je zelf over het recht weet. Bij twijfel: niet_te_zien.")
 
@@ -54,10 +56,11 @@ def schema() -> dict[str, Any]:
     return {"name": "oordelen", "description": "Het oordeel per zin.", "strict": True,
             "input_schema": {"type": "object", "additionalProperties": False, "required": ["oordelen"], "properties": {
                 "oordelen": {"type": "array", "items": {
-                    "type": "object", "additionalProperties": False, "required": ["stuk", "zin", "oordeel", "tegen"],
+                    "type": "object", "additionalProperties": False,
+                    "required": ["stuk", "zin", "deel", "tegen", "oordeel"],
                     "properties": {"stuk": {"type": "integer"}, "zin": {"type": "integer"},
-                                   "oordeel": {"type": "string", "enum": list(OORDELEN)},
-                                   "tegen": {"type": "string"}}}}}}}
+                                   "deel": {"type": "string"}, "tegen": {"type": "string"},
+                                   "oordeel": {"type": "string", "enum": list(OORDELEN)}}}}}}}
 
 
 def _plat(tekst: str) -> str:
@@ -128,7 +131,10 @@ def controleer(llm: Any, settings: Any, tekst: str, steun: dict[str, str] | None
             continue
         if o.get("oordeel") != "spreekt_tegen" or not 0 <= zin < len(stuk["zinnen"]):
             continue
-        if not aangewezen(str(o.get("tegen") or ""), stuk["passages"]):
+        # Beide kanten letterlijk aangewezen: het zinsdeel in de zin en het stukje in de passages (A6 run 2, F01: bij
+        # PHR:2025:435 een stukje van de slotsom dat hetzelfde zei als de zin, die alleen meer zei).
+        if not (aangewezen(str(o.get("tegen") or ""), stuk["passages"])
+                and aangewezen(str(o.get("deel") or ""), stuk["zinnen"][zin])):
             niet_aangewezen += 1
             continue
         kort = " ".join(stuk["zinnen"][zin].split())[:100]

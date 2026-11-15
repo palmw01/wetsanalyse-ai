@@ -7,9 +7,9 @@ M06, met dezelfde regel in zijn instructie en in de beschrijving van `subagent`:
 M01 en M06 begonnen zonder bevestiging. De vorm van zulke opdrachten ligt vast, dus de code herkent haar (`plan`) en
 start de subagents zonder modelronde, met de vraag van de jurist als doel: die is de volledige opdracht.
 
-- **Eén subagent**: een reeks die doorlopen moet worden. Per uitspraak, Kamerstuk of publicatie iets samenvatten (een
-  bron naast de wet, profiel `algemeen`), of per artikel of onderdeel van een hoofdstuk of een beleidsregel (de graaf,
-  profiel `duiding`). Daarna gaat de beurt naar de centrale agent, met het rapport als gegeven in de context van de
+- **Eén subagent**: een reeks die doorlopen moet worden. Per uitspraak, Kamerstuk of publicatie iets samenvatten, of
+  wat een bron naast de wet zegt per deelvraag van het werkgebied (V03; profiel `algemeen`), of per artikel of
+  onderdeel van een hoofdstuk of een beleidsregel (de graaf, profiel `duiding`). Daarna gaat de beurt naar de centrale agent, met het rapport als gegeven in de context van de
   beurt (`State.rapporten`, zoals na een klik op een vraagkaart), en die vat het samen. Heeft de subagent een vraag,
   dan sluit `finalize_node` af met de kaart.
 - **Twee of drie**: delen die naast elkaar kunnen. Per bron naast de wet (de rechtspraak, de Kamerstukken en het
@@ -55,6 +55,10 @@ _WAT_ELK = re.compile(r"\bwat\s+(?:veranderde|verandert|wijzigde|wijzigt|zegt|ze
 #: "Loop het hoofdstuk … door en geef per artikel …" (S03), "geef per onderdeel van de Leidraad de kern" (S04).
 _PER_DEEL = re.compile(r"\b(?:per|elk|ieder)e?\s+(?:artikel|onderdeel|bepaling)\b", re.I)
 _REEKS_GRAAF = re.compile(r"\b(?:hoofdstuk|afdeling|paragraaf|titel|leidraad|beleidsregel|onderdelen|artikelen)\b", re.I)
+
+#: "Zoek uit wat de memorie van toelichting zegt over de bepalingen van dit werkgebied en vat dat per deelvraag samen"
+#: (V03, A6 run 2: de centrale agent deed het zelf, 17 keer `get_kamerstuk`, 690k).
+_PER_DEELVRAAG = re.compile(r"\b(?:per|elke|iedere)\s+deelvraag\b", re.I)
 
 #: "… de rechtspraak en de Kamerstukken, en vat ze per bron apart samen" (P01, P02, M06).
 _PER_BRON = re.compile(r"\b(?:per|elke|iedere)\s+bron\b|\bapart\b|\bafzonderlijk\b", re.I)
@@ -120,6 +124,11 @@ def plan(vraag: str, bronstand: dict[str, Any] | None, regelingen: Regelingen | 
         return [(PROFIEL, een)]
     if aan and _STUKKEN.search(vraag) and _ELK.search(vraag) and _WAT_ELK.search(vraag):
         return [(PROFIEL, een)]
+    if aan and _PER_DEELVRAAG.search(vraag) and _SAMENVATTEN.search(vraag):
+        # De subagent krijgt het werkgebied van de beurt mee (`subagent.voer_uit`): de deelvragen en het zoekbereik.
+        return [(PROFIEL, SubagentOpdracht(
+            doel=vraag, oplevering="Per deelvraag van het werkgebied de kern uit de gelezen stukken, elk met zijn id en "
+                                   "de passages die haar dragen; noem een deelvraag waarvoor je niets vond."))]
     if _PER_DEEL.search(vraag) and _REEKS_GRAAF.search(vraag) and not aan:
         return [(DUIDING, SubagentOpdracht(
             doel=vraag, oplevering="Per artikel of onderdeel van de reeks, elk gelezen, de kern met de vindplaats en een "
@@ -155,6 +164,6 @@ def subagent_route_node(b: Bouw, state: State) -> dict[str, Any]:
     trace = list(state.get("source_trace") or []) + [tuple(x) for x in kind.get("source_trace") or []]
     rapport = sub.als_toolresultaat(profiel, afloop.uitkomst, sub.rapport_tekst(afloop, kind))
     return {"specialist": CENTRAAL, "source_trace": trace, "subagenten": [afloop.als_dict()], "subagent_plan": [],
-            "rapport_steun": sub.steun_van([kind]),
+            "rapport_steun": sub.steun_van([kind]), "rapport_citaten": sub.citaten_van([kind]),
             "rapporten": ("RAPPORT VAN EEN SUBAGENT (de code gaf hem de vraag van de gebruiker; vat het rapport samen voor "
                           "de gebruiker):\n" + rapport + "\n\n")}

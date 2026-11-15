@@ -97,6 +97,25 @@ TEKST_NU = ("\n\nRoep het sjabloon niet opnieuw aan. Geef je antwoord nu in teks
             "antwoord.")
 
 
+#: De opdracht in een weigering om zelf iets op te halen ("haal de bepaling op met get_artikel, …", "haal het stuk eerst op").
+_HAAL_OP = re.compile(r"[,;]?\s*(?:en\s+)?[Hh]aal\s+(?:de\s+bepaling|het\s+stuk|het\s+vervolg)[^.;]*")
+
+NA_SUBAGENT_SJABLOON = ("\n\nEen subagent las de bronnen; zelf lezen kan nu niet. Wijs alleen passages aan uit de tekst die "
+                        "zijn toolresultaten in je trace dragen (de iri van die rij), laat de rest weg, of antwoord in tekst: "
+                        "de citaten uit zijn rapport zet de code onder je antwoord.")
+
+
+def na_subagent_weigering(state: State, tekst: str) -> str:
+    """De weigering van een sjabloon voor de centrale agent na een rapport: zonder de opdracht om zelf op te halen, want
+    die weigert `tools_node` dan (`na_subagent`; A6 run 2, S03 en S04: 11 en 9 geweigerde aanroepen in één ronde, daarna
+    tekst zonder citaat)."""
+    from .antwoord import na_subagent
+
+    if not na_subagent(state, "get_artikel"):
+        return tekst
+    return _HAAL_OP.sub("", tekst) + NA_SUBAGENT_SJABLOON
+
+
 def vul_aanroep(b: Bouw, state: State, tu: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
     """Vul één sjabloonaanroep uit de trace van `state`: (het `tool_result`, de berichten erna, de rest van de update).
 
@@ -114,6 +133,7 @@ def vul_aanroep(b: Bouw, state: State, tu: dict[str, Any]) -> tuple[dict[str, An
                                                          "redencode": redencode(fout), "code": fout.code,
                                                          "opgehaald": len(fout.ophalen)})
         tekst, trace = _lees_wat_genoemd_is(b, state, fout)
+        tekst = na_subagent_weigering(state, tekst)
         # Na een weigering schreef het model vaak vrije tekst (derde meting Rechtspraak, 10 nov 2026: 2 van 6 runs na een
         # tweede pagina, met afgeronde bedragen en een eigen blokcitaat). Het sjabloon hoort het antwoord te dragen.
         # Eén herkansing: na een tweede weigering (zonder iets op te halen) is de tekst het antwoord. Eerst ging dat door

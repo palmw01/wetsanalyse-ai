@@ -100,6 +100,54 @@ def is_bronselectievraag(vraag: str) -> bool:
     return not (herkende(vraag) or _DEELVRAAG_OVER.search(vraag))
 
 
+#: Het onderwerp na "deelvraag over …": tot een leesteken of het eind van de zin.
+_ONDERWERP = re.compile(r"\bdeelvraag\s+(?:over|naar|rond|inzake)\s+(?:de\s+|het\s+|een\s+)?([^.,;:?!]+)", re.I)
+_LIDWOORDEN = frozenset({"de", "het", "een", "en", "of", "van", "bij", "in", "op", "aan", "voor", "met", "door", "die",
+                         "dat", "dit", "werkgebied", "deelvraag"})
+#: Hoeveel letters van een woord uit het onderwerp in de deelvraag moeten staan: een stam ("verjaring", "verjaart").
+STAM = 6
+
+
+def deelvraag_onderwerp(vraag: str) -> str:
+    """Het onderwerp waarmee de vraag een deelvraag aanwijst ("de bronnen bij de deelvraag over verjaring"), of leeg."""
+    m = _ONDERWERP.search(" ".join((vraag or "").split()))
+    return m.group(1).strip() if m else ""
+
+
+def deelvragen_uit(context: str) -> list[str]:
+    """De actieve deelvragen uit het contextblok van het werkgebied (`werkgebied_context.context_tekst`)."""
+    uit, binnen = [], False
+    for regel in (context or "").splitlines():
+        if regel.startswith("Deelvragen:"):
+            binnen = True
+        elif binnen and regel.startswith("- "):
+            uit.append(regel[2:].strip())
+        elif binnen:
+            break
+    return uit
+
+
+def bij_onderwerp(onderwerp: str, deelvragen: list[str]) -> list[int]:
+    """De nummers (vanaf 1) van de deelvragen die een woord van het onderwerp dragen, op de stam van `STAM` letters."""
+    woorden = [w for w in re.findall(r"\w+", onderwerp.lower()) if w not in _LIDWOORDEN and len(w) >= 4]
+    return [i for i, d in enumerate(deelvragen, 1)
+            if woorden and any(w[:STAM] in d.lower() for w in woorden)]
+
+
+def geen_deelvraag_melding(vraag: str, context: str) -> str:
+    """De vaste vraag aan de jurist als de vraag een deelvraag bij haar onderwerp noemt die het werkgebied niet heeft
+    (agentset V02, A6 run 1 en 2: de bronselectie ging stil door bij deelvraag 3), of leeg. Zonder deelvragen in de
+    context zegt de code niets: dan is er niets om tegen te toetsen."""
+    if not _BRONSELECTIE.search(vraag or "") or not (onderwerp := deelvraag_onderwerp(vraag)):
+        return ""
+    deelvragen = deelvragen_uit(context)
+    if not deelvragen or bij_onderwerp(onderwerp, deelvragen):
+        return ""
+    lijst = "\n".join(f"{i}. {d}" for i, d in enumerate(deelvragen, 1))
+    return (f"Dit werkgebied heeft geen deelvraag over {onderwerp}. De deelvragen zijn:\n{lijst}\n\n"
+            f"Wil je een deelvraag over {onderwerp} toevoegen, of zoek ik de bronnen bij een van deze?")
+
+
 def deelvraag_nr_in(tekst: str) -> int | None:
     m = re.search(r"\bdeelvraag\s+(\d{1,2})\b", tekst or "", re.IGNORECASE)
     return int(m.group(1)) if m else None

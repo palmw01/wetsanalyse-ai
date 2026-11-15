@@ -181,15 +181,19 @@ def test_de_kop_en_een_zin_over_het_lezen_gaan_niet_naar_de_controle_per_stuk():
     assert len(stuk["zinnen"]) == 1 and stuk["zinnen"][0].startswith("Hij formuleert vijf lichtpuntjes")
 
 
+#: Het zinsdeel dat de tegenspraak aanwijst (sinds A6 run 2 verplicht, `tests/test_a6_run2.py`).
+DEEL = "de bewijsmaatstaf blijft aannemelijk maken"
+
+
 def test_een_tegenspraak_zonder_aangewezen_passage_is_geen_bewering():
     """PHR:2025:435 in S01: `spreekt_tegen` op een zin die de passages wel dragen. Zonder letterlijke passage die het
     tegendeel zegt, is het oordeel geen bewering. Met zo'n passage wel, en dan staat die passage in de bewering, zodat
     de correctieronde weet wat er niet klopt."""
     steun = {PHR: PHR_PASSAGES}
     for tegen in ("", "niet", "het stuk noemt maar twee lichtpuntjes"):   # leeg, één woord, niet uit de passages
-        assert stukcontrole.controleer(_oordeel(oordeel="spreekt_tegen", tegen=tegen), make_settings(), PHR_ANTWOORD,
+        assert stukcontrole.controleer(_oordeel(oordeel="spreekt_tegen", deel=DEEL, tegen=tegen), make_settings(), PHR_ANTWOORD,
                                        steun, []) == []
-    [bewering] = stukcontrole.controleer(_oordeel(oordeel="spreekt_tegen", tegen="Daar ben ik het niet mee eens."),
+    [bewering] = stukcontrole.controleer(_oordeel(oordeel="spreekt_tegen", deel=DEEL, tegen="Daar ben ik het niet mee eens."),
                                          make_settings(), PHR_ANTWOORD, steun, [])
     assert bewering.startswith(f"duiding van {PHR} die de passages van dat stuk tegenspreekt")
     assert "(de passage: 'Daar ben ik het niet mee eens.')" in bewering

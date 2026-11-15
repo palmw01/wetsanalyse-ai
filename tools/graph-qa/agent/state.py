@@ -152,6 +152,10 @@ class State(TypedDict, total=False):
     # (`subagent.steun_van`). Wat de centrale agent over een stuk zegt, rust daarop (`gelezen.zonder_steun`, meting
     # bundel 117, D01). Leeg zonder subagent. Per beurt gereset.
     rapport_steun: dict[str, str]
+    # Na een rapport van een subagent: de citaten uit de wettekst die het rapport toonde (blokken `citaten`, door de code
+    # uit de bron gevuld; `subagent.citaten_van`). Antwoordt de centrale agent zonder citaat, dan staan ze onder zijn
+    # tekst (`antwoord.met_rapportcitaten`; A6 run 2, S03 en S04). Per beurt gereset.
+    rapport_citaten: list[dict[str, Any]]
     # Wat er deze beurt met de sjablonen gebeurde (`beurtmeting.tel_sjabloon`), voor het `meting`-event. Per beurt gereset.
     sjabloon_telling: dict[str, Any]
     # Het doel dat de AANROEPER meegaf ({bwbId, artikel, lid?, citeertitel?}). Weet de werkplek de

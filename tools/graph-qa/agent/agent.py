@@ -393,6 +393,7 @@ async def answer_stream(
         "laatste_gehad": False,
         "afgesloten": False,
         "rapport_steun": {},
+        "rapport_citaten": [],
         "sjabloon_telling": {},
         "afgekapt": False,
         "onbevestigd": [],

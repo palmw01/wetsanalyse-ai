@@ -303,10 +303,20 @@ MAX_OPHALEN = 2
 _ANKERWOORDEN = 6
 
 
+#: Een artikel met boeknummer zoals een uitleg het schrijft ("artikel 3:239"), en de vorm van de wettekst: "artikel 239
+#: van Boek 3 van het Burgerlijk Wetboek".
+_BOEK_ARTIKEL = re.compile(r"artikel (\d+):(\d+[a-z]*)")
+
+
 def _zin_met(doel: str, tekst: str) -> str:
-    """De zin uit `tekst` die `doel` ("artikel 29") noemt, of leeg."""
+    """De zin uit `tekst` die `doel` ("artikel 29") noemt, of leeg. "Artikel 3:239" staat er ook als "artikel 239 van
+    Boek 3" (A6 run 2, E03: de uitleg schreef "BW art. 3:239", artikel 24 lid 3 Iw "artikel 239 van Boek 3 van het
+    Burgerlijk Wetboek"; de code vond het nergens en weigerde twee keer met de opdracht het op te halen)."""
+    boek = _BOEK_ARTIKEL.fullmatch(doel)
     for zin in re.split(r"(?<=[.;:])\s+", " ".join(tekst.split())):
-        if doel in {v.casefold() for v in vermeldingen(zin)}:
+        genoemd = {v.casefold() for v in vermeldingen(zin)}
+        if doel in genoemd or (boek and f"artikel {boek.group(2)}" in genoemd
+                               and re.search(rf"\bboek {boek.group(1)}\b", zin.casefold())):
             return zin
     return ""
 

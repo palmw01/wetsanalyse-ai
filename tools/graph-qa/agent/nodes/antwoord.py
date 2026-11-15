@@ -748,6 +748,52 @@ def na_subagent(state: State, tool: str) -> str:
     return ""
 
 
+#: Hoeveel stukken naast de wet de centrale agent in één beurt zelf leest (A6 run 2, V03: 17 keer `get_kamerstuk` in 14
+#: rondes, 690k, zonder subagent). Een volgende pagina van een gelezen stuk telt niet als nieuw stuk. Daarboven doet een
+#: subagent het lezen, met zijn eigen rondegrens en plafond; een subagent zelf valt er niet onder.
+MAX_STUKKEN_CENTRAAL = 6
+
+STUKKEN_PLAFOND = json.dumps({"status": "unavailable", "volledig": False, "reden": "stukken_plafond",
+                              "aanwijzing": (f"Je las in deze beurt al {MAX_STUKKEN_CENTRAAL} stukken naast de wet zelf. "
+                                             "Lees er niet meer: geef het lezen van de rest aan een subagent (de "
+                                             "overdracht subagent, met wat je al weet in de opdracht), of rond af met "
+                                             "wat je gelezen hebt en zeg wat je niet las.")}, ensure_ascii=False)
+
+
+def _stuk_id(tu: dict[str, Any]) -> str:
+    from bronmodel.connectors import CONNECTORS
+    from bronmodel.extern import externe_vindplaats
+
+    for c in CONNECTORS.values():
+        if c.leestool == tu["name"]:
+            ident = str((tu.get("input") or {}).get(c.lees_argument) or "").strip()
+            vp = externe_vindplaats(ident)
+            return vp.id if vp else ident
+    return ""
+
+
+def stukken_plafond(state: State, nieuw: list[dict[str, Any]]) -> set[int]:
+    """De aanroepen (als `id()`) waarmee de centrale agent boven `MAX_STUKKEN_CENTRAAL` gelezen stukken naast de wet zou
+    komen, in de volgorde van de ronde. Alleen de centrale agent: een specialist van de supervisor en een subagent niet."""
+    from ..gelezen import _stuk
+
+    if state.get("opdracht") or state.get("specialist") not in ("centraal", "centraal_breed"):
+        return set()
+    from bronmodel.connectors import leestools
+
+    lees = leestools()
+    gelezen = {s[0] for naam, tekst in state.get("source_trace") or [] if naam in lees and (s := _stuk(str(tekst)))}
+    weg: set[int] = set()
+    for tu in nieuw:
+        if tu["name"] not in lees or not (ident := _stuk_id(tu)) or ident in gelezen:
+            continue
+        if len(gelezen) >= MAX_STUKKEN_CENTRAAL:
+            weg.add(id(tu))
+        else:
+            gelezen.add(ident)
+    return weg
+
+
 #: Wat het model ziet als het een tool aanroept die niet bij het profiel van de centrale agent hoort.
 BUITEN_PROFIEL = json.dumps({"status": "unavailable", "volledig": False, "reden": "tool_buiten_profiel",
                              "aanwijzing": "Deze tool heb je nu niet. Roep eerst meer_tools aan."}, ensure_ascii=False)
@@ -784,6 +830,8 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
         return "" if agent.mag(tu["name"]) else BUITEN_PROFIEL
 
     geweigerd = {id(t): w for t in pending if _sleutel(t) not in gedaan and (w := weigering(t))}
+    geweigerd |= {i: STUKKEN_PLAFOND for i in stukken_plafond(
+        state, [t for t in pending if _sleutel(t) not in gedaan and id(t) not in geweigerd])}
     uit_te_voeren = list({_sleutel(t): t for t in reversed(pending)
                           if _sleutel(t) not in gedaan and id(t) not in geweigerd}.values())[::-1]
     # De statusregel noemt alleen wat werkelijk draait (bundel 120: "leest uitspraak …" bij vier geweigerde aanroepen).
@@ -1128,6 +1176,28 @@ def code_regels(state: State, antwoord: str) -> str:
     return " ".join(r for r in (afbakening_regel(state, antwoord), zelf_beantwoord_regel(state)) if r)
 
 
+#: Een blokcitaat in een tekstantwoord: dan citeerde Lex zelf, en voegt de code niets toe.
+_EIGEN_CITAAT = re.compile(r"^\s*>", re.M)
+
+
+def met_rapportcitaten(state: State, tekst: str) -> Antwoord | None:
+    """Een tekstantwoord van de centrale agent na een rapport `klaar`, zonder eigen citaat, met de citaten die het rapport
+    uit de wettekst toonde (`State.rapport_citaten`, door de code uit de bron gevuld), of None. Niet bij een sjabloon,
+    een subagent zelf, een open vraag of een rapport dat niet afrondde: dan is de tekst uit code."""
+    from bronmodel.antwoord import Citaat, Citaten, Toelichting
+
+    if (state.get("antwoord") or state.get("opdracht") or not (citaten := state.get("rapport_citaten"))
+            or not tekst.strip() or _EIGEN_CITAAT.search(tekst)
+            or {a.get("uitkomst") for a in state.get("subagenten") or []} & NIET_AF
+            or tekst.strip() in (VRAAG_VAN_SUBAGENT, SUBAGENT_AFGESLOTEN)):
+        return None
+    try:
+        items = [Citaat.model_validate(c) for c in citaten]
+    except ValueError:
+        return None
+    return Antwoord(sjabloon="duiding", blokken=[Toelichting(tekst=tekst.strip()), Citaten(items=items)])
+
+
 def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
 
@@ -1152,6 +1222,11 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
                                                                          "run_id": state.get("run_id", "")})
         antwoord = schoon
         state = {**state, "answer": antwoord}
+    if (met := met_rapportcitaten(state, antwoord)) is not None:
+        # Een tekstantwoord na een rapport: de citaten die het rapport uit de wettekst toonde, eronder (A6 run 2, S03 en
+        # S04: het sjabloon weigerde, en de jurist zag geen wettekst).
+        antwoord = antwoord_tekst(met)
+        state = {**state, "antwoord": met.model_dump(), "answer": antwoord}
     if antwoord.strip() and (regel := code_regels(state, antwoord)):
         # Een afbakening die de jurist niet koos, staat uit code onder het antwoord (meting bundel 120, D01: ze stond in
         # het rapport, en het antwoord noemde haar niet).
