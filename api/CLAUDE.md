@@ -1404,8 +1404,9 @@ profielbestand: de beheerder wijzigt hem zonder uitrol.
   zoals de connectors; de admin-MCP leest alleen (`list_modelkeuzes`, `modelkeuze_audit`).
 - `GET /v1/modelkeuzes` (`require_client`, in `agent_toegang.TOEGESTAAN`): het leesmodel zonder beheerrecht, voor graph-qa
   en voor elke gebruiker die wil zien welk model Lex gebruikt. Per sleutel `{profiel, model, bron: keuze|standaard}`,
-  nooit endpoint of sleutel; een sleutel zonder bruikbaar model ontbreekt (dan geldt de env van graph-qa). graph-qa
-  leest het per beurt met een cache van een minuut.
+  nooit endpoint of sleutel; een sleutel zonder bruikbaar model ontbreekt (dan geldt de env van graph-qa). Daarnaast
+  `sleutels`: de catalogus (sleutel, soort, label, groep, beschrijving) in de volgorde van het beheer, zodat de werkplek
+  elke agent en stap kan noemen zonder een eigen lijst. graph-qa leest het per beurt met een cache van een minuut.
 - De temperature van een profiel stuurt Lex niet (de nieuwste modellen weigeren sampling-parameters); dat blijft zo.
 - Tests: `tests/test_modelkeuzes.py`.
 

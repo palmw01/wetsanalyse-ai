@@ -83,13 +83,25 @@ class Gekozen(BaseModel):
     bron: Literal["keuze", "standaard"]
 
 
+class Sleutel(BaseModel):
+    """Eén sleutel uit de catalogus (`bronmodel.modelkeuzes`), zonder waarschuwing en zonder profiel: om te tonen."""
+
+    sleutel: str
+    soort: Literal["agent", "stap"]
+    label: str
+    groep: str
+    beschrijving: str
+
+
 class Stand(BaseModel):
     """Het leesmodel zonder beheerrecht (`GET /v1/modelkeuzes`): voor graph-qa en voor wie wil zien welk model Lex
     gebruikt. Alleen profielnaam en modelnaam, nooit endpoint of sleutel. Een sleutel zonder bruikbaar model (geen
-    keuze en een standaard die Lex niet kan gebruiken) ontbreekt: dan geldt de env van graph-qa."""
+    keuze en een standaard die Lex niet kan gebruiken) ontbreekt in `keuzes`: dan geldt de env van graph-qa. `sleutels`
+    is de catalogus in de volgorde van het beheer, zodat een werkplek elke agent en stap kan noemen zonder eigen lijst."""
 
     standaard: Gekozen | None = None
     keuzes: dict[str, Gekozen]
+    sleutels: list[Sleutel]
 
 
 def _reden(p: LlmProfile) -> str:
@@ -138,7 +150,9 @@ async def stand() -> Stand:
             uit[k.sleutel] = Gekozen(profiel=k.profiel, model=k.model, bron="keuze")
         elif std:
             uit[k.sleutel] = std
-    return Stand(standaard=std, keuzes=uit)
+    return Stand(standaard=std, keuzes=uit, sleutels=[
+        Sleutel(sleutel=k.sleutel, soort=k.soort, label=k.label, groep=k.groep, beschrijving=k.beschrijving)  # type: ignore[arg-type]
+        for k in KEUZES])
 
 
 async def zet(sleutel: str, profiel: str | None, door: str) -> Keuze:

@@ -67,6 +67,10 @@ async def test_zonder_keuze_volgt_elke_sleutel_de_standaard(client):
     std = {"profiel": "sonnet", "model": "claude-sonnet-4-6", "bron": "standaard"}
     assert stand["standaard"] == std and set(stand["keuzes"]) == set(SLEUTELS)
     assert all(v == std for v in stand["keuzes"].values())
+    # De catalogus reist mee, in de volgorde van het beheer, zonder waarschuwing of profiel.
+    assert [s["sleutel"] for s in stand["sleutels"]] == list(SLEUTELS)
+    assert {tuple(sorted(s)) for s in stand["sleutels"]} == {("beschrijving", "groep", "label", "sleutel", "soort")}
+    assert next(s for s in stand["sleutels"] if s["sleutel"] == "stap:jas_classifier")["label"] == "JAS-classifier"
 
 
 async def test_een_keuze_per_agentprofiel_bereikt_de_leesroute_en_staat_in_de_audit(client):
