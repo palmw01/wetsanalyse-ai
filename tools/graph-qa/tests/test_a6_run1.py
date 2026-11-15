@@ -172,8 +172,11 @@ PHR_ANTWOORD = (f"**Conclusie AG 11 april 2025 ({PHR}) – vervolg na het antwoo
                 "Meer detail is niet beschikbaar zonder het stuk opnieuw te lezen.")
 
 
-def _oordeel(**o) -> FakeLLM:
-    return FakeLLM([response([tool_block("o", "oordelen", {"oordelen": [{"stuk": 1, "zin": 1, **o}]})], "tool_use")])
+def _oordeel(bevestigd: bool = True, **o) -> FakeLLM:
+    """Het oordeel van de controle, en de tweede lezing (sinds A6 run 3) die het bevestigt of niet."""
+    return FakeLLM([response([tool_block("o", "oordelen", {"oordelen": [{"stuk": 1, "zin": 1, **o}]})], "tool_use"),
+                    response([tool_block("b", "bevestiging", {"gevallen": [
+                        {"geval": 1, "zelfde_onderwerp": bevestigd, "omgekeerd": bevestigd}]})], "tool_use")])
 
 
 def test_de_kop_en_een_zin_over_het_lezen_gaan_niet_naar_de_controle_per_stuk():

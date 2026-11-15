@@ -142,8 +142,7 @@ F01_ANTWOORD = f"**Conclusie A-G ({PHR})**\n{F01_ZIN}"
 F01_PASSAGES = PHR_PASSAGES + " Ik meen dat belanghebbende niets opschiet met de lichtpuntjes."
 
 
-def _oordeel(**o) -> FakeLLM:
-    return FakeLLM([response([tool_block("o", "oordelen", {"oordelen": [{"stuk": 1, "zin": 1, **o}]})], "tool_use")])
+from test_a6_run1 import _oordeel  # noqa: E402 – het oordeel en de tweede lezing
 
 
 def test_een_stukje_passage_dat_hetzelfde_zegt_als_een_zin_die_meer_zegt_is_geen_tegenspraak():

@@ -50,6 +50,34 @@ def is_kopregel(tekst: str, kop: str = "") -> bool:
         return False
     woorden = re.findall(r"\w+", tekst or "")
     return len(woorden) < MIN_WOORDEN_INHOUD or not any(c.islower() for c in tekst or "")
+#: Vaste formules zonder inhoud voor de vraag (A6 run 3): de aanhef en het slot van een besluit (S05: "Wij Beatrix, bij de
+#: gratie Gods …", "Hebben goedgevonden en verstaan:") en het procesverloop van een uitspraak (P02: "De Staatssecretaris
+#: van Financiën heeft een verweerschrift ingediend.").
+_FORMULES = tuple(re.compile(p, re.I) for p in (
+    r"^wij \w+,? bij de gratie gods", r"^op de voordracht van ", r"^hebben goedgevonden en verstaan",
+    r"^lasten en bevelen dat", r"^gegeven te ", r"\bis belast met de uitvoering van (?:dit|deze) ",
+    r"^gewezen op het (?:beroep|verzoek|hoger beroep)", r"\bheeft een verweerschrift ingediend",
+    r"\b(?:beroep|hoger beroep|beroep in cassatie) ingesteld\.?$",
+    r"\b(?:beroepschrift|verweerschrift)\b.{0,60}\b(?:gehecht|deel uit)",
+    r"^in cassatie kan van het volgende worden uitgegaan", r"\bheeft een (?:conclusie|repliek|dupliek|schriftelijke "
+    r"toelichting)\b.{0,40}\b(?:genomen|ingediend)"))
+
+
+def is_formule(tekst: str, kop: str = "") -> bool:
+    """Een vaste formule of een rij trefwoorden: tekst die er staat maar niets zegt over de vraag. Een inhoudsindicatie
+    die alleen trefwoorden noemt ("Ontvanger, huurkoopovereenkomst, meldingsplicht, …", "- Successierecht"; P01, P02)
+    telt ook, een die zinnen draagt niet."""
+    t = " ".join((tekst or "").split())
+    if any(f.search(t) for f in _FORMULES):
+        return True
+    if not kop.strip().lower().startswith("inhoudsindicatie"):
+        return False
+    delen = [d for d in re.split(r"[,;]|\s-\s|^-\s*", t) if d.strip()]
+    if t.startswith("-") and len(re.findall(r"\w+", t)) <= 5:
+        return True
+    return len(delen) >= 3 and all(len(re.findall(r"\w+", d)) <= 4 for d in delen)
+
+
 #: Zo veel alinea's citeert één antwoord hoogstens, over alle aanwijzingen samen. Een langere reeks splitst de code zelf,
 #: en wat erboven valt kapt de code af, met een melding in het antwoord: een weigering liet het model zijn aanwijzingen
 #: inkorten tot het er precies zoveel waren, en kostte zo twee rondes (iteratie bekendmakingen ronde 4, B21 en B22).
@@ -369,6 +397,13 @@ def blokken(items: Any, trace: Trace, *, overgeslagen: list[str] | None = None,
                 if zonder_kopregels:
                     overgeslagen.append(f"{vp.label}: alinea {_reeksen(kop)} is een kopregel zonder inhoud")
                 al |= set(kop)
+        if overgeslagen is not None:
+            # Een formule binnen een reeks valt weg als er iets met inhoud overblijft; een aanwijzing van alleen de formule
+            # blijft staan (wie om de aanhef vraagt, krijgt de aanhef).
+            formule = {n for n in range(van, tot + 1) if n in rijen and n not in al
+                       and is_formule(rijen[n].get("tekst", ""), str(rijen[n].get("kop") or ""))}
+            if formule and any(n in rijen and n not in al and n not in formule for n in range(van, tot + 1)):
+                al |= formule
         blok.passages += [ExternePassage(nr=n, tekst=rijen[n]["tekst"], kop=str(rijen[n].get("kop") or ""),
                                          soort=str(rijen[n].get("soort") or "alinea"),
                                          cellen=[str(x) for x in rijen[n]["cellen"]] if isinstance(rijen[n].get("cellen"), list)

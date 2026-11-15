@@ -740,9 +740,11 @@ def na_subagent(state: State, tool: str) -> str:
 
     if state.get("opdracht") or tool not in {t["name"] for t in TOOLS}:
         return ""
-    uitkomsten = {a.get("uitkomst") for a in state.get("subagenten") or []}
+    uitkomsten = {a.get("uitkomst") for a in state.get("subagenten") or [] if not a.get("rapport")}
     if uitkomsten & NIET_AF:
         return NA_SUBAGENT
+    if any(a.get("rapport") for a in state.get("subagenten") or []):
+        return NA_RAPPORT   # ook een rapport `niet_gelukt`: het zegt wat er gevonden is en wat ontbreekt
     if uitkomsten & AF:
         return NA_RAPPORT
     return ""
@@ -1188,7 +1190,7 @@ def met_rapportcitaten(state: State, tekst: str) -> Antwoord | None:
 
     if (state.get("antwoord") or state.get("opdracht") or not (citaten := state.get("rapport_citaten"))
             or not tekst.strip() or _EIGEN_CITAAT.search(tekst)
-            or {a.get("uitkomst") for a in state.get("subagenten") or []} & NIET_AF
+            or {a.get("uitkomst") for a in state.get("subagenten") or [] if not a.get("rapport")} & NIET_AF
             or tekst.strip() in (VRAAG_VAN_SUBAGENT, SUBAGENT_AFGESLOTEN)):
         return None
     try:

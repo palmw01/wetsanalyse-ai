@@ -12,6 +12,11 @@ centrale agent (wat de jurist leest), en alleen voor zinnen die een stuk duiden 
 woorden). Begrensd in stukken, zinnen en passagetekst; een fout of een onbruikbaar antwoord van het model is geen
 bewering (de andere toetsen blijven staan). De kosten: één verzoek met de passages en de zinnen, zonder historie of tools
 (~2–3k invoertokens per stuk, en een kort antwoord).
+
+Een tegenspraak telt pas na drie toetsen (A6 run 2 en 3: van de inhoudelijke meldingen was het merendeel vals): beide
+kanten letterlijk aangewezen (`aangewezen`), beide met inhoud en niet alleen een verwijzing (`heeft_inhoud`), en een
+tweede, strengere lezing van alleen die gevallen met de tekst rond de passage (`bevestig`: hetzelfde onderwerp én het
+omgekeerde; bij twijfel niet). Die tweede aanroep komt er alleen als er een kandidaat is.
 """
 from __future__ import annotations
 
@@ -122,8 +127,8 @@ def controleer(llm: Any, settings: Any, tekst: str, steun: dict[str, str] | None
     except Exception:  # noqa: BLE001 – een controle die faalt, is geen bewering; de andere toetsen blijven staan
         logger.warning("stukcontrole mislukt", exc_info=True, extra={"categorie": "technisch"})
         return []
-    beweringen: dict[str, None] = {}
-    niet_aangewezen = 0
+    kandidaten: list[dict[str, Any]] = []
+    niet_aangewezen = zonder_inhoud = 0
     for o in uit.waarde or []:
         try:
             stuk, zin = stukken[int(o["stuk"]) - 1], int(o["zin"]) - 1
@@ -131,18 +136,111 @@ def controleer(llm: Any, settings: Any, tekst: str, steun: dict[str, str] | None
             continue
         if o.get("oordeel") != "spreekt_tegen" or not 0 <= zin < len(stuk["zinnen"]):
             continue
+        tegen, deel = str(o.get("tegen") or ""), str(o.get("deel") or "")
         # Beide kanten letterlijk aangewezen: het zinsdeel in de zin en het stukje in de passages (A6 run 2, F01: bij
         # PHR:2025:435 een stukje van de slotsom dat hetzelfde zei als de zin, die alleen meer zei).
-        if not (aangewezen(str(o.get("tegen") or ""), stuk["passages"])
-                and aangewezen(str(o.get("deel") or ""), stuk["zinnen"][zin])):
+        if not (aangewezen(tegen, stuk["passages"]) and aangewezen(deel, stuk["zinnen"][zin])):
             niet_aangewezen += 1
             continue
-        kort = " ".join(stuk["zinnen"][zin].split())[:100]
-        tegen = " ".join(str(o["tegen"]).split())[:120]
-        beweringen[f"duiding van {stuk['id']} die de passages van dat stuk tegenspreekt: '{kort}' (de passage: "
+        # Een verwijzing zegt niets wat iets tegenspreekt (A6 run 3, HR:2023:1371: "artikel 36, lid 4, tweede volzin, IW
+        # 1990" als tegenspraak).
+        if not (heeft_inhoud(tegen) and heeft_inhoud(deel)):
+            zonder_inhoud += 1
+            continue
+        kandidaten.append({"stuk": stuk, "zin": stuk["zinnen"][zin], "deel": deel, "tegen": tegen})
+    bevestigd = bevestig(llm, settings, kandidaten, meting) if kandidaten else []
+    beweringen: dict[str, None] = {}
+    for k in bevestigd:
+        kort = " ".join(k["zin"].split())[:100]
+        tegen = " ".join(k["tegen"].split())[:120]
+        beweringen[f"duiding van {k['stuk']['id']} die de passages van dat stuk tegenspreekt: '{kort}' (de passage: "
                    f"'{tegen}')"] = None
     logger.info("stukcontrole", extra={"categorie": "functioneel", "stukken": len(stukken),
                                        "zinnen": sum(len(s["zinnen"]) for s in stukken),
-                                       "tegengesproken": len(beweringen), "niet_aangewezen": niet_aangewezen})
+                                       "tegengesproken": len(beweringen), "niet_aangewezen": niet_aangewezen,
+                                       "zonder_inhoud": zonder_inhoud,
+                                       "niet_bevestigd": len(kandidaten) - len(bevestigd)})
     return list(beweringen)
+
+
+#: Woorden die een verwijzing maken, geen bewering: "artikel 36, lid 4, tweede volzin, IW 1990".
+_VERWIJZING = frozenset({
+    "artikel", "artikelen", "art", "lid", "leden", "volzin", "volzinnen", "onderdeel", "onderdelen", "aanhef", "sub",
+    "eerste", "tweede", "derde", "vierde", "vijfde", "zesde", "zevende", "achtste", "negende", "tiende", "wet", "boek",
+    "hoofdstuk", "afdeling", "paragraaf", "titel", "bepaling", "bepalingen", "r.o", "rov", "overweging"})
+#: Hoeveel woorden met inhoud een aangewezen stuk minstens draagt, buiten verwijzingen en functiewoorden.
+MIN_INHOUD = 2
+
+
+def heeft_inhoud(fragment: str) -> bool:
+    """Draagt het fragment een bewering, of is het alleen een verwijzing of een paar functiewoorden?"""
+    woorden = [w for w in _WOORD.findall(fragment.casefold())
+               if w not in _VERWIJZING and w not in _FUNCTIEWOORDEN]
+    return len(woorden) >= MIN_INHOUD
+
+
+#: Hoeveel tekst rond het aangewezen stukje de tweede lezing ziet: genoeg om het onderdeel te zien (welk beroep, welke
+#: partij, welk jaar).
+OMGEVING = 600
+
+BEVESTIG_SYSTEEM = (
+    "Je krijgt mogelijke tegenspraken tussen een zin uit een samenvatting en een passage uit het stuk dat ze samenvat, "
+    "elk met de tekst rond de passage. Beoordeel per geval twee dingen, streng:\n"
+    "- zelfde_onderwerp: gaan het zinsdeel en de passage over hetzelfde (dezelfde partij, hetzelfde beroep of "
+    "middel, hetzelfde jaar, dezelfde bepaling)? Gaat de passage over een ander onderdeel van het stuk (het principale "
+    "beroep tegenover het incidentele, een ander standpunt dan dat van de rechter), dan false.\n"
+    "- omgekeerd: als de passage waar is, kan het zinsdeel dan niet waar zijn? Zegt de passage hetzelfde, iets ruimers "
+    "of iets anders dat ermee samengaat, dan false.\n"
+    "Bij twijfel is het antwoord false. Oordeel alleen op de tekst die je krijgt.")
+
+
+def bevestig_schema() -> dict[str, Any]:
+    return {"name": "bevestiging", "description": "Per geval of het een echte tegenspraak is.", "strict": True,
+            "input_schema": {"type": "object", "additionalProperties": False, "required": ["gevallen"], "properties": {
+                "gevallen": {"type": "array", "items": {
+                    "type": "object", "additionalProperties": False,
+                    "required": ["geval", "zelfde_onderwerp", "omgekeerd"],
+                    "properties": {"geval": {"type": "integer"}, "zelfde_onderwerp": {"type": "boolean"},
+                                   "omgekeerd": {"type": "boolean"}}}}}}}
+
+
+def omgeving(tegen: str, passages: str) -> str:
+    """De tekst rond het aangewezen stukje in de passages, op woordgrenzen."""
+    plat = " ".join(passages.split())
+    plek = plat.casefold().find(" ".join(tegen.split()).casefold()[:40])
+    if plek < 0:
+        return plat[:2 * OMGEVING]
+    begin, eind = max(0, plek - OMGEVING), min(len(plat), plek + len(tegen) + OMGEVING)
+    return ("…" if begin else "") + plat[begin:eind] + ("…" if eind < len(plat) else "")
+
+
+def bevestig_prompt(kandidaten: list[dict[str, Any]]) -> str:
+    return "\n\n".join(
+        f"GEVAL {n} ({k['stuk']['id']})\nZin: {k['zin']}\nZinsdeel: {k['deel']}\nPassage: {k['tegen']}\n"
+        f"Tekst rond de passage: {omgeving(k['tegen'], k['stuk']['passages'])}"
+        for n, k in enumerate(kandidaten, 1)) + "\n\nGeef met de tool bevestiging per geval je oordeel."
+
+
+def bevestig(llm: Any, settings: Any, kandidaten: list[dict[str, Any]], meting: dict[str, Any] | None = None
+             ) -> list[dict[str, Any]]:
+    """De tweede lezing: alleen de kandidaten die over hetzelfde gaan én het omgekeerde zeggen (A6 run 3: drie van de
+    vier meldingen vals, bij HR:2026:586 het verkeerde beroep en bij kst-26728-3 een passage die Lex bevestigde). Een
+    fout of een onbruikbaar antwoord bevestigt niets: liever geen melding dan een valse."""
+    verzoek = dict(model=settings.model_voor("controle"), max_tokens=MAX_TOKENS, system=BEVESTIG_SYSTEEM,
+                   tools=[bevestig_schema()], tool_choice={"type": "tool", "name": "bevestiging"},
+                   messages=[{"role": "user", "content": bevestig_prompt(kandidaten)}])
+    try:
+        uit = vraag_tool(llm, Rol.STUKCONTROLE, verzoek=verzoek, pogingen=1, meting=meting,
+                         haal=lambda invoer: invoer.get("gevallen") if isinstance(invoer.get("gevallen"), list) else None)
+    except Exception:  # noqa: BLE001 – een tweede lezing die faalt, bevestigt niets
+        logger.warning("stukcontrole: tweede lezing mislukt", exc_info=True, extra={"categorie": "technisch"})
+        return []
+    ja = set()
+    for g in uit.waarde or []:
+        try:
+            if g.get("zelfde_onderwerp") is True and g.get("omgekeerd") is True:
+                ja.add(int(g["geval"]) - 1)
+        except (KeyError, TypeError, ValueError, AttributeError):
+            continue
+    return [k for n, k in enumerate(kandidaten) if n in ja]
 
