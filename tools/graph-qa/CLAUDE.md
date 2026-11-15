@@ -345,7 +345,13 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     `later_gewijzigd` staat ook op het kind van het deelgesprek (api: `deelgesprek` in de wijziging, `uitkomst.kinderen`),
     `stand_tekst` zegt het per taak, en een vraag over de deelgesprekken krijgt de stand uit code mee
     (`overdracht.is_standvraag`, F03); een tekstantwoord van de centrale agent met koppen over gelezen bepalingen krijgt per
-    kop de zin uit de bron die de alinea draagt (`agent/tekstcitaten.py`, F05);
+    kop de zin uit de bron die de alinea draagt (`agent/tekstcitaten.py`, F05). Na de korte meting na A6
+    (`tests/test_a6_f03.py`, `tests/test_a6_citaten.py`): een kind van de regie krijgt zijn delegatie mee
+    (`ChatRequest.delegatie_id` mag ook bij een actie, nooit via HTTP), en doorvragen in zijn deelgesprek markeert haar
+    (`supervisie._markeer_doorvraag`); de passages bij een stuk kiest de code per punt van de samenvatting
+    (`extern.punten`, `extern.dragende`: de alinea die de meeste ongedekte woorden draagt, een rechtsoverweging zwaarder,
+    geen formule of kopregel, hoogstens `MAX_GEKOZEN`), in een rapport (`aanvulling`) en in een antwoord, waar een
+    aangewezen alinea zonder dragend woord wijkt (`herkies`, ook in `antwoord_extern`);
   - **de grammatica van een verzoek is begrensd**: de API maakt van alle strict schema's samen één grammatica, met
     gedocumenteerde grenzen (20 strict tools, 24 optionele, 16 union-parameters) en een interne grens op de omvang
     ("Schema is too complex for compilation", 400 zonder tokens). De delegatietools (`subagent`,

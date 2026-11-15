@@ -73,6 +73,13 @@ def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:
             and _extern.aanvulling(str(invoer.get("bevindingen")), [], trace)[0]:
         # Een rapport dat gelezen stukken samenvat zonder 'extern': de code wijst hun passages aan (hieronder).
         invoer = {**invoer, _extern.VELD: []}
+    uitleg = ""
+    if naam != _rapport.NAAM and isinstance(invoer.get(_extern.VELD), list) and invoer[_extern.VELD]:
+        # Een antwoord: per stuk de passages die de uitleg dragen in plaats van het procesverloop (A6 na de meting,
+        # S01/F02), ook in `antwoord_extern` zelf.
+        uitleg = "\n".join(str(v) for k, v in invoer.items()
+                           if k not in {_extern.VELD, _extern.STUKKEN} and isinstance(v, str))
+        invoer = {**invoer, _extern.VELD: _extern.herkies(uitleg, invoer[_extern.VELD], trace)}
     if naam == EXTERN or not ({_extern.VELD, _extern.STUKKEN} & set(invoer)):
         return SJABLONEN[naam].vul(invoer, trace)
     rest = {k: v for k, v in invoer.items() if k not in {_extern.VELD, _extern.STUKKEN}}
@@ -91,6 +98,8 @@ def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:
         overgeslagen += regels
         max_stukken = _extern.MAX_STUKKEN_RAPPORT
         voorkeur = _extern.samenvatting(str(invoer.get("bevindingen") or ""), trace)
+    elif uitleg:
+        voorkeur = _extern.samenvatting(uitleg, trace)
     # Een lijst gevonden stukken vóór de passages: eerst wat er is, dan wat erin staat.
     extra = [*_extern.lijsten(invoer.get(_extern.STUKKEN), trace),
              *_extern.blokken(items, trace, overgeslagen=overgeslagen, max_stukken=max_stukken,
