@@ -2,7 +2,8 @@
 
 Stand: 15 nov 2026, versie 3. Status: **goedgekeurd 15 nov 2026; PR 1–4 gebouwd** (#1545 navigatie, #1546 Methodes,
 Agents en de werkplaats, #1547 Connectors en Modellen; PR 4 zit in #1546, zodat *Nieuw concept* nooit tussen twee PR's
-wegvalt). PR 5 wacht op de api van *Model per rol*, PR 6 op de A6-meting. Het uitgangspunt is door de gebruiker goedgekeurd
+wegvalt), #1550 het model per agentprofiel en stap (op #1544, de api van *Model per rol*), #1548 de agentvorm uit
+graph-qa (mergen na A6). Het uitgangspunt is door de gebruiker goedgekeurd
 en daarna bijgestuurd (Werkwijze verdwijnt helemaal); de uitwerking hieronder nog niet. Vooral frontend; de
 modelkeuze per agent leunt op het api- en graph-qa-werk van de sessie *Model per rol* (zie *Afstemming*).
 
