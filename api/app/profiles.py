@@ -25,6 +25,15 @@ class ProfileError(ValueError):
     """Ongeldige profiel-operatie (onbekend profiel, laatste/default verwijderen, e.d.)."""
 
 
+class ProfielInGebruik(ProfileError):
+    """Het profiel is gekozen voor een agent of stap van Lex (`modelkeuzes`); `gebruikt_door` noemt de sleutels."""
+
+    def __init__(self, naam: str, gebruikt_door: list[str]) -> None:
+        super().__init__(f"Het profiel {naam!r} is gekozen voor {', '.join(gebruikt_door)}; zet die eerst op een "
+                         "ander profiel of op Standaard.")
+        self.gebruikt_door = gebruikt_door
+
+
 def _row_to_profile(row) -> LlmProfile:
     m = dict(row)
     return LlmProfile(
@@ -205,7 +214,11 @@ async def delete_profile(name: str) -> None:
         raise ProfileError(f"Onbekend model_profile: {name!r}")
     if profile.is_default:
         raise ProfileError("Kan het default-profiel niet verwijderen; wijs eerst een ander aan.")
+    from .modelkeuzes import gebruikt_door  # modelkeuzes leest profielen; hier alleen bij verwijderen
     async with db.get_engine().begin() as conn:
+        # Een agent of stap die dit profiel gekozen heeft, zou stil terugvallen op de standaard: liever een melding.
+        if sleutels := await gebruikt_door(conn, name):
+            raise ProfielInGebruik(name, sleutels)
         await conn.execute(delete(db.llm_profiles).where(db.llm_profiles.c.name == name))
 
 

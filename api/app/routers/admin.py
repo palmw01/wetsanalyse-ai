@@ -11,6 +11,9 @@ GET    /v1/admin/profiles/{name}          – één profiel
 DELETE /v1/admin/profiles/{name}          – verwijder (niet de default)
 POST   /v1/admin/profiles/{name}/default  – markeer als default
 POST   /v1/admin/profiles/{name}/test     – test de verbinding (kleine LLM-call)
+GET    /v1/admin/modelkeuzes                  – welk modelprofiel elk agentprofiel en elke stap van Lex gebruikt
+PUT    /v1/admin/modelkeuzes/{sleutel}        – een profiel kiezen, of terug naar de standaard (2FA)
+GET    /v1/admin/modelkeuzes/{sleutel}/audit  – wie welk profiel koos
 GET    /v1/admin/registraties             – zelfregistratie-aanvragen (optioneel ?status=)
 POST   /v1/admin/registraties/{id}/goedkeuren  – maak het account aan
 POST   /v1/admin/registraties/{id}/afwijzen    – wijs af (verwijdert de aanvraag)
@@ -38,6 +41,7 @@ from .. import (
     connectors,
     berichten as berichten_svc,
     feedback as feedback_svc,
+    modelkeuzes,
     profiles,
     registraties,
     users,
@@ -101,6 +105,24 @@ async def werkplaats_intrekken(onderdeel_id: str, door: str = Depends(beheerder_
 async def werkplaats_beleid(body: WerkplaatsBeleid, door: str = Depends(beheerder_met_2fa)):
     """Mogen analisten concepten maken?"""
     return await werkplaats_store.zet_beleid(body.analist_mag_maken, door)
+
+
+# --- modelkeuzes van Lex (per agentprofiel en per stap) --------------------------
+
+@router.get("/modelkeuzes", response_model=modelkeuzes.Overzicht)
+async def lijst_modelkeuzes():
+    return await modelkeuzes.overzicht()
+
+
+@router.put("/modelkeuzes/{sleutel}", response_model=modelkeuzes.Keuze)
+async def zet_modelkeuze(sleutel: str, body: modelkeuzes.KeuzeIn, door: str = Depends(beheerder_met_2fa)):
+    """Een beheerder mét 2FA uit de sessie, zoals de connectors: de keuze draagt een naam in de audit."""
+    return await modelkeuzes.zet(sleutel, body.profiel, door)
+
+
+@router.get("/modelkeuzes/{sleutel}/audit", response_model=list[modelkeuzes.AuditRegel])
+async def modelkeuze_audit(sleutel: str):
+    return await modelkeuzes.audit(sleutel)
 
 
 # --- bronconnectors (ADR-013) -------------------------------------------------
@@ -221,6 +243,9 @@ async def upsert_profiel(name: str, body: ProfileIn, admin_id: str = Depends(req
 async def verwijder_profiel(name: str):
     try:
         await profiles.delete_profile(name)
+    except profiles.ProfielInGebruik as e:
+        raise HTTPException(status_code=409, detail={"fout": "in_gebruik", "melding": str(e),
+                                                     "gebruikt_door": e.gebruikt_door})
     except profiles.ProfileError as e:
         raise HTTPException(status_code=409, detail=str(e))
 

@@ -21,7 +21,8 @@ ombouwen zonder reden.
 2. **De chatgeschiedenis** (`/v1/gesprekken/*`), per gebruiker gescopet.
 3. **Login en gebruikersbeheer** (`/v1/auth/*`, `/v1/admin/users`, `/v1/admin/registraties`): de API
    is de identiteitsbron van de webapp.
-4. **LLM-modelprofielbeheer** (`/v1/admin/profiles`).
+4. **LLM-modelprofielbeheer** (`/v1/admin/profiles`) en de **modelkeuzes van Lex** per agentprofiel en per stap
+   (`/v1/admin/modelkeuzes`, `/v1/modelkeuzes`) – zie §*Modelkeuzes van Lex*.
 5. **Tokenbudget** (`/v1/verbruik/*`, `/v1/admin/budget`, `/v1/admin/budget/rollen/{rol}`, `/v1/admin/verbruik`,
    `/v1/admin/users/{userid}/verbruik/reset`).
 6. **Berichten** (release notes, `/v1/berichten/*` + `/v1/admin/berichten/*`) met leesbewijzen per
@@ -76,6 +77,7 @@ ombouwen zonder reden.
 | `auth.py`, `api_tokens.py` | Client-bearer (`require_client`) en admin-bearer (`require_admin`). |
 | `user.py`, `users.py`, `registraties.py`, `routers/auth.py` | Login, 2FA, zelfregistratie. |
 | `llm_profile.py`, `profiles.py`, `secrets_crypto.py`, `llm/` | Modelprofielen, Fernet-versleuteling, LiteLLM-client, `llm/throttle.py`. |
+| `modelkeuzes.py`, `routers/modelkeuzes.py` + `bronmodel.modelkeuzes` | Welk modelprofiel elk agentprofiel en elke stap van Lex gebruikt, met audit. |
 | `verbruik.py`, `verbruik_contracts.py`, `routers/verbruik.py` | Tokenbudget. |
 | `berichten.py`, `feedback.py` + routers | Release notes en feedback. |
 | `gesprek_contracts.py`, `gesprek_store.py`, `routers/gesprekken.py` | Chatgeschiedenis. |
@@ -1375,6 +1377,38 @@ een rij ontbreekt = uit), en elke wijziging is een regel in `connector_audit`.
   en `standaard_connectors` op het werkgebied (`PATCH` met de revisie). Niet `bronnen`: zo heten de bronselecties al in de
   uitvoer van een werkgebied. De werkplek rekent de stand en stuurt hem per beurt als `bronnen` naar graph-qa.
 - Credentials en een rate-limit per connector komen met de eerste connector die ze nodig heeft (EUR-Lex).
+
+## Modelkeuzes van Lex
+
+`app/modelkeuzes.py` (stijl C), de beheerroutes in `routers/admin.py`, de leesroute in `routers/modelkeuzes.py`. Welk
+modelprofiel Lex gebruikt: het model hoort op het **agentprofiel**, zoals `model:` bij een subagent van Claude Code, en de
+stappen zonder profiel krijgen elk ook zo'n keuze (besluit gebruiker 15 nov 2026). Configuratie in het beheer, niet in het
+profielbestand: de beheerder wijzigt hem zonder uitrol.
+
+- **De sleutels staan in de code**, in `bronmodel.modelkeuzes` (label, groep, beschrijving, waarschuwing): `agent:<profiel>`
+  voor elk agentprofiel van Lex (`.claude/lex-agents/`), `stap:<rol>` voor elke `llm_stap.Rol` zonder toollus, en
+  `stap:subagent`. graph-qa `tests/test_modelkeuze.py` toetst dat elk profiel en elke stap er precies één keer in staat.
+- **Een rij ontbreekt = de sleutel volgt het standaardprofiel** (tabel `modelkeuzes`, sleutel → profielnaam). Zonder keuze
+  en met een standaardprofiel gelijk aan `LLM_MODEL` verandert er voor Lex dus niets. Elke wijziging is een regel in
+  `modelkeuze_audit` (`gekozen` of `standaard`, `details: {was, wordt}`), append-only; dezelfde keuze nog eens niet.
+- **Lex neemt alleen de modelnaam over**; endpoint en sleutel blijven die van de straat. Een profiel is daarom alleen
+  te kiezen als `bronmodel.modelkeuzes.bruikbaar_voor_lex` niets zegt: een model dat met `claude-` begint, en een
+  `api_base` die leeg is of gelijk aan `LLM_API_BASE` (422 `niet_bruikbaar`). Wordt een gekozen profiel later
+  onbruikbaar (ander endpoint) of verdwijnt het, dan volgt de sleutel weer de standaard en meldt het beheer
+  `niet_bruikbaar`.
+- **Een gekozen profiel verwijderen weigert**: 409 `{fout: "in_gebruik", melding, gebruikt_door}` (`ProfielInGebruik`).
+  Geen foreign key: de toets staat in dezelfde transactie als het verwijderen.
+- `GET /v1/admin/modelkeuzes` (admin-token): per sleutel het profiel, het model dat Lex nu krijgt, `niet_bruikbaar`, wie
+  en wanneer; plus de standaard en per modelprofiel `{niet_bruikbaar, gebruikt_door}`. `GET …/{sleutel}/audit`.
+- `PUT /v1/admin/modelkeuzes/{sleutel}` `{profiel | null}`: een beheerder mét 2FA uit de sessie (`beheerder_met_2fa`),
+  zoals de connectors; de admin-MCP leest alleen (`list_modelkeuzes`, `modelkeuze_audit`).
+- `GET /v1/modelkeuzes` (`require_client`, in `agent_toegang.TOEGESTAAN`): het leesmodel zonder beheerrecht, voor graph-qa
+  en voor elke gebruiker die wil zien welk model Lex gebruikt. Per sleutel `{profiel, model, bron: keuze|standaard}`,
+  nooit endpoint of sleutel; een sleutel zonder bruikbaar model ontbreekt (dan geldt de env van graph-qa). Daarnaast
+  `sleutels`: de catalogus (sleutel, soort, label, groep, beschrijving) in de volgorde van het beheer, zodat de werkplek
+  elke agent en stap kan noemen zonder een eigen lijst. graph-qa leest het per beurt met een cache van een minuut.
+- De temperature van een profiel stuurt Lex niet (de nieuwste modellen weigeren sampling-parameters); dat blijft zo.
+- Tests: `tests/test_modelkeuzes.py`.
 
 ## Schema
 

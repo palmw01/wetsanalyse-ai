@@ -734,6 +734,33 @@ connector_audit = Table(
     Index("ix_connector_audit_naam", "naam", "id"),
 )
 
+# De modelkeuzes van Lex: welk modelprofiel een agentprofiel (`agent:<profiel>`) of een stap zonder profiel (`stap:<rol>`)
+# gebruikt. Welke sleutels er zijn, staat in de code (`bronmodel.modelkeuzes`); een rij ontbreekt = de sleutel volgt het
+# standaardprofiel. Graph-qa leest de stand (`GET /v1/modelkeuzes`) en neemt alleen de modelnaam over. Geen foreign key
+# naar `llm_profiles`: het verwijderen van een profiel dat gekozen is weigert de code (`profiles.delete_profile`).
+modelkeuzes = Table(
+    "modelkeuzes",
+    metadata,
+    Column("sleutel", String(96), primary_key=True),
+    Column("profiel", String(128), nullable=False),
+    Column("door", String(128), nullable=False, default=""),
+    Column("bijgewerkt", _DT, nullable=False),
+)
+
+# Wie welk profiel aan een sleutel gaf, append-only (zoals `connector_audit`). `details` = {"was": …, "wordt": …}, met
+# `null` voor het standaardprofiel.
+modelkeuze_audit = Table(
+    "modelkeuze_audit",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("sleutel", String(96), nullable=False),
+    Column("actie", String(32), nullable=False),
+    Column("door", String(128), nullable=False),
+    Column("details", _JSON, nullable=False, default=dict),
+    Column("tijdstip", _DT, nullable=False),
+    Index("ix_modelkeuze_audit_sleutel", "sleutel", "id"),
+)
+
 # De werkplaats (ADR-016 deel B): wat een gebruiker zelf maakt. Eén levenscyclus voor elke soort (skill, agentprofiel,
 # later een MCP-server): geen tabel per soort; wat een soort is, staat in `bronmodel.werkplaats`. Een onderdeel heeft een
 # eigenaar; de naam is uniek per soort en eigenaar zolang het niet is ingetrokken (in code bewaakt, binnen de
