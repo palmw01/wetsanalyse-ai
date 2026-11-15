@@ -96,6 +96,23 @@ const TOOLS = [
         input: S({ naam: z.string() }),
         run: (a) => apiFetch("GET", `/v1/admin/connectors/${seg(a.naam)}/audit`),
     },
+    // – modelkeuzes van Lex (per agentprofiel en per stap) —
+    // Alleen lezen, net als de connectors: een profiel kiezen vraagt een beheerder mét 2FA uit de sessie.
+    {
+        name: "list_modelkeuzes",
+        description: "Welk modelprofiel Lex per agentprofiel (`agent:<profiel>`, zoals agent:centraal of agent:duiding) en per stap " +
+            "zonder profiel (`stap:<rol>`, zoals stap:jas_classifier of stap:subagent) gebruikt: het gekozen profiel " +
+            "(null = het standaardprofiel), het model dat Lex nu krijgt, of het profiel bruikbaar is, en per modelprofiel " +
+            "wie het gebruikt. Lex neemt van een profiel alleen de modelnaam over.",
+        input: S({}),
+        run: () => apiFetch("GET", "/v1/admin/modelkeuzes"),
+    },
+    {
+        name: "modelkeuze_audit",
+        description: "De auditregels van één modelkeuze (`agent:<profiel>` of `stap:<rol>`): wie welk profiel wanneer koos.",
+        input: S({ sleutel: z.string() }),
+        run: (a) => apiFetch("GET", `/v1/admin/modelkeuzes/${seg(a.sleutel)}/audit`),
+    },
     // – modelprofielen —
     {
         name: "list_profiles",
