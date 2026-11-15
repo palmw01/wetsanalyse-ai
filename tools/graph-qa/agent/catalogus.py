@@ -126,7 +126,7 @@ def uit_agentprofielen() -> list[Onderdeel]:
             doel=p.beschrijving, model="agent", herkomst=EIGEN, bestand=(f".claude/lex-agents/{naam}.md",),
             versie=profielen.versie(p), bronhash=bronpakket.bronhash("agentprofiel", naam), tools=tools,
             ingang=PROFIELPLEK[profielplek(naam) or "onbekend"]["ingang"],
-            straat=VLAG if naam in (CENTRAAL, CENTRAAL_BREED) else None,
+            straat=None,
             uitvoer=", ".join(sjablonen) or "doel-JSON voor de annotatieroute",
             twijfel="leemte of doorvragen; een citaat dat niet letterlijk in de opgehaalde tekst staat, valt weg (grounding)",
             tests=("tools/graph-qa/tests/test_profielregister.py", "tools/graph-qa/tests/test_specialists.py"),
@@ -560,10 +560,6 @@ def uit_controles() -> list[Onderdeel]:
 # `tests/test_catalogus_agentvorm.py` maakt een overdracht, een doelnode of een profiel zonder plek hier rood.
 # (Het blok *Hoe een vraag binnenkomt* van de werkwijze-pagina is weg, plan instellingen-aanpassingen.)
 
-#: De straatvlag van de centrale agent.
-VLAG = "CENTRALE_AGENT"
-
-
 #: Waar een overdracht uitkomt, per node van de graaf: het onderdeel van de catalogus dat die node uitvoert. De node
 #: `agent` staat er niet in: daar blijft de beurt bij een agent, en wat dat betekent zegt `_VIA_AGENT` per overdracht.
 _NODE_ONDERDEEL: dict[str, tuple[str, ...]] = {
@@ -627,16 +623,11 @@ def _centraal_inhoud(naam: str) -> dict[str, Any]:
 
 #: Waar een profiel staat. `profielplek` deelt elk profiel in; `ingang` gaat mee in de catalogus.
 PROFIELPLEK: dict[str, dict[str, Any]] = {
-    "centraal": {"label": "De centrale agent", "ingang": ("de vlag CENTRALE_AGENT (ADR-016 §A7)",)},
+    "centraal": {"label": "De centrale agent", "ingang": ("elke vraag die geen route in code pakt (ADR-016 §A7)",)},
     "centraal_breed": {"label": "De centrale agent met alle graaftools",
                        "ingang": ("de overdracht meer_tools van het profiel centraal",)},
-    "specialist": {"label": "Specialist van de supervisor, en profiel van een subagent",
-                   "ingang": ("de supervisor kiest het (CENTRALE_AGENT uit of meten)",
-                              "de overdracht subagent van de centrale agent (een kiesbaar profiel)")},
     "subagent": {"label": "Profiel van een subagent",
                  "ingang": ("de overdracht subagent van de centrale agent (een kiesbaar profiel)",)},
-    "supervisor": {"label": "Specialist van de supervisor, en profiel van een route in code",
-                   "ingang": ("de supervisor kiest het (CENTRALE_AGENT uit of meten)", "een route in code")},
     "route": {"label": "Profiel van een route in code", "ingang": ("een route in code",)},
     "ophaal": {"label": "De ophaal-agent van de annotatieketen", "ingang": ("de annotatieketen en de regie",)},
     "onbekend": {"label": "Zonder plek", "ingang": ("een route in code",)},
@@ -644,16 +635,16 @@ PROFIELPLEK: dict[str, dict[str, Any]] = {
 
 
 def profielplek(naam: str) -> str | None:
-    """De plek van een profiel, afgeleid: de vorm van de centrale agent, de supervisor en/of de subagents, het doel van
-    een route, of de rol van de ophaal-agent. Een profiel zonder plek is `None`."""
+    """De plek van een profiel, afgeleid: de vorm van de centrale agent, een subagent, het doel van een route (ook het
+    profiel waarmee een route in code verder antwoordt, `overdracht._SPECIALISTEN`), of de rol van de ophaal-agent. Een
+    profiel zonder plek is `None`."""
+    from .overdracht import _SPECIALISTEN
     from .routes import ROUTES
     if naam in (CENTRAAL, CENTRAAL_BREED):
         return naam
-    from .supervisor import _QA_SPECIALISTS
-    kiesbaar, supervisor = naam in profielen.KIESBAAR, naam in _QA_SPECIALISTS
-    if kiesbaar or supervisor:
-        return "specialist" if kiesbaar and supervisor else "subagent" if kiesbaar else "supervisor"
-    if oid("agentprofiel", naam) in {r.doel for r in ROUTES}:
+    if naam in profielen.KIESBAAR:
+        return "subagent"
+    if oid("agentprofiel", naam) in {r.doel for r in ROUTES} or naam in _SPECIALISTEN:
         return "route"
     p = profielen.PROFIELEN.get(naam)
     if p is not None and p.rol == Rol.OPHAAL.methoderol:
@@ -705,7 +696,7 @@ def _subagent_workflow() -> Onderdeel:
                  "tools/graph-qa/agent/nodes/subagent_vervolg.py"),
         tests=("tools/graph-qa/tests/test_subagent.py", "tools/graph-qa/tests/test_subagent_vragen.py",
                "tools/graph-qa/tests/test_subagenten.py", "tools/graph-qa/tests/test_delegatie_afsluiten.py"),
-        ingang=(SUBAGENT,), hangt_af_van=ANTWOORD_CONTROLES, straat=VLAG,
+        ingang=(SUBAGENT,), hangt_af_van=ANTWOORD_CONTROLES,
         context="de opdracht als eerste bericht, met het werkgebied en de bronnen van de beurt; zonder de historie",
         uitvoer="een rapport (klaar, vraag of niet gelukt) als toolresultaat van de centrale agent",
         twijfel="een vraag naar de jurist als vraagkaart; zonder rapport een tekst uit code, nooit vrije modeltekst",

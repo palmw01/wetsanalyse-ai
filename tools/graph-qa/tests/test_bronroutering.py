@@ -16,7 +16,7 @@ import asyncio
 import pytest
 from bronmodel import connectors as bm
 
-from agent import bronstand, supervisor
+from agent import bronstand
 from agent.agent import answer_stream
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block
 
@@ -99,13 +99,6 @@ def test_een_gewone_vraag_buiten_de_wet_blijft_afgewezen():
     assert "niet over Nederlandse wet- en regelgeving" in _tekst(events)
 
 
-def test_de_scope_van_de_supervisor_noemt_elke_bekende_connector():
-    for c in bm.CONNECTORS.values():
-        assert c.label in supervisor.SUPERVISOR_SYSTEM and c.dekt in supervisor.SUPERVISOR_SYSTEM
-    # De grens voor wat wél wordt afgewezen staat er nog letterlijk.
-    assert "AFWIJZEN als de vraag niet over Nederlandse wet- en regelgeving gaat" in supervisor.SUPERVISOR_SYSTEM
-
-
 def test_elke_reden_heeft_een_zin():
     stand = bronstand.bepaal(UIT, None)
     for reden in ("straat", "register_onleesbaar", "beheerder", "gesprek", "werkgebied"):
@@ -125,7 +118,6 @@ def test_een_nieuwe_connector_wordt_herkend_en_gemeld_zonder_code(monkeypatch):
         werkwoorden={"zoek_testbron": ("zoekt uitspraken over „{zoekterm}”", "zoekt uitspraken")}, grenzen="alleen een test", beheer="Nep.",
         voorbeeldvragen=("Wat zei het testgerecht?",))
     monkeypatch.setitem(bm.CONNECTORS, nep.naam, nep)
-    assert "uitspraken van een testgerecht" in supervisor._scope_bronnen()
     llm = FakeLLM([])
     events = _run(answer_stream("Wat zei het testgerecht erover?", settings=AAN, llm=llm,
                                 graph=FakeGraph(result=""), bronnen=["kamerstukken"]))

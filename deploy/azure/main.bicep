@@ -89,10 +89,6 @@ param llmModelLicht string = ''
 @description('Nemen de annotatie- en begrippenketen van graph-qa de regels mee die een methode-skill meebrengt (ADR-014 §7, SKILL_REGELS)? Een proefvlag, alleen acceptatie; default false. Uit is de uitkomst gelijk aan zonder deze code.')
 param skillRegels bool = false
 
-@description('De centrale agent van graph-qa (ADR-016 §A7, CENTRALE_AGENT). `uit`: de supervisor, en een verzoek per run wordt genegeerd. `meten`: de supervisor, tenzij een run om de centrale agent vraagt. `aan`: de centrale agent, tenzij een run om de supervisor vraagt. Alleen acceptatie zet iets anders dan `uit`; met `uit` is Lex gelijk aan zonder deze code.')
-@allowed(['uit', 'meten', 'aan'])
-param centraleAgent string = 'uit'
-
 @description('De werkplaats van de api (ADR-016 deel B, WERKPLAATS): zelf skills en agentprofielen maken, als concept met versies. Alleen acceptatie; default false. Uit bestaan de routes niet.')
 param werkplaats bool = false
 
@@ -1011,7 +1007,6 @@ resource graphQaApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'RELATIE_VOORSTELLEN', value: relatieVoorstellen ? 'true' : 'false' }
             { name: 'LLM_MODEL_LICHT', value: llmModelLicht }
             { name: 'SKILL_REGELS', value: skillRegels ? 'true' : 'false' }
-            { name: 'CENTRALE_AGENT', value: centraleAgent }
             // Gespreksgeheugen in Postgres, NIET op schijf: het filesystem van een container-app is
             // ephemeer en de app kan schalen, dus een SQLite-bestand verliest het geheugen bij
             // elke herstart en is per-replica verschillend.
@@ -1141,7 +1136,6 @@ resource evalJob 'Microsoft.App/jobs@2024-03-01' = {
             { name: 'RELATIE_VOORSTELLEN', value: relatieVoorstellen ? 'true' : 'false' }
             { name: 'LLM_MODEL_LICHT', value: llmModelLicht }
             { name: 'SKILL_REGELS', value: skillRegels ? 'true' : 'false' }
-            { name: 'CENTRALE_AGENT', value: centraleAgent }
             // Korter wachten dan de werkplek (120 s). Een jurist die zit te wachten heeft baat bij
             // doorwachten; een meting die tien cases achter elkaar draait niet. Geeft de provider
             // `overloaded_error`, dan kost elke call anders 120 s x 3 pogingen en duwt dat de run over

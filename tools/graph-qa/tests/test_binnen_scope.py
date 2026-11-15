@@ -56,8 +56,8 @@ def test_de_supervisor_draait_een_afwijzing_van_een_regelingvraag_terug():
 def test_de_centrale_agent_krijgt_wijs_af_geweigerd_bij_een_regelingvraag():
     llm = FakeLLM([response([tool_block("t1", "wijs_af", {})], "tool_use"),
                    response([text_block("De milieuwet staat niet in de kennisgraaf.")], "end_turn")])
-    events = _run(answer_stream(K12, settings=make_settings(centrale_agent="meten"), llm=llm,
-                                graph=FakeGraph(result=""), agentvorm="centraal"))
+    events = _run(answer_stream(K12, settings=make_settings(), llm=llm,
+                                graph=FakeGraph(result="")))
     assert len(llm.calls) == 2
     [resultaat] = [b for m in llm.calls[1]["messages"] if isinstance(m["content"], list)
                    for b in m["content"] if b.get("type") == "tool_result"]

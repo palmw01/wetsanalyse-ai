@@ -125,8 +125,7 @@ def test_de_weigering_gaat_door_tools_node_en_het_rapport_zegt_het_vooraf(monkey
     monkeypatch.setattr(antwoordnodes, "execute_tool", lambda *a, **_k: uitgevoerd.append(a) or ARTIKEL[1])
     monkeypatch.setattr(antwoordnodes, "get_stream_writer", lambda: (lambda _e: None))
     tu = {"id": "t1", "name": "get_artikel", "input": {"bwb_id": "BWBR0004770", "artikel": "10"}}
-    state = {"pending_tools": [tu], "messages": [], "source_trace": [], "specialist": "centraal",
-             "agentvorm": "centraal", "subagenten": [{"uitkomst": "niet_gelukt"}], "run_id": "r"}
+    state = {"pending_tools": [tu], "messages": [], "source_trace": [], "specialist": "centraal", "subagenten": [{"uitkomst": "niet_gelukt"}], "run_id": "r"}
     b = SimpleNamespace(settings=make_settings(), graph=None, stop_check=None)
     upd = antwoordnodes.tools_node(b, state)
     [blok] = upd["messages"][-1]["content"]
@@ -210,8 +209,8 @@ def test_de_correctieronde_na_een_grote_beurt_krijgt_de_hele_beurt(monkeypatch):
 
     async def alles():
         return [e async for e in answer_stream("Wat zegt artikel 10 van de Invorderingswet 1990?",
-                                               settings=make_settings(centrale_agent="meten"), llm=llm,
-                                               graph=FakeGraph(result=""), agentvorm="centraal")]
+                                               settings=make_settings(), llm=llm,
+                                               graph=FakeGraph(result=""))]
 
     asyncio.run(alles())
     correctie, vorige = llm.calls[-1]["messages"], llm.calls[-2]["messages"]

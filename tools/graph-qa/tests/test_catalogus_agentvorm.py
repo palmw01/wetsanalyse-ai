@@ -58,7 +58,7 @@ def test_de_centrale_agent_noemt_zijn_overdrachten_en_de_kernset():
 
 def test_subagents_als_begrip():
     o = ALLE["workflow/subagent"]
-    assert SUBAGENT in o.ingang and o.straat == cat.VLAG
+    assert SUBAGENT in o.ingang and o.straat is None, "geen straatvlag meer (ADR-016 §A7)"
     i = o.inhoud
     assert i["profielen"] == [f"agentprofiel/{n}" for n in profielen.KIESBAAR]
     limieten = {x["naam"]: x["waarde"] for x in i["limieten"]}
@@ -75,16 +75,14 @@ def test_de_regie_als_tool_naast_de_vaste_route():
     assert len(o.inhoud["fasen"]) == 3
 
 
-@pytest.mark.parametrize("stand", ["uit", "meten", "aan"])
-def test_het_endpoint_volgt_de_straat_zonder_agentvorm(monkeypatch, stand: str):
+def test_het_endpoint_kent_de_centrale_agent_zonder_vlag(monkeypatch):
     from fastapi.testclient import TestClient
 
     import api.main as main
 
     monkeypatch.setattr(main.settings, "qa_api_token", "", raising=False)
-    monkeypatch.setattr(main.settings, "centrale_agent", stand, raising=False)
     lijst = TestClient(main.app).get("/v1/catalogus").json()
     assert "agentvorm" not in lijst
     per_id = {o["id"]: o for o in lijst["onderdelen"]}
-    assert per_id["agentprofiel/centraal"]["aan"] is (stand != "uit")
-    assert per_id["workflow/subagent"]["aan"] is (stand != "uit")
+    assert per_id["agentprofiel/centraal"]["aan"] is True
+    assert per_id["workflow/subagent"]["aan"] is True

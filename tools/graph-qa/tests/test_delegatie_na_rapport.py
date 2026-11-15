@@ -45,8 +45,7 @@ def test_de_weigering_na_klaar_gaat_door_tools_node(monkeypatch):
     monkeypatch.setattr(antwoordnodes, "execute_tool", lambda *a, **_k: uitgevoerd.append(a) or "{}")
     monkeypatch.setattr(antwoordnodes, "get_stream_writer", lambda: (lambda _e: None))
     tu = {"id": "t1", "name": "get_uitspraak", "input": {"id": A}}
-    state = {"pending_tools": [tu], "messages": [], "source_trace": [], "specialist": "centraal",
-             "agentvorm": "centraal", "subagenten": [{"uitkomst": "klaar"}], "run_id": "r"}
+    state = {"pending_tools": [tu], "messages": [], "source_trace": [], "specialist": "centraal", "subagenten": [{"uitkomst": "klaar"}], "run_id": "r"}
     upd = antwoordnodes.tools_node(SimpleNamespace(settings=make_settings(), graph=None, stop_check=None), state)
     [blok] = upd["messages"][-1]["content"]
     assert blok["content"] == NA_RAPPORT and not uitgevoerd

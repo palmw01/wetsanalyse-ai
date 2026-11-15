@@ -213,8 +213,8 @@ def test_de_centrale_agent_annoteert_via_annoteer_het_gewone_pad():
     vraag = "Annoteer artikel 9 lid 1 van de Invorderingswet 1990."
     centraal = response([tool_block("c1", "annoteer", {"vraag": vraag})], "tool_use")
     llm = KetenLLM([centraal, *_aanloop()[1:]], kies=_alleen(**{"De ontvanger": "Rechtssubject"}))
-    events = _run(answer_stream(vraag, settings=make_settings(centrale_agent="meten"), llm=llm,
-                                graph=FakeGraph(result=LID_TSV), agentvorm="centraal"))
+    events = _run(answer_stream(vraag, settings=make_settings(), llm=llm,
+                                graph=FakeGraph(result=LID_TSV)))
     doel = next(e for e in events if e["type"] == "doel")["doel"]
     assert (doel["bwbId"], doel["artikel"], doel["lid"]) == ("BWBR0004770", "9", "1")
     assert ("Rechtssubject", "De ontvanger") in {(el["klasse"], el["tekst"]) for el in _elementen(events)}

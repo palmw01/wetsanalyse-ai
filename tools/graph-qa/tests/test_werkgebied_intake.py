@@ -460,13 +460,12 @@ def test_een_getypt_antwoord_op_het_open_kaartje_bij_de_centrale_agent(tmp_path,
     antwoord met `beantwoord_kaart` aan de werkgebied-worker, zoals de supervisor met `WORKERS: werkgebied`."""
     from agent.agent import answer_stream
 
-    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"), centrale_agent="meten")
+    settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
     llm = FakeLLM([response([tool_block("t1", "beantwoord_kaart", {})], "tool_use"), _voorstel()])
 
     def beurt(vraag):
         async def run():
-            return [e async for e in answer_stream(vraag, "g1", settings=settings, llm=llm, graph=FakeGraph(),
-                                                   agentvorm="centraal")]
+            return [e async for e in answer_stream(vraag, "g1", settings=settings, llm=llm, graph=FakeGraph())]
         return asyncio.run(run())
 
     beurt("Kunnen we een werkgebied samenstellen?")

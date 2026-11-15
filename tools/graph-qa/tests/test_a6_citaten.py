@@ -109,8 +109,8 @@ def test_door_de_hele_graaf_toont_het_antwoord_de_dragende_passages(monkeypatch)
 
     async def beurt():
         return [e async for e in answer_stream(f"Vat {HR} samen: wat zegt de Hoge Raad over de melding?",
-                                               settings=make_settings(connector_rechtspraak=True, centrale_agent="aan"),
-                                               llm=llm, graph=FakeGraph(result=""), agentvorm="centraal",
+                                               settings=make_settings(connector_rechtspraak=True),
+                                               llm=llm, graph=FakeGraph(result=""),
                                                bronnen=["rechtspraak"])]
 
     events = asyncio.run(beurt())

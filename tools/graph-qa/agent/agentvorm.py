@@ -310,16 +310,6 @@ def agent_van(state: Any) -> Agent:
     return agent_voor(naam, subagent=bool(state.get("opdracht")))
 
 
-def vorm_van(stand: str, gevraagd: str | None) -> str:
-    """De agentvorm van een beurt (ADR-016 §A7): `centraal` of `supervisor`. De straat beslist of een run mag kiezen:
-    met `uit` nooit, met `meten` draait de supervisor tenzij de run om de centrale agent vraagt, met `aan` omgekeerd."""
-    if stand == "meten":
-        return "centraal" if gevraagd == "centraal" else "supervisor"
-    if stand == "aan":
-        return "supervisor" if gevraagd == "supervisor" else "centraal"
-    return "supervisor"
-
-
 def voeg_overdracht_toe(g: Any, add: Callable[[str, Any], None], b: Any) -> None:
     """De node `overdracht` in de graaf: de uitgang van de centrale agent naar een route in code. Alleen op een straat
     waar de centrale agent kan draaien; de doelnodes moeten al geregistreerd zijn."""

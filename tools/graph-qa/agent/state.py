@@ -26,9 +26,6 @@ class State(TypedDict, total=False):
     bronnen: list[str] | None
     # Meetvlag ADR-015: `vraag` (standaard) of `systeem` (de vorm van vóór ADR-015). Per beurt, uit het verzoek.
     beurtcontext_plek: str
-    # ADR-016 §A7: `centraal` als deze beurt de centrale agent draait in plaats van de supervisorstap; anders
-    # `supervisor`. Per beurt, uit de straat en het verzoek (`agentvorm.vorm`).
-    agentvorm: str
     # De node waar een overdrachtstool van de centrale agent de beurt heen stuurt (`agent/overdracht.py`); leeg = terug
     # naar de agent. Per ronde gezet.
     overdracht_naar: str

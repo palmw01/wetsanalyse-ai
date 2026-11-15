@@ -22,7 +22,7 @@ from bronmodel.agentprofiel import Agentprofiel
 from bronmodel.connectors import CONNECTORS
 from bronmodel.validatie import ValidatieFout
 
-from agent import profielen, specialists, supervisor
+from agent import profielen, specialists
 from agent.methode import instructies
 from scripts.genereer_agentprofielen import DOEL, PROFIELEN as MAP, compileer, genereer
 
@@ -76,12 +76,8 @@ def test_de_systeemtekst_is_de_methodetekst_van_de_rol_plus_de_instructie(naam: 
 
 
 def test_dezelfde_routering():
-    assert set(supervisor._QA_SPECIALISTS) == KOOS
-    # De centrale agent kiest uit andere profielen: de taakprofielen en het brede profiel (ADR-016 §A2).
+    # De centrale agent kiest uit de taakprofielen en algemeen (ADR-016 §A2); de supervisor die uit KOOS koos, is weg (A7).
     assert {n for n, p in profielen.PROFIELEN.items() if p.kiesbaar} == TAAK | {"algemeen"}
-    assert supervisor.parse_supervisor("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: x")[0] == ["duiding"]
-    # Een profiel dat een stap van een route is, kiest het model niet: de keuze valt terug op algemeen.
-    assert supervisor.parse_supervisor("WORKERS: antwoord\nSPECIALIST: retrieval\nPLAN: x")[0] == ["algemeen"]
     assert specialists.get("bestaat_niet") == specialists.get("algemeen") == specialists.get(None)
     assert specialists.methoderol("bestaat_niet") == "algemeen"
 

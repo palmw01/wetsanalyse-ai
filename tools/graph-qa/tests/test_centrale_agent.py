@@ -1,14 +1,12 @@
-"""De centrale agent zonder subagents (ADR-016 §A1 en §A7, stap A2-2), achter de vlag `CENTRALE_AGENT`.
+"""De centrale agent (ADR-016 §A1 en §A7, stap A2-2): sinds A7 de enige agentvorm, zonder vlag.
 
 Wat deze tests vastleggen:
 
-1. **De vlag heeft drie standen.** `uit` negeert het verzoek per run (het slot voor productie), `meten` draait de
-   supervisor tenzij de run om de centrale agent vraagt, `aan` omgekeerd.
-2. **Met `uit` is Lex bitgelijk**: dezelfde graaf, dezelfde eerste modelaanroep (de supervisor).
-3. **De centrale agent antwoordt zelf**: geen supervisorstap, het profiel `centraal` met de methoderol `agent`, en zijn
+1. **De graaf** heeft altijd de overdracht en de nodes van de delegatie.
+2. **De centrale agent antwoordt zelf**: geen supervisorstap, het profiel `centraal` met de methoderol `agent`, en zijn
    eigen tool `wijs_af`. Een afwijzing komt uit code; een afwijzing van een bronvraag weigert de code.
 
-De routes vóór het model blijven voor beide vormen dezelfde code (`tests/test_routering.py`).
+De routes vóór het model zijn code (`tests/test_routering.py`).
 """
 from __future__ import annotations
 
@@ -18,8 +16,7 @@ import pytest
 
 from agent import overdracht, profielen
 from agent.agent import answer_stream
-from agent.agentvorm import CENTRAAL, CENTRAAL_BREED, Agent, CentraleAgent, agent_voor, vorm_van
-from agent.config import Settings
+from agent.agentvorm import CENTRAAL, CENTRAAL_BREED, Agent, CentraleAgent, agent_voor
 from agent.llm_stap import Rol
 from agent.methodepakket import PAKKET
 from agent.nodes import supervisie
@@ -34,14 +31,8 @@ def _run(gen):
     return asyncio.run(collect())
 
 
-def _beurt(vraag: str, llm: FakeLLM, *, stand: str, gevraagd: str | None = None):
-    return _run(answer_stream(vraag, settings=make_settings(centrale_agent=stand), llm=llm, graph=FakeGraph(result=""),
-                              agentvorm=gevraagd))
-
-
-def _supervisor_dan_antwoord() -> FakeLLM:
-    return FakeLLM([response([text_block("SPECIALIST: duiding\nPLAN: kort plan.")], "end_turn"),
-                    response([text_block("Antwoord.")], "end_turn")])
+def _beurt(vraag: str, llm: FakeLLM):
+    return _run(answer_stream(vraag, settings=make_settings(), llm=llm, graph=FakeGraph(result="")))
 
 
 #: De overdrachten die elk profiel van de centrale agent heeft, naast wijs_af (en meer_tools in de kernset).
@@ -52,71 +43,22 @@ VASTE_ROUTES = ("taakagent", "werkgebied", "toon_bepaling", "toon_overzicht", "l
 VRAAG = "Hoe hangt de aansprakelijkheid van een bestuurder samen met de invordering?"
 
 
-# --- de vlag ---------------------------------------------------------------------------------------------------
+# --- de graaf ---------------------------------------------------------------------------------------------------
 
-@pytest.mark.parametrize(("stand", "gevraagd", "verwacht"), [
-    ("uit", None, "supervisor"), ("uit", "centraal", "supervisor"), ("uit", "supervisor", "supervisor"),
-    ("meten", None, "supervisor"), ("meten", "centraal", "centraal"), ("meten", "supervisor", "supervisor"),
-    ("aan", None, "centraal"), ("aan", "centraal", "centraal"), ("aan", "supervisor", "supervisor"),
-    ("onzin", "centraal", "supervisor"),
-])
-def test_de_straat_beslist_of_een_run_mag_kiezen(stand, gevraagd, verwacht):
-    assert vorm_van(stand, gevraagd) == verwacht
-
-
-def test_de_vlag_staat_standaard_uit_en_komt_uit_de_omgeving():
-    assert Settings().centrale_agent == "uit"
-    assert Settings.from_env({"CENTRALE_AGENT": " Meten "}).centrale_agent == "meten"
-    assert Settings.from_env({}).centrale_agent == "uit"
-    with pytest.raises(ValueError):
-        Settings.from_env({"CENTRALE_AGENT": "true"})
-
-
-def test_met_uit_negeert_lex_het_verzoek_per_run():
-    """Het slot voor productie: ook een run die om de centrale agent vraagt, krijgt de supervisor."""
-    llm = _supervisor_dan_antwoord()
-    _beurt(VRAAG, llm, stand="uit", gevraagd="centraal")
-    assert "rol supervisor" in llm.calls[0]["system"] and llm.calls[0]["tools"] == []
-    assert "rol duiding" in llm.calls[1]["system"]
-
-
-def test_met_uit_is_de_graaf_die_van_voorheen():
-    uit = build_graph(make_settings(), FakeLLM([]), FakeGraph())
-    assert "overdracht" not in uit.nodes and "subagent_vervolg" not in uit.nodes
-    for stand in ("meten", "aan"):
-        g = build_graph(make_settings(centrale_agent=stand), FakeLLM([]), FakeGraph())
-        # De overdracht, en de klik op de vraagkaart van een subagent (ADR-016 §A4).
-        assert set(g.nodes) == set(uit.nodes) | {"overdracht", "subagent_vervolg", "subagent_plan", "regie_voorstel",
-                                                 "subagent_route"}
-        edges = {(e.source, e.target) for e in g.compile().get_graph().edges}
-        oud = {(e.source, e.target) for e in uit.compile().get_graph().edges}
-        assert edges - oud == {("agent", "overdracht"), ("overdracht", "agent"), ("overdracht", "afwijzen"),
-                               ("overdracht", "agent_taak"), ("overdracht", "werkgebied_intake"),
-                               ("overdracht", "bronselectie"), ("overdracht", "bepaling_lezen"),
-                               ("overdracht", "overzicht_bouwen"), ("overdracht", "annotaties_zoeken"),
-                               ("overdracht", "begrippen_zoeken"), ("overdracht", "bron_lijst"),
-                               ("supervisor", "subagent_vervolg"), ("advance", "subagent_vervolg"),
-                               ("subagent_vervolg", "agent"), ("subagent_vervolg", "__end__"),
-                               ("overdracht", "subagent_plan"), ("subagent_plan", "__end__"),
-                               # Meer subagents die de code zelf herkent (`subagent_route.plan`, A6 run 1).
-                               ("supervisor", "subagent_plan"), ("advance", "subagent_plan"),
-                               ("overdracht", "regie_voorstel"), ("regie_voorstel", "__end__"),
-                               ("supervisor", "subagent_route"), ("advance", "subagent_route"),
-                               ("subagent_route", "agent")}
-        assert not oud - edges
-
-
-def test_met_meten_draait_de_supervisor_tenzij_de_run_anders_vraagt():
-    llm = _supervisor_dan_antwoord()
-    _beurt(VRAAG, llm, stand="meten")
-    assert "rol supervisor" in llm.calls[0]["system"]
+def test_de_graaf_heeft_de_overdracht_en_de_nodes_van_de_delegatie():
+    """Sinds ADR-016 §A7 is de centrale agent de enige vorm: de graaf heeft altijd de overdracht en de nodes van de
+    subagents (`tests/test_graafopbouw.py` legt de hele vorm vast)."""
+    g = build_graph(make_settings(), FakeLLM([]), FakeGraph())
+    assert {"overdracht", "subagent_vervolg", "subagent_plan", "regie_voorstel", "subagent_route"} <= set(g.nodes)
+    edges = {(e.source, e.target) for e in g.compile().get_graph().edges}
+    assert {("agent", "overdracht"), ("overdracht", "agent"), ("subagent_route", "agent")} <= edges
 
 
 # --- de centrale agent -----------------------------------------------------------------------------------------
 
 def test_de_centrale_agent_antwoordt_zelf_zonder_supervisorstap():
     llm = FakeLLM([response([text_block("Antwoord.")], "end_turn")])
-    events = _beurt(VRAAG, llm, stand="meten", gevraagd="centraal")
+    events = _beurt(VRAAG, llm)
     assert len(llm.calls) == 1, "geen supervisorstap, één ronde"
     [verzoek] = llm.calls
     assert "rol agent" in verzoek["system"] and "rol supervisor" not in verzoek["system"]
@@ -129,15 +71,6 @@ def test_de_centrale_agent_antwoordt_zelf_zonder_supervisorstap():
     assert not namen & {"rapport", "search_annotaties", "geldigheid", "raw_sparql", "regie_plan"}
     assert any(e["type"] == "status" and e.get("route") == CENTRAAL for e in events)
     assert "".join(e["content"] for e in events if e["type"] == "token") == "Antwoord."
-
-
-def test_met_aan_is_de_centrale_agent_de_standaard_en_mag_een_run_de_supervisor_vragen():
-    llm = FakeLLM([response([text_block("Antwoord.")], "end_turn")])
-    _beurt(VRAAG, llm, stand="aan")
-    assert "rol agent" in llm.calls[0]["system"]
-    llm = _supervisor_dan_antwoord()
-    _beurt(VRAAG, llm, stand="aan", gevraagd="supervisor")
-    assert "rol supervisor" in llm.calls[0]["system"]
 
 
 def test_het_profiel_centraal_is_een_python_agent_met_zijn_eigen_tools():
@@ -169,7 +102,7 @@ def test_een_overdrachtstool_heeft_een_strict_schema():
 
 def test_afwijzen_is_een_tool_en_de_tekst_komt_uit_code():
     llm = FakeLLM([response([tool_block("t1", "wijs_af", {})], "tool_use")])
-    events = _beurt("Wat voor weer wordt het morgen?", llm, stand="meten", gevraagd="centraal")
+    events = _beurt("Wat voor weer wordt het morgen?", llm)
     assert len(llm.calls) == 1, "na de overdracht schrijft het model niets meer"
     tekst = "".join(e["content"] for e in events if e["type"] == "token")
     assert tekst.startswith("Deze vraag gaat niet over Nederlandse wet- en regelgeving")
@@ -183,7 +116,7 @@ def test_een_afwijzing_van_een_bronvraag_weigert_de_code():
     assert supervisie.bronnen_in_vraag(vraag)
     llm = FakeLLM([response([tool_block("t1", "wijs_af", {})], "tool_use"),
                    response([text_block("De Kamerstukken staan in deze beurt uit.")], "end_turn")])
-    events = _beurt(vraag, llm, stand="meten", gevraagd="centraal")
+    events = _beurt(vraag, llm)
     assert len(llm.calls) == 2
     [resultaat] = [b for m in llm.calls[1]["messages"] if isinstance(m["content"], list)
                    for b in m["content"] if b.get("type") == "tool_result"]
@@ -194,16 +127,15 @@ def test_een_afwijzing_van_een_bronvraag_weigert_de_code():
 def test_een_overdracht_naast_andere_tools_laat_alleen_de_overdracht_over():
     llm = FakeLLM([response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"}),
                              tool_block("t2", "wijs_af", {})], "tool_use")])
-    events = _beurt("Wat voor weer wordt het morgen?", llm, stand="meten", gevraagd="centraal")
+    events = _beurt("Wat voor weer wordt het morgen?", llm)
     assert len(llm.calls) == 1
     assert "".join(e["content"] for e in events if e["type"] == "token").startswith("Deze vraag gaat niet over")
 
 
 def test_de_centrale_agent_neemt_alleen_de_gewone_vraag_over():
     """Een adviesvraag blijft de vaste route naar de duiding; de centrale agent is er voor wat geen route pakt."""
-    assert supervisie._centraal({"agentvorm": "centraal", "modus": "auto"})
-    assert not supervisie._centraal({"agentvorm": "centraal", "modus": "advies"})
-    assert not supervisie._centraal({"agentvorm": "supervisor", "modus": "auto"})
+    assert supervisie._centraal({"modus": "auto"})
+    assert not supervisie._centraal({"modus": "advies"})
     assert not supervisie._centraal({"modus": "auto"})
 
 
@@ -260,7 +192,7 @@ def test_meer_tools_is_er_alleen_voor_de_kernset_en_wijs_af_voor_beide():
 def test_na_meer_tools_draait_dezelfde_beurt_met_het_brede_profiel():
     llm = FakeLLM([response([tool_block("t1", "meer_tools", {})], "tool_use"),
                    response([text_block("Antwoord.")], "end_turn")])
-    events = _beurt(VRAAG, llm, stand="meten", gevraagd="centraal")
+    events = _beurt(VRAAG, llm)
     eerste, tweede = llm.calls
     voor, na = ({t["name"] for t in c["tools"]} for c in (eerste, tweede))
     assert "geldigheid" not in voor and "meer_tools" in voor
@@ -280,7 +212,7 @@ def test_een_tool_buiten_de_kernset_kan_alleen_na_de_overdracht():
     graph = FakeGraph(result="")
     llm = FakeLLM([response([tool_block("t1", "geldigheid", {"bwb_id": "BWBR0004770"})], "tool_use"),
                    response([text_block("Antwoord.")], "end_turn")])
-    _run(answer_stream(VRAAG, settings=make_settings(centrale_agent="meten"), llm=llm, graph=graph, agentvorm="centraal"))
+    _run(answer_stream(VRAAG, settings=make_settings(), llm=llm, graph=graph))
     [resultaat] = [b for m in llm.calls[1]["messages"] if isinstance(m["content"], list)
                    for b in m["content"] if b.get("type") == "tool_result"]
     assert resultaat["content"] == BUITEN_PROFIEL and "meer_tools" in BUITEN_PROFIEL
@@ -307,9 +239,9 @@ def _werkgebiedbeurt(vraag: str, llm: FakeLLM) -> list[dict]:
     from tests.test_agents import NepApi, _api_settings
 
     async def verzamel():
-        return [e async for e in answer_stream(vraag, None, settings=_api_settings(centrale_agent="meten"), llm=llm,
+        return [e async for e in answer_stream(vraag, None, settings=_api_settings(), llm=llm,
                                                graph=FakeGraph(), user_id="jurist", run_id="r1", werkgebied_id="wg1",
-                                               agent_api=lambda s, u: NepApi(), agentvorm="centraal")]
+                                               agent_api=lambda s, u: NepApi())]
     return asyncio.run(verzamel())
 
 
@@ -376,7 +308,7 @@ def test_toon_bepaling_gaat_naar_de_bepalingsroute_en_de_terugval_is_dezelfde_ag
     llm = FakeLLM([response([tool_block("t1", "toon_bepaling", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "2"})],
                             "tool_use"),
                    response([text_block("Antwoord.")], "end_turn")])
-    events = _beurt("Geef de tekst van artikel 9 lid 2 (BWBR0004770).", llm, stand="meten", gevraagd="centraal")
+    events = _beurt("Geef de tekst van artikel 9 lid 2 (BWBR0004770).", llm)
     assert any(e["type"] == "status" and e.get("route") == "bepaling" for e in events)
     # De lege nepgraaf levert geen tekst: de beurt gaat terug naar de agent, en dat is de centrale agent.
     assert "rol agent" in llm.calls[-1]["system"]
@@ -392,7 +324,7 @@ def test_toon_bepaling_gaat_naar_de_bepalingsroute_en_de_terugval_is_dezelfde_ag
 def test_toon_bepaling_weigert_wat_geen_vraag_naar_de_tekst_is(vraag, invoer, reden):
     llm = FakeLLM([response([tool_block("t1", "toon_bepaling", invoer)], "tool_use"),
                    response([text_block("Antwoord.")], "end_turn")])
-    events = _beurt(vraag, llm, stand="meten", gevraagd="centraal")
+    events = _beurt(vraag, llm)
     resultaat = _tool_resultaat(llm.calls[1])
     assert resultaat["is_error"] is True and reden in resultaat["content"]
     assert not any(e["type"] == "status" and e.get("route") == "bepaling" for e in events)
@@ -431,7 +363,7 @@ def test_elke_vaste_route_draait_een_regel_van_de_supervisor_en_staat_in_het_pro
 def test_een_vervolgvraag_gaat_via_de_overdracht_naar_de_route_van_de_supervisor(tool, route, vraag):
     llm = FakeLLM([response([tool_block("t1", tool, {"vraag": vraag})], "tool_use"),
                    response([text_block("Antwoord.")], "end_turn")])
-    events = _beurt("En die?", llm, stand="meten", gevraagd="centraal")
+    events = _beurt("En die?", llm)
     assert "rol agent" in llm.calls[0]["system"], "de eerste ronde is de centrale agent, geen supervisor"
     assert any(e["type"] == "status" and e.get("route") == route for e in events)
     assert not any(e["type"] == "status" and e.get("route") == "afgewezen" for e in events)
@@ -440,7 +372,7 @@ def test_een_vervolgvraag_gaat_via_de_overdracht_naar_de_route_van_de_supervisor
 def test_valt_het_overzicht_terug_dan_is_dat_de_centrale_agent():
     llm = FakeLLM([response([tool_block("t1", "toon_overzicht", {"vraag": VERVOLG[0][2]})], "tool_use"),
                    response([text_block("Antwoord.")], "end_turn")])
-    _beurt("En over verrekening?", llm, stand="meten", gevraagd="centraal")
+    _beurt("En over verrekening?", llm)
     # De lege nepgraaf bouwt geen overzicht: terug naar de agent, en dat is de centrale agent, niet `algemeen`.
     assert "rol agent" in llm.calls[-1]["system"]
 
@@ -454,7 +386,7 @@ def test_valt_het_overzicht_terug_dan_is_dat_de_centrale_agent():
 def test_een_vraag_die_niet_bij_de_route_past_weigert_de_code(tool, vraag):
     llm = FakeLLM([response([tool_block("t1", tool, {"vraag": vraag})], "tool_use"),
                    response([text_block("Antwoord.")], "end_turn")])
-    _beurt("En dat?", llm, stand="meten", gevraagd="centraal")
+    _beurt("En dat?", llm)
     resultaat = _tool_resultaat(llm.calls[1])
     assert resultaat["is_error"] is True and "Beantwoord haar zelf" in resultaat["content"]
 
@@ -539,8 +471,7 @@ def test_een_getypt_annotatieverzoek_gaat_via_annoteer_naar_de_annotatieroute():
     llm = FakeLLM([response([tool_block("t1", "annoteer", {"vraag": "Annoteer artikel 9 en artikel 10 van de "
                                                                       "Invorderingswet 1990."})], "tool_use")])
     events = _run(answer_stream("Annoteer artikel 9 en 10 van de Invorderingswet 1990.",
-                                settings=make_settings(centrale_agent="meten"), llm=llm, graph=graph,
-                                agentvorm="centraal"))
+                                settings=make_settings(), llm=llm, graph=graph))
     assert len(llm.calls) == 1, "de weigering komt uit code, zonder tweede modelronde"
     assert "artikel" in "".join(e["content"] for e in events if e["type"] == "token").lower()
     assert not graph.queries

@@ -60,7 +60,7 @@ def _agents():
 
 @pytest.mark.parametrize("naam, agent", list(_agents()), ids=lambda x: x if isinstance(x, str) else "")
 def test_de_strict_schemas_van_elk_profiel_passen_bij_de_api(naam, agent):
-    schemas = agent.toolschemas(make_settings(centrale_agent="aan"), None, ALLES_AAN)
+    schemas = agent.toolschemas(make_settings(), None, ALLES_AAN)
     strict = [s for s in schemas if s.get("strict")]
     optioneel = union = 0
     for s in strict:

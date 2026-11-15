@@ -62,9 +62,8 @@ def test_in_de_vragensets_pakt_de_route_alleen_wat_een_subagent_verwacht():
 
 def test_de_supervisor_stuurt_de_vraag_zonder_model_naar_de_route(monkeypatch):
     monkeypatch.setattr(supervisie, "get_stream_writer", lambda: (lambda _e: None))
-    state = {**STATE, "question": "Vat per uitspraak samen wat de rechter over artikel 36 van de Invorderingswet 1990 zegt.", "modus": "auto",
-             "agentvorm": "centraal", "bronstand": AAN}
-    b = SimpleNamespace(settings=SimpleNamespace(centrale_agent="aan"), graph=None)
+    state = {**STATE, "question": "Vat per uitspraak samen wat de rechter over artikel 36 van de Invorderingswet 1990 zegt.", "modus": "auto", "bronstand": AAN}
+    b = SimpleNamespace(settings=SimpleNamespace(), graph=None)
     upd = supervisie._kies(b, state)
     assert upd["specialist"] == "subagent_route" and supervisie._entry_node(b, upd) == "subagent_route"
 

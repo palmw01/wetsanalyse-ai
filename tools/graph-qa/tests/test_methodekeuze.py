@@ -58,11 +58,10 @@ def test_een_gewoon_verzoek_of_een_vraag_over_de_methode_loopt_door(vraag):
     assert methodekeuze.niet_gekoppeld(vraag) == ""
 
 
-@pytest.mark.parametrize("vorm", ["supervisor", "centraal"])
 @pytest.mark.parametrize("vraag", VERZOEKEN[:3])
-def test_de_beurt_start_geen_annotatie_en_geen_model(vraag, vorm):
+def test_de_beurt_start_geen_annotatie_en_geen_model(vraag):
     b = _bouw()  # een model dat faalt als het wordt aangeroepen
-    state = _state(vraag, agentvorm=vorm)
+    state = _state(vraag)
     upd = supervisie.supervisor_node(b, state)
     assert supervisie._entry_node(b, {**state, **upd}) == "afwijzen"
     assert upd["worker_plan"] == [] and upd["specialist"] == ""

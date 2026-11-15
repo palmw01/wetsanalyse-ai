@@ -33,8 +33,7 @@ class GeenModel:
 
 def test_een_open_vraag_van_een_subagent_sluit_de_beurt_zonder_modelronde(monkeypatch):
     monkeypatch.setattr(antwoordnodes, "get_stream_writer", lambda: (lambda _e: None))
-    state = {"question": "Vat per uitspraak samen …", "messages": [{"role": "user", "content": "Vat per uitspraak samen …"}],
-             "agentvorm": "centraal", "specialist": "centraal", "source_trace": [ZOEK], "turns": 0,
+    state = {"question": "Vat per uitspraak samen …", "messages": [{"role": "user", "content": "Vat per uitspraak samen …"}], "specialist": "centraal", "source_trace": [ZOEK], "turns": 0,
              "subagenten": [{"uitkomst": "vraag", "delegatie_id": "d1", "vragen": [{"tekst": "Welke periode?",
                                                                                       "opties": []}]}]}
     b = SimpleNamespace(settings=make_settings(), llm=GeenModel(), memory_context=lambda _s: "",

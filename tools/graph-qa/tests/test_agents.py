@@ -18,7 +18,6 @@ from agent.agents import deelvragen as dva, register
 from agent.beurt import BeurtSchrijver
 from agent.deelvragen import TOOL_VERBETER, valideer_verbetering
 from agent.models import ACTIE_TAAK
-from agent.supervisor import parse_supervisor, parse_taak
 from fakes import FakeGraph, FakeLLM, agent_ctx, make_settings, response, text_block, tool_block
 
 WG = {"id": "wg1", "naam": "Invorderbaarheid", "analysevraag": "Wanneer is een aanslag invorderbaar?",
@@ -69,13 +68,6 @@ def _api_settings(**kw):
 
 
 # --- 1. de supervisor ------------------------------------------------------------------------------
-
-def test_de_taak_staat_op_een_eigen_regel_en_de_agents_ketenen_met_niets():
-    tekst = "WORKERS: deelvragen, antwoord\nSPECIALIST: algemeen\nTAAK: Dekking.\nPLAN: de dekking"
-    assert parse_taak(tekst) == "dekking"
-    assert parse_supervisor(tekst)[0] == ["deelvragen"]
-    assert parse_supervisor("WORKERS: begrippen\nPLAN: x")[0] == ["begrippen"]
-    assert parse_taak("WORKERS: antwoord\nPLAN: x") == ""
 
 
 def test_elke_actie_hoort_bij_een_bestaande_taak():
@@ -182,12 +174,6 @@ def test_een_echte_leesvraag_blijft_de_leesroute_ook_als_het_model_een_agent_noe
     _, tweede = _gesprek([("Hoe staat de dekking ervoor?", {"actie": "dekking"}), (vraag, {})], llm, tmp_path)
     assert any("raadpleegt bestaande annotaties" in m for m in _statussen(tweede))
     assert not any("deelvragen-agent" in m for m in _statussen(tweede))
-
-
-def test_werk_aan_een_werkgebied_wijs_je_nooit_af():
-    from agent.supervisor import SUPERVISOR_SYSTEM, VERVOLG_SYSTEM
-    assert "deelvragen, bronnen, begrippen of annotaties gaat over wetgeving en wijs je nooit af" in SUPERVISOR_SYSTEM
-    assert "een vervolg op werk aan een werkgebied" in VERVOLG_SYSTEM
 
 
 def test_een_onbekende_taak_is_een_vraag_van_lex_geen_stille_beurt():

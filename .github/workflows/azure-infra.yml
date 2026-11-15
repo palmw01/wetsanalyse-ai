@@ -386,8 +386,6 @@ jobs:
           # [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--llm-model-licht claude-haiku-4-5)
           # Regels uit een methode-skill (ADR-014 §7, S6): een proefvlag, gemeten op acceptatie.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--skill-regels)
-          # De centrale agent (ADR-016 §A7): op acceptatie `aan` na de eindmeting A6 (besluit gebruiker 15 nov 2026); een run kan nog om de supervisor vragen. Productie: uit.
-          [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--centrale-agent aan)
           # De werkplaats (ADR-016 deel B): zelf skills en agentprofielen maken. Alleen acceptatie.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--werkplaats)
           # De GraphDB-MCP-proxy: standaard NIET, en net als de api-ingress alleen op acceptatie.
@@ -437,8 +435,6 @@ jobs:
           # [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--llm-model-licht claude-haiku-4-5)
           # Regels uit een methode-skill (ADR-014 §7, S6): een proefvlag, gemeten op acceptatie.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--skill-regels)
-          # De centrale agent (ADR-016 §A7): op acceptatie `aan` na de eindmeting A6 (besluit gebruiker 15 nov 2026); een run kan nog om de supervisor vragen. Productie: uit.
-          [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--centrale-agent aan)
           # De werkplaats (ADR-016 deel B): zelf skills en agentprofielen maken. Alleen acceptatie.
           [ "${{ inputs.omgeving }}" = "acceptatie" ] && args+=(--werkplaats)
           # De GraphDB-MCP-proxy: standaard NIET, en net als de api-ingress alleen op acceptatie.
