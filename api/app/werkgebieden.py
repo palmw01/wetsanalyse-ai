@@ -15,6 +15,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from . import annotatie_v2_store, bepaling_graaf, pdf_opmaak, werkgebied_deelvragen as deelvragen, werkgebied_export, werkgebied_store as store
 from .auth import require_client
 from .bron_resolver import resolve_bron as _resolve_bron
+from .deps import get_gesprek_store
+from .gesprek_store import GesprekStore
 from .graaf_client import sparql_select
 from .graaf_projectie_v2 import verklaringen
 from .graaf import lees_bron as _lees_bron
@@ -75,8 +77,24 @@ async def get_lijst(mijn: bool = False, bron_iri: str | None = Query(None, max_l
 
 
 @router.post("", status_code=201)
-async def post_werkgebied(req: WerkgebiedInvoer, actor: str = Depends(actieve_userid)):
-    return await store.maak(req, actor)
+async def post_werkgebied(req: WerkgebiedInvoer, actor: str = Depends(actieve_userid),
+                          gesprekken: GesprekStore = Depends(get_gesprek_store)):
+    werkgebied = await store.maak(req, actor)
+    if req.gesprek_id:
+        await koppel_gesprek(gesprekken, req.gesprek_id, werkgebied["id"], actor)
+    return werkgebied
+
+
+async def koppel_gesprek(gesprekken: GesprekStore, gesprek_id: str, werkgebied_id: str, actor: str) -> bool:
+    """Het gesprek waarin het werkgebied ontstond, eronder zetten: alleen een eigen gesprek dat nog los staat. Een
+    gesprek van een ander, of een dat al bij een werkgebied hoort, blijft zoals het is (geen fout: het werkgebied staat)."""
+    if await gesprekken.eigenaar_van(gesprek_id) != actor:
+        return False
+    gesprek = await gesprekken.laad_gesprek(gesprek_id)
+    if gesprek is None or gesprek.werkgebied_id:
+        return False
+    await gesprekken.wijzig_gesprek(gesprek_id, werkgebied_id=werkgebied_id)
+    return True
 
 
 @router.get("/export-schema")

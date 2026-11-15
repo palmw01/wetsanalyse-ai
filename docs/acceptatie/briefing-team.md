@@ -104,6 +104,21 @@ bevinding bleek fout omdat ze op de samenvatting van een webpagina stond, die de
   geen andere weg en geen WebFetch als vervanger.
 - Niet getoetst tegen de XML? Dan heet het zo in je bevinding, en is hij hooguit een vermoeden.
 
+## Zuinig met context
+
+In de run van 16 nov 2026 liepen vier agents vast op hun eigen contextruimte, niet op het budget van Lex. Sommige
+antwoorden van de api zijn groot (zie het verslag, B-1). Tot dat is opgelost:
+
+- **Gebruik `werkgebied_lezen` niet na een annotatie.** Dat antwoord is dan honderdduizenden tekens. Lees de
+  elementen per bepaling, met `annotatie_lezen` of `bff` GET `/api/annotatie/v2/weergave` voor één `bron_iri`.
+- **Beslis in de bronselectie via de kaart.** Beantwoord de vraagkaart met haar `intake_actie`, met eigen tekst en
+  *Klaar*. Vermijd losse besluiten (`POST …/bronselectie/{d}/kandidaten/{k}`) en `GET …/kandidaten`: die geven de
+  hele selectie terug.
+- **Vraag met `bron_lezen` één lid tegelijk** (`lid`), niet een heel artikel.
+- **Werk één bepaling tegelijk af:** lezen, toetsen, beslissen, loggen, en dan de volgende. Lees het logboek met
+  `vanaf`.
+- **Selecteer de leden die je nodig hebt.** Een artikel in de selectie annoteert al zijn leden.
+
 ## Omwegen
 
 Je gebruikt wat een gebruiker kan: een vraagkaart, een suggestie, een bevestiging, of een `bff`-route die een scherm ook

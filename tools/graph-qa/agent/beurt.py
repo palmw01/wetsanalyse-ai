@@ -91,10 +91,14 @@ def vervolg_na_aanmaken(werkgebied: dict[str, Any]) -> dict[str, Any] | None:
     return {"actie": "bronselectie", "werkgebied_id": werkgebied["id"]}
 
 
-async def _maak_werkgebied(api: WetsanalyseApi, verzoek: dict[str, Any]) -> dict[str, Any]:
+async def _maak_werkgebied(api: WetsanalyseApi, verzoek: dict[str, Any], gesprek_id: str = "") -> dict[str, Any]:
     """Het werkgebied bij de api, idempotent op de intake-id: een herhaling na een storing maakt niets dubbel. Het
-    draagt het dossier, de deelvragen, het zoekbereik en de gebeurtenis; bronnen kiest de bronselectie."""
-    return await api.maak_werkgebied(verzoek["werkgebied"])
+    draagt het dossier, de deelvragen, het zoekbereik en de gebeurtenis; bronnen kiest de bronselectie. Met het
+    gesprek erbij zet de api dat gesprek onder het nieuwe werkgebied, los van de werkplek in de browser."""
+    invoer = dict(verzoek["werkgebied"])
+    if gesprek_id:
+        invoer["gesprek_id"] = gesprek_id
+    return await api.maak_werkgebied(invoer)
 
 
 def wijzig_tekst(werkgebied: dict[str, Any], wijzigingen: list[dict[str, Any]]) -> str:
@@ -475,7 +479,7 @@ async def _leg_vast(
             # Activiteit 1: het werkgebied dat Lex met de analist samenstelde. Mislukt het aanmaken, dan
             # blijft het samenvattingskaartje werken: opnieuw klikken maakt niets dubbel.
             try:
-                werkgebied = await _maak_werkgebied(api, schrijver.aanmaken)
+                werkgebied = await _maak_werkgebied(api, schrijver.aanmaken, gesprek_id)
             except WetsanalyseApiFout:
                 logger.exception("intake: werkgebied niet aangemaakt",
                                  extra={"categorie": "technisch", "run_id": run.run_id})
