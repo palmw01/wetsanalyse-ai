@@ -33,7 +33,7 @@ S04_RAPPORT = {"rapport": {"status": "niet_gelukt", "open": ["22.8.10 kon niet w
 
 def _afloop(kind: dict, uitkomst: str = "klaar") -> sub.Afloop:
     kinderen, _, _ = _kinderen(kind, uitkomst)
-    afloop, _, _ = asyncio.run(sub.voer_uit(STATE, "duiding", OPDRACHT, lambda _e: None, settings=None,
+    afloop, _, _ = asyncio.run(sub.voer_uit(STATE, "bepalingen_duiden", OPDRACHT, lambda _e: None, settings=None,
                                             kinderen=kinderen, gestopt=lambda: False, api=Api()))
     return afloop
 
