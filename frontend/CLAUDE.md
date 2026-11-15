@@ -6,7 +6,7 @@ opslag, de [wetsanalyse-API](../api). De app **is de werkplek**: `/workbench` (d
 leidt daarheen door.
 
 > **Scope: chat-werkruimte.** De app bestaat uit de werkplek, het annotatie-overzicht, de
-> werkgebieden, het begrippenoverzicht, de werkwijze van Lex (de catalogus, ADR-014), de login-flow en het instellingenvenster (account, verbruik, berichten, en voor beheerders
+> werkgebieden, het begrippenoverzicht, Instellingen › Aanpassingen (methodes en agents uit de catalogus, ADR-014), de login-flow en het instellingenvenster (account, verbruik, berichten, en voor beheerders
 > modelprofielen, gebruikers, aanvragen, API-tokens, berichtenbeheer en feedback).
 
 Lees ook de projectroot-`CLAUDE.md` en `../api/CLAUDE.md` – de API is de bron van waarheid voor de
@@ -82,6 +82,13 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   `InstellingenLink`. Geef in die state alleen de eigen markering mee: met `{...history.state}` erin volgt
   `useSearchParams` de stap niet en blijft het venster dicht. `app/instellingen/[[...tab]]`, `app/beheer` en `app/account`
   zijn doorverwijzingen naar de werkplek met het venster open; een losse instellingenpagina bestaat niet.
+  **De tabkolom heeft groepen met een kop** (`INSTELLINGEN_GROEPEN` in `lib/instellingen.ts`, naar het voorbeeld van Claude;
+  plan `docs/architectuur/plan-instellingen-aanpassingen.md`): *Persoonlijk*, *Aanpassingen* (wat Lex gebruikt: Methodes,
+  Agents, Connectors en, voor een beheerder, Modellen) en voor een beheerder *Beheer*. Elke tab draagt zijn `groep`, `alleenBeheerder` en `trefwoorden`; het zoekveld
+  boven de kolom filtert op label en trefwoord (`tabsBijZoekterm`), en Escape wist eerst het veld. Een oude sleutel of
+  pad staat in `vroeger` (`modelprofielen` → `modellen`). Een tab alleen voor beheerders houdt zijn pad onder `beheer/`:
+  daar zit de rolgate van `auth.config.ts`. Op een telefoon is de kolom een lijst (`Tabs` verticaal): een gekozen tab
+  vervangt de lijst, en *‹ Alle instellingen* gaat terug.
 - **`components/`**:
   - `werkplek/` – de hele chat-werkruimte: schil, sidebar, thread (`ThreadRij`,
     `KeuzeKaart`, `VraagDock`, `VragenKaart`, `ReeksBlok`, `HergebruikMelding`, `Markdown`) en het annotatiegereedschap in het
@@ -95,13 +102,15 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
     `WerkgebiedSchil`, en
     `OpnemenInWerkgebied` voor de annotatiepagina).
   - `graaf/` – de samenhangsgraaf (sigma); de rekenkern staat in `lib/graaf/`.
-  - `admin/` – de beheertabs achter het admin-token: `ProfielenPanel` (+ `ProfileEditor`),
+  - `admin/` – de beheertabs achter het admin-token: `ProfielenPanel` (+ `ProfileEditor`; de tab *Modellen* onder
+    Aanpassingen, op `AanpassingLijst`: *Test verbinding*, *Als standaard* en *Verwijderen* in het menu ⋯),
     `UsersPanel` (+ `BudgetBeleidBlok`), `RegistratiesPanel`, `ApiTokensPanel`,
-    `BerichtenBeheerPanel` (+ `BerichtEditor`), `FeedbackLijstClient`, `ConnectorsPanel` (de bronconnectors van ADR-013: aan of
-    uit per beheerder mét 2FA, met de audit ingeklapt; welke er bestaan staat in de code; browserregressie
-    `scripts/test-connectors.mjs`).
+    `BerichtenBeheerPanel` (+ `BerichtEditor`), `FeedbackLijstClient`.
   - `account/`, `auth/` – account, login/2FA/setup/registratie, disclaimer, `AuthFrame`.
-  - `instellingen/` – `InstellingenVenster` (leest de parameter), `InstellingenDialog` (de dialoogschil),
+  - `instellingen/` – de lijsten van Aanpassingen (`AanpassingLijst`, `MethodesPanel`, `AgentsPanel`, `ConnectorsPanel`: de
+    bronconnectors van ADR-013 voor iedereen in één lijst, aan of uit per beheerder mét 2FA, de audit in het tweede
+    niveau; welke er bestaan staat in de code; browserregressie `scripts/test-connectors.mjs`), en
+    `InstellingenVenster` (leest de parameter), `InstellingenDialog` (de dialoogschil),
     `InstellingenInhoud` (de tabs) en `InstellingenLink`. De tabdefinities en helpers staan in `lib/instellingen.ts`,
     bewust **zonder** `"use client"`, zodat de doorverwijzing ze mag importeren.
   - `rondleiding/` – de rondleiding door de werkplek (zie §*Rondleiding*).
@@ -1483,48 +1492,65 @@ bestaat los van de gesprekken.
 - Browserregressie: `scripts/test-werkgebieden.mjs` en `scripts/test-begrippen.mjs` (mocks die revisies,
   de poort en de primaire duiding bijhouden zoals de api; de tweede loopt de acceptatie van levering 2).
 
-## De werkwijze van Lex (`/werkwijze`, ADR-014)
+## Instellingen › Aanpassingen (plan `docs/architectuur/plan-instellingen-aanpassingen.md`)
 
-Een leesingang in de sidebar (*Werkwijze*): wat Lex kan, uit graph-qa `GET /v1/catalogus` (de BFF `app/api/catalogus`,
-`agent: true`). Per concept (ADR-014 §7: kennis en methode, vaste ketens, agents, handelingen, ingangen, controles;
-`CONCEPT_LABEL`) een `Groep` met `GroepRij`'s, per rij de soort als label en of er een model aan te pas komt (`ModelLabel`:
-*Zonder model*, *Model in één stap*, *Model met tools*; lintblauw, geen oordeel) en *hier uit* als de straat het niet
-aanbiedt. Bovenaan staat bij *Alles* en *Agents* (niet tijdens het zoeken) *Hoe een vraag binnenkomt* (`AgentvormBlok`, ADR-016): de stand van `CENTRALE_AGENT` uit de catalogus (`agentvorm`, `parseAgentvorm`), wie een getypte vraag leest, wat altijd in code blijft en de plek van elk profiel; de werkplek rekent er niets bij. De pagina van de centrale agent toont zijn overdrachten en de kernset, die van `workflow/subagent` de profielen, grenzen en controles. De balk is `OverzichtBalk` zonder *Door mij bewerkt* (de props zijn optioneel); concept en zoekterm staan in de
-URL. De pagina van een onderdeel (`/werkwijze/<soort>/<naam>`, `OnderdeelPagina`) toont het contract (ADR-010), de stappen
-van een workflow, de inhoud per soort (methodetekst, regels met hun voorbeeldzinnen, de beschrijving van een bron), de
-herkomst, *Leunt op* / *Gebruikt door* en waar het in de repo staat. Bij *Hoe het werkt* staat van welke methode het
-onderdeel is (`methodeLabel`: de naam van de skill, of "Geen: voor elke methode"; plan methodes scheiden, S2). **De catalogus is alleen lezen**: dit is geen
-ontwikkelhulpmiddel maar uitleg voor de jurist hoe een voorstel ontstaat; drift en testuitslagen horen er niet. Wat Lex
-gebruikt, verandert alleen via de repo. Zelf iets maken of aanpassen gaat in de werkplaats (hieronder), als concept.
-Een wijziging voorstellen als concept-PR (ADR-014 C7) is vervallen (15 nov 2026): er is geen knop, geen BFF-route en geen
-api-route meer. De rekenkern en de spiegel van het bronmodel staan
-in `lib/catalogus.ts` (`catalogus.test.ts` toetst de soorten tegen `bronmodel/catalogus.py`). Browserregressie:
-`scripts/test-werkwijze.mjs` (`WERKWIJZE_FIXTURE` en `WERKWIJZE_SCREENSHOT` voor een controle met de echte catalogus). Op een telefoon past alles: `scripts/test-werkwijze-breedte.mjs` loopt op 375 px het overzicht, elk concept en elk
-onderdeel na (zonder fixture één onderdeel per soort uit `lib/catalogus.ts` met de langste waarden, met `WERKWIJZE_FIXTURE`
-de echte catalogus) en faalt als de pagina zijwaarts scrolt of iets buiten zijn kaart steekt. Een pad of id als label is
-`Tag` (`components/ui/Badge`), dat binnen zijn breedte afbreekt; een `Kaart` breekt een lang woord zonder spaties af
-(`overflow-wrap: anywhere`) in plaats van breder te worden.
+Wat Lex gebruikt staat in de groep *Aanpassingen* van het instellingenvenster, naar het voorbeeld van Claude (Skills,
+Connectors): **Methodes** (de skills in `.claude/skills/`, `MethodesPanel`), **Agents** (de agentprofielen in
+`.claude/lex-agents/`, `AgentsPanel`), Connectors en Modellen. De werkwijze van Lex als eigen pagina en sidebaritem is
+weg (besluit gebruiker 15 nov 2026): de uitleg van routes, ketens en supervisor staat in de repo (ADR's, `CLAUDE.md`'s),
+niet in de app. `/werkwijze` en de oude paden eronder zijn doorverwijzingen (`app/werkwijze/**`,
+`werkwijzeDoorverwijzing` in `lib/aanpassingen.ts`): een methode of rol naar Methodes, een agentprofiel naar Agents, een
+connector naar Connectors, en een keten, route, controle of handeling naar Agents zonder onderdeel.
+
+- **Eén lijstpagina** (`components/instellingen/AanpassingLijst.tsx`): kop met uitleg en *+ Voeg toe* (`VoegToeMenu`), de
+  segmenten *In Lex* (de catalogus, uit graph-qa `GET /v1/catalogus` via de BFF `app/api/catalogus`, `agent: true`) en
+  *Concepten* (de werkplaats, hieronder) als `OverzichtBalk`-chips met tellers, een zoekveld, en de groepen als
+  `Groep`/`GroepRij`. Met de werkplaats uit zijn er geen segmenten en is er geen *Voeg toe*. Bouw voor een volgende tab
+  geen eigen lijst: geef `AanpassingLijst` andere groepen.
+- **Het tweede niveau** (`AanpassingDetail`, *‹ <tab>* terug) vervangt de lijst in het venster: bij een methode haar
+  rollen met hun methodetekst (opklapbaar), bij een agent wat het gebruikt (methode, rol, connectors, sjablonen), de
+  opdracht (ingeklapt, `LangeTekst`) en de herkomst. Alles in één kolom: het paneel naast de tabkolom is te smal voor
+  `SplitDetail`. Een methode of rol in een detail opent haar eigen tab (`kiesInstellingenTab(tab, { onderdeel })`), geen
+  navigatie. De stappen van een keten, *Leunt op* / *Gebruikt door* en de tests staan er bewust niet meer.
+- **Het model hoort op het agentprofiel** (zoals `model:` bij een Claude Code-subagent; PR 5, api `modelkeuzes` van
+  #1544): onder elke agent en in zijn detail staat het model, en onderaan Agents de groep *Stappen zonder agentprofiel*
+  (de router, de classifier, … uit de catalogus van de api, `sleutels`). Een beheerder met 2FA kiest per sleutel een
+  profiel of *Standaard* (`ModelKeuzeVeld`, `PUT /api/admin/modelkeuzes/<sleutel>` met `X-User-Id`); een onbruikbaar
+  profiel staat uit met de reden, en bij een sleutel met een waarschuwing (het JAS-oordeel, het ophalen) staat *meet
+  eerst*, met de tekst zodra er iets anders dan de standaard gekozen is. Iedereen anders ziet het model als tekst
+  (`GET /api/modelkeuzes`, `modelTekst`). Modellen noemt per profiel waar het gekozen is, en verwijderen van een gekozen
+  profiel (409 `in_gebruik`) zegt bij welke agents. Rekenkern: `lib/modelkeuzes.ts`.
+- **De stand staat in de URL** naast `?instellingen=`: `onderdeel`, `q` en `segment` (`LIJST_PARAMS`, `useLijstStand`,
+  `zetLijstStand`). Een tabwissel laat ze vallen; herladen houdt ze. `onderdeelPad` en `tabVoorSoort` beslissen waar een
+  onderdeel van de catalogus staat (`lib/aanpassingen.test.ts` toetst dat elke soort een tab heeft).
+- `lib/catalogus.ts` is de spiegel van het bronmodel (`catalogus.test.ts` toetst de soorten en concepten tegen
+  `bronmodel/catalogus.py`); de indeling per concept en het blok *Hoe een vraag binnenkomt* zijn met de werkwijze weg.
+  Browserregressie: `scripts/test-aanpassingen.mjs` (op 1280 en 375 px, met axe; `CATALOGUS_FIXTURE` voor de echte
+  catalogus, `AANPASSINGEN_SCREENSHOT` voor beelden).
 
 ### De werkplaats: concepten (ADR-016 deel B, stap B2)
 
 Wat een gebruiker zelf maakt of aanpast (nu: een skill) is een **concept** met versies bij de api (`/v1/werkplaats/*`,
-`api/CLAUDE.md` §*De werkplaats*). Het staat onder de werkwijze, achter de vlag `WERKPLAATS`.
+`api/CLAUDE.md` §*De werkplaats*). Het staat in Instellingen › Aanpassingen (segment *Concepten* van Methodes en
+Agents), achter de vlag `WERKPLAATS`.
 
 - **Met de vlag uit is er niets te zien.** `haalWerkplaatsStand` geeft dan (en bij elke fout of onleesbaar antwoord)
   `UIT`; geen component tekent iets en niemand vraagt de concepten op. De andere routes bestaan dan niet (404), dus lees
-  altijd eerst de stand. `scripts/test-werkplaats.mjs` legt vast dat de werkwijze dan gelijk is aan voorheen, en de
+  altijd eerst de stand. `scripts/test-werkplaats.mjs` legt vast dat Methodes dan alleen toont wat in Lex draait, en de
   andere browsertests draaien zonder de werkplaats.
 - **Een concept is een artefact** (besluit 13 nov 2026): je leest het, bewerkt het en besluit erover op zijn eigen
-  pagina, `/werkwijze/concepten/<id>` (`ConceptPagina`). Niets op die pagina start Lex; iets laten opstellen door Lex gaat
+  pagina, `/aanpassingen/concepten/<id>` (`ConceptPagina`; de oude paden onder `/werkwijze/concepten/` verwijzen
+  door, met hun querystring). Het kruimelpad leidt terug naar *Instellingen › Methodes* op het segment *Concepten*. Niets op die pagina start Lex; iets laten opstellen door Lex gaat
   via het gesprek en hoort niet bij deze stap. Een eigen pagina en geen paneel naast het gesprek: een skill heeft tot
   tientallen bestanden.
-- **De ingangen** (`components/werkwijze/Concepten.tsx`): de groep *Concepten* bovenaan het overzicht (`ConceptenGroep`:
-  mijn concepten, wat met mij gedeeld is; ingetrokken staat standaard verborgen en komt met *Toon ingetrokken* onderaan
-  terug, want intrekken is de manier om een concept weg te doen en verwijderen kan niet; alleen bij *Alles* en *Kennis en methode*; de zoekterm
-  filtert op naam), *Nieuw concept* (alleen de naam; de api begint met de verplichte bestanden) en *Bewerken* op de
-  pagina van een methode (`ConceptBewerken`: een concept met de versie die draait, `uit_image`; heb ik er al een, dan *Open
-  mijn concept*). Een methode in de catalogus is een skill met dezelfde naam (`werkplaatsSoortVan`). Wie niet mag maken
-  (`mag_maken`), ziet geen knop.
+- **De ingangen** (`components/aanpassingen/Concepten.tsx`): het segment *Concepten* van de lijst (`conceptGroep`: mijn
+  concepten, wat met mij gedeeld is; ingetrokken staat standaard verborgen en komt met *Toon ingetrokken* terug, want
+  intrekken is de manier om een concept weg te doen en verwijderen kan niet; de zoekterm filtert op naam), *+ Voeg toe*
+  met *Nieuwe methode* (alleen de naam; de api begint met de verplichte bestanden) en *Vanuit een methode in Lex*
+  (`uit_image`), en *Bewerken* bij een methode in het tweede niveau (`ConceptBewerken`: een concept met de versie die
+  draait; heb ik er al een, dan *Open mijn concept*). Een methode in de catalogus is een skill met dezelfde naam
+  (`werkplaatsSoortVan`). Wie niet mag maken (`mag_maken`), of een soort die de editor nog niet opent (`IN_EDITOR`), ziet
+  geen knop (`magToevoegen`).
 - **Eén stand, één functie** (`standLabel` in `lib/werkplaats.ts`, getoond door `ConceptLabels`): *Concept*, *Draait nu*,
   *Concept · op oudere versie* (Lex gebruikt intussen een nieuwere versie dan waar het concept op voortbouwt), *Ingetrokken*, en
   ***Concept · nog onbekend wat er draait*** zolang de api niet weet welke versie Lex gebruikt. **Onbekend is nooit "draait
@@ -1556,7 +1582,7 @@ Wat een gebruiker zelf maakt of aanpast (nu: een skill) is een **concept** met v
     `OnbewaardMelding`); wie dan toch weggaat, gooit het ook uit de browser weg. Opslaan en verwerpen ruimen het op.
   - **Intrekken** staat in het menu ⋯ van de kop (tweede klik); daarna is het concept alleen te lezen.
   - Geen sneltoets met een letter, dus ook geen Ctrl+S.
-- **Versies en vergelijken** (B2-3, `components/werkwijze/ConceptVersies.tsx`). Versies groeien alleen aan; hier wordt
+- **Versies en vergelijken** (B2-3, `components/aanpassingen/ConceptVersies.tsx`). Versies groeien alleen aan; hier wordt
   niets gewijzigd.
   - **`VersiesKaart`** staat onder de bestanden en de controle: de nieuwste boven, met wie, wanneer, de toelichting, of de
     versie de controle haalt en welke er draait (`actief`; `null` = onbekend, dan geen label). Meer dan acht klapt uit.
@@ -1571,7 +1597,7 @@ Wat een gebruiker zelf maakt of aanpast (nu: een skill) is een **concept** met v
     ervoor en een schermlezer hoort "erbij" of "weg". Twee heel lange teksten vergelijkt het grof (`MAX_CELLEN`), en zegt
     dat. Gebruik dit voor een volgende vergelijking; bouw er geen tweede naast.
   - **`components/ui/Bestandenlijst`** is de ene lijst van bestanden om er één uit te kiezen (de editor en de versieweergave).
-- **Loopt achter** (B2-4, `components/werkwijze/ConceptAchter.tsx`): er draait intussen een andere versie dan waar het
+- **Loopt achter** (B2-4, `components/aanpassingen/ConceptAchter.tsx`): er draait intussen een andere versie dan waar het
   concept op voortbouwt (`basis_verouderd`).
   - De melding op het concept heeft *Bekijk wat er veranderde* (`achterPad`, `?achter=1`). `LooptAchter` toont twee
     verschillen om uit te kiezen, met `Bestandenlijst` en `Tekstverschil`: *Wat er intussen veranderde* (de basis tegen

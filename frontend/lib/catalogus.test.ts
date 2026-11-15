@@ -3,14 +3,9 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import {
-  AGENTVORM_STANDEN, CONCEPTEN, ingangTekst, parseAgentvorm, CONCEPT_LABEL, CONCEPT_VOLGORDE, NEUTRAAL, SOORTEN, SOORT_LABEL, filterOnderdelen, methodeLabel, onderdeelPad,
-  parseCatalogus,
-  parseOnderdeel, perConcept, perSoort, type Onderdeel,
-} from "./catalogus";
+import { CONCEPTEN, NEUTRAAL, SOORTEN, SOORT_LABEL, methodeLabel, parseCatalogus, parseOnderdeel, type Onderdeel } from "./catalogus";
 
 const BRONMODEL = join(__dirname, "..", "..", "packages", "bronmodel", "bronmodel", "catalogus.py");
-const CONFIG = join(__dirname, "..", "..", "tools", "graph-qa", "agent", "config.py");
 
 function o(id: string, extra: Partial<Onderdeel> = {}): Onderdeel {
   const soort = id.split("/")[0] as Onderdeel["soort"];
@@ -28,12 +23,10 @@ describe("de catalogus volgt het bronmodel", () => {
     for (const s of SOORTEN) expect(SOORT_LABEL[s].een).toBeTruthy();
   });
 
-  it("dezelfde concepten als bronmodel.catalogus.Concept, elk met een kop", () => {
+  it("dezelfde concepten als bronmodel.catalogus.Concept (een rij met een onbekend concept valt weg)", () => {
     const bron = readFileSync(BRONMODEL, "utf8");
     const literal = bron.match(/^Concept = Literal\[([\s\S]*?)\]/m)?.[1] ?? "";
     expect([...literal.matchAll(/"([a-z]+)"/g)].map((m) => m[1])).toEqual([...CONCEPTEN]);
-    expect([...CONCEPT_VOLGORDE].sort()).toEqual([...CONCEPTEN].sort());
-    for (const c of CONCEPTEN) expect(CONCEPT_LABEL[c].kop).toBeTruthy();
   });
 });
 
@@ -62,64 +55,5 @@ describe("parseCatalogus", () => {
     expect(d?.inhoud).toEqual({});
     expect(d?.gebruikt_door).toEqual([]);
     expect(parseOnderdeel({ id: "x" })).toBeNull();
-  });
-});
-
-describe("filteren en groeperen", () => {
-  const lijst = [o("workflow/annotatieketen", { label: "Annotatieketen" }), o("regelset/jas.detector.tijd"),
-    o("rol/duiding"), o("workflow/regie", { doel: "Verdeelt het werk over deelgesprekken" })];
-
-  it("op soort en op alle woorden van de zoekterm, in label, doel en id", () => {
-    expect(filterOnderdelen(lijst, { soort: "workflow", zoek: "" }).map((x) => x.id))
-      .toEqual(["workflow/annotatieketen", "workflow/regie"]);
-    expect(filterOnderdelen(lijst, { soort: "", zoek: "werk deelgesprekken" }).map((x) => x.id)).toEqual(["workflow/regie"]);
-    expect(filterOnderdelen(lijst, { soort: "", zoek: "TIJD" }).map((x) => x.id)).toEqual(["regelset/jas.detector.tijd"]);
-  });
-
-  it("per concept in de volgorde van de pagina, binnen een concept op soort", () => {
-    const met = [o("regelset/r", { concept: "skill" }), o("workflow/w", { concept: "workflow" }), o("rol/x", { concept: "skill" })];
-    expect(perConcept(met).map((g) => [g.concept, g.onderdelen.map((x) => x.id)]))
-      .toEqual([["skill", ["rol/x", "regelset/r"]], ["workflow", ["workflow/w"]]]);
-    expect(filterOnderdelen(met, { concept: "workflow", zoek: "" }).map((x) => x.id)).toEqual(["workflow/w"]);
-  });
-
-  it("per soort in de volgorde van SOORTEN, zonder lege soorten", () => {
-    expect(perSoort(lijst).map((g) => g.soort)).toEqual(["rol", "regelset", "workflow"]);
-  });
-
-  it("het pad van een onderdeel", () => {
-    expect(onderdeelPad("regelset/jas.detector.tijd")).toBe("/werkwijze/regelset/jas.detector.tijd");
-    expect(onderdeelPad("onzin")).toBe("/werkwijze");
-  });
-});
-
-describe("de agentvorm (ADR-016)", () => {
-  const vorm = {
-    vlag: "CENTRALE_AGENT", stand: "meten", ingang: "rol/supervisor", centrale_agent: "agentprofiel/centraal",
-    subagents: "workflow/subagent", regie: "workflow/regie", vooruitblik: "Na A6 beslist de eigenaar.",
-    standen: { uit: "u", meten: "m", aan: "a" },
-    altijd_in_code: [{ wat: "Een route in code", aantal: 17, uitleg: "zonder model" }],
-    profielen: [{ id: "agentprofiel/duiding", plek: "specialist", label: "Specialist", nu: "de supervisor kiest het" }],
-  };
-
-  it("dezelfde standen als Settings.centrale_agent in graph-qa", () => {
-    const literal = readFileSync(CONFIG, "utf8").match(/centrale_agent: Literal\[([^\]]*)\]/)?.[1] ?? "";
-    expect([...literal.matchAll(/"([a-z]+)"/g)].map((m) => m[1])).toEqual([...AGENTVORM_STANDEN]);
-  });
-
-  it("een geldige vorm komt door, met wie een getypte vraag leest", () => {
-    const a = parseAgentvorm(vorm);
-    expect(a?.stand).toBe("meten");
-    expect(ingangTekst(a!)).toBe("De supervisor");
-    expect(ingangTekst({ ...a!, stand: "aan" })).toBe("De centrale agent");
-    expect(parseCatalogus({ onderdelen: [], agentvorm: vorm })?.agentvorm?.ingang).toBe("rol/supervisor");
-  });
-
-  it("een vorm die niet klopt is geen agentvorm, en de catalogus blijft staan", () => {
-    expect(parseAgentvorm({ ...vorm, stand: "half" })).toBeNull();
-    expect(parseAgentvorm({ ...vorm, standen: { uit: "u" } })).toBeNull();
-    expect(parseAgentvorm({ ...vorm, profielen: [{ id: "x" }] })).toBeNull();
-    expect(parseAgentvorm(undefined)).toBeNull();
-    expect(parseCatalogus({ onderdelen: [o("rol/duiding")] })?.agentvorm).toBeNull();
   });
 });

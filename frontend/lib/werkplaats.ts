@@ -159,7 +159,7 @@ export function geldigLabel(v: Pick<WerkplaatsVersie, "geldig" | "bevindingen"> 
 }
 
 export function conceptPad(id: string): string {
-  return `/werkwijze/concepten/${encodeURIComponent(id)}`;
+  return `/aanpassingen/concepten/${encodeURIComponent(id)}`;
 }
 
 /** Welke soort in de werkplaats hoort bij een onderdeel van de catalogus; `null` als het daar niet te bewerken is. */

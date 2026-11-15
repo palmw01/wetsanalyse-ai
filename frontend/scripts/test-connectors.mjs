@@ -2,11 +2,13 @@
  * AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109
  * en draai `node scripts/test-connectors.mjs`.
  *
- * Bewaakt:
- *  - de tab staat in het beheer en toont elke connector met zijn stand, brontype en beschrijving;
- *  - *Aanzetten* stuurt `PUT {aan: true}` en de kaart toont daarna *Aan* en wie het deed;
- *  - *Audit* klapt de regels uit, nieuwste eerst, en ververst na een wijziging;
+ * Bewaakt (de tab staat in Instellingen › Aanpassingen, plan instellingen-aanpassingen):
+ *  - elke connector met zijn stand, brontype en beschrijving, in de ene lijst van Aanpassingen;
+ *  - *Aanzetten* stuurt `PUT {aan: true}` en de rij toont daarna *Aan* en wie het deed;
+ *  - het tweede niveau toont wat de bron dekt, welke agents hem gebruiken en de audit, nieuwste eerst, ververst na een
+ *    wijziging;
  *  - een weigering van de api (geen 2FA) staat als melding in het paneel, en de stand blijft *Uit*;
+ *  - een beheerder zonder 2FA ziet waarom er geen knop staat; een analist ziet de lijst zonder knop;
  *  - op 375 px scrolt niets horizontaal.
  */
 import assert from "node:assert/strict";
@@ -17,12 +19,23 @@ const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
 const nu = "2026-11-08T10:00:00+00:00";
 
-async function open(viewport, { weiger = false } = {}) {
+const CATALOGUS = { soorten: [], onderdelen: [
+  { id: "connector/kamerstukken", soort: "connector", label: "Kamerstukken", doel: "Wetsgeschiedenis uit de officiële publicaties.",
+    model: "geen", versie: "v", herkomst: { bron: "eigen", licentie: "repo", letterlijk: false, verwijzing: [] }, bestand: [], ingang: [],
+    context: "", tools: [], uitvoer: "", twijfel: "", tests: [], hangt_af_van: [], straat: null, bewerkbaar: [], laag: null, stappen: [],
+    aan: true, concept: "tool", deel_van: null },
+  { id: "agentprofiel/duiding", soort: "agentprofiel", label: "Duiding", doel: "Duidt.", model: "agent", versie: "v",
+    herkomst: { bron: "eigen", licentie: "repo", letterlijk: false, verwijzing: [] }, bestand: [], ingang: [], context: "", tools: [],
+    uitvoer: "", twijfel: "", tests: [], hangt_af_van: ["connector/kamerstukken"], straat: null, bewerkbaar: [], laag: null, stappen: [],
+    aan: true, concept: "agent", deel_van: null },
+] };
+
+async function open(viewport, { weiger = false, role = "beheerder", tfaNodig = false } = {}) {
   const context = await browser.newContext({ viewport });
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await context.addCookies(await sessieCookies(base, { role: "beheerder", userid: "wpalm" }));
+  await context.addCookies(await sessieCookies(base, { role, userid: "wpalm" }));
   await context.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true })));
   const stand = { aan: false, door: "", audit: [], puts: [] };
   const connector = () => ({
@@ -33,7 +46,12 @@ async function open(viewport, { weiger = false } = {}) {
   await page.route("**/api/**", async (route) => {
     const req = route.request(), p = new URL(req.url()).pathname, m = req.method();
     if (p.startsWith("/api/auth/")) return route.continue();
-    if (p === "/api/account/me") return route.fulfill({ json: { userid: "wpalm", email: "wpalm@example.test", role: "beheerder", totp_enabled: true, tfa_nodig: false, herstelcodes_over: 5 } });
+    if (p === "/api/account/me") return route.fulfill({ json: { userid: "wpalm", email: "wpalm@example.test", role, totp_enabled: !tfaNodig, tfa_nodig: tfaNodig, herstelcodes_over: 5 } });
+    if (p === "/api/catalogus") return route.fulfill({ json: CATALOGUS });
+    if (p === "/api/catalogus/connector/kamerstukken") return route.fulfill({ json: { ...CATALOGUS.onderdelen[0], gebruikt_door: [],
+      inhoud: { dekt: "Memorie van toelichting, nota's en verslagen.", levert: ["kamerstuk"] } } });
+    if (p === "/api/connectors") return route.fulfill({ json: { aan: stand.aan ? ["kamerstukken"] : [], connectors: [] } });
+    if (p === "/api/admin/connectors" && role !== "beheerder") return route.fulfill({ status: 403, json: { detail: "Alleen voor beheerders." } });
     if (p === "/api/admin/connectors") return route.fulfill({ json: [connector()] });
     if (p === "/api/admin/connectors/kamerstukken" && m === "PUT") {
       const body = req.postDataJSON();
@@ -57,19 +75,24 @@ async function open(viewport, { weiger = false } = {}) {
   const { page, context, stand, errors } = await open({ width: 1280, height: 900 });
   const kaart = page.locator('[data-connector="kamerstukken"]');
   await kaart.waitFor();
-  assert.ok(await page.getByRole("tab", { name: /Connectors/ }).count(), "de tab Connectors staat in het beheer");
-  assert.match(await kaart.innerText(), /Kamerstukken[\s\S]*Uit[\s\S]*kamerstuk[\s\S]*Wetsgeschiedenis/);
+  assert.ok(await page.getByRole("tab", { name: /Connectors/ }).count(), "de tab Connectors staat in Aanpassingen");
+  assert.match(await kaart.innerText(), /Kamerstukken[\s\S]*Wetsgeschiedenis[\s\S]*Uit[\s\S]*kamerstuk/);
 
   await kaart.getByRole("button", { name: "Aanzetten" }).click();
   await kaart.getByText("Aangezet door wpalm").waitFor();
   assert.deepEqual(stand.puts, [{ aan: true }]);
   assert.match(await kaart.innerText(), /\bAan\b/);
 
-  await kaart.getByRole("button", { name: "Audit" }).click();
-  const audit = kaart.getByRole("list", { name: "Audit van Kamerstukken" });
+  // Het tweede niveau: wat de bron dekt, wie hem gebruikt, en de audit.
+  await kaart.getByRole("button", { name: "Open Kamerstukken" }).click();
+  await page.waitForURL(/onderdeel=connector%2Fkamerstukken/);
+  const detail = page.locator("[data-aanpassing-detail]");
+  await detail.locator('[data-blok="dekt"]').getByText("Memorie van toelichting").waitFor();
+  await detail.locator('[data-blok="gebruikt-door"]').getByRole("button", { name: "Duiding" }).waitFor();
+  const audit = detail.getByRole("list", { name: "Audit van Kamerstukken" });
   await audit.getByText(/aangezet door wpalm/).waitFor();
 
-  await kaart.getByRole("button", { name: "Uitzetten" }).click();
+  await detail.getByRole("button", { name: "Uitzetten" }).click();
   await audit.getByText(/uitgezet door wpalm/).waitFor();
   const regels = await audit.locator("li").allInnerTexts();
   assert.equal(regels.length, 2);
@@ -89,7 +112,19 @@ async function open(viewport, { weiger = false } = {}) {
   await context.close();
 }
 
-// 3. Op een telefoon scrolt niets horizontaal.
+// 3. Een beheerder zonder 2FA ziet waarom er geen knop staat; een analist ziet de lijst zonder knop en zonder beheer.
+for (const [opties, uitleg] of [[{ tfaNodig: true }, true], [{ role: "analist" }, false]]) {
+  const { page, context, errors } = await open({ width: 1280, height: 900 }, opties);
+  const kaart = page.locator('[data-connector="kamerstukken"]');
+  await kaart.waitFor();
+  await kaart.getByText("Uit", { exact: true }).waitFor();
+  assert.equal(await kaart.getByRole("button", { name: "Aanzetten" }).count(), 0);
+  assert.equal(await page.getByText("Koppel eerst tweestapsverificatie").count(), uitleg ? 1 : 0);
+  assert.deepEqual(errors, []);
+  await context.close();
+}
+
+// 4. Op een telefoon scrolt niets horizontaal.
 {
   const { page, context, errors } = await open({ width: 375, height: 812 });
   await page.locator('[data-connector="kamerstukken"]').waitFor();

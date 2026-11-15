@@ -4,7 +4,9 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { INSTELLINGEN_TABS, instellingenOpWerkplek, isAdminTab, tabUitPad, tabUitParam } from "./instellingen";
+import {
+  INSTELLINGEN_GROEPEN, INSTELLINGEN_TABS, instellingenOpWerkplek, isAdminTab, tabUitPad, tabUitParam, tabsBijZoekterm,
+} from "./instellingen";
 
 const WORTEL = join(__dirname, "..");
 const lees = (p: string) => readFileSync(join(WORTEL, p), "utf8");
@@ -23,6 +25,11 @@ describe("tabUitPad", () => {
     expect(tabUitPad(["beheer", "registraties"])).toBe("registraties");
   });
 
+  it("een oud pad komt uit op de tab waar het nu woont", () => {
+    expect(tabUitPad(["beheer", "modelprofielen"])).toBe("modellen");
+    expect(tabUitPad(["beheer", "connectors"])).toBe("connectors");
+  });
+
   it("valt terug op account bij leeg of onbekend", () => {
     expect(tabUitPad(undefined)).toBe("account");
     expect(tabUitPad([])).toBe("account");
@@ -39,6 +46,7 @@ describe("tabUitParam", () => {
   it("leest de sleutel, ook een oud pad, en opent een onbekende waarde op account", () => {
     expect(tabUitParam("gebruikers")).toBe("gebruikers");
     expect(tabUitParam("beheer/gebruikers")).toBe("gebruikers");
+    expect(tabUitParam("modelprofielen")).toBe("modellen");
     expect(tabUitParam("bestaat-niet")).toBe("account");
     expect(tabUitParam("")).toBe("account");
   });
@@ -60,8 +68,9 @@ describe("isAdminTab", () => {
     expect(isAdminTab("beveiliging")).toBe(false);
     expect(isAdminTab("berichten")).toBe(false);
     expect(isAdminTab("verbruik")).toBe(false);
+    expect(isAdminTab("connectors")).toBe(false);
     for (const t of [
-      "modelprofielen",
+      "modellen",
       "gebruikers",
       "registraties",
       "api-tokens",
@@ -78,12 +87,42 @@ describe("isAdminTab", () => {
   // van een lijstje tabnamen – die veroudert bij elke nieuwe tab.
   it("elke admin-tab staat onder beheer/ (anders valt de rolgate weg)", () => {
     for (const tab of INSTELLINGEN_TABS) {
-      expect(tab.admin, `tab '${tab.key}' (pad '${tab.pad}')`).toBe(tab.pad.startsWith("beheer/"));
+      expect(tab.alleenBeheerder, `tab '${tab.key}' (pad '${tab.pad}')`).toBe(tab.pad.startsWith("beheer/"));
     }
   });
 
   it("auth.config.ts bewaakt die prefix nog steeds", () => {
     expect(lees("auth.config.ts")).toContain('path.startsWith("/instellingen/beheer")');
+  });
+});
+
+describe("groepen", () => {
+  it("elke tab hoort bij een bekende groep, en de tabs staan in de volgorde van de groepen", () => {
+    const volgorde = INSTELLINGEN_GROEPEN.map((g) => g.key);
+    const indices = INSTELLINGEN_TABS.map((t) => volgorde.indexOf(t.groep));
+    expect(indices.every((i) => i >= 0)).toBe(true);
+    expect([...indices].sort((a, b) => a - b)).toEqual(indices);
+  });
+
+  it("Aanpassingen draagt Methodes, Agents, Connectors en Modellen; Beheer alleen tabs voor beheerders", () => {
+    const van = (g: string) => INSTELLINGEN_TABS.filter((t) => t.groep === g).map((t) => t.key);
+    expect(van("aanpassingen")).toEqual(["methodes", "agents", "connectors", "modellen"]);
+    expect(INSTELLINGEN_TABS.filter((t) => t.groep === "beheer").every((t) => t.alleenBeheerder)).toBe(true);
+    expect(INSTELLINGEN_TABS.filter((t) => t.groep === "persoonlijk").some((t) => t.alleenBeheerder)).toBe(false);
+  });
+});
+
+describe("tabsBijZoekterm", () => {
+  it("zonder zoekterm alle tabs", () => {
+    expect(tabsBijZoekterm(INSTELLINGEN_TABS, "  ")).toHaveLength(INSTELLINGEN_TABS.length);
+  });
+
+  it("vindt op label en trefwoord, hoofdletterongevoelig, en elk woord telt", () => {
+    expect(tabsBijZoekterm(INSTELLINGEN_TABS, "Modellen").map((t) => t.key)).toEqual(["modellen"]);
+    expect(tabsBijZoekterm(INSTELLINGEN_TABS, "2FA").map((t) => t.key)).toEqual(["beveiliging"]);
+    expect(tabsBijZoekterm(INSTELLINGEN_TABS, "modelprofielen").map((t) => t.key)).toEqual(["modellen"]);
+    expect(tabsBijZoekterm(INSTELLINGEN_TABS, "tokens mcp").map((t) => t.key)).toEqual(["api-tokens"]);
+    expect(tabsBijZoekterm(INSTELLINGEN_TABS, "bestaat-niet")).toEqual([]);
   });
 });
 

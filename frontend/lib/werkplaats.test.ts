@@ -147,7 +147,7 @@ describe("de lijst en de ingangen", () => {
   it("de bestanden: het hoofdbestand, de wortel, dan de mappen", () => {
     expect(bestandsvolgorde(["references/b.md", "agentrollen.json", "evals/x/prompt.md", "SKILL.md", "references/a.md"]))
       .toEqual(["SKILL.md", "agentrollen.json", "evals/x/prompt.md", "references/a.md", "references/b.md"]);
-    expect(conceptPad("o 1")).toBe("/werkwijze/concepten/o%201");
+    expect(conceptPad("o 1")).toBe("/aanpassingen/concepten/o%201");
   });
 });
 
@@ -220,9 +220,9 @@ describe("versies", () => {
   });
 
   it("het pad van een versie", () => {
-    expect(versiePad("o1", 3)).toBe("/werkwijze/concepten/o1?versie=3");
-    expect(versiePad("o1", 3, 1)).toBe("/werkwijze/concepten/o1?versie=3&met=1");
-    expect(versiePad("o1", 3, null)).toBe("/werkwijze/concepten/o1?versie=3&met=0");
+    expect(versiePad("o1", 3)).toBe("/aanpassingen/concepten/o1?versie=3");
+    expect(versiePad("o1", 3, 1)).toBe("/aanpassingen/concepten/o1?versie=3&met=1");
+    expect(versiePad("o1", 3, null)).toBe("/aanpassingen/concepten/o1?versie=3&met=0");
   });
 });
 
@@ -244,6 +244,6 @@ describe("loopt achter", () => {
     expect(basisVersie(o({ laatste: versie({ nummer: 4, hash: "c", basis_hash: "a" }), versielijst: lijst }))).toBe(3);
     expect(basisVersie(o({ laatste: versie({ nummer: 2, hash: "c", basis_hash: "zzz" }), versielijst: lijst }))).toBeNull();
     expect(basisVersie(o({ laatste: versie({ basis_hash: "" }), versielijst: lijst }))).toBeNull();
-    expect(achterPad("o 1")).toBe("/werkwijze/concepten/o%201?achter=1");
+    expect(achterPad("o 1")).toBe("/aanpassingen/concepten/o%201?achter=1");
   });
 });
