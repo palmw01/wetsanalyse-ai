@@ -314,9 +314,9 @@ jobs:
               if "--api-token-login" in regel and not regel.strip().startswith("#") and "acceptatie" not in regel:
                   fout.append(f"azure-infra.yml: `--api-token-login` zonder acceptatie-conditie: {regel.strip()}")
 
-          # De bronconnectors halen tekst van buiten de graaf: alleen acceptatie, tot de eigenaar anders besluit. Eén
-          # parameter voor allemaal (`connectoren`, standaard leeg), één weg naar de env (`connectorEnv`), en de lijst gaat
-          # alleen op acceptatie mee.
+          # De bronconnectors halen tekst van buiten de graaf. Eén parameter voor allemaal (`connectoren`, standaard leeg),
+          # één weg naar de env (`connectorEnv`). Sinds 15 nov 2026 (besluit gebruiker) biedt elke straat ze aan; het
+          # register in de beheertab zet ze aan.
           m = re.search(r"^param connectoren array = (.+)$", bicep, re.M)
           if not m or m.group(1).strip() != "[]":
               fout.append("main.bicep: `param connectoren array = []` niet gevonden")
@@ -327,10 +327,6 @@ jobs:
               fout.append("main.bicep: `connectorEnv` hoort in de env van graph-qa én de eval-job (`concat([...], connectorEnv)`)")
           if re.search(r"^param connector[A-Z]\w* bool", bicep, re.M):
               fout.append("main.bicep: een losse connectorvlag; een connector hoort in `connectoren`")
-          for regel in flow.splitlines():
-              if ("--connectoren" in regel or "--connector-" in regel) and not regel.strip().startswith("#") \
-                      and "acceptatie" not in regel:
-                  fout.append(f"azure-infra.yml: `--connectoren` zonder acceptatie-conditie: {regel.strip()}")
 
           # Relatievoorstellen uit de annotatieketen (ADR-011) zijn een proefvlag: alleen acceptatie, tot een meting beslist.
           m = re.search(r"^param relatieVoorstellen bool = (\w+)$", bicep, re.M)
