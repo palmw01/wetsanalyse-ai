@@ -39,7 +39,7 @@ def test_in_het_gesprek_vraagt_lex_door_zonder_model(monkeypatch):
              "messages": [{"role": "user", "content": "Wat zegt artikel 3? Ik bedoel de Awb."},
                           {"role": "assistant", "content": VORIG},
                           {"role": "user", "content": "En het tweede lid?"}]}
-    upd = supervisie.supervisor_node(b, state)
+    upd = supervisie.ingang_node(b, state)
     assert supervisie._entry_node(b, {**state, **upd}) == "afwijzen" and "welk artikel" in upd["afwijs_melding"]
 
 
@@ -121,5 +121,5 @@ def test_in_het_gesprek_vraagt_lex_ook_na_een_opsomming_door_zonder_model(monkey
              "messages": [{"role": "user", "content": "Ik bedoel de Awb."},
                           {"role": "assistant", "content": MET_LIJST},
                           {"role": "user", "content": "En het tweede lid?"}]}
-    upd = supervisie.supervisor_node(b, state)
+    upd = supervisie.ingang_node(b, state)
     assert supervisie._entry_node(b, {**state, **upd}) == "afwijzen" and "welk artikel" in upd["afwijs_melding"]

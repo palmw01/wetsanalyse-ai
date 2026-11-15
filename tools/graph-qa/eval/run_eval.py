@@ -435,7 +435,8 @@ def _offline_annotatie_scenario():
     )
     geen_keuze = response([text_block("Ik kies niet.")], "end_turn")
     llm = FakeLLM([
-        response([text_block("WORKERS: annotatie\nPLAN: annoteer art 9 lid 1")], "end_turn"),
+        response([tool_block("ov", "annoteer", {"vraag": "annoteer artikel 9 lid 1 van de Invorderingswet 1990"})],
+                 "tool_use"),
         response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})], "tool_use"),
         response([text_block('{"bwbId":"BWBR0004770","artikel":"9","lid":"1","citeertitel":"IW 1990"}')], "end_turn"),
         geen_keuze, geen_keuze,          # classifier + één nieuwe poging
@@ -478,7 +479,6 @@ def _offline_scenario():
     # Zoals de graaf antwoordt: SPARQL-TSV (de tool maakt er het resultaatcontract van).
     graph = FakeGraph(result='?regeling\t?citeertitel\n<urn:bwb:BWBR0004770>\t"Invorderingswet 1990"\n')
     llm = FakeLLM([
-        response([text_block("Ik raadpleeg list_regelingen.")], "end_turn"),          # plan-node (create)
         response([tool_block("t1", "list_regelingen", {})], "tool_use"),              # agent-turn 1 (stream)
         response([text_block("De Invorderingswet 1990 (BWBR0004770) staat in de graaf.")], "end_turn"),  # agent-turn 2
     ])
@@ -499,16 +499,14 @@ def _offline_gesprek_scenario(db: str):
 
     graph = FakeGraph(result='?nummer\t?tekst\n"9"\t"Een belastingaanslag is invorderbaar zes weken na de dagtekening."')
     llm = FakeLLM([
-        response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: haal artikel 9 op")], "end_turn"),
         response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),
         response([text_block("Artikel 9 regelt wanneer een aanslag invorderbaar is.")], "end_turn"),
-        response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: lid 2 van artikel 9")], "end_turn"),
         response([tool_block("t2", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "2"})], "tool_use"),
         response([text_block("Lid 2 van artikel 9 regelt een afwijkende termijn.")], "end_turn"),
     ])
     case = {"id": "offline-doorvragen", "scenario": "A", "vraagtype": "vervolg", "beurten": [
         {"vraag": "Wat regelt artikel 9 van de Invorderingswet 1990?", "vraagtype": "bepaling",
-         "verwacht": {"route": "duiding", "tools_wel": ["get_artikel"], "bevat": ["invorderbaar"]}},
+         "verwacht": {"route": "centraal", "tools_wel": ["get_artikel"], "bevat": ["invorderbaar"]}},
         {"vraag": "En lid 2?",
          "verwacht": {"niet_route": ["afgewezen"], "tools_wel": ["get_lid"], "bevat": ["lid 2"]}},
     ]}

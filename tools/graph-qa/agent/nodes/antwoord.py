@@ -38,7 +38,7 @@ from ..beweringen import regelingen_genoemd
 from ..buiten_graaf import _graafnamen
 from ..regelingnamen import met_regelingnamen
 from ..resultaat import is_fout
-from ..agentvorm import STANDAARD as DEFAULT_SPECIALIST, agent_van
+from ..agentvorm import CENTRAAL, CENTRAAL_BREED, STANDAARD as DEFAULT_SPECIALIST, agent_van
 from ..overdracht import OVERDRACHT
 from ..state import State
 from ..subagent import open_vraag, vraagkaart, zonder_rapport
@@ -84,7 +84,9 @@ def agent_node(b: Bouw, state: State) -> dict[str, Any]:
                 "corrected": True, "sjabloon_gevraagd": True, "answer": VRAAG_VAN_SUBAGENT}
     # Alleen bij de eerste beurt: daarna is elke ronde al herkenbaar aan de graafbevragingen, en
     # zou dit bij elke tool-lus opnieuw voorbijkomen.
-    if not state.get("turns"):
+    # Niet bij de centrale agent en niet bij een subagent: hun ingang zei al wat Lex doet ("bekijkt de vraag", "werkt als
+    # subagent"), en welke bronnen hij gebruikt, zeggen de toolstappen (ADR-016 §A7: twee "zoekt"-regels vóór de eerste tool).
+    if not state.get("turns") and state.get("specialist") not in (CENTRAAL, CENTRAAL_BREED) and not state.get("opdracht"):
         spec_naam = state.get("specialist") or DEFAULT_SPECIALIST
         _stap(writer, "Lex", f"zoekt in {bronstand_waar(state.get('bronstand'))}", route=spec_naam)
     # De annotatie-route draait de agent⇄tools-lus als OPHAAL-agent (retrieval-specialist): hij

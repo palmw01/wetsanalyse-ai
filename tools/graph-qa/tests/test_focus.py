@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 
 from bron_fakes import answer_stream
-from fakes import FakeGraph, FakeLLM, KetenLLM, make_settings, response, text_block
+from fakes import tool_block, FakeGraph, FakeLLM, KetenLLM, make_settings, response, text_block
 from test_annotatie_worker import LID_TSV, _aanloop, _alleen
 
 from agent.focus import als_context, bij_advies, na_annotatie, na_antwoord
@@ -59,16 +59,15 @@ def test_vervolgvraag_na_annotatie_kent_bepaling_en_element_ids(tmp_path):
     element = next(e["element"] for e in events if e["type"] == "element")
 
     llm2 = FakeLLM([
-        response([text_block("SPECIALIST: duiding\nPLAN: leg de markering uit")], "end_turn"),
         response([text_block("Omdat de ontvanger de handelende partij is.")], "end_turn"),
     ])
     _run(answer_stream("waarom die klasse?", "focus-1", settings=settings, llm=llm2, graph=FakeGraph(result="")))
 
-    supervisor, specialist = llm2.prompts[:2]
-    for systeem in (supervisor, specialist):
+    [systeem] = llm2.prompts[:1]   # de centrale agent (ADR-016 §A7: geen supervisor meer)
+    for systeem in (systeem,):
         assert "urn:bwb:BWBR0004770:artikel:9:lid:1" in systeem, "de bepaling staat in de context"
         assert element["id"] in systeem, "het element is bij id aan te spreken"
-    historie = str(llm2.calls[1].get("messages"))
+    historie = str(llm2.calls[0].get("messages"))
     assert element["id"] in historie and "bronnode urn:bwb:BWBR0004770:artikel:9:lid:1" in historie
 
 

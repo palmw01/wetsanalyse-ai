@@ -106,8 +106,8 @@ def test_v04_door_de_hele_graaf_zonder_model_en_zonder_fout(monkeypatch):
     llm = FakeLLM([])
 
     async def beurt():
-        return [e async for e in answer_stream(AGENTSET["V04"]["opdracht"], settings=make_settings(centrale_agent="aan"),
-                                               llm=llm, graph=FakeGraph(result=""), agentvorm="centraal")]
+        return [e async for e in answer_stream(AGENTSET["V04"]["opdracht"], settings=make_settings(),
+                                               llm=llm, graph=FakeGraph(result=""))]
 
     events = asyncio.run(beurt())
     assert not [e for e in events if e.get("type") == "error"], events
@@ -120,8 +120,8 @@ def test_v04_door_de_hele_graaf_zonder_model_en_zonder_fout(monkeypatch):
 def test_v04_de_supervisor_vraagt_het_zonder_model(monkeypatch):
     monkeypatch.setattr(supervisie, "get_stream_writer", lambda: (lambda _e: None))
     monkeypatch.setattr(supervisie, "welke_wijziging", lambda v, g: "Welke wijziging bedoel je?")
-    b = SimpleNamespace(settings=SimpleNamespace(centrale_agent="aan", legt_zelf_vast=True), graph=object(), kinderen=None)
-    upd = supervisie._kies(b, {**STATE, "question": AGENTSET["V04"]["opdracht"], "modus": "auto", "agentvorm": "centraal"})
+    b = SimpleNamespace(settings=SimpleNamespace(legt_zelf_vast=True), graph=object(), kinderen=None)
+    upd = supervisie._kies(b, {**STATE, "question": AGENTSET["V04"]["opdracht"], "modus": "auto"})
     assert upd["afwijzen"] and upd["afwijs_melding"] == "Welke wijziging bedoel je?"
 
 
@@ -157,8 +157,8 @@ def test_f02_de_supervisor_geeft_de_afgemaakte_opdracht_aan_een_subagent(monkeyp
     berichten = [{"role": "user", "content": V01},
                  {"role": "assistant", "content": [{"type": "text", "text": "Welke regeling bedoel je met artikel 30?"}]},
                  {"role": "user", "content": "De Invorderingswet 1990."}]
-    b = SimpleNamespace(settings=SimpleNamespace(centrale_agent="aan", legt_zelf_vast=True), graph=None, kinderen=object())
-    state = {**STATE, "question": "De Invorderingswet 1990.", "modus": "auto", "agentvorm": "centraal",
+    b = SimpleNamespace(settings=SimpleNamespace(legt_zelf_vast=True), graph=None, kinderen=object())
+    state = {**STATE, "question": "De Invorderingswet 1990.", "modus": "auto",
              "bronstand": RECHTSPRAAK, "messages": berichten}
     upd = supervisie._kies(b, state)
     assert upd["specialist"] == "subagent_route" and "artikel 30 van de Invorderingswet 1990" in upd["zelfstandige_vraag"]
@@ -186,9 +186,8 @@ def test_f03_een_vraag_over_de_deelgesprekken_leest_de_stand_in_code(monkeypatch
     assert not overdracht.is_standvraag("Wat zegt artikel 22 over het bodemrecht?")
     monkeypatch.setattr(supervisie, "get_stream_writer", lambda: (lambda _e: None))
     monkeypatch.setattr(supervisie, "_delegatie_stand", lambda _b, _s, _i: ({}, overdracht.stand_tekst(STAND)))
-    b = SimpleNamespace(settings=SimpleNamespace(centrale_agent="aan", legt_zelf_vast=True), graph=None, kinderen=None)
-    upd = supervisie._kies(b, {**STATE, "question": AGENTSET["F03"]["opdracht"], "modus": "auto",
-                               "agentvorm": "centraal"})
+    b = SimpleNamespace(settings=SimpleNamespace(legt_zelf_vast=True), graph=None, kinderen=None)
+    upd = supervisie._kies(b, {**STATE, "question": AGENTSET["F03"]["opdracht"], "modus": "auto"})
     assert upd["specialist"] == "centraal" and "in 1 van de 3 deelgesprekken" in upd["rapporten"]
 
 

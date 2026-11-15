@@ -1,7 +1,9 @@
 # ADR-010: De agentarchitectuur van Lex in vier lagen
 
 **Status:** aangenomen, 7 nov 2026. Eindbeeld en bouwvolgorde. De eerste stap is de workflow voor de tekst van een bepaling
-(D1). Laag 4 (één algemene agent) is een apart besluit, dat pas valt na een meting.
+(D1). Laag 4 (één algemene agent) is een apart besluit, dat pas valt na een meting. *Dat besluit is gevallen:* laag 4 is
+de centrale agent van [ADR-016](adr-016-centrale-agent-en-werkplaats.md), en sinds 15 nov 2026 (§A7) is de supervisor
+met zijn keuze tussen specialisten weg (zie de aanvulling onderaan).
 
 ## Context
 
@@ -174,3 +176,11 @@ en het sjabloon kiest, in plaats van de supervisor plus specialisten voor de ope
 - **Specialisten die laag 2 overbodig maakt, vervallen.** De retrieval-set en het afronden met `antwoord_bepaling` door
   duiding en algemeen gaan pas weg na D1 en de meting.
 - **`tools/graph-qa/CLAUDE.md` beschrijft de lagen**, met een verwijzing naar dit document.
+
+## Aanvulling (15 nov 2026): laag 4 is de centrale agent, de supervisor is weg
+
+[ADR-016 §A7](adr-016-centrale-agent-en-werkplaats.md) voert het besluit over laag 4 uit: de open laag is één centrale
+agent met profielen, en de supervisor-modelstap is vervallen. Laag 1 en 2 blijven: de routes in code staan vóór het model
+in de ingang (`supervisie.ingang_node`), met hun rijen in `eval/golden_routering.jsonl`; een rij met `model: true` gaat
+nu naar de centrale agent. Laag 3 (de taakagents) bereikt de centrale agent met de overdracht `taakagent`. Het profiel
+`definitie` en de methoderollen `supervisor` en `definitie` zijn met de supervisor vervallen.

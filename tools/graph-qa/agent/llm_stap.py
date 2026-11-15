@@ -65,7 +65,6 @@ class Rol(Enum):
     een losse stap staat op zichzelf en telt alleen mee in het verbruik (plan contextweergave, *Wat een "context" is*).
     Elke rol kiest dat bij zijn definitie: de meter kent geen namen."""
 
-    SUPERVISOR = ("supervisor", "supervisor", False)
     # De antwoordlus draait twee rollen: de ophaal-agent van de annotatieroute en de QA-specialisten. Die laatste krijgen
     # de methoderol van hun specialist (`specialists.methoderol`), dus die geeft de aanroeper mee.
     OPHAAL = ("ophaal", "retrieval", True)

@@ -65,7 +65,7 @@ def test_een_rol_met_methoderol_eist_die_methodetekst_in_de_systeemprompt():
     aanroep(llm, Rol.DEELVRAGEN_VOORSTEL, **_verzoek("Taak.\n\n" + instructies("deelvragen")))
     # Een andere methoderol is niet genoeg.
     with pytest.raises(ValueError):
-        aanroep(FakeLLM([_tool({})]), Rol.DEELVRAGEN_VOORSTEL, **_verzoek(instructies("supervisor")))
+        aanroep(FakeLLM([_tool({})]), Rol.DEELVRAGEN_VOORSTEL, **_verzoek(instructies("retrieval")))
 
 
 def test_de_rolcontrole_leest_ook_een_gesplitste_systeemprompt():

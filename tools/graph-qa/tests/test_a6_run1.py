@@ -119,14 +119,14 @@ def test_zonder_bron_aan_gaat_een_reeks_stukken_niet_naar_een_subagent():
 
 
 def _bouw(**extra):
-    return SimpleNamespace(settings=SimpleNamespace(centrale_agent="aan", legt_zelf_vast=True), graph=None,
+    return SimpleNamespace(settings=SimpleNamespace(legt_zelf_vast=True), graph=None,
                            kinderen=object(), **extra)
 
 
 def test_de_supervisor_legt_meer_subagents_zonder_model_voor(monkeypatch):
     monkeypatch.setattr(supervisie, "get_stream_writer", lambda: (lambda _e: None))
     monkeypatch.setattr(supervisie, "_regelingtitels", lambda _g: regelingen)
-    state = {**STATE, "question": AGENTSET["M01"]["opdracht"], "modus": "auto", "agentvorm": "centraal",
+    state = {**STATE, "question": AGENTSET["M01"]["opdracht"], "modus": "auto",
              "bronstand": AAN, "gesprek_id": "g1"}
     upd = supervisie._kies(_bouw(), state)
     assert upd["specialist"] == "subagent_plan" and supervisie._entry_node(_bouw(), upd) == "subagent_plan"
@@ -139,7 +139,7 @@ def test_de_supervisor_legt_meer_subagents_zonder_model_voor(monkeypatch):
 def test_de_supervisor_geeft_een_reeks_in_de_graaf_aan_een_subagent(monkeypatch):
     monkeypatch.setattr(supervisie, "get_stream_writer", lambda: (lambda _e: None))
     monkeypatch.setattr(supervisie, "_regelingtitels", lambda _g: regelingen)
-    state = {**STATE, "question": AGENTSET["S03"]["opdracht"], "modus": "auto", "agentvorm": "centraal",
+    state = {**STATE, "question": AGENTSET["S03"]["opdracht"], "modus": "auto",
              "bronstand": {}, "gesprek_id": "g1"}
     upd = supervisie._kies(_bouw(), state)
     assert upd["specialist"] == "subagent_route" and upd["subagent_plan"][0]["profiel"] == "bepalingen_duiden"

@@ -1,6 +1,6 @@
 ---
 # De centrale agent (ADR-016 §A1): de ene agent van de open laag. Hij beantwoordt een gewone vraag zelf en vervangt de
-# supervisorstap en de keuze tussen specialisten. Alleen achter de vlag CENTRALE_AGENT. Zijn eigen tools (afwijzen,
+# supervisorstap en de keuze tussen specialisten; sinds ADR-016 §A7 de enige vorm. Zijn eigen tools (afwijzen,
 # meer tools, de overdracht aan een route) komen uit de code (`agent/overdracht.py`), niet uit dit bestand.
 name: centraal
 description: "Beantwoordt een vraag over wet- en regelgeving zelf: zoekt en leest in de kennisgraaf en de bronnen naast de wet, en rondt af met het sjabloon dat bij de vraag past."

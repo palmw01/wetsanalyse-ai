@@ -97,11 +97,12 @@ async def test_de_standaard_wisselen_neemt_de_sleutels_zonder_keuze_mee(client):
 
 async def test_een_onbruikbaar_profiel_is_niet_te_kiezen(client):
     for profiel in ("elders", "gpt"):
-        r = await client.put(f"{A}/stap:supervisor", json={"profiel": profiel}, headers=_BEHEERDER)
+        r = await client.put(f"{A}/stap:intake", json={"profiel": profiel}, headers=_BEHEERDER)
         assert r.status_code == 422 and r.json()["detail"]["fout"] == "niet_bruikbaar"
-    assert (await client.put(f"{A}/stap:supervisor", json={"profiel": "bestaat-niet"},
+    assert (await client.put(f"{A}/stap:intake", json={"profiel": "bestaat-niet"},
                              headers=_BEHEERDER)).status_code == 404
-    for onbekend in ("onbekend", "agent:bestaat_niet", "stap:antwoord"):
+    # De supervisor en het profiel definitie zijn met ADR-016 §A7 vervallen, dus ook hun sleutels.
+    for onbekend in ("onbekend", "agent:bestaat_niet", "stap:antwoord", "stap:supervisor", "agent:definitie"):
         assert (await client.put(f"{A}/{onbekend}", json={"profiel": "licht"}, headers=_BEHEERDER)).status_code == 404
 
 

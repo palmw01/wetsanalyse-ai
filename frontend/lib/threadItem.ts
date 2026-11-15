@@ -37,7 +37,7 @@ export type ThreadItem = (
       uitkomst?: import("./types").BeurtUitkomst;
       // Wat de subagents of de regie van deze beurt doen (ADR-016 §A5): live uit de stroom, daarna van de api.
       delegatie?: DelegatieWeergave }
-  // `denk` = de tijdlijn van het samenspel (supervisor → ophaal → annoteer → emit). Die blijft ook
+  // `denk` = de tijdlijn van het samenspel (ingang → ophaal → annoteer → emit). Die blijft ook
   // bewaard als de beurt een annotatie blijkt; juist bij een annotatie wil je achteraf kunnen zien
   // hoe hij tot stand kwam.
   // `titel` komt uit het bericht zelf (de titel van het artefact), niet uit het document: er is geen foreign

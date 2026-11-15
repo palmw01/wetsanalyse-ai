@@ -27,7 +27,7 @@ from agent.tools.op_xml import lees
 from bronmodel.connectors import BEKENDMAKINGEN, genoemde_stukken
 from bronmodel.extern import externe_vindplaats, koop_id_uit_bron
 
-from fakes import FakeGraph
+from fakes import tool_block, FakeGraph
 
 
 @pytest.fixture(autouse=True)
@@ -561,14 +561,13 @@ def test_tekst_na_een_zoekresultaat_vraagt_een_keer_om_het_sjabloon(monkeypatch)
     of totaal. De code vraagt dan één keer om het sjabloon; blijft het tekst, dan is dat het antwoord, zonder lus."""
     from fakes import FakeGraph, FakeLLM, response, text_block, tool_block
 
-    llm = FakeLLM([response([text_block("duiding")], "end_turn"),
-                   response([tool_block("t1", "zoek_bekendmakingen", {"bwb_id": "BWBR0004770", "artikel": "36"})],
+    llm = FakeLLM([response([tool_block("t1", "zoek_bekendmakingen", {"bwb_id": "BWBR0004770", "artikel": "36"})],
                             "tool_use"),
                    response([text_block("| Stb. | datum |\n|---|---|\n| 2010, 176 | 2010-05-11 |")], "end_turn"),
                    response([text_block("Stb. 2009, 610 en Stb. 2010, 176.")], "end_turn")])
     events = _stream_met_graaf("Wanneer trad artikel 36 van de Invorderingswet 1990 in werking?", monkeypatch, llm,
                                FakeGraph(result=ART36))
-    assert len(llm.calls) == 4 and _gevraagd(llm) == 1, "precies één keer gevraagd, en daarna geen nieuwe ronde"
+    assert len(llm.calls) == 3 and _gevraagd(llm) == 1, "precies één keer gevraagd, en daarna geen nieuwe ronde"
     assert "zoek_bekendmakingen" in [m for m in llm.calls[-1]["messages"] if m["role"] == "user"][-1]["content"]
     tekst = "".join(e.get("content", "") for e in events if e.get("type") == "token")
     assert "Stb. 2009, 610 en Stb. 2010, 176." in tekst and "| Stb. |" not in tekst
@@ -580,7 +579,7 @@ def test_tekst_zonder_zoekresultaat_vraagt_niet_om_het_sjabloon(monkeypatch):
     llm = FakeLLM([response([text_block("duiding")], "end_turn"),
                    response([text_block("Daar heb ik geen publicatie bij nodig.")], "end_turn")])
     _stream_met_graaf("Wat betekent betalingsonmacht in de Invorderingswet 1990?", monkeypatch, llm, FakeGraph(result=""))
-    assert len(llm.calls) == 2 and _gevraagd(llm) == 0
+    assert len(llm.calls) == 1 and _gevraagd(llm) == 0
 
 
 def test_een_lange_reeks_splitst_de_code_zelf():

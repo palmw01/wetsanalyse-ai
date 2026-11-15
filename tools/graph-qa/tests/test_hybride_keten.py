@@ -27,7 +27,7 @@ class KetenLLM:
 
     def __init__(self, kies=lambda toegestaan: toegestaan[0], tool_aanroep=True):
         self._responses = [
-            response([text_block("WORKERS: annotatie\nPLAN: annoteer art 9 lid 1")], "end_turn"),
+            response([tool_block("ov", "annoteer", {"vraag": "annoteer de aangewezen bepaling"})], "tool_use"),
             response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})], "tool_use"),
             response([text_block(DOEL_JSON)], "end_turn"),
         ]

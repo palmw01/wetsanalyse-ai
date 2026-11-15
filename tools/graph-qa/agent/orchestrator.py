@@ -51,7 +51,7 @@ from .nodes.supervisie import (
     advance_node,
     afwijs_node,
     route_after_advance,
-    supervisor_node,
+    ingang_node,
 )
 from .berichten import (  # noqa: F401 – re-export: tests en node-modules importeren ze hiervandaan
     MAX_HISTORIE_CHARS,
@@ -222,23 +222,21 @@ def build_graph(
     # De antwoordketen (agent ⇄ tools → (sjabloon) → verify → (correct) → finalize) is van de agentvorm (ADR-016):
     # elke agent van de open laag draait deze ene keten, met zijn eigen profiel. Hier staat alleen waar ze op aansluit.
     if not settings.enable_planning:
-        # Zonder supervisor: alleen de antwoordketen (geen annotatie-route). Een testvorm.
+        # Zonder ingang: alleen de antwoordketen (geen annotatie-route). Een testvorm.
         voeg_keten_toe(g, add, b, na_finalize=END,
                        na_agent={"tools": "tools", "verify": "verify", "sjabloon": "sjabloon", "agent": "agent"})
         g.add_edge(START, "agent")
         return g
-    # Op een straat waar de centrale agent kan draaien (ADR-016 §A7), heeft de agentnode één uitgang meer: de overdracht
-    # aan een route in code. Met `uit` is de graaf die van voorheen.
-    centraal = settings.centrale_agent != "uit"
+    # De agentnode heeft één uitgang meer: de overdracht van de centrale agent aan een route in code (ADR-016 §A1).
     voeg_keten_toe(g, add, b, na_finalize="advance", na_agent={
         "tools": "tools", "verify": "verify", "annoteer": "annoteer", "sjabloon": "sjabloon", "agent": "agent",
-        **({"overdracht": "overdracht"} if centraal else {})})
+        "overdracht": "overdracht"})
 
-    # Supervisor → worker → advance → (volgende worker | einde).
-    add("supervisor", functools.partial(supervisor_node, b))
+    # Ingang → worker → advance → einde. De ingang kiest zonder model een route in code of de centrale agent (ADR-016 §A7).
+    add("ingang", functools.partial(ingang_node, b))
     add("advance", functools.partial(advance_node, b))
     add("afwijzen", functools.partial(afwijs_node, b))
-    g.add_edge(START, "supervisor")
+    g.add_edge(START, "ingang")
     g.add_edge("afwijzen", END)
 
     # De annotatie-worker, `annoteer → emit` (ADR-001): detectie, fusie, kleine classifier, validatie,
@@ -279,27 +277,26 @@ def build_graph(
         "agent", "annoteer", "annotaties_zoeken", "bron_lezen", "bron_lijst", "begrippen_zoeken", "overzicht_bouwen",
         "bepaling_lezen",
         "werkgebied_intake", "bronselectie", "agent_taak", "afwijzen")}
-    if centraal:
-        # De plannen van de centrale agent (ADR-016 §A5): meer subagents, en de regisseur als tool. Eén stap en klaar.
-        from .nodes.delegatie_plan import regie_voorstel_node, subagent_plan_node
-        add("subagent_plan", functools.partial(subagent_plan_node, b))
-        g.add_edge("subagent_plan", END)
-        # Twee of drie subagents die de code zelf herkent (`nodes/subagent_route.py`): ook rechtstreeks vanuit de supervisor.
-        ingangen["subagent_plan"] = "subagent_plan"
-        add("regie_voorstel", functools.partial(regie_voorstel_node, b))
-        g.add_edge("regie_voorstel", END)
-        voeg_overdracht_toe(g, add, b)
-        # Een klik op de vraagkaart van een subagent (ADR-016 §A4): het antwoord in code, dan een kaart of de bundel.
-        from .nodes.subagent_vervolg import route_na_vervolg, subagent_vervolg_node
-        add("subagent_vervolg", functools.partial(subagent_vervolg_node, b))
-        g.add_conditional_edges("subagent_vervolg", functools.partial(route_na_vervolg, b),
-                                {"agent": "agent", "einde": END})
-        ingangen["subagent_vervolg"] = "subagent_vervolg"
-        # "Vat per uitspraak samen …": een subagent in code, daarna vat de centrale agent het rapport samen.
-        from .nodes.subagent_route import subagent_route_node
-        add("subagent_route", functools.partial(subagent_route_node, b))
-        g.add_edge("subagent_route", "agent")
-        ingangen["subagent_route"] = "subagent_route"
-    g.add_conditional_edges("supervisor", functools.partial(_entry_node, b), ingangen)
+    # De plannen van de centrale agent (ADR-016 §A5): meer subagents, en de regisseur als tool. Eén stap en klaar.
+    from .nodes.delegatie_plan import regie_voorstel_node, subagent_plan_node
+    add("subagent_plan", functools.partial(subagent_plan_node, b))
+    g.add_edge("subagent_plan", END)
+    # Twee of drie subagents die de code zelf herkent (`nodes/subagent_route.py`): ook rechtstreeks vanuit de ingang.
+    ingangen["subagent_plan"] = "subagent_plan"
+    add("regie_voorstel", functools.partial(regie_voorstel_node, b))
+    g.add_edge("regie_voorstel", END)
+    voeg_overdracht_toe(g, add, b)
+    # Een klik op de vraagkaart van een subagent (ADR-016 §A4): het antwoord in code, dan een kaart of de bundel.
+    from .nodes.subagent_vervolg import route_na_vervolg, subagent_vervolg_node
+    add("subagent_vervolg", functools.partial(subagent_vervolg_node, b))
+    g.add_conditional_edges("subagent_vervolg", functools.partial(route_na_vervolg, b),
+                            {"agent": "agent", "einde": END})
+    ingangen["subagent_vervolg"] = "subagent_vervolg"
+    # "Vat per uitspraak samen …": een subagent in code, daarna vat de centrale agent het rapport samen.
+    from .nodes.subagent_route import subagent_route_node
+    add("subagent_route", functools.partial(subagent_route_node, b))
+    g.add_edge("subagent_route", "agent")
+    ingangen["subagent_route"] = "subagent_route"
+    g.add_conditional_edges("ingang", functools.partial(_entry_node, b), ingangen)
     g.add_conditional_edges("advance", functools.partial(route_after_advance, b), {**ingangen, "einde": END})
     return g

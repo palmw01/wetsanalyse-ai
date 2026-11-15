@@ -17,7 +17,6 @@ def _run(gen):
 
 def _route_to(specialist: str) -> FakeLLM:
     return FakeLLM([
-        response([text_block(f"SPECIALIST: {specialist}\nPLAN: kort plan.")], "end_turn"),  # router
         response([text_block("Direct antwoord.")], "end_turn"),                              # agent (geen tools)
     ])
 
@@ -27,40 +26,14 @@ def _agent_tools(llm: FakeLLM) -> set[str]:
     return {t["name"] for t in llm.calls[1]["tools"]}
 
 
-def test_duiding_beperkt_toolset():
-    llm = _route_to("duiding")
-    events = _run(answer_stream("Hoe hangt art. 9 samen met art. 27?", settings=make_settings(),
-                                llm=llm, graph=FakeGraph(result="")))
-    names = _agent_tools(llm)
-    assert "get_context" in names and "referenced_by" in names
-    assert "resolve_begrip" not in names  # definitie-only tool
-    assert any(e["type"] == "status" and e.get("route") == "duiding" for e in events)
-
-
-def test_definitie_beperkt_toolset():
-    llm = _route_to("definitie")
-    _run(answer_stream("Wat betekent invordering?", settings=make_settings(), llm=llm, graph=FakeGraph(result="")))
-    names = _agent_tools(llm)
-    assert "resolve_begrip" in names
-    assert "get_context" not in names  # duiding-only tool
-
-
-def test_definitie_prompt_volgt_bronvindplaats_en_onderdelen():
+def test_de_centrale_agent_volgt_bij_een_begrip_de_bronvindplaats_en_de_onderdelen():
+    """Wat eerst de specialist `definitie` droeg, staat in de instructie van de centrale agent (ADR-016 §A7)."""
     from agent.specialists import get
 
-    prompt = get("definitie").system
-    assert "bepaal de vindplaats uit bronresultaten" in prompt
+    prompt = get("centraal").system
+    assert "begin bij zoek_definitie" in prompt
     assert "Haal de gevonden definitiebepaling op" in prompt
     assert "&o=k" in prompt
-
-
-def test_onbekende_route_valt_terug_op_algemeen():
-    llm = FakeLLM([
-        response([text_block("SPECIALIST: onzin\nPLAN: iets.")], "end_turn"),
-        response([text_block("Antwoord.")], "end_turn"),
-    ])
-    _run(answer_stream("vraag", settings=make_settings(), llm=llm, graph=FakeGraph(result="")))
-    assert set(_agent_tools(llm)) == ({t["name"] for t in tools.TOOLS} - tools.CONNECTOR_TOOLS) | {"antwoord_bepaling"}  # alle tools, plus het sjabloon
 
 
 def test_planning_uit_is_algemeen_alle_tools():

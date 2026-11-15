@@ -30,7 +30,7 @@ ankerlogica die de api en de agent delen staat in `packages/bronmodel` (`wetsana
 
 | Module | Wat erin zit |
 |---|---|
-| `nodes/supervisie.py` | supervisor, `_entry_node`, advance, afwijzen |
+| `nodes/supervisie.py` | de ingang (`ingang_node`, de routes in code vóór het model), `_entry_node`, advance, afwijzen |
 | `nodes/antwoord.py` | agent ⇄ tools, verify, correct, finalize |
 | `nodes/sjabloon.py` | de afronding met een sjabloon (ADR-008): vullen uit de trace |
 | `nodes/annotatie.py` | annoteer (voorbereiding + `jas_pipeline.keten.analyseer`) en emit |
@@ -48,7 +48,7 @@ modelnamen en de contexthelpers, en `build_graph` bindt hem met `functools.parti
 een andere aan, geef `b` dan expliciet door** – de suite wijst die valkuil aan.
 
 ```
-supervisor ─┬─ antwoord-worker:  agent ⇄ tools → verify → (correct) → finalize → advance
+ingang ─────┬─ antwoordketen:    agent ⇄ tools → verify → (correct) → finalize → advance   (de centrale agent; overdracht → een route hieronder)
             ├─ annotatie-worker: [agent ⇄ tools als ophaal-agent] → annoteer → emit → advance
             ├─ leesroute:        annotaties_zoeken → agent ⇄ tools → verify → finalize
             ├─ genoemd stuk:     bron_lezen → agent ⇄ tools → verify → finalize   (een id als kst-35496-F, ADR-013)
@@ -58,12 +58,15 @@ supervisor ─┬─ antwoord-worker:  agent ⇄ tools → verify → (correct) 
             ├─ bepalingsroute:   bepaling_lezen → verify → finalize     (tekst uit code, één aanroep voor de toelichting; anders → agent)
             ├─ werkgebied-worker: werkgebied_intake → einde              (één stap van het samenstellen)
             ├─ agents:           agent_taak → einde                        (deelvragen, begrippen; F3c)
-            └─ afwijzen (geen wetgevingsvraag)
+            ├─ delegatie:        subagent_plan, regie_voorstel, subagent_vervolg, subagent_route (ADR-016 §A3–A5)
+            └─ afwijzen (geen wetgevingsvraag; `wijs_af`)
 ```
 
-De vorm ligt vast in `tests/test_graafopbouw.py` (nodes en edges, met en zonder supervisor). Wijzig je
-de routering, dan faalt die test – dat hoort, maar het moet een bewuste wijziging zijn. Zonder supervisor
-(`enable_planning=False`, alleen in tests) blijft alleen de antwoordketen over. De decompositieketen
+De vorm ligt vast in `tests/test_graafopbouw.py` (nodes en edges, met en zonder ingang). Wijzig je
+de routering, dan faalt die test – dat hoort, maar het moet een bewuste wijziging zijn. Zonder ingang
+(`enable_planning=False`, alleen in tests) blijft alleen de antwoordketen over. De supervisor (een modelstap vóór de
+agent die worker en specialist koos) is met ADR-016 §A7 weggehaald (15 nov 2026); hij staat in de git-historie
+(`agent/supervisor.py`). De decompositieketen
 (`ENABLE_DECOMPOSITION`) is in november 2026 weggehaald; hij staat in de git-historie
 (`agent/nodes/decompositie.py`).
 
@@ -75,23 +78,20 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
 
 ### De nodes van de antwoordketen
 
-- **`supervisor_node`** – één LLM-call (`SUPERVISOR_SYSTEM` in `agent/supervisor.py`, geen tools) die
-  worker(s), specialist en plan kiest; de focus (GESPREKSCONTEXT) gaat als context mee. Een
-  leesvraag (`is_leesvraag`), een meegegeven `doel` of `modus: "advies"` beslist hij zonder LLM-call.
-  **In een lopend gesprek leest hij eerst het gesprek** (`berichten.eerdere_beurten`: de laatste drie
-  beurten als vraag + antwoord, zonder tool-ruis, en `VERVOLG_SYSTEM`) en zet hij een `VRAAG:`-regel:
-  de vervolgvraag zelfstandig herschreven. Die `zelfstandige_vraag` voedt `is_leesvraag`,
-  `lees_aanwijzing`, het klassefilter van de leesroute en het plan van de specialist; het
-  user-bericht in de historie blijft de echte vraag. Een vraag óver een gemaakte markering is
-  `duiding`, geen `annotatie`. Bij de eerste vraag van een gesprek verandert er niets (geen extra
-  tekst, geen extra call).
+- **`ingang_node`** (ADR-016 §A7) – geen modelaanroep. `supervisie._kies` loopt de routes in code af (`routes.ROUTES`:
+  een klik, een bevestiging, een vraagkaart, een meegegeven `doel`, `modus: "advies"`, een leesvraag, een overzicht, een
+  bepaling, een lijstvraag, …) en geeft al het andere aan de centrale agent (`_naar_centraal`). In het denkproces staat
+  dan één korte regel, "Lex · bekijkt de vraag" (`NAAR_CENTRAAL`), zonder bronnenlijst: welke bronnen Lex gebruikt,
+  zeggen de toolstappen (`tests/test_a7_ingang.py`). Een vervolgvraag wordt niet meer herschreven; de overdrachten die een
+  route op de herschreven vraag draaien (`toon_overzicht`, `lees_annotaties`, `lees_begrippen`, `toon_stukken`) nemen de
+  vraag zelfstandig geformuleerd mee (`zelfstandige_vraag`).
 - **De specialisten zijn agentprofielen** (ADR-016 §A2). Een profiel is een bestand `.claude/lex-agents/<naam>.md`:
   frontmatter (`name`, `description`, `tools`, `connectors`, `sjablonen`, `kiesbaar`, `methoderol`) en de instructie
   eronder. `scripts/genereer_agentprofielen.py` bundelt ze in `agent/agentprofielen.py` (`genereer_jas_klassen.py`
   draait hem mee, ook met `--check`); `agent/profielen.py` laadt ze als `Agentprofiel` en toetst ze bij het importeren
   tegen wat er bestaat (`bronmodel.agentprofiel`): een profiel dat een onbekende tool, connector, sjabloon of
-  methoderol noemt, laat de dienst niet starten. `specialists.SPECIALISTS` en de keuze van de supervisor
-  (`_QA_SPECIALISTS`, de profielen met `kiesbaar: true`) zijn daarvan afgeleid; schrijf geen tweede lijst. Een profiel
+  methoderol noemt, laat de dienst niet starten. `specialists.SPECIALISTS` en de kiesbare profielen van een subagent
+  (`profielen.KIESBAAR`, `kiesbaar: true`) zijn daarvan afgeleid; schrijf geen tweede lijst. Een profiel
   noemt de connector, nooit diens tools. Wie een profiel wijzigt, verandert het gedrag van Lex: dat vraagt een meting,
   en de hash in `tests/test_profielregister.py` bewaakt dat het niet ongemerkt gebeurt. Een profiel is configuratie
   die een Python-agent laadt, nooit een agent op zichzelf.
@@ -136,39 +136,36 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   meestuurt, volgt uit zijn profiel: systeemtekst, tools, sjablonen, model en `Rol`. **Zet geen modelstap met een
   lusrol buiten `agentvorm.py`** en bouw geen tweede lus: `tests/test_agentvorm.py` maakt dat rood. De ronde zet
   `profiel_id` en `profiel_versie` in het meetkader; ze staan op `model_aanroep` en per agent in de contextopbouw.
-- **De centrale agent (`CentraleAgent`, het profiel `centraal`; ADR-016 §A1), achter `CENTRALE_AGENT`.** De vlag heeft
-  drie standen (`Settings.centrale_agent`): `uit` (de supervisor; het veld `agentvorm` van een run wordt genegeerd),
-  `meten` (de supervisor, tenzij de run om `centraal` vraagt) en `aan` (omgekeerd). `agentvorm.vorm_van` beslist, één
-  keer per beurt, en zet `state["agentvorm"]`. De routes vóór het model in `supervisie._kies` gelden voor beide vormen;
-  waar de supervisor het model aanroept, gaat de beurt met `centraal` naar de antwoordketen met dat profiel
-  (`_naar_centraal`): geen supervisorstap, geen herschreven vraag. Zijn eigen tools staan in `agent/overdracht.py`
-  (`wijs_af`, `meer_tools`, `taakagent`, `werkgebied`, `toon_bepaling`, `toon_overzicht`, `lees_annotaties`, `lees_begrippen`, `toon_stukken`; een vraag over een bron naast de wet of een vraag die een regeling noemt, ook buiten de graaf, wijst de code niet af: `agent/binnen_scope.py`, dezelfde regel waarmee de supervisor een afwijzing terugdraait, ADR-016 ronde 4, K12): een **overdrachtstool bouwt niets na**, hij zet de state van een bestaande route en stuurt de
+- **De centrale agent (`CentraleAgent`, het profiel `centraal`; ADR-016 §A1).** Sinds §A7 (15 nov 2026) de enige
+  vorm: de vlag `CENTRALE_AGENT` en de supervisor zijn weg. De routes vóór het model staan in `supervisie._kies`; wat daar
+  niet uitkomt, gaat naar de antwoordketen met dit profiel (`_naar_centraal`). Het meetveld `agentvorm` bestaat nog, met de
+  vaste waarde `centraal`, zodat metingen vergelijkbaar blijven. Zijn eigen tools staan in `agent/overdracht.py`
+  (`wijs_af`, `meer_tools`, `taakagent`, `werkgebied`, `annoteer`, `beantwoord_kaart`, `toon_bepaling`, `toon_overzicht`, `lees_annotaties`, `lees_begrippen`, `toon_stukken`; een vraag over een bron naast de wet of een vraag die een regeling noemt, ook buiten de graaf, wijst de code niet af: `agent/binnen_scope.py`, ADR-016 ronde 4, K12): een **overdrachtstool bouwt niets na**, hij zet de state van een bestaande route en stuurt de
   beurt via de node `overdracht` naar de node die er al is. **`taakagent` en `werkgebied`** (A2-3a; meetronde S6: "stel
-  deelvragen voor" werd vrije tekst) gaan naar dezelfde routes als de keuze van de supervisor: `supervisie._agent` voor een
+  deelvragen voor" werd vrije tekst) gaan naar de routes van een klik: `supervisie._agent` voor een
   taak van de deelvragen- of begrippenagent (de taken uit `agents/register.py`; een taak die niet bij de agent hoort,
   weigert de code), en `supervisie.werkgebied_route` voor samenstellen, aanvullen en de bronselectie. Kiest de route zelf
-  haar node, dan is `naar` `INGANG` en kiest `_entry_node` (de ingang na de supervisor) binnen `ingangen`. Het
-  annoteren van het werkgebied komt met `annoteer` (A2-4). **Het bepalingssjabloon heeft de centrale agent niet** (A2-3b; S6,
+  haar node, dan is `naar` `INGANG` en kiest `_entry_node` binnen `ingangen`. Het
+  annoteren komt met `annoteer` (A2-4), het afwijzen met `wijs_af`, en een getypt antwoord op een open vraagkaart met
+  `beantwoord_kaart`; elk van die routes is door de hele graaf getoetst (`tests/test_a7_ingang.py` noemt waar).
+  **Het bepalingssjabloon heeft de centrale agent niet** (A2-3b; S6,
   golden_duiding: "wat betekent lid X" kreeg het bepalingssjabloon, 12/18 tegen 17/18): de tekst van een bepaling toont
   `toon_bepaling`, met de workflow van de route vóór het model (`_bepaling` → `bepaling_lezen`). Een uitlegvraag of een
   vraag over een stuk naast de wet weigert de code met dezelfde regel als vóór het model
   (`bepaling_workflow.is_uitlegvraag`), het BWB-id gaat langs `id_herkomst`, en de terugval bij een mislukte ophaal is
-  dezelfde centrale agent. **De routes op de herschreven vraag** (A2-3c): in een gesprek herschreef de supervisor een
-  vervolgvraag, en daarop draaiden de regels in `supervisie.NA_HERSCHRIJVEN` (begrippen, annotaties, overzicht,
-  bepaling, buiten de graaf, dekking, lijst; `na_herschrijven`, één register voor beide vormen, byte-gelijk bewaakt door
-  `tests/test_na_herschrijven.py` met de momentopname `tests/data/na_herschrijven.json`). De centrale agent herschrijft
-  niet: `toon_overzicht`, `lees_annotaties` en `lees_begrippen` nemen de vraag zelfstandig geformuleerd mee
-  (`vraag`), en de code draait daarop alleen de regel van die route; past hij niet, dan weigert de code. De vraag wordt
-  `zelfstandige_vraag`, en valt de route terug op een specialist van de supervisor, dan is dat de centrale agent. `toon_stukken` (A2-3c-2) draait de regel `lijst`; een bron die deze beurt alleen buiten de bronkeuze viel (`niet_nodig`) gaat daarvoor weer mee (`bronkeuze.heropend`, daarna `_bronkeuze` met `van_route`), en een bron die uit staat geeft dezelfde melding als bij de supervisor (`_bron_uit`, het event voor *Zet aan*). Die node en zijn edges bestaan alleen als de vlag niet
-  `uit` is; met `uit` is de graaf die van `tests/test_graafopbouw.py`. Zolang een vraagkaart van het samenstellen open
-  staat, leest de supervisor de beurt nog (`_centraal`). Bouw voor een nieuwe overdracht geen tweede implementatie van
-  de route. `tests/test_centrale_agent.py` legt de drie standen en de afwijzing vast.
+  dezelfde centrale agent. **De routes op de zelfstandige vraag** (A2-3c): de centrale agent herschrijft een vervolgvraag
+  niet. `toon_overzicht`, `lees_annotaties` en `lees_begrippen` nemen de vraag zelfstandig geformuleerd mee
+  (`vraag`), en de code draait daarop alleen de regel van die route uit `supervisie.NA_HERSCHRIJVEN` (begrippen,
+  annotaties, overzicht, bepaling, buiten de graaf, dekking, lijst; `na_herschrijven`); past hij niet, dan weigert de
+  code. De vraag wordt `zelfstandige_vraag`, en valt de route terug op een specialist, dan is dat de centrale agent.
+  `toon_stukken` (A2-3c-2) draait de regel `lijst`; een bron die deze beurt alleen buiten de bronkeuze viel (`niet_nodig`) gaat daarvoor weer mee (`bronkeuze.heropend`, daarna `_bronkeuze` met `van_route`), en een bron die uit staat geeft de melding van de route (`_bron_uit`, het event voor *Zet aan*). Bouw voor een nieuwe overdracht geen tweede implementatie van
+  de route. `tests/test_centrale_agent.py` legt de overdrachten en de afwijzing vast.
   **De kernset** (A2-2b): `centraal` heeft elf graaftools, gekozen op gebruik; elk schema staat in het voorvoegsel van
   elke ronde, dus een tool erbij kost in elke beurt. De andere twaalf staan in `centraal_breed`, dezelfde agent met
   dezelfde instructie plus de aanwijzingen voor die tools. De overdracht `meer_tools` zet `state["specialist"]` op het
   brede profiel en stuurt de beurt terug naar de agentnode: dezelfde beurt, een ander voorvoegsel. Een tool buiten het
   profiel voert `tools_node` voor de centrale agent niet uit (`CentraleAgent.mag`, resultaat `tool_buiten_profiel`); een
-  gewone specialist wordt daar niet op getoetst, want dat zou de supervisorweg veranderen. Zet je een tool in de
+  gewone specialist (als subagent) wordt daar niet op getoetst: zijn profiel begrenst de toolschema's al. Zet je een tool in de
   kernset of eruit, pas dan beide profielen aan en de beschrijving van `meer_tools`: `test_centrale_agent.py` toetst dat
   de kernset en de rest samen de graaftools zijn, dat geen instructie een tool noemt die het profiel niet heeft, en
   dat de beschrijving elke tool achter de overdracht noemt. De eigen tools van de agent hebben een eigen categorie in
@@ -308,12 +305,11 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     eigen tools blijven, en de kop van het rapport zegt het vooraf. Een bepaling die het rapport noemt zonder citaat
     haalt het sjabloon zelf op, dus een uitzondering is niet nodig. Een subagent die niet startte (409, budget) of gestopt
     werd, valt erbuiten. Meting bundel 114: P01 las 21 keer opnieuw (1,5M); bundel 115: S01 na `klaar` nog 17 keer (376k);
-  - **een lichter model**: een subagent draait op de lichte modelklasse (`agentvorm.SUBAGENT_MODELKLASSE`,
-    `subagent_model`: `LLM_MODEL_LICHT`, anders `LLM_MODEL_ROUTER`, anders `LLM_MODEL` met de logregel `subagent_model`).
-    Faalt het lichte model met een 400 of 404, dan draait de ronde opnieuw op `LLM_MODEL` en de rest van het proces ook
-    (`_LICHT_KAPOT`), zodat het voorvoegsel van het kind per model vast blijft. De centrale agent en elke specialist van de
-    supervisor houden hun model. Een modelkeuze in het beheer gaat hier nog voor: die van het agentprofiel, anders
-    `stap:subagent` (`modelkeuze`; zie *De modelkeuzes per agentprofiel en stap*). Het model van het kind staat in `regie_taak`, in de afloop van het kind in het eind-event van de regie (`Afloop.modellen`) en in de meetsamenvatting (`kind_modellen`, uit beide);
+  - **het model van een subagent** kiest de beheerder: die van het agentprofiel, anders `stap:subagent` (`modelkeuze`;
+    zie *De modelkeuzes per agentprofiel en stap*); zonder keuze het gewone model. `Subagent.ronde` zet daarvoor
+    `modelrol: subagent` in het kader, en `subagent.kindmodel` geeft hetzelfde model voor het event. De lichte modelklasse
+    uit de env (`LLM_MODEL_LICHT`, met zijn eigen terugval) is met ADR-016 §A7 vervallen; een model dat de straat niet
+    heeft, valt terug zoals elke modelkeuze (`modelprofiel_terugval`). Het model van het kind staat in `regie_taak`, in de afloop van het kind in het eind-event van de regie (`Afloop.modellen`) en in de meetsamenvatting (`kind_modellen`, uit beide);
   - **routes in code naar delegatie** (meting 14 nov 2026): "vat per uitspraak/stuk/Kamerstuk samen …" met een bron naast
     de wet aan gaat zonder model naar de node `subagent_route` (`nodes/subagent_route.py`, `past`): een subagent
     `algemeen` met de vraag als doel, daarna vat de centrale agent het rapport samen (`State.rapporten`). Een vraag die een
@@ -532,7 +528,7 @@ de thread een kleine, gestructureerde toestand bij:
   hoogstens `MAX_GENOEMD` met een afgekapt label, en altijd die van het laatste antwoord. Het blok zegt zelf dat "de
   eerste" hierop slaat; er staat niets over in een instructie, dus het voorvoegsel beweegt niet.
 
-`focus.als_context` maakt er het GESPREKSCONTEXT-blok van. Dat gaat naar de supervisor én elke
+`focus.als_context` maakt er het GESPREKSCONTEXT-blok van. Dat gaat naar de centrale agent en elke
 specialist (`Bouw.memory_context`), samen met de markeringen van de open bepaling
 (`context.bestaande_elementen`), die anders alleen bij advies werden gelezen. Het veld staat bewust
 **niet** in de per-beurt-reset.
@@ -558,7 +554,7 @@ bruikbaar is.
   stil waardeloos. Onder `_MIN_CACHE_TEKENS` gaat er geen cache-punt op. Weigert de provider
   `cache_control` (op Foundry een beta-functie), dan zet de adapter zichzelf uit en herhaalt de call
   zonder – caching mag nooit "de dienst ligt plat" kosten. Knop: `PROMPT_CACHING=false`. Het punt op een gesplitste
-  systeemprompt (supervisor, antwoordlus) houdt een uur (`PROMPT_CACHE_TTL`, standaard `1h`): de tools staan ervóór
+  systeemprompt (de antwoordlus) houdt een uur (`PROMPT_CACHE_TTL`, standaard `1h`): de tools staan ervóór
   en vallen eronder, dus het voorvoegsel overleeft de pauze waarin de jurist een antwoord leest. Het punt op de
   historie houdt 5 minuten. Weigert de provider de TTL, dan valt de adapter terug op 5 minuten. De nulmeting staat in
   `docs/architectuur/metingen/context-2026-11-12/`: het koude begin van een beurt was 40–70% van de gewogen kosten.
@@ -582,8 +578,8 @@ bruikbaar is.
   aan de meter. Het kader reist niet in de kwargs, dus het verzoek blijft byte-gelijk. `kader=` op `aanroep`/`stroom` is wat
   de aanroeper over het verzoek weet (`beurt_start`, `opdracht`, `venster_telling`, `historiegrens_tekens`). Een `Rol` kiest
   bij zijn definitie of hij een **lus** is (`Rol.lus`: de antwoordlus en de ophaal-agent): alleen een lus heeft een context
-  in de contextweergave. `stroom` doet hetzelfde voor de streamende antwoordlus en logt bij `final_message()`. Supervisor,
-  antwoordlus, ophaal-agent en de toelichting van de bepalingsroute lopen erlangs. `vraag_tool` is de vorm voor één tool (meestal strict):
+  in de contextweergave. `stroom` doet hetzelfde voor de streamende antwoordlus en logt bij `final_message()`. De
+  antwoordlus, de ophaal-agent en de toelichting van de bepalingsroute lopen erlangs. `vraag_tool` is de vorm voor één tool (meestal strict):
   `pogingen` verplicht, `haal` bepaalt wat bruikbaar is, de tellers houden hun namen (`llm_calls`, `review_calls`,
   `afgekapt`). Na `refusal` of `max_tokens` geen tweede poging (`GEEN_HERHALING`, H5d). Geen eigen retry (dat doet de SDK) en geen except. Een nieuwe modelaanroep gaat hierlangs, met een
   eigen `Rol` en een scenario in `tests/test_modelverzoeken.py`: dat legt elk verzoek byte voor byte vast.
@@ -652,7 +648,7 @@ bruikbaar is.
   beperkt verder** (`ChatRequest.bronnen`, `State.bronnen`, per beurt): weggelaten = wat de straat aanbiedt, een lege
   lijst = alleen wetgeving, en een connector die de straat niet aanbiedt gaat nooit aan (`actieve_connectors`). **Daarbinnen alleen
   wat de vraag noemt** (`agent/bronkeuze.py`, ronde 6, 12 nov 2026; elke aangezette connector kostte ~2k tokens per
-  modelronde). `supervisor_node` kiest na de route, uit de vraag en de herschreven vraag, welke connectors meedoen.
+  modelronde). `ingang_node` kiest na de route, uit de vraag (en de zelfstandige vraag van een overdracht), welke connectors meedoen.
   - **Wat beperkt**: een bron die de vraag noemt (`ConnectorBeschrijving.noemt`: een signaal of een id; een `aanwijzing` als
     "wat bedoelde de wetgever" telt wel bij `herkent`, niet hier, K16), een van zijn `organen`, en de connector van een
     route in code (`van_route`: `bron_lezen`, `bron_lijst`; B18).
@@ -918,7 +914,7 @@ bruikbaar is.
   fout (`id_niet_uit_gesprek`), met de zoektool die het wel vindt. Declaratief per parameter (`ARGUMENTEN`), niet per tool. Een
   BWB-id van een regeling in de graaf mag ook (het resultaat noemt haar en de controle toetst het id); de weigering geldt
   als de graaf aantoont dat ze er niet in staat (wetgeving_live I20: een id uit het geheugen). **Bij een vraag die een artikel noemt, moet het gesprek de regeling noemen** (`_gegokt`, ADR-016 ronde 3, V01: "artikel 30" zonder regeling werd de Invorderingswet 1990): bij naam of afkorting (of het eerste woord van de naam als geen andere regeling zo begint: "de Leidraad"), in de vraag, een eerder antwoord, een toolresultaat, het werkgebied of de focus. Anders gaat de aanroep terug met de zin dat Lex de jurist vraagt welke regeling hij bedoelt. Een vraag zonder artikel valt er niet onder, en zonder namen of graaf is er geen bewijs. Wat het model in deze beurt
-  zelf schreef, telt niet; voor die regel ook niet wat het in deze beurt vond of plande (zoekresultaten van deze beurt, het plan van de supervisor: `bekende_tekst(deze_beurt=False)`, ADR-016 ronde 4, V01: "artikel 30" en "de rente" vonden de Invorderingswet 1990). Code die een tool aanroept, leidt haar ids zelf af en valt er niet onder. `tests/test_id_herkomst.py`.
+  zelf schreef, telt niet; voor die regel ook niet wat het in deze beurt vond of plande (zoekresultaten van deze beurt, toen ook het plan van de supervisor: `bekende_tekst(deze_beurt=False)`, ADR-016 ronde 4, V01: "artikel 30" en "de rente" vonden de Invorderingswet 1990). Code die een tool aanroept, leidt haar ids zelf af en valt er niet onder. `tests/test_id_herkomst.py`.
 - **`agent/spoorbronnen.py`** – één register van wat Lex raadpleegt, intern (`WETGEVING`, `ANNOTATIES`, `BEGRIPPEN`,
   `METHODE`) en per connector afgeleid uit zijn beschrijving (`uit_connector`: label, werkwoorden, leestool = lezen, de
   rest zoekt). Daaruit komen het werkwoord van de statusregel (`toolregel`, achter `narratie._toolregel`) en de
@@ -1236,7 +1232,7 @@ Achtergrond en PR-roadmap: `docs/architectuur/adr-001-hybride-jas-pijplijn.md`; 
 configuratie: `docs/architectuur/annotatieketen.md`.
 
 **Een meegegeven `doel` slaat de ophaal-agent over.** Met `doel` (`{bwbId, artikel|nummer, lid?,
-citeertitel?}` of `bron_iri`) doet de supervisor geen LLM-call en gaat de beurt recht naar `annoteer`.
+citeertitel?}` of `bron_iri`) gaat de beurt zonder modelaanroep recht naar `annoteer`.
 Dat is geen besparing maar een garantie: de ophaal-agent is de enige plek waar de keten bij een ándere
 bepaling kan uitkomen dan de jurist aanwees. Een half doel (alleen een `bwbId`) telt niet. Het veld
 wordt **per beurt gereset** in `answer_stream`, net als de andere annotatievelden.
@@ -1505,7 +1501,7 @@ en eindig met `opgeslagen` + `done`.
 ### Lex denkt mee: de verdieping als beurt (`agent/begrippen_verdieping.py`, fase C2)
 
 De model-laag hierboven, uitgevoerd in batches met de api als geheugen. Sinds F3c de taak `meedenken` van
-de begrippen-agent (`verdieping_kern`): de supervisor kiest hem, of de actie `begrippen_meedenken` (ook
+de begrippen-agent (`verdieping_kern`): de centrale agent kiest hem (`taakagent`), of de actie `begrippen_meedenken` (ook
 `modus: "begrippen_verdiepen"` van de bevestigingsknop). Het voorstellen van begrippen biedt het ook aan:
 na de voorstellen een zin en een `bevestiging` (`meedenk_aanbod`) als er twijfelpunten of begrippen
 zonder definitie zijn.
@@ -1580,7 +1576,7 @@ endpoint `/v1/kaart-runs` is met F3e vervallen.
 ### Begrippen voorstellen in het gesprek (`agent/begrippen_beurt.py`, fase AF2)
 
 Staat de werkplek in de context van een werkgebied, dan draagt `POST /v1/runs` een `werkgebied_id`. Een
-vraag om begrippen is sinds F3c de taak `voorstellen` van de begrippen-agent (supervisor of actie
+vraag om begrippen is sinds F3c de taak `voorstellen` van de begrippen-agent (de centrale agent of de actie
 `begrippen_voorstellen`); geen tekstpatroon, geen harde route.
 
 - `begrippen_kern`: werkgebied ophalen → `POST …/begrippen-runs` bij de api (manifest + run, of de
@@ -1685,7 +1681,7 @@ afgewezen. Tests: `tests/test_deelvragen.py` (het contract `DeelvraagVoorstellen
 Binnen een werkgebied annoteert Lex in één run de bepalingen die nog **nieuw** zijn – alleen van
 bronnen met rol *analyseren*, per lid zoals de keuzekaart. Ingang: `POST /v1/runs` met `werkgebied_id`
 en `modus: "werkgebied_annoteren"` of de actie `werkgebied_annoteren` (de reeks, in `_stroom_voor`). Getypt
-("annoteer wat nog niet geannoteerd is") kiest de supervisor de annotatie-agent met taak `werkgebied`:
+("annoteer wat nog niet geannoteerd is") kiest de centrale agent de annotatie-agent met taak `werkgebied`:
 het voorstel met de bevestiging (`werkgebied_voorstel`, F3c).
 
 - **De werkvoorraad komt van de api** (`GET …/annotatie-werkvoorraad`), nooit van de browser.
@@ -1755,12 +1751,12 @@ erbuiten, de regeling(en) (het zoekbereik, `werkgebied.regelingen`) en de gebeur
 bronselectie, `bronselectie.gebeurtenis_opties`) – en een samenvatting met *Aanmaken*. Bepalingen kiest het
 samenstellen niet meer (4 nov 2026): na het aanmaken stuurt de beurt-driver `opgeslagen.vervolg` (de bronselectie),
 en de werkplek start die als volgende beurt. De
-werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en ketent met niets.
+werkgebied-worker staat naast `antwoord` en `annotatie` achter de ingang, en ketent met niets.
 
 - **Routering.** Een klik op een kaartje (`ChatRequest.intake_actie`) en een startzin gaan zonder
   modelaanroep naar de worker, vóór elke andere regel; `_stroom_voor` laat een klik nooit een harde
-  werkgebiedroute in. Een getypt antwoord op het open kaartje herkent de supervisor met het model
-  (`INTAKE_SYSTEM`, "OPEN KAARTJE"); een andere vraag krijgt gewoon antwoord.
+  werkgebiedroute in. Een getypt antwoord op het open kaartje herkent de centrale agent
+  (`OPEN_KAARTJE` in de context van de beurt, de overdracht `beantwoord_kaart`); een andere vraag krijgt gewoon antwoord.
 - **`State.intake` staat niet in de per-beurt-reset**: een tussenvraag laat de intake en het open
   kaartje staan. `intake_actie` wél.
 - **Alles wat er ligt, is de context van Lex** (besluit van de gebruiker, 20 okt 2026). `dossier` (de
@@ -1826,8 +1822,8 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
   het veld `vraagkaart` op het bericht, zodat het na herladen nog te beantwoorden is.
 - **Aanvullen: het dossier van een bestaand werkgebied** (`modus: "aanvullen"`, `aanvul_intake`). "Kun je
   het praktijkvoorbeeld toevoegen?" leverde eerst deelvragen-voorstellen op: er was geen taak voor het
-  dossier, dus de supervisor pakte de dichtstbijzijnde. Nu:
-  - **Ingang**: de supervisor kiest `werkgebied` met `TAAK: aanvullen` (getypt), of de actie
+  dossier, dus de supervisor van toen pakte de dichtstbijzijnde. Nu:
+  - **Ingang**: de centrale agent kiest `werkgebied` met taak `aanvullen` (getypt), of de actie
     `dossier_aanvullen` (`models.INTAKE_ACTIES`, geen taak van een agent en dus niet in `ACTIE_TAAK`). Beide
     zetten `State.intake_modus` (per beurt gereset). De prompt zegt ook: past geen taak, kies dan geen agent.
   - **Het thema** (spoor I7): een stap `thema` die alleen bij het aanvullen bestaat (`KAARTSTAPPEN`; het
@@ -1866,7 +1862,7 @@ werkgebied-worker staat onder de supervisor, naast `antwoord` en `annotatie`, en
 "Help mij de bronnen bij dit werkgebied te bepalen" laat Lex de deelvragen één voor één afwerken met
 vraagkaarten: eerst, als die nog leeg is, de gebeurtenis (`bs_gebeurtenis`, zie hieronder), dan kiezen (`bs_kies`), de kernbepalingen (`bs_bepalingen`), wat eraan hangt
 (`bs_afhankelijkheden`), afronden (`bs_afronden`) en *Hoe wil je verder?* (`bs_verder`). Een eigen worker
-onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-deelvraag.md`.
+achter de ingang, naast de intake; zie `docs/architectuur/bronselectie-per-deelvraag.md`.
 
 - **Een treffer bij een deelvraag is een kernbepaling van die deelvraag** (4 nov 2026), ook als er elders al bronnen
   zijn opgenomen (`bronnen_vinden._deelvraag`; voorheen `aanverwant`, buiten het kernkaartje). Het kernkaartje telt
@@ -1887,8 +1883,8 @@ onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-de
 - **Routering zonder model**: een klik met `intake_id` `bs-<werkgebied>` (de intake heeft een uuid-hex), de
   actie `bronselectie` (`models.BRONSELECTIE_ACTIES`, geen taak van een agent), of de vaste zin
   (`is_bronselectievraag`, met werkgebied) – die gaat vóór het startzinpatroon van het samenstellen, en dat
-  patroon sluit hem uit ("werkgebied … bepalen" nam hem anders over). Getypt kiest de supervisor `werkgebied`
-  met `TAAK: bronselectie` – ook voor "zoek bepalingen bij deelvraag 2": de losse zoekknop is weg, en de actie
+  patroon sluit hem uit ("werkgebied … bepalen" nam hem anders over). Getypt kiest de centrale agent `werkgebied`
+  met taak `bronselectie` – ook voor "zoek bepalingen bij deelvraag 2": de losse zoekknop is weg, en de actie
   `bronnen_zoeken` gaat naar de bronselectie. Een deelvraag aangewezen in de werkplek (`onderwerp`) of genoemd ("deelvraag 4",
   `deelvraag_nr_in`) gaat voor.
 - **Het kaartje van de bepalingen is compact** (`kaart_bepalingen`, `weergave: paneel`, besluit gebruiker 3 nov 2026):
@@ -1972,7 +1968,7 @@ onder de supervisor, naast de intake; zie `docs/architectuur/bronselectie-per-de
 
 Draagt een beurt een `werkgebied_id`, dan haalt `answer_stream` het werkgebied bij de api
 (`_werkgebied_blok`, per beurt vers) en zet `als_blok` het in `State.werkgebied_context`;
-`memory_context` geeft het naast de focus aan de supervisor en elke specialist – ook met
+`memory_context` geeft het naast de focus aan de centrale agent en elke specialist – ook met
 `Settings.enable_memory_context` uit (een veld zonder env-variabele, dus alleen in tests uit te zetten). Context, geen filter; zonder api of bij een storing leeg. Dezelfde
 `context_tekst` voedt de intake en de deelvragenrun. De bronnenrun krijgt het dossier in zijn
 invoer (`invoer.dossier`, api); alleen de methode `deelvraag` leest het, en dan voor de rangschikking en het
@@ -1987,33 +1983,33 @@ noemt wélk object het is, en Lex haalt de tekst zelf met zijn tools. Een actie 
 blijft een fout (geen werkgebied om in te werken). Het verzoek draagt alleen `onderwerp: {soort, werkgebied_id, id?, label?}` (`models.Onderwerp`);
 `answer_stream` haalt het object per beurt bij de api (`onderwerp.haal`: het werkgebied, de dekking, de
 kandidaten, het begrip met zijn open kaartvoorstellen) en zet het blok in `State.onderwerp_context`.
-`memory_context` geeft het vóór het werkgebiedblok aan supervisor en elke specialist, ook met
+`memory_context` geeft het vóór het werkgebiedblok aan de centrale agent en elke specialist, ook met
 `Settings.enable_memory_context` uit.
 
-- **Context, geen filter en geen route.** De supervisor kiest zoals altijd; het onderwerp zegt alleen
+- **Context, geen filter en geen route.** De ingang kiest zoals altijd; het onderwerp zegt alleen
   waar de vraag over gaat. `focus.bij_onderwerp` houdt het object vast voor een vervolgvraag zonder chip
-  (`supervisor_node` om `_kies` heen); een aangewezen markering vervangt het weer (`bij_advies`).
+  (`ingang_node` om `_kies` heen); een aangewezen markering vervangt het weer (`bij_advies`).
 - **Een markering is geen soort.** Die vraag blijft `modus: "advies"` met `context`, byte-gelijk aan wat
   de werkplek al stuurde (`frontend/lib/vraagLex.test.ts`).
 - **Niets valt stil weg.** Een object dat de api niet (meer) kent, of een storing, geeft het label uit de
   werkplek met de zin dat de gegevens niet op te halen waren. De kop is *AANGEWEZEN IN DE WERKPLEK*,
   niet "ONDERWERP" (dat woord draagt de onderwerp-afbakening in de systeemprompt).
 - **`actie`** (`ACTIE_TAAK`, F3c): een klik op een suggestie is een vaste handeling – een taak van een
-  agent, zonder model gekozen (zie *De agents onder de supervisor*). De validator `_actie_kiest_de_route`
+  agent, zonder model gekozen (zie *De agents achter de centrale agent*). De validator `_actie_kiest_de_route`
   neemt het werkgebied uit het onderwerp als het verzoek er geen draagt, eist er een, sluit `modus`,
   `doel`, `doelen` en `intake_actie` uit, en laat `bevestigd` alleen toe bij `BEVESTIG_ACTIES`. Alleen
   `werkgebied_annoteren` zet een modus (de reeks).
 - Tests: `tests/test_onderwerp.py` (contract, blok per soort tegen een nep-api, focus, de beurt, de
   api-routes uit de bron).
 
-### De agents onder de supervisor (`agent/agents/`, `nodes/agent_taak.py`, F3c, ADR-005)
+### De agents achter de centrale agent (`agent/agents/`, `nodes/agent_taak.py`, F3c, ADR-005)
 
-Naast `antwoord`, `annotatie` en `werkgebied` (met `TAAK: aanvullen` het dossier aanvullen, zie hierboven)
-kiest de supervisor **`deelvragen`** en **`begrippen`**, met een `TAAK:`-regel uit een vaste lijst
-(`agents/register.py`; `parse_taak`). De tekstpatronen die vroeger
+Naast `antwoord`, `annotatie` en `werkgebied` (met de taak `aanvullen` het dossier aanvullen, zie hierboven)
+kiest de centrale agent **`deelvragen`** en **`begrippen`** met de overdracht `taakagent`, met een taak uit een vaste
+lijst (`agents/register.py`). Tot ADR-016 §A7 deed de supervisor dat met een `TAAK:`-regel. De tekstpatronen die vroeger
 harde routes vóór de supervisor kozen (`is_bronnenvraag`, `is_begrippenvraag`, `is_kaartvraag`,
-`is_verdiepvraag`, `is_werkgebied_annoteervraag`) zijn **weg**: getypte tekst gaat altijd langs de
-supervisor. `_stroom_voor` kent alleen nog `intake_actie`, het werkgebied annoteren als modus/actie (de
+`is_verdiepvraag`, `is_werkgebied_annoteervraag`) zijn **weg**: getypte tekst zonder vaste vorm gaat naar de centrale
+agent. `_stroom_voor` kent alleen nog `intake_actie`, het werkgebied annoteren als modus/actie (de
 reeks) en `doelen`.
 
 - **Kiest het model een agent, dan wint die keuze van de harde regels op de herschreven vraag**
@@ -2109,7 +2105,7 @@ en werkgebied, geen aanhalingstekens om een begripsdefinitie, wettekst apart oph
   *al, vastgelegd, geaccordeerd, hebben we, als begrip, status* – en geen handeling) → `begrippen_zoeken`
   zoekt vóór de eerste LLM-call, met een zoekterm alleen als de vraag hem aanwijst ("het begrip X",
   "X als begrip", tussen aanhalingstekens) en een status uit de vraag. Om nieuwe voorstellen vragen is
-  een taak van de begrippen-agent; de leesvraag gaat vóór de supervisor.
+  een taak van de begrippen-agent; de leesvraag gaat vóór het model.
 - **Kaartacties vanuit het gesprek** (sinds F3c taken van de begrippen-agent, `kaart_beurt.kaart_kern`):
   "zoek de brondefinitie van termijn", "maak de definitie van X scherper", "geef voorbeelden van X",
   "betekenisverschil tussen X en Y". Het begrip komt van het onderwerp, of uit `GET /v1/begrippen` (exacte
@@ -2130,7 +2126,7 @@ SPARQL was deterministisch; de keten eromheen niet. Nu is wat feitelijk is code 
 1. **Herkenning is hard** (`is_overzichtsvraag`, op `zelfstandige_vraag` bij een vervolgvraag): "welke
    artikelen/bepalingen/hoofdstukken … gaan over X", "… hebben betrekking op X", "… regelen X", "waar
    is X geregeld", "overzicht van X". Leesvraag, doel en advies gaan vóór. Zonder gesprek geen
-   supervisor-call. `onderwerp_uit` haalt X eruit; een genoemde regeling ("in de Awb", bij
+   modelaanroep. `onderwerp_uit` haalt X eruit; een genoemde regeling ("in de Awb", bij
    citeertitel of afkorting, `regelingen_in_vraag`) is de **afbakening**, geen zoekwoord.
 2. **Het overzicht bouwen** (`bouw_overzicht`, in `nodes/overzicht.py` vóór de eerste LLM-call):
    delen met het onderwerp in hun opschrift (`zoek_opbouw`, alle pagina's) met hun bepalingen
@@ -2223,19 +2219,18 @@ als het antwoord een lijst of element draagt.
 
 ## Routering: afwijzen, advies en modellen
 
-**Afwijzen eindigt bij de supervisor.** `PLAN: AFWIJZEN` → `_entry_node` → `afwijzen`: één beleefde
-melding, geen specialist, geen graafverkeer. Afwijzen mag alleen als de vraag **niet over wetgeving
-gaat**. Of een bepaalde regeling in de graaf zit weet de supervisor niet (hij heeft geen tools), dus
-zo'n vraag gaat naar de antwoord-worker, die zoekt en zelf zegt als er niets is. Een afwijzing kost
-niets, een onterechte kost het antwoord. **Een bron naast de wet is binnen scope** (ADR-013): `SUPERVISOR_SYSTEM`
-noemt elke bekende connector uit de beschrijving (`_scope_bronnen`), en de code draait een AFWIJZEN terug als de vraag een
-connector raakt (`bronmodel.connectors.herkende`). Gaat de vraag alleen over bronnen die in deze beurt uit staan (en noemt
+**Afwijzen gaat via `wijs_af`.** De centrale agent roept de overdracht aan → `afwijzen`: één beleefde
+melding, geen graafverkeer meer. Afwijzen mag alleen als de vraag **niet over wetgeving
+gaat**; zoeken en zelf zeggen dat er niets is, is beter dan een onterechte afwijzing, die het antwoord kost.
+**Een bron naast de wet is binnen scope** (ADR-013): de code weigert `wijs_af` als de vraag een connector raakt of een
+regeling noemt (`agent/binnen_scope.py`, `bronmodel.connectors.herkende`). Tot ADR-016 §A7 koos de supervisor
+`PLAN: AFWIJZEN` met dezelfde terugdraairegel. Gaat de vraag alleen over bronnen die in deze beurt uit staan (en noemt
 ze geen artikel), dan zegt Lex zonder model waarom en wie ze aanzet (`_bron_uit`, `bronstand.melding_uit`; route
 `bron_uit`, met een `bron_uit`-event waarmee de werkplek *Zet aan* aanbiedt). **Noemt de vraag een stuk bij id** van een
 connector die aanstaat (`connectors.genoemde_stukken`, ook in een citeervorm van de beschrijving: "Kamerstuk 32140, nr.
 342" → `kst-32140-342`, dat de leestool bij de bron oplost), dan leest de code het vooraf (`_te_lezen`,
 `nodes/bron_lezen.py`, de `leestool` met `lees_argument`; een kort stuk, hoogstens `MAX_RIJEN_KORT` rijen en `MAX_PAGINAS`
-pagina's, helemaal, ongefilterd: anders bladerde het model met één ronde per pagina, ronde 2 bekendmakingen B21; in het spoor één regel per stuk, `spoorbronnen.voorleesregel`, in plaats van "deels gelezen" per pagina); zonder artikel in de vraag zonder supervisorcall. **Een
+pagina's, helemaal, ongefilterd: anders bladerde het model met één ronde per pagina, ronde 2 bekendmakingen B21; in het spoor één regel per stuk, `spoorbronnen.voorleesregel`, in plaats van "deels gelezen" per pagina); zonder artikel in de vraag zonder modelaanroep. **Een
 lijstvraag** ("geef de 10 meest recente Kamerstukken", "de laatste vijf moties van de Eerste Kamer", ook zonder volgorde
 "Kamerstukken uit vergaderjaar 2025-2026 over invorderingsrente": dan kiest de zoektool, en een orgaan als "Eerste Kamer"
 is nooit een volgorde) leest `agent/bron_lijst.py` helemaal in code – volgorde, aantal, dossier, soort (`ConnectorBeschrijving.soorten`), periode,
@@ -2258,7 +2253,7 @@ anders wijst één afgewezen vraag de hele thread af. De workerlijst is een **al
 (`antwoord`/`annotatie`/`werkgebied`/`deelvragen`/`begrippen`; de laatste drie staan altijd alleen) met een cap van twee: een onbekende naam zou anders een extra antwoord-worker
 worden.
 
-**Advies bij twijfel** (`modus: "advies"`, op `/v1/runs`): de supervisor routeert hard naar
+**Advies bij twijfel** (`modus: "advies"`, op `/v1/runs`): de ingang routeert hard naar
 de `duiding`-specialist, dus een adviesvraag kan topologisch geen annotatie wijzigen. `ChatRequest`
 eist een context met minimaal een fragment, `bwbId` of `bron_iri`. `_advies_context` (in
 `orchestrator.py`) bakent de vraag af tot dát element: andere markeringen mogen erbij als dat nodig is,
@@ -2267,8 +2262,9 @@ tegenkracht tegen het gespreksgeheugen. De buren komen uit `context.bestaande_el
 20), niet uit de historie. Gebruik "ONDERWERP" daar niet als kopje: dat woord is in de systeemprompt al
 de onderwerp-afbakening.
 
-**Model per rol.** `LLM_MODEL_ROUTER` en `LLM_MODEL_OPHAAL` zetten supervisor en ophaal-agent op een eigen
-model (`Settings.model_voor`). Classifier, reviewer en QA-specialisten draaien altijd op `LLM_MODEL`:
+**Model per rol.** `LLM_MODEL_ROUTER` en `LLM_MODEL_OPHAAL` zetten de voorstellen van het werkgebied samenstellen en de
+ophaal-agent op een eigen model (`Settings.model_voor`; de router-knop droeg tot ADR-016 §A7 de supervisor). Een
+modelkeuze in het beheer gaat voor (`agent/modelkeuze.py`). Classifier, reviewer en QA-specialisten draaien altijd op `LLM_MODEL`:
 wie een oordeel velt over wetgeving hoort niet met een env-var te verzwakken.
 
 ## Kern-invarianten (niet breken)
@@ -2300,7 +2296,7 @@ wie een oordeel velt over wetgeving hoort niet met een env-var te verzwakken.
   LLM-narratie zelf blijft `reason`. Na een toolaanroep volgt zo nodig een resultaatregel met de bron als actor
   (`Kamerstukken · 16 gevonden`), met `bron` als eigen veld op het event (`agent/spoorbronnen.py`).
 - **Onderwerp-afbakening & injectie.** De agent antwoordt alleen over wetgeving en behandelt graaftekst
-  als data. Verzwak `SYSTEM_PROMPT`/`SUPERVISOR_SYSTEM` hierin niet zonder reden.
+  als data. Verzwak `SYSTEM_PROMPT` en de profielen hierin niet zonder reden.
 
 ## Tests & eval
 

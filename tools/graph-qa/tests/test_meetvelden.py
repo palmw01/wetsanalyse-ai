@@ -32,7 +32,6 @@ def _supervisor(specialist: str = "duiding"):
 
 def test_elke_toolaanroep_draagt_de_modelronde_die_erom_vroeg():
     llm = FakeLLM([
-        _supervisor(),
         # Ronde 1: twee aanroepen naast elkaar. Ronde 2: één. Dan het antwoord.
         response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"}),
                   tool_block("t2", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "10"})], "tool_use"),

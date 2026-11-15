@@ -39,58 +39,73 @@ ANNOTATIE_NODES = {"annoteer", "emit"}
 def test_planning_is_de_standaardvorm():
     nodes, edges = structuur(enable_planning=True)
     assert nodes == {
-        "supervisor", "agent", "tools", "sjabloon", "verify", "correct", "finalize", "annotaties_zoeken", "bron_lezen",
+        "ingang", "agent", "tools", "sjabloon", "verify", "correct", "finalize", "annotaties_zoeken", "bron_lezen",
         "bron_lijst", "begrippen_zoeken", "overzicht_bouwen", "bepaling_lezen", "annoteer", "emit", "advance", "afwijzen",
         "werkgebied_intake", "bronselectie", "agent_taak",
+        # De centrale agent (ADR-016): de overdracht en de nodes van de delegatie.
+        "overdracht", "subagent_vervolg", "subagent_plan", "regie_voorstel", "subagent_route",
     }
     assert edges == {
+        # De overdracht van de centrale agent aan een route in code (ADR-016 §A1), en de delegatie (§A3–§A5).
+        ("agent", "overdracht", "", True), ("overdracht", "agent", "", True), ("overdracht", "afwijzen", "", True),
+        ("overdracht", "agent_taak", "", True), ("overdracht", "werkgebied_intake", "", True),
+        ("overdracht", "bronselectie", "", True), ("overdracht", "bepaling_lezen", "", True),
+        ("overdracht", "overzicht_bouwen", "", True), ("overdracht", "annotaties_zoeken", "", True),
+        ("overdracht", "begrippen_zoeken", "", True), ("overdracht", "bron_lijst", "", True),
+        ("overdracht", "subagent_plan", "", True), ("overdracht", "regie_voorstel", "", True),
+        ("ingang", "subagent_vervolg", "", True), ("advance", "subagent_vervolg", "", True),
+        ("subagent_vervolg", "agent", "", True), ("subagent_vervolg", EIND, "einde", True),
+        ("ingang", "subagent_plan", "", True), ("advance", "subagent_plan", "", True), ("subagent_plan", EIND, "", False),
+        ("regie_voorstel", EIND, "", False),
+        ("ingang", "subagent_route", "", True), ("advance", "subagent_route", "", True),
+        ("subagent_route", "agent", "", False),
         ("agent", "sjabloon", "", True),
         # Antwoordt de agent in tekst na een zoekresultaat van een bronconnector, dan één keer terug naar zichzelf met de
         # vraag om het sjabloon (nodes/antwoord._gevonden_zonder_sjabloon).
         ("agent", "agent", "", True),
         ("sjabloon", "verify", "", True),
         ("sjabloon", "agent", "", True),
-        (START, "supervisor", "", False),
-        ("supervisor", "agent", "", True),
-        ("supervisor", "annoteer", "", True),
-        ("supervisor", "afwijzen", "", True),
+        (START, "ingang", "", False),
+        ("ingang", "agent", "", True),
+        ("ingang", "annoteer", "", True),
+        ("ingang", "afwijzen", "", True),
         # De leesroute zoekt eerst zelf; pas daarna formuleert de agent (zie nodes/annotatie_lezen.py).
-        ("supervisor", "annotaties_zoeken", "", True),
+        ("ingang", "annotaties_zoeken", "", True),
         ("annotaties_zoeken", "agent", "", False),
         # Een stuk dat de vraag bij id noemt (ADR-013): eerst lezen in code (nodes/bron_lezen.py), dan formuleren.
-        ("supervisor", "bron_lezen", "", True),
+        ("ingang", "bron_lezen", "", True),
         ("bron_lezen", "agent", "", True),
         # Een stuk zonder tekst bij de bron: de melding uit code, zonder model (nameting 10 nov 2026).
         ("bron_lezen", "verify", "", True),
         # Een lijstvraag over een bron naast de wet: de zoektool in code en het blok `stukken`, dan de controle; na een
         # fout de agent (nodes/bron_lijst.py).
-        ("supervisor", "bron_lijst", "", True),
+        ("ingang", "bron_lijst", "", True),
         ("bron_lijst", "verify", "", True),
         ("bron_lijst", "agent", "", True),
         # Idem voor vastgelegde begrippen (nodes/begrippen_lezen.py, fase F4).
-        ("supervisor", "begrippen_zoeken", "", True),
+        ("ingang", "begrippen_zoeken", "", True),
         ("begrippen_zoeken", "agent", "", False),
         # Een overzichtsvraag: het overzicht en zijn tekst komen uit de graaf, zonder model; alleen als
         # het bouwen faalt neemt de agent het over (nodes/overzicht.py).
-        ("supervisor", "overzicht_bouwen", "", True),
+        ("ingang", "overzicht_bouwen", "", True),
         ("overzicht_bouwen", "verify", "", True),
         ("overzicht_bouwen", "agent", "", True),
         # De tekst van een bepaling (ADR-010, D1): ophalen en vullen in code, dan de controle; lukt het niet, de agent.
-        ("supervisor", "bepaling_lezen", "", True),
+        ("ingang", "bepaling_lezen", "", True),
         ("bepaling_lezen", "verify", "", True),
         ("bepaling_lezen", "agent", "", True),
         ("afwijzen", EIND, "", False),
         # Een werkgebied samenstellen (activiteit 1): één stap van de intake per beurt, zonder
         # verify/finalize – er wordt niets over wetgeving beweerd (nodes/werkgebied.py).
-        ("supervisor", "werkgebied_intake", "", True),
+        ("ingang", "werkgebied_intake", "", True),
         ("werkgebied_intake", EIND, "", False),
         # De bronselectie per deelvraag (spoor J): één stap per beurt, de stand staat bij de api
         # (nodes/bronselectie.py).
-        ("supervisor", "bronselectie", "", True),
+        ("ingang", "bronselectie", "", True),
         ("bronselectie", EIND, "", False),
         # Een taak van een agent op het werkgebied (F3c): deelvragen, begrippen, het werkgebied
         # annoteren. Eén taak per beurt, zonder verify/finalize (nodes/agent_taak.py).
-        ("supervisor", "agent_taak", "", True),
+        ("ingang", "agent_taak", "", True),
         ("agent_taak", EIND, "", False),
         ("agent", "tools", "", True),
         ("agent", "verify", "", True),
@@ -122,7 +137,7 @@ def test_de_kale_tak_heeft_geen_annotatie_en_geen_supervisor():
     nodes, edges = structuur(enable_planning=False)
     assert nodes == {"agent", "tools", "sjabloon", "verify", "correct", "finalize"}
     assert not (ANNOTATIE_NODES & nodes)
-    assert "supervisor" not in nodes
+    assert "ingang" not in nodes
     # Zonder supervisor begint de graaf bij de agent en eindigt finalize direct.
     assert (START, "agent", "", False) in edges
     assert ("finalize", EIND, "", False) in edges
@@ -135,7 +150,8 @@ def test_stopbewaking_zit_om_elke_node():
     # Alle nodes van de rijkste tak; als hier iets bijkomt zonder dat deze lijst meegroeit,
     # is dat een signaal om te controleren of het via add() ging.
     assert nodes == {
-        "supervisor", "agent", "tools", "sjabloon", "correct",
+        "ingang", "agent", "tools", "sjabloon", "correct",
         "annoteer", "emit", "advance", "afwijzen", "verify", "finalize", "annotaties_zoeken", "bron_lezen", "bron_lijst",
         "begrippen_zoeken", "overzicht_bouwen", "bepaling_lezen", "werkgebied_intake", "bronselectie", "agent_taak",
+        "overdracht", "subagent_vervolg", "subagent_plan", "regie_voorstel", "subagent_route",
     }

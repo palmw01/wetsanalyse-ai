@@ -287,9 +287,7 @@ def test_supervisor_en_specialist_krijgen_het_blok_en_de_focus_houdt_het_vast(mo
 
     monkeypatch.setattr(agent_mod, "_onderwerp_blok", blok)
     settings = make_settings(checkpoint_db_path=str(tmp_path / "cp.db"))
-    llm = FakeLLM([response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: uitleg")], "end_turn"),
-                   response([text_block("Dat hangt af van de dagtekening.")], "end_turn"),
-                   response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: uitleg\nVRAAG: idem")], "end_turn"),
+    llm = FakeLLM([                   response([text_block("Dat hangt af van de dagtekening.")], "end_turn"),
                    response([text_block("Nog steeds de dagtekening.")], "end_turn")])
     onderwerp = Onderwerp(soort="deelvraag", werkgebied_id="wg1", id="dv1", label="Wanneer?")
 

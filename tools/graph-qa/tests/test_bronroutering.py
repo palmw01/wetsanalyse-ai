@@ -16,15 +16,15 @@ import asyncio
 import pytest
 from bronmodel import connectors as bm
 
-from agent import bronstand, supervisor
+from agent import bronstand
 from agent.agent import answer_stream
-from fakes import FakeGraph, FakeLLM, make_settings, response, text_block
+from fakes import tool_block, FakeGraph, FakeLLM, make_settings, response, text_block
 
 AAN = make_settings(connector_kamerstukken=True)
 UIT = make_settings()
 INCIDENT_1 = "wat kun je nog vinden in de kamerstukken?"
 INCIDENT_2 = "Wat staat er in de memorie van toelichting bij Kamerstuk 33755, nummer 3, over de aansprakelijkheid?"
-AFWIJZEN = response([text_block("WORKERS: antwoord\nSPECIALIST: algemeen\nTAAK:\nPLAN: AFWIJZEN")], "end_turn")
+AFWIJZEN = response([tool_block("ov", "wijs_af", {})], "tool_use")
 
 
 def _run(gen):
@@ -84,26 +84,18 @@ def test_een_vraag_over_een_bron_wordt_nooit_afgewezen_en_krijgt_de_tools():
 
 
 def test_een_gemengde_vraag_gaat_naar_het_model_ook_met_de_bron_uit():
-    """Een artikel is wetgeving om te zoeken; wat er uit staat, zegt het promptblok (PR 4)."""
-    llm = FakeLLM([response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nTAAK:\nPLAN: zoek art. 36")],
-                            "end_turn"),
-                   response([text_block("Artikel 36 gaat over aansprakelijkheid.")], "end_turn")])
+    """Een artikel is wetgeving om te zoeken; wat er uit staat, zegt het promptblok (PR 4). Sinds ADR-016 §A7 is dat
+    model de centrale agent, in één ronde."""
+    llm = FakeLLM([response([text_block("Artikel 36 gaat over aansprakelijkheid.")], "end_turn")])
     events = _run(answer_stream("Wat bedoelde de wetgever met artikel 36 van de Invorderingswet 1990?",
                                 settings=AAN, llm=llm, graph=FakeGraph(result=""), bronnen=[]))
-    assert len(llm.calls) == 2 and "aansprakelijkheid" in _tekst(events)
+    assert len(llm.calls) == 1 and "aansprakelijkheid" in _tekst(events)
 
 
 def test_een_gewone_vraag_buiten_de_wet_blijft_afgewezen():
     events = _run(answer_stream("Hoeveel is 17 maal 23?", settings=AAN, llm=FakeLLM([AFWIJZEN]),
                                 graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
     assert "niet over Nederlandse wet- en regelgeving" in _tekst(events)
-
-
-def test_de_scope_van_de_supervisor_noemt_elke_bekende_connector():
-    for c in bm.CONNECTORS.values():
-        assert c.label in supervisor.SUPERVISOR_SYSTEM and c.dekt in supervisor.SUPERVISOR_SYSTEM
-    # De grens voor wat wél wordt afgewezen staat er nog letterlijk.
-    assert "AFWIJZEN als de vraag niet over Nederlandse wet- en regelgeving gaat" in supervisor.SUPERVISOR_SYSTEM
 
 
 def test_elke_reden_heeft_een_zin():
@@ -125,7 +117,6 @@ def test_een_nieuwe_connector_wordt_herkend_en_gemeld_zonder_code(monkeypatch):
         werkwoorden={"zoek_testbron": ("zoekt uitspraken over „{zoekterm}”", "zoekt uitspraken")}, grenzen="alleen een test", beheer="Nep.",
         voorbeeldvragen=("Wat zei het testgerecht?",))
     monkeypatch.setitem(bm.CONNECTORS, nep.naam, nep)
-    assert "uitspraken van een testgerecht" in supervisor._scope_bronnen()
     llm = FakeLLM([])
     events = _run(answer_stream("Wat zei het testgerecht erover?", settings=AAN, llm=llm,
                                 graph=FakeGraph(result=""), bronnen=["kamerstukken"]))

@@ -95,8 +95,7 @@ def test_een_afgesloten_kind_heet_afgesloten_en_de_beurt_eindigt_met_tekst_uit_c
     assert taak["uitkomst"] == "afgesloten" and "rapport" not in taak
     assert (regie["afgesloten"], regie["opgeleverd"], regie["mislukt"]) == (1, 0, 0)
 
-    state = {**STATE, **upd, "question": VRAAG, "messages": [{"role": "user", "content": VRAAG}], "turns": 0,
-             "agentvorm": "centraal"}
+    state = {**STATE, **upd, "question": VRAAG, "messages": [{"role": "user", "content": VRAAG}], "turns": 0}
     uit = antwoordnodes.agent_node(SimpleNamespace(settings=make_settings(), llm=GeenModel()), state)
     tekst = uit["answer"]
     assert tekst.startswith(sub.ZONDER_RAPPORT["afgesloten"]) and sub.KLEINER in tekst

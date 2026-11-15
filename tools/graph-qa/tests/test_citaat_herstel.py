@@ -63,7 +63,6 @@ def test_in_de_keten_ziet_de_jurist_alleen_het_herstelde_citaat():
 
     tsv = '?node\t?tekst\n<urn:bwb:BWBR0004770:artikel:9:lid:1>\t"Een belastingaanslag is invorderbaar zes weken na de dagtekening van het aanslagbiljet."'
     llm = FakeLLM([
-        response([text_block("WORKERS: antwoord\nSPECIALIST: duiding\nPLAN: lid 1")], "end_turn"),
         response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})], "tool_use"),
         response([text_block('De termijn: "Zes weken na de dagtekening van het aanslagbiljet." (BWBR0004770)')], "end_turn"),
         response([text_block("Mag niet nodig zijn.")], "end_turn"),
@@ -76,7 +75,7 @@ def test_in_de_keten_ziet_de_jurist_alleen_het_herstelde_citaat():
     tokens = "".join(e["content"] for e in events if e["type"] == "token")
     assert tokens == 'De termijn: "zes weken na de dagtekening van het aanslagbiljet". (BWBR0004770)'
     assert next(e for e in events if e["type"] == "grounding")["niveau"] == "gegrond"
-    assert len(llm.calls) == 3, "geen correctieronde"
+    assert len(llm.calls) == 2, "geen correctieronde"
     assert any("letterlijk gemaakt" in e.get("message", "") for e in events if e["type"] == "status")
 
 

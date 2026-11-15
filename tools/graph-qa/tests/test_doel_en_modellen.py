@@ -55,7 +55,7 @@ def _ketencalls(llm) -> list[dict]:
 def _aanloop() -> list:
     """Supervisor + de twee ophaal-beurten – de weg zonder meegegeven doel."""
     return [
-        response([text_block("WORKERS: annotatie\nPLAN: annoteer art 9 lid 1")], "end_turn"),
+        response([tool_block("ov", "annoteer", {"vraag": "annoteer de aangewezen bepaling"})], "tool_use"),
         response([tool_block("t1", "get_lid", {"bwb_id": "BWBR0004770", "artikel": "9", "lid": "1"})],
                  "tool_use"),
         response([text_block('{"bwbId":"BWBR0004770","artikel":"9","lid":"1"}')], "end_turn"),
@@ -87,7 +87,7 @@ def test_from_env_leest_de_rol_modellen():
 
 
 def test_elke_rol_draait_op_zijn_eigen_model():
-    """De volgorde van de calls is de volgorde van de keten: router → ophaal ×2 → classifier (→ reviewer)."""
+    """De volgorde van de calls is de volgorde van de keten: centrale agent → ophaal ×2 → classifier (→ reviewer)."""
     llm = _keten(_aanloop())
     _run(answer_stream(
         VRAAG,
@@ -96,7 +96,7 @@ def test_elke_rol_draait_op_zijn_eigen_model():
     ))
 
     modellen = [c["model"] for c in llm.calls]
-    assert modellen[:3] == ["klein", "middel", "middel"]
+    assert modellen[:3] == ["sterk", "middel", "middel"], "de centrale agent draait op het hoofdmodel"
     assert _ketencalls(llm) and set(modellen[3:]) == {"sterk"}, "wie het oordeel velt, draait op het hoofdmodel"
 
 
@@ -155,7 +155,7 @@ def test_een_half_doel_gaat_gewoon_de_gewone_weg():
         VRAAG, doel={"bwbId": "BWBR0004770"}, settings=make_settings(),
         llm=llm, graph=FakeGraph(result=LID_TSV),
     ))
-    assert "WORKERS" in llm.calls[0]["system"] and llm.index == 3, "supervisor en ophaal-agent draaiden"
+    assert "rol agent" in llm.calls[0]["system"] and llm.index == 3, "de centrale agent en de ophaal-agent draaiden"
 
 
 def test_zonder_doel_verandert_er_niets():

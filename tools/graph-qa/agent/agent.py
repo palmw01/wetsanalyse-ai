@@ -30,7 +30,6 @@ from .models import Verbruiksmeter
 from .observability import get_tracer
 from .ports import GraphPort, LLMPort
 from .tools.annotatie_tools import is_leesvraag
-from .agentvorm import vorm_van
 from .gelezen import gekozen_periode, zelf_afgebakend
 
 logger = logging.getLogger(__name__)
@@ -123,15 +122,13 @@ def _recursielimiet(settings: Settings) -> int:
     `except` hieronder en werd "Er ging iets mis", terwijl het werk van tientallen calls weg was.
 
     Nu volgt de limiet de topologie: per worker de agent⇄tools-lus (2 stappen per beurt) plus de
-    vaste nodes eromheen (supervisor/annoteer/emit/advance ≈ 6), maal het maximum aantal workers
-    (`supervisor._MAX_WORKERS`), met marge.
+    vaste nodes eromheen (ingang/annoteer/emit/advance ≈ 6), voor de ene worker van de beurt (sinds ADR-016 §A7 kiest
+    geen modelstap meer een keten van workers), met marge.
 
     Dit is een vangnet, geen kostenknop: de echte begrenzing is `max_turns`.
     """
-    from .supervisor import _MAX_WORKERS
-
     per_worker = 2 * settings.max_turns + 6
-    return _MAX_WORKERS * per_worker + 10
+    return per_worker + 10
 
 
 async def delete_conversation(conversation_id: str, *, settings: Settings | None = None) -> None:
@@ -250,7 +247,6 @@ async def answer_stream(
     bronnen: list[str] | None = None,
     bronnen_herkomst: str | None = None,
     beurtcontext_plek: str = "vraag",
-    agentvorm: str | None = None,
     profiel: str = "",
     opdracht: Any = None,
     kinderen: Any = None,
@@ -333,8 +329,6 @@ async def answer_stream(
         "bronstand": bronstand_nu,
         # De meetvlag van ADR-015 (`ChatRequest.beurtcontext_plek`): waar de context van de beurt staat. Per beurt.
         "beurtcontext_plek": beurtcontext_plek,
-        # De agentvorm van deze beurt (ADR-016 §A7): de straat beslist of het verzoek mag kiezen.
-        "agentvorm": vorm_van(settings.centrale_agent, agentvorm),
         # Een subagent (ADR-016 §A3): de supervisor stuurt de beurt zonder model naar de agent met dit profiel.
         "opdracht": opdracht_dict,
         "rapport": {},

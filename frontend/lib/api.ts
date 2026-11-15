@@ -959,7 +959,7 @@ export async function startRun(
       ...(extra?.modus ? { modus: extra.modus } : {}),
       ...(extra?.context ? { context: extra.context } : {}),
       // Kennen we de bepaling al, dan hoeft niemand hem meer te zoeken: de agent slaat de
-      // supervisor en de ophaal-agent over en annoteert precies deze.
+      // ophaal-agent over en annoteert precies deze.
       ...(extra?.doel ? { doel: extra.doel } : {}),
       ...(extra?.hergebruik ? { hergebruik: extra.hergebruik } : {}),
       ...(extra?.doelen ? { doelen: extra.doelen } : {}),
