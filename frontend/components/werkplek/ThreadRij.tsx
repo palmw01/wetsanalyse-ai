@@ -104,10 +104,7 @@ export const ThreadRij = memo(function ThreadRij({
   if (vragen) {
     // Het samenstellen van een werkgebied: wat Lex bij de eerste vraag zei, en de vragen met je antwoorden.
     return (
-      <div className="group flex animate-rise gap-3">
-        <LexAvatar />
-        <div className="min-w-0 flex-1 text-sm text-ink">
-          <p className="mb-1 text-xs font-medium text-muted">Lex</p>
+      <LexRij>
           {vragen.tekst && <div className="mb-2"><Markdown tekst={vragen.tekst} /></div>}
           {/* De vraag van een subagent (ADR-016 §A4): wat de subagents deden, boven de vraag. */}
           {(item.type === "antwoord" || item.type === "artefact") && item.delegatie && !demo && (
@@ -115,8 +112,7 @@ export const ThreadRij = memo(function ThreadRij({
               onOpenGesprek={acties.openGesprek} /></div>
           )}
           <VragenKaart groep={vragen} onOpen={acties.openVraag} />
-        </div>
-      </div>
+      </LexRij>
     );
   }
   return item.type === "user" && item.doorgegeven ? (
@@ -150,11 +146,7 @@ export const ThreadRij = memo(function ThreadRij({
     </div>
   ) : item.type === "antwoord" ? (
     <BerichtSamenhangContext.Provider value={bericht}>
-    <div className="group flex animate-rise gap-3">
-      <LexAvatar />
-      <div className="min-w-0 flex-1 text-sm text-ink">
-        <p className="mb-1 text-xs font-medium text-muted">Lex</p>
-        {item.denk && <DenkProces tekst={item.denk} actief={bezig && !item.tekst} />}
+    <LexRij denk={item.denk} denkt={bezig && !item.tekst}>
         {item.delegatie && !demo && (
           <DelegatieBlok weergave={item.delegatie} gesprekId={gesprekId} loopt={streamt} onOpenGesprek={acties.openGesprek} />
         )}
@@ -187,14 +179,10 @@ export const ThreadRij = memo(function ThreadRij({
         {/* Een antwoord met alleen afgeleide duiding of tekst van de code (een leemte) heeft niets van het model te controleren. */}
         {item.tekst && item.grounding && !(item.grounding.niveau === "onbepaald" && alleenNietGetoetst(item.antwoord)) && <Brongetrouwheid grounding={item.grounding} />}
         {item.tekst && <KopieerKnop tekst={item.overzicht ? `${item.tekst}\n\n${overzichtAlsMarkdown(item.overzicht)}` : item.tekst} />}
-      </div>
-    </div>
+    </LexRij>
     </BerichtSamenhangContext.Provider>
   ) : item.type === "kandidaten" ? (
-    <div className="group flex animate-rise gap-3">
-      <LexAvatar />
-      <div className="min-w-0 flex-1 text-sm text-ink">
-        <p className="mb-1 text-xs font-medium text-muted">Lex</p>
+    <LexRij>
         {item.tekst && <Markdown tekst={item.tekst} />}
         {item.keuze ? (
           <KeuzeKaart
@@ -212,13 +200,9 @@ export const ThreadRij = memo(function ThreadRij({
             onKies={(k) => acties.verstuur({ prompt: kandidaatPrompt(k), doel: doelVanKandidaat(k) })}
           />
         )}
-      </div>
-    </div>
+    </LexRij>
   ) : item.type === "reeks" ? (
-    <div className="group flex animate-rise gap-3">
-      <LexAvatar />
-      <div className="min-w-0 flex-1 text-sm text-ink">
-        <p className="mb-1 text-xs font-medium text-muted">Lex</p>
+    <LexRij>
         <BeurtUitkomstBlok uitkomst={item.uitkomst} />
         <ReeksBlok
           reeks={item.reeks}
@@ -227,19 +211,15 @@ export const ThreadRij = memo(function ThreadRij({
           onOpen={(o) => {
             if (o.annotatie_doel) acties.openReeksLid(item.reeks.runId, o.annotatie_doel);
           }}
-          spoor={(o, actief) => o.denk && <DenkProces tekst={o.denk} actief={actief} label="Zo is dit tot stand gekomen" />}
+          spoor={(o, actief) => o.denk && <DenkProces tekst={o.denk} actief={actief} />}
         />
         {/* De samenvatting van een werkgebied-run komt ná de bepalingen. */}
         {item.tekst && <div className="mt-3"><Markdown tekst={item.tekst} /></div>}
-      </div>
-    </div>
+    </LexRij>
   ) : item.type === "artefact" ? (
     // Een ander artefact (begripsvoorstellen): dezelfde vorm als een annotatie – naam, wat Lex erover
-    // zegt, de chip naar het paneel, en hoe het tot stand kwam.
-    <div className="group flex animate-rise gap-3">
-      <LexAvatar />
-      <div className="min-w-0 flex-1 text-sm text-ink">
-        <p className="mb-1 text-xs font-medium text-muted">Lex</p>
+    // zegt en de chip naar het paneel; het denkproces bovenaan, zoals bij elke beurt.
+    <LexRij denk={item.denk}>
         {item.tekst && <div className="mb-3"><Markdown tekst={item.tekst} /></div>}
         <ArtefactChip artefact={item.artefact} onOpen={() => acties.openArtefactVan(item.artefact)} />
         {item.delegatie && !demo && (
@@ -249,16 +229,12 @@ export const ThreadRij = memo(function ThreadRij({
         {item.bevestiging && !demo && (
           <BevestigingBlok bevestiging={item.bevestiging} keuze={keuze} bezig={bezig} geblokkeerd={geblokkeerd} acties={acties} />
         )}
-        {item.denk && <div className="mt-3"><DenkProces tekst={item.denk} actief={false} label="Zo is dit tot stand gekomen" /></div>}
-      </div>
-    </div>
+    </LexRij>
   ) : (
     // Een annotatie is ook een beurt van Lex: zijn naam, wat hij erover zegt (hoogstens vier zinnen,
-    // door graph-qa uit de data opgebouwd), de kaart naar het artefact, en onderaan hoe het tot stand kwam.
-    <div className="group flex animate-rise gap-3">
-      <LexAvatar />
-      <div className="min-w-0 flex-1 text-sm text-ink">
-        <p className="mb-1 text-xs font-medium text-muted">Lex</p>
+    // door graph-qa uit de data opgebouwd) en de kaart naar het artefact. Het denkproces staat bovenaan, net als bij
+    // een antwoord: één plek en één label voor elke beurt (besluit gebruiker 15 nov 2026).
+    <LexRij denk={item.denk}>
         {item.tekst && <div className="mb-3" data-testid="annotatie-samenvatting"><Markdown tekst={item.tekst} /></div>}
         <AnnotatieChip
           titel={item.titel}
@@ -287,9 +263,7 @@ export const ThreadRij = memo(function ThreadRij({
             />
           );
         })()}
-        {item.denk && <div className="mt-3"><DenkProces tekst={item.denk} actief={false} label="Zo is dit tot stand gekomen" /></div>}
-      </div>
-    </div>
+    </LexRij>
   );
 }, zelfdeRij);
 
@@ -580,17 +554,29 @@ function KopieerKnop({ tekst }: { tekst: string }) {
   );
 }
 
+/** Een beurt van Lex: avatar, naam en, als er een spoor is, het denkproces bovenaan. Elke soort rij van Lex gebruikt
+ *  dit, zodat het denkproces overal op dezelfde plek en met hetzelfde label staat (besluit gebruiker 15 nov 2026). */
+function LexRij({ denk, denkt = false, children }: { denk?: string; denkt?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="group flex animate-rise gap-3">
+      <LexAvatar />
+      <div className="min-w-0 flex-1 text-sm text-ink">
+        <p className="mb-1 text-xs font-medium text-muted">Lex</p>
+        {denk && <DenkProces tekst={denk} actief={denkt} />}
+        {children}
+      </div>
+    </div>
+  );
+}
+
 // Inklapbaar "Denkproces"-blok (Claude-stijl): streamt live terwijl de agent werkt (`actief`) en klapt
 // automatisch dicht zodra het antwoord er is. De gebruiker kan het handmatig weer openen.
 function DenkProces({
   tekst,
   actief,
-  label = "Denkproces",
 }: {
   tekst: string;
   actief: boolean;
-  /** Bij een annotatie is dit geen "denkproces" maar het spoor van het samenspel tussen de agents. */
-  label?: string;
 }) {
   const [keuze, setKeuze] = useState<boolean | null>(null);
   const open = keuze ?? actief;
@@ -604,7 +590,7 @@ function DenkProces({
         aria-expanded={open}
       >
         {actief && <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-accent-soft" aria-hidden />}
-        <span>{actief ? "Denkt na…" : label}</span>
+        <span>{actief ? "Denkt na…" : "Denkproces"}</span>
         {/* De chevron wijst naar rechts (ingeklapt) en draait omlaag bij openen. */}
         <ChevronOmlaag className={`-rotate-90 transition-transform ${open ? "rotate-0" : ""}`} />
       </button>
