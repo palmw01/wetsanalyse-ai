@@ -73,15 +73,48 @@ def test_v04_de_wijziging_zonder_te_zeggen_welke():
         assert not welke_wijziging.vraagt_welke(vraag, titel), vraag
 
 
+#: De namenlijst van de graaf (`overzicht._regelingen`), zodat de echte `regelingen_in_vraag` draait: die geeft ids, geen
+#: paren (bundel 129: V04 eindigde op acceptatie in een ValueError, en een test die de functie met paren nabootste zag
+#: het niet).
+NAMEN = [{"bwb_id": "BWBR0004770", "soort": "wet", "citeertitel": "Invorderingswet 1990",
+          "namen": ["Invorderingswet 1990", "Invorderingswet", "Iw 1990"]},
+         {"bwb_id": "BWBR0005537", "soort": "wet", "citeertitel": "Algemene wet bestuursrecht",
+          "namen": ["Algemene wet bestuursrecht", "Awb"]}]
+
+
 def test_v04_de_vraag_noemt_de_laatste_wijziging_als_kandidaat(monkeypatch):
     import agent.overzicht as overzicht
 
-    monkeypatch.setattr(overzicht, "regelingen_in_vraag", lambda _g, v: regelingen(v))
+    monkeypatch.setattr(overzicht, "_regelingen", lambda _g: NAMEN)
     monkeypatch.setattr(welke_wijziging, "laatste_wijziging", lambda _g, b, a: "Stb. 2009, 610 (in werking 2010-07-04)")
     tekst = welke_wijziging.melding(AGENTSET["V04"]["opdracht"], object())
     assert tekst.startswith("Artikel 36 van de Invorderingswet 1990 kan meer dan eens gewijzigd zijn. Welke wijziging")
     assert "- de laatste wijziging: Stb. 2009, 610 (in werking 2010-07-04)" in tekst and "noem de datum" in tekst
     assert welke_wijziging.melding("Wat zegt artikel 36?", object()) == "", "geen wijziging genoemd: geen graafquery"
+
+
+def test_v04_door_de_hele_graaf_zonder_model_en_zonder_fout(monkeypatch):
+    """Precies de vraag van V04, door `answer_stream` (route → node → finalize), met de echte herkenning van de regeling
+    en `geldigheid` tegen een nepgraaf."""
+    import asyncio
+
+    import agent.overzicht as overzicht
+    from agent.agent import answer_stream
+    from fakes import FakeGraph, FakeLLM, make_settings
+
+    monkeypatch.setattr(overzicht, "_regelingen", lambda _g: NAMEN)
+    llm = FakeLLM([])
+
+    async def beurt():
+        return [e async for e in answer_stream(AGENTSET["V04"]["opdracht"], settings=make_settings(centrale_agent="aan"),
+                                               llm=llm, graph=FakeGraph(result=""), agentvorm="centraal")]
+
+    events = asyncio.run(beurt())
+    assert not [e for e in events if e.get("type") == "error"], events
+    assert any(e.get("route") == "wijziging_kiezen" for e in events if e.get("type") == "status")
+    tekst = "".join(e.get("content", "") for e in events if e.get("type") == "token")
+    assert tekst.startswith("Artikel 36 van de Invorderingswet 1990 kan meer dan eens gewijzigd zijn.")
+    assert not llm.calls, "geen modelronde"
 
 
 def test_v04_de_supervisor_vraagt_het_zonder_model(monkeypatch):
