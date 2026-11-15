@@ -1,3 +1,5 @@
+import { aantal } from "./aantal";
+
 // Het verschil tussen twee teksten per regel, voor het vergelijken van twee versies (ADR-016 §B7). Zuiver en zonder
 // afhankelijkheid: de langste gemeenschappelijke reeks regels, met het gelijke begin en eind er eerst af.
 
@@ -98,6 +100,6 @@ export function blokken(regels: VerschilRegel[], context = 3): Blok[] {
 /** "3 regels erbij, 1 regel weg", of "geen verschil". */
 export function verschilZin(v: Pick<Tekstverschil, "erbij" | "weg">): string {
   if (!v.erbij && !v.weg) return "geen verschil";
-  const regel = (n: number) => (n === 1 ? "1 regel" : `${n} regels`);
+  const regel = (n: number) => (aantal(n, "regel", "regels"));
   return [v.erbij && `${regel(v.erbij)} erbij`, v.weg && `${regel(v.weg)} weg`].filter(Boolean).join(", ");
 }

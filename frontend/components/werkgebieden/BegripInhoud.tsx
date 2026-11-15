@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { datumTijd } from "@/lib/datum";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { Leeg, LeegWaarde } from "@/components/ui/Leeg";
@@ -230,7 +231,7 @@ function Groep({ titel, nlsbb, children }: { titel: string; nlsbb: string; child
   return (
     <div className="space-y-4" data-kaart-groep={titel}>
       <p className="flex flex-wrap items-baseline gap-x-2 text-xs font-medium text-muted">
-        {titel}<span className="font-mono text-[0.65rem] font-normal text-faint">{nlsbb}</span>
+        {titel}<span className="font-mono text-3xs font-normal text-faint">{nlsbb}</span>
       </p>
       {children}
     </div>
@@ -508,14 +509,14 @@ function NlSbbStand({ stand: { api }, begrip }: { stand: BegripStand; begrip: Be
       <p className={stand.conform ? "text-muted" : "text-aandacht-geel-tekst"}>{zin}</p>
       {meldingen.length > 0 && (
         <Uitklap className="mt-1" samenvatting={<>Meldingen ({meldingen.length})</>}>
-          <ul className="mt-1 space-y-0.5 pl-4 text-[11px] text-muted">
+          <ul className="mt-1 space-y-0.5 pl-4 text-2xs text-muted">
             {meldingen.map((m, i) => (
               <li key={i}>
                 {m.laag === "nl_sbb" ? "NL-SBB" : "Platform"} · {m.ernst} · {veldVanPad(m.pad) || "begrip"}{m.melding ? `: ${m.melding}` : ""}
               </li>
             ))}
           </ul>
-          <p className="mt-1 text-[10px] text-faint">Een diagnose, geen blokkade: conform zegt iets over de vorm, niet over de juridische juistheid.</p>
+          <p className="mt-1 text-3xs text-faint">Een diagnose, geen blokkade: conform zegt iets over de vorm, niet over de juridische juistheid.</p>
         </Uitklap>
       )}
     </div>
@@ -540,7 +541,7 @@ function Historie({ stand: { api }, begrip }: { stand: BegripStand; begrip: Begr
 
   return (
     <Uitklap vorm="kader"
-      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)} samenvatting={<>Historie <span className="font-normal text-faint">({begrip.revisie} {begrip.revisie === 1 ? "revisie" : "revisies"})</span></>}>
+      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)} samenvatting={<>Historie <span className="font-normal text-faint">({aantal(begrip.revisie, "revisie", "revisies")})</span></>}>
       {fout ? (
         <p className="mt-2 text-xs text-aandacht-rood-tekst">{fout}</p>
       ) : !revisies ? (
@@ -635,7 +636,7 @@ function GebruiktIn({ begrip }: { begrip: Begrip }) {
     <BegripBlok weergave="pagina" titel="Gebruikt in" telling={gebruik.length} data-blok="gebruik">
       <ObjectRijen label="Werkgebieden die dit begrip gebruiken" leeg="Nog in geen enkel werkgebied.">
         {gebruik.map((g) => <ObjectRij key={g.werkgebied_id} href={projectPad(g.werkgebied_id)} titel={g.naam}
-          sub={g.passages === 1 ? "1 passage" : `${g.passages} passages`} />)}
+          sub={aantal(g.passages, "passage", "passages")} />)}
       </ObjectRijen>
     </BegripBlok>
   );

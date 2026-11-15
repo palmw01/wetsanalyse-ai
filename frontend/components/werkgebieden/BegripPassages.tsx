@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { Leeg } from "@/components/ui/Leeg";
 import { useEffect, useMemo, useState } from "react";
@@ -205,7 +206,7 @@ function PassagesDialoog({ id, begrip, primair, muteer, onKlaar }: {
     const gelukt = await muteer(
       (r) => koppelElementen(id, begrip.id, { verwachte_revisie: r, element_ids: [...gekozen], rol }),
       {
-        gelukt: gekozen.size === 1 ? "1 passage toegevoegd." : `${gekozen.size} passages toegevoegd.`,
+        gelukt: aantal(gekozen.size, "passage toegevoegd.", "passages toegevoegd."),
         opFout: (e) => { setFout(foutTekst(e)); return true; },
       },
     );

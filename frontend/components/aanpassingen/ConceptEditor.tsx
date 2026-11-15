@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -232,7 +233,7 @@ export function ConceptEditor({ o, versie, grenzen, bewerkbaar, onOpgeslagen, zi
                 const anders = w.gewijzigd.includes(p) ? "gewijzigd" : w.toegevoegd.includes(p) ? "nieuw" : "";
                 return (<>
                   {anders && <StatusLabel toon="lint" uitleg={anders === "nieuw" ? "Nieuw, nog niet opgeslagen" : "Gewijzigd, nog niet opgeslagen"}>{anders}</StatusLabel>}
-                  {n > 0 && <StatusLabel toon="geel" uitleg={n === 1 ? "1 bevinding in dit bestand" : `${n} bevindingen in dit bestand`}>{n}</StatusLabel>}
+                  {n > 0 && <StatusLabel toon="geel" uitleg={aantal(n, "bevinding in dit bestand", "bevindingen in dit bestand")}>{n}</StatusLabel>}
                 </>);
               }} />
             {w.verwijderd.length > 0 && (

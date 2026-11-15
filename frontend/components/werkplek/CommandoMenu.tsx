@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { Leeg } from "@/components/ui/Leeg";
 import type { Regel } from "@/lib/commandos";
 import { MENU_PANEEL, MENU_RIJ } from "@/components/ui/Menu";
@@ -30,9 +31,9 @@ export function CommandoMenu({ id, regels, actief, onKies, onActief }: {
               // (voluit in de tooltip en voor een schermlezer). Waarom het nu niet kan, staat apart en kapt nooit af.
               title={r.uit ? `${r.hulp} · ${r.uit}` : r.hulp}
               className={`${MENU_RIJ} cursor-pointer gap-3 ${i === actief ? "bg-surface" : ""} ${r.uit ? "opacity-60" : ""}`}>
-              <span className="shrink-0 font-mono text-[13px] text-ink">{r.label}</span>
-              <span className="min-w-0 flex-1 truncate text-[13px] text-muted" data-commando-hulp>{r.hulp}</span>
-              {r.uit && <span className="shrink-0 text-[13px] text-ink">{r.uit}</span>}
+              <span className="shrink-0 font-mono text-meta text-ink">{r.label}</span>
+              <span className="min-w-0 flex-1 truncate text-meta text-muted" data-commando-hulp>{r.hulp}</span>
+              {r.uit && <span className="shrink-0 text-meta text-ink">{r.uit}</span>}
             </li>
           ))}
         </ul>
@@ -42,7 +43,7 @@ export function CommandoMenu({ id, regels, actief, onKies, onActief }: {
         </Leeg>
       )}
       <p className="sr-only" aria-live="polite">
-        {regels.length ? `${regels.length} ${regels.length === 1 ? "commando" : "commando's"}` : "Geen commando"}
+        {regels.length ? `${aantal(regels.length, "commando", "commando's")}` : "Geen commando"}
       </p>
     </div>
   );

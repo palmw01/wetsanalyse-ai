@@ -113,7 +113,7 @@ export function Tabs({
               {t.badge !== undefined && t.badge > 0 && (
                 <span
                   aria-hidden
-                  className="ml-1.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-accent px-1 text-[0.6rem] font-bold leading-none text-paper"
+                  className="ml-1.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-accent px-1 text-3xs font-bold leading-none text-paper"
                 >
                   {t.badge > 99 ? "99+" : t.badge}
                 </span>

@@ -6,6 +6,7 @@
 // hier staat wat de werkplek over een voorstel zegt – welk voorstel bij welk veld hoort, hoe de herkomst
 // heet, wanneer het verouderd is – zonder DOM, zodat het in vitest te toetsen is.
 
+import { aantal } from "./aantal";
 import { AANDACHTSPUNT } from "@/lib/begripVoorstellen";
 import type {
   Begrip, DefinitieOnderbouwing, DefinitieWaarde, Duiding, KaartVeld, KaartVoorstel, TekstWaarde, VindplaatsSoort,
@@ -67,9 +68,9 @@ export function isDefinitie(v: KaartVoorstel): v is KaartVoorstel & { waarde: De
 export function onderzoekTekst(v: KaartVoorstel): string | null {
   const o = v.door?.onderzoek;
   if (!o) return null;
-  const delen = [`Onderzochte context: ${o.onderzocht === 1 ? "1 bepaling" : `${o.onderzocht} bepalingen`}`];
+  const delen = [`Onderzochte context: ${aantal(o.onderzocht, "bepaling", "bepalingen")}`];
   if (o.ontbrekend.length) delen.push(`ontbreekt: ${o.ontbrekend.join(", ")}`);
-  if (o.vragen) delen.push(o.vragen === 1 ? "1 open betekenisvraag" : `${o.vragen} open betekenisvragen`);
+  if (o.vragen) delen.push(aantal(o.vragen, "open betekenisvraag", "open betekenisvragen"));
   return delen.join("; ");
 }
 
@@ -96,7 +97,7 @@ export function onderbouwingKop(o: DefinitieOnderbouwing): string {
   const n = o.fragmenten.length;
   const wat = o.herkomst === "letterlijk" && (o.definitie_vindplaats || o.definitie_bron_iri)
     ? `Letterlijk uit ${o.definitie_vindplaats || o.definitie_bron_iri}`
-    : `Rust op ${n === 1 ? "1 fragment" : `${n} fragmenten`} uit de bron`;
+    : `Rust op ${aantal(n, "fragment", "fragmenten")} uit de bron`;
   const via = o.voorstel_id ? "via een voorstel van Lex" : o.groep_id ? "via een betekenisgroep" : "";
   return via ? `${wat} – ${via}` : wat;
 }
@@ -125,7 +126,7 @@ export function herkomstLabel(v: KaartVoorstel): string {
   }
   if (w.herkomst === "samengesteld") {
     const n = w.fragmenten.length;
-    return `Samengesteld uit de bron (${n === 1 ? "1 fragment" : `${n} fragmenten`})`;
+    return `Samengesteld uit de bron (${aantal(n, "fragment", "fragmenten")})`;
   }
   return "Geformuleerd door Lex";
 }

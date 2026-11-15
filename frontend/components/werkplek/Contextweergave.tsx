@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
@@ -167,12 +168,12 @@ function AgentContext({ agent, meer }: { agent: ContextAgent; meer: boolean }) {
       </p>
       <div role="img" aria-label={beschrijving} data-context-raster
         className="grid grid-cols-[repeat(20,minmax(0,1fr))] gap-0.5">
-        {vakjes.map((d, i) => <span key={i} data-vakje={d.id} className={`aspect-square rounded-[2px] ${d.kleur}`} />)}
+        {vakjes.map((d, i) => <span key={i} data-vakje={d.id} className={`aspect-square rounded-sm ${d.kleur}`} />)}
       </div>
       <ul data-context-legenda className="divide-y divide-line text-sm">
         {regels.map((r) => (
           <li key={r.deel.id} data-categorie={r.deel.id} title={r.deel.uitleg} className="flex items-baseline gap-2 py-1.5">
-            <span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 translate-y-px rounded-[2px] ${r.deel.kleur}`} />
+            <span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 translate-y-px rounded-sm ${r.deel.kleur}`} />
             <span className="min-w-0 flex-1 text-ink">
               {r.deel.label}
               {r.grens !== undefined && <span className="block text-xs text-muted">grens ≈ {kort(r.grens)}; daarboven kort Lex oudere beurten in</span>}
@@ -210,7 +211,7 @@ function VerbruikBlok({ c }: { c: Contextopbouw }) {
           {c.verbruik.map((v) => (
             <li key={v.rol} className="flex items-baseline gap-2 py-1.5">
               <span className="min-w-0 flex-1 text-ink">{rolLabel(v.rol)}
-                <span className="block text-xs text-muted">{v.aanroepen === 1 ? "1 aanroep" : `${v.aanroepen} aanroepen`}</span></span>
+                <span className="block text-xs text-muted">{aantal(v.aanroepen, "aanroep", "aanroepen")}</span></span>
               <span className="shrink-0 tabular-nums text-muted">{kort(totaalVerbruik(v))}</span>
             </li>
           ))}

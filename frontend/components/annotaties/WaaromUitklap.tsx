@@ -20,7 +20,7 @@ export function useVerklaringen(): Verklaringen | undefined {
   return v;
 }
 
-const KOP = "text-[11px] font-semibold text-muted";
+const KOP = "text-2xs font-semibold text-muted";
 
 function Regels({ kop, regels }: { kop: string; regels: WaaromRegel[] }) {
   if (!regels.length) return null;
@@ -97,11 +97,11 @@ function WaaromInhoud({ el }: { el: WaaromBron }) {
       }} samenvatting={<>Technisch detail</>}>
         {w.vraag && <>
           <p className={`${KOP} mt-1`}>Wat het model zag</p>
-          <pre className="mt-0.5 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded bg-surface p-2 text-[11px] text-ink">{w.vraag}</pre>
+          <pre className="mt-0.5 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded bg-surface p-2 text-2xs text-ink">{w.vraag}</pre>
         </>}
         {w.trace && <>
           <p className={`${KOP} mt-1`}>Spoor</p>
-          <pre className="mt-0.5 max-h-60 overflow-auto whitespace-pre-wrap break-words rounded bg-surface p-2 text-[11px] text-ink">{JSON.stringify(w.trace, null, 2)}</pre>
+          <pre className="mt-0.5 max-h-60 overflow-auto whitespace-pre-wrap break-words rounded bg-surface p-2 text-2xs text-ink">{JSON.stringify(w.trace, null, 2)}</pre>
         </>}
         {graafOpen && el.id && <GraafDetail id={el.id} />}
       </Uitklap>}
@@ -120,19 +120,19 @@ function GraafDetail({ id }: { id: string }) {
     haalElementGraaf(id).then((d) => { if (!weg) setData(d); }, (e) => { if (!weg) setFout(foutTekst(e)); });
     return () => { weg = true; };
   }, [id]);
-  if (fout) return <p className="mt-1 text-[11px] text-muted" data-testid="graaf-detail-fout">Graafdetail niet beschikbaar: {fout}</p>;
-  if (!data) return <p className="mt-1 text-[11px] text-muted">Graaf ophalen…</p>;
+  if (fout) return <p className="mt-1 text-2xs text-muted" data-testid="graaf-detail-fout">Graafdetail niet beschikbaar: {fout}</p>;
+  if (!data) return <p className="mt-1 text-2xs text-muted">Graaf ophalen…</p>;
   const status = graafStatusTekst(data.graafcontrole);
   return <div data-testid="graaf-technisch">
     <p className={`${KOP} mt-1`}>Graafcontrole van deze laag</p>
     <p className="mt-0.5"><StatusLabel toon={TOON[status.ernst]}>{status.tekst}</StatusLabel></p>
     <p className={`${KOP} mt-1 flex items-center gap-2`}>
       RDF (Turtle)
-      <button type="button" className="focus-ring rounded text-[11px] font-normal text-lint underline underline-offset-2 hover:no-underline"
+      <button type="button" className="focus-ring rounded text-2xs font-normal text-lint underline underline-offset-2 hover:no-underline"
         onClick={() => void kopieer(data.turtle)} title={kopie === "mislukt" ? KOPIEER_MISLUKT : undefined}>
         {kopie === "gekopieerd" ? "Gekopieerd" : kopie === "mislukt" ? KOPIEER_MISLUKT_KORT : "Kopiëren"}
       </button>
     </p>
-    <pre className="mt-0.5 max-h-60 overflow-auto whitespace-pre-wrap break-words rounded bg-surface p-2 text-[11px] text-ink">{data.turtle}</pre>
+    <pre className="mt-0.5 max-h-60 overflow-auto whitespace-pre-wrap break-words rounded bg-surface p-2 text-2xs text-ink">{data.turtle}</pre>
   </div>;
 }

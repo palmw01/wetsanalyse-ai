@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { useState } from "react";
 
 import { VoegToeFormulier, conceptGroep, magToevoegen, useWerkplaats } from "@/components/aanpassingen/Concepten";
@@ -40,7 +41,7 @@ export function AgentsPanel() {
       const n = afhankelijk(p, "connector").length, s = afhankelijk(p, "sjabloon").length;
       return {
         id: p.id, naam: p.label, titel: p.label, onOpen: () => lijst.open(p.id), zoektekst: `${p.label} ${p.doel} ${p.id}`,
-        sub: [p.doel, n && `${n} ${n === 1 ? "connector" : "connectors"}`, s && `${s} ${s === 1 ? "sjabloon" : "sjablonen"}`]
+        sub: [p.doel, n && `${aantal(n, "connector", "connectors")}`, s && `${aantal(s, "sjabloon", "sjablonen")}`]
           .filter(Boolean).join(" · "),
         status: <>{!p.aan && <StatusLabel>hier uit</StatusLabel>}<WaarschuwingLabel m={modellen} sleutel={sleutelVanProfiel(p.id)} /></>,
         onder: <ModelOnder m={modellen} sleutel={sleutelVanProfiel(p.id)} label={p.label} />, data: { "data-onderdeel": p.id },

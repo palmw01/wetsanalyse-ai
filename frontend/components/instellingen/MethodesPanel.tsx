@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { useState } from "react";
 
 import { ConceptBewerken, VoegToeFormulier, conceptGroep, magToevoegen, useWerkplaats } from "@/components/aanpassingen/Concepten";
@@ -32,10 +33,10 @@ export function MethodesPanel() {
   const groepen: AanpassingGroep[] = lijst.segment === "concepten" ? [concepten] : [{
     kop: "Methodes",
     rijen: methodes.map((m) => {
-      const aantal = rollenVan(m, rollen).length;
+      const rolTal = rollenVan(m, rollen).length;
       return {
         id: m.id, naam: m.label, titel: m.label, onOpen: () => lijst.open(m.id), zoektekst: `${m.label} ${m.doel} ${m.id}`,
-        sub: [m.doel, aantal ? `${aantal} ${aantal === 1 ? "rol" : "rollen"}` : "nog aan geen rol gekoppeld"].join(" · "),
+        sub: [m.doel, rolTal ? aantal(rolTal, "rol", "rollen") : "nog aan geen rol gekoppeld"].join(" · "),
         status: m.aan ? undefined : <StatusLabel>hier uit</StatusLabel>, data: { "data-onderdeel": m.id },
       };
     }),

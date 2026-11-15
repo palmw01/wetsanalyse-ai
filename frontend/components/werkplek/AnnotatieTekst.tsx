@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { useMemo } from "react";
 
 import { WettekstBlok } from "@/components/wettekst/WettekstBlok";
@@ -62,7 +63,7 @@ export function AnnotatieTekst({ regels, plekken, elementen, actiefId, onKies, o
         // de balk, alleen de stippellijn in de tekst. Bij nul: niets, ook geen groen vinkje.
         <div className="mb-3 flex items-center justify-between gap-3 px-3 text-xs text-muted" data-testid="dekking-balk">
           <span title="Een meting van de detectoren: hier is niets gezien. Dat zegt niet dat er iets ontbreekt.">
-            {ongedekt.length} {ongedekt.length === 1 ? "zinsdeel" : "zinsdelen"} zonder treffer van een detector
+            {aantal(ongedekt.length, "zinsdeel", "zinsdelen")} zonder treffer van een detector
             {toonOngedekt && onSelectie ? " – klik om zelf te markeren" : ""}
           </span>
           {onToonOngedekt && (

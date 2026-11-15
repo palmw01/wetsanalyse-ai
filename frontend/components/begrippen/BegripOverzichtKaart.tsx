@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { Leeg } from "@/components/ui/Leeg";
 import { OverzichtKaart } from "@/components/ui/Pagina";
 import { VerwijderKnop } from "@/components/ui/VerwijderKnop";
@@ -20,7 +21,7 @@ export function BegripOverzichtKaart({ b, onVerwijder }: { b: BegripOverzichtRij
       </StatusLabel>}
       sub={<>
         {b.kader === "generiek"
-          ? `Generiek · gebruikt in ${b.gebruikt_in === 1 ? "1 werkgebied" : `${b.gebruikt_in ?? 0} werkgebieden`}`
+          ? `Generiek · gebruikt in ${aantal(b.gebruikt_in ?? 0, "werkgebied", "werkgebieden")}`
           : b.werkgebied_naam}
         {b.alternatieve_termen.length > 0 && ` · ook: ${b.alternatieve_termen.join(", ")}`}
       </>}
@@ -29,7 +30,7 @@ export function BegripOverzichtKaart({ b, onVerwijder }: { b: BegripOverzichtRij
       {b.vervangen_door && <p className="text-xs text-muted">Vervangen door {b.vervangen_door.naam}</p>}
       {!!b.herbeoordelen && (
         <p className="text-xs text-aandacht-geel-tekst" data-herbeoordelen>
-          Herbeoordelen: {b.herbeoordelen === 1 ? "1 dragende passage veranderde" : `${b.herbeoordelen} dragende passages veranderden`} na het accorderen.
+          Herbeoordelen: {aantal(b.herbeoordelen, "dragende passage veranderde", "dragende passages veranderden")} na het accorderen.
         </p>
       )}
     </OverzichtKaart>

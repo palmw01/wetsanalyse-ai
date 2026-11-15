@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { Uitklap } from "@/components/ui/Uitklap";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -29,7 +30,6 @@ import { usePlaatsen } from "@/lib/usePlaatsen";
 import { artefactPad, begripPad, elementPad, projectPad } from "@/lib/werkgebiedPaden";
 import { KlasseLabel } from "@/components/ui/Lijst";
 
-const telling = (n: number, een: string, meer: string) => `${n} ${n === 1 ? een : meer}`;
 
 /** De voorstellen van Lex voor één term (spoor H4). De keten maakt één groep per term per bepaling; hier
  *  staan ze weer bij elkaar, als passages per regeling › hoofdstuk › artikel › lid, met één besluit voor
@@ -70,7 +70,7 @@ export function BegripTermPagina({ sleutel }: { sleutel: string }) {
         titel={term?.naam ?? sleutel}
         sub="Waar Lex deze term vond, per regeling en artikel. Vink aan wat één begrip draagt, en beslis in één keer."
         meta={term && <>
-          <span>{termOmvang(term)}</span><Stip /><span>{telling(term.passages, "passage", "passages")}</span>
+          <span>{termOmvang(term)}</span><Stip /><span>{aantal(term.passages, "passage", "passages")}</span>
           {term.lijktOp.length > 0 && <><Stip /><span>lijkt op {term.lijktOp.map((b) => (b.generiek ? `${b.naam} (generiek)` : b.naam)).join(", ")}</span></>}
         </>}
         acties={<VraagLexKnop primair onderwerp={{ soort: "werkgebied", werkgebied_id: wg.id, id: "", label: wg.naam }}
@@ -210,7 +210,7 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
               <ul className="mt-1 space-y-0.5 pl-4">
                 {uitleg.map((u) => <li key={u}>{u}</li>)}
                 {term.vragenBinnen.length > 0 && (
-                  <li>{telling(term.vragenBinnen.length, "twijfelvraag", "twijfelvragen")} tussen deze passages; met één begrip zijn ze beantwoord.</li>
+                  <li>{aantal(term.vragenBinnen.length, "twijfelvraag", "twijfelvragen")} tussen deze passages; met één begrip zijn ze beantwoord.</li>
                 )}
                 {conflicten > 0 && <li className="text-aandacht-geel-tekst">Er is ook bewijs dat niet alles hetzelfde betekent ({conflicten}); beoordeel de passages zelf.</li>}
               </ul>
@@ -255,7 +255,7 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
             <p className="text-xs text-muted" data-herkomst-wordt={wordt}>Herkomst: {HERKOMST_LABEL[wordt]}</p>
           )}
           {def && def.fragmenten.length > 0 && (
-            <Uitklap samenvatting={<>Rust op {telling(def.fragmenten.length, "passage", "passages")} uit de bron</>}>
+            <Uitklap samenvatting={<>Rust op {aantal(def.fragmenten.length, "passage", "passages")} uit de bron</>}>
               <ul className="mt-1 space-y-0.5 pl-4">{def.fragmenten.map((f) => <li key={f.id}>“{f.tekst}”</li>)}</ul>
             </Uitklap>
           )}
@@ -298,7 +298,7 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
           <ul className="mt-2 space-y-1 text-xs text-ink">
             {term.besloten.map((g) => (
               <li key={g.id}>
-                {BESLUIT_LABEL[g.besluit]} · {telling(g.leden.length + (g.afgehandeld ?? 0), "passage", "passages")}{g.reden ? ` · ${g.reden}` : ""}
+                {BESLUIT_LABEL[g.besluit]} · {aantal(g.leden.length + (g.afgehandeld ?? 0), "passage", "passages")}{g.reden ? ` · ${g.reden}` : ""}
                 {g.begrip_id && <>{" · "}<Link href={begripPad(werkgebiedId, g.begrip_id)} className="focus-ring rounded text-lint underline">begrip openen</Link></>}
               </li>
             ))}
@@ -379,7 +379,7 @@ export function VraagRegel({ vraag: v, data, bezig, onApart, onSamen }: {
   );
 }
 
-function ActieBalk({ aantal, bezig, lijktOp, later, geparkeerd, geenBegrip, onGeenBegripOpen, onMaak, onKoppel, onLater,
+function ActieBalk({ aantal: gekozen, bezig, lijktOp, later, geparkeerd, geenBegrip, onGeenBegripOpen, onMaak, onKoppel, onLater,
   onHeropenen, onGeenBegrip, onWis }: {
   aantal: number; bezig: boolean; lijktOp: Term["lijktOp"]; later: boolean; geparkeerd: boolean; geenBegrip: boolean;
   onGeenBegripOpen: (open: boolean) => void; onMaak: () => void; onKoppel: (begripId: string) => void; onLater: () => void;
@@ -390,12 +390,12 @@ function ActieBalk({ aantal, bezig, lijktOp, later, geparkeerd, geenBegrip, onGe
   useEffect(() => {
     if (geenBegrip) redenRef.current?.focus();
   }, [geenBegrip]);
-  const n = `(${aantal})`;
-  const uit = bezig || aantal === 0;
+  const n = `(${gekozen})`;
+  const uit = bezig || gekozen === 0;
   return (
     <div data-actiebalk className="sticky bottom-0 z-10 -mx-1 rounded-kaart border border-line bg-paper p-3 shadow-kaart">
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <span className="text-sm font-medium text-ink">{bezig ? "Bezig…" : `${telling(aantal, "passage", "passages")} gekozen`}</span>
+        <span className="text-sm font-medium text-ink">{bezig ? "Bezig…" : `${aantal(gekozen, "passage", "passages")} gekozen`}</span>
         <Button size="sm" disabled={uit} onClick={onMaak}>Eén begrip maken {n}</Button>
         {lijktOp.map((b) => (
           <Button key={b.begrip_id} size="sm" variant="secondary" disabled={uit} onClick={() => onKoppel(b.begrip_id)}>

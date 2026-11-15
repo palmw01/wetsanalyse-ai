@@ -257,15 +257,15 @@ export function TourBubbel({
           <SluitKnop onSluit={onSluit} label="Rondleiding afsluiten" className="-mt-1" />
         </div>
 
-        <p className="text-[0.8125rem] leading-6 text-ink">{stap.tekst}</p>
+        <p className="text-meta leading-6 text-ink">{stap.tekst}</p>
         {stap.waarom && (
-          <p className="mt-2 border-l-2 border-lint/30 pl-2.5 text-[0.75rem] leading-5 text-muted">
+          <p className="mt-2 border-l-2 border-lint/30 pl-2.5 text-xs leading-5 text-muted">
             <span className="font-semibold text-ink">Waarom: </span>
             {stap.waarom}
           </p>
         )}
         {gedaan && (
-          <p className="mt-2 rounded-kaart bg-aandacht-groen-bg px-2.5 py-1.5 text-[0.75rem] text-aandacht-groen-tekst">
+          <p className="mt-2 rounded-kaart bg-aandacht-groen-bg px-2.5 py-1.5 text-xs text-aandacht-groen-tekst">
             {gedaan}
           </p>
         )}
@@ -281,13 +281,13 @@ export function TourBubbel({
         </div>
 
         <div className="mt-2.5 flex items-center gap-2">
-          <span className="text-[0.7rem] text-faint">
+          <span className="text-2xs text-faint">
             Stap {nummer} van {totaal}
           </span>
           <button
             type="button"
             onClick={onSluit}
-            className="focus-ring ml-auto min-h-[24px] rounded px-1 text-[0.75rem] text-muted underline underline-offset-2 transition-colors hover:text-ink coarse:min-h-[44px]"
+            className="focus-ring ml-auto min-h-[24px] rounded px-1 text-xs text-muted underline underline-offset-2 transition-colors hover:text-ink coarse:min-h-[44px]"
           >
             Overslaan
           </button>
@@ -295,7 +295,7 @@ export function TourBubbel({
             type="button"
             onClick={onVorige}
             disabled={!onVorige}
-            className="focus-ring min-h-[28px] rounded-knop-xs border border-line px-2.5 text-[0.75rem] text-ink transition-colors hover:bg-surface disabled:opacity-40 coarse:min-h-[44px]"
+            className="focus-ring min-h-[28px] rounded-knop-xs border border-line px-2.5 text-xs text-ink transition-colors hover:bg-surface disabled:opacity-40 coarse:min-h-[44px]"
           >
             Vorige
           </button>

@@ -54,7 +54,7 @@ export function AnnotatieKaart({ doc, onVerwijder }: {
           </span>
         )}
         <span>bijgewerkt {geleden(doc.updated)}</span>
-        {doc.laatste_model && <span className="font-mono text-[0.65rem]">{doc.laatste_model}</span>}
+        {doc.laatste_model && <span className="font-mono text-3xs">{doc.laatste_model}</span>}
       </div>
     </OverzichtKaart>
   );

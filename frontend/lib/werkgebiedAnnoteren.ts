@@ -9,6 +9,7 @@
 // Pure functies, zodat de teksten en de tellingen zonder DOM te testen zijn
 // (lib/werkgebiedAnnoteren.test.ts).
 
+import { aantal } from "./aantal";
 import type { ThreadItem } from "./threadItem";
 import type { Bevestiging } from "./types";
 
@@ -74,9 +75,9 @@ export function regiePrompt(opdracht: "bronnen" | "annoteren"): string {
 }
 
 export function deelgesprekken(n: number): string {
-  return n === 1 ? "1 deelgesprek" : `${n} deelgesprekken`;
+  return aantal(n, "deelgesprek", "deelgesprekken");
 }
 
 export function bepalingen(n: number): string {
-  return n === 1 ? "1 bepaling" : `${n} bepalingen`;
+  return aantal(n, "bepaling", "bepalingen");
 }

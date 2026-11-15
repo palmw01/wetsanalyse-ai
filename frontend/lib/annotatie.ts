@@ -1,4 +1,5 @@
 import { isApiError } from "./api";
+import { aantal } from "./aantal";
 import { isKlaarOmAfTeRonden } from "./annotatieOverzicht";
 import { jasVolgorde } from "./jas";
 import type { LidRegel } from "./selectie";
@@ -344,7 +345,7 @@ export function hergebruikTekst(h: AgentHergebruik): string {
   const leden = h.leden.filter((l) => l !== "");
   const wat = leden.length === 0 ? "Dit artikel" : leden.length === 1 ? `Lid ${leden[0]}` : `Leden ${leden.join(", ")}`;
   const t = h.telling;
-  const stand = `${t.markeringen} ${t.markeringen === 1 ? "markering" : "markeringen"}, waarvan ${t.beoordeeld} beoordeeld en ${t.te_beoordelen} nog te beoordelen`;
+  const stand = `${aantal(t.markeringen, "markering", "markeringen")}, waarvan ${t.beoordeeld} beoordeeld en ${t.te_beoordelen} nog te beoordelen`;
   return h.volledig
     ? `${wat} was al geannoteerd en de wettekst is sindsdien niet veranderd. Dit is de bestaande annotatie (${stand}).`
     : `${wat} kwam ongewijzigd uit de bestaande annotatie (${stand}); de rest is nu opnieuw geannoteerd.`;

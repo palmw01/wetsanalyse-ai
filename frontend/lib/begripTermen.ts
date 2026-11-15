@@ -3,6 +3,7 @@
 // twijfelvragen zijn de vragen of die groepen bij elkaar horen. Hier komen ze weer samen onder hun term,
 // met de bestaande begrippen van die naam. Zuiver, zodat vitest het zonder DOM toetst.
 
+import { aantal } from "./aantal";
 import { openVragen } from "./begripVoorstellen";
 import type { Betekenisgroep, GroepenAntwoord, Passage, TwijfelVraag } from "./types";
 
@@ -113,7 +114,7 @@ export function standaardKeuze(t: Term): Set<string> {
 /** "3 voorstellen in 2 regelingen", of de naam van de ene regeling. */
 export function termOmvang(t: Pick<Term, "open" | "regelingen">): string {
   const n = t.open.length;
-  const v = `${n} ${n === 1 ? "voorstel" : "voorstellen"}`;
+  const v = `${aantal(n, "voorstel", "voorstellen")}`;
   if (!t.regelingen.length) return v;
   return t.regelingen.length === 1 ? `${v} · ${t.regelingen[0]}` : `${v} in ${t.regelingen.length} regelingen`;
 }

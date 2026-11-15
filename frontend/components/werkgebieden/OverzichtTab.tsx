@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { tijdOfDag } from "@/lib/datum";
 import { LeegWaarde } from "@/components/ui/Leeg";
 import Link from "next/link";
@@ -43,7 +44,7 @@ export function OverzichtTab() {
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="min-w-0 space-y-4">
           <Kaart titel="Analyseopdracht" meer={{ href: artefactPad(wg.id, "dossier"), label: "Dossier" }} data-kaart="analyseopdracht">
-            <p className="mb-3 rounded-md border-l-4 border-lint bg-lint/5 px-3 py-2.5 text-[0.95rem] font-medium leading-relaxed text-ink"
+            <p className="mb-3 rounded-md border-l-4 border-lint bg-lint/5 px-3 py-2.5 text-lees font-medium leading-relaxed text-ink"
               data-analysevraag>
               {wg.analysevraag.trim() || <LeegWaarde>Nog geen analysevraag.</LeegWaarde>}
             </p>
@@ -74,7 +75,7 @@ export function OverzichtTab() {
             </ObjectRijen>
             {voorgesteld.length > 0 && (
               <Link href={artefactPad(wg.id, "dossier")} className="focus-ring mt-2 inline-block rounded text-xs font-medium text-aandacht-geel-tekst hover:underline">
-                {voorgesteld.length} {voorgesteld.length === 1 ? "voorstel" : "voorstellen"} van Lex om te beoordelen
+                {aantal(voorgesteld.length, "voorstel", "voorstellen")} van Lex om te beoordelen
               </Link>
             )}
           </Kaart>

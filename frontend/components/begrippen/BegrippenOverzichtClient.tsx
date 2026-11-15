@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { OverzichtRaster, OverzichtSkelet } from "@/components/ui/Pagina";
 import { Leeg } from "@/components/ui/Leeg";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -137,7 +138,7 @@ export function BegrippenOverzichtClient() {
       ) : (
         <>
           <p className="mb-2 text-xs text-muted" aria-live="polite">
-            {data.totaal === 1 ? "1 begrip" : `${data.totaal} begrippen`}
+            {aantal(data.totaal, "begrip", "begrippen")}
             {data.resultaten.length < data.totaal ? ` (de eerste ${data.resultaten.length})` : ""}
           </p>
           <OverzichtRaster data-testid="begrippen-overzicht">

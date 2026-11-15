@@ -64,7 +64,7 @@ const KNOP_BASIS =
   "transition coarse:min-h-[44px] disabled:opacity-50";
 const CHIP =
   "focus-ring inline-flex min-h-[24px] items-center rounded-knop-xs border border-line px-2.5 py-0.5 " +
-  "text-[0.7rem] text-ink transition hover:border-lint hover:bg-surface coarse:min-h-[44px] disabled:opacity-50";
+  "text-2xs text-ink transition hover:border-lint hover:bg-surface coarse:min-h-[44px] disabled:opacity-50";
 
 /** Wie dit element maakte en wat ermee gebeurde, in mensentaal.
  *
@@ -313,7 +313,7 @@ function DecisionCard({
           )}
           {/* Het lid alleen als het document méér dan één lid beslaat; anders staat het al in de kop
               van het artefact ("artikel 9 lid 1") en herhaalt elke kaart dezelfde mededeling. */}
-          {toonLid && el.lid && <span className="text-[0.65rem] text-muted">lid {el.lid}</span>}
+          {toonLid && el.lid && <span className="text-3xs text-muted">lid {el.lid}</span>}
         </span>
 
         {/* De klasse ís de knop: klikken opent het palet, klikken op een klasse is de wijziging.
@@ -440,7 +440,7 @@ function DecisionCard({
             </button>
           ) : (
             <>
-              <span className="text-[0.7rem] text-muted">Verwerpen – waarom?</span>
+              <span className="text-2xs text-muted">Verwerpen – waarom?</span>
               {REDENEN.map((r) => (
                 <button
                   key={r.waarde}
@@ -531,7 +531,7 @@ function DecisionCard({
           grounding. Buiten de werkplek heeft een markering geen weg, en dan geen knop. */}
       {uitgeklapt && vraag && <div className="mt-2" onClick={(e) => e.stopPropagation()}><VraagLexKnop onderwerp={vraag} /></div>}
 
-      <div className="mt-2 flex items-center justify-between gap-2 border-t border-line/60 pt-1.5 text-[0.65rem] text-muted">
+      <div className="mt-2 flex items-center justify-between gap-2 border-t border-line/60 pt-1.5 text-3xs text-muted">
         <span className="min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>
           {!uitgeklapt || notitieDicht ? null : notitie ? (
             <InlineVeld
@@ -638,11 +638,11 @@ export function ReviewQueue({
             Review – {beslist}/{totaal} beoordeeld
           </span>
           {afgerond ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-aandacht-groen-bg px-2 py-0.5 text-[0.65rem] font-semibold text-aandacht-groen-tekst">
+            <span className="inline-flex items-center gap-1 rounded-full bg-aandacht-groen-bg px-2 py-0.5 text-3xs font-semibold text-aandacht-groen-tekst">
               <Vinkje /> Alles beoordeeld
             </span>
           ) : (
-            <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.65rem] text-muted">
+            <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-3xs text-muted">
               {teReviewen > 0 && <span>{teReviewen} te gaan</span>}
               {zwevend > 0 && (
                 <span className="inline-flex items-center gap-1 text-aandacht-geel-tekst">
@@ -665,7 +665,7 @@ export function ReviewQueue({
                 type="button"
                 aria-pressed={filter === f.waarde}
                 onClick={() => onFilter(f.waarde)}
-                className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-[0.7rem] transition coarse:min-h-[44px] ${
+                className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-2xs transition coarse:min-h-[44px] ${
                   filter === f.waarde
                     ? "border-lint bg-lint text-paper"
                     : "border-line text-muted hover:border-lint hover:text-ink"
@@ -678,7 +678,7 @@ export function ReviewQueue({
           {onAkkoordGroen && groen > 0 && (
             <BevestigKnop bevestigTekst={`${groen} akkoord?`} onBevestig={onAkkoordGroen}
               titel="Bevestigt de voorstellen zonder twijfel; geel en rood bekijk je één voor één."
-              className="focus-ring min-h-[24px] rounded-knop-xs border border-line px-2.5 py-0.5 text-[0.7rem] text-muted transition hover:border-lint hover:text-ink coarse:min-h-[44px]"
+              className="focus-ring min-h-[24px] rounded-knop-xs border border-line px-2.5 py-0.5 text-2xs text-muted transition hover:border-lint hover:text-ink coarse:min-h-[44px]"
               bevestigClassName="border-aandacht-groen-rand text-aandacht-groen-tekst">
               Akkoord met de groene ({groen})
             </BevestigKnop>

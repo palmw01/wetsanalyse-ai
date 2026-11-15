@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { momentKort } from "@/lib/datum";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { useRouter } from "next/navigation";
@@ -16,7 +17,6 @@ import { AANDACHT_LABEL, BESLUIT_LABEL, openVragen, passageTekst, samenAkkoord }
 import type { BegrippenRun, GroepenAntwoord } from "@/lib/types";
 import { begripPad, termPad } from "@/lib/werkgebiedPaden";
 
-const telling = (n: number, een: string, meer: string) => `${n} ${n === 1 ? een : meer}`;
 
 const datum = momentKort;
 
@@ -100,7 +100,7 @@ export function BegripVoorstellen({ id, runId, kop = "Voorstellen van Lex", sub,
             <div className="space-y-1 text-xs text-muted">
               <p>
                 Laatste voorstel {datum(run.gewijzigd)} · {run.aantal_formuleringen} passages ·{" "}
-                {telling(data?.groepen.length ?? 0, "groep", "groepen")} · {telling(vragen.length, "vraag", "vragen")}
+                {aantal(data?.groepen.length ?? 0, "groep", "groepen")} · {aantal(vragen.length, "vraag", "vragen")}
                 {run.status === "mislukt" && <span className="text-aandacht-geel-tekst"> · mislukt: {run.reden || "onbekend"}</span>}
                 {laatste?.verouderd && (
                   <span className="text-aandacht-geel-tekst" data-verouderd>
@@ -113,7 +113,7 @@ export function BegripVoorstellen({ id, runId, kop = "Voorstellen van Lex", sub,
                   een kaart per groep. Een definitie die Lex formuleerde, staat geel.</p>
               )}
               {run.overgeslagen.length > 0 && (
-                <Uitklap samenvatting={<>{run.overgeslagen.length === 1 ? "1 passage" : `${run.overgeslagen.length} passages`} niet meegenomen</>}>
+                <Uitklap samenvatting={<>{aantal(run.overgeslagen.length, "passage", "passages")} niet meegenomen</>}>
                   <ul className="mt-1 space-y-0.5 pl-4">
                     {run.overgeslagen.map((o) => <li key={o.element_id}>“{o.tekst}” – {o.reden}</li>)}
                   </ul>
@@ -136,8 +136,8 @@ export function BegripVoorstellen({ id, runId, kop = "Voorstellen van Lex", sub,
               {open.map((t) => (
                 <GroepRij key={t.sleutel} href={termPad(id, t.sleutel)} data-term={t.sleutel} titel={t.naam}
                   sub={<>
-                    {termOmvang(t)} · {telling(t.passages, "passage", "passages")}
-                    {t.vragenBuiten.length > 0 && ` · ${telling(t.vragenBuiten.length, "vraag", "vragen")} naar een andere term`}
+                    {termOmvang(t)} · {aantal(t.passages, "passage", "passages")}
+                    {t.vragenBuiten.length > 0 && ` · ${aantal(t.vragenBuiten.length, "vraag", "vragen")} naar een andere term`}
                   </>}
                   status={<>
                     <StatusLabel toon="lint">Voorstel van Lex</StatusLabel>

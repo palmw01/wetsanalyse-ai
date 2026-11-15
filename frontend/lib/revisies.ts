@@ -1,4 +1,5 @@
 import { nodeRequest } from "./annotatieNode";
+import { aantal } from "./aantal";
 import { pathSegment } from "./url";
 
 /** Eén revisie van een laag (`GET lagen/{id}/revisies`): wie, wanneer en wat er gebeurde. De api
@@ -34,7 +35,7 @@ export function actieTekst(a: Revisie["acties"][number]): string {
 export function revisieSamenvatting(r: Revisie): string {
   if (r.acties.some((a) => a.actie === "batch")) {
     const n = r.acties.filter((a) => a.actie === "element-gemaakt").length;
-    return `ronde van Lex: ${n ? `${n} ${n === 1 ? "markering" : "markeringen"}` : "geen nieuwe markeringen"}`;
+    return `ronde van Lex: ${n ? `${aantal(n, "markering", "markeringen")}` : "geen nieuwe markeringen"}`;
   }
   const tel = new Map<string, number>();
   for (const a of r.acties) tel.set(actieTekst(a), (tel.get(actieTekst(a)) ?? 0) + 1);

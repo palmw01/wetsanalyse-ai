@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import { Leeg } from "@/components/ui/Leeg";
 import { useMemo, useState } from "react";
 
@@ -35,7 +36,7 @@ export function Tekstverschil({ oud, nieuw, label }: {
         {delen.map((blok, i) => (blok.soort === "gelijk" && !open.has(i) ? (
           <button key={i} type="button" onClick={() => setOpen(new Set([...open, i]))} data-verschil-ingeklapt
             className="focus-ring block w-full border-y border-line bg-surface px-2 py-1 text-left font-sans text-xs text-muted first:border-t-0 last:border-b-0 hover:text-lint">
-            {blok.regels.length === 1 ? "1 regel gelijk" : `${blok.regels.length} regels gelijk`} · toon
+            {aantal(blok.regels.length, "regel gelijk", "regels gelijk")} · toon
           </button>
         ) : blok.regels.map((r, j) => (
           <div key={`${i}.${j}`} data-regel={r.soort} className={`flex gap-2 px-2 ${KLEUR[r.soort]}`}>

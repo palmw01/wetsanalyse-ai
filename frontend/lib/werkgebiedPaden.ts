@@ -1,6 +1,7 @@
 // De werkgebiedpagina als project (spoor G2): vijf tabs als echte paden, de detailpagina's eronder, en
 // de artefactkaarten. Zuiver, zodat vitest het zonder DOM toetst; de componenten lezen alleen.
 
+import { aantal } from "./aantal";
 import type { BegripSamenvatting, BronKandidaat, Werkgebied } from "./types";
 import { isOpen } from "./bronKandidaten";
 
@@ -171,7 +172,7 @@ export function artefactKaarten(wg: Werkgebied, extra: {
       soort: "bronselectie", titel: ARTEFACT_LABEL.bronselectie,
       omschrijving: "De bepalingen van dit werkgebied, met hun rol en reden.",
       versie: `${wg.bronnen.length} bepalingen · ${analyse} om te analyseren`,
-      status: open ? { tekst: `${open} ${open === 1 ? "voorstel" : "voorstellen"} van Lex`, toon: "geel" } : null,
+      status: open ? { tekst: `${aantal(open, "voorstel", "voorstellen")} van Lex`, toon: "geel" } : null,
     },
     {
       soort: "annotaties", titel: ARTEFACT_LABEL.annotaties,

@@ -1,5 +1,6 @@
 "use client";
 
+import { aantal } from "@/lib/aantal";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -43,7 +44,7 @@ export function VersiesKaart({ o, gekozen }: { o: WerkplaatsOnderdeel; gekozen: 
                   <span className="font-medium text-lint">Versie {v.nummer}</span>
                   {v.actief && <StatusLabel toon="groen" uitleg="Dit is de versie die Lex gebruikt.">draait nu</StatusLabel>}
                   {!v.geldig && <StatusLabel toon="geel" uitleg="Deze versie haalt de controle niet.">
-                    {v.bevindingen.length === 1 ? "1 bevinding" : `${v.bevindingen.length} bevindingen`}</StatusLabel>}
+                    {aantal(v.bevindingen.length, "bevinding", "bevindingen")}</StatusLabel>}
                 </span>
                 <span className="block text-xs text-muted [overflow-wrap:anywhere]">{datumTijd(v.gemaakt)} · {v.door}</span>
                 {v.toelichting && <span className="block text-xs text-ink [overflow-wrap:anywhere]">{v.toelichting}</span>}

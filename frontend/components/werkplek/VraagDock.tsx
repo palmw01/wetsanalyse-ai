@@ -80,12 +80,12 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
       aria-label="Vraag van Lex"
       data-vraagdock={kaart.stap}
       data-deel={kaart.deel?.index}
-      className="relative w-full overflow-hidden rounded-[24px] border border-line bg-white shadow-kaart"
+      className="relative w-full overflow-hidden rounded-vraag border border-line bg-paper shadow-kaart"
     >
       <div className="overflow-y-auto overscroll-contain px-5 pb-4"
         style={{ maxHeight: hoogte ? `min(70dvh, ${Math.max(hoogte - 24, 240)}px)` : "70dvh" }}>
         {/* Bladeren en sluiten blijven staan terwijl de vraag meescrollt. */}
-        <div className="sticky top-0 z-10 -mx-5 flex items-center gap-1 bg-white/95 px-3 pt-3 pb-1 backdrop-blur">
+        <div className="sticky top-0 z-10 -mx-5 flex items-center gap-1 bg-paper/95 px-3 pt-3 pb-1 backdrop-blur">
           <button type="button" aria-label="Vorige vraag" disabled={!vorige || uitgeschakeld}
             onClick={() => vorige && stuur({ ...basis, actie: "wijzig", ...vorige })}
             className="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-knop text-ink hover:bg-surface disabled:opacity-30 coarse:h-11 coarse:w-11">
@@ -100,18 +100,18 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
             <ChevronOmlaag className="-rotate-90 text-lg" />
           </button>
           <button type="button" aria-label="Vraag sluiten" onClick={onSluit}
-            className="focus-ring ml-auto inline-flex h-10 w-10 items-center justify-center rounded-knop border border-line bg-white text-ink shadow-zacht hover:bg-surface coarse:h-11 coarse:w-11">
+            className="focus-ring ml-auto inline-flex h-10 w-10 items-center justify-center rounded-knop border border-line bg-paper text-ink shadow-zacht hover:bg-surface coarse:h-11 coarse:w-11">
             <Kruis className="text-base" />
           </button>
         </div>
 
         <h2 className="mt-1 font-display text-lg font-semibold leading-snug text-ink sm:text-xl">{kaart.vraag}</h2>
-        {kaart.deel?.deelvraag && <p className="mt-1 text-[15px] text-ink">“{kaart.deel.deelvraag}”</p>}
+        {kaart.deel?.deelvraag && <p className="mt-1 text-lees text-ink">“{kaart.deel.deelvraag}”</p>}
         {kaart.toelichting && <p className="mt-1 text-sm text-muted">{kaart.toelichting}</p>}
 
         {kaart.soort === "samenvatting" && kaart.samenvatting && aanvullen ? (
           kaart.samenvatting.wijzigingen.length > 0 && (
-            <Regels className="mt-3 text-[15px]" data-wijzigingen>
+            <Regels className="mt-3 text-lees" data-wijzigingen>
               {kaart.samenvatting.wijzigingen.map((w) => (
                 <Regel key={w.veld} naam={w.label} data-wijziging={w.veld}>
                   <span className="block text-muted" data-toen>
@@ -128,7 +128,7 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
             </Regels>
           )
         ) : kaart.soort === "samenvatting" && kaart.samenvatting ? (
-          <Regels className="mt-3 text-[15px]">
+          <Regels className="mt-3 text-lees">
             <Regel naam="Naam">{kaart.samenvatting.naam}</Regel>
             {(["aanleiding", "context", "doel"] as const).map((v) => (
               <Regel key={v} naam={DOSSIER_NAAM[v]}>
@@ -196,7 +196,7 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
                     i === cursor ? "group-focus-visible:bg-surface group-focus-visible:ring-1 group-focus-visible:ring-lint/40" : ""} ${
                     uitgeschakeld ? "cursor-not-allowed opacity-50" : ""}`}>
                   <span className="min-w-0 flex-1">
-                    <span className={`block text-[15px] font-medium ${o.waarde === ONBEKEND ? "text-muted" : "text-ink"}`}>{o.label}</span>
+                    <span className={`block text-lees font-medium ${o.waarde === ONBEKEND ? "text-muted" : "text-ink"}`}>{o.label}</span>
                     {o.omschrijving && <span className="mt-0.5 block text-sm text-muted">{o.omschrijving}</span>}
                   </span>
                   {aan && <Vinkje className="text-lg text-lint" />}
@@ -228,7 +228,7 @@ export function VraagDock({ kaart, uitgeschakeld, onActie, onSluit }: {
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); stuur(actie); }
                     }}
-                    className="block w-full resize-none border-0 bg-transparent p-0 text-[15px] text-ink placeholder:text-faint focus:outline-none focus:ring-0 disabled:opacity-50"
+                    className="block w-full resize-none border-0 bg-transparent p-0 text-lees text-ink placeholder:text-faint focus:outline-none focus:ring-0 disabled:opacity-50"
                   />
                 </label>
                 {eigen.trim() && <Vinkje className="text-lg text-lint" />}
