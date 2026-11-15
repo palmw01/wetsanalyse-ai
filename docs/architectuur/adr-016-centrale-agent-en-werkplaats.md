@@ -516,6 +516,9 @@ te itereren. Runs verschillen sterk: een trend claimen we pas over drie runs.
    `uit` is het slot voor productie: een veld per run dat overal telt, zou daar een ongemeten agent openzetten. De
    poort-guard toetst dat de default `uit` is en dat alleen acceptatie een andere stand zet.
 2. De meting (A6) vergelijkt beide.
+   *Uitkomst (15 nov 2026):* A6 haalt 9 van de 10 drempels (niet: vragen naar boven, 2 van 4); zie
+   `docs/architectuur/metingen/` (A6-eindverslag). Acceptatie staat sindsdien op `aan`; productie blijft `uit`. Stap 3
+   volgt pas na de fixes voor de open punten en een besluit van de gebruiker.
 3. Bij winst vervallen de supervisor-modelstap, het `WORKERS:`-formaat en de keuze tussen specialisten. De regisseur
    blijft, als tool op de delegatie. Er blijven geen twee varianten bestaan.
 4. Bij verlies blijft de oude weg, en zegt het meetlogboek waarom. Valt alleen de delegatie tegen en de centrale agent
