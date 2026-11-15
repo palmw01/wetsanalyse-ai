@@ -1,9 +1,27 @@
 # Plan: volwaardige agentprofielen (ADR-016 §A2)
 
-Soort: *plan* (15 nov 2026), nog niet gebouwd. Het hoort bij [ADR-016](adr-016-centrale-agent-en-werkplaats.md) §A2 en
+Soort: *plan* (15 nov 2026), gebouwd op akkoord van de gebruiker als PR-stapel `claude/agentprofielen-1…5` (zie
+*Stand na het bouwen*), nog niet gemeten. Het hoort bij [ADR-016](adr-016-centrale-agent-en-werkplaats.md) §A2 en
 §A5. Het volgt op de eindmeting A6 ([`metingen/centrale-agent-2026-11-15-a6-eind/a6-eind.md`](metingen/centrale-agent-2026-11-15-a6-eind/a6-eind.md)).
 Bouwen begint pas na akkoord van de gebruiker en na de laatste fixronde van A6 (PR #1560). Zolang die loopt, raakt dit
 plan graph-qa niet aan.
+
+## Stand na het bouwen (15 nov 2026)
+
+Gebouwd zoals hieronder, met vier afwijkingen die tijdens het bouwen bleken:
+- **Er was al een tokenplafond per subagent:** `MAX_TOKENS_SUBAGENT = 300_000` (`nodes/antwoord.py`). Het veld
+  `budget` vervangt dat per profiel. Geen profiel komt erboven: de budgetten zijn 300k (rechtspraak, wetsgeschiedenis,
+  algemeen) en 260k (bepalingen). De eerder voorgestelde 340k en 350k gelden niet. De metingen van run 3 lagen dus
+  tegen dat plafond aan, niet eronder.
+- **Geen rekening met de supervisor** (besluit van de gebruiker, 15 nov 2026: "We stappen af van supervisor"). Er komt
+  geen overgangslijst `SUPERVISOR_SPECIALISTEN`. De supervisor kiest uit de namen die zijn eigen prompt noemt
+  (`supervisor._QA_SPECIALISTS`, in de code naast die prompt). Dat verdwijnt met de supervisor.
+- **`duiding` blijft bestaan**, met `kiesbaar: false`, want routes in code gebruiken het (advies bij een markering, een
+  genoemd stuk lezen). **`definitie` blijft voorlopig ook**, met `kiesbaar: false`: alleen de supervisor gebruikt het,
+  en met het profiel zou de methoderol `definitie` zonder aanroeper vallen. Het profiel en de rol vervallen samen met de
+  supervisor.
+- **De rondegrens per profiel staat in de subagentinstructie**, in het voorvoegsel. Dat voorvoegsel is toch al per
+  profiel verschillend, dus de cache lijdt er niet onder.
 
 ## Waarom
 
@@ -23,7 +41,8 @@ beschrijving, een instructie, tools, een model, skills en `maxTurns`. Lex heeft 
    `laad_skill`, want `Subagent` heeft geen eigen tools.
 2. **`max_rondes`** staat overal op `None`. De code leest het veld niet: `nodes/antwoord.max_rondes` neemt voor elke
    subagent `agentvorm.MAX_RONDES_SUBAGENT = 8`.
-3. **`budget`** staat overal op `None`. Er is geen tokenplafond per subagent, alleen het plafond van de hele opdracht
+3. **`budget`** staat overal op `None`. De code leest het veld niet: elke subagent heeft `MAX_TOKENS_SUBAGENT = 300_000`
+   (ontdekt bij het bouwen), naast het plafond van de hele opdracht
    (`DELEGATIE_AANDEEL`, een kwart van wat de gebruiker die week nog heeft) en het stukkenplafond van de centrale agent
    (`MAX_STUKKEN_CENTRAAL = 6`).
 4. **`modelklasse`** (`model:` in de frontmatter) is sinds #1544 vervangen door de modelkeuze per `agent:<profiel>` in
@@ -226,7 +245,7 @@ tekst volgt in de PR en wordt gemeten. Voor de grenzen is de regel:
 - **skills:** geen.
 - **max_rondes:** 8. De rechtspraakkinderen kwamen in 7 tot 8 rondes tot een rapport, en meer rondes kosten hier het
   meest per ronde.
-- **budget:** 340.000 (gemeten tot 295k).
+- **budget:** 300.000, gelijk aan het plafond dat er al was (gemeten tot 295k).
 - **Kern van de instructie:**
   - zoek de uitspraken met `zoek_uitspraken` op `bwb_id` en `artikel`; op een onderwerp alleen als de opdracht geen
     bepaling noemt;
@@ -249,7 +268,8 @@ tekst volgt in de PR en wordt gemeten. Voor de grenzen is de regel:
 - **sjablonen:** geen.
 - **skills:** geen.
 - **max_rondes:** 10. V03 strandde op 8, terwijl de stukken al gevonden waren.
-- **budget:** 350.000 (gemeten tot 302k, plus twee rondes van ongeveer 32k).
+- **budget:** 300.000, gelijk aan het plafond dat er al was. De twee extra rondes moeten uit het kleinere voorvoegsel
+  komen.
 - **Kern van de instructie:**
   - vind eerst het dossier met `geldigheid` op de bepaling, en pas daarna `zoek_kamerstukken` met `dossier`; op titel
     alleen als `geldigheid` geen dossier geeft;
@@ -279,7 +299,7 @@ tekst volgt in de PR en wordt gemeten. Voor de grenzen is de regel:
 ### `algemeen` (blijft, kiesbaar)
 
 - Alle velden blijven zoals ze zijn. De instructie verandert niet, omdat hij ook de specialist van de supervisor is.
-- **Nieuw:** `max_rondes: 8` en `budget: 340000`. Dat is precies wat nu geldt (de codedefault 8), plus een vangnet boven
+- **Nieuw:** `max_rondes: 8` en `budget: 300000`. Dat is precies wat nu geldt (de codedefault 8), plus een vangnet boven
   het hoogst gemeten verbruik (302k). Als specialist van de supervisor leest hij die velden niet, want ze gelden alleen
   voor een opdracht.
 - Hij krijgt de opdrachten die geen taakprofiel dragen, zoals de standpunten van de kennisgroepen, een vraag over
