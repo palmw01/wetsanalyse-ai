@@ -1,5 +1,6 @@
 "use client";
 
+import { Denkt } from "@/components/ui/Denkt";
 import { ChevronOmlaag } from "@/components/ui/Icoon";
 import type { VragenGroep } from "@/lib/vraagkaart";
 
@@ -27,11 +28,7 @@ export function VragenKaart({ groep, onOpen }: { groep: VragenGroep; onOpen: () 
       )}
       {groep.denkt ? (
         <p className="mt-3 flex items-center gap-2 text-sm text-muted" data-vraag-denkt>
-          <span className="inline-flex gap-0.5" aria-hidden>
-            {[0, 1, 2].map((i) => (
-              <span key={i} className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent-soft" style={{ animationDelay: `${i * 150}ms` }} />
-            ))}
-          </span>
+          <Denkt label="Nadenken" />
           Nadenken…
         </p>
       ) : groep.open ? (

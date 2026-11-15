@@ -202,6 +202,10 @@ waarop iets gebeurde), `datumLang` ("5 november 2026", in lopende tekst), `momen
 Niemand anders roept `toLocaleDateString`/`toLocaleTimeString` aan; alleen de reset van het tokenbudget (`resetdatum`)
 rekent bewust in lokale kalenderdagen.
 
+**Lex is bezig** (generieke componenten, 15 nov 2026; `app/eenDenkproces.test.ts`): drie stippen die na elkaar oplichten
+zijn `Denkt` (`components/ui/Denkt.tsx`), bij een antwoord dat nog geen tekst heeft en bij een vraagkaart die nadenkt. Beweging
+alleen met `motion-safe:`. Geen eigen stippenrij; de ene stip van een lopend denkproces is een stand, geen wachten.
+
 **De graaf van een bron** (ontdubbelen PR 1): één `useBronGraaf` + `BronGraaf` (`components/wettekst/BronGraaf.tsx`) voor
 het venster naast het gesprek, de bronpagina en de annotatie, met één keuze Tekst | Graaf (`WeergaveBalk`). Alleen de tab
 Samenhang van een werkgebied (begrippen als toevoeging) roept `useGraafStand` nog zelf aan.

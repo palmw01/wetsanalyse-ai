@@ -20,6 +20,7 @@ import { alleenNietGetoetst } from "@/lib/antwoord";
 import { Button } from "@/components/ui/Button";
 import { ChevronOmlaag, Cirkel, Waarschuwing } from "@/components/ui/Icoon";
 import { HergebruikMelding } from "@/components/werkplek/HergebruikMelding";
+import { Denkt } from "@/components/ui/Denkt";
 import { Melding } from "@/components/ui/Melding";
 import { KeuzeKaart } from "@/components/werkplek/KeuzeKaart";
 import { Markdown, StreamendeTekst } from "@/components/werkplek/Markdown";
@@ -161,7 +162,7 @@ export const ThreadRij = memo(function ThreadRij({
             <Markdown tekst={item.tekst} nietLetterlijk={item.grounding?.niet_letterlijk} bronnen={item.bronnen} />
           )
         ) : item.denk || item.overzicht || !streamt ? null : (
-          <Punten />
+          <Denkt />
         )}
         {/* Wat het antwoord aanwijst, naast het gesprek te openen met wat de graaf er verder over weet (ADR-008). */}
         {!demo && kaarten && <BepalingChips bepalingen={kaarten.bepalingen} />}
@@ -417,16 +418,6 @@ function KandidatenKeuze({
   );
 }
 
-function Punten() {
-  return (
-    <span className="inline-flex gap-1" aria-label="Bezig">
-      <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-muted" />
-      <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-muted" />
-      <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-muted" />
-    </span>
-  );
-}
-
 /** Een voorstel dat Lex niet zonder akkoord start: de knop die het start en *Annuleren*, of wat er gekozen is. Eén blok voor
  *  een gewoon antwoord en een artefact (de bundel van een regie met de knop voor de volgende fase). */
 function BevestigingBlok({ bevestiging, keuze, bezig, geblokkeerd, acties }: {
@@ -589,7 +580,7 @@ function DenkProces({
         className="inline-flex items-center gap-1.5 rounded-knop-xs px-1 text-xs text-muted transition-colors hover:text-ink"
         aria-expanded={open}
       >
-        {actief && <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-accent-soft" aria-hidden />}
+        {actief && <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent-soft motion-safe:animate-pulse" aria-hidden />}
         <span>{actief ? "Denkt na…" : "Denkproces"}</span>
         {/* De chevron wijst naar rechts (ingeklapt) en draait omlaag bij openen. */}
         <ChevronOmlaag className={`-rotate-90 transition-transform ${open ? "rotate-0" : ""}`} />
