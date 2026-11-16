@@ -46,9 +46,6 @@ interface Props {
   onOpnieuw?: () => void;
   /** Alleen mobiel: sluitknop voor de drawer. */
   onSluit?: () => void;
-  /** Start de rondleiding opnieuw. Weglaten verbergt het menu-item – op schermen zonder werkplek
-   *  valt er niets rond te leiden. */
-  onRondleiding?: () => void;
   /** De eigen verbruiksstand. `null` = nog niet geladen of niet beschikbaar; dan blijft de regel weg
    *  in plaats van een nul te tonen die niets betekent. */
   verbruik?: Verbruiksstand | null;
@@ -71,7 +68,6 @@ export function GesprekSidebar({
   laadFout = null,
   onOpnieuw,
   onSluit,
-  onRondleiding,
   verbruik = null,
 }: Props) {
   const { data: session } = useSession();
@@ -220,7 +216,8 @@ export function GesprekSidebar({
       <div data-tour="gebruikersmenu" ref={menuRef} className="relative border-t border-line px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
         {menuOpen && (
           // Ingedeeld zoals het menu van Claude: wie je bent bovenaan, dan Instellingen als één ingang naar het hele
-          // venster, dan hulp en de voorwaarden, en onderaan uitloggen.
+          // venster en wat je daaruit vaak nodig hebt, en onderaan uitloggen. De rondleiding staat in het venster
+          // (tab Rondleiding), de voorwaarden in de strook bovenaan.
           <div className={`absolute inset-x-3 bottom-full mb-1 ${MENU_PANEEL}`}>
             <div className="px-2.5 pb-1.5 pt-1" data-menu-kop>
               <p className="truncate text-sm font-medium text-ink">{naam || "Gebruiker"}</p>
@@ -240,20 +237,6 @@ export function GesprekSidebar({
                 Beheer
               </InstellingenLink>
             )}
-            <Scheiding />
-            {onRondleiding && (
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onSluit?.();
-                  onRondleiding();
-                }}
-                className={MENU_RIJ}
-              >
-                Rondleiding
-              </button>
-            )}
             <button
               type="button"
               onClick={() => {
@@ -264,10 +247,6 @@ export function GesprekSidebar({
             >
               Feedback geven
             </button>
-            {/* De voorwaarden blijven bereikbaar als de strook bovenaan is weggeklikt (opent als dialog). */}
-            <Link href="/disclaimer" onClick={() => setMenuOpen(false)} className={MENU_RIJ}>
-              Voorwaarden testomgeving
-            </Link>
             <Scheiding />
             <button type="button" onClick={() => void uitloggen()} className={`${MENU_RIJ} text-fout`}>
               Uitloggen

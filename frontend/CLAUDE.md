@@ -401,15 +401,15 @@ volledige chat-app-shell met bovenaan de klikbare testomgeving-strook (naar de d
 kruisje klikt hem weg voor de rest van de login (verzoek gebruiker 11 nov 2026): `localStorage` bewaart de sleutel
 `<userid>:<loginAt>` die de session-callback als `loginSleutel` op de sessie zet (`lib/teststrook.ts`), dus herladen en
 een tweede tab houden hem weg, en een nieuwe login of een ander account brengt hem terug zonder dat uitloggen iets hoeft
-te wissen. Geen Escape: het is geen laag. De voorwaarden staan dan nog in het gebruikersmenu (*Voorwaarden
-testomgeving*). Browserregressie: `scripts/test-teststrook.mjs`. Er is
+te wissen. Geen Escape: het is geen laag. Het gebruikersmenu draagt de voorwaarden niet (besluit gebruiker 16 nov 2026). Browserregressie: `scripts/test-teststrook.mjs`. Er is
 **geen globale chrome**: `app/layout.tsx` bevat alleen `Providers`, `{children}` en het
 `modal`-slot. De shell-pagina's zetten zelf `h-[100dvh] overflow-hidden`; alles daarbuiten gebruikt
 `AuthFrame` (zie §*Buiten de schil*).
 
 - **Links de sidebar** (`AppSidebar` → `GesprekSidebar` + `GesprekLijst`): logo, *Nieuw gesprek*,
-  de per gebruiker bewaarde gesprekken en onderin het gebruikersblok (instellingen, feedback,
-  rondleiding, uitloggen, verbruiksmeter). **De gesprekken zijn ingedeeld zoals projecten** (spoor G1,
+  de per gebruiker bewaarde gesprekken en onderin het gebruikersblok, ingedeeld zoals het menu van Claude (besluit gebruiker 16 nov 2026): wie je
+  bent, *Instellingen* (het hele venster), *Verbruik*, *Beheer* voor een beheerder, *Feedback geven* en *Uitloggen*, met de
+  verbruiksmeter onder je naam. De rondleiding staat in het venster (tab *Rondleiding*). **De gesprekken zijn ingedeeld zoals projecten** (spoor G1,
   `deelIn` in `lib/gesprekGroepen.ts`): per werkgebied een uitklapbare groep met de eigen gesprekken
   (de stand per browser, `leesDicht`/`bewaarDicht`, in try/catch) en een *+* voor een nieuw gesprek in dat
   werkgebied, daaronder *Recente gesprekken* (los) en ingeklapt *Archief*. Elke rij heeft een menu
