@@ -37,6 +37,9 @@ PLAATS_PER_QUERY = 100
 #: De dossiervelden waaruit de dossiertermen komen; met `dossier_velden` ook aanleiding en doel.
 DOSSIERVELDEN = ("analysevraag", "praktijkvoorbeeld", "context")
 DOSSIERVELDEN_ALLE = (*DOSSIERVELDEN, "aanleiding", "doel")
+#: Met `beurt_sterk`: het deel van de beste fusiescore dat de beste kandidaat van een regeling minstens haalt om om de
+#: beurt mee te doen. Vooraf vastgelegd (plan Termijnen, stap 1b), niet afgestemd op een set: de helft.
+AANDEEL_STERK = 0.5
 #: Hoeveel treffers de similarity-index per deelvraag geeft, vóór het filter op de regelingen.
 MAX_GELIJKENIS = 40
 
@@ -110,6 +113,19 @@ class Zoekprofiel:
     gelijkenis: bool = False
     verwijzingen: bool = False
     onderscheidend: bool = False
+    #: Het plan bronselectie bij Termijnen (`docs/architectuur/onderzoek-bronselectie-termijnen-2026-11.md`). Elke vlag
+    #: staat **uit** tot de meting op de ontwikkelsets en een blinde set laat zien dat hij helpt.
+    #:
+    #: - `termen_idf` (stap 1a, O6): de vulwoorden van een vraag (`zoekvragen.LEGE_WOORDEN`, `METHODEWOORDEN`) zoeken
+    #:   niet, en heeft een deelvraag meer termen dan `MAX_TERMEN`, dan zoeken de termen die in de regelingen het
+    #:   zeldzaamst zijn (`termen_op_zeldzaamheid`), niet de eerste in de zin. Een term die er nergens staat, gaat
+    #:   achteraan: hij vindt niets.
+    termen_idf: bool = False
+    #: - `beurt_sterk` (stap 1b, O7): om de beurt krijgen alleen de regelingen een plaats waarvan de beste kandidaat
+    #:   minstens `AANDEEL_STERK` haalt van de beste score over alle regelingen; de kandidaten van de andere staan erna,
+    #:   op hun score. Met zes regelingen in het zoekbereik kreeg anders elke regeling een plaats, ook zonder sterke
+    #:   treffer. Alleen met `per_regeling` en `fusie`.
+    beurt_sterk: bool = False
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.
@@ -157,10 +173,10 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
     term apart over alle knooptypes. Een treffer in een lijst van een term is het bewijs dat de bepaling die
     term raakt, met de stemmer van de index in plaats van een eigen telling."""
     vraagtekst = onderwerp_van_deelvraag(deelvraag) if deelvraag else ""
-    termen = zoektermen(vraagtekst)[:MAX_TERMEN]
+    termen = _termen(graph, vraagtekst, regelingen, profiel)
     if not termen:
         vraagtekst = deelvraag or dossier.get("analysevraag") or dossier.get("naam") or ""
-        termen = zoektermen(vraagtekst)[:MAX_TERMEN]
+        termen = _termen(graph, vraagtekst, regelingen, profiel)
     if not termen:
         return None
     gedeeld = gedeelde_termen(termen, dossier.get("deelvragen") or []) if profiel.onderscheidend and deelvraag else []
@@ -252,6 +268,44 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
 
     return {"termen": termen, "dossiertermen": dossiertermen, "alle_dossiertermen": alle_dossiertermen,
             "bereik": bereik, "gevonden": gevonden, "geraakte_artikelen": geraakte_artikelen, "lemma": lemma}
+
+
+def _termen(graph: GraphPort, tekst: str, regelingen: list[str], profiel: Zoekprofiel) -> list[str]:
+    """De zoektermen van een vraag: de eerste `MAX_TERMEN`, of met `termen_idf` de zeldzaamste."""
+    if not profiel.termen_idf:
+        return zoektermen(tekst)[:MAX_TERMEN]
+    from .zoekvragen import LEGE_WOORDEN, METHODEWOORDEN
+
+    termen = [w for w in zoektermen(tekst) if w not in LEGE_WOORDEN and w not in METHODEWOORDEN]
+    return termen_op_zeldzaamheid(graph, termen, regelingen, profiel) if len(termen) > MAX_TERMEN else termen
+
+
+def q_aantal(lucene: str, regelingen: list[str]) -> str:
+    """Hoeveel bepalingen van de regelingen een term raken: de documentfrequentie, voor het onderscheidend vermogen."""
+    filters = " || ".join(f'STRSTARTS(STR(?node), "{queries.NS}{queries._bwb(b)}")' for b in regelingen if b)
+    return queries.PREFIXES + f"""SELECT (COUNT(DISTINCT ?node) AS ?aantal) WHERE {{
+  [] a inst:bwb_tekst ; luc:query {queries._lit(lucene)} ; luc:entities ?node .
+  {f"FILTER({filters})" if filters else ""}
+}}"""
+
+
+def termen_op_zeldzaamheid(graph: GraphPort, termen: list[str], regelingen: list[str],
+                           profiel: Zoekprofiel) -> list[str]:
+    """De `MAX_TERMEN` termen die in de regelingen het minst voorkomen, in de volgorde van de vraag. "Werkt" en
+    "aanslag" staan in honderden bepalingen, "betalingstermijnen" in een handvol: zo krijgt het woord dat de deelvraag
+    onderscheidt een plaats, ook als het achteraan staat. Een term die nergens staat, gaat achteraan (hij vindt niets).
+    Hapert de graaf, dan de eerste `MAX_TERMEN`: een storing kost de keuze, niet het zoeken."""
+    aantal: dict[str, int] = {}
+    try:
+        for w in termen:
+            rijen = _rijen(graph, q_aantal("tekst:" + _term_lucene(w, "", profiel), regelingen))
+            aantal[w] = int(rijen[0].get("aantal") or 0) if rijen else 0
+    except Exception:  # noqa: BLE001
+        logger.warning("documentfrequentie niet geteld", extra={"categorie": "technisch"}, exc_info=True)
+        return termen[:MAX_TERMEN]
+    plek = {w: i for i, w in enumerate(termen)}
+    gekozen = sorted(termen, key=lambda w: (aantal[w] == 0, aantal[w], plek[w]))[:MAX_TERMEN]
+    return sorted(gekozen, key=plek.__getitem__)
 
 
 def gedeelde_termen(termen: list[str], deelvragen: list[str]) -> list[str]:
@@ -432,6 +486,20 @@ def om_de_beurt(kandidaten: list[dict[str, Any]], rang: dict[str, int], bereik: 
     return uit
 
 
+def om_de_beurt_sterk(kandidaten: list[dict[str, Any]], score: dict[str, float], rang: dict[str, int],
+                      bereik: list[str | None]) -> list[dict[str, Any]]:
+    """Om de beurt (`om_de_beurt`) tussen de regelingen met een sterke treffer: de beste kandidaat haalt minstens
+    `AANDEEL_STERK` van de beste score. De kandidaten van de andere regelingen staan erna, in hun eigen volgorde (die
+    van de fusie). Eén sterke regeling: dan haar kandidaten eerst, op score."""
+    beste = max(score.values(), default=0.0)
+    per: dict[str, float] = {}
+    for k in kandidaten:
+        per[k["bwb_id"]] = max(per.get(k["bwb_id"], 0.0), score[k["iri"]])
+    sterk = {b for b, s in per.items() if beste and s >= AANDEEL_STERK * beste}
+    return (om_de_beurt([k for k in kandidaten if k["bwb_id"] in sterk], rang, bereik)
+            + [k for k in kandidaten if k["bwb_id"] not in sterk])
+
+
 def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str | None, dossier: dict[str, Any],
                     buiten: list[str], limit: int = MAX_PER_DEELVRAAG,
                     profiel: Zoekprofiel = STANDAARD_PROFIEL) -> list[dict[str, Any]]:
@@ -490,8 +558,11 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
         omgeving = _omgeving_rang(kandidaten, pool["alle_dossiertermen"], profiel.samenstelling) \
             if profiel.dossier_omgeving else {}
 
+        def score(k: dict[str, Any]) -> float:
+            return _fusiescore(k, dos_rang, demping.get(k["iri"], 1.0), omgeving.get(k["iri"]))
+
         def volgorde(k: dict[str, Any]) -> tuple:
-            return (-_fusiescore(k, dos_rang, demping.get(k["iri"], 1.0), omgeving.get(k["iri"])), regeling(k),
+            return (-score(k), regeling(k),
                     padsleutel(k["iri"]))
     else:
         def volgorde(k: dict[str, Any]) -> tuple:
@@ -508,7 +579,10 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
     # precies de woordenkloof ("melden" tegen "mededeling") die de gelijkenis moet overbruggen.
     past = (lambda k: k["dv"] or "gelijkenis" in k["rang"]) if deelvraag else (lambda k: k["dv"] or k["dos"])
     passend = [k for k in binnen_ if past(k)]
-    if profiel.per_regeling:
+    if profiel.per_regeling and profiel.beurt_sterk and profiel.fusie and passend:
+        passend = om_de_beurt_sterk(passend, {k["iri"]: score(k) for k in passend},
+                                    _soortrang(graph, [k["bwb_id"] for k in passend]), bereik)
+    elif profiel.per_regeling:
         passend = om_de_beurt(passend, _soortrang(graph, [k["bwb_id"] for k in passend]), bereik)
     gekozen = passend[:limit] + buiten_[:MAX_BUITEN]
 
