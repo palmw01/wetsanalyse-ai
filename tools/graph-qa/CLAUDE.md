@@ -281,7 +281,15 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     `spreekt_tegen` of `niet_te_zien`. `spreekt_tegen` is een bewering (correctieronde). Zo valt ook een omgedraaide
     bewering in de woorden van de passage op, die de toetsen op woorden niet zien (bundel 119, HR:2023:181/184). Alleen als
     de goedkopere toetsen niets vonden, begrensd op `MAX_STUKKEN`, `MAX_ZINNEN` en `MAX_PASSAGE`; een fout is geen bewering.
-    Kosten met het gewone model: ~5–6k invoertokens bij vier stukken, hoogstens ~10k; `tests/test_d01_samenvatting_per_stuk.py`;
+    Kosten met het gewone model: ~5–6k invoertokens bij vier stukken, hoogstens ~10k; `tests/test_d01_samenvatting_per_stuk.py`.
+    **De woordtoets wijst aan, de lezer beslist** (plan centrale agent na A6, PR B; HR:2023:1371 in S01 en F01): een melding
+    "die de passages van dat stuk niet dragen" van `zonder_steun` telt niet als reden om de lezer over te slaan
+    (`stukcontrole.niet_dragen`). De lezer geeft per stuk zijn oordelen terug (`controleer(oordelen=)`), en zegt hij bij
+    elke zin van dat stuk `steunt`, dan vervalt de melding (`vervalt_op_lezer`, logregel `niet dragen weerlegd door de
+    lezer`). Een zin zonder oordeel, een fout van de lezer of "zonder passage" laat de melding staan. De gerichte set staat
+    in `tests/data/stukcontrole_set.json` (vier tegenspraken, vier juiste samenvattingen, twee verwijzingen, twee keer
+    "zegt meer", fictieve ids); `python -m eval.stukcontrole_set` draait haar met het model, alleen met akkoord
+    (`tests/test_b_lezer_beslist.py`);
   - **een samenvatting in een rapport draagt een passage met inhoud** (meting bundel 122, D01): een kopregel (minder dan
     `MIN_WOORDEN_INHOUD` woorden of alleen hoofdletters; een inhoudsindicatie nooit) telt in een rapport en in de steun
     niet als passage (`extern.is_kopregel`, `subagent.passagetekst`). Dragen de aangewezen passages een samenvatting niet,

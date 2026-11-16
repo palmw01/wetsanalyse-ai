@@ -941,11 +941,27 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     # agent, en alleen als de goedkopere toetsen niets vonden: vonden zij iets, dan volgt de correctie toch, en daarna
     # toetst deze ronde opnieuw. Na de correctieronde draait ze altijd, op wat er dan staat: in drie metingen vonden de
     # goedkopere toetsen telkens iets, en draaide ze nooit (meting bundel 123).
-    if (not report.beweringen or state.get("corrected")) and not state.get("opdracht") and not state.get("overzicht"):
+    # Een melding "niet dragen" van de woordtoets is een kandidaat, geen bewering (plan centrale agent na A6, PR B): de
+    # lezer draait ook dan, en zegt hij bij elke zin van dat stuk `steunt`, dan vervalt de melding. Een juiste
+    # samenvatting in eigen woorden (HR:2023:1371 in S01 en F01) kreeg anders steeds een correctieronde.
+    from ..stukcontrole import niet_dragen, vervalt_op_lezer
+
+    andere = [x for x in report.beweringen if x not in niet_dragen(report.beweringen).values()]
+    if (not andere or state.get("corrected")) and not state.get("opdracht") and not state.get("overzicht"):
         from ..stukcontrole import controleer
 
-        if tegen := controleer(b.llm, b.settings, tekst, rapport_steun(state), controletrace(state)):
-            report = replace(report, beweringen=[*report.beweringen, *tegen])
+        oordelen: dict[str, set[str]] = {}
+        tegen = controleer(b.llm, b.settings, tekst, rapport_steun(state), controletrace(state), oordelen=oordelen)
+        vervalt = vervalt_op_lezer(report.beweringen, oordelen)
+        if tegen or vervalt:
+            report = replace(report, beweringen=[*(x for x in report.beweringen if x not in vervalt), *tegen])
+        if vervalt:
+            logger.info("grounding: niet dragen weerlegd door de lezer",
+                        extra={"categorie": "functioneel", "run_id": state.get("run_id", ""), "aantal": len(vervalt)})
+            # Zonder bewering, onbevestigd of een andere fout is het oordeel weer het oordeel op de citaten.
+            if not report.beweringen and report.niveau == "onbepaald" and not report.onbevestigd \
+                    and (report.cited or report.citaten) and not report.niet_letterlijk and not report.unsupported:
+                report = replace(report, niveau="gegrond")
     # Wettekst uit een sjabloon staat zonder aanhalingstekens, dus de toets ziet "niets te controleren". Maar de code
     # toonde hem uit de tool-rijen, met de vindplaats erbij: de melding dat er geen vindplaats is, zou onwaar zijn.
     if report.niveau == "onbepaald" and not report.onbevestigd and (state.get("antwoord") or {}).get("doelen"):
