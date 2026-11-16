@@ -55,9 +55,12 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
               <Link href={b.werkgebied_id ? begripPad(b.werkgebied_id, b.id) : generiekPad(b.id)} className="focus-ring rounded font-medium text-lint underline underline-offset-2">{b.naam}</Link>
               <StatusLabel toon={STATUS_TOON[b.status] ?? "neutraal"} klein>{b.status}</StatusLabel>
               {b.herbeoordelen && <StatusLabel toon="geel" klein>herbeoordelen</StatusLabel>}
+              {b.generiek && <StatusLabel toon="lint" klein>Generiek</StatusLabel>}
             </p>
             {b.definitie && <p>{b.definitie}</p>}
-            {b.werkgebied && <p className="text-xs text-muted">Werkgebied {b.werkgebied}</p>}
+            {b.generiek
+              ? <p className="text-xs text-muted">Generiek begrip, voor alle werkgebieden</p>
+              : b.werkgebied && <p className="text-xs text-muted">Werkgebied {b.werkgebied}</p>}
           </li>
         ))}
       </ul>
