@@ -20,7 +20,7 @@ inputs:
   keten:
     description: >-
       Naam van de frontend-app voor de rooktest (`/api/health?keten=1` moet api én graph-qa als ok
-      melden). Leeg = geen rooktest; dat hoort alleen waar er geen frontend is.
+      melden, met een werkende database en een graaf met regelingen). Leeg = geen rooktest; dat hoort alleen waar er geen frontend is.
     required: false
     default: ""
   zonder-revisie:

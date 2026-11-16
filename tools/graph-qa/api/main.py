@@ -251,8 +251,28 @@ def _check_auth(creds: HTTPAuthorizationCredentials | None = Depends(_bearer)) -
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok", "annotatie_contract_versie": "2"}
+async def health(keten: bool = False):
+    """Liveness, zonder graaf: de probes vragen dit elke paar seconden. Met `?keten=1` (alleen de rooktest na een uitrol,
+    via de frontend) ook of de graaf regelingen heeft (`agent.graafpeiling`); niet `ok` is een 503."""
+    if not keten:
+        return {"status": "ok", "annotatie_contract_versie": "2"}
+    from starlette.concurrency import run_in_threadpool
+    from starlette.responses import JSONResponse
+
+    from agent.adapters.graphdb_graph import make_graph
+    from agent.graafpeiling import graafpeiling
+
+    graaf = None
+    try:
+        graaf = make_graph(settings)
+        stand = await asyncio.wait_for(run_in_threadpool(graafpeiling, graaf), timeout=8)
+    except Exception:  # noqa: BLE001 - geen graaf te maken of te traag: niet `ok`
+        stand = "onbereikbaar"
+    finally:
+        if graaf is not None:
+            graaf.close()
+    return JSONResponse({"status": "ok" if stand == "ok" else "onvolledig", "annotatie_contract_versie": "2",
+                         "graaf": stand}, status_code=200 if stand == "ok" else 503)
 
 
 @app.delete("/v1/conversations/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)

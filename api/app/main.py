@@ -179,10 +179,24 @@ app.include_router(werkplaats.router, prefix="/v1")
 
 
 @app.get("/health", tags=["meta"])
-async def health():
-    """Liveness – geen auth, mag niet falen op trage MCP/LLM."""
+async def health(keten: bool = False):
+    """Liveness – geen auth, mag niet falen op trage MCP/LLM. Met `?keten=1` (alleen de rooktest na een uitrol, via de
+    frontend) ook of de database antwoordt: één `SELECT 1`, en niet `ok` is een 503 (plan Lex Bench §20.5 stap 5)."""
     s = get_settings()
-    return {"status": "ok", "version": __version__, "git_sha": s.git_sha, "build_time": s.build_time}
+    basis = {"status": "ok", "version": __version__, "git_sha": s.git_sha, "build_time": s.build_time}
+    if not keten:
+        return basis
+    from fastapi.responses import JSONResponse
+    from sqlalchemy import text
+
+    try:
+        async with db.get_engine().connect() as conn:
+            await asyncio.wait_for(conn.execute(text("SELECT 1")), timeout=5)
+        stand = "ok"
+    except Exception:  # noqa: BLE001 - de rooktest wil alleen weten of het werkt; geen details aan een open endpoint
+        stand = "onbereikbaar"
+    return JSONResponse({**basis, "status": "ok" if stand == "ok" else "onvolledig", "database": stand},
+                        status_code=200 if stand == "ok" else 503)
 
 
 @app.get("/ready", tags=["meta"])
