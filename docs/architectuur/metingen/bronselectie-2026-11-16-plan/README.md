@@ -155,3 +155,24 @@ de uitvoering is, en zoekt hij met de woorden van de analysevraag.
 **Oordeel: geen winst in de cijfers, wel een juistere melding.** Een kandidaat voor stap 8, vanwege de melding.
 
 De rapporten staan in [`stap5/`](stap5/).
+
+## Stap 6 – route 4 van de definities en `definitie_brug` (O4)
+
+**De parser** (`bronmodel/bwb/parser.py`, route 4, achter de instelling `BWB_DEFINITIE_AANDUIDING` van de importer,
+standaard uit): "… wordt aangeduid als X" en "(hierna: X)". De telling over de acht regelingen van de graaf, met de lokale
+bron-XML's (`stap6/definities_tel.py`):
+
+- AWR: 25 → 26 definities: *voorlopige teruggaaf* (art. 13 lid 2). Juist.
+- De andere zeven regelingen: gelijk (0 erbij). Geen vals positief.
+- De Leidraad heeft 14 van zulke zinnen ("aangeduid als bodemzaken", "(hierna: illiquide vermogen)", "(hierna: de
+  douane-ontvanger)"). Een divisie van een beleidsregel draagt in het model geen begrippen, dus de parser leest ze niet. Ze
+  toevoegen raakt het model, de verzameling en de schrijver van de importer: een **vervolg**, buiten deze stap.
+
+**Het zoeken** (`definitie_brug`): een definitie waarvan de tekst minstens twee termen van de deelvraag raakt, brengt de
+woorden van haar begrip mee als zoekterm. Op de graaf van nu (nog zonder route 4) is de recall nodig op alle zes sets
+gelijk. Bij Termijnen daalt het aantal uitgesloten bepalingen op de woordenroute van 3 naar 1, door definities die er al
+zijn.
+
+**Nog te meten.** Het eigenlijke effect, *voorlopige teruggaaf* als brug bij "negatieve voorlopige aanslag", komt pas na
+een herimport met `BWB_DEFINITIE_AANDUIDING=true`. Dat is een wijziging van de graaf van acceptatie, en vraagt akkoord
+(stap 8).

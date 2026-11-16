@@ -75,6 +75,13 @@ _ONDER_TERM = re.compile(r"^Onder\s+(?:(?:de|het|een)\s+)?([^,:;.]{2,60}?)"
                          r"(?:,?\s+(?:als\s+)?bedoeld\s+in\b[^:;]*?,?)?"
                          r"\s+(?:wordt|worden)\s+(?:(?:mede|ook|tevens)\s+)?verstaan\b")
 
+# Route 4 (met `aanduiding`, plan bronselectie Termijnen stap 6): een zin die een omschrijving een naam geeft. "Een
+# voorlopige aanslag tot een negatief bedrag … wordt aangeduid als voorlopige teruggaaf." (AWR 13 lid 2) en "… (hierna:
+# de inspecteur)". De naam is kort, zonder leesteken, en staat aan het eind van de zin of tussen haakjes.
+_AANGEDUID = re.compile(r"\b(?:wordt|worden)\s+(?:hierna\s+)?aangeduid\s+als\s+(?:(?:de|het|een)\s+)?"
+                        r"([^,.;:()]{2,60}?)\s*[.;]")
+_HIERNA = re.compile(r"\(\s*hierna(?:\s+te\s+noemen)?\s*:?\s+(?:(?:de|het|een)\s+)?([^,.;:()]{2,60}?)\s*\)")
+
 # Een `<al>` ná een `<lijst>` in hetzelfde element is geen tekst van de aanhef: hij wordt een eigen
 # slottekst-node (zie `ToestandParser._parse_onderdelen`). De ouders zijn precies de elementen
 # waarvan die methode de lijsten leest; een `<lijst>` in iets anders heeft geen onderdelen en dan
@@ -94,7 +101,8 @@ class ParseError(RuntimeError):
 class ToestandParser:
     """Zet een toestand-XML om naar het :class:`~bronmodel.bwb.models.Wet`-model."""
 
-    def __init__(self, schema_path: Path | None = None) -> None:
+    def __init__(self, schema_path: Path | None = None, *, aanduiding: bool = False) -> None:
+        self.aanduiding = aanduiding
         self._schema_path = schema_path
         self._overgeslagen: list[str] = []
         self._schema: etree.XMLSchema | None = None
@@ -410,7 +418,7 @@ class ToestandParser:
             effect=element.get("effect"),
             status=element.get("status"),
             terugwerkend_tot=self._terugwerkend(element),
-            definieert_begrippen=self._definities(element),
+            definieert_begrippen=self._definities(element, aanduiding=self.aanduiding),
             wijzigingsbronnen=self._wijzigingsbronnen(element),
             **self._bronverwijzingen(element),
             verwijzingen=self._verwijzingen_scope(element, bwb_id, extra_excl=excl),
@@ -437,7 +445,7 @@ class ToestandParser:
                 element, bwb_id, self._leidt_definities_in(element)
             ),
             voetnoten=self._noten(element, excl),
-            definieert_begrippen=self._definities(element),
+            definieert_begrippen=self._definities(element, aanduiding=self.aanduiding),
             illustraties=self._illustraties(element, extra_excl=excl),
         )
 
@@ -522,7 +530,8 @@ class ToestandParser:
                 self._noot_tekst(noot)
                 for noot in li.xpath(f"./al//noot[not(ancestor::meta-data){_GEEN_SLOT}]")
             ],
-            definieert_begrippen=self._definities(li, definitie_context=definitie_context),
+            definieert_begrippen=self._definities(li, definitie_context=definitie_context,
+                                                     aanduiding=self.aanduiding),
             illustraties=self._illustraties(li, base="./al//illustratie", extra_excl=_GEEN_SLOT),
         )
 
@@ -646,7 +655,7 @@ class ToestandParser:
         return re.sub(r"\s+", " ", "".join(delen)).strip()
 
     @staticmethod
-    def _definities(element: etree._Element, *, definitie_context: bool = False) -> list[str]:
+    def _definities(element: etree._Element, *, definitie_context: bool = False, aanduiding: bool = False) -> list[str]:
         """Gedefinieerde begrippen, langs twee routes.
 
         **1. Opmaak** – een cursieve term (``nadruk type="cur"``) die op een dubbele punt eindigt.
@@ -666,6 +675,10 @@ class ToestandParser:
         **3. Zin** – "Onder X wordt verstaan" aan het begin van de tekst (Awb 1:2): die zin leidt zichzelf
         in, dus zonder `definitie_context`.
 
+        **4. Aanduiding** (alleen met `aanduiding`, standaard uit) – een zin die een omschrijving een naam geeft:
+        "… wordt aangeduid als voorlopige teruggaaf" (AWR 13 lid 2) of "(hierna: de inspecteur)". In elke alinea van het
+        element zelf, niet in zijn onderdelen.
+
         Beide eerste routes kunnen op hetzelfde onderdeel vuren (een cursieve term matcht ook het patroon),
         dus ontdubbelen we met behoud van volgorde.
         """
@@ -684,6 +697,11 @@ class ToestandParser:
         eerste = element.find("al")
         if eerste is not None and (treffer := _ONDER_TERM.match(ToestandParser._tekst(eerste))):
             begrippen.append(treffer.group(1).strip())
+
+        if aanduiding:
+            for al in element.findall("al"):
+                tekst = ToestandParser._tekst(al)
+                begrippen += [m.group(1).strip() for patroon in (_AANGEDUID, _HIERNA) for m in patroon.finditer(tekst)]
 
         return list(dict.fromkeys(begrippen))
 
