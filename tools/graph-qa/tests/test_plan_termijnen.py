@@ -303,3 +303,62 @@ def test_de_kloofmelding_noemt_de_regeling_waar_het_woord_wel_staat():
 
 def test_brug_omschrijving_staat_standaard_uit():
     assert dz.STANDAARD_PROFIEL.brug_omschrijving is False
+
+
+# --- stap 6: de wet als brug: een definitie met "wordt aangeduid als" (O4) --------------------------------------------
+
+from lxml import etree  # noqa: E402
+
+AWR13 = "urn:bwb:BWBR0002320:artikel:13:lid:2"
+
+
+class DefinitieGraaf(BepalingGraaf):
+    """AWR 13 lid 2 definieert de voorlopige teruggaaf; een tweede definitie raakt maar één term."""
+
+    def __init__(self, faal: bool = False):
+        super().__init__()
+        self.kapot = faal
+
+    def _antwoord(self, q: str) -> str:
+        if "SAMPLE(?tk) AS ?tekst" in q and "definieertBegrip ?b" in q and "definieertBegrip:" not in q:
+            if self.kapot:
+                raise RuntimeError("graaf hapert")
+            return _tsv(["node", "begrip", "tekst"],
+                        [[AWR13, "voorlopige teruggaaf", "Een voorlopige aanslag tot een negatief bedrag die voor of in "
+                          "de loop van het tijdvak wordt vastgesteld, wordt aangeduid als voorlopige teruggaaf."],
+                         ["urn:bwb:BWBR0002320:artikel:2:lid:3", "inspecteur", "de inspecteur van de aanslag"]])
+        return super()._antwoord(q)
+
+
+def test_definitie_brug_brengt_het_begrip_mee_als_zoekterm():
+    termen = ["negatieve", "voorlopige", "aanslag"]
+    assert dz.definitie_bruggen(DefinitieGraaf(), termen, [IWB], dz.STANDAARD_PROFIEL) == {"teruggaaf": "voorlopige teruggaaf"}
+    assert dz.definitie_bruggen(DefinitieGraaf(), ["aanslag"], [IWB], dz.STANDAARD_PROFIEL) == {}, "te weinig termen"
+    assert dz.definitie_bruggen(DefinitieGraaf(faal=True), termen, [IWB], dz.STANDAARD_PROFIEL) == {}
+
+
+def test_definitie_brug_in_de_pool_alleen_met_de_vlag():
+    args = {"regelingen": [IWB], "deelvraag": "Wat is een negatieve voorlopige aanslag?", "dossier": DOSSIER}
+    assert "teruggaaf" not in dz.kandidatenpool(DefinitieGraaf(), **args)["termen"]
+    pool = dz.kandidatenpool(DefinitieGraaf(), **args, profiel=_profiel(definitie_brug=True))
+    assert "teruggaaf" in pool["termen"] and pool["bruggen"] == {"teruggaaf": "voorlopige teruggaaf"}
+
+
+def test_de_parser_kent_de_aanduiding_alleen_met_de_vlag():
+    from bronmodel.bwb.parser import ToestandParser
+
+    lid = etree.fromstring("<lid><lidnr>2</lidnr><al>Een voorlopige aanslag tot een negatief bedrag die voor of in de "
+                           "loop van het tijdvak wordt vastgesteld, wordt aangeduid als voorlopige teruggaaf.</al></lid>")
+    hierna = etree.fromstring("<lid><al>De inspecteur van de Belastingdienst (hierna: de inspecteur) stelt vast.</al></lid>")
+    assert ToestandParser._definities(lid) == []
+    assert ToestandParser._definities(lid, aanduiding=True) == ["voorlopige teruggaaf"]
+    assert ToestandParser._definities(hierna, aanduiding=True) == ["inspecteur"]
+    gewoon = etree.fromstring("<lid><al>Dit wordt aangeduid als een bijzonder geval, dat niet vaak voorkomt.</al></lid>")
+    assert ToestandParser._definities(gewoon, aanduiding=True) == [], "een lange bijzin is geen naam"
+
+
+def test_definitie_brug_staat_standaard_uit():
+    from bronmodel.bwb.parser import ToestandParser
+
+    assert dz.STANDAARD_PROFIEL.definitie_brug is False
+    assert ToestandParser().aanduiding is False, "de importer leest route 4 alleen met BWB_DEFINITIE_AANDUIDING"
