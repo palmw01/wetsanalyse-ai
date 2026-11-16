@@ -687,9 +687,10 @@ laatste klare run. graph-qa rekent (`agent/begrippen_verdieping.py`), de api bew
 ## Lex naast de kaart
 
 `begrip_voorstellen.py`, `begrip_voorstel_store.py`, `begrip_voorstel_contracts.py`; PLAN spoor D, fase E.
-Vijf acties op één begrip: `brondefinitie` (een graafquery, geen model), `scherper`, `uitleg` (spoor I2: de
-uitleg in B1, alleen op een definitie – anders 409 `geen_definitie`, net als `voorbeelden`), `betekenisverschil`
-(met een ander begrip, `ander_begrip_id`) en `voorbeelden`. graph-qa rekent, de api legt vast en toetst.
+Zes acties op één begrip: `brondefinitie` (een graafquery, geen model), `scherper`, `uitleg` (spoor I2: de
+uitleg in B1, alleen op een definitie – anders 409 `geen_definitie`, net als `toelichting` en `voorbeelden`),
+`toelichting` (B-6: het veld `context`, skos:scopeNote), `betekenisverschil` (met een ander begrip,
+`ander_begrip_id`) en `voorbeelden`. graph-qa rekent, de api legt vast en toetst.
 
 - **Een voorstel is geen wijziging.** `begrip_voorstellen` is een eigen tabel; Lex schrijft nooit in het
   begrip. `POST …/voorstellen/{id}/overnemen` loopt door `begrip_store._gewijzigd_in` (revisie, kopie,
@@ -700,6 +701,13 @@ uitleg in B1, alleen op een definitie – anders 409 `geen_definitie`, net als `
   `GET …/voorstellen` meldt het vooraf als `verouderd`. Vervangen kan dan alleen bewust: met
   `nu_gezien` = de definitie die de analist naast het voorstel zag (klopt die niet meer: weer 409). Uitleg, toelichting en voorbeelden worden
   toegevoegd, nooit vervangen; wat er al staat, geeft geen revisie (wel het besluit).
+- **Op een voorgestelde definitie** (B-6, *Werk het begrip volledig uit* in één beurt). `uitleg`, `toelichting` en
+  `voorbeelden` kunnen met `op_voorstel_id` rusten op een open, niet-verouderd definitievoorstel van het begrip
+  (anders 409 `basis_ongeldig` of `voorstel_verouderd`). De invoer draagt dan die definitie en `op_voorstel`; de
+  voorstellen dragen haar als `basis` met `voorstel_id`. `GET …/voorstellen` meldt `op_voorstel` (id, status),
+  `wacht_op_definitie` (het definitievoorstel is nog open; overnemen geeft 409 `definitie_niet_overgenomen`) en
+  `verouderd` (afgewezen, aangepast of een andere definitie; overnemen alleen bewust met `nu_gezien`, en zonder
+  definitie nooit: 409 `geen_definitie`). Neemt de analist de definitie ongewijzigd over, dan gaan ze gewoon.
 - **Het bewijs blijft na overnemen** (spoor M): `GET` van een begrip draagt `definitie_onderbouwing`,
   afgeleid uit het voorstel achter de revisie die de huidige definitie zette (fragmenten met rol
   `ondersteunend`, vindplaats, duiding, `onderzoek_id`). Paste de analist de definitie aan, bij het overnemen of later,

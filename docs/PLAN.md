@@ -845,8 +845,9 @@ van de gebruiker op 20 okt 2026).
   - met model: `meedenken` (met bevestiging), `scherper`, `voorbeelden`, `betekenisverschil`, en
     `uitwerken`.
 
-  `uitwerken` doet eerst de brondefinitie, dan een definitievoorstel, en voorbeelden pas op een
-  overgenomen definitie. De begrippenkennis komt als agentrol in de skill.
+  `uitwerken` doet eerst de brondefinitie, dan een definitievoorstel, en sinds B-6 (16 nov 2026) in dezelfde
+  beurt de uitleg, de toelichting en de voorbeelden, zonder overgenomen definitie op de voorgestelde (die vervallen
+  als de analist haar niet of anders overneemt). De begrippenkennis komt als agentrol in de skill.
 - **Intake.** `onderdelen` wordt `bepalingen`, met één kaart per deelvraag: gerichte artikelen en
   leden binnen de gekozen regelingen.
   - De kandidaten komen zonder model uit:

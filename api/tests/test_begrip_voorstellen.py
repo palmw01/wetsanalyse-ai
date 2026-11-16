@@ -374,3 +374,90 @@ async def test_de_projectie_noemt_de_onderbouwing_en_houdt_tegenvoorbeelden_buit
     uit = bp.conformiteit(g)
     if uit.get("beschikbaar", True):                                   # met pyshacl: de shapes blijven groen
         assert uit["begrippen"][str(c)]["conform"] is True, uit["begrippen"][str(c)]
+
+
+# --- B-6: alles in één beurt, op de voorgestelde definitie ---------------------------------------------
+
+async def _op_voorgestelde(client):
+    """Een begrip zonder definitie met een open definitievoorstel, en daarop uitleg, toelichting en voorbeelden."""
+    wg, b, _, [d] = await _met_voorstel(client)
+    uit: dict[str, dict] = {}
+    for actie, voorstel in (("uitleg", {"veld": "uitleg", "tekst": "Alfa komt eerst."}),
+                            ("toelichting", {"veld": "context", "tekst": "Alleen de eerste in de opsomming."}),
+                            ("voorbeelden", {"veld": "voorbeelden", "tekst": "A staat vooraan", "oordeel": "wel"})):
+        run = await _run(client, wg, b, actie, 201, op_voorstel_id=d["id"])
+        assert run["op_voorstel_id"] == d["id"]
+        invoer = (await client.get(f"{_pad(wg, b)}/kaart-runs/{run['id']}", params={"invoer": True})).json()["invoer"]
+        assert invoer["begrip"]["inhoud"]["definitie"] == "iemand die als eerste genoemd wordt"
+        assert invoer["op_voorstel"]["id"] == d["id"]
+        r = await _uitkomst(client, wg, b, run, [voorstel])
+        assert r.status_code == 200, r.text
+        uit[actie] = next(v for v in r.json()["voorstellen"] if v["run_id"] == run["id"])
+    return wg, b, d, uit
+
+
+async def test_zonder_definitie_rusten_uitleg_toelichting_en_voorbeelden_op_het_voorstel(client):
+    wg, b, d, uit = await _op_voorgestelde(client)
+    for v in uit.values():
+        assert v["basis"]["voorstel_id"] == d["id"]
+        assert v["basis"]["definitie"] == "iemand die als eerste genoemd wordt"
+        assert (v["wacht_op_definitie"], v["verouderd"]) == (True, False)
+    # Zolang de definitie niet is overgenomen, gaat er niets het begrip in.
+    r = await _neem_over(client, wg, b, uit["uitleg"])
+    assert r.status_code == 409 and r.json()["detail"]["fout"] == "definitie_niet_overgenomen"
+    assert (await client.get(_pad(wg, b))).json()["revisie"] == 1
+    # Neemt de analist de definitie ongewijzigd over, dan is de rest gewoon over te nemen.
+    b = (await _neem_over(client, wg, b, d)).json()
+    per_id = {v["id"]: v for v in (await client.get(f"{_pad(wg, b)}/voorstellen")).json()["voorstellen"]}
+    assert all((per_id[v["id"]]["wacht_op_definitie"], per_id[v["id"]]["verouderd"]) == (False, False)
+               for v in uit.values())
+    b = (await _neem_over(client, wg, b, uit["uitleg"])).json()
+    b = (await _neem_over(client, wg, b, uit["toelichting"])).json()
+    b = (await _neem_over(client, wg, b, uit["voorbeelden"])).json()
+    i = b["inhoud"]
+    assert (i["uitleg"], i["context"], [x["tekst"] for x in i["voorbeelden"]]) == (
+        "Alfa komt eerst.", "Alleen de eerste in de opsomming.", ["A staat vooraan"])
+
+
+async def test_een_afgewezen_voorgestelde_definitie_maakt_de_rest_verouderd(client):
+    wg, b, d, uit = await _op_voorgestelde(client)
+    r = await client.post(f"{_pad(wg, b)}/voorstellen/{d['id']}/afwijzen", json={"reden": "te ruim"})
+    assert r.status_code == 200, r.text
+    per_id = {v["id"]: v for v in r.json()["voorstellen"]}
+    assert all((per_id[v["id"]]["wacht_op_definitie"], per_id[v["id"]]["verouderd"]) == (False, True)
+               for v in uit.values())
+    # Zonder definitie kan het nergens op rusten, ook niet bewust.
+    r = await _neem_over(client, wg, b, uit["uitleg"], nu_gezien="")
+    assert r.status_code == 409 and r.json()["detail"]["fout"] == "geen_definitie"
+
+
+async def test_een_anders_overgenomen_definitie_maakt_de_rest_verouderd_en_nooit_stil(client):
+    wg, b, d, uit = await _op_voorgestelde(client)
+    b = (await _neem_over(client, wg, b, d, aanpassing="de eerste in een rij")).json()
+    assert b["inhoud"]["definitie"] == "de eerste in een rij"
+    per_id = {v["id"]: v for v in (await client.get(f"{_pad(wg, b)}/voorstellen")).json()["voorstellen"]}
+    v = per_id[uit["voorbeelden"]["id"]]
+    assert (v["verouderd"], v["nu"]["definitie"], v["basis"]["definitie"]) == (
+        True, "de eerste in een rij", "iemand die als eerste genoemd wordt")
+    r = await _neem_over(client, wg, b, v)
+    d409 = r.json()["detail"]
+    assert r.status_code == 409 and (d409["fout"], d409["voorstel"]["tekst"]) == ("voorstel_verouderd", "A staat vooraan")
+    assert (await client.get(_pad(wg, b))).json()["inhoud"]["voorbeelden"] == []
+    # Bewust kan het wel: met de definitie die de analist ernaast zag.
+    r = await _neem_over(client, wg, b, v, nu_gezien="de eerste in een rij")
+    assert r.status_code == 200 and [x["tekst"] for x in r.json()["inhoud"]["voorbeelden"]] == ["A staat vooraan"]
+
+
+async def test_op_voorstel_vraagt_een_open_definitievoorstel_van_dit_begrip(client):
+    wg, b, _, [d] = await _met_voorstel(client)
+    r = await client.post(f"{_pad(wg, b)}/kaart-runs", json={"actie": "scherper", "op_voorstel_id": d["id"]})
+    assert r.status_code == 422
+    r = await client.post(f"{_pad(wg, b)}/kaart-runs", json={"actie": "uitleg", "op_voorstel_id": "bestaat-niet"})
+    assert r.status_code == 409 and r.json()["detail"]["fout"] == "basis_ongeldig"
+    # Een toelichting zonder definitie en zonder voorstel: net als uitleg en voorbeelden een 409.
+    r = await client.post(f"{_pad(wg, b)}/kaart-runs", json={"actie": "toelichting"})
+    assert r.status_code == 409 and r.json()["detail"]["fout"] == "geen_definitie"
+    # Een definitievoorstel dat al verouderd is, is geen basis.
+    await client.patch(_pad(wg, b), json={"verwachte_revisie": 1, "inhoud": {"naam": "Alfa", "definitie": "eigen"}})
+    r = await client.post(f"{_pad(wg, b)}/kaart-runs", json={"actie": "uitleg", "op_voorstel_id": d["id"]})
+    assert r.status_code == 409 and r.json()["detail"]["fout"] == "voorstel_verouderd"

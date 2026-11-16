@@ -377,14 +377,16 @@ class WetsanalyseApi:
         return await self._post(f"{self._kaart_pad(werkgebied_id, begrip_id, run_id)}/mislukt", {"reden": reden[:2000]})
 
     async def start_kaart_run(self, werkgebied_id: str, begrip_id: str, actie: str,
-                              ander_begrip_id: str | None = None) -> dict[str, Any]:
+                              ander_begrip_id: str | None = None, op_voorstel_id: str | None = None) -> dict[str, Any]:
         """Een kaartactie vanuit het gesprek (fase F4), zoals de knop op de kaart: de api legt de invoer vast,
         of geeft de lopende run (of een klare met open voorstellen) terug (`nieuw: false`). Het manifest
-        vraagt de bronboom uit de graaf; vandaar de ruimere leestijd."""
+        vraagt de bronboom uit de graaf; vandaar de ruimere leestijd. `op_voorstel_id` (B-6): rust op een open
+        definitievoorstel in plaats van op de bewaarde definitie."""
         pad = f"{self._werkgebied_pad(werkgebied_id)}/begrippen/{quote(begrip_id, safe='')}/kaart-runs"
         antwoord = await self._client.post(
             f"{self._basis}{pad}", headers=self._headers, timeout=MANIFEST_TIMEOUT,
-            json={"actie": actie, **({"ander_begrip_id": ander_begrip_id} if ander_begrip_id else {})})
+            json={"actie": actie, **({"ander_begrip_id": ander_begrip_id} if ander_begrip_id else {}),
+                  **({"op_voorstel_id": op_voorstel_id} if op_voorstel_id else {})})
         if antwoord.status_code >= 400:
             raise WetsanalyseApiFout(f"POST kaart-runs → {antwoord.status_code}", antwoord.status_code,
                                      api_reden(antwoord))

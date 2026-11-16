@@ -2040,8 +2040,10 @@ reeks) en `doelen`.
 - **De begrippen-agent** (`agents/begrippen.py`): `voorstellen` (`begrippen_beurt.begrippen_kern`),
   `meedenken` (`begrippen_verdieping.verdieping_kern`; zonder `bevestigd` het voorstel met bevestiging),
   de vijf kaartacties (`kaart_beurt.kaart_kern`, dezelfde kaart-run als de knop), `uitwerken`
-  (brondefinitie → zonder definitie een definitievoorstel → op een overgenomen definitie de uitleg in B1, als
-  die er nog niet is, en voorbeelden; daarna zegt Lex wat er nog open is) – en na elke losse kaartactie noemt Lex het volgende logische stuk
+  (B-6, in één beurt: brondefinitie → zonder definitie scherper → de uitleg in B1 en de toelichting (als ze er nog
+  niet zijn) en voorbeelden. Zonder overgenomen definitie rusten die op het definitievoorstel van de beurt
+  (`op_voorstel` naar de kaart-run, `_voorgestelde_definitie`); de api maakt ze verouderd als de analist die
+  definitie niet of anders overneemt. Relaties blijven een aparte stap; de slotzin zegt wat er open is) – en na elke losse kaartactie noemt Lex het volgende logische stuk
   (`kaart_beurt.VOLGENDE`: definitie → uitleg → voorbeelden → relaties)
   en `relaties` (`GET …/relaties`, zonder model). Het begrip komt van het onderwerp (`als_rij`) of uit de
   term (`los_op`, zie *Welk begrip*). Geen skillrol: de regels voor begrippen staan in de keten en de toetsen, en

@@ -9,6 +9,12 @@ rekent (`agent/begrip_kaart.py`), de api legt de invoer vast, toetst en bewaart:
 - **Niets stil overschreven.** Een definitievoorstel bewaart de definitie waarop het rust (`basis`).
   Staat er intussen een andere, dan weigert overnemen met 409 `voorstel_verouderd` en de drie waarden
   (toen, nu, voorstel). Uitleg, toelichting en voorbeelden worden toegevoegd, nooit vervangen.
+- **Op een voorgestelde definitie** (B-6, 16 nov 2026). Een uitleg, toelichting of voorbeeld kan rusten op een open
+  definitievoorstel (`op_voorstel_id`): de invoer draagt dan die definitie, en het voorstel draagt haar als `basis`
+  met `voorstel_id`. Zolang dat definitievoorstel open is, wacht het (`wacht_op_definitie`; overnemen: 409
+  `definitie_niet_overgenomen`). Neemt de analist de definitie ongewijzigd over, dan is het gewoon over te nemen;
+  wijst hij haar af of neemt hij haar anders over, dan is het `verouderd` (409 `voorstel_verouderd`, en alleen bewust
+  met `nu_gezien`). Nooit stil.
 - **Herkomst gaat mee.** Overnemen zet `definitie_herkomst` en `definitie_door` (`lex`, of `analist`
   bij een aanpassing); de revisieregel noemt het voorstel, de actie en het model. Alleen een
   overgenomen brondefinitie is letterlijk.
@@ -33,7 +39,7 @@ from sqlalchemy import insert, select, update
 from . import begrip_onderzoek, begrip_store, db, runs, verbruik
 from .begrip_contracts import BegripInhoud
 from .begrip_voorstel_contracts import (
-    MODEL_ACTIES, VELDEN, KaartRunStart, KaartUitkomst, VoorstelInvoer, VoorstelOvername,
+    MODEL_ACTIES, OP_DEFINITIE, VELDEN, KaartRunStart, KaartUitkomst, VoorstelInvoer, VoorstelOvername,
 )
 from .begrippen_verdieping import definitie_fouten, fragment_fouten, fragmentruimte
 from .werkgebied_inventaris import nodes_met_titel
@@ -53,6 +59,7 @@ def _run(row, met_invoer: bool = False) -> dict:
            "invoer_id": row.invoer_id, "status": runs.status(row), "melding": row.melding, "reden": row.reden,
            "basis_revisie": row.invoer["begrip"]["revisie"],
            "ander_begrip_id": (row.invoer.get("ander") or {}).get("id"),
+           "op_voorstel_id": (row.invoer.get("op_voorstel") or {}).get("id"),
            "gestart_door": row.gestart_door, "gestart": db.aware(row.gestart).isoformat(),
            "gewijzigd": db.aware(row.gewijzigd).isoformat()}
     if met_invoer:
@@ -60,7 +67,7 @@ def _run(row, met_invoer: bool = False) -> dict:
     return uit
 
 
-def _voorstel(row, huidig: dict | None = None) -> dict:
+def _voorstel(row, huidig: dict | None = None, status_van: dict[str, str] | None = None) -> dict:
     uit = {"id": row.id, "begrip_id": row.begrip_id, "run_id": row.run_id, "actie": row.actie, "veld": row.veld,
            "volgorde": row.volgorde, "basis": row.basis, "waarde": row.waarde, "motivatie": row.motivatie,
            "aandacht": row.aandacht, "aandachtspunten": row.aandachtspunten, "door": row.door,
@@ -71,7 +78,20 @@ def _voorstel(row, huidig: dict | None = None) -> dict:
         nu = _definitie_stand(huidig)
         uit["verouderd"] = nu != _definitie_stand(row.basis)
         uit["nu"] = nu
+    elif (row.basis or {}).get("voorstel_id") and row.status == "open" and huidig is not None:
+        stand = _op_voorstel_stand(row, huidig, (status_van or {}).get(row.basis["voorstel_id"], ""))
+        uit.update(op_voorstel={"id": row.basis["voorstel_id"],
+                                "status": (status_van or {}).get(row.basis["voorstel_id"], "")},
+                   wacht_op_definitie=stand == "wacht", verouderd=stand == "verouderd", nu=_definitie_stand(huidig))
     return uit
+
+
+def _op_voorstel_stand(row, huidig: dict, basis_status: str) -> str:
+    """Een voorstel op een voorgestelde definitie: `klaar` als die definitie er nu zo staat, `wacht` zolang het
+    definitievoorstel open is, anders `verouderd` (afgewezen, aangepast of een andere definitie)."""
+    if _definitie_stand(huidig) == _definitie_stand(row.basis):
+        return "klaar"
+    return "wacht" if basis_status == "open" else "verouderd"
 
 
 def _definitie_stand(inhoud: dict) -> dict:
@@ -90,6 +110,8 @@ def _invoer_id(invoer: dict) -> str:
     sleutel = {"actie": invoer["actie"], "begrip": [invoer["begrip"]["id"], invoer["begrip"]["revisie"]],
                "ander": [invoer["ander"]["id"], invoer["ander"]["revisie"]] if invoer.get("ander") else None,
                "manifest_id": invoer["manifest_id"]}
+    if invoer.get("op_voorstel"):           # B-6; een invoer zonder houdt zijn id
+        sleutel["op_voorstel"] = invoer["op_voorstel"]["id"]
     if invoer.get("onderzoek_id"):          # spoor M; een invoer van daarvoor houdt zijn id
         sleutel["onderzoek_id"] = invoer["onderzoek_id"]
     return _hash(sleutel)[:32]
@@ -106,8 +128,12 @@ async def start(werkgebied: dict, begrip_id: str, s: KaartRunStart, actor: str, 
         if s.ander_begrip_id == begrip_id:
             raise HTTPException(422, "Vergelijk met een ander begrip.")
         ander = await begrip_store.haal(wid, s.ander_begrip_id)
-    if s.actie in ("voorbeelden", "uitleg") and not (begrip["inhoud"].get("definitie") or "").strip():
-        wat = "Voorbeelden toetsen" if s.actie == "voorbeelden" else "Een uitleg legt"
+    inhoud, op_voorstel = begrip["inhoud"], None
+    if s.op_voorstel_id:
+        op_voorstel = await _basisvoorstel(wid, begrip, s.op_voorstel_id)
+        inhoud = {**inhoud, "definitie": op_voorstel["definitie"], "definitie_herkomst": op_voorstel["herkomst"]}
+    elif s.actie in OP_DEFINITIE and not (inhoud.get("definitie") or "").strip():
+        wat = {"voorbeelden": "Voorbeelden toetsen", "uitleg": "Een uitleg legt", "toelichting": "Een toelichting begrenst"}[s.actie]
         raise HTTPException(409, {"fout": "geen_definitie",
                                   "melding": f"{wat} een definitie; geef het begrip eerst een definitie."})
     m = await begrip_onderzoek.manifest_en_onderzoek(werkgebied, resolve)
@@ -121,7 +147,7 @@ async def start(werkgebied: dict, begrip_id: str, s: KaartRunStart, actor: str, 
     invoer = {
         "actie": s.actie,
         "werkgebied": {"id": wid, "naam": werkgebied.get("naam", ""), "analysevraag": werkgebied.get("analysevraag", "")},
-        "begrip": {"id": begrip["id"], "revisie": begrip["revisie"], "inhoud": begrip["inhoud"]},
+        "begrip": {"id": begrip["id"], "revisie": begrip["revisie"], "inhoud": inhoud},
         "leden": leden,
         "ander": {"id": ander["id"], "revisie": ander["revisie"], "inhoud": ander["inhoud"],
                   "leden": _leden(ander, m["manifest"])} if ander else None,
@@ -130,6 +156,8 @@ async def start(werkgebied: dict, begrip_id: str, s: KaartRunStart, actor: str, 
         "manifest": m["manifest"], "manifest_id": m["manifest_id"],
         "onderzoek": m["onderzoek"], "onderzoek_id": m["onderzoek_id"],
     }
+    if op_voorstel:
+        invoer["op_voorstel"] = op_voorstel
     invoer["invoer_id"] = iid = _invoer_id(invoer)
     r, v = db.begrip_kaartruns, db.begrip_voorstellen
     async with db.get_engine().begin() as conn:
@@ -151,6 +179,22 @@ async def start(werkgebied: dict, begrip_id: str, s: KaartRunStart, actor: str, 
                                 "begrip_revisie": begrip["revisie"], **({"ander_begrip_id": ander["id"]} if ander else {})})
         row = (await conn.execute(select(r).where(r.c.id == rid))).first()
     return _run(row), True
+
+
+async def _basisvoorstel(werkgebied_id: str, begrip: dict, voorstel_id: str) -> dict:
+    """Het open definitievoorstel waarop een uitleg, toelichting of voorbeeld gaat rusten (B-6). Het moet bij dit
+    begrip horen, open zijn en nog op de huidige definitie rusten: een verouderd voorstel is geen basis."""
+    t = db.begrip_voorstellen
+    async with db.get_engine().connect() as conn:
+        row = (await conn.execute(select(t).where(t.c.id == voorstel_id, t.c.werkgebied_id == werkgebied_id,
+                                                  t.c.begrip_id == begrip["id"]))).first()
+    if row is None or row.veld != "definitie" or row.status != "open":
+        raise HTTPException(409, {"fout": "basis_ongeldig",
+                                  "melding": "Dat is geen open definitievoorstel van dit begrip."})
+    if _definitie_stand(begrip["inhoud"]) != _definitie_stand(row.basis):
+        raise HTTPException(409, {"fout": "voorstel_verouderd",
+                                  "melding": "De definitie veranderde nadat Lex dit voorstelde; daar rust niets meer op."})
+    return {"id": row.id, "definitie": row.waarde["definitie"], "herkomst": row.waarde["herkomst"]}
 
 
 async def _run_rij(conn, werkgebied_id: str, begrip_id: str, run_id: str, slot: bool = False):
@@ -240,6 +284,9 @@ async def zet_uitkomst(werkgebied_id: str, begrip_id: str, run_id: str, u: Kaart
         raise HTTPException(422, {"fout": "garantie", "voorstellen": fout,
                                   "melding": "Een voorstel noemt tekst die niet zo in de bron staat."})
     basis = {"revisie": row.invoer["begrip"]["revisie"], **_definitie_stand(row.invoer["begrip"]["inhoud"])}
+    if row.invoer.get("op_voorstel"):
+        # B-6: de definitie in de invoer is een voorstel; het voorstel-id maakt het veroudering zichtbaar.
+        basis["voorstel_id"] = row.invoer["op_voorstel"]["id"]
     door = {"bron": "model" if row.actie in MODEL_ACTIES else "graaf", "model": u.model, "promptversie": u.promptversie}
     if isinstance(u.meting.get("onderzoek"), dict):
         # Spoor M: wat Lex naast de passages onderzocht (aantal, wat ontbrak, open vragen) – bij elk voorstel.
@@ -283,7 +330,8 @@ async def _voorstellen_in(conn, werkgebied_id: str, begrip_id: str) -> dict:
     laatste: dict[str, dict] = {}
     for x in runs:
         laatste.setdefault(x.actie, _run(x))
-    return {"voorstellen": [_voorstel(x, inhoud) for x in rows], "runs": laatste}
+    status_van = {x.id: x.status for x in rows}
+    return {"voorstellen": [_voorstel(x, inhoud, status_van) for x in rows], "runs": laatste}
 
 
 async def voorstellen(werkgebied_id: str, begrip_id: str) -> dict:
@@ -329,10 +377,33 @@ async def _voorstel_rij(conn, werkgebied_id: str, begrip_id: str, voorstel_id: s
     return row
 
 
-def _neem_veld_over(inhoud: dict, row, o: VoorstelOvername) -> tuple[dict, bool]:
+def _toets_op_voorstel(inhoud: dict, row, o: VoorstelOvername, basis_status: str) -> None:
+    """B-6: een uitleg, toelichting of voorbeeld op een voorgestelde definitie gaat pas het begrip in als die
+    definitie er zo staat – of bewust, als de analist de definitie van nu naast het voorstel zag."""
+    stand = _op_voorstel_stand(row, inhoud, basis_status)
+    if stand == "klaar":
+        return
+    if stand == "wacht":
+        raise HTTPException(409, {
+            "fout": "definitie_niet_overgenomen", "voorstel_id": row.basis["voorstel_id"],
+            "melding": "Dit rust op een voorgestelde definitie; neem die eerst over (of wijs dit af)."})
+    nu = inhoud.get("definitie") or ""
+    if not nu.strip():
+        raise HTTPException(409, {"fout": "geen_definitie",
+                                  "melding": "Het begrip heeft geen definitie meer waar dit op kan rusten."})
+    if o.nu_gezien is None or o.nu_gezien != nu:
+        raise HTTPException(409, {
+            "fout": "voorstel_verouderd", "toen": _definitie_stand(row.basis), "nu": _definitie_stand(inhoud),
+            "voorstel": {"tekst": row.waarde.get("tekst", "")},
+            "melding": "Dit rust op een definitie die je niet (zo) overnam; vergelijk voordat je iets overneemt."})
+
+
+def _neem_veld_over(inhoud: dict, row, o: VoorstelOvername, basis_status: str = "") -> tuple[dict, bool]:
     """De inhoud na overnemen, en of de analist het voorstel aanpaste."""
     w = row.waarde
     uit = dict(inhoud)
+    if row.veld != "definitie" and (row.basis or {}).get("voorstel_id"):
+        _toets_op_voorstel(inhoud, row, o, basis_status)
     if row.veld == "definitie":
         gezien = o.nu_gezien is not None and o.nu_gezien == (inhoud.get("definitie") or "")
         if _definitie_stand(inhoud) != _definitie_stand(row.basis) and not gezien:
@@ -368,7 +439,11 @@ async def overnemen(werkgebied_id: str, begrip_id: str, voorstel_id: str, o: Voo
         async with begrip_store._gewijzigd_in(conn, werkgebied_id, begrip_id, o.verwachte_revisie, actor,
                                               "voorstel-overgenomen", detail) as (_, brow, stand):
             row = await _voorstel_rij(conn, werkgebied_id, begrip_id, voorstel_id)
-            nieuw, aangepast = _neem_veld_over(brow.inhoud, row, o)
+            basis_status = ""
+            if (row.basis or {}).get("voorstel_id"):
+                basis_status = (await conn.execute(select(t.c.status).where(
+                    t.c.id == row.basis["voorstel_id"], t.c.begrip_id == begrip_id))).scalar() or ""
+            nieuw, aangepast = _neem_veld_over(brow.inhoud, row, o, basis_status)
             try:
                 nieuw = BegripInhoud(**nieuw).model_dump(mode="json")
             except ValidationError as e:
