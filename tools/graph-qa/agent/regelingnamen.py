@@ -11,6 +11,7 @@ import logging
 import re
 from collections.abc import Iterable
 
+from . import procestoestand
 from .graph.results import parse_select
 from .models import Source
 from .ports import GraphPort
@@ -21,6 +22,15 @@ _BWB = re.compile(r"^BWB[RV]\d+$")
 _CACHE: dict[str, str] = {}
 _AFKORTINGEN: dict[str, list[str]] = {}
 _CACHE_MAX = 2048
+
+
+def reset_cache() -> None:
+    """Leeg de namen en afkortingen van dit proces (voor tests; `procestoestand`)."""
+    _CACHE.clear()
+    _AFKORTINGEN.clear()
+
+
+procestoestand.registreer(__name__, reset_cache)
 
 
 def _query(bwbs: list[str], *, afkortingen: bool = False) -> str:

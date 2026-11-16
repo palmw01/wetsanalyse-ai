@@ -255,14 +255,31 @@ def test_de_specialisten_voor_een_tekstvraag_krijgen_het_sjabloon():
     assert "antwoord_bepaling" not in specialists.get("begrippen_lezen").sjablonen
 
 
-def test_een_beurt_rondt_af_met_de_wettekst_uit_de_graaf():
-    tsv = "?lid\t?lidnummer\t?lidtekst\t?lidonderdelen\n<urn:bwb:BWBR0004770:artikel:9:lid:1>\t\"1\"\t\"Een belastingaanslag is invorderbaar.\"\t\"false\"\n"
-    llm = FakeLLM([                   response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),
+_REGELINGEN = "?regeling\t?citeertitel\t?soort\t?afkortingen\n<urn:bwb:BWBR0004770>\tInvorderingswet 1990\twet\tIW | Iw\n"
+
+
+@pytest.mark.parametrize("namen_vooraf", [False, True], ids=["cache-leeg", "cache-gevuld"])
+def test_een_beurt_rondt_af_met_de_wettekst_uit_de_graaf(namen_vooraf):
+    """De vraag noemt de regeling, zoals een beurt die productie toelaat: zonder regeling weigert `id_herkomst` het
+    gegokte BWB-id. Eerder vroeg deze test "Wat staat er in artikel 9?" en was hij alleen groen omdat de namenlijst
+    (`overzicht._REGELINGEN_CACHE`) leeg was en die controle dus uit stond; na `test_eval` was hij rood (Lex Bench
+    §14.1). Met de namen al in de cache, zoals na een eerdere beurt, moet de uitkomst gelijk zijn."""
+    from agent import overzicht
+    from agent.graph import queries
+
+    lid = "?lid\t?lidnummer\t?lidtekst\t?lidonderdelen\n<urn:bwb:BWBR0004770:artikel:9:lid:1>\t\"1\"\t\"Een belastingaanslag is invorderbaar.\"\t\"false\"\n"
+    regelingen = queries.list_regelingen(limit=200)
+    graaf = FakeGraph(results=lambda q: _REGELINGEN if q == regelingen else lid)
+    if namen_vooraf:
+        overzicht._regelingen(graaf)
+        assert overzicht._REGELINGEN_CACHE, "de cache hoort hier gevuld te zijn"
+    llm = FakeLLM([response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),
                    response([tool_block("t2", "antwoord_bepaling", {"bepalingen": [ART], "toelichting": "Regelt de termijn."})], "tool_use")])
     settings = make_settings(enable_planning=True, grounding_correct=True)
 
     async def alles():
-        return [e async for e in answer_stream("Wat staat er in artikel 9?", settings=settings, llm=llm, graph=FakeGraph(result=tsv))]
+        return [e async for e in answer_stream("Wat staat er in artikel 9 van de Invorderingswet 1990?", settings=settings,
+                                               llm=llm, graph=graaf)]
 
     events = asyncio.run(alles())
     antwoord = _eerste(events, "antwoord")["antwoord"]
@@ -270,6 +287,28 @@ def test_een_beurt_rondt_af_met_de_wettekst_uit_de_graaf():
     assert antwoord["blokken"][0]["items"][0]["tekst"] == "Een belastingaanslag is invorderbaar."
     grounding = _eerste(events, "grounding")
     assert grounding["grounded"] is True and grounding["niveau"] == "gegrond", "de vindplaats staat erbij, dus niet: niets te controleren"
+
+
+def test_het_oude_geval_zonder_regeling_weigert_de_controle_wel():
+    """De tegenproef: noemt de vraag de regeling niet en kent de graaf haar naam, dan gaat het gegokte id niet naar de
+    graaf. Zo blijft zichtbaar waarom de test hierboven de regeling in de vraag zet."""
+    from agent.graph import queries
+
+    lid = "?lid\t?lidnummer\t?lidtekst\t?lidonderdelen\n<urn:bwb:BWBR0004770:artikel:9:lid:1>\t\"1\"\t\"Een belastingaanslag is invorderbaar.\"\t\"false\"\n"
+    regelingen = queries.list_regelingen(limit=200)
+    graaf = FakeGraph(results=lambda q: _REGELINGEN if q == regelingen else lid)
+    llm = FakeLLM([response([tool_block("t1", "get_artikel", {"bwb_id": "BWBR0004770", "artikel": "9"})], "tool_use"),
+                   response([text_block("Welke regeling bedoel je?")], "end_turn")])
+    settings = make_settings(enable_planning=True, grounding_correct=True)
+
+    async def alles():
+        return [e async for e in answer_stream("Wat staat er in artikel 9?", settings=settings, llm=llm, graph=graaf)]
+
+    events = asyncio.run(alles())
+    einde = [e["status"] for e in events if e.get("type") == "tool_execution" and e.get("tool") == "get_artikel"
+             and e.get("status") != "running"]
+    assert einde == ["error"], einde
+    assert graaf.queries == [regelingen], "alleen de namenlijst, de bepaling zelf ging niet naar de graaf"
 
 
 # Het sjabloon `duiding`: het model wijst aan, de code toetst per bepaling, en de uitleg blijft door de controle gaan.
