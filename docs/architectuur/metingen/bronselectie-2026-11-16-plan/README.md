@@ -244,3 +244,21 @@ standaard (stap 8)". `test_de_standaard_van_stap_8_houdt_de_gemeten_uitkomst` le
 
 Een werkgebied zoekt na de uitrol opnieuw: de zoekcode verandert, dus ook de `zoekversie`. Een controlerun op Termijnen in de
 werkplek staat nog open en vraagt akkoord.
+
+## Controlerun op acceptatie (16 nov 2026, na de uitrol van stap 8)
+
+Een bronnenrun op het werkgebied Termijnen, gestart als de knop *Bepaal de bronnen per deelvraag* (actie `bronselectie`),
+met akkoord van de gebruiker. Zoekversie `z8465f042ae56` (commit `744062ff`); de run van vanochtend had `z4ec70aab4a55`. Geen
+model: 0 tokens.
+
+- Methoden: `deelvraag` (24) en `grondslag` (5). Het overzicht draaide niet meer (`overzicht_streng`).
+- Kandidaten: 18 actief, waar het er 59 waren. De andere 42 staan op *vervallen*, en daar lagen geen besluiten op.
+- Zonder deelvraag: 4, waar het er 45 waren. Over zijn de grondslagen (Iw 29, Iw 58 lid 2, Awb 4:95 lid 5, Awir 33 lid 1).
+- Per deelvraag: weer 8 kandidaten, grotendeels dezelfde als vanochtend. De Leidraaddivisies over toeslagen (79.3, 79.5,
+  79.5a) staan er nog, en AWR 13, Iw 24 lid 2 en Iw 9 lid 6 ontbreken nog. Dat voorspelde de meting: met een gebeurtenis
+  verandert de zoekvragenroute niet (0,06).
+- Lex meldt: "‘winstaandeel’ staat niet in de regelingen van dit werkgebied, wel in Mijnbouwwet. Hoort die regeling erbij,
+  neem haar dan op in het zoekbereik."
+
+Wat de recall bij dit werkgebied nog kan verhogen, staat bij de bevindingen voor een volgend plan: de rangschikking binnen de
+pool (dekking van de deelvraagtermen, "negatieve"/"negatief"), en de gebeurtenis die bijna de hele wet omvat.
