@@ -15,6 +15,12 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [
+  /^GET \/api\/werkgebieden\/wg1\/toestanden$/,
+];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -84,7 +90,7 @@ await page.route("**/api/**", async (route) => {
   if (p === "/api/annotatie/v2/verklaringen") return route.fulfill({ json: {} });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
-  return route.fulfill({ json: [] });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
 });
 
 const paneel = (soort) => page.locator(`[data-context-paneel=${soort}]`);
@@ -187,6 +193,7 @@ try {
   assert.equal(await page.locator("[data-context-paneel]").count(), 0);
 
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: bron uit een antwoord naast het gesprek met markeringen en wat de graaf verder weet (plek, geldigheid, verwijzingen, tellingen; haperende graaf gemeld), element in hetzelfde paneel zonder beoordelingsknoppen, Open volledige pagina in het werkgebied, Bronnen in de chatkop, één paneel tegelijk, weg uit de werkplek is het paneel weg.");
 } finally {
   await browser.close();

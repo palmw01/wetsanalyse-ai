@@ -16,6 +16,10 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend, sse } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -37,7 +41,6 @@ const gesprekken = {
       artefact: { soort: "werkgebied", ref: { werkgebied_id: "wg1" }, titel: "Invordering" } },
   ],
 };
-const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 
 async function opzet(page) {
   page.on("pageerror", (e) => errors.push(e.message));
@@ -61,7 +64,7 @@ async function opzet(page) {
     if (p.endsWith("/berichten") && m === "POST") return route.fulfill({ json: { id: 1 } });
     if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
     if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
-    return route.fulfill({ json: [] });
+    return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
   });
 }
 
@@ -173,6 +176,7 @@ try {
   await mobiel.close();
 
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: het commandomenu bij /, /dee + Enter als de suggestie, ↓/Tab/Escape, onbekend als vraag, /help, /nieuw zonder beurt, de commando's van een deelvraag, en mobiel (375 px, 44 px, tikken).");
 } finally {
   await browser.close();

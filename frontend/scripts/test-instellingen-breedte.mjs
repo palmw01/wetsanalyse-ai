@@ -14,6 +14,14 @@ import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [
+  /^POST \/api\/berichten\/lees-alles$/,
+  /^GET \/api\/admin\/modelkeuzes$/,
+  /^POST \/api\/admin\/feedback\/markeer-gezien$/,
+];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const afdruk = process.env.SCHERMAFDRUK;
@@ -73,7 +81,7 @@ async function open(viewport) {
     if (p === "/api/admin/feedback/ongelezen-aantal") return route.fulfill({ json: { aantal: 12 } });
     if (p === "/api/berichten/ongelezen-aantal") return route.fulfill({ json: { aantal: 2 } });
     if (p === "/api/berichten") return route.fulfill({ json: { totaal: 45, pagina: 1, per_pagina: 20, items: [bericht(1), bericht(2)] } });
-    return route.fulfill({ json: [] });
+    return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
   });
   return { page, context, stand };
 }
@@ -271,6 +279,7 @@ try {
   }
   if (rapport) console.log(bevindingen.join("\n") || "geen bevindingen");
   else assert.deepEqual(bevindingen, []);
+  controleerOnbekend();
   console.log("OK test-instellingen-breedte");
 } finally {
   await browser.close();

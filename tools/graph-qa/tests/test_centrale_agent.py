@@ -205,7 +205,8 @@ def test_een_tool_buiten_de_kernset_kan_alleen_na_de_overdracht():
 
     graph = FakeGraph(result="")
     llm = FakeLLM([response([tool_block("t1", "geldigheid", {"bwb_id": "BWBR0004770"})], "tool_use"),
-                   response([text_block("Antwoord.")], "end_turn")])
+                   response([text_block("Antwoord.")], "end_turn")],
+                  buiten_aanbod=True)  # de test toetst juist dat de code die aanroep weigert
     _run(answer_stream(VRAAG, settings=make_settings(), llm=llm, graph=graph))
     [resultaat] = [b for m in llm.calls[1]["messages"] if isinstance(m["content"], list)
                    for b in m["content"] if b.get("type") == "tool_result"]

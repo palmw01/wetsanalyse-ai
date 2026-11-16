@@ -18,6 +18,7 @@ import json
 from agent import subagent as sub
 from agent.nodes import antwoord as antwoordnodes
 from agent.nodes.antwoord import MAX_NALEZEN, NA_RAPPORT, NALEZEN_PLAFOND, na_subagent
+from agent import wetsanalyse_api
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block
 from test_subagent import OPDRACHT, Api, _kinderen
 
@@ -34,13 +35,28 @@ def _instellingen():
                          connector_kamerstukken=True)
 
 
+class _Register:
+    """Het connectorregister van de beheerder met Kamerstukken aan: zonder dat staat de connector uit
+    (`register_onleesbaar`) en biedt de beurt `get_kamerstuk` niet aan, dus kan een model hem niet aanroepen."""
+
+    def __init__(self, *_a, **_k):
+        pass
+
+    async def connectors(self):
+        return ["kamerstukken"]
+
+    async def aclose(self):
+        pass
+
+
 def _beurt(llm, graph, monkeypatch):
     monkeypatch.setattr(sub, "WetsanalyseApi", lambda *_a, **_k: Api())
+    monkeypatch.setattr(wetsanalyse_api, "WetsanalyseApi", _Register)
     kinderen, gestart, _ = _kinderen(KIND)
     from agent.agent import answer_stream
 
     async def alles():
-        return [e async for e in answer_stream("Wat zegt de wetsgeschiedenis over artikel 7a, vierde lid, Invorderingswet "
+        return [e async for e in answer_stream("Wat zeggen de Kamerstukken over artikel 7a, vierde lid, Invorderingswet "
                                                "1990?", "hoofd", settings=_instellingen(), llm=llm, graph=graph,
                                                user_id="jurist", run_id="ouder-run", kinderen=kinderen)]
     return asyncio.run(alles()), gestart

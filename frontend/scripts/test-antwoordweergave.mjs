@@ -17,6 +17,7 @@ import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { sse } from "./nepApi.mjs";
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const shots = process.env.MOCK_SCREENSHOTS || "/tmp/wetsanalyse-antwoordweergave";
@@ -56,7 +57,6 @@ const sjabloonStroom = (antwoord) => [{ type: "antwoord", antwoord }, { type: "t
   { type: "grounding", grounded: true, cited: 1, unsupported: [], niet_letterlijk: [], niveau: "gegrond" },
   { type: "opgeslagen", run_id: "r2" }, { type: "done" }];
 let huidige = stroom;
-const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 
 await context.route("**/api/**", async (route) => {
   const req = route.request(), p = new URL(req.url()).pathname, m = req.method();

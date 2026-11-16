@@ -14,6 +14,13 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend, sse } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [
+  /^GET \/api\/werkgebieden\/wg1\/bronselectie$/,
+  /^GET \/api\/werkgebieden\/wg1\/begrippen$/,
+];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -37,7 +44,6 @@ const gesprekken = {
       artefact: { soort: "werkgebied", ref: { werkgebied_id: "wg1" }, titel: "Invordering" } },
   ],
 };
-const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 
 await page.route("**/api/**", async (route) => {
   const req = route.request(), url = new URL(req.url()), p = url.pathname, m = req.method();
@@ -61,7 +67,7 @@ await page.route("**/api/**", async (route) => {
   }
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
-  return route.fulfill({ json: [] });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
 });
 
 const chip = () => page.locator("[data-onderwerp]");
@@ -151,6 +157,7 @@ try {
   assert.equal(runs[vanaf].actie, undefined);
 
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: Vraag Lex als link buiten de werkplek, chip uit de URL (één keer), suggestie met actie, Vraag Lex in de kop van het paneel, een deelvraag als onderwerp, de startvraag voor een werkgebied, een bepaling buiten een werkgebied met Annoteer dit onderdeel als doel.");
 } finally {
   await browser.close();

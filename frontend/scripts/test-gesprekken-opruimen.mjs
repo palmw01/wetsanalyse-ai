@@ -13,6 +13,12 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [
+  /^GET \/api\/werkgebieden\/wg1$/,
+];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -63,7 +69,7 @@ await page.route("**/api/**", async (route) => {
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   if (p === "/api/account/me") return route.fulfill({ json: { userid: "t", email: "t@example.test", role: "analist",
     totp_enabled: false, tfa_nodig: false, rondleiding_knop: false } });
-  return route.fulfill({ json: [] });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
 });
 
 const sidebar = page.locator("aside[data-tour=sidebar]");
@@ -129,6 +135,7 @@ try {
   await rij("g1").waitFor();
 
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: tab Gesprekken telt recent en archief; verwijderen met aantal en tweede klik, één verzoek; sidebar ververst en het open gesprek sluit; archiveren zonder bevestiging; werkgebiedgesprekken blijven.");
 } finally {
   await browser.close();

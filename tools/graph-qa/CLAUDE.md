@@ -2395,6 +2395,10 @@ cd tools/graph-qa && .venv/bin/python eval/run_eval.py --herscoor run.jsonl    #
   Anthropic-responses af via `create()` én `stream()` (gedeelde index); bouw multi-turn-scenario's met
   `response([text_block(...), tool_block(...)], stop_reason)`. `make_settings` zet de checkpointer
   in-memory en `CLASSIFIER_PARALLEL` op 1.
+  `FakeLLM` is streng (Lex Bench §20.5 stap 2): is het script op, dan volgt een `ScriptFout` met de ronde en het laatste
+  bericht (vaak een weigering van de code), en een gescripte aanroep van een tool die het verzoek niet aanbood is ook een
+  `ScriptFout`, want een echt model kan dat niet. Zet de connector aan (en het register, als de api meedoet) zodat de tool
+  echt in het aanbod staat; alleen een test die de weigering zelf toetst, zet `FakeLLM(..., buiten_aanbod=True)`.
 - **Procesbrede toestand lekt niet tussen tests** (`agent/procestoestand.py`). Een module die op moduleniveau een cache
   of stand bewaart en die in een functie wijzigt (de citeertitels in `overzicht`, de namen in `regelingnamen`, de
   schemacache, de modelkeuze), meldt een functie die hem leegmaakt met `procestoestand.registreer`; `tests/conftest.py`

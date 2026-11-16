@@ -30,6 +30,10 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend, sse } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -108,7 +112,6 @@ const stromen = {
     { type: "done" }],
   r8: [{ type: "token", content: "We beginnen bij deelvraag 1." }, { type: "opgeslagen", run_id: "r8" }, { type: "done" }],
 };
-const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 const leeg = { denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" };
 const ia = (stap) => ({ intake_id: "ik1", stap, actie: "antwoord" });
 const gesprekken = {
@@ -145,7 +148,7 @@ await context.route("**/api/**", async (route) => {
   if (events) return route.fulfill({ contentType: "text/event-stream", body: sse(stromen[events[1]] ?? [{ type: "done" }]) });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
-  return route.fulfill({ json: [] });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
 });
 
 const wacht = async (n) => { for (let i = 0; i < 80 && starts.length < n; i++) await page.waitForTimeout(50); };
@@ -293,6 +296,7 @@ try {
   }
 
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: vraag onderaan i.p.v. het invoerveld, ✕ en 'Een vraag stellen ›', antwoorden in één Vragen-kaart zonder bubbels (ook na herladen), intake_antwoord bewaard, omschrijving, eigen tekst vervangt keuze, deelvragen met meerdere eigen regels, Weet ik (nog) niet exclusief, de gebeurtenis met Verzend, samenvatting met zoekbereik en gebeurtenis, Werkgebied aanmaken en meteen de bronselectie, ‹ terug, werkgebiedpaneel met dossier en dekking, smal scherm.");
 } finally {
   await browser.close();

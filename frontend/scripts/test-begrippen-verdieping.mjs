@@ -19,6 +19,7 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { sse } from "./nepApi.mjs";
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -56,7 +57,6 @@ const groepenAntwoord = () => ({ run, groepen: groepen(), passages,
   verdieping: verdiept ? { vragen_open: ["P1"], model: "m", op: nu,
     oordelen: { P1: { kandidaat_id: "P1", oordeel: "verwant_ander_begrip", motivatie: "Lid 10 noemt alle termijnen.", reden: "" },
       P2: { kandidaat_id: "P2", oordeel: "zelfde_betekenis", motivatie: "Beide de aanslag.", reden: "" } } } : null });
-const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 const artefact = { soort: "begrippen", titel: "Invorderbaarheid", ref: { werkgebied_id: "wg1", run_id: "r1" } };
 const leeg = { denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" };
 const gesprekken = {

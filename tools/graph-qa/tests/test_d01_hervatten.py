@@ -69,7 +69,7 @@ def _beurt(monkeypatch, tmp_path, vraag: str, antwoorden, *, meter=None):
             vraag, "kind-d01", llm=llm, graph=FakeGraph(result=""), profiel="algemeen", opdracht=OPDRACHT,
             resultaat=resultaat,
             # Een krap venster: zonder de hervatting als vervolg van de beurt viel het eerste deel eruit (bundel 118).
-            settings=make_settings(enable_planning=True, max_history_chars=2_000,
+            settings=make_settings(enable_planning=True, max_history_chars=2_000, connector_rechtspraak=True,
                                    checkpoint_db_path=str(tmp_path / "kind.db")))]
 
     asyncio.run(alles())

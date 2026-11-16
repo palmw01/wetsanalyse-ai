@@ -18,6 +18,15 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); ze krijgen de 404 van
+ *  vroeger. Al het andere is een fout. */
+const NIET_NAGEBOOTST = [
+  /^GET \/api\/werkgebieden\/wg1\/kandidaten$/,
+  /^GET \/api\/werkgebieden\/wg1\/herbeoordelingen$/,
+  /^GET \/api\/werkgebieden\/wg1\/begrippen\/conformiteit$/,
+];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -125,7 +134,7 @@ await page.route("**/api/**", async (route) => {
   if (p === "/api/werkgebieden/wg1/begrippen-runs/laatste") return route.fulfill({ json: { run: null } });
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
-  return route.fulfill({ status: 404, json: { detail: "Niet in deze test." } });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: { detail: "Niet in deze test." }, stilStatus: 404 });
 });
 
 const sectie = () => page.getByRole("region", { name: "Relaties" });
@@ -204,6 +213,7 @@ try {
   await zie("Vervangt");
 
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("OK test-begriprelaties");
 } catch (e) {
   if (process.env.SCREENSHOT_DIR) await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/begriprelaties-fout.png`, fullPage: true });

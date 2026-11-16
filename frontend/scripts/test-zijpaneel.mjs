@@ -16,6 +16,12 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [
+  /^GET \/api\/werkgebieden\/wg1\/toestanden$/,
+];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -54,7 +60,7 @@ await page.route("**/api/**", async (route) => {
   if (p === "/api/annotatie/v2/bepaling") return route.fulfill({ json: { beschikbaar: false } });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
-  return route.fulfill({ json: [] });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
 });
 
 const zijpaneel = page.locator("[data-zijpaneel]");
@@ -216,6 +222,7 @@ try {
   assert.equal(await tabs.count(), voor, "dezelfde bepaling opnieuw openen gaat naar de tab in beoordeling");
 
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: zijpaneel met scheiding (slepen binnen 320 px–60%, pijltjes, dubbelklik), inklappen tot een strook, vergroten met Escape terug, breedte bewaard na herladen, een nieuwe inhoud klapt uit, geen horizontale scroll op 375/800/1280, op een telefoon de sheet; tabs openen, wisselen, sluiten, herstellen per gesprek, Escape verbergt; één tab per bepaling, ook in beoordeling.");
 } finally {
   await browser.close();

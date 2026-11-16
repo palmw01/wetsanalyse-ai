@@ -27,6 +27,12 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [
+  /^GET \/api\/werkplaats\/image\/skill\/achterloper$/,
+];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 // `WERKPLAATS_SCREENSHOT=<map>` bewaart een beeld van het overzicht en van een concept, op 1280 en 375 px.
@@ -105,7 +111,7 @@ async function open(browser, breedte, { stand, concepten, maak, eerst }) {
       if (c[2]) return route.fulfill({ json: { ...gevonden.laatste, bestanden: BESTANDEN } });
       return route.fulfill({ json: { ...gevonden, versielijst: [gevonden.laatste] } });
     }
-    return route.fulfill({ json: {} });
+    return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: {} });
   });
   return { page, gezien };
 }
@@ -593,6 +599,7 @@ try {
     assert.deepEqual(gezien.errors, []);
     await page.close();
   }
+  controleerOnbekend();
   console.log("OK test-werkplaats");
 } finally {
   await browser.close();

@@ -16,6 +16,10 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -90,7 +94,7 @@ await context.route("**/api/**", async (route) => {
   }
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
-  return route.fulfill({ json: [] });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
 });
 
 const stuk = (id) => page.locator(`[data-stukvenster="${id}"]`);
@@ -163,6 +167,7 @@ try {
   await geenScroll(375);
 
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: een stuk uit een bronconnector als tab (kop uit de beschrijving, inhoud, citaten gemarkeerd, volgende deel, gegevens, verwijzing als eigen tab), meldingen voor een andere versie, alleen PDF en een onbereikbare bron, een uitspraak bij een eerdere tekst, op 375/800/1280 px.");
 } finally {
   await browser.close();

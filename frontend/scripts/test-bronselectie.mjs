@@ -22,6 +22,10 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend, sse } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -125,7 +129,6 @@ function beurt(body) {
   throw new Error(`onverwacht: ${JSON.stringify(a)}`);
 }
 
-const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 const leeg = { denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" };
 const starts = [], stromen = {}, berichten = [];
 const geschiedenis = [];          // wat "de api" van het gesprek bewaart: user-berichten en de beurten van Lex
@@ -164,7 +167,7 @@ await context.route("**/api/**", async (route) => {
   if (events) return route.fulfill({ contentType: "text/event-stream", body: sse(stromen[events[1]] ?? [{ type: "done" }]) });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
-  return route.fulfill({ json: [] });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
 });
 
 const wacht = async (n) => {
@@ -290,6 +293,7 @@ try {
   assert.equal(await pagina.getByRole("button", { name: /Ga verder met deelvraag/ }).count(), 0, "de pagina start Lex niet");
 
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: bronselectie starten met vier deelvragen, deelvraag 1 opnemen en afronden, Hoe wil je verder? met deelvraag 2, een onderzoekspunt, een tussenvraag zonder verlies, via het paneel naar deelvraag 4, herladen met de open vraag en de stand, hervatten met deelvraag_id, een ander gesprek gaat verder bij deelvraag 4, de tab Bronnen toont dezelfde stand.");
 } finally {
   await browser.close();
