@@ -139,7 +139,7 @@ traces. Zie [`CLAUDE.md`](CLAUDE.md) §*Observability* en
 
 Multi-stage `Dockerfile` (standalone, non-root), bouwcontext `frontend/`. Het image start met
 `node server.js` via `docker-entrypoint.sh`, op poort 3000, met health op `/api/health` (altijd 200; met `?keten=1` 503 als de api of graph-qa niet
-antwoordt – dat is de rooktest na een uitrol).
+antwoordt, de database van de api weg is of de graaf geen regelingen heeft – dat is de rooktest na een uitrol).
 
 ```bash
 docker build -t wetsanalyse-frontend frontend

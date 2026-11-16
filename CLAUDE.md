@@ -475,7 +475,8 @@ gezond: api en graph-qa staan op `minReplicas: 0` (`MIN_REPLICAS_APPS`) en zijn 
 verkeer terecht ingeschaald. Dezelfde gate zit in de publish-workflows, `promote.yml` en
 `rollback.yml`: het is één composite action (`.github/actions/wacht-op-revisie`, bewaakt door
 `tests/poort/test_uitrolpoort.py`), die daarna een rooktest doet op de keten (`/api/health?keten=1`
-van de frontend moet de api en graph-qa bereiken). Geen workflow houdt een eigen kopie van de lus.
+van de frontend moet de api en graph-qa bereiken, de database van de api moet antwoorden en de graaf moet regelingen
+hebben). Geen workflow houdt een eigen kopie van de lus.
 
 **De graaf op Azure is niet-persistent, en vult zichzelf.** GraphDB gebruikt memory-mapped files en
 kan daarom geen netwerkschijf gebruiken; de graaf is echter volledig reproduceerbaar uit overheid.nl.

@@ -1,0 +1,107 @@
+# Het ketenscenario op acceptatie: inloggen met het accounttoken, via de BFF een werkgebied en een gesprek maken, ze
+# teruglezen, de vangrail toetsen en precies die twee weer opruimen (Lex Bench §20.5 stap 5, keten 3).
+#
+# WAAROM DIT BESTAAT. De poort mockt `/api/**`. Of login, BFF, api en Postgres op de straat samen een werkgebied en een
+# gesprek dragen, zag tot nu toe alleen een mens of de E2E. Dit scenario doet het na elke uitrol, zonder model: er gaan
+# geen tokens op.
+#
+# HET ACCOUNT IS DAT VAN DE GEBRUIKER. Het token (`WA_ACC_TOKEN`, een environment-secret van `acceptatie` dat de gebruiker
+# zelf zet) hoort bij het echte account, met eigen gesprekken en metingen. Het scenario maakt daarom alleen objecten met
+# het voorvoegsel `lex-bench-keten · <run>`, ruimt alleen die op, verwijdert nooit in bulk, en toetst dat er verder niets
+# verdween (`tools/wetsanalyse-acceptatie-mcp/src/keten.ts`, runbook `docs/acceptatie/testaccount.md`).
+#
+# NOOIT GROEN ZONDER WERK. Ontbreekt het token, dan zegt de job `voorwaarde` dat met een duidelijke regel en wordt de job
+# `keten` overgeslagen (grijs, niet groen). Een ontbrekende Azure-credential faalt. Nooit op een pull request: die krijgt
+# geen secret, en `tests/poort/test_acceptatie_keten.py` bewaakt dat.
+#
+# GEEN OMGEVINGSGEGEVENS. De URL komt uit Azure (de ingress van `<APP_NAME>-frontend`) en wordt in de log gemaskeerd: de
+# logs van een publieke repo zijn openbaar.
+#
+# risico: R12, R18, R19
+
+name: acceptatie-keten
+
+on:
+  workflow_run:
+    workflows:
+      - api-docker-publish
+      - frontend-docker-publish
+      - graph-qa-docker-publish
+    branches: [master]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: acceptatie-keten
+  cancel-in-progress: false
+
+jobs:
+  voorwaarde:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: acceptatie
+    outputs:
+      token: ${{ steps.toets.outputs.token }}
+    steps:
+      - id: toets
+        env:
+          WA_ACC_TOKEN: ${{ secrets.WA_ACC_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${WA_ACC_TOKEN:-}" ]; then
+            echo "::notice::WA_ACC_TOKEN ontbreekt in de environment acceptatie: het ketenscenario is NIET gedraaid (de job keten is overgeslagen). Zie docs/acceptatie/testaccount.md."
+            echo "token=nee" >> "$GITHUB_OUTPUT"
+          else
+            echo "token=ja" >> "$GITHUB_OUTPUT"
+          fi
+
+  keten:
+    needs: voorwaarde
+    if: ${{ needs.voorwaarde.outputs.token == 'ja' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: acceptatie
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+      APP: ${{ vars.APP_NAME }}
+    steps:
+      - name: Preflight (credentials en omgevingsvars aanwezig?)
+        run: |
+          set -euo pipefail
+          for v in AZURE_CLIENT_ID AZURE_CLIENT_SECRET AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID RG APP; do
+            [ -n "${!v:-}" ] || { echo "::error::ontbrekende secret/var: $v (zie deploy/azure/README.md)"; exit 1; }
+          done
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: tools/wetsanalyse-acceptatie-mcp
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
+        with:
+          node-version: 22
+
+      - name: De URL van acceptatie (gemaskeerd)
+        run: |
+          set -euo pipefail
+          az login --service-principal --username "$AZURE_CLIENT_ID" --password "$AZURE_CLIENT_SECRET" \
+            --tenant "$AZURE_TENANT_ID" --output none
+          az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+          fqdn=$(az containerapp show -n "$APP-frontend" -g "$RG" \
+                   --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || true)
+          [ -n "$fqdn" ] || { echo "::error::$APP-frontend: geen publieke ingress gevonden"; exit 1; }
+          echo "::add-mask::$fqdn"
+          echo "WETSANALYSE_ACC_URL=https://$fqdn" >> "$GITHUB_ENV"
+
+      - name: Het ketenscenario
+        working-directory: tools/wetsanalyse-acceptatie-mcp
+        env:
+          WETSANALYSE_ACC_TOKEN: ${{ secrets.WA_ACC_TOKEN }}
+        run: node dist/keten-cli.js "gh-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"

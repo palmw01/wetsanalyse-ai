@@ -1,0 +1,294 @@
+{
+  "batch": {
+    "beslissingen": [
+      {
+        "bewijs": [
+          "NORMATIVE_PREDICATE"
+        ],
+        "bewijs_fingerprint": "58eaa9cdaef8cb04",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:2",
+        "classifier_reden": "",
+        "detectiebijdragen": [
+          {
+            "bewijs": [
+              {
+                "code": "NORMATIVE_PREDICATE",
+                "detail": "kan",
+                "detector": "norm",
+                "regel": "jas.betrekking.modaal_predicaat",
+                "relatie": ""
+              }
+            ],
+            "detector": "norm",
+            "kandidaat_id": "K89c4da16ad6b",
+            "mogelijke_klassen": [
+              "Rechtsbetrekking"
+            ],
+            "opties": [],
+            "regel_versie": "",
+            "versie": "4"
+          }
+        ],
+        "detectoren": [
+          "norm"
+        ],
+        "door": "model",
+        "eind": 47,
+        "kandidaat_id": "K89c4da16ad6b",
+        "klasse": "",
+        "label": "C001",
+        "mogelijke_klassen": [
+          "Rechtsbetrekking"
+        ],
+        "opties": [],
+        "reden": "geen annotatie",
+        "start": 0,
+        "status": "REJECTED",
+        "vervallen": []
+      },
+      {
+        "bewijs": [
+          "ROLE_NOUN"
+        ],
+        "bewijs_fingerprint": "0b0ece01e5ecc306",
+        "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:2",
+        "classifier_reden": "",
+        "detectiebijdragen": [
+          {
+            "bewijs": [
+              {
+                "code": "ROLE_NOUN",
+                "detail": "De ontvanger",
+                "detector": "subject",
+                "regel": "jas.subject.rollexicon",
+                "relatie": ""
+              }
+            ],
+            "detector": "subject",
+            "kandidaat_id": "K782ba1715b25",
+            "mogelijke_klassen": [
+              "Rechtssubject",
+              "Rechtsobject"
+            ],
+            "opties": [],
+            "regel_versie": "2",
+            "versie": "2+verwijzing.2"
+          }
+        ],
+        "detectoren": [
+          "subject"
+        ],
+        "door": "model",
+        "eind": 12,
+        "kandidaat_id": "K782ba1715b25",
+        "klasse": "Rechtssubject",
+        "label": "C002",
+        "mogelijke_klassen": [
+          "Rechtssubject",
+          "Rechtsobject"
+        ],
+        "opties": [],
+        "reden": "R-DEGRADED",
+        "start": 0,
+        "status": "HUMAN_REVIEW",
+        "vervallen": []
+      }
+    ],
+    "dekking": {
+      "bereik": [
+        "urn:bwb:BWBR0004770:artikel:9:lid:2"
+      ],
+      "parent_context": true,
+      "proces": {
+        "ACCEPTED": 0,
+        "HUMAN_REVIEW": 1,
+        "REJECTED": 1,
+        "UNCERTAIN": 0,
+        "UNHANDLED": 0
+      },
+      "structureel": {
+        "urn:bwb:BWBR0004770:artikel:9:lid:2": {
+          "aangetroffen": {
+            "actor": 1,
+            "berekening/afleiding": 0,
+            "definitie": 0,
+            "delegatie": 0,
+            "handeling/gebeurtenis": 0,
+            "normatieve relatie": 1,
+            "object": 0,
+            "operator": 0,
+            "plaats": 0,
+            "tijd": 0,
+            "voorwaarde": 0,
+            "waarde": 0
+          },
+          "alleen_als_geheel": [],
+          "dimensies": {
+            "actor": "gedeeltelijk",
+            "berekening/afleiding": "gedeeltelijk",
+            "definitie": "uitgevoerd",
+            "delegatie": "uitgevoerd",
+            "handeling/gebeurtenis": "overgeslagen",
+            "normatieve relatie": "gedeeltelijk",
+            "object": "overgeslagen",
+            "operator": "gedeeltelijk",
+            "plaats": "uitgevoerd",
+            "tijd": "gedeeltelijk",
+            "voorwaarde": "gedeeltelijk",
+            "waarde": "gedeeltelijk"
+          },
+          "ongedekt": []
+        }
+      },
+      "voltooid": true
+    },
+    "doel": {
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:2"
+    },
+    "elementen": [
+      {
+        "aandacht": "geel",
+        "alternatieven": [
+          {
+            "klasse": "Rechtsobject",
+            "motivatie": "aangedragen door Rol of instantie (\"De ontvanger\") – beide naamwoordgroep"
+          }
+        ],
+        "ankers": [
+          {
+            "bron_hash": "60c3555702efe33f1b283aa9b3e35b3b531575d54d9de7e98f1c5a799b77c2f1",
+            "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:2",
+            "eind": 12,
+            "start": 0,
+            "tekst": "De ontvanger"
+          }
+        ],
+        "eigenaar_iri": "urn:bwb:BWBR0004770:artikel:9:lid:2",
+        "grounded": true,
+        "id": "f8c0c50c1186",
+        "jas_subtype": "",
+        "klasse": "Rechtssubject",
+        "lid": "2",
+        "review_uitleg": "Zonder zinsontleding geclassificeerd; minder signalen dan normaal.",
+        "tekst": "De ontvanger",
+        "toelichting": "Een rechtssubject is de drager van rechten en plichten. Hier: \"De ontvanger\" – Rol of instantie (\"De ontvanger\"); gekozen door het model uit Rechtssubject, Rechtsobject.",
+        "trace": {
+          "beslissing": {
+            "door": "model",
+            "kandidaat_id": "K782ba1715b25",
+            "klasse": "Rechtssubject",
+            "label": "C002",
+            "optie": "",
+            "reden": "R-DEGRADED",
+            "status": "HUMAN_REVIEW"
+          },
+          "jas_versie": "1.0.10",
+          "kandidaat": {
+            "bewijs": [
+              {
+                "code": "ROLE_NOUN",
+                "detail": "De ontvanger",
+                "detector": "subject",
+                "regel": "jas.subject.rollexicon",
+                "relatie": ""
+              }
+            ],
+            "gedegradeerd": false,
+            "id": "K782ba1715b25",
+            "label": "C002",
+            "mogelijke_klassen": [
+              "Rechtssubject",
+              "Rechtsobject"
+            ],
+            "span": {
+              "bron_hash": "60c3555702efe33f1b283aa9b3e35b3b531575d54d9de7e98f1c5a799b77c2f1",
+              "bron_iri": "urn:bwb:BWBR0004770:artikel:9:lid:2",
+              "eind": 12,
+              "start": 0,
+              "tekst": "De ontvanger"
+            },
+            "spanopties": []
+          },
+          "oorspronkelijke_beslissing": {
+            "door": "model",
+            "kandidaat_id": "K782ba1715b25",
+            "klasse": "Rechtssubject",
+            "label": "C002",
+            "optie": "",
+            "reden": "",
+            "status": "ACCEPTED"
+          },
+          "pijplijn": "hybrid_v1",
+          "resolutie": [
+            {
+              "actie": "-",
+              "label": "C002",
+              "motivering": "",
+              "naar": "HUMAN_REVIEW",
+              "ongeldig_omdat": "",
+              "oordeel_ruw": null,
+              "reden": "DEGRADED_PARSE",
+              "regel": "R-DEGRADED",
+              "van": "ACCEPTED"
+            }
+          ],
+          "twijfel": [
+            {
+              "alternatieven": [
+                "Rechtsobject"
+              ],
+              "categorie": "",
+              "detail": "",
+              "huidig": "Rechtssubject",
+              "label": "C002",
+              "reden": "DEGRADED_PARSE"
+            }
+          ],
+          "validatie": [],
+          "vraag": "C002 | \"De ontvanger\" | toegestaan: Rechtssubject, Rechtsobject, Geen annotatie | signalen: ROLE_NOUN"
+        },
+        "vindplaats": "BWBR0004770 art. 9 lid 2"
+      }
+    ],
+    "snapshot_id": "c6dbcaa9168964d2c745e41fb73e818549c10bfcca39b07d8b777ffadbae5f20",
+    "verwachte_revisies": {}
+  },
+  "snapshot": {
+    "bronrijen": [
+      {
+        "citeertitel": "IW 1990",
+        "node": "urn:bwb:BWBR0004770",
+        "nummer": "",
+        "tekst": "",
+        "type": "Regeling"
+      },
+      {
+        "node": "urn:bwb:BWBR0004770:artikel:9",
+        "nummer": "9",
+        "parent": "urn:bwb:BWBR0004770",
+        "tekst": "",
+        "type": "Artikel"
+      },
+      {
+        "node": "urn:bwb:BWBR0004770:artikel:9:lid:1",
+        "nummer": "1",
+        "parent": "urn:bwb:BWBR0004770:artikel:9",
+        "tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening.",
+        "type": "Lid"
+      },
+      {
+        "node": "urn:bwb:BWBR0004770:artikel:9:lid:2",
+        "nummer": "2",
+        "parent": "urn:bwb:BWBR0004770:artikel:9",
+        "tekst": "De ontvanger kan uitstel van betaling verlenen.",
+        "type": "Lid"
+      }
+    ],
+    "doel": {
+      "artikel": "9",
+      "bwb_id": "BWBR0004770",
+      "lid": "2"
+    },
+    "snapshot_id": "c6dbcaa9168964d2c745e41fb73e818549c10bfcca39b07d8b777ffadbae5f20"
+  }
+}

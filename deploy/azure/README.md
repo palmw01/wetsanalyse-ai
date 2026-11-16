@@ -171,7 +171,9 @@ nieuwe **digest** zet (niet naar een tag). Die job gaat door de **uitrolpoort**
 eerst wacht hij tot de nieuwe revisie gezond is (`Running`, of `ScaledToZero` voor een app op
 minReplicas 0); `az containerapp update` keert namelijk al terug zodra de revisie is *aangemaakt*, dus
 een container die bij het starten crasht bleef anders onopgemerkt. Daarna de **rooktest**: de publieke
-`/api/health?keten=1` van de frontend moet melden dat hij de api én graph-qa bereikt (anders 503). Die
+`/api/health?keten=1` van de frontend moet melden dat hij de api én graph-qa bereikt, dat de database van de api
+antwoordt en dat de graaf regelingen heeft (anders 503; velden `database` en `graaf`). Een lege graaf na een herstart
+van GraphDB komt zo niet groen door een uitrol. Die
 aanroep wekt ook een koude api of graph-qa, dus de poort probeert het een paar minuten. Zonder
 parameter blijft `/api/health` altijd 200: daar hangen de probes en de Docker-HEALTHCHECK aan, en de
 frontend leeft zolang de route antwoordt. Bestaat de doel-app nog niet (een

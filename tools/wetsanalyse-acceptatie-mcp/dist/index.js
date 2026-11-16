@@ -8,8 +8,10 @@
  *
  * Config via env (nooit in de repo):
  *   WETSANALYSE_ACC_URL              – basis-URL van de webapp op acceptatie
- *   WETSANALYSE_ACC_TOKEN            – accounttoken van een analist
+ *   WETSANALYSE_ACC_TOKEN            – accounttoken van het account waarmee getest wordt (docs/acceptatie/testaccount.md)
+ *   WETSANALYSE_ACC_ACCOUNT          – optioneel, de userid van dat account; wie_ben_ik meldt of het token erbij hoort
  *   WETSANALYSE_ACC_TOKEN_BEHEERDER  – optioneel, accounttoken van een beheerder
+ *   WETSANALYSE_ACC_TOKEN_TEST_ANALIST – optioneel, accounttoken van het analistaccount voor K10 (`als: "test-analist"`)
  *   WETSANALYSE_ACC_GRAFANA_URL      – optioneel, voor logs_zoek
  *   WETSANALYSE_ACC_GRAFANA_WACHTWOORD – optioneel, het admin-wachtwoord van die Grafana
  *   WETSANALYSE_ACC_GRAAF_URL        – optioneel, voor graaf_lezen: de MCP-proxy van acceptatie
@@ -29,30 +31,55 @@ import { AcceptatieClient, controleerUrl } from "./client.js";
 import { GraafClient } from "./graaf.js";
 import { aanvullen, lezen, ROLLEN, SOORTEN, standaardMap } from "./logboek.js";
 import { zoekLogs } from "./logs.js";
+import { isVerwijderend, leesRuimte, opruimplan, toetsVerwijderen, voerUit } from "./runruimte.js";
 import { auditStaart, inventarisOverzicht } from "./vorm.js";
 const URL_ACC = process.env.WETSANALYSE_ACC_URL ?? "";
 const TOKEN_ANALIST = (process.env.WETSANALYSE_ACC_TOKEN ?? "").trim();
 const TOKEN_BEHEERDER = (process.env.WETSANALYSE_ACC_TOKEN_BEHEERDER ?? "").trim();
+const TOKEN_TEST_ANALIST = (process.env.WETSANALYSE_ACC_TOKEN_TEST_ANALIST ?? "").trim();
 const GRAFANA_URL = (process.env.WETSANALYSE_ACC_GRAFANA_URL ?? "").replace(/\/+$/, "");
 const GRAFANA_WACHTWOORD = process.env.WETSANALYSE_ACC_GRAFANA_WACHTWOORD ?? "";
 const GRAAF_URL = process.env.WETSANALYSE_ACC_GRAAF_URL ?? "";
 const GRAAF_TOKEN = (process.env.WETSANALYSE_ACC_GRAAF_TOKEN ?? "").trim();
+const ACCOUNT = (process.env.WETSANALYSE_ACC_ACCOUNT ?? "").trim();
 const LOGBOEK_MAP = standaardMap(fileURLToPath(new URL("../../../", import.meta.url)));
 function log(niveau, bericht, velden = {}) {
     process.stderr.write(JSON.stringify({ ts: new Date().toISOString(), niveau, bericht, ...velden }) + "\n");
 }
 const clients = new Map();
 function client(als) {
-    const rol = als === "beheerder" ? "beheerder" : "analist";
-    const token = rol === "beheerder" ? TOKEN_BEHEERDER : TOKEN_ANALIST;
-    if (!token)
-        throw new Error("WETSANALYSE_ACC_TOKEN_BEHEERDER is niet gezet.");
+    const rol = als === "beheerder" || als === "test-analist" ? als : "analist";
+    const token = { analist: TOKEN_ANALIST, beheerder: TOKEN_BEHEERDER, "test-analist": TOKEN_TEST_ANALIST }[rol];
+    if (!token) {
+        throw new Error(`${rol === "beheerder" ? "WETSANALYSE_ACC_TOKEN_BEHEERDER" : "WETSANALYSE_ACC_TOKEN_TEST_ANALIST"} is niet gezet.`);
+    }
     let c = clients.get(rol);
     if (!c) {
         c = new AcceptatieClient(controleerUrl(URL_ACC), token);
         clients.set(rol, c);
     }
     return c;
+}
+const ikPerRol = new Map();
+/** De userid achter een client, één keer opgevraagd. */
+async function ik(c) {
+    let wie = ikPerRol.get(c);
+    if (!wie) {
+        const me = await c.bff("GET", "/api/account/me");
+        wie = me.status === 200 ? String(me.data?.userid ?? "") : "";
+        if (wie)
+            ikPerRol.set(c, wie);
+    }
+    return wie;
+}
+/** `bff` langs de vangrail: verwijderen alleen in de ruimte van een testrun (runruimte.ts). */
+async function bffMetVangrail(c, methode, pad, body) {
+    if (isVerwijderend(methode, pad)) {
+        const oordeel = await toetsVerwijderen(c, methode, pad, await ik(c));
+        if (!oordeel.mag)
+            throw new Error(`Geweigerd door de vangrail: ${oordeel.reden}`);
+    }
+    return c.bff(methode, pad, body);
 }
 const bron = new BronClient();
 let graaf;
@@ -65,7 +92,7 @@ function graafClient() {
 }
 const seg = (s) => encodeURIComponent(String(s));
 const S = z.object;
-const Als = z.enum(["analist", "beheerder"]).optional();
+const Als = z.enum(["analist", "beheerder", "test-analist"]).optional();
 /** Lees een paar routes samen; een mislukte route blijft zichtbaar in plaats van het geheel te breken. */
 async function samen(c, routes) {
     const paren = await Promise.all(Object.entries(routes).map(async ([naam, pad]) => {
@@ -79,20 +106,50 @@ const TOOLS = [
         name: "wie_ben_ik",
         description: "Het account en de rol waarmee deze MCP werkt. `als` kiest het analist- of beheerderaccount.",
         input: S({ als: Als }),
-        run: (a) => client(a.als).bff("GET", "/api/account/me"),
+        run: async (a) => {
+            const me = await client(a.als).bff("GET", "/api/account/me");
+            const userid = me.data?.userid;
+            const account_verwacht = !ACCOUNT
+                ? "niet ingesteld (WETSANALYSE_ACC_ACCOUNT)"
+                : userid === ACCOUNT ? "ja" : `nee: het token hoort bij ${String(userid)}, niet bij ${ACCOUNT}`;
+            return { ...me, account_verwacht };
+        },
     },
     {
         name: "bff",
         description: "Eén aanroep op de BFF, zoals een scherm die doet: `pad` begint met /api/. Geeft status, body en " +
             "trace_id; elke status komt terug, dus ook een 403 die een test juist verwacht. Inloggen, tokens " +
-            "maken en wachtwoord of 2FA wijzigen kan hier niet.",
+            "maken en wachtwoord of 2FA wijzigen kan hier niet. Verwijderen gaat langs een vangrail: alleen een gesprek of " +
+            "werkgebied van een testrun (naam begint met `lex-bench-keten · `, `acc-test-` of `Bench `, werkgebied door dit account gemaakt); " +
+            "een bulkroute en alles wat gedeeld is, weigert hij. Ruim een run op met `opruimen`.",
         input: S({
             methode: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
             pad: z.string(),
             body: z.unknown().optional(),
             als: Als,
         }),
-        run: (a) => client(a.als).bff(a.methode, a.pad, a.body),
+        run: (a) => bffMetVangrail(client(a.als), a.methode, a.pad, a.body),
+    },
+    {
+        name: "opruimen",
+        description: "Ruim op wat een testrun maakte: werkgebieden met het `voorvoegsel` die dit account maakte, en elk eigen gesprek " +
+            "met dat voorvoegsel of in zo'n werkgebied, met hun deelgesprekken. Het voorvoegsel begint met `lex-bench-keten · `, " +
+            "`acc-test-` of `Bench ` (bijvoorbeeld `acc-test-2026-11-16-a`). Zonder `bevestig: true` geeft hij alleen de lijst; met " +
+            "bevestiging wist hij eerst de gesprekken (deelgesprekken vóór hun ouder), dan de werkgebieden, elk langs de vangrail.",
+        input: S({ voorvoegsel: z.string().min(4), bevestig: z.boolean().optional(), als: Als }),
+        run: async (a) => {
+            const c = client(a.als);
+            const ruimte = await leesRuimte(c);
+            const plan = opruimplan(a.voorvoegsel, ruimte.ik, ruimte.werkgebieden, ruimte.gesprekken);
+            const lijst = {
+                voorvoegsel: plan.voorvoegsel,
+                werkgebieden: plan.werkgebieden.map((w) => ({ id: w.id, naam: w.naam })),
+                gesprekken: plan.gesprekken.map((g) => ({ id: g.id, titel: g.titel })),
+            };
+            if (!a.bevestig)
+                return { ...lijst, uitgevoerd: false, toelichting: "Alleen de lijst; geef bevestig: true om te wissen." };
+            return { ...lijst, uitgevoerd: true, ...(await voerUit(c, plan, ruimte.ik)) };
+        },
     },
     {
         name: "lex_start",
