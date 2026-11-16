@@ -180,6 +180,10 @@ class Afloop:
     #: ontbreekt). `niet_gelukt` zonder rapport is de terugval van de code (A6 run 3, S04: een rapport `niet_gelukt` met
     #: bevindingen telde als geen rapport, en de beurt eindigde met 26 kale vindplaatsen uit code).
     rapport: bool = False
+    #: De stukken naast de wet waarover het rapport gaat, als [id, label]: wat het citeert en wat het kind las. Daaraan
+    #: toetst `verify` of het eindantwoord het rapport behandelt (`ontbrekende_rapporten`; meting P01 na #1618: het rapport
+    #: over de rechtspraak, `klaar` met 13 gelezen arresten, stond in het antwoord alleen als aantal onder Twijfel).
+    stukken: list[list[str]] = field(default_factory=list)
 
     def met_rapport(self) -> bool:
         return self.rapport and self.uitkomst in ("klaar", "vraag", "niet_gelukt")
@@ -194,6 +198,7 @@ class Afloop:
                 **({"afbakening": self.afbakening} if self.afbakening else {}),
                 **({"periode": self.periode} if self.periode else {}),
                 **({"zelf_beantwoord": self.zelf_beantwoord} if self.zelf_beantwoord else {}),
+                **({"stukken": self.stukken} if self.stukken else {}),
                 **({"rapport": True} if self.met_rapport() else {})}
 
 
@@ -613,6 +618,81 @@ def rapport_inhoud(kind: dict[str, Any]) -> dict[str, Any]:
                            for c in b.get("items") or [] if (c.get("vindplaats") or {}).get("iri")]}
 
 
+def stukken_van_rapport(kind: dict[str, Any]) -> list[list[str]]:
+    """De stukken naast de wet waarover het rapport van een kind gaat, als [id, label], ontdubbeld: eerst wat het rapport
+    citeert (de blokken `extern`), dan wat het kind las. Alleen stukken van een connector: een bepaling uit de graaf noemt
+    het eindantwoord vaak met andere woorden, en die toets doet `check_grounding`."""
+    from bronmodel.connectors import van_id
+
+    from .gelezen import gelezen_en_gevonden
+
+    labels: dict[str, str] = {}
+    for blok in (kind.get("antwoord") or {}).get("blokken") or []:
+        if blok.get("soort") == "extern" and blok.get("id"):
+            labels.setdefault(str(blok["id"]), str(blok.get("label") or ""))
+    for ident, label in gelezen_en_gevonden(kind.get("source_trace") or [])[0]:
+        if van_id(ident) is not None:
+            labels[ident] = labels.get(ident) or label
+    return [[i, lab] for i, lab in labels.items()]
+
+
+#: De blokken van een antwoord die een rapport niet behandelen: wat ontbreekt of onzeker is (P01: het rapport stond er
+#: alleen als aantal onder Twijfel).
+_NIET_BEHANDELD = frozenset({"twijfel", "leemte"})
+_TWIJFELKOP = re.compile(r"^\W*(?:twijfel|onzeker|wat (?:ik )?niet)", re.I | re.M)
+
+
+def behandelde_tekst(antwoord: dict[str, Any] | None, tekst: str) -> str:
+    """De tekst van het eindantwoord die een rapport kan behandelen: bij een sjabloon alles behalve twijfel en leemte (met
+    de ids van de blokken `extern` en `stukken`), bij vrije tekst alles vóór een kop over twijfel."""
+    if antwoord:
+        delen: list[str] = []
+        for blok in antwoord.get("blokken") or []:
+            if blok.get("soort") in _NIET_BEHANDELD:
+                continue
+            delen.extend(str(blok.get(k) or "") for k in ("id", "label", "kop", "kern", "tekst"))
+            for item in blok.get("items") or []:
+                delen.append(json.dumps(item, ensure_ascii=False) if isinstance(item, dict) else str(item))
+        return "\n".join(d for d in delen if d)
+    m = _TWIJFELKOP.search(tekst)
+    return tekst[:m.start()] if m else tekst
+
+
+def _genoemd(stuk: list[str], tekst: str, ids: set[str]) -> bool:
+    """Noemt de tekst het stuk: bij id, in een citeervorm van een connector (`grounding.genoemd_extern`, al in `ids`) of
+    met zijn label."""
+    ident, label = (stuk + ["", ""])[:2]
+    laag = tekst.lower()
+    return ident in ids or bool(ident and ident.lower() in laag) or bool(len(label) >= 6 and label.lower() in laag)
+
+
+def ontbrekende_rapporten(subagenten: Iterable[dict[str, Any]], antwoord: dict[str, Any] | None,
+                          tekst: str) -> list[dict[str, Any]]:
+    """De kinderen met een rapport `klaar` waarvan het eindantwoord geen enkel stuk noemt buiten de twijfel. Een kind
+    zonder stukken naast de wet valt erbuiten: daaraan is niet te zien of het behandeld is."""
+    from .grounding import genoemd_extern
+
+    kinderen = [a for a in subagenten if a.get("uitkomst") == "klaar" and a.get("rapport") and a.get("stukken")]
+    if not kinderen:
+        return []
+    behandeld = behandelde_tekst(antwoord, tekst)
+    ids = genoemd_extern(behandeld)
+    return [a for a in kinderen if not any(_genoemd(list(s), behandeld, ids) for s in a["stukken"])]
+
+
+#: Het voorvoegsel van de bewering voor `correct_node`: geen feit zonder bron, maar een rapport dat ontbreekt.
+RAPPORT_ONTBREEKT = "rapport ontbreekt: "
+#: Zoveel stukken noemt de bewering bij naam.
+MAX_ONTBREKEND_GENOEMD = 3
+
+
+def ontbreekt_bewering(kind: dict[str, Any]) -> str:
+    stukken = [list(s) for s in kind.get("stukken") or []]
+    namen = ", ".join((s + [""])[1] or s[0] for s in stukken[:MAX_ONTBREKEND_GENOEMD]) + (
+        f" en nog {len(stukken) - MAX_ONTBREKEND_GENOEMD}" if len(stukken) > MAX_ONTBREKEND_GENOEMD else "")
+    return f"{RAPPORT_ONTBREEKT}het rapport van de subagent ({kind.get('profiel') or 'subagent'}) over {namen}"
+
+
 def steun_van(kinderen: Iterable[dict[str, Any]], eerder: dict[str, str] | None = None) -> dict[str, str]:
     """Per stuk naast de wet de passages die de rapporten eruit citeren (de blokken `extern` van het rapport, uit de
     bron, door de code gevuld). Alleen een rapport dat de controle doorstond, heeft ze."""
@@ -715,6 +795,7 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
         from .gelezen import gelezen_en_gevonden
 
         afloop.gelezen = [lab for _, lab in gelezen_en_gevonden(kind.get("source_trace") or [])[0]]
+        afloop.stukken = stukken_van_rapport(kind)
         afloop.afbakening = [str(a) for a in kind.get("afbakening") or []]
         afloop.periode = [int(j) for j in kind.get("periode") or []][:2]
         status = (kind.get("rapport") or {}).get("status", "")

@@ -31,7 +31,7 @@ from ..spoorbronnen import weigerregel
 from ..overzicht import bronrijen as overzicht_bronrijen
 from ..sjablonen import EXTERN, SJABLONEN, Onvulbaar, sjabloon_uit_tekst
 from ..sjablonen import vul as sjabloon_vul
-from ..sjablonen.extern import MAX_LIJST
+from ..sjablonen.extern import MAX_LIJST, MAX_STUKKEN as MAX_EXTERN, VELD as EXTERN_VELD
 from .overzicht import TOOL as OVERZICHT_TOOL
 from .sjabloon import vul_aanroep
 from ..provenance import alleen_genoemde_regelingen, collect_sources
@@ -42,7 +42,7 @@ from ..resultaat import is_fout
 from ..agentvorm import CENTRAAL, CENTRAAL_BREED, STANDAARD as DEFAULT_SPECIALIST, agent_van
 from ..overdracht import OVERDRACHT
 from ..state import State
-from ..subagent import open_aanbod, open_vraag, vraagkaart, zonder_rapport
+from ..subagent import RAPPORT_ONTBREEKT, open_aanbod, open_vraag, vraagkaart, zonder_rapport
 from ..bronstand import prompt_blok as bronstand_blok
 from ..bronstand import waar as bronstand_waar
 from ..tool_execution import execute_tool
@@ -962,6 +962,20 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
             if not report.beweringen and report.niveau == "onbepaald" and not report.onbevestigd \
                     and (report.cited or report.citaten) and not report.niet_letterlijk and not report.unsupported:
                 report = replace(report, niveau="gegrond")
+    # Na meer rapporten behandelt het eindantwoord elk rapport `klaar`: minstens één van zijn stukken buiten de twijfel
+    # (meting P01 na #1618: het rapport over de rechtspraak stond er alleen als aantal onder Twijfel). Ontbreekt er een,
+    # dan is dat een bewering voor de correctieronde, met de opdracht het mee te nemen (`correct_node`). Na de correctie
+    # geen tweede ronde en geen `onbevestigd`: het is geen feit zonder bron, de logregel telt het.
+    if not state.get("opdracht") and not state.get("overzicht"):
+        from ..subagent import ontbreekt_bewering, ontbrekende_rapporten
+
+        if ontbrekend := ontbrekende_rapporten(state.get("subagenten") or [], state.get("antwoord"),
+                                               state.get("answer", "") or tekst):
+            logger.info("grounding: rapport niet behandeld", extra={
+                "categorie": "functioneel", "run_id": state.get("run_id", ""), "aantal": len(ontbrekend),
+                "na_correctie": bool(state.get("corrected"))})
+            if not state.get("corrected") and b.settings.grounding_correct:
+                report = replace(report, beweringen=[*report.beweringen, *map(ontbreekt_bewering, ontbrekend)])
     # Wettekst uit een sjabloon staat zonder aanhalingstekens, dus de toets ziet "niets te controleren". Maar de code
     # toonde hem uit de tool-rijen, met de vindplaats erbij: de melding dat er geen vindplaats is, zou onwaar zijn.
     if report.niveau == "onbepaald" and not report.onbevestigd and (state.get("antwoord") or {}).get("doelen"):
@@ -989,7 +1003,8 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
             and not voorbij_laatste(b, state)):
         report = replace(report, grounded=False, niveau="ongegrond")
     elif report.beweringen:
-        report = replace(report, onbevestigd=[*report.onbevestigd, *report.beweringen])
+        report = replace(report, onbevestigd=[*report.onbevestigd, *(x for x in report.beweringen
+                                                                       if not x.startswith(RAPPORT_ONTBREEKT))])
         logger.info("grounding: beweringen na de correctie", extra={"categorie": "functioneel",
                                                                     "run_id": state.get("run_id", ""),
                                                                     "aantal": len(report.beweringen)})
@@ -1094,7 +1109,8 @@ def correct_node(b: Bouw, state: State) -> dict[str, Any]:
     alle = state.get("beweringen") or []
     # Een letter uit een ander schrift (`gelezen.vreemd_schrift`) is geen feit zonder bron, maar een spelfout.
     spelling = [b.removeprefix("spelling: ") for b in alle if b.startswith("spelling: ")]
-    beweringen = [b for b in alle if not b.startswith("spelling: ")]
+    ontbreekt = [b.removeprefix(RAPPORT_ONTBREEKT) for b in alle if b.startswith(RAPPORT_ONTBREEKT)]
+    beweringen = [b for b in alle if not b.startswith(("spelling: ", RAPPORT_ONTBREEKT))]
 
     opdrachten: list[str] = []
     if spelling:
@@ -1116,6 +1132,14 @@ def correct_node(b: Bouw, state: State) -> dict[str, Any]:
             "parafrase – die presenteer je niet als citaat."
         )
 
+    if ontbreekt:
+        # Een rapport dat het antwoord niet behandelt, gaat er niet uit maar in (meting P01 na #1618). Een kop met het stuk
+        # telt; alleen een aantal onder twijfel niet.
+        opdrachten.append(
+            f"Je antwoord behandelt {'; '.join(ontbreekt)} niet: het staat er hoogstens als aantal onder twijfel. Neem dat "
+            "rapport mee zoals de andere: zijn gelezen stukken bij id of naam, met wat het rapport erover vond, in een "
+            f"blok '{EXTERN_VELD}' (samen hoogstens {MAX_EXTERN} stukken; verdeel ze over de rapporten) of in het korte "
+            "antwoord. Bracht het niets bruikbaars, zeg dan dat, en noem de stukken. Laat de rest van je antwoord staan.")
     if beweringen and rapport_steun(state) is not None and not state.get("opdracht"):
         # Na een rapport kan de centrale agent een stuk niet zelf nalezen (`na_subagent`), dus "haal het op" kan hij niet
         # opvolgen, en herformuleerde hij de zin (E2E Rekeningafspraken, 16 nov 2026, B-3). Wat het rapport niet draagt,
@@ -1142,6 +1166,7 @@ def correct_node(b: Bouw, state: State) -> dict[str, Any]:
             "citaten die niet letterlijk zijn" if niet_letterlijk else "",
             "feiten zonder bron" if beweringen else "",
             "een spelfout" if spelling else "",
+            "een rapport dat ontbreekt" if ontbreekt else "",
         ) if deel
     )
     _stap(writer, "Correctie", f"antwoord bijstellen op {wat}")
