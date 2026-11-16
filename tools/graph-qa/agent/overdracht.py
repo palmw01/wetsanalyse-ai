@@ -55,7 +55,10 @@ class Overdracht:
     werkgebied: bool = False
     #: Of het schema `strict` is. De strict schema's van een verzoek worden samen één grammatica, en die heeft een grens
     #: bij de API ("Schema is too complex for compilation", 400). Een overdracht met een ruime invoer die de code toch
-    #: zelf toetst (de delegatietools), is daarom niet strict; `tests/test_strict_grenzen.py` begrenst het geheel.
+    #: zelf toetst (de delegatietools), is daarom niet strict; `tests/test_strict_grenzen.py` begrenst het geheel. Dat geldt
+    #: ook voor een overdracht zonder argumenten of met alleen een `vraag`, die de code met `.get` leest: strict voegt daar
+    #: niets toe en kost grammatica (acceptatie 16 nov 2026: met de kern per stuk in `antwoord_extern`, 9.473 tekens, gaf
+    #: elke eerste aanroep van `centraal` met een connector weer de 400).
     strict: bool = True
 
     @property
@@ -161,7 +164,7 @@ def _vaste_route(regel: str, weigering: str) -> Callable[[Any, State, dict[str, 
     def zet(b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any] | str:
         from .nodes.supervisie import na_herschrijven
 
-        vraag = " ".join((invoer.get("vraag") or "").split())
+        vraag = " ".join(str(invoer.get("vraag") or "").split())
         route = na_herschrijven(b, get_stream_writer(), state, vraag, alleen=regel) if vraag else None
         if route is None:
             return weigering
@@ -181,7 +184,7 @@ def _toon_stukken(b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any
     from . import bronkeuze, bronstand
     from .nodes.supervisie import _bron_uit, _bronkeuze, na_herschrijven
 
-    vraag = " ".join((invoer.get("vraag") or "").split())
+    vraag = " ".join(str(invoer.get("vraag") or "").split())
     if not vraag:
         return _GEEN_LIJST
     writer = get_stream_writer()
@@ -215,7 +218,7 @@ def _annoteer(_b: Any, state: State, invoer: dict[str, Any]) -> dict[str, Any] |
     from .aanwijzing import lees_aanwijzing, melding_meerdere
     from .nodes.supervisie import _WORKER_STAP, _herschreven
 
-    vraag = " ".join((invoer.get("vraag") or "").split())
+    vraag = " ".join(str(invoer.get("vraag") or "").split())
     if not vraag:
         return "Geef de bepaling die de gebruiker wil laten annoteren, met de regeling erbij."
     writer = get_stream_writer()
@@ -507,7 +510,7 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
                       "programmeren, rekensommen, meningen). De werkplek toont dan een vaste tekst; schrijf zelf niets. "
                       "Niet voor een vraag over een wet, een bepaling, een juridisch begrip, een werkgebied, een "
                       "annotatie of een bron naast de wet, ook niet als je er niets over vindt: zeg dat dan in tekst."),
-        invoer={}, naar="afwijzen", zet=_wijs_af),
+        invoer={}, naar="afwijzen", zet=_wijs_af, strict=False),
     Overdracht(
         naam="meer_tools",
         beschrijving=("Roep dit aan als je een tool nodig hebt die je nu niet hebt. Je krijgt er dan in de volgende ronde "
@@ -517,7 +520,7 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
                       "search_begrippen en get_begrip (vastgelegde begrippen van een werkgebied), graph_schema en "
                       "raw_sparql. Roep het alleen aan als de vraag daarom gaat; voor de tekst, de context en de "
                       "verwijzingen van een bepaling heb je alles al. Schrijf er geen tekst naast."),
-        invoer={}, naar="agent", zet=_meer_tools, van=frozenset({CENTRAAL}),
+        invoer={}, naar="agent", zet=_meer_tools, van=frozenset({CENTRAAL}), strict=False,
         resultaat="De extra tools staan nu aan. Ga verder met de vraag."),
     Overdracht(
         naam=TOON_BEPALING,
@@ -536,7 +539,7 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
             "Roep dit aan als de gebruiker wil weten WELKE bepalingen of artikelen over een onderwerp gaan, ook in een "
             "vervolgvraag ('en over verrekening?'). De code bouwt het overzicht uit de graaf en de werkplek toont het; "
             "schrijf zelf niets. Niet voor wat er in één bepaling staat (toon_bepaling) of voor uitleg."),
-        invoer=_VRAAG, naar="overzicht_bouwen",
+        invoer=_VRAAG, naar="overzicht_bouwen", strict=False,
         zet=_vaste_route("overzicht", "Dit is geen vraag naar welke bepalingen over een onderwerp gaan ('welke artikelen "
                                       "gaan over …'). Beantwoord haar zelf.")),
     Overdracht(
@@ -545,7 +548,7 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
             "Roep dit aan als de gebruiker vraagt naar BESTAANDE annotaties of markeringen ('welke markeringen zijn er al "
             "bij lid 2?', 'hoeveel rechtssubjecten zijn gemarkeerd?'), ook in een vervolgvraag. De code zoekt ze op; "
             "daarna formuleer je het antwoord. Niet om te annoteren, en niet voor een vraag over de JAS-methode zelf."),
-        invoer=_VRAAG, naar="annotaties_zoeken",
+        invoer=_VRAAG, naar="annotaties_zoeken", strict=False,
         zet=_vaste_route("annotaties", "Dit is geen vraag naar bestaande annotaties of markeringen. Beantwoord haar "
                                        "zelf.")),
     Overdracht(
@@ -554,7 +557,7 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
             "Roep dit aan als de gebruiker vraagt naar begrippen die al VASTGELEGD zijn ('welke begrippen hebben we al?', "
             "'welke zijn er nog meer?'), ook in een vervolgvraag. De code zoekt ze op; daarna formuleer je het antwoord. "
             "Niet voor de wettelijke definitie van een term, en niet om begrippen voor te stellen (taakagent)."),
-        invoer=_VRAAG, naar="begrippen_zoeken",
+        invoer=_VRAAG, naar="begrippen_zoeken", strict=False,
         zet=_vaste_route("begrippen", "Dit is geen vraag naar vastgelegde begrippen ('welke begrippen hebben we al "
                                       "vastgelegd …'). Beantwoord haar zelf.")),
     Overdracht(
@@ -564,7 +567,7 @@ OVERDRACHT: dict[str, Overdracht] = {o.naam: o for o in (
             "Kamerstukken, het laatste stuk van een dossier, uitspraken bij een artikel, hoeveel moties), ook in een "
             "vervolgvraag ('wat is het laatste?'). De code zoekt en de werkplek toont de stukken; schrijf zelf niets. "
             "Niet om één stuk te lezen of voor wat een stuk inhoudt."),
-        invoer=_VRAAG, naar=INGANG, zet=_toon_stukken, ingangen=("bron_lijst", "afwijzen")),
+        invoer=_VRAAG, naar=INGANG, zet=_toon_stukken, ingangen=("bron_lijst", "afwijzen"), strict=False),
     Overdracht(
         naam=ANNOTEER,
         beschrijving=(

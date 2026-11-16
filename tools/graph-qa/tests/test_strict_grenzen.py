@@ -29,9 +29,11 @@ from fakes import make_settings
 MAX_STRICT_API = 20
 MAX_OPTIONEEL = 24
 MAX_UNION = 16
-#: De laatst bewezen omvang (d2c1f585, centraal met connector): het aantal strict tools en hun schema's in tekens.
+#: De laatst bewezen omvang: het aantal strict tools en hun schema's in tekens. 12 tools en ~9,3k tekens werkten (de
+#: slotmeting van A6, 81bee0d1); 12 tools en 9.473 tekens (de kern per stuk, 7859d2eb) gaven weer de 400. De grens ligt
+#: dus tussen 9,3k en 9,5k, en hangt niet alleen van het aantal tekens af.
 MAX_STRICT = 12
-MAX_STRICT_TEKENS = 9_500
+MAX_STRICT_TEKENS = 9_300
 
 ALLES_AAN = {naam: {"aan": True} for naam in CONNECTORS}
 
