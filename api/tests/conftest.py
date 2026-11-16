@@ -44,3 +44,53 @@ def pdftotext() -> str:
             pytest.fail("pdftotext ontbreekt in CI: installeer poppler-utils in deze job")
         pytest.skip("pdftotext ontbreekt voor onafhankelijke PDF-tekstextractie")
     return pad
+
+
+#: Postgres voor de races (testplan api V4): `ANNOTATIE_TEST_DSN` in de poort, lokaal een eigen container.
+POSTGRES_DSN = os.environ.get("ANNOTATIE_TEST_DSN", "")
+
+
+def vereis_postgres():
+    """Een `pytestmark` voor een test die een echte Postgres vraagt: SQLite serialiseert alles en bewijst geen slot."""
+    return pytest.mark.skipif(not POSTGRES_DSN, reason="PostgreSQL-test DSN ontbreekt")
+
+
+async def postgres_schema(naam: str):
+    """Een eigen schema per test, als engine van `app.db`; alleen dat schema wordt na afloop verwijderd. Dezelfde opzet als
+    `test_werkgebieden_postgres.py`, gedeeld zodat elke race-test er één regel voor nodig heeft."""
+    import uuid
+
+    from sqlalchemy import text
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from app import db
+    schema = f"{naam}_{uuid.uuid4().hex}"
+    beheer = create_async_engine(POSTGRES_DSN)
+    async with beheer.begin() as conn:
+        await conn.execute(text(f'CREATE SCHEMA "{schema}"'))
+    db.init_engine(POSTGRES_DSN, connect_args={"server_settings": {"search_path": schema}})
+    try:
+        await db.create_all()
+        await db.reconcile_schema()
+        yield
+    finally:
+        await db.dispose_engine()
+        async with beheer.begin() as conn:
+            await conn.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
+        await beheer.dispose()
+
+
+async def op_postgres(naam: str, monkeypatch):
+    """Zet een eigen Postgres-schema klaar en laat de `init_engine`/`dispose_engine` van een bestaande client-fixture er
+    niets aan veranderen: zo draait een fixture die zelf SQLite opzet, ongewijzigd op Postgres. Gebruik als autouse-fixture
+    (die gaat vóór de client-fixture)."""
+    from app import db
+    async for _ in postgres_schema(naam):
+        monkeypatch.setattr(db, "init_engine", lambda *a, **k: None)
+        monkeypatch.setattr(db, "dispose_engine", _geen)
+        yield
+        monkeypatch.undo()
+
+
+async def _geen() -> None:
+    return None
