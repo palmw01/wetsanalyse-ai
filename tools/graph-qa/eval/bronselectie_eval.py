@@ -349,7 +349,7 @@ ROUTES_B2 = {f"met {v}": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL
 #: De vlaggen van het plan bronselectie bij Termijnen (`docs/architectuur/onderzoek-bronselectie-termijnen-2026-11.md`),
 #: standaard uit. Elke vlag apart naast de standaard, en alle samen; alleen met `--plan`, want ze stellen nieuwe vragen
 #: aan de graaf (`--aanvullen`).
-PLANVLAGGEN = ("termen_idf",)
+PLANVLAGGEN = ("termen_idf", "beurt_sterk")
 ROUTES_PLAN = {**{f"met {v}": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: True}))
                   for v in PLANVLAGGEN},
                "met het plan (alles)": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL,
