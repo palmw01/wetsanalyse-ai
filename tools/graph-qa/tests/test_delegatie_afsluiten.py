@@ -108,7 +108,7 @@ def test_alleen_een_subagent_heeft_een_laatste_ronde_en_een_plafond():
 
 def test_na_een_subagent_die_niet_afrondde_leest_de_centrale_agent_niet_zelf_opnieuw():
     niet_af = {"subagenten": [{"uitkomst": "niet_gelukt"}]}
-    assert na_subagent(niet_af, "get_artikel") == NA_SUBAGENT
+    assert na_subagent(niet_af, "search_wetgeving") == NA_SUBAGENT
     assert na_subagent(niet_af, "get_uitspraak") == NA_SUBAGENT, "ook een connectortool"
     assert na_subagent({"subagenten": [{"uitkomst": "mislukt"}]}, "search_wetgeving") == NA_SUBAGENT
     # Sjablonen en eigen tools blijven: afronden en de gebruiker vragen kan altijd.
@@ -124,7 +124,7 @@ def test_de_weigering_gaat_door_tools_node_en_het_rapport_zegt_het_vooraf(monkey
     uitgevoerd = []
     monkeypatch.setattr(antwoordnodes, "execute_tool", lambda *a, **_k: uitgevoerd.append(a) or ARTIKEL[1])
     monkeypatch.setattr(antwoordnodes, "get_stream_writer", lambda: (lambda _e: None))
-    tu = {"id": "t1", "name": "get_artikel", "input": {"bwb_id": "BWBR0004770", "artikel": "10"}}
+    tu = {"id": "t1", "name": "search_wetgeving", "input": {"zoekterm": "uitstel"}}
     state = {"pending_tools": [tu], "messages": [], "source_trace": [], "specialist": "centraal", "subagenten": [{"uitkomst": "niet_gelukt"}], "run_id": "r"}
     b = SimpleNamespace(settings=make_settings(), graph=None, stop_check=None)
     upd = antwoordnodes.tools_node(b, state)

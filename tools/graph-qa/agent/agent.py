@@ -385,6 +385,7 @@ async def answer_stream(
         "sjabloon_gevraagd": False,
         "sjabloon_nu": False,
         "laatste_gehad": False,
+        "nagelezen": 0,
         "afgesloten": False,
         "rapport_steun": {},
         "rapport_citaten": [],

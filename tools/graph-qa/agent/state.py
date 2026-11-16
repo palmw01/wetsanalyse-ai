@@ -142,6 +142,9 @@ class State(TypedDict, total=False):
     # Een subagent kreeg zijn laatste ronde (`nodes.antwoord.laatste_ronde`): daarna komt er geen modelronde meer, ook niet
     # na een geweigerd rapport. Per beurt gereset.
     laatste_gehad: bool
+    # Hoeveel bepalingen de centrale agent na een subagent zelf naleest (`nodes.antwoord.nalezen_over`, `MAX_NALEZEN`).
+    # Per beurt gereset.
+    nagelezen: int
     # De code sloot een subagent af zonder rapport (`SUBAGENT_AFGESLOTEN`): zijn uitkomst is dan `afgesloten`, niet
     # `niet_gelukt` en zeker niet `klaar` (meting bundel 117, D01). Per beurt gereset.
     afgesloten: bool

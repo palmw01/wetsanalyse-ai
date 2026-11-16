@@ -124,10 +124,11 @@ NA_SUBAGENT_SJABLOON = ("\n\nEen subagent las de bronnen; zelf lezen kan nu niet
 def na_subagent_weigering(state: State, tekst: str) -> str:
     """De weigering van een sjabloon voor de centrale agent na een rapport: zonder de opdracht om zelf op te halen, want
     die weigert `tools_node` dan (`na_subagent`; A6 run 2, S03 en S04: 11 en 9 geweigerde aanroepen in één ronde, daarna
-    tekst zonder citaat)."""
-    from .antwoord import na_subagent
+    tekst zonder citaat). Zolang hij nog een bepaling mag nalezen (`antwoord.MAX_NALEZEN`, B-3), blijft de opdracht staan:
+    die aanroep voert `tools_node` uit."""
+    from .antwoord import MAX_NALEZEN, na_subagent
 
-    if not na_subagent(state, "get_artikel"):
+    if not na_subagent(state, "search_wetgeving") or int(state.get("nagelezen") or 0) < MAX_NALEZEN:
         return tekst
     return _HAAL_OP.sub("", tekst) + NA_SUBAGENT_SJABLOON
 

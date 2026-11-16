@@ -51,6 +51,7 @@ REDEN_ZIN: dict[str, str] = {
     "tool_buiten_profiel": "hoort niet bij de tools van deze agent",
     "na_subagent": "is al gedaan door de subagent",
     "stukken_plafond": "niet gelezen: meer stukken lezen doet een subagent",
+    "nalezen_plafond": "na een rapport lees ik hoogstens twee bepalingen na",
     "tool_mislukt": "mislukt",
     "tool_resultaat_te_groot": _TE_GROOT, "resultaatcontract_overschreden": _TE_GROOT,
     "resultaat_te_groot": _TE_GROOT, "ondeelbare_eenheid_te_groot": _TE_GROOT,

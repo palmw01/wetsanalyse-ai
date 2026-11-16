@@ -43,7 +43,7 @@ def test_een_rapport_niet_gelukt_is_een_rapport_en_de_code_sluit_niet_af():
     assert afloop.uitkomst == "niet_gelukt" and afloop.met_rapport() and afloop.als_dict()["rapport"] is True
     assert sub.zonder_rapport([afloop.als_dict()]) == "", "de centrale agent vat het rapport samen"
     state = {"subagenten": [afloop.als_dict()], "specialist": "centraal"}
-    assert antwoordnodes.na_subagent(state, "get_artikel") == antwoordnodes.NA_RAPPORT
+    assert antwoordnodes.na_subagent(state, "search_wetgeving") == antwoordnodes.NA_RAPPORT
     assert sub.rapport_tekst(afloop, S04_RAPPORT).startswith(S04_RAPPORT["answer"]), "het rapport, geen reden uit code"
 
 
@@ -52,7 +52,7 @@ def test_zonder_rapport_blijft_de_afsluiting_uit_code():
     assert afloop.uitkomst == "niet_gelukt" and not afloop.met_rapport() and "rapport" not in afloop.als_dict()
     assert sub.zonder_rapport([afloop.als_dict()]).startswith(sub.ZONDER_RAPPORT["niet_gelukt"])
     state = {"subagenten": [afloop.als_dict()], "specialist": "centraal"}
-    assert antwoordnodes.na_subagent(state, "get_artikel") == antwoordnodes.NA_SUBAGENT
+    assert antwoordnodes.na_subagent(state, "search_wetgeving") == antwoordnodes.NA_SUBAGENT
     # Een kind dat de code afsloot, had geen rapport, ook als het er eerder een schreef.
     assert not _afloop({**S04_RAPPORT, "afgesloten": True}).met_rapport()
 

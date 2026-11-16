@@ -176,7 +176,10 @@ WEIGERING = ("Niet te tonen, dus er wordt niets getoond. urn:bwb:BWBR0004770:art
 
 
 def test_na_een_rapport_zegt_de_weigering_niet_meer_dat_het_model_zelf_moet_ophalen():
+    # Zolang hij een bepaling mag nalezen (B-3), blijft de opdracht om haar op te halen; daarna niet meer.
     na = {"subagenten": [{"uitkomst": "klaar"}], "specialist": "centraal"}
+    assert sjabloonnodes.na_subagent_weigering(na, WEIGERING) == WEIGERING
+    na = {**na, "nagelezen": 2}
     tekst = sjabloonnodes.na_subagent_weigering(na, WEIGERING)
     assert "haal de bepaling op" not in tekst.casefold() and "get_artikel" not in tekst
     assert "Gebruik een iri uit een toolresultaat." in tekst and "zelf lezen kan nu niet" in tekst

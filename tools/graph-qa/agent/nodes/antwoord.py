@@ -697,11 +697,24 @@ def _tool_result(tu: dict[str, Any], tekst: str) -> dict[str, Any]:
     return {"type": "tool_result", "tool_use_id": tu["id"], "content": tekst, **({"is_error": True} if fout else {})}
 
 
+#: Wat de centrale agent ziet als hij na een subagent meer dan `MAX_NALEZEN` bepalingen wil nalezen.
+NALEZEN_PLAFOND = json.dumps({"status": "unavailable", "volledig": False, "reden": "nalezen_plafond",
+                              "aanwijzing": ("Na het rapport lees je hoogstens twee bepalingen na, en die heb je al. Schrijf "
+                                             "over een andere bepaling niet wat ze regelt.")}, ensure_ascii=False)
+
+#: De wettekst die de centrale agent na een subagent nog zelf mag lezen, en hoeveel bepalingen (E2E Rekeningafspraken,
+#: 16 nov 2026, B-3). Een rapport over stukken naast de wet draagt de tekst van de bepaling niet, en zonder die tekst
+#: vulde de centrale agent hem uit eigen kennis aan. Eén lid uit de graaf kost weinig; het herlezen dat `na_subagent`
+#: tegenhoudt, waren de stukken van een connector (21 en 17 aanroepen, meting bundel 114 en 115).
+NALEES_TOOLS = frozenset({"get_artikel", "get_lid", "get_bepaling"})
+MAX_NALEZEN = 2
+
 #: Wat de centrale agent ziet als hij na een subagent die niet afrondde zelf wil lezen (`na_subagent`).
 NA_SUBAGENT = json.dumps({"status": "unavailable", "volledig": False, "reden": "na_subagent",
                           "aanwijzing": ("Een subagent deed dit werk al en rondde niet af. Lees niet zelf opnieuw: vat "
                                          "samen wat hij las (zijn toolresultaten staan in je trace) en zeg wat ontbreekt, "
-                                         "of vraag de gebruiker hoe verder.")}, ensure_ascii=False)
+                                         "of vraag de gebruiker hoe verder. Alleen de wettekst van een bepaling mag je "
+                                         "nalezen, met get_lid of get_artikel, hoogstens twee.")}, ensure_ascii=False)
 
 
 #: Wat de centrale agent ziet als hij na een rapport `klaar` (of een vraag) zelf wil lezen (meting bundel 115, S01: na
@@ -709,7 +722,8 @@ NA_SUBAGENT = json.dumps({"status": "unavailable", "volledig": False, "reden": "
 NA_RAPPORT = json.dumps({"status": "unavailable", "volledig": False, "reden": "na_subagent",
                          "aanwijzing": ("Een subagent deed dit werk al en rondde af met een rapport. Lees niet zelf opnieuw: "
                                         "beantwoord de vraag met het rapport. De stukken die hij las, staan in je trace: "
-                                        "die kun je in het sjabloon aanwijzen.")}, ensure_ascii=False)
+                                        "die kun je in het sjabloon aanwijzen. Alleen de wettekst van een bepaling mag je "
+                                        "nalezen, met get_lid of get_artikel, hoogstens twee.")}, ensure_ascii=False)
 
 #: De uitkomsten van een subagent die niet afrondde. Niet gestart (een 409, het budget) of gestopt valt erbuiten: dan
 #: deed niemand het werk, en mag de centrale agent het zelf doen.
@@ -749,7 +763,8 @@ def na_subagent(state: State, tool: str) -> str:
     (`duiding._genoemd_is_gelezen`, in code)."""
     from ..tools import TOOLS
 
-    if state.get("opdracht") or tool not in {t["name"] for t in TOOLS}:
+    if state.get("opdracht") or tool not in {t["name"] for t in TOOLS} or tool in NALEES_TOOLS:
+        # De wettekst van een bepaling mag hij nalezen; hoeveel, begrenst `nalezen_over`.
         return ""
     uitkomsten = {a.get("uitkomst") for a in state.get("subagenten") or [] if not a.get("rapport")}
     if uitkomsten & NIET_AF:
@@ -759,6 +774,23 @@ def na_subagent(state: State, tool: str) -> str:
     if uitkomsten & AF:
         return NA_RAPPORT
     return ""
+
+
+def nalezen_over(state: State, nieuw: list[dict[str, Any]]) -> set[int]:
+    """De aanroepen (als `id()`) van de wettekst waarmee de centrale agent na een subagent boven `MAX_NALEZEN`
+    bepalingen zou komen, in de volgorde van de ronde. Telt wat hij deze beurt na het rapport al las (`State.nagelezen`)."""
+    if state.get("opdracht") or not (state.get("subagenten") or []):
+        return set()
+    if not na_subagent(state, "search_wetgeving"):
+        return set()   # geen subagent die het werk deed (niet gestart, gestopt): dan geldt geen grens
+    over, n = set(), int(state.get("nagelezen") or 0)
+    for tu in nieuw:
+        if tu["name"] in NALEES_TOOLS:
+            if n >= MAX_NALEZEN:
+                over.add(id(tu))
+            else:
+                n += 1
+    return over
 
 
 #: Hoeveel stukken naast de wet de centrale agent in één beurt zelf leest (A6 run 2, V03: 17 keer `get_kamerstuk` in 14
@@ -845,6 +877,10 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
     geweigerd = {id(t): w for t in pending if _sleutel(t) not in gedaan and (w := weigering(t))}
     geweigerd |= {i: STUKKEN_PLAFOND for i in stukken_plafond(
         state, [t for t in pending if _sleutel(t) not in gedaan and id(t) not in geweigerd])}
+    nalees = [t for t in pending if _sleutel(t) not in gedaan and id(t) not in geweigerd]
+    geweigerd |= {i: NALEZEN_PLAFOND for i in nalezen_over(state, nalees)}
+    nagelezen = sum(1 for t in nalees if t["name"] in NALEES_TOOLS and id(t) not in geweigerd) \
+        if state.get("subagenten") and not state.get("opdracht") else 0
     uit_te_voeren = list({_sleutel(t): t for t in reversed(pending)
                           if _sleutel(t) not in gedaan and id(t) not in geweigerd}.values())[::-1]
     # De statusregel noemt alleen wat werkelijk draait (bundel 120: "leest uitspraak …" bij vier geweigerde aanroepen).
@@ -862,7 +898,7 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
             # Een poging die de code weigerde, is zichtbaar: een `tool_execution` met `status: geweigerd` en de reden,
             # zodat de meting hem telt (`tool_buiten_profiel`, `tools_verboden_gezien`). Het resultaat is geen bron en
             # komt niet in het spoor.
-            logger.info("tool na subagent geweigerd" if reden == "na_subagent" else "tool buiten profiel",
+            logger.info("tool na subagent geweigerd" if reden in ("na_subagent", "nalezen_plafond") else "tool buiten profiel",
                         extra={"categorie": "functioneel", "run_id": state.get("run_id", ""), "profiel": agent.naam,
                                "tool": tu["name"]})
             weiger_event(writer, state, tu, reden)
@@ -872,7 +908,8 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
         gedaan[sleutel] = result_text
         trace.append((tu["name"], result_text))
         results.append(_tool_result(tu, result_text))
-    upd: dict[str, Any] = {"source_trace": trace, "pending_tools": []}
+    upd: dict[str, Any] = {"source_trace": trace, "pending_tools": [],
+                           **({"nagelezen": int(state.get("nagelezen") or 0) + nagelezen} if nagelezen else {})}
     na: list[dict[str, Any]] = []
     if sjabloon is not None:
         blok, na, extra = vul_aanroep(b, {**state, "source_trace": trace}, sjabloon)
@@ -1049,7 +1086,16 @@ def correct_node(b: Bouw, state: State) -> dict[str, Any]:
             "parafrase – die presenteer je niet als citaat."
         )
 
-    if beweringen:
+    if beweringen and rapport_steun(state) is not None and not state.get("opdracht"):
+        # Na een rapport kan de centrale agent een stuk niet zelf nalezen (`na_subagent`), dus "haal het op" kan hij niet
+        # opvolgen, en herformuleerde hij de zin (E2E Rekeningafspraken, 16 nov 2026, B-3). Wat het rapport niet draagt,
+        # gaat eruit; de wettekst van een bepaling mag hij nalezen (`NALEES_TOOLS`).
+        opdrachten.append(
+            f"Je schreef {', '.join(beweringen)}, maar het rapport van de subagent en wat je las dragen dat niet. Schrap "
+            "die zinnen; herformuleer ze niet, want andere woorden maken het niet gelezen. Gaat een zin over wat een "
+            "bepaling zelf regelt, lees haar dan met get_lid of get_artikel (hoogstens twee) of schrap de zin."
+        )
+    elif beweringen:
         opdrachten.append(
             f"Je schreef als feit {', '.join(beweringen)}, maar dat staat niet in wat je in deze beurt opgehaald of gelezen "
             "hebt. Haal het op met de tools en noem de bron, of laat het weg; schrijf geen datum, nummer, aantal of "

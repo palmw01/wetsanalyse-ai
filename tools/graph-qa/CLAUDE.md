@@ -304,7 +304,16 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     (`NA_RAPPORT`), na `niet_gelukt` of `mislukt` zegt hij wat er gelezen is en wat ontbreekt (`NA_SUBAGENT`). Sjablonen en
     eigen tools blijven, en de kop van het rapport zegt het vooraf. Een bepaling die het rapport noemt zonder citaat
     haalt het sjabloon zelf op, dus een uitzondering is niet nodig. Een subagent die niet startte (409, budget) of gestopt
-    werd, valt erbuiten. Meting bundel 114: P01 las 21 keer opnieuw (1,5M); bundel 115: S01 na `klaar` nog 17 keer (376k);
+    werd, valt erbuiten. Meting bundel 114: P01 las 21 keer opnieuw (1,5M); bundel 115: S01 na `klaar` nog 17 keer (376k).
+    **De wettekst mag hij nalezen** (E2E Rekeningafspraken, 16 nov 2026, B-3: na een rapport over de wetsgeschiedenis
+    schreef de centrale agent wat een lid regelt, uit eigen kennis, en de code weigerde de `get_lid` die hij aankondigde):
+    `NALEES_TOOLS` (`get_artikel`, `get_lid`, `get_bepaling`) vallen buiten `na_subagent`, tot `MAX_NALEZEN` (2)
+    bepalingen per beurt (`nalezen_over`, `State.nagelezen`; daarboven `NALEZEN_PLAFOND`, reden `nalezen_plafond`). Een
+    rapport over stukken naast de wet draagt de tekst van de bepaling niet, en één lid uit de graaf kost weinig; het
+    herlezen dat de regel tegenhoudt, waren de stukken van een connector. De kop van het rapport en de weigeringen zeggen
+    het (`subagent.NALEZEN_AANWIJZING`). En na een rapport vraagt de correctie om een duiding die het rapport niet draagt
+    te **schrappen**, niet te herformuleren (`correct_node`): "haal het op" kon hij niet opvolgen. Bekende grens: een duiding
+    van een bepaling die niet gelezen is, ziet geen toets; het nalezen maakt haar alleen mogelijk. `tests/test_b3_na_subagent.py`;
   - **het model van een subagent** kiest de beheerder: die van het agentprofiel, anders `stap:subagent` (`modelkeuze`;
     zie *De modelkeuzes per agentprofiel en stap*); zonder keuze het gewone model. `Subagent.ronde` zet daarvoor
     `modelrol: subagent` in het kader, en `subagent.kindmodel` geeft hetzelfde model voor het event. De lichte modelklasse
