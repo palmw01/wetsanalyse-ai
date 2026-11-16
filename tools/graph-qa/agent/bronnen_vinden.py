@@ -255,9 +255,11 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     zoeken op de woorden van de deelvraag (`bepaling_opties`) aan. Zonder gebeurtenis alleen dat laatste, zoals
     voorheen. Zonder gekozen regelingen zijn de regelingen van de gebeurtenis het bereik, niet de hele graaf."""
     from .deelvraag_zoeken import MAX_PER_DEELVRAAG
-    from .zoekvragen import PLAATSEN_WOORDEN, opties_bij_deelvraag, pool
+    from .deelvraag_zoeken import STANDAARD_PROFIEL
+    from .zoekvragen import PLAATSEN_WOORDEN, opties_bij_deelvraag, pool, samen_met_woorden
 
     rol = "kern"
+    profiel = STANDAARD_PROFIEL
     regelingen = regelingen_van_invoer(invoer)
     dossier = {"naam": invoer.get("naam", ""), "analysevraag": invoer.get("analysevraag", ""),
                **(invoer.get("dossier") or {}),
@@ -272,30 +274,24 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     for d in invoer.get("deelvragen") or []:
         basis = {"deelvraag_id": d.get("id", ""), "vraag": d.get("vraag", "")}
         woorden = bepaling_opties(graph, regelingen=regelingen, deelvraag=d.get("vraag", ""), dossier=dossier,
-                                  buiten=buiten)
+                                  buiten=buiten, profiel=profiel)
         uit_pool: list[dict[str, Any]] = []
         if p is not None:
             plaatsen = MAX_PER_DEELVRAAG - min(PLAATSEN_WOORDEN, len([b for b in woorden if not b["buiten"]]))
             uit_pool = opties_bij_deelvraag(p["kandidaten"], d.get("vraag", ""), gebeurtenis=gebeurtenis,
-                                            limit=plaatsen, dossier=dossier)
-        for k in uit_pool:
-            if v.voeg(k["bron_iri"], rol=rol, methode="deelvraag",
-                      detail={**basis, "raakt": k["geraakt"], "zoekvraag": k["zoekvraag"], "signaal": k["signaal"],
-                              "route": "zoekvragen"}):
-                n_totaal += 1
-        al = {k["bron_iri"] for k in uit_pool}
-        ruimte = MAX_PER_DEELVRAAG - len(uit_pool)
-        for b in woorden:
-            if b["bron_iri"] in al:
-                continue
-            if not b["buiten"]:
-                if ruimte <= 0:
-                    continue
-                ruimte -= 1
-            if v.voeg(b["bron_iri"], rol=rol, methode="deelvraag", label=b["label"],
-                      detail={**basis, "raakt": b["geraakt"], **({"buiten": True} if b["buiten"] else {}),
-                              **({"route": "woorden"} if p else {})}):
-                n_totaal += 1
+                                            limit=MAX_PER_DEELVRAAG if profiel.woorden_voor_pool else plaatsen,
+                                            dossier=dossier)
+        for k in samen_met_woorden(uit_pool, woorden, limit=MAX_PER_DEELVRAAG,
+                                   woorden_voor_pool=profiel.woorden_voor_pool):
+            if k["bron"] == "pool":
+                nieuw = v.voeg(k["bron_iri"], rol=rol, methode="deelvraag",
+                               detail={**basis, "raakt": k["geraakt"], "zoekvraag": k["zoekvraag"],
+                                       "signaal": k["signaal"], "route": "zoekvragen"})
+            else:
+                nieuw = v.voeg(k["bron_iri"], rol=rol, methode="deelvraag", label=k["label"],
+                               detail={**basis, "raakt": k["geraakt"], **({"buiten": True} if k["buiten"] else {}),
+                                       **({"route": "woorden"} if p else {})})
+            n_totaal += nieuw
     return n_totaal, volledig
 
 

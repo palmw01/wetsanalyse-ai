@@ -673,6 +673,31 @@ def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit:
     return [k for *_, k in sorted(gescoord, key=lambda x: (-x[0], x[1], x[2]))][:limit]
 
 
+def zwak_in_pool(optie: dict[str, Any]) -> bool:
+    """Een optie uit de pool die geen eigen woord van de deelvraag raakt: alleen een brugwoord, of alleen de bonus van de
+    vraagvorm (`opties_bij_deelvraag`)."""
+    brug = set(optie.get("brug") or {})
+    return not [w for w in optie.get("geraakt") or [] if w not in brug]
+
+
+def samen_met_woorden(uit_pool: list[dict[str, Any]], woorden: list[dict[str, Any]], *, limit: int,
+                      woorden_voor_pool: bool = False) -> list[dict[str, Any]]:
+    """De opties bij een deelvraag uit de pool (`opties_bij_deelvraag`) en uit de woordenroute
+    (`deelvraag_zoeken.bepaling_opties`), hoogstens `limit` gewone plus wat de woordenroute als *buiten* markeerde.
+    Standaard gaat de pool voor en vult de woordenroute aan wat er overblijft. Met `woorden_voor_pool` wijkt een zwakke
+    optie uit de pool (`zwak_in_pool`) voor een treffer van de woordenroute: eerst de sterke pool, dan de woorden, dan de
+    zwakke pool. Elke optie draagt `bron` (`pool` of `woorden`)."""
+    pool = [{**o, "bron": "pool"} for o in uit_pool]
+    al = {o["bron_iri"] for o in pool}
+    gewoon = [{**o, "bron": "woorden"} for o in woorden if not o.get("buiten") and o["bron_iri"] not in al]
+    buiten = [{**o, "bron": "woorden"} for o in woorden if o.get("buiten") and o["bron_iri"] not in al]
+    if woorden_voor_pool:
+        volgorde = [o for o in pool if not zwak_in_pool(o)] + gewoon + [o for o in pool if zwak_in_pool(o)]
+    else:
+        volgorde = pool + gewoon
+    return volgorde[:limit] + buiten
+
+
 # --- de woordenkloof benoemen (PR 6) ----------------------------------------------------------------------
 
 #: Hoeveel eigen woorden van het werkgebied Lex toetst, en hoe lang een woord minstens is: een kort woord is te
