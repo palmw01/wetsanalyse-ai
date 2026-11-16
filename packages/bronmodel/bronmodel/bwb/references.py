@@ -36,7 +36,11 @@ _JCI_ARTIKEL = re.compile(r"[&?]artikel=([^&]+)")
 _JCI_LID = re.compile(r"[&?]lid=([^&]+)")
 _JCI_ONDERDEEL = re.compile(r"[&?]o=([^&]+)")
 _JCI_BIJLAGE = re.compile(r"[&?]bijlage=")
-_JCI_STRUCTUUR = re.compile(r"[&?](hoofdstuk|titeldeel|afdeling|paragraaf)=([^&]+)")
+_JCI_STRUCTUUR = re.compile(r"[&?](hoofdstuk|titeldeel|afdeling|sub-paragraaf|paragraaf)=([^&]+)")
+#: Een segment van de jci dat in de graaf anders heet. Een `sub-paragraaf` (Mijnbouwwet § 4.1a.1.1, Boek 7 BW) is een
+#: geneste paragraaf, zoals de parser haar leest (`_STRUCTUUR_TAGS`). Zonder deze regel viel het segment weg en kreeg
+#: de sub-paragraaf de IRI van haar ouderparagraaf.
+_SEGMENTNAAM = {"sub-paragraaf": "paragraaf"}
 
 
 def jci_doel(doc: str | None) -> tuple[str | None, str | None, str | None]:
@@ -76,7 +80,7 @@ def jci_to_ref_key(doc: str | None) -> str | None:
 
 def jci_structuurpad(doc: str | None) -> list[tuple[str, str]]:
     """Alle structuursegmenten van een jci, in volgorde: ``[("hoofdstuk","VIII"),("afdeling","2")]``."""
-    return list(_JCI_STRUCTUUR.findall(doc)) if doc else []
+    return [(_SEGMENTNAAM.get(n, n), w) for n, w in _JCI_STRUCTUUR.findall(doc)] if doc else []
 
 
 def jci_node_ref_key(doc: str | None) -> tuple[str | None, str | None]:
@@ -164,7 +168,7 @@ def jci_doel_ref_key(doc: str | None) -> tuple[str | None, str | None]:
             soort = "onderdeel"
         return (ref_key, soort)
 
-    structuren = _JCI_STRUCTUUR.findall(doc)
+    structuren = jci_structuurpad(doc)
     if structuren:
         naam, waarde = structuren[-1]
         return (f"{bwb}#{naam}={waarde}", naam)
