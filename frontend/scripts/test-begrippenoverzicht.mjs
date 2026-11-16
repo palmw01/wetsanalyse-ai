@@ -10,6 +10,10 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -63,7 +67,7 @@ await page.route("**/api/**", async (route) => {
   ] } });
   if (p.startsWith("/api/werkgebieden/")) return route.fulfill({ status: 404, json: { detail: "niet in deze test" } });
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
-  return route.fulfill({ json: {} });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: {} });
 });
 
 try {
@@ -135,6 +139,7 @@ try {
   await page.waitForURL(/\/werkgebieden\/wg1\/begrippen\/b2$/);
 
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("OK test-begrippenoverzicht");
 } finally {
   await browser.close();

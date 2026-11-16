@@ -20,6 +20,10 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend, sse } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -87,7 +91,6 @@ gesprekken.g4 = [
 ];
 const regieBoom = { gesprek_id: "g4", kinderen: [{ gesprek_id: "k9", titel: "Annoteren · analysevraag (3 bepalingen)", updated: null,
   berichten: ["c.1", "c.2", "c.3"].map((run, i) => ({ bericht_id: 20 + i, run_id: run, created: null, contextopbouw: zonderLus(run) })) }] };
-const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 
 async function opzet(page) {
   page.on("pageerror", (e) => errors.push(e.message));
@@ -116,7 +119,7 @@ async function opzet(page) {
     if (p.endsWith("/berichten") && m === "POST") return route.fulfill({ json: { id: 1 } });
     if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
     if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
-    return route.fulfill({ json: [] });
+    return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
   });
 }
 
@@ -275,6 +278,7 @@ try {
   await mobiel.close();
 
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: de contextmeter met signaal, het paneel (regel, raster, legenda, begin, verbruik), de boom met een onvolledig totaal, de beurtkiezer, het verloop, de details, /context zonder beurt, de meter live uit het meting-event, nog niet gemeten, en mobiel (375 px).");
 } finally {
   await browser.close();

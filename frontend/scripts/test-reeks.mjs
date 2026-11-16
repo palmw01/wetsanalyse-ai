@@ -7,6 +7,12 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend, sse } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [
+  /^GET \/api\/annotatie\/v2\/capabilities$/,
+];
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -20,7 +26,6 @@ const lid = (n) => `${ART}:lid:${n}`;
 const OUDER = "Invorderingswet 1990 – Artikel 9";
 const kandidaat = (n, stand) => ({ bwbId: "BWBR0004770", artikel: "9", lid: String(n), citeertitel: "Invorderingswet 1990",
   fragment: `Tekst van lid ${n}.`, bron_iri: lid(n), nummer: String(n), soort: "Lid", label: `Lid ${n}`, stand });
-const sse = (events) => events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("");
 
 // Wat de agent per run stuurt. Run k1: de keuzekaart. Run r2: een reeks over lid 1 en 3.
 const stromen = {
@@ -82,7 +87,7 @@ await page.route("**/api/**", async (route) => {
   if (url.pathname.includes("/actief")) return route.fulfill({ status: 404, json: {} });
   if (url.pathname.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   if (url.pathname.includes("/verklaringen")) return route.fulfill({ json: {} });
-  return route.fulfill({ status: 200, json: [] });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
 });
 
 async function wacht(pred, wat) {
@@ -182,5 +187,6 @@ try {
   await balk.getByText("1 van 2", { exact: false }).waitFor();
   assert.deepEqual(weergaven.filter((w) => w !== lid(1) && w !== lid(3)), []);
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: keuzekaart met stand en toetsenbord, reeks als één run met twee doelen, blok per lid met fout per lid, Open › per lid, herladen zonder dubbel blok, bladeren door de reeks in het paneel.");
 } finally { await browser.close(); }

@@ -19,6 +19,10 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend, sse } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -72,7 +76,6 @@ const stromen = {
   r5: beurt("r5", "Laten we het dossier aanvullen.", NIETS),
   r6: beurt("r6", "Dan het thema. Ik leid het af uit de rechtsgebieden van de bronnen.", THEMA),
 };
-const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 const starts = [], berichten = [];
 let opgeslagen = false;
 
@@ -100,7 +103,7 @@ await context.route("**/api/**", async (route) => {
   if (events) return route.fulfill({ contentType: "text/event-stream", body: sse(stromen[events[1]] ?? [{ type: "done" }]) });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
-  return route.fulfill({ json: [] });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
 });
 
 const wacht = async (n) => { for (let i = 0; i < 80 && starts.length < n; i++) await page.waitForTimeout(50); };
@@ -190,6 +193,7 @@ try {
   assert.deepEqual(starts[6].intake_actie, { intake_id: "ia3", stap: "thema", actie: "antwoord", keuzes: [BELASTING] });
 
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: Vul het dossier aan als actie, kaartjes over de gevraagde stappen, vooringevuld, Verzend, samenvatting toen → nu met Opslaan (ook op het user-bericht), Stop met aanvullen, het paneel laadt opnieuw, geen Vraag Lex bij een leeg veld, geen knop zonder wijziging, Kies een thema als kaartje met het voorstel aangevinkt.");
 } finally {
   await browser.close();

@@ -14,6 +14,13 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [
+  /^GET \/api\/annotatie\/v2\/bepaling$/,
+  /^GET \/api\/werkgebieden\/wg1\/toestanden$/,
+];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -72,7 +79,7 @@ await page.route("**/api/**", async (route) => {
   if (p === "/api/werkgebieden/wg1") return route.fulfill({ json: wg });
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
-  return route.fulfill({ json: [] });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
 });
 
 try {
@@ -149,6 +156,7 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
 
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: bronpagina met de wettekst en alle markeringen, elementen als rijen, werkgebieden op bron-IRI, kruimelpad en Bespreek met Lex via het werkgebied, klik op een markering naar het element; elementpagina met bronvoorkomen en classificatie, accorderen, heropenen en afwijzen met reden tegen revisie en bronstand, herladen, Terug, smal scherm.");
 } finally {
   await browser.close();

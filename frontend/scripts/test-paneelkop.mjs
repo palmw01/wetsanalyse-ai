@@ -15,6 +15,14 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [
+  /^GET \/api\/werkgebieden\/wg1\/herbeoordelingen$/,
+  /^GET \/api\/werkgebieden\/wg1\/begrippen\/conformiteit$/,
+  /^GET \/api\/werkgebieden\/wg1\/toestanden$/,
+];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -81,7 +89,7 @@ async function mock(page, metGraaf) {
     if (p.endsWith("/annotatie/v2/samenhang") || p.endsWith("/annotatie/v2/samenhang/antwoord"))
       return route.fulfill({ json: { doel: "urn:lid1", knopen: [{ id: "urn:lid1", soort: "lid", label: "Lid 1", tekst: "", klasse: "",
         lifecycle: "", element_id: "", bwb_id: "BWBR0004770", artikel: "9", lid: "1", rand: false }], relaties: [] } });
-    return route.fulfill({ json: [] });
+    return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
   });
 }
 
@@ -228,4 +236,5 @@ for (const breedte of [375, 400, 800, 1280]) {
 
 assert.deepEqual(fouten, []);
 await browser.close();
+controleerOnbekend();
 console.log("Browser OK: één paneelkop voor annotatie (Tekst en Graaf), begripsvoorstellen, werkgebied, begrip, deelvraag, Bronnen en de annotatiepagina op 375, 400, 800 en 1280 px; geen horizontale scroll, hoogstens twee rijen, ↗ ⋯ ✕ rechtsboven, Verwijderen onderaan in ⋯, 44 px op touch, het rapport vanuit ⋯ met en zonder voorstellen van Lex.");

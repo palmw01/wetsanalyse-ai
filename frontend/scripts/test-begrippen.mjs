@@ -12,6 +12,21 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); ze krijgen de 404 van
+ *  vroeger. Al het andere is een fout. */
+const NIET_NAGEBOOTST = [
+  /^GET \/api\/werkgebieden\/wg1\/kandidaten$/,
+  /^GET \/api\/werkgebieden\/wg1\/annotatie-werkvoorraad$/,
+  /^GET \/api\/werkgebieden\/wg1\/dekking$/,
+  /^GET \/api\/werkgebieden\/wg1\/begrippen\/b3\/voorstellen$/,
+  /^GET \/api\/werkgebieden\/wg1\/herbeoordelingen$/,
+  /^GET \/api\/werkgebieden\/wg1\/begrippen\/conformiteit$/,
+  /^GET \/api\/werkgebieden\/wg1\/relaties$/,
+  /^POST \/api\/annotatie\/v2\/plaatsen$/,
+  /^GET \/api\/werkgebieden\/wg1\/begrippen\/b7\/voorstellen$/,
+];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -183,7 +198,7 @@ await page.route("**/api/**", async (route) => {
   }
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
-  return route.fulfill({ status: 404, json: { detail: "Niet in deze test." } });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: { detail: "Niet in deze test." }, stilStatus: 404 });
 });
 
 const foto = (naam) => process.env.SCREENSHOT_DIR
@@ -415,6 +430,7 @@ try {
   await page.waitForTimeout(300);
   await foto("begrip-mobiel");
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: begrip uit passages in twee regelingen (met al_primair), poort met redenen, opslaan met revisie, 412 met behoud van invoer, tabwissel bewaakt, beoordelen, accorderen, link naar het element, CSV-export met elke passage, herladen, historie, het kader verschijnt in één keer, smal scherm.");
 } catch (e) {
   await foto("begrippen-fout");

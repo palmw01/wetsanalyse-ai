@@ -26,11 +26,11 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { sse } from "./nepApi.mjs";
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
 const nu = "2026-11-08T10:00:00+00:00";
-const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 const KST = { naam: "kamerstukken", label: "Kamerstukken", brontype: "kamerstuk" };
 
 const GOED = [{ type: "token", content: "Goed." }, { type: "done" }];

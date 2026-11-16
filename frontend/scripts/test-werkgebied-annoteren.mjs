@@ -23,6 +23,7 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { sse } from "./nepApi.mjs";
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -42,7 +43,6 @@ const wg = { id: "wg1", naam: "Invorderbaarheid", analysevraag: "Wanneer is een 
   status: "actief", revisie: 4, aangemaakt_door: "t", aangemaakt: nu, gewijzigd: nu, gearchiveerd: null,
   bronnen: [sel(A9, "Artikel 9 – Invorderingswet 1990"), sel(A10, "Artikel 10 – Invorderingswet 1990"),
     sel(A4, "Artikel 4 – Invorderingswet 1990", "context")] };
-const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 const OUDER = "werkgebied Invorderbaarheid";
 const deel = (index, iri, label) => [
   { type: "onderdeel", fase: "start", index, totaal: 2, bron_iri: iri, label },

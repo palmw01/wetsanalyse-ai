@@ -12,6 +12,10 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -29,7 +33,7 @@ async function mock(context) {
     if (p === "/api/disclaimer") return route.fulfill({ status: 204, body: "" });
     if (p === "/api/account/me") return route.fulfill({ json: { userid: "browser-test", email: "t@example.test", role: "analist",
       totp_enabled: false, tfa_nodig: false, rondleiding_knop: false } });
-    return route.fulfill({ json: [] });
+    return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
   });
 }
 
@@ -139,6 +143,7 @@ try {
   await ronde(375);
   await ronde(1280);
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: teststrook wegklikbaar op 375 en 1280 px; weg na herladen, in een tweede tab en in een open tab; terug na uitloggen en inloggen en bij een ander account; geen voorwaarden in het gebruikersmenu.");
 } finally {
   await browser.close();

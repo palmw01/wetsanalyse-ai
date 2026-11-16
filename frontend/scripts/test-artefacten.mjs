@@ -23,6 +23,7 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { sse } from "./nepApi.mjs";
 
 /** Open het menu ⋯ van de paneelkop in `paneel`, doe `fn` op het menu en sluit het weer (Escape). */
 async function inKopMenu(paneel, fn) {
@@ -130,7 +131,6 @@ const dvDetail = (id) => {
 const kandidaat = { id: "k1", bron_iri: "urn:art10", label: "art. 10 Iw", bwb_id: "BWBR0004770", rol: "kern",
   bewijs: [{ methode: "deelvraag", vanuit: "", detail: { deelvraag_id: "d1", vraag: "Wie betaalt?" } }], status: "voorgesteld",
   reden: "", run_id: "br1", in_laatste_run: true, in_selectie: false, besloten_door: null, besloten_op: null };
-const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 
 await page.route("**/api/**", async (route) => {
   requests.push({ p: new URL(route.request().url()).pathname, m: route.request().method() });

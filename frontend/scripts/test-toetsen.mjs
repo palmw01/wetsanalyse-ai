@@ -17,6 +17,7 @@
 import assert from "node:assert/strict";
 import { chromium, devices, webkit } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { sse } from "./nepApi.mjs";
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 
@@ -51,7 +52,6 @@ const stromen = {
     { type: "done" }],
   f2: [{ type: "token", content: "Nieuw antwoord." }, { type: "done" }],
 };
-const sse = (events) => events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("");
 
 async function nieuwePagina(browserType, opties) {
   const browser = await browserType.launch({

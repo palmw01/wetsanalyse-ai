@@ -2430,6 +2430,16 @@ npm run test:browser # Playwright op de echte Next-UI met gemockte BFF (scripts/
 `test-artefacten.mjs` (de soorten artefacten in de werkplek), `test-bronkandidaten.mjs`, `test-sidebar-groepen.mjs` (spoor G1), `test-detailpaginas.mjs` (spoor G3), `test-contextpaneel.mjs` (spoor G4),
 `test-werkgebied-annoteren.mjs`, `test-begrippen-verdieping.mjs`, `test-herbeoordeling.mjs`, `test-begriprelaties.mjs`, `test-begrippengraaf.mjs`, `test-begrippenoverzicht.mjs`, `test-deelvragen.mjs`, `test-vraaglex.mjs` en `test-rondleiding.mjs`, en verwacht een devserver op poort 3109
 (`AUTH_SECRET=annotatie-browser-test-only-secret AUTH_TRUST_HOST=true npm run dev -- --port 3109`).
+**De nep-api van een browserscript** gebruikt `scripts/nepApi.mjs` (Lex Bench §20.5 stap 2):
+- `sse(events)` maakt de stroom in de vorm van graph-qa (`\r\n`, `seq`, desgewenst `ping`), en `stroomInDelen` een stroom die
+  halverwege breekt; geen eigen `sse()` in een script;
+- een pad dat het script niet nabootst, is een fout: de laatste regel van de nep-api is `onbekend(route, { stil: [...SCHIL,
+  ...NIET_NAGEBOOTST], leeg })`, en `controleerOnbekend()` staat vóór de OK-regel. `SCHIL` zijn de aanroepen van de schil om
+  elke pagina, `NIET_NAGEBOOTST` de paden die dit script bewust laat liggen, elk bij naam. `NEPAPI_LOG=1` meldt een onbekend
+  pad meteen;
+- `app/nepApi.test.ts` bewaakt het; de scripts die nog stil terugvallen staan in `NOG_TOEGEEFLIJK`, en die lijst mag alleen
+  krimpen.
+
 Praat met **`localhost`**, niet met `127.0.0.1`: Next 16 weigert dev-assets aan een andere origin,
 waarna de pagina niet hydrateert en elke stap zonder duidelijke fout time-out.
 `scripts/test-toetsen.mjs` bewaakt wat alleen in een browser te zien is: een letter beslist niets (geen

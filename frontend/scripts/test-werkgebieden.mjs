@@ -11,6 +11,16 @@ import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
 import { toetsToegankelijkheid } from "./axe.mjs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [
+  /^GET \/api\/werkgebieden\/wg1\/kandidaten$/,
+  /^GET \/api\/werkgebieden\/wg1\/bronselectie$/,
+  /^GET \/api\/werkgebieden\/wg1\/annotatie-werkvoorraad$/,
+  /^GET \/api\/werkgebieden\/wg1\/dekking$/,
+  /^GET \/api\/werkgebieden\/wg1\/begrippen\/samenhang$/,
+];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -162,7 +172,7 @@ await page.route("**/api/**", async (route) => {
   if (p.startsWith("/api/annotatie/v2/")) return route.fulfill({ status: 404, json: { detail: "Niet in deze test." } });
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
-  return route.fulfill({ status: 200, json: {} });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: {} });
 });
 
 // Met SCREENSHOT_DIR legt het script de kernmomenten vast, om de vormgeving na te lopen.
@@ -511,6 +521,7 @@ try {
   await page.getByText("Nog geen werkgebieden", { exact: false }).waitFor();
   assert.equal(requests.filter((r) => r.m === "DELETE" && r.p === "/api/werkgebieden/wg1").at(-1).q, "?verwachte_revisie=1");
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: overzicht met status, tellers, zoeken en Door mij bewerkt, aanmaken via Lex, het projectoverzicht en de tabs als paden, bron opnemen in een venster (ongeldig/idempotent/422/context), rol wijzigen, revisieconflict, inventaris met open punt en signalen, tab in de URL, historie, samenhang met opnemen vanuit de inspector, weghalen met bevestiging, opnemen vanaf een annotatie met herkansing na 412, smal scherm, verwijderen op de pagina (met 412) en in de lijst, de verwijderd-stand, het rapport standaard alleen beoordeeld en met het vinkje met voorstellen.");
 } catch (e) {
   await foto("fout");

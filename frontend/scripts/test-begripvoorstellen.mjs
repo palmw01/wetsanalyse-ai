@@ -11,6 +11,19 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); ze krijgen de 404 van
+ *  vroeger. Al het andere is een fout. */
+const NIET_NAGEBOOTST = [
+  /^GET \/api\/werkgebieden\/wg1\/herbeoordelingen$/,
+  /^GET \/api\/werkgebieden\/wg1\/kandidaten$/,
+  /^POST \/api\/annotatie\/v2\/plaatsen$/,
+  /^GET \/api\/werkgebieden\/wg1\/begrippen\/b1\/voorstellen$/,
+  /^GET \/api\/werkgebieden\/wg1\/begrippen\/b2\/voorstellen$/,
+  /^GET \/api\/werkgebieden\/wg1\/begrippen\/conformiteit$/,
+  /^GET \/api\/werkgebieden\/wg1\/relaties$/,
+];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -169,7 +182,7 @@ await page.route("**/api/**", async (route) => {
   }
   if (p === "/api/gesprekken") return route.fulfill({ json: [] });
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
-  return route.fulfill({ status: 404, json: { detail: "Niet in deze test." } });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: { detail: "Niet in deze test." }, stilStatus: 404 });
 });
 
 const foto = (naam) => process.env.SCREENSHOT_DIR
@@ -296,6 +309,7 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
   await foto("term-mobiel");
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: geen Lex-knoppen, de voorstellen per term, een termpagina als boom met vinkjes, één begrip uit twee groepen met de vraag erin, splitsen met de brondefinitie, een vraag apart, geen begrip met reden, later en heropenen, geen sneltoetsen, verouderd, mislukte ronde, smal scherm.");
 } catch (e) {
   await foto("voorstellen-fout");
