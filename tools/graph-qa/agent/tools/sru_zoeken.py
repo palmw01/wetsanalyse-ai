@@ -20,7 +20,7 @@ LIMIT = 25
 #: zodat pagineren stabiel is.
 OP_VOLGORDE = {"nieuwste": " sortBy dt.date/sort.descending dt.identifier/sort.ascending",
                "oudste": " sortBy dt.date/sort.ascending dt.identifier/sort.ascending"}
-_ZINSDEEL_RE = re.compile(r'"([^"]*)"|„([^”]*)”')
+_ZINSDEEL_RE = re.compile(r'"([^"]*)"|[„“]([^”]*)”')
 
 
 def cql_woorden(woorden: str, *, zonder: str = "geef woorden van minstens drie letters") -> str:

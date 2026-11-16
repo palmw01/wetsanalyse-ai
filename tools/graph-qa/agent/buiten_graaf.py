@@ -237,7 +237,7 @@ def keuzevraag(genoemde: list[Genoemd]) -> str:
     zinnen = []
     for g in dubbel:
         namen = ", ".join(titel for _, titel in g.kandidaten)
-        zinnen.append(f"Met „{g.naam}” kunnen meer regelingen bedoeld zijn: {namen}.")
+        zinnen.append(f"Met “{g.naam}” kunnen meer regelingen bedoeld zijn: {namen}.")
     return " ".join(zinnen) + " Welke bedoel je? Noem de naam, dan lees ik de tekst."
 
 
@@ -320,7 +320,7 @@ def onbekende(genoemde: list[Genoemd], vraag: str) -> list[str]:
 
 
 def melding_onbekend(titels: list[str]) -> str:
-    wat = " en ".join(f"„{t}”" for t in titels)
+    wat = " en ".join(f"“{t}”" for t in titels)
     return (f"Een regeling met de naam {wat} vind ik niet: niet in de kennisgraaf, en het Basiswettenbestand kent geen "
             "geldende regeling met die titel of afkorting. Controleer de naam; uit mijn eigen kennis vul ik niet in wat er "
             "zou staan.")

@@ -95,10 +95,10 @@ describe("overzicht", () => {
 
   it("telt en verantwoordt", () => {
     expect(telling(invordering())).toEqual({ regelingen: 3, delen: 4, bepalingen: 9, ookGenoemd: 1 });
-    expect(zoekverantwoording(invordering())).toBe("Gezocht op „invordering” in de opschriften en in de wettekst.");
+    expect(zoekverantwoording(invordering())).toBe("Gezocht op “invordering” in de opschriften en in de wettekst.");
     const smal = { ...invordering(), gevraagd: "invordering van belastingen", onderwerp_tekst: "invordering belastingen" };
     expect(zoekverantwoording(smal)).toBe(
-      "Gezocht op „invordering” in de opschriften en op „invordering belastingen” in de wettekst (gevraagd: „invordering van belastingen”).");
+      "Gezocht op “invordering” in de opschriften en op “invordering belastingen” in de wettekst (gevraagd: “invordering van belastingen”).");
   });
 
   it("kopieert dezelfde inhoud als het blok", () => {

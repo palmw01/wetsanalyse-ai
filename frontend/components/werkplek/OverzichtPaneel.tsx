@@ -95,7 +95,7 @@ export function OverzichtPaneel({ overzicht, onMaakWerkgebied }: { overzicht: Ov
           <h3 className="mb-1 font-display text-sm font-semibold text-lint">Wettelijke definitie</h3>
           <ul className="space-y-1">
             {overzicht.definities.map((d) => (
-              <li key={d.iri}>„{d.begrip}” – {d.citeertitel}, <Vindplaats vindplaats={{ iri: d.iri, label: d.vindplaats || d.label || "vindplaats", jci: d.jci ?? "", regeling: "" }} kort /></li>
+              <li key={d.iri}>“{d.begrip}” – {d.citeertitel}, <Vindplaats vindplaats={{ iri: d.iri, label: d.vindplaats || d.label || "vindplaats", jci: d.jci ?? "", regeling: "" }} kort /></li>
             ))}
           </ul>
         </section>
@@ -113,7 +113,7 @@ export function OverzichtPaneel({ overzicht, onMaakWerkgebied }: { overzicht: Ov
 
       <footer className="space-y-0.5 text-xs text-muted">
         {overzicht.trefwoorden.map((tw) => (
-          <p key={tw.trefwoord}>Trefwoord „{tw.trefwoord}” (redactioneel) bij: {tw.regelingen.map((x) => x.citeertitel).join(", ")}</p>
+          <p key={tw.trefwoord}>Trefwoord “{tw.trefwoord}” (redactioneel) bij: {tw.regelingen.map((x) => x.citeertitel).join(", ")}</p>
         ))}
         <p>{zoekverantwoording(overzicht)}</p>
         {!overzicht.volledig && <p>Dit overzicht raakte zijn bovengrens; er kan meer over het onderwerp zijn.</p>}

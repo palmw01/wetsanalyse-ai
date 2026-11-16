@@ -137,7 +137,7 @@ def _citaat(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace
                           "die de uitleg draagt")
         else:
             aangewezen = " … ".join(_kort(x) for x in (van, tot) if x)
-            fouten.append(f"„{aangewezen}” staat niet in {vindplaats_van(iri).label}. "
+            fouten.append(f"“{aangewezen}” staat niet in {vindplaats_van(iri).label}. "
                           + _waar_wel(van, tot, onder, rijen) + " Geef de eerste en de laatste woorden van een passage uit "
                           "één lid of onderdeel, letterlijk, en wijs de bepaling aan waar ze staan")
         return None
@@ -163,14 +163,14 @@ def _waar_wel(van: str, tot: str, onder: dict[str, tuple[str, dict[str, Any]]], 
     if van and any(staat(van, r["tekst"]) for _, r in eigen):
         plek = next(k for k, r in eigen if staat(van, r["tekst"]))
         if tot and staat(tot, rijen[plek]["tekst"]):
-            return (f"„{_kort(van)}” en „{_kort(tot)}” staan allebei in {vindplaats_van(plek).label}, maar „{_kort(tot)}” "
-                    "niet ná „" + _kort(van) + "”: draai ze om of kies het einde uit dezelfde zin.")
-        return (f"„{_kort(van)}” staat in {vindplaats_van(plek).label}, „{_kort(tot)}” daar niet: kies het einde uit "
+            return (f"“{_kort(van)}” en “{_kort(tot)}” staan allebei in {vindplaats_van(plek).label}, maar “{_kort(tot)}” "
+                    "niet ná “" + _kort(van) + "”: draai ze om of kies het einde uit dezelfde zin.")
+        return (f"“{_kort(van)}” staat in {vindplaats_van(plek).label}, “{_kort(tot)}” daar niet: kies het einde uit "
                 "hetzelfde lid of onderdeel.")
     elders = [k for k, r in rijen.items() if k not in onder and van and staat(van, r.get("tekst", ""))]
     if len(elders) == 1:
-        return f"„{_kort(van)}” staat wel in {vindplaats_van(elders[0]).label} ({elders[0]}): wijs die bepaling aan."
-    begin = [f"{vindplaats_van(k).label}: „{_kort(_normaliseer(r['tekst']))}”" for k, r in eigen[:3]]
+        return f"“{_kort(van)}” staat wel in {vindplaats_van(elders[0]).label} ({elders[0]}): wijs die bepaling aan."
+    begin = [f"{vindplaats_van(k).label}: “{_kort(_normaliseer(r['tekst']))}”" for k, r in eigen[:3]]
     return ("Zo begint de tekst die je aanwees: " + "; ".join(begin) + ".") if begin else ""
 
 
@@ -382,14 +382,14 @@ def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace:
                       "vermelding weg.")
     for vermelding, plek in gelezen:
         zinnen.append(f"Je noemt {vermelding} zonder passage, terwijl de tekst al is opgehaald. Wijs er een passage uit aan"
-                      + (f" in 'onderbouwing', bijvoorbeeld: bepaling {plek[0]}, van „{plek[1]}”, tot „{plek[2]}”" if plek
+                      + (f" in 'onderbouwing', bijvoorbeeld: bepaling {plek[0]}, van “{plek[1]}”, tot “{plek[2]}”" if plek
                          else "") + ". Of laat de vermelding weg.")
     if ophalen:
         zinnen.append(f"Je noemt {', '.join(o['vermelding'] for o in ophalen)} zonder passage. Wat je noemt, moet gelezen zijn: "
                       "de tekst staat hieronder. Wijs er een passage uit aan met `bepaling`, `van` en `tot`, of laat de "
                       "vermelding weg als het artikel er na lezing niet toe doet.")
     for vermelding, waar in in_tekst:
-        plekken = "; of ".join(f"bepaling {iri}, van „{van}”, tot „{tot}”" for iri, van, tot in waar)
+        plekken = "; of ".join(f"bepaling {iri}, van “{van}”, tot “{tot}”" for iri, van, tot in waar)
         zinnen.append(f"Je noemt {vermelding} zonder passage. Het staat in de tekst die je al ophaalde. Neem deze passage "
                       f"op in 'onderbouwing': {plekken}. Of laat de vermelding weg. Ophalen hoeft niet.")
     if onbekend:

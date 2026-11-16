@@ -321,7 +321,7 @@ def test_de_lijst_onder_het_antwoord_draagt_zoekvraag_totaal_en_links():
     trace = [("zoek_artikelen", json.dumps(woorden))]
     blok = lijsten([r["id"] for r in woorden["resultaten"]], trace)[0]
     assert blok.totaal == 7
-    assert blok.zoekvraag.startswith("Gezocht op „kostendelende medebewoner” in de tekst. In Participatiewet")
+    assert blok.zoekvraag.startswith("Gezocht op “kostendelende medebewoner” in de tekst. In Participatiewet")
 
     alles = _roep("zoek_artikelen", {"bwb_id": PW})
     blok = lijsten([r["id"] for r in alles["resultaten"][:3]], [("zoek_artikelen", json.dumps(alles))])[0]
@@ -332,7 +332,7 @@ def test_de_lijst_onder_het_antwoord_draagt_zoekvraag_totaal_en_links():
     assert regelingen["zoekvraag"] == {"naam": "Participatiewet", "peildatum": "2015-01-15", "volgorde": "relevantie"}
     assert regelingen["resultaten"][0]["link"].startswith(f"https://wetten.overheid.nl/{PW}/")
     blok = lijsten([regelingen["resultaten"][0]["id"]], [("zoek_regelingen", json.dumps(regelingen))])[0]
-    assert "„Participatiewet” in de titel" in blok.zoekvraag and "peildatum 15 januari 2015" in blok.zoekvraag
+    assert "“Participatiewet” in de titel" in blok.zoekvraag and "peildatum 15 januari 2015" in blok.zoekvraag
     assert "vanaf" not in blok.zoekvraag
 
 

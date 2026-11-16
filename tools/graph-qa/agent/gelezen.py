@@ -112,7 +112,7 @@ def volledig_geclaimd(tekst: str, trace: Iterable[Any]) -> list[str]:
     deels = deels_gelezen(trace)
     if not deels:
         return []
-    return [f"„{m.group(0).strip()}”, maar {len(deels)} {'stuk is' if len(deels) == 1 else 'stukken zijn'} maar deels "
+    return [f"“{m.group(0).strip()}”, maar {len(deels)} {'stuk is' if len(deels) == 1 else 'stukken zijn'} maar deels "
             f"gelezen ({', '.join(sorted(deels)[:5])})"]
 
 

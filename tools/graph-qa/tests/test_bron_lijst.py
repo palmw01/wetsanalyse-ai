@@ -132,7 +132,7 @@ def test_niets_gevonden_is_een_leemte(monkeypatch):
     tekst = "".join(e.get("content", "") for e in events if e["type"] == "token")
     assert tekst.startswith("Bij deze zoekvraag vond ik geen kamerstukken.")
     assert tekst.endswith("Dat ik niets vond, betekent niet dat het niet bestaat.")
-    assert "soort stuk „motie”" in tekst and "van de Eerste Kamer" in tekst and "Kamer Eerste" not in tekst
+    assert "soort stuk “motie”" in tekst and "van de Eerste Kamer" in tekst and "Kamer Eerste" not in tekst
     # Bij niets gevonden zegt een volgorde niets (meting Staatsblad B14: "Meest relevante eerst." onder 0 treffers).
     assert "eerst." not in tekst
 
@@ -217,7 +217,7 @@ def test_een_woordgroep_zonder_treffer_zoekt_de_losse_woorden(monkeypatch):
     assert len(bron.vragen) == 2 and " adj " in bron.vragen[0] and " adj " not in bron.vragen[1]
     blok, = [b for e in events if e["type"] == "antwoord" for b in e["antwoord"]["blokken"]]
     assert blok["soort"] == "stukken" and len(blok["items"]) == 3
-    assert "Als woordgroep staat „aansprakelijkheid bestuurders” in geen stuk" in blok["zoekvraag"], blok["zoekvraag"]
+    assert "Als woordgroep staat “aansprakelijkheid bestuurders” in geen stuk" in blok["zoekvraag"], blok["zoekvraag"]
 
 
 def test_een_fout_in_de_vraag_gaat_naar_de_agent_met_het_resultaat(monkeypatch):

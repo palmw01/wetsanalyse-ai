@@ -46,7 +46,7 @@ def test_een_beurt_van_de_centrale_agent_begint_met_een_regel_zonder_bronnenlijs
     events = asyncio.run(beurt())
     vooraf = _voor_de_eerste_tool(events)
     # De eerste regel, en daarna alleen de stap van de tool zelf.
-    assert vooraf == [f"Lex · {supervisie.NAAR_CENTRAAL}", "Lex · zoekt de definitie van „belastingschuldige”"], vooraf
+    assert vooraf == [f"Lex · {supervisie.NAAR_CENTRAAL}", "Lex · zoekt de definitie van “belastingschuldige”"], vooraf
     assert not any("zoekt in" in m or "zoekt het antwoord in" in m for m in _statussen(events))
     assert not any(label in vooraf[0] for label in ("Kamerstukken", "Rechtspraak", "Staatsblad")), "geen bronnenlijst"
 

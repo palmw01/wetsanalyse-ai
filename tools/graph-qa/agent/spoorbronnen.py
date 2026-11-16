@@ -154,7 +154,7 @@ def _afgeleid(inp: dict[str, Any]) -> dict[str, str]:
     nummer = str(inp.get("artikel") or inp.get("nummer") or "").strip()
     bepaling = " ".join(x for x in (f"artikel {nummer}" if nummer else "", f"lid {inp['lid']}" if inp.get("lid") else "") if x)
     bepaling = (bepaling.replace(" lid", ", lid") + (f" ({regeling})" if regeling else "")) if bepaling else (regeling or "de bepaling")
-    zoekterm = next((f"„{truncate(str(inp[k]).strip(), 60)}”" for k in ("query", "term", "zoekterm", "onderwerp")
+    zoekterm = next((f"“{truncate(str(inp[k]).strip(), 60)}”" for k in ("query", "term", "zoekterm", "onderwerp")
                      if str(inp.get(k, "")).strip()), "")
     klassen = inp.get("jas_klassen")
     klasse = str(inp.get("klasse") or (", ".join(map(str, klassen)) if isinstance(klassen, list) else "")).strip()
@@ -238,7 +238,7 @@ def stuk_van(tool: str, invoer: dict[str, Any]) -> str:
 
 
 def zoekt_binnen(tool: str, invoer: dict[str, Any]) -> bool:
-    """Zoekt deze aanroep van een leestool binnen één stuk ("zoekt in Kamerstuk kst-34002-3 naar „rente”")? Dat zegt het
+    """Zoekt deze aanroep van een leestool binnen één stuk ("zoekt in Kamerstuk kst-34002-3 naar “rente”")? Dat zegt het
     werkwoord dat de bron voor deze argumenten declareert; dan telt het aantal rijen als treffers, net als bij een zoektool
     (E2E Rekeningafspraken 16 nov 2026, D-2: van twee zoekacties in één stuk stond alleen de ene met een uitkomst er)."""
     bron = bron_van(tool)

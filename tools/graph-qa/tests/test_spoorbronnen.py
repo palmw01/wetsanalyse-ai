@@ -73,14 +73,14 @@ def test_een_nieuwe_connector_komt_er_zonder_code_bij(monkeypatch):
         signalen=(r"\btestgerecht\b",), tools=frozenset({"zoek_testbron", "lees_testbron"}), leestool="lees_testbron",
         lees_argument="ecli", id_prefixen=("ECLI:",), rol_in_antwoord="een test",
         kop_in_antwoord="Uit de test", levert=("uitspraken",), niet_in_tekst=(), grenzen="alleen een test",
-        werkwoorden={"zoek_testbron": ("zoekt uitspraken over „{zoekterm}”", "zoekt uitspraken"),
+        werkwoorden={"zoek_testbron": ("zoekt uitspraken over “{zoekterm}”", "zoekt uitspraken"),
                      "lees_testbron": ("leest uitspraak {ecli}", "leest een uitspraak")},
         beheer="Een nep-connector.", voorbeeldvragen=("Wat zei het testgerecht?",))
     monkeypatch.setitem(bm.CONNECTORS, nep.naam, nep)
 
     bron = sb.bron_van("zoek_testbron")
     assert bron is not None and bron.label == "Testbron" and sb.bron_van("lees_testbron") == bron
-    assert sb.toolregel({"name": "zoek_testbron", "input": {"zoekterm": "rente"}}) == "zoekt uitspraken over „rente”"
+    assert sb.toolregel({"name": "zoek_testbron", "input": {"zoekterm": "rente"}}) == "zoekt uitspraken over “rente”"
     assert sb.uitkomstregel("zoek_testbron", {}, {"status": "ok", "aantal": 3}) == "3 gevonden"
     assert sb.uitkomstregel("lees_testbron", {"ecli": "ECLI:NL:HR:1"}, {"status": "ok", "aantal": 9, "has_more": True}) \
         == "ECLI:NL:HR:1 deels gelezen, er is meer dan dit"

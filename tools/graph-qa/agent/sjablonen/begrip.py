@@ -138,15 +138,15 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
         return _alleen_vastgelegd(invoer, trace)
     gezocht = _gezocht(begrip, trace)
     if not gezocht:
-        raise Onvulbaar(f"Zoek eerst de wettelijke definitie van „{begrip}” met zoek_definitie. Gaat de vraag alleen over wat "
+        raise Onvulbaar(f"Zoek eerst de wettelijke definitie van “{begrip}” met zoek_definitie. Gaat de vraag alleen over wat "
                         "juristen vastlegden, laat begrip dan leeg.")
     definities = _definities(begrip, trace)
     onvolledig = gezocht[-1].get("volledig") is False
     if onvolledig and not definities:
-        raise Onvulbaar(f"Er zijn nog meer treffers voor „{begrip}”, dus de definitie kan er nog tussen zitten. Volg `vervolg` in het toolresultaat.")
+        raise Onvulbaar(f"Er zijn nog meer treffers voor “{begrip}”, dus de definitie kan er nog tussen zitten. Volg `vervolg` in het toolresultaat.")
     plek = "in de graaf" if any(not d.get("bwb_id") for d in gezocht) else "in de gezochte regeling"
     blokken: list[Any] = [Definities(items=definities) if definities
-                          else Leemte(tekst=f"Geen wettelijke definitie {plek} bij de term „{begrip}”.")]
+                          else Leemte(tekst=f"Geen wettelijke definitie {plek} bij de term “{begrip}”.")]
     if onvolledig:
         blokken.append(Leemte(tekst="Er kunnen meer wettelijke definities zijn: de zoekuitkomst is onvolledig."))
     if vastgelegd := _vastgelegd(begrip, trace):
