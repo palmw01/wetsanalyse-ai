@@ -305,7 +305,7 @@ def werkgebied_intake_node(b, state: State) -> dict[str, Any]:
         uitkomst = "begin"
     elif not actie and (wi.is_werkgebiedvraag(vraag) or not wi.is_open(intake)):
         intake = wi.nieuwe_intake(vraag)
-        _stap(writer, "Lex", "begint met het samenstellen van een werkgebied")
+        # Geen eigen regel: de route zei al "stelt met je een werkgebied samen" (E2E 16 nov 2026, D-11).
         if wi.is_wetsanalysevraag(vraag):
             zinnen.append(wi.UITLEG)
         uitkomst = "verder"

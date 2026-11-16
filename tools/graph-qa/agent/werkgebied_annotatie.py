@@ -28,6 +28,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
 
 from .agents import Context, Uitkomst, geweigerd
+from .narratie import _stap, denk_bij
 from .reeks import beurt_fabriek, reeks_stroom
 from .verbruik import budget_poort
 from .wetsanalyse_api import GesprekVerdwenen, WetsanalyseApi, WetsanalyseApiFout
@@ -171,6 +172,18 @@ def samenvatting(naam: str, uitkomsten: dict[str, str], eind: dict[str, Any], re
     return tekst
 
 
+#: De uitkomst van een onderdeel (`reeks.reeks_stroom`) in de slotregel.
+_UITKOMST = (("klaar", "geannoteerd"), ("hergebruik", "hergebruikt"), ("fout", "mislukt"), ("gestopt", "gestopt"))
+
+
+def slotregel(uitkomsten: dict[str, str], eind: dict[str, Any]) -> str:
+    """"10 geannoteerd, 2 hergebruikt, 1 niet aan bod gekomen": de telling uit de onderdelen, voor het denkproces."""
+    delen = [f"{n} {woord}" for code, woord in _UITKOMST if (n := sum(1 for u in uitkomsten.values() if u == code))]
+    if n := len(eind.get("overgeslagen") or []):
+        delen.append(f"{n} niet aan bod gekomen")
+    return ", ".join(delen) or "niets geannoteerd"
+
+
 async def zonder_api() -> AsyncIterator[dict[str, Any]]:
     """Zonder koppeling met de api is er geen werkgebied en niets om naar terug te schrijven."""
     yield {"type": "error", "message": "Zonder koppeling met de wetsanalyse-api kan Lex het werkgebied niet annoteren.",
@@ -278,9 +291,19 @@ async def werkgebied_annotatie_beurt(
     eigen_api = api is None
     api = api or WetsanalyseApi(settings, user_id)
 
+    # Het denkproces van deze beurt: alleen haar eigen regels, niet die van de onderdelen (die staan op hun eigen bericht).
+    # Het aanbod en de slotsamenvatting hadden er geen (E2E Rekeningafspraken 16 nov 2026, D-13).
+    denk = [""]
+
+    def stap(actor: str, bericht: str) -> dict[str, Any]:
+        regel: list[dict[str, Any]] = []
+        _stap(regel.append, actor, bericht)
+        denk[0] = denk_bij(denk[0], regel[0])
+        return regel[0]
+
     async def leg_vast(tekst: str, bevestiging: dict[str, Any] | None = None) -> AsyncIterator[dict[str, Any]]:
         yield {"type": "token", "content": tekst}
-        bericht = {"rol": "assistant", "tekst": tekst, "run_id": run_id,
+        bericht = {"rol": "assistant", "tekst": tekst, "run_id": run_id, **({"denk": denk[0]} if denk[0] else {}),
                    **({"bevestiging": bevestiging} if bevestiging else {})}
         try:
             await api.voeg_bericht_toe(request.conversation_id or "", bericht)
@@ -291,7 +314,7 @@ async def werkgebied_annotatie_beurt(
         yield {"type": "done"}
 
     try:
-        yield {"type": "status", "message": "Lex · Werkvoorraad van het werkgebied bepalen"}
+        yield stap("Lex", "bepaalt de werkvoorraad van het werkgebied")
         try:
             wv = await _haal(api, werkgebied_id, bereik, deelvraag_id)
         except WetsanalyseApiFout as fout:
@@ -310,10 +333,14 @@ async def werkgebied_annotatie_beurt(
             if bevestigd is not None and bevestigd != len(te):
                 tekst = (f"De werkvoorraad veranderde: nu {len(te)} {_bepalingen(len(te))} in plaats van "
                          f"{bevestigd}. Ik ben niet begonnen. " + tekst)
+            yield stap("Lex", f"legt {len(te)} {_bepalingen(len(te))} voor om te annoteren, ter bevestiging" if te
+                       else "vindt niets meer om te annoteren")
             async for ev in leg_vast(tekst, bevestiging):
                 yield ev
             return
 
+        yield stap("Lex", f"annoteert {len(doelen_aantal := te[:PLAFOND])} {_bepalingen(len(doelen_aantal))}, elk in een "
+                          "eigen bericht")
         per_iri = {e["bron_iri"]: e for e in wv.get("eenheden") or []}
         doelen = [{"bron_iri": i, "label": ", ".join(x for x in (per_iri.get(i, {}).get("regeling"),
                                                                   per_iri.get(i, {}).get("label")) if x) or i}
@@ -350,6 +377,7 @@ async def werkgebied_annotatie_beurt(
             elif ev["type"] == "reeks" and ev.get("fase") == "eind":
                 eind = ev
             yield ev
+        yield stap("Klaar", slotregel(uitkomsten, eind))
         async for ev in leg_vast(samenvatting(naam, uitkomsten, eind, max(0, len(te) - PLAFOND), wv)):
             yield ev
     except WetsanalyseApiFout as fout:

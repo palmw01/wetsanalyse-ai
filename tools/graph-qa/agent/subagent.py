@@ -662,6 +662,10 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
                **({"model": gedraaid[-1], "modellen": gedraaid} if gedraaid else {}),
                # Wat het rapport zei (status, gedaan, bevindingen, open, en de ids waaruit het citeert), om na te lopen.
                **({"rapport": inhoud} if (inhoud := rapport_inhoud(kind_resultaat)) else {})})
+        # Wat het kind deed en opleverde, in het denkproces van de beurt die het startte (E2E 16 nov 2026, D-2).
+        from .narratie import _stap, kindregel
+
+        _stap(stuur, f"Subagent ({profiel})", kindregel(afloop.uitkomst, kind_resultaat), route="subagent")
 
 
 def kindmodel(settings: Any, profiel: str) -> str:
@@ -723,7 +727,13 @@ def gelezen_tekst(kind: dict[str, Any]) -> str:
     met een kop die zegt wat ze zijn (meting bundel 115, D01: "de 16 uitspraken die de subagent las", 7 alleen gevonden)."""
     from .gelezen import gelezen_en_gevonden
 
+    from .gelezen import deels_gelezen
+
     gelezen, gevonden = gelezen_en_gevonden(kind.get("source_trace") or [])
+    # Een stuk dat maar deels gelezen is, heet zo: anders schreef de centrale agent "las ze volledig door" (E2E 16 nov 2026,
+    # D-4).
+    deels = deels_gelezen(kind.get("source_trace") or [])
+    gelezen = [(i, f"{lab} (deels gelezen)" if i in deels else lab) for i, lab in gelezen]
     return (_lijst(f"Gelezen ({len(gelezen)}; de tekst staat in je trace, je kunt eruit citeren):", gelezen, MAX_GELEZEN)
             + _lijst(f"Alleen in zoekresultaten gezien, niet gelezen ({len(gevonden)}; noem ze niet als gelezen):",
                      gevonden, MAX_GEVONDEN))

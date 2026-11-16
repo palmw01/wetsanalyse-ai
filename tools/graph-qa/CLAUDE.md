@@ -921,6 +921,21 @@ bruikbaar is.
   resultaatregel (`uitkomstregel`). Een nieuwe connector staat er zonder code in; een nieuwe graaftool krijgt hier een
   werkwoord en een zoek/lees-indeling, een nieuwe `reden` een zin in `REDEN_ZIN` – `tests/test_spoorbronnen.py` eist alle
   drie.
+- **Het denkproces weerspiegelt de beurt één op één** (E2E Rekeningafspraken 16 nov 2026, D-1 t/m D-15;
+  `tests/test_denkproces_volledig.py`). Elke aanroep die draaide heeft één resultaatregel met de bron als actor:
+  `uitkomstregel` is nooit leeg ("kst-33755-3 gelezen", "kst-34002-G: niets gevonden" bij zoeken binnen één stuk,
+  `zoekt_binnen`). Een filter dat het werkwoord niet noemt, komt erachter met zijn label uit de beschrijving
+  (`_filters_erbij`). Een aanroep die `tools_node` weigert, staat erin als "… – niet uitgevoerd: <reden>"
+  (`weigerregel`), een geweigerd sjabloon ook, en de controle na de correctieronde zegt of die iets herstelde
+  (`antwoord.na_correctie`). Een subagent meldt in het denkproces van de ouder wat hij deed en opleverde
+  (`narratie.kindregel`: uitkomst, aanroepen, gelezen en hoeveel deels, alleen gevonden, punten van de controle); een
+  stuk dat maar deels gelezen is, heet in het rapport uit code zo (`gelezen.deels_gelezen`), en "volledig gelezen" over
+  zo'n stuk is een bewering (`gelezen.volledig_geclaimd`). Een route zegt één keer wat er gebeurt (de worker herhaalt
+  het niet), de bronnenregel staat er alleen als de bronkeuze verandert, en een bericht van code zonder model draagt
+  ook een denkproces (`werkgebied_annotatie`). **Geen lege plekken**: `narratie._stap` toetst elke regel
+  (`lege_plekken`: "(art. )", "None", "{veld}", een dubbele spatie, een regel die op een scheiding eindigt). In de
+  dienst haalt hij het gat weg en logt hij `denkproces: lege plek`; in de suite is het een fout (`tests/conftest.py`,
+  `narratie.STRIKT`), dus elke test die een regel laat maken, toetst de vorm.
 
 **Lees dit vóór je een graaftool toevoegt of wijzigt.** De faalmodus die deze regels bestrijden is
 telkens **stille onvolledigheid**: geen fout, geen leeg resultaat, gewoon een antwoord dat minder weet

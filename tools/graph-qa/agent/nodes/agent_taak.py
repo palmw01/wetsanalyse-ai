@@ -48,6 +48,24 @@ async def _voer_uit(b: Bouw, state: State, agent: str, invoer: Any, stuur) -> Ui
             return fout(str(getattr(invoer, "taak", "")), STORING)
 
 
+def klaarregel(uitkomst: Uitkomst) -> str:
+    """"gedaan: brondefinitie zoeken en scherpere definitie, 2 voorstellen": wat de taak deed en opleverde, uit de
+    uitkomst. Eerst stond er bij elke taak "Klaar · gedaan", ook als een stap niets opleverde (E2E 16 nov 2026, D-10)."""
+    from ..begrip_kaart import NAAM
+
+    tekst = {"ok": "gedaan", "bevestiging": "wacht op je bevestiging", "geweigerd": "niet gestart",
+             "fout": "mislukt"}[uitkomst.status]
+    if uitkomst.status != "ok":
+        return tekst
+    stappen = [NAAM.get(str(s.get("taak")), str(s.get("taak") or "")).lower().replace("_", " ")
+               for s in uitkomst.meting.get("stappen") or [] if s.get("taak")]
+    delen = [(", ".join(stappen[:-1]) + " en " + stappen[-1]) if len(stappen) > 1 else stappen[0]] if stappen else []
+    n = len(uitkomst.voorstellen)
+    if n or stappen:
+        delen.append(f"{n} {'voorstel' if n == 1 else 'voorstellen'}" if n else "geen voorstel")
+    return f"{tekst}: {', '.join(delen)}" if delen else tekst
+
+
 def agent_taak_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     opdracht = state.get("agent_taak") or {}
@@ -73,7 +91,6 @@ def agent_taak_node(b: Bouw, state: State) -> dict[str, Any]:
         writer({"type": "bevestiging", "bevestiging": uitkomst.bevestiging})
     if uitkomst.vraagkaart:
         writer({"type": "vraagkaart", "vraagkaart": uitkomst.vraagkaart})
-    _stap(writer, "Klaar", {"ok": "gedaan", "bevestiging": "wacht op je bevestiging",
-                            "geweigerd": "niet gestart", "fout": "mislukt"}[uitkomst.status])
+    _stap(writer, "Klaar", klaarregel(uitkomst))
     return {"answer": tekst, "messages": [{"role": "assistant", "content": tekst}],
             "agent_uitkomst": uitkomst.model_dump()}

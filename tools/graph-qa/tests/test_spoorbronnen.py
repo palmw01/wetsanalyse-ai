@@ -93,18 +93,21 @@ def test_een_nieuwe_connector_komt_er_zonder_code_bij(monkeypatch):
     ("search_wetgeving", {}, {"status": "ok", "aantal": 20, "has_more": True}, {}, "20 gevonden, er is meer dan dit"),
     ("get_kamerstuk", {"id": "kst-33755-3"}, {"status": "ok", "aantal": 7, "has_more": True}, {},
      "kst-33755-3 deels gelezen, er is meer dan dit"),
-    ("get_artikel", {"artikel": "29"}, {"status": "ok", "aantal": 0, "has_more": False}, {}, ""),
+    # Elke aanroep die draaide heeft een uitkomst, ook een gelezen stuk zonder bijzonderheden (E2E 16 nov 2026, D-2/D-3).
+    ("get_artikel", {"artikel": "29"}, {"status": "ok", "aantal": 0, "has_more": False}, {}, "artikel 29 gelezen"),
     ("get_lid", {}, {"status": "ok", "aantal": 3, "has_more": True}, {}, "deels gelezen, er is meer dan dit"),
     ("zoek_kamerstukken", {}, {"status": "error", "foutcode": "bron_onbereikbaar"}, {}, "niet bereikbaar"),
     ("get_lid", {}, {"status": "unavailable", "foutcode": "tool_mislukt"}, {}, "mislukt"),
     ("get_lid", {}, {"status": "error", "foutcode": "iets_onbekends"}, {}, "gaf een fout"),
-    ("get_annotatiedekking", {}, {"status": "ok"}, {"peilmoment": "2026-11-09T19:31:08Z"}, ""),
+    ("get_annotatiedekking", {}, {"status": "ok"}, {"peilmoment": "2026-11-09T19:31:08Z"}, "gelezen"),
     ("get_uitspraak", {"id": "ECLI:NL:GHARL:2023:5000"}, {"status": "ok", "aantal": 0},
      {"stuk": {"leesbaar": False}}, "ECLI:NL:GHARL:2023:5000 heeft geen tekst om te lezen"),
     ("get_kamerstuk", {"id": "kst-30322-3", "inhoud": True}, {"status": "ok", "aantal": 0},
      {"stuk": {"id": "kst-30322-3"}, "zonder_koppen": True, "alineas": 210}, "kst-30322-3 heeft geen koppen, 210 alinea’s"),
     ("get_bekendmaking", {"id": "stb-2009-610", "artikel": "99"}, {"status": "ok", "aantal": 0},
-     {"stuk": {"id": "stb-2009-610"}}, ""),
+     {"stuk": {"id": "stb-2009-610"}}, "stb-2009-610: niets bij deze afbakening"),
+    ("get_kamerstuk", {"id": "kst-34002-3", "woorden": "rente"}, {"status": "ok", "aantal": 6}, {}, "kst-34002-3: 6 gevonden"),
+    ("get_uitspraak", {"id": "ECLI:NL:HR:2020:1"}, {"status": "ok", "aantal": 4}, {}, "ECLI:NL:HR:2020:1 gelezen"),
 ])
 def test_wat_de_bron_opleverde(tool, invoer, eind, data, regel):
     assert sb.uitkomstregel(tool, invoer, eind, data) == regel
@@ -143,11 +146,13 @@ def test_execute_tool_meldt_de_uitkomst_met_de_bron_als_actor():
     assert status == [{"type": "status", "message": "Kamerstukken · 2 gevonden", "bron": "kamerstukken"}]
 
 
-def test_een_lees_zonder_iets_te_melden_geeft_geen_regel():
+def test_ook_een_lezing_zonder_bijzonderheden_heeft_een_regel():
+    """Eerst zweeg het denkproces bij een gelezen stuk zonder iets bijzonders, en wie meelas zag niet welke stukken
+    gelezen waren (E2E 16 nov 2026, D-3): elke aanroep heeft nu een uitkomst."""
     events: list[dict] = []
     execute_tool(_Bouw(), {"run_id": "r"}, events.append, {"id": "c2", "name": "get_lid", "input": {}},
                  operation=lambda: {"status": "ok", "volledig": True, "aantal": 0, "resultaten": []})
-    assert not [e for e in events if e.get("type") == "status"]
+    assert [e["message"] for e in events if e.get("type") == "status"] == ["Wetgeving · gelezen"]
 
 
 def test_geen_toolnaam_json_of_code_in_een_regel():
@@ -211,7 +216,7 @@ def test_een_doorgelezen_stuk_geeft_een_spoorregel(tool, arg, ident):
 
     label = sb.bron_van(tool).label
     assert spoor(100) == [f"{label} · {ident} gelezen, 4 pagina’s"]
-    assert spoor(20) == [], "één pagina, helemaal gelezen: niets te melden, zoals eerst"
+    assert spoor(20) == [f"{label} · {ident} gelezen"], "één pagina, helemaal gelezen: één regel, zoals elke aanroep"
     lang = bl.MAX_RIJEN_KORT + 10
     if tool in bl.HEEL_LEZEN:  # een artikel leest de code altijd helemaal
         assert spoor(lang) == [f"{label} · {ident} gelezen, {-(-lang // 30)} pagina’s"]
