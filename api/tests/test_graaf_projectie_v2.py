@@ -46,9 +46,73 @@ def test_old_graph_revision_is_not_searchable():
     assert not list(ds.query(zoek_query({"tekst": "betaling"})))
 
 
-@pytest.mark.parametrize("tekst", ['" } UNION { ?s ?p ?o } #', "\\n", "betaling", "'SERVICE'"])
-def test_text_cannot_change_query_structure(tekst):
-    parseQuery(zoek_query({"tekst": tekst}))
+KWAAD = ['" } UNION { ?s ?p ?o } #', '") } UNION { ?s ?p ?o } #', "> } SERVICE <https://example.org> { ?s ?p ?o } #",
+         "\\n", "\n} ; DELETE WHERE { ?s ?p ?o } #", "'SERVICE'", '\\" ) } #']
+
+
+def _vorm(query: str):
+    """De structuur van een query: de geparste algebra met elke literal en elke code-IRI vervangen door een plaatshouder.
+    Een injectie die slaagt, verandert die structuur (een UNION, een SERVICE, een extra patroon); een waarde die als
+    gegeven binnenkomt, verandert alleen een literal. Alleen parsen (zoals deze tests eerst deden) ziet dat niet: een
+    geslaagde injectie parseert ook (testplan api V5)."""
+    from rdflib.plugins.sparql import prepareQuery
+    from rdflib.plugins.sparql.parserutils import CompValue
+
+    def plat(x):
+        if isinstance(x, Literal):
+            return "LITERAL"
+        if isinstance(x, URIRef) and str(x).startswith("urn:jas-ns:besluit:"):
+            return "CODE"
+        if isinstance(x, CompValue):
+            return (x.name, tuple((k, plat(v)) for k, v in x.items() if not k.startswith("_")))
+        if isinstance(x, dict):
+            return tuple((k, plat(v)) for k, v in x.items() if not str(k).startswith("_"))
+        if isinstance(x, (list, tuple)):
+            return tuple(plat(v) for v in x)
+        if isinstance(x, (set, frozenset)):
+            return tuple(sorted(repr(plat(v)) for v in x))
+        return repr(x)
+    return plat(prepareQuery(query).algebra)
+
+
+#: Elk filter van `zoek_query` dat tekst van buiten aanneemt, met een onschuldige waarde in de vorm die het verwacht.
+VRIJE_VELDEN = {"tekst": "betaling", "query": "betaling", "jas_klassen": ["Voorwaarde"], "lifecycle": ["voorgesteld"],
+                "laagstatus": ["in_review"], "herkomst": ["agent"], "aandacht": ["geel"], "subtype": ["parameter"],
+                "beslist_door": ["model"]}
+
+
+def test_elk_filter_van_zoek_query_is_ingedeeld():
+    """Een nieuw filter in `zoek_query` moet hier een plek krijgen: als vrij veld (dan toetst de test hieronder het), of als
+    veld dat de code zelf valideert of alleen een vaste keuze is."""
+    import inspect
+    import re
+
+    from app import graaf_projectie_v2
+    bron = inspect.getsource(graaf_projectie_v2.zoek_query)
+    sleutels = set(re.findall(r'filters\.get\("(\w+)"', bron)) | set(re.findall(r'filters\["(\w+)"\]', bron))
+    sleutels |= {k for k in re.findall(r'\(\("(\w+)", "\w+"\)', bron)} | set(re.findall(r'\("(\w+)", "\w+"\)', bron))
+    gevalideerd_of_vast = {"scoped_nodes", "bron_iri", "scope", "bwb_id", "met_twijfel", "inclusief_verouderd",
+                           "tekstveld", "match"}
+    assert sleutels, "de zoektocht vindt niets: dan toetst deze test niets"
+    assert sleutels - gevalideerd_of_vast - set(VRIJE_VELDEN) == set(), "een filter zonder injectietoets"
+
+
+@pytest.mark.parametrize("veld", sorted(VRIJE_VELDEN))
+@pytest.mark.parametrize("kwaad", KWAAD)
+def test_tekst_van_buiten_verandert_de_query_niet(veld, kwaad):
+    onschuldig = VRIJE_VELDEN[veld]
+    kwaadaardig = [kwaad] if isinstance(onschuldig, list) else kwaad
+    assert _vorm(zoek_query({veld: kwaadaardig})) == _vorm(zoek_query({veld: onschuldig}))
+
+
+def test_de_vormtoets_ziet_een_geslaagde_injectie():
+    """De positieve controle: een query met een extra UNION heeft een andere vorm, ook als hij geldig parseert."""
+    gewoon = zoek_query({"tekst": "betaling"})
+    geinjecteerd = gewoon.replace("OPTIONAL { ?e jas:klasseNaam ?klasse }",
+                                  "OPTIONAL { ?e jas:klasseNaam ?klasse } { ?s ?p ?o } UNION { ?s ?p ?o }", 1)
+    assert geinjecteerd != gewoon
+    parseQuery(geinjecteerd)
+    assert _vorm(geinjecteerd) != _vorm(gewoon)
 
 
 def test_source_iri_injection_rejected():
@@ -126,10 +190,6 @@ def test_een_verbijzonderende_tijdsaanduiding_reist_tot_in_de_graaf():
     assert Literal("verbijzondert parameter") in set(graph.objects(None, JAS.subtype))
     assert {str(r.id) for r in ds.query(zoek_query({"subtype": ["verbijzondert parameter"]}))} == {"duur"}
     assert not list(ds.query(zoek_query({"subtype": ["parameter"]})))
-
-
-def test_herkomstfilters_veranderen_de_querystructuur_niet():
-    parseQuery(zoek_query({"herkomst": ['agent") } UNION { ?s ?p ?o } #'], "beslist_door": ["model> } SERVICE <x"]}))
 
 
 def test_terugval_is_een_eigen_beslisser_in_de_graaf():
