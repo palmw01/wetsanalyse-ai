@@ -135,6 +135,10 @@ class Zoekprofiel:
     #:   als de kandidaat ook een eigen woord van de deelvraag raakt, en "Wat is …" (zoekvraag d) beloont alleen een
     #:   definitie of invulling (`zoekvragen.DEFINITIE_SIGNALEN`), niet elke subdivisie van een beleidsregel.
     vraagvorm_eigen_woord: bool = False
+    #: - `overzicht_streng` (stap 3, O5): de bronnenrun draait het overzicht niet als het werkgebied deelvragen heeft (die
+    #:   zijn het vertrekpunt), gebruikt zonder deelvragen de naam alleen als die meer dan één inhoudswoord heeft, en geeft
+    #:   wat het overzicht vindt de rol *aanverwant* in plaats van *kern* (`bronnen_vinden`).
+    overzicht_streng: bool = False
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.

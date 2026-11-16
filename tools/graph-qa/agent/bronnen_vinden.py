@@ -26,14 +26,15 @@ from __future__ import annotations
 import logging
 import re
 import time
+from contextvars import ContextVar
 from typing import Any, Callable
 
 from .graph import queries
 from .graph.queries import BEVAT, NS, PREFIXES, STRUCTUUR, _iri_veilig, _lit
 from .bepaling_namen import _benoem, bwb_van as _bwb, rijen as _rijen
-from .deelvraag_zoeken import bepaling_opties
+from .deelvraag_zoeken import STANDAARD_PROFIEL, Zoekprofiel, bepaling_opties
 from .ports import GraphPort
-from .zoektermen import buiten_uit_afbakening, uitsluitstammen
+from .zoektermen import buiten_uit_afbakening, uitsluitstammen, zoektermen
 
 logger = logging.getLogger(__name__)
 
@@ -49,11 +50,24 @@ STANDAARD = ("verwijzing_uit", "definitie", "opbouw")
 ZONDER_KERN = ("overzicht",)
 
 
+#: Het zoekprofiel van deze run (`vind(profiel=)`); de methoden lezen het met `_profiel()`. Zo meet de eval een vlag op
+#: een hele run, en draait de dienst het standaardprofiel.
+_PROFIEL: ContextVar[Zoekprofiel] = ContextVar("bronnen_zoekprofiel", default=STANDAARD_PROFIEL)
+
+
+def _profiel() -> Zoekprofiel:
+    return _PROFIEL.get()
+
+
 def standaard_voor(invoer: dict[str, Any]) -> tuple[str, ...]:
     """Met deelvragen (optioneel, ze staan alleen in de invoer als het werkgebied ze heeft) zoekt Lex
     ook per deelvraag: de analist vroeg er zelf om, en de dekkingscheck meet ertegen. Met een gekozen
     gebeurtenis (`dossier.gebeurtenis`) zoekt hij de grondslag erbij, om dezelfde reden: de analist koos haar."""
     basis = STANDAARD if invoer.get("kern") else ZONDER_KERN
+    if _profiel().overzicht_streng and invoer.get("deelvragen"):
+        # Met deelvragen zijn die het vertrekpunt: het overzicht op de naam of de analysevraag gaf alleen ruis zonder
+        # deelvraag (Termijnen, 16 nov 2026: 40 Awb-artikelen over beslistermijnen als kern).
+        basis = tuple(m for m in basis if m != "overzicht")
     if invoer.get("deelvragen"):
         basis += ("deelvraag",)
     if ((invoer.get("dossier") or {}).get("gebeurtenis") or "").strip():
@@ -224,7 +238,8 @@ def _overzicht(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     # Het onderwerp uit de analysevraag ("welke artikelen gaan over X?"); lukt dat niet ("Wanneer is een
     # aanslag invorderbaar?"), dan de naam van het werkgebied. De hele vraag als onderwerp leverde ruis
     # op (gemeten: `docs/architectuur/metingen/bronselectie-2026-10-15/`).
-    onderwerp = (onderwerp_uit(vraag) if vraag else "") or naam or vraag
+    naam_telt = not _profiel().overzicht_streng or len(zoektermen(naam)) > 1
+    onderwerp = (onderwerp_uit(vraag) if vraag else "") or (naam if naam_telt else "") or vraag
     vraag = vraag or naam
     if not onderwerp:
         return 0, True
@@ -238,7 +253,7 @@ def _overzicht(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
         for b in bepalingen:
             if n >= MAX_OVERZICHT:
                 return n, False
-            if v.voeg(b["iri"], rol="kern", methode="overzicht", label=b.get("label") or b.get("naam", ""),
+            if v.voeg(b["iri"], rol="aanverwant" if _profiel().overzicht_streng else "kern", methode="overzicht", label=b.get("label") or b.get("naam", ""),
                       detail={"onderwerp": ov.get("onderwerp_tekst") or onderwerp}):
                 n += 1
     return n, volledig
@@ -255,11 +270,10 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     zoeken op de woorden van de deelvraag (`bepaling_opties`) aan. Zonder gebeurtenis alleen dat laatste, zoals
     voorheen. Zonder gekozen regelingen zijn de regelingen van de gebeurtenis het bereik, niet de hele graaf."""
     from .deelvraag_zoeken import MAX_PER_DEELVRAAG
-    from .deelvraag_zoeken import STANDAARD_PROFIEL
     from .zoekvragen import PLAATSEN_WOORDEN, opties_bij_deelvraag, pool, samen_met_woorden
 
     rol = "kern"
-    profiel = STANDAARD_PROFIEL
+    profiel = _profiel()
     regelingen = regelingen_van_invoer(invoer)
     dossier = {"naam": invoer.get("naam", ""), "analysevraag": invoer.get("analysevraag", ""),
                **(invoer.get("dossier") or {}),
@@ -435,11 +449,22 @@ UITVOERING: dict[str, Callable[[GraphPort, dict[str, Any], Verzameling], tuple[i
 
 
 def vind(graph: GraphPort, invoer: dict[str, Any], methoden: tuple[str, ...] | None = None,
-         melding: Callable[[str, int, bool, int], None] | None = None) -> dict[str, Any]:
+         melding: Callable[[str, int, bool, int], None] | None = None,
+         profiel: Zoekprofiel | None = None) -> dict[str, Any]:
     """De methoden op de invoer van een bronnenrun (`api/app/bronnen_run_store.invoer_van`); zonder
-    `methoden` de standaard voor die invoer (`standaard_voor`).
+    `methoden` de standaard voor die invoer (`standaard_voor`). `profiel` is voor de meting; de dienst draait het
+    standaardprofiel.
 
     Een methode die faalt, laat de rest niet vallen: haar meting zegt `volledig: false`."""
+    teken = _PROFIEL.set(profiel or STANDAARD_PROFIEL)
+    try:
+        return _vind(graph, invoer, methoden, melding)
+    finally:
+        _PROFIEL.reset(teken)
+
+
+def _vind(graph: GraphPort, invoer: dict[str, Any], methoden: tuple[str, ...] | None,
+          melding: Callable[[str, int, bool, int], None] | None) -> dict[str, Any]:
     methoden = methoden or standaard_voor(invoer)
     selectie = [b["bron_iri"] for b in invoer.get("kern", []) + invoer.get("context", [])]
     v = Verzameling(selectie)

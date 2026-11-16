@@ -183,3 +183,36 @@ def test_de_definitieroute_telt_als_definitie():
     assert zv._past_vraagvorm(k, "d", ["teruggaaf"], True)
     assert not zv._past_vraagvorm(_kand("b", "d", "beleidsregel", ""), "d", ["teruggaaf"], True)
     assert zv._past_vraagvorm(_kand("b", "b", "procedure", ""), "b", ["teruggaaf"], True), "buiten d: eigen woord volstaat"
+
+
+# --- stap 3: het overzicht niet naast deelvragen en niet op een kale naam (O5) ----------------------------------------
+
+from agent import bronnen_vinden, overzicht  # noqa: E402
+from test_bronnen_vinden import ART8, INVOER, Graaf  # noqa: E402
+
+
+def test_met_de_vlag_draait_het_overzicht_niet_naast_deelvragen():
+    invoer = {**INVOER, "kern": [], "deelvragen": [{"id": "d1", "vraag": "Wanneer is een aanslag invorderbaar?"}]}
+    assert bronnen_vinden.standaard_voor(invoer) == ("overzicht", "deelvraag"), "zonder vlag ongewijzigd"
+    teken = bronnen_vinden._PROFIEL.set(_profiel(overzicht_streng=True))
+    try:
+        assert bronnen_vinden.standaard_voor(invoer) == ("deelvraag",)
+        assert bronnen_vinden.standaard_voor({**invoer, "deelvragen": []}) == ("overzicht",), "zonder deelvragen wel"
+    finally:
+        bronnen_vinden._PROFIEL.reset(teken)
+
+
+def test_met_de_vlag_geen_overzicht_op_een_naam_van_een_woord_en_de_rol_is_aanverwant(monkeypatch):
+    ov = {"volledig": True, "onderwerp_tekst": "x", "regelingen": [
+        {"delen": [{"bepalingen": [{"iri": ART8, "label": "Artikel 8", "naam": "art. 8"}]}], "ook_genoemd": []}]}
+    gevraagd = {}
+    monkeypatch.setattr(overzicht, "bouw_overzicht", lambda g, vraag, **kw: gevraagd.update(vraag=vraag, **kw) or ov)
+    streng = _profiel(overzicht_streng=True)
+    uit = bronnen_vinden.vind(Graaf(), {**INVOER, "naam": "Termijnen"}, methoden=("overzicht",), profiel=streng)
+    assert gevraagd["onderwerp"] == INVOER["analysevraag"], "één woord is geen onderwerp: de analysevraag"
+    assert uit["kandidaten"][0]["rol"] == "aanverwant"
+    bronnen_vinden.vind(Graaf(), {**INVOER, "naam": "Termijnen van betaling"}, methoden=("overzicht",), profiel=streng)
+    assert gevraagd["onderwerp"] == "Termijnen van betaling"
+    assert bronnen_vinden.vind(Graaf(), INVOER, methoden=("overzicht",))["kandidaten"][0]["rol"] == "kern", \
+        "zonder vlag ongewijzigd"
+    assert bronnen_vinden._profiel() is dz.STANDAARD_PROFIEL, "na de run staat het profiel terug"
