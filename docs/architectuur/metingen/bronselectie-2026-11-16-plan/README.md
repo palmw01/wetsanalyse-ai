@@ -176,3 +176,57 @@ zijn.
 **Nog te meten.** Het eigenlijke effect, *voorlopige teruggaaf* als brug bij "negatieve voorlopige aanslag", komt pas na
 een herimport met `BWB_DEFINITIE_AANDUIDING=true`. Dat is een wijziging van de graaf van acceptatie, en vraagt akkoord
 (stap 8).
+
+## Stap 7 – de vlaggen van PR E opnieuw (`verwijzingen`, `onderscheidend`)
+
+Recall nodig, eerst de standaard, dan met de vlag. Op de **woordenroute**:
+
+- `verwijzingen`: Termijnen 0,00 → 0,19; Rekeningafspraken 0,14 → 0,43; Bestuurdersaansprakelijkheid 0,22 → 0,28; Bezwaar
+  0,53 → 0,60; Invorderbaarheid en Kwijtschelding gelijk. Er komen 2 tot 12 opties bij, zodat de precisie bij Kwijtschelding
+  daalt (0,06 → 0,04).
+- `onderscheidend`: alleen Termijnen verandert (0,00 → 0,12), met een veel kleinere pool (1,00 → 0,22).
+
+Op de **zoekvragenroute** (wat de bronnenrun met een gekozen gebeurtenis doet) hebben beide vlaggen geen effect, ook niet
+samen met `woorden_voor_pool`. De verwezen bepalingen staan achteraan de opties van de woordenroute, en vallen buiten de
+acht plaatsen (`samen_met_woorden`).
+
+**Oordeel.** `verwijzingen` is de sterkste vlag op de woordenroute. Die route draait als een werkgebied geen gebeurtenis
+heeft: in de intake en de bronnenrun zonder gebeurtenis. Met een gebeurtenis bereikt de vlag de kandidaten niet. Een
+kandidaat voor stap 8 alleen voor de route zonder gebeurtenis. `onderscheidend` blijft uit.
+
+## Stap 8 – voorstel (nog niet uitgevoerd)
+
+**De combinatie die op geen ontwikkelset slechter is**: `termen_idf`, `verwijzingen`, `brug_omschrijving` en
+`overzicht_streng` (`stap8/combinatie.py`, aangevulde opnames). Recall nodig, eerst de standaard, dan met de combinatie:
+
+- Woordenroute (zonder gebeurtenis): Termijnen 0,00 → 0,13; Rekeningafspraken 0,14 → 0,43; Bestuurdersaansprakelijkheid
+  0,22 → 0,28; Bezwaar 0,53 → 0,60; Invorderbaarheid 0,36 → 0,36; Kwijtschelding 0,10 → 0,14. De precisie is gelijk of
+  beter.
+- Zoekvragenroute (met gebeurtenis): gelijk op alle zes; Termijnen precisie 0,08 → 0,04.
+- Op een hele run (stap 3): bij Termijnen 40 kandidaten minder zonder deelvraag, geen verwachte bepaling kwijt.
+
+**Wat dit betekent voor Termijnen.** Het werkgebied heeft een gebeurtenis, en daar verandert de combinatie de recall niet.
+Wel verdwijnt de ruis van het overzicht, en Lex zegt dat het winstaandeel in de Mijnbouwwet staat. De enige stap die de
+recall bij Termijnen op de zoekvragenroute verhoogde, `stam_heel` (0,06 → 0,19), kost op twee andere sets. Die gaat dus niet
+aan.
+
+**Niet aanzetten**: `beurt_sterk` (geen effect), `woorden_voor_pool`, `vraagvorm_eigen_woord` en `stam_heel` (slechter op een
+andere set). Voor de laatste twee staat in hun stap een variant die uit hetzelfde mechanisme volgt, maar nog niet gemeten is.
+
+**Voordat er iets aan gaat**:
+
+1. **De blinde set.** `verrekening-concept` is de held-out set van 4 nov 2026, opgesteld vóór deze code en nooit gedraaid. De
+   meting vraagt een opname: alleen lezen in de graaf, geen model. Daarnaast eventueel een tweede blinde set uit een ander
+   werkgebied, opgesteld door de agent-jurist op acceptatie. Dat vraagt een model.
+2. **Route 4 van de definities**: `BWB_DEFINITIE_AANDUIDING=true` op acceptatie, een herimport (`vul-graaf`), en dan
+   `definitie_brug` meten. Dat wijzigt de graaf van acceptatie.
+3. **Aanzetten** in één PR met de meting in dit logboek, en daarna, met akkoord, een nieuwe bronnenrun op Termijnen als
+   controle in de werkplek.
+
+**Bevindingen voor een volgend plan** (niet gebouwd):
+
+- de fusie telt het aantal geraakte deelvraagtermen niet apart, dus bij gelijke dekking wint een lange bepaling (stap 1b);
+- "negatieve" raakt "negatief" niet (wildcard en stemmer, stap 1b);
+- de begrippen in de divisies van een beleidsregel leest de parser niet (stap 6);
+- een gebeurtenis die bijna een hele wet omvat, laat de pool alles nemen (O1). Een melding bij het kaartje van de gebeurtenis
+  staat in het plan (stap 1), maar is niet gebouwd.

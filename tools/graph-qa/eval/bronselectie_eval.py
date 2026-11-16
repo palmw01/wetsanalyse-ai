@@ -351,7 +351,12 @@ ROUTES_PLAN = {**{f"met {v}": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PR
                "met het plan (alles)": _met_profiel(_PLAN_ALLES),
                **{f"zoekvragen met {v}": _zoekvragen_route(replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: True}))
                   for v in PLANVLAGGEN},
-               "zoekvragen met het plan (alles)": _zoekvragen_route(_PLAN_ALLES)}
+               "zoekvragen met het plan (alles)": _zoekvragen_route(_PLAN_ALLES),
+               # Stap 7: de vlaggen van PR E werken alleen in de woordenroute. Op de zoekvragenroute krijgt die pas een
+               # plaats met `woorden_voor_pool`, dus daar meten ze samen.
+               **{f"zoekvragen met woorden_voor_pool + {v}": _zoekvragen_route(
+                   replace(deelvraag_zoeken.STANDAARD_PROFIEL, woorden_voor_pool=True, **{v: True}))
+                  for v in ("verwijzingen", "onderscheidend")}}
 
 
 def _pool(graph: Any, s: dict[str, Any], vraag: str, profiel=deelvraag_zoeken.STANDAARD_PROFIEL) -> list[str]:
