@@ -38,8 +38,10 @@ export function deelIn(gesprekken: GesprekSamenvatting[]): GesprekIndeling {
     }
     groep.gesprekken.push(g);
   }
+  // Overal dezelfde regel: een deelgesprek staat onder zijn gesprek, ook bij de losse gesprekken en in het archief. Anders
+  // sprong een subagent die net klaar was boven het gesprek dat hem startte (melding gebruiker 16 nov 2026).
   for (const groep of groepen.values()) groep.gesprekken = metDeelgesprekken(groep.gesprekken);
-  return { werkgebieden: [...groepen.values()], recent, archief };
+  return { werkgebieden: [...groepen.values()], recent: metDeelgesprekken(recent), archief: metDeelgesprekken(archief) };
 }
 
 /** Deelgesprekken (ADR-012) direct onder hun regiegesprek, in hun eigen volgorde; het regiegesprek houdt zijn plek. Een

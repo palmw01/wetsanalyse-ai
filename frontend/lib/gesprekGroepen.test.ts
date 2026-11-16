@@ -60,3 +60,15 @@ describe("het profiel van een deelgesprek (ADR-016 §A3)", () => {
     expect(deelgesprekProfiel({ ouder_id: "", profiel: "duiding" })).toBe("");
   });
 });
+
+describe("deelgesprekken bij losse gesprekken", () => {
+  it("staan onder hun gesprek, ook als ze later bijgewerkt zijn", () => {
+    const lijst = [g("kind", { ouder_id: "ouder" }), g("ouder"), g("ander")];
+    expect(deelIn(lijst).recent.map((x) => x.id)).toEqual(["ouder", "kind", "ander"]);
+  });
+  it("en in het archief", () => {
+    const nu = new Date().toISOString();
+    const lijst = [g("kind", { ouder_id: "ouder", gearchiveerd: nu }), g("ouder", { gearchiveerd: nu })];
+    expect(deelIn(lijst).archief.map((x) => x.id)).toEqual(["ouder", "kind"]);
+  });
+});
