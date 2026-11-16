@@ -11,6 +11,7 @@
  *   WETSANALYSE_ACC_TOKEN            – accounttoken van het account waarmee getest wordt (docs/acceptatie/testaccount.md)
  *   WETSANALYSE_ACC_ACCOUNT          – optioneel, de userid van dat account; wie_ben_ik meldt of het token erbij hoort
  *   WETSANALYSE_ACC_TOKEN_BEHEERDER  – optioneel, accounttoken van een beheerder
+ *   WETSANALYSE_ACC_TOKEN_TEST_ANALIST – optioneel, accounttoken van het analistaccount voor K10 (`als: "test-analist"`)
  *   WETSANALYSE_ACC_GRAFANA_URL      – optioneel, voor logs_zoek
  *   WETSANALYSE_ACC_GRAFANA_WACHTWOORD – optioneel, het admin-wachtwoord van die Grafana
  *   WETSANALYSE_ACC_GRAAF_URL        – optioneel, voor graaf_lezen: de MCP-proxy van acceptatie
@@ -35,6 +36,7 @@ import { auditStaart, inventarisOverzicht } from "./vorm.js";
 const URL_ACC = process.env.WETSANALYSE_ACC_URL ?? "";
 const TOKEN_ANALIST = (process.env.WETSANALYSE_ACC_TOKEN ?? "").trim();
 const TOKEN_BEHEERDER = (process.env.WETSANALYSE_ACC_TOKEN_BEHEERDER ?? "").trim();
+const TOKEN_TEST_ANALIST = (process.env.WETSANALYSE_ACC_TOKEN_TEST_ANALIST ?? "").trim();
 const GRAFANA_URL = (process.env.WETSANALYSE_ACC_GRAFANA_URL ?? "").replace(/\/+$/, "");
 const GRAFANA_WACHTWOORD = process.env.WETSANALYSE_ACC_GRAFANA_WACHTWOORD ?? "";
 const GRAAF_URL = process.env.WETSANALYSE_ACC_GRAAF_URL ?? "";
@@ -46,10 +48,11 @@ function log(niveau, bericht, velden = {}) {
 }
 const clients = new Map();
 function client(als) {
-    const rol = als === "beheerder" ? "beheerder" : "analist";
-    const token = rol === "beheerder" ? TOKEN_BEHEERDER : TOKEN_ANALIST;
-    if (!token)
-        throw new Error("WETSANALYSE_ACC_TOKEN_BEHEERDER is niet gezet.");
+    const rol = als === "beheerder" || als === "test-analist" ? als : "analist";
+    const token = { analist: TOKEN_ANALIST, beheerder: TOKEN_BEHEERDER, "test-analist": TOKEN_TEST_ANALIST }[rol];
+    if (!token) {
+        throw new Error(`${rol === "beheerder" ? "WETSANALYSE_ACC_TOKEN_BEHEERDER" : "WETSANALYSE_ACC_TOKEN_TEST_ANALIST"} is niet gezet.`);
+    }
     let c = clients.get(rol);
     if (!c) {
         c = new AcceptatieClient(controleerUrl(URL_ACC), token);
@@ -89,7 +92,7 @@ function graafClient() {
 }
 const seg = (s) => encodeURIComponent(String(s));
 const S = z.object;
-const Als = z.enum(["analist", "beheerder"]).optional();
+const Als = z.enum(["analist", "beheerder", "test-analist"]).optional();
 /** Lees een paar routes samen; een mislukte route blijft zichtbaar in plaats van het geheel te breken. */
 async function samen(c, routes) {
     const paren = await Promise.all(Object.entries(routes).map(async ([naam, pad]) => {

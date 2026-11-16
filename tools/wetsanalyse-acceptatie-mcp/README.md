@@ -34,7 +34,8 @@ wetsanalyse uit te voeren, inclusief echte beslissingen; het scenario staat in
 | `graaf_lezen` | alleen-lezen SPARQL op de kennisgraaf van acceptatie, om te vergelijken met de bron |
 | `logboek_aanvullen`, `logboek_lezen` | het gedeelde logboek van een run: alleen aanvullen, en lezen vanaf een stand |
 
-De tools tot en met `begrip_lezen` nemen optioneel `als: "beheerder"`. `lex_wacht` wacht hooguit 110 seconden; bij `klaar: false`
+De tools tot en met `begrip_lezen` nemen optioneel `als: "beheerder"` of `als: "test-analist"` (het analistaccount voor
+K10, met `WETSANALYSE_ACC_TOKEN_TEST_ANALIST`); `opruimen` en `wie_ben_ik` ook. `lex_wacht` wacht hooguit 110 seconden; bij `klaar: false`
 loopt de run door en vraag je opnieuw met de teruggegeven `vanaf`.
 
 Inloggen met een wachtwoord kan hier niet: de client blokkeert dat. Tokens maken en wachtwoord of 2FA wijzigen

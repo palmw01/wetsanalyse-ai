@@ -38,6 +38,13 @@ of kopieert het token nergens heen.
 Optioneel zet je daar `WETSANALYSE_ACC_ACCOUNT` op de userid van het account. Dan meldt `wie_ben_ik` in
 `account_verwacht` of het token bij dat account hoort.
 
+## Het analistaccount voor K10
+
+Voor de toets van de rechten van een analist (K10, `foutpaden.md`) staat er op acceptatie het account `acc-test-analist`
+met de rol `analist` (aangemaakt op 16 nov 2026). Zijn accounttoken staat machine-lokaal als
+`WETSANALYSE_ACC_TOKEN_TEST_ANALIST`. De MCP gebruikt het met `als: "test-analist"`; zonder `als` blijft hij op het account
+van de gebruiker. Dezelfde drie regels gelden hier.
+
 ## In CI: `acceptatie-keten`
 
 De workflow `.github/workflows/acceptatie-keten.yml` draait na elke geslaagde publish van api, frontend of graph-qa, of
