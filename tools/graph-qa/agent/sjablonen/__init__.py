@@ -86,8 +86,10 @@ def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:
     if naam != _rapport.NAAM and isinstance(invoer.get(_extern.VELD), list) and invoer[_extern.VELD]:
         # Een antwoord: per stuk de passages die de uitleg dragen in plaats van het procesverloop (A6 na de meting,
         # S01/F02), ook in `antwoord_extern` zelf.
-        uitleg = "\n".join(str(v) for k, v in invoer.items()
-                           if k not in {_extern.VELD, _extern.STUKKEN} and isinstance(v, str))
+        # De kern per stuk telt mee (plan centrale agent na A6, PR A): daarop rust wat het antwoord over dat stuk zegt.
+        uitleg = "\n\n".join(d for d in ("\n".join(str(v) for k, v in invoer.items()
+                                                  if k not in {_extern.VELD, _extern.STUKKEN} and isinstance(v, str)),
+                                        _extern.kern_tekst(invoer[_extern.VELD])) if d)
         invoer = {**invoer, _extern.VELD: _extern.herkies(uitleg, invoer[_extern.VELD], trace)}
     if naam == EXTERN or not ({_extern.VELD, _extern.STUKKEN} & set(invoer)):
         return SJABLONEN[naam].vul(invoer, trace)
