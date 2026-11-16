@@ -241,3 +241,65 @@ def test_raakt_heel_vindt_de_kern_niet_midden_in_een_woord():
 
 def test_stam_heel_staat_standaard_uit():
     assert dz.STANDAARD_PROFIEL.stam_heel is False
+
+
+# --- stap 5: brugwoorden uit een omschrijving, en een woord buiten het zoekbereik (O4) ---------------------------------
+
+DOSSIER_BRUG = {"analysevraag": "Hoe wordt een negatieve voorlopige aanslag winstaandeel verwerkt op de termijnbedragen?",
+                "context": "Een rekeningafspraak is het vastleggen van een bankrekening waarop wordt uitbetaald."}
+
+
+def test_brugwoorden_alleen_uit_een_omschrijving():
+    assert "termijnbedragen" in zv.brugtermen(DOSSIER_BRUG, "winstaandeel"), "standaard: elke zin die het noemt"
+    assert zv.brugtermen(DOSSIER_BRUG, "winstaandeel", alleen_omschrijving=True) == [], "de analysevraag omschrijft niets"
+    assert zv.brugtermen(DOSSIER_BRUG, "rekeningafspraak", alleen_omschrijving=True) == \
+        ["vastleggen", "bankrekening", "uitbetaald"], "een omschrijvende zin blijft een brug"
+
+
+class EldersGraaf(BepalingGraaf):
+    """"winstaandeel" staat in de graaf in een regeling buiten het bereik, twee keer, en één keer erbinnen."""
+
+    def __init__(self, faal: bool = False):
+        super().__init__()
+        self.kapot = faal
+
+    def _antwoord(self, q: str) -> str:
+        if "luc:query" in q and "winstaandeel" in q:
+            if self.kapot:
+                raise RuntimeError("graaf hapert")
+            return _tsv(["node", "score", "soort", "bwbId", "citeertitel"],
+                        [["urn:bwb:BWBR0014168:artikel:65", "1", "Artikel", "BWBR0014168", "Mijnbouwwet"],
+                         ["urn:bwb:BWBR0014168:artikel:70:lid:1", "1", "Lid", "BWBR0014168", "Mijnbouwwet"],
+                         [f"urn:bwb:{IWB}:artikel:2", "1", "Artikel", IWB, "Invorderingswet 1990"]])
+        return super()._antwoord(q)
+
+
+def test_een_woord_buiten_het_zoekbereik_noemt_de_regeling():
+    assert zv.regelingen_met_woord(EldersGraaf(), "winstaandeel", [IWB]) == ["Mijnbouwwet"]
+    assert zv.regelingen_met_woord(EldersGraaf(), "winstaandeel", [IWB, "BWBR0014168"]) == []
+    assert zv.regelingen_met_woord(EldersGraaf(faal=True), "winstaandeel", [IWB]) == [], "een storing zegt niets"
+
+
+def test_de_kloofmelding_noemt_de_regeling_waar_het_woord_wel_staat():
+    import asyncio
+
+    from agent import bronselectie as bs
+
+    class Api:
+        async def haal_werkgebied(self, wid):
+            return {"regelingen": [{"bwb_id": IWB}], "bronnen": []}
+
+    def toets(wg, regelingen, woorden, voorwerp):
+        return {"ontbrekend": ["winstaandeel"], "brug": {}, "elders": {"winstaandeel": ["Mijnbouwwet"]}}
+
+    teken = bs._TOETS.set(toets)
+    try:
+        zin = asyncio.run(bs._kloof(Api(), "w1", {"deelvragen": []}, ["winstaandeel"]))
+    finally:
+        bs._TOETS.reset(teken)
+    assert zin == ("‘winstaandeel’ staat niet in de regelingen van dit werkgebied, wel in Mijnbouwwet. "
+                   "Hoort die regeling erbij, neem haar dan op in het zoekbereik.")
+
+
+def test_brug_omschrijving_staat_standaard_uit():
+    assert dz.STANDAARD_PROFIEL.brug_omschrijving is False

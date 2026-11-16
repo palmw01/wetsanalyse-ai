@@ -143,6 +143,11 @@ class Zoekprofiel:
     #:   slotdeel dat er als woord in staat), niet op zijn eerste acht letters (`zoektermen.raakt_heel`): de telling, de
     #:   dossiertermen en het gewicht in de pool. De index zoekt even breed.
     stam_heel: bool = False
+    #: - `brug_omschrijving` (stap 5, O4): brugwoorden voor een woord dat in de pool ontbreekt, komen alleen uit een zin die
+    #:   het woord omschrijft ("X is …"), niet uit elke zin die het noemt (`zoekvragen.brugtermen`). En staat zo'n woord
+    #:   niet in het zoekbereik maar wel in een andere regeling van de graaf, dan noemt Lex die regeling
+    #:   (`zoekvragen.regelingen_met_woord`, de melding in `bronselectie._kloof`).
+    brug_omschrijving: bool = False
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.

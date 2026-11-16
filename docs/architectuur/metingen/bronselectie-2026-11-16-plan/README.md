@@ -138,3 +138,20 @@ De vlag blijft uit. Voor stap 8: in de pool telt de kern als treffer, maar niet 
 mechanisme, en is nog niet gemeten.
 
 De rapporten staan in [`stap4/`](stap4/).
+
+## Stap 5 – `brug_omschrijving` (O4)
+
+Op de zoekvragenroute, recall nodig, eerst de standaard, dan met de vlag: op alle zes sets gelijk (Termijnen 0,06,
+Rekeningafspraken 0,29, Bestuurdersaansprakelijkheid 0,44, Bezwaar 0,40, Invorderbaarheid 0,46, Kwijtschelding 0,33). Bij
+Termijnen daalt de gewone recall van 0,11 naar 0,06: de brugwoorden uit de analysevraag ("termijnbedragen", "termijnen")
+brachten één aanverwante bepaling binnen.
+
+**De melding** (wat de eval niet meet). Staat een kloofwoord niet in het zoekbereik maar wel elders in de graaf, dan noemt
+Lex die regeling (`zoekvragen.regelingen_met_woord`). Op de graaf van acceptatie staat "winstaandeel" op 11 plekken, alle
+in de Mijnbouwwet. Bij Termijnen zou Lex dus zeggen: "‘winstaandeel’ staat niet in de regelingen van dit werkgebied, wel in
+Mijnbouwwet. Hoort die regeling erbij, neem haar dan op in het zoekbereik." Nu zegt hij dat het vermoedelijk een begrip uit
+de uitvoering is, en zoekt hij met de woorden van de analysevraag.
+
+**Oordeel: geen winst in de cijfers, wel een juistere melding.** Een kandidaat voor stap 8, vanwege de melding.
+
+De rapporten staan in [`stap5/`](stap5/).
