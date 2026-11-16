@@ -280,7 +280,7 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
             plaatsen = MAX_PER_DEELVRAAG - min(PLAATSEN_WOORDEN, len([b for b in woorden if not b["buiten"]]))
             uit_pool = opties_bij_deelvraag(p["kandidaten"], d.get("vraag", ""), gebeurtenis=gebeurtenis,
                                             limit=MAX_PER_DEELVRAAG if profiel.woorden_voor_pool else plaatsen,
-                                            dossier=dossier)
+                                            dossier=dossier, profiel=profiel)
         for k in samen_met_woorden(uit_pool, woorden, limit=MAX_PER_DEELVRAAG,
                                    woorden_voor_pool=profiel.woorden_voor_pool):
             if k["bron"] == "pool":

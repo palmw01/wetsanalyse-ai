@@ -131,6 +131,10 @@ class Zoekprofiel:
     #:   de vraagvorm (`zoekvragen.samen_met_woorden`). Een brede gebeurtenis ("invordering") filterde zo niets meer en
     #:   nam alle plaatsen.
     woorden_voor_pool: bool = False
+    #: - `vraagvorm_eigen_woord` (stap 2, O2): de bonus van de vraagvorm (`zoekvragen.opties_bij_deelvraag`) geldt alleen
+    #:   als de kandidaat ook een eigen woord van de deelvraag raakt, en "Wat is …" (zoekvraag d) beloont alleen een
+    #:   definitie of invulling (`zoekvragen.DEFINITIE_SIGNALEN`), niet elke subdivisie van een beleidsregel.
+    vraagvorm_eigen_woord: bool = False
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.

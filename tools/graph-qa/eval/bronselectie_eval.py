@@ -311,7 +311,7 @@ def _zoekvragen_route(profiel: "deelvraag_zoeken.Zoekprofiel" = deelvraag_zoeken
         plaatsen = maximaal - min(zoekvragen.PLAATSEN_WOORDEN, len([o for o in woorden if not o["buiten"]]))
         uit_pool = zoekvragen.opties_bij_deelvraag(cache[sleutel]["kandidaten"], vraag, gebeurtenis=s["gebeurtenis"],
                                                    limit=maximaal if profiel.woorden_voor_pool else plaatsen,
-                                                   dossier=_dossier(s))
+                                                   dossier=_dossier(s), profiel=profiel)
         return [{**o, "buiten": bool(o.get("buiten"))}
                 for o in zoekvragen.samen_met_woorden(uit_pool, woorden, limit=maximaal,
                                                       woorden_voor_pool=profiel.woorden_voor_pool)]
@@ -342,7 +342,7 @@ ROUTES_B2 = {f"met {v}": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL
 #: De vlaggen van het plan bronselectie bij Termijnen (`docs/architectuur/onderzoek-bronselectie-termijnen-2026-11.md`),
 #: standaard uit. Elke vlag apart naast de standaard, en alle samen; alleen met `--plan`, want ze stellen nieuwe vragen
 #: aan de graaf (`--aanvullen`).
-PLANVLAGGEN = ("termen_idf", "beurt_sterk", "woorden_voor_pool")
+PLANVLAGGEN = ("termen_idf", "beurt_sterk", "woorden_voor_pool", "vraagvorm_eigen_woord")
 _PLAN_ALLES = replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: True for v in PLANVLAGGEN})
 #: Elke vlag op de woordenroute en op de zoekvragenroute (wat de bronnenrun met een gebeurtenis doet), en alle samen.
 ROUTES_PLAN = {**{f"met {v}": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: True}))

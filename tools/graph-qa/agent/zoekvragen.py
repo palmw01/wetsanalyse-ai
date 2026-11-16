@@ -622,8 +622,27 @@ def brugtermen(dossier: dict[str, Any], woord: str) -> list[str]:
     return uit
 
 
+#: Met `vraagvorm_eigen_woord`: de signalen van zoekvraag d die een begrip invullen. Een subdivisie van een beleidsregel
+#: (`beleidsregel`) is ook zoekvraag d, maar vult de regel in, niet het begrip waar "Wat is …" naar vraagt.
+DEFINITIE_SIGNALEN = ("verstaan", "begrepen", "gelijkgesteld")
+
+
+def _past_vraagvorm(k: dict[str, Any], zoekvraag: str, eigen: list[str], streng: bool) -> bool:
+    """Of de zoekvraag van een kandidaat de vraagvorm van de deelvraag beantwoordt. Streng (`vraagvorm_eigen_woord`):
+    alleen met een eigen woord van de deelvraag, en bij d alleen een definitie."""
+    if not zoekvraag or k["zoekvraag"] != zoekvraag:
+        return False
+    if not streng:
+        return True
+    if not eigen:
+        return False
+    signaal = str(k.get("signaal") or "")
+    return zoekvraag != "d" or signaal.startswith("definitie") or signaal in DEFINITIE_SIGNALEN
+
+
 def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit: int = 8,
-                         gebeurtenis: str = "", dossier: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+                         gebeurtenis: str = "", dossier: dict[str, Any] | None = None,
+                         profiel: Any = None) -> list[dict[str, Any]]:
     """De kandidaten uit de pool die bij een deelvraag horen, zonder graafverkeer.
 
     Een inhoudswoord weegt naar hoe zeldzaam het is in de pool (idf, log((N+1)/(df+1))): "verzoek" en
@@ -663,7 +682,8 @@ def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit:
     gescoord = []
     for i, (k, tekst) in enumerate(zip(kandidaten, teksten)):
         g = _raakt(termen, tekst, True)
-        past = bool(zoekvraag) and k["zoekvraag"] == zoekvraag
+        past = _past_vraagvorm(k, zoekvraag, [w for w in g if w not in brug],
+                               bool(profiel is not None and profiel.vraagvorm_eigen_woord))
         if not (g or past):
             continue
         score = sum(gewicht.get(t, 0.0) for t in g) + (bonus if past else 0.0)
