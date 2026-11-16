@@ -343,7 +343,12 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     (de aanhef van een besluit, het procesverloop van een uitspraak, een rij trefwoorden) valt in `extern.blokken` uit een
     reeks als er iets met inhoud overblijft (`extern.is_formule`). Na het eindverslag van A6 (`tests/test_a6_eind.py`):
     een rapport `klaar` zonder één gelezen stuk van de bron waar de opdracht om vroeg, terwijl het kind er wel vond, wordt
-    een vraag naar boven uit code ("Zal ik ze lezen?", `subagent.ongelezen_vraag`, één keer: niet na een hervatting; V03);
+    een vraag naar boven uit code ("Zal ik ze lezen?", `subagent.ongelezen_vraag`, één keer: niet na een hervatting; V03).
+    Breder (plan centrale agent na A6, PR C): een kind dat op zijn grens stopte (zijn laatste ronde was die van de
+    rondegrens of het plafond, `begrensd` uit `State.laatste_gehad` in het resultaat, of de code sloot het af) terwijl er
+    nog iets open was – stukken van de gevraagde bron gevonden en niet gelezen, stukken deels gelezen, of iets onder 'Open'
+    in zijn rapport – krijgt ook na `klaar` of `niet_gelukt` een vraag uit code ("Zal ik verder lezen?",
+    `subagent.begrensd_vraag`), één keer en niet voor een stuk van buiten de periode (`tests/test_c_begrensd.py`);
     "vóór en na de wijziging" van één artikel zonder te zeggen welke is een vraag aan de jurist zonder model, met de
     laatste wijziging uit `geldigheid` als kandidaat (`agent/welke_wijziging.py`; V04); een antwoord dat alleen een
     regeling noemt, maakt de vorige opdracht met een artikel zonder regeling af (`subagent_route.aangevuld`, F02);
