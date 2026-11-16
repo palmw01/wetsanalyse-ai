@@ -69,6 +69,10 @@ describe("parseAntwoord", () => {
     // De versie die Lex las (review ADR-013, punt 3) reist mee; een ouder bericht zonder versie blijft geldig.
     const metVersie = { ...blok, bron_hash: "abc", gewijzigd: "2026-01-02" };
     expect(parseAntwoord({ sjabloon: "extern", blokken: [metVersie] })?.blokken[0]).toEqual(metVersie);
+    // De kern per stuk (plan centrale agent na A6, PR A) reist mee; een kern die geen tekst is, maakt het blok ongeldig.
+    const metKern = { ...blok, kern: "Het stuk legt uit waarom het eenvoudiger moet." };
+    expect(parseAntwoord({ sjabloon: "extern", blokken: [metKern] })?.blokken[0]).toEqual(metKern);
+    expect(parseAntwoord({ sjabloon: "extern", blokken: [{ ...blok, kern: 3 }] })).toBeUndefined();
   });
 
   it("leest een lijst gevonden stukken en weigert er een zonder id of label", () => {

@@ -138,6 +138,8 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
       {/* Bij welke tekst van de bepaling het stuk hoort (een uitspraak bij een eerdere versie van het artikel); bij een
           wettekst buiten de graaf welke tekst het is. */}
       <StandMelding meldingen={tekstBijMeldingen(blok, blok.brontype)} />
+      {/* Wat Lex over dit stuk zegt, boven de passages waarop het rust. */}
+      {blok.kern && <p className="text-lees" data-extern-kern={blok.id}>{blok.kern}</p>}
       <div data-extern={blok.id}>
         <ConnectorTekst passages={blok.passages} />
       </div>
