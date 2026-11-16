@@ -450,6 +450,16 @@ Elk voorstel is generiek: het lost een soort fout op, niet één geval.
   testgebruikers, de snapshot-helpers, en een autouse-fixture die `ratelimit`, de actief-cache en `get_settings` leegt.
   De imports uit `test_annotatie_v2` en `test_werkgebieden` gaan daarnaartoe. Eén Postgres-fixture in plaats van zes.
   Daarna een keer `pytest -p randomly` draaien als meting van de volgorde.
+  *Gebouwd (17 nov 2026, Lex Bench §20.5 stap 6).*
+  - `conftest.py` krijgt `_procestoestand_per_test` (autouse: settings, gesprekstore, Fernet, rate limit en actief-cache, vóór
+    en na elke test), `api_client` (de client die zeven suites zelf opbouwden) en de ene `postgres_schema(naam)`. Die
+    gebruiken de vijf Postgres-suites nu via een wrapper van twee regels.
+  - De helpers uit `test_annotatie_v2` en `test_werkgebieden` staan in `gedeelde_bron.py`, letterlijk. Ze staan bewust
+    niet in de conftest: `database` is autouse en `client` overschrijft, dus ze gelden alleen waar ze geïmporteerd worden.
+    Zestig imports wijzen daarheen; één test hergebruikt nog een andere test (`test_annotatie_v2_postgres`).
+  - Telling vóór en na: 1328 geslaagd en 41 overgeslagen, beide op SQLite. De Postgres-suites draaien in de poort.
+  - Nog open: de imports tussen andere testbestanden (`test_begrippen`, `test_bronselectie`, `test_bronnen_runs` en een
+    paar meer), en de meting met `pytest -p randomly`.
 - **V8. De volgorde van de voorstellijst in de bronselectie als contract.** Een test die vastlegt dat de api de lijst per
   deelvraag in een vaste, gedocumenteerde volgorde teruggeeft. Lex Bench meet die lijst (plan §4.4); verandert de volgorde
   stil, dan verandert de meting zonder dat Lex veranderde.

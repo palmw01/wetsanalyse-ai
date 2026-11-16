@@ -6,7 +6,8 @@ deelgesprekken terug. Niets is dubbel opgeslagen: de boom ontstaat bij het lezen
 from __future__ import annotations
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+
+from conftest import api_client
 
 BASIS = "/v1/gesprekken"
 A = {"X-User-Id": "gebruiker-a"}
@@ -38,27 +39,8 @@ def _opbouw(run_id: str = "run-1", ouder: str = "", **extra) -> dict:
 
 @pytest.fixture
 async def client(monkeypatch):
-    monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
-
-    from app import db, ratelimit
-    from app.config import get_settings
-    from app.deps import get_gesprek_store
-    from conftest import maak_testgebruikers
-
-    get_settings.cache_clear()
-    get_gesprek_store.cache_clear()
-    ratelimit.reset()
-    db.init_engine("sqlite+aiosqlite://")
-    await db.create_all()
-    await maak_testgebruikers("gebruiker-a", "gebruiker-b")
-
-    from app.main import app
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with api_client(monkeypatch, env={"WETSANALYSE_AUTH_REQUIRED": "0"}, gebruikers=("gebruiker-a", "gebruiker-b")) as ac:
         yield ac
-
-    get_settings.cache_clear()
-    get_gesprek_store.cache_clear()
-    await db.dispose_engine()
 
 
 async def _gesprek(gid: str, user: str = "gebruiker-a", ouder: str = "", titel: str = "") -> str:

@@ -6,10 +6,10 @@ import csv
 import io
 
 from app.begrippen_verdieping import fragment_id
-from test_annotatie_v2 import ART, ONE
+from gedeelde_bron import ART, ONE
 from test_begrippen_akkoord import LID1, _akkoord, _alfa, _keur_goed, _voorstel
 from test_begrippen_runs import _annoteer, _werkgebied
-from test_werkgebieden import ART2, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
+from gedeelde_bron import ART2, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
 
 
 def _fragment(start=2, eind=6, tekst="Alfa", bron=ONE) -> dict:

@@ -7,7 +7,7 @@ from datetime import timedelta
 from sqlalchemy import update
 
 from app import db, delegatie_store
-from test_werkgebieden import _nieuw, client, database, graaf  # noqa: F401
+from gedeelde_bron import _nieuw, client, database, graaf  # noqa: F401
 
 G = "/v1/gesprekken"
 B = {"X-User-Id": "jurist-b"}

@@ -6,8 +6,8 @@ from sqlalchemy import delete
 from app import annotatie_v2_store as store, db, verbruik
 from app.annotatie_v2_contracts import Beslissing
 from app.werkgebied_werkvoorraad import _gedekt
-from test_annotatie_v2 import ART, ONE, TWO, element, request, snapshot
-from test_werkgebieden import ART2, LAW2, _bron, _nieuw, client, database, graaf  # noqa: F401
+from gedeelde_bron import ART, ONE, TWO, element, request, snapshot
+from gedeelde_bron import ART2, LAW2, _bron, _nieuw, client, database, graaf  # noqa: F401
 
 
 async def _voorraad(client, wg) -> dict:

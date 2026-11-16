@@ -10,8 +10,8 @@ import pytest
 from sqlalchemy import update
 
 from app import annotatie_v2_store as store, begrip_manifest, begrip_onderzoek, db
-from test_annotatie_v2 import ART, ONE, TWO, element, request, snapshot
-from test_werkgebieden import ART2, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
+from gedeelde_bron import ART, ONE, TWO, element, request, snapshot
+from gedeelde_bron import ART2, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
 
 SETS = Path(__file__).resolve().parents[2] / "docs" / "wetsanalyse" / "referentieset-begrippen"
 VECTOREN = json.loads((SETS / "manifest-id.vectoren.json").read_text())

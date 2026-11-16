@@ -6,38 +6,26 @@ Zelfde opzet als `test_werkgebieden_postgres.py`: een eigen schema per test. SQL
 """
 import asyncio
 import os
-import uuid
 
 import pytest
 from fastapi import HTTPException
-from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import select
 
 from app import annotatie_v2_store as annotaties, begrip_store as store, db, werkgebied_store
 from app.begrip_contracts import BegripInhoud, BegripInvoer, BegripWijziging, KoppelInvoer
 from app.werkgebied_contracts import BronselectieInvoer, WerkgebiedInvoer
-from test_annotatie_v2 import ART, ONE, element, request, snapshot
+from gedeelde_bron import ART, ONE, element, request, snapshot
+
+from conftest import postgres_schema as eigen_schema
 
 pytestmark = pytest.mark.skipif(not os.getenv("ANNOTATIE_TEST_DSN"), reason="PostgreSQL-test DSN ontbreekt")
 
 
 @pytest.fixture(autouse=True)
 async def postgres_schema():
-    dsn = os.environ["ANNOTATIE_TEST_DSN"]
-    schema = "begrip_test_" + uuid.uuid4().hex
-    administration = create_async_engine(dsn)
-    async with administration.begin() as conn:
-        await conn.execute(text(f'CREATE SCHEMA "{schema}"'))
-    db.init_engine(dsn, connect_args={"server_settings": {"search_path": schema}})
-    try:
-        await db.create_all()
-        await db.reconcile_schema()
+    """Elke test een eigen schema (`conftest.postgres_schema`, testplan api V7)."""
+    async for _ in eigen_schema("begrip_test"):
         yield
-    finally:
-        await db.dispose_engine()
-        async with administration.begin() as conn:
-            await conn.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
-        await administration.dispose()
 
 
 async def resolve(doel):
@@ -84,7 +72,7 @@ async def test_twee_gelijktijdige_wijzigingen_van_een_begrip_precies_een_412():
 
 async def test_twee_gelijktijdige_starts_op_hetzelfde_manifest_geven_een_run():
     from app import begrippen_run_store as runs
-    from test_annotatie_v2 import TWO
+    from gedeelde_bron import TWO
 
     snap = snapshot()
     await annotaties.batch(request(snap, [element(snap, TWO, 0, 4)], batch_id="tweede", revisions={}), snap, "lex")
@@ -99,7 +87,7 @@ async def test_twee_gelijktijdige_akkoorden_op_een_groep_maken_een_begrip():
     groep: één begrip, de ander krijgt 409 met dat begrip – geen tweede begrip, geen halve stand."""
     from app import begrippen_run_store as runs
     from app.begrippen_run_contracts import Akkoord, UitkomstInvoer
-    from test_annotatie_v2 import TWO
+    from gedeelde_bron import TWO
 
     snap = snapshot()
     tweede = await annotaties.batch(request(snap, [element(snap, TWO, 0, 4)], batch_id="tweede", revisions={}),

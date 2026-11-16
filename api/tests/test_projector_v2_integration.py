@@ -19,8 +19,8 @@ from app import db, graaf_projectie_v2 as projection
 from app import annotatie_v2_store as store
 from app.annotatie_v2_contracts import Beslissing
 from app.config import get_settings
-from test_annotatie_v2 import ONE, element, request, snapshot
-from test_annotatie_v2_postgres import postgres_schema  # noqa: F401 – pytest fixture
+from gedeelde_bron import ONE, element, request, snapshot
+from conftest import postgres_schema as eigen_schema
 
 pytestmark = [pytest.mark.skipif(not os.getenv("ANNOTATIE_TEST_DSN"), reason="PostgreSQL-integratieserver ontbreekt"), pytest.mark.risico("R20")]
 
@@ -34,6 +34,13 @@ rep:repositoryImpl [ rep:repositoryType "graphdb:SailRepository" ; sr:sailImpl [
 sail:sailType "graphdb:Sail" ; graphdb:ruleset "empty" ; graphdb:repository-type "file-repository" ;
 graphdb:storage-folder "storage" ; graphdb:enable-context-index "true" ; ] ].'''
 
+
+
+@pytest.fixture(autouse=True)
+async def postgres_schema():
+    """Elke test een eigen schema (`conftest.postgres_schema`, testplan api V7)."""
+    async for _ in eigen_schema("annotatie_test"):
+        yield
 
 @pytest.fixture
 async def graphdb(monkeypatch):

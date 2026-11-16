@@ -17,7 +17,7 @@ from app import annotatie_v2_store as store
 from app import db
 from app.config import PROJECT_ROOT
 from app.graaf_projectie_v2 import bouw_graaf, graph_iri, laag_invoer, verklaringen
-from test_annotatie_v2 import ONE, TWO, element, request, snapshot
+from gedeelde_bron import ONE, TWO, element, request, snapshot
 
 V = {
     "besluit": {"regel": {"naam": "vaste regel"}, "model": {"naam": "model"}, "specificiteit": {"naam": "specificiteit"}},

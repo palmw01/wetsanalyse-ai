@@ -23,7 +23,7 @@ from rdflib import Dataset, Literal
 from app import annotatie_v2, bron_resolver, db
 from app import graaf as graafmodule
 from app import graaf_projectie_v2 as projectie
-from test_werkgebieden import client, database  # noqa: F401
+from gedeelde_bron import client, database  # noqa: F401
 
 pytestmark = pytest.mark.risico("R21", laag=2)
 

@@ -6,8 +6,9 @@ opslag (de validatoren van `bronmodel`), een audit zonder inhoud, de rechten van
 from __future__ import annotations
 
 import pytest
+
+from conftest import api_client
 from bronmodel import werkplaats as wp
-from httpx import ASGITransport, AsyncClient
 
 _ADMIN = {"Authorization": "Bearer admin-token"}
 # gebruiker-a is de beheerder (met 2FA), b en c zijn analisten, d is een beheerder zonder 2FA.
@@ -26,31 +27,10 @@ Werk het scenario stap voor stap uit.
 
 @pytest.fixture
 async def client(monkeypatch):
-    monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
-    monkeypatch.setenv("WETSANALYSE_ADMIN_TOKENS", "adm:admin-token")
-    monkeypatch.setenv("WERKPLAATS", "true")
-    from sqlalchemy import update
-
-    from app import db, ratelimit
-    from app.config import get_settings
-    from app.routers.auth import vergeet_actief
-    from conftest import maak_testgebruikers
-
-    get_settings.cache_clear()
-    ratelimit.reset()
-    vergeet_actief()
-    db.init_engine("sqlite+aiosqlite://")
-    await db.create_all()
-    await db.reconcile_schema()
-    await maak_testgebruikers("gebruiker-a", "gebruiker-b", "gebruiker-c", "gebruiker-d")
-    async with db.get_engine().begin() as conn:
-        await conn.execute(update(db.users).where(db.users.c.userid == "gebruiker-a").values(totp_enabled=True))
-        await conn.execute(update(db.users).where(db.users.c.userid == "gebruiker-d").values(role="beheerder"))
-    from app.main import app
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with api_client(monkeypatch, env={"WETSANALYSE_AUTH_REQUIRED": "0", "WETSANALYSE_ADMIN_TOKENS": "adm:admin-token", "WERKPLAATS": "true"}, reconcile=True,
+                          gebruikers=("gebruiker-a", "gebruiker-b", "gebruiker-c", "gebruiker-d"),
+                          met_2fa=("gebruiker-a",), beheerders=("gebruiker-d",)) as ac:
         yield ac
-    get_settings.cache_clear()
-    await db.dispose_engine()
 
 
 async def _maak(client, wie=B, soort="agentprofiel", naam="jrm-scenario", bestanden=None, **extra):

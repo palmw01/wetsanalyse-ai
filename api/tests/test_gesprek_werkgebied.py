@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy import func, select
 
 from app import db
-from test_werkgebieden import _nieuw, client, database, graaf  # noqa: F401
+from gedeelde_bron import _nieuw, client, database, graaf  # noqa: F401
 
 G = "/v1/gesprekken"
 

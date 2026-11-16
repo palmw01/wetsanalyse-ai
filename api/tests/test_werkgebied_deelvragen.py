@@ -4,9 +4,9 @@ from __future__ import annotations
 from sqlalchemy import insert
 
 from app import db
-from test_annotatie_v2 import ART
+from gedeelde_bron import ART
 from test_bronnen_runs import _k, _start, _uitkomst
-from test_werkgebieden import _bron, _nieuw, client, database, graaf  # noqa: F401
+from gedeelde_bron import _bron, _nieuw, client, database, graaf  # noqa: F401
 
 
 async def _dv(client, wg, vraag, status=200):

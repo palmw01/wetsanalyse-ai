@@ -6,10 +6,10 @@ from pydantic import ValidationError
 
 from app.begrippen_overzicht import normaal, treffer
 from app.gesprek_contracts import Artefact
-from test_annotatie_v2 import snapshot
+from gedeelde_bron import snapshot
 from test_begrip_onderhoud import _geaccordeerd
 from test_begrippen import _annoteer, _begrip, _beslis, _url, _werkgebied
-from test_werkgebieden import _nieuw, client, database, graaf, snapshot2  # noqa: F401
+from gedeelde_bron import _nieuw, client, database, graaf, snapshot2  # noqa: F401
 
 
 async def _wijzig(client, wg, b, **inhoud) -> dict:
