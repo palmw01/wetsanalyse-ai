@@ -83,6 +83,9 @@ class WerkgebiedInvoer(BaseModel):
     peildatum: str | None = None
     # Gezet door graph-qa bij het samenstellen in het gesprek: maak is dan idempotent op deze id.
     intake_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{1,64}$")
+    # Het gesprek waarin Lex het werkgebied samenstelde: de api koppelt het eraan, als het van de aanmaker is en nog los
+    # staat (15 nov 2026). Zo hangt het niet af van de werkplek in de browser. Wordt niet bij het werkgebied bewaard.
+    gesprek_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{1,64}$")
     deelvragen: list[DeelvraagBijAanmaken] = Field(default_factory=list, max_length=20)
 
     @field_validator("peildatum")
