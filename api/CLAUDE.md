@@ -224,7 +224,7 @@ Hieronder wat je moet weten om de code te wijzigen.
 - **Zoeken** (`annotatie_v2_zoeken.zoek`) haalt kandidaten uit de graaf en **verifieert ze tegen
   Postgres** (manifest van lagen en revisies). Elk filter staat dus twee keer: in `zoek_query`
   (SPARQL) en in de Python-controle – ook de herkomstfilters `herkomst`, `aandacht`, `subtype`,
-  `beslist_door` en `met_twijfel` (`_past_herkomst`). `tools/graph-qa/tests/test_contract_drift.py`
+  `beslist_door` en `met_twijfel` (`_past_herkomst`). `tools/graph-qa/tests/runs/test_contract_drift.py`
   bewaakt dat het toolschema van `search_annotaties` niets vraagt wat `Zoekvraag` niet kent. Een storing of een achterlopende projectie is nooit
   een leeg, succesvol resultaat: de respons draagt `volledig`.
 - **Bronboom** (`bron_resolver.resolve_bron`): leest alleen de expliciete BWB-named graph, nooit
@@ -605,7 +605,7 @@ bouwt de invoer, toetst en bewaart de uitkomst, en legt de besluiten vast.
   meer dan één anker, of dat verouderd is, staat in `overgeslagen` met reden – nooit stil weg.
 - **`manifest_id` rekent zoals `Manifest.id`.** Twee diensten, dus geen import:
   `docs/wetsanalyse/referentieset-begrippen/manifest-id.vectoren.json` legt id's en veldnamen vast,
-  en zowel `tests/test_begrippen_runs.py` als graph-qa `tests/test_begrippen_manifest_drift.py`
+  en zowel `tests/test_begrippen_runs.py` als graph-qa `tests/runs/test_begrippen_manifest_drift.py`
   toetsen ertegen. Wijzigt het model van de keten, laat de vectoren dan door de keten herberekenen.
 - **De onderzoeksstand** (`begrip_onderzoek.py`, spoor M): naast het manifest de context die de keten
   moet lezen – eerst een begripsbepaling die een formuleringstekst als term definieert (`gedefinieerd`; ook in een
@@ -1255,7 +1255,7 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   begrippen-agent: welk begrip bedoel je? Lex gokt niet.
   De review-state zelf blijft in het annotatiedomein. **Een veld dat graph-qa meestuurt moet in
   `BerichtInvoer` staan**, anders laat Pydantic het stil vallen en verdwijnen na het heropenen de
-  chip naar het annotatiepaneel en het toolspoor. `tools/graph-qa/tests/test_contract_drift.py`
+  chip naar het annotatiepaneel en het toolspoor. `tools/graph-qa/tests/runs/test_contract_drift.py`
   toetst dat.
 - **`contextopbouw`** (plan contextweergave, ADR-015): hoe de verzoeken van de beurt waren opgebouwd en wat de beurt
   kostte, door graph-qa uitgerekend. Alleen tellingen en vingerafdrukken; geen veld heet `token` (de logredactie laat
@@ -1387,7 +1387,7 @@ Daaruit volgt:
 ## Bronconnectors (ADR-013)
 
 `app/connectors.py`: het register van de bronconnectors; de beheerroutes staan in `routers/admin.py`. **Welke er bestaan staat in de code** (`BEKEND`, gelijk aan
-`tools.CONNECTORS` van graph-qa; `tools/graph-qa/tests/test_bronschakelaar.py` leest deze bron): een bronconnector is een
+`tools.CONNECTORS` van graph-qa; `tools/graph-qa/tests/connectors/test_bronschakelaar.py` leest deze bron): een bronconnector is een
 getypeerde tool met een eigen soort vindplaats, geen configuratie. Het register zegt alleen aan of uit (tabel `connectors`;
 een rij ontbreekt = uit), en elke wijziging is een regel in `connector_audit`.
 
@@ -1413,7 +1413,7 @@ profielbestand: de beheerder wijzigt hem zonder uitrol.
 
 - **De sleutels staan in de code**, in `bronmodel.modelkeuzes` (label, groep, beschrijving, waarschuwing): `agent:<profiel>`
   voor elk agentprofiel van Lex (`.claude/lex-agents/`), `stap:<rol>` voor elke `llm_stap.Rol` zonder toollus, en
-  `stap:subagent`. graph-qa `tests/test_modelkeuze.py` toetst dat elk profiel en elke stap er precies één keer in staat.
+  `stap:subagent`. graph-qa `tests/centrale_agent/test_modelkeuze.py` toetst dat elk profiel en elke stap er precies één keer in staat.
 - **Een rij ontbreekt = de sleutel volgt het standaardprofiel** (tabel `modelkeuzes`, sleutel → profielnaam). Zonder keuze
   en met een standaardprofiel gelijk aan `LLM_MODEL` verandert er voor Lex dus niets. Elke wijziging is een regel in
   `modelkeuze_audit` (`gekozen` of `standaard`, `details: {was, wordt}`), append-only; dezelfde keuze nog eens niet.
