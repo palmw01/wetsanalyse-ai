@@ -53,8 +53,9 @@ def _vragen() -> list[tuple[str, str]]:
 
 def test_in_de_vragensets_pakt_de_route_alleen_wat_een_subagent_verwacht():
     """Geen vraag uit de routerings-, gespreks- en agentset valt erin, behalve wat de agentset aan een subagent geeft (S01,
-    en sinds A6 run 1 ook de reeksen in de graaf: S03 en S04; `tests/test_a6_run1.py` toetst alle sets met alle bronnen)."""
-    verwacht = {"S01", "S03", "S04"}
+    en sinds A6 run 1 ook de reeksen in de graaf: S03 en S04; `tests/test_a6_run1.py` toetst alle sets met alle bronnen).
+    S02 vraagt sinds na A6 per Kamerstuk uit een dossier, en hoort dus ook bij een subagent."""
+    verwacht = {"S01", "S02", "S03", "S04"}
     gevangen = {i for i, v in _vragen() if route.past(v, AAN)}
     assert gevangen <= verwacht, gevangen - verwacht
     assert "S01" in gevangen
