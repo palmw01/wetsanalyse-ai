@@ -73,3 +73,28 @@ def test_de_uitleg_actie_geeft_een_geel_voorstel_met_de_toetsen():
 def test_geen_uitleg_zonder_definitie():
     k = ka.Kant(id="b1", inhoud={"naam": "termijn"}, leden=())
     assert ka.uitleg(None, "m", None, k).voorstellen == []        # geen model, geen manifest nodig
+
+
+# --- de toelichting (B-6) -------------------------------------------------------------------------
+
+def test_de_toelichting_actie_geeft_een_geel_voorstel_voor_het_veld_context():
+    k = ka.Kant(id="b1", inhoud={"naam": "termijn", "definitie": DEFINITIE}, leden=())
+    [v] = ka.valideer_toelichting(k, [], {"toelichting": "Een dag telt niet als termijn.", "fragmenten": [""],
+                                          "motivatie": "Kort."}).voorstellen
+    assert (v["veld"], v["aandacht"], v["aandachtspunten"]) == ("context", "geel", ["DOOR_LEX_TOELICHTING"])
+    assert ka.valideer_toelichting(k, [], {"toelichting": DEFINITIE, "fragmenten": [], "motivatie": ""}).voorstellen == []
+    assert ka.valideer_toelichting(k, [], None).melding == ka.TEKST["MODEL_ONBRUIKBAAR"]
+
+
+def test_geen_toelichting_zonder_definitie():
+    k = ka.Kant(id="b1", inhoud={"naam": "termijn"}, leden=())
+    assert ka.toelichting(None, "m", None, k).voorstellen == []
+
+
+def test_een_voorgestelde_definitie_heet_zo_in_de_prompt():
+    from agent.begrippen_pipeline.model import Manifest
+    leeg = Manifest(bronnen=(), formuleringen=())
+    k = ka.kant_uit({"id": "b1", "inhoud": {"naam": "termijn", "definitie": DEFINITIE}, "op_voorstel": {"id": "v1"}}, leeg)
+    assert k.voorgesteld and "voorgestelde definitie, nog niet overgenomen" in "\n".join(ka.kantblok(leeg, k, "BEGRIP"))
+    k = ka.kant_uit({"id": "b1", "inhoud": {"naam": "termijn", "definitie": DEFINITIE}}, leeg)
+    assert not k.voorgesteld and "huidige definitie" in "\n".join(ka.kantblok(leeg, k, "BEGRIP"))

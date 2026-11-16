@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   AANDACHTSPUNT_LEX, aandachtTekst, definitieDoor, duidingTekst, duidingZin, herkomstLabel, onderbouwingKop, onderzoekTekst,
-  openPerVeld, verouderdUit,
+  openPerVeld, rustOp, verouderdReden, verouderdUit,
   voorbeeldTekst,
 } from "./kaartVoorstel";
 import { revisieZin } from "./begrippen";
@@ -112,5 +112,30 @@ describe("de onderbouwing onder een overgenomen definitie (spoor M)", () => {
   it("zegt de duiding zoals bij het voorstel", () => {
     expect(duidingZin({ soort: "begrip", bereik: "algemeen", voorkeursterm: "", ontbreekt: "" }))
       .toBe("Lex duidt dit als een begrip (algemeen)");
+  });
+});
+
+describe("een voorstel op de voorgestelde definitie (B-6)", () => {
+  const uitleg = (over: Partial<KaartVoorstel> = {}) => voorstel({
+    actie: "uitleg", veld: "uitleg", waarde: { tekst: "Alfa komt eerst.", fragmenten: [] },
+    basis: { revisie: 1, definitie: "de eerste", definitie_herkomst: "letterlijk", voorstel_id: "d1" }, ...over });
+
+  it("zegt dat het op de voorgestelde definitie rust zolang die open staat", () => {
+    expect(rustOp(uitleg({ wacht_op_definitie: true, verouderd: false }))).toMatch(/^Rust op de voorgestelde definitie\. Neem die eerst over/);
+    expect(rustOp(uitleg({ wacht_op_definitie: false, verouderd: false }))).toMatch(/die je hebt overgenomen/);
+  });
+
+  it("verouderd: geen rust-zin maar de reden, en op de bewaarde definitie niets", () => {
+    expect(rustOp(uitleg({ verouderd: true }))).toBeNull();
+    expect(verouderdReden(uitleg({ verouderd: true }))).toMatch(/niet, of anders, hebt overgenomen/);
+    expect(rustOp(voorstel())).toBeNull();
+    expect(rustOp(uitleg({ basis: { revisie: 1, definitie: "x", definitie_herkomst: null } }))).toBeNull();
+    expect(verouderdReden(voorstel())).toMatch(/^De definitie veranderde/);
+  });
+
+  it("verouderdUit leest bij een tekstvoorstel de tekst", () => {
+    const e = { status: 409, data: { fout: "voorstel_verouderd", toen: { definitie: "de eerste" }, nu: { definitie: "anders" },
+      voorstel: { tekst: "Alfa komt eerst." } } };
+    expect(verouderdUit(e, "v1")).toEqual({ voorstelId: "v1", toen: "de eerste", nu: "anders", voorstel: "Alfa komt eerst." });
   });
 });

@@ -12,8 +12,8 @@ import { Input } from "@/components/ui/Field";
 import { OordeelKeuze, OordeelLabel } from "@/components/werkgebieden/Voorbeelden";
 import { Melding } from "@/components/ui/Melding";
 import {
-  VERGELIJKING_LABEL, aandachtTekst, duidingTekst, herkomstLabel, isDefinitie, onderzoekTekst, voorbeeldTekst,
-  voorstelTekst, type Verouderd,
+  VERGELIJKING_LABEL, aandachtTekst, duidingTekst, herkomstLabel, isDefinitie, onderzoekTekst, rustOp, verouderdReden,
+  voorbeeldTekst, voorstelTekst, type Verouderd,
 } from "@/lib/kaartVoorstel";
 import type { KaartVoorstel, TekstWaarde, VoorbeeldOordeel } from "@/lib/types";
 
@@ -41,7 +41,9 @@ export function KaartVoorstelKaart({ v, verouderd, onbewaard, geaccordeerd, onOv
   const [bezig, setBezig] = useState(false);
   const w = v.waarde;
   const isVerouderd = !!verouderd || !!v.verouderd;
-  const uit = onbewaard || bezig;
+  // B-6: rust het op een voorgestelde definitie die nog open staat, dan gaat er niets het begrip in tot die er staat.
+  const wacht = !!v.wacht_op_definitie && !isVerouderd;
+  const uit = onbewaard || bezig || wacht;
   // Wat er nu staat, zoals de analist het naast het voorstel ziet; meegestuurd maakt het vervangen bewust.
   const nuTekst = verouderd?.nu ?? v.nu?.definitie ?? "";
   const bewust = isVerouderd ? { nu_gezien: nuTekst } : {};
@@ -65,9 +67,7 @@ export function KaartVoorstelKaart({ v, verouderd, onbewaard, geaccordeerd, onOv
 
       {isVerouderd ? (
         <div className="space-y-1.5" aria-label="Vergelijking">
-          <p className="text-xs text-aandacht-geel-tekst">
-            De definitie veranderde nadat Lex dit voorstelde. Er wordt niets overschreven: vergelijk en kies opnieuw.
-          </p>
+          <p className="text-xs text-aandacht-geel-tekst">{verouderdReden(v)}</p>
           <dl className="grid gap-1 text-xs sm:grid-cols-[6rem_minmax(0,1fr)]">
             <dt className="text-muted">Toen</dt>
             <dd className="text-ink">{(verouderd?.toen ?? v.basis.definitie) || <em>geen definitie</em>}</dd>
@@ -79,6 +79,12 @@ export function KaartVoorstelKaart({ v, verouderd, onbewaard, geaccordeerd, onOv
         </div>
       ) : (
         <blockquote className="whitespace-pre-line text-ink">{voorstelTekst(v)}</blockquote>
+      )}
+      {rustOp(v) && (
+        <p className="text-xs text-muted" data-rust-op={v.basis.voorstel_id}>
+          {rustOp(v)}
+          {v.basis.definitie && <> <span className="text-ink">“{v.basis.definitie}”</span></>}
+        </p>
       )}
 
       {!isDefinitie(v) && (w as TekstWaarde).oordeel && (
