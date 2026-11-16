@@ -69,6 +69,8 @@ def _soort(pad: tuple[tuple[str, str], ...]) -> str:
 def _jci_pad(paren: list[tuple[str, str]]) -> tuple[tuple[str, str], ...]:
     if any(k == "bijlage" for k, _ in paren):
         return ()
+    # Een sub-paragraaf is een geneste paragraaf, zoals de importer haar schrijft (`references._SEGMENTNAAM`).
+    paren = [("paragraaf" if k == "sub-paragraaf" else k, v) for k, v in paren]
 
     def laatste(sleutel: str) -> str | None:
         waarden = [v for k, v in paren if k == sleutel]

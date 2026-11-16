@@ -212,8 +212,10 @@ const STRUCTUUR = new Set(["hoofdstuk", "titeldeel", "afdeling", "paragraaf"]);
  *
  *  De vectoren in `lib/jci-vectoren.json` toetsen beide kanten; wijkt dit af van de importer, dan
  *  opent "Bekijk in de graaf" een bronnode die niet bestaat. */
-function jciPad(paren: [string, string][]): [string, string][] {
-  if (paren.some(([n]) => n === "bijlage")) return [];
+function jciPad(ruw: [string, string][]): [string, string][] {
+  if (ruw.some(([n]) => n === "bijlage")) return [];
+  // Een sub-paragraaf is een geneste paragraaf, zoals de importer haar schrijft (`_SEGMENTNAAM` in references.py).
+  const paren = ruw.map(([n, v]) => [n === "sub-paragraaf" ? "paragraaf" : n, v] as [string, string]);
   const laatste = (k: string) => paren.filter(([n]) => n === k).at(-1)?.[1];
   const artikel = laatste("artikel");
   if (artikel) {
