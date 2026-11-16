@@ -62,6 +62,22 @@ met "Ja, 1,2M". De meting volgt op [de meting na het plan](../centrale-agent-202
 | **Brongetrouw** | **gehaald voor wat er staat**: diagnose 1 *gegrond* |
 | **Verbruik** binnen het plafond | **gehaald**: 567k van 1,2M |
 
+## Vervolg
+
+- **De 400 van `centraal` met een connector** wordt opgelost in de hoofdsessie, met PR #1614. Die PR maakt zes
+  overdrachten niet-strict:
+  - `wijs_af`;
+  - `meer_tools`;
+  - `toon_overzicht`;
+  - `lees_annotaties`;
+  - `lees_begrippen`;
+  - `toon_stukken`.
+- Daarmee gaat het strict schema van `centraal` met een connector van 12 tools en 9.473 tekens naar 6 tools en 8.091
+  tekens.
+- Dit past bij de hoofdverdachte hierboven, de grens van de grammatica.
+- De meting is in deze ronde afgebroken. Een nieuwe meting van S01, P01 en F02 vraagt opnieuw akkoord van de gebruiker.
+  Punt 1 en 2 van het voorstel hieronder zijn daarmee ingehaald.
+
 ## Voorstel (geen nieuwe ronde)
 
 1. **Eerst de oorzaak vaststellen.** Lees `model_aanroep_fout` van de twee run-id's hierboven, in App Insights of
