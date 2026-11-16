@@ -110,3 +110,255 @@ def test_om_de_beurt_sterk_met_gelijke_regelingen_is_om_de_beurt():
 
 def test_beurt_sterk_staat_standaard_uit():
     assert dz.STANDAARD_PROFIEL.beurt_sterk is False and dz.AANDEEL_STERK == 0.5
+
+
+# --- stap 1: de woordenroute naast een brede pool (O1) -----------------------------------------------------------
+
+from agent import zoekvragen as zv  # noqa: E402
+
+
+def _pool(iri: str, geraakt: list[str], brug: dict | None = None) -> dict:
+    return {"bron_iri": iri, "geraakt": geraakt, "zoekvraag": "d", "signaal": "beleidsregel",
+            **({"brug": brug} if brug else {})}
+
+
+def _woord(iri: str, buiten: bool = False) -> dict:
+    return {"bron_iri": iri, "geraakt": ["verrekening"], "buiten": buiten, "label": iri}
+
+
+POOL = [_pool("p1", ["verrekening"]), _pool("p2", ["termijnen"], brug={"termijnen": "winstaandeel"}), _pool("p3", [])]
+WOORDEN = [_woord("w1"), _woord("p1"), _woord("w2"), _woord("w3", buiten=True)]
+
+
+def test_zwak_in_pool_is_alleen_brug_of_bonus():
+    assert [zv.zwak_in_pool(o) for o in POOL] == [False, True, True]
+
+
+def test_standaard_gaat_de_pool_voor_zoals_vroeger():
+    uit = zv.samen_met_woorden(POOL, WOORDEN, limit=4)
+    assert [o["bron_iri"] for o in uit] == ["p1", "p2", "p3", "w1", "w3"], "buiten komt er altijd achter"
+    assert [o["bron"] for o in uit] == ["pool", "pool", "pool", "woorden", "woorden"]
+
+
+def test_met_de_vlag_wijkt_een_zwakke_poolkandidaat_voor_een_woordtreffer():
+    uit = zv.samen_met_woorden(POOL, WOORDEN, limit=4, woorden_voor_pool=True)
+    assert [o["bron_iri"] for o in uit] == ["p1", "w1", "w2", "p2", "w3"]
+
+
+def test_woorden_voor_pool_staat_standaard_uit():
+    assert dz.STANDAARD_PROFIEL.woorden_voor_pool is False
+
+
+# --- stap 2: de bonus van de vraagvorm vraagt een eigen woord (O2) ------------------------------------------------
+
+def _kand(iri: str, zoekvraag: str, signaal: str, tekst: str) -> dict:
+    return {"bron_iri": iri, "bwb_id": "X", "zoekvraag": zoekvraag, "signaal": signaal, "zin": "", "tekst": tekst}
+
+
+#: "Wat is …" wijst zoekvraag d aan. De beleidsdivisie raakt geen woord van de vraag; de definitie wel.
+KANDIDATEN = [_kand("beleid", "d", "beleidsregel", "Een toeslagschuld kan worden verrekend met een uitbetaling."),
+              _kand("definitie", "d", "verstaan", "Onder een voorlopige teruggaaf wordt verstaan een negatief bedrag."),
+              _kand("lid", "c", "vervalt", "De eerste termijn van de voorlopige aanslag vervalt een maand later.")]
+VRAAG_D = "Wat is een voorlopige teruggaaf?"
+
+
+def _iris(**vlaggen) -> list[str]:
+    profiel = _profiel(**vlaggen) if vlaggen else None
+    return [k["bron_iri"] for k in zv.opties_bij_deelvraag(KANDIDATEN, VRAAG_D, profiel=profiel)]
+
+
+def test_standaard_krijgt_een_beleidsdivisie_zonder_woord_de_bonus():
+    assert "beleid" in _iris(), "zonder vlag ongewijzigd: past zonder eigen woord"
+
+
+def test_met_de_vlag_telt_de_bonus_alleen_met_een_eigen_woord_en_bij_d_alleen_een_definitie():
+    uit = _iris(vraagvorm_eigen_woord=True)
+    assert "beleid" not in uit, "geen eigen woord: geen bonus en dus geen optie"
+    assert uit[0] == "definitie", "de definitie met een eigen woord krijgt de bonus"
+    assert "lid" in uit, "een eigen woord zonder passende zoekvraag blijft een optie"
+
+
+def test_de_definitieroute_telt_als_definitie():
+    k = _kand("d", "d", "definitie van “voorlopige teruggaaf”", "")
+    assert zv._past_vraagvorm(k, "d", ["teruggaaf"], True)
+    assert not zv._past_vraagvorm(_kand("b", "d", "beleidsregel", ""), "d", ["teruggaaf"], True)
+    assert zv._past_vraagvorm(_kand("b", "b", "procedure", ""), "b", ["teruggaaf"], True), "buiten d: eigen woord volstaat"
+
+
+# --- stap 3: het overzicht niet naast deelvragen en niet op een kale naam (O5) ----------------------------------------
+
+from agent import bronnen_vinden, overzicht  # noqa: E402
+from test_bronnen_vinden import ART8, INVOER, Graaf  # noqa: E402
+
+
+def test_met_de_vlag_draait_het_overzicht_niet_naast_deelvragen():
+    invoer = {**INVOER, "kern": [], "deelvragen": [{"id": "d1", "vraag": "Wanneer is een aanslag invorderbaar?"}]}
+    assert bronnen_vinden.standaard_voor(invoer) == ("overzicht", "deelvraag"), "zonder vlag ongewijzigd"
+    teken = bronnen_vinden._PROFIEL.set(_profiel(overzicht_streng=True))
+    try:
+        assert bronnen_vinden.standaard_voor(invoer) == ("deelvraag",)
+        assert bronnen_vinden.standaard_voor({**invoer, "deelvragen": []}) == ("overzicht",), "zonder deelvragen wel"
+    finally:
+        bronnen_vinden._PROFIEL.reset(teken)
+
+
+def test_met_de_vlag_geen_overzicht_op_een_naam_van_een_woord_en_de_rol_is_aanverwant(monkeypatch):
+    ov = {"volledig": True, "onderwerp_tekst": "x", "regelingen": [
+        {"delen": [{"bepalingen": [{"iri": ART8, "label": "Artikel 8", "naam": "art. 8"}]}], "ook_genoemd": []}]}
+    gevraagd = {}
+    monkeypatch.setattr(overzicht, "bouw_overzicht", lambda g, vraag, **kw: gevraagd.update(vraag=vraag, **kw) or ov)
+    streng = _profiel(overzicht_streng=True)
+    uit = bronnen_vinden.vind(Graaf(), {**INVOER, "naam": "Termijnen"}, methoden=("overzicht",), profiel=streng)
+    assert gevraagd["onderwerp"] == INVOER["analysevraag"], "één woord is geen onderwerp: de analysevraag"
+    assert uit["kandidaten"][0]["rol"] == "aanverwant"
+    bronnen_vinden.vind(Graaf(), {**INVOER, "naam": "Termijnen van betaling"}, methoden=("overzicht",), profiel=streng)
+    assert gevraagd["onderwerp"] == "Termijnen van betaling"
+    assert bronnen_vinden.vind(Graaf(), INVOER, methoden=("overzicht",))["kandidaten"][0]["rol"] == "kern", \
+        "zonder vlag ongewijzigd"
+    assert bronnen_vinden._profiel() is dz.STANDAARD_PROFIEL, "na de run staat het profiel terug"
+
+
+# --- stap 4: een samenstelling raakt op haar hele stam of haar kern (O3) ----------------------------------------------
+
+from agent.zoektermen import _raakt, raakt_heel  # noqa: E402
+
+
+def test_raakt_heel_op_de_stam_of_de_kern_niet_op_het_eerste_deel():
+    tekst = "de eerste termijn vervalt een maand na de dagtekening van de betaling van de belasting"
+    assert _raakt(["betalingstermijnen", "belastingjaar"], tekst) == ["betalingstermijnen", "belastingjaar"], \
+        "standaard: de eerste acht letters (betaling, belastin) raken al"
+    assert raakt_heel("betalingstermijnen", tekst), "de kern 'termijn' staat er als woord"
+    assert not raakt_heel("belastingjaar", tekst), "'belasting' is het eerste deel, 'jaar' te kort als kern"
+    assert raakt_heel("belastingjaar", "over het belastingjaar 2025")
+    assert raakt_heel("termijnen", tekst), "een korte stam raakt zoals altijd op zijn begin"
+    assert _raakt(["betalingstermijnen", "belastingjaar"], tekst, heel=True) == ["betalingstermijnen"]
+
+
+def test_raakt_heel_vindt_de_kern_niet_midden_in_een_woord():
+    assert not raakt_heel("betalingstermijnen", "de aanslagtermijnen"), "de kern moet een woord beginnen"
+    assert raakt_heel("belastingaanslag", "de voorlopige aanslag"), "aanslag is de kern van belastingaanslag"
+
+
+def test_stam_heel_staat_standaard_uit():
+    assert dz.STANDAARD_PROFIEL.stam_heel is False
+
+
+# --- stap 5: brugwoorden uit een omschrijving, en een woord buiten het zoekbereik (O4) ---------------------------------
+
+DOSSIER_BRUG = {"analysevraag": "Hoe wordt een negatieve voorlopige aanslag winstaandeel verwerkt op de termijnbedragen?",
+                "context": "Een rekeningafspraak is het vastleggen van een bankrekening waarop wordt uitbetaald."}
+
+
+def test_brugwoorden_alleen_uit_een_omschrijving():
+    assert "termijnbedragen" in zv.brugtermen(DOSSIER_BRUG, "winstaandeel"), "standaard: elke zin die het noemt"
+    assert zv.brugtermen(DOSSIER_BRUG, "winstaandeel", alleen_omschrijving=True) == [], "de analysevraag omschrijft niets"
+    assert zv.brugtermen(DOSSIER_BRUG, "rekeningafspraak", alleen_omschrijving=True) == \
+        ["vastleggen", "bankrekening", "uitbetaald"], "een omschrijvende zin blijft een brug"
+
+
+class EldersGraaf(BepalingGraaf):
+    """"winstaandeel" staat in de graaf in een regeling buiten het bereik, twee keer, en één keer erbinnen."""
+
+    def __init__(self, faal: bool = False):
+        super().__init__()
+        self.kapot = faal
+
+    def _antwoord(self, q: str) -> str:
+        if "luc:query" in q and "winstaandeel" in q:
+            if self.kapot:
+                raise RuntimeError("graaf hapert")
+            return _tsv(["node", "score", "soort", "bwbId", "citeertitel"],
+                        [["urn:bwb:BWBR0014168:artikel:65", "1", "Artikel", "BWBR0014168", "Mijnbouwwet"],
+                         ["urn:bwb:BWBR0014168:artikel:70:lid:1", "1", "Lid", "BWBR0014168", "Mijnbouwwet"],
+                         [f"urn:bwb:{IWB}:artikel:2", "1", "Artikel", IWB, "Invorderingswet 1990"]])
+        return super()._antwoord(q)
+
+
+def test_een_woord_buiten_het_zoekbereik_noemt_de_regeling():
+    assert zv.regelingen_met_woord(EldersGraaf(), "winstaandeel", [IWB]) == ["Mijnbouwwet"]
+    assert zv.regelingen_met_woord(EldersGraaf(), "winstaandeel", [IWB, "BWBR0014168"]) == []
+    assert zv.regelingen_met_woord(EldersGraaf(faal=True), "winstaandeel", [IWB]) == [], "een storing zegt niets"
+
+
+def test_de_kloofmelding_noemt_de_regeling_waar_het_woord_wel_staat():
+    import asyncio
+
+    from agent import bronselectie as bs
+
+    class Api:
+        async def haal_werkgebied(self, wid):
+            return {"regelingen": [{"bwb_id": IWB}], "bronnen": []}
+
+    def toets(wg, regelingen, woorden, voorwerp):
+        return {"ontbrekend": ["winstaandeel"], "brug": {}, "elders": {"winstaandeel": ["Mijnbouwwet"]}}
+
+    teken = bs._TOETS.set(toets)
+    try:
+        zin = asyncio.run(bs._kloof(Api(), "w1", {"deelvragen": []}, ["winstaandeel"]))
+    finally:
+        bs._TOETS.reset(teken)
+    assert zin == ("‘winstaandeel’ staat niet in de regelingen van dit werkgebied, wel in Mijnbouwwet. "
+                   "Hoort die regeling erbij, neem haar dan op in het zoekbereik.")
+
+
+def test_brug_omschrijving_staat_standaard_uit():
+    assert dz.STANDAARD_PROFIEL.brug_omschrijving is False
+
+
+# --- stap 6: de wet als brug: een definitie met "wordt aangeduid als" (O4) --------------------------------------------
+
+from lxml import etree  # noqa: E402
+
+AWR13 = "urn:bwb:BWBR0002320:artikel:13:lid:2"
+
+
+class DefinitieGraaf(BepalingGraaf):
+    """AWR 13 lid 2 definieert de voorlopige teruggaaf; een tweede definitie raakt maar één term."""
+
+    def __init__(self, faal: bool = False):
+        super().__init__()
+        self.kapot = faal
+
+    def _antwoord(self, q: str) -> str:
+        if "SAMPLE(?tk) AS ?tekst" in q and "definieertBegrip ?b" in q and "definieertBegrip:" not in q:
+            if self.kapot:
+                raise RuntimeError("graaf hapert")
+            return _tsv(["node", "begrip", "tekst"],
+                        [[AWR13, "voorlopige teruggaaf", "Een voorlopige aanslag tot een negatief bedrag die voor of in "
+                          "de loop van het tijdvak wordt vastgesteld, wordt aangeduid als voorlopige teruggaaf."],
+                         ["urn:bwb:BWBR0002320:artikel:2:lid:3", "inspecteur", "de inspecteur van de aanslag"]])
+        return super()._antwoord(q)
+
+
+def test_definitie_brug_brengt_het_begrip_mee_als_zoekterm():
+    termen = ["negatieve", "voorlopige", "aanslag"]
+    assert dz.definitie_bruggen(DefinitieGraaf(), termen, [IWB], dz.STANDAARD_PROFIEL) == {"teruggaaf": "voorlopige teruggaaf"}
+    assert dz.definitie_bruggen(DefinitieGraaf(), ["aanslag"], [IWB], dz.STANDAARD_PROFIEL) == {}, "te weinig termen"
+    assert dz.definitie_bruggen(DefinitieGraaf(faal=True), termen, [IWB], dz.STANDAARD_PROFIEL) == {}
+
+
+def test_definitie_brug_in_de_pool_alleen_met_de_vlag():
+    args = {"regelingen": [IWB], "deelvraag": "Wat is een negatieve voorlopige aanslag?", "dossier": DOSSIER}
+    assert "teruggaaf" not in dz.kandidatenpool(DefinitieGraaf(), **args)["termen"]
+    pool = dz.kandidatenpool(DefinitieGraaf(), **args, profiel=_profiel(definitie_brug=True))
+    assert "teruggaaf" in pool["termen"] and pool["bruggen"] == {"teruggaaf": "voorlopige teruggaaf"}
+
+
+def test_de_parser_kent_de_aanduiding_alleen_met_de_vlag():
+    from bronmodel.bwb.parser import ToestandParser
+
+    lid = etree.fromstring("<lid><lidnr>2</lidnr><al>Een voorlopige aanslag tot een negatief bedrag die voor of in de "
+                           "loop van het tijdvak wordt vastgesteld, wordt aangeduid als voorlopige teruggaaf.</al></lid>")
+    hierna = etree.fromstring("<lid><al>De inspecteur van de Belastingdienst (hierna: de inspecteur) stelt vast.</al></lid>")
+    assert ToestandParser._definities(lid) == []
+    assert ToestandParser._definities(lid, aanduiding=True) == ["voorlopige teruggaaf"]
+    assert ToestandParser._definities(hierna, aanduiding=True) == ["inspecteur"]
+    gewoon = etree.fromstring("<lid><al>Dit wordt aangeduid als een bijzonder geval, dat niet vaak voorkomt.</al></lid>")
+    assert ToestandParser._definities(gewoon, aanduiding=True) == [], "een lange bijzin is geen naam"
+
+
+def test_definitie_brug_staat_standaard_uit():
+    from bronmodel.bwb.parser import ToestandParser
+
+    assert dz.STANDAARD_PROFIEL.definitie_brug is False
+    assert ToestandParser().aanduiding is False, "de importer leest route 4 alleen met BWB_DEFINITIE_AANDUIDING"

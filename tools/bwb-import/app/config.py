@@ -71,6 +71,9 @@ class Settings:
     # foutcode, zodat een dip zich meldt in plaats van in de logs te blijven staan. 0 = uit — de
     # ontsnapping voor een regeling die legitiem lager meet.
     min_dekking: float = STANDAARD_DREMPEL
+    # Route 4 van de definities (`ToestandParser(aanduiding=)`): "… wordt aangeduid als X" en "(hierna: X)". Standaard
+    # uit (plan bronselectie Termijnen, stap 6); aan verandert de graaf bij de volgende import.
+    definitie_aanduiding: bool = False
 
     @classmethod
     def from_env(cls, *, env_file: Path | None = None) -> Settings:
@@ -95,4 +98,5 @@ class Settings:
             graphdb_base_iri=os.getenv("GRAPHDB_BASE_IRI", DEFAULT_BASE_IRI),
             graphdb_ontology_iri=os.getenv("GRAPHDB_ONTOLOGY_IRI", DEFAULT_ONTOLOGY_IRI),
             min_dekking=_as_float(os.getenv("BWB_MIN_DEKKING"), default=STANDAARD_DREMPEL),
+            definitie_aanduiding=_as_bool(os.getenv("BWB_DEFINITIE_AANDUIDING"), default=False),
         )

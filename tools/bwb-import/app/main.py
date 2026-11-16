@@ -58,7 +58,8 @@ def _haal_en_parse(
     xml_path = downloader.download_toestand(bwb_id, toestand)
 
     schema_path = settings.schemas_dir / "toestand.xsd"
-    parser = ToestandParser(schema_path=schema_path if settings.validate_xsd else None)
+    parser = ToestandParser(schema_path=schema_path if settings.validate_xsd else None,
+                            aanduiding=settings.definitie_aanduiding)
     xsd_geldig = parser.validate(xml_path) if settings.validate_xsd else None
 
     wet = parser.parse(xml_path)

@@ -77,14 +77,20 @@ def bronselectie_node(b, state: State) -> dict[str, Any]:
 
         def toets(werkgebied: dict[str, Any], regelingen: list[str], woorden: list[str], voorwerp: bool) -> dict[str, Any]:
             """De woordenkloof en het voorwerp (zonder model); zonder graaf niets."""
-            from ..zoekvragen import brugtermen, is_voorwerp, ontbrekende_woorden, regelingen_van_gebeurtenis
+            from ..deelvraag_zoeken import STANDAARD_PROFIEL
+            from ..zoekvragen import (brugtermen, is_voorwerp, ontbrekende_woorden, regelingen_met_woord,
+                                      regelingen_van_gebeurtenis)
             if b.graph is None:
                 return {}
+            streng = STANDAARD_PROFIEL.brug_omschrijving
             gekozen = (werkgebied.get("gebeurtenis") or "").strip()
             bereik = regelingen or (regelingen_van_gebeurtenis(b.graph, gekozen) if gekozen else [])
             ontbrekend = ontbrekende_woorden(b.graph, woorden, bereik) if woorden else []
+            elders = {w: regelingen_met_woord(b.graph, w, bereik) for w in ontbrekend} if streng and bereik else {}
             return {"voorwerp": bool(voorwerp and gekozen and is_voorwerp(b.graph, gekozen, regelingen)),
-                    "ontbrekend": ontbrekend, "brug": {w: brugtermen(werkgebied, w)[:5] for w in ontbrekend}}
+                    "ontbrekend": ontbrekend,
+                    "brug": {w: brugtermen(werkgebied, w, alleen_omschrijving=streng)[:5] for w in ontbrekend},
+                    "elders": {w: r for w, r in elders.items() if r}}
 
         try:
             if actie:
