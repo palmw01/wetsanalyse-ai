@@ -230,3 +230,17 @@ andere set). Voor de laatste twee staat in hun stap een variant die uit hetzelfd
 - de begrippen in de divisies van een beleidsregel leest de parser niet (stap 6);
 - een gebeurtenis die bijna een hele wet omvat, laat de pool alles nemen (O1). Een melding bij het kaartje van de gebeurtenis
   staat in het plan (stap 1), maar is niet gebouwd.
+
+## Stap 8 – aangezet (16 nov 2026, akkoord gebruiker)
+
+`termen_idf`, `verwijzingen`, `brug_omschrijving` en `overzicht_streng` staan standaard aan, na de blinde set Verrekening
+([`bronselectie-2026-11-16-blind/`](../bronselectie-2026-11-16-blind/README.md): de combinatie haalt de drempel). De andere
+vlaggen blijven uit.
+
+De eval meet de metingen van november voortaan op `VOOR_STAP8`, het profiel van toen. Zo blijven die uitkomsten
+reproduceerbaar en blijven hun tests ongewijzigd. De standaard van nu meten de routes "standaard (stap 8)" en "zoekvragen
+standaard (stap 8)". `test_de_standaard_van_stap_8_houdt_de_gemeten_uitkomst` legt de uitkomst vast op Termijnen
+(woorden 0,125, zoekvragen 0,062) en op de blinde set (woorden 0,056, zoekvragen 0,333).
+
+Een werkgebied zoekt na de uitrol opnieuw: de zoekcode verandert, dus ook de `zoekversie`. Een controlerun op Termijnen in de
+werkplek staat nog open en vraagt akkoord.

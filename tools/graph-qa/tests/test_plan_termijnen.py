@@ -47,10 +47,10 @@ def _termen(graaf, **vlaggen) -> list[str]:
     return pool["termen"]
 
 
-def test_standaard_staat_termen_idf_uit_en_telt_niets():
+def test_termen_idf_staat_aan_en_zonder_vlag_telt_er_niets():
+    assert dz.STANDAARD_PROFIEL.termen_idf is True, "aan sinds stap 8 (16 nov 2026)"
     graaf = TelGraaf()
-    assert dz.STANDAARD_PROFIEL.termen_idf is False
-    assert _termen(graaf) == ["werkt", "verrekening", "negatieve", "voorlopige", "aanslag", "bedragen"]
+    assert _termen(graaf, termen_idf=False) == ["werkt", "verrekening", "negatieve", "voorlopige", "aanslag", "bedragen"]
     assert graaf.tellingen == [], "zonder vlag geen telquery: het verzoek blijft gelijk"
 
 
@@ -68,7 +68,8 @@ def test_de_zeldzaamste_termen_zoeken_in_de_volgorde_van_de_vraag():
 def test_een_vulwoord_zoekt_niet():
     vraag = "Welke termijnen gelden bijvoorbeeld voor een voorlopige aanslag?"
     args = {"regelingen": [IWB], "deelvraag": vraag, "dossier": DOSSIER}
-    assert "bijvoorbeeld" in dz.kandidatenpool(TelGraaf(), **args)["termen"], "zonder vlag ongewijzigd"
+    assert "bijvoorbeeld" in dz.kandidatenpool(TelGraaf(), **args, profiel=_profiel(termen_idf=False))["termen"], \
+        "zonder vlag ongewijzigd"
     assert "bijvoorbeeld" not in dz.kandidatenpool(TelGraaf(), **args, profiel=_profiel(termen_idf=True))["termen"]
 
 
@@ -193,11 +194,12 @@ from test_bronnen_vinden import ART8, INVOER, Graaf  # noqa: E402
 
 def test_met_de_vlag_draait_het_overzicht_niet_naast_deelvragen():
     invoer = {**INVOER, "kern": [], "deelvragen": [{"id": "d1", "vraag": "Wanneer is een aanslag invorderbaar?"}]}
-    assert bronnen_vinden.standaard_voor(invoer) == ("overzicht", "deelvraag"), "zonder vlag ongewijzigd"
-    teken = bronnen_vinden._PROFIEL.set(_profiel(overzicht_streng=True))
+    assert dz.STANDAARD_PROFIEL.overzicht_streng is True, "aan sinds stap 8 (16 nov 2026)"
+    assert bronnen_vinden.standaard_voor(invoer) == ("deelvraag",)
+    assert bronnen_vinden.standaard_voor({**invoer, "deelvragen": []}) == ("overzicht",), "zonder deelvragen wel"
+    teken = bronnen_vinden._PROFIEL.set(_profiel(overzicht_streng=False))
     try:
-        assert bronnen_vinden.standaard_voor(invoer) == ("deelvraag",)
-        assert bronnen_vinden.standaard_voor({**invoer, "deelvragen": []}) == ("overzicht",), "zonder deelvragen wel"
+        assert bronnen_vinden.standaard_voor(invoer) == ("overzicht", "deelvraag"), "zonder vlag zoals vroeger"
     finally:
         bronnen_vinden._PROFIEL.reset(teken)
 
@@ -213,8 +215,9 @@ def test_met_de_vlag_geen_overzicht_op_een_naam_van_een_woord_en_de_rol_is_aanve
     assert uit["kandidaten"][0]["rol"] == "aanverwant"
     bronnen_vinden.vind(Graaf(), {**INVOER, "naam": "Termijnen van betaling"}, methoden=("overzicht",), profiel=streng)
     assert gevraagd["onderwerp"] == "Termijnen van betaling"
-    assert bronnen_vinden.vind(Graaf(), INVOER, methoden=("overzicht",))["kandidaten"][0]["rol"] == "kern", \
-        "zonder vlag ongewijzigd"
+    assert bronnen_vinden.vind(Graaf(), INVOER, methoden=("overzicht",),
+                               profiel=_profiel(overzicht_streng=False))["kandidaten"][0]["rol"] == "kern", \
+        "zonder vlag zoals vroeger"
     assert bronnen_vinden._profiel() is dz.STANDAARD_PROFIEL, "na de run staat het profiel terug"
 
 
@@ -301,8 +304,8 @@ def test_de_kloofmelding_noemt_de_regeling_waar_het_woord_wel_staat():
                    "Hoort die regeling erbij, neem haar dan op in het zoekbereik.")
 
 
-def test_brug_omschrijving_staat_standaard_uit():
-    assert dz.STANDAARD_PROFIEL.brug_omschrijving is False
+def test_brug_omschrijving_staat_aan():
+    assert dz.STANDAARD_PROFIEL.brug_omschrijving is True, "aan sinds stap 8 (16 nov 2026)"
 
 
 # --- stap 6: de wet als brug: een definitie met "wordt aangeduid als" (O4) --------------------------------------------

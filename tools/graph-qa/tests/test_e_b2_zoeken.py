@@ -27,9 +27,11 @@ def _profiel(**vlaggen):
     return replace(dz.STANDAARD_PROFIEL, **vlaggen)
 
 
-def test_standaard_staan_beide_vlaggen_uit():
-    assert dz.STANDAARD_PROFIEL.verwijzingen is False and dz.STANDAARD_PROFIEL.onderscheidend is False
-    assert [o["bron_iri"] for o in _opties(VerwijsGraaf())] == [o["bron_iri"] for o in _opties()]
+def test_verwijzingen_staat_aan_en_onderscheidend_uit():
+    """`verwijzingen` staat aan sinds stap 8 van het plan Termijnen (16 nov 2026); `onderscheidend` blijft uit."""
+    assert dz.STANDAARD_PROFIEL.verwijzingen is True and dz.STANDAARD_PROFIEL.onderscheidend is False
+    uit = _profiel(verwijzingen=False)
+    assert [o["bron_iri"] for o in _opties(VerwijsGraaf(), profiel=uit)] == [o["bron_iri"] for o in _opties(profiel=uit)]
 
 
 def test_met_verwijzingen_komt_het_verwezen_artikel_mee_binnen_het_bereik():
@@ -37,7 +39,7 @@ def test_met_verwijzingen_komt_het_verwezen_artikel_mee_binnen_het_bereik():
     extra = [o for o in uit if o.get("verwezen_vanuit")]
     assert [o["bron_iri"] for o in extra] == [DOEL], "binnen het bereik, niet zichzelf en niet erbuiten"
     assert extra[0]["omschrijving"].startswith("verwezen vanuit ")
-    assert len(uit) == len(_opties()) + 1
+    assert len(uit) == len(_opties(profiel=_profiel(verwijzingen=False))) + 1
 
 
 def test_een_haperende_graaf_kost_alleen_de_aanvulling():
@@ -48,7 +50,7 @@ def test_een_haperende_graaf_kost_alleen_de_aanvulling():
             return super()._antwoord(q)
 
     assert [o["bron_iri"] for o in _opties(Kapot(), profiel=_profiel(verwijzingen=True))] == \
-        [o["bron_iri"] for o in _opties()]
+        [o["bron_iri"] for o in _opties(profiel=_profiel(verwijzingen=False))]
 
 
 def test_een_term_uit_elke_deelvraag_rangschikt_alleen():
@@ -64,4 +66,4 @@ def test_een_term_uit_elke_deelvraag_rangschikt_alleen():
     args = {"regelingen": [IWB], "deelvraag": deelvragen[0], "dossier": {**DOSSIER, "deelvragen": deelvragen}}
     pool = dz.kandidatenpool(BepalingGraaf(), **args, profiel=_profiel(onderscheidend=True))
     assert "belastingaanslag" not in pool["termen"] and "belastingaanslag" in pool["dossiertermen"]
-    assert "belastingaanslag" in dz.kandidatenpool(BepalingGraaf(), **args)["termen"], "zonder vlag ongewijzigd"
+    assert "belastingaanslag" in dz.kandidatenpool(BepalingGraaf(), **args)["termen"], "standaard uit"
