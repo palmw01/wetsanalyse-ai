@@ -173,7 +173,7 @@ async function knopVolgtDeGebruiker() {
   assert.equal(await knop(ander).count(), 0, "de andere computer hoort de knop niet te tonen");
 
   // De instellingen als venster over de werkplek: aanzetten werkt door zodra het venster sluit, zonder herladen.
-  await ander.getByRole("button", { name: /instellingen/ }).first().click();
+  await ander.getByRole("button", { name: /^Menu van / }).first().click();
   await ander.getByRole("link", { name: "Instellingen", exact: true }).click();
   await ander.getByRole("tab", { name: "Rondleiding" }).click();
   await ander.getByRole("checkbox", { name: "Toon de knop op het startscherm" }).check();
