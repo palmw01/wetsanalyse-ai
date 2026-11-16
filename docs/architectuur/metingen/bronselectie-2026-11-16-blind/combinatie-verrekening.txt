@@ -1,0 +1,1 @@
+verrekening-concept standaard woorden: 0.056 (prec 0.031, uitgesl 0) | kandidaten woorden: 0.056 (prec 0.026, uitgesl 0) | standaard zoekvragen: 0.333 (prec 0.219, uitgesl 0) | kandidaten zoekvragen: 0.333 (prec 0.219, uitgesl 0)
