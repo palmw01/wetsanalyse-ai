@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
+from bronmodel.begrip import eigen_toelichting
 from pydantic import BaseModel, Field
 
 from ..begrippen_beurt import begrippen_kern
@@ -196,7 +197,10 @@ async def uitwerken(ctx: Context, b: dict[str, Any]) -> Uitkomst:
     op = "" if heeft_definitie else (basis or {}).get("id", "")
     if heeft_definitie or op:
         for actie, veld in (("uitleg", "uitleg"), ("toelichting", "context"), ("voorbeelden", "")):
-            if ctx.gestopt() or (veld and (b.get(veld) or "").strip()):
+            # Wat er al staat, vult Lex niet opnieuw. De vindplaatsregel die een begrip bij het aanmaken als toelichting
+            # krijgt, is geen toelichting (`bronmodel.begrip`): de poort telt haar niet, dus Lex stelt er een voor.
+            if ctx.gestopt() or (veld == "context" and eigen_toelichting(b.get(veld))) \
+                    or (veld == "uitleg" and (b.get(veld) or "").strip()):
                 continue
             stappen.append(await kaart_kern(ctx, actie, b, volgende=False, op_voorstel=op))
     zinnen = [s.gesprekstekst for s in stappen if s.gesprekstekst]

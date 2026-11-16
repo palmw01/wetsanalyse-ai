@@ -25,11 +25,11 @@ from __future__ import annotations
 import csv
 import io
 import json
-import re
 import uuid
 from contextlib import asynccontextmanager
 from typing import Awaitable, Callable
 
+from bronmodel.begrip import eigen_toelichting  # de vindplaatsregel telt niet als toelichting (S6), ook voor graph-qa
 from fastapi import HTTPException
 from sqlalchemy import delete, func, insert, or_, select, update
 
@@ -121,18 +121,6 @@ def _meervoud(n: int, een: str, meer: str) -> str:
     return een if n == 1 else meer.format(n=n)
 
 
-# De zin die `begrippen_run_store.context_uit` en graph-qa `kaart._context` maken. Een punt binnen een vindplaats staat
-# tegen het volgende teken ("Artikel 79.5a"); een punt met een spatie erachter is het eind van de zin, dus wie er een
-# eigen tekst achter zet, valt hier niet onder.
-_NIET_EINDE = r"(?:[^.]|\.(?=\S))+"
-_VINDPLAATSREGEL = re.compile(rf"Komt voor in {_NIET_EINDE}\.(?: Wettelijke definitie in {_NIET_EINDE}\.)?")
-
-
-def eigen_toelichting(context: str) -> bool:
-    """Staat er een toelichting? De gegenereerde vindplaatsregel is er geen: die zegt waar de term staat, niet wat er
-    afgebakend wordt (S6)."""
-    tekst = (context or "").strip()
-    return bool(tekst) and _VINDPLAATSREGEL.fullmatch(tekst) is None
 
 
 def poort(inhoud: dict, koppelingen: list[dict]) -> dict:
