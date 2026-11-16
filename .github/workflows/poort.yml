@@ -447,6 +447,10 @@ jobs:
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           enable-cache: true
+      # `pdftotext` (poppler) is de onafhankelijke tekstextractie van de PDF-tests van de api; in CI is een
+      # ontbrekende `pdftotext` een fout, geen skip (api/tests/conftest.py, testplan api V2).
+      - name: poppler-utils installeren
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends poppler-utils
       - name: Kruistests – de lagen passen op elkaar
         run: scripts/kruistests.sh
 
@@ -614,6 +618,10 @@ jobs:
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           enable-cache: true
+      # `pdftotext` (poppler) is de onafhankelijke tekstextractie van de PDF-tests van de api; in CI is een
+      # ontbrekende `pdftotext` een fout, geen skip (api/tests/conftest.py, testplan api V2).
+      - name: poppler-utils installeren
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends poppler-utils
       - name: api – tests (shard ${{ matrix.shard }}/3)
         working-directory: api
         env:

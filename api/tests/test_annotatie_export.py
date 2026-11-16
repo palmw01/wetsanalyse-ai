@@ -5,7 +5,6 @@ import csv
 import io
 import json
 import re
-import shutil
 import subprocess
 
 import jsonschema
@@ -171,11 +170,10 @@ def test_een_terugval_heet_geen_besluit_van_het_model():
 
 
 
-@pytest.mark.skipif(shutil.which("pdftotext") is None, reason="pdftotext ontbreekt voor onafhankelijke tekstextractie")
-def test_pdf_houdt_tekens_buiten_cp1252_letterlijk():
+def test_pdf_houdt_tekens_buiten_cp1252_letterlijk(pdftotext):
     """Met de standaardletters werd dit stil een ■: dat mag niet in een letterlijk citaat."""
     view = _view([_element(tekst="1‑1‑2026 ≥ Māori", ankers=[])])
-    uit = subprocess.run(["pdftotext", "-", "-"], input=export.pdf_export(view, V), capture_output=True, check=True).stdout.decode()
+    uit = subprocess.run([pdftotext, "-", "-"], input=export.pdf_export(view, V), capture_output=True, check=True).stdout.decode()
     assert "1‑1‑2026 ≥ Māori" in uit and "■" not in uit
 
 
