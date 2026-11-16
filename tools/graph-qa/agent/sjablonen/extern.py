@@ -49,7 +49,51 @@ def is_kopregel(tekst: str, kop: str = "") -> bool:
     if kop.strip().lower().startswith("inhoudsindicatie"):
         return False
     woorden = re.findall(r"\w+", tekst or "")
-    return len(woorden) < MIN_WOORDEN_INHOUD or not any(c.islower() for c in tekst or "")
+    return (len(woorden) < MIN_WOORDEN_INHOUD or not any(c.islower() for c in tekst or "")
+            or is_sectiekop(tekst))
+
+
+#: Zo lang is een genummerde kop in de tekst hoogstens ("3. Beoordeling van de in het principale beroep voorgestelde
+#: middelen en het in het incidentele beroep voorgestelde middel").
+MAX_KOPWOORDEN = 20
+_SECTIENUMMER = re.compile(r"^\s*\d+(?:\.\d+)*\.?\s+[A-ZÀ-Þ]")
+
+
+def is_sectiekop(tekst: str) -> bool:
+    """Een genummerde kop als gewone alinea: "1. Beschikkingen, bezwaar en geding voor het Hof", "2. Geding in cassatie".
+    Een oudere uitspraak heeft haar koppen zo in de tekst in plaats van als sectie (meting F02 na #1629: HR 2005:AS5040
+    citeerde de kop). Een zin met een nummer ervoor eindigt op een leesteken en is geen kop ("3.1. In cassatie kan van het
+    volgende worden uitgegaan."), en een datum ook niet ("21 oktober 2005": na het nummer een hoofdletter)."""
+    t = " ".join((tekst or "").split())
+    return (bool(_SECTIENUMMER.match(t)) and not re.search(r"[.;:?!\"”’)]$", t)
+            and len(re.findall(r"\w+", t)) <= MAX_KOPWOORDEN)
+
+
+#: De kop van het procesverloop van een uitspraak: hoe de zaak bij de rechter kwam, niet wat hij oordeelde.
+_PROCESVERLOOP = re.compile(
+    r"^(?:\d+(?:\.\d+)*\.?\s*)?(?:het\s+)?(?:geding\b|procesverloop|(?:het\s+)?verloop van (?:het geding|de procedure)"
+    r"|loop van het geding|ontstaan en (?:de )?loop van het geding|beschikkingen,? bezwaar\b|feiten en procesverloop)", re.I)
+
+
+def secties(rijen: dict[int, dict[str, Any]]) -> dict[int, str]:
+    """Per alinea de sectie waarin ze staat: het laatste deel van haar kop ("Uitspraak › 1 Geding in cassatie"), of de
+    laatste genummerde kop in de tekst ervóór (`is_sectiekop`) als de kop het niet zegt."""
+    uit: dict[int, str] = {}
+    lopend = ""
+    for nr in sorted(rijen):
+        tekst, kop = str(rijen[nr].get("tekst") or ""), str(rijen[nr].get("kop") or "")
+        if "›" in kop:
+            uit[nr] = kop.rsplit("›", 1)[1].strip()
+            lopend = ""
+            continue
+        if is_sectiekop(tekst):
+            lopend = " ".join(tekst.split())
+        uit[nr] = lopend
+    return uit
+
+
+def is_procesverloop(sectie: str) -> bool:
+    return bool(_PROCESVERLOOP.match(" ".join((sectie or "").split())))
 #: Vaste formules zonder inhoud voor de vraag (A6 run 3): de aanhef en het slot van een besluit (S05: "Wij Beatrix, bij de
 #: gratie Gods …", "Hebben goedgevonden en verstaan:") en het procesverloop van een uitspraak (P02: "De Staatssecretaris
 #: van Financiën heeft een verweerschrift ingediend.").
@@ -468,12 +512,13 @@ def blokken(items: Any, trace: Trace, *, overgeslagen: list[str] | None = None,
     if not items:
         return []
     if overgeslagen is not None and isinstance(items, list) and len(items) > MAX_ALINEAS:
-        overgeslagen.append(f"meer dan {MAX_ALINEAS} aanwijzingen in '{VELD}': alleen de eerste {MAX_ALINEAS} getoond")
+        overgeslagen.append(boven_alineagrens(MAX_ALINEAS))
         items = items[:MAX_ALINEAS]
     if not isinstance(items, list) or len(items) > MAX_ALINEAS:
         raise Onvulbaar(f"'{VELD}' is een lijst van hoogstens {MAX_ALINEAS} aanwijzingen. Wijs alleen de alinea's aan die "
                         "het antwoord dragen, en vat de rest samen in het korte antwoord.")
     per_stuk: dict[str, Extern] = {}
+    sectie_van: dict[str, dict[int, str]] = {}
     fouten: list[str] = []
     kern_van = kernen(items)
     for item in items:
@@ -485,6 +530,8 @@ def blokken(items: Any, trace: Trace, *, overgeslagen: list[str] | None = None,
                           f"naar verwijst, hoort niet in '{VELD}': noem het in je eigen woorden of in de twijfel.")
             continue
         stuk, rijen, alleen_eerder, in_tabel = _gelezen(trace, c, vp.id)
+        if rijen and vp.id not in sectie_van:
+            sectie_van[vp.id] = secties(rijen)
         if not stuk:
             fouten.append(f"{vp.label} is in dit gesprek niet gelezen: haal het stuk eerst op met {c.leestool} en wijs "
                           f"dan de passages aan, of laat het weg uit '{VELD}' en noem het in je eigen woorden of in de "
@@ -533,11 +580,16 @@ def blokken(items: Any, trace: Trace, *, overgeslagen: list[str] | None = None,
                                          else None, verwijst_naar=_verwijzingen(rijen[n]),
                                          plek=str(rijen[n].get("plek") or ""))
                           for n in range(van, tot + 1) if n not in al and n in rijen]
+    if overgeslagen is not None:
+        # Waar de kopregels al wegvielen (een uitspraak, een rapport): per stuk ook het procesverloop. Een tabel of voetnoot
+        # in een Kamerstuk heeft een korte titel en is geen kopregel.
+        for k, blok in per_stuk.items():
+            if zonder_kopregels or blok.brontype == "uitspraak":
+                blok.passages = zonder_procesverloop(blok.passages, sectie_van.get(k) or {})
     per_stuk = {k: v for k, v in per_stuk.items() if v.passages}
     if len(per_stuk) > max_stukken and overgeslagen is not None:
         weg = list(per_stuk)[max_stukken:]
-        overgeslagen.append(f"{len(weg)} stukken boven de grens van {max_stukken} niet als citaat getoond: "
-                            + ", ".join(per_stuk[i].label for i in weg))
+        overgeslagen.append(boven_grens([per_stuk[i].label for i in weg], max_stukken))
         per_stuk = {k: v for k, v in per_stuk.items() if k not in weg}
     elif len(per_stuk) > max_stukken:
         fouten.append(f"Hoogstens {max_stukken} stukken per antwoord.")
@@ -552,6 +604,26 @@ def blokken(items: Any, trace: Trace, *, overgeslagen: list[str] | None = None,
     for b in per_stuk.values():
         b.passages.sort(key=lambda p: p.nr)
     return [*per_stuk.values(), *_afgekapt(list(per_stuk.values()), voorkeur)]
+
+
+def zonder_procesverloop(passages: list[ExternePassage], sectie: dict[int, str]) -> list[ExternePassage]:
+    """De passages van één stuk zonder kopregel, formule en procesverloop, als er daarna iets met inhoud overblijft; anders
+    ongewijzigd (wie om het procesverloop vraagt, krijgt het). Per stuk en niet per reeks: in F02 (na #1629) stonden de
+    kop van het procesverloop, de alinea's erover en de dragende rechtsoverweging als losse aanwijzingen in één blok."""
+    met_secties = any(sectie.values())
+
+    def inhoud(p: ExternePassage) -> bool:
+        if p.soort not in ("alinea", ""):
+            return True
+        if p.kop.strip().lower().startswith("inhoudsindicatie"):
+            return not is_formule(p.tekst, p.kop)
+        if is_kopregel(p.tekst, p.kop) or is_formule(p.tekst, p.kop):
+            return False
+        # Heeft het stuk secties, dan draagt de aanhef ervóór ("uitspraak van de vierde meervoudige belastingkamer") niets.
+        plek = sectie.get(p.nr, "")
+        return not is_procesverloop(plek) and (bool(plek) or not met_secties)
+    houd = [p for p in passages if inhoud(p)]
+    return houd if houd else passages
 
 
 def _rang(p: ExternePassage, stammen: set[str]) -> float:
@@ -858,23 +930,48 @@ def leemte_tekst(c: ConnectorBeschrijving, data: dict[str, Any]) -> str:
                                   "Dat ik niets vond, betekent niet dat het niet bestaat."]))
 
 
+def boven_grens(weg: list[str], grens: int) -> str:
+    """De melding voor stukken die boven de grens van een antwoord vielen, met hun labels uit de trace."""
+    return (f"{len(weg)} {'stuk' if len(weg) == 1 else 'stukken'} boven de grens van {grens} stukken per antwoord niet "
+            f"als citaat getoond: {_en_opsomming(weg)}.")
+
+
+def boven_alineagrens(grens: int) -> str:
+    return f"meer dan {grens} aanwijzingen in '{VELD}': alleen de eerste {grens} getoond"
+
+
+_GRENS = re.compile(rf"^\d+ (?:stuk|stukken) boven de grens van \d+ |^meer dan \d+ aanwijzingen in '{VELD}'")
+
+
 def niet_getoond_tekst(overgeslagen: list[str]) -> str:
-    """De leemte voor wat de code in een antwoord wegliet, uit code: alleen hoeveel. De meldingen voor het model ("haal het
-    vervolg op") horen niet in het antwoord."""
-    aantal = len(overgeslagen)
-    return (("Een aanwijzing in een bron naast de wet klopte" if aantal == 1 else
-             f"{aantal} aanwijzingen in een bron naast de wet klopten")
-            + " niet met wat er gelezen is en " + ("is" if aantal == 1 else "zijn") + " daarom niet als citaat getoond.")
+    """De leemte voor wat de code in een antwoord wegliet, uit code, met de reden: een grens (welke stukken, met hun
+    label uit de trace) of een aanwijzing die niet klopte met wat er gelezen is (alleen hoeveel). Eerst stond er altijd
+    "klopte niet", ook bij een stuk boven de grens (meting F02 na #1629). De meldingen voor het model ("haal het vervolg
+    op") horen niet in het antwoord."""
+    grens = [r for r in overgeslagen if _GRENS.match(r)]
+    aantal = len(overgeslagen) - len(grens)
+    def zin(regel: str) -> str:
+        if m := re.match(r"^meer dan (\d+) aanwijzingen", regel):
+            return f"Alleen de eerste {m.group(1)} aanwijzingen in een bron naast de wet zijn getoond."
+        return regel[0].upper() + regel[1:].rstrip(".") + "."
+    delen = [zin(r) for r in grens]
+    if aantal:
+        delen.append(("Een aanwijzing in een bron naast de wet klopte" if aantal == 1 else
+                      f"{aantal} aanwijzingen in een bron naast de wet klopten")
+                     + " niet met wat er gelezen is en " + ("is" if aantal == 1 else "zijn") + " daarom niet als citaat "
+                     "getoond.")
+    return " ".join(delen)
 
 
-def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
+def vul(invoer: dict[str, Any], trace: Trace, *, max_stukken: int = MAX_STUKKEN) -> Antwoord:
     """Het sjabloon `antwoord_extern`: kort antwoord, de lijst en de passages, en de twijfel. Een aanwijzing die niet
     klopt, laat de code weg als er iets anders te tonen is; anders weigert ze (meting bundel 114)."""
     lijst = lijsten(invoer.get(STUKKEN), trace)
     overgeslagen: list[str] = []
     # Bij het afkappen blijven per stuk de alinea's die het korte antwoord en de kern van dat stuk dragen.
     uitleg = "\n\n".join(d for d in (str(invoer.get("kort_antwoord") or ""), kern_tekst(invoer.get(VELD))) if d.strip())
-    gevonden = blokken(invoer.get(VELD), trace, overgeslagen=overgeslagen, voorkeur=samenvatting(uitleg, trace) or None)
+    gevonden = blokken(invoer.get(VELD), trace, overgeslagen=overgeslagen, max_stukken=max_stukken,
+                       voorkeur=samenvatting(uitleg, trace) or None)
     if overgeslagen and not any(b.soort == "extern" for b in gevonden) and not lijst:
         blokken(invoer.get(VELD), trace)   # niets anders te tonen: de weigering zoals altijd
     if overgeslagen:

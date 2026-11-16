@@ -75,9 +75,13 @@ def vooraf(naam: str, invoer: dict[str, Any], trace: Trace) -> list[dict[str, An
     return list(s.vooraf(invoer, trace)) if s is not None and s.vooraf is not None else []
 
 
-def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:
+def vul(naam: str, invoer: dict[str, Any], trace: Trace, *, max_stukken: int | None = None) -> Antwoord:
     """Vul het sjabloon uit de trace. Draagt de aanroep het veld `extern` (het subsjabloon), dan komen de blokken met
-    de bronnen naast de wet ná de wettekst en de uitleg, vóór de twijfel."""
+    de bronnen naast de wet ná de wettekst en de uitleg, vóór de twijfel.
+
+    `max_stukken` is de grens van een antwoord op stukken naast de wet, als die anders is dan `extern.MAX_STUKKEN`: na een
+    rapport het aantal stukken uit de rapporten (`subagent.stukkengrens`; meting F02 na #1629). Een rapport zelf houdt
+    `MAX_STUKKEN_RAPPORT`."""
     if naam == _rapport.NAAM and _extern.VELD not in invoer and invoer.get("bevindingen") \
             and _extern.aanvulling(str(invoer.get("bevindingen")), [], trace)[0]:
         # Een rapport dat gelezen stukken samenvat zonder 'extern': de code wijst hun passages aan (hieronder).
@@ -91,7 +95,9 @@ def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:
                                                   if k not in {_extern.VELD, _extern.STUKKEN} and isinstance(v, str)),
                                         _extern.kern_tekst(invoer[_extern.VELD])) if d)
         invoer = {**invoer, _extern.VELD: _extern.herkies(uitleg, invoer[_extern.VELD], trace)}
-    if naam == EXTERN or not ({_extern.VELD, _extern.STUKKEN} & set(invoer)):
+    if naam == EXTERN:
+        return _extern.vul(invoer, trace, max_stukken=max_stukken or _extern.MAX_STUKKEN)
+    if not ({_extern.VELD, _extern.STUKKEN} & set(invoer)):
         return SJABLONEN[naam].vul(invoer, trace)
     rest = {k: v for k, v in invoer.items() if k not in {_extern.VELD, _extern.STUKKEN}}
     # Wat het subsjabloon aanwijst, telt in de uitleg als onderbouwd (een artikel van overheid.nl, `duiding.EXTERN_IDS`).
@@ -100,7 +106,7 @@ def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:
     # niet. Alleen als er niets te tonen is, geldt de weigering, zodat het model kan herstellen.
     overgeslagen: list[str] = []
     items = invoer.get(_extern.VELD)
-    max_stukken = _extern.MAX_STUKKEN
+    max_stukken = max_stukken or _extern.MAX_STUKKEN
     voorkeur = None
     if naam == _rapport.NAAM:
         # Een rapport: elk samengevat stuk draagt een passage met inhoud, en de grens is ruimer (meting bundel 122).

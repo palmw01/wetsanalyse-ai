@@ -1,0 +1,36 @@
+{
+  "toelichting": "Gerichte set voor de koppen en het procesverloop van een uitspraak (meting F02 na #1629). 'koppen': een alinea en of ze een genummerde kop in de tekst is (extern.is_sectiekop). 'secties': de kop van een sectie en of die het procesverloop is (extern.is_procesverloop). De vormen komen uit arresten van de Hoge Raad (oud en nieuw schema) en uit wettekst en Kamerstukken, die geen kop mogen worden.",
+  "koppen": [
+    {"tekst": "1. Beschikkingen, bezwaar en geding voor het Hof", "kop": true},
+    {"tekst": "1. Het geding in feitelijke instantie", "kop": true},
+    {"tekst": "2. Geding in cassatie", "kop": true},
+    {"tekst": "3. Beoordeling van het middel", "kop": true},
+    {"tekst": "3. Beoordeling van de in het principale beroep voorgestelde middelen en het in het incidentele beroep voorgestelde middel", "kop": true},
+    {"tekst": "4. Proceskosten", "kop": true},
+    {"tekst": "5. Beslissing", "kop": true},
+    {"tekst": "2.1 Inleiding en samenvatting", "kop": true},
+    {"tekst": "3.1. In cassatie kan van het volgende worden uitgegaan.", "kop": false},
+    {"tekst": "3.3. Het gaat hier om een geval waarin vóór de betekening van het dwangbevel de belastingschuldige een bedrag had voldaan.", "kop": false},
+    {"tekst": "21 oktober 2005", "kop": false},
+    {"tekst": "Nr. 40.468", "kop": false},
+    {"tekst": "2 Bij ministeriële regeling worden nadere regels gesteld.", "kop": false},
+    {"tekst": "1 Indien de belastingschuldige niet binnen de termijn betaalt, wordt een aanmaning verzonden;", "kop": false},
+    {"tekst": "Het Hof heeft het beroep gegrond verklaard.", "kop": false}
+  ],
+  "secties": [
+    {"kop": "1. Beschikkingen, bezwaar en geding voor het Hof", "procesverloop": true},
+    {"kop": "1. Het geding in feitelijke instantie", "procesverloop": true},
+    {"kop": "2. Geding in cassatie", "procesverloop": true},
+    {"kop": "1 Geding in cassatie", "procesverloop": true},
+    {"kop": "Procesverloop", "procesverloop": true},
+    {"kop": "1 Feiten en procesverloop", "procesverloop": true},
+    {"kop": "Het verloop van de procedure", "procesverloop": true},
+    {"kop": "3. Beoordeling van het middel", "procesverloop": false},
+    {"kop": "2 Uitgangspunten in cassatie", "procesverloop": false},
+    {"kop": "2 Beoordeling van de middelen", "procesverloop": false},
+    {"kop": "4 Proceskosten", "procesverloop": false},
+    {"kop": "5. Beslissing", "procesverloop": false},
+    {"kop": "Overwegingen", "procesverloop": false},
+    {"kop": "4 Gedingstukken en verwijzingen", "procesverloop": false}
+  ]
+}
