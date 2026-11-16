@@ -30,6 +30,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
+from . import procestoestand
+
 logger = logging.getLogger("graph_qa.modelkeuze")
 
 #: Hoe lang een gelezen stand geldt. Een wijziging in het beheer is er dus binnen een minuut, bij de volgende beurt.
@@ -71,6 +73,9 @@ def vergeet() -> None:
     zet(None)
     _GEPROBEERD = None
     _KAPOT.clear()
+
+
+procestoestand.registreer(__name__, vergeet)
 
 
 def uit_antwoord(antwoord: dict[str, Any], basis: str) -> Stand:

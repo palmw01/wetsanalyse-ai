@@ -32,6 +32,7 @@ from urllib.parse import unquote
 
 from bronmodel.vindplaats import vindplaats
 
+from . import procestoestand
 from .graph import queries
 from .graph.results import parse_select
 from .graph.structuur import natuurlijke_sleutel
@@ -97,6 +98,14 @@ def onderwerp_uit(vraag: str) -> str:
 # --- Regeling in de vraag ---------------------------------------------------------------------------
 
 _REGELINGEN_CACHE: list[dict[str, Any]] = []
+
+
+def reset_cache() -> None:
+    """Leeg de citeertitels van dit proces (voor tests; `procestoestand`)."""
+    _REGELINGEN_CACHE.clear()
+
+
+procestoestand.registreer(__name__, reset_cache)
 _UITVOERING_AFGEKORT = {"Uitvoeringsregeling": "UR", "Uitvoeringsbesluit": "UB"}
 # Direct vóór een naam: de analist noemt iets anders dan die regeling. Bestond het, dan was de langere naam gevonden.
 _NA_UITVOERING = re.compile(r"(?<![\w.])(?:uitvoeringsregeling|uitvoeringsbesluit|ur|ub) $")

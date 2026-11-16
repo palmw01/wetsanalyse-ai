@@ -1,6 +1,9 @@
 // Server-side configuratie. Mag NOOIT vanuit een Client Component geïmporteerd worden:
-// hier zit het API-token. Alleen Route Handlers en Server Components gebruiken dit.
+// hier zit het API-token. Alleen Route Handlers en Server Components gebruiken dit. `server-only` laat de build
+// falen als een client component dit bestand binnenhaalt, ook via een tussenmodule; de vormtest
+// `test_een_client_component_komt_niet_bij_de_tokens` ziet alleen een directe import.
 
+import "server-only";
 import { readFileSync } from "node:fs";
 
 let cachedToken: string | null = null;

@@ -108,6 +108,17 @@ def test_pytest_shard_zonder_env_doet_niets(monkeypatch):
     assert len(items) == 1
 
 
+def test_elk_browserscript_staat_in_test_browser():
+    """Een `frontend/scripts/test-*.mjs` buiten `test:browser` draait nergens, ook niet in de poort: zo stond
+    `test-paneelkop.mjs` (231 regels, met axe) los (testplan werkplek §1.4). De lijst blijft de enige bron."""
+    pakket = json.loads((WORTEL / "frontend" / "package.json").read_text(encoding="utf-8"))
+    in_lijst = set(re.findall(r"node scripts/(test-[\w-]+\.mjs)", pakket["scripts"]["test:browser"]))
+    scripts = {p.name for p in (WORTEL / "frontend" / "scripts").glob("test-*.mjs")}
+    assert scripts, "geen browserscripts gevonden: dan toetst deze test niets"
+    assert not scripts - in_lijst, f"draait nergens: zet ze in test:browser of verwijder ze: {sorted(scripts - in_lijst)}"
+    assert not in_lijst - scripts, f"test:browser noemt een script dat niet bestaat: {sorted(in_lijst - scripts)}"
+
+
 @pytest.mark.skipif(not shutil.which("node"), reason="node ontbreekt")
 def test_browsershards_dekken_test_browser():
     pakket = json.loads((WORTEL / "frontend" / "package.json").read_text(encoding="utf-8"))

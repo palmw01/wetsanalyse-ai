@@ -82,6 +82,31 @@ def test_een_client_component_komt_niet_bij_de_tokens():
     assert not fout, f"client component importeert serverconfig: {fout}"
 
 
+GEHEIM = re.compile(r"process\.env\.([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|KEY)(?:_FILE)?)\b")
+
+
+def test_wie_een_geheim_leest_is_server_only():
+    """Een module die een geheim uit de env leest (een token, secret, wachtwoord of sleutel), begint met
+    `import "server-only"`. Dan faalt de build als een client component haar binnenhaalt, ook via een tussenmodule;
+    de toets hierboven ziet alleen een directe import (testplan werkplek §3, Lex Bench §20.5)."""
+    gevonden, fout = [], []
+    for pad in FRONTEND.rglob("*.ts*"):
+        if any(d in pad.parts for d in ("node_modules", ".next", "scripts", "test")) or ".test." in pad.name:
+            continue
+        s = pad.read_text(encoding="utf-8")
+        if GEHEIM.search(s):
+            gevonden.append(pad.relative_to(WORTEL))
+            if not re.search(r'^import "server-only";', s, re.M):
+                fout.append(str(pad.relative_to(WORTEL)))
+    assert gevonden, "geen enkel bestand leest een geheim: dan toetst deze test niets"
+    assert not fout, f'leest een geheim zonder import "server-only": {fout}'
+
+
+def test_de_geheimtoets_herkent_de_vorm():
+    assert GEHEIM.search("process.env.API_TOKEN") and GEHEIM.search("process.env.API_TOKEN_FILE")
+    assert not GEHEIM.search("process.env.API_TOKEN_LOGIN"), "een vlag is geen geheim"
+
+
 def test_geen_eigen_image_draait_als_root():
     """SEC-12: elk eigen image zet een USER vóór zijn startcommando; zonder draait de container als root."""
     # Alleen wat git kent: een lokale worktree onder `.claude/worktrees` heeft zijn eigen kopie van elk image.

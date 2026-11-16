@@ -1,7 +1,7 @@
 # Plan: Lex Bench, een onafhankelijke kwaliteitslaag naast Lex
 
-Soort: *plan* (16 nov 2026). **Er is nog niets gebouwd.** Bouwen gebeurt pas na akkoord van de gebruiker op dit plan en
-op de open keuzes onderaan. Getoetst op master `01067e70`.
+Soort: *plan* (16 nov 2026). **Goedgekeurd op 16 nov 2026**, met de besluiten in §22. Het bouwen begint met stap 1
+van §20.5. Getoetst op master `01067e70`.
 
 Lex Bench meet hoe goed Lex juridisch werk doet, naast Lex en buiten zijn code om. Hij begint klein, bij de
 **bronselectie**, en groeit daarna naar annotaties, begrippen en afleidingsregels. Een onafhankelijk team van Claude
@@ -10,8 +10,8 @@ wat juist is.
 
 Deel A (§1–§9) is de benchmark zelf. Deel B (§11–§15) brengt alle testsets over het gedrag van Lex terug tot één
 geordende set per meetas, waar de benchmark uit leest, en beoordeelt de componenttests. Deel C (§16–§21) legt de lat voor het testen in alle lagen: een testpiramide, een
-risicomatrix met de foutpaden, agentspecifiek testen, de kwaliteit van de tests en een traceerbaarheidsmatrix. De open
-keuzes staan in §22.
+risicomatrix met de foutpaden, agentspecifiek testen, de kwaliteit van de tests en een traceerbaarheidsmatrix. De
+besluiten staan in §22.
 
 # Deel A: de benchmark
 
@@ -955,41 +955,36 @@ Van eis of risico, naar testgeval, naar laag, naar de laatste uitkomst.
   laatste uitkomst (groen, rood, niet gedraaid of niet gedekt), met een klik naar de testnamen. Dezelfde pagina toont de
   nulmeting en het verloop: hoeveel risico's gedekt waren bij de nulmeting en hoeveel nu.
 
-## 22. Open keuzes voor de gebruiker
+## 22. Besluiten (16 nov 2026)
 
-1. **Waar staan de blinde casussen?** Voorstel: in een **privé GitHub-repo** (versiebeheer, toegang per persoon), met
-   alleen de hash in deze repo. Alternatief: lokaal in een gitignored map, zoals `docs/acceptatie/lokaal/`. Dat is
-   eenvoudiger, maar dan bestaat er geen gedeelde versie.
-2. **Wie stelt de verwachting vast?** Een jurist met een code, de gebruiker zelf, of voorlopig niemand. In dat laatste
-   geval blijft alles concept en heet elke uitkomst een trendmeting.
-3. **Wie schrijft de nieuwe casusdossiers?** De gebruiker of een jurist (het beste voor blind), of een aparte
-   Claude-sessie die de bronselectie niet afstemt. Mogen dossiers uit de lokale E2E-map dienen als ruwe grondstof, in
-   eigen woorden herschreven?
-4. **Twee analisten per casus, of één met een reviewer?** Twee is onafhankelijker en kost ongeveer twee keer zoveel.
-   Voorstel: twee voor blind en moeilijk, één voor makkelijk.
-5. **Arm L2 (live op acceptatie): ja of nee, en vanaf welke stap?** Voorstel: alleen in de pilot op één casus en bij de
-   blinde validatie, en verder L1.
-6. **De set Verrekening:** opnemen als blinde casus zodra de sessie Termijnen er klaar mee is, of bij dat plan laten?
-   Ze staat al publiek in de repo, dus ze is alleen blind voor het afstemmen, niet voor de lezer.
-7. **Akkoord op LB1** (zonder model, 0 tokens), en later apart op de pilot LB3 met de plafonds uit §7.
-8. **Waar staat de ene testset?** Voorstel: `docs/lex-bench/<meetas>/`, met de oude paden bevroren als historie.
-   Alternatief: de bestaande map `docs/wetsanalyse/` als wortel houden, zodat er minder verhuist.
-9. **Hoort de routering bij de componenttests** (voorstel, want het is code zonder model), of als meetas bij
-   *antwoord*?
-10. **Mag de bevroren invorderingsproef (acht modules uit sep 2026) als code vervallen,** na de controle dat niets ze
-    nog laadt? De uitkomst blijft in het meetlogboek.
-11. **`taal_benchmark`, `detector_audit` en `extern_dossier`: bewaren of laten vervallen?**
-12. **Mag de fix van de volgordefout (§14.1) nu al als losse kleine PR,** vóór de rest? Het is een fix aan de tests,
-    zonder model.
-13. **De componenttests groeperen naar gedrag (§14.2): ja of nee?** Het is veel verplaatsen voor ongeveer 130 tests, en
-    elke open PR die ze raakt, krijgt een conflict.
-14. **Moet de poort bij een wijziging aan een prompt, skill of profiel eisen dat er een Bench-run is (§18)?** Dat toetst
-    dat er gemeten is, niet de score. Het alternatief is een waarschuwing in de PR.
-15. **Moeten de risicomarkers en de dekkingstoets (§21) bindend zijn voor impact *hoog*,** of eerst alleen zichtbaar op
-    het dashboard tot de nulmeting af is?
-16. **Mogen de risico's R01–R23 (§17 en §20.2) de basis zijn,** of wil je er risico's bij of af?
-17. **Mogen de pinnen op de held-out uitkomst uit `test_bronselectie_eval` naar het rapport van Bench (§20.4)?** De test
-    houdt dan alleen het pad zonder model en de vorm.
-18. **Mag de volgorde van de verbeteringen in §20.5 gelden,** met stap 1 (klein, zonder model) als eerste bouwopdracht?
-19. **Wie neemt de vraag over de GOK-controle (R23) aan?** Die controle is fail-open bij een lege namenlijst. Dat is een
-    vraag over de code, niet over de tests.
+De gebruiker nam op 16 nov 2026 de voorstellen voor alle negentien keuzes over ("Ja, alles"). Waar het plan geen
+voorstel deed, staat hieronder de invulling met **voorlopig**: die kan de gebruiker later veranderen zonder dat het plan
+opnieuw moet.
+
+1. **De blinde casussen** staan in een privé GitHub-repo, met alleen de hash in deze repo.
+2. **De vaststelling (voorlopig):** voorlopig stelt niemand de verwachting vast. Elke uitkomst heet een trendmeting, tot
+   een jurist de set vaststelt.
+3. **De casusdossiers** schrijft de gebruiker of een jurist; een aparte Claude-sessie die de bronselectie niet afstemt,
+   mag ook. *Voorlopig:* dossiers uit de lokale E2E-map mogen dienen als grondstof, maar alleen in eigen woorden en
+   zonder interne namen.
+4. **Analisten:** twee per casus bij blind en moeilijk, één met een reviewer bij makkelijk.
+5. **Arm L2** draait alleen in de pilot op één casus en bij de blinde validatie. Verder is arm L1 de standaard.
+6. **De set Verrekening (voorlopig):** die blijft bij het plan Termijnen. Opnemen kan daarna alleen als ontwikkelcasus
+   of als *blind voor het afstemmen*, want ze staat publiek (§12).
+7. **LB1** heeft akkoord. De pilot LB3 vraagt een eigen akkoord, met de plafonds uit §7.
+8. **De ene testset** staat in `docs/lex-bench/<meetas>/`; de oude paden blijven bevroren als historie.
+9. **De routering** blijft een componenttest.
+10. **De bevroren invorderingsproef** mag als code vervallen, na de controle dat niets ze nog laadt.
+11. **`taal_benchmark`, `detector_audit` en `extern_dossier` (voorlopig):** ze blijven tot de opruimstap LB-B4. Dan
+    beslist hun eigenaar per module.
+12. **De fix van de volgordefout** mag als losse kleine PR, vóór de rest.
+13. **De componenttests** worden naar gedrag gegroepeerd (§14.2), per groep in één beweging en met de testnamen gelijk.
+14. **De poort bij een wijziging aan een prompt, skill of profiel (voorlopig):** eerst een waarschuwing in de PR, geen
+    eis.
+15. **De risicomarkers en de dekkingstoets (voorlopig):** eerst alleen zichtbaar op het dashboard. Of ze voor impact
+    *hoog* bindend worden, valt na de eerste volledige matrix.
+16. **De risico's R01–R23** zijn de basis.
+17. **De pinnen op de held-out uitkomst** gaan uit `test_bronselectie_eval` naar het rapport van Bench.
+18. **De volgorde van §20.5** geldt. Stap 1 is de eerste bouwopdracht.
+19. **De GOK-controle (R23) (voorlopig):** de vraag gaat naar de eigenaar van `id_herkomst` als eigen bevinding, los van
+    de tests. Stap 1 herschrijft alleen de test, zodat die een beurt beschrijft die productie toelaat.
