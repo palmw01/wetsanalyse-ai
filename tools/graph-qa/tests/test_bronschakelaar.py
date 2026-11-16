@@ -17,6 +17,8 @@ from agent.agent import answer_stream
 from agent.models import ChatRequest, Connector
 from tests.fakes import FakeGraph, FakeLLM, make_settings, response, text_block
 
+pytestmark = pytest.mark.risico("R14")
+
 AAN = make_settings(connector_kamerstukken=True)
 UIT = make_settings()
 #: De tools van de connector die AAN aanbiedt; de andere connectors staan in deze straat uit.

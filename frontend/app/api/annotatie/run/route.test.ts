@@ -59,7 +59,7 @@ function start(body: unknown): Request {
 
 const naarAgent = (a: Aanroep[]) => a.filter((x) => x.url.startsWith("http://agent.test/"));
 
-describe("POST /api/annotatie/run – de eigenaarscontrole", () => {
+describe("[R12] POST /api/annotatie/run – de eigenaarscontrole", () => {
   it("start niets bij een gesprek dat niet van jou is", async () => {
     const aanroepen = upstream(() => Response.json({ detail: "niet gevonden" }, { status: 404 }));
 
@@ -116,7 +116,7 @@ describe("POST /api/annotatie/run – de eigenaarscontrole", () => {
   });
 });
 
-describe("GET /api/annotatie/run – lezen alleen als eigenaar", () => {
+describe("[R12] GET /api/annotatie/run – lezen alleen als eigenaar", () => {
   it("zet de identiteit op de lijst van lopende runs", async () => {
     const aanroepen = upstream(() => Response.json({}), () => Response.json([]));
 

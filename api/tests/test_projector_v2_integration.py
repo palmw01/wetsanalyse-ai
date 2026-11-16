@@ -22,7 +22,7 @@ from app.config import get_settings
 from test_annotatie_v2 import ONE, element, request, snapshot
 from test_annotatie_v2_postgres import postgres_schema  # noqa: F401 – pytest fixture
 
-pytestmark = pytest.mark.skipif(not os.getenv("ANNOTATIE_TEST_DSN"), reason="PostgreSQL-integratieserver ontbreekt")
+pytestmark = [pytest.mark.skipif(not os.getenv("ANNOTATIE_TEST_DSN"), reason="PostgreSQL-integratieserver ontbreekt"), pytest.mark.risico("R20")]
 
 CONFIG = '''@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 @prefix rep: <http://www.openrdf.org/config/repository#>.

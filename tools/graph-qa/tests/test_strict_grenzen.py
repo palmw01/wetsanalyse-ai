@@ -25,6 +25,8 @@ from agent.agentvorm import agent_voor
 from bronmodel.connectors import CONNECTORS
 from fakes import make_settings
 
+pytestmark = pytest.mark.risico("R04", laag=2)
+
 #: De gedocumenteerde grenzen van de API.
 MAX_STRICT_API = 20
 MAX_OPTIONEEL = 24

@@ -6,11 +6,15 @@ zoekt zulke toestand in `agent/` en eist de melding, zodat een nieuwe cache niet
 """
 from __future__ import annotations
 
+import pytest
+
 import ast
 import importlib
 from pathlib import Path
 
 from agent import procestoestand
+
+pytestmark = pytest.mark.risico("R21", laag=2)
 
 AGENT = Path(__file__).resolve().parents[1] / "agent"
 MUTEREND = {"append", "add", "update", "clear", "setdefault", "pop", "extend", "popitem", "discard", "remove",

@@ -167,6 +167,7 @@ def test_een_echte_leesvraag_blijft_de_leesroute_ook_als_het_model_een_agent_noe
     assert not any("deelvragen-agent" in m for m in _statussen(tweede))
 
 
+@pytest.mark.risico("R02")
 def test_een_storing_van_de_api_is_een_zin_in_het_gesprek():
     class Kapot(NepApi):
         async def haal_werkgebied(self, wid):

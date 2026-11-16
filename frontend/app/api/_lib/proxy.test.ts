@@ -35,7 +35,7 @@ function hangendeUpstream() {
   });
 }
 
-describe("proxy – timeout", () => {
+describe("[R03] proxy – timeout", () => {
   it("geeft 504 met een leesbare reden als de upstream niet op tijd antwoordt", async () => {
     vi.stubGlobal("fetch", hangendeUpstream());
 

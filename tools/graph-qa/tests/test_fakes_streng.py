@@ -7,6 +7,8 @@ import pytest
 
 from fakes import FakeLLM, ScriptFout, response, text_block, tool_block
 
+pytestmark = pytest.mark.risico("R21", laag=2)
+
 TOOLS = [{"name": "get_artikel", "input_schema": {}}]
 
 

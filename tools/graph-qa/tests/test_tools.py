@@ -1,6 +1,8 @@
 """WP-D: de registry levert schema's en dispatcht naar de juiste bouwer."""
 from __future__ import annotations
 
+import pytest
+
 import json
 
 from agent import tools
@@ -187,6 +189,7 @@ def _graaf_zonder_repository() -> FakeGraph:
     return FakeGraph(results=kapot)
 
 
+@pytest.mark.risico("R01")
 def test_ontbrekende_repository_krijgt_een_eigen_melding():
     """Een lege GraphDB mag de jurist niet de kale GraphDB-foutmelding geven.
 

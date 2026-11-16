@@ -136,6 +136,7 @@ def test_minder_dan_een_poging_is_een_fout():
         vraag_tool(FakeLLM([]), Rol.KAARTACTIE, verzoek=_verzoek(), pogingen=0)
 
 
+@pytest.mark.risico("R04")
 def test_een_fout_van_het_model_gaat_naar_de_aanroeper():
     class Kapot:
         def create(self, **_):

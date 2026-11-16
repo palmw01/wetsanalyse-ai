@@ -17,7 +17,7 @@ from app import annotatie_v2_store as store
 from app.annotatie_v2_contracts import Beslissing
 from test_annotatie_v2 import ONE, TWO, element, request, snapshot
 
-pytestmark = pytest.mark.skipif(not os.getenv("ANNOTATIE_TEST_DSN"), reason="PostgreSQL-test DSN ontbreekt")
+pytestmark = [pytest.mark.skipif(not os.getenv("ANNOTATIE_TEST_DSN"), reason="PostgreSQL-test DSN ontbreekt"), pytest.mark.risico("R07")]
 
 
 @pytest.fixture(autouse=True)

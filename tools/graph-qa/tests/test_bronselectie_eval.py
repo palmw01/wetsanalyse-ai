@@ -75,69 +75,40 @@ def test_de_meting_per_deelvraag_houdt_de_gemeten_uitkomst():
         assert all(p["in_pool"] >= p["gevonden"] for p in profiel["per_deelvraag"] if "in_pool" in p)
 
 
-def test_de_held_out_meting_houdt_haar_uitkomst():
-    """De blinde meting van 3 nov 2026 (meetlogboek `bronselectie-2026-11-03`), offline op haar opname, met
-    de gecorrigeerde telling. Het zoeken generaliseerde (pool 0,56 → 0,94), de rangschikking maar half
-    (recall nodig 0,36 → 0,27). Deze set is na die ene run ook een ontwikkelset."""
-    from eval.bronselectie_eval import meet_intake
+# --- de (vroegere) blinde sets: alleen het pad en de vorm, de uitkomst staat in Lex Bench -------------------------
+# Hun uitkomst bij de blinde meting staat in `docs/lex-bench/bronselectie/held-out.json` (`python -m eval.lex_bench`), niet
+# hier: een pin op een blinde uitkomst maakt de set rood voor wie de code afstemt, en dan is ze niet meer blind voor het
+# afstemmen (plan Lex Bench §4.5, §20.4).
 
-    naam = "invorderbaarheid-deelvragen-concept"
+from eval import lex_bench  # noqa: E402
+
+
+@pytest.mark.parametrize("naam", [s["set"] for s in lex_bench.laad()["sets"]])
+def test_een_blinde_set_meet_offline_en_in_de_juiste_vorm(naam):
+    """Het pad zonder model: de opname dekt elke query, elke route in het register bestaat nog en geeft maten in de vorm
+    van het rapport. Geen uitkomst: die vergelijkt Lex Bench."""
     s = laad_set(naam)
-    graaf = OpnameGraaf(json.loads((SETS / naam / "graafantwoorden.json").read_text()))
-    r = meet_intake(graaf, s)
-    assert graaf.ontbrekend == 0
-    vorige, f3f = r["zonder per_regeling"], r["F3f (21 okt)"]
-    assert (vorige["recall"], vorige["recall_nodig"], vorige["precisie"], vorige["recall_pool"]) == \
-        (0.333, 0.273, 0.281, 0.944)
-    assert (f3f["recall"], f3f["recall_nodig"], f3f["precisie"], f3f["recall_pool"]) == (0.278, 0.364, 0.156, 0.556)
-    nieuw = r["bepaling_opties"]
-    assert (nieuw["recall"], nieuw["recall_nodig"], nieuw["precisie"]) == (0.389, 0.364, 0.281)
-    assert nieuw["uitgesloten"] == f3f["uitgesloten"] == 0
-
-
-def test_de_held_out_meting_van_het_rangsignaal_houdt_haar_uitkomst():
-    """De blinde meting van 3 nov 2026 op de set bestuurdersaansprakelijkheid (meetlogboek
-    `bronselectie-2026-11-03-rangsignaal`), één keer live, daarna offline op haar opname. Om de beurt per
-    regeling verandert hier niets; de fusie verliest het van F3f. Het verlies zit in woorden: de analist
-    schrijft "melden", "loonheffing", "aansprakelijk stellen", de wet "mededeling", "loonbelasting",
-    "aansprakelijkstelling". Deze set is na die ene run een ontwikkelset."""
-    from eval.bronselectie_eval import meet_intake
-
-    naam = "bestuurdersaansprakelijkheid-concept"
-    s = laad_set(naam)
-    graaf = OpnameGraaf(json.loads((SETS / naam / "graafantwoorden.json").read_text()))
-    r = meet_intake(graaf, s)
-    assert graaf.ontbrekend == 0
-    nieuw, f3f, zonder_fusie = r["bepaling_opties"], r["F3f (21 okt)"], r["zonder fusie"]
-    assert (nieuw["recall"], nieuw["recall_nodig"], nieuw["uitgesloten"], nieuw["recall_pool"]) == \
-        (0.227, 0.222, 3, 0.909)
-    assert (f3f["recall"], f3f["recall_nodig"], f3f["recall_pool"]) == (0.318, 0.389, 0.455)
-    assert (zonder_fusie["recall"], zonder_fusie["recall_nodig"]) == (0.364, 0.389)
-
-
-def test_de_held_out_meting_van_het_meezoekende_dossier_houdt_haar_uitkomst():
-    """De blinde meting van 4 nov 2026 op de set kwijtschelding (meetlogboek `bronselectie-2026-11-04-dossier`),
-    één keer live, daarna offline op haar opname. Geen van de vier dossiervlaggen won op de ontwikkelsets, en hier
-    evenmin: de woordenkloof zit al in het zoeken (pool 0,33). De deelvragen en de analysevraag zeggen nergens
-    "kwijtschelding"; alleen de naam van het werkgebied doet dat, en die leest het zoeken niet. Deze set is na die
-    ene run een ontwikkelset."""
-    from eval.bronselectie_eval import meet_intake
-
-    naam = "kwijtschelding-concept"
-    s = laad_set(naam)
-    assert s["aanleiding"] and s["doel"] and s["praktijkvoorbeeld"]
-    assert {v["deelvraag"] for v in s["verwacht"]} == set(range(len(s["deelvragen"])))
+    assert {v["deelvraag"] for v in s["verwacht"]} <= set(range(len(s["deelvragen"])))
     assert all(is_bron_iri(v["bron_iri"]) for v in s["verwacht"] + s["uitgesloten"])
-    graaf = OpnameGraaf(json.loads((SETS / naam / "graafantwoorden.json").read_text()))
-    r = meet_intake(graaf, s)
-    assert graaf.ontbrekend == 0
-    nieuw, alles = r["bepaling_opties"], r["met dossier (alles)"]
-    assert (nieuw["recall"], nieuw["recall_nodig"], nieuw["uitgesloten"], nieuw["recall_pool"]) == \
-        (0.083, 0.095, 0, 0.333)
-    # Per dossierterm een lijst vergroot de pool, maar verdringt de opties van de deelvraag en deelt ze meer.
-    assert (alles["recall_nodig"], alles["recall_pool"]) == (0.048, 0.542) and alles["gedeeld"] > nieuw["gedeeld"]
-    for v in ("dossier_velden", "dossier_omgeving", "gelijkenis"):
-        assert r[f"met {v}"]["recall_nodig"] == nieuw["recall_nodig"]
+    assert not {v["bron_iri"] for v in s["verwacht"]} & {u["bron_iri"] for u in s["uitgesloten"]}
+    routes = next(x["uitkomst"] for x in lex_bench.laad()["sets"] if x["set"] == naam)
+    nu, ontbrekend = lex_bench.meet_set(naam, list(routes))
+    assert ontbrekend == 0, "de opname dekt niet elke query: draai --opnemen"
+    assert set(nu) == set(routes), "een route uit het register bestaat niet meer"
+    for route, maten in nu.items():
+        assert set(routes[route]) <= set(maten), f"{route}: een maat uit het register ontbreekt"
+        assert all(0 <= v <= 1 for m, v in maten.items() if m != "uitgesloten"), (route, maten)
+
+
+def test_het_register_van_lex_bench_is_goed_gevormd_en_het_script_faalt_niet_op_een_verschil():
+    reg = lex_bench.laad()
+    assert reg["sets"] and all(s["meting"] and s["uitkomst"] for s in reg["sets"])
+    assert all((SETS / s["set"] / "set.json").exists() for s in reg["sets"]), "een set uit het register bestaat niet"
+    eerste = {**reg, "sets": [{**reg["sets"][0], "uitkomst": {
+        r: {m: -1 for m in v} for r, v in reg["sets"][0]["uitkomst"].items()}}]}
+    rijen = lex_bench.vergelijk(eerste)
+    assert rijen and not any(r["gelijk"] for r in rijen), "een verzonnen uitkomst wijkt af"
+    assert {"set", "route", "maat", "toen", "nu", "gelijk"} <= set(rijen[0])
 
 
 def test_de_gebeurtenis_en_de_grondslag_op_de_ontwikkelset():
@@ -198,12 +169,12 @@ def test_de_deelvraag_kiest_in_de_pool(naam, oud, nieuw):
 
 @pytest.mark.parametrize("naam,woorden,zoekvragen", [
     ("termijnen-deelvragen-concept", 0.125, 0.062),
-    ("verrekening-concept", 0.056, 0.333),
+    # De blinde set Verrekening staat niet meer hier maar in Lex Bench (`held-out.json`), om dezelfde reden als hierboven.
 ])
 def test_de_standaard_van_stap_8_houdt_de_gemeten_uitkomst(naam, woorden, zoekvragen):
     """Stap 8 van het plan Termijnen (16 nov 2026): `termen_idf`, `verwijzingen`, `brug_omschrijving` en
-    `overzicht_streng` staan aan. Termijnen is de ontwikkelset van het plan, Verrekening de blinde set (meetlogboek
-    `bronselectie-2026-11-16-blind`). Recall nodig op de woordenroute en op de zoekvragenroute."""
+    `overzicht_streng` staan aan. Termijnen is de ontwikkelset van het plan; de blinde set Verrekening (meetlogboek
+    `bronselectie-2026-11-16-blind`) staat in Lex Bench. Recall nodig op de woordenroute en op de zoekvragenroute."""
     from eval.bronselectie_eval import ROUTES, meet_intake
 
     graaf = OpnameGraaf(json.loads((SETS / naam / "graafantwoorden.json").read_text()))
