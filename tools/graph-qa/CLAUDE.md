@@ -382,6 +382,14 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     code zet de kern in het blok (`Extern.kern`), en in de tekst onder een kop met het stuk, zodat `per_stuk` en de
     toetsen op een stuk weten waarover hij gaat; `herkies` en het afkappen kiezen de passages op de kern
     (`extern.kern_tekst`), en een aangewezen alinea draagt pas als ze twee verschillende stammen deelt (`tests/test_a6_kern.py`);
+  - **het eindantwoord behandelt elk rapport** (meting P01 na #1618: het rapport over de rechtspraak, `klaar` met 13
+    gelezen arresten, stond alleen als aantal onder *Twijfel*): `Afloop.stukken` draagt de stukken naast de wet waarover
+    het rapport gaat (`subagent.stukken_van_rapport`: wat het citeert en wat het kind las), en `verify_node` maakt van elk
+    kind `klaar` waarvan het antwoord buiten twijfel en leemte geen stuk noemt (bij id, label of citeervorm;
+    `ontbrekende_rapporten`) een bewering `rapport ontbreekt: …`. `correct_node` vraagt dan het rapport mee te nemen, niet
+    te schrappen. Na de correctie geen tweede ronde en geen `onbevestigd`, alleen de logregel `rapport niet behandeld`.
+    `extern.MAX_STUKKEN` was in P01 niet de oorzaak (2 van de 4 gebruikt, niets geweigerd); de correctie noemt de grens.
+    `tests/test_bundel_elk_rapport.py`;
   - **de grammatica van een verzoek is begrensd**: de API maakt van alle strict schema's samen één grammatica, met
     gedocumenteerde grenzen (20 strict tools, 24 optionele, 16 union-parameters) en een interne grens op de omvang
     ("Schema is too complex for compilation", 400 zonder tokens). De delegatietools (`subagent`,
