@@ -104,6 +104,21 @@ Zonder kern draait de methode `overzicht` (`ZONDER_KERN`). De analysevraag heeft
 rol *kern* en zonder deelvraag, en het plafond `MAX_OVERZICHT` maakt de run onvolledig. Een naam van één algemeen woord
 is geen onderwerp. En het werkgebied heeft deelvragen, die het eigenlijke vertrekpunt zijn.
 
+### O6. Hoogstens zes zoektermen, in de volgorde van de zin (uit de nulmeting)
+
+`kandidatenpool` neemt de eerste `MAX_TERMEN` (6) termen van de deelvraag, in de volgorde waarin ze staan. Bij DV3 zijn
+dat "werkt, verrekening, negatieve, voorlopige, aanslag, bedragen". Het onderscheidende "betalingstermijnen" valt
+erbuiten, terwijl een vulwoord als "werkt" blijft. `zoektermen` kent de lijst `LEGE_WOORDEN` van de zoekvragen niet. De
+zes plaatsen gaan dus naar wat vooraan staat, niet naar wat iets zegt.
+
+### O7. Om de beurt over zes regelingen (uit de nulmeting)
+
+`per_regeling` geeft de plaatsen op het kaartje om de beurt aan de regelingen, de hoogste soort eerst. Dat was een
+remedie tegen een beleidsregel die het kaartje vulde, gemeten op werkgebieden met twee of drie regelingen. Met zes
+regelingen krijgt elke regeling ongeveer één plaats, ook een regeling zonder sterke treffer. Bij Termijnen kiest de
+woordenroute zo per deelvraag Awb 8:80b, AWR 30fa, Iw 16, Awir 30, Uitv.reg. 8 en Leidraad 26.1.9. Haar pool bevat alle
+verwachte bepalingen (recall_pool 1,00), en toch komt er bij DV1 en DV2 geen in de top 8.
+
 ### De vlaggen van PR E helpen hier niet
 
 `verwijzingen` en `onderscheidend` werken alleen in `bepaling_opties`, dus in de woordenroute. Door O1 krijgt die route
@@ -179,6 +194,30 @@ merget.
   (`docs/architectuur/metingen/`). Die staat vóór de eerste codewijziging.
 - **Vraagt de gebruiker**: de opname draait live tegen de graaf van acceptatie, met verbindingsgegevens die niet in de
   repo staan.
+
+**Uitkomst (16 nov 2026).** De set, de opnames en de nulmeting staan, zie
+[`metingen/bronselectie-2026-11-16-nulmeting/`](metingen/bronselectie-2026-11-16-nulmeting/README.md). Op vijf van de
+zes sets vindt de woordenroute vrijwel alles (pool 0,84–1,00), maar haar top 8 haalt daar 0,00–0,53 van. Daarom
+komen de stappen 1a en 1b vóór stap 1: plaatsen geven aan een route die slecht rangschikt, helpt niet.
+
+### Stap 1a – Zoektermen op onderscheidend vermogen, niet op zinsvolgorde (O6)
+
+- **Ingreep**: `zoektermen` laat de lege woorden en de woorden van de vraagvorm weg (de lijsten van `zoekvragen`, op één
+  plek). Daarna kiest `kandidatenpool` de `MAX_TERMEN` termen met het hoogste onderscheidend vermogen in de regelingen
+  van het werkgebied (idf uit één telquery per term, met de index die er al is), in plaats van de eerste zes. Vlag
+  `termen_idf`.
+- **Toets**: een hogere `MAX_TERMEN` is het alternatief. Dat maakt de OR-query breder en de per-termlijsten talrijker,
+  zonder de vulwoorden weg te halen.
+- **Meten**: `recall_pool` mag niet dalen, `recall_nodig` hoort te stijgen.
+
+### Stap 1b – Om de beurt alleen tussen regelingen met een sterke treffer (O7)
+
+- **Ingreep**: `om_de_beurt` geeft alleen een plaats aan een regeling waarvan de beste kandidaat een fusiescore haalt van
+  minstens een vast deel van de beste score over alle regelingen. Een regeling daaronder doet niet mee. De grens leggen
+  we vooraf vast. Vlag `beurt_sterk`.
+- **Toets**: `per_regeling` uitzetten is het alternatief. Dan komt het probleem terug waarvoor het bestond: een
+  beleidsregel met lange divisies vult het kaartje. Op de sets van november moet het effect behouden blijven.
+- **Meten**: precisie en `recall_nodig` op alle sets, en het aandeel bepalingen uit de Leidraad op het kaartje.
 
 ### Stap 1 – De woordenroute wijkt niet voor een pool die niet filtert (O1)
 
@@ -267,13 +306,22 @@ met `--intake --b2` op alle sets, met dezelfde regel als hierboven.
 
 ### Volgorde en afhankelijkheden
 
-Stap 0 gaat voor alles. Stap 1, 2, 3 en 5 raken elk een eigen functie en kunnen in deze volgorde na elkaar. Stap 4 komt
-na stap 2, omdat beide de telling in `opties_bij_deelvraag` raken. Stap 6 staat apart (bronmodel en herimport) en kan
+Stap 0 gaat voor alles. Daarna 1a en 1b, dan stap 1. Stap 2, 3 en 5 raken elk een eigen functie en kunnen in deze
+volgorde na elkaar. Stap 4 komt na stap 2, omdat beide de telling in `opties_bij_deelvraag` raken. Stap 6 staat apart (bronmodel en herimport) en kan
 naast 1–5 lopen. Stap 7 komt na 1, en stap 8 als laatste.
+
+### De Mijnbouwwet in de graaf (besluit gebruiker, 16 nov 2026)
+
+De Mijnbouwwet (BWBR0014168) komt in de graaf, na een grondige analyse van de import. Dat gebeurt in een eigen PR,
+apart van dit plan. Een lokale import met de echte importer, naast de zeven regelingen van de graaf, vond meteen een fout.
+De wet is geldig volgens het XSD, maar de importer weigert haar: *Sub-paragraaf 4.1a.1.1* krijgt dezelfde IRI als
+*Paragraaf 4.1a*. Het jci-segment `sub-paragraaf=` valt weg in `_JCI_STRUCTUUR` (`bronmodel/bwb/references.py`).
+Het herstel leest een sub-paragraaf als geneste paragraaf, zoals de parser al deed. Dat gebeurt in de importer, in
+`bronmodel.vindplaats` en in de frontend, met jci-vectoren. Geen andere regeling van de graaf heeft sub-paragrafen. Het
+zoekbereik van het werkgebied Termijnen kiest de gebruiker zelf; de set hierboven houdt het zoekbereik zoals het nu is.
 
 ## Open keuzes voor de gebruiker
 
-- Hoort de Mijnbouwwet in de graaf (importeren), of blijft het winstaandeel bij de connector buiten de graaf?
 - Mag de opname van stap 0 gemaakt worden? Die draait live tegen de graaf van acceptatie.
 - Wie stelt de blinde set van stap 8 op, en uit welk werkgebied?
 - Mag de herimport van stap 6 op acceptatie draaien als de steekproef goed is?
