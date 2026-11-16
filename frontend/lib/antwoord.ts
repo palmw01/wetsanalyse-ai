@@ -14,6 +14,8 @@ export type AntwoordBlok =
   | { soort: "toelichting"; door: "lex"; kop: string; tekst: string }
   | { soort: "twijfel"; door: "lex"; punten: string[] }
   | { soort: "extern"; door: "bron"; brontype: string; id: string; label: string; link: string; kop: string;
+      /** Wat Lex over dit stuk zegt, in eigen woorden (plan centrale agent na A6, PR A); leeg bij een ouder bericht. */
+      kern?: string;
       passages: { nr: number; tekst: string; kop: string; soort?: "alinea" | "voetnoot" | "tabel" | "tabelrij"; cellen?: string[] | null;
         verwijst_naar?: { id: string; label: string; link: string }[] | null; plek?: string }[];
       /** De versie die Lex las: de hash van het document en de stand bij de bron. Leeg bij een ouder bericht. */
@@ -82,7 +84,7 @@ function isBlok(b: unknown): b is AntwoordBlok {
     case "toelichting": case "leemte": return typeof b.tekst === "string";
     case "twijfel": return Array.isArray(b.punten) && b.punten.every((p) => typeof p === "string");
     case "extern": return typeof b.id === "string" && typeof b.label === "string" && typeof b.kop === "string" &&
-      Array.isArray(b.passages) && b.passages.every((p) => isObject(p) && typeof p.tekst === "string");
+      (b.kern == null || typeof b.kern === "string") && Array.isArray(b.passages) && b.passages.every((p) => isObject(p) && typeof p.tekst === "string");
     case "stukken": return typeof b.kop === "string" &&
       lijst((x) => isObject(x) && typeof x.id === "string" && typeof x.label === "string") &&
       (b.telling == null || (isObject(b.telling) && typeof b.telling.aantal === "number"));

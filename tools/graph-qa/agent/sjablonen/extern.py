@@ -104,10 +104,19 @@ def _of_opsomming(delen: list[str]) -> str:
     return delen[0] if len(delen) == 1 else ", ".join(delen[:-1]) + " of " + delen[-1]
 
 
-def items(namen: Any = None) -> dict[str, Any]:
-    """Het veld `extern`, met de voorbeelden van de connectors die aanstaan (`ConnectorBeschrijving.voorbeeld_id`)."""
+#: Het veld per aanwijzing waarin Lex zegt wat dat stuk over de vraag zegt (plan centrale agent na A6, PR A). Alleen in
+#: `antwoord_extern`: het subsjabloon zit in elk sjabloon van de centrale agent, en die zit aan de grens van de strict
+#: schema's (`tests/test_strict_grenzen.py`).
+KERN = "kern"
+KERN_SCHEMA = {"type": "string", "description": "Wat dit stuk over de vraag zegt, in één tot drie zinnen in eigen "
+               "woorden; één keer per stuk, anders leeg."}
+
+
+def items(namen: Any = None, *, kern: bool = False) -> dict[str, Any]:
+    """Het veld `extern`, met de voorbeelden van de connectors die aanstaan (`ConnectorBeschrijving.voorbeeld_id`). Met
+    `kern` (alleen `antwoord_extern`) heeft elke aanwijzing ook het veld `kern`."""
     cs = _connectors(namen)
-    return {
+    uit = {
         "type": "array",
         "description": (
             f"Passages uit een bron naast de wet ({_of_opsomming([f'een {c.brontype}' for c in cs])}) die je in dit gesprek "
@@ -126,6 +135,28 @@ def items(namen: Any = None) -> dict[str, Any]:
             "additionalProperties": False,
         },
     }
+    if kern:
+        uit["items"]["properties"][KERN] = KERN_SCHEMA
+        uit["items"]["required"].append(KERN)
+    return uit
+
+
+def kernen(items: Any) -> dict[str, str]:
+    """Per stuk (het canonieke id) wat Lex erover zegt: de kernen van zijn aanwijzingen, elk één keer, in volgorde."""
+    uit: dict[str, list[str]] = {}
+    for item in items if isinstance(items, list) else []:
+        if not isinstance(item, dict) or not (tekst := " ".join(str(item.get(KERN) or "").split())):
+            continue
+        vp = externe_vindplaats(str(item.get("id") or ""))
+        if vp is not None and tekst not in uit.setdefault(vp.id, []):
+            uit[vp.id].append(tekst)
+    return {i: " ".join(t) for i, t in uit.items()}
+
+
+def kern_tekst(items: Any) -> str:
+    """De kernen als tekst met per stuk een kop met zijn id, zoals het antwoord ze toont: wat `punten`, `herkies` en
+    `samenvatting` lezen om de passages te kiezen die de kern dragen."""
+    return "\n\n".join(f"**{i}**\n{t}" for i, t in kernen(items).items())
 
 
 def stukken_items(namen: Any = None) -> dict[str, Any]:
@@ -151,15 +182,15 @@ def schema(namen: Any = None) -> dict[str, Any]:
         "description": (
             f"Rond een vraag af die alleen over een bron naast de wet gaat ({_of_opsomming([c.label for c in cs])}): wat "
             "staat er in dit stuk, wat zegt het hierover. Roep deze tool aan nadat je het stuk hebt opgehaald, en schrijf "
-            "geen antwoord ernaast. Jij schrijft het korte antwoord in eigen woorden en wijst de passages aan; de code "
-            "toont ze letterlijk met hun vindplaats. Gaat de vraag (ook) over wat de wet zegt, gebruik dan het sjabloon "
-            "voor de bepaling of de uitleg, met de passages in hun veld 'extern'."),
+            "geen antwoord ernaast. Jij schrijft het korte antwoord in eigen woorden, per stuk de kern, en wijst de "
+            "passages aan; de code toont ze letterlijk met hun vindplaats. Gaat de vraag (ook) over wat de wet zegt, "
+            "gebruik dan het sjabloon voor de bepaling of de uitleg, met de passages in hun veld 'extern'."),
         "strict": True,
         "input_schema": {
             "type": "object",
             "properties": {
-                "kort_antwoord": {"type": "string", "description": "Het antwoord in twee tot vier zinnen, in eigen woorden en zonder citaten."},
-                VELD: items(namen),
+                "kort_antwoord": {"type": "string", "description": "Het antwoord over de stukken heen in twee tot vier zinnen, in eigen woorden en zonder citaten."},
+                VELD: items(namen, kern=True),
                 STUKKEN: stukken_items(namen),
                 "twijfel": {"type": "array", "items": {"type": "string"},
                             "description": "Aannames en wat de opgehaalde tekst open laat, elk als één punt. Leeg als die er niet zijn."},
@@ -403,7 +434,9 @@ def herkies(tekst: str, items: Any, trace: Trace) -> list[dict[str, Any]]:
         _s, rijen, _e, _t = _gelezen(trace, van_id(ident), ident)
         kand = _kandidaten(rijen)
         draagt = {n for n in aangewezen[ident] if n in kand
-                  and any(sum(w[:_STAM] in kand[n][0] for w in eigen) >= 2 for eigen in ps)}
+                  # Twee verschillende stammen: "bestuur" en "bestuurder" zijn één woord, en droegen zo een zin over
+                  # de feiten (plan centrale agent na A6, PR A).
+                  and any(len({w[:_STAM] for w in eigen} & kand[n][0]) >= 2 for eigen in ps)}
         gekozen = dragende(ps, rijen, draagt)
         if not gekozen and draagt == {n for n in aangewezen[ident] if n in rijen}:
             continue
@@ -412,7 +445,11 @@ def herkies(tekst: str, items: Any, trace: Trace) -> list[dict[str, Any]]:
     if not nieuw:
         return lijst
     blijft = [i for i in lijst if (vp := externe_vindplaats(str(i.get("id") or ""))) is None or vp.id not in nieuw]
-    return blijft + [{"id": ident, "van_nr": n, "tot_nr": n} for ident, nrs in nieuw.items() for n in nrs]
+    # De kern van een stuk reist mee met zijn nieuwe aanwijzingen (één keer, bij de eerste).
+    kern_van = kernen(lijst)
+    return blijft + [{"id": ident, "van_nr": n, "tot_nr": n, **({KERN: kern_van[ident]} if k == 0 and ident in kern_van
+                                                                else {})}
+                     for ident, nrs in nieuw.items() for k, n in enumerate(nrs)]
 
 
 def blokken(items: Any, trace: Trace, *, overgeslagen: list[str] | None = None,
@@ -438,6 +475,7 @@ def blokken(items: Any, trace: Trace, *, overgeslagen: list[str] | None = None,
                         "het antwoord dragen, en vat de rest samen in het korte antwoord.")
     per_stuk: dict[str, Extern] = {}
     fouten: list[str] = []
+    kern_van = kernen(items)
     for item in items:
         ident = str((item or {}).get("id") or "").strip()
         vp = externe_vindplaats(ident)
@@ -467,7 +505,7 @@ def blokken(items: Any, trace: Trace, *, overgeslagen: list[str] | None = None,
             continue
         blok = per_stuk.setdefault(vp.id, Extern(
             brontype=vp.brontype, id=vp.id, label=str(stuk.get("label") or vp.label),
-            link=str(stuk.get("link") or vp.uri), kop=c.kop_in_antwoord, passages=[],
+            link=str(stuk.get("link") or vp.uri), kop=c.kop_in_antwoord, kern=kern_van.get(vp.id, ""), passages=[],
             bron_hash=str(stuk.get("bron_hash") or ""), gewijzigd=str(stuk.get("gewijzigd") or ""),
             datum=str(stuk.get("datum") or ""), soort_stuk=str(stuk.get("soort") or ""),
             **_tekst_bij(trace, c, vp.id), **status_velden(c, stuk)))
@@ -834,7 +872,9 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
     klopt, laat de code weg als er iets anders te tonen is; anders weigert ze (meting bundel 114)."""
     lijst = lijsten(invoer.get(STUKKEN), trace)
     overgeslagen: list[str] = []
-    gevonden = blokken(invoer.get(VELD), trace, overgeslagen=overgeslagen)
+    # Bij het afkappen blijven per stuk de alinea's die het korte antwoord en de kern van dat stuk dragen.
+    uitleg = "\n\n".join(d for d in (str(invoer.get("kort_antwoord") or ""), kern_tekst(invoer.get(VELD))) if d.strip())
+    gevonden = blokken(invoer.get(VELD), trace, overgeslagen=overgeslagen, voorkeur=samenvatting(uitleg, trace) or None)
     if overgeslagen and not any(b.soort == "extern" for b in gevonden) and not lijst:
         blokken(invoer.get(VELD), trace)   # niets anders te tonen: de weigering zoals altijd
     if overgeslagen:

@@ -349,7 +349,7 @@ AFRONDEN_EXTERN = (
     "\n\nAFRONDEN MET EEN BRON NAAST DE WET: vond of las je in deze beurt iets met een tool van zo'n bron, dan schrijf "
     "je geen antwoord in tekst maar rond je af met een sjabloontool, ook als de vraag om uitleg, een telling of een "
     "opbouw gaat. Dit gaat voor 'antwoord in tekst' hierboven. Gaat de vraag alleen over zo'n bron, gebruik dan "
-    "{extern} en zet je uitleg in kort_antwoord. Vul 'stukken' alleen als de vraag om een lijst stukken vraagt (welke, "
+    "{extern}, zet je uitleg in kort_antwoord en wat elk stuk zegt in 'kern' bij dat stuk. Vul 'stukken' alleen als de vraag om een lijst stukken vraagt (welke, "
     "de nieuwste, alle …); bij een telling, een opbouw of een uitleg blijft 'stukken' leeg en noem je het totaal in je "
     "eigen woorden. Heb je dan ook geen passage aan te wijzen, antwoord dan in tekst: een sjabloon zonder stuk en "
     "zonder passage is niet te vullen.")

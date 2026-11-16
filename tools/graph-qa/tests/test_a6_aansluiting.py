@@ -170,9 +170,11 @@ def test_wat_niet_gebouwd_is_gaat_uit_de_score():
     opdrachten = vat.lees_set()
     assert not [i for i, o in opdrachten.items() if o.get("niet_gebouwd")]
     leeg = {"id": "F03", "run": 1, "beurten": [{"label": "gemeten", "events": []}]}
-    s = vat.vat(leeg, {**opdrachten["F03"], "niet_gebouwd": ["tool:delegatie_stand"]})
+    # F03 toetst sinds PR D het resultaat, niet de tool; voor de toets zelf vraagt de opdracht hem hier weer.
+    f03 = {**opdrachten["F03"], "verwacht": {**opdrachten["F03"]["verwacht"], "tools_verplicht": ["delegatie_stand"]}}
+    s = vat.vat(leeg, {**f03, "niet_gebouwd": ["tool:delegatie_stand"]})
     assert s["tools_ontbreken"] == [] and s["niet_gebouwd"] == ["tool:delegatie_stand"]
-    assert vat.vat(leeg, opdrachten["F03"])["tools_ontbreken"] == ["delegatie_stand"]
+    assert vat.vat(leeg, f03)["tools_ontbreken"] == ["delegatie_stand"]
 
 
 def test_een_regiekind_scoort_op_zijn_profiel():

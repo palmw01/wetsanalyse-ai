@@ -343,7 +343,12 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     (de aanhef van een besluit, het procesverloop van een uitspraak, een rij trefwoorden) valt in `extern.blokken` uit een
     reeks als er iets met inhoud overblijft (`extern.is_formule`). Na het eindverslag van A6 (`tests/test_a6_eind.py`):
     een rapport `klaar` zonder één gelezen stuk van de bron waar de opdracht om vroeg, terwijl het kind er wel vond, wordt
-    een vraag naar boven uit code ("Zal ik ze lezen?", `subagent.ongelezen_vraag`, één keer: niet na een hervatting; V03);
+    een vraag naar boven uit code ("Zal ik ze lezen?", `subagent.ongelezen_vraag`, één keer: niet na een hervatting; V03).
+    Breder (plan centrale agent na A6, PR C): een kind dat op zijn grens stopte (zijn laatste ronde was die van de
+    rondegrens of het plafond, `begrensd` uit `State.laatste_gehad` in het resultaat, of de code sloot het af) terwijl er
+    nog iets open was – stukken van de gevraagde bron gevonden en niet gelezen, stukken deels gelezen, of iets onder 'Open'
+    in zijn rapport – krijgt ook na `klaar` of `niet_gelukt` een vraag uit code ("Zal ik verder lezen?",
+    `subagent.begrensd_vraag`), één keer en niet voor een stuk van buiten de periode (`tests/test_c_begrensd.py`);
     "vóór en na de wijziging" van één artikel zonder te zeggen welke is een vraag aan de jurist zonder model, met de
     laatste wijziging uit `geldigheid` als kandidaat (`agent/welke_wijziging.py`; V04); een antwoord dat alleen een
     regeling noemt, maakt de vorige opdracht met een artikel zonder regeling af (`subagent_route.aangevuld`, F02);
@@ -356,7 +361,13 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     (`supervisie._markeer_doorvraag`); de passages bij een stuk kiest de code per punt van de samenvatting
     (`extern.punten`, `extern.dragende`: de alinea die de meeste ongedekte woorden draagt, een rechtsoverweging zwaarder,
     geen formule of kopregel, hoogstens `MAX_GEKOZEN`), in een rapport (`aanvulling`) en in een antwoord, waar een
-    aangewezen alinea zonder dragend woord wijkt (`herkies`, ook in `antwoord_extern`);
+    aangewezen alinea zonder dragend woord wijkt (`herkies`, ook in `antwoord_extern`). **De kern per stuk** (plan
+    centrale agent na A6, PR A; S01: 4,3k tekens naast het sjabloon gingen verloren, P01: vier arresten in één alinea):
+    elke aanwijzing in `antwoord_extern` heeft het veld `kern` (`extern.KERN`, één tot drie zinnen over dat stuk, leeg
+    mag). Alleen daar: het subsjabloon zit in elk sjabloon van de centrale agent, aan de grens van de strict schema's. De
+    code zet de kern in het blok (`Extern.kern`), en in de tekst onder een kop met het stuk, zodat `per_stuk` en de
+    toetsen op een stuk weten waarover hij gaat; `herkies` en het afkappen kiezen de passages op de kern
+    (`extern.kern_tekst`), en een aangewezen alinea draagt pas als ze twee verschillende stammen deelt (`tests/test_a6_kern.py`);
   - **de grammatica van een verzoek is begrensd**: de API maakt van alle strict schema's samen één grammatica, met
     gedocumenteerde grenzen (20 strict tools, 24 optionele, 16 union-parameters) en een interne grens op de omvang
     ("Schema is too complex for compilation", 400 zonder tokens). De delegatietools (`subagent`,

@@ -160,6 +160,11 @@ class Extern(BaseModel):
     link: str = ""
     #: Uit de connectorbeschrijving (`kop_in_antwoord`).
     kop: str
+    #: Wat Lex over dit stuk zegt, in eigen woorden (`antwoord_extern`, veld `kern` per aanwijzing; plan centrale agent na
+    #: A6, PR A). Leeg bij een stuk dat alleen aangewezen is, en bij een ouder bericht. Zonder dit veld schreef het model
+    #: de samenvatting per stuk naast het sjabloon, en die ging verloren (S01), of perste het vier stukken in het korte
+    #: antwoord (P01).
+    kern: str = ""
     passages: list[ExternePassage]
     #: De versie die Lex las (review ADR-013, punt 3): de hash van het gelezen document en de stand bij de bron
     #: (`dt.modified` bij KOOP). Leeg bij een ouder bericht. Zo blijft een passage herleidbaar, ook als de bron later
@@ -341,6 +346,9 @@ def _blok_tekst(b: BaseModel) -> str:
             door = ", ".join(x.upper() for x in b.vervangen_door)
             vooraf.append(f"**Dit standpunt is {b.status} en is geen geldend beleid" + (f"; ingetrokken door {door}" if door
                                                                                        else "") + ".**")
+        # De kern staat onder een kop met het stuk, zodat de toetsen op een stuk (`gelezen.per_stuk`) weten waarover hij gaat.
+        if b.kern:
+            vooraf.append(f"**{b.label}**" + ("" if b.id in b.label else f" ({b.id})") + f"\n{b.kern}")
         return "\n\n".join([*vooraf, *(f'> "{p.tekst}"' + (f" ({p.plek})" if p.plek else "") for p in b.passages)]) \
             + f"\n\n{regel}"
     if isinstance(b, Stukken):
