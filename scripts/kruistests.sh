@@ -14,7 +14,7 @@ set -uo pipefail
 
 cd "$(git rev-parse --show-toplevel)" || exit 1
 
-LEEST='(parents\[[0-9]\]|WORTEL|PROJECT_ROOT|ROOT)[^#]*/ *"(frontend|api|deploy|tools|docs|packages)"'
+LEEST='(parents\[[0-9]\]|WORTEL|PROJECT_ROOT|ROOT)[^#]*/ *"(frontend|api|deploy|tools|docs|packages|tests)"'
 mislukt=""
 
 draai() {  # $1 = label, $2 = map, rest = commando
