@@ -1180,3 +1180,13 @@ def test_een_begripsvraag_toont_het_vastgelegde_begrip_ook_zonder_search_begripp
     assert any(e.get("type") == "tool_execution" and e.get("tool") == "search_begrippen" for e in events), \
         "de jurist ziet dat er gezocht is"
     assert llm.index == 2, "geen extra modelronde"
+
+
+def test_een_generiek_begrip_draagt_dat_kenmerk_in_blok_en_tekst():
+    a = vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""},
+            [definitie(), begrip(werkgebied="", werkgebied_id="", generiek=True)])
+    [b] = a.blokken[1].items
+    assert b.generiek is True and b.werkgebied == ""
+    assert "(geaccordeerd, generiek)" in antwoord_tekst(a)
+    assert vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""},
+               [definitie(), begrip()]).blokken[1].items[0].generiek is False

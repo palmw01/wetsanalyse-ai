@@ -83,7 +83,8 @@ def _vastgelegd(begrip: str, trace: Trace) -> list[VastgelegdBegrip]:
         if rij.get("id") and (not begrip or any(_zelfde_term(begrip, t) for t in [rij.get("naam", ""), *(rij.get("alternatieve_termen") or [])])):
             uit[rij["id"]] = VastgelegdBegrip(
                 id=rij["id"], naam=rij.get("naam", ""), status=rij.get("status", ""), definitie=rij.get("definitie", ""),
-                werkgebied=rij.get("werkgebied", ""), werkgebied_id=rij.get("werkgebied_id", ""), herbeoordelen=bool(rij.get("herbeoordelen")))
+                werkgebied=rij.get("werkgebied", ""), werkgebied_id=rij.get("werkgebied_id", ""), herbeoordelen=bool(rij.get("herbeoordelen")),
+                generiek=bool(rij.get("generiek")))
     # `get_begrip` draagt de hele definitie; de zoekrij een ingekorte.
     for data in resultaten(trace, ["get_begrip"]):
         if (b := uit.get(data.get("id", ""))) and data.get("definitie"):

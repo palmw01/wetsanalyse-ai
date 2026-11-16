@@ -45,6 +45,8 @@ class VastgelegdBegrip(BaseModel):
     werkgebied: str = ""
     werkgebied_id: str = ""
     herbeoordelen: bool = False
+    #: Een generiek begrip staat boven de werkgebieden (ADR-006): geen werkgebied, wel dit kenmerk.
+    generiek: bool = False
 
 
 class Bepaling(BaseModel):
@@ -312,7 +314,7 @@ def _blok_tekst(b: BaseModel) -> str:
             for d in b.items)
     if isinstance(b, Begrippen):
         return "\n".join(
-            f"- **{x.naam}** ({x.status}{', ' + x.werkgebied if x.werkgebied else ''})" + (f": {x.definitie}" if x.definitie else "")
+            f"- **{x.naam}** ({x.status}{', generiek' if x.generiek else ', ' + x.werkgebied if x.werkgebied else ''})" + (f": {x.definitie}" if x.definitie else "")
             for x in b.items)
     if isinstance(b, Wettekst):
         return "\n\n".join(f"**{_vindplaats_regel(x.vindplaats)}**{NOG_NIET_TEKST if x.nog_niet_in_werking else ''}\n\n{x.tekst}"
