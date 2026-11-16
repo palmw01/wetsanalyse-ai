@@ -1498,6 +1498,11 @@ Twee testsets draaien alleen met een echte database: `test_annotatie_v2_postgres
 `test_projector_v2_integration.py` vragen `ANNOTATIE_TEST_DSN` (asyncpg-URL; elke test krijgt een
 eigen schema), de laatste ook `ANNOTATIE_TEST_GRAPHDB_URL`. Raak je het schrijfslot, de revisies of
 de projectie, draai ze dan: SQLite kent de rij-locks en de transactie-abort van Postgres niet.
+De poort draait de eerste op Postgres en de tweede tegen een nagebootste GraphDB (rdflib). Tegen een echte GraphDB 11.4
+draait `test_projector_v2_integration.py` in `.github/workflows/projectie-graphdb.yml`: na elke merge die de api of het
+bronmodel raakt, en met de hand. Die job leest de licentie uit de environment `acceptatie` en draait nooit op een PR;
+`tests/poort/test_projectie_graphdb.py` bewaakt dat. De races van de domeinen met een slot staan in
+`test_races_postgres*.py` (Lex Bench §20.5 stap 3).
 
 Image bouwen vanaf de **projectroot** (het image neemt `packages/bronmodel` mee):
 `docker build -f api/Dockerfile -t wetsanalyse-api .`

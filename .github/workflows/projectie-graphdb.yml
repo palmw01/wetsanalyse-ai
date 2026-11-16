@@ -1,0 +1,86 @@
+# De projectie tegen een echte GraphDB: de annotatielagen van Postgres naar de graaf, op dezelfde engine als de straten.
+#
+# WAAROM DIT BESTAAT. De projectie is de enige weg van Postgres naar de graaf waar Lex mee zoekt. In de poort draait
+# `api/tests/test_projector_v2_integration.py` tegen een nagebootste GraphDB met rdflib: een verschil tussen rdflib en
+# GraphDB (SPARQL-dialect, named-graph-`PUT`, transacties) bleef zo onzichtbaar (Lex Bench §20.5 stap 3, testplan api V1).
+#
+# WAAROM NIET IN DE POORT. GraphDB 11 schrijft alleen met een licentie, en die staat als secret in de GitHub-environment
+# `acceptatie` (`GRAPHDB_LICENSE_B64`, dezelfde die `azure-infra.yml` gebruikt). Een PR-run krijgt geen secret: deze
+# workflow draait daarom alleen na de merge (push naar master) en met de hand, nooit op `pull_request`.
+# `tests/poort/test_projectie_graphdb.py` bewaakt dat de licentie alleen in deze ene job komt en nooit onder een PR.
+#
+# HOE. GraphDB in dezelfde versie als `deploy/azure/main.bicep` als servicecontainer, met
+# `-Dgraphdb.license.file` zoals in de straten. Een servicecontainer start vóór de stappen, dus de licentie komt er in een
+# stap in (`docker cp`), waarna hij herstart; het bestand staat alleen tijdens die stap op de runner. De test maakt en
+# verwijdert zijn eigen repository.
+
+name: projectie-graphdb
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "api/app/**"
+      - "api/tests/test_projector_v2_integration.py"
+      - "api/pyproject.toml"
+      - "api/uv.lock"
+      - "packages/bronmodel/**"
+      - ".github/workflows/projectie-graphdb.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: projectie-graphdb
+  cancel-in-progress: false
+
+jobs:
+  projectie:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: acceptatie
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+      graphdb:
+        image: ontotext/graphdb:11.4.0
+        env:
+          GDB_JAVA_OPTS: -Xms1g -Xmx2g -Dgraphdb.license.file=/tmp/graphdb.license
+        ports: ["7200:7200"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: uv installeren
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: true
+      - name: GraphDB-licentie plaatsen
+        env:
+          GRAPHDB_LICENSE_B64: ${{ secrets.GRAPHDB_LICENSE_B64 }}
+          GRAPHDB_CONTAINER: ${{ job.services.graphdb.id }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GRAPHDB_LICENSE_B64:-}" ]; then
+            echo "::error::secrets.GRAPHDB_LICENSE_B64 ontbreekt in de environment acceptatie: GraphDB kan niet schrijven."
+            exit 1
+          fi
+          bestand="$RUNNER_TEMP/graphdb.license"
+          trap 'rm -f "$bestand"' EXIT
+          printf '%s' "$GRAPHDB_LICENSE_B64" | base64 -d > "$bestand"
+          docker cp "$bestand" "$GRAPHDB_CONTAINER:/tmp/graphdb.license"
+          docker restart "$GRAPHDB_CONTAINER" > /dev/null
+      - name: api – de projectie tegen GraphDB
+        working-directory: api
+        env:
+          ANNOTATIE_TEST_DSN: postgresql+asyncpg://test:test@localhost:5432/test
+          ANNOTATIE_TEST_GRAPHDB_URL: http://localhost:7200
+        run: |
+          uv sync --extra dev
+          uv run pytest -q tests/test_projector_v2_integration.py
