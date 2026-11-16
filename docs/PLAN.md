@@ -1386,7 +1386,18 @@ agent-token #1100). Stap 7, de meting op acceptatie, staat in `architectuur/meti
 
 A6 is afgesloten op 15 nov 2026 (besluit gebruiker: geen nieuwe meetronde per bevinding). Eindverslag en slotmeting in
 `docs/architectuur/metingen/` (A6, na A6, slot). Wat nog openstaat, op te pakken als het in gebruik opvalt of samen met
-het werk eromheen:
+het werk eromheen.
+
+**Plan (16 nov 2026, nog niet gebouwd):** [`architectuur/plan-centrale-agent-na-a6.md`](architectuur/plan-centrale-agent-na-a6.md).
+Het brengt de punten hieronder en bevinding B-2 uit de E2E-test samen in vijf PR's:
+- **D:** de meetset, punt 6 en 10;
+- **A:** de kern per stuk in het blok `extern`, voor punt 1, 2 en 8;
+- **C:** een begrensd kind vraagt of het verder mag, punt 3;
+- **B:** de woordtoets wijst aan en de lezer beslist, met een gerichte set, punt 4 en 5;
+- **E:** B-2 in het spoor zoekvragen.
+
+Punt 7 is gebouwd met de agentprofielen (#1565), en alleen de meting staat nog open. A en C worden samen met die meting
+gemeten. Er zijn vijf open keuzes voor de gebruiker.
 
 1. **S01, regressie:** de tekst die het model naast `antwoord_extern` schrijft (`tekst_ernaast`) valt weg, dus het
    overzicht per gelezen stuk ontbreekt.
