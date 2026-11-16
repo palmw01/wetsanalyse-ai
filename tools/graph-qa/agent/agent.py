@@ -29,6 +29,7 @@ from .beurtmeting import route_van
 from .models import Verbruiksmeter
 from .observability import get_tracer
 from .ports import GraphPort, LLMPort
+from .tools import _graaf_is_weg
 from .tools.annotatie_tools import is_leesvraag
 from .gelezen import gekozen_periode, zelf_afgebakend
 
@@ -94,6 +95,12 @@ def _foutmelding(exc: Exception) -> str:
     """
     soort = type(exc).__name__
     body_soort, bericht = _provider_fout(exc)
+    if _graaf_is_weg(exc):
+        # De repository ontbreekt (GraphDB leeg na een herstart). Een route die de bron zelf leest, zoals het annoteren,
+        # komt hier en niet langs `dispatch`: dezelfde boodschap als daar, voor de jurist (testplan keten-e2e, K1).
+        return ("De kennisgraaf is op dit moment niet beschikbaar: na een herstart van de graafdatabase ontbreekt de "
+                "wettekst even. Hij wordt vanzelf opnieuw gevuld, doorgaans binnen een kwartier. Probeer het straks "
+                "opnieuw; uit eigen kennis antwoord ik niet.")
     if soort in ("RateLimitError", "OverloadedError", "ServiceUnavailableError") or body_soort in (
             "rate_limit_error", "overloaded_error"):
         return ("De modelprovider is momenteel overbelast. Probeer het over een halve minuut "
