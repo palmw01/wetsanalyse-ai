@@ -439,6 +439,9 @@ async def answer_stream(
                                      answer=laatste.get("answer") or "", grounded=grounded,
                                      # De code sloot het kind af (geen rapport): de ouder maakt er `afgesloten` van.
                                      afgesloten=bool(laatste.get("afgesloten")),
+                                     # Zijn laatste ronde was die van de grens (rondes of tokens): wat open bleef, wordt
+                                     # een vraag naar boven (`subagent.begrensd_vraag`).
+                                     begrensd=bool(laatste.get("laatste_gehad")),
                                      # Wat de controle in het rapport niet terugvond: een subagent zonder ronde meer krijgt
                                      # geen correctie, dus het gaat met het rapport mee (meting bundel 118).
                                      onbevestigd=list(laatste.get("onbevestigd") or []),

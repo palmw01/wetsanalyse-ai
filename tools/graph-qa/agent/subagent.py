@@ -228,6 +228,59 @@ def ongelezen_vraag(opdracht: SubagentOpdracht, kind: dict[str, Any]) -> dict[st
     return {"tekst": tekst, "opties": [LEES_ZE, NIET_LEZEN]}
 
 
+#: De opties van de vraag uit code bij een kind dat op zijn grens stopte (`begrensd_vraag`).
+LEES_VERDER = "Ja, lees verder"
+
+
+def begrensd_vraag(opdracht: SubagentOpdracht, kind: dict[str, Any], periode: list[int] | None = None
+                   ) -> dict[str, Any] | None:
+    """De vraag uit code als een kind op zijn grens stopte (zijn laatste ronde was die van de rondegrens of het
+    tokenplafond, of de code sloot het af) terwijl er nog iets open was, of None (plan centrale agent na A6, PR C).
+
+    Open is: stukken van de bron waar de opdracht om vroeg die het kind vond en niet las, stukken die het maar deels las,
+    of wat het rapport zelf onder 'Open' zet. Een kind aan zijn grens koos in de laatste ronde `klaar` of `niet_gelukt`
+    met de ongelezen nummers onder 'Open', en vroeg niets (V03 in run 3; S04, F02 en P01 lieten stukken ongelezen). Het
+    model kiest daar niet betrouwbaar voor een vraag, en de code weet wat er ongelezen is. Een stuk van buiten de periode
+    van de jurist telt niet: dat las het kind terecht niet. Het antwoord hervat het kind met een nieuwe begroting."""
+    from bronmodel.connectors import CONNECTORS, herkende, van_id
+
+    from .gelezen import deels_gelezen, gelezen_en_gevonden, jaar_van
+
+    if not (kind.get("begrensd") or kind.get("afgesloten")):
+        return None
+    trace = kind.get("source_trace") or []
+    gelezen, gevonden = gelezen_en_gevonden(trace)
+    van = {CONNECTORS[n].brontype for n in herkende(" ".join([opdracht.doel, opdracht.onderwerp, opdracht.bronnen]))}
+
+    def binnen(ident: str) -> bool:
+        jaar = jaar_van(ident)
+        return not periode or jaar is None or periode[0] <= jaar <= periode[-1]
+
+    ongelezen = [lab or i for i, lab in gevonden
+                 if (c := van_id(i)) is not None and c.brontype in van and binnen(i)]
+    labels = dict(gelezen)
+    deels = [labels.get(i) or i for i in deels_gelezen(trace) if binnen(i)]
+    open_ = [p for x in (kind.get("rapport") or {}).get("open") or [] if (p := " ".join(str(x).split()))]
+    if not (ongelezen or deels or open_):
+        return None
+    if ongelezen or deels:
+        delen = ([f"niet gelezen: {', '.join(ongelezen[:MAX_ONGELEZEN])}"
+                  + (f" en nog {len(ongelezen) - MAX_ONGELEZEN}" if len(ongelezen) > MAX_ONGELEZEN else "")]
+                 if ongelezen else []) + ([f"deels gelezen: {', '.join(deels[:MAX_ONGELEZEN])}"] if deels else [])
+        wat = "; ".join(delen)
+    else:
+        wat = f"nog open: {open_[0]}"
+    kop = "Ik kwam aan de grens van wat ik in één keer mag lezen voor ik klaar was"
+    tekst = f"{kop} ({wat}). Zal ik verder lezen?"
+    if len(tekst) > MAX_VRAAG_TEKENS:
+        tekst = f"{kop}. Zal ik verder lezen?"
+    return {"tekst": tekst, "opties": [LEES_VERDER, NIET_LEZEN]}
+
+
+#: Zo lang mag een vraag naar boven zijn (`sjablonen.rapport.MAX_VRAAG`).
+MAX_VRAAG_TEKENS = 300
+
+
 def _titel(opdracht: SubagentOpdracht) -> str:
     tekst = " ".join(opdracht.doel.split())
     return tekst if len(tekst) <= 80 else tekst[:79].rsplit(" ", 1)[0] + "…"
@@ -644,6 +697,11 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
             # Eén keer: na het antwoord (ook "nee") rondt het hervatte kind af met wat het heeft.
             # Een rapport `klaar` zonder één gelezen stuk van de bron waar de opdracht om vroeg (A6 eind, V03: drie memories
             # van toelichting gevonden, "wegens rondegrens" niet gelezen): een vraag naar boven, uit code.
+            afloop.uitkomst, afloop.vragen = "vraag", [vraag]
+        elif afloop.uitkomst in ("klaar", "niet_gelukt", "afgesloten") and not afloop.hervat and (
+                vraag := begrensd_vraag(opdracht, kind, afloop.periode)):
+            # Een kind dat op zijn grens stopte terwijl er nog iets open was (plan centrale agent na A6, PR C): een vraag
+            # naar boven, uit code, één keer. Het rapport blijft; na het antwoord rondt het hervatte kind af.
             afloop.uitkomst, afloop.vragen = "vraag", [vraag]
         return kind
     except GesprekVerdwenen:
