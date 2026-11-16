@@ -216,3 +216,28 @@ def test_met_de_vlag_geen_overzicht_op_een_naam_van_een_woord_en_de_rol_is_aanve
     assert bronnen_vinden.vind(Graaf(), INVOER, methoden=("overzicht",))["kandidaten"][0]["rol"] == "kern", \
         "zonder vlag ongewijzigd"
     assert bronnen_vinden._profiel() is dz.STANDAARD_PROFIEL, "na de run staat het profiel terug"
+
+
+# --- stap 4: een samenstelling raakt op haar hele stam of haar kern (O3) ----------------------------------------------
+
+from agent.zoektermen import _raakt, raakt_heel  # noqa: E402
+
+
+def test_raakt_heel_op_de_stam_of_de_kern_niet_op_het_eerste_deel():
+    tekst = "de eerste termijn vervalt een maand na de dagtekening van de betaling van de belasting"
+    assert _raakt(["betalingstermijnen", "belastingjaar"], tekst) == ["betalingstermijnen", "belastingjaar"], \
+        "standaard: de eerste acht letters (betaling, belastin) raken al"
+    assert raakt_heel("betalingstermijnen", tekst), "de kern 'termijn' staat er als woord"
+    assert not raakt_heel("belastingjaar", tekst), "'belasting' is het eerste deel, 'jaar' te kort als kern"
+    assert raakt_heel("belastingjaar", "over het belastingjaar 2025")
+    assert raakt_heel("termijnen", tekst), "een korte stam raakt zoals altijd op zijn begin"
+    assert _raakt(["betalingstermijnen", "belastingjaar"], tekst, heel=True) == ["betalingstermijnen"]
+
+
+def test_raakt_heel_vindt_de_kern_niet_midden_in_een_woord():
+    assert not raakt_heel("betalingstermijnen", "de aanslagtermijnen"), "de kern moet een woord beginnen"
+    assert raakt_heel("belastingaanslag", "de voorlopige aanslag"), "aanslag is de kern van belastingaanslag"
+
+
+def test_stam_heel_staat_standaard_uit():
+    assert dz.STANDAARD_PROFIEL.stam_heel is False

@@ -659,13 +659,14 @@ def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit:
 
     from .zoektermen import _raakt
 
+    heel = bool(profiel is not None and profiel.stam_heel)
     termen = termen_van_deelvraag(vraag)
     zoekvraag = zoekvraag_van_deelvraag(vraag)
     stammen = [_stamdeel(w) for w in zoektermen(gebeurtenis)]
     teksten = [f"{k.get('tekst') or ''} {k.get('zin') or ''}" for k in kandidaten]
 
     def df_van(woorden: list[str]) -> dict[str, int]:
-        return {t: sum(bool(_raakt([t], tekst, True)) for tekst in teksten) for t in woorden}
+        return {t: sum(bool(_raakt([t], tekst, True, heel)) for tekst in teksten) for t in woorden}
 
     df = df_van(termen)
     brug: dict[str, str] = {}
@@ -681,7 +682,7 @@ def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit:
     bonus = max(gewicht.values(), default=1.0) or 1.0
     gescoord = []
     for i, (k, tekst) in enumerate(zip(kandidaten, teksten)):
-        g = _raakt(termen, tekst, True)
+        g = _raakt(termen, tekst, True, heel)
         past = _past_vraagvorm(k, zoekvraag, [w for w in g if w not in brug],
                                bool(profiel is not None and profiel.vraagvorm_eigen_woord))
         if not (g or past):
