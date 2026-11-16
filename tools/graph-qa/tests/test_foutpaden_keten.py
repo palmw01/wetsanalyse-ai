@@ -21,13 +21,13 @@ from __future__ import annotations
 import functools
 import json
 
+import bron_fakes
 import pytest
+from fakes import FakeGraph, FakeLLM, KetenLLM, response, text_block, tool_block
 from fastapi.testclient import TestClient
 
-import api.main as main
-import bron_fakes
 from agent.runstore.geheugen import GeheugenStore
-from fakes import FakeGraph, FakeLLM, KetenLLM, response, text_block, tool_block
+from api import main
 
 pytestmark = [pytest.mark.risico("R01"), pytest.mark.risico("R04"), pytest.mark.risico("R05"),
               pytest.mark.risico("R08")]
@@ -142,7 +142,7 @@ def test_k2_een_afgebroken_beurt_laat_een_vrij_gesprek_en_een_vastgelegde_afbraa
 
 def _provider_fout(naam: str, soort: str) -> Exception:
     klasse = type(naam, (Exception,), {})
-    fout = klasse("Error code: 4xx – {'type': 'error', 'error': {'type': '%s', 'message': 'sk-ant intern'}}" % soort)
+    fout = klasse(f"Error code: 4xx – {{'type': 'error', 'error': {{'type': '{soort}', 'message': 'sk-ant intern'}}}}")
     fout.body = {"type": "error", "error": {"type": soort, "message": "sk-ant intern detail"}}
     return fout
 
