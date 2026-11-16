@@ -82,3 +82,31 @@ def test_een_korte_vraag_telt_niets():
 def test_een_haperende_telling_kost_alleen_de_keuze():
     assert _termen(TelGraaf(kapot=True), termen_idf=True) == \
         ["werkt", "verrekening", "negatieve", "voorlopige", "aanslag", "bedragen"]
+
+
+# --- stap 1b: om de beurt alleen tussen regelingen met een sterke treffer (O7) --------------------------------------
+
+def _k(iri: str, bwb: str) -> dict:
+    return {"iri": iri, "bwb_id": bwb}
+
+
+def test_om_de_beurt_sterk_laat_een_zwakke_regeling_wachten():
+    a1, a2, a3 = _k("a1", "A"), _k("a2", "A"), _k("a3", "A")
+    b1, c1 = _k("b1", "B"), _k("c1", "C")
+    score = {"a1": 1.0, "a2": 0.9, "a3": 0.8, "b1": 0.6, "c1": 0.2}
+    volgorde = [a1, a2, a3, b1, c1]
+    # Zonder de grens krijgt C (0,2) de derde plaats, vóór a2.
+    assert [k["iri"] for k in dz.om_de_beurt(volgorde, {}, ["A", "B", "C"])] == ["a1", "b1", "c1", "a2", "a3"]
+    # Met de grens (de helft van 1,0) doen A en B om de beurt mee, en C komt erna.
+    assert [k["iri"] for k in dz.om_de_beurt_sterk(volgorde, score, {}, ["A", "B", "C"])] == \
+        ["a1", "b1", "a2", "a3", "c1"]
+
+
+def test_om_de_beurt_sterk_met_gelijke_regelingen_is_om_de_beurt():
+    volgorde = [_k("a1", "A"), _k("b1", "B"), _k("a2", "A")]
+    score = {"a1": 1.0, "b1": 0.9, "a2": 0.8}
+    assert dz.om_de_beurt_sterk(volgorde, score, {}, ["A", "B"]) == dz.om_de_beurt(volgorde, {}, ["A", "B"])
+
+
+def test_beurt_sterk_staat_standaard_uit():
+    assert dz.STANDAARD_PROFIEL.beurt_sterk is False and dz.AANDEEL_STERK == 0.5
