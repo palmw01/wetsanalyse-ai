@@ -289,13 +289,19 @@ def _met_profiel(profiel: deelvraag_zoeken.Zoekprofiel):
     return route
 
 
-_bepaling_opties = _met_profiel(deelvraag_zoeken.STANDAARD_PROFIEL)
-def _zoekvragen_route(profiel: "deelvraag_zoeken.Zoekprofiel" = deelvraag_zoeken.STANDAARD_PROFIEL):
+#: De standaard van vóór stap 8 van het plan Termijnen (16 nov 2026). Op dit profiel zijn de metingen van november gedaan,
+#: en de tests in `test_bronselectie_eval.py` houden hun uitkomst vast: de routes hieronder (de ablatie, de dossiervlaggen,
+#: B-2 en het plan) rekenen daarom ertegen. De standaard van nu meet de route "standaard (stap 8)".
+VOOR_STAP8 = replace(deelvraag_zoeken.STANDAARD_PROFIEL, termen_idf=False, verwijzingen=False, overzicht_streng=False,
+                     brug_omschrijving=False)
+_bepaling_opties = _met_profiel(VOOR_STAP8)
+def _zoekvragen_route(profiel: "deelvraag_zoeken.Zoekprofiel | None" = None):
     """Zoekvragen a–d, PR 5: per deelvraag de opties uit de pool vanaf de gebeurtenis van de set
     (`zoekvragen.opties_bij_deelvraag`) samen met `bepaling_opties`, met dezelfde functie als
     `bronnen_vinden._deelvraag` (`zoekvragen.samen_met_woorden`). Een set zonder gebeurtenis: de woordenroute."""
     from agent import zoekvragen
 
+    profiel = profiel or VOOR_STAP8
     woordenroute = _met_profiel(profiel)
     cache: dict[tuple, dict[str, Any]] = {}
 
@@ -324,46 +330,48 @@ DOSSIERVLAGGEN = ("dossier_velden", "dossier_lijsten", "dossier_omgeving", "geli
 #: De routes van de meting: de standaard, de rangschikking van F3f (21 okt 2026) als ijkpunt, de standaard met
 #: telkens één ingreep uit of – het lemma, standaard uit – erbij (ablatie), en de deelvraagmethode van vóór F3f.
 ROUTES = {"bepaling_opties": _bepaling_opties, "F3f (21 okt)": _met_profiel(deelvraag_zoeken.F3F),
-          **{f"zonder {v}": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: False}))
+          **{f"zonder {v}": _met_profiel(replace(VOOR_STAP8, **{v: False}))
              for v in ("per_term", "samenstelling", "divisies", "kop_overal", "fusie", "per_regeling")},
-          "met lemma": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, lemma=True)),
-          "met lengte": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, lengte=True)),
-          **{f"met {v}": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: True}))
+          "met lemma": _met_profiel(replace(VOOR_STAP8, lemma=True)),
+          "met lengte": _met_profiel(replace(VOOR_STAP8, lengte=True)),
+          **{f"met {v}": _met_profiel(replace(VOOR_STAP8, **{v: True}))
              for v in DOSSIERVLAGGEN},
-          "met dossier (alles)": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL,
+          "met dossier (alles)": _met_profiel(replace(VOOR_STAP8,
                                                       **{v: True for v in DOSSIERVLAGGEN})),
 
           "zoekvragen (PR 5)": _zoekvragen_route(),
+          "standaard (stap 8)": _met_profiel(deelvraag_zoeken.STANDAARD_PROFIEL),
+          "zoekvragen standaard (stap 8)": _zoekvragen_route(deelvraag_zoeken.STANDAARD_PROFIEL),
           "vorige deelvraagmethode": _vorige_deelvraagmethode}
 #: De vlaggen van B-2 (E2E Rekeningafspraken, plan centrale agent na A6, PR E), standaard uit. Ze stellen nieuwe vragen
 #: aan de graaf, dus alleen met `--b2`: de opnames van de bestaande sets hebben die vragen nog niet (`--aanvullen`).
-ROUTES_B2 = {f"met {v}": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: True}))
+ROUTES_B2 = {f"met {v}": _met_profiel(replace(VOOR_STAP8, **{v: True}))
              for v in ("verwijzingen", "onderscheidend")}
 #: De vlaggen van het plan bronselectie bij Termijnen (`docs/architectuur/onderzoek-bronselectie-termijnen-2026-11.md`),
 #: standaard uit. Elke vlag apart naast de standaard, en alle samen; alleen met `--plan`, want ze stellen nieuwe vragen
 #: aan de graaf (`--aanvullen`).
 PLANVLAGGEN = ("termen_idf", "beurt_sterk", "woorden_voor_pool", "vraagvorm_eigen_woord", "overzicht_streng",
                "stam_heel", "brug_omschrijving", "definitie_brug")
-_PLAN_ALLES = replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: True for v in PLANVLAGGEN})
+_PLAN_ALLES = replace(VOOR_STAP8, **{v: True for v in PLANVLAGGEN})
 #: Elke vlag op de woordenroute en op de zoekvragenroute (wat de bronnenrun met een gebeurtenis doet), en alle samen.
-ROUTES_PLAN = {**{f"met {v}": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: True}))
+ROUTES_PLAN = {**{f"met {v}": _met_profiel(replace(VOOR_STAP8, **{v: True}))
                   for v in PLANVLAGGEN},
                "met het plan (alles)": _met_profiel(_PLAN_ALLES),
-               **{f"zoekvragen met {v}": _zoekvragen_route(replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: True}))
+               **{f"zoekvragen met {v}": _zoekvragen_route(replace(VOOR_STAP8, **{v: True}))
                   for v in PLANVLAGGEN},
                "zoekvragen met het plan (alles)": _zoekvragen_route(_PLAN_ALLES),
                # Stap 7: de vlaggen van PR E werken alleen in de woordenroute. Op de zoekvragenroute krijgt die pas een
                # plaats met `woorden_voor_pool`, dus daar meten ze samen.
                **{f"zoekvragen met woorden_voor_pool + {v}": _zoekvragen_route(
-                   replace(deelvraag_zoeken.STANDAARD_PROFIEL, woorden_voor_pool=True, **{v: True}))
+                   replace(VOOR_STAP8, woorden_voor_pool=True, **{v: True}))
                   for v in ("verwijzingen", "onderscheidend")}}
 
 
-def _pool(graph: Any, s: dict[str, Any], vraag: str, profiel=deelvraag_zoeken.STANDAARD_PROFIEL) -> list[str]:
+def _pool(graph: Any, s: dict[str, Any], vraag: str, profiel=None) -> list[str]:
     """Wat de index bij de deelvraag vindt, vóór de rangschikking (`deelvraag_zoeken.kandidatenpool`): zo
     scheidt de meting wat het zoeken mist van wat de rangschikking laat vallen."""
     pool = deelvraag_zoeken.kandidatenpool(graph, regelingen=s["regelingen"], deelvraag=vraag, dossier=_dossier(s),
-                                         profiel=profiel)
+                                         profiel=profiel or VOOR_STAP8)
     return list(pool["gevonden"]) if pool else []
 
 
