@@ -303,8 +303,9 @@ async def kaart_kern(ctx: Context, actie: str, b: dict[str, Any], ander: dict[st
             return geweigerd(actie, f"*{b['naam']}* en *{ander['naam']}* staan in verschillende werkgebieden; ik "
                                     "vergelijk alleen begrippen binnen één werkgebied.")
     wid, naam, wg_naam = b["werkgebied_id"], b["naam"], b.get("werkgebied_naam", "")
-    ctx.melding(f"{NAAM.get(actie, actie)} " + (f"tussen “{naam}” en “{ander['naam']}”" if ander else f"voor “{naam}”")
-                + f" (werkgebied {wg_naam})")
+    aangekondigd = (f"{NAAM.get(actie, actie)} " + (f"tussen “{naam}” en “{ander['naam']}”" if ander else f"voor “{naam}”")
+                    + (f" (werkgebied {wg_naam})" if wg_naam else ""))
+    ctx.melding(aangekondigd)
     try:
         kr = await ctx.api.start_kaart_run(wid, b["id"], actie, ander["id"] if ander else None,
                                            **({"op_voorstel_id": op_voorstel} if op_voorstel else {}))
@@ -337,7 +338,10 @@ async def kaart_kern(ctx: Context, actie: str, b: dict[str, Any], ander: dict[st
         async for ev in kaart_stroom(wid, b["id"], kr["id"], ctx.run, settings=ctx.settings, user_id=ctx.user_id,
                                      api=ctx.api):
             if ev.get("type") == "status":
-                ctx.melding(str(ev.get("message", "")).removeprefix("Lex · "))
+                # De eerste regel van de kaart-run zegt wat hierboven al staat, zonder het werkgebied: dan niet nog eens
+                # (E2E 16 nov 2026, D-9: elke stap stond twee keer, met en zonder werkgebied).
+                if not aangekondigd.startswith(regel := str(ev.get("message", "")).removeprefix("Lex · ")):
+                    ctx.melding(regel)
             elif ev.get("type") == "opgeslagen":
                 aantal, melding = int(ev.get("voorstellen") or 0), str(ev.get("melding") or "")
                 onderzoek = ev.get("onderzoek") or {}

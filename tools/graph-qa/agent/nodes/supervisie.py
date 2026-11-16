@@ -30,7 +30,7 @@ from ..overdracht import _delegatie_stand, is_standvraag
 from ..models import ACTIE_TAAK, BRONSELECTIE_ACTIES, INTAKE_ACTIES
 from ..focus import bij_advies, bij_onderwerp
 from ..kaart_beurt import KAARTPREFIX, uit_keuze
-from ..narratie import _stap
+from ..narratie import _stap, doel_in_woorden
 from ..state import State
 from .. import methodekeuze
 from ..berichten import eerdere_beurten
@@ -386,9 +386,16 @@ def register_kiesbaar() -> frozenset[str]:
     return frozenset(KIESBAAR)
 
 
-def _subagent_vervolg(b: Bouw, writer) -> dict[str, Any]:
-    """Een klik op de vraagkaart van een subagent: de node `subagent_vervolg`, zonder model."""
-    _stap(writer, "Lex", "verwerkt je antwoord voor de subagent", route="subagent")
+def _is_planbevestiging(state: State) -> bool:
+    """Een klik op de bevestiging van een plan met subagents (`sa_start`), niet op een vraag van een subagent."""
+    return (state.get("intake_actie") or {}).get("stap") == "sa_start"
+
+
+def _subagent_vervolg(b: Bouw, writer, state: State) -> dict[str, Any]:
+    """Een klik op de vraagkaart van een subagent: de node `subagent_vervolg`, zonder model. De regel zegt wat de klik
+    was: de bevestiging van een plan (`sa_start`) is geen antwoord op een vraag naar boven (E2E 16 nov 2026, D-7)."""
+    _stap(writer, "Lex", "verwerkt je keuze over het plan met subagents" if _is_planbevestiging(state)
+          else "verwerkt je antwoord voor de subagent", route="subagent")
     return {"specialist": "subagent_vervolg", "plan": "", "worker_plan": ["subagent_vervolg"], "worker_idx": 0,
             "afwijzen": False, "annotaties_lezen": False}
 
@@ -474,7 +481,10 @@ def _bronkeuze(b: Bouw, state: State, upd: dict[str, Any]) -> dict[str, Any]:
         uit.update(bronstand=nieuw, bronnen=bronkeuze.actief(nieuw))
         writer = get_stream_writer()
         writer(bronstand.event(nieuw))
-        _stap(writer, "Lex", bronstand.keuze_regel(nieuw))
+        # Alleen als de keuze verandert: een hervatte beurt of een vervolgvraag met dezelfde bronnen herhaalde de regel
+        # (E2E Rekeningafspraken 16 nov 2026, D-15). Het event gaat wel mee: de werkplek toont de stand per beurt.
+        if keuze != state.get("bronkeuze") and not state.get("intake_actie"):
+            _stap(writer, "Lex", bronstand.keuze_regel(nieuw))
         logger.info("bronnen per vraag", extra={"categorie": "functioneel", "bronstand": bronstand.als_tekst(nieuw)})
     return uit
 
@@ -512,12 +522,13 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         if str((state.get("intake_actie") or {}).get("intake_id", "")).startswith(KAARTPREFIX):
             return _begrip_keuze(writer, state)
         if str((state.get("intake_actie") or {}).get("intake_id", "")).startswith(SUBAGENT_PREFIX):
-            return _subagent_vervolg(b, writer)
+            return _subagent_vervolg(b, writer, state)
         return _werkgebied(writer, "verwerkt het antwoord op het kaartje")
     if state.get("actie") == "bepaling_toevoegen":
         return _bronselectie(writer, "zoekt met je een bepaling op")
     if state.get("actie") in BRONSELECTIE_ACTIES:
-        return _bronselectie(writer, "pakt de bronselectie op waar die was")
+        # Neutraal: de route weet niet of er al iets lag, en bij de eerste keer lag er niets (E2E 16 nov 2026, D-12).
+        return _bronselectie(writer, "werkt met je aan de bronselectie per deelvraag")
     if state.get("actie") in INTAKE_ACTIES:
         # Een klik op *Vul het dossier aan*: de vraagkaarten van de intake, op het werkgebied van het gesprek.
         return _werkgebied(writer, "vult met je het dossier aan", aanvullen=True)
@@ -567,8 +578,8 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         # Wat de router zou beslissen is hier al bekend, en wat de ophaal-agent zou vinden staat
         # er al – inclusief de zekerheid dat het de bepaling is die de jurist aanwees.
         doel = state.get("opgegeven_doel") or {}
-        aanduiding = doel.get("artikel") or doel.get("nummer") or ""
-        _stap(writer, "Lex", f"annoteert de aangewezen bepaling (art. {aanduiding})", route="annotatie")
+        _stap(writer, "Lex", "annoteert de aangewezen bepaling" + (f" ({wat})" if (wat := doel_in_woorden(doel)) else ""),
+              route="annotatie")
         return {
             "specialist": "annotatie", "worker_plan": ["annotatie"], "worker_idx": 0,
             "plan": "annotatie van een aangewezen bepaling", "afwijzen": False, "annotaties_lezen": False,
@@ -661,7 +672,9 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
         if len(delegatie) > 1:
             return {"specialist": "subagent_plan", "plan": "", "worker_plan": ["subagent_plan"], "worker_idx": 0,
                     "afwijzen": False, "annotaties_lezen": False, "subagent_plan": subagent_route.als_state(delegatie)}
-        _stap(writer, "Lex", "geeft het lezen van de reeks aan een subagent", route="subagent")
+        # Het profiel dat het werk doet, niet een vaste zin: "het lezen van de reeks" stond ook bij een vraag over de
+        # wetsgeschiedenis (E2E 16 nov 2026, D-6). Eén regel: `subagent_route_node` herhaalt hem niet.
+        _stap(writer, "Lex", f"geeft de vraag aan een subagent ({delegatie[0][0]})", route="subagent")
         return {"specialist": "subagent_route", "plan": "", "worker_plan": ["subagent_route"], "worker_idx": 0,
                 "afwijzen": False, "annotaties_lezen": False, "subagent_plan": subagent_route.als_state(delegatie),
                 **({"zelfstandige_vraag": opdracht} if opdracht != state.get("question", "") else {})}

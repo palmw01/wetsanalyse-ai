@@ -5,8 +5,38 @@ kunnen meerdere node-modules ze delen zonder elkaar te importeren.
 """
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
+
+logger = logging.getLogger(__name__)
+
+#: In de testsuite (`tests/conftest.py`) is een regel met een lege plek een fout; in de dienst haalt `_stap` de lege plek
+#: weg en logt hij het, want een denkproces is geen reden om een beurt te laten vallen.
+STRIKT = False
+
+#: Wat een regel met een gat verraadt: lege haakjes ("(art. )", "( )"), een leeg veld ("None", "{zoekterm}"), een
+#: dubbele spatie, een leesteken met niets ervoor of erachter (" , ", ": ;"), een regel die op een scheiding eindigt.
+#: E2E Rekeningafspraken 16 nov 2026, D-1: twaalf keer "Lex · annoteert de aangewezen bepaling (art. )".
+_LEGE_PLEK = re.compile(
+    r"\(\s*(?:art\.?|artikel|lid|bepaling|onderdeel)?\s*[,;:]?\s*\)"   # lege haakjes, ook met alleen een soortwoord
+    r"|\b(?:None|null|undefined|nan)\b"                                  # een veld zonder waarde
+    r"|\{\w*\}"                                                         # een vorm zonder invulling
+    r"|\S {2,}\S"                                                        # een dubbele spatie: een leeg deel ertussen
+    r"|\s[,;:.](?=\s|$)"                                                # een leesteken zonder woord ervoor
+    r"|[,;:·–]\s*$"                                                     # een regel die op een scheiding eindigt
+    r"|^\s*$")                                                          # een lege regel
+
+
+def lege_plekken(regel: str) -> list[str]:
+    """De gaten in één regel van het denkproces (`_LEGE_PLEK`); leeg als de regel heel is."""
+    return [m.group(0) for m in _LEGE_PLEK.finditer(regel or "")] or ([""] if not (regel or "").strip() else [])
+
+
+def _zonder_lege_plekken(regel: str) -> str:
+    regel = re.sub(r"\s*\(\s*(?:art\.?|artikel|lid|bepaling|onderdeel)?\s*[,;:]?\s*\)", "", regel)
+    regel = re.sub(r"\s+([,;:.])(?=\s|$)", r"\1", " ".join(regel.split()))
+    return re.sub(r"[,;:·–]\s*$", "", regel).strip()
 
 
 def _duur(ms: int) -> str:
@@ -30,6 +60,11 @@ def _stap(writer: Any, actor: str, bericht: str, duur_ms: int | None = None, rou
     `bron` zegt bij een regel over een opgehaald resultaat welke spoorbron het was (`agent/spoorbronnen.py`), om dezelfde
     reden: de tekst is voor de jurist, het veld voor wie hem leest zonder tekst te ontleden.
     """
+    if gaten := lege_plekken(f"{actor} · {bericht}"):
+        if STRIKT:
+            raise AssertionError(f"denkproces: lege plek {gaten!r} in {actor} · {bericht!r}")
+        logger.warning("denkproces: lege plek", extra={"categorie": "functioneel", "actor": actor, "route": route})
+        actor, bericht = _zonder_lege_plekken(actor) or "Lex", _zonder_lege_plekken(bericht) or "werkt verder"
     event: dict[str, Any] = {"type": "status", "message": f"{actor} · {bericht}"}
     if route:
         event["route"] = route
@@ -39,6 +74,67 @@ def _stap(writer: Any, actor: str, bericht: str, duur_ms: int | None = None, rou
         event["message"] += f" ({_duur(duur_ms)})"
         event["duur_ms"] = duur_ms
     writer(event)
+
+
+def doel_in_woorden(doel: dict[str, Any]) -> str:
+    """De aangewezen bepaling van een annotatiedoel in woorden: "artikel 7a, lid 1 (Wet X)", of het label van zijn
+    `bron_iri` als het doel alleen die draagt ("Artikel 7a, lid 1"). Leeg als het doel niets aanwijst. Eerst stond er
+    "(art. )" bij elk doel met alleen een `bron_iri` (E2E Rekeningafspraken 16 nov 2026, D-1)."""
+    from bronmodel import vindplaats
+
+    nummer = str(doel.get("artikel") or doel.get("nummer") or "").strip()
+    lid = str(doel.get("lid") or "").strip()
+    titel = str(doel.get("citeertitel") or "").strip()
+    vp = vindplaats.vindplaats(str(doel.get("bron_iri") or ""))
+    if not titel and (bwb := str(doel.get("bwbId") or doel.get("bwb_id") or (vp.bwb_id if vp else "")).strip()):
+        from .spoorbronnen import _regeling
+        titel = _regeling(bwb)
+    if nummer:
+        tekst = f"artikel {nummer}" + (f", lid {lid}" if lid else "")
+    elif vp is not None and vp.label:
+        tekst = vp.label[:1].lower() + vp.label[1:]
+    else:
+        tekst = ""
+    return (tekst + (f" ({titel})" if titel else "")).strip() if tekst else titel
+
+
+#: Hoe een subagent afliep (`subagent.Afloop.uitkomst`), voor de kindregel.
+KIND_UITKOMST: dict[str, str] = {
+    "klaar": "klaar, met een rapport",
+    "vraag": "heeft een vraag voor je",
+    "niet_gelukt": "rondde af zonder het gevraagde",
+    "afgesloten": "afgesloten door de code (rondegrens of tokenplafond), zonder rapport",
+    "gestopt": "gestopt",
+    "mislukt": "liep vast door een storing",
+    "budget_op": "niet gestart: het tokenbudget is op",
+    "niet_gestart": "niet gestart",
+}
+
+
+def kindregel(uitkomst: str, kind: dict[str, Any]) -> str:
+    """Wat een subagent opleverde, als regel in het denkproces van de beurt die hem startte: "klaar, met een rapport ·
+    9 aanroepen, 5 gelezen (3 deels), 12 alleen gevonden". De stappen van het kind staan in zijn deelgesprek;
+    hier stond alleen dat hij begon, en niet wat hij deed of opleverde (E2E Rekeningafspraken 16 nov 2026). Uit code: de
+    trace en het rapport van het kind, voor elk profiel en elke bron."""
+    from .gelezen import deels_gelezen, gelezen_en_gevonden
+
+    trace = kind.get("source_trace") or []
+    gelezen, gevonden = gelezen_en_gevonden(trace)
+    deels = deels_gelezen(trace)
+    delen = [f"{len(trace)} {'aanroep' if len(trace) == 1 else 'aanroepen'}"] if trace else []
+    if gelezen:
+        n_deels = sum(1 for i, _ in gelezen if i in deels)
+        delen.append(f"{len(gelezen)} gelezen" + (f" ({n_deels} deels)" if n_deels else ""))
+    if gevonden:
+        delen.append(f"{len(gevonden)} alleen gevonden")
+    rapport = kind.get("rapport") or {}
+    if punten := list(dict.fromkeys([*(kind.get("niet_onderbouwd") or []), *(kind.get("onbevestigd") or [])])):
+        # Wat de controle van het kind niet terugvond, gaat met het rapport mee (`subagent.controle_tekst`): ook hier.
+        delen.append(f"{len(punten)} {'punt' if len(punten) == 1 else 'punten'} niet teruggevonden door de controle")
+    if (n := len(rapport.get("vragen") or [])) and uitkomst == "vraag":
+        delen.append(f"{n} {'vraag' if n == 1 else 'vragen'}")
+    tekst = KIND_UITKOMST.get(uitkomst, uitkomst or "klaar")
+    return tekst + (": " + ", ".join(delen) if delen else "")
 
 
 def met_regelgrens(denk: str, inhoud: str) -> str:

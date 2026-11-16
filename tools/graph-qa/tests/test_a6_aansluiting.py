@@ -38,7 +38,7 @@ def _tools_node(monkeypatch, state):
 
 
 @pytest.mark.parametrize("geval", ["na_subagent", "tool_buiten_profiel"])
-def test_een_geweigerde_aanroep_is_een_tool_execution_zonder_statusregel(monkeypatch, geval):
+def test_een_geweigerde_aanroep_is_een_tool_execution_met_een_weigerregel(monkeypatch, geval):
     tu = ({"id": "t1", "name": "get_uitspraak", "input": {"id": A}} if geval == "na_subagent"
           else {"id": "t1", "name": "geldigheid", "input": {"bwb_id": "BWBR0004770"}})
     state = {"pending_tools": [tu], "messages": [], "source_trace": [], "specialist": "centraal", "run_id": "r", "turns": 2,
@@ -50,8 +50,10 @@ def test_een_geweigerde_aanroep_is_een_tool_execution_zonder_statusregel(monkeyp
     tools = [e for e in events if e.get("type") == "tool_execution"]
     assert [(e["phase"], e["status"]) for e in tools] == [("start", "geweigerd"), ("end", "geweigerd")]
     assert tools[1]["foutcode"] == geval and tools[1]["call_id"] == "t1" and tools[1]["ronde"] == 2
-    # Bundel 120: "leest uitspraak …" stond in het denkproces, terwijl de code alle vier de aanroepen weigerde.
-    assert not [e for e in events if e.get("type") == "status"], "geen statusregel voor wat niet draait"
+    # Bundel 120: "leest uitspraak …" stond in het denkproces alsof het gebeurde, terwijl de code alle vier de aanroepen
+    # weigerde. E2E 16 nov 2026 (D-5): dat de aangekondigde stap geweigerd werd, hoort er wél in, als zodanig.
+    [status] = [e["message"] for e in events if e.get("type") == "status"]
+    assert " – niet uitgevoerd: " in status, "de weigering staat erin, niet als stap die draaide"
 
 
 def test_naast_een_weigering_noemt_de_statusregel_alleen_wat_draait(monkeypatch):
@@ -60,8 +62,9 @@ def test_naast_een_weigering_noemt_de_statusregel_alleen_wat_draait(monkeypatch)
     state = {"pending_tools": [weg, mag], "messages": [], "source_trace": [], "specialist": "centraal", "run_id": "r"}
     _, events, uitgevoerd = _tools_node(monkeypatch, state)
     assert len(uitgevoerd) == 1
-    [status] = [e for e in events if e.get("type") == "status"]
+    [status, weigering] = [e for e in events if e.get("type") == "status"]
     assert "geldigheid" not in json.dumps(status, ensure_ascii=False)
+    assert weigering["message"].startswith("Lex · kijkt sinds wanneer") and "niet uitgevoerd" in weigering["message"]
 
 
 def test_de_meting_telt_een_weigering_als_poging_en_niet_als_gebruik():

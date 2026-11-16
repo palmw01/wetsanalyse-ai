@@ -27,6 +27,7 @@ from ..bronregister import bij, controletrace
 from ..focus import genoemd_in_antwoord, na_antwoord
 from ..grounding import alleen_gelezen_extern, check_grounding, curate_sources, herstel_citaten, live_niet_letterlijk
 from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk, zonder_aanloop
+from ..spoorbronnen import weigerregel
 from ..overzicht import bronrijen as overzicht_bronrijen
 from ..sjablonen import EXTERN, SJABLONEN, Onvulbaar, sjabloon_uit_tekst
 from ..sjablonen import vul as sjabloon_vul
@@ -902,6 +903,7 @@ def tools_node(b: Bouw, state: State) -> dict[str, Any]:
                         extra={"categorie": "functioneel", "run_id": state.get("run_id", ""), "profiel": agent.naam,
                                "tool": tu["name"]})
             weiger_event(writer, state, tu, reden)
+            _stap(writer, "Lex", weigerregel(tu, reden))
             results.append(_tool_result(tu, geweigerd[id(tu)]))
             continue
         result_text = execute_tool(b, state, writer, tu, van_model=True)
@@ -975,7 +977,8 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
         logger.info("grounding: beweringen na de correctie", extra={"categorie": "functioneel",
                                                                     "run_id": state.get("run_id", ""),
                                                                     "aantal": len(report.beweringen)})
-    _stap(writer, "Controle", _grounding_melding(report))
+    _stap(writer, "Controle", na_correctie(_grounding_melding(report), report) if state.get("corrected")
+          else _grounding_melding(report))
     if report.onbevestigd:
         # Alleen het aantal: hiermee is vals alarm te meten voordat dit signaal zwaarder mag wegen.
         logger.info("grounding: niet teruggevonden in het opgehaalde",
@@ -989,6 +992,17 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
         "beweringen": report.beweringen if not report.grounded else [],
         "grounding_niveau": report.niveau,
     }
+
+
+def na_correctie(melding: str, report: Any) -> str:
+    """De controleregel na de correctieronde: dat het de tweede controle is, en of de correctie iets hielp. Eerst stond er
+    "Correctie · antwoord bijstellen" en daarna gewoon "8 vermeldingen niet teruggevonden", terwijl het antwoord de
+    ongedekte bewering hield: het denkproces liet zien dat er gecontroleerd was, niet dat de controle niets hielp (E2E
+    Rekeningafspraken 16 nov 2026, D-5)."""
+    melding = melding.replace("brongetrouwheid:", "brongetrouwheid na de correctie:", 1)
+    if not report.grounded or report.unsupported or report.niet_letterlijk or report.onbevestigd:
+        melding += " – de correctie heeft dit niet hersteld"
+    return melding
 
 
 def _bekend(state: State) -> str:

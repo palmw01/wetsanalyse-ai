@@ -26,7 +26,7 @@ from urllib.parse import unquote
 
 from .annotatie import _normaliseer, komt_letterlijk_voor
 from .beweringen import beweringen as feiten_buiten, tellingen_uit
-from .gelezen import (buiten_periode, gelezen_en_gevonden, ongelezen_samengevat, vraag_niet_in_stuk,
+from .gelezen import (buiten_periode, gelezen_en_gevonden, ongelezen_samengevat, volledig_geclaimd, vraag_niet_in_stuk,
                       verwijzing_als_duiding, vreemd_schrift, zonder_steun)
 from .hoeveelheden import uit_tabellen
 from .models import Source
@@ -281,6 +281,9 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
                                              periode) if f not in feiten]
         # Een letter uit een ander schrift midden in een woord (bundel 120: "niet-melدende"): een tokenfout van het model.
         feiten += [f for f in vreemd_schrift(answer_text) if f not in feiten]
+        # "Las ze volledig door" terwijl een gelezen stuk maar deels gelezen is (E2E Rekeningafspraken 16 nov 2026, D-4).
+        # Op de hele tekst: zo'n zin staat juist in 'Gedaan' van een rapport.
+        feiten += [f for f in volledig_geclaimd(answer_text, source_trace) if f not in feiten]
     # Na een rapport van een subagent (`steun`: per stuk de passages die het rapport en het antwoord eruit tonen): een
     # duiding van een stuk rust op die passages, niet op "het stond in de trace" (meting bundel 117, D01).
     if steun is not None and not overzicht:

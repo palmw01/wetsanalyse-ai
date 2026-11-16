@@ -175,7 +175,44 @@ def toolregel(call: dict[str, Any]) -> str:
         # Ook bij een connector de naam van de regeling, als die in dit proces bekend is: "bij artikel 36 van
         # Invorderingswet 1990" in plaats van "van BWBR0004770" (nameting 10 nov 2026).
         waarden["bwb_id"] = _regeling(str(inp["bwb_id"]).strip())
-    return (bron.werkwoord(naam, waarden) or "raadpleegt de kennisgraaf").strip()
+    regel = (bron.werkwoord(naam, waarden) or "raadpleegt de kennisgraaf").strip()
+    if bron.connector is not None:
+        regel += _filters_erbij(bron.connector, inp, regel)
+    return regel
+
+
+#: Argumenten die geen afbakening zijn maar de vorm van het antwoord: die horen niet in de regel.
+_GEEN_AFBAKENING = frozenset({"volgorde", "aantal", "offset", "limit", "inhoud", "doel"})
+
+
+def _filters_erbij(c: _connectors.ConnectorBeschrijving, invoer: dict[str, Any], regel: str) -> str:
+    """De filters van een aanroep die het werkwoord niet noemt, met het label uit de beschrijving: " (soort stuk memorie
+    van toelichting)". Drie zoekacties op hetzelfde dossier met een ander soort stuk heetten anders drie keer hetzelfde
+    (E2E Rekeningafspraken 16 nov 2026, D-8). Uit `ConnectorBeschrijving.filters`, dus voor elke connector."""
+    delen: list[str] = []
+    for arg, veld in c.filters.items():
+        waarde = str((invoer or {}).get(arg) or "").strip()
+        if not waarde or arg in _GEEN_AFBAKENING or arg in {"bwb_id", "artikel"} or waarde[:60] in regel:
+            continue
+        label = veld.label if len(veld.filters) == 1 else f"{veld.label} {'vanaf' if arg == veld.filters[0] else 'tot'}"
+        delen.append(f"{label} {truncate(waarde, 60)}")
+    return f" ({', '.join(dict.fromkeys(delen))})" if delen else ""
+
+
+#: Waarom de code een aanroep van het model niet uitvoerde, als zin achter "niet uitgevoerd". Een reden die hier niet staat,
+#: krijgt haar zin uit `resultaat.REDEN_ZIN`.
+WEIGERING: dict[str, str] = {
+    "na_subagent": "na de subagent leest Lex niet zelf opnieuw",
+    "tool_buiten_profiel": "deze tool hoort niet bij de agent",
+    "stukken_plafond": "meer stukken lezen doet een subagent",
+}
+
+
+def weigerregel(call: dict[str, Any], reden: str) -> str:
+    """"leest artikel 7a, lid 4 (Wet X) – niet uitgevoerd: na de subagent leest Lex niet zelf opnieuw". Een stap die het
+    model aankondigde en die de code weigerde, staat zo in het denkproces; anders las de jurist "Laat me eerst artikel 7a
+    lid 4 ophalen" en daarna niets (E2E Rekeningafspraken 16 nov 2026, D-5)."""
+    return f"{toolregel(call)} – niet uitgevoerd: {WEIGERING.get(reden) or REDEN_ZIN.get(reden, 'geweigerd')}"
 
 
 # --- wat de bron opleverde ---------------------------------------------------------------------------------------
@@ -183,11 +220,40 @@ def toolregel(call: dict[str, Any]) -> str:
 _getal = getal
 
 
+def stuk_van(tool: str, invoer: dict[str, Any]) -> str:
+    """Het stuk dat een leestool leest, in de woorden van het denkproces: het id bij een connector ("kst-33755-3"), de
+    bepaling of de regeling bij de kennisgraaf ("artikel 9, lid 1 (Invorderingswet 1990)"), en leeg als de aanroep geen
+    stuk aanwijst (de dekking van de annotaties, het schema van de graaf)."""
+    bron = bron_van(tool)
+    invoer = invoer or {}
+    if bron is None or tool not in bron.leestools:
+        return ""
+    if bron.connector is not None or tool in bron.lees_id:
+        arg = bron.lees_id.get(tool)
+        return str(invoer.get(arg) or "").strip() if arg else ""
+    if any(str(invoer.get(k) or "").strip() for k in ("artikel", "nummer", "bwb_id")):
+        afgeleid = _afgeleid(invoer)
+        return afgeleid["bepaling"] if (invoer.get("artikel") or invoer.get("nummer")) else afgeleid["regeling"]
+    return ""
+
+
+def zoekt_binnen(tool: str, invoer: dict[str, Any]) -> bool:
+    """Zoekt deze aanroep van een leestool binnen één stuk ("zoekt in Kamerstuk kst-34002-3 naar „rente”")? Dat zegt het
+    werkwoord dat de bron voor deze argumenten declareert; dan telt het aantal rijen als treffers, net als bij een zoektool
+    (E2E Rekeningafspraken 16 nov 2026, D-2: van twee zoekacties in één stuk stond alleen de ene met een uitkomst er)."""
+    bron = bron_van(tool)
+    return bron is not None and tool in bron.leestools and toolregel({"name": tool, "input": invoer}).startswith("zoekt ")
+
+
 def uitkomstregel(tool: str, invoer: dict[str, Any], eind: dict[str, Any], data: dict[str, Any] | None = None) -> str:
-    """Wat de bron opleverde, voor de jurist; leeg als er niets te melden is.
+    """Wat de bron opleverde, voor de jurist. **Nooit leeg**: elke aanroep die draaide, heeft een uitkomst in het
+    denkproces, zodat wie meeleest per stap ziet wat er gelezen en gevonden is (E2E Rekeningafspraken 16 nov 2026, D-2 en
+    D-3: van 22 leesacties hadden er 17 een regel, en een gelezen stuk zonder iets bijzonders zweeg).
 
     - een fout: in woorden (`resultaat.REDEN_ZIN`), nooit de code;
     - een zoekaanroep: "niets gevonden", "16 gevonden", "10 van 1.218 gevonden";
+    - zoeken binnen één stuk (`zoekt_binnen`): "kst-34002-3: 6 gevonden", "kst-34002-G: niets gevonden";
+    - een gelezen stuk: "kst-33755-3 gelezen", "artikel 9, lid 1 (Invorderingswet 1990) gelezen";
     - niet alles opgehaald: "er is meer dan dit", bij een leestool "kst-33755-3 deels gelezen, er is meer dan dit";
     - een stuk zonder tekst (`leesbaar: false`): "ECLI:NL:GHARL:2023:5000 heeft geen tekst om te lezen";
     - de inhoud van een stuk zonder koppen (`zonder_koppen`): "kst-30322-3 heeft geen koppen, 210 alinea’s".
@@ -196,38 +262,41 @@ def uitkomstregel(tool: str, invoer: dict[str, Any], eind: dict[str, Any], data:
     is het moment van opvragen, dus "nu", en zei bij elke annotatie hetzelfde.
     """
     data = data or {}
+    invoer = invoer or {}
     bron = bron_van(tool)
     if eind.get("status") not in ("ok", "partial"):
         return REDEN_ZIN.get(str(eind.get("foutcode") or data.get("reden") or ""), "gaf een fout")
-    delen: list[str] = []
-    zoekt = bron is not None and tool in bron.zoektools
     aantal, totaal = eind.get("aantal"), data.get("totaal")
     meer = bool(eind.get("has_more"))
-    if zoekt and isinstance(aantal, int):
+    stuk = stuk_van(tool, invoer)
+    voor = f"{stuk} " if stuk else ""
+    leest = bron is not None and tool in bron.leestools
+    binnen = leest and zoekt_binnen(tool, invoer)
+    if (not leest or binnen) and isinstance(aantal, int):
         if aantal == 0 and not meer:
-            delen.append("niets gevonden")
+            telling = "niets gevonden"
         elif isinstance(totaal, int) and totaal > aantal:
-            delen.append(f"{_getal(aantal)} van {_getal(totaal)} gevonden")
-            meer = False
+            telling, meer = f"{_getal(aantal)} van {_getal(totaal)} gevonden", False
         else:
-            delen.append(f"{_getal(aantal)} gevonden")
-    if bron is not None and not zoekt and tool in bron.lees_id and aantal == 0 and not meer:
-        stuk = str((invoer or {}).get(bron.lees_id[tool]) or "").strip()
-        voor = f"{stuk} " if stuk else ""
-        if data.get("zonder_koppen"):
-            # Geen koppen is iets anders dan geen tekst: het stuk is gewoon te lezen (ronde 1 Kamerstukken, 11 nov 2026).
-            n = data.get("alineas")
-            delen.append(f"{voor}heeft geen koppen" + (f", {_getal(n)} {'alinea' if n == 1 else 'alinea’s'}"
-                                                        if isinstance(n, int) else ""))
-        elif (data.get("stuk") or {}).get("leesbaar") is False:
-            # Een stuk zonder tekst bij de bron (een uitspraak met alleen metadata): anders zweeg het denkproces (meting
-            # 10 nov). Alleen dan: nul rijen na een filter is nog geen stuk zonder tekst.
-            delen.append(f"{voor}heeft geen tekst om te lezen")
+            telling = f"{_getal(aantal)} gevonden"
+        return (f"{stuk}: " if binnen and stuk else "") + telling + (", er is meer dan dit" if meer else "")
+    if not leest:
+        return "opgehaald" + (", er is meer dan dit" if meer else "")
+    if data.get("zonder_koppen") and aantal == 0:
+        # Geen koppen is iets anders dan geen tekst: het stuk is gewoon te lezen (ronde 1 Kamerstukken, 11 nov 2026).
+        n = data.get("alineas")
+        return f"{voor}heeft geen koppen" + (f", {_getal(n)} {'alinea' if n == 1 else 'alinea’s'}"
+                                              if isinstance(n, int) else "")
+    if (data.get("stuk") or {}).get("leesbaar") is False and aantal == 0:
+        # Een stuk zonder tekst bij de bron (een uitspraak met alleen metadata): anders zweeg het denkproces (meting
+        # 10 nov). Alleen dan: nul rijen na een filter is nog geen stuk zonder tekst.
+        return f"{voor}heeft geen tekst om te lezen"
     if meer:
-        arg = bron.lees_id.get(tool) if bron is not None and not zoekt else None
-        stuk = str((invoer or {}).get(arg) or "").strip() if arg else ""
-        delen.append("er is meer dan dit" if zoekt else f"{stuk + ' ' if stuk else ''}deels gelezen, er is meer dan dit")
-    return ", ".join(delen)
+        return f"{voor}deels gelezen, er is meer dan dit"
+    if bron.connector is not None and aantal == 0 and not meer:
+        # Nul rijen na een filter (een artikel, een regeling): het stuk is er, maar bij deze afbakening staat er niets.
+        return f"{stuk + ': ' if stuk else ''}niets bij deze afbakening"
+    return f"{voor}gelezen"
 
 
 def voorleesregel(tool: str, invoer: dict[str, Any], paginas: int, volledig: bool) -> str:

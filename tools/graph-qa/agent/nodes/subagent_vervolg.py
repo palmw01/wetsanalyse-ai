@@ -122,7 +122,13 @@ async def _verwerk(b: Bouw, state: State, stuur) -> dict[str, Any]:
 
 def subagent_vervolg_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
-    _stap(writer, "Lex", "geeft je antwoord aan de subagent", route="subagent")
+    # Wat de klik was (E2E 16 nov 2026, D-7): een bevestiging van het plan start de subagents, een afwijzing niets, en
+    # alleen een antwoord op een vraag naar boven gaat naar een subagent.
+    actie = state.get("intake_actie") or {}
+    _stap(writer, "Lex", ("start niets: je wees het plan af" if actie.get("actie") == "afbreken"
+                          else "start de subagents uit het plan") if actie.get("stap") == "sa_start"
+          else "stopt de subagent op je verzoek" if actie.get("actie") == "afbreken"
+          else "geeft je antwoord aan de subagent", route="subagent")
     if b.kinderen is None or not b.settings.legt_zelf_vast:
         uit: dict[str, Any] = {"tekst": "Een subagent kan hier niet verder. Stel je vraag opnieuw."}
     else:

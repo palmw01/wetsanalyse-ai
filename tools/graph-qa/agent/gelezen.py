@@ -64,6 +64,40 @@ def gelezen_en_gevonden(trace: Iterable[Any]) -> tuple[list[tuple[str, str]], li
     return list(gelezen.items()), list(gevonden.items())
 
 
+def deels_gelezen(trace: Iterable[Any]) -> set[str]:
+    """De stukken naast de wet waarvan geen lezing volledig was: elke pagina zei `volledig: false` en geen vervolg maakte
+    het af. Het denkproces zei "deels gelezen, er is meer dan dit", het rapport "las ze volledig door" (E2E
+    Rekeningafspraken 16 nov 2026, D-4); met deze lijst zeggen het rapport uit code en de controle hetzelfde."""
+    volledig: dict[str, bool] = {}
+    for item in trace:
+        tool, tekst = str(item[0]), str(item[1])
+        bron = bron_van(tool)
+        if bron is None or bron.connector is None or tool not in bron.leestools or (stuk := _stuk(tekst)) is None:
+            continue
+        try:
+            heel = bool(json.loads(tekst).get("volledig", True))
+        except (TypeError, ValueError, AttributeError):
+            heel = True
+        volledig[stuk[0]] = volledig.get(stuk[0], False) or heel
+    return {i for i, heel in volledig.items() if not heel}
+
+
+_VOLLEDIG = re.compile(
+    r"\b(?:volledig|helemaal|in (?:hun|zijn|haar|het) geheel)\b[^.\n]{0,40}\b(?:gelezen|doorgelezen|door(?:gelezen)?)\b"
+    r"|\b(?:las|lees|gelezen|doorgelezen)\b[^.\n]{0,40}\b(?:volledig|helemaal|in (?:hun|zijn|haar|het) geheel)\b", re.I)
+
+
+def volledig_geclaimd(tekst: str, trace: Iterable[Any]) -> list[str]:
+    """Een tekst die zegt dat er volledig gelezen is, terwijl een gelezen stuk maar deels gelezen is: een bewering (D-4)."""
+    if not (m := _VOLLEDIG.search(tekst or "")):
+        return []
+    deels = deels_gelezen(trace)
+    if not deels:
+        return []
+    return [f"„{m.group(0).strip()}”, maar {len(deels)} {'stuk is' if len(deels) == 1 else 'stukken zijn'} maar deels "
+            f"gelezen ({', '.join(sorted(deels)[:5])})"]
+
+
 #: Hoeveel eigen woorden een zin of lijstregel over een stuk hoogstens heeft zonder dat het een samenvatting is: woorden
 #: die niet in het zoekresultaat van dat stuk staan (titel, label, instantie, datum) en geen functiewoord zijn. "ECLI:… (Hoge
 #: Raad, 12 maart 2026), over de melding" is een vermelding; wat de rechter oordeelde is een samenvatting.

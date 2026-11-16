@@ -179,7 +179,9 @@ def annoteer_node(b: Bouw, state: State) -> dict[str, Any]:
     doel, bron, hergebruik = voorbereid["doel"], voorbereid["bron"], voorbereid["hergebruik"]
     soort, aanduiding, lid = voorbereid["soort"], voorbereid["aanduiding"], doel.get("lid", "")
     plek = aanduiding_in_woorden(aanduiding, lid, soort)
-    _stap(writer, "Bron", f"{plek} ({len(bron['corpus'])} tekens)")
+    # Met de regeling: "art. 7a lid 1" zonder naam zei niet uit welke regeling de bron kwam (E2E 16 nov 2026, D-1).
+    titel = str(((bron.get("bron_snapshot") or {}).get("doel") or {}).get("citeertitel") or doel.get("citeertitel") or "")
+    _stap(writer, "Bron", f"{plek}{f' ({titel})' if titel else ''}, {len(bron['corpus'])} tekens")
 
     uitkomst = analyseer(
         snapshot=bron["bron_snapshot"], corpus_segmenten=bron["corpus_segmenten"], corpus=bron["corpus"],
