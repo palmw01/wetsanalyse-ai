@@ -602,7 +602,7 @@ OMSCHRIJVENDE_VELDEN = ("analysevraag", "context", "aanleiding", "doel", "prakti
 _ZINSGRENS = re.compile(r"(?<=[.!?;])\s+|\n+")
 
 
-def brugtermen(dossier: dict[str, Any], woord: str) -> list[str]:
+def brugtermen(dossier: dict[str, Any], woord: str, alleen_omschrijving: bool = False) -> list[str]:
     """De woorden die het dossier naast een eigen woord zet: de inhoudswoorden van de zinnen die het woord noemen,
     zonder het woord zelf en zonder de woorden van een vraagvorm. "Rekeningafspraak" staat in geen regeling (een begrip
     uit de uitvoering); de context omschrijft het met "bankrekening", "uitbetaald" en "derde", en die staan er wel in.
@@ -614,6 +614,8 @@ def brugtermen(dossier: dict[str, Any], woord: str) -> list[str]:
     zinnen = [(not omschrijft.search(zin), i, zin) for i, zin in enumerate(
         z for veld in OMSCHRIJVENDE_VELDEN for z in _ZINSGRENS.split(str(dossier.get(veld) or "")))
         if _raakt_woord(stam, zin)]
+    if alleen_omschrijving:
+        zinnen = [z for z in zinnen if not z[0]]
     uit: list[str] = []
     for *_, zin in sorted(zinnen):
         for w in zoektermen(zin):
@@ -671,7 +673,7 @@ def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit:
     df = df_van(termen)
     brug: dict[str, str] = {}
     for t in [t for t in termen if not df[t]]:
-        for b in brugtermen(dossier or {}, t):
+        for b in brugtermen(dossier or {}, t, alleen_omschrijving=bool(profiel is not None and profiel.brug_omschrijving)):
             if b not in termen and b not in brug:
                 brug[b] = t
     df.update(df_van(list(brug)))
@@ -748,6 +750,26 @@ def ontbrekende_woorden(graph: GraphPort, woorden: list[str], regelingen: list[s
         logger.warning("woordenkloof niet getoetst", extra={"categorie": "technisch"}, exc_info=True)
         return []
     return uit
+
+
+#: Hoeveel treffers de index geeft om te zien in welke regelingen een woord wél staat.
+MAX_ELDERS = 50
+
+
+def regelingen_met_woord(graph: GraphPort, woord: str, bereik: list[str]) -> list[str]:
+    """De citeertitels van de regelingen in de graaf, buiten het bereik, waarin een woord staat, in de volgorde van de
+    index (hoogstens drie). Leeg als de graaf hapert: dan zegt Lex niets in plaats van iets onwaars."""
+    uit: list[str] = []
+    try:
+        for r in _rijen(graph, queries.fts("tekst:" + queries._lucene_term(woord), limit=MAX_ELDERS)):
+            bwb = r.get("bwbId") or bwb_van(r.get("node", ""))
+            titel = r.get("citeertitel") or bwb
+            if bwb and bwb not in bereik and titel not in uit:
+                uit.append(titel)
+    except Exception:  # noqa: BLE001
+        logger.warning("woord buiten het bereik niet gezocht", extra={"categorie": "technisch"}, exc_info=True)
+        return []
+    return uit[:3]
 
 
 def is_voorwerp(graph: GraphPort, gebeurtenis: str, regelingen: list[str]) -> bool:

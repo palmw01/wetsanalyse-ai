@@ -483,6 +483,10 @@ def _regelingen(wg: dict[str, Any], ov: dict[str, Any]) -> list[str]:
                               + [b["bwb_id"] for b in wg.get("bronnen") or [] if b.get("bwb_id")] + regelingen_van(ov)))
 
 
+def _opsomming(namen: list[str]) -> str:
+    return namen[0] if len(namen) == 1 else f"{', '.join(namen[:-1])} en {namen[-1]}"
+
+
 async def _kloof(api, wid: str, ov: dict[str, Any], woorden: list[str]) -> str:
     """De zin over eigen woorden die in de regelingen niet voorkomen, met wat het dossier ernaast zet; leeg zonder
     toets of zonder zulke woorden. "Rekeningafspraak" is een begrip uit de uitvoering: zeg dat, in plaats van alleen
@@ -495,6 +499,13 @@ async def _kloof(api, wid: str, ov: dict[str, Any], woorden: list[str]) -> str:
     zinnen = []
     for w in t.get("ontbrekend") or []:
         brug = (t.get("brug") or {}).get(w) or []
+        elders = (t.get("elders") or {}).get(w) or []
+        if elders:
+            # Het woord staat wel in de graaf, in een regeling buiten het zoekbereik: zeg waar, in plaats van te gokken
+            # dat het een begrip uit de uitvoering is (Termijnen, 16 nov 2026: "winstaandeel" staat in de Mijnbouwwet).
+            zinnen.append(f"‘{w}’ staat niet in de regelingen van dit werkgebied, wel in {_opsomming(elders)}. "
+                          "Hoort die regeling erbij, neem haar dan op in het zoekbereik.")
+            continue
         zinnen.append(f"‘{w}’ staat niet in de regelingen van dit werkgebied: vermoedelijk een begrip uit de uitvoering."
                       + (f" In je dossier staat het naast {', '.join(brug)}; daarmee zoek ik." if brug else
                          " Noem in het dossier welke woorden van de wet erbij horen."))
