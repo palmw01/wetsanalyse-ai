@@ -9,7 +9,9 @@ Code-agents analyseert dezelfde casus als Lex, eerst blind. Daarna worden de sel
 wat juist is.
 
 Deel A (§1–§9) is de benchmark zelf. Deel B (§11–§15) brengt alle testsets over het gedrag van Lex terug tot één
-geordende set per meetas, waar de benchmark uit leest, en beoordeelt de componenttests. De open keuzes staan in §16.
+geordende set per meetas, waar de benchmark uit leest, en beoordeelt de componenttests. Deel C (§16–§21) legt de lat voor het testen in alle lagen: een testpiramide, een
+risicomatrix met de foutpaden, agentspecifiek testen, de kwaliteit van de tests en een traceerbaarheidsmatrix. De open
+keuzes staan in §22.
 
 # Deel A: de benchmark
 
@@ -630,7 +632,164 @@ Na deel A's LB1. Elke stap is een eigen PR, en de hoofdsessie bundelt.
 - **LB-B5 – de componenttests**: groeperen (§14.2), de skips afdrukken (§14.4), de regressies op opnames (§14.5), en
   daarna de proef met mutatietesten.
 
-## 16. Open keuzes voor de gebruiker
+# Deel C: de lat voor het testen van Lex
+
+*Aanvulling van 16 nov 2026, op verzoek van de gebruiker.* Een professionele tester van agentische platforms moet bij
+het lezen denken: dit is in alle lagen goed doordacht. Dat vraagt goede testgevallen en scenario's, het goede pad én
+de foutpaden, en een dekking die per risico te meten is. Dit deel legt die lat vast.
+
+De nulmeting per laag (§20) wordt in vier parallelle sessies opgesteld, in `docs/architectuur/testplan/`: graph-qa;
+api met bronmodel en de importer; de werkplek; keten en E2E. Hun bevindingen komen hier samen. Dit deel bepaalt
+waartegen ze meten. Er wordt niets gebouwd zonder akkoord.
+
+## 16. Een testpiramide per laag
+
+Elke laag zegt wat ze dekt en wat **bewust niet**. Wat een laag bewust laat liggen, moet een andere laag dekken. Dat
+staat in de risicomatrix (§17).
+
+| Laag | Dekt | Bewust niet | Waar het staat | Draait |
+|---|---|---|---|---|
+| **1. Unit en component** | logica per module met deterministische nepdiensten (`FakeLLM`, `FakeGraph`, de api met Postgres in een container, vitest); elk foutpad dat in één component te veroorzaken is | wat een echt model doet; samenwerking tussen diensten | `*/tests/`, `frontend/**/*.test.ts(x)`, `packages/bronmodel` | poort, elke PR |
+| **2. Contract en kruistests** | dat twee kanten hetzelfde verwachten: routes, schema's, events, de BFF-proxy, de afgeleide methodebestanden (drift) | gedrag achter het contract | `tests/poort/`, `scripts/kruistests.sh`, de drift-tests | poort, elke PR die code raakt |
+| **3. Keten en integratie** | graph-qa ↔ api ↔ werkplek en de MCP's samen, met nep alleen aan de rand (model, graaf of overheid.nl): een beurt van begin tot eind, met storingen ertussen | inhoudelijke juistheid | browserregressie (Playwright met mocks), de rooktest na uitrol (`/api/health?keten=1`); **grotendeels nog te bouwen** | poort (mocks), na elke uitrol (rook) |
+| **4. E2E-scenario's** | een echte wetsanalyse op acceptatie, via de acceptatie-MCP, met de agent-jurist en de agent-gegevensspecialist: of het platform de methode draagt, en waar het hapert | een herhaalbare score; elk foutpad | `docs/acceptatie/` | handmatig, met akkoord |
+| **5. Gedrag en kwaliteit** | wat Lex juridisch oplevert, tegen een vastgestelde verwachting, per meetas; spreiding over runs; regressie na een wijziging aan een prompt of skill | goedkeuring (die is van de mens); componentfouten | Lex Bench (deel A en B) | handmatig of per workflow, met akkoord |
+
+**De vorm van de piramide.** Onderaan veel, snel en deterministisch; bovenaan weinig, duur en met een mens erbij. Een
+foutpad hoort zo laag mogelijk getest te worden. Een storing van de graaf is een componenttest (laag 1). Of de
+melding de jurist bereikt, is een ketentest (laag 3). Of Lex daarna eerlijk antwoordt in plaats van te verzinnen, is
+gedrag (laag 5).
+
+## 17. Risicomatrix en foutpaden
+
+Elk risico heeft:
+
+- een id;
+- een impact (hoog, middel of laag);
+- de laag die het **primair** vangt, en de laag die het als tweede vangt.
+
+Het foutpad is wat er moet gebeuren: de verwachte afloop, niet alleen "geen crash". Hieronder staat het voorstel. De
+nulmeting vult per risico in wat er nu is.
+
+| Id | Risico | Impact | Verwachte afloop | Primair | Tweede |
+|---|---|---|---|---|---|
+| R01 | **De graaf is weg** (lege repository na een herstart, `Repository inning doesn't exist`) | hoog | Lex zegt wat er speelt en verzint niets; de graafwacht herstelt; het paneel *Graaf weg* toont het | 1 | 3 |
+| R02 | **De api geeft een 5xx of is onbereikbaar** | hoog | de beurt faalt met een melding; niets half opgeslagen; opnieuw proberen kan | 1 | 3 |
+| R03 | **Een time-out**: model, graaf, connector of api | hoog | een begrensde wachttijd, de beurt stopt netjes, het denkproces zegt waar | 1 | 3 |
+| R04 | **Een 400 van het model**, en de strict-grens (een schema dat de API weigert) | hoog | geen stille terugval; een duidelijke fout; het schema is in de poort al getoetst | 1 | 2 |
+| R05 | **Het budget is op** (429 bij de start, het plafond in een run) | middel | geen beurt, een heldere melding, geen half werk; meetscripts stoppen met `BUDGET_OP` | 1 | 3 |
+| R06 | **Ongeldige invoer**: een verkeerde IRI, een artikelnummer met een dubbele punt, een lege vraag, te groot, verkeerd schema | middel | een 4xx met reden, of een vraag terug; nooit een 500 | 1 | 2 |
+| R07 | **Gelijktijdigheid en 412's**: twee juristen op dezelfde laag, een verouderde revisie, twee runs in één gesprek (409) | hoog | de tweede schrijver krijgt een 412 of 409 en niets gaat verloren; de werkplek laat het zien en biedt verversen aan | 1 | 3 |
+| R08 | **Afbreken en hervatten**: stoppen midden in een beurt, een herladen pagina, een hervatte subagent | middel | de stand blijft kloppen, er is geen dubbel werk, en het denkproces klopt na hervatten | 1 | 3 |
+| R09 | **Een subagent rondt niet af** (rapport `niet_gelukt`, geen rapport, de grens van het aantal rondes bereikt) | hoog | de centrale agent meldt het en verzint geen uitkomst; de vraag gaat naar boven als dat zo hoort | 1 | 5 |
+| R10 | **Lege of afgekapte resultaten** (0 treffers, een bepaling zonder eigen tekst, afkapping op 40.000 tekens) | hoog | "niet gevonden" is iets anders dan "bestaat niet"; afkappen wordt gezegd; geen conclusie uit een half resultaat | 1 | 5 |
+| R11 | **Verouderde bronnen**: een andere wetsversie, een veranderde dragende passage, een opname die niet meer klopt | hoog | de peildatum is zichtbaar; de herbeoordeling toont toen en nu; een meting op een oude opname zegt dat | 1 | 5 |
+| R12 | **Rechten en identiteit**: `X-User-Id`, rol analist of beheerder, gesprekken per gebruiker, het admin-token, 2FA voor beheer | hoog | geen toegang tot andermans gesprek; beheer dicht zonder 2FA; een vervalste header werkt niet buiten de BFF | 1 | 3 |
+| R13 | **Prompt-injectie via de inhoud van een bron** (wettekst, een uitspraak of een kamerstuk met een instructie erin) | hoog | de inhoud is gegevens, geen opdracht; de toollaag en de prompt scheiden dat; de agent voert niets uit wat de bron vraagt | 1 | 5 |
+| R14 | **Een connector staat uit of is onbekend** | middel | Lex zegt dat de bron niet beschikbaar is en valt niet stil terug op iets anders; het register in de beheertab klopt met wat graph-qa ziet | 1 | 2 |
+| R15 | **Brongetrouwheid**: een citaat dat niet letterlijk is, een verkeerd anker, een vindplaats die niet klopt | hoog | de verificatie en het citaat worden gecontroleerd; *ongegrond* wordt gezegd | 1 | 5 |
+| R16 | **De verkeerde route, het verkeerde profiel of de verkeerde tools** | middel | de ingang en de centrale agent kiezen zoals de agentset verwacht; verboden tools komen nergens voor | 2 | 5 |
+| R17 | **Methodes vermengd** (JRM-taal of JAS-markeringen in de verkeerde methode) | middel | `test_methodes_gescheiden`; de skill-evals | 2 | 5 |
+| R18 | **Een uitrol die niet draait** (de revisie crasht, een verkeerde digest, een ontbrekend secret) | hoog | de gate wacht en faalt; de rooktest op de keten | 3 | — |
+
+Een risico kan in de nulmeting gesplitst worden, of er kan er een bij komen. De matrix wordt dan aangepast, met een
+reden. Een risico mag niet stil wegvallen.
+
+## 18. Agentspecifiek testen
+
+Wat een agentisch platform extra vraagt, met per punt de laag en wat er al is:
+
+- **De keuze van het profiel en de tools.** De agentset (`golden_centrale_agent`: `route`, `profielen`,
+  `tools_verplicht` en `tools_verboden`) is de juiste vorm. Lat: elke route en elk profiel komt minstens één keer voor in
+  de set, en elke verboden tool is getoetst (laag 2 op de vorm, laag 5 op het echte model).
+- **De grenzen.** Het aantal rondes per beurt en per subagent, de tokens per beurt en per run, de afkapgrenzen. Lat:
+  elke grens heeft een componenttest op *precies op de grens* en *er één over* (laag 1), en een meting die zegt hoe
+  vaak de grens in de praktijk geraakt wordt (laag 5).
+- **Grounding en brongetrouwheid.** Elk citaat is letterlijk in de bron, en een uitspraak zonder bron heet zo (R15).
+  Lat: elk sjabloon heeft een test met een citaat dat er *net niet* in staat (laag 1), en elke meting rapporteert
+  faithfulness en het aantal letterlijke citaten (laag 5).
+- **Het denkproces klopt.** De regels zijn heel (`narratie.STRIKT` in elke test) en zeggen wat er gebeurde, ook bij een
+  fout, een weigering en hervatten. Lat: per foutpad uit §17 een test op de regel die de jurist dan ziet (laag 1 en 3).
+- **Stabiliteit over runs.** Een modelstap geeft per run een ander antwoord: het aandeel geel in de annotatie van
+  dezelfde bepaling wisselt sterk tussen runs (`eval/stabiliteit_analyse.py`, `beslisstabiliteit.py`). Lat: waar een beslissing van één run afhangt, wordt met **3 of meer runs** gemeten, en het
+  rapport toont de spreiding (minimum, maximum, en hoeveel runs het eens zijn), niet alleen het gemiddelde. Een casus
+  die tussen runs wisselt, krijgt het label *instabiel* op het dashboard.
+- **Regressie bij elke wijziging aan een prompt of skill.**
+  - Een wijziging aan een skill of profiel verandert `bronpakket.json`; aan de modeltekst `prompts.py` of de
+    methodemarkers (ADR-010, P19).
+  - Lat: zo'n PR noemt een Bench-run met die hash, op de geraakte meetas (de lichte vorm: één run, gerichte set). De
+    poort kan toetsen *dat* er een run is, niet *wat* de score is. De score blijft een hulpmiddel. Of de poort dat
+    afdwingt, is open keuze 14.
+
+## 19. De kwaliteit van de tests zelf
+
+De lat, met per punt hoe het meetbaar wordt:
+
+- **Geen test die altijd groen is.** Gemeten met mutatietesten op de modules die een risico uit §17 dragen (een proef
+  in §14.4). Een mutant die blijft leven, krijgt een test of een reden.
+- **Geen test die alleen een vorm vastlegt en voor gedrag doorgaat.** Elke test krijgt een soort: *gedrag*, *foutpad*,
+  *contract* of *vorm*. Alleen de eerste twee tellen als dekking van een risico.
+- **Onafhankelijk van de volgorde.** Een vaste job in omgekeerde volgorde en één met een vaste willekeurige volgorde.
+  Procesbrede caches worden per test geleegd (§14.1).
+- **Deterministische nepdiensten.**
+  - Een nepmodel of nepgraaf antwoordt op wat er gevraagd wordt, niet op de volgorde waarin het gevraagd wordt, waar
+    dat kan.
+  - Een onverwachte vraag faalt met een duidelijke melding, niet met een `IndexError`.
+  - Geen klok, geen netwerk en geen willekeur zonder een vaste waarde.
+- **Geen overgeslagen test zonder een plek waar hij wél draait.** De poort drukt per suite het aantal overgeslagen tests
+  en de reden af (§14.4).
+- **Wisselvallige tests worden geteld, niet stil herhaald.** Een test die bij herhaling soms faalt, komt op een lijst met
+  een eigenaar en wordt opgelost of verwijderd.
+- **Dekking per risico, niet alleen per regel.** De regeldekking (coverage) wordt wel gemeten, maar de maat is §17: per
+  risico, per laag, of er een test op het foutpad is die rood wordt als het foutpad breekt.
+
+## 20. Nulmeting per laag
+
+*Volgt uit de vier sessies.* Elke sessie levert voor haar laag:
+
+- wat er is (aantallen per soort);
+- per risico uit §17 of er een test op het foutpad is, met de testnaam;
+- wat altijd groen is, alleen vorm, of nooit draait;
+- de gaten;
+- voorstellen, elk met een stap en een schatting.
+
+Per laag komt hier één samenvatting met een link naar het detail in `docs/architectuur/testplan/<laag>.md`. De
+nulmeting is eerlijk: een risico zonder test staat als *niet gedekt*, ook als het in de praktijk nooit misging.
+
+| Laag | Sessie | Detail | Stand |
+|---|---|---|---|
+| graph-qa | testplan-graph-qa | `testplan/graph-qa.md` | loopt |
+| api, bronmodel en importer | testplan-api | `testplan/api.md` | loopt |
+| de werkplek | testplan-frontend | `testplan/werkplek.md` | loopt |
+| keten en E2E | testplan-keten-e2e | `testplan/keten-e2e.md` | loopt |
+
+Wat al vaststaat uit deel B: de volgordefout in graph-qa (§14.1); 17 testbestanden die naar een meetmoment heten
+(§14.2); 39 bestanden met een skip, waarvan 7 alleen live draaien (§14.4); en op laag 5 geen enkele vastgestelde
+verwachting.
+
+## 21. Traceerbaarheidsmatrix
+
+Van eis of risico, naar testgeval, naar laag, naar de laatste uitkomst.
+
+- **De bron is de code zelf, niet een spreadsheet.** Een test noemt het risico dat hij dekt:
+  - in pytest met `@pytest.mark.risico("R07")`;
+  - in vitest met `[R07]` in de testnaam;
+  - in een Bench-casus en in een E2E-scenario met `tags: ["R07"]`.
+
+  Een eis (bijvoorbeeld "werk alleen met letterlijk opgehaalde wettekst" uit `CLAUDE.md`) krijgt een id `E01` en wordt
+  naar zijn risico's verwezen.
+- **Het register** `docs/lex-bench/risico's.json` bevat de risico's en eisen uit §17, met impact en de primaire en
+  tweede laag.
+- **Een script** (`eval/lex_bench.py --matrix`) verzamelt de markers (via `pytest --collect-only` en een
+  vitest-lijst), de casussen en de laatste uitkomsten. Die komen uit de JUnit-rapporten van de poort, de laatste
+  Bench-run en het laatste E2E-verslag. Het schrijft één `matrix.json`.
+- **Een poorttest** bewaakt dat elk risico met impact *hoog* minstens één test van de soort *foutpad* op zijn primaire
+  laag heeft, of een reden waarom niet (`bewust_niet`). Hij toetst de dekking, niet de uitkomst.
+- **Het dashboard** (§6) toont de matrix: risico's als rijen, lagen als kolommen, en per cel het aantal tests en de
+  laatste uitkomst (groen, rood, niet gedraaid of niet gedekt), met een klik naar de testnamen. Dezelfde pagina toont de
+  nulmeting en het verloop: hoeveel risico's gedekt waren bij de nulmeting en hoeveel nu.
+
+## 22. Open keuzes voor de gebruiker
 
 1. **Waar staan de blinde casussen?** Voorstel: in een **privé GitHub-repo** (versiebeheer, toegang per persoon), met
    alleen de hash in deze repo. Alternatief: lokaal in een gitignored map, zoals `docs/acceptatie/lokaal/`. Dat is
@@ -658,3 +817,8 @@ Na deel A's LB1. Elke stap is een eigen PR, en de hoofdsessie bundelt.
     zonder model.
 13. **De componenttests groeperen naar gedrag (§14.2): ja of nee?** Het is veel verplaatsen voor ongeveer 130 tests, en
     elke open PR die ze raakt, krijgt een conflict.
+14. **Moet de poort bij een wijziging aan een prompt, skill of profiel eisen dat er een Bench-run is (§18)?** Dat toetst
+    dat er gemeten is, niet de score. Het alternatief is een waarschuwing in de PR.
+15. **Moeten de risicomarkers en de dekkingstoets (§21) bindend zijn voor impact *hoog*,** of eerst alleen zichtbaar op
+    het dashboard tot de nulmeting af is?
+16. **Mogen de risico's R01–R18 (§17) de basis zijn,** of wil je er risico's bij of af voordat de nulmeting ze invult?
