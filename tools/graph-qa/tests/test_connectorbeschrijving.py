@@ -181,7 +181,7 @@ def test_een_nieuwe_connector_komt_er_zonder_code_bij(monkeypatch):
         dekt="uitspraken van een testgerecht", signalen=(r"\btestgerecht\b",), tools=frozenset({"zoek_testbron"}),
         leestool="zoek_testbron", lees_argument="id", id_prefixen=("ECLI:",),
         rol_in_antwoord="een uitspraak onderbouwt een uitleg, nooit wat de wet zegt", kop_in_antwoord="Uit de testrechtspraak", levert=("uitspraken",), niet_in_tekst=(),
-        werkwoorden={"zoek_testbron": ("zoekt uitspraken over „{zoekterm}”", "zoekt uitspraken")}, grenzen="alleen een test",
+        werkwoorden={"zoek_testbron": ("zoekt uitspraken over “{zoekterm}”", "zoekt uitspraken")}, grenzen="alleen een test",
         beheer="Een nep-connector.", voorbeeldvragen=("Wat zei het testgerecht?",))
     assert nep.herkent("Wat zei het testgerecht hierover?") and nep.herkent("Lees ECLI:NL:HR:2020:1234")
     assert not nep.herkent(WETSVRAGEN[0])

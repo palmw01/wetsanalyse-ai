@@ -307,14 +307,14 @@ def test_het_blok_extern_noemt_datum_en_soort_uit_het_stuk():
 @pytest.mark.parametrize("zoekvraag,verwacht", [
     ({"volgorde": "nieuwste", "aantal": 10}, "Nieuwste eerst."),
     ({"soort": "motie", "vanaf": "2024-01-01", "tot": "2024-12-31", "volgorde": "oudste"},
-     "Gezocht op soort stuk „motie” en van 1 januari 2024 tot en met 31 december 2024. Oudste eerst."),
+     "Gezocht op soort stuk “motie” en van 1 januari 2024 tot en met 31 december 2024. Oudste eerst."),
     ({"woorden": "Invorderingswet", "volgorde": "relevantie"},
-     "Gezocht op „Invorderingswet” in de titel. Meest relevante eerst."),
+     "Gezocht op “Invorderingswet” in de titel. Meest relevante eerst."),
     ({"tekst": '"één bankrekeningnummer"', "volgorde": "relevantie"},
-     "Gezocht op „één bankrekeningnummer” in de tekst. Meest relevante eerst."),
+     "Gezocht op “één bankrekeningnummer” in de tekst. Meest relevante eerst."),
     # Acceptatie 9 nov 2026: "Kamer Eerste Kamer". Een waarde die zegt wat ze is, krijgt geen label.
     ({"tekst": "invorderingsrente", "vergaderjaar": "2025-2026", "kamer": "Eerste Kamer", "volgorde": "relevantie"},
-     "Gezocht op „invorderingsrente” in de tekst, vergaderjaar 2025-2026 en van de Eerste Kamer. Meest relevante eerst."),
+     "Gezocht op “invorderingsrente” in de tekst, vergaderjaar 2025-2026 en van de Eerste Kamer. Meest relevante eerst."),
     ({"vanaf": "2011-01-01"}, "Gezocht naar stukken vanaf 1 januari 2011."),
     ({}, ""),
 ])

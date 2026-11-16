@@ -654,7 +654,7 @@ def _zoek(bron: RechtspraakBron, graph: Any, a: dict[str, Any]) -> str:
         toelichting if (k.onvolledig or not k.versies) else "",
         _stand_zin(label, versies, huidig, loopt_achter, per_tekststand, len(zonder_stand), buiten_graaf)
         if buiten_graaf else "",
-        (f"LiDO kent geen rechtsgebied; het filter op „{genegeerd}” is niet toegepast." if genegeerd else ""),
+        (f"LiDO kent geen rechtsgebied; het filter op “{genegeerd}” is niet toegepast." if genegeerd else ""),
         ("Dit zijn de uitspraken die de regeling als geheel noemen; een uitspraak die een artikel of onderdeel noemt, "
          "staat bij dat artikel." if not artikel else ""),
     ) if z)

@@ -258,7 +258,7 @@ def test_de_weigering_voor_een_gelezen_artikel_geeft_de_plek_en_die_is_over_te_n
         vul("antwoord_duiding", duiding(twijfel=["Artikel 11 kent een eigen termijn van twee weken."]), trace)
     melding = str(fout.value)
     assert fout.value.code == "genoemd_gelezen" and "terwijl de tekst al is opgehaald" in melding
-    plek = f"bepaling {ELF}, van „De belastingschuldige wordt door de ontvanger”, tot „alsnog binnen twee weken te betalen.”"
+    plek = f"bepaling {ELF}, van “De belastingschuldige wordt door de ontvanger”, tot “alsnog binnen twee weken te betalen.”"
     assert plek in melding
     # Wat de melding geeft, vult het sjabloon in één keer.
     invoer = duiding(twijfel=["Artikel 11 kent een eigen termijn van twee weken."])

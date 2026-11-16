@@ -89,10 +89,10 @@ export function telling(ov: Overzicht): OverzichtTelling {
 /** Wat er gezocht is, in één zin – ook als het onderwerp is ingekort of afgebakend. Zo ziet de jurist
  *  waaróp het overzicht berust, en niet alleen wat eruit kwam. */
 export function zoekverantwoording(ov: Overzicht): string {
-  const delen = [`Gezocht op „${ov.onderwerp_opbouw}” in de opschriften`];
-  delen.push(ov.onderwerp_tekst === ov.onderwerp_opbouw ? "en in de wettekst" : `en op „${ov.onderwerp_tekst}” in de wettekst`);
+  const delen = [`Gezocht op “${ov.onderwerp_opbouw}” in de opschriften`];
+  delen.push(ov.onderwerp_tekst === ov.onderwerp_opbouw ? "en in de wettekst" : `en op “${ov.onderwerp_tekst}” in de wettekst`);
   let zin = delen.join(" ");
-  if (ov.gevraagd !== ov.onderwerp_opbouw || ov.gevraagd !== ov.onderwerp_tekst) zin += ` (gevraagd: „${ov.gevraagd}”)`;
+  if (ov.gevraagd !== ov.onderwerp_opbouw || ov.gevraagd !== ov.onderwerp_tekst) zin += ` (gevraagd: “${ov.gevraagd}”)`;
   if (ov.scope.length) zin += `, binnen ${ov.regelingen.map((r) => r.citeertitel).join(", ") || ov.scope.join(", ")}`;
   return `${zin}.`;
 }
@@ -117,7 +117,7 @@ export function overzichtAlsMarkdown(ov: Overzicht): string {
     regels.push("");
   }
   for (const t of ov.trefwoorden) {
-    regels.push(`Trefwoord „${t.trefwoord}” bij: ${t.regelingen.map((r) => r.citeertitel).join(", ")}`);
+    regels.push(`Trefwoord “${t.trefwoord}” bij: ${t.regelingen.map((r) => r.citeertitel).join(", ")}`);
   }
   regels.push(zoekverantwoording(ov));
   return regels.join("\n").trim();

@@ -321,7 +321,7 @@ def _rang(t: Toestand, naam: str, afkorting: set[str]) -> tuple:
 def _zoekvraag_tekst(a: dict[str, Any], peil: str) -> str:
     delen = []
     if a.get("naam"):
-        delen.append(f"„{_schoon(a['naam'])}”")
+        delen.append(f"“{_schoon(a['naam'])}”")
     if a.get("bwb_id"):
         delen.append(str(a["bwb_id"]))
     if a.get("soort"):
@@ -388,7 +388,7 @@ def _zoek(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
         toelichting.append("Of een regeling in de kennisgraaf staat, kon ik niet nagaan (de graaf antwoordde niet).")
     if len(afkorting) > 1 and naam.casefold() not in {t.titel.casefold() for t in regelingen}:
         namen = ", ".join(t.titel for t in regelingen if t.bwb_id in afkorting)
-        toelichting.append(f"De afkorting „{naam}” past bij {len(afkorting)} regelingen ({namen}): vraag welke bedoeld "
+        toelichting.append(f"De afkorting “{naam}” past bij {len(afkorting)} regelingen ({namen}): vraag welke bedoeld "
                            "is en kies niet zelf.")
     if naam and offset == 0 and not any(t.titel.casefold() == naam.casefold() or t.bwb_id in afkorting
                                         for t in regelingen):
@@ -442,15 +442,15 @@ def _buiten_de_peildatum(bron: WetgevingBron, naam: str, peil: str) -> str:
     except Exception:  # noqa: BLE001 – een storing kost alleen deze zin
         return ""
     if not exact:
-        return (f"Het Basiswettenbestand kent geen regeling met precies de titel „{naam}”, ook niet op een andere datum. "
+        return (f"Het Basiswettenbestand kent geen regeling met precies de titel “{naam}”, ook niet op een andere datum. "
                 "Een regeling die verviel voordat het Basiswettenbestand haar bijhield, staat er niet in. Raad geen "
                 "BWB-id's: zeg dat de regeling niet gevonden is.")
     van = min(t.geldig_vanaf for t in exact)
     tot = max((t.geldig_tot or OPEN_EIND) for t in exact)
     if van <= peil <= tot:
-        return (f"„{naam}” ({exact[0].bwb_id}) heeft op {peil} een tekst in het Basiswettenbestand, mogelijk onder een "
+        return (f"“{naam}” ({exact[0].bwb_id}) heeft op {peil} een tekst in het Basiswettenbestand, mogelijk onder een "
                 f"andere titel: lees haar met bwb_id {exact[0].bwb_id} en deze peildatum.")
-    return (f"„{naam}” ({exact[0].bwb_id}) staat in het Basiswettenbestand met teksten van {van} tot {_tot_tekst(tot)}, "
+    return (f"“{naam}” ({exact[0].bwb_id}) staat in het Basiswettenbestand met teksten van {van} tot {_tot_tekst(tot)}, "
             f"niet op {peil}: kies een peildatum in die periode, of zeg dat er voor {peil} geen tekst is.")
 
 
@@ -467,7 +467,7 @@ def _id_buiten_de_peildatum(bron: WetgevingBron, bwb_id: str, peil: str) -> str:
         return f"Op {peil} heeft {bwb_id} geen tekst in het Basiswettenbestand."
     van = alle[0].geldig_vanaf
     tot = max((t.geldig_tot or OPEN_EIND) for t in alle)
-    return (f"{bwb_id} is „{alle[-1].titel}” ({alle[-1].soort}), met teksten van {van} tot {_tot_tekst(tot)}, en heeft "
+    return (f"{bwb_id} is “{alle[-1].titel}” ({alle[-1].soort}), met teksten van {van} tot {_tot_tekst(tot)}, en heeft "
             f"op {peil} geen tekst. Is dat niet de regeling die je zoekt, gebruik dit id dan niet: zoek op de naam, of zeg "
             "dat de regeling niet gevonden is.")
 
@@ -542,9 +542,9 @@ def _volledige_tekst(b: Bepaling) -> str:
 
 def _bevat(tekst: str, woorden: str) -> bool:
     tekst = tekst.casefold()
-    zinsdelen = re.findall(r'"([^"]+)"|„([^”]+)”', woorden)
+    zinsdelen = re.findall(r'"([^"]+)"|[„“]([^”]+)”', woorden)
     vast = [" ".join((a or b).split()).casefold() for a, b in zinsdelen]
-    los = re.sub(r'"[^"]*"|„[^”]*”', " ", woorden).casefold().split()
+    los = re.sub(r'"[^"]*"|[„“][^”]*”', " ", woorden).casefold().split()
     return all(z in tekst for z in vast) and all(w in tekst for w in los)
 
 
@@ -591,7 +591,7 @@ def _opbouw(bron: WetgevingBron, graph: Any, a: dict[str, Any]) -> str:
     toelichting = (f"De opbouw van {kop['titel']} (tekst geldig vanaf {t.geldig_vanaf}), live van overheid.nl, niet uit "
                    "de kennisgraaf. Lees een artikel met get_wettekst en het 'id' van de rij.")
     if woorden and not rijen:
-        toelichting = (f"Geen artikel van {kop['titel']} bevat „{woorden}” (tekst geldig vanaf {t.geldig_vanaf}). Dat "
+        toelichting = (f"Geen artikel van {kop['titel']} bevat “{woorden}” (tekst geldig vanaf {t.geldig_vanaf}). Dat "
                        "zegt alleen iets over deze woorden: zoek eventueel met een ander woord.")
     args = {"bwb_id": bwb_id, **({"peildatum": peil} if peil else {}), **({"woorden": a["woorden"]} if woorden else {})}
     offset = _geheel(a.get("offset"), 0, 0, 10_000)

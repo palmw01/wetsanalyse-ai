@@ -39,7 +39,7 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
         {blok.items.map((d) => (
           <div key={d.vindplaats.iri} className="space-y-1">
             <Citaat>{d.tekst}</Citaat>
-            <p className="text-xs text-muted"><Vindplaats vindplaats={d.vindplaats} />{d.bereik && <> · geldt voor „{d.bereik}”</>}</p>
+            <p className="text-xs text-muted"><Vindplaats vindplaats={d.vindplaats} />{d.bereik && <> · geldt voor “{d.bereik}”</>}</p>
           </div>
         ))}
       </div>

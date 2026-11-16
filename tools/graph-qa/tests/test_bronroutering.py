@@ -114,7 +114,7 @@ def test_een_nieuwe_connector_wordt_herkend_en_gemeld_zonder_code(monkeypatch):
         dekt="uitspraken van een testgerecht", signalen=(r"\btestgerecht\b",), tools=frozenset({"zoek_testbron"}),
         leestool="zoek_testbron", lees_argument="id", id_prefixen=("ECLI:",),
         rol_in_antwoord="een uitspraak onderbouwt een uitleg", kop_in_antwoord="Uit de testrechtspraak", levert=("uitspraken",), niet_in_tekst=(),
-        werkwoorden={"zoek_testbron": ("zoekt uitspraken over „{zoekterm}”", "zoekt uitspraken")}, grenzen="alleen een test", beheer="Nep.",
+        werkwoorden={"zoek_testbron": ("zoekt uitspraken over “{zoekterm}”", "zoekt uitspraken")}, grenzen="alleen een test", beheer="Nep.",
         voorbeeldvragen=("Wat zei het testgerecht?",))
     monkeypatch.setitem(bm.CONNECTORS, nep.naam, nep)
     llm = FakeLLM([])

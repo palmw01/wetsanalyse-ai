@@ -570,7 +570,7 @@ def samenvatting(ov: dict[str, Any]) -> str:
     boete; niets daarvan staat in de graaf) en eindigde de ene keer met een wedervraag en de andere keer
     niet. Hier staat alleen wat het overzicht zegt, met zijn eigen koppen en getallen: dezelfde vraag
     geeft dezelfde tekst, en elke genoemde kop is getoetst (`vermeldingen`)."""
-    onderwerp = f"„{ov['gevraagd']}”"
+    onderwerp = f"“{ov['gevraagd']}”"
     regelingen = ov["regelingen"]
     if not regelingen:
         return f"In de kennisgraaf staat geen deel of bepaling over {onderwerp}."
@@ -583,7 +583,7 @@ def samenvatting(ov: dict[str, Any]) -> str:
         if namen_scope:
             zinnen.append(f"Binnen de {namen_scope} staat {onderwerp} vooral in {_koppen(kern)}: {bepalingen}.")
         else:
-            zinnen.append(f"„{ov['gevraagd'][:1].upper()}{ov['gevraagd'][1:]}” staat vooral in de **{kern['citeertitel']}**: "
+            zinnen.append(f"“{ov['gevraagd'][:1].upper()}{ov['gevraagd'][1:]}” staat vooral in de **{kern['citeertitel']}**: "
                           f"{_delen_geteld(kern['delen'])} met {bepalingen} ({_koppen(kern)}).")
         overige = met_delen[1:]
         if overige:
@@ -606,10 +606,10 @@ def samenvatting(ov: dict[str, Any]) -> str:
         zinnen.append(zin + ".")
     for d in ov["definities"][:1]:
         if d.get("vindplaats"):
-            zinnen.append(f"De {d['citeertitel']} definieert „{d['begrip']}” in {d['vindplaats'][0].lower()}{d['vindplaats'][1:]}.")
+            zinnen.append(f"De {d['citeertitel']} definieert “{d['begrip']}” in {d['vindplaats'][0].lower()}{d['vindplaats'][1:]}.")
     if ov["onderwerp_opbouw"] != ov["gevraagd"] or ov["onderwerp_tekst"] != ov["gevraagd"]:
-        zinnen.append(f"Gezocht is op „{ov['onderwerp_opbouw']}” in de opschriften"
-                      + ("" if ov["onderwerp_tekst"] == ov["onderwerp_opbouw"] else f" en op „{ov['onderwerp_tekst']}” in de wettekst")
+        zinnen.append(f"Gezocht is op “{ov['onderwerp_opbouw']}” in de opschriften"
+                      + ("" if ov["onderwerp_tekst"] == ov["onderwerp_opbouw"] else f" en op “{ov['onderwerp_tekst']}” in de wettekst")
                       + ".")
     return " ".join(zinnen)
 

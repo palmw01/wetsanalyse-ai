@@ -440,7 +440,7 @@ def _zoek(bron: KamerstukBron, a: dict[str, Any]) -> str:
         cql += filter_
     # Voor de jurist, bij de lijst: welke stukken het soortfilter niet zeker kon toetsen (ze staan erbij).
     kanttekening = (f"Bij {len(onbeslist)} {'stuk' if len(onbeslist) == 1 else 'stukken'} zonder rubriek kon ik het soort "
-                    f"„{soort}” niet zeker uit de titel halen; {'het staat' if len(onbeslist) == 1 else 'ze staan'} "
+                    f"“{soort}” niet zeker uit de titel halen; {'het staat' if len(onbeslist) == 1 else 'ze staan'} "
                     f"erbij: {', '.join(onbeslist)}." if onbeslist else "")
     toelichting = (f"Bij oudere stukken staat het soort alleen in de titel, en er zijn er te veel om elk te toetsen: "
                    f"een stuk met '{soort}' elders in de titel kan ertussen staan. Kijk naar het soort per stuk."
@@ -521,7 +521,7 @@ def _met_woorden(rijen: list[dict[str, Any]], woorden: str, ident: str, offset: 
     lezen = f"lees verder vanaf 'offset' met {{\"id\": \"{ident}\", \"offset\": <offset>}}"
     extra: dict[str, Any] = {"stuk": stuk, "totaal": len(treffers), "alineas": len(rijen)}
     if treffers:
-        toelichting = (f"{len(treffers)} van de {len(rijen)} alinea's noemen „{woorden}”; {lezen} voor de alinea's "
+        toelichting = (f"{len(treffers)} van de {len(rijen)} alinea's noemen “{woorden}”; {lezen} voor de alinea's "
                        "eromheen. Citeer letterlijk uit 'tekst'.")
         if offset == 0 and len(treffers) > MAX_TREFFERS_ZONDER_KOPPEN:
             per_kop, meer = treffers_per_kop(treffers)
@@ -530,7 +530,7 @@ def _met_woorden(rijen: list[dict[str, Any]], woorden: str, ident: str, offset: 
             toelichting += (f" Ze staan onder {len(per_kop) + meer} koppen ('per_kop': kop, aantal, vanaf). Blader ze niet "
                             f"allemaal door: lees de koppen die bij de vraag horen, met 'vanaf' als offset, zoals {voorbeeld}.")
     else:
-        toelichting = f"Geen alinea van dit stuk noemt „{woorden}” (elk woord). " + _zonder_treffer(rijen, stammen, extra)
+        toelichting = f"Geen alinea van dit stuk noemt “{woorden}” (elk woord). " + _zonder_treffer(rijen, stammen, extra)
     return per_eenheid(treffers, tool="get_kamerstuk", args={"id": ident, "woorden": woorden}, offset=offset,
                        extra=extra, toelichting=toelichting)
 
@@ -547,9 +547,9 @@ def _zonder_treffer(rijen: list[dict[str, Any]], stammen: list[str], extra: dict
     per_woord = {stam: sum(1 for eigen in woorden_per_rij if any(stam in w for w in eigen))
                  for stam in dict.fromkeys(stammen)}
     extra["per_woord"] = per_woord
-    los = ", ".join(f"„{stam}…” {n}" for stam, n in per_woord.items())
+    los = ", ".join(f"“{stam}…” {n}" for stam, n in per_woord.items())
     nul = [stam for stam, n in per_woord.items() if not n]
-    raad = (f"laat {', '.join(f'„{s}…”' for s in nul)} weg" if nul and len(nul) < len(per_woord)
+    raad = (f"laat {', '.join(f'“{s}…”' for s in nul)} weg" if nul and len(nul) < len(per_woord)
             else "geef minder woorden tegelijk")
     return (f"Per woord, in hoeveel alinea's het los staat: {los}. Samen staan ze in geen alinea; {raad}, of lees de "
             "inhoud met inhoud: true.")

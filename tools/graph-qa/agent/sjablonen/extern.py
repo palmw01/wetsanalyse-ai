@@ -695,7 +695,7 @@ _VOLGORDE_TEKST = {"nieuwste": "Nieuwste eerst.", "oudste": "Oudste eerst.", "nu
                    "relevantie": "Meest relevante eerst."}
 
 
-_AANHALING = re.compile(r'["„”]')
+_AANHALING = re.compile(r'["„“”]')
 
 
 def _voluit(datum: str) -> str:
@@ -743,7 +743,7 @@ def _bepaling_in_woorden(zoekvraag: dict[str, Any]) -> str:
 
 
 def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any], *, volgorde: bool = True) -> str:
-    """De zoekvraag onder een lijst, in gewone zinnen: "Gezocht op „invorderingsrente” in de tekst, vergaderjaar
+    """De zoekvraag onder een lijst, in gewone zinnen: "Gezocht op “invorderingsrente” in de tekst, vergaderjaar
     2025-2026 en van de Eerste Kamer. Meest relevante eerst." Uit de code, met de labels uit de metadata van de
     beschrijving (`ConnectorBeschrijving.filters`); de vorm per soort veld (`MetadataVeld.sleutel`), dus voor elke
     connector. Een waarde die al zegt wat ze is ("Eerste Kamer") krijgt geen label ervoor (acceptatie 9 nov 2026:
@@ -762,11 +762,11 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any], *, volg
             continue
         if arg == "tekst":
             kaal = " ".join(_AANHALING.sub(" ", str(waarde)).split())
-            delen.append(f"„{kaal}” in de tekst")
+            delen.append(f"“{kaal}” in de tekst")
         elif sleutel == "titel":
-            delen.append(f"„{waarde}” in de titel")
+            delen.append(f"“{waarde}” in de titel")
         elif sleutel == "reekstitel":
-            delen.append(f"„{waarde}” in de titel van het dossier")
+            delen.append(f"“{waarde}” in de titel van het dossier")
         elif veld is not None and veld.type == "datum":
             periode["vanaf" if arg == veld.filters[0] else "tot"] = _voluit(str(waarde))
         elif sleutel == "orgaan":
@@ -777,7 +777,7 @@ def zoekvraag_tekst(c: ConnectorBeschrijving, zoekvraag: dict[str, Any], *, volg
             delen.append({"huidige tekst": "de huidige tekst", "eerdere tekst": "een eerdere tekst",
                           "op peildatum": "de tekst op de peildatum"}.get(str(waarde), str(waarde)))
         elif sleutel == "soort":
-            delen.append(f"{veld.label} „{waarde}”")
+            delen.append(f"{veld.label} “{waarde}”")
         elif veld is not None:
             delen.append(f"{veld.label} {waarde}")
         else:

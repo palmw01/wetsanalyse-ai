@@ -410,7 +410,7 @@ def test_een_herschreven_vervolgvraag_buiten_de_graaf_gaat_de_workflow_in():
 def test_een_onbekende_wet_krijgt_de_vaste_melding():
     """I07: drie rondes en vier niet-gerelateerde bronnen voor een wet die niet bestaat."""
     upd = _kies("Wat staat er in artikel 3 van de Wet op de robotbelasting?", _AAN)
-    assert upd["afwijzen"] and "„Wet op de robotbelasting”" in upd["afwijs_melding"]
+    assert upd["afwijzen"] and "“Wet op de robotbelasting”" in upd["afwijs_melding"]
     assert "Basiswettenbestand kent geen geldende regeling" in upd["afwijs_melding"]
 
 

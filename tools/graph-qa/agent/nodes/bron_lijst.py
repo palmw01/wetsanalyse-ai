@@ -81,7 +81,7 @@ def bron_lijst_node(b, state: State) -> dict[str, Any]:
             data = json.loads(raw)
         except ValueError:
             data = {}
-        kanttekening = " ".join(filter(None, [f"Als woordgroep staat „{groep}” in geen stuk; dit zijn de stukken met elk "
+        kanttekening = " ".join(filter(None, [f"Als woordgroep staat “{groep}” in geen stuk; dit zijn de stukken met elk "
                                               "van de woorden.", kanttekening]))
     if data.get("status") not in ("ok", "partial") and (hoe := BRONFOUT.get(str(data.get("reden") or ""))):
         # De bron faalt: een vaste melding, zoals bij een genoemd stuk (`bron_lezen._zonder_tekst`). Het model kan dan

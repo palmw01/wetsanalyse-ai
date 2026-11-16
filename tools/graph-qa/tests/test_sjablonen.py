@@ -1126,11 +1126,11 @@ def test_een_weigering_van_een_passage_zegt_waar_de_woorden_wel_staan():
     De weigering zegt nu wat er te herstellen is, uit de opgehaalde rijen en nooit geraden."""
     with pytest.raises(Onvulbaar, match="staat wel in Artikel 10, lid 1 .*wijs die bepaling aan"):
         vul("antwoord_duiding", duiding(bepaling=TIEN_2), [tien()])
-    with pytest.raises(Onvulbaar, match="„De ontvanger kan uitstel” staat in Artikel 10, lid 1, „zes weken.” daar niet"):
+    with pytest.raises(Onvulbaar, match="“De ontvanger kan uitstel” staat in Artikel 10, lid 1, “zes weken.” daar niet"):
         vul("antwoord_duiding", duiding(tot="zes weken."), [tien()])
     with pytest.raises(Onvulbaar, match="allebei in Artikel 10, lid 1.*niet ná"):
         vul("antwoord_duiding", duiding(van="zes maanden.", tot="De ontvanger"), [tien()])
-    with pytest.raises(Onvulbaar, match="Zo begint de tekst die je aanwees: Artikel 10, lid 1: „De ontvanger kan uitstel"):
+    with pytest.raises(Onvulbaar, match="Zo begint de tekst die je aanwees: Artikel 10, lid 1: “De ontvanger kan uitstel"):
         vul("antwoord_duiding", duiding(van="Iets anders", tot="geheel"), [tien()])
 
 
@@ -1146,7 +1146,7 @@ def test_een_artikel_dat_de_opgehaalde_tekst_noemt_vraagt_een_passage_en_geen_op
     assert fout.value.code == "genoemd_in_tekst" and fout.value.ophalen == []
     assert TIEN_2 in str(fout.value) and "niet opgehaald" not in str(fout.value)
     # De zin zelf, als begin en einde letterlijk uit de bron: over te nemen als `van` en `tot` (meting #1457, F05).
-    assert "van „Een teruggaaf als bedoeld in artikel”, tot „de omzetbelasting 1968 kan worden verrekend.”" in str(fout.value)
+    assert "van “Een teruggaaf als bedoeld in artikel”, tot “de omzetbelasting 1968 kan worden verrekend.”" in str(fout.value)
 
 
 def test_de_passage_uit_de_weigering_overnemen_vult_het_sjabloon():
@@ -1156,7 +1156,7 @@ def test_de_passage_uit_de_weigering_overnemen_vult_het_sjabloon():
     except Onvulbaar as fout:
         melding = str(fout)
     import re
-    bepaling, van, tot = re.search(r"bepaling (\S+), van „(.+?)”, tot „(.+?)”", melding).groups()
+    bepaling, van, tot = re.search(r"bepaling (\S+), van “(.+?)”, tot “(.+?)”", melding).groups()
     a = vul("antwoord_duiding", {**duiding(twijfel=["Ook artikel 29 Wet OB 1968 speelt mee."]), "onderbouwing": [
         {"bepaling": TIEN_1, "van": "De ontvanger kan uitstel", "tot": "van zes maanden.", "waarom": "De bevoegdheid."},
         {"bepaling": bepaling, "van": van, "tot": tot, "waarom": "De verrekening."}]}, [tien(tekst=ZIN_29)])

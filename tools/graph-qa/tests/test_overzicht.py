@@ -340,12 +340,12 @@ def test_de_samenvatting_komt_uit_de_data_en_doorstaat_de_controle():
 
     ov = overzicht.bouw_overzicht(Graaf(), "Welke artikelen gaan over invordering?")
     tekst = overzicht.samenvatting(ov)
-    assert tekst.startswith("„Invordering” staat vooral in de **Invorderingswet 1990**: 3 hoofdstukken met 7 artikelen "
+    assert tekst.startswith("“Invordering” staat vooral in de **Invorderingswet 1990**: 3 hoofdstukken met 7 artikelen "
                             "(Hoofdstuk II – Invordering in eerste aanleg; Hoofdstuk V – Invorderingsrente; "
                             "Hoofdstuk VII – Verplichtingen ten behoeve van de invordering).")
     assert "Verder in de Algemene wet bestuursrecht (Afdeling 4.4.4 – Aanmaning en invordering bij dwangbevel) " \
            "en de Leidraad Invordering 2008 (28 – Invorderingsrente)." in tekst
-    assert "De Invorderingswet 1990 definieert „invorderen van rijksbelastingen” in artikel 2, lid 2, onderdeel e." in tekst
+    assert "De Invorderingswet 1990 definieert “invorderen van rijksbelastingen” in artikel 2, lid 2, onderdeel e." in tekst
     assert overzicht.samenvatting(ov) == tekst, "dezelfde data, dezelfde tekst"
     rapport = check_grounding(tekst, [("overzicht_onderwerp", overzicht.bronrijen(ov))], overzicht=ov)
     assert rapport.niveau == "gegrond" and "Hoofdstuk II" in rapport.cited and "afdeling 4.4.4" in [c.casefold() for c in rapport.cited]
@@ -362,13 +362,13 @@ def test_samenvatting_zonder_delen_en_met_afbakening():
     ov = overzicht.bouw_overzicht(Graaf(), "Welke artikelen gaan over invordering?")
     zonder = {**ov, "regelingen": [{**r, "delen": []} for r in ov["regelingen"]]}
     tekst = overzicht.samenvatting(zonder)
-    assert tekst.startswith("Geen hoofdstuk, afdeling, paragraaf of divisie draagt „invordering” in zijn opschrift.")
+    assert tekst.startswith("Geen hoofdstuk, afdeling, paragraaf of divisie draagt “invordering” in zijn opschrift.")
     assert "Het onderwerp staat wel in de tekst van 2 bepalingen in 2 regelingen" in tekst
     binnen = overzicht.bouw_overzicht(Graaf(), "Welke artikelen in de Awb gaan over invordering?")
     assert overzicht.samenvatting(binnen).startswith(
-        "Binnen de Algemene wet bestuursrecht staat „invordering” vooral in Afdeling 4.4.4 – Aanmaning en invordering bij dwangbevel: 2 artikelen.")
+        "Binnen de Algemene wet bestuursrecht staat “invordering” vooral in Afdeling 4.4.4 – Aanmaning en invordering bij dwangbevel: 2 artikelen.")
     leeg = {**ov, "regelingen": []}
-    assert overzicht.samenvatting(leeg) == "In de kennisgraaf staat geen deel of bepaling over „invordering”."
+    assert overzicht.samenvatting(leeg) == "In de kennisgraaf staat geen deel of bepaling over “invordering”."
 
 
 def test_de_telling_spreekt_de_taal_van_de_bron():

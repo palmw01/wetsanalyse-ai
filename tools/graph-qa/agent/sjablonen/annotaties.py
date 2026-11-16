@@ -93,7 +93,7 @@ def _rijen(paginas: list[dict[str, Any]]) -> tuple[list[Markering], int]:
 
 
 def _filterregel(filters: dict[str, Any]) -> str:
-    delen = [*(filters.get("jas_klassen") or []), filters.get("klasse", ""), f"„{filters['tekst']}”" if filters.get("tekst") else "",
+    delen = [*(filters.get("jas_klassen") or []), filters.get("klasse", ""), f"“{filters['tekst']}”" if filters.get("tekst") else "",
              vindplaats_van(filters["bron_iri"]).label if filters.get("bron_iri") else "", filters.get("bwb_id", "")]
     return ", ".join(d for d in delen if d)
 

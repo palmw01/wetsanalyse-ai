@@ -870,7 +870,7 @@ def test_woorden_zonder_treffer_zegt_per_woord_hoe_vaak_het_los_staat():
     d = roep("get_kamerstuk", {"id": "kst-99001-3", "woorden": "invorderingsrente bestuurder"})
     assert d["status"] == "ok" and d["aantal"] == 0
     assert d["per_woord"] == {"invorde": 1, "bestuur": 0}
-    assert "„invorde…” 1, „bestuur…” 0" in d["toelichting"] and "laat „bestuur…” weg" in d["toelichting"]
+    assert "“invorde…” 1, “bestuur…” 0" in d["toelichting"] and "laat “bestuur…” weg" in d["toelichting"]
     beide = roep("get_kamerstuk", {"id": "kst-99001-3", "woorden": "invorderingsrente eenvoud"})
     assert beide["aantal"] == 0 and "geef minder woorden tegelijk" in beide["toelichting"], "elk woord staat er, los"
     assert "per_woord" not in roep("get_kamerstuk", {"id": "kst-99001-3", "woorden": "bestuurder"}), "één woord: niets te tellen"
@@ -995,4 +995,4 @@ def test_dossiertitel_zoekt_de_titel_van_het_dossier_als_woordgroep():
     assert d["status"] == "ok" and d["zoekvraag"]["dossiertitel"] == "Belastingplan 2025"
     assert 'w.dossiertitel adj "belastingplan 2025"' in bron.vragen[-1]
     from agent.sjablonen.extern import zoekvraag_tekst
-    assert "„Belastingplan 2025” in de titel van het dossier" in zoekvraag_tekst(bm.KAMERSTUKKEN, d["zoekvraag"])
+    assert "“Belastingplan 2025” in de titel van het dossier" in zoekvraag_tekst(bm.KAMERSTUKKEN, d["zoekvraag"])
