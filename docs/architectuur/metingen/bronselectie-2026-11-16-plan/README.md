@@ -111,3 +111,30 @@ Gemeten op een hele bronnenrun zoals de api haar start: deelvragen, dossier met 
 heeft met de vlag de rol *aanverwant*. Dat raakt de werkgebieden zonder deelvragen, en die meet deze run niet: de set
 `invorderbaarheid-concept` heeft een kern, dus het overzicht draait daar niet. De vlag is een kandidaat om in stap 8 aan te
 zetten.
+
+## Stap 4 – `stam_heel` (O3)
+
+Recall nodig, eerst de standaard, dan met de vlag. Op de zoekvragenroute (de bronnenrun met een gebeurtenis):
+
+- Termijnen: 0,06 → **0,19**; uitgesloten 12 → 9
+- Rekeningafspraken: 0,29 → 0,29
+- Bestuurdersaansprakelijkheid: 0,44 → 0,44
+- Bezwaar/ontvankelijkheid: 0,40 → **0,27**
+- Invorderbaarheid (deelvragen): 0,46 → 0,46
+- Kwijtschelding: 0,33 → **0,29**
+
+Op de woordenroute: Bestuurdersaansprakelijkheid 0,22 → 0,28, Bezwaar 0,53 → 0,47, de rest gelijk.
+
+**Oordeel: de eerste winst bij Termijnen, maar ten koste van twee sets.** Waar het verlies vandaan komt:
+
+- **Kwijtschelding.** "belastingschuld" raakte drie verwachte artikelen van de Uitv.reg. Iw (art. 10, 11, 18) alleen op
+  zijn eerste acht letters, "belastin". Met de vlag staat het woord er niet meer in. Dat is juist geteld, maar die artikelen
+  verliezen er een treffer door.
+- **Bezwaar.** Hier verliest geen verwachte bepaling een treffer; AWR 22j wint er zelfs een ("belastingaanslag" via de kern
+  "aanslag"). Het verlies komt uit de gewichten. Een term die via zijn kern veel meer kandidaten raakt, krijgt een lager
+  idf-gewicht, en de volgorde verschuift.
+
+De vlag blijft uit. Voor stap 8: in de pool telt de kern als treffer, maar niet voor de documentfrequentie. Dat volgt uit dit
+mechanisme, en is nog niet gemeten.
+
+De rapporten staan in [`stap4/`](stap4/).

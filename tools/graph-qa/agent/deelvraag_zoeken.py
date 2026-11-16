@@ -139,6 +139,10 @@ class Zoekprofiel:
     #:   zijn het vertrekpunt), gebruikt zonder deelvragen de naam alleen als die meer dan één inhoudswoord heeft, en geeft
     #:   wat het overzicht vindt de rol *aanverwant* in plaats van *kern* (`bronnen_vinden`).
     overzicht_streng: bool = False
+    #: - `stam_heel` (stap 4, O3): een term van meer dan acht letters raakt een tekst op zijn hele stam of op zijn kern (een
+    #:   slotdeel dat er als woord in staat), niet op zijn eerste acht letters (`zoektermen.raakt_heel`): de telling, de
+    #:   dossiertermen en het gewicht in de pool. De index zoekt even breed.
+    stam_heel: bool = False
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.
@@ -545,9 +549,9 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
     kandidaten = [k for iri, k in gevonden.items() if iri not in geraakte_artikelen]
     for k in kandidaten:
         alles = " ".join(k["teksten"])
-        tekst_termen = _raakt(termen, alles, profiel.samenstelling)
+        tekst_termen = _raakt(termen, alles, profiel.samenstelling, profiel.stam_heel)
         k["dv"] = [w for w in termen if w in tekst_termen or w in k["index_termen"]]
-        k["dos"] = _raakt(dossiertermen, alles, profiel.samenstelling)
+        k["dos"] = _raakt(dossiertermen, alles, profiel.samenstelling, profiel.stam_heel)
         k["dos"] += [w for w in k["dossier_index"] if w not in k["dos"]]
         k["kop"] = ""
 
