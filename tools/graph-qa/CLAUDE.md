@@ -969,7 +969,12 @@ bruikbaar is.
   (`antwoord.na_correctie`). Een subagent meldt in het denkproces van de ouder wat hij deed en opleverde
   (`narratie.kindregel`: uitkomst, aanroepen, gelezen en hoeveel deels, alleen gevonden, punten van de controle); een
   stuk dat maar deels gelezen is, heet in het rapport uit code zo (`gelezen.deels_gelezen`), en "volledig gelezen" over
-  zo'n stuk is een bewering (`gelezen.volledig_geclaimd`). Een route zegt één keer wat er gebeurt (de worker herhaalt
+  zo'n stuk is een bewering (`gelezen.volledig_geclaimd`), behalve in een zin met een ontkenning ("niet volledig gelezen").
+  De toetsen op wat Lex over een stuk zegt (`ongelezen_samengevat`, `verwijzing_als_duiding`, `vraag_niet_in_stuk`,
+  `buiten_periode`, `zonder_steun`, `volledig_geclaimd`) lezen de tekst zonder citaten (`gelezen.zonder_citaten`): een
+  citaat is tekst van de bron, en een verwijzing erin naar een ander stuk is geen samenvatting van dat stuk. De
+  letterlijkheid van een citaat toetst `grounding` op de hele tekst (hermeting na #1614, 16 nov 2026;
+  `tests/test_controle_citaten.py`). Een route zegt één keer wat er gebeurt (de worker herhaalt
   het niet), de bronnenregel staat er alleen als de bronkeuze verandert, en een bericht van code zonder model draagt
   ook een denkproces (`werkgebied_annotatie`). **Geen lege plekken**: `narratie._stap` toetst elke regel
   (`lege_plekken`: "(art. )", "None", "{veld}", een dubbele spatie, een regel die op een scheiding eindigt). In de

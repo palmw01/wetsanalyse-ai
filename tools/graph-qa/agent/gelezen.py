@@ -87,9 +87,27 @@ _VOLLEDIG = re.compile(
     r"|\b(?:las|lees|gelezen|doorgelezen)\b[^.\n]{0,40}\b(?:volledig|helemaal|in (?:hun|zijn|haar|het) geheel)\b", re.I)
 
 
+def zonder_citaten(tekst: str) -> str:
+    """De tekst zonder de regels die een bron citeren (`> "…"`, zoals het blok `extern` en een blokcitaat ze tonen). Een
+    citaat is tekst van de bron, geen duiding van Lex: een uitspraak die erin naar een ander stuk verwijst ("vgl. HR 31
+    maart 2017, ECLI:…"), vat dat stuk niet samen (hermeting na #1614, 16 nov 2026: drie valse meldingen "samenvatting
+    zonder gelezen tekst" bij S01). Of het citaat letterlijk is, toetst `grounding` op de hele tekst."""
+    return "\n".join(r for r in (tekst or "").split("\n") if not r.lstrip().startswith(">"))
+
+
 def volledig_geclaimd(tekst: str, trace: Iterable[Any]) -> list[str]:
-    """Een tekst die zegt dat er volledig gelezen is, terwijl een gelezen stuk maar deels gelezen is: een bewering (D-4)."""
-    if not (m := _VOLLEDIG.search(tekst or "")):
+    """Een tekst die zegt dat er volledig gelezen is, terwijl een gelezen stuk maar deels gelezen is: een bewering (D-4).
+    Een ontkenning is geen claim: "hoofdstukken 6 en 7 zijn niet volledig gelezen" zegt juist wat ontbreekt (hermeting
+    na #1614, 16 nov 2026)."""
+    tekst = tekst or ""
+
+    def ontkend(m: re.Match[str]) -> bool:
+        # De zin tot en met de treffer: "niet helemaal doorgelezen" heeft de ontkenning vóór de treffer.
+        begin = max((tekst.rfind(t, 0, m.start()) for t in ".!?\n"), default=-1) + 1
+        return bool(_ONTKENNING.search(tekst[begin:m.end()]))
+
+    m = next((m for m in _VOLLEDIG.finditer(tekst) if not ontkend(m)), None)
+    if m is None:
         return []
     deels = deels_gelezen(trace)
     if not deels:
