@@ -8,10 +8,14 @@
    stukken zijn maar deels gelezen"."""
 from __future__ import annotations
 
+import pytest
+
 import json
 
 from agent.gelezen import ongelezen_samengevat, volledig_geclaimd, zonder_citaten
 from agent.grounding import check_grounding
+
+pytestmark = pytest.mark.risico("R15")
 
 GELEZEN = "ECLI:NL:HR:2019:576"
 VERWEZEN = "ECLI:NL:HR:2017:530"

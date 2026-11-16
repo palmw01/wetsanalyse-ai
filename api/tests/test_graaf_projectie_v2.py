@@ -81,6 +81,7 @@ VRIJE_VELDEN = {"tekst": "betaling", "query": "betaling", "jas_klassen": ["Voorw
                 "beslist_door": ["model"]}
 
 
+@pytest.mark.risico("R13")
 def test_elk_filter_van_zoek_query_is_ingedeeld():
     """Een nieuw filter in `zoek_query` moet hier een plek krijgen: als vrij veld (dan toetst de test hieronder het), of als
     veld dat de code zelf valideert of alleen een vaste keuze is."""
@@ -99,6 +100,7 @@ def test_elk_filter_van_zoek_query_is_ingedeeld():
 
 @pytest.mark.parametrize("veld", sorted(VRIJE_VELDEN))
 @pytest.mark.parametrize("kwaad", KWAAD)
+@pytest.mark.risico("R13")
 def test_tekst_van_buiten_verandert_de_query_niet(veld, kwaad):
     onschuldig = VRIJE_VELDEN[veld]
     kwaadaardig = [kwaad] if isinstance(onschuldig, list) else kwaad
@@ -115,6 +117,7 @@ def test_de_vormtoets_ziet_een_geslaagde_injectie():
     assert _vorm(geinjecteerd) != _vorm(gewoon)
 
 
+@pytest.mark.risico("R13")
 def test_source_iri_injection_rejected():
     with pytest.raises(ValueError):
         zoek_query({"bron_iri": "urn:bwb:BWBR1> } SERVICE <https://example.org> {"})

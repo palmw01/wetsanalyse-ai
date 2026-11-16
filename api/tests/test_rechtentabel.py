@@ -13,7 +13,11 @@ De tabel bijwerken is een bewuste handeling: draai `python -m tests.test_rechten
 """
 from __future__ import annotations
 
+import pytest
+
 from fastapi.routing import APIRoute
+
+pytestmark = pytest.mark.risico("R12")
 
 #: De bewakers die de tabel bijhoudt (de namen van de dependency-functies).
 BEWAKERS = ("require_client", "require_admin", "actieve_userid", "huidige_beheerder", "beheerder_met_2fa",

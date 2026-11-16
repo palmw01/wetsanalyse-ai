@@ -13,7 +13,7 @@ from test_verbruik import client as verbruik_client  # noqa: F401
 from test_werkplaats import B, PROFIEL, _maak
 from test_werkplaats import client as werkplaats_client  # noqa: F401
 
-pytestmark = vereis_postgres()
+pytestmark = [vereis_postgres(), pytest.mark.risico("R07")]
 
 
 @pytest.fixture(autouse=True)
