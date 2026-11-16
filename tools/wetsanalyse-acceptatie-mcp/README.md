@@ -8,7 +8,7 @@ dezelfde controles als voor een gebruiker: sessie, rol, eigenaarschap en tokenbu
 enige publieke weg naar graph-qa. De rendering test dit niet: dat doet Playwright op een gemockte BFF.
 
 `src/client.ts` kent geen MCP, zodat scenario's die later ook los kunnen gebruiken; `src/index.ts` is de
-dunne laag met de tools. `src/bron.ts`, `src/graaf.ts`, `src/logs.ts` (via Grafana) en `src/logboek.ts` staan
+dunne laag met de tools. `src/runruimte.ts` is de vangrail voor verwijderen en het opruimen van een run. `src/bron.ts`, `src/graaf.ts`, `src/logs.ts` (via Grafana) en `src/logboek.ts` staan
 buiten de BFF: ze dienen de beoordeling en de samenwerking, en doen niets wat een scherm hoort te doen.
 
 De agent-jurist en de agent-gegevensspecialist (`.claude/agents/`) gebruiken deze MCP om op acceptatie samen een
@@ -20,8 +20,9 @@ wetsanalyse uit te voeren, inclusief echte beslissingen; het scenario staat in
 
 | tool | wat |
 |---|---|
-| `wie_ben_ik` | het account en de rol |
-| `bff` | één aanroep op een BFF-route; elke status komt terug, met een `trace_id` |
+| `wie_ben_ik` | het account en de rol, en of het token bij het vaste testaccount hoort (`WETSANALYSE_ACC_TESTACCOUNT`) |
+| `bff` | één aanroep op een BFF-route; elke status komt terug, met een `trace_id`. Verwijderen gaat langs een vangrail: alleen in de ruimte van een testrun |
+| `opruimen` | wist wat een testrun maakte (voorvoegsel `acc-test-` of `Bench `); zonder `bevestig: true` alleen de lijst |
 | `lex_start`, `lex_wacht`, `lex_stop` | een beurt van Lex starten, volgen en stoppen; een klik is `intake_actie` of `actie`. `lex_start` bewaart eerst de vraag als user-bericht in het gesprek, zoals de werkplek, zodat wie meekijkt vraag én antwoord ziet (`vraag_bewaren: false` slaat dat over) |
 | `werkgebied_lezen` | dossier, dekking, een overzicht van de elementen (tellingen) en de nieuwste audit; met `bron_iri` de elementen van één bepaling, met `volledig` alles |
 | `weergave_lezen` | de annotatie van één bepaling als lijst (`?vorm=lijst`), om te beoordelen |
@@ -64,7 +65,9 @@ staat. Een onenigheid vraagt beide argumenten, en iets wat op een token lijkt wo
 
 Op de straat moet `API_TOKEN_LOGIN` aanstaan; `azure-infra` zet die alleen op acceptatie aan.
 
-1. Kies een testaccount. Eén account voor beide agents kan; `WETSANALYSE_ACC_TOKEN_BEHEERDER` is alleen nodig om
+1. Gebruik het vaste testaccount `acc-test-analist` (rol `analist`); wat de gebruiker daarvoor aanmaakt, staat in
+   [`docs/acceptatie/testaccount.md`](../../docs/acceptatie/testaccount.md), met de naamconventie, de vangrail en
+   `opruimen`. Eén account voor beide agents kan; `WETSANALYSE_ACC_TOKEN_BEHEERDER` is alleen nodig om
    beheerrechten of het verschil tussen rollen te testen.
 2. Genereer een token: instellingen → **Beheer** → **API-tokens** → kies bij *Inloggen als*
    het account. Het token is 90 dagen geldig en wordt één keer getoond. Staat `API_TOKEN_LOGIN` uit, dan
@@ -75,6 +78,7 @@ Op de straat moet `API_TOKEN_LOGIN` aanstaan; `azure-infra` zet die alleen op ac
    "env": {
      "WETSANALYSE_ACC_URL": "https://…",
      "WETSANALYSE_ACC_TOKEN": "wa_pat_…",
+     "WETSANALYSE_ACC_TESTACCOUNT": "acc-test-analist",
      "WETSANALYSE_ACC_TOKEN_BEHEERDER": "wa_pat_…"
    }
    ```

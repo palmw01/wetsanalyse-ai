@@ -4,7 +4,7 @@ De bron is de code zelf. Een test noemt het risico dat hij dekt:
 
 - in pytest met `@pytest.mark.risico("R07")` op de test of als `pytestmark` in de module; een andere laag dan die van de
   plek geef je mee: `pytest.mark.risico("R20", laag=3)`;
-- in vitest met `[R07]` in de naam van een `describe`, `it` of `test`;
+- in vitest (en node:test in de acceptatie-MCP) met `[R07]` in de naam van een `describe`, `it` of `test`;
 - in een browserscript, een workflow of een E2E-scenario met een regel `risico: R07, R08` (in commentaar).
 
 De laag volgt uit de plek (`LAGEN`): een test in een component is laag 1, `tests/poort/` laag 2, een workflow laag 3,
@@ -32,7 +32,7 @@ REGISTER = WORTEL / "docs" / "lex-bench" / "risicos.json"
 
 #: Waar tests staan, met de laag die daar standaard geldt.
 PYTEST = [("tools/graph-qa/tests", 1), ("api/tests", 1), ("tools/bwb-import/tests", 1), ("tests/poort", 2)]
-VITEST = [("frontend", 1)]
+VITEST = [("frontend", 1), ("tools/wetsanalyse-acceptatie-mcp/src", 1)]  # vitest en node:test: `[R07]` in de naam
 REGELS = [("frontend/scripts", 1, "test-*.mjs"), (".github/workflows", 3, "*.yml"), ("docs/acceptatie", 4, "*.md"),
           ("docs/lex-bench", 5, "*.json")]
 
