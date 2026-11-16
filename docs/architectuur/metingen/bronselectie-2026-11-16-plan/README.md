@@ -176,3 +176,20 @@ zijn.
 **Nog te meten.** Het eigenlijke effect, *voorlopige teruggaaf* als brug bij "negatieve voorlopige aanslag", komt pas na
 een herimport met `BWB_DEFINITIE_AANDUIDING=true`. Dat is een wijziging van de graaf van acceptatie, en vraagt akkoord
 (stap 8).
+
+## Stap 7 – de vlaggen van PR E opnieuw (`verwijzingen`, `onderscheidend`)
+
+Recall nodig, eerst de standaard, dan met de vlag. Op de **woordenroute**:
+
+- `verwijzingen`: Termijnen 0,00 → 0,19; Rekeningafspraken 0,14 → 0,43; Bestuurdersaansprakelijkheid 0,22 → 0,28; Bezwaar
+  0,53 → 0,60; Invorderbaarheid en Kwijtschelding gelijk. Er komen 2 tot 12 opties bij, zodat de precisie bij Kwijtschelding
+  daalt (0,06 → 0,04).
+- `onderscheidend`: alleen Termijnen verandert (0,00 → 0,12), met een veel kleinere pool (1,00 → 0,22).
+
+Op de **zoekvragenroute** (wat de bronnenrun met een gekozen gebeurtenis doet) hebben beide vlaggen geen effect, ook niet
+samen met `woorden_voor_pool`. De verwezen bepalingen staan achteraan de opties van de woordenroute, en vallen buiten de
+acht plaatsen (`samen_met_woorden`).
+
+**Oordeel.** `verwijzingen` is de sterkste vlag op de woordenroute. Die route draait als een werkgebied geen gebeurtenis
+heeft: in de intake en de bronnenrun zonder gebeurtenis. Met een gebeurtenis bereikt de vlag de kandidaten niet. Een
+kandidaat voor stap 8 alleen voor de route zonder gebeurtenis. `onderscheidend` blijft uit.
