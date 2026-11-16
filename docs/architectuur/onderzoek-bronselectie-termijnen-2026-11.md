@@ -1,6 +1,6 @@
 # Onderzoek: de bronselectie bij het werkgebied Termijnen (16 nov 2026)
 
-Soort: *onderzoek* · Status: **voorstel, wacht op akkoord** · Hoort bij: [bronselectie per deelvraag](bronselectie-per-deelvraag.md)
+Soort: *onderzoek en plan* · Status: **plan, wacht op het sein om te bouwen** · Hoort bij: [bronselectie per deelvraag](bronselectie-per-deelvraag.md)
 (spoor J), [zoekvragen a–d](../../.claude/skills/wetsanalyse/references/zoekvragen-bronselectie.md), PR E (#1607)
 
 De gebruiker maakte op acceptatie het werkgebied *Termijnen* aan en vond bij de kandidaten van Lex weinig bruikbare
@@ -159,8 +159,121 @@ Geen van de voorstellen kent dit werkgebied, het woord "termijn" of een regeling
   Bewijs vraagt een **blinde set uit een ander werkgebied**, opgesteld voordat de meting draait. Voorstel 1 en 3 raken
   elke rangschikking en vragen dat het meest.
 
+## Plan: alle voorstellen in één traject
+
+Besluit van de gebruiker (16 nov 2026): alle voorstellen in één plan. Elke stap wordt een eigen PR. De stappen zijn klein
+en lossen elk één oorzaak op. Vóór het bouwen toetst elke stap of dit de beste ingreep is: welke alternatieven er zijn,
+en waarom deze. Elke ingreep komt achter een vlag die standaard uit staat (`Zoekprofiel`, of een constante in
+`bronnen_vinden`), zodat de meting hem apart aan- en uitzet. Pas stap 8 zet de vlaggen aan die winnen. Elke stap
+verandert de zoekcode en dus `ZOEKVERSIE`, zodat een werkgebied na de uitrol opnieuw zoekt. De hoofdsessie bundelt en
+merget.
+
+### Stap 0 – De meetbasis (vóór elke codewijziging)
+
+- Ontwikkelset `termijnen-deelvragen-concept` (schema 3, met gebeurtenis): de drie deelvragen, het zoekbereik, de
+  verwachte bepalingen uit dit document met rol en motivering, en de uitgesloten bepalingen. De Mijnbouwwet staat onder
+  *buiten de graaf* en telt niet in de noemer.
+- `graafantwoorden.json` voor deze set, en `--aanvullen` voor de bestaande sets. Elke stap stelt nieuwe vragen aan de
+  graaf, dus een stap neemt bij zijn meting ook de nieuwe vragen op.
+- De nulmeting met `--intake` en `--zoekvragen` op alle zes de ontwikkelsets, vastgelegd in het meetlogboek
+  (`docs/architectuur/metingen/`). Die staat vóór de eerste codewijziging.
+- **Vraagt de gebruiker**: de opname draait live tegen de graaf van acceptatie, met verbindingsgegevens die niet in de
+  repo staan.
+
+### Stap 1 – De woordenroute wijkt niet voor een pool die niet filtert (O1)
+
+- **Ingreep**: in `bronnen_vinden._deelvraag` verdringt een treffer van de woordenroute (`bepaling_opties`) die een eigen
+  woord van de deelvraag raakt, een optie uit de pool die dat niet doet. Zo'n poolkandidaat staat er alleen door een
+  brugwoord of de bonus van de vraagvorm. Vlag `woorden_voor_pool`.
+- **Alternatieven en toets**: (a) vaste plaatsen voor de woordenroute (`PLAATSEN_WOORDEN`) zijn in PR 5 gemeten en waren
+  slechter; (b) een grens op de breedte van de omgeving vraagt een drempel die we op geen set kunnen afstemmen; (c) per
+  kandidaat verdringen heeft geen drempel en laat een specifieke gebeurtenis ongemoeid, omdat haar pool de deelvraag wel
+  raakt. We bouwen (c) en meten (b) ernaast als variant, met de drempel vooraf vastgelegd.
+- **Signaal**: omvat de omgeving van de gebeurtenis een groot deel van een regeling, dan zegt Lex dat bij het kaartje
+  van de gebeurtenis, met de vraag of het smaller kan ("invordering" omvat bijna de hele wet).
+- **Meten**: `recall_nodig` en `recall_pool` per deelvraag. Op de termijnenset moeten Iw 24 lid 2 en AWR 13 lid 2 in de
+  top 8 komen. Op de vier sets van PR 5 mag niets dalen.
+
+### Stap 2 – De bonus van de vraagvorm vraagt een eigen woord (O2)
+
+- **Ingreep**: in `zoekvragen.opties_bij_deelvraag` telt `past` alleen als de kandidaat ook een eigen woord van de
+  deelvraag raakt, geen brugwoord. Zoekvraag d wordt in de pool twee signalen: `definitie` (een begripsbepaling, en de
+  invullingen `verstaan`, `begrepen`, `gelijkgesteld`) en `beleid` (een subdivisie van een beleidsregel). "Wat is …"
+  geeft alleen de definitie de bonus. Vlag `vraagvorm_eigen_woord`.
+- **Toets**: de skill houdt beide onder d. We veranderen de zoekvraag niet, alleen het gewicht in de rangschikking, en
+  het bewijs blijft `zoekvraag: d`.
+- **Meten**: `precisie` en `uitgesloten` per deelvraag (Leidraad 79.x hoort uit DV1 te verdwijnen), en `recall_nodig`
+  op de sets met een "wat is"-deelvraag.
+
+### Stap 3 – Het overzicht niet naast deelvragen en niet op een kale naam (O5)
+
+- **Ingreep**: in `bronnen_vinden.standaard_voor` draait `overzicht` niet als het werkgebied deelvragen heeft. Zonder
+  deelvragen gebruikt `_overzicht` de naam alleen als die meer dan één inhoudswoord heeft of in een kop van de regelingen
+  staat. Wat het overzicht vindt, krijgt de rol *aanverwant* (`overzicht_aanverwant`).
+- **Toets**: het overzicht was bedoeld voor een werkgebied zonder vertrekpunt (meting 15 okt 2026). Met deelvragen is er
+  een vertrekpunt, en op de naam vond het hier alleen ruis. Een alternatief was het overzicht beperken tot treffers die
+  een deelvraagwoord raken. Dat doet de woordenroute al.
+- **Meten**: het aantal kandidaten zonder deelvraag en `overbodig`. Die horen bijna 0 te worden, zonder verlies aan
+  `recall`.
+
+### Stap 4 – Een samenstelling raakt op haar hele stam of haar kern (O3)
+
+- **Ingreep**: `zoektermen._raakt` en de idf-telling in `opties_bij_deelvraag` toetsen een term van meer dan acht letters
+  op zijn hele stam ("betalingstermijn"), of op een deel aan het eind van minstens vijf letters dat zelf een woord in de
+  index is ("termijn"). Het eerste deel ("betaling") telt niet meer. De index-query (`splitsingen`) blijft breed. Vlag
+  `stam_heel`.
+- **Toets**: dit raakt elke rangschikking, ook de intake. De samenstellingsvlag van november was voor de index bedoeld,
+  niet voor het raken. Het alternatief, de lengte dempen (`lengte`), kostte in november recall; dit pakt de oorzaak.
+- **Meten**: op alle zes de sets, `recall_nodig` en `precisie`. Een daling op één set is een reden om de stap niet aan te
+  zetten.
+
+### Stap 5 – Brugtermen alleen uit een omschrijving, en de kloof per deelvraag (O4, O6)
+
+- **Ingreep**: `zoekvragen.brugtermen` gebruikt alleen een zin die het woord omschrijft ("X is …", "X betekent …"). Zonder
+  omschrijving geen brug. Het bewijs zegt dan dat het woord ontbreekt, en `bronselectie._kloof` meldt het bij de
+  deelvraag, ook als er wel iets gevonden is: "‘winstaandeel’ staat niet in de regelingen van dit werkgebied". Staat de
+  connector *wetgeving buiten de kennisgraaf* aan, dan biedt het kaartje aan om de regelingen te zoeken die het woord
+  wél noemen. Vlag `brug_omschrijving`.
+- **Toets**: de brug van Rekeningafspraken kwam uit een omschrijvende zin, dus die blijft werken. Het melden bestaat al
+  (PR 6), maar alleen als Lex niets vond.
+- **Meten**: Rekeningafspraken (recall gelijk) en termijnen (geen brugwoorden meer in het bewijs bij DV1). De melding toetst
+  een unittest.
+
+### Stap 6 – De wet als brug: "wordt aangeduid als" (O4)
+
+- **Ingreep**: de parser (`bronmodel/bwb/parser.py`, gedeeld door importer en api) herkent een vierde definitievorm: "…
+  wordt aangeduid als X" en "… hierna: X", aan het eind van een zin en met de term als korte naamwoordgroep. De term komt
+  op `bwb:definieertBegrip`. Daarna een brug in `deelvraag_zoeken`: raakt een deelvraagwoord de omschrijving van zo'n
+  definitie, dan zoekt de gedefinieerde term mee ("negatieve voorlopige aanslag" → "voorlopige teruggaaf"). Vlag
+  `definitie_brug`.
+- **Toets**: een wijziging aan `bronmodel` raakt de api, graph-qa en de importer. Een herimport verandert de graaf, dus
+  ook de begrippen die het paneel bij een antwoord toont (`samenhang_antwoord`). Vóór het aanzetten tellen we de nieuwe
+  definities over alle geïmporteerde regelingen en toetsen we een steekproef met de hand (geen "hierna: de wet" als
+  begrip).
+- **Meten**: het aantal nieuwe definities, de steekproef, en op de sets `recall_nodig` voor DV1-achtige vragen.
+
+### Stap 7 – De vlaggen van PR E opnieuw meten
+
+Na stap 1 krijgt de woordenroute plaatsen, en dan kunnen `verwijzingen` en `onderscheidend` iets uitmaken. We meten ze
+met `--intake --b2` op alle sets, met dezelfde regel als hierboven.
+
+### Stap 8 – Eindmeting en aanzetten
+
+- Een **blinde set uit een ander werkgebied**, opgesteld voordat de meting draait, door iemand anders dan wie de code
+  schreef (of door de agent-jurist op acceptatie, met akkoord).
+- Eén run per configuratie (licht meten): de standaard, en de standaard met elke winnende vlag. Alleen wat op de
+  ontwikkelsets en op de blinde set niet slechter is, gaat standaard aan, in één PR met de meting in het meetlogboek.
+- Daarna een nieuwe bronnenrun op het werkgebied Termijnen, met akkoord, als controle in de werkplek.
+
+### Volgorde en afhankelijkheden
+
+Stap 0 gaat voor alles. Stap 1, 2, 3 en 5 raken elk een eigen functie en kunnen in deze volgorde na elkaar. Stap 4 komt
+na stap 2, omdat beide de telling in `opties_bij_deelvraag` raken. Stap 6 staat apart (bronmodel en herimport) en kan
+naast 1–5 lopen. Stap 7 komt na 1, en stap 8 als laatste.
+
 ## Open keuzes voor de gebruiker
 
 - Hoort de Mijnbouwwet in de graaf (importeren), of blijft het winstaandeel bij de connector buiten de graaf?
-- Welke voorstellen eerst? Voorstel 1, 2 en 5 zijn klein en lossen de meeste ruis op. Voorstel 3 en 4 zijn breder.
-- Mag een opname van de graafantwoorden voor de nieuwe set gemaakt worden, en wie stelt de blinde set op?
+- Mag de opname van stap 0 gemaakt worden? Die draait live tegen de graaf van acceptatie.
+- Wie stelt de blinde set van stap 8 op, en uit welk werkgebied?
+- Mag de herimport van stap 6 op acceptatie draaien als de steekproef goed is?
