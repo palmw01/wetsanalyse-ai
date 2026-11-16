@@ -157,7 +157,7 @@ def test_de_controle_per_stuk_draait_na_de_correctieronde(monkeypatch):
     op wat er dan staat."""
     aanroepen = []
 
-    def controleer(llm, settings, tekst, steun, trace, meting=None):
+    def controleer(llm, settings, tekst, steun, trace, meting=None, oordelen=None):
         aanroepen.append(tekst)
         return []
 
