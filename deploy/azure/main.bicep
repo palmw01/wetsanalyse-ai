@@ -48,6 +48,7 @@ param bwbIds array = [
   'BWBR0004766'
   'BWBR0004770'
   'BWBR0005537'
+  'BWBR0014168' // Mijnbouwwet: het winstaandeel (art. 65–72), geheven en ingevorderd met AWR en Iw 1990
   'BWBR0018472'
   'BWBR0019237'
   'BWBR0024096'
