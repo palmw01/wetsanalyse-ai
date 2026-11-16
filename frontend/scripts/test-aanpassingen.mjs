@@ -25,6 +25,10 @@ import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
 import { toetsToegankelijkheid } from "./axe.mjs";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const SHOTS = process.env.AANPASSINGEN_SCREENSHOT;
@@ -104,7 +108,7 @@ try {
       if (p === "/api/werkplaats/stand") return route.fulfill({ json: { aan: false } });
       if (p === "/api/modelkeuzes") return route.fulfill({ json: STAND });
       if (p === "/api/gesprekken") return route.fulfill({ json: [] });
-      return route.fulfill({ json: {} });
+      return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: {} });
     });
     const shot = async (naam) => SHOTS && page.screenshot({ path: `${SHOTS}/aanpassingen-${naam}-${breedte}.png`, fullPage: true });
     const venster = page.getByRole("dialog", { name: "Instellingen" });
@@ -258,6 +262,7 @@ try {
     assert.deepEqual(errors, []);
     await context.close();
   }
+  controleerOnbekend();
   console.log("OK test-aanpassingen");
 } finally {
   await browser.close();

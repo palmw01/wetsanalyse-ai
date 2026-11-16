@@ -24,6 +24,14 @@ import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
 import { toetsToegankelijkheid } from "./axe.mjs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [
+  /^POST \/api\/admin\/feedback\/markeer-gezien$/,
+  /^GET \/api\/admin\/profiles$/,
+  /^GET \/api\/admin\/modelkeuzes$/,
+];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const nu = "2026-11-05T09:42:00Z", straks = "2026-11-12T09:42:00Z";
@@ -95,7 +103,7 @@ async function open(role, viewport = { width: 1280, height: 860 }) {
         : route.fulfill({ status: 400, json: { detail: "Huidig wachtwoord onjuist." } });
     }
     if (p === "/api/account/me") return route.fulfill({ json: { userid: "wpalm", email: "w@example.test", role, ...stand.account } });
-    return route.fulfill({ json: [] });
+    return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
   });
   return { page, stand, fouten, context };
 }
@@ -328,6 +336,7 @@ try {
   await analistAan.page.getByRole("button", { name: "Uitschakelen" }).waitFor();
   await analistAan.page.getByRole("button", { name: "Opnieuw koppelen" }).waitFor();
   for (const v of [plicht, reset, inlog, vervang, analistAan]) assert.deepEqual(v.fouten, []);
+  controleerOnbekend();
   console.log("OK test-instellingen");
 } finally {
   await browser.close();

@@ -16,6 +16,10 @@ import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
 import { readFileSync } from "node:fs";
+import { SCHIL, controleerOnbekend, onbekend } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [];
 
 // De vragenset van de connector (ook de adaptertoets en de meting): de ids komen eruit, zodat de drie plekken
 // dezelfde publicaties toetsen.
@@ -79,7 +83,7 @@ await context.route("**/api/**", async (route) => {
   }
   if (p.includes("/verbruik")) return route.fulfill({ json: { actief: false, geblokkeerd: false } });
   if (p.endsWith("/capabilities")) return route.fulfill({ json: { samenhang: false } });
-  return route.fulfill({ json: [] });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
 });
 
 const venster = (id) => page.locator(`[data-stukvenster="${id}"]`);
@@ -120,6 +124,7 @@ try {
   await geenScroll(375);
 
   assert.deepEqual(errors, []);
+  controleerOnbekend();
   console.log("Browser OK: een publicatie uit het Staatsblad als tab (kop uit de beschrijving, artikelkoppen, citaten gemarkeerd, gegevens), alleen PDF, op 375/1280 px.");
 } finally {
   await browser.close();

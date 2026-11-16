@@ -14,6 +14,12 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend, sse } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [
+  /^GET \/api\/annotatie\/v2\/bepaling$/,
+];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -76,7 +82,6 @@ function beurt(body) {
   throw new Error(`onverwacht: ${JSON.stringify(a)}`);
 }
 
-const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 const starts = [], stromen = {};
 await context.route("**/api/**", async (route) => {
   const req = route.request(), url = new URL(req.url()), p = url.pathname, m = req.method();
@@ -119,7 +124,7 @@ await context.route("**/api/**", async (route) => {
     knopen: [A10, `${A10}:lid:1`, `${A10}:lid:2`].map((id, i) => ({ id, soort: i ? "lid" : "artikel", label: i ? `Lid ${i}` : "Artikel 10",
       tekst: "", klasse: "", lifecycle: "", element_id: "", bwb_id: IW, artikel: "10", lid: i ? String(i) : "", rand: false })),
     relaties: [1, 2].map((i) => ({ bron: A10, doel: `${A10}:lid:${i}`, soort: "bevat" })) } });
-  return route.fulfill({ json: [] });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: [] });
 });
 
 const wacht = async (n) => {
@@ -223,6 +228,7 @@ try {
   for (let i = 0; i < 100 && besluiten.at(-1)?.kid !== "K10"; i++) await page.waitForTimeout(50);
   assert.deepEqual([besluiten.at(-1).kid, besluiten.at(-1).besluit, besluiten.at(-1).bron_iri], ["K10", "opnemen", `${A10}:lid:2`]);
 
+  controleerOnbekend();
   console.log("Browser OK: compact kaartje zonder vinkjes, een kandidaat opent als tab naast de bronselectie, opnemen werkt de telling live bij, zelf bepalingen noemen per regel (geen venster), Klaar in het paneel (actie klaar), het paneel als sheet op een telefoon, opnemen met reden via het menu ⋯, een lid apart opnemen.");
 } finally {
   await browser.close();

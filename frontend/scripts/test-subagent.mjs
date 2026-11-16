@@ -19,6 +19,10 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
+import { SCHIL, controleerOnbekend, onbekend, sse } from "./nepApi.mjs";
+
+/** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
+const NIET_NAGEBOOTST = [/^PATCH \/api\/gesprekken\/regieg$/];
 
 const base = process.env.TEST_URL || "http://localhost:3109";
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
@@ -30,7 +34,6 @@ await context.addCookies(await sessieCookies(base));
 await context.addInitScript(() => localStorage.setItem("wa_rondleiding", JSON.stringify({ versie: 999, gezien: true })));
 
 const leeg = { denk: "", bronnen: [], annotatie_slug: "", annotatie_titel: "" };
-const sse = (events) => events.map((e, i) => `data: ${JSON.stringify({ seq: i, ...e })}\n\n`).join("");
 const taak = (titel, profiel) => ({ titel, profiel });
 const kindStart = (id, index, gesprek, titel, profiel) => ({ type: "regie_taak", fase: "start", regie_id: id, index, titel,
   gesprek_id: gesprek, profiel, gekozen_model: "licht-model" });
@@ -185,7 +188,7 @@ await page.route("**/api/**", async (route) => {
     geschreven.push(req.postDataJSON());
     return route.fulfill({ status: 201, json: { id: geschreven.length } });
   }
-  return route.fulfill({ json: {} });
+  return onbekend(route, { stil: [...SCHIL, ...NIET_NAGEBOOTST], leeg: {} });
 });
 
 async function vraag(id, run, tekst) {
@@ -304,4 +307,5 @@ assert.deepEqual(geschreven.filter((b) => b.rol === "assistant"), [], "de werkpl
 assert.ok(geopend.includes("g1"), "het deelgesprek is geopend");
 assert.deepEqual(errors, []);
 await browser.close();
+controleerOnbekend();
 console.log("subagent: alles groen");
