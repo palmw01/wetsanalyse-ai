@@ -79,8 +79,10 @@ export function isAlOpgenomen(e: unknown): boolean {
  *  graph-qa. */
 export function isGeneriekRoute(pad: readonly string[]): boolean {
   const [a, b] = pad;
-  if (!a || a === "verifieer" || pad.length > 2) return false;
+  if (!a || a === "verifieer" || (pad.length > 2 && b !== "voorstellen")) return false;
   if (a === "export" || a === "conformiteit") return pad.length === 1;
+  // De voorstellen van Lex (ADR-006): lezen, en overnemen of afwijzen op de eigen route.
+  if (b === "voorstellen") return pad.length === 2 || (pad.length === 4 && ["overnemen", "afwijzen"].includes(pad[3]));
   return pad.length === 1 || ["accorderen", "heropenen", "revisies", "nieuwe-betekenis"].includes(b);
 }
 

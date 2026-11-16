@@ -103,17 +103,18 @@ export function useBegrip({ context, begripId, opname, onGewijzigd, onVerwijderd
   // Per revisie: een eigen wijziging kan een open voorstel verouderd maken, en na herkoppelen of bevestigen hoort de
   // passage uit de herbeoordeling te gaan. Beide vragen meer dan het begrip en falen stil.
   const revisie = begrip?.revisie;
+  // Een generiek begrip: `id` is leeg, en de voorstellen komen van zijn eigen route (ADR-006).
   const laadLex = useCallback(async () => {
-    if (generiek) return;
     try { setLex(await haalKaartVoorstellen(id, begripId)); } catch { /* zonder voorstellen werkt de rest gewoon */ }
-  }, [generiek, id, begripId]);
+  }, [id, begripId]);
   const [gezien, setGezien] = useState(0);
   /** Na *Klopt nog*: de melding hoort weg te gaan, ook al blijft de revisie gelijk. */
   const herbeoordeel = useCallback(() => setGezien((n) => n + 1), []);
   useEffect(() => {
-    if (alleenLezen || generiek) return;
+    if (alleenLezen) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void laadLex();
+    if (generiek) return;
     let levend = true;
     haalHerbeoordelingen(id, begripId)
       .then((h) => levend && setHerbeoordeling(h))

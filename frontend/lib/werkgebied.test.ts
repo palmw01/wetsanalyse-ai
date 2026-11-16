@@ -253,6 +253,11 @@ describe("isGeneriekRoute", async () => {
     expect(isGeneriekRoute(["g1", "iets"])).toBe(false);
     expect(isGeneriekRoute(["g1", "a", "b"])).toBe(false);
     expect(isGeneriekRoute([])).toBe(false);
+    expect(isGeneriekRoute(["g1", "voorstellen"])).toBe(true);
+    expect(isGeneriekRoute(["g1", "voorstellen", "v1", "overnemen"])).toBe(true);
+    expect(isGeneriekRoute(["g1", "voorstellen", "v1", "afwijzen"])).toBe(true);
+    expect(isGeneriekRoute(["g1", "voorstellen", "v1"])).toBe(false);
+    expect(isGeneriekRoute(["g1", "voorstellen", "v1", "iets"])).toBe(false);
   });
   it("de werkgebiedroutes voor het gebruik", () => {
     expect(isWerkgebiedRoute(["wg", "begrippen", "gebruik"])).toBe(true);

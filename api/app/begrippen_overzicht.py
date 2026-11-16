@@ -26,8 +26,9 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import func, select
 
-from . import begrip_projectie, begrip_relatie_store, begrip_store, bestandsnaam, db
+from . import begrip_projectie, begrip_relatie_store, begrip_store, begrip_voorstel_store, bestandsnaam, db
 from .begrip_relatie_contracts import NieuweBetekenis
+from .begrip_voorstel_contracts import VoorstelAfwijzing, VoorstelOvername
 from .auth import require_client
 from .begrip_contracts import Accordering, BegripStatus, BegripVerificatie, BegripWijziging, BegripZoekvraag, Revisie
 from .routers.auth import actieve_userid
@@ -237,6 +238,27 @@ async def post_heropenen(begrip_id: str, req: Revisie, actor: str = Depends(acti
 @router.post("/{begrip_id}/nieuwe-betekenis", status_code=201)
 async def post_nieuwe_betekenis(begrip_id: str, req: NieuweBetekenis, actor: str = Depends(actieve_userid)):
     return await begrip_relatie_store.nieuwe_betekenis_generiek(begrip_id, req, actor)
+
+
+# De voorstellen van Lex per veld (fase E) bij een generiek begrip: gevraagd in een werkgebied dat het gebruikt, beslist
+# hier, want de inhoud wijzig je alleen op deze route (ADR-006).
+
+@router.get("/{begrip_id}/voorstellen")
+async def get_voorstellen(begrip_id: str, actor: str = Depends(actieve_userid)):
+    return {**await begrip_voorstel_store.voorstellen(None, begrip_id),
+            "schatting": await begrip_voorstel_store.schatting(actor), "budget": await begrip_voorstel_store.budget(actor)}
+
+
+@router.post("/{begrip_id}/voorstellen/{voorstel_id}/overnemen")
+async def post_overnemen(begrip_id: str, voorstel_id: str, req: VoorstelOvername,
+                         vorm: Literal["kaart", "stand"] = "kaart", actor: str = Depends(actieve_userid)):
+    begrip = await begrip_voorstel_store.overnemen(None, begrip_id, voorstel_id, req, actor)
+    return begrip_store.begripstand(begrip) if vorm == "stand" else begrip
+
+
+@router.post("/{begrip_id}/voorstellen/{voorstel_id}/afwijzen")
+async def post_afwijzen(begrip_id: str, voorstel_id: str, req: VoorstelAfwijzing, actor: str = Depends(actieve_userid)):
+    return await begrip_voorstel_store.afwijzen(None, begrip_id, voorstel_id, req.reden, actor)
 
 
 @router.get("/{begrip_id}/revisies")
