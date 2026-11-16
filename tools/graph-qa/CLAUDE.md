@@ -390,6 +390,14 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     te schrappen. Na de correctie geen tweede ronde en geen `onbevestigd`, alleen de logregel `rapport niet behandeld`.
     `extern.MAX_STUKKEN` was in P01 niet de oorzaak (2 van de 4 gebruikt, niets geweigerd); de correctie noemt de grens.
     `tests/test_bundel_elk_rapport.py`;
+  - **na een rapport toont het antwoord elk stuk uit de rapporten** (meting F02 na #1629: zes arresten in het rapport,
+    vier in het antwoord): `sjablonen.vul(max_stukken=)` met `subagent.stukkengrens(state)`, het aantal stukken uit de
+    rapporten tussen `extern.MAX_STUKKEN` en `MAX_STUKKEN_RAPPORT`, vanuit `sjabloon.vul_aanroep`. De leemte zegt waarom
+    iets wegviel (`extern.niet_getoond_tekst`: boven de grens met de labels, de alineagrens, of "klopte niet").
+    In een uitspraak (en een rapport) zijn een genummerde kop in de tekst (`extern.is_sectiekop`, het oude schema:
+    "1. Beschikkingen, bezwaar en geding voor het Hof") en het procesverloop (`secties`, `is_procesverloop`) geen citaat
+    als er per stuk iets met inhoud overblijft (`zonder_procesverloop`); de aanhef vóór de eerste sectie ook niet.
+    Gerichte set `tests/data/uitspraak_koppen_set.json`, `tests/test_f02_fixes.py`;
   - **de grammatica van een verzoek is begrensd**: de API maakt van alle strict schema's samen één grammatica, met
     gedocumenteerde grenzen (20 strict tools, 24 optionele, 16 union-parameters) en een interne grens op de omvang
     ("Schema is too complex for compilation", 400 zonder tokens). De delegatietools (`subagent`,
