@@ -1,6 +1,6 @@
 # Meetlogboek
 
-Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 14 november 2026
+Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 16 november 2026
 
 Hier staat per datum wat er gemeten is, op welke code, wat eruit kwam en waar de gegevens staan.
 Nieuwste bovenaan. De meetbestanden zelf zijn bewijs: **wijzig ze niet achteraf**. Een correctie
@@ -17,6 +17,7 @@ of herhaling krijgt een eigen map of rij. Hoe de keten nu werkt, staat in
 
 | Datum | Meting | Code | Uitkomst in één regel | Gegevens |
 |---|---|---|---|---|
+| 16 nov | **Bronselectie – nulmeting voor het plan Termijnen** (stap 0): `--intake --b2` op zes ontwikkelsets en `--zoekvragen` op Termijnen en Rekeningafspraken, offline tegen opnames van acceptatie, zonder model; twee nieuwe opnames, vier aangevuld | `7859d2eb` (zoekversie `z4ec70aab4a55`) | Termijnen recall nodig 0,00 (woorden) en 0,06 (zoekvragen), terwijl de pool van de woordenroute 1,00 haalt: de verliezen zitten in de rangschikking (om de beurt over zes regelingen, hoogstens zes zoektermen in zinsvolgorde). `verwijzingen` helpt op vier van de zes sets. De held-out set verrekening is niet gedraaid | [`bronselectie-2026-11-16-nulmeting/`](bronselectie-2026-11-16-nulmeting/README.md) |
 | 14 nov | **Kennisgroepstandpunten – controle van B13 en B15**: de vier vragen die in ronde 2 matig of fout waren, één run, centraal; #1464 loopt mee | `d2c1f585` (bundel 109) | Vraag 8 en 13 nu goed, 11 en 15 blijven matig (B8, B14). **Eindstand 18 goed, 2 matig, 0 fout van 20**, garanties 20/20: het doel (≥ 17, 0 fout) gehaald. 0,13M | [`controle.md`](kennisgroepen-2026-11-14/controle.md) |
 | 14 nov | **Kennisgroepstandpunten – ronde 2** (de laatste): de 20 vragen, één run, alleen centraal, na de fixes uit #1466 | `40a777fe` (bundel 108) | Garanties 20/20; 16 goed, 3 matig, 1 fout (was 12/2/6). Vraag 3, 4, 10 en 14 nu goed, vraag 8 van 503k naar 41k tokens; de fout (13) trok een tekststand per artikel door naar het lid. Twee fixes daarna zonder ronde (B13, B15). 1,00M | [`ronde-2.md`](kennisgroepen-2026-11-14/ronde-2.md) |
 | 14 nov | **Kennisgroepstandpunten – ronde 1** (plan-connector-kennisgroepen §4, licht regime): de 20 vragen, één run, alleen centraal | `b4d348a5` (bundel 107) | Garanties 20/20; 12 goed, 2 matig, 6 fout. De fouten zitten in de weg naar de bron (een route in code beperkte de bronnen, "Wet BPM 1992" onbekend) en in wat de tool niet meegaf (een telling, een opvolger, een tekststand); acht generieke fixes, één open. 1,26M | [`ronde-1.md`](kennisgroepen-2026-11-14/ronde-1.md) |
