@@ -1,5 +1,5 @@
 /** Waarmee de naam van iets wat een run maakte, begint. */
-export const VOORVOEGSELS = ["acc-test-", "Bench "];
+export const VOORVOEGSELS = ["lex-bench-keten · ", "acc-test-", "Bench "];
 export const inRunruimte = (naam) => typeof naam === "string" && VOORVOEGSELS.some((v) => naam.startsWith(v));
 /** Of een aanroep iets verwijdert of wist: een DELETE, of een route die op verwijderen of wissen eindigt. */
 export function isVerwijderend(methode, pad) {

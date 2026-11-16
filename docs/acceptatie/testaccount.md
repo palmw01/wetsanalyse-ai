@@ -1,85 +1,74 @@
-# Het vaste testaccount op acceptatie
+# Testen op acceptatie met het account van de gebruiker
 
 Runbook bij Lex Bench §20.5 stap 5 (keten 3, voorstel 3 uit het testplan keten-e2e; bevinding O-1).
 
 risico: R19
 
-## Waarom
+## Het besluit
 
-Tot nu toe draaiden de E2E en de metingen op een gedeeld account met de rol `beheerder`. Dat heeft drie gevolgen:
+Er komt geen apart testaccount. Tests op acceptatie draaien op het account van de gebruiker, met hetzelfde accounttoken
+(`wa_pat_…`) waarmee de acceptatie-MCP inlogt (besluit gebruiker, 16 nov 2026).
 
-- de rechten van een analist zijn nooit getoetst, want een beheerder mag meer;
-- het verbruik en de besluiten van een run staan door elkaar met het werk van de gebruiker;
-- een bulkactie raakt andermans werk: op 10 nov 2026 wiste een bulkverwijdering een meting en een gesprek van de gebruiker.
+**Dat account is echt.** Er staan eigen gesprekken en metingen op, en op 10 nov 2026 wiste een bulkverwijdering er een
+meting en een gesprek. Daarom gelden er drie regels voor elke test, elk scenario en elke agent:
 
-Een vast testaccount met de rol `analist`, plus een vangrail in de acceptatie-MCP, lost dat op. Het gedeelde account
-blijft bestaan en wordt niet aangeraakt.
+1. **Maak alleen eigen objecten, met een herkenbaar voorvoegsel.**
+   - `lex-bench-keten · <run>` voor het ketenscenario in CI;
+   - `acc-test-<onderwerp>-<datum>` voor de E2E;
+   - `Bench <naam>` voor Lex Bench.
 
-## Wat de gebruiker op acceptatie aanmaakt
+   Het voorvoegsel staat in de naam van het werkgebied en in de titel van elk los gesprek. Een gesprek in zo'n werkgebied
+   of onder zo'n gesprek hoort er vanzelf bij.
+2. **Ruim alleen die op.** Je verwijdert niets wat de test niet zelf maakte, ook niet als het er "oud" uitziet.
+3. **Verwijder nooit in bulk.** Geen `/api/gesprekken/verwijderen`, geen `/groep/…`, en niets wat gedeeld is (een
+   annotatielaag, een generiek begrip, het beheer).
 
-Dit doet alleen de gebruiker. Een agent maakt geen account, token of secret aan en wijzigt er geen.
+De code dwingt dat af, en tests bewaken het:
 
-1. **Een account** `acc-test-analist`, rol `analist`, zonder 2FA (een analist heeft die niet nodig). Via instellingen →
-   **Beheer** → **Gebruikers**, of door een zelfregistratie goed te keuren. Het e-mailadres mag een adres zijn dat niemand
-   leest, zolang het uniek is.
-2. **Een accounttoken** (`wa_pat_…`) voor dat account: instellingen → **Beheer** → **API-tokens** → *Inloggen als*
-   `acc-test-analist`. Het token is 90 dagen geldig en wordt één keer getoond. `API_TOKEN_LOGIN` staat op acceptatie al aan.
-3. **Machine-lokaal** in `.claude/settings.local.json` (gitignored), in plaats van het token van het gedeelde account:
+- de vangrail en `opruimen` in de acceptatie-MCP (`src/runruimte.ts`, `src/runruimte.test.ts`);
+- het ketenscenario (`src/keten.ts`, `src/keten.test.ts`): het telt wat er vóór het scenario stond, en faalt als daar
+  na het opruimen iets van ontbreekt;
+- de workflow (`tests/poort/test_acceptatie_keten.py`).
 
-   ```json
-   "env": {
-     "WETSANALYSE_ACC_TOKEN": "wa_pat_…",
-     "WETSANALYSE_ACC_TESTACCOUNT": "acc-test-analist"
-   }
-   ```
+## Lokaal en via de MCP
 
-   `WETSANALYSE_ACC_TOKEN_BEHEERDER` blijft alleen nodig voor een scenario dat het verschil tussen de rollen toetst.
+Gebruik de bestaande acceptatie-MCP met het token dat al machine-lokaal in `.claude/settings.local.json` staat. Je leest
+of kopieert het token nergens heen.
 
-Er komt geen secret in GitHub of Azure bij, en geen wijziging aan de bicep. Na 90 dagen maakt de gebruiker een nieuw token;
-het oude intrekken gaat in dezelfde tab.
+Optioneel zet je daar `WETSANALYSE_ACC_ACCOUNT` op de userid van het account. Dan meldt `wie_ben_ik` in
+`account_verwacht` of het token bij dat account hoort.
 
-## Controle vóór elke run
+## In CI: `acceptatie-keten`
 
-`wie_ben_ik` geeft naast het account het veld `testaccount`:
+De workflow `.github/workflows/acceptatie-keten.yml` draait na elke geslaagde publish van api, frontend of graph-qa, of
+met de hand, en nooit op een pull request. Het scenario werkt zonder model, dus er gaan geen tokens op. Het doet dit:
 
-- `ja`: het token hoort bij het testaccount;
-- `nee: het token hoort bij …`: er staat een ander token; meld dat aan de gebruiker voordat de run begint;
-- `niet ingesteld`: `WETSANALYSE_ACC_TESTACCOUNT` ontbreekt; de run kan, maar dat hoort als beperking in het rapport.
+1. inloggen met het accounttoken;
+2. een werkgebied en een gesprek maken, met het voorvoegsel `lex-bench-keten · gh-<run-id>-<poging>`;
+3. ze teruglezen;
+4. de vangrail toetsen op een gesprek van de gebruiker en op de bulkroute (alleen een oordeel, er gaat geen DELETE uit);
+5. precies die twee objecten opruimen;
+6. nagaan dat er verder niets verdwenen is.
 
-## De naamconventie
+**Wat de gebruiker zet:** het environment-secret **`WA_ACC_TOKEN`** in de GitHub-environment `acceptatie`, met het
+accounttoken. Meer is niet nodig. De URL komt uit Azure (de ingress van `<APP_NAME>-frontend`) en wordt in de log
+gemaskeerd.
 
-Alles wat een run maakt, begint met een **runvoorvoegsel**: `acc-test-<onderwerp>-<datum>` voor de E2E en de
-acceptatiescenario's, `Bench <naam>` voor Lex Bench. Dat geldt voor:
+**Zonder dat secret** meldt de job `voorwaarde` dat in een regel, en wordt de job `keten` overgeslagen: grijs, niet groen.
+Een ontbrekende Azure-credential laat de job falen.
 
-- het werkgebied (`naam`);
-- elk los gesprek (`titel` bij `bff` POST `/api/gesprekken`).
+**Na 90 dagen** verloopt het token. Maak dan een nieuw via instellingen → **Beheer** → **API-tokens**, en zet het zowel
+machine-lokaal als in `WA_ACC_TOKEN`.
 
-Een gesprek in zo'n werkgebied of een deelgesprek onder zo'n gesprek hoort er vanzelf bij, ook als Lex de titel later
-aanpast.
-
-## De vangrail
-
-Elke verwijderende aanroep via `bff` (een `DELETE`, of een route die op `verwijderen`, `verwijder` of `wis` eindigt)
-gaat eerst langs `src/runruimte.ts`:
-
-- **mag**: een gesprek met het voorvoegsel, of in een werkgebied of onder een gesprek van de run; een werkgebied met het
-  voorvoegsel dat dit account maakte;
-- **weigert altijd**: een bulkroute (`/api/gesprekken/verwijderen`, `/groep/…`), alles wat gedeeld is (een
-  annotatielaag, een generiek begrip, het beheer), en alles wat niet te lezen is.
-
-De vangrail is geen slot: de api blijft de rechten bepalen. Hij houdt een vergissing van een agent tegen, zoals die van
-10 nov 2026.
-
-## Opruimen na een run
+## Opruimen na een eigen run
 
 ```
 opruimen { voorvoegsel: "acc-test-verrekening-2026-11-16" }                 → alleen de lijst
 opruimen { voorvoegsel: "acc-test-verrekening-2026-11-16", bevestig: true } → wissen
 ```
 
-Zonder bevestiging geeft de tool de lijst van werkgebieden en gesprekken. Met bevestiging wist hij eerst de gesprekken
-(deelgesprekken vóór hun ouder) en dan de werkgebieden, met hun revisie, elk opnieuw langs de vangrail. Wat geweigerd
-wordt, staat in `geweigerd`.
-
-Opruimen is een keuze per run. Een meetrun waarvan het resultaat bewijs is (`docs/architectuur/metingen/`), ruim je niet
-op; het verslag verwijst ernaar. Annotaties en begrippen in een gedeelde laag blijven altijd staan.
+- Zonder bevestiging geeft de tool alleen de lijst van werkgebieden en gesprekken.
+- Met bevestiging wist hij eerst de gesprekken (deelgesprekken vóór hun ouder) en dan de werkgebieden, elk met zijn
+  revisie en elk opnieuw langs de vangrail. Wat geweigerd wordt, staat in `geweigerd`.
+- Een meetrun waarvan het resultaat bewijs is (`docs/architectuur/metingen/`), ruim je niet op: het verslag verwijst ernaar.
+- Annotaties en begrippen in een gedeelde laag blijven altijd staan.

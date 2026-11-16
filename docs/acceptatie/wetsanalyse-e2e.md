@@ -17,10 +17,11 @@ Echte beurten kosten echte tokens. Annoteer daarom onder één deelvraag, tenzij
 De coördinator doet dit, vóór het team start. De agents maken geen accounts en halen geen wachtwoorden of tokens op,
 ook niet uit een kluis: ontbreekt er iets, dan vraagt de coördinator het de gebruiker.
 
-1. `wie_ben_ik` toont het account dat de gebruiker voor deze run koos, en in `testaccount` of dat het vaste testaccount
-   is ([`testaccount.md`](testaccount.md)). Noteer account en rol in het logboek. Draait de run op het gedeelde account
-   met de rol `beheerder`, dan zijn analist-rechten niet getoetst en staat al het verbruik op dat account: dat hoort als
-   beperking in het rapport. Een apart analistaccount maakt alleen de gebruiker aan.
+1. `wie_ben_ik` toont het account dat de gebruiker voor deze run koos. Dat is het account van de gebruiker zelf, met
+   eigen gesprekken en metingen: maak alleen objecten met het voorvoegsel van de run en ruim alleen die op
+   ([`testaccount.md`](testaccount.md)). Noteer account en rol in het logboek. Is de rol `beheerder`, dan zijn de
+   rechten van een analist niet getoetst: dat hoort als beperking in het rapport. Een apart analistaccount maakt alleen
+   de gebruiker aan.
 2. Noteer het tokenverbruik: `bff` GET `/api/account/verbruik`.
 3. Probeer de tools die stap 7 en 8 dragen: `logs_zoek` zonder argumenten, `graaf_lezen` met een `ASK`, en `bron_lezen`
    op een bepaling uit het dossier. Weigert `logs_zoek` of `graaf_lezen` omdat de toegang ontbreekt, leg dat dan voor

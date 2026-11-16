@@ -10,11 +10,12 @@ function nepBff(): Bff & { verwijderd: string[] } {
     g2: { titel: "Mijn eigen analyse" },
     g3: { titel: "Werkgebied: x", werkgebied_id: "w1" },
     g4: { titel: "deelvraag", ouder_id: "g1" },
+    g5: { titel: "lex-bench-keten · gh-1-1 gesprek" },
   };
   const werkgebieden: Record<string, object> = {
-    w1: { naam: "acc-test-run1 Verrekening", aangemaakt_door: "acc-test-analist", revisie: 3 },
+    w1: { naam: "acc-test-run1 Verrekening", aangemaakt_door: "gebruiker", revisie: 3 },
     w2: { naam: "acc-test-run1 van een ander", aangemaakt_door: "jurist", revisie: 1 },
-    w3: { naam: "Inning", aangemaakt_door: "acc-test-analist", revisie: 1 },
+    w3: { naam: "Inning", aangemaakt_door: "gebruiker", revisie: 1 },
   };
   const verwijderd: string[] = [];
   return {
@@ -31,7 +32,7 @@ function nepBff(): Bff & { verwijderd: string[] } {
   };
 }
 
-const IK = "acc-test-analist";
+const IK = "gebruiker";
 
 test("[R19] verwijderend: een DELETE of een route die op verwijderen eindigt; lezen niet", () => {
   assert.ok(isVerwijderend("DELETE", "/api/gesprekken/g1"));
@@ -46,6 +47,7 @@ test("[R19] de vangrail: alleen de eigen ruimte van een testrun", async () => {
   const c = nepBff();
   const mag = async (m: string, p: string) => (await toetsVerwijderen(c, m, p, IK)).mag;
   assert.ok(await mag("DELETE", "/api/gesprekken/g1"), "titel met voorvoegsel");
+  assert.ok(await mag("DELETE", "/api/gesprekken/g5"), "het voorvoegsel van het ketenscenario");
   assert.ok(await mag("DELETE", "/api/gesprekken/g3"), "in een werkgebied van de run");
   assert.ok(await mag("DELETE", "/api/gesprekken/g4"), "onder een gesprek van de run");
   assert.ok(!(await mag("DELETE", "/api/gesprekken/g2")), "een gesprek van de gebruiker");

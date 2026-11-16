@@ -8,8 +8,8 @@
  *
  * Config via env (nooit in de repo):
  *   WETSANALYSE_ACC_URL              – basis-URL van de webapp op acceptatie
- *   WETSANALYSE_ACC_TOKEN            – accounttoken van een analist: het vaste testaccount (docs/acceptatie/testaccount.md)
- *   WETSANALYSE_ACC_TESTACCOUNT      – optioneel, de userid van dat testaccount; wie_ben_ik meldt of het token erbij hoort
+ *   WETSANALYSE_ACC_TOKEN            – accounttoken van het account waarmee getest wordt (docs/acceptatie/testaccount.md)
+ *   WETSANALYSE_ACC_ACCOUNT          – optioneel, de userid van dat account; wie_ben_ik meldt of het token erbij hoort
  *   WETSANALYSE_ACC_TOKEN_BEHEERDER  – optioneel, accounttoken van een beheerder
  *   WETSANALYSE_ACC_GRAFANA_URL      – optioneel, voor logs_zoek
  *   WETSANALYSE_ACC_GRAFANA_WACHTWOORD – optioneel, het admin-wachtwoord van die Grafana
@@ -41,7 +41,7 @@ const GRAFANA_URL = (process.env.WETSANALYSE_ACC_GRAFANA_URL ?? "").replace(/\/+
 const GRAFANA_WACHTWOORD = process.env.WETSANALYSE_ACC_GRAFANA_WACHTWOORD ?? "";
 const GRAAF_URL = process.env.WETSANALYSE_ACC_GRAAF_URL ?? "";
 const GRAAF_TOKEN = (process.env.WETSANALYSE_ACC_GRAAF_TOKEN ?? "").trim();
-const TESTACCOUNT = (process.env.WETSANALYSE_ACC_TESTACCOUNT ?? "").trim();
+const ACCOUNT = (process.env.WETSANALYSE_ACC_ACCOUNT ?? "").trim();
 const LOGBOEK_MAP = standaardMap(fileURLToPath(new URL("../../../", import.meta.url)));
 
 function log(niveau: "info" | "warn" | "error", bericht: string, velden: Record<string, unknown> = {}): void {
@@ -125,10 +125,10 @@ const TOOLS: ToolDef[] = [
     run: async (a) => {
       const me = await client(a.als).bff("GET", "/api/account/me");
       const userid = (me.data as { userid?: unknown } | null)?.userid;
-      const testaccount = !TESTACCOUNT
-        ? "niet ingesteld (WETSANALYSE_ACC_TESTACCOUNT)"
-        : userid === TESTACCOUNT ? "ja" : `nee: het token hoort bij ${String(userid)}, niet bij ${TESTACCOUNT}`;
-      return { ...me, testaccount };
+      const account_verwacht = !ACCOUNT
+        ? "niet ingesteld (WETSANALYSE_ACC_ACCOUNT)"
+        : userid === ACCOUNT ? "ja" : `nee: het token hoort bij ${String(userid)}, niet bij ${ACCOUNT}`;
+      return { ...me, account_verwacht };
     },
   },
   {
@@ -137,7 +137,7 @@ const TOOLS: ToolDef[] = [
       "Eén aanroep op de BFF, zoals een scherm die doet: `pad` begint met /api/. Geeft status, body en " +
       "trace_id; elke status komt terug, dus ook een 403 die een test juist verwacht. Inloggen, tokens " +
       "maken en wachtwoord of 2FA wijzigen kan hier niet. Verwijderen gaat langs een vangrail: alleen een gesprek of " +
-      "werkgebied van een testrun (naam begint met `acc-test-` of `Bench `, werkgebied door dit account gemaakt); " +
+      "werkgebied van een testrun (naam begint met `lex-bench-keten · `, `acc-test-` of `Bench `, werkgebied door dit account gemaakt); " +
       "een bulkroute en alles wat gedeeld is, weigert hij. Ruim een run op met `opruimen`.",
     input: S({
       methode: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
@@ -151,8 +151,8 @@ const TOOLS: ToolDef[] = [
     name: "opruimen",
     description:
       "Ruim op wat een testrun maakte: werkgebieden met het `voorvoegsel` die dit account maakte, en elk eigen gesprek " +
-      "met dat voorvoegsel of in zo'n werkgebied, met hun deelgesprekken. Het voorvoegsel begint met `acc-test-` of " +
-      "`Bench ` (bijvoorbeeld `acc-test-2026-11-16-a`). Zonder `bevestig: true` geeft hij alleen de lijst; met " +
+      "met dat voorvoegsel of in zo'n werkgebied, met hun deelgesprekken. Het voorvoegsel begint met `lex-bench-keten · `, " +
+      "`acc-test-` of `Bench ` (bijvoorbeeld `acc-test-2026-11-16-a`). Zonder `bevestig: true` geeft hij alleen de lijst; met " +
       "bevestiging wist hij eerst de gesprekken (deelgesprekken vóór hun ouder), dan de werkgebieden, elk langs de vangrail.",
     input: S({ voorvoegsel: z.string().min(4), bevestig: z.boolean().optional(), als: Als }),
     run: async (a) => {

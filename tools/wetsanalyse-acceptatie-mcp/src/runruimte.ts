@@ -1,11 +1,12 @@
 /**
  * De ruimte van een testrun op acceptatie (Lex Bench §20.5 stap 5, testplan keten-e2e voorstel 3; bevinding O-1).
  *
- * Een run van de E2E of Lex Bench maakt werkgebieden en gesprekken op acceptatie. Daar werkt ook de gebruiker, en het
- * account kan gedeeld zijn: op 10 nov 2026 raakte een bulkverwijdering een meting en een gesprek van de gebruiker. Twee
- * regels houden dat voortaan tegen:
+ * Een run van de E2E, van Lex Bench of van het ketenscenario in CI maakt werkgebieden en gesprekken op acceptatie. Dat
+ * gebeurt op het account van de gebruiker zelf, met zijn eigen gesprekken en metingen: op 10 nov 2026 raakte een
+ * bulkverwijdering daar een meting en een gesprek. Twee regels houden dat voortaan tegen:
  *
- * - **Een naamconventie.** Wat een run maakt, begint met een runvoorvoegsel (`acc-test-…` of `Bench …`).
+ * - **Een naamconventie.** Wat een run maakt, begint met een runvoorvoegsel (`lex-bench-keten · …` voor het ketenscenario in CI,
+ *   `acc-test-…` voor de E2E, `Bench …` voor Lex Bench).
  * - **Verwijderen alleen in de eigen ruimte.** Een verwijderende aanroep via `bff` mag alleen op een gesprek of
  *   werkgebied met dat voorvoegsel, en een werkgebied alleen als dit account het maakte. Een bulkroute en alles wat
  *   gedeeld is (een annotatielaag, een generiek begrip, het beheer) weigert de vangrail altijd.
@@ -16,7 +17,7 @@
 import type { BffAntwoord } from "./client.js";
 
 /** Waarmee de naam van iets wat een run maakte, begint. */
-export const VOORVOEGSELS = ["acc-test-", "Bench "] as const;
+export const VOORVOEGSELS = ["lex-bench-keten · ", "acc-test-", "Bench "] as const;
 
 export interface Bff {
   bff(methode: string, pad: string, body?: unknown): Promise<BffAntwoord>;
