@@ -114,13 +114,17 @@ def test_een_weigering_na_een_subagent_staat_in_het_denkproces(monkeypatch):
     """D-5: "Laat me eerst artikel 7a lid 4 ophalen", geweigerd met `na_subagent`, en het denkproces zweeg."""
     events: list[dict] = []
     monkeypatch.setattr(antwoordnodes, "get_stream_writer", lambda: events.append)
-    tu = {"id": "t1", "name": "get_lid", "input": {"bwb_id": "BWBR0004770", "artikel": "7a", "lid": "4"}}
-    state = {"pending_tools": [tu], "messages": [], "source_trace": [], "specialist": "centraal",
+    # Sinds B-3 mag de centrale agent na een rapport twee bepalingen nalezen; zoeken en een derde bepaling niet.
+    zoek = {"id": "t1", "name": "search_wetgeving", "input": {"query": "betalingsregeling"}}
+    lid = {"id": "t2", "name": "get_lid", "input": {"bwb_id": "BWBR0004770", "artikel": "7a", "lid": "4"}}
+    state = {"pending_tools": [zoek, lid], "messages": [], "source_trace": [], "specialist": "centraal", "nagelezen": 2,
              "subagenten": [{"uitkomst": "klaar", "rapport": True}], "run_id": "r"}
     antwoordnodes.tools_node(SimpleNamespace(settings=make_settings(), graph=None, stop_check=None), state)
     toets_een_op_een(events)
-    [regel] = _regels(events)
-    assert regel.startswith("Lex · leest artikel 7a, lid 4") and "na de subagent leest Lex niet zelf opnieuw" in regel
+    regels = _regels(events)
+    assert len(regels) == 2 and all("niet uitgevoerd" in r for r in regels), regels
+    assert "na de subagent leest Lex niet zelf opnieuw" in regels[0]
+    assert regels[1].startswith("Lex · leest artikel 7a, lid 4") and "hoogstens twee bepalingen" in regels[1]
 
 
 # --- de resultaatregel ----------------------------------------------------------------------------------------
