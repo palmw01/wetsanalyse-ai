@@ -346,6 +346,14 @@ ROUTES = {"bepaling_opties": _bepaling_opties, "F3f (21 okt)": _met_profiel(deel
 #: aan de graaf, dus alleen met `--b2`: de opnames van de bestaande sets hebben die vragen nog niet (`--aanvullen`).
 ROUTES_B2 = {f"met {v}": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: True}))
              for v in ("verwijzingen", "onderscheidend")}
+#: De vlaggen van het plan bronselectie bij Termijnen (`docs/architectuur/onderzoek-bronselectie-termijnen-2026-11.md`),
+#: standaard uit. Elke vlag apart naast de standaard, en alle samen; alleen met `--plan`, want ze stellen nieuwe vragen
+#: aan de graaf (`--aanvullen`).
+PLANVLAGGEN = ("termen_idf",)
+ROUTES_PLAN = {**{f"met {v}": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: True}))
+                  for v in PLANVLAGGEN},
+               "met het plan (alles)": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL,
+                                                            **{v: True for v in PLANVLAGGEN}))}
 
 
 def _pool(graph: Any, s: dict[str, Any], vraag: str, profiel=deelvraag_zoeken.STANDAARD_PROFIEL) -> list[str]:
@@ -540,6 +548,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--json", type=Path, help="het rapport ook als JSON wegschrijven")
     p.add_argument("--b2", action="store_true",
                    help="met --intake ook de vlaggen van B-2 (verwijzingen, onderscheidend), standaard uit")
+    p.add_argument("--plan", action="store_true",
+                   help="met --intake ook de vlaggen van het plan bronselectie bij Termijnen, standaard uit")
     a = p.parse_args(argv)
     a.set = a.set or (INTAKE_SET if a.intake else STANDAARD_SET)
     s = laad_set(a.set)
@@ -549,8 +559,9 @@ def main(argv: list[str] | None = None) -> int:
         p.error(f"set {a.set} heeft geen gebeurtenis")
     meting, opmaak = (meet_zoekvragen, tabel_zoekvragen) if a.zoekvragen else \
         (meet_intake, tabel_intake) if a.intake else (meet, tabel)
-    if a.intake and a.b2:
-        meting = lambda graaf, s: meet_intake(graaf, s, {**ROUTES, **ROUTES_B2})  # noqa: E731
+    if a.intake and (a.b2 or a.plan):
+        extra = {**(ROUTES_B2 if a.b2 else {}), **(ROUTES_PLAN if a.plan else {})}
+        meting = lambda graaf, s: meet_intake(graaf, s, {**ROUTES, **extra})  # noqa: E731
     pad = SETS / a.set / "graafantwoorden.json"
     if a.aanvullen:
         graaf = AanvullendeGraaf(json.loads(pad.read_text()) if pad.exists() else {"sparql": {}, "semantisch": {}},

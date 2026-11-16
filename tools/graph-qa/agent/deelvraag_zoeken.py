@@ -110,6 +110,14 @@ class Zoekprofiel:
     gelijkenis: bool = False
     verwijzingen: bool = False
     onderscheidend: bool = False
+    #: Het plan bronselectie bij Termijnen (`docs/architectuur/onderzoek-bronselectie-termijnen-2026-11.md`). Elke vlag
+    #: staat **uit** tot de meting op de ontwikkelsets en een blinde set laat zien dat hij helpt.
+    #:
+    #: - `termen_idf` (stap 1a, O6): de vulwoorden van een vraag (`zoekvragen.LEGE_WOORDEN`, `METHODEWOORDEN`) zoeken
+    #:   niet, en heeft een deelvraag meer termen dan `MAX_TERMEN`, dan zoeken de termen die in de regelingen het
+    #:   zeldzaamst zijn (`termen_op_zeldzaamheid`), niet de eerste in de zin. Een term die er nergens staat, gaat
+    #:   achteraan: hij vindt niets.
+    termen_idf: bool = False
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.
@@ -157,10 +165,10 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
     term apart over alle knooptypes. Een treffer in een lijst van een term is het bewijs dat de bepaling die
     term raakt, met de stemmer van de index in plaats van een eigen telling."""
     vraagtekst = onderwerp_van_deelvraag(deelvraag) if deelvraag else ""
-    termen = zoektermen(vraagtekst)[:MAX_TERMEN]
+    termen = _termen(graph, vraagtekst, regelingen, profiel)
     if not termen:
         vraagtekst = deelvraag or dossier.get("analysevraag") or dossier.get("naam") or ""
-        termen = zoektermen(vraagtekst)[:MAX_TERMEN]
+        termen = _termen(graph, vraagtekst, regelingen, profiel)
     if not termen:
         return None
     gedeeld = gedeelde_termen(termen, dossier.get("deelvragen") or []) if profiel.onderscheidend and deelvraag else []
@@ -252,6 +260,44 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
 
     return {"termen": termen, "dossiertermen": dossiertermen, "alle_dossiertermen": alle_dossiertermen,
             "bereik": bereik, "gevonden": gevonden, "geraakte_artikelen": geraakte_artikelen, "lemma": lemma}
+
+
+def _termen(graph: GraphPort, tekst: str, regelingen: list[str], profiel: Zoekprofiel) -> list[str]:
+    """De zoektermen van een vraag: de eerste `MAX_TERMEN`, of met `termen_idf` de zeldzaamste."""
+    if not profiel.termen_idf:
+        return zoektermen(tekst)[:MAX_TERMEN]
+    from .zoekvragen import LEGE_WOORDEN, METHODEWOORDEN
+
+    termen = [w for w in zoektermen(tekst) if w not in LEGE_WOORDEN and w not in METHODEWOORDEN]
+    return termen_op_zeldzaamheid(graph, termen, regelingen, profiel) if len(termen) > MAX_TERMEN else termen
+
+
+def q_aantal(lucene: str, regelingen: list[str]) -> str:
+    """Hoeveel bepalingen van de regelingen een term raken: de documentfrequentie, voor het onderscheidend vermogen."""
+    filters = " || ".join(f'STRSTARTS(STR(?node), "{queries.NS}{queries._bwb(b)}")' for b in regelingen if b)
+    return queries.PREFIXES + f"""SELECT (COUNT(DISTINCT ?node) AS ?aantal) WHERE {{
+  [] a inst:bwb_tekst ; luc:query {queries._lit(lucene)} ; luc:entities ?node .
+  {f"FILTER({filters})" if filters else ""}
+}}"""
+
+
+def termen_op_zeldzaamheid(graph: GraphPort, termen: list[str], regelingen: list[str],
+                           profiel: Zoekprofiel) -> list[str]:
+    """De `MAX_TERMEN` termen die in de regelingen het minst voorkomen, in de volgorde van de vraag. "Werkt" en
+    "aanslag" staan in honderden bepalingen, "betalingstermijnen" in een handvol: zo krijgt het woord dat de deelvraag
+    onderscheidt een plaats, ook als het achteraan staat. Een term die nergens staat, gaat achteraan (hij vindt niets).
+    Hapert de graaf, dan de eerste `MAX_TERMEN`: een storing kost de keuze, niet het zoeken."""
+    aantal: dict[str, int] = {}
+    try:
+        for w in termen:
+            rijen = _rijen(graph, q_aantal("tekst:" + _term_lucene(w, "", profiel), regelingen))
+            aantal[w] = int(rijen[0].get("aantal") or 0) if rijen else 0
+    except Exception:  # noqa: BLE001
+        logger.warning("documentfrequentie niet geteld", extra={"categorie": "technisch"}, exc_info=True)
+        return termen[:MAX_TERMEN]
+    plek = {w: i for i, w in enumerate(termen)}
+    gekozen = sorted(termen, key=lambda w: (aantal[w] == 0, aantal[w], plek[w]))[:MAX_TERMEN]
+    return sorted(gekozen, key=plek.__getitem__)
 
 
 def gedeelde_termen(termen: list[str], deelvragen: list[str]) -> list[str]:
