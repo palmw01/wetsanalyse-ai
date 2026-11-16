@@ -95,3 +95,19 @@ deelvraag een woord heeft dat in de regelingen ontbreekt (de kloof, `ontbrekende
 maar het is nog niet gemeten.
 
 De rapporten staan in [`stap2/`](stap2/).
+
+## Stap 3 – `overzicht_streng` (O5)
+
+Gemeten op een hele bronnenrun zoals de api haar start: deelvragen, dossier met gebeurtenis en zoekbereik, zonder kern
+(`stap3/run_meting.py`, `bronnen_vinden.vind(profiel=)`, tegen de aangevulde opname).
+
+- Termijnen, standaard: 59 kandidaten, waarvan 44 zonder deelvraag; verwacht (kern/afhankelijkheid) 2 van 12 gevonden; 8
+  uitgesloten bepalingen. Dat is wat acceptatie op 16 nov 2026 toonde.
+- Termijnen, met de vlag: 19 kandidaten, waarvan 4 zonder deelvraag (de grondslagen); verwacht 2 van 12; 6 uitgesloten.
+- Rekeningafspraken: gelijk (25 kandidaten, 1 zonder deelvraag, 1 van 5): het overzicht vond daar al niets.
+
+**Oordeel: haalt de ruis weg zonder iets te kosten.** 40 kandidaten uit het overzicht op de naam *Termijnen* vallen weg
+(Awb-artikelen over beslistermijnen, met de rol kern). Geen verwachte bepaling gaat verloren. Een kandidaat van het overzicht
+heeft met de vlag de rol *aanverwant*. Dat raakt de werkgebieden zonder deelvragen, en die meet deze run niet: de set
+`invorderbaarheid-concept` heeft een kern, dus het overzicht draait daar niet. De vlag is een kandidaat om in stap 8 aan te
+zetten.
