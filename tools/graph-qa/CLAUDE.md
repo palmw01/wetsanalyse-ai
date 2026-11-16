@@ -2395,6 +2395,13 @@ cd tools/graph-qa && .venv/bin/python eval/run_eval.py --herscoor run.jsonl    #
   Anthropic-responses af via `create()` én `stream()` (gedeelde index); bouw multi-turn-scenario's met
   `response([text_block(...), tool_block(...)], stop_reason)`. `make_settings` zet de checkpointer
   in-memory en `CLASSIFIER_PARALLEL` op 1.
+- **Procesbrede toestand lekt niet tussen tests** (`agent/procestoestand.py`). Een module die op moduleniveau een cache
+  of stand bewaart en die in een functie wijzigt (de citeertitels in `overzicht`, de namen in `regelingnamen`, de
+  schemacache, de modelkeuze), meldt een functie die hem leegmaakt met `procestoestand.registreer`; `tests/conftest.py`
+  roept `procestoestand.reset()` voor en na elke test aan. `tests/test_procestoestand.py` zoekt zulke toestand in
+  `agent/` en eist de melding. Een handmatige `clear()` in een test is dus niet meer nodig. Aanleiding: na `test_eval`
+  stond de Invorderingswet in `_REGELINGEN_CACHE` en faalde `test_sjablonen` (Lex Bench §14.1); die test was alleen groen
+  omdat de GOK-controle van `id_herkomst` met een lege namenlijst uit stond, en noemt nu de regeling in de vraag.
 - **Vraagtype, bewaren en herscoren.** Elke case in `eval/golden.jsonl` en elke beurt in `eval/golden_gesprek.jsonl`
   draagt een `vraagtype` uit de vaste lijst in `eval/vraagtypen.py` (een gesprek mag een default geven; een
   onbekend of ontbrekend type laat `tests/test_eval_kwaliteit.py` falen). Het rapport toont per type aantal,

@@ -20,6 +20,7 @@ import time
 from typing import Any
 
 from . import queries
+from .. import procestoestand
 from .results import parse_select
 from ..ports import GraphPort
 
@@ -36,6 +37,9 @@ def reset_cache() -> None:
     global _cache, _gezet_op
     _cache = None
     _gezet_op = 0.0
+
+
+procestoestand.registreer(__name__, reset_cache)
 
 
 def graph_schema(graph: GraphPort) -> dict[str, Any]:
