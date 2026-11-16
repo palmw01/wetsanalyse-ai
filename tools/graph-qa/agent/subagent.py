@@ -113,8 +113,15 @@ VRAAG_AANWIJZING = (
     "heeft. De gebruiker krijgt de vragen daarna als kaart; schrijf ze niet zelf uit en beantwoord ze niet zelf.")
 
 
-NIET_AF_AANWIJZING = ("De subagent rondde niet af. Doe het werk niet opnieuw: lees en zoek niet zelf (de code weigert "
-                      "het). Zeg de gebruiker wat hij las en wat ontbreekt, of vraag hoe verder.")
+#: Wat de centrale agent na een subagent wel zelf mag lezen: de wettekst van een bepaling, want die staat niet in een
+#: rapport over stukken naast de wet (E2E Rekeningafspraken, 16 nov 2026, B-3: "betaling aan een derde werkt bevrijdend"
+#: over een delegatiebepaling die niemand las). Hoogstens `antwoord.MAX_NALEZEN` bepalingen; de code telt.
+NALEZEN_AANWIJZING = ("Wat een bepaling zelf regelt, staat niet in dit rapport: zeg dat alleen als je haar tekst hebt, en "
+                      "lees haar anders met get_lid of get_artikel (hoogstens twee bepalingen). Wat het rapport en de "
+                      "gelezen tekst niet dragen, schrijf je niet.")
+NIET_AF_AANWIJZING = ("De subagent rondde niet af. Doe het werk niet opnieuw: lees en zoek niet zelf in de bronnen (de code "
+                      "weigert het). Zeg de gebruiker wat hij las en wat ontbreekt, of vraag hoe verder. "
+                      + NALEZEN_AANWIJZING)
 
 
 def als_toolresultaat(profiel: str, uitkomst: str, tekst: str) -> str:
@@ -124,8 +131,8 @@ def als_toolresultaat(profiel: str, uitkomst: str, tekst: str) -> str:
            "zoekresultaten zag, heeft hij niet gelezen, en zo noem je het ook. "
            + (VRAAG_AANWIJZING if uitkomst == "vraag" else
               NIET_AF_AANWIJZING if uitkomst in ("niet_gelukt", "mislukt", "afgesloten") else
-              "Beantwoord de vraag van de gebruiker hiermee en rond af zoals altijd. Lees niet zelf opnieuw (de code "
-              "weigert het): de stukken die de subagent las, staan in je trace."))
+              "Beantwoord de vraag van de gebruiker hiermee en rond af zoals altijd. Lees de stukken niet zelf opnieuw (de "
+              "code weigert het): de stukken die de subagent las, staan in je trace. " + NALEZEN_AANWIJZING))
     return f"{kop}\n\n{onschadelijk(tekst) if tekst else '(geen rapport)'}"
 
 
