@@ -20,7 +20,7 @@ risico: R01, R03, R04, R05, R07, R08, R09, R12, R14, R18, R19
 | K7 | herladen en een tweede tabblad | straat, met akkoord | scenario hieronder |
 | K8 | inloggen tot en met de eerste beurt | browsertest tegen een echte api | nog te bouwen; scenario hieronder |
 | K9 | een rollback onder last | straat, met akkoord | scenario hieronder |
-| K10 | een analist tegenover een beheerder | straat, voorlopig op het account van de gebruiker (beheerder) | scenario hieronder |
+| K10 | een analist tegenover een beheerder | straat, met het analistaccount `acc-test-analist` | scenario hieronder |
 
 Een scenario op de straat draait als onderdeel van de vaste reis (testplan keten-e2e §5 punt 4). Dat gebeurt alleen met
 akkoord, op het account van de gebruiker met het runvoorvoegsel `acc-test-…` (alleen eigen objecten, alleen die
@@ -98,9 +98,9 @@ terwijl die niet antwoordt of tegen de time-out loopt.
   in de oude versie (N-1).
 - Eén keer per release-cyclus, op acceptatie, met akkoord.
 
-**K10 – Een analist tegenover een beheerder.** De vaste reis, voorlopig op het account van de gebruiker met de rol
-`beheerder` (besluit gebruiker, 16 nov 2026). Daarmee toets je dat alle stappen van de methode werken en dat het
-verbruik binnen het budget van de rol blijft; dat een analist geen beheerroute krijgt, toets je zo niet. Noteer dat als
-beperking in het rapport. Voor de volledige toets maakt de gebruiker later een analistaccount aan.
+**K10 – Een analist tegenover een beheerder.** De vaste reis op het analistaccount `acc-test-analist` (aangemaakt op
+16 nov 2026), naast dezelfde reis op het account van de gebruiker (beheerder). De gebruiker maakt er een accounttoken voor
+(Beheer → API-tokens → *Inloggen als*) en zet het machine-lokaal; een agent haalt geen tokens op. Ook op dit account
+geldt: alleen eigen objecten met het runvoorvoegsel, en alleen die opruimen.
 - *Verwacht:* geen beheerroute (403), wel alle stappen van de methode, en het verbruik binnen het budget van de rol.
 - Leg in het logboek per stap vast welke route een 403 gaf. Een 403 op een methodestap is een bevinding.
