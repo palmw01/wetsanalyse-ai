@@ -27,6 +27,7 @@ from urllib.parse import unquote
 from .annotatie import _normaliseer, komt_letterlijk_voor
 from .beweringen import beweringen as feiten_buiten, tellingen_uit
 from .gelezen import (buiten_periode, gelezen_en_gevonden, ongelezen_samengevat, volledig_geclaimd, vraag_niet_in_stuk,
+                      zonder_citaten,
                       verwijzing_als_duiding, vreemd_schrift, zonder_steun)
 from .hoeveelheden import uit_tabellen
 from .models import Source
@@ -267,28 +268,29 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
                                    if f not in unsupported]
     # Wat het antwoord over een stuk naast de wet zegt, rust op zijn gelezen tekst: een inhoudelijke samenvatting van een
     # stuk dat alleen in een zoekresultaat stond, is een bewering (meting bundel 116, D01). Een vermelding niet: zie hieronder.
+    # De toetsen op wat Lex over een stuk zegt, lezen alleen zijn eigen tekst: een citaat is tekst van de bron, en een
+    # verwijzing daarin naar een ander stuk is geen samenvatting van dat stuk (hermeting na #1614, 16 nov 2026).
+    eigen = zonder_citaten(answer_text)
+    duidt = zonder_citaten(answer_text if duiding_tekst is None else duiding_tekst)
     if not overzicht:
-        feiten += [f for f in ongelezen_samengevat(answer_text, source_trace) if f not in feiten]
+        feiten += [f for f in ongelezen_samengevat(eigen, source_trace) if f not in feiten]
         # "Zie de toelichting bij …" bij een ander stuk is geen duiding van dit stuk (meting bundel 118, D01).
-        feiten += [f for f in verwijzing_als_duiding(answer_text, source_trace) if f not in feiten]
+        feiten += [f for f in verwijzing_als_duiding(eigen, source_trace) if f not in feiten]
         # Het onderwerp van de vraag aan een stuk toeschrijven dat het woord niet bevat (meting bundel 119, D01).
         # Op de tekst die duidt (`duiding_tekst`: wat Lex schreef, zonder 'Gedaan' van een rapport; meting bundel 122).
-        feiten += [f for f in vraag_niet_in_stuk(answer_text if duiding_tekst is None else duiding_tekst, source_trace,
-                                                 bekend if vraag is None else vraag)
+        feiten += [f for f in vraag_niet_in_stuk(duidt, source_trace, bekend if vraag is None else vraag)
                    if f not in feiten]
         # De periode die de jurist koos: een stuk van daarbuiten noemen mag, samenvatten niet (meting bundel 120, D01).
-        feiten += [f for f in buiten_periode(answer_text if duiding_tekst is None else duiding_tekst, source_trace,
-                                             periode) if f not in feiten]
+        feiten += [f for f in buiten_periode(duidt, source_trace, periode) if f not in feiten]
         # Een letter uit een ander schrift midden in een woord (bundel 120: "niet-melدende"): een tokenfout van het model.
         feiten += [f for f in vreemd_schrift(answer_text) if f not in feiten]
         # "Las ze volledig door" terwijl een gelezen stuk maar deels gelezen is (E2E Rekeningafspraken 16 nov 2026, D-4).
-        # Op de hele tekst: zo'n zin staat juist in 'Gedaan' van een rapport.
-        feiten += [f for f in volledig_geclaimd(answer_text, source_trace) if f not in feiten]
+        # Op de hele tekst van Lex: zo'n zin staat juist in 'Gedaan' van een rapport.
+        feiten += [f for f in volledig_geclaimd(eigen, source_trace) if f not in feiten]
     # Na een rapport van een subagent (`steun`: per stuk de passages die het rapport en het antwoord eruit tonen): een
     # duiding van een stuk rust op die passages, niet op "het stond in de trace" (meting bundel 117, D01).
     if steun is not None and not overzicht:
-        feiten += [f for f in zonder_steun(answer_text if duiding_tekst is None else duiding_tekst, steun, source_trace)
-                   if f not in feiten]
+        feiten += [f for f in zonder_steun(duidt, steun, source_trace) if f not in feiten]
     # Een stuk van een bronconnector (ADR-013) dat het antwoord noemt en dat alleen in een zoekresultaat stond, is
     # gevonden, niet gelezen. Dat is geen signaal: het id bestaat en het zoekresultaat draagt zijn label, soort, datum
     # en titel uit de bron. Tot 10 nov 2026 telde zo'n stuk als onbevestigd; op acceptatie gaf een lijst opvolgende
