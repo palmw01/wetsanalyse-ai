@@ -351,12 +351,18 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     (de aanhef van een besluit, het procesverloop van een uitspraak, een rij trefwoorden) valt in `extern.blokken` uit een
     reeks als er iets met inhoud overblijft (`extern.is_formule`). Na het eindverslag van A6 (`tests/test_a6_eind.py`):
     een rapport `klaar` zonder één gelezen stuk van de bron waar de opdracht om vroeg, terwijl het kind er wel vond, wordt
-    een vraag naar boven uit code ("Zal ik ze lezen?", `subagent.ongelezen_vraag`, één keer: niet na een hervatting; V03).
-    Breder (plan centrale agent na A6, PR C): een kind dat op zijn grens stopte (zijn laatste ronde was die van de
-    rondegrens of het plafond, `begrensd` uit `State.laatste_gehad` in het resultaat, of de code sloot het af) terwijl er
-    nog iets open was – stukken van de gevraagde bron gevonden en niet gelezen, stukken deels gelezen, of iets onder 'Open'
-    in zijn rapport – krijgt ook na `klaar` of `niet_gelukt` een vraag uit code ("Zal ik verder lezen?",
-    `subagent.begrensd_vraag`), één keer en niet voor een stuk van buiten de periode (`tests/test_c_begrensd.py`);
+    een aanbod uit code ("Zal ik ze lezen?", `subagent.ongelezen_vraag`, één keer: niet na een hervatting; V03). Een kind
+    dat zijn rapport niet afrondde (`niet_gelukt`, `afgesloten`) en op zijn grens stopte terwijl er nog iets open was
+    (gevonden en niet gelezen, deels gelezen, of 'Open'; `begrensd` uit `State.laatste_gehad`) krijgt het aanbod "Zal ik
+    verder lezen?" (`subagent.begrensd_vraag`, de toelichting ingekort en nooit weggelaten). **Een aanbod uit code houdt
+    nooit een eindantwoord tegen** (meting na het plan centrale agent na A6, 16 nov 2026: als vraag hield dit alle vijf
+    de delegaties tegen): `Afloop.aanbod`, de uitkomst blijft die van het kind, de delegatie is klaar, de centrale agent
+    schrijft het antwoord, en `finalize_node` zet de kaart eronder (`open_aanbod`, `AANBOD_TOELICHTING`). Een kind dat
+    `klaar` meldt, krijgt geen aanbod na zijn grens: zijn laatste ronde is bijna altijd ook die van het rapport. Een klik
+    op *Nee* hervat niets (`AANBOD_AFGESLAGEN`, het aanbod vervalt); *Ja* hervat het kind, ook bij een delegatie die klaar
+    is (`subagent.kan_vervolgen`). Een vraag van het kind zelf blijft een poort (`open_vraag`). Een aanroep die de provider
+    weigert, logt `model_aanroep_fout` met de opbouw van het verzoek en het begin van de melding van de provider
+    (`llm_stap._log_fout`); `tests/test_c_begrensd.py`;
     "vóór en na de wijziging" van één artikel zonder te zeggen welke is een vraag aan de jurist zonder model, met de
     laatste wijziging uit `geldigheid` als kandidaat (`agent/welke_wijziging.py`; V04); een antwoord dat alleen een
     regeling noemt, maakt de vorige opdracht met een artikel zonder regeling af (`subagent_route.aangevuld`, F02);

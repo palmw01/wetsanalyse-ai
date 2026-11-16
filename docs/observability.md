@@ -78,7 +78,10 @@ vallen erbuiten. Welke stap traag was, staat in de spans `graph_qa.node.<naam>`.
 `tools_aantal`, `tools_hash`, `system_stabiel_tekens`, `system_hash`, `system_variabel_tekens`, `historie_tekens`,
 `beurt_tekens` en `berichten`. Dat zijn tellingen en vingerafdrukken van twaalf tekens, geen inhoud. De logregel
 `model_aanroep` draagt dezelfde velden. Zo is één beurt te meten zonder toegang tot Application Insights, bijvoorbeeld
-met de acceptatie-MCP (`lex_wacht` geeft het event door).
+met de acceptatie-MCP (`lex_wacht` geeft het event door). Weigert de provider een aanroep, dan staat er
+`model_aanroep_fout` (warning) met dezelfde opbouw, de soort fout, de status en `provider_soort`/`provider_melding`: het
+begin van de melding van de provider (hoogstens 240 tekens). Die beschrijft het verzoek ("prompt is too long …",
+"Schema is too complex …"), niet de inhoud; zo is een te lange vraag van een te groot schema te onderscheiden.
 
 **De contextopbouw** (plan `architectuur/plan-contextweergave.md`). Elke modelaanroep draagt naast de velden hierboven:
 
