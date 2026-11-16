@@ -438,12 +438,9 @@ async def test_removed_source_node_historical_detail_and_search(monkeypatch):
     assert result["resultaten"][0]["bronverwijzing"]["historisch"]
 
 
-async def test_pdf_preserves_all_local_anchors_and_owner(monkeypatch):
-    import shutil
+async def test_pdf_preserves_all_local_anchors_and_owner(monkeypatch, pdftotext):
     import subprocess
     from app import annotatie_v2
-    if shutil.which("pdftotext") is None:
-        pytest.skip("pdftotext ontbreekt voor onafhankelijke PDF-tekstextractie")
     snap = snapshot()
     a, b = element(snap), element(snap, TWO, 0, 4)
     multi = dict(klasse="Voorwaarde", tekst=a["tekst"] + " " + b["tekst"], ankers=a["ankers"] + b["ankers"])
@@ -453,7 +450,7 @@ async def test_pdf_preserves_all_local_anchors_and_owner(monkeypatch):
     monkeypatch.setattr(annotatie_v2, "resolve_bron", resolve)
     response = await annotatie_v2.post_export(annotatie_v2.ExportInvoer(
         bron_iri=ART, snapshot_id=snap["snapshot_id"], formaat="pdf"), "a")
-    parsed = subprocess.run(["pdftotext", "-", "-"], input=response.body, capture_output=True, check=True).stdout.decode()
+    parsed = subprocess.run([pdftotext, "-", "-"], input=response.body, capture_output=True, check=True).stdout.decode()
     assert "Eigenaar: " + ART in parsed
     assert ONE in parsed and TWO in parsed
     assert "[2, 6)" in parsed and "[0, 4)" in parsed

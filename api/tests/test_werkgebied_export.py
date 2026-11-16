@@ -5,7 +5,6 @@ import copy
 import hashlib
 import json
 import re
-import shutil
 import subprocess
 import threading
 import types
@@ -297,8 +296,7 @@ async def test_het_zetten_gebeurt_niet_op_de_event_loop(client, monkeypatch):
     assert gezien and lus not in gezien
 
 
-@pytest.mark.skipif(shutil.which("pdftotext") is None, reason="pdftotext ontbreekt voor onafhankelijke tekstextractie")
-async def test_de_echte_pdf_is_letterlijk_met_inhoud_en_bladwijzers(client, graaf, monkeypatch):
+async def test_de_echte_pdf_is_letterlijk_met_inhoud_en_bladwijzers(client, graaf, monkeypatch, pdftotext):
     """De standaardletters van een PDF maakten van deze tekens stil een ■; `≥` verloor zijn spaties."""
     bijzonder = "Een bedrag ≥ € 10 – na 1‑1‑2026 → Māori § 3   “citaat” & <tag>"
 
