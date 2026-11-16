@@ -50,15 +50,18 @@ def test_v03_een_rapport_zonder_gelezen_memorie_is_een_vraag_aan_de_jurist():
     assert sub.ongelezen_vraag(graaf, {"source_trace": [GEVONDEN]}) is None, "de opdracht vroeg geen bron naast de wet"
 
 
-def test_v03_de_afloop_wordt_een_vraag_en_de_beurt_eindigt_met_de_kaart():
+def test_v03_de_afloop_krijgt_een_aanbod_en_het_antwoord_gaat_door():
+    """Sinds de meting na het plan centrale agent na A6 (16 nov 2026) is dit een aanbod onder het antwoord, geen poort:
+    de uitkomst blijft `klaar`, de delegatie is klaar, en de kaart komt na het antwoord (`open_aanbod`)."""
     kind = {"rapport": {"status": "klaar"}, "answer": "Gedaan: wettekst gelezen.", "source_trace": [WETTEKST, GEVONDEN]}
     kinderen, _, _ = _kinderen(kind)
     afloop, _, _ = asyncio.run(sub.voer_uit(STATE, "algemeen", V03, lambda _e: None, settings=None, kinderen=kinderen,
                                             gestopt=lambda: False, api=Api()))
-    assert afloop.uitkomst == "vraag" and afloop.vragen and afloop.met_rapport()
-    assert sub.eindstand([afloop.als_dict()]) == "wacht"
+    assert afloop.uitkomst == "klaar" and afloop.aanbod and afloop.vragen and afloop.met_rapport()
+    assert sub.eindstand([afloop.als_dict()]) == "klaar"
     afloop.delegatie_id = "d1"
-    assert antwoordnodes.open_vraag([afloop.als_dict()]), "finalize sluit af met de vraagkaart"
+    assert not antwoordnodes.open_vraag([afloop.als_dict()]), "het antwoord wordt geschreven"
+    assert sub.open_aanbod([afloop.als_dict()]), "de kaart komt onder het antwoord"
 
 
 # 2. V04 ----------------------------------------------------------------------------------------------------------------

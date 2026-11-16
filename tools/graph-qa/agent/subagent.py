@@ -158,6 +158,11 @@ class Afloop:
     vragen: list[dict[str, Any]] = field(default_factory=list)
     #: In deze beurt al hervat (§A4: één keer per subagent per beurt).
     hervat: bool = False
+    #: De vragen in `vragen` zijn een aanbod uit code ("Zal ik verder lezen?"), geen vraag van het kind: het rapport en
+    #: het eindantwoord gaan gewoon door, en het aanbod staat als kaart onder het antwoord (`open_aanbod`). Een vraag uit
+    #: code houdt nooit een eindantwoord tegen (meting na het plan centrale agent na A6, 16 nov 2026: elke delegatie
+    #: eindigde met de vraag, en geen enkele met een antwoord).
+    aanbod: bool = False
     #: De modellen waarop het kind echt draaide (ADR-016 §A2). Ook in het eind-event van de regie, dat de meting altijd
     #: had: bij S01 (bundel 115) ontbrak het model in de meting van het kind.
     modellen: list[str] = field(default_factory=list)
@@ -183,6 +188,7 @@ class Afloop:
         return {"profiel": self.profiel, "gesprek_id": self.gesprek_id, "run_id": self.run_id,
                 "uitkomst": self.uitkomst, "delegatie_id": self.delegatie_id,
                 **({"vragen": self.vragen} if self.vragen else {}), **({"hervat": True} if self.hervat else {}),
+                **({"aanbod": True} if self.aanbod and self.vragen else {}),
                 **({"modellen": self.modellen} if self.modellen else {}),
                 **({"gelezen": self.gelezen} if self.gelezen else {}),
                 **({"afbakening": self.afbakening} if self.afbakening else {}),
@@ -271,10 +277,12 @@ def begrensd_vraag(opdracht: SubagentOpdracht, kind: dict[str, Any], periode: li
     else:
         wat = f"nog open: {open_[0]}"
     kop = "Ik kwam aan de grens van wat ik in één keer mag lezen voor ik klaar was"
-    tekst = f"{kop} ({wat}). Zal ik verder lezen?"
-    if len(tekst) > MAX_VRAAG_TEKENS:
-        tekst = f"{kop}. Zal ik verder lezen?"
-    return {"tekst": tekst, "opties": [LEES_VERDER, NIET_LEZEN]}
+    # Te lang: de toelichting ingekort, nooit weggelaten (meting na het plan, 16 nov 2026: bij drie van de vijf stond er
+    # alleen "Zal ik verder lezen?", en de jurist wist niet wat er open was).
+    ruimte = MAX_VRAAG_TEKENS - len(f"{kop} (). Zal ik verder lezen?")
+    if len(wat) > ruimte:
+        wat = wat[:ruimte - 1].rsplit(" ", 1)[0] + "…"
+    return {"tekst": f"{kop} ({wat}). Zal ik verder lezen?", "opties": [LEES_VERDER, NIET_LEZEN]}
 
 
 #: Zo lang mag een vraag naar boven zijn (`sjablonen.rapport.MAX_VRAAG`).
@@ -447,8 +455,20 @@ def zelf_antwoorden(vragen: list[dict[str, Any]], ligt: str) -> list[str] | None
 
 
 def eerste_vraag(kinderen: list[dict[str, Any]]) -> int | None:
-    """Het eerste kind met een open vraag (zijn plek in de delegatie), of None."""
-    return next((i for i, k in enumerate(kinderen) if k.get("uitkomst") == "vraag" and k.get("vragen")), None)
+    """Het eerste kind met een open vraag of een open aanbod uit code (zijn plek in de delegatie), of None. Een vraag van
+    het kind gaat voor: die houdt de delegatie op `wacht`."""
+    vraag = next((i for i, k in enumerate(kinderen) if k.get("uitkomst") == "vraag" and k.get("vragen")), None)
+    return vraag if vraag is not None else next(
+        (i for i, k in enumerate(kinderen) if k.get("aanbod") and k.get("vragen")), None)
+
+
+def kan_vervolgen(delegatie: dict[str, Any], kind: dict[str, Any] | None) -> bool:
+    """Staat er bij dit kind nog iets open om te beantwoorden? Een vraag van het kind (de delegatie wacht), of een aanbod
+    uit code (de delegatie is klaar: het antwoord staat al)."""
+    if delegatie.get("soort") != "subagent" or not kind or not kind.get("vragen"):
+        return False
+    return (delegatie.get("status") == "wacht" and kind.get("uitkomst") == "vraag") or (
+        bool(kind.get("aanbod")) and delegatie.get("status") in ("wacht", "klaar"))
 
 
 def antwoord_tekst(vragen: list[dict[str, Any]], antwoorden: list[str], *, van: str) -> str:
@@ -492,7 +512,7 @@ async def _hervat(state: dict[str, Any], delegatie_id: str, antwoorden: list[str
         taken = (delegatie.get("plan") or {}).get("taken") or []
         alle = list((delegatie.get("uitkomst") or {}).get("kinderen") or [])
         i = eerste_vraag(alle)
-        if delegatie.get("soort") != "subagent" or delegatie.get("status") != "wacht" or i is None or i >= len(taken):
+        if i is None or i >= len(taken) or not kan_vervolgen(delegatie, alle[i]):
             return Afloop(profiel=""), {}, AL_BEANTWOORD
         vorige, profiel = alle[i], str(taken[i].get("profiel", ""))
         if profiel not in KIESBAAR or not vorige.get("gesprek_id"):
@@ -526,13 +546,18 @@ async def _hervat(state: dict[str, Any], delegatie_id: str, antwoorden: list[str
 AL_BEANTWOORD = "Deze vraag staat niet meer open: de subagent is al verder gegaan of gestopt."
 
 
-def vraagkaart(delegatie_id: str, vragen: list[dict[str, Any]], nr: int) -> dict[str, Any]:
+#: De toelichting op de kaart: een vraag van het kind houdt het werk op, een aanbod uit code niet.
+VRAAG_TOELICHTING = "Een subagent heeft dit nodig om verder te kunnen. Kies een antwoord of typ er een."
+AANBOD_TOELICHTING = "Het antwoord hierboven staat. Wil je dat de subagent verder leest? Dat kan, maar het hoeft niet."
+
+
+def vraagkaart(delegatie_id: str, vragen: list[dict[str, Any]], nr: int, *, aanbod: bool = False) -> dict[str, Any]:
     """De vraag `nr` (vanaf 1) van een subagent als vraagkaart (`modus: subagent`): de opties van de subagent, en altijd
-    een eigen antwoord."""
+    een eigen antwoord. Met `aanbod` is het een keuze onder het antwoord, geen poort."""
     v = vragen[nr - 1]
     return {"intake_id": f"sa-{delegatie_id}", "modus": "subagent", "soort": "vraag", "stap": "sa_vraag", "nr": nr,
             "totaal": len(vragen), "vraag": str(v.get("tekst", ""))[:500],
-            "toelichting": "Een subagent heeft dit nodig om verder te kunnen. Kies een antwoord of typ er een.",
+            "toelichting": AANBOD_TOELICHTING if aanbod else VRAAG_TOELICHTING,
             "opties": [{"label": o[:300], "waarde": o[:4000]} for o in (v.get("opties") or [])],
             "meerkeuze": False, "vrije_tekst": True, "overslaanbaar": True}
 
@@ -623,8 +648,15 @@ def passagetekst(passages: Iterable[dict[str, Any]]) -> str:
 
 
 def open_vraag(subagenten: list[dict[str, Any]]) -> dict[str, Any] | None:
-    """De subagent van deze beurt die nog een vraag heeft, als die er is."""
+    """De subagent van deze beurt die nog een vraag heeft, als die er is. Een aanbod uit code telt niet: dat houdt de
+    beurt niet op (`open_aanbod`)."""
     return next((a for a in reversed(subagenten or []) if a.get("uitkomst") == "vraag" and a.get("vragen")
+                 and a.get("delegatie_id")), None)
+
+
+def open_aanbod(subagenten: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """De subagent van deze beurt met een aanbod uit code ("Zal ik verder lezen?"): de kaart komt onder het antwoord."""
+    return next((a for a in reversed(subagenten or []) if a.get("aanbod") and a.get("vragen")
                  and a.get("delegatie_id")), None)
 
 
@@ -693,16 +725,19 @@ async def _draai_kind(afloop: Afloop, titel: str, profiel: str, opdracht: Subage
         afloop.uitkomst = ("gestopt" if uitkomst == "gestopt" else "afgesloten" if kind.get("afgesloten") else status or (
             "mislukt" if uitkomst == "mislukt" else "niet_gelukt"))
         afloop.rapport = bool(status) and afloop.uitkomst == status
-        if afloop.uitkomst == "klaar" and not afloop.hervat and (vraag := ongelezen_vraag(opdracht, kind)):
-            # Eén keer: na het antwoord (ook "nee") rondt het hervatte kind af met wat het heeft.
-            # Een rapport `klaar` zonder één gelezen stuk van de bron waar de opdracht om vroeg (A6 eind, V03: drie memories
-            # van toelichting gevonden, "wegens rondegrens" niet gelezen): een vraag naar boven, uit code.
-            afloop.uitkomst, afloop.vragen = "vraag", [vraag]
-        elif afloop.uitkomst in ("klaar", "niet_gelukt", "afgesloten") and not afloop.hervat and (
-                vraag := begrensd_vraag(opdracht, kind, afloop.periode)):
-            # Een kind dat op zijn grens stopte terwijl er nog iets open was (plan centrale agent na A6, PR C): een vraag
-            # naar boven, uit code, één keer. Het rapport blijft; na het antwoord rondt het hervatte kind af.
-            afloop.uitkomst, afloop.vragen = "vraag", [vraag]
+        # Een aanbod uit code, één keer en niet na een hervatting: een keuze onder het antwoord, nooit een poort. De
+        # uitkomst blijft die van het kind, dus het rapport en het eindantwoord gaan door (meting na het plan centrale
+        # agent na A6, 16 nov 2026: als vraag hield dit elk antwoord tegen).
+        # - Een rapport `klaar` zonder één gelezen stuk van de bron waar de opdracht om vroeg (A6 eind, V03: drie
+        #   memories van toelichting gevonden, niet gelezen): "Zal ik ze lezen?".
+        # - Een kind dat zijn rapport niet afrondde (`niet_gelukt`, `afgesloten`) en op zijn grens stopte terwijl er nog
+        #   iets open was: "Zal ik verder lezen?". Een kind dat `klaar` meldde, krijgt dit niet: zijn laatste ronde is
+        #   bijna altijd ook die van het rapport, en dan zegt de grens niets.
+        if not afloop.hervat and (
+                (afloop.uitkomst == "klaar" and (vraag := ongelezen_vraag(opdracht, kind)))
+                or (afloop.uitkomst in ("niet_gelukt", "afgesloten")
+                    and (vraag := begrensd_vraag(opdracht, kind, afloop.periode)))):
+            afloop.vragen, afloop.aanbod = [vraag], True
         return kind
     except GesprekVerdwenen:
         afloop.uitkomst, afloop.reden = "mislukt", "het gesprek is verwijderd"

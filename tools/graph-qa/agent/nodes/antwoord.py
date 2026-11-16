@@ -42,7 +42,7 @@ from ..resultaat import is_fout
 from ..agentvorm import CENTRAAL, CENTRAAL_BREED, STANDAARD as DEFAULT_SPECIALIST, agent_van
 from ..overdracht import OVERDRACHT
 from ..state import State
-from ..subagent import open_vraag, vraagkaart, zonder_rapport
+from ..subagent import open_aanbod, open_vraag, vraagkaart, zonder_rapport
 from ..bronstand import prompt_blok as bronstand_blok
 from ..bronstand import waar as bronstand_waar
 from ..tool_execution import execute_tool
@@ -1367,6 +1367,10 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
         # Een subagent wacht op een antwoord dat de centrale agent niet had (ADR-016 §A4): de beurt eindigt met zijn
         # eerste vraag als kaart, uit code. Een klik gaat zonder model naar `subagent_vervolg`.
         writer({"type": "vraagkaart", "vraagkaart": vraagkaart(open_["delegatie_id"], open_["vragen"], 1)})
+    elif aanbod := open_aanbod(state.get("subagenten") or []):
+        # Een aanbod uit code ("Zal ik verder lezen?"): het antwoord staat al, de kaart is een keuze eronder.
+        writer({"type": "vraagkaart", "vraagkaart": vraagkaart(aanbod["delegatie_id"], aanbod["vragen"], 1,
+                                                                aanbod=True)})
 
     if state.get("overzicht"):
         # De overzichtsroute: de bronnen zijn de vindplaatsen van het overzicht, en hangen dus niet af

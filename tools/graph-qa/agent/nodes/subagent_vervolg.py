@@ -58,6 +58,7 @@ def _terug(wacht: list[dict[str, Any]], delegatie_id: str, al: set[str]) -> list
         uit.append((sub.Afloop(**velden), dict(w.get("kind") or {})))
     return uit
 NIET_GESTART = "Dan begin ik er niet aan; er is niets gestart."
+AANBOD_AFGESLAGEN = "Goed, dan blijft het bij het antwoord hierboven."
 STORING = "Dat lukte nu niet: de wetsanalyse-api haperde. Probeer het zo opnieuw; je antwoord is niet verloren gegaan."
 
 
@@ -90,13 +91,21 @@ async def _verwerk(b: Bouw, state: State, stuur) -> dict[str, Any]:
                 gestopt=lambda: bool(b.stop_check and b.stop_check()))
             if weigering:
                 return {"tekst": weigering}
-            j = sub.eerste_vraag([a.als_dict() for a, _ in paren])
+            # Alleen een vraag van een kind houdt de bundel op; een aanbod uit code komt onder het antwoord
+            # (`finalize_node`).
+            j = next((k for k, (a, _) in enumerate(paren) if a.uitkomst == "vraag" and a.vragen), None)
             if j is not None:
                 return {"paren": paren, "kaart": sub.vraagkaart(delegatie_id, paren[j][0].vragen, 1)}
             return {"paren": paren}
         i = sub.eerste_vraag(kinderen)
-        if delegatie.get("soort") != "subagent" or delegatie.get("status") != "wacht" or i is None:
+        if i is None or not sub.kan_vervolgen(delegatie, kinderen[i]):
             return {"tekst": sub.AL_BEANTWOORD}
+        if kinderen[i].get("aanbod") and kinderen[i].get("uitkomst") != "vraag" and (
+                actie.get("actie") in ("overslaan", "afbreken") or _antwoord(actie) == sub.NIET_LEZEN):
+            # Nee op een aanbod: het antwoord staat al, dus er is niets te hervatten. Het aanbod vervalt.
+            kinderen[i] = {k: v for k, v in kinderen[i].items() if k not in ("aanbod", "vragen", "antwoorden")}
+            await api.wijzig_delegatie(delegatie_id, {"status": sub.eindstand(kinderen), "uitkomst": {"kinderen": kinderen}})
+            return {"tekst": AANBOD_AFGESLAGEN}
         if actie.get("actie") == "afbreken":
             await api.wijzig_delegatie(delegatie_id, {"status": "gestopt", "uitkomst": {"kinderen": kinderen,
                                                                                          "door": "gebruiker"}})
@@ -107,7 +116,8 @@ async def _verwerk(b: Bouw, state: State, stuur) -> dict[str, Any]:
         if len(antwoorden) < len(vragen):
             kinderen[i] = {**kinderen[i], "antwoorden": antwoorden}
             await api.wijzig_delegatie(delegatie_id, {"status": "wacht", "uitkomst": {"kinderen": kinderen}})
-            return {"tekst": VOLGENDE, "kaart": sub.vraagkaart(delegatie_id, vragen, len(antwoorden) + 1)}
+            return {"tekst": VOLGENDE, "kaart": sub.vraagkaart(delegatie_id, vragen, len(antwoorden) + 1,
+                                                               aanbod=bool(kinderen[i].get("aanbod")))}
         afloop, kind, weigering = await sub.hervat(
             state, delegatie_id, antwoorden, stuur, settings=b.settings, kinderen=b.kinderen, api=api,
             van="van de gebruiker", gestopt=lambda: bool(b.stop_check and b.stop_check()))
@@ -115,7 +125,8 @@ async def _verwerk(b: Bouw, state: State, stuur) -> dict[str, Any]:
             return {"tekst": weigering}
         # Wacht er nog een kind (dit kind met een nieuwe vraag, of een ander), dan de kaart voor de eerste.
         na = list(((await api.haal_delegatie(delegatie_id)).get("uitkomst") or {}).get("kinderen") or [])
-        j = sub.eerste_vraag(na)
+        # Alleen een vraag van een kind houdt de bundel op; een aanbod uit code niet.
+        j = next((k for k, x in enumerate(na) if x.get("uitkomst") == "vraag" and x.get("vragen")), None)
         kaart = sub.vraagkaart(delegatie_id, na[j]["vragen"], 1) if j is not None else None
         return {"paren": [(afloop, kind)], "kaart": kaart}
 

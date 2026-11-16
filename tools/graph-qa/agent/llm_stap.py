@@ -177,6 +177,26 @@ def _log(rol: Rol, model: str, resp: Any, begin: float, opbouw: dict[str, Any],
     return Antwoord(resp, stop, duur)
 
 
+#: Zoveel tekens van de melding van de provider gaan mee in `model_aanroep_fout`. Een melding van de provider beschrijft
+#: het verzoek ("prompt is too long: 213456 … > 200000 maximum", "Schema is too complex"), niet de inhoud.
+MAX_PROVIDERMELDING = 240
+
+
+def _log_fout(rol: Rol, model: str, fout: BaseException, begin: float, opbouw: dict[str, Any]) -> None:
+    """Een aanroep die de provider weigerde: dezelfde opbouw als `model_aanroep` (tekens per deel, de vingerafdrukken),
+    met de soort fout en het begin van de melding van de provider. Zonder deze regel was een 400 alleen in het
+    `error`-event te zien, als "paste niet binnen de grenzen", en bleef onzeker of de vraag te lang was of het schema te
+    groot (meting na het plan centrale agent na A6, 16 nov 2026: S01 en F02 na een hervatting)."""
+    body = getattr(fout, "body", None)
+    fb = body.get("error") if isinstance(body, dict) else None
+    melding = str((fb or {}).get("message") or getattr(fout, "message", "") or fout)
+    logger.warning("model_aanroep_fout", extra={
+        "categorie": "technisch", "rol": rol.naam, "model": model, "soort": type(fout).__name__,
+        "status": getattr(fout, "status_code", None), "provider_soort": str((fb or {}).get("type") or ""),
+        "provider_melding": " ".join(melding.split())[:MAX_PROVIDERMELDING],
+        "duur_ms": round((time.perf_counter() - begin) * 1000), **opbouw})
+
+
 def aanroep(llm: Any, rol: Rol, *, methoderol: str | None = None, kader: dict[str, Any] | None = None,
             **verzoek: Any) -> Antwoord:
     """Eén `llm.create`, met de kwargs zoals ze binnenkomen. Logt `model_aanroep`: geen inhoud, geen veldnaam met
@@ -193,11 +213,16 @@ def aanroep(llm: Any, rol: Rol, *, methoderol: str | None = None, kader: dict[st
             resp = llm.create(**verzoek)
     except Exception as fout:
         if verzoek.get("model") == gevraagd or not modelkeuze.is_modelfout(fout):
+            _log_fout(rol, verzoek.get("model", ""), fout, begin, k.opbouw)
             raise
         verzoek, velden = _terugval(sleutel, gevraagd, verzoek, fout)
         k = _kader(rol, verzoek, kader)
         with aanroepkader(k):
-            resp = llm.create(**verzoek)
+            try:
+                resp = llm.create(**verzoek)
+            except Exception as fout2:
+                _log_fout(rol, verzoek.get("model", ""), fout2, begin, k.opbouw)
+                raise
     return _log(rol, verzoek.get("model", ""), resp, begin, {**k.opbouw, **_profiel(k.kader), **velden}, methoderol)
 
 
@@ -216,8 +241,13 @@ class Stroom:
         return self._stream.text_deltas
 
     def final_message(self) -> Any:
-        self.antwoord = _log(self._rol, self._model, self._stream.final_message(), self._begin, self._opbouw,
-                             self._methoderol)
+        try:
+            resp = self._stream.final_message()
+        except Exception as fout:
+            # Een fout midden in de stream (HTTP 200, de fout in de body; `agent._provider_fout`).
+            _log_fout(self._rol, self._model, fout, self._begin, self._opbouw)
+            raise
+        self.antwoord = _log(self._rol, self._model, resp, self._begin, self._opbouw, self._methoderol)
         return self.antwoord.resp
 
 
@@ -237,12 +267,17 @@ def stroom(llm: Any, rol: Rol, *, methoderol: str | None = None, kader: dict[str
         s = stream.__enter__()
     except Exception as fout:
         if verzoek.get("model") == gevraagd or not modelkeuze.is_modelfout(fout):
+            _log_fout(rol, verzoek.get("model", ""), fout, begin, k.opbouw)
             raise
         verzoek, velden = _terugval(sleutel, gevraagd, verzoek, fout)
         k = _kader(rol, verzoek, kader)
         with aanroepkader(k):
             stream = llm.stream(**verzoek)
-        s = stream.__enter__()
+        try:
+            s = stream.__enter__()
+        except Exception as fout2:
+            _log_fout(rol, verzoek.get("model", ""), fout2, begin, k.opbouw)
+            raise
     try:
         yield Stroom(s, rol, verzoek.get("model", ""), begin, {**k.opbouw, **_profiel(k.kader), **velden}, methoderol)
     except BaseException as fout:
