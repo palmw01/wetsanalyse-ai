@@ -34,7 +34,7 @@ from typing import Awaitable, Callable
 
 from fastapi import HTTPException
 from pydantic import ValidationError
-from sqlalchemy import insert, select, update
+from sqlalchemy import insert, select, true, update
 
 from . import begrip_onderzoek, begrip_store, db, runs, verbruik
 from .begrip_contracts import BegripInhoud
@@ -318,14 +318,22 @@ async def zet_uitkomst(werkgebied_id: str, begrip_id: str, run_id: str, u: Kaart
 
 # --- lezen ------------------------------------------------------------------------------------
 
-async def _voorstellen_in(conn, werkgebied_id: str, begrip_id: str) -> dict:
+def _in(tabel, werkgebied_id: str | None):
+    """Welke runs of voorstellen erbij horen: die van dit werkgebied, of bij `None` (de eigen pagina van een generiek
+    begrip, ADR-006) die van elk werkgebied: Lex rekent op de passages van het werkgebied waar het gevraagd werd."""
+    return true() if werkgebied_id is None else tabel.c.werkgebied_id == werkgebied_id
+
+
+async def _voorstellen_in(conn, werkgebied_id: str | None, begrip_id: str) -> dict:
     t, r, b = db.begrip_voorstellen, db.begrip_kaartruns, db.begrippen
-    inhoud = (await conn.execute(select(b.c.inhoud).where(b.c.id == begrip_id, b.c.werkgebied_id == werkgebied_id))).scalar()
+    # Een generiek begrip dat het werkgebied gebruikt, hoort er ook bij (`in_werkgebied`).
+    waar = b.c.werkgebied_id.is_(None) if werkgebied_id is None else begrip_store.in_werkgebied(werkgebied_id)
+    inhoud = (await conn.execute(select(b.c.inhoud).where(b.c.id == begrip_id, waar))).scalar()
     if inhoud is None:
         raise HTTPException(404, "Begrip bestaat niet.")
-    rows = (await conn.execute(select(t).where(t.c.begrip_id == begrip_id, t.c.werkgebied_id == werkgebied_id)
+    rows = (await conn.execute(select(t).where(t.c.begrip_id == begrip_id, _in(t, werkgebied_id))
                                .order_by(t.c.gemaakt.desc(), t.c.volgorde))).all()
-    runs = (await conn.execute(select(r).where(r.c.begrip_id == begrip_id, r.c.werkgebied_id == werkgebied_id)
+    runs = (await conn.execute(select(r).where(r.c.begrip_id == begrip_id, _in(r, werkgebied_id))
                                .order_by(r.c.gestart.desc()))).all()
     laatste: dict[str, dict] = {}
     for x in runs:
@@ -334,10 +342,12 @@ async def _voorstellen_in(conn, werkgebied_id: str, begrip_id: str) -> dict:
     return {"voorstellen": [_voorstel(x, inhoud, status_van) for x in rows], "runs": laatste}
 
 
-async def voorstellen(werkgebied_id: str, begrip_id: str) -> dict:
-    """De voorstellen van Lex bij dit begrip (open en besloten, nieuwste eerst) en per actie de laatste run."""
+async def voorstellen(werkgebied_id: str | None, begrip_id: str) -> dict:
+    """De voorstellen van Lex bij dit begrip (open en besloten, nieuwste eerst) en per actie de laatste run. Met `None`
+    een generiek begrip, over de werkgebieden heen."""
     async with db.get_engine().connect() as conn:
-        await werkgebied_rij(conn, werkgebied_id)
+        if werkgebied_id is not None:
+            await werkgebied_rij(conn, werkgebied_id)
         return await _voorstellen_in(conn, werkgebied_id, begrip_id)
 
 
@@ -365,9 +375,9 @@ async def budget(userid: str) -> dict:
 
 # --- besluiten ----------------------------------------------------------------------------------
 
-async def _voorstel_rij(conn, werkgebied_id: str, begrip_id: str, voorstel_id: str):
+async def _voorstel_rij(conn, werkgebied_id: str | None, begrip_id: str, voorstel_id: str):
     t = db.begrip_voorstellen
-    row = (await conn.execute(select(t).where(t.c.id == voorstel_id, t.c.werkgebied_id == werkgebied_id,
+    row = (await conn.execute(select(t).where(t.c.id == voorstel_id, _in(t, werkgebied_id),
                                               t.c.begrip_id == begrip_id).with_for_update())).first()
     if row is None:
         raise HTTPException(404, "Voorstel bestaat niet.")
@@ -431,8 +441,11 @@ def _neem_veld_over(inhoud: dict, row, o: VoorstelOvername, basis_status: str = 
     return uit, aangepast
 
 
-async def overnemen(werkgebied_id: str, begrip_id: str, voorstel_id: str, o: VoorstelOvername, actor: str) -> dict:
-    """Het voorstel in het begrip, in één transactie met het besluit erover. Geeft het begrip."""
+async def overnemen(werkgebied_id: str | None, begrip_id: str, voorstel_id: str, o: VoorstelOvername, actor: str) -> dict:
+    """Het voorstel in het begrip, in één transactie met het besluit erover. Geeft het begrip.
+
+    Een generiek begrip (ADR-006) neemt een voorstel over op zijn eigen route (`werkgebied_id=None`): zijn inhoud wijzig
+    je niet vanuit een werkgebied (409 `generiek`, uit `_gewijzigd_in`)."""
     t = db.begrip_voorstellen
     detail: dict = {}
     async with db.get_engine().begin() as conn:
@@ -458,20 +471,22 @@ async def overnemen(werkgebied_id: str, begrip_id: str, voorstel_id: str, o: Voo
             begrip_revisie=revisie))
         if stand["geen_wijziging"]:
             # Het begrip draagt dit al (dezelfde vraag, hetzelfde voorbeeld): geen revisie, wel het besluit.
-            await werkgebied_audit(conn, werkgebied_id, actor, "voorstel-overgenomen",
+            await werkgebied_audit(conn, werkgebied_id or row.werkgebied_id, actor, "voorstel-overgenomen",
                                    {**detail, "begrip_id": begrip_id, "begrip_revisie": revisie, "geen_wijziging": True})
     return await begrip_store.haal(werkgebied_id, begrip_id)
 
 
-async def afwijzen(werkgebied_id: str, begrip_id: str, voorstel_id: str, reden: str, actor: str) -> dict:
-    """Het voorstel blijft bewaard, met wie het afwees en waarom; het begrip verandert niet."""
+async def afwijzen(werkgebied_id: str | None, begrip_id: str, voorstel_id: str, reden: str, actor: str) -> dict:
+    """Het voorstel blijft bewaard, met wie het afwees en waarom; het begrip verandert niet. Met `None` op de eigen
+    pagina van een generiek begrip: de auditregel gaat naar het werkgebied waar het voorstel ontstond."""
     t = db.begrip_voorstellen
     async with db.get_engine().begin() as conn:
-        await werkgebied_rij(conn, werkgebied_id, slot=True)
+        if werkgebied_id is not None:
+            await werkgebied_rij(conn, werkgebied_id, slot=True)
         row = await _voorstel_rij(conn, werkgebied_id, begrip_id, voorstel_id)
         await conn.execute(update(t).where(t.c.id == voorstel_id).values(
             status="afgewezen", reden=reden.strip(), besloten_door=actor, besloten_op=db.utcnow()))
-        await werkgebied_audit(conn, werkgebied_id, actor, "voorstel-afgewezen",
+        await werkgebied_audit(conn, werkgebied_id or row.werkgebied_id, actor, "voorstel-afgewezen",
                                {"voorstel_id": voorstel_id, "begrip_id": begrip_id, "actie": row.actie,
                                 "veld": row.veld, "reden": reden.strip()})
         return await _voorstellen_in(conn, werkgebied_id, begrip_id)

@@ -439,6 +439,16 @@ def test_uitwerken_volgt_de_methode():
     assert [c[3] for c in api.calls if c[0] == "start"] == ["brondefinitie", "voorbeelden"]
 
 
+def test_de_vindplaatsregel_is_geen_toelichting_bij_het_uitwerken():
+    """Bij het aanmaken krijgt een begrip "Komt voor in …" als toelichting. De poort telt die niet, dus Lex stelt er
+    een toelichting voor in de plaats van (acceptatie 16 nov 2026: belanghebbende bleef zonder toelichting)."""
+    api = KaartApi([], begrip={"status": "concept", "inhoud": {
+        "naam": "Belanghebbende", "definitie": "degene wiens belang rechtstreeks bij een besluit is betrokken.",
+        "context": "Komt voor in Artikel 25 · Lid 1 – Algemene wet inkomensafhankelijke regelingen."}})
+    _taak(api, "uitwerken", begrip_id="b1")
+    assert [c[3] for c in api.calls if c[0] == "start"] == ["brondefinitie", "uitleg", "toelichting", "voorbeelden"]
+
+
 def test_uitwerken_zonder_definitie_levert_alles_in_een_beurt_op_de_voorgestelde():
     """B-6: zonder overgenomen definitie komen de uitleg, de toelichting en de voorbeelden in dezelfde beurt, en ze
     rusten op het definitievoorstel van deze beurt (het eerste, de sterkste plaats)."""

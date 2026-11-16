@@ -1869,8 +1869,14 @@ export async function beantwoordVraag(id: string, runId: string, kandidaatId: st
 
 // --- Lex naast de kaart (spoor D, fase E) ---------------------------------------------------------
 
+/** De voorstellen van Lex bij een begrip. Met `id` leeg: een generiek begrip op zijn eigen route (ADR-006), met de
+ *  voorstellen uit elk werkgebied dat het gebruikt; daar beslis je ze ook. */
+function voorstellenPad(id: string, begripId: string, ...rest: string[]): string {
+  return id ? wg(id, "begrippen", begripId, "voorstellen", ...rest) : generiek(begripId, "voorstellen", ...rest);
+}
+
 export async function haalKaartVoorstellen(id: string, begripId: string): Promise<KaartVoorstellenAntwoord> {
-  return json<KaartVoorstellenAntwoord>(await fetch(wg(id, "begrippen", begripId, "voorstellen"), { cache: "no-store" }));
+  return json<KaartVoorstellenAntwoord>(await fetch(voorstellenPad(id, begripId), { cache: "no-store" }));
 }
 
 /** Een voorstel in het begrip. Met `aanpassing` is het van de analist; een veranderde definitie geeft
@@ -1879,12 +1885,12 @@ export async function neemKaartVoorstelOver(
   id: string, begripId: string, voorstelId: string, revisie: number,
   extra: { aanpassing?: string; oordeel?: VoorbeeldOordeel; nu_gezien?: string } = {},
 ): Promise<Begrip> {
-  return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "voorstellen", voorstelId, "overnemen"),
+  return json<Begrip>(await fetch(voorstellenPad(id, begripId, voorstelId, "overnemen"),
     jsonInit("POST", { verwachte_revisie: revisie, ...extra })));
 }
 
 export async function wijsKaartVoorstelAf(id: string, begripId: string, voorstelId: string, reden = ""): Promise<KaartVoorstellenAntwoord> {
-  return json<KaartVoorstellenAntwoord>(await fetch(wg(id, "begrippen", begripId, "voorstellen", voorstelId, "afwijzen"),
+  return json<KaartVoorstellenAntwoord>(await fetch(voorstellenPad(id, begripId, voorstelId, "afwijzen"),
     jsonInit("POST", { reden })));
 }
 

@@ -241,7 +241,8 @@ function Groep({ titel, nlsbb, children }: { titel: string; nlsbb: string; child
 /** De voorstellen van Lex bij één veld, met *Overnemen · Aanpassen · Afwijzen*. Overnemen staat uit zolang er iets
  *  onbewaard openstaat: er wordt niets stil overschreven. */
 function VanLex({ stand, begrip, veld, onbewaard }: { stand: BegripStand; begrip: Begrip; veld: KaartVeld; onbewaard: boolean }) {
-  if (stand.alleenLezen || begrip.status === "vervangen" || begrip.kader === "generiek") return null;
+  // Een generiek begrip beslis je op zijn eigen pagina (ADR-006), niet vanuit een werkgebied.
+  if (stand.alleenLezen || begrip.status === "vervangen" || generiekHier(stand, begrip)) return null;
   const open = openPerVeld(stand.voorstellen)[veld];
   if (!open.length) return null;
   return (
