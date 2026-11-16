@@ -31,8 +31,6 @@ interface Props {
   /** Mobiel: staat de off-canvas drawer open, en hoe sluit hij. */
   drawerOpen?: boolean;
   onDrawerSluit?: () => void;
-  /** Start de rondleiding opnieuw (alleen de werkplek geeft dit mee). */
-  onRondleiding?: () => void;
   /** De voorbeeldlijst van de rondleiding. Is die gezet, dan draait de sidebar als demo: de lijst
    *  komt hiervandaan en hernoemen/verwijderen blijven in dit geheugen – er gaat geen enkel verzoek
    *  naar de api. Zonder dit hing de rondleiding af van wat er in het account staat, en dat is bij
@@ -68,7 +66,7 @@ const LEGE_PAGINA: Pagina = { lijst: null, meer: false, aantal: GESPREK_PAGINA, 
  *  lokale state, op het overzicht navigeert hij terug naar de werkplek. */
 export function AppSidebar({
   activeId, onNieuw, onNieuwInWerkgebied, onOpen, onVerplaatst, onVerwijderd, onFout, onLijst, verversSignaal = 0,
-  drawerOpen = false, onDrawerSluit, onRondleiding, demoGesprekken, verbruik = null, runStanden,
+  drawerOpen = false, onDrawerSluit, demoGesprekken, verbruik = null, runStanden,
 }: Props) {
   const [gesprekken, setGesprekken] = useState<GesprekSamenvatting[]>(demoGesprekken ?? []);
   // De stand van elk deelgesprek (ADR-016 §A5), uit de delegaties van zijn ouder; niet in de rondleiding.
@@ -335,7 +333,6 @@ export function AppSidebar({
         verversLijst();
       }}
       onSluit={extra?.onSluit}
-      onRondleiding={onRondleiding}
       verbruik={verbruik}
     />
   );

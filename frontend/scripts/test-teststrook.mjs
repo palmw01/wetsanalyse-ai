@@ -7,7 +7,7 @@
  *  - het kruisje (*Melding testomgeving verbergen*) klikt de strook weg;
  *  - na herladen en in een tweede tab blijft hij weg, en een tab die al openstond volgt;
  *  - uitloggen via het gebruikersmenu en opnieuw inloggen brengt hem terug, net als een ander account;
- *  - *Voorwaarden testomgeving* in het gebruikersmenu opent de voorwaarden.
+ *  - het gebruikersmenu draagt de voorwaarden niet: die staan in de strook.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -39,7 +39,7 @@ const kruisje = (page) => page.getByRole("button", { name: "Melding testomgeving
 /** Het gebruikersmenu onderin de sidebar; op een telefoon eerst de drawer. */
 async function openMenu(page, smal) {
   if (smal) await page.getByRole("button", { name: "Menu openen" }).click();
-  await page.getByRole("button", { name: /· instellingen/ }).click();
+  await page.getByRole("button", { name: /^Menu van / }).click();
 }
 
 async function ronde(breedte) {
@@ -71,20 +71,19 @@ async function ronde(breedte) {
 
     // --- Herladen en een tweede tab ---
     await page.reload();
-    await page.getByRole("button", { name: /· instellingen/ }).or(page.getByRole("button", { name: "Menu openen" })).first().waitFor();
+    await page.getByRole("button", { name: /^Menu van / }).or(page.getByRole("button", { name: "Menu openen" })).first().waitFor();
     assert.equal(await strook(page).count(), 0, "na herladen blijft de strook weg");
     const tweede = await context.newPage();
     await tweede.goto(`${base}/workbench`);
-    await tweede.getByRole("button", { name: /· instellingen/ }).or(tweede.getByRole("button", { name: "Menu openen" })).first().waitFor();
+    await tweede.getByRole("button", { name: /^Menu van / }).or(tweede.getByRole("button", { name: "Menu openen" })).first().waitFor();
     assert.equal(await strook(tweede).count(), 0, "in een tweede tab blijft de strook weg");
     await tweede.close();
 
-    // --- De voorwaarden blijven bereikbaar ---
+    // --- Het gebruikersmenu draagt de voorwaarden niet (besluit gebruiker 16 nov 2026): die staan in de strook ---
     await openMenu(page, smal);
-    await page.getByRole("link", { name: "Voorwaarden testomgeving" }).click();
-    await page.waitForURL("**/disclaimer");
-    await page.getByText("Testomgeving, geen productie").waitFor();
-    if (process.env.SCREENSHOT_DIR) await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/teststrook-voorwaarden-${breedte}.png` });
+    await page.getByRole("link", { name: "Instellingen", exact: true }).waitFor();
+    assert.equal(await page.getByRole("link", { name: "Voorwaarden testomgeving" }).count(), 0, "geen voorwaarden in het menu");
+    await page.keyboard.press("Escape");
     await page.goto(`${base}/workbench`);
 
     // --- Uitloggen en opnieuw inloggen ---
@@ -140,7 +139,7 @@ try {
   await ronde(375);
   await ronde(1280);
   assert.deepEqual(errors, []);
-  console.log("Browser OK: teststrook wegklikbaar op 375 en 1280 px; weg na herladen, in een tweede tab en in een open tab; terug na uitloggen en inloggen en bij een ander account; voorwaarden via het gebruikersmenu.");
+  console.log("Browser OK: teststrook wegklikbaar op 375 en 1280 px; weg na herladen, in een tweede tab en in een open tab; terug na uitloggen en inloggen en bij een ander account; geen voorwaarden in het gebruikersmenu.");
 } finally {
   await browser.close();
 }

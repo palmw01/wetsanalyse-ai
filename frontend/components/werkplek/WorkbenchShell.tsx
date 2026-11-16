@@ -418,7 +418,6 @@ export function WorkbenchShell({
         verversSignaal={verversSignaal}
         drawerOpen={drawerOpen}
         onDrawerSluit={() => setDrawerOpen(false)}
-        onRondleiding={startRondleiding}
         demoGesprekken={demo?.gesprekken}
         verbruik={verbruik}
         runStanden={demo ? undefined : runStanden.standen}

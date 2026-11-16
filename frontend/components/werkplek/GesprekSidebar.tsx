@@ -14,6 +14,7 @@ import { FeedbackDialoog } from "@/components/FeedbackDialoog";
 import { GesprekLijst, type GesprekLijstStand } from "@/components/werkplek/GesprekLijst";
 import { Meter } from "@/components/ui/Meter";
 import { knopKlasse } from "@/components/ui/Button";
+import { MENU_PANEEL, MENU_RIJ } from "@/components/ui/Menu";
 import { wisDisclaimer } from "@/lib/api";
 import { verbruikSamenvatting } from "@/lib/tokenbudget";
 import type { GesprekSamenvatting, Verbruiksstand } from "@/lib/types";
@@ -45,9 +46,6 @@ interface Props {
   onOpnieuw?: () => void;
   /** Alleen mobiel: sluitknop voor de drawer. */
   onSluit?: () => void;
-  /** Start de rondleiding opnieuw. Weglaten verbergt het menu-item – op schermen zonder werkplek
-   *  valt er niets rond te leiden. */
-  onRondleiding?: () => void;
   /** De eigen verbruiksstand. `null` = nog niet geladen of niet beschikbaar; dan blijft de regel weg
    *  in plaats van een nul te tonen die niets betekent. */
   verbruik?: Verbruiksstand | null;
@@ -70,7 +68,6 @@ export function GesprekSidebar({
   laadFout = null,
   onOpnieuw,
   onSluit,
-  onRondleiding,
   verbruik = null,
 }: Props) {
   const { data: session } = useSession();
@@ -83,6 +80,8 @@ export function GesprekSidebar({
   const menuRef = useRef<HTMLDivElement>(null);
   const isBeheerder = session?.user?.role === "beheerder";
   const naam = session?.user?.userid ?? session?.user?.email ?? "";
+  const email = session?.user?.email ?? "";
+  const rol = isBeheerder ? "Beheerder" : "Analist";
 
   // Sluit de instellingen-popover bij Escape of een klik buiten het blok.
   useEffect(() => {
@@ -216,66 +215,40 @@ export function GesprekSidebar({
       {/* Instellingen + gebruiker (onderin) */}
       <div data-tour="gebruikersmenu" ref={menuRef} className="relative border-t border-line px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
         {menuOpen && (
-          <div className="absolute inset-x-3 bottom-full mb-1 overflow-hidden rounded-kaart border border-line bg-paper shadow-kaart">
-            <InstellingenLink
-              tab="account"
-              className="block px-3 py-2.5 text-sm text-ink transition-colors hover:bg-surface"
-              onClick={() => setMenuOpen(false)}
-            >
-              Account &amp; instellingen
+          // Ingedeeld zoals het menu van Claude: wie je bent bovenaan, dan Instellingen als één ingang naar het hele
+          // venster en wat je daaruit vaak nodig hebt, en onderaan uitloggen. De rondleiding staat in het venster
+          // (tab Rondleiding), de voorwaarden in de strook bovenaan.
+          <div className={`absolute inset-x-3 bottom-full mb-1 ${MENU_PANEEL}`}>
+            <div className="px-2.5 pb-1.5 pt-1" data-menu-kop>
+              <p className="truncate text-sm font-medium text-ink">{naam || "Gebruiker"}</p>
+              <p className="truncate text-3xs text-faint">
+                {email && email !== naam ? `${email} · ${rol}` : rol}
+              </p>
+            </div>
+            <Scheiding />
+            <InstellingenLink tab="account" className={MENU_RIJ} onClick={() => setMenuOpen(false)}>
+              Instellingen
             </InstellingenLink>
-            <InstellingenLink
-              tab="verbruik"
-              className="block px-3 py-2.5 text-sm text-ink transition-colors hover:bg-surface"
-              onClick={() => setMenuOpen(false)}
-            >
-              Mijn verbruik
+            <InstellingenLink tab="verbruik" className={MENU_RIJ} onClick={() => setMenuOpen(false)}>
+              Verbruik
             </InstellingenLink>
             {isBeheerder && (
-              <InstellingenLink
-                tab="gebruikers"
-                className="block px-3 py-2.5 text-sm text-ink transition-colors hover:bg-surface"
-                onClick={() => setMenuOpen(false)}
-              >
+              <InstellingenLink tab="gebruikers" className={MENU_RIJ} onClick={() => setMenuOpen(false)}>
                 Beheer
               </InstellingenLink>
             )}
-            {onRondleiding && (
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onSluit?.();
-                  onRondleiding();
-                }}
-                className="block w-full px-3 py-2.5 text-left text-sm text-ink transition-colors hover:bg-surface"
-              >
-                Rondleiding
-              </button>
-            )}
-            {/* De voorwaarden blijven bereikbaar als de strook bovenaan is weggeklikt (opent als dialog). */}
-            <Link
-              href="/disclaimer"
-              onClick={() => setMenuOpen(false)}
-              className="block px-3 py-2.5 text-sm text-ink transition-colors hover:bg-surface"
-            >
-              Voorwaarden testomgeving
-            </Link>
             <button
               type="button"
               onClick={() => {
                 setMenuOpen(false);
                 setFeedbackOpen(true);
               }}
-              className="block w-full px-3 py-2.5 text-left text-sm text-ink transition-colors hover:bg-surface"
+              className={MENU_RIJ}
             >
               Feedback geven
             </button>
-            <button
-              type="button"
-              onClick={() => void uitloggen()}
-              className="block w-full px-3 py-2.5 text-left text-sm text-fout transition-colors hover:bg-fout/10"
-            >
+            <Scheiding />
+            <button type="button" onClick={() => void uitloggen()} className={`${MENU_RIJ} text-fout`}>
               Uitloggen
             </button>
           </div>
@@ -284,6 +257,7 @@ export function GesprekSidebar({
           type="button"
           onClick={() => setMenuOpen((o) => !o)}
           aria-expanded={menuOpen}
+          aria-label={`Menu van ${naam || "gebruiker"}`}
           className="flex min-h-[44px] w-full items-center gap-2.5 rounded-kaart px-2 py-2 text-left transition-colors hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lint"
         >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-lint text-xs font-semibold text-paper">
@@ -309,7 +283,7 @@ export function GesprekSidebar({
               </>
             ) : (
               <span className="block truncate text-3xs text-faint">
-                {isBeheerder ? "Beheerder" : "Analist"} · instellingen
+                {rol}
               </span>
             )}
           </span>
@@ -322,4 +296,9 @@ export function GesprekSidebar({
       {feedbackOpen && <FeedbackDialoog onSluit={() => setFeedbackOpen(false)} />}
     </div>
   );
+}
+
+/** Een lijn tussen de delen van het gebruikersmenu. */
+function Scheiding() {
+  return <div role="separator" className="my-1 border-t border-line" />;
 }
