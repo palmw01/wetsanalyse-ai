@@ -65,6 +65,21 @@ def scope_stand(werkgebied: dict, vraag: str, kandidaten: list[str]) -> str:
     return hashlib.sha256(json.dumps(data, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:16]
 
 
+def voorstel_volgorde(voorstel: dict) -> tuple:
+    """De vaste volgorde van de voorstellen bij een deelvraag (`GET …/bronselectie`, `deelvragen[].kandidaten`). Een
+    contract: de werkplek toont deze lijst en Lex Bench meet hem (plan Lex Bench §4.4), dus verandert hij stil, dan
+    verandert de meting zonder dat Lex veranderde (testplan api V8, `tests/test_voorstel_volgorde.py`).
+
+    1. de rol: kern, afhankelijkheid, aanverwant (`ROL_VOLGORDE`), een onbekende rol achteraan;
+    2. de sterkste soort bewijs (`BEWIJS_VOLGORDE`: grondslag, genoemd, verwijzing, definitie, structuur, tekst,
+       gelijkenis), zonder bewijs als tekst;
+    3. meer bewijs eerst;
+    4. het label, en dan de bron-IRI: zo is de volgorde bij gelijke rest altijd dezelfde.
+    """
+    return (ROL_VOLGORDE.get(voorstel["rol"], 9), BEWIJS_VOLGORDE.get((voorstel["bewijs_soorten"] or ["tekst"])[0], 9),
+            -voorstel.get("_bewijzen", 0), voorstel["label"], voorstel["bron_iri"])
+
+
 def bewijs_soorten(bewijs: list[dict]) -> list[str]:
     soorten = {BEWIJS_SOORT.get(b.get("methode", ""), "tekst") for b in bewijs}
     return sorted(soorten, key=lambda s: BEWIJS_VOLGORDE.get(s, 9))
@@ -222,8 +237,9 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
                           # Een deel opgenomen in plaats van het geheel: welke leden of onderdelen (anders leeg).
                           "opgenomen_delen": [{"bron_iri": i, "label": sel_per_iri[i].label} for i in delen_hier
                                               if i != kd.bron_iri]})
-        lijst.sort(key=lambda x: (ROL_VOLGORDE.get(x["rol"], 9), BEWIJS_VOLGORDE.get(
-            (x["bewijs_soorten"] or ["tekst"])[0], 9), -x.pop("_bewijzen"), x["label"], x["bron_iri"]))
+        lijst.sort(key=voorstel_volgorde)
+        for x in lijst:
+            x.pop("_bewijzen")
         telling = {st: sum(1 for x in lijst if x["stand"] == st) for st in STANDEN_TELLING}
         telling["opgenomen"] = len(bronnen)
         stand_nu = scope_stand(werkgebied, vraag["vraag"] if not alleen else "", [x["id"] for x in lijst])
