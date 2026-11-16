@@ -7,6 +7,10 @@ vervangen. Wat over de draad gaat, en de bronsnapshot die graph-qa daarbij bouwd
 `tests/poort/data/naad_minicasus.json`; `api/tests/test_naad_minicasus.py` neemt precies dat voorbeeld als invoer voor de
 keten in de api (opnemen, werkvoorraad, batch, beslissing, projectie, begrip, export). Verandert de vorm aan deze kant,
 dan faalt deze test; werk het voorbeeld dan bewust bij met `NAAD_OPNEMEN=1` en laat de api-test zeggen of het past.
+
+De taalanalyse staat vast op de provider zonder model (`null`). De naad gaat over de vorm tussen graph-qa en de api, niet
+over de zinsontleding, en de poort heeft het spaCy-model niet: met het model erbij zou het voorbeeld lokaal anders zijn
+dan in CI.
 """
 from __future__ import annotations
 
@@ -29,6 +33,14 @@ pytestmark = pytest.mark.risico("R21", laag=2)
 VOORBEELD = Path(__file__).resolve().parents[3] / "tests" / "poort" / "data" / "naad_minicasus.json"
 #: Wat per run verschilt en dus niet in het voorbeeld hoort.
 VLUCHTIG = {"batch_id", "run", "beslisregister"}
+
+
+@pytest.fixture(autouse=True)
+def _zonder_taalmodel(monkeypatch):
+    from agent.jas_pipeline import keten
+    from agent.jas_pipeline.taal import maak_provider
+
+    monkeypatch.setattr(keten, "_provider", lambda _spec: maak_provider("null"))
 
 
 def _gestript(batch: dict) -> dict:
