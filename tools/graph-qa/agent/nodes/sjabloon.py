@@ -153,8 +153,10 @@ def vul_aanroep(b: Bouw, state: State, tu: dict[str, Any]) -> tuple[dict[str, An
     if bij := _zoek_vooraf(b, state, tu):
         state = {**state, "source_trace": [*(state.get("source_trace") or []), *bij]}
     bijgezocht = {"source_trace": list(state.get("source_trace") or [])} if bij else {}
+    from ..subagent import stukkengrens
+
     try:
-        antwoord = vul(tu["name"], tu.get("input") or {}, controletrace(state))
+        antwoord = vul(tu["name"], tu.get("input") or {}, controletrace(state), max_stukken=stukkengrens(state))
     except Onvulbaar as fout:
         logger.warning("sjabloon niet te vullen", extra={"categorie": "functioneel", "run_id": state.get("run_id", ""),
                                                          "sjabloon": tu["name"], "reden": str(fout),

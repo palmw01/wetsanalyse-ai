@@ -680,6 +680,19 @@ def ontbrekende_rapporten(subagenten: Iterable[dict[str, Any]], antwoord: dict[s
     return [a for a in kinderen if not any(_genoemd(list(s), behandeld, ids) for s in a["stukken"])]
 
 
+def stukkengrens(state: dict[str, Any]) -> int | None:
+    """Hoeveel stukken naast de wet het antwoord van de centrale agent mag tonen na de rapporten van zijn subagents: elk
+    stuk waarover een rapport gaat, tussen `extern.MAX_STUKKEN` en `MAX_STUKKEN_RAPPORT`, of None (de gewone grens). Een
+    rapport mag tien stukken citeren en het antwoord daarna vier: zo vielen gelezen en samengevatte arresten weg (meting
+    F02 na #1629: zes in het rapport, vier in het antwoord)."""
+    from .sjablonen.extern import MAX_STUKKEN, MAX_STUKKEN_RAPPORT
+
+    if state.get("opdracht"):
+        return None
+    ids = {str(s[0]) for a in state.get("subagenten") or [] if a.get("rapport") for s in a.get("stukken") or [] if s}
+    return min(max(len(ids), MAX_STUKKEN), MAX_STUKKEN_RAPPORT) if len(ids) > MAX_STUKKEN else None
+
+
 #: Het voorvoegsel van de bewering voor `correct_node`: geen feit zonder bron, maar een rapport dat ontbreekt.
 RAPPORT_ONTBREEKT = "rapport ontbreekt: "
 #: Zoveel stukken noemt de bewering bij naam.

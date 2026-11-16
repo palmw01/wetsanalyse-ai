@@ -42,7 +42,7 @@ from ..resultaat import is_fout
 from ..agentvorm import CENTRAAL, CENTRAAL_BREED, STANDAARD as DEFAULT_SPECIALIST, agent_van
 from ..overdracht import OVERDRACHT
 from ..state import State
-from ..subagent import RAPPORT_ONTBREEKT, open_aanbod, open_vraag, vraagkaart, zonder_rapport
+from ..subagent import RAPPORT_ONTBREEKT, open_aanbod, open_vraag, stukkengrens, vraagkaart, zonder_rapport
 from ..bronstand import prompt_blok as bronstand_blok
 from ..bronstand import waar as bronstand_waar
 from ..tool_execution import execute_tool
@@ -1138,8 +1138,8 @@ def correct_node(b: Bouw, state: State) -> dict[str, Any]:
         opdrachten.append(
             f"Je antwoord behandelt {'; '.join(ontbreekt)} niet: het staat er hoogstens als aantal onder twijfel. Neem dat "
             "rapport mee zoals de andere: zijn gelezen stukken bij id of naam, met wat het rapport erover vond, in een "
-            f"blok '{EXTERN_VELD}' (samen hoogstens {MAX_EXTERN} stukken; verdeel ze over de rapporten) of in het korte "
-            "antwoord. Bracht het niets bruikbaars, zeg dan dat, en noem de stukken. Laat de rest van je antwoord staan.")
+            f"blok '{EXTERN_VELD}' (samen hoogstens {stukkengrens(state) or MAX_EXTERN} stukken; verdeel ze over de "
+            "rapporten) of in het korte antwoord. Bracht het niets bruikbaars, zeg dan dat, en noem de stukken. Laat de rest van je antwoord staan.")
     if beweringen and rapport_steun(state) is not None and not state.get("opdracht"):
         # Na een rapport kan de centrale agent een stuk niet zelf nalezen (`na_subagent`), dus "haal het op" kan hij niet
         # opvolgen, en herformuleerde hij de zin (E2E Rekeningafspraken, 16 nov 2026, B-3). Wat het rapport niet draagt,
