@@ -1,0 +1,2 @@
+verrekening-concept | standaard | kandidaten 44 | zonder deelvraag 18 | kern 44 | verwacht nodig gevonden 7/18 | uitgesloten 1 | methoden ['deelvraag', 'grondslag', 'overzicht']
+verrekening-concept | overzicht_streng | kandidaten 28 | zonder deelvraag 2 | kern 28 | verwacht nodig gevonden 7/18 | uitgesloten 1 | methoden ['deelvraag', 'grondslag']
