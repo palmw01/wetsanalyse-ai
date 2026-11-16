@@ -217,8 +217,11 @@ def test_een_subagent_start_een_kindgesprek_wacht_en_geeft_zijn_rapport():
     [(verzoek, wie, ouder)] = gestart
     assert (wie, ouder, verzoek.profiel, verzoek.opdracht, verzoek.conversation_id) == ("jurist", "ouder-run", "bepalingen_duiden", OPDRACHT, "kind-1")
     assert verzoek.question == sub.opdracht_tekst(OPDRACHT) and verzoek.bronnen == ["rechtspraak"]
-    assert [(e["type"], e["fase"]) for e in events] == [("regie", "start"), ("regie_taak", "start"), ("regie_taak", "eind"),
-                                                          ("regie", "eind")]
+    assert [(e["type"], e["fase"]) for e in events if e["type"] != "status"] == [
+        ("regie", "start"), ("regie_taak", "start"), ("regie_taak", "eind"), ("regie", "eind")]
+    # Wat het kind opleverde staat in het denkproces van de ouder (E2E 16 nov 2026).
+    assert [e["message"] for e in events if e["type"] == "status"] == [
+        "Subagent (bepalingen_duiden) · klaar, met een rapport: 1 aanroep, 2 gelezen"]  # het artikel en zijn lid
     assert all(e.get("soort") == "subagent" for e in events if e["type"] == "regie")
     assert all(e.get("profiel") == "bepalingen_duiden" for e in events if e["type"] == "regie_taak")
     # Het rapport, en uit code wat het kind las (`gelezen_tekst`).

@@ -190,16 +190,18 @@ def subagent_route_node(b: Bouw, state: State) -> dict[str, Any]:
     writer = get_stream_writer()
     vraag = " ".join((state.get("question") or "").split())
     if b.kinderen is None or not state.get("gesprek_id") or not getattr(b.settings, "legt_zelf_vast", False):
+        # De ingang zei al dat een subagent het werk doet: zeg dan ook dat het niet zo liep.
+        _stap(writer, "Lex", "kan hier geen subagent starten en beantwoordt de vraag zelf", route=CENTRAAL)
         return {"specialist": CENTRAAL, "subagent_plan": []}
     [eerste, *_] = state.get("subagent_plan") or als_state(
         [(PROFIEL, SubagentOpdracht(doel=vraag, oplevering="Per stuk de kern, met de passages die haar dragen."))])
     profiel, opdracht = eerste["profiel"], SubagentOpdracht(**eerste["opdracht"])
-    _stap(writer, "Lex", f"zet een subagent ({profiel}) aan het werk op je vraag", route="subagent")
     afloop, kind, weigering = draai(
         lambda stuur: sub.voer_uit(state, profiel, opdracht, stuur, settings=b.settings, kinderen=b.kinderen,
                                    gestopt=lambda: bool(b.stop_check and b.stop_check())),
         loop=b.loop, schrijf=writer)
     if weigering:
+        _stap(writer, "Lex", "kon geen subagent starten en beantwoordt de vraag zelf", route=CENTRAAL)
         return {"specialist": CENTRAAL, "subagent_plan": []}
     trace = list(state.get("source_trace") or []) + [tuple(x) for x in kind.get("source_trace") or []]
     rapport = sub.als_toolresultaat(profiel, afloop.uitkomst, sub.rapport_tekst(afloop, kind))

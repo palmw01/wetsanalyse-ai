@@ -148,6 +148,12 @@ class BeurtSchrijver:
         # volgorde): de werkplek haalt hun stand na herladen bij `/v1/delegaties`.
         self.delegaties: list[str] = []
 
+    def heeft_inhoud(self) -> bool:
+        """Draagt het bericht iets anders dan tekst dat de jurist leest of beantwoordt (een kaart, een artefact, een
+        overzicht, een sjabloon, kandidaten)?"""
+        return bool(self.vraagkaart or self.artefact or self.bevestiging or self.overzicht or self.antwoord
+                    or self.kandidaten or self.elementen)
+
     def verwerk(self, event: dict[str, Any]) -> None:
         """Eén event bijhouden. Dezelfde toewijzing als de handlers in de werkplek."""
         soort = event.get("type")
@@ -530,8 +536,9 @@ async def _leg_vast(
                 tekst += slot
                 yield {"type": "token", "content": slot}
             bericht |= {
-                # Bij een fout zegt `uitkomst` wat er is; een "(geen antwoord)" erboven is dan geen informatie.
-                "tekst": tekst or ("" if schrijver.fout else "(geen antwoord)"),
+                # Bij een fout zegt `uitkomst` wat er is, en bij een kaart, artefact of bevestiging is dat het antwoord: een
+                # "(geen antwoord)" erboven is dan geen informatie (E2E 16 nov 2026, D-14).
+                "tekst": tekst or ("" if schrijver.fout or schrijver.heeft_inhoud() else "(geen antwoord)"),
                 "denk": schrijver.denk,
                 "bronnen": schrijver.bronnen,
                 **({"grounding": schrijver.grounding} if schrijver.grounding else {}),

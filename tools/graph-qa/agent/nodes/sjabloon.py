@@ -121,6 +121,14 @@ NA_SUBAGENT_SJABLOON = ("\n\nEen subagent las de bronnen; zelf lezen kan nu niet
                         "de citaten uit zijn rapport zet de code onder je antwoord.")
 
 
+def _schrijver() -> Any:
+    """De writer van de node, of een die niets doet buiten een graaf (een test die `vul_aanroep` los aanroept)."""
+    try:
+        return get_stream_writer()
+    except Exception:  # noqa: BLE001 – geen graaf, geen stroom
+        return lambda _event: None
+
+
 def na_subagent_weigering(state: State, tekst: str) -> str:
     """De weigering van een sjabloon voor de centrale agent na een rapport: zonder de opdracht om zelf op te halen, want
     die weigert `tools_node` dan (`na_subagent`; A6 run 2, S03 en S04: 11 en 9 geweigerde aanroepen in één ronde, daarna
@@ -160,6 +168,10 @@ def vul_aanroep(b: Bouw, state: State, tu: dict[str, Any]) -> tuple[dict[str, An
         # tot de beurtlimiet (iteratie wetgeving_live ronde 5, I12: twee weigeringen, 8 rondes, 213k; I28 twee).
         eerder = sum((state.get("sjabloon_telling") or {}).get("geweigerd", {}).values())
         tekst += TEKST_NU if eerder and not fout.ophalen else OPNIEUW.format(naam=tu["name"])
+        # Een geweigerd sjabloon is een stap die gebeurde: zonder deze regel zag de jurist een tweede poging of een
+        # tekstantwoord zonder te weten waarom (E2E Rekeningafspraken 16 nov 2026, D-5: geweigerde stappen ontbraken).
+        _stap(_schrijver(), "Lex", "het antwoord paste niet in het sjabloon – " + (
+            "antwoordt in tekst" if eerder and not fout.ophalen else "stelt het opnieuw op"))
         return (resultaat(tekst, is_error=True), [],
                 {**bijgezocht, **({"source_trace": trace} if fout.ophalen else {}),
                  # Een tekstantwoord na een weigering is het antwoord: geen herhaalverzoek meer (`nodes/antwoord`).
