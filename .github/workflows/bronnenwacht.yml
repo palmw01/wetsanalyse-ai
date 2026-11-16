@@ -10,7 +10,7 @@
 # faalt zichtbaar: GitHub meldt een mislukte geplande run, en de samenvatting zegt wat er brak. Een storing van de
 # dienst heet `DIENST ONBEREIKBAAR`; elke andere fout is een veranderd contract.
 #
-# HOE. Per connector `tools/graph-qa/tests/test_<naam>_live.py` met de marker `live` (afgedwongen door
+# HOE. Per connector `tools/graph-qa/tests/connectors/test_<naam>_live.py` met de marker `live` (afgedwongen door
 # `test_connectorbeschrijving.py`). Geen graaf, geen model, geen secrets: de bronnen zijn openbaar. `--frozen` is
 # nodig: zonder controleert uv de lock en haalt hij het spaCy-wiel (extra `nlp`) van GitHub, ook als het niet wordt
 # geïnstalleerd – precies de storing die de wacht niet mag erven.
@@ -46,7 +46,7 @@ jobs:
           BRONNEN_LIVE: "1"
         run: |
           set -o pipefail
-          uv run --no-sync pytest -m live -q -rfE tests/test_*_live.py 2>&1 | tee /tmp/live.txt
+          uv run --no-sync pytest -m live -q -rfE tests/connectors/test_*_live.py 2>&1 | tee /tmp/live.txt
       - name: Samenvatting
         if: always()
         run: |

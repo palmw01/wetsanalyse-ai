@@ -1,7 +1,20 @@
-"""Gedeeld voor de hele suite."""
+"""Gedeeld voor de hele suite.
+
+De tests staan in een map per mechanisme (`tests/README.md`). De hulpmodules (`fakes`, `bron_fakes`) staan hier, en een
+test leest soms een helper uit een test in een andere map (`from test_subagent import …`). Daarom gaan alle mappen op het
+importpad, zodat dat niet afhangt van welk bestand pytest eerst verzamelde.
+"""
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import pytest
+
+_HIER = Path(__file__).resolve().parent
+for _map in sorted(p for p in _HIER.iterdir() if p.is_dir() and any(p.glob("test_*.py"))):
+    if str(_map) not in sys.path:
+        sys.path.insert(0, str(_map))
 
 from agent import narratie, procestoestand
 

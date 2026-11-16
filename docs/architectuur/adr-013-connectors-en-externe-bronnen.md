@@ -61,7 +61,7 @@ graph-qa, het register – en niets per connector met de hand. Een nieuwe connec
 veld `specialisten` is vervallen): het agentprofiel noemt zijn connectors (`.claude/lex-agents/<naam>.md`, veld
 `connectors`). Eén bron voor die koppeling, aan de kant waar de werkplaats haar kan wijzigen. Een nieuwe connector
 bereikt een agent dus pas als een profiel hem noemt; de bronkeuze per vraag, de aanwijzingen, de bronstand en de
-straatvlag zijn ongewijzigd. `tools/graph-qa/tests/test_connectorbeschrijving.py` maakt een
+straatvlag zijn ongewijzigd. `tools/graph-qa/tests/connectors/test_connectorbeschrijving.py` maakt een
 onvolledige beschrijving rood.
 
 **In het antwoord** (vervolg op 1a, 8 nov 2026). Een bron naast de wet krijgt binnen ADR-008 een vaste vorm: het blok
@@ -101,11 +101,11 @@ de wettekst en vult nooit een `doel`.
    `tabel` draagt `openen` naar de leestool en een `tabelrij` haar `cellen`), en een tak in `dispatch`;
 3. de straatvlag: `Settings.connector_<naam>`, `CONNECTOR_<NAAM>` in `config.py` en de bicep (default uit);
 4. de groep in `frontend/lib/bronnen.ts` (`BRONTYPE_NAAM`);
-5. een nepbron in de contractharnas (`NEPBRONNEN` en `CONNECTOR_ARGS` in `tests/test_resultaatcontract.py`): elke
+5. een nepbron in de contractharnas (`NEPBRONNEN` en `CONNECTOR_ARGS` in `tests/graaf/test_resultaatcontract.py`): elke
    pagina haalt het contract, en alle pagina's samen zijn precies de dataset;
 6. een live-proef `tools/graph-qa/tests/test_<naam>_live.py` met de marker `live` tegen de echte dienst (indexen,
    recordvorm, versievelden); `bronnenwacht.yml` draait hem dagelijks, nooit in de poort;
-7. `tools/graph-qa/tests/test_connectorbeschrijving.py` (ook de naamconventie `zoek_…`/`get_…` en een voorbeeld in elke
+7. `tools/graph-qa/tests/connectors/test_connectorbeschrijving.py` (ook de naamconventie `zoek_…`/`get_…` en een voorbeeld in elke
    invoerfout) en de kruistests groen; daarna meten zoals
    [`../acceptatie/connectors-meting.md`](../acceptatie/connectors-meting.md).
 

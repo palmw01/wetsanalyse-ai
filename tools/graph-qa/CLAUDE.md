@@ -62,7 +62,7 @@ ingang ─────┬─ antwoordketen:    agent ⇄ tools → verify → (c
             └─ afwijzen (geen wetgevingsvraag; `wijs_af`)
 ```
 
-De vorm ligt vast in `tests/test_graafopbouw.py` (nodes en edges, met en zonder ingang). Wijzig je
+De vorm ligt vast in `tests/routes/test_graafopbouw.py` (nodes en edges, met en zonder ingang). Wijzig je
 de routering, dan faalt die test – dat hoort, maar het moet een bewuste wijziging zijn. Zonder ingang
 (`enable_planning=False`, alleen in tests) blijft alleen de antwoordketen over. De supervisor (een modelstap vóór de
 agent die worker en specialist koos) is met ADR-016 §A7 weggehaald (15 nov 2026); hij staat in de git-historie
@@ -82,7 +82,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   een klik, een bevestiging, een vraagkaart, een meegegeven `doel`, `modus: "advies"`, een leesvraag, een overzicht, een
   bepaling, een lijstvraag, …) en geeft al het andere aan de centrale agent (`_naar_centraal`). In het denkproces staat
   dan één korte regel, "Lex · bekijkt de vraag" (`NAAR_CENTRAAL`), zonder bronnenlijst: welke bronnen Lex gebruikt,
-  zeggen de toolstappen (`tests/test_a7_ingang.py`). Een vervolgvraag wordt niet meer herschreven; de overdrachten die een
+  zeggen de toolstappen (`tests/routes/test_a7_ingang.py`). Een vervolgvraag wordt niet meer herschreven; de overdrachten die een
   route op de herschreven vraag draaien (`toon_overzicht`, `lees_annotaties`, `lees_begrippen`, `toon_stukken`) nemen de
   vraag zelfstandig geformuleerd mee (`zelfstandige_vraag`).
 - **De specialisten zijn agentprofielen** (ADR-016 §A2). Een profiel is een bestand `.claude/lex-agents/<naam>.md`:
@@ -93,7 +93,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   methoderol noemt, laat de dienst niet starten. `specialists.SPECIALISTS` en de kiesbare profielen van een subagent
   (`profielen.KIESBAAR`, `kiesbaar: true`) zijn daarvan afgeleid; schrijf geen tweede lijst. Een profiel
   noemt de connector, nooit diens tools. Wie een profiel wijzigt, verandert het gedrag van Lex: dat vraagt een meting,
-  en de hash in `tests/test_profielregister.py` bewaakt dat het niet ongemerkt gebeurt. Een profiel is configuratie
+  en de hash in `tests/centrale_agent/test_profielregister.py` bewaakt dat het niet ongemerkt gebeurt. Een profiel is configuratie
   die een Python-agent laadt, nooit een agent op zichzelf.
 - **Het bronpakket** (`agent/bronpakket.json`, gelezen door `agent/bronpakket.py`; ADR-016 §B1). Per methode-skill de
   hele map en per agentprofiel het bestand, als pad naar tekst, met de hash van `bronmodel.werkplaats.hash_van`: dezelfde
@@ -102,20 +102,20 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   haalt; `genereer_jas_klassen.py` draait hem mee. Het staat náást het methodepakket: de vingerafdrukken per rol bewegen
   er niet door. JSON en geen Python, omdat het alleen tekst is. Het wordt pas gelezen als iemand ernaar vraagt.
   **Elke wijziging aan een skill of een profiel, ook in commentaar of een eval, verandert dit bestand**: draai de
-  generator, anders faalt `--check`. `tests/test_bronpakket.py`.
+  generator, anders faalt `--check`. `tests/methode/test_bronpakket.py`.
 - **Elk onderdeel van de catalogus is van één methode, of neutraal** (`Onderdeel.methode`, `catalogus._methode`; plan
   methodes scheiden, S2). Een methode is van zichzelf en een rol van zijn skill; de annotatieketen, de begrippen, het
   werkgebied met de bronselectie en hun tools en sjablonen staan in `catalogus.VAN_WETSANALYSE`; een agentprofiel of agent
   erft van zijn rol en een route van wat ze kiest; de graaftools, de bronconnectors en de controles zijn `neutraal`. Voeg je
   een onderdeel toe dat alleen bij de JAS-annotatie of de begrippen hoort, zet het dan in die tabel:
-  `tests/test_catalogus_methode.py` houdt een eigen lijst aan, en eist dat elke annotatieleestool en elke JAS-tool van
+  `tests/methode/test_catalogus_methode.py` houdt een eigen lijst aan, en eist dat elke annotatieleestool en elke JAS-tool van
   wetsanalyse is.
 - **De grenzen tussen methodes** (plan methodes scheiden, S3). Twee regels in `bronmodel`, die graph-qa bij het laden en
   de werkplaats bij poort 1 toepassen: een rol krijgt secties van één methode, behalve `agent`
   (`skill.toets_samen`, `GEDEELDE_ROLLEN`), en een profiel waarvan de rol geen sectie van wetsanalyse draagt, krijgt geen
   annotatieleestool, begrippenleestool of JAS-tool (`agentprofiel.toets` en `toegestane_tools`, met
   `Grenzen.methode_tools` en `rol_methodes` uit `profielen.grenzen()`). `profielen.TOOLS_VAN_WETSANALYSE` is gelijk aan
-  de tools die de catalogus van wetsanalyse noemt. `tests/test_methodegrenzen.py`.
+  de tools die de catalogus van wetsanalyse noemt. `tests/methode/test_methodegrenzen.py`.
 - **De melding van het image** (`agent/imagemelding.py`, ADR-016 §B1). Bij het starten zegt graph-qa de api wat er in
   zijn image zit (`PUT /v1/werkplaats/image`): eerst alleen de hash van het bronpakket en de commit (`Settings.revisie`,
   env `LEX_REVISIE`, een build-arg van de publish-workflow), en het hele pakket alleen als de api die hash niet kent.
@@ -123,18 +123,18 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   de dienst is gezond zonder haar, een storing wordt later herhaald (`WACHT_S`) en daarna een waarschuwing, en een 404
   (de werkplaats staat op die omgeving uit) is een gewoon antwoord (`_verstuur(verwacht=)`, geen foutregel). Graph-qa
   zegt alleen wat er in zijn image zit, nooit of een versie actief is, en de logregels dragen geen inhoud.
-  `tests/test_imagemelding.py`.
+  `tests/runs/test_imagemelding.py`.
 - **Twee meetvelden voor de meetlus** (ADR-016 §A6). Elk `tool_execution`-event draagt `ronde`: de modelronde die om de
   aanroep vroeg (1 = de eerste van de beurt), of 0 als de code hem zelf deed. Twee aanroepen met dezelfde ronde liepen
   naast elkaar. En een sjabloonweigering telt twee keer in `meting.sjabloon`: in `geweigerd` per sjabloon en functie
   (zoals altijd, zodat metingen vergelijkbaar blijven) en in `geweigerd_reden` met de reden erbij. Die reden is
   `Onvulbaar.code`: een naam uit de code, nooit de melding, want die kan tekst uit de vraag of een bron dragen. Geef een
-  nieuwe weigering een `code`; zonder telt ze als `overig`. `tests/test_meetvelden.py`.
+  nieuwe weigering een `code`; zonder telt ze als `overig`. `tests/context/test_meetvelden.py`.
 - **De agentvorm (`agent/agentvorm.py`, ADR-016).** Elke agent van de open laag is een `Agent`: een Python-object met
   een profiel. Hij bezit de antwoordketen (`voeg_keten_toe` registreert `agent`, `tools`, `sjabloon`, `verify`,
   `correct` en `finalize`; `build_graph` sluit haar alleen aan) en hij doet de modelaanroep (`Agent.ronde`). Wat hij
   meestuurt, volgt uit zijn profiel: systeemtekst, tools, sjablonen, model en `Rol`. **Zet geen modelstap met een
-  lusrol buiten `agentvorm.py`** en bouw geen tweede lus: `tests/test_agentvorm.py` maakt dat rood. De ronde zet
+  lusrol buiten `agentvorm.py`** en bouw geen tweede lus: `tests/centrale_agent/test_agentvorm.py` maakt dat rood. De ronde zet
   `profiel_id` en `profiel_versie` in het meetkader; ze staan op `model_aanroep` en per agent in de contextopbouw.
 - **De centrale agent (`CentraleAgent`, het profiel `centraal`; ADR-016 §A1).** Sinds §A7 (15 nov 2026) de enige
   vorm: de vlag `CENTRALE_AGENT` en de supervisor zijn weg. De routes vóór het model staan in `supervisie._kies`; wat daar
@@ -147,7 +147,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   weigert de code), en `supervisie.werkgebied_route` voor samenstellen, aanvullen en de bronselectie. Kiest de route zelf
   haar node, dan is `naar` `INGANG` en kiest `_entry_node` binnen `ingangen`. Het
   annoteren komt met `annoteer` (A2-4), het afwijzen met `wijs_af`, en een getypt antwoord op een open vraagkaart met
-  `beantwoord_kaart`; elk van die routes is door de hele graaf getoetst (`tests/test_a7_ingang.py` noemt waar).
+  `beantwoord_kaart`; elk van die routes is door de hele graaf getoetst (`tests/routes/test_a7_ingang.py` noemt waar).
   **Het bepalingssjabloon heeft de centrale agent niet** (A2-3b; S6,
   golden_duiding: "wat betekent lid X" kreeg het bepalingssjabloon, 12/18 tegen 17/18): de tekst van een bepaling toont
   `toon_bepaling`, met de workflow van de route vóór het model (`_bepaling` → `bepaling_lezen`). Een uitlegvraag of een
@@ -159,7 +159,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   annotaties, overzicht, bepaling, buiten de graaf, dekking, lijst; `na_herschrijven`); past hij niet, dan weigert de
   code. De vraag wordt `zelfstandige_vraag`, en valt de route terug op een specialist, dan is dat de centrale agent.
   `toon_stukken` (A2-3c-2) draait de regel `lijst`; een bron die deze beurt alleen buiten de bronkeuze viel (`niet_nodig`) gaat daarvoor weer mee (`bronkeuze.heropend`, daarna `_bronkeuze` met `van_route`), en een bron die uit staat geeft de melding van de route (`_bron_uit`, het event voor *Zet aan*). Bouw voor een nieuwe overdracht geen tweede implementatie van
-  de route. `tests/test_centrale_agent.py` legt de overdrachten en de afwijzing vast.
+  de route. `tests/centrale_agent/test_centrale_agent.py` legt de overdrachten en de afwijzing vast.
   **De kernset** (A2-2b): `centraal` heeft elf graaftools, gekozen op gebruik; elk schema staat in het voorvoegsel van
   elke ronde, dus een tool erbij kost in elke beurt. De andere twaalf staan in `centraal_breed`, dezelfde agent met
   dezelfde instructie plus de aanwijzingen voor die tools. De overdracht `meer_tools` zet `state["specialist"]` op het
@@ -225,7 +225,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     (`met_laatste_ronde`, na de cachepunten: tools en voorvoegsel blijven gelijk, geen `tool_choice`), met de drie statussen.
     Daarna komt er geen modelronde meer (`voorbij_laatste`, `State.laatste_gehad`), ook niet na een geweigerd rapport: de
     code sluit af (`SUBAGENT_AFGESLOTEN`, zonder correctieronde). Meting bundel 114 en 115: geen kind rondde af, en daarna
-    deed elk kind 9 aanroepen en eindigde boven het plafond (408k, 369k); `tests/test_delegatie_afsluiten.py`;
+    deed elk kind 9 aanroepen en eindigde boven het plafond (408k, 369k); `tests/centrale_agent/test_delegatie_afsluiten.py`;
   - **een vraag in de verkeerde vorm weigert het rapport niet** (`rapport.genormaliseerd`, meting bundel 115, D01): een
     `niet_gelukt` met vragen is een `vraag`, een `klaar` met vragen zet ze onder *Open*, een vraagteken erbij, opties en
     vragen begrensd. Alleen een vraag boven `MAX_VRAAG` tekens of `vraag` zonder vraag weigert de code nog;
@@ -233,7 +233,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     gevonden wat alleen een zoektool noemde; een verwijzing in een gelezen stuk telt niet. Het rapport uit code en het
     rapport `klaar` krijgen beide lijsten (`subagent.gelezen_tekst`), de kop zegt het, en `verify` toetst een aantal
     gelezen stukken ("de subagent las 16 uitspraken") tegen wat er gelezen is (`beweringen.gelezen_aantallen`). Meting
-    bundel 115, D01: 16 "gelezen", waarvan 7 alleen gevonden; `tests/test_delegatie_na_rapport.py`;
+    bundel 115, D01: 16 "gelezen", waarvan 7 alleen gevonden; `tests/centrale_agent/test_delegatie_na_rapport.py`;
   - **zonder rapport geen duiding**: sloot de code een kind af, dan is zijn uitkomst `afgesloten` (`State.afgesloten`,
     niet `niet_gelukt` en zeker niet `klaar`; het eind-event van de regie telt per uitkomst). Gaf geen kind een rapport,
     dan eindigt de beurt met tekst uit code (`subagent.zonder_rapport`: wat er gelezen is, de labels uit code, en of de
@@ -243,7 +243,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     over een stuk zonder passage, of met woorden die de passages niet dragen (`MIN_STEUN`), is een bewering. Het eind-event
     van de taak draagt de inhoud van het rapport (`subagent.rapport_inhoud`: status, gedaan, bevindingen, open, de ids
     waaruit het citeert), de meetsamenvatting `kind_rapporten`. Meting bundel 117, D01: zeven samenvattingen, geen enkele
-    klopte, *gegrond*; `tests/test_d01_zonder_duiding.py`;
+    klopte, *gegrond*; `tests/grounding/test_d01_zonder_duiding.py`;
   - **een hervat kind zet zijn opdracht voort** (meting bundel 118, D01): de hervatting (`berichten.HERVATTING`, het
     eerste bericht uit `subagent.antwoord_tekst`) is een bericht van de code, geen vraag. De beurt begint bij de opdracht
     (`beurt_start`), dus het venster houdt het eerste deel heel, de opslagrem knipt er niet op en dezelfde aanroep gaat niet
@@ -253,7 +253,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     krijgt geen correctieronde (`voorbij_laatste` in `verify_node` en `route_after_verify`): zijn rapport blijft, en wat de
     controle vond gaat mee (`subagent.controle_tekst`). Een correctie haalt het rapport weg, en sloot de code af, dan is het
     kind `afgesloten`, ook met een rapport ervoor. Het plafond geldt per deel (één meter per beurt). Een regel die over een
-    stuk alleen "zie … <ander stuk>" zegt, is een bewering (`gelezen.verwijzing_als_duiding`). `tests/test_d01_hervatten.py`;
+    stuk alleen "zie … <ander stuk>" zegt, is een bewering (`gelezen.verwijzing_als_duiding`). `tests/centrale_agent/test_d01_hervatten.py`;
   - **een samenvatting rust per stuk op dat stuk** (meting bundel 119, D01: bij HR:2023:563 "tijdig betalingsonmacht
     gemeld", bij HR:2023:181/184 de bewijslast omgedraaid, beide *gegrond*). Een regel onder een kop die een stuk noemt,
     gaat over dat stuk (`gelezen.per_stuk`, voor `ongelezen_samengevat` en `zonder_steun`): de controle keek eerst alleen
@@ -264,7 +264,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     opdracht). Wat het kind zelf afbakende met een filter van een connector dat de opdracht of de jurist niet noemde
     (`gelezen.zelf_afgebakend`, uit de `zoekvraag` van het resultaat), zegt de code in het rapport; het eind-event van de
     taak draagt `afbakening` en `gelezen`. Een omgedraaide bewering met de woorden van de passage ziet een toets op woorden
-    niet (`tests/test_d01_samenvatting_per_stuk.py`, `xfail`);
+    niet (`tests/grounding/test_d01_samenvatting_per_stuk.py`, `xfail`);
   - **een stuk dat alleen via een ander stuk bekend is, heet zo; de periode van de jurist geldt** (meting bundel 120, D01).
     Het onderwerp van een alinea komt uit de kop met id, of met instantie en eerste datum tegen de labels in de trace
     ("**HR 6 oktober 2023 — …**", `gelezen._uit_kop`), en anders uit de eerste zin met een id. Een regel of kop die zegt
@@ -275,13 +275,13 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     code onder het eindantwoord (`antwoord.afbakening_regel`) en op de kindregel van het eind-event. Een hervat deel ziet
     van zijn eerste deel alleen de tekst van stukken die zijn eerste rapport noemt (`berichten.eerste_deel_ingekort`; de
     berichten en de trace blijven heel). Een letter uit een ander schrift in een woord (`vreemd_schrift`) is een spelfout
-    voor de correctie; `tests/test_d01_gelezen_via_ander_stuk.py`;
+    voor de correctie; `tests/grounding/test_d01_gelezen_via_ander_stuk.py`;
   - **de controle per stuk** (`stukcontrole.py`): na een rapport van een subagent leest één modelaanroep in `verify` van
     de centrale agent elke zin die een stuk duidt tegen de passages die het rapport eruit citeerde, met per zin `steunt`,
     `spreekt_tegen` of `niet_te_zien`. `spreekt_tegen` is een bewering (correctieronde). Zo valt ook een omgedraaide
     bewering in de woorden van de passage op, die de toetsen op woorden niet zien (bundel 119, HR:2023:181/184). Alleen als
     de goedkopere toetsen niets vonden, begrensd op `MAX_STUKKEN`, `MAX_ZINNEN` en `MAX_PASSAGE`; een fout is geen bewering.
-    Kosten met het gewone model: ~5–6k invoertokens bij vier stukken, hoogstens ~10k; `tests/test_d01_samenvatting_per_stuk.py`.
+    Kosten met het gewone model: ~5–6k invoertokens bij vier stukken, hoogstens ~10k; `tests/grounding/test_d01_samenvatting_per_stuk.py`.
     **De woordtoets wijst aan, de lezer beslist** (plan centrale agent na A6, PR B; HR:2023:1371 in S01 en F01): een melding
     "die de passages van dat stuk niet dragen" van `zonder_steun` telt niet als reden om de lezer over te slaan
     (`stukcontrole.niet_dragen`). De lezer geeft per stuk zijn oordelen terug (`controleer(oordelen=)`), en zegt hij bij
@@ -289,7 +289,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     lezer`). Een zin zonder oordeel, een fout van de lezer of "zonder passage" laat de melding staan. De gerichte set staat
     in `tests/data/stukcontrole_set.json` (vier tegenspraken, vier juiste samenvattingen, twee verwijzingen, twee keer
     "zegt meer", fictieve ids); `python -m eval.stukcontrole_set` draait haar met het model, alleen met akkoord
-    (`tests/test_b_lezer_beslist.py`);
+    (`tests/grounding/test_b_lezer_beslist.py`);
   - **een samenvatting in een rapport draagt een passage met inhoud** (meting bundel 122, D01): een kopregel (minder dan
     `MIN_WOORDEN_INHOUD` woorden of alleen hoofdletters; een inhoudsindicatie nooit) telt in een rapport en in de steun
     niet als passage (`extern.is_kopregel`, `subagent.passagetekst`). Dragen de aangewezen passages een samenvatting niet,
@@ -298,12 +298,12 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     stuk (`_afgekapt`). De duidingtoetsen (`zonder_steun`, `vraag_niet_in_stuk`, `buiten_periode`) lezen alleen wat Lex
     schreef, zonder 'Gedaan' en 'Niet als citaat getoond' (`antwoord._zonder_gedaan`); een zin die zegt dat iets niet
     samengevat is, is geen duiding (`gelezen._WEGGELATEN`), behalve voor `ongelezen_samengevat`;
-    `tests/test_d01_bundel122.py`;
+    `tests/grounding/test_d01_bundel122.py`;
   - **een open vraag van een subagent sluit de beurt**: staat een kind op `vraag`, dan doet `agent_node` geen modelronde
     meer en eindigt de beurt met één zin uit code (`VRAAG_VAN_SUBAGENT`) en de vraagkaart (`finalize_node`). De subagent
     stelt de vragen die de opdracht openlaat in één keer (`SUBAGENT_INSTRUCTIE`, de hervattekst `antwoord_tekst`). Meting
     bundel 116, D01: de centrale agent schreef naast de kaart al samenvattingen van uitspraken die niemand las, en na het
-    antwoord vroeg het kind nog iets wat het de eerste keer al kon vragen; `tests/test_vraag_sluit_beurt.py`;
+    antwoord vroeg het kind nog iets wat het de eerste keer al kon vragen; `tests/centrale_agent/test_vraag_sluit_beurt.py`;
   - **een samenvatting van een stuk rust op zijn gelezen tekst** (`gelezen.ongelezen_samengevat`, in `check_grounding`):
     een zin of lijstregel die een stuk naast de wet bij id noemt dat niet gelezen is, met meer dan `MAX_EIGEN_WOORDEN`
     woorden die niet uit zijn zoekresultaat komen, is een bewering. Een vermelding (label, datum, titel) niet;
@@ -321,7 +321,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     herlezen dat de regel tegenhoudt, waren de stukken van een connector. De kop van het rapport en de weigeringen zeggen
     het (`subagent.NALEZEN_AANWIJZING`). En na een rapport vraagt de correctie om een duiding die het rapport niet draagt
     te **schrappen**, niet te herformuleren (`correct_node`): "haal het op" kon hij niet opvolgen. Bekende grens: een duiding
-    van een bepaling die niet gelezen is, ziet geen toets; het nalezen maakt haar alleen mogelijk. `tests/test_b3_na_subagent.py`;
+    van een bepaling die niet gelezen is, ziet geen toets; het nalezen maakt haar alleen mogelijk. `tests/grounding/test_b3_na_subagent.py`;
   - **het model van een subagent** kiest de beheerder: die van het agentprofiel, anders `stap:subagent` (`modelkeuze`;
     zie *De modelkeuzes per agentprofiel en stap*); zonder keuze het gewone model. `Subagent.ronde` zet daarvoor
     `modelrol: subagent` in het kader, en `subagent.kindmodel` geeft hetzelfde model voor het event. De lichte modelklasse
@@ -331,9 +331,9 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     de wet aan gaat zonder model naar de node `subagent_route` (`nodes/subagent_route.py`, `past`): een subagent
     `algemeen` met de vraag als doel, daarna vat de centrale agent het rapport samen (`State.rapporten`). Een vraag die een
     artikel noemt zonder regeling niet (V01: eerst de vraag welke regeling). Het werk over alle deelvragen ("voor al mijn
-    deelvragen … welke bepalingen") herkent `regisseur.opdracht_in` als regie, vóór de graaf. `tests/test_subagent_route.py`
-    en `tests/test_regisseur.py` toetsen dat geen vraag uit de vragensets er onbedoeld in valt. Na A6 run 2
-    (`tests/test_a6_run2.py`): wat een bron naast de wet zegt "per deelvraag" gaat ook naar één subagent (V03), en de
+    deelvragen … welke bepalingen") herkent `regisseur.opdracht_in` als regie, vóór de graaf. `tests/centrale_agent/test_subagent_route.py`
+    en `tests/centrale_agent/test_regisseur.py` toetsen dat geen vraag uit de vragensets er onbedoeld in valt. Na A6 run 2
+    (`tests/centrale_agent/test_a6_run2.py`): wat een bron naast de wet zegt "per deelvraag" gaat ook naar één subagent (V03), en de
     centrale agent leest zelf hoogstens `MAX_STUKKEN_CENTRAAL` stukken naast de wet per beurt (`stukken_plafond`, reden
     `stukken_plafond`); "de bronnen bij de deelvraag over X" in een werkgebied zonder zo'n deelvraag is een vraag aan de
     jurist uit code (`supervisie.geen_deelvraag`, `bronselectie.geen_deelvraag_melding`), en de overdracht `werkgebied`
@@ -343,13 +343,13 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     citaten die het rapport uit de wettekst toonde (`State.rapport_citaten`, `subagent.citaten_van`,
     `antwoord.met_rapportcitaten` in `finalize_node`). De controle per stuk vraagt bij `spreekt_tegen` beide kanten
     letterlijk (`deel` in de zin, `tegen` in de passages), en "zegt meer" is `niet_te_zien` (F01, PHR:2025:435). Na A6
-    run 3 (`tests/test_a6_run3.py`): beide kanten dragen inhoud en niet alleen een verwijzing (`stukcontrole.heeft_inhoud`),
+    run 3 (`tests/centrale_agent/test_a6_run3.py`): beide kanten dragen inhoud en niet alleen een verwijzing (`stukcontrole.heeft_inhoud`),
     en een tweede, strengere lezing van alleen de kandidaten met de tekst rond de passage (`stukcontrole.bevestig`,
     `OMGEVING`) telt een tegenspraak pas bij hetzelfde onderwerp én het omgekeerde; een fout bevestigt niets. Een rapport
     `niet_gelukt` is een rapport (`Afloop.rapport`, `met_rapport`): `zonder_rapport`, `na_subagent` en
     `met_rapportcitaten` kijken daarnaar, want `niet_gelukt` is ook de terugval zonder rapport (S04). Een vaste formule
     (de aanhef van een besluit, het procesverloop van een uitspraak, een rij trefwoorden) valt in `extern.blokken` uit een
-    reeks als er iets met inhoud overblijft (`extern.is_formule`). Na het eindverslag van A6 (`tests/test_a6_eind.py`):
+    reeks als er iets met inhoud overblijft (`extern.is_formule`). Na het eindverslag van A6 (`tests/centrale_agent/test_a6_eind.py`):
     een rapport `klaar` zonder één gelezen stuk van de bron waar de opdracht om vroeg, terwijl het kind er wel vond, wordt
     een aanbod uit code ("Zal ik ze lezen?", `subagent.ongelezen_vraag`, één keer: niet na een hervatting; V03). Een kind
     dat zijn rapport niet afrondde (`niet_gelukt`, `afgesloten`) en op zijn grens stopte terwijl er nog iets open was
@@ -362,7 +362,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     op *Nee* hervat niets (`AANBOD_AFGESLAGEN`, het aanbod vervalt); *Ja* hervat het kind, ook bij een delegatie die klaar
     is (`subagent.kan_vervolgen`). Een vraag van het kind zelf blijft een poort (`open_vraag`). Een aanroep die de provider
     weigert, logt `model_aanroep_fout` met de opbouw van het verzoek en het begin van de melding van de provider
-    (`llm_stap._log_fout`); `tests/test_c_begrensd.py`;
+    (`llm_stap._log_fout`); `tests/centrale_agent/test_c_begrensd.py`;
     "vóór en na de wijziging" van één artikel zonder te zeggen welke is een vraag aan de jurist zonder model, met de
     laatste wijziging uit `geldigheid` als kandidaat (`agent/welke_wijziging.py`; V04); een antwoord dat alleen een
     regeling noemt, maakt de vorige opdracht met een artikel zonder regeling af (`subagent_route.aangevuld`, F02);
@@ -370,7 +370,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     `stand_tekst` zegt het per taak, en een vraag over de deelgesprekken krijgt de stand uit code mee
     (`overdracht.is_standvraag`, F03); een tekstantwoord van de centrale agent met koppen over gelezen bepalingen krijgt per
     kop de zin uit de bron die de alinea draagt (`agent/tekstcitaten.py`, F05). Na de korte meting na A6
-    (`tests/test_a6_f03.py`, `tests/test_a6_citaten.py`): een kind van de regie krijgt zijn delegatie mee
+    (`tests/centrale_agent/test_a6_f03.py`, `tests/grounding/test_a6_citaten.py`): een kind van de regie krijgt zijn delegatie mee
     (`ChatRequest.delegatie_id` mag ook bij een actie, nooit via HTTP), en doorvragen in zijn deelgesprek markeert haar
     (`supervisie._markeer_doorvraag`); de passages bij een stuk kiest de code per punt van de samenvatting
     (`extern.punten`, `extern.dragende`: de alinea die de meeste ongedekte woorden draagt, een rechtsoverweging zwaarder,
@@ -381,7 +381,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     mag). Alleen daar: het subsjabloon zit in elk sjabloon van de centrale agent, aan de grens van de strict schema's. De
     code zet de kern in het blok (`Extern.kern`), en in de tekst onder een kop met het stuk, zodat `per_stuk` en de
     toetsen op een stuk weten waarover hij gaat; `herkies` en het afkappen kiezen de passages op de kern
-    (`extern.kern_tekst`), en een aangewezen alinea draagt pas als ze twee verschillende stammen deelt (`tests/test_a6_kern.py`);
+    (`extern.kern_tekst`), en een aangewezen alinea draagt pas als ze twee verschillende stammen deelt (`tests/sjablonen/test_a6_kern.py`);
   - **het eindantwoord behandelt elk rapport** (meting P01 na #1618: het rapport over de rechtspraak, `klaar` met 13
     gelezen arresten, stond alleen als aantal onder *Twijfel*): `Afloop.stukken` draagt de stukken naast de wet waarover
     het rapport gaat (`subagent.stukken_van_rapport`: wat het citeert en wat het kind las), en `verify_node` maakt van elk
@@ -389,7 +389,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     `ontbrekende_rapporten`) een bewering `rapport ontbreekt: …`. `correct_node` vraagt dan het rapport mee te nemen, niet
     te schrappen. Na de correctie geen tweede ronde en geen `onbevestigd`, alleen de logregel `rapport niet behandeld`.
     `extern.MAX_STUKKEN` was in P01 niet de oorzaak (2 van de 4 gebruikt, niets geweigerd); de correctie noemt de grens.
-    `tests/test_bundel_elk_rapport.py`;
+    `tests/centrale_agent/test_bundel_elk_rapport.py`;
   - **na een rapport toont het antwoord elk stuk uit de rapporten** (meting F02 na #1629: zes arresten in het rapport,
     vier in het antwoord): `sjablonen.vul(max_stukken=)` met `subagent.stukkengrens(state)`, het aantal stukken uit de
     rapporten tussen `extern.MAX_STUKKEN` en `MAX_STUKKEN_RAPPORT`, vanuit `sjabloon.vul_aanroep`. De leemte zegt waarom
@@ -397,15 +397,15 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     In een uitspraak (en een rapport) zijn een genummerde kop in de tekst (`extern.is_sectiekop`, het oude schema:
     "1. Beschikkingen, bezwaar en geding voor het Hof") en het procesverloop (`secties`, `is_procesverloop`) geen citaat
     als er per stuk iets met inhoud overblijft (`zonder_procesverloop`); de aanhef vóór de eerste sectie ook niet.
-    Gerichte set `tests/data/uitspraak_koppen_set.json`, `tests/test_f02_fixes.py`;
+    Gerichte set `tests/data/uitspraak_koppen_set.json`, `tests/grounding/test_f02_fixes.py`;
   - **de grammatica van een verzoek is begrensd**: de API maakt van alle strict schema's samen één grammatica, met
     gedocumenteerde grenzen (20 strict tools, 24 optionele, 16 union-parameters) en een interne grens op de omvang
     ("Schema is too complex for compilation", 400 zonder tokens). De delegatietools (`subagent`,
     `regie_plan`) zijn daarom niet strict (`Overdracht.strict`); de code toetst hun invoer.
-    `tests/test_strict_grenzen.py` begrenst elk profiel met alle connectors aan op de laatst bewezen omvang (12 strict
+    `tests/context/test_strict_grenzen.py` begrenst elk profiel met alle connectors aan op de laatst bewezen omvang (12 strict
     tools, ~9,4k tekens: centraal met een connector op 23eb57bb had er 16 en gaf die 400 bij elke eerste aanroep).
-  `tests/test_subagent.py` legt dit vast, ook een kindbeurt door de echte graaf; `tests/test_subagent_vragen.py` de
-  vragen, het hervatten, de kaart en het deelgesprek; `tests/test_subagenten.py` het plan, de bevestiging, de
+  `tests/centrale_agent/test_subagent.py` legt dit vast, ook een kindbeurt door de echte graaf; `tests/centrale_agent/test_subagent_vragen.py` de
+  vragen, het hervatten, de kaart en het deelgesprek; `tests/centrale_agent/test_subagenten.py` het plan, de bevestiging, de
   parallelliteit, het plafond en `regie_plan`.
 - **`agent_node`** – vraagt de agent van de beurt op (`agent_van`, uit het profielregister): `SYSTEM_PROMPT` + methode-instructies
   (`agent/methode.py`, uit het gegenereerde `methodepakket.py`) + addendum + plan, met
@@ -506,7 +506,7 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   blok `extern` draagt `datum` en `soort_stuk` uit het `stuk`. Een ISO-datum uit een bron telt in de controle als dezelfde
   datum voluit (`hoeveelheden`). Een kaal getal in een tabelcel telt met de eenheid uit zijn kolomkop of de titel van de tabel
   ("€ 106" onder "Opbrengst (€ mln)", `hoeveelheden.uit_tabellen`; K28). De slotzin van een lijst noemt het totaal ook
-  als alles getoond is ("16 stukken."; K25). `tests/test_extern_sjabloon.py`.
+  als alles getoond is ("16 stukken."; K25). `tests/sjablonen/test_extern_sjabloon.py`.
 - **`verify_node`** – `check_grounding(answer, source_trace)`. Bij ongegrond volgt via `correct_node`
   hoogstens één corrigerende ronde (`GROUNDING_CORRECT`, default aan; `state["corrected"]`). De controle
   keurt **twee** dingen af en `correct_node` moet ze allebei benoemen: `unsupported` (een vindplaats die
@@ -531,8 +531,8 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
 met een vergaderjaar in één zin moet samen in één toolresultaat staan (`bronnen`; Kamerstukken ronde 6, K16: "dossier
 20588, 1988-1989" was een juist nummer met een fout jaar). Een getal vóór een komma telt (alleen ",\d" is een decimaal),
 "20 588" is één getal, en een citeervorm van een connector ("Stb. 2009, 610") heeft de toets van een id. Terugmeting zonder model: `docs/architectuur/metingen/rechtspraak-iteratie-2026-11-11/beweringen-terugmeting.md`.
-  `tests/test_beweringen.py`.
-- **`finalize_node`** – de enige plek in de antwoordketen die `token` uitstuurt (ook voor het overzicht; `tests/test_uitgifte_na_controle.py` bewaakt het). Een controle die volgt op publicatie
+  `tests/grounding/test_beweringen.py`.
+- **`finalize_node`** – de enige plek in de antwoordketen die `token` uitstuurt (ook voor het overzicht; `tests/sjablonen/test_uitgifte_na_controle.py` bewaakt het). Een controle die volgt op publicatie
   houdt niets tegen, dus de jurist ziet een antwoord pas ná `verify` en afgekeurde tekst nooit, ook niet in
   het denkproces (besluit 6 nov 2026). Blijft de tekst na de correctieronde afgekeurd, dan gaat hij mee met
   het oordeel in het `grounding`-event: de controle keurt ook terechte citaten af. Daarna `collect_sources`
@@ -555,7 +555,7 @@ prompt-cache het hergebruikt (nulmeting context 12 nov 2026):
 - een lange beurt laat de historie niet meer in één keer vallen; de prompt is hoogstens `MAX_HISTORY_CHARS` plus de
   lopende beurt.
 
-`tests/test_trimming.py` meet hoeveel er per beurt verandert. De opslagrem `berichten.MAX_HISTORIE_CHARS` hoort ruim daarboven te
+`tests/context/test_trimming.py` meet hoeveel er per beurt verandert. De opslagrem `berichten.MAX_HISTORIE_CHARS` hoort ruim daarboven te
 liggen, `Settings.controleer_historie_grens` waarschuwt). **De opslagrem knipt alleen op een vraag van de jurist**
 (`_is_vraag`), nooit op een bericht van de code midden in een beurt (`berichten.CODEBERICHTEN`: de correctie, het
 herhaalverzoek om een sjabloon). Knippen daar gooide een beurt boven de 160k tekens uit de checkpoint, en de correctieronde
@@ -565,7 +565,7 @@ moet herstellen. Hoe vaak er gesprek uit het venster valt, meet de logregel `ven
 één per beurt; zie `docs/observability.md`) – eerst meten, dan pas een index, samenvatting of ruimer venster. **Een `tool_use` zonder `tool_result` gaat niet naar het model** (`_schoon_messages`): de
 checkpointer bewaart de aanroep vóór `tools_node` draait, dus stoppen, een crash of de stappenlimiet laat hem open
 staan, en Anthropic weigert dan elke volgende beurt. Hij valt weg bij elke beurt, dus ook bestaande gesprekken
-herstellen; `tests/test_gesprek_blijft_bruikbaar.py` breekt een beurt op elke nodegrens af. De annotatie-worker laat een korte
+herstellen; `tests/context/test_gesprek_blijft_bruikbaar.py` breekt een beurt op elke nodegrens af. De annotatie-worker laat een korte
 samenvatting van de markeringen achter, zodat vervolgvragen context hebben. Backend
 (`agent.py:_checkpointer_ctx`, voorrang): `CHECKPOINT_DB_URL` → `AsyncPostgresSaver` (gedeeld,
 verplicht bij >1 replica) → `CHECKPOINT_DB_PATH` → `AsyncSqliteSaver` (per instance; de default is een
@@ -637,19 +637,19 @@ bruikbaar is.
   antwoordlus, de ophaal-agent en de toelichting van de bepalingsroute lopen erlangs. `vraag_tool` is de vorm voor één tool (meestal strict):
   `pogingen` verplicht, `haal` bepaalt wat bruikbaar is, de tellers houden hun namen (`llm_calls`, `review_calls`,
   `afgekapt`). Na `refusal` of `max_tokens` geen tweede poging (`GEEN_HERHALING`, H5d). Geen eigen retry (dat doet de SDK) en geen except. Een nieuwe modelaanroep gaat hierlangs, met een
-  eigen `Rol` en een scenario in `tests/test_modelverzoeken.py`: dat legt elk verzoek byte voor byte vast.
-  `tests/test_methoderollen.py` eist dat elke methoderol uit de skill een aanroep heeft, dat elke `Rol` gebruikt wordt
+  eigen `Rol` en een scenario in `tests/context/test_modelverzoeken.py`: dat legt elk verzoek byte voor byte vast.
+  `tests/methode/test_methoderollen.py` eist dat elke methoderol uit de skill een aanroep heeft, dat elke `Rol` gebruikt wordt
   en dat niemand buiten de adapter en de stap `llm.create` of `llm.stream` aanroept.
 - **De modelkeuzes per agentprofiel en stap** (`agent/modelkeuze.py`; api §*Modelkeuzes van Lex*). Het model hoort op het
   agentprofiel, zoals `model:` bij een subagent van Claude Code; de beheerder kiest het in het beheer, zonder uitrol. De
   sleutels staan in `bronmodel.modelkeuzes`: `agent:<profiel>` (de acht profielen), `stap:<rol>` (elke `Rol` zonder
-  toollus) en `stap:subagent`; `tests/test_modelkeuze.py` eist dat elk profiel en elke stap er precies één keer in staat,
+  toollus) en `stap:subagent`; `tests/centrale_agent/test_modelkeuze.py` eist dat elk profiel en elke stap er precies één keer in staat,
   en dat elke lusrol met een profiel draait. Lex neemt alleen de modelnaam over: endpoint en sleutel blijven
   `AZURE_FOUNDRY_*`.
   - **Eén plek**: `llm_stap.aanroep` en `llm_stap.stroom` vragen vlak voor de aanroep `modelkeuze.kies(sleutels,
     gevraagd)`, met de sleutels in volgorde van voorrang (`llm_stap._sleutels`): `agent:<profiel_id>` uit het kader van
     de agentvorm, dan `stap:subagent` als `agentvorm.Subagent` `modelrol` zette, dan `stap:<rol>`. Een aanroeper weet er
-    niets van; zonder stand is het verzoek byte-gelijk (`tests/test_modelverzoeken.py`).
+    niets van; zonder stand is het verzoek byte-gelijk (`tests/context/test_modelverzoeken.py`).
   - **Voorrang**: de eerste sleutel met een keuze; anders vervangt het standaardprofiel alleen het gewone model
     (`gevraagd == Settings.llm_model`), dus een eigen env-knop (`LLM_MODEL_ROUTER`, `_OPHAAL`, `_LICHT`) blijft wat hij was.
   - **Lezen**: `modelkeuze.ververs` in `api.main.start_beurt`, hoogstens elke `VERS_S` (60 s), met `TIMEOUT_S`; een
@@ -673,7 +673,7 @@ bruikbaar is.
 - **`mcp_server.py`** – de andere kant op: een stdio-MCP-server over de eigen toollaag (`graph-qa-mcp`,
   `mcp`-extra). `tools/list` is `anthropic_schemas()`, `tools/call` is `dispatch()` – een doorgeefluik,
   geen kopie. Hij bestaat zodat een externe agent niet zelf SPARQL schrijft en in de valkuilen hieronder
-  loopt. `tests/test_mcp_server.py` bewaakt dat hij exact de tools van de agent aanbiedt. Naar buiten draagt hij het
+  loopt. `tests/mcp_server/test_mcp_server.py` bewaakt dat hij exact de tools van de agent aanbiedt. Naar buiten draagt hij het
   contract als MCP (review ADR-013): per tool `annotations` (`gedrag`: alleen lezen, herhaalbaar, `openWorldHint` voor een
   bronconnector), een `outputSchema` (`resultaat.CONTRACT_SCHEMA`) voor de graaftools en connectortools, het resultaat ook
   als `structuredContent` (gevalideerd tegen dat schema voor elke contracttool, elke pagina), en bij een gelezen stuk een
@@ -688,7 +688,7 @@ bruikbaar is.
   `tools/jas_tools.py` (`JAS_TOOLS`): `jas_klasse_opvragen`, alleen in het profiel `duiding`. Hij geeft de bronvelden
   van een klasse uit `jas_klassen.py` en de toelichting uit de skill (subklassen, samenhang, afbakening) uit
   `agent/jas_toelichting.py`; die genereert `genereer_jas_klassen.py` apart, zodat de annotatieketen dezelfde
-  klasseduiding houdt (`tests/test_jas_klasse_opvragen.py`). Elke regel van de toelichting is zelfstandig leesbaar: geen
+  klasseduiding houdt (`tests/annotatieketen/test_jas_klasse_opvragen.py`). Elke regel van de toelichting is zelfstandig leesbaar: geen
   "hierboven" of "zie §8", want het model ziet alleen het resultaat (meting G2). De tool vindt een klasse ook bij een
   deel van haar naam of een synoniem (`SYNONIEMEN`: "Parameterwaarde", "constante"); anders noemt de fout de naam die
   het meest lijkt.
@@ -696,7 +696,7 @@ bruikbaar is.
   groep, wat hij dekt, signalen, tools, leestool, id-vorm, rollen, rol in het antwoord, grenzen, voorbeeldvragen).
   `CONNECTORS` (connector → tools), de connectortools van de specialisten (`specialists._met_connectors`), de
   `Literal`s van de contracten en het register van de api komen eruit; een nieuwe connector is een beschrijving, zijn
-  tools en een straatvlag. `tests/test_connectorbeschrijving.py` maakt een onvolledige beschrijving of handwerk ernaast
+  tools en een straatvlag. `tests/connectors/test_connectorbeschrijving.py` maakt een onvolledige beschrijving of handwerk ernaast
   rood, met een nep-connector als bewijs dat er niets per connector bij hoeft. `toegestane_tools(tools, settings)` is de ene
   regel voor de schema's van de antwoordlus, de MCP-server en `dispatch`. Een connector staat uit tot de straat hem
   aanzet (`CONNECTOR_KAMERSTUKKEN=true`); uit is niet aangeboden, en een aanroep is dan `connector_uit`. **De beurt
@@ -715,7 +715,7 @@ bruikbaar is.
   - Wat wegvalt heet `niet_nodig` ("niet nodig voor deze vraag"), niet "uit": het bronstand-event opnieuw, een eigen regel in
     BRONNEN IN DEZE BEURT ("zeg niet dat de bron uit staat") en een statusregel in het denkproces (`bronstand.keuze_regel`).
     De werkplek telt `niet_nodig` niet als beschikbaarheid.
-  - `tests/test_bronkeuze.py` eist dat geen vraag uit de vier vragensets haar eigen bron verliest, en toetst K16 en B18.
+  - `tests/connectors/test_bronkeuze.py` eist dat geen vraag uit de vier vragensets haar eigen bron verliest, en toetst K16 en B18.
   `tool_execution` geeft de stand aan `dispatch`, dus ook een workflow die een tool in code aanroept valt eronder.
   **De bronstand** (`agent/bronstand.py`, `State.bronstand`) zegt per connector waaróm hij uit staat (`straat`,
   `gesprek`/`werkgebied` uit `ChatRequest.bronnen_herkomst`, `register_onleesbaar`, `beheerder`) en gaat als eerste
@@ -723,7 +723,7 @@ bruikbaar is.
   **De prompt**: BRONSOORTEN in `SYSTEM_PROMPT` is generiek (geen connector met naam, binnen de cache); BRONNEN IN DEZE
   BEURT (`bronstand.prompt_blok`, ná het cachepunt in `agent_node`) zegt per connector uit de beschrijving wat hij dekt
   en waarvoor hij staat, of waarom hij uit staat en wie hem aanzet. Zonder aangeboden connector en zonder genoemde bron
-  is dat blok leeg. `tests/test_bronprompt.py`. `tests/test_bronschakelaar.py`.
+  is dat blok leeg. `tests/connectors/test_bronprompt.py`. `tests/connectors/test_bronschakelaar.py`.
   **Kamerstukken** (`tools/kamerstuk_tools.py`, transport `adapters/sru_kamerstukken.py`): `zoek_kamerstukken`
   (filters, te combineren: een dossier of subdossier, `w.dossiernummer=="36200-IX"`, met `nummer` voor één stuk; woorden in
   de titel; `dossiertitel` als woordgroep in `w.dossiertitel` ("Belastingplan 2025" is niet "Belastingplan BES-eilanden 2025"; K10: 88 amendementen); `soort` in `w.subrubriek`, en bij een stuk zonder rubriek (of "Overig") op zijn plek in de titel: de tool toetst
@@ -766,14 +766,14 @@ bruikbaar is.
   `kamerstuk_gewijzigd`); bij een storing (alleen `onbereikbaar`, niet een stuk dat verdween) de bewaarde versie met `gevalideerd: false`; grenzen `MAX_CACHE` en
   `MAX_CACHE_BYTES`. Het `stuk` noemt `bron_hash`, `gewijzigd`, `status` en `versie`, en het blok `extern`
   bewaart `bron_hash` en `gewijzigd`; `_gelezen` neemt de passages uit één lezing (dezelfde hash). Het contract met de echte dienst (indexen, sortering, recordvorm, documentstatus) toetst
-  `tests/test_kamerstukken_live.py`: dagelijks in `bronnenwacht.yml`, lokaal met `BRONNEN_LIVE=1 uv run pytest -m live`
+  `tests/connectors/test_kamerstukken_live.py`: dagelijks in `bronnenwacht.yml`, lokaal met `BRONNEN_LIVE=1 uv run pytest -m live`
   (marker `live`; elke connector heeft er een, `test_connectorbeschrijving.py`). Niet in de poort.
   **De SRU van KOOP is gedeeld** (10 nov 2026): Kamerstukken en Staatsblad en Staatscourant gebruiken één transport,
   cache en recordvorm (`adapters/sru_koop.py`: `SruKoop`, `Record`, `KoopFout`; een subklasse zet alleen het filter,
   de terugval voor een id dat KOOP niet kent en de naam in de logregels), één bouwer van de CQL (`tools/sru_zoeken.py`:
   woorden in de titel, `cql.textAndIndexes`, `sortBy`, `per_record`) en één lezer van het OP-schema (`tools/op_xml.py`:
   wortel `stuk`, `staatsblad` of `staatscourant`, of in het oude schema van rond 2005 `staatsbl` met `art`, `wart`, `wlid`
-  en `tuskop` (`tests/test_op_xml_oud_schema.py`); koppen per divisie, artikel – "Artikel I – Wijziging" –, lid en
+  en `tuskop` (`tests/connectors/test_op_xml_oud_schema.py`); koppen per divisie, artikel – "Artikel I – Wijziging" –, lid en
   wijzigingsonderdeel; een `nr`/`li.nr` vóór de tekst die volgt; `wat`, `considerans.al` en de dagtekening als rij;
   ondertekeningen in `overgeslagen`). Een datum vóór 1800 in de metadata telt als onbekend (stb-2019-129 draagt
   0004-03-01). De datum van de jurist (`vanaf`/`tot`) komt voor elke connector uit `tools/zoekfilters.py`. Maak er
@@ -825,11 +825,11 @@ bruikbaar is.
   terug naar de regeling, één query per pagina, in `wetsverwijzing`; zonder graaf ontbreekt alleen die regel). Met
   `bwb_id` filteren `publicatie`, `soort`, `jaar`, `vanaf` en `tot` de publicaties van die bepaling; zonder artikel zegt
   de toelichting dat een wijziging die bij geen bepaling meer de laatste is, er niet bij staat. Tests met opgenomen
-  antwoorden van KOOP (`tests/fixtures/koop/`): `tests/test_bekendmaking_tools.py`, en de **vragenset**
+  antwoorden van KOOP (`tests/fixtures/koop/`): `tests/connectors/test_bekendmaking_tools.py`, en de **vragenset**
   (`tests/data/bekendmakingen_vragenset.json`, zestien vragen uit het belastingdomein, ook voor de browsertoets en de meting)
-  in `tests/test_bekendmakingen_vragenset.py`: route en argumenten per vraag, en het resultaat tegen een opname per verzoek
+  in `tests/evals/test_bekendmakingen_vragenset.py`: route en argumenten per vraag, en het resultaat tegen een opname per verzoek
   (`tests/fixtures/koop/vragenset/`, opnieuw opnemen met `BEKENDMAKINGEN_OPNEMEN=1`; een verzoek dat niet is opgenomen
-  faalt). Live `tests/test_bekendmakingen_live.py`.
+  faalt). Live `tests/connectors/test_bekendmakingen_live.py`.
   **Rechtspraak** (`tools/rechtspraak_tools.py`, transport `adapters/lido_rechtspraak.py`, ADR-013 fase 1c):
   `zoek_uitspraken` (bwb-id + artikel; de uitspraken die Linked Data Overheid aan het artikel koppelt, **verenigd over
   alle versies**, want een link hangt aan de versie die gold op de datum van de uitspraak) en `get_uitspraak` (de tekst
@@ -844,7 +844,7 @@ bruikbaar is.
   waardelijsten (cache 24 uur; een onleesbare lijst is een storing, geen onbekend gerecht), "nieuwste"/"oudste" via een
   datumvenster (`_venster`: de feed sorteert alleen op wijzigingsdatum), `totaal` over de hele periode; een
   rechtsgebied met artikel is een invoerfout. De lijstroute leest ook "de 10 nieuwste uitspraken van de Hoge Raad in het
-  belastingrecht" (`MetadataVeld.waarden`, het eerste orgaan dat past). `tests/test_rechtspraak_zoeken.py`. De zoektool
+  belastingrecht" (`MetadataVeld.waarden`, het eerste orgaan dat past). `tests/connectors/test_rechtspraak_zoeken.py`. De zoektool
   leest jci en label-id van het artikel uit de graaf (`_q_artikel`); zonder graaf zoekt LiDO op bwb-id en nummer. De
   versies: eerst `get-id` met `juriconnect-ref` (bwb-id + artikel + datum, de vorige versie op de dag vóór de
   begindatum), en als die niets geeft (de Awb) de jci met de datum van een bestaande toestand uit de BWB-zoekdienst,
@@ -876,7 +876,7 @@ bruikbaar is.
   vast te stellen is; staat de regeling er wel in en het artikel niet, dan `niet_gevonden`. `per_instantie`,
   `per_tekststand` en `tekstversies` tellen binnen de andere filters (een facet), `bij_het_artikel` zonder filters. Een soort
   gerecht in het meervoud ("gerechtshoven", `bronmodel.connectors.INSTANTIE_MEERVOUD`) leest de lijstroute en zet de tool om.
-  De vragenset `tests/data/rechtspraak_vragenset_30.json` met de routetoets `tests/test_rechtspraak_vragenset.py` (een bekende
+  De vragenset `tests/data/rechtspraak_vragenset_30.json` met de routetoets `tests/evals/test_rechtspraak_vragenset.py` (een bekende
   afwijking in gedeelde code staat als `open`, `xfail(strict=True)`). Een rechtsgebied naast een artikel past de tool niet
   toe, en dat zegt de **`kanttekening`**: een veld van het resultaatcontract (`resultaat.CONTRACT_SCHEMA`) met een zin voor
   de jurist over de grens van de zoekvraag (onvolledig, LiDO kent het artikel niet, een regeling buiten de graaf, een filter
@@ -906,13 +906,13 @@ bruikbaar is.
   tijdelijk kent. KOOP en de BWB-zoekdienst volgen hetzelfde beleid. Elke mislukking logt `rechtspraak_verzoek_mislukt`
   (`koop_`, `bwb_`) met host en status. **Een lege uitkomst na een mislukte tussenstap is geen "geen"** (ronde 4, R09/R06):
   een `get-id` zonder id gaat één keer opnieuw, en `koppelingen` bewaart alleen een uitkomst met versies en zonder
-  afgebroken antwoord; lege metadata en een lege titel worden ook niet bewaard. `tests/test_http_beleid.py`. **De eerste pagina
+  afgebroken antwoord; lege metadata en een lege titel worden ook niet bewaard. `tests/connectors/test_http_beleid.py`. **De eerste pagina
   van een lang stuk noemt alle volgende pagina's** (`stuk_tekst._met_paginas`, `paginas.offsets`), voor elke leestool: een
   arrest zonder koppen kostte zes modelrondes, één per pagina (Staatsblad ronde 5, I04). Geeft de
   Rechtspraak de tekst niet, dan draagt het foutresultaat van `get_uitspraak` de uitspraak zoals LiDO haar kent
   (`metadata_lido`: titel, datum, zaaknummer, `gevalideerd: false`). LiDO heeft de tekst niet, dus het antwoord kan haar
-  noemen, niet citeren. `bron_lezen` zegt "te druk" of "niet te bereiken". `tests/test_rechtspraak_tools.py`,
-  live `tests/test_rechtspraak_live.py`, meting `docs/architectuur/metingen/lido-spike-2026-11-10/`.
+  noemen, niet citeren. `bron_lezen` zegt "te druk" of "niet te bereiken". `tests/connectors/test_rechtspraak_tools.py`,
+  live `tests/connectors/test_rechtspraak_live.py`, meting `docs/architectuur/metingen/lido-spike-2026-11-10/`.
 - **Wetgeving buiten de kennisgraaf** (`tools/wetgeving_tools.py`, transport `adapters/sru_bwb.py`, ADR-013 fase 1e):
   wettekst van het BWB die niet in de graaf staat, live bij overheid.nl. **De graaf blijft de bron voor wat erin staat**,
   en dat beslist code: `_graafbesluit` vraagt de graaf (`graaftoestanden`, `q_in_graaf`, een cache per graafverbinding)
@@ -937,9 +937,9 @@ bruikbaar is.
   genoemd artikel in een nieuw gesprek leest de code vooraf (`bron_lezen`), en na een modelkeuze komt het in het plan
   (`plan_regel`) en `bron_lezen`. Annoteren (`nodes/annotatie._niet_in_graaf`) en opnemen in een werkgebied
   (`bronselectie.NIET_IN_GRAAF`) zeggen dat het pas na een import kan. Tests met opnames van overheid.nl
-  (`tests/fixtures/bwb_live/`, `WETGEVING_OPNEMEN=1`): `tests/test_wetgeving_tools.py`, `tests/test_buiten_graaf.py` en de
-  vragenset `tests/test_wetgeving_live_vragenset.py`; live `tests/test_wetgeving_live_live.py`.
-  **Na de eerste meting** (`docs/architectuur/metingen/wetgeving-live-2026-11-11/`, `tests/test_wetgeving_live_routes.py`):
+  (`tests/fixtures/bwb_live/`, `WETGEVING_OPNEMEN=1`): `tests/connectors/test_wetgeving_tools.py`, `tests/routes/test_buiten_graaf.py` en de
+  vragenset `tests/evals/test_wetgeving_live_vragenset.py`; live `tests/connectors/test_wetgeving_live_live.py`.
+  **Na de eerste meting** (`docs/architectuur/metingen/wetgeving-live-2026-11-11/`, `tests/connectors/test_wetgeving_live_routes.py`):
   een tekstvraag naar één genoemd artikel gaat de **bepalingsworkflow** in (`bepaling_workflow.lees_buiten`, en `lees` met
   een peildatum buiten de graaftoestand: `live`, `peildatum`). De code leest het hele artikel met `get_wettekst` (alle
   pagina's) en toont het in het blok `extern` (`sjablonen.extern.heel_stuk`, zonder `MAX_PASSAGES`), met een `Leemte` bij
@@ -951,7 +951,7 @@ bruikbaar is.
   controle (`controle.md` bij die meting): ook een verzoek om **op te nemen of toe te voegen** (`_OPNEEM_RE`) krijgt die
   vaste melding (`buiten_graaf.melding_opnemen`): het model schreef "staat nu in de bronselectie". Een onderdeel draagt
   zijn nummer als `plek` ("onderdeel b", `wetgeving_tools.onderdeel_plek`), want de tekst zelf draagt het niet. **Een duiding buiten de graaf rust op `extern`** (iteratie ronde 3): `onderbouwing` mag leeg als `extern` een gelezen stuk van `get_wettekst` aanwijst (`duiding.live_stukken`), en een weigering wijst dan naar `extern` met het id, ook als het model die tekst in `onderbouwing` zette (`_live_van`), nooit naar get_artikel: anders las het model de tekst opnieuw en schreef het het antwoord tot acht keer opnieuw (I13, 631k).
-- **Kennisgroepstandpunten** (`tools/kennisgroep_tools.py`, bron `adapters/kennisgroepen_bron.py`, plan `docs/architectuur/plan-connector-kennisgroepen.md`): `zoek_standpunten` zoekt in de index in de graaf (eigen named graph `urn:wa:graph:kennisgroepen`, vocabulaire `urn:wa-kg-ns:`, gevuld door `bwb-import --kennisgroepen`), nooit in de wet-FTS; de SPARQL bouwt de adapter, elke waarde van de jurist als ontsnapte literal (`kennisgroepen_bron.literal`). Standaard alleen geldende standpunten (`status`); `per_status` telt ook de ingetrokken en de toelichting zegt het. Per artikel draagt een rij `wetsverwijzing` met de herkomst (link of in de tekst herkend) en `tekststand` tegenover `bwb:inwerking`. Een lege of onbereikbare index is `bron_onbereikbaar`, nooit "geen standpunten". `get_standpunt` leest live bij de API (wp-id uit de index, anders `?search=` op het kenmerk), met de gedeelde lezer `bronmodel.kennisgroepen` (dezelfde als de index), een cache van `VERS_S` en bij een storing de bewaarde versie met `gevalideerd: false`; een ingetrokken standpunt zegt dat in de toelichting met het standpunt dat het verving. `tests/test_kennisgroepen_tools.py`, `tests/test_kennisgroepen_lezer.py`, live `tests/test_kennisgroepen_live.py`.
+- **Kennisgroepstandpunten** (`tools/kennisgroep_tools.py`, bron `adapters/kennisgroepen_bron.py`, plan `docs/architectuur/plan-connector-kennisgroepen.md`): `zoek_standpunten` zoekt in de index in de graaf (eigen named graph `urn:wa:graph:kennisgroepen`, vocabulaire `urn:wa-kg-ns:`, gevuld door `bwb-import --kennisgroepen`), nooit in de wet-FTS; de SPARQL bouwt de adapter, elke waarde van de jurist als ontsnapte literal (`kennisgroepen_bron.literal`). Standaard alleen geldende standpunten (`status`); `per_status` telt ook de ingetrokken en de toelichting zegt het. Per artikel draagt een rij `wetsverwijzing` met de herkomst (link of in de tekst herkend) en `tekststand` tegenover `bwb:inwerking`. Een lege of onbereikbare index is `bron_onbereikbaar`, nooit "geen standpunten". `get_standpunt` leest live bij de API (wp-id uit de index, anders `?search=` op het kenmerk), met de gedeelde lezer `bronmodel.kennisgroepen` (dezelfde als de index), een cache van `VERS_S` en bij een storing de bewaarde versie met `gevalideerd: false`; een ingetrokken standpunt zegt dat in de toelichting met het standpunt dat het verving. `tests/connectors/test_kennisgroepen_tools.py`, `tests/connectors/test_kennisgroepen_lezer.py`, live `tests/connectors/test_kennisgroepen_live.py`.
 - **`graph/queries.py`** – de SPARQL-bouwers (o.a. `context()` = de GraphRAG-UNION).
   **`graph/schema.py`** – schema-introspectie met een cache van een uur. **`graph/results.py`** –
   `parse_select`: de MCP levert SELECT als JSON-string-gewrapte TSV.
@@ -969,15 +969,15 @@ bruikbaar is.
   fout (`id_niet_uit_gesprek`), met de zoektool die het wel vindt. Declaratief per parameter (`ARGUMENTEN`), niet per tool. Een
   BWB-id van een regeling in de graaf mag ook (het resultaat noemt haar en de controle toetst het id); de weigering geldt
   als de graaf aantoont dat ze er niet in staat (wetgeving_live I20: een id uit het geheugen). **Bij een vraag die een artikel noemt, moet het gesprek de regeling noemen** (`_gegokt`, ADR-016 ronde 3, V01: "artikel 30" zonder regeling werd de Invorderingswet 1990): bij naam of afkorting (of het eerste woord van de naam als geen andere regeling zo begint: "de Leidraad"), in de vraag, een eerder antwoord, een toolresultaat, het werkgebied of de focus. Anders gaat de aanroep terug met de zin dat Lex de jurist vraagt welke regeling hij bedoelt. Een vraag zonder artikel valt er niet onder, en zonder namen of graaf is er geen bewijs. Wat het model in deze beurt
-  zelf schreef, telt niet; voor die regel ook niet wat het in deze beurt vond of plande (zoekresultaten van deze beurt, toen ook het plan van de supervisor: `bekende_tekst(deze_beurt=False)`, ADR-016 ronde 4, V01: "artikel 30" en "de rente" vonden de Invorderingswet 1990). Code die een tool aanroept, leidt haar ids zelf af en valt er niet onder. `tests/test_id_herkomst.py`.
+  zelf schreef, telt niet; voor die regel ook niet wat het in deze beurt vond of plande (zoekresultaten van deze beurt, toen ook het plan van de supervisor: `bekende_tekst(deze_beurt=False)`, ADR-016 ronde 4, V01: "artikel 30" en "de rente" vonden de Invorderingswet 1990). Code die een tool aanroept, leidt haar ids zelf af en valt er niet onder. `tests/grounding/test_id_herkomst.py`.
 - **`agent/spoorbronnen.py`** – één register van wat Lex raadpleegt, intern (`WETGEVING`, `ANNOTATIES`, `BEGRIPPEN`,
   `METHODE`) en per connector afgeleid uit zijn beschrijving (`uit_connector`: label, werkwoorden, leestool = lezen, de
   rest zoekt). Daaruit komen het werkwoord van de statusregel (`toolregel`, achter `narratie._toolregel`) en de
   resultaatregel (`uitkomstregel`). Een nieuwe connector staat er zonder code in; een nieuwe graaftool krijgt hier een
-  werkwoord en een zoek/lees-indeling, een nieuwe `reden` een zin in `REDEN_ZIN` – `tests/test_spoorbronnen.py` eist alle
+  werkwoord en een zoek/lees-indeling, een nieuwe `reden` een zin in `REDEN_ZIN` – `tests/denkproces/test_spoorbronnen.py` eist alle
   drie.
 - **Het denkproces weerspiegelt de beurt één op één** (E2E Rekeningafspraken 16 nov 2026, D-1 t/m D-15;
-  `tests/test_denkproces_volledig.py`). Elke aanroep die draaide heeft één resultaatregel met de bron als actor:
+  `tests/denkproces/test_denkproces_volledig.py`). Elke aanroep die draaide heeft één resultaatregel met de bron als actor:
   `uitkomstregel` is nooit leeg ("kst-33755-3 gelezen", "kst-34002-G: niets gevonden" bij zoeken binnen één stuk,
   `zoekt_binnen`). Een filter dat het werkwoord niet noemt, komt erachter met zijn label uit de beschrijving
   (`_filters_erbij`). Een aanroep die `tools_node` weigert, staat erin als "… – niet uitgevoerd: <reden>"
@@ -990,7 +990,7 @@ bruikbaar is.
   `buiten_periode`, `zonder_steun`, `volledig_geclaimd`) lezen de tekst zonder citaten (`gelezen.zonder_citaten`): een
   citaat is tekst van de bron, en een verwijzing erin naar een ander stuk is geen samenvatting van dat stuk. De
   letterlijkheid van een citaat toetst `grounding` op de hele tekst (hermeting na #1614, 16 nov 2026;
-  `tests/test_controle_citaten.py`). Een route zegt één keer wat er gebeurt (de worker herhaalt
+  `tests/grounding/test_controle_citaten.py`). Een route zegt één keer wat er gebeurt (de worker herhaalt
   het niet), de bronnenregel staat er alleen als de bronkeuze verandert, en een bericht van code zonder model draagt
   ook een denkproces (`werkgebied_annotatie`). **Geen lege plekken**: `narratie._stap` toetst elke regel
   (`lege_plekken`: "(art. )", "None", "{veld}", een dubbele spatie, een regel die op een scheiding eindigt). In de
@@ -1023,7 +1023,7 @@ dan de graaf.
     `alleen_select`, `resultaat_te_groot`). Vrije SPARQL herschrijven is foutgevoelig; weigeren met
     uitleg niet.
 
-  `tests/test_resultaatcontract.py` draait elke graaftool tegen een worst-case graaf (honderden rijen,
+  `tests/graaf/test_resultaatcontract.py` draait elke graaftool tegen een worst-case graaf (honderden rijen,
   lange teksten, LIMIT/OFFSET) en eist: contract-JSON binnen de begroting, geen lege velden, `vervolg`
   en `openen` geldig tegen hun tool, ORDER BY bij paginering, en dat alle pagina's samen precies de
   dataset zijn. Gerangschikte lijsten vragen `limit + 1` rijen op (`queries._pagina`).
@@ -1047,25 +1047,25 @@ dan de graaf.
   een punt en mist dan de divisies van een beleidsregel). De tools nemen `artikel` én `nummer` aan
   (`_aanduiding`).
 - **`bwb:bevat` bestaat niet.** De importer schrijft per niveau een eigen `heeft…`-predicaat; de
-  alternatie staat als `queries.BEVAT`. `tests/test_predicaat_dekking.py` toetst elke `bwb:`-term
+  alternatie staat als `queries.BEVAT`. `tests/graaf/test_predicaat_dekking.py` toetst elke `bwb:`-term
   statisch tegen `tools/bwb-import/app/ontology.py`.
 - **De zoekvelden zijn een contract met de importer.** `queries.FTS_VELDEN`/`FTS_TYPES` moeten gelijk
   zijn aan de connector-config in `tools/bwb-import/app/graphdb_writer.py`; een onbekende veldnaam geeft
-  nul treffers zonder fout. `tests/test_fts_velden.py` bewaakt het.
-- **Een tool landt pas als hij is toegewezen én uitgelegd.** `tests/test_toolverdeling.py` weigert een
+  nul treffers zonder fout. `tests/graaf/test_fts_velden.py` bewaakt het.
+- **Een tool landt pas als hij is toegewezen én uitgelegd.** `tests/centrale_agent/test_toolverdeling.py` weigert een
   weestool (in geen enkele specialist-set), een rolnaam die niet bestaat (die negeert
   `anthropic_schemas(only=)` stil), een beschrijving die niet zegt wát er terugkomt, en een tool zonder
   controle in `eval/retrieval_smoke.py`.
 - **Geen subquery in een OPTIONAL.** GraphDB rekent zo'n subquery los uit; sluit ze aan op een variabele uit een `BIND`,
   dan sluit ze niet aan. `geldigheid` gaf zo voor één artikel 974 rijen, elk met de Kamerdossiers van een andere bepaling
   (13 nov 2026; een nepgraaf ziet dat niet). Zet wat bij een afgeleide knoop hoort in de OPTIONAL die hem bindt, en voeg
-  samen op het buitenste niveau. `tests/test_predicaat_dekking.py` weigert het patroon; `eval/retrieval_smoke.py` eist
+  samen op het buitenste niveau. `tests/graaf/test_predicaat_dekking.py` weigert het patroon; `eval/retrieval_smoke.py` eist
   tegen de echte graaf één rij.
 - **Te véél rijen is net zo fout als te weinig.** `?node a ?type` matcht ook gematerialiseerde
   superklassen: bind `?soort` met `FILTER(?t IN (…CONCRETE_TYPES…))`. Meerwaardige properties in losse
   OPTIONALs vermenigvuldigen elkaar: gebruik `GROUP_CONCAT`. Beide glippen door elke leegte-controle
   heen – vandaar `min_rijen`/`max_rijen` in de smoke en de kardinaliteitsguard in
-  `tests/test_predicaat_dekking.py`.
+  `tests/graaf/test_predicaat_dekking.py`.
 - **`grondslagen` voor een regeling als geheel geeft ook haar artikelen** (`queries._grondslagen_regeling`, ADR-016
   ronde 3, B02). `grondslagVoor` en `bevoegdheidVoor` hangen aan de artikelen; wie naar de regeling vroeg, kreeg ze niet en
   vroeg ze één voor één op. Een regeling in de graaf die op deze berust, draagt nu `vanuit` (de artikelen, op nummer) en
@@ -1077,7 +1077,7 @@ dan de graaf.
 - **De graaf bevat ook de JAS-annotatielagen** (`urn:jas:graph:*`, door de api geprojecteerd). Omdat de
   queries de union bevragen, moet elke bouwer óf op subjecten onder `urn:bwb:` filteren óf alleen
   `bwb:`-predicaten volgen (`resolve_begrip` filtert op `NS`, anders geeft hij JAS-klassen als begrip).
-  `tests/test_annotatielaag_isolatie.py` draait **elke** bouwer uit `test_sparql_syntax.GEVALLEN` met
+  `tests/annotatieketen/test_annotatielaag_isolatie.py` draait **elke** bouwer uit `test_sparql_syntax.GEVALLEN` met
   en zonder laag en eist identieke rijen; `api/tests/test_graaf_rijk.py` bewaakt dat de fixture
   (`tests/fixtures/jas_laag_v3_voorbeeld.ttl`) de echte projectie volgt.
 - **Het fallback-label van een verwijsdoel staat op `bwb:doelLabel`.** Lees het als
@@ -1218,7 +1218,7 @@ van de verweesd-`UPDATE … RETURNING` (precies één, ook met meer lezers), de 
 de driver, en een fout uit een route die niet langs `voer_beurt_uit` gaat. Dubbel kan niet: de api ontdubbelt op
 `run_id`. Lukt het schrijven niet, dan toont de werkplek de banner (`frontend/lib/lopendeRun.ts`).
 
-> **Testen:** gebruik `with TestClient(app)` (zie `tests/test_run_endpoints.py`). Zonder `with` breekt de
+> **Testen:** gebruik `with TestClient(app)` (zie `tests/runs/test_run_endpoints.py`). Zonder `with` breekt de
 > harnas per request zijn event loop af en sneuvelt de achtergrondtaak. Een bare `TestClient` draait de
 > lifespan niet, dus de startup-checks storen de meeste tests niet.
 
@@ -1251,10 +1251,10 @@ bronnode: `POST /v1/annotatie/lagen/batch` met `batch_id` (= run_id), `bron_iri`
 - **Een afgeronde laag** geeft de foutcode `annotatie_afgerond` met de vraag om te heropenen;
   `wetsanalyse_api` logt de reden van de api (`api_reden`, nooit de body).
 - **Wat de api niet bewaart, meldt de driver als `error`** met een eigen tekst.
-  `tests/test_gedeelde_laag.py` draait daarom tegen de échte client met een `MockTransport`.
+  `tests/annotatieketen/test_gedeelde_laag.py` draait daarom tegen de échte client met een `MockTransport`.
 - **De contractgrens ligt in `wetsanalyse_api.naar_contract`.** Hier `aandacht: str = ""`, bij de api
   `Aandacht | None`: dat verschil is een 422. Vertaal zulke velden op de grens en zet ze in `OPGEVANGEN`
-  in `tests/test_contract_drift.py`, dat beide modellen veld voor veld vergelijkt – ook het chatbericht
+  in `tests/runs/test_contract_drift.py`, dat beide modellen veld voor veld vergelijkt – ook het chatbericht
   tegen `BerichtInvoer` van de api (Pydantic laat onbekende velden stil vallen).
 - **Tool-executions worden samengevoegd op `(run_id, call_id)`**, met dezelfde regel als
   `mergeToolExecution` in de werkplek; los bewaard telt de werkplek na herladen elke aanroep dubbel.
@@ -1282,7 +1282,7 @@ aanroep (ADR-015). Het venster komt uit `agent/modelvenster.py` (op Foundry niet
 `meting`-event en op het bericht (`voer_beurt_uit`), uit dezelfde meter op hetzelfde moment, met `run_id` en `ouder_run_id`;
 een beurt zonder model heeft er geen. **Geen veld heet `token`** (de logredactie laat die naam weg). De meter houdt begin,
 laatste en de sommen over alle aanroepen bij, ook voorbij `MAX_AANROEPEN`. Het contract bij de api is
-`gesprek_contracts.Contextopbouw`; `tests/test_contextopbouw.py` vergelijkt beide kanten en eist een venster voor elk model
+`gesprek_contracts.Contextopbouw`; `tests/context/test_contextopbouw.py` vergelijkt beide kanten en eist een venster voor elk model
 uit de config.
 
 **Tokenverbruik wordt niet via een event geboekt.** Wie meekijkt krijgt het wel te zien: vlak vóór `done` gaat
@@ -1349,7 +1349,7 @@ model, ook niet met een aangewezen bepaling, en voor beide agentvormen. *Gekoppe
 methodepakket (een sectie van de skill hoort bij een rol), dus hij vervalt vanzelf als wetsuitvoering een rol krijgt.
 Een vraag óver de methode ("wat zegt het JRM over een rechtsfeit?") loopt gewoon door: de regel vraagt een werkwoord
 dat om werk vraagt en slaat een vraag met een vraagwoord over. De trefwoorden per methode staan in `TREFWOORDEN`;
-`tests/test_methodekeuze.py` eist een rij voor elke methode-skill behalve wetsanalyse, en dat geen vraag uit de
+`tests/routes/test_methodekeuze.py` eist een rij voor elke methode-skill behalve wetsanalyse, en dat geen vraag uit de
 routerings-, gespreks- en kwaliteitssets in de regel valt. Bekende grens: een vervolgvraag zonder werkwoord ("en volgens
 JRM?") herkent de regel niet; die leest het model.
 
@@ -1376,7 +1376,7 @@ classifier (`classificatie.py`), validatie (`validatie.py`, `V_*`-codes), twijfe
 reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en subtype.
 
 - **Een detectorregel wijzig je in `detectoren/regels/*.yaml`, met vier testsoorten erbij** (positief,
-  negatief, rand, overlap) – `tests/test_detectoren.py` weigert een regel zonder. Hoeveel
+  negatief, rand, overlap) – `tests/annotatieketen/test_detectoren.py` weigert een regel zonder. Hoeveel
   referentiespans de detectoren aanreiken meet `python -m eval.kandidaat_eval` (seconden, geen model);
   dat is ankerdekking, geen recall.
 - **Het model kiest, het typt niet.** De classifier krijgt labels, fragmenten, bewijscodes en de
@@ -1410,10 +1410,10 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
   getal in cijfers erin ('48' in 'binnen 48 uur') wordt een geneste Parameter (`jas.waarde.getal_in_duur`,
   code `DURATION_NUMBER`). Die code mag niet met `TEMPORAL_` beginnen, anders schrapt `specificiteit` hem
   (ADR-001, aanvulling bij PR 8).
-- **Elke code in een `trace` heeft een verklaring** in `verklaringen.yaml`; `tests/test_verklaringen.py`
+- **Elke code in een `trace` heeft een verklaring** in `verklaringen.yaml`; `tests/annotatieketen/test_verklaringen.py`
   weigert een code zonder verklaring en een verklaring zonder code. Draai daarna
   `python scripts/genereer_jas_vocabulaire.py`: die schrijft de vocabulairegraaf en `verklaringen.json`
-  naar `api/app/vocabulaire/`, bewaakt door `tests/test_vocabulaire_drift.py`.
+  naar `api/app/vocabulaire/`, bewaakt door `tests/methode/test_vocabulaire_drift.py`.
 - **Relatievoorstellen, achter een proefvlag** (`RELATIE_VOORSTELLEN`, standaard uit; ADR-011 §*Voorstellen komen
   later*). `jas_pipeline/relaties.py` stelt na de keten relaties tussen haar voorstellen voor, zonder model, met vier
   regels: `uitvoer`/`invoer` uit de spans van `CALCULATION_QUANTITY` (`REL_UITVOER_FUNCTIE`, `REL_INVOER_FUNCTIE`),
@@ -1422,13 +1422,13 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
   hoofdpredicaat (`REL_VOORWAARDE_AANHECHTING`). Bij twijfel geen voorstel; elk voorstel gaat door de catalogus
   (`agent/jas_relaties.py`, gegenereerd door `scripts/genereer_jas_relaties.py`, dezelfde Python als de api). Een
   eindpunt is de lijst ankers van een voorstel; de api zet die om naar het element-id. Zonder vlag is de uitkomst
-  bitgelijk (geen veld, geen fase, geen meting; `tests/test_relatievoorstellen.py`). Met vlag: `Uitkomst.relaties`,
+  bitgelijk (geen veld, geen fase, geen meting; `tests/annotatieketen/test_relatievoorstellen.py`). Met vlag: `Uitkomst.relaties`,
   `meting.relaties`, `analyse.relaties`, één `relaties`-event na de elementen (`bron_annotatie.lokale_relaties`) en
   `relaties` in de batch. De vlag staat in `run.instellingen`. Kenmerk, tijd en rollen doet de keten nog niet. Een regel
-  krijgt een code in `verklaringen.yaml` (sectie `relatie`) en vier testsoorten in `tests/test_relatievoorstellen.py`.
+  krijgt een code in `verklaringen.yaml` (sectie `relatie`) en vier testsoorten in `tests/annotatieketen/test_relatievoorstellen.py`.
 - **De klassenduiding komt uit de skill.** Het JAS_KLASSEN-blok in `agent/jas_klassen.py` en
   `agent/methodepakket.py` worden gegenereerd door `scripts/genereer_jas_klassen.py` (CI draait
-  `--check`), bewaakt door `tests/test_methode_drift.py`. Bewerk de markdown in
+  `--check`), bewaakt door `tests/methode/test_methode_drift.py`. Bewerk de markdown in
   `.claude/skills/wetsanalyse/`, niet de Python. De generator toetst elke methode-skill met `bronmodel.skill` (de
   Agent Skills-specificatie plus de regels van Lex; ADR-016 §B2): dezelfde validator als de werkplaats, dus een regel
   voor skills hoort daar en niet in het script. Alleen de regels uit een skill (`regels/`) toetst het script zelf.
@@ -1445,7 +1445,7 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
 - **Elke beurt meldt zijn herkomst.** Het `run`-event draagt `model`/`provider`/`agent_versie`/`modus`,
   `prompt_hash` (= `classificatie.promptversie`), `methode_versie` (= `jas_klassen.methode_versie()`) en
   `instellingen` met de meting. Per element staat de route in `trace` (bewijs, vraag, besluit, validatie,
-  twijfel, resolutie); `tests/test_provenance_element.py` toont de zestien vragen die daarmee te
+  twijfel, resolutie); `tests/annotatieketen/test_provenance_element.py` toont de zestien vragen die daarmee te
   beantwoorden zijn.
 - **`dekking`** gaat vóór de elementen en zegt wat de keten wel en niet kon bekijken: per bronnode de
   dimensies en de ongedekte zinsdelen mét offsets, de procesdekking en de fasen met duur. Het draagt ook
@@ -1456,7 +1456,7 @@ reviewer (`review.py`), de resolver (`resolver.py`), dekking, beslisregister en 
 - **Dezelfde markering komt maar één keer terug.** Zonder id is de sleutel `annotatie.sleutel_van(tekst,
   lid)` – genormaliseerde tekst + lid, **zonder klasse**, zodat een herclassificatie hetzelfde element
   treft. Dezelfde regel staat in `mergeVoorstellen` van de werkplek, bewaakt door
-  `tests/test_ontdubbelsleutel.py`.
+  `tests/annotatieketen/test_ontdubbelsleutel.py`.
 
 ## De begrippenketen (`agent/begrippen_pipeline/`, ADR-004)
 
@@ -1495,7 +1495,7 @@ manifest → taal.py → definities.py + signalen.py + patronen.py → kandidate
 - **Het bereik van een definitie** komt uit de aanhef ("Deze wet verstaat onder", "in dit artikel");
   "dit hoofdstuk" is onbekend, omdat de opbouw niet in de IRI staat.
 - **Patronen** staan in `regels/relaties.yaml` met groepen `van`/`naar` en vier verplichte
-  testsoorten (`tests/test_begrippen_patronen.py`); elke code heeft een regel in `verklaringen.yaml`.
+  testsoorten (`tests/begrippen/test_begrippen_patronen.py`); elke code heeft een regel in `verklaringen.yaml`.
 - **Geen graafverkeer in de keten.** Definities buiten het werkgebied horen als contextbron in het
   manifest, of in de **onderzoeksstand** (spoor M): `Onderzoek`/`Contextbron` in `model.py`, gebouwd
   door de api (`api/app/begrip_onderzoek.py`), id `O…` uit de inhoud, getoetst met `past_bij(manifest)`.
@@ -1506,7 +1506,7 @@ manifest → taal.py → definities.py + signalen.py + patronen.py → kandidate
   `KWALIFICATIE_SAMENGESTELD`, `BEREKENING_OP_TERM`, `ROL_IN_BEPALING`, `AFLEIDINGSREGEL`,
   `GEEN_DEFINITIE_GEVONDEN`) plus open vragen. Deterministisch; het gaat naar de prompt (`blok`) en de
   toetsen (`toetsen.met_dossier`), nooit naar `besluit.py`. De berekeningspatronen staan in
-  `betekenisregels/berekening.yaml` (vier testsoorten, `tests/test_betekenis.py`); `BEREKENING_IN_BEPALING`
+  `betekenisregels/berekening.yaml` (vier testsoorten, `tests/begrippen/test_betekenis.py`); `BEREKENING_IN_BEPALING`
   (onbeslist, zwak) maakt van `ZELFDE_BEPALING` een vraag. De fragmentruimte is manifest + onderzoek
   (`fragmenten.alle`, `onderzoeksfragmenten`: contextdefinities, eigen bronnen, zelfde artikel,
   verwijzingen, contextselecties). Meten: `uv run python -m eval.betekenisonderzoek_eval` (offline).
@@ -1569,8 +1569,8 @@ en eindig met `opgeslagen` + `done`.
   uitkomst → `error` met `soort` (`api`/`manifest`/`keten`) en `…/mislukt` bij de api (best-effort; anders
   ziet de api de run na vijf minuten als vastgelopen).
 - **Contract**: `naar_uitkomst` volgt `api/app/begrippen_run_contracts.py`;
-  `tests/test_begrippen_run.py` leest die klassen uit de bron (zoals `test_contract_drift.py`), en
-  `tests/test_begrippen_manifest_drift.py` bewaakt manifest-id en veldnamen via
+  `tests/begrippen/test_begrippen_run.py` leest die klassen uit de bron (zoals `test_contract_drift.py`), en
+  `tests/runs/test_begrippen_manifest_drift.py` bewaakt manifest-id en veldnamen via
   `manifest-id.vectoren.json`.
 
 ### Lex denkt mee: de verdieping als beurt (`agent/begrippen_verdieping.py`, fase C2)
@@ -1601,7 +1601,7 @@ zonder definitie zijn.
   samenvatting noemt wat het kostte naast de schatting.
 - **Alles klaar** → hergroeperen, kaarten, `PUT …/verdieping` (groepen met `door`, kaarten, oordelen,
   open vragen), en een samenvatting met het begrippenartefact.
-- Tests: `tests/test_begrippen_verdieping_run.py` (nep-api en nep-model; het api-contract uit de bron).
+- Tests: `tests/begrippen/test_begrippen_verdieping_run.py` (nep-api en nep-model; het api-contract uit de bron).
 
 ### Lex naast de kaart (`agent/begrip_kaart.py`, `begrippen_pipeline/kaartacties.py`, fase E)
 
@@ -1635,7 +1635,7 @@ endpoint `/v1/kaart-runs` is met F3e vervallen.
 - **Budget** vóór een model-actie (`verbruik.budget_poort`); het verbruik op `kaart-<run>`, ook bij een fout.
 - **Codes**: de aandachtspunten van deze acties staan in `kaartacties.TEKST`, los van `toetsen.TEKST`
   (de werkplek leest die laatste letterlijk mee; een nieuwe code daar breekt de frontend-drift-test).
-- **Contract**: `tests/test_begrip_kaart.py` leest `api/app/begrip_voorstel_contracts.py` uit de bron.
+- **Contract**: `tests/begrippen/test_begrip_kaart.py` leest `api/app/begrip_voorstel_contracts.py` uit de bron.
 - **Schrijf de uitleg in B1** (spoor I2, `kaartacties.uitleg`): alleen op een definitie, één strict tool
   (`schrijf_uitleg`: één alinea van hoogstens vijf zinnen, met fragmenten), daarna de **B1-toetsen in code**
   (`begrippen_pipeline/begrip_b1.py`, met de woordenlijst `b1_woorden.yaml`): `B1_LANGE_ZIN`, `B1_TE_LANG`,
@@ -1664,7 +1664,7 @@ vraag om begrippen is sinds F3c de taak `voorstellen` van de begrippen-agent (de
   zónder artefact. Een andere api-fout wordt in de node een zin (`STORING`).
 - In de antwoordroute gaat `werkgebied_id` mee als `State.werkgebied_id`: de begrippen van dat werkgebied
   staan vooraan bij `search_begrippen` (fase F4, hieronder).
-- Tests: `tests/test_begrippen_beurt.py` (request-model, verloop tegen een nep-api).
+- Tests: `tests/begrippen/test_begrippen_beurt.py` (request-model, verloop tegen een nep-api).
 
 ### Bronnen vinden met Lex (`agent/bronnen_vinden.py`, `agent/bronnen_run.py`, fase A)
 
@@ -1691,7 +1691,7 @@ horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.
   kern `STANDAARD` = verwijzing uit, definitie, opbouw; zonder kern `ZONDER_KERN` = het overzicht.
   Overzicht (met kern), `verwijzing_in` en `gelijkenis` hielpen niet aantoonbaar en staan uit. Wijzig
   je een methode, meet dan opnieuw: `uv run python -m eval.bronselectie_eval` (offline, tegen de
-  opname naast de set) en `--opnemen` (live); `tests/test_bronselectie_eval.py` bewaakt dat de standaard
+  opname naast de set) en `--opnemen` (live); `tests/evals/test_bronselectie_eval.py` bewaakt dat de standaard
   alles vindt wat nodig is en niets uitgeslotens voorstelt. Heeft het werkgebied deelvragen (ze staan
   alleen dan in de invoer), dan komt `deelvraag` erbij: de analist vroeg er zelf om. Die methode meet
   `--intake` per deelvraag, met `recall_pool` (wat de index vindt vóór de rangschikking), het profiel
@@ -1735,7 +1735,7 @@ horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.
   gaat naar de bronselectie (`BRONSELECTIE_ACTIES`). Een open voorstel telt met één regel (`is_open`: ook niet
   `vervallen`, de api zet die vlag als de laatste klare run het niet meer vond).
   "Welke artikelen gaan over X?" blijft de overzichtsroute, ook binnen een werkgebied. Een weigering van de api (`geen_vertrekpunt`) is een antwoord.
-- Tests: `tests/test_bronnen_vinden.py` (functiepatronen, methoden tegen een nep-graaf, het
+- Tests: `tests/werkgebied/test_bronnen_vinden.py` (functiepatronen, methoden tegen een nep-graaf, het
   api-contract uit de bron, run, taak).
 
 ### Lex stelt deelvragen voor (`agent/deelvragen.py`, vervolg op fase F)
@@ -1749,7 +1749,7 @@ de rest; het hele dossier van het werkgebied gaat mee via
 `werkgebied_context.context_tekst`, en de bestaande deelvragen, zodat Lex er geen variant van bedenkt),
 `valideer` (alleen vragen met een vraagteken, ontdubbeld, hoogstens `MAX_DEELVRAGEN`),
 `POST …/deelvragen/voorstellen`. Het verbruik telt mee in de beurt. De api laat weg wat er al staat of is
-afgewezen. Tests: `tests/test_deelvragen.py` (het contract `DeelvraagVoorstellen` uit de api-bron).
+afgewezen. Tests: `tests/werkgebied/test_deelvragen.py` (het contract `DeelvraagVoorstellen` uit de api-bron).
 
 ### Lex annoteert het werkgebied (`agent/werkgebied_annotatie.py`, fase B)
 
@@ -1783,7 +1783,7 @@ het voorstel met de bevestiging (`werkgebied_voorstel`, F3c).
   (`deel_van`), en `bevestigd` telt die doorsnede. `budget_aandeel` stopt de run tussen twee bepalingen zodra de volgende
   (de mediaan, of het gemiddelde tot nu toe, uit de `meting`-events) er niet meer in past (`binnen_aandeel`); de poort van
   de api blijft gelden. Zo werken de kinderen van een regie zonder overlap en binnen hun aandeel.
-- Tests: `tests/test_werkgebied_annotatie.py`.
+- Tests: `tests/annotatieketen/test_werkgebied_annotatie.py`.
 
 ### Het plan van een regie (`agent/regie/plan.py`, ADR-012)
 
@@ -1793,14 +1793,14 @@ Zuiver en deterministisch, uit de stand bij de api: `plan_bronnen` (per deelvraa
 schatting`, zonder schatting het budget gelijk verdeeld). `plan_id` hasht alleen het werk, niet de schatting. Wat niet
 meegaat, staat in `buiten` met de reden, ook een bepaling die al een annotatie heeft (`_al_geannoteerd`: "al een annotatie en overgeslagen", met haar stand). `kind_verzoek` maakt het `ChatRequest` van een kind: de actie `bronselectie`
 op de deelvraag, of `deelvragen_annoteren`/`werkgebied_annoteren` met `bevestigd`, `eenheden` en `budget_aandeel`.
-Tests: `tests/test_regie_plan.py`.
+Tests: `tests/centrale_agent/test_regie_plan.py`.
 
 ### De regisseur (`agent/regie/regisseur.py`, ADR-012)
 
 Een regie verdeelt het werk in een werkgebied over deelgesprekken: een eigen stroom in `_stroom_voor` (zoals de reeks),
 geen node. Ingang: de acties `regie_bronnen` en `regie_annoteren` (`REGIE_ACTIES`, geen taak van een agent), of een getypte
 opdracht met "per deelvraag" (`opdracht_in`, alleen een verzoek; met bronnen én annoteren eerst de bronnenronde).
-`tests/test_regisseur.py` haalt elke vraag uit de routerings- en gespreksset erdoorheen: geen ervan mag erin vallen.
+`tests/centrale_agent/test_regisseur.py` haalt elke vraag uit de routerings- en gespreksset erdoorheen: geen ervan mag erin vallen.
 
 - **Eerst een bevestiging** (`soort: "regie"`, `plan_id`): zonder `plan_id` gelijk aan het plan van nu alleen het voorstel,
   met kosten, de grens op tegelijk en wat niet meegaat.
@@ -1930,7 +1930,7 @@ werkgebied-worker staat naast `antwoord` en `annotatie` achter de ingang, en ket
     net eerder): niets opgeslagen, en het samenvattingskaartje komt terug zodat opnieuw opslaan op de
     nieuwe stand landt; 404: het werkgebied bestaat niet meer; anders `error` met `foutcode:
     werkgebied_niet_gewijzigd`. De revisie in de historie is van de analist (`X-User-Id`).
-- Tests: `tests/test_werkgebied_intake.py` en `tests/test_werkgebied_context.py`.
+- Tests: `tests/werkgebied/test_werkgebied_intake.py` en `tests/werkgebied/test_werkgebied_context.py`.
 
 ### De bronselectie per deelvraag (`agent/bronselectie.py`, `nodes/bronselectie.py`, spoor J)
 
@@ -1982,7 +1982,7 @@ achter de ingang, naast de intake; zie `docs/architectuur/bronselectie-per-deelv
 - **Uit code, niet van het model**: `beperkingen` (afgekapt, mislukt, verouderd), `controle_tekst` (zoek-,
   juridische en beoordelingsdekking apart, met `SLOT` alleen als alles beoordeeld is – nooit "volledig").
 - **Uit gaan** `token`, `vraagkaart` (`modus: "bronselectie"`, `deelvraag_id`) en het artefact
-  `{soort: "bronselectie", ref: {werkgebied_id, deelvraag_id?}}`. `tests/test_contract_drift.py` toetst de stappen
+  `{soort: "bronselectie", ref: {werkgebied_id, deelvraag_id?}}`. `tests/runs/test_contract_drift.py` toetst de stappen
   tegen api en werkplek.
 - **De gebeurtenis en de grondslag** (`agent/zoekvragen.py`, zoekvragen a–d, skill
   `references/zoekvragen-bronselectie.md`, plan `~/.claude/plans/zoekvragen-bronselectie.md` PR 3). Het zoeken op de
@@ -2036,8 +2036,8 @@ achter de ingang, naast de intake; zie `docs/architectuur/bronselectie-per-deelv
     met en zonder naam, en de recall van de grondslag op `zoekvraag: a`). Ontwikkelset kwijtschelding: plek 1 / 3,
     recall 0,67, precisie 0,25. Een brede gebeurtenis ("aansprakelijkheid") vult de grondslag met een heel
     hoofdstuk; de blinde meting (`verrekening-concept`) komt in PR 7.
-- Tests: `tests/test_bronselectie.py` (de cyclus met vier deelvragen, hervatten, de vaste zin, de beurt, de
-  gebeurtenis) en `tests/test_zoekvragen.py` (koppen, signalen, de voorstellen en de grondslag tegen een nepgraaf).
+- Tests: `tests/werkgebied/test_bronselectie.py` (de cyclus met vier deelvragen, hervatten, de vaste zin, de beurt, de
+  gebeurtenis) en `tests/werkgebied/test_zoekvragen.py` (koppen, signalen, de voorstellen en de grondslag tegen een nepgraaf).
 
 ### Het werkgebied als context in het gesprek (`agent/werkgebied_context.py`)
 
@@ -2074,7 +2074,7 @@ kandidaten, het begrip met zijn open kaartvoorstellen) en zet het blok in `State
   neemt het werkgebied uit het onderwerp als het verzoek er geen draagt, eist er een, sluit `modus`,
   `doel`, `doelen` en `intake_actie` uit, en laat `bevestigd` alleen toe bij `BEVESTIG_ACTIES`. Alleen
   `werkgebied_annoteren` zet een modus (de reeks).
-- Tests: `tests/test_onderwerp.py` (contract, blok per soort tegen een nep-api, focus, de beurt, de
+- Tests: `tests/routes/test_onderwerp.py` (contract, blok per soort tegen een nep-api, focus, de beurt, de
   api-routes uit de bron).
 
 ### De agents achter de centrale agent (`agent/agents/`, `nodes/agent_taak.py`, F3c, ADR-005)
@@ -2097,7 +2097,7 @@ reeks) en `doelen`.
   `Uitkomst` (`status` ok/bevestiging/geweigerd/fout, `reden`, `voorstellen`, `artefact`, `bevestiging`,
   `tekst` uit code, `meting`), en `async voer_uit(invoer, ctx)`. Een model alleen in een stap die een
   oordeel of formulering vraagt, als één strict tool (`MODEL_TAKEN`); de rest draait aantoonbaar zonder
-  (`tests/test_agents.py` met `FakeLLM([])`).
+  (`tests/centrale_agent/test_agents.py` met `FakeLLM([])`).
 - **De parameters** komen uit wat er ligt (`register.parameters`): het werkgebied, het aangewezen object
   (of dat de focus vasthoudt), en wat code uit de vraag leest – "deelvraag 2" (`deelvraag_nr`, de n-de
   actieve) en de term van een begrip (`kaart_beurt.termen_uit`). Nooit uit modeltekst.
@@ -2144,9 +2144,9 @@ reeks) en `doelen`.
   deelvragen gebruiken het model van de beurt en tellen mee in het verbruik van de beurt.
 - **De eigen endpoints zijn weg** (F3e): `/v1/bronnen-runs`, `/v1/begrippen-runs`, `/v1/kaart-runs` en
   `/v1/deelvragen-runs` gebruikte alleen de werkgebiedpagina, die Lex nu in het gesprek vraagt.
-  `tests/test_deelvragen.py` bewaakt dat ze niet terugkomen. De stromen erachter (`bronnen_stroom`,
+  `tests/werkgebied/test_deelvragen.py` bewaakt dat ze niet terugkomen. De stromen erachter (`bronnen_stroom`,
   `begrippen_stroom`, `kaart_stroom`) blijven: de agents gebruiken ze.
-- Tests: `tests/test_agent_uitvoering.py` (de spike), `tests/test_agents.py`, `tests/test_agent_contracten.py`,
+- Tests: `tests/centrale_agent/test_agent_uitvoering.py` (de spike), `tests/centrale_agent/test_agents.py`, `tests/runs/test_agent_contracten.py`,
   en per kern de bestaande `test_begrippen_beurt`, `test_bronnen_vinden`, `test_begrip_tools`,
   `test_begrippen_verdieping_run`, `test_werkgebied_annotatie`. Routering meten: scenario F in
   `eval/golden_gesprek.jsonl`.
@@ -2173,7 +2173,7 @@ en werkgebied, geen aanhalingstekens om een begripsdefinitie, wettekst apart oph
   en `werkgebied_id` mag de naam zijn (`dct:title` van het kader). De argumenten staan voortaan in `tool_execution.filters`.
   Een rij met `herbeoordelen` (geaccordeerd, maar een dragende
   passage veranderde) noemt Lex zo (TOOLKEUZE 7): niet als vaststaand, met de vraag het op de kaart te
-  herbeoordelen. `tests/test_begrip_tools.py` draait de query tegen een
+  herbeoordelen. `tests/begrippen/test_begrip_tools.py` draait de query tegen een
   nagebouwde projectie en leest `BegripStatus`/`BegripVerificatie` uit de api-bron.
 - **`get_begrip`** leest altijd bij de api (`GET /v1/begrippen/{id}`): kaart, passages met actualiteit,
   relaties. De poort draagt `werkgebied_id` uit de state (`tool_execution.begrip_port`); de actor is
@@ -2244,7 +2244,7 @@ vrije vragen) en pagineert per deel binnen de begroting. Onderwerp en afbakening
 Punt 5 en 6 gelden daar **niet**: de tool levert alleen `voor_model`, dus geen `overzicht`-event en geen
 kaartje, en `state["overzicht"]` blijft leeg. De controle en de bronnen zijn dan die van een gewoon
 antwoord. Bouwt het overzicht niet (graaf weg), dan krijgt het model een foutresultaat en zegt het dat;
-de werkplek toont dan geen kaartje. `tests/test_overzicht.py` legt herkenning, samenstelling, volgorde,
+de werkplek toont dan geen kaartje. `tests/routes/test_overzicht.py` legt herkenning, samenstelling, volgorde,
 de route en de eval-scorer vast.
 
 ## De leesroute: vragen óver bestaande annotaties
@@ -2317,7 +2317,7 @@ agent). Periodes: "uit/van/in 2018", "sinds 2011", "uit 2023 en 2024", "2023-202
 een lijstvraag (het blok zegt "N van de M stukken"). Blijft er een woord **of getal** over dat de code niet plaatst, of
 vraagt de vraag naar de inhoud, dan geen route: een getal telde eerst niet mee, en dan viel een jaartal stil weg (meting
 bekendmakingen B11, 10 nov 2026). Ook in een
-gesprek vóór het model, en daarna op de herschreven vraag. `tests/test_bron_lijst.py`, `eval/golden_routering.jsonl`. Een vraag over een bron naast de wet start
+gesprek vóór het model, en daarna op de herschreven vraag. `tests/routes/test_bron_lijst.py`, `eval/golden_routering.jsonl`. Een vraag over een bron naast de wet start
 nooit een werkgebied (het model koos dat in een lang gesprek). In de bronnenlijst staat een bron naast de wet alleen als ze
 gelezen en genoemd is (`grounding.alleen_gelezen_extern`). `GET /v1/bronnen` zegt per connector of de
 straat hem aanbiedt; de BFF (`/api/connectors`) toont in het menu alleen wat straat én register aanzetten. **`GET /v1/bronnen/{connector}/stukken/{id}`**
@@ -2379,7 +2379,7 @@ wie een oordeel velt over wetgeving hoort niet met een env-var te verzwakken.
 
 ```bash
 cd tools/graph-qa && uv run --extra dev pytest -q
-cd tools/graph-qa && uv run --extra dev pytest tests/test_orchestrator.py -q
+cd tools/graph-qa && uv run --extra dev pytest tests/routes/test_orchestrator.py -q
 cd tools/graph-qa && uv run --extra dev pytest -m integration          # vraagt RUNSTORE_TEST_DSN (Postgres)
 cd tools/graph-qa && uv run python scripts/genereer_jas_klassen.py --check
 cd tools/graph-qa && .venv/bin/python eval/run_eval.py --offline               # QA-harnas, gescript
@@ -2402,13 +2402,13 @@ cd tools/graph-qa && .venv/bin/python eval/run_eval.py --herscoor run.jsonl    #
 - **Procesbrede toestand lekt niet tussen tests** (`agent/procestoestand.py`). Een module die op moduleniveau een cache
   of stand bewaart en die in een functie wijzigt (de citeertitels in `overzicht`, de namen in `regelingnamen`, de
   schemacache, de modelkeuze), meldt een functie die hem leegmaakt met `procestoestand.registreer`; `tests/conftest.py`
-  roept `procestoestand.reset()` voor en na elke test aan. `tests/test_procestoestand.py` zoekt zulke toestand in
+  roept `procestoestand.reset()` voor en na elke test aan. `tests/evals/test_procestoestand.py` zoekt zulke toestand in
   `agent/` en eist de melding. Een handmatige `clear()` in een test is dus niet meer nodig. Aanleiding: na `test_eval`
   stond de Invorderingswet in `_REGELINGEN_CACHE` en faalde `test_sjablonen` (Lex Bench §14.1); die test was alleen groen
   omdat de GOK-controle van `id_herkomst` met een lege namenlijst uit stond, en noemt nu de regeling in de vraag.
 - **Vraagtype, bewaren en herscoren.** Elke case in `eval/golden.jsonl` en elke beurt in `eval/golden_gesprek.jsonl`
   draagt een `vraagtype` uit de vaste lijst in `eval/vraagtypen.py` (een gesprek mag een default geven; een
-  onbekend of ontbrekend type laat `tests/test_eval_kwaliteit.py` falen). Het rapport toont per type aantal,
+  onbekend of ontbrekend type laat `tests/evals/test_eval_kwaliteit.py` falen). Het rapport toont per type aantal,
   slagingspercentage en toonovertredingen. `volgorde` en `sjabloon` in een case tellen mee voor slagen; de toon
   (`eval/kwaliteit.py`: emoji, koppen, u-vorm, interne termen, lange zinnen in de lopende tekst) bewust niet.
   `--bewaar run.jsonl` schrijft per case/beurt de events die de scorers lezen, `--herscoor run.jsonl` scoort ze
@@ -2465,12 +2465,12 @@ niet mee in de exitcode van de job. De annotatie-scorers splitsen:
 hoe dan ook moet vinden, niet de volledige analyse. **Recall** is dus de bruikbare maat; **precisie**
 deelt door alles wat de agent voorstelde en is geen kwaliteitsoordeel. Precisie/recall tellen alleen
 over cases mét ankers. Ankers komen uit `eval/bronteksten.json` (de letterlijke tekst uit de importer);
-`tests/test_golden_annotatie.py` bewaakt dat elk anker daar letterlijk in staat, dat de klassenaam
+`tests/evals/test_golden_annotatie.py` bewaakt dat elk anker daar letterlijk in staat, dat de klassenaam
 bestaat met de juiste hoofdletters en dat geen anker met het lidnummer begint – anders zakt een
 overgetypt fragment stil weg als "niet gevonden". De cases zijn gekozen op **signaal per teken**: de
 kosten volgen de corpusomvang, dus een korte bepaling met veel verschillende JAS-signalen meet meer per
 euro dan een lange. Eén case annoteert een heel artikel, zodat het pad met meerdere leden gedekt is.
-Injectie via de inhoud van een bron (graaftekst, een stuk van een connector) toetst `tests/test_injectie_via_bron.py`
+Injectie via de inhoud van een bron (graaftekst, een stuk van een connector) toetst `tests/grounding/test_injectie_via_bron.py`
 op de code rond het model: de tekst bereikt het model alleen als toolresultaat, nooit als systeemtekst, beurtcontext of
 stap in het denkproces, en er gaat geen schrijvende query naar de graaf, ook in een vervolgbeurt. Elke connector met een
 leestool doet vanzelf mee (`voorbeeld_id`). Hoe het model zelf met zo'n tekst omgaat, is nog **niet** gemeten: dat hoort
@@ -2497,7 +2497,7 @@ als kanarie in de antwoordset van Lex Bench.
 - **Azure** (`deploy/azure/main.bicep`, `<appName>-graph-qa`): intern (`external: false`), poort 8080,
   `maxReplicas: 2`. Secrets als bestanden onder `/run/secrets` via `*_FILE`-env (`config._read_secret`);
   gespreksgeheugen en run-register in Postgres (`CHECKPOINT_DB_URL_FILE`); `SIMILARITY_INDEX=bwb_similarity`.
-  `tests/test_deploy_drift.py` bewaakt dat de bicep `WETSANALYSE_API_URL`/`_TOKEN`
+  `tests/runs/test_deploy_drift.py` bewaakt dat de bicep `WETSANALYSE_API_URL`/`_TOKEN`
   zet – zonder die twee legt de agent niets vast en toont de werkplek markeringen die nergens landen.
 - **Werkplek:** de frontend gebruikt de run-endpoints (BFF-routes in `frontend/app/api/annotatie/run/**`);
   de review-state en de wettekst van het paneel lopen via de api (`/v1/annotatie/*`), waar graph-qa

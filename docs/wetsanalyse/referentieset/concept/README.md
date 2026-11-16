@@ -24,5 +24,5 @@ Per casus naast de gewone velden (zie `v1/cases.json`) kunnen deze staan:
 - `concept`: herkomst van het voorstel;
 - `aanhef`: de aanhef van de ouder bij een onderdeel, zoals de keten die als context meegeeft.
 
-Brongetrouwheid: `tools/graph-qa/tests/test_referentieset_concept.py` eist dat elk element letterlijk
+Brongetrouwheid: `tools/graph-qa/tests/evals/test_referentieset_concept.py` eist dat elk element letterlijk
 in de tekst staat, op woordgrenzen ligt, een geldige JAS-klasse heeft en dat `tekst_sha256` klopt.

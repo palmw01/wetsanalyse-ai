@@ -5,7 +5,7 @@ ontwikkelset. Zijn uitkomst hoort niet als pin in de unitsuite: wie de code afst
 de set is niet meer blind voor het afstemmen. Daarom staat die uitkomst hier, in `docs/lex-bench/bronselectie/held-out.json`
 (met de meting waar hij vandaan komt), en zegt dit script wat er nu anders is. **Het faalt niet op een verschil**: de score
 is een hulpmiddel, geen poort (plan §1). De unitsuite houdt voor deze sets alleen het pad zonder model en de vorm
-(`tests/test_bronselectie_eval.py`).
+(`tests/evals/test_bronselectie_eval.py`).
 
 Offline, tegen de opnames van de graaf: geen model, geen graaf, nul tokens.
 

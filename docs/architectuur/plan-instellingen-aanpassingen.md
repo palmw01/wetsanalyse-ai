@@ -48,7 +48,7 @@ Buiten dit plan: C7 (wijziging voorstellen als concept-PR, `catalogusVoorstellen
 ### Wie de catalogus nog gebruikt (`git grep`, 15 nov 2026)
 
 - **Het register zelf blijft**: `bronmodel/catalogus.py` en `tools/graph-qa/agent/catalogus.py` (`catalogus()`,
-  `onderdeel()`). Ze dragen de drift-tests van graph-qa (`tests/test_catalogus.py`: elk register, elke actie, elk
+  `onderdeel()`). Ze dragen de drift-tests van graph-qa (`tests/methode/test_catalogus.py`: elk register, elke actie, elk
   commando, elke route en elke controle heeft precies één onderdeel; ook `test_catalogus_methode.py`,
   `test_context_per_agent.py`, `test_methodegrenzen.py`, `test_skill_zonder_code.py`, `test_bronpakket.py`), en
   `bronmodel.catalogus.Stap` wordt gebruikt door `jas_pipeline/keten.py` en `begrippen_pipeline/keten.py`. Dat is

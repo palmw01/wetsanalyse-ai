@@ -70,7 +70,7 @@ De tabel geldt voor `aan`, of voor een meetrun met `meten`.
 | Doorvragen in een deelgesprek | `question` in het kindgesprek | het profiel van het deelgesprek | `_deelgesprek`, met `later_gewijzigd` op de delegatie | ja |
 
 **Wat ADR-016 bedoelt, klopt:** de routes in code eerst, en de regisseur als tool (`regie_plan`) én als route vóór
-de graaf. De tabel van de routeringsset (`tests/test_routering.py`) meet alleen de supervisorvorm. Er is geen
+de graaf. De tabel van de routeringsset (`tests/routes/test_routering.py`) meet alleen de supervisorvorm. Er is geen
 routeringstest die per rij met `model: true` zegt welke tool de centrale agent zou moeten hebben. Daardoor viel gat 4
 niet op.
 

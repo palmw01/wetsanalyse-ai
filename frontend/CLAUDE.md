@@ -1112,7 +1112,7 @@ sidebar blijft staan.
   Een vervangen begrip heeft geen knop (verwijder de opvolger).
   **In beeld heet het altijd *verwijderen*** (spoor I5): niet weghalen, wegklikken of "haalt … weg".
   `app/verwijderenNietWeghalen.test.ts` toetst de tekst buiten commentaar in `app/`, `components/` en `lib/`;
-  graph-qa heeft dezelfde toets op zijn strings (`tests/test_verwijderen_niet_weghalen.py`).
+  graph-qa heeft dezelfde toets op zijn strings (`tests/sjablonen/test_verwijderen_niet_weghalen.py`).
   `metSpoor` met `annotatie_verwijderen`,
   `werkgebied_verwijderen` en `begrip_verwijderen`. Archiveren bestaat niet meer.
 - **Verwijderen staat in het menu ⋯ van de kop**: onderaan in het menu van `AnnotatieKop`

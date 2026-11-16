@@ -11,7 +11,7 @@ risico: R01, R03, R04, R05, R07, R08, R09, R12, R14, R18, R19
 
 | | foutpad | waar | stand |
 |---|---|---|---|
-| K1 | de graaf is leeg midden in een reis | graph-qa-suite | `tests/test_foutpaden_keten.py` |
+| K1 | de graaf is leeg midden in een reis | graph-qa-suite | `tests/runs/test_foutpaden_keten.py` |
 | K2 | een deploy van graph-qa halverwege een beurt | graph-qa-suite, en de gedeelde store | `test_foutpaden_keten.py` (afbraak); `test_runstore_postgres.py` (wezen, afsluiten) |
 | K3 | een model-400 of een 429 | graph-qa-suite | `test_foutpaden_keten.py`; de herhaling in `test_http_beleid.py` |
 | K4 | een gedeeld account | straat, met akkoord | scenario hieronder; vangrail en `opruimen` in de acceptatie-MCP |

@@ -441,7 +441,7 @@ niets tegelijk met de G1-meting op acceptatie.
    - de beschrijving in `connectors.py`;
    - de straatvlag;
    - een nepbron in `NEPBRONNEN` en `CONNECTOR_ARGS` (`test_resultaatcontract.py`);
-   - de live-proef `tests/test_kennisgroepen_live.py`, met marker `live` en in `bronnenwacht.yml`. Die toetst de
+   - de live-proef `tests/connectors/test_kennisgroepen_live.py`, met marker `live` en in `bronnenwacht.yml`. Die toetst de
      velden, `X-WP-Total`, `_embed` en de vorm van de titel.
 5. **Antwoord en werkplek.** Deze PR bevat:
    - `status_regel` in het blok `extern`;

@@ -130,7 +130,7 @@ KOOP (datum, soort, blad, ministerie, nummer, Kamerdossier, de regeling die een 
 plaats van de tekst van het model. Alles met `bronnen: ["bekendmakingen"]`, op acceptatie, drie runs per vraag.
 
 **De vragenset** staat in `tools/graph-qa/tests/data/bekendmakingen_vragenset.json` en wordt op drie plekken gebruikt:
-de adaptertoets tegen opgenomen antwoorden van KOOP (`tests/test_bekendmakingen_vragenset.py`), de browsertoets
+de adaptertoets tegen opgenomen antwoorden van KOOP (`tests/evals/test_bekendmakingen_vragenset.py`), de browsertoets
 (`frontend/scripts/test-bronvenster-bekendmaking.mjs`) en deze meting. Per vraag de route (lijstvraag of genoemd stuk:
 de code leest de vraag zelf, zonder model; model: de antwoordlus kiest), de tool met haar argumenten en wat een goed
 antwoord is:
@@ -176,7 +176,7 @@ dezelfde toestand); en of hij niet doet alsof je zo'n bepaling kunt annoteren of
 op acceptatie, drie runs per vraag (W14 met `bronnen: []`).
 
 **De vragenset** staat in `tools/graph-qa/tests/data/wetgeving_live_vragenset.json` en wordt op drie plekken gebruikt: de
-toets tegen opgenomen antwoorden van overheid.nl (`tests/test_wetgeving_live_vragenset.py`), de browsertoets
+toets tegen opgenomen antwoorden van overheid.nl (`tests/evals/test_wetgeving_live_vragenset.py`), de browsertoets
 (`frontend/scripts/test-bronvenster-wettekst.mjs`) en deze meting. Achttien vragen, met de route (vooraf: de code leest het
 genoemde artikel; keuzevraag: de code vraagt welke regeling; graaf: de graaf heeft de tekst; uit: de connector staat uit;
 model: de antwoordlus kiest), de tool met haar argumenten en wat een goed antwoord is (`goed`).

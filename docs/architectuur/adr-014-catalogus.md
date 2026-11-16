@@ -99,7 +99,7 @@ Er komt geen gegenereerd catalogusbestand. Dan kan wat je ziet niet afwijken van
 
 ### 3. Eén drift-test
 
-`tools/graph-qa/tests/test_catalogus.py` werkt naar het voorbeeld van de connectortest. Hij toetst:
+`tools/graph-qa/tests/methode/test_catalogus.py` werkt naar het voorbeeld van de connectortest. Hij toetst:
 
 - dat elk registerentry precies één onderdeel heeft, en omgekeerd;
 - dat elke ingang, elke tool en elk testpad bestaat;

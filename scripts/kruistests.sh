@@ -24,7 +24,7 @@ draai() {  # $1 = label, $2 = map, rest = commando
 }
 
 gevonden() {  # $1 = testmap: de pytest-bestanden die buiten hun onderdeel lezen
-  ( cd "$1" && grep -lE "$LEEST" tests/test_*.py )
+  ( cd "$1" && find tests -name "test_*.py" -not -path "*/node_modules/*" -print0 | sort -z | xargs -0 grep -lE "$LEEST" )
 }
 
 draai "contract" . uv run --no-project --with pytest pytest -q tests/poort --rootdir tests/poort -p no:cacheprovider

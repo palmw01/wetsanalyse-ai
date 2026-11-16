@@ -88,13 +88,13 @@ stuk krijgt `dragende` de woorden waarop die samenvatting rust.
 
 **De tests:**
 - schema: `kern` in `antwoord_extern` en het subsjabloon, strict en byte-gelijk zonder connector;
-- `tests/test_strict_grenzen.py` binnen de grens (het extra veld zit in een array-item, geen nieuwe tool);
+- `tests/context/test_strict_grenzen.py` binnen de grens (het extra veld zit in een array-item, geen nieuwe tool);
 - vullen: een kern komt per stuk in het blok, een leeg veld niet;
 - de werkplek toont de kern, en een oud bericht blijft geldig (vitest);
 - `dragende`/`herkies`: met een kern wint de rechtsoverweging die de kern draagt van de trefwoordregel. Eén
   trefwoordregel in de vorm van S01 ("Artikel …; …; …"), gegenereerd, niet het arrest zelf;
 - de toetsen per stuk: `zonder_steun` leest de kern bij het id;
-- `tests/test_modelverzoeken.py` opnieuw vastgelegd (de schema's veranderen);
+- `tests/context/test_modelverzoeken.py` opnieuw vastgelegd (de schema's veranderen);
 - de kruistests: `bronmodel` raakt api en graph-qa.
 
 **Meting.** Ja: dit verandert het schema van elke beurt met een connector. Geraakte vorm: een rapport over uitspraken
@@ -195,7 +195,7 @@ agentprofielen). De vraag maakt de grens zichtbaar en laat de jurist beslissen, 
 - na een hervatting geen tweede vraag;
 - ongelezen stukken buiten de periode geven geen vraag;
 - een reeks bepalingen;
-- *ja* hervat, *nee* rondt af met het rapport (`tests/test_subagent_vragen.py`, `tests/test_a6_eind.py` uitgebreid).
+- *ja* hervat, *nee* rondt af met het rapport (`tests/centrale_agent/test_subagent_vragen.py`, `tests/centrale_agent/test_a6_eind.py` uitgebreid).
 
 **Meting.** Ja, met S04 en P01 (de kinderen die tegen de grens lopen) en V03. Dat zijn precies de opdrachten van de
 meting van de agentprofielen, dus samen meten (zie *Meten*).
@@ -224,7 +224,7 @@ In dezelfde PR, omdat het ook alleen de set raakt (punt 10 uit de slotlijst):
 - S02 wordt vervangen door een opdracht die een subagent nodig heeft;
 - de "goed"-teksten van F05 en S04 noemen het citaat of de volledigheid expliciet.
 
-**De tests:** `tests/test_golden_centrale_agent.py` (de vorm van de set).
+**De tests:** `tests/evals/test_golden_centrale_agent.py` (de vorm van de set).
 
 **Meting:** nee. Het verandert alleen wat de meting verwacht. Het gedrag van Lex verandert niet.
 
@@ -271,7 +271,7 @@ hoort bij dezelfde spoor-PR's, maar is een eigen bevinding.
 
 **De tests:**
 - eenheidstests op de drie mechanismen, met een nepgraaf;
-- `tests/test_bronselectie.py` en `tests/test_zoekvragen.py`;
+- `tests/test_bronselectie.py` en `tests/werkgebied/test_zoekvragen.py`;
 - de bestaande vijf sets in `docs/wetsanalyse/referentieset-bronselectie/` mogen niet achteruitgaan
   (`eval/bronselectie_eval.py --intake`, offline tegen de opnames).
 

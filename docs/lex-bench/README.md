@@ -11,7 +11,7 @@ score is een hulpmiddel, geen poort. Zolang geen jurist een verwachting vaststel
 - **Bronselectie: de uitkomst op de (vroegere) blinde sets** — [`bronselectie/held-out.json`](bronselectie/held-out.json).
   Per set de uitkomst bij haar ene blinde meting, met de regel in het meetlogboek. Vergelijken met de code van nu, offline
   en zonder model: `cd tools/graph-qa && uv run python -m eval.lex_bench`. Het script faalt niet op een verschil. Deze
-  uitkomsten stonden eerder als pin in `tests/test_bronselectie_eval.py`; daar toetst de suite nu alleen het pad en de vorm
+  uitkomsten stonden eerder als pin in `tests/evals/test_bronselectie_eval.py`; daar toetst de suite nu alleen het pad en de vorm
   (plan §4.5, §20.4).
 
 ## Wat er nog niet staat

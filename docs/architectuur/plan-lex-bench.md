@@ -433,12 +433,12 @@ hieronder is door een jurist vastgesteld.
 ### 11.6 Skill-evals
 
 - **`.claude/skills/wetsanalyse/evals/`** (8) en **`wetsuitvoering/evals/`** (3): in de vorm van `claude plugin eval`.
-  Ze toetsen de skill als Claude-skill, niet Lex, en `tests/test_skill_evals.py` bewaakt alleen hun vorm. Er is geen
+  Ze toetsen de skill als Claude-skill, niet Lex, en `tests/methode/test_skill_evals.py` bewaakt alleen hun vorm. Er is geen
   meting van in het logboek.
 
 ### 11.7 Componenttests die als meting begonnen
 
-- **`tests/test_a4_vervolg.py`**, **`test_a6_*.py`** (acht bestanden), **`test_a7_ingang.py`**,
+- **`tests/centrale_agent/test_a4_vervolg.py`**, **`test_a6_*.py`** (acht bestanden), **`test_a7_ingang.py`**,
   **`test_b3_na_subagent.py`** en **`test_d01_*.py`** (zes bestanden): samen 17 bestanden en ongeveer 130 tests.
   - Elk bestand legt de gevallen uit één meting of bundel vast, met fakes, als regressie.
   - Het zijn componenttests, en goed dat ze er zijn. Maar ze heten naar een meetmoment (`run2`, `bundel123`), niet naar
@@ -542,7 +542,7 @@ op het oude pad, dus er blijft één levende set.
 
 ### 14.1 De volgordefout tussen `test_eval.py` en `test_sjablonen.py`
 
-**Gereproduceerd.** Met `pytest -p no:randomly tests/test_eval.py tests/test_sjablonen.py` faalt
+**Gereproduceerd.** Met `pytest -p no:randomly tests/evals/test_eval.py tests/sjablonen/test_sjablonen.py` faalt
 `test_sjablonen.py::test_een_beurt_rondt_af_met_de_wettekst_uit_de_graaf`. Los draait hij groen.
 
 **De oorzaak.** De cache `agent/overzicht.py:_REGELINGEN_CACHE` is procesbreed ("één query per proces").

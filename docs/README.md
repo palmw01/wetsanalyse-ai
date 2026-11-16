@@ -37,7 +37,7 @@ mapnamen niet af te lezen — vandaar deze index.
 [`.claude/skills/wetsanalyse/`](../.claude/skills/wetsanalyse/). Die skill is de operationele
 annoteerinstructie voor activiteit 2 en de **bron** van de klassetekst in de code —
 `tools/graph-qa/agent/jas_klassen.py` wordt eruit gegenereerd (zie
-`tools/graph-qa/scripts/genereer_jas_klassen.py`, bewaakt door `tests/test_methode_drift.py`).
+`tools/graph-qa/scripts/genereer_jas_klassen.py`, bewaakt door `tests/methode/test_methode_drift.py`).
 Wil je het gedrag van de annotator bijsturen, bewerk dan de skill.
 
 ### Lokaal-only bronmateriaal

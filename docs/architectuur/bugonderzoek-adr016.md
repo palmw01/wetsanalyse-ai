@@ -39,9 +39,9 @@ Het rapport van A staat nergens waar de code het terug kan halen. `Afloop.als_di
 geen rapport, en `Run.resultaat` leeft alleen in het proces van de eerste beurt. Het staat alleen nog in het deelgesprek
 van A. De centrale agent vat A dus nooit samen, en `verify` toetst niet tegen wat A las.
 
-Reproductie: zet in de test `Api` van `tests/test_subagent_vragen.py` twee taken en twee kinderen (A `klaar`, B `vraag` met
+Reproductie: zet in de test `Api` van `tests/centrale_agent/test_subagent_vragen.py` twee taken en twee kinderen (A `klaar`, B `vraag` met
 één antwoord), klik het laatste antwoord en kijk naar `upd["rapporten"]`. Daar staat alleen "1. RAPPORT …" (lokaal
-gedraaid op master, 14 nov 2026). `tests/test_subagent_vragen.py::test_met_meer_kinderen_wacht_de_delegatie_zolang_er_een_een_vraag_heeft`
+gedraaid op master, 14 nov 2026). `tests/centrale_agent/test_subagent_vragen.py::test_met_meer_kinderen_wacht_de_delegatie_zolang_er_een_een_vraag_heeft`
 toetst alleen dat de delegatie wacht, niet wat de jurist van de andere kinderen krijgt.
 
 Voorgestelde fix: bewaar per kind wat de bundel nodig heeft bij de delegatie. Dat is de rapporttekst uit
@@ -65,7 +65,7 @@ daarmee in de rij van de supervisor. Precies die scheiding wilde #1514 maken (an
 verandert niet: `_kies` kiest het profiel op `opdracht` vóór er naar de vorm gekeken wordt. Het meetscript leest de
 `meting`-events en geen `agentvorm`, dus de vat-uitkomst raakt dit niet.
 
-Waarom de test het niet ziet: `tests/test_a6_aansluiting.py::test_beurt_meting_noemt_het_model_dat_draaide_en_de_vorm`
+Waarom de test het niet ziet: `tests/centrale_agent/test_a6_aansluiting.py::test_beurt_meting_noemt_het_model_dat_draaide_en_de_vorm`
 geeft `agentvorm="centraal"` zelf aan `_meting`. De weg langs `_stroom_voor` toetst hij niet.
 
 Voorgestelde fix: in `_stroom_voor` heeft een run met `request.profiel` de vorm `centraal` (een kind start alleen vanuit de
@@ -95,7 +95,7 @@ denkproces, zodat een nieuwe uitkomst in graph-qa niet stil "mislukt" wordt.
 - `tools/graph-qa/agent/beurt.py` (#1517), regel 421: het bericht krijgt `delegaties`.
 - `api/app/gesprek_contracts.py` op master: `BerichtInvoer` kent `delegaties` niet. Pydantic laat het veld zonder fout
   vallen; pas #1518 voegt het toe.
-- `tools/graph-qa/tests/test_contract_drift.py` (regel ~300–331) vergelijkt het bewaarde bericht met `BerichtInvoer`,
+- `tools/graph-qa/tests/runs/test_contract_drift.py` (regel ~300–331) vergelijkt het bewaarde bericht met `BerichtInvoer`,
   maar met events zonder `regie`-event. Daardoor staat `delegaties` niet in het bericht dat de test bekijkt, en is de test
   op #1517 groen (lokaal gedraaid: 18 passed).
 

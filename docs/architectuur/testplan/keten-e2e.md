@@ -360,7 +360,7 @@ Elk voorstel is generiek: het geldt voor elke casus, en niets is maatwerk voor �
    - K4, K7 en K9 vragen de straat, en draaien als onderdeel van de vaste reis van punt 4, met akkoord.
    - K8 vraagt een browsertest van de login tegen een echte api (zie het stuk over de frontend).
    - Uitgewerkt in [`docs/acceptatie/foutpaden.md`](../../acceptatie/foutpaden.md); K1, K2, K3 en K5 staan in
-     `tools/graph-qa/tests/test_foutpaden_keten.py`.
+     `tools/graph-qa/tests/runs/test_foutpaden_keten.py`.
 6. **Een ketenmatrix: eis → test → uitkomst.** Eén bestand (`docs/architectuur/testplan/matrix.md`, of een kolom in de
    Bench-voortgang) met per eis:
    - een id;

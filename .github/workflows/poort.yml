@@ -68,7 +68,7 @@ jobs:
 
           # Uitzondering: de wetsanalyse-skill is géén documentatie maar een BUILD-INPUT van
           # graph-qa. `agent/jas_klassen.py` wordt eruit gegenereerd
-          # (scripts/genereer_jas_klassen.py) en `tests/test_methode_drift.py` bewaakt dat.
+          # (scripts/genereer_jas_klassen.py) en `tests/methode/test_methode_drift.py` bewaakt dat.
           #
           # Zonder deze regel valt die guard precies weg in het geval waarvoor hij bestaat: wie
           # alleen de methodetekst bijstelt levert een PR met uitsluitend .md-bestanden, `code`
@@ -76,7 +76,7 @@ jobs:
           # Python achterloopt op de markdown.
           #
           # Hetzelfde geldt voor de agentprofielen (`.claude/lex-agents/`, ADR-016): `agent/agentprofielen.py` wordt
-          # eruit gegenereerd en `tests/test_profielregister.py` bewaakt dat.
+          # eruit gegenereerd en `tests/centrale_agent/test_profielregister.py` bewaakt dat.
           skill=$(echo "$gewijzigd" | grep -E '^\.claude/(skills|lex-agents)/' || true)
 
           heeft() { echo "$code" | grep -q "^$1" && echo true || echo false; }

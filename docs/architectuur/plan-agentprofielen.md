@@ -316,7 +316,7 @@ tekst volgt in de PR en wordt gemeten. Voor de grenzen is de regel:
 ### De niet-kiesbare profielen
 
 `centraal`, `centraal_breed`, `retrieval`, `annotaties_lezen` en `begrippen_lezen` blijven zoals ze zijn, op één zin
-na: de keuze van het profiel in `centraal` en `centraal_breed` (besluit 5). `tests/test_centrale_agent.py` bewaakt dat
+na: de keuze van het profiel in `centraal` en `centraal_breed` (besluit 5). `tests/centrale_agent/test_centrale_agent.py` bewaakt dat
 die twee gelijk blijven.
 
 ## Skills: wie krijgt wat vooraf
@@ -430,21 +430,21 @@ veranderen gedrag en worden samen gemeten.
   - een skill zonder kern voor de rol `agent`, skills van twee methodes, en een skill van de andere methode dan de rol
     geven elk een bevinding;
   - `model:` in de frontmatter van een vast profiel is een onbekend veld.
-- **`tests/test_profielregister.py`**: elk kiesbaar profiel heeft een `description`, en geen kiesbaar profiel heeft een
+- **`tests/centrale_agent/test_profielregister.py`**: elk kiesbaar profiel heeft een `description`, en geen kiesbaar profiel heeft een
   antwoordsjabloon. Een subagent rondt alleen met `rapport` af.
 - **`tests/test_supervisor*`**: `SUPERVISOR_SPECIALISTEN == ("algemeen", "definitie", "duiding")`, en de supervisor
   kiest bitgelijk (de bestaande scenario's in `test_modelverzoeken.py`).
-- **`tests/test_agentvorm.py`** en de grens in `nodes/antwoord`:
+- **`tests/centrale_agent/test_agentvorm.py`** en de grens in `nodes/antwoord`:
   - een kind met `max_rondes: 3` sluit na drie rondes af met een rapport;
   - een kind met een klein budget sluit af met de reden "budget van het profiel";
   - zonder waarden blijft alles 8 en zonder budget.
 - **Voorvoegsel (ADR-015)**: twee opdrachten met hetzelfde profiel hebben hetzelfde voorvoegsel, ook met de rondegrens
   in de opdracht.
-- **`tests/test_methodegrenzen.py`** en **`test_methodes_gescheiden.py`**: ongewijzigd groen, zonder nieuwe
+- **`tests/methode/test_methodegrenzen.py`** en **`test_methodes_gescheiden.py`**: ongewijzigd groen, zonder nieuwe
   uitzondering.
-- **`tests/test_centrale_agent.py`**: `centraal` en `centraal_breed` blijven gelijk, en het schema van `subagent` draagt
+- **`tests/centrale_agent/test_centrale_agent.py`**: `centraal` en `centraal_breed` blijven gelijk, en het schema van `subagent` draagt
   de beschrijvingen.
-- **`tests/test_catalogus.py`**: de nieuwe velden, `modelklasse` weg, en `hangt_af_van` naar de connectors van de nieuwe
+- **`tests/methode/test_catalogus.py`**: de nieuwe velden, `modelklasse` weg, en `hangt_af_van` naar de connectors van de nieuwe
   profielen.
 - **Altijd `scripts/kruistests.sh`**, en `uv sync --reinstall-package wetsanalyse-bronmodel` na de wijziging aan
   bronmodel. Geen volle suites lokaal: de poort draait ze.
