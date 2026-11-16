@@ -1,0 +1,49 @@
+{
+  "schema_versie": 3,
+  "status": "concept",
+  "toelichting": "Ontwikkelset, niet geadjudiceerd en niet blind: afgeleid uit bevinding B-2 van de E2E-test Rekeningafspraken (16 nov 2026, docs/acceptatie/verslag-e2e-rekeningafspraak-2026-11-16.md), waar de agent-jurist en de agent-gegevensspecialist de bepalingen bij deelvraag 1 zelf noemden en letterlijk toetsten. Winst op deze set bewijst niets: de mechanismen van PR E zijn erop ontworpen. De deelvragen staan in de woorden van het verslag, niet letterlijk uit het werkgebied. Een blinde set uit een ander werkgebied volgt.",
+  "datum": "2026-11-16",
+  "graaftoestand": "acceptatie, 16 nov 2026 (opname nog niet gemaakt)",
+  "naam": "Rekeningafspraken",
+  "analysevraag": "Op welke rekening mag de Belastingdienst een uitbetaling doen, en wanneer mag dat de rekening van een derde zijn?",
+  "praktijkvoorbeeld": "De kinderopvangtoeslag gaat rechtstreeks naar de kinderopvang. Het CJIB legt beslag op de zorgtoeslag. Een bewindvoerder beheert de rekening bij een schuldsanering.",
+  "context": "Uitbetalingen van belastingteruggaven en toeslagen op een rekening die de burger heeft aangewezen, of op die van een derde.",
+  "buiten": "De vaststelling en berekening, de dwanginvordering behalve beslag, uitstel en betalingsregelingen, bezwaar en beroep, en het overgangsrecht vallen erbuiten.",
+  "gebeurtenis": "uitbetaling",
+  "regelingen": ["BWBR0004770", "BWBR0024096", "BWBR0005537", "BWBR0018472", "BWBR0004766", "BWBR0019237"],
+  "deelvragen": [
+    "Op welke rekening wordt een uitbetaling gedaan, hoe wijst de belastingschuldige die rekening aan, en wanneer is de betaling bevrijdend?",
+    "Wanneer mag de Belastingdienst betalen aan een derde, als begunstigde of als vertegenwoordiger?",
+    "Wat betekenen beslag, onvatbaarheid voor beslag en verrekening voor een rekeningafspraak?",
+    "Wanneer begint en eindigt een rekeningafspraak, en vanaf wanneer werkt een wijziging of intrekking?",
+    "Welke rangorde geldt als meer afspraken of beslagen samenlopen?"
+  ],
+  "verwacht": [
+    {"deelvraag": 0, "bron_iri": "urn:bwb:BWBR0004770:artikel:7a:lid:1", "rol": "kern", "zoekvraag": "b",
+     "motivering": "De rekening op naam van de belastingschuldige voor een uitbetaling (in afwijking van Awb 4:89 lid 1).",
+     "herkomst": "E2E-verslag, letterlijk getoetst door de agent-gegevensspecialist"},
+    {"deelvraag": 0, "bron_iri": "urn:bwb:BWBR0018472:artikel:25:lid:1", "rol": "kern", "zoekvraag": "b",
+     "motivering": "Dezelfde rekeningregel voor een tegemoetkoming (Awir), het spiegelbeeld van Iw 7a lid 1.",
+     "herkomst": "E2E-verslag, letterlijk getoetst"},
+    {"deelvraag": 0, "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A89:lid:1", "rol": "kern", "zoekvraag": "b",
+     "motivering": "Betaling op de rekening die de schuldeiser bestemde; lid 3 en 4 dragen het betaalmoment en de betaling aan een ander.",
+     "herkomst": "E2E-verslag, letterlijk getoetst"},
+    {"deelvraag": 0, "bron_iri": "urn:bwb:BWBR0004766:artikel:40ca:lid:1", "rol": "afhankelijkheid", "zoekvraag": "c",
+     "motivering": "De invulling van Iw 7a lid 4: wanneer een derdenrekening mag.",
+     "herkomst": "E2E-verslag, door Lex gevonden"},
+    {"deelvraag": 0, "bron_iri": "urn:bwb:BWBR0019237:artikel:6:lid:1", "rol": "afhankelijkheid", "zoekvraag": "c",
+     "motivering": "De invulling van Awir 25 lid 3; onderdeel a beslist praktijkvoorbeeld 1 (kinderopvang met convenant).",
+     "herkomst": "E2E-verslag, letterlijk getoetst door de agent-jurist"},
+    {"deelvraag": 1, "bron_iri": "urn:bwb:BWBR0004766:artikel:40ca:lid:1", "rol": "kern", "zoekvraag": "b",
+     "motivering": "De gevallen waarin aan of op de rekening van een derde mag worden betaald (IB).",
+     "herkomst": "E2E-verslag"},
+    {"deelvraag": 1, "bron_iri": "urn:bwb:BWBR0019237:artikel:6:lid:1", "rol": "kern", "zoekvraag": "b",
+     "motivering": "De gevallen bij toeslagen, onder meer de kinderopvang en de zorgverzekeraar met een convenant.",
+     "herkomst": "E2E-verslag"}
+  ],
+  "buiten_graaf": [
+    {"omschrijving": "Zvw art. 18f lid 6 (uitbetaling van de zorgtoeslag aan het CAK) valt buiten het zoekbereik van het werkgebied.",
+     "herkomst": "E2E-verslag, PV2"}
+  ],
+  "uitgesloten": []
+}
