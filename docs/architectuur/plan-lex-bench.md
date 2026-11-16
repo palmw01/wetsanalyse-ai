@@ -8,6 +8,11 @@ Lex Bench meet hoe goed Lex juridisch werk doet, naast Lex en buiten zijn code o
 Code-agents analyseert dezelfde casus als Lex, eerst blind. Daarna worden de selecties vergeleken. Een mens stelt vast
 wat juist is.
 
+Deel A (§1–§9) is de benchmark zelf. Deel B (§11–§15) brengt alle testsets over het gedrag van Lex terug tot één
+geordende set per meetas, waar de benchmark uit leest, en beoordeelt de componenttests. De open keuzes staan in §16.
+
+# Deel A: de benchmark
+
 ## 1. Doel en grenzen
 
 **Doel.** Per versie van Lex laten zien waar de bronselectie staat: wat Lex vindt, wat hij mist en wat hij ten onrechte
@@ -337,7 +342,295 @@ Elke stap is een eigen PR, en de hoofdsessie bundelt ze. Stappen met een model d
   nulpunt van de zes bestaande sets.
 - **LB7 en verder – fase 2 tot en met 4 en de ketentest**, elk met een eigen plan.
 
-## 10. Open keuzes voor de gebruiker
+# Deel B: één testset voor het gedrag van Lex
+
+*Aanvulling van 16 nov 2026, op verzoek van de gebruiker.* Er zijn veel testsets, en ze zijn in losse sporen ontstaan.
+De gebruiker wil één goede, geordende testset voor het gedrag van Lex, los van de componenttests, met de benchmark eraan
+gekoppeld. Testsets die los rondzweven, vallen weg. Ook hier geldt: **er wordt niets gebouwd, verplaatst of verwijderd
+zonder akkoord.** De sessies die nu aan de sets van de bronselectie en van de restpunten na A6 werken, behouden hun sets;
+dit deel stelt alleen voor wat er later met hun akkoord gebeurt.
+
+**Gedrag of component.** Een testset over het *gedrag* meet wat Lex de jurist oplevert: met een model of tegen de echte
+graaf, met een verwachting die een mens kan beoordelen. Een *componenttest* toetst een stuk code met fakes, draait in
+de poort, en is groen of rood. Bench gaat over het eerste. Het tweede blijft in `tests/`.
+
+## 11. Inventaris
+
+Getoetst op master `01067e70`. Het aantal is het aantal casussen of regels zonder commentaar. *Laatste gebruik* is de
+laatste vermelding in het [meetlogboek](metingen/README.md), of de laatste commit als er geen vermelding is. Een
+*eigenaar* is het spoor of de ADR waar de set bij hoort: er is geen set met een persoon als eigenaar. Geen enkele set
+hieronder is door een jurist vastgesteld.
+
+### 11.1 Bronselectie
+
+- **`docs/wetsanalyse/referentieset-bronselectie/`**: zeven sets in schema 3 (Termijnen, Rekeningafspraken,
+  Bestuurdersaansprakelijkheid, Bezwaar/ontvankelijkheid, Invorderbaarheid (deelvragen), Kwijtschelding en Verrekening),
+  plus `invorderbaarheid-concept` in schema 1.
+  - Doel: de bronselectie per deelvraag (`eval/bronselectie_eval.py`).
+  - Eigenaar: spoor F/J en het plan Termijnen.
+  - Laatste gebruik: 16 nov 2026.
+  - Kwaliteit: 7–24 verwachte bepalingen per set, concept. Zes zijn ooit blind gemeten en sindsdien ontwikkelset. De
+    held-out set Verrekening is nooit gedraaid, maar staat publiek. Offline herhaalbaar via de opnames.
+  - Overlap: alle sets gaan over invordering. Invorderbaarheid staat er twee keer in, in schema 1 en schema 3.
+
+### 11.2 Annotatie (JAS)
+
+- **`docs/wetsanalyse/referentieset/v1/`**: 24 conceptgevallen in zes wetsfamilies, met een manifest en een hash.
+  - Doel: de JAS-annotatieketen. Eigenaar: spoor A (V7).
+  - Kwaliteit: alle 24 `provisional`, 0 `adjudicated`. Er is een familiesplitsing: BW6 en de Omgevingswet worden apart
+    getoetst en mogen niet in een prompt. Er is een adjudicatieprotocol en een blind formulier, maar die zijn nooit met
+    echte beoordelaars gebruikt.
+- **`docs/wetsanalyse/referentieset/concept/`** (IW05, UBT01–07): voorstellen buiten `v1`, alleen voor diagnose.
+- **`eval/golden_annotatie.jsonl`** (10) en **`golden_annotatie_concept.jsonl`** (14), met `eval/bronteksten.json` (19
+  bronteksten).
+  - Doel: de annotatie-harnas van `run_eval --annotatie`. Laatste gebruik: 21 okt 2026.
+  - Overlap: deels met `referentieset/v1` (dezelfde invorderingsbepalingen); de omvang daarvan is niet nagegaan.
+- **Het onderzoeksgereedschap van de annotatieketen**: `compare_pipelines`, `vergelijk_rapporten`, `kandidaat_eval`,
+  `detector_audit`, `beslisstabiliteit`, `stabiliteit_analyse`, `fouttaxonomie`, `laagrapport` en `taal_benchmark`. Het
+  hoort bij ADR-001, ADR-002 en het validatieplan V1–V6.
+- **De bevroren invorderingsproef**: `invordering_proef`, `invordering_parallel`, `invordering_rapport`,
+  `invordering_snapshotherstel`, `invordering_bronnen`, `onderzoek_invordering`, `baseline_proef` en
+  `baseline_deelmeting`. Laatste commit 29 sep 2026. Dit was een eenmalige proef; de uitkomst staat in het meetlogboek.
+
+### 11.3 Begrippen
+
+- **`docs/wetsanalyse/referentieset-begrippen/`**: `v1`, `heldout-v1` en `heldout-v2`, elk met bronnen, cases en een
+  manifest.
+  - Doel: de begrippenketen (`begrippen_eval.py`, BCubed en `samengevoegd_verschillend`). Eigenaar: ADR-004.
+  - Kwaliteit: provisional. De held-out sets zijn bedoeld voor één blinde meting; na gebruik zijn ze
+    ontwikkelset, en nieuwe regels vragen een nieuwe held-out set.
+- **`eval/betekenisonderzoek_casus.json`**: spoor M, laatste gebruik 28 okt 2026.
+- **`eval/kaartacties_brondefinitie.json`** (*Zoek de brondefinitie*): spoor D fase E, laatste gebruik 16 okt 2026.
+- **`eval/uitleg_eval.py`** (B1-uitleg): spoor I. Nooit gemeten: "kost geld", staat open in `PLAN.md`.
+
+### 11.4 Antwoord en agentgedrag
+
+- **`eval/golden.jsonl`** (22, de QA-set): bronnen, citaten, weigering en vraagtype (`run_eval`).
+- **`golden_gesprek.jsonl`** (18): vervolgvragen.
+- **`golden_duiding.jsonl`** (6), **`golden_duiding_partijen.jsonl`** (10) en **`golden_klasse_twijfel.jsonl`** (5):
+  de methodesectie `duiding`. Laatste gebruik 13–14 nov 2026.
+  - Samen heten deze sets in het meetlogboek *de kwaliteitsset*. Laatste gebruik 13 nov 2026, eigenaar ADR-010 Q0/Q1
+    en het plan methodes scheiden.
+- **`golden_routering.jsonl`** (50) en **`golden_routering_centraal.jsonl`** (17): de route per vraag. De routering is
+  code zonder model, dus dit is in feite een componenttest; ze staan niet als meting in het logboek.
+- **`golden_centrale_agent.jsonl`** (31, de agentset van M0/A6) met de varianten `_breed` (4), `_delegatie` (5) en
+  `_vervolgc` (3), het meetscript (`centrale_agent_meting.mjs`, `_sets.py`, `_vat.py`), en `stukcontrole_set.py`.
+  - Eigenaar: ADR-016 en het plan restpunten na A6. Er wordt nu op gemeten (F02).
+  - Kwaliteit: de verwachting beschrijft het doel van ADR-016, niet een juridisch oordeel.
+  - Overlap: de vier bestanden zijn één set in delen.
+- **`docs/acceptatie/connectors-meting.md`** en **`kennisgroepen-meting.md`** (20 vragen): meetplannen met vragen en
+  criteria vooraf. De vragen staan in Markdown, niet in een machineleesbare set. Laatste gebruik 14 nov 2026.
+
+### 11.5 Keten
+
+- **`docs/acceptatie/wetsanalyse-e2e.md`**, met de briefing, de twee teamagents en het verslag Rekeningafspraken (16 nov
+  2026): de enige meting van begin tot eind. Het dossier staat lokaal (`docs/acceptatie/lokaal/`), niet in de repo.
+- **`eval/extern_dossier.py`**: een bestaande wetsanalyse als referentie voor een E2E. Nooit in het meetlogboek.
+- **`eval/keten_fixture.py`**: een vaste bronpassage met vastgelegde modelcalls, voor ketenmetingen.
+
+### 11.6 Skill-evals
+
+- **`.claude/skills/wetsanalyse/evals/`** (8) en **`wetsuitvoering/evals/`** (3): in de vorm van `claude plugin eval`.
+  Ze toetsen de skill als Claude-skill, niet Lex, en `tests/test_skill_evals.py` bewaakt alleen hun vorm. Er is geen
+  meting van in het logboek.
+
+### 11.7 Componenttests die als meting begonnen
+
+- **`tests/test_a4_vervolg.py`**, **`test_a6_*.py`** (acht bestanden), **`test_a7_ingang.py`**,
+  **`test_b3_na_subagent.py`** en **`test_d01_*.py`** (zes bestanden): samen 17 bestanden en ongeveer 130 tests.
+  - Elk bestand legt de gevallen uit één meting of bundel vast, met fakes, als regressie.
+  - Het zijn componenttests, en goed dat ze er zijn. Maar ze heten naar een meetmoment (`run2`, `bundel123`), niet naar
+    het gedrag dat ze bewaken.
+
+### 11.8 Scripts en infrastructuur
+
+- **`scripts/`** (`kruistests.sh`, `browsertests.mjs`, `pytest_shard.py`): infrastructuur van de poort, geen testsets.
+- **`tools/graph-qa/scripts/`**: de generators van de afgeleide methodebestanden, met hun drift-tests; daarnaast
+  `blind_formulier` en `render_jas_referentieset` voor de adjudicatie.
+- **`eval/`**: daarnaast de gedeelde bouwstenen `scoring`, `metrieken`, `kwaliteit`, `opname`, `manifest`, `casusbron`,
+  `criteria`, `referentieset`, `vraagtypen` en `retrieval_smoke`.
+
+## 12. Doelstructuur: één set per meetas, één casusvorm
+
+**Eén wortel**: `docs/lex-bench/`, met per meetas een map en een manifest.
+
+```text
+docs/lex-bench/
+  README.md                  de voortgang per meetas (§6)
+  casusvorm.md               het schema (één kop, een blok per meetas)
+  bronselectie/manifest.json + <casus_id>/casus.json
+  annotatie/manifest.json    + <casus_id>/casus.json (+ bronnen.json)
+  begrippen/manifest.json    + …
+  afleidingsregels/          gereserveerd
+  antwoord/manifest.json     + …
+  keten/manifest.json        + …
+tools/lex-bench/             het dashboard (§6)
+```
+
+**Eén casusvorm.** Elke casus heeft dezelfde kop:
+
+- `casus_id`, `meetas`, `versie`, `niveau` en `gebruik`;
+- het dossier of de vraag, in eigen woorden;
+- de bron als verwijzing (IRI met `bron_hash`);
+- `verwachting` met opgesteld, vastgesteld en status;
+- `herkomst`, als een casus uit een eerdere set komt;
+- `tags`.
+
+Daaronder staat één blok per meetas:
+
+- bronselectie: `verwacht[]` en `uitgesloten[]` (schema 3);
+- annotatie: de markeringen met anker en klasse (de vorm van `referentieset/v1`);
+- begrippen: formuleringen en paren met relatie (de vorm van `referentieset-begrippen`);
+- antwoord: wat er verwacht wordt (bronnen, sjabloon, weigering, route of subagents), in de vorm van de agentset;
+- keten: een verwijzing naar casussen van de andere assen, plus de praktijkvoorbeelden als toetsgevallen.
+
+Zo kan een keten-casus de bronselectie-, annotatie- en begrippen-casus van hetzelfde werkgebied aan elkaar rijgen. Dat
+is wat de ketentest (§8) nodig heeft.
+
+**Eén lader.** `eval/casusbron.py` wordt de enige ingang. Elke eval leest haar casussen via de lader, met een filter op
+meetas, gebruik en status. De scorers blijven waar ze zijn (`bronselectie_eval`, `scoring`, `metrieken`,
+`begrippen_eval`, `kwaliteit`, `centrale_agent_sets`); ze krijgen een casus in de nieuwe vorm.
+
+**Blind gescheiden.** Dit werkt per meetas zoals in §4.5:
+
+- blinde casussen staan buiten de repo;
+- het manifest legt alleen hun hash en niveau vast;
+- de lader weigert `gebruik: blind`, behalve in een validatierun met een runrecord;
+- na gebruik wordt een blinde casus ontwikkeling.
+
+De bestaande held-out sets (Verrekening, begrippen `heldout-v1` en `-v2`, de BW6- en Omgevingswet-families) staan
+publiek. Ze kunnen in de nieuwe set alleen *ontwikkeling* zijn, of *blind voor het afstemmen*. Zo staat het er ook bij.
+
+## 13. Opruimplan
+
+**Eerst de regel voor bewijs.** De maps in `docs/architectuur/metingen/` blijven ongewijzigd: dat is de historie. Een
+set waar een meting naar verwijst, blijft op zijn pad bevroren staan, met in zijn README *opgevolgd door
+`docs/lex-bench/<meetas>/` (versie …)*. Verplaatsen zou de links in het bewijs breken. Er komen geen nieuwe versies meer
+op het oude pad, dus er blijft één levende set.
+
+| Wat | Wordt | Hoe |
+|---|---|---|
+| De sets onder `referentieset-bronselectie/` (behalve Verrekening) | **gaan op** in `lex-bench/bronselectie` | casus per set, met `herkomst`; het oude pad bevroren. Pas na akkoord van de sessie Termijnen |
+| `verrekening-concept` | **beslist de sessie Termijnen** | open keuze 6 |
+| `invorderbaarheid-concept` (schema 1) | **vervalt als levende set** | een dubbel van de versie met deelvragen; het bewijs blijft |
+| `referentieset/v1` en `concept/` | **gaan op** in `lex-bench/annotatie` | de adjudicatie (spoor A, V7) loopt via de nieuwe set; `v1` blijft bevroren |
+| `golden_annotatie*.jsonl` en `bronteksten.json` | **gaan op** in `lex-bench/annotatie` | na een vergelijking met `v1`: wat dubbel is, telt één keer |
+| `referentieset-begrippen/*`, `betekenisonderzoek_casus.json`, `kaartacties_brondefinitie.json` | **gaan op** in `lex-bench/begrippen` | de held-out sets als ontwikkeling |
+| `golden.jsonl`, `golden_gesprek`, `golden_duiding*` en `golden_klasse_twijfel` | **gaan op** in `lex-bench/antwoord` | één set met tags in plaats van vijf bestanden |
+| `golden_centrale_agent*.jsonl`, `stukcontrole_set` | **gaan op** in `lex-bench/antwoord`, **na** de restpunten | nu niet aanraken: daar wordt op gemeten |
+| De vragen in `connectors-meting.md` en `kennisgroepen-meting.md` | **gaan op** in `lex-bench/antwoord` | uit Markdown naar casussen; de meetplannen blijven als bewijs |
+| `wetsanalyse-e2e.md`, de briefing en de teamagents | **blijven**, met de casussen in `lex-bench/keten` | het scenario is de werkwijze; de casus wordt het dossier in eigen woorden |
+| `golden_routering*.jsonl` | **blijft componenttest** | de routering is code zonder model; `test_routering` draait er al op |
+| `test_a4/a6/a7/b3/d01_*` | **blijft componenttest**, gegroepeerd naar gedrag (§14.2) | het oorspronkelijke geval komt ook als casus in `lex-bench/antwoord`, voor de meting met het echte model |
+| De bevroren invorderingsproef (acht modules, sep 2026) | **vervalt als code** | na een controle dat geen test, workflow of script ze nog laadt; de uitkomst blijft in het meetlogboek |
+| `taal_benchmark`, `detector_audit`, `extern_dossier` | **beslist de eigenaar** | eenmalig onderzoek of gereedschap voor later; open keuze 11 |
+| Skill-evals | **blijven bij de skill** | ze toetsen de skill, niet Lex; in de inventaris van de voortgangspagina |
+| `scripts/` en de generators | **blijven** | infrastructuur |
+| `scoring`, `metrieken`, `kwaliteit`, `opname`, `manifest`, `casusbron` | **blijven**, als de scorers van Bench | — |
+
+**De volgorde:**
+
+1. eerst de lader en de casusvorm;
+2. dan per meetas een PR die de casussen overzet, met een test die bewijst dat de scores op het nulpunt gelijk blijven
+   (dezelfde casussen, dezelfde uitkomst);
+3. pas daarna het oude pad bevriezen;
+4. als laatste de code die vervalt weghalen.
+
+## 14. De kwaliteit van de componenttests, voor zover ze het gedrag van Lex dekken
+
+### 14.1 De volgordefout tussen `test_eval.py` en `test_sjablonen.py`
+
+**Gereproduceerd.** Met `pytest -p no:randomly tests/test_eval.py tests/test_sjablonen.py` faalt
+`test_sjablonen.py::test_een_beurt_rondt_af_met_de_wettekst_uit_de_graaf`. Los draait hij groen.
+
+**De oorzaak.** De cache `agent/overzicht.py:_REGELINGEN_CACHE` is procesbreed, en dat is zo bedoeld: "één query per
+proces". `test_eval.py::test_offline_eval_run_slaagt` vult hem uit zijn `FakeGraph`, met alleen de Invorderingswet 1990.
+De test in `test_sjablonen` krijgt die stand mee. Het sjabloon `antwoord_bepaling` wordt dan geweigerd ("Artikel 9:
+niet opgehaald in dit gesprek"), de keten vraagt het model een derde ronde, en de `FakeLLM` had er twee. Het gevolg is
+een `IndexError`. Wordt alleen deze cache na de eerste test leeggemaakt, dan zijn beide groen; leegmaken van
+`regelingnamen._CACHE` helpt niet.
+
+**Waarom alleen soms in de poort.** Er is geen willekeurige volgorde (`pytest-randomly` is niet geïnstalleerd), maar de
+shards verdelen per bestand op gewicht. Of beide bestanden in dezelfde shard en in deze volgorde landen, hangt dus af
+van de indeling.
+
+**Voorstellen:**
+
+- Een autouse-fixture in `tests/conftest.py` die de procesbrede caches na elke test leegmaakt:
+  `overzicht._REGELINGEN_CACHE`, `regelingnamen._CACHE` en `_AFKORTINGEN`, `graph/schema._cache`. Twaalf testbestanden
+  doen dat nu elk met de hand.
+- Een test die het register van die caches bewaakt, zodat een nieuwe procesbrede cache er ook in moet.
+- Een regressietest die beide tests in deze volgorde draait.
+- Een vaste extra run van graph-qa in omgekeerde bestandsvolgorde (één job, `-p` met een eigen kleine plugin), om de
+  volgende lekken van dit soort te vinden.
+- De `FakeLLM` faalt bij een extra ronde nu met een kale `IndexError`. Laat hem zeggen wat er gebeurde: "de keten vroeg
+  ronde 3, gescript waren er 2", met de laatste waarschuwing erbij. Dan is de oorzaak in één oogopslag te zien.
+
+### 14.2 Tests die naar een meetmoment heten
+
+De 17 bestanden uit §11.7 bewaken echt gedrag: delegatie, citaten, de controle per uitspraak, hervatten. Maar wie wil
+weten welke test de delegatie bewaakt, moet de bundelnummers kennen. Daarnaast toetsen ze vaak de letterlijke zin uit
+één meting, en dan neigt een fix naar maatwerk per geval.
+
+**Voorstel:**
+
+- Groepeer ze naar gedrag (`test_delegatie.py`, `test_citaten_uitspraak.py`, `test_stukcontrole.py`,
+  `test_hervatten.py`, …), met de herkomst als commentaar.
+- Maak waar het kan van één letterlijk geval een eigenschap over varianten (de vorm die `conftest` al gebruikt voor het
+  denkproces).
+
+Dat is verplaatsen, geen inhoudelijke wijziging. Elke test blijft bestaan.
+
+### 14.3 Tests die alleen een vorm vastleggen
+
+- **Drift-tests**: `test_methode_drift`, `test_methodepakket`, `test_vocabulaire_drift`, `test_namespace_drift`,
+  `test_contract_drift`, `test_deploy_drift`, `test_begrippen_manifest_drift` en de profiel- en bronpakkettests.
+- **Vormtests van sets**: `test_golden_centrale_agent`, `test_golden_annotatie` en `test_skill_evals`.
+
+Dat is nodig. Maar het is geen dekking van gedrag, en het telt in de inventaris apart als *vorm*.
+
+### 14.4 Tests die altijd groen zijn of nooit draaien
+
+- 39 testbestanden hebben een `skip` of `skipif`.
+- Zeven bestanden hangen aan een live omgeving (`BRONNEN_LIVE`, `GRAPHDB_MCP_URL`). Die worden in de poort
+  overgeslagen en draaien alleen in `bronnenwacht.yml`.
+
+**Voorstellen:**
+
+- Laat de poort per suite het aantal overgeslagen tests met de reden afdrukken.
+- Maak een lijst van elke skip met de plek waar hij wél draait. Een skip die nergens draait, is een test die niet
+  bestaat.
+
+**Altijd groen** is zonder meting niet hard te maken. Voorstel: een proef met mutatietesten (`mutmut`) op twee modules
+die het gedrag van de bronselectie dragen, `agent/bronnen_vinden.py` en `agent/deelvraag_zoeken.py`, lokaal en eenmalig.
+Een mutant die blijft leven, wijst een test aan die niets bewaakt, of een hiaat.
+
+### 14.5 Hiaten
+
+- **Fakes tonen het modelgedrag niet.** De componenttests met `FakeLLM` bewijzen wat de code doet met een gegeven
+  modelantwoord. Wat het model werkelijk antwoordt, toont alleen een meting. Dat is de taak van Bench, en geen gat in de
+  tests.
+- **De overdracht tussen de stappen is niet getest op echte gegevens.** Dat de annotatie werkt op wat de bronselectie
+  echt oplevert, en de begrippen op de annotatie, is per stap met fakes getoetst, maar niet in samenhang. Dat dekt de
+  ketentest (§8).
+- **Een gemeten casus zonder regressie in de poort.** De blinde metingen van de bronselectie staan als offline
+  regressie in `test_bronselectie_eval.py`. Voor de begrippen, de annotatie en de kwaliteitsset bestaat zo'n regressie
+  op de opgenomen runs niet. Voorstel: per meetas één regressietest op een bewaarde opname (gratis herscoren, ADR-010),
+  zodat een scorerwijziging de oude uitkomst niet stil verandert.
+
+## 15. Stappen voor deel B
+
+Na deel A's LB1. Elke stap is een eigen PR, en de hoofdsessie bundelt.
+
+- **LB-B1 – de volgordefout (§14.1).** Klein en los. Dit kan eerder, als de gebruiker dat wil (open keuze 12).
+- **LB-B2 – de lader en de casusvorm**, met de bronselectie als eerste meetas: deel A's LB1 schrijft al naar deze vorm.
+- **LB-B3 – het overzetten per meetas**, met de gelijkheidstest op het nulpunt. De volgorde: begrippen, annotatie,
+  antwoord (na de restpunten), keten.
+- **LB-B4 – opruimen**: oude paden bevriezen en de vervallen code weghalen.
+- **LB-B5 – de componenttests**: groeperen (§14.2), de skips afdrukken (§14.4), de regressies op opnames (§14.5), en
+  daarna de proef met mutatietesten.
+
+## 16. Open keuzes voor de gebruiker
 
 1. **Waar staan de blinde casussen?** Voorstel: in een **privé GitHub-repo** (versiebeheer, toegang per persoon), met
    alleen de hash in deze repo. Alternatief: lokaal in een gitignored map, zoals `docs/acceptatie/lokaal/`. Dat is
@@ -354,3 +647,14 @@ Elke stap is een eigen PR, en de hoofdsessie bundelt ze. Stappen met een model d
 6. **De set Verrekening:** opnemen als blinde casus zodra de sessie Termijnen er klaar mee is, of bij dat plan laten?
    Ze staat al publiek in de repo, dus ze is alleen blind voor het afstemmen, niet voor de lezer.
 7. **Akkoord op LB1** (zonder model, 0 tokens), en later apart op de pilot LB3 met de plafonds uit §7.
+8. **Waar staat de ene testset?** Voorstel: `docs/lex-bench/<meetas>/`, met de oude paden bevroren als historie.
+   Alternatief: de bestaande map `docs/wetsanalyse/` als wortel houden, zodat er minder verhuist.
+9. **Hoort de routering bij de componenttests** (voorstel, want het is code zonder model), of als meetas bij
+   *antwoord*?
+10. **Mag de bevroren invorderingsproef (acht modules uit sep 2026) als code vervallen,** na de controle dat niets ze
+    nog laadt? De uitkomst blijft in het meetlogboek.
+11. **`taal_benchmark`, `detector_audit` en `extern_dossier`: bewaren of laten vervallen?**
+12. **Mag de fix van de volgordefout (§14.1) nu al als losse kleine PR,** vóór de rest? Het is een fix aan de tests,
+    zonder model.
+13. **De componenttests groeperen naar gedrag (§14.2): ja of nee?** Het is veel verplaatsen voor ongeveer 130 tests, en
+    elke open PR die ze raakt, krijgt een conflict.
