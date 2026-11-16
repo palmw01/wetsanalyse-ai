@@ -226,6 +226,9 @@ def zoek(args: dict[str, Any], graph, port) -> dict[str, Any]:
     if achter:
         uit["achterstand"] = ("De graaf liep voor een of meer werkgebieden achter op de laatste wijzigingen; "
                               "recente begrippen kunnen ontbreken.")
+    if zoekterm:
+        # De gezochte term, zodat een sjabloon ziet waarop gezocht is (`sjablonen/begrip.vooraf`).
+        uit["zoekterm"] = zoekterm
     if eerst:
         uit["werkgebied_gesprek"] = eerst
     if not rijen and not achter:

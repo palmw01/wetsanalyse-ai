@@ -23,7 +23,7 @@ from uuid import uuid4
 from bronmodel.antwoord import Antwoord, Leemte
 
 from .annotaties import SCHEMA as _ANNOTATIES, vul as _vul_annotaties
-from .begrip import SCHEMA as _BEGRIP, vul as _vul_begrip
+from .begrip import SCHEMA as _BEGRIP, vooraf as _vooraf_begrip, vul as _vul_begrip
 from .bepaling import SCHEMA as _BEPALING, vul as _vul_bepaling
 from .duiding import SCHEMA as _DUIDING, vul as _vul_duiding
 from .rapport import SCHEMA as _RAPPORT, vul as _vul_rapport
@@ -32,18 +32,21 @@ from . import extern as _extern
 from . import rapport as _rapport
 from .vullen import Onvulbaar, Trace
 
-__all__ = ["EXTERN", "Onvulbaar", "Sjabloon", "SJABLONEN", "sjabloon_schemas", "sjabloon_uit_tekst", "vul"]
+__all__ = ["EXTERN", "Onvulbaar", "Sjabloon", "SJABLONEN", "sjabloon_schemas", "sjabloon_uit_tekst", "vooraf", "vul"]
 
 
 @dataclass(frozen=True)
 class Sjabloon:
     schema: dict[str, Any]
     vul: Callable[[dict[str, Any], Trace], Antwoord]
+    #: Wat de code zelf opzoekt vóór het vullen: graaftool-aanroepen (`{"name", "input"}`) uit de aanroep en de trace.
+    #: Zo hangt een vast blok niet af van of het model (of zijn profiel) de tool kent (`nodes/sjabloon.vul_aanroep`).
+    vooraf: Callable[[dict[str, Any], Trace], list[dict[str, Any]]] | None = None
 
 
 SJABLONEN: dict[str, Sjabloon] = {
     _ANNOTATIES["name"]: Sjabloon(_ANNOTATIES, _vul_annotaties),
-    _BEGRIP["name"]: Sjabloon(_BEGRIP, _vul_begrip),
+    _BEGRIP["name"]: Sjabloon(_BEGRIP, _vul_begrip, _vooraf_begrip),
     _BEPALING["name"]: Sjabloon(_BEPALING, _vul_bepaling),
     _DUIDING["name"]: Sjabloon(_DUIDING, _vul_duiding),
     # De uitgang van een subagent (ADR-016 §A4): geen profiel noemt hem, de agentvorm `Subagent` geeft hem.
@@ -64,6 +67,12 @@ def sjabloon_schemas(namen: frozenset[str], *, extern: Any = False) -> list[dict
         return [SJABLONEN[n].schema for n in sorted(namen)]
     return [_extern.schema(extern) if n == EXTERN else _extern.met_veld(SJABLONEN[n].schema, extern)
             for n in sorted(namen)]
+
+
+def vooraf(naam: str, invoer: dict[str, Any], trace: Trace) -> list[dict[str, Any]]:
+    """De aanroepen die de code vóór het vullen van dit sjabloon zelf doet (leeg als er niets op te zoeken is)."""
+    s = SJABLONEN.get(naam)
+    return list(s.vooraf(invoer, trace)) if s is not None and s.vooraf is not None else []
 
 
 def vul(naam: str, invoer: dict[str, Any], trace: Trace) -> Antwoord:

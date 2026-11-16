@@ -380,6 +380,11 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   graaftool vult `tools_node` het sjabloon ná die tool (`sjabloon.vul_aanroep`, alle resultaten in één bericht, telling
   `uitgesteld`), en gaat de beurt daarna meteen naar `verify` (`route_na_tools`); eerst wachtte het sjabloon en schreef het
   model het de volgende ronde opnieuw (~2.000 uitvoertokens). Tekst in plaats van de tool blijft geldig (log `sjabloon gemist`).
+  **Wat een vast blok nodig heeft, zoekt de code zelf** (`Sjabloon.vooraf`, `sjabloon._zoek_vooraf`): vóór het vullen voert
+  `vul_aanroep` die graaftool-aanroepen uit via `execute_tool` (stap in het denkproces, resultaat in het bronspoor). Zo hangt
+  een blok niet af van of het model of zijn profiel de tool kent. `antwoord_begrip` zoekt zo de vastgelegde begrippen bij de
+  term (ook generieke, ADR-006) als er in de trace nog niet op die term gezocht is (`search_begrippen` draagt `zoekterm`);
+  het profiel `centraal` heeft `search_begrippen` niet, en het blok bleef eerst weg (16 nov 2026).
   **Na een vondst van een bronconnector is het één schrijfronde** (iteratie wetgeving_live ronde 4: de rol zei "antwoord
   in tekst", de code vroeg daarna alsnog om het sjabloon, ~20–25k tokens per vraag bij alle connectors):
   - met een connector aan staat `AFRONDEN_EXTERN` in het variabele promptdeel: rond af met het sjabloon, ook bij uitleg, telling of
