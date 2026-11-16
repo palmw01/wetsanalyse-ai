@@ -22,7 +22,7 @@ from pathlib import Path
 import pytest
 
 import agent
-from agent import begrip_kaart, bronnen_vinden, plekken, regelingnamen, zoekvragen
+from agent import begrip_kaart, bronnen_vinden, deelvraag_zoeken, plekken, regelingnamen, zoekvragen
 from agent.graph import queries as q
 from agent import tools as _tools
 from agent.adapters import kennisgroepen_bron as kgb
@@ -96,6 +96,7 @@ GEVALLEN: list[tuple[str, str]] = [
     ("bronnen_vinden.q_uitgaand", bronnen_vinden.q_uitgaand([f"urn:bwb:{IW}:artikel:4"], 10)),
     ("bronnen_vinden.q_inkomend", bronnen_vinden.q_inkomend([f"urn:bwb:{IW}:artikel:4"], 10)),
     ("bronnen_vinden.q_teksten", bronnen_vinden.q_teksten([f"urn:bwb:{IW}:artikel:4"])),
+    ("deelvraag_zoeken.q_verwijst_naar", deelvraag_zoeken.q_verwijst_naar([f"urn:bwb:{IW}:artikel:7a"])),
     ("bronnen_vinden.q_definities", bronnen_vinden.q_definities([IW], 10)),
     ("bronnen_vinden.q_opbouw", bronnen_vinden.q_opbouw([f"urn:bwb:{IW}:artikel:4"])),
     ("plekken.q_plekken", plekken.q_plekken([f"urn:bwb:{IW}:artikel:4"])),

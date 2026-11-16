@@ -22,6 +22,10 @@ MAX_DOSSIERTERMEN = 12
 MAX_TREFFERS = 50
 #: Wat buiten de afbakening lijkt te vallen staat achteraan, hoogstens zoveel extra.
 MAX_BUITEN = 2
+#: Met `verwijzingen`: van zoveel sterkste opties volgt de code de verwijzingen, en zoveel verwezen bepalingen komen erbij.
+MAX_VERWIJZEND = 3
+MAX_VERWEZEN = 3
+VERWEZEN_TEKST = "verwezen vanuit {vanuit}"
 MAX_PER_DEELVRAAG = 8
 BUITEN_TEKST = "valt mogelijk buiten de afbakening"
 #: De knooptypes die een bepaling kunnen zijn. Een divisie is de bepaling van een beleidsregel (de Leidraad).
@@ -80,6 +84,17 @@ class Zoekprofiel:
       extra lijst, binnen de regelingen van het werkgebied. Een treffer daarvan telt als raak aan de deelvraag,
       ook zonder haar woorden. Een haperende index kost alleen die lijst. Van de 40 treffers vallen er bijna
       geen binnen de regelingen, en die gaan over iets anders. Als brug over de woordenkloof is de index te zwak.
+
+    Uit de E2E-test Rekeningafspraken (16 nov 2026, B-2; plan centrale agent na A6, PR E). Beide staan **uit** tot de
+    meting (`eval/bronselectie_eval.py --intake`, "met …") laat zien dat ze helpen:
+
+    - `verwijzingen`: de sterkste opties (`MAX_VERWIJZEND`) brengen mee waar ze naar verwijzen, diepte 1 en binnen de
+      regelingen van het werkgebied, hoogstens `MAX_VERWEZEN` extra, met de herkomst in de omschrijving. Bij DV1 vond
+      Lex Uitv.reg. Iw art. 40ca lid 1, dat naar Iw 7a verwijst, en niet 7a zelf. `verwijzing_uit` van de
+      bronverkenner vertrekt alleen vanuit de kern, en bij de eerste deelvraag is er nog geen kern;
+    - `onderscheidend`: een term die in elke deelvraag van het werkgebied staat (het onderwerp), zoekt niet als
+      deelvraagterm maar rangschikt als dossierterm, zolang de deelvraag een eigen term overhoudt. Dezelfde bepalingen
+      stonden bij vier of vijf deelvragen. De deelvragen komen uit `dossier["deelvragen"]`.
     """
     per_term: bool = True
     samenstelling: bool = True
@@ -93,6 +108,8 @@ class Zoekprofiel:
     dossier_lijsten: bool = False
     dossier_omgeving: bool = False
     gelijkenis: bool = False
+    verwijzingen: bool = False
+    onderscheidend: bool = False
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.
@@ -146,10 +163,13 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
         termen = zoektermen(vraagtekst)[:MAX_TERMEN]
     if not termen:
         return None
+    gedeeld = gedeelde_termen(termen, dossier.get("deelvragen") or []) if profiel.onderscheidend and deelvraag else []
+    termen = [w for w in termen if w not in gedeeld]
     velden = DOSSIERVELDEN_ALLE if profiel.dossier_velden else DOSSIERVELDEN
     alle_dossiertermen = zoektermen(" ".join(str(dossier.get(k) or "") for k in velden))[:MAX_DOSSIERTERMEN]
-    dossiertermen = [w for w in zoektermen(" ".join(str(dossier.get(k) or "") for k in velden))
-                     if w not in termen][:MAX_DOSSIERTERMEN]
+    dossiertermen = list(dict.fromkeys([*gedeeld, *(w for w in zoektermen(" ".join(str(dossier.get(k) or "")
+                                                                                  for k in velden))
+                                                      if w not in termen)]))[:MAX_DOSSIERTERMEN]
     bereik = list(dict.fromkeys(r for r in regelingen if r)) or [None]
     lemma = lemmas(vraagtekst, termen) if profiel.lemma else {}
     soorten = SOORTEN if profiel.divisies else SOORTEN[:3]
@@ -232,6 +252,57 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
 
     return {"termen": termen, "dossiertermen": dossiertermen, "alle_dossiertermen": alle_dossiertermen,
             "bereik": bereik, "gevonden": gevonden, "geraakte_artikelen": geraakte_artikelen, "lemma": lemma}
+
+
+def gedeelde_termen(termen: list[str], deelvragen: list[str]) -> list[str]:
+    """De termen van deze deelvraag die in elke deelvraag van het werkgebied staan (het onderwerp), als er dan nog een
+    eigen term overblijft; anders geen. Zonder twee of meer deelvragen geen."""
+    andere = [set(zoektermen(onderwerp_van_deelvraag(d) or d)) for d in deelvragen if (d or "").strip()]
+    if len(andere) < 2:
+        return []
+    gedeeld = [w for w in termen if all(w in a for a in andere)]
+    return gedeeld if len(gedeeld) < len(termen) else []
+
+
+def q_verwijst_naar(iris: list[str]) -> str:
+    """Waar deze bepalingen (en hun onderdelen) naar verwijzen, diepte 1: de doelen in de BWB-namespace."""
+    waarden = " ".join(f"<{queries._iri_veilig(i)}>" for i in iris)
+    return queries.PREFIXES + f"""SELECT DISTINCT ?vanuit ?naar WHERE {{
+  VALUES ?vanuit {{ {waarden} }}
+  ?vanuit ({queries.BEVAT})* ?deel .
+  ?deel bwb:heeftVerwijzing ?v .
+  ?v bwb:naar ?naar .
+  FILTER(STRSTARTS(STR(?naar), "{queries.NS}"))
+  FILTER EXISTS {{ ?naar a ?type }}
+}} ORDER BY ?vanuit ?naar LIMIT 100"""
+
+
+def verwezen(graph: GraphPort, opties: list[dict[str, Any]], bereik: list[str | None],
+             al: set[str]) -> list[dict[str, Any]]:
+    """De bepalingen waar de eerste `MAX_VERWIJZEND` opties naar verwijzen, binnen het bereik en nog niet gekozen,
+    hoogstens `MAX_VERWEZEN`, in de volgorde van de opties. Een haperende graaf kost alleen deze aanvulling."""
+    vanuit = [o["iri"] for o in opties[:MAX_VERWIJZEND]]
+    if not vanuit:
+        return []
+    try:
+        rijen = _rijen(graph, q_verwijst_naar(vanuit))
+    except Exception:  # noqa: BLE001
+        logger.warning("verwijzingen volgen faalde", extra={"categorie": "technisch"}, exc_info=True)
+        return []
+    volgorde = {iri: i for i, iri in enumerate(vanuit)}
+    uit: list[dict[str, Any]] = []
+    gezien = set(al)
+    for r in sorted(rijen, key=lambda r: volgorde.get(r.get("vanuit", ""), len(volgorde))):
+        naar = r.get("naar", "")
+        if not queries.is_bron_iri(naar) or naar in gezien or any(naar.startswith(a + ":") for a in gezien):
+            continue
+        if bereik != [None] and _bwb(naar) not in bereik:
+            continue
+        gezien.add(naar)
+        uit.append({"iri": naar, "bwb_id": _bwb(naar), "vanuit": r.get("vanuit", "")})
+        if len(uit) >= MAX_VERWEZEN:
+            break
+    return uit
 
 
 def _gelijkenis(graph: GraphPort, tekst: str, bereik: list[str | None], soorten: tuple[str, ...]) -> list[tuple]:
@@ -445,5 +516,13 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
             "omschrijving": BUITEN_TEKST if k["buiten"] else _omschrijving(k["eigen"] or k["teksten"][0],
                                                                           k["dv"] + k["dos"]),
             "geraakt": k["dv"] + k["dos"], "buiten": k["buiten"]} for k in gekozen]
+    if profiel.verwijzingen:
+        extra = verwezen(graph, passend[:limit], bereik, {k["iri"] for k in gekozen})
+        uit += [{"bron_iri": e["iri"], "bwb_id": e["bwb_id"], "label": "", "omschrijving": "", "geraakt": [],
+                 "buiten": False, "verwezen_vanuit": e["vanuit"]} for e in extra]
     _benoem(graph, uit)
+    namen = {o["bron_iri"]: o["label"] for o in uit}
+    for o in uit:
+        if o.get("verwezen_vanuit"):
+            o["omschrijving"] = VERWEZEN_TEKST.format(vanuit=namen.get(o["verwezen_vanuit"]) or o["verwezen_vanuit"])
     return uit

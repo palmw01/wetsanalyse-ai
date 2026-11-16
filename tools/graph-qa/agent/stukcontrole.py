@@ -21,6 +21,7 @@ omgekeerde; bij twijfel niet). Die tweede aanroep komt er alleen als er een kand
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Iterable
 from typing import Any
 
@@ -110,9 +111,13 @@ def prompt(stukken: list[dict[str, Any]]) -> str:
 
 
 def controleer(llm: Any, settings: Any, tekst: str, steun: dict[str, str] | None, trace: Iterable[Any],
-               meting: dict[str, Any] | None = None) -> list[str]:
+               meting: dict[str, Any] | None = None, oordelen: dict[str, set[str]] | None = None) -> list[str]:
     """De beweringen van de controle per stuk: elke zin die de passages van zijn stuk tegenspreekt. Leeg zonder steun,
-    zonder zinnen om te toetsen, of als het model geen bruikbaar oordeel gaf."""
+    zonder zinnen om te toetsen, of als het model geen bruikbaar oordeel gaf.
+
+    Met `oordelen` (een lege dict) zet de controle daarin per stuk welke oordelen ze gaf, voor elke zin die ze las. Zo
+    kan `verify` een melding van de woordtoets laten vallen die de lezer weerlegt (`vervalt_op_lezer`). Een zin zonder
+    oordeel telt als `niet_te_zien`: zonder antwoord van de lezer blijft de melding staan."""
     if not steun or llm is None:
         return []
     stukken = te_controleren(tekst, steun, trace)
@@ -129,11 +134,14 @@ def controleer(llm: Any, settings: Any, tekst: str, steun: dict[str, str] | None
         return []
     kandidaten: list[dict[str, Any]] = []
     niet_aangewezen = zonder_inhoud = 0
+    gelezen: dict[str, dict[int, str]] = {s["id"]: {} for s in stukken}
     for o in uit.waarde or []:
         try:
             stuk, zin = stukken[int(o["stuk"]) - 1], int(o["zin"]) - 1
         except (KeyError, TypeError, ValueError, IndexError):
             continue
+        if 0 <= zin < len(stuk["zinnen"]) and o.get("oordeel") in OORDELEN:
+            gelezen[stuk["id"]].setdefault(zin, str(o["oordeel"]))
         if o.get("oordeel") != "spreekt_tegen" or not 0 <= zin < len(stuk["zinnen"]):
             continue
         tegen, deel = str(o.get("tegen") or ""), str(o.get("deel") or "")
@@ -148,6 +156,10 @@ def controleer(llm: Any, settings: Any, tekst: str, steun: dict[str, str] | None
             zonder_inhoud += 1
             continue
         kandidaten.append({"stuk": stuk, "zin": stuk["zinnen"][zin], "deel": deel, "tegen": tegen})
+    if oordelen is not None:
+        for stuk in stukken:
+            per = gelezen[stuk["id"]]
+            oordelen[stuk["id"]] = {per.get(z, "niet_te_zien") for z in range(len(stuk["zinnen"]))}
     bevestigd = bevestig(llm, settings, kandidaten, meting) if kandidaten else []
     beweringen: dict[str, None] = {}
     for k in bevestigd:
@@ -244,3 +256,20 @@ def bevestig(llm: Any, settings: Any, kandidaten: list[dict[str, Any]], meting: 
             continue
     return [k for n, k in enumerate(kandidaten) if n in ja]
 
+
+#: De melding van de woordtoets die de lezer kan weerleggen (`gelezen.zonder_steun`): de woorden van een duiding staan
+#: niet genoeg in de passages. Een juiste samenvatting in eigen woorden valt daaronder (HR:2023:1371 in S01 en F01). De
+#: melding "zonder passage van dat stuk" valt erbuiten: daar valt niets te lezen.
+NIET_DRAGEN = re.compile(r"^duiding van (\S+) die de passages van dat stuk niet dragen$")
+
+
+def niet_dragen(beweringen: Iterable[str]) -> dict[str, str]:
+    """De meldingen "niet dragen" van de woordtoets, per stuk: id → melding."""
+    return {m.group(1): b for b in beweringen if (m := NIET_DRAGEN.match(b))}
+
+
+def vervalt_op_lezer(beweringen: list[str], oordelen: dict[str, set[str]]) -> list[str]:
+    """De meldingen "niet dragen" die de lezer weerlegde: hij las elke zin van dat stuk en zei bij elke `steunt` (plan
+    centrale agent na A6, PR B). De woordtoets wijst aan, de lezer beslist. Zei hij bij één zin iets anders, of las hij
+    het stuk niet, dan blijft de melding staan."""
+    return [b for ident, b in niet_dragen(beweringen).items() if oordelen.get(ident) == {"steunt"}]

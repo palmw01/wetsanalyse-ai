@@ -275,7 +275,8 @@ def _vorige_deelvraagmethode(graph: Any, s: dict[str, Any], vraag: str) -> list[
 
 
 def _dossier(s: dict[str, Any]) -> dict[str, Any]:
-    return {k: s.get(k, "") for k in ("naam", "analysevraag", "praktijkvoorbeeld", "context", "aanleiding", "doel")}
+    return {**{k: s.get(k, "") for k in ("naam", "analysevraag", "praktijkvoorbeeld", "context", "aanleiding", "doel")},
+            "deelvragen": list(s.get("deelvragen") or [])}
 
 
 def _met_profiel(profiel: deelvraag_zoeken.Zoekprofiel):
@@ -338,8 +339,13 @@ ROUTES = {"bepaling_opties": _bepaling_opties, "F3f (21 okt)": _met_profiel(deel
              for v in DOSSIERVLAGGEN},
           "met dossier (alles)": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL,
                                                       **{v: True for v in DOSSIERVLAGGEN})),
+
           "zoekvragen (PR 5)": _zoekvragen_route(),
           "vorige deelvraagmethode": _vorige_deelvraagmethode}
+#: De vlaggen van B-2 (E2E Rekeningafspraken, plan centrale agent na A6, PR E), standaard uit. Ze stellen nieuwe vragen
+#: aan de graaf, dus alleen met `--b2`: de opnames van de bestaande sets hebben die vragen nog niet (`--aanvullen`).
+ROUTES_B2 = {f"met {v}": _met_profiel(replace(deelvraag_zoeken.STANDAARD_PROFIEL, **{v: True}))
+             for v in ("verwijzingen", "onderscheidend")}
 
 
 def _pool(graph: Any, s: dict[str, Any], vraag: str, profiel=deelvraag_zoeken.STANDAARD_PROFIEL) -> list[str]:
@@ -387,11 +393,11 @@ def _deel(a: int, b: int) -> float | None:
     return round(a / b, 3) if b else None
 
 
-def meet_intake(graaf: Any, s: dict[str, Any]) -> dict[str, Any]:
+def meet_intake(graaf: Any, s: dict[str, Any], routes: dict[str, Any] | None = None) -> dict[str, Any]:
     from agent import overzicht, regelingnamen
 
     rapport = {}
-    for naam, route in ROUTES.items():
+    for naam, route in (routes or ROUTES).items():
         regelingnamen._CACHE.clear()
         overzicht._REGELINGEN_CACHE.clear()
         per = [scoor_deelvraag(s, i, route(graaf, s, vraag)) for i, vraag in enumerate(s["deelvragen"])]
@@ -532,6 +538,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--aanvullen", action="store_true",
                    help="de opname afspelen en alleen wat ontbreekt live ophalen en toevoegen (de rest blijft bewijs)")
     p.add_argument("--json", type=Path, help="het rapport ook als JSON wegschrijven")
+    p.add_argument("--b2", action="store_true",
+                   help="met --intake ook de vlaggen van B-2 (verwijzingen, onderscheidend), standaard uit")
     a = p.parse_args(argv)
     a.set = a.set or (INTAKE_SET if a.intake else STANDAARD_SET)
     s = laad_set(a.set)
@@ -541,6 +549,8 @@ def main(argv: list[str] | None = None) -> int:
         p.error(f"set {a.set} heeft geen gebeurtenis")
     meting, opmaak = (meet_zoekvragen, tabel_zoekvragen) if a.zoekvragen else \
         (meet_intake, tabel_intake) if a.intake else (meet, tabel)
+    if a.intake and a.b2:
+        meting = lambda graaf, s: meet_intake(graaf, s, {**ROUTES, **ROUTES_B2})  # noqa: E731
     pad = SETS / a.set / "graafantwoorden.json"
     if a.aanvullen:
         graaf = AanvullendeGraaf(json.loads(pad.read_text()) if pad.exists() else {"sparql": {}, "semantisch": {}},

@@ -260,7 +260,9 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     rol = "kern"
     regelingen = regelingen_van_invoer(invoer)
     dossier = {"naam": invoer.get("naam", ""), "analysevraag": invoer.get("analysevraag", ""),
-               **(invoer.get("dossier") or {})}
+               **(invoer.get("dossier") or {}),
+               # Alleen gelezen met `Zoekprofiel.onderscheidend` (B-2, standaard uit).
+               "deelvragen": [str(d.get("vraag") or "") for d in invoer.get("deelvragen") or []]}
     buiten = uitsluitstammen(buiten_uit_afbakening(dossier.get("afbakening", "")))
     gebeurtenis = (dossier.get("gebeurtenis") or "").strip()
     p = pool(graph, gebeurtenis=gebeurtenis, regelingen=regelingen, buiten=buiten) if gebeurtenis else None
