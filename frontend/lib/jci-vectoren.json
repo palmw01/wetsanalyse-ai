@@ -16,6 +16,9 @@
     {"ref": "urn:bwb:BWBR0004770:hoofdstuk:I", "iri": "urn:bwb:BWBR0004770:hoofdstuk:I", "soort": "hoofdstuk", "label": "Hoofdstuk I"},
     {"ref": "urn:bwb:BWBR0005537:artikel:4%3A94a", "iri": "urn:bwb:BWBR0005537:artikel:4%3A94a", "soort": "artikel", "label": "Artikel 4:94a"},
     {"ref": "urn:bwb:BWBR0004770", "iri": "urn:bwb:BWBR0004770", "soort": "regeling", "label": ""},
-    {"ref": "BWBR0004770", "iri": "urn:bwb:BWBR0004770", "soort": "regeling", "label": ""}
+    {"ref": "BWBR0004770", "iri": "urn:bwb:BWBR0004770", "soort": "regeling", "label": ""},
+    {"ref": "jci1.3:c:BWBR0014168&hoofdstuk=4&paragraaf=4.1a&sub-paragraaf=4.1a.1.1&z=2026-06-04&g=2026-06-04", "iri": "urn:bwb:BWBR0014168:hoofdstuk:4:paragraaf:4.1a:paragraaf:4.1a.1.1", "soort": "paragraaf", "label": "Hoofdstuk 4, paragraaf 4.1a, paragraaf 4.1a.1.1"},
+    {"ref": "jci1.3:c:BWBR0014168&hoofdstuk=4&paragraaf=4.1a&sub-paragraaf=4.1a.1.1&artikel=45b&lid=1", "iri": "urn:bwb:BWBR0014168:artikel:45b:lid:1", "soort": "lid", "label": "Artikel 45b, lid 1"},
+    {"ref": "urn:bwb:BWBR0014168:hoofdstuk:4:paragraaf:4.1a:paragraaf:4.1a.1.1", "iri": "urn:bwb:BWBR0014168:hoofdstuk:4:paragraaf:4.1a:paragraaf:4.1a.1.1", "soort": "paragraaf", "label": "Hoofdstuk 4, paragraaf 4.1a, paragraaf 4.1a.1.1"}
   ]
 }

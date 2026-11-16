@@ -250,6 +250,21 @@ def test_node_ref_key_raakt_artikelen_niet() -> None:
         assert jci_node_ref_key(doc) == jci_doel_ref_key(doc)
 
 
+def test_sub_paragraaf_is_een_geneste_paragraaf() -> None:
+    """Een `sub-paragraaf` in de jci (Mijnbouwwet § 4.1a.1.1) is een paragraaf onder de paragraaf, zoals de parser
+    haar leest. Zonder het segment kreeg ze de sleutel van haar ouder, en weigerde de importer de hele wet ("krijgen
+    dezelfde IRI"). Een artikel eronder houdt zijn eigen sleutel."""
+    ouder = jci_node_ref_key("jci1.3:c:BWBR0014168&hoofdstuk=4&paragraaf=4.1a&z=2026-06-04")
+    sub = jci_node_ref_key("jci1.3:c:BWBR0014168&hoofdstuk=4&paragraaf=4.1a&sub-paragraaf=4.1a.1.1&z=2026-06-04")
+    assert sub == ("BWBR0014168#hoofdstuk=4#paragraaf=4.1a#paragraaf=4.1a.1.1", "paragraaf")
+    assert sub[0] != ouder[0]
+    assert jci_node_ref_key("jci1.3:c:BWBR0014168&hoofdstuk=4&paragraaf=4.1a&sub-paragraaf=4.1a.1.1&artikel=45b") == (
+        "BWBR0014168#artikel=45b", "artikel")
+    # Als verwijzing telt het laatste segment, zoals bij elk structuurdoel.
+    assert jci_doel_ref_key("jci1.3:c:BWBR0014168&hoofdstuk=4&paragraaf=4.1a&sub-paragraaf=4.1a.1.1") == (
+        "BWBR0014168#paragraaf=4.1a.1.1", "paragraaf")
+
+
 def test_node_ref_key_zonder_structuur_is_de_wet() -> None:
     assert jci_node_ref_key("jci1.3:c:BWBR0028093") == ("BWBR0028093", "wet")
     assert jci_node_ref_key(None) == (None, None)
