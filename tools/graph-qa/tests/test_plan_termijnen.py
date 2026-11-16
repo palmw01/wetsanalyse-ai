@@ -147,3 +147,39 @@ def test_met_de_vlag_wijkt_een_zwakke_poolkandidaat_voor_een_woordtreffer():
 
 def test_woorden_voor_pool_staat_standaard_uit():
     assert dz.STANDAARD_PROFIEL.woorden_voor_pool is False
+
+
+# --- stap 2: de bonus van de vraagvorm vraagt een eigen woord (O2) ------------------------------------------------
+
+def _kand(iri: str, zoekvraag: str, signaal: str, tekst: str) -> dict:
+    return {"bron_iri": iri, "bwb_id": "X", "zoekvraag": zoekvraag, "signaal": signaal, "zin": "", "tekst": tekst}
+
+
+#: "Wat is …" wijst zoekvraag d aan. De beleidsdivisie raakt geen woord van de vraag; de definitie wel.
+KANDIDATEN = [_kand("beleid", "d", "beleidsregel", "Een toeslagschuld kan worden verrekend met een uitbetaling."),
+              _kand("definitie", "d", "verstaan", "Onder een voorlopige teruggaaf wordt verstaan een negatief bedrag."),
+              _kand("lid", "c", "vervalt", "De eerste termijn van de voorlopige aanslag vervalt een maand later.")]
+VRAAG_D = "Wat is een voorlopige teruggaaf?"
+
+
+def _iris(**vlaggen) -> list[str]:
+    profiel = _profiel(**vlaggen) if vlaggen else None
+    return [k["bron_iri"] for k in zv.opties_bij_deelvraag(KANDIDATEN, VRAAG_D, profiel=profiel)]
+
+
+def test_standaard_krijgt_een_beleidsdivisie_zonder_woord_de_bonus():
+    assert "beleid" in _iris(), "zonder vlag ongewijzigd: past zonder eigen woord"
+
+
+def test_met_de_vlag_telt_de_bonus_alleen_met_een_eigen_woord_en_bij_d_alleen_een_definitie():
+    uit = _iris(vraagvorm_eigen_woord=True)
+    assert "beleid" not in uit, "geen eigen woord: geen bonus en dus geen optie"
+    assert uit[0] == "definitie", "de definitie met een eigen woord krijgt de bonus"
+    assert "lid" in uit, "een eigen woord zonder passende zoekvraag blijft een optie"
+
+
+def test_de_definitieroute_telt_als_definitie():
+    k = _kand("d", "d", "definitie van “voorlopige teruggaaf”", "")
+    assert zv._past_vraagvorm(k, "d", ["teruggaaf"], True)
+    assert not zv._past_vraagvorm(_kand("b", "d", "beleidsregel", ""), "d", ["teruggaaf"], True)
+    assert zv._past_vraagvorm(_kand("b", "b", "procedure", ""), "b", ["teruggaaf"], True), "buiten d: eigen woord volstaat"

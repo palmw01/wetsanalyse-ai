@@ -72,3 +72,26 @@ woordenroute haar eigen pool niet goed rangschikt (stap 1b, bevindingen), maakt 
 vlag blijft uit; stap 8 neemt haar niet mee tenzij een latere stap de woordenroute verbetert.
 
 De rapporten staan in [`stap1/`](stap1/).
+
+## Stap 2 – `vraagvorm_eigen_woord` (O2)
+
+Op de zoekvragenroute, recall nodig, eerst de standaard, dan met de vlag:
+
+- Termijnen: 0,06 → 0,06; uitgesloten bepalingen in de top 12 → 9
+- Rekeningafspraken: 0,29 → 0,29
+- Bestuurdersaansprakelijkheid: 0,44 → 0,44
+- Bezwaar/ontvankelijkheid: 0,40 → 0,40
+- Invorderbaarheid (deelvragen): 0,46 → 0,46
+- Kwijtschelding: 0,33 → **0,19**
+
+Op de woordenroute verandert de vlag niets: de bonus van de vraagvorm bestaat alleen in de pool.
+
+**Oordeel: minder ruis bij Termijnen, verlies bij Kwijtschelding.** Geen van de vier deelvragen van Kwijtschelding heeft de
+vorm "Wat is …", dus het verlies komt van de eis van een eigen woord. Dit is de set van de woordenkloof ("laten
+vervallen" tegenover *kwijtschelding*). Daar vond de bonus van de vraagvorm de juiste divisies van de Leidraad (art. 26),
+zonder één woord van de deelvraag. De bonus is daar de brug over de kloof, en bij Termijnen haalt hij ruis binnen. Een vlag
+die het ene herstelt en het andere breekt, gaat niet aan. Voor stap 8: zonder eigen woord alleen een bonus als de
+deelvraag een woord heeft dat in de regelingen ontbreekt (de kloof, `ontbrekende_woorden`). Dat volgt uit dit mechanisme,
+maar het is nog niet gemeten.
+
+De rapporten staan in [`stap2/`](stap2/).
