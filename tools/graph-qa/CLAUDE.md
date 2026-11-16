@@ -2470,7 +2470,11 @@ bestaat met de juiste hoofdletters en dat geen anker met het lidnummer begint â€
 overgetypt fragment stil weg als "niet gevonden". De cases zijn gekozen op **signaal per teken**: de
 kosten volgen de corpusomvang, dus een korte bepaling met veel verschillende JAS-signalen meet meer per
 euro dan een lange. EÃ©n case annoteert een heel artikel, zodat het pad met meerdere leden gedekt is.
-Nog **niet** gemeten: injectie via graafdata.
+Injectie via de inhoud van een bron (graaftekst, een stuk van een connector) toetst `tests/test_injectie_via_bron.py`
+op de code rond het model: de tekst bereikt het model alleen als toolresultaat, nooit als systeemtekst, beurtcontext of
+stap in het denkproces, en er gaat geen schrijvende query naar de graaf, ook in een vervolgbeurt. Elke connector met een
+leestool doet vanzelf mee (`voorbeeld_id`). Hoe het model zelf met zo'n tekst omgaat, is nog **niet** gemeten: dat hoort
+als kanarie in de antwoordset van Lex Bench.
 
 **De keten vergelijken en rapporteren.**
 

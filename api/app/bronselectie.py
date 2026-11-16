@@ -406,6 +406,19 @@ async def zet_status(werkgebied_id: str, deelvraag_id: str, req: StatusActie, ac
 
 # --- besluiten per deelvraag -----------------------------------------------------------------
 
+async def _opgenomen_hier(conn, werkgebied_id: str, deelvraag_id: str, kandidaat_iri: str, gekozen_iri: str | None,
+                          doel: str) -> bool:
+    """Of deze kandidaat (of het gekozen lid ervan) nu bij deze deelvraag is opgenomen: dezelfde regel als `kiezen` in
+    `besluit`, maar gelezen binnen de transactie die het werkgebiedslot heeft."""
+    s, kp = db.werkgebied_bronselecties, db.werkgebied_deelvraag_koppelingen
+    hier = set((await conn.execute(select(kp.c.doel_id).where(kp.c.deelvraag_id == deelvraag_id,
+                                                               kp.c.soort == "bron"))).scalars())
+    sels = (await conn.execute(select(s.c.id, s.c.bron_iri).where(s.c.werkgebied_id == werkgebied_id,
+                                                                  s.c.verwijderd.is_(None)))).all()
+    return any(x.id in hier and onder(x.bron_iri, kandidaat_iri) and (not gekozen_iri or x.bron_iri == doel)
+               for x in sels)
+
+
 async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req: KandidaatBesluit, bron: dict,
                   actor: str) -> None:
     """Een besluit over één kandidaat bij één deelvraag. `bron` komt uit de resolver (alleen nodig als de
@@ -482,6 +495,11 @@ async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req:
         reden = req.reden.strip()
         async with db.get_engine().begin() as conn:
             await _slot(conn, werkgebied_id)
+            # Opnieuw onder het slot: de toets hierboven las buiten het slot, en een gelijktijdig `opnemen` kon intussen
+            # winnen. Zonder deze toets was de kandidaat daarna opgenomen én uitgesloten (testplan api V4).
+            if not alleen and await _opgenomen_hier(conn, werkgebied_id, deelvraag_id, kd.bron_iri, req.bron_iri, doel):
+                raise HTTPException(409, {"fout": "status", "status": "opgenomen",
+                                          "melding": "Deze bepaling is bij deze deelvraag net opgenomen; koppel haar eerst los."})
             if alleen or (req.overal and naar == "uitgesloten"):
                 if kd.status != naar or kd.reden != reden:
                     nu = db.utcnow()
