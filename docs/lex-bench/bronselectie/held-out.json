@@ -1,0 +1,43 @@
+{
+  "toelichting": "Lex Bench, meetas bronselectie (plan-lex-bench.md §4.5, §20.4): de uitkomst van elke set bij haar blinde meting, offline op haar opname. Na die ene meting is de set een ontwikkelset; de uitkomst staat daarom hier en niet als pin in de unitsuite. Vergelijken: `python -m eval.lex_bench` (faalt niet op een verschil). De sets zelf staan ongewijzigd in docs/wetsanalyse/referentieset-bronselectie/.",
+  "bron": "overgenomen uit de pinnen in tools/graph-qa/tests/test_bronselectie_eval.py (16 nov 2026), die op hun beurt de meetlogboekregels hieronder volgden",
+  "sets": [
+    {
+      "set": "invorderbaarheid-deelvragen-concept",
+      "meting": "docs/architectuur/metingen/README.md, bronselectie-2026-11-03",
+      "uitkomst": {
+        "zonder per_regeling": {"recall": 0.333, "recall_nodig": 0.273, "precisie": 0.281, "recall_pool": 0.944},
+        "F3f (21 okt)": {"recall": 0.278, "recall_nodig": 0.364, "precisie": 0.156, "recall_pool": 0.556, "uitgesloten": 0},
+        "bepaling_opties": {"recall": 0.389, "recall_nodig": 0.364, "precisie": 0.281, "uitgesloten": 0}
+      }
+    },
+    {
+      "set": "bestuurdersaansprakelijkheid-concept",
+      "meting": "docs/architectuur/metingen/README.md, bronselectie-2026-11-03-rangsignaal",
+      "uitkomst": {
+        "bepaling_opties": {"recall": 0.227, "recall_nodig": 0.222, "uitgesloten": 3, "recall_pool": 0.909},
+        "F3f (21 okt)": {"recall": 0.318, "recall_nodig": 0.389, "recall_pool": 0.455},
+        "zonder fusie": {"recall": 0.364, "recall_nodig": 0.389}
+      }
+    },
+    {
+      "set": "kwijtschelding-concept",
+      "meting": "docs/architectuur/metingen/README.md, bronselectie-2026-11-04-dossier",
+      "uitkomst": {
+        "bepaling_opties": {"recall": 0.083, "recall_nodig": 0.095, "uitgesloten": 0, "recall_pool": 0.333},
+        "met dossier (alles)": {"recall_nodig": 0.048, "recall_pool": 0.542},
+        "met dossier_velden": {"recall_nodig": 0.095},
+        "met dossier_omgeving": {"recall_nodig": 0.095},
+        "met gelijkenis": {"recall_nodig": 0.095}
+      }
+    },
+    {
+      "set": "verrekening-concept",
+      "meting": "docs/architectuur/metingen/README.md, bronselectie-2026-11-16-blind",
+      "uitkomst": {
+        "standaard (stap 8)": {"recall_nodig": 0.056},
+        "zoekvragen standaard (stap 8)": {"recall_nodig": 0.333}
+      }
+    }
+  ]
+}
