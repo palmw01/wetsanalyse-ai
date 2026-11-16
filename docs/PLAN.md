@@ -114,7 +114,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | O | Acceptatietesten via MCP | Accounttoken en acceptatie-MCP gebouwd, eerste scenario gedraaid; open: de fixtures voor de Playwright-mocks |
 | R | Verbeterplan uit de applicatiereview (6 nov 2026) | Ronde 1 en 2 gemerged (t/m #951); ronde 3 als losse PR's (#963–#985), zie de sectie. Uitgesteld: F2, F3, E4, E6, H5; bij de eigenaar: G2 (meldkanaal), G4, G9 |
 | S | Multi-agent regie binnen een werkgebied (ADR-012) | Gebouwd (#1081, #1082, #1085, #1087, #1088, #1100) en op acceptatie gemeten (8 nov 2026); open: zie de sectie |
-| U | De centrale agent met subagents (ADR-016) | A1–A6 gebouwd en gemeten; acceptatie staat sinds 15 nov 2026 op `aan`. A6 afgesloten (15 nov 2026): 9 van 10 drempels, slotmeting #1562. Open: zie *Centrale agent na A6*; volgende stappen: de taakprofielen (plan agentprofielen), daarna A7 (supervisor en de vlag `CENTRALE_AGENT` weg, besluit gebruiker 15 nov 2026) en de uitrol naar productie |
+| U | De centrale agent met subagents (ADR-016) | Af: A1–A7 gebouwd en gemeten (A6: slotmeting #1562), de supervisor en de vlag `CENTRALE_AGENT` zijn weg, en sinds `v1.14.0` (15 nov 2026) draait de centrale agent op productie. De bevindingen uit de E2E Rekeningafspraken (B-1, B-3, B-6, het denkproces D-1–D-15) staan op acceptatie (16 nov 2026). Open: zie *Centrale agent na A6*, en B-2 (vraagt een meting) |
 | T | De context van een beurt zichtbaar: contextmeter en `/context` (ADR-015) | Plan goedgekeurd en na review herzien (12 nov 2026), niets gebouwd: context én verbruik per beurt, geen extra telaanroepen, de boom via de api, niets wacht op ADR-016. [`architectuur/plan-contextweergave.md`](architectuur/plan-contextweergave.md) |
 
 ---
