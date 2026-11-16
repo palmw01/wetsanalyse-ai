@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field, model_validator
 from .begrip_contracts import Oordeel
 from .begrippen_run_contracts import Duiding, KaartFragment
 
-Actie = Literal["brondefinitie", "scherper", "uitleg", "betekenisverschil", "voorbeelden"]
+Actie = Literal["brondefinitie", "scherper", "uitleg", "toelichting", "betekenisverschil", "voorbeelden"]
 # `context` is het veld toelichting van NL-SBB (`skos:scopeNote`); in beeld heet het *Toelichting*.
 Veld = Literal["definitie", "uitleg", "context", "voorbeelden"]
 
@@ -22,23 +22,33 @@ VELDEN: dict[str, set[str]] = {
     "scherper": {"definitie"},
     # Spoor I2: de uitleg in B1 (NL-SBB `rdfs:comment`); graph-qa toetst haar in code (`begrip_b1`).
     "uitleg": {"uitleg"},
+    # B-6 (16 nov 2026): de toelichting (`skos:scopeNote`): waar de grens van het begrip ligt of hoe het gebruikt wordt.
+    "toelichting": {"context"},
     "betekenisverschil": {"uitleg", "context"},
     "voorbeelden": {"voorbeelden"},
 }
 
 #: Acties die het model gebruiken (en dus tokens kosten); brondefinitie is een graafquery.
-MODEL_ACTIES = {"scherper", "uitleg", "betekenisverschil", "voorbeelden"}
+MODEL_ACTIES = {"scherper", "uitleg", "toelichting", "betekenisverschil", "voorbeelden"}
+#: Acties die op een definitie rusten: zonder definitie 409 `geen_definitie`, tenzij ze op een voorgestelde rusten.
+OP_DEFINITIE = {"uitleg", "toelichting", "voorbeelden"}
 
 
 class KaartRunStart(BaseModel):
     actie: Actie
     # Alleen bij `betekenisverschil`: het begrip waarmee Lex vergelijkt.
     ander_begrip_id: str | None = Field(default=None, max_length=64)
+    # B-6: rust op een open definitievoorstel van dit begrip in plaats van op de bewaarde definitie (*Werk het begrip
+    # volledig uit* in één beurt). De voorstellen dragen dat voorstel als basis en verouderen als de analist het niet,
+    # of anders, overneemt.
+    op_voorstel_id: str | None = Field(default=None, max_length=64)
 
     @model_validator(mode="after")
     def _ander(self) -> "KaartRunStart":
         if (self.actie == "betekenisverschil") != bool(self.ander_begrip_id):
             raise ValueError("ander_begrip_id hoort bij betekenisverschil, en alleen daar")
+        if self.op_voorstel_id and self.actie not in OP_DEFINITIE:
+            raise ValueError("op_voorstel_id hoort bij uitleg, toelichting en voorbeelden")
         return self
 
 

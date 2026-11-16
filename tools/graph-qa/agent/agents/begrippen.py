@@ -6,7 +6,7 @@
 | `meedenken` | de verdieping (`begrippen_verdieping.verdieping_kern`); zonder `bevestigd` het voorstel | ja, na bevestiging |
 | `brondefinitie` | kaart-run, graafquery op `bwb:definieertBegrip` | nee |
 | `scherper`, `uitleg`, `voorbeelden`, `betekenisverschil` | kaart-run, één strict tool + `toetsen` (`kaart_beurt.kaart_kern`) | ja, één stap |
-| `uitwerken` | brondefinitie → zonder definitie een definitievoorstel → uitleg in B1 en voorbeelden alleen op een overgenomen definitie | waar de deelstap het heeft |
+| `uitwerken` | in één beurt (B-6): brondefinitie → zonder definitie scherper → uitleg in B1, toelichting en voorbeelden, op de overgenomen definitie of anders op de voorgestelde (die hun basis is) | waar de deelstap het heeft |
 | `relaties` | de relaties en de voorstellen van de keten (`GET …/relaties`) | nee |
 
 Het begrip komt van *Vraag Lex* (het onderwerp) of uit de vraag (de term, opgelost via de api). De
@@ -30,7 +30,7 @@ from . import Context, Uitkomst, geweigerd
 
 
 #: Wat deze agent doet, met wat er níét bij hoort (ADR-010 contractpunt 1; de catalogus toont het, ADR-014).
-DOEL = "Stelt begrippen voor, werkt één begrip uit (brondefinitie, scherper, uitleg, voorbeelden, betekenisverschil, relaties) en denkt mee bij twijfel; elk resultaat is een voorstel."
+DOEL = "Stelt begrippen voor, werkt één begrip uit (brondefinitie, scherper, uitleg, toelichting, voorbeelden, betekenisverschil, relaties) en denkt mee bij twijfel; elk resultaat is een voorstel."
 
 
 class Taak(StrEnum):
@@ -178,34 +178,62 @@ async def relaties(ctx: Context, b: dict[str, Any]) -> Uitkomst:
 
 
 async def uitwerken(ctx: Context, b: dict[str, Any]) -> Uitkomst:
-    """Een begrip volledig uitwerken, in de volgorde van de methode (spoor I2): eerst de brondefinitie; staat er
-    dan nog geen definitie, een definitievoorstel; op een overgenomen definitie de uitleg in B1 (als die er nog
-    niet is) en voorbeelden – een uitleg en een voorbeeld rusten op een definitie, dus zonder definitie is er
-    niets uit te leggen of te toetsen. Aan het eind zegt Lex wat er nog open is."""
+    """Een begrip volledig uitwerken in één beurt (B-6, besluit 16 nov 2026), in de volgorde van de methode: eerst de
+    brondefinitie; staat er dan nog geen definitie en vond Lex er geen, een scherpere (een definitievoorstel). Daarna
+    de uitleg in B1 en de toelichting (als die er nog niet zijn) en de voorbeelden. Is er geen overgenomen
+    definitie, dan rusten die op de voorgestelde: de api legt dat definitievoorstel vast als hun basis, en neemt de
+    analist het niet of anders over, dan zijn ze verouderd. Alles blijft een voorstel per veld; relaties zijn een
+    aparte stap. Aan het eind zegt Lex wat er nog open is."""
     taak = Taak.UITWERKEN
+    b = (await als_rij(ctx, b["werkgebied_id"], b["id"])) or b          # met uitleg en toelichting van nu
     stappen: list[Uitkomst] = [await kaart_kern(ctx, "brondefinitie", b, volgende=False)]
     heeft_definitie = bool((b.get("definitie") or "").strip())
     if not heeft_definitie and not stappen[0].voorstellen and not ctx.gestopt():
         stappen.append(await kaart_kern(ctx, "scherper", b, volgende=False))
-    if heeft_definitie and not (b.get("uitleg") or "").strip() and not ctx.gestopt():
-        stappen.append(await kaart_kern(ctx, "uitleg", b, volgende=False))
-    if heeft_definitie and not ctx.gestopt():
-        stappen.append(await kaart_kern(ctx, "voorbeelden", b, volgende=False))
+    basis: dict[str, Any] | None = None
+    if not heeft_definitie and not ctx.gestopt():
+        basis = await _voorgestelde_definitie(ctx, b, [r for s in stappen for r in s.voorstellen])
+    op = "" if heeft_definitie else (basis or {}).get("id", "")
+    if heeft_definitie or op:
+        for actie, veld in (("uitleg", "uitleg"), ("toelichting", "context"), ("voorbeelden", "")):
+            if ctx.gestopt() or (veld and (b.get(veld) or "").strip()):
+                continue
+            stappen.append(await kaart_kern(ctx, actie, b, volgende=False, op_voorstel=op))
     zinnen = [s.gesprekstekst for s in stappen if s.gesprekstekst]
-    zinnen.append(_nog_open(heeft_definitie))
+    zinnen.append(_nog_open(heeft_definitie, basis))
     laatste = next((s.artefact for s in reversed(stappen) if s.artefact), None)
     status = "fout" if all(s.status == "fout" for s in stappen) else "ok"
     return Uitkomst(taak=taak, status=status, tekst="\n\n".join(zinnen),
                     voorstellen=[v for s in stappen for v in s.voorstellen],
                     artefact=laatste or begrip_artefact(b["werkgebied_id"], b["id"], b["naam"]),
                     meting={"stappen": [{"taak": s.taak, "status": s.status, **s.meting} for s in stappen],
-                            "model": any(s.meting.get("model") for s in stappen)})
+                            "model": any(s.meting.get("model") for s in stappen),
+                            "op_voorgestelde_definitie": bool(op)})
 
 
-def _nog_open(heeft_definitie: bool) -> str:
-    """Het volgende logische stuk: zonder definitie eerst die, daarna uitleg en voorbeelden, en dan relaties."""
-    if not heeft_definitie:
-        return ("Nog open: neem een definitie over op de begripskaart. Daarna schrijf ik de uitleg in B1 en maak ik "
-                "voorbeelden.")
-    return ("Nog open: neem de uitleg en de voorbeelden over die je goed vindt. Daarna kan ik relaties met andere "
-            "begrippen voorstellen.")
+async def _voorgestelde_definitie(ctx: Context, b: dict[str, Any], runs: list[str]) -> dict[str, Any] | None:
+    """Het definitievoorstel waarop de rest van de beurt rust: open en niet verouderd, bij voorkeur uit een run van
+    deze beurt, en daarbinnen het eerste (de sterkste plaats, `kaartacties.brondefinities`). None als er geen is."""
+    try:
+        alle = (await ctx.api.haal_kaartvoorstellen(b["werkgebied_id"], b["id"])).get("voorstellen") or []
+    except WetsanalyseApiFout:
+        return None
+    open_ = [v for v in alle if v.get("veld") == "definitie" and v.get("status") == "open" and not v.get("verouderd")]
+    eigen = [v for v in open_ if v.get("run_id") in runs]
+    kandidaten = eigen or open_
+    return min(kandidaten, key=lambda v: (runs.index(v["run_id"]) if v.get("run_id") in runs else len(runs),
+                                          v.get("volgorde", 0))) if kandidaten else None
+
+
+def _nog_open(heeft_definitie: bool, basis: dict[str, Any] | None = None) -> str:
+    """Wat er na deze beurt nog open is; relaties zijn altijd een aparte stap."""
+    relaties = "Relaties met andere begrippen zijn een aparte stap: vraag erom als de rest staat."
+    if heeft_definitie:
+        return ("Nog open: neem de uitleg, de toelichting en de voorbeelden over die je goed vindt. " + relaties)
+    if basis is None:
+        return ("Nog open: er is geen definitievoorstel, dus ook geen uitleg, toelichting of voorbeelden. Geef het "
+                "begrip een definitie op de begripskaart, en vraag het daarna opnieuw. " + relaties)
+    tekst = ((basis.get("waarde") or {}).get("definitie") or "").strip()
+    return ("Nog open: neem eerst de definitie over" + (f" (“{tekst[:200]}”)" if tekst else "") + ". De uitleg, "
+            "de toelichting en de voorbeelden rusten op die voorgestelde definitie: neem je haar niet of anders over, "
+            "dan vervallen ze en zie je dat op de begripskaart. " + relaties)

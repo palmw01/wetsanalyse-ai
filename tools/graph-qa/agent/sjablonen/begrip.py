@@ -22,7 +22,7 @@ SCHEMA: dict[str, Any] = {
     "name": "antwoord_begrip",
     "description": (
         "Rond een vraag naar de betekenis van een begrip, of naar wat juristen als begrip vastlegden, af. Roep deze tool aan "
-        "nadat je zoek_definitie en zo nodig search_begrippen hebt gebruikt, en schrijf geen antwoord ernaast. De werkplek toont "
+        "nadat je zoek_definitie hebt gebruikt, en schrijf geen antwoord ernaast. De vastgelegde begrippen bij de term zoekt de code zelf. De werkplek toont "
         "de wettelijke definities met hun vindplaats en de vastgelegde begrippen zelf, uit wat de tools teruggaven: herhaal die "
         "niet. Jij levert het begrip en een korte toelichting in eigen woorden, zonder citaten en zonder vindplaatsen die je "
         "niet hebt opgehaald. Vond je geen definitie, schrijf dan nooit dat er geen definitie bestaat: dat de graaf niets vond "
@@ -117,6 +117,18 @@ def _alleen_vastgelegd(invoer: dict[str, Any], trace: Trace) -> Antwoord:
         return Antwoord(sjabloon="begrip", blokken=[Leemte(tekst=(laatste[0].get("geen_treffers") if laatste else "") or BEGRIPPEN_ONVOLLEDIG)])
     return Antwoord(sjabloon="begrip", blokken=[Begrippen(items=vastgelegd), *([Leemte(tekst=BEGRIPPEN_ONVOLLEDIG)] if onvolledig else []),
                                                 *_toelichting(invoer)])
+
+
+def vooraf(invoer: dict[str, Any], trace: Trace) -> list[dict[str, Any]]:
+    """Wat de code zelf opzoekt vóór het vullen (`Sjabloon.vooraf`). Een begripsantwoord toont naast de wet altijd wat
+    juristen als begrip vastlegden, ook een generiek begrip (ADR-006). Dat hangt niet af van of het model, of zijn profiel,
+    `search_begrippen` kent: is er in de trace niet op deze term gezocht, dan zoekt de code het zelf."""
+    begrip = str(invoer.get("begrip") or "").strip()
+    if not begrip or _vastgelegd(begrip, trace):
+        return []
+    if any(_zelfde_term(begrip, str(d.get("zoekterm") or "")) for d in resultaten(trace, ["search_begrippen"])):
+        return []
+    return [{"name": "search_begrippen", "input": {"zoekterm": begrip}}]
 
 
 def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:

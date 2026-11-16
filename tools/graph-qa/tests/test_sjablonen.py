@@ -1130,3 +1130,53 @@ def test_met_die_passage_aangewezen_mag_het_artikel_genoemd_worden():
         {"bepaling": TIEN_2, "van": "Een teruggaaf", "tot": "kan worden verrekend.", "waarom": "De verrekening."}]},
         [tien(tekst=ZIN_29)])
     assert a.sjabloon == "duiding"
+
+
+# Een vastgelegd begrip hoort altijd bij een begripsantwoord, ook als het model (of zijn profiel) search_begrippen niet
+# kent: de code zoekt het zelf (`Sjabloon.vooraf`). Gemeld 16 nov 2026: een generiek gemaakt begrip bleef weg.
+
+def test_vooraf_zoekt_de_vastgelegde_begrippen_als_dat_nog_niet_gebeurde():
+    from agent.sjablonen import vooraf
+    invoer = {"begrip": "belastingschuldige", "toelichting": ""}
+    assert vooraf("antwoord_begrip", invoer, [definitie()]) == [
+        {"name": "search_begrippen", "input": {"zoekterm": "belastingschuldige"}}]
+    assert vooraf("antwoord_begrip", invoer, [definitie(), begrip()]) == [], "al gevonden"
+    leeg = ("search_begrippen", json.dumps({"status": "ok", "volledig": True, "aantal": 0, "resultaten": [],
+                                            "zoekterm": "belastingschuldigen"}))
+    assert vooraf("antwoord_begrip", invoer, [definitie(), leeg]) == [], "op deze term gezocht, niets gevonden"
+    anders = ("search_begrippen", json.dumps({"status": "ok", "volledig": True, "aantal": 0, "resultaten": [],
+                                              "zoekterm": "termijn"}))
+    assert vooraf("antwoord_begrip", invoer, [definitie(), anders]), "een andere term telt niet"
+    assert vooraf("antwoord_begrip", {"begrip": "", "toelichting": ""}, []) == [], "de leesroute zoekt het model zelf"
+    assert vooraf("antwoord_bepaling", {"bepalingen": [], "toelichting": ""}, []) == []
+
+
+class _Generiek(_Begrippen):
+    def verifieer(self, ids, werkgebieden):
+        return {"status": "ok", "werkgebieden": {},
+                "begrippen": {i: {"id": i, "naam": "belastingschuldige", "status": "geaccordeerd",
+                                  "definitie": "Degene op wiens naam de aanslag staat.",
+                                  "werkgebied_id": "generiek", "werkgebied_naam": "Generiek"} for i in ids}}
+
+
+def test_een_begripsvraag_toont_het_vastgelegde_begrip_ook_zonder_search_begrippen():
+    llm = FakeLLM([ZOEK, _sjabloon()])
+
+    def graaf(q: str) -> str:
+        if "projectieHash" in q:
+            return "wid\thash\n"
+        if "skos:Concept" in q:
+            return 'c\twid\n<urn:wa:begrip:b1>\t"generiek"\n'
+        return RIJ
+
+    async def alles():
+        return [e async for e in answer_stream("Wat betekent belastingschuldige?", settings=make_settings(grounding_correct=True),
+                                               llm=llm, graph=FakeGraph(results=graaf), begrippen=_Generiek())]
+
+    events = asyncio.run(alles())
+    antwoord = _eerste(events, "antwoord")["antwoord"]
+    assert [b["soort"] for b in antwoord["blokken"]] == ["definities", "begrippen", "toelichting"]
+    assert antwoord["blokken"][1]["items"][0]["werkgebied_id"] == "generiek"
+    assert any(e.get("type") == "tool_execution" and e.get("tool") == "search_begrippen" for e in events), \
+        "de jurist ziet dat er gezocht is"
+    assert llm.index == 2, "geen extra modelronde"

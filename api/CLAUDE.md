@@ -192,6 +192,9 @@ Hieronder wat je moet weten om de code te wijzigen.
   elk element compleet is. Die regel is geen oordeel: de maker mag nog bijwerken en wissen, en de statistiek telt hem niet.
 - **De toelichting volgt de klasse.** Wisselt een `edit` de klasse zonder eigen toelichting, dan ging de oude over de
   vorige klasse: ze wijkt voor een zin die dat zegt (`_herzien_toelichting`), en de beslissing bewaart haar in `voor`.
+- **`GET weergave?vorm=lijst`** (B-1, `lijst_weergave`): per element alleen wat de jurist beoordeelt (`LIJST_ELEMENT`),
+  plus de lagen met hun revisie en de relaties zonder bewijs. Er zijn geen segmenten: de brontekst haal je los op. Dit is
+  voor agents en de acceptatie-MCP; de werkplek leest de gewone vorm.
 - **Antwoorden op een besluit zijn klein** (`compact_element`): zonder `trace` en `geproduceerd_door`. De werkplek laadt
   de weergave daarna toch opnieuw. Elk element droeg de hele meting van zijn ronde; **`GET weergave` draagt elke meting nu
   één keer** (`compacte_weergave`, `runs` op `run_sleutel`) en `GET elementen/{id}` geen. De opslag, de export en
@@ -545,6 +548,8 @@ spoor D (*Werkgebied als node*).
 - **Een 412 draagt een `melding`**, net als de 409's (`al_primair`, `al_gekoppeld`, `poort`): de
   werkplek toont die tekst waar hij de fout niet zelf afhandelt, in plaats van ruwe JSON. Dat geldt ook
   voor de werkgebieden.
+- **`?vorm=stand`** (B-1) op PATCH, `accorderen`, `heropenen` en `voorstellen/{id}/overnemen`
+  (`begrip_store.begripstand`): de stand en de inhoud, zonder koppelingen en bewijs. De standaard blijft de kaart.
 - **Een besluit over koppelingen geeft de stand, niet de kaart** (`begrip_store.koppelstand`): koppelen, wijzigen, losmaken,
   herkoppelen en bevestigen antwoorden met status, revisie, poort en per koppeling de rol en beoordeling, zonder inhoud en
   bewijs. Anders wordt een reeks besluiten kwadratisch in het aantal passages. De werkplek legt de stand over de kaart die
@@ -687,9 +692,10 @@ laatste klare run. graph-qa rekent (`agent/begrippen_verdieping.py`), de api bew
 ## Lex naast de kaart
 
 `begrip_voorstellen.py`, `begrip_voorstel_store.py`, `begrip_voorstel_contracts.py`; PLAN spoor D, fase E.
-Vijf acties op één begrip: `brondefinitie` (een graafquery, geen model), `scherper`, `uitleg` (spoor I2: de
-uitleg in B1, alleen op een definitie – anders 409 `geen_definitie`, net als `voorbeelden`), `betekenisverschil`
-(met een ander begrip, `ander_begrip_id`) en `voorbeelden`. graph-qa rekent, de api legt vast en toetst.
+Zes acties op één begrip: `brondefinitie` (een graafquery, geen model), `scherper`, `uitleg` (spoor I2: de
+uitleg in B1, alleen op een definitie – anders 409 `geen_definitie`, net als `toelichting` en `voorbeelden`),
+`toelichting` (B-6: het veld `context`, skos:scopeNote), `betekenisverschil` (met een ander begrip,
+`ander_begrip_id`) en `voorbeelden`. graph-qa rekent, de api legt vast en toetst.
 
 - **Een voorstel is geen wijziging.** `begrip_voorstellen` is een eigen tabel; Lex schrijft nooit in het
   begrip. `POST …/voorstellen/{id}/overnemen` loopt door `begrip_store._gewijzigd_in` (revisie, kopie,
@@ -700,6 +706,13 @@ uitleg in B1, alleen op een definitie – anders 409 `geen_definitie`, net als `
   `GET …/voorstellen` meldt het vooraf als `verouderd`. Vervangen kan dan alleen bewust: met
   `nu_gezien` = de definitie die de analist naast het voorstel zag (klopt die niet meer: weer 409). Uitleg, toelichting en voorbeelden worden
   toegevoegd, nooit vervangen; wat er al staat, geeft geen revisie (wel het besluit).
+- **Op een voorgestelde definitie** (B-6, *Werk het begrip volledig uit* in één beurt). `uitleg`, `toelichting` en
+  `voorbeelden` kunnen met `op_voorstel_id` rusten op een open, niet-verouderd definitievoorstel van het begrip
+  (anders 409 `basis_ongeldig` of `voorstel_verouderd`). De invoer draagt dan die definitie en `op_voorstel`; de
+  voorstellen dragen haar als `basis` met `voorstel_id`. `GET …/voorstellen` meldt `op_voorstel` (id, status),
+  `wacht_op_definitie` (het definitievoorstel is nog open; overnemen geeft 409 `definitie_niet_overgenomen`) en
+  `verouderd` (afgewezen, aangepast of een andere definitie; overnemen alleen bewust met `nu_gezien`, en zonder
+  definitie nooit: 409 `geen_definitie`). Neemt de analist de definitie ongewijzigd over, dan gaan ze gewoon.
 - **Het bewijs blijft na overnemen** (spoor M): `GET` van een begrip draagt `definitie_onderbouwing`,
   afgeleid uit het voorstel achter de revisie die de huidige definitie zette (fragmenten met rol
   `ondersteunend`, vindplaats, duiding, `onderzoek_id`). Paste de analist de definitie aan, bij het overnemen of later,
@@ -988,6 +1001,10 @@ werkgebied zonder deelvragen werkt zoals altijd.
 de bronselectie in het gesprek, maar de stand staat hier – niet in de gesprek-checkpointer –, zodat hij er
 na herladen, in een ander gesprek en bij een collega ook is.
 
+- **`?vorm=deelvraag`** (B-1) op `GET …/bronselectie` en op elk besluit, elke status en elk genoemd voorstel
+  (`bronselectie.beperk`): alleen die deelvraag volledig, de andere met hun stand (`SLANK`). `GET …/kandidaten?deelvraag_id=`
+  filtert met dezelfde regel als het overzicht (`kandidaat_ids`, 404 bij een onbekende deelvraag). De standaard blijft het
+  hele overzicht, want de werkplek en graph-qa lezen dat. Een agent of MCP-client kiest de compacte vorm.
 - **Het overzicht herhaalt het bewijs niet.** Per kandidaat staan `bewijs_soorten` en `zoekvragen`; het bewijs zelf staat
   in `GET …/kandidaten`. Per deelvraag herhaald was het de oorzaak van 760 KB, terwijl geen afnemer het hier las.
 - **Zelf genoemd is een voorstel** (4 nov 2026): `POST …/bronselectie/{deelvraag}/voorstellen {bron_iri, rol: kern|

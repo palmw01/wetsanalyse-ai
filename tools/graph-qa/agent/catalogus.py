@@ -716,8 +716,8 @@ def _subagent_workflow() -> Onderdeel:
                                                                   "dat stuk"},
                 {"naam": "per stuk", "uitleg": "na een rapport leest één modelaanroep elke zin die een stuk duidt "
                                                "tegen de passages eruit: steunt, spreekt tegen of niet te zien"},
-                {"naam": "na een subagent", "uitleg": "de centrale agent leest niet zelf opnieuw; hij vat het rapport "
-                                                      "samen"},
+                {"naam": "na een subagent", "uitleg": "de centrale agent leest de stukken niet zelf opnieuw; hij vat het "
+                                                      "rapport samen, en leest hoogstens twee bepalingen na"},
             ],
         },
     )

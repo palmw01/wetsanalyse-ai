@@ -35,9 +35,9 @@ def test_na_een_rapport_klaar_leest_de_centrale_agent_niet_zelf_opnieuw():
     assert na_subagent({"subagenten": [{"uitkomst": "klaar"}]}, "get_uitspraak") == NA_RAPPORT
     assert na_subagent({"subagenten": [{"uitkomst": "vraag"}]}, "zoek_uitspraken") == NA_RAPPORT
     # Een kind dat niet afrondde, houdt zijn eigen aanwijzing, ook naast een dat wel afrondde.
-    assert na_subagent({"subagenten": [{"uitkomst": "klaar"}, {"uitkomst": "niet_gelukt"}]}, "get_artikel") == NA_SUBAGENT
+    assert na_subagent({"subagenten": [{"uitkomst": "klaar"}, {"uitkomst": "niet_gelukt"}]}, "search_wetgeving") == NA_SUBAGENT
     assert na_subagent({"subagenten": [{"uitkomst": "klaar"}]}, "antwoord_extern") == "", "afronden kan altijd"
-    assert "Lees niet zelf opnieuw" in sub.als_toolresultaat("algemeen", "klaar", "x")
+    assert "Lees de stukken niet zelf opnieuw" in sub.als_toolresultaat("algemeen", "klaar", "x")
 
 
 def test_de_weigering_na_klaar_gaat_door_tools_node(monkeypatch):

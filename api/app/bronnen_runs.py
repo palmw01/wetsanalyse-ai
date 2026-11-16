@@ -6,6 +6,8 @@ De routes `…/uitkomst`, `…/loopt` en `…/mislukt` zijn voor graph-qa; de BF
 niet door, en de api toetst de uitkomst tegen de eigen invoer."""
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
@@ -61,8 +63,15 @@ async def post_mislukt(werkgebied_id: str, run_id: str, req: BronnenMislukt, act
 
 
 @router.get("/kandidaten")
-async def get_kandidaten(werkgebied_id: str, actor: str = Depends(actieve_userid)):
-    return await store.kandidaten(werkgebied_id)
+async def get_kandidaten(werkgebied_id: str, deelvraag_id: str | None = Query(default=None, max_length=64),
+                         actor: str = Depends(actieve_userid)):
+    """Alle kandidaten; met `deelvraag_id` alleen die bij die deelvraag horen (B-1), met dezelfde regel als het
+    overzicht van de bronselectie."""
+    uit = await store.kandidaten(werkgebied_id)
+    if deelvraag_id:
+        ids = await bronselectie.kandidaat_ids(werkgebied_id, deelvraag_id)
+        uit = {**uit, "deelvraag_id": deelvraag_id, "kandidaten": [k for k in uit["kandidaten"] if k["id"] in ids]}
+    return uit
 
 
 async def _bron_van(werkgebied_id: str, kandidaat_id: str) -> dict:
@@ -75,26 +84,34 @@ async def _bron_van(werkgebied_id: str, kandidaat_id: str) -> dict:
 
 
 # --- Bronselectie per deelvraag (spoor J) ------------------------------------------------------
+#: `?vorm=deelvraag` (B-1): alleen de geraakte deelvraag volledig, de andere met hun stand. De standaard blijft het
+#: hele overzicht: de werkplek en graph-qa lezen dat.
+Vorm = Literal["volledig", "deelvraag"]
+
+
+def _in_vorm(overzicht_: dict, vorm: str, deelvraag_id: str | None) -> dict:
+    return bronselectie.beperk(overzicht_, deelvraag_id) if vorm == "deelvraag" else overzicht_
+
 # Het overzicht dat Lex, het werkgebiedpaneel en de tab Bronnen delen; `na` is de deelvraag waar de
 # analist nu staat (de code kiest de volgende). De deelvraag `analysevraag` is de analysevraag zelf, voor
 # een werkgebied zonder deelvragen.
 
 @router.get("/bronselectie")
 async def get_bronselectie(werkgebied_id: str, na: str | None = Query(default=None, max_length=64),
-                           actor: str = Depends(actieve_userid)):
-    return await bronselectie.overzicht(werkgebied_id, na=na)
+                           vorm: Vorm = "volledig", actor: str = Depends(actieve_userid)):
+    return _in_vorm(await bronselectie.overzicht(werkgebied_id, na=na), vorm, na)
 
 
 @router.post("/bronselectie/{deelvraag_id}/status")
 async def post_bronselectie_status(werkgebied_id: str, deelvraag_id: str, req: StatusActie,
-                                   actor: str = Depends(actieve_userid)):
+                                   vorm: Vorm = "volledig", actor: str = Depends(actieve_userid)):
     await bronselectie.zet_status(werkgebied_id, deelvraag_id, req, actor)
-    return await bronselectie.overzicht(werkgebied_id, na=deelvraag_id)
+    return _in_vorm(await bronselectie.overzicht(werkgebied_id, na=deelvraag_id), vorm, deelvraag_id)
 
 
 @router.post("/bronselectie/{deelvraag_id}/kandidaten/{kandidaat_id}")
 async def post_bronselectie_besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req: KandidaatBesluit,
-                                    actor: str = Depends(actieve_userid)):
+                                    vorm: Vorm = "volledig", actor: str = Depends(actieve_userid)):
     # Alleen opnemen van een bepaling die nog niet in het werkgebied staat, vraagt de graaf.
     bron = {"bron_iri": ""}
     if req.besluit == "opnemen":
@@ -107,15 +124,15 @@ async def post_bronselectie_besluit(werkgebied_id: str, deelvraag_id: str, kandi
         if iri and iri not in {b["bron_iri"] for b in wg["bronnen"]}:
             bron = await geverifieerde_bron({"bron_iri": iri})
     await bronselectie.besluit(werkgebied_id, deelvraag_id, kandidaat_id, req, bron, actor)
-    return await bronselectie.overzicht(werkgebied_id, na=deelvraag_id)
+    return _in_vorm(await bronselectie.overzicht(werkgebied_id, na=deelvraag_id), vorm, deelvraag_id)
 
 
 @router.post("/bronselectie/{deelvraag_id}/voorstellen")
 async def post_bronselectie_voorstel(werkgebied_id: str, deelvraag_id: str, req: GenoemdVoorstel,
-                                     actor: str = Depends(actieve_userid)):
+                                     vorm: Vorm = "volledig", actor: str = Depends(actieve_userid)):
     """Een bepaling die de analist zelf noemt, als voorstel bij één deelvraag: daarna staat ze in het paneel met de
     voorstellen van Lex, en daar besluit de analist. De api verifieert haar in de graaf."""
     await werkgebied_store.haal(werkgebied_id)                 # 404 vóór de graaf wordt gevraagd
     bron = await geverifieerde_bron({"bron_iri": req.bron_iri})
     await bronselectie.noem(werkgebied_id, deelvraag_id, req, bron, actor)
-    return await bronselectie.overzicht(werkgebied_id, na=deelvraag_id)
+    return _in_vorm(await bronselectie.overzicht(werkgebied_id, na=deelvraag_id), vorm, deelvraag_id)

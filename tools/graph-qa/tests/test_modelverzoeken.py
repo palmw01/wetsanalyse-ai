@@ -218,7 +218,7 @@ def _kant(bid: str, naam: str, leden: list[str], **inhoud: Any) -> ka.Kant:
     return ka.kant_uit({"id": bid, "inhoud": {"naam": naam, **inhoud}, "leden": leden}, KAART_MANIFEST)
 
 
-@pytest.mark.parametrize("actie", ["scherper", "verschil", "voorbeelden", "uitleg"])
+@pytest.mark.parametrize("actie", ["scherper", "verschil", "voorbeelden", "uitleg", "toelichting"])
 def test_kaartacties(actie):
     llm = Opnemer()
     k = _kant("b1", "belastingaanslag", ["e1"], definitie="de voorlopige aanslag en de aanslag")
@@ -278,7 +278,7 @@ def _hashes() -> dict[str, str]:
         "begrippen_classificatie": begrip_classificatie.promptversie(),
         "begrippen_kaart": kaart_mod.promptversie(),
     }
-    for actie in ("scherper", "verschil", "voorbeelden", "uitleg"):
+    for actie in ("scherper", "verschil", "voorbeelden", "uitleg", "toelichting"):
         uit[f"kaartactie_{actie}"] = ka.promptversie(actie)
     return uit
 

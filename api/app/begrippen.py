@@ -28,6 +28,15 @@ async def get_lijst(werkgebied_id: str, actor: str = Depends(actieve_userid)):
             "primair": await store.primaire_duidingen(werkgebied_id)}
 
 
+#: `?vorm=stand` (B-1): een wijziging geeft alleen de stand en de inhoud terug (`begrip_store.begripstand`). De standaard
+#: blijft de kaart: de werkplek leest die.
+Vorm = Literal["kaart", "stand"]
+
+
+def _in_vorm(begrip: dict, vorm: str) -> dict:
+    return store.begripstand(begrip) if vorm == "stand" else begrip
+
+
 @router.post("", status_code=201)
 async def post_begrip(werkgebied_id: str, req: BegripInvoer, actor: str = Depends(actieve_userid)):
     return await store.maak(await werkgebied_store.haal(werkgebied_id), req, actor, resolve_bron)
@@ -89,9 +98,9 @@ async def get_begrip(werkgebied_id: str, begrip_id: str, actor: str = Depends(ac
 
 
 @router.patch("/{begrip_id}")
-async def patch_begrip(werkgebied_id: str, begrip_id: str, req: BegripWijziging,
+async def patch_begrip(werkgebied_id: str, begrip_id: str, req: BegripWijziging, vorm: Vorm = "kaart",
                        actor: str = Depends(actieve_userid)):
-    return await store.wijzig(werkgebied_id, begrip_id, req, actor)
+    return _in_vorm(await store.wijzig(werkgebied_id, begrip_id, req, actor), vorm)
 
 
 @router.delete("/{begrip_id}")
@@ -127,13 +136,15 @@ async def delete_koppeling(werkgebied_id: str, begrip_id: str, koppeling_id: str
 
 
 @router.post("/{begrip_id}/accorderen")
-async def post_accorderen(werkgebied_id: str, begrip_id: str, req: Accordering, actor: str = Depends(actieve_userid)):
-    return await store.accordeer(werkgebied_id, begrip_id, req.verwachte_revisie, req.reden, actor)
+async def post_accorderen(werkgebied_id: str, begrip_id: str, req: Accordering, vorm: Vorm = "kaart",
+                          actor: str = Depends(actieve_userid)):
+    return _in_vorm(await store.accordeer(werkgebied_id, begrip_id, req.verwachte_revisie, req.reden, actor), vorm)
 
 
 @router.post("/{begrip_id}/heropenen")
-async def post_heropenen(werkgebied_id: str, begrip_id: str, req: Revisie, actor: str = Depends(actieve_userid)):
-    return await store.heropen(werkgebied_id, begrip_id, req.verwachte_revisie, actor)
+async def post_heropenen(werkgebied_id: str, begrip_id: str, req: Revisie, vorm: Vorm = "kaart",
+                         actor: str = Depends(actieve_userid)):
+    return _in_vorm(await store.heropen(werkgebied_id, begrip_id, req.verwachte_revisie, actor), vorm)
 
 
 @router.post("/{begrip_id}/generiek-maken")

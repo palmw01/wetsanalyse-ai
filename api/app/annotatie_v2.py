@@ -5,6 +5,7 @@ import asyncio
 import json
 import re
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
@@ -70,8 +71,12 @@ async def capabilities(actor: str = Depends(actieve_userid)):
 
 
 @router.get("/weergave")
-async def get_weergave(doel: dict = Depends(doel_query), actor: str = Depends(actieve_userid)):
-    return store.compacte_weergave(await store.weergave(await resolve_bron(doel)))
+async def get_weergave(doel: dict = Depends(doel_query), vorm: Literal["volledig", "lijst"] = "volledig",
+                       actor: str = Depends(actieve_userid)):
+    """De weergave van een bepaling; `?vorm=lijst` (B-1) geeft per element alleen wat je beoordeelt, voor een agent of
+    de acceptatie-MCP. De werkplek leest de volledige vorm."""
+    view = await store.weergave(await resolve_bron(doel))
+    return store.lijst_weergave(view) if vorm == "lijst" else store.compacte_weergave(view)
 
 
 @router.get("/samenhang")

@@ -9,7 +9,7 @@ voorstellen terug (`PUT …/uitkomst`); de api toetst de garanties opnieuw. Het 
   alternatieve termen, en per treffer zijn plaats (`plaats`): in het werkgebied, in een regeling van
   het werkgebied, in een regeling waar een begripsbepaling van het werkgebied naar verwijst
   (`q_verwezen`), of elders. Geen budgetpoort.
-- **Scherper, uitleg, betekenisverschil en voorbeelden** gebruiken het model (`begrippen_pipeline/kaartacties.py`),
+- **Scherper, uitleg, toelichting, betekenisverschil en voorbeelden** gebruiken het model (`begrippen_pipeline/kaartacties.py`),
   op `LLM_MODEL`: een oordeel over wetgeving. Vooraf de budgetpoort; het verbruik wordt geboekt op
   `kaart-<run>`, ook als de actie faalt.
 - **Elk faalpad is zichtbaar**: run niet op te halen, graaf of model faalt, de api weigert de
@@ -38,8 +38,9 @@ from .wetsanalyse_api import WetsanalyseApi, WetsanalyseApiFout
 
 logger = logging.getLogger("graph_qa.begrip_kaart")
 
-MODEL_ACTIES = {"scherper", "uitleg", "betekenisverschil", "voorbeelden"}
+MODEL_ACTIES = {"scherper", "uitleg", "toelichting", "betekenisverschil", "voorbeelden"}
 NAAM = {"brondefinitie": "Brondefinitie zoeken", "scherper": "Scherpere definitie", "uitleg": "Uitleg in B1",
+        "toelichting": "Toelichting",
         "betekenisverschil": "Betekenisverschil", "voorbeelden": "Voorbeelden"}
 MAX_TREFFERS = 40
 #: Rijen uit de graaf vóór de exacte toets (`_draagt`): een kort woord staat in veel langere termen.
@@ -215,7 +216,9 @@ def zoek_brondefinities(graph: GraphPort, invoer: dict[str, Any]) -> ka.Uitkomst
 def reken_met_model(llm: Any, model: str, invoer: dict[str, Any], meting: dict[str, int]) -> ka.Uitkomst:
     manifest = manifest_uit(invoer["manifest"])
     onderzoek = onderzoek_uit(invoer.get("onderzoek"), manifest)
-    kant = ka.kant_uit({**invoer["begrip"], "leden": invoer.get("leden") or []}, manifest)
+    # B-6: rust de actie op een voorgestelde definitie, dan draagt de invoer die definitie en `op_voorstel`.
+    kant = ka.kant_uit({**invoer["begrip"], "leden": invoer.get("leden") or [],
+                        "op_voorstel": invoer.get("op_voorstel")}, manifest)
     actie = invoer["actie"]
     if actie == "scherper":
         return ka.scherper(llm, model, manifest, kant, meting, onderzoek)
@@ -223,6 +226,8 @@ def reken_met_model(llm: Any, model: str, invoer: dict[str, Any], meting: dict[s
         return ka.voorbeelden(llm, model, manifest, kant, meting, onderzoek)
     if actie == "uitleg":
         return ka.uitleg(llm, model, manifest, kant, meting)
+    if actie == "toelichting":
+        return ka.toelichting(llm, model, manifest, kant, meting)
     ander = ka.kant_uit(invoer.get("ander"), manifest)
     if ander is None:
         return ka.Uitkomst(melding="Er is geen begrip om mee te vergelijken.")

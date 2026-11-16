@@ -268,6 +268,30 @@ def _zoekdekking(run: dict | None) -> dict:
             "zoekversie": run.get("zoekversie", "")}
 
 
+#: Wat er van een andere deelvraag overblijft in de compacte vorm (B-1): de stand, niet de lijsten.
+SLANK = ("id", "nr", "vraag", "status", "fase", "revisie", "klaar", "opnieuw_bekijken", "telling", "beoordelen")
+
+
+def beperk(overzicht_: dict, deelvraag_id: str | None) -> dict:
+    """Het overzicht voor één deelvraag (`?vorm=deelvraag`, B-1): die deelvraag volledig, de andere alleen met hun
+    stand. Een besluit gaf het hele overzicht terug, met kandidaten en bronnen van elke deelvraag (rond 15k tokens
+    per keer bij vijf deelvragen); een agent of MCP-client liep daar vast op. Zonder deelvraag de actieve."""
+    doel = deelvraag_id or overzicht_.get("actief")
+    return {**overzicht_, "vorm": "deelvraag",
+            "deelvragen": [v if v["id"] == doel else {k: v[k] for k in SLANK if k in v}
+                           for v in overzicht_["deelvragen"]]}
+
+
+async def kandidaat_ids(werkgebied_id: str, deelvraag_id: str) -> set[str]:
+    """De kandidaten die bij één deelvraag horen, met dezelfde regel als het overzicht (`_per_vraag`); een
+    onbekende deelvraag 404."""
+    wg = await werkgebied_store.haal(werkgebied_id)
+    vraag = next((v for v in _per_vraag(wg, await _lees(wg)) if v["id"] == deelvraag_id), None)
+    if vraag is None:
+        raise HTTPException(404, {"fout": "onbekende_deelvraag", "melding": "Deze deelvraag hoort niet bij het werkgebied."})
+    return {k["id"] for k in vraag["kandidaten"]}
+
+
 async def overzicht(werkgebied_id: str, na: str | None = None) -> dict:
     wg = await werkgebied_store.haal(werkgebied_id)
     lees = await _lees(wg)

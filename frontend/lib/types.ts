@@ -1553,7 +1553,7 @@ export interface GroepenAntwoord {
 
 // --- Lex naast de kaart (spoor D, fase E) ------------------------------------------------------
 
-export type KaartActie = "brondefinitie" | "scherper" | "uitleg" | "betekenisverschil" | "voorbeelden";
+export type KaartActie = "brondefinitie" | "scherper" | "uitleg" | "toelichting" | "betekenisverschil" | "voorbeelden";
 /** `context` is het veld toelichting (NL-SBB `skos:scopeNote`). */
 export type KaartVeld = "definitie" | "uitleg" | "context" | "voorbeelden";
 export type VindplaatsSoort = "" | "werkgebied" | "regeling" | "definitieverwijzing" | "elders";
@@ -1596,7 +1596,9 @@ export interface KaartVoorstel {
   actie: KaartActie;
   veld: KaartVeld;
   volgorde: number;
-  basis: { revisie: number; definitie: string; definitie_herkomst: DefinitieHerkomst | null };
+  /** Waarop het voorstel rust. Met `voorstel_id` (B-6) is de definitie een open definitievoorstel van Lex, niet de
+   *  bewaarde: *Werk het begrip volledig uit* in één beurt. */
+  basis: { revisie: number; definitie: string; definitie_herkomst: DefinitieHerkomst | null; voorstel_id?: string };
   waarde: DefinitieWaarde | TekstWaarde;
   motivatie: string;
   aandacht: "groen" | "geel";
@@ -1610,8 +1612,12 @@ export interface KaartVoorstel {
   besloten_op: string | null;
   begrip_revisie: number | null;
   gemaakt: string;
-  /** Alleen bij een open definitievoorstel: is de definitie veranderd sinds Lex het voorstelde? */
+  /** Bij een open definitievoorstel: is de definitie veranderd sinds Lex het voorstelde? Bij een voorstel op een
+   *  voorgestelde definitie (B-6): nam de analist die definitie niet, of anders, over? */
   verouderd?: boolean;
+  /** B-6: het definitievoorstel waarop dit rust, en of het nog open is (dan wacht dit voorstel erop). */
+  op_voorstel?: { id: string; status: KaartVoorstel["status"] | "" };
+  wacht_op_definitie?: boolean;
   nu?: { definitie: string; definitie_herkomst: DefinitieHerkomst | null };
 }
 

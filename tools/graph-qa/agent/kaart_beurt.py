@@ -57,7 +57,9 @@ _LIDWOORD = re.compile(r"^(?:het\s+begrip|de\s+term|het|de|een)\s+")
 _STAART = re.compile(r"\s+(?:scherper|scherp|aanscherpen|verscherpen|aan te scherpen|maken|in b1|in eenvoudige taal)$")
 
 WEIGERING = {
-    "geen_definitie": "Voorbeelden en een uitleg rusten op een definitie; geef het begrip eerst een definitie.",
+    "geen_definitie": "Voorbeelden, een uitleg en een toelichting rusten op een definitie; geef het begrip eerst een definitie.",
+    "basis_ongeldig": "Het definitievoorstel waarop dit zou rusten, is er niet meer open.",
+    "voorstel_verouderd": "De definitie veranderde intussen; het definitievoorstel waarop dit zou rusten, is verouderd.",
     "geen_passages": "Dit begrip heeft nog geen actuele dragende passage; daar kan ik niets op baseren.",
     "inventaris_onvolledig": "Niet elke bron van het werkgebied kon worden opgehaald; probeer het zo opnieuw.",
 }
@@ -187,7 +189,8 @@ VOLGENDE = {
 def samenvatting(actie: str, naam: str, werkgebied: str, aantal: int, melding: str, al_gedaan: bool,
                  ander: str = "") -> str:
     plek = {"brondefinitie": "onder de definitie", "scherper": "onder de definitie", "uitleg": "bij de uitleg",
-            "betekenisverschil": "bij de uitleg", "voorbeelden": "bij de voorbeelden"}.get(actie, "op de kaart")
+            "toelichting": "bij de toelichting", "betekenisverschil": "bij de uitleg",
+            "voorbeelden": "bij de voorbeelden"}.get(actie, "op de kaart")
     # Bij een vergelijking staan altijd beide begrippen in de zin: de analist moet zien wat Lex vergeleek.
     kop = (f"{NAAM.get(actie, actie)} tussen *{naam}* en *{ander}* (werkgebied {werkgebied})" if ander
            else f"{NAAM.get(actie, actie)} voor *{naam}* (werkgebied {werkgebied})")
@@ -215,7 +218,8 @@ async def als_rij(ctx: Context, werkgebied_id: str, begrip_id: str) -> dict[str,
     inhoud = b.get("inhoud") or {}
     return {"id": begrip_id, "naam": inhoud.get("naam") or "naamloos", "werkgebied_id": werkgebied_id,
             "werkgebied_naam": wg_naam, "status": b.get("status", ""), "definitie": inhoud.get("definitie") or "",
-            "uitleg": inhoud.get("uitleg") or "", "alternatieve_termen": inhoud.get("alternatieve_termen") or [],
+            "uitleg": inhoud.get("uitleg") or "", "context": inhoud.get("context") or "",
+            "alternatieve_termen": inhoud.get("alternatieve_termen") or [],
             "vervangen_door": b.get("vervangen_door") or {}}
 
 
@@ -281,11 +285,12 @@ def _kort(tekst: str, n: int = 300) -> str:
 
 
 async def kaart_kern(ctx: Context, actie: str, b: dict[str, Any], ander: dict[str, Any] | None = None,
-                     *, volgende: bool = True) -> Uitkomst:
+                     *, volgende: bool = True, op_voorstel: str = "") -> Uitkomst:
     """Eén kaartactie op één begrip, als de knop op de begripskaart: `POST …/kaart-runs` en
     `begrip_kaart.kaart_stroom` (met zijn budgetpoort), of wachten als dezelfde actie al loopt. `b` en
     `ander` zijn rijen in de vorm van `GET /v1/begrippen`. Met `volgende` noemt Lex na een voorstel het
-    volgende logische stuk (spoor I7); `uitwerken` zegt dat zelf aan het eind."""
+    volgende logische stuk (spoor I7); `uitwerken` zegt dat zelf aan het eind. Met `op_voorstel` (B-6) rust de actie
+    op dat open definitievoorstel in plaats van op de bewaarde definitie."""
     if b.get("status") == "vervangen":
         opvolger = (b.get("vervangen_door") or {}).get("naam", "")
         return geweigerd(actie, f"Het begrip *{b['naam']}* is vervangen" + (f" door *{opvolger}*" if opvolger else "")
@@ -301,7 +306,8 @@ async def kaart_kern(ctx: Context, actie: str, b: dict[str, Any], ander: dict[st
     ctx.melding(f"{NAAM.get(actie, actie)} " + (f"tussen “{naam}” en “{ander['naam']}”" if ander else f"voor “{naam}”")
                 + f" (werkgebied {wg_naam})")
     try:
-        kr = await ctx.api.start_kaart_run(wid, b["id"], actie, ander["id"] if ander else None)
+        kr = await ctx.api.start_kaart_run(wid, b["id"], actie, ander["id"] if ander else None,
+                                           **({"op_voorstel_id": op_voorstel} if op_voorstel else {}))
     except WetsanalyseApiFout as fout:
         if fout.status not in (404, 409, 422):
             raise

@@ -24,6 +24,7 @@ export const AANDACHTSPUNT_LEX: Record<string, string> = {
   HERHAALT_DEFINITIE: "Het voorbeeld herhaalt de definitie; het toetst de afbakening niet.",
   GEEN_TEGENVOORBEELD: "Er is geen tegenvoorbeeld; een voorbeeld dat er net buiten valt, toetst de grens.",
   DOOR_LEX_UITLEG: "Deze uitleg is door Lex geschreven; toets haar aan de definitie en de passages.",
+  DOOR_LEX_TOELICHTING: "Deze toelichting is door Lex geschreven; toets haar aan de definitie en de passages.",
   B1_LANGE_ZIN: "Een zin is langer dan 20 woorden; maak er twee zinnen van.",
   B1_TE_LANG: "De uitleg heeft meer dan vijf zinnen; houd het bij één korte alinea.",
   B1_LIJDENDE_VORM: "De uitleg gebruikt een lijdende vorm; zeg wie iets doet.",
@@ -151,6 +152,25 @@ export function voorstelTekst(v: KaartVoorstel): string {
   return isDefinitie(v) ? v.waarde.definitie : (v.waarde as TekstWaarde).tekst;
 }
 
+/** B-6: rust dit voorstel op een voorgestelde definitie van Lex (niet op de bewaarde), dan de zin die dat zegt –
+ *  "rust op de voorgestelde definitie" zolang die open staat, en na overnemen dat ze nu de definitie is. Null als
+ *  het op de bewaarde definitie rust, of als het verouderd is (dan toont de kaart toen, nu en het voorstel). */
+export function rustOp(v: KaartVoorstel): string | null {
+  if (isDefinitie(v) || !v.basis.voorstel_id || v.verouderd) return null;
+  if (v.wacht_op_definitie) {
+    return "Rust op de voorgestelde definitie. Neem die eerst over; neem je haar niet of anders over, dan vervalt dit voorstel.";
+  }
+  return "Rust op de voorgestelde definitie, die je hebt overgenomen.";
+}
+
+/** Waarom een verouderd voorstel verouderd is: de definitie veranderde, of de voorgestelde werd niet (zo) overgenomen. */
+export function verouderdReden(v: KaartVoorstel): string {
+  if (!isDefinitie(v) && v.basis.voorstel_id) {
+    return "Dit rust op een voorgestelde definitie die je niet, of anders, hebt overgenomen. Er wordt niets overschreven: vergelijk en kies opnieuw.";
+  }
+  return "De definitie veranderde nadat Lex dit voorstelde. Er wordt niets overschreven: vergelijk en kies opnieuw.";
+}
+
 /** De 409 bij een veranderde definitie: wat er stond, wat er staat, wat Lex voorstelde. */
 export interface Verouderd {
   voorstelId: string;
@@ -162,6 +182,10 @@ export interface Verouderd {
 export function verouderdUit(e: unknown, voorstelId: string): Verouderd | null {
   const d = (e as { status?: number; data?: Record<string, unknown> } | null)?.data;
   if ((e as { status?: number })?.status !== 409 || d?.fout !== "voorstel_verouderd") return null;
-  const def = (x: unknown) => ((x as { definitie?: string } | undefined)?.definitie ?? "");
+  // Bij een uitleg, toelichting of voorbeeld op een voorgestelde definitie (B-6) draagt het voorstel een tekst.
+  const def = (x: unknown) => {
+    const w = x as { definitie?: string; tekst?: string } | undefined;
+    return w?.definitie ?? w?.tekst ?? "";
+  };
   return { voorstelId, toen: def(d.toen), nu: def(d.nu), voorstel: def(d.voorstel) };
 }

@@ -23,7 +23,8 @@ wetsanalyse uit te voeren, inclusief echte beslissingen; het scenario staat in
 | `wie_ben_ik` | het account en de rol |
 | `bff` | één aanroep op een BFF-route; elke status komt terug, met een `trace_id` |
 | `lex_start`, `lex_wacht`, `lex_stop` | een beurt van Lex starten, volgen en stoppen; een klik is `intake_actie` of `actie`. `lex_start` bewaart eerst de vraag als user-bericht in het gesprek, zoals de werkplek, zodat wie meekijkt vraag én antwoord ziet (`vraag_bewaren: false` slaat dat over) |
-| `werkgebied_lezen` | dossier, dekking, elementen en audit van een werkgebied |
+| `werkgebied_lezen` | dossier, dekking, een overzicht van de elementen (tellingen) en de nieuwste audit; met `bron_iri` de elementen van één bepaling, met `volledig` alles |
+| `weergave_lezen` | de annotatie van één bepaling als lijst (`?vorm=lijst`), om te beoordelen |
 | `annotatie_lezen` | één element met klasse, ankers, bron en graaf |
 | `begrip_lezen` | een begrip met revisies, of alle begrippen van een werkgebied met conformiteit en samenhang |
 | `logs_zoek` | de keten op `trace_id`, de logregels op `run_id`, of de fouten; alleen vaste queries |

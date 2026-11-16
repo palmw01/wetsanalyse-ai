@@ -306,7 +306,7 @@ def test_er_is_geen_vast_minimum_aan_voorbeelden():
 def test_de_promptversie_van_uitleg_is_eigen():
     assert ka.promptversie("uitleg") != ka.promptversie("brondefinitie")
     assert len({ka.promptversie(a) for a in ("brondefinitie", "scherper", "uitleg", "voorbeelden",
-                                             "betekenisverschil")}) == 5
+                                             "betekenisverschil", "toelichting")}) == 6
 
 
 def test_het_batch_id_neemt_het_onderzoek_op_en_blijft_zonder_gelijk():

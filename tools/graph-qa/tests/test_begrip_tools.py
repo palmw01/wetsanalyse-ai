@@ -295,9 +295,13 @@ def test_kies_exact_eigen_werkgebied_vervangen():
 
 
 class KaartApi:
-    def __init__(self, rijen, start=None, standen=(), begrip=None):
+    def __init__(self, rijen, start=None, standen=(), begrip=None, kaartvoorstellen=()):
         self.rijen, self.start, self.standen, self.begrip = rijen, start, list(standen), begrip
+        self.kaartvoorstellen = list(kaartvoorstellen)
         self.calls = []
+
+    async def haal_kaartvoorstellen(self, wid, bid):
+        return {"voorstellen": self.kaartvoorstellen}
 
     async def zoek_begrippen(self, q, eerst=""):
         self.calls.append(("zoek", q, eerst))
@@ -311,8 +315,8 @@ class KaartApi:
     async def haal_werkgebied(self, wid):
         return {"id": wid, "naam": "Invordering"}
 
-    async def start_kaart_run(self, wid, bid, actie, ander=None):
-        self.calls.append(("start", wid, bid, actie, ander))
+    async def start_kaart_run(self, wid, bid, actie, ander=None, op_voorstel_id=None):
+        self.calls.append(("start", wid, bid, actie, ander, *((op_voorstel_id,) if op_voorstel_id else ())))
         if isinstance(self.start, Exception):
             raise self.start
         return self.start or {"id": "k1", "status": "wacht", "nieuw": True}
@@ -402,13 +406,17 @@ def test_loopt_de_actie_al_dan_wacht_lex():
     assert uit.artefact["ref"]["kaart_run_id"] == "k0" and "al gedaan" in uit.tekst
 
 
+def _definitievoorstel(vid="v1", run="k1", volgorde=0, **extra):
+    return {"id": vid, "run_id": run, "veld": "definitie", "status": "open", "volgorde": volgorde, "verouderd": False,
+            "waarde": {"definitie": "Een tijdvak om te betalen.", "herkomst": "letterlijk"}, **extra}
+
+
 def test_uitwerken_volgt_de_methode():
-    # Zonder definitie: eerst de brondefinitie; levert die voorstellen op, dan geen definitievoorstel van het
-    # model ernaast, en nog geen voorbeelden. (Zonder brondefinitie volgt scherper: `test_uitwerken_zonder_brondefinitie`.)
+    # Zonder definitie, zonder definitievoorstel: alleen de brondefinitie, en Lex zegt wat er ontbreekt.
     api = KaartApi([], begrip={"status": "concept", "inhoud": {"naam": "Termijn", "definitie": ""}})
     uit = _taak(api, "uitwerken", begrip_id="b1")
     assert [c[3] for c in api.calls if c[0] == "start"] == ["brondefinitie"]
-    assert "neem een definitie over" in uit.tekst
+    assert "er is geen definitievoorstel" in uit.tekst and "Relaties" in uit.tekst
     # Staat er al een brondefinitie-run met open voorstellen klaar (de api geeft die terug), dan is er een
     # brondefinitie om over te nemen en start Lex het model niet voor scherper (spoor M, M3).
     api = KaartApi([], start={"id": "k1", "status": "klaar", "nieuw": False},
@@ -416,16 +424,53 @@ def test_uitwerken_volgt_de_methode():
     uit = _taak(api, "uitwerken", begrip_id="b1")
     assert [c[3] for c in api.calls if c[0] == "start"] == ["brondefinitie"]
     assert uit.voorstellen == ["k1"]
-    # Met een definitie op de kaart (spoor I2): de brondefinitie, de uitleg in B1 en de voorbeelden.
+    # Met een definitie op de kaart: de brondefinitie, de uitleg in B1, de toelichting en de voorbeelden, op die
+    # definitie (geen `op_voorstel_id`).
     api = KaartApi([], begrip={"status": "concept", "inhoud": {"naam": "Termijn", "definitie": "Een tijdvak."}})
     uit = _taak(api, "uitwerken", begrip_id="b1")
-    assert [c[3] for c in api.calls if c[0] == "start"] == ["brondefinitie", "uitleg", "voorbeelden"]
-    assert "Nog open: neem de uitleg en de voorbeelden over" in uit.tekst
-    # Staat er al een uitleg, dan schrijft Lex er geen nieuwe.
+    starts = [c for c in api.calls if c[0] == "start"]
+    assert [c[3] for c in starts] == ["brondefinitie", "uitleg", "toelichting", "voorbeelden"]
+    assert all(len(c) == 5 for c in starts)
+    assert "Nog open: neem de uitleg, de toelichting en de voorbeelden over" in uit.tekst and "Relaties" in uit.tekst
+    # Staan er al een uitleg en een toelichting, dan schrijft Lex er geen nieuwe.
     api = KaartApi([], begrip={"status": "concept", "inhoud": {"naam": "Termijn", "definitie": "Een tijdvak.",
-                                                                "uitleg": "Zo lang heb je."}})
+                                                                "uitleg": "Zo lang heb je.", "context": "Niet de dag."}})
     _taak(api, "uitwerken", begrip_id="b1")
     assert [c[3] for c in api.calls if c[0] == "start"] == ["brondefinitie", "voorbeelden"]
+
+
+def test_uitwerken_zonder_definitie_levert_alles_in_een_beurt_op_de_voorgestelde():
+    """B-6: zonder overgenomen definitie komen de uitleg, de toelichting en de voorbeelden in dezelfde beurt, en ze
+    rusten op het definitievoorstel van deze beurt (het eerste, de sterkste plaats)."""
+    api = KaartApi([], begrip={"status": "concept", "inhoud": {"naam": "Termijn", "definitie": ""}},
+                   kaartvoorstellen=[_definitievoorstel("oud", run="k0"), _definitievoorstel("v2", volgorde=1),
+                                     _definitievoorstel("v1"), _definitievoorstel("weg", verouderd=True, volgorde=-1)])
+    uit = _taak(api, "uitwerken", begrip_id="b1")
+    starts = [c for c in api.calls if c[0] == "start"]
+    assert [c[3] for c in starts] == ["brondefinitie", "uitleg", "toelichting", "voorbeelden"]
+    assert [c[5] for c in starts[1:]] == ["v1", "v1", "v1"]
+    assert "neem eerst de definitie over (“Een tijdvak om te betalen.”)" in uit.tekst
+    assert "vervallen ze" in uit.tekst and "Relaties met andere begrippen zijn een aparte stap" in uit.tekst
+    assert uit.meting["op_voorgestelde_definitie"] is True
+
+
+def test_uitwerken_zonder_brondefinitie_rust_op_de_scherpere(monkeypatch):
+    async def stroom(wid, bid, rid, run, **_):
+        yield {"type": "opgeslagen", "kaart_run": rid, "voorstellen": 0 if rid == "kb" else 1, "melding": ""}
+    import agent.kaart_beurt as kb
+    monkeypatch.setattr(kb, "kaart_stroom", stroom)
+
+    class Api(KaartApi):
+        async def start_kaart_run(self, wid, bid, actie, ander=None, op_voorstel_id=None):
+            await super().start_kaart_run(wid, bid, actie, ander, op_voorstel_id)
+            return {"id": {"brondefinitie": "kb", "scherper": "ks"}.get(actie, "kx"), "status": "wacht", "nieuw": True}
+
+    api = Api([], begrip={"status": "concept", "inhoud": {"naam": "Termijn", "definitie": ""}},
+              kaartvoorstellen=[_definitievoorstel("vs", run="ks")])
+    _taak(api, "uitwerken", begrip_id="b1")
+    starts = [c for c in api.calls if c[0] == "start"]
+    assert [c[3] for c in starts] == ["brondefinitie", "scherper", "uitleg", "toelichting", "voorbeelden"]
+    assert {c[5] for c in starts[2:]} == {"vs"}
 
 
 def test_uitwerken_zonder_brondefinitie(monkeypatch):

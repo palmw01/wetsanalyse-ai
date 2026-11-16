@@ -20,7 +20,7 @@ from ..bronregister import controletrace
 from ..narratie import _stap, _toolregel
 from ..tool_execution import execute_tool
 from ..regelingnamen import regelingnamen
-from ..sjablonen import Onvulbaar, vul
+from ..sjablonen import Onvulbaar, vooraf, vul
 from ..sjablonen.rapport import NAAM as RAPPORT, status_van as rapport_status, vragen_van as rapport_vragen
 from ..state import State
 from .context import Bouw
@@ -44,6 +44,22 @@ def _met_regelingen(b: Bouw, antwoord: Antwoord) -> None:
         v.regeling = namen.get(bwb, "")
     for m in markeringen:
         m.vindplaats = _BWB.sub(lambda x: namen.get(x.group(0), x.group(0)), m.vindplaats)
+
+
+def _zoek_vooraf(b: Bouw, state: State, tu: dict[str, Any]) -> list[tuple[str, str]]:
+    """Wat het sjabloon vóór het vullen zelf opzoekt (`Sjabloon.vooraf`), langs dezelfde weg als een aanroep van het
+    model (`execute_tool`): de jurist ziet de stap in het denkproces en het resultaat komt in het bronspoor. Leeg als er
+    niets op te zoeken is."""
+    aanroepen = vooraf(tu["name"], tu.get("input") or {}, controletrace(state))
+    if not aanroepen:
+        return []
+    writer = get_stream_writer()
+    uit: list[tuple[str, str]] = []
+    for a in aanroepen:
+        aanroep = {"id": f"vooraf_{uuid4().hex[:12]}", "name": a["name"], "input": dict(a.get("input") or {})}
+        _stap(writer, "Lex", _toolregel(aanroep))
+        uit.append((aanroep["name"], execute_tool(b, state, writer, aanroep)))
+    return uit
 
 
 def _lees_wat_genoemd_is(b: Bouw, state: State, fout: Onvulbaar) -> tuple[str, list[tuple[str, str]]]:
@@ -108,10 +124,11 @@ NA_SUBAGENT_SJABLOON = ("\n\nEen subagent las de bronnen; zelf lezen kan nu niet
 def na_subagent_weigering(state: State, tekst: str) -> str:
     """De weigering van een sjabloon voor de centrale agent na een rapport: zonder de opdracht om zelf op te halen, want
     die weigert `tools_node` dan (`na_subagent`; A6 run 2, S03 en S04: 11 en 9 geweigerde aanroepen in één ronde, daarna
-    tekst zonder citaat)."""
-    from .antwoord import na_subagent
+    tekst zonder citaat). Zolang hij nog een bepaling mag nalezen (`antwoord.MAX_NALEZEN`, B-3), blijft de opdracht staan:
+    die aanroep voert `tools_node` uit."""
+    from .antwoord import MAX_NALEZEN, na_subagent
 
-    if not na_subagent(state, "get_artikel"):
+    if not na_subagent(state, "search_wetgeving") or int(state.get("nagelezen") or 0) < MAX_NALEZEN:
         return tekst
     return _HAAL_OP.sub("", tekst) + NA_SUBAGENT_SJABLOON
 
@@ -125,6 +142,9 @@ def vul_aanroep(b: Bouw, state: State, tu: dict[str, Any]) -> tuple[dict[str, An
     def resultaat(tekst: str, **extra: Any) -> dict[str, Any]:
         return {"type": "tool_result", "tool_use_id": tu["id"], "content": tekst, **extra}
 
+    if bij := _zoek_vooraf(b, state, tu):
+        state = {**state, "source_trace": [*(state.get("source_trace") or []), *bij]}
+    bijgezocht = {"source_trace": list(state.get("source_trace") or [])} if bij else {}
     try:
         antwoord = vul(tu["name"], tu.get("input") or {}, controletrace(state))
     except Onvulbaar as fout:
@@ -141,7 +161,7 @@ def vul_aanroep(b: Bouw, state: State, tu: dict[str, Any]) -> tuple[dict[str, An
         eerder = sum((state.get("sjabloon_telling") or {}).get("geweigerd", {}).values())
         tekst += TEKST_NU if eerder and not fout.ophalen else OPNIEUW.format(naam=tu["name"])
         return (resultaat(tekst, is_error=True), [],
-                {**({"source_trace": trace} if fout.ophalen else {}),
+                {**bijgezocht, **({"source_trace": trace} if fout.ophalen else {}),
                  # Een tekstantwoord na een weigering is het antwoord: geen herhaalverzoek meer (`nodes/antwoord`).
                  "sjabloon_gevraagd": True,
                  **geweigerd(state, tu["name"], fout)})
@@ -153,7 +173,8 @@ def vul_aanroep(b: Bouw, state: State, tu: dict[str, Any]) -> tuple[dict[str, An
                             "vragen": rapport_vragen(tu.get("input") or {})}}
                if tu["name"] == RAPPORT else {})
     return (resultaat(VASTGELEGD), [{"role": "assistant", "content": [{"type": "text", "text": tekst}]}],
-            {"answer": tekst, "antwoord": antwoord.model_dump(), **rapport, **tel_sjabloon(state, "gevuld", tu["name"])})
+            {"answer": tekst, "antwoord": antwoord.model_dump(), **rapport, **bijgezocht,
+             **tel_sjabloon(state, "gevuld", tu["name"])})
 
 
 def sjabloon_node(b: Bouw, state: State) -> dict[str, Any]:

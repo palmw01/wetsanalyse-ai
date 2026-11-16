@@ -304,7 +304,16 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
     (`NA_RAPPORT`), na `niet_gelukt` of `mislukt` zegt hij wat er gelezen is en wat ontbreekt (`NA_SUBAGENT`). Sjablonen en
     eigen tools blijven, en de kop van het rapport zegt het vooraf. Een bepaling die het rapport noemt zonder citaat
     haalt het sjabloon zelf op, dus een uitzondering is niet nodig. Een subagent die niet startte (409, budget) of gestopt
-    werd, valt erbuiten. Meting bundel 114: P01 las 21 keer opnieuw (1,5M); bundel 115: S01 na `klaar` nog 17 keer (376k);
+    werd, valt erbuiten. Meting bundel 114: P01 las 21 keer opnieuw (1,5M); bundel 115: S01 na `klaar` nog 17 keer (376k).
+    **De wettekst mag hij nalezen** (E2E Rekeningafspraken, 16 nov 2026, B-3: na een rapport over de wetsgeschiedenis
+    schreef de centrale agent wat een lid regelt, uit eigen kennis, en de code weigerde de `get_lid` die hij aankondigde):
+    `NALEES_TOOLS` (`get_artikel`, `get_lid`, `get_bepaling`) vallen buiten `na_subagent`, tot `MAX_NALEZEN` (2)
+    bepalingen per beurt (`nalezen_over`, `State.nagelezen`; daarboven `NALEZEN_PLAFOND`, reden `nalezen_plafond`). Een
+    rapport over stukken naast de wet draagt de tekst van de bepaling niet, en één lid uit de graaf kost weinig; het
+    herlezen dat de regel tegenhoudt, waren de stukken van een connector. De kop van het rapport en de weigeringen zeggen
+    het (`subagent.NALEZEN_AANWIJZING`). En na een rapport vraagt de correctie om een duiding die het rapport niet draagt
+    te **schrappen**, niet te herformuleren (`correct_node`): "haal het op" kon hij niet opvolgen. Bekende grens: een duiding
+    van een bepaling die niet gelezen is, ziet geen toets; het nalezen maakt haar alleen mogelijk. `tests/test_b3_na_subagent.py`;
   - **het model van een subagent** kiest de beheerder: die van het agentprofiel, anders `stap:subagent` (`modelkeuze`;
     zie *De modelkeuzes per agentprofiel en stap*); zonder keuze het gewone model. `Subagent.ronde` zet daarvoor
     `modelrol: subagent` in het kader, en `subagent.kindmodel` geeft hetzelfde model voor het event. De lichte modelklasse
@@ -380,6 +389,11 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   graaftool vult `tools_node` het sjabloon ná die tool (`sjabloon.vul_aanroep`, alle resultaten in één bericht, telling
   `uitgesteld`), en gaat de beurt daarna meteen naar `verify` (`route_na_tools`); eerst wachtte het sjabloon en schreef het
   model het de volgende ronde opnieuw (~2.000 uitvoertokens). Tekst in plaats van de tool blijft geldig (log `sjabloon gemist`).
+  **Wat een vast blok nodig heeft, zoekt de code zelf** (`Sjabloon.vooraf`, `sjabloon._zoek_vooraf`): vóór het vullen voert
+  `vul_aanroep` die graaftool-aanroepen uit via `execute_tool` (stap in het denkproces, resultaat in het bronspoor). Zo hangt
+  een blok niet af van of het model of zijn profiel de tool kent. `antwoord_begrip` zoekt zo de vastgelegde begrippen bij de
+  term (ook generieke, ADR-006) als er in de trace nog niet op die term gezocht is (`search_begrippen` draagt `zoekterm`);
+  het profiel `centraal` heeft `search_begrippen` niet, en het blok bleef eerst weg (16 nov 2026).
   **Na een vondst van een bronconnector is het één schrijfronde** (iteratie wetgeving_live ronde 4: de rol zei "antwoord
   in tekst", de code vroeg daarna alsnog om het sjabloon, ~20–25k tokens per vraag bij alle connectors):
   - met een connector aan staat `AFRONDEN_EXTERN` in het variabele promptdeel: rond af met het sjabloon, ook bij uitleg, telling of
@@ -2040,8 +2054,10 @@ reeks) en `doelen`.
 - **De begrippen-agent** (`agents/begrippen.py`): `voorstellen` (`begrippen_beurt.begrippen_kern`),
   `meedenken` (`begrippen_verdieping.verdieping_kern`; zonder `bevestigd` het voorstel met bevestiging),
   de vijf kaartacties (`kaart_beurt.kaart_kern`, dezelfde kaart-run als de knop), `uitwerken`
-  (brondefinitie → zonder definitie een definitievoorstel → op een overgenomen definitie de uitleg in B1, als
-  die er nog niet is, en voorbeelden; daarna zegt Lex wat er nog open is) – en na elke losse kaartactie noemt Lex het volgende logische stuk
+  (B-6, in één beurt: brondefinitie → zonder definitie scherper → de uitleg in B1 en de toelichting (als ze er nog
+  niet zijn) en voorbeelden. Zonder overgenomen definitie rusten die op het definitievoorstel van de beurt
+  (`op_voorstel` naar de kaart-run, `_voorgestelde_definitie`); de api maakt ze verouderd als de analist die
+  definitie niet of anders overneemt. Relaties blijven een aparte stap; de slotzin zegt wat er open is) – en na elke losse kaartactie noemt Lex het volgende logische stuk
   (`kaart_beurt.VOLGENDE`: definitie → uitleg → voorbeelden → relaties)
   en `relaties` (`GET …/relaties`, zonder model). Het begrip komt van het onderwerp (`als_rij`) of uit de
   term (`los_op`, zie *Welk begrip*). Geen skillrol: de regels voor begrippen staan in de keten en de toetsen, en

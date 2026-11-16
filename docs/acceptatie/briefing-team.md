@@ -106,14 +106,19 @@ bevinding bleek fout omdat ze op de samenvatting van een webpagina stond, die de
 
 ## Zuinig met context
 
-In de run van 16 nov 2026 liepen vier agents vast op hun eigen contextruimte, niet op het budget van Lex. Sommige
-antwoorden van de api zijn groot (zie het verslag, B-1). Tot dat is opgelost:
+In de run van 16 nov 2026 liepen vier agents vast op hun eigen contextruimte, niet op het budget van Lex: sommige
+antwoorden van de api waren te groot (zie het verslag, B-1). Daarvoor bestaan nu compacte vormen, die je zelf kiest:
 
-- **Gebruik `werkgebied_lezen` niet na een annotatie.** Dat antwoord is dan honderdduizenden tekens. Lees de
-  elementen per bepaling, met `annotatie_lezen` of `bff` GET `/api/annotatie/v2/weergave` voor één `bron_iri`.
-- **Beslis in de bronselectie via de kaart.** Beantwoord de vraagkaart met haar `intake_actie`, met eigen tekst en
-  *Klaar*. Vermijd losse besluiten (`POST …/bronselectie/{d}/kandidaten/{k}`) en `GET …/kandidaten`: die geven de
-  hele selectie terug.
+- **`werkgebied_lezen`** geeft standaard een overzicht: dossier, dekking, tellingen per bepaling, klasse en
+  lifecycle, en de nieuwste auditregels. Met `bron_iri` krijg je de elementen van die bepaling in korte vorm;
+  `volledig: true` geeft alles en is groot.
+- **`weergave_lezen`** (`bron_iri`) geeft de annotatie van één bepaling als lijst, om te beoordelen. Dat is dezelfde
+  route als `bff` GET `/api/annotatie/v2/weergave?bron_iri=…&vorm=lijst`.
+- **De bronselectie** heeft de vorm `?vorm=deelvraag` op elk besluit, elke status en het overzicht. Daarmee komt
+  alleen de geraakte deelvraag volledig terug, en de andere alleen met hun stand. Gebruik `GET …/kandidaten` met
+  `?deelvraag_id=`.
+- **Een wijziging aan een begrip** (PATCH, accorderen, heropenen, een voorstel overnemen) heeft `?vorm=stand`: dan
+  komen de stand en de inhoud terug, niet de hele kaart.
 - **Vraag met `bron_lezen` één lid tegelijk** (`lid`), niet een heel artikel.
 - **Werk één bepaling tegelijk af:** lezen, toetsen, beslissen, loggen, en dan de volgende. Lees het logboek met
   `vanaf`.
