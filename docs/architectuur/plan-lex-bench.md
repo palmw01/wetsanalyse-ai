@@ -545,12 +545,16 @@ op het oude pad, dus er blijft één levende set.
 **Gereproduceerd.** Met `pytest -p no:randomly tests/test_eval.py tests/test_sjablonen.py` faalt
 `test_sjablonen.py::test_een_beurt_rondt_af_met_de_wettekst_uit_de_graaf`. Los draait hij groen.
 
-**De oorzaak.** De cache `agent/overzicht.py:_REGELINGEN_CACHE` is procesbreed, en dat is zo bedoeld: "één query per
-proces". `test_eval.py::test_offline_eval_run_slaagt` vult hem uit zijn `FakeGraph`, met alleen de Invorderingswet 1990.
-De test in `test_sjablonen` krijgt die stand mee. Het sjabloon `antwoord_bepaling` wordt dan geweigerd ("Artikel 9:
-niet opgehaald in dit gesprek"), de keten vraagt het model een derde ronde, en de `FakeLLM` had er twee. Het gevolg is
-een `IndexError`. Wordt alleen deze cache na de eerste test leeggemaakt, dan zijn beide groen; leegmaken van
-`regelingnamen._CACHE` helpt niet.
+**De oorzaak.** De cache `agent/overzicht.py:_REGELINGEN_CACHE` is procesbreed ("één query per proces").
+`test_eval.py::test_offline_eval_run_slaagt` vult hem met de Invorderingswet 1990. Leeg je alleen deze cache tussen de
+twee tests, dan is de test weer groen.
+
+De sessie graph-qa vond de diepere oorzaak (`testplan/graph-qa.md` §4.2): **de sjablonentest is alleen groen *omdat* de
+cache leeg is.** De GOK-controle van `id_herkomst` herkent een regeling aan de namen uit dezelfde cache. Met een lege
+cache laat hij een gegokt BWB-id door. Met de Invorderingswet in de cache weigert hij het, zoals in productie, en dan
+is het script van het model op. De test beschrijft dus een beurt die productie weigert. Alleen de cache resetten zou de
+test groen houden om de verkeerde reden. Hij moet ook herschreven worden: de vraag noemt de regeling, of de nepgraaf
+beantwoordt `list_regelingen` zoals de echte graaf.
 
 **Waarom alleen soms in de poort.** Er is geen willekeurige volgorde (`pytest-randomly` is niet geïnstalleerd), maar de
 shards verdelen per bestand op gewicht. Of beide bestanden in dezelfde shard en in deze volgorde landen, hangt dus af
@@ -558,8 +562,9 @@ van de indeling.
 
 **Voorstellen:**
 
-- Een autouse-fixture in `tests/conftest.py` die de procesbrede caches na elke test leegmaakt:
-  `overzicht._REGELINGEN_CACHE`, `regelingnamen._CACHE` en `_AFKORTINGEN`, `graph/schema._cache`. Twaalf testbestanden
+- Een autouse-fixture in `tests/conftest.py` die de procesbrede toestand na elke test leegmaakt:
+  `overzicht._REGELINGEN_CACHE`, `regelingnamen._CACHE` en `_AFKORTINGEN`, `graph/schema._cache`, en de stand van de
+  modelkeuze. Herschrijf daarna de sjablonentest (zie hierboven). Twaalf testbestanden
   doen dat nu elk met de hand.
 - Een test die het register van die caches bewaakt, zodat een nieuwe procesbrede cache er ook in moet.
 - Een regressietest die beide tests in deze volgorde draait.
@@ -745,27 +750,188 @@ De lat, met per punt hoe het meetbaar wordt:
 
 ## 20. Nulmeting per laag
 
-*Volgt uit de vier sessies.* Elke sessie levert voor haar laag:
+*Samengevoegd op 16 nov 2026* uit vier parallelle sessies, elk met een eigen document en een eigen PR (alleen docs).
+Elk document bevat de inventaris, de risicomatrix van zijn laag, de kwaliteit van de tests en de voorstellen op
+prioriteit. Hieronder staan de stand per laag, de dekking per risico uit §17 en de gaten die samen het zwaarst wegen.
 
-- wat er is (aantallen per soort);
-- per risico uit §17 of er een test op het foutpad is, met de testnaam;
-- wat altijd groen is, alleen vorm, of nooit draait;
-- de gaten;
-- voorstellen, elk met een stap en een schatting.
+| Laag | Detail | PR |
+|---|---|---|
+| graph-qa | `docs/architectuur/testplan/graph-qa.md` | #1640 |
+| api, bronmodel en importer | `docs/architectuur/testplan/api.md` | #1636 |
+| de werkplek | `docs/architectuur/testplan/werkplek.md` | #1638 |
+| keten en E2E | `docs/architectuur/testplan/keten-e2e.md` | #1635 |
 
-Per laag komt hier één samenvatting met een link naar het detail in `docs/architectuur/testplan/<laag>.md`. De
-nulmeting is eerlijk: een risico zonder test staat als *niet gedekt*, ook als het in de praktijk nooit misging.
+### 20.1 De stand per laag
 
-| Laag | Sessie | Detail | Stand |
-|---|---|---|---|
-| graph-qa | testplan-graph-qa | `testplan/graph-qa.md` | loopt |
-| api, bronmodel en importer | testplan-api | `testplan/api.md` | loopt |
-| de werkplek | testplan-frontend | `testplan/werkplek.md` | loopt |
-| keten en E2E | testplan-keten-e2e | `testplan/keten-e2e.md` | loopt |
+- **Laag 1, graph-qa.**
+  - De omvang: 267 bestanden, 3.179 testfuncties (6.394 met parametrisering), zonder netwerk en zonder model, 3–7 min
+    in de poort.
+  - Het meeste toetst gedrag, via de echte LangGraph met een gescript model.
+  - De foutpaden zijn goed gedekt *waar ze ooit misgingen*: de graaf weg, een api-5xx, afbreken, hervatten, een subagent
+    zonder rapport, afkappen, een connector uit, de rondegrenzen.
+  - Dun of geen: een time-out van de graaf of een connector, een beurt waarin de API een strict schema weigert, en
+    **prompt-injectie via de inhoud van een bron** (geen enkele test).
+  - De nepdiensten zijn te toegeeflijk: `FakeGraph(result=…)` geeft op elke query hetzelfde antwoord, en `FakeLLM` toetst
+    niet of een tool was aangeboden.
+  - 21 bestanden (164 tests) heten naar een meting of bundel.
+- **Laag 1, api, met bronmodel en de importer.**
+  - De omvang: 84 bestanden en ±1.100 testfuncties in de api, op Postgres in drie shards, plus 218 tests in de importer.
+    `bronmodel` heeft geen eigen testmap.
+  - Sterk: echte races op Postgres voor annotaties, begrippen, werkgebieden en beheerders, de migratietest en de
+    wislijst-guard.
+  - Zwak:
+    - de projectie is **nooit tegen een echte GraphDB** getest (alleen rdflib);
+    - de PDF-tests slaan in CI altijd over;
+    - gelijktijdigheid bij bronselectie per deelvraag, deelvragen, delegaties, werkplaats en verbruik is alleen op SQLite
+      getest, en dat bewijst geen slot;
+    - er is **geen rechtentabel** over de 232 routes;
+    - de twee SPARQL-injectietests zijn altijd groen;
+    - één mutatie heeft geen test (`parkeren`).
+- **Laag 1, de werkplek.**
+  - De omvang: ±1.100 logica-tests en ~82 tests van BFF en auth in vitest, ~140 vormtests, en 46 browserscripts. In 50
+    poortruns faalde niets.
+  - Sterk: de beurt en de SSE-stroom op logicaniveau.
+  - Zwak:
+    - er zijn **geen componenttests** (geen DOM in vitest), en `useBeurt` en `useOnbewaardBewaker` hebben geen eigen test;
+    - de mocks hebben geen contract op hun vorm, en 29 van de 46 scripts beantwoorden een onbekend pad stil met 200;
+    - de `sse()`-mock lijkt niet op de echte stroom, dus breken en hervatten wordt nooit in de browser getoetst;
+    - één browserscript draait nergens;
+    - de eigenaarscontrole bij het starten van een run, de allowlist van de annotatie-catch-all, de `jwt`-callback en
+      `lib/trace.ts` hebben geen test.
+- **Laag 2, contract en kruistests.** Statisch goed: het routecontract, de kruistests en een dertigtal guards maken
+  drift rood, ook als alleen de andere kant wijzigt. Het contract bewaakt pad en methode, **niet de vorm** van het
+  antwoord, en geen query-parameters.
+- **Laag 3, keten en integratie.** **Er is geen dynamische ketentest.** Geen enkele test laat in CI een beurt lopen van
+  browser via BFF, api en graph-qa naar GraphDB en terug. De rooktest na een uitrol raakt GraphDB en het model niet.
+- **Laag 4, E2E.** Eén waardevolle run (Rekeningafspraken: 13 bevindingen, 3 hoog), maar als handwerk, op een gedeeld
+  beheerdersaccount en zonder verwachting per stap. Ze is niet afgemaakt: DV2–DV5, de logs, de browser en de rechten van
+  een analist zijn niet getest.
+- **Laag 5, gedrag en kwaliteit.**
+  - **Geen enkele set is door een jurist vastgesteld.** Geen set in `eval/` is blind.
+  - De held-out uitkomsten van de bronselectie zijn als pin in de unitsuite vastgelegd (`test_bronselectie_eval`). Wie
+    de code afstemt, ziet ze dus rood worden, en zo zijn ze niet meer blind bij het afstemmen.
+  - De overdracht tussen de stappen wordt nergens gemeten: de evals per stap gebruiken andere casussen.
+  - Spreiding over runs wordt alleen live gemeten, en alleen door de agentset.
 
-Wat al vaststaat uit deel B: de volgordefout in graph-qa (§14.1); 17 testbestanden die naar een meetmoment heten
-(§14.2); 39 bestanden met een skip, waarvan 7 alleen live draaien (§14.4); en op laag 5 geen enkele vastgestelde
-verwachting.
+### 20.2 Dekking per risico
+
+*Goed*: het foutpad is getoetst waar het optreedt, met het randgeval. *Deels*: een deel, of alleen op SQLite of rdflib.
+*Geen*: geen test. *—*: niet van toepassing op die laag. Kolom L1 noemt per component (g = graph-qa, a = api,
+w = werkplek) de dekking op het foutpad.
+
+| Id | Risico | L1 | L2 | L3 keten | L4 E2E | L5 |
+|---|---|---|---|---|---|---|
+| R01 | graaf weg | g goed · a deels | — | geen (K1) | niet gedaan | — |
+| R02 | api 5xx | g goed · w BFF goed, browser deels | — | geen | — | — |
+| R03 | time-out | g model dun, graaf en connector geen · a resolver deels · w BFF goed | — | geen (K6) | — | — |
+| R04 | model-400, strict-grens | g 400 goed, strict deels | strict statisch goed | geen (K3) | — | — |
+| R05 | budget op | g deels · w logica goed, browser geen | — | geen (K5) | niet gedaan | plafond in de meetscripts |
+| R06 | ongeldige invoer | a domeinregels goed, schema niet systematisch | — | — | — | — |
+| R07 | gelijktijdigheid, 409/412 | a goed voor 4 domeinen, zwak (SQLite) voor 5 · w 412 goed, 409 bij start geen | — | geen (K4, K7) | twee keer misgegaan | — |
+| R08 | afbreken en hervatten | g goed · w logica goed, browser geen | — | geen (K2) | — | — |
+| R09 | subagent rondt niet af | g goed | — | geen (K2) | — | — |
+| R10 | leeg of afgekapt | g goed (resultaatcontract) | — | — | — | — |
+| R11 | verouderde bronnen | a bronstand-409 goed | — | geen | — | opnames zonder versiecontrole |
+| R12 | rechten en identiteit | a deels, geen rechtentabel · w deels (`jwt`, eigenaarscontrole geen) | — | geen (K8, K10) | analist niet getest | — |
+| R13 | injectie via een bron | g geen · a SPARQL altijd groen | — | geen | — | geen kanarie in de bron |
+| R14 | connector uit of onbekend | g goed · w goed | register goed | uitval tijdens een beurt geen (K6) | — | — |
+| R15 | brongetrouwheid | g goed op het mechanisme | — | — | handmatig | geen vastgestelde verwachting |
+| R16 | route, profiel en tools | — | routeringssets goed | — | — | agentset, live |
+| R17 | methodes vermengd | — | `test_methodes_gescheiden` goed | — | — | — |
+| R18 | uitrol draait niet | — | — | rooktest deels (geen graaf of model) | rollback nooit geoefend | — |
+
+Uit de vier lagen kwamen risico's die §17 niet had. Ze komen erbij:
+
+| Id | Risico | Impact | Primair | Tweede | Nu |
+|---|---|---|---|---|---|
+| R19 | **Een gedeeld account**: verbruik en besluiten van twee sessies door elkaar, een bulkactie die andermans werk raakt | hoog | 3 | 4 | geen; twee keer misgegaan in nov 2026 (K4) |
+| R20 | **De projectie in de graaf wijkt af van Postgres** | hoog | 1 (echte GraphDB) | 3 | deels: alleen rdflib |
+| R21 | **Een nepdienst die niet op de echte dienst lijkt** (vorm van een antwoord, de SSE-framing, één antwoord op elke query) | hoog | 2 | 1 | geen: de oorzaak van de volgordefout en van eerdere stille fouten |
+| R22 | **Toegankelijkheid en touch** | middel | 1 (browser) | 4 | deels: axe op 8 van 46 schermen, geen `Tab`, geen touch |
+| R23 | **Een controle die fail-open is** (de GOK-controle van `id_herkomst` staat uit met een lege namenlijst, bijvoorbeeld vlak na een herstart van GraphDB) | middel | 1 | — | geen; een vraag aan de eigenaar van `id_herkomst` |
+
+**De telling bij de nulmeting**, over de 23 risico's op hun primaire laag:
+
+- 9 goed: R02, R08, R09, R10, R14, R16 en R17, en op laag 1 ook R01 en R04 (voor graph-qa);
+- 9 deels: R03, R05, R06, R07, R11, R12, R15, R18 en R20;
+- 5 geen: R13, R19, R21, R22 (alleen deels in de browser) en R23.
+
+Voor de **tweede laag** is het beeld scherper: voor geen enkel risico bestaat een dynamische ketentest (laag 3).
+
+### 20.3 De gaten die het zwaarst wegen, over de lagen heen
+
+1. **Geen dynamische ketentest** (laag 3). Elke laag mockt de buren, dus een fout in de samenwerking ziet pas de jurist.
+   Voorstel uit keten-E2E: een diepere rooktest zonder model, en een naadtoets in de poort op één vaste minicasus.
+2. **Prompt-injectie via de inhoud van een bron** (R13). Er is geen test in graph-qa, en de SPARQL-injectietests van de
+   api zijn altijd groen.
+3. **Nepdiensten zonder contract** (R21). Zo ontstond de volgordefout. De nep-api's in de browser beantwoorden een
+   onbekend pad met 200, en de SSE-mock wijkt af van de echte stroom.
+4. **Rechten niet als geheel getoetst** (R12). Er is geen rechtentabel in de api, de eigenaarscontrole van een run en de
+   `jwt`-callback hebben geen test, en een analist is nooit end-to-end getest.
+5. **Sloten die alleen op SQLite getoetst zijn** (R07). Daaronder valt de bronselectie per deelvraag, precies wat Lex
+   Bench meet.
+6. **De projectie nooit tegen GraphDB** (R20).
+7. **Geen vastgestelde verwachting en geen blinde set** (laag 5). De pinnen op de held-out uitkomst staan in de
+   unitsuite.
+8. **Componenttests ontbreken in de werkplek.**
+9. **De E2E is handwerk op een gedeeld account** (R19). Er is geen vast testaccount en geen eigen ruimte op acceptatie.
+10. **Flakiness wordt niet gemeten.** Er zijn geen herhaalde pogingen, maar ook geen telling.
+
+### 20.4 Wat dit voor de rest van het plan betekent
+
+- **§4.5 en §13: de pinnen op de held-out uitkomst** gaan uit `test_bronselectie_eval` naar het rapport van Bench. De
+  test houdt het pad zonder model en de vorm. Daarmee wordt een held-out set weer blind voor wie afstemt (open keuze 17).
+- **§12: antwoord en agentgedrag zijn twee assen**, die niet tot één score worden opgeteld:
+  - *antwoord*: `golden`, `golden_duiding*` en `golden_klasse_twijfel`, één set met `vraagtype`;
+  - *agentgedrag*: de vier `golden_centrale_agent*`-sets en `golden_gesprek`, één set met groepen en met de spreiding
+    over runs.
+
+  `stukcontrole_set` en de route en de argumenten van de connectorvragensets (`tests/data/`) blijven een test. De
+  live-ronde van de connectorvragen kan een as *connectors* worden.
+- **§4.4 en arm L2:** Bench leest de voorstellijst per deelvraag uit de api. Zonder een contract op de volgorde van die
+  lijst (api V8) en zonder races op Postgres voor de bronselectie (api V4), kan een meetverschil uit de api komen in
+  plaats van uit Lex. Die twee gaan vóór de pilot LB3.
+- **§8, de ketentest:** keten-E2E §3 werkt hem uit per naad:
+  - werkgebied → bronselectie → annotatie → begrippen → graaf → export;
+  - met een keten-casusformaat dat schema 4 uitbreidt (bronnen, annotaties en begrippen op dezelfde IRI's);
+  - met een deterministische adapter per naad;
+  - en met een naadtoets zonder model in de poort.
+
+  De api kan de keten selectie → werkvoorraad → batch → inventaris → begrip → export zonder model trekken.
+- **§14.1, de volgordefout:** graph-qa vond de diepere oorzaak; zie daar.
+- **§21, de matrix:** keten-E2E stelt dezelfde matrix voor. Er komt er één, uit markers in de code, zoals §21 zegt.
+
+### 20.5 De volgorde van de verbeteringen
+
+Elke laag heeft zijn voorstellen op prioriteit in zijn eigen document. Over de lagen heen stelt dit plan deze volgorde
+voor, met eerst alles zonder model:
+
+1. **Nu, klein:**
+   - de cachereset en een herschreven sjablonentest (graph-qa P0-1);
+   - de eigenaarscontrole van `run/route.ts` en `server-only` in `lib/config.ts` (werkplek 1 en 5);
+   - `pdftotext` op de runner (api V2);
+   - het losse browserscript weer in `test:browser` (werkplek 3).
+2. **De nepdiensten streng** (R21):
+   - een strengere `FakeLLM` (graph-qa P0-4);
+   - een strikte nep-api als standaard (werkplek 2);
+   - een gedeelde `sse()` die in delen schrijft met `\r\n` (werkplek 4).
+3. **De zware risico's:**
+   - de injectietest via de bron (graph-qa P0-3) en echte SPARQL-injectietests (api V5);
+   - de rechtentabel (api V3);
+   - races op Postgres (api V4);
+   - de projectie tegen GraphDB (api V1).
+4. **Bench klaarmaken:**
+   - het contract op de volgorde van de voorstellijst (api V8);
+   - de pinnen van de held-out sets naar Bench;
+   - de risicomarkers en de matrix (§21).
+5. **De keten:**
+   - een diepere rooktest en de naadtoets (keten 1 en 2);
+   - een vast testaccount (keten 3);
+   - de foutpaden K1–K10 als scenario's (keten 5).
+6. **Herschrijven zonder gedragswijziging:**
+   - groeperen per mechanisme (graph-qa P1-6);
+   - één `conftest` in de api (V7);
+   - componenttests met een DOM in de werkplek (werkplek 6).
 
 ## 21. Traceerbaarheidsmatrix
 
@@ -821,4 +987,9 @@ Van eis of risico, naar testgeval, naar laag, naar de laatste uitkomst.
     dat er gemeten is, niet de score. Het alternatief is een waarschuwing in de PR.
 15. **Moeten de risicomarkers en de dekkingstoets (§21) bindend zijn voor impact *hoog*,** of eerst alleen zichtbaar op
     het dashboard tot de nulmeting af is?
-16. **Mogen de risico's R01–R18 (§17) de basis zijn,** of wil je er risico's bij of af voordat de nulmeting ze invult?
+16. **Mogen de risico's R01–R23 (§17 en §20.2) de basis zijn,** of wil je er risico's bij of af?
+17. **Mogen de pinnen op de held-out uitkomst uit `test_bronselectie_eval` naar het rapport van Bench (§20.4)?** De test
+    houdt dan alleen het pad zonder model en de vorm.
+18. **Mag de volgorde van de verbeteringen in §20.5 gelden,** met stap 1 (klein, zonder model) als eerste bouwopdracht?
+19. **Wie neemt de vraag over de GOK-controle (R23) aan?** Die controle is fail-open bij een lege namenlijst. Dat is een
+    vraag over de code, niet over de tests.
