@@ -210,7 +210,7 @@ function meet() {
 
 async function openVenster(page) {
   await page.goto(`${base}/workbench`);
-  const gebruiker = page.getByRole("button", { name: /· instellingen|% gebruikt/ }).last();
+  const gebruiker = page.getByRole("button", { name: /^Menu van / }).last();
   if (page.viewportSize().width < 1024) {
     // Een klik vóór de hydratatie gaat verloren (koude dev-server): klik tot de drawer echt open is.
     const menu = page.getByRole("button", { name: "Menu openen" });
@@ -221,7 +221,7 @@ async function openVenster(page) {
     }
   }
   await gebruiker.click({ timeout: 60_000 });
-  await page.getByRole("link", { name: "Account & instellingen" }).click();
+  await page.getByRole("link", { name: "Instellingen", exact: true }).click();
   await page.getByRole("dialog", { name: "Instellingen" }).waitFor();
 }
 

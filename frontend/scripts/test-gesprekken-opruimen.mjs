@@ -73,8 +73,8 @@ const recentRij = venster.locator("[data-groep-opruimen=recent]");
 const archiefRij = venster.locator("[data-groep-opruimen=archief]");
 
 async function openTab() {
-  await page.getByRole("button", { name: /· instellingen/ }).click();
-  await page.getByRole("link", { name: "Account & instellingen" }).click();
+  await page.getByRole("button", { name: /^Menu van / }).click();
+  await page.getByRole("link", { name: "Instellingen", exact: true }).click();
   await venster.getByRole("tab", { name: "Gesprekken" }).click();
   await page.waitForURL("**instellingen=gesprekken");
 }

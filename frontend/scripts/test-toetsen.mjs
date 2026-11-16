@@ -125,9 +125,9 @@ const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/besli
     if (!(await inBeeld(page).count())) await page.locator("[data-review-kaart]").first().click();
     await inBeeld(page).waitFor();
     // Met het toetsenbord: in dev ligt de indicator van Next linksonder precies over deze knop.
-    await page.getByRole("button", { name: /· instellingen/ }).focus();
+    await page.getByRole("button", { name: /^Menu van / }).focus();
     await page.keyboard.press("Enter");
-    await page.getByRole("link", { name: "Account & instellingen" }).focus();
+    await page.getByRole("link", { name: "Instellingen", exact: true }).focus();
     await page.keyboard.press("Enter");
     await page.waitForFunction(() => new URLSearchParams(location.search).has("instellingen"));
     await page.getByRole("dialog", { name: "Instellingen" }).waitFor();

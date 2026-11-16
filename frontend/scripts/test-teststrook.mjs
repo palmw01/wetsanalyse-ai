@@ -39,7 +39,7 @@ const kruisje = (page) => page.getByRole("button", { name: "Melding testomgeving
 /** Het gebruikersmenu onderin de sidebar; op een telefoon eerst de drawer. */
 async function openMenu(page, smal) {
   if (smal) await page.getByRole("button", { name: "Menu openen" }).click();
-  await page.getByRole("button", { name: /· instellingen/ }).click();
+  await page.getByRole("button", { name: /^Menu van / }).click();
 }
 
 async function ronde(breedte) {
@@ -71,11 +71,11 @@ async function ronde(breedte) {
 
     // --- Herladen en een tweede tab ---
     await page.reload();
-    await page.getByRole("button", { name: /· instellingen/ }).or(page.getByRole("button", { name: "Menu openen" })).first().waitFor();
+    await page.getByRole("button", { name: /^Menu van / }).or(page.getByRole("button", { name: "Menu openen" })).first().waitFor();
     assert.equal(await strook(page).count(), 0, "na herladen blijft de strook weg");
     const tweede = await context.newPage();
     await tweede.goto(`${base}/workbench`);
-    await tweede.getByRole("button", { name: /· instellingen/ }).or(tweede.getByRole("button", { name: "Menu openen" })).first().waitFor();
+    await tweede.getByRole("button", { name: /^Menu van / }).or(tweede.getByRole("button", { name: "Menu openen" })).first().waitFor();
     assert.equal(await strook(tweede).count(), 0, "in een tweede tab blijft de strook weg");
     await tweede.close();
 

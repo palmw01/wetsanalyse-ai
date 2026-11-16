@@ -199,8 +199,8 @@ try {
   // In de dialog is een tab geen navigatie: er komt niets van de server, dus de pagina erachter kan niet wegvallen.
   const venster = await open("beheerder");
   await venster.page.goto(`${base}/workbench`);
-  await venster.page.getByRole("button", { name: /· instellingen/ }).click();
-  await venster.page.getByRole("link", { name: "Account & instellingen" }).click();
+  await venster.page.getByRole("button", { name: /^Menu van / }).click();
+  await venster.page.getByRole("link", { name: "Instellingen", exact: true }).click();
   await venster.page.getByRole("dialog").waitFor();
   const serververzoeken = [];
   venster.page.on("request", (r) => { if (r.url().includes("_rsc=")) serververzoeken.push(r.url()); });
@@ -211,7 +211,7 @@ try {
   await venster.page.waitForURL("**/workbench?instellingen=account");
   assert.deepEqual(serververzoeken, [], "een tabwissel haalt niets bij de server");
   assert.equal(await venster.page.getByRole("dialog").count(), 1);
-  await venster.page.getByRole("button", { name: /· instellingen/ }).waitFor({ state: "attached" });
+  await venster.page.getByRole("button", { name: /^Menu van / }).waitFor({ state: "attached" });
   await venster.page.getByRole("button", { name: "Instellingen sluiten" }).click();
   await venster.page.waitForURL("**/workbench");
   await venster.page.getByRole("dialog").waitFor({ state: "detached" });
