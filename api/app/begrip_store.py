@@ -235,6 +235,15 @@ def koppelstand(begrip: dict) -> dict:
         {k: x[k] for k in _KOPPELSTAND} | {"bevestigingen": len(x.get("bevestigingen") or [])} for x in begrip["koppelingen"]]}
 
 
+def begripstand(begrip: dict) -> dict:
+    """Het antwoord op een wijziging met `?vorm=stand` (B-1): de stand en de inhoud, zonder koppelingen en bewijs. De
+    kaart is rond 10k tokens, met de koppelingen er dubbel in; een agent of MCP-client liep daarop vast. De werkplek
+    leest de hele kaart."""
+    return {**{k: begrip[k] for k in _BEGRIPSTAND if k in begrip}, "vorm": "stand",
+            "naam": begrip.get("naam") or (begrip.get("inhoud") or {}).get("naam", ""), "inhoud": begrip.get("inhoud") or {},
+            "koppelingen": len(begrip.get("koppelingen") or [])}
+
+
 async def _opvolging(conn, werkgebied_id: str | None) -> dict[str, dict]:
     """Per begrip `vervangen_door` en `vervangt` ({begrip_id, naam, reden}) uit de opvolgingsrelaties. De opvolging van
     een generiek begrip heeft geen werkgebied en geldt overal."""

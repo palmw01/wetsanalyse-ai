@@ -118,6 +118,30 @@ def compacte_weergave(view: dict) -> dict:
     return {**view, "elementen": elementen, "runs": runs}
 
 
+#: Wat een element in de lijstvorm draagt (`GET weergave?vorm=lijst`, B-1): genoeg om het te beoordelen en erover te
+#: beslissen, zonder trace, meting, beslissingen en bronsegmenten. De tekst van de bron haal je los (`bron_lezen`).
+LIJST_ELEMENT = ("id", "laag_id", "eigenaar_iri", "klasse", "jas_subtype", "tekst", "toelichting", "ankers",
+                 "lifecycle", "herkomst", "aandacht", "verouderd", "beslist_door")
+LIJST_RELATIE = ("id", "type", "leesvorm", "van", "naar", "lifecycle", "herkomst", "volgorde", "veranderd")
+
+
+def lijst_weergave(view: dict) -> dict:
+    """De weergave als lijst (B-1): per element alleen wat de jurist beoordeelt, plus de lagen met hun revisie (voor
+    een besluit) en de relaties zonder bewijs. De weergave van één lid was 105k tekens; een agent of MCP-client liep
+    daarop vast. De werkplek leest de gewone weergave."""
+    def kort(d: dict, sleutels: tuple[str, ...]) -> dict:
+        return {k: d[k] for k in sleutels if k in d}
+    return {"schema_versie": view["schema_versie"], "vorm": "lijst", "doel": view["doel"],
+            "snapshot_id": view["snapshot_id"],
+            "lagen": [kort(laag, ("id", "bron_iri", "revisie", "status")) for laag in view["lagen"]],
+            "elementen": [{**kort(e, LIJST_ELEMENT), "beslissingen": len(e.get("beslissingen") or [])}
+                          for e in view["elementen"]],
+            "relaties": [kort(r, LIJST_RELATIE) for r in view.get("relaties") or []],
+            "impliciet": view.get("impliciet") or [],
+            "vervangen": len(view.get("vervangen") or []), "verwijzingen": len(view.get("verwijzingen") or []),
+            "dekking": view.get("dekking"), "verwijderd": view.get("verwijderd")}
+
+
 def is_terugval(element: dict | Element) -> bool:
     """Een voorstel waarbij geen klasse gekozen is: het draagt bewust geen klasse, de jurist kiest."""
     trace = element.trace if isinstance(element, Element) else (element.get("trace") or {})

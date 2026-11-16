@@ -30,6 +30,7 @@ import { AcceptatieClient, controleerUrl } from "./client.js";
 import { GraafClient } from "./graaf.js";
 import { aanvullen, lezen, type LogRegel, ROLLEN, SOORTEN, standaardMap } from "./logboek.js";
 import { zoekLogs } from "./logs.js";
+import { auditStaart, inventarisOverzicht } from "./vorm.js";
 
 const URL_ACC = process.env.WETSANALYSE_ACC_URL ?? "";
 const TOKEN_ANALIST = (process.env.WETSANALYSE_ACC_TOKEN ?? "").trim();
@@ -155,17 +156,33 @@ const TOOLS: ToolDef[] = [
   },
   {
     name: "werkgebied_lezen",
-    description: "Het hele werkgebied in één keer: dossier met deelvragen, dekking, geannoteerde elementen en de audit.",
-    input: S({ werkgebied_id: z.string(), als: Als }),
-    run: (a) => {
+    description:
+      "Het werkgebied: dossier met deelvragen, dekking, en een overzicht van de geannoteerde elementen (tellingen per " +
+      "bepaling, klasse en lifecycle) met de laatste auditregels. Met `bron_iri` de elementen van die bepaling in korte " +
+      "vorm; beoordelen doe je met weergave_lezen. `volledig: true` geeft alles zoals de api het levert (groot: na een " +
+      "annotatie honderdduizenden tekens).",
+    input: S({ werkgebied_id: z.string(), bron_iri: z.string().optional(), volledig: z.boolean().optional(), als: Als }),
+    run: async (a) => {
       const wg = `/api/werkgebieden/${seg(a.werkgebied_id)}`;
-      return samen(client(a.als), {
-        werkgebied: wg,
-        dekking: `${wg}/deelvragen/dekking`,
-        elementen: `${wg}/elementen`,
-        audit: `${wg}/audit`,
-      });
+      const routes = { werkgebied: wg, dekking: `${wg}/deelvragen/dekking`, elementen: `${wg}/elementen`, audit: `${wg}/audit` };
+      const uit = await samen(client(a.als), routes);
+      if (a.volledig) return uit;
+      const inv = uit.elementen as Record<string, unknown> | undefined;
+      return {
+        ...uit,
+        elementen: inv && Array.isArray(inv.elementen) ? inventarisOverzicht(inv, a.bron_iri as string | undefined) : inv,
+        audit: auditStaart(uit.audit),
+      };
     },
+  },
+  {
+    name: "weergave_lezen",
+    description:
+      "De annotatie van één bepaling (artikel, lid of onderdeel) als lijst: per element id, klasse, tekst, ankers, " +
+      "lifecycle, herkomst en aandacht, plus de lagen met hun revisie en de relaties. Hiermee beoordeel je de annotatie " +
+      "bepaling voor bepaling; annotatie_lezen geeft één element met alles erbij.",
+    input: S({ bron_iri: z.string(), als: Als }),
+    run: (a) => client(a.als).bff("GET", `/api/annotatie/v2/weergave?bron_iri=${encodeURIComponent(String(a.bron_iri))}&vorm=lijst`),
   },
   {
     name: "annotatie_lezen",

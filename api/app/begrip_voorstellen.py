@@ -5,9 +5,11 @@ en de voorstellen per veld. Gedeeld zoals de begrippen; elke route vraagt een ac
 BFF van de werkplek laat ze niet door (`frontend/lib/werkgebied.ts:isWerkgebiedRoute`)."""
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, Response
 
-from . import begrip_voorstel_store as store, werkgebied_store
+from . import begrip_store, begrip_voorstel_store as store, werkgebied_store
 from .auth import require_client
 from .begrip_voorstel_contracts import KaartMislukt, KaartRunStart, KaartUitkomst, VoorstelAfwijzing, VoorstelOvername
 from .routers.auth import actieve_userid
@@ -57,8 +59,10 @@ async def get_voorstellen(werkgebied_id: str, begrip_id: str, actor: str = Depen
 
 @router.post("/voorstellen/{voorstel_id}/overnemen")
 async def post_overnemen(werkgebied_id: str, begrip_id: str, voorstel_id: str, req: VoorstelOvername,
-                         actor: str = Depends(actieve_userid)):
-    return await store.overnemen(werkgebied_id, begrip_id, voorstel_id, req, actor)
+                         vorm: Literal["kaart", "stand"] = "kaart", actor: str = Depends(actieve_userid)):
+    """Het voorstel overnemen; `?vorm=stand` (B-1) geeft alleen de stand en de inhoud van het begrip terug."""
+    begrip = await store.overnemen(werkgebied_id, begrip_id, voorstel_id, req, actor)
+    return begrip_store.begripstand(begrip) if vorm == "stand" else begrip
 
 
 @router.post("/voorstellen/{voorstel_id}/afwijzen")
