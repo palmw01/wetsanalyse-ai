@@ -361,7 +361,7 @@
       "type": "object"
      },
      "name": "wijs_af",
-     "strict": true
+     "strict": false
     },
     {
      "description": "Roep dit aan als je een tool nodig hebt die je nu niet hebt. Je krijgt er dan in de volgende ronde bij: geldigheid (peildatum, versie, terugwerkende kracht), grondslagen (delegatie), verwijst_naar_deze en referenced_by (wie verwijst naar een bepaling), bijlagen, overzicht_onderwerp en semantic_search (breder zoeken op een onderwerp), resolve_begrip, search_begrippen en get_begrip (vastgelegde begrippen van een werkgebied), graph_schema en raw_sparql. Roep het alleen aan als de vraag daarom gaat; voor de tekst, de context en de verwijzingen van een bepaling heb je alles al. Schrijf er geen tekst naast.",
@@ -372,7 +372,7 @@
       "type": "object"
      },
      "name": "meer_tools",
-     "strict": true
+     "strict": false
     },
     {
      "description": "Roep dit aan als de gebruiker ALLEEN wil weten wat er in een bepaling staat of wat ze regelt ('en lid 2?', 'wat staat er in artikel 9?', 'geef de tekst van dat artikel'). De code haalt de tekst op en toont hem met een korte toelichting; schrijf zelf niets. Niet voor uitleg ('wat betekent', 'wat houdt in', 'waarom', 'hoe verhoudt'): die beantwoord je zelf met antwoord_duiding. bwb_id komt uit het gesprek; lid is leeg voor het hele artikel.",
@@ -415,7 +415,7 @@
       "type": "object"
      },
      "name": "toon_overzicht",
-     "strict": true
+     "strict": false
     },
     {
      "description": "Roep dit aan als de gebruiker vraagt naar BESTAANDE annotaties of markeringen ('welke markeringen zijn er al bij lid 2?', 'hoeveel rechtssubjecten zijn gemarkeerd?'), ook in een vervolgvraag. De code zoekt ze op; daarna formuleer je het antwoord. Niet om te annoteren, en niet voor een vraag over de JAS-methode zelf.",
@@ -433,7 +433,7 @@
       "type": "object"
      },
      "name": "lees_annotaties",
-     "strict": true
+     "strict": false
     },
     {
      "description": "Roep dit aan als de gebruiker vraagt naar begrippen die al VASTGELEGD zijn ('welke begrippen hebben we al?', 'welke zijn er nog meer?'), ook in een vervolgvraag. De code zoekt ze op; daarna formuleer je het antwoord. Niet voor de wettelijke definitie van een term, en niet om begrippen voor te stellen (taakagent).",
@@ -451,7 +451,7 @@
       "type": "object"
      },
      "name": "lees_begrippen",
-     "strict": true
+     "strict": false
     },
     {
      "description": "Roep dit aan als de gebruiker een LIJST of een aantal stukken uit een bron naast de wet vraagt (de nieuwste Kamerstukken, het laatste stuk van een dossier, uitspraken bij een artikel, hoeveel moties), ook in een vervolgvraag ('wat is het laatste?'). De code zoekt en de werkplek toont de stukken; schrijf zelf niets. Niet om één stuk te lezen of voor wat een stuk inhoudt.",
@@ -469,7 +469,7 @@
       "type": "object"
      },
      "name": "toon_stukken",
-     "strict": true
+     "strict": false
     },
     {
      "description": "Roep dit aan als de gebruiker één bepaling wil laten ANNOTEREN (markeren en classificeren in JAS-klassen): 'annoteer artikel 9 lid 1 Invorderingswet 1990', ook in een vervolgvraag ('doe hetzelfde voor lid 2'). De code zoekt de bepaling en annoteert; schrijf zelf niets. Eén artikel per keer. Het werkgebied of de bepalingen onder de deelvragen annoteren is taakagent (annotatie). Niet voor een vraag over bestaande markeringen (lees_annotaties) of over de JAS-methode.",
