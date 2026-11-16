@@ -65,8 +65,13 @@ def test_de_meting_per_deelvraag_houdt_de_gemeten_uitkomst():
     nieuw = r["bepaling_opties"]
     assert (nieuw["recall"], nieuw["recall_nodig"], nieuw["uitgesloten"], nieuw["recall_pool"]) == \
         (0.474, 0.533, 0, 0.842)
-    for profiel in (p for p in r.values() if "pool" in p):
-        assert all(p["aantal"] <= 8 and p["gemarkeerd"] <= 2 for p in profiel["per_deelvraag"])
+    from eval.bronselectie_eval import ROUTES
+    from agent.deelvraag_zoeken import MAX_PER_DEELVRAAG, MAX_VERWEZEN
+
+    for naam, profiel in ((n, p) for n, p in r.items() if "pool" in p):
+        # Met `verwijzingen` (aan sinds stap 8) komen er hoogstens `MAX_VERWEZEN` verwezen bepalingen bij.
+        extra = MAX_VERWEZEN if ROUTES[naam].profiel.verwijzingen else 0
+        assert all(p["aantal"] <= MAX_PER_DEELVRAAG + extra and p["gemarkeerd"] <= 2 for p in profiel["per_deelvraag"])
         assert all(p["in_pool"] >= p["gevonden"] for p in profiel["per_deelvraag"] if "in_pool" in p)
 
 
@@ -189,3 +194,20 @@ def test_de_deelvraag_kiest_in_de_pool(naam, oud, nieuw):
     assert r["bepaling_opties"]["recall_nodig"] == oud
     z = r["zoekvragen (PR 5)"]
     assert (z["recall"], z["recall_nodig"], z["precisie"], z["uitgesloten"]) == nieuw
+
+
+@pytest.mark.parametrize("naam,woorden,zoekvragen", [
+    ("termijnen-deelvragen-concept", 0.125, 0.062),
+    ("verrekening-concept", 0.056, 0.333),
+])
+def test_de_standaard_van_stap_8_houdt_de_gemeten_uitkomst(naam, woorden, zoekvragen):
+    """Stap 8 van het plan Termijnen (16 nov 2026): `termen_idf`, `verwijzingen`, `brug_omschrijving` en
+    `overzicht_streng` staan aan. Termijnen is de ontwikkelset van het plan, Verrekening de blinde set (meetlogboek
+    `bronselectie-2026-11-16-blind`). Recall nodig op de woordenroute en op de zoekvragenroute."""
+    from eval.bronselectie_eval import ROUTES, meet_intake
+
+    graaf = OpnameGraaf(json.loads((SETS / naam / "graafantwoorden.json").read_text()))
+    r = meet_intake(graaf, laad_set(naam), {k: ROUTES[k] for k in ("standaard (stap 8)", "zoekvragen standaard (stap 8)")})
+    assert graaf.ontbrekend == 0
+    assert round(r["standaard (stap 8)"]["recall_nodig"], 3) == woorden
+    assert round(r["zoekvragen standaard (stap 8)"]["recall_nodig"], 3) == zoekvragen

@@ -14,6 +14,7 @@ import asyncio
 import json
 import re
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 import httpx
@@ -150,11 +151,15 @@ def test_het_overzicht_levert_kernbepalingen(monkeypatch):
                                    {"iri": ART9, "label": "Artikel 9", "naam": "art. 9"}]}], "ook_genoemd": []}]}
     gevraagd = {}
     monkeypatch.setattr(overzicht, "bouw_overzicht", lambda g, vraag, **kw: gevraagd.update(vraag=vraag, **kw) or ov)
-    uit = vind(Graaf(), INVOER, methoden=("overzicht",))
+    vroeger = replace(deelvraag_zoeken.STANDAARD_PROFIEL, overzicht_streng=False)
+    uit = vind(Graaf(), INVOER, methoden=("overzicht",), profiel=vroeger)
     assert gevraagd["vraag"] == INVOER["analysevraag"]
-    # Geen onderwerp in "Wanneer is … invorderbaar?": de naam van het werkgebied is het onderwerp.
+    # Geen onderwerp in "Wanneer is … invorderbaar?": zonder `overzicht_streng` is de naam van het werkgebied het onderwerp.
     assert gevraagd["onderwerp"] == "Invorderbaarheid"
     assert _per_iri(uit)[ART8]["rol"] == "kern" and ART9 not in _per_iri(uit)
+    # De standaard sinds stap 8: een naam van één woord is geen onderwerp, en het overzicht levert aanverwant.
+    uit = vind(Graaf(), INVOER, methoden=("overzicht",))
+    assert gevraagd["onderwerp"] == INVOER["analysevraag"] and _per_iri(uit)[ART8]["rol"] == "aanverwant"
     vind(Graaf(), {**INVOER, "analysevraag": "Welke artikelen gaan over invorderingsrente?"}, methoden=("overzicht",))
     assert gevraagd["onderwerp"] == "invorderingsrente"
 
@@ -343,7 +348,8 @@ def test_de_deelvragen_agent_zoekt_per_deelvraag_met_dezelfde_functie():
     invoer = {**INVOER, "deelvragen": dv, "dossier": {"afbakening": "Regelingen: Invorderingswet 1990.\n"
                                                                       "Buiten de afbakening: kosten van vervolging."}}
     assert bronnen_vinden.standaard_voor(invoer)[-1] == "deelvraag"
-    assert bronnen_vinden.standaard_voor({**invoer, "kern": []}) == ("overzicht", "deelvraag")
+    # Met deelvragen draait het overzicht niet (`overzicht_streng`, aan sinds stap 8): de deelvragen zijn het vertrekpunt.
+    assert bronnen_vinden.standaard_voor({**invoer, "kern": []}) == ("deelvraag",)
     uit = vind(BepalingGraaf(), invoer, methoden=("deelvraag",))
     k = _per_iri(uit)
     # Met een kern: binnen de regeling van de kern; wat al in de selectie valt, valt weg. Een treffer bij een deelvraag

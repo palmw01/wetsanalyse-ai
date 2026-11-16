@@ -91,8 +91,9 @@ class Zoekprofiel:
       ook zonder haar woorden. Een haperende index kost alleen die lijst. Van de 40 treffers vallen er bijna
       geen binnen de regelingen, en die gaan over iets anders. Als brug over de woordenkloof is de index te zwak.
 
-    Uit de E2E-test Rekeningafspraken (16 nov 2026, B-2; plan centrale agent na A6, PR E). Beide staan **uit** tot de
-    meting (`eval/bronselectie_eval.py --intake`, "met …") laat zien dat ze helpen:
+    Uit de E2E-test Rekeningafspraken (16 nov 2026, B-2; plan centrale agent na A6, PR E). `verwijzingen` staat **aan**
+    sinds stap 8 van het plan Termijnen (16 nov 2026: beter op vier van de zes ontwikkelsets, gelijk op de blinde set
+    Verrekening); `onderscheidend` staat uit:
 
     - `verwijzingen`: de sterkste opties (`MAX_VERWIJZEND`) brengen mee waar ze naar verwijzen, diepte 1 en binnen de
       regelingen van het werkgebied, hoogstens `MAX_VERWEZEN` extra, met de herkomst in de omschrijving. Bij DV1 vond
@@ -114,16 +115,19 @@ class Zoekprofiel:
     dossier_lijsten: bool = False
     dossier_omgeving: bool = False
     gelijkenis: bool = False
-    verwijzingen: bool = False
+    verwijzingen: bool = True
     onderscheidend: bool = False
-    #: Het plan bronselectie bij Termijnen (`docs/architectuur/onderzoek-bronselectie-termijnen-2026-11.md`). Elke vlag
-    #: staat **uit** tot de meting op de ontwikkelsets en een blinde set laat zien dat hij helpt.
+    #: Het plan bronselectie bij Termijnen (`docs/architectuur/onderzoek-bronselectie-termijnen-2026-11.md`). Stap 8 (16 nov
+    #: 2026, `docs/architectuur/metingen/bronselectie-2026-11-16-blind/`) zette `termen_idf`, `overzicht_streng` en
+    #: `brug_omschrijving` **aan**: samen met `verwijzingen` op geen ontwikkelset en niet op de blinde set slechter, met
+    #: minder ruis. De andere staan uit: geen effect (`beurt_sterk`), slechter op een set (`woorden_voor_pool`,
+    #: `vraagvorm_eigen_woord`, `stam_heel`), of nog niet blind gemeten (`definitie_brug`).
     #:
     #: - `termen_idf` (stap 1a, O6): de vulwoorden van een vraag (`zoekvragen.LEGE_WOORDEN`, `METHODEWOORDEN`) zoeken
     #:   niet, en heeft een deelvraag meer termen dan `MAX_TERMEN`, dan zoeken de termen die in de regelingen het
     #:   zeldzaamst zijn (`termen_op_zeldzaamheid`), niet de eerste in de zin. Een term die er nergens staat, gaat
     #:   achteraan: hij vindt niets.
-    termen_idf: bool = False
+    termen_idf: bool = True
     #: - `beurt_sterk` (stap 1b, O7): om de beurt krijgen alleen de regelingen een plaats waarvan de beste kandidaat
     #:   minstens `AANDEEL_STERK` haalt van de beste score over alle regelingen; de kandidaten van de andere staan erna,
     #:   op hun score. Met zes regelingen in het zoekbereik kreeg anders elke regeling een plaats, ook zonder sterke
@@ -141,7 +145,7 @@ class Zoekprofiel:
     #: - `overzicht_streng` (stap 3, O5): de bronnenrun draait het overzicht niet als het werkgebied deelvragen heeft (die
     #:   zijn het vertrekpunt), gebruikt zonder deelvragen de naam alleen als die meer dan één inhoudswoord heeft, en geeft
     #:   wat het overzicht vindt de rol *aanverwant* in plaats van *kern* (`bronnen_vinden`).
-    overzicht_streng: bool = False
+    overzicht_streng: bool = True
     #: - `stam_heel` (stap 4, O3): een term van meer dan acht letters raakt een tekst op zijn hele stam of op zijn kern (een
     #:   slotdeel dat er als woord in staat), niet op zijn eerste acht letters (`zoektermen.raakt_heel`): de telling, de
     #:   dossiertermen en het gewicht in de pool. De index zoekt even breed.
@@ -150,7 +154,7 @@ class Zoekprofiel:
     #:   het woord omschrijft ("X is …"), niet uit elke zin die het noemt (`zoekvragen.brugtermen`). En staat zo'n woord
     #:   niet in het zoekbereik maar wel in een andere regeling van de graaf, dan noemt Lex die regeling
     #:   (`zoekvragen.regelingen_met_woord`, de melding in `bronselectie._kloof`).
-    brug_omschrijving: bool = False
+    brug_omschrijving: bool = True
     #: - `definitie_brug` (stap 6, O4): een definitie in de regelingen (`bwb:definieertBegrip`) waarvan de tekst minstens
     #:   `MIN_BRUGWOORDEN` termen van de deelvraag raakt, brengt de woorden van haar begrip mee als zoekterm, hoogstens
     #:   `MAX_BRUGTERMEN` (`definitie_bruggen`): "een voorlopige aanslag tot een negatief bedrag … wordt aangeduid als
@@ -160,7 +164,8 @@ class Zoekprofiel:
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.
 F3F = Zoekprofiel(per_term=False, samenstelling=False, lemma=False, divisies=False, kop_overal=False, fusie=False,
-                  per_regeling=False)
+                  per_regeling=False, verwijzingen=False, termen_idf=False, overzicht_streng=False,
+                  brug_omschrijving=False)
 STANDAARD_PROFIEL = Zoekprofiel()
 
 
