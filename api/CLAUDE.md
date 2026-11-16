@@ -877,6 +877,11 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   Vanuit een werkgebied: 409 `generiek`. `_gewijzigd_in` met `werkgebied_id=None` neemt geen werkgebiedslot en schrijft de
   audit bij elk gebruikend werkgebied. `passage=True` (koppelen, wijzigen, ontkoppelen, herkoppelen, bevestigen) mag wel
   vanuit een werkgebied en laat de status staan: één analyse zet het begrip niet voor iedereen terug.
+- **Voorstellen van Lex per veld** (fase E): een kaartrun op een generiek begrip loopt in een werkgebied dat het gebruikt
+  (daar zijn de passages), en `…/voorstellen` daar toont ze. Overnemen vanuit het werkgebied is 409 `generiek`; beslissen
+  gebeurt op `/v1/begrippen/{id}/voorstellen` (`GET`, `…/{v}/overnemen`, `…/{v}/afwijzen`), met de voorstellen uit elk
+  werkgebied (`begrip_voorstel_store` met `werkgebied_id=None`). De auditregel van een besluit gaat naar het werkgebied waar
+  het voorstel ontstond.
 - **Gebruik**: `POST …/begrippen/gebruik {begrip_id}` (idempotent), `DELETE …/gebruik/{b}` (de passages hier gaan los).
   Een werkgebied wissen laat het begrip staan. Verwijderen kan niet zolang het gebruikt wordt (409 `in_gebruik`).
 - **Doorwerking**: `GET …/herbeoordelingen` draagt `generiek`: wat veranderde sinds `gezien_revisie`, met toen en nu uit

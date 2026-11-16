@@ -1535,7 +1535,8 @@ bestaat los van de gesprekken.
   `BegripInhoud` niet hoeft te weten welke route het is.
   - **In een werkgebied** lees je het begrip en beheer je je eigen passages; *Bewerk generiek begrip* gaat naar zijn pagina.
     `GeneriekVeranderdBlok` zet toen naast nu, met *Klopt nog voor dit werkgebied* of *Opvolger overnemen*. Voorstellen van
-    Lex per veld horen er niet.
+    Lex per veld staan er niet: die beslis je op de eigen pagina (`haalKaartVoorstellen` met een lege `id`, api
+    `/v1/begrippen/{id}/voorstellen`).
   - **De eigen pagina** `/begrippen/[id]` (`BegripGeneriekPagina`, `generiekPad`): bewerken en accorderen, passages per
     werkgebied, *Gebruikt in*, relaties. Het segment heet `[wg]` omdat `app/begrippen/[wg]/[id]` (de doorverwijzing) er nog staat.
   - **Het kader**: label *Generiek* op de rij, een wijziging bij *Te doen*, *Generiek begrip gebruiken* (`GeneriekGebruiken`).

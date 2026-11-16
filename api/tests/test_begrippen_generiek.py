@@ -315,3 +315,30 @@ async def test_generieke_begrippen_buiten_dit_werkgebied(client):
         await begrip_store.gebruik_in(conn, ander["id"], g["id"], "lex-test")
     assert await begrip_store.generieke_buiten(ander["id"]) == []
     assert (await client.get(_url(ander, g))).status_code == 200
+
+
+async def test_lex_werkt_een_generiek_begrip_uit_en_het_besluit_valt_op_zijn_eigen_route(client):
+    """Acceptatie 16 nov 2026: *Werk het begrip volledig uit* op een generiek begrip gaf 'de api weigerde het op te slaan'.
+    Een kaartrun loopt in het werkgebied dat het begrip gebruikt (daar zijn de passages); de voorstellen zie je en
+    beslis je op de eigen route, want de inhoud wijzig je niet vanuit een werkgebied."""
+    _, wg, g = await generiek(client)
+    pad = f"/v1/werkgebieden/{wg['id']}/begrippen/{g['id']}"
+    run = (await client.post(f"{pad}/kaart-runs", json={"actie": "voorbeelden"})).json()
+    r = await client.put(f"{pad}/kaart-runs/{run['id']}/uitkomst", json={
+        "invoer_id": run["invoer_id"], "model": "m", "promptversie": "p1", "tokens": 10,
+        "voorstellen": [{"veld": "voorbeelden", "tekst": "A is schuldig", "oordeel": "wel"},
+                        {"veld": "voorbeelden", "tekst": "B niet", "oordeel": "niet"}]})
+    assert r.status_code == 200, r.text
+    v1, v2 = r.json()["voorstellen"]
+    eigen = f"/v1/begrippen/{g['id']}"
+    assert {x["id"] for x in (await client.get(f"{eigen}/voorstellen")).json()["voorstellen"]} == {v1["id"], v2["id"]}
+    # Vanuit het werkgebied wijzig je de inhoud niet.
+    r = await client.post(f"{pad}/voorstellen/{v1['id']}/overnemen", json={"verwachte_revisie": g["revisie"]})
+    assert r.status_code == 409 and r.json()["detail"]["fout"] == "generiek"
+    r = await client.post(f"{eigen}/voorstellen/{v1['id']}/overnemen?vorm=stand", json={"verwachte_revisie": g["revisie"]})
+    assert r.status_code == 200, r.text
+    assert [x["tekst"] for x in r.json()["inhoud"]["voorbeelden"]] == ["A is schuldig"]
+    r = await client.post(f"{eigen}/voorstellen/{v2['id']}/afwijzen", json={"reden": "Te mager."})
+    assert r.status_code == 200, r.text
+    statussen = {x["id"]: x["status"] for x in r.json()["voorstellen"]}
+    assert statussen == {v1["id"]: "overgenomen", v2["id"]: "afgewezen"}
