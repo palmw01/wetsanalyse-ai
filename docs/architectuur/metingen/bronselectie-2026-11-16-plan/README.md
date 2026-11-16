@@ -49,3 +49,26 @@ bevindingen** voor stap 8: (1) het aantal geraakte deelvraagtermen telt in de fu
 ("een voorlopige aanslag tot een negatief bedrag") het woord dat haar van de rest onderscheidt. De grens van 0,5 is niet bijgesteld om een uitkomst te halen.
 
 De rapporten staan in [`stap1b/`](stap1b/).
+
+## Stap 1 – `woorden_voor_pool` (O1)
+
+Gemeten op de zoekvragenroute (wat de bronnenrun met een gekozen gebeurtenis doet), recall nodig, eerst de standaard, dan
+met de vlag:
+
+- Termijnen: 0,06 → 0,06
+- Rekeningafspraken: 0,29 → 0,29
+- Bestuurdersaansprakelijkheid: 0,44 → 0,44
+- Bezwaar/ontvankelijkheid: 0,40 → 0,40
+- Invorderbaarheid (deelvragen): 0,46 → 0,46
+- Kwijtschelding: 0,33 → **0,19**
+
+De zoekvragenroute van de eval roept nu dezelfde functie aan als de bronnenrun (`zoekvragen.samen_met_woorden`), en
+geeft zonder vlag exact de cijfers van de nulmeting.
+
+**Oordeel: helpt niet, en kost bij Kwijtschelding.** De aanname achter O1 klopt maar half. De pool neemt bij Termijnen alle
+plaatsen, maar haar opties raken wel eigen woorden van de deelvraag (voorlopige, aanslag, verrekend). Ze tellen dus niet
+als "zwak" en wijken niet. Waar ze wel wijken (Kwijtschelding), rangschikt de woordenroute slechter dan de pool. Zolang de
+woordenroute haar eigen pool niet goed rangschikt (stap 1b, bevindingen), maakt meer plaatsen geven het niet beter. De
+vlag blijft uit; stap 8 neemt haar niet mee tenzij een latere stap de woordenroute verbetert.
+
+De rapporten staan in [`stap1/`](stap1/).

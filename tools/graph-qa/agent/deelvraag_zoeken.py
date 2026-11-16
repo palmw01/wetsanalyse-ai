@@ -126,6 +126,11 @@ class Zoekprofiel:
     #:   op hun score. Met zes regelingen in het zoekbereik kreeg anders elke regeling een plaats, ook zonder sterke
     #:   treffer. Alleen met `per_regeling` en `fusie`.
     beurt_sterk: bool = False
+    #: - `woorden_voor_pool` (stap 1, O1): met een gekozen gebeurtenis verdringt een treffer van de woordenroute (deze
+    #:   functie) een optie uit de pool die geen eigen woord van de deelvraag raakt, alleen een brugwoord of de bonus van
+    #:   de vraagvorm (`zoekvragen.samen_met_woorden`). Een brede gebeurtenis ("invordering") filterde zo niets meer en
+    #:   nam alle plaatsen.
+    woorden_voor_pool: bool = False
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.

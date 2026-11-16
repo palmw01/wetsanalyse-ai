@@ -110,3 +110,40 @@ def test_om_de_beurt_sterk_met_gelijke_regelingen_is_om_de_beurt():
 
 def test_beurt_sterk_staat_standaard_uit():
     assert dz.STANDAARD_PROFIEL.beurt_sterk is False and dz.AANDEEL_STERK == 0.5
+
+
+# --- stap 1: de woordenroute naast een brede pool (O1) -----------------------------------------------------------
+
+from agent import zoekvragen as zv  # noqa: E402
+
+
+def _pool(iri: str, geraakt: list[str], brug: dict | None = None) -> dict:
+    return {"bron_iri": iri, "geraakt": geraakt, "zoekvraag": "d", "signaal": "beleidsregel",
+            **({"brug": brug} if brug else {})}
+
+
+def _woord(iri: str, buiten: bool = False) -> dict:
+    return {"bron_iri": iri, "geraakt": ["verrekening"], "buiten": buiten, "label": iri}
+
+
+POOL = [_pool("p1", ["verrekening"]), _pool("p2", ["termijnen"], brug={"termijnen": "winstaandeel"}), _pool("p3", [])]
+WOORDEN = [_woord("w1"), _woord("p1"), _woord("w2"), _woord("w3", buiten=True)]
+
+
+def test_zwak_in_pool_is_alleen_brug_of_bonus():
+    assert [zv.zwak_in_pool(o) for o in POOL] == [False, True, True]
+
+
+def test_standaard_gaat_de_pool_voor_zoals_vroeger():
+    uit = zv.samen_met_woorden(POOL, WOORDEN, limit=4)
+    assert [o["bron_iri"] for o in uit] == ["p1", "p2", "p3", "w1", "w3"], "buiten komt er altijd achter"
+    assert [o["bron"] for o in uit] == ["pool", "pool", "pool", "woorden", "woorden"]
+
+
+def test_met_de_vlag_wijkt_een_zwakke_poolkandidaat_voor_een_woordtreffer():
+    uit = zv.samen_met_woorden(POOL, WOORDEN, limit=4, woorden_voor_pool=True)
+    assert [o["bron_iri"] for o in uit] == ["p1", "w1", "w2", "p2", "w3"]
+
+
+def test_woorden_voor_pool_staat_standaard_uit():
+    assert dz.STANDAARD_PROFIEL.woorden_voor_pool is False
