@@ -103,7 +103,7 @@ def test_een_tool_buiten_het_profiel_staat_als_geweigerde_stap_in_het_denkproces
         response([text_block("Laat me dat ophalen."), tool_block("t1", tool, {"bwb_id": "BWBR0004770", "artikel": "9"})],
                  "tool_use"),
         response([text_block("Dat kan ik nu niet ophalen.")], "end_turn"),
-    ])
+    ], buiten_aanbod=True)  # de weigering van een tool buiten het profiel is wat hier getoetst wordt
     events = _run(answer_stream("Wat regelt de Invorderingswet 1990 over uitstel van betaling?", settings=make_settings(),
                                 llm=llm, graph=FakeGraph(result=GRAAF)))
     toets_een_op_een(events)

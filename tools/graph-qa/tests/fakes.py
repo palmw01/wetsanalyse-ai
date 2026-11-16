@@ -59,11 +59,36 @@ class _FakeStream:
         return self._resp
 
 
-class FakeLLM:
-    """Speelt een vaste reeks responses af via create() én stream() (gedeelde index)."""
+class ScriptFout(AssertionError):
+    """De gescripte `FakeLLM` kreeg een aanroep die het script niet voorzag. Een `AssertionError`, zodat pytest hem als
+    falende toets toont; de melding zegt wat er gevraagd werd, in plaats van een kale `IndexError` (Lex Bench §20.5)."""
 
-    def __init__(self, responses: list[SimpleNamespace]) -> None:
+
+def _tekst_van(inhoud: Any, maximum: int = 300) -> str:
+    if isinstance(inhoud, list):
+        delen = []
+        for b in inhoud:
+            if isinstance(b, dict):
+                delen.append(str(b.get("text") or b.get("content") or b.get("name") or ""))
+            else:
+                delen.append(str(getattr(b, "text", "") or getattr(b, "name", "")))
+        inhoud = " | ".join(d for d in delen if d)
+    tekst = " ".join(str(inhoud or "").split())
+    return tekst if len(tekst) <= maximum else tekst[:maximum] + " …"
+
+
+class FakeLLM:
+    """Speelt een vaste reeks responses af via create() én stream() (gedeelde index).
+
+    Streng (testplan graph-qa P0-4): is het script op, dan faalt hij met een `ScriptFout` die zegt welke ronde er
+    gevraagd werd en wat het laatste bericht was (vaak een weigering van de code); en roept een gescript antwoord een tool
+    aan die het verzoek niet aanbood, dan faalt hij ook: een echt model kan dat niet, dus de test zou iets toetsen wat
+    niet bestaat. Een test die juist dát toetst (de code weigert een tool buiten het profiel) zet `buiten_aanbod=True`.
+    """
+
+    def __init__(self, responses: list[SimpleNamespace], *, buiten_aanbod: bool = False) -> None:
         self._responses = list(responses)
+        self.buiten_aanbod = buiten_aanbod
         self.index = 0
         self.calls: list[dict[str, Any]] = []
         # Per aanroep wat de beurt als instructie meekreeg: de systeemprompt plus de context van de beurt (die staat sinds
@@ -72,9 +97,29 @@ class FakeLLM:
         self.prompts: list[str] = []
 
     def _next(self) -> SimpleNamespace:
+        if self.index >= len(self._responses):
+            laatste = self.calls[-1] if self.calls else {}
+            berichten = laatste.get("messages") or []
+            raise ScriptFout(
+                f"FakeLLM: de keten vroeg modelronde {self.index + 1}, gescript waren er {len(self._responses)}. "
+                f"Laatste bericht ({berichten[-1].get('role', '?') if berichten else '-'}): "
+                f"{_tekst_van(berichten[-1].get('content')) if berichten else '-'}")
         resp = self._responses[self.index]
         self.index += 1
+        self._toets_aanbod(resp)
         return resp
+
+    def _toets_aanbod(self, resp: SimpleNamespace) -> None:
+        if self.buiten_aanbod:
+            return
+        aangeboden = {t.get("name") for t in (self.calls[-1].get("tools") or []) if isinstance(t, dict)} if self.calls else set()
+        gevraagd = [b.name for b in getattr(resp, "content", []) or [] if getattr(b, "type", "") == "tool_use"]
+        buiten = [n for n in gevraagd if n not in aangeboden]
+        if buiten:
+            raise ScriptFout(
+                f"FakeLLM: ronde {self.index} roept {', '.join(buiten)} aan, maar het verzoek bood die niet aan "
+                f"(aangeboden: {', '.join(sorted(n for n in aangeboden if n)) or 'geen tools'}). Een echt model kan dat "
+                "niet; toetst de test juist die weigering, zet dan FakeLLM(..., buiten_aanbod=True).")
 
     def _leg_vast(self, kwargs: dict[str, Any]) -> None:
         """Onthoud de call, met `system` als één string.
