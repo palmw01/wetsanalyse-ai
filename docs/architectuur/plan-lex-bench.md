@@ -55,7 +55,7 @@ Bench bouwt op wat er staat. Hij maakt geen tweede kopie van een set, een scorer
 
 **Wat nieuw is:** het manifest met twintig casussen, niveau en gebruik; vijf blinde casussen met een hash in de repo en
 de inhoud erbuiten; vier velden in het casusschema; een blind analistprofiel voor het team; de vergelijking in drie
-categorieën met de overlap; het runrecord; een handmatige workflow; en de ketentest vanaf fase 2.
+categorieën met de overlap; het runrecord; een handmatige workflow; een los dashboard in de stijl van Lex (§6); en de ketentest vanaf fase 2.
 
 ## 3. De casus
 
@@ -232,6 +232,37 @@ de scores en de categorieën in de repo, niet de bepalingen of het dossier.
 **De voortgang** staat op één plek, `docs/lex-bench/README.md`: per meetas (bronselectie, annotaties, begrippen,
 afleidingsregels) wat er is, hoeveel casussen vastgesteld zijn, de laatste run, en wat er nog niet is.
 
+**Het dashboard.** Lex Bench krijgt een eigen, losse pagina, en wordt niet in Lex geïntegreerd (besluit van de
+gebruiker, 16 nov 2026). Het is een statische HTML-pagina in `tools/lex-bench/`, met nette benchmarkgrafieken in de
+stijl van Lex. Er is geen backend en geen koppeling met de app of de api.
+
+- **Wat hij toont.** De scorekaart en het verloop per versie van Lex:
+  - recall (nodig en alles), precisie en overlap, per casus en per niveau;
+  - blind en ontwikkeling altijd apart, nooit in één lijn;
+  - per run de versie uit het runrecord (commit, zoekversie, model);
+  - de verdeling over *Lex mist*, *Lex onterecht*, *team mist* en *twijfel*;
+  - hoeveel verwachtingen `vastgesteld` zijn.
+
+  Boven elke grafiek staat de status (*trendmeting* zolang een verwachting `concept` is). Er is geen totaalcijfer en
+  geen groen of rood oordeel.
+- **Waar de gegevens vandaan komen.** Uit de vastgelegde runs in de repo: de `run.json` en de rapporten in de
+  meetmappen. Een script (`eval/lex_bench.py --dashboard`) leest die mappen en schrijft één gegevensbestand
+  `tools/lex-bench/data.js` (`window.LEX_BENCH = {…}`). De pagina laadt dat met een gewone `<script>`, zodat ze ook als
+  lokaal bestand opent (`file://` mag geen JSON ophalen). Het dashboard leest de meetbestanden alleen en verandert
+  ze nooit. Van blinde casussen bevat het alleen de scores en de categorieën.
+- **De stijl van Lex:**
+  - de tokens en kleuren uit `frontend/app/globals.css`: paper, surface, ink, lintblauw, muted, line, en succes, gold en
+    fout voor de categorieën;
+  - het lettertype Fira (Sans voor tekst, Mono voor cijfers), met een systeemlettertype als terugval zonder netwerk;
+  - het beeldmerk uit `frontend/merk/` (`lex-merk.svg`), met *Bench* ernaast.
+
+  De tokens worden overgenomen, niet geïmporteerd: de pagina hangt niet aan de build van de frontend. Een kleine test
+  bewaakt dat de overgenomen waarden gelijk blijven aan `globals.css`, net als de drift-test van de JAS-kleuren.
+- **De grafieken** zijn met de hand getekend in inline SVG, zonder externe bibliotheek. Zo werken ze zonder netwerk en
+  als artifact. Elke grafiek heeft een tabel met de getallen ernaast of eronder.
+- **Delen.** De pagina is lokaal te openen. Later kan ze als artifact gedeeld worden, maar alleen met de gegevens van de
+  ontwikkelcasussen en de scores van de blinde.
+
 **GitHub.**
 
 - Een poorttest op de vorm (§4.5), zonder model en zonder score.
@@ -301,7 +332,9 @@ Elke stap is een eigen PR, en de hoofdsessie bundelt ze. Stappen met een model d
   onafhankelijke blik op hun verwachting, zonder de sets te wijzigen: verschillen gaan als voorstel naar hun eigenaar.
 - **LB5 – vijf blinde casussen en de eerste validatierun**, op een bevroren commit. Daarna gaan ze naar ontwikkeling,
   en komen er vijf nieuwe blinde.
-- **LB6 – de workflow `lex-bench.yml` en de voortgangspagina.**
+- **LB6 – het dashboard in `tools/lex-bench/`** (statisch, in de stijl van Lex, met de drift-test op de tokens), **de
+  workflow `lex-bench.yml` en de voortgangspagina.** De eerste versie van het dashboard kan al na LB1 komen, op het
+  nulpunt van de zes bestaande sets.
 - **LB7 en verder – fase 2 tot en met 4 en de ketentest**, elk met een eigen plan.
 
 ## 10. Open keuzes voor de gebruiker
