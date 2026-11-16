@@ -41,10 +41,11 @@ De vlag samen met `termen_idf` ("met het plan (alles)"): Rekeningafspraken 0,14 
 `termen_idf` alleen.
 
 **Oordeel: de grens werkt, de recall verandert niet.** Bij Termijnen DV1 valt de Awb af: haar beste kandidaat haalt 0,033,
-tegen de helft van 0,079. Maar de verwachte bepalingen komen er niet bij, want het verlies zit *binnen* een regeling. AWR
-13 lid 2 raakt drie termen van de deelvraag (voorlopige, aanslag, negatieve) en staat toch onder AWR 30fa lid 1 en AWR 2
-lid 3, die er twee raken. RRF beloont een bepaling die in veel lijsten hoog staat, en een lange bepaling met gewone woorden
-staat in veel lijsten. Dat is een **nieuwe bevinding** voor stap 8: het aantal geraakte deelvraagtermen telt in de fusie niet
-mee. De grens van 0,5 is niet bijgesteld om een uitkomst te halen.
+tegen de helft van 0,079. Maar de verwachte bepalingen komen er niet bij, want het verlies zit *binnen* een regeling. AWR 13 lid 2 raakt in de
+index twee termen van de deelvraag (voorlopige, aanslag), net als AWR 30fa lid 1 en AWR 2 lid 3, en staat daaronder:
+bij gelijke dekking beslist de fusie, en een lange bepaling met gewone woorden staat in meer lijsten hoog. Twee **nieuwe
+bevindingen** voor stap 8: (1) het aantal geraakte deelvraagtermen telt in de fusie niet apart mee; (2) "negatieve" raakt
+"negatief" niet, want de wildcard `*negatiev*` en de stemmer van de index vinden het geen van beide. Zo mist AWR 13 lid 2
+("een voorlopige aanslag tot een negatief bedrag") het woord dat haar van de rest onderscheidt. De grens van 0,5 is niet bijgesteld om een uitkomst te halen.
 
 De rapporten staan in [`stap1b/`](stap1b/).
