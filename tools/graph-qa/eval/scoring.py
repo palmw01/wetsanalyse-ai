@@ -29,6 +29,7 @@ Eén voorgesteld element matcht maximaal één gold-element en vice versa.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -52,9 +53,25 @@ def source_recall(sources: list[dict[str, Any]], expected: list[str]) -> float:
     return hit / len(expected)
 
 
+#: Telwoorden die een wettekst of een antwoord voluit schrijft ("veertien dagen") en een verwachting in cijfers ("14
+#: dagen"), of andersom. "een" staat er bewust niet in: dat is meestal een lidwoord (A6, K03 en K09 faalden in elke
+#: ronde op "veertien dagen" terwijl het antwoord juist was).
+TELWOORDEN = {w: str(i) for i, w in enumerate(
+    "_ _ twee drie vier vijf zes zeven acht negen tien elf twaalf dertien veertien vijftien zestien zeventien achttien "
+    "negentien twintig".split()) if i >= 2}
+TELWOORDEN |= {"dertig": "30", "veertig": "40", "vijftig": "50", "zestig": "60", "zeventig": "70", "tachtig": "80",
+               "negentig": "90", "honderd": "100"}
+_TELWOORD = re.compile(r"\b(" + "|".join(sorted(TELWOORDEN, key=len, reverse=True)) + r")\b")
+
+
+def _genormaliseerd(tekst: str) -> str:
+    """Kleine letters, en een telwoord als zijn getal: zo telt "veertien dagen" als "14 dagen"."""
+    return _TELWOORD.sub(lambda m: TELWOORDEN[m.group(1)], (tekst or "").lower())
+
+
 def contains_ok(answer: str, expected: list[str]) -> bool:
-    low = answer.lower()
-    return all(e.lower() in low for e in (expected or []))
+    low = _genormaliseerd(answer)
+    return all(_genormaliseerd(e) in low for e in (expected or []))
 
 
 def zonder_verboden(answer: str, verboden: list[str]) -> bool:

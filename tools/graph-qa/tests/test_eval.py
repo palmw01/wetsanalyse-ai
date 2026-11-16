@@ -28,6 +28,11 @@ def test_source_recall():
 def test_contains_en_refusal():
     assert scoring.contains_ok("De termijn is 14 dagen.", ["14 dagen"])
     assert not scoring.contains_ok("Geen termijn genoemd.", ["14 dagen"])
+    # Een telwoord voluit telt als zijn getal, in beide richtingen; "een" is geen telwoord (A6, K03/K09).
+    assert scoring.contains_ok("Hij is invorderbaar na veertien dagen.", ["14 dagen"])
+    assert scoring.contains_ok("De termijn is 6 weken.", ["zes weken"])
+    assert not scoring.contains_ok("Binnen veertien dagen.", ["40 dagen"])
+    assert not scoring.contains_ok("een dag", ["1 dag"])
     assert scoring.refusal_ok([], should_refuse=True)
     assert not scoring.refusal_ok([{"uri": "x"}], should_refuse=True)
     assert scoring.refusal_ok([{"uri": "x"}], should_refuse=False)
