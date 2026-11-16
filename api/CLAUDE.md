@@ -192,6 +192,9 @@ Hieronder wat je moet weten om de code te wijzigen.
   elk element compleet is. Die regel is geen oordeel: de maker mag nog bijwerken en wissen, en de statistiek telt hem niet.
 - **De toelichting volgt de klasse.** Wisselt een `edit` de klasse zonder eigen toelichting, dan ging de oude over de
   vorige klasse: ze wijkt voor een zin die dat zegt (`_herzien_toelichting`), en de beslissing bewaart haar in `voor`.
+- **`GET weergave?vorm=lijst`** (B-1, `lijst_weergave`): per element alleen wat de jurist beoordeelt (`LIJST_ELEMENT`),
+  plus de lagen met hun revisie en de relaties zonder bewijs. Er zijn geen segmenten: de brontekst haal je los op. Dit is
+  voor agents en de acceptatie-MCP; de werkplek leest de gewone vorm.
 - **Antwoorden op een besluit zijn klein** (`compact_element`): zonder `trace` en `geproduceerd_door`. De werkplek laadt
   de weergave daarna toch opnieuw. Elk element droeg de hele meting van zijn ronde; **`GET weergave` draagt elke meting nu
   één keer** (`compacte_weergave`, `runs` op `run_sleutel`) en `GET elementen/{id}` geen. De opslag, de export en
@@ -545,6 +548,8 @@ spoor D (*Werkgebied als node*).
 - **Een 412 draagt een `melding`**, net als de 409's (`al_primair`, `al_gekoppeld`, `poort`): de
   werkplek toont die tekst waar hij de fout niet zelf afhandelt, in plaats van ruwe JSON. Dat geldt ook
   voor de werkgebieden.
+- **`?vorm=stand`** (B-1) op PATCH, `accorderen`, `heropenen` en `voorstellen/{id}/overnemen`
+  (`begrip_store.begripstand`): de stand en de inhoud, zonder koppelingen en bewijs. De standaard blijft de kaart.
 - **Een besluit over koppelingen geeft de stand, niet de kaart** (`begrip_store.koppelstand`): koppelen, wijzigen, losmaken,
   herkoppelen en bevestigen antwoorden met status, revisie, poort en per koppeling de rol en beoordeling, zonder inhoud en
   bewijs. Anders wordt een reeks besluiten kwadratisch in het aantal passages. De werkplek legt de stand over de kaart die
@@ -996,6 +1001,10 @@ werkgebied zonder deelvragen werkt zoals altijd.
 de bronselectie in het gesprek, maar de stand staat hier – niet in de gesprek-checkpointer –, zodat hij er
 na herladen, in een ander gesprek en bij een collega ook is.
 
+- **`?vorm=deelvraag`** (B-1) op `GET …/bronselectie` en op elk besluit, elke status en elk genoemd voorstel
+  (`bronselectie.beperk`): alleen die deelvraag volledig, de andere met hun stand (`SLANK`). `GET …/kandidaten?deelvraag_id=`
+  filtert met dezelfde regel als het overzicht (`kandidaat_ids`, 404 bij een onbekende deelvraag). De standaard blijft het
+  hele overzicht, want de werkplek en graph-qa lezen dat. Een agent of MCP-client kiest de compacte vorm.
 - **Het overzicht herhaalt het bewijs niet.** Per kandidaat staan `bewijs_soorten` en `zoekvragen`; het bewijs zelf staat
   in `GET …/kandidaten`. Per deelvraag herhaald was het de oorzaak van 760 KB, terwijl geen afnemer het hier las.
 - **Zelf genoemd is een voorstel** (4 nov 2026): `POST …/bronselectie/{deelvraag}/voorstellen {bron_iri, rol: kern|
