@@ -18,7 +18,7 @@ from test_delegaties import B, D, _gesprek, _start, _subagent
 from test_werkgebied_deelvragen import _dv
 from test_werkgebieden import _nieuw, client, graaf  # noqa: F401
 
-pytestmark = vereis_postgres()
+pytestmark = [vereis_postgres(), pytest.mark.risico("R07")]
 
 
 @pytest.fixture(autouse=True)

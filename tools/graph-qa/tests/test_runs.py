@@ -150,6 +150,7 @@ async def test_gat_wordt_benoemd_bij_aanhaken():
 
 
 @asyncio_test
+@pytest.mark.risico("R08")
 async def test_stoppen_is_een_verzoek_geen_annulering():
     """`vraag_stop` zet een vlag; er wordt niets ge-cancelled. De driver leest hem op zijn eigen
     grens – dat is waarom stoppen tijd mag kosten."""

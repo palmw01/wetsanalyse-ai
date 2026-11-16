@@ -13,6 +13,8 @@
 # `-Dgraphdb.license.file` zoals in de straten. Een servicecontainer start vóór de stappen, dus de licentie komt er in een
 # stap in (`docker cp`), waarna hij herstart; het bestand staat alleen tijdens die stap op de runner. De test maakt en
 # verwijdert zijn eigen repository.
+#
+# risico: R20
 
 name: projectie-graphdb
 

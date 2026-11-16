@@ -12,9 +12,13 @@ Alleen tekst en regex: de poorttests draaien zonder afhankelijkheden.
 """
 from __future__ import annotations
 
+import pytest
+
 import re
 
 from routeboek import WORTEL
+
+pytestmark = pytest.mark.risico("R12")
 
 WORKFLOWS = WORTEL / ".github" / "workflows"
 GEHEIM = "GRAPHDB_LICENSE_B64"

@@ -39,7 +39,7 @@ function scriptsMetNepApi(): { naam: string; tekst: string }[] {
 
 const isStreng = (tekst: string) => /return onbekend\(route\b/.test(tekst) && /controleerOnbekend\(\);/.test(tekst);
 
-describe("de nep-api van de browserscripts", () => {
+describe("[R21] de nep-api van de browserscripts", () => {
   it("vindt de scripts", () => {
     expect(scriptsMetNepApi().length).toBeGreaterThan(30);
   });

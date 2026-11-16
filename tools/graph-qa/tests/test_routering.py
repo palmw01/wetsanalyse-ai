@@ -16,6 +16,8 @@ from agent.nodes import supervisie
 from agent.nodes.context import Bouw
 from fakes import FakeGraph, make_settings
 
+pytestmark = pytest.mark.risico("R16", laag=2)
+
 SET = Path(__file__).resolve().parents[1] / "eval" / "golden_routering.jsonl"
 RIJEN = [json.loads(r) for r in SET.read_text(encoding="utf-8").splitlines() if r.strip() and not r.startswith("#")]
 NAMEN = ("?regeling\t?citeertitel\t?soort\t?afkortingen\n"

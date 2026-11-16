@@ -94,3 +94,8 @@ async def op_postgres(naam: str, monkeypatch):
 
 async def _geen() -> None:
     return None
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "risico(id, laag=None): het risico van Lex Bench dat deze test dekt "
+                                       "(docs/lex-bench/risicos.json, scripts/risicomatrix.py)")

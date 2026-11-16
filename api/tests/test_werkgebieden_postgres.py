@@ -16,7 +16,7 @@ from app import db, werkgebied_store as store
 from app.werkgebied_contracts import BronselectieInvoer, WerkgebiedInvoer, WerkgebiedWijziging
 from test_annotatie_v2 import ART
 
-pytestmark = pytest.mark.skipif(not os.getenv("ANNOTATIE_TEST_DSN"), reason="PostgreSQL-test DSN ontbreekt")
+pytestmark = [pytest.mark.skipif(not os.getenv("ANNOTATIE_TEST_DSN"), reason="PostgreSQL-test DSN ontbreekt"), pytest.mark.risico("R07")]
 
 
 @pytest.fixture(autouse=True)

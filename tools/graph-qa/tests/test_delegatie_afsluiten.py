@@ -3,6 +3,8 @@ bundel 114, 14 nov 2026: geen kind rondde af met een rapport, S01, D01 en P01 li
 agent las daarna alles zelf opnieuw, P01 21 aanroepen voor 1,5M)."""
 from __future__ import annotations
 
+import pytest
+
 import asyncio
 import json
 from types import SimpleNamespace
@@ -14,6 +16,8 @@ from agent.nodes.antwoord import (MAX_TOKENS_SUBAGENT, NA_SUBAGENT, SUBAGENT_AFG
                                   met_laatste_ronde, na_subagent)
 from fakes import FakeGraph, FakeLLM, make_settings, response, text_block, tool_block
 from test_subagent import ARTIKEL, OPDRACHT, ZIN_1, _rapport
+
+pytestmark = pytest.mark.risico("R09")
 
 
 def _lees(i: int):

@@ -249,6 +249,8 @@ def test_raw_sparql_is_streng_en_geeft_nooit_een_half_antwoord():
 from agent.adapters.sru_kamerstukken import Document, Record  # noqa: E402
 from bronmodel.connectors import CONNECTORS  # noqa: E402
 
+pytestmark = pytest.mark.risico("R10")
+
 
 class NepSru:
     """De zoekdienst van KOOP: `n` stukken in één dossier, startRecord/maximumRecords zoals de dienst, en een document

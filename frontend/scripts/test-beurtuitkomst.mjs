@@ -13,6 +13,8 @@
  *    dubbel staat: de werkplek speelt de log opnieuw af, de server geeft hem vanaf het gevraagde volgnummer;
  *  - een 409 bij de start haakt aan bij de lopende run en geeft de nieuwe vraag terug in het invoerveld;
  *  - een run die bij terugkomst verdwenen is (geen run en geen bericht), krijgt de waarschuwing.
+ *
+ * risico: R08, R21
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";

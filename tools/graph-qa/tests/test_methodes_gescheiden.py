@@ -14,6 +14,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.risico("R17", laag=2)
+
 SKILL = Path(__file__).resolve().parents[3] / ".claude" / "skills" / "wetsanalyse"
 
 #: Sinds S6 (methodeversie 3.0) telt ook de methodetekst tussen de markers mee.

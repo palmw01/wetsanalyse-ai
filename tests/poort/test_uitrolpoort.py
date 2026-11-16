@@ -12,6 +12,8 @@ import pytest
 
 from routeboek import WORTEL
 
+pytestmark = pytest.mark.risico("R18")
+
 WORKFLOWS = WORTEL / ".github" / "workflows"
 ACTION = WORTEL / ".github" / "actions" / "wacht-op-revisie"
 GEBRUIK = "uses: ./.github/actions/wacht-op-revisie"

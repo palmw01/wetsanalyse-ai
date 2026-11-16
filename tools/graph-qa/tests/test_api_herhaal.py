@@ -10,6 +10,8 @@ from agent import wetsanalyse_api
 from agent.wetsanalyse_api import WetsanalyseApi, WetsanalyseApiFout
 from fakes import make_settings
 
+pytestmark = pytest.mark.risico("R02")
+
 
 def _client(antwoorden: list[int], monkeypatch) -> tuple[WetsanalyseApi, list[str]]:
     monkeypatch.setattr(wetsanalyse_api, "HERHAAL_NA_S", 0)

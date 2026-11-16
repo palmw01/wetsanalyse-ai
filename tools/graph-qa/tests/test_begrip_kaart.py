@@ -6,6 +6,8 @@ op start niets; het verbruik wordt geboekt; en elk voorstel heeft de vorm van he
 """
 from __future__ import annotations
 
+import pytest
+
 import ast
 import asyncio
 import hashlib
@@ -300,6 +302,7 @@ async def _nee():
     return False
 
 
+@pytest.mark.risico("R05")
 def test_budget_op_start_geen_model():
     model = NepModel()
     api, events = asyncio.run(_verloop(_invoer(), maak_llm=lambda s: model, budget_toegestaan=_nee))

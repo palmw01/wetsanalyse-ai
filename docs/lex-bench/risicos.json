@@ -1,0 +1,196 @@
+{
+  "toelichting": "Het register van de risico's van Lex Bench (plan-lex-bench.md §17 en §20.2). Een test noemt het risico dat hij dekt met een marker (pytest: @pytest.mark.risico(\"R07\"); vitest: [R07] in de naam); scripts/risicomatrix.py bouwt daaruit de matrix. Voorlopig alleen zichtbaar, nog niet bindend (besluit 15).",
+  "lagen": {
+    "1": "unit en component",
+    "2": "contract en kruistests",
+    "3": "keten en integratie",
+    "4": "E2E-scenario's",
+    "5": "gedrag en kwaliteit (Lex Bench)"
+  },
+  "risicos": [
+    {
+      "id": "R01",
+      "risico": "De graaf is weg (lege repository na een herstart, `Repository inning doesn't exist`)",
+      "impact": "hoog",
+      "verwachte_afloop": "Lex zegt wat er speelt en verzint niets; de graafwacht herstelt; het paneel *Graaf weg* toont het",
+      "primair": 1,
+      "tweede": 3
+    },
+    {
+      "id": "R02",
+      "risico": "De api geeft een 5xx of is onbereikbaar",
+      "impact": "hoog",
+      "verwachte_afloop": "de beurt faalt met een melding; niets half opgeslagen; opnieuw proberen kan",
+      "primair": 1,
+      "tweede": 3
+    },
+    {
+      "id": "R03",
+      "risico": "Een time-out: model, graaf, connector of api",
+      "impact": "hoog",
+      "verwachte_afloop": "een begrensde wachttijd, de beurt stopt netjes, het denkproces zegt waar",
+      "primair": 1,
+      "tweede": 3
+    },
+    {
+      "id": "R04",
+      "risico": "Een 400 van het model, en de strict-grens (een schema dat de API weigert)",
+      "impact": "hoog",
+      "verwachte_afloop": "geen stille terugval; een duidelijke fout; het schema is in de poort al getoetst",
+      "primair": 1,
+      "tweede": 2
+    },
+    {
+      "id": "R05",
+      "risico": "Het budget is op (429 bij de start, het plafond in een run)",
+      "impact": "middel",
+      "verwachte_afloop": "geen beurt, een heldere melding, geen half werk; meetscripts stoppen met `BUDGET_OP`",
+      "primair": 1,
+      "tweede": 3
+    },
+    {
+      "id": "R06",
+      "risico": "Ongeldige invoer: een verkeerde IRI, een artikelnummer met een dubbele punt, een lege vraag, te groot, verkeerd schema",
+      "impact": "middel",
+      "verwachte_afloop": "een 4xx met reden, of een vraag terug; nooit een 500",
+      "primair": 1,
+      "tweede": 2
+    },
+    {
+      "id": "R07",
+      "risico": "Gelijktijdigheid en 412's: twee juristen op dezelfde laag, een verouderde revisie, twee runs in één gesprek (409)",
+      "impact": "hoog",
+      "verwachte_afloop": "de tweede schrijver krijgt een 412 of 409 en niets gaat verloren; de werkplek laat het zien en biedt verversen aan",
+      "primair": 1,
+      "tweede": 3
+    },
+    {
+      "id": "R08",
+      "risico": "Afbreken en hervatten: stoppen midden in een beurt, een herladen pagina, een hervatte subagent",
+      "impact": "middel",
+      "verwachte_afloop": "de stand blijft kloppen, er is geen dubbel werk, en het denkproces klopt na hervatten",
+      "primair": 1,
+      "tweede": 3
+    },
+    {
+      "id": "R09",
+      "risico": "Een subagent rondt niet af (rapport `niet_gelukt`, geen rapport, de grens van het aantal rondes bereikt)",
+      "impact": "hoog",
+      "verwachte_afloop": "de centrale agent meldt het en verzint geen uitkomst; de vraag gaat naar boven als dat zo hoort",
+      "primair": 1,
+      "tweede": 5
+    },
+    {
+      "id": "R10",
+      "risico": "Lege of afgekapte resultaten (0 treffers, een bepaling zonder eigen tekst, afkapping op 40.000 tekens)",
+      "impact": "hoog",
+      "verwachte_afloop": "\"niet gevonden\" is iets anders dan \"bestaat niet\"; afkappen wordt gezegd; geen conclusie uit een half resultaat",
+      "primair": 1,
+      "tweede": 5
+    },
+    {
+      "id": "R11",
+      "risico": "Verouderde bronnen: een andere wetsversie, een veranderde dragende passage, een opname die niet meer klopt",
+      "impact": "hoog",
+      "verwachte_afloop": "de peildatum is zichtbaar; de herbeoordeling toont toen en nu; een meting op een oude opname zegt dat",
+      "primair": 1,
+      "tweede": 5
+    },
+    {
+      "id": "R12",
+      "risico": "Rechten en identiteit: `X-User-Id`, rol analist of beheerder, gesprekken per gebruiker, het admin-token, 2FA voor beheer",
+      "impact": "hoog",
+      "verwachte_afloop": "geen toegang tot andermans gesprek; beheer dicht zonder 2FA; een vervalste header werkt niet buiten de BFF",
+      "primair": 1,
+      "tweede": 3
+    },
+    {
+      "id": "R13",
+      "risico": "Prompt-injectie via de inhoud van een bron (wettekst, een uitspraak of een kamerstuk met een instructie erin)",
+      "impact": "hoog",
+      "verwachte_afloop": "de inhoud is gegevens, geen opdracht; de toollaag en de prompt scheiden dat; de agent voert niets uit wat de bron vraagt",
+      "primair": 1,
+      "tweede": 5
+    },
+    {
+      "id": "R14",
+      "risico": "Een connector staat uit of is onbekend",
+      "impact": "middel",
+      "verwachte_afloop": "Lex zegt dat de bron niet beschikbaar is en valt niet stil terug op iets anders; het register in de beheertab klopt met wat graph-qa ziet",
+      "primair": 1,
+      "tweede": 2
+    },
+    {
+      "id": "R15",
+      "risico": "Brongetrouwheid: een citaat dat niet letterlijk is, een verkeerd anker, een vindplaats die niet klopt",
+      "impact": "hoog",
+      "verwachte_afloop": "de verificatie en het citaat worden gecontroleerd; *ongegrond* wordt gezegd",
+      "primair": 1,
+      "tweede": 5
+    },
+    {
+      "id": "R16",
+      "risico": "De verkeerde route, het verkeerde profiel of de verkeerde tools",
+      "impact": "middel",
+      "verwachte_afloop": "de ingang en de centrale agent kiezen zoals de agentset verwacht; verboden tools komen nergens voor",
+      "primair": 2,
+      "tweede": 5
+    },
+    {
+      "id": "R17",
+      "risico": "Methodes vermengd (JRM-taal of JAS-markeringen in de verkeerde methode)",
+      "impact": "middel",
+      "verwachte_afloop": "`test_methodes_gescheiden`; de skill-evals",
+      "primair": 2,
+      "tweede": 5
+    },
+    {
+      "id": "R18",
+      "risico": "Een uitrol die niet draait (de revisie crasht, een verkeerde digest, een ontbrekend secret)",
+      "impact": "hoog",
+      "verwachte_afloop": "de gate wacht en faalt; de rooktest op de keten",
+      "primair": 3,
+      "tweede": null
+    },
+    {
+      "id": "R19",
+      "risico": "Een gedeeld account: verbruik en besluiten van twee sessies door elkaar, een bulkactie die andermans werk raakt",
+      "impact": "hoog",
+      "verwachte_afloop": "",
+      "primair": 3,
+      "tweede": 4
+    },
+    {
+      "id": "R20",
+      "risico": "De projectie in de graaf wijkt af van Postgres",
+      "impact": "hoog",
+      "verwachte_afloop": "",
+      "primair": 1,
+      "tweede": 3
+    },
+    {
+      "id": "R21",
+      "risico": "Een nepdienst die niet op de echte dienst lijkt (vorm van een antwoord, de SSE-framing, één antwoord op elke query)",
+      "impact": "hoog",
+      "verwachte_afloop": "",
+      "primair": 2,
+      "tweede": 1
+    },
+    {
+      "id": "R22",
+      "risico": "Toegankelijkheid en touch",
+      "impact": "middel",
+      "verwachte_afloop": "",
+      "primair": 1,
+      "tweede": 4
+    },
+    {
+      "id": "R23",
+      "risico": "Een controle die fail-open is (de GOK-controle van `id_herkomst` staat uit met een lege namenlijst, bijvoorbeeld vlak na een herstart van GraphDB)",
+      "impact": "middel",
+      "verwachte_afloop": "",
+      "primair": 1,
+      "tweede": null
+    }
+  ]
+}
