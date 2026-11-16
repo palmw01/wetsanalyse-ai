@@ -319,6 +319,7 @@ cp .env.example .env   # zet GRAPHDB_URL; lokaal is dat http://localhost:7200
 | `BWB_VALIDATE_XSD`     | `true`                        | XSD-validatie (niet-blokkerend)               |
 | `BWB_DETECT_TEKSTUELE_REFS` | `true`                   | Ongetagde tekstverwijzingen detecteren        |
 | `BWB_IMPORT_WTI`       | `false`                       | WTI-verrijking (titels/rechtsgebieden/grondslagen); op Azure `true` |
+| `BWB_DEFINITIE_AANDUIDING` | `false`                  | Ook "… wordt aangeduid als X" en "(hierna: X)" als gedefinieerd begrip (route 4 van `ToestandParser._definities`) |
 | `BWB_MIN_DEKKING`      | `0.995`                       | Ondergrens tekstdekking; eronder exitcode 2; `0` = uit |
 | `BWB_DATA_DIR`         | `data/` (in de projectwortel) | Cache-map voor gedownloade XML                |
 | `BWB_SCHEMAS_DIR`      | `bronmodel/bwb/schemas/` (`bronmodel.bwb.SCHEMAS`) | Map met de officiële XSD's                 |

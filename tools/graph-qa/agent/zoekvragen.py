@@ -602,7 +602,7 @@ OMSCHRIJVENDE_VELDEN = ("analysevraag", "context", "aanleiding", "doel", "prakti
 _ZINSGRENS = re.compile(r"(?<=[.!?;])\s+|\n+")
 
 
-def brugtermen(dossier: dict[str, Any], woord: str) -> list[str]:
+def brugtermen(dossier: dict[str, Any], woord: str, alleen_omschrijving: bool = False) -> list[str]:
     """De woorden die het dossier naast een eigen woord zet: de inhoudswoorden van de zinnen die het woord noemen,
     zonder het woord zelf en zonder de woorden van een vraagvorm. "Rekeningafspraak" staat in geen regeling (een begrip
     uit de uitvoering); de context omschrijft het met "bankrekening", "uitbetaald" en "derde", en die staan er wel in.
@@ -614,6 +614,8 @@ def brugtermen(dossier: dict[str, Any], woord: str) -> list[str]:
     zinnen = [(not omschrijft.search(zin), i, zin) for i, zin in enumerate(
         z for veld in OMSCHRIJVENDE_VELDEN for z in _ZINSGRENS.split(str(dossier.get(veld) or "")))
         if _raakt_woord(stam, zin)]
+    if alleen_omschrijving:
+        zinnen = [z for z in zinnen if not z[0]]
     uit: list[str] = []
     for *_, zin in sorted(zinnen):
         for w in zoektermen(zin):
@@ -622,8 +624,27 @@ def brugtermen(dossier: dict[str, Any], woord: str) -> list[str]:
     return uit
 
 
+#: Met `vraagvorm_eigen_woord`: de signalen van zoekvraag d die een begrip invullen. Een subdivisie van een beleidsregel
+#: (`beleidsregel`) is ook zoekvraag d, maar vult de regel in, niet het begrip waar "Wat is …" naar vraagt.
+DEFINITIE_SIGNALEN = ("verstaan", "begrepen", "gelijkgesteld")
+
+
+def _past_vraagvorm(k: dict[str, Any], zoekvraag: str, eigen: list[str], streng: bool) -> bool:
+    """Of de zoekvraag van een kandidaat de vraagvorm van de deelvraag beantwoordt. Streng (`vraagvorm_eigen_woord`):
+    alleen met een eigen woord van de deelvraag, en bij d alleen een definitie."""
+    if not zoekvraag or k["zoekvraag"] != zoekvraag:
+        return False
+    if not streng:
+        return True
+    if not eigen:
+        return False
+    signaal = str(k.get("signaal") or "")
+    return zoekvraag != "d" or signaal.startswith("definitie") or signaal in DEFINITIE_SIGNALEN
+
+
 def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit: int = 8,
-                         gebeurtenis: str = "", dossier: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+                         gebeurtenis: str = "", dossier: dict[str, Any] | None = None,
+                         profiel: Any = None) -> list[dict[str, Any]]:
     """De kandidaten uit de pool die bij een deelvraag horen, zonder graafverkeer.
 
     Een inhoudswoord weegt naar hoe zeldzaam het is in de pool (idf, log((N+1)/(df+1))): "verzoek" en
@@ -640,18 +661,19 @@ def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit:
 
     from .zoektermen import _raakt
 
+    heel = bool(profiel is not None and profiel.stam_heel)
     termen = termen_van_deelvraag(vraag)
     zoekvraag = zoekvraag_van_deelvraag(vraag)
     stammen = [_stamdeel(w) for w in zoektermen(gebeurtenis)]
     teksten = [f"{k.get('tekst') or ''} {k.get('zin') or ''}" for k in kandidaten]
 
     def df_van(woorden: list[str]) -> dict[str, int]:
-        return {t: sum(bool(_raakt([t], tekst, True)) for tekst in teksten) for t in woorden}
+        return {t: sum(bool(_raakt([t], tekst, True, heel)) for tekst in teksten) for t in woorden}
 
     df = df_van(termen)
     brug: dict[str, str] = {}
     for t in [t for t in termen if not df[t]]:
-        for b in brugtermen(dossier or {}, t):
+        for b in brugtermen(dossier or {}, t, alleen_omschrijving=bool(profiel is not None and profiel.brug_omschrijving)):
             if b not in termen and b not in brug:
                 brug[b] = t
     df.update(df_van(list(brug)))
@@ -662,8 +684,9 @@ def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit:
     bonus = max(gewicht.values(), default=1.0) or 1.0
     gescoord = []
     for i, (k, tekst) in enumerate(zip(kandidaten, teksten)):
-        g = _raakt(termen, tekst, True)
-        past = bool(zoekvraag) and k["zoekvraag"] == zoekvraag
+        g = _raakt(termen, tekst, True, heel)
+        past = _past_vraagvorm(k, zoekvraag, [w for w in g if w not in brug],
+                               bool(profiel is not None and profiel.vraagvorm_eigen_woord))
         if not (g or past):
             continue
         score = sum(gewicht.get(t, 0.0) for t in g) + (bonus if past else 0.0)
@@ -671,6 +694,31 @@ def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit:
         extra = {"brug": {b: brug[b] for b in g if b in brug}} if any(b in brug for b in g) else {}
         gescoord.append((round(score, 9), not noemt, i, {**k, "geraakt": g, "past": past, **extra}))
     return [k for *_, k in sorted(gescoord, key=lambda x: (-x[0], x[1], x[2]))][:limit]
+
+
+def zwak_in_pool(optie: dict[str, Any]) -> bool:
+    """Een optie uit de pool die geen eigen woord van de deelvraag raakt: alleen een brugwoord, of alleen de bonus van de
+    vraagvorm (`opties_bij_deelvraag`)."""
+    brug = set(optie.get("brug") or {})
+    return not [w for w in optie.get("geraakt") or [] if w not in brug]
+
+
+def samen_met_woorden(uit_pool: list[dict[str, Any]], woorden: list[dict[str, Any]], *, limit: int,
+                      woorden_voor_pool: bool = False) -> list[dict[str, Any]]:
+    """De opties bij een deelvraag uit de pool (`opties_bij_deelvraag`) en uit de woordenroute
+    (`deelvraag_zoeken.bepaling_opties`), hoogstens `limit` gewone plus wat de woordenroute als *buiten* markeerde.
+    Standaard gaat de pool voor en vult de woordenroute aan wat er overblijft. Met `woorden_voor_pool` wijkt een zwakke
+    optie uit de pool (`zwak_in_pool`) voor een treffer van de woordenroute: eerst de sterke pool, dan de woorden, dan de
+    zwakke pool. Elke optie draagt `bron` (`pool` of `woorden`)."""
+    pool = [{**o, "bron": "pool"} for o in uit_pool]
+    al = {o["bron_iri"] for o in pool}
+    gewoon = [{**o, "bron": "woorden"} for o in woorden if not o.get("buiten") and o["bron_iri"] not in al]
+    buiten = [{**o, "bron": "woorden"} for o in woorden if o.get("buiten") and o["bron_iri"] not in al]
+    if woorden_voor_pool:
+        volgorde = [o for o in pool if not zwak_in_pool(o)] + gewoon + [o for o in pool if zwak_in_pool(o)]
+    else:
+        volgorde = pool + gewoon
+    return volgorde[:limit] + buiten
 
 
 # --- de woordenkloof benoemen (PR 6) ----------------------------------------------------------------------
@@ -702,6 +750,26 @@ def ontbrekende_woorden(graph: GraphPort, woorden: list[str], regelingen: list[s
         logger.warning("woordenkloof niet getoetst", extra={"categorie": "technisch"}, exc_info=True)
         return []
     return uit
+
+
+#: Hoeveel treffers de index geeft om te zien in welke regelingen een woord wél staat.
+MAX_ELDERS = 50
+
+
+def regelingen_met_woord(graph: GraphPort, woord: str, bereik: list[str]) -> list[str]:
+    """De citeertitels van de regelingen in de graaf, buiten het bereik, waarin een woord staat, in de volgorde van de
+    index (hoogstens drie). Leeg als de graaf hapert: dan zegt Lex niets in plaats van iets onwaars."""
+    uit: list[str] = []
+    try:
+        for r in _rijen(graph, queries.fts("tekst:" + queries._lucene_term(woord), limit=MAX_ELDERS)):
+            bwb = r.get("bwbId") or bwb_van(r.get("node", ""))
+            titel = r.get("citeertitel") or bwb
+            if bwb and bwb not in bereik and titel not in uit:
+                uit.append(titel)
+    except Exception:  # noqa: BLE001
+        logger.warning("woord buiten het bereik niet gezocht", extra={"categorie": "technisch"}, exc_info=True)
+        return []
+    return uit[:3]
 
 
 def is_voorwerp(graph: GraphPort, gebeurtenis: str, regelingen: list[str]) -> bool:

@@ -40,6 +40,9 @@ DOSSIERVELDEN_ALLE = (*DOSSIERVELDEN, "aanleiding", "doel")
 #: Met `beurt_sterk`: het deel van de beste fusiescore dat de beste kandidaat van een regeling minstens haalt om om de
 #: beurt mee te doen. Vooraf vastgelegd (plan Termijnen, stap 1b), niet afgestemd op een set: de helft.
 AANDEEL_STERK = 0.5
+#: Met `definitie_brug`: hoeveel termen van de deelvraag een definitietekst moet raken, en hoeveel woorden erbij komen.
+MIN_BRUGWOORDEN = 2
+MAX_BRUGTERMEN = 2
 #: Hoeveel treffers de similarity-index per deelvraag geeft, vóór het filter op de regelingen.
 MAX_GELIJKENIS = 40
 
@@ -126,6 +129,33 @@ class Zoekprofiel:
     #:   op hun score. Met zes regelingen in het zoekbereik kreeg anders elke regeling een plaats, ook zonder sterke
     #:   treffer. Alleen met `per_regeling` en `fusie`.
     beurt_sterk: bool = False
+    #: - `woorden_voor_pool` (stap 1, O1): met een gekozen gebeurtenis verdringt een treffer van de woordenroute (deze
+    #:   functie) een optie uit de pool die geen eigen woord van de deelvraag raakt, alleen een brugwoord of de bonus van
+    #:   de vraagvorm (`zoekvragen.samen_met_woorden`). Een brede gebeurtenis ("invordering") filterde zo niets meer en
+    #:   nam alle plaatsen.
+    woorden_voor_pool: bool = False
+    #: - `vraagvorm_eigen_woord` (stap 2, O2): de bonus van de vraagvorm (`zoekvragen.opties_bij_deelvraag`) geldt alleen
+    #:   als de kandidaat ook een eigen woord van de deelvraag raakt, en "Wat is …" (zoekvraag d) beloont alleen een
+    #:   definitie of invulling (`zoekvragen.DEFINITIE_SIGNALEN`), niet elke subdivisie van een beleidsregel.
+    vraagvorm_eigen_woord: bool = False
+    #: - `overzicht_streng` (stap 3, O5): de bronnenrun draait het overzicht niet als het werkgebied deelvragen heeft (die
+    #:   zijn het vertrekpunt), gebruikt zonder deelvragen de naam alleen als die meer dan één inhoudswoord heeft, en geeft
+    #:   wat het overzicht vindt de rol *aanverwant* in plaats van *kern* (`bronnen_vinden`).
+    overzicht_streng: bool = False
+    #: - `stam_heel` (stap 4, O3): een term van meer dan acht letters raakt een tekst op zijn hele stam of op zijn kern (een
+    #:   slotdeel dat er als woord in staat), niet op zijn eerste acht letters (`zoektermen.raakt_heel`): de telling, de
+    #:   dossiertermen en het gewicht in de pool. De index zoekt even breed.
+    stam_heel: bool = False
+    #: - `brug_omschrijving` (stap 5, O4): brugwoorden voor een woord dat in de pool ontbreekt, komen alleen uit een zin die
+    #:   het woord omschrijft ("X is …"), niet uit elke zin die het noemt (`zoekvragen.brugtermen`). En staat zo'n woord
+    #:   niet in het zoekbereik maar wel in een andere regeling van de graaf, dan noemt Lex die regeling
+    #:   (`zoekvragen.regelingen_met_woord`, de melding in `bronselectie._kloof`).
+    brug_omschrijving: bool = False
+    #: - `definitie_brug` (stap 6, O4): een definitie in de regelingen (`bwb:definieertBegrip`) waarvan de tekst minstens
+    #:   `MIN_BRUGWOORDEN` termen van de deelvraag raakt, brengt de woorden van haar begrip mee als zoekterm, hoogstens
+    #:   `MAX_BRUGTERMEN` (`definitie_bruggen`): "een voorlopige aanslag tot een negatief bedrag … wordt aangeduid als
+    #:   voorlopige teruggaaf" geeft bij "negatieve voorlopige aanslag" de term "teruggaaf". De wet is zo zelf de brug.
+    definitie_brug: bool = False
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.
@@ -179,6 +209,8 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
         termen = _termen(graph, vraagtekst, regelingen, profiel)
     if not termen:
         return None
+    bruggen = definitie_bruggen(graph, termen, regelingen, profiel) if profiel.definitie_brug else {}
+    termen = termen + [w for w in bruggen if w not in termen]
     gedeeld = gedeelde_termen(termen, dossier.get("deelvragen") or []) if profiel.onderscheidend and deelvraag else []
     termen = [w for w in termen if w not in gedeeld]
     velden = DOSSIERVELDEN_ALLE if profiel.dossier_velden else DOSSIERVELDEN
@@ -267,7 +299,8 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
         neem(iri, tekst, soort, bwb, citeertitel, lijst, rang, term, bepaling.get(iri))
 
     return {"termen": termen, "dossiertermen": dossiertermen, "alle_dossiertermen": alle_dossiertermen,
-            "bereik": bereik, "gevonden": gevonden, "geraakte_artikelen": geraakte_artikelen, "lemma": lemma}
+            "bereik": bereik, "gevonden": gevonden, "geraakte_artikelen": geraakte_artikelen, "lemma": lemma,
+            "bruggen": bruggen}
 
 
 def _termen(graph: GraphPort, tekst: str, regelingen: list[str], profiel: Zoekprofiel) -> list[str]:
@@ -278,6 +311,40 @@ def _termen(graph: GraphPort, tekst: str, regelingen: list[str], profiel: Zoekpr
 
     termen = [w for w in zoektermen(tekst) if w not in LEGE_WOORDEN and w not in METHODEWOORDEN]
     return termen_op_zeldzaamheid(graph, termen, regelingen, profiel) if len(termen) > MAX_TERMEN else termen
+
+
+def q_definitie_teksten(lucene: str, regelingen: list[str], limit: int = 20) -> str:
+    """De bepalingen van de regelingen die een begrip definiëren en waarvan de tekst de termen raakt."""
+    filters = " || ".join(f'STRSTARTS(STR(?node), "{queries.NS}{queries._bwb(b)}")' for b in regelingen if b)
+    return queries.PREFIXES + f"""SELECT ?node (SAMPLE(?b) AS ?begrip) (SAMPLE(?tk) AS ?tekst) WHERE {{
+  [] a inst:bwb_tekst ; luc:query {queries._lit(lucene)} ; luc:entities ?node .
+  ?node bwb:definieertBegrip ?b .
+  OPTIONAL {{ ?node bwb:tekst ?tk }}
+  {f"FILTER({filters})" if filters else ""}
+}} GROUP BY ?node ORDER BY ?node LIMIT {limit}"""
+
+
+def definitie_bruggen(graph: GraphPort, termen: list[str], regelingen: list[str],
+                      profiel: Zoekprofiel) -> dict[str, str]:
+    """De woorden van een gedefinieerd begrip waarvan de definitietekst minstens `MIN_BRUGWOORDEN` termen raakt, als
+    brugterm → het begrip, hoogstens `MAX_BRUGTERMEN`, in de volgorde van de index. Een woord dat al een term is, komt er
+    niet bij. Hapert de graaf, dan geen brug."""
+    if len(termen) < MIN_BRUGWOORDEN:
+        return {}
+    uit: dict[str, str] = {}
+    try:
+        rijen = _rijen(graph, q_definitie_teksten(_lucene(termen, None, profiel), [r for r in regelingen if r]))
+    except Exception:  # noqa: BLE001
+        logger.warning("definitiebrug niet gezocht", extra={"categorie": "technisch"}, exc_info=True)
+        return {}
+    for r in rijen:
+        begrip, tekst = r.get("begrip") or "", r.get("tekst") or ""
+        if len(_raakt(termen, tekst, profiel.samenstelling)) < MIN_BRUGWOORDEN:
+            continue
+        for w in zoektermen(begrip):
+            if w not in termen and w not in uit and len(uit) < MAX_BRUGTERMEN:
+                uit[w] = begrip
+    return uit
 
 
 def q_aantal(lucene: str, regelingen: list[str]) -> str:
@@ -532,9 +599,9 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
     kandidaten = [k for iri, k in gevonden.items() if iri not in geraakte_artikelen]
     for k in kandidaten:
         alles = " ".join(k["teksten"])
-        tekst_termen = _raakt(termen, alles, profiel.samenstelling)
+        tekst_termen = _raakt(termen, alles, profiel.samenstelling, profiel.stam_heel)
         k["dv"] = [w for w in termen if w in tekst_termen or w in k["index_termen"]]
-        k["dos"] = _raakt(dossiertermen, alles, profiel.samenstelling)
+        k["dos"] = _raakt(dossiertermen, alles, profiel.samenstelling, profiel.stam_heel)
         k["dos"] += [w for w in k["dossier_index"] if w not in k["dos"]]
         k["kop"] = ""
 

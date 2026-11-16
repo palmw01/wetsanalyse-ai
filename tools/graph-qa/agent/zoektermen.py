@@ -65,12 +65,30 @@ def ellipsen_uitgevouwen(tekst: str) -> str:
     return f"{t} {' '.join(extra)}" if extra else t
 
 
-def _raakt(termen: list[str], tekst: str, ellips: bool = False) -> list[str]:
+def _raakt(termen: list[str], tekst: str, ellips: bool = False, heel: bool = False) -> list[str]:
     """De termen die de tekst raakt: het begin van hun stam staat erin ("termijn" raakt "termijnen",
-    "bezwaarschrift" raakt "bezwaarschriften", en met `ellips` ook "bezwaar- of beroepschrift")."""
+    "bezwaarschrift" raakt "bezwaarschriften", en met `ellips` ook "bezwaar- of beroepschrift"). Met `heel`
+    (`Zoekprofiel.stam_heel`) raakt een lange term op zijn hele stam of zijn kern (`raakt_heel`)."""
     t = (tekst or "").casefold()
     t = ellipsen_uitgevouwen(t) if ellips else t
-    return [w for w in termen if _stamdeel(w) in t]
+    return [w for w in termen if (raakt_heel(w, t) if heel else _stamdeel(w) in t)]
+
+
+#: Een slotdeel van een samenstelling telt als haar kern vanaf zoveel letters ("termijn", niet "mijn").
+MIN_KERN = 5
+
+
+def raakt_heel(term: str, tekst: str) -> bool:
+    """Raakt een term de (kleine-letter)tekst op zijn hele stam? Een stam van hoogstens acht letters raakt zoals altijd op
+    zijn begin. Een langere stam raakt als hij er heel in staat, of als een slotdeel van minstens `MIN_KERN` letters er als
+    begin van een woord in staat: "betalingstermijnen" raakt "termijnen", "belastingjaar" raakt "jaar" niet en
+    "belasting" ook niet. Zonder deze regel was "betalingstermijnen" hetzelfde als "betaling"."""
+    stam = queries._stam(term)
+    if len(stam) <= 8:
+        return stam[:8] in tekst
+    if stam in tekst:
+        return True
+    return any(re.search(rf"\b{re.escape(stam[i:])}", tekst) for i in range(1, len(stam) - MIN_KERN + 1))
 
 
 def splitsingen(term: str) -> list[tuple[str, str]]:
