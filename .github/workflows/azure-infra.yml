@@ -60,9 +60,9 @@ on:
         options: [wat-if, deploy, afbreken, opruimen, vul-graaf, eval, inventaris, telemetrie, grafana, grafana-afbreken, mcp-proxy-afbreken, 2fa-herstel]
         default: wat-if
       eval_set:
-        description: "Alleen voor 'eval': alles (smoke + 3× annotatie + 3× gesprek), of alleen gesprek, annotatie, de conceptcasussen of de duidingset (smoke + 3×)"
+        description: "Alleen voor 'eval': alles (smoke + 3× annotatie + 3× gesprek), of alleen gesprek, annotatie, de conceptcasussen of de duidingset (smoke + 3×), of bronselectie_model (de proef na de pilot LB3, één run)"
         type: choice
-        options: [alles, gesprek, annotatie, concept, duiding]
+        options: [alles, gesprek, annotatie, concept, duiding, bronselectie_model]
         default: alles
       query:
         description: "Alleen voor 'telemetrie': een eigen KQL-query (leeg = de standaardset)"
@@ -990,9 +990,16 @@ jobs:
               annotatie) vlag="--annotatie"; titel="RUN"; uit="|| rc=1" ;;
               concept) vlag="--annotatie --concept"; titel="CONCEPT"; uit="|| true" ;;
               duiding) vlag="--golden eval/golden_duiding.jsonl"; titel="DUIDING"; uit="|| true" ;;
+              bronselectie_model) vlag="" ;;
               *) echo "::error::onbekende eval_set"; exit 1 ;;
             esac
+            if [ "$EVAL_SET" = "bronselectie_model" ]; then
+              # De proef na de pilot LB3 (`eval/bronselectie_model_meting.py`): één run, met een eigen plafond op het
+              # verbruik. De sets komen van GitHub op de commit van het image (LEX_REVISIE).
+              args="echo \"=== BRONSELECTIE MODEL ===\"; python -u -m eval.bronselectie_model_meting; rc=\$?; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
+            else
             args="rc=0; echo \"=== RETRIEVAL-SMOKE ===\"; python -u eval/run_eval.py --retrieval-smoke || rc=1; for i in 1 2 3; do echo \"=== $titel \$i VAN 3 ===\"; python -u eval/run_eval.py $vlag $uit; done; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
+            fi
             az containerapp job update -n "$JOB" -g "$RESOURCE_GROUP" --args "$args" --output none
             echo "Eval-set: $EVAL_SET (tijdelijke args: $args)"
           fi
