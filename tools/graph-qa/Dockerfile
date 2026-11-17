@@ -41,8 +41,8 @@ COPY tools/graph-qa/eval/ eval/
 RUN pip install --no-cache-dir /packages/bronmodel '.[otel]' "msgpack>=1.1.0"
 
 # De taalanalyse van de hybride JAS-pijplijn (ADR-002): spaCy + het Nederlandse md-model. Niet via
-# '.[nlp]', want het model staat niet op PyPI en pip kent de `tool.uv.sources`-URL niet. Deze regel
-# en pyproject.toml moeten dezelfde versie en URL noemen; `tests/test_deploy_drift.py` bewaakt dat.
+# '.[nlp]', want het model staat niet op PyPI en niet in uv.lock. Deze regel en `[tool.graph-qa] taalmodel` in
+# pyproject.toml moeten dezelfde versie en URL noemen; `tests/runs/test_deploy_drift.py` bewaakt dat.
 # Zonder dit pakket draait de annotatieketen gedegradeerd (alleen tokens), zichtbaar in de
 # run-provenance.
 RUN pip install --no-cache-dir "spacy>=3.8,<3.9" \

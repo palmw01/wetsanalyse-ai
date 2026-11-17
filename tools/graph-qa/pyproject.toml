@@ -54,9 +54,11 @@ mcp = [
 # Nederlandse md-model (UD Alpino + LassySmall, CC BY-SA 4.0, ±53 MB): de keuze staat onderbouwd in
 # docs/architectuur/adr-002-taalprovider.md. Een extra en geen vaste afhankelijkheid: zonder deze
 # extra degradeert de provider zichtbaar (alleen lexicale detectoren) in plaats van te falen.
+# Het model zelf staat niet in deze lijst en niet in uv.lock: het staat niet op PyPI, en een directe URL in de
+# lock liet Dependabot voor graph-qa sinds okt 2026 elke update weigeren (private_source_authentication_failure).
+# De URL staat in [tool.graph-qa] hieronder; installeer met `uv pip install "$(uv run python scripts/taalmodel.py)"`.
 nlp = [
     "spacy>=3.8,<3.9",
-    "nl-core-news-md",
 ]
 otel = [
     "opentelemetry-sdk>=1.29.0",
@@ -77,8 +79,6 @@ build-backend = "hatchling.build"
 
 [tool.uv.sources]
 wetsanalyse-bronmodel = { path = "../../packages/bronmodel" }
-# Het spaCy-model staat niet op PyPI; de wheel komt rechtstreeks van de release van explosion.
-nl-core-news-md = { url = "https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl" }
 
 # De code leeft in agent/ + api/ (geen `graph_qa/`-map), dus hatchling expliciet vertellen
 # welke packages in de wheel horen – anders faalt `uv sync` (kan geen files bepalen).
@@ -100,3 +100,9 @@ markers = [
     # zichzelf over zonder BRONNEN_LIVE=1; draait dagelijks in `.github/workflows/bronnenwacht.yml`, niet in de poort.
     "live: raakt een echte externe bron (BRONNEN_LIVE=1)",
 ]
+
+# Het spaCy-model van de taalanalyse (de extra `nlp`): niet op PyPI, dus een wheel van de release van explosion. Hier
+# en niet in [tool.uv.sources], zodat het buiten uv.lock blijft (zie de extra `nlp`). De Dockerfile en de CI lezen
+# dezelfde URL; `tests/runs/test_deploy_drift.py` bewaakt dat.
+[tool.graph-qa]
+taalmodel = "https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl"

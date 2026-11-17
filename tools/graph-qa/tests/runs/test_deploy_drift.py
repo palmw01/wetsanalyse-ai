@@ -81,9 +81,23 @@ def test_probes_blijven_binnen_de_azure_limiet() -> None:
 def test_dockerfile_installeert_hetzelfde_taalmodel_als_pyproject() -> None:
     """Het image installeert spaCy + het NL-model buiten '.[nlp]' om (pip kent tool.uv.sources niet).
     Loopt die regel uit de pas met pyproject.toml, dan meet CI een ander model dan er draait."""
+    import tomllib
+
     pyproject = (WORTEL / "tools/graph-qa/pyproject.toml").read_text(encoding="utf-8")
     dockerfile = (WORTEL / "tools/graph-qa/Dockerfile").read_text(encoding="utf-8")
-    url = re.search(r'nl-core-news-md = \{ url = "([^"]+)" \}', pyproject)
-    assert url, "de uv-bron van het taalmodel is verdwenen uit pyproject.toml"
-    assert url.group(1) in dockerfile
+    url = tomllib.loads(pyproject)["tool"]["graph-qa"]["taalmodel"]
+    assert url.startswith("https://github.com/explosion/spacy-models/releases/download/")
+    assert url in dockerfile
     assert '"spacy>=3.8,<3.9"' in pyproject and '"spacy>=3.8,<3.9"' in dockerfile
+
+
+def test_het_taalmodel_staat_niet_in_de_lock() -> None:
+    """Een directe URL in uv.lock liet Dependabot elke update van graph-qa weigeren
+    (private_source_authentication_failure, okt–nov 2026). Het model staat in [tool.graph-qa] en de poort installeert
+    het met `scripts/taalmodel.py`."""
+    lock = (WORTEL / "tools/graph-qa/uv.lock").read_text(encoding="utf-8")
+    pyproject = (WORTEL / "tools/graph-qa/pyproject.toml").read_text(encoding="utf-8")
+    assert "nl-core-news-md" not in lock
+    assert "[tool.uv.sources]" not in pyproject or "spacy-models" not in pyproject.split("[tool.uv.sources]")[1].split("\n[")[0]
+    poort = (WORTEL / ".github/workflows/poort.yml").read_text(encoding="utf-8")
+    assert "scripts/taalmodel.py" in poort, "de poort installeert het taalmodel niet meer: de parsertests slaan zich over"
