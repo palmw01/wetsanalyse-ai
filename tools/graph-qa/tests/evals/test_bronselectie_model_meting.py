@@ -71,3 +71,56 @@ def test_de_kandidatenroute_begrenst_en_kost_geen_model(monkeypatch):
     monkeypatch.setattr(be, "kandidaten_voor", nep)
     uit = be.kandidaten_route(80)(None, {"naam": "S"}, "v")
     assert gezien["limit"] == 80 and len(uit) == 80 and not any(o["buiten"] for o in uit)
+
+
+def test_de_verkeerde_deelvraag_telt_een_nodige_bepaling_die_elders_staat():
+    """LB-08: 26a hoort bij deelvraag 1 en staat bij 3. Een bepaling die bij haar eigen deelvraag staat, of die nergens
+    staat, of die aanverwant is, telt niet."""
+    from eval.bronselectie_eval import verkeerde_deelvraag
+
+    s = {"verwacht": [{"deelvraag": 0, "bron_iri": "urn:bwb:X:artikel:26a", "rol": "kern"},
+                      {"deelvraag": 0, "bron_iri": "urn:bwb:X:artikel:26", "rol": "kern"},
+                      {"deelvraag": 1, "bron_iri": "urn:bwb:X:artikel:28", "rol": "afhankelijkheid"},
+                      {"deelvraag": 1, "bron_iri": "urn:bwb:X:artikel:40", "rol": "aanverwant"},
+                      {"deelvraag": 2, "bron_iri": "urn:bwb:X:artikel:99", "rol": "kern"}]}
+    opties = [["urn:bwb:X:artikel:26"], ["urn:bwb:X:artikel:26a:lid:1"],
+              ["urn:bwb:X:artikel:26a", "urn:bwb:X:artikel:28", "urn:bwb:X:artikel:40"]]
+    assert verkeerde_deelvraag(s, opties) == [
+        {"bron_iri": "urn:bwb:X:artikel:26a", "hoort_bij": 0, "staat_bij": [1, 2]},
+        {"bron_iri": "urn:bwb:X:artikel:28", "hoort_bij": 1, "staat_bij": [2]}]
+
+
+def test_meet_intake_telt_de_verkeerde_deelvraag():
+    from eval.bronselectie_eval import meet_intake
+
+    s = {"naam": "S", "deelvragen": ["v1", "v2"], "uitgesloten": [],
+         "verwacht": [{"deelvraag": 0, "bron_iri": "urn:bwb:X:artikel:1", "rol": "kern"}]}
+    r = meet_intake(None, s, {"r": lambda g, s, vraag: [{"bron_iri": "urn:bwb:X:artikel:1"}] if vraag == "v2" else []})
+    assert r["r"]["verkeerde_deelvraag"] == 1 and r["r"]["recall_nodig"] == 0
+
+
+def test_de_route_per_werkgebied_kiest_één_keer_per_set(monkeypatch):
+    """De eerste deelvraag van een set doet de aanroep met de vereniging van de kandidaten, de andere lezen haar
+    uitkomst; het spoor noemt de vereniging als kandidaten."""
+    import eval.bronselectie_eval as be
+    from agent import deelvraag_keuze
+    from fakes import FakeLLM, response, tool_block
+
+    lijsten = {"v1": ["urn:bwb:X:artikel:26"], "v2": ["urn:bwb:X:artikel:26a"]}
+    monkeypatch.setattr(be, "kandidaten_voor", lambda graph, s, vraag, profiel, cache, limit=None: deelvraag_keuze.kandidaten(
+        [{"bron_iri": i, "label": "", "tekst": "t"} for i in lijsten[vraag]], []))
+    llm = FakeLLM([response([tool_block("k1", "wijs_bepalingen_toe", {"toewijzingen": [
+        {"nummer": 1, "deelvraag": 1, "rol": "kern"}, {"nummer": 2, "deelvraag": 1, "rol": "kern"}]})], "tool_use")])
+    spoor: list = []
+    route = be.model_kiest_route(llm, "m", {}, werkgebied=True, spoor=spoor)
+    s = {"naam": "S", "deelvragen": ["v1", "v2"], "buiten": ""}
+    assert [o["bron_iri"] for o in route(None, s, "v1")] == ["urn:bwb:X:artikel:26", "urn:bwb:X:artikel:26a"]
+    assert route(None, s, "v2") == []
+    assert len(llm.calls) == 1
+    assert spoor[1]["kandidaten"] == ["urn:bwb:X:artikel:26", "urn:bwb:X:artikel:26a"] and spoor[1]["gekozen"] == []
+
+
+def test_de_meting_kent_de_vlag_werkgebied():
+    import inspect
+    assert "--werkgebied" in inspect.getsource(m.main) and m.WERKGEBIED != m.MODEL
+    assert not m.WERKGEBIED.startswith(m.MODEL)

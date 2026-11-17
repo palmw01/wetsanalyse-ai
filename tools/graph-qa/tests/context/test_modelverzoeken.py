@@ -282,6 +282,23 @@ def test_deelvraag_keuze():
     _vergelijk("deelvraag_keuze", llm.calls)
 
 
+def test_deelvraag_keuze_werkgebied():
+    """De keuze voor het hele werkgebied (`deelvraag_keuze.PER_WERKGEBIED`, standaard uit): een eigen verzoek. Het verzoek
+    per deelvraag hierboven blijft byte-gelijk."""
+    from agent import deelvraag_keuze as dk
+    llm = Opnemer(rest=lambda _kw: response([tool_block("k1", "wijs_bepalingen_toe", {"toewijzingen": [
+        {"nummer": 1, "deelvraag": 1, "rol": "kern"}]})], "tool_use"))
+    per = [dk.kandidaten([{"bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:1", "label": "Artikel 4:17, lid 1",
+                           "tekst": "Indien een beschikking op aanvraag niet tijdig wordt gegeven, verbeurt het "
+                                    "bestuursorgaan aan de aanvrager een dwangsom."}], []),
+           dk.kandidaten([{"bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A18", "label": "Artikel 4:18",
+                           "tekst": "De dwangsom is verschuldigd vanaf de dag na die waarop twee weken zijn verstreken."}],
+                         [])]
+    dk.kies_werkgebied(llm, "m", ["Welke dwangsom kan de aanvrager krijgen?", "Vanaf wanneer is ze verschuldigd?"],
+                       {"naam": "Beslistermijn"}, dk.kandidaten_werkgebied(per))
+    _vergelijk("deelvraag_keuze_werkgebied", llm.calls)
+
+
 # --- de hashes die de herkomst dragen -----------------------------------------------------------
 
 def _hashes() -> dict[str, str]:
