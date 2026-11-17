@@ -1766,6 +1766,1291 @@ window.LEX_BENCH = {
      }
     ]
    }
+  },
+  {
+   "map": "lex-bench-2026-11-17-pilot",
+   "run": {
+    "schema": "lex-bench-run-1",
+    "naam": "pilot",
+    "datum": "2026-11-17",
+    "arm": "pilot (T, reviewer, L1, L2)",
+    "route": "zoekvragen standaard (stap 8)",
+    "code": {
+     "commit": "9a014efe38264eb189aa883020da61cbadea9c20",
+     "schoon": true
+    },
+    "zoekversie": "za28985cb2f88",
+    "images": null,
+    "model": "Lex op acceptatie (L2): claude-sonnet-4-6 in het meting-event, 0 modelrondes",
+    "team": {
+     "model": "claude-opus-5-5 (Claude Code-subagents bench-analist en bench-reviewer)",
+     "logboek": "rol analist bij LB-07 A en LB-08 A gelogd als jurist (de MCP-server liep nog op een oude build)"
+    },
+    "casusset": {
+     "versie": "pilot LB3 (nog niet in het manifest)",
+     "dossiers": {
+      "LB-07": "abb184780fae84d77a2708302e04324d62dcd56a1fcc9172d8b7719e226d6043",
+      "LB-08": "bc0c0629e8278b464960275b70f878353eb0c4a1082e7690d162f1b2f8a784d4",
+      "LB-09": "82d41651f8055ee021ca523614faa8ca9f082454f1ed177004a83265a7ede9ee"
+     }
+    },
+    "graaftoestand": {
+     "LB-07": {
+      "pad": "docs/architectuur/metingen/lex-bench-2026-11-17-pilot/LB-07/graafantwoorden.json",
+      "sha256": "fbb8126bfcbdc3480948668e1494e8068602ccdeaf9ac11d1ca9062a89fcce3f",
+      "graaftoestand": "acceptatie, 17 nov 2026 (opgenomen na het bevriezen)"
+     },
+     "LB-08": {
+      "pad": "docs/architectuur/metingen/lex-bench-2026-11-17-pilot/LB-08/graafantwoorden.json",
+      "sha256": "dc86b0553e86893166423e4bbcffcf9ffc22682b9a46bad783d7b3158eaf0544",
+      "graaftoestand": "acceptatie, 17 nov 2026 (opgenomen na het bevriezen)"
+     },
+     "LB-09": {
+      "pad": "docs/architectuur/metingen/lex-bench-2026-11-17-pilot/LB-09/graafantwoorden.json",
+      "sha256": "520bd1723572fa2189312f8518e35986ac0c2d21badcf7d6a35a48498496adab",
+      "graaftoestand": "acceptatie, 17 nov 2026 (opgenomen na het bevriezen)"
+     }
+    },
+    "verwachting": {
+     "LB-07": {
+      "sha256": "426cc05b84b091a128acd2a96e2f6b2b3c9332b61231a38f2ad028bd583b7bf1",
+      "status": "concept",
+      "bevroren": "2026-11-17T12:17:31+00:00"
+     },
+     "LB-08": {
+      "sha256": "cb9dc1eb73df08caeaa7b16e53a2d1c42a384a0b806773370a6d3e0edb2e29eb",
+      "status": "concept",
+      "bevroren": "2026-11-17T12:05:59+00:00"
+     },
+     "LB-09": {
+      "sha256": "85b07b6c736441135bbae57a0c106984e6f50a28b7cfc2ff5b937aee37a19dc2",
+      "status": "concept",
+      "bevroren": "2026-11-17T12:13:25+00:00"
+     }
+    },
+    "verbruik": {
+     "T": {
+      "agents": [
+       {
+        "arm": "T",
+        "casus": "LB-07",
+        "analist": "A",
+        "agent_tokens": 130811,
+        "tool_uses": 27,
+        "duur_ms": 210468,
+        "rondes": 13,
+        "aanroepen": {
+         "Skill": 2,
+         "logboek_aanvullen": 8,
+         "bron_lezen": 30,
+         "graaf_lezen": 12
+        },
+        "som": {
+         "input_tokens": 26,
+         "cache_read_input_tokens": 1192381,
+         "cache_creation_input_tokens": 121303,
+         "output_tokens": 16558
+        }
+       },
+       {
+        "arm": "T",
+        "casus": "LB-08",
+        "analist": "A",
+        "agent_tokens": 216076,
+        "tool_uses": 48,
+        "duur_ms": 302275,
+        "rondes": 20,
+        "aanroepen": {
+         "Skill": 2,
+         "logboek_aanvullen": 8,
+         "graaf_lezen": 18,
+         "bron_lezen": 66
+        },
+        "som": {
+         "input_tokens": 40,
+         "cache_read_input_tokens": 2438874,
+         "cache_creation_input_tokens": 200024,
+         "output_tokens": 25753
+        },
+        "correctie": "veld rol_placeholder (null) verwijderd door de coordinator; terugsturen had het plafond van 250k overschreden"
+       },
+       {
+        "arm": "T",
+        "casus": "LB-08",
+        "analist": "B",
+        "agent_tokens": 229333,
+        "tool_uses": 53,
+        "duur_ms": 321691,
+        "rondes": 24,
+        "aanroepen": {
+         "Skill": 2,
+         "graaf_lezen": 22,
+         "logboek_aanvullen": 8,
+         "bron_lezen": 72
+        },
+        "som": {
+         "input_tokens": 48,
+         "cache_read_input_tokens": 3536046,
+         "cache_creation_input_tokens": 211164,
+         "output_tokens": 31510
+        }
+       },
+       {
+        "arm": "T",
+        "casus": "LB-09",
+        "analist": "A",
+        "agent_tokens": 148685,
+        "tool_uses": 24,
+        "duur_ms": 174341,
+        "rondes": 12,
+        "aanroepen": {
+         "Skill": 2,
+         "logboek_lezen": 2,
+         "logboek_aanvullen": 4,
+         "bron_lezen": 32,
+         "graaf_lezen": 6
+        },
+        "som": {
+         "input_tokens": 24,
+         "cache_read_input_tokens": 1065728,
+         "cache_creation_input_tokens": 134410,
+         "output_tokens": 16687
+        }
+       },
+       {
+        "arm": "T",
+        "casus": "LB-09",
+        "analist": "B",
+        "agent_tokens": 140565,
+        "tool_uses": 27,
+        "duur_ms": 187962,
+        "rondes": 13,
+        "aanroepen": {
+         "Skill": 2,
+         "logboek_aanvullen": 6,
+         "bron_lezen": 32,
+         "graaf_lezen": 12
+        },
+        "som": {
+         "input_tokens": 26,
+         "cache_read_input_tokens": 1179863,
+         "cache_creation_input_tokens": 127106,
+         "output_tokens": 16265
+        }
+       },
+       {
+        "arm": "T",
+        "casus": "LB-07",
+        "rol": "tegenlezer",
+        "agent_tokens": 115591,
+        "tool_uses": 15,
+        "duur_ms": 122768,
+        "rondes": 5,
+        "aanroepen": {
+         "logboek_aanvullen": 4,
+         "bron_lezen": 22,
+         "graaf_lezen": 2
+        },
+        "som": {
+         "input_tokens": 10,
+         "cache_read_input_tokens": 358411,
+         "cache_creation_input_tokens": 104734,
+         "output_tokens": 12632
+        }
+       }
+      ],
+      "som_agent_tokens": 981061
+     },
+     "reviewer": {
+      "agents": [
+       {
+        "arm": "reviewer",
+        "casus": "LB-07",
+        "agent_tokens": 119846,
+        "tool_uses": 19,
+        "duur_ms": 128777,
+        "rondes": 5,
+        "aanroepen": {
+         "logboek_aanvullen": 4,
+         "bron_lezen": 32
+        },
+        "som": {
+         "input_tokens": 10,
+         "cache_read_input_tokens": 340541,
+         "cache_creation_input_tokens": 104617,
+         "output_tokens": 15540
+        }
+       },
+       {
+        "arm": "reviewer",
+        "casus": "LB-08",
+        "agent_tokens": 140850,
+        "tool_uses": 21,
+        "duur_ms": 155293,
+        "rondes": 6,
+        "aanroepen": {
+         "logboek_aanvullen": 4,
+         "bron_lezen": 36
+        },
+        "som": {
+         "input_tokens": 12,
+         "cache_read_input_tokens": 482013,
+         "cache_creation_input_tokens": 125353,
+         "output_tokens": 17256
+        }
+       },
+       {
+        "arm": "reviewer",
+        "casus": "LB-09",
+        "agent_tokens": 163954,
+        "tool_uses": 38,
+        "duur_ms": 186265
+       }
+      ],
+      "som_agent_tokens": 424650
+     },
+     "L1": 0,
+     "L2": {
+      "lex_tokens": 0,
+      "verbruik_voor": 556079,
+      "verbruik_na": 556079
+     },
+     "coordinator": {
+      "laatste_context": 742729,
+      "uitvoer_sinds_start": 112406,
+      "cache_lezen_sinds_start": 38784132,
+      "noot": "de coördinator was een lange sessie; zijn context telt bij elke ronde mee"
+     },
+     "som_agent_tokens": 1405711,
+     "maat": "agent_tokens = wat de Agent-tool na afloop meldt (de context van de laatste ronde)"
+    },
+    "plafonds": {
+     "claude_code": 2200000,
+     "lex": 100000,
+     "per_analist": 250000,
+     "per_reviewer": 200000,
+     "tegenlezer": 150000,
+     "coordinator": 200000
+    },
+    "l2": {
+     "werkgebied": "Bench LB-08 lb-08-2026-11-17-l2",
+     "gesprek_titel": "Bench LB-08 lb-08-2026-11-17-l2",
+     "blijft_staan": true,
+     "klaar_zonder_besluit": "zet de 8 kandidaten van deelvraag 1 op niet gekozen; geen stap 'wat eraan hangt'"
+    },
+    "correcties": [
+     "LB-08 A: het veld rol_placeholder (null) in deelvragen[1].twijfel[0] door de coördinator verwijderd; origineel in LB-08/formulier-a.origineel.json"
+    ]
+   },
+   "rapport": {
+    "schema": "lex-bench-rapport-1",
+    "casussen": [
+     {
+      "casus_id": "LB-07",
+      "naam": "Beslissen op een aanvraag binnen de termijn",
+      "niveau": "makkelijk",
+      "gebruik": "ontwikkeling",
+      "verwachting": "concept (teamverwachting, bevroren)",
+      "route": "zoekvragen standaard (stap 8)",
+      "tegen": "teamverwachting, vóór de vaststelling",
+      "maten": {
+       "recall_nodig": {
+        "teller": 1,
+        "noemer": 20,
+        "waarde": 0.05
+       },
+       "recall": {
+        "teller": 2,
+        "noemer": 24,
+        "waarde": 0.083
+       },
+       "precisie": {
+        "teller": 0,
+        "noemer": 24,
+        "waarde": 0.0
+       },
+       "overlap": {
+        "teller": 2,
+        "noemer": 48,
+        "waarde": 0.042
+       }
+      },
+      "diagnose": {
+       "uitgesloten_in_keuze": 0,
+       "onenig": 7,
+       "verwacht": 24
+      },
+      "categorieen": {
+       "lex_mist": 22,
+       "lex_onterecht": 23,
+       "team_mist": 0,
+       "twijfel": 1,
+       "status": "voorstel van de reviewer; de jurist beslist"
+      },
+      "nagekomen_voorstel": 0,
+      "verschillen": {
+       "lex_mist": [
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:1%3A3:lid:2",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:1%3A3:lid:3",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:1",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:2",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A14:lid:3",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:1",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:2",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:1",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:2",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A14:lid:3",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:2",
+         "rol": "aanverwant"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:3",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:4",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:1%3A2:lid:1",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:1",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:2",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:1",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:2",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:3",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:5",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:6",
+         "rol": "aanverwant"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A19:lid:1",
+         "rol": "aanverwant"
+        }
+       ],
+       "lex_onterecht": [
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A4:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:4",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A60",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A64:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A6:lid:2",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A65",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:2",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:3",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:id:BWBR0005537%2FHoofdstuk4%2FTiteldeel4.1%2FAfdeling4.1.1%2FArtikel4%3A5%2FLid1%2FSlottekst1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A44:lid:4",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:4",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A2:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A2:lid:2",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A2:lid:2",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:2",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:3",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A64:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A2:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A4:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A65",
+         "rol": ""
+        }
+       ],
+       "twijfel": [
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:id:BWBR0005537%2FHoofdstuk4%2FTiteldeel4.1%2FAfdeling4.1.1%2FArtikel4%3A5%2FLid1%2FSlottekst1",
+         "rol": ""
+        }
+       ]
+      }
+     },
+     {
+      "casus_id": "LB-08",
+      "naam": "Terugbetalen van een te hoog voorschot toeslag",
+      "niveau": "gemiddeld",
+      "gebruik": "ontwikkeling",
+      "verwachting": "concept (teamverwachting, bevroren)",
+      "route": "zoekvragen standaard (stap 8)",
+      "tegen": "teamverwachting, vóór de vaststelling",
+      "maten": {
+       "recall_nodig": {
+        "teller": 1,
+        "noemer": 30,
+        "waarde": 0.033
+       },
+       "recall": {
+        "teller": 1,
+        "noemer": 31,
+        "waarde": 0.032
+       },
+       "precisie": {
+        "teller": 1,
+        "noemer": 24,
+        "waarde": 0.042
+       },
+       "overlap": {
+        "teller": 1,
+        "noemer": 54,
+        "waarde": 0.019
+       }
+      },
+      "diagnose": {
+       "uitgesloten_in_keuze": 2,
+       "onenig": 33,
+       "verwacht": 31
+      },
+      "categorieen": {
+       "lex_mist": 30,
+       "lex_onterecht": 22,
+       "team_mist": 0,
+       "twijfel": 1,
+       "status": "voorstel van de reviewer; de jurist beslist"
+      },
+      "nagekomen_voorstel": 0,
+      "verschillen": {
+       "lex_mist": [
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A86:lid:1",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:16:lid:1",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:16:lid:5",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:16:lid:6",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:19:lid:1",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:20:lid:1",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:20:lid:3",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:24:lid:2",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:24:lid:3",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:26:lid:2",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:26a:lid:1",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:26b:lid:1",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:28:lid:1",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:28:lid:3",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:31",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:1",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:3",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:5",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:6",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:7",
+         "rol": "aanverwant"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:9",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0019237:artikel:8:lid:1",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0004770:artikel:28:lid:1",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A114",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:29",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:1",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:2",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:5",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:6",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:4",
+         "rol": "kern"
+        }
+       ],
+       "lex_onterecht": [
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:3",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A57:lid:4",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:8",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:24:lid:4",
+         "rol": "",
+         "uitgesloten": true
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:7",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:7",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:3",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A57:lid:4",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:26:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:26b:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:28:lid:2",
+         "rol": "",
+         "uitgesloten": true
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0019237:artikel:8:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:8",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:24:lid:4",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:26:lid:2",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:26a:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:26b:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:2",
+         "rol": ""
+        }
+       ],
+       "twijfel": [
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0018472:artikel:28:lid:1",
+         "rol": ""
+        }
+       ]
+      },
+      "l2": {
+       "route": "L2: het paneel op acceptatie",
+       "maten": {
+        "recall_nodig": {
+         "teller": 1,
+         "noemer": 30,
+         "waarde": 0.033
+        },
+        "recall": {
+         "teller": 1,
+         "noemer": 31,
+         "waarde": 0.032
+        },
+        "precisie": {
+         "teller": 1,
+         "noemer": 24,
+         "waarde": 0.042
+        },
+        "overlap": {
+         "teller": 1,
+         "noemer": 54,
+         "waarde": 0.019
+        }
+       },
+       "verbruik_lex": 0
+      }
+     },
+     {
+      "casus_id": "LB-09",
+      "naam": "Achteraf alsnog belasting vragen",
+      "niveau": "moeilijk",
+      "gebruik": "ontwikkeling",
+      "verwachting": "concept (teamverwachting, bevroren)",
+      "route": "zoekvragen standaard (stap 8)",
+      "tegen": "teamverwachting, vóór de vaststelling",
+      "maten": {
+       "recall_nodig": {
+        "teller": 2,
+        "noemer": 16,
+        "waarde": 0.125
+       },
+       "recall": {
+        "teller": 2,
+        "noemer": 19,
+        "waarde": 0.105
+       },
+       "precisie": {
+        "teller": 2,
+        "noemer": 32,
+        "waarde": 0.062
+       },
+       "overlap": {
+        "teller": 2,
+        "noemer": 49,
+        "waarde": 0.041
+       }
+      },
+      "diagnose": {
+       "uitgesloten_in_keuze": 1,
+       "onenig": 11,
+       "verwacht": 19
+      },
+      "categorieen": {
+       "lex_mist": 17,
+       "lex_onterecht": 28,
+       "team_mist": 0,
+       "twijfel": 2,
+       "status": "voorstel van de reviewer; de jurist beslist"
+      },
+      "nagekomen_voorstel": 0,
+      "verschillen": {
+       "lex_mist": [
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:1",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:2",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:11:lid:4",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:3",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:5",
+         "rol": "aanverwant"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:1",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:2",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:5",
+         "rol": "aanverwant"
+        },
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:67e:lid:1",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:67e:lid:2",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:67e:lid:3",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:67e:lid:6",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:67n:lid:1",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:67n:lid:2",
+         "rol": "aanverwant"
+        },
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:67n:lid:3",
+         "rol": "kern"
+        },
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A41",
+         "rol": "afhankelijkheid"
+        },
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A46:lid:2",
+         "rol": "afhankelijkheid"
+        }
+       ],
+       "lex_onterecht": [
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:56",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A48:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:67r:lid:6",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:10%3A44:lid:3",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:67r:lid:8",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:9%3A8:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:49a",
+         "rol": ""
+        },
+        {
+         "deelvraag": 0,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A34:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:30i:lid:3",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:10%3A44:lid:3",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:67r:lid:8",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:9%3A8:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A110:lid:2",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:67r:lid:7",
+         "rol": ""
+        },
+        {
+         "deelvraag": 1,
+         "bron_iri": "urn:bwb:BWBR0005537:id:BWBR0005537%2FBijlage2%2FDivisie3%2FArtikel7",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A99",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:76:lid:2",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A102:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:30g:lid:2",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:8%3A75:lid:2",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:67f:lid:2",
+         "rol": ""
+        },
+        {
+         "deelvraag": 2,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A52:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:72",
+         "rol": ""
+        },
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:74",
+         "rol": ""
+        },
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A2:lid:1",
+         "rol": "",
+         "uitgesloten": true
+        },
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:70",
+         "rol": ""
+        },
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0002320:artikel:71",
+         "rol": ""
+        },
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0005537:id:BWBR0005537%2FBijlage2%2FDivisie3%2FArtikel6",
+         "rol": ""
+        }
+       ],
+       "twijfel": [
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A44:lid:1",
+         "rol": ""
+        },
+        {
+         "deelvraag": 3,
+         "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A40:lid:1",
+         "rol": ""
+        }
+       ]
+      }
+     }
+    ],
+    "per_niveau": [
+     {
+      "gebruik": "ontwikkeling",
+      "niveau": "makkelijk",
+      "casussen": [
+       "LB-07"
+      ],
+      "maten": {
+       "recall_nodig": {
+        "teller": 1,
+        "noemer": 20,
+        "waarde": 0.05
+       },
+       "recall": {
+        "teller": 2,
+        "noemer": 24,
+        "waarde": 0.083
+       },
+       "precisie": {
+        "teller": 0,
+        "noemer": 24,
+        "waarde": 0.0
+       },
+       "overlap": {
+        "teller": 2,
+        "noemer": 48,
+        "waarde": 0.042
+       }
+      }
+     },
+     {
+      "gebruik": "ontwikkeling",
+      "niveau": "gemiddeld",
+      "casussen": [
+       "LB-08"
+      ],
+      "maten": {
+       "recall_nodig": {
+        "teller": 1,
+        "noemer": 30,
+        "waarde": 0.033
+       },
+       "recall": {
+        "teller": 1,
+        "noemer": 31,
+        "waarde": 0.032
+       },
+       "precisie": {
+        "teller": 1,
+        "noemer": 24,
+        "waarde": 0.042
+       },
+       "overlap": {
+        "teller": 1,
+        "noemer": 54,
+        "waarde": 0.019
+       }
+      }
+     },
+     {
+      "gebruik": "ontwikkeling",
+      "niveau": "moeilijk",
+      "casussen": [
+       "LB-09"
+      ],
+      "maten": {
+       "recall_nodig": {
+        "teller": 2,
+        "noemer": 16,
+        "waarde": 0.125
+       },
+       "recall": {
+        "teller": 2,
+        "noemer": 19,
+        "waarde": 0.105
+       },
+       "precisie": {
+        "teller": 2,
+        "noemer": 32,
+        "waarde": 0.062
+       },
+       "overlap": {
+        "teller": 2,
+        "noemer": 49,
+        "waarde": 0.041
+       }
+      }
+     }
+    ]
+   }
   }
  ],
  "risicos": {
@@ -2082,10 +3367,14 @@ window.LEX_BENCH = {
       "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_de_tegenlezer_ziet_lex_niet",
       "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_de_verschillen_zijn_genummerd_en_herhaalbaar",
       "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_een_categorie_die_niet_bij_het_verschil_past_gaat_niet_door",
+      "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_een_pilotdossier_geeft_een_opdracht_zonder_niveau_of_verwachting",
       "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_een_review_volgens_de_voorstellen_klopt_en_telt",
       "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_een_tegenlezing_hoort_bij_een_analist",
       "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_een_tegenlezing_met_een_fout_gaat_niet_door",
       "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_een_tegenlezing_zet_haar_bezwaren_in_onenig",
+      "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_l2_met_de_lijst_van_l1_geeft_de_kaart_van_l1",
+      "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_l2_zonder_voorstel_bij_een_deelvraag_is_een_lege_lijst",
+      "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_opnemen_vraagt_alleen_het_dossier_en_overschrijft_niets",
       "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_team_mist_wordt_een_voorstel_voor_nagekomen_en_wijzigt_niets",
       "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_tegen_de_eigen_verwachting_geeft_het_de_scorekaart_van_l1",
       "tools/graph-qa/tests/evals/test_lex_bench_team.py::test_bevriezen_schrijft_eenmalig_met_de_hash",
@@ -2115,7 +3404,9 @@ window.LEX_BENCH = {
       "tests/poort/test_lex_bench_dashboard.py::test_de_pagina_haalt_geen_code_van_buiten",
       "tests/poort/test_lex_bench_dashboard.py::test_de_tokens_zijn_die_van_de_frontend",
       "tests/poort/test_lex_bench_dashboard.py::test_het_beeldmerk_is_dat_van_lex",
+      "tests/poort/test_lex_bench_team.py::test_de_pilot_heeft_een_casus_per_niveau_buiten_het_manifest",
       "tests/poort/test_lex_bench_team.py::test_een_bench_profiel_heeft_precies_zijn_allowlist",
+      "tests/poort/test_lex_bench_team.py::test_een_pilotdossier_draagt_geen_verwachting",
       "tests/poort/test_lex_bench_team.py::test_het_formulier_en_de_briefing_staan_er"
      ]
     },
