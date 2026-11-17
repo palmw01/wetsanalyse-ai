@@ -1,0 +1,996 @@
+{
+  "schema_versie": 4,
+  "casus_id": "LB-08",
+  "niveau": "gemiddeld",
+  "gebruik": "ontwikkeling",
+  "verwachting": {
+    "opgesteld_door": {
+      "run_id": "lb-08-2026-11-17",
+      "analisten": [
+        "A",
+        "B"
+      ]
+    },
+    "vastgesteld_door": null,
+    "status": "concept",
+    "datum": "2026-11-17"
+  },
+  "verwacht": [
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A86:lid:1",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "d",
+      "motivering": "A: Algemene Awb-regel dat een betalingsverplichting bij beschikking wordt vastgesteld (titel 4.4 geldt via art. 4:85); verklaart de vorm van de beschikking tot terugvordering. / B: De betalingsverplichting ontstaat bij beschikking (de beschikking tot terugvordering). Titel 4.4 Awb is van toepassing via art. 4:85.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:16:lid:1",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "d",
+      "motivering": "A: Wat een voorschot is: verleend tot het bedrag waarop de tegemoetkoming vermoedelijk zal worden vastgesteld. Verklaart waarom een te hoog voorschot ontstaat als het werkelijke inkomen hoger blijkt (praktijkvoorbeeld). / B: Wat een voorschot is: een bedrag op basis van de vermoedelijke tegemoetkoming. Daaruit volgt waarom een te laag opgegeven inkomen tot een te hoog voorschot leidt.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:16:lid:5",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "a",
+      "motivering": "A: Bevoegdheid tot herziening van het voorschot (bijv. na een inkomenswijziging in de loop van het jaar), met de vijfjaarsgrens; een van de wegen waarlangs een terug te vorderen bedrag ontstaat. / B: De bevoegdheid om het voorschot te herzien, waarop lid 6 voortbouwt, met de grens van vijf jaar voor verlaging.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:16:lid:6",
+      "rol": "kern",
+      "zoekvraag": "c",
+      "motivering": "A: Rechtsgevolg van de herziening van het voorschot: een terug te vorderen bedrag. / B: Ook een herziening van het voorschot in de loop van het jaar kan leiden tot een terug te vorderen bedrag.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:19:lid:1",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "b",
+      "motivering": "A: Termijn waarbinnen de Dienst Toeslagen de tegemoetkoming definitief toekent (zes maanden na de aanslag IB); geeft het moment van de definitieve berekening aan, nuttig voor de telefonie. / B: Wanneer de definitieve toekenning volgt: binnen zes maanden na de vaststelling van de aanslag inkomstenbelasting. Dat bepaalt het moment waarop het terug te betalen bedrag ontstaat.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:20:lid:1",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "a",
+      "motivering": "A: Herziening van een al toegekende tegemoetkoming wanneer het inkomensgegeven later wordt vastgesteld of gewijzigd; route waarlangs een hoger inkomen ook na de definitieve toekenning tot terugvordering leidt. / B: Wordt het inkomensgegeven pas na de toekenning vastgesteld of gewijzigd, dan herziet de Dienst Toeslagen de tegemoetkoming. Dat is een tweede weg naar een terug te vorderen bedrag (lid 3).",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:20:lid:3",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "c",
+      "motivering": "A: Rechtsgevolg van de herziening op grond van art. 20: ook een terug te vorderen bedrag. / B: Een herziening na een gewijzigd inkomensgegeven kan tot een terug te vorderen bedrag leiden.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:24:lid:2",
+      "rol": "kern",
+      "zoekvraag": "c",
+      "motivering": "A: Het praktijkgeval: bij de definitieve toekenning worden de verleende voorschotten verrekend met de tegemoetkoming; dit is het mechanisme waardoor na de definitieve berekening een terug te betalen bedrag ontstaat. / B: Bij de definitieve berekening worden de ontvangen voorschotten verrekend met de toegekende tegemoetkoming; dit is het mechanisme van het praktijkvoorbeeld.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:24:lid:3",
+      "rol": "kern",
+      "zoekvraag": "c",
+      "motivering": "A: Bepaalt dat de verrekening van voorschotten met de tegemoetkoming tot een terug te vorderen bedrag kan leiden; samen met art. 26 lid 1 het ontstaan van de schuld. / B: Stelt dat de verrekening van voorschot en tegemoetkoming tot een terug te vorderen bedrag kan leiden.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26:lid:1",
+      "rol": "kern",
+      "zoekvraag": "a",
+      "motivering": "A: Grondslag van de terugvordering: een herziening van een voorschot of tegemoetkoming, of de verrekening van voorschot met tegemoetkoming, die leidt tot een terug te vorderen bedrag, maakt de belanghebbende dat bedrag geheel verschuldigd. / B: Grondslag van de terugvordering: een herziening van het voorschot of de verrekening van het voorschot met de tegemoetkoming leidt tot een terug te vorderen bedrag, en de belanghebbende is dat bedrag helemaal verschuldigd.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26:lid:2",
+      "rol": "kern",
+      "zoekvraag": "a",
+      "motivering": "A: De Dienst Toeslagen vordert volledig terug (bevoegdheid en plicht), met de evenredigheidsuitzondering die het vast te stellen bedrag kan verlagen: dit bepaalt hoe het bedrag in de beschikking tot terugvordering wordt vastgesteld. / B: Hoe het bedrag wordt vastgesteld: in beginsel volledig, maar de Dienst Toeslagen kan bij onevenredige gevolgen een lager bedrag terugvorderen in de beschikking tot terugvordering.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26a:lid:1",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: Doelmatigheidsgrens: een terug te vorderen bedrag van niet meer dan € 121 wordt niet teruggevorderd en de beschikking tot terugvordering wordt op nihil gesteld; bepaalt mee of er een te betalen bedrag ontstaat. / B: Doelmatigheidsgrens: een terug te vorderen bedrag van niet meer dan EUR 121 wordt niet teruggevorderd. Dat bepaalt of er wel iets terugbetaald moet worden.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26b:lid:1",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "b",
+      "motivering": "A: Procedure bij de vaststelling: zienswijze bij mogelijk onevenredige gevolgen, en in ieder geval bij een terug te vorderen bedrag van ten minste € 1.500 per berekeningsjaar. In het praktijkgeval (€ 1.200) niet verplicht, maar wel mogelijk bij onevenredigheid. / B: Procedure voordat de beschikking tot terugvordering wordt vastgesteld: een zienswijze bij mogelijk onevenredige gevolgen, en in ieder geval vanaf EUR 1.500 per berekeningsjaar. In het voorbeeld (EUR 1.200) dus alleen bij mogelijke onevenredigheid.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:28:lid:1",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: De betalingstermijn: binnen zes weken na dagtekening van de beschikking tot terugvordering. / B: De betalingstermijn: binnen zes weken na de dagtekening van de beschikking tot terugvordering.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:28:lid:3",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "b",
+      "motivering": "A: De termijnberekening van lid 1: de Algemene termijnenwet geldt niet, dus geen verlenging over het weekend of een feestdag. / B: Voor de berekening van de termijn: de Algemene termijnenwet geldt niet, dus geen verlenging tot na een weekend of feestdag.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:31",
+      "rol": "kern",
+      "zoekvraag": "a",
+      "motivering": "A: Delegatiegrondslag voor het uitstel van betaling (betalen in delen), uitgewerkt in Uitv reg Awir art. 7 en 8. / B: Grondslag (delegatie) voor uitstel van betaling en betaling in termijnen, uitgewerkt in art. 7 en 8 Uitv reg Awir.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:1",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: De standaardregeling om in delen te betalen: maandelijkse termijnen van € 20, onder voorwaarden van de Dienst Toeslagen. / B: Recht op betaling in maandelijkse termijnen van EUR 20 onder door de Dienst te stellen voorwaarden. Dit is het antwoord op 'mag het in delen'.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:3",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: De maximale duur (24 maanden na de vervaldag) en een hogere termijn als € 20 niet volstaat. In het praktijkgeval: € 1.200 in 24 termijnen van € 20 is € 480, dus de Dienst kan meer per maand verlangen. / B: Maximale duur van de termijnbetaling (24 maanden na de vervaldag) en een hoger maandbedrag als het bedrag niet in 24 termijnen van EUR 20 past. Bij EUR 1.200 is dat zo (24 x 20 = 480).",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:5",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: Een persoonlijke betalingsregeling op basis van de betalingscapaciteit, op schriftelijk verzoek, voor wie de standaardregeling niet kan opbrengen; het partnerinkomen telt mee. / B: Een betalingsregeling naar betalingscapaciteit, op schriftelijk verzoek, voor wie de standaardtermijnen niet kan betalen. Dat speelt in het praktijkvoorbeeld.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:6",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "b",
+      "motivering": "A: Weigeringsgrond voor de regeling naar betalingscapaciteit: er is vermogen om de schuld te voldoen. / B: Weigeringsgrond voor de regeling naar betalingscapaciteit: er is vermogen om de terugvordering te betalen.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:7",
+      "rol": "aanverwant",
+      "zoekvraag": "b",
+      "motivering": "A: Bijzondere regeling bij vermogen dat moeilijk direct te gelde te maken is (verlenging met maximaal 48 maanden); nuttig voor de telefonie, niet nodig voor het standaardgeval. / B: Een verlengde regeling (maximaal 48 maanden) als het vermogen bestaat uit bezittingen die niet direct liquide te maken zijn. Een randgeval voor de telefonie.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:9",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "b",
+      "motivering": "A: Algemene weigeringsgrond voor de regelingen van lid 4, 5 en 7: het belang van de invordering. / B: Algemene weigeringsgrond voor de regelingen uit lid 4, 5 en 7: het belang van de invordering verzet zich ertegen.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:8:lid:1",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "b",
+      "motivering": "A: Uitstel van betaling zolang een tijdig, gemotiveerd bezwaar of beroep tegen de terugvordering loopt; ook een antwoord op de vraag wanneer betaald moet worden. / B: Uitstel van betaling zolang een tijdig gemotiveerd bezwaar of beroep tegen de terugvordering loopt. Nuttig voor de telefonie, maar het praktijkvoorbeeld noemt geen bezwaar.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:28:lid:1",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "d",
+      "motivering": "A: Gevolgd vanuit Awir art. 29 (overeenkomstige toepassing): de invorderingsrente bij overschrijding van de betalingstermijn. / B: Gevolgde verwijzing uit Awir art. 29: de invorderingsrente over het openstaande bedrag. Zonder dit lid is art. 29 niet toe te passen.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A114",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "d",
+      "motivering": "A: Begripsbepaling van het dwangbevel, waarnaar Awir art. 32 lid 2 verwijst. / B: Definitie van dwangbevel, het begrip waarop Awir art. 32 lid 2 rust.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:29",
+      "rol": "kern",
+      "zoekvraag": "c",
+      "motivering": "A: Rente bij overschrijding van de betalingstermijn van art. 28, via de Invorderingswet 1990. / B: Gevolg van te late betaling: na de termijn van art. 28 is rente verschuldigd, met overeenkomstige toepassing van art. 28 en 29 Invorderingswet 1990.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:1",
+      "rol": "kern",
+      "zoekvraag": "c",
+      "motivering": "A: Bij niet tijdig betalen volgt een schriftelijke aanmaning met een nieuwe termijn van twee weken. / B: Wordt niet binnen de termijn betaald, dan volgt een schriftelijke aanmaning om binnen twee weken te betalen.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:2",
+      "rol": "kern",
+      "zoekvraag": "c",
+      "motivering": "A: Dwanginvordering per dwangbevel, met de kosten van aanmaning en dwangbevel en de rente. / B: Dwanginvordering met een dwangbevel, waarbij ook de kosten van aanmaning en dwangbevel en de rente worden ingevorderd.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:5",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "c",
+      "motivering": "A: Rechtsbescherming tegen de tenuitvoerlegging van het dwangbevel: verzet. / B: Rechtsbescherming: verzet tegen de tenuitvoerlegging van het dwangbevel.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:6",
+      "rol": "kern",
+      "zoekvraag": "c",
+      "motivering": "A: Derdenbeslag: de werkgever, uitkeringsinstantie of bank kan verplicht worden het verschuldigde aan de Dienst Toeslagen te betalen. / B: Vordering bij derden (werkgever, uitkeringsinstantie, bank): het concrete gevolg van blijvende niet-betaling.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:4",
+      "rol": "kern",
+      "zoekvraag": "c",
+      "motivering": "A: Het praktijkgeval 'een betaling missen' binnen een betalingsregeling: wie zich niet aan de voorwaarden houdt, kan op verzoek opnieuw in termijnen betalen (maximaal 24 maanden vanaf die beschikking), en de al ontstane invorderingskosten gaan mee in de regeling. / B: Wie een termijn van de betalingsregeling mist (niet voldoet aan de voorwaarden), kan op verzoek opnieuw in termijnen betalen, maximaal 24 maanden. De kosten van invordering die al ontstaan zijn, gaan mee in de regeling. Dit beantwoordt 'wat gebeurt er als ze een betaling missen'.",
+      "herkomst": "team: A en B"
+    }
+  ],
+  "onenig": [
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A86:lid:1",
+      "soort": "rol",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "d",
+          "motivering": "Algemene Awb-regel dat een betalingsverplichting bij beschikking wordt vastgesteld (titel 4.4 geldt via art. 4:85); verklaart de vorm van de beschikking tot terugvordering.",
+          "citaat": "De verplichting tot betaling van een geldsom wordt bij beschikking vastgesteld."
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "c",
+          "motivering": "De betalingsverplichting ontstaat bij beschikking (de beschikking tot terugvordering). Titel 4.4 Awb is van toepassing via art. 4:85.",
+          "citaat": "De verplichting tot betaling van een geldsom wordt bij beschikking vastgesteld."
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:14:lid:1",
+      "soort": "alleen_B",
+      "argumenten": {
+        "A": {
+          "plek": "twijfel",
+          "motivering": "Grondslag van de toekenning zelf (de definitieve berekening). Het is nodig als context, maar het onderwerp van het dossier is de terugvordering, niet de toekenning."
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "a",
+          "motivering": "De definitieve toekenning van de tegemoetkoming (de 'definitieve berekening'), waarmee het voorschot volgens art. 24 lid 2 wordt verrekend.",
+          "citaat": "Een tegemoetkoming wordt op aanvraag toegekend door de Dienst Toeslagen."
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:16:lid:6",
+      "soort": "rol",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "c",
+          "motivering": "Rechtsgevolg van de herziening van het voorschot: een terug te vorderen bedrag.",
+          "citaat": "Een herziening van het voorschot kan leiden tot een terug te vorderen bedrag."
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "kern",
+          "zoekvraag": "a",
+          "motivering": "Ook een herziening van het voorschot in de loop van het jaar kan leiden tot een terug te vorderen bedrag.",
+          "citaat": "Een herziening van het voorschot kan leiden tot een terug te vorderen bedrag."
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:19:lid:1",
+      "soort": "rol",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "b",
+          "motivering": "Termijn waarbinnen de Dienst Toeslagen de tegemoetkoming definitief toekent (zes maanden na de aanslag IB); geeft het moment van de definitieve berekening aan, nuttig voor de telefonie.",
+          "citaat": "kent de Dienst Toeslagen de tegemoetkoming met betrekking tot dat berekeningsjaar toe binnen zes maanden na de vaststelling van de laatste in dit kader van belang zijnde aanslag."
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "b",
+          "motivering": "Wanneer de definitieve toekenning volgt: binnen zes maanden na de vaststelling van de aanslag inkomstenbelasting. Dat bepaalt het moment waarop het terug te betalen bedrag ontstaat.",
+          "citaat": "Indien ten name van de belanghebbende, zijn partner of een medebewoner over het berekeningsjaar een aanslag inkomstenbelasting wordt vastgesteld, kent de Dienst Toeslagen de tegemoetkoming met betrekking tot dat berekeningsjaar toe binnen zes maanden na de vaststelling van de laatste in dit kader van belang zijnde aanslag."
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:20:lid:1",
+      "soort": "rol",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "a",
+          "motivering": "Herziening van een al toegekende tegemoetkoming wanneer het inkomensgegeven later wordt vastgesteld of gewijzigd; route waarlangs een hoger inkomen ook na de definitieve toekenning tot terugvordering leidt.",
+          "citaat": "Indien na de toekenning van de tegemoetkoming uit een eerste vaststelling, eerste bepaling of wijziging van een inkomensgegeven, niet in Nederland belastbaar inkomen of de bij toepassing van artikel 7, derde of vierde lid, relevante rendementsgrondslag blijkt dat de tegemoetkoming tot een te hoog of te laag bedrag is toegekend, herziet de Dienst Toeslagen de tegemoetkoming met inachtneming van die eerste vaststelling, eerste bepaling of wijziging."
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "a",
+          "motivering": "Wordt het inkomensgegeven pas na de toekenning vastgesteld of gewijzigd, dan herziet de Dienst Toeslagen de tegemoetkoming. Dat is een tweede weg naar een terug te vorderen bedrag (lid 3).",
+          "citaat": "Indien na de toekenning van de tegemoetkoming uit een eerste vaststelling, eerste bepaling of wijziging van een inkomensgegeven, niet in Nederland belastbaar inkomen of de bij toepassing van artikel 7, derde of vierde lid, relevante rendementsgrondslag blijkt dat de tegemoetkoming tot een te hoog of te laag bedrag is toegekend, herziet de Dienst Toeslagen de tegemoetkoming met inachtneming van die eerste vaststelling, eerste bepaling of wijziging."
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:20:lid:3",
+      "soort": "rol",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "c",
+          "motivering": "Rechtsgevolg van de herziening op grond van art. 20: ook een terug te vorderen bedrag.",
+          "citaat": "Een herziening op grond van dit artikel kan leiden tot een uit te betalen bedrag doch ook tot een terug te vorderen bedrag."
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "c",
+          "motivering": "Een herziening na een gewijzigd inkomensgegeven kan tot een terug te vorderen bedrag leiden.",
+          "citaat": "Een herziening op grond van dit artikel kan leiden tot een uit te betalen bedrag doch ook tot een terug te vorderen bedrag."
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:21:lid:1",
+      "soort": "twijfel",
+      "argumenten": {
+        "A": {
+          "plek": "twijfel",
+          "motivering": "Herziening in het nadeel om een andere reden (feiten die de Dienst niet kende, of de belanghebbende wist of behoorde te weten dat het bedrag te hoog was). Het raakt het ontstaan van een terugvordering, maar ligt dicht bij fraude, die het dossier uitsluit. Bij een gewone inkomenswijziging loopt het via art. 20 en 24. De jurist beslist."
+        },
+        "B": {
+          "plek": "niet genoemd"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:21:lid:3",
+      "soort": "twijfel",
+      "argumenten": {
+        "A": {
+          "plek": "niet genoemd"
+        },
+        "B": {
+          "plek": "twijfel",
+          "motivering": "Herziening om een andere reden (art. 21 lid 1: feiten die de Dienst niet kende, of de belanghebbende wist of behoorde te weten dat het bedrag te hoog was) kan ook leiden tot een terug te vorderen bedrag. Bij een te laag opgegeven inkomen loopt het normaal via de definitieve toekenning (art. 19/24), maar onderdeel b kan raken aan wat het dossier onder fraude uitsluit. De jurist beslist of dit erbij hoort."
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26:lid:3",
+      "soort": "alleen_B",
+      "argumenten": {
+        "A": {
+          "plek": "uitgesloten",
+          "motivering": "Herziening van een onherroepelijke terugvordering in aan te wijzen gevallen: hoort bij de hersteloperatie en de bijzondere gevallen, niet bij het ontstaan van het bedrag in het gewone geval."
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "c",
+          "motivering": "In aangewezen gevallen herziet de Dienst Toeslagen een onherroepelijke beschikking tot terugvordering in het voordeel van de belanghebbende. Nuttig voor de telefonie, niet nodig voor de vaststelling.",
+          "citaat": "In bij ministeriële regeling aan te wijzen gevallen herziet de Dienst Toeslagen de onherroepelijk geworden beschikking tot terugvordering in het voordeel van de belanghebbende."
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26a:lid:1",
+      "soort": "rol",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "b",
+          "motivering": "Doelmatigheidsgrens: een terug te vorderen bedrag van niet meer dan € 121 wordt niet teruggevorderd en de beschikking tot terugvordering wordt op nihil gesteld; bepaalt mee of er een te betalen bedrag ontstaat.",
+          "citaat": "Indien een herziening van een toegekende tegemoetkoming of een verrekening van een voorschot met een tegemoetkoming leidt tot een terug te vorderen bedrag, wordt dit bedrag niet teruggevorderd indien dat niet meer bedraagt dan € 121."
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "Doelmatigheidsgrens: een terug te vorderen bedrag van niet meer dan EUR 121 wordt niet teruggevorderd. Dat bepaalt of er wel iets terugbetaald moet worden.",
+          "citaat": "Indien een herziening van een toegekende tegemoetkoming of een verrekening van een voorschot met een tegemoetkoming leidt tot een terug te vorderen bedrag, wordt dit bedrag niet teruggevorderd indien dat niet meer bedraagt dan € 121."
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:2:lid:1",
+      "soort": "alleen_A",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "Begripsbepalingen die de kern nodig heeft: berekeningsjaar en tegemoetkoming.",
+          "citaat": "b. berekeningsjaar: het kalenderjaar waarop de tegemoetkoming betrekking heeft;"
+        },
+        "B": {
+          "plek": "niet genoemd"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:35",
+      "soort": "alleen_A",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "c",
+          "motivering": "Rechtsbescherming tegen de beschikking tot terugvordering: de bezwaartermijn begint op de dag na dagtekening.",
+          "citaat": "In afwijking van artikel 6:8 van de Algemene wet bestuursrecht vangt de termijn voor het instellen van bezwaar aan op de dag na die van dagtekening van de beschikking, tenzij de dag van dagtekening gelegen is vóór de dag van de bekendmaking."
+        },
+        "B": {
+          "plek": "niet genoemd"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0004766:artikel:13",
+      "soort": "twijfel",
+      "argumenten": {
+        "A": {
+          "plek": "niet genoemd"
+        },
+        "B": {
+          "plek": "twijfel",
+          "motivering": "Uitv reg Awir art. 7 lid 5 verwijst voor de berekening van de betalingscapaciteit naar art. 13 Uitvoeringsregeling Invorderingswet 1990. Dat is een afhankelijkheid (berekening) buiten de regelingen van het dossier. Het artikel staat in de graaf, maar ik heb het niet gelezen omdat het startbudget van 20 passages op was. De jurist beslist of het erbij moet."
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A85:lid:1",
+      "soort": "alleen_B",
+      "argumenten": {
+        "A": {
+          "plek": "niet genoemd"
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "Toepasselijkheid van titel 4.4 Awb (geldschulden) op de terugvordering, die voortvloeit uit een besluit dat vatbaar is voor bezwaar. Nodig om de Awb-bepalingen naast de Awir te lezen.",
+          "citaat": "Deze titel is van toepassing op geldschulden die voortvloeien uit:"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A86:lid:2",
+      "soort": "alleen_B",
+      "argumenten": {
+        "A": {
+          "plek": "niet genoemd"
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "b",
+          "motivering": "De beschikking tot terugvordering moet het bedrag en de betalingstermijn vermelden. Daar ziet de beller de termijn.",
+          "citaat": "De beschikking vermeldt in ieder geval:"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A87:lid:2",
+      "soort": "alleen_B",
+      "argumenten": {
+        "A": {
+          "plek": "niet genoemd"
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "Laat een andere wettelijke betalingstermijn toe. Daardoor gaat Awir art. 28 (zes weken na dagtekening) voor de Awb-hoofdregel.",
+          "citaat": "Bij of krachtens wettelijk voorschrift kan een andere termijn voor de betaling worden vastgesteld."
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A94:lid:1",
+      "soort": "alleen_A",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "d",
+          "motivering": "De algemene Awb-bevoegdheid tot uitstel van betaling, met lid 2: tijdens het uitstel geen aanmaning of invordering. De Awir en de Uitv reg werken dit specifiek uit.",
+          "citaat": "Het bestuursorgaan kan de wederpartij uitstel van betaling verlenen."
+        },
+        "B": {
+          "plek": "niet genoemd"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:31a",
+      "soort": "alleen_B",
+      "argumenten": {
+        "A": {
+          "plek": "twijfel",
+          "motivering": "Versnelde invordering: in afwijking van art. 28 moet terstond worden betaald, bijvoorbeeld bij emigratie of beslag. Het raakt de termijn, maar niet het standaardgeval. Onderdeel a (faillissement/WSNP) valt onder de uitgesloten schuldsanering. De jurist beslist of dit opgenomen wordt als aanverwant."
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "b",
+          "motivering": "Uitzondering op de termijn van art. 28: in de genoemde gevallen moet het bedrag direct en volledig betaald worden (bv. bij vertrek uit Nederland). Onderdeel a (faillissement, schuldsanering) valt buiten het dossier.",
+          "citaat": "In afwijking van artikel 28 heeft de belanghebbende de verplichting om het bedrag van een terugvordering alsmede het bedrag van een bestuurlijke boete, terstond en tot het volle bedrag te betalen aan de Dienst Toeslagen indien:"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:31bis",
+      "soort": "alleen_B",
+      "argumenten": {
+        "A": {
+          "plek": "niet genoemd"
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "c",
+          "motivering": "Kwijtschelding van de terugvordering is uitgesloten. Dat vragen bellers vaak, en het begrenst wat er naast termijnbetaling mogelijk is.",
+          "citaat": "De Dienst Toeslagen kan het bedrag van een terugvordering, de met die terugvordering samenhangende rente, bedoeld in artikel 29, en kosten van invordering alsmede het bedrag van een bestuurlijke boete, niet geheel of gedeeltelijk kwijtschelden."
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:47b",
+      "soort": "alleen_A",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "Overgangsrecht: voor beschikkingen over berekeningsjaren vóór 2026 blijven de artikelen 27, 28, 30–34 gelden zoals ze op 31-12-2025 luidden, met 0% rente. Het praktijkvoorbeeld (voorschot 'vorig jaar', 2025) valt daaronder, dus de toepasselijke versie van art. 28 is die van 31-12-2025.",
+          "citaat": "De artikelen 27, 28, 30, 31bis, 31a, 32, 33 en 34 alsmede de daarop berustende bepalingen zoals die luidden op 31 december 2025 blijven van toepassing met betrekking tot beschikkingen die zien op de berekeningsjaren, bedoeld in artikel 2, eerste lid, onderdeel b, voorafgaand aan het berekeningsjaar 2026, met dien verstande dat voor die beschikkingen het percentage voor de in rekening te brengen rente en voor de te vergoeden rente met ingang van 1 januari 2026 0% bedraagt."
+        },
+        "B": {
+          "plek": "niet genoemd"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:8:lid:1",
+      "soort": "rol",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "b",
+          "motivering": "Uitstel van betaling zolang een tijdig, gemotiveerd bezwaar of beroep tegen de terugvordering loopt; ook een antwoord op de vraag wanneer betaald moet worden.",
+          "citaat": "kan de Dienst Toeslagen uitstel van betaling van de terugvordering verlenen tot het moment waarop op het bezwaar of verzoek om herziening als bedoeld in artikel 21a van de wet, het beroep of hoger beroep is beslist."
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "b",
+          "motivering": "Uitstel van betaling zolang een tijdig gemotiveerd bezwaar of beroep tegen de terugvordering loopt. Nuttig voor de telefonie, maar het praktijkvoorbeeld noemt geen bezwaar.",
+          "citaat": "kan de Dienst Toeslagen uitstel van betaling van de terugvordering verlenen tot het moment waarop op het bezwaar of verzoek om herziening als bedoeld in artikel 21a van de wet, het beroep of hoger beroep is beslist."
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A104:lid:1",
+      "soort": "alleen_B",
+      "argumenten": {
+        "A": {
+          "plek": "niet genoemd"
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "c",
+          "motivering": "Verjaring van de rechtsvordering vijf jaar na de betalingstermijn. Een grens aan de invordering.",
+          "citaat": "De rechtsvordering tot betaling van een geldsom verjaart vijf jaren nadat de voorgeschreven betalingstermijn is verstreken."
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A113:lid:1",
+      "soort": "twijfel",
+      "argumenten": {
+        "A": {
+          "plek": "niet genoemd"
+        },
+        "B": {
+          "plek": "twijfel",
+          "motivering": "Awir art. 32 lid 2 spreekt van 'kosten van de aanmaning'. Ik weet niet zeker of de hoogte daarvan volgt uit de Awb-aanmaningsvergoeding (4:113) of uit de overeenkomstig toegepaste invorderingsregels (Awir 32 lid 4 verwijst naar IW 1990 art. 14, 15, 18 en 18a; die heb ik niet gelezen). De jurist beslist."
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A114",
+      "soort": "rol",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "d",
+          "motivering": "Begripsbepaling van het dwangbevel, waarnaar Awir art. 32 lid 2 verwijst.",
+          "citaat": "Onder dwangbevel wordt verstaan: een schriftelijk bevel van een bestuursorgaan dat ertoe strekt de betaling van een geldsom als bedoeld in artikel 4:85 af te dwingen."
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "Definitie van dwangbevel, het begrip waarop Awir art. 32 lid 2 rust.",
+          "citaat": "Onder dwangbevel wordt verstaan: een schriftelijk bevel van een bestuursorgaan dat ertoe strekt de betaling van een geldsom als bedoeld in artikel 4:85 af te dwingen."
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A119:lid:1",
+      "soort": "alleen_B",
+      "argumenten": {
+        "A": {
+          "plek": "niet genoemd"
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "c",
+          "motivering": "De Awb-regel waarvan Awir art. 32 lid 2 afwijkt. Nodig om te zien welke kosten en rente bij het dwangbevel worden ingevorderd.",
+          "citaat": "Bij het dwangbevel kunnen tevens de aanmaningsvergoeding, de wettelijke rente en de kosten van het dwangbevel worden ingevorderd."
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A97",
+      "soort": "alleen_A",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "d",
+          "motivering": "De Awb-definitie van verzuim: niet binnen de termijn betaald. Duidt het moment waarop de gevolgen intreden.",
+          "citaat": "De schuldenaar is in verzuim indien hij niet binnen de voorgeschreven termijn heeft betaald."
+        },
+        "B": {
+          "plek": "niet genoemd"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:31a",
+      "soort": "twijfel",
+      "argumenten": {
+        "A": {
+          "plek": "twijfel",
+          "motivering": "Versnelde invordering bij beslag of een vordering op grond van art. 32 lid 6 (onderdeel e en g): een mogelijk vervolg na een gemiste betaling. Onderdeel a (WSNP) valt onder de uitgesloten schuldsanering."
+        },
+        "B": {
+          "plek": "niet genoemd"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:31bis",
+      "soort": "alleen_A",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "c",
+          "motivering": "Geen kwijtschelding van terugvordering, rente en invorderingskosten; een begrenzing van wat er na een niet-tijdige betaling mogelijk is.",
+          "citaat": "De Dienst Toeslagen kan het bedrag van een terugvordering, de met die terugvordering samenhangende rente, bedoeld in artikel 29, en kosten van invordering alsmede het bedrag van een bestuurlijke boete, niet geheel of gedeeltelijk kwijtschelden."
+        },
+        "B": {
+          "plek": "niet genoemd"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:4",
+      "soort": "twijfel",
+      "argumenten": {
+        "A": {
+          "plek": "twijfel",
+          "motivering": "Verwijst naar art. 14, 15, 18 en 18a van de Invorderingswet 1990 (de tenuitvoerlegging van het dwangbevel). Die heb ik niet gelezen; of ze nodig zijn voor de telefonie-instructie, beslist de jurist."
+        },
+        "B": {
+          "plek": "twijfel",
+          "motivering": "Verklaart art. 14, 15, 18 en 18a Invorderingswet 1990 van overeenkomstige toepassing (o.a. tenuitvoerlegging en kosten). Mogelijk nodig voor de kosten van invordering bij een gemiste betaling; de doelbepalingen zijn niet gelezen."
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:5",
+      "soort": "rol",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "c",
+          "motivering": "Rechtsbescherming tegen de tenuitvoerlegging van het dwangbevel: verzet.",
+          "citaat": "De belanghebbende kan met overeenkomstige toepassing van artikel 17 van de Invorderingswet 1990, tegen de tenuitvoerlegging van het dwangbevel in verzet komen."
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "c",
+          "motivering": "Rechtsbescherming: verzet tegen de tenuitvoerlegging van het dwangbevel.",
+          "citaat": "De belanghebbende kan met overeenkomstige toepassing van artikel 17 van de Invorderingswet 1990, tegen de tenuitvoerlegging van het dwangbevel in verzet komen."
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:34:lid:2",
+      "soort": "alleen_A",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "c",
+          "motivering": "Kosten van invordering (aanmaning, dwangbevel) volgens de Kostenwet invordering rijksbelastingen.",
+          "citaat": "De Kostenwet invordering rijksbelastingen is van overeenkomstige toepassing."
+        },
+        "B": {
+          "plek": "niet genoemd"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:34:lid:3",
+      "soort": "alleen_A",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "c",
+          "motivering": "Volgorde van toerekening van betalingen: eerst kosten, dan rente, dan de terugvordering. Nuttig om uit te leggen waarom de schuld na een gemiste betaling minder daalt.",
+          "citaat": "In afwijking van artikel 4:92, eerste lid, van de Algemene wet bestuursrecht geschiedt de toerekening van de betalingen achtereenvolgens aan:"
+        },
+        "B": {
+          "plek": "niet genoemd"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:47b",
+      "soort": "alleen_A",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "Voor terugvorderingen over berekeningsjaren vóór 2026 (het praktijkvoorbeeld) gelden de oude art. 32 en 34 en is het rentepercentage 0%; nodig om te bepalen of er bij te laat betalen rente wordt berekend.",
+          "citaat": "met dien verstande dat voor die beschikkingen het percentage voor de in rekening te brengen rente en voor de te vergoeden rente met ingang van 1 januari 2026 0% bedraagt."
+        },
+        "B": {
+          "plek": "niet genoemd"
+        }
+      }
+    }
+  ],
+  "uitgesloten": [
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:24:lid:4",
+      "motivering": "B: Gaat over de uitbetaling van een latere tegemoetkoming na een verlaagde terugvordering, en dus over verrekening met andere toeslagen; die valt buiten het dossier."
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26b:lid:2",
+      "motivering": "B: Uitzonderingen op de zienswijze; detail van de procedure dat voor deze deelvraag niet nodig is naast lid 1."
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:27",
+      "motivering": "A: Vervallen per 1-1-2026 (rente bij beschikkingen na een half jaar); geldt alleen nog via art. 47b voor oudere jaren met 0% rente. / B: Vervallen per 2026-01-01 (rente bij beschikkingen na een half jaar na berekeningsjaar)."
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:30:lid:1",
+      "motivering": "A: Verrekening van de terugvordering met andere toeslagen, en lid 2 met een belastingteruggaaf: het dossier sluit dit uit."
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:9quater",
+      "motivering": "B: Betreft terugvorderingen kinderopvangtoeslag in verband met de hersteloperatie (zie de tekst in de graaf, 'terug te vorderen bedrag kinderopvangtoeslag'). Valt buiten het dossier."
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A87:lid:1",
+      "motivering": "B: De Awb-hoofdregel (zes weken na bekendmaking) wordt voor de terugvordering verdrongen door Awir art. 28 lid 1 (zes weken na dagtekening), via art. 4:87 lid 2."
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:28:lid:2",
+      "motivering": "A: Betalingstermijn van een bestuurlijke boete: boetes vallen buiten het dossier. / B: Betalingstermijn van een bestuurlijke boete. Boetes vallen buiten het dossier."
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:30:lid:1",
+      "motivering": "B: Verrekening met andere toeslagen. Valt buiten het dossier."
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:30:lid:2",
+      "motivering": "B: Verrekening met een teruggaaf inkomstenbelasting. Valt buiten het dossier."
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:30:lid:3",
+      "motivering": "A: Moment van verrekening (pas na de termijn van art. 28): verrekening valt buiten het dossier."
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:31a:o:a",
+      "motivering": "B: Faillissement en schuldsaneringsregeling natuurlijke personen. De wettelijke schuldsanering valt buiten het dossier."
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:31ter",
+      "motivering": "B: Ambtshalve kwijtschelding in verband met de Wet onverplichte tegemoetkoming onterechte afwijzing buitengerechtelijke schuldregeling. Een bijzondere schuldenregeling, buiten het dossier (verwant aan schuldsanering en herstel)."
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:2",
+      "motivering": "A: Betalingsregeling voor een bestuurlijke boete: boetes vallen buiten het dossier. / B: Termijnbetaling van een bestuurlijke boete. Boetes vallen buiten het dossier."
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:8",
+      "motivering": "A: Toerekening van betalingen tussen terugvordering en boete: boetes vallen buiten het dossier. / B: Volgorde van toerekening tussen terugvordering en boete. Boetes vallen buiten het dossier."
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A112:lid:1",
+      "motivering": "A: De algemene Awb-aanmaning wijkt voor de specifieke regeling in Awir art. 32 lid 1 (ook twee weken, maar gerekend vanaf de dagtekening). Gelezen, niet nodig naast de lex specialis. / B: De algemene aanmaningsregel van de Awb. Voor de terugvordering regelt Awir art. 32 lid 1 de aanmaning zelf (twee weken na dagtekening), toegestaan door art. 4:112 lid 2."
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:29a",
+      "motivering": "A: Vervallen per 1-1-2026. / B: Vervallen per 2026-01-01 (geen rente bij hervatting invordering toeslagschulden)."
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:30:lid:1",
+      "motivering": "A: Verrekening als invorderingsmiddel met andere toeslagen of een belastingteruggaaf: valt buiten het dossier."
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:30:lid:3",
+      "motivering": "B: Verrekening na het verstrijken van de termijn, inclusief rente. Verrekening valt buiten het dossier."
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:31a:o:a",
+      "motivering": "B: Versnelde invordering bij faillissement of schuldsanering. Schuldsanering valt buiten het dossier."
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:3",
+      "motivering": "B: Wijze van betekening van het dwangbevel. Een procedureel detail van de deurwaarder, niet nodig voor de telefonie."
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:34:lid:1",
+      "motivering": "A: Bevoegdheid van de belastingdeurwaarder: organisatorisch, niet nodig voor de werkinstructie."
+    }
+  ],
+  "buiten_graaf": [
+    {
+      "deelvraag": 1,
+      "omschrijving": "De 'door de Dienst Toeslagen nader te stellen voorwaarden' voor de betalingsregeling (Uitv reg Awir art. 7 lid 1 en 4), zoals wat geldt als een gemiste termijn.",
+      "reden": "Beleid of uitvoeringsvoorwaarden van de Dienst Toeslagen; niet als bepaling in de drie regelingen van het dossier gevonden.",
+      "analist": "A"
+    },
+    {
+      "deelvraag": 2,
+      "omschrijving": "De hoogte van de invorderingskosten (Kostenwet invordering rijksbelastingen en de uitvoeringsregeling daarvan) en het actuele percentage invorderingsrente (IW 1990 art. 29 en het Uitvoeringsbesluit).",
+      "reden": "Buiten de regelingen van het dossier; via art. 34 lid 2 en art. 29 Awir te volgen, maar niet gelezen binnen het budget.",
+      "analist": "A"
+    },
+    {
+      "deelvraag": 1,
+      "omschrijving": "De 'door de Dienst Toeslagen nader te stellen voorwaarden' voor de termijnbetaling (Uitv reg Awir art. 7 lid 1 en 4), en het beleid over het hogere maandbedrag (art. 7 lid 3).",
+      "reden": "Die voorwaarden staan niet in de regelingen van het dossier. Ik heb geen beleidsregel of werkinstructie in de graaf gevonden of gezocht. Voor een werkinstructie telefonie zijn ze waarschijnlijk nodig.",
+      "analist": "B"
+    },
+    {
+      "deelvraag": 2,
+      "omschrijving": "De rentevoet van de invorderingsrente (IW 1990 art. 28 en 29 en 'de daarop berustende bepalingen', zoals het Besluit invorderingsrente).",
+      "reden": "Awir art. 29 verwijst ernaar. Ik heb alleen IW 1990 art. 28 lid 1 gelezen; art. 29 IW 1990 en de lagere regeling met het percentage zijn niet gelezen.",
+      "analist": "B"
+    }
+  ],
+  "open_punten": [
+    "A: Het logboek accepteert de rol 'analist' niet; ik heb gelogd als 'jurist' in run lb-08-2026-11-17-a.",
+    "A: Versie: het praktijkvoorbeeld gaat over 'vorig jaar' (berekeningsjaar 2025). Volgens Awir art. 47b gelden voor die jaren art. 28, 30–34 zoals ze op 31-12-2025 luidden, met 0% rente. Ik citeer de geldende versie (2026-10-01). Gelezen oude versie (toestand 2025-07-01 t/m 2025-12-31): art. 28 lid 1 'alsmede de op de voet van artikel 27 verschuldigde rente binnen zes weken na de dagtekening van de beschikking tot terugvordering' en art. 32 lid 1 'daaronder begrepen de in artikel 27 bedoelde rente'. De termijnen (zes weken, aanmaning binnen twee weken) zijn gelijk. De jurist kiest de peildatum voor de werkinstructie.",
+    "A: Rente in het geldende regime: art. 29 Awir verwijst nog naar IW 1990 art. 28/29, terwijl art. 47b 'afschaffen rente' heet. Voor berekeningsjaren vanaf 2026 heb ik niet kunnen vaststellen of er in de praktijk rente wordt berekend (IW art. 29 en het percentage niet gelezen).",
+    "A: Dekking per zoekvraag: DV0 a/b/c/d gedekt; DV1 a (art. 31), b (art. 28, Uitv reg 7/8), d (art. 47b) gedekt, c alleen indirect; DV2 c gedekt, d via IW 28 en de Awb-definities, a/b zijn hier niet van toepassing (de grondslag is DV0).",
+    "B: Het startbudget van 20 nieuwe bronpassages is overschreden (ongeveer 30 gelezen). In de wachtrij staan nog: IW 1990 art. 29, art. 14, 15, 18 en 18a (via Awir 32 lid 4), art. 19 (via 32 lid 6) en art. 13 Uitvoeringsregeling Invorderingswet 1990 (via Uitv reg Awir 7 lid 5).",
+    "B: Rechtsbescherming tegen de beschikking tot terugvordering (bezwaar en beroep, Awb hoofdstuk 6-8 en Awir hoofdstuk 3) heb ik niet uitgezocht. Uitv reg Awir art. 8 veronderstelt het bezwaar. Bepaal of dit onder deelvraag 0 of 1 hoort.",
+    "B: Uitv reg Awir art. 8 lid 1 spreekt van een 'verzoek om herziening als bedoeld in artikel 21a van de wet'. Awir art. 21a gaat nu over ambtshalve herziening in het voordeel in aangewezen gevallen. De verwijzing lijkt verouderd of ruimer bedoeld; reviewvraag aan de jurist.",
+    "B: De zorgtoeslag zelf (Wet op de zorgtoeslag) zit niet in het zoekbereik. Hoe de hoogte van de toeslag uit het inkomen volgt, blijft daarom buiten de selectie; deelvraag 0 is beantwoord op het niveau van herziening, verrekening en terugvordering."
+  ]
+}

@@ -1,0 +1,1128 @@
+{
+  "casus_id": "LB-09",
+  "route": "zoekvragen standaard (stap 8)",
+  "tegen": "teamverwachting, vóór de vaststelling",
+  "maten": {
+    "recall_nodig": {
+      "teller": 2,
+      "noemer": 16,
+      "waarde": 0.125
+    },
+    "recall": {
+      "teller": 2,
+      "noemer": 19,
+      "waarde": 0.105
+    },
+    "precisie": {
+      "teller": 2,
+      "noemer": 32,
+      "waarde": 0.062
+    },
+    "overlap": {
+      "teller": 2,
+      "noemer": 49,
+      "waarde": 0.041
+    }
+  },
+  "verschillen": [
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Hier staat de bevoegdheid om na te vorderen als een aanslag te laag is vastgesteld. Het lid eist ook een nieuw feit, behalve als de belastingplichtige te kwader trouw is. Daarop rust de vraag wanneer over een afgehandeld jaar nog geld mag worden bijgevraagd. / B: De grondslag voor navordering: de inspecteur kan te weinig geheven belasting navorderen op grond van een (nieuw) feit. Uitzondering: een bekend feit telt niet als grond, behalve bij kwade trouw. Dat is de kernvoorwaarde voor een afgehandeld jaar."
+      },
+      "verschil": "V1",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid is de grondslag voor navordering met de eis van een nieuw feit en de uitzondering bij kwade trouw. Daarmee beantwoordt het de deelvraag rechtstreeks. Lex noemt het niet, en geen van de acht bepalingen die Lex koos gaat over navordering.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "kan de inspecteur de te weinig geheven belasting dan wel de ten onrechte of tot een te hoog bedrag verleende heffingskorting navorderen. Een feit, dat de inspecteur bekend was of redelijkerwijs bekend had kunnen zijn, kan geen grond voor navordering opleveren, behoudens in de gevallen waarin de belastingplichtige ter zake van dit feit te kwader trouw is.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Andere gevallen waarin navorderen mag, ook zonder nieuw feit. Het belangrijkste is een fout die de belastingplichtige redelijkerwijs kon zien (onderdeel c). Dat hoort bij de vraag wanneer navorderen rechtsgeldig is. / B: Breidt de navorderingsbevoegdheid uit naar gevallen zonder nieuw feit, onder meer een kenbare fout (onderdeel c, met de 30%-grens). Zonder dit lid is de vraag wanneer navordering mag niet volledig te beantwoorden."
+      },
+      "verschil": "V2",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid noemt de andere gevallen waarin navorderen mag, onder meer een fout die de belastingplichtige redelijkerwijs kon zien (onderdeel c). Het hoort als kern bij de vraag wanneer navorderen mag.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Navordering kan mede plaatsvinden in alle gevallen waarin te weinig belasting is geheven, doordat:",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:56",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 1
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V3",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit artikel gaat over tegenover wie de informatieverplichtingen gelden, en zegt niets over wanneer nagevorderd mag worden.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De verplichtingen welke volgens deze afdeling bestaan jegens de inspecteur, gelden mede jegens iedere door Onze Minister aangewezen andere ambtenaar van de rijksbelastingdienst.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A48:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 2
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V4",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over het intrekken van een subsidieverlening. Subsidierecht raakt het navorderen van belasting niet.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Zolang de subsidie niet is vastgesteld kan het bestuursorgaan de subsidieverlening intrekken of ten nadele van de subsidie-ontvanger wijzigen",
+          "toestand": "BWBR0005537 2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67r:lid:6",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 3
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V5",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over het openbaar maken van boetegegevens van beroepsmatige medeplegers (fiscale dienstverleners). Het raakt de navorderingsbevoegdheid niet.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "maakt hij tevens de volgende gegevens op de website van de Belastingdienst openbaar",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:10%3A44:lid:3",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 4
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V6",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over de duur van de schorsing van een besluit in het interbestuurlijk toezicht, en heeft niets met navordering te maken.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De schorsing kan ook na verlenging niet langer duren dan een jaar.",
+          "toestand": "BWBR0005537 2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67r:lid:8",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 5
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V7",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid regelt hoe lang gepubliceerde boetegegevens op de website blijven staan. Dat hoort niet bij de vraag wanneer navorderen mag.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De gegevens, bedoeld in het zesde lid, blijven gedurende een periode van vijf jaren na openbaarmaking beschikbaar op de website van de Belastingdienst.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:9%3A8:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 6
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V8",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over klachtbehandeling, en hoort niet bij de navorderingsbevoegdheid.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Het bestuursorgaan is niet verplicht de klacht te behandelen indien zij betrekking heeft op een gedraging:",
+          "toestand": "BWBR0005537 2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:49a",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 7
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V9",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit artikel gaat over het gebruik van het burgerservicenummer, en heeft niets met navordering te maken.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Bij ministeriële regeling wordt aangewezen degene die is gehouden bij het verrichten van de in die ministeriële regeling aan te wijzen werkzaamheden het burgerservicenummer te gebruiken",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A34:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 8
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V10",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over subsidie onder een begrotingsvoorbehoud, en heeft niets met navordering te maken.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Voor zover een subsidie wordt verleend ten laste van een begroting die nog niet is vastgesteld of goedgekeurd",
+          "toestand": "BWBR0005537 2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:11:lid:4",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Artikel 16 lid 3 verklaart dit lid van toepassing. Het bepaalt wanneer de belastingschuld is ontstaan: het startpunt van de termijnen van vijf en twaalf jaar. / B: Art. 16 lid 3 verklaart dit lid van toepassing. Het bepaalt het tijdstip waarop de belastingschuld ontstaat (einde tijdvak), en dat is het beginpunt van de termijnen van 16 lid 3 en lid 4."
+      },
+      "verschil": "V11",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Artikel 16 lid 3 verklaart dit lid van toepassing. Het legt het tijdstip vast waarop de belastingschuld ontstaat, en dat is het beginpunt van de termijnen van vijf en twaalf jaar. Het hoort er dus bij als afhankelijkheid.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "wordt belastingschuld, waarvan de grootte eerst kan worden vastgesteld na afloop van het tijdvak waarover de belasting wordt geheven, geacht te zijn ontstaan op het tijdstip waarop dat tijdvak eindigt.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:3",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: De gewone navorderingstermijn van vijf jaar, met de verlenging door uitstel voor de aangifte. / B: De gewone navorderingstermijn van vijf jaar, met verlenging bij uitstel van aangifte, en een termijn van twee jaar bij navordering die alleen op lid 2, onderdeel c rust."
+      },
+      "verschil": "V12",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid bevat de gewone navorderingstermijn van vijf jaar. Dat is de kern van de vraag hoeveel jaar terug navorderen kan.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De bevoegdheid tot het vaststellen van een navorderingsaanslag vervalt door verloop van vijf jaren na het tijdstip waarop de belastingschuld is ontstaan.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:5",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "aanverwant",
+        "motivering": "A: Verlengt de termijnen van lid 3 en lid 4 met zes maanden als vlak voor het einde gegevens worden verstrekt. Dat is nuttig voor de werkinstructie, maar niet nodig voor de hoofdregel. / B: Verlengt de termijnen van lid 3 en lid 4 met zes maanden bij een verzoek om informatie in de laatste zes maanden. Nuttig voor de werkinstructie, maar niet nodig voor de hoofdregel."
+      },
+      "verschil": "V13",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid verlengt de termijnen van lid 3 en lid 4 met zes maanden. Het gaat dus over hoe ver terug navorderen kan, en hoort er als aanverwant bij.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "wordt die termijn met zes maanden verlengd.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30i:lid:3",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 1
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V14",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over revisierente bij pensioenaanspraken. Het noemt navordering alleen in een fictieve rekenregel en zegt niets over de navorderingstermijn.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "wordt, indien de belastingplichtige dit verzoekt, in afwijking van het tweede lid, de revisierente gesteld op het door de belastingplichtige aannemelijk te maken bedrag",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:10%3A44:lid:3",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 2
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V15",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over de schorsingsduur in het interbestuurlijk toezicht. De term 'een jaar' lijkt op een termijn, maar dit lid raakt de navorderingstermijn niet.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De schorsing kan ook na verlenging niet langer duren dan een jaar.",
+          "toestand": "BWBR0005537 2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67r:lid:8",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 3
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V16",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "De vijf jaar in dit lid is de publicatieduur van boetegegevens, niet de navorderingstermijn.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "blijven gedurende een periode van vijf jaren na openbaarmaking beschikbaar op de website van de Belastingdienst.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:9%3A8:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 4
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V17",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "De termijn van een jaar in dit lid geldt voor klachten, niet voor navordering.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "die langer dan een jaar voor indiening van de klacht heeft plaatsgevonden;",
+          "toestand": "BWBR0005537 2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A110:lid:2",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 6
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V18",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over een nieuwe verjaringstermijn voor geldschulden (inning), en die valt volgens het dossier buiten het werkgebied. Het is niet de navorderingstermijn.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De nieuwe termijn is gelijk aan de oorspronkelijke, doch niet langer dan vijf jaren.",
+          "toestand": "BWBR0005537 2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67r:lid:7",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 7
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V19",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over de publicatieduur van een boetebeschikking, en heeft niets met de navorderingstermijn te maken.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "blijft gedurende een periode van vijf jaren na openbaarmaking beschikbaar op de website van de Belastingdienst.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:id:BWBR0005537%2FBijlage2%2FDivisie3%2FArtikel7",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 8
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V20",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Deze bepaling komt uit de Bevoegdheidsregeling bestuursrechtspraak (bijlage 2 Awb) en somt wetten op voor de bevoegde rechter, zoals de Cyberbeveiligingswet en de Mededingingswet. Ze heeft niets met navordering te maken.",
+        "bewijs": {
+          "tool": "graaf_lezen",
+          "citaat": "Cyberbeveiligingswet, voor zover het een besluit betreft dat betrekking heeft op een essentiële entiteit of belangrijke entiteit"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: De grondslag voor belastingrente bij een navorderingsaanslag in de inkomstenbelasting. / B: De grondslag voor belastingrente bij een navorderingsaanslag inkomstenbelasting: rente komt bij het nagevorderde bedrag."
+      },
+      "verschil": "V21",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid is de grondslag voor belastingrente bij een navorderingsaanslag inkomstenbelasting. Het beantwoordt de deelvraag rechtstreeks.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "een aanslag of een navorderingsaanslag met een door de belastingplichtige te betalen bedrag aan belasting wordt vastgesteld, wordt met betrekking tot die aanslag, onderscheidenlijk die navorderingsaanslag, aan de belastingplichtige rente – belastingrente – in rekening gebracht.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Over welk tijdvak en over welke grondslag de rente wordt berekend. / B: Hoe de rente wordt berekend: het tijdvak (vanaf 6 maanden na het einde van het belastingjaar tot de invorderbaarheid) en de grondslag."
+      },
+      "verschil": "V22",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid legt het rentetijdvak en de grondslag van de rente vast. Dat is de kern voor wat er bij de schuld bijkomt.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De belastingrente wordt enkelvoudig berekend over het tijdvak dat aanvangt 6 maanden te rekenen vanaf het einde van het tijdvak waarover de belasting wordt geheven",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:5",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "aanverwant",
+        "motivering": "A: Beperkt het rentetijdvak als de navorderingsaanslag op verzoek wordt opgelegd. In het praktijkvoorbeeld ontdekt de Belastingdienst het zelf, dus dit lid is alleen nuttig voor de werkinstructie. / B: Beperkt het rentetijdvak als de navorderingsaanslag op verzoek van de belastingplichtige is opgelegd. Relevant als iemand zelf meldt, maar niet in het praktijkvoorbeeld."
+      },
+      "verschil": "V23",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid beperkt het rentetijdvak als de navorderingsaanslag op verzoek is opgelegd. Het hoort er als aanverwant bij.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Ingeval de navorderingsaanslag is vastgesteld naar aanleiding van een verzoek, eindigt het tijdvak waarover de belastingrente wordt berekend",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A99",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 2
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V24",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit artikel gaat over de wettelijke rente uit de Awb-titel over geldschulden (4.4), niet over belastingrente bij navordering. Voor belastingrente geldt de eigen regeling van de AWR (art. 30fc).",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Het bestuursorgaan stelt het bedrag van de verschuldigde wettelijke rente bij beschikking vast.",
+          "toestand": "BWBR0005537 2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:76:lid:2",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 3
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V25",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over de fiscale strafbeschikking. Dat is strafrecht, dat buiten het werkgebied valt, en het gaat niet over rente.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "In deze strafbeschikking kan een geldboete worden opgelegd.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A102:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 4
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V26",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over rente die het bestuursorgaan zelf verschuldigd is over een teveel betaald bedrag. Dat is de omgekeerde richting, geen rente bij een navordering.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "is het bestuursorgaan over de termijn tussen de betaling en de terugbetaling wettelijke rente verschuldigd over het te veel betaalde bedrag.",
+          "toestand": "BWBR0005537 2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30g:lid:2",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 5
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V27",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid regelt belastingrente bij aanslagen wegens overlijden en verkrijging, dus de erf- en schenkbelasting. Die valt uitdrukkelijk buiten het werkgebied.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "indien het betreft een belastingaanslag ter zake van een overlijden: over het tijdvak dat aanvangt twintig maanden na het overlijden",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:8%3A75:lid:2",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 6
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V28",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over de proceskostenveroordeling bij gefinancierde rechtsbijstand, en heeft niets met rente bij navordering te maken.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "In geval van een veroordeling in de kosten ten behoeve van een partij aan wie ter zake van het beroep bij de bestuursrechter",
+          "toestand": "BWBR0005537 2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67f:lid:2",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 7
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V29",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid geeft de grondslag van de boete bij het niet of niet tijdig betalen van belasting. Het gaat niet over rente, en het gaat over betalen, dus inning, die buiten het werkgebied valt.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De grondslag voor de boete wordt gevormd door het bedrag van de belasting dat niet of niet tijdig is betaald",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A52:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 8
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V30",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over het betalen van een subsidiebedrag, en heeft niets met belastingrente te maken.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Het subsidiebedrag wordt overeenkomstig de subsidievaststelling betaald.",
+          "toestand": "BWBR0005537 2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67e:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: De grondslag voor de vergrijpboete bij navordering: bij opzet of grove schuld, gelijktijdig met de navorderingsaanslag, tot 100 procent. / B: Grondslag voor de vergrijpboete bij navordering: opzet of grove schuld, gelijktijdig met de navorderingsaanslag, tot 100%."
+      },
+      "verschil": "V31",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid is de grondslag van de vergrijpboete bij navordering. Het beantwoordt de deelvraag of en wanneer er een boete bij komt rechtstreeks. Lex koos in plaats daarvan strafrechtelijke bepalingen.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "vormt dit een vergrijp ter zake waarvan de inspecteur hem, gelijktijdig met de vaststelling van de navorderingsaanslag, een bestuurlijke boete kan opleggen van ten hoogste 100 percent",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67e:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Bepaalt de grondslag waarop het percentage van lid 1 wordt toegepast. / B: Lid 1 verwijst ernaar voor de grondslag van de boete. Zonder dit lid is de hoogte niet te bepalen."
+      },
+      "verschil": "V32",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Lid 1 verwijst naar dit lid voor de grondslag van de boete. Zonder dit lid is de hoogte niet te bepalen, dus het hoort er als afhankelijkheid bij.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De grondslag voor de boete wordt gevormd door:",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67e:lid:3",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Het moment van opleggen: de uitzondering op 'gelijktijdig' als de feiten pas kort voor het einde van de termijnen van artikel 16 bekend worden. / B: Het tijdstip voor de boete: in afwijking van de gelijktijdigheid kan de boete binnen zes maanden na de navorderingsaanslag volgen als de feiten pas laat in de navorderingstermijn bekend worden."
+      },
+      "verschil": "V33",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid regelt wanneer de boete kan worden opgelegd, in afwijking van de regel dat dat gelijktijdig met de navorderingsaanslag gebeurt, als de feiten pas laat in de navorderingstermijn bekend worden. Dat hoort bij de vraag wanneer.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De inspecteur kan, in afwijking van het eerste lid, binnen zes maanden na de vaststelling van de navorderingsaanslag, een bestuurlijke boete opleggen",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67e:lid:6",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Een hoger maximum (300 procent) voor box 3-inkomen (sparen en beleggen). Daar valt de buitenlandse spaarrekening uit het praktijkvoorbeeld onder. / B: Een hoger maximum (300%) bij navordering over inkomen uit sparen en beleggen: precies de spaarrekening uit het praktijkvoorbeeld."
+      },
+      "verschil": "V34",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid geeft een maximum van 300 procent voor inkomen uit box 3. Daaronder valt de buitenlandse spaarrekening uit het praktijkvoorbeeld.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Voor zover de navorderingsaanslag geheel of gedeeltelijk betrekking heeft op belastbaar inkomen als bedoeld in artikel 5.1 van de Wet inkomstenbelasting 2001, bedraagt de boete, in zoverre in afwijking van het eerste lid, ten hoogste 300 percent",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67n:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Inkeer: geen vergrijpboete als de belastingplichtige binnen twee jaar uit zichzelf verbetert. Dat is een voorwaarde voor de vraag wanneer er een boete komt. / B: Inkeer: binnen twee jaar vrijwillig verbeteren voordat de inspecteur het weet, dan geen vergrijpboete. Dat is een uitzondering op wanneer een boete kan."
+      },
+      "verschil": "V35",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid regelt inkeer: wie binnen twee jaar uit zichzelf verbetert, krijgt geen vergrijpboete. Dat is een voorwaarde voor wanneer er een boete komt.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "wordt geen vergrijpboete opgelegd.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67n:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "aanverwant",
+        "motivering": "A: Inkeer na twee jaar is een reden om de boete te matigen. Dat is nuttig, maar in het praktijkvoorbeeld ontdekte de Belastingdienst de rekening zelf. / B: Inkeer na twee jaar leidt tot matiging. Nuttig voor de werkinstructie; in het praktijkvoorbeeld ontdekt de Belastingdienst de rekening zelf."
+      },
+      "verschil": "V36",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Inkeer na twee jaar is een reden om de boete te matigen. Het hoort er als aanverwant bij.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "een omstandigheid die aanleiding geeft tot matiging van de vergrijpboete.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67n:lid:3",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Sluit de inkeerregeling van lid 1 uit voor box 3-inkomen. Zonder dit lid is lid 1 voor een buitenlandse spaarrekening niet goed toe te passen. / B: Sluit de boetevrije inkeer uit voor inkomen uit sparen en beleggen. Beslissend voor de buitenlandse spaarrekening."
+      },
+      "verschil": "V37",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid sluit de boetevrije inkeer uit voor inkomen uit sparen en beleggen. Dat is beslissend voor de buitenlandse spaarrekening.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Het eerste lid is niet van toepassing voor zover ... betrekking heeft ... op inkomen uit sparen en beleggen als bedoeld in artikel 5.1 van die wet.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A41",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Geen boete zonder verwijtbaarheid. Dit is een algemeen vereiste naast opzet of grove schuld in 67e. / B: Algemene voorwaarde uit de Awb: zonder verwijtbaarheid geen bestuurlijke boete. Die geldt naast opzet en grove schuld uit 67e."
+      },
+      "verschil": "V38",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit artikel is het algemene vereiste dat er zonder verwijtbaarheid geen bestuurlijke boete is. Het geldt naast artikel 67e AWR en hoort er als afhankelijkheid bij.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Het bestuursorgaan legt geen bestuurlijke boete op voor zover de overtreding niet aan de overtreder kan worden verweten.",
+          "toestand": "BWBR0005537 2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A46:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: 67e geeft alleen een maximum. Dit lid zegt hoe de inspecteur de boete daarbinnen afstemt op ernst en verwijtbaarheid. / B: Afstemming van de boete op de ernst en de verwijtbaarheid: invulling van de hoogte binnen het maximum van 67e."
+      },
+      "verschil": "V39",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Artikel 67e geeft alleen een maximum. Dit lid zegt hoe de boete daarbinnen wordt afgestemd op ernst en verwijtbaarheid, en hoort er dus als afhankelijkheid bij.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "stemt het bestuursorgaan de bestuurlijke boete af op de ernst van de overtreding en de mate waarin deze aan de overtreder kan worden verweten.",
+          "toestand": "BWBR0005537 2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:72",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 1
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V40",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit artikel deelt fiscale strafbare feiten in misdrijven en overtredingen in. Dat is strafrecht, dat buiten het werkgebied valt.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De bij de belastingwet strafbaar gestelde feiten waarop gevangenisstraf is gesteld, zijn misdrijven.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A44:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 2
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V41",
+      "oordeel": {
+        "categorie": "twijfel",
+        "reden": "Dit una-via-voorschrift is een algemene voorwaarde voor wanneer er geen bestuurlijke boete kan komen, en artikel 67o AWR wijkt er niet van af. Bij een verzwegen buitenlandse rekening is strafvervolging denkbaar. Het strafrecht valt buiten het werkgebied, maar deze regel staat in het boeterecht van de Awb. Of dit lid als aanverwant meegaat, beslist de jurist.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Het bestuursorgaan legt geen bestuurlijke boete op indien tegen de overtreder wegens dezelfde gedraging een strafvervolging is ingesteld en het onderzoek ter terechtzitting is begonnen, dan wel een strafbeschikking is uitgevaardigd.",
+          "toestand": "BWBR0005537 2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:74",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 3
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V42",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit artikel sluit een bepaling van het Wetboek van Strafrecht uit voor fiscale strafbare feiten. Dat is strafrecht, dat buiten het werkgebied valt.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Ter zake van bij de belastingwet strafbaar gestelde feiten vindt artikel 36e van het Wetboek van Strafrecht geen toepassing.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A2:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 4
+      },
+      "team": {
+        "uitgesloten": "A: De algemene sanctiedefinities. 5:40 lid 1 definieert de bestuurlijke boete al rechtstreeks, dus 5:2 is niet nodig."
+      },
+      "verschil": "V43",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid bevat de algemene sanctiedefinities. Of en wanneer er een boete komt, beantwoordt het niet. Ik volg de uitsluiting van het team: de term bestuurlijke boete wordt al in 5:40 lid 1 gedefinieerd. Deze definitie zit één stap verder in de keten.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "bestraffende sanctie: een bestuurlijke sanctie voor zover deze beoogt de overtreder leed toe te voegen.",
+          "toestand": "BWBR0005537 2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:70",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 5
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V44",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit artikel gaat over een strafrechtelijke geldboete bij overtreding van een AMvB. Dat is strafrecht, en het is geen bestuurlijke boete bij navordering.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "voor zover die overtreding is aangemerkt als strafbaar feit, gestraft met geldboete van de derde categorie.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A40:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 6
+      },
+      "team": {
+        "onenig": {
+          "A": {
+            "plek": "opgenomen",
+            "rol": "afhankelijkheid",
+            "zoekvraag": "d",
+            "motivering": "De definitie van bestuurlijke boete, de term die artikel 67e gebruikt.",
+            "citaat": "Onder bestuurlijke boete wordt verstaan: de bestraffende sanctie, inhoudende een onvoorwaardelijke verplichting tot betaling van een geldsom."
+          },
+          "B": {
+            "plek": "niet genoemd"
+          }
+        }
+      },
+      "verschil": "V45",
+      "oordeel": {
+        "categorie": "twijfel",
+        "reden": "Het team is het hier oneens: A neemt dit lid op als afhankelijkheid, B noemt het niet. Het definieert de term bestuurlijke boete die artikel 67e lid 1 gebruikt, dus opnemen als afhankelijkheid is goed te verdedigen. De jurist beslist.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Onder bestuurlijke boete wordt verstaan: de bestraffende sanctie, inhoudende een onvoorwaardelijke verplichting tot betaling van een geldsom.",
+          "toestand": "BWBR0005537 2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:71",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 7
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V46",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit artikel gaat over een strafrechtelijke geldboete bij overtreding van ministeriële voorschriften. Dat is strafrecht, dat buiten het werkgebied valt.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "voor zover die overtreding is aangemerkt als strafbaar feit, gestraft met geldboete van de tweede categorie.",
+          "toestand": "BWBR0002320 2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0005537:id:BWBR0005537%2FBijlage2%2FDivisie3%2FArtikel6",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 8
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V47",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Deze bepaling uit de Bevoegdheidsregeling bestuursrechtspraak wijst de rechtbank Den Haag aan voor beroep op grond van een lijst wetten. Ze zegt niets over een boete bij navordering.",
+        "bewijs": {
+          "tool": "graaf_lezen",
+          "citaat": "Tegen een besluit, genomen op grond van een in dit artikel genoemd voorschrift of anderszins in dit artikel omschreven, kan beroep worden ingesteld bij de rechtbank Den Haag."
+        }
+      }
+    }
+  ],
+  "categorieen": {
+    "lex_mist": 17,
+    "lex_onterecht": 28,
+    "team_mist": 0,
+    "twijfel": 2,
+    "status": "voorstel van de reviewer; de jurist beslist"
+  },
+  "plekken": {
+    "onbekend": 45
+  },
+  "nagekomen_voorstel": []
+}

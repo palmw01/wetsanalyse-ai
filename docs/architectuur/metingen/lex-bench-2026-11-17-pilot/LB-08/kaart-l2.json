@@ -1,0 +1,718 @@
+{
+  "casus_id": "LB-08",
+  "route": "L2: het paneel op acceptatie",
+  "tegen": "teamverwachting, vóór de vaststelling",
+  "maten": {
+    "recall_nodig": {
+      "teller": 1,
+      "noemer": 30,
+      "waarde": 0.033
+    },
+    "recall": {
+      "teller": 1,
+      "noemer": 31,
+      "waarde": 0.032
+    },
+    "precisie": {
+      "teller": 1,
+      "noemer": 24,
+      "waarde": 0.042
+    },
+    "overlap": {
+      "teller": 1,
+      "noemer": 54,
+      "waarde": 0.019
+    }
+  },
+  "verschillen": [
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A86:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Algemene Awb-regel dat een betalingsverplichting bij beschikking wordt vastgesteld (titel 4.4 geldt via art. 4:85); verklaart de vorm van de beschikking tot terugvordering. / B: De betalingsverplichting ontstaat bij beschikking (de beschikking tot terugvordering). Titel 4.4 Awb is van toepassing via art. 4:85."
+      },
+      "verschil": "V1"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:16:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Wat een voorschot is: verleend tot het bedrag waarop de tegemoetkoming vermoedelijk zal worden vastgesteld. Verklaart waarom een te hoog voorschot ontstaat als het werkelijke inkomen hoger blijkt (praktijkvoorbeeld). / B: Wat een voorschot is: een bedrag op basis van de vermoedelijke tegemoetkoming. Daaruit volgt waarom een te laag opgegeven inkomen tot een te hoog voorschot leidt."
+      },
+      "verschil": "V2"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:16:lid:5",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Bevoegdheid tot herziening van het voorschot (bijv. na een inkomenswijziging in de loop van het jaar), met de vijfjaarsgrens; een van de wegen waarlangs een terug te vorderen bedrag ontstaat. / B: De bevoegdheid om het voorschot te herzien, waarop lid 6 voortbouwt, met de grens van vijf jaar voor verlaging."
+      },
+      "verschil": "V3"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:16:lid:6",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Rechtsgevolg van de herziening van het voorschot: een terug te vorderen bedrag. / B: Ook een herziening van het voorschot in de loop van het jaar kan leiden tot een terug te vorderen bedrag."
+      },
+      "verschil": "V4"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:19:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Termijn waarbinnen de Dienst Toeslagen de tegemoetkoming definitief toekent (zes maanden na de aanslag IB); geeft het moment van de definitieve berekening aan, nuttig voor de telefonie. / B: Wanneer de definitieve toekenning volgt: binnen zes maanden na de vaststelling van de aanslag inkomstenbelasting. Dat bepaalt het moment waarop het terug te betalen bedrag ontstaat."
+      },
+      "verschil": "V5"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:20:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Herziening van een al toegekende tegemoetkoming wanneer het inkomensgegeven later wordt vastgesteld of gewijzigd; route waarlangs een hoger inkomen ook na de definitieve toekenning tot terugvordering leidt. / B: Wordt het inkomensgegeven pas na de toekenning vastgesteld of gewijzigd, dan herziet de Dienst Toeslagen de tegemoetkoming. Dat is een tweede weg naar een terug te vorderen bedrag (lid 3)."
+      },
+      "verschil": "V6"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:20:lid:3",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Rechtsgevolg van de herziening op grond van art. 20: ook een terug te vorderen bedrag. / B: Een herziening na een gewijzigd inkomensgegeven kan tot een terug te vorderen bedrag leiden."
+      },
+      "verschil": "V7"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:24:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Het praktijkgeval: bij de definitieve toekenning worden de verleende voorschotten verrekend met de tegemoetkoming; dit is het mechanisme waardoor na de definitieve berekening een terug te betalen bedrag ontstaat. / B: Bij de definitieve berekening worden de ontvangen voorschotten verrekend met de toegekende tegemoetkoming; dit is het mechanisme van het praktijkvoorbeeld."
+      },
+      "verschil": "V8"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:24:lid:3",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Bepaalt dat de verrekening van voorschotten met de tegemoetkoming tot een terug te vorderen bedrag kan leiden; samen met art. 26 lid 1 het ontstaan van de schuld. / B: Stelt dat de verrekening van voorschot en tegemoetkoming tot een terug te vorderen bedrag kan leiden."
+      },
+      "verschil": "V9"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: De Dienst Toeslagen vordert volledig terug (bevoegdheid en plicht), met de evenredigheidsuitzondering die het vast te stellen bedrag kan verlagen: dit bepaalt hoe het bedrag in de beschikking tot terugvordering wordt vastgesteld. / B: Hoe het bedrag wordt vastgesteld: in beginsel volledig, maar de Dienst Toeslagen kan bij onevenredige gevolgen een lager bedrag terugvorderen in de beschikking tot terugvordering."
+      },
+      "verschil": "V10"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26a:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Doelmatigheidsgrens: een terug te vorderen bedrag van niet meer dan € 121 wordt niet teruggevorderd en de beschikking tot terugvordering wordt op nihil gesteld; bepaalt mee of er een te betalen bedrag ontstaat. / B: Doelmatigheidsgrens: een terug te vorderen bedrag van niet meer dan EUR 121 wordt niet teruggevorderd. Dat bepaalt of er wel iets terugbetaald moet worden."
+      },
+      "verschil": "V11"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26b:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Procedure bij de vaststelling: zienswijze bij mogelijk onevenredige gevolgen, en in ieder geval bij een terug te vorderen bedrag van ten minste € 1.500 per berekeningsjaar. In het praktijkgeval (€ 1.200) niet verplicht, maar wel mogelijk bij onevenredigheid. / B: Procedure voordat de beschikking tot terugvordering wordt vastgesteld: een zienswijze bij mogelijk onevenredige gevolgen, en in ieder geval vanaf EUR 1.500 per berekeningsjaar. In het voorbeeld (EUR 1.200) dus alleen bij mogelijke onevenredigheid."
+      },
+      "verschil": "V12"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:3",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 1
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V13"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:7",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 2
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V14"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:31a",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 4
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V15"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 5
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V16"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A52:lid:2",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 6
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V17"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A57:lid:4",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 7
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V18"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26b:lid:3",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 8
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V19"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:28:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: De betalingstermijn: binnen zes weken na dagtekening van de beschikking tot terugvordering. / B: De betalingstermijn: binnen zes weken na de dagtekening van de beschikking tot terugvordering."
+      },
+      "verschil": "V20"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:28:lid:3",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: De termijnberekening van lid 1: de Algemene termijnenwet geldt niet, dus geen verlenging over het weekend of een feestdag. / B: Voor de berekening van de termijn: de Algemene termijnenwet geldt niet, dus geen verlenging tot na een weekend of feestdag."
+      },
+      "verschil": "V21"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:31",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Delegatiegrondslag voor het uitstel van betaling (betalen in delen), uitgewerkt in Uitv reg Awir art. 7 en 8. / B: Grondslag (delegatie) voor uitstel van betaling en betaling in termijnen, uitgewerkt in art. 7 en 8 Uitv reg Awir."
+      },
+      "verschil": "V22"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: De standaardregeling om in delen te betalen: maandelijkse termijnen van € 20, onder voorwaarden van de Dienst Toeslagen. / B: Recht op betaling in maandelijkse termijnen van EUR 20 onder door de Dienst te stellen voorwaarden. Dit is het antwoord op 'mag het in delen'."
+      },
+      "verschil": "V23"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:3",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: De maximale duur (24 maanden na de vervaldag) en een hogere termijn als € 20 niet volstaat. In het praktijkgeval: € 1.200 in 24 termijnen van € 20 is € 480, dus de Dienst kan meer per maand verlangen. / B: Maximale duur van de termijnbetaling (24 maanden na de vervaldag) en een hoger maandbedrag als het bedrag niet in 24 termijnen van EUR 20 past. Bij EUR 1.200 is dat zo (24 x 20 = 480)."
+      },
+      "verschil": "V24"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:5",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Een persoonlijke betalingsregeling op basis van de betalingscapaciteit, op schriftelijk verzoek, voor wie de standaardregeling niet kan opbrengen; het partnerinkomen telt mee. / B: Een betalingsregeling naar betalingscapaciteit, op schriftelijk verzoek, voor wie de standaardtermijnen niet kan betalen. Dat speelt in het praktijkvoorbeeld."
+      },
+      "verschil": "V25"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:6",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Weigeringsgrond voor de regeling naar betalingscapaciteit: er is vermogen om de schuld te voldoen. / B: Weigeringsgrond voor de regeling naar betalingscapaciteit: er is vermogen om de terugvordering te betalen."
+      },
+      "verschil": "V26"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:7",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "aanverwant",
+        "motivering": "A: Bijzondere regeling bij vermogen dat moeilijk direct te gelde te maken is (verlenging met maximaal 48 maanden); nuttig voor de telefonie, niet nodig voor het standaardgeval. / B: Een verlengde regeling (maximaal 48 maanden) als het vermogen bestaat uit bezittingen die niet direct liquide te maken zijn. Een randgeval voor de telefonie."
+      },
+      "verschil": "V27"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:9",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Algemene weigeringsgrond voor de regelingen van lid 4, 5 en 7: het belang van de invordering. / B: Algemene weigeringsgrond voor de regelingen uit lid 4, 5 en 7: het belang van de invordering verzet zich ertegen."
+      },
+      "verschil": "V28"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:8:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Uitstel van betaling zolang een tijdig, gemotiveerd bezwaar of beroep tegen de terugvordering loopt; ook een antwoord op de vraag wanneer betaald moet worden. / B: Uitstel van betaling zolang een tijdig gemotiveerd bezwaar of beroep tegen de terugvordering loopt. Nuttig voor de telefonie, maar het praktijkvoorbeeld noemt geen bezwaar."
+      },
+      "verschil": "V29"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:3",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 1
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V30"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:7",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 2
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V31"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 3
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V32"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:31a",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 4
+      },
+      "team": {
+        "uitgesloten": "B: Faillissement en schuldsaneringsregeling natuurlijke personen. De wettelijke schuldsanering valt buiten het dossier."
+      },
+      "verschil": "V33"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 5
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V34"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A52:lid:2",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 6
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V35"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A57:lid:4",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 7
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V36"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 8
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V37"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:28:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Gevolgd vanuit Awir art. 29 (overeenkomstige toepassing): de invorderingsrente bij overschrijding van de betalingstermijn. / B: Gevolgde verwijzing uit Awir art. 29: de invorderingsrente over het openstaande bedrag. Zonder dit lid is art. 29 niet toe te passen."
+      },
+      "verschil": "V38"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A114",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Begripsbepaling van het dwangbevel, waarnaar Awir art. 32 lid 2 verwijst. / B: Definitie van dwangbevel, het begrip waarop Awir art. 32 lid 2 rust."
+      },
+      "verschil": "V39"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:29",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Rente bij overschrijding van de betalingstermijn van art. 28, via de Invorderingswet 1990. / B: Gevolg van te late betaling: na de termijn van art. 28 is rente verschuldigd, met overeenkomstige toepassing van art. 28 en 29 Invorderingswet 1990."
+      },
+      "verschil": "V40"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Bij niet tijdig betalen volgt een schriftelijke aanmaning met een nieuwe termijn van twee weken. / B: Wordt niet binnen de termijn betaald, dan volgt een schriftelijke aanmaning om binnen twee weken te betalen."
+      },
+      "verschil": "V41"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Dwanginvordering per dwangbevel, met de kosten van aanmaning en dwangbevel en de rente. / B: Dwanginvordering met een dwangbevel, waarbij ook de kosten van aanmaning en dwangbevel en de rente worden ingevorderd."
+      },
+      "verschil": "V42"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:5",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Rechtsbescherming tegen de tenuitvoerlegging van het dwangbevel: verzet. / B: Rechtsbescherming: verzet tegen de tenuitvoerlegging van het dwangbevel."
+      },
+      "verschil": "V43"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:6",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Derdenbeslag: de werkgever, uitkeringsinstantie of bank kan verplicht worden het verschuldigde aan de Dienst Toeslagen te betalen. / B: Vordering bij derden (werkgever, uitkeringsinstantie, bank): het concrete gevolg van blijvende niet-betaling."
+      },
+      "verschil": "V44"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:4",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Het praktijkgeval 'een betaling missen' binnen een betalingsregeling: wie zich niet aan de voorwaarden houdt, kan op verzoek opnieuw in termijnen betalen (maximaal 24 maanden vanaf die beschikking), en de al ontstane invorderingskosten gaan mee in de regeling. / B: Wie een termijn van de betalingsregeling mist (niet voldoet aan de voorwaarden), kan op verzoek opnieuw in termijnen betalen, maximaal 24 maanden. De kosten van invordering die al ontstaan zijn, gaan mee in de regeling. Dit beantwoordt 'wat gebeurt er als ze een betaling missen'."
+      },
+      "verschil": "V45"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:8:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 1
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V46"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:8",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 2
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V47"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:24:lid:4",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 3
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V48"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26:lid:2",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 4
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V49"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26a:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 5
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V50"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26b:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 6
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V51"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:28:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 7
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V52"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A53:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 8
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V53"
+    }
+  ]
+}

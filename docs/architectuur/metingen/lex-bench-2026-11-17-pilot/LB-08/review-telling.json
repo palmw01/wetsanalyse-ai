@@ -1,0 +1,1258 @@
+{
+  "casus_id": "LB-08",
+  "route": "zoekvragen standaard (stap 8)",
+  "tegen": "teamverwachting, vóór de vaststelling",
+  "maten": {
+    "recall_nodig": {
+      "teller": 1,
+      "noemer": 30,
+      "waarde": 0.033
+    },
+    "recall": {
+      "teller": 1,
+      "noemer": 31,
+      "waarde": 0.032
+    },
+    "precisie": {
+      "teller": 1,
+      "noemer": 24,
+      "waarde": 0.042
+    },
+    "overlap": {
+      "teller": 1,
+      "noemer": 54,
+      "waarde": 0.019
+    }
+  },
+  "verschillen": [
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A86:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Algemene Awb-regel dat een betalingsverplichting bij beschikking wordt vastgesteld (titel 4.4 geldt via art. 4:85); verklaart de vorm van de beschikking tot terugvordering. / B: De betalingsverplichting ontstaat bij beschikking (de beschikking tot terugvordering). Titel 4.4 Awb is van toepassing via art. 4:85."
+      },
+      "verschil": "V1",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Algemene Awb-regel dat de betalingsverplichting bij beschikking wordt vastgesteld; verklaart de vorm van de beschikking tot terugvordering. Hoort als afhankelijkheid bij de vaststelling.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De verplichting tot betaling van een geldsom wordt bij beschikking vastgesteld.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:16:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Wat een voorschot is: verleend tot het bedrag waarop de tegemoetkoming vermoedelijk zal worden vastgesteld. Verklaart waarom een te hoog voorschot ontstaat als het werkelijke inkomen hoger blijkt (praktijkvoorbeeld). / B: Wat een voorschot is: een bedrag op basis van de vermoedelijke tegemoetkoming. Daaruit volgt waarom een te laag opgegeven inkomen tot een te hoog voorschot leidt."
+      },
+      "verschil": "V2",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Definieert het voorschot als vermoedelijk bedrag; daaruit volgt waarom een te laag opgegeven inkomen tot een te hoog voorschot leidt (praktijkvoorbeeld).",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "een voorschot tot het bedrag waarop de tegemoetkoming vermoedelijk zal worden vastgesteld",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:16:lid:5",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Bevoegdheid tot herziening van het voorschot (bijv. na een inkomenswijziging in de loop van het jaar), met de vijfjaarsgrens; een van de wegen waarlangs een terug te vorderen bedrag ontstaat. / B: De bevoegdheid om het voorschot te herzien, waarop lid 6 voortbouwt, met de grens van vijf jaar voor verlaging."
+      },
+      "verschil": "V3",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Bevoegdheid tot herziening van het voorschot, waarop lid 6 (terug te vorderen bedrag) voortbouwt; een weg waarlangs het bedrag ontstaat.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De Dienst Toeslagen kan het voorschot herzien",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:16:lid:6",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Rechtsgevolg van de herziening van het voorschot: een terug te vorderen bedrag. / B: Ook een herziening van het voorschot in de loop van het jaar kan leiden tot een terug te vorderen bedrag."
+      },
+      "verschil": "V4",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Rechtsgevolg: een herziening van het voorschot kan een terug te vorderen bedrag opleveren. Direct antwoord op 'wanneer ontstaat er een terug te betalen bedrag'.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Een herziening van het voorschot kan leiden tot een terug te vorderen bedrag.",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:19:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Termijn waarbinnen de Dienst Toeslagen de tegemoetkoming definitief toekent (zes maanden na de aanslag IB); geeft het moment van de definitieve berekening aan, nuttig voor de telefonie. / B: Wanneer de definitieve toekenning volgt: binnen zes maanden na de vaststelling van de aanslag inkomstenbelasting. Dat bepaalt het moment waarop het terug te betalen bedrag ontstaat."
+      },
+      "verschil": "V5",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Bepaalt wanneer de definitieve toekenning (en dus de verrekening met de voorschotten) plaatsvindt; het moment van ontstaan van het bedrag.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "kent de Dienst Toeslagen de tegemoetkoming met betrekking tot dat berekeningsjaar toe binnen zes maanden na de vaststelling van de laatste in dit kader van belang zijnde aanslag",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:20:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Herziening van een al toegekende tegemoetkoming wanneer het inkomensgegeven later wordt vastgesteld of gewijzigd; route waarlangs een hoger inkomen ook na de definitieve toekenning tot terugvordering leidt. / B: Wordt het inkomensgegeven pas na de toekenning vastgesteld of gewijzigd, dan herziet de Dienst Toeslagen de tegemoetkoming. Dat is een tweede weg naar een terug te vorderen bedrag (lid 3)."
+      },
+      "verschil": "V6",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Herziening na toekenning wegens gewijzigd inkomensgegeven: tweede route naar een terug te vorderen bedrag, relevant bij een hoger inkomen dan opgegeven.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "blijkt dat de tegemoetkoming tot een te hoog of te laag bedrag is toegekend, herziet de Dienst Toeslagen de tegemoetkoming",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:20:lid:3",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Rechtsgevolg van de herziening op grond van art. 20: ook een terug te vorderen bedrag. / B: Een herziening na een gewijzigd inkomensgegeven kan tot een terug te vorderen bedrag leiden."
+      },
+      "verschil": "V7",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Rechtsgevolg van de herziening van art. 20: een terug te vorderen bedrag.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Een herziening op grond van dit artikel kan leiden tot een uit te betalen bedrag doch ook tot een terug te vorderen bedrag.",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:24:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Het praktijkgeval: bij de definitieve toekenning worden de verleende voorschotten verrekend met de tegemoetkoming; dit is het mechanisme waardoor na de definitieve berekening een terug te betalen bedrag ontstaat. / B: Bij de definitieve berekening worden de ontvangen voorschotten verrekend met de toegekende tegemoetkoming; dit is het mechanisme van het praktijkvoorbeeld."
+      },
+      "verschil": "V8",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Het mechanisme van het praktijkvoorbeeld: voorschotten worden verrekend met de definitieve tegemoetkoming. Kernbepaling; Lex koos wel het niet-relevante lid 4 van hetzelfde artikel.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Indien voorschotten zijn verleend, worden deze verrekend met de tegemoetkoming.",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:24:lid:3",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Bepaalt dat de verrekening van voorschotten met de tegemoetkoming tot een terug te vorderen bedrag kan leiden; samen met art. 26 lid 1 het ontstaan van de schuld. / B: Stelt dat de verrekening van voorschot en tegemoetkoming tot een terug te vorderen bedrag kan leiden."
+      },
+      "verschil": "V9",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Stelt dat die verrekening tot een terug te vorderen bedrag kan leiden. Kern van deelvraag 1.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De in het tweede lid bedoelde verrekening kan leiden tot een terug te vorderen bedrag.",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: De Dienst Toeslagen vordert volledig terug (bevoegdheid en plicht), met de evenredigheidsuitzondering die het vast te stellen bedrag kan verlagen: dit bepaalt hoe het bedrag in de beschikking tot terugvordering wordt vastgesteld. / B: Hoe het bedrag wordt vastgesteld: in beginsel volledig, maar de Dienst Toeslagen kan bij onevenredige gevolgen een lager bedrag terugvorderen in de beschikking tot terugvordering."
+      },
+      "verschil": "V10",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Hoe het bedrag wordt vastgesteld: volledige terugvordering met de evenredigheidsuitzondering in de beschikking tot terugvordering. Lex koos dit lid wel, maar bij deelvraag 3 (V49), waar het niet hoort; de bepaling is dus gevonden, maar aan de verkeerde deelvraag gekoppeld.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "kan de Dienst Toeslagen bij het vaststellen van de beschikking tot terugvordering een lager bedrag terugvorderen dan het bedrag ingevolge het eerste lid",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26a:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Doelmatigheidsgrens: een terug te vorderen bedrag van niet meer dan € 121 wordt niet teruggevorderd en de beschikking tot terugvordering wordt op nihil gesteld; bepaalt mee of er een te betalen bedrag ontstaat. / B: Doelmatigheidsgrens: een terug te vorderen bedrag van niet meer dan EUR 121 wordt niet teruggevorderd. Dat bepaalt of er wel iets terugbetaald moet worden."
+      },
+      "verschil": "V11",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Doelmatigheidsgrens bepaalt of er wel een terug te betalen bedrag ontstaat. Lex koos dit lid bij deelvraag 3 (V50) in plaats van hier.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "wordt dit bedrag niet teruggevorderd indien dat niet meer bedraagt dan € 121",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26b:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Procedure bij de vaststelling: zienswijze bij mogelijk onevenredige gevolgen, en in ieder geval bij een terug te vorderen bedrag van ten minste € 1.500 per berekeningsjaar. In het praktijkgeval (€ 1.200) niet verplicht, maar wel mogelijk bij onevenredigheid. / B: Procedure voordat de beschikking tot terugvordering wordt vastgesteld: een zienswijze bij mogelijk onevenredige gevolgen, en in ieder geval vanaf EUR 1.500 per berekeningsjaar. In het voorbeeld (EUR 1.200) dus alleen bij mogelijke onevenredigheid."
+      },
+      "verschil": "V12",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Procedure (zienswijze) vóór de vaststelling van de beschikking tot terugvordering. Lex koos dit lid bij deelvraag 2 en 3 (V36, V51), niet hier waar het hoort.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "stelt de Dienst Toeslagen de belanghebbende in de gelegenheid zijn zienswijze binnen een redelijke termijn naar voren te brengen",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:3",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 1
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V13",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Gaat over het aantal termijnen waarin een voorschot bij een deeljaar wordt uitbetaald, niet over het ontstaan of de vaststelling van een terug te betalen bedrag.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "het voorschot in zoveel termijnen uitbetaald als het aantal kalendermaanden waarin de aanspraak bestaat",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A57:lid:4",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 2
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V14",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Vervaltermijn uit de subsidietitel van de Awb (afdeling 4.2.7); de terugvordering van toeslagen loopt via de Awir (art. 16 lid 5, 24, 26). Geen bepaling voor deze deelvraag.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Terugvordering van een subsidiebedrag of een voorschot vindt niet plaats voor zover na de dag waarop de subsidie is vastgesteld",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 3
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V15",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Aanmaning bij niet tijdig betalen: hoort bij deelvraag 3 (gevolg van te late betaling), niet bij het ontstaan van het bedrag. Lex miste haar juist daar (V41).",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "niet binnen de gestelde termijn betaalt, maant de Dienst Toeslagen hem schriftelijk aan",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:8",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 4
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V16",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Regelt de uitbetaling van een later voorschot na een verlaagde terugvordering, een vorm van verrekening die het dossier buiten de analyse plaatst; parallel aan het door het team uitgesloten art. 24 lid 4.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "wordt een daaropvolgend voorschot slechts uitbetaald voor zover het uit te betalen bedrag hoger is dan het bedrag waarmee de beschikking tot terugvordering is verlaagd",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:24:lid:4",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 5
+      },
+      "team": {
+        "uitgesloten": "B: Gaat over de uitbetaling van een latere tegemoetkoming na een verlaagde terugvordering, en dus over verrekening met andere toeslagen; die valt buiten het dossier."
+      },
+      "verschil": "V17",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Team sloot dit uit; terecht: het gaat over de uitbetaling van een latere tegemoetkoming na een verlaagde terugvordering, niet over het ontstaan of vaststellen van het terug te betalen bedrag.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "wordt een daaropvolgende tegemoetkoming slechts uitbetaald voor zover het uit te betalen bedrag hoger is dan het bedrag waarmee de beschikking tot terugvordering is verlaagd",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:7",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 6
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V18",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Executoriaal beslag op uit te betalen voorschotten (door schuldeisers van de belanghebbende); staat los van de terugvordering.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Indien executoriaal beslag is gelegd op een in een of meer termijnen uit te betalen bedrag op grond van een voorschot",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 8
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V19",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Uitbetalingsritme van het voorschot (12 termijnen); hooguit achtergrond bij 'elke maand een voorschot', maar bepaalt niet wanneer of hoe het terug te betalen bedrag ontstaat.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "wordt uitbetaald in 12 termijnen",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:28:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: De betalingstermijn: binnen zes weken na dagtekening van de beschikking tot terugvordering. / B: De betalingstermijn: binnen zes weken na de dagtekening van de beschikking tot terugvordering."
+      },
+      "verschil": "V20",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "De betalingstermijn zelf: het directe antwoord op deelvraag 2. Lex koos dit lid wel, maar bij deelvraag 3 (V52).",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "binnen zes weken na de dagtekening van de beschikking tot terugvordering te betalen aan de Dienst Toeslagen",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:28:lid:3",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: De termijnberekening van lid 1: de Algemene termijnenwet geldt niet, dus geen verlenging over het weekend of een feestdag. / B: Voor de berekening van de termijn: de Algemene termijnenwet geldt niet, dus geen verlenging tot na een weekend of feestdag."
+      },
+      "verschil": "V21",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Bepaalt de berekening van de termijn van lid 1 (geen verlenging via de Algemene termijnenwet).",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De Algemene termijnenwet is niet van toepassing op de in dit artikel gestelde termijnen.",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:31",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Delegatiegrondslag voor het uitstel van betaling (betalen in delen), uitgewerkt in Uitv reg Awir art. 7 en 8. / B: Grondslag (delegatie) voor uitstel van betaling en betaling in termijnen, uitgewerkt in art. 7 en 8 Uitv reg Awir."
+      },
+      "verschil": "V22",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Delegatiegrondslag voor uitstel van betaling, uitgewerkt in Uitv reg Awir art. 7 en 8. De rol kern is verdedigbaar maar afhankelijkheid ligt dichter bij de tekst; de jurist kan de rol bijstellen.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Bij ministeriële regeling worden regels gesteld met betrekking tot het verlenen van uitstel van betaling.",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: De standaardregeling om in delen te betalen: maandelijkse termijnen van € 20, onder voorwaarden van de Dienst Toeslagen. / B: Recht op betaling in maandelijkse termijnen van EUR 20 onder door de Dienst te stellen voorwaarden. Dit is het antwoord op 'mag het in delen'."
+      },
+      "verschil": "V23",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "De standaardregeling om in delen te betalen: kernantwoord op 'kan dat in delen'. Lex koos in plaats daarvan de termijnen van de uitbetaling van het voorschot (art. 22).",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "stelt de belanghebbende in de gelegenheid een terugvordering te betalen in maandelijkse termijnen van € 20",
+          "toestand": "2026-07-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:3",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: De maximale duur (24 maanden na de vervaldag) en een hogere termijn als € 20 niet volstaat. In het praktijkgeval: € 1.200 in 24 termijnen van € 20 is € 480, dus de Dienst kan meer per maand verlangen. / B: Maximale duur van de termijnbetaling (24 maanden na de vervaldag) en een hoger maandbedrag als het bedrag niet in 24 termijnen van EUR 20 past. Bij EUR 1.200 is dat zo (24 x 20 = 480)."
+      },
+      "verschil": "V24",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Maximale duur van 24 maanden en hoger maandbedrag; bij € 1.200 van toepassing.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Indien de omvang van de terugvordering of bestuurlijke boete betaling in 24 maandelijkse termijnen van € 20 niet toelaat, kan de Dienst Toeslagen",
+          "toestand": "2026-07-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:5",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Een persoonlijke betalingsregeling op basis van de betalingscapaciteit, op schriftelijk verzoek, voor wie de standaardregeling niet kan opbrengen; het partnerinkomen telt mee. / B: Een betalingsregeling naar betalingscapaciteit, op schriftelijk verzoek, voor wie de standaardtermijnen niet kan betalen. Dat speelt in het praktijkvoorbeeld."
+      },
+      "verschil": "V25",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Betalingsregeling naar betalingscapaciteit voor wie de standaardtermijnen niet kan opbrengen; speelt in het praktijkvoorbeeld.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "een betaling in termijnen toestaan gebaseerd op de betalingscapaciteit",
+          "toestand": "2026-07-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:6",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Weigeringsgrond voor de regeling naar betalingscapaciteit: er is vermogen om de schuld te voldoen. / B: Weigeringsgrond voor de regeling naar betalingscapaciteit: er is vermogen om de terugvordering te betalen."
+      },
+      "verschil": "V26",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Weigeringsgrond bij vermogen voor de regeling van lid 5.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Een betalingsregeling als bedoeld in het vijfde lid wordt niet toegestaan indien de belanghebbende of de in dat lid bedoelde partner over vermogen",
+          "toestand": "2026-07-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:7",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "aanverwant",
+        "motivering": "A: Bijzondere regeling bij vermogen dat moeilijk direct te gelde te maken is (verlenging met maximaal 48 maanden); nuttig voor de telefonie, niet nodig voor het standaardgeval. / B: Een verlengde regeling (maximaal 48 maanden) als het vermogen bestaat uit bezittingen die niet direct liquide te maken zijn. Een randgeval voor de telefonie."
+      },
+      "verschil": "V27",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Verlengde regeling bij niet direct liquide vermogen; randgeval, als aanverwant passend.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "met een verlenging van de betalingstermijn met maximaal 48 maanden",
+          "toestand": "2026-07-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:9",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Algemene weigeringsgrond voor de regelingen van lid 4, 5 en 7: het belang van de invordering. / B: Algemene weigeringsgrond voor de regelingen uit lid 4, 5 en 7: het belang van de invordering verzet zich ertegen."
+      },
+      "verschil": "V28",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Algemene weigeringsgrond voor de regelingen van lid 4, 5 en 7.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "wordt niet toegestaan indien het belang van de invordering zich verzet tegen het verlenen van de betalingsregeling",
+          "toestand": "2026-07-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:8:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Uitstel van betaling zolang een tijdig, gemotiveerd bezwaar of beroep tegen de terugvordering loopt; ook een antwoord op de vraag wanneer betaald moet worden. / B: Uitstel van betaling zolang een tijdig gemotiveerd bezwaar of beroep tegen de terugvordering loopt. Nuttig voor de telefonie, maar het praktijkvoorbeeld noemt geen bezwaar."
+      },
+      "verschil": "V29",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Uitstel van betaling bij bezwaar of beroep; raakt 'binnen welke termijn'. Lex koos dit lid wel, maar bij deelvraag 3 (V46).",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "kan de Dienst Toeslagen uitstel van betaling van de terugvordering verlenen tot het moment waarop op het bezwaar",
+          "toestand": "2026-07-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 1
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V30",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "De aanmaning met nieuwe termijn is het gevolg van niet tijdig betalen en hoort daarmee bij deelvraag 3, niet bij de oorspronkelijke betalingstermijn.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "niet binnen de gestelde termijn betaalt, maant de Dienst Toeslagen hem schriftelijk aan om alsnog binnen twee weken",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:7",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 2
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V31",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Beslag op uit te betalen voorschotten; geen betalingstermijn of betalingsregeling voor de terugvordering.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "wordt het beslag geacht mede te omvatten een in termijnen uit te betalen bedrag van een voorschot",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 3
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V32",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "'Termijnen' gaat hier over de uitbetaling van het voorschot door de Dienst, niet over terugbetaling in delen door de belanghebbende; een woordtreffer zonder betekenisverband.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Een voorschot dat wordt verleend vóór de aanvang van het berekeningsjaar waarop het voorschot betrekking heeft, wordt uitbetaald in 12 termijnen.",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:3",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 4
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V33",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Uitbetaling van het voorschot in termijnen bij een deeljaar; geen terugbetaling.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "het voorschot in zoveel termijnen uitbetaald als het aantal kalendermaanden waarin de aanspraak bestaat",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A57:lid:4",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 5
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V34",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Vervaltermijn voor terugvordering van subsidies; geen betalingstermijn en geen bepaling voor toeslagen.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Terugvordering van een subsidiebedrag of een voorschot vindt niet plaats voor zover na de dag waarop de subsidie is vastgesteld",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 6
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V35",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "'In zijn geheel verschuldigd' gaat over de omvang van de schuld (deelvraag 1), niet over de termijn of betaling in delen.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "is de belanghebbende het bedrag van de terugvordering in zijn geheel verschuldigd",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26b:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 7
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V36",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Zienswijze vóór de vaststelling van de beschikking; hoort bij deelvraag 1, niet bij de betalingstermijn.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Voordat de Dienst Toeslagen ... de beschikking tot terugvordering ... vaststelt",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:28:lid:2",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 8
+      },
+      "team": {
+        "uitgesloten": "A: Betalingstermijn van een bestuurlijke boete: boetes vallen buiten het dossier. / B: Betalingstermijn van een bestuurlijke boete. Boetes vallen buiten het dossier."
+      },
+      "verschil": "V37",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Betalingstermijn van een bestuurlijke boete; boetes vallen buiten het dossier. Team sloot dit terecht uit.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Het bedrag van een bestuurlijke boete moet worden betaald binnen zes weken na de dagtekening van de boetebeschikking.",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0004770:artikel:28:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Gevolgd vanuit Awir art. 29 (overeenkomstige toepassing): de invorderingsrente bij overschrijding van de betalingstermijn. / B: Gevolgde verwijzing uit Awir art. 29: de invorderingsrente over het openstaande bedrag. Zonder dit lid is art. 29 niet toe te passen."
+      },
+      "verschil": "V38",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Via de overeenkomstige toepassing in Awir art. 29 de invorderingsrente bij overschrijding van de termijn; nodig om art. 29 toe te passen.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Bij overschrijding van de voor de belastingaanslag geldende enige of laatste betalingstermijn wordt aan de belastingschuldige rente – invorderingsrente – in rekening gebracht",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A114",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Begripsbepaling van het dwangbevel, waarnaar Awir art. 32 lid 2 verwijst. / B: Definitie van dwangbevel, het begrip waarop Awir art. 32 lid 2 rust."
+      },
+      "verschil": "V39",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Begripsbepaling van het dwangbevel waarop Awir art. 32 lid 2 rust; afhankelijkheid.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Onder dwangbevel wordt verstaan: een schriftelijk bevel van een bestuursorgaan dat ertoe strekt de betaling van een geldsom als bedoeld in artikel 4:85 af te dwingen.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:29",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Rente bij overschrijding van de betalingstermijn van art. 28, via de Invorderingswet 1990. / B: Gevolg van te late betaling: na de termijn van art. 28 is rente verschuldigd, met overeenkomstige toepassing van art. 28 en 29 Invorderingswet 1990."
+      },
+      "verschil": "V40",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Het eerste gevolg van te late betaling: rente. Kernbepaling voor deelvraag 3.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Bij overschrijding van de in artikel 28 bedoelde betalingstermijn is rente verschuldigd",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Bij niet tijdig betalen volgt een schriftelijke aanmaning met een nieuwe termijn van twee weken. / B: Wordt niet binnen de termijn betaald, dan volgt een schriftelijke aanmaning om binnen twee weken te betalen."
+      },
+      "verschil": "V41",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Aanmaning bij niet tijdig betalen: kern van deelvraag 3. Lex koos dit lid wel, maar bij deelvraag 1 en 2 (V15, V30).",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "niet binnen de gestelde termijn betaalt, maant de Dienst Toeslagen hem schriftelijk aan om alsnog binnen twee weken na de dagtekening van de aanmaning te betalen",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Dwanginvordering per dwangbevel, met de kosten van aanmaning en dwangbevel en de rente. / B: Dwanginvordering met een dwangbevel, waarbij ook de kosten van aanmaning en dwangbevel en de rente worden ingevorderd."
+      },
+      "verschil": "V42",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dwanginvordering per dwangbevel met kosten en rente: kern van het gevolg van niet betalen.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De invordering van het bedrag van de terugvordering kan geschieden bij een door de Dienst Toeslagen uit te vaardigen dwangbevel.",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:5",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Rechtsbescherming tegen de tenuitvoerlegging van het dwangbevel: verzet. / B: Rechtsbescherming: verzet tegen de tenuitvoerlegging van het dwangbevel."
+      },
+      "verschil": "V43",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Rechtsbescherming tegen de tenuitvoerlegging van het dwangbevel; afhankelijkheid.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "tegen de tenuitvoerlegging van het dwangbevel in verzet komen",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:6",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Derdenbeslag: de werkgever, uitkeringsinstantie of bank kan verplicht worden het verschuldigde aan de Dienst Toeslagen te betalen. / B: Vordering bij derden (werkgever, uitkeringsinstantie, bank): het concrete gevolg van blijvende niet-betaling."
+      },
+      "verschil": "V44",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Vordering bij derden (werkgever, uitkeringsinstantie, bank): concreet gevolg van blijvende niet-betaling.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "kan op vordering van de Dienst Toeslagen met overeenkomstige toepassing van artikel 19 van de Invorderingswet 1990 worden verplicht het door de belanghebbende verschuldigde bedrag aan terugvordering te betalen",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:7:lid:4",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Het praktijkgeval 'een betaling missen' binnen een betalingsregeling: wie zich niet aan de voorwaarden houdt, kan op verzoek opnieuw in termijnen betalen (maximaal 24 maanden vanaf die beschikking), en de al ontstane invorderingskosten gaan mee in de regeling. / B: Wie een termijn van de betalingsregeling mist (niet voldoet aan de voorwaarden), kan op verzoek opnieuw in termijnen betalen, maximaal 24 maanden. De kosten van invordering die al ontstaan zijn, gaan mee in de regeling. Dit beantwoordt 'wat gebeurt er als ze een betaling missen'."
+      },
+      "verschil": "V45",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Beantwoordt 'wat gebeurt er als ze een betaling missen' binnen een betalingsregeling: opnieuw in termijnen op verzoek, kosten van invordering gaan mee.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "niet voldoet aan de nader gestelde voorwaarden ... stelt de Dienst Toeslagen de belanghebbende op diens verzoek in de gelegenheid de terugvordering of bestuurlijke boete alsnog te betalen in maandelijkse termijnen",
+          "toestand": "2026-07-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0019237:artikel:8:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 1
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V46",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Uitstel bij bezwaar of beroep gaat over het moment van betalen (deelvraag 2), niet over het gevolg van te late betaling.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "kan de Dienst Toeslagen uitstel van betaling van de terugvordering verlenen",
+          "toestand": "2026-07-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:8",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 2
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V47",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Uitbetaling van een later voorschot na een verlaagde terugvordering; geen gevolg van te late betaling en valt onder de uitgesloten verrekening.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "wordt een daaropvolgend voorschot slechts uitbetaald voor zover het uit te betalen bedrag hoger is dan het bedrag waarmee de beschikking tot terugvordering is verlaagd",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:24:lid:4",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 3
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V48",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Uitbetaling van een latere tegemoetkoming na een verlaagde terugvordering; geen gevolg van te late betaling. Het team sloot dit lid bij deelvraag 1 al uit.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "wordt een daaropvolgende tegemoetkoming slechts uitbetaald voor zover het uit te betalen bedrag hoger is",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26:lid:2",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 4
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V49",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Vaststelling van het terug te vorderen bedrag (deelvraag 1); geen gevolg van te late betaling.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "bij het vaststellen van de beschikking tot terugvordering een lager bedrag terugvorderen",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26a:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 5
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V50",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Doelmatigheidsgrens bij het ontstaan van het bedrag (deelvraag 1); niet het gevolg van te late betaling.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "wordt dit bedrag niet teruggevorderd indien dat niet meer bedraagt dan € 121",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:26b:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 6
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V51",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Zienswijze vóór de vaststelling (deelvraag 1); geen gevolg van te late betaling.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Voordat de Dienst Toeslagen ... de beschikking tot terugvordering ... vaststelt",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:28:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 7
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V52",
+      "oordeel": {
+        "categorie": "twijfel",
+        "reden": "De termijn hoort primair bij deelvraag 2 (daar mist Lex haar, V20). Art. 29 en art. 32 lid 1 knopen het gevolg wel aan deze termijn vast, dus als afhankelijkheid bij deelvraag 3 is ze verdedigbaar. Of ze bij beide deelvragen hoort, beslist de jurist.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Bij overschrijding van de in artikel 28 bedoelde betalingstermijn is rente verschuldigd",
+          "toestand": "2026-10-01"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:2",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 8
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V53",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Uitbetaling van een voorschot dat in de loop van het jaar wordt verleend; geen verband met te late terugbetaling.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "wordt uitbetaald in zoveel termijnen als er na de maand van dagtekening nog kalendermaanden van dat jaar overblijven",
+          "toestand": "2026-10-01"
+        }
+      }
+    }
+  ],
+  "categorieen": {
+    "lex_mist": 30,
+    "lex_onterecht": 22,
+    "team_mist": 0,
+    "twijfel": 1,
+    "status": "voorstel van de reviewer; de jurist beslist"
+  },
+  "plekken": {
+    "onbekend": 52
+  },
+  "nagekomen_voorstel": []
+}
