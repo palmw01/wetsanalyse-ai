@@ -1779,14 +1779,14 @@ window.LEX_BENCH = {
      "1": [
       "frontend/app/api/health/route.test.ts › [R01] geeft 503 bij een lege graaf: dan komt een straat niet groen door de uitrol",
       "frontend/app/api/health/route.test.ts › [R01] vraagt de diepe controle van api en graph-qa, en meldt database en graaf",
-      "tools/graph-qa/tests/test_foutpaden_keten.py::test_k1_annoteren_bij_een_lege_graaf_zegt_dat_de_wettekst_weg_is",
-      "tools/graph-qa/tests/test_foutpaden_keten.py::test_k2_een_afgebroken_beurt_laat_een_vrij_gesprek_en_een_vastgelegde_afbraak",
-      "tools/graph-qa/tests/test_foutpaden_keten.py::test_k3_een_fout_van_het_model_krijgt_een_eigen_melding",
-      "tools/graph-qa/tests/test_foutpaden_keten.py::test_k5_budget_op_bij_de_start_weigert_met_de_reden_en_start_niets",
-      "tools/graph-qa/tests/test_graafpeiling.py::test_de_peiling_onderscheidt_ok_leeg_en_onbereikbaar",
-      "tools/graph-qa/tests/test_graafpeiling.py::test_health_met_keten_meldt_de_graaf",
-      "tools/graph-qa/tests/test_graafpeiling.py::test_health_zonder_keten_raakt_de_graaf_niet",
-      "tools/graph-qa/tests/test_tools.py::test_ontbrekende_repository_krijgt_een_eigen_melding"
+      "tools/graph-qa/tests/graaf/test_tools.py::test_ontbrekende_repository_krijgt_een_eigen_melding",
+      "tools/graph-qa/tests/runs/test_foutpaden_keten.py::test_k1_annoteren_bij_een_lege_graaf_zegt_dat_de_wettekst_weg_is",
+      "tools/graph-qa/tests/runs/test_foutpaden_keten.py::test_k2_een_afgebroken_beurt_laat_een_vrij_gesprek_en_een_vastgelegde_afbraak",
+      "tools/graph-qa/tests/runs/test_foutpaden_keten.py::test_k3_een_fout_van_het_model_krijgt_een_eigen_melding",
+      "tools/graph-qa/tests/runs/test_foutpaden_keten.py::test_k5_budget_op_bij_de_start_weigert_met_de_reden_en_start_niets",
+      "tools/graph-qa/tests/runs/test_graafpeiling.py::test_de_peiling_onderscheidt_ok_leeg_en_onbereikbaar",
+      "tools/graph-qa/tests/runs/test_graafpeiling.py::test_health_met_keten_meldt_de_graaf",
+      "tools/graph-qa/tests/runs/test_graafpeiling.py::test_health_zonder_keten_raakt_de_graaf_niet"
      ],
      "4": [
       "docs/acceptatie/foutpaden.md"
@@ -1805,10 +1805,10 @@ window.LEX_BENCH = {
       "api/tests/test_health_keten.py::test_met_keten_en_een_werkende_database_ok",
       "api/tests/test_health_keten.py::test_zonder_keten_raakt_de_liveness_de_database_niet",
       "frontend/app/api/health/route.test.ts › [R02] geeft 503 als de database van de api niet antwoordt",
-      "tools/graph-qa/tests/test_agents.py::test_een_storing_van_de_api_is_een_zin_in_het_gesprek",
-      "tools/graph-qa/tests/test_api_herhaal.py::test_een_bericht_met_run_id_overleeft_een_tijdelijke_503",
-      "tools/graph-qa/tests/test_api_herhaal.py::test_een_inhoudelijke_fout_wordt_niet_herhaald",
-      "tools/graph-qa/tests/test_api_herhaal.py::test_zonder_sleutel_geen_herhaling"
+      "tools/graph-qa/tests/centrale_agent/test_agents.py::test_een_storing_van_de_api_is_een_zin_in_het_gesprek",
+      "tools/graph-qa/tests/runs/test_api_herhaal.py::test_een_bericht_met_run_id_overleeft_een_tijdelijke_503",
+      "tools/graph-qa/tests/runs/test_api_herhaal.py::test_een_inhoudelijke_fout_wordt_niet_herhaald",
+      "tools/graph-qa/tests/runs/test_api_herhaal.py::test_zonder_sleutel_geen_herhaling"
      ]
     },
     "primair_gedekt": true
@@ -1835,15 +1835,15 @@ window.LEX_BENCH = {
     "tweede": 2,
     "per_laag": {
      "1": [
-      "tools/graph-qa/tests/test_foutpaden_keten.py::test_k1_annoteren_bij_een_lege_graaf_zegt_dat_de_wettekst_weg_is",
-      "tools/graph-qa/tests/test_foutpaden_keten.py::test_k2_een_afgebroken_beurt_laat_een_vrij_gesprek_en_een_vastgelegde_afbraak",
-      "tools/graph-qa/tests/test_foutpaden_keten.py::test_k3_een_fout_van_het_model_krijgt_een_eigen_melding",
-      "tools/graph-qa/tests/test_foutpaden_keten.py::test_k5_budget_op_bij_de_start_weigert_met_de_reden_en_start_niets",
-      "tools/graph-qa/tests/test_llm_stap.py::test_een_fout_van_het_model_gaat_naar_de_aanroeper"
+      "tools/graph-qa/tests/context/test_llm_stap.py::test_een_fout_van_het_model_gaat_naar_de_aanroeper",
+      "tools/graph-qa/tests/runs/test_foutpaden_keten.py::test_k1_annoteren_bij_een_lege_graaf_zegt_dat_de_wettekst_weg_is",
+      "tools/graph-qa/tests/runs/test_foutpaden_keten.py::test_k2_een_afgebroken_beurt_laat_een_vrij_gesprek_en_een_vastgelegde_afbraak",
+      "tools/graph-qa/tests/runs/test_foutpaden_keten.py::test_k3_een_fout_van_het_model_krijgt_een_eigen_melding",
+      "tools/graph-qa/tests/runs/test_foutpaden_keten.py::test_k5_budget_op_bij_de_start_weigert_met_de_reden_en_start_niets"
      ],
      "2": [
-      "tools/graph-qa/tests/test_strict_grenzen.py::test_de_delegatietools_zijn_niet_strict_en_de_code_toetst_hun_invoer",
-      "tools/graph-qa/tests/test_strict_grenzen.py::test_de_strict_schemas_van_elk_profiel_passen_bij_de_api"
+      "tools/graph-qa/tests/context/test_strict_grenzen.py::test_de_delegatietools_zijn_niet_strict_en_de_code_toetst_hun_invoer",
+      "tools/graph-qa/tests/context/test_strict_grenzen.py::test_de_strict_schemas_van_elk_profiel_passen_bij_de_api"
      ],
      "4": [
       "docs/acceptatie/foutpaden.md"
@@ -1858,11 +1858,11 @@ window.LEX_BENCH = {
     "tweede": 3,
     "per_laag": {
      "1": [
-      "tools/graph-qa/tests/test_begrip_kaart.py::test_budget_op_start_geen_model",
-      "tools/graph-qa/tests/test_foutpaden_keten.py::test_k1_annoteren_bij_een_lege_graaf_zegt_dat_de_wettekst_weg_is",
-      "tools/graph-qa/tests/test_foutpaden_keten.py::test_k2_een_afgebroken_beurt_laat_een_vrij_gesprek_en_een_vastgelegde_afbraak",
-      "tools/graph-qa/tests/test_foutpaden_keten.py::test_k3_een_fout_van_het_model_krijgt_een_eigen_melding",
-      "tools/graph-qa/tests/test_foutpaden_keten.py::test_k5_budget_op_bij_de_start_weigert_met_de_reden_en_start_niets"
+      "tools/graph-qa/tests/begrippen/test_begrip_kaart.py::test_budget_op_start_geen_model",
+      "tools/graph-qa/tests/runs/test_foutpaden_keten.py::test_k1_annoteren_bij_een_lege_graaf_zegt_dat_de_wettekst_weg_is",
+      "tools/graph-qa/tests/runs/test_foutpaden_keten.py::test_k2_een_afgebroken_beurt_laat_een_vrij_gesprek_en_een_vastgelegde_afbraak",
+      "tools/graph-qa/tests/runs/test_foutpaden_keten.py::test_k3_een_fout_van_het_model_krijgt_een_eigen_melding",
+      "tools/graph-qa/tests/runs/test_foutpaden_keten.py::test_k5_budget_op_bij_de_start_weigert_met_de_reden_en_start_niets"
      ],
      "4": [
       "docs/acceptatie/foutpaden.md"
@@ -1918,12 +1918,14 @@ window.LEX_BENCH = {
     "tweede": 3,
     "per_laag": {
      "1": [
+      "frontend/lib/useBeurt.dom.test.ts › useBeurt [R08]",
+      "frontend/lib/useOnbewaardBewaker.dom.test.ts › useOnbewaardBewaker [R08]",
       "frontend/scripts/test-beurtuitkomst.mjs",
-      "tools/graph-qa/tests/test_foutpaden_keten.py::test_k1_annoteren_bij_een_lege_graaf_zegt_dat_de_wettekst_weg_is",
-      "tools/graph-qa/tests/test_foutpaden_keten.py::test_k2_een_afgebroken_beurt_laat_een_vrij_gesprek_en_een_vastgelegde_afbraak",
-      "tools/graph-qa/tests/test_foutpaden_keten.py::test_k3_een_fout_van_het_model_krijgt_een_eigen_melding",
-      "tools/graph-qa/tests/test_foutpaden_keten.py::test_k5_budget_op_bij_de_start_weigert_met_de_reden_en_start_niets",
-      "tools/graph-qa/tests/test_runs.py::test_stoppen_is_een_verzoek_geen_annulering"
+      "tools/graph-qa/tests/runs/test_foutpaden_keten.py::test_k1_annoteren_bij_een_lege_graaf_zegt_dat_de_wettekst_weg_is",
+      "tools/graph-qa/tests/runs/test_foutpaden_keten.py::test_k2_een_afgebroken_beurt_laat_een_vrij_gesprek_en_een_vastgelegde_afbraak",
+      "tools/graph-qa/tests/runs/test_foutpaden_keten.py::test_k3_een_fout_van_het_model_krijgt_een_eigen_melding",
+      "tools/graph-qa/tests/runs/test_foutpaden_keten.py::test_k5_budget_op_bij_de_start_weigert_met_de_reden_en_start_niets",
+      "tools/graph-qa/tests/runs/test_runs.py::test_stoppen_is_een_verzoek_geen_annulering"
      ],
      "4": [
       "docs/acceptatie/foutpaden.md"
@@ -1938,20 +1940,20 @@ window.LEX_BENCH = {
     "tweede": 5,
     "per_laag": {
      "1": [
-      "tools/graph-qa/tests/test_delegatie_afsluiten.py::test_alleen_een_subagent_heeft_een_laatste_ronde_en_een_plafond",
-      "tools/graph-qa/tests/test_delegatie_afsluiten.py::test_als_subsjabloon_toont_de_uitleg_de_wettekst_en_laat_de_foute_aanwijzing_weg",
-      "tools/graph-qa/tests/test_delegatie_afsluiten.py::test_de_correctieronde_na_een_grote_beurt_krijgt_de_hele_beurt",
-      "tools/graph-qa/tests/test_delegatie_afsluiten.py::test_de_grenzen_komen_van_het_profiel_en_anders_van_het_platform",
-      "tools/graph-qa/tests/test_delegatie_afsluiten.py::test_de_laatste_ronde_zegt_de_code_en_het_kind_rondt_af_met_het_rapport",
-      "tools/graph-qa/tests/test_delegatie_afsluiten.py::test_de_weigering_gaat_door_tools_node_en_het_rapport_zegt_het_vooraf",
-      "tools/graph-qa/tests/test_delegatie_afsluiten.py::test_een_aanwijzing_in_extern_die_niet_klopt_valt_weg_naast_een_die_klopt",
-      "tools/graph-qa/tests/test_delegatie_afsluiten.py::test_een_uitleg_met_een_passage_die_niet_te_tonen_is_toont_de_andere_en_zegt_het",
-      "tools/graph-qa/tests/test_delegatie_afsluiten.py::test_het_plafond_gaat_vooraf_af_op_een_schatting_van_de_volgende_ronde",
-      "tools/graph-qa/tests/test_delegatie_afsluiten.py::test_het_platform_begrenst_wat_een_profiel_mag_vragen",
-      "tools/graph-qa/tests/test_delegatie_afsluiten.py::test_leest_het_kind_in_zijn_laatste_ronde_toch_door_dan_sluit_de_code_af_met_wat_hij_las",
-      "tools/graph-qa/tests/test_delegatie_afsluiten.py::test_na_een_subagent_die_niet_afrondde_leest_de_centrale_agent_niet_zelf_opnieuw",
-      "tools/graph-qa/tests/test_delegatie_afsluiten.py::test_over_het_plafond_of_na_de_laatste_ronde_komt_er_geen_modelronde_meer",
-      "tools/graph-qa/tests/test_delegatie_afsluiten.py::test_zonder_iets_te_tonen_weigert_de_uitleg_zoals_altijd"
+      "tools/graph-qa/tests/centrale_agent/test_delegatie_afsluiten.py::test_alleen_een_subagent_heeft_een_laatste_ronde_en_een_plafond",
+      "tools/graph-qa/tests/centrale_agent/test_delegatie_afsluiten.py::test_als_subsjabloon_toont_de_uitleg_de_wettekst_en_laat_de_foute_aanwijzing_weg",
+      "tools/graph-qa/tests/centrale_agent/test_delegatie_afsluiten.py::test_de_correctieronde_na_een_grote_beurt_krijgt_de_hele_beurt",
+      "tools/graph-qa/tests/centrale_agent/test_delegatie_afsluiten.py::test_de_grenzen_komen_van_het_profiel_en_anders_van_het_platform",
+      "tools/graph-qa/tests/centrale_agent/test_delegatie_afsluiten.py::test_de_laatste_ronde_zegt_de_code_en_het_kind_rondt_af_met_het_rapport",
+      "tools/graph-qa/tests/centrale_agent/test_delegatie_afsluiten.py::test_de_weigering_gaat_door_tools_node_en_het_rapport_zegt_het_vooraf",
+      "tools/graph-qa/tests/centrale_agent/test_delegatie_afsluiten.py::test_een_aanwijzing_in_extern_die_niet_klopt_valt_weg_naast_een_die_klopt",
+      "tools/graph-qa/tests/centrale_agent/test_delegatie_afsluiten.py::test_een_uitleg_met_een_passage_die_niet_te_tonen_is_toont_de_andere_en_zegt_het",
+      "tools/graph-qa/tests/centrale_agent/test_delegatie_afsluiten.py::test_het_plafond_gaat_vooraf_af_op_een_schatting_van_de_volgende_ronde",
+      "tools/graph-qa/tests/centrale_agent/test_delegatie_afsluiten.py::test_het_platform_begrenst_wat_een_profiel_mag_vragen",
+      "tools/graph-qa/tests/centrale_agent/test_delegatie_afsluiten.py::test_leest_het_kind_in_zijn_laatste_ronde_toch_door_dan_sluit_de_code_af_met_wat_hij_las",
+      "tools/graph-qa/tests/centrale_agent/test_delegatie_afsluiten.py::test_na_een_subagent_die_niet_afrondde_leest_de_centrale_agent_niet_zelf_opnieuw",
+      "tools/graph-qa/tests/centrale_agent/test_delegatie_afsluiten.py::test_over_het_plafond_of_na_de_laatste_ronde_komt_er_geen_modelronde_meer",
+      "tools/graph-qa/tests/centrale_agent/test_delegatie_afsluiten.py::test_zonder_iets_te_tonen_weigert_de_uitleg_zoals_altijd"
      ],
      "4": [
       "docs/acceptatie/foutpaden.md"
@@ -1966,17 +1968,17 @@ window.LEX_BENCH = {
     "tweede": 5,
     "per_laag": {
      "1": [
-      "tools/graph-qa/tests/test_resultaatcontract.py::test_contract",
-      "tools/graph-qa/tests/test_resultaatcontract.py::test_contract_van_een_connectortool",
-      "tools/graph-qa/tests/test_resultaatcontract.py::test_een_ondeelbare_eenheid_boven_de_begroting_wordt_een_fout_geen_inkorting",
-      "tools/graph-qa/tests/test_resultaatcontract.py::test_elke_connector_heeft_een_nepbron_en_elke_connectortool_argumenten",
-      "tools/graph-qa/tests/test_resultaatcontract.py::test_elke_graaftool_heeft_testargumenten",
-      "tools/graph-qa/tests/test_resultaatcontract.py::test_minder_rijen_dan_aantal_door_de_begroting_staat_in_de_toelichting",
-      "tools/graph-qa/tests/test_resultaatcontract.py::test_openen_van_een_connectortool_haalt_hetzelfde_contract",
-      "tools/graph-qa/tests/test_resultaatcontract.py::test_raw_sparql_bedenkt_geen_waarden",
-      "tools/graph-qa/tests/test_resultaatcontract.py::test_raw_sparql_is_streng_en_geeft_nooit_een_half_antwoord",
-      "tools/graph-qa/tests/test_resultaatcontract.py::test_raw_sparql_laat_terechte_query_door",
-      "tools/graph-qa/tests/test_resultaatcontract.py::test_rijen_en_stuk_dragen_de_metadatasleutels"
+      "tools/graph-qa/tests/graaf/test_resultaatcontract.py::test_contract",
+      "tools/graph-qa/tests/graaf/test_resultaatcontract.py::test_contract_van_een_connectortool",
+      "tools/graph-qa/tests/graaf/test_resultaatcontract.py::test_een_ondeelbare_eenheid_boven_de_begroting_wordt_een_fout_geen_inkorting",
+      "tools/graph-qa/tests/graaf/test_resultaatcontract.py::test_elke_connector_heeft_een_nepbron_en_elke_connectortool_argumenten",
+      "tools/graph-qa/tests/graaf/test_resultaatcontract.py::test_elke_graaftool_heeft_testargumenten",
+      "tools/graph-qa/tests/graaf/test_resultaatcontract.py::test_minder_rijen_dan_aantal_door_de_begroting_staat_in_de_toelichting",
+      "tools/graph-qa/tests/graaf/test_resultaatcontract.py::test_openen_van_een_connectortool_haalt_hetzelfde_contract",
+      "tools/graph-qa/tests/graaf/test_resultaatcontract.py::test_raw_sparql_bedenkt_geen_waarden",
+      "tools/graph-qa/tests/graaf/test_resultaatcontract.py::test_raw_sparql_is_streng_en_geeft_nooit_een_half_antwoord",
+      "tools/graph-qa/tests/graaf/test_resultaatcontract.py::test_raw_sparql_laat_terechte_query_door",
+      "tools/graph-qa/tests/graaf/test_resultaatcontract.py::test_rijen_en_stuk_dragen_de_metadatasleutels"
      ]
     },
     "primair_gedekt": true
@@ -2029,9 +2031,9 @@ window.LEX_BENCH = {
       "api/tests/test_graaf_projectie_v2.py::test_elk_filter_van_zoek_query_is_ingedeeld",
       "api/tests/test_graaf_projectie_v2.py::test_source_iri_injection_rejected",
       "api/tests/test_graaf_projectie_v2.py::test_tekst_van_buiten_verandert_de_query_niet",
-      "tools/graph-qa/tests/test_injectie_via_bron.py::test_een_stuk_uit_een_connector_blijft_een_gegeven",
-      "tools/graph-qa/tests/test_injectie_via_bron.py::test_elke_connector_met_een_leestool_doet_mee",
-      "tools/graph-qa/tests/test_injectie_via_bron.py::test_wettekst_uit_de_graaf_blijft_een_gegeven"
+      "tools/graph-qa/tests/grounding/test_injectie_via_bron.py::test_een_stuk_uit_een_connector_blijft_een_gegeven",
+      "tools/graph-qa/tests/grounding/test_injectie_via_bron.py::test_elke_connector_met_een_leestool_doet_mee",
+      "tools/graph-qa/tests/grounding/test_injectie_via_bron.py::test_wettekst_uit_de_graaf_blijft_een_gegeven"
      ]
     },
     "primair_gedekt": true
@@ -2043,18 +2045,18 @@ window.LEX_BENCH = {
     "tweede": 2,
     "per_laag": {
      "1": [
-      "tools/graph-qa/tests/test_bronschakelaar.py::test_chatrequest_kent_alleen_bekende_connectors",
-      "tools/graph-qa/tests/test_bronschakelaar.py::test_chatrequest_kent_de_herkomst",
-      "tools/graph-qa/tests/test_bronschakelaar.py::test_connector_literal_is_het_register",
-      "tools/graph-qa/tests/test_bronschakelaar.py::test_de_beurt_meldt_haar_bronstand_en_de_meting_leest_hem",
-      "tools/graph-qa/tests/test_bronschakelaar.py::test_de_reden_zegt_wie_hem_aanzet",
-      "tools/graph-qa/tests/test_bronschakelaar.py::test_dispatch_weigert_een_uitgezette_bron_ook_in_code",
-      "tools/graph-qa/tests/test_bronschakelaar.py::test_een_regel",
-      "tools/graph-qa/tests/test_bronschakelaar.py::test_het_model_krijgt_een_uitgezette_bron_niet_aangeboden",
-      "tools/graph-qa/tests/test_bronschakelaar.py::test_het_register_van_de_api_kent_dezelfde_connectors",
-      "tools/graph-qa/tests/test_bronschakelaar.py::test_het_register_van_de_beheerder_begrenst",
-      "tools/graph-qa/tests/test_bronschakelaar.py::test_zonder_connector_in_de_straat_geen_bronstand_event",
-      "tools/graph-qa/tests/test_bronschakelaar.py::test_zonder_connector_in_de_straat_geen_registervraag"
+      "tools/graph-qa/tests/connectors/test_bronschakelaar.py::test_chatrequest_kent_alleen_bekende_connectors",
+      "tools/graph-qa/tests/connectors/test_bronschakelaar.py::test_chatrequest_kent_de_herkomst",
+      "tools/graph-qa/tests/connectors/test_bronschakelaar.py::test_connector_literal_is_het_register",
+      "tools/graph-qa/tests/connectors/test_bronschakelaar.py::test_de_beurt_meldt_haar_bronstand_en_de_meting_leest_hem",
+      "tools/graph-qa/tests/connectors/test_bronschakelaar.py::test_de_reden_zegt_wie_hem_aanzet",
+      "tools/graph-qa/tests/connectors/test_bronschakelaar.py::test_dispatch_weigert_een_uitgezette_bron_ook_in_code",
+      "tools/graph-qa/tests/connectors/test_bronschakelaar.py::test_een_regel",
+      "tools/graph-qa/tests/connectors/test_bronschakelaar.py::test_het_model_krijgt_een_uitgezette_bron_niet_aangeboden",
+      "tools/graph-qa/tests/connectors/test_bronschakelaar.py::test_het_register_van_de_api_kent_dezelfde_connectors",
+      "tools/graph-qa/tests/connectors/test_bronschakelaar.py::test_het_register_van_de_beheerder_begrenst",
+      "tools/graph-qa/tests/connectors/test_bronschakelaar.py::test_zonder_connector_in_de_straat_geen_bronstand_event",
+      "tools/graph-qa/tests/connectors/test_bronschakelaar.py::test_zonder_connector_in_de_straat_geen_registervraag"
      ],
      "4": [
       "docs/acceptatie/foutpaden.md"
@@ -2076,9 +2078,31 @@ window.LEX_BENCH = {
       "tools/graph-qa/tests/evals/test_lex_bench.py::test_het_dashboard_laat_de_bepalingen_van_een_blinde_casus_weg",
       "tools/graph-qa/tests/evals/test_lex_bench.py::test_het_manifest_klopt_met_de_sets_van_nu",
       "tools/graph-qa/tests/evals/test_lex_bench.py::test_het_rapport_houdt_blind_en_ontwikkeling_apart_en_heeft_geen_totaal",
-      "tools/graph-qa/tests/test_controle_citaten.py::test_een_ontkenning_is_geen_claim_dat_alles_gelezen_is",
-      "tools/graph-qa/tests/test_controle_citaten.py::test_een_verwijzing_in_een_citaat_is_geen_samenvatting_van_het_verwezen_stuk",
-      "tools/graph-qa/tests/test_controle_citaten.py::test_het_citaat_zelf_blijft_getoetst_op_letterlijkheid"
+      "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_de_opdracht_noemt_de_verschillen_en_niet_de_coordinator",
+      "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_de_tegenlezer_ziet_lex_niet",
+      "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_de_verschillen_zijn_genummerd_en_herhaalbaar",
+      "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_een_categorie_die_niet_bij_het_verschil_past_gaat_niet_door",
+      "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_een_review_volgens_de_voorstellen_klopt_en_telt",
+      "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_een_tegenlezing_hoort_bij_een_analist",
+      "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_een_tegenlezing_met_een_fout_gaat_niet_door",
+      "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_een_tegenlezing_zet_haar_bezwaren_in_onenig",
+      "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_team_mist_wordt_een_voorstel_voor_nagekomen_en_wijzigt_niets",
+      "tools/graph-qa/tests/evals/test_lex_bench_review.py::test_tegen_de_eigen_verwachting_geeft_het_de_scorekaart_van_l1",
+      "tools/graph-qa/tests/evals/test_lex_bench_team.py::test_bevriezen_schrijft_eenmalig_met_de_hash",
+      "tools/graph-qa/tests/evals/test_lex_bench_team.py::test_de_cli_geeft_een_fout_als_exitcode",
+      "tools/graph-qa/tests/evals/test_lex_bench_team.py::test_de_opdracht_noemt_geen_bepaling_uit_de_verwachting",
+      "tools/graph-qa/tests/evals/test_lex_bench_team.py::test_de_teamverwachting_heeft_de_vorm_van_schema_4",
+      "tools/graph-qa/tests/evals/test_lex_bench_team.py::test_een_blinde_casus_bevriest_niet_in_de_repo",
+      "tools/graph-qa/tests/evals/test_lex_bench_team.py::test_een_blinde_casus_komt_niet_uit_de_repo",
+      "tools/graph-qa/tests/evals/test_lex_bench_team.py::test_een_formulier_met_een_fout_gaat_niet_door",
+      "tools/graph-qa/tests/evals/test_lex_bench_team.py::test_een_goed_formulier_klopt",
+      "tools/graph-qa/tests/evals/test_lex_bench_team.py::test_een_makkelijke_casus_met_een_analist_zet_zijn_twijfel_open",
+      "tools/graph-qa/tests/evals/test_lex_bench_team.py::test_het_dossier_draagt_geen_verwachting",
+      "tools/graph-qa/tests/evals/test_lex_bench_team.py::test_samenvoegen_legt_a_en_b_naast_elkaar_zonder_te_kiezen",
+      "tools/graph-qa/tests/evals/test_lex_bench_team.py::test_samenvoegen_weigert_een_fout_formulier_of_twee_keer_dezelfde_analist",
+      "tools/graph-qa/tests/grounding/test_controle_citaten.py::test_een_ontkenning_is_geen_claim_dat_alles_gelezen_is",
+      "tools/graph-qa/tests/grounding/test_controle_citaten.py::test_een_verwijzing_in_een_citaat_is_geen_samenvatting_van_het_verwezen_stuk",
+      "tools/graph-qa/tests/grounding/test_controle_citaten.py::test_het_citaat_zelf_blijft_getoetst_op_letterlijkheid"
      ],
      "2": [
       "tests/poort/test_lex_bench.py::test_de_hashes_kloppen_met_de_sets",
@@ -2090,7 +2114,9 @@ window.LEX_BENCH = {
       "tests/poort/test_lex_bench.py::test_verrekening_staat_niet_in_de_casusset",
       "tests/poort/test_lex_bench_dashboard.py::test_de_pagina_haalt_geen_code_van_buiten",
       "tests/poort/test_lex_bench_dashboard.py::test_de_tokens_zijn_die_van_de_frontend",
-      "tests/poort/test_lex_bench_dashboard.py::test_het_beeldmerk_is_dat_van_lex"
+      "tests/poort/test_lex_bench_dashboard.py::test_het_beeldmerk_is_dat_van_lex",
+      "tests/poort/test_lex_bench_team.py::test_een_bench_profiel_heeft_precies_zijn_allowlist",
+      "tests/poort/test_lex_bench_team.py::test_het_formulier_en_de_briefing_staan_er"
      ]
     },
     "primair_gedekt": true
@@ -2102,14 +2128,14 @@ window.LEX_BENCH = {
     "tweede": 5,
     "per_laag": {
      "2": [
-      "tools/graph-qa/tests/test_routering.py::test_de_statusregels_van_de_routering_zijn_in_gebruikerstaal_en_dragen_hun_route",
-      "tools/graph-qa/tests/test_routering.py::test_een_dubbelzinnige_afkorting_wordt_een_vraag_terug_zonder_model",
-      "tools/graph-qa/tests/test_routering.py::test_een_genoemd_artikel_buiten_de_graaf_wordt_zonder_model_gelezen",
-      "tools/graph-qa/tests/test_routering.py::test_een_genoemd_id_van_een_uitgezette_bron_wordt_niet_gelezen",
-      "tools/graph-qa/tests/test_routering.py::test_een_genoemd_id_wordt_zonder_model_gelezen",
-      "tools/graph-qa/tests/test_routering.py::test_elke_rij_heeft_een_id_en_een_verwachting",
-      "tools/graph-qa/tests/test_routering.py::test_routering",
-      "tools/graph-qa/tests/test_routering.py::test_zonder_de_connector_geen_verzoek_naar_overheid"
+      "tools/graph-qa/tests/routes/test_routering.py::test_de_statusregels_van_de_routering_zijn_in_gebruikerstaal_en_dragen_hun_route",
+      "tools/graph-qa/tests/routes/test_routering.py::test_een_dubbelzinnige_afkorting_wordt_een_vraag_terug_zonder_model",
+      "tools/graph-qa/tests/routes/test_routering.py::test_een_genoemd_artikel_buiten_de_graaf_wordt_zonder_model_gelezen",
+      "tools/graph-qa/tests/routes/test_routering.py::test_een_genoemd_id_van_een_uitgezette_bron_wordt_niet_gelezen",
+      "tools/graph-qa/tests/routes/test_routering.py::test_een_genoemd_id_wordt_zonder_model_gelezen",
+      "tools/graph-qa/tests/routes/test_routering.py::test_elke_rij_heeft_een_id_en_een_verwachting",
+      "tools/graph-qa/tests/routes/test_routering.py::test_routering",
+      "tools/graph-qa/tests/routes/test_routering.py::test_zonder_de_connector_geen_verzoek_naar_overheid"
      ]
     },
     "primair_gedekt": true
@@ -2121,12 +2147,12 @@ window.LEX_BENCH = {
     "tweede": 5,
     "per_laag": {
      "2": [
-      "tools/graph-qa/tests/test_methodes_gescheiden.py::test_de_jrm_verrijking_bestaat_niet_meer_in_wetsanalyse",
-      "tools/graph-qa/tests/test_methodes_gescheiden.py::test_de_skill_wetsanalyse_noemt_het_jrm_alleen_als_verwijzing",
-      "tools/graph-qa/tests/test_methodes_gescheiden.py::test_de_toets_vindt_een_vermenging",
-      "tools/graph-qa/tests/test_methodes_gescheiden.py::test_elke_uitzondering_bestaat_nog",
-      "tools/graph-qa/tests/test_methodes_gescheiden.py::test_het_dossier_van_wetsanalyse_kent_geen_scenario_of_gevolg_als_identiteit",
-      "tools/graph-qa/tests/test_methodes_gescheiden.py::test_het_label_is_wetsanalyse_jas"
+      "tools/graph-qa/tests/methode/test_methodes_gescheiden.py::test_de_jrm_verrijking_bestaat_niet_meer_in_wetsanalyse",
+      "tools/graph-qa/tests/methode/test_methodes_gescheiden.py::test_de_skill_wetsanalyse_noemt_het_jrm_alleen_als_verwijzing",
+      "tools/graph-qa/tests/methode/test_methodes_gescheiden.py::test_de_toets_vindt_een_vermenging",
+      "tools/graph-qa/tests/methode/test_methodes_gescheiden.py::test_elke_uitzondering_bestaat_nog",
+      "tools/graph-qa/tests/methode/test_methodes_gescheiden.py::test_het_dossier_van_wetsanalyse_kent_geen_scenario_of_gevolg_als_identiteit",
+      "tools/graph-qa/tests/methode/test_methodes_gescheiden.py::test_het_label_is_wetsanalyse_jas"
      ]
     },
     "primair_gedekt": true
@@ -2218,14 +2244,14 @@ window.LEX_BENCH = {
       "tests/poort/test_risicomatrix.py::test_de_matrix_meldt_een_onbekend_risico_en_telt_per_laag",
       "tests/poort/test_risicomatrix.py::test_elke_marker_noemt_een_bekend_risico",
       "tests/poort/test_risicomatrix.py::test_het_register_is_goed_gevormd",
-      "tools/graph-qa/tests/test_fakes_streng.py::test_een_aangeboden_tool_en_een_bewuste_uitzondering_gaan_door",
-      "tools/graph-qa/tests/test_fakes_streng.py::test_een_ronde_te_veel_zegt_wat_er_gevraagd_werd",
-      "tools/graph-qa/tests/test_fakes_streng.py::test_een_tool_die_niet_werd_aangeboden_is_een_fout",
-      "tools/graph-qa/tests/test_naad_minicasus.py::test_de_batch_draagt_wat_de_api_nodig_heeft",
-      "tools/graph-qa/tests/test_naad_minicasus.py::test_de_batch_van_graph_qa_is_het_gedeelde_voorbeeld",
-      "tools/graph-qa/tests/test_procestoestand.py::test_de_zoektocht_herkent_de_vormen",
-      "tools/graph-qa/tests/test_procestoestand.py::test_elke_module_met_procesbrede_toestand_meldt_zich",
-      "tools/graph-qa/tests/test_procestoestand.py::test_reset_maakt_de_regelingen_leeg"
+      "tools/graph-qa/tests/evals/test_fakes_streng.py::test_een_aangeboden_tool_en_een_bewuste_uitzondering_gaan_door",
+      "tools/graph-qa/tests/evals/test_fakes_streng.py::test_een_ronde_te_veel_zegt_wat_er_gevraagd_werd",
+      "tools/graph-qa/tests/evals/test_fakes_streng.py::test_een_tool_die_niet_werd_aangeboden_is_een_fout",
+      "tools/graph-qa/tests/evals/test_procestoestand.py::test_de_zoektocht_herkent_de_vormen",
+      "tools/graph-qa/tests/evals/test_procestoestand.py::test_elke_module_met_procesbrede_toestand_meldt_zich",
+      "tools/graph-qa/tests/evals/test_procestoestand.py::test_reset_maakt_de_regelingen_leeg",
+      "tools/graph-qa/tests/runs/test_naad_minicasus.py::test_de_batch_draagt_wat_de_api_nodig_heeft",
+      "tools/graph-qa/tests/runs/test_naad_minicasus.py::test_de_batch_van_graph_qa_is_het_gedeelde_voorbeeld"
      ]
     },
     "primair_gedekt": true
