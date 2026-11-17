@@ -166,7 +166,8 @@ try {
   assert.equal(await invoer().count(), 0, "de vraag vervangt het invoerveld");
   assert.equal(await dock("naam").getByRole("button", { name: "Sla over" }).count(), 0, "de naam is verplicht");
   assert.ok(await dock("naam").getByRole("button", { name: "Vorige vraag" }).isDisabled());
-  await page.locator("[data-vraag-open]").waitFor();
+  // Staat de vraag onderaan open, dan opent "Een vraag stellen ›" niets, en staat hij er niet (17 nov 2026).
+  assert.equal(await page.locator("[data-vraag-open]").count(), 0, "geen knop zolang de vraag openstaat");
 
   // --- ✕ geeft het invoerveld terug; "Een vraag stellen ›" opent de vraag weer ---
   await dock("naam").getByRole("button", { name: "Vraag sluiten" }).click();
