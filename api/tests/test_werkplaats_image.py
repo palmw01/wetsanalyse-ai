@@ -11,8 +11,9 @@ import json
 from pathlib import Path
 
 import pytest
+
+from conftest import api_client
 from bronmodel import werkplaats as wp
-from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, select
 
 AGENT = {"Authorization": "Bearer agent-token"}
@@ -35,25 +36,9 @@ ANDERS = PROFIEL.replace("stap voor stap", "in drie stappen")
 
 @pytest.fixture
 async def client(monkeypatch):
-    monkeypatch.setenv("WETSANALYSE_API_TOKENS", "graph-qa:agent-token,frontend:webapp-token")
-    monkeypatch.setenv("WERKPLAATS", "true")
-    from app import db, ratelimit
-    from app.config import get_settings
-    from app.routers.auth import vergeet_actief
-    from conftest import maak_testgebruikers
-
-    get_settings.cache_clear()
-    ratelimit.reset()
-    vergeet_actief()
-    db.init_engine("sqlite+aiosqlite://")
-    await db.create_all()
-    await db.reconcile_schema()
-    await maak_testgebruikers("gebruiker-b")
-    from app.main import app
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with api_client(monkeypatch, env={"WETSANALYSE_API_TOKENS": "graph-qa:agent-token,frontend:webapp-token", "WERKPLAATS": "true"}, reconcile=True,
+                          gebruikers=("gebruiker-b",)) as ac:
         yield ac
-    get_settings.cache_clear()
-    await db.dispose_engine()
 
 
 def _pakket(**profielen: str) -> dict:

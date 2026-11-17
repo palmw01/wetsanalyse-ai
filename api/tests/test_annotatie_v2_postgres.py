@@ -5,38 +5,26 @@ verwijdert uitsluitend dat schema. SQLite kan SELECT FOR UPDATE niet bewijzen.
 """
 import asyncio
 import os
-import uuid
 
 import pytest
 from fastapi import HTTPException
-from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import select
 
 from app import db
 from app import annotatie_v2_store as store
 from app.annotatie_v2_contracts import Beslissing
-from test_annotatie_v2 import ONE, TWO, element, request, snapshot
+from gedeelde_bron import ONE, TWO, element, request, snapshot
+
+from conftest import postgres_schema as eigen_schema
 
 pytestmark = [pytest.mark.skipif(not os.getenv("ANNOTATIE_TEST_DSN"), reason="PostgreSQL-test DSN ontbreekt"), pytest.mark.risico("R07")]
 
 
 @pytest.fixture(autouse=True)
 async def postgres_schema():
-    dsn = os.environ["ANNOTATIE_TEST_DSN"]
-    schema = "annotatie_test_" + uuid.uuid4().hex
-    administration = create_async_engine(dsn)
-    async with administration.begin() as conn:
-        await conn.execute(text(f'CREATE SCHEMA "{schema}"'))
-    db.init_engine(dsn, connect_args={"server_settings": {"search_path": schema}})
-    try:
-        await db.create_all()
-        await db.reconcile_schema()
+    """Elke test een eigen schema (`conftest.postgres_schema`, testplan api V7)."""
+    async for _ in eigen_schema("annotatie_test"):
         yield
-    finally:
-        await db.dispose_engine()
-        async with administration.begin() as conn:
-            await conn.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
-        await administration.dispose()
 
 
 async def test_compacte_elementen_laten_het_spoor_in_de_query_weg():

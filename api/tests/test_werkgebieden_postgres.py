@@ -5,37 +5,24 @@ verwijderd. SQLite kan `SELECT … FOR UPDATE` niet bewijzen.
 """
 import asyncio
 import os
-import uuid
 
 import pytest
 from fastapi import HTTPException
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
 
-from app import db, werkgebied_store as store
+from app import werkgebied_store as store
 from app.werkgebied_contracts import BronselectieInvoer, WerkgebiedInvoer, WerkgebiedWijziging
-from test_annotatie_v2 import ART
+from gedeelde_bron import ART
+
+from conftest import postgres_schema as eigen_schema
 
 pytestmark = [pytest.mark.skipif(not os.getenv("ANNOTATIE_TEST_DSN"), reason="PostgreSQL-test DSN ontbreekt"), pytest.mark.risico("R07")]
 
 
 @pytest.fixture(autouse=True)
 async def postgres_schema():
-    dsn = os.environ["ANNOTATIE_TEST_DSN"]
-    schema = "werkgebied_test_" + uuid.uuid4().hex
-    administration = create_async_engine(dsn)
-    async with administration.begin() as conn:
-        await conn.execute(text(f'CREATE SCHEMA "{schema}"'))
-    db.init_engine(dsn, connect_args={"server_settings": {"search_path": schema}})
-    try:
-        await db.create_all()
-        await db.reconcile_schema()
+    """Elke test een eigen schema (`conftest.postgres_schema`, testplan api V7)."""
+    async for _ in eigen_schema("werkgebied_test"):
         yield
-    finally:
-        await db.dispose_engine()
-        async with administration.begin() as conn:
-            await conn.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
-        await administration.dispose()
 
 
 async def test_twee_gelijktijdige_wijzigingen_precies_een_412():
@@ -65,7 +52,7 @@ async def test_twee_kandidaten_gelijktijdig_opnemen_op_dezelfde_revisie_precies_
     """Fase A: opnemen loopt door het slot van het werkgebied; kandidaat en selectie landen samen."""
     from app import bronnen_run_store as runs
     from app.bronnen_run_contracts import BronnenUitkomst, Opnemen
-    from test_werkgebieden import ART2
+    from gedeelde_bron import ART2
 
     wg = await store.maak(WerkgebiedInvoer(naam="A", analysevraag="Wanneer?"), "a")
     run, _ = await runs.start(await store.haal(wg["id"]), "a")

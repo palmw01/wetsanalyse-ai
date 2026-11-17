@@ -8,40 +8,7 @@ from sqlalchemy import select
 from app import db
 from app import annotatie_v2_store as store
 from app.annotatie_v2_contracts import Batch, Beslissing, Zoekvraag
-
-LAW = "urn:bwb:BWBR0004770"
-ART = LAW + ":artikel:9"
-ONE = ART + ":lid:1"
-TWO = ART + ":lid:2"
-
-
-def snapshot(target=ART, second="Beta"):
-    nodes = [dict(bron_iri=LAW, parent_iri="", type="Wet", label="Wet", tekst=""),
-             dict(bron_iri=ART, parent_iri=LAW, type="Artikel", label="Artikel 9", tekst=""),
-             dict(bron_iri=ONE, parent_iri=ART, type="Lid", label="Lid 1", tekst="😀 Alfa Alfa"),
-             dict(bron_iri=TWO, parent_iri=ART, type="Lid", label="Lid 2", tekst=second)]
-    for i, n in enumerate(nodes):
-        n.update(bron_hash=hashlib.sha256(n["tekst"].encode()).hexdigest(), volgorde=i, bwb_id="BWBR0004770")
-    return dict(snapshot_id=store.digest(nodes), doel=next(n for n in nodes if n["bron_iri"] == target), nodes=nodes)
-
-
-def element(snap, iri=ONE, start=2, end=6, **extra):
-    n = store.nodes_van(snap)[iri]
-    return dict(klasse="Rechtssubject", tekst=n["tekst"][start:end],
-                ankers=[dict(bron_iri=iri, start=start, eind=end, tekst=n["tekst"][start:end], bron_hash=n["bron_hash"])], **extra)
-
-
-def request(snap, elements=None, batch_id="test", revisions=None, **extra):
-    return Batch.model_validate(dict(batch_id=batch_id, doel={"bron_iri": snap["doel"]["bron_iri"]},
-        snapshot_id=snap["snapshot_id"], elementen=elements or [], verwachte_revisies=revisions or {}, **extra))
-
-
-@pytest.fixture(autouse=True)
-async def database():
-    db.init_engine("sqlite+aiosqlite://")
-    await db.create_all()
-    yield
-    await db.dispose_engine()
+from gedeelde_bron import ART, LAW, ONE, TERUGVAL, TWO, database, element, request, snapshot  # noqa: F401
 
 
 async def test_lid_view_contains_no_sibling_and_lca_only_reference():
@@ -739,10 +706,6 @@ async def test_zoeken_verifieert_de_herkomstfilters_in_postgres(monkeypatch):
 
 
 # --- terugval: geen klasse gekozen, geen klasseclaim -------------------------------------------------
-
-TERUGVAL = dict(klasse="", alternatieven=[{"klasse": "Rechtsbetrekking", "motivatie": ""},
-                                          {"klasse": "Rechtsfeit", "motivatie": ""}],
-                trace={"beslissing": {"door": "terugval", "status": "HUMAN_REVIEW"}})
 
 
 async def test_een_lege_klasse_mag_alleen_bij_een_terugval():

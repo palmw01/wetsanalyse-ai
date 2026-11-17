@@ -17,9 +17,9 @@ from app import (annotatie_v2_store as store, bestandsnaam, markdown_opmaak, pdf
 from app.werkgebied_rapport import (Begrippen, Rapport, Stand, Wettekst, deelvragen_regels, dossier_regels, niet_meegenomen_regels,
                                    rapport_regels)
 from pydantic import BaseModel, ValidationError
-from test_annotatie_v2 import ART, LAW, ONE, TWO, element, request, snapshot
+from gedeelde_bron import ART, LAW, ONE, TWO, element, request, snapshot
 from test_begrippen import _annoteer, _begrip, _beslis, _keur_alles_goed, _url, _werkgebied
-from test_werkgebieden import ART2, LAW2, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
+from gedeelde_bron import ART2, LAW2, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
 
 V = {"besluit": {"model": {"naam": "het model"}}}
 

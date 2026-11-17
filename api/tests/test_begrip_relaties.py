@@ -4,8 +4,8 @@ from __future__ import annotations
 from test_begrip_onderhoud import _geaccordeerd, _herbeoordelingen
 from test_begrippen import DEFINITIE, _annoteer, _begrip, _beslis, _url, _werkgebied
 from test_begrippen_runs import _start, _uitkomst
-from test_annotatie_v2 import snapshot
-from test_werkgebieden import client, database, graaf, snapshot2  # noqa: F401
+from gedeelde_bron import snapshot
+from gedeelde_bron import client, database, graaf, snapshot2  # noqa: F401
 
 
 def _rel(wg, *rest) -> str:

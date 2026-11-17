@@ -9,9 +9,9 @@ import pytest
 
 from app import annotatie_v2_store as store, begrip_projectie, begrip_store, begrippen_run_store, db
 from app.annotatie_v2_contracts import Beslissing
-from test_annotatie_v2 import ART, ONE, snapshot
+from gedeelde_bron import ART, ONE, snapshot
 from test_begrippen_runs import _annoteer, _groep, _start, _uitkomst, _werkgebied
-from test_werkgebieden import client, database, graaf, snapshot2  # noqa: F401
+from gedeelde_bron import client, database, graaf, snapshot2  # noqa: F401
 
 LID1 = "Artikel 9 · Lid 1 – Wet"
 

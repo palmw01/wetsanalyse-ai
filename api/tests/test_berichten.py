@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+
+from conftest import api_client
 
 
 @pytest.fixture
@@ -21,29 +22,11 @@ async def db():
 @pytest.fixture
 async def client(monkeypatch):
     """ASGI-client met cliënt- én admin-auth, geen netwerk."""
-    monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite://")
-    monkeypatch.setenv("WETSANALYSE_ADMIN_TOKENS", "adm:admin-token")
-    monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
-
-    from app import db, ratelimit
-    from app.config import get_settings
-
-    get_settings.cache_clear()
-    ratelimit.reset()
-    db.init_engine("sqlite+aiosqlite://")
-    await db.create_all()
-
     # De gescopete endpoints lopen via `actieve_userid`: die eist dat het account bestaat en actief
     # is, dus een verzonnen X-User-Id geeft 401. Zet de userids die deze tests sturen als echte
     # accounts neer ("bestaat-niet" bewust niet – die hoort juist te falen).
-    from conftest import maak_testgebruikers
-    await maak_testgebruikers("user1", "user2", "irrelevant")
-
-    from app.main import app
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with api_client(monkeypatch, env={"DATABASE_URL": "sqlite+aiosqlite://", "WETSANALYSE_ADMIN_TOKENS": "adm:admin-token", "WETSANALYSE_AUTH_REQUIRED": "0"}, gebruikers=("user1", "user2", "irrelevant")) as ac:
         yield ac
-
-    await db.dispose_engine()
 
 
 _ADM = {"Authorization": "Bearer admin-token"}

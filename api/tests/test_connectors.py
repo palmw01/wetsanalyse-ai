@@ -6,7 +6,8 @@ elke wijziging is een auditregel. Graph-qa leest `GET /v1/connectors`.
 from __future__ import annotations
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+
+from conftest import api_client
 
 _ADMIN = {"Authorization": "Bearer admin-token"}
 _BEHEERDER = {**_ADMIN, "X-User-Id": "gebruiker-a"}
@@ -15,29 +16,9 @@ _ZONDER_2FA = {**_ADMIN, "X-User-Id": "gebruiker-b"}
 
 @pytest.fixture
 async def client(monkeypatch):
-    monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
-    monkeypatch.setenv("WETSANALYSE_ADMIN_TOKENS", "adm:admin-token")
-    from sqlalchemy import update
-
-    from app import db, ratelimit
-    from app.config import get_settings
-    from app.routers.auth import vergeet_actief
-    from conftest import maak_testgebruikers
-
-    get_settings.cache_clear()
-    ratelimit.reset()
-    vergeet_actief()
-    db.init_engine("sqlite+aiosqlite://")
-    await db.create_all()
-    await db.reconcile_schema()
-    await maak_testgebruikers("gebruiker-a", "gebruiker-b")
-    async with db.get_engine().begin() as conn:
-        await conn.execute(update(db.users).where(db.users.c.userid == "gebruiker-a").values(totp_enabled=True))
-    from app.main import app
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with api_client(monkeypatch, env={"WETSANALYSE_AUTH_REQUIRED": "0", "WETSANALYSE_ADMIN_TOKENS": "adm:admin-token"}, reconcile=True, gebruikers=("gebruiker-a", "gebruiker-b"),
+                          met_2fa=("gebruiker-a",)) as ac:
         yield ac
-    get_settings.cache_clear()
-    await db.dispose_engine()
 
 
 async def test_een_bekende_connector_staat_uit_tot_de_beheerder_hem_aanzet(client):

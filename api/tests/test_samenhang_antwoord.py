@@ -8,7 +8,7 @@ from bronmodel.definities import geldigheid_uit, losse_termen, term_vindplaats
 
 from app import annotatie_v2_store as store
 from app import begrip_store, db, graaf, samenhang_antwoord
-from test_annotatie_v2 import element, request
+from gedeelde_bron import element, request
 
 LAW = "urn:bwb:BWBR0004770"
 H1 = f"{LAW}:hoofdstuk:I"

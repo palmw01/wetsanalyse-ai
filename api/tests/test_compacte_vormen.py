@@ -11,10 +11,10 @@ Elke compacte vorm is opt-in. Zonder parameter blijft het antwoord zoals het was
 from __future__ import annotations
 
 from app import annotatie_v2_store as store
-from test_annotatie_v2 import ART, ONE, TWO, element, request, snapshot
+from gedeelde_bron import ART, ONE, TWO, element, request, snapshot
 from test_begrippen import DEFINITIE, _begrip, _url, _werkgebied
 from test_bronselectie import _besluit, _dq, _kd, _kid, _met_kandidaten, _overzicht, _vier
-from test_werkgebieden import ART2, client, database, graaf  # noqa: F401
+from gedeelde_bron import ART2, client, database, graaf  # noqa: F401
 
 
 async def test_een_besluit_met_vorm_deelvraag_geeft_alleen_die_deelvraag_volledig(client):

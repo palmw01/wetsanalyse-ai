@@ -9,10 +9,10 @@ from sqlalchemy import select
 
 from app import annotatie_v2_store as store, db
 from app.annotatie_v2_contracts import Beslissing
-from test_annotatie_v2 import snapshot
+from gedeelde_bron import snapshot
 from test_begrip_onderhoud import _geaccordeerd, _herbeoordelingen
 from test_begrippen import DEFINITIE, _annoteer, _begrip, _keur_alles_goed, _url, _werkgebied
-from test_werkgebieden import client, database, graaf, snapshot2  # noqa: F401
+from gedeelde_bron import client, database, graaf, snapshot2  # noqa: F401
 
 
 async def _met_passages(client):

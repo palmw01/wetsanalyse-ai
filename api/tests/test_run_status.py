@@ -9,9 +9,9 @@ from fastapi import HTTPException
 from sqlalchemy import select
 
 from app import bronnen_run_store, db, runs
-from test_annotatie_v2 import ART
+from gedeelde_bron import ART
 from test_bronnen_runs import _k, _start, _uitkomst
-from test_werkgebieden import ART2, _bron, _nieuw, client, database, graaf  # noqa: F401
+from gedeelde_bron import ART2, _bron, _nieuw, client, database, graaf  # noqa: F401
 
 
 async def _klare_run(client) -> tuple[dict, dict]:
