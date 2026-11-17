@@ -1,5 +1,5 @@
 # Self-contained image voor de BWB-importer: de jobs op Azure starten `python -m app.main`.
-FROM python:3.14-slim
+FROM python:3.15-slim
 
 WORKDIR /app
 
