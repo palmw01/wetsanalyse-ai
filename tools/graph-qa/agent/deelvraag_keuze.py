@@ -20,8 +20,11 @@ from .llm_stap import Rol, vraag_tool
 
 logger = logging.getLogger(__name__)
 
-MAX_KANDIDATEN = 40
-MAX_TEKST = 500
+#: Hoeveel kandidaten het model ziet, en hoe lang hun tekst. Meting `bronselectie-2026-11-17-kandidaten` (zonder model): van
+#: 172 nodige bepalingen stonden er bij 40 kandidaten 73 op de lijst, bij 80 93, bij 120 99 en bij 160 104. 80 met een
+#: kortere tekst houdt een aanroep ongeveer even groot (80 × 300 tegen 40 × 500 tekens).
+MAX_KANDIDATEN = 80
+MAX_TEKST = 300
 MAX_GEKOZEN = 8
 MAX_TOKENS = 1024
 ROLLEN = ("kern", "afhankelijkheid", "aanverwant")
