@@ -1,4 +1,5 @@
-"""Proef: een model kiest de bepalingen bij een deelvraag uit wat de code vond (`Zoekprofiel.model_kiest`, standaard uit).
+"""Een model kiest de bepalingen bij een deelvraag uit wat de code vond (`Zoekprofiel.model_kiest`, standaard aan sinds
+de meting `bronselectie-2026-11-17-model`).
 
 Waarom. De pilot LB3 van Lex Bench (17 nov 2026, `docs/architectuur/metingen/lex-bench-2026-11-17-pilot/`) liet zien dat
 de index ongeveer de helft van de bepalingen vindt die het team nodig vindt, maar dat de rangschikking in code er
