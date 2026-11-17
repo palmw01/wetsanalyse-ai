@@ -426,6 +426,14 @@ export function groepeerVragen<T extends GroepItem>(items: T[], bezig: boolean):
   return { groepen, verborgen };
 }
 
+/** Welke Vragen-kaart *Een vraag stellen ›* krijgt: alleen de kaart van de open vraag (`openVraag`), en alleen als
+ *  die vraag onderaan weggeklikt is en er geen beurt loopt. Een oudere kaart met een vraag die nooit beantwoord werd,
+ *  krijgt de knop niet: de dock opent alleen de laatste open vraag, dus een klik daar deed zichtbaar niets (melding
+ *  gebruiker 17 nov 2026). Geeft de `sleutel` van die kaart, of niets. */
+export function teHeropenen(open: VragenGroep | undefined, dockZichtbaar: boolean, bezig: boolean): string | undefined {
+  return open?.open && !dockZichtbaar && !bezig ? open.sleutel : undefined;
+}
+
 /** De vraag die nu te beantwoorden is: de open vraag van de laatste reeks met vragen – ook als er
  *  daarna een tussenvraag kwam. Is die vraag beantwoord (of afgebroken), dan geen. */
 export function openVraag(groepen: Map<string, VragenGroep>): VragenGroep | undefined {

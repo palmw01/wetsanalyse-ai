@@ -6,9 +6,9 @@ import type { VragenGroep } from "@/lib/vraagkaart";
 
 /** De vragen van Lex bij het samenstellen van een werkgebied, zoals ze in de thread staan: één kaart met
  *  per vraag de vraag (grijs) en je antwoord (zwart) – geen losse antwoordbubbels, zoals bij Claude.
- *  Daaronder "Een vraag stellen ›" zolang er een vraag openstaat (die opent de vraag onderaan weer), of
- *  "Nadenken…" terwijl Lex de volgende voorbereidt. */
-export function VragenKaart({ groep, onOpen }: { groep: VragenGroep; onOpen: () => void }) {
+ *  Daaronder "Een vraag stellen ›" als de open vraag onderaan weggeklikt is (`kanOpenen`, `teHeropenen`): de knop
+ *  staat alleen waar hij iets opent. Of "Nadenken…" terwijl Lex de volgende voorbereidt. */
+export function VragenKaart({ groep, kanOpenen, onOpen }: { groep: VragenGroep; kanOpenen: boolean; onOpen: () => void }) {
   return (
     <div data-vragenkaart={groep.intake_id}>
       {groep.paren.length > 0 && (
@@ -31,7 +31,7 @@ export function VragenKaart({ groep, onOpen }: { groep: VragenGroep; onOpen: () 
           <Denkt label="Nadenken" />
           Nadenken…
         </p>
-      ) : groep.open ? (
+      ) : groep.open && kanOpenen ? (
         <button type="button" onClick={onOpen} data-vraag-open
           className="focus-ring mt-3 inline-flex items-center gap-2 rounded-knop py-1 pr-2 text-sm text-muted hover:text-ink">
           <span className="relative inline-flex h-3.5 w-3.5 items-center justify-center" aria-hidden>

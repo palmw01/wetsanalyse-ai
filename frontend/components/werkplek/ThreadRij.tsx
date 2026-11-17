@@ -89,6 +89,8 @@ interface Props {
   loopt: boolean;
   /** Het eerste item van een reeks vragen (activiteit 1): de Vragen-kaart die het draagt. */
   vragen?: VragenGroep;
+  /** Krijgt deze Vragen-kaart *Een vraag stellen ›*? Alleen de kaart van de weggeklikte open vraag (`teHeropenen`). */
+  vraagTeOpenen?: boolean;
   /** Een voorstel van Lex met een bevestiging: al beantwoord (gestart of geannuleerd)? Dan geen knoppen. */
   keuze?: BevestigingKeuze;
   /** Het gesprek van deze thread: de stand van zijn delegaties staat bij de api per gesprek. */
@@ -97,7 +99,7 @@ interface Props {
 }
 
 export const ThreadRij = memo(function ThreadRij({
-  item, streamt, bezig, geblokkeerd, demo, loopt, vragen, keuze, gesprekId, acties,
+  item, streamt, bezig, geblokkeerd, demo, loopt, vragen, vraagTeOpenen, keuze, gesprekId, acties,
 }: Props) {
   // De kaarten onder een antwoord (ontdubbelen PR 2): per bepaling één, en de samenhang van het bericht voor elke ingang
   // erin (kaart, vindplaats, citatie). De bronnenlijst laat weg wat een kaart heeft.
@@ -116,7 +118,7 @@ export const ThreadRij = memo(function ThreadRij({
             <div className="mb-2"><DelegatieBlok weergave={item.delegatie} gesprekId={gesprekId} loopt={streamt}
               onOpenGesprek={acties.openGesprek} /></div>
           )}
-          <VragenKaart groep={vragen} onOpen={acties.openVraag} />
+          <VragenKaart groep={vragen} kanOpenen={!!vraagTeOpenen} onOpen={acties.openVraag} />
       </LexRij>
     );
   }
