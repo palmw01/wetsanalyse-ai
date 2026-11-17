@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   ONBEKEND, antwoordActie, antwoordTekst, beginstand, groepeerVragen, isLaatsteVraag, openVraag, parseAntwoordOp,
   parseVraagkaart, regelNamen, stilActie, typActie, vorige, type Vraagkaart,
+  teHeropenen,
 } from "./vraagkaart";
 
 describe("regels: één regel is één ding (4 nov 2026)", () => {
@@ -315,5 +316,25 @@ describe("de kaart van een subagent (ADR-016 §A4, §A5)", () => {
       expect(isLaatsteVraag(k!)).toBe(true);
       expect(antwoordTekst(k!, { intake_id: k!.intake_id, stap, actie: "afbreken" } as never)).toBe("Laat maar.");
     }
+  });
+});
+
+describe("teHeropenen: Een vraag stellen staat alleen waar hij iets opent (17 nov 2026)", () => {
+  const groep = (sleutel: string, open: boolean) =>
+    ({ sleutel, intake_id: "i", tekst: "", paren: [], denkt: false,
+       ...(open ? { open: { stap: "naam" } as never, openId: sleutel } : {}) });
+
+  it("alleen de kaart van de open vraag, als die weggeklikt is en er geen beurt loopt", () => {
+    expect(teHeropenen(groep("b", true), false, false)).toBe("b");
+  });
+  it("niet als de dock al zichtbaar is: dan opent de knop niets", () => {
+    expect(teHeropenen(groep("b", true), true, false)).toBeUndefined();
+  });
+  it("niet tijdens een beurt", () => {
+    expect(teHeropenen(groep("b", true), false, true)).toBeUndefined();
+  });
+  it("niet zonder open vraag", () => {
+    expect(teHeropenen(groep("b", false), false, false)).toBeUndefined();
+    expect(teHeropenen(undefined, false, false)).toBeUndefined();
   });
 });
