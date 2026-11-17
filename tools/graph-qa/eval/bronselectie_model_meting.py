@@ -85,12 +85,18 @@ def _maat(r: dict[str, Any], sleutel: str) -> str:
 #: `wetstermen` (proef tegen de woordenkloof): één kleine modelstap per deelvraag vertaalt naar de taal van de wet; kost
 #: ook in `--kandidaten` een model (~1k tokens per deelvraag).
 VARIANTEN = {"definitie_brug": {"definitie_brug": True}, "verwijzingen": {"verwijzingen": True},
-             "wetstermen": {"wetstermen": True}}
+             "wetstermen": {"wetstermen": True}, "zonder_wetstermen": {"wetstermen": False},
+             "rrf": {"menging": "rrf"}}
 
 
 def met_model(variant: str) -> bool:
-    """Of een variant ook zonder keuze door het model een model nodig heeft (`--kandidaten`)."""
-    return bool(VARIANTEN.get(variant, {}).get("wetstermen"))
+    """Of een kandidatenlijst (`--kandidaten`) een model nodig heeft: als het zoekprofiel met deze variant de wetstermen
+    vraagt. Sinds #1707 staan ze standaard aan, dus ook de lijst zonder variant."""
+    from dataclasses import replace
+
+    from agent import deelvraag_zoeken
+
+    return replace(deelvraag_zoeken.STANDAARD_PROFIEL, **VARIANTEN.get(variant, {})).wetstermen
 #: Waar een nodige bepaling afviel, van vroeg naar laat.
 FASEN = ("niet gevonden", "gevonden, niet bij de 40", "bij de 40, niet gekozen", "gekozen")
 
@@ -131,6 +137,71 @@ def afval(graaf: Any, s: dict[str, Any], spoor: list[dict[str, Any]]) -> dict[st
     return {"telling": tel, "voorbeelden": voorbeelden}
 
 
+#: De diepte waarop de rangdiagnose elke lijst opvraagt, en de vakken waarin ze een plaats telt.
+DIEPTE = 400
+VAKKEN = ((81, 120), (121, 200), (201, DIEPTE))
+
+
+def _vak(plaats: int | None) -> str:
+    if plaats is None:
+        return "niet in de lijst"
+    for van, tot in VAKKEN:
+        if van <= plaats <= tot:
+            return f"{van}–{tot}"
+    return "≤80"
+
+
+def rangen(graaf: Any, s: dict[str, Any], llm: Any, model: str, meting: dict[str, Any] | None,
+           cache: dict[tuple, Any]) -> dict[str, Any]:
+    """Waar een nodige bepaling (kern of afhankelijkheid) staat die niet bij de 80 kandidaten kwam: haar plaats in de
+    woordenroute en in de pool rond de gebeurtenis, elk tot `DIEPTE` opgevraagd, met de standaard van het zoekprofiel
+    (dus met wetstermen als er een model is). Zo ziet de meting of een andere menging of een langere lijst haar binnen
+    kan halen, of dat ze in geen van beide lijsten staat. Een telling per vak, bv. `woorden 81–120 · pool niet in de
+    lijst`. 0 tokens buiten de wetstermen, die de gedeelde cache al heeft."""
+    from dataclasses import replace
+
+    from agent import deelvraag_keuze, deelvraag_zoeken, zoekvragen, zoektermen
+    from eval.bronselectie_eval import _dossier, _raakt, wetstermen_voor
+
+    profiel = replace(deelvraag_zoeken.STANDAARD_PROFIEL, model_kiest=True, verwijzingen=False)
+    dossier = _dossier(s)
+    buiten = zoektermen.uitsluitstammen(zoektermen.buiten_uit_afbakening("Buiten de afbakening: " + s.get("buiten", "")))
+    pool = None
+    if s.get("gebeurtenis"):
+        sleutel = (id(graaf), s["naam"])
+        if sleutel not in cache:
+            cache[sleutel] = zoekvragen.pool(graaf, gebeurtenis=s["gebeurtenis"], regelingen=s["regelingen"], buiten=buiten)
+        pool = cache[sleutel]["kandidaten"]
+    tel: dict[str, int] = {}
+    voorbeelden: list[str] = []
+    for i, vraag in enumerate(s["deelvragen"]):
+        wet = wetstermen_voor(graaf, s, vraag, profiel, llm, model, meting, cache)
+        woorden = [o["bron_iri"] for o in deelvraag_zoeken.bepaling_opties(
+            graaf, regelingen=s["regelingen"], deelvraag=vraag, dossier=dossier, buiten=buiten, limit=DIEPTE,
+            profiel=profiel, met_tekst=False, wetstermen=wet) if not o.get("buiten")]
+        uit_pool = [o["bron_iri"] for o in zoekvragen.opties_bij_deelvraag(
+            pool, vraag, gebeurtenis=s["gebeurtenis"], limit=DIEPTE, dossier=dossier, profiel=profiel,
+            wetstermen=wet)] if pool is not None else []
+        kand = [k["bron_iri"] for k in deelvraag_keuze.kandidaten(
+            [{"bron_iri": x} for x in uit_pool], [{"bron_iri": x} for x in woorden])]
+        for v in s["verwacht"]:
+            if v["deelvraag"] != i or v["rol"] not in ("kern", "afhankelijkheid"):
+                continue
+            iri = v["bron_iri"]
+            if any(_raakt(c, iri) for c in kand):
+                continue
+
+            def plaats(lijst: list[str]) -> int | None:
+                return next((n for n, c in enumerate(lijst, 1) if _raakt(c, iri)), None)
+
+            pw, pp = plaats(woorden), plaats(uit_pool)
+            vak = f"woorden {_vak(pw)} · pool {_vak(pp)}"
+            tel[vak] = tel.get(vak, 0) + 1
+            if len(voorbeelden) < 4:
+                voorbeelden.append(f"DV{i + 1} {iri.split(':', 1)[-1]} (woorden {pw}, pool {pp})")
+    return {"telling": dict(sorted(tel.items())), "voorbeelden": voorbeelden}
+
+
 def meet_kandidaten(a: argparse.Namespace) -> int:
     """De recall van de kandidatenlijst per grens (en eventueel een variant, `80+definitie_brug`), zonder keuze door het
     model: 0 tokens. Het model kiest bijna alles wat nodig is en bij de kandidaten staat, dus dit is zijn plafond. Een
@@ -149,15 +220,18 @@ def meet_kandidaten(a: argparse.Namespace) -> int:
         llm = AnthropicLLM(settings)
     modelmeting: dict[str, Any] = {}
     routes: dict[str, Any] = {}
+    # Eén cache voor alle routes: de wetstermen per deelvraag vraagt de meting zo één keer, niet per route.
+    gedeeld: dict[tuple, Any] = {}
     for c in keuzes:
         grens, _, variant = c.partition("+")
         routes[c] = kandidaten_route(int(grens), VARIANTEN.get(variant) if variant else None,
                                      llm=llm if met_model(variant) else None,
-                                     model=settings.llm_model, meting=modelmeting)
+                                     model=settings.llm_model, meting=modelmeting, cache=gedeeld)
     print(f"Kandidatenlijst (zonder model): {', '.join(routes)}; commit {os.environ.get('LEX_REVISIE', '') or 'lokaal'}",
           flush=True)
     som = {c: [0, 0] for c in routes}
     rapport: dict[str, Any] = {}
+    rangtotaal: dict[str, int] = {}
     try:
         for naam, s in sets(lezer(a.lokaal)):
             r = meet_intake(graaf, s, routes)
@@ -166,9 +240,17 @@ def meet_kandidaten(a: argparse.Namespace) -> int:
                 som[c][1] += sum(d["nodig"] for d in v["per_deelvraag"])
             rapport[naam] = {c: v["recall_nodig"] for c, v in r.items()}
             print(f"{naam:40} " + " | ".join(f"{c} {_maat(v, 'recall_nodig')}" for c, v in r.items()), flush=True)
+            if a.rangen:
+                d = rangen(graaf, s, llm, settings.llm_model, modelmeting, gedeeld)
+                for k, n in d["telling"].items():
+                    rangtotaal[k] = rangtotaal.get(k, 0) + n
+                print(f"{'':40} rangen: {json.dumps(d['telling'], ensure_ascii=False)} | bv. {'; '.join(d['voorbeelden'])}",
+                      flush=True)
     finally:
         graaf.close()
     print("TOTAAL nodig bij de kandidaten: " + " | ".join(f"{c} {g}/{n}" for c, (g, n) in som.items()), flush=True)
+    if a.rangen:
+        print("RANGEN TOTAAL (nodig, niet bij de 80): " + json.dumps(rangtotaal, ensure_ascii=False), flush=True)
     if llm is not None:
         print(f"MODEL (wetstermen): {modelmeting.get('llm_calls', 0)} aanroepen, verbruik "
               f"{json.dumps(llm.meter.als_dict())}", flush=True)
@@ -187,6 +269,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--varianten", default="", help="komma-gescheiden varianten uit VARIANTEN, elk één ronde")
     p.add_argument("--kandidaten", default="",
                    help="zonder model: de recall van de kandidatenlijst per grens, bv. 40,80,120 of 80+definitie_brug")
+    p.add_argument("--rangen", action="store_true",
+                   help="bij --kandidaten: de plaats van elke nodige bepaling die niet bij de 80 kwam, per lijst")
     a = p.parse_args(argv)
     if a.kandidaten:
         return meet_kandidaten(a)

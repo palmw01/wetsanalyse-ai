@@ -178,6 +178,12 @@ class Zoekprofiel:
     #:   `bronselectie-2026-11-17-wetstermen-werkgebied` (kandidaten 93 → 122 van 172, gekozen 78 → 109, verkeerde
     #:   deelvraag 14 → 12; ~1,3k tokens per deelvraag). Werkt alleen met een model in de run, zoals `model_kiest`.
     wetstermen: bool = True
+    #: - `menging` (proef, 17 nov 2026): hoe `deelvraag_keuze.kandidaten` de woordenroute en de pool rond de gebeurtenis
+    #:   samenvoegt. `afwisselend` neemt om de beurt de volgende uit elke lijst; `rrf` rangschikt op de som van
+    #:   1/(`deelvraag_keuze.RRF_K` + plaats) over beide lijsten, zodat een bepaling die beide lijsten vinden voorgaat.
+    #:   Meting `bronselectie-2026-11-17-werkgebied-met-wetstermen`: 41 van de 172 nodige bepalingen werden gevonden maar
+    #:   haalden de 80 kandidaten niet. Standaard `afwisselend`: eerst meten.
+    menging: str = "afwisselend"
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.

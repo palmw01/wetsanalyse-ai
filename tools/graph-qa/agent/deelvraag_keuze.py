@@ -41,13 +41,48 @@ SYSTEEM = (
     "lijst.")
 
 
+#: De constante van de reciprocal rank fusion (`menging="rrf"`): de gangbare 60, zodat de eerste plaatsen van een lijst
+#: niet alles bepalen.
+RRF_K = 60
+MENGINGEN = ("afwisselend", "rrf")
+
+
+def _kandidaat(o: dict[str, Any]) -> dict[str, Any]:
+    return {"bron_iri": o["bron_iri"], "label": o.get("label") or "",
+            "tekst": " ".join(str(o.get("tekst") or o.get("zin") or "").split()), "bron": o["bron"]}
+
+
+def _rrf(rijen: list[list[dict[str, Any]]], maximaal: int) -> list[dict[str, Any]]:
+    score: dict[str, float] = {}
+    beste: dict[str, tuple[int, int, dict[str, Any]]] = {}
+    for j, r in enumerate(rijen):
+        gezien: set[str] = set()
+        for plaats, o in enumerate(r, 1):
+            iri = o["bron_iri"]
+            if iri in gezien:
+                continue
+            gezien.add(iri)
+            score[iri] = score.get(iri, 0.0) + 1.0 / (RRF_K + plaats)
+            if iri not in beste or (plaats, j) < beste[iri][:2]:
+                beste[iri] = (plaats, j, o)
+    volgorde = sorted(score, key=lambda i: (-score[i], beste[i][0], beste[i][1]))
+    return [_kandidaat(beste[i][2]) for i in volgorde[:maximaal]]
+
+
 def kandidaten(uit_pool: list[dict[str, Any]], woorden: list[dict[str, Any]],
-               maximaal: int = MAX_KANDIDATEN) -> list[dict[str, Any]]:
+               maximaal: int = MAX_KANDIDATEN, menging: str = "afwisselend") -> list[dict[str, Any]]:
     """De kandidaten voor het model: om de beurt uit de pool en uit de woordenroute, elk in hun eigen volgorde,
     ontdubbeld op `bron_iri`. Een optie die de woordenroute als *buiten* markeerde, doet niet mee. Elke kandidaat
-    draagt `bron_iri`, `label`, `tekst` en `bron` (`pool` of `woorden`)."""
+    draagt `bron_iri`, `label`, `tekst` en `bron` (`pool` of `woorden`).
+
+    Met `menging="rrf"` (`Zoekprofiel.menging`) is de volgorde de som van 1/(`RRF_K` + plaats) over beide lijsten; een
+    kandidaat draagt dan de rij en de `bron` van de lijst waar hij het hoogst stond."""
+    if menging not in MENGINGEN:
+        raise ValueError(f"onbekende menging: {menging}")
     rijen = [[{**o, "bron": "pool"} for o in uit_pool],
              [{**o, "bron": "woorden"} for o in woorden if not o.get("buiten")]]
+    if menging == "rrf":
+        return _rrf(rijen, maximaal)
     uit: list[dict[str, Any]] = []
     gezien: set[str] = set()
     i = 0
@@ -55,9 +90,7 @@ def kandidaten(uit_pool: list[dict[str, Any]], woorden: list[dict[str, Any]],
         for r in rijen:
             if i < len(r) and r[i]["bron_iri"] not in gezien and len(uit) < maximaal:
                 gezien.add(r[i]["bron_iri"])
-                uit.append({"bron_iri": r[i]["bron_iri"], "label": r[i].get("label") or "",
-                            "tekst": " ".join(str(r[i].get("tekst") or r[i].get("zin") or "").split()),
-                            "bron": r[i]["bron"]})
+                uit.append(_kandidaat(r[i]))
         i += 1
     return uit
 

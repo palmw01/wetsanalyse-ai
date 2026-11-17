@@ -203,3 +203,35 @@ def test_zonder_de_vlag_kiest_het_model_per_deelvraag(monkeypatch):
     v = _run_deelvraag(monkeypatch, llm, None)
     assert len(llm.calls) == 2 and all(c["tools"][0]["name"] == "kies_bepalingen" for c in llm.calls)
     assert {b["detail"]["route"] for k in v.per_iri.values() for b in k["bewijs"]} == {"model"}
+
+
+def _o(iri: str) -> dict:
+    return {"bron_iri": iri, "label": iri, "tekst": "t"}
+
+
+def test_de_menging_staat_standaard_op_afwisselend():
+    assert STANDAARD_PROFIEL.menging == "afwisselend"
+
+
+def test_rrf_zet_wat_beide_lijsten_vinden_voorop():
+    pool = [_o("a"), _o("b"), _o("c")]
+    woorden = [_o("x"), _o("y"), _o("c")]
+    afw = [k["bron_iri"] for k in dk.kandidaten(pool, woorden)]
+    rrf = [k["bron_iri"] for k in dk.kandidaten(pool, woorden, menging="rrf")]
+    assert afw == ["a", "x", "b", "y", "c"]
+    assert rrf[0] == "c" and set(rrf) == set(afw)
+
+
+def test_rrf_begrenst_ontdubbelt_en_houdt_de_beste_bron():
+    pool = [_o("a"), _o("a"), _o("b")]
+    woorden = [_o("b"), _o("z", ) | {"buiten": True}]
+    uit = dk.kandidaten(pool, woorden, maximaal=2, menging="rrf")
+    assert [k["bron_iri"] for k in uit] == ["b", "a"]
+    assert uit[0]["bron"] == "woorden" and "z" not in {k["bron_iri"] for k in uit}
+
+
+def test_een_onbekende_menging_is_een_fout():
+    import pytest
+
+    with pytest.raises(ValueError):
+        dk.kandidaten([], [], menging="raden")
