@@ -1,0 +1,42 @@
+[
+ {
+  "methode": "create",
+  "verzoek": {
+   "max_tokens": 512,
+   "messages": [
+    {
+     "content": "Werkgebied: Achteraf belasting\n\nRegelingen in het zoekbereik:\n- Algemene wet inzake rijksbelastingen\n\nDeelvraag: Mag de Belastingdienst later geld bijvragen?\n\nGeef met de tool de zoektermen in de taal van deze regelingen.",
+     "role": "user"
+    }
+   ],
+   "model": "m",
+   "system": "Je helpt een jurist bij de bronselectie van een wetsanalyse. Een zoekmachine zoekt op woorden in de tekst van de regelingen. Een deelvraag gebruikt vaak andere woorden dan de wet: de analist schrijft 'de huur opzeggen', de wet spreekt van 'opzegging' en 'huurovereenkomst'. Geef de woorden waarmee de genoemde regelingen zelf het onderwerp van de deelvraag benoemen: de juridische termen, begrippen en handelingen zoals ze in wettekst staan. Ook de termen voor wat er in de wet direct mee samenhangt (de beslissing, de termijn, de sanctie, het rechtsmiddel) als de deelvraag erom vraagt. Geen artikelnummers, geen namen van regelingen, geen uitleg en geen woorden die al in de deelvraag staan. Eén term per item, één of twee woorden. Hoogstens acht; minder mag.",
+   "tool_choice": {
+    "name": "geef_wetstermen",
+    "type": "tool"
+   },
+   "tools": [
+    {
+     "description": "Zoektermen in de taal van de wet, één of twee woorden per item.",
+     "input_schema": {
+      "additionalProperties": false,
+      "properties": {
+       "termen": {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       }
+      },
+      "required": [
+       "termen"
+      ],
+      "type": "object"
+     },
+     "name": "geef_wetstermen",
+     "strict": true
+    }
+   ]
+  }
+ }
+]

@@ -369,7 +369,7 @@ const ROL_LABEL: Record<string, string> = {
   jas_classifier: "Markeringen classificeren", jas_reviewer: "Twijfelgevallen beoordelen", begrip_vergelijk: "Begrippen vergelijken",
   begrip_kaart: "Begripskaart", kaartactie: "Begrip uitwerken", deelvragen_voorstel: "Deelvragen voorstellen",
   deelvraag_verbeter: "Deelvraag verbeteren", intake: "Werkgebied samenstellen", stukcontrole: "Controle per stuk",
-  deelvraag_keuze: "Bronnen per deelvraag kiezen", onbekend: "Overig",
+  deelvraag_keuze: "Bronnen per deelvraag kiezen", wetstermen: "Deelvraag in wetstermen", onbekend: "Overig",
 };
 
 export function rolLabel(rol: string): string {

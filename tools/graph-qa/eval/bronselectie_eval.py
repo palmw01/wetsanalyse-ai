@@ -403,56 +403,79 @@ def model_kiest_route(llm: Any, model: str, meting: dict[str, Any] | None = None
 
     def route(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
         dossier = _dossier(s)
-        kand = kandidaten_voor(graph, s, vraag, profiel, cache)
+        wet = wetstermen_voor(graph, s, vraag, profiel, llm, model, meting, cache)
+        kand = kandidaten_voor(graph, s, vraag, profiel, cache, wetstermen=wet)
         gekozen = deelvraag_keuze.kies(llm, model, vraag, {**dossier, "buiten": s.get("buiten", "")}, kand, meting)
         if spoor is not None:
             spoor.append({"set": s["naam"], "vraag": vraag, "kandidaten": [k["bron_iri"] for k in kand],
-                          "gekozen": [k["bron_iri"] for k in gekozen or []], "terugval": gekozen is None})
+                          "gekozen": [k["bron_iri"] for k in gekozen or []], "terugval": gekozen is None,
+                          "wetstermen": wet})
         if gekozen is None:
             return terug(graph, s, vraag)
         return [{"bron_iri": k["bron_iri"], "label": k["label"], "buiten": False, "rol": k["rol"]} for k in gekozen]
     return route
 
 
+def wetstermen_voor(graph: Any, s: dict[str, Any], vraag: str, profiel: "deelvraag_zoeken.Zoekprofiel", llm: Any,
+                    model: str, meting: dict[str, Any] | None, cache: dict[tuple, Any]) -> list[str]:
+    """De zoektermen in de taal van de wet bij een deelvraag (`Zoekprofiel.wetstermen`), zoals de bronnenrun ze vraagt
+    (`bronnen_vinden._wetstermen`), één keer per set en deelvraag. Leeg zonder de vlag of zonder model."""
+    if not profiel.wetstermen or llm is None:
+        return []
+    from agent.wetstermen import wetstermen
+
+    sleutel = ("wetstermen", id(graph), s["naam"], vraag)
+    if sleutel not in cache:
+        cache[sleutel] = wetstermen(graph, llm, model, vraag, {**_dossier(s), "buiten": s.get("buiten", "")},
+                                    s["regelingen"], meting)
+    return cache[sleutel]
+
+
 def kandidaten_voor(graph: Any, s: dict[str, Any], vraag: str, profiel: "deelvraag_zoeken.Zoekprofiel",
-                    cache: dict[tuple, dict[str, Any]], limit: int | None = None) -> list[dict[str, Any]]:
+                    cache: dict[tuple, dict[str, Any]], limit: int | None = None,
+                    wetstermen: list[str] | None = None) -> list[dict[str, Any]]:
     """De kandidaten die het model bij een deelvraag krijgt (`deelvraag_keuze.kandidaten`), zoals de bronnenrun ze
     samenstelt (`bronnen_vinden._model_kiest`): de woordenroute en de pool rond de gebeurtenis, elk tot `limit`
-    (standaard `deelvraag_keuze.MAX_KANDIDATEN`), om de beurt."""
+    (standaard `deelvraag_keuze.MAX_KANDIDATEN`), om de beurt. `wetstermen` zoeken mee (`wetstermen_voor`)."""
     from agent import deelvraag_keuze, zoekvragen
 
     limit = limit or deelvraag_keuze.MAX_KANDIDATEN
     dossier = _dossier(s)
     buiten = zoektermen.uitsluitstammen(zoektermen.buiten_uit_afbakening("Buiten de afbakening: " + s.get("buiten", "")))
     woorden = deelvraag_zoeken.bepaling_opties(graph, regelingen=s["regelingen"], deelvraag=vraag, dossier=dossier,
-                                               buiten=buiten, limit=limit, profiel=profiel, met_tekst=True)
+                                               buiten=buiten, limit=limit, profiel=profiel, met_tekst=True,
+                                               wetstermen=wetstermen)
     uit_pool: list[dict[str, Any]] = []
     if s.get("gebeurtenis"):
         sleutel = (id(graph), s["naam"])
         if sleutel not in cache:
             cache[sleutel] = zoekvragen.pool(graph, gebeurtenis=s["gebeurtenis"], regelingen=s["regelingen"], buiten=buiten)
         uit_pool = zoekvragen.opties_bij_deelvraag(cache[sleutel]["kandidaten"], vraag, gebeurtenis=s["gebeurtenis"],
-                                                   limit=limit, dossier=dossier, profiel=profiel)
+                                                   limit=limit, dossier=dossier, profiel=profiel,
+                                                   wetstermen=wetstermen)
     return deelvraag_keuze.kandidaten(uit_pool, woorden, maximaal=limit)
 
 
-def kandidaten_route(limit: int, vlaggen: dict[str, bool] | None = None):
-    """De kandidatenlijst als route, zonder model: de recall ervan is wat het model hoogstens kan kiezen (de meting van 17
-    nov 2026: van wat bij de kandidaten stond, koos het model 65 van 73 nodige). 0 tokens."""
+def kandidaten_route(limit: int, vlaggen: dict[str, bool] | None = None, *, llm: Any = None, model: str = "",
+                     meting: dict[str, Any] | None = None):
+    """De kandidatenlijst als route, zonder keuze door een model: de recall ervan is wat het model hoogstens kan kiezen
+    (de meting van 17 nov 2026: van wat bij de kandidaten stond, koos het model 65 van 73 nodige). 0 tokens, behalve met
+    de vlag `wetstermen` en een `llm`: dan vertaalt één kleine modelstap per deelvraag (`wetstermen_voor`)."""
     profiel = replace(deelvraag_zoeken.STANDAARD_PROFIEL, model_kiest=True, **{"verwijzingen": False, **(vlaggen or {})})
     cache: dict[tuple, dict[str, Any]] = {}
 
     def route(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
+        wet = wetstermen_voor(graph, s, vraag, profiel, llm, model, meting, cache)
         return [{"bron_iri": k["bron_iri"], "label": k["label"], "buiten": False}
-                for k in kandidaten_voor(graph, s, vraag, profiel, cache, limit)]
+                for k in kandidaten_voor(graph, s, vraag, profiel, cache, limit, wetstermen=wet)]
     return route
 
 
-def _pool(graph: Any, s: dict[str, Any], vraag: str, profiel=None) -> list[str]:
+def _pool(graph: Any, s: dict[str, Any], vraag: str, profiel=None, wetstermen: list[str] | None = None) -> list[str]:
     """Wat de index bij de deelvraag vindt, vóór de rangschikking (`deelvraag_zoeken.kandidatenpool`): zo
     scheidt de meting wat het zoeken mist van wat de rangschikking laat vallen."""
     pool = deelvraag_zoeken.kandidatenpool(graph, regelingen=s["regelingen"], deelvraag=vraag, dossier=_dossier(s),
-                                         profiel=profiel or VOOR_STAP8)
+                                         profiel=profiel or VOOR_STAP8, wetstermen=wetstermen)
     return list(pool["gevonden"]) if pool else []
 
 

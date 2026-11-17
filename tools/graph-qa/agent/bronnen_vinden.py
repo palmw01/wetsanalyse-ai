@@ -292,20 +292,23 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     n_totaal, volledig = 0, p is None or p["volledig"]
     for d in invoer.get("deelvragen") or []:
         basis = {"deelvraag_id": d.get("id", ""), "vraag": d.get("vraag", "")}
-        gekozen = _model_kiest(graph, d.get("vraag", ""), regelingen, dossier, buiten, p, gebeurtenis)
+        wet = _wetstermen(graph, d.get("vraag", ""), regelingen, dossier)
+        if wet:
+            basis["wetstermen"] = wet
+        gekozen = _model_kiest(graph, d.get("vraag", ""), regelingen, dossier, buiten, p, gebeurtenis, wet)
         if gekozen is not None:
             for k in gekozen:
                 n_totaal += v.voeg(k["bron_iri"], rol=k["rol"], methode="deelvraag", label=k["label"],
                                    detail={**basis, "route": "model", "bron": k["bron"]})
             continue
         woorden = bepaling_opties(graph, regelingen=regelingen, deelvraag=d.get("vraag", ""), dossier=dossier,
-                                  buiten=buiten, profiel=profiel)
+                                  buiten=buiten, profiel=profiel, wetstermen=wet)
         uit_pool: list[dict[str, Any]] = []
         if p is not None:
             plaatsen = MAX_PER_DEELVRAAG - min(PLAATSEN_WOORDEN, len([b for b in woorden if not b["buiten"]]))
             uit_pool = opties_bij_deelvraag(p["kandidaten"], d.get("vraag", ""), gebeurtenis=gebeurtenis,
                                             limit=MAX_PER_DEELVRAAG if profiel.woorden_voor_pool else plaatsen,
-                                            dossier=dossier, profiel=profiel)
+                                            dossier=dossier, profiel=profiel, wetstermen=wet)
         for k in samen_met_woorden(uit_pool, woorden, limit=MAX_PER_DEELVRAAG,
                                    woorden_voor_pool=profiel.woorden_voor_pool):
             if k["bron"] == "pool":
@@ -320,8 +323,21 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     return n_totaal, volledig
 
 
+def _wetstermen(graph: GraphPort, vraag: str, regelingen: list[str], dossier: dict[str, Any]) -> list[str]:
+    """De zoektermen in de taal van de wet bij één deelvraag (`Zoekprofiel.wetstermen`, `wetstermen.wetstermen`). Leeg
+    als de vlag uit staat of de run geen model heeft: dan zoekt de code alleen op de woorden van de deelvraag."""
+    model = _MODEL.get()
+    if not _profiel().wetstermen or model is None:
+        return []
+    from .wetstermen import wetstermen
+
+    llm, modelnaam, meting = model
+    return wetstermen(graph, llm, modelnaam, vraag, dossier, regelingen, meting)
+
+
 def _model_kiest(graph: GraphPort, vraag: str, regelingen: list[str], dossier: dict[str, Any], buiten: list[str],
-                 p: dict[str, Any] | None, gebeurtenis: str) -> list[dict[str, Any]] | None:
+                 p: dict[str, Any] | None, gebeurtenis: str,
+                 wetstermen: list[str] | None = None) -> list[dict[str, Any]] | None:
     """Een model kiest de bepalingen bij één deelvraag (`Zoekprofiel.model_kiest`, meting
     `bronselectie-2026-11-17-model`): de code verzamelt de kandidaten uit de pool en de woordenroute, ruimer dan het
     kaartje, het model wijst er hoogstens `MAX_PER_DEELVRAAG` aan met hun rol. None als de vlag uit staat, de run geen
@@ -339,10 +355,11 @@ def _model_kiest(graph: GraphPort, vraag: str, regelingen: list[str], dossier: d
     # De verwijzingen hoeven hier niet mee: het model kiest uit wat de deelvraag zelf vindt.
     ruim = replace(profiel, verwijzingen=False)
     woorden = bepaling_opties(graph, regelingen=regelingen, deelvraag=vraag, dossier=dossier, buiten=buiten,
-                              limit=deelvraag_keuze.MAX_KANDIDATEN, profiel=ruim, met_tekst=True)
+                              limit=deelvraag_keuze.MAX_KANDIDATEN, profiel=ruim, met_tekst=True,
+                              wetstermen=wetstermen)
     uit_pool = opties_bij_deelvraag(p["kandidaten"], vraag, gebeurtenis=gebeurtenis,
                                     limit=deelvraag_keuze.MAX_KANDIDATEN, dossier=dossier,
-                                    profiel=ruim) if p is not None else []
+                                    profiel=ruim, wetstermen=wetstermen) if p is not None else []
     kand = deelvraag_keuze.kandidaten(uit_pool, woorden)
     return deelvraag_keuze.kies(llm, modelnaam, vraag, dossier, kand, meting)
 

@@ -64,10 +64,47 @@ def test_de_kandidatenroute_begrenst_en_kost_geen_model(monkeypatch):
 
     gezien = {}
 
-    def nep(graph, s, vraag, profiel, cache, limit=None):
+    def nep(graph, s, vraag, profiel, cache, limit=None, wetstermen=None):
         gezien["limit"] = limit
         return deelvraag_keuze.kandidaten([{"bron_iri": f"p{i}", "label": ""} for i in range(200)], [], maximaal=limit)
 
     monkeypatch.setattr(be, "kandidaten_voor", nep)
     uit = be.kandidaten_route(80)(None, {"naam": "S"}, "v")
     assert gezien["limit"] == 80 and len(uit) == 80 and not any(o["buiten"] for o in uit)
+
+
+def test_de_variant_wetstermen_meet_de_vlag_en_vraagt_alleen_dan_een_model(monkeypatch):
+    """De proef tegen de woordenkloof (`Zoekprofiel.wetstermen`): de variant zet de vlag, alleen zij heeft in
+    `--kandidaten` een model nodig, en de termen gaan naar de kandidaten (de recall van de lijst meet ze)."""
+    import eval.bronselectie_eval as be
+
+    assert m.VARIANTEN["wetstermen"] == {"wetstermen": True}
+    assert m.met_model("wetstermen") and not m.met_model("definitie_brug") and not m.met_model("")
+    gezien = {}
+
+    def nep(graph, s, vraag, profiel, cache, limit=None, wetstermen=None):
+        gezien["wetstermen"], gezien["vlag"] = wetstermen, profiel.wetstermen
+        return []
+
+    monkeypatch.setattr(be, "kandidaten_voor", nep)
+    import agent.wetstermen as wt
+    monkeypatch.setattr(wt, "wetstermen", lambda *a, **k: ["navordering"])
+    be.kandidaten_route(40, m.VARIANTEN["wetstermen"], llm=object(), model="m")(None, {"naam": "S", "regelingen": []}, "v")
+    assert gezien == {"wetstermen": ["navordering"], "vlag": True}
+    be.kandidaten_route(40, m.VARIANTEN["wetstermen"])(None, {"naam": "S", "regelingen": []}, "v")
+    assert gezien["wetstermen"] == [], "zonder model geen vertaling"
+
+
+def test_afval_van_een_variant_zoekt_met_haar_wetstermen(monkeypatch):
+    import eval.bronselectie_eval as be
+
+    def pool(graaf, s, vraag, profiel=None, wetstermen=None):
+        return ["urn:bwb:X:artikel:16"] if wetstermen else []
+
+    monkeypatch.setattr(be, "_pool", pool)
+    s = {"naam": "S", "deelvragen": ["v1"], "regelingen": ["X"],
+         "verwacht": [{"deelvraag": 0, "bron_iri": "urn:bwb:X:artikel:16", "rol": "kern"}]}
+    spoor = [{"set": "S", "vraag": "v1", "kandidaten": [], "gekozen": [], "terugval": False}]
+    assert m.afval(None, s, spoor)["telling"]["niet gevonden"] == 1
+    spoor[0]["wetstermen"] = ["navordering"]
+    assert m.afval(None, s, spoor)["telling"]["gevonden, niet bij de 40"] == 1

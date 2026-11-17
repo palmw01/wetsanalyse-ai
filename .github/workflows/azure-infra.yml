@@ -60,9 +60,9 @@ on:
         options: [wat-if, deploy, afbreken, opruimen, vul-graaf, eval, inventaris, telemetrie, grafana, grafana-afbreken, mcp-proxy-afbreken, 2fa-herstel]
         default: wat-if
       eval_set:
-        description: "Alleen voor 'eval': alles (smoke + 3× annotatie + 3× gesprek), of alleen gesprek, annotatie, de conceptcasussen of de duidingset (smoke + 3×), of bronselectie_model (het model kiest, 3 rondes), of bronselectie_kandidaten (de kandidatenlijst, zonder model)"
+        description: "Alleen voor 'eval': alles (smoke + 3× annotatie + 3× gesprek), of alleen gesprek, annotatie, de conceptcasussen of de duidingset (smoke + 3×), of bronselectie_model (het model kiest, 3 rondes), of bronselectie_kandidaten (de kandidatenlijst, zonder model), of bronselectie_wetstermen (de proef tegen de woordenkloof)"
         type: choice
-        options: [alles, gesprek, annotatie, concept, duiding, bronselectie_model, bronselectie_kandidaten]
+        options: [alles, gesprek, annotatie, concept, duiding, bronselectie_model, bronselectie_kandidaten, bronselectie_wetstermen]
         default: alles
       query:
         description: "Alleen voor 'telemetrie': een eigen KQL-query (leeg = de standaardset)"
@@ -1007,12 +1007,16 @@ jobs:
               annotatie) vlag="--annotatie"; titel="RUN"; uit="|| rc=1" ;;
               concept) vlag="--annotatie --concept"; titel="CONCEPT"; uit="|| true" ;;
               duiding) vlag="--golden eval/golden_duiding.jsonl"; titel="DUIDING"; uit="|| true" ;;
-              bronselectie_model|bronselectie_kandidaten) vlag="" ;;
+              bronselectie_model|bronselectie_kandidaten|bronselectie_wetstermen) vlag="" ;;
               *) echo "::error::onbekende eval_set"; exit 1 ;;
             esac
             if [ "$EVAL_SET" = "bronselectie_kandidaten" ]; then
               # De recall van de kandidatenlijst per grens, zonder model (0 tokens; meting 17 nov 2026).
               args="echo \"=== BRONSELECTIE KANDIDATEN ===\"; python -u -m eval.bronselectie_model_meting --kandidaten 40,60,80,120,160,80+definitie_brug; rc=\$?; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
+            elif [ "$EVAL_SET" = "bronselectie_wetstermen" ]; then
+              # De proef tegen de woordenkloof (`Zoekprofiel.wetstermen`): eerst de kandidatenlijst met en zonder de
+              # wetstermen (alleen de vertaalstap kost tokens), dan het model met de variant, met afval per bepaling.
+              args="echo \"=== BRONSELECTIE WETSTERMEN: KANDIDATEN ===\"; python -u -m eval.bronselectie_model_meting --kandidaten 40,40+wetstermen; rc=\$?; echo \"=== BRONSELECTIE WETSTERMEN: MODEL ===\"; python -u -m eval.bronselectie_model_meting --varianten wetstermen || rc=1; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
             elif [ "$EVAL_SET" = "bronselectie_model" ]; then
               # De proef na de pilot LB3 (`eval/bronselectie_model_meting.py`): één run, met een eigen plafond op het
               # verbruik. De sets komen van GitHub op de commit van het image (LEX_REVISIE).
