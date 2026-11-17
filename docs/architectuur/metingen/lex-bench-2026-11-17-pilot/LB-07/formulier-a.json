@@ -1,0 +1,354 @@
+{
+  "formulier": "lex-bench-formulier-1",
+  "casus_id": "LB-07",
+  "analist": "A",
+  "run": "lb-07-2026-11-17-a",
+  "deelvragen": [
+    {
+      "deelvraag": 0,
+      "bepalingen": [
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:1",
+          "rol": "kern",
+          "zoekvraag": "a",
+          "motivering": "Grondslag van de beslisplicht binnen een termijn: zonder wettelijke termijn geldt een redelijke termijn na ontvangst van de aanvraag. Past op het praktijkvoorbeeld (de bijzondere wet noemt geen termijn).",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Een beschikking dient te worden gegeven binnen de bij wettelijk voorschrift bepaalde termijn of, bij het ontbreken van zulk een termijn, binnen een redelijke termijn na ontvangst van de aanvraag.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:2",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "Vult de redelijke termijn in: uiterlijk acht weken, tenzij een mededeling als bedoeld in 4:14 lid 3 is gedaan. Bepaalt wanneer de termijn afloopt.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "De in het eerste lid bedoelde redelijke termijn is in ieder geval verstreken wanneer het bestuursorgaan binnen acht weken na ontvangst van de aanvraag geen beschikking heeft gegeven, noch een mededeling als bedoeld in artikel 4:14, derde lid, heeft gedaan.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A14:lid:3",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "De weg om de termijn te verlengen als de bijzondere wet geen termijn noemt: mededeling binnen acht weken met een redelijke termijn. Waarnaar 4:13 lid 2 verwijst.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Indien, bij het ontbreken van een bij wettelijk voorschrift bepaalde termijn, een beschikking niet binnen acht weken kan worden gegeven, deelt het bestuursorgaan dit binnen deze termijn aan de aanvrager mede en noemt het daarbij een redelijke termijn binnen welke de beschikking wel tegemoet kan worden gezien.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:1",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "Opschorting van de beslistermijn bij een uitnodiging tot aanvulling en bij informatie van een buitenlandse instantie.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "De termijn voor het geven van een beschikking wordt opgeschort met ingang van de dag na die waarop het bestuursorgaan:",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:2",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "Verdere opschortingsgronden: schriftelijke instemming met uitstel, vertraging die aan de aanvrager is toe te rekenen, en overmacht.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "De termijn voor het geven van een beschikking wordt voorts opgeschort:\na. gedurende de termijn waarvoor de aanvrager schriftelijk met uitstel heeft ingestemd,\nb. zolang de vertraging aan de aanvrager kan worden toegerekend, of\nc. zolang het bestuursorgaan door overmacht niet in staat is een beschikking te geven.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:1",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "b",
+          "motivering": "4:15 lid 1 onder a verwijst naar de uitnodiging tot aanvullen 'krachtens artikel 4:5'. Zonder dit lid weet je niet wanneer die opschortingsgrond geldt.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "mits de aanvrager de gelegenheid heeft gehad de aanvraag binnen een door het bestuursorgaan gestelde termijn aan te vullen.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:1%3A3:lid:3",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "Definitie van aanvraag, de gebeurtenis van het werkgebied en het begrip waaraan 4:13 de termijn koppelt ('na ontvangst van de aanvraag').",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Onder aanvraag wordt verstaan: een verzoek van een belanghebbende, een besluit te nemen.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:1%3A3:lid:2",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "De termijn van 4:13 geldt voor 'een beschikking'. De definitie bepaalt dat ook de afwijzing van de aanvraag daaronder valt.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Onder beschikking wordt verstaan: een besluit dat niet van algemene strekking is, met inbegrip van de afwijzing van een aanvraag daarvan.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        }
+      ],
+      "uitgesloten": [
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A14:lid:1",
+          "motivering": "Gaat over het verlengen van een termijn die bij wettelijk voorschrift is bepaald. Termijnen die een bijzondere wet zelf stelt vallen buiten het dossier, en de deelvraag gaat over het geval zonder wettelijke termijn."
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A14:lid:2",
+          "motivering": "Uitzondering op lid 1 (wettelijke termijn waarna het bestuursorgaan niet langer bevoegd is). Valt buiten het dossier, net als lid 1."
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A16",
+          "motivering": "Vervallen ('Vervallen' in de toestand van 2026-11-10)."
+        }
+      ],
+      "twijfel": []
+    },
+    {
+      "deelvraag": 1,
+      "bepalingen": [
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A14:lid:3",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "De plicht van het bestuursorgaan als het verwacht niet binnen acht weken te beslissen: dit binnen die termijn melden en een redelijke termijn noemen.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Indien, bij het ontbreken van een bij wettelijk voorschrift bepaalde termijn, een beschikking niet binnen acht weken kan worden gegeven, deelt het bestuursorgaan dit binnen deze termijn aan de aanvrager mede en noemt het daarbij een redelijke termijn binnen welke de beschikking wel tegemoet kan worden gezien.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:3",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "Bij overmacht moet het bestuursorgaan zo snel mogelijk melden dat de termijn is opgeschort en wanneer de beschikking te verwachten is.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "In geval van overmacht deelt het bestuursorgaan zo spoedig mogelijk aan de aanvrager mede dat de beslistermijn is opgeschort, alsmede binnen welke termijn de beschikking wel tegemoet kan worden gezien.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:4",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "De meldplicht als de opschorting eindigt, met de termijn waarbinnen de beschikking alsnog moet komen.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Indien de opschorting eindigt, doet het bestuursorgaan daarvan in de gevallen, bedoeld in het eerste lid, onderdeel b, of het tweede lid, onderdelen b en c, zo spoedig mogelijk mededeling aan de aanvrager, onder vermelding van de termijn binnen welke de beschikking alsnog moet worden gegeven.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:2",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "c",
+          "motivering": "Geeft het gevolg van het nalaten van de mededeling: de redelijke termijn is na acht weken verstreken. Daarmee is de mededeling van 4:14 lid 3 juridisch beslissend.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "De in het eerste lid bedoelde redelijke termijn is in ieder geval verstreken wanneer het bestuursorgaan binnen acht weken na ontvangst van de aanvraag geen beschikking heeft gegeven, noch een mededeling als bedoeld in artikel 4:14, derde lid, heeft gedaan.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:2",
+          "rol": "aanverwant",
+          "zoekvraag": "b",
+          "motivering": "Biedt het bestuursorgaan een alternatief als het de termijn niet haalt: schriftelijke instemming van de aanvrager met uitstel (onder a) schort de termijn op. Nuttig voor een werkinstructie, maar geen plicht.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "gedurende de termijn waarvoor de aanvrager schriftelijk met uitstel heeft ingestemd,",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        }
+      ],
+      "uitgesloten": [
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A14:lid:1",
+          "motivering": "Meldplicht bij een termijn die bij wettelijk voorschrift is bepaald. Termijnen uit een bijzondere wet vallen buiten het dossier."
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A14:lid:2",
+          "motivering": "Uitzondering op lid 1 bij een wettelijke termijn. Valt buiten het dossier."
+        }
+      ],
+      "twijfel": []
+    },
+    {
+      "deelvraag": 2,
+      "bepalingen": [
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:1",
+          "rol": "kern",
+          "zoekvraag": "a",
+          "motivering": "Grondslag van de dwangsom bij niet tijdig beslissen op een aanvraag, met een maximum van 42 dagen.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Indien een beschikking op aanvraag niet tijdig wordt gegeven, verbeurt het bestuursorgaan aan de aanvrager een dwangsom voor elke dag dat het in gebreke is, doch voor ten hoogste 42 dagen.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:2",
+          "rol": "kern",
+          "zoekvraag": "c",
+          "motivering": "De hoogte van de dwangsom per dag, in drie staffels.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de daaropvolgende veertien dagen € 35 per dag en de overige dagen € 45 per dag.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:3",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "Wat de aanvrager moet doen: een schriftelijke ingebrekestelling. Ook vanaf wanneer de dwangsom loopt (twee weken na termijnverloop én ontvangst van de ingebrekestelling). Kern bij het praktijkvoorbeeld.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "De eerste dag waarover de dwangsom verschuldigd is, is de dag waarop twee weken zijn verstreken na de dag waarop de termijn voor het geven van de beschikking is verstreken en het bestuursorgaan van de aanvrager een schriftelijke ingebrekestelling heeft ontvangen.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:5",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "Uitzonderingen: geen dwangsom bij onredelijk late ingebrekestelling, een aanvrager die geen belanghebbende is, of een aanvraag die kennelijk niet-ontvankelijk of kennelijk ongegrond is.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Geen dwangsom is verschuldigd indien:\na. het bestuursorgaan onredelijk laat in gebreke is gesteld,\nb. de aanvrager geen belanghebbende is, of\nc. de aanvraag kennelijk niet-ontvankelijk of kennelijk ongegrond is.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A18",
+          "rol": "kern",
+          "zoekvraag": "c",
+          "motivering": "Het rechtsgevolg: het bestuursorgaan stelt de verschuldigdheid en de hoogte van de dwangsom bij beschikking vast, binnen twee weken.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Het bestuursorgaan stelt de verschuldigdheid en de hoogte van de dwangsom bij beschikking vast binnen twee weken na de laatste dag waarover de dwangsom verschuldigd was.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:1",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "b",
+          "motivering": "'Niet tijdig' (4:17 lid 1) en 'de termijn voor het geven van de beschikking' (4:17 lid 3) volgen uit de beslistermijn van 4:13. Lid 2 (acht weken) staat bij deelvraag 0 en hoort hier ook bij voor de berekening.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Een beschikking dient te worden gegeven binnen de bij wettelijk voorschrift bepaalde termijn of, bij het ontbreken van zulk een termijn, binnen een redelijke termijn na ontvangst van de aanvraag.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:2",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "b",
+          "motivering": "Bepaalt in het praktijkvoorbeeld (geen wettelijke termijn) wanneer de termijn uiterlijk verstreken is. Dat is het vertrekpunt van de twee weken uit 4:17 lid 3.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "De in het eerste lid bedoelde redelijke termijn is in ieder geval verstreken wanneer het bestuursorgaan binnen acht weken na ontvangst van de aanvraag geen beschikking heeft gegeven",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:1%3A2:lid:1",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "4:17 lid 5 onder b sluit de dwangsom uit als de aanvrager geen belanghebbende is. Die uitzondering is zonder de definitie niet toe te passen.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Onder belanghebbende wordt verstaan: degene wiens belang rechtstreeks bij een besluit is betrokken.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:6",
+          "rol": "aanverwant",
+          "zoekvraag": "c",
+          "motivering": "Verdeling van de dwangsom bij meer aanvragers. Nuttig voor de werkinstructie, niet nodig in het praktijkvoorbeeld (één aanvrager).",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Indien er meer dan één aanvrager is, is de dwangsom aan ieder van de aanvragers voor een gelijk deel verschuldigd.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A19:lid:1",
+          "rol": "aanverwant",
+          "zoekvraag": "c",
+          "motivering": "Rechtsbescherming tegen de dwangsombeschikking: bezwaar of beroep tegen de beschikking op de aanvraag omvat ook de vaststelling van de dwangsom. Nuttig, maar niet nodig om te bepalen welke dwangsom de aanvrager krijgt.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Het bezwaar, beroep of hoger beroep tegen de beschikking op de aanvraag heeft mede betrekking op een beschikking tot vaststelling van de hoogte van de dwangsom, voor zover de belanghebbende deze beschikking betwist.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A20",
+          "rol": "aanverwant",
+          "zoekvraag": "c",
+          "motivering": "Terugvordering van onverschuldigd betaalde dwangsommen binnen vijf jaar. Een vervolggevolg, niet nodig voor de deelvraag.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Het bestuursorgaan kan onverschuldigd betaalde dwangsommen terugvorderen voor zover na de dag waarop de beschikking, bedoeld in artikel 4:18 is vastgesteld, nog geen vijf jaren zijn verstreken.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        }
+      ],
+      "uitgesloten": [
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A19:lid:2",
+          "motivering": "Gaat over de bevoegdheid van de bestuursrechter om te verwijzen. Beroep bij de rechter valt buiten het dossier."
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:6%3A2",
+          "motivering": "Stelt het niet tijdig nemen van een besluit gelijk met een besluit voor bezwaar en beroep. Beroep tegen niet tijdig beslissen valt buiten het dossier."
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:6%3A12:lid:1",
+          "motivering": "Beroep tegen het niet tijdig nemen van een besluit: valt uitdrukkelijk buiten het dossier."
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A16",
+          "motivering": "Vervallen."
+        }
+      ],
+      "twijfel": [
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:4",
+          "reden": "Beroep tegen niet tijdig beslissen schort de dwangsom niet op. Het gaat over het beroep (buiten het dossier) maar zegt iets over het gevolg voor de dwangsom zelf. De jurist beslist of dit aanverwant is of buiten valt."
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A20a",
+          "reden": "Lid 2: paragraaf 4.1.3.2 (de dwangsom) geldt niet als de lex silencio positivo (paragraaf 4.1.3.3) van toepassing is. De vergunning van rechtswege valt buiten het dossier, maar deze toepasselijkheidsregel bepaalt wel of er een dwangsom kan zijn. Mogelijk een afhankelijkheid."
+        }
+      ]
+    }
+  ],
+  "buiten_graaf": [
+    {
+      "deelvraag": 2,
+      "omschrijving": "Algemene termijnenwet (BWBR0002448), artikel 1: verlenging van een in een wet gestelde termijn die op een zaterdag, zondag of feestdag eindigt. 4:17 lid 1 verklaart haar niet van toepassing op de 42 dagen, en ze kan spelen bij de acht weken van 4:13 lid 2.",
+      "reden": "bron_lezen haalt artikel 1 op (toestand 2010-10-10), maar de graaf kent de iri urn:bwb:BWBR0002448:artikel:1:lid:1 niet. De regeling valt buiten het zoekbereik van het dossier."
+    }
+  ],
+  "open_punten": [
+    "Het logboek accepteert de rol 'analist' niet. Ik heb gelogd met de rol 'jurist' in run lb-07-2026-11-17-a; de inhoud is van analist A.",
+    "Of de Algemene termijnenwet de achtwekentermijn van 4:13 lid 2 verlengt, is niet onderzocht: de regeling valt buiten het zoekbereik en staat niet in de graaf.",
+    "De opschorting (4:15) bepaalt ook wanneer 'de termijn voor het geven van de beschikking' in 4:17 lid 3 verstrijkt. Ik heb 4:15 bij deelvraag 0 opgenomen en niet herhaald bij deelvraag 2.",
+    "Toelichting (Wet dwangsom en beroep bij niet tijdig beslissen, Kamerstukken 29934) en rechtspraak over 'onredelijk laat in gebreke gesteld' en 'redelijke termijn' zijn niet geraadpleegd: daarvoor zijn geen tools beschikbaar."
+  ]
+}

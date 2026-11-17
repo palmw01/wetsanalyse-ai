@@ -29,8 +29,9 @@ import re
 import sys
 from pathlib import Path
 from typing import Any
+from eval.wortel import WORTEL as WORTEL_REPO
 
-WORTEL = Path(__file__).resolve().parents[3]
+WORTEL = WORTEL_REPO
 BENCH = WORTEL / "docs" / "lex-bench"
 MANIFEST = BENCH / "bronselectie" / "manifest.json"
 FORMULIER = BENCH / "bronselectie" / "formulier-analist.json"

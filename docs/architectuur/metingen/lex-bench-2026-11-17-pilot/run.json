@@ -1,0 +1,273 @@
+{
+ "schema": "lex-bench-run-1",
+ "naam": "pilot",
+ "datum": "2026-11-17",
+ "arm": "pilot (T, reviewer, L1, L2)",
+ "route": "zoekvragen standaard (stap 8)",
+ "code": {
+  "commit": "9a014efe38264eb189aa883020da61cbadea9c20",
+  "schoon": true
+ },
+ "zoekversie": "za28985cb2f88",
+ "images": null,
+ "model": "Lex op acceptatie (L2): claude-sonnet-4-6 in het meting-event, 0 modelrondes",
+ "team": {
+  "model": "claude-opus-5-5 (Claude Code-subagents bench-analist en bench-reviewer)",
+  "logboek": "rol analist bij LB-07 A en LB-08 A gelogd als jurist (de MCP-server liep nog op een oude build)"
+ },
+ "casusset": {
+  "versie": "pilot LB3 (nog niet in het manifest)",
+  "dossiers": {
+   "LB-07": "abb184780fae84d77a2708302e04324d62dcd56a1fcc9172d8b7719e226d6043",
+   "LB-08": "bc0c0629e8278b464960275b70f878353eb0c4a1082e7690d162f1b2f8a784d4",
+   "LB-09": "82d41651f8055ee021ca523614faa8ca9f082454f1ed177004a83265a7ede9ee"
+  }
+ },
+ "graaftoestand": {
+  "LB-07": {
+   "pad": "docs/architectuur/metingen/lex-bench-2026-11-17-pilot/LB-07/graafantwoorden.json",
+   "sha256": "fbb8126bfcbdc3480948668e1494e8068602ccdeaf9ac11d1ca9062a89fcce3f",
+   "graaftoestand": "acceptatie, 17 nov 2026 (opgenomen na het bevriezen)"
+  },
+  "LB-08": {
+   "pad": "docs/architectuur/metingen/lex-bench-2026-11-17-pilot/LB-08/graafantwoorden.json",
+   "sha256": "dc86b0553e86893166423e4bbcffcf9ffc22682b9a46bad783d7b3158eaf0544",
+   "graaftoestand": "acceptatie, 17 nov 2026 (opgenomen na het bevriezen)"
+  },
+  "LB-09": {
+   "pad": "docs/architectuur/metingen/lex-bench-2026-11-17-pilot/LB-09/graafantwoorden.json",
+   "sha256": "520bd1723572fa2189312f8518e35986ac0c2d21badcf7d6a35a48498496adab",
+   "graaftoestand": "acceptatie, 17 nov 2026 (opgenomen na het bevriezen)"
+  }
+ },
+ "verwachting": {
+  "LB-07": {
+   "sha256": "426cc05b84b091a128acd2a96e2f6b2b3c9332b61231a38f2ad028bd583b7bf1",
+   "status": "concept",
+   "bevroren": "2026-11-17T12:17:31+00:00"
+  },
+  "LB-08": {
+   "sha256": "cb9dc1eb73df08caeaa7b16e53a2d1c42a384a0b806773370a6d3e0edb2e29eb",
+   "status": "concept",
+   "bevroren": "2026-11-17T12:05:59+00:00"
+  },
+  "LB-09": {
+   "sha256": "85b07b6c736441135bbae57a0c106984e6f50a28b7cfc2ff5b937aee37a19dc2",
+   "status": "concept",
+   "bevroren": "2026-11-17T12:13:25+00:00"
+  }
+ },
+ "verbruik": {
+  "T": {
+   "agents": [
+    {
+     "arm": "T",
+     "casus": "LB-07",
+     "analist": "A",
+     "agent_tokens": 130811,
+     "tool_uses": 27,
+     "duur_ms": 210468,
+     "rondes": 13,
+     "aanroepen": {
+      "Skill": 2,
+      "logboek_aanvullen": 8,
+      "bron_lezen": 30,
+      "graaf_lezen": 12
+     },
+     "som": {
+      "input_tokens": 26,
+      "cache_read_input_tokens": 1192381,
+      "cache_creation_input_tokens": 121303,
+      "output_tokens": 16558
+     }
+    },
+    {
+     "arm": "T",
+     "casus": "LB-08",
+     "analist": "A",
+     "agent_tokens": 216076,
+     "tool_uses": 48,
+     "duur_ms": 302275,
+     "rondes": 20,
+     "aanroepen": {
+      "Skill": 2,
+      "logboek_aanvullen": 8,
+      "graaf_lezen": 18,
+      "bron_lezen": 66
+     },
+     "som": {
+      "input_tokens": 40,
+      "cache_read_input_tokens": 2438874,
+      "cache_creation_input_tokens": 200024,
+      "output_tokens": 25753
+     },
+     "correctie": "veld rol_placeholder (null) verwijderd door de coordinator; terugsturen had het plafond van 250k overschreden"
+    },
+    {
+     "arm": "T",
+     "casus": "LB-08",
+     "analist": "B",
+     "agent_tokens": 229333,
+     "tool_uses": 53,
+     "duur_ms": 321691,
+     "rondes": 24,
+     "aanroepen": {
+      "Skill": 2,
+      "graaf_lezen": 22,
+      "logboek_aanvullen": 8,
+      "bron_lezen": 72
+     },
+     "som": {
+      "input_tokens": 48,
+      "cache_read_input_tokens": 3536046,
+      "cache_creation_input_tokens": 211164,
+      "output_tokens": 31510
+     }
+    },
+    {
+     "arm": "T",
+     "casus": "LB-09",
+     "analist": "A",
+     "agent_tokens": 148685,
+     "tool_uses": 24,
+     "duur_ms": 174341,
+     "rondes": 12,
+     "aanroepen": {
+      "Skill": 2,
+      "logboek_lezen": 2,
+      "logboek_aanvullen": 4,
+      "bron_lezen": 32,
+      "graaf_lezen": 6
+     },
+     "som": {
+      "input_tokens": 24,
+      "cache_read_input_tokens": 1065728,
+      "cache_creation_input_tokens": 134410,
+      "output_tokens": 16687
+     }
+    },
+    {
+     "arm": "T",
+     "casus": "LB-09",
+     "analist": "B",
+     "agent_tokens": 140565,
+     "tool_uses": 27,
+     "duur_ms": 187962,
+     "rondes": 13,
+     "aanroepen": {
+      "Skill": 2,
+      "logboek_aanvullen": 6,
+      "bron_lezen": 32,
+      "graaf_lezen": 12
+     },
+     "som": {
+      "input_tokens": 26,
+      "cache_read_input_tokens": 1179863,
+      "cache_creation_input_tokens": 127106,
+      "output_tokens": 16265
+     }
+    },
+    {
+     "arm": "T",
+     "casus": "LB-07",
+     "rol": "tegenlezer",
+     "agent_tokens": 115591,
+     "tool_uses": 15,
+     "duur_ms": 122768,
+     "rondes": 5,
+     "aanroepen": {
+      "logboek_aanvullen": 4,
+      "bron_lezen": 22,
+      "graaf_lezen": 2
+     },
+     "som": {
+      "input_tokens": 10,
+      "cache_read_input_tokens": 358411,
+      "cache_creation_input_tokens": 104734,
+      "output_tokens": 12632
+     }
+    }
+   ],
+   "som_agent_tokens": 981061
+  },
+  "reviewer": {
+   "agents": [
+    {
+     "arm": "reviewer",
+     "casus": "LB-07",
+     "agent_tokens": 119846,
+     "tool_uses": 19,
+     "duur_ms": 128777,
+     "rondes": 5,
+     "aanroepen": {
+      "logboek_aanvullen": 4,
+      "bron_lezen": 32
+     },
+     "som": {
+      "input_tokens": 10,
+      "cache_read_input_tokens": 340541,
+      "cache_creation_input_tokens": 104617,
+      "output_tokens": 15540
+     }
+    },
+    {
+     "arm": "reviewer",
+     "casus": "LB-08",
+     "agent_tokens": 140850,
+     "tool_uses": 21,
+     "duur_ms": 155293,
+     "rondes": 6,
+     "aanroepen": {
+      "logboek_aanvullen": 4,
+      "bron_lezen": 36
+     },
+     "som": {
+      "input_tokens": 12,
+      "cache_read_input_tokens": 482013,
+      "cache_creation_input_tokens": 125353,
+      "output_tokens": 17256
+     }
+    },
+    {
+     "arm": "reviewer",
+     "casus": "LB-09",
+     "agent_tokens": 163954,
+     "tool_uses": 38,
+     "duur_ms": 186265
+    }
+   ],
+   "som_agent_tokens": 424650
+  },
+  "L1": 0,
+  "L2": {
+   "lex_tokens": 0,
+   "verbruik_voor": 556079,
+   "verbruik_na": 556079
+  },
+  "coordinator": {
+   "laatste_context": 742729,
+   "uitvoer_sinds_start": 112406,
+   "cache_lezen_sinds_start": 38784132,
+   "noot": "de coördinator was een lange sessie; zijn context telt bij elke ronde mee"
+  },
+  "som_agent_tokens": 1405711,
+  "maat": "agent_tokens = wat de Agent-tool na afloop meldt (de context van de laatste ronde)"
+ },
+ "plafonds": {
+  "claude_code": 2200000,
+  "lex": 100000,
+  "per_analist": 250000,
+  "per_reviewer": 200000,
+  "tegenlezer": 150000,
+  "coordinator": 200000
+ },
+ "l2": {
+  "werkgebied": "Bench LB-08 lb-08-2026-11-17-l2",
+  "gesprek_titel": "Bench LB-08 lb-08-2026-11-17-l2",
+  "blijft_staan": true,
+  "klaar_zonder_besluit": "zet de 8 kandidaten van deelvraag 1 op niet gekozen; geen stap 'wat eraan hangt'"
+ },
+ "correcties": [
+  "LB-08 A: het veld rol_placeholder (null) in deelvragen[1].twijfel[0] door de coördinator verwijderd; origineel in LB-08/formulier-a.origineel.json"
+ ]
+}

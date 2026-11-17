@@ -112,7 +112,7 @@ Wat je daarvoor inlevert, en waar je op moet letten:
 
 **Inrichten gebeurt per GitHub-environment** (Settings → Environments). Wat waar hoort:
 
-- **vars, per environment** – `AZURE_RESOURCE_GROUP`, `APP_NAME` en `LLM_API_BASE` zijn verplicht en
+- **vars, per environment** – `AZURE_RESOURCE_GROUP` en `APP_NAME` zijn verplicht en
   hebben geen default, zodat een niet-ingerichte straat faalt in plaats van stilletjes op de
   verkeerde resource group uit te komen. Optioneel: `LLM_MODEL` (default `claude-sonnet-4-6`),
   `AZURE_LOCATION` (default `northeurope`), `BACKUP_RETENTION_DAYS` (default `7`) en
@@ -120,8 +120,10 @@ Wat je daarvoor inlevert, en waar je op moet letten:
   `MIN_REPLICAS_APPS`; alleen de api, die elk scherm van de webapp bedient – acceptatie zet 1, zodat
   na een stille periode niet elk scherm op een koude start wacht).
 - **secrets** – `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
-  `AZURE_CLIENT_SECRET`, `AZURE_AI_KEY`, `GRAPHDB_LICENSE_B64` (de licentie als
-  `base64 -w0 graphdb.license`). Een job met een environment **erft de repo-secrets**, dus zolang
+  `AZURE_CLIENT_SECRET`, `AZURE_AI_KEY`, `LLM_API_BASE` (het endpoint van Azure AI Foundry, per environment) en
+  `GRAPHDB_LICENSE_B64` (de licentie als `base64 -w0 graphdb.license`). `LLM_API_BASE` is een secret en geen var:
+  GitHub zet een var leesbaar in het env-blok van elke stap, en de runlogs van deze publieke repo kan iedereen lezen.
+  Een adres van een omgeving hoort nooit in een var. Een job met een environment **erft de repo-secrets**, dus zolang
   beide straten dezelfde service principal en AI-key gebruiken, volstaan de repo-secrets. Wil je
   gescheiden credentials – aan te raden zodra productie echte gegevens draagt – zet ze dan als
   environment-secret; die overschrijft de repo-variant.

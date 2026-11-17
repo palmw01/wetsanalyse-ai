@@ -1,0 +1,9 @@
+{
+  "casus_id": "LB-07",
+  "run_id": "lb-07-2026-11-17",
+  "bevroren": "2026-11-17T12:17:31+00:00",
+  "sha256": {
+    "teamverwachting.json": "426cc05b84b091a128acd2a96e2f6b2b3c9332b61231a38f2ad028bd583b7bf1",
+    "formulier-a.json": "1936a6cbaccaf3177ac459950536fdd9402259a6dca0275afd31935495d5fb80"
+  }
+}

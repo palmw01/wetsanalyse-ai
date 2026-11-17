@@ -1,0 +1,29 @@
+{
+ "schema_versie": 4,
+ "casus_id": "LB-08",
+ "niveau": "gemiddeld",
+ "niveau_status": "voorlopig",
+ "waarom_dit_niveau": "De kern ligt in twee regelingen: de toeslagenwet zelf en de algemene regels over geldschulden aan de overheid, en er moet een verwijzing tussen die twee gevolgd worden.",
+ "gebruik": "ontwikkeling",
+ "status": "concept",
+ "datum": "2026-11-17",
+ "toelichting": "Pilotdossier voor LB3 (plan-lex-bench §9), in eigen woorden geschreven door een Claude-sessie die de bronselectie niet afstemt (besluit 3), zonder de graaf of Lex te raadplegen. Er staat bewust geen verwachting in: die komt van het team, blind, en wordt bevroren voordat iemand naar Lex kijkt. Het niveau is vastgelegd vóór Lex erop draait.",
+ "naam": "Terugbetalen van een te hoog voorschot toeslag",
+ "aanleiding": "Na de definitieve berekening van een toeslag moeten veel huishoudens geld terugbetalen. Ze bellen met vragen over hoe het bedrag tot stand komt, wanneer ze moeten betalen en of dat in delen mag. De antwoorden verschillen per medewerker.",
+ "doel": "Een overzicht van de regels van het ontstaan van een terug te betalen bedrag tot en met de inning, als basis voor een werkinstructie voor de telefonie.",
+ "analysevraag": "Wanneer en hoe moet iemand een te hoog ontvangen voorschot van een toeslag terugbetalen?",
+ "praktijkvoorbeeld": "Een stel kreeg over vorig jaar elke maand een voorschot zorgtoeslag. Hun inkomen bleek hoger dan ze hadden opgegeven. Bij de definitieve berekening moeten ze € 1.200 terugbetalen. Ze kunnen dat niet in één keer, en willen weten of ze in delen mogen betalen en wat er gebeurt als ze een betaling missen.",
+ "context": "",
+ "buiten": "Fraude en boetes, de hersteloperatie kinderopvangtoeslag, het verrekenen met andere toeslagen of met een belastingteruggaaf, en de wettelijke schuldsanering vallen erbuiten.",
+ "gebeurtenis": "terugvordering",
+ "regelingen": [
+  "BWBR0018472",
+  "BWBR0005537",
+  "BWBR0019237"
+ ],
+ "deelvragen": [
+  "Wanneer ontstaat er een terug te betalen bedrag, en hoe wordt het vastgesteld?",
+  "Binnen welke termijn moet het bedrag worden terugbetaald, en kan dat in delen?",
+  "Wat gebeurt er als de terugbetaling niet op tijd komt?"
+ ]
+}

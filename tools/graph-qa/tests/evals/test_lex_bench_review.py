@@ -151,3 +151,77 @@ def test_een_tegenlezing_hoort_bij_een_analist():
     with pytest.raises(ValueError, match="één analist"):
         team.voeg_samen([_formulier(), tweede], DOSSIER, {"casus_id": CASUS, "niveau": "makkelijk",
                                                           "gebruik": "ontwikkeling"}, "r", tegenlezing=_lezing())
+
+
+# --- de pilot (LB3): opnemen buiten de referentieset en arm L2 ---
+
+class _Graaf:
+    """De echte graaf, gespeeld door de opname van LB-06; onthoudt welke queries er kwamen."""
+
+    def __init__(self, opname):
+        self.speler, self.gezien = rv.OpnameGraaf(opname), []
+
+    def initialize(self):
+        return {}
+
+    def sparql(self, query):
+        self.gezien.append(query)
+        return self.speler.sparql(query)
+
+    def semantic_search(self, query, limit=10):
+        self.gezien.append(query)
+        return self.speler.semantic_search(query, limit)
+
+    def close(self):
+        pass
+
+
+def test_opnemen_vraagt_alleen_het_dossier_en_overschrijft_niets(tmp_path):
+    s, opname = _set_en_opname()
+    graaf, uit = _Graaf(opname), tmp_path / "meet" / "graafantwoorden.json"
+    aantal = rv.neem_op(s, uit, graaf)
+    assert aantal == len(set(graaf.gezien)) > 0
+    # De verwachting doet er voor de queries niet toe: met de hele set komen precies dezelfde.
+    met = _Graaf(opname)
+    from eval.bronselectie_eval import ROUTES, meet_intake
+    meet_intake(met, s, {lb.ROUTE_L1: ROUTES[lb.ROUTE_L1]})
+    assert set(met.gezien) == set(graaf.gezien)
+    # Met de nieuwe opname geeft L1 hetzelfde als met de opname van de set.
+    tv = _als_team(s)
+    assert rv.lex_tegen_team(s, tv, json.loads(uit.read_text(encoding="utf-8"))) == rv.lex_tegen_team(s, tv, opname)
+    with pytest.raises(FileExistsError, match="bewijs"):
+        rv.neem_op(s, uit, _Graaf(opname))
+
+
+def test_l2_met_de_lijst_van_l1_geeft_de_kaart_van_l1(kaart):
+    s, opname = _set_en_opname()
+    tv = _als_team(s)
+    from eval.bronselectie_eval import ROUTES, meet_intake
+    per = meet_intake(rv.OpnameGraaf(opname), rv._set_met_team(s, tv), {lb.ROUTE_L1: ROUTES[lb.ROUTE_L1]})
+    keuze = {"deelvragen": [{"deelvraag": i, "opties": [{"bron_iri": c, "buiten": n >= p["aantal"]}
+                                                       for n, c in enumerate(p["opties"])]}
+                            for i, p in enumerate(per[lb.ROUTE_L1]["per_deelvraag"])]}
+    l2 = rv.l2_tegen_team(s, tv, keuze)
+    assert l2["route"] == rv.ROUTE_L2
+    assert {k: v for k, v in l2.items() if k != "route"} == {k: v for k, v in kaart.items() if k != "route"}
+
+
+def test_l2_zonder_voorstel_bij_een_deelvraag_is_een_lege_lijst():
+    s, _ = _set_en_opname()
+    tv = _als_team(s)
+    l2 = rv.l2_tegen_team(s, tv, {"deelvragen": []})
+    assert l2["maten"]["precisie"]["noemer"] == 0
+    assert l2["maten"]["recall"]["teller"] == 0 and l2["maten"]["recall"]["noemer"] == len(tv["verwacht"])
+    with pytest.raises(ValueError, match="niet heeft"):
+        rv.l2_tegen_team(s, tv, {"deelvragen": [{"deelvraag": 99, "opties": []}]})
+
+
+PILOT = team.BENCH / "bronselectie" / "pilot"
+
+
+@pytest.mark.parametrize("map_", sorted(p.name for p in PILOT.iterdir()))
+def test_een_pilotdossier_geeft_een_opdracht_zonder_niveau_of_verwachting(map_):
+    s = json.loads((PILOT / map_ / "set.json").read_text(encoding="utf-8"))
+    tekst = team.opdracht(team.dossier_van(s), s["casus_id"], "A", "r")
+    assert s["waarom_dit_niveau"] not in tekst and s["toelichting"] not in tekst
+    assert all(d in tekst for d in s["deelvragen"])

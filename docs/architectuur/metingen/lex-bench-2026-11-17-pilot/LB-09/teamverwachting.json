@@ -1,0 +1,478 @@
+{
+  "schema_versie": 4,
+  "casus_id": "LB-09",
+  "niveau": "moeilijk",
+  "gebruik": "ontwikkeling",
+  "verwachting": {
+    "opgesteld_door": {
+      "run_id": "lb-09-2026-11-17",
+      "analisten": [
+        "A",
+        "B"
+      ]
+    },
+    "vastgesteld_door": null,
+    "status": "concept",
+    "datum": "2026-11-17"
+  },
+  "verwacht": [
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:1",
+      "rol": "kern",
+      "zoekvraag": "a",
+      "motivering": "A: Hier staat de bevoegdheid om na te vorderen als een aanslag te laag is vastgesteld. Het lid eist ook een nieuw feit, behalve als de belastingplichtige te kwader trouw is. Daarop rust de vraag wanneer over een afgehandeld jaar nog geld mag worden bijgevraagd. / B: De grondslag voor navordering: de inspecteur kan te weinig geheven belasting navorderen op grond van een (nieuw) feit. Uitzondering: een bekend feit telt niet als grond, behalve bij kwade trouw. Dat is de kernvoorwaarde voor een afgehandeld jaar.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:2",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: Andere gevallen waarin navorderen mag, ook zonder nieuw feit. Het belangrijkste is een fout die de belastingplichtige redelijkerwijs kon zien (onderdeel c). Dat hoort bij de vraag wanneer navorderen rechtsgeldig is. / B: Breidt de navorderingsbevoegdheid uit naar gevallen zonder nieuw feit, onder meer een kenbare fout (onderdeel c, met de 30%-grens). Zonder dit lid is de vraag wanneer navordering mag niet volledig te beantwoorden.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:11:lid:4",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "d",
+      "motivering": "A: Artikel 16 lid 3 verklaart dit lid van toepassing. Het bepaalt wanneer de belastingschuld is ontstaan: het startpunt van de termijnen van vijf en twaalf jaar. / B: Art. 16 lid 3 verklaart dit lid van toepassing. Het bepaalt het tijdstip waarop de belastingschuld ontstaat (einde tijdvak), en dat is het beginpunt van de termijnen van 16 lid 3 en lid 4.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:3",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: De gewone navorderingstermijn van vijf jaar, met de verlenging door uitstel voor de aangifte. / B: De gewone navorderingstermijn van vijf jaar, met verlenging bij uitstel van aangifte, en een termijn van twee jaar bij navordering die alleen op lid 2, onderdeel c rust.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:4",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: De verlengde termijn van twaalf jaar voor wat in het buitenland wordt gehouden, zoals de buitenlandse spaarrekening in het praktijkvoorbeeld (zes jaar terug). / B: De verlengde termijn van twaalf jaar voor buitenlandse bestanddelen, zoals de buitenlandse spaarrekening uit het praktijkvoorbeeld (zes jaar terug: buiten vijf, binnen twaalf jaar).",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:5",
+      "rol": "aanverwant",
+      "zoekvraag": "b",
+      "motivering": "A: Verlengt de termijnen van lid 3 en lid 4 met zes maanden als vlak voor het einde gegevens worden verstrekt. Dat is nuttig voor de werkinstructie, maar niet nodig voor de hoofdregel. / B: Verlengt de termijnen van lid 3 en lid 4 met zes maanden bij een verzoek om informatie in de laatste zes maanden. Nuttig voor de werkinstructie, maar niet nodig voor de hoofdregel.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:1",
+      "rol": "kern",
+      "zoekvraag": "c",
+      "motivering": "A: De grondslag voor belastingrente bij een navorderingsaanslag in de inkomstenbelasting. / B: De grondslag voor belastingrente bij een navorderingsaanslag inkomstenbelasting: rente komt bij het nagevorderde bedrag.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:2",
+      "rol": "kern",
+      "zoekvraag": "c",
+      "motivering": "A: Over welk tijdvak en over welke grondslag de rente wordt berekend. / B: Hoe de rente wordt berekend: het tijdvak (vanaf 6 maanden na het einde van het belastingjaar tot de invorderbaarheid) en de grondslag.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:5",
+      "rol": "aanverwant",
+      "zoekvraag": "b",
+      "motivering": "A: Beperkt het rentetijdvak als de navorderingsaanslag op verzoek wordt opgelegd. In het praktijkvoorbeeld ontdekt de Belastingdienst het zelf, dus dit lid is alleen nuttig voor de werkinstructie. / B: Beperkt het rentetijdvak als de navorderingsaanslag op verzoek van de belastingplichtige is opgelegd. Relevant als iemand zelf meldt, maar niet in het praktijkvoorbeeld.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30hb",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "d",
+      "motivering": "A: Zonder het percentage is de rente niet te berekenen. Het percentage zelf staat in een AMvB (zie buiten_graaf). / B: Het percentage van de belastingrente wordt bij AMvB vastgesteld. Zonder dit artikel (en de AMvB) is de rente niet te berekenen.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67e:lid:1",
+      "rol": "kern",
+      "zoekvraag": "a",
+      "motivering": "A: De grondslag voor de vergrijpboete bij navordering: bij opzet of grove schuld, gelijktijdig met de navorderingsaanslag, tot 100 procent. / B: Grondslag voor de vergrijpboete bij navordering: opzet of grove schuld, gelijktijdig met de navorderingsaanslag, tot 100%.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67e:lid:2",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "d",
+      "motivering": "A: Bepaalt de grondslag waarop het percentage van lid 1 wordt toegepast. / B: Lid 1 verwijst ernaar voor de grondslag van de boete. Zonder dit lid is de hoogte niet te bepalen.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67e:lid:3",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: Het moment van opleggen: de uitzondering op 'gelijktijdig' als de feiten pas kort voor het einde van de termijnen van artikel 16 bekend worden. / B: Het tijdstip voor de boete: in afwijking van de gelijktijdigheid kan de boete binnen zes maanden na de navorderingsaanslag volgen als de feiten pas laat in de navorderingstermijn bekend worden.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67e:lid:6",
+      "rol": "kern",
+      "zoekvraag": "c",
+      "motivering": "A: Een hoger maximum (300 procent) voor box 3-inkomen (sparen en beleggen). Daar valt de buitenlandse spaarrekening uit het praktijkvoorbeeld onder. / B: Een hoger maximum (300%) bij navordering over inkomen uit sparen en beleggen: precies de spaarrekening uit het praktijkvoorbeeld.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67n:lid:1",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: Inkeer: geen vergrijpboete als de belastingplichtige binnen twee jaar uit zichzelf verbetert. Dat is een voorwaarde voor de vraag wanneer er een boete komt. / B: Inkeer: binnen twee jaar vrijwillig verbeteren voordat de inspecteur het weet, dan geen vergrijpboete. Dat is een uitzondering op wanneer een boete kan.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67n:lid:2",
+      "rol": "aanverwant",
+      "zoekvraag": "b",
+      "motivering": "A: Inkeer na twee jaar is een reden om de boete te matigen. Dat is nuttig, maar in het praktijkvoorbeeld ontdekte de Belastingdienst de rekening zelf. / B: Inkeer na twee jaar leidt tot matiging. Nuttig voor de werkinstructie; in het praktijkvoorbeeld ontdekt de Belastingdienst de rekening zelf.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67n:lid:3",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: Sluit de inkeerregeling van lid 1 uit voor box 3-inkomen. Zonder dit lid is lid 1 voor een buitenlandse spaarrekening niet goed toe te passen. / B: Sluit de boetevrije inkeer uit voor inkomen uit sparen en beleggen. Beslissend voor de buitenlandse spaarrekening.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A41",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "b",
+      "motivering": "A: Geen boete zonder verwijtbaarheid. Dit is een algemeen vereiste naast opzet of grove schuld in 67e. / B: Algemene voorwaarde uit de Awb: zonder verwijtbaarheid geen bestuurlijke boete. Die geldt naast opzet en grove schuld uit 67e.",
+      "herkomst": "team: A en B"
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A46:lid:2",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "d",
+      "motivering": "A: 67e geeft alleen een maximum. Dit lid zegt hoe de inspecteur de boete daarbinnen afstemt op ernst en verwijtbaarheid. / B: Afstemming van de boete op de ernst en de verwijtbaarheid: invulling van de hoogte binnen het maximum van 67e.",
+      "herkomst": "team: A en B"
+    }
+  ],
+  "onenig": [
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:11:lid:3",
+      "soort": "alleen_A",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "d",
+          "motivering": "De gewone termijn om een aanslag vast te stellen. Die laat zien wanneer een jaar 'afgehandeld' is en waarom navordering de weg is.",
+          "citaat": "De bevoegdheid tot het vaststellen van de aanslag vervalt door verloop van drie jaren na het tijdstip waarop de belastingschuld is ontstaan."
+        },
+        "B": {
+          "plek": "niet genoemd"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:8",
+      "soort": "twijfel",
+      "argumenten": {
+        "A": {
+          "plek": "twijfel",
+          "motivering": "Gegevens die via Richtlijn 2011/16/EU art. 8 bis ter binnenkomen, gelden hier als nieuw feit. Het praktijkvoorbeeld noemt 'gegevens uit het buitenland'. Of dat precies deze gegevens zijn (en niet bijvoorbeeld CRS-gegevens over rekeningen), staat niet in het dossier. De jurist beslist of dit lid kern is."
+        },
+        "B": {
+          "plek": "twijfel",
+          "motivering": "Merkt bepaalde gegevens die via Richtlijn 2011/16/EU (art. 8 bis ter) binnenkomen aan als nieuw feit. Het praktijkvoorbeeld noemt gegevens uit het buitenland, maar art. 8 bis ter gaat over een specifieke informatiestroom (vermoedelijk platformgegevens), en niet vanzelf over bankgegevens. De jurist beslist of dit lid nodig is."
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:7",
+      "soort": "alleen_A",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "Bepaalt wat geldt als het te betalen bedrag aan belasting: de grondslag van de rente.",
+          "citaat": "Voor de toepassing van dit artikel geldt als het te betalen bedrag aan belasting: het bedrag na de verrekening ingevolge:"
+        },
+        "B": {
+          "plek": "twijfel",
+          "motivering": "Definieert het 'te betalen bedrag aan belasting' (na verrekening). Mogelijk een afhankelijkheid voor de grondslag van lid 2; voor de vraag óf er rente bijkomt niet nodig."
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67n:lid:3",
+      "soort": "rol",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "b",
+          "motivering": "Sluit de inkeerregeling van lid 1 uit voor box 3-inkomen. Zonder dit lid is lid 1 voor een buitenlandse spaarrekening niet goed toe te passen.",
+          "citaat": "Het eerste lid is niet van toepassing voor zover de juiste en volledige aangifte, dan wel de juiste en volledige inlichtingen, gegevens of aanwijzingen, bedoeld in het eerste lid, betrekking heeft, onderscheidenlijk hebben, op inkomen uit aanmerkelijk belang als bedoeld in artikel 4.12 van de Wet inkomstenbelasting 2001 of op inkomen uit sparen en beleggen als bedoeld in artikel 5.1 van die wet."
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "Sluit de boetevrije inkeer uit voor inkomen uit sparen en beleggen. Beslissend voor de buitenlandse spaarrekening.",
+          "citaat": "Het eerste lid is niet van toepassing voor zover de juiste en volledige aangifte, dan wel de juiste en volledige inlichtingen, gegevens of aanwijzingen, bedoeld in het eerste lid, betrekking heeft, onderscheidenlijk hebben, op inkomen uit aanmerkelijk belang als bedoeld in artikel 4.12 van de Wet inkomstenbelasting 2001 of op inkomen uit sparen en beleggen als bedoeld in artikel 5.1 van die wet."
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A40:lid:1",
+      "soort": "alleen_A",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "De definitie van bestuurlijke boete, de term die artikel 67e gebruikt.",
+          "citaat": "Onder bestuurlijke boete wordt verstaan: de bestraffende sanctie, inhoudende een onvoorwaardelijke verplichting tot betaling van een geldsom."
+        },
+        "B": {
+          "plek": "niet genoemd"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A45",
+      "soort": "twijfel",
+      "argumenten": {
+        "A": {
+          "plek": "twijfel",
+          "motivering": "Niet gelezen. Is de algemene vervaltermijn voor het opleggen van een bestuurlijke boete. 67e lid 1 en lid 3 AWR regelen het moment van opleggen waarschijnlijk zelf (lex specialis). De jurist beslist of 5:45 naast 67e nodig is."
+        },
+        "B": {
+          "plek": "twijfel",
+          "motivering": "Algemene vervaltermijn voor de bevoegdheid om een boete op te leggen (drie of vijf jaar na de overtreding). Niet nagegaan of dit naast de eigen fiscale koppeling aan de navorderingsaanslag (67e lid 1 en lid 3) voor fiscale vergrijpboetes geldt, of dat het opzij wordt gezet. Bij zes jaar terug kan dat beslissend zijn. De jurist beoordeelt het."
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A46:lid:2",
+      "soort": "rol",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "67e geeft alleen een maximum. Dit lid zegt hoe de inspecteur de boete daarbinnen afstemt op ernst en verwijtbaarheid.",
+          "citaat": "Tenzij de hoogte van de bestuurlijke boete bij wettelijk voorschrift is vastgesteld, stemt het bestuursorgaan de bestuurlijke boete af op de ernst van de overtreding en de mate waarin deze aan de overtreder kan worden verweten."
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "d",
+          "motivering": "Afstemming van de boete op de ernst en de verwijtbaarheid: invulling van de hoogte binnen het maximum van 67e.",
+          "citaat": "Tenzij de hoogte van de bestuurlijke boete bij wettelijk voorschrift is vastgesteld, stemt het bestuursorgaan de bestuurlijke boete af op de ernst van de overtreding en de mate waarin deze aan de overtreder kan worden verweten."
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A46:lid:3",
+      "soort": "twijfel",
+      "argumenten": {
+        "A": {
+          "plek": "twijfel",
+          "motivering": "Gelezen, maar niet opgenomen. De matiging bij bijzondere omstandigheden geldt alleen als de boetehoogte bij wettelijk voorschrift is vastgesteld. 67e geeft alleen een maximum, dus lid 2 lijkt van toepassing en lid 3 niet. Dat is interpretatie."
+        },
+        "B": {
+          "plek": "twijfel",
+          "motivering": "Lagere boete bij bijzondere omstandigheden als de hoogte wettelijk vastligt. 67e geeft een maximum en geen vast bedrag, dus waarschijnlijk geldt lid 2 en niet lid 3."
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A53:lid:2",
+      "soort": "alleen_A",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "aanverwant",
+          "zoekvraag": "b",
+          "motivering": "Het vereiste van een rapport bij een boete van meer dan € 340.",
+          "citaat": "In afwijking van artikel 5:48 wordt van de overtreding steeds een rapport of proces-verbaal opgemaakt."
+        },
+        "B": {
+          "plek": "niet genoemd"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A53:lid:3",
+      "soort": "alleen_A",
+      "argumenten": {
+        "A": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "b",
+          "motivering": "Procedure bij een boete van meer dan € 340 (lid 1): de overtreder mag altijd zijn zienswijze geven. Lid 2 eist een rapport.",
+          "citaat": "In afwijking van afdeling 4.1.2 wordt de overtreder steeds in de gelegenheid gesteld zijn zienswijze naar voren te brengen."
+        },
+        "B": {
+          "plek": "niet genoemd"
+        }
+      }
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0011353:artikel:5.1",
+      "soort": "alleen_B",
+      "argumenten": {
+        "A": {
+          "plek": "niet genoemd"
+        },
+        "B": {
+          "plek": "opgenomen",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "67e lid 6 en 67n lid 3 verwijzen naar dit artikel. Het bepaalt wat 'belastbaar inkomen uit sparen en beleggen' is, en daarmee of het verhoogde maximum en de uitzondering op inkeer gelden. Gevolgd volgens het volg-beleid (definitie).",
+          "citaat": "Belastbaar inkomen uit sparen en beleggen is het voordeel uit sparen en beleggen verminderd met de persoonsgebonden aftrek (hoofdstuk 6)."
+        }
+      }
+    }
+  ],
+  "uitgesloten": [
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:6",
+      "motivering": "B: Gaat over verliesverrekening met een voorafgaand jaar; speelt in het praktijkvoorbeeld niet en draagt de algemene vraag niet."
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:7",
+      "motivering": "B: Bijzondere regel voor heffingskortingen bij partners; buiten de kern van de analysevraag."
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30h:lid:1",
+      "motivering": "A: Gaat over belastingrente bij naheffingsaanslagen (onder meer loonbelasting en omzetbelasting). Het praktijkvoorbeeld gaat over navordering bij een aanslagbelasting (inkomstenbelasting)."
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:6",
+      "motivering": "B: Termijn bij verliesverrekening; niet aan de orde in het werkgebied."
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:7",
+      "motivering": "A: Verlengde navorderingsbevoegdheid bij een heffingskorting die samenhangt met de partner. Speelt niet in het praktijkvoorbeeld en hoort niet bij de buitenlandvraag. / B: Termijn voor heffingskorting bij partners; buiten de analysevraag."
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30f",
+      "motivering": "A: Belastingrente bij een voorlopige aanslag. Dat is niet de navorderingsaanslag over een afgehandeld jaar."
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30f:lid:1",
+      "motivering": "B: Belastingrente bij een voorlopige aanslag; het werkgebied gaat over navordering na een vastgestelde aanslag."
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30fd",
+      "motivering": "A: Gaat over vergoeding van belastingrente aan de belastingplichtige bij een negatieve aanslag. Dat is niet de rente die erbij komt. / B: Vergoeding van belastingrente bij een negatieve aanslag; niet aan de orde bij alsnog betalen."
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:30h",
+      "motivering": "A: Belastingrente bij naheffingsaanslagen (aangiftebelastingen). Het werkgebied gaat over navordering bij de inkomstenbelasting."
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67d",
+      "motivering": "A: Vergrijpboete die gelijktijdig met de (primitieve) aanslag wordt opgelegd. Hier is de aanslag al vastgesteld, dus geldt 67e bij de navorderingsaanslag."
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67d:lid:1",
+      "motivering": "B: Vergrijpboete bij de aanslag (gelijktijdig met de vaststelling van de aanslag). Het werkgebied gaat over een al vastgestelde aanslag en navordering; daarvoor geldt 67e."
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67o:lid:1",
+      "motivering": "B: Gaat over doen plegen, uitlokken en medeplichtigheid; niet aan de orde bij de belastingplichtige zelf."
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67p",
+      "motivering": "B: Overeenkomstige toepassing op anderen dan de belastingplichtige; buiten de analysevraag."
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0002320:artikel:67q:lid:1",
+      "motivering": "B: Een vergrijpboete na een eerdere verzuimboete wegens hetzelfde feit; niet aan de orde in het praktijkvoorbeeld."
+    },
+    {
+      "deelvraag": 3,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A2",
+      "motivering": "A: De algemene sanctiedefinities. 5:40 lid 1 definieert de bestuurlijke boete al rechtstreeks, dus 5:2 is niet nodig."
+    }
+  ],
+  "buiten_graaf": [
+    {
+      "deelvraag": 2,
+      "omschrijving": "De AMvB met het percentage van de belastingrente (ter uitvoering van art. 30hb AWR)",
+      "reden": "Valt buiten het zoekbereik van het dossier (alleen AWR en Awb). Zonder het percentage is de rente niet uit te rekenen. Niet in de graaf gezocht.",
+      "analist": "A"
+    },
+    {
+      "deelvraag": 3,
+      "omschrijving": "Besluit Bestuurlijke Boeten Belastingdienst (beleid over de hoogte van de vergrijpboete, onder meer bij buitenlands vermogen en inkeer)",
+      "reden": "Beleidsregel buiten de regelingen van het dossier. Nodig voor de feitelijke boetepercentages in een werkinstructie. Niet in de graaf gezocht.",
+      "analist": "A"
+    },
+    {
+      "deelvraag": 2,
+      "omschrijving": "De algemene maatregel van bestuur waarin het percentage van de belastingrente staat (op grond van art. 30hb AWR), vermoedelijk het Uitvoeringsbesluit AWR.",
+      "reden": "Valt buiten de regelingen van het dossier en is niet gelezen; het percentage kon dus niet worden opgenomen.",
+      "analist": "B"
+    },
+    {
+      "deelvraag": 3,
+      "omschrijving": "Het Besluit Bestuurlijke Boeten Belastingdienst (BBBB): het beleid voor de hoogte van vergrijpboetes, ook bij buitenlands vermogen.",
+      "reden": "Een beleidsregel buiten de regelingen van het dossier; niet in de graaf gezocht of gelezen. Hij is nodig voor de werkinstructie (aanverwant, zoekvraag d).",
+      "analist": "B"
+    }
+  ],
+  "open_punten": [
+    "A: Deelvraag 2: de invorderingsrente (Invorderingswet 1990) en art. 9 Iw 1990 (het einde van het rentetijdvak in 30fc lid 2) vallen onder 'inning' en dus buiten het werkgebied. Art. 9 Iw 1990 is niet gevolgd.",
+    "A: Deelvraag 0: art. 16 lid 2 onderdeel c (kenbare fout) is opgenomen via lid 2 als geheel. Of juist dat onderdeel de deelvraag draagt, beslist de jurist. Het praktijkvoorbeeld wijst eerder op lid 1 (nieuw feit, mogelijk kwade trouw).",
+    "A: Deelvraag 1: art. 16 lid 4 vraagt dat het bestanddeel 'in het buitenland wordt gehouden'. De uitleg daarvan (rechtspraak, Europese rechtvaardiging) is niet onderzocht.",
+    "A: Deelvraag 3: art. 5:46 lid 1 en lid 2 en 5:53 lid 1 Awb kwamen in de graafquery niet terug, omdat de LIMIT 200 de uitslag afkapte. De iri's zijn afgeleid uit het patroon urn:bwb:BWBR0005537:artikel:5%3A<nr>:lid:<nr>, dat voor 5:46 lid 3/4 en 5:53 lid 2/3 wel bevestigd is.",
+    "A: Zoekvraag c bij deelvraag 0 en 1 (rechtsbescherming: bezwaar tegen de navorderingsaanslag, art. 26 AWR / hoofdstuk 6 Awb) is niet uitgewerkt, omdat de deelvragen er niet naar vragen.",
+    "B: Of Awb 5:45 (vervaltermijn boete) geldt naast 67e AWR is niet vastgesteld; dat bepaalt of over een jaar van zes jaar geleden nog een vergrijpboete kan.",
+    "B: De wettelijke rente en de inning van het nagevorderde bedrag (Invorderingswet 1990, art. 9 via 30fc lid 2) blijven bewust buiten beschouwing: het dossier sluit de inning uit.",
+    "B: Het overgangsrecht bij 67e en 30fc (opmerkingen in de brondata) en de toestand voor het jaar van zes jaar geleden zijn niet onderzocht. Gelezen is de nieuwste toestand (AWR 2026-10-01, Awb 2026-11-10), niet de toestand van het belastingjaar.",
+    "B: Strafrecht (art. 69 AWR) valt volgens het dossier buiten het werkgebied en is niet bekeken."
+  ]
+}

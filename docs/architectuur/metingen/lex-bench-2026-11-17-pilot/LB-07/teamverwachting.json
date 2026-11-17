@@ -1,0 +1,381 @@
+{
+  "schema_versie": 4,
+  "casus_id": "LB-07",
+  "niveau": "makkelijk",
+  "gebruik": "ontwikkeling",
+  "verwachting": {
+    "opgesteld_door": {
+      "run_id": "lb-07-2026-11-17",
+      "analisten": [
+        "A"
+      ]
+    },
+    "vastgesteld_door": null,
+    "status": "concept",
+    "datum": "2026-11-17"
+  },
+  "verwacht": [
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:1%3A3:lid:2",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "d",
+      "motivering": "A: De termijn van 4:13 geldt voor 'een beschikking'. De definitie bepaalt dat ook de afwijzing van de aanvraag daaronder valt.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:1%3A3:lid:3",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "d",
+      "motivering": "A: Definitie van aanvraag, de gebeurtenis van het werkgebied en het begrip waaraan 4:13 de termijn koppelt ('na ontvangst van de aanvraag').",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:1",
+      "rol": "kern",
+      "zoekvraag": "a",
+      "motivering": "A: Grondslag van de beslisplicht binnen een termijn: zonder wettelijke termijn geldt een redelijke termijn na ontvangst van de aanvraag. Past op het praktijkvoorbeeld (de bijzondere wet noemt geen termijn).",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:2",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: Vult de redelijke termijn in: uiterlijk acht weken, tenzij een mededeling als bedoeld in 4:14 lid 3 is gedaan. Bepaalt wanneer de termijn afloopt.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A14:lid:3",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: De weg om de termijn te verlengen als de bijzondere wet geen termijn noemt: mededeling binnen acht weken met een redelijke termijn. Waarnaar 4:13 lid 2 verwijst.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:1",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: Opschorting van de beslistermijn bij een uitnodiging tot aanvulling en bij informatie van een buitenlandse instantie.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:2",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: Verdere opschortingsgronden: schriftelijke instemming met uitstel, vertraging die aan de aanvrager is toe te rekenen, en overmacht.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:1",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "b",
+      "motivering": "A: 4:15 lid 1 onder a verwijst naar de uitnodiging tot aanvullen 'krachtens artikel 4:5'. Zonder dit lid weet je niet wanneer die opschortingsgrond geldt.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:2",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "c",
+      "motivering": "A: Geeft het gevolg van het nalaten van de mededeling: de redelijke termijn is na acht weken verstreken. Daarmee is de mededeling van 4:14 lid 3 juridisch beslissend.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A14:lid:3",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: De plicht van het bestuursorgaan als het verwacht niet binnen acht weken te beslissen: dit binnen die termijn melden en een redelijke termijn noemen.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:2",
+      "rol": "aanverwant",
+      "zoekvraag": "b",
+      "motivering": "A: Biedt het bestuursorgaan een alternatief als het de termijn niet haalt: schriftelijke instemming van de aanvrager met uitstel (onder a) schort de termijn op. Nuttig voor een werkinstructie, maar geen plicht.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:3",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: Bij overmacht moet het bestuursorgaan zo snel mogelijk melden dat de termijn is opgeschort en wanneer de beschikking te verwachten is.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:4",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: De meldplicht als de opschorting eindigt, met de termijn waarbinnen de beschikking alsnog moet komen.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:1%3A2:lid:1",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "d",
+      "motivering": "A: 4:17 lid 5 onder b sluit de dwangsom uit als de aanvrager geen belanghebbende is. Die uitzondering is zonder de definitie niet toe te passen.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:1",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "b",
+      "motivering": "A: 'Niet tijdig' (4:17 lid 1) en 'de termijn voor het geven van de beschikking' (4:17 lid 3) volgen uit de beslistermijn van 4:13. Lid 2 (acht weken) staat bij deelvraag 0 en hoort hier ook bij voor de berekening.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:2",
+      "rol": "afhankelijkheid",
+      "zoekvraag": "b",
+      "motivering": "A: Bepaalt in het praktijkvoorbeeld (geen wettelijke termijn) wanneer de termijn uiterlijk verstreken is. Dat is het vertrekpunt van de twee weken uit 4:17 lid 3.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:1",
+      "rol": "kern",
+      "zoekvraag": "a",
+      "motivering": "A: Grondslag van de dwangsom bij niet tijdig beslissen op een aanvraag, met een maximum van 42 dagen.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:2",
+      "rol": "kern",
+      "zoekvraag": "c",
+      "motivering": "A: De hoogte van de dwangsom per dag, in drie staffels.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:3",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: Wat de aanvrager moet doen: een schriftelijke ingebrekestelling. Ook vanaf wanneer de dwangsom loopt (twee weken na termijnverloop én ontvangst van de ingebrekestelling). Kern bij het praktijkvoorbeeld.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:5",
+      "rol": "kern",
+      "zoekvraag": "b",
+      "motivering": "A: Uitzonderingen: geen dwangsom bij onredelijk late ingebrekestelling, een aanvrager die geen belanghebbende is, of een aanvraag die kennelijk niet-ontvankelijk of kennelijk ongegrond is.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:6",
+      "rol": "aanverwant",
+      "zoekvraag": "c",
+      "motivering": "A: Verdeling van de dwangsom bij meer aanvragers. Nuttig voor de werkinstructie, niet nodig in het praktijkvoorbeeld (één aanvrager).",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A18",
+      "rol": "kern",
+      "zoekvraag": "c",
+      "motivering": "A: Het rechtsgevolg: het bestuursorgaan stelt de verschuldigdheid en de hoogte van de dwangsom bij beschikking vast, binnen twee weken.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A19:lid:1",
+      "rol": "aanverwant",
+      "zoekvraag": "c",
+      "motivering": "A: Rechtsbescherming tegen de dwangsombeschikking: bezwaar of beroep tegen de beschikking op de aanvraag omvat ook de vaststelling van de dwangsom. Nuttig, maar niet nodig om te bepalen welke dwangsom de aanvrager krijgt.",
+      "herkomst": "team: A"
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A20",
+      "rol": "aanverwant",
+      "zoekvraag": "c",
+      "motivering": "A: Terugvordering van onverschuldigd betaalde dwangsommen binnen vijf jaar. Een vervolggevolg, niet nodig voor de deelvraag.",
+      "herkomst": "team: A"
+    }
+  ],
+  "onenig": [
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:4",
+      "soort": "twijfel",
+      "argumenten": {
+        "A": {
+          "plek": "twijfel",
+          "motivering": "Beroep tegen niet tijdig beslissen schort de dwangsom niet op. Het gaat over het beroep (buiten het dossier) maar zegt iets over het gevolg voor de dwangsom zelf. De jurist beslist of dit aanverwant is of buiten valt."
+        },
+        "tegenlezer": {
+          "plek": "twijfel",
+          "motivering": "Ik neig naar opnemen als aanverwant: het lid regelt een gevolg voor de dwangsom zelf (die loopt door) en niet de beroepsprocedure, die buiten het dossier valt. Het kan wel alleen spelen als er beroep is ingesteld. De jurist beslist.",
+          "citaat": "Beroep tegen het niet tijdig geven van de beschikking schort de dwangsom niet op."
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A20a",
+      "soort": "twijfel",
+      "argumenten": {
+        "A": {
+          "plek": "twijfel",
+          "motivering": "Lid 2: paragraaf 4.1.3.2 (de dwangsom) geldt niet als de lex silencio positivo (paragraaf 4.1.3.3) van toepassing is. De vergunning van rechtswege valt buiten het dossier, maar deze toepasselijkheidsregel bepaalt wel of er een dwangsom kan zijn. Mogelijk een afhankelijkheid."
+        },
+        "tegenlezer": {
+          "plek": "twijfel",
+          "motivering": "Ik neig naar opnemen als afhankelijkheid, en dan vooral lid 2: dat bepaalt of de dwangsomregeling überhaupt geldt, en dat is precies de vraag of de aanvrager geld krijgt. De vergunning van rechtswege zelf valt buiten het dossier, en of die paragraaf van toepassing is hangt af van een bijzondere wet. De jurist beslist.",
+          "citaat": "Paragraaf 4.1.3.2 is niet van toepassing indien deze paragraaf van toepassing is."
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:2",
+      "soort": "tegenlezer",
+      "argumenten": {
+        "A": {
+          "plek": "niet genoemd"
+        },
+        "tegenlezer": {
+          "plek": "ontbreekt",
+          "motivering": "4:15 lid 1 onder a verwijst naar artikel 4:5 als geheel, niet alleen naar lid 1. Een uitnodiging om een vertaling aan te leveren schort de termijn dus ook op. Afhankelijkheid, net als lid 1.",
+          "citaat": "mits de aanvrager de gelegenheid heeft gehad binnen een door het bestuursorgaan gestelde termijn de aanvraag met een vertaling aan te vullen."
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:3",
+      "soort": "tegenlezer",
+      "argumenten": {
+        "A": {
+          "plek": "niet genoemd"
+        },
+        "tegenlezer": {
+          "plek": "ontbreekt",
+          "motivering": "Om dezelfde reden als lid 2: een uitnodiging om een samenvatting aan te leveren is ook een uitnodiging tot aanvullen krachtens 4:5, en schort de termijn op via 4:15 lid 1 onder a. Afhankelijkheid.",
+          "citaat": "mits de aanvrager de gelegenheid heeft gehad binnen een door het bestuursorgaan gestelde termijn de aanvraag met een samenvatting aan te vullen."
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:1",
+      "soort": "tegenlezer",
+      "argumenten": {
+        "A": {
+          "plek": "niet genoemd"
+        },
+        "tegenlezer": {
+          "plek": "ontbreekt",
+          "motivering": "Onder b: als het bestuursorgaan de termijn niet haalt omdat het wacht op een buitenlandse instantie, kan het de termijn opschorten door dit aan de aanvrager mee te delen. Dat is een handeling bij een verwachte overschrijding, vergelijkbaar met lid 2 onder a, dat de analist als aanverwant opnam. Lid 4, dat wel is opgenomen, verwijst er bovendien naar. Rol: aanverwant (of afhankelijkheid via lid 4).",
+          "citaat": "de aanvrager mededeelt dat voor de beschikking op de aanvraag redelijkerwijs noodzakelijke informatie aan een buitenlandse instantie is gevraagd, tot de dag waarop deze informatie is ontvangen of verder uitstel niet meer redelijk is."
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:1",
+      "soort": "tegenlezer",
+      "argumenten": {
+        "A": {
+          "plek": "niet genoemd"
+        },
+        "tegenlezer": {
+          "plek": "ontbreekt",
+          "motivering": "De opschorting bepaalt wanneer 'de termijn voor het geven van de beschikking' uit 4:17 lid 3 verstreken is, en dus vanaf welke dag de dwangsom loopt. De analist nam 4:13 om die reden wel op bij deze deelvraag (open punt 3). Voor dezelfde lijn hoort 4:15 hier ook als afhankelijkheid.",
+          "citaat": "De termijn voor het geven van een beschikking wordt opgeschort met ingang van de dag na die waarop het bestuursorgaan:"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:2",
+      "soort": "tegenlezer",
+      "argumenten": {
+        "A": {
+          "plek": "niet genoemd"
+        },
+        "tegenlezer": {
+          "plek": "ontbreekt",
+          "motivering": "Om dezelfde reden als lid 1: uitstel met instemming, vertraging die aan de aanvrager toe te rekenen is en overmacht verschuiven het einde van de beslistermijn, en daarmee de ingangsdag van de dwangsom uit 4:17 lid 3. Afhankelijkheid.",
+          "citaat": "De termijn voor het geven van een beschikking wordt voorts opgeschort:"
+        }
+      }
+    }
+  ],
+  "uitgesloten": [
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A14:lid:1",
+      "motivering": "A: Gaat over het verlengen van een termijn die bij wettelijk voorschrift is bepaald. Termijnen die een bijzondere wet zelf stelt vallen buiten het dossier, en de deelvraag gaat over het geval zonder wettelijke termijn."
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A14:lid:2",
+      "motivering": "A: Uitzondering op lid 1 (wettelijke termijn waarna het bestuursorgaan niet langer bevoegd is). Valt buiten het dossier, net als lid 1."
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A16",
+      "motivering": "A: Vervallen ('Vervallen' in de toestand van 2026-11-10)."
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A14:lid:1",
+      "motivering": "A: Meldplicht bij een termijn die bij wettelijk voorschrift is bepaald. Termijnen uit een bijzondere wet vallen buiten het dossier."
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A14:lid:2",
+      "motivering": "A: Uitzondering op lid 1 bij een wettelijke termijn. Valt buiten het dossier."
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A16",
+      "motivering": "A: Vervallen."
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A19:lid:2",
+      "motivering": "A: Gaat over de bevoegdheid van de bestuursrechter om te verwijzen. Beroep bij de rechter valt buiten het dossier."
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:6%3A12:lid:1",
+      "motivering": "A: Beroep tegen het niet tijdig nemen van een besluit: valt uitdrukkelijk buiten het dossier."
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:6%3A2",
+      "motivering": "A: Stelt het niet tijdig nemen van een besluit gelijk met een besluit voor bezwaar en beroep. Beroep tegen niet tijdig beslissen valt buiten het dossier."
+    }
+  ],
+  "buiten_graaf": [
+    {
+      "deelvraag": 2,
+      "omschrijving": "Algemene termijnenwet (BWBR0002448), artikel 1: verlenging van een in een wet gestelde termijn die op een zaterdag, zondag of feestdag eindigt. 4:17 lid 1 verklaart haar niet van toepassing op de 42 dagen, en ze kan spelen bij de acht weken van 4:13 lid 2.",
+      "reden": "bron_lezen haalt artikel 1 op (toestand 2010-10-10), maar de graaf kent de iri urn:bwb:BWBR0002448:artikel:1:lid:1 niet. De regeling valt buiten het zoekbereik van het dossier.",
+      "analist": "A"
+    }
+  ],
+  "open_punten": [
+    "A: Het logboek accepteert de rol 'analist' niet. Ik heb gelogd met de rol 'jurist' in run lb-07-2026-11-17-a; de inhoud is van analist A.",
+    "A: Of de Algemene termijnenwet de achtwekentermijn van 4:13 lid 2 verlengt, is niet onderzocht: de regeling valt buiten het zoekbereik en staat niet in de graaf.",
+    "A: De opschorting (4:15) bepaalt ook wanneer 'de termijn voor het geven van de beschikking' in 4:17 lid 3 verstrijkt. Ik heb 4:15 bij deelvraag 0 opgenomen en niet herhaald bij deelvraag 2.",
+    "A: Toelichting (Wet dwangsom en beroep bij niet tijdig beslissen, Kamerstukken 29934) en rechtspraak over 'onredelijk laat in gebreke gesteld' en 'redelijke termijn' zijn niet geraadpleegd: daarvoor zijn geen tools beschikbaar."
+  ]
+}

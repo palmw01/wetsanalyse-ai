@@ -1,0 +1,93 @@
+{
+ "bron": "acceptatie, werkgebied 'Bench LB-08 lb-08-2026-11-17-l2', GET …/bronselectie?vorm=deelvraag na de eerste beurt, 17 nov 2026",
+ "zoekversie": "za28985cb2f88",
+ "deelvragen": [
+  {
+   "deelvraag": 0,
+   "opties": [
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:3"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:7"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:26:lid:1"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:31a"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:1"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A52:lid:2"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A57:lid:4"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:26b:lid:3"
+    }
+   ]
+  },
+  {
+   "deelvraag": 1,
+   "opties": [
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:3"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:7"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:26:lid:1"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:31a"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:32:lid:1"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A52:lid:2"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A57:lid:4"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:1"
+    }
+   ]
+  },
+  {
+   "deelvraag": 2,
+   "opties": [
+    {
+     "bron_iri": "urn:bwb:BWBR0019237:artikel:8:lid:1"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:22:lid:8"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:24:lid:4"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:26:lid:2"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:26a:lid:1"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:26b:lid:1"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0018472:artikel:28:lid:1"
+    },
+    {
+     "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A53:lid:1"
+    }
+   ]
+  }
+ ]
+}

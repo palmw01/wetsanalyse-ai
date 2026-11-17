@@ -269,6 +269,19 @@ def test_bepaling_toelichting():
     _vergelijk("bepaling_toelichting", llm.calls)
 
 
+# --- de proef na de pilot LB3: een model kiest de bronnen bij een deelvraag ---------------------------
+
+def test_deelvraag_keuze():
+    from agent import deelvraag_keuze as dk
+    llm = Opnemer(rest=lambda _kw: response([tool_block("k1", "kies_bepalingen", {"gekozen": [{"nummer": 1, "rol": "kern"}]})],
+                                            "tool_use"))
+    kand = dk.kandidaten([{"bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:1", "label": "Artikel 4:17, lid 1",
+                           "tekst": "Indien een beschikking op aanvraag niet tijdig wordt gegeven, verbeurt het "
+                                    "bestuursorgaan aan de aanvrager een dwangsom."}], [])
+    dk.kies(llm, "m", "Welke dwangsom kan de aanvrager krijgen?", {"naam": "Beslistermijn"}, kand)
+    _vergelijk("deelvraag_keuze", llm.calls)
+
+
 # --- de hashes die de herkomst dragen -----------------------------------------------------------
 
 def _hashes() -> dict[str, str]:

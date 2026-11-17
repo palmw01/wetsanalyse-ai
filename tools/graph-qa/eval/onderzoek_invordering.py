@@ -31,8 +31,9 @@ from agent.jas_pipeline.keten import analyseer
 from agent.jas_pipeline.onzekerheid import signaleer
 from agent.jas_pipeline.taal import SpacyProvider
 from eval.detector_audit import rij, samen_voordat_specificiteit
+from eval.wortel import WORTEL as WORTEL_REPO
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = WORTEL_REPO
 DOSSIER = ROOT / "docs/wetsanalyse/onderzoek-invordering-2026-09-29"
 CASUSSEN = ("IW-9-1", "IW-9-5", "LI-9.1", "LI-9.5")
 

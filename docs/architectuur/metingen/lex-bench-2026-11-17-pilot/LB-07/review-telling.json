@@ -1,0 +1,1097 @@
+{
+  "casus_id": "LB-07",
+  "route": "zoekvragen standaard (stap 8)",
+  "tegen": "teamverwachting, vóór de vaststelling",
+  "maten": {
+    "recall_nodig": {
+      "teller": 1,
+      "noemer": 20,
+      "waarde": 0.05
+    },
+    "recall": {
+      "teller": 2,
+      "noemer": 24,
+      "waarde": 0.083
+    },
+    "precisie": {
+      "teller": 0,
+      "noemer": 24,
+      "waarde": 0.0
+    },
+    "overlap": {
+      "teller": 2,
+      "noemer": 48,
+      "waarde": 0.042
+    }
+  },
+  "verschillen": [
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:1%3A3:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: De termijn van 4:13 geldt voor 'een beschikking'. De definitie bepaalt dat ook de afwijzing van de aanvraag daaronder valt."
+      },
+      "verschil": "V1",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "4:13 lid 1 legt de termijn op 'een beschikking'. Deze definitie bepaalt dat ook de afwijzing van een aanvraag een beschikking is. Daarmee geldt de termijn ook voor een afwijzing. De afhankelijkheid is terecht, en Lex noemt haar niet.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Onder beschikking wordt verstaan: een besluit dat niet van algemene strekking is, met inbegrip van de afwijzing van een aanvraag daarvan.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:1%3A3:lid:3",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Definitie van aanvraag, de gebeurtenis van het werkgebied en het begrip waaraan 4:13 de termijn koppelt ('na ontvangst van de aanvraag')."
+      },
+      "verschil": "V2",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit is de definitie van de gebeurtenis van het werkgebied. De termijn van 4:13 loopt 'na ontvangst van de aanvraag'. Het is een terechte afhankelijkheid, en Lex mist haar.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Onder aanvraag wordt verstaan: een verzoek van een belanghebbende, een besluit te nemen.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Grondslag van de beslisplicht binnen een termijn: zonder wettelijke termijn geldt een redelijke termijn na ontvangst van de aanvraag. Past op het praktijkvoorbeeld (de bijzondere wet noemt geen termijn)."
+      },
+      "verschil": "V3",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit is de kernbepaling van de deelvraag: zonder wettelijke termijn geldt een redelijke termijn. Lex noemt geen enkele bepaling uit paragraaf 4.1.3.1. Of 4:13 in de pool zat, kan ik niet zien.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Een beschikking dient te worden gegeven binnen de bij wettelijk voorschrift bepaalde termijn of, bij het ontbreken van zulk een termijn, binnen een redelijke termijn na ontvangst van de aanvraag.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Vult de redelijke termijn in: uiterlijk acht weken, tenzij een mededeling als bedoeld in 4:14 lid 3 is gedaan. Bepaalt wanneer de termijn afloopt."
+      },
+      "verschil": "V4",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid vult de redelijke termijn in met acht weken. Het is kern voor de vraag wanneer de termijn in het praktijkvoorbeeld afloopt.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De in het eerste lid bedoelde redelijke termijn is in ieder geval verstreken wanneer het bestuursorgaan binnen acht weken na ontvangst van de aanvraag geen beschikking heeft gegeven, noch een mededeling als bedoeld in artikel 4:14, derde lid, heeft gedaan.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A14:lid:3",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: De weg om de termijn te verlengen als de bijzondere wet geen termijn noemt: mededeling binnen acht weken met een redelijke termijn. Waarnaar 4:13 lid 2 verwijst."
+      },
+      "verschil": "V5",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Als er geen wettelijke termijn is, verlengt het bestuursorgaan de termijn via deze mededeling. Dat beantwoordt het deel 'wanneer mag het die termijn verlengen' van de deelvraag. Het is kern.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Indien, bij het ontbreken van een bij wettelijk voorschrift bepaalde termijn, een beschikking niet binnen acht weken kan worden gegeven, deelt het bestuursorgaan dit binnen deze termijn aan de aanvrager mede en noemt het daarbij een redelijke termijn binnen welke de beschikking wel tegemoet kan worden gezien.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Opschorting van de beslistermijn bij een uitnodiging tot aanvulling en bij informatie van een buitenlandse instantie."
+      },
+      "verschil": "V6",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid geeft de opschortingsgronden, letterlijk het deel 'opschorten' van de deelvraag. Het is kern.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De termijn voor het geven van een beschikking wordt opgeschort met ingang van de dag na die waarop het bestuursorgaan:",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Verdere opschortingsgronden: schriftelijke instemming met uitstel, vertraging die aan de aanvrager is toe te rekenen, en overmacht."
+      },
+      "verschil": "V7",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid geeft de verdere opschortingsgronden: instemming met uitstel, vertraging die aan de aanvrager is toe te rekenen, en overmacht. Het is kern.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De termijn voor het geven van een beschikking wordt voorts opgeschort:",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: 4:15 lid 1 onder a verwijst naar de uitnodiging tot aanvullen 'krachtens artikel 4:5'. Zonder dit lid weet je niet wanneer die opschortingsgrond geldt."
+      },
+      "verschil": "V8",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "4:15 lid 1 onder a verwijst naar de uitnodiging tot aanvullen 'krachtens artikel 4:5'. Het is een terechte afhankelijkheid. Lex koos wel de slottekst van dit lid (V11) en andere leden van 4:5, maar niet het lid zelf.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "de aanvrager krachtens artikel 4:5 uitnodigt de aanvraag aan te vullen, tot de dag waarop de aanvraag is aangevuld of de daarvoor gestelde termijn ongebruikt is verstreken",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 1
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V9",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit artikel gaat over de vorm van de aanvraag en het orgaan waar je haar indient. Over de beslistermijn of de verlenging zegt het niets. Lex zet het op positie 1, waarschijnlijk vanwege de woordovereenkomst met 'aanvraag'.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Tenzij bij wettelijk voorschrift anders is bepaald, wordt de aanvraag tot het geven van een beschikking schriftelijk ingediend bij het bestuursorgaan dat bevoegd is op de aanvraag te beslissen.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A4:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 2
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V10",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid regelt de bevoegdheid om een aanvraagformulier vast te stellen. Het heeft geen verband met de beslistermijn.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Het bestuursorgaan dat bevoegd is op de aanvraag te beslissen, kan voor het indienen van aanvragen en het verstrekken van gegevens een formulier vaststellen",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:id:BWBR0005537%2FHoofdstuk4%2FTiteldeel4.1%2FAfdeling4.1.1%2FArtikel4%3A5%2FLid1%2FSlottekst1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 3
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V11",
+      "oordeel": {
+        "categorie": "twijfel",
+        "reden": "De slottekst van 4:5 lid 1 noemt de aanvultermijn die het bestuursorgaan stelt. Die is inhoudelijk relevant voor de opschorting van 4:15 lid 1 onder a. De slottekst valt wel binnen 4:5 lid 1, dat het team al als afhankelijkheid heeft (V8). Of de jurist dit telt als dezelfde keuze op een fijner niveau of als een eigen bron, is een kwestie van granulariteit. Daarom geen lex_onterecht en geen team_mist.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "mits de aanvrager de gelegenheid heeft gehad de aanvraag binnen een door het bestuursorgaan gestelde termijn aan te vullen.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:4",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 4
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V12",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit is de termijn voor het bekendmaken van een besluit om de aanvraag niet te behandelen. Het is niet de beslistermijn van 4:13 en ook geen verlenging of opschorting daarvan.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Een besluit om de aanvraag niet te behandelen wordt aan de aanvrager bekendgemaakt binnen vier weken nadat de aanvraag is aangevuld of nadat de daarvoor gestelde termijn ongebruikt is verstreken.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A60",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 5
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V13",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit is een indieningstermijn voor subsidieaanvragen (titel 4.2). Het artikel gaat niet over de beslistermijn. Bovendien valt het onder 'termijnen die een bijzondere wet zelf stelt', wat buiten het werkgebied ligt.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Tenzij bij wettelijk voorschrift anders is bepaald, wordt de aanvraag van de subsidie uiterlijk dertien weken voor de aanvang van het boekjaar ingediend.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A64:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 6
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V14",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid noemt de bijlagen bij een subsidieaanvraag. Met de beslistermijn heeft het niets te maken.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Tenzij de aanvraag wordt ingediend door een krachtens publiekrecht ingestelde rechtspersoon, gaat deze, indien voor het jaar voorafgaand aan het subsidiejaar geen subsidie werd aangevraagd, voorts vergezeld van:",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A6:lid:2",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 7
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V15",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over de herhaalde aanvraag zonder nova en de afwijzing onder verwijzing. Het zegt niets over de beslistermijn.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Wanneer geen nieuw gebleken feiten of veranderde omstandigheden worden vermeld, kan het bestuursorgaan zonder toepassing te geven aan artikel 4:5 de aanvraag afwijzen onder verwijzing naar zijn eerdere afwijzende beschikking.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 0,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A65",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 8
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V16",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit is een mededelingsplicht van de subsidieaanvrager over andere subsidieaanvragen. Het staat los van de beslistermijn.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Voor zover de aanvrager voor dezelfde begrote uitgaven tevens subsidie heeft aangevraagd bij een of meer andere bestuursorganen, doet hij daarvan mededeling in de aanvraag",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Geeft het gevolg van het nalaten van de mededeling: de redelijke termijn is na acht weken verstreken. Daarmee is de mededeling van 4:14 lid 3 juridisch beslissend."
+      },
+      "verschil": "V17",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid geeft het rechtsgevolg als de mededeling van 4:14 lid 3 uitblijft: de termijn is na acht weken verstreken. Het is een terechte afhankelijkheid bij de mededelingsplicht.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "noch een mededeling als bedoeld in artikel 4:14, derde lid, heeft gedaan.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A14:lid:3",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: De plicht van het bestuursorgaan als het verwacht niet binnen acht weken te beslissen: dit binnen die termijn melden en een redelijke termijn noemen."
+      },
+      "verschil": "V18",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid is het directe antwoord op de deelvraag 'wat moet het bestuursorgaan doen als het verwacht de termijn niet te halen'. Het is kern, en Lex mist het.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "een beschikking niet binnen acht weken kan worden gegeven, deelt het bestuursorgaan dit binnen deze termijn aan de aanvrager mede en noemt het daarbij een redelijke termijn",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "aanverwant",
+        "motivering": "A: Biedt het bestuursorgaan een alternatief als het de termijn niet haalt: schriftelijke instemming van de aanvrager met uitstel (onder a) schort de termijn op. Nuttig voor een werkinstructie, maar geen plicht."
+      },
+      "verschil": "V19",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Onderdeel a (schriftelijke instemming met uitstel) en c (overmacht) zijn routes voor een bestuursorgaan dat de termijn niet haalt. Als aanverwant is dat verdedigbaar.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "gedurende de termijn waarvoor de aanvrager schriftelijk met uitstel heeft ingestemd,",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:3",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Bij overmacht moet het bestuursorgaan zo snel mogelijk melden dat de termijn is opgeschort en wanneer de beschikking te verwachten is."
+      },
+      "verschil": "V20",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Bij overmacht moet het bestuursorgaan dit melden. Die meldplicht is kern bij deze deelvraag.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "In geval van overmacht deelt het bestuursorgaan zo spoedig mogelijk aan de aanvrager mede dat de beslistermijn is opgeschort, alsmede binnen welke termijn de beschikking wel tegemoet kan worden gezien.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A15:lid:4",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: De meldplicht als de opschorting eindigt, met de termijn waarbinnen de beschikking alsnog moet komen."
+      },
+      "verschil": "V21",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid geeft de meldplicht van het bestuursorgaan als de opschorting eindigt, met de nieuwe termijn. Het is kern.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Indien de opschorting eindigt, doet het bestuursorgaan daarvan in de gevallen, bedoeld in het eerste lid, onderdeel b, of het tweede lid, onderdelen b en c, zo spoedig mogelijk mededeling aan de aanvrager",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:2",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 1
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V22",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over het buiten behandeling laten van een aanvraag in een vreemde taal. Het zegt niets over wat het bestuursorgaan moet doen als het de beslistermijn niet haalt.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Indien de aanvraag of een van de daarbij behorende gegevens of bescheiden in een vreemde taal is gesteld en een vertaling daarvan ... noodzakelijk is, kan het bestuursorgaan besluiten de aanvraag niet te behandelen",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:3",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 2
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V23",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over het buiten behandeling laten bij een omvangrijke aanvraag zonder samenvatting. Het staat los van de dreigende termijnoverschrijding.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "kan het bestuursorgaan besluiten de aanvraag niet te behandelen, mits de aanvrager de gelegenheid heeft gehad binnen een door het bestuursorgaan gestelde termijn de aanvraag met een samenvatting aan te vullen.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:id:BWBR0005537%2FHoofdstuk4%2FTiteldeel4.1%2FAfdeling4.1.1%2FArtikel4%3A5%2FLid1%2FSlottekst1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 3
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V24",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "De aanvultermijn is geen handeling voor een bestuursorgaan dat verwacht de beslistermijn niet te halen. Het team heeft 4:5 ook bij deze deelvraag niet. De relevantie voor de opschorting hoort bij deelvraag 0.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "mits de aanvrager de gelegenheid heeft gehad de aanvraag binnen een door het bestuursorgaan gestelde termijn aan te vullen.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 4
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V25",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid geeft de bevoegdheid om een aanvraag buiten behandeling te laten. Het is geen voorschrift voor een bestuursorgaan dat de termijn niet haalt.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Het bestuursorgaan kan besluiten de aanvraag niet te behandelen, indien:",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A44:lid:4",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 5
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V26",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over het ambtshalve vaststellen van een subsidie. Het hoort niet bij de deelvraag.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Indien na afloop van deze termijn geen aanvraag is ingediend, kan de subsidie ambtshalve worden vastgesteld.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:4",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 6
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V27",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit is de bekendmakingstermijn van een besluit om niet te behandelen. Het is geen handeling bij een dreigende overschrijding van de beslistermijn.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Een besluit om de aanvraag niet te behandelen wordt aan de aanvrager bekendgemaakt binnen vier weken",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A2:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 7
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V28",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid noemt de vereisten van de aanvraag. Het gaat om wat de aanvrager doet, niet om wat het bestuursorgaan moet doen.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De aanvraag wordt ondertekend en bevat ten minste:",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 1,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A2:lid:2",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 8
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V29",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid is een informatieplicht van de aanvrager. Het staat los van de deelvraag over het bestuursorgaan.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De aanvrager verschaft voorts de gegevens en bescheiden die voor de beslissing op de aanvraag nodig zijn",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:1%3A2:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: 4:17 lid 5 onder b sluit de dwangsom uit als de aanvrager geen belanghebbende is. Die uitzondering is zonder de definitie niet toe te passen."
+      },
+      "verschil": "V30",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "4:17 lid 5 onder b sluit de dwangsom uit als de aanvrager geen belanghebbende is. Zonder deze definitie kun je die uitzondering niet toepassen. Het is een terechte afhankelijkheid.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Onder belanghebbende wordt verstaan: degene wiens belang rechtstreeks bij een besluit is betrokken.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: 'Niet tijdig' (4:17 lid 1) en 'de termijn voor het geven van de beschikking' (4:17 lid 3) volgen uit de beslistermijn van 4:13. Lid 2 (acht weken) staat bij deelvraag 0 en hoort hier ook bij voor de berekening."
+      },
+      "verschil": "V31",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "'Niet tijdig' in 4:17 lid 1 en 'de termijn voor het geven van de beschikking' in 4:17 lid 3 volgen uit 4:13. Het is een terechte afhankelijkheid.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De eerste dag waarover de dwangsom verschuldigd is, is de dag waarop twee weken zijn verstreken na de dag waarop de termijn voor het geven van de beschikking is verstreken",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A13:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "afhankelijkheid",
+        "motivering": "A: Bepaalt in het praktijkvoorbeeld (geen wettelijke termijn) wanneer de termijn uiterlijk verstreken is. Dat is het vertrekpunt van de twee weken uit 4:17 lid 3."
+      },
+      "verschil": "V32",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "In het praktijkvoorbeeld noemt de bijzondere wet geen termijn. Daar bepaalt dit lid wanneer de termijn uiterlijk verstreken is, en dat is het vertrekpunt van de twee weken uit 4:17 lid 3.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De in het eerste lid bedoelde redelijke termijn is in ieder geval verstreken wanneer het bestuursorgaan binnen acht weken na ontvangst van de aanvraag geen beschikking heeft gegeven",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Grondslag van de dwangsom bij niet tijdig beslissen op een aanvraag, met een maximum van 42 dagen."
+      },
+      "verschil": "V33",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid is de grondslag van de dwangsom en de kern van de deelvraag. Lex noemt geen enkel lid van 4:17.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Indien een beschikking op aanvraag niet tijdig wordt gegeven, verbeurt het bestuursorgaan aan de aanvrager een dwangsom voor elke dag dat het in gebreke is, doch voor ten hoogste 42 dagen.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:2",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: De hoogte van de dwangsom per dag, in drie staffels."
+      },
+      "verschil": "V34",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid geeft de hoogte van de dwangsom en beantwoordt daarmee 'welke dwangsom'. Het is kern.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De dwangsom bedraagt de eerste veertien dagen € 23 per dag, de daaropvolgende veertien dagen € 35 per dag en de overige dagen € 45 per dag.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:3",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Wat de aanvrager moet doen: een schriftelijke ingebrekestelling. Ook vanaf wanneer de dwangsom loopt (twee weken na termijnverloop én ontvangst van de ingebrekestelling). Kern bij het praktijkvoorbeeld."
+      },
+      "verschil": "V35",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid regelt de ingebrekestelling en het beginpunt van de dwangsom, het deel 'wat moet hij daarvoor doen' van de deelvraag. Het is kern en past direct op het praktijkvoorbeeld.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "het bestuursorgaan van de aanvrager een schriftelijke ingebrekestelling heeft ontvangen.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:5",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "kern",
+        "motivering": "A: Uitzonderingen: geen dwangsom bij onredelijk late ingebrekestelling, een aanvrager die geen belanghebbende is, of een aanvraag die kennelijk niet-ontvankelijk of kennelijk ongegrond is."
+      },
+      "verschil": "V36",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid geeft de uitzonderingen waarin geen dwangsom verschuldigd is. Het is kern.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Geen dwangsom is verschuldigd indien:",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A17:lid:6",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "aanverwant",
+        "motivering": "A: Verdeling van de dwangsom bij meer aanvragers. Nuttig voor de werkinstructie, niet nodig in het praktijkvoorbeeld (één aanvrager)."
+      },
+      "verschil": "V37",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid verdeelt de dwangsom als er meer aanvragers zijn. Als aanverwant voor de werkinstructie is dat verdedigbaar.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Indien er meer dan één aanvrager is, is de dwangsom aan ieder van de aanvragers voor een gelijk deel verschuldigd.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A19:lid:1",
+      "voorstel": "lex_mist",
+      "lex": {
+        "gekozen": false
+      },
+      "team": {
+        "rol": "aanverwant",
+        "motivering": "A: Rechtsbescherming tegen de dwangsombeschikking: bezwaar of beroep tegen de beschikking op de aanvraag omvat ook de vaststelling van de dwangsom. Nuttig, maar niet nodig om te bepalen welke dwangsom de aanvrager krijgt."
+      },
+      "verschil": "V38",
+      "oordeel": {
+        "categorie": "lex_mist",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over rechtsbescherming tegen de vaststelling van de dwangsom. Als aanverwant is dat verdedigbaar. De rol is hooguit randgebied, want beroep valt grotendeels buiten het werkgebied.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Het bezwaar, beroep of hoger beroep tegen de beschikking op de aanvraag heeft mede betrekking op een beschikking tot vaststelling van de hoogte van de dwangsom, voor zover de belanghebbende deze beschikking betwist.",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A2:lid:2",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 1
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V39",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid is een informatieplicht van de aanvrager bij het indienen. Het zegt niets over de dwangsom of de ingebrekestelling.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De aanvrager verschaft voorts de gegevens en bescheiden die voor de beslissing op de aanvraag nodig zijn",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 2
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V40",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over het buiten behandeling laten van een aanvraag. Het heeft geen verband met de dwangsom.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Het bestuursorgaan kan besluiten de aanvraag niet te behandelen, indien:",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:2",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 3
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V41",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over een aanvraag in een vreemde taal. Het heeft geen verband met de dwangsom.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "in een vreemde taal is gesteld en een vertaling daarvan voor de beoordeling van de aanvraag of voor de voorbereiding van de beschikking noodzakelijk is",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A5:lid:3",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 4
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V42",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid gaat over een samenvatting bij een omvangrijke aanvraag. Het heeft geen verband met de dwangsom.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "omvangrijk of ingewikkeld is en een samenvatting voor de beoordeling van de aanvraag of voor de voorbereiding van de beschikking noodzakelijk is",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A64:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 5
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V43",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid noemt de bijlagen bij een subsidieaanvraag. Het hoort niet bij de dwangsom.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "indien voor het jaar voorafgaand aan het subsidiejaar geen subsidie werd aangevraagd, voorts vergezeld van:",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A2:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 6
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V44",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid noemt de vormvereisten van de aanvraag. Het gaat niet over de dwangsom.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "De aanvraag wordt ondertekend en bevat ten minste:",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A4:lid:1",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 7
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V45",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit lid regelt de bevoegdheid om een aanvraagformulier vast te stellen. Het gaat niet over de dwangsom.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "kan voor het indienen van aanvragen en het verstrekken van gegevens een formulier vaststellen",
+          "toestand": "2026-11-10"
+        }
+      }
+    },
+    {
+      "deelvraag": 2,
+      "bron_iri": "urn:bwb:BWBR0005537:artikel:4%3A65",
+      "voorstel": "lex_onterecht",
+      "lex": {
+        "gekozen": true,
+        "positie": 8
+      },
+      "team": {
+        "niet genoemd": true
+      },
+      "verschil": "V46",
+      "oordeel": {
+        "categorie": "lex_onterecht",
+        "plek": "onbekend",
+        "reden": "Dit is een mededelingsplicht van de subsidieaanvrager. Het gaat niet over de dwangsom.",
+        "bewijs": {
+          "tool": "bron_lezen",
+          "citaat": "Voor zover de aanvrager voor dezelfde begrote uitgaven tevens subsidie heeft aangevraagd bij een of meer andere bestuursorganen, doet hij daarvan mededeling in de aanvraag",
+          "toestand": "2026-11-10"
+        }
+      }
+    }
+  ],
+  "categorieen": {
+    "lex_mist": 22,
+    "lex_onterecht": 23,
+    "team_mist": 0,
+    "twijfel": 1,
+    "status": "voorstel van de reviewer; de jurist beslist"
+  },
+  "plekken": {
+    "onbekend": 45
+  },
+  "nagekomen_voorstel": []
+}

@@ -30,6 +30,12 @@ score is een hulpmiddel, geen poort. Zolang geen jurist een verwachting vaststel
   opdracht|verwerk|tegenlezen`. Er draait nog geen analist of reviewer:
   dat is de pilot LB3, met een eigen akkoord. De poort toetst de allowlist (`tests/poort/test_lex_bench_team.py`).
 
+- **De pilot (LB3), voorbereid** — [het voorstel](pilot-lb3.md): drie nieuwe ontwikkelcasussen zonder verwachting
+  ([`bronselectie/pilot/`](bronselectie/pilot/), LB-07 makkelijk, LB-08 gemiddeld, LB-09 moeilijk), LB-08 als casus voor
+  arm L2, de tokens per arm met de plafonds, en hoe de run verloopt. Voor een casus buiten de referentieset legt
+  `lex_bench_review opnemen` de graafantwoorden van L1 vast, en `lex_bench_review l2` meet de lijst van het paneel op
+  acceptatie. Er draait niets zonder akkoord op het budget.
+
 - **Bronselectie: de uitkomst op de (vroegere) blinde sets** — [`bronselectie/held-out.json`](bronselectie/held-out.json).
   Per set de uitkomst bij haar ene blinde meting, met de regel in het meetlogboek. Vergelijken met de code van nu, offline
   en zonder model: `cd tools/graph-qa && uv run python -m eval.lex_bench`. Het script faalt niet op een verschil. Deze
@@ -39,7 +45,7 @@ score is een hulpmiddel, geen poort. Zolang geen jurist een verwachting vaststel
 ## Wat er nog niet staat
 
 - de twintig casussen (er staan er nu zes);
-- de pilot (LB3);
+- de run van de pilot (LB3): voorbereid, wacht op akkoord;
 - de risicomarkers en de traceerbaarheidsmatrix (§21);
 - de workflow `lex-bench.yml` en de voortgangspagina (§6, LB6);
 - de meetassen annotatie, begrippen en afleidingsregels (§8).

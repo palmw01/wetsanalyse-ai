@@ -165,7 +165,9 @@ jobs:
       # De uitrolpoort staat als composite action in de repo; alleen die map is nodig.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          sparse-checkout: .github/actions
+          sparse-checkout: |
+            .github/actions
+            .github/scripts
           persist-credentials: false
 
       - name: Azure Container App update (frontend)
@@ -173,7 +175,8 @@ jobs:
           IMAGE_DIGEST_REF: ${{ env.IMAGE }}@${{ needs.build-and-push.outputs.digest }}
         run: |
           set -euo pipefail
-          az login --service-principal \
+          source .github/scripts/az_opnieuw.sh
+          az_opnieuw login --service-principal \
             --username "$AZURE_CLIENT_ID" \
             --password "$AZURE_CLIENT_SECRET" \
             --tenant "$AZURE_TENANT_ID"
@@ -186,7 +189,7 @@ jobs:
             echo "SWAP_OVERGESLAGEN=1" >> "$GITHUB_ENV"
             exit 0
           fi
-          az containerapp update \
+          az_opnieuw containerapp update \
             --name "$APP-frontend" \
             --resource-group "$RG" \
             --image "$IMAGE_DIGEST_REF" \

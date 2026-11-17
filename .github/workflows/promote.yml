@@ -40,6 +40,10 @@ jobs:
       PRD_APP: ${{ vars.APP_NAME }}
 
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
       - name: Preflight (credentials en omgevingsvars aanwezig?)
         run: |
           set -euo pipefail
@@ -51,15 +55,12 @@ jobs:
       - name: Inloggen bij Azure
         run: |
           set -euo pipefail
-          az login --service-principal \
+          source .github/scripts/az_opnieuw.sh
+          az_opnieuw login --service-principal \
             --username "$AZURE_CLIENT_ID" \
             --password "$AZURE_CLIENT_SECRET" \
             --tenant "$AZURE_TENANT_ID" >/dev/null
           az account set --subscription "$AZURE_SUBSCRIPTION_ID"
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
 
       - name: Log in bij GHCR
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
@@ -116,14 +117,15 @@ jobs:
           IMG_BWB_IMPORT: ${{ steps.digests.outputs.bwb_import }}
         run: |
           set -euo pipefail
-          az containerapp update     -n "$PRD_APP-api"        -g "$PRD_RG" --image "$IMG_API"        --output none
-          az containerapp update     -n "$PRD_APP-frontend"   -g "$PRD_RG" --image "$IMG_FRONTEND"   --output none
-          az containerapp update     -n "$PRD_APP-graph-qa"   -g "$PRD_RG" --image "$IMG_GRAPH_QA"   --output none
-          az containerapp job update -n "$PRD_APP-bwb-import" -g "$PRD_RG" --image "$IMG_BWB_IMPORT" --output none
+          source .github/scripts/az_opnieuw.sh
+          az_opnieuw containerapp update     -n "$PRD_APP-api"        -g "$PRD_RG" --image "$IMG_API"        --output none
+          az_opnieuw containerapp update     -n "$PRD_APP-frontend"   -g "$PRD_RG" --image "$IMG_FRONTEND"   --output none
+          az_opnieuw containerapp update     -n "$PRD_APP-graph-qa"   -g "$PRD_RG" --image "$IMG_GRAPH_QA"   --output none
+          az_opnieuw containerapp job update -n "$PRD_APP-bwb-import" -g "$PRD_RG" --image "$IMG_BWB_IMPORT" --output none
           # De graafwacht draait hetzelfde importer-image; zonder deze regel blijft productie op de
           # versie van de laatste infra-deploy staan terwijl de tag iets anders belooft.
           if az containerapp job show -n "$PRD_APP-graafwacht" -g "$PRD_RG" --output none 2>/dev/null; then
-            az containerapp job update -n "$PRD_APP-graafwacht" -g "$PRD_RG" --image "$IMG_BWB_IMPORT" --output none
+            az_opnieuw containerapp job update -n "$PRD_APP-graafwacht" -g "$PRD_RG" --image "$IMG_BWB_IMPORT" --output none
           else
             echo "::warning::job $PRD_APP-graafwacht bestaat nog niet – rol de infra op productie uit."
           fi

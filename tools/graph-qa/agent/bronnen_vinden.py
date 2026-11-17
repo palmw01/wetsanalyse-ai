@@ -59,6 +59,11 @@ def _profiel() -> Zoekprofiel:
     return _PROFIEL.get()
 
 
+#: Het model van deze run voor `Zoekprofiel.model_kiest` (`vind(llm=, model=)`): `(llm, model, meting)`, of None. Zonder
+#: model kiest de code, zoals vóór de proef: een run zonder llm (een test, de eval zonder `--model-kiest`) verandert niet.
+_MODEL: ContextVar[tuple[Any, str, dict[str, Any]] | None] = ContextVar("bronnen_model", default=None)
+
+
 def standaard_voor(invoer: dict[str, Any]) -> tuple[str, ...]:
     """Met deelvragen (optioneel, ze staan alleen in de invoer als het werkgebied ze heeft) zoekt Lex
     ook per deelvraag: de analist vroeg er zelf om, en de dekkingscheck meet ertegen. Met een gekozen
@@ -287,6 +292,12 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     n_totaal, volledig = 0, p is None or p["volledig"]
     for d in invoer.get("deelvragen") or []:
         basis = {"deelvraag_id": d.get("id", ""), "vraag": d.get("vraag", "")}
+        gekozen = _model_kiest(graph, d.get("vraag", ""), regelingen, dossier, buiten, p, gebeurtenis)
+        if gekozen is not None:
+            for k in gekozen:
+                n_totaal += v.voeg(k["bron_iri"], rol=k["rol"], methode="deelvraag", label=k["label"],
+                                   detail={**basis, "route": "model", "bron": k["bron"]})
+            continue
         woorden = bepaling_opties(graph, regelingen=regelingen, deelvraag=d.get("vraag", ""), dossier=dossier,
                                   buiten=buiten, profiel=profiel)
         uit_pool: list[dict[str, Any]] = []
@@ -307,6 +318,33 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
                                        **({"route": "woorden"} if p else {})})
             n_totaal += nieuw
     return n_totaal, volledig
+
+
+def _model_kiest(graph: GraphPort, vraag: str, regelingen: list[str], dossier: dict[str, Any], buiten: list[str],
+                 p: dict[str, Any] | None, gebeurtenis: str) -> list[dict[str, Any]] | None:
+    """Een model kiest de bepalingen bij één deelvraag (`Zoekprofiel.model_kiest`, meting
+    `bronselectie-2026-11-17-model`): de code verzamelt de kandidaten uit de pool en de woordenroute, ruimer dan het
+    kaartje, het model wijst er hoogstens `MAX_PER_DEELVRAAG` aan met hun rol. None als de vlag uit staat, de run geen
+    model heeft of het model geen bruikbaar antwoord gaf: dan kiest de code."""
+    from dataclasses import replace
+
+    from . import deelvraag_keuze
+    from .zoekvragen import opties_bij_deelvraag
+
+    profiel = _profiel()
+    model = _MODEL.get()
+    if not profiel.model_kiest or model is None:
+        return None
+    llm, modelnaam, meting = model
+    # De verwijzingen hoeven hier niet mee: het model kiest uit wat de deelvraag zelf vindt.
+    ruim = replace(profiel, verwijzingen=False)
+    woorden = bepaling_opties(graph, regelingen=regelingen, deelvraag=vraag, dossier=dossier, buiten=buiten,
+                              limit=deelvraag_keuze.MAX_KANDIDATEN, profiel=ruim, met_tekst=True)
+    uit_pool = opties_bij_deelvraag(p["kandidaten"], vraag, gebeurtenis=gebeurtenis,
+                                    limit=deelvraag_keuze.MAX_KANDIDATEN, dossier=dossier,
+                                    profiel=ruim) if p is not None else []
+    kand = deelvraag_keuze.kandidaten(uit_pool, woorden)
+    return deelvraag_keuze.kies(llm, modelnaam, vraag, dossier, kand, meting)
 
 
 def _grondslag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
@@ -450,16 +488,20 @@ UITVOERING: dict[str, Callable[[GraphPort, dict[str, Any], Verzameling], tuple[i
 
 def vind(graph: GraphPort, invoer: dict[str, Any], methoden: tuple[str, ...] | None = None,
          melding: Callable[[str, int, bool, int], None] | None = None,
-         profiel: Zoekprofiel | None = None) -> dict[str, Any]:
+         profiel: Zoekprofiel | None = None, llm: Any = None, model: str = "",
+         modelmeting: dict[str, Any] | None = None) -> dict[str, Any]:
     """De methoden op de invoer van een bronnenrun (`api/app/bronnen_run_store.invoer_van`); zonder
     `methoden` de standaard voor die invoer (`standaard_voor`). `profiel` is voor de meting; de dienst draait het
-    standaardprofiel.
+    standaardprofiel. Met `llm` kiest een model de bepalingen per deelvraag (`Zoekprofiel.model_kiest`); zonder kiest
+    de code.
 
     Een methode die faalt, laat de rest niet vallen: haar meting zegt `volledig: false`."""
     teken = _PROFIEL.set(profiel or STANDAARD_PROFIEL)
+    teken_model = _MODEL.set((llm, model, modelmeting if modelmeting is not None else {}) if llm is not None else None)
     try:
         return _vind(graph, invoer, methoden, melding)
     finally:
+        _MODEL.reset(teken_model)
         _PROFIEL.reset(teken)
 
 

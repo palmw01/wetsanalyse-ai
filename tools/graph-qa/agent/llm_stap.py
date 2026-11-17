@@ -82,6 +82,9 @@ class Rol(Enum):
     INTAKE = ("intake", None, False)
     # De controle per stuk na een rapport van een subagent (`stukcontrole.py`): één losse stap, zonder methode.
     STUKCONTROLE = ("stukcontrole", None, False)
+    # De proef na de pilot LB3 (`deelvraag_keuze.py`): een model kiest de bepalingen bij een deelvraag uit de kandidaten
+    # van de code. Een losse stap; de methode staat in de instructie van de stap zelf.
+    DEELVRAAG_KEUZE = ("deelvraag_keuze", None, False)
 
     def __init__(self, naam: str, methoderol: str | None, lus: bool) -> None:
         self.naam = naam
