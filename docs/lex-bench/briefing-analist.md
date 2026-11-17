@@ -59,8 +59,8 @@ krijgt de analist alles via de opdracht en niets via een gesprek.
    briefing, de twee uitwerkingen uit de skill, het dossier zonder verwachting en het formulier. Een run heet
    bijvoorbeeld `lb-03-2026-11-20`; de analisten krijgen `-a` en `-b` erachter.
 2. **Analisten starten.** Per casus twee analisten (A en B) los van elkaar, elk met het profiel `bench-analist` en
-   alleen hun eigen opdracht. Bij een *makkelijke* casus één analist met een tegenlezer (besluit 4, §22): die volgt
-   met de reviewer (LB2, volgende stap).
+   alleen hun eigen opdracht. Bij een *makkelijke* casus één analist met een tegenlezer (besluit 4, §22): het profiel
+   `bench-reviewer` in de modus tegenlezen, zie [`briefing-reviewer.md`](briefing-reviewer.md).
 3. **Controleren.** Sla het antwoord op als `formulier-a.json` (en `-b`) in de meetmap en toets het:
    `uv run python -m eval.lex_bench_team controleer <formulier> --casus LB-xx`. Een fout gaat terug naar dezelfde
    analist, met de melding, niet naar een nieuwe.
@@ -71,6 +71,7 @@ krijgt de analist alles via de opdracht en niets via een gesprek.
    haar met de formulieren en `bevroren.json` (de sha256 van elk bestand), en een bestaande map blijft staan. Een
    blinde casus bevriest buiten de repo; in de repo komen alleen de hashes. Zet de hash van de teamverwachting in het
    runrecord.
-5. **Pas daarna** draait of leest iemand de Lex-arm. De reviewer (de volgende stap van LB2) beoordeelt de verschillen.
+5. **Pas daarna** draait of leest iemand de Lex-arm. De reviewer beoordeelt daarna de verschillen
+   ([`briefing-reviewer.md`](briefing-reviewer.md)).
 
 Er draait in LB2 geen model: de eerste run is de pilot LB3, met een eigen akkoord en de plafonds van §7.

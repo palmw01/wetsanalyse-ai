@@ -18,6 +18,7 @@ AGENTS = WORTEL / ".claude" / "agents"
 MCP = "mcp__wetsanalyse-acceptatie__"
 TOEGESTAAN = {
     "bench-analist": {"Skill", *(MCP + t for t in ("bron_lezen", "graaf_lezen", "logboek_aanvullen", "logboek_lezen"))},
+    "bench-reviewer": {"Skill", *(MCP + t for t in ("bron_lezen", "graaf_lezen", "logboek_aanvullen", "logboek_lezen"))},
 }
 NOOIT = re.compile(r"^(Read|Grep|Glob|Bash|Write|Edit|NotebookEdit|WebFetch|WebSearch|Agent|Task)$|"
                    rf"^{MCP}(lex_|bff|werkgebied_lezen|annotatie_lezen|weergave_lezen|begrip_lezen|logs_zoek|opruimen)|"
@@ -41,8 +42,9 @@ def test_een_bench_profiel_heeft_precies_zijn_allowlist(naam):
     assert not [t for t in tools if NOOIT.search(t)]
 
 
-def test_het_formulier_en_de_briefing_staan_er():
-    schema = json.loads((WORTEL / "docs" / "lex-bench" / "bronselectie" / "formulier-analist.json").read_text())
-    assert schema["properties"]["formulier"]["const"] == "lex-bench-formulier-1"
-    briefing = (WORTEL / "docs" / "lex-bench" / "briefing-analist.md").read_text(encoding="utf-8")
-    assert "## Voor de analist" in briefing and "## Voor de coördinator" in briefing
+@pytest.mark.parametrize("rol, formulier", [("analist", "lex-bench-formulier-1"), ("reviewer", "lex-bench-review-1")])
+def test_het_formulier_en_de_briefing_staan_er(rol, formulier):
+    schema = json.loads((WORTEL / "docs" / "lex-bench" / "bronselectie" / f"formulier-{rol}.json").read_text())
+    assert schema["properties"]["formulier"]["const"] == formulier
+    briefing = (WORTEL / "docs" / "lex-bench" / f"briefing-{rol}.md").read_text(encoding="utf-8")
+    assert f"## Voor de {rol}" in briefing and "## Voor de coördinator" in briefing

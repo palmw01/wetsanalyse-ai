@@ -49,8 +49,8 @@
         "properties": {
           "deelvraag": {"type": "integer", "minimum": 0},
           "bron_iri": {"type": "string"},
-          "soort": {"enum": ["alleen_A", "alleen_B", "rol", "twijfel"]},
-          "argumenten": {"type": "object", "description": "Per analist (A, B) zijn standpunt: opgenomen met rol en motivering, uitgesloten met reden, twijfel, of niet genoemd."}
+          "soort": {"enum": ["alleen_A", "alleen_B", "rol", "twijfel", "tegenlezer"]},
+          "argumenten": {"type": "object", "description": "Per analist (A, B) en de tegenlezer zijn standpunt: opgenomen met rol en motivering, uitgesloten met reden, twijfel, of niet genoemd."}
         }
       }
     },

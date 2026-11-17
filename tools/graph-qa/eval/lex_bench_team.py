@@ -166,8 +166,11 @@ def _standpunten(f: dict[str, Any], i: int) -> dict[str, dict[str, Any]]:
 
 
 def voeg_samen(formulieren: list[dict[str, Any]], dossier: dict[str, Any], casus: dict[str, Any], run: str,
-               datum: str | None = None) -> dict[str, Any]:
-    """De teamverwachting uit één of twee gecontroleerde formulieren. Geen model, geen keuze: alleen naast elkaar."""
+               datum: str | None = None, tegenlezing: dict[str, Any] | None = None) -> dict[str, Any]:
+    """De teamverwachting uit één of twee gecontroleerde formulieren. Geen model, geen keuze: alleen naast elkaar.
+
+    Met `tegenlezing` (één analist, besluit 4; `lex_bench_review`, modus tegenlezen) gaat een bepaling waartegen de
+    tegenlezer bezwaar maakt van `verwacht` naar `onenig`, en een bepaling die volgens hem ontbreekt ook."""
     for f in formulieren:
         fouten = controleer(f, dossier, casus["casus_id"])
         if fouten:
@@ -201,6 +204,8 @@ def voeg_samen(formulieren: list[dict[str, Any]], dossier: dict[str, Any], casus
             elif "uitgesloten" in plekken:
                 a = next(a for a in analisten if st[a]["plek"] == "uitgesloten")
                 uitgesloten.append({"deelvraag": i, "bron_iri": iri, "motivering": f"{a}: {st[a]['motivering']}"})
+    if tegenlezing is not None:
+        verwacht, onenig = _met_tegenlezing(formulieren, tegenlezing, casus["casus_id"], verwacht, onenig)
     return {
         "schema_versie": 4, "casus_id": casus["casus_id"], "niveau": casus["niveau"], "gebruik": casus["gebruik"],
         "verwachting": {"opgesteld_door": {"run_id": run, "analisten": analisten}, "vastgesteld_door": None,
@@ -209,6 +214,31 @@ def voeg_samen(formulieren: list[dict[str, Any]], dossier: dict[str, Any], casus
         "buiten_graaf": [dict(b, analist=f["analist"]) for f in formulieren for b in f.get("buiten_graaf", [])],
         "open_punten": [f"{f['analist']}: {p}" for f in formulieren for p in f.get("open_punten", [])],
     }
+
+
+def _met_tegenlezing(formulieren: list[dict[str, Any]], lezing: dict[str, Any], casus_id: str,
+                     verwacht: list[dict[str, Any]], onenig: list[dict[str, Any]]) -> tuple[list, list]:
+    from eval import lex_bench_review
+
+    if len(formulieren) != 1:
+        raise ValueError("Een tegenlezing hoort bij één analist; bij twee is de ander de tegenlezer.")
+    (f,) = formulieren
+    fouten = lex_bench_review.controleer(lezing, "tegenlezen", casus_id, formulier=f)
+    if fouten:
+        raise ValueError("tegenlezing: " + "; ".join(fouten))
+    bezwaar = {(o["deelvraag"], o["bron_iri"]): o for o in lezing["oordelen"] if o["categorie"] != "eens"}
+    blijft = [v for v in verwacht if (v["deelvraag"], v["bron_iri"]) not in bezwaar]
+    erbij = []
+    for (i, iri), o in sorted(bezwaar.items()):
+        analist = _standpunten(f, i).get(iri, {"plek": "niet genoemd"})
+        tegen = {"plek": o["categorie"], "motivering": o["reden"], **({"citaat": o["bewijs"]["citaat"]} if "bewijs" in o else {})}
+        al = next((x for x in onenig if (x["deelvraag"], x["bron_iri"]) == (i, iri)), None)
+        if al:
+            al["argumenten"]["tegenlezer"] = tegen
+        else:
+            erbij.append({"deelvraag": i, "bron_iri": iri, "soort": "tegenlezer",
+                          "argumenten": {f["analist"]: analist, "tegenlezer": tegen}})
+    return blijft, onenig + erbij
 
 
 def _json(waarde: Any) -> bytes:
@@ -251,6 +281,7 @@ def main(argv: list[str] | None = None) -> int:
     v.add_argument("--dossier", type=Path)
     v.add_argument("--niveau", choices=("makkelijk", "gemiddeld", "moeilijk"), help="bij --dossier")
     v.add_argument("--gebruik", choices=("ontwikkeling", "blind"), help="bij --dossier")
+    v.add_argument("--tegenlezing", type=Path, help="de review van de tegenlezer (één analist, makkelijk)")
     args = p.parse_args(argv)
     dossier = dossier_uit(args.casus, args.dossier)
     if args.actie == "opdracht":
@@ -262,7 +293,8 @@ def main(argv: list[str] | None = None) -> int:
         if not casus["niveau"] or not casus["gebruik"]:
             raise SystemExit("Geef bij --dossier ook --niveau en --gebruik.")
         formulieren = [json.loads(f.read_text(encoding="utf-8")) for f in args.formulieren]
-        team = voeg_samen(formulieren, dossier, casus, args.run)
+        lezing = json.loads(args.tegenlezing.read_text(encoding="utf-8")) if args.tegenlezing else None
+        team = voeg_samen(formulieren, dossier, casus, args.run, tegenlezing=lezing)
         print(json.dumps(bevries(team, formulieren, args.uit), ensure_ascii=False, indent=2))
         return 0
     fouten = controleer(json.loads(args.formulier.read_text(encoding="utf-8")), dossier, args.casus)
