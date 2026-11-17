@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lex Bench</title>
+<!--
+  Lex Bench, het dashboard (plan-lex-bench §6). Statisch: geen backend, geen koppeling met de app of de api. De gegevens
+  komen uit `data.js`, dat `python -m eval.lex_bench --dashboard` uit de vastgelegde runs schrijft; een gewone <script>,
+  zodat de pagina ook als lokaal bestand opent. Blind en ontwikkeling staan altijd apart, er is geen totaalcijfer en geen
+  groen of rood oordeel.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500&family=Fira+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* tokens: overgenomen uit frontend/app/globals.css (tests/poort/test_lex_bench_dashboard.py bewaakt dat ze gelijk blijven) */
+:root {
+  --paper: 255 255 255;
+  --surface: 245 246 248;
+  --surface-2: 237 240 244;
+  --ink: 26 26 26;
+  --lint: 21 66 115;
+  --muted: 74 90 110;
+  --faint: 95 106 120;
+  --line: 209 214 221;
+  --gold: 142 70 0;
+  --succes: 57 135 12;
+  --fout: 213 43 30;
+}
+/* einde tokens */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: rgb(var(--paper)); color: rgb(var(--ink));
+  font: 15px/1.5 "Fira Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.num, td.num, th.num, .mono { font-family: "Fira Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+header { background: rgb(var(--lint)); color: #fff; }
+.binnen { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+.kop { display: flex; align-items: center; gap: 12px; padding: 18px 0; }
+.kop svg { width: 36px; height: 36px; flex: none; }
+.kop h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: .2px; }
+.kop h1 span { font-weight: 400; opacity: .85; }
+.kop .meetas { margin-left: auto; font-size: 13px; opacity: .85; }
+main { padding: 24px 0 48px; }
+.status {
+  display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; padding: 14px 16px; margin-bottom: 24px;
+  background: rgb(var(--surface)); border: 1px solid rgb(var(--line)); border-radius: 8px;
+}
+.chip {
+  display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 500;
+  border: 1px solid rgb(var(--gold) / .45); color: rgb(var(--gold)); background: rgb(var(--gold) / .06);
+}
+.status .veld { color: rgb(var(--muted)); font-size: 13px; }
+.status .veld b { color: rgb(var(--ink)); font-weight: 500; }
+h2 { color: rgb(var(--lint)); font-size: 19px; font-weight: 600; margin: 32px 0 4px; }
+h3 { font-size: 16px; font-weight: 600; margin: 20px 0 6px; }
+.uitleg { color: rgb(var(--muted)); margin: 0 0 12px; max-width: 760px; }
+.kaart { border: 1px solid rgb(var(--line)); border-radius: 8px; padding: 16px; margin: 12px 0; background: rgb(var(--paper)); overflow-x: auto; }
+.kaart .onder { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline; }
+.tabs { display: inline-flex; border: 1px solid rgb(var(--line)); border-radius: 6px; overflow: hidden; margin: 4px 0 8px; }
+.tabs button {
+  font: inherit; font-size: 13px; padding: 4px 12px; border: 0; background: rgb(var(--paper)); color: rgb(var(--ink));
+  cursor: pointer;
+}
+.tabs button + button { border-left: 1px solid rgb(var(--line)); }
+.tabs button[aria-pressed="true"] { background: rgb(var(--lint)); color: #fff; }
+.tabs button:focus-visible { outline: 2px solid rgb(var(--lint)); outline-offset: 2px; }
+.leeg { color: rgb(var(--muted)); font-style: italic; padding: 8px 0; }
+.legenda { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: rgb(var(--muted)); margin: 6px 0; }
+.legenda i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.schuif { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+svg.grafiek { display: block; width: 100%; height: auto; }
+svg.grafiek text { font-family: "Fira Sans", system-ui, sans-serif; fill: rgb(var(--ink)); }
+svg.grafiek text.klein { font-size: 11px; fill: rgb(var(--muted)); }
+svg.grafiek text.cijfer { font-family: "Fira Mono", ui-monospace, monospace; font-size: 11px; fill: rgb(var(--ink)); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 10px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid rgb(var(--line)); vertical-align: top; }
+th { color: rgb(var(--muted)); font-weight: 500; background: rgb(var(--surface)); }
+td.num, th.num { text-align: right; white-space: nowrap; }
+details { margin-top: 6px; }
+summary { cursor: pointer; color: rgb(var(--lint)); font-size: 13px; }
+footer { color: rgb(var(--faint)); font-size: 12px; border-top: 1px solid rgb(var(--line)); padding: 16px 0 32px; overflow-wrap: anywhere; }
+.uitleg, .status { overflow-wrap: anywhere; }
+code { font-family: "Fira Mono", ui-monospace, monospace; font-size: 12.5px; background: rgb(var(--surface-2)); padding: 1px 4px; border-radius: 3px; }
+@media (max-width: 640px) {
+  .kop .meetas { display: none; }
+  th, td { padding: 4px 6px; }
+  .kaart { padding: 12px; }
+  svg.grafiek { min-width: 560px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="binnen kop">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><!-- beeldmerk: frontend/merk/lex-merk.svg -->
+      <rect class="vlak" width="32" height="32" rx="7" fill="#154273"/>
+      <g class="vorm" fill="#FFFFFF">
+        <rect x="6" y="6" width="20" height="4"/>
+        <rect x="6" y="14" width="6" height="4"/>
+        <rect x="6" y="22" width="14" height="4"/>
+      </g>
+      <rect class="markering" x="16" y="14" width="10" height="4" fill="#FFD84D"/>
+    </svg>
+    <h1>Lex <span>Bench</span></h1>
+    <div class="meetas" id="meetas"></div>
+  </div>
+</header>
+<main class="binnen">
+  <div class="status" id="status"></div>
+
+  <section>
+    <h2>Scorekaart per casus</h2>
+    <p class="uitleg">De laatste run, per casus. Elke maat staat met teller en noemer; een fractie zonder noemer zegt op zes
+      of twintig casussen weinig. Recall <em>nodig</em> telt kern en afhankelijkheid, recall <em>alles</em> ook aanverwant.
+      Overlap is de Jaccard-index tussen de keuze van Lex en de verwachting.</p>
+    <div id="scorekaart"></div>
+  </section>
+
+  <section>
+    <h2>Per niveau</h2>
+    <p class="uitleg">Opgeteld per niveau, met de tellers en noemers van de casussen erin. Ontwikkeling en blind apart.</p>
+    <div id="niveaus"></div>
+  </section>
+
+  <section>
+    <h2>Verloop per versie</h2>
+    <p class="uitleg">Elke vastgelegde run is een punt, met de versie uit het runrecord. Ontwikkeling en blind staan nooit
+      in één lijn.</p>
+    <div id="verloop"></div>
+  </section>
+
+  <section>
+    <h2>Verschillen per categorie</h2>
+    <p class="uitleg">Elk verschil tussen Lex en de verwachting krijgt een categorie. Zolang er geen reviewer is (LB2), stelt
+      de code <em>Lex mist</em> en <em>Lex onterecht</em> voor; <em>team mist</em> en <em>twijfel</em> vragen een mens.</p>
+    <div id="categorieen"></div>
+  </section>
+
+  <section>
+    <h2>Risicomatrix</h2>
+    <p class="uitleg">Per risico uit <code>docs/lex-bench/risicos.json</code> het aantal tests per laag
+      (<code>scripts/risicomatrix.py</code>). Alleen zichtbaar, nog niet bindend.</p>
+    <div id="risicos"></div>
+  </section>
+</main>
+<footer>
+  <div class="binnen" id="voet"></div>
+</footer>
+
+<script src="data.js"></script>
+<script>
+"use strict";
+(function () {
+  const D = window.LEX_BENCH;
+  const $ = (id) => document.getElementById(id);
+  const css = (naam) => `rgb(${getComputedStyle(document.documentElement).getPropertyValue("--" + naam).trim()})`;
+  const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = (tag, attrs = {}, tekst) => {
+    const e = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    if (tekst !== undefined) e.textContent = tekst;
+    return e;
+  };
+  const el = (html) => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+
+  if (!D) {
+    $("status").innerHTML = '<span class="leeg">Geen gegevens: draai <code>python -m eval.lex_bench --dashboard</code> in tools/graph-qa.</span>';
+    return;
+  }
+
+  const MATEN = [["recall_nodig", "Recall nodig"], ["recall", "Recall alles"], ["precisie", "Precisie"], ["overlap", "Overlap"]];
+  const CATS = [["lex_mist", "Lex mist", "fout"], ["lex_onterecht", "Lex onterecht", "gold"],
+                ["team_mist", "Team mist", "succes"], ["twijfel", "Twijfel", "muted"]];
+  const GEBRUIK = [["ontwikkeling", "Ontwikkeling"], ["blind", "Blind"]];
+  const kort = (t, n = 32) => (t.length > n ? t.slice(0, n - 1).trimEnd() + "…" : t);
+  const tn = (m) => (m && m.noemer ? `${m.teller}/${m.noemer}` : "–");
+  const pct = (m) => (m && m.noemer ? `${Math.round((m.teller / m.noemer) * 100)}%` : "–");
+  const runs = D.runs || [];
+  const laatste = runs[runs.length - 1];
+
+  // --- status ------------------------------------------------------------------------------------------------------
+  const m = D.manifest;
+  $("meetas").textContent = `meetas ${D.meetas}`;
+  const st = [`<span class="chip">${m.vastgesteld === 0 ? "trendmeting" : "deels vastgesteld"}</span>`,
+    `<span class="veld">casusset <b class="mono">${esc(m.versie)}</b></span>`,
+    `<span class="veld">vastgesteld <b class="num">${m.vastgesteld} van ${m.casussen}</b></span>`];
+  if (laatste) {
+    const r = laatste.run;
+    st.push(`<span class="veld">laatste run <b>${esc(r.naam)}</b>, ${esc(r.datum)}</span>`,
+      `<span class="veld">arm <b>${esc(r.arm)}</b>${r.model ? `, model <b class="mono">${esc(r.model)}</b>` : ", zonder model"}</span>`,
+      `<span class="veld">commit <b class="mono">${esc((r.code?.commit || "").slice(0, 8))}</b></span>`,
+      `<span class="veld">zoekversie <b class="mono">${esc(r.zoekversie)}</b></span>`);
+  }
+  $("status").innerHTML = st.join("");
+
+  const leeg = (tekst) => el(`<div class="leeg">${esc(tekst)}</div>`);
+  const tabs = (keuzes, kies) => {
+    const w = el('<div class="tabs" role="group"></div>');
+    keuzes.forEach(([k, label], i) => {
+      const b = el(`<button type="button" aria-pressed="${i === 0}">${esc(label)}</button>`);
+      b.onclick = () => { w.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", "false")); b.setAttribute("aria-pressed", "true"); kies(k); };
+      w.appendChild(b);
+    });
+    return w;
+  };
+
+  // --- grafiek: horizontale staven per maat ----------------------------------------------------------------------
+  function staven(rijen, maat) {
+    // rijen: [{label, sub, m: {teller, noemer}}]
+    const rijH = 30, links = 210, rechts = 70, breedte = 720, hoog = rijen.length * rijH + 26;
+    const s = svg("svg", { class: "grafiek", viewBox: `0 0 ${breedte} ${hoog}`, role: "img",
+      "aria-label": `${maat} per casus` });
+    const w = breedte - links - rechts;
+    [0, 0.25, 0.5, 0.75, 1].forEach((t) => {
+      const x = links + t * w;
+      s.appendChild(svg("line", { x1: x, x2: x, y1: 4, y2: hoog - 20, stroke: css("line"), "stroke-width": t === 0 ? 1.2 : 0.8 }));
+      s.appendChild(svg("text", { x, y: hoog - 6, "text-anchor": "middle", class: "klein" }, `${t * 100}%`));
+    });
+    rijen.forEach((r, i) => {
+      const y = 6 + i * rijH;
+      s.appendChild(svg("text", { x: links - 10, y: y + 12, "text-anchor": "end", "font-size": 12 }, r.label));
+      if (r.sub) s.appendChild(svg("text", { x: links - 10, y: y + 24, "text-anchor": "end", class: "klein" }, r.sub));
+      const f = r.m && r.m.noemer ? r.m.teller / r.m.noemer : 0;
+      s.appendChild(svg("rect", { x: links, y: y + 4, width: w, height: 14, rx: 2, fill: css("surface-2") }));
+      if (f > 0) s.appendChild(svg("rect", { x: links, y: y + 4, width: Math.max(2, f * w), height: 14, rx: 2, fill: css("lint") }));
+      s.appendChild(svg("text", { x: links + w + 8, y: y + 15, class: "cijfer" }, tn(r.m)));
+    });
+    return s;
+  }
+
+  // --- scorekaart per casus ----------------------------------------------------------------------------------------
+  function perGebruik(doel, vul) {
+    GEBRUIK.forEach(([g, label]) => {
+      const kaart = el(`<div class="kaart"><h3>${label}</h3></div>`);
+      doel.appendChild(kaart);
+      vul(g, kaart);
+    });
+  }
+
+  if (!laatste) {
+    $("scorekaart").appendChild(leeg("Er is nog geen vastgelegde run."));
+  } else {
+    perGebruik($("scorekaart"), (g, kaart) => {
+      const casussen = laatste.rapport.casussen.filter((k) => k.gebruik === g);
+      if (!casussen.length) { kaart.appendChild(leeg(g === "blind" ? "Nog geen blinde casussen in deze run (LB5)." : "Geen casussen.")); return; }
+      const plek = el('<div class="schuif"></div>');
+      const teken = (maat) => {
+        plek.replaceChildren(staven(casussen.map((k) => ({ label: kort(`${k.casus_id} ${k.naam || ""}`), sub: `${k.niveau} · ${k.verwachting}`, m: k.maten[maat] })), maat));
+      };
+      kaart.appendChild(tabs(MATEN, teken));
+      kaart.appendChild(plek);
+      teken(MATEN[0][0]);
+      const t = el(`<table><thead><tr><th>casus</th><th>niveau</th><th>verwachting</th>${MATEN.map(([, l]) => `<th class="num">${l}</th>`).join("")}<th class="num">uitgesloten in keuze</th></tr></thead><tbody></tbody></table>`);
+      casussen.forEach((k) => t.tBodies[0].appendChild(el(`<tr><td>${esc(k.casus_id)} ${esc(k.naam || "")}</td><td>${esc(k.niveau)}</td><td>${esc(k.verwachting)}</td>${MATEN.map(([mt]) => `<td class="num">${tn(k.maten[mt])} <span style="color:rgb(var(--muted))">${pct(k.maten[mt])}</span></td>`).join("")}<td class="num">${k.diagnose?.uitgesloten_in_keuze ?? "–"}</td></tr>`)));
+      kaart.appendChild(t);
+    });
+  }
+
+  // --- per niveau ------------------------------------------------------------------------------------------------
+  if (laatste) {
+    perGebruik($("niveaus"), (g, kaart) => {
+      const rijen = laatste.rapport.per_niveau.filter((r) => r.gebruik === g);
+      if (!rijen.length) { kaart.appendChild(leeg("Geen casussen.")); return; }
+      const plek = el('<div class="schuif"></div>');
+      const teken = (maat) => plek.replaceChildren(staven(rijen.map((r) => ({ label: r.niveau, sub: `${r.casussen.length} casus${r.casussen.length === 1 ? "" : "sen"}`, m: r.maten[maat] })), maat));
+      kaart.appendChild(tabs(MATEN, teken));
+      kaart.appendChild(plek);
+      teken(MATEN[0][0]);
+      const t = el(`<table><thead><tr><th>niveau</th><th>casussen</th>${MATEN.map(([, l]) => `<th class="num">${l}</th>`).join("")}</tr></thead><tbody></tbody></table>`);
+      rijen.forEach((r) => t.tBodies[0].appendChild(el(`<tr><td>${esc(r.niveau)}</td><td class="mono">${esc(r.casussen.join(", "))}</td>${MATEN.map(([mt]) => `<td class="num">${tn(r.maten[mt])}</td>`).join("")}</tr>`)));
+      kaart.appendChild(t);
+    });
+  } else {
+    $("niveaus").appendChild(leeg("Er is nog geen vastgelegde run."));
+  }
+
+  // --- verloop per versie -------------------------------------------------------------------------------------------
+  function lijn(punten, maat) {
+    // punten: [{label, m}]; één lijn per maat, per gebruik apart getekend
+    const breedte = 720, hoog = 220, links = 44, rechts = 20, boven = 12, onder = 42;
+    const w = breedte - links - rechts, h = hoog - boven - onder;
+    const s = svg("svg", { class: "grafiek", viewBox: `0 0 ${breedte} ${hoog}`, role: "img", "aria-label": `verloop van ${maat}` });
+    [0, 0.25, 0.5, 0.75, 1].forEach((t) => {
+      const y = boven + (1 - t) * h;
+      s.appendChild(svg("line", { x1: links, x2: links + w, y1: y, y2: y, stroke: css("line"), "stroke-width": t === 0 ? 1.2 : 0.8 }));
+      s.appendChild(svg("text", { x: links - 6, y: y + 4, "text-anchor": "end", class: "klein" }, `${t * 100}%`));
+    });
+    const n = punten.length;
+    const xs = (i) => links + (n === 1 ? w / 2 : (i * w) / (n - 1));
+    const ys = (p) => boven + (1 - (p.m && p.m.noemer ? p.m.teller / p.m.noemer : 0)) * h;
+    const geldig = punten.map((p, i) => [i, p]).filter(([, p]) => p.m && p.m.noemer);
+    if (geldig.length > 1) {
+      s.appendChild(svg("polyline", { points: geldig.map(([i, p]) => `${xs(i)},${ys(p)}`).join(" "), fill: "none", stroke: css("lint"), "stroke-width": 2 }));
+    }
+    geldig.forEach(([i, p]) => {
+      s.appendChild(svg("circle", { cx: xs(i), cy: ys(p), r: 4, fill: css("lint") }));
+      s.appendChild(svg("text", { x: xs(i), y: ys(p) - 9, "text-anchor": "middle", class: "cijfer" }, tn(p.m)));
+    });
+    punten.forEach((p, i) => {
+      s.appendChild(svg("text", { x: xs(i), y: hoog - 24, "text-anchor": "middle", "font-size": 11 }, p.label));
+      s.appendChild(svg("text", { x: xs(i), y: hoog - 10, "text-anchor": "middle", class: "klein" }, p.sub));
+    });
+    return s;
+  }
+
+  if (!runs.length) {
+    $("verloop").appendChild(leeg("Er is nog geen vastgelegde run."));
+  } else {
+    perGebruik($("verloop"), (g, kaart) => {
+      const metG = runs.filter((r) => r.rapport.casussen.some((k) => k.gebruik === g));
+      if (!metG.length) { kaart.appendChild(leeg(g === "blind" ? "Nog geen run op blinde casussen (LB5)." : "Geen runs.")); return; }
+      const niveaus = [...new Set(metG.flatMap((r) => r.rapport.per_niveau.filter((x) => x.gebruik === g).map((x) => x.niveau)))];
+      let niveau = niveaus[0], maat = MATEN[0][0];
+      const plek = el('<div class="schuif"></div>');
+      const teken = () => plek.replaceChildren(lijn(metG.map((r) => ({
+        label: `${r.run.datum} · ${r.run.naam}`, sub: `${(r.run.code?.commit || "").slice(0, 8)} · ${r.run.zoekversie}`,
+        m: (r.rapport.per_niveau.find((x) => x.gebruik === g && x.niveau === niveau) || {}).maten?.[maat] })), maat));
+      kaart.appendChild(tabs(niveaus.map((n) => [n, n]), (n) => { niveau = n; teken(); }));
+      kaart.appendChild(tabs(MATEN, (k) => { maat = k; teken(); }));
+      kaart.appendChild(plek);
+      teken();
+      const t = el(`<table><thead><tr><th>run</th><th>commit</th><th>zoekversie</th><th>model</th><th>casusset</th></tr></thead><tbody></tbody></table>`);
+      metG.forEach((r) => t.tBodies[0].appendChild(el(`<tr><td>${esc(r.run.datum)} ${esc(r.run.naam)}</td><td class="mono">${esc((r.run.code?.commit || "").slice(0, 8))}</td><td class="mono">${esc(r.run.zoekversie)}</td><td>${esc(r.run.model || "zonder model")}</td><td class="mono">${esc(r.run.casusset?.versie)}</td></tr>`)));
+      kaart.appendChild(t);
+    });
+  }
+
+  // --- categorieën ------------------------------------------------------------------------------------------------
+  function gestapeld(casussen) {
+    const rijH = 28, links = 210, rechts = 60, breedte = 720, hoog = casussen.length * rijH + 10;
+    const max = Math.max(1, ...casussen.map((k) => CATS.reduce((s, [c]) => s + (k.categorieen[c] || 0), 0)));
+    const w = breedte - links - rechts;
+    const s = svg("svg", { class: "grafiek", viewBox: `0 0 ${breedte} ${hoog}`, role: "img", "aria-label": "verschillen per categorie" });
+    casussen.forEach((k, i) => {
+      const y = 6 + i * rijH;
+      s.appendChild(svg("text", { x: links - 10, y: y + 13, "text-anchor": "end", "font-size": 12 }, kort(`${k.casus_id} ${k.naam || ""}`)));
+      let x = links, som = 0;
+      CATS.forEach(([c, , kleur]) => {
+        const n = k.categorieen[c] || 0;
+        if (!n) return;
+        const b = (n / max) * w;
+        s.appendChild(svg("rect", { x, y: y + 2, width: Math.max(1, b - 1), height: 16, fill: css(kleur) }));
+        x += b; som += n;
+      });
+      s.appendChild(svg("text", { x: x + 8, y: y + 14, class: "cijfer" }, String(som)));
+    });
+    return s;
+  }
+
+  if (!laatste) {
+    $("categorieen").appendChild(leeg("Er is nog geen vastgelegde run."));
+  } else {
+    perGebruik($("categorieen"), (g, kaart) => {
+      const casussen = laatste.rapport.casussen.filter((k) => k.gebruik === g);
+      if (!casussen.length) { kaart.appendChild(leeg(g === "blind" ? "Nog geen blinde casussen in deze run (LB5)." : "Geen casussen.")); return; }
+      kaart.appendChild(el(`<div class="legenda">${CATS.map(([, l, kl]) => `<span><i style="background:${css(kl)}"></i>${l}</span>`).join("")}</div>`));
+      const plek = el('<div class="schuif"></div>');
+      plek.appendChild(gestapeld(casussen));
+      kaart.appendChild(plek);
+      const status = casussen[0].categorieen.status;
+      if (status) kaart.appendChild(el(`<p class="uitleg" style="margin-top:8px">${esc(status)}</p>`));
+      const t = el(`<table><thead><tr><th>casus</th>${CATS.map(([, l]) => `<th class="num">${l}</th>`).join("")}</tr></thead><tbody></tbody></table>`);
+      casussen.forEach((k) => {
+        const rij = el(`<tr><td>${esc(k.casus_id)} ${esc(k.naam || "")}</td>${CATS.map(([c]) => `<td class="num">${k.categorieen[c] ?? 0}</td>`).join("")}</tr>`);
+        t.tBodies[0].appendChild(rij);
+      });
+      kaart.appendChild(t);
+      if (g === "ontwikkeling") {
+        casussen.filter((k) => k.verschillen).forEach((k) => {
+          const d = el(`<details><summary>${esc(k.casus_id)}: de bepalingen achter de verschillen</summary></details>`);
+          const lijst = el(`<table><thead><tr><th>categorie</th><th>deelvraag</th><th>bepaling</th><th>rol of opmerking</th></tr></thead><tbody></tbody></table>`);
+          (k.verschillen.lex_mist || []).forEach((v) => lijst.tBodies[0].appendChild(el(`<tr><td>Lex mist</td><td class="num">${v.deelvraag + 1}</td><td class="mono">${esc(v.bron_iri)}</td><td>${esc(v.rol || "")}</td></tr>`)));
+          (k.verschillen.lex_onterecht || []).forEach((v) => lijst.tBodies[0].appendChild(el(`<tr><td>Lex onterecht</td><td class="num">${v.deelvraag + 1}</td><td class="mono">${esc(v.bron_iri)}</td><td>${v.uitgesloten ? "staat in uitgesloten" : ""}</td></tr>`)));
+          d.appendChild(lijst);
+          kaart.appendChild(d);
+        });
+      }
+    });
+  }
+
+  // --- risicomatrix ---------------------------------------------------------------------------------------------
+  const R = D.risicos && D.risicos.risicos;
+  if (!R) {
+    $("risicos").appendChild(leeg("Geen risicomatrix in de gegevens."));
+  } else {
+    const kaart = el('<div class="kaart"></div>');
+    const rijen = Object.entries(R);
+    const gedekt = rijen.filter(([, r]) => r.primair_gedekt).length;
+    kaart.appendChild(el(`<p class="uitleg">${gedekt} van ${rijen.length} risico's hebben een test op hun primaire laag. Lagen: 1 unit en component, 2 poort, 3 keten en workflow, 4 E2E-scenario's, 5 Lex Bench.</p>`));
+    const t = el(`<div class="schuif"><table><thead><tr><th>risico</th><th>impact</th><th class="num">primaire laag</th>${[1, 2, 3, 4, 5].map((l) => `<th class="num">laag ${l}</th>`).join("")}</tr></thead><tbody></tbody></table></div>`);
+    rijen.forEach(([id, r]) => {
+      const cellen = [1, 2, 3, 4, 5].map((l) => {
+        const n = (r.per_laag[String(l)] || []).length;
+        const prim = String(l) === String(r.primair);
+        return `<td class="num" ${prim ? 'style="font-weight:600"' : ""}>${n || "·"}${prim && !n ? " <span style=\"color:rgb(var(--muted));font-weight:400\">(geen)</span>" : ""}</td>`;
+      }).join("");
+      t.querySelector("tbody").appendChild(el(`<tr><td><span class="mono">${esc(id)}</span> ${esc(r.risico)}</td><td>${esc(r.impact)}</td><td class="num">${esc(r.primair)}</td>${cellen}</tr>`));
+    });
+    kaart.appendChild(t);
+    $("risicos").appendChild(kaart);
+  }
+
+  $("voet").innerHTML = `Gegevens: <code>tools/lex-bench/data.js</code>, geschreven door <code>python -m eval.lex_bench --dashboard</code> uit de meetmappen in <code>docs/architectuur/metingen/lex-bench-*</code>. De pagina leest de meetbestanden alleen. Plan: <code>docs/architectuur/plan-lex-bench.md</code> §6.`;
+})();
+</script>
+</body>
+</html>

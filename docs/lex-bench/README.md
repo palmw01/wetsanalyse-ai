@@ -14,6 +14,10 @@ score is een hulpmiddel, geen poort. Zolang geen jurist een verwachting vaststel
   `cd tools/graph-qa && uv run python -m eval.lex_bench --l1 <naam>`; hij gaat als meetmap naar
   `docs/architectuur/metingen/lex-bench-<datum>-<naam>/`. Het nulpunt: [`lex-bench-2026-11-17-nulpunt`](../architectuur/metingen/lex-bench-2026-11-17-nulpunt/).
   De poort toetst de vorm (`tests/poort/test_lex_bench.py`), nooit de score.
+- **Het dashboard** — [`../../tools/lex-bench/`](../../tools/lex-bench/): een statische pagina in de stijl van Lex, met de
+  scorekaart, het verloop per versie, de verschillen per categorie en de risicomatrix. Bijwerken met
+  `uv run python -m eval.lex_bench --dashboard`. De workflow `lex-bench.yml` en de voortgangspagina (de rest van LB6)
+  volgen later.
 
 - **Bronselectie: de uitkomst op de (vroegere) blinde sets** — [`bronselectie/held-out.json`](bronselectie/held-out.json).
   Per set de uitkomst bij haar ene blinde meting, met de regel in het meetlogboek. Vergelijken met de code van nu, offline
@@ -26,5 +30,5 @@ score is een hulpmiddel, geen poort. Zolang geen jurist een verwachting vaststel
 - de twintig casussen (er staan er nu zes);
 - het blinde agententeam (LB2) en de pilot (LB3);
 - de risicomarkers en de traceerbaarheidsmatrix (§21);
-- het dashboard in `tools/lex-bench/` (§6);
+- de workflow `lex-bench.yml` en de voortgangspagina (§6, LB6);
 - de meetassen annotatie, begrippen en afleidingsregels (§8).
