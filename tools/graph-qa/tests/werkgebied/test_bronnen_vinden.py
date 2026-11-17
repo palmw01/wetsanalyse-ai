@@ -731,7 +731,7 @@ def _stroom_met_model(monkeypatch, api, *, budget: bool, gekozen: list[dict] | N
     monkeypatch.setitem(INVOER, "deelvragen", [{"id": "d1", "vraag": "Wanneer is een aanslag invorderbaar?"}])
     model = _Model()
 
-    def kies(graph, vraag, regelingen, dossier, buiten, p, gebeurtenis):
+    def kies(graph, vraag, regelingen, dossier, buiten, p, gebeurtenis, wetstermen=None):
         assert bronnen_vinden._MODEL.get()[0] is model
         model.meter.totaal = 1234
         return gekozen

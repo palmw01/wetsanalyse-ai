@@ -85,6 +85,8 @@ class Rol(Enum):
     # De proef na de pilot LB3 (`deelvraag_keuze.py`): een model kiest de bepalingen bij een deelvraag uit de kandidaten
     # van de code. Een losse stap; de methode staat in de instructie van de stap zelf.
     DEELVRAAG_KEUZE = ("deelvraag_keuze", None, False)
+    # De proef tegen de woordenkloof (`wetstermen.py`): de deelvraag in de taal van de wet, als zoektermen. Een losse stap.
+    WETSTERMEN = ("wetstermen", None, False)
 
     def __init__(self, naam: str, methoderol: str | None, lus: bool) -> None:
         self.naam = naam

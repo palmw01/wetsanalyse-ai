@@ -644,7 +644,7 @@ def _past_vraagvorm(k: dict[str, Any], zoekvraag: str, eigen: list[str], streng:
 
 def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit: int = 8,
                          gebeurtenis: str = "", dossier: dict[str, Any] | None = None,
-                         profiel: Any = None) -> list[dict[str, Any]]:
+                         profiel: Any = None, wetstermen: list[str] | None = None) -> list[dict[str, Any]]:
     """De kandidaten uit de pool die bij een deelvraag horen, zonder graafverkeer.
 
     Een inhoudswoord weegt naar hoe zeldzaam het is in de pool (idf, log((N+1)/(df+1))): "verzoek" en
@@ -656,13 +656,16 @@ def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit:
 
     Staat een woord van de deelvraag in geen enkele kandidaat ("Wat is een rekeningafspraak?"), dan zoeken de woorden
     die het dossier ernaast zet (`brugtermen`) in zijn plaats, samen zo zwaar als één woord. Elke optie draagt
-    `geraakt`, `past` en, als die er zijn, `brug` (brugterm → het woord waarvoor hij staat)."""
+    `geraakt`, `past` en, als die er zijn, `brug` (brugterm → het woord waarvoor hij staat).
+
+    `wetstermen` (`Zoekprofiel.wetstermen`) tellen als woorden van de deelvraag, met hun eigen gewicht."""
     import math
 
     from .zoektermen import _raakt
 
     heel = bool(profiel is not None and profiel.stam_heel)
-    termen = termen_van_deelvraag(vraag)
+    eigen = termen_van_deelvraag(vraag)
+    termen = eigen + [w for w in wetstermen or [] if w not in eigen]
     zoekvraag = zoekvraag_van_deelvraag(vraag)
     stammen = [_stamdeel(w) for w in zoektermen(gebeurtenis)]
     teksten = [f"{k.get('tekst') or ''} {k.get('zin') or ''}" for k in kandidaten]
@@ -672,7 +675,7 @@ def opties_bij_deelvraag(kandidaten: list[dict[str, Any]], vraag: str, *, limit:
 
     df = df_van(termen)
     brug: dict[str, str] = {}
-    for t in [t for t in termen if not df[t]]:
+    for t in [t for t in eigen if not df[t]]:
         for b in brugtermen(dossier or {}, t, alleen_omschrijving=bool(profiel is not None and profiel.brug_omschrijving)):
             if b not in termen and b not in brug:
                 brug[b] = t

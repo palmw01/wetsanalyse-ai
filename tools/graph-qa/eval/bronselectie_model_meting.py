@@ -10,7 +10,9 @@ Met `--rondes` kiest het model meer keren per set (de spreiding tussen runs), me
 pool verbreden elk één ronde, en per nodige bepaling zegt de meting waar ze afviel (`afval`). Met `--werkgebied` meet ze
 naast de keuze per deelvraag ook de keuze voor het hele werkgebied (`deelvraag_keuze.PER_WERKGEBIED`), even veel rondes.
 Per route telt ze ook de verkeerde deelvraag: een nodige bepaling die bij haar eigen deelvraag ontbreekt en bij een
-andere staat (`bronselectie_eval.verkeerde_deelvraag`). De meting stopt vóór een
+andere staat (`bronselectie_eval.verkeerde_deelvraag`). De variant `wetstermen` meet de proef tegen de woordenkloof
+(`Zoekprofiel.wetstermen`), met de afval per variant; met `--kandidaten 80+wetstermen` meet ze de kandidatenlijst zonder
+de keuze door het model. De meting stopt vóór een
 set als het verbruik van het model boven `MAX_TOKENS` komt. Ze schrijft geen opname weg en
 wijzigt geen set: het rapport staat in de log."""
 from __future__ import annotations
@@ -80,7 +82,15 @@ def _maat(r: dict[str, Any], sleutel: str) -> str:
 
 
 #: De varianten die de pool verbreden (analyse bronselectie, 17 nov 2026): elk één ronde naast het model.
-VARIANTEN = {"definitie_brug": {"definitie_brug": True}, "verwijzingen": {"verwijzingen": True}}
+#: `wetstermen` (proef tegen de woordenkloof): één kleine modelstap per deelvraag vertaalt naar de taal van de wet; kost
+#: ook in `--kandidaten` een model (~1k tokens per deelvraag).
+VARIANTEN = {"definitie_brug": {"definitie_brug": True}, "verwijzingen": {"verwijzingen": True},
+             "wetstermen": {"wetstermen": True}}
+
+
+def met_model(variant: str) -> bool:
+    """Of een variant ook zonder keuze door het model een model nodig heeft (`--kandidaten`)."""
+    return bool(VARIANTEN.get(variant, {}).get("wetstermen"))
 #: Waar een nodige bepaling afviel, van vroeg naar laat.
 FASEN = ("niet gevonden", "gevonden, niet bij de 40", "bij de 40, niet gekozen", "gekozen")
 
@@ -88,7 +98,8 @@ FASEN = ("niet gevonden", "gevonden, niet bij de 40", "bij de 40, niet gekozen",
 def afval(graaf: Any, s: dict[str, Any], spoor: list[dict[str, Any]]) -> dict[str, Any]:
     """Per nodige bepaling (kern of afhankelijkheid) van de set: waar ze afviel. *Gevonden* is wat de index bij de
     deelvraag vindt (`_pool`, de woordenroute vóór de rangschikking) samen met de pool rond de gebeurtenis; *bij de 40*
-    is wat het model te zien kreeg; *gekozen* wat het koos. Uit het spoor van de eerste modelronde."""
+    is wat het model te zien kreeg; *gekozen* wat het koos. Uit het spoor van de eerste modelronde, of van een variant:
+    met de vlag `wetstermen` zoekt *gevonden* ook op de termen die de variant bij die deelvraag gebruikte."""
     from agent import deelvraag_zoeken, zoekvragen, zoektermen
     from eval.bronselectie_eval import _pool, _raakt
 
@@ -104,7 +115,9 @@ def afval(graaf: Any, s: dict[str, Any], spoor: list[dict[str, Any]]) -> dict[st
         e = per_vraag.get(vraag)
         if e is None:
             continue
-        gevonden = set(_pool(graaf, s, vraag, deelvraag_zoeken.STANDAARD_PROFIEL)) | set(gebeurtenis)
+        wet = e.get("wetstermen") or []
+        gevonden = set(_pool(graaf, s, vraag, deelvraag_zoeken.STANDAARD_PROFIEL, **({"wetstermen": wet} if wet else {}))) \
+            | set(gebeurtenis)
         for v in s["verwacht"]:
             if v["deelvraag"] != i or v["rol"] not in ("kern", "afhankelijkheid"):
                 continue
@@ -119,16 +132,28 @@ def afval(graaf: Any, s: dict[str, Any], spoor: list[dict[str, Any]]) -> dict[st
 
 
 def meet_kandidaten(a: argparse.Namespace) -> int:
-    """De recall van de kandidatenlijst per grens (en eventueel een variant, `80+definitie_brug`), zonder model: 0
-    tokens. Het model kiest bijna alles wat nodig is en bij de kandidaten staat, dus dit is zijn plafond."""
+    """De recall van de kandidatenlijst per grens (en eventueel een variant, `80+definitie_brug`), zonder keuze door het
+    model: 0 tokens. Het model kiest bijna alles wat nodig is en bij de kandidaten staat, dus dit is zijn plafond. Een
+    variant die een model nodig heeft (`80+wetstermen`, `met_model`) krijgt het model van de straat voor alleen die
+    stap."""
     from agent.adapters.graphdb_graph import make_graph
     from agent.config import Settings
 
-    graaf = make_graph(Settings.from_env())
+    settings = Settings.from_env()
+    graaf = make_graph(settings)
+    keuzes = [x for x in a.kandidaten.split(",") if x]
+    llm = None
+    if any(met_model(c.partition("+")[2]) for c in keuzes):
+        from agent.adapters.anthropic_llm import AnthropicLLM
+
+        llm = AnthropicLLM(settings)
+    modelmeting: dict[str, Any] = {}
     routes: dict[str, Any] = {}
-    for c in [x for x in a.kandidaten.split(",") if x]:
+    for c in keuzes:
         grens, _, variant = c.partition("+")
-        routes[c] = kandidaten_route(int(grens), VARIANTEN.get(variant) if variant else None)
+        routes[c] = kandidaten_route(int(grens), VARIANTEN.get(variant) if variant else None,
+                                     llm=llm if met_model(variant) else None,
+                                     model=settings.llm_model, meting=modelmeting)
     print(f"Kandidatenlijst (zonder model): {', '.join(routes)}; commit {os.environ.get('LEX_REVISIE', '') or 'lokaal'}",
           flush=True)
     som = {c: [0, 0] for c in routes}
@@ -144,6 +169,9 @@ def meet_kandidaten(a: argparse.Namespace) -> int:
     finally:
         graaf.close()
     print("TOTAAL nodig bij de kandidaten: " + " | ".join(f"{c} {g}/{n}" for c, (g, n) in som.items()), flush=True)
+    if llm is not None:
+        print(f"MODEL (wetstermen): {modelmeting.get('llm_calls', 0)} aanroepen, verbruik "
+              f"{json.dumps(llm.meter.als_dict())}", flush=True)
     if a.json:
         a.json.write_text(json.dumps({"som": som, "sets": rapport}, ensure_ascii=False, indent=1))
     return 0
@@ -180,12 +208,16 @@ def main(argv: list[str] | None = None) -> int:
         for r in range(1, a.rondes + 1):
             routes[f"{WERKGEBIED} {r}"] = model_kiest_route(llm, settings.llm_model, modelmeting, werkgebied=True,
                                                             spoor=spoor_wg if r == 1 else None)
+    sporen: dict[str, list[dict[str, Any]]] = {}
     for v in [x for x in a.varianten.split(",") if x]:
-        routes[f"variant {v}"] = model_kiest_route(llm, settings.llm_model, modelmeting, vlaggen=VARIANTEN[v])
+        sporen[v] = []
+        routes[f"variant {v}"] = model_kiest_route(llm, settings.llm_model, modelmeting, vlaggen=VARIANTEN[v],
+                                                   spoor=sporen[v])
     print(f"Bronselectie: {', '.join(routes)}; model {settings.llm_model}, "
           f"commit {os.environ.get('LEX_REVISIE', '') or 'lokaal'}", flush=True)
     rapport: dict[str, Any] = {}
     totaal_afval = {f: 0 for f in FASEN}
+    afval_variant = {v: {f: 0 for f in FASEN} for v in sporen}
     totaal_afval_wg = {f: 0 for f in FASEN}
     totaal_verkeerd: dict[str, int] = {}
     try:
@@ -210,6 +242,12 @@ def main(argv: list[str] | None = None) -> int:
                                         | {"per_deelvraag": [{"opties": d["opties"]} for d in v["per_deelvraag"]]}
                                         for k, v in r.items()},
                              "afval": val, **({"afval_werkgebied": val_wg} if val_wg else {})}
+            for v, sp in sporen.items():
+                val_v = afval(graaf, s, sp)
+                rapport[naam][f"afval {v}"] = val_v
+                for f, n in val_v["telling"].items():
+                    afval_variant[v][f] += n
+                print(f"{'':40} afval {v}: " + ", ".join(f"{f} {n}" for f, n in val_v["telling"].items()), flush=True)
             varianten = " | ".join(f"{k.removeprefix('variant ')} {_maat(v, 'recall_nodig')}"
                                    for k, v in r.items() if k.startswith("variant "))
             print(f"{naam:40} nodig {_maat(r[STANDAARD], 'recall_nodig')} → model gem. {sum(modellen) / len(modellen):.2f}"
@@ -232,6 +270,8 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         graaf.close()
     print("AFVAL TOTAAL: " + ", ".join(f"{f} {n}" for f, n in totaal_afval.items()), flush=True)
+    for v, tel in afval_variant.items():
+        print(f"AFVAL TOTAAL {v}: " + ", ".join(f"{f} {n}" for f, n in tel.items()), flush=True)
     if a.werkgebied:
         print("AFVAL TOTAAL PER WERKGEBIED: " + ", ".join(f"{f} {n}" for f, n in totaal_afval_wg.items()), flush=True)
     print("VERKEERDE DEELVRAAG TOTAAL: " + " | ".join(f"{k} {n}" for k, n in totaal_verkeerd.items()), flush=True)
@@ -239,6 +279,7 @@ def main(argv: list[str] | None = None) -> int:
     if a.json:
         a.json.write_text(json.dumps({"verbruik": llm.meter.als_dict(), "afval": totaal_afval,
                                       "afval_werkgebied": totaal_afval_wg, "verkeerde_deelvraag": totaal_verkeerd,
+                                      "afval_varianten": afval_variant,
                                       "sets": rapport},
                                      ensure_ascii=False, indent=1))
     return 0

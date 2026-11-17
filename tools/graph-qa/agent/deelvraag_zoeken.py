@@ -169,6 +169,14 @@ class Zoekprofiel:
     #:   de run (`bronnen_vinden.vind(llm=)`); zonder kiest de code. Met deze vlag geeft dezelfde vraag niet meer zeker
     #:   dezelfde opties.
     model_kiest: bool = True
+    #: - `wetstermen` (proef tegen de woordenkloof, 17 nov 2026, meting `bronselectie-2026-11-17-drie-rondes`: 36 van de 172
+    #:   nodige bepalingen vond de index helemaal niet): één modelstap per deelvraag (`Rol.WETSTERMEN`,
+    #:   `wetstermen.wetstermen`) vertaalt de deelvraag met het dossier naar zoektermen in de taal van de wet; de code
+    #:   houdt alleen woorden die in het zoekbereik voorkomen, hoogstens `wetstermen.MAX_WETSTERMEN`. Ze zoeken als eigen
+    #:   termen in de index (`kandidatenpool(wetstermen=)`) en raken de pool rond de gebeurtenis
+    #:   (`zoekvragen.opties_bij_deelvraag(wetstermen=)`). Het model typt geen bepaling. Standaard **uit**: eerst meten.
+    #:   Werkt alleen met een model in de run, zoals `model_kiest`.
+    wetstermen: bool = False
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.
@@ -207,7 +215,8 @@ def _omschrijving(tekst: str, geraakt: list[str]) -> str:
 
 
 def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | None,
-                   dossier: dict[str, Any], profiel: Zoekprofiel = STANDAARD_PROFIEL) -> dict[str, Any] | None:
+                   dossier: dict[str, Any], profiel: Zoekprofiel = STANDAARD_PROFIEL,
+                   wetstermen: list[str] | None = None) -> dict[str, Any] | None:
     """Wat de index bij een deelvraag vindt, vóór de rangschikking: per bepaling (lid, artikel zonder
     leden, of divisie) de geraakte teksten en per lijst haar rang, met de termen en het bereik waarmee
     gezocht is. None als er niets te zoeken valt of de graaf hapert. Apart, zodat de meting kan zien wat de
@@ -215,7 +224,10 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
 
     De lijsten, per regeling: alle termen samen (per knooptype, zoals sinds F3f) en – met `per_term` – elke
     term apart over alle knooptypes. Een treffer in een lijst van een term is het bewijs dat de bepaling die
-    term raakt, met de stemmer van de index in plaats van een eigen telling."""
+    term raakt, met de stemmer van de index in plaats van een eigen telling.
+
+    `wetstermen` (`Zoekprofiel.wetstermen`, uit `wetstermen.wetstermen`) zijn de woorden van de wet bij deze deelvraag:
+    ze zoeken als gewone termen mee, na de termen van de deelvraag zelf, en de pool zegt ze in `wetstermen`."""
     vraagtekst = onderwerp_van_deelvraag(deelvraag) if deelvraag else ""
     termen = _termen(graph, vraagtekst, regelingen, profiel)
     if not termen:
@@ -225,6 +237,8 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
         return None
     bruggen = definitie_bruggen(graph, termen, regelingen, profiel) if profiel.definitie_brug else {}
     termen = termen + [w for w in bruggen if w not in termen]
+    wet = [w for w in wetstermen or [] if w not in termen]
+    termen = termen + wet
     gedeeld = gedeelde_termen(termen, dossier.get("deelvragen") or []) if profiel.onderscheidend and deelvraag else []
     termen = [w for w in termen if w not in gedeeld]
     velden = DOSSIERVELDEN_ALLE if profiel.dossier_velden else DOSSIERVELDEN
@@ -314,7 +328,7 @@ def kandidatenpool(graph: GraphPort, *, regelingen: list[str], deelvraag: str | 
 
     return {"termen": termen, "dossiertermen": dossiertermen, "alle_dossiertermen": alle_dossiertermen,
             "bereik": bereik, "gevonden": gevonden, "geraakte_artikelen": geraakte_artikelen, "lemma": lemma,
-            "bruggen": bruggen}
+            "bruggen": bruggen, "wetstermen": wet}
 
 
 def _termen(graph: GraphPort, tekst: str, regelingen: list[str], profiel: Zoekprofiel) -> list[str]:
@@ -583,7 +597,8 @@ def om_de_beurt_sterk(kandidaten: list[dict[str, Any]], score: dict[str, float],
 
 def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str | None, dossier: dict[str, Any],
                     buiten: list[str], limit: int = MAX_PER_DEELVRAAG,
-                    profiel: Zoekprofiel = STANDAARD_PROFIEL, met_tekst: bool = False) -> list[dict[str, Any]]:
+                    profiel: Zoekprofiel = STANDAARD_PROFIEL, met_tekst: bool = False,
+                    wetstermen: list[str] | None = None) -> list[dict[str, Any]]:
     """De bepalingen (leden, artikelen zonder leden, of divisies) die bij één deelvraag horen, binnen de
     gekozen regelingen – zonder model, dus dezelfde vraag geeft dezelfde opties.
 
@@ -603,10 +618,12 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
     of beroepschrift" raakt "beroep", maar gaat even goed over bezwaar.
 
     `met_tekst` geeft elke optie ook haar eigen tekst mee (`tekst`), voor de keuze door een model
-    (`deelvraag_keuze`, `Zoekprofiel.model_kiest`)."""
+    (`deelvraag_keuze`, `Zoekprofiel.model_kiest`). `wetstermen` zoeken mee als termen van de deelvraag
+    (`kandidatenpool`, `Zoekprofiel.wetstermen`)."""
     from .overzicht import padsleutel
 
-    pool = kandidatenpool(graph, regelingen=regelingen, deelvraag=deelvraag, dossier=dossier, profiel=profiel)
+    pool = kandidatenpool(graph, regelingen=regelingen, deelvraag=deelvraag, dossier=dossier, profiel=profiel,
+                          wetstermen=wetstermen)
     if pool is None:
         return []
     termen, dossiertermen, bereik = pool["termen"], pool["dossiertermen"], pool["bereik"]

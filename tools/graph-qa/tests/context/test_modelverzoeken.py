@@ -299,6 +299,17 @@ def test_deelvraag_keuze_werkgebied():
     _vergelijk("deelvraag_keuze_werkgebied", llm.calls)
 
 
+# --- de proef tegen de woordenkloof: de deelvraag in de taal van de wet --------------------------------
+
+def test_wetstermen():
+    from agent import wetstermen as wt
+    llm = Opnemer(rest=lambda _kw: response([tool_block("w1", "geef_wetstermen", {"termen": ["navordering"]})],
+                                            "tool_use"))
+    wt.vraag(llm, "m", "Mag de Belastingdienst later geld bijvragen?", {"naam": "Achteraf belasting"},
+             ["Algemene wet inzake rijksbelastingen"])
+    _vergelijk("wetstermen", llm.calls)
+
+
 # --- de hashes die de herkomst dragen -----------------------------------------------------------
 
 def _hashes() -> dict[str, str]:

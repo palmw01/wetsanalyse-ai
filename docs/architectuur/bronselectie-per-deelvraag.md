@@ -104,3 +104,15 @@ bepaling verzinnen. Geeft het geen bruikbaar antwoord, dan kiest de code zoals v
 De bronnenrun controleert vooraf het tokenbudget en boekt het verbruik op `bronnen-<run>` (ongeveer 6,5k tokens per
 deelvraag). Dezelfde vraag geeft daarmee niet meer zeker dezelfde opties. Meting:
 [`metingen/bronselectie-2026-11-17-model/`](metingen/bronselectie-2026-11-17-model/README.md).
+
+## Proef: de deelvraag in de taal van de wet (17 nov 2026, standaard uit)
+
+Een deel van de nodige bepalingen vindt de index helemaal niet, omdat de deelvraag andere woorden gebruikt dan de wet
+(de woordenkloof: 36 van 172 in [`metingen/bronselectie-2026-11-17-drie-rondes/`](metingen/bronselectie-2026-11-17-drie-rondes/README.md)).
+Met `Zoekprofiel.wetstermen` vraagt de code per deelvraag één kleine modelstap (`wetstermen.py`, rol `wetstermen`): de
+deelvraag met het dossier en de namen van de regelingen in het zoekbereik, en het model geeft zoektermen zoals de wet
+het onderwerp benoemt. Het typt geen bepaling. De code houdt alleen inhoudswoorden die niet al in de deelvraag staan
+en die in het zoekbereik voorkomen (hoogstens zes), en zoekt daarop met de bestaande index, naast de woorden van de
+deelvraag; ook de pool rond de gebeurtenis telt ze als woorden van de deelvraag. Faalt de stap, dan zoekt de code
+zoals zonder de vlag. De termen staan in het bewijs van de kandidaat (`detail.wetstermen`). Meten: `azure-infra` →
+`eval` → `bronselectie_wetstermen`.

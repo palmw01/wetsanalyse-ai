@@ -294,9 +294,14 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
         regelingen = p["regelingen"]
     n_totaal, volledig = 0, p is None or p["volledig"]
     deelvragen = invoer.get("deelvragen") or []
-    per_werkgebied = _werkgebied_kiest(graph, deelvragen, regelingen, dossier, buiten, p, gebeurtenis)
+    # De wetstermen één keer per deelvraag (`Zoekprofiel.wetstermen`), voor de keuze per werkgebied en per deelvraag.
+    wetten = [_wetstermen(graph, d.get("vraag", ""), regelingen, dossier) for d in deelvragen]
+    per_werkgebied = _werkgebied_kiest(graph, deelvragen, regelingen, dossier, buiten, p, gebeurtenis, wetten)
     for i, d in enumerate(deelvragen):
         basis = {"deelvraag_id": d.get("id", ""), "vraag": d.get("vraag", "")}
+        wet = wetten[i]
+        if wet:
+            basis["wetstermen"] = wet
         if per_werkgebied is not None:
             for k in per_werkgebied[i]:
                 gevonden_bij = [deelvragen[j].get("id", "") for j in k.get("gevonden_bij", [])]
@@ -304,20 +309,20 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
                                    detail={**basis, "route": "model_werkgebied", "bron": k["bron"],
                                            "gevonden_bij": gevonden_bij})
             continue
-        gekozen = _model_kiest(graph, d.get("vraag", ""), regelingen, dossier, buiten, p, gebeurtenis)
+        gekozen = _model_kiest(graph, d.get("vraag", ""), regelingen, dossier, buiten, p, gebeurtenis, wet)
         if gekozen is not None:
             for k in gekozen:
                 n_totaal += v.voeg(k["bron_iri"], rol=k["rol"], methode="deelvraag", label=k["label"],
                                    detail={**basis, "route": "model", "bron": k["bron"]})
             continue
         woorden = bepaling_opties(graph, regelingen=regelingen, deelvraag=d.get("vraag", ""), dossier=dossier,
-                                  buiten=buiten, profiel=profiel)
+                                  buiten=buiten, profiel=profiel, wetstermen=wet)
         uit_pool: list[dict[str, Any]] = []
         if p is not None:
             plaatsen = MAX_PER_DEELVRAAG - min(PLAATSEN_WOORDEN, len([b for b in woorden if not b["buiten"]]))
             uit_pool = opties_bij_deelvraag(p["kandidaten"], d.get("vraag", ""), gebeurtenis=gebeurtenis,
                                             limit=MAX_PER_DEELVRAAG if profiel.woorden_voor_pool else plaatsen,
-                                            dossier=dossier, profiel=profiel)
+                                            dossier=dossier, profiel=profiel, wetstermen=wet)
         for k in samen_met_woorden(uit_pool, woorden, limit=MAX_PER_DEELVRAAG,
                                    woorden_voor_pool=profiel.woorden_voor_pool):
             if k["bron"] == "pool":
@@ -332,8 +337,21 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     return n_totaal, volledig
 
 
+def _wetstermen(graph: GraphPort, vraag: str, regelingen: list[str], dossier: dict[str, Any]) -> list[str]:
+    """De zoektermen in de taal van de wet bij één deelvraag (`Zoekprofiel.wetstermen`, `wetstermen.wetstermen`). Leeg
+    als de vlag uit staat of de run geen model heeft: dan zoekt de code alleen op de woorden van de deelvraag."""
+    model = _MODEL.get()
+    if not _profiel().wetstermen or model is None:
+        return []
+    from .wetstermen import wetstermen
+
+    llm, modelnaam, meting = model
+    return wetstermen(graph, llm, modelnaam, vraag, dossier, regelingen, meting)
+
+
 def _model_kiest(graph: GraphPort, vraag: str, regelingen: list[str], dossier: dict[str, Any], buiten: list[str],
-                 p: dict[str, Any] | None, gebeurtenis: str) -> list[dict[str, Any]] | None:
+                 p: dict[str, Any] | None, gebeurtenis: str,
+                 wetstermen: list[str] | None = None) -> list[dict[str, Any]] | None:
     """Een model kiest de bepalingen bij één deelvraag (`Zoekprofiel.model_kiest`, meting
     `bronselectie-2026-11-17-model`): de code verzamelt de kandidaten uit de pool en de woordenroute, ruimer dan het
     kaartje, het model wijst er hoogstens `MAX_PER_DEELVRAAG` aan met hun rol. None als de vlag uit staat, de run geen
@@ -344,14 +362,15 @@ def _model_kiest(graph: GraphPort, vraag: str, regelingen: list[str], dossier: d
     if not _profiel().model_kiest or model is None:
         return None
     llm, modelnaam, meting = model
-    kand = _kandidaten_bij(graph, vraag, regelingen, dossier, buiten, p, gebeurtenis)
+    kand = _kandidaten_bij(graph, vraag, regelingen, dossier, buiten, p, gebeurtenis, wetstermen)
     return deelvraag_keuze.kies(llm, modelnaam, vraag, dossier, kand, meting)
 
 
 def _kandidaten_bij(graph: GraphPort, vraag: str, regelingen: list[str], dossier: dict[str, Any], buiten: list[str],
-                    p: dict[str, Any] | None, gebeurtenis: str) -> list[dict[str, Any]]:
+                    p: dict[str, Any] | None, gebeurtenis: str,
+                    wetstermen: list[str] | None = None) -> list[dict[str, Any]]:
     """De kandidaten voor het model bij één deelvraag (`deelvraag_keuze.kandidaten`): de woordenroute en de pool rond de
-    gebeurtenis, elk tot `MAX_KANDIDATEN`, om de beurt."""
+    gebeurtenis, elk tot `MAX_KANDIDATEN`, om de beurt. `wetstermen` zoeken mee (`Zoekprofiel.wetstermen`)."""
     from dataclasses import replace
 
     from . import deelvraag_keuze
@@ -360,16 +379,17 @@ def _kandidaten_bij(graph: GraphPort, vraag: str, regelingen: list[str], dossier
     # De verwijzingen hoeven hier niet mee: het model kiest uit wat de deelvraag zelf vindt.
     ruim = replace(_profiel(), verwijzingen=False)
     woorden = bepaling_opties(graph, regelingen=regelingen, deelvraag=vraag, dossier=dossier, buiten=buiten,
-                              limit=deelvraag_keuze.MAX_KANDIDATEN, profiel=ruim, met_tekst=True)
+                              limit=deelvraag_keuze.MAX_KANDIDATEN, profiel=ruim, met_tekst=True,
+                              wetstermen=wetstermen)
     uit_pool = opties_bij_deelvraag(p["kandidaten"], vraag, gebeurtenis=gebeurtenis,
                                     limit=deelvraag_keuze.MAX_KANDIDATEN, dossier=dossier,
-                                    profiel=ruim) if p is not None else []
+                                    profiel=ruim, wetstermen=wetstermen) if p is not None else []
     return deelvraag_keuze.kandidaten(uit_pool, woorden)
 
 
 def _werkgebied_kiest(graph: GraphPort, deelvragen: list[dict[str, Any]], regelingen: list[str],
                       dossier: dict[str, Any], buiten: list[str], p: dict[str, Any] | None,
-                      gebeurtenis: str) -> list[list[dict[str, Any]]] | None:
+                      gebeurtenis: str, wetten: list[list[str]] | None = None) -> list[list[dict[str, Any]]] | None:
     """Eén keuze voor alle deelvragen (`deelvraag_keuze.PER_WERKGEBIED`, of `vind(per_werkgebied=)`): de kandidaten van
     elke deelvraag samen, en het model zet elke bepaling bij de deelvraag die ze beantwoordt. Per deelvraag de gekozen
     kandidaten met hun rol, of None als de vorm uit staat, de run geen model heeft of het model geen bruikbaar antwoord
@@ -383,7 +403,9 @@ def _werkgebied_kiest(graph: GraphPort, deelvragen: list[dict[str, Any]], regeli
     if not aan or not _profiel().model_kiest or model is None or not deelvragen:
         return None
     llm, modelnaam, meting = model
-    per = [_kandidaten_bij(graph, d.get("vraag", ""), regelingen, dossier, buiten, p, gebeurtenis) for d in deelvragen]
+    wetten = wetten or [[] for _ in deelvragen]
+    per = [_kandidaten_bij(graph, d.get("vraag", ""), regelingen, dossier, buiten, p, gebeurtenis, wet)
+           for d, wet in zip(deelvragen, wetten)]
     kand = deelvraag_keuze.kandidaten_werkgebied(per)
     return deelvraag_keuze.kies_werkgebied(llm, modelnaam, [d.get("vraag", "") for d in deelvragen], dossier, kand,
                                            meting)
