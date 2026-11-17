@@ -367,6 +367,39 @@ ROUTES_PLAN = {**{f"met {v}": _met_profiel(replace(VOOR_STAP8, **{v: True}))
                   for v in ("verwijzingen", "onderscheidend")}}
 
 
+def model_kiest_route(llm: Any, model: str, meting: dict[str, Any] | None = None):
+    """De proef `Zoekprofiel.model_kiest` (pilot LB3): dezelfde kandidaten als de zoekvragenroute, ruimer
+    (`deelvraag_keuze.MAX_KANDIDATEN`), en een model kiest er hoogstens acht uit (`deelvraag_keuze.kies`). Faalt de
+    keuze, dan de zoekvragenroute zelf. Kost modeltokens: alleen met `--model-kiest` en akkoord."""
+    from agent import deelvraag_keuze, zoekvragen
+
+    profiel = replace(deelvraag_zoeken.STANDAARD_PROFIEL, model_kiest=True, verwijzingen=False)
+    terug = _zoekvragen_route(deelvraag_zoeken.STANDAARD_PROFIEL)
+    cache: dict[tuple, dict[str, Any]] = {}
+
+    def route(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
+        dossier = _dossier(s)
+        buiten = zoektermen.uitsluitstammen(zoektermen.buiten_uit_afbakening("Buiten de afbakening: " + s.get("buiten", "")))
+        woorden = deelvraag_zoeken.bepaling_opties(graph, regelingen=s["regelingen"], deelvraag=vraag, dossier=dossier,
+                                                   buiten=buiten, limit=deelvraag_keuze.MAX_KANDIDATEN,
+                                                   profiel=profiel, met_tekst=True)
+        uit_pool: list[dict[str, Any]] = []
+        if s.get("gebeurtenis"):
+            sleutel = (id(graph), s["naam"])
+            if sleutel not in cache:
+                cache[sleutel] = zoekvragen.pool(graph, gebeurtenis=s["gebeurtenis"], regelingen=s["regelingen"],
+                                                 buiten=buiten)
+            uit_pool = zoekvragen.opties_bij_deelvraag(cache[sleutel]["kandidaten"], vraag, gebeurtenis=s["gebeurtenis"],
+                                                       limit=deelvraag_keuze.MAX_KANDIDATEN, dossier=dossier,
+                                                       profiel=profiel)
+        kand = deelvraag_keuze.kandidaten(uit_pool, woorden)
+        gekozen = deelvraag_keuze.kies(llm, model, vraag, {**dossier, "buiten": s.get("buiten", "")}, kand, meting)
+        if gekozen is None:
+            return terug(graph, s, vraag)
+        return [{"bron_iri": k["bron_iri"], "label": k["label"], "buiten": False, "rol": k["rol"]} for k in gekozen]
+    return route
+
+
 def _pool(graph: Any, s: dict[str, Any], vraag: str, profiel=None) -> list[str]:
     """Wat de index bij de deelvraag vindt, vóór de rangschikking (`deelvraag_zoeken.kandidatenpool`): zo
     scheidt de meting wat het zoeken mist van wat de rangschikking laat vallen."""
@@ -561,6 +594,8 @@ def main(argv: list[str] | None = None) -> int:
                    help="met --intake ook de vlaggen van B-2 (verwijzingen, onderscheidend), standaard uit")
     p.add_argument("--plan", action="store_true",
                    help="met --intake ook de vlaggen van het plan bronselectie bij Termijnen, standaard uit")
+    p.add_argument("--model-kiest", action="store_true",
+                   help="met --intake ook de proef waarin een model per deelvraag kiest (kost modeltokens: alleen met akkoord)")
     a = p.parse_args(argv)
     a.set = a.set or (INTAKE_SET if a.intake else STANDAARD_SET)
     s = laad_set(a.set)
@@ -573,6 +608,14 @@ def main(argv: list[str] | None = None) -> int:
     if a.intake and (a.b2 or a.plan):
         extra = {**(ROUTES_B2 if a.b2 else {}), **(ROUTES_PLAN if a.plan else {})}
         meting = lambda graaf, s: meet_intake(graaf, s, {**ROUTES, **extra})  # noqa: E731
+    if a.intake and a.model_kiest:
+        from agent.adapters.anthropic_llm import AnthropicLLM
+        from agent.config import Settings
+        settings = Settings.from_env()
+        modelmeting: dict[str, Any] = {}
+        routes = {"zoekvragen standaard (stap 8)": ROUTES["zoekvragen standaard (stap 8)"],
+                  "model kiest (proef)": model_kiest_route(AnthropicLLM(settings), settings.llm_model, modelmeting)}
+        meting = lambda graaf, s: meet_intake(graaf, s, routes)  # noqa: E731
     pad = SETS / a.set / "graafantwoorden.json"
     if a.aanvullen:
         graaf = AanvullendeGraaf(json.loads(pad.read_text()) if pad.exists() else {"sparql": {}, "semantisch": {}},

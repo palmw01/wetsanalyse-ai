@@ -74,6 +74,8 @@ KEUZES: tuple[Modelkeuze, ...] = (
     _stap("subagent", "Subagents",
           "Een subagent van de centrale agent, als zijn agentprofiel geen eigen keuze heeft."),
     _stap("stukcontrole", "Controle per stuk", "Toetst elk stuk uit het rapport van een subagent aan de bron."),
+    _stap("deelvraag_keuze", "Bronnen per deelvraag kiezen (proef)",
+          "Kiest de bepalingen bij een deelvraag uit wat de zoekmachine vond. Een proef, standaard uit.", _OPHALEN),
     _stap("jas_classifier", "JAS-classifier", "Kiest de JAS-klasse voor elke kandidaat.", _OORDEEL),
     _stap("jas_reviewer", "JAS-reviewer", "Beoordeelt de twijfelgevallen van de classifier opnieuw.", _OORDEEL),
     _stap("bepaling_toelichting", "Toelichting bij een bepaling",

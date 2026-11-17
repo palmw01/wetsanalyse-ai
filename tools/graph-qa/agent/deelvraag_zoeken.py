@@ -160,6 +160,13 @@ class Zoekprofiel:
     #:   `MAX_BRUGTERMEN` (`definitie_bruggen`): "een voorlopige aanslag tot een negatief bedrag … wordt aangeduid als
     #:   voorlopige teruggaaf" geeft bij "negatieve voorlopige aanslag" de term "teruggaaf". De wet is zo zelf de brug.
     definitie_brug: bool = False
+    #: - `model_kiest` (proef na de pilot LB3 van Lex Bench, 17 nov 2026): de index vindt ongeveer de helft van de
+    #:   bepalingen die het team nodig vindt, maar de rangschikking in code houdt er weinig van over. Met deze vlag
+    #:   verzamelt de code per deelvraag tot `deelvraag_keuze.MAX_KANDIDATEN` kandidaten uit de pool en de woordenroute,
+    #:   en kiest één modelstap (`Rol.DEELVRAAG_KEUZE`) er hoogstens `MAX_PER_DEELVRAAG` uit: het model wijst aan, de code
+    #:   neemt iri en tekst over. Standaard **uit**: alleen de meting zet hem aan. Met deze vlag geeft dezelfde vraag niet
+    #:   meer zeker dezelfde opties.
+    model_kiest: bool = False
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.
@@ -574,7 +581,7 @@ def om_de_beurt_sterk(kandidaten: list[dict[str, Any]], score: dict[str, float],
 
 def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str | None, dossier: dict[str, Any],
                     buiten: list[str], limit: int = MAX_PER_DEELVRAAG,
-                    profiel: Zoekprofiel = STANDAARD_PROFIEL) -> list[dict[str, Any]]:
+                    profiel: Zoekprofiel = STANDAARD_PROFIEL, met_tekst: bool = False) -> list[dict[str, Any]]:
     """De bepalingen (leden, artikelen zonder leden, of divisies) die bij één deelvraag horen, binnen de
     gekozen regelingen – zonder model, dus dezelfde vraag geeft dezelfde opties.
 
@@ -591,7 +598,10 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
     Een bepaling die meer raakt aan wat de analist buiten het werkgebied liet (`buiten`, de stammen uit
     `zoektermen.uitsluitstammen`, in tekst en kop) dan aan de deelvraag, valt niet stil weg: ze
     staat achteraan, gemarkeerd (`buiten: true`), hoogstens `MAX_BUITEN` extra. Meer, niet ook: "bezwaar-
-    of beroepschrift" raakt "beroep", maar gaat even goed over bezwaar."""
+    of beroepschrift" raakt "beroep", maar gaat even goed over bezwaar.
+
+    `met_tekst` geeft elke optie ook haar eigen tekst mee (`tekst`), voor de keuze door een model
+    (`deelvraag_keuze`, `Zoekprofiel.model_kiest`)."""
     from .overzicht import padsleutel
 
     pool = kandidatenpool(graph, regelingen=regelingen, deelvraag=deelvraag, dossier=dossier, profiel=profiel)
@@ -661,7 +671,9 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
     uit = [{"bron_iri": k["iri"], "bwb_id": k["bwb_id"], "label": "",
             "omschrijving": BUITEN_TEKST if k["buiten"] else _omschrijving(k["eigen"] or k["teksten"][0],
                                                                           k["dv"] + k["dos"]),
-            "geraakt": k["dv"] + k["dos"], "buiten": k["buiten"]} for k in gekozen]
+            "geraakt": k["dv"] + k["dos"], "buiten": k["buiten"],
+            **({"tekst": " ".join((k["eigen"] or " ".join(k["teksten"])).split())} if met_tekst else {})}
+           for k in gekozen]
     if profiel.verwijzingen:
         extra = verwezen(graph, passend[:limit], bereik, {k["iri"] for k in gekozen})
         uit += [{"bron_iri": e["iri"], "bwb_id": e["bwb_id"], "label": "", "omschrijving": "", "geraakt": [],
