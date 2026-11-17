@@ -394,7 +394,7 @@ def model_kiest_route(llm: Any, model: str, meting: dict[str, Any] | None = None
     `vlaggen` zet extra vlaggen van het zoekprofiel voor de kandidaten (een variant van de meting, bv.
     `definitie_brug`); `verwijzingen` staat standaard uit, zoals in de bronnenrun. Met `spoor` legt de route per deelvraag
     vast welke kandidaten het model kreeg en welke het koos, zodat de meting per bepaling ziet waar ze afviel."""
-    from agent import deelvraag_keuze, zoekvragen
+    from agent import deelvraag_keuze
 
     profiel = replace(deelvraag_zoeken.STANDAARD_PROFIEL, model_kiest=True,
                       **{"verwijzingen": False, **(vlaggen or {})})
@@ -403,20 +403,7 @@ def model_kiest_route(llm: Any, model: str, meting: dict[str, Any] | None = None
 
     def route(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
         dossier = _dossier(s)
-        buiten = zoektermen.uitsluitstammen(zoektermen.buiten_uit_afbakening("Buiten de afbakening: " + s.get("buiten", "")))
-        woorden = deelvraag_zoeken.bepaling_opties(graph, regelingen=s["regelingen"], deelvraag=vraag, dossier=dossier,
-                                                   buiten=buiten, limit=deelvraag_keuze.MAX_KANDIDATEN,
-                                                   profiel=profiel, met_tekst=True)
-        uit_pool: list[dict[str, Any]] = []
-        if s.get("gebeurtenis"):
-            sleutel = (id(graph), s["naam"])
-            if sleutel not in cache:
-                cache[sleutel] = zoekvragen.pool(graph, gebeurtenis=s["gebeurtenis"], regelingen=s["regelingen"],
-                                                 buiten=buiten)
-            uit_pool = zoekvragen.opties_bij_deelvraag(cache[sleutel]["kandidaten"], vraag, gebeurtenis=s["gebeurtenis"],
-                                                       limit=deelvraag_keuze.MAX_KANDIDATEN, dossier=dossier,
-                                                       profiel=profiel)
-        kand = deelvraag_keuze.kandidaten(uit_pool, woorden)
+        kand = kandidaten_voor(graph, s, vraag, profiel, cache)
         gekozen = deelvraag_keuze.kies(llm, model, vraag, {**dossier, "buiten": s.get("buiten", "")}, kand, meting)
         if spoor is not None:
             spoor.append({"set": s["naam"], "vraag": vraag, "kandidaten": [k["bron_iri"] for k in kand],
@@ -424,6 +411,40 @@ def model_kiest_route(llm: Any, model: str, meting: dict[str, Any] | None = None
         if gekozen is None:
             return terug(graph, s, vraag)
         return [{"bron_iri": k["bron_iri"], "label": k["label"], "buiten": False, "rol": k["rol"]} for k in gekozen]
+    return route
+
+
+def kandidaten_voor(graph: Any, s: dict[str, Any], vraag: str, profiel: "deelvraag_zoeken.Zoekprofiel",
+                    cache: dict[tuple, dict[str, Any]], limit: int | None = None) -> list[dict[str, Any]]:
+    """De kandidaten die het model bij een deelvraag krijgt (`deelvraag_keuze.kandidaten`), zoals de bronnenrun ze
+    samenstelt (`bronnen_vinden._model_kiest`): de woordenroute en de pool rond de gebeurtenis, elk tot `limit`
+    (standaard `deelvraag_keuze.MAX_KANDIDATEN`), om de beurt."""
+    from agent import deelvraag_keuze, zoekvragen
+
+    limit = limit or deelvraag_keuze.MAX_KANDIDATEN
+    dossier = _dossier(s)
+    buiten = zoektermen.uitsluitstammen(zoektermen.buiten_uit_afbakening("Buiten de afbakening: " + s.get("buiten", "")))
+    woorden = deelvraag_zoeken.bepaling_opties(graph, regelingen=s["regelingen"], deelvraag=vraag, dossier=dossier,
+                                               buiten=buiten, limit=limit, profiel=profiel, met_tekst=True)
+    uit_pool: list[dict[str, Any]] = []
+    if s.get("gebeurtenis"):
+        sleutel = (id(graph), s["naam"])
+        if sleutel not in cache:
+            cache[sleutel] = zoekvragen.pool(graph, gebeurtenis=s["gebeurtenis"], regelingen=s["regelingen"], buiten=buiten)
+        uit_pool = zoekvragen.opties_bij_deelvraag(cache[sleutel]["kandidaten"], vraag, gebeurtenis=s["gebeurtenis"],
+                                                   limit=limit, dossier=dossier, profiel=profiel)
+    return deelvraag_keuze.kandidaten(uit_pool, woorden, maximaal=limit)
+
+
+def kandidaten_route(limit: int, vlaggen: dict[str, bool] | None = None):
+    """De kandidatenlijst als route, zonder model: de recall ervan is wat het model hoogstens kan kiezen (de meting van 17
+    nov 2026: van wat bij de kandidaten stond, koos het model 65 van 73 nodige). 0 tokens."""
+    profiel = replace(deelvraag_zoeken.STANDAARD_PROFIEL, model_kiest=True, **{"verwijzingen": False, **(vlaggen or {})})
+    cache: dict[tuple, dict[str, Any]] = {}
+
+    def route(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
+        return [{"bron_iri": k["bron_iri"], "label": k["label"], "buiten": False}
+                for k in kandidaten_voor(graph, s, vraag, profiel, cache, limit)]
     return route
 
 
