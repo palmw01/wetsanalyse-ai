@@ -15,8 +15,9 @@ from pathlib import Path
 from typing import Any
 
 from eval import casusbron
+from eval.wortel import WORTEL as WORTEL_REPO
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = WORTEL_REPO
 PIJPLIJN = ROOT / "tools/graph-qa/agent/jas_pipeline"
 SCHEMA_VERSIE = 1
 
