@@ -172,3 +172,22 @@ def test_de_rangdiagnose_telt_per_vak():
     assert m._vak(None) == "niet in de lijst" and m._vak(10) == "≤80"
     assert m._vak(81) == "81–120" and m._vak(150) == "121–200" and m._vak(400) == "201–400"
     assert "--rangen" in __import__("inspect").getsource(m.main)
+
+
+def test_een_variant_kan_een_andere_grens_zetten():
+    assert m.variant("kandidaten_120") == ({}, 120)
+    assert m.variant("rrf") == ({"menging": "rrf"}, None)
+
+
+def test_de_modelroute_geeft_de_grens_door(monkeypatch):
+    import eval.bronselectie_eval as be
+
+    gezien = []
+    monkeypatch.setattr(be, "kandidaten_voor", lambda graph, s, vraag, profiel, cache, limit=None, wetstermen=None: (
+        gezien.append(limit) or []))
+    from agent import deelvraag_keuze
+
+    monkeypatch.setattr(deelvraag_keuze, "kies", lambda *a, **k: [])
+    route = be.model_kiest_route(None, "m", {}, vlaggen={"wetstermen": False}, limit=120)
+    route(None, {"naam": "S", "deelvragen": ["v"], "buiten": ""}, "v")
+    assert gezien == [120]

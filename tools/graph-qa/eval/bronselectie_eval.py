@@ -385,8 +385,8 @@ ROUTES_PLAN = {**{f"met {v}": _met_profiel(replace(VOOR_STAP8, **{v: True}))
                   for v in ("verwijzingen", "onderscheidend")}}
 
 
-def model_kiest_route(llm: Any, model: str, meting: dict[str, Any] | None = None, *, vlaggen: dict[str, bool] | None = None,
-                      spoor: list[dict[str, Any]] | None = None, werkgebied: bool = False):
+def model_kiest_route(llm: Any, model: str, meting: dict[str, Any] | None = None, *, vlaggen: dict[str, Any] | None = None,
+                      spoor: list[dict[str, Any]] | None = None, werkgebied: bool = False, limit: int | None = None):
     """De proef `Zoekprofiel.model_kiest` (pilot LB3): dezelfde kandidaten als de zoekvragenroute, ruimer
     (`deelvraag_keuze.MAX_KANDIDATEN`), en een model kiest er hoogstens acht uit (`deelvraag_keuze.kies`). Faalt de
     keuze, dan de zoekvragenroute zelf. Kost modeltokens: alleen met `--model-kiest` en akkoord.
@@ -398,7 +398,9 @@ def model_kiest_route(llm: Any, model: str, meting: dict[str, Any] | None = None
     Met `werkgebied` kiest het model één keer per set voor alle deelvragen (`deelvraag_keuze.kies_werkgebied`, de vlag
     `PER_WERKGEBIED`), uit de vereniging van hun kandidaten: de eerste deelvraag van een set doet de aanroep, de andere
     lezen haar uitkomst. In het spoor zijn de kandidaten dan die vereniging, want die zag het model. Faalt die keuze,
-    dan kiest het model per deelvraag, zoals de bronnenrun."""
+    dan kiest het model per deelvraag, zoals de bronnenrun.
+
+    `limit` zet een andere grens dan `deelvraag_keuze.MAX_KANDIDATEN` (de variant `kandidaten_<n>` van de meting)."""
     from agent import deelvraag_keuze
 
     profiel = replace(deelvraag_zoeken.STANDAARD_PROFIEL, model_kiest=True,
@@ -411,7 +413,7 @@ def model_kiest_route(llm: Any, model: str, meting: dict[str, Any] | None = None
         sleutel = (id(graph), s["naam"])
         if sleutel not in keuzes:
             dossier = {**_dossier(s), "buiten": s.get("buiten", "")}
-            per = [kandidaten_voor(graph, s, v, profiel, cache,
+            per = [kandidaten_voor(graph, s, v, profiel, cache, limit,
                                    wetstermen=wetstermen_voor(graph, s, v, profiel, llm, model, meting, cache))
                    for v in s["deelvragen"]]
             kand = deelvraag_keuze.kandidaten_werkgebied(per)
@@ -427,7 +429,7 @@ def model_kiest_route(llm: Any, model: str, meting: dict[str, Any] | None = None
         if werkgebied:
             kand, gekozen = per_werkgebied(graph, s, vraag)
         if gekozen is None:
-            kand = kandidaten_voor(graph, s, vraag, profiel, cache, wetstermen=wet)
+            kand = kandidaten_voor(graph, s, vraag, profiel, cache, limit, wetstermen=wet)
             gekozen = deelvraag_keuze.kies(llm, model, vraag, {**dossier, "buiten": s.get("buiten", "")}, kand, meting)
         if spoor is not None:
             spoor.append({"set": s["naam"], "vraag": vraag, "kandidaten": [k["bron_iri"] for k in kand],
