@@ -14,7 +14,7 @@ RUN apt-get update \
 # CycloneDX-SBOM van zijn eigen vendored deps mee die Trivy als package-inventaris leest en los van
 # de echt geïnstalleerde versies als kwetsbaar rapporteert. Zelfde fix als in api/Dockerfile.
 RUN pip install --no-cache-dir --upgrade pip 'setuptools>=83.0.0' \
- && rm -f /usr/local/lib/python3.14/site-packages/pip/_vendor/bom.cdx.json
+ && rm -f /usr/local/lib/python3*/site-packages/pip/_vendor/bom.cdx.json
 
 COPY tools/graph-qa/pyproject.toml ./
 COPY tools/graph-qa/agent/ agent/

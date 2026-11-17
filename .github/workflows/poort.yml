@@ -181,9 +181,14 @@ jobs:
               code = instructies(pad.read_text(encoding="utf-8"))
               if not re.search(r"^FROM\s+python:", code, re.M) or "pip install" not in code:
                   continue
-              if not re.search(r"rm\s+(-\w+\s+)*\S*pip/_vendor/bom\.cdx\.json", code):
+              rm = re.search(r"rm\s+(-\w+\s+)*(\S*pip/_vendor/bom\.cdx\.json)", code)
+              if not rm:
                   fout.append(f"{pad}: python-image met `pip install`, maar verwijdert "
                               f"`pip/_vendor/bom.cdx.json` niet")
+              elif re.search(r"python3\.\d", rm.group(2)):
+                  # 17 nov 2026: bwb-import ging naar python:3.15 en de rm op het pad van 3.14 deed stil niets.
+                  fout.append(f"{pad}: het pad naar `bom.cdx.json` noemt een vaste Python-versie; gebruik "
+                              f"`/usr/local/lib/python3*/...`, anders doet de rm niets na een nieuwe base")
           if fout:
               print("\n".join("  " + r for r in fout))
               print("\n  pip 26.x bundelt een CycloneDX-SBOM van zijn vendored deps (setuptools 70.3.0,")
