@@ -13,8 +13,9 @@ from bronmodel import bron_query, parse_rows, tekst_hash
 from agent.mcp_client import MCPClient
 from agent.graph.queries import get_regeling_info
 from agent.graph.results import parse_select
+from eval.wortel import WORTEL as WORTEL_REPO
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = WORTEL_REPO
 CONTROLES = {
     "IW02": ("BWBR0004770", "36", "1", ""),
     "AWB04": ("BWBR0005537", "4:17", "2", ""),

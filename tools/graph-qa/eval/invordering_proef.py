@@ -15,8 +15,9 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+from eval.wortel import WORTEL as WORTEL_REPO
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = WORTEL_REPO
 MEETMAP = ROOT / "docs/architectuur/metingen/hybrid-v1-invordering-vervolg-2026-09-29"
 ONDERZOEK = ROOT / "docs/wetsanalyse/onderzoek-invordering-2026-09-29"
 VARIANTEN = ("A_huidig", "B_verbeterd", "C_context")

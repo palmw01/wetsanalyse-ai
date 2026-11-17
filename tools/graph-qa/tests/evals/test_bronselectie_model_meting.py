@@ -24,3 +24,13 @@ def test_zonder_commit_start_de_meting_niet(monkeypatch):
 
 def test_de_routes_bestaan():
     assert m.STANDAARD in m.ROUTES
+
+
+def test_geen_eval_rekent_zelf_de_wortel_uit():
+    """In het image staat een eval op `/app/eval/`: vier mappen omhoog bestaat daar niet en brak de meting bij het
+    importeren (17 nov 2026, IndexError). De wortel komt uit één helper, `eval/wortel.py`."""
+    from pathlib import Path
+
+    evals = Path(__file__).resolve().parents[2] / "eval"
+    fout = [p.name for p in evals.glob("*.py") if p.name != "wortel.py" and "parents[3]" in p.read_text(encoding="utf-8")]
+    assert not fout, f"reken de wortel niet zelf uit, gebruik eval.wortel: {fout}"

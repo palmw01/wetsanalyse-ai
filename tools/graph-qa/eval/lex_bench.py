@@ -40,8 +40,9 @@ from pathlib import Path
 from typing import Any
 
 from eval.bronselectie_eval import ROUTES, SETS, OpnameGraaf, _raakt, laad_set, meet_intake
+from eval.wortel import WORTEL as WORTEL_REPO
 
-WORTEL = Path(__file__).resolve().parents[3]
+WORTEL = WORTEL_REPO
 HELD_OUT = WORTEL / "docs" / "lex-bench" / "bronselectie" / "held-out.json"
 MANIFEST = WORTEL / "docs" / "lex-bench" / "bronselectie" / "manifest.json"
 METINGEN = WORTEL / "docs" / "architectuur" / "metingen"

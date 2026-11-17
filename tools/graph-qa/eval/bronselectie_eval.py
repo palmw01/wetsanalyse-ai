@@ -63,8 +63,9 @@ from typing import Any
 
 from agent import deelvraag_zoeken, zoektermen
 from agent.bronnen_vinden import METHODEN, STANDAARD, in_selectie, vind
+from eval.wortel import WORTEL as WORTEL_REPO
 
-SETS = Path(__file__).resolve().parents[3] / "docs" / "wetsanalyse" / "referentieset-bronselectie"
+SETS = WORTEL_REPO / "docs" / "wetsanalyse" / "referentieset-bronselectie"
 STANDAARD_SET = "invorderbaarheid-concept"
 
 

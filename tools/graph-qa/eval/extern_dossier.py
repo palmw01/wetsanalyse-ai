@@ -49,6 +49,7 @@ from urllib.parse import unquote
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from eval.scoring import _norm, _token_iou, _zelfde_plek, klasse_dekking  # noqa: E402
+from eval.wortel import WORTEL as WORTEL_REPO
 
 # --- Klassen ------------------------------------------------------------------------------------------------
 
@@ -619,7 +620,7 @@ def vergelijk_relaties(relaties: list[dict[str, Any]], elementen: list[dict[str,
 # --- Relaties: wat het platform vastlegde (ADR-011) -----------------------------------------------------------
 
 #: De relatiecatalogus van de skill. De vergelijker draait in de repo, dus hij mag hem lezen.
-CATALOGUS = Path(__file__).resolve().parents[3] / ".claude" / "skills" / "wetsanalyse" / "relaties.json"
+CATALOGUS = WORTEL_REPO / ".claude" / "skills" / "wetsanalyse" / "relaties.json"
 
 
 def catalogus_typen(pad: Path | None = None) -> set[str]:
