@@ -89,6 +89,17 @@ VARIANTEN = {"definitie_brug": {"definitie_brug": True}, "verwijzingen": {"verwi
              "rrf": {"menging": "rrf"}}
 
 
+def variant(naam: str) -> tuple[dict[str, Any], int | None]:
+    """De vlaggen en de grens van een variant: een naam uit `VARIANTEN`, of `kandidaten_<n>` voor een andere grens dan
+    `deelvraag_keuze.MAX_KANDIDATEN` (het model kiest dan uit n kandidaten)."""
+    import re
+
+    m = re.fullmatch(r"kandidaten_(\d+)", naam)
+    if m:
+        return {}, int(m.group(1))
+    return VARIANTEN[naam], None
+
+
 def met_model(variant: str) -> bool:
     """Of een kandidatenlijst (`--kandidaten`) een model nodig heeft: als het zoekprofiel met deze variant de wetstermen
     vraagt. Sinds #1707 staan ze standaard aan, dus ook de lijst zonder variant."""
@@ -295,8 +306,9 @@ def main(argv: list[str] | None = None) -> int:
     sporen: dict[str, list[dict[str, Any]]] = {}
     for v in [x for x in a.varianten.split(",") if x]:
         sporen[v] = []
-        routes[f"variant {v}"] = model_kiest_route(llm, settings.llm_model, modelmeting, vlaggen=VARIANTEN[v],
-                                                   spoor=sporen[v])
+        vlaggen, limit = variant(v)
+        routes[f"variant {v}"] = model_kiest_route(llm, settings.llm_model, modelmeting, vlaggen=vlaggen,
+                                                   spoor=sporen[v], limit=limit)
     print(f"Bronselectie: {', '.join(routes)}; model {settings.llm_model}, "
           f"commit {os.environ.get('LEX_REVISIE', '') or 'lokaal'}", flush=True)
     rapport: dict[str, Any] = {}
