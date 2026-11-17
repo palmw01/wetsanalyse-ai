@@ -302,6 +302,12 @@ de api verandert, blijft groen tot iemand het op acceptatie ziet.
 6. **Componenttests met een DOM** (vitest met `happy-dom` of `jsdom` en Testing Library), te beginnen bij de lijm die nu
    alleen in de browser zit: `useBeurt` (stopknop, herstellen, 409), `useOnbewaardBewaker` (paneelwissel, `beforeunload`).
    Dat is sneller en preciezer dan een browsertest, en het haalt druk van de shards.
+   *Gebouwd (17 nov 2026, Lex Bench §20.5 stap 6):* `happy-dom` en Testing Library als devDependencies, per bestand
+   `// @vitest-environment happy-dom` (de rest van de suite blijft node). `lib/useBeurt.dom.test.ts` (de claim in één
+   tick, de stopknop, een mislukt stopverzoek, loskoppelen bij unmount, herstellen en een verdwenen run) en
+   `lib/useOnbewaardBewaker.dom.test.ts` (een link elders, Blijf en Toch, nieuw tabblad, de paneelwissel via `bewaak`
+   met FB-05, een vraag die vervalt). `beforeunload` zit niet in de hook maar bij de eigenaar van de wijzigingen; dat
+   blijft voor een volgende componenttest. Een mutatieproef op de stopknop en op FB-05 is rood.
 7. **Een contract op de vorm.** Laat de api zijn OpenAPI-schema uitschrijven (FastAPI doet dat al), en toets de vaste
    antwoorden van de nep-api's daartegen, of beter: laat de scripts hun fixtures uit één map halen die zo getoetst wordt.
    Begin bij de foutvorm (`detail` als string of als object met `fout`), want die wisselt nu per script.
