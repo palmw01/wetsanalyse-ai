@@ -18,9 +18,10 @@ from pathlib import Path
 from typing import Any
 
 from eval.bronselectie_eval import ROUTES, meet_intake, model_kiest_route
+from eval.wortel import WORTEL as WORTEL_REPO
 
 REPO = "palmw01/wetsanalyse-ai"
-WORTEL = Path(__file__).resolve().parents[3]
+WORTEL = WORTEL_REPO
 REFERENTIE = "docs/wetsanalyse/referentieset-bronselectie"
 PILOT = "docs/lex-bench/bronselectie/pilot"
 PILOTMETING = "docs/architectuur/metingen/lex-bench-2026-11-17-pilot"

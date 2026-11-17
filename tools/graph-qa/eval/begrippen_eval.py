@@ -49,9 +49,10 @@ from typing import Any, Callable
 
 from agent.begrippen_pipeline.model import Bron, Formulering, Hypothese, Manifest
 from eval.metrieken import GEVALIDEERD, STATUSSEN
+from eval.wortel import WORTEL as WORTEL_REPO
 
 ACTUELE_VERSIE = "v1"
-WORTEL = Path(__file__).resolve().parents[3] / "docs" / "wetsanalyse" / "referentieset-begrippen"
+WORTEL = WORTEL_REPO / "docs" / "wetsanalyse" / "referentieset-begrippen"
 
 RELATIES = tuple(h.value for h in Hypothese) + ("verschillend",)
 GERICHT = {h.value for h in Hypothese if not h.symmetrisch}
