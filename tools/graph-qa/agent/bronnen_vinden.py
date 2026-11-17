@@ -62,6 +62,9 @@ def _profiel() -> Zoekprofiel:
 #: Het model van deze run voor `Zoekprofiel.model_kiest` (`vind(llm=, model=)`): `(llm, model, meting)`, of None. Zonder
 #: model kiest de code, zoals vóór de proef: een run zonder llm (een test, de eval zonder `--model-kiest`) verandert niet.
 _MODEL: ContextVar[tuple[Any, str, dict[str, Any]] | None] = ContextVar("bronnen_model", default=None)
+#: Kiest het model één keer voor het hele werkgebied (`vind(per_werkgebied=)`)? None = de instelling
+#: `deelvraag_keuze.PER_WERKGEBIED` (standaard uit).
+_PER_WERKGEBIED: ContextVar[bool | None] = ContextVar("bronnen_per_werkgebied", default=None)
 
 
 def standaard_voor(invoer: dict[str, Any]) -> tuple[str, ...]:
@@ -290,8 +293,17 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     if p is not None and not regelingen:
         regelingen = p["regelingen"]
     n_totaal, volledig = 0, p is None or p["volledig"]
-    for d in invoer.get("deelvragen") or []:
+    deelvragen = invoer.get("deelvragen") or []
+    per_werkgebied = _werkgebied_kiest(graph, deelvragen, regelingen, dossier, buiten, p, gebeurtenis)
+    for i, d in enumerate(deelvragen):
         basis = {"deelvraag_id": d.get("id", ""), "vraag": d.get("vraag", "")}
+        if per_werkgebied is not None:
+            for k in per_werkgebied[i]:
+                gevonden_bij = [deelvragen[j].get("id", "") for j in k.get("gevonden_bij", [])]
+                n_totaal += v.voeg(k["bron_iri"], rol=k["rol"], methode="deelvraag", label=k["label"],
+                                   detail={**basis, "route": "model_werkgebied", "bron": k["bron"],
+                                           "gevonden_bij": gevonden_bij})
+            continue
         gekozen = _model_kiest(graph, d.get("vraag", ""), regelingen, dossier, buiten, p, gebeurtenis)
         if gekozen is not None:
             for k in gekozen:
@@ -326,25 +338,55 @@ def _model_kiest(graph: GraphPort, vraag: str, regelingen: list[str], dossier: d
     `bronselectie-2026-11-17-model`): de code verzamelt de kandidaten uit de pool en de woordenroute, ruimer dan het
     kaartje, het model wijst er hoogstens `MAX_PER_DEELVRAAG` aan met hun rol. None als de vlag uit staat, de run geen
     model heeft of het model geen bruikbaar antwoord gaf: dan kiest de code."""
+    from . import deelvraag_keuze
+
+    model = _MODEL.get()
+    if not _profiel().model_kiest or model is None:
+        return None
+    llm, modelnaam, meting = model
+    kand = _kandidaten_bij(graph, vraag, regelingen, dossier, buiten, p, gebeurtenis)
+    return deelvraag_keuze.kies(llm, modelnaam, vraag, dossier, kand, meting)
+
+
+def _kandidaten_bij(graph: GraphPort, vraag: str, regelingen: list[str], dossier: dict[str, Any], buiten: list[str],
+                    p: dict[str, Any] | None, gebeurtenis: str) -> list[dict[str, Any]]:
+    """De kandidaten voor het model bij één deelvraag (`deelvraag_keuze.kandidaten`): de woordenroute en de pool rond de
+    gebeurtenis, elk tot `MAX_KANDIDATEN`, om de beurt."""
     from dataclasses import replace
 
     from . import deelvraag_keuze
     from .zoekvragen import opties_bij_deelvraag
 
-    profiel = _profiel()
-    model = _MODEL.get()
-    if not profiel.model_kiest or model is None:
-        return None
-    llm, modelnaam, meting = model
     # De verwijzingen hoeven hier niet mee: het model kiest uit wat de deelvraag zelf vindt.
-    ruim = replace(profiel, verwijzingen=False)
+    ruim = replace(_profiel(), verwijzingen=False)
     woorden = bepaling_opties(graph, regelingen=regelingen, deelvraag=vraag, dossier=dossier, buiten=buiten,
                               limit=deelvraag_keuze.MAX_KANDIDATEN, profiel=ruim, met_tekst=True)
     uit_pool = opties_bij_deelvraag(p["kandidaten"], vraag, gebeurtenis=gebeurtenis,
                                     limit=deelvraag_keuze.MAX_KANDIDATEN, dossier=dossier,
                                     profiel=ruim) if p is not None else []
-    kand = deelvraag_keuze.kandidaten(uit_pool, woorden)
-    return deelvraag_keuze.kies(llm, modelnaam, vraag, dossier, kand, meting)
+    return deelvraag_keuze.kandidaten(uit_pool, woorden)
+
+
+def _werkgebied_kiest(graph: GraphPort, deelvragen: list[dict[str, Any]], regelingen: list[str],
+                      dossier: dict[str, Any], buiten: list[str], p: dict[str, Any] | None,
+                      gebeurtenis: str) -> list[list[dict[str, Any]]] | None:
+    """Eén keuze voor alle deelvragen (`deelvraag_keuze.PER_WERKGEBIED`, of `vind(per_werkgebied=)`): de kandidaten van
+    elke deelvraag samen, en het model zet elke bepaling bij de deelvraag die ze beantwoordt. Per deelvraag de gekozen
+    kandidaten met hun rol, of None als de vorm uit staat, de run geen model heeft of het model geen bruikbaar antwoord
+    gaf: dan kiest het model per deelvraag, zoals zonder de vlag."""
+    from . import deelvraag_keuze
+
+    model = _MODEL.get()
+    aan = _PER_WERKGEBIED.get()
+    if aan is None:
+        aan = deelvraag_keuze.PER_WERKGEBIED
+    if not aan or not _profiel().model_kiest or model is None or not deelvragen:
+        return None
+    llm, modelnaam, meting = model
+    per = [_kandidaten_bij(graph, d.get("vraag", ""), regelingen, dossier, buiten, p, gebeurtenis) for d in deelvragen]
+    kand = deelvraag_keuze.kandidaten_werkgebied(per)
+    return deelvraag_keuze.kies_werkgebied(llm, modelnaam, [d.get("vraag", "") for d in deelvragen], dossier, kand,
+                                           meting)
 
 
 def _grondslag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
@@ -489,18 +531,20 @@ UITVOERING: dict[str, Callable[[GraphPort, dict[str, Any], Verzameling], tuple[i
 def vind(graph: GraphPort, invoer: dict[str, Any], methoden: tuple[str, ...] | None = None,
          melding: Callable[[str, int, bool, int], None] | None = None,
          profiel: Zoekprofiel | None = None, llm: Any = None, model: str = "",
-         modelmeting: dict[str, Any] | None = None) -> dict[str, Any]:
+         modelmeting: dict[str, Any] | None = None, per_werkgebied: bool | None = None) -> dict[str, Any]:
     """De methoden op de invoer van een bronnenrun (`api/app/bronnen_run_store.invoer_van`); zonder
     `methoden` de standaard voor die invoer (`standaard_voor`). `profiel` is voor de meting; de dienst draait het
     standaardprofiel. Met `llm` kiest een model de bepalingen per deelvraag (`Zoekprofiel.model_kiest`); zonder kiest
-    de code.
+    de code. `per_werkgebied` zet de keuze voor het hele werkgebied aan of uit (None: `deelvraag_keuze.PER_WERKGEBIED`).
 
     Een methode die faalt, laat de rest niet vallen: haar meting zegt `volledig: false`."""
     teken = _PROFIEL.set(profiel or STANDAARD_PROFIEL)
     teken_model = _MODEL.set((llm, model, modelmeting if modelmeting is not None else {}) if llm is not None else None)
+    teken_wg = _PER_WERKGEBIED.set(per_werkgebied)
     try:
         return _vind(graph, invoer, methoden, melding)
     finally:
+        _PER_WERKGEBIED.reset(teken_wg)
         _MODEL.reset(teken_model)
         _PROFIEL.reset(teken)
 

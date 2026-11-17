@@ -7,7 +7,10 @@ hoort bij de code die meet. Lokaal kan `--lokaal` (de sets uit de checkout), maa
 echte graaf.
 
 Met `--rondes` kiest het model meer keren per set (de spreiding tussen runs), met `--varianten` meten varianten die de
-pool verbreden elk één ronde, en per nodige bepaling zegt de meting waar ze afviel (`afval`). De meting stopt vóór een
+pool verbreden elk één ronde, en per nodige bepaling zegt de meting waar ze afviel (`afval`). Met `--werkgebied` meet ze
+naast de keuze per deelvraag ook de keuze voor het hele werkgebied (`deelvraag_keuze.PER_WERKGEBIED`), even veel rondes.
+Per route telt ze ook de verkeerde deelvraag: een nodige bepaling die bij haar eigen deelvraag ontbreekt en bij een
+andere staat (`bronselectie_eval.verkeerde_deelvraag`). De meting stopt vóór een
 set als het verbruik van het model boven `MAX_TOKENS` komt. Ze schrijft geen opname weg en
 wijzigt geen set: het rapport staat in de log."""
 from __future__ import annotations
@@ -35,6 +38,7 @@ CASUSSEN = {"LB-07": "lb-07-beslistermijn", "LB-08": "lb-08-terugvordering-toesl
             "LB-09": "lb-09-achteraf-belasting"}
 STANDAARD = "zoekvragen standaard (stap 8)"
 MODEL = "model kiest (proef)"
+WERKGEBIED = "model kiest per werkgebied"
 #: Het plafond op het verbruik van het model over de hele meting (invoer, cache en uitvoer samen).
 MAX_TOKENS = 1_500_000
 
@@ -150,6 +154,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--lokaal", action="store_true", help="de sets uit de checkout in plaats van van GitHub")
     p.add_argument("--json", type=Path, help="het rapport ook als JSON wegschrijven")
     p.add_argument("--rondes", type=int, default=1, help="hoe vaak het model per set kiest (de spreiding tussen runs)")
+    p.add_argument("--werkgebied", action="store_true",
+                   help="ook de keuze voor het hele werkgebied (deelvraag_keuze.PER_WERKGEBIED), even veel rondes")
     p.add_argument("--varianten", default="", help="komma-gescheiden varianten uit VARIANTEN, elk één ronde")
     p.add_argument("--kandidaten", default="",
                    help="zonder model: de recall van de kandidatenlijst per grens, bv. 40,80,120 of 80+definitie_brug")
@@ -166,15 +172,22 @@ def main(argv: list[str] | None = None) -> int:
     graaf = make_graph(settings)
     modelmeting: dict[str, Any] = {}
     spoor: list[dict[str, Any]] = []
+    spoor_wg: list[dict[str, Any]] = []
     routes: dict[str, Any] = {STANDAARD: ROUTES[STANDAARD]}
     for r in range(1, a.rondes + 1):
         routes[f"{MODEL} {r}"] = model_kiest_route(llm, settings.llm_model, modelmeting, spoor=spoor if r == 1 else None)
+    if a.werkgebied:
+        for r in range(1, a.rondes + 1):
+            routes[f"{WERKGEBIED} {r}"] = model_kiest_route(llm, settings.llm_model, modelmeting, werkgebied=True,
+                                                            spoor=spoor_wg if r == 1 else None)
     for v in [x for x in a.varianten.split(",") if x]:
         routes[f"variant {v}"] = model_kiest_route(llm, settings.llm_model, modelmeting, vlaggen=VARIANTEN[v])
     print(f"Bronselectie: {', '.join(routes)}; model {settings.llm_model}, "
           f"commit {os.environ.get('LEX_REVISIE', '') or 'lokaal'}", flush=True)
     rapport: dict[str, Any] = {}
     totaal_afval = {f: 0 for f in FASEN}
+    totaal_afval_wg = {f: 0 for f in FASEN}
+    totaal_verkeerd: dict[str, int] = {}
     try:
         for naam, s in sets(lezer(a.lokaal)):
             if llm.meter.totaal > MAX_TOKENS:
@@ -187,10 +200,16 @@ def main(argv: list[str] | None = None) -> int:
             val = afval(graaf, s, spoor)
             for f, n in val["telling"].items():
                 totaal_afval[f] += n
-            rapport[naam] = {"routes": {k: {m: v[m] for m in ("recall_nodig", "recall", "precisie", "aantal")}
+            val_wg = afval(graaf, s, spoor_wg) if a.werkgebied else None
+            for f, n in (val_wg or {}).get("telling", {}).items():
+                totaal_afval_wg[f] += n
+            for k, v in r.items():
+                totaal_verkeerd[k] = totaal_verkeerd.get(k, 0) + v["verkeerde_deelvraag"]
+            rapport[naam] = {"routes": {k: {m: v[m] for m in ("recall_nodig", "recall", "precisie", "aantal",
+                                                               "verkeerde_deelvraag", "verkeerd")}
                                         | {"per_deelvraag": [{"opties": d["opties"]} for d in v["per_deelvraag"]]}
                                         for k, v in r.items()},
-                             "afval": val}
+                             "afval": val, **({"afval_werkgebied": val_wg} if val_wg else {})}
             varianten = " | ".join(f"{k.removeprefix('variant ')} {_maat(v, 'recall_nodig')}"
                                    for k, v in r.items() if k.startswith("variant "))
             print(f"{naam:40} nodig {_maat(r[STANDAARD], 'recall_nodig')} → model gem. {sum(modellen) / len(modellen):.2f}"
@@ -198,14 +217,29 @@ def main(argv: list[str] | None = None) -> int:
                   f" | precisie {_maat(r[STANDAARD], 'precisie')} → {sum(prec) / len(prec):.2f}"
                   + (f" | {varianten}" if varianten else "")
                   + f" | verbruik tot nu {llm.meter.totaal}", flush=True)
+            if a.werkgebied:
+                wg = [r[k]["recall_nodig"] or 0.0 for k in r if k.startswith(WERKGEBIED)]
+                wg_prec = [r[k]["precisie"] or 0.0 for k in r if k.startswith(WERKGEBIED)]
+                print(f"{'':40} per werkgebied: nodig gem. {sum(wg) / len(wg):.2f} ({min(wg):.2f}–{max(wg):.2f})"
+                      f" | precisie {sum(wg_prec) / len(wg_prec):.2f}", flush=True)
+            print(f"{'':40} verkeerde deelvraag: " + " | ".join(f"{k} {v['verkeerde_deelvraag']}" for k, v in r.items()),
+                  flush=True)
             print(f"{'':40} afval: " + ", ".join(f"{f} {n}" for f, n in val["telling"].items())
                   + " | niet gevonden bv. " + "; ".join(val["voorbeelden"][FASEN[0]]), flush=True)
+            if val_wg:
+                print(f"{'':40} afval per werkgebied: " + ", ".join(f"{f} {n}" for f, n in val_wg["telling"].items()),
+                      flush=True)
     finally:
         graaf.close()
     print("AFVAL TOTAAL: " + ", ".join(f"{f} {n}" for f, n in totaal_afval.items()), flush=True)
+    if a.werkgebied:
+        print("AFVAL TOTAAL PER WERKGEBIED: " + ", ".join(f"{f} {n}" for f, n in totaal_afval_wg.items()), flush=True)
+    print("VERKEERDE DEELVRAAG TOTAAL: " + " | ".join(f"{k} {n}" for k, n in totaal_verkeerd.items()), flush=True)
     print(f"MODEL: {modelmeting.get('llm_calls', 0)} aanroepen, verbruik {json.dumps(llm.meter.als_dict())}", flush=True)
     if a.json:
-        a.json.write_text(json.dumps({"verbruik": llm.meter.als_dict(), "afval": totaal_afval, "sets": rapport},
+        a.json.write_text(json.dumps({"verbruik": llm.meter.als_dict(), "afval": totaal_afval,
+                                      "afval_werkgebied": totaal_afval_wg, "verkeerde_deelvraag": totaal_verkeerd,
+                                      "sets": rapport},
                                      ensure_ascii=False, indent=1))
     return 0
 
