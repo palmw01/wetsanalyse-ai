@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from eval.bronselectie_eval import ROUTES, meet_intake, model_kiest_route
+from eval.bronselectie_eval import ROUTES, kandidaten_route, meet_intake, model_kiest_route
 from eval.wortel import WORTEL as WORTEL_REPO
 
 REPO = "palmw01/wetsanalyse-ai"
@@ -114,13 +114,48 @@ def afval(graaf: Any, s: dict[str, Any], spoor: list[dict[str, Any]]) -> dict[st
     return {"telling": tel, "voorbeelden": voorbeelden}
 
 
+def meet_kandidaten(a: argparse.Namespace) -> int:
+    """De recall van de kandidatenlijst per grens (en eventueel een variant, `80+definitie_brug`), zonder model: 0
+    tokens. Het model kiest bijna alles wat nodig is en bij de kandidaten staat, dus dit is zijn plafond."""
+    from agent.adapters.graphdb_graph import make_graph
+    from agent.config import Settings
+
+    graaf = make_graph(Settings.from_env())
+    routes: dict[str, Any] = {}
+    for c in [x for x in a.kandidaten.split(",") if x]:
+        grens, _, variant = c.partition("+")
+        routes[c] = kandidaten_route(int(grens), VARIANTEN.get(variant) if variant else None)
+    print(f"Kandidatenlijst (zonder model): {', '.join(routes)}; commit {os.environ.get('LEX_REVISIE', '') or 'lokaal'}",
+          flush=True)
+    som = {c: [0, 0] for c in routes}
+    rapport: dict[str, Any] = {}
+    try:
+        for naam, s in sets(lezer(a.lokaal)):
+            r = meet_intake(graaf, s, routes)
+            for c, v in r.items():
+                som[c][0] += sum(d["gevonden_nodig"] for d in v["per_deelvraag"])
+                som[c][1] += sum(d["nodig"] for d in v["per_deelvraag"])
+            rapport[naam] = {c: v["recall_nodig"] for c, v in r.items()}
+            print(f"{naam:40} " + " | ".join(f"{c} {_maat(v, 'recall_nodig')}" for c, v in r.items()), flush=True)
+    finally:
+        graaf.close()
+    print("TOTAAL nodig bij de kandidaten: " + " | ".join(f"{c} {g}/{n}" for c, (g, n) in som.items()), flush=True)
+    if a.json:
+        a.json.write_text(json.dumps({"som": som, "sets": rapport}, ensure_ascii=False, indent=1))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--lokaal", action="store_true", help="de sets uit de checkout in plaats van van GitHub")
     p.add_argument("--json", type=Path, help="het rapport ook als JSON wegschrijven")
     p.add_argument("--rondes", type=int, default=1, help="hoe vaak het model per set kiest (de spreiding tussen runs)")
     p.add_argument("--varianten", default="", help="komma-gescheiden varianten uit VARIANTEN, elk één ronde")
+    p.add_argument("--kandidaten", default="",
+                   help="zonder model: de recall van de kandidatenlijst per grens, bv. 40,80,120 of 80+definitie_brug")
     a = p.parse_args(argv)
+    if a.kandidaten:
+        return meet_kandidaten(a)
 
     from agent.adapters.anthropic_llm import AnthropicLLM
     from agent.adapters.graphdb_graph import make_graph

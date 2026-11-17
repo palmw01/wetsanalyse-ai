@@ -56,3 +56,18 @@ def test_de_varianten_zijn_vlaggen_van_het_zoekprofiel():
     from agent.deelvraag_zoeken import Zoekprofiel
     velden = set(Zoekprofiel.__dataclass_fields__)
     assert all(set(v) <= velden for v in m.VARIANTEN.values())
+
+
+def test_de_kandidatenroute_begrenst_en_kost_geen_model(monkeypatch):
+    import eval.bronselectie_eval as be
+    from agent import deelvraag_keuze
+
+    gezien = {}
+
+    def nep(graph, s, vraag, profiel, cache, limit=None):
+        gezien["limit"] = limit
+        return deelvraag_keuze.kandidaten([{"bron_iri": f"p{i}", "label": ""} for i in range(200)], [], maximaal=limit)
+
+    monkeypatch.setattr(be, "kandidaten_voor", nep)
+    uit = be.kandidaten_route(80)(None, {"naam": "S"}, "v")
+    assert gezien["limit"] == 80 and len(uit) == 80 and not any(o["buiten"] for o in uit)
