@@ -62,7 +62,7 @@ on:
       eval_set:
         description: "Alleen voor 'eval': alles (smoke + 3× annotatie + 3× gesprek), of alleen gesprek, annotatie, de conceptcasussen of de duidingset (smoke + 3×), of bronselectie_model (het model kiest, 3 rondes), of bronselectie_kandidaten (de kandidatenlijst, zonder model)"
         type: choice
-        options: [alles, gesprek, annotatie, concept, duiding, bronselectie_model, bronselectie_kandidaten]
+        options: [alles, gesprek, annotatie, concept, duiding, bronselectie_model, bronselectie_model_1, bronselectie_kandidaten]
         default: alles
       query:
         description: "Alleen voor 'telemetrie': een eigen KQL-query (leeg = de standaardset)"
@@ -1007,12 +1007,15 @@ jobs:
               annotatie) vlag="--annotatie"; titel="RUN"; uit="|| rc=1" ;;
               concept) vlag="--annotatie --concept"; titel="CONCEPT"; uit="|| true" ;;
               duiding) vlag="--golden eval/golden_duiding.jsonl"; titel="DUIDING"; uit="|| true" ;;
-              bronselectie_model|bronselectie_kandidaten) vlag="" ;;
+              bronselectie_model|bronselectie_model_1|bronselectie_kandidaten) vlag="" ;;
               *) echo "::error::onbekende eval_set"; exit 1 ;;
             esac
             if [ "$EVAL_SET" = "bronselectie_kandidaten" ]; then
               # De recall van de kandidatenlijst per grens, zonder model (0 tokens; meting 17 nov 2026).
               args="echo \"=== BRONSELECTIE KANDIDATEN ===\"; python -u -m eval.bronselectie_model_meting --kandidaten 40,60,80,120,160,80+definitie_brug; rc=\$?; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
+            elif [ "$EVAL_SET" = "bronselectie_model_1" ]; then
+              # Eén ronde van het model, zonder varianten: een bevestiging na een kleine wijziging.
+              args="echo \"=== BRONSELECTIE MODEL ===\"; python -u -m eval.bronselectie_model_meting --rondes 1; rc=\$?; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
             elif [ "$EVAL_SET" = "bronselectie_model" ]; then
               # De proef na de pilot LB3 (`eval/bronselectie_model_meting.py`): één run, met een eigen plafond op het
               # verbruik. De sets komen van GitHub op de commit van het image (LEX_REVISIE).
