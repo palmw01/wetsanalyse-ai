@@ -386,7 +386,8 @@ ROUTES_PLAN = {**{f"met {v}": _met_profiel(replace(VOOR_STAP8, **{v: True}))
 
 
 def model_kiest_route(llm: Any, model: str, meting: dict[str, Any] | None = None, *, vlaggen: dict[str, Any] | None = None,
-                      spoor: list[dict[str, Any]] | None = None, werkgebied: bool = False, limit: int | None = None):
+                      spoor: list[dict[str, Any]] | None = None, werkgebied: bool = False, limit: int | None = None,
+                      cache: dict[tuple, Any] | None = None):
     """De proef `Zoekprofiel.model_kiest` (pilot LB3): dezelfde kandidaten als de zoekvragenroute, ruimer
     (`deelvraag_keuze.MAX_KANDIDATEN`), en een model kiest er hoogstens acht uit (`deelvraag_keuze.kies`). Faalt de
     keuze, dan de zoekvragenroute zelf. Kost modeltokens: alleen met `--model-kiest` en akkoord.
@@ -400,13 +401,15 @@ def model_kiest_route(llm: Any, model: str, meting: dict[str, Any] | None = None
     lezen haar uitkomst. In het spoor zijn de kandidaten dan die vereniging, want die zag het model. Faalt die keuze,
     dan kiest het model per deelvraag, zoals de bronnenrun.
 
-    `limit` zet een andere grens dan `deelvraag_keuze.MAX_KANDIDATEN` (de variant `kandidaten_<n>` van de meting)."""
+    `limit` zet een andere grens dan `deelvraag_keuze.MAX_KANDIDATEN` (de variant `kandidaten_<n>` van de meting).
+    Met een gedeelde `cache` gebruiken routes dezelfde wetstermen per deelvraag: dan is een vergelijking tussen routes
+    gepaard, en vraagt de meting ze één keer."""
     from agent import deelvraag_keuze
 
     profiel = replace(deelvraag_zoeken.STANDAARD_PROFIEL, model_kiest=True,
                       **{"verwijzingen": False, **(vlaggen or {})})
     terug = _zoekvragen_route(deelvraag_zoeken.STANDAARD_PROFIEL)
-    cache: dict[tuple, dict[str, Any]] = {}
+    cache = {} if cache is None else cache
     keuzes: dict[tuple, tuple[list[dict[str, Any]], list[list[dict[str, Any]]] | None]] = {}
 
     def per_werkgebied(graph: Any, s: dict[str, Any], vraag: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]] | None]:

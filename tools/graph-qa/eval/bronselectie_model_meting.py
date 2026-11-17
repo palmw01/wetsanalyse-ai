@@ -297,18 +297,22 @@ def main(argv: list[str] | None = None) -> int:
     spoor: list[dict[str, Any]] = []
     spoor_wg: list[dict[str, Any]] = []
     routes: dict[str, Any] = {STANDAARD: ROUTES[STANDAARD]}
+    # Eén cache voor alle modelroutes: dezelfde wetstermen per deelvraag, dus een gepaarde vergelijking.
+    gedeeld: dict[tuple, Any] = {}
     for r in range(1, a.rondes + 1):
-        routes[f"{MODEL} {r}"] = model_kiest_route(llm, settings.llm_model, modelmeting, spoor=spoor if r == 1 else None)
+        routes[f"{MODEL} {r}"] = model_kiest_route(llm, settings.llm_model, modelmeting, spoor=spoor if r == 1 else None,
+                                                   cache=gedeeld)
     if a.werkgebied:
         for r in range(1, a.rondes + 1):
             routes[f"{WERKGEBIED} {r}"] = model_kiest_route(llm, settings.llm_model, modelmeting, werkgebied=True,
+                                                            cache=gedeeld,
                                                             spoor=spoor_wg if r == 1 else None)
     sporen: dict[str, list[dict[str, Any]]] = {}
     for v in [x for x in a.varianten.split(",") if x]:
         sporen[v] = []
         vlaggen, limit = variant(v)
         routes[f"variant {v}"] = model_kiest_route(llm, settings.llm_model, modelmeting, vlaggen=vlaggen,
-                                                   spoor=sporen[v], limit=limit)
+                                                   spoor=sporen[v], limit=limit, cache=gedeeld)
     print(f"Bronselectie: {', '.join(routes)}; model {settings.llm_model}, "
           f"commit {os.environ.get('LEX_REVISIE', '') or 'lokaal'}", flush=True)
     rapport: dict[str, Any] = {}
