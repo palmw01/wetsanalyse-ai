@@ -21,6 +21,12 @@ updates:
     directory: /frontend
     schedule:
       interval: weekly
+    # @opentelemetry/api 1.10 nog niet (17 nov 2026): @vercel/otel 2.3 vraagt @opentelemetry/resources 2.x, en die
+    # accepteert @opentelemetry/api alleen onder 1.10 (ERESOLVE in #1200 en #1684). Haal dit weg zodra @vercel/otel
+    # resources 3.x toestaat.
+    ignore:
+      - dependency-name: "@opentelemetry/api"
+        versions: [">=1.10.0"]
     open-pull-requests-limit: 5
     groups:
       patch-and-minor:
@@ -48,6 +54,12 @@ updates:
     directory: /api
     schedule:
       interval: weekly
+    # Python 3.15 nog niet (17 nov 2026): in de lock staan gecompileerde pakketten zonder wheel voor 3.15 (graph-qa:
+    # spaCy, numpy, thinc …; api: tiktoken, regex, cffi …). Het slim-image kan ze niet vanaf de bron bouwen, dus de
+    # build faalt. Haal deze regel weg zodra de lock alleen pakketten met een cp315-wheel heeft.
+    ignore:
+      - dependency-name: python
+        versions: [">=3.15"]
     groups:
       patch-and-minor:
         update-types: ["patch", "minor"]
@@ -66,6 +78,12 @@ updates:
     directory: /tools/graph-qa
     schedule:
       interval: weekly
+    # Python 3.15 nog niet (17 nov 2026): in de lock staan gecompileerde pakketten zonder wheel voor 3.15 (graph-qa:
+    # spaCy, numpy, thinc …; api: tiktoken, regex, cffi …). Het slim-image kan ze niet vanaf de bron bouwen, dus de
+    # build faalt. Haal deze regel weg zodra de lock alleen pakketten met een cp315-wheel heeft.
+    ignore:
+      - dependency-name: python
+        versions: [">=3.15"]
     groups:
       patch-and-minor:
         update-types: ["patch", "minor"]
