@@ -69,7 +69,8 @@ jobs:
       - name: Inloggen bij Azure
         run: |
           set -euo pipefail
-          az login --service-principal \
+          source .github/scripts/az_opnieuw.sh
+          az_opnieuw login --service-principal \
             --username "$AZURE_CLIENT_ID" \
             --password "$AZURE_CLIENT_SECRET" \
             --tenant "$AZURE_TENANT_ID" >/dev/null
@@ -93,6 +94,7 @@ jobs:
           REVISIE: ${{ inputs.revisie }}
         run: |
           set -euo pipefail
+          source .github/scripts/az_opnieuw.sh
           naam="$APP_NAME-$APP"
 
           # Bestaat de revisie? Een typefout hoort te falen vóór we iets verzetten, niet erna.
@@ -107,7 +109,7 @@ jobs:
           # oude image. Dat is bewust geen `revision activate` – dan zou de app in
           # multiple-revision-modus moeten staan, en dat is een ander (blijvend) gedrag dan wat de
           # bicep beschrijft. Zo blijft de template de waarheid.
-          az containerapp update -n "$naam" -g "$RG" --image "$image" --output none
+          az_opnieuw containerapp update -n "$naam" -g "$RG" --image "$image" --output none
 
       - name: Uitrolpoort (teruggezette revisie gezond, keten werkt)
         if: ${{ inputs.revisie != '' }}

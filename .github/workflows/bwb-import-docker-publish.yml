@@ -135,6 +135,8 @@ jobs:
       RG: ${{ vars.AZURE_RESOURCE_GROUP }}
       APP: ${{ vars.APP_NAME }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       - name: Preflight (credentials en omgevingsvars aanwezig?)
         run: |
           set -euo pipefail
@@ -147,7 +149,8 @@ jobs:
           IMAGE_DIGEST_REF: ${{ env.IMAGE }}@${{ needs.build-and-push.outputs.digest }}
         run: |
           set -euo pipefail
-          az login --service-principal \
+          source .github/scripts/az_opnieuw.sh
+          az_opnieuw login --service-principal \
             --username "$AZURE_CLIENT_ID" \
             --password "$AZURE_CLIENT_SECRET" \
             --tenant "$AZURE_TENANT_ID"
@@ -160,7 +163,7 @@ jobs:
             echo "SWAP_OVERGESLAGEN=1" >> "$GITHUB_ENV"
             exit 0
           fi
-          az containerapp job update \
+          az_opnieuw containerapp job update \
             --name "$APP-bwb-import" \
             --resource-group "$RG" \
             --image "$IMAGE_DIGEST_REF" \
@@ -170,7 +173,7 @@ jobs:
           # met oude importercode – precies de val waar de eval-job in liep (zie graph-qa/CLAUDE.md).
           # Ontbreekt hij nog, dan is de infra ouder dan deze wijziging: waarschuwen, niet falen.
           if az containerapp job show -n "$APP-graafwacht" -g "$RG" --output none 2>/dev/null; then
-            az containerapp job update \
+            az_opnieuw containerapp job update \
               --name "$APP-graafwacht" \
               --resource-group "$RG" \
               --image "$IMAGE_DIGEST_REF" \
