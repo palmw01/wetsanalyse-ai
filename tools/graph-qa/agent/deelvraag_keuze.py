@@ -137,8 +137,9 @@ def kies(llm: Any, model: str, vraag: str, dossier: dict[str, Any], kand: list[d
 # variant woog mee: per deelvraag kiezen met de andere deelvragen in de prompt. Die ziet de kandidaten van de andere
 # deelvragen niet, dus kan 26a (gevonden bij 3) niet bij 1 zetten; ze kan haar alleen weglaten.
 
-#: Kiest het model één keer voor het hele werkgebied in plaats van per deelvraag? Standaard uit: de meting zet beide vormen
-#: naast elkaar (`eval/bronselectie_model_meting.py --werkgebied`). Uit is het verzoek per deelvraag byte-gelijk.
+#: Kiest het model één keer voor het hele werkgebied in plaats van per deelvraag? Standaard uit: de meting
+#: `bronselectie-2026-11-17-wetstermen-werkgebied` gaf een gemengd beeld (LB-08 0,27 → 0,48, Invorderbaarheid 0,73 → 0,64)
+#: tegen ~1M tokens per run; wetstermen wonnen duidelijker. Uit is het verzoek per deelvraag byte-gelijk.
 PER_WERKGEBIED = False
 #: Hoeveel kandidaten de vereniging hoogstens heeft. ~150 tokens per kandidaat, dus ~30k invoer bij de grens; vijf
 #: deelvragen met elk `MAX_KANDIDATEN` (40) en weinig overlap passen erin.

@@ -3,6 +3,8 @@ neemt iri en tekst over. Zonder model en zonder graaf."""
 from __future__ import annotations
 
 from agent import deelvraag_keuze as dk
+from dataclasses import replace
+
 from agent.deelvraag_zoeken import STANDAARD_PROFIEL
 from fakes import FakeLLM, response, text_block, tool_block
 
@@ -161,11 +163,14 @@ def _run_deelvraag(monkeypatch, llm, per_werkgebied):
     monkeypatch.setattr(bv, "_kandidaten_bij",
                         lambda graph, vraag, *a: dk.kandidaten(lijsten[vraag], []))
     invoer = {"deelvragen": [{"id": "d1", "vraag": "Wanneer?"}, {"id": "d2", "vraag": "Welke rente?"}]}
+    # Deze tests gaan over de keuze, niet over de vertaalstap (`test_wetstermen.py`): zonder wetstermen.
     t1, t2 = bv._MODEL.set((llm, "m", {})), bv._PER_WERKGEBIED.set(per_werkgebied)
+    t3 = bv._PROFIEL.set(replace(STANDAARD_PROFIEL, wetstermen=False))
     try:
         v = bv.Verzameling([])
         bv._deelvraag(None, invoer, v)
     finally:
+        bv._PROFIEL.reset(t3)
         bv._PER_WERKGEBIED.reset(t2)
         bv._MODEL.reset(t1)
     return v

@@ -38,8 +38,8 @@ def _model(termen: list[str]) -> FakeLLM:
 VRAAG = "Mag de Belastingdienst later geld bijvragen?"
 
 
-def test_de_vlag_staat_standaard_uit():
-    assert dz.STANDAARD_PROFIEL.wetstermen is False
+def test_de_vlag_staat_standaard_aan():
+    assert dz.STANDAARD_PROFIEL.wetstermen is True
 
 
 def test_zonder_vlag_of_zonder_model_geen_vertaling():
