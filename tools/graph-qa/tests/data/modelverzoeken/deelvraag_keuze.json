@@ -1,0 +1,60 @@
+[
+ {
+  "methode": "create",
+  "verzoek": {
+   "max_tokens": 1024,
+   "messages": [
+    {
+     "content": "Werkgebied: Beslistermijn\n\nDeelvraag: Welke dwangsom kan de aanvrager krijgen?\n\nBepalingen:\n1. Artikel 4:17, lid 1: Indien een beschikking op aanvraag niet tijdig wordt gegeven, verbeurt het bestuursorgaan aan de aanvrager een dwangsom.\n\nKies met de tool de bepalingen bij deze deelvraag.",
+     "role": "user"
+    }
+   ],
+   "model": "m",
+   "system": "Je helpt een jurist bij de bronselectie van een wetsanalyse. Je krijgt één deelvraag, het dossier van het werkgebied en een genummerde lijst bepalingen die de zoekmachine vond. Kies de bepalingen die de jurist nodig heeft om deze deelvraag te beantwoorden, op grond van hun tekst. Kern: de bepaling beantwoordt de deelvraag zelf. Afhankelijkheid: de kern kan niet zonder (een definitie, een bepaling waarnaar de kern verwijst). Aanverwant: nuttig, niet nodig. Kies een bepaling niet omdat ze een woord van de vraag noemt, maar omdat ze er inhoudelijk over gaat. Laat weg wat de afbakening uitsluit. Kies er hoogstens acht; minder mag. Geef alleen nummers uit de lijst.",
+   "tool_choice": {
+    "name": "kies_bepalingen",
+    "type": "tool"
+   },
+   "tools": [
+    {
+     "description": "De bepalingen bij de deelvraag, als nummers uit de lijst.",
+     "input_schema": {
+      "additionalProperties": false,
+      "properties": {
+       "gekozen": {
+        "items": {
+         "additionalProperties": false,
+         "properties": {
+          "nummer": {
+           "type": "integer"
+          },
+          "rol": {
+           "enum": [
+            "kern",
+            "afhankelijkheid",
+            "aanverwant"
+           ],
+           "type": "string"
+          }
+         },
+         "required": [
+          "nummer",
+          "rol"
+         ],
+         "type": "object"
+        },
+        "type": "array"
+       }
+      },
+      "required": [
+       "gekozen"
+      ],
+      "type": "object"
+     },
+     "name": "kies_bepalingen",
+     "strict": true
+    }
+   ]
+  }
+ }
+]
