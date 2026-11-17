@@ -164,9 +164,11 @@ class Zoekprofiel:
     #:   bepalingen die het team nodig vindt, maar de rangschikking in code houdt er weinig van over. Met deze vlag
     #:   verzamelt de code per deelvraag tot `deelvraag_keuze.MAX_KANDIDATEN` kandidaten uit de pool en de woordenroute,
     #:   en kiest één modelstap (`Rol.DEELVRAAG_KEUZE`) er hoogstens `MAX_PER_DEELVRAAG` uit: het model wijst aan, de code
-    #:   neemt iri en tekst over. Standaard **uit**: alleen de meting zet hem aan. Met deze vlag geeft dezelfde vraag niet
-    #:   meer zeker dezelfde opties.
-    model_kiest: bool = False
+    #:   neemt iri en tekst over. Standaard **aan** sinds de meting `bronselectie-2026-11-17-model` (op alle tien sets
+    #:   minstens gelijk op recall nodig, precisie overal hoger; ~6,5k tokens per deelvraag). Werkt alleen met een model in
+    #:   de run (`bronnen_vinden.vind(llm=)`); zonder kiest de code. Met deze vlag geeft dezelfde vraag niet meer zeker
+    #:   dezelfde opties.
+    model_kiest: bool = True
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.
