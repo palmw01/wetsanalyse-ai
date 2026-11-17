@@ -5,7 +5,7 @@
 // De beurt is van de server, niet van dit tabblad (zie `frontend/CLAUDE.md`). Deze hook houdt alleen bij waar de
 // werkplek staat (`lib/beurtFase.ts`) en volgt de run met de lus uit `lib/beurtLus.ts`. Wat er op het scherm gebeurt –
 // de bubbel bijwerken, een paneel openen, het artefact tonen – geeft het component mee als callbacks. De rekenkern
-// staat in `lib/`: vitest draait zonder DOM, en een hook is daar niet te toetsen.
+// staat in `lib/`; de hook zelf toetst `useBeurt.dom.test.ts` met een DOM (happy-dom).
 //
 // De regels die hier vastliggen:
 // - unmount koppelt alleen los: de cleanup aborteert de kijker, nooit de run;
