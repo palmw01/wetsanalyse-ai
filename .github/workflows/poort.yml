@@ -595,6 +595,8 @@ jobs:
           # `nlp`: de taalanalyse van de hybride JAS-pijplijn (ADR-002). Zonder die extra slaan de
           # tests tegen de echte parser zichzelf over, en dan bewaakt niets het providercontract.
           uv sync --extra dev --extra mcp --extra nlp
+          # Het spaCy-model staat niet in uv.lock (Dependabot kan geen directe URL aan); de URL uit pyproject.toml.
+          uv pip install "$(uv run python scripts/taalmodel.py)"
           if [ "${{ matrix.shard }}" = 1 ]; then uv run python scripts/genereer_jas_klassen.py --check; fi
           uv run pytest -q -p pytest_shard
 
