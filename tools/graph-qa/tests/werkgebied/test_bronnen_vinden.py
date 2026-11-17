@@ -774,3 +774,46 @@ def test_zonder_budget_kiest_geen_model_en_start_niets(nep, monkeypatch):
     events, geboekt = _stroom_met_model(monkeypatch, api, budget=False, gekozen=[])
     assert events[-1] == {"type": "error", "message": "Je tokenbudget voor deze periode is op.", "soort": "budget"}
     assert api.mislukt == "Het tokenbudget is op." and not geboekt
+
+
+class BelangGraaf(BepalingGraaf):
+    """Artikel 9 lid 2 wordt vaak genoemd, artikel 12 lid 1 één keer; de rest nooit."""
+
+    def __init__(self, faal_belang: bool = False) -> None:
+        super().__init__()
+        self.faal_belang = faal_belang
+        self.belang_vragen = 0
+
+    def _antwoord(self, q: str) -> str:
+        if "COUNT(DISTINCT ?bron)" in q:
+            self.belang_vragen += 1
+            if self.faal_belang:
+                raise RuntimeError("graaf hapert")
+            return _tsv(["bepaling", "aantal"], [[L9_2, "40"], [ART12_1, "1"]])
+        return super()._antwoord(q)
+
+
+def test_het_belang_van_verwijzingen_staat_standaard_uit():
+    graaf = BelangGraaf()
+    assert deelvraag_zoeken.STANDAARD_PROFIEL.belang is False
+    _opties(graaf)
+    assert graaf.belang_vragen == 0
+
+
+def test_met_het_belang_gaat_een_genoemde_bepaling_omhoog():
+    from dataclasses import replace
+
+    zonder = [o["bron_iri"] for o in _opties()]
+    met = [o["bron_iri"] for o in _opties(BelangGraaf(), profiel=replace(deelvraag_zoeken.STANDAARD_PROFIEL,
+                                                                         belang=True))]
+    assert set(met) == set(zonder)
+    # Het belang is één lijst in de fusie, geen gewicht: het verschuift, het verdringt niet.
+    assert met.index(L9_2) < zonder.index(L9_2) and met[0] == zonder[0]
+
+
+def test_een_haperende_graaf_kost_alleen_het_belang():
+    from dataclasses import replace
+
+    profiel = replace(deelvraag_zoeken.STANDAARD_PROFIEL, belang=True)
+    assert [o["bron_iri"] for o in _opties(BelangGraaf(faal_belang=True), profiel=profiel)] == \
+        [o["bron_iri"] for o in _opties()]
