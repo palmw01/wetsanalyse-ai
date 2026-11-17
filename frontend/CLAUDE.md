@@ -1061,7 +1061,9 @@ daarom alleen stabiele props: het eigen item, het eigen document (niet de hele `
 vlaggen en één `acties`-object dat `WerkplekClient` één keer maakt en via een ref naar de handlers van
 de laatste render laat wijzen. **Geef een rij geen inline callback of vers object mee**, anders
 rendert alles weer. Om de rij zit `.thread-rij` (`content-visibility: auto`, `globals.css`): buiten
-beeld slaat de browser layout en paint over.
+beeld slaat de browser layout en paint over. **Een browsertest leest tekst uit de thread met `zichtbareTekst`**
+(`scripts/zichtbareTekst.mjs`): `innerText` is leeg zolang de rij buiten beeld staat, en dat hangt af van scrollen en
+timing (`test-subagent.mjs` faalde zo af en toe, 17 nov 2026).
 
 ## Annotaties buiten het gesprek (`/annotaties`)
 
