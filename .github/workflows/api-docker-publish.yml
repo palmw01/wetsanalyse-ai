@@ -171,7 +171,9 @@ jobs:
       # De uitrolpoort staat als composite action in de repo; alleen die map is nodig.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          sparse-checkout: .github/actions
+          sparse-checkout: |
+            .github/actions
+            .github/scripts
           persist-credentials: false
 
       - name: Azure Container App update (api)

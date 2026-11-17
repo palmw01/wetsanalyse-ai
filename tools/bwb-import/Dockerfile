@@ -16,7 +16,7 @@ RUN apt-get update \
 # pakketinventaris leest: die meldde hier setuptools 70.3.0 (CVE-2025-47273, CVE-2026-59890) en
 # msgpack 1.1.2 (GHSA-6v7p-g79w-8964) terwijl geen van beide als pakket geïnstalleerd is.
 RUN pip install --no-cache-dir --upgrade pip 'setuptools>=83.0.0' \
- && rm -f /usr/local/lib/python3.14/site-packages/pip/_vendor/bom.cdx.json
+ && rm -f /usr/local/lib/python3*/site-packages/pip/_vendor/bom.cdx.json
 
 # Dependencies (betere layer-caching). lxml-wheels bundelen libxml2/libxslt. De buildcontext is de projectroot (zoals
 # bij api en graph-qa): de BWB-lezer en de officiële XSD's staan in packages/bronmodel (`bronmodel.bwb`), gedeeld met
