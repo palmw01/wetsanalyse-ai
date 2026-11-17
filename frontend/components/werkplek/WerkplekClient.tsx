@@ -52,7 +52,7 @@ import type {
 } from "@/lib/types";
 import { ANNULEER_TEKST, afgehandeld } from "@/lib/werkgebiedAnnoteren";
 import {
-  antwoordOp, antwoordTekst, groepeerVragen, klaarActie, openVraag,
+  antwoordOp, antwoordTekst, groepeerVragen, klaarActie, openVraag, teHeropenen,
 } from "@/lib/vraagkaart";
 import { VraagDock } from "@/components/werkplek/VraagDock";
 import { BronselectieKaart } from "@/components/werkplek/BronselectieKaart";
@@ -975,6 +975,7 @@ export function WerkplekClient({
   // Het open compacte kaartje van de bronselectie: *Klaar* mag dan ook vanuit het paneel.
   const paneelKaart = open?.open?.weergave === "paneel" ? open.open : undefined;
   const toonDock = !!open?.open && !bezig && !demo && weggeklikt !== open.openId;
+  const heropenbaar = demo ? undefined : teHeropenen(open, toonDock, bezig);
 
   // Auto-groeiende textarea (groeit met de inhoud tot een max; daarna intern scrollen). Ook de breedte telt: een
   // plaatshouder die op een smal scherm afbrak, hield anders na het verbreden zijn hoogte, en dan staan tekst en knop
@@ -1296,6 +1297,7 @@ export function WerkplekClient({
               <ThreadRij
                 item={item}
                 vragen={vraagGroepen.get(item.id)}
+                vraagTeOpenen={!!heropenbaar && vraagGroepen.get(item.id)?.sleutel === heropenbaar}
                 keuze={keuzes.get(item.id)}
                 // Alleen de laatste beurt kan aan het streamen zijn.
                 streamt={bezig && i === items.length - 1}

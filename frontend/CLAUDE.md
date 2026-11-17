@@ -845,7 +845,9 @@ werkgebied staat. Het kaartje komt als
   bronselectie.
 - **In de thread één Vragen-kaart per reeks** (`groepeerVragen`, `VragenKaart`): per vraag de vraag
   (grijs) en je antwoord, "Vraag" bij één en "Vragen" bij meer, daaronder "● Een vraag stellen ›" (opent
-  de dock weer) of "Nadenken…" terwijl Lex de volgende voorbereidt. De antwoordbubbels en de zinnen van
+  de dock weer; alleen bij de kaart van de open vraag, als die weggeklikt is en er geen beurt loopt: `teHeropenen`.
+  Een oudere kaart met een onbeantwoorde vraag krijgt hem niet, want de dock opent alleen de laatste) of "Nadenken…"
+  terwijl Lex de volgende voorbereidt. De antwoordbubbels en de zinnen van
   Lex per stap renderen niet; een getypte tussenvraag breekt de reeks. Opnieuw beantwoorden na ‹
   vervangt het paar en wat erna kwam.
 - **Een klik is een gewone beurt met `intake_actie`**; het user-bericht draagt **`intake_antwoord`**
