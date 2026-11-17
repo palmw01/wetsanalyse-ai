@@ -1,7 +1,7 @@
 """De naadtoets: één vaste minicasus door de echte overgangen van de api, met de batch die graph-qa echt verstuurt
 (Lex Bench §20.5 stap 5, testplan keten-e2e §3 punt 5).
 
-Het voorbeeld `tests/poort/data/naad_minicasus.json` maakt `tools/graph-qa/tests/test_naad_minicasus.py` uit de echte
+Het voorbeeld `tests/poort/data/naad_minicasus.json` maakt `tools/graph-qa/tests/runs/test_naad_minicasus.py` uit de echte
 annotatieketen en de echte api-client: de bronrijen die graph-qa las en de batch zoals hij over de draad gaat. Hier bouwt
 de api met zijn eigen `snapshot_uit` de snapshot uit dezelfde rijen, en neemt hij de batch aan. Elke stap toetst wat de
 volgende verwacht (ids, lidniveau, ankers):
@@ -23,7 +23,7 @@ from rdflib import Dataset, Literal
 from app import annotatie_v2, bron_resolver, db
 from app import graaf as graafmodule
 from app import graaf_projectie_v2 as projectie
-from test_werkgebieden import client, database  # noqa: F401
+from gedeelde_bron import client, database  # noqa: F401
 
 pytestmark = pytest.mark.risico("R21", laag=2)
 

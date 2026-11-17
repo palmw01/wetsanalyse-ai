@@ -39,7 +39,7 @@ legacy-route ingevoerd achter een vlag en objectief vergeleken.
   `api/app/jas_klassen.py:19-33`). De helft staat alleen in de vrije `toelichting`. Het
   subonderscheid is daardoor niet machineleesbaar. Dat raakt de dekking die in §2 wordt gevraagd.
 - De methode staat in de skill (markdown). `tools/graph-qa/agent/jas_klassen.py` wordt daaruit
-  gegenereerd (`scripts/genereer_jas_klassen.py`, bewaakt door `tests/test_methode_drift.py`).
+  gegenereerd (`scripts/genereer_jas_klassen.py`, bewaakt door `tests/methode/test_methode_drift.py`).
   Het protocol (`annotatieprotocol.md`) wordt via `agentrollen.json` → `methodepakket.py` in de
   prompts geïnjecteerd.
 

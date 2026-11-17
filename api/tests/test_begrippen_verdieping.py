@@ -6,9 +6,9 @@ manifest: een fragment dat niet letterlijk in de bron staat, komt er niet in.
 from __future__ import annotations
 
 from app.begrippen_verdieping import SCHEIDING, fragment_id
-from test_annotatie_v2 import ONE, TWO
+from gedeelde_bron import ONE, TWO
 from test_begrippen_runs import _annoteer, _groep, _start, _uitkomst, _werkgebied
-from test_werkgebieden import client, database, graaf  # noqa: F401
+from gedeelde_bron import client, database, graaf  # noqa: F401
 
 GA, GM = "Ga1a1a1", "Gb2b2b2"
 

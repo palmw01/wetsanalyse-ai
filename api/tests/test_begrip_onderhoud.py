@@ -10,10 +10,10 @@ from sqlalchemy import delete
 
 from app import annotatie_v2_store as store, db, werkgebieden
 from app.begrip_onderhoud_store import _redenen, bron_signalen, opvolgers
-from test_annotatie_v2 import ONE, TWO, element, request, snapshot
+from gedeelde_bron import ONE, TWO, element, request, snapshot
 from test_begrippen import DEFINITIE, _annoteer, _begrip, _beslis, _url, _werkgebied
 from test_begrippen_runs import _groep, _start, _uitkomst
-from test_werkgebieden import client, database, graaf, snapshot2  # noqa: F401
+from gedeelde_bron import client, database, graaf, snapshot2  # noqa: F401
 
 
 async def _geaccordeerd(client, wg, element_ids, naam="Belastingschuldige") -> dict:

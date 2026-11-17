@@ -48,7 +48,7 @@ Het koude begin had drie oorzaken:
     (nameting G4-3/G4-4).
 
   Gesimuleerd met de echte cachepunten: per beurt ~16k tekens opnieuw geschreven (de vorige beurt gekrompen plus de
-  nieuwe), tegen 34–36k met het oude venster (`tests/test_trimming.py`).
+  nieuwe), tegen 34–36k met het oude venster (`tests/context/test_trimming.py`).
 
 ## Zichtbaar
 

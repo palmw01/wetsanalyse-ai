@@ -242,20 +242,20 @@ De **inhoudelijke duiding** – omschrijving, herkenningsvraag en uitdrukkingswi
 uit de skill. Daarvan zijn **afgeleid**:
 
 - `tools/graph-qa/agent/jas_klassen.py` – het JAS_KLASSEN-blok, gegenereerd door
-  `tools/graph-qa/scripts/genereer_jas_klassen.py`, bewaakt door `tests/test_methode_drift.py`; en daarnaast
+  `tools/graph-qa/scripts/genereer_jas_klassen.py`, bewaakt door `tests/methode/test_methode_drift.py`; en daarnaast
   `agent/jas_toelichting.py` (subklassen, samenhang en afbakening per klasse, alleen voor de tool
   `jas_klasse_opvragen`);
 - `tools/graph-qa/agent/methodepakket.py` – de methodetekst per agentrol (`agentrollen.json` +
   `references/agentrollen.md`), gegenereerd door `scripts/genereer_methodepakket.py`, bewaakt door
-  `tests/test_methodepakket.py`;
+  `tests/methode/test_methodepakket.py`;
 - `tools/graph-qa/agent/agentprofielen.py` – de agentprofielen (ADR-016 §A2), **niet uit de skill maar uit
   `.claude/lex-agents/<naam>.md`**: de specialisten van Lex als profiel (instructie, tools, connectors, sjablonen).
   Gegenereerd door `scripts/genereer_agentprofielen.py` (dat `genereer_jas_klassen.py` meedraait), bewaakt door
-  `tests/test_profielregister.py`. Bewust niet in `.claude/agents/`: daar staan de Claude Code-subagents van het
+  `tests/centrale_agent/test_profielregister.py`. Bewust niet in `.claude/agents/`: daar staan de Claude Code-subagents van het
   acceptatieteam;
 - `tools/graph-qa/agent/bronpakket.json` – de bronbestanden van elke methode-skill en elk agentprofiel met hun hash
   (ADR-016 §B1), gegenereerd door `scripts/genereer_bronpakket.py` (dat `genereer_jas_klassen.py` meedraait), bewaakt
-  door `tests/test_bronpakket.py`. Elke wijziging aan een skill of profiel verandert dit bestand;
+  door `tests/methode/test_bronpakket.py`. Elke wijziging aan een skill of profiel verandert dit bestand;
 - `api/app/jas_relaties.py` en `frontend/lib/jasRelaties.ts` – de relatiecatalogus (ADR-011) uit `relaties.json`,
   gegenereerd door `tools/graph-qa/scripts/genereer_jas_relaties.py` (dat `genereer_jas_klassen.py` meedraait), bewaakt
   door `tests/poort/test_relatiecatalogus.py`.
@@ -300,7 +300,7 @@ scenario verwijst naar een JAS-dossier en maakt zelf geen markeringen. Zijn meth
 `docs/architectuur/plan-methodes-scheiden.md`). Elke methode heeft een eigen skill, eigen tools, workflows en profielen,
 en een eigen resultaatvorm. De annotatieketen, de annotatie-UI en de JAS-tools zijn alleen van wetsanalyse; een nieuwe
 methode levert eerst tekst in het gesprek of een eigen zijpaneel, nooit JAS-markeringen. De skill wetsanalyse noemt het
-JRM alleen in een alinea die naar wetsuitvoering verwijst: `tools/graph-qa/tests/test_methodes_gescheiden.py` maakt
+JRM alleen in een alinea die naar wetsuitvoering verwijst: `tools/graph-qa/tests/methode/test_methodes_gescheiden.py` maakt
 vermenging rood.
 
 **Een wijziging van de tekst tussen de methodemarkers verandert het gedrag van Lex** en vraagt een meting (ADR-010,

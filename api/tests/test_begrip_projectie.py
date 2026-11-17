@@ -13,8 +13,8 @@ from app.begrip_projectie import DCT, ISOTHES, SKOS, WA, begrip_iri, graph_iri, 
 from graafdb_fake import installeer
 from test_begrip_onderhoud import _geaccordeerd
 from test_begrippen import _annoteer, _begrip, _keur_alles_goed, _url, _werkgebied
-from test_annotatie_v2 import LAW, ONE
-from test_werkgebieden import client, database, graaf, snapshot2  # noqa: F401
+from gedeelde_bron import LAW, ONE
+from gedeelde_bron import client, database, graaf, snapshot2  # noqa: F401
 
 
 def _rel(wg) -> str:

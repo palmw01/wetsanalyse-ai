@@ -1,5 +1,5 @@
 /** Eén stijl aanhalingstekens in beeld: “…” (melding gebruiker 16 nov 2026). graph-qa heeft dezelfde toets
- *  (`tests/test_aanhalingstekens.py`). */
+ *  (`tests/sjablonen/test_aanhalingstekens.py`). */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";

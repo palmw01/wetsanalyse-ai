@@ -19,7 +19,7 @@ from app.config import get_settings
 from app.graafcontrole import controleer, controleer_laag
 from app.graaf_projectie_v2 import JAS, REGISTER, element_iri, graph_iri, laag_iri
 from graafdb_fake import installeer
-from test_annotatie_v2 import ONE, element, request, snapshot
+from gedeelde_bron import ONE, element, request, snapshot
 
 
 @pytest.fixture

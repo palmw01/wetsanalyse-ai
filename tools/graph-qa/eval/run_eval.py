@@ -38,7 +38,7 @@ from eval.vraagtypen import print_per_vraagtype, vraagtype_van  # noqa: E402
 GOLDEN = Path(__file__).parent / "golden.jsonl"
 GOLDEN_ANNOTATIE = Path(__file__).parent / "golden_annotatie.jsonl"
 # De bepalingen uit `docs/wetsanalyse/referentieset/concept/`: wat een klasse doet over de runs heen, zonder iets te
-# schrijven. Provisional en bewust onvolledig, dus trendmeting (`tests/test_eval.py` bewaakt de drift).
+# schrijven. Provisional en bewust onvolledig, dus trendmeting (`tests/evals/test_eval.py` bewaakt de drift).
 GOLDEN_CONCEPT = Path(__file__).parent / "golden_annotatie_concept.jsonl"
 
 

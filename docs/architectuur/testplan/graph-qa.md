@@ -286,7 +286,7 @@ versie zichtbaar wordt. Dat hoort in Lex Bench (§5.3).
 
 ### 4.2 Afhankelijk van de volgorde: de oorzaak
 
-**Reproductie.** `pytest tests/test_eval.py tests/test_sjablonen.py::test_een_beurt_rondt_af_met_de_wettekst_uit_de_graaf`
+**Reproductie.** `pytest tests/evals/test_eval.py tests/sjablonen/test_sjablonen.py::test_een_beurt_rondt_af_met_de_wettekst_uit_de_graaf`
 geeft `IndexError: list index out of range` in `FakeLLM._next`: het script van twee antwoorden is op. Na bisectie veroorzaakt
 alleen `test_eval.py::test_offline_eval_run_slaagt` het.
 
@@ -443,6 +443,11 @@ staan, maar mogen niet tot één score worden opgeteld. Voorstel:
    `tests/connectors/` …). De bundelbestanden gaan naar de groep van hun mechanisme, met de meting in de docstring. Doe het
    in één beweging per groep, en houd de testnamen gelijk zodat de historie te volgen blijft. Dit raakt de shardverdeling
    (per bestand) en `tests/poort/test_build_inputs.py`; overleg daarom met de poort.
+   *Gebouwd (17 nov 2026, Lex Bench §20.5 stap 6).* Vijftien mappen in één beweging, met `git mv`; de wegwijzer staat in
+   `tools/graph-qa/tests/README.md`. De bundelbestanden gingen naar hun mechanisme (bijlage A, *Meetsets per bundel*).
+   Testnamen, aantal (6482 verzameld) en inhoud zijn gelijk; alleen de paden naar `data/` en `fixtures/` (`parents[k]`)
+   gingen één niveau mee. De shardtijden staan op het nieuwe pad. Verwijzingen in skills, profielen, gegenereerde
+   bestanden, sets en meetbestanden zijn bewust niet aangepast: die tekst bereikt Lex of is bewijs.
 7. **Een gedeelde nepgraaf met een kleine vaste wereld** (een paar regelingen, artikelen en leden die op de echte query's
    antwoorden), naast `FakeGraph(result=…)`. Begin bij de tests die nu `_REGELINGEN_CACHE` legen.
 8. **Vervang de asserts op prompttekst** door `test_modelverzoeken` of door een toets op gedrag. Ruim
@@ -520,6 +525,10 @@ Bestandsnamen zonder `test_` en `.py`.
 - **Meetsets per bundel:** a4_vervolg, a6_aansluiting, a6_citaten, a6_eind, a6_f03, a6_kern, a6_run1, a6_run2, a6_run3,
   b3_na_subagent, b_lezer_beslist, c_begrensd, d01_bundel122, d01_bundel123, d01_gelezen_via_ander_stuk, d01_hervatten,
   d01_samenvatting_per_stuk, d01_zonder_duiding, e_b2_zoeken, bundel_elk_rapport, controle_citaten.
+  Na P1-6 staan ze bij hun mechanisme: `centrale_agent/` (a4_vervolg, a6_aansluiting, a6_eind, a6_f03, a6_run1–3,
+  c_begrensd, d01_hervatten, bundel_elk_rapport), `grounding/` (a6_citaten, b3_na_subagent, b_lezer_beslist,
+  d01_bundel122, d01_bundel123, d01_gelezen_via_ander_stuk, d01_samenvatting_per_stuk, d01_zonder_duiding,
+  controle_citaten), `sjablonen/` (a6_kern) en `werkgebied/` (e_b2_zoeken).
 - **Eval-harnas, sets en referentiesets:** eval, eval_beheersing, eval_gesprek, eval_kwaliteit, eval_metrieken,
   eval_scorers_v2, golden_annotatie, golden_centrale_agent, adjudicatie, referentieset, referentieset_concept,
   fouttaxonomie, laagrapport, meetharnas, stabiliteit_analyse, compare_pipelines, baseline_proef, extern_dossier,

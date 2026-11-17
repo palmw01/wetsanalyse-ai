@@ -3,7 +3,7 @@ import pytest
 
 from app import annotatie_v2_store as store
 from app import db, samenhang
-from test_annotatie_v2 import ART, LAW, ONE, TWO, element, request, snapshot
+from gedeelde_bron import ART, LAW, ONE, TWO, element, request, snapshot
 
 ANDER = "urn:bwb:BWBR0004770:artikel:10"
 STUB = "urn:bwb:BWBR0002320:artikel:3"
@@ -128,7 +128,7 @@ async def test_markeringen_dragen_herkomst_aandacht_en_spoor(monkeypatch):
 
 
 async def test_een_terugval_markeert_wel_maar_krijgt_geen_klasseknoop(monkeypatch):
-    from test_annotatie_v2 import TERUGVAL
+    from gedeelde_bron import TERUGVAL
     snap = snapshot(ONE)
     await store.batch(request(snap, [{**element(snap), **TERUGVAL}]), snap, "lex")
     monkeypatch.setattr(samenhang, "_verwijzingen", rijen())

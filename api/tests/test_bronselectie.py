@@ -5,10 +5,10 @@ from __future__ import annotations
 
 from app import bronselectie, db
 from sqlalchemy import select
-from test_annotatie_v2 import ART, ONE, TWO
+from gedeelde_bron import ART, ONE, TWO
 from test_bronnen_runs import LID3, _start, _uitkomst
 from test_werkgebied_deelvragen import _dv, _patch
-from test_werkgebieden import ART2, _nieuw, client, database, graaf  # noqa: F401
+from gedeelde_bron import ART2, _nieuw, client, database, graaf  # noqa: F401
 
 VRAGEN = ["Welke algemene betalingstermijn geldt?", "Welke termijnen gelden voor voorlopige aanslagen?",
           "Welke afwijkende betalingstermijnen bestaan er?", "Wanneer wordt iedere afzonderlijke termijn invorderbaar?"]

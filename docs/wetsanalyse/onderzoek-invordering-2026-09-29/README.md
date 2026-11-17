@@ -88,7 +88,7 @@ Vanuit `tools/graph-qa`, zonder netwerk of providercredentials:
 
 ```bash
 .venv/bin/python -m eval.onderzoek_invordering --output /tmp/invordering-nieuwe-meting.json --dossiers /tmp/invordering-nieuwe-dossiers.md
-.venv/bin/python -m pytest tests/test_onderzoek_invordering.py -q
+.venv/bin/python -m pytest tests/evals/test_onderzoek_invordering.py -q
 .venv/bin/python -m eval.detector_audit --json /tmp/invordering-nieuwe-devcontrole.json --vergelijk ../../docs/architectuur/metingen/hybrid-v1-tekststructuur-2026-09-29/na.json
 ```
 

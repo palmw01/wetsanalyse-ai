@@ -11,7 +11,7 @@ import random
 
 from app.bronselectie import BEWIJS_VOLGORDE, voorstel_volgorde
 from app.bronnen_run_contracts import ROL_VOLGORDE
-from test_werkgebieden import client, database, graaf  # noqa: F401
+from gedeelde_bron import client, database, graaf  # noqa: F401
 
 
 def _v(iri: str, rol: str = "kern", soorten=("tekst",), bewijzen: int = 1, label: str = "x") -> dict:
@@ -50,9 +50,9 @@ def test_de_rangorde_van_rol_en_bewijs_ligt_vast():
 
 async def test_het_overzicht_geeft_de_voorstellen_in_die_volgorde(client):
     """Door de echte route: de lijst van `GET …/bronselectie` is gesorteerd op `voorstel_volgorde`."""
-    from test_annotatie_v2 import ART, ONE, TWO
+    from gedeelde_bron import ART, ONE, TWO
     from test_bronselectie import _dq, _kd, _met_kandidaten, _overzicht, _vier
-    from test_werkgebieden import ART2
+    from gedeelde_bron import ART2
 
     wg, ids = await _vier(client)
     await _met_kandidaten(client, wg, [

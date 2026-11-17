@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+
+from conftest import api_client
 from sqlalchemy import select
 
 AGENT = {"Authorization": "Bearer agent-token", "X-User-Id": "user1"}
@@ -11,23 +12,8 @@ WEBAPP = {"Authorization": "Bearer webapp-token", "X-User-Id": "user1"}
 
 @pytest.fixture
 async def client(monkeypatch):
-    monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite://")
-    monkeypatch.setenv("WETSANALYSE_API_TOKENS", "graph-qa:agent-token,frontend:webapp-token")
-    from app import db, ratelimit
-    from app.config import get_settings
-
-    get_settings.cache_clear()
-    ratelimit.reset()
-    db.init_engine("sqlite+aiosqlite://")
-    await db.create_all()
-    await db.reconcile_schema()
-    from conftest import maak_testgebruikers
-    await maak_testgebruikers("user1")
-    from app.main import app
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with api_client(monkeypatch, env={"DATABASE_URL": "sqlite+aiosqlite://", "WETSANALYSE_API_TOKENS": "graph-qa:agent-token,frontend:webapp-token"}, reconcile=True, gebruikers=("user1",)) as ac:
         yield ac
-    await db.dispose_engine()
-    get_settings.cache_clear()
 
 
 async def test_het_agent_token_beslist_niet(client):

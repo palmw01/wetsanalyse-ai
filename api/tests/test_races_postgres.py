@@ -12,11 +12,11 @@ from sqlalchemy import func, select
 
 from app import db
 from conftest import postgres_schema, vereis_postgres
-from test_annotatie_v2 import ART
+from gedeelde_bron import ART
 from test_bronselectie import _dq, _kd, _kid, _met_kandidaten, _overzicht, _status, _vier
 from test_delegaties import B, D, _gesprek, _start, _subagent
 from test_werkgebied_deelvragen import _dv
-from test_werkgebieden import _nieuw, client, graaf  # noqa: F401
+from gedeelde_bron import _nieuw, client, graaf  # noqa: F401
 
 pytestmark = [vereis_postgres(), pytest.mark.risico("R07")]
 

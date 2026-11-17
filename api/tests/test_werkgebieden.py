@@ -1,88 +1,13 @@
 """Werkgebieden (spoor D, levering 1): revisies, bronselecties, gedeeld gebruik en de inventaris."""
 from __future__ import annotations
 
-import hashlib
-
 import pytest
 from fastapi import HTTPException
 
 from app import annotatie_v2_store as store, db, werkgebieden
 from app.annotatie_v2_contracts import Beslissing
-from test_annotatie_v2 import ART, ONE, TWO, element, request, snapshot
-
-LAW2 = "urn:bwb:BWBR0002320"
-ART2 = LAW2 + ":artikel:2"
-
-
-def snapshot2():
-    nodes = [dict(bron_iri=LAW2, parent_iri="", type="Wet", label="AWR", tekst=""),
-             dict(bron_iri=ART2, parent_iri=LAW2, type="Artikel", label="Artikel 2", tekst="Deze wet")]
-    for i, n in enumerate(nodes):
-        n.update(bron_hash=hashlib.sha256(n["tekst"].encode()).hexdigest(), volgorde=i, bwb_id="BWBR0002320")
-    return dict(snapshot_id=store.digest(nodes), doel=nodes[1], nodes=nodes)
-
-
-class Graaf:
-    """Nep-resolver: welke bronstand er 'nu' is, en of een regeling onbereikbaar is."""
-
-    def __init__(self):
-        self.tweede_lid = "Beta"
-        self.weg: set[str] = set()
-
-    async def resolve(self, doel):
-        iri = doel.get("bron_iri") or (ART if doel.get("artikel") == "9" else "")
-        if not iri:
-            from bronmodel import BronFout
-            raise BronFout("Onbekende bepaling.")
-        if iri.startswith(LAW2):
-            if LAW2 in self.weg:
-                raise ConnectionError("graaf weg")
-            return snapshot2()
-        return snapshot(iri, second=self.tweede_lid)
-
-
-@pytest.fixture(autouse=True)
-async def database():
-    db.init_engine("sqlite+aiosqlite://")
-    await db.create_all()
-    yield
-    await db.dispose_engine()
-
-
-@pytest.fixture
-def graaf(monkeypatch):
-    g = Graaf()
-    monkeypatch.setattr(werkgebieden, "_resolve_bron", g.resolve)
-    monkeypatch.setattr(werkgebieden, "_lees_bron", g.resolve)
-    return g
-
-
-@pytest.fixture
-async def client(monkeypatch, graaf):
-    from httpx import ASGITransport, AsyncClient
-    from app.config import get_settings
-    from conftest import maak_testgebruikers
-    monkeypatch.setenv("WETSANALYSE_AUTH_REQUIRED", "0")
-    get_settings.cache_clear()
-    await maak_testgebruikers("jurist-a", "jurist-b")
-    from app.main import app
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test",
-                           headers={"X-User-Id": "jurist-a"}) as c:
-        yield c
-    get_settings.cache_clear()
-
-
-async def _nieuw(client, naam="Invorderbaarheid") -> dict:
-    r = await client.post("/v1/werkgebieden", json={"naam": naam, "analysevraag": "Wanneer?"})
-    assert r.status_code == 201, r.text
-    return r.json()
-
-
-async def _bron(client, wg: dict, **velden) -> dict:
-    r = await client.post(f"/v1/werkgebieden/{wg['id']}/bronnen",
-                          json={"verwachte_revisie": wg["revisie"], **velden})
-    assert r.status_code in (200, 201), r.text
-    return r.json()
+from gedeelde_bron import ART2, LAW2, Graaf, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
+from gedeelde_bron import ART, ONE, TWO, element, request, snapshot
 
 
 # --- het werkgebied zelf ---------------------------------------------------------------------

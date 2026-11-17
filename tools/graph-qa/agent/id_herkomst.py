@@ -26,7 +26,7 @@ from bronmodel.extern import externe_vindplaats
 #: Deze controle in de catalogus (ADR-014 §7, concept hook): deterministisch, op een vast moment, niet door het model
 #: uit te zetten.
 CONTROLE = {"naam": "id_herkomst", "label": "Herkomst van een id", "doel": ("Laat een toolaanroep van het model met een id alleen door als dat id uit het gesprek komt (de vraag, een toolresultaat, de context); anders een fout met de zoektool die het wel vindt."),
-            "moment": "vóór elke toolaanroep van het model (tools_node; PreToolUse-hook)", "tests": ('tools/graph-qa/tests/test_id_herkomst.py',)}
+            "moment": "vóór elke toolaanroep van het model (tools_node; PreToolUse-hook)", "tests": ('tools/graph-qa/tests/grounding/test_id_herkomst.py',)}
 
 
 #: Een BWB-id, ook binnen een iri of jci ("urn:bwb:BWBR0004770:artikel:9", "c:BWBR0004770&artikel=9").

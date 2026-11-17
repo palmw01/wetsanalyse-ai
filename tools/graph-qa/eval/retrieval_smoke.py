@@ -6,7 +6,7 @@ matcht. Precies dat gat liet `get_lid` maandenlang op `bwb:bevat` staan – een 
 bestaat – en `context()` zijn hele structuurtak verliezen. Beide waren syntactisch correct, beide
 gaven nul rijen, geen van beide sloeg alarm.
 
-`tests/test_predicaat_dekking.py` vangt de statische helft (een naam die de importer niet kent).
+`tests/graaf/test_predicaat_dekking.py` vangt de statische helft (een naam die de importer niet kent).
 Deze smoke vangt de andere helft: een naam die wél bestaat maar in de praktijk niets oplevert,
 omdat de relatie nooit wordt geschreven, de scope verkeerd staat of het pad niet klopt.
 

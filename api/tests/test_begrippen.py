@@ -11,8 +11,8 @@ from sqlalchemy import delete
 
 from app import annotatie_v2_store as store, db
 from app.annotatie_v2_contracts import Beslissing
-from test_annotatie_v2 import ART, ONE, TWO, element, request, snapshot
-from test_werkgebieden import ART2, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
+from gedeelde_bron import ART, ONE, TWO, element, request, snapshot
+from gedeelde_bron import ART2, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
 
 DEFINITIE = {"definitie": "Degene die de belasting verschuldigd is.",
              "context": "Invordering van rijksbelastingen."}

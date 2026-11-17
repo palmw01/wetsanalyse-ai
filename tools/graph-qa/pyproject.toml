@@ -37,7 +37,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8",
-    # Alleen om SPARQL te PARSEREN in `tests/test_sparql_syntax.py` – rdflib praat hier nooit met
+    # Alleen om SPARQL te PARSEREN in `tests/graaf/test_sparql_syntax.py` – rdflib praat hier nooit met
     # een graaf. De query-bouwers zetten SPARQL met f-strings in elkaar, en een tikfout daarin
     # kost een tool-foutmelding uit de graaf i.p.v. een rode test. Dev-only, dus hij zit niet in
     # het image.

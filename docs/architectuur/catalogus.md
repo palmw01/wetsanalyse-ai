@@ -25,12 +25,12 @@ Dit is het werkdocument bij [ADR-014](adr-014-catalogus.md). Het hoort bij de so
 
 ## Een onderdeel toevoegen, per soort
 
-Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/graph-qa/tests/test_catalogus.py` rood.
+Elk nieuw onderdeel krijgt een beschrijving. Zonder beschrijving wordt `tools/graph-qa/tests/methode/test_catalogus.py` rood.
 
 Elk onderdeel is van één methode, of uitdrukkelijk `neutraal` (het veld `methode`, afgeleid in
 `tools/graph-qa/agent/catalogus.py`; plan `plan-methodes-scheiden.md`, S2). De annotatieketen, de annotatie-UI en de
 JAS-tools zijn van wetsanalyse. Hoort een nieuw onderdeel alleen bij één methode, zet het dan in de tabel van die
-methode; `tools/graph-qa/tests/test_catalogus_methode.py` bewaakt dat een onderdeel van de annotatieketen niet stil
+methode; `tools/graph-qa/tests/methode/test_catalogus_methode.py` bewaakt dat een onderdeel van de annotatieketen niet stil
 neutraal wordt.
 
 Een tweede methode krijgt geen toegang tot de annotatieketen (S3): een rol draagt secties van één methode, behalve de
@@ -49,7 +49,7 @@ of JAS-tool. Een nieuwe methode die een modelrol nodig heeft, krijgt dus een eig
    toevoegt. Sectie-ids en broncodes zijn uniek over de skills; een nieuwe rol of eigen classificaties volgen ADR-014 §5.
    Met `lex_letterlijk: "ja"` hoort er een `BRON.md` met de licentie in de skillmap.
 4. Draai `uv run python scripts/genereer_jas_klassen.py`. Die draait de methodepakketgenerator mee; hij vindt elke map
-   onder `.claude/skills/` met `lex_soort: "methode"`. Er is geen code nodig: `tests/test_skill_zonder_code.py` bewijst
+   onder `.claude/skills/` met `lex_soort: "methode"`. Er is geen code nodig: `tests/methode/test_skill_zonder_code.py` bewijst
    het met een nep-skill.
 
 **Rol**
@@ -65,7 +65,7 @@ of JAS-tool. Een nieuwe methode die een modelrol nodig heeft, krijgt dus een eig
 - `kiesbaar: false` voor een profiel dat een stap van een route in code is; een kiesbaar profiel mag de supervisor
   kiezen.
 - Een nieuw of gewijzigd profiel verandert het gedrag van Lex: een meting (ADR-010), en de hash in
-  `tests/test_profielregister.py`.
+  `tests/centrale_agent/test_profielregister.py`.
 
 **Agent of taak**
 - De module in `agent/agents/` met `DOEL`, `Taak`, `MODEL_TAKEN`, `Invoer` en `voer_uit`.
@@ -86,7 +86,7 @@ of JAS-tool. Een nieuwe methode die een modelrol nodig heeft, krijgt dus een eig
 
 **Tool** (een graaftool, leestool of connectortool)
 - De declaratie in `agent/tools/` met een beschrijving die zegt wat er terugkomt, het resultaatcontract
-  (`tests/test_resultaatcontract.py`) en een plek in een specialist (`tests/test_toolverdeling.py`). De catalogus leest
+  (`tests/graaf/test_resultaatcontract.py`) en een plek in een specialist (`tests/centrale_agent/test_toolverdeling.py`). De catalogus leest
   `_BY_NAME`; geen eigen lijst.
 
 **Controle** (een hook: deterministisch, op een vast moment)
@@ -103,7 +103,7 @@ of JAS-tool. Een nieuwe methode die een modelrol nodig heeft, krijgt dus een eig
 - `regels/jas/<familie>.yaml` of `regels/begrippen/<familie>.yaml` in de skillmap. Elke regel heeft het voorvoegsel
   `jas.<skill>.` of `begrip.<skill>.`, de vier testsoorten en een bewijscode die al in de verklaringen staat. De generator
   bundelt ze in het pakket. De ketens nemen ze alleen mee met de vlag aan, alleen op acceptatie. Zie
-  `agent/skill_regels.py` en `tests/test_skill_zonder_code.py`.
+  `agent/skill_regels.py` en `tests/methode/test_skill_zonder_code.py`.
 
 **Regelset** (een detector-, begrippen- of zoekregel)
 - Een YAML-item met `bron`, `versie` en `tests` (positief, negatief, rand, overlap). Het bestand begint met een
@@ -115,7 +115,7 @@ of JAS-tool. Een nieuwe methode die een modelrol nodig heeft, krijgt dus een eig
 **Overdracht van de centrale agent** (ADR-016)
 - Een `Overdracht` in `agent/overdracht.py`. De werkwijze leidt haar doel af uit haar nodes (`catalogus._NODE_ONDERDEEL`);
   een nieuwe doelnode krijgt daar een regel, en een overdracht die bij de node `agent` blijft een regel in `_via_agent`.
-  Ze wordt vanzelf een ingang van dat onderdeel en staat bij het profiel `centraal`. `tests/test_catalogus_agentvorm.py`
+  Ze wordt vanzelf een ingang van dat onderdeel en staat bij het profiel `centraal`. `tests/methode/test_catalogus_agentvorm.py`
   maakt een overdracht of doelnode zonder plek rood.
 
 ## Hoe een vraag binnenkomt (ADR-016)
@@ -124,7 +124,7 @@ of JAS-tool. Een nieuwe methode die een modelrol nodig heeft, krijgt dus een eig
 stand komt uit `Settings.centrale_agent` (`GET /v1/catalogus` geeft hem mee als `agentvorm`); de rest uit de registers:
 wat altijd in code blijft (acties, vraagkaarten, routes), de plek van elk profiel (`profielplek`: de centrale agent,
 kiesbaar, het doel van een route of de ophaal-agent) en wat die plek per stand betekent. Een profiel zonder plek maakt
-`tests/test_catalogus_agentvorm.py` rood. De subagents zijn de workflow `workflow/subagent` (profielen, limieten,
+`tests/methode/test_catalogus_agentvorm.py` rood. De subagents zijn de workflow `workflow/subagent` (profielen, limieten,
 controles op het rapport); de regie draagt ook `regie_plan` en de fasen.
 
 ## Afspraken met de andere sporen

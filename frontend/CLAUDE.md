@@ -66,8 +66,10 @@ _backend-for-frontend_) proxyen server-side naar de API en graph-qa en injectere
   namen en kleuren staan canoniek in `api/app/jas_klassen.py`, en `api/tests/test_jas_kleuren_drift.py`
   bewaakt dat deze kopie niet afdrijft. Verzin er geen
   klassen bij.
-- **De rekenkern staat in `lib/`**, niet in componenten: vitest draait node-env zonder DOM, dus alleen
-  pure helpers zijn testbaar (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
+- **De rekenkern staat in `lib/`**, niet in componenten: vitest draait standaard node-env zonder DOM, dus
+  pure helpers zijn het eerst testbaar. De lijm die alleen in de browser leefde (een hook) krijgt een DOM per bestand:
+  `// @vitest-environment happy-dom` bovenaan, met Testing Library (`renderHook`, `cleanup` in `afterEach`); zie
+  `lib/useBeurt.dom.test.ts` en `lib/useOnbewaardBewaker.dom.test.ts` (testplan werkplek 6). De rekenkern omvat onder meer (`selectie`, `annotatie`, `annotatieOverzicht`, `reeks`, `samenhang`,
   `markering`, `popover`, `wetstructuur`, `lopendeRun`, `geschiedenis` (de bewaarde berichten als items), `beurtStroom` (wat één poging van een beurt ophoopt), `beurtVerzoek` (wat een beurt vraagt: `verstuur(verzoek)` en de run-aanvraag `startOpties`), `beurtLus` (een run volgen tot hij afloopt), `beurtFase` (waar de beurt van een venster staat), `rondleiding`, `werkgebied`, `begrippen`,
   `begripVoorstellen`, `begripTermen`, `bronPlaats`, `kaartVoorstel`, `herbeoordeling`, `begripRelaties`, `begripGraaf`, `begrippenOverzicht`, `artefact`, `bronKandidaten`, `deelvragen`, `onbewaard`, `vraagkaart`, `gesprekGroepen`, `werkgebiedPaden`, …).
 - **`app/**/page.tsx`** (Server Components) – data via `lib/server.ts`, interactie in een
@@ -1112,7 +1114,7 @@ sidebar blijft staan.
   Een vervangen begrip heeft geen knop (verwijder de opvolger).
   **In beeld heet het altijd *verwijderen*** (spoor I5): niet weghalen, wegklikken of "haalt … weg".
   `app/verwijderenNietWeghalen.test.ts` toetst de tekst buiten commentaar in `app/`, `components/` en `lib/`;
-  graph-qa heeft dezelfde toets op zijn strings (`tests/test_verwijderen_niet_weghalen.py`).
+  graph-qa heeft dezelfde toets op zijn strings (`tests/sjablonen/test_verwijderen_niet_weghalen.py`).
   `metSpoor` met `annotatie_verwijderen`,
   `werkgebied_verwijderen` en `begrip_verwijderen`. Archiveren bestaat niet meer.
 - **Verwijderen staat in het menu ⋯ van de kop**: onderaan in het menu van `AnnotatieKop`

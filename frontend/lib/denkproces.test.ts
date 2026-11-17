@@ -7,7 +7,7 @@ import { LEGE_STAND, stroomReducer, type StroomEvent } from "./beurtStroom";
 import { denkBij } from "./denkproces";
 import { verwerkReeksEvent } from "./reeks";
 
-// Dezelfde vectoren als graph-qa (`narratie.denk_bij`, `tests/test_denkproces_zonder_antwoord.py`): wie meekijkt en wie
+// Dezelfde vectoren als graph-qa (`narratie.denk_bij`, `tests/denkproces/test_denkproces_zonder_antwoord.py`): wie meekijkt en wie
 // het bericht herlaadt, ziet hetzelfde denkproces. Deze test draait mee in `scripts/kruistests.sh`.
 const VECTOREN = JSON.parse(
   readFileSync(join(__dirname, "../../tools/graph-qa/tests/data/denkproces-vectoren.json"), "utf8"),

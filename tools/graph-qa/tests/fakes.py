@@ -93,7 +93,7 @@ class FakeLLM:
         self.calls: list[dict[str, Any]] = []
         # Per aanroep wat de beurt als instructie meekreeg: de systeemprompt plus de context van de beurt (die staat sinds
         # ADR-015 als eerste blok van de vraag, `met_beurtcontext`). Apart van `calls`: die draagt de kwargs van de aanroeper,
-        # zonder eigen sleutels erbij (`tests/test_llm_stap.py` eist dat). Waar het blok staat, toetst `test_prompt_caching`.
+        # zonder eigen sleutels erbij (`tests/context/test_llm_stap.py` eist dat). Waar het blok staat, toetst `test_prompt_caching`.
         self.prompts: list[str] = []
 
     def _next(self) -> SimpleNamespace:

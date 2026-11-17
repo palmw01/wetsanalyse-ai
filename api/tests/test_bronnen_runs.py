@@ -9,8 +9,8 @@ from sqlalchemy import update
 
 from app import bronnen_run_store, db
 from app.gesprek_contracts import Artefact
-from test_annotatie_v2 import ART, ONE
-from test_werkgebieden import ART2, _bron, _nieuw, client, database, graaf  # noqa: F401
+from gedeelde_bron import ART, ONE
+from gedeelde_bron import ART2, _bron, _nieuw, client, database, graaf  # noqa: F401
 
 LID3 = ART + ":lid:3"
 

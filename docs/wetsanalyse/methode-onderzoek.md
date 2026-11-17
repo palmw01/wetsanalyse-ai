@@ -147,7 +147,7 @@ kan heel stabiel dezelfde fout maken. Stabiliteitsmaten wijzen alleen aan *waar*
 **Twee wegen.**
 - **Klassetekst.** De omschrijving, herkenningsvraag en uitdrukkingswijze per klasse komen uit
   `references/jas-klassen-referentie.md`. `tools/graph-qa/scripts/genereer_jas_klassen.py`
-  genereert daaruit `agent/jas_klassen.py`, bewaakt door `tests/test_methode_drift.py`. De hybride
+  genereert daaruit `agent/jas_klassen.py`, bewaakt door `tests/methode/test_methode_drift.py`. De hybride
   annotatieketen gebruikt deze klassetekst, samen met de detectieprofielen en regels in
   `agent/jas_pipeline/`. Kennis over annotatie hoort daar in regels en tests, niet in prompts
   ([ADR-001](../architectuur/adr-001-hybride-jas-pijplijn.md)).

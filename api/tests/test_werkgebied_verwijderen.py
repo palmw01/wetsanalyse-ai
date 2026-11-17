@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from app import begrip_store, db, werkgebied_store
 from test_begrippen import _annoteer, _begrip, _url, _werkgebied
 from test_werkgebied_deelvragen import _dv, _koppel
-from test_werkgebieden import _nieuw, client, database, graaf  # noqa: F401
+from gedeelde_bron import _nieuw, client, database, graaf  # noqa: F401
 
 
 async def _aantal(tabel: str, kolom: str, waarde: str) -> int:

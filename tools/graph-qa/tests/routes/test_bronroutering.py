@@ -1,0 +1,238 @@
+"""Scope en routering kennen de bronconnectors (ADR-013), uit de beschrijving en niet per connector.
+
+Aanleiding (acceptatie, 8 nov 2026): "wat kun je nog vinden in de kamerstukken?" kreeg de scope-weigering, en een vraag
+naar de memorie van toelichting bij een Kamerstuk kreeg zonder één toolaanroep "maakt geen deel uit van de
+kennisgraaf". Nu:
+
+- een vraag die alleen over een uitgezette bron gaat, krijgt zonder model een melding met wie hem aanzet;
+- een vraag over een bron naast de wet wordt nooit afgewezen, ook niet als het model AFWIJZEN zegt;
+- staat de bron aan, dan krijgt de specialist haar tools;
+- de supervisor kent elke bekende connector als scope, ook een die uit staat.
+"""
+from __future__ import annotations
+
+import asyncio
+
+import pytest
+from bronmodel import connectors as bm
+
+from agent import bronstand
+from agent.agent import answer_stream
+from fakes import tool_block, FakeGraph, FakeLLM, make_settings, response, text_block
+
+AAN = make_settings(connector_kamerstukken=True)
+UIT = make_settings()
+INCIDENT_1 = "wat kun je nog vinden in de kamerstukken?"
+INCIDENT_2 = "Wat staat er in de memorie van toelichting bij Kamerstuk 33755, nummer 3, over de aansprakelijkheid?"
+AFWIJZEN = response([tool_block("ov", "wijs_af", {})], "tool_use")
+
+
+def _run(gen):
+    async def collect():
+        return [ev async for ev in gen]
+
+    return asyncio.run(collect())
+
+
+def _tekst(events) -> str:
+    return "".join(e.get("content", "") for e in events if e["type"] == "token")
+
+
+@pytest.mark.parametrize("settings,bronnen,herkomst,zin", [
+    (AAN, [], "gesprek", "staat uit in dit gesprek"),
+    (AAN, [], "werkgebied", "standaard van dit werkgebied"),
+    (UIT, None, None, "op deze omgeving niet beschikbaar"),
+])
+@pytest.mark.parametrize("vraag", [INCIDENT_1, INCIDENT_2])
+def test_een_uitgezette_bron_krijgt_een_eerlijke_melding_zonder_model(settings, bronnen, herkomst, zin, vraag):
+    llm = FakeLLM([])
+    graaf = FakeGraph(result="")
+    events = _run(answer_stream(vraag, settings=settings, llm=llm, graph=graaf, bronnen=bronnen,
+                                bronnen_herkomst=herkomst))
+    tekst = _tekst(events)
+    assert zin in tekst and "Kamerstukken" in tekst
+    assert "niet over Nederlandse wet- en regelgeving" not in tekst, "dit is geen afwijzing"
+    assert llm.calls == [] and graaf.queries == [], "geen model en geen graaf: de melding komt uit code"
+    assert events[-1]["type"] == "done"
+
+
+@pytest.mark.parametrize("vraag", ["Wat is een uitspraak op bezwaar?",
+                                   "Kan ik tegen de aansprakelijkstelling beroep instellen bij de rechter?"])
+def test_procestaal_is_geen_vraag_naar_een_uitgezette_bron(vraag):
+    """"Uitspraak op bezwaar" en "de rechter" zijn gewone wetstaal: op een straat zonder Rechtspraak hoort die vraag bij
+    de supervisor, niet bij de melding dat de bron uit staat (bevinding bij #1170)."""
+    llm = FakeLLM([response([text_block("WORKERS: antwoord\nSPECIALIST: algemeen\nTAAK:\nPLAN: AFWIJZEN")],
+                            "end_turn")])
+    events = _run(answer_stream(vraag, settings=UIT, llm=llm, graph=FakeGraph(result="")))
+    assert not any(e["type"] == "bron_uit" for e in events)
+    assert "staat uit" not in _tekst(events) and "niet beschikbaar" not in _tekst(events)
+    assert llm.calls, "de supervisor beslist"
+
+
+def test_een_vraag_over_een_bron_wordt_nooit_afgewezen_en_krijgt_de_tools():
+    # Zonder citeervorm: "Kamerstuk 33755, nummer 3" (INCIDENT_2) leest de code sinds 9 nov 2026 direct, zonder supervisor
+    # (`tests/routes/test_bron_lijst.py`). Hier gaat het om een AFWIJZEN van het model dat de code terugdraait.
+    vraag = "Wat zegt de memorie van toelichting bij de Invorderingswet 1990 over de aansprakelijkheid?"
+    llm = FakeLLM([AFWIJZEN, response([text_block("Ik zocht het stuk op.")], "end_turn")])
+    events = _run(answer_stream(vraag, settings=AAN, llm=llm, graph=FakeGraph(result=""),
+                                bronnen=["kamerstukken"], bronnen_herkomst="gesprek"))
+    assert len(llm.calls) == 2, "het model zei AFWIJZEN, de code liet de worker toch zoeken"
+    namen = {t["name"] for t in llm.calls[1]["tools"]}
+    assert bm.KAMERSTUKKEN.tools <= namen
+    assert "AFWIJZEN" not in str(llm.calls[1]["system"]), "het plan van een afwijzing hoort niet bij de worker"
+    assert "Ik zocht" in _tekst(events)
+
+
+def test_een_gemengde_vraag_gaat_naar_het_model_ook_met_de_bron_uit():
+    """Een artikel is wetgeving om te zoeken; wat er uit staat, zegt het promptblok (PR 4). Sinds ADR-016 §A7 is dat
+    model de centrale agent, in één ronde."""
+    llm = FakeLLM([response([text_block("Artikel 36 gaat over aansprakelijkheid.")], "end_turn")])
+    events = _run(answer_stream("Wat bedoelde de wetgever met artikel 36 van de Invorderingswet 1990?",
+                                settings=AAN, llm=llm, graph=FakeGraph(result=""), bronnen=[]))
+    assert len(llm.calls) == 1 and "aansprakelijkheid" in _tekst(events)
+
+
+def test_een_gewone_vraag_buiten_de_wet_blijft_afgewezen():
+    events = _run(answer_stream("Hoeveel is 17 maal 23?", settings=AAN, llm=FakeLLM([AFWIJZEN]),
+                                graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
+    assert "niet over Nederlandse wet- en regelgeving" in _tekst(events)
+
+
+def test_elke_reden_heeft_een_zin():
+    stand = bronstand.bepaal(UIT, None)
+    for reden in ("straat", "register_onleesbaar", "beheerder", "gesprek", "werkgebied"):
+        stand["kamerstukken"]["reden"] = reden
+        zin = bronstand.uit_zin(stand, "kamerstukken")
+        assert "Kamerstukken" in zin and "{" not in zin
+
+
+# --- het generieke bewijs -------------------------------------------------------------------------------------
+
+def test_een_nieuwe_connector_wordt_herkend_en_gemeld_zonder_code(monkeypatch):
+    nep = bm.ConnectorBeschrijving(
+        naam="testbron", label="Testbron", brontype="uitspraak", groep="Uitspraken",
+        dekt="uitspraken van een testgerecht", signalen=(r"\btestgerecht\b",), tools=frozenset({"zoek_testbron"}),
+        leestool="zoek_testbron", lees_argument="id", id_prefixen=("ECLI:",),
+        rol_in_antwoord="een uitspraak onderbouwt een uitleg", kop_in_antwoord="Uit de testrechtspraak", levert=("uitspraken",), niet_in_tekst=(),
+        werkwoorden={"zoek_testbron": ("zoekt uitspraken over “{zoekterm}”", "zoekt uitspraken")}, grenzen="alleen een test", beheer="Nep.",
+        voorbeeldvragen=("Wat zei het testgerecht?",))
+    monkeypatch.setitem(bm.CONNECTORS, nep.naam, nep)
+    llm = FakeLLM([])
+    events = _run(answer_stream("Wat zei het testgerecht erover?", settings=AAN, llm=llm,
+                                graph=FakeGraph(result=""), bronnen=["kamerstukken"]))
+    assert "Testbron is op deze omgeving niet beschikbaar" in _tekst(events) and llm.calls == []
+
+
+def test_de_melding_draagt_een_event_waarmee_de_werkplek_hem_aanzet():
+    events = _run(answer_stream(INCIDENT_1, settings=AAN, llm=FakeLLM([]), graph=FakeGraph(result=""), bronnen=[],
+                                bronnen_herkomst="gesprek"))
+    uit, = [e for e in events if e["type"] == "bron_uit"]
+    assert uit["bronnen"] == [{"naam": "kamerstukken", "label": "Kamerstukken", "reden": "gesprek"}]
+
+
+def test_het_endpoint_noemt_elke_connector_met_de_straat(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    import api.main as main
+
+    monkeypatch.setattr(main.settings, "qa_api_token", "", raising=False)
+    for aan in (False, True):
+        for c in bm.CONNECTORS.values():
+            monkeypatch.setattr(main.settings, f"connector_{c.naam}", aan, raising=False)
+        # Zonder `with`: de lifespan (graaf, api) hoort niet bij deze lichte route.
+        r = TestClient(main.app).get("/v1/bronnen")
+        assert r.status_code == 200
+        assert r.json()["bronnen"] == [{"naam": n, "label": b.label, "brontype": b.brontype, "groep": b.groep,
+                                        "straat": aan} for n, b in bm.CONNECTORS.items()]
+
+
+def _nep_kamerstukken(monkeypatch):
+    from agent import tools as t
+    from test_kamerstuk_tools import DOSSIER, NepBron
+
+    monkeypatch.setattr(t.CONNECTORMODULES["kamerstukken"], "_bron", NepBron(DOSSIER))
+
+
+def test_een_genoemd_stuk_wordt_vooraf_gelezen_en_alleen_het_gelezen_stuk_is_een_bron(monkeypatch):
+    """Acceptatie 8 nov 2026: zes rondes zoeken voor kst-35496-F, en "Klaar · 32 bronnen" voor één gelezen stuk."""
+    from fakes import tool_block
+
+    _nep_kamerstukken(monkeypatch)
+    llm = FakeLLM([
+        response([tool_block("t1", "zoek_kamerstukken", {"dossier": "99001"})], "tool_use"),
+        # Tekst zonder lijst na een zoekresultaat is het antwoord: geen vraag om het sjabloon (nodes/antwoord.heeft_lijst).
+        response([text_block("In kst-99001-3 staat het doel; het dossier bevat ook kst-99001-10.")], "end_turn")])
+    events = _run(answer_stream("Wat staat er in kst-99001-3?", settings=AAN, llm=llm, graph=FakeGraph(result=""),
+                                bronnen=["kamerstukken"]))
+    eerste = llm.calls[0]
+    assert len(llm.calls) == 2, "geen supervisorcall: het id bepaalt de route"
+    assert not any("SUPERVISOR" in str(c.get("system", ""))[:400].upper() for c in llm.calls)
+    gelezen = [b for m in eerste["messages"] for b in (m["content"] if isinstance(m["content"], list) else [])
+               if b.get("type") == "tool_use"]
+    assert [(g["name"], g["input"]) for g in gelezen] == [("get_kamerstuk", {"id": "kst-99001-3"})]
+    starts = [e["tool"] for e in events if e["type"] == "tool_execution" and e.get("phase") == "start"]
+    assert starts[0] == "get_kamerstuk"
+    bronnen, = [e["sources"] for e in events if e["type"] == "sources"]
+    assert [b["uri"] for b in bronnen] == ["kst-99001-3"], "gevonden is geen bron, gelezen en genoemd wel"
+
+
+def test_een_id_als_zoekterm_wijst_naar_de_leestool():
+    from agent import tools as t
+    from test_kamerstuk_tools import DOSSIER, NepBron
+
+    for args in ({"dossier": "kst-35496-F"}, {"woorden": "kst-35496-F"}):
+        d = __import__("json").loads(t.dispatch("zoek_kamerstukken", None, args, AAN, kamerstukken=NepBron(DOSSIER)))
+        assert d["reden"] == "is_een_id" and "get_kamerstuk(id='kst-35496-F')" in d["melding"]
+
+
+def test_het_bronvenster_leest_een_stuk_via_de_leestool_uit_de_beschrijving(monkeypatch):
+    """Het bronvenster (PR 6): één generieke route; de leestool en haar argument komen uit de beschrijving."""
+    from fastapi.testclient import TestClient
+
+    import api.main as main
+
+    _nep_kamerstukken(monkeypatch)
+    monkeypatch.setattr(main.settings, "qa_api_token", "", raising=False)
+    monkeypatch.setattr(main.settings, "connector_kamerstukken", True, raising=False)
+    r = TestClient(main.app).get("/v1/bronnen/kamerstukken/stukken/kst-99001-3")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["connector"]["naam"] == "kamerstukken"
+    assert {m["sleutel"] for m in data["connector"]["metadata"]} >= {"datum", "soort"}
+    assert data["resultaat"]["stuk"]["id"] == "kst-99001-3"
+    assert data["resultaat"]["resultaten"] and data["resultaat"]["inhoud"]
+    # Ook op het brontype: een blok in een antwoord kent alleen dat.
+    assert TestClient(main.app).get("/v1/bronnen/kamerstuk/stukken/kst-99001-3").json()["connector"]["naam"] == "kamerstukken"
+    # Een id dat niet bij de connector hoort, en een connector die de straat niet aanbiedt.
+    assert TestClient(main.app).get("/v1/bronnen/kamerstukken/stukken/ECLI:NL:HR:2020:1").status_code == 422
+    assert TestClient(main.app).get("/v1/bronnen/onbekend/stukken/x").status_code == 404
+    monkeypatch.setattr(main.settings, "connector_kamerstukken", False, raising=False)
+    assert TestClient(main.app).get("/v1/bronnen/kamerstukken/stukken/kst-99001-3").status_code == 404
+
+
+def test_het_bronvenster_leest_een_wettekst_buiten_de_graaf_met_de_graaf_erbij(monkeypatch):
+    """Een wettekst buiten de kennisgraaf (connector wetgeving_live) vraagt de graaf of de regeling erin staat; zonder graaf
+    zou de leestool weigeren. De route geeft hem er een, op het brontype `wettekst_live`, en sluit hem na afloop."""
+    from fastapi.testclient import TestClient
+
+    import api.main as main
+    from agent.adapters import graphdb_graph
+    from agent.tools import wetgeving_tools as w
+    from agent.tools.connectortools import MODULES
+    from test_resultaatcontract import NepBwb, nepgraaf
+
+    graaf = nepgraaf("wetgeving_live")
+    gesloten = []
+    graaf.close = lambda: gesloten.append(True)
+    monkeypatch.setattr(graphdb_graph, "make_graph", lambda _s: graaf)
+    monkeypatch.setattr(MODULES["wetgeving_live"], "_bron", NepBwb(3, alineas=2))
+    monkeypatch.setattr(main.settings, "qa_api_token", "", raising=False)
+    monkeypatch.setattr(main.settings, "connector_wetgeving_live", True, raising=False)
+    w._graaf_stand.clear()
+    r = TestClient(main.app).get(f"/v1/bronnen/wettekst_live/stukken/bwbt:{NepBwb.BWB}:2026-01-01_0:artikel:1")
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["connector"]["naam"] == "wetgeving_live" and data["resultaat"]["status"] == "ok", data
+    assert data["resultaat"]["stuk"]["id"] == f"bwbt:{NepBwb.BWB}:2026-01-01_0:artikel:1"
+    assert graaf.queries and gesloten == [True]
+    w._graaf_stand.clear()

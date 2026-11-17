@@ -150,14 +150,14 @@ Achter `CONNECTOR_RECHTSPRAAK` krijgt Lex twee tools, met de transportlaag in `a
   inhoudsindicatie eerst; een alinea boven `MAX_ALINEA` in delen.
 
 Een vermelding is geen uitleg: de tool zegt "noemt". De meting staat in
-`docs/architectuur/metingen/lido-spike-2026-11-10/`; de live-proef in `tests/test_rechtspraak_live.py`.
+`docs/architectuur/metingen/lido-spike-2026-11-10/`; de live-proef in `tests/connectors/test_rechtspraak_live.py`.
 
 ### Bronnen naast de wet: Kamerstukken (ADR-013)
 
 Achter `CONNECTOR_KAMERSTUKKEN` krijgt Lex `zoek_kamerstukken` en `get_kamerstuk`, op de SRU 2.0-zoekdienst van KOOP
 (`repository.overheid.nl/sru`, collectie `officielepublicaties`). Wat de koppeling van die dienst gebruikt, in eigen
 woorden; de bron is de *Handleiding SRU 2.0* van KOOP (v1.3, mei 2025, via data.overheid.nl), en de live-proef
-(`tests/test_kamerstukken_live.py`, dagelijks in `bronnenwacht.yml`) houdt deze lijst eerlijk:
+(`tests/connectors/test_kamerstukken_live.py`, dagelijks in `bronnenwacht.yml`) houdt deze lijst eerlijk:
 
 - **Zoeken** in CQL op `w.publicatienaam==Kamerstuk` en `dt.type==Kamerstuk` (zonder dat tweede komen de bijlagen
   mee), met `w.dossiernummer` (een subdossier als `36200-IX` is een eigen waarde, geen voorvoegsel) of woorden in

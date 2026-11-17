@@ -9,7 +9,7 @@ from app import graaf_projectie_v2 as projectie
 from app.config import get_settings
 from app.graaf_projectie_v2 import REGISTER, graph_iri, laag_iri
 from graafdb_fake import installeer
-from test_annotatie_v2 import ART, ONE, TWO, element, request, snapshot
+from gedeelde_bron import ART, ONE, TWO, element, request, snapshot
 
 
 @pytest.fixture(autouse=True)

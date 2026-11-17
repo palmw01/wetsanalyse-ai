@@ -108,7 +108,7 @@ allemaal in Python een basis kennen. Dus die agents moeten wel echt Python agent
 - **Er komt geen tweede lus.** `Agent` bouwt en draait de antwoordketen die er al is (de LangGraph-graaf in
   `orchestrator.build_graph`: agent ⇄ tools → verify → correct → finalize), met een profiel waar nu een specialist
   staat. De gedeelde modelstap (`llm_stap`), de contextopbouw, `dispatch` met het filter, de controles, het verbruik en
-  de events blijven wat ze zijn. `tests/test_graafopbouw.py` legt de vorm vast.
+  de events blijven wat ze zijn. `tests/routes/test_graafopbouw.py` legt de vorm vast.
 - **Skills, profielen, MCP's en connectors zijn configuratie die zo'n agent laadt.** Ze vervangen nooit code. Een profiel
   is een getypeerd object (`bronmodel.agentprofiel.Agentprofiel`), gevalideerd voordat het een agent opbouwt.
 - **Een gemaakte skill of een gemaakt profiel stelt dus een Python-agent samen.** Er bestaat geen weg waarop een profiel

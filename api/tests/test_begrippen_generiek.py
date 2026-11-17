@@ -4,10 +4,10 @@ from __future__ import annotations
 from rdflib import DCTERMS as DCT, SKOS, URIRef
 
 from app import begrip_projectie, begrip_store, db, werkgebied_store
-from test_annotatie_v2 import ART
+from gedeelde_bron import ART
 from test_begrippen import DEFINITIE, _annoteer, _begrip, _keur_alles_goed, _url, _werkgebied
 from test_begrippen import client, database, graaf, snapshot2  # noqa: F401
-from test_werkgebieden import _bron, _nieuw
+from gedeelde_bron import _bron, _nieuw
 
 
 async def geaccordeerd(client, wg, ids, naam="Belastingschuldige") -> dict:

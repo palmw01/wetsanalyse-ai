@@ -1,0 +1,153 @@
+{
+  "schema": "lex-bench-manifest-1",
+  "meetas": "bronselectie",
+  "versie": "bench-bronselectie-v1",
+  "hash": "3986e4619bd3b93bd526e75b1707bdccf022d3c8222334f88326a0261bc4c85f",
+  "vrijgegeven": false,
+  "casussen": [
+    {
+      "casus_id": "LB-01",
+      "naam": "Termijnen",
+      "niveau": "moeilijk",
+      "niveau_status": "voorlopig",
+      "gebruik": "ontwikkeling",
+      "pad": "docs/wetsanalyse/referentieset-bronselectie/termijnen-deelvragen-concept",
+      "sha256": "421c5e0eb53a0822d5e8d749e5b4927cf0bad4dac5833dbb4e726957f820c357",
+      "schema_versie": 3,
+      "verwachting": {
+        "status": "concept",
+        "opgesteld_door": null,
+        "vastgesteld_door": null,
+        "datum": "2026-11-16"
+      },
+      "opname": {
+        "pad": "docs/wetsanalyse/referentieset-bronselectie/termijnen-deelvragen-concept/graafantwoorden.json",
+        "sha256": "52dfd0c936c2ae9bdfe621b5d26343534e17425fd560cc3587835eca91b92194",
+        "graaftoestand": "acceptatie, 16 nov 2026"
+      },
+      "verwacht": 18,
+      "deelvragen": 3
+    },
+    {
+      "casus_id": "LB-02",
+      "naam": "Kwijtschelding voor particulieren",
+      "niveau": "moeilijk",
+      "niveau_status": "voorlopig",
+      "gebruik": "ontwikkeling",
+      "pad": "docs/wetsanalyse/referentieset-bronselectie/kwijtschelding-concept",
+      "sha256": "9f6e98df124d5797b5c8a3b290b37f34f7c9631d67a1b090da7a5a692752f04f",
+      "schema_versie": 3,
+      "verwachting": {
+        "status": "concept",
+        "opgesteld_door": null,
+        "vastgesteld_door": null,
+        "datum": "2026-11-04"
+      },
+      "opname": {
+        "pad": "docs/wetsanalyse/referentieset-bronselectie/kwijtschelding-concept/graafantwoorden.json",
+        "sha256": "72d2f984752a597d5ec3ac109510264f631f6469cef360dd880b8f329cc6a5b5",
+        "graaftoestand": "acceptatie, 4 nov 2026"
+      },
+      "verwacht": 24,
+      "deelvragen": 4
+    },
+    {
+      "casus_id": "LB-03",
+      "naam": "Bestuurdersaansprakelijkheid",
+      "niveau": "gemiddeld",
+      "niveau_status": "voorlopig",
+      "gebruik": "ontwikkeling",
+      "pad": "docs/wetsanalyse/referentieset-bronselectie/bestuurdersaansprakelijkheid-concept",
+      "sha256": "8f08810db1fb530ddb446bd8df259e269b9bc226978e5905dfd1f3b872f5733c",
+      "schema_versie": 3,
+      "verwachting": {
+        "status": "concept",
+        "opgesteld_door": null,
+        "vastgesteld_door": null,
+        "datum": "2026-11-03"
+      },
+      "opname": {
+        "pad": "docs/wetsanalyse/referentieset-bronselectie/bestuurdersaansprakelijkheid-concept/graafantwoorden.json",
+        "sha256": "779c14e125683af0a3f6aa6d5f0af247ec668866aeb29793b5bfa8075a0e7464",
+        "graaftoestand": "acceptatie, 3 nov 2026"
+      },
+      "verwacht": 22,
+      "deelvragen": 4
+    },
+    {
+      "casus_id": "LB-04",
+      "naam": "Ontvankelijkheid van bezwaar tegen een belastingaanslag",
+      "niveau": "gemiddeld",
+      "niveau_status": "voorlopig",
+      "gebruik": "ontwikkeling",
+      "pad": "docs/wetsanalyse/referentieset-bronselectie/bezwaar-ontvankelijkheid-concept",
+      "sha256": "62281d49b3ebba6bb81e02512f21507dc46c75621e05a61dd9cc5104372b00d9",
+      "schema_versie": 3,
+      "verwachting": {
+        "status": "concept",
+        "opgesteld_door": null,
+        "vastgesteld_door": null,
+        "datum": "2026-10-21"
+      },
+      "opname": {
+        "pad": "docs/wetsanalyse/referentieset-bronselectie/bezwaar-ontvankelijkheid-concept/graafantwoorden.json",
+        "sha256": "35c5fbf7c8785259fae07846c246f083f0949a947f52f94d50f15071abd2eeca",
+        "graaftoestand": "acceptatie, 21 okt 2026"
+      },
+      "verwacht": 19,
+      "deelvragen": 4
+    },
+    {
+      "casus_id": "LB-05",
+      "naam": "Invorderbaarheid van belastingaanslagen",
+      "niveau": "gemiddeld",
+      "niveau_status": "voorlopig",
+      "gebruik": "ontwikkeling",
+      "pad": "docs/wetsanalyse/referentieset-bronselectie/invorderbaarheid-deelvragen-concept",
+      "sha256": "498d52d7982c7d394e4c69b94346b20865b576120d2dca81509b7bf7d4fa48f4",
+      "schema_versie": 3,
+      "verwachting": {
+        "status": "concept",
+        "opgesteld_door": null,
+        "vastgesteld_door": null,
+        "datum": "2026-11-03"
+      },
+      "opname": {
+        "pad": "docs/wetsanalyse/referentieset-bronselectie/invorderbaarheid-deelvragen-concept/graafantwoorden.json",
+        "sha256": "8c11c0a47d570c4dc6d5140d83211f3a1f0df73254f488c703756f88cfd5cbe0",
+        "graaftoestand": "acceptatie, 3 nov 2026"
+      },
+      "verwacht": 18,
+      "deelvragen": 4
+    },
+    {
+      "casus_id": "LB-06",
+      "naam": "Rekeningafspraken",
+      "niveau": "gemiddeld",
+      "niveau_status": "voorlopig",
+      "gebruik": "ontwikkeling",
+      "pad": "docs/wetsanalyse/referentieset-bronselectie/rekeningafspraken-deelvragen-concept",
+      "sha256": "ad5b2b05fc0502f8d2a937ff19a81c4b7dd1c87e54a0bf7c0a27a4764c70e762",
+      "schema_versie": 3,
+      "verwachting": {
+        "status": "concept",
+        "opgesteld_door": null,
+        "vastgesteld_door": null,
+        "datum": "2026-11-16"
+      },
+      "opname": {
+        "pad": "docs/wetsanalyse/referentieset-bronselectie/rekeningafspraken-deelvragen-concept/graafantwoorden.json",
+        "sha256": "946972b0cf83207af141901229deda4b4660c207cfe0ebe1865523a9e07cf3a9",
+        "graaftoestand": "acceptatie, 16 nov 2026 (opname nog niet gemaakt)"
+      },
+      "verwacht": 7,
+      "deelvragen": 5
+    }
+  ],
+  "changelog": [
+    {
+      "versie": "bench-bronselectie-v1",
+      "wijziging": "De zes bestaande ontwikkelsets (LB1); niveau voorlopig, verwachting concept, nog niemand vastgesteld."
+    }
+  ]
+}

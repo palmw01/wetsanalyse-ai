@@ -1,19 +1,86 @@
-"""Test-bootstrap: zet de projectroot op sys.path zodat `import app.*` werkt.
+"""Gedeeld voor de hele api-suite (testplan api V7).
 
-De brede engine-/durability-fixtures (FakeLLM/FakeWettenbank/store/engine) zijn met de
-analyse-pijplijn verwijderd; de resterende suites (annotatie, auth, admin, wet-info,
-validation, observability) brengen hun eigen fixtures mee."""
+- de projectroot op `sys.path`, zodat `import app.*` werkt;
+- elke test begint en eindigt zonder procestoestand (`_procestoestand_per_test`): de settings, de gesprekstore, de
+  Fernet-sleutel, de rate limit en de actief-cache. Anders hangt een uitkomst af van de volgorde;
+- `api_client`: de ASGI-client op een verse SQLite, met de omgeving en de testgebruikers die een suite vraagt;
+- `postgres_schema`: een eigen Postgres-schema per test, voor elke suite die `ANNOTATIE_TEST_DSN` vraagt.
+
+De bron en het werkgebied die veel suites delen, staan in `gedeelde_bron.py`: wat daar staat, geldt alleen waar het
+geïmporteerd wordt, en hoort dus niet hier.
+"""
 
 from __future__ import annotations
 
+import contextlib
 import os
 import shutil
 import sys
+from collections.abc import AsyncIterator, Iterable
 from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+
+def schoon() -> None:
+    """Leeg wat de api per proces bewaart. Een nieuwe cache op moduleniveau hoort hier bij."""
+    from app import ratelimit, secrets_crypto
+    from app.config import get_settings
+    from app.deps import get_gesprek_store
+    from app.routers.auth import vergeet_actief
+
+    get_settings.cache_clear()
+    get_gesprek_store.cache_clear()
+    secrets_crypto._fernet.cache_clear()
+    ratelimit.reset()
+    vergeet_actief()
+
+
+@pytest.fixture(autouse=True)
+def _procestoestand_per_test():
+    schoon()
+    yield
+    schoon()
+
+
+@contextlib.asynccontextmanager
+async def api_client(monkeypatch, *, env: dict[str, str] | None = None, gebruikers: Iterable[str] = (),
+                     reconcile: bool = False, met_2fa: Iterable[str] = (), beheerders: Iterable[str] = (),
+                     headers: dict[str, str] | None = None) -> AsyncIterator:
+    """De client die de meeste suites zelf opbouwden: omgeving, een verse in-memory SQLite, de testgebruikers (de eerste
+    wordt de beheerder van `/setup`), en wie 2FA heeft of beheerder is. Wat een suite daarnaast klaarzet, doet ze binnen
+    het blok."""
+    from httpx import ASGITransport, AsyncClient
+    from sqlalchemy import update
+
+    from app import db
+
+    for naam, waarde in (env or {}).items():
+        monkeypatch.setenv(naam, waarde)
+    schoon()
+    db.init_engine("sqlite+aiosqlite://")
+    await db.create_all()
+    if reconcile:
+        await db.reconcile_schema()
+    gebruikers = tuple(gebruikers)
+    if gebruikers:
+        await maak_testgebruikers(*gebruikers)
+    met_2fa, beheerders = tuple(met_2fa), tuple(beheerders)
+    if met_2fa or beheerders:
+        async with db.get_engine().begin() as conn:
+            for uid in met_2fa:
+                await conn.execute(update(db.users).where(db.users.c.userid == uid).values(totp_enabled=True))
+            for uid in beheerders:
+                await conn.execute(update(db.users).where(db.users.c.userid == uid).values(role="beheerder"))
+    from app.main import app
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers=headers or {}) as ac:
+            yield ac
+    finally:
+        schoon()
+        await db.dispose_engine()
 
 
 async def maak_testgebruikers(*userids: str) -> None:

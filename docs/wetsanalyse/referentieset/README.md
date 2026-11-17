@@ -56,7 +56,7 @@ Drie regels:
   beoordeling, niet bij het overzetten van de concepten.
 
 Elke markering moet letterlijk in de analysetekst staan én op woordgrenzen liggen
-(`tools/graph-qa/tests/test_referentieset.py`). Een offset die het juiste fragment aanwijst binnen
+(`tools/graph-qa/tests/evals/test_referentieset.py`). Een offset die het juiste fragment aanwijst binnen
 een langer woord ("voetgangers" in "voetgangerslichten") telt anders als treffer op de verkeerde
 plek, en rekent een goede modeluitkomst af.
 

@@ -6,8 +6,8 @@ from sqlalchemy import func, select, update
 
 from app import annotatie_v2, artefact_versies, db
 from app import annotatie_v2_store as store
-from test_annotatie_v2 import ART, element, request, snapshot
-from test_werkgebieden import _nieuw, client, database, graaf  # noqa: F401
+from gedeelde_bron import ART, element, request, snapshot
+from gedeelde_bron import _nieuw, client, database, graaf  # noqa: F401
 
 G = "/v1/gesprekken"
 
