@@ -75,3 +75,11 @@ test("het logboek staat bij het dossier, ook vanuit een worktree", () => {
   assert.equal(standaardMap("/p/repo/"), verwacht);
   assert.equal(standaardMap("/p/repo/.claude/worktrees/naam/"), verwacht);
 });
+
+test("een analist en een reviewer van Lex Bench schrijven in hun eigen logboek", () =>
+  metMap(async (map) => {
+    await aanvullen(map, { run: "lb-03-proef-a", rol: "analist", soort: "stand", tekst: "Deelvraag 0 klaar." });
+    await aanvullen(map, { run: "lb-03-proef-r", rol: "reviewer", soort: "bevinding", tekst: "Twijfel bij lid 2." });
+    assert.match(await readFile(join(map, "lb-03-proef-a", "logboek.md"), "utf8"), /\[analist\] · stand/);
+    assert.match(await readFile(join(map, "lb-03-proef-r", "logboek.md"), "utf8"), /\[reviewer\] · bevinding/);
+  }));

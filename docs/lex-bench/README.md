@@ -19,6 +19,17 @@ score is een hulpmiddel, geen poort. Zolang geen jurist een verwachting vaststel
   `uv run python -m eval.lex_bench --dashboard`. De workflow `lex-bench.yml` en de voortgangspagina (de rest van LB6)
   volgen later.
 
+- **Het team, arm T (LB2)** — het profiel [`bench-analist`](../../.claude/agents/bench-analist.md) met een allowlist
+  (`bron_lezen`, `graaf_lezen`, het eigen logboek en de skill; geen Lex en geen repo), de
+  [briefing](briefing-analist.md) en het [formulier](bronselectie/formulier-analist.json). De opdracht van een analist en
+  de controle van zijn formulier, en het samenvoegen van A en B tot de bevroren teamverwachting:
+  `uv run python -m eval.lex_bench_team opdracht|controleer|samenvoegen`. De reviewer
+  ([`bench-reviewer`](../../.claude/agents/bench-reviewer.md), [briefing](briefing-reviewer.md),
+  [formulier](bronselectie/formulier-reviewer.json)) stelt per verschil tussen L1 en de teamverwachting een categorie
+  voor, of leest bij een makkelijke casus de ene analist tegen: `uv run python -m eval.lex_bench_review
+  opdracht|verwerk|tegenlezen`. Er draait nog geen analist of reviewer:
+  dat is de pilot LB3, met een eigen akkoord. De poort toetst de allowlist (`tests/poort/test_lex_bench_team.py`).
+
 - **Bronselectie: de uitkomst op de (vroegere) blinde sets** — [`bronselectie/held-out.json`](bronselectie/held-out.json).
   Per set de uitkomst bij haar ene blinde meting, met de regel in het meetlogboek. Vergelijken met de code van nu, offline
   en zonder model: `cd tools/graph-qa && uv run python -m eval.lex_bench`. Het script faalt niet op een verschil. Deze
@@ -28,7 +39,7 @@ score is een hulpmiddel, geen poort. Zolang geen jurist een verwachting vaststel
 ## Wat er nog niet staat
 
 - de twintig casussen (er staan er nu zes);
-- het blinde agententeam (LB2) en de pilot (LB3);
+- de pilot (LB3);
 - de risicomarkers en de traceerbaarheidsmatrix (§21);
 - de workflow `lex-bench.yml` en de voortgangspagina (§6, LB6);
 - de meetassen annotatie, begrippen en afleidingsregels (§8).

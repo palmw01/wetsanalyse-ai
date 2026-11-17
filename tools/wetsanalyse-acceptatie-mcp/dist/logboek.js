@@ -8,7 +8,8 @@
  */
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-export const ROLLEN = ["jurist", "gegevensspecialist", "coördinator"];
+/** De rollen van het E2E-team, en die van Lex Bench (analist en reviewer, plan-lex-bench §4.2 en §5). */
+export const ROLLEN = ["jurist", "gegevensspecialist", "coördinator", "analist", "reviewer"];
 export const SOORTEN = ["beslissing", "onenigheid", "overleg", "id", "bevinding", "omweg", "stand"];
 const GEHEIM = /wa_pat_|wa_admin_|Bearer\s+\S|admin:[0-9a-f]{16}/;
 /** Het logboek hoort bij de checkout met het dossier, ook als de sessie in een worktree draait. */
