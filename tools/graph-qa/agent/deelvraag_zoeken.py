@@ -34,6 +34,8 @@ SOORTEN = ("Lid", "Artikel", "Onderdeel", "Divisie")
 RRF_K = 60
 #: Hoeveel bepalingen er per query hun plek in de opbouw krijgen.
 PLAATS_PER_QUERY = 100
+#: Over hoeveel kandidaten het belang van verwijzingen gaat: deze factor × de grens, de voorlopige top op de fusie.
+MAX_BELANG_FACTOR = 3
 #: De dossiervelden waaruit de dossiertermen komen; met `dossier_velden` ook aanleiding en doel.
 DOSSIERVELDEN = ("analysevraag", "praktijkvoorbeeld", "context")
 DOSSIERVELDEN_ALLE = (*DOSSIERVELDEN, "aanleiding", "doel")
@@ -184,6 +186,13 @@ class Zoekprofiel:
     #:   Meting `bronselectie-2026-11-17-werkgebied-met-wetstermen`: 41 van de 172 nodige bepalingen werden gevonden maar
     #:   haalden de 80 kandidaten niet. Standaard `afwisselend`: eerst meten.
     menging: str = "afwisselend"
+    #: - `belang` (proef, 17 nov 2026): het belang van verwijzingen als extra lijst in de fusie: hoe vaak tekstdelen
+    #:   van buiten het artikel naar de bepaling (bij een lid: haar artikel) verwijzen (`queries.inkomend_aantal`), als
+    #:   rang over de voorlopige top (`MAX_BELANG_FACTOR` × de grens). De signalenmeting
+    #:   (`bronselectie-2026-11-17-signalen`) vond dat de sterkste knop na de vertaling, licht gedoseerd; de
+    #:   rangdiagnose (`bronselectie-2026-11-17-rangschikking`) zag 27 van de 49 gemiste nodige bepalingen in de
+    #:   woordenroute op plaats 81–400. Alleen met `fusie`. Standaard **uit**: eerst meten.
+    belang: bool = False
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.
@@ -526,8 +535,26 @@ def _koppen(graph: GraphPort, kandidaten: list[dict[str, Any]], gevonden: dict[s
         logger.warning("kop van de opbouw niet op te halen", extra={"categorie": "technisch"}, exc_info=True)
 
 
+def _belang_rang(graph: GraphPort, kandidaten: list[dict[str, Any]]) -> dict[str, int]:
+    """De rang van elke kandidaat op het belang van verwijzingen (`Zoekprofiel.belang`): het meest genoemd op 1, gelijke
+    aantallen dezelfde rang; zonder verwijzing geen rang. Een haperende graaf kost alleen dit signaal."""
+    aantal: dict[str, int] = {}
+    iris = [k["iri"] for k in kandidaten]
+    try:
+        for i in range(0, len(iris), PLAATS_PER_QUERY):
+            for r in _rijen(graph, queries.inkomend_aantal(iris[i:i + PLAATS_PER_QUERY])):
+                n = int(r.get("aantal") or 0)
+                if n:
+                    aantal[r["bepaling"]] = n
+    except Exception:  # noqa: BLE001 – zonder belang rangschikt de rest gewoon
+        logger.warning("belang van verwijzingen niet op te halen", extra={"categorie": "technisch"}, exc_info=True)
+        return {}
+    niveaus = sorted(set(aantal.values()), reverse=True)
+    return {iri: niveaus.index(n) + 1 for iri, n in aantal.items()}
+
+
 def _fusiescore(k: dict[str, Any], dos_rang: dict[int, int], demping: float = 1.0,
-                omgeving: int | None = None) -> float:
+                omgeving: int | None = None, belang: int | None = None) -> float:
     """RRF: per lijst 1/(k + rang). De index-lijsten met hun eigen rang (met `demping` voor de lengte; met
     `dossier_lijsten` ook die van de dossiertermen); de kop telt als een lijst waarin elke geraakte term op
     plaats 1 staat, het dossier als een lijst op het aantal geraakte dossiertermen (`dos_rang`, leeg met
@@ -538,6 +565,8 @@ def _fusiescore(k: dict[str, Any], dos_rang: dict[int, int], demping: float = 1.
         score += 1 / (RRF_K + dos_rang[len(k["dos"])])
     if omgeving:
         score += 1 / (RRF_K + omgeving)
+    if belang:
+        score += 1 / (RRF_K + belang)
     return score
 
 
@@ -666,8 +695,15 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
         omgeving = _omgeving_rang(kandidaten, pool["alle_dossiertermen"], profiel.samenstelling) \
             if profiel.dossier_omgeving else {}
 
+        belang: dict[str, int] = {}
+
         def score(k: dict[str, Any]) -> float:
-            return _fusiescore(k, dos_rang, demping.get(k["iri"], 1.0), omgeving.get(k["iri"]))
+            return _fusiescore(k, dos_rang, demping.get(k["iri"], 1.0), omgeving.get(k["iri"]), belang.get(k["iri"]))
+
+        if profiel.belang and kandidaten:
+            # Het belang gaat over de voorlopige top op de fusie zonder belang; de rest komt daar toch niet bij.
+            top = sorted(kandidaten, key=lambda k: -score(k))[:limit * MAX_BELANG_FACTOR]
+            belang.update(_belang_rang(graph, top))
 
         def volgorde(k: dict[str, Any]) -> tuple:
             return (-score(k), regeling(k),

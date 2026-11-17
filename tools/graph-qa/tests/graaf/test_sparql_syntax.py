@@ -46,6 +46,7 @@ GEVALLEN: list[tuple[str, str]] = [
     ("zoek_opbouw", q.zoek_opbouw("invordering")),
     ("zoek_opbouw+scope", q.zoek_opbouw("uitstel van betaling", IW, 10, offset=10, meer=True)),
     ("plaats_in_opbouw", q.plaats_in_opbouw([f"urn:bwb:{IW}:artikel:4", "urn:bwb:BWBR0005537:artikel:4%3A94a"])),
+    ("inkomend_aantal", q.inkomend_aantal([f"urn:bwb:{IW}:artikel:9:lid:1", f"urn:bwb:{IW}:artikel:4"])),
     ("bepalingen_in_delen", q.bepalingen_in_delen([f"urn:bwb:{IW}:hoofdstuk:II", f"urn:bwb:{LEIDRAAD}:artikel:28"])),
     ("bepalingen_met_onderwerp", q.bepalingen_met_onderwerp("invordering")),
     ("definities_van", q.definities_van("invordering")),

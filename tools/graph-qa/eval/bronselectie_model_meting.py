@@ -86,7 +86,7 @@ def _maat(r: dict[str, Any], sleutel: str) -> str:
 #: ook in `--kandidaten` een model (~1k tokens per deelvraag).
 VARIANTEN = {"definitie_brug": {"definitie_brug": True}, "verwijzingen": {"verwijzingen": True},
              "wetstermen": {"wetstermen": True}, "zonder_wetstermen": {"wetstermen": False},
-             "rrf": {"menging": "rrf"}}
+             "rrf": {"menging": "rrf"}, "belang": {"belang": True}}
 
 
 def variant(naam: str) -> tuple[dict[str, Any], int | None]:

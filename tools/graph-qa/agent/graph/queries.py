@@ -354,6 +354,27 @@ def plaats_in_opbouw(iris: list[str]) -> str:
 }} ORDER BY ?bepaling ?deel"""
 
 
+def inkomend_aantal(iris: list[str]) -> str:
+    """Per bepaling hoeveel tekstdelen van búiten haar artikel ernaar verwijzen: het belang van verwijzingen
+    (`Zoekprofiel.belang`). Een lid telt de verwijzingen naar zijn hele artikel (een verwijzing wijst vaak naar het
+    artikel, en een nodig lid staat in een artikel dat vaker genoemd wordt), een bepaling zonder artikel erboven (een
+    divisie, een artikel zonder leden) die naar zichzelf en haar onderdelen. Beide vormen van een verwijzing, zoals
+    `verwijst_naar_deze`; een verwijzing uit hetzelfde artikel telt niet. Een bepaling zonder verwijzing staat er niet
+    in (aantal 0)."""
+    if not iris:
+        raise ValueError("Geen bepalingen.")
+    waarden = " ".join(f"<{_iri_veilig(i)}>" for i in sorted(set(iris)))
+    return PREFIXES + f"""SELECT ?bepaling (COUNT(DISTINCT ?bron) AS ?aantal) WHERE {{
+  VALUES ?bepaling {{ {waarden} }}
+  OPTIONAL {{ ?artikel bwb:heeftLid ?bepaling }}
+  BIND(COALESCE(?artikel, ?bepaling) AS ?knoop)
+  ?knoop (bwb:heeftLid|bwb:heeftOnderdeel)* ?doel .
+  {{ ?bron bwb:verwijstNaar ?doel . }} UNION {{ ?v bwb:naar ?doel . ?bron bwb:heeftVerwijzing ?v . }}
+  FILTER(STRSTARTS(STR(?bron), "{NS}"))
+  FILTER NOT EXISTS {{ ?knoop (bwb:heeftLid|bwb:heeftOnderdeel)* ?bron }}
+}} GROUP BY ?bepaling ORDER BY ?bepaling"""
+
+
 def bepalingen_in_delen(delen: list[str]) -> str:
     """De bepalingen (artikelen; bij een divisie haar subdivisies) binnen elk van deze delen, met
     nummer en label – zodat het overzicht ze bij IRI kent en niet uit een nummer hoeft te raden."""
