@@ -34,3 +34,25 @@ def test_geen_eval_rekent_zelf_de_wortel_uit():
     evals = Path(__file__).resolve().parents[2] / "eval"
     fout = [p.name for p in evals.glob("*.py") if p.name != "wortel.py" and "parents[3]" in p.read_text(encoding="utf-8")]
     assert not fout, f"reken de wortel niet zelf uit, gebruik eval.wortel: {fout}"
+
+
+def test_afval_per_bepaling(monkeypatch):
+    """Per nodige bepaling waar ze afviel: niet gevonden, gevonden maar niet bij de 40, bij de 40 maar niet gekozen,
+    gekozen. Een aanverwante bepaling telt niet."""
+    import eval.bronselectie_eval as be
+
+    monkeypatch.setattr(be, "_pool", lambda graaf, s, vraag, profiel=None: ["urn:bwb:X:artikel:2", "urn:bwb:X:artikel:3"])
+    s = {"naam": "S", "deelvragen": ["v1"], "regelingen": ["X"],
+         "verwacht": [{"deelvraag": 0, "bron_iri": f"urn:bwb:X:artikel:{n}", "rol": rol}
+                      for n, rol in ((1, "kern"), (2, "kern"), (3, "afhankelijkheid"), (4, "kern"), (5, "aanverwant"))]}
+    spoor = [{"set": "S", "vraag": "v1", "kandidaten": ["urn:bwb:X:artikel:3", "urn:bwb:X:artikel:4:lid:1"],
+              "gekozen": ["urn:bwb:X:artikel:4:lid:1"], "terugval": False}]
+    uit = m.afval(None, s, spoor)
+    assert uit["telling"] == {"niet gevonden": 1, "gevonden, niet bij de 40": 1, "bij de 40, niet gekozen": 1,
+                              "gekozen": 1}
+
+
+def test_de_varianten_zijn_vlaggen_van_het_zoekprofiel():
+    from agent.deelvraag_zoeken import Zoekprofiel
+    velden = set(Zoekprofiel.__dataclass_fields__)
+    assert all(set(v) <= velden for v in m.VARIANTEN.values())

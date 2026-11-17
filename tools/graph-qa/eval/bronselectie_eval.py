@@ -385,13 +385,19 @@ ROUTES_PLAN = {**{f"met {v}": _met_profiel(replace(VOOR_STAP8, **{v: True}))
                   for v in ("verwijzingen", "onderscheidend")}}
 
 
-def model_kiest_route(llm: Any, model: str, meting: dict[str, Any] | None = None):
+def model_kiest_route(llm: Any, model: str, meting: dict[str, Any] | None = None, *, vlaggen: dict[str, bool] | None = None,
+                      spoor: list[dict[str, Any]] | None = None):
     """De proef `Zoekprofiel.model_kiest` (pilot LB3): dezelfde kandidaten als de zoekvragenroute, ruimer
     (`deelvraag_keuze.MAX_KANDIDATEN`), en een model kiest er hoogstens acht uit (`deelvraag_keuze.kies`). Faalt de
-    keuze, dan de zoekvragenroute zelf. Kost modeltokens: alleen met `--model-kiest` en akkoord."""
+    keuze, dan de zoekvragenroute zelf. Kost modeltokens: alleen met `--model-kiest` en akkoord.
+
+    `vlaggen` zet extra vlaggen van het zoekprofiel voor de kandidaten (een variant van de meting, bv.
+    `definitie_brug`); `verwijzingen` staat standaard uit, zoals in de bronnenrun. Met `spoor` legt de route per deelvraag
+    vast welke kandidaten het model kreeg en welke het koos, zodat de meting per bepaling ziet waar ze afviel."""
     from agent import deelvraag_keuze, zoekvragen
 
-    profiel = replace(deelvraag_zoeken.STANDAARD_PROFIEL, model_kiest=True, verwijzingen=False)
+    profiel = replace(deelvraag_zoeken.STANDAARD_PROFIEL, model_kiest=True,
+                      **{"verwijzingen": False, **(vlaggen or {})})
     terug = _zoekvragen_route(deelvraag_zoeken.STANDAARD_PROFIEL)
     cache: dict[tuple, dict[str, Any]] = {}
 
@@ -412,6 +418,9 @@ def model_kiest_route(llm: Any, model: str, meting: dict[str, Any] | None = None
                                                        profiel=profiel)
         kand = deelvraag_keuze.kandidaten(uit_pool, woorden)
         gekozen = deelvraag_keuze.kies(llm, model, vraag, {**dossier, "buiten": s.get("buiten", "")}, kand, meting)
+        if spoor is not None:
+            spoor.append({"set": s["naam"], "vraag": vraag, "kandidaten": [k["bron_iri"] for k in kand],
+                          "gekozen": [k["bron_iri"] for k in gekozen or []], "terugval": gekozen is None})
         if gekozen is None:
             return terug(graph, s, vraag)
         return [{"bron_iri": k["bron_iri"], "label": k["label"], "buiten": False, "rol": k["rol"]} for k in gekozen]

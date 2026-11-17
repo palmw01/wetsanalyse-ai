@@ -1013,7 +1013,7 @@ jobs:
             if [ "$EVAL_SET" = "bronselectie_model" ]; then
               # De proef na de pilot LB3 (`eval/bronselectie_model_meting.py`): één run, met een eigen plafond op het
               # verbruik. De sets komen van GitHub op de commit van het image (LEX_REVISIE).
-              args="echo \"=== BRONSELECTIE MODEL ===\"; python -u -m eval.bronselectie_model_meting; rc=\$?; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
+              args="echo \"=== BRONSELECTIE MODEL ===\"; python -u -m eval.bronselectie_model_meting --rondes 3 --varianten definitie_brug,verwijzingen; rc=\$?; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
             else
             args="rc=0; echo \"=== RETRIEVAL-SMOKE ===\"; python -u eval/run_eval.py --retrieval-smoke || rc=1; for i in 1 2 3; do echo \"=== $titel \$i VAN 3 ===\"; python -u eval/run_eval.py $vlag $uit; done; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
             fi
