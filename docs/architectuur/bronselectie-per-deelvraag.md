@@ -91,3 +91,16 @@ bepaling*. Lex vraagt zo nodig bij welke deelvraag (`bs_toevoegen`), zoekt elke 
 wettekst, en daar besluit de analist; in het gesprek staat het compacte kaartje van de deelvraag. Wat niet gevonden
 is, staat terug op het kaartje met de reden. Op het artefact zelf staat geen zoekvenster. Een oud kaartje met vinkjes
 wordt nog verwerkt.
+
+## Een model kiest de bepalingen per deelvraag (17 nov 2026)
+
+De index vindt per deelvraag ruim, maar de rangschikking in code hield te weinig van het goede over (pilot LB3 van Lex
+Bench). Sinds `Zoekprofiel.model_kiest` verzamelt de code per deelvraag tot 40 kandidaten uit de pool rond de
+gebeurtenis en uit het zoeken op de woorden van de deelvraag, met hun tekst, en wijst één modelstap
+(`deelvraag_keuze.py`, rol `deelvraag_keuze`) er hoogstens acht aan, elk met een rol: kern, afhankelijkheid of
+aanverwant. Het model noemt alleen nummers uit de lijst: vindplaats en tekst neemt de code over, dus het kan geen
+bepaling verzinnen. Geeft het geen bruikbaar antwoord, dan kiest de code zoals voorheen.
+
+De bronnenrun controleert vooraf het tokenbudget en boekt het verbruik op `bronnen-<run>` (ongeveer 6,5k tokens per
+deelvraag). Dezelfde vraag geeft daarmee niet meer zeker dezelfde opties. Meting:
+[`metingen/bronselectie-2026-11-17-model/`](metingen/bronselectie-2026-11-17-model/README.md).
