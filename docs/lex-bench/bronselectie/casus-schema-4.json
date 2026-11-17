@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lex-bench:bronselectie:casus-schema-4",
+  "title": "Lex Bench, bronselectie: een casus in schema 4",
+  "description": "Een set in schema 3 (docs/wetsanalyse/referentieset-bronselectie) met de aanvullingen van plan-lex-bench §3.1. Bestaande sets blijven schema 3; wat Bench er extra van wil weten, staat in manifest.json. Het dossier (naam, aanleiding, doel, analysevraag, praktijkvoorbeeld, context, buiten, gebeurtenis, regelingen, deelvragen), uitgesloten[] en buiten_graaf blijven zoals in schema 3.",
+  "type": "object",
+  "required": ["schema_versie", "casus_id", "niveau", "gebruik", "verwachting", "verwacht"],
+  "properties": {
+    "schema_versie": {"const": 4},
+    "casus_id": {"type": "string", "pattern": "^LB-[0-9]{2}$", "description": "Vast en kort; gelijk over versies."},
+    "niveau": {"enum": ["makkelijk", "gemiddeld", "moeilijk"], "description": "Waarom de casus moeilijk is (§3.2), vastgelegd voordat Lex erop draait."},
+    "gebruik": {"enum": ["ontwikkeling", "blind"]},
+    "verwachting": {
+      "type": "object",
+      "required": ["opgesteld_door", "vastgesteld_door", "status", "datum"],
+      "properties": {
+        "opgesteld_door": {
+          "type": ["object", "null"],
+          "properties": {"run_id": {"type": "string"}, "analisten": {"type": "array", "items": {"type": "string"}}},
+          "description": "De teamrun en de codes van de analisten."
+        },
+        "vastgesteld_door": {"type": ["string", "null"], "description": "De code van de jurist, of null."},
+        "status": {"enum": ["concept", "vastgesteld"]},
+        "datum": {"type": ["string", "null"]}
+      }
+    },
+    "verwacht": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["bron_iri", "rol"],
+        "properties": {
+          "bron_iri": {"type": "string"},
+          "rol": {"enum": ["kern", "afhankelijkheid", "aanverwant"]},
+          "zoekvraag": {"enum": ["a", "b", "c", "d"]},
+          "motivering": {"type": "string"},
+          "herkomst": {"type": "string"},
+          "deelvraag": {"type": "integer", "minimum": 0},
+          "nagekomen": {"type": "boolean", "default": false, "description": "Pas na de vergelijking toegevoegd (categorie team mist, §5): telt apart, zodat de score op de bevroren verwachting eerlijk blijft."}
+        }
+      }
+    }
+  }
+}
