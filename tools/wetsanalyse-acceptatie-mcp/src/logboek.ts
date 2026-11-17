@@ -10,7 +10,8 @@
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-export const ROLLEN = ["jurist", "gegevensspecialist", "coördinator"] as const;
+/** De rollen van het E2E-team, en die van Lex Bench (analist en reviewer, plan-lex-bench §4.2 en §5). */
+export const ROLLEN = ["jurist", "gegevensspecialist", "coördinator", "analist", "reviewer"] as const;
 export const SOORTEN = ["beslissing", "onenigheid", "overleg", "id", "bevinding", "omweg", "stand"] as const;
 
 export interface LogRegel {

@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lex-bench:bronselectie:formulier-analist-1",
+  "title": "Lex Bench, bronselectie: het formulier van één analist",
+  "description": "Wat een bench-analist per casus inlevert (plan-lex-bench §4.2): per deelvraag de bepalingen met rol, zoekvraag, motivering en bewijs, wat bewust is uitgesloten en waarover twijfel bestaat. eval/lex_bench_team.py controleert het formulier; deze vorm is de afspraak, de controle de handhaving.",
+  "type": "object",
+  "required": ["formulier", "casus_id", "analist", "run", "deelvragen"],
+  "additionalProperties": false,
+  "properties": {
+    "formulier": {"const": "lex-bench-formulier-1"},
+    "casus_id": {"type": "string", "pattern": "^LB-[0-9]{2}$"},
+    "analist": {"enum": ["A", "B"]},
+    "run": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,63}$", "description": "De run van het logboek van deze analist."},
+    "deelvragen": {
+      "type": "array",
+      "description": "Elke deelvraag van het dossier precies één keer, met haar nummer vanaf 0.",
+      "items": {
+        "type": "object",
+        "required": ["deelvraag", "bepalingen", "uitgesloten", "twijfel"],
+        "additionalProperties": false,
+        "properties": {
+          "deelvraag": {"type": "integer", "minimum": 0},
+          "bepalingen": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["bron_iri", "rol", "zoekvraag", "motivering", "bewijs"],
+              "additionalProperties": false,
+              "properties": {
+                "bron_iri": {"type": "string", "pattern": "^urn:bwb:BWBR[0-9]{7}:\\S+$"},
+                "rol": {"enum": ["kern", "afhankelijkheid", "aanverwant"]},
+                "zoekvraag": {"enum": ["a", "b", "c", "d"]},
+                "motivering": {"type": "string", "minLength": 1},
+                "bewijs": {
+                  "type": "object",
+                  "required": ["tool", "citaat"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "tool": {"enum": ["bron_lezen", "graaf_lezen"]},
+                    "citaat": {"type": "string", "minLength": 1, "description": "Letterlijk uit de tool, geen parafrase."},
+                    "toestand": {"type": "string", "description": "De toestand of url die bron_lezen meegaf."}
+                  }
+                }
+              }
+            }
+          },
+          "uitgesloten": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["bron_iri", "motivering"],
+              "additionalProperties": false,
+              "properties": {
+                "bron_iri": {"type": "string", "pattern": "^urn:bwb:BWBR[0-9]{7}:\\S+$"},
+                "motivering": {"type": "string", "minLength": 1}
+              }
+            }
+          },
+          "twijfel": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["bron_iri", "reden"],
+              "additionalProperties": false,
+              "properties": {
+                "bron_iri": {"type": "string", "pattern": "^urn:bwb:BWBR[0-9]{7}:\\S+$"},
+                "reden": {"type": "string", "minLength": 1}
+              }
+            }
+          }
+        }
+      }
+    },
+    "buiten_graaf": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["omschrijving", "reden"],
+        "additionalProperties": false,
+        "properties": {
+          "deelvraag": {"type": "integer", "minimum": 0},
+          "omschrijving": {"type": "string", "minLength": 1},
+          "reden": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "open_punten": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  }
+}
