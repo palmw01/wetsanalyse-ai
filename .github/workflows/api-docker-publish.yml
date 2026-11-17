@@ -179,7 +179,8 @@ jobs:
           IMAGE_DIGEST_REF: ${{ env.IMAGE }}@${{ needs.build-and-push.outputs.digest }}
         run: |
           set -euo pipefail
-          az login --service-principal \
+          source .github/scripts/az_opnieuw.sh
+          az_opnieuw login --service-principal \
             --username "$AZURE_CLIENT_ID" \
             --password "$AZURE_CLIENT_SECRET" \
             --tenant "$AZURE_TENANT_ID"
@@ -192,7 +193,7 @@ jobs:
             echo "SWAP_OVERGESLAGEN=1" >> "$GITHUB_ENV"
             exit 0
           fi
-          az containerapp update \
+          az_opnieuw containerapp update \
             --name "$APP-api" \
             --resource-group "$RG" \
             --image "$IMAGE_DIGEST_REF" \

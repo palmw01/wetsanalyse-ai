@@ -87,3 +87,26 @@ def test_de_health_route_kent_de_ketenstand():
     route = (WORTEL / "frontend" / "app" / "api" / "health" / "route.ts").read_text(encoding="utf-8")
     assert 'searchParams.has("keten")' in route
     assert "503" in route
+
+
+# --- een tijdelijke fout van Azure laat de uitrol niet omvallen (17 nov 2026) --------------------------------------
+#: De workflows die een image uitrollen of terugzetten. Hun login en image-swap gaan via `az_opnieuw`
+#: (`.github/scripts/az_opnieuw.sh`): "Network is unreachable" naar management.azure.com liet de uitrol van graph-qa
+#: vallen terwijl het image al gebouwd was.
+UITROLLERS = ("api-docker-publish.yml", "frontend-docker-publish.yml", "graph-qa-docker-publish.yml",
+              "bwb-import-docker-publish.yml", "promote.yml", "rollback.yml")
+_KAAL = re.compile(r"(?m)^\s*az (login|containerapp update|containerapp job update)\b")
+
+
+@pytest.mark.parametrize("naam", UITROLLERS)
+def test_uitrollen_gaat_via_az_opnieuw(naam):
+    tekst = (WORKFLOWS / naam).read_text(encoding="utf-8")
+    assert not _KAAL.findall(tekst), f"{naam}: roep az login/update aan via az_opnieuw"
+    assert "az_opnieuw " in tekst and "source .github/scripts/az_opnieuw.sh" in tekst
+    assert "actions/checkout" in tekst, f"{naam}: zonder checkout is de helper er niet"
+
+
+def test_az_opnieuw_herhaalt_alleen_een_tijdelijke_fout():
+    script = (WORTEL / ".github" / "scripts" / "az_opnieuw.sh").read_text(encoding="utf-8")
+    assert "Network is unreachable" in script and "429" in script
+    assert "for poging in 1 2 3 4" in script
