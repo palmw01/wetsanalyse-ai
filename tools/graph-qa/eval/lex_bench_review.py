@@ -14,17 +14,25 @@ uitkomst blijft een voorstel: de jurist beslist, en aan de casus verandert niets
     python -m eval.lex_bench_review opdracht --casus LB-03 --team <map>/teamverwachting.json --run lb-03-...-r
     python -m eval.lex_bench_review verwerk review.json --casus LB-03 --team <map>/teamverwachting.json
     python -m eval.lex_bench_review tegenlezen --casus LB-03 --formulier formulier-a.json --run lb-03-...-r
+    python -m eval.lex_bench_review opnemen --dossier <pilot>/set.json --uit <meetmap>/graafantwoorden.json
+    python -m eval.lex_bench_review l2 keuze-l2.json --casus LB-08 --team <map>/teamverwachting.json --dossier <set.json>
+
+**Voor de pilot (LB3)**: `opnemen` legt de graafantwoorden van L1 vast voor een casus die niet in de referentieset
+staat (live tegen de graaf, `GRAPHDB_MCP_URL`, geen model), op het dossier alleen en zonder iets van de keuze van Lex
+te tonen; een bestaande opname overschrijft het niet. `l2` meet de lijst die het paneel op acceptatie voorstelde (arm
+L2) met dezelfde maten en verschillen als L1.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
 from typing import Any
 
 from eval import lex_bench_team as team
-from eval.bronselectie_eval import ROUTES, OpnameGraaf, _raakt, meet_intake
+from eval.bronselectie_eval import ROUTES, OpnameGraaf, OpnemendeGraaf, _raakt, meet_intake, scoor_deelvraag
 from eval.lex_bench import ROUTE_L1, _maat
 
 REVIEW = team.BENCH / "bronselectie" / "formulier-reviewer.json"
@@ -45,6 +53,27 @@ def lex_tegen_team(set_: dict[str, Any], tv: dict[str, Any], opname: dict[str, A
     """De maten van arm L1 tegen de teamverwachting, en de verschillen met een voorstel van de code."""
     s = _set_met_team(set_, tv)
     per = meet_intake(OpnameGraaf(opname), s, {ROUTE_L1: ROUTES[ROUTE_L1]})[ROUTE_L1]["per_deelvraag"]
+    return _kaart(per, tv, ROUTE_L1)
+
+
+#: Arm L2 (§4.4): de lijst per deelvraag die het paneel op acceptatie als voorstel toont, in de volgorde van de werkplek.
+ROUTE_L2 = "L2: het paneel op acceptatie"
+
+
+def l2_tegen_team(set_: dict[str, Any], tv: dict[str, Any], keuze: dict[str, Any]) -> dict[str, Any]:
+    """Dezelfde maten en verschillen als L1, op de lijst die Lex op acceptatie voorstelde. `keuze` is
+    `{"deelvragen": [{"deelvraag": i, "opties": [{"bron_iri": ..., "buiten": bool?}, ...]}, ...]}`; een deelvraag
+    zonder voorstel telt als een lege lijst, nooit als ontbrekend."""
+    s = _set_met_team(set_, tv)
+    opties = {d["deelvraag"]: d["opties"] for d in keuze["deelvragen"]}
+    onbekend = sorted(set(opties) - set(range(len(s["deelvragen"]))))
+    if onbekend:
+        raise ValueError(f"de keuze noemt deelvragen die het dossier niet heeft: {onbekend}")
+    per = [scoor_deelvraag(s, i, opties.get(i, [])) for i in range(len(s["deelvragen"]))]
+    return _kaart(per, tv, ROUTE_L2)
+
+
+def _kaart(per: list[dict[str, Any]], tv: dict[str, Any], route: str) -> dict[str, Any]:
     som = {k: sum(p[k] for p in per) for k in ("verwacht", "nodig", "aantal", "gevonden", "gevonden_nodig", "raak")}
     verschillen: list[dict[str, Any]] = []
     for i, p in enumerate(per):
@@ -63,7 +92,7 @@ def lex_tegen_team(set_: dict[str, Any], tv: dict[str, Any], opname: dict[str, A
                                          else {"onenig": geschil[0]["argumenten"]} if geschil else {"niet genoemd": True})})
     for n, v in enumerate(verschillen, 1):
         v["verschil"] = f"V{n}"
-    return {"casus_id": tv["casus_id"], "route": ROUTE_L1, "tegen": "teamverwachting, vóór de vaststelling",
+    return {"casus_id": tv["casus_id"], "route": route, "tegen": "teamverwachting, vóór de vaststelling",
             "maten": {"recall_nodig": _maat(som["gevonden_nodig"], som["nodig"]),
                       "recall": _maat(som["gevonden"], som["verwacht"]),
                       "precisie": _maat(som["raak"], som["aantal"]),
@@ -171,6 +200,23 @@ def _set_en_opname(casus_id: str, dossier: Path | None, opname: Path | None) -> 
     return (json.loads(dossier.read_text(encoding="utf-8")), json.loads(opname.read_text(encoding="utf-8")))
 
 
+def neem_op(dossier: dict[str, Any], uit: Path, graaf: Any) -> int:
+    """De graafantwoorden van arm L1 voor een casus buiten `referentieset-bronselectie/` (de pilot, een blinde casus).
+    Het draait de route van L1 op het dossier alleen: de verwachting doet er voor de queries niet toe, en wie opneemt,
+    ziet zo geen keuze van Lex. Een bestaande opname is bewijs en wordt niet overschreven. Geeft het aantal queries."""
+    if uit.exists():
+        raise FileExistsError(f"{uit} bestaat al: een opname is bewijs en wordt niet overschreven.")
+    opnemer = OpnemendeGraaf(graaf)
+    try:
+        meet_intake(opnemer, {**team.dossier_van(dossier), "status": "concept", "verwacht": [], "uitgesloten": []},
+                    {ROUTE_L1: ROUTES[ROUTE_L1]})
+    finally:
+        opnemer.close()
+    uit.parent.mkdir(parents=True, exist_ok=True)
+    uit.write_text(json.dumps(opnemer.opname, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    return len(opnemer.opname["sparql"]) + len(opnemer.opname["semantisch"])
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = p.add_subparsers(dest="actie", required=True)
@@ -188,7 +234,26 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--formulier", type=Path, required=True)
     t.add_argument("--run", required=True)
     t.add_argument("--dossier", type=Path)
+    n = sub.add_parser("opnemen", help="de graafantwoorden van L1 voor een casus buiten de referentieset (live)")
+    n.add_argument("--dossier", type=Path, required=True)
+    n.add_argument("--uit", type=Path, required=True, help="het nieuwe graafantwoorden.json")
+    l2 = sub.add_parser("l2", help="de lijst van het paneel op acceptatie (arm L2) tegen de teamverwachting")
+    l2.add_argument("keuze", type=Path)
+    l2.add_argument("--casus", required=True)
+    l2.add_argument("--team", type=Path, required=True)
+    l2.add_argument("--dossier", type=Path, required=True)
     args = p.parse_args(argv)
+    if args.actie == "opnemen":
+        from eval.bronselectie_eval import _echte_graaf
+        aantal = neem_op(json.loads(args.dossier.read_text(encoding="utf-8")), args.uit, _echte_graaf())
+        print(f"{aantal} graafantwoorden opgenomen in {args.uit}; sha256 {hashlib.sha256(args.uit.read_bytes()).hexdigest()}")
+        return 0
+    if args.actie == "l2":
+        kaart = l2_tegen_team(json.loads(args.dossier.read_text(encoding="utf-8")),
+                              json.loads(args.team.read_text(encoding="utf-8")),
+                              json.loads(args.keuze.read_text(encoding="utf-8")))
+        print(json.dumps(kaart, ensure_ascii=False, indent=2))
+        return 0
     if args.actie == "tegenlezen":
         dossier = team.dossier_uit(args.casus, args.dossier)
         sys.stdout.write(opdracht_tegenlezen(dossier, json.loads(args.formulier.read_text(encoding="utf-8")),
