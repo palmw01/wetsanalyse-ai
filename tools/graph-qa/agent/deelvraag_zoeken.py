@@ -174,9 +174,10 @@ class Zoekprofiel:
     #:   `wetstermen.wetstermen`) vertaalt de deelvraag met het dossier naar zoektermen in de taal van de wet; de code
     #:   houdt alleen woorden die in het zoekbereik voorkomen, hoogstens `wetstermen.MAX_WETSTERMEN`. Ze zoeken als eigen
     #:   termen in de index (`kandidatenpool(wetstermen=)`) en raken de pool rond de gebeurtenis
-    #:   (`zoekvragen.opties_bij_deelvraag(wetstermen=)`). Het model typt geen bepaling. Standaard **uit**: eerst meten.
-    #:   Werkt alleen met een model in de run, zoals `model_kiest`.
-    wetstermen: bool = False
+    #:   (`zoekvragen.opties_bij_deelvraag(wetstermen=)`). Het model typt geen bepaling. Standaard **aan** sinds de meting
+    #:   `bronselectie-2026-11-17-wetstermen-werkgebied` (kandidaten 93 → 122 van 172, gekozen 78 → 109, verkeerde
+    #:   deelvraag 14 → 12; ~1,3k tokens per deelvraag). Werkt alleen met een model in de run, zoals `model_kiest`.
+    wetstermen: bool = True
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.

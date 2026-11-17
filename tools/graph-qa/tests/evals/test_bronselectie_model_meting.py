@@ -148,7 +148,7 @@ def test_de_route_per_werkgebied_kiest_één_keer_per_set(monkeypatch):
     llm = FakeLLM([response([tool_block("k1", "wijs_bepalingen_toe", {"toewijzingen": [
         {"nummer": 1, "deelvraag": 1, "rol": "kern"}, {"nummer": 2, "deelvraag": 1, "rol": "kern"}]})], "tool_use")])
     spoor: list = []
-    route = be.model_kiest_route(llm, "m", {}, werkgebied=True, spoor=spoor)
+    route = be.model_kiest_route(llm, "m", {}, vlaggen={"wetstermen": False}, werkgebied=True, spoor=spoor)
     s = {"naam": "S", "deelvragen": ["v1", "v2"], "buiten": ""}
     assert [o["bron_iri"] for o in route(None, s, "v1")] == ["urn:bwb:X:artikel:26", "urn:bwb:X:artikel:26a"]
     assert route(None, s, "v2") == []
