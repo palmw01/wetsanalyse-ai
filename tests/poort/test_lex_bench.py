@@ -19,6 +19,7 @@ pytestmark = pytest.mark.risico("R15", laag=2)
 BENCH = WORTEL / "docs" / "lex-bench" / "bronselectie"
 MANIFEST = BENCH / "manifest.json"
 SCHEMA = BENCH / "casus-schema-4.json"
+DATA = WORTEL / "tools" / "lex-bench" / "data.js"
 METINGEN = WORTEL / "docs" / "architectuur" / "metingen"
 NIVEAUS = {"makkelijk", "gemiddeld", "moeilijk"}
 GEBRUIK = {"ontwikkeling", "blind"}
@@ -95,3 +96,18 @@ def test_een_meetmap_staat_in_het_meetlogboek():
     for map_ in _runs():
         assert map_.name in logboek, f"{map_.name} staat niet in het meetlogboek"
 
+
+
+def test_het_dashboard_toont_precies_de_vastgelegde_runs():
+    tekst = DATA.read_text(encoding="utf-8")
+    m = re.fullmatch(r"(?s)//[^\n]*\nwindow\.LEX_BENCH = (\{.*\});\n", tekst)
+    assert m, "data.js heeft de vorm `window.LEX_BENCH = {…};` (een gewone <script>, ook als lokaal bestand)"
+    data = json.loads(m.group(1))
+    assert [r["map"] for r in data["runs"]] == [p.name for p in sorted(_runs(), key=lambda p: (
+        json.loads((p / "run.json").read_text(encoding="utf-8"))["datum"], p.name))], (
+        "data.js loopt achter op de meetmappen: draai `python -m eval.lex_bench --dashboard`")
+    for r in data["runs"]:
+        for k in r["rapport"]["casussen"]:
+            if k["gebruik"] == "blind":
+                assert "verschillen" not in k
+    assert data["risicos"]["risicos"], "de risicomatrix staat erbij"
