@@ -708,3 +708,69 @@ def test_met_een_gebeurtenis_kiest_de_deelvraag_in_de_pool():
     assert d1[f"{UR}:artikel:25:lid:1"]["zoekvraag"] == "c" and d1[f"{UR}:artikel:25:lid:1"]["route"] == "zoekvragen"
     assert f"{UR}:artikel:12:lid:1" in dict(per["d2"])
     assert all(iri.split(":")[0] in (UR, "BWBR0024096", "BWBR0004770") for iri, _ in per["d1"] + per["d2"])
+
+
+# --- een model kiest per deelvraag (Zoekprofiel.model_kiest, meting bronselectie-2026-11-17-model) ------------------
+
+class _Meter:
+    def __init__(self) -> None:
+        self.totaal = 0
+
+    def als_dict(self) -> dict:
+        return {"invoer": self.totaal, "uitvoer": 0, "cache_lees": 0, "cache_schrijf": 0, "calls": 1}
+
+
+class _Model:
+    def __init__(self) -> None:
+        self.meter = _Meter()
+
+
+def _stroom_met_model(monkeypatch, api, *, budget: bool, gekozen: list[dict] | None):
+    from agent import bronnen_vinden
+
+    monkeypatch.setitem(INVOER, "deelvragen", [{"id": "d1", "vraag": "Wanneer is een aanslag invorderbaar?"}])
+    model = _Model()
+
+    def kies(graph, vraag, regelingen, dossier, buiten, p, gebeurtenis):
+        assert bronnen_vinden._MODEL.get()[0] is model
+        model.meter.totaal = 1234
+        return gekozen
+
+    monkeypatch.setattr(bronnen_vinden, "_model_kiest", kies)
+    geboekt: list[dict] = []
+
+    async def boek(_api, llm, modelnaam, gesprek_id, run_id):
+        geboekt.append({"run_id": run_id, "totaal": llm.meter.totaal})
+        return llm.meter.totaal
+
+    from agent import verbruik
+    monkeypatch.setattr(verbruik, "boek", boek)
+
+    async def toegestaan() -> bool:
+        return budget
+
+    async def verzamel():
+        return [e async for e in bronnen_run.bronnen_stroom(
+            "wg1", "r1", Run(run_id="x", conversation_id="werkgebied:wg1:bronnen"), settings=_settings(),
+            user_id="jurist", graph=Graaf(), maak_llm=lambda _s: model, budget_toegestaan=toegestaan)]
+    return asyncio.run(verzamel()), geboekt
+
+
+def test_het_model_kiest_per_deelvraag_en_het_verbruik_wordt_geboekt(nep, monkeypatch):
+    api = nep()
+    gekozen = [{"bron_iri": ART8, "label": "Artikel 8", "rol": "kern", "bron": "woorden"},
+               {"bron_iri": AWR, "label": "AWR", "rol": "afhankelijkheid", "bron": "pool"}]
+    events, geboekt = _stroom_met_model(monkeypatch, api, budget=True, gekozen=gekozen)
+    assert [e["type"] for e in events][-2:] == ["opgeslagen", "done"]
+    per = {k["bron_iri"]: k for k in api.uitkomst["kandidaten"]}
+    model_bewijs = [b for b in per[AWR]["bewijs"] if b["detail"].get("route") == "model"]
+    assert model_bewijs and model_bewijs[0]["detail"]["deelvraag_id"] == "d1"
+    assert per[AWR]["rol"] in ("afhankelijkheid", "kern")
+    assert len(geboekt) == 1 and geboekt[0]["run_id"] == "bronnen-r1"
+
+
+def test_zonder_budget_kiest_geen_model_en_start_niets(nep, monkeypatch):
+    api = nep()
+    events, geboekt = _stroom_met_model(monkeypatch, api, budget=False, gekozen=[])
+    assert events[-1] == {"type": "error", "message": "Je tokenbudget voor deze periode is op.", "soort": "budget"}
+    assert api.mislukt == "Het tokenbudget is op." and not geboekt

@@ -11,8 +11,15 @@ def _optie(iri: str, tekst: str = "", **extra) -> dict:
     return {"bron_iri": iri, "label": iri.rsplit(":", 1)[-1], "tekst": tekst, **extra}
 
 
-def test_de_vlag_staat_standaard_uit():
-    assert STANDAARD_PROFIEL.model_kiest is False
+def test_de_vlag_staat_standaard_aan():
+    """Aan sinds de meting `bronselectie-2026-11-17-model`; zonder model in de run kiest de code."""
+    assert STANDAARD_PROFIEL.model_kiest is True
+
+
+def test_zonder_model_in_de_run_kiest_de_code():
+    from agent import bronnen_vinden
+    assert bronnen_vinden._MODEL.get() is None
+    assert bronnen_vinden._model_kiest(None, "v", [], {}, [], None, "") is None
 
 
 def test_kandidaten_om_de_beurt_ontdubbeld_en_zonder_buiten():

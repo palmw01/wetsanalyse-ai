@@ -5,14 +5,16 @@ hergebruiken, dan `bronnen_stroom` – de invoer bij de api halen, de methoden t
 de kandidaten terugzetten, het patroon van `begrippen_run.py`. Wat er gevonden is, toont de bronselectie per
 deelvraag; deze module zegt alleen of het zoeken lukte.
 
-Geen model, dus geen tokens. Events: `status` per methode, dan `opgeslagen` en `done`; een fout is een
-`error`, en de api hoort het via `…/mislukt`.
+Met `Zoekprofiel.model_kiest` (aan sinds de meting `bronselectie-2026-11-17-model`) kiest een model de bepalingen per
+deelvraag: vooraf de budgetpoort, en het verbruik wordt geboekt op `bronnen-<run>`, idempotent, ook als het zoeken
+faalt. Zonder model (een test zonder `maak_llm`, of `legt_zelf_vast` uit) kiest de code, zonder tokens. Events: `status`
+per methode, dan `opgeslagen` en `done`; een fout is een `error`, en de api hoort het via `…/mislukt`.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, Awaitable, Callable
 
 from .bronnen_vinden import vind
 from .config import Settings
@@ -49,11 +51,24 @@ def _graaf(settings: Settings) -> GraphPort:
     return make_graph(settings)
 
 
+def _anthropic(settings: Settings) -> Any:
+    from .adapters.anthropic_llm import AnthropicLLM
+    return AnthropicLLM(settings)
+
+
 async def bronnen_stroom(werkgebied_id: str, api_run_id: str, run: Any, *, settings: Settings, user_id: str,
-                         graph: GraphPort | None = None, methoden: tuple[str, ...] | None = None
+                         graph: GraphPort | None = None, methoden: tuple[str, ...] | None = None,
+                         maak_llm: Callable[[Any], Any] | None = None,
+                         budget_toegestaan: Callable[[], Awaitable[bool]] | None = None
                          ) -> AsyncIterator[dict[str, Any]]:
+    """`graph`, `maak_llm` en `budget_toegestaan` zijn er voor tests. Zonder `maak_llm` maakt de dienst zelf een model,
+    alleen als het profiel `model_kiest` heeft en graph-qa zelf vastlegt (dan is er een api om te boeken)."""
+    from .deelvraag_zoeken import STANDAARD_PROFIEL
+    from .verbruik import boek, budget_poort
+
     api = WetsanalyseApi(settings, user_id)
     eigen_graaf = graph is None
+    llm, model, modelmeting = None, "", {"llm_calls": 0}
     try:
         try:
             data = await api.haal_bronnen_run(werkgebied_id, api_run_id)
@@ -70,6 +85,16 @@ async def bronnen_stroom(werkgebied_id: str, api_run_id: str, run: Any, *, setti
             yield {"type": "done"}
             return
 
+        if STANDAARD_PROFIEL.model_kiest and invoer.get("deelvragen") and (maak_llm is not None or (settings.legt_zelf_vast and user_id)):
+            if budget_toegestaan is None and settings.legt_zelf_vast and user_id:
+                budget_toegestaan = budget_poort(settings, user_id)
+            if budget_toegestaan is not None and not await budget_toegestaan():
+                await _mislukt(api, werkgebied_id, api_run_id, "Het tokenbudget is op.")
+                yield {"type": "error", "message": "Je tokenbudget voor deze periode is op.", "soort": "budget"}
+                return
+            model = settings.llm_model
+            llm = (maak_llm or _anthropic)(settings)
+
         lus = asyncio.get_running_loop()
         wachtrij: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
 
@@ -80,7 +105,7 @@ async def bronnen_stroom(werkgebied_id: str, api_run_id: str, run: Any, *, setti
         def zoek() -> dict[str, Any]:
             g = graph or _graaf(settings)
             try:
-                return vind(g, invoer, methoden, melding)
+                return vind(g, invoer, methoden, melding, llm=llm, model=model, modelmeting=modelmeting)
             finally:
                 if eigen_graaf:
                     g.close()
@@ -91,6 +116,8 @@ async def bronnen_stroom(werkgebied_id: str, api_run_id: str, run: Any, *, setti
                 yield await asyncio.wait_for(wachtrij.get(), timeout=0.2)
             except asyncio.TimeoutError:
                 continue
+        if llm is not None:
+            await boek(api, llm, model, "", f"bronnen-{api_run_id}")
         try:
             uitkomst = taak.result()
         except Exception as fout:  # noqa: BLE001 – een onbereikbare graaf is een mislukte run, geen crash
