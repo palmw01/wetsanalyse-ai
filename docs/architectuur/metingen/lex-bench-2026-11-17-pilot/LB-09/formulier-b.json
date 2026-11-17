@@ -1,0 +1,337 @@
+{
+  "formulier": "lex-bench-formulier-1",
+  "casus_id": "LB-09",
+  "analist": "B",
+  "run": "lb-09-2026-11-17-b",
+  "deelvragen": [
+    {
+      "deelvraag": 0,
+      "bepalingen": [
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:1",
+          "rol": "kern",
+          "zoekvraag": "a",
+          "motivering": "De grondslag voor navordering: de inspecteur kan te weinig geheven belasting navorderen op grond van een (nieuw) feit. Uitzondering: een bekend feit telt niet als grond, behalve bij kwade trouw. Dat is de kernvoorwaarde voor een afgehandeld jaar.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Indien enig feit grond oplevert voor het vermoeden dat een aanslag ten onrechte achterwege is gelaten of tot een te laag bedrag is vastgesteld, dan wel dat een in de belastingwet voorziene vermindering, ontheffing, teruggaaf of heffingskorting ten onrechte of tot een te hoog bedrag is verleend, kan de inspecteur de te weinig geheven belasting dan wel de ten onrechte of tot een te hoog bedrag verleende heffingskorting navorderen. Een feit, dat de inspecteur bekend was of redelijkerwijs bekend had kunnen zijn, kan geen grond voor navordering opleveren, behoudens in de gevallen waarin de belastingplichtige ter zake van dit feit te kwader trouw is.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:2",
+          "rol": "kern",
+          "zoekvraag": "a",
+          "motivering": "Breidt de navorderingsbevoegdheid uit naar gevallen zonder nieuw feit, onder meer een kenbare fout (onderdeel c, met de 30%-grens). Zonder dit lid is de vraag wanneer navordering mag niet volledig te beantwoorden.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Navordering kan mede plaatsvinden in alle gevallen waarin te weinig belasting is geheven, doordat:",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        }
+      ],
+      "uitgesloten": [
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:6",
+          "motivering": "Gaat over verliesverrekening met een voorafgaand jaar; speelt in het praktijkvoorbeeld niet en draagt de algemene vraag niet."
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:7",
+          "motivering": "Bijzondere regel voor heffingskortingen bij partners; buiten de kern van de analysevraag."
+        }
+      ],
+      "twijfel": [
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:8",
+          "reden": "Merkt bepaalde gegevens die via Richtlijn 2011/16/EU (art. 8 bis ter) binnenkomen aan als nieuw feit. Het praktijkvoorbeeld noemt gegevens uit het buitenland, maar art. 8 bis ter gaat over een specifieke informatiestroom (vermoedelijk platformgegevens), en niet vanzelf over bankgegevens. De jurist beslist of dit lid nodig is."
+        }
+      ]
+    },
+    {
+      "deelvraag": 1,
+      "bepalingen": [
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:3",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "De gewone navorderingstermijn van vijf jaar, met verlenging bij uitstel van aangifte, en een termijn van twee jaar bij navordering die alleen op lid 2, onderdeel c rust.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "De bevoegdheid tot het vaststellen van een navorderingsaanslag vervalt door verloop van vijf jaren na het tijdstip waarop de belastingschuld is ontstaan.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:4",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "De verlengde termijn van twaalf jaar voor buitenlandse bestanddelen, zoals de buitenlandse spaarrekening uit het praktijkvoorbeeld (zes jaar terug: buiten vijf, binnen twaalf jaar).",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Indien te weinig belasting is geheven over een bestanddeel van het voorwerp van enige belasting dat in het buitenland wordt gehouden of is opgekomen, vervalt, in afwijking in zoverre van het derde lid, eerste volzin, de bevoegdheid tot navorderen door verloop van twaalf jaren na het tijdstip waarop de belastingschuld is ontstaan.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:11:lid:4",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "Art. 16 lid 3 verklaart dit lid van toepassing. Het bepaalt het tijdstip waarop de belastingschuld ontstaat (einde tijdvak), en dat is het beginpunt van de termijnen van 16 lid 3 en lid 4.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Voor de toepassing van het derde lid wordt belastingschuld, waarvan de grootte eerst kan worden vastgesteld na afloop van het tijdvak waarover de belasting wordt geheven, geacht te zijn ontstaan op het tijdstip waarop dat tijdvak eindigt.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:5",
+          "rol": "aanverwant",
+          "zoekvraag": "b",
+          "motivering": "Verlengt de termijnen van lid 3 en lid 4 met zes maanden bij een verzoek om informatie in de laatste zes maanden. Nuttig voor de werkinstructie, maar niet nodig voor de hoofdregel.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Indien binnen zes maanden voor het einde van de termijn, bedoeld in het derde lid, eerste zin, of van de termijn, bedoeld in het vierde lid, een verzoek als bedoeld in artikel 6, tweede of derde lid, wordt gedaan of gegevens als bedoeld in artikel 9, vierde lid, worden verstrekt, wordt die termijn met zes maanden verlengd.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        }
+      ],
+      "uitgesloten": [
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:6",
+          "motivering": "Termijn bij verliesverrekening; niet aan de orde in het werkgebied."
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:16:lid:7",
+          "motivering": "Termijn voor heffingskorting bij partners; buiten de analysevraag."
+        }
+      ],
+      "twijfel": []
+    },
+    {
+      "deelvraag": 2,
+      "bepalingen": [
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:1",
+          "rol": "kern",
+          "zoekvraag": "c",
+          "motivering": "De grondslag voor belastingrente bij een navorderingsaanslag inkomstenbelasting: rente komt bij het nagevorderde bedrag.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Indien met betrekking tot de inkomstenbelasting of vennootschapsbelasting na het verstrijken van een periode van 6 maanden te rekenen vanaf het einde van het tijdvak waarover de belasting wordt geheven een aanslag of een navorderingsaanslag met een door de belastingplichtige te betalen bedrag aan belasting wordt vastgesteld, wordt met betrekking tot die aanslag, onderscheidenlijk die navorderingsaanslag, aan de belastingplichtige rente – belastingrente – in rekening gebracht.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:2",
+          "rol": "kern",
+          "zoekvraag": "c",
+          "motivering": "Hoe de rente wordt berekend: het tijdvak (vanaf 6 maanden na het einde van het belastingjaar tot de invorderbaarheid) en de grondslag.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "De belastingrente wordt enkelvoudig berekend over het tijdvak dat aanvangt 6 maanden te rekenen vanaf het einde van het tijdvak waarover de belasting wordt geheven en eindigt op de dag voorafgaand aan de dag waarop de aanslag, onderscheidenlijk de navorderingsaanslag, invorderbaar is ingevolge artikel 9 van de Invorderingswet 1990 en heeft als grondslag het te betalen bedrag aan belasting.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:30hb",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "Het percentage van de belastingrente wordt bij AMvB vastgesteld. Zonder dit artikel (en de AMvB) is de rente niet te berekenen.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Het percentage van de belastingrente bedraagt een bij algemene maatregel van bestuur vast te stellen percentage, dat voor verschillende belastingen en voor in rekening te brengen rente en te vergoeden rente verschillend kan worden vastgesteld.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:5",
+          "rol": "aanverwant",
+          "zoekvraag": "b",
+          "motivering": "Beperkt het rentetijdvak als de navorderingsaanslag op verzoek van de belastingplichtige is opgelegd. Relevant als iemand zelf meldt, maar niet in het praktijkvoorbeeld.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Ingeval de navorderingsaanslag is vastgesteld naar aanleiding van een verzoek, eindigt het tijdvak waarover de belastingrente wordt berekend in afwijking in zoverre van het tweede lid, uiterlijk 12 weken na de datum van ontvangst van het verzoek.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        }
+      ],
+      "uitgesloten": [
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:30f:lid:1",
+          "motivering": "Belastingrente bij een voorlopige aanslag; het werkgebied gaat over navordering na een vastgestelde aanslag."
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:30fd",
+          "motivering": "Vergoeding van belastingrente bij een negatieve aanslag; niet aan de orde bij alsnog betalen."
+        }
+      ],
+      "twijfel": [
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:30fc:lid:7",
+          "reden": "Definieert het 'te betalen bedrag aan belasting' (na verrekening). Mogelijk een afhankelijkheid voor de grondslag van lid 2; voor de vraag óf er rente bijkomt niet nodig."
+        }
+      ]
+    },
+    {
+      "deelvraag": 3,
+      "bepalingen": [
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:67e:lid:1",
+          "rol": "kern",
+          "zoekvraag": "a",
+          "motivering": "Grondslag voor de vergrijpboete bij navordering: opzet of grove schuld, gelijktijdig met de navorderingsaanslag, tot 100%.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Indien het met betrekking tot een belasting welke bij wege van aanslag wordt geheven aan opzet of grove schuld van de belastingplichtige is te wijten dat de aanslag tot een te laag bedrag is vastgesteld of anderszins te weinig belasting is geheven, vormt dit een vergrijp ter zake waarvan de inspecteur hem, gelijktijdig met de vaststelling van de navorderingsaanslag, een bestuurlijke boete kan opleggen van ten hoogste 100 percent van de in het tweede lid omschreven grondslag voor de boete.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:67e:lid:2",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "Lid 1 verwijst ernaar voor de grondslag van de boete. Zonder dit lid is de hoogte niet te bepalen.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "De grondslag voor de boete wordt gevormd door:",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:67e:lid:3",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "Het tijdstip voor de boete: in afwijking van de gelijktijdigheid kan de boete binnen zes maanden na de navorderingsaanslag volgen als de feiten pas laat in de navorderingstermijn bekend worden.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "De inspecteur kan, in afwijking van het eerste lid, binnen zes maanden na de vaststelling van de navorderingsaanslag, een bestuurlijke boete opleggen indien de feiten of omstandigheden op grond waarvan wordt nagevorderd eerst bekend worden op of na het tijdstip dat is gelegen zes maanden vóór de afloop van de in artikel 16 bedoelde termijnen, en er tevens aanwijzingen bestaan dat het aan opzet of grove schuld van de belastingplichtige is te wijten dat de aanslag tot een te laag bedrag is vastgesteld of anderszins te weinig belasting is geheven.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:67e:lid:6",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "Een hoger maximum (300%) bij navordering over inkomen uit sparen en beleggen: precies de spaarrekening uit het praktijkvoorbeeld.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Voor zover de navorderingsaanslag geheel of gedeeltelijk betrekking heeft op belastbaar inkomen als bedoeld in artikel 5.1 van de Wet inkomstenbelasting 2001, bedraagt de boete, in zoverre in afwijking van het eerste lid, ten hoogste 300 percent van de daarover verschuldigde belasting zoals deze bij de navorderingsaanslag is vastgesteld.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0011353:artikel:5.1",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "d",
+          "motivering": "67e lid 6 en 67n lid 3 verwijzen naar dit artikel. Het bepaalt wat 'belastbaar inkomen uit sparen en beleggen' is, en daarmee of het verhoogde maximum en de uitzondering op inkeer gelden. Gevolgd volgens het volg-beleid (definitie).",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Belastbaar inkomen uit sparen en beleggen is het voordeel uit sparen en beleggen verminderd met de persoonsgebonden aftrek (hoofdstuk 6).",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0011353/2026-02-21_0/xml/BWBR0011353_2026-02-21_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:67n:lid:1",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "Inkeer: binnen twee jaar vrijwillig verbeteren voordat de inspecteur het weet, dan geen vergrijpboete. Dat is een uitzondering op wanneer een boete kan.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Wanneer de belastingplichtige uiterlijk twee jaar nadat hij een onjuiste of onvolledige aangifte heeft gedaan of aangifte had moeten doen, alsnog een juiste en volledige aangifte doet, dan wel juiste en volledige inlichtingen, gegevens of aanwijzingen verstrekt vóórdat hij weet of redelijkerwijs moet vermoeden dat de inspecteur met de onjuistheid of onvolledigheid bekend is of bekend zal worden, wordt geen vergrijpboete opgelegd.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:67n:lid:3",
+          "rol": "kern",
+          "zoekvraag": "b",
+          "motivering": "Sluit de boetevrije inkeer uit voor inkomen uit sparen en beleggen. Beslissend voor de buitenlandse spaarrekening.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Het eerste lid is niet van toepassing voor zover de juiste en volledige aangifte, dan wel de juiste en volledige inlichtingen, gegevens of aanwijzingen, bedoeld in het eerste lid, betrekking heeft, onderscheidenlijk hebben, op inkomen uit aanmerkelijk belang als bedoeld in artikel 4.12 van de Wet inkomstenbelasting 2001 of op inkomen uit sparen en beleggen als bedoeld in artikel 5.1 van die wet.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:67n:lid:2",
+          "rol": "aanverwant",
+          "zoekvraag": "d",
+          "motivering": "Inkeer na twee jaar leidt tot matiging. Nuttig voor de werkinstructie; in het praktijkvoorbeeld ontdekt de Belastingdienst de rekening zelf.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Ook na het verstrijken van de in het eerste lid bedoelde termijn van twee jaar is het alsnog doen van een juiste en volledige aangifte, dan wel het verstrekken van juiste en volledige inlichtingen, gegevens of aanwijzingen door de belastingplichtige vóórdat hij weet of redelijkerwijs moet vermoeden dat de inspecteur met de onjuistheid of onvolledigheid bekend is of bekend zal worden, een omstandigheid die aanleiding geeft tot matiging van de vergrijpboete.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0002320/2026-10-01_0/xml/BWBR0002320_2026-10-01_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A41",
+          "rol": "afhankelijkheid",
+          "zoekvraag": "b",
+          "motivering": "Algemene voorwaarde uit de Awb: zonder verwijtbaarheid geen bestuurlijke boete. Die geldt naast opzet en grove schuld uit 67e.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Het bestuursorgaan legt geen bestuurlijke boete op voor zover de overtreding niet aan de overtreder kan worden verweten.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A46:lid:2",
+          "rol": "aanverwant",
+          "zoekvraag": "d",
+          "motivering": "Afstemming van de boete op de ernst en de verwijtbaarheid: invulling van de hoogte binnen het maximum van 67e.",
+          "bewijs": {
+            "tool": "bron_lezen",
+            "citaat": "Tenzij de hoogte van de bestuurlijke boete bij wettelijk voorschrift is vastgesteld, stemt het bestuursorgaan de bestuurlijke boete af op de ernst van de overtreding en de mate waarin deze aan de overtreder kan worden verweten.",
+            "toestand": "https://repository.officiele-overheidspublicaties.nl/bwb/BWBR0005537/2026-11-10_0/xml/BWBR0005537_2026-11-10_0.xml"
+          }
+        }
+      ],
+      "uitgesloten": [
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:67d:lid:1",
+          "motivering": "Vergrijpboete bij de aanslag (gelijktijdig met de vaststelling van de aanslag). Het werkgebied gaat over een al vastgestelde aanslag en navordering; daarvoor geldt 67e."
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:67o:lid:1",
+          "motivering": "Gaat over doen plegen, uitlokken en medeplichtigheid; niet aan de orde bij de belastingplichtige zelf."
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:67q:lid:1",
+          "motivering": "Een vergrijpboete na een eerdere verzuimboete wegens hetzelfde feit; niet aan de orde in het praktijkvoorbeeld."
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0002320:artikel:67p",
+          "motivering": "Overeenkomstige toepassing op anderen dan de belastingplichtige; buiten de analysevraag."
+        }
+      ],
+      "twijfel": [
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A45",
+          "reden": "Algemene vervaltermijn voor de bevoegdheid om een boete op te leggen (drie of vijf jaar na de overtreding). Niet nagegaan of dit naast de eigen fiscale koppeling aan de navorderingsaanslag (67e lid 1 en lid 3) voor fiscale vergrijpboetes geldt, of dat het opzij wordt gezet. Bij zes jaar terug kan dat beslissend zijn. De jurist beoordeelt het."
+        },
+        {
+          "bron_iri": "urn:bwb:BWBR0005537:artikel:5%3A46:lid:3",
+          "reden": "Lagere boete bij bijzondere omstandigheden als de hoogte wettelijk vastligt. 67e geeft een maximum en geen vast bedrag, dus waarschijnlijk geldt lid 2 en niet lid 3."
+        }
+      ]
+    }
+  ],
+  "buiten_graaf": [
+    {
+      "deelvraag": 2,
+      "omschrijving": "De algemene maatregel van bestuur waarin het percentage van de belastingrente staat (op grond van art. 30hb AWR), vermoedelijk het Uitvoeringsbesluit AWR.",
+      "reden": "Valt buiten de regelingen van het dossier en is niet gelezen; het percentage kon dus niet worden opgenomen."
+    },
+    {
+      "deelvraag": 3,
+      "omschrijving": "Het Besluit Bestuurlijke Boeten Belastingdienst (BBBB): het beleid voor de hoogte van vergrijpboetes, ook bij buitenlands vermogen.",
+      "reden": "Een beleidsregel buiten de regelingen van het dossier; niet in de graaf gezocht of gelezen. Hij is nodig voor de werkinstructie (aanverwant, zoekvraag d)."
+    }
+  ],
+  "open_punten": [
+    "Of Awb 5:45 (vervaltermijn boete) geldt naast 67e AWR is niet vastgesteld; dat bepaalt of over een jaar van zes jaar geleden nog een vergrijpboete kan.",
+    "De wettelijke rente en de inning van het nagevorderde bedrag (Invorderingswet 1990, art. 9 via 30fc lid 2) blijven bewust buiten beschouwing: het dossier sluit de inning uit.",
+    "Het overgangsrecht bij 67e en 30fc (opmerkingen in de brondata) en de toestand voor het jaar van zes jaar geleden zijn niet onderzocht. Gelezen is de nieuwste toestand (AWR 2026-10-01, Awb 2026-11-10), niet de toestand van het belastingjaar.",
+    "Strafrecht (art. 69 AWR) valt volgens het dossier buiten het werkgebied en is niet bekeken."
+  ]
+}
