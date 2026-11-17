@@ -20,6 +20,7 @@ import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { sessieCookies } from "./sessie.mjs";
 import { SCHIL, controleerOnbekend, onbekend, sse } from "./nepApi.mjs";
+import { zichtbareTekst } from "./zichtbareTekst.mjs";
 
 /** Paden die de werkplek hier aanroept en deze test bewust niet nabootst (`nepApi.mjs`); al het andere is een fout. */
 const NIET_NAGEBOOTST = [/^PATCH \/api\/gesprekken\/regieg$/];
@@ -214,13 +215,13 @@ async function wachtOpStanden(id, verwacht) {
 await vraag("sub", "sub1", "Vat deze twee uitspraken samen");
 await page.locator("[data-delegatie=d1]").first().waitFor();
 await wachtOpStanden("d1", ["klaar", "vraag"]);
-const blok = await page.locator("[data-delegatie=d1]").first().innerText();
+const blok = await zichtbareTekst(page.locator("[data-delegatie=d1]").first());
 assert.match(blok, /Subagents/);
 assert.match(blok, /2 subagents · 1 klaar · 1 wacht op antwoord/);
 assert.match(blok, /subagent algemeen · zwaar-model · afbakening: alleen de Hoge Raad · periode 2020–2024/);
 assert.equal(await page.locator("[data-delegatie=d1] [data-deelgesprek-link]").count(), 2, "een link per deelgesprek");
 await page.locator("[data-vraagdock=sa_vraag]").waitFor();
-assert.match(await page.locator("[data-vraagdock=sa_vraag]").innerText(), /Laat maar/);
+assert.match(await zichtbareTekst(page.locator("[data-vraagdock=sa_vraag]")), /Laat maar/);
 await page.locator("[data-deelgesprek-stand=vraag]").waitFor();
 assert.equal(await page.locator("[data-gesprek-rij=g2] [data-deelgesprek-stand]").getAttribute("data-deelgesprek-stand"), "vraag");
 
@@ -230,7 +231,7 @@ await page.locator("[data-vraagdock=sa_vraag] [role=option]", { hasText: "2024" 
 await page.locator("[data-vraagdock=sa_vraag] button", { hasText: "Verzend" }).click();
 await page.getByText("De bundel van beide uitspraken.").waitFor();
 assert.equal(await page.locator("[data-delegatie=d1]").count(), 2, "een blok per beurt");
-assert.match(await page.locator("[data-delegatie=d1]").last().innerText(), /Subagent gaat verder|Subagents/);
+assert.match(await zichtbareTekst(page.locator("[data-delegatie=d1]").last()), /Subagent gaat verder|Subagents/);
 for (let i = 0; i < 50 && (await page.locator("[data-delegatie=d1] [data-delegatie-taak=vraag]").count()); i++) await page.waitForTimeout(100);
 assert.equal(await page.locator("[data-delegatie=d1] [data-delegatie-taak=vraag]").count(), 0, "geen open vraag meer");
 await page.locator("[data-gesprek-rij=g2] [data-deelgesprek-stand=klaar]").waitFor();
@@ -240,8 +241,8 @@ await page.locator("[data-delegatie=d1] [data-deelgesprek-link=g1]").first().cli
 await page.getByText("Rapport van uitspraak A.").waitFor();
 assert.match(page.url(), /gesprek=g1/);
 // Wat de code in het deelgesprek doorgaf, is een blok van Lex, geen bubbel van de jurist (bugonderzoek B5).
-assert.match(await page.locator("[data-doorgegeven=opdracht]").innerText(), /Opdracht aan de subagent[\s\S]*vat uitspraak A samen/);
-assert.match(await page.locator("[data-doorgegeven=antwoorden]").innerText(), /Antwoorden van de jurist, doorgegeven/);
+assert.match(await zichtbareTekst(page.locator("[data-doorgegeven=opdracht]")), /Opdracht aan de subagent[\s\S]*vat uitspraak A samen/);
+assert.match(await zichtbareTekst(page.locator("[data-doorgegeven=antwoorden]")), /Antwoorden van de jurist, doorgegeven/);
 assert.equal(await page.locator(".rounded-bubbel", { hasText: "OPDRACHT" }).count(), 0, "geen bubbel van de jurist");
 
 // 4. Na herladen: de blokken uit de api, met de stand van nu.
@@ -272,7 +273,7 @@ actief = null;
 await vraag("regieg", "regie", "Zoek per deelvraag de bronnen");
 await page.getByText("De bronnen per deelvraag staan klaar.").waitFor();
 await page.locator("[data-delegatie=r5] [data-delegatie-taak=klaar]").first().waitFor();
-const regieBlok = await page.locator("[data-delegatie=r5]").innerText();
+const regieBlok = await zichtbareTekst(page.locator("[data-delegatie=r5]"));
 assert.match(regieBlok, /Regie[\s\S]*2 deelgesprekken · 2 klaar/);
 assert.ok(!/subagent retrieval/.test(regieBlok), "een regiekind is geen subagent");
 await page.getByRole("button", { name: "Start de regie (2 deelgesprekken)" }).waitFor();
