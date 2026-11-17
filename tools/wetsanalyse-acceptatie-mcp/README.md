@@ -33,6 +33,7 @@ wetsanalyse uit te voeren, inclusief echte beslissingen; het scenario staat in
 | `bron_lezen` | de officiële XML en tekst van één artikel of lid, met de toestand en de url |
 | `graaf_lezen` | alleen-lezen SPARQL op de kennisgraaf van acceptatie, om te vergelijken met de bron |
 | `logboek_aanvullen`, `logboek_lezen` | het gedeelde logboek van een run: alleen aanvullen, en lezen vanaf een stand |
+| `bench_opdracht_lezen`, `bench_inleveren` | Lex Bench: de opdracht van een run lezen, en een formulier inleveren met de controle erop |
 
 De tools tot en met `begrip_lezen` nemen optioneel `als: "beheerder"` of `als: "test-analist"` (het analistaccount voor
 K10, met `WETSANALYSE_ACC_TOKEN_TEST_ANALIST`); `opruimen` en `wie_ben_ik` ook. `lex_wacht` wacht hooguit 110 seconden; bij `klaar: false`
@@ -62,6 +63,13 @@ geen `Write`, `Edit` of `Bash`, en dat blijft zo. Een shell zou elk bestand kunn
 BFF makkelijk; de MCP legt het pad vast, opent in append-modus, en houdt de run-naam binnen de map. Het schrijft in de
 hoofdcheckout, ook als de sessie in een worktree draait, omdat een worktree wordt opgeruimd en het dossier daar niet
 staat. Een onenigheid vraagt beide argumenten, en iets wat op een token lijkt wordt geweigerd.
+
+**Lex Bench** (`src/bench.ts`) gebruikt dezelfde runmap. De coördinator legt er de opdracht van een agent in
+(`eval.lex_bench_team … --naar-run`); de agent leest haar met `bench_opdracht_lezen` en levert in met
+`bench_inleveren`. Elke poging staat als `inlevering-<n>.json` (nooit overschreven), en de MCP draait er de controle van
+Lex Bench op (`uv run python -m eval.lex_bench_inleveren controleer` in `tools/graph-qa`); een geldig formulier wordt
+`ingeleverd.json` en ligt dan vast, na vijf pogingen is het aan de coördinator. Zo gaan opdracht en formulier niet door
+de context van de coördinator (pilot LB3, bevinding 1). De controle vraagt `uv` op de machine.
 
 ## Activeren
 

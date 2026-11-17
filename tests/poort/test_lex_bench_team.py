@@ -17,8 +17,8 @@ pytestmark = pytest.mark.risico("R15", laag=2)
 AGENTS = WORTEL / ".claude" / "agents"
 MCP = "mcp__wetsanalyse-acceptatie__"
 TOEGESTAAN = {
-    "bench-analist": {"Skill", *(MCP + t for t in ("bron_lezen", "graaf_lezen", "logboek_aanvullen", "logboek_lezen"))},
-    "bench-reviewer": {"Skill", *(MCP + t for t in ("bron_lezen", "graaf_lezen", "logboek_aanvullen", "logboek_lezen"))},
+    "bench-analist": {"Skill", *(MCP + t for t in ("bron_lezen", "graaf_lezen", "logboek_aanvullen", "logboek_lezen", "bench_opdracht_lezen", "bench_inleveren"))},
+    "bench-reviewer": {"Skill", *(MCP + t for t in ("bron_lezen", "graaf_lezen", "logboek_aanvullen", "logboek_lezen", "bench_opdracht_lezen", "bench_inleveren"))},
 }
 NOOIT = re.compile(r"^(Read|Grep|Glob|Bash|Write|Edit|NotebookEdit|WebFetch|WebSearch|Agent|Task)$|"
                    rf"^{MCP}(lex_|bff|werkgebied_lezen|annotatie_lezen|weergave_lezen|begrip_lezen|logs_zoek|opruimen)|"

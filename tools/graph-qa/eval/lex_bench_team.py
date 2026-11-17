@@ -242,6 +242,46 @@ def _met_tegenlezing(formulieren: list[dict[str, Any]], lezing: dict[str, Any], 
     return blijft, onenig + erbij
 
 
+RUN = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
+
+
+def lokaal_map(wortel: Path = WORTEL) -> Path:
+    """De map van het logboek van de acceptatie-MCP (`standaardMap`): die van de checkout, ook vanuit een worktree.
+    Gitignored; de opdracht en de inleveringen van een agent staan hier, buiten de context van de coördinator."""
+    return Path(re.sub(r"[/\\]\.claude[/\\]worktrees[/\\][^/\\]+[/\\]?$", "", str(wortel))) / "docs" / "acceptatie" / "lokaal"
+
+
+def runmap(run: str, map_: Path | None = None) -> Path:
+    if not RUN.match(run):
+        raise ValueError("Een run heet bijvoorbeeld lb-10-2026-11-20-a.")
+    return (map_ or lokaal_map()) / run
+
+
+def naar_run(run: str, tekst: str, controle: dict[str, Any], map_: Path | None = None) -> Path:
+    """Leg de opdracht in de runmap: `opdracht.md` voor de agent (`bench_opdracht_lezen`) en `opdracht.json` voor de
+    controle van wat hij inlevert (`eval.lex_bench_inleveren`). Een runmap met een opdracht blijft zoals ze is."""
+    doel = runmap(run, map_)
+    doel.mkdir(parents=True, exist_ok=True)
+    if (doel / "opdracht.md").exists():
+        raise FileExistsError(f"{doel} heeft al een opdracht: een nieuwe run krijgt een nieuwe naam.")
+    (doel / "opdracht.json").write_text(json.dumps(controle, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (doel / "opdracht.md").write_text(tekst, encoding="utf-8")
+    return doel
+
+
+def schrijf_uit(tekst: str, run: str, naar: bool, controle: dict[str, Any]) -> None:
+    """De opdracht naar stdout, of met `--naar-run` in de runmap met alleen een regel op stdout."""
+    if naar:
+        doel = naar_run(run, tekst, controle)
+        print(f"De opdracht staat in {doel} ({len(tekst)} tekens). De agent leest haar met bench_opdracht_lezen.")
+    else:
+        sys.stdout.write(tekst)
+
+
+def _pad(waarde: Path | None) -> str | None:
+    return str(waarde.resolve()) if waarde else None
+
+
 def _json(waarde: Any) -> bytes:
     return (json.dumps(waarde, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 
@@ -270,6 +310,7 @@ def main(argv: list[str] | None = None) -> int:
     o.add_argument("--analist", required=True, choices=("A", "B"))
     o.add_argument("--run", required=True)
     o.add_argument("--dossier", type=Path, help="een set.json buiten de repo (een blinde casus)")
+    o.add_argument("--naar-run", action="store_true", help="schrijf de opdracht in de runmap (bench_opdracht_lezen)")
     c = sub.add_parser("controleer", help="toets een formulier; exit 1 bij een fout")
     c.add_argument("formulier", type=Path)
     c.add_argument("--casus", required=True)
@@ -286,7 +327,8 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
     dossier = dossier_uit(args.casus, args.dossier)
     if args.actie == "opdracht":
-        sys.stdout.write(opdracht(dossier, args.casus, args.analist, args.run))
+        schrijf_uit(opdracht(dossier, args.casus, args.analist, args.run), args.run, args.naar_run,
+                    {"soort": "analist", "casus": args.casus, "dossier": _pad(args.dossier)})
         return 0
     if args.actie == "samenvoegen":
         casus = ({"casus_id": args.casus, "niveau": args.niveau, "gebruik": args.gebruik} if args.dossier

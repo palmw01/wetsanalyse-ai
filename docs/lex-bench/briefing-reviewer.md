@@ -23,9 +23,18 @@ De code stelt per verschil al een categorie voor. Jij beoordeelt ze tegen de bro
 - **Twijfel** (`twijfel`): zonder de jurist is er geen uitspraak. Twijfel is een eerlijke uitkomst, geen fout.
 
 Geef bij Lex mist en Lex onterecht de **plek** als je die kunt zien. `niet_in_pool`: Lex vond de bepaling niet.
-`laag_gerangschikt`: Lex vond haar wel, maar te laag. `verkeerde_rol`: de bepaling is goed gekozen, maar met een
-verkeerde rol. Kun je het niet zien, kies dan `onbekend`. De plek is de brug naar een generieke verbetering, dus
-gok niet.
+`laag_gerangschikt`: Lex vond haar wel, maar te laag. `verkeerde_deelvraag`: Lex koos de bepaling, maar bij een andere
+deelvraag dan het team. `verkeerde_rol`: de bepaling is goed gekozen, maar met een verkeerde rol. Kun je het niet zien,
+kies dan `onbekend`. De plek is de brug naar een generieke verbetering, dus gok niet.
+
+Bij elk verschil staat wat de code over de plek weet:
+
+- bij Lex mist: `lex.in_pool` (of de bepaling in wat Lex vond zat, vóór hij koos), `lex.rang` en `lex.plaatsen` (de
+  plaats in zijn rangschikking, en hoeveel plaatsen hij vult) en `lex.elders` (de deelvragen waar Lex haar wél koos);
+- bij Lex onterecht: `team.elders` (de deelvragen waar het team de bepaling verwacht);
+- `plek_voorstel`: wat daaruit volgt. Het is een voorstel van de code: neem het over als de bron het steunt, en wijk
+  af met een reden als dat niet zo is. Bij arm L2 kent de code de pool niet; daar staat alleen de verkeerde
+  deelvraag.
 
 Elk verschil krijgt precies één oordeel, met zijn nummer (`verschil`). Beoordeel niets wat geen verschil is.
 
@@ -44,19 +53,21 @@ gebruik dan ook `ontbreekt`.
 
 ### Het formulier
 
-Je laatste bericht is één JSON-object volgens het formulier in de opdracht, zonder tekst eromheen.
+Je levert één JSON-object in volgens het formulier in de opdracht, met `bench_inleveren`. De controle zegt meteen wat er
+niet klopt: herstel het en lever opnieuw in.
 
 ## Voor de coördinator
 
 1. **Verschillen.** Bevries eerst de teamverwachting (`eval/lex_bench_team.py samenvoegen`). Maak daarna de opdracht:
-   `uv run python -m eval.lex_bench_review opdracht --casus LB-xx --team <map>/teamverwachting.json --run <run>-r`.
+   `uv run python -m eval.lex_bench_review opdracht --casus LB-xx --team <map>/teamverwachting.json --run <run>-r
+   --naar-run`. De prompt van de reviewer noemt alleen de run (zie de briefing van de analist, stap 2).
    Bij een blinde casus geef je ook `--dossier` en `--opname` mee: beide staan buiten de repo. De opdracht noemt de
    verschillen van arm L1 tegen de teamverwachting, en de maten met teller en noemer.
-2. **Toetsen en verwerken.** Sla het antwoord op en toets het:
-   `uv run python -m eval.lex_bench_review verwerk <review.json> --casus LB-xx --team <...>`. Een fout gaat terug naar
-   dezelfde reviewer. De uitkomst geeft de telling per categorie met de status *voorstel van de reviewer*, en noemt de
+2. **Toetsen en verwerken.** De reviewer levert in met `bench_inleveren`, met dezelfde controle als `verwerk`; een
+   geldige review is `ingeleverd.json` in de runmap. Kopieer die naar de meetmap en verwerk haar:
+   `uv run python -m eval.lex_bench_review verwerk <review.json> --casus LB-xx --team <...>`. De uitkomst geeft de telling per categorie met de status *voorstel van de reviewer*, en noemt de
    bepalingen bij *team mist* als voorstel voor `nagekomen`. Aan de casus verandert niets.
 3. **Tegenlezen** (makkelijk). Gebruik `uv run python -m eval.lex_bench_review tegenlezen --casus LB-xx --formulier
-   formulier-a.json --run <run>-r`. Daarna samenvoegen met `--tegenlezing <review.json>`. Een bepaling waartegen de
+   formulier-a.json --run <run>-r --naar-run`. Daarna samenvoegen met `--tegenlezing <review.json>`. Een bepaling waartegen de
    tegenlezer bezwaar maakt, en elke bepaling die volgens hem ontbreekt, komt in `onenig`, met beide standpunten.
 4. **De jurist** beslist over de categorieën en over `onenig`. Tot dan blijft alles `concept` (besluit 2).
