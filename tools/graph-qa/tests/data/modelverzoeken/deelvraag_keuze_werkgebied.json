@@ -1,0 +1,64 @@
+[
+ {
+  "methode": "create",
+  "verzoek": {
+   "max_tokens": 4096,
+   "messages": [
+    {
+     "content": "Werkgebied: Beslistermijn\n\nDeelvragen:\n1. Welke dwangsom kan de aanvrager krijgen?\n2. Vanaf wanneer is ze verschuldigd?\n\nBepalingen:\n1. Artikel 4:17, lid 1: Indien een beschikking op aanvraag niet tijdig wordt gegeven, verbeurt het bestuursorgaan aan de aanvrager een dwangsom.\n2. Artikel 4:18: De dwangsom is verschuldigd vanaf de dag na die waarop twee weken zijn verstreken.\n\nZet met de tool elke bepaling die nodig is bij haar deelvraag.",
+     "role": "user"
+    }
+   ],
+   "model": "m",
+   "system": "Je helpt een jurist bij de bronselectie van een wetsanalyse. Je krijgt het dossier van het werkgebied, de genummerde deelvragen en een genummerde lijst bepalingen die de zoekmachine bij die deelvragen vond. Zet elke bepaling die de jurist nodig heeft bij de deelvraag die ze beantwoordt, op grond van haar tekst. Lees eerst alle deelvragen: een bepaling hoort bij de deelvraag waarover ze vooral gaat, ook als ze woorden van een andere deelvraag noemt. Zet een bepaling alleen bij meer deelvragen als ze voor elk daarvan kern is. Kern: de bepaling beantwoordt de deelvraag zelf. Afhankelijkheid: de kern kan niet zonder (een definitie, een bepaling waarnaar de kern verwijst). Aanverwant: nuttig, niet nodig. Kies een bepaling niet omdat ze een woord van een vraag noemt, maar omdat ze er inhoudelijk over gaat. Laat weg wat de afbakening uitsluit en wat bij geen deelvraag hoort. Hoogstens acht per deelvraag; minder mag. Geef alleen nummers uit de lijsten.",
+   "tool_choice": {
+    "name": "wijs_bepalingen_toe",
+    "type": "tool"
+   },
+   "tools": [
+    {
+     "description": "Per bepaling de deelvraag waarbij ze hoort en haar rol, als nummers uit de lijsten.",
+     "input_schema": {
+      "additionalProperties": false,
+      "properties": {
+       "toewijzingen": {
+        "items": {
+         "additionalProperties": false,
+         "properties": {
+          "deelvraag": {
+           "type": "integer"
+          },
+          "nummer": {
+           "type": "integer"
+          },
+          "rol": {
+           "enum": [
+            "kern",
+            "afhankelijkheid",
+            "aanverwant"
+           ],
+           "type": "string"
+          }
+         },
+         "required": [
+          "nummer",
+          "deelvraag",
+          "rol"
+         ],
+         "type": "object"
+        },
+        "type": "array"
+       }
+      },
+      "required": [
+       "toewijzingen"
+      ],
+      "type": "object"
+     },
+     "name": "wijs_bepalingen_toe",
+     "strict": true
+    }
+   ]
+  }
+ }
+]

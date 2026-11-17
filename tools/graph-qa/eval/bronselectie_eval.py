@@ -386,26 +386,49 @@ ROUTES_PLAN = {**{f"met {v}": _met_profiel(replace(VOOR_STAP8, **{v: True}))
 
 
 def model_kiest_route(llm: Any, model: str, meting: dict[str, Any] | None = None, *, vlaggen: dict[str, bool] | None = None,
-                      spoor: list[dict[str, Any]] | None = None):
+                      spoor: list[dict[str, Any]] | None = None, werkgebied: bool = False):
     """De proef `Zoekprofiel.model_kiest` (pilot LB3): dezelfde kandidaten als de zoekvragenroute, ruimer
     (`deelvraag_keuze.MAX_KANDIDATEN`), en een model kiest er hoogstens acht uit (`deelvraag_keuze.kies`). Faalt de
     keuze, dan de zoekvragenroute zelf. Kost modeltokens: alleen met `--model-kiest` en akkoord.
 
     `vlaggen` zet extra vlaggen van het zoekprofiel voor de kandidaten (een variant van de meting, bv.
     `definitie_brug`); `verwijzingen` staat standaard uit, zoals in de bronnenrun. Met `spoor` legt de route per deelvraag
-    vast welke kandidaten het model kreeg en welke het koos, zodat de meting per bepaling ziet waar ze afviel."""
+    vast welke kandidaten het model kreeg en welke het koos, zodat de meting per bepaling ziet waar ze afviel.
+
+    Met `werkgebied` kiest het model één keer per set voor alle deelvragen (`deelvraag_keuze.kies_werkgebied`, de vlag
+    `PER_WERKGEBIED`), uit de vereniging van hun kandidaten: de eerste deelvraag van een set doet de aanroep, de andere
+    lezen haar uitkomst. In het spoor zijn de kandidaten dan die vereniging, want die zag het model. Faalt die keuze,
+    dan kiest het model per deelvraag, zoals de bronnenrun."""
     from agent import deelvraag_keuze
 
     profiel = replace(deelvraag_zoeken.STANDAARD_PROFIEL, model_kiest=True,
                       **{"verwijzingen": False, **(vlaggen or {})})
     terug = _zoekvragen_route(deelvraag_zoeken.STANDAARD_PROFIEL)
     cache: dict[tuple, dict[str, Any]] = {}
+    keuzes: dict[tuple, tuple[list[dict[str, Any]], list[list[dict[str, Any]]] | None]] = {}
+
+    def per_werkgebied(graph: Any, s: dict[str, Any], vraag: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]] | None]:
+        sleutel = (id(graph), s["naam"])
+        if sleutel not in keuzes:
+            dossier = {**_dossier(s), "buiten": s.get("buiten", "")}
+            per = [kandidaten_voor(graph, s, v, profiel, cache,
+                                   wetstermen=wetstermen_voor(graph, s, v, profiel, llm, model, meting, cache))
+                   for v in s["deelvragen"]]
+            kand = deelvraag_keuze.kandidaten_werkgebied(per)
+            keuzes[sleutel] = (kand, deelvraag_keuze.kies_werkgebied(llm, model, list(s["deelvragen"]), dossier, kand,
+                                                                     meting))
+        kand, gekozen = keuzes[sleutel]
+        return kand, None if gekozen is None else gekozen[s["deelvragen"].index(vraag)]
 
     def route(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
         dossier = _dossier(s)
         wet = wetstermen_voor(graph, s, vraag, profiel, llm, model, meting, cache)
-        kand = kandidaten_voor(graph, s, vraag, profiel, cache, wetstermen=wet)
-        gekozen = deelvraag_keuze.kies(llm, model, vraag, {**dossier, "buiten": s.get("buiten", "")}, kand, meting)
+        gekozen: list[dict[str, Any]] | None = None
+        if werkgebied:
+            kand, gekozen = per_werkgebied(graph, s, vraag)
+        if gekozen is None:
+            kand = kandidaten_voor(graph, s, vraag, profiel, cache, wetstermen=wet)
+            gekozen = deelvraag_keuze.kies(llm, model, vraag, {**dossier, "buiten": s.get("buiten", "")}, kand, meting)
         if spoor is not None:
             spoor.append({"set": s["naam"], "vraag": vraag, "kandidaten": [k["bron_iri"] for k in kand],
                           "gekozen": [k["bron_iri"] for k in gekozen or []], "terugval": gekozen is None,
@@ -516,6 +539,23 @@ def _deel(a: int, b: int) -> float | None:
     return round(a / b, 3) if b else None
 
 
+def verkeerde_deelvraag(s: dict[str, Any], opties: list[list[str]]) -> list[dict[str, Any]]:
+    """De nodige bepalingen (kern of afhankelijkheid) die bij hun eigen deelvraag ontbreken en bij een andere deelvraag
+    staan (de pilot LB3, LB-08: 26a bij deelvraag 3 die bij 1 hoort). Elk met de deelvraag waar ze hoort en waar ze
+    staat (vanaf 0). Recall telt zo'n bepaling als gemist en precisie als ruis; dit zegt dat de bronselectie haar wel vond."""
+    uit: list[dict[str, Any]] = []
+    for v in s["verwacht"]:
+        i = v["deelvraag"]
+        if v["rol"] not in ("kern", "afhankelijkheid") or i >= len(opties):
+            continue
+        if any(_raakt(c, v["bron_iri"]) for c in opties[i]):
+            continue
+        elders = [j for j, lijst in enumerate(opties) if j != i and any(_raakt(c, v["bron_iri"]) for c in lijst)]
+        if elders:
+            uit.append({"bron_iri": v["bron_iri"], "hoort_bij": i, "staat_bij": elders})
+    return uit
+
+
 def meet_intake(graaf: Any, s: dict[str, Any], routes: dict[str, Any] | None = None) -> dict[str, Any]:
     from agent import overzicht, regelingnamen
 
@@ -533,6 +573,7 @@ def meet_intake(graaf: Any, s: dict[str, Any], routes: dict[str, Any] | None = N
             for c in set(p["opties"]):
                 tel[c] = tel.get(c, 0) + 1
         alle_opties = [c for p in per for c in p["opties"]]
+        verkeerd = verkeerde_deelvraag(s, [p["opties"] for p in per])
         som = {k: sum(p[k] for p in per) for k in ("verwacht", "nodig", "aantal", "gevonden", "gevonden_nodig", "exact", "raak")}
         rapport[naam] = {"recall": _deel(som["gevonden"], som["verwacht"]),
                          "recall_nodig": _deel(som["gevonden_nodig"], som["nodig"]),
@@ -541,6 +582,7 @@ def meet_intake(graaf: Any, s: dict[str, Any], routes: dict[str, Any] | None = N
                          "uitgesloten": sum(len(p["uitgesloten"]) for p in per),
                          "uitgesloten_gemarkeerd": sum(len(p["uitgesloten_gemarkeerd"]) for p in per),
                          "gedeeld": _deel(sum(1 for c in alle_opties if tel[c] > 1), len(alle_opties)),
+                         "verkeerde_deelvraag": len(verkeerd), "verkeerd": verkeerd,
                          "per_deelvraag": per}
         if hasattr(route, "profiel"):
             rapport[naam]["recall_pool"] = _deel(sum(p["in_pool"] for p in per), som["verwacht"])
