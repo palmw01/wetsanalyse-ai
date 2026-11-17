@@ -1,0 +1,29 @@
+{
+ "schema_versie": 4,
+ "casus_id": "LB-09",
+ "niveau": "moeilijk",
+ "niveau_status": "voorlopig",
+ "waarom_dit_niveau": "Er is een woordenkloof: het dossier zegt 'achteraf geld bijvragen' en 'straf', niet de woorden van de wet. De gebeurtenis is breed, en de antwoorden op termijn, rente en straf liggen in verschillende delen en regelingen.",
+ "gebruik": "ontwikkeling",
+ "status": "concept",
+ "datum": "2026-11-17",
+ "toelichting": "Pilotdossier voor LB3 (plan-lex-bench §9), in eigen woorden geschreven door een Claude-sessie die de bronselectie niet afstemt (besluit 3), zonder de graaf of Lex te raadplegen. Er staat bewust geen verwachting in: die komt van het team, blind, en wordt bevroren voordat iemand naar Lex kijkt. Het niveau is vastgelegd vóór Lex erop draait.",
+ "naam": "Achteraf alsnog belasting vragen",
+ "aanleiding": "Bij controles blijkt geregeld dat iemand over een jaar dat al afgehandeld is te weinig heeft betaald, bijvoorbeeld door een vergeten rekening in het buitenland. Medewerkers twijfelen hoe ver ze terug mogen gaan en wat er dan bij de schuld komt.",
+ "doel": "Een overzicht van de regels waarmee de Belastingdienst over een afgehandeld jaar alsnog belasting kan vragen, met de termijnen en wat er bijkomt, als basis voor een werkinstructie.",
+ "analysevraag": "Hoe lang en onder welke voorwaarden kan de Belastingdienst achteraf nog extra belasting vragen als het bedrag over een eerder jaar te laag was?",
+ "praktijkvoorbeeld": "Een gepensioneerde vulde zes jaar geleden zijn aangifte in zonder zijn spaarrekening in het buitenland te noemen. Het bedrag is toen vastgesteld en betaald. Nu ontdekt de Belastingdienst de rekening via gegevens uit het buitenland en wil over dat jaar alsnog geld. Hij vraagt of dat na zo lange tijd nog mag, en of er rente of een straf bij komt.",
+ "context": "",
+ "buiten": "Het strafrecht, de schenk- en erfbelasting, de douane, en de inning van het bedrag (wanneer het betaald moet zijn en wat er gebeurt als dat niet gebeurt) vallen erbuiten.",
+ "gebeurtenis": "ontdekken dat er te weinig belasting is betaald",
+ "regelingen": [
+  "BWBR0002320",
+  "BWBR0005537"
+ ],
+ "deelvragen": [
+  "Wanneer mag de Belastingdienst over een jaar dat al afgehandeld is nog geld bijvragen?",
+  "Hoeveel jaar terug kan dat, en geldt er een langere periode als het geld in het buitenland stond?",
+  "Komt er rente bij het bedrag dat alsnog betaald moet worden?",
+  "Kan er ook een straf in geld bij komen, en wanneer?"
+ ]
+}

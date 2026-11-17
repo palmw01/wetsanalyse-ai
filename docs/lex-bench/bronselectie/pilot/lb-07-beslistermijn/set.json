@@ -1,0 +1,27 @@
+{
+ "schema_versie": 4,
+ "casus_id": "LB-07",
+ "niveau": "makkelijk",
+ "niveau_status": "voorlopig",
+ "waarom_dit_niveau": "De kern staat in één regeling, de vraag gebruikt de woorden van de wet (beslistermijn, ingebrekestelling, dwangsom) en er zijn drie deelvragen.",
+ "gebruik": "ontwikkeling",
+ "status": "concept",
+ "datum": "2026-11-17",
+ "toelichting": "Pilotdossier voor LB3 (plan-lex-bench §9), in eigen woorden geschreven door een Claude-sessie die de bronselectie niet afstemt (besluit 3), zonder de graaf of Lex te raadplegen. Er staat bewust geen verwachting in: die komt van het team, blind, en wordt bevroren voordat iemand naar Lex kijkt. Het niveau is vastgelegd vóór Lex erop draait.",
+ "naam": "Beslissen op een aanvraag binnen de termijn",
+ "aanleiding": "Een uitvoeringsorganisatie krijgt klachten van mensen die maanden wachten op een besluit over hun aanvraag. Medewerkers weten niet goed wanneer de termijn afloopt, wanneer ze die mogen verlengen en wat de aanvrager kan doen als de termijn voorbij is.",
+ "doel": "Een overzicht van de regels over de termijn waarbinnen een bestuursorgaan op een aanvraag beslist, en over de gevolgen van te laat beslissen, als basis voor een werkinstructie.",
+ "analysevraag": "Binnen welke termijn moet een bestuursorgaan op een aanvraag beslissen, en wat zijn de gevolgen als het die termijn overschrijdt?",
+ "praktijkvoorbeeld": "Een ondernemer vraagt op 1 maart een ontheffing aan. De wet waarop de ontheffing berust, noemt geen termijn. Op 1 juli heeft hij nog niets gehoord. Hij stelt het bestuursorgaan schriftelijk in gebreke en wil weten of hij geld krijgt als er daarna nog steeds geen besluit komt.",
+ "context": "",
+ "buiten": "Termijnen voor de beslissing op bezwaar of beroep, de vergunning die van rechtswege ontstaat als niet op tijd beslist is, beroep bij de rechter tegen het niet tijdig beslissen, en termijnen die een bijzondere wet zelf stelt, vallen erbuiten.",
+ "gebeurtenis": "aanvraag",
+ "regelingen": [
+  "BWBR0005537"
+ ],
+ "deelvragen": [
+  "Binnen welke termijn moet het bestuursorgaan op een aanvraag beslissen als de bijzondere wet geen termijn noemt, en wanneer mag het die termijn verlengen of opschorten?",
+  "Wat moet het bestuursorgaan doen als het verwacht de termijn niet te halen?",
+  "Welke dwangsom kan de aanvrager krijgen als het bestuursorgaan te laat beslist, en wat moet hij daarvoor doen?"
+ ]
+}
