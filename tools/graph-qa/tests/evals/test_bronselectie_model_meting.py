@@ -73,13 +73,14 @@ def test_de_kandidatenroute_begrenst_en_kost_geen_model(monkeypatch):
     assert gezien["limit"] == 80 and len(uit) == 80 and not any(o["buiten"] for o in uit)
 
 
-def test_de_variant_wetstermen_meet_de_vlag_en_vraagt_alleen_dan_een_model(monkeypatch):
-    """De proef tegen de woordenkloof (`Zoekprofiel.wetstermen`): de variant zet de vlag, alleen zij heeft in
-    `--kandidaten` een model nodig, en de termen gaan naar de kandidaten (de recall van de lijst meet ze)."""
+def test_de_variant_wetstermen_meet_de_vlag_en_vraagt_een_model(monkeypatch):
+    """De proef tegen de woordenkloof (`Zoekprofiel.wetstermen`): de variant zet de vlag, een lijst met wetstermen heeft
+    in `--kandidaten` een model nodig (sinds #1707 ook zonder variant), en de termen gaan naar de kandidaten."""
     import eval.bronselectie_eval as be
 
     assert m.VARIANTEN["wetstermen"] == {"wetstermen": True}
-    assert m.met_model("wetstermen") and not m.met_model("definitie_brug") and not m.met_model("")
+    assert m.met_model("wetstermen") and m.met_model("definitie_brug") and m.met_model("")
+    assert not m.met_model("zonder_wetstermen")
     gezien = {}
 
     def nep(graph, s, vraag, profiel, cache, limit=None, wetstermen=None):
@@ -160,3 +161,14 @@ def test_de_meting_kent_de_vlag_werkgebied():
     import inspect
     assert "--werkgebied" in inspect.getsource(m.main) and m.WERKGEBIED != m.MODEL
     assert not m.WERKGEBIED.startswith(m.MODEL)
+
+
+def test_de_kandidatenlijst_vraagt_een_model_als_het_profiel_wetstermen_wil():
+    assert m.met_model("") is True and m.met_model("rrf") is True
+    assert m.met_model("zonder_wetstermen") is False
+
+
+def test_de_rangdiagnose_telt_per_vak():
+    assert m._vak(None) == "niet in de lijst" and m._vak(10) == "≤80"
+    assert m._vak(81) == "81–120" and m._vak(150) == "121–200" and m._vak(400) == "201–400"
+    assert "--rangen" in __import__("inspect").getsource(m.main)

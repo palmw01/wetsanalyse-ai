@@ -384,7 +384,7 @@ def _kandidaten_bij(graph: GraphPort, vraag: str, regelingen: list[str], dossier
     uit_pool = opties_bij_deelvraag(p["kandidaten"], vraag, gebeurtenis=gebeurtenis,
                                     limit=deelvraag_keuze.MAX_KANDIDATEN, dossier=dossier,
                                     profiel=ruim, wetstermen=wetstermen) if p is not None else []
-    return deelvraag_keuze.kandidaten(uit_pool, woorden)
+    return deelvraag_keuze.kandidaten(uit_pool, woorden, menging=ruim.menging)
 
 
 def _werkgebied_kiest(graph: GraphPort, deelvragen: list[dict[str, Any]], regelingen: list[str],

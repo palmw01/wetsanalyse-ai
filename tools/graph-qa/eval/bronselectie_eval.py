@@ -476,16 +476,16 @@ def kandidaten_voor(graph: Any, s: dict[str, Any], vraag: str, profiel: "deelvra
         uit_pool = zoekvragen.opties_bij_deelvraag(cache[sleutel]["kandidaten"], vraag, gebeurtenis=s["gebeurtenis"],
                                                    limit=limit, dossier=dossier, profiel=profiel,
                                                    wetstermen=wetstermen)
-    return deelvraag_keuze.kandidaten(uit_pool, woorden, maximaal=limit)
+    return deelvraag_keuze.kandidaten(uit_pool, woorden, maximaal=limit, menging=profiel.menging)
 
 
-def kandidaten_route(limit: int, vlaggen: dict[str, bool] | None = None, *, llm: Any = None, model: str = "",
-                     meting: dict[str, Any] | None = None):
+def kandidaten_route(limit: int, vlaggen: dict[str, Any] | None = None, *, llm: Any = None, model: str = "",
+                     meting: dict[str, Any] | None = None, cache: dict[tuple, Any] | None = None):
     """De kandidatenlijst als route, zonder keuze door een model: de recall ervan is wat het model hoogstens kan kiezen
     (de meting van 17 nov 2026: van wat bij de kandidaten stond, koos het model 65 van 73 nodige). 0 tokens, behalve met
     de vlag `wetstermen` en een `llm`: dan vertaalt één kleine modelstap per deelvraag (`wetstermen_voor`)."""
     profiel = replace(deelvraag_zoeken.STANDAARD_PROFIEL, model_kiest=True, **{"verwijzingen": False, **(vlaggen or {})})
-    cache: dict[tuple, dict[str, Any]] = {}
+    cache = {} if cache is None else cache
 
     def route(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
         wet = wetstermen_voor(graph, s, vraag, profiel, llm, model, meting, cache)
