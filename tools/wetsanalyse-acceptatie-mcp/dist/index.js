@@ -23,8 +23,10 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { inleveren, opdrachtLezen, pythonControle } from "./bench.js";
 import { lexStart } from "./beurt.js";
 import { BronClient } from "./bron.js";
 import { AcceptatieClient, controleerUrl } from "./client.js";
@@ -42,7 +44,9 @@ const GRAFANA_WACHTWOORD = process.env.WETSANALYSE_ACC_GRAFANA_WACHTWOORD ?? "";
 const GRAAF_URL = process.env.WETSANALYSE_ACC_GRAAF_URL ?? "";
 const GRAAF_TOKEN = (process.env.WETSANALYSE_ACC_GRAAF_TOKEN ?? "").trim();
 const ACCOUNT = (process.env.WETSANALYSE_ACC_ACCOUNT ?? "").trim();
-const LOGBOEK_MAP = standaardMap(fileURLToPath(new URL("../../../", import.meta.url)));
+const REPO = fileURLToPath(new URL("../../../", import.meta.url));
+const LOGBOEK_MAP = standaardMap(REPO);
+const BENCH_CONTROLE = pythonControle(join(REPO, "tools", "graph-qa"));
 function log(niveau, bericht, velden = {}) {
     process.stderr.write(JSON.stringify({ ts: new Date().toISOString(), niveau, bericht, ...velden }) + "\n");
 }
@@ -312,6 +316,19 @@ const TOOLS = [
         description: "Lees het logboek van een run. Geef de teruggekregen `vanaf` mee om alleen te lezen wat er sindsdien bij kwam.",
         input: S({ run: z.string(), vanaf: z.number().int().min(0).optional() }),
         run: (a) => lezen(LOGBOEK_MAP, a.run, a.vanaf),
+    },
+    {
+        name: "bench_opdracht_lezen",
+        description: "Lex Bench: lees je opdracht van de run uit je prompt. Is `klaar` false, lees dan verder met de teruggekregen `vanaf`.",
+        input: S({ run: z.string(), vanaf: z.number().int().min(0).optional() }),
+        run: (a) => opdrachtLezen(LOGBOEK_MAP, a.run, a.vanaf),
+    },
+    {
+        name: "bench_inleveren",
+        description: "Lex Bench: lever je formulier in als JSON-object. De controle zegt meteen of het klopt; herstel de fouten en lever " +
+            "opnieuw in. Een geldig formulier ligt vast. Elke poging blijft bewaard.",
+        input: S({ run: z.string(), formulier: z.record(z.string(), z.unknown()) }),
+        run: (a) => inleveren(LOGBOEK_MAP, a.run, a.formulier, BENCH_CONTROLE),
     },
 ];
 function alsJsonSchema(schema) {

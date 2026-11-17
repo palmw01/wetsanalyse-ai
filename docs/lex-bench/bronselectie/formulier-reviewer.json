@@ -22,7 +22,7 @@
           "deelvraag": {"type": "integer", "minimum": 0},
           "bron_iri": {"type": "string", "pattern": "^urn:bwb:BWBR[0-9]{7}:\\S+$"},
           "categorie": {"enum": ["lex_mist", "lex_onterecht", "team_mist", "twijfel", "eens", "hoort_er_niet_bij", "ontbreekt"]},
-          "plek": {"enum": ["niet_in_pool", "laag_gerangschikt", "verkeerde_rol", "onbekend"], "description": "Waar het bij Lex misgaat, als dat te zien is (modus verschillen)."},
+          "plek": {"enum": ["niet_in_pool", "laag_gerangschikt", "verkeerde_deelvraag", "verkeerde_rol", "onbekend"], "description": "Waar het bij Lex misgaat, als dat te zien is (modus verschillen). De opdracht geeft per verschil een plek_voorstel als de code het ziet."},
           "reden": {"type": "string", "minLength": 1},
           "bewijs": {
             "type": "object",

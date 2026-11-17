@@ -322,6 +322,23 @@ def _zoekvragen_route(profiel: "deelvraag_zoeken.Zoekprofiel | None" = None):
         return [{**o, "buiten": bool(o.get("buiten"))}
                 for o in zoekvragen.samen_met_woorden(uit_pool, woorden, limit=maximaal,
                                                       woorden_voor_pool=profiel.woorden_voor_pool)]
+
+    def diagnose(graph: Any, s: dict[str, Any], vraag: str) -> dict[str, list[str]]:
+        """Wat de route vond vóór ze koos (Lex Bench, de kaart van de reviewer): de pool van de index bij de woorden
+        en die vanaf de gebeurtenis, en de volledige rangschikking binnen die laatste. Na `route` op dezelfde graaf
+        vraagt dit niets nieuws: de rangschikking loopt zonder graafverkeer, dus een opname volstaat."""
+        woorden = _pool(graph, s, vraag, profiel)
+        if not s.get("gebeurtenis"):
+            return {"pool": woorden, "rang": []}
+        sleutel = (id(graph), s["naam"])
+        if sleutel not in cache:
+            route(graph, s, vraag)
+        kandidaten = cache[sleutel]["kandidaten"]
+        rang = zoekvragen.opties_bij_deelvraag(kandidaten, vraag, gebeurtenis=s["gebeurtenis"], limit=len(kandidaten) or 1,
+                                               dossier=_dossier(s), profiel=profiel)
+        return {"pool": woorden + [k["bron_iri"] for k in kandidaten], "rang": [o["bron_iri"] for o in rang]}
+
+    route.diagnose = diagnose
     return route
 
 

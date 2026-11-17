@@ -46,24 +46,32 @@ en lees geen ander logboek. Je weet niet wie de andere analist is en wat die koo
 
 ### Het formulier
 
-Je laatste bericht is één JSON-object volgens het formulier in de opdracht, zonder tekst eromheen. Elke deelvraag van
-het dossier komt er precies één keer in voor, met haar nummer (vanaf 0, in de volgorde van het dossier).
+Je levert één JSON-object in volgens het formulier in de opdracht, met `bench_inleveren`. Elke deelvraag van het
+dossier komt er precies één keer in voor, met haar nummer (vanaf 0, in de volgorde van het dossier). De controle zegt
+meteen wat er niet klopt: herstel het en lever opnieuw in. Een veld dat het formulier niet kent, is ook een fout.
 
 ## Voor de coördinator
 
 De coördinator is de sessie die de run draait. Die kent de verwachting van een ontwikkelcasus misschien wel; daarom
 krijgt de analist alles via de opdracht en niets via een gesprek.
 
+0. **Eén coördinatorsessie per casus** (pilot LB3, bevinding 1). De context van de coördinator was in de pilot de
+   grootste post: 743k aan het eind, 38,8M uit de cache gelezen, voor drie casussen in één sessie. Start per casus een
+   verse sessie, en houd opdrachten en formulieren uit haar context (stap 1 en 3).
 1. **Opdracht maken.** `cd tools/graph-qa && uv run python -m eval.lex_bench_team opdracht --casus LB-xx --analist A
-   --run <run>-a` (of `--dossier <pad>` voor een casus buiten de repo, zoals een blinde). De opdracht bevat deze
-   briefing, de twee uitwerkingen uit de skill, het dossier zonder verwachting en het formulier. Een run heet
-   bijvoorbeeld `lb-03-2026-11-20`; de analisten krijgen `-a` en `-b` erachter.
-2. **Analisten starten.** Per casus twee analisten (A en B) los van elkaar, elk met het profiel `bench-analist` en
-   alleen hun eigen opdracht. Bij een *makkelijke* casus één analist met een tegenlezer (besluit 4, §22): het profiel
-   `bench-reviewer` in de modus tegenlezen, zie [`briefing-reviewer.md`](briefing-reviewer.md).
-3. **Controleren.** Sla het antwoord op als `formulier-a.json` (en `-b`) in de meetmap en toets het:
-   `uv run python -m eval.lex_bench_team controleer <formulier> --casus LB-xx`. Een fout gaat terug naar dezelfde
-   analist, met de melding, niet naar een nieuwe.
+   --run <run>-a --naar-run` (of `--dossier <pad>` voor een casus buiten de repo, zoals een blinde). De opdracht bevat
+   deze briefing, de twee uitwerkingen uit de skill, het dossier zonder verwachting en het formulier. Met `--naar-run`
+   komt ze in de runmap (`docs/acceptatie/lokaal/<run>/`, gitignored, naast het logboek) en niet in je context. Een
+   run heet bijvoorbeeld `lb-03-2026-11-20`; de analisten krijgen `-a` en `-b` erachter.
+2. **Analisten starten.** Per casus twee analisten (A en B) los van elkaar, elk met het profiel `bench-analist`. De
+   prompt is één regel: "Je run is `<run>-a`. Lees je opdracht met `bench_opdracht_lezen` en lever in met
+   `bench_inleveren`." Bij een *makkelijke* casus één analist met een tegenlezer (besluit 4, §22): het profiel
+   `bench-reviewer` in de modus tegenlezen, zie [`briefing-reviewer.md`](briefing-reviewer.md). De MCP-server moet
+   `bench_opdracht_lezen` kennen: na een update van de server eerst de sessie herstarten (bevinding 4 van de pilot).
+3. **Controleren.** De analist levert in met `bench_inleveren`: elke poging staat als `inlevering-<n>.json` in de
+   runmap, getoetst met dezelfde controle als `lex_bench_team controleer`, en de agent herstelt zijn fouten zelf (na
+   vijf pogingen is het aan jou). Een geldig formulier is `ingeleverd.json`. Kopieer dat naar `formulier-a.json` (en
+   `-b`) in de meetmap; lees het niet in je context. Zonder `ingeleverd.json` ga je niet verder.
 4. **Samenvoegen en bevriezen.** `uv run python -m eval.lex_bench_team samenvoegen formulier-a.json formulier-b.json
    --casus LB-xx --run <run> --uit <nieuwe map>`. Wat beide opnemen, komt in `verwacht` (bij een verschil in rol de
    zwaarste, met het verschil in `onenig`). Wat één van beide opneemt, staat alleen in `onenig`, met het standpunt van

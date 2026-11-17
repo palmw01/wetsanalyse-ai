@@ -203,7 +203,17 @@ def test_l2_met_de_lijst_van_l1_geeft_de_kaart_van_l1(kaart):
                             for i, p in enumerate(per[lb.ROUTE_L1]["per_deelvraag"])]}
     l2 = rv.l2_tegen_team(s, tv, keuze)
     assert l2["route"] == rv.ROUTE_L2
-    assert {k: v for k, v in l2.items() if k != "route"} == {k: v for k, v in kaart.items() if k != "route"}
+    # Alleen L1 kent de pool en de rang (uit de opname); de rest is gelijk.
+    def zonder_pool(k):
+        uit = {**k, "verschillen": []}
+        for v in k["verschillen"]:
+            lex = {a: b for a, b in v["lex"].items() if a not in ("in_pool", "rang", "plaatsen")}
+            plek = v.get("plek_voorstel")
+            uit["verschillen"].append({**{a: b for a, b in v.items() if a != "plek_voorstel"}, "lex": lex,
+                                       **({"plek_voorstel": plek} if plek == "verkeerde_deelvraag" else {})})
+        return {a: b for a, b in uit.items() if a != "route"}
+
+    assert zonder_pool(l2) == zonder_pool(kaart)
 
 
 def test_l2_zonder_voorstel_bij_een_deelvraag_is_een_lege_lijst():
@@ -225,3 +235,57 @@ def test_een_pilotdossier_geeft_een_opdracht_zonder_niveau_of_verwachting(map_):
     tekst = team.opdracht(team.dossier_van(s), s["casus_id"], "A", "r")
     assert s["waarom_dit_niveau"] not in tekst and s["toelichting"] not in tekst
     assert all(d in tekst for d in s["deelvragen"])
+
+
+METING = team.WORTEL / "docs" / "architectuur" / "metingen" / "lex-bench-2026-11-17-pilot"
+PILOTSETS = {"LB-07": "lb-07-beslistermijn", "LB-08": "lb-08-terugvordering-toeslag", "LB-09": "lb-09-achteraf-belasting"}
+
+
+def _pilotkaart(casus):
+    s = json.loads((PILOT / PILOTSETS[casus] / "set.json").read_text(encoding="utf-8"))
+    tv = json.loads((METING / casus / "teamverwachting.json").read_text(encoding="utf-8"))
+    return s, tv, rv.lex_tegen_team(s, tv, json.loads((METING / casus / "graafantwoorden.json").read_text(encoding="utf-8")))
+
+
+@pytest.mark.parametrize("casus", sorted(PILOTSETS))
+def test_de_kaart_van_de_pilot_houdt_haar_maten_en_verschillen(casus):
+    """Pool en rang staan erbij (bevinding 6); wat de reviewer al beoordeelde, verandert er niet door."""
+    _, _, kaart = _pilotkaart(casus)
+    oud = json.loads((METING / casus / "review-telling.json").read_text(encoding="utf-8"))
+    assert kaart["maten"] == oud["maten"]
+    assert [(v["verschil"], v["bron_iri"], v["voorstel"]) for v in kaart["verschillen"]] == \
+        [(v["verschil"], v["bron_iri"], v["voorstel"]) for v in oud["verschillen"]]
+
+
+@pytest.mark.parametrize("casus", sorted(PILOTSETS))
+def test_bij_elk_gemist_staat_of_het_in_de_pool_zat(casus):
+    s, _, kaart = _pilotkaart(casus)
+    for v in kaart["verschillen"]:
+        if v["voorstel"] != "lex_mist":
+            continue
+        assert isinstance(v["lex"]["in_pool"], bool)
+        assert v["plek_voorstel"] in ("verkeerde_deelvraag", "laag_gerangschikt", "niet_in_pool")
+        if "rang" in v["lex"]:
+            assert v["lex"]["rang"] > v["lex"]["plaatsen"], "wat binnen de plaatsen valt, is niet gemist"
+        assert all(0 <= j < len(s["deelvragen"]) and j != v["deelvraag"] for j in v["lex"].get("elders", []))
+        if not v["lex"]["in_pool"] and not v["lex"].get("elders"):
+            assert v["plek_voorstel"] == "niet_in_pool"
+
+
+def test_de_verkeerde_deelvraag_ziet_de_code_aan_twee_kanten():
+    """LB-08: art. 26 lid 2 koos Lex bij deelvraag 3 (index 2), het team verwacht het bij deelvraag 1 (index 0)."""
+    _, _, kaart = _pilotkaart("LB-08")
+    mist = {(v["deelvraag"], v["bron_iri"]): v for v in kaart["verschillen"] if v["voorstel"] == "lex_mist"}
+    onterecht = {(v["deelvraag"], v["bron_iri"]): v for v in kaart["verschillen"] if v["voorstel"] == "lex_onterecht"}
+    iri = "urn:bwb:BWBR0018472:artikel:26:lid:2"
+    assert mist[(0, iri)]["lex"]["elders"] == [2] and mist[(0, iri)]["plek_voorstel"] == "verkeerde_deelvraag"
+    assert any(0 in v["team"].get("elders", []) for k, v in onterecht.items() if k[0] == 2 and k[1].startswith(iri))
+
+
+def test_l2_heeft_geen_pool_maar_wel_de_verkeerde_deelvraag():
+    s, tv, l1 = _pilotkaart("LB-08")
+    keuze = json.loads((METING / "LB-08" / "keuze-l2.json").read_text(encoding="utf-8"))
+    l2 = rv.l2_tegen_team(s, tv, keuze)
+    assert all("in_pool" not in v["lex"] for v in l2["verschillen"])
+    assert all(v.get("plek_voorstel") in (None, "verkeerde_deelvraag") for v in l2["verschillen"])
+    assert l2["maten"] == json.loads((METING / "LB-08" / "kaart-l2.json").read_text(encoding="utf-8"))["maten"]

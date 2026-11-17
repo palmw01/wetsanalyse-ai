@@ -52,8 +52,13 @@ def _set_met_team(set_: dict[str, Any], tv: dict[str, Any]) -> dict[str, Any]:
 def lex_tegen_team(set_: dict[str, Any], tv: dict[str, Any], opname: dict[str, Any]) -> dict[str, Any]:
     """De maten van arm L1 tegen de teamverwachting, en de verschillen met een voorstel van de code."""
     s = _set_met_team(set_, tv)
-    per = meet_intake(OpnameGraaf(opname), s, {ROUTE_L1: ROUTES[ROUTE_L1]})[ROUTE_L1]["per_deelvraag"]
-    return _kaart(per, tv, ROUTE_L1)
+    graaf, route = OpnameGraaf(opname), ROUTES[ROUTE_L1]
+    per = meet_intake(graaf, s, {ROUTE_L1: route})[ROUTE_L1]["per_deelvraag"]
+    try:
+        diagnose = [route.diagnose(graaf, s, vraag) for vraag in s["deelvragen"]]
+    except LookupError:  # een opname van vóór de diagnose: de kaart blijft zonder pool en rang
+        diagnose = None
+    return _kaart(per, tv, ROUTE_L1, diagnose)
 
 
 #: Arm L2 (§4.4): de lijst per deelvraag die het paneel op acceptatie als voorstel toont, in de volgorde van de werkplek.
@@ -73,23 +78,44 @@ def l2_tegen_team(set_: dict[str, Any], tv: dict[str, Any], keuze: dict[str, Any
     return _kaart(per, tv, ROUTE_L2)
 
 
-def _kaart(per: list[dict[str, Any]], tv: dict[str, Any], route: str) -> dict[str, Any]:
+def _kaart(per: list[dict[str, Any]], tv: dict[str, Any], route: str,
+           diagnose: list[dict[str, list[str]]] | None = None) -> dict[str, Any]:
+    """De maten en de verschillen. Bij elk verschil staat wat de reviewer nodig heeft om de plek te zien: of Lex de
+    bepaling bij een andere deelvraag koos (of het team haar daar verwacht), en met `diagnose` (alleen L1, uit de
+    opname) of ze in de pool zat en op welke plaats van de rangschikking. `plek_voorstel` is een voorstel van de code."""
     som = {k: sum(p[k] for p in per) for k in ("verwacht", "nodig", "aantal", "gevonden", "gevonden_nodig", "raak")}
+    gekozen = [p["opties"][:p["aantal"]] for p in per]
     verschillen: list[dict[str, Any]] = []
     for i, p in enumerate(per):
         verwacht = {v["bron_iri"]: v for v in tv["verwacht"] if v["deelvraag"] == i}
         for iri in p["gemist"]:
-            verschillen.append({"deelvraag": i, "bron_iri": iri, "voorstel": "lex_mist", "lex": {"gekozen": False},
-                                "team": {k: verwacht[iri][k] for k in ("rol", "motivering")}})
-        for pos, c in enumerate(p["opties"][:p["aantal"]], 1):
+            lex: dict[str, Any] = {"gekozen": False}
+            elders = [j for j, g in enumerate(gekozen) if j != i and any(_raakt(c, iri) for c in g)]
+            if elders:
+                lex["elders"] = elders
+            if diagnose is not None:
+                d = diagnose[i]
+                lex["in_pool"] = any(_raakt(c, iri) for c in d["pool"])
+                rang = next((n for n, c in enumerate(d["rang"], 1) if _raakt(c, iri)), None)
+                if rang is not None:
+                    lex["rang"], lex["plaatsen"] = rang, p["aantal"]
+            plek = ("verkeerde_deelvraag" if elders else None if diagnose is None
+                    else "laag_gerangschikt" if lex["in_pool"] else "niet_in_pool")
+            verschillen.append({"deelvraag": i, "bron_iri": iri, "voorstel": "lex_mist", "lex": lex,
+                                "team": {k: verwacht[iri][k] for k in ("rol", "motivering")},
+                                **({"plek_voorstel": plek} if plek else {})})
+        for pos, c in enumerate(gekozen[i], 1):
             if any(_raakt(c, v) for v in verwacht):
                 continue
             uit = [u for u in tv["uitgesloten"] if u["deelvraag"] == i and _raakt(c, u["bron_iri"])]
             geschil = [o for o in tv["onenig"] if o["deelvraag"] == i and _raakt(c, o["bron_iri"])]
+            elders = sorted({v["deelvraag"] for v in tv["verwacht"] if v["deelvraag"] != i and _raakt(c, v["bron_iri"])})
+            team = ({"uitgesloten": uit[0]["motivering"]} if uit
+                    else {"onenig": geschil[0]["argumenten"]} if geschil else {"niet genoemd": True})
             verschillen.append({"deelvraag": i, "bron_iri": c, "voorstel": "lex_onterecht",
                                 "lex": {"gekozen": True, "positie": pos},
-                                "team": ({"uitgesloten": uit[0]["motivering"]} if uit
-                                         else {"onenig": geschil[0]["argumenten"]} if geschil else {"niet genoemd": True})})
+                                "team": {**team, **({"elders": elders} if elders else {})},
+                                **({"plek_voorstel": "verkeerde_deelvraag"} if elders else {})})
     for n, v in enumerate(verschillen, 1):
         v["verschil"] = f"V{n}"
     return {"casus_id": tv["casus_id"], "route": route, "tegen": "teamverwachting, vóór de vaststelling",
@@ -228,12 +254,14 @@ def main(argv: list[str] | None = None) -> int:
         q.add_argument("--dossier", type=Path, help="een set.json buiten de repo (een blinde casus)")
         q.add_argument("--opname", type=Path, help="de graafantwoorden bij --dossier")
     o.add_argument("--run", required=True)
+    o.add_argument("--naar-run", action="store_true", help="schrijf de opdracht in de runmap (bench_opdracht_lezen)")
     w.add_argument("review", type=Path)
     t = sub.add_parser("tegenlezen", help="de opdracht van de tegenlezer bij een makkelijke casus, naar stdout")
     t.add_argument("--casus", required=True)
     t.add_argument("--formulier", type=Path, required=True)
     t.add_argument("--run", required=True)
     t.add_argument("--dossier", type=Path)
+    t.add_argument("--naar-run", action="store_true", help="schrijf de opdracht in de runmap (bench_opdracht_lezen)")
     n = sub.add_parser("opnemen", help="de graafantwoorden van L1 voor een casus buiten de referentieset (live)")
     n.add_argument("--dossier", type=Path, required=True)
     n.add_argument("--uit", type=Path, required=True, help="het nieuwe graafantwoorden.json")
@@ -256,13 +284,18 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.actie == "tegenlezen":
         dossier = team.dossier_uit(args.casus, args.dossier)
-        sys.stdout.write(opdracht_tegenlezen(dossier, json.loads(args.formulier.read_text(encoding="utf-8")),
-                                             args.casus, args.run))
+        team.schrijf_uit(opdracht_tegenlezen(dossier, json.loads(args.formulier.read_text(encoding="utf-8")),
+                                             args.casus, args.run), args.run, args.naar_run,
+                         {"soort": "reviewer", "modus": "tegenlezen", "casus": args.casus,
+                          "dossier": team._pad(args.dossier), "formulier": team._pad(args.formulier)})
         return 0
     set_, opname = _set_en_opname(args.casus, args.dossier, args.opname)
     kaart = lex_tegen_team(set_, json.loads(args.team.read_text(encoding="utf-8")), opname)
     if args.actie == "opdracht":
-        sys.stdout.write(opdracht_verschillen(team.dossier_van(set_), kaart, args.casus, args.run))
+        team.schrijf_uit(opdracht_verschillen(team.dossier_van(set_), kaart, args.casus, args.run), args.run,
+                         args.naar_run, {"soort": "reviewer", "modus": "verschillen", "casus": args.casus,
+                                         "team": team._pad(args.team), "dossier": team._pad(args.dossier),
+                                         "opname": team._pad(args.opname)})
         return 0
     review = json.loads(args.review.read_text(encoding="utf-8"))
     fouten = controleer(review, "verschillen", args.casus, kaart=kaart)
