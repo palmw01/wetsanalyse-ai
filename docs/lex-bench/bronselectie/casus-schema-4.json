@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:lex-bench:bronselectie:casus-schema-4",
   "title": "Lex Bench, bronselectie: een casus in schema 4",
-  "description": "Een set in schema 3 (docs/wetsanalyse/referentieset-bronselectie) met de aanvullingen van plan-lex-bench §3.1. Bestaande sets blijven schema 3; wat Bench er extra van wil weten, staat in manifest.json. Het dossier (naam, aanleiding, doel, analysevraag, praktijkvoorbeeld, context, buiten, gebeurtenis, regelingen, deelvragen), uitgesloten[] en buiten_graaf blijven zoals in schema 3.",
+  "description": "Een set in schema 3 (docs/wetsanalyse/referentieset-bronselectie) met de aanvullingen van plan-lex-bench §3.1. Bestaande sets blijven schema 3; wat Bench er extra van wil weten, staat in manifest.json. Het dossier (naam, aanleiding, doel, analysevraag, praktijkvoorbeeld, context, buiten, gebeurtenis, regelingen, deelvragen), uitgesloten[] en buiten_graaf blijven zoals in schema 3. Een teamverwachting (eval/lex_bench_team.py samenvoegen) draagt daarnaast onenig[] en de open punten van de analisten.",
   "type": "object",
   "required": ["schema_versie", "casus_id", "niveau", "gebruik", "verwachting", "verwacht"],
   "properties": {
@@ -39,6 +39,31 @@
           "nagekomen": {"type": "boolean", "default": false, "description": "Pas na de vergelijking toegevoegd (categorie team mist, §5): telt apart, zodat de score op de bevroren verwachting eerlijk blijft."}
         }
       }
-    }
+    },
+    "onenig": {
+      "type": "array",
+      "description": "Waar de analisten het niet eens zijn (de stap die A en B samenvoegt, §4.2). Telt niet mee in de score tot de jurist beslist. Bij een makkelijke casus met één analist (besluit 4) staan hier zijn twijfelgevallen.",
+      "items": {
+        "type": "object",
+        "required": ["deelvraag", "bron_iri", "soort", "argumenten"],
+        "properties": {
+          "deelvraag": {"type": "integer", "minimum": 0},
+          "bron_iri": {"type": "string"},
+          "soort": {"enum": ["alleen_A", "alleen_B", "rol", "twijfel"]},
+          "argumenten": {"type": "object", "description": "Per analist (A, B) zijn standpunt: opgenomen met rol en motivering, uitgesloten met reden, twijfel, of niet genoemd."}
+        }
+      }
+    },
+    "uitgesloten": {
+      "type": "array",
+      "description": "Wat beide analisten bewust uitsloten (bij één analist: wat hij uitsloot).",
+      "items": {
+        "type": "object",
+        "required": ["deelvraag", "bron_iri", "motivering"],
+        "properties": {"deelvraag": {"type": "integer", "minimum": 0}, "bron_iri": {"type": "string"}, "motivering": {"type": "string"}}
+      }
+    },
+    "buiten_graaf": {"type": "array", "items": {"type": "object"}},
+    "open_punten": {"type": "array", "items": {"type": "string"}}
   }
 }

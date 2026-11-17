@@ -64,6 +64,13 @@ krijgt de analist alles via de opdracht en niets via een gesprek.
 3. **Controleren.** Sla het antwoord op als `formulier-a.json` (en `-b`) in de meetmap en toets het:
    `uv run python -m eval.lex_bench_team controleer <formulier> --casus LB-xx`. Een fout gaat terug naar dezelfde
    analist, met de melding, niet naar een nieuwe.
-4. **Samenvoegen en bevriezen** volgen in de volgende stap van LB2. Pas daarna draait of leest iemand de Lex-arm.
+4. **Samenvoegen en bevriezen.** `uv run python -m eval.lex_bench_team samenvoegen formulier-a.json formulier-b.json
+   --casus LB-xx --run <run> --uit <nieuwe map>`. Wat beide opnemen, komt in `verwacht` (bij een verschil in rol de
+   zwaarste, met het verschil in `onenig`). Wat één van beide opneemt, staat alleen in `onenig`, met het standpunt van
+   allebei. Wat beide uitsluiten, komt in `uitgesloten`. Dat is de teamverwachting, `status: concept`. De map krijgt
+   haar met de formulieren en `bevroren.json` (de sha256 van elk bestand), en een bestaande map blijft staan. Een
+   blinde casus bevriest buiten de repo; in de repo komen alleen de hashes. Zet de hash van de teamverwachting in het
+   runrecord.
+5. **Pas daarna** draait of leest iemand de Lex-arm. De reviewer (de volgende stap van LB2) beoordeelt de verschillen.
 
 Er draait in LB2 geen model: de eerste run is de pilot LB3, met een eigen akkoord en de plafonds van §7.

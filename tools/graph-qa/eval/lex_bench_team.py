@@ -8,13 +8,22 @@ start de analist zelf, pas met het akkoord voor een run (LB3).
     python -m eval.lex_bench_team opdracht --casus LB-03 --analist A --run lb-03-2026-11-20-a
     python -m eval.lex_bench_team opdracht --dossier <pad buiten de repo> --casus LB-21 --analist B --run ...
     python -m eval.lex_bench_team controleer formulier-a.json --casus LB-03
+    python -m eval.lex_bench_team samenvoegen formulier-a.json formulier-b.json --casus LB-03 --run lb-03-... --uit <map>
 
 De controle leest de vorm uit `docs/lex-bench/bronselectie/formulier-analist.json` (één bron voor de afspraak) en
 toetst daarna wat een schema niet kan zien: elke deelvraag precies één keer, en een bepaling per deelvraag op één plek.
+
+**Samenvoegen en bevriezen** (§4.2): de derde stap legt A en B naast elkaar. Wat beide opnemen, staat in `verwacht`
+(bij een verschil in rol de zwaarste, met het verschil in `onenig`); wat er één opneemt, staat alleen in `onenig`, met
+het standpunt van beide; wat beide uitsluiten, in `uitgesloten`. Dat is de teamverwachting in schema 4, `status:
+concept`. Bevriezen schrijft haar met de formulieren in een map, met hun sha256 in `bevroren.json`, en weigert een map
+die al bestaat. Een blinde casus bevriest buiten de repo (§4.5, besluit 1): alleen de hashes gaan erin.
 """
 from __future__ import annotations
 
 import argparse
+import datetime as dt
+import hashlib
 import json
 import re
 import sys
@@ -73,6 +82,15 @@ def opdracht(dossier: dict[str, Any], casus_id: str, analist: str, run: str) -> 
     return "\n\n".join(delen) + "\n"
 
 
+def _is(waarde: Any, soort: str) -> bool:
+    if soort == "null":
+        return waarde is None
+    if soort == "boolean":
+        return isinstance(waarde, bool)
+    typen = {"object": dict, "array": list, "string": str, "integer": int}
+    return isinstance(waarde, typen[soort]) and not (soort == "integer" and isinstance(waarde, bool))
+
+
 def schemafouten(waarde: Any, schema: dict[str, Any], pad: str = "$") -> list[str]:
     """Het deel van JSON Schema dat het formulier gebruikt; alleen de standaardbibliotheek, zoals de poort."""
     fouten: list[str] = []
@@ -80,10 +98,10 @@ def schemafouten(waarde: Any, schema: dict[str, Any], pad: str = "$") -> list[st
         return [f"{pad}: moet {schema['const']!r} zijn"]
     if "enum" in schema and waarde not in schema["enum"]:
         return [f"{pad}: {waarde!r} is niet een van {schema['enum']}"]
-    soort = schema.get("type")
-    typen = {"object": dict, "array": list, "string": str, "integer": int}
-    if soort and not (isinstance(waarde, typen[soort]) and not (soort == "integer" and isinstance(waarde, bool))):
-        return [f"{pad}: verwacht {soort}"]
+    soorten = schema.get("type")
+    soorten = [soorten] if isinstance(soorten, str) else soorten
+    if soorten and not any(_is(waarde, s) for s in soorten):
+        return [f"{pad}: verwacht {' of '.join(soorten)}"]
     if isinstance(waarde, str):
         if len(waarde.strip()) < schema.get("minLength", 0):
             fouten.append(f"{pad}: leeg")
@@ -130,6 +148,89 @@ def controleer(formulier: Any, dossier: dict[str, Any], casus_id: str | None = N
     return fouten
 
 
+ROLGEWICHT = {"kern": 0, "afhankelijkheid": 1, "aanverwant": 2}
+
+
+def _standpunten(f: dict[str, Any], i: int) -> dict[str, dict[str, Any]]:
+    """Per bron_iri wat één analist in deelvraag i vond."""
+    d = next(d for d in f["deelvragen"] if d["deelvraag"] == i)
+    uit: dict[str, dict[str, Any]] = {}
+    for b in d["bepalingen"]:
+        uit[b["bron_iri"]] = {"plek": "opgenomen", "rol": b["rol"], "zoekvraag": b["zoekvraag"],
+                              "motivering": b["motivering"], "citaat": b["bewijs"]["citaat"]}
+    for b in d["uitgesloten"]:
+        uit[b["bron_iri"]] = {"plek": "uitgesloten", "motivering": b["motivering"]}
+    for b in d["twijfel"]:
+        uit[b["bron_iri"]] = {"plek": "twijfel", "motivering": b["reden"]}
+    return uit
+
+
+def voeg_samen(formulieren: list[dict[str, Any]], dossier: dict[str, Any], casus: dict[str, Any], run: str,
+               datum: str | None = None) -> dict[str, Any]:
+    """De teamverwachting uit één of twee gecontroleerde formulieren. Geen model, geen keuze: alleen naast elkaar."""
+    for f in formulieren:
+        fouten = controleer(f, dossier, casus["casus_id"])
+        if fouten:
+            raise ValueError(f"formulier {f.get('analist')}: " + "; ".join(fouten))
+    analisten = [f["analist"] for f in formulieren]
+    if len(formulieren) not in (1, 2) or len(set(analisten)) != len(analisten):
+        raise ValueError("Eén of twee formulieren, van verschillende analisten.")
+    verwacht, onenig, uitgesloten = [], [], []
+    for i in range(len(dossier["deelvragen"])):
+        per = {f["analist"]: _standpunten(f, i) for f in formulieren}
+        for iri in sorted(set().union(*per.values())):
+            st = {a: per[a].get(iri, {"plek": "niet genoemd"}) for a in analisten}
+            plekken = {s["plek"] for s in st.values()}
+            opgenomen = [a for a in analisten if st[a]["plek"] == "opgenomen"]
+            if plekken == {"uitgesloten"}:
+                uitgesloten.append({"deelvraag": i, "bron_iri": iri,
+                                    "motivering": " / ".join(f"{a}: {st[a]['motivering']}" for a in analisten)})
+            elif len(opgenomen) == len(analisten):
+                rollen = {st[a]["rol"] for a in analisten}
+                rol = min(rollen, key=ROLGEWICHT.__getitem__)
+                verwacht.append({"deelvraag": i, "bron_iri": iri, "rol": rol, "zoekvraag": st[analisten[0]]["zoekvraag"],
+                                 "motivering": " / ".join(f"{a}: {st[a]['motivering']}" for a in analisten),
+                                 "herkomst": "team: " + " en ".join(analisten)})
+                if len(rollen) > 1:
+                    onenig.append({"deelvraag": i, "bron_iri": iri, "soort": "rol", "argumenten": st})
+            elif opgenomen:
+                onenig.append({"deelvraag": i, "bron_iri": iri, "soort": f"alleen_{opgenomen[0]}", "argumenten": st})
+            elif "twijfel" in plekken:
+                onenig.append({"deelvraag": i, "bron_iri": iri, "soort": "twijfel", "argumenten": st})
+            # Uitgesloten door de één en niet genoemd door de ander: niemand neemt haar op, en er is geen geschil.
+            elif "uitgesloten" in plekken:
+                a = next(a for a in analisten if st[a]["plek"] == "uitgesloten")
+                uitgesloten.append({"deelvraag": i, "bron_iri": iri, "motivering": f"{a}: {st[a]['motivering']}"})
+    return {
+        "schema_versie": 4, "casus_id": casus["casus_id"], "niveau": casus["niveau"], "gebruik": casus["gebruik"],
+        "verwachting": {"opgesteld_door": {"run_id": run, "analisten": analisten}, "vastgesteld_door": None,
+                        "status": "concept", "datum": datum or dt.date.today().isoformat()},
+        "verwacht": verwacht, "onenig": onenig, "uitgesloten": uitgesloten,
+        "buiten_graaf": [dict(b, analist=f["analist"]) for f in formulieren for b in f.get("buiten_graaf", [])],
+        "open_punten": [f"{f['analist']}: {p}" for f in formulieren for p in f.get("open_punten", [])],
+    }
+
+
+def _json(waarde: Any) -> bytes:
+    return (json.dumps(waarde, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+
+
+def bevries(team: dict[str, Any], formulieren: list[dict[str, Any]], map_: Path) -> dict[str, Any]:
+    """Schrijf de teamverwachting en de formulieren weg, met hun hash. Een bestaande map blijft zoals ze is."""
+    if team["gebruik"] == "blind" and map_.resolve().is_relative_to(WORTEL):
+        raise ValueError("Een blinde casus bevriest buiten de repo; alleen de hash gaat erin.")
+    map_.mkdir(parents=True, exist_ok=False)
+    bestanden = {"teamverwachting.json": _json(team),
+                 **{f"formulier-{f['analist'].lower()}.json": _json(f) for f in formulieren}}
+    for naam, inhoud in bestanden.items():
+        (map_ / naam).write_bytes(inhoud)
+    bevroren = {"casus_id": team["casus_id"], "run_id": team["verwachting"]["opgesteld_door"]["run_id"],
+                "bevroren": dt.datetime.now(dt.UTC).isoformat(timespec="seconds"),
+                "sha256": {naam: hashlib.sha256(inhoud).hexdigest() for naam, inhoud in bestanden.items()}}
+    (map_ / "bevroren.json").write_bytes(_json(bevroren))
+    return bevroren
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = p.add_subparsers(dest="actie", required=True)
@@ -142,10 +243,27 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("formulier", type=Path)
     c.add_argument("--casus", required=True)
     c.add_argument("--dossier", type=Path)
+    v = sub.add_parser("samenvoegen", help="voeg één of twee formulieren samen en bevries de teamverwachting")
+    v.add_argument("formulieren", type=Path, nargs="+")
+    v.add_argument("--casus", required=True)
+    v.add_argument("--run", required=True)
+    v.add_argument("--uit", type=Path, required=True, help="een nieuwe map; voor een blinde casus buiten de repo")
+    v.add_argument("--dossier", type=Path)
+    v.add_argument("--niveau", choices=("makkelijk", "gemiddeld", "moeilijk"), help="bij --dossier")
+    v.add_argument("--gebruik", choices=("ontwikkeling", "blind"), help="bij --dossier")
     args = p.parse_args(argv)
     dossier = dossier_uit(args.casus, args.dossier)
     if args.actie == "opdracht":
         sys.stdout.write(opdracht(dossier, args.casus, args.analist, args.run))
+        return 0
+    if args.actie == "samenvoegen":
+        casus = ({"casus_id": args.casus, "niveau": args.niveau, "gebruik": args.gebruik} if args.dossier
+                 else laad_casus(args.casus))
+        if not casus["niveau"] or not casus["gebruik"]:
+            raise SystemExit("Geef bij --dossier ook --niveau en --gebruik.")
+        formulieren = [json.loads(f.read_text(encoding="utf-8")) for f in args.formulieren]
+        team = voeg_samen(formulieren, dossier, casus, args.run)
+        print(json.dumps(bevries(team, formulieren, args.uit), ensure_ascii=False, indent=2))
         return 0
     fouten = controleer(json.loads(args.formulier.read_text(encoding="utf-8")), dossier, args.casus)
     print("\n".join(fouten) if fouten else "Het formulier klopt.")
