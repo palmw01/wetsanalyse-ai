@@ -94,6 +94,9 @@ Toelichting bij enkele documenten:
   gebouwd). Ook los: [`architectuur/plan-begrip-per-formulering.md`](architectuur/plan-begrip-per-formulering.md),
   elke geclassificeerde formulering een begrip (activiteit 3a): de verwachting per klasse uit de bron, de dekking per
   klasse en de keten erachter (19 nov 2026; fase 1 in uitvoering).
+  Ook los: [`architectuur/plan-afleidingsregels.md`](architectuur/plan-afleidingsregels.md), het onderzoek
+  en plan voor activiteit 3b: van annotaties en begrippen naar afleidingsregels, met een proef op Termijnen (18 nov 2026;
+  concept, nog niets gebouwd).
 - **`architectuur/verbeterplan-jas-pipeline-2026-10-08.md`** is *onderzoek*: het ontwerp voor de
   kandidaten na V7 uit spoor A (bewijs per hypothese, frames, relaties), met eigen meet- en
   acceptatiecriteria. Het start na V7.
