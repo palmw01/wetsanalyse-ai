@@ -150,7 +150,7 @@ def test_de_grondslag_onder_de_kop_de_wet_en_de_lagere_regeling_om_de_beurt():
     zin die met "Geen" begint en de beleidsregel tellen niet, en 70ba (geen kop met de gebeurtenis) komt achteraan."""
     buiten = uitsluitstammen(buiten_uit_afbakening(
         "Buiten de afbakening: kwijtschelding voor ondernemers en de hersteloperatie toeslagen."))
-    assert "kwijtsch" in buiten
+    assert "kwijtsch ondernem" in buiten
     uit = zv.grondslag(Wereld(), gebeurtenis="kwijtschelding", regelingen=[IW, UR, LR], buiten=buiten)
     assert [k["bron_iri"].split(":", 2)[2] for k in uit] == [f"{IW}:artikel:26:lid:1", f"{UR}:artikel:7:lid:1",
                                                             f"{IW}:artikel:70ba"]

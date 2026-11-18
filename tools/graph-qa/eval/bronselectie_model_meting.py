@@ -24,7 +24,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from eval.bronselectie_eval import ROUTES, kandidaten_route, meet_intake, model_kiest_route
+from eval.bronselectie_eval import ROUTES, buiten_van, kandidaten_route, meet_intake, model_kiest_route
 from eval.wortel import WORTEL as WORTEL_REPO
 
 REPO = "palmw01/wetsanalyse-ai"
@@ -87,7 +87,7 @@ def _maat(r: dict[str, Any], sleutel: str) -> str:
 VARIANTEN = {"definitie_brug": {"definitie_brug": True}, "verwijzingen": {"verwijzingen": True},
              "wetstermen": {"wetstermen": True}, "zonder_wetstermen": {"wetstermen": False},
              "rrf": {"menging": "rrf"}, "belang": {"belang": True},
-             "zonder_belang": {"belang": False}}
+             "zonder_belang": {"belang": False}, "zonder_afbakening": {"afbakening_onderdelen": False}}
 
 
 def variant(naam: str) -> tuple[dict[str, Any], int | None]:
@@ -124,7 +124,7 @@ def afval(graaf: Any, s: dict[str, Any], spoor: list[dict[str, Any]]) -> dict[st
     per_vraag = {e["vraag"]: e for e in spoor if e["set"] == s["naam"]}
     gebeurtenis: list[str] = []
     if s.get("gebeurtenis"):
-        buiten = zoektermen.uitsluitstammen(zoektermen.buiten_uit_afbakening("Buiten de afbakening: " + s.get("buiten", "")))
+        buiten = buiten_van(s)
         gebeurtenis = [k["bron_iri"] for k in zoekvragen.pool(graaf, gebeurtenis=s["gebeurtenis"], regelingen=s["regelingen"],
                                                                buiten=buiten)["kandidaten"]]
     tel = {f: 0 for f in FASEN}
@@ -177,7 +177,7 @@ def rangen(graaf: Any, s: dict[str, Any], llm: Any, model: str, meting: dict[str
 
     profiel = replace(deelvraag_zoeken.STANDAARD_PROFIEL, model_kiest=True, verwijzingen=False)
     dossier = _dossier(s)
-    buiten = zoektermen.uitsluitstammen(zoektermen.buiten_uit_afbakening("Buiten de afbakening: " + s.get("buiten", "")))
+    buiten = buiten_van(s)
     pool = None
     if s.get("gebeurtenis"):
         sleutel = (id(graaf), s["naam"])

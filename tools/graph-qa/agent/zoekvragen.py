@@ -27,7 +27,7 @@ from typing import Any
 from .bepaling_namen import bwb_van, rijen as _rijen
 from .graph import queries
 from .ports import GraphPort
-from .zoektermen import _stamdeel, zoektermen
+from .zoektermen import _stamdeel, raakt_uitsluiting, uitsluiting_gewicht, zoektermen
 
 logger = logging.getLogger(__name__)
 
@@ -252,7 +252,7 @@ def grondslag(graph: GraphPort, *, gebeurtenis: str, regelingen: list[str], buit
     stammen = [_stamdeel(w) for w in woorden]
     # De afbakening noemt de gebeurtenis vaak zelf ("kwijtschelding voor ondernemers valt erbuiten"): haar eigen
     # stam is dan geen reden om een bepaling weg te laten.
-    buiten = [b for b in buiten or [] if not any(b.startswith(s) or s.startswith(b) for s in stammen)]
+    buiten = [b for b in buiten or [] if not all(any(d.startswith(s) or s.startswith(d) for s in stammen) for d in b.split())]
     lucene = "tekst:(" + " AND ".join(queries._lucene_term(w) for w in woorden) + ")"
     rang = _soortrang(graph, bereik) if len(bereik) > 1 else {}
     gevonden: dict[str, dict[str, Any]] = {}
@@ -267,7 +267,7 @@ def grondslag(graph: GraphPort, *, gebeurtenis: str, regelingen: list[str], buit
                 doel = iri.split(":o:", 1)[0] if soort == "Onderdeel" else iri
                 # Zoals `bepaling_opties`: weg als de tekst méér raakt aan wat buiten de afbakening valt dan aan de
                 # gebeurtenis. Eén gedeelde stam ("belastin" uit "gemeentelijke belastingen") is geen reden.
-                if sum(_raakt_woord(b, tekst) for b in buiten) > sum(_raakt_woord(st, tekst) for st in stammen):
+                if uitsluiting_gewicht(buiten, tekst, woordbegin=True) > sum(_raakt_woord(st, tekst) for st in stammen):
                     continue
                 for zin in _ZIN.split(tekst):
                     if all(_raakt_woord(st, zin) for st in stammen) and (signaal := bestaansrecht_signaal(zin)):
@@ -458,14 +458,14 @@ def pool(graph: GraphPort, *, gebeurtenis: str, regelingen: list[str], buiten: l
     if not woorden or not bereik:
         return leeg
     stammen = [_stamdeel(w) for w in woorden]
-    buiten = [b for b in buiten or [] if not any(b.startswith(st) or st.startswith(b) for st in stammen)]
+    buiten = [b for b in buiten or [] if not all(any(d.startswith(st) or st.startswith(d) for st in stammen) for d in b.split())]
     rang = _soortrang(graph, bereik)
 
     def beleid(bwb: str) -> bool:
         return rang.get(bwb, 0) >= RANG["beleidsregel"]
 
     def valt_buiten(tekst: str) -> bool:
-        return sum(_raakt_woord(b, tekst) for b in buiten) > sum(_raakt_woord(st, tekst) for st in stammen)
+        return uitsluiting_gewicht(buiten, tekst, woordbegin=True) > sum(_raakt_woord(st, tekst) for st in stammen)
 
     def kop_draagt(label: str) -> bool:
         return any(st in g.casefold() for g in kop_gebeurtenissen(label) for st in stammen)
@@ -501,7 +501,7 @@ def pool(graph: GraphPort, *, gebeurtenis: str, regelingen: list[str], buiten: l
         # Een uitsluitstam die in de helft of meer van de omgeving staat, onderscheidt niets: "belastin" (uit
         # "gemeentelijke belastingen valt erbuiten") stond in bijna elk lid en haalde Uitv.reg. 12 (vermogen) weg.
         alles = [" ".join(t) for t in per_eenheid.values()]
-        buiten[:] = [b for b in buiten if 2 * sum(_raakt_woord(b, t) for t in alles) < max(1, len(alles))]
+        buiten[:] = [b for b in buiten if 2 * sum(raakt_uitsluiting(b, t, woordbegin=True) for t in alles) < max(1, len(alles))]
         # Een artikel met leden telt per lid; het artikel zelf alleen als het geen leden heeft.
         met_leden = {e.split(":lid:", 1)[0] for e in per_eenheid if ":lid:" in e}
         for eenheid, delen_tekst in per_eenheid.items():

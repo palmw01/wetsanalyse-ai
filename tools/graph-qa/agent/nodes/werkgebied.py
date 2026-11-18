@@ -101,7 +101,7 @@ def _regelingen(b, intake: dict[str, Any], zoek: str, writer, *, per_deelvraag: 
     """Regelingen uit de graaf, gezocht met wat er ligt: het onderwerp, de deelvragen, de regelingen die
     het dossier bij naam noemt, en zonder wat buiten het werkgebied valt."""
     from ..zoektermen import onderwerp_van_deelvraag
-    from ..zoektermen import uitsluitstammen
+    from ..zoektermen import onderwerp_van, uitsluitstammen
 
     a = intake.get("antwoorden") or {}
     wg = wi.als_werkgebied(intake)
@@ -116,7 +116,7 @@ def _regelingen(b, intake: dict[str, Any], zoek: str, writer, *, per_deelvraag: 
           if zoek or deelvragen else "zoekt de genoemde regelingen")
     try:
         opties, voorop, weg = wi.regeling_opties(b.graph, zoek, genoemd_in=genoemd_in, deelvragen=deelvragen,
-                                                 buiten=uitsluitstammen(a.get("buiten", "")))
+                                                 buiten=uitsluitstammen(a.get("buiten", ""), onderwerp_van(wg, wg["deelvragen"])))
     except Exception:  # noqa: BLE001 – geen graaf: dan alleen eigen tekst en "weet ik niet"
         logger.warning("intake: regelingen niet opgehaald", exc_info=True)
         opties, voorop, weg = [], [], []

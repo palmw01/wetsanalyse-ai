@@ -10,7 +10,7 @@ from typing import Any
 from .bepaling_namen import _benoem, bwb_van as _bwb, rijen as _rijen
 from .graph import queries
 from .ports import GraphPort
-from .zoektermen import _raakt, kop_raakt, lemmas, onderwerp_van_deelvraag, splitsingen, zoektermen
+from .zoektermen import _raakt, kop_raakt, lemmas, onderwerp_van_deelvraag, splitsingen, uitsluiting_gewicht, zoektermen
 
 logger = logging.getLogger(__name__)
 
@@ -195,12 +195,16 @@ class Zoekprofiel:
     #:   `-belang-model` (gepaard, dezelfde wetstermen): op de lijst 120 → 125 van 172, gekozen 104 → 107, op geen set
     #:   lager; geen tokens, één graafvraag per honderd kandidaten.
     belang: bool = True
+    #: De afbakening per onderdeel lezen (`zoektermen.uitsluitstammen`, 18 nov 2026): per deel van de opsomming één
+    #: kernwoord, tegen het onderwerp van het werkgebied. Uit: elk woord van de zin is een stam
+    #: (`zoektermen.uitsluitstammen_woorden`, de lezing van vóór die dag), voor de meting op oude opnames.
+    afbakening_onderdelen: bool = True
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.
 F3F = Zoekprofiel(per_term=False, samenstelling=False, lemma=False, divisies=False, kop_overal=False, fusie=False,
                   per_regeling=False, verwijzingen=False, termen_idf=False, overzicht_streng=False,
-                  brug_omschrijving=False)
+                  brug_omschrijving=False, afbakening_onderdelen=False)
 STANDAARD_PROFIEL = Zoekprofiel()
 
 
@@ -717,7 +721,7 @@ def bepaling_opties(graph: GraphPort, *, regelingen: list[str], deelvraag: str |
     binnen_, buiten_ = [], []
     for k in sorted(kandidaten, key=volgorde):
         waar = f"{k['kop']} {' '.join(k['teksten'])}".casefold()
-        weg = len([s for s in buiten if s in waar]) > len(k["dv"])
+        weg = uitsluiting_gewicht(buiten, waar) > len(k["dv"])
         (buiten_ if weg else binnen_).append({**k, "buiten": weg})
     # Bij een deelvraag moet een bepaling de deelvraag zelf raken; dossiertermen rangschikken alleen. Anders
     # vulde het dossier elk kaartje tot het maximum, en kreeg elke deelvraag dezelfde bepalingen (spoor K).

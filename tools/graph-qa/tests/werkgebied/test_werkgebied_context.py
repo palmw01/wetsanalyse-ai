@@ -88,3 +88,33 @@ def test_de_peildatum_staat_in_de_context():
     from agent.werkgebied_context import context_tekst
     assert "Peildatum: 2015-01-01" in context_tekst({"naam": "W", "peildatum": "2015-01-01"})
     assert "Peildatum" not in context_tekst({"naam": "W", "peildatum": None})
+
+
+def test_de_afbakening_per_onderdeel_een_kernwoord():
+    """Bronnenrun op acceptatie (18 nov 2026, LB-08): elk woord van de zin werd een stam, ook "toeslage", "andere" en
+    "belastin". Per onderdeel nu één kernwoord, zonder voorzetselgroep, haakjes, het werkwoord van de zin of het
+    onderwerp zelf."""
+    from agent.zoektermen import buiten_uit_afbakening
+
+    lb08 = buiten_uit_afbakening("Fraude en boetes, de hersteloperatie kinderopvangtoeslag, het verrekenen met andere "
+                                 "toeslagen of met een belastingteruggaaf, en de wettelijke schuldsanering vallen erbuiten.")
+    assert uitsluitstammen(lb08, "Wanneer moet iemand een te hoog voorschot van een toeslag terugbetalen?") == \
+        ["fraude", "boetes", "herstelo kinderop", "verreken", "wettelijke schuldsa"]
+    # Wat na "behalve" komt hoort erbij; wat tussen haakjes staat is uitleg.
+    assert uitsluitstammen("de dwanginvordering behalve beslag, inhouden door overheden (toeslagen, gemeenten)") == \
+        ["dwanginv", "inhouden"]
+    # Het onderwerp zelf sluit niets uit, maar wel samen met wat het verbijzondert.
+    assert uitsluitstammen("Kwijtschelding voor ondernemers en saneringsakkoorden", "Wanneer krijg je kwijtschelding?") == \
+        ["kwijtsch ondernem", "sanering"]
+    assert uitsluitstammen("de kosten van vervolging") == ["kosten vervolgi"]
+    assert uitsluitstammen("De fiscale eenheid en hoger beroep") == ["fiscale eenheid", "hoger beroep"]
+
+
+def test_een_uitsluiting_van_meer_woorden_raakt_alleen_als_elk_deel_er_staat():
+    from agent.zoektermen import raakt_uitsluiting, uitsluiting_gewicht
+
+    assert raakt_uitsluiting("kosten vervolgi", "De kosten van vervolging zijn invorderbaar.")
+    assert not raakt_uitsluiting("kosten vervolgi", "De kosten van de aanslag.")
+    assert not raakt_uitsluiting("vallen", "in andere gevallen", woordbegin=True)
+    assert uitsluiting_gewicht(["kosten vervolgi", "fraude"], "kosten van vervolging") == 2
+    assert valt_buiten("Hoofdstuk 3 – Verrekening", ["verreken"]) == "verreken"

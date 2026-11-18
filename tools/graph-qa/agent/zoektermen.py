@@ -141,7 +141,7 @@ _UITSLUITING_VOOR = re.compile(
     r"(?:buiten\s+(?:de\s+afbakening|beschouwing)(?:\s+(?:valt|vallen|blijft|blijven))?|(?:valt|vallen)\s+buiten\s*:|"
     r"uitgezonderd|behalve|met\s+uitzondering\s+van|(?:^|(?<=[,;:]))\s*niet)\s*:?\s+([^.;\n]+)", re.I | re.M)
 _UITSLUITING_NA = re.compile(
-    r"([^.;:\n]+?)\s+(?:valt|vallen|blijft|blijven)\s+buiten(?:\s+(?:de\s+afbakening|beschouwing))?\s*(?=[.;\n]|$)",
+    r"([^.;:\n]+?)\s+(?:valt|vallen|blijft|blijven)\s+(?:er)?buiten(?:\s+(?:de\s+afbakening|beschouwing))?\s*(?=[.,;\n]|$)",
     re.I | re.M)
 
 
@@ -164,15 +164,137 @@ MIN_WOORD = 5
 STAM = 8
 
 
-def uitsluitstammen(buiten: str) -> list[str]:
-    """"Overgangsrecht en de bestuurdersaansprakelijkheid" → ["overgang", "bestuurd"]: het begin van
-    elk inhoudswoord, zodat "overgangsrecht" ook "Overgangs- en slotbepalingen" raakt. Korte woorden
-    doen niet mee; die raken te veel."""
+#: Wat in een uitsluitingszin staat maar zelf niets uitsluit: het werkwoord van de zin ("… vallen erbuiten").
+_ZINSWOORDEN = {"valt", "vallen", "blijft", "blijven", "buiten", "erbuiten", "beschouwing", "afbakening", "niet",
+                "net", "als", "evenals", "alsook", "zowel", "ook", "ander", "andere", "overige", "dergelijke"}
+#: Een onderdeel eindigt bij een voorzetsel of bijzin: "het verrekenen met andere toeslagen" gaat over verrekenen,
+#: niet over toeslagen; "de vergunning die van rechtswege ontstaat" over de vergunning. "van" en "voor" verbinden:
+#: "de kosten van vervolging" gaat over kosten én vervolging.
+_TOT = re.compile(r"\b(?:met|bij|in|door|na|op|tegen|uit|aan|over|naar|onder|zonder|tot|tussen|binnen|"
+                  r"die|dat|wanneer|waarin|waarbij|waarop|zoals)\b")
+_VERBINDT = re.compile(r"\b(?:van|voor)\b")
+#: Wat erbij hoort, niet erbuiten: "de dwanginvordering behalve beslag".
+_BEHALVE = re.compile(r"\b(?:behalve|uitgezonderd|met\s+uitzondering\s+van|maar\s+niet)\b.*$")
+_DELEN = re.compile(r"[,;:]|\b(?:en|of|net\s+als|evenals|alsook|dan\s+wel)\b")
+_LIDWOORDEN = {"de", "het", "een", "zijn", "haar", "hun"}
+#: Een bijvoeglijk naamwoord vóór het kernwoord: het hoort bij de uitsluiting ("fiscale eenheid", "hoger beroep").
+_BIJVOEGLIJK = re.compile(r"(?:lijke|lijk|ische|isch|iele|ele|ale|ieve|bare|ende|ige|ere|ste)$")
+_BIJVOEGLIJK_WOORD = {"hoger", "hogere", "lager", "lagere", "eerste", "tweede", "nieuwe", "oude", "algemene",
+                      "bijzondere", "gemeentelijke", "wettelijke"}
+
+
+def _bijvoeglijk(woord: str) -> bool:
+    return woord in _BIJVOEGLIJK_WOORD or bool(_BIJVOEGLIJK.search(woord))
+
+
+#: Hoeveel zelfstandige naamwoorden achter elkaar samen één uitsluiting zijn ("hersteloperatie toeslagen").
+MAX_KERNWOORDEN = 2
+
+
+def _kern(stuk: str) -> tuple[str, list[str]]:
+    """(bijvoeglijk naamwoord of leeg, kernwoorden) van een stukje tekst: de inhoudswoorden van minstens `MIN_WOORD`
+    letters die geen bijvoeglijk naamwoord zijn, direct achter elkaar en hoogstens `MAX_KERNWOORDEN`, met het
+    bijvoeglijk naamwoord direct ervoor."""
+    woorden = [w for w in re.findall(r"[0-9a-zà-ÿ]+", stuk)
+               if w not in _LIDWOORDEN and w not in _ZINSWOORDEN and w not in _GEEN_TERM]
+    for i, w in enumerate(woorden):
+        if not _bijvoeglijk(w) and len(w) >= MIN_WOORD:
+            bijv = woorden[i - 1] if i and _bijvoeglijk(woorden[i - 1]) else ""
+            kern = [w]
+            for v in woorden[i + 1:]:
+                if _bijvoeglijk(v) or len(v) < MIN_WOORD or len(kern) >= MAX_KERNWOORDEN:
+                    break
+                kern.append(v)
+            return bijv, kern
+    return "", []
+
+
+def uitsluitstammen_woorden(buiten: str) -> list[str]:
+    """De lezing van vóór 18 nov 2026: het begin van elk inhoudswoord. Alleen nog voor de meting op oude opnames
+    (`Zoekprofiel.afbakening_onderdelen` uit)."""
     stammen = [w.casefold()[:STAM] for w in queries.onderwerpwoorden(buiten or "") if len(w) >= MIN_WOORD]
     return list(dict.fromkeys(stammen))
 
 
+def uitsluitstammen(buiten: str, onderwerp: str = "") -> list[str]:
+    """Per onderdeel van wat buiten het werkgebied valt één stam: het begin van het kernwoord ("Overgangsrecht en de
+    bestuurdersaansprakelijkheid" → ["overgang", "bestuurd"]), zodat "overgangsrecht" ook "Overgangs- en
+    slotbepalingen" raakt. Een stam kan uit meer woorden bestaan; hij raakt een tekst pas als elk deel erin staat
+    (`raakt_uitsluiting`).
+
+    - Een onderdeel is een deel van de opsomming (komma, "en", "of", "net als").
+    - Het kernwoord is het eerste inhoudswoord vóór een voorzetsel of bijzin; een bijvoeglijk naamwoord ervoor gaat
+      mee ("fiscale eenheid", "hoger beroep").
+    - "X van Y" en "X voor Y" zijn X en Y samen ("kosten vervolgi", "aansprak bronbela"), ook als X het onderwerp
+      is: alleen Y zou te veel raken ("beslissing" in een werkgebied over beslistermijnen).
+    - Niet mee: het werkwoord van de zin ("vallen erbuiten"), wat tussen haakjes staat (uitleg, voorbeelden), wat na
+      "behalve" komt (dat hoort er juist bij), een voorzetselgroep ("met andere toeslagen"), korte woorden, en een kale
+      stam die in het `onderwerp` staat (naam, analysevraag, deelvragen): "kwijtschelding voor ondernemers" sluit in
+      een werkgebied over kwijtschelding de ondernemers uit, niet de kwijtschelding.
+
+    Bronnenrun op acceptatie, 18 nov 2026: elk woord van de zin werd een stam, ook "toeslage", "andere", "aansprak" in
+    een werkgebied over aansprakelijkheid, en "beslag" bij "behalve beslag"."""
+    # Geen ellipsen uitvouwen: "schenk- en erfbelasting" geeft "schenk", en dat raakt "schenkbelasting" al.
+    tekst = re.sub(r"\([^)]*\)", " ", buiten or "").casefold()
+    in_onderwerp = (onderwerp or "").casefold()
+
+    def deel_stam(bijv: str, kern: list[str]) -> str:
+        return " ".join([*([bijv] if bijv else []), *(w[:STAM] for w in kern)])
+
+    def onderwerp_zelf(bijv: str, kern: list[str]) -> bool:
+        return not bijv and len(kern) == 1 and queries._stam(kern[0])[:STAM] in in_onderwerp
+
+    stammen: list[str] = []
+    for deel in _DELEN.split(tekst):
+        deel = _BEHALVE.sub("", deel)
+        m = _TOT.search(deel)
+        deel = deel[:m.start()] if m else deel
+        x, *rest = _VERBINDT.split(deel, maxsplit=1)
+        y = rest[0] if rest else ""
+        bx, kx = _kern(x)
+        by, ky = _kern(y) if y else ("", [])
+        if not kx:
+            continue
+        if ky:
+            stammen.append(f"{deel_stam(bx, kx)} {deel_stam(by, ky)}")
+        elif not onderwerp_zelf(bx, kx):
+            stammen.append(deel_stam(bx, kx))
+    return list(dict.fromkeys(stammen))
+
+
+def uitsluiting_gewicht(stammen: list[str], tekst: str, woordbegin: bool = False) -> int:
+    """Hoeveel een tekst raakt aan wat buiten het werkgebied valt: per stam die hem raakt het aantal delen ("kosten
+    vervolgi" telt twee, zoals de twee woorden toen elk een eigen stam waren). Eén plek voor de woordenroute en de
+    zoekvragen."""
+    return sum(len(s.split()) for s in stammen if raakt_uitsluiting(s, tekst, woordbegin))
+
+
+def raakt_uitsluiting(stam: str, tekst: str, woordbegin: bool = False) -> bool:
+    """Raakt een uitsluitstam (`uitsluitstammen`) de tekst? Elk deel moet erin staan; met `woordbegin` aan het begin
+    van een woord ("vallen" raakt "vallen buiten", niet "in andere gevallen")."""
+    t = (tekst or "").casefold()
+    if woordbegin:
+        return all(re.search(rf"\b{re.escape(d)}", t) for d in stam.split())
+    return all(d in t for d in stam.split())
+
+
+def onderwerp_van(dossier: dict, deelvragen: list | None = None) -> str:
+    """Waar het werkgebied over gaat, voor `uitsluitstammen`: naam, analysevraag en de deelvragen (tekst of
+    `{vraag}`)."""
+    vragen = [d if isinstance(d, str) else str((d or {}).get("vraag") or "") for d in (deelvragen or [])]
+    return " ".join([str(dossier.get("naam") or ""), str(dossier.get("analysevraag") or ""), *vragen])
+
+
+def buiten_stammen(dossier: dict, deelvragen: list | None = None, onderdelen: bool = True) -> list[str]:
+    """De uitsluitstammen van een dossier: wat de afbakening buiten het werkgebied laat, gelezen tegen zijn
+    onderwerp. Eén plek voor de bronselectie, de grondslag en de opschriften. `onderdelen` is
+    `Zoekprofiel.afbakening_onderdelen`."""
+    buiten = buiten_uit_afbakening(str(dossier.get("afbakening") or ""))
+    if not onderdelen:
+        return uitsluitstammen_woorden(buiten)
+    return uitsluitstammen(buiten, onderwerp_van(dossier, deelvragen))
+
+
 def valt_buiten(kop: str, stammen: list[str]) -> str:
     """De stam waarop een kop buiten het werkgebied valt, of leeg."""
-    k = (kop or "").casefold()
-    return next((s for s in stammen if s in k), "")
+    return next((s for s in stammen if raakt_uitsluiting(s, kop)), "")
