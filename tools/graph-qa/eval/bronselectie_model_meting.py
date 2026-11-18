@@ -174,6 +174,7 @@ def rangen(graaf: Any, s: dict[str, Any], llm: Any, model: str, meting: dict[str
     from dataclasses import replace
 
     from agent import deelvraag_keuze, deelvraag_zoeken, zoekvragen, zoektermen
+    from agent.bronnen_vinden import artikel_van
     from eval.bronselectie_eval import _dossier, _raakt, wetstermen_voor
 
     profiel = replace(deelvraag_zoeken.STANDAARD_PROFIEL, model_kiest=True, verwijzingen=False)
@@ -187,6 +188,10 @@ def rangen(graaf: Any, s: dict[str, Any], llm: Any, model: str, meting: dict[str
         pool = cache[sleutel]["kandidaten"]
     tel: dict[str, int] = {}
     voorbeelden: list[str] = []
+    # Per gemiste bepaling: staat er een ander deel van hetzelfde artikel op de lijst (een ander lid, het artikel zelf)?
+    # Dan vindt de jurist haar via dat artikel, en is het een vraag van indeling, niet van zoeken.
+    buren = {"buur op de lijst": 0, "geen buur op de lijst": 0}
+    gemist: list[dict[str, Any]] = []
     # Wat in geen van beide lijsten staat, voluit: daar helpt geen menging of grens, alleen beter zoeken.
     nergens: list[dict[str, Any]] = []
     for i, vraag in enumerate(s["deelvragen"]):
@@ -210,6 +215,10 @@ def rangen(graaf: Any, s: dict[str, Any], llm: Any, model: str, meting: dict[str
                 return next((n for n, c in enumerate(lijst, 1) if _raakt(c, iri)), None)
 
             pw, pp = plaats(woorden), plaats(uit_pool)
+            buur = next((c for c in kand if c != iri and artikel_van(c) == artikel_van(iri)), "")
+            buren["buur op de lijst" if buur else "geen buur op de lijst"] += 1
+            gemist.append({"deelvraag": i + 1, "bron_iri": iri, "rol": v["rol"], "woorden": pw, "pool": pp,
+                           "buur": buur})
             vak = f"woorden {_vak(pw)} · pool {_vak(pp)}"
             tel[vak] = tel.get(vak, 0) + 1
             if len(voorbeelden) < 4:
@@ -218,7 +227,8 @@ def rangen(graaf: Any, s: dict[str, Any], llm: Any, model: str, meting: dict[str
                 bwb = iri.split(":")[2] if iri.count(":") >= 2 else ""
                 nergens.append({"deelvraag": i + 1, "bron_iri": iri, "rol": v["rol"], "wetstermen": list(wet or []),
                                 "in_bereik": bwb in (s.get("regelingen") or [])})
-    return {"telling": dict(sorted(tel.items())), "voorbeelden": voorbeelden, "nergens": nergens}
+    return {"telling": dict(sorted(tel.items())), "voorbeelden": voorbeelden, "nergens": nergens, "buren": buren,
+            "gemist": gemist}
 
 
 #: De methoden van de fase van de afhankelijkheden: wat aan een opgenomen kernbepaling hangt (`bronnen_vinden.STANDAARD`).
@@ -368,6 +378,7 @@ def meet_kandidaten(a: argparse.Namespace) -> int:
     som = {c: [0, 0] for c in routes}
     rapport: dict[str, Any] = {}
     rangtotaal: dict[str, int] = {}
+    burentotaal: dict[str, int] = {}
     try:
         for naam, s in sets(lezer(a.lokaal)):
             r = meet_intake(graaf, s, routes)
@@ -380,6 +391,10 @@ def meet_kandidaten(a: argparse.Namespace) -> int:
                 d = rangen(graaf, s, llm, settings.llm_model, modelmeting, gedeeld)
                 for k, n in d["telling"].items():
                     rangtotaal[k] = rangtotaal.get(k, 0) + n
+                for k, n in d["buren"].items():
+                    burentotaal[k] = burentotaal.get(k, 0) + n
+                for x in d["gemist"]:
+                    print(f"{'':40} GEMIST {naam} {json.dumps(x, ensure_ascii=False)}", flush=True)
                 print(f"{'':40} rangen: {json.dumps(d['telling'], ensure_ascii=False)} | bv. {'; '.join(d['voorbeelden'])}",
                       flush=True)
                 for x in d["nergens"]:
@@ -389,6 +404,7 @@ def meet_kandidaten(a: argparse.Namespace) -> int:
     print("TOTAAL nodig bij de kandidaten: " + " | ".join(f"{c} {g}/{n}" for c, (g, n) in som.items()), flush=True)
     if a.rangen:
         print("RANGEN TOTAAL (nodig, niet bij de 80): " + json.dumps(rangtotaal, ensure_ascii=False), flush=True)
+        print("BUREN TOTAAL (nodig, niet bij de 80): " + json.dumps(burentotaal, ensure_ascii=False), flush=True)
     if llm is not None:
         print(f"MODEL (wetstermen): {modelmeting.get('llm_calls', 0)} aanroepen, verbruik "
               f"{json.dumps(llm.meter.als_dict())}", flush=True)
