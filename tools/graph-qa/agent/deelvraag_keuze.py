@@ -24,8 +24,10 @@ logger = logging.getLogger(__name__)
 
 #: Hoeveel kandidaten het model ziet, en hoe lang hun tekst. Meting `bronselectie-2026-11-17-kandidaten` (zonder model): van
 #: 172 nodige bepalingen stonden er bij 40 kandidaten 73 op de lijst, bij 80 93, bij 120 99 en bij 160 104. 80 met een
-#: kortere tekst houdt een aanroep ongeveer even groot (80 × 300 tegen 40 × 500 tekens).
-MAX_KANDIDATEN = 80
+#: kortere tekst houdt een aanroep ongeveer even groot (80 × 300 tegen 40 × 500 tekens). Naar 120 na twee gepaarde
+#: rondes over de hele keten (`bronselectie-2026-11-18-keten-grens`): van 172 na de keten 133 → 138 en 134 → 138, na de
+#: keuze beide keren +4 (ook op 17 nov), en niet vaker een verkeerde deelvraag. Een aanroep is ~de helft groter.
+MAX_KANDIDATEN = 120
 MAX_TEKST = 300
 MAX_GEKOZEN = 8
 MAX_TOKENS = 1024
