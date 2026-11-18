@@ -294,7 +294,11 @@ def _met_profiel(profiel: deelvraag_zoeken.Zoekprofiel):
 #: en de tests in `test_bronselectie_eval.py` houden hun uitkomst vast: de routes hieronder (de ablatie, de dossiervlaggen,
 #: B-2 en het plan) rekenen daarom ertegen. De standaard van nu meet de route "standaard (stap 8)".
 VOOR_STAP8 = replace(deelvraag_zoeken.STANDAARD_PROFIEL, termen_idf=False, verwijzingen=False, overzicht_streng=False,
-                     brug_omschrijving=False)
+                     brug_omschrijving=False, belang=False)
+#: De standaard van stap 8 (16 nov 2026), zonder wat er sindsdien aan ging en een eigen graafvraag stelt
+#: (`Zoekprofiel.belang`, 18 nov 2026): de opnames van de sets hebben die vraag niet, en de tests houden de uitkomst van
+#: stap 8 vast. De standaard van nu meten de live routes (`model_kiest_route`, `kandidaten_route`).
+STAP8 = replace(deelvraag_zoeken.STANDAARD_PROFIEL, belang=False)
 _bepaling_opties = _met_profiel(VOOR_STAP8)
 def _zoekvragen_route(profiel: "deelvraag_zoeken.Zoekprofiel | None" = None):
     """Zoekvragen a–d, PR 5: per deelvraag de opties uit de pool vanaf de gebeurtenis van de set
@@ -358,8 +362,8 @@ ROUTES = {"bepaling_opties": _bepaling_opties, "F3f (21 okt)": _met_profiel(deel
                                                       **{v: True for v in DOSSIERVLAGGEN})),
 
           "zoekvragen (PR 5)": _zoekvragen_route(),
-          "standaard (stap 8)": _met_profiel(deelvraag_zoeken.STANDAARD_PROFIEL),
-          "zoekvragen standaard (stap 8)": _zoekvragen_route(deelvraag_zoeken.STANDAARD_PROFIEL),
+          "standaard (stap 8)": _met_profiel(STAP8),
+          "zoekvragen standaard (stap 8)": _zoekvragen_route(STAP8),
           "vorige deelvraagmethode": _vorige_deelvraagmethode}
 #: De vlaggen van B-2 (E2E Rekeningafspraken, plan centrale agent na A6, PR E), standaard uit. Ze stellen nieuwe vragen
 #: aan de graaf, dus alleen met `--b2`: de opnames van de bestaande sets hebben die vragen nog niet (`--aanvullen`).
