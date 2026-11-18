@@ -259,6 +259,10 @@ uit de skill. Daarvan zijn **afgeleid**:
 - `api/app/jas_relaties.py` en `frontend/lib/jasRelaties.ts` – de relatiecatalogus (ADR-011) uit `relaties.json`,
   gegenereerd door `tools/graph-qa/scripts/genereer_jas_relaties.py` (dat `genereer_jas_klassen.py` meedraait), bewaakt
   door `tests/poort/test_relatiecatalogus.py`.
+- `api/app/jas_begripverwachting.py` en `frontend/lib/jasBegripverwachting.ts` – wat de methode per klasse verwacht in
+  activiteit 3a (begrip, omschrijving of definitie), uit `begripverwachting.json`, gegenereerd door
+  `tools/graph-qa/scripts/genereer_begripverwachting.py` (dat `genereer_jas_klassen.py` meedraait), bewaakt door
+  `tests/poort/test_begripverwachting.py`.
 
 Wil je het gedrag van de agent bijsturen, bewerk dan de markdown en draai het script; bewerk je de
 Python, dan faalt de test. Omdat de skill een build-input is, draait `poort` de graph-qa-suite ook
