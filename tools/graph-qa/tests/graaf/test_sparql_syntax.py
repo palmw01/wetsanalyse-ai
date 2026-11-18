@@ -103,6 +103,7 @@ GEVALLEN: list[tuple[str, str]] = [
     ("bronnen_vinden.q_definities", bronnen_vinden.q_definities([IW], 10)),
     ("bronnen_vinden.q_leden", bronnen_vinden.q_leden([f"urn:bwb:{IW}:artikel:24"])),
     ("bronnen_vinden.q_lid_onderdelen", bronnen_vinden.q_lid_onderdelen([f"urn:bwb:{IW}:artikel:24"])),
+    ("bronnen_vinden.q_beleidsregels", bronnen_vinden.q_beleidsregels([f"urn:bwb:{IW}:artikel:49"], [f"urn:bwb:{IW}:artikel:49:lid:1"])),
     ("bronnen_vinden.q_opschriften", bronnen_vinden.q_opschriften([IW])),
     ("bronnen_vinden.q_opbouw", bronnen_vinden.q_opbouw([f"urn:bwb:{IW}:artikel:4"])),
     ("plekken.q_plekken", plekken.q_plekken([f"urn:bwb:{IW}:artikel:4"])),

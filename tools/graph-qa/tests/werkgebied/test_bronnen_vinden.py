@@ -923,3 +923,85 @@ def test_lid_verwijzing_vindt_de_leden_die_het_kernlid_noemen_en_die_het_noemt()
     assert k[f"{a}:lid:4"]["bewijs"][0]["detail"]["richting"] == "noemt de kern"
     assert k[f"{a}:lid:2"]["bewijs"][0]["detail"]["richting"] == "de kern noemt het"
     assert "lid_verwijzing" in bronnen_vinden.STANDAARD  # meting 18 nov 2026
+
+
+LR = "urn:bwb:BWBR0024096"
+
+
+def _ld(*pad: str) -> str:
+    """Een onderdeel van de Leidraad in de IRI-vorm van de importer (`…:id:BWBR0024096%2FCirculaire.divisie49%2F…`)."""
+    return f"{LR}:id:BWBR0024096%2F" + "%2F".join(f"Circulaire.divisie{p}" for p in pad)
+
+
+class BeleidsGraaf(FakeGraph):
+    """Iw 49 met de Leidraad bij artikel 49 en 9: 49.3 (een container) met 49.3.1 "Wanneer in gebreke", 49.6 zonder
+    passend opschrift, 9.1 dat artikel 9 lid 5 noemt, en 36.4.1 en 36.6.1 in het artikel van de Leidraad waarin de kern
+    zelf staat."""
+
+    def __init__(self) -> None:
+        super().__init__(results=self._antwoord)
+
+    def _antwoord(self, q: str) -> str:
+        if "bwb:verwijstNaar ?artikel" in q:
+            rijen = []
+            if f"<{LR}:artikel:49>" not in q and f"<{IW}:artikel:49>" in q:
+                a = f"{LR}:artikel:49"
+                rijen += [[a, _ld("49", "49.3"), "De aansprakelijkstelling – in gebreke zijn", "49.3", ""],
+                          [a, _ld("49", "49.3", "49.3.1"), "Wanneer in gebreke", "49.3.1", ""],
+                          [a, _ld("49", "49.3", "49.3.2"), "In gebreke zijn en versnelde invordering", "49.3.2", ""],
+                          [a, _ld("49", "49.6"), "Volgorde van uitwinning", "49.6", ""]]
+            if f"<{IW}:artikel:9>" in q:
+                a = f"{LR}:artikel:9"
+                rijen += [[a, _ld("9", "9.1"), "Afwijking van de betalingstermijnen", "9.1", f"{IW}:artikel:9:lid:5"],
+                          [a, _ld("9", "9.4"), "Dagtekening aanslagbiljet", "9.4", ""]]
+            if _ld("36", "36.4", "36.4.1") in q:
+                a = f"{LR}:artikel:36"
+                rijen += [[a, _ld("36", "36.4", "36.4.1"), "Wanneer kennelijk onbehoorlijk bestuur", "36.4.1", ""],
+                          [a, _ld("36", "36.6", "36.6.1"), "Onbehoorlijk bestuur en bewijslast", "36.6.1", ""]]
+            return _tsv(["regel", "onderdeel", "titel", "label", "naar"], rijen)
+        if "?kern ?deel ?tekst" in q:
+            return _tsv(["kern", "deel", "tekst"], [
+                [f"{IW}:artikel:49:lid:1", f"{IW}:artikel:49:lid:1",
+                 "Aansprakelijkstelling geschiedt … niet vóór het tijdstip waarop de belastingschuldige in gebreke is"],
+                [f"{IW}:artikel:9:lid:5", f"{IW}:artikel:9:lid:5", "In afwijking van het eerste lid is een voorlopige aanslag"],
+                [_ld("36", "36.4", "36.4.1"), _ld("36", "36.4", "36.4.1"),
+                 "De vraag of sprake is van kennelijk onbehoorlijk bestuur"]])
+        return _tsv(["x"], [])
+
+
+def _kern(*iris: str) -> dict:
+    return {"naam": "N", "analysevraag": "V?", "context": [],
+            "kern": [{"bron_iri": i, "label": "", "bwb_id": i.split(":")[2], "bereik": "onderliggend"} for i in iris]}
+
+
+def test_beleidsregel_vindt_het_onderdeel_bij_het_artikel_van_de_kern():
+    uit = vind(BeleidsGraaf(), _kern(f"{IW}:artikel:49:lid:1", f"{IW}:artikel:9:lid:5"), methoden=("beleidsregel",))
+    k = _per_iri(uit)
+    # 49.3.1: de kop van het opschrift ("gebreke") staat in de kern; van 49.3 en 49.3.1 blijft het binnenste over.
+    # 49.3.2 noemt "versnelde", dat de kern niet noemt; 49.6 en 9.4 passen niet.
+    assert set(k) == {_ld("49", "49.3", "49.3.1"), _ld("9", "9.1")}
+    assert all(x["rol"] == "afhankelijkheid" for x in k.values())
+    b = k[_ld("49", "49.3", "49.3.1")]["bewijs"][0]
+    assert b["methode"] == "beleidsregel" and b["detail"]["grond"] == "opschrift" and b["detail"]["kop"] == "gebreke"
+    assert b["detail"]["beleidsregel"] == f"{LR}:artikel:49"
+    # 9.1 noemt artikel 9 lid 5 zelf.
+    assert k[_ld("9", "9.1")]["bewijs"][0]["detail"]["grond"] == "noemt de kern"
+    assert k[_ld("9", "9.1")]["bewijs"][0]["vanuit"] == f"{IW}:artikel:9:lid:5"
+
+
+def test_beleidsregel_vindt_een_onderdeel_naast_de_kern_in_dezelfde_beleidsregel():
+    uit = vind(BeleidsGraaf(), _kern(_ld("36", "36.4", "36.4.1")), methoden=("beleidsregel",))
+    assert set(_per_iri(uit)) == {_ld("36", "36.6", "36.6.1")}
+
+
+def test_beleidsregel_zonder_beleidsregel_bij_de_kern_vraagt_wel_maar_vindt_niets():
+    uit = vind(BeleidsGraaf(), _kern(f"{IW}:artikel:24:lid:1"), methoden=("beleidsregel",))
+    assert uit["kandidaten"] == [] and uit["meting"]["beleidsregel"]["volledig"]
+
+
+def test_artikel_van():
+    from agent.bronnen_vinden import artikel_van
+
+    assert artikel_van(f"{IW}:artikel:24:lid:3") == f"{IW}:artikel:24"
+    assert artikel_van(f"{IW}:artikel:24") == f"{IW}:artikel:24"
+    assert artikel_van(_ld("36", "36.4")) == _ld("36", "36.4")

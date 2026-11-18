@@ -21,6 +21,13 @@ describe("bewijsZin", () => {
       .toBe("verwezen vanuit Artikel 9, lid 1 – functie onbekend");
   });
 
+  it("noemt bij een beleidsregel waarom die bij de kern hoort", () => {
+    expect(bewijsZin({ methode: "beleidsregel", vanuit: L1, detail: { grond: "noemt de kern" } }))
+      .toBe("beleidsregel die Artikel 9, lid 1 noemt");
+    expect(bewijsZin({ methode: "beleidsregel", vanuit: L1, detail: { grond: "opschrift", opschrift: "Wanneer in gebreke" } }))
+      .toBe("beleidsregel met opschrift “Wanneer in gebreke”, waarvan Artikel 9, lid 1 de woorden noemt");
+  });
+
   it("gebruikt de naam van een selectie als die er is", () => {
     const labels = new Map([[L1, "IW 1990 – art. 9 lid 1"]]);
     expect(bewijsZin({ methode: "opbouw", vanuit: L1, detail: {} }, labels)).toBe("staat in hetzelfde deel als IW 1990 – art. 9 lid 1");
