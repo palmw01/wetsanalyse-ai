@@ -91,7 +91,9 @@ Toelichting bij enkele documenten:
   plan voor de kennisgroepstandpunten van de Belastingdienst als bronconnector (ADR-013), met alle metadata in de
   koppeling en een meting van 20 vragen (13 nov 2026; nog niets gebouwd). Ook los: [`architectuur/plan-lex-bench.md`](architectuur/plan-lex-bench.md),
   Lex Bench (spoor Q): een onafhankelijke kwaliteitslaag naast Lex, eerst op de bronselectie (16 nov 2026; nog niets
-  gebouwd).
+  gebouwd). Ook los: [`architectuur/plan-begrip-per-formulering.md`](architectuur/plan-begrip-per-formulering.md),
+  elke geclassificeerde formulering een begrip (activiteit 3a): de verwachting per klasse uit de bron, de dekking per
+  klasse en de keten erachter (19 nov 2026; fase 1 in uitvoering).
 - **`architectuur/verbeterplan-jas-pipeline-2026-10-08.md`** is *onderzoek*: het ontwerp voor de
   kandidaten na V7 uit spoor A (bewijs per hypothese, frames, relaties), met eigen meet- en
   acceptatiecriteria. Het start na V7.
