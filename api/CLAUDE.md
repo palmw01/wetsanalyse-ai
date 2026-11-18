@@ -486,7 +486,10 @@ spoor D (*Werkgebied als node*).
     zijn ruis), met `bwb:ankerTekst` letterlijk. De query is begrensd (`MAX_VERWIJZINGSRIJEN`, hij vraagt er één meer): raakt hij de grens, dan `volledig: false` en `verwijzingen_volledig: false`, en de bijlage zegt "minstens". Tel nooit een begrensde rijenlijst als totaal. Ze staan bij de bepaling en in de bijlage Samenhang. Een doel telt als "in dit dossier" als het
     daar zelf staat of als een van zijn delen er staat.
   - **Markeringen in de wettekst**: `Bepaling.spans` (alleen ankers die nog letterlijk op hun offsets staan) gaan als regel `SPANS` (JSON)
-    vlak vóór het citaat mee. `pdf_opmaak.gemarkeerd` kleurt en nummert, `markdown_opmaak` maakt vet met ⁽ⁿ⁾. Een markering in de tekst
+    vlak vóór het citaat mee. Overlap volgt optie B (`app/markeerbanen.py`, de tweeling van `frontend/lib/markeerbanen.ts`, met gedeelde
+    vectoren): `pdf_opmaak.gemarkeerd` geeft een markering die niets omvat het vlak van haar klasse en een die andere omvat een streep
+    eronder in haar randkleur (de regelafstand groeit mee), met het nummer waar ze eindigt; `markdown_opmaak` maakt het vlak vet en zet
+    de omvattende markering tussen ⸢ en ⸣, met ⁽ⁿ⁾. Een markering in de tekst
     draagt haar nummer, en de lijst eronder herhaalt het citaat niet. `verzamel` leest met dezelfde functies als de schermen, en `regels` geeft (stijl, tekst),
   zonder reportlab te testen.
   - Geen modelvragen, hashes of beurtmeting: dat spoor staat in de annotatie-export.
