@@ -13,6 +13,7 @@ Methoden, van sterk naar zwak bewijs (PLAN §D *Bronnen vinden*):
 | `verwijzing_uit` | waar de kern naar verwijst, diepte 1 | afhankelijkheid bij een bekende functie, anders aanverwant |
 | `verwijzing_in` | wat naar de kern verwijst, diepte 1 – standaard uit (meting) | aanverwant |
 | `definitie` | waar de wet een term definieert die letterlijk in de kern staat | afhankelijkheid |
+| `lid_verwijzing` | een ander lid van hetzelfde artikel dat een kernlid noemt ("in afwijking van het derde lid") of dat het kernlid noemt; de graaf kent die verwijzingen binnen een artikel niet – standaard uit (meting) | afhankelijkheid |
 | `opschrift` | een artikel in dezelfde regeling waarvan het opschrift ("Voorschot op tegemoetkoming") met zijn eerste woorden in de tekst van de kern staat | afhankelijkheid |
 | `opbouw` | de andere artikelen in hetzelfde deel als een kernartikel | aanverwant |
 | `gelijkenis` | `bwb_similarity` op de tekst van de kern – zwakste signaal, geen bewijs | aanverwant |
@@ -34,13 +35,15 @@ from .graph import queries
 from .graph.queries import BEVAT, NS, PREFIXES, STRUCTUUR, _iri_veilig, _lit
 from .bepaling_namen import _benoem, bwb_van as _bwb, rijen as _rijen
 from .deelvraag_zoeken import STANDAARD_PROFIEL, Zoekprofiel, bepaling_opties
+from bronmodel.taal import RANGTELWOORDEN, rangnummers
+
 from .ports import GraphPort
 from .zoektermen import buiten_stammen, zoektermen
 
 logger = logging.getLogger(__name__)
 
-METHODEN = ("overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "definitie", "opschrift", "opbouw", "gelijkenis",
-            "grondslag")
+METHODEN = ("overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "definitie", "opschrift", "lid_verwijzing", "opbouw",
+            "gelijkenis", "grondslag")
 #: Wat standaard draait als er een kern is – gekozen op de meting van 15 okt 2026
 #: (`docs/architectuur/metingen/bronselectie-2026-10-15/`): met een kern voegde het overzicht geen
 #: recall toe maar wel 36 onbeoordeelde "kern"-kandidaten, en `verwijzing_in` leverde alle uitgesloten
@@ -244,6 +247,25 @@ def q_opschriften(bwb_ids: list[str]) -> str:
   FILTER({filters})
   OPTIONAL {{ ?artikel rdfs:label ?label }}
 }} ORDER BY ?artikel LIMIT {MAX_OPSCHRIFTEN + 1}"""
+
+
+def q_leden(artikelen: list[str]) -> str:
+    """De leden van deze artikelen met hun eigen tekst (een lid zonder eigen tekst staat er ook, met lege tekst)."""
+    return PREFIXES + f"""SELECT ?artikel ?lid ?tekst WHERE {{
+  VALUES ?artikel {{ {_waarden(artikelen)} }}
+  ?artikel bwb:heeftLid ?lid .
+  OPTIONAL {{ ?lid bwb:tekst ?tekst }}
+}} ORDER BY ?artikel ?lid"""
+
+
+def q_lid_onderdelen(artikelen: list[str]) -> str:
+    """De tekst van de onderdelen onder de leden van deze artikelen: een verwijzing staat vaak in een onderdeel."""
+    return PREFIXES + f"""SELECT ?lid ?tekst WHERE {{
+  VALUES ?artikel {{ {_waarden(artikelen)} }}
+  ?artikel bwb:heeftLid ?lid .
+  ?lid bwb:heeftOnderdeel+ ?o .
+  ?o bwb:tekst ?tekst .
+}} ORDER BY ?lid ?o"""
 
 
 def q_opbouw(kern: list[str]) -> str:
@@ -586,6 +608,76 @@ def _opschrift(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     return n, len(opschriften) <= MAX_OPSCHRIFTEN and len(gevonden) <= MAX_PER_METHODE
 
 
+_RANG = rangnummers(len(RANGTELWOORDEN))
+_RANGWOORD = "|".join(sorted(_RANG, key=len, reverse=True))
+#: Een of meer rangtelwoorden vóór "lid" of "leden": "het derde lid", "het eerste of tweede lid", "het derde tot en met
+#: vijfde lid".
+_LEDEN = re.compile(rf"\b((?:(?:{_RANGWOORD})(?:\s*,\s*|\s+en\s+|\s+of\s+|\s+tot\s+en\s+met\s+))*(?:{_RANGWOORD}))"
+                    r"\s+(?:lid|leden)\b", re.I)
+#: Een lid van een ánder artikel: "artikel 25, derde lid", "het derde lid van artikel 7", "… lid, van de Algemene wet".
+_ANDER_ARTIKEL_VOOR = re.compile(r"\bartikel(?:en)?\s+[0-9][\w:.]*\s*,?\s*(?:\w+\s*,\s*)*$", re.I)
+_ANDER_ARTIKEL_NA = re.compile(r"^\s*,?\s*(?:\w+\s+)?(?:van|uit)\s+(?:artikel|de|het|die|deze)\b(?!\s+artikel\b)", re.I)
+_DIT_ARTIKEL_NA = re.compile(r"^\s*,?\s*(?:van|uit)\s+dit\s+artikel\b", re.I)
+
+
+def lid_verwijzingen(tekst: str) -> dict[int, str]:
+    """De leden van hetzelfde artikel die een tekst noemt, met het stuk tekst dat ze noemt: "In afwijking van het derde
+    lid" → {3: "het derde lid"}. Niet een lid van een ander artikel ("artikel 25, derde lid", "het eerste lid van artikel
+    7", "het vierde lid van de Algemene wet …"). Zonder graaf: de graaf kent deze verwijzingen binnen een artikel niet."""
+    uit: dict[int, str] = {}
+    for m in _LEDEN.finditer(tekst or ""):
+        voor, na = tekst[max(0, m.start() - 40):m.start()], tekst[m.end():m.end() + 40]
+        if _ANDER_ARTIKEL_VOOR.search(voor) or (_ANDER_ARTIKEL_NA.search(na) and not _DIT_ARTIKEL_NA.search(na)):
+            continue
+        woorden = re.findall(_RANGWOORD, m.group(1), re.I)
+        nummers = [_RANG[w.lower()] for w in woorden]
+        if re.search(r"tot\s+en\s+met", m.group(1), re.I) and len(nummers) == 2:
+            nummers = list(range(nummers[0], nummers[1] + 1))
+        for n in nummers:
+            uit.setdefault(n, m.group(0))
+    return uit
+
+
+_KERNLID = re.compile(r"^(?P<artikel>.+:artikel:[^:]+):lid:(?P<lid>\d+)$")
+
+
+def _lid_verwijzing(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
+    """De andere leden van het artikel van een kernlid die naar dat kernlid verwijzen ("in afwijking van het derde lid",
+    een uitzondering of aanvulling) of waarnaar het kernlid verwijst ("bedoeld in het eerste lid"). Bronnenrun op
+    acceptatie, 18 nov 2026: Iw 24 lid 4 en AWR 67n lid 3 noemen hun kernlid, en geen methode vond ze, omdat de graaf
+    alleen verwijzingen naar andere artikelen kent."""
+    kern = [(m["artikel"], int(m["lid"]), k["bron_iri"]) for k in invoer.get("kern", [])
+            if (m := _KERNLID.match(k["bron_iri"]))]
+    if not kern:
+        return 0, True
+    artikelen = sorted({a for a, _, _ in kern})
+    teksten: dict[str, list[str]] = {}
+    per_artikel: dict[str, list[str]] = {}
+    for r in _rijen(graph, q_leden(artikelen)):
+        per_artikel.setdefault(r["artikel"], []).append(r["lid"])
+        teksten.setdefault(r["lid"], []).append(r.get("tekst", ""))
+    for r in _rijen(graph, q_lid_onderdelen(artikelen)):
+        teksten.setdefault(r["lid"], []).append(r.get("tekst", ""))
+    n = 0
+    for artikel, nummer, kern_iri in kern:
+        kern_noemt = lid_verwijzingen(" ".join(teksten.get(kern_iri, [])))
+        for lid in per_artikel.get(artikel, []):
+            m = _KERNLID.match(lid)
+            if not m or lid == kern_iri:
+                continue
+            eigen = int(m["lid"])
+            noemt = lid_verwijzingen(" ".join(teksten.get(lid, [])))
+            if nummer in noemt:
+                n += v.voeg(lid, rol="afhankelijkheid", methode="lid_verwijzing", vanuit=kern_iri,
+                            detail={"anker": noemt[nummer], "richting": "noemt de kern"})
+            elif eigen in kern_noemt:
+                n += v.voeg(lid, rol="afhankelijkheid", methode="lid_verwijzing", vanuit=kern_iri,
+                            detail={"anker": kern_noemt[eigen], "richting": "de kern noemt het"})
+            if n >= MAX_PER_METHODE:
+                return n, False
+    return n, True
+
+
 def _opbouw(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
     kern = [k["bron_iri"] for k in invoer.get("kern", [])]
     if not kern:
@@ -624,7 +716,7 @@ def _gelijkenis(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tup
 
 UITVOERING: dict[str, Callable[[GraphPort, dict[str, Any], Verzameling], tuple[int, bool]]] = {
     "overzicht": _overzicht, "deelvraag": _deelvraag, "verwijzing_uit": _verwijzing_uit, "verwijzing_in": _verwijzing_in,
-    "definitie": _definitie, "opschrift": _opschrift, "opbouw": _opbouw, "gelijkenis": _gelijkenis, "grondslag": _grondslag,
+    "definitie": _definitie, "opschrift": _opschrift, "lid_verwijzing": _lid_verwijzing, "opbouw": _opbouw, "gelijkenis": _gelijkenis, "grondslag": _grondslag,
 }
 
 
