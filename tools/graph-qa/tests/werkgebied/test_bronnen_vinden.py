@@ -117,7 +117,7 @@ ALLE = ("overzicht", "verwijzing_uit", "verwijzing_in", "definitie", "opbouw")
 
 
 def test_de_standaard_volgt_de_meting():
-    assert bronnen_vinden.standaard_voor(INVOER) == ("verwijzing_uit", "definitie", "opschrift", "lid_verwijzing", "opbouw")
+    assert bronnen_vinden.standaard_voor(INVOER) == ("verwijzing_uit", "definitie", "opschrift", "lid_verwijzing", "beleidsregel", "opbouw")
     assert bronnen_vinden.standaard_voor({**INVOER, "kern": []}) == ("overzicht",)
 
 

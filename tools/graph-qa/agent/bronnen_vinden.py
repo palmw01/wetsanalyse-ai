@@ -55,7 +55,9 @@ METHODEN = ("overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "defini
 #: `lid_verwijzing` kwam erbij na de meting van de afhankelijkheden van 18 nov 2026
 #: (`docs/architectuur/metingen/bronselectie-2026-11-18-afhankelijkheden/`): vijf nodige bepalingen meer voor 37
 #: kandidaten meer, op geen set slechter. `verwijzing_in` vond er vier, voor 77 kandidaten meer, en blijft uit.
-STANDAARD = ("verwijzing_uit", "definitie", "opschrift", "lid_verwijzing", "opbouw")
+#: `beleidsregel` kwam erbij na de meting van 18 nov 2026 (`bronselectie-2026-11-18-beleidsregel/`): zes nodige
+#: bepalingen meer (de Leidraad bij het kernartikel) voor 46 kandidaten meer, op geen set slechter.
+STANDAARD = ("verwijzing_uit", "definitie", "opschrift", "lid_verwijzing", "beleidsregel", "opbouw")
 #: Zonder kern is de analysevraag het enige vertrekpunt: dan het overzicht.
 ZONDER_KERN = ("overzicht",)
 
@@ -258,7 +260,7 @@ def q_opschriften(bwb_ids: list[str]) -> str:
 
 
 def q_beleidsregels(artikelen: list[str], kern: list[str]) -> str:
-    """De beleidsregels bij de kern en hun onderdelen. Een beleidsregel is een knoop met onderdelen (`heeftDivisie`) die
+    """De beleidsregels bij de kern en hun onderdelen (standaard aan sinds de meting van 18 nov 2026). Een beleidsregel is een knoop met onderdelen (`heeftDivisie`) die
     zelf naar het artikel van de kern verwijst ("In aansluiting op artikel 49 van de wet beschrijft dit artikel het
     beleid over:"), of het artikel van een beleidsregel waarin de kern zelf staat. Per onderdeel de titel, en of het naar
     een kernbepaling verwijst (`?naar`)."""
