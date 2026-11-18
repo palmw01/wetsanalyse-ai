@@ -191,8 +191,10 @@ class Zoekprofiel:
     #:   rang over de voorlopige top (`MAX_BELANG_FACTOR` × de grens). De signalenmeting
     #:   (`bronselectie-2026-11-17-signalen`) vond dat de sterkste knop na de vertaling, licht gedoseerd; de
     #:   rangdiagnose (`bronselectie-2026-11-17-rangschikking`) zag 27 van de 49 gemiste nodige bepalingen in de
-    #:   woordenroute op plaats 81–400. Alleen met `fusie`. Standaard **uit**: eerst meten.
-    belang: bool = False
+    #:   woordenroute op plaats 81–400. Alleen met `fusie`. Standaard **aan** sinds `bronselectie-2026-11-18-belang` en
+    #:   `-belang-model` (gepaard, dezelfde wetstermen): op de lijst 120 → 125 van 172, gekozen 104 → 107, op geen set
+    #:   lager; geen tokens, één graafvraag per honderd kandidaten.
+    belang: bool = True
 
 
 #: De rangschikking van 21 okt 2026 (F3f), voor de meting.

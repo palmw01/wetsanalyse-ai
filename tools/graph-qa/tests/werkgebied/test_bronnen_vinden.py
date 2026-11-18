@@ -793,19 +793,23 @@ class BelangGraaf(BepalingGraaf):
         return super()._antwoord(q)
 
 
-def test_het_belang_van_verwijzingen_staat_standaard_uit():
+def test_het_belang_van_verwijzingen_staat_standaard_aan():
+    from dataclasses import replace
+
     graaf = BelangGraaf()
-    assert deelvraag_zoeken.STANDAARD_PROFIEL.belang is False
+    assert deelvraag_zoeken.STANDAARD_PROFIEL.belang is True
     _opties(graaf)
-    assert graaf.belang_vragen == 0
+    assert graaf.belang_vragen == 1
+    uit = BelangGraaf()
+    _opties(uit, profiel=replace(deelvraag_zoeken.STANDAARD_PROFIEL, belang=False))
+    assert uit.belang_vragen == 0
 
 
 def test_met_het_belang_gaat_een_genoemde_bepaling_omhoog():
     from dataclasses import replace
 
-    zonder = [o["bron_iri"] for o in _opties()]
-    met = [o["bron_iri"] for o in _opties(BelangGraaf(), profiel=replace(deelvraag_zoeken.STANDAARD_PROFIEL,
-                                                                         belang=True))]
+    zonder = [o["bron_iri"] for o in _opties(profiel=replace(deelvraag_zoeken.STANDAARD_PROFIEL, belang=False))]
+    met = [o["bron_iri"] for o in _opties(BelangGraaf())]
     assert set(met) == set(zonder)
     # Het belang is één lijst in de fusie, geen gewicht: het verschuift, het verdringt niet.
     assert met.index(L9_2) < zonder.index(L9_2) and met[0] == zonder[0]
@@ -814,6 +818,6 @@ def test_met_het_belang_gaat_een_genoemde_bepaling_omhoog():
 def test_een_haperende_graaf_kost_alleen_het_belang():
     from dataclasses import replace
 
-    profiel = replace(deelvraag_zoeken.STANDAARD_PROFIEL, belang=True)
-    assert [o["bron_iri"] for o in _opties(BelangGraaf(faal_belang=True), profiel=profiel)] == \
-        [o["bron_iri"] for o in _opties()]
+    zonder = replace(deelvraag_zoeken.STANDAARD_PROFIEL, belang=False)
+    assert [o["bron_iri"] for o in _opties(BelangGraaf(faal_belang=True))] == \
+        [o["bron_iri"] for o in _opties(profiel=zonder)]
