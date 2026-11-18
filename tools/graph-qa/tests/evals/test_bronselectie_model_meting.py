@@ -237,8 +237,9 @@ def test_de_keten_neemt_op_wat_juist_is_en_telt_de_afhankelijkheden_erbij(monkey
         {"deelvraag": 0, "rol": "aanverwant", "bron_iri": "urn:bwb:X:artikel:30"},
         {"deelvraag": 1, "rol": "kern", "bron_iri": "urn:bwb:X:artikel:5"}]}
     # Het model koos bij de eerste deelvraag het kernlid en iets verkeerds, bij de tweede niets juists.
-    spoor = [{"set": "S", "vraag": "v", "gekozen": ["urn:bwb:X:artikel:24:lid:3", "urn:bwb:X:artikel:77"]},
-             {"set": "S", "vraag": "w", "gekozen": ["urn:bwb:X:artikel:6"]}]
+    spoor = [{"set": "S", "vraag": "v", "gekozen": ["urn:bwb:X:artikel:24:lid:3", "urn:bwb:X:artikel:77"],
+              "kandidaten": ["urn:bwb:X:artikel:24:lid:3", "urn:bwb:X:artikel:77", "urn:bwb:X:artikel:30"]},
+             {"set": "S", "vraag": "w", "gekozen": ["urn:bwb:X:artikel:6"], "kandidaten": ["urn:bwb:X:artikel:6"]}]
     configuraties = {"zonder": ("opbouw",), "met": ("opbouw", "lid_verwijzing")}
     r = m.keten(None, s, spoor, configuraties)
     # Alleen wat juist is, gaat de kern in; de tweede deelvraag draait niets.
@@ -246,3 +247,5 @@ def test_de_keten_neemt_op_wat_juist_is_en_telt_de_afhankelijkheden_erbij(monkey
     assert (r["nodig"], r["gekozen"]) == (3, 1)
     assert r["zonder"] == {"gevonden": 1, "kandidaten": 1}
     assert r["met"] == {"gevonden": 2, "kandidaten": 2}
+    # Na de laatste configuratie mist alleen de tweede deelvraag (het model koos niets juists), die er niet op stond.
+    assert r["missers"] == [{"deelvraag": 2, "bron_iri": "urn:bwb:X:artikel:5", "op_de_lijst": False}]
