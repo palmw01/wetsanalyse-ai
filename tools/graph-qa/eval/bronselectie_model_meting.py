@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -225,17 +226,19 @@ AFHANKELIJK_STANDAARD = ("verwijzing_uit", "definitie", "opschrift", "lid_verwij
 
 
 def afhankelijkheden_configuratie(naam: str) -> tuple[str, ...]:
-    """`standaard` = de methoden van de afhankelijkheden; `standaard+x` er een bij; `standaard-x` er een af;
-    `alleen x` alleen die."""
+    """`standaard` = de methoden van de afhankelijkheden; `standaard+x` er een bij; `standaard-x` er een af (ook samen:
+    `standaard-x-y+z`); `alleen x` alleen die."""
     if naam.startswith("alleen "):
         return (naam.removeprefix("alleen "),)
-    if naam.startswith("standaard-"):
-        weg = naam.removeprefix("standaard-")
-        return tuple(x for x in AFHANKELIJK_STANDAARD if x != weg)
-    basis, _, extra = naam.partition("+")
-    if basis != "standaard":
+    if not naam.startswith("standaard"):
         raise SystemExit(f"onbekende configuratie: {naam}")
-    return AFHANKELIJK_STANDAARD + tuple(x for x in extra.split("+") if x and x not in AFHANKELIJK_STANDAARD)
+    methoden = list(AFHANKELIJK_STANDAARD)
+    for teken, methode in re.findall(r"([+-])([a-z_]+)", naam.removeprefix("standaard")):
+        if teken == "-":
+            methoden = [x for x in methoden if x != methode]
+        elif methode not in methoden:
+            methoden.append(methode)
+    return tuple(methoden)
 
 
 def afhankelijkheden_per_deelvraag(graaf: Any, s: dict[str, Any], methoden: tuple[str, ...]) -> dict[str, Any]:
@@ -267,6 +270,43 @@ def afhankelijkheden_per_deelvraag(graaf: Any, s: dict[str, Any], methoden: tupl
             else:
                 missers.append(f"DV{i + 1} {iri.split(':', 1)[-1]}")
     return {**totaal, "missers": missers}
+
+
+def keten(graaf: Any, s: dict[str, Any], spoor: list[dict[str, Any]],
+          configuraties: dict[str, tuple[str, ...]]) -> dict[str, Any]:
+    """De hele keten per deelvraag: het model kiest (het spoor van de eerste ronde), de jurist neemt op wat juist is (wat
+    het model koos en een verwachte bepaling van die deelvraag raakt), en daarop draaien de methoden van de
+    afhankelijkheden, per configuratie. Telt van de nodige bepalingen (kern en afhankelijkheid) hoeveel er na de keuze
+    staan (`gekozen`), en per configuratie hoeveel er na de afhankelijkheden staan, precies of eronder, met de
+    kandidaten die dat kostte. Gepaard: elke configuratie op dezelfde keuze, 0 tokens."""
+    from agent.bronnen_vinden import _binnen, vind
+    from eval.bronselectie_eval import _raakt
+
+    per_vraag = {e["vraag"]: e for e in spoor if e["set"] == s["naam"]}
+    uit = {"nodig": 0, "gekozen": 0, **{c: {"gevonden": 0, "kandidaten": 0} for c in configuraties}}
+    for i, vraag in enumerate(s["deelvragen"]):
+        e = per_vraag.get(vraag)
+        if e is None:
+            continue
+        verwacht = [v["bron_iri"] for v in s["verwacht"] if v["deelvraag"] == i]
+        nodig = [v["bron_iri"] for v in s["verwacht"] if v["deelvraag"] == i and v["rol"] in ("kern", "afhankelijkheid")]
+        opgenomen = [c for c in e["gekozen"] if any(_raakt(c, x) for x in verwacht)]
+        uit["nodig"] += len(nodig)
+        al = {iri for iri in nodig if any(_raakt(c, iri) for c in opgenomen)}
+        uit["gekozen"] += len(al)
+        if not opgenomen:
+            continue
+        invoer = {"naam": s["naam"], "analysevraag": s.get("analysevraag", ""), "context": [],
+                  "regelingen": s.get("regelingen") or [],
+                  "dossier": {"afbakening": "Buiten de afbakening: " + s.get("buiten", "")},
+                  "kern": [{"bron_iri": k, "label": "", "bwb_id": k.split(":")[2], "bereik": "onderliggend"}
+                           for k in opgenomen]}
+        for c, methoden in configuraties.items():
+            kand = [k["bron_iri"] for k in vind(graaf, invoer, methoden)["kandidaten"]]
+            uit[c]["kandidaten"] += len(kand)
+            uit[c]["gevonden"] += len(al) + sum(1 for iri in nodig if iri not in al
+                                                 and any(_binnen(k, iri) for k in kand))
+    return uit
 
 
 def meet_afhankelijkheden(a: argparse.Namespace) -> int:
@@ -370,6 +410,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--afhankelijkheden", default="",
                    help="zonder model: de methoden van de afhankelijkheden vanuit de verwachte kern per deelvraag, per "
                         "configuratie, bv. standaard,standaard+lid_verwijzing")
+    p.add_argument("--keten", default="",
+                   help="na de eerste modelronde: de hele keten (keuze, opnemen wat juist is, de afhankelijkheden) per "
+                        "configuratie van de afhankelijkheden, bv. standaard-lid_verwijzing-beleidsregel,standaard")
     p.add_argument("--rangen", action="store_true",
                    help="bij --kandidaten: de plaats van elke nodige bepaling die niet bij de 80 kwam, per lijst")
     a = p.parse_args(argv)
@@ -412,6 +455,8 @@ def main(argv: list[str] | None = None) -> int:
     afval_variant = {v: {f: 0 for f in FASEN} for v in sporen}
     totaal_afval_wg = {f: 0 for f in FASEN}
     totaal_verkeerd: dict[str, int] = {}
+    ketens = {c: afhankelijkheden_configuratie(c) for c in a.keten.split(",") if c}
+    keten_totaal: dict[str, Any] = {"nodig": 0, "gekozen": 0, **{c: {"gevonden": 0, "kandidaten": 0} for c in ketens}}
     try:
         for naam, s in sets(lezer(a.lokaal)):
             if llm.meter.totaal > MAX_TOKENS:
@@ -424,6 +469,17 @@ def main(argv: list[str] | None = None) -> int:
             val = afval(graaf, s, spoor)
             for f, n in val["telling"].items():
                 totaal_afval[f] += n
+            if ketens:
+                k = keten(graaf, s, spoor, ketens)
+                rapport_keten = k
+                keten_totaal["nodig"] += k["nodig"]
+                keten_totaal["gekozen"] += k["gekozen"]
+                for c in ketens:
+                    for m in ("gevonden", "kandidaten"):
+                        keten_totaal[c][m] += k[c][m]
+                print(f"{naam:40} keten: gekozen {k['gekozen']}/{k['nodig']} | "
+                      + " | ".join(f"{c} {k[c]['gevonden']}/{k['nodig']} ({k[c]['kandidaten']} kand.)" for c in ketens),
+                      flush=True)
             val_wg = afval(graaf, s, spoor_wg) if a.werkgebied else None
             for f, n in (val_wg or {}).get("telling", {}).items():
                 totaal_afval_wg[f] += n
@@ -433,7 +489,8 @@ def main(argv: list[str] | None = None) -> int:
                                                                "verkeerde_deelvraag", "verkeerd")}
                                         | {"per_deelvraag": [{"opties": d["opties"]} for d in v["per_deelvraag"]]}
                                         for k, v in r.items()},
-                             "afval": val, **({"afval_werkgebied": val_wg} if val_wg else {})}
+                             "afval": val, **({"afval_werkgebied": val_wg} if val_wg else {}),
+                             **({"keten": rapport_keten} if ketens else {})}
             for v, sp in sporen.items():
                 val_v = afval(graaf, s, sp)
                 rapport[naam][f"afval {v}"] = val_v
@@ -461,6 +518,10 @@ def main(argv: list[str] | None = None) -> int:
                       flush=True)
     finally:
         graaf.close()
+    if ketens:
+        print(f"KETEN TOTAAL (nodig gevonden / nodig, kandidaten): gekozen {keten_totaal['gekozen']}/{keten_totaal['nodig']}"
+              " | " + " | ".join(f"{c} {keten_totaal[c]['gevonden']}/{keten_totaal['nodig']} "
+                                 f"({keten_totaal[c]['kandidaten']})" for c in ketens), flush=True)
     print("AFVAL TOTAAL: " + ", ".join(f"{f} {n}" for f, n in totaal_afval.items()), flush=True)
     for v, tel in afval_variant.items():
         print(f"AFVAL TOTAAL {v}: " + ", ".join(f"{f} {n}" for f, n in tel.items()), flush=True)
@@ -472,6 +533,7 @@ def main(argv: list[str] | None = None) -> int:
         a.json.write_text(json.dumps({"verbruik": llm.meter.als_dict(), "afval": totaal_afval,
                                       "afval_werkgebied": totaal_afval_wg, "verkeerde_deelvraag": totaal_verkeerd,
                                       "afval_varianten": afval_variant,
+                                      **({"keten": keten_totaal} if ketens else {}),
                                       "sets": rapport},
                                      ensure_ascii=False, indent=1))
     return 0

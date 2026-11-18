@@ -216,3 +216,33 @@ def test_de_meting_van_de_afhankelijkheden_telt_vanuit_de_verwachte_kern(monkeyp
     assert gezien["kern"] == ["urn:bwb:X:artikel:24:lid:3"]
     assert (r["nodig"], r["gevonden"], r["via_artikel"], r["kandidaten"]) == (3, 1, 1, 2)
     assert r["missers"] == ["DV1 bwb:X:artikel:20:lid:1"]
+
+
+def test_de_keten_neemt_op_wat_juist_is_en_telt_de_afhankelijkheden_erbij(monkeypatch):
+    import agent.bronnen_vinden as bv
+
+    assert m.afhankelijkheden_configuratie("standaard-lid_verwijzing-beleidsregel") == tuple(
+        x for x in m.AFHANKELIJK_STANDAARD if x not in ("lid_verwijzing", "beleidsregel"))
+    gezien = []
+
+    def vind(graaf, invoer, methoden):
+        gezien.append(([k["bron_iri"] for k in invoer["kern"]], methoden))
+        extra = [{"bron_iri": "urn:bwb:X:artikel:24:lid:4"}] if "lid_verwijzing" in methoden else []
+        return {"kandidaten": [{"bron_iri": "urn:bwb:X:artikel:99"}, *extra]}
+
+    monkeypatch.setattr(bv, "vind", vind)
+    s = {"naam": "S", "deelvragen": ["v", "w"], "verwacht": [
+        {"deelvraag": 0, "rol": "kern", "bron_iri": "urn:bwb:X:artikel:24:lid:3"},
+        {"deelvraag": 0, "rol": "afhankelijkheid", "bron_iri": "urn:bwb:X:artikel:24:lid:4"},
+        {"deelvraag": 0, "rol": "aanverwant", "bron_iri": "urn:bwb:X:artikel:30"},
+        {"deelvraag": 1, "rol": "kern", "bron_iri": "urn:bwb:X:artikel:5"}]}
+    # Het model koos bij de eerste deelvraag het kernlid en iets verkeerds, bij de tweede niets juists.
+    spoor = [{"set": "S", "vraag": "v", "gekozen": ["urn:bwb:X:artikel:24:lid:3", "urn:bwb:X:artikel:77"]},
+             {"set": "S", "vraag": "w", "gekozen": ["urn:bwb:X:artikel:6"]}]
+    configuraties = {"zonder": ("opbouw",), "met": ("opbouw", "lid_verwijzing")}
+    r = m.keten(None, s, spoor, configuraties)
+    # Alleen wat juist is, gaat de kern in; de tweede deelvraag draait niets.
+    assert [k for k, _ in gezien] == [["urn:bwb:X:artikel:24:lid:3"]] * 2
+    assert (r["nodig"], r["gekozen"]) == (3, 1)
+    assert r["zonder"] == {"gevonden": 1, "kandidaten": 1}
+    assert r["met"] == {"gevonden": 2, "kandidaten": 2}
