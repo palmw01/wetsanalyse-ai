@@ -29,7 +29,7 @@ PEIL_S = 2.0
 
 METHODE_NAAM = {"overzicht": "Overzicht op de analysevraag", "deelvraag": "Overzicht per deelvraag",
                 "verwijzing_uit": "Verwijzingen vanuit de kern",
-                "verwijzing_in": "Verwijzingen naar de kern", "definitie": "Definities van termen",
+                "verwijzing_in": "Verwijzingen naar de kern", "definitie": "Definities van termen", "opschrift": "Opschriften van artikelen",
                 "opbouw": "Opbouw van de wet", "gelijkenis": "Tekstuele gelijkenis"}
 
 WEIGERING = {"geen_vertrekpunt": "Geef het werkgebied een analysevraag of neem eerst een bepaling op om te "

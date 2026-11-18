@@ -101,6 +101,7 @@ GEVALLEN: list[tuple[str, str]] = [
     ("deelvraag_zoeken.q_aantal", deelvraag_zoeken.q_aantal("termijn*", [IW])),
     ("deelvraag_zoeken.q_definitie_teksten", deelvraag_zoeken.q_definitie_teksten("termijn*", [IW])),
     ("bronnen_vinden.q_definities", bronnen_vinden.q_definities([IW], 10)),
+    ("bronnen_vinden.q_opschriften", bronnen_vinden.q_opschriften([IW])),
     ("bronnen_vinden.q_opbouw", bronnen_vinden.q_opbouw([f"urn:bwb:{IW}:artikel:4"])),
     ("plekken.q_plekken", plekken.q_plekken([f"urn:bwb:{IW}:artikel:4"])),
     ("regelingnamen._query", regelingnamen._query([IW])),
