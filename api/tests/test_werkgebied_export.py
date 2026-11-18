@@ -17,6 +17,7 @@ from app import (annotatie_v2_store as store, bestandsnaam, markdown_opmaak, pdf
 from app.werkgebied_rapport import (Begrippen, Rapport, Stand, Wettekst, deelvragen_regels, dossier_regels, niet_meegenomen_regels,
                                    rapport_regels)
 from pydantic import BaseModel, ValidationError
+from app.jas_klassen import JAS_KLASSE_KLEUREN
 from gedeelde_bron import ART, LAW, ONE, TWO, element, request, snapshot
 from test_begrippen import _annoteer, _begrip, _beslis, _keur_alles_goed, _url, _werkgebied
 from gedeelde_bron import ART2, LAW2, _bron, _nieuw, client, database, graaf, snapshot2  # noqa: F401
@@ -620,8 +621,8 @@ async def test_markdown_en_pdf_hebben_dezelfde_inhoud(client):
     for stijl, regel in export.regels(data, V):
         if stijl == pdf_opmaak.SPANS:                                  # geen tekst: de markeringen in het citaat erna
             continue
-        if stijl == "Citaat" and "⁽" in tekst:                          # een gemarkeerd citaat: zonder ** en nummers letterlijk
-            assert regel in re.sub(r"⁽[⁰¹²³⁴⁵⁶⁷⁸⁹]+⁾", "", tekst.replace("**", "")), regel
+        if stijl == "Citaat" and "⁽" in tekst:                          # een gemarkeerd citaat: zonder **, haken en nummers letterlijk
+            assert regel in re.sub(r"⁽[⁰¹²³⁴⁵⁶⁷⁸⁹]+⁾|[⸢⸣]", "", tekst.replace("**", "")), regel
         elif stijl == pdf_opmaak.TITELBLAD + "rij":                      # een rij wordt "- **Label:** waarde"
             label, _, waarde = regel.partition(": ")
             assert f"- **{label}:** {waarde}" in tekst, regel
@@ -970,9 +971,25 @@ def test_overlappende_markeringen_zijn_deterministisch_en_de_woorden_blijven_let
     a = pdf_opmaak.gemarkeerd(t, spans)
     assert a == pdf_opmaak.gemarkeerd(t, list(reversed(spans)))
     assert re.sub(r"<super>.*?</super>|<[^>]+>", "", a) == t
-    assert "<u>" in a                                                    # waar er twee overlappen
+    # Optie B: de rechtsbetrekking omvat het rechtssubject, dus zij is een baan in haar randkleur; de rest heeft een vlak.
+    rf, rs, rb = (JAS_KLASSE_KLEUREN[k] for k in ("Rechtsfeit", "Rechtssubject", "Rechtsbetrekking"))
+    assert f'backColor="{rf[0]}"' in a and f'backColor="{rs[0]}"' in a and f'backColor="{rb[0]}"' not in a
+    assert f'<u color="{rb[1]}"' in a and a.count("<u ") == 2         # "aan " en "de belanghebbende"
     md = markdown_opmaak.markdown([(pdf_opmaak.SPANS, json.dumps([list(x) for x in spans])), ("Citaat", t)])
-    assert md.strip() == "> vindt **uitbetaling⁽¹⁾** **aan de belanghebbende⁽²⁾⁽³⁾** plaats"
+    assert md.strip() == "> vindt **uitbetaling⁽¹⁾** ⸢aan **de belanghebbende⁽²⁾**⸣⁽³⁾ plaats"
+
+
+def test_drie_niveaus_in_het_citaat_krijgen_twee_banen_en_een_ruimere_regelafstand():
+    t = "Ingeval de grootte bekend is, kan de inspecteur een aanslag opleggen."
+    spans = [(0, len(t), 1, "Rechtsbetrekking"), (0, 28, 2, "Voorwaarde"), (8, 18, 3, "Variabele en variabelewaarde"),
+             (34, 47, 4, "Rechtssubject")]
+    assert pdf_opmaak.citaatbanen(t, spans).aantal == 2
+    a = pdf_opmaak.gemarkeerd(t, spans)
+    assert 'offset="-2.6"' in a and 'offset="-6.2"' in a
+    md = markdown_opmaak.markdown([(pdf_opmaak.SPANS, json.dumps([list(x) for x in spans])), ("Citaat", t)])
+    assert md.strip() == ("> ⸢⸢Ingeval **de grootte⁽³⁾** bekend is⸣⁽²⁾, kan **de inspecteur⁽⁴⁾** een aanslag opleggen.⸣⁽¹⁾")
+    spoor: list[dict] = []
+    assert pdf_opmaak.render([(pdf_opmaak.SPANS, json.dumps([list(x) for x in spans])), ("Citaat", t)], spoor=spoor).startswith(b"%PDF")
 
 
 async def test_de_route_geeft_het_document_als_json_met_een_schema_dat_erbij_hoort(client):
