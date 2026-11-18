@@ -87,7 +87,8 @@ def _maat(r: dict[str, Any], sleutel: str) -> str:
 #: ook in `--kandidaten` een model (~1k tokens per deelvraag).
 VARIANTEN = {"definitie_brug": {"definitie_brug": True}, "verwijzingen": {"verwijzingen": True},
              "wetstermen": {"wetstermen": True}, "zonder_wetstermen": {"wetstermen": False},
-             "rrf": {"menging": "rrf"}, "belang": {"belang": True},
+             "rrf": {"menging": "rrf"}, "woorden_2": {"menging": "woorden_2"}, "woorden_3": {"menging": "woorden_3"},
+             "belang": {"belang": True},
              "zonder_belang": {"belang": False}, "zonder_afbakening": {"afbakening_onderdelen": False}}
 
 

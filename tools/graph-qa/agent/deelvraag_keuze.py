@@ -44,7 +44,9 @@ SYSTEEM = (
 #: De constante van de reciprocal rank fusion (`menging="rrf"`): de gangbare 60, zodat de eerste plaatsen van een lijst
 #: niet alles bepalen.
 RRF_K = 60
-MENGINGEN = ("afwisselend", "rrf")
+MENGINGEN = ("afwisselend", "rrf", "woorden_2", "woorden_3")
+#: Hoeveel uit de woordenroute er per kandidaat uit de pool komen bij `woorden_<n>` (proef, 18 nov 2026).
+VERHOUDING = {"afwisselend": 1, "woorden_2": 2, "woorden_3": 3}
 
 
 def _kandidaat(o: dict[str, Any]) -> dict[str, Any]:
@@ -83,14 +85,18 @@ def kandidaten(uit_pool: list[dict[str, Any]], woorden: list[dict[str, Any]],
              [{**o, "bron": "woorden"} for o in woorden if not o.get("buiten")]]
     if menging == "rrf":
         return _rrf(rijen, maximaal)
+    # Om de beurt, in gelijke pas: per ronde de volgende uit de pool en `VERHOUDING[menging]` uit de woordenroute (de
+    # deelvraag zelf); een bepaling die er al staat, slaat haar beurt over.
+    stap = (1, VERHOUDING[menging])
     uit: list[dict[str, Any]] = []
     gezien: set[str] = set()
     i = 0
-    while len(uit) < maximaal and any(i < len(r) for r in rijen):
-        for r in rijen:
-            if i < len(r) and r[i]["bron_iri"] not in gezien and len(uit) < maximaal:
-                gezien.add(r[i]["bron_iri"])
-                uit.append(_kandidaat(r[i]))
+    while len(uit) < maximaal and any(i * s < len(r) for r, s in zip(rijen, stap)):
+        for r, s in zip(rijen, stap):
+            for o in r[i * s:(i + 1) * s]:
+                if o["bron_iri"] not in gezien and len(uit) < maximaal:
+                    gezien.add(o["bron_iri"])
+                    uit.append(_kandidaat(o))
         i += 1
     return uit
 
