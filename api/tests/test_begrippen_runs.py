@@ -246,6 +246,38 @@ async def test_een_afwijzing_blijft_staan_als_de_groep_terugkomt(client):
     assert r.json()["groepen"][0]["besluit"] == "open"
 
 
+async def test_afwijzen_met_buiten_behandeling_laat_de_passages_niet_terugvallen(client):
+    """P21: "geen begrip" is een besluit over de passages. Zonder dat besluit vallen ze terug op te verwerken."""
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    run = await _start(client, wg)
+    await _uitkomst(client, wg, run, [_groep("Gaaa111", [ids["alfa1"], ids["alfa2"]])])
+    url = f"/v1/werkgebieden/{wg['id']}/groepen/Gaaa111/afwijzen"
+    r = await client.post(url, json={"reden": " ", "passages": "buiten_behandeling"})
+    assert r.status_code == 422
+    r = await client.post(url, json={"reden": "Een verwijzingsformule, geen begrip.", "passages": "buiten_behandeling"})
+    assert r.status_code == 200, r.text
+    assert r.json()["groepen"][0]["besluit"] == "afgewezen"
+    d = (await client.get(f"/v1/werkgebieden/{wg['id']}/dekking")).json()
+    per = {e["element_id"]: e for e in d["elementen"]}
+    for eid in (ids["alfa1"], ids["alfa2"]):
+        assert per[eid]["stand"] == "buiten_behandeling"
+        assert per[eid]["buiten_behandeling"]["reden"] == "Een verwijzingsformule, geen begrip."
+    # Een tweede keer: de groep blijft afgewezen en de passages staan al buiten behandeling.
+    r = await client.post(url, json={"reden": "Nog eens", "passages": "buiten_behandeling"})
+    assert r.status_code == 200
+
+
+async def test_afwijzen_zonder_keuze_laat_de_passages_open(client):
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    run = await _start(client, wg)
+    await _uitkomst(client, wg, run, [_groep("Gaaa111", [ids["alfa1"], ids["alfa2"]])])
+    await client.post(f"/v1/werkgebieden/{wg['id']}/groepen/Gaaa111/afwijzen", json={"reden": "Later bekijken"})
+    d = (await client.get(f"/v1/werkgebieden/{wg['id']}/dekking")).json()
+    assert {e["stand"] for e in d["elementen"] if e["element_id"] in (ids["alfa1"], ids["alfa2"])} == {"te_verwerken"}
+
+
 async def test_een_twijfelvraag_beantwoorden(client):
     ids = await _annoteer()
     wg = await _werkgebied(client)

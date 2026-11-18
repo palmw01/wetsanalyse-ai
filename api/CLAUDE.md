@@ -770,8 +770,11 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   openstaat, noemt `aandachtspunten` (ook een dragende annotatie die een jurist nog niet beoordeelde).
 - **Dekking** (`GET …/dekking`): elk element van de inventaris één keer, voorrang `gekoppeld` (dragend
   aan een geaccordeerd begrip) → `buiten_behandeling` → `voorstel` (concept-begrip of open groep van de
-  laatste klare run) → `te_verwerken`; plus `nieuw_sinds_run` (niet in manifest of `overgeslagen` van die
-  run). `POST …/dekking/buiten-behandeling {element_ids, reden}` (reden verplicht, idempotent, tabel
+  laatste klare run) → `bij_drager` (een voorwaarde met een beoordeelde ADR-011-relatie `voorwaarde` vanaf een
+  niet-verworpen drager: ze krijgt geen begrip, M01 h.6–7) → `te_verwerken`; plus `nieuw_sinds_run` (niet in manifest
+  of `overgeslagen` van die run). Per element `verwacht` (`jas_begripverwachting`, gegenereerd uit de skill:
+  `begrip`, `omschrijving` of `definitie`) en `zonder_samenhang` (geen relatie, ook geen voorstel, en zelf geen centrale
+  klasse: een vraag, geen stand, M02 §3.4.2c); `per_klasse` met de totalen per klasse in JAS-volgorde. `POST …/dekking/buiten-behandeling {element_ids, reden}` (reden verplicht, idempotent, tabel
   `werkgebied_element_besluiten`) en `DELETE …/buiten-behandeling/{element_id}` (soft). Audit
   `element-buiten-behandeling` / `element-in-behandeling`; geen revisie, het raakt de scope niet.
 - Tests: `tests/test_begrip_onderhoud.py`.

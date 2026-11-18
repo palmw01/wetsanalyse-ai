@@ -19,8 +19,11 @@ blijft.*
   de inhoud verandert niet, en zolang er iets open staat zegt de aandacht dat. Geen statuswijziging
   zonder handeling van een mens.
 - **Dekking** (`dekking`): elk element van de inventaris één keer in `te_verwerken`, `voorstel`,
-  `gekoppeld` (aan een geaccordeerd begrip) of `buiten_behandeling` (bewust, met reden), plus
-  `nieuw_sinds_run` voor wat de laatste klare begrippenrun niet zag.
+  `gekoppeld` (aan een geaccordeerd begrip), `bij_drager` (een voorwaarde die aan haar drager hangt) of
+  `buiten_behandeling` (bewust, met reden), plus `nieuw_sinds_run` voor wat de laatste klare begrippenrun niet zag.
+  Per element staat wat de methode verwacht (`verwacht`, uit `jas_begripverwachting`: een begrip, een omschrijving of
+  een definitie), en `zonder_samenhang` als het geen relatie (ADR-011) heeft en zelf geen centrale klasse is: dat is
+  een vraag ("hoort deze erbij?", M02 §3.4.2c), geen stand. De totalen staan er ook per klasse.
 """
 from __future__ import annotations
 
@@ -31,7 +34,9 @@ from fastapi import HTTPException
 from bronmodel import tekst_hash
 from sqlalchemy import insert, select, update
 
-from . import begrip_relatie_store, begrip_store, begrippen_run_store, db
+from . import annotatie_v2_relaties, begrip_relatie_store, begrip_store, begrippen_run_store, db, jas_relaties
+from .jas_begripverwachting import verwacht as verwachting_van
+from .jas_klassen import JAS_KLASSEN_VOLGORDE
 from .annotatie_v2_contracts import BEOORDEELD, is_vervangen
 from .begrip_manifest import _vindplaats
 from .begrip_onderhoud_contracts import Bevestiging, Bevestigingen, BuitenBehandeling, Herkoppeling
@@ -376,7 +381,23 @@ async def bevestig_alle(werkgebied: dict, begrip_id: str, bv: Bevestigingen, act
 
 # --- dekking -----------------------------------------------------------------------------------
 
-STANDEN = ("te_verwerken", "voorstel", "gekoppeld", "buiten_behandeling")
+STANDEN = ("te_verwerken", "voorstel", "gekoppeld", "bij_drager", "buiten_behandeling")
+
+
+def _samenhang(relaties: list[dict]) -> tuple[set[str], set[str]]:
+    """Uit de relaties van de inventaris: welke elementen een relatie hebben, en welke voorwaarden aan een drager
+    hangen (het type `voorwaarde`, ADR-011). Een afgewezen relatie telt niet: die is niet vastgelegd. Voor de samenhang
+    telt een voorstel van de keten mee (het laat zien waar een element bij hoort); voor `bij_drager` alleen een relatie
+    die een jurist beoordeelde, naar een drager die niet verworpen is: de mens beoordeelt, niet de keten."""
+    met_relatie, bij_drager = set(), set()
+    for r in relaties:
+        if r.get("lifecycle") == "rejected":
+            continue
+        met_relatie |= {k["id"] for k in (r["van"], r["naar"]) if k.get("soort") == "element"}
+        if (r["type"] == "voorwaarde" and r["naar"].get("soort") == "element" and r.get("lifecycle") in BEOORDEELD
+                and r["van"].get("bestaat", True) and r["van"].get("lifecycle") != "rejected"):
+            bij_drager.add(r["naar"]["id"])
+    return met_relatie, bij_drager
 
 
 async def _besluiten(conn, werkgebied_id: str) -> dict[str, dict]:
@@ -389,7 +410,8 @@ async def _besluiten(conn, werkgebied_id: str) -> dict[str, dict]:
 async def dekking(werkgebied: dict, resolve: Resolver) -> dict:
     """Elk element van de inventaris één keer. Volgorde van voorrang: gekoppeld (een dragende koppeling
     met een geaccordeerd begrip) → buiten behandeling → voorstel (een concept-begrip of een open groep)
-    → te verwerken. De voortgang zegt niets over juridische dekking (PLAN §D)."""
+    → bij drager (een voorwaarde met een relatie naar haar drager: ze krijgt geen begrip, M01 h.6–7) → te verwerken.
+    De voortgang zegt niets over juridische dekking (PLAN §D)."""
     inv = await inventaris(werkgebied["bronnen"], resolve)
     b = db.begrippen
     async with db.get_engine().connect() as conn:
@@ -407,8 +429,15 @@ async def dekking(werkgebied: dict, resolve: Resolver) -> dict:
     for k in koppelingen:
         if k["beoordeling"] != "afgewezen" and k["begrip_id"] in status:
             per_element.setdefault(k["element_id"], []).append(k)
+    relaties = await annotatie_v2_relaties.bij_elementen({e["id"] for e in inv["elementen"]}) \
+        if inv["elementen"] else []
+    met_relatie, aan_drager = _samenhang(relaties)
+    centraal = set(jas_relaties.CENTRALE_KLASSEN)
     elementen, totalen = [], dict.fromkeys(STANDEN, 0)
+    per_klasse: dict[str, dict[str, int]] = {}
     for e in inv["elementen"]:
+        klasse = e.get("klasse", "")
+        verwacht = verwachting_van(klasse)
         ks = per_element.get(e["id"], [])
         begrippen = sorted({(k["begrip_id"], status[k["begrip_id"]][1], k["rol"]) for k in ks})
         if any(k["rol"] in begrip_store.DRAGEND and status[k["begrip_id"]][0] == "geaccordeerd" for k in ks):
@@ -417,15 +446,23 @@ async def dekking(werkgebied: dict, resolve: Resolver) -> dict:
             stand = "buiten_behandeling"
         elif ks or e["id"] in in_groep:
             stand = "voorstel"
+        elif verwacht == "omschrijving" and e["id"] in aan_drager:
+            stand = "bij_drager"
         else:
             stand = "te_verwerken"
         totalen[stand] += 1
-        elementen.append({"element_id": e["id"], "tekst": e.get("tekst", ""), "klasse": e.get("klasse", ""),
-                          "rol": e["rol"], "stand": stand,
+        per_klasse.setdefault(klasse, dict.fromkeys(STANDEN, 0))[stand] += 1
+        elementen.append({"element_id": e["id"], "tekst": e.get("tekst", ""), "klasse": klasse,
+                          "rol": e["rol"], "stand": stand, "verwacht": verwacht,
+                          "zonder_samenhang": klasse not in centraal and e["id"] not in met_relatie,
                           "begrippen": [{"begrip_id": i, "naam": n, "rol": r} for i, n, r in begrippen],
                           "buiten_behandeling": besluiten.get(e["id"]),
                           "nieuw_sinds_run": gezien is not None and e["id"] not in gezien})
+    volgorde = {k: i for i, k in enumerate(JAS_KLASSEN_VOLGORDE)}
+    klassen = [{"klasse": k, "verwacht": verwachting_van(k), "totalen": t, "totaal": sum(t.values())}
+               for k, t in sorted(per_klasse.items(), key=lambda kv: (volgorde.get(kv[0], len(volgorde)), kv[0]))]
     return {"werkgebied_id": werkgebied["id"], "totalen": totalen, "totaal": len(elementen),
+            "per_klasse": klassen, "zonder_samenhang": sum(x["zonder_samenhang"] for x in elementen),
             "nieuw_sinds_run": sum(x["nieuw_sinds_run"] for x in elementen),
             "laatste_run": run.id if run is not None else None,
             "elementen": elementen, "volledig": inv["volledig"]}

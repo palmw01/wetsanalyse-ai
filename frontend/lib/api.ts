@@ -1854,13 +1854,17 @@ export async function koppelGroep(
     jsonInit("POST", { begrip_id: begripId, ...(elementIds ? { element_ids: elementIds } : {}), ...(akkoord ? { akkoord } : {}) })));
 }
 
+/** Met `passages: "buiten_behandeling"` (alleen bij afwijzen) krijgen de passages geen begrip: ze gaan met dezelfde
+ *  reden buiten behandeling, zodat de dekking ze niet als te verwerken blijft tellen. */
 export async function besluitGroep(
   id: string,
   groepId: string,
   besluit: "afwijzen" | "parkeren" | "heropenen",
   reden = "",
+  passages: "laten" | "buiten_behandeling" = "laten",
 ): Promise<GroepenAntwoord> {
-  return json<GroepenAntwoord>(await fetch(wg(id, "groepen", groepId, besluit), jsonInit("POST", { reden })));
+  const body = besluit === "afwijzen" ? { reden, passages } : { reden };
+  return json<GroepenAntwoord>(await fetch(wg(id, "groepen", groepId, besluit), jsonInit("POST", body)));
 }
 
 export async function beantwoordVraag(id: string, runId: string, kandidaatId: string, antwoord: "samen" | "apart"): Promise<BegrippenRun> {

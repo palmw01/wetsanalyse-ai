@@ -16,7 +16,8 @@ import {
   zetTerugInBehandeling,
 } from "@/lib/api";
 import { KOPPELROL_LABEL } from "@/lib/begrippen";
-import { DEKKING_LABEL, DEKKING_VOLGORDE } from "@/lib/herbeoordeling";
+import { DEKKING_LABEL, DEKKING_VOLGORDE, VERWACHT_LABEL } from "@/lib/herbeoordeling";
+import { Uitklap } from "@/components/ui/Uitklap";
 import type {
   BegripSamenvatting, BegrippenLijst, BronRol, Dekking, DekkingElement, Inventaris, InventarisElement, KoppelRol,
 } from "@/lib/types";
@@ -261,6 +262,28 @@ function DekkingBalk({ dekking: d }: { dekking: Dekking }) {
           <li key={st}><span className="font-semibold text-ink">{d.totalen[st]}</span> {DEKKING_LABEL[st]}</li>
         ))}
       </ul>
+      {!!d.per_klasse?.length && (
+        <Uitklap samenvatting="Per klasse" className="mt-1">
+          <ul aria-label="Dekking per klasse" className="mt-1 space-y-0.5 text-xs text-muted">
+            {d.per_klasse.map((k) => (
+              <li key={k.klasse}>
+                <span className="font-medium text-ink">{k.klasse}</span> ({VERWACHT_LABEL[k.verwacht]}):{" "}
+                {DEKKING_VOLGORDE.filter((st) => k.totalen[st] > 0).map((st) => `${k.totalen[st]} ${DEKKING_LABEL[st]}`).join(", ")}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-2xs text-faint">
+            Elke geclassificeerde formulering krijgt een begrip, behalve een voorwaarde (een omschrijving bij haar drager)
+            en een brondefinitie (de definitie van een begrip).
+          </p>
+        </Uitklap>
+      )}
+      {!!d.zonder_samenhang && (
+        <p className="mt-1 text-xs text-aandacht-geel-tekst">
+          {aantal(d.zonder_samenhang, "element hangt", "elementen hangen")} nergens aan een rechtsbetrekking, rechtsfeit,
+          afleidingsregel of voorwaarde. Hoort het bij de analyse? Zo niet, zet het buiten behandeling.
+        </p>
+      )}
       {d.nieuw_sinds_run > 0 && (
         <p className="mt-1 text-xs text-aandacht-geel-tekst">
           {aantal(d.nieuw_sinds_run, "element zag", "elementen zagen")} de laatste
@@ -311,6 +334,16 @@ function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip, dekk
             {e.deels_buiten && (
               <p className="text-xs text-aandacht-geel-tekst">
                 Valt deels buiten de selecties van dit werkgebied; het werkgebied is niet stil verbreed.
+              </p>
+            )}
+            {dekking?.verwacht && dekking.verwacht !== "begrip" && (
+              <p className="text-xs text-muted">{dekking.verwacht === "omschrijving"
+                ? "Een voorwaarde krijgt geen begrip, wel een plek bij haar drager (een relatie in de annotatie)."
+                : "Een brondefinitie is de definitie van een begrip: koppel haar met de rol “Ondersteunt de definitie”."}</p>
+            )}
+            {dekking?.zonder_samenhang && dekking.stand === "te_verwerken" && (
+              <p className="text-xs text-aandacht-geel-tekst">
+                Hangt nergens aan een rechtsbetrekking, rechtsfeit, afleidingsregel of voorwaarde. Hoort het bij de analyse?
               </p>
             )}
             {dekking?.nieuw_sinds_run && (

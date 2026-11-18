@@ -280,7 +280,8 @@ try {
   await page.keyboard.type("Verschillende termijnen");
   await page.keyboard.press("Enter");
   await page.getByText("Al besloten (1)").waitFor();
-  assert.deepEqual(laatsteBody("/groepen/G4/afwijzen"), { reden: "Verschillende termijnen" });
+  // P21: geen begrip is een besluit over de passages; ze gaan buiten behandeling.
+  assert.deepEqual(laatsteBody("/groepen/G4/afwijzen"), { reden: "Verschillende termijnen", passages: "buiten_behandeling" });
 
   // 6. De rest van belastingschuldige voor later, en weer heropenen.
   await naarTerm("belastingschuldige");
