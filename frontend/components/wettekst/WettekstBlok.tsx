@@ -1,16 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode, type Ref } from "react";
 
 import { StandMelding } from "@/components/ui/StandMelding";
 import { nogNietInWerking, type NodeElement, type NodeSegment } from "@/lib/annotatieNode";
-import { spansVan } from "@/lib/graaf/spans";
+import { aantalBanen, spansVan } from "@/lib/graaf/spans";
 import { markeer } from "@/lib/herbeoordeling";
 import { NOG_NIET_IN_WERKING } from "@/lib/herkomst";
 import type { SegmentPlek } from "@/lib/annotatieNodeAdapter";
-import { jasStyle, klasseLabel } from "@/lib/jas";
-import { segmentenVanBlok } from "@/lib/markeerlaag";
+import { jasRandKleur, jasStyle, klasseLabel } from "@/lib/jas";
+import { baanStijl, regelhoogte } from "@/lib/markeerbanen";
+import { banenInBlok, segmentenVanBlok, type Laag } from "@/lib/markeerlaag";
 import { offsetInBlok, snapSelectie } from "@/lib/selectie";
 import { ontleed } from "@/lib/wetstructuur";
 import { useBepaling } from "@/lib/useBron";
@@ -25,7 +26,9 @@ export interface Bereik { start: number; eind: number }
 export interface MarkeerLaag {
   bron: string;
   plekken: readonly SegmentPlek[];
-  /** De gekozen markering in de bron (`markeringVan`), of niets. */
+  /** Alle markeringen in banen (`laagVan`, optie B): een markering die niets omvat als vlak, een die andere omvat als baan. */
+  markeringen: Laag | null;
+  /** De gekozen markering in de bron (`markeringVan`), of niets: die licht op, de rest dimt. */
   markering: { start: number; eind: number; klasse: string; id?: string; herkomst?: string } | null;
   onKies?: (id?: string) => void;
   ongedekt?: readonly Bereik[];
@@ -59,6 +62,7 @@ type Bron =
  *  (`app/wettekst.test.ts`). `groot` op een eigen pagina, klein in een smalle kolom. */
 export function WettekstBlok(props: Bron & { groot?: boolean }) {
   const maat = props.groot ? "text-sm leading-7" : "text-xs leading-relaxed";
+  const basisEm = props.groot ? 2 : 1.625;
   if (props.tekst !== undefined) {
     const delen = props.markeer ? markeer(props.tekst, props.markeer) : null;
     return (
@@ -67,7 +71,7 @@ export function WettekstBlok(props: Bron & { groot?: boolean }) {
       </p>
     );
   }
-  if (props.laag) return <MarkeerTekst laag={props.laag} maat={maat} />;
+  if (props.laag) return <MarkeerTekst laag={props.laag} maat={maat} basisEm={basisEm} />;
   const { segmenten, elementen, gekozen, kiesbaar = () => false, onKies } = props;
   const diepte = diepteVan(segmenten);
   const perId = new Map(elementen.map((e) => [e.id, e]));
@@ -78,18 +82,20 @@ export function WettekstBlok(props: Bron & { groot?: boolean }) {
     <div className={`space-y-1.5 border-l-2 border-lint/20 pl-3 ${maat} text-ink`} data-testid="graaf-knooptekst">
       {metTekst.map((s) => {
         const nummer = s.nummer?.trim();
-        return <p key={s.bron_iri} data-segment={s.bron_iri} className={INSPRING[diepte.get(s.bron_iri) ?? 0]}>
+        const stukken = spansVan(s, elementen);
+        const aantal = aantalBanen(stukken);
+        return <p key={s.bron_iri} data-segment={s.bron_iri} className={INSPRING[diepte.get(s.bron_iri) ?? 0]}
+          style={{ lineHeight: regelhoogte(basisEm, aantal) }}>
           {nummer && <span className="mr-1 text-faint">{nummer.endsWith(".") ? nummer : `${nummer}.`}</span>}
-          {spansVan(s, elementen).map((stuk, i) => {
+          {stukken.map((stuk, i) => {
             const el = stuk.element ? perId.get(stuk.element) : undefined;
-            if (!el) return <span key={i}>{stuk.tekst}</span>;
-            const kleur = `rounded-sm border-b-2 px-0.5 box-decoration-clone ${jasStyle(el.klasse)}`;
-            if (!onKies || !kiesbaar(el.id)) return <mark key={i} title={el.klasse} data-element={el.id} className={kleur}>{stuk.tekst}</mark>;
-            const kies = () => onKies(el.id);
-            return <mark key={i} role="button" tabIndex={0} title={el.klasse} data-element={el.id}
-              onClick={kies} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); kies(); } }}
-              className={`focus-ring cursor-pointer ${kleur} ${gekozen === el.id ? "ring-2 ring-lint ring-offset-1" : gekozen ? "opacity-60" : ""}`}>
-              {stuk.tekst}</mark>;
+            const banen = (stuk.banen ?? []).flatMap((b) => {
+              const e = perId.get(b.element);
+              return e ? [{ id: e.id, klasse: e.klasse, baan: b.baan }] : [];
+            });
+            if (!el && !banen.length) return <span key={i}>{stuk.tekst}</span>;
+            return <MarkeerStuk key={i} tekst={stuk.tekst} vlak={el ? { id: el.id, klasse: el.klasse } : undefined}
+              banen={banen} aantal={aantal} gekozen={gekozen} kies={onKies} kiesbaar={kiesbaar} />;
           })}
         </p>;
       })}
@@ -125,6 +131,53 @@ export function BepalingTekst({ bronIri, werkgebiedId, link = false, groot, kies
         </Link>
       )}
     </div>
+  );
+}
+
+/** Eén stuk gemarkeerde wettekst (optie B, `lib/markeerbanen.ts`), voor het leesvenster én de markeerlaag: het vlak van
+ *  een markering die niets omvat als `<mark>` in haar klassekleur, de markeringen die andere omvatten als banen eronder in
+ *  hun randkleur. Is er een markering gekozen, dan krijgt die een ring en dimmen de andere banen; een vlak dimt niet, want
+ *  dan haalt de tekst het contrast niet meer (WCAG AA). De tooltip noemt alles wat op dit stuk
+ *  ligt. Een stuk met alleen banen kiest met een klik de binnenste baan; met het toetsenbord kies je in de reviewlijst. */
+function MarkeerStuk({ tekst, vlak, banen, aantal, gekozen, kies, kiesbaar = () => true, markRef, klasse = "" }: {
+  tekst: string;
+  vlak?: { id: string; klasse: string; herkomst?: string };
+  banen: { id: string; klasse: string; baan: number }[];
+  /** Het aantal banen van de alinea, zodat een baan op elke regel even hoog ligt. */
+  aantal: number;
+  gekozen?: string;
+  kies?: (id: string) => void;
+  kiesbaar?: (id: string) => boolean;
+  markRef?: Ref<HTMLElement>;
+  /** Opmaak van de wettekst zelf (nummer, term). */
+  klasse?: string;
+}) {
+  const alles = [...(vlak ? [vlak] : []), ...banen];
+  const uitleg = alles.map((m) => `${klasseLabel(m.klasse)}${"herkomst" in m && m.herkomst === "mens" ? " – door jou gemarkeerd" : ""}`).join(" · ");
+  let inhoud: ReactNode = tekst;
+  if (vlak) {
+    const kleur = `rounded-sm border-b-2 px-0.5 box-decoration-clone ${jasStyle(vlak.klasse)} ${klasse} ${
+      vlak.herkomst === "mens" ? "underline decoration-dotted underline-offset-2" : ""} ${
+      gekozen === vlak.id ? "ring-2 ring-lint ring-offset-1" : ""}`;
+    const kies1 = kies && kiesbaar(vlak.id) ? () => kies(vlak.id) : undefined;
+    inhoud = kies1 ? (
+      <mark ref={markRef} role="button" tabIndex={0} data-element={vlak.id} title={uitleg}
+        aria-label={`${uitleg}: ${tekst}`}
+        onClick={kies1} onKeyDown={(e) => { if (e.key !== "Enter" && e.key !== " ") return; e.preventDefault(); kies1(); }}
+        className={`focus-ring cursor-pointer ${kleur}`}>{tekst}</mark>
+    ) : <mark ref={markRef} data-element={vlak.id} title={uitleg} className={kleur}>{tekst}</mark>;
+  } else if (klasse) {
+    inhoud = <span className={klasse}>{tekst}</span>;
+  }
+  if (!banen.length) return <>{inhoud}</>;
+  const kiesBaan = !vlak && kies && kiesbaar(banen[0].id) ? () => kies(banen[0].id) : undefined;
+  return (
+    <span data-banen={banen.map((b) => b.id).join(" ")} title={uitleg} onClick={kiesBaan}
+      ref={vlak ? undefined : markRef as Ref<HTMLSpanElement>}
+      className={`box-decoration-clone ${kiesBaan ? "cursor-pointer" : ""}`}
+      style={baanStijl(banen.map((b) => ({ kleur: jasRandKleur(b.klasse), baan: b.baan, gedimd: Boolean(gekozen && gekozen !== b.id) })), aantal)}>
+      {inhoud}
+    </span>
   );
 }
 
@@ -187,8 +240,8 @@ function offsetVanGrens(houder: HTMLElement, knoop: Node, offsetInKnoop: number)
  *  Een selectie eindigt niet altijd met een muisklik: met Shift+pijltjes komt er geen muisevent langs (WCAG 2.1.1), en op
  *  een aanraakscherm zijn de selectiegrepen systeem-UI. Daarom luistert de laag ook op `keyup`, `touchend` en – na een
  *  aanraking, als de selectie even stilstaat – `selectionchange`. */
-function MarkeerTekst({ laag, maat }: { laag: MarkeerLaag; maat: string }) {
-  const { bron, plekken, markering, onKies, ongedekt = [], onKiesOngedekt, onSelectie } = laag;
+function MarkeerTekst({ laag, maat, basisEm }: { laag: MarkeerLaag; maat: string; basisEm: number }) {
+  const { bron, plekken, markeringen, markering, onKies, ongedekt = [], onKiesOngedekt, onSelectie } = laag;
   const houderRef = useRef<HTMLDivElement>(null);
   const markRef = useRef<HTMLElement>(null);
   const diepte = diepteVan(plekken.map((p) => p.segment));
@@ -253,21 +306,22 @@ function MarkeerTekst({ laag, maat }: { laag: MarkeerLaag; maat: string }) {
         const s = p.segment;
         const nummer = nummerVan(s);
         const blok = { offset: p.begin, regel: s.tekst, nummerEind: 0, ...termVan(s.tekst) };
+        const delen = segmentenVanBlok(blok, markeringen, [...ongedekt]);
+        const aantal = banenInBlok(delen);
+        // De gekozen markering in beeld brengen: de ref op het eerste stuk waar ze op ligt.
+        const metRef = actiefId && markering && markering.start >= p.begin && markering.start < p.begin + s.tekst.length
+          ? delen.findIndex((d) => d.id === actiefId || d.banen?.some((b) => b.id === actiefId)) : -1;
         return (
           <p key={s.bron_iri} data-segment={s.bron_iri} data-lid={p.lid} data-offset={p.begin}
-            className={INSPRING[diepte.get(s.bron_iri) ?? 0]}>
+            className={INSPRING[diepte.get(s.bron_iri) ?? 0]} style={{ lineHeight: regelhoogte(basisEm, aantal) }}>
             {nummer && <span data-buiten-tekst className="mr-1 select-none text-faint">{nummer}</span>}
-            {segmentenVanBlok(blok, markering, [...ongedekt]).map((d, i) => d.klasse ? (
+            {delen.map((d, i) => (d.klasse || d.banen) ? (
               // Een `<mark>`, geen knop: inline, dus hij breekt met de tekst mee; `box-decoration-clone` tekent de rand op
               // elk regelfragment. Toetsenbord via role/tabIndex/onKeyDown.
-              <mark key={i} ref={markering && markering.start >= p.begin && markering.start < p.begin + s.tekst.length ? markRef : undefined}
-                role="button" tabIndex={0} data-element={d.id}
-                onClick={() => onKies?.(d.id)}
-                onKeyDown={(e) => { if (e.key !== "Enter" && e.key !== " ") return; e.preventDefault(); onKies?.(d.id); }}
-                aria-label={`${klasseLabel(d.klasse)}: ${d.tekst}${d.herkomst === "mens" ? " – door jou gemarkeerd" : ""}`}
-                title={d.herkomst === "mens" ? `${klasseLabel(d.klasse)} – door jou gemarkeerd` : klasseLabel(d.klasse)}
-                className={`focus-ring box-decoration-clone cursor-pointer rounded-sm border-b-2 px-0.5 ring-2 ring-lint ${jasStyle(d.klasse)} ${
-                  d.herkomst === "mens" ? "underline decoration-dotted underline-offset-2" : ""}`}>{d.tekst}</mark>
+              <MarkeerStuk key={i} tekst={d.tekst} aantal={aantal} gekozen={actiefId}
+                vlak={d.klasse && d.id ? { id: d.id, klasse: d.klasse, herkomst: d.herkomst } : undefined}
+                banen={d.banen ?? []} kies={onKies ? (id) => onKies(id) : undefined}
+                markRef={i === metRef ? markRef : undefined} klasse={NADRUK[d.nadruk ?? "geen"]} />
             ) : d.ongedekt ? (
               <span key={i} data-ongedekt
                 {...(onKiesOngedekt ? {

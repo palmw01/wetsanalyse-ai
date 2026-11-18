@@ -72,3 +72,30 @@ export function markeerbanen(lengte: number, spans: readonly MarkeerSpan[]): Ban
   }
   return { stukken, aantal: bezet.length };
 }
+
+/** De maat van een baan in de werkplek: een streep van 3 px, elke volgende 4 px lager, de eerste 3 px onder de letters (onder de rand van een vlak). */
+export const BAAN_DIKTE = 3;
+export const BAAN_STAP = 4;
+export const BAAN_BEGIN = 3;
+
+/** De stijl van een stuk tekst met banen: de strepen als achtergrond in de opvulling eronder. `aantal` is het aantal banen
+ *  van de hele alinea, zodat een baan op elke regel op dezelfde hoogte ligt. Een gedimde baan (niet de gekozen markering)
+ *  krijgt een doorzichtige kleur. */
+export function baanStijl(banen: readonly { kleur: string; baan: number; gedimd?: boolean }[], aantal: number) {
+  const onder = BAAN_BEGIN + aantal * BAAN_STAP;
+  return {
+    paddingBottom: `${onder}px`,
+    backgroundImage: banen.map((b) => {
+      const kleur = b.gedimd ? `${b.kleur}59` : b.kleur;
+      return `linear-gradient(${kleur}, ${kleur})`;
+    }).join(", "),
+    backgroundSize: banen.map(() => `100% ${BAAN_DIKTE}px`).join(", "),
+    backgroundPosition: banen.map((b) => `0 calc(100% - ${onder - BAAN_BEGIN - b.baan * BAAN_STAP - BAAN_DIKTE}px)`).join(", "),
+    backgroundRepeat: "no-repeat",
+  };
+}
+
+/** De regelhoogte van een alinea met `aantal` banen: de gewone hoogte plus de ruimte voor de strepen. */
+export function regelhoogte(basisEm: number, aantal: number): string | undefined {
+  return aantal ? `calc(${basisEm}em + ${BAAN_BEGIN + aantal * BAAN_STAP}px)` : undefined;
+}

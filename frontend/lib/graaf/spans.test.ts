@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { NodeSegment } from "@/lib/annotatieNode";
-import { segmentenVan, spansVan, type SpanElement } from "./spans";
+import { aantalBanen, segmentenVan, spansVan, type SpanElement } from "./spans";
 
 const A9 = "urn:bwb:BWBR0004770:artikel:9";
 const L2 = `${A9}:lid:2`, OA = `${L2}:onderdeel:a`;
@@ -20,8 +20,18 @@ describe("spans", () => {
     expect(stukken.map((s) => s.tekst).join("")).toBe(lid.tekst);
   });
 
-  it("bij overlap ligt de kortste markering bovenop", () => {
-    expect(spansVan(lid, [el("lang", 0, 24), el("kort", 3, 12)]).map((s) => s.element)).toEqual(["lang", "kort", "lang"]);
+  it("bij overlap houdt de kortste het vlak en ligt de lange als baan eronder (optie B)", () => {
+    const stukken = spansVan(lid, [el("lang", 0, 24), el("kort", 3, 12)]);
+    expect(stukken.map((s) => s.element)).toEqual([undefined, "kort", undefined]);
+    expect(stukken.every((s) => s.banen?.[0]?.element === "lang" && s.banen[0].baan === 0)).toBe(true);
+    expect(stukken.map((s) => s.tekst).join("")).toBe(lid.tekst);
+    expect(aantalBanen(stukken)).toBe(1);
+    expect(aantalBanen(spansVan(lid, [el("1", 3, 12)]))).toBe(0);
+  });
+
+  it("de volgorde van de elementen maakt niets uit", () => {
+    const a = [el("x", 3, 12), el("y", 3, 12), el("z", 0, 24)];
+    expect(spansVan(lid, a)).toEqual(spansVan(lid, [...a].reverse()));
   });
 
   it("telt in codepoints, niet in UTF-16", () => {
