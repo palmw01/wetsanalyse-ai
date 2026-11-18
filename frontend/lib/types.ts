@@ -2,6 +2,8 @@
 // Dit bestand is de bron-van-waarheid voor de frontend; zie README (gen:types) voor
 // een optioneel hulpmiddel om ze tegen /openapi.json te controleren.
 
+import type { Verwachting } from "./jasBegripverwachting";
+
 // --- Admin: LLM-modelprofielen ----------------------------------------------
 
 export interface LlmProfileIn {
@@ -1227,7 +1229,7 @@ export interface RelatiesAntwoord {
   voorstellen: BegripRelatie[];
 }
 
-export type DekkingStand = "te_verwerken" | "voorstel" | "gekoppeld" | "buiten_behandeling";
+export type DekkingStand = "te_verwerken" | "voorstel" | "gekoppeld" | "bij_drager" | "buiten_behandeling";
 
 export interface DekkingElement {
   element_id: string;
@@ -1235,15 +1237,29 @@ export interface DekkingElement {
   klasse: string;
   rol: BronRol;
   stand: DekkingStand;
+  /** Wat de methode van deze klasse verwacht (skill `begripverwachting.json`). Een oudere api stuurt het niet. */
+  verwacht?: Verwachting;
+  /** Geen relatie (ADR-011) en zelf geen centrale klasse: hoort dit element bij de analyse? */
+  zonder_samenhang?: boolean;
   begrippen: { begrip_id: string; naam: string; rol: KoppelRol }[];
   buiten_behandeling: { reden: string; door: string; op: string } | null;
   nieuw_sinds_run: boolean;
+}
+
+export interface DekkingKlasse {
+  klasse: string;
+  verwacht: Verwachting;
+  totalen: Record<DekkingStand, number>;
+  totaal: number;
 }
 
 export interface Dekking {
   werkgebied_id: string;
   totalen: Record<DekkingStand, number>;
   totaal: number;
+  /** De totalen per klasse, in JAS-volgorde. Een oudere api stuurt het niet. */
+  per_klasse?: DekkingKlasse[];
+  zonder_samenhang?: number;
   nieuw_sinds_run: number;
   laatste_run: string | null;
   elementen: DekkingElement[];

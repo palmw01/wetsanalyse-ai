@@ -170,6 +170,10 @@ def main() -> int:
     from scripts import genereer_jas_relaties
     if genereer_jas_relaties.main(["--check"] if args.check else []):
         return 1
+    # De begripverwachting per klasse (activiteit 3a) komt ook uit de skill; dezelfde --check dekt haar.
+    from scripts import genereer_begripverwachting
+    if genereer_begripverwachting.main(["--check"] if args.check else []):
+        return 1
     if not args.check:
         PAKKET_DOEL.write_text(pakket, encoding="utf-8")
     # De agentprofielen (ADR-016 §A2) komen uit `.claude/lex-agents/`; dezelfde --check dekt ze.

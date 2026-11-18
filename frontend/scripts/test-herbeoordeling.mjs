@@ -15,7 +15,8 @@
  *  - herkoppelen met het toetsenbord: de nieuwe passage staat er, met de oude als "Vervangt een eerdere
  *    passage", het begrip blijft geaccordeerd, de strook verdwijnt;
  *  - bevestigen met een toelichting;
- *  - de dekking op de tab Elementen, buiten behandeling met een reden en weer terughalen.
+ *  - de dekking op de tab Elementen, per klasse met wat de methode verwacht (P21), een element zonder samenhang als
+ *    vraag, buiten behandeling met een reden en weer terughalen.
  */
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
@@ -99,10 +100,13 @@ const dekking = () => {
   const stand = (id) => (id === "e3" || id === "e2") && b1.koppelingen.some((k) => k.element_id === id) ? "gekoppeld"
     : buiten[id] ? "buiten_behandeling" : "te_verwerken";
   const els = elementen.map((e) => ({ element_id: e.id, tekst: e.tekst, klasse: e.klasse, rol: "analyseren", stand: stand(e.id),
+    verwacht: "begrip", zonder_samenhang: e.id === "e4",
     begrippen: [], buiten_behandeling: buiten[e.id] ?? null, nieuw_sinds_run: e.id === "e4" }));
-  const totalen = { te_verwerken: 0, voorstel: 0, gekoppeld: 0, buiten_behandeling: 0 };
+  const totalen = { te_verwerken: 0, voorstel: 0, gekoppeld: 0, bij_drager: 0, buiten_behandeling: 0 };
   for (const e of els) totalen[e.stand] += 1;
-  return { werkgebied_id: "wg1", totalen, totaal: els.length, nieuw_sinds_run: 1, laatste_run: "r1", elementen: els, volledig: true };
+  const per_klasse = [{ klasse: "Rechtssubject", verwacht: "begrip", totalen: { ...totalen }, totaal: els.length }];
+  return { werkgebied_id: "wg1", totalen, totaal: els.length, per_klasse, zonder_samenhang: 1, nieuw_sinds_run: 1,
+    laatste_run: "r1", elementen: els, volledig: true };
 };
 
 await page.route("**/api/**", async (route) => {
@@ -205,9 +209,16 @@ try {
   // 5. De dekking: buiten behandeling met een reden, en weer terughalen.
   await page.goto(`${base}/werkgebieden/wg1?tab=elementen`);
   const balk = page.getByRole("region", { name: "Dekking" });
-  await balk.getByText("gekoppeld aan een geaccordeerd begrip").waitFor();
+  // De totalen staan vooraan; dezelfde woorden staan ook in de uitklap per klasse.
+  await balk.getByText("gekoppeld aan een geaccordeerd begrip").first().waitFor();
   await balk.getByText("zag de laatste begrippenronde van Lex nog niet", { exact: false }).waitFor();
   await page.getByText("Nieuw sinds de laatste begrippenronde van Lex.").waitFor();
+  // P21: de dekking per klasse met wat de methode verwacht, en een element zonder samenhang als vraag.
+  await balk.getByText("Per klasse").click();
+  await balk.getByRole("list", { name: "Dekking per klasse" }).getByText("Rechtssubject").waitFor();
+  await balk.getByText("(krijgt een begrip)", { exact: false }).waitFor();
+  await balk.getByText("1 element hangt nergens aan een rechtsbetrekking", { exact: false }).waitFor();
+  await page.getByText("Hangt nergens aan een rechtsbetrekking, rechtsfeit, afleidingsregel of voorwaarde.", { exact: false }).waitFor();
   await page.getByRole("checkbox", { name: 'Kies "Gamma"' }).check();
   await page.getByLabel("Reden om buiten behandeling te zetten").fill("Alleen een tijdsaanduiding.");
   await page.keyboard.press("Enter");

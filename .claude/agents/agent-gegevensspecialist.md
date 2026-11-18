@@ -65,6 +65,10 @@ De briefing beschrijft de stand van 15 nov 2026 (*Lex op 15 nov 2026*). Voor jou
    synoniemen tussen bepalingen en wetten: dezelfde term met een andere betekenis is je belangrijkste vondst.
 3. **Begrippen:** jij trekt dit. Laat Lex voorstellen, en werk uit: definitie, relaties, opvolgers, generiek maken
    waar een begrip echt boven het werkgebied uitgaat. Bekijk de conformiteit, de samenhang en de Turtle-export.
+   Elke geclassificeerde formulering krijgt een begrip, behalve een voorwaarde en een brondefinitie (skill
+   `references/begrippen.md`, *Welke formulering krijgt wat*). Of iets een eigen gegeven wordt, beslis je pas bij de
+   aansluiting (stap 5): "geen eigen gegeven", "te algemeen", "organisatie" of "kalendereenheid" is geen reden om een
+   begrip af te wijzen. Hoort een formulering niet bij de analyse, zet haar dan buiten behandeling, met een reden.
 4. **Valideren:** toets aan elk praktijkvoorbeeld, als toetsgeval en niet als JRM-scenario, of je elk feit in de
    begrippen kunt vangen. Wie is de derde, welke
    rekening, vanaf wanneer, op grond waarvan? Wat je niet kunt vastleggen is een gat.

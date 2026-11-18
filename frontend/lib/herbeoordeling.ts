@@ -4,6 +4,7 @@
 // dat noemt en ordent. Een signaal heeft een richting en wordt nooit tot een score opgeteld.
 
 import { aantal } from "./aantal";
+import type { Verwachting } from "./jasBegripverwachting";
 import type { Dekking, DekkingStand, GeraakteKoppeling, Herbeoordelingen, Richting } from "./types";
 
 /** Is dit een herbeoordelingsantwoord? Een ander antwoord (een oudere api, een storing) mag de tab
@@ -21,10 +22,18 @@ export const DEKKING_LABEL: Record<DekkingStand, string> = {
   te_verwerken: "te verwerken",
   voorstel: "voorstel",
   gekoppeld: "gekoppeld aan een geaccordeerd begrip",
+  bij_drager: "voorwaarde bij haar drager",
   buiten_behandeling: "bewust buiten behandeling",
 };
 
-export const DEKKING_VOLGORDE: DekkingStand[] = ["te_verwerken", "voorstel", "gekoppeld", "buiten_behandeling"];
+export const DEKKING_VOLGORDE: DekkingStand[] = ["te_verwerken", "voorstel", "gekoppeld", "bij_drager", "buiten_behandeling"];
+
+/** Wat de methode per klasse verwacht, zoals de werkplek het zegt (skill `begripverwachting.json`). */
+export const VERWACHT_LABEL: Record<Verwachting, string> = {
+  begrip: "krijgt een begrip",
+  omschrijving: "krijgt een omschrijving bij haar drager",
+  definitie: "is de definitie van een begrip",
+};
 
 export const RICHTING_LABEL: Record<Richting, string> = { steun: "steun", tegen: "tegen", onbeslist: "onbeslist" };
 export const RICHTING_TEKEN: Record<Richting, string> = { steun: "+", tegen: "−", onbeslist: "?" };

@@ -179,8 +179,13 @@ function TermBeoordeling({ werkgebiedId, term, data, onHerlaad, onGewijzigd }: {
   const koppel = (begripId: string) => voer(async () => {
     for (const g of akkoord.groepen) await koppelGroep(werkgebiedId, g.id, begripId, ledenVan(g), true);
   }, () => router.push(begripPad(werkgebiedId, begripId)));
+  // "Geen begrip" is een besluit over de passages (P21): ze gaan met dezelfde reden buiten behandeling.
   const besluitAlle = (soort: "afwijzen" | "parkeren" | "heropenen", groepen: Betekenisgroep[], reden?: string) =>
-    voer(async () => { for (const g of groepen) await besluitGroep(werkgebiedId, g.id, soort, reden); });
+    voer(async () => {
+      for (const g of groepen) {
+        await besluitGroep(werkgebiedId, g.id, soort, reden, soort === "afwijzen" ? "buiten_behandeling" : "laten");
+      }
+    });
   const zet = (sleutels: string[], aan: boolean) => setGekozen((s) => {
     const nieuw = new Set(s);
     for (const k of sleutels) { if (aan) nieuw.add(k); else nieuw.delete(k); }
@@ -414,7 +419,7 @@ function ActieBalk({ aantal: gekozen, bezig, lijktOp, later, geparkeerd, geenBeg
           onSubmit={(e) => { e.preventDefault(); if (reden.trim()) { onGeenBegrip(reden.trim()); setReden(""); } }}>
           <label className="sr-only" htmlFor="reden-geen-begrip">Reden om geen begrip te maken</label>
           <Input id="reden-geen-begrip" ref={redenRef} value={reden} onChange={(e) => setReden(e.target.value)}
-            placeholder="Waarom is dit geen begrip? (geldt voor de hele voorstellen van de gekozen passages)" maxLength={2000}
+            placeholder="Waarom krijgen deze passages geen begrip? Ze gaan buiten behandeling, met deze reden." maxLength={2000}
             onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); onGeenBegripOpen(false); } }} />
           <Button type="submit" size="sm" disabled={bezig || !reden.trim()} className="w-full sm:w-auto">Geen begrip</Button>
         </form>
