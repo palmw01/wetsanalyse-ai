@@ -50,7 +50,7 @@ STANDEN_TELLING = ("voorgesteld", "niet_gekozen", "uitgesloten")
 BEWIJS_SOORT = {"verwijzing_uit": "verwijzing", "verwijzing_in": "verwijzing", "definitie": "definitie",
                 # Het opschrift van een artikel staat in de kern: een begrip dat daar geregeld is, net als een definitie.
                 "opschrift": "definitie",
-                "lid_verwijzing": "verwijzing", "opbouw": "structuur", "overzicht": "tekst", "deelvraag": "tekst", "gelijkenis": "gelijkenis",
+                "lid_verwijzing": "verwijzing", "beleidsregel": "verwijzing", "opbouw": "structuur", "overzicht": "tekst", "deelvraag": "tekst", "gelijkenis": "gelijkenis",
                 "grondslag": "grondslag", "genoemd": "genoemd"}
 #: De grondslag (zoekvraag a: waar de gekozen gebeurtenis haar bestaansrecht krijgt) staat vooraan: zij is het
 #: vertrekpunt van de andere zoekvragen.

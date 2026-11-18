@@ -42,8 +42,8 @@ from .zoektermen import buiten_stammen, zoektermen
 
 logger = logging.getLogger(__name__)
 
-METHODEN = ("overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "definitie", "opschrift", "lid_verwijzing", "opbouw",
-            "gelijkenis", "grondslag")
+METHODEN = ("overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "definitie", "opschrift", "lid_verwijzing",
+            "beleidsregel", "opbouw", "gelijkenis", "grondslag")
 #: Wat standaard draait als er een kern is – gekozen op de meting van 15 okt 2026
 #: (`docs/architectuur/metingen/bronselectie-2026-10-15/`): met een kern voegde het overzicht geen
 #: recall toe maar wel 36 onbeoordeelde "kern"-kandidaten, en `verwijzing_in` leverde alle uitgesloten
@@ -104,6 +104,11 @@ OPSCHRIFT_WOORDEN = 2
 MIN_OPSCHRIFT_WOORD = 5
 #: Een kop die bij meer artikelen past, is niet onderscheidend ("Herziening tegemoetkoming" past bij 20, 21 en 21a).
 MAX_PER_KOP = 3
+#: Hoeveel onderdelen van één beleidsregel de methode `beleidsregel` per kern voorstelt (de Leidraad bij artikel 49 van
+#: de Invorderingswet 1990 heeft er dertig).
+MAX_PER_BELEIDSREGEL = 6
+#: Hoeveel onderdelen van beleidsregels de methode per run leest.
+MAX_BELEIDSONDERDELEN = 2000
 
 ROL_VOLGORDE = {"kern": 0, "afhankelijkheid": 1, "aanverwant": 2}
 
@@ -250,6 +255,26 @@ def q_opschriften(bwb_ids: list[str]) -> str:
   FILTER({filters})
   OPTIONAL {{ ?artikel rdfs:label ?label }}
 }} ORDER BY ?artikel LIMIT {MAX_OPSCHRIFTEN + 1}"""
+
+
+def q_beleidsregels(artikelen: list[str], kern: list[str]) -> str:
+    """De beleidsregels bij de kern en hun onderdelen. Een beleidsregel is een knoop met onderdelen (`heeftDivisie`) die
+    zelf naar het artikel van de kern verwijst ("In aansluiting op artikel 49 van de wet beschrijft dit artikel het
+    beleid over:"), of het artikel van een beleidsregel waarin de kern zelf staat. Per onderdeel de titel, en of het naar
+    een kernbepaling verwijst (`?naar`)."""
+    return PREFIXES + f"""SELECT DISTINCT ?regel ?onderdeel ?titel ?label ?naar WHERE {{
+  {{ VALUES ?artikel {{ {_waarden(artikelen)} }}
+     ?regel bwb:verwijstNaar ?artikel ; bwb:heeftDivisie ?eerste . }}
+  UNION
+  {{ VALUES ?k {{ {_waarden(kern)} }}
+     ?regel bwb:heeftDivisie+ ?k .
+     FILTER(CONTAINS(STR(?regel), ":artikel:")) }}
+  ?regel bwb:heeftDivisie+ ?onderdeel .
+  OPTIONAL {{ ?onderdeel bwb:titel ?titel }}
+  OPTIONAL {{ ?onderdeel rdfs:label ?label }}
+  OPTIONAL {{ VALUES ?naar {{ {_waarden(kern)} }}
+              ?onderdeel bwb:heeftVerwijzing ?v . ?v bwb:naar ?naar . }}
+}} ORDER BY ?regel ?onderdeel LIMIT {MAX_BELEIDSONDERDELEN + 1}"""
 
 
 def q_leden(artikelen: list[str]) -> str:
@@ -611,6 +636,79 @@ def _opschrift(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     return n, len(opschriften) <= MAX_OPSCHRIFTEN and len(gevonden) <= MAX_PER_METHODE
 
 
+def artikel_van(iri: str) -> str:
+    """Het artikel van een bepaling in de IRI-vorm (`…:artikel:24:lid:3` → `…:artikel:24`); anders de iri zelf."""
+    m = re.match(r"^(.+?:artikel:[^:]+)(?::.*)?$", iri)
+    return m.group(1) if m and ":id:" not in iri else iri
+
+
+def beleidsonderdelen(rijen: list[dict[str, Any]], teksten: list[dict[str, Any]], kern: list[str],
+                      buiten: list[str]) -> list[dict[str, Any]]:
+    """Welke onderdelen van een beleidsregel bij de kern horen (`q_beleidsregels`): een onderdeel dat een kernbepaling
+    noemt ("bedoeld in artikel 9, vijfde lid, van de wet"), en een onderdeel waarvan de kop van het opschrift
+    (`opschrift_kop`) in een tekst van de kern staat ("Wanneer in gebreke" bij "in gebreke is met de betaling"). Van een
+    onderdeel en een onderdeel daarbinnen dat ook past, blijft het binnenste; per beleidsregel hoogstens
+    `MAX_PER_BELEIDSREGEL`, de genoemde eerst. Niet de kern zelf of wat de kern omvat, niet wat buiten de afbakening
+    valt."""
+    from .zoektermen import raakt_heel, valt_buiten
+
+    per_onderdeel: dict[str, dict[str, Any]] = {}
+    for r in rijen:
+        d = r["onderdeel"]
+        if d in kern or any(_binnen(k, d) or _binnen(d, k) for k in kern):
+            continue
+        o = per_onderdeel.setdefault(d, {"onderdeel": d, "regel": r["regel"], "titel": r.get("titel", ""),
+                                         "label": r.get("label", ""), "noemt": ""})
+        if r.get("naar") and not o["noemt"]:
+            o["noemt"] = r["naar"]
+    gekozen: list[dict[str, Any]] = []
+    for o in per_onderdeel.values():
+        if o["noemt"]:
+            gekozen.append({**o, "grond": "noemt de kern", "deel": o["noemt"]})
+            continue
+        kop = opschrift_kop(o["titel"])
+        if not kop or valt_buiten(o["titel"], buiten):
+            continue
+        waar = next((t for t in teksten if all(raakt_heel(w, (t.get("tekst") or "").casefold()) for w in kop)), None)
+        if waar is not None:
+            gekozen.append({**o, "grond": "opschrift", "kop": " ".join(kop), "deel": waar.get("deel", "")})
+    iris = [g["onderdeel"] for g in gekozen]
+    binnenste = [g for g in gekozen if not any(i != g["onderdeel"] and _binnen(i, g["onderdeel"]) for i in iris)]
+    uit: list[dict[str, Any]] = []
+    per_regel: dict[str, int] = {}
+    for g in sorted(binnenste, key=lambda g: g["grond"] != "noemt de kern"):
+        if per_regel.get(g["regel"], 0) >= MAX_PER_BELEIDSREGEL:
+            continue
+        per_regel[g["regel"]] = per_regel.get(g["regel"], 0) + 1
+        uit.append(g)
+    return uit
+
+
+def _beleidsregel(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
+    """De onderdelen van de beleidsregel bij het artikel van de kern (de Leidraad Invordering bij de Invorderingswet).
+    Bronnenrun op acceptatie, 18 nov 2026: de beleidsregels bij een kernartikel waren de grootste groep die geen methode
+    vond (Leidraad 9.1–9.3, 24.6.3, 26.2.1, 49.3.1). Ze verwijzen naar het artikel, niet naar de kern, en `verwijzing_in`
+    bracht de hele Leidraad mee."""
+    kern = [k["bron_iri"] for k in invoer.get("kern", [])]
+    if not kern:
+        return 0, True
+    artikelen = sorted({artikel_van(k) for k in kern})
+    rijen = _rijen(graph, q_beleidsregels(artikelen, kern))
+    if not rijen:
+        return 0, True
+    buiten = buiten_stammen({"naam": invoer.get("naam", ""), "analysevraag": invoer.get("analysevraag", ""),
+                             **(invoer.get("dossier") or {})}, invoer.get("deelvragen"),
+                            _profiel().afbakening_onderdelen)
+    gevonden = beleidsonderdelen(rijen[:MAX_BELEIDSONDERDELEN], _rijen(graph, q_teksten(kern)), kern, buiten)
+    n = 0
+    for o in gevonden:
+        detail = {"beleidsregel": o["regel"], "grond": o["grond"], **({"opschrift": o["titel"], "kop": o["kop"]}
+                                                                       if o["grond"] == "opschrift" else {})}
+        n += v.voeg(o["onderdeel"], rol="afhankelijkheid", methode="beleidsregel", vanuit=o["deel"], label=o["label"],
+                    detail=detail)
+    return n, len(rijen) <= MAX_BELEIDSONDERDELEN
+
+
 _RANG = rangnummers(len(RANGTELWOORDEN))
 _RANGWOORD = "|".join(sorted(_RANG, key=len, reverse=True))
 #: Een of meer rangtelwoorden vóór "lid" of "leden": "het derde lid", "het eerste of tweede lid", "het derde tot en met
@@ -719,7 +817,8 @@ def _gelijkenis(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tup
 
 UITVOERING: dict[str, Callable[[GraphPort, dict[str, Any], Verzameling], tuple[int, bool]]] = {
     "overzicht": _overzicht, "deelvraag": _deelvraag, "verwijzing_uit": _verwijzing_uit, "verwijzing_in": _verwijzing_in,
-    "definitie": _definitie, "opschrift": _opschrift, "lid_verwijzing": _lid_verwijzing, "opbouw": _opbouw, "gelijkenis": _gelijkenis, "grondslag": _grondslag,
+    "definitie": _definitie, "opschrift": _opschrift, "lid_verwijzing": _lid_verwijzing,
+    "beleidsregel": _beleidsregel, "opbouw": _opbouw, "gelijkenis": _gelijkenis, "grondslag": _grondslag,
 }
 
 

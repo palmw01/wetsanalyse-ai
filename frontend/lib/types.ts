@@ -1488,7 +1488,7 @@ export interface AkkoordAntwoord {
 
 // --- Bronnen vinden met Lex (spoor D, fase A) – afgeleid van api/app/bronnen_run_contracts.py ---
 
-export type BronMethode = "overzicht" | "deelvraag" | "verwijzing_uit" | "verwijzing_in" | "definitie" | "opschrift" | "lid_verwijzing" | "opbouw" | "gelijkenis" | "grondslag"
+export type BronMethode = "overzicht" | "deelvraag" | "verwijzing_uit" | "verwijzing_in" | "definitie" | "opschrift" | "lid_verwijzing" | "beleidsregel" | "opbouw" | "gelijkenis" | "grondslag"
   /** Zelf genoemd door de analist bij één deelvraag (4 nov 2026). */
   | "genoemd";
 export type KandidaatRol = "kern" | "afhankelijkheid" | "aanverwant";
@@ -1502,7 +1502,7 @@ export interface KandidaatBewijs {
   vanuit: string;
   detail: { anker?: string; functie?: string; begrip?: string; onderwerp?: string; deel?: string; score?: string;
     deelvraag_id?: string; vraag?: string; zoekvraag?: string; gebeurtenis?: string; signaal?: string; zin?: string;
-    kop?: string; tekst?: string; door?: string; opschrift?: string; richting?: string };
+    kop?: string; tekst?: string; door?: string; opschrift?: string; richting?: string; grond?: string; beleidsregel?: string };
 }
 
 export interface BronKandidaat {
