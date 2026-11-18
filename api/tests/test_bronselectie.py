@@ -512,3 +512,59 @@ async def test_een_lid_als_selectie_weghalen_maakt_de_kandidaat_weer_een_voorste
     r = await client.delete(f"/v1/werkgebieden/{wg['id']}/bronnen/{sel['id']}", params={"verwachte_revisie": wg["revisie"]})
     assert r.status_code == 200, r.text
     assert _kid(_dq(await _overzicht(client, wg), ids[0]), ART)["stand"] == "voorgesteld"
+
+
+async def test_wat_een_latere_zoekopdracht_vindt_is_niet_ongezien_niet_gekozen(client):
+    """Acceptatie 18 nov 2026: na *Klaar* bij de kernbepalingen zocht Lex opnieuw, en drie nieuwe kernkandidaten (en een
+    voorstel dat kern werd) stonden meteen op *niet gekozen*, zonder dat de jurist ze ooit als kern zag. Alleen wat
+    openstond toen de fase sloot, is niet gekozen; de rest blijft een voorstel tot de volgende fase sluit."""
+    wg, ids = await _vier(client)
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]]),
+                                       _kd(ART2, "afhankelijkheid", deelvragen=[ids[0]])])
+    ov = await _status(client, wg, ids[0], "openen")
+    ov = await _status(client, wg, ids[0], "fase", fase="afhankelijkheden", verwachte_revisie=_dq(ov, ids[0])["revisie"])
+    assert {k["bron_iri"]: k["stand"] for k in _dq(ov, ids[0])["kandidaten"]} == {ART: "niet_gekozen", ART2: "voorgesteld"}
+
+    # Een nieuwe zoekopdracht: ART2 is nu een kernbepaling, ONE is nieuw.
+    wg = await _praktijk(client, wg, "Een ondernemer betaalt te laat.")
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]]), _kd(ART2, "kern", deelvragen=[ids[0]]),
+                                       _kd(ONE, "kern", deelvragen=[ids[0]])])
+    ov = await _overzicht(client, wg)
+    assert {k["bron_iri"]: k["stand"] for k in _dq(ov, ids[0])["kandidaten"]} == {
+        ART: "niet_gekozen", ART2: "voorgesteld", ONE: "voorgesteld"}
+
+    # De volgende fase sluit: wat toen openstond, is niet gekozen.
+    ov = await _status(client, wg, ids[0], "fase", fase="afronden", verwachte_revisie=_dq(ov, ids[0])["revisie"])
+    assert {k["stand"] for k in _dq(ov, ids[0])["kandidaten"]} == {"niet_gekozen"}
+    # De vragen opnieuw doorlopen maakt er weer een keuze van.
+    ov = await _status(client, wg, ids[0], "fase", fase="kern", verwachte_revisie=_dq(ov, ids[0])["revisie"])
+    assert {k["stand"] for k in _dq(ov, ids[0])["kandidaten"]} == {"voorgesteld"}
+
+
+async def test_een_oude_rij_zonder_gezien_houdt_de_regel_van_de_fase(client):
+    wg, ids = await _vier(client)
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]])])
+    ov = await _status(client, wg, ids[0], "openen")
+    v = db.bronselectie_voortgang
+    async with db.get_engine().begin() as conn:
+        await conn.execute(v.update().where(v.c.deelvraag_id == ids[0]).values(gezien=None))
+    ov = await _status(client, wg, ids[0], "fase", fase="afhankelijkheden", verwachte_revisie=_dq(ov, ids[0])["revisie"])
+    wg = await _praktijk(client, wg, "Een ondernemer betaalt te laat.")
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]]), _kd(ONE, "kern", deelvragen=[ids[0]])])
+    ov = await _overzicht(client, wg)
+    assert {k["stand"] for k in _dq(ov, ids[0])["kandidaten"]} == {"niet_gekozen"}
+    async with db.get_engine().connect() as conn:
+        assert (await conn.execute(select(v.c.gezien).where(v.c.deelvraag_id == ids[0]))).scalar() is None
+
+
+def test_gezien_bij_legt_vast_wat_openstond_toen_de_fase_sloot():
+    huidig = {"kandidaten": [{"id": "a", "rol": "kern", "stand": "voorgesteld"},
+                             {"id": "b", "rol": "afhankelijkheid", "stand": "voorgesteld"},
+                             {"id": "c", "rol": "kern", "stand": "opgenomen"}]}
+    open_, kern, alles = ({"kern": False, "rest": False}, {"kern": True, "rest": False}, {"kern": True, "rest": True})
+    assert bronselectie.gezien_bij(huidig, {}, open_, kern) == {"kern": ["a"]}
+    assert bronselectie.gezien_bij(huidig, {"kern": ["x"]}, kern, alles) == {"kern": ["x"], "rest": ["a", "b"]}
+    assert bronselectie.gezien_bij(huidig, {"kern": ["x"], "rest": ["y"]}, alles, open_) == {}
+    assert bronselectie.niet_gekozen("x", "kern", alles, {"rest": ["x"]})
+    assert not bronselectie.niet_gekozen("x", "kern", kern, {"kern": []})
+    assert bronselectie.niet_gekozen("x", "kern", kern, None)

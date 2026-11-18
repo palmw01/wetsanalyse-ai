@@ -712,3 +712,12 @@ def test_het_kernkaartje_telt_de_opgenomen_bronnen_van_de_deelvraag():
     assert k is not None and k["samenvatting"] == {"kandidaten": 0, "opgenomen": 1}
     # Wat eraan hangt telt de contextbronnen: die zijn er nog niet.
     assert bs.kaart_bepalingen(WID, ov, ov["deelvragen"][0], "bs_afhankelijkheden") is None
+
+
+def test_na_de_kernfase_telt_een_open_kernvoorstel_bij_wat_eraan_hangt():
+    """Acceptatie 18 nov 2026: een latere zoekopdracht vindt een kernbepaling na de kernfase; de api noemt haar niet
+    *niet gekozen*, en het kaartje van de afhankelijkheden telt haar, zoals het paneel haar toont."""
+    d = {"kandidaten": [{"rol": "kern", "stand": "voorgesteld"}, {"rol": "kern", "stand": "niet_gekozen"},
+                        {"rol": "afhankelijkheid", "stand": "voorgesteld"}], "bronnen": []}
+    assert bs._telling(d, "bs_bepalingen") == (2, 0)
+    assert bs._telling(d, "bs_afhankelijkheden") == (2, 0)

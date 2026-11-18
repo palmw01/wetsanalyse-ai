@@ -247,8 +247,12 @@ def kaart_gebeurtenis(werkgebied_id: str, ov: dict[str, Any], opties: list[dict[
 
 
 def _past(stap: str) -> Callable[[dict[str, Any]], bool]:
-    """Welke kandidaten bij een fase horen: de kernbepalingen, of wat eraan hangt."""
-    return (lambda k: k["rol"] == "kern") if stap == "bs_bepalingen" else (lambda k: k["rol"] != "kern")
+    """Welke kandidaten bij een fase horen: de kernbepalingen, of wat eraan hangt. Een kernvoorstel dat na de kernfase
+    nog openstaat, vond een latere zoekopdracht (de api noemt alleen wat de jurist toen zag *niet gekozen*): het hoort
+    bij de fase van nu, anders telt het kaartje het niet terwijl het paneel het toont (acceptatie 18 nov 2026)."""
+    if stap == "bs_bepalingen":
+        return lambda k: k["rol"] == "kern"
+    return lambda k: k["rol"] != "kern" or k.get("stand") == "voorgesteld"
 
 
 def _telling(d: dict[str, Any], stap: str) -> tuple[int, int]:

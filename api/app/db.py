@@ -457,7 +457,11 @@ bronselectie_voortgang = Table("bronselectie_voortgang", metadata,
     Column("revisie", Integer, nullable=False, default=1),
     Column("gewijzigd_door", String(64), nullable=False),
     Column("gewijzigd", _DT, nullable=False),
-    Column("geopend", _DT, nullable=False))
+    Column("geopend", _DT, nullable=False),
+    # Welke voorstellen er openstonden toen de jurist een fase afsloot: `{"kern": [ids], "rest": [ids]}`. Alleen die
+    # zijn daarna *niet gekozen*; wat een latere zoekopdracht vindt, blijft een voorstel (`bronselectie.gezien_bij`).
+    # NULL = een rij van vóór 18 nov 2026: dan geldt de fase alleen, zoals toen.
+    Column("gezien", _JSON, nullable=True))
 # Een besluit over een kandidaat bij één deelvraag: `uitgesloten` (met reden). Opnemen is geen rij
 # hier maar een koppeling van de selectie aan de deelvraag. Het besluit op `bron_kandidaten` blijft het
 # werkgebiedbrede besluit; een uitsluiting daar geldt voor elke deelvraag.
