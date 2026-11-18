@@ -95,7 +95,7 @@ async function nieuwePagina(browserType, opties) {
 }
 
 const wettekst = (page) => page.locator('[data-tour="wettekst"]');
-const inBeeld = (page) => page.getByText("in beeld", { exact: false });
+const inBeeld = (page) => page.getByText("uitgelicht", { exact: false });
 const chip = (page, lid) => page.locator("button", { hasText: `Invorderingswet – artikel 9 lid ${lid}` }).last();
 const beslissingen = (requests) => requests.filter((r) => r.pad.endsWith("/beslissing"));
 
