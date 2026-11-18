@@ -232,7 +232,7 @@ def rangen(graaf: Any, s: dict[str, Any], llm: Any, model: str, meting: dict[str
 
 
 #: De methoden van de fase van de afhankelijkheden: wat aan een opgenomen kernbepaling hangt (`bronnen_vinden.STANDAARD`).
-AFHANKELIJK_STANDAARD = ("verwijzing_uit", "definitie", "opschrift", "lid_verwijzing", "beleidsregel", "opbouw")
+AFHANKELIJK_STANDAARD = ("verwijzing_uit", "definitie", "opschrift", "lid_verwijzing", "beleidsregel", "artikelleden", "opbouw")
 
 
 def afhankelijkheden_configuratie(naam: str) -> tuple[str, ...]:

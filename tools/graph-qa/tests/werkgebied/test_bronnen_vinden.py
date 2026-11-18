@@ -117,7 +117,7 @@ ALLE = ("overzicht", "verwijzing_uit", "verwijzing_in", "definitie", "opbouw")
 
 
 def test_de_standaard_volgt_de_meting():
-    assert bronnen_vinden.standaard_voor(INVOER) == ("verwijzing_uit", "definitie", "opschrift", "lid_verwijzing", "beleidsregel", "opbouw")
+    assert bronnen_vinden.standaard_voor(INVOER) == ("verwijzing_uit", "definitie", "opschrift", "lid_verwijzing", "beleidsregel", "artikelleden", "opbouw")
     assert bronnen_vinden.standaard_voor({**INVOER, "kern": []}) == ("overzicht",)
 
 
@@ -1015,7 +1015,7 @@ def test_artikelleden_stelt_de_andere_leden_van_het_artikel_van_een_kernlid_voor
     k = _per_iri(uit)
     assert set(k) == {f"{a}:lid:2", f"{a}:lid:4", f"{a}:lid:5", f"{a}:lid:7"}
     assert all(x["rol"] == "aanverwant" and x["bewijs"][0]["vanuit"] == f"{a}:lid:3" for x in k.values())
-    assert "artikelleden" not in bronnen_vinden.STANDAARD
+    assert "artikelleden" in bronnen_vinden.STANDAARD  # ketenmeting 18 nov 2026
 
 
 def test_artikelleden_zonder_kernlid_doet_niets():
