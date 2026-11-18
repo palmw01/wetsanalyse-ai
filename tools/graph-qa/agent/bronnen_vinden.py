@@ -57,7 +57,9 @@ METHODEN = ("overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "defini
 #: kandidaten meer, op geen set slechter. `verwijzing_in` vond er vier, voor 77 kandidaten meer, en blijft uit.
 #: `beleidsregel` kwam erbij na de meting van 18 nov 2026 (`bronselectie-2026-11-18-beleidsregel/`): zes nodige
 #: bepalingen meer (de Leidraad bij het kernartikel) voor 46 kandidaten meer, op geen set slechter.
-STANDAARD = ("verwijzing_uit", "definitie", "opschrift", "lid_verwijzing", "beleidsregel", "opbouw")
+#: `artikelleden` kwam erbij na de ketenmeting van 18 nov 2026 (`bronselectie-2026-11-18-artikelleden/`): 126 → 138 van
+#: de 172 nodige bepalingen na de hele keten, voor 165 kandidaten meer, op geen set slechter.
+STANDAARD = ("verwijzing_uit", "definitie", "opschrift", "lid_verwijzing", "beleidsregel", "artikelleden", "opbouw")
 #: Zonder kern is de analysevraag het enige vertrekpunt: dan het overzicht.
 ZONDER_KERN = ("overzicht",)
 
