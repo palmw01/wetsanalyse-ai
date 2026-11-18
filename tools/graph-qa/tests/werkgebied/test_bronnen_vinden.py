@@ -117,7 +117,7 @@ ALLE = ("overzicht", "verwijzing_uit", "verwijzing_in", "definitie", "opbouw")
 
 
 def test_de_standaard_volgt_de_meting():
-    assert bronnen_vinden.standaard_voor(INVOER) == ("verwijzing_uit", "definitie", "opbouw")
+    assert bronnen_vinden.standaard_voor(INVOER) == ("verwijzing_uit", "definitie", "opschrift", "opbouw")
     assert bronnen_vinden.standaard_voor({**INVOER, "kern": []}) == ("overzicht",)
 
 
@@ -821,3 +821,55 @@ def test_een_haperende_graaf_kost_alleen_het_belang():
     zonder = replace(deelvraag_zoeken.STANDAARD_PROFIEL, belang=False)
     assert [o["bron_iri"] for o in _opties(BelangGraaf(faal_belang=True))] == \
         [o["bron_iri"] for o in _opties(profiel=zonder)]
+
+
+# --- de methode opschrift (acceptatie 18 nov 2026, LB-08) ----------------------------------------------------------
+
+AWIR = "urn:bwb:BWBR0018472"
+_OPSCHRIFTEN = [{"artikel": f"{AWIR}:artikel:{n}", "titel": t, "label": f"Artikel {n}"} for n, t in (
+    ("3", "Partner"), ("4", "Kind"), ("16", "Voorschot op tegemoetkoming"),
+    ("20", "Herziening tegemoetkoming wegens alsnog beschikbaar komen of wijziging fiscale gegevens na toekenning"),
+    ("21", "Herziening tegemoetkoming in het nadeel van belanghebbende om andere reden"),
+    ("21a", "Herziening tegemoetkoming in het voordeel van belanghebbende om andere reden"),
+    ("22", "Uitbetaling voorschot"), ("24", "Uitbetaling tegemoetkoming"),
+    ("26", "Terugvordering is verschuldigd door belanghebbende"), ("29", "Rente bij te late betaling terugvordering"),
+    ("30", "Verrekening"))]
+_KERN = [f"{AWIR}:artikel:24:lid:2", f"{AWIR}:artikel:26:lid:1"]
+_TEKSTEN = [{"kern": _KERN[0], "deel": _KERN[0], "tekst": "Indien voorschotten zijn verleend, worden deze verrekend met de tegemoetkoming."},
+            {"kern": _KERN[1], "deel": _KERN[1], "tekst": "Indien een herziening van een tegemoetkoming of een herziening van een "
+             "voorschot leidt tot een terug te vorderen bedrag dan wel een verrekening van een voorschot met een tegemoetkoming "
+             "daartoe leidt, is de belanghebbende het bedrag van de terugvordering in zijn geheel verschuldigd."}]
+
+
+def test_opschrift_vindt_het_artikel_waarvan_de_kern_de_kop_noemt():
+    from agent.bronnen_vinden import opschriften_in
+
+    uit = {o["artikel"].rsplit(":", 1)[1]: o for o in opschriften_in(_TEKSTEN, _OPSCHRIFTEN, _KERN, [])}
+    # 16 (voorschot + tegemoetkoming), 20/21/21a (herziening + tegemoetkoming), 30 (verrekening). Niet 24 en 26 zelf, niet
+    # 22 ("uitbetaling" staat er niet), niet 3 of 4, en niet 29 ("rente" staat er niet).
+    assert sorted(uit) == ["16", "20", "21", "21a", "30"]
+    assert uit["16"]["kop"] == "voorschot tegemoetkoming" and uit["16"]["deel"] == _KERN[0]
+
+
+def test_opschrift_houdt_zich_aan_de_afbakening_en_aan_een_onderscheidende_kop():
+    from agent import bronnen_vinden as bv
+
+    assert "30" not in {o["artikel"].rsplit(":", 1)[1] for o in bv.opschriften_in(_TEKSTEN, _OPSCHRIFTEN, _KERN, ["verreken"])}
+    veel = _OPSCHRIFTEN + [{"artikel": f"{AWIR}:artikel:21b", "titel": "Herziening tegemoetkoming bij overlijden"}]
+    assert not {"20", "21", "21a", "21b"} & {o["artikel"].rsplit(":", 1)[1]
+                                             for o in bv.opschriften_in(_TEKSTEN, veel, _KERN, [])}
+
+
+def test_de_kop_van_een_opschrift():
+    from agent.bronnen_vinden import opschrift_kop
+
+    assert opschrift_kop("Voorschot op tegemoetkoming") == ("voorschot", "tegemoetkoming")
+    assert opschrift_kop("Rente bij te late betaling terugvordering") == ("rente", "betaling")
+    assert opschrift_kop("Partner") == ("partner",) and opschrift_kop("Kind") == ()
+
+
+def test_opschrift_staat_standaard_aan_met_een_kern():
+    from agent.bronnen_vinden import standaard_voor
+
+    assert "opschrift" in standaard_voor({"kern": [{"bron_iri": _KERN[0]}]})
+    assert "opschrift" not in standaard_voor({"kern": []})

@@ -13,6 +13,7 @@ Methoden, van sterk naar zwak bewijs (PLAN §D *Bronnen vinden*):
 | `verwijzing_uit` | waar de kern naar verwijst, diepte 1 | afhankelijkheid bij een bekende functie, anders aanverwant |
 | `verwijzing_in` | wat naar de kern verwijst, diepte 1 – standaard uit (meting) | aanverwant |
 | `definitie` | waar de wet een term definieert die letterlijk in de kern staat | afhankelijkheid |
+| `opschrift` | een artikel in dezelfde regeling waarvan het opschrift ("Voorschot op tegemoetkoming") met zijn eerste woorden in de tekst van de kern staat | afhankelijkheid |
 | `opbouw` | de andere artikelen in hetzelfde deel als een kernartikel | aanverwant |
 | `gelijkenis` | `bwb_similarity` op de tekst van de kern – zwakste signaal, geen bewijs | aanverwant |
 | `grondslag` | zoekvraag a: waar de gekozen gebeurtenis haar bestaansrecht krijgt (`zoekvragen.grondslag`); alleen met een gebeurtenis | kern |
@@ -38,14 +39,17 @@ from .zoektermen import buiten_uit_afbakening, uitsluitstammen, zoektermen
 
 logger = logging.getLogger(__name__)
 
-METHODEN = ("overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "definitie", "opbouw", "gelijkenis",
+METHODEN = ("overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "definitie", "opschrift", "opbouw", "gelijkenis",
             "grondslag")
 #: Wat standaard draait als er een kern is – gekozen op de meting van 15 okt 2026
 #: (`docs/architectuur/metingen/bronselectie-2026-10-15/`): met een kern voegde het overzicht geen
 #: recall toe maar wel 36 onbeoordeelde "kern"-kandidaten, en `verwijzing_in` leverde alle uitgesloten
 #: bepalingen (rente, verrekening) voor één aanverwant Leidraad-onderdeel. `gelijkenis` voegde niets toe.
 #: Een methode die niet aantoonbaar helpt, staat niet standaard aan.
-STANDAARD = ("verwijzing_uit", "definitie", "opbouw")
+#: `opschrift` kwam erbij na de bronnenrun op acceptatie van 18 nov 2026 (LB-08): de kern ("Indien voorschotten zijn
+#: verleend …", "een herziening van een tegemoetkoming") verwees nergens naar, en artikel 16 ("Voorschot op
+#: tegemoetkoming") en 20 ("Herziening tegemoetkoming …") vond geen methode.
+STANDAARD = ("verwijzing_uit", "definitie", "opschrift", "opbouw")
 #: Zonder kern is de analysevraag het enige vertrekpunt: dan het overzicht.
 ZONDER_KERN = ("overzicht",)
 
@@ -86,6 +90,14 @@ MAX_PER_METHODE = 60
 MAX_OVERZICHT = 40
 MAX_OPBOUW_PER_KERN = 30
 MAX_GELIJKENIS = 10
+#: Hoeveel opschriften de methode `opschrift` per run leest (de Leidraad heeft er ruim duizend).
+MAX_OPSCHRIFTEN = 3000
+#: Hoeveel woorden van een opschrift in de kern moeten staan: de eerste twee inhoudswoorden, of het ene.
+OPSCHRIFT_WOORDEN = 2
+#: Een woord van het opschrift telt vanaf zoveel letters ("Partner", "Verrekening"; niet "Kind" of "late").
+MIN_OPSCHRIFT_WOORD = 5
+#: Een kop die bij meer artikelen past, is niet onderscheidend ("Herziening tegemoetkoming" past bij 20, 21 en 21a).
+MAX_PER_KOP = 3
 
 ROL_VOLGORDE = {"kern": 0, "afhankelijkheid": 1, "aanverwant": 2}
 
@@ -223,6 +235,15 @@ def q_definities(bwb_ids: list[str], limit: int) -> str:
   FILTER({filters})
   OPTIONAL {{ ?node rdfs:label ?label }}
 }} ORDER BY ?node ?begrip LIMIT {limit + 1}"""
+
+
+def q_opschriften(bwb_ids: list[str]) -> str:
+    filters = " || ".join(f'STRSTARTS(STR(?artikel), {_lit(NS + b + ":")})' for b in sorted(set(bwb_ids)))
+    return PREFIXES + f"""SELECT DISTINCT ?artikel ?titel ?label WHERE {{
+  ?artikel a bwb:Artikel ; bwb:titel ?titel .
+  FILTER({filters})
+  OPTIONAL {{ ?artikel rdfs:label ?label }}
+}} ORDER BY ?artikel LIMIT {MAX_OPSCHRIFTEN + 1}"""
 
 
 def q_opbouw(kern: list[str]) -> str:
@@ -508,6 +529,60 @@ def _definitie(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     return n, volledig and n < MAX_PER_METHODE
 
 
+def opschrift_kop(titel: str) -> tuple[str, ...]:
+    """De woorden van een opschrift die in de kern moeten staan: de eerste `OPSCHRIFT_WOORDEN` inhoudswoorden van
+    minstens `MIN_OPSCHRIFT_WOORD` letters ("Voorschot op tegemoetkoming" → voorschot, tegemoetkoming; "Partner" →
+    partner). Leeg als het opschrift niets onderscheidends draagt ("Kind")."""
+    woorden = [w for w in zoektermen(titel) if not w.isdigit() and len(w) >= MIN_OPSCHRIFT_WOORD]
+    return tuple(woorden[:OPSCHRIFT_WOORDEN])
+
+
+def opschriften_in(teksten: list[dict[str, Any]], opschriften: list[dict[str, Any]], kern: list[str],
+                   buiten: list[str]) -> list[dict[str, Any]]:
+    """De artikelen waarvan de kop van het opschrift (`opschrift_kop`) in een tekst van de kern staat, elk woord op zijn
+    stam (`raakt_heel`: "voorschot" raakt "voorschotten"). Niet het artikel van de kern zelf, niet een opschrift dat
+    buiten de afbakening valt, en niet een kop die bij meer dan `MAX_PER_KOP` artikelen past. Zonder model, zoals de
+    andere methoden: het bewijs is de kop en de tekst waarin hij staat."""
+    from .zoektermen import raakt_heel, valt_buiten
+
+    per_kop: dict[tuple[str, ...], list[dict[str, Any]]] = {}
+    for o in opschriften:
+        kop = opschrift_kop(o.get("titel", ""))
+        if kop and not valt_buiten(o.get("titel", ""), buiten):
+            per_kop.setdefault(kop, []).append(o)
+    uit: list[dict[str, Any]] = []
+    gezien: set[str] = set()
+    for kop, artikelen in per_kop.items():
+        if len(artikelen) > MAX_PER_KOP:
+            continue
+        waar = next((t for t in teksten if all(raakt_heel(w, (t.get("tekst") or "").casefold()) for w in kop)), None)
+        if waar is None:
+            continue
+        for o in artikelen:
+            a = o["artikel"]
+            if a in gezien or any(_binnen(k, a) for k in kern):
+                continue
+            gezien.add(a)
+            uit.append({"artikel": a, "titel": o.get("titel", ""), "label": o.get("label", ""),
+                        "kop": " ".join(kop), "deel": waar.get("deel", "")})
+    return uit
+
+
+def _opschrift(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
+    kern = [k["bron_iri"] for k in invoer.get("kern", [])]
+    bwb_ids = sorted({_bwb(k) for k in kern if _bwb(k)})
+    if not kern or not bwb_ids:
+        return 0, True
+    opschriften = _rijen(graph, q_opschriften(bwb_ids))
+    buiten = uitsluitstammen(buiten_uit_afbakening((invoer.get("dossier") or {}).get("afbakening", "")))
+    gevonden = opschriften_in(_rijen(graph, q_teksten(kern)), opschriften[:MAX_OPSCHRIFTEN], kern, buiten)
+    n = 0
+    for o in gevonden[:MAX_PER_METHODE]:
+        n += v.voeg(o["artikel"], rol="afhankelijkheid", methode="opschrift", vanuit=o["deel"], label=o["label"],
+                    detail={"opschrift": o["titel"], "kop": o["kop"]})
+    return n, len(opschriften) <= MAX_OPSCHRIFTEN and len(gevonden) <= MAX_PER_METHODE
+
+
 def _opbouw(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
     kern = [k["bron_iri"] for k in invoer.get("kern", [])]
     if not kern:
@@ -546,7 +621,7 @@ def _gelijkenis(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tup
 
 UITVOERING: dict[str, Callable[[GraphPort, dict[str, Any], Verzameling], tuple[int, bool]]] = {
     "overzicht": _overzicht, "deelvraag": _deelvraag, "verwijzing_uit": _verwijzing_uit, "verwijzing_in": _verwijzing_in,
-    "definitie": _definitie, "opbouw": _opbouw, "gelijkenis": _gelijkenis, "grondslag": _grondslag,
+    "definitie": _definitie, "opschrift": _opschrift, "opbouw": _opbouw, "gelijkenis": _gelijkenis, "grondslag": _grondslag,
 }
 
 
