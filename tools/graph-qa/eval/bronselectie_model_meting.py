@@ -294,6 +294,9 @@ def keten(graaf: Any, s: dict[str, Any], spoor: list[dict[str, Any]],
 
     per_vraag = {e["vraag"]: e for e in spoor if e["set"] == s["naam"]}
     uit = {"nodig": 0, "gekozen": 0, **{c: {"gevonden": 0, "kandidaten": 0} for c in configuraties}}
+    # Wat na de laatste configuratie nergens staat: per bepaling of ze op de lijst van het model stond.
+    laatste = list(configuraties)[-1] if configuraties else ""
+    missers: list[dict[str, Any]] = []
     for i, vraag in enumerate(s["deelvragen"]):
         e = per_vraag.get(vraag)
         if e is None:
@@ -305,6 +308,8 @@ def keten(graaf: Any, s: dict[str, Any], spoor: list[dict[str, Any]],
         al = {iri for iri in nodig if any(_raakt(c, iri) for c in opgenomen)}
         uit["gekozen"] += len(al)
         if not opgenomen:
+            missers += [{"deelvraag": i + 1, "bron_iri": iri, "op_de_lijst": any(_raakt(c, iri) for c in e["kandidaten"])}
+                        for iri in nodig]
             continue
         invoer = {"naam": s["naam"], "analysevraag": s.get("analysevraag", ""), "context": [],
                   "regelingen": s.get("regelingen") or [],
@@ -314,9 +319,13 @@ def keten(graaf: Any, s: dict[str, Any], spoor: list[dict[str, Any]],
         for c, methoden in configuraties.items():
             kand = [k["bron_iri"] for k in vind(graaf, invoer, methoden)["kandidaten"]]
             uit[c]["kandidaten"] += len(kand)
-            uit[c]["gevonden"] += len(al) + sum(1 for iri in nodig if iri not in al
-                                                 and any(_binnen(k, iri) for k in kand))
-    return uit
+            erbij = {iri for iri in nodig if iri not in al and any(_binnen(k, iri) for k in kand)}
+            uit[c]["gevonden"] += len(al) + len(erbij)
+            if c == laatste:
+                missers += [{"deelvraag": i + 1, "bron_iri": iri,
+                             "op_de_lijst": any(_raakt(c2, iri) for c2 in e["kandidaten"])}
+                            for iri in nodig if iri not in al and iri not in erbij]
+    return {**uit, "missers": missers}
 
 
 def meet_afhankelijkheden(a: argparse.Namespace) -> int:
@@ -493,6 +502,15 @@ def main(argv: list[str] | None = None) -> int:
                 for c in ketens:
                     for m in ("gevonden", "kandidaten"):
                         keten_totaal[c][m] += k[c][m]
+                plekken = {(g["deelvraag"], g["bron_iri"]): g for g in rangen(graaf, s, llm, settings.llm_model,
+                                                                               modelmeting, gedeeld)["gemist"]}
+                for x in k["missers"]:
+                    g = plekken.get((x["deelvraag"], x["bron_iri"]))
+                    waar = ("op de lijst, niet gekozen" if x["op_de_lijst"] else
+                            f"niet op de lijst (woorden {g['woorden']}, pool {g['pool']}, buur {g['buur'] or '-'})" if g
+                            else "niet op de lijst")
+                    print(f"{'':40} KETEN MIST {naam} DV{x['deelvraag']} {x['bron_iri'].split(':', 1)[-1]}: {waar}",
+                          flush=True)
                 print(f"{naam:40} keten: gekozen {k['gekozen']}/{k['nodig']} | "
                       + " | ".join(f"{c} {k[c]['gevonden']}/{k['nodig']} ({k[c]['kandidaten']} kand.)" for c in ketens),
                       flush=True)
