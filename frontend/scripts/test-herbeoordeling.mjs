@@ -209,7 +209,8 @@ try {
   // 5. De dekking: buiten behandeling met een reden, en weer terughalen.
   await page.goto(`${base}/werkgebieden/wg1?tab=elementen`);
   const balk = page.getByRole("region", { name: "Dekking" });
-  await balk.getByText("gekoppeld aan een geaccordeerd begrip").waitFor();
+  // De totalen staan vooraan; dezelfde woorden staan ook in de uitklap per klasse.
+  await balk.getByText("gekoppeld aan een geaccordeerd begrip").first().waitFor();
   await balk.getByText("zag de laatste begrippenronde van Lex nog niet", { exact: false }).waitFor();
   await page.getByText("Nieuw sinds de laatste begrippenronde van Lex.").waitFor();
   // P21: de dekking per klasse met wat de methode verwacht, en een element zonder samenhang als vraag.
