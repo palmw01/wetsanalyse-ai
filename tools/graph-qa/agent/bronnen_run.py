@@ -131,14 +131,15 @@ async def bronnen_stroom(werkgebied_id: str, api_run_id: str, run: Any, *, setti
             await _mislukt(api, werkgebied_id, api_run_id, "Gestopt op verzoek.")
             yield {"type": "done"}
             return
-        if uitkomst["meting"] and all(m.get("fout") for m in uitkomst["meting"].values()):
+        gevraagd = [m for m in uitkomst["meting"].values() if not m.get("zonder_vraag")]
+        if gevraagd and all(m.get("fout") for m in gevraagd):
             # Geen enkele methode kon de graaf bevragen: dat is geen lege uitkomst maar een storing.
             await _mislukt(api, werkgebied_id, api_run_id, "Geen enkele methode kon de graaf bevragen.")
             yield {"type": "error", "message": "Het zoeken naar bepalingen liep vast; de graaf is mogelijk niet bereikbaar.",
                    "soort": "graaf"}
             return
         try:
-            meting = {m: {k: v for k, v in x.items() if k != "fout"} for m, x in uitkomst["meting"].items()}
+            meting = {m: {k: v for k, v in x.items() if k not in ("fout", "zonder_vraag")} for m, x in uitkomst["meting"].items()}
             await api.zet_bronnen_uitkomst(werkgebied_id, api_run_id,
                                            {"invoer_id": data["invoer_id"], **uitkomst, "meting": meting})
         except WetsanalyseApiFout as fout:

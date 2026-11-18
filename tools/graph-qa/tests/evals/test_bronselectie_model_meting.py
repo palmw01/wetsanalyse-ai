@@ -196,7 +196,9 @@ def test_de_modelroute_geeft_de_grens_door(monkeypatch):
 def test_de_meting_van_de_afhankelijkheden_telt_vanuit_de_verwachte_kern(monkeypatch):
     import agent.bronnen_vinden as bv
 
-    assert m.afhankelijkheden_configuratie("standaard+lid_verwijzing") == (*m.AFHANKELIJK_STANDAARD, "lid_verwijzing")
+    assert m.afhankelijkheden_configuratie("standaard+verwijzing_in") == (*m.AFHANKELIJK_STANDAARD, "verwijzing_in")
+    assert m.afhankelijkheden_configuratie("standaard+lid_verwijzing") == m.AFHANKELIJK_STANDAARD
+    assert "lid_verwijzing" not in m.afhankelijkheden_configuratie("standaard-lid_verwijzing")
     assert m.afhankelijkheden_configuratie("alleen opschrift") == ("opschrift",)
     gezien = {}
 

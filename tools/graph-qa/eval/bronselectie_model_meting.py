@@ -221,17 +221,21 @@ def rangen(graaf: Any, s: dict[str, Any], llm: Any, model: str, meting: dict[str
 
 
 #: De methoden van de fase van de afhankelijkheden: wat aan een opgenomen kernbepaling hangt (`bronnen_vinden.STANDAARD`).
-AFHANKELIJK_STANDAARD = ("verwijzing_uit", "definitie", "opschrift", "opbouw")
+AFHANKELIJK_STANDAARD = ("verwijzing_uit", "definitie", "opschrift", "lid_verwijzing", "opbouw")
 
 
 def afhankelijkheden_configuratie(naam: str) -> tuple[str, ...]:
-    """`standaard` = de methoden van de afhankelijkheden; `standaard+x` er een bij; `alleen x` alleen die."""
+    """`standaard` = de methoden van de afhankelijkheden; `standaard+x` er een bij; `standaard-x` er een af;
+    `alleen x` alleen die."""
     if naam.startswith("alleen "):
         return (naam.removeprefix("alleen "),)
+    if naam.startswith("standaard-"):
+        weg = naam.removeprefix("standaard-")
+        return tuple(x for x in AFHANKELIJK_STANDAARD if x != weg)
     basis, _, extra = naam.partition("+")
     if basis != "standaard":
         raise SystemExit(f"onbekende configuratie: {naam}")
-    return AFHANKELIJK_STANDAARD + tuple(x for x in extra.split("+") if x)
+    return AFHANKELIJK_STANDAARD + tuple(x for x in extra.split("+") if x and x not in AFHANKELIJK_STANDAARD)
 
 
 def afhankelijkheden_per_deelvraag(graaf: Any, s: dict[str, Any], methoden: tuple[str, ...]) -> dict[str, Any]:

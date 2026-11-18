@@ -1688,7 +1688,8 @@ horen; de api bewaart de kandidaten en de besluiten (`api/app/bronnen_run_store.
   `MAX_PER_DEELVRAAG`; kern zonder kern, anders aanverwant; het bewijs draagt `deelvraag_id` en wat de
   bepaling raakt, zodat de api een opgenomen bron aan de deelvraag koppelt).
 - **De standaard volgt de meting** (`standaard_voor`, meetlogboek `bronselectie-2026-10-15`): met een
-  kern `STANDAARD` = verwijzing uit, definitie, opbouw; zonder kern `ZONDER_KERN` = het overzicht.
+  kern `STANDAARD` = verwijzing uit, definitie, opschrift, verwijzingen binnen het artikel (`lid_verwijzing`, meetlogboek
+  `bronselectie-2026-11-18-afhankelijkheden`), opbouw; zonder kern `ZONDER_KERN` = het overzicht.
   Overzicht (met kern), `verwijzing_in` en `gelijkenis` hielpen niet aantoonbaar en staan uit. Wijzig
   je een methode, meet dan opnieuw: `uv run python -m eval.bronselectie_eval` (offline, tegen de
   opname naast de set) en `--opnemen` (live); `tests/evals/test_bronselectie_eval.py` bewaakt dat de standaard
