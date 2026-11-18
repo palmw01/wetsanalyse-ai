@@ -256,7 +256,9 @@ export function ordenVoorstellen<T extends Pick<KandidaatHier, "stand">>(kandida
 
 export function paneelTelling(d: Pick<DeelvraagSelectie, "kandidaten">, stap: string): { kandidaten: number; opgenomen: number } {
   const kern = stap === "bs_bepalingen";
-  const hier = d.kandidaten.filter((k) => (k.rol === "kern") === kern);
+  // Na de kernfase hoort een kernvoorstel dat nog openstaat bij wat eraan hangt: een latere zoekopdracht vond het, en
+  // de api noemt alleen wat de jurist toen zag *niet gekozen* (zoals `_past` in graph-qa).
+  const hier = d.kandidaten.filter((k) => kern ? k.rol === "kern" : k.rol !== "kern" || k.stand === "voorgesteld");
   return { kandidaten: hier.filter((k) => k.stand === "voorgesteld" || k.stand === "niet_gekozen").length,
     opgenomen: hier.filter((k) => k.stand === "opgenomen").length };
 }

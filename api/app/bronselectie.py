@@ -19,7 +19,9 @@ collega.
   één deelvraag (`bron_kandidaat_deelvragen`); het besluit op `bron_kandidaten` blijft het
   werkgebiedbrede besluit en geldt voor elke deelvraag. Bestaande uitsluitingen blijven dus wat ze waren.
 - **Kiezen is het besluit.** Wie het kaartje van een deelvraag beantwoordt, kiest; wat niet aangevinkt is, heet
-  daarna `niet_gekozen` (afgeleid uit de fase, niet bewaard). Er is geen *later*. Een bepaling die er niet bij stond, noemt de analist zelf (`noem`), en de vragen
+  daarna `niet_gekozen` (afgeleid uit de fase en `gezien`: de voorstellen die openstonden toen de fase sloot). Wat een
+  latere zoekopdracht vindt of tot kernbepaling maakt, heeft de jurist niet gezien en blijft een voorstel (acceptatie
+  18 nov 2026: na *Klaar* zocht Lex opnieuw, en drie nieuwe kernkandidaten stonden meteen op *niet gekozen*). Er is geen *later*. Een bepaling die er niet bij stond, noemt de analist zelf (`noem`), en de vragen
   opnieuw doorlopen maakt van *niet gekozen* weer een keuze.
 - **De volgende deelvraag kiest de code** (`volgende`): na de gegeven deelvraag de eerste in de volgorde
   die niet klaar is, en anders vooraan verder. Het model kiest hier niets.
@@ -159,6 +161,42 @@ def _hoort_bij(kandidaat, did: str, eigen: set[str], kern_iris: set[str]) -> boo
     return False
 
 
+def _gehad(status: str, fase: str) -> dict[str, bool]:
+    """Welke fasen de jurist heeft afgesloten: de kernbepalingen zodra de deelvraag voorbij `kern` is, de rest bij
+    `afronden` (of een afgeronde deelvraag)."""
+    return {"kern": status in KLAAR or fase != Fase.kern.value,
+            "rest": status in KLAAR or fase == Fase.afronden.value}
+
+
+def niet_gekozen(kandidaat_id: str, rol: str, gehad: dict[str, bool], gezien: dict | None) -> bool:
+    """Of een open voorstel *niet gekozen* is: zijn fase is afgesloten en het stond open toen dat gebeurde. Een
+    kernvoorstel dat bij het afsluiten van de rest openstond (een latere zoekopdracht maakte het kern), telt ook. Zonder
+    `gezien` (een rij van vóór 18 nov 2026) beslist de fase alleen."""
+    groep = "kern" if rol == "kern" else "rest"
+    if not gehad[groep]:
+        return False
+    if gezien is None:
+        return True
+    ids = set(gezien.get("rest") or [])
+    if groep == "kern":
+        ids |= set(gezien.get("kern") or [])
+    return kandidaat_id in ids
+
+
+def gezien_bij(huidig: dict, oud: dict | None, gehad_oud: dict[str, bool], gehad_nieuw: dict[str, bool]) -> dict:
+    """Wat er na een statuswissel in `gezien` hoort. Sluit een fase nu, dan de voorstellen die de jurist toen voor zich
+    had: bij de kern de open kernvoorstellen, bij de rest alle open voorstellen. Gaat een fase weer open, dan vervalt
+    haar lijst; een fase die gesloten blijft, houdt de hare."""
+    open_ = [k for k in huidig["kandidaten"] if k["stand"] == "voorgesteld"]
+    uit = dict(oud or {})
+    for groep, lijst in (("kern", [k["id"] for k in open_ if k["rol"] == "kern"]), ("rest", [k["id"] for k in open_])):
+        if gehad_nieuw[groep] and not gehad_oud[groep]:
+            uit[groep] = sorted(lijst)
+        elif not gehad_nieuw[groep]:
+            uit.pop(groep, None)
+    return uit
+
+
 def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
     selecties, kandidaten = lees["selecties"], lees["kandidaten"]
     sel_per_iri = {r.bron_iri: r for r in selecties.values()}
@@ -192,9 +230,9 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
             "scope_stand": "", "gewijzigd_door": None, "gewijzigd": None, "geopend": None}
         # Het kaartje beantwoorden is het besluit: wat er toen niet aangevinkt werd, is niet gekozen. Dat volgt
         # uit de fase (de kernbepalingen zijn gehad zodra de deelvraag voorbij `kern` is, de rest bij `afronden`)
-        # en wordt niet bewaard; de vragen opnieuw doorlopen maakt er weer een keuze van.
-        gehad = {"kern": voortgang["status"] in KLAAR or voortgang["fase"] != Fase.kern.value,
-                 "rest": voortgang["status"] in KLAAR or voortgang["fase"] == Fase.afronden.value}
+        # en uit wat er toen openstond (`gezien`); de vragen opnieuw doorlopen maakt er weer een keuze van.
+        gehad = _gehad(voortgang["status"], voortgang["fase"])
+        gezien = getattr(r, "gezien", None) if r is not None else None
         lijst = []
         for kd in kandidaten:
             if not alleen and not ((kd.id, did) in besluit or kd.bron_iri in iris_hier
@@ -214,7 +252,7 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
             elif bronnen_run_store.vervallen(kd.status, kd.run_id, lees["basis"], kd.bewijs):
                 continue
             # Een zelf genoemd voorstel blijft open tot er een besluit is: de analist vroeg er zelf om.
-            elif gehad["kern" if kd.rol == "kern" else "rest"] and not bronnen_run_store.genoemd(kd.bewijs):
+            elif niet_gekozen(kd.id, kd.rol, gehad, gezien) and not bronnen_run_store.genoemd(kd.bewijs):
                 stand, overal = "niet_gekozen", False
             else:
                 stand, overal = "voorgesteld", False
@@ -350,7 +388,7 @@ async def _start_in(conn, werkgebied_id: str, deelvraag_id: str, actor: str):
     await conn.execute(insert(v).values(werkgebied_id=werkgebied_id, deelvraag_id=deelvraag_id,
                                         status=Voortgang.in_behandeling.value, fase=Fase.kern.value,
                                         open_punten=[], scope_stand="", revisie=1, gewijzigd_door=actor,
-                                        gewijzigd=nu, geopend=nu))
+                                        gewijzigd=nu, geopend=nu, gezien={}))
     await _audit(conn, werkgebied_id, actor, "bronselectie-gestart", {"deelvraag": deelvraag_id})
     return (await conn.execute(q)).first(), True
 
@@ -412,6 +450,10 @@ async def zet_status(werkgebied_id: str, deelvraag_id: str, req: StatusActie, ac
             waarden["fase"] = Fase.afronden.value
         if punten is not None:
             waarden["open_punten"] = punten
+        gezien = getattr(row, "gezien", None)
+        if gezien is not None:
+            waarden["gezien"] = gezien_bij(huidig, gezien, _gehad(status, row.fase),
+                                           _gehad(doel, waarden.get("fase", row.fase)))
         await conn.execute(update(v).where(v.c.werkgebied_id == werkgebied_id, v.c.deelvraag_id == deelvraag_id)
                            .values(**waarden))
         await _audit(conn, werkgebied_id, actor, f"bronselectie-{req.actie}",

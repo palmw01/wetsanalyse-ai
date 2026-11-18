@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { bronselectieVanKaart } from "./artefact";
 import {
-  ledenVan, ordenVoorstellen,
+  ledenVan, ordenVoorstellen, paneelTelling,
   bronnenZin, deelvraagStand, parseBronselectie, zoekvraagZin, slotZin, voortgangToon, voortgangZin, zoekBeperkingen,
 } from "./bronselectie";
 import { parseVraagkaart } from "./vraagkaart";
@@ -72,6 +72,15 @@ describe("bronselectie", () => {
       vraag: "Hoe rond je deelvraag 2 af?" });
     expect(bronselectieVanKaart(k)).toEqual({ soort: "bronselectie", werkgebied_id: "wg1", run_id: "", deelvraag_id: "d2", titel: "" });
     expect(bronselectieVanKaart(parseVraagkaart({ intake_id: "ik1", stap: "naam", vraag: "Naam?" }))).toBeUndefined();
+  });
+});
+
+describe("paneelTelling", () => {
+  it("telt na de kernfase een kernvoorstel dat nog openstaat bij wat eraan hangt (acceptatie 18 nov 2026)", () => {
+    const k = (rol: string, stand: string) => ({ rol, stand }) as never;
+    const d = { kandidaten: [k("kern", "voorgesteld"), k("kern", "niet_gekozen"), k("afhankelijkheid", "voorgesteld"), k("kern", "opgenomen")] };
+    expect(paneelTelling(d, "bs_bepalingen")).toEqual({ kandidaten: 2, opgenomen: 1 });
+    expect(paneelTelling(d, "bs_afhankelijkheden")).toEqual({ kandidaten: 2, opgenomen: 0 });
   });
 });
 

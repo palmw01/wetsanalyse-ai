@@ -1037,7 +1037,10 @@ na herladen, in een ander gesprek en bij een collega ook is.
   `niet_gestart`.
 - **Kiezen is het besluit; er is geen *later*.** Wie het kaartje beantwoordt, kiest: een voorstel dat toen niet
   aangevinkt werd, heeft bij het lezen de stand `niet_gekozen` – afgeleid uit de fase (kernvoorstellen zodra de
-  deelvraag voorbij `kern` is, de rest bij `afronden`), niet bewaard. De fase terugzetten (de vragen opnieuw
+  deelvraag voorbij `kern` is, de rest bij `afronden`) en uit `bronselectie_voortgang.gezien`: de voorstellen die
+  openstonden toen die fase sloot (`gezien_bij`, in `zet_status`). Wat een latere zoekopdracht vindt of tot kern maakt,
+  blijft `voorgesteld` tot de volgende fase sluit (acceptatie 18 nov 2026); een rij met `gezien` NULL (van vóór die
+  datum) houdt de regel van de fase alleen. De fase terugzetten (de vragen opnieuw
   doorlopen) maakt er weer een `voorgesteld` van. Een oud besluit *later* op `bron_kandidaten` telt als voorstel.
 - **Een afronding staat op een scope**: `scope_stand` = hash van analysevraag, afbakening, de genormaliseerde
   deelvraagtekst en de kandidaat-ids in de lijst van die deelvraag. Een ander dossier heropent dus pas iets
