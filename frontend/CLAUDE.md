@@ -150,8 +150,16 @@ stand komt uit `lib/herkomst.ts`.
   markeringen bij (`maakWeergaveCache` in `lib/bronWeergave.ts`). `actueleElementen` is de ene filter op de markeringen
   in de lopende tekst.
 - Geen eigen component `Wettekst`, geen `KnoopTekst`, en geen tweede weergave voor de annotatie (ontdubbelen PR 4):
-  `AnnotatieTekst` is `WettekstBlok` met de **markeerlaag** (`laag`: de ene gekozen markering, de ongedekte zinsdelen, zelf
-  selecteren), dezelfde tekst als het leesvenster. De rekenkern van die laag staat in `lib/markeerlaag.ts`.
+  `AnnotatieTekst` is `WettekstBlok` met de **markeerlaag** (`laag`: alle markeringen in banen met de gekozen uitgelicht,
+  de ongedekte zinsdelen, zelf selecteren), dezelfde tekst als het leesvenster. De rekenkern van die laag staat in
+  `lib/markeerlaag.ts`.
+- **Overlappende markeringen** (optie B, besluit gebruiker 18 nov 2026, `docs/architectuur/voorstel-markeringen-en-diagrammen.md`):
+  één algoritme, `lib/markeerbanen.ts`, met als tweeling `api/app/markeerbanen.py` (het rapport) en gedeelde vectoren
+  (`markeerbanen.vectoren.json`). Een markering die geen andere omvat heeft het vlak in haar klassekleur, een die andere
+  omvat een baan eronder in haar randkleur (`baanStijl`, `jasRandKleur`); de regelhoogte van de alinea groeit mee
+  (`regelhoogte`). `spansVan` (leesvenster, graaf, bronpagina) en `laagVan` (annotatiepaneel) leveren de stukken,
+  `MarkeerStuk` in `WettekstBlok` tekent ze op beide plekken. De gekozen markering krijgt een ring en de andere banen
+  dimmen; een vlak dimt niet, want dan haalt de tekst het contrast niet. Geen eigen overlapregel elders.
 
 **Eén ingang, één venster, één Vraag Lex** (ontdubbelen PR 1–5, besluit gebruiker 10 nov 2026, naar het voorbeeld van
 Claude: een citaat in de tekst, één kaart per object, en het object opent in één paneel):
@@ -438,7 +446,7 @@ te wissen. Geen Escape: het is geen laag. Het gebruikersmenu draagt de voorwaard
     werkgebied wel noemt. `app/artefactTitels.test.ts` bewaakt het.
   - **annotatie** – het `annotatie`-item met `AnnotatieChip`, dat **`NodeAnnotatiePaneel`** opent
     `AnnotatieTekst` toont de wettekst met de **letterlijke** fragmenten
-    (`segmenteer` + `lib/jas.ts:jasStyle`), `ReviewQueue` de beslissingskaarten.
+    (`laagVan` + `MarkeerStuk`, alle markeringen in banen), `ReviewQueue` de beslissingskaarten.
   - **begrippen** – het `artefact`-item met `ArtefactChip`, dat
     **`WerkgebiedArtefactPaneel`** opent: dezelfde `BegripVoorstellen` (`inklapbaar={false}`) als op de tab
     Begrippen, met een link naar het werkgebied. Het oude artefact *Gevonden bepalingen* (`bronnen`) bestaat niet
@@ -1956,14 +1964,14 @@ agent-ronde) en zijn meteen `human_approved`.
   een op één lid afgebakend document is index 0 bijvoorbeeld lid 3, en ingevoegde leden heten 2a.
   `lidUitOffset` leest het daarom uit de regel.
 - **Elk element draagt een `anker`**: exacte offsets + quote-met-context + een hash van de bron.
-  `segmenteer` gebruikt die in drie stappen (offsets → context → eerste voorkomen), zodat twee
+  `markeringVan`/`laagVan` gebruiken die in drie stappen (offsets → context → eerste voorkomen), zodat twee
   identieke fragmenten uit elkaar blijven en een markering een herimport overleeft. `vindplaats` is
   de mensleesbare bronaanduiding; daar horen geen offsets in.
-- **De tekst toont hoogstens één markering: de geselecteerde.** Twee markeringen kunnen niet op
-  dezelfde tekst liggen, dus alles tegelijk kleuren is onleesbaar én onvolledig. De reviewlijst is de
-  ingang; de tekst laat zien wáár het gekozen element staat. Nog eens klikken verbergt hem, en een
-  verse eigen markering wordt meteen actief. `segmenteer` heeft daardoor geen overlap-prioritering
-  nodig; de bevriezingsregel (mens wint) leeft server-side.
+- **De tekst toont alle markeringen in banen** (optie B, 18 nov 2026; dit vervangt "hoogstens één markering"): een korte
+  markering houdt haar vlak, een die andere omvat ligt als streep eronder, dus niets valt weg. De gekozen markering krijgt
+  een ring; *Alles gelijk tonen* heft dat op, en een verse eigen markering wordt meteen gekozen. Een klik op een stuk met
+  alleen banen kiest de binnenste; met het toetsenbord kies je in de reviewlijst. De bevriezingsregel (mens wint) leeft
+  server-side.
 
 ### De annotatie exporteren
 

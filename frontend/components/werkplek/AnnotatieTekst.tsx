@@ -7,15 +7,16 @@ import { WettekstBlok } from "@/components/wettekst/WettekstBlok";
 import { bronVan } from "@/lib/annotatie";
 import type { SegmentPlek } from "@/lib/annotatieNodeAdapter";
 import { klasseLabel } from "@/lib/jas";
-import { markeringVan, type Markeerbaar } from "@/lib/markeerlaag";
+import { laagVan, markeringVan, type Markeerbaar } from "@/lib/markeerlaag";
 import { lidUitOffset, type LidRegel } from "@/lib/selectie";
 
 /** De wettekst van een annotatie (ontdubbelen PR 4): dezelfde weergave als het leesvenster (`WettekstBlok`), met de
  *  markeerlaag erop – de ene gekozen markering, de zinsdelen zonder detectortreffer en het zelf selecteren. Geen eigen
  *  tekstweergave meer (`app/wettekst.test.ts`); deze schil voegt alleen de twee regels erboven toe.
  *
- *  De tekst toont hoogstens één markering: de gekozen. Twee markeringen kunnen niet op dezelfde tekst liggen, dus alles
- *  tegelijk kleuren is onleesbaar en onvolledig; de reviewlijst is de ingang. */
+ *  De tekst toont alle markeringen (optie B, besluit gebruiker 18 nov 2026): een markering die niets omvat als vlak, een
+ *  die andere omvat als baan eronder (`laagVan`). De gekozen markering krijgt een ring en de andere banen dimmen; de reviewlijst blijft de
+ *  ingang voor het toetsenbord. */
 export function AnnotatieTekst({ regels, plekken, elementen, actiefId, onKies, onSelectie, ongedekt = [], toonOngedekt = true, onToonOngedekt }: {
   /** De artikeltekst als regels mét hun lidnummer (`regelsVan`): de samengestelde bron waarin alles rekent. */
   regels: LidRegel[];
@@ -36,6 +37,7 @@ export function AnnotatieTekst({ regels, plekken, elementen, actiefId, onKies, o
 }) {
   const bron = useMemo(() => bronVan(regels), [regels]);
   const markering = useMemo(() => markeringVan(bron, elementen, actiefId), [bron, elementen, actiefId]);
+  const markeringen = useMemo(() => laagVan(bron, elementen), [bron, elementen]);
   const gekozen = actiefId ? elementen.find((e) => e.id === actiefId) : undefined;
   const meld = (start: number, eind: number, plek: { x: number; y: number; yBoven: number }) => onSelectie?.({
     fragment: bron.slice(start, eind), start, eind, lid: lidUitOffset(regels, start), bron, ...plek,
@@ -47,14 +49,15 @@ export function AnnotatieTekst({ regels, plekken, elementen, actiefId, onKies, o
         <div className="mb-3 flex items-center justify-between gap-3 rounded-kaart bg-lint/5 px-3 py-2 text-xs text-muted">
           {gekozen ? (
             <>
-              <span><span className="font-medium text-ink">{klasseLabel(gekozen.klasse)}</span> in beeld</span>
+              <span><span className="font-medium text-ink">{klasseLabel(gekozen.klasse)}</span> uitgelicht</span>
               <button type="button" onClick={() => onKies?.(undefined)}
                 className="focus-ring shrink-0 rounded font-medium text-lint underline underline-offset-2 hover:no-underline">
-                Verbergen
+                Alles gelijk tonen
               </button>
             </>
           ) : (
-            <span>Kies een markering in de lijst om te zien waar hij staat, of selecteer tekst om zelf te markeren.</span>
+            <span>Een markering die andere omvat, staat als streep onder de tekst. Kies een markering om haar uit te lichten,
+              of selecteer tekst om zelf te markeren.</span>
           )}
         </div>
       )}
@@ -75,7 +78,7 @@ export function AnnotatieTekst({ regels, plekken, elementen, actiefId, onKies, o
         </div>
       )}
       <WettekstBlok groot laag={{
-        bron, plekken, markering, onKies,
+        bron, plekken, markeringen, markering, onKies,
         ongedekt: toonOngedekt ? ongedekt : [],
         onKiesOngedekt: onSelectie ? (deel, el) => {
           const r = el.getBoundingClientRect();

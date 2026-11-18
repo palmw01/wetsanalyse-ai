@@ -640,7 +640,11 @@ def leeswijzer_regels() -> list[Regel]:
                                      "bronnenregister, de contextbepalingen, de samenhang (verwijzingen), wat niet is meegenomen "
                                      "en de verantwoording."),
                         ("Heading4", "De klassen van het Juridisch Analyseschema"),
-                        ("Meta", "Een markering draagt de kleur van haar klasse, en altijd ook de naam: de kleur is nooit de enige drager.")]
+                        ("Meta", "Een markering draagt de kleur van haar klasse, en altijd ook de naam: de kleur is nooit de enige drager."),
+                        ("Meta", "In de wettekst heeft een markering die geen andere omvat een vlak in haar kleur. Een markering die "
+                                 "andere omvat, zoals een rechtsbetrekking over een hele zin, staat als streep onder de tekst. Het "
+                                 "nummer staat waar een markering eindigt. In Markdown is het vlak vet en staat de omvattende "
+                                 "markering tussen ⸢ en ⸣.")]
     uit += [(MARKERING + k, k) for k in JAS_KLASSEN_VOLGORDE]
     return uit
 

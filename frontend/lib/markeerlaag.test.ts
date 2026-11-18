@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { markeringVan, segmenteer, segmentenVanBlok } from "./markeerlaag";
+import { banenInBlok, laagVan, markeringVan, segmentenVanBlok, type Markeerbaar } from "./markeerlaag";
 import { blokkenVan } from "@/lib/wetstructuur";
 import { maakAnker } from "@/lib/selectie";
 
@@ -12,70 +12,66 @@ function heelGebleven(bron: string, segs: { tekst: string }[]) {
   expect(segs.map((s) => s.tekst).join("")).toBe(bron);
 }
 
-describe("segmenteer – alleen de geselecteerde markering", () => {
+/** De hele bron als één blok, zoals een bepaling zonder leden. */
+const heel = (bron: string) => ({ offset: 0, regel: bron, nummerEind: 0, termStart: -1, termEind: -1 });
+const segmenteer = (bron: string, elementen: Markeerbaar[]) => segmentenVanBlok(heel(bron), laagVan(bron, elementen));
+
+describe("laagVan – alle markeringen in banen (optie B)", () => {
   const ELEMENTEN = [
     { id: "lang", klasse: "Afleidingsregel", tekst: BRON },
     { id: "kort", klasse: "Rechtsobject", tekst: "uitstel van betaling" },
   ];
 
-  it("toont zonder selectie niets: de tekst blijft schoon", () => {
+  it("de korte valt niet weg in de lange: zij houdt het vlak, de lange ligt als baan eronder", () => {
+    // Dit was het probleem: overlappende markeringen konden niet naast elkaar bestaan, dus de lange slokte de korte op.
     const segs = segmenteer(BRON, ELEMENTEN);
-    expect(segs.some((s) => s.klasse)).toBe(false);
+    expect(segs.filter((s) => s.klasse).map((s) => [s.id, s.tekst])).toEqual([["kort", "uitstel van betaling"]]);
+    expect(segs.every((s) => s.banen?.map((b) => b.id).join() === "lang")).toBe(true);
+    expect(banenInBlok(segs)).toBe(1);
     heelGebleven(BRON, segs);
   });
 
-  it("toont de geselecteerde markering, ook als die binnen een langere valt", () => {
-    // Dit was het probleem: overlappende markeringen kunnen niet naast elkaar bestaan, dus de lange
-    // slokte de korte op en aanklikken hielp niet.
-    const gemarkeerd = segmenteer(BRON, ELEMENTEN, "kort").filter((s) => s.klasse);
-    expect(gemarkeerd.map((s) => s.id)).toEqual(["kort"]);
-    expect(gemarkeerd[0].tekst).toBe("uitstel van betaling");
+  it("zonder markeringen blijft de tekst schoon", () => {
+    expect(segmenteer(BRON, [])).toEqual([{ tekst: BRON }]);
   });
 
-  it("markeert een fragment dat de hele bron beslaat zonder lege randsegmenten", () => {
-    const segs = segmenteer(BRON, ELEMENTEN, "lang");
+  it("een markering die de hele bron beslaat en niets omvat, is één vlak", () => {
+    const segs = segmenteer(BRON, [ELEMENTEN[0]]);
     expect(segs).toHaveLength(1);
     expect(segs[0].klasse).toBe("Afleidingsregel");
-  });
-
-  it("houdt de tekst heel rond de markering", () => {
-    heelGebleven(BRON, segmenteer(BRON, ELEMENTEN, "kort"));
-  });
-
-  it("toont niets als het actieve id niet (meer) bestaat", () => {
-    // Bv. na een intrekking: geen willekeurige andere markering oplichten.
-    expect(segmenteer(BRON, ELEMENTEN, "weg").some((s) => s.klasse)).toBe(false);
+    expect(segs[0].banen).toBeUndefined();
   });
 
   it("markeert een fragment niet als het niet letterlijk in de tekst staat", () => {
-    const segs = segmenteer(BRON, [{ id: "a", klasse: "Rechtssubject", tekst: "komt niet voor" }], "a");
-    expect(segs.some((s) => s.klasse)).toBe(false);
+    const segs = segmenteer(BRON, [{ id: "a", klasse: "Rechtssubject", tekst: "komt niet voor" }]);
+    expect(segs.some((s) => s.klasse || s.banen)).toBe(false);
     heelGebleven(BRON, segs);
   });
 
   it("draagt de herkomst mee, zodat de tekst een eigen markering anders kan tonen", () => {
     const segs = segmenteer(BRON, [
+      { id: "lang", klasse: "Afleidingsregel", tekst: BRON, herkomst: "mens" },
       { id: "m", klasse: "Rechtsobject", tekst: "uitstel van betaling", herkomst: "mens" },
-    ], "m");
+    ]);
     expect(segs.find((s) => s.klasse)?.herkomst).toBe("mens");
+    expect(segs[0].banen?.[0].herkomst).toBe("mens");
+  });
+
+  it("de volgorde van de elementen maakt niets uit", () => {
+    expect(segmenteer(BRON, [...ELEMENTEN].reverse())).toEqual(segmenteer(BRON, ELEMENTEN));
   });
 });
 
 // --- ankers: welk voorkomen van een herhaald fragment wordt gemarkeerd? -------------------------
 
-describe("segmenteer – ankers", () => {
-  function offsetVanMarkering(segs: { tekst: string; klasse?: string }[]) {
-    return segs.slice(0, segs.findIndex((s) => s.klasse)).map((s) => s.tekst).join("").length;
-  }
-
+describe("markeringVan – ankers", () => {
   it("gebruikt het anker om het juiste voorkomen te kiezen", () => {
     // Zonder anker zou "De ontvanger" altijd op positie 0 landen; het anker wijst de tweede aan.
     const tweede = HERHAALD.indexOf("De ontvanger", 1);
-    const segs = segmenteer(HERHAALD, [
-      { id: "b", klasse: "Rechtssubject", tekst: "De ontvanger",
-        anker: maakAnker(HERHAALD, tweede, tweede + 12) },
+    const m = markeringVan(HERHAALD, [
+      { id: "b", klasse: "Rechtssubject", tekst: "De ontvanger", anker: maakAnker(HERHAALD, tweede, tweede + 12) },
     ], "b");
-    expect(offsetVanMarkering(segs)).toBe(tweede);
+    expect(m?.start).toBe(tweede);
   });
 
   it("valt terug op de omringende tekst als de bron is geschoven", () => {
@@ -86,18 +82,23 @@ describe("segmenteer – ankers", () => {
     // want "Inleiding. " schuift alles 11 tekens op.
     const tweedeOud = oud.lastIndexOf("De ontvanger");
     const verouderd = maakAnker(oud, tweedeOud, tweedeOud + 12);
-
-    const segs = segmenteer(HERHAALD, [
-      { id: "b", klasse: "Rechtssubject", tekst: "De ontvanger", anker: verouderd },
-    ], "b");
-    expect(offsetVanMarkering(segs)).toBe(HERHAALD.indexOf("De ontvanger", 1));
+    const m = markeringVan(HERHAALD, [{ id: "b", klasse: "Rechtssubject", tekst: "De ontvanger", anker: verouderd }], "b");
+    expect(m?.start).toBe(HERHAALD.indexOf("De ontvanger", 1));
   });
 
-  it("pakt zonder anker het eerste voorkomen", () => {
-    const segs = segmenteer(HERHAALD, [
-      { id: "a", klasse: "Rechtssubject", tekst: "De ontvanger" },
-    ], "a");
-    expect(offsetVanMarkering(segs)).toBe(0);
+  it("pakt zonder anker het eerste voorkomen, en niets als het id niet (meer) bestaat", () => {
+    const els = [{ id: "a", klasse: "Rechtssubject", tekst: "De ontvanger" }];
+    expect(markeringVan(HERHAALD, els, "a")?.start).toBe(0);
+    expect(markeringVan(HERHAALD, els, "weg")).toBeNull();
+  });
+
+  it("de laag plaatst twee gelijke fragmenten met hun eigen anker", () => {
+    const tweede = HERHAALD.indexOf("De ontvanger", 1);
+    const laag = laagVan(HERHAALD, [
+      { id: "a", klasse: "Rechtssubject", tekst: "De ontvanger", anker: maakAnker(HERHAALD, 0, 12) },
+      { id: "b", klasse: "Rechtssubject", tekst: "De ontvanger", anker: maakAnker(HERHAALD, tweede, tweede + 12) },
+    ]);
+    expect([laag.plekken.get("a")?.start, laag.plekken.get("b")?.start]).toEqual([0, tweede]);
   });
 });
 
@@ -114,8 +115,7 @@ describe("segmentenVanBlok – één bron van tekst", () => {
   const blokken = blokkenVan(REGELS);
 
   function markering(fragment: string, klasse = "Voorwaarde", id = "m") {
-    const start = BRON_B.indexOf(fragment);
-    return { start, eind: start + fragment.length, klasse, id };
+    return laagVan(BRON_B, [{ id, klasse, tekst: fragment }]);
   }
 
   it("levert samen exact de regel, met en zonder markering", () => {
@@ -181,8 +181,7 @@ describe("segmentenVanBlok – een markering knippen op de blokgrens", () => {
   const blokken = blokkenVan(REGELS);
 
   function markering(fragment: string, klasse = "Voorwaarde", id = "m") {
-    const start = BRON_B.indexOf(fragment);
-    return { start, eind: start + fragment.length, klasse, id };
+    return laagVan(BRON_B, [{ id, klasse, tekst: fragment }]);
   }
 
   it("laat een blok zonder markering ongemarkeerd", () => {
@@ -263,7 +262,7 @@ describe("de gerenderde DOM op de echte wettekst", () => {
     // En dat stuk moet binnen het 1°-blok landen, niet ergens anders.
     const blok = blokken.find((b) => m!.start >= b.offset && m!.start < b.offset + b.regel.length);
     expect(blok?.nummer).toBe("1°.");
-    expect(segmentenVanBlok(blok!, m).filter((s) => s.klasse).map((s) => s.tekst).join(""))
+    expect(segmentenVanBlok(blok!, laagVan(bron, [el])).filter((s) => s.klasse).map((s) => s.tekst).join(""))
       .toBe(el.tekst);
   });
 

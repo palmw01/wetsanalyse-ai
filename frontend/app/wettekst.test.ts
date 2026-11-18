@@ -27,6 +27,18 @@ describe("één wettekstweergave", () => {
     expect(CODE.some((p) => /\bKnoopTekst\b/.test(bron(p)))).toBe(false);
   });
 
+  it("overlap heeft één regel: markeerbanen (optie B), en de oude varianten komen niet terug", () => {
+    // Vroeger had elke plek een eigen regel: de kortste wint (leesvenster), alleen de gekozen (annotatiepaneel), de
+    // buitenste kleurt (rapport). Nu rekent alleen `markeerbanen` overlap uit; de tweeling in de api toetst dezelfde
+    // vectoren (`api/tests/test_markeerbanen.py`).
+    expect(CODE.some((p) => /\bsegmenteer\(/.test(bron(p)))).toBe(false);
+    const rekenaars = CODE.filter((p) => /\bmarkeerbanen\(/.test(bron(p))).sort();
+    expect(rekenaars).toEqual([join("lib", "graaf", "spans.ts"), join("lib", "markeerbanen.ts"), join("lib", "markeerlaag.ts")]);
+    const api = readFileSync(join(__dirname, "../../api/app/pdf_opmaak.py"), "utf8");
+    expect(/def _segmenten\(/.test(api)).toBe(false);
+    expect(api).toMatch(/from \.markeerbanen import/);
+  });
+
   it("geen eigen component Wettekst buiten components/wettekst", () => {
     const eigen = CODE.filter((p) => !p.startsWith(join("components", "wettekst"))
       && /function Wettekst\b|export (const|function) Wettekst\b/.test(bron(p)));

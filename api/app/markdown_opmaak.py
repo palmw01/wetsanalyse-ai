@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import re
 
-from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA, PLAATS, SPANS, TITELBLAD, _segmenten
+from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA, PLAATS, SPANS, TITELBLAD, citaatbanen
 
 _KOP = {"Title": "#", "Heading1": "##", "Heading2": "###", "Heading3": "####", BEGRIP: "####"}
 _TEKENS = re.compile(r"([\\`*_\[\]<>])")
@@ -30,14 +30,31 @@ _SUPER = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
 
 
 def _gemarkeerd(tekst: str, spans: list) -> str:
-    """Het citaat met de markeringen vet en hun nummer als ⁽ⁿ⁾. Haal je `**` en de nummers weg, dan staat de wettekst er letterlijk."""
+    """Het citaat met de markeringen (optie B, zonder kleur): een markering die niets omvat vet, een die andere omvat tussen
+    ⸢ en ⸣, en het nummer als ⁽ⁿ⁾ waar een markering eindigt. Haal je `**`, de haken en de nummers weg, dan staat de
+    wettekst er letterlijk."""
+    banen = citaatbanen(tekst, spans)
     delen, vet = [], False
-    for stuk, dekking, eindigt in _segmenten(tekst, spans):
-        if bool(dekking) != vet:
+    for stuk in banen.stukken:
+        open_ = [n for n, _b in sorted(stuk.banen, key=lambda x: -x[1]) if any(s == stuk.start and n2 == n for s, _e, n2, _k in spans)]
+        moet_vet = stuk.vlak is not None
+        if vet and (not moet_vet or open_):
             delen.append("**")
-            vet = not vet
-        delen.append(_TEKENS.sub(r"\\\1", stuk))
-        delen += [f"⁽{str(n).translate(_SUPER)}⁾" for n in eindigt]
+            vet = False
+        delen += ["⸢"] * len(open_)
+        if moet_vet and not vet:
+            delen.append("**")
+            vet = True
+        delen.append(_TEKENS.sub(r"\\\1", tekst[stuk.start:stuk.eind]))
+        met_baan = {n for n, _b in stuk.banen}
+        dicht = [n for n in stuk.eindigt if n in met_baan]
+        delen += [f"⁽{str(n).translate(_SUPER)}⁾" for n in sorted(stuk.eindigt) if n not in met_baan]
+        if dicht:
+            if vet:
+                delen.append("**")
+                vet = False
+            for n in sorted(dicht, key=lambda n: dict(stuk.banen)[n]):        # de binnenste eerst dicht
+                delen.append(f"⸣⁽{str(n).translate(_SUPER)}⁾")
     if vet:
         delen.append("**")
     regels = "".join(delen).splitlines()
