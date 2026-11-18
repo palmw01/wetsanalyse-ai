@@ -1,6 +1,6 @@
 # Voorstel: overlappende markeringen en een diagram per bepaling (concept)
 
-Status: **concept, wacht op keuzes van de gebruiker** · Datum: 2026-11-18 · Hoort bij:
+Status: **deel 1 gekozen (18 nov 2026), deel 2 later** · Datum: 2026-11-18 · Hoort bij:
 [ADR-009](adr-009-werkgebiedrapport.md), [ADR-011](adr-011-relaties-tussen-markeringen.md),
 skill [`references/relaties.md`](../../.claude/skills/wetsanalyse/references/relaties.md)
 
@@ -173,7 +173,16 @@ JSON-contract van ADR-009), getekend met `reportlab.graphics` in de PDF. De Mark
 Mermaid-blok: dat blijft tekst, past in de bestaande `.md` zonder zip, en wordt in de omgevingen waar een jurist het
 leest getekend. In de werkplek tekent de graaf hetzelfde model als diagrammodus (ADR-011).
 
-## Open vragen aan de gebruiker
+## Besluiten (gebruiker, 18 nov 2026)
+
+- **Overlap: optie B** (vlak voor de kleinste markering, een baan voor wat andere omvat), voor rapport en werkplek.
+- **Het annotatiepaneel toont standaard alle markeringen**, met de gekozen opgelicht en de rest gedimd. Dit vervangt
+  de regel dat het alleen de gekozen markering toont.
+- **Markdown: haken om de omvattende markeringen**, de rest vet met ⁽ⁿ⁾ zoals nu.
+- **Eerst de overlap, het diagram later**: het diagram en de relaties worden een eigen vervolg. Vragen 5 en 6 blijven
+  open tot dan.
+
+## Open vragen aan de gebruiker (oorspronkelijk)
 
 1. **Weergave van overlap**: kies je optie B (vlak voor de kleinste, baan voor wat omvat), A (alleen banen), of iets
    anders?
