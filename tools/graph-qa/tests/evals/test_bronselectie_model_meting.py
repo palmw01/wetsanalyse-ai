@@ -191,3 +191,26 @@ def test_de_modelroute_geeft_de_grens_door(monkeypatch):
     route = be.model_kiest_route(None, "m", {}, vlaggen={"wetstermen": False}, limit=120)
     route(None, {"naam": "S", "deelvragen": ["v"], "buiten": ""}, "v")
     assert gezien == [120]
+
+
+def test_de_meting_van_de_afhankelijkheden_telt_vanuit_de_verwachte_kern(monkeypatch):
+    import agent.bronnen_vinden as bv
+
+    assert m.afhankelijkheden_configuratie("standaard+lid_verwijzing") == (*m.AFHANKELIJK_STANDAARD, "lid_verwijzing")
+    assert m.afhankelijkheden_configuratie("alleen opschrift") == ("opschrift",)
+    gezien = {}
+
+    def vind(graaf, invoer, methoden):
+        gezien["kern"] = [k["bron_iri"] for k in invoer["kern"]]
+        return {"kandidaten": [{"bron_iri": "urn:bwb:X:artikel:16"}, {"bron_iri": "urn:bwb:X:artikel:24:lid:4"}]}
+
+    monkeypatch.setattr(bv, "vind", vind)
+    s = {"naam": "S", "deelvragen": ["v"], "verwacht": [
+        {"deelvraag": 0, "rol": "kern", "bron_iri": "urn:bwb:X:artikel:24:lid:3"},
+        {"deelvraag": 0, "rol": "afhankelijkheid", "bron_iri": "urn:bwb:X:artikel:24:lid:4"},
+        {"deelvraag": 0, "rol": "afhankelijkheid", "bron_iri": "urn:bwb:X:artikel:16:lid:1"},
+        {"deelvraag": 0, "rol": "afhankelijkheid", "bron_iri": "urn:bwb:X:artikel:20:lid:1"}]}
+    r = m.afhankelijkheden_per_deelvraag(None, s, ("lid_verwijzing",))
+    assert gezien["kern"] == ["urn:bwb:X:artikel:24:lid:3"]
+    assert (r["nodig"], r["gevonden"], r["via_artikel"], r["kandidaten"]) == (3, 1, 1, 2)
+    assert r["missers"] == ["DV1 bwb:X:artikel:20:lid:1"]

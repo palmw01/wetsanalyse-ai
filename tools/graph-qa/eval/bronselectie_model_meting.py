@@ -220,6 +220,80 @@ def rangen(graaf: Any, s: dict[str, Any], llm: Any, model: str, meting: dict[str
     return {"telling": dict(sorted(tel.items())), "voorbeelden": voorbeelden, "nergens": nergens}
 
 
+#: De methoden van de fase van de afhankelijkheden: wat aan een opgenomen kernbepaling hangt (`bronnen_vinden.STANDAARD`).
+AFHANKELIJK_STANDAARD = ("verwijzing_uit", "definitie", "opschrift", "opbouw")
+
+
+def afhankelijkheden_configuratie(naam: str) -> tuple[str, ...]:
+    """`standaard` = de methoden van de afhankelijkheden; `standaard+x` er een bij; `alleen x` alleen die."""
+    if naam.startswith("alleen "):
+        return (naam.removeprefix("alleen "),)
+    basis, _, extra = naam.partition("+")
+    if basis != "standaard":
+        raise SystemExit(f"onbekende configuratie: {naam}")
+    return AFHANKELIJK_STANDAARD + tuple(x for x in extra.split("+") if x)
+
+
+def afhankelijkheden_per_deelvraag(graaf: Any, s: dict[str, Any], methoden: tuple[str, ...]) -> dict[str, Any]:
+    """Per deelvraag: de verwachte kernbepalingen als kern (zoals de jurist ze opnam), dan de methoden. Telt van de
+    verwachte afhankelijkheden hoeveel er gevonden zijn – precies of eronder (`gevonden`), of alleen via het artikel
+    erboven (`via_artikel`: de jurist opent het artikel en neemt het lid op) – en hoeveel kandidaten dat kostte. 0
+    tokens."""
+    from agent.bronnen_vinden import _binnen, vind
+
+    totaal = {"nodig": 0, "gevonden": 0, "via_artikel": 0, "kandidaten": 0}
+    missers: list[str] = []
+    for i, _ in enumerate(s["deelvragen"]):
+        kern = [v["bron_iri"] for v in s["verwacht"] if v["deelvraag"] == i and v["rol"] == "kern"]
+        nodig = [v["bron_iri"] for v in s["verwacht"] if v["deelvraag"] == i and v["rol"] == "afhankelijkheid"]
+        if not kern or not nodig:
+            continue
+        invoer = {"naam": s["naam"], "analysevraag": s.get("analysevraag", ""), "context": [],
+                  "regelingen": s.get("regelingen") or [],
+                  "dossier": {"afbakening": "Buiten de afbakening: " + s.get("buiten", "")},
+                  "kern": [{"bron_iri": k, "label": "", "bwb_id": k.split(":")[2], "bereik": "onderliggend"} for k in kern]}
+        kandidaten = [k["bron_iri"] for k in vind(graaf, invoer, methoden)["kandidaten"]]
+        totaal["nodig"] += len(nodig)
+        totaal["kandidaten"] += len(kandidaten)
+        for iri in nodig:
+            if any(_binnen(c, iri) for c in kandidaten):
+                totaal["gevonden"] += 1
+            elif any(_binnen(iri, c) for c in kandidaten):
+                totaal["via_artikel"] += 1
+            else:
+                missers.append(f"DV{i + 1} {iri.split(':', 1)[-1]}")
+    return {**totaal, "missers": missers}
+
+
+def meet_afhankelijkheden(a: argparse.Namespace) -> int:
+    """De fase van de afhankelijkheden, gemeten vanuit de verwachte kern per deelvraag: per configuratie hoeveel van de
+    verwachte afhankelijkheden de methoden vinden en hoeveel kandidaten dat kost. Zonder model."""
+    from agent.adapters.graphdb_graph import make_graph
+    from agent.config import Settings
+
+    graaf = make_graph(Settings.from_env())
+    configuraties = {c: afhankelijkheden_configuratie(c) for c in a.afhankelijkheden.split(",") if c}
+    print(f"Afhankelijkheden vanuit de verwachte kern: {', '.join(configuraties)}; "
+          f"commit {os.environ.get('LEX_REVISIE', '') or 'lokaal'}", flush=True)
+    som = {c: {"nodig": 0, "gevonden": 0, "via_artikel": 0, "kandidaten": 0} for c in configuraties}
+    try:
+        for naam, s in sets(lezer(a.lokaal)):
+            regels = []
+            for c, methoden in configuraties.items():
+                r = afhankelijkheden_per_deelvraag(graaf, s, methoden)
+                for k in som[c]:
+                    som[c][k] += r[k]
+                regels.append(f"{c} {r['gevonden']}+{r['via_artikel']}/{r['nodig']} ({r['kandidaten']} kand.)")
+                if r["missers"]:
+                    print(f"{'':40} MIST {naam} {c}: {'; '.join(r['missers'])}", flush=True)
+            print(f"{naam:40} " + " | ".join(regels), flush=True)
+    finally:
+        graaf.close()
+    print("TOTAAL (gevonden + via het artikel / nodig, kandidaten): " + " | ".join(
+        f"{c} {t['gevonden']}+{t['via_artikel']}/{t['nodig']} ({t['kandidaten']})" for c, t in som.items()), flush=True)
+    return 0
+
+
 def meet_kandidaten(a: argparse.Namespace) -> int:
     """De recall van de kandidatenlijst per grens (en eventueel een variant, `80+definitie_brug`), zonder keuze door het
     model: 0 tokens. Het model kiest bijna alles wat nodig is en bij de kandidaten staat, dus dit is zijn plafond. Een
@@ -289,9 +363,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--varianten", default="", help="komma-gescheiden varianten uit VARIANTEN, elk één ronde")
     p.add_argument("--kandidaten", default="",
                    help="zonder model: de recall van de kandidatenlijst per grens, bv. 40,80,120 of 80+definitie_brug")
+    p.add_argument("--afhankelijkheden", default="",
+                   help="zonder model: de methoden van de afhankelijkheden vanuit de verwachte kern per deelvraag, per "
+                        "configuratie, bv. standaard,standaard+lid_verwijzing")
     p.add_argument("--rangen", action="store_true",
                    help="bij --kandidaten: de plaats van elke nodige bepaling die niet bij de 80 kwam, per lijst")
     a = p.parse_args(argv)
+    if a.afhankelijkheden:
+        return meet_afhankelijkheden(a)
     if a.kandidaten:
         return meet_kandidaten(a)
 

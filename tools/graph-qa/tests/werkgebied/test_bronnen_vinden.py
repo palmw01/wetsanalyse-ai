@@ -873,3 +873,53 @@ def test_opschrift_staat_standaard_aan_met_een_kern():
 
     assert "opschrift" in standaard_voor({"kern": [{"bron_iri": _KERN[0]}]})
     assert "opschrift" not in standaard_voor({"kern": []})
+
+
+# --- de methode lid_verwijzing (acceptatie 18 nov 2026) -----------------------------------------------------------
+
+def test_verwijzingen_naar_een_lid_van_hetzelfde_artikel():
+    from agent.bronnen_vinden import lid_verwijzingen
+
+    assert set(lid_verwijzingen("In afwijking in zoverre van het derde lid is ook na de instemming, bedoeld in dat lid")) == {3}
+    assert set(lid_verwijzingen("Het eerste lid is niet van toepassing")) == {1}
+    assert set(lid_verwijzingen("Voor de toepassing van het tweede en vierde lid wordt")) == {2, 4}
+    assert set(lid_verwijzingen("het derde tot en met vijfde lid")) == {3, 4, 5}
+    assert set(lid_verwijzingen("het eerste lid van dit artikel")) == {1}
+    # Een lid van een ander artikel telt niet.
+    assert not lid_verwijzingen("krachtens artikel 25, derde tot en met vijfde, achtste lid")
+    assert not lid_verwijzingen("In afwijking van artikel 4:93, vierde lid, van de Algemene wet bestuursrecht")
+    assert not lid_verwijzingen("bedoeld in het eerste lid van artikel 7")
+    assert not lid_verwijzingen("de artikelen 8.9, eerste of tweede lid, of 8.9a")
+
+
+class LedenGraaf(FakeGraph):
+    """Iw 24: lid 3 is kern, lid 4 noemt het derde lid, lid 5 noemt het (in een onderdeel), lid 7 noemt niets."""
+
+    def __init__(self) -> None:
+        super().__init__(results=self._antwoord)
+
+    def _antwoord(self, q: str) -> str:
+        a = f"{IW}:artikel:24"
+        if "heeftOnderdeel+" in q and "?artikel bwb:heeftLid ?lid" in q:
+            return _tsv(["lid", "tekst"], [[f"{a}:lid:5", "binnen een week na de in het derde lid bedoelde kennisgeving"]])
+        if "?artikel bwb:heeftLid ?lid" in q:
+            return _tsv(["artikel", "lid", "tekst"], [
+                [a, f"{a}:lid:2", "De verrekening is ook mogelijk ingeval de termijn, bedoeld in artikel 9, nog niet is verstreken"],
+                [a, f"{a}:lid:3", "Verrekening is niet mogelijk ... De ontvanger is verplicht ... met toepassing van het tweede lid"],
+                [a, f"{a}:lid:4", "In afwijking in zoverre van het derde lid is ook na de instemming verrekening mogelijk"],
+                [a, f"{a}:lid:5", ""],
+                [a, f"{a}:lid:7", "De ontvanger maakt de verrekening onverwijld bekend."]])
+        return _tsv(["x"], [])
+
+
+def test_lid_verwijzing_vindt_de_leden_die_het_kernlid_noemen_en_die_het_noemt():
+    a = f"{IW}:artikel:24"
+    invoer = {"naam": "N", "analysevraag": "V?", "context": [],
+              "kern": [{"bron_iri": f"{a}:lid:3", "label": "", "bwb_id": IW.split(":")[-1], "bereik": "onderliggend"}]}
+    uit = vind(LedenGraaf(), invoer, methoden=("lid_verwijzing",))
+    k = _per_iri(uit)
+    assert set(k) == {f"{a}:lid:2", f"{a}:lid:4", f"{a}:lid:5"}
+    assert all(x["rol"] == "afhankelijkheid" for x in k.values())
+    assert k[f"{a}:lid:4"]["bewijs"][0]["detail"]["richting"] == "noemt de kern"
+    assert k[f"{a}:lid:2"]["bewijs"][0]["detail"]["richting"] == "de kern noemt het"
+    assert "lid_verwijzing" not in bronnen_vinden.STANDAARD
