@@ -128,3 +128,13 @@ describe("per lid opnemen (WA TRM H1, 8 nov 2026)", () => {
     expect(ledenVan(s, `${A}:lid:1`)).toEqual([]);
   });
 });
+
+describe("opnieuwZin", () => {
+  it("noemt de reden van opnieuw bekijken", async () => {
+    const { opnieuwZin } = await import("./bronselectie");
+    expect(opnieuwZin({ opnieuw_bekijken: false, opnieuw_reden: null })).toBeNull();
+    expect(opnieuwZin({ opnieuw_bekijken: true, opnieuw_reden: "voorstel" })).toContain("nieuw voorstel");
+    expect(opnieuwZin({ opnieuw_bekijken: true, opnieuw_reden: "tekst" })).toContain("analysevraag");
+    expect(opnieuwZin({ opnieuw_bekijken: true, opnieuw_reden: null })).toContain("Er veranderde iets");
+  });
+});

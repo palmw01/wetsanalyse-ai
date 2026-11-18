@@ -69,6 +69,9 @@ export interface DeelvraagSelectie {
   gewijzigd_door: string | null;
   gewijzigd: string | null;
   opnieuw_bekijken: boolean;
+  /** Waarom opnieuw bekijken: de tekst van analysevraag, afbakening of deelvraag veranderde, of er kwam een
+   *  voorstel bij deze deelvraag bij. `null` als er niets opnieuw te bekijken is (of bij een oudere api). */
+  opnieuw_reden: "tekst" | "voorstel" | null;
   klaar: boolean;
   bronnen: BronHier[];
   kandidaten: KandidaatHier[];
@@ -173,6 +176,7 @@ export function parseBronselectie(ruw: unknown): BronselectieOverzicht | undefin
       open_punten: Array.isArray(d.open_punten) ? d.open_punten.flatMap((p) => tekst(obj(p).tekst) ? [{ tekst: tekst(obj(p).tekst) }] : []) : [],
       revisie: getal(d.revisie), gewijzigd_door: tekst(d.gewijzigd_door) || null, gewijzigd: tekst(d.gewijzigd) || null,
       opnieuw_bekijken: d.opnieuw_bekijken === true, klaar: d.klaar === true,
+      opnieuw_reden: d.opnieuw_bekijken === true && (d.opnieuw_reden === "tekst" || d.opnieuw_reden === "voorstel") ? d.opnieuw_reden : null,
       bronnen: Array.isArray(d.bronnen) ? d.bronnen.flatMap((y): BronHier[] => {
         const s = obj(y);
         return tekst(s.selectie_id) ? [{ selectie_id: tekst(s.selectie_id), bron_iri: tekst(s.bron_iri), label: tekst(s.label),
@@ -261,4 +265,14 @@ export function paneelTelling(d: Pick<DeelvraagSelectie, "kandidaten">, stap: st
   const hier = d.kandidaten.filter((k) => kern ? k.rol === "kern" : k.rol !== "kern" || k.stand === "voorgesteld");
   return { kandidaten: hier.filter((k) => k.stand === "voorgesteld" || k.stand === "niet_gekozen").length,
     opgenomen: hier.filter((k) => k.stand === "opgenomen").length };
+}
+
+/** De zin onder een deelvraag die opnieuw bekeken moet worden: wat er veranderde sinds de afronding. */
+export function opnieuwZin(d: Pick<DeelvraagSelectie, "opnieuw_bekijken" | "opnieuw_reden">): string | null {
+  if (!d.opnieuw_bekijken) return null;
+  if (d.opnieuw_reden === "voorstel")
+    return "Er kwam na de afronding een nieuw voorstel bij deze deelvraag; neem het op of sluit het uit.";
+  if (d.opnieuw_reden === "tekst")
+    return "De analysevraag, de afbakening of deze deelvraag is veranderd sinds de afronding; bekijk of de besluiten nog kloppen.";
+  return "Er veranderde iets sinds de afronding; bekijk of de besluiten nog kloppen.";
 }

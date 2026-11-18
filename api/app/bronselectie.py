@@ -8,10 +8,12 @@ collega.
   `voorlopig_afgerond` (de analist sluit af, open punten mogen blijven) → `beoordeeld` (alleen door de
   poort: de vragen zijn doorlopen en er staat geen onderzoekspunt open). Een werkgebied zonder deelvragen heeft één rij onder
   `ANALYSEVRAAG`. Elke rij draagt een eigen revisie (412); `openen` is navigeren en draagt er geen.
-- **Wat is afgerond, staat op een scope.** `scope_stand` is de hash van analysevraag, afbakening, de
-  tekst van de deelvraag en de kandidaten bij die deelvraag, bij het afronden. Wijkt die nu af, dan staat de
-  afronding op `opnieuw_bekijken` en telt ze niet meer als klaar; er wordt niets gewist. Een ander dossier
-  (context, praktijkvoorbeeld) heropent dus pas iets als de nieuwe zoekopdracht er iets anders door vindt.
+- **Wat is afgerond, staat op een scope.** `scope_stand` is de hash van analysevraag, afbakening en de
+  tekst van de deelvraag, bij het afronden. Wijkt die nu af, of staat er een nieuw voorstel dat voor deze deelvraag
+  zelf gevonden is (`nieuw_voorstel`: open, niet gezien bij het afronden, niet zelf genoemd), dan staat de afronding op
+  `opnieuw_bekijken` en telt ze niet meer als klaar; er wordt niets gewist. Een ander dossier (context,
+  praktijkvoorbeeld) heropent dus pas iets als de nieuwe zoekopdracht er iets nieuws door vindt. Een voorstel dat de
+  nieuwste run niet meer vond, of dat alleen via een bron binnenkwam, heropent niets.
 - **Wat er ligt, is wat de laatste zoekopdracht vond.** Een open voorstel (voorgesteld, niet gekozen) telt
   alleen als de laatste klare run het vond (`bronnen_run_store.vervallen`); een besluit blijft staan.
 - **Eén bron, meer deelvragen.** Een bronselectie is één rij per werkgebied; opnemen bij een deelvraag is
@@ -60,13 +62,27 @@ BEWIJS_VOLGORDE = {"grondslag": -1, "genoemd": -0.5, "verwijzing": 0, "definitie
 ZOEKVRAGEN = ("a", "b", "c", "d")
 
 
-def scope_stand(werkgebied: dict, vraag: str, kandidaten: list[str]) -> str:
-    """De stand waarop een afronding rust. `kandidaten`: de ids die bij de deelvraag in de lijst staan (besluiten
-    én de voorstellen van de laatste run), zodat een zoekopdracht die er iets anders vindt de afronding heropent."""
+#: Voorvoegsel van de scope-stand sinds 18 nov 2026: alleen de tekst (analysevraag, afbakening, deelvraag), zonder de
+#: kandidaat-ids. Een rij met een stand zonder dit voorvoegsel is van daarvoor (`_oude_scope`).
+SCOPE_VERSIE = "v2:"
+
+
+def scope_stand(werkgebied: dict, vraag: str) -> str:
+    """De tekst waarop een afronding rust: analysevraag, afbakening en de deelvraag. Wat een latere zoekopdracht vindt,
+    telt apart (`nieuw_voorstel`): een nieuw voorstel heropent, een voorstel dat de nieuwste run niet meer vond of dat
+    alleen via een bron van een andere deelvraag binnenkwam niet. Anders zette elke werkgebiedbrede zoekronde (bij een
+    volgende deelvraag) een beoordeelde deelvraag terug op *opnieuw bekijken* (Termijnen, 18 nov 2026)."""
     data = {"analysevraag": " ".join((werkgebied.get("analysevraag") or "").split()),
             "afbakening": " ".join((werkgebied.get("afbakening") or "").split()),
-            "vraag": werkgebied_deelvragen.normaliseer(vraag), "kandidaten": sorted(set(kandidaten))}
-    return hashlib.sha256(json.dumps(data, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:16]
+            "vraag": werkgebied_deelvragen.normaliseer(vraag)}
+    return SCOPE_VERSIE + hashlib.sha256(json.dumps(data, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:16]
+
+
+def nieuw_voorstel(kandidaat: dict) -> bool:
+    """Een voorstel dat de jurist bij het afronden nog niet zag en dat voor deze deelvraag zelf gevonden is: het staat
+    open (dus niet in `gezien`), het bewijs noemt deze deelvraag en de analist noemde het niet zelf (een genoemd voorstel
+    blijft open tot er een besluit is, ook na afronden)."""
+    return kandidaat["stand"] == "voorgesteld" and kandidaat["_direct"] and not kandidaat["_genoemd"]
 
 
 def voorstel_volgorde(voorstel: dict) -> tuple:
@@ -147,8 +163,9 @@ async def _lees(werkgebied: dict) -> dict:
 
 
 def onder(iri: str, ouder: str) -> bool:
-    """`iri` is `ouder` zelf, of een lid of onderdeel eronder (het pad van de IRI, zoals `werkgebied_store.omvat`)."""
-    return iri == ouder or iri.startswith(ouder + ":")
+    """`iri` is `ouder` zelf, of een lid of onderdeel eronder (het pad van de IRI, zoals `werkgebied_store.omvat`).
+    Een `id:`-bepaling (Leidraad, slottekst) draagt haar pad URL-gecodeerd: `…divisie1.1.2%2FTekst%2FOnderdeel._10`."""
+    return werkgebied_store.onder_pad(iri, ouder)
 
 
 def _hoort_bij(kandidaat, did: str, eigen: set[str], kern_iris: set[str]) -> bool:
@@ -269,7 +286,10 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
                 reden = (getattr(kop, "reden", "") or "") if kop is not None else ""
                 reden = reden or sel.reden or ""
                 besloten_door = kop.gekoppeld_door if kop is not None else sel.toegevoegd_door
+            direct = (kd.id, did) in besluit or any(
+                str((x.get("detail") or {}).get("deelvraag_id", "")) in eigen for x in kd.bewijs or [])
             lijst.append({"id": kd.id, "bron_iri": kd.bron_iri, "label": kd.label, "bwb_id": kd.bwb_id,
+                          "_direct": direct, "_genoemd": bronnen_run_store.genoemd(kd.bewijs),
                           "rol": kd.rol, "bewijs_soorten": bewijs_soorten(kd.bewijs or []), "zoekvragen": zoekvragen(kd.bewijs or []),
                           "_bewijzen": len(kd.bewijs or []),
                           "stand": stand, "overal": overal, "elders_opgenomen": elders,
@@ -278,12 +298,20 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
                           "opgenomen_delen": [{"bron_iri": i, "label": sel_per_iri[i].label} for i in delen_hier
                                               if i != kd.bron_iri]})
         lijst.sort(key=voorstel_volgorde)
+        stand_nu = scope_stand(werkgebied, vraag["vraag"] if not alleen else "")
+        bewaard = voortgang["scope_stand"] or ""
+        # Een stand van vóór SCOPE_VERSIE hashte ook de kandidaten en is niet te vergelijken: dan telt alleen een
+        # nieuw voorstel (proefdata, geen migratie nodig).
+        tekst_anders = bewaard.startswith(SCOPE_VERSIE) and bewaard != stand_nu
+        nieuw = any(nieuw_voorstel(x) for x in lijst)
+        opnieuw = voortgang["status"] in KLAAR and (tekst_anders or nieuw)
+        # Waarom, zodat de werkplek het goede zegt: een veranderde tekst weegt zwaarder dan een nieuw voorstel.
+        opnieuw_reden = ("tekst" if tekst_anders else "voorstel") if opnieuw else None
         for x in lijst:
-            x.pop("_bewijzen")
+            for sleutel in ("_bewijzen", "_direct", "_genoemd"):
+                x.pop(sleutel)
         telling = {st: sum(1 for x in lijst if x["stand"] == st) for st in STANDEN_TELLING}
         telling["opgenomen"] = len(bronnen)
-        stand_nu = scope_stand(werkgebied, vraag["vraag"] if not alleen else "", [x["id"] for x in lijst])
-        opnieuw = voortgang["status"] in KLAAR and voortgang["scope_stand"] != stand_nu
         redenen = []
         if not gehad["rest"]:
             redenen.append("De vragen bij deze deelvraag zijn nog niet doorlopen.")
@@ -294,6 +322,7 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
         if not bronnen:
             redenen.append("Er is nog geen bron opgenomen bij deze deelvraag.")
         uit.append({"id": did, "nr": nr, "vraag": vraag["vraag"], **voortgang, "opnieuw_bekijken": opnieuw,
+                    "opnieuw_reden": opnieuw_reden,
                     "klaar": voortgang["status"] in KLAAR and not opnieuw,
                     "bronnen": bronnen, "kandidaten": lijst, "telling": telling, "_scope_nu": stand_nu,
                     "beoordelen": {"mag": not redenen, "redenen": redenen}})
@@ -325,7 +354,8 @@ def _zoekdekking(run: dict | None) -> dict:
 
 
 #: Wat er van een andere deelvraag overblijft in de compacte vorm (B-1): de stand, niet de lijsten.
-SLANK = ("id", "nr", "vraag", "status", "fase", "revisie", "klaar", "opnieuw_bekijken", "telling", "beoordelen")
+SLANK = ("id", "nr", "vraag", "status", "fase", "revisie", "klaar", "opnieuw_bekijken", "opnieuw_reden", "telling",
+         "beoordelen")
 
 
 def beperk(overzicht_: dict, deelvraag_id: str | None) -> dict:
@@ -522,7 +552,7 @@ async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req:
         if kd.status == "uitgesloten":
             raise HTTPException(409, {"fout": "status", "status": "uitgesloten",
                                       "melding": "Deze bepaling is voor het hele werkgebied uitgesloten; heropen haar eerst."})
-        ruimer = next((x for x in hier if x.bereik == "onderliggend" and doel.startswith(x.bron_iri + ":")), None)
+        ruimer = next((x for x in hier if x.bereik == "onderliggend" and doel != x.bron_iri and werkgebied_store.onder_pad(doel, x.bron_iri)), None)
         if ruimer is not None:
             # Een lid onder een artikel dat hier al staat: dubbelop, en twee rollen voor één tekst.
             raise HTTPException(409, {"fout": "valt_onder", "selectie_id": ruimer.id,

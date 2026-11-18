@@ -15,6 +15,7 @@ import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
 import { verwijderdUit, verwijderdZin, type Verwijderd } from "@/lib/verwijderen";
 import type { Werkgebied } from "@/lib/types";
 import { useWerkgebiedStand, type WerkgebiedStand } from "@/lib/useWerkgebiedStand";
+import { useBijTerugkomst } from "@/lib/useBijTerugkomst";
 import { isRevisieConflict } from "@/lib/werkgebied";
 
 export interface MutatieOpties {
@@ -97,6 +98,9 @@ export function WerkgebiedProject({ id, children }: { id: string; children: Reac
     // eslint-disable-next-line react-hooks/set-state-in-effect
     laad();
   }, [laad]);
+  // Terug in de app (beginscherm, achtergrondtab): de nieuwste stand, niet die van toen. Niet met open
+  // bewerkingen: een nieuwe revisie zou die laten botsen.
+  useBijTerugkomst(() => void laad(), !onbewaard);
 
   const muteer: Mutatie = useCallback(
     async (actie, { gelukt, opFout } = {}) => {
