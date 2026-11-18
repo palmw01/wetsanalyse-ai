@@ -60,9 +60,9 @@ on:
         options: [wat-if, deploy, afbreken, opruimen, vul-graaf, eval, inventaris, telemetrie, grafana, grafana-afbreken, mcp-proxy-afbreken, 2fa-herstel]
         default: wat-if
       eval_set:
-        description: "Alleen voor 'eval': alles (smoke + 3× annotatie + 3× gesprek), of alleen gesprek, annotatie, de conceptcasussen of de duidingset (smoke + 3×), of bronselectie_model (het model kiest, 3 rondes), of bronselectie_werkgebied (per deelvraag naast per werkgebied, 2 rondes), of bronselectie_kandidaten (de kandidatenlijst, zonder model), of bronselectie_wetstermen (de proef tegen de woordenkloof), of bronselectie_rangschikking (de kandidatenlijst per menging, met de plaats van wat er niet op kwam), of bronselectie_grens (het model kiest uit 80 tegen 120 kandidaten), of bronselectie_belang (de kandidatenlijst met het belang van verwijzingen), of bronselectie_belang_model (het model kiest met en zonder dat belang), of bronselectie_afbakening (de kandidatenlijst met de afbakening per onderdeel tegen de oude lezing), of bronselectie_afbakening_model (het model kiest met beide lezingen), of bronselectie_afhankelijkheden (de methoden van de afhankelijkheden vanuit de verwachte kern, zonder model), of bronselectie_keten (het model kiest één ronde, dan de afhankelijkheden op wat juist is, met en zonder de nieuwe methoden), of bronselectie_menging (de verhouding woordenroute en pool op de kandidatenlijst)"
+        description: "Alleen voor 'eval': alles (smoke + 3× annotatie + 3× gesprek), of alleen gesprek, annotatie, de conceptcasussen of de duidingset (smoke + 3×), of bronselectie_model (het model kiest, 3 rondes), of bronselectie_werkgebied (per deelvraag naast per werkgebied, 2 rondes), of bronselectie_kandidaten (de kandidatenlijst, zonder model), of bronselectie_wetstermen (de proef tegen de woordenkloof), of bronselectie_rangschikking (de kandidatenlijst per menging, met de plaats van wat er niet op kwam), of bronselectie_grens (het model kiest uit 80 tegen 120 kandidaten), of bronselectie_belang (de kandidatenlijst met het belang van verwijzingen), of bronselectie_belang_model (het model kiest met en zonder dat belang), of bronselectie_afbakening (de kandidatenlijst met de afbakening per onderdeel tegen de oude lezing), of bronselectie_afbakening_model (het model kiest met beide lezingen), of bronselectie_afhankelijkheden (de methoden van de afhankelijkheden vanuit de verwachte kern, zonder model), of bronselectie_keten (het model kiest één ronde, dan de afhankelijkheden op wat juist is, met en zonder de nieuwe methoden), of bronselectie_menging (de verhouding woordenroute en pool op de kandidatenlijst), of bronselectie_keten_grens (de hele keten met het model op 80 en op 120 kandidaten)"
         type: choice
-        options: [alles, gesprek, annotatie, concept, duiding, bronselectie_model, bronselectie_model_1, bronselectie_werkgebied, bronselectie_kandidaten, bronselectie_wetstermen, bronselectie_rangschikking, bronselectie_grens, bronselectie_belang, bronselectie_belang_model, bronselectie_afbakening, bronselectie_afbakening_model, bronselectie_afhankelijkheden, bronselectie_keten, bronselectie_menging]
+        options: [alles, gesprek, annotatie, concept, duiding, bronselectie_model, bronselectie_model_1, bronselectie_werkgebied, bronselectie_kandidaten, bronselectie_wetstermen, bronselectie_rangschikking, bronselectie_grens, bronselectie_belang, bronselectie_belang_model, bronselectie_afbakening, bronselectie_afbakening_model, bronselectie_afhankelijkheden, bronselectie_keten, bronselectie_menging, bronselectie_keten_grens]
         default: alles
       query:
         description: "Alleen voor 'telemetrie': een eigen KQL-query (leeg = de standaardset)"
@@ -1007,7 +1007,7 @@ jobs:
               annotatie) vlag="--annotatie"; titel="RUN"; uit="|| rc=1" ;;
               concept) vlag="--annotatie --concept"; titel="CONCEPT"; uit="|| true" ;;
               duiding) vlag="--golden eval/golden_duiding.jsonl"; titel="DUIDING"; uit="|| true" ;;
-              bronselectie_model|bronselectie_model_1|bronselectie_werkgebied|bronselectie_kandidaten|bronselectie_wetstermen|bronselectie_rangschikking|bronselectie_grens|bronselectie_belang|bronselectie_belang_model|bronselectie_afbakening|bronselectie_afbakening_model|bronselectie_afhankelijkheden|bronselectie_keten|bronselectie_menging) vlag="" ;;
+              bronselectie_model|bronselectie_model_1|bronselectie_werkgebied|bronselectie_kandidaten|bronselectie_wetstermen|bronselectie_rangschikking|bronselectie_grens|bronselectie_belang|bronselectie_belang_model|bronselectie_afbakening|bronselectie_afbakening_model|bronselectie_afhankelijkheden|bronselectie_keten|bronselectie_menging|bronselectie_keten_grens) vlag="" ;;
               *) echo "::error::onbekende eval_set"; exit 1 ;;
             esac
             if [ "$EVAL_SET" = "bronselectie_kandidaten" ]; then
@@ -1051,6 +1051,10 @@ jobs:
               # De hele keten: één modelronde kiest per deelvraag, de jurist neemt op wat juist is, en daarop draaien de
               # afhankelijkheden zonder de laatste methode en met de standaard (gepaard). ~400k tokens.
               args="echo \"=== BRONSELECTIE KETEN ===\"; python -u -m eval.bronselectie_model_meting --rondes 1 --keten standaard-artikelleden,standaard; rc=\$?; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
+            elif [ "$EVAL_SET" = "bronselectie_keten_grens" ]; then
+              # De grens over de hele keten: het model kiest uit 80 en uit 120 kandidaten (gepaard, dezelfde wetstermen), de
+              # jurist neemt op wat juist is, en daarop draaien de afhankelijkheden met de standaard. ~1M tokens.
+              args="echo \"=== BRONSELECTIE KETEN GRENS ===\"; python -u -m eval.bronselectie_model_meting --rondes 1 --varianten kandidaten_120 --keten standaard; rc=\$?; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
             elif [ "$EVAL_SET" = "bronselectie_menging" ]; then
               # De verhouding tussen de woordenroute en de pool op de kandidatenlijst (`Zoekprofiel.menging`), zonder keuze
               # door het model: om de beurt tegen twee en drie uit de woordenroute per kandidaat uit de pool. ~50k tokens.

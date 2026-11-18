@@ -482,7 +482,11 @@ def main(argv: list[str] | None = None) -> int:
     totaal_afval_wg = {f: 0 for f in FASEN}
     totaal_verkeerd: dict[str, int] = {}
     ketens = {c: afhankelijkheden_configuratie(c) for c in a.keten.split(",") if c}
-    keten_totaal: dict[str, Any] = {"nodig": 0, "gekozen": 0, **{c: {"gevonden": 0, "kandidaten": 0} for c in ketens}}
+    # De keten draait op de keuze van de eerste modelronde en op die van elke variant (gepaard: dezelfde wetstermen), zodat
+    # bv. `--varianten kandidaten_120 --keten standaard` de grens over de hele keten meet.
+    keten_sporen = {MODEL: spoor, **{f"variant {v}": sp for v, sp in sporen.items()}} if ketens else {}
+    keten_totaal: dict[str, dict[str, Any]] = {
+        b: {"nodig": 0, "gekozen": 0, **{c: {"gevonden": 0, "kandidaten": 0} for c in ketens}} for b in keten_sporen}
     try:
         for naam, s in sets(lezer(a.lokaal)):
             if llm.meter.totaal > MAX_TOKENS:
@@ -495,24 +499,26 @@ def main(argv: list[str] | None = None) -> int:
             val = afval(graaf, s, spoor)
             for f, n in val["telling"].items():
                 totaal_afval[f] += n
-            if ketens:
-                k = keten(graaf, s, spoor, ketens)
-                rapport_keten = k
-                keten_totaal["nodig"] += k["nodig"]
-                keten_totaal["gekozen"] += k["gekozen"]
+            rapport_keten: dict[str, Any] = {}
+            for b, sp in keten_sporen.items():
+                k = keten(graaf, s, sp, ketens)
+                rapport_keten[b] = k
+                keten_totaal[b]["nodig"] += k["nodig"]
+                keten_totaal[b]["gekozen"] += k["gekozen"]
                 for c in ketens:
                     for m in ("gevonden", "kandidaten"):
-                        keten_totaal[c][m] += k[c][m]
-                plekken = {(g["deelvraag"], g["bron_iri"]): g for g in rangen(graaf, s, llm, settings.llm_model,
-                                                                               modelmeting, gedeeld)["gemist"]}
-                for x in k["missers"]:
-                    g = plekken.get((x["deelvraag"], x["bron_iri"]))
-                    waar = ("op de lijst, niet gekozen" if x["op_de_lijst"] else
-                            f"niet op de lijst (woorden {g['woorden']}, pool {g['pool']}, buur {g['buur'] or '-'})" if g
-                            else "niet op de lijst")
-                    print(f"{'':40} KETEN MIST {naam} DV{x['deelvraag']} {x['bron_iri'].split(':', 1)[-1]}: {waar}",
-                          flush=True)
-                print(f"{naam:40} keten: gekozen {k['gekozen']}/{k['nodig']} | "
+                        keten_totaal[b][c][m] += k[c][m]
+                if b == MODEL:
+                    plekken = {(g["deelvraag"], g["bron_iri"]): g for g in rangen(graaf, s, llm, settings.llm_model,
+                                                                                   modelmeting, gedeeld)["gemist"]}
+                    for x in k["missers"]:
+                        g = plekken.get((x["deelvraag"], x["bron_iri"]))
+                        waar = ("op de lijst, niet gekozen" if x["op_de_lijst"] else
+                                f"niet op de lijst (woorden {g['woorden']}, pool {g['pool']}, buur {g['buur'] or '-'})"
+                                if g else "niet op de lijst")
+                        print(f"{'':40} KETEN MIST {naam} DV{x['deelvraag']} {x['bron_iri'].split(':', 1)[-1]}: {waar}",
+                              flush=True)
+                print(f"{naam:40} keten{'' if b == MODEL else ' ' + b}: gekozen {k['gekozen']}/{k['nodig']} | "
                       + " | ".join(f"{c} {k[c]['gevonden']}/{k['nodig']} ({k[c]['kandidaten']} kand.)" for c in ketens),
                       flush=True)
             val_wg = afval(graaf, s, spoor_wg) if a.werkgebied else None
@@ -553,10 +559,11 @@ def main(argv: list[str] | None = None) -> int:
                       flush=True)
     finally:
         graaf.close()
-    if ketens:
-        print(f"KETEN TOTAAL (nodig gevonden / nodig, kandidaten): gekozen {keten_totaal['gekozen']}/{keten_totaal['nodig']}"
-              " | " + " | ".join(f"{c} {keten_totaal[c]['gevonden']}/{keten_totaal['nodig']} "
-                                 f"({keten_totaal[c]['kandidaten']})" for c in ketens), flush=True)
+    for b, t in keten_totaal.items():
+        print(f"KETEN TOTAAL{'' if b == MODEL else ' ' + b} (nodig gevonden / nodig, kandidaten): "
+              f"gekozen {t['gekozen']}/{t['nodig']}"
+              " | " + " | ".join(f"{c} {t[c]['gevonden']}/{t['nodig']} ({t[c]['kandidaten']})" for c in ketens),
+              flush=True)
     print("AFVAL TOTAAL: " + ", ".join(f"{f} {n}" for f, n in totaal_afval.items()), flush=True)
     for v, tel in afval_variant.items():
         print(f"AFVAL TOTAAL {v}: " + ", ".join(f"{f} {n}" for f, n in tel.items()), flush=True)
