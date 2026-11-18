@@ -296,6 +296,95 @@ afleidingsregel, en de formuleringen van invoer en uitvoer zijn grotendeels gema
   terwijl het precies de invoer van AR1, AR5 en AR8 is. Een begrip "bepalen …" kan nergens ontstaan.
 - **Een bron mist.** Art. 9 lid 7 is nodig voor AR7 en AR8 maar is niet geselecteerd.
 
+### 4.4 Startpunt voor de volgende ronde in Termijnen
+
+De volgende ronde brengt Termijnen eerst verder in Lex: stappen terug, extra artikelen, een ontbrekende deelvraag. Daarna
+volgt een poging om de afleidingsregels op te stellen in een gewone sessie, dus buiten Lex. Per regel staat hieronder wat
+er dan nog moet liggen. Daarbij geldt:
+
+- *Bestaand* is een van de negen geaccordeerde begrippen.
+- *Nieuw* is een begrip dat er nog niet is; de naam is een voorstel.
+- "Niet gelezen" betekent dat ik de bepaling in deze proef niet heb geopend.
+
+Het begrippenonderzoek (`begrippen-en-markeringen.md` in de lokale map van Termijnen) legt uit waarom zulke begrippen nu
+niet ontstaan: de keten maakt alleen groepen van minstens twee formuleringen, en operatoren en parameters zijn uitgesloten.
+
+**Deelvragen.** De drie deelvragen dekken de verrekening (DV2) en de doorwerking (DV3), maar geen deelvraag gaat over hoe
+de termijnen zelf ontstaan: hun aantal, hun vervaldagen en hun bedrag, voor een positieve en een negatieve aanslag. AR1–AR6
+hangen nu los onder DV3. Een **vierde deelvraag** maakt ze tot eigen werk, bijvoorbeeld: "Hoe worden het aantal, de
+vervaldagen en het bedrag van de termijnen van een voorlopige aanslag winstaandeel bepaald?" Ze hoort vóór de huidige DV3,
+omdat de doorwerking op de vervaldagen rust.
+
+**Bepalingen die erbij moeten** (in elk geval te lezen; opnemen is een besluit van de jurist):
+
+- **Art. 9 lid 7 IW 1990**: een voorlopige aanslag gedagtekend vóór het belastingjaar. Art. 24 lid 1 (slottekst) en lid 2
+  verwijzen ernaar; gelezen, niet geselecteerd.
+- **Art. 9 lid 1 IW 1990**: de hoofdregel waarvan lid 5, 6 en 7 afwijken, en waarop lid 5 terugvalt. Niet gelezen.
+- **Leidraad 9.1 en 9.5**: de laatste termijn op 31 december, en de vervaldag bij een dagtekening op de 29e tot en met 31e.
+  Het rapport van Termijnen noemt ze; niet gelezen.
+- **Art. 4:93 lid 3 Awb**: de regel waarvan volzin 6 van de slottekst van art. 24 lid 1 afwijkt (`uitzondering_op`). Context
+  is genoeg. Niet gelezen.
+- **Art. 10 lid 1 onderdeel b–d IW 1990**: de uitzondering in Leidraad 24.3. Versnelde invordering staat buiten de
+  afbakening. Leg dus bij AR8 vast dat de uitzondering bestaat en buiten de vraag valt, en annoteer haar niet.
+
+**Per afleidingsregel**
+
+- **AR1 — aantal termijnen bij een positieve aanslag** (art. 9 lid 5, eerste volzin; nieuwe deelvraag).
+  - Begrippen: bestaand *voorlopige aanslag* en *dagtekening van het aanslagbiljet*. Nieuw:
+    - *aantal termijnen*;
+    - *maand van de dagtekening*;
+    - *jaar waarover de aanslag is vastgesteld* (de afgewezen groepen "het jaar" en "de maand" heroverwegen);
+    - het operatorbegrip *min*.
+  - Annotatie: de voorstellen `invoer` en `uitvoer` op de afleidingsregel beoordelen. "nog maanden" als variabele
+    heroverwegen: het is een tussenresultaat, geen kenmerk.
+  - Open: de overeenkomstige toepassing via art. 72 Mbw (onderzoekspunt 2 van het rapport).
+- **AR2 — invorderbaar in termijnen** (art. 9 lid 5, derde volzin; nieuwe deelvraag).
+  - Begrippen: nieuw *invorderbaar in termijnen* (ja/nee), het operatorbegrip *groter dan*, de parameterwaarde één.
+  - Annotatie: "vindt het eerste lid toepassing" is nu een Afleidingsregel. Maak er een relatie `toepassing` naar lid 1 van
+    (dat lid moet dan geselecteerd zijn). De kring tussen "niet" en "meer dan" weghalen.
+- **AR3 — vervaldag van een termijn bij een positieve aanslag** (art. 9 lid 5, tweede volzin; nieuwe deelvraag, DV3).
+  - Begrippen: nieuw *vervaldag van een termijn*, *volgnummer van de termijn* en het operatorbegrip *plus maanden*.
+  - Annotatie: de afleidingsregel heeft geen `uitvoer`. Leg die naar de tijdsaanduiding "één maand na de dagtekening …" en
+    beoordeel de operand-voorstellen naar afgewezen elementen ("na", "de dagtekening").
+  - Bepaling: Leidraad 9.1 en 9.5.
+- **AR4 — termijnbedrag** (art. 9 lid 5 en 6, "gelijke termijnen"; nieuwe deelvraag).
+  - Begrippen: nieuw *termijnbedrag*, *bedrag van de aanslag* en het operatorbegrip *gedeeld door*.
+  - Annotatie: "gelijke" draagt de regel, maar is niet als afleidingsregel gemarkeerd.
+  - Open: de afronding en de restcent. Zoek eerst in de Leidraad of de Uitvoeringsregeling; vind je niets, dan is het
+    ontbrekend beleid.
+- **AR5 — aantal termijnen en vervaldag bij een negatieve aanslag** (art. 9 lid 6; nieuwe deelvraag, DV3).
+  - Begrippen: als AR1 en AR3, plus het operatorbegrip *laatste dag van de maand*.
+  - Annotatie: `uitvoer` op de vervaldagregel, `uitzondering_op` naar lid 1 en lid 5 ("In afwijking van het eerste en het
+    vijfde lid"), en de vijf voorstellen op lid 6 beoordelen.
+  - Open: een negatieve aanslag in december geeft één termijn. Valt die terug op lid 1? Lid 6 zegt het niet.
+- **AR6 — uitbetaling in één keer** (Leidraad 9.3; DV3).
+  - Begrippen: nieuw *uitbetaling in één keer* (ja/nee), de parameter *grensbedrag termijnuitbetaling* (parameterwaarde
+    € 49) en *beslag door een derde*; de operatorbegrippen *ten hoogste*, *en* en *niet*.
+  - Annotatie: de relaties van de afleidingsregel in 9.3 bekijken (niet gelezen in deze proef).
+  - Open: beleid of wet als bron (vraag 5 in §7).
+- **AR7 — tijdstip van verrekening** (art. 24 lid 1, slottekst, volzin 6 en 7; DV2 en DV3). De kern van het antwoord.
+  - Begrippen: nieuw *tijdstip van verrekening*. Het staat nu in de definitie van *verrekening*: maak er een eigen begrip
+    van, want het is de uitvoer. Bestaand *dagtekening van het aanslagbiljet*, *termijn* en *voorlopige aanslag*. Als
+    invoer de uitvoer van AR3 en AR5.
+  - Annotatie: beide afleidingsregels hebben nul relaties. Leg op volzin 7 de `uitvoer` (het tijdstip), de `invoer` ("het
+    tijdstip waarop de desbetreffende termijn vervalt"), de voorwaarde ("een termijn van een voorlopige aanslag als bedoeld
+    in artikel 9, zesde en zevende lid") en `uitzondering_op` naar volzin 6. Op volzin 6 `uitzondering_op` naar Awb 4:93
+    lid 3.
+  - Bepaling: art. 9 lid 7, Awb 4:93 lid 3.
+- **AR8 — verrekening mogelijk** (art. 24 lid 2 en 8, Leidraad 24.3; DV2).
+  - Begrippen: nieuw *verrekening mogelijk* (ja/nee), *belasting* en *tijdvak* (de afgewezen groep "het tijdvak"
+    heroverwegen: in de regel is het geen kalendereenheid maar het tijdvak waarop de aanslag betrekking heeft). Bestaand
+    *verrekening*, *belastingaanslag* en *negatieve voorlopige aanslag*.
+  - Annotatie: art. 24 lid 2 heeft geen Afleidingsregel-markering. De beslisregel zit in "verrekening alleen mogelijk is met
+    belastingaanslagen die …"; markeer die als Afleidingsregel of leg de voorwaarden aan de rechtsbetrekking "De verrekening
+    is ook mogelijk". Dat is een keuze voor de jurist.
+  - Bepaling: art. 9 lid 7, en art. 10 lid 1 als grens van de afbakening.
+- **Geen regel, wel een open punt: het bedrag dat per vervaldag wordt verrekend.** Geen gelezen bepaling formuleert het.
+  Leg het vast als ontbrekend uitvoeringsbeleid (onderzoekspunt 1 van het rapport), niet als afleidingsregel.
+
+**Volgorde voor de gewone sessie** (de hiërarchie, van onder naar boven): AR1 en AR5a, dan AR2, AR3 en AR5b, dan AR4 en AR6,
+dan AR7, dan AR8. Gebruik per regel het taalpatroon uit §2.3 en toets meteen met de voorbeeldreeks uit §4.2.
+
 ## 5. De gaten in de keten
 
 ### 5.1 Data
@@ -404,8 +493,8 @@ een beslisregel dat een jurist zelf uitwerkt.
    RegelSpraak?
 8. **Van wie is een waarde** ("van een belastingschuldige over een jaar"): het boek voegt dat pas in stap 6 toe. In 3b
    weglaten, of de relatie `kenmerk` alvast in de regeltekst tonen?
-9. **Termijnen zelf**: art. 9 lid 7 opnemen, de relaties van de afleidingsregels beoordelen en de vier ontbrekende
-   begrippen maken? Dat is het werk van een jurist op acceptatie, geen bouwwerk.
+9. **Termijnen zelf**: de bepalingen, de vierde deelvraag, de relaties en de begrippen uit §4.4. Dat is het werk van een
+   jurist op acceptatie, geen bouwwerk, en het startpunt voor het opstellen van de regels buiten Lex.
 
 ## 8. Bevindingen voor elders
 
