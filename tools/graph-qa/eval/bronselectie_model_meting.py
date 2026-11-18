@@ -186,6 +186,8 @@ def rangen(graaf: Any, s: dict[str, Any], llm: Any, model: str, meting: dict[str
         pool = cache[sleutel]["kandidaten"]
     tel: dict[str, int] = {}
     voorbeelden: list[str] = []
+    # Wat in geen van beide lijsten staat, voluit: daar helpt geen menging of grens, alleen beter zoeken.
+    nergens: list[dict[str, Any]] = []
     for i, vraag in enumerate(s["deelvragen"]):
         wet = wetstermen_voor(graaf, s, vraag, profiel, llm, model, meting, cache)
         woorden = [o["bron_iri"] for o in deelvraag_zoeken.bepaling_opties(
@@ -211,7 +213,11 @@ def rangen(graaf: Any, s: dict[str, Any], llm: Any, model: str, meting: dict[str
             tel[vak] = tel.get(vak, 0) + 1
             if len(voorbeelden) < 4:
                 voorbeelden.append(f"DV{i + 1} {iri.split(':', 1)[-1]} (woorden {pw}, pool {pp})")
-    return {"telling": dict(sorted(tel.items())), "voorbeelden": voorbeelden}
+            if pw is None and pp is None:
+                bwb = iri.split(":")[2] if iri.count(":") >= 2 else ""
+                nergens.append({"deelvraag": i + 1, "bron_iri": iri, "rol": v["rol"], "wetstermen": list(wet or []),
+                                "in_bereik": bwb in (s.get("regelingen") or [])})
+    return {"telling": dict(sorted(tel.items())), "voorbeelden": voorbeelden, "nergens": nergens}
 
 
 def meet_kandidaten(a: argparse.Namespace) -> int:
@@ -258,6 +264,8 @@ def meet_kandidaten(a: argparse.Namespace) -> int:
                     rangtotaal[k] = rangtotaal.get(k, 0) + n
                 print(f"{'':40} rangen: {json.dumps(d['telling'], ensure_ascii=False)} | bv. {'; '.join(d['voorbeelden'])}",
                       flush=True)
+                for x in d["nergens"]:
+                    print(f"{'':40} NERGENS {naam} {json.dumps(x, ensure_ascii=False)}", flush=True)
     finally:
         graaf.close()
     print("TOTAAL nodig bij de kandidaten: " + " | ".join(f"{c} {g}/{n}" for c, (g, n) in som.items()), flush=True)
