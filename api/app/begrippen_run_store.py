@@ -560,6 +560,31 @@ async def besluit(werkgebied_id: str, groep_id: str, soort: str, reden: str, act
     await _besluit(werkgebied_id, [groep_id], soort, actor, reden=reden)
 
 
+async def afwijzen_buiten_behandeling(werkgebied: dict, groep_id: str, reden: str, actor: str, resolve) -> list[str]:
+    """Een groep afwijzen en haar passages buiten behandeling zetten, met dezelfde reden: ze krijgen geen begrip.
+    Zonder die stap vallen ze terug op "te verwerken" en lijkt er werk te liggen dat de jurist al besliste (P21).
+    Alleen passages die nog in de inventaris staan; een vervangen passage heeft geen besluit meer nodig."""
+    from . import begrip_onderhoud_store
+    from .begrip_onderhoud_contracts import BuitenBehandeling
+    from .werkgebied_inventaris import inventaris
+    if not reden.strip():
+        raise HTTPException(422, "Een reden is verplicht als de passages buiten behandeling gaan.")
+    async with db.get_engine().connect() as conn:
+        [row] = await _groepen_rij(conn, werkgebied["id"], [groep_id])
+    _niet_al_besloten([row])
+    await _besluit(werkgebied["id"], [groep_id], "afgewezen", actor, reden=reden)
+    leden = _rest(row)
+    if not leden:
+        return []
+    bekend = {e["id"] for e in (await inventaris(werkgebied["bronnen"], resolve))["elementen"]}
+    leden = [e for e in leden if e in bekend]
+    if not leden:
+        return []
+    uit = await begrip_onderhoud_store.zet_buiten_behandeling(
+        werkgebied, BuitenBehandeling(element_ids=leden, reden=reden), actor, resolve)
+    return uit["element_ids"]
+
+
 async def vraag(werkgebied_id: str, run_id: str, kandidaat_id: str, antwoord: str, actor: str) -> dict:
     """Een twijfelvraag beantwoorden. "Samen" maakt nog niets: de werkplek biedt daarna de overname
     van beide aan. Het antwoord ligt vast, met wie en wanneer."""

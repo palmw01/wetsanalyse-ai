@@ -98,7 +98,13 @@ async def post_koppelen(werkgebied_id: str, groep_id: str, req: GroepKoppeling, 
 
 @router.post("/groepen/{groep_id}/afwijzen")
 async def post_afwijzen(werkgebied_id: str, groep_id: str, req: GroepBesluit, actor: str = Depends(actieve_userid)):
-    await store.besluit(werkgebied_id, groep_id, "afgewezen", req.reden, actor)
+    """Met `passages: "buiten_behandeling"` krijgen de passages geen begrip: ze gaan met dezelfde reden buiten
+    behandeling (een reden is dan verplicht)."""
+    if req.passages == "buiten_behandeling":
+        await store.afwijzen_buiten_behandeling(await werkgebied_store.haal(werkgebied_id), groep_id, req.reden, actor,
+                                                resolve_bron)
+    else:
+        await store.besluit(werkgebied_id, groep_id, "afgewezen", req.reden, actor)
     return await store.groepen(werkgebied_id)
 
 

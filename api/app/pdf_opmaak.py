@@ -17,6 +17,7 @@ from pathlib import Path
 from xml.sax.saxutils import escape
 
 from .jas_klassen import JAS_KLASSE_KLEUREN, JAS_TEKSTKLEUR
+from .markeerbanen import Banen, markeerbanen
 
 _FONTS = Path(__file__).parent / "fonts"
 _LETTERS = {"Fira": "FiraSans-Regular.ttf", "Fira-Italic": "FiraSans-Italic.ttf", "Fira-SemiBold": "FiraSans-SemiBold.ttf",
@@ -445,7 +446,13 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
                 alinea.platte_plaats = tekst
                 doel.append(alinea)
             elif stijl == "Citaat":
-                doel.append(Lijn(Paragraph(gemarkeerd(tekst, spans) if spans else opgemaakt(tekst), stijlen["Citaat"])))
+                if spans:
+                    n = citaatbanen(tekst, spans).aantal
+                    stijl_c = stijlen["Citaat"] if not n else ParagraphStyle(
+                        "CitaatBanen", parent=stijlen["Citaat"], leading=stijlen["Citaat"].leading + 1 + n * BAAN_STAP)
+                    doel.append(Lijn(Paragraph(gemarkeerd(tekst, spans), stijl_c)))
+                else:
+                    doel.append(Lijn(Paragraph(opgemaakt(tekst), stijlen["Citaat"])))
                 spans = None
             elif stijl == "Waarschuwing":
                 doel.append(Paragraph('<font name="Fira-SemiBold">Let op: </font>' + opgemaakt(tekst), stijlen["Waarschuwing"]))
@@ -476,29 +483,34 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
     return pdf
 
 
-def _segmenten(tekst: str, spans: list[tuple[int, int, int, str]]):
-    """De tekst in stukken met de markeringen die elk stuk dekken, en de nummers die na het stuk eindigen. Deterministisch."""
-    grenzen = sorted({0, len(tekst), *(s for s, _e, _n, _k in spans), *(e for _s, e, _n, _k in spans)})
-    for a, b in zip(grenzen, grenzen[1:]):
-        dekking = sorted((x for x in spans if x[0] <= a and x[1] >= b), key=lambda x: (x[0], -x[1], x[2]))
-        eindigt = sorted({x[2] for x in spans if x[1] == b})
-        yield tekst[a:b], dekking, eindigt
+# De banen onder een citaat (optie B, `markeerbanen`): de eerste vlak onder de letters, elke volgende een stap lager. De
+# regelafstand groeit met hetzelfde, zodat een baan nooit op de regel eronder valt.
+BAAN_BEGIN = 2.6
+BAAN_STAP = 3.6
+BAAN_DIKTE = 2.4
+
+
+def citaatbanen(tekst: str, spans: list[tuple[int, int, int, str]]) -> Banen:
+    """De banen van een citaat; de volgorde van de spans doet er niet toe."""
+    return markeerbanen(len(tekst), [(n, s, e) for s, e, n, _k in sorted(spans, key=lambda x: (x[0], x[1], x[2]))])
 
 
 def gemarkeerd(tekst: str, spans: list[tuple[int, int, int, str]]) -> str:
-    """Het citaat met de markeringen erin: de achtergrond in de kleur van de buitenste klasse, een onderstreping waar er meer
-    overlappen, en het nummer in superscript waar een markering eindigt. De woorden zelf blijven letterlijk."""
+    """Het citaat met de markeringen erin (optie B): een markering die niets omvat in het vlak van haar klasse, een die
+    andere omvat als baan eronder in haar randkleur, en het nummer in superscript waar een markering eindigt. De woorden
+    zelf blijven letterlijk."""
+    klasse = {n: k for _s, _e, n, k in spans}
     uit = []
-    for stuk, dekking, eindigt in _segmenten(tekst, spans):
-        deel = opgemaakt(stuk)
-        if dekking:
-            kleur = JAS_KLASSE_KLEUREN.get(dekking[0][3], ("#E6E6E6", ""))[0]
-            deel = f'<span backColor="{kleur}">{deel}</span>'
-            if len(dekking) > 1:
-                deel = f"<u>{deel}</u>"
+    for stuk in citaatbanen(tekst, spans).stukken:
+        deel = opgemaakt(tekst[stuk.start:stuk.eind])
+        if stuk.vlak is not None:
+            deel = f'<span backColor="{JAS_KLASSE_KLEUREN.get(klasse[stuk.vlak], ("#E6E6E6", ""))[0]}">{deel}</span>'
+        for n, baan in reversed(stuk.banen):     # de buitenste baan buitenom: elke <u> tekent zijn eigen streep
+            rand = JAS_KLASSE_KLEUREN.get(klasse[n], ("", "#9A9A9A"))[1]
+            deel = f'<u color="{rand}" width="{BAAN_DIKTE}" offset="{-(BAAN_BEGIN + baan * BAAN_STAP):.1f}">{deel}</u>'
         uit.append(deel)
-        if eindigt:                              # meer nummers op één plek: met komma's, anders leest "2" en "4" als 24
-            uit.append(f'<super><font size="6.5">{",".join(map(str, eindigt))}</font></super>')
+        if stuk.eindigt:                         # meer nummers op één plek: met komma's, anders leest "2" en "4" als 24
+            uit.append(f'<super><font size="6.5">{",".join(map(str, sorted(stuk.eindigt)))}</font></super>')
     return "".join(uit)
 
 

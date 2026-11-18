@@ -8,9 +8,11 @@ import hashlib
 
 from sqlalchemy import delete
 
-from app import annotatie_v2_store as store, db, werkgebieden
+from app import annotatie_v2_relaties as rel, annotatie_v2_store as store, db, werkgebieden
+from app.annotatie_v2_contracts import RelatieBeslissing, RelatieInvoer
+from app.begrip_onderhoud_store import _samenhang
 from app.begrip_onderhoud_store import _redenen, bron_signalen, opvolgers
-from gedeelde_bron import ONE, TWO, element, request, snapshot
+from gedeelde_bron import ART2, ONE, TWO, element, request, snapshot
 from test_begrippen import DEFINITIE, _annoteer, _begrip, _beslis, _url, _werkgebied
 from test_begrippen_runs import _groep, _start, _uitkomst
 from gedeelde_bron import client, database, graaf, snapshot2  # noqa: F401
@@ -304,7 +306,7 @@ async def test_dekking_telt_elk_element_een_keer(client):
     d = (await client.get(url)).json()
     per = {e["element_id"]: e["stand"] for e in d["elementen"]}
     assert per == {ids["lid1"]: "gekoppeld", ids["awr"]: "voorstel", ids["lid2"]: "te_verwerken"}
-    assert d["totalen"] == {"te_verwerken": 1, "voorstel": 1, "gekoppeld": 1, "buiten_behandeling": 0}
+    assert d["totalen"] == {"te_verwerken": 1, "voorstel": 1, "gekoppeld": 1, "bij_drager": 0, "buiten_behandeling": 0}
     assert d["totaal"] == 3 and d["laatste_run"] is None and d["nieuw_sinds_run"] == 0
 
     assert (await client.post(url + "/buiten-behandeling", json={"element_ids": [ids["lid2"]], "reden": " "})
@@ -328,6 +330,67 @@ async def test_dekking_telt_elk_element_een_keer(client):
     audit = (await client.get(f"/v1/werkgebieden/{wg['id']}/audit")).json()
     acties = [a["actie"] for a in audit["audit"]]
     assert "element-buiten-behandeling" in acties and "element-in-behandeling" in acties
+
+
+async def _rechtsbetrekking_en_voorwaarde() -> dict[str, str]:
+    """Lid 1 als rechtsbetrekking, lid 2 als voorwaarde, artikel 2 AWR als een los rechtssubject."""
+    snap = snapshot()
+
+    def el(iri, start, eind, klasse):
+        n = store.nodes_van(snap)[iri]
+        return dict(klasse=klasse, tekst=n["tekst"][start:eind], ankers=[dict(
+            bron_iri=iri, start=start, eind=eind, tekst=n["tekst"][start:eind], bron_hash=n["bron_hash"])])
+    uit = await store.batch(request(snap, [el(ONE, 2, 6, "Rechtsbetrekking"), el(TWO, 0, 4, "Voorwaarde")]), snap, "lex")
+    snap2 = snapshot2()
+    uit2 = await store.batch(request(snap2, [element(snap2, ART2, 0, 4)], batch_id="awr"), snap2, "lex")
+    per = {e["eigenaar_iri"]: e["id"] for e in uit["elementen"] + uit2["elementen"]}
+    return {"rb": per[ONE], "vw": per[TWO], "awr": per[ART2]}
+
+
+async def test_een_voorwaarde_bij_haar_drager_is_verwerkt_en_een_los_element_mist_samenhang(client):
+    """M01 h.6–7: een voorwaarde krijgt geen begrip, wel een plek bij haar drager. M02 §3.4.2c: een markering zonder
+    samenhang met een centrale klasse is een vraag. Per klasse staat de verwachting uit de skill erbij."""
+    ids = await _rechtsbetrekking_en_voorwaarde()
+    wg = await _werkgebied(client)
+    url = f"/v1/werkgebieden/{wg['id']}/dekking"
+    d = (await client.get(url)).json()
+    per = {e["element_id"]: e for e in d["elementen"]}
+    assert {i: (e["stand"], e["verwacht"], e["zonder_samenhang"]) for i, e in per.items()} == {
+        ids["rb"]: ("te_verwerken", "begrip", False),          # een centrale klasse is zelf de samenhang
+        ids["vw"]: ("te_verwerken", "omschrijving", False),
+        ids["awr"]: ("te_verwerken", "begrip", True)}
+    assert d["zonder_samenhang"] == 1
+    assert [(k["klasse"], k["verwacht"], k["totaal"]) for k in d["per_klasse"]] == [
+        ("Rechtssubject", "begrip", 1), ("Rechtsbetrekking", "begrip", 1), ("Voorwaarde", "omschrijving", 1)]
+
+    # Een voorstel van de keten is nog geen oordeel: de voorwaarde blijft open, het AWR-element krijgt wel samenhang.
+    revisie = (await store.weergave(snapshot()))["lagen"]
+    revs = {l["bron_iri"]: l["revisie"] for l in revisie}
+    r = (await rel.leg(RelatieInvoer(van={"soort": "element", "id": ids["rb"]}, naar={"soort": "element", "id": ids["vw"]},
+                                     type="voorwaarde", verwachte_revisies={ONE: revs[ONE]}), "jurist"))["relatie"]
+    assert r["lifecycle"] == "human_approved"
+    d = (await client.get(url)).json()
+    per = {e["element_id"]: e for e in d["elementen"]}
+    assert per[ids["vw"]]["stand"] == "bij_drager" and d["totalen"]["bij_drager"] == 1
+    assert next(k for k in d["per_klasse"] if k["klasse"] == "Voorwaarde")["totalen"]["bij_drager"] == 1
+
+    # Afgewezen: niet meer vastgelegd, dus weer te verwerken.
+    revs = {l["bron_iri"]: l["revisie"] for l in (await store.weergave(snapshot()))["lagen"]}
+    await rel.beslis(r["id"], RelatieBeslissing(type="reject", verwachte_revisies={ONE: revs[ONE]}), "jurist")
+    d = (await client.get(url)).json()
+    assert {e["element_id"]: e["stand"] for e in d["elementen"]}[ids["vw"]] == "te_verwerken"
+
+
+def test_alleen_een_beoordeelde_relatie_naar_een_levende_drager_hangt_een_voorwaarde_op():
+    def r(lifecycle, drager_lifecycle="human_approved", type_="voorwaarde"):
+        return {"type": type_, "lifecycle": lifecycle, "van": {"soort": "element", "id": "D", "bestaat": True,
+                                                              "lifecycle": drager_lifecycle},
+                "naar": {"soort": "element", "id": "V"}}
+    assert _samenhang([r("human_approved")]) == ({"D", "V"}, {"V"})
+    assert _samenhang([r("voorgesteld")]) == ({"D", "V"}, set())
+    assert _samenhang([r("human_approved", drager_lifecycle="rejected")]) == ({"D", "V"}, set())
+    assert _samenhang([r("rejected")]) == (set(), set())
+    assert _samenhang([r("human_approved", type_="invoer")]) == ({"D", "V"}, set())
 
 
 async def test_een_open_groep_is_een_voorstel_en_wat_de_run_niet_zag_is_nieuw(client):

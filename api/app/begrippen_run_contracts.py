@@ -120,6 +120,9 @@ class GroepKoppeling(BaseModel):
 
 class GroepBesluit(BaseModel):
     reden: str = Field(default="", max_length=2000)
+    #: Alleen bij afwijzen: wat er met de passages gebeurt. `buiten_behandeling` zet ze met dezelfde reden buiten
+    #: behandeling, zodat de dekking niet stil terugvalt op "te verwerken" (P21); `laten` laat ze open.
+    passages: Literal["laten", "buiten_behandeling"] = "laten"
 
 
 class VraagBesluit(BaseModel):

@@ -486,7 +486,10 @@ spoor D (*Werkgebied als node*).
     zijn ruis), met `bwb:ankerTekst` letterlijk. De query is begrensd (`MAX_VERWIJZINGSRIJEN`, hij vraagt er één meer): raakt hij de grens, dan `volledig: false` en `verwijzingen_volledig: false`, en de bijlage zegt "minstens". Tel nooit een begrensde rijenlijst als totaal. Ze staan bij de bepaling en in de bijlage Samenhang. Een doel telt als "in dit dossier" als het
     daar zelf staat of als een van zijn delen er staat.
   - **Markeringen in de wettekst**: `Bepaling.spans` (alleen ankers die nog letterlijk op hun offsets staan) gaan als regel `SPANS` (JSON)
-    vlak vóór het citaat mee. `pdf_opmaak.gemarkeerd` kleurt en nummert, `markdown_opmaak` maakt vet met ⁽ⁿ⁾. Een markering in de tekst
+    vlak vóór het citaat mee. Overlap volgt optie B (`app/markeerbanen.py`, de tweeling van `frontend/lib/markeerbanen.ts`, met gedeelde
+    vectoren): `pdf_opmaak.gemarkeerd` geeft een markering die niets omvat het vlak van haar klasse en een die andere omvat een streep
+    eronder in haar randkleur (de regelafstand groeit mee), met het nummer waar ze eindigt; `markdown_opmaak` maakt het vlak vet en zet
+    de omvattende markering tussen ⸢ en ⸣, met ⁽ⁿ⁾. Een markering in de tekst
     draagt haar nummer, en de lijst eronder herhaalt het citaat niet. `verzamel` leest met dezelfde functies als de schermen, en `regels` geeft (stijl, tekst),
   zonder reportlab te testen.
   - Geen modelvragen, hashes of beurtmeting: dat spoor staat in de annotatie-export.
@@ -770,8 +773,11 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   openstaat, noemt `aandachtspunten` (ook een dragende annotatie die een jurist nog niet beoordeelde).
 - **Dekking** (`GET …/dekking`): elk element van de inventaris één keer, voorrang `gekoppeld` (dragend
   aan een geaccordeerd begrip) → `buiten_behandeling` → `voorstel` (concept-begrip of open groep van de
-  laatste klare run) → `te_verwerken`; plus `nieuw_sinds_run` (niet in manifest of `overgeslagen` van die
-  run). `POST …/dekking/buiten-behandeling {element_ids, reden}` (reden verplicht, idempotent, tabel
+  laatste klare run) → `bij_drager` (een voorwaarde met een beoordeelde ADR-011-relatie `voorwaarde` vanaf een
+  niet-verworpen drager: ze krijgt geen begrip, M01 h.6–7) → `te_verwerken`; plus `nieuw_sinds_run` (niet in manifest
+  of `overgeslagen` van die run). Per element `verwacht` (`jas_begripverwachting`, gegenereerd uit de skill:
+  `begrip`, `omschrijving` of `definitie`) en `zonder_samenhang` (geen relatie, ook geen voorstel, en zelf geen centrale
+  klasse: een vraag, geen stand, M02 §3.4.2c); `per_klasse` met de totalen per klasse in JAS-volgorde. `POST …/dekking/buiten-behandeling {element_ids, reden}` (reden verplicht, idempotent, tabel
   `werkgebied_element_besluiten`) en `DELETE …/buiten-behandeling/{element_id}` (soft). Audit
   `element-buiten-behandeling` / `element-in-behandeling`; geen revisie, het raakt de scope niet.
 - Tests: `tests/test_begrip_onderhoud.py`.

@@ -18,6 +18,47 @@ Voorbeelden toetsen een definitie. Ze rusten op een overgenomen definitie, of �
 Relaties houden hun type – kwalificatie, inclusie, uitsluiting, soort van, verwant – en hun richting. Een begrip met een andere betekenis wordt een opvolger, het oude wordt vervangen. Het begrippenkader volgt NL-SBB.
 Lex stelt voor; de analist neemt over, past aan of wijst af, en alleen de analist accordeert.
 
+## Welke formulering krijgt wat
+
+Grondslag: M01 h.3 stap 3a en 3b, h.4 punt 16, h.6 en h.7; M02 §3.4.2c, §3.5.1 en §3.5.2; M03 hoofdactiviteit 2 en 3; P21. In
+eigen woorden. De verwachting per klasse staat ook als data in `../begripverwachting.json`; de dekking van een werkgebied
+telt ermee.
+
+Elke formulering die in activiteit 2 is geclassificeerd, krijgt in activiteit 3a een begrip: een nieuw, of een bestaand
+met dezelfde betekenis. De uitwerkingen in het boek laten zien dat dat voor bijna elke klasse geldt, ook waar je het niet
+verwacht. Per klasse:
+
+- **Rechtssubject**: een begrip, ook voor een organisatie of een bestuursorgaan. Een organisatie is een rechtssubject en
+  dus een begrip, ook als ze niet de kern van de analysevraag is.
+- **Rechtsobject**: een begrip.
+- **Rechtsbetrekking**: een begrip voor de betrekking als geheel, met de handeling of de verplichting vooraan
+  ("verschuldigdheid …", "bevoegdheid … tot …"). Het begrip draagt de soort, de rechtkant, de plichtkant en het voorwerp,
+  met begrippen als waarde.
+- **Rechtsfeit**: een begrip met een werkwoord vooraan ("indienen …").
+- **Voorwaarde**: geen begrip. Ze krijgt een omschrijving die met "indien" begint, bij de rechtsbetrekking, het rechtsfeit
+  of de afleidingsregel waar ze bij hoort; soms verwerk je haar in het begrip zelf.
+- **Afleidingsregel**: eerst een begrip voor de regel ("bepalen …"), dan de regel met de begrippen als in- en uitvoer.
+- **Variabele en variabelewaarde**: een begrip voor de variabele.
+- **Parameter en parameterwaarde**: een begrip voor de parameter, en ook voor de waarde in haar tijdvak. Een vaste waarde
+  die nooit verandert (zoals nihil) krijgt geen begrip.
+- **Operator**: een begrip dat je overal hergebruikt ("plus" voor elke optelling, "min" voor elke aftrekking).
+- **Tijdsaanduiding**: een begrip, ook voor een algemene eenheid die de wet niet definieert ("kalenderjaar").
+- **Plaatsaanduiding**: het boek werkt geen voorbeeld uit; naar analogie van de tijdsaanduiding een begrip
+  (projectkeuze).
+- **Delegatiebevoegdheid en delegatie-invulling**: een begrip ("delegatiebevoegdheid … tot …").
+- **Brondefinitie**: geen eigen begrip. Ze is de wettelijke definitie van het begrip dat de gedefinieerde term draagt, en
+  levert daar de omschrijving.
+
+Twee dingen volgen hieruit voor de beoordeling:
+
+- **Een begrip is geen gegeven.** Begrippen zijn de bouwstenen van het gegevensmodel, het regelmodel én het procesmodel.
+  Of iets een eigen gegeven wordt, beslis je pas bij het kennismodel. "Geen eigen gegeven", "te algemeen", "een
+  organisatie" of "een kalendereenheid" is dus geen reden om een begrip af te wijzen. Wel een reden: het is hetzelfde als
+  een begrip dat er al is (koppel dan), of de formulering hoort niet bij de analyse.
+- **Wat er een begrip moet krijgen, is begrensd door de samenhang.** Alleen formuleringen die met een rechtsbetrekking,
+  rechtsfeit, afleidingsregel of voorwaarde samenhangen, doen mee. Een losse markering zonder die samenhang is eerst een
+  vraag: hoort ze bij de analyse? Zo niet, dan zet de jurist haar buiten behandeling, met een reden.
+
 ## Naam en omschrijving: de richtlijnen van de methode
 
 Grondslag: M01 h.3 stap 3, onderdeel a (begrippen maken met eigenschappen); P15. In eigen woorden.

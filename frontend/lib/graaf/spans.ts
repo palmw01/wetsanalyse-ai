@@ -6,11 +6,14 @@
  *  tekstzoeken: een anker dat niet past, geeft geen span – de markering staat dan wel in de lijst
  *  eronder. Liever een span te weinig dan een op de verkeerde woorden. */
 import type { NodeAnker, NodeSegment } from "@/lib/annotatieNode";
+import { markeerbanen, type MarkeerSpan } from "@/lib/markeerbanen";
 
 export interface TekstStuk {
   tekst: string;
-  /** Het element dat dit stuk markeert; bij overlap de kortste markering (die ligt erbovenop). */
+  /** Het element met het vlak op dit stuk: een markering die geen andere omvat. */
   element?: string;
+  /** De markeringen die andere omvatten en over dit stuk lopen, als baan eronder (0 = vlak onder de letters). */
+  banen?: { element: string; baan: number }[];
 }
 
 export interface SpanElement {
@@ -24,33 +27,36 @@ export interface SpanElement {
  *  regel als de graaf (`api/app/samenhang.py:markeringen`). */
 export const isActueel = (e: Pick<SpanElement, "lifecycle" | "verouderd">) => e.lifecycle !== "rejected" && !e.verouderd;
 
-/** Knipt de tekst van één segment in stukken met en zonder markering. De stukken samen zijn exact de
- *  tekst van het segment. */
+/** Knipt de tekst van één segment in stukken met en zonder markering (optie B, `lib/markeerbanen.ts`): een markering
+ *  die niets omvat is het `element` van een stuk (het vlak), een die andere omvat ligt als baan eronder. Zo valt geen
+ *  markering weg in een langere. De stukken samen zijn exact de tekst van het segment; offsets in codepoints. */
 export function spansVan(segment: Pick<NodeSegment, "bron_iri" | "tekst" | "bron_hash">, elementen: readonly SpanElement[]): TekstStuk[] {
   const tekens = Array.from(segment.tekst);
   if (!tekens.length) return [];
-  // Per codepoint het element met de kortste markering die hem raakt.
-  const boven: (string | undefined)[] = new Array(tekens.length);
-  const lengte: number[] = new Array(tekens.length).fill(Infinity);
+  const spans: MarkeerSpan[] = [];
   for (const el of elementen) {
     if (!isActueel(el)) continue;
     for (const a of el.ankers) {
       if (a.bron_iri !== segment.bron_iri || a.bron_hash !== segment.bron_hash) continue;
-      const start = Math.max(0, a.start), eind = Math.min(tekens.length, a.eind);
-      if (eind <= start) continue;
-      const l = eind - start;
-      for (let i = start; i < eind; i++) {
-        if (l < lengte[i] || (l === lengte[i] && el.id < (boven[i] ?? ""))) { boven[i] = el.id; lengte[i] = l; }
-      }
+      spans.push({ sleutel: el.id, start: a.start, eind: a.eind });
     }
   }
+  // De volgorde van de invoer beslist alleen bij gelijke lengte en plek; sorteer, zodat de volgorde van de elementen
+  // niets uitmaakt.
+  spans.sort((p, q) => p.start - q.start || p.eind - q.eind || (p.sleutel < q.sleutel ? -1 : p.sleutel > q.sleutel ? 1 : 0));
   const uit: TekstStuk[] = [];
-  for (let i = 0; i < tekens.length; i++) {
-    const vorig = uit.at(-1);
-    if (vorig && vorig.element === boven[i]) vorig.tekst += tekens[i];
-    else uit.push(boven[i] ? { tekst: tekens[i], element: boven[i] } : { tekst: tekens[i] });
+  for (const stuk of markeerbanen(tekens.length, spans).stukken) {
+    const t: TekstStuk = { tekst: tekens.slice(stuk.start, stuk.eind).join("") };
+    if (stuk.vlak) t.element = stuk.vlak;
+    if (stuk.banen.length) t.banen = stuk.banen.map((b) => ({ element: b.sleutel, baan: b.baan }));
+    uit.push(t);
   }
   return uit;
+}
+
+/** Hoeveel banen een rij stukken nodig heeft: de regelhoogte van de alinea volgt het. */
+export function aantalBanen(stukken: readonly { banen?: readonly { baan: number }[] }[]): number {
+  return Math.max(0, ...stukken.flatMap((s) => (s.banen ?? []).map((b) => b.baan + 1)));
 }
 
 /** De segmenten van een weergave die bij een bronknoop horen: de knoop zelf en alles eronder, in
