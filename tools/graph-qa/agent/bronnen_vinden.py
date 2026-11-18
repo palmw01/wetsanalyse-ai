@@ -52,7 +52,10 @@ METHODEN = ("overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "defini
 #: `opschrift` kwam erbij na de bronnenrun op acceptatie van 18 nov 2026 (LB-08): de kern ("Indien voorschotten zijn
 #: verleend …", "een herziening van een tegemoetkoming") verwees nergens naar, en artikel 16 ("Voorschot op
 #: tegemoetkoming") en 20 ("Herziening tegemoetkoming …") vond geen methode.
-STANDAARD = ("verwijzing_uit", "definitie", "opschrift", "opbouw")
+#: `lid_verwijzing` kwam erbij na de meting van de afhankelijkheden van 18 nov 2026
+#: (`docs/architectuur/metingen/bronselectie-2026-11-18-afhankelijkheden/`): vijf nodige bepalingen meer voor 37
+#: kandidaten meer, op geen set slechter. `verwijzing_in` vond er vier, voor 77 kandidaten meer, en blijft uit.
+STANDAARD = ("verwijzing_uit", "definitie", "opschrift", "lid_verwijzing", "opbouw")
 #: Zonder kern is de analysevraag het enige vertrekpunt: dan het overzicht.
 ZONDER_KERN = ("overzicht",)
 
@@ -741,6 +744,25 @@ def vind(graph: GraphPort, invoer: dict[str, Any], methoden: tuple[str, ...] | N
         _PROFIEL.reset(teken)
 
 
+class _Teller:
+    """De graaf voor één methode, met het aantal vragen dat ze stelde: een methode die niets te doen had (geen kernlid,
+    geen gebeurtenis) stelt er geen, en telt bij totale uitval niet als bewijs dat de graaf bereikbaar is."""
+
+    def __init__(self, graph: GraphPort) -> None:
+        self._graph = graph
+        self.vragen = 0
+
+    def __getattr__(self, naam: str) -> Any:
+        waarde = getattr(self._graph, naam)
+        if not callable(waarde):
+            return waarde
+
+        def geteld(*a: Any, **k: Any) -> Any:
+            self.vragen += 1
+            return waarde(*a, **k)
+        return geteld
+
+
 def _vind(graph: GraphPort, invoer: dict[str, Any], methoden: tuple[str, ...] | None,
           melding: Callable[[str, int, bool, int], None] | None) -> dict[str, Any]:
     methoden = methoden or standaard_voor(invoer)
@@ -750,14 +772,17 @@ def _vind(graph: GraphPort, invoer: dict[str, Any], methoden: tuple[str, ...] | 
     for m in methoden:
         t0 = time.monotonic()
         fout = False
+        teller = _Teller(graph)
         try:
-            aantal, volledig = UITVOERING[m](graph, invoer, v)
+            aantal, volledig = UITVOERING[m](teller, invoer, v)
         except Exception:  # noqa: BLE001 – een haperende query is een onvolledige methode, geen crash
             logger.warning("bronmethode faalde", extra={"categorie": "technisch", "methode": m}, exc_info=True)
             aantal, volledig, fout = 0, False, True
         ms = int((time.monotonic() - t0) * 1000)
-        # `fout` is intern (de run maakt er bij totale uitval een storing van); de api krijgt hem niet.
-        meting[m] = {"aantal": aantal, "volledig": volledig, "ms": ms, **({"fout": True} if fout else {})}
+        # `fout` en `zonder_vraag` zijn intern (de run maakt er bij totale uitval een storing van; een methode die niets te
+        # doen had, zegt niets over de graaf); de api krijgt ze niet.
+        meting[m] = {"aantal": aantal, "volledig": volledig, "ms": ms, **({"fout": True} if fout else {}),
+                     **({"zonder_vraag": True} if not fout and not teller.vragen else {})}
         if melding:
             melding(m, aantal, volledig, ms)
     kandidaten = v.lijst()

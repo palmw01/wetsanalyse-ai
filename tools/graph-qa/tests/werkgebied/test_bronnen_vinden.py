@@ -117,7 +117,7 @@ ALLE = ("overzicht", "verwijzing_uit", "verwijzing_in", "definitie", "opbouw")
 
 
 def test_de_standaard_volgt_de_meting():
-    assert bronnen_vinden.standaard_voor(INVOER) == ("verwijzing_uit", "definitie", "opschrift", "opbouw")
+    assert bronnen_vinden.standaard_voor(INVOER) == ("verwijzing_uit", "definitie", "opschrift", "lid_verwijzing", "opbouw")
     assert bronnen_vinden.standaard_voor({**INVOER, "kern": []}) == ("overzicht",)
 
 
@@ -922,4 +922,4 @@ def test_lid_verwijzing_vindt_de_leden_die_het_kernlid_noemen_en_die_het_noemt()
     assert all(x["rol"] == "afhankelijkheid" for x in k.values())
     assert k[f"{a}:lid:4"]["bewijs"][0]["detail"]["richting"] == "noemt de kern"
     assert k[f"{a}:lid:2"]["bewijs"][0]["detail"]["richting"] == "de kern noemt het"
-    assert "lid_verwijzing" not in bronnen_vinden.STANDAARD
+    assert "lid_verwijzing" in bronnen_vinden.STANDAARD  # meting 18 nov 2026
