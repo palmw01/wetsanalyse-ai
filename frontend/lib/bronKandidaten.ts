@@ -26,6 +26,7 @@ export const METHODE_LABEL: Record<BronMethode, string> = {
   opschrift: "opschriften van artikelen",
   lid_verwijzing: "verwijzingen binnen het artikel",
   beleidsregel: "beleidsregels bij het artikel",
+  artikelleden: "andere leden van het artikel",
   opbouw: "opbouw van de wet",
   gelijkenis: "tekstuele gelijkenis",
   grondslag: "grondslag van de gebeurtenis",
@@ -114,6 +115,8 @@ export function bewijsZin(b: KandidaatBewijs, labels: Map<string, string> = new 
       return d.grond === "noemt de kern"
         ? `beleidsregel die ${vanuit || "de kern"} noemt`
         : `beleidsregel met opschrift “${d.opschrift ?? "?"}”${vanuit ? `, waarvan ${vanuit} de woorden noemt` : ""}`;
+    case "artikelleden":
+      return `staat in hetzelfde artikel als ${vanuit || "de kern"}`;
     case "opbouw":
       return `staat in hetzelfde deel als ${vanuit || "de kern"}`;
     case "gelijkenis":

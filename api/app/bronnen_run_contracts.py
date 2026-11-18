@@ -9,7 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-Methode = Literal["overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "definitie", "opschrift", "lid_verwijzing", "beleidsregel", "opbouw", "gelijkenis", "grondslag",
+Methode = Literal["overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "definitie", "opschrift", "lid_verwijzing", "beleidsregel", "artikelleden", "opbouw", "gelijkenis", "grondslag",
                   # Zelf genoemd door de analist bij één deelvraag (`bronselectie.noem`): geen methode van een run, maar
                   # hetzelfde soort voorstel, zodat het in het paneel staat zoals de voorstellen van Lex.
                   "genoemd"]

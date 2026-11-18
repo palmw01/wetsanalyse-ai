@@ -31,6 +31,7 @@ METHODE_NAAM = {"overzicht": "Overzicht op de analysevraag", "deelvraag": "Overz
                 "verwijzing_uit": "Verwijzingen vanuit de kern",
                 "verwijzing_in": "Verwijzingen naar de kern", "definitie": "Definities van termen", "opschrift": "Opschriften van artikelen",
                 "lid_verwijzing": "Verwijzingen binnen het artikel", "beleidsregel": "Beleidsregels bij het artikel",
+                "artikelleden": "Andere leden van het artikel",
                 "opbouw": "Opbouw van de wet", "gelijkenis": "Tekstuele gelijkenis"}
 
 WEIGERING = {"geen_vertrekpunt": "Geef het werkgebied een analysevraag of neem eerst een bepaling op om te "
