@@ -568,3 +568,33 @@ def test_gezien_bij_legt_vast_wat_openstond_toen_de_fase_sloot():
     assert bronselectie.niet_gekozen("x", "kern", alles, {"rest": ["x"]})
     assert not bronselectie.niet_gekozen("x", "kern", kern, {"kern": []})
     assert bronselectie.niet_gekozen("x", "kern", kern, None)
+
+
+async def test_een_zoekronde_voor_een_andere_deelvraag_heropent_een_afronding_niet(client):
+    """Termijnen, 18 nov 2026: elke werkgebiedbrede zoekronde zette een beoordeelde deelvraag terug op *opnieuw
+    bekijken*, ook als er voor haar niets nieuws te beslissen viel. Een voorstel voor een andere deelvraag, een
+    afhankelijkheid via een bron, of een voorstel dat de nieuwste run niet meer vond, heropent niets."""
+    wg, ids = await _vier(client)
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]])])
+    ov = await _status(client, wg, ids[0], "openen")
+    ov = await _status(client, wg, ids[0], "afronden", verwachte_revisie=_dq(ov, ids[0])["revisie"])
+    assert _dq(ov, ids[0])["klaar"]
+    wg = await _praktijk(client, wg, "Een tweede zoekronde, voor deelvraag 2.")
+    await _met_kandidaten(client, wg, [_kd(ONE, "kern", deelvragen=[ids[1]]),
+                                       _kd(TWO, "afhankelijkheid", vanuit=ART)])
+    assert _dq(await _overzicht(client, wg), ids[0])["klaar"]
+    # Een nieuw voorstel voor deze deelvraag zelf heropent wel.
+    wg = await _praktijk(client, wg, "Een derde zoekronde.")
+    await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]]), _kd(ONE, "kern", deelvragen=[ids[0]])])
+    dq = _dq(await _overzicht(client, wg), ids[0])
+    assert (dq["opnieuw_bekijken"], dq["klaar"]) == (True, False)
+
+
+def test_een_onderdeel_van_een_id_bepaling_valt_onder_haar_artikel():
+    """Een Leidraad-artikel draagt zijn onderdelen URL-gecodeerd in de IRI; per onderdeel opnemen gaf 422
+    `niet_onder_kandidaat` (Termijnen, 18 nov 2026)."""
+    art = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie1%2FCirculaire.divisie1.1%2FCirculaire.divisie1.1.2"
+    assert bronselectie.onder(art + "%2FTekst%2FOnderdeel._10", art)
+    assert bronselectie.onder("urn:bwb:BWBR0004770:artikel:24:lid:1", "urn:bwb:BWBR0004770:artikel:24")
+    assert not bronselectie.onder(art + "0", art)                              # divisie 1.1.20 is geen deel van 1.1.2
+    assert not bronselectie.onder("urn:bwb:BWBR0004770:artikel:240", "urn:bwb:BWBR0004770:artikel:24")

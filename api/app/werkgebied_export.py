@@ -362,7 +362,7 @@ def _verwijzingen(data: dict, nodes: dict[str, dict], in_dossier: set[str]) -> d
     uit: dict[str, list[Verwijzing]] = {}
     for v in _graaf(data)["verwijzingen"]:
         naar = v["naar"]
-        binnen = naar in in_dossier or any(i.startswith(naar + ":") for i in in_dossier)
+        binnen = naar in in_dossier or any(werkgebied_store.onder_pad(i, naar) for i in in_dossier)
         label = _doel_label(naar, v.get("regeling") or "", v.get("label") or "", v.get("anker") or "")
         uit.setdefault(v["van"], []).append(Verwijzing(
             van=_plek(v["van"], nodes), naar=Vindplaats(iri=naar, label=label, jci=v.get("jci") or ""), anker=v.get("anker") or "",

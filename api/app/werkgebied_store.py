@@ -200,12 +200,18 @@ async def _deelvragen_bij_aanmaken(conn, wid: str, invoer: WerkgebiedInvoer, act
     return len(gezien)
 
 
+def onder_pad(iri: str, ouder: str) -> bool:
+    """`iri` is `ouder` of een bronnode eronder volgens het pad van de IRI. Een artikel scheidt zijn delen met `:`
+    (`…:artikel:24:lid:1`), een `id:`-bepaling met een gecodeerde slash (`…%2FCirculaire.divisie1.1.2%2FTekst%2F…`)."""
+    return iri == ouder or iri.startswith(ouder + ":") or iri.startswith(ouder + "%2F")
+
+
 def omvat(selectie: dict, bron_iri: str) -> bool:
     """Valt `bron_iri` onder deze selectie? De bepaling zelf, of – bij `onderliggend` – een bronnode eronder
     volgens het pad van de IRI (artikel → lid → onderdeel). Een selectie op een structuurdeel (hoofdstuk)
     draagt de artikelen niet in haar pad: die mist deze toets. Liever een gemiste dan een verkeerde."""
     sel = selectie["bron_iri"]
-    return bron_iri == sel or (selectie["bereik"] == "onderliggend" and bron_iri.startswith(sel + ":"))
+    return bron_iri == sel or (selectie["bereik"] == "onderliggend" and onder_pad(bron_iri, sel))
 
 
 async def lijst(door: str | None = None, bron_iri: str | None = None) -> list[dict]:
@@ -376,8 +382,8 @@ async def verwijder_bron(werkgebied_id: str, selectie_id: str, verwacht: int, ac
             s.c.werkgebied_id == werkgebied_id, s.c.verwijderd.is_(None)))).scalars())
         for kid, kiri in (await conn.execute(select(k.c.id, k.c.bron_iri).where(
                 k.c.werkgebied_id == werkgebied_id, k.c.status == "opgenomen"))).all():
-            van_deze = bron_iri == kiri or (bron_iri or "").startswith(kiri + ":")
-            if van_deze and not any(i == kiri or i.startswith(kiri + ":") for i in rest):
+            van_deze = onder_pad(bron_iri or "", kiri)
+            if van_deze and not any(onder_pad(i, kiri) for i in rest):
                 await conn.execute(update(k).where(k.c.werkgebied_id == werkgebied_id, k.c.id == kid).values(
                     status="voorgesteld", besloten_door=None, besloten_op=None, gewijzigd=db.utcnow()))
     return await haal(werkgebied_id)
