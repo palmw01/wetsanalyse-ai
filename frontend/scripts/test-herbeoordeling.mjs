@@ -218,7 +218,8 @@ try {
   await balk.getByRole("list", { name: "Dekking per klasse" }).getByText("Rechtssubject").waitFor();
   await balk.getByText("(krijgt een begrip)", { exact: false }).waitFor();
   await balk.getByText("1 element hangt nergens aan een rechtsbetrekking", { exact: false }).waitFor();
-  await page.getByText("Hangt nergens aan een rechtsbetrekking, rechtsfeit, afleidingsregel of voorwaarde.", { exact: false }).waitFor();
+  // Een element kan in meer dan één bepaling in de lijst staan; de hint staat dan bij elke rij.
+  await page.getByText("Hangt nergens aan een rechtsbetrekking, rechtsfeit, afleidingsregel of voorwaarde.", { exact: false }).first().waitFor();
   await page.getByRole("checkbox", { name: 'Kies "Gamma"' }).check();
   await page.getByLabel("Reden om buiten behandeling te zetten").fill("Alleen een tijdsaanduiding.");
   await page.keyboard.press("Enter");
