@@ -1005,3 +1005,21 @@ def test_artikel_van():
     assert artikel_van(f"{IW}:artikel:24:lid:3") == f"{IW}:artikel:24"
     assert artikel_van(f"{IW}:artikel:24") == f"{IW}:artikel:24"
     assert artikel_van(_ld("36", "36.4")) == _ld("36", "36.4")
+
+
+def test_artikelleden_stelt_de_andere_leden_van_het_artikel_van_een_kernlid_voor():
+    a = f"{IW}:artikel:24"
+    invoer = {"naam": "N", "analysevraag": "V?", "context": [],
+              "kern": [{"bron_iri": f"{a}:lid:3", "label": "", "bwb_id": IW.split(":")[-1], "bereik": "onderliggend"}]}
+    uit = vind(LedenGraaf(), invoer, methoden=("artikelleden",))
+    k = _per_iri(uit)
+    assert set(k) == {f"{a}:lid:2", f"{a}:lid:4", f"{a}:lid:5", f"{a}:lid:7"}
+    assert all(x["rol"] == "aanverwant" and x["bewijs"][0]["vanuit"] == f"{a}:lid:3" for x in k.values())
+    assert "artikelleden" not in bronnen_vinden.STANDAARD
+
+
+def test_artikelleden_zonder_kernlid_doet_niets():
+    uit = vind(LedenGraaf(), {"naam": "N", "analysevraag": "V?", "context": [],
+                              "kern": [{"bron_iri": f"{IW}:artikel:24", "label": "", "bwb_id": "BWBR0004770",
+                                        "bereik": "onderliggend"}]}, methoden=("artikelleden",))
+    assert uit["kandidaten"] == [] and uit["meting"]["artikelleden"].get("zonder_vraag")

@@ -43,7 +43,7 @@ from .zoektermen import buiten_stammen, zoektermen
 logger = logging.getLogger(__name__)
 
 METHODEN = ("overzicht", "deelvraag", "verwijzing_uit", "verwijzing_in", "definitie", "opschrift", "lid_verwijzing",
-            "beleidsregel", "opbouw", "gelijkenis", "grondslag")
+            "beleidsregel", "artikelleden", "opbouw", "gelijkenis", "grondslag")
 #: Wat standaard draait als er een kern is – gekozen op de meting van 15 okt 2026
 #: (`docs/architectuur/metingen/bronselectie-2026-10-15/`): met een kern voegde het overzicht geen
 #: recall toe maar wel 36 onbeoordeelde "kern"-kandidaten, en `verwijzing_in` leverde alle uitgesloten
@@ -109,6 +109,8 @@ MAX_PER_KOP = 3
 #: Hoeveel onderdelen van één beleidsregel de methode `beleidsregel` per kern voorstelt (de Leidraad bij artikel 49 van
 #: de Invorderingswet 1990 heeft er dertig).
 MAX_PER_BELEIDSREGEL = 6
+#: Hoeveel andere leden van het artikel van een kernlid de methode `artikelleden` voorstelt.
+MAX_ARTIKELLEDEN = 12
 #: Hoeveel onderdelen van beleidsregels de methode per run leest.
 MAX_BELEIDSONDERDELEN = 2000
 
@@ -744,6 +746,27 @@ def lid_verwijzingen(tekst: str) -> dict[int, str]:
 _KERNLID = re.compile(r"^(?P<artikel>.+:artikel:[^:]+):lid:(?P<lid>\d+)$")
 
 
+def _artikelleden(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
+    """De andere leden van het artikel van een kernlid, als aanverwant: een artikel leest de jurist als geheel. Meting
+    18 nov 2026 (plaatsdiagnose): van de 45 nodige bepalingen die niet bij de 80 kandidaten kwamen, stond bij 22 een
+    ander lid van hetzelfde artikel wél op de lijst (Iw 24, Awb 4:15, Awir 24, AWR 67e)."""
+    kern = [(m["artikel"], k["bron_iri"]) for k in invoer.get("kern", []) if (m := _KERNLID.match(k["bron_iri"]))]
+    if not kern:
+        return 0, True
+    per_artikel: dict[str, list[str]] = {}
+    for r in _rijen(graph, q_leden(sorted({a for a, _ in kern}))):
+        per_artikel.setdefault(r["artikel"], []).append(r["lid"])
+    n, volledig = 0, True
+    for artikel, kern_iri in kern:
+        leden = sorted((lid for lid in per_artikel.get(artikel, []) if lid != kern_iri and _KERNLID.match(lid)),
+                       key=lambda lid: int(_KERNLID.match(lid)["lid"]))
+        if len(leden) > MAX_ARTIKELLEDEN:
+            volledig = False
+        for lid in leden[:MAX_ARTIKELLEDEN]:
+            n += v.voeg(lid, rol="aanverwant", methode="artikelleden", vanuit=kern_iri, detail={"artikel": artikel})
+    return n, volledig
+
+
 def _lid_verwijzing(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tuple[int, bool]:
     """De andere leden van het artikel van een kernlid die naar dat kernlid verwijzen ("in afwijking van het derde lid",
     een uitzondering of aanvulling) of waarnaar het kernlid verwijst ("bedoeld in het eerste lid"). Bronnenrun op
@@ -820,7 +843,7 @@ def _gelijkenis(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tup
 UITVOERING: dict[str, Callable[[GraphPort, dict[str, Any], Verzameling], tuple[int, bool]]] = {
     "overzicht": _overzicht, "deelvraag": _deelvraag, "verwijzing_uit": _verwijzing_uit, "verwijzing_in": _verwijzing_in,
     "definitie": _definitie, "opschrift": _opschrift, "lid_verwijzing": _lid_verwijzing,
-    "beleidsregel": _beleidsregel, "opbouw": _opbouw, "gelijkenis": _gelijkenis, "grondslag": _grondslag,
+    "beleidsregel": _beleidsregel, "artikelleden": _artikelleden, "opbouw": _opbouw, "gelijkenis": _gelijkenis, "grondslag": _grondslag,
 }
 
 

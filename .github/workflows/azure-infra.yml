@@ -1020,7 +1020,7 @@ jobs:
             elif [ "$EVAL_SET" = "bronselectie_afhankelijkheden" ]; then
               # De fase van de afhankelijkheden vanuit de verwachte kern per deelvraag: de standaard, plus de verwijzingen
               # binnen een artikel (`lid_verwijzing`), plus de verwijzingen naar de kern (`verwijzing_in`). 0 tokens.
-              args="echo \"=== BRONSELECTIE AFHANKELIJKHEDEN ===\"; python -u -m eval.bronselectie_model_meting --afhankelijkheden standaard-beleidsregel,standaard,standaard+verwijzing_in; rc=\$?; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
+              args="echo \"=== BRONSELECTIE AFHANKELIJKHEDEN ===\"; python -u -m eval.bronselectie_model_meting --afhankelijkheden standaard,standaard+artikelleden; rc=\$?; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
             elif [ "$EVAL_SET" = "bronselectie_afbakening_model" ]; then
               # Het model kiest met de oude lezing van de afbakening naast de nieuwe (`--varianten zonder_afbakening`), één
               # ronde elk, gepaard. ~800k tokens.
@@ -1049,8 +1049,8 @@ jobs:
               args="echo \"=== BRONSELECTIE WETSTERMEN: KANDIDATEN ===\"; python -u -m eval.bronselectie_model_meting --kandidaten 80,80+wetstermen; rc=\$?; echo \"=== BRONSELECTIE WETSTERMEN: MODEL ===\"; python -u -m eval.bronselectie_model_meting --varianten wetstermen || rc=1; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
             elif [ "$EVAL_SET" = "bronselectie_keten" ]; then
               # De hele keten: één modelronde kiest per deelvraag, de jurist neemt op wat juist is, en daarop draaien de
-              # afhankelijkheden zonder en met de verwijzingen binnen een artikel en de beleidsregel (gepaard). ~400k tokens.
-              args="echo \"=== BRONSELECTIE KETEN ===\"; python -u -m eval.bronselectie_model_meting --rondes 1 --keten standaard-lid_verwijzing-beleidsregel,standaard; rc=\$?; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
+              # afhankelijkheden zonder en met de andere leden van het artikel (gepaard). ~400k tokens.
+              args="echo \"=== BRONSELECTIE KETEN ===\"; python -u -m eval.bronselectie_model_meting --rondes 1 --keten standaard,standaard+artikelleden; rc=\$?; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
             elif [ "$EVAL_SET" = "bronselectie_model_1" ]; then
               # Eén ronde van het model, zonder varianten: een bevestiging na een kleine wijziging.
               args="echo \"=== BRONSELECTIE MODEL ===\"; python -u -m eval.bronselectie_model_meting --rondes 1; rc=\$?; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"

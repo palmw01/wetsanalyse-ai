@@ -28,6 +28,10 @@ describe("bewijsZin", () => {
       .toBe("beleidsregel met opschrift “Wanneer in gebreke”, waarvan Artikel 9, lid 1 de woorden noemt");
   });
 
+  it("noemt bij een ander lid het artikel van de kern", () => {
+    expect(bewijsZin({ methode: "artikelleden", vanuit: L1, detail: {} })).toBe("staat in hetzelfde artikel als Artikel 9, lid 1");
+  });
+
   it("gebruikt de naam van een selectie als die er is", () => {
     const labels = new Map([[L1, "IW 1990 – art. 9 lid 1"]]);
     expect(bewijsZin({ methode: "opbouw", vanuit: L1, detail: {} }, labels)).toBe("staat in hetzelfde deel als IW 1990 – art. 9 lid 1");
