@@ -235,3 +235,15 @@ def test_een_onbekende_menging_is_een_fout():
 
     with pytest.raises(ValueError):
         dk.kandidaten([], [], menging="raden")
+
+
+def test_kandidaten_met_een_verhouding_geven_de_woordenroute_meer_plekken():
+    from agent import deelvraag_keuze
+
+    pool = [{"bron_iri": f"p{i}", "tekst": ""} for i in range(10)]
+    woorden = [{"bron_iri": f"w{i}", "tekst": ""} for i in range(10)] + [{"bron_iri": "p0", "tekst": ""}]
+    uit = [k["bron_iri"] for k in deelvraag_keuze.kandidaten(pool, woorden, maximaal=8, menging="woorden_3")]
+    assert uit == ["p0", "w0", "w1", "w2", "p1", "w3", "w4", "w5"]
+    # Is de pool op, dan vult de woordenroute aan; een dubbele slaat haar beurt over.
+    uit = [k["bron_iri"] for k in deelvraag_keuze.kandidaten(pool[:1], woorden, maximaal=6, menging="woorden_2")]
+    assert uit == ["p0", "w0", "w1", "w2", "w3", "w4"]

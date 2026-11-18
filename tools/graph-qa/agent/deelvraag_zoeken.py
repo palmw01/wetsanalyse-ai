@@ -184,7 +184,9 @@ class Zoekprofiel:
     #:   samenvoegt. `afwisselend` neemt om de beurt de volgende uit elke lijst; `rrf` rangschikt op de som van
     #:   1/(`deelvraag_keuze.RRF_K` + plaats) over beide lijsten, zodat een bepaling die beide lijsten vinden voorgaat.
     #:   Meting `bronselectie-2026-11-17-werkgebied-met-wetstermen`: 41 van de 172 nodige bepalingen werden gevonden maar
-    #:   haalden de 80 kandidaten niet. Standaard `afwisselend`: eerst meten.
+    #:   haalden de 80 kandidaten niet. Standaard `afwisselend`: eerst meten. `woorden_2` en `woorden_3` (18 nov 2026)
+    #:   geven de woordenroute twee of drie plekken per plek van de pool (ketenmeting: zes nodige bepalingen stonden in de
+    #:   woordenroute vóór plaats 80 maar haalden de lijst niet).
     menging: str = "afwisselend"
     #: - `belang` (proef, 17 nov 2026): het belang van verwijzingen als extra lijst in de fusie: hoe vaak tekstdelen
     #:   van buiten het artikel naar de bepaling (bij een lid: haar artikel) verwijzen (`queries.inkomend_aantal`), als
