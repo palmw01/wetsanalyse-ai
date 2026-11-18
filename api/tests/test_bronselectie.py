@@ -239,6 +239,7 @@ async def test_een_gewijzigde_scope_zet_een_afronding_op_opnieuw_bekijken(client
     ov = await _overzicht(client, wg, na=ids[3])
     dq = _dq(ov, ids[0])
     assert (dq["status"], dq["opnieuw_bekijken"], dq["klaar"]) == ("voorlopig_afgerond", True, False)
+    assert dq["opnieuw_reden"] == "tekst"
     assert ov["volgende"] == ids[0]                                         # vooraan verder: 1 telt weer
     r = await client.patch(f"/v1/werkgebieden/{wg['id']}", json={"verwachte_revisie": wg["revisie"], "afbakening": "Alleen IW 1990."})
     assert r.status_code == 200, r.text
@@ -588,6 +589,7 @@ async def test_een_zoekronde_voor_een_andere_deelvraag_heropent_een_afronding_ni
     await _met_kandidaten(client, wg, [_kd(ART, "kern", deelvragen=[ids[0]]), _kd(ONE, "kern", deelvragen=[ids[0]])])
     dq = _dq(await _overzicht(client, wg), ids[0])
     assert (dq["opnieuw_bekijken"], dq["klaar"]) == (True, False)
+    assert dq["opnieuw_reden"] == "voorstel"
 
 
 def test_een_onderdeel_van_een_id_bepaling_valt_onder_haar_artikel():

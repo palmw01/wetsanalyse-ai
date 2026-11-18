@@ -51,7 +51,10 @@ export function PaginaKop({ kruimels, titel, sub, meta, acties }: {
   return (
     <header className="mb-5" data-paginakop>
       <Kruimelpad items={kruimels} />
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      {/* Tekst en knoppen pas naast elkaar vanaf `lg`: daaronder kreeg de tekst naast vier knoppen een smalle kolom
+          en stond de meta-regel stip voor stip onder elkaar (melding gebruiker 18 nov 2026). Tussen `sm` en `lg` staan
+          de knoppen in een rij onder de tekst. */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <h1 className="font-display text-xl font-semibold text-lint [overflow-wrap:anywhere]">{titel}</h1>
           {sub && <p className="mt-1 max-w-3xl text-sm text-muted">{sub}</p>}

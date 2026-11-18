@@ -17,7 +17,7 @@ import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { besluitBronselectie, foutTekst, haalBronselectie, verwijderBron, wijzigBron, type BronselectieBesluit } from "@/lib/api";
 import { haalSamenhang } from "@/lib/samenhang";
 import {
-  BRONSELECTIE_GEWIJZIGD, BEWIJS_LABEL, STAND_LABEL, ledenVan, ordenVoorstellen, zoekvraagZin, meldBronselectieGewijzigd, bronnenZin, deelvraagStand, slotZin, voortgangZin, zoekBeperkingen,
+  BRONSELECTIE_GEWIJZIGD, BEWIJS_LABEL, STAND_LABEL, ledenVan, ordenVoorstellen, zoekvraagZin, meldBronselectieGewijzigd, bronnenZin, deelvraagStand, opnieuwZin, slotZin, voortgangZin, zoekBeperkingen,
   type BronselectieOverzicht, type DeelvraagSelectie, type KandidaatHier,
 } from "@/lib/bronselectie";
 import { bepalingEnRegeling, ookBijZin } from "@/lib/bronnenPerDeelvraag";
@@ -178,9 +178,7 @@ export function BronnenBijDeelvraag({ werkgebiedId, revisie = 0, deelvraagId, in
                 ? <Link href={deelvraagPad(o.werkgebied_id, d.id)} className="focus-ring rounded hover:underline">{titel}</Link> : titel}
               telling={telling}
               status={v && <StatusLabel toon={v.toon}>{v.label}</StatusLabel>}
-              sub={!kort && d.opnieuw_bekijken
-                ? "De analysevraag, de afbakening of deze deelvraag is veranderd sinds de afronding; bekijk of de besluiten nog kloppen."
-                : undefined}
+              sub={!kort ? opnieuwZin(d) ?? undefined : undefined}
               label={o.modus === "analysevraag" ? "Bronnen bij de analysevraag" : `Bronnen bij deelvraag ${d.nr}`}
               leeg={kort ? undefined : `Er hoort nog geen bron bij ${o.modus === "analysevraag" ? "de analysevraag" : "deze deelvraag"}. `
                 + "Bepaal de bronnen met Lex in het gesprek, of laat Lex er een toevoegen."}>

@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Field";
+import { FilterChip, KeuzeRij } from "@/components/ui/FilterChip";
 import { Melding } from "@/components/ui/Melding";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { LIFECYCLE_LABEL } from "@/lib/annotatie";
@@ -141,39 +142,23 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
       {dekking && <DekkingBalk dekking={dekking} />}
       {dekkingFout && <Melding type="fout" compact>{dekkingFout}</Melding>}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div role="group" aria-label="Rol" className="flex gap-1.5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <KeuzeRij label="Rol">
           {ROL_KNOPPEN.map((k) => (
-            <button
-              key={k.waarde}
-              type="button"
-              aria-pressed={filter.rol === k.waarde}
-              onClick={() => setFilter({ ...filter, rol: k.waarde })}
-              className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-2xs transition coarse:min-h-[44px] ${
-                filter.rol === k.waarde ? "border-lint bg-lint text-paper" : "border-line text-muted hover:border-lint hover:text-ink"
-              }`}
-            >
+            <FilterChip key={k.waarde} gekozen={filter.rol === k.waarde} onKies={() => setFilter({ ...filter, rol: k.waarde })}>
               {k.label}
-            </button>
+            </FilterChip>
           ))}
           {([["verworpen", "Verworpen", verworpenElementen.length], ["vervangen", "Vervangen", vervangenElementen.length]] as const)
             .filter(([, , n]) => n > 0)
             .map(([soort, label, n]) => (
-              <button
-                key={soort}
-                type="button"
-                aria-pressed={apart === soort}
-                title={soort === "vervangen" ? "Voorstellen die een nieuwe ronde van Lex niet meer maakte" : undefined}
-                onClick={() => setApart(apart === soort ? "" : soort)}
-                className={`focus-ring min-h-[24px] rounded-knop-xs border px-2.5 py-0.5 text-2xs transition coarse:min-h-[44px] ${
-                  apart === soort ? "border-lint bg-lint text-paper" : "border-line text-muted hover:border-lint hover:text-ink"
-                }`}
-              >
+              <FilterChip key={soort} gekozen={apart === soort} onKies={() => setApart(apart === soort ? "" : soort)}
+                title={soort === "vervangen" ? "Voorstellen die een nieuwe ronde van Lex niet meer maakte" : undefined}>
                 {label} ({n})
-              </button>
+              </FilterChip>
             ))}
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        </KeuzeRij>
+        <div className="flex flex-col gap-2 sm:flex-row lg:shrink-0">
           <Select
             aria-label="Klasse"
             value={filter.klasse}
@@ -193,7 +178,7 @@ export function ElementenTab({ id, onNaarBegrip }: { id: string; onNaarBegrip: (
             onChange={(e) => setFilter({ ...filter, term: e.target.value })}
             aria-label="Zoeken in elementen"
             placeholder="Zoek in tekst of toelichting"
-            className="w-full rounded-field border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-faint focus:border-lint focus:ring-2 focus:ring-lint/20 coarse:min-h-[48px] sm:w-60"
+            className="w-full rounded-field border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-faint focus:border-lint focus:ring-2 focus:ring-lint/20 coarse:min-h-[48px] sm:flex-1 lg:w-60 lg:flex-none"
           />
         </div>
       </div>
@@ -286,8 +271,7 @@ function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip, dekk
   const beoordeeld = isBeoordeeld(e);
   return (
     <li className={`rounded-kaart border bg-paper px-3 py-2 ${gekozen ? "border-lint" : "border-line"}`}>
-      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 items-start gap-2.5">
+      <div className="flex items-start gap-2.5">
           {onWissel && (
             <input
               type="checkbox"
@@ -297,8 +281,11 @@ function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip, dekk
               className="focus-ring mt-1 h-4 w-4 shrink-0 accent-lint coarse:h-5 coarse:w-5"
             />
           )}
-          <div className="min-w-0 space-y-1">
-            <div className="flex flex-wrap items-center gap-1.5">
+          <div className="min-w-0 flex-1 space-y-1">
+            {/* Labels links, de link rechts op dezelfde regel: op elke breedte, zodat de rechterkant van het kaartje
+                niet leeg blijft en de link niet een eigen regel onder de tekst krijgt. */}
+            <div className="flex items-start gap-2">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
               <KlasseLabel klasse={e.klasse} />
               {e.rol === "context" && (
                 <StatusLabel>context</StatusLabel>
@@ -306,6 +293,13 @@ function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip, dekk
               <span className={`text-2xs ${beoordeeld ? "text-muted" : "text-aandacht-geel-tekst"}`}>
                 {beoordeeld ? LIFECYCLE_LABEL[e.lifecycle] : `${LIFECYCLE_LABEL[e.lifecycle]} · nog niet beoordeeld`}
               </span>
+              </div>
+              <Link
+                href={annotatieHref(e.eigenaar_iri, e.id)}
+                className="focus-ring inline-flex min-h-[24px] shrink-0 items-center rounded-knop-xs border border-line px-2.5 py-0.5 text-2xs font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]"
+              >
+                Annotatie openen
+              </Link>
             </div>
             <p className="text-sm text-ink">“{e.tekst}”</p>
             {e.deels_buiten && (
@@ -334,14 +328,7 @@ function ElementRij({ element: e, gekozen, onWissel, primair, onNaarBegrip, dekk
                 aan
               </p>
             )}
-          </div>
         </div>
-        <Link
-          href={annotatieHref(e.eigenaar_iri, e.id)}
-          className="focus-ring inline-flex min-h-[24px] shrink-0 items-center self-start rounded-knop-xs border border-line px-2.5 py-0.5 text-2xs font-medium text-lint transition-colors hover:bg-surface coarse:min-h-[44px]"
-        >
-          Annotatie openen
-        </Link>
       </div>
     </li>
   );

@@ -303,7 +303,10 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
         # Een stand van vóór SCOPE_VERSIE hashte ook de kandidaten en is niet te vergelijken: dan telt alleen een
         # nieuw voorstel (proefdata, geen migratie nodig).
         tekst_anders = bewaard.startswith(SCOPE_VERSIE) and bewaard != stand_nu
-        opnieuw = voortgang["status"] in KLAAR and (tekst_anders or any(nieuw_voorstel(x) for x in lijst))
+        nieuw = any(nieuw_voorstel(x) for x in lijst)
+        opnieuw = voortgang["status"] in KLAAR and (tekst_anders or nieuw)
+        # Waarom, zodat de werkplek het goede zegt: een veranderde tekst weegt zwaarder dan een nieuw voorstel.
+        opnieuw_reden = ("tekst" if tekst_anders else "voorstel") if opnieuw else None
         for x in lijst:
             for sleutel in ("_bewijzen", "_direct", "_genoemd"):
                 x.pop(sleutel)
@@ -319,6 +322,7 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
         if not bronnen:
             redenen.append("Er is nog geen bron opgenomen bij deze deelvraag.")
         uit.append({"id": did, "nr": nr, "vraag": vraag["vraag"], **voortgang, "opnieuw_bekijken": opnieuw,
+                    "opnieuw_reden": opnieuw_reden,
                     "klaar": voortgang["status"] in KLAAR and not opnieuw,
                     "bronnen": bronnen, "kandidaten": lijst, "telling": telling, "_scope_nu": stand_nu,
                     "beoordelen": {"mag": not redenen, "redenen": redenen}})
@@ -350,7 +354,8 @@ def _zoekdekking(run: dict | None) -> dict:
 
 
 #: Wat er van een andere deelvraag overblijft in de compacte vorm (B-1): de stand, niet de lijsten.
-SLANK = ("id", "nr", "vraag", "status", "fase", "revisie", "klaar", "opnieuw_bekijken", "telling", "beoordelen")
+SLANK = ("id", "nr", "vraag", "status", "fase", "revisie", "klaar", "opnieuw_bekijken", "opnieuw_reden", "telling",
+         "beoordelen")
 
 
 def beperk(overzicht_: dict, deelvraag_id: str | None) -> dict:
