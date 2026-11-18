@@ -60,9 +60,9 @@ on:
         options: [wat-if, deploy, afbreken, opruimen, vul-graaf, eval, inventaris, telemetrie, grafana, grafana-afbreken, mcp-proxy-afbreken, 2fa-herstel]
         default: wat-if
       eval_set:
-        description: "Alleen voor 'eval': alles (smoke + 3× annotatie + 3× gesprek), of alleen gesprek, annotatie, de conceptcasussen of de duidingset (smoke + 3×), of bronselectie_model (het model kiest, 3 rondes), of bronselectie_werkgebied (per deelvraag naast per werkgebied, 2 rondes), of bronselectie_kandidaten (de kandidatenlijst, zonder model), of bronselectie_wetstermen (de proef tegen de woordenkloof), of bronselectie_rangschikking (de kandidatenlijst per menging, met de plaats van wat er niet op kwam), of bronselectie_grens (het model kiest uit 80 tegen 120 kandidaten), of bronselectie_belang (de kandidatenlijst met het belang van verwijzingen), of bronselectie_belang_model (het model kiest met en zonder dat belang)"
+        description: "Alleen voor 'eval': alles (smoke + 3× annotatie + 3× gesprek), of alleen gesprek, annotatie, de conceptcasussen of de duidingset (smoke + 3×), of bronselectie_model (het model kiest, 3 rondes), of bronselectie_werkgebied (per deelvraag naast per werkgebied, 2 rondes), of bronselectie_kandidaten (de kandidatenlijst, zonder model), of bronselectie_wetstermen (de proef tegen de woordenkloof), of bronselectie_rangschikking (de kandidatenlijst per menging, met de plaats van wat er niet op kwam), of bronselectie_grens (het model kiest uit 80 tegen 120 kandidaten), of bronselectie_belang (de kandidatenlijst met het belang van verwijzingen), of bronselectie_belang_model (het model kiest met en zonder dat belang), of bronselectie_afbakening (de kandidatenlijst met de afbakening per onderdeel tegen de oude lezing), of bronselectie_afbakening_model (het model kiest met beide lezingen)"
         type: choice
-        options: [alles, gesprek, annotatie, concept, duiding, bronselectie_model, bronselectie_model_1, bronselectie_werkgebied, bronselectie_kandidaten, bronselectie_wetstermen, bronselectie_rangschikking, bronselectie_grens, bronselectie_belang, bronselectie_belang_model]
+        options: [alles, gesprek, annotatie, concept, duiding, bronselectie_model, bronselectie_model_1, bronselectie_werkgebied, bronselectie_kandidaten, bronselectie_wetstermen, bronselectie_rangschikking, bronselectie_grens, bronselectie_belang, bronselectie_belang_model, bronselectie_afbakening, bronselectie_afbakening_model]
         default: alles
       query:
         description: "Alleen voor 'telemetrie': een eigen KQL-query (leeg = de standaardset)"
@@ -1007,12 +1007,20 @@ jobs:
               annotatie) vlag="--annotatie"; titel="RUN"; uit="|| rc=1" ;;
               concept) vlag="--annotatie --concept"; titel="CONCEPT"; uit="|| true" ;;
               duiding) vlag="--golden eval/golden_duiding.jsonl"; titel="DUIDING"; uit="|| true" ;;
-              bronselectie_model|bronselectie_model_1|bronselectie_werkgebied|bronselectie_kandidaten|bronselectie_wetstermen|bronselectie_rangschikking|bronselectie_grens|bronselectie_belang|bronselectie_belang_model) vlag="" ;;
+              bronselectie_model|bronselectie_model_1|bronselectie_werkgebied|bronselectie_kandidaten|bronselectie_wetstermen|bronselectie_rangschikking|bronselectie_grens|bronselectie_belang|bronselectie_belang_model|bronselectie_afbakening|bronselectie_afbakening_model) vlag="" ;;
               *) echo "::error::onbekende eval_set"; exit 1 ;;
             esac
             if [ "$EVAL_SET" = "bronselectie_kandidaten" ]; then
               # De recall van de kandidatenlijst per grens, zonder model (0 tokens; meting 17 nov 2026).
               args="echo \"=== BRONSELECTIE KANDIDATEN ===\"; python -u -m eval.bronselectie_model_meting --kandidaten 40,60,80,120,160,80+definitie_brug; rc=\$?; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
+            elif [ "$EVAL_SET" = "bronselectie_afbakening" ]; then
+              # De afbakening per onderdeel (`Zoekprofiel.afbakening_onderdelen`) tegen de oude lezing (elk woord een
+              # stam), zonder keuze door het model: de kandidatenlijst en waar wat er niet op kwam staat. ~50k tokens.
+              args="echo \"=== BRONSELECTIE AFBAKENING ===\"; python -u -m eval.bronselectie_model_meting --kandidaten 80,80+zonder_afbakening --rangen; rc=\$?; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
+            elif [ "$EVAL_SET" = "bronselectie_afbakening_model" ]; then
+              # Het model kiest met de oude lezing van de afbakening naast de nieuwe (`--varianten zonder_afbakening`), één
+              # ronde elk, gepaard. ~800k tokens.
+              args="echo \"=== BRONSELECTIE AFBAKENING: MODEL ===\"; python -u -m eval.bronselectie_model_meting --varianten zonder_afbakening; rc=\$?; echo \"=== KLAAR (rc=\$rc) ===\"; exit \$rc"
             elif [ "$EVAL_SET" = "bronselectie_belang_model" ]; then
               # Het model kiest met en zonder het belang van verwijzingen (`--varianten belang`), één ronde elk, gepaard:
               # dezelfde wetstermen per deelvraag. Met afval per bepaling. ~800k tokens.

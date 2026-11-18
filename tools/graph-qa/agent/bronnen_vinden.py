@@ -35,7 +35,7 @@ from .graph.queries import BEVAT, NS, PREFIXES, STRUCTUUR, _iri_veilig, _lit
 from .bepaling_namen import _benoem, bwb_van as _bwb, rijen as _rijen
 from .deelvraag_zoeken import STANDAARD_PROFIEL, Zoekprofiel, bepaling_opties
 from .ports import GraphPort
-from .zoektermen import buiten_uit_afbakening, uitsluitstammen, zoektermen
+from .zoektermen import buiten_stammen, zoektermen
 
 logger = logging.getLogger(__name__)
 
@@ -308,7 +308,7 @@ def _deelvraag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
                **(invoer.get("dossier") or {}),
                # Alleen gelezen met `Zoekprofiel.onderscheidend` (B-2, standaard uit).
                "deelvragen": [str(d.get("vraag") or "") for d in invoer.get("deelvragen") or []]}
-    buiten = uitsluitstammen(buiten_uit_afbakening(dossier.get("afbakening", "")))
+    buiten = buiten_stammen(dossier, dossier.get("deelvragen"), profiel.afbakening_onderdelen)
     gebeurtenis = (dossier.get("gebeurtenis") or "").strip()
     p = pool(graph, gebeurtenis=gebeurtenis, regelingen=regelingen, buiten=buiten) if gebeurtenis else None
     if p is not None and not regelingen:
@@ -446,7 +446,8 @@ def _grondslag(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     regelingen = regelingen_van_invoer(invoer) or regelingen_van_gebeurtenis(graph, gebeurtenis)
     if not regelingen:
         return 0, True
-    buiten = uitsluitstammen(buiten_uit_afbakening(dossier.get("afbakening", "")))
+    buiten = buiten_stammen({"naam": invoer.get("naam", ""), "analysevraag": invoer.get("analysevraag", ""), **dossier},
+                            invoer.get("deelvragen"), _profiel().afbakening_onderdelen)
     gevonden = grondslag(graph, gebeurtenis=gebeurtenis, regelingen=regelingen, buiten=buiten)
     n = 0
     for k in gevonden:
@@ -574,7 +575,9 @@ def _opschrift(graph: GraphPort, invoer: dict[str, Any], v: Verzameling) -> tupl
     if not kern or not bwb_ids:
         return 0, True
     opschriften = _rijen(graph, q_opschriften(bwb_ids))
-    buiten = uitsluitstammen(buiten_uit_afbakening((invoer.get("dossier") or {}).get("afbakening", "")))
+    buiten = buiten_stammen({"naam": invoer.get("naam", ""), "analysevraag": invoer.get("analysevraag", ""),
+                             **(invoer.get("dossier") or {})}, invoer.get("deelvragen"),
+                            _profiel().afbakening_onderdelen)
     gevonden = opschriften_in(_rijen(graph, q_teksten(kern)), opschriften[:MAX_OPSCHRIFTEN], kern, buiten)
     n = 0
     for o in gevonden[:MAX_PER_METHODE]:

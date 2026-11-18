@@ -280,12 +280,21 @@ def _dossier(s: dict[str, Any]) -> dict[str, Any]:
             "deelvragen": list(s.get("deelvragen") or [])}
 
 
+def buiten_van(s: dict[str, Any], profiel: "deelvraag_zoeken.Zoekprofiel | None" = None) -> list[str]:
+    """De uitsluitstammen van een set, zoals de dienst ze leest (`zoektermen.buiten_stammen`): de afbakening tegen
+    naam, analysevraag en deelvragen; met een profiel zonder `afbakening_onderdelen` de oude lezing."""
+    from agent import zoektermen
+
+    profiel = profiel or deelvraag_zoeken.STANDAARD_PROFIEL
+    return zoektermen.buiten_stammen({"naam": s.get("naam", ""), "analysevraag": s.get("analysevraag", ""),
+                                      "afbakening": "Buiten de afbakening: " + s.get("buiten", "")},
+                                     s.get("deelvragen"), profiel.afbakening_onderdelen)
+
+
 def _met_profiel(profiel: deelvraag_zoeken.Zoekprofiel):
     def route(graph: Any, s: dict[str, Any], vraag: str) -> list[dict[str, Any]]:
-        from agent.zoektermen import uitsluitstammen
-
         return deelvraag_zoeken.bepaling_opties(graph, regelingen=s["regelingen"], deelvraag=vraag, dossier=_dossier(s),
-                                              buiten=uitsluitstammen(s.get("buiten", "")), profiel=profiel)
+                                              buiten=buiten_van(s, profiel), profiel=profiel)
     route.profiel = profiel
     return route
 
@@ -293,12 +302,12 @@ def _met_profiel(profiel: deelvraag_zoeken.Zoekprofiel):
 #: De standaard van vóór stap 8 van het plan Termijnen (16 nov 2026). Op dit profiel zijn de metingen van november gedaan,
 #: en de tests in `test_bronselectie_eval.py` houden hun uitkomst vast: de routes hieronder (de ablatie, de dossiervlaggen,
 #: B-2 en het plan) rekenen daarom ertegen. De standaard van nu meet de route "standaard (stap 8)".
-VOOR_STAP8 = replace(deelvraag_zoeken.STANDAARD_PROFIEL, termen_idf=False, verwijzingen=False, overzicht_streng=False,
+VOOR_STAP8 = replace(deelvraag_zoeken.STANDAARD_PROFIEL, afbakening_onderdelen=False, termen_idf=False, verwijzingen=False, overzicht_streng=False,
                      brug_omschrijving=False, belang=False)
 #: De standaard van stap 8 (16 nov 2026), zonder wat er sindsdien aan ging en een eigen graafvraag stelt
 #: (`Zoekprofiel.belang`, 18 nov 2026): de opnames van de sets hebben die vraag niet, en de tests houden de uitkomst van
 #: stap 8 vast. De standaard van nu meten de live routes (`model_kiest_route`, `kandidaten_route`).
-STAP8 = replace(deelvraag_zoeken.STANDAARD_PROFIEL, belang=False)
+STAP8 = replace(deelvraag_zoeken.STANDAARD_PROFIEL, belang=False, afbakening_onderdelen=False)
 _bepaling_opties = _met_profiel(VOOR_STAP8)
 def _zoekvragen_route(profiel: "deelvraag_zoeken.Zoekprofiel | None" = None):
     """Zoekvragen a–d, PR 5: per deelvraag de opties uit de pool vanaf de gebeurtenis van de set
@@ -315,7 +324,7 @@ def _zoekvragen_route(profiel: "deelvraag_zoeken.Zoekprofiel | None" = None):
             return woordenroute(graph, s, vraag)
         sleutel = (id(graph), s["naam"])
         if sleutel not in cache:
-            buiten = zoektermen.uitsluitstammen(zoektermen.buiten_uit_afbakening("Buiten de afbakening: " + s.get("buiten", "")))
+            buiten = buiten_van(s, profiel)
             cache[sleutel] = zoekvragen.pool(graph, gebeurtenis=s["gebeurtenis"], regelingen=s["regelingen"], buiten=buiten)
         woorden = woordenroute(graph, s, vraag)
         maximaal = deelvraag_zoeken.MAX_PER_DEELVRAAG
@@ -473,7 +482,7 @@ def kandidaten_voor(graph: Any, s: dict[str, Any], vraag: str, profiel: "deelvra
 
     limit = limit or deelvraag_keuze.MAX_KANDIDATEN
     dossier = _dossier(s)
-    buiten = zoektermen.uitsluitstammen(zoektermen.buiten_uit_afbakening("Buiten de afbakening: " + s.get("buiten", "")))
+    buiten = buiten_van(s, profiel)
     woorden = deelvraag_zoeken.bepaling_opties(graph, regelingen=s["regelingen"], deelvraag=vraag, dossier=dossier,
                                                buiten=buiten, limit=limit, profiel=profiel, met_tekst=True,
                                                wetstermen=wetstermen)
@@ -646,7 +655,7 @@ def meet_zoekvragen(graaf: Any, s: dict[str, Any]) -> dict[str, Any]:
     dossier = {k: s.get(k, "") for k in zoekvragen.DOSSIERVELDEN if k != "gebeurtenis"}
     met, opties_met = plek(dossier)
     zonder, opties_zonder = plek({**dossier, "naam": ""})
-    buiten = zoektermen.uitsluitstammen(zoektermen.buiten_uit_afbakening("Buiten de afbakening: " + s.get("buiten", "")))
+    buiten = buiten_van(s, VOOR_STAP8)
     gevonden = [k["bron_iri"] for k in zoekvragen.grondslag(graaf, gebeurtenis=s["gebeurtenis"],
                                                              regelingen=s["regelingen"], buiten=buiten)]
     verwacht = list(dict.fromkeys(v["bron_iri"] for v in s["verwacht"] if v.get("zoekvraag") == "a"))
