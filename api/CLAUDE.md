@@ -1011,6 +1011,38 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
 - Tests: `tests/test_regels.py` en `tests/test_regels_termijnen.py` (de ontwikkelset: R1–R8 van Termijnen passen zonder
   vrije tekst).
 
+## Open punten
+
+`/v1/werkgebieden/{id}/open-punten` (L-X-1 uit de lessen van Termijnen; ADR-018 §6), in `open_punten.py`,
+`open_punt_store.py` en `open_punt_contracts.py`. Een open punt is wat een analyse niet stil mag beslissen. De vorm
+komt uit de skill (`references/afleidingsregels.md`, *Wat open blijft*):
+
+- **De soort**: `interpretatiekeuze`, `ontbrekend_uitvoeringsbeleid`, `onderzoekspunt` of `gat_in_de_annotatie`. De
+  codes staan in `Soort`, de namen in de skill. `test_de_soorten_zijn_die_van_de_skill` leest de skill en vergelijkt.
+- **Waar het aan hangt** (`hangt_aan`, een of meer): een regel, een geval van een regel, een markering, een begrip of
+  een deelvraag. De store toetst bij schrijven of ze bestaan (422 `onbekend`). Bij lezen draagt elke aanhaking
+  `bestaat`, want een markering kan later verdwijnen. `?aan=regel&aan_id=…` vindt ook de punten op een geval van die
+  regel.
+- **De lezingen** (labels A, B, …) met hun grondslag (markering, bron, begrip of stuk). Een interpretatiekeuze heeft
+  er ten minste twee.
+- **Wat nog getoetst moet worden** (`te_toetsen`), elk met een bronsoort (`wetsgeschiedenis`, `jurisprudentie`,
+  `beleid`, …). Een getoetst punt zegt wat de toets opleverde.
+- **De keuze** (`keuze`: gekozen lezing, motivering, methode, door, op). Die zet alleen `POST …/{punt}/besluit`. Het is
+  één route voor elke plek waar de jurist kiest: de regelkaart, de begripskaart, een markering of de keuzekaart in het
+  gesprek. Ze staat niet in `agent_toegang.TOEGESTAAN`, en `tests/poort/test_agent_toegang.py` noemt haar bij de
+  beslissingen. Zonder lezingen is de motivering het besluit. Een leeg besluit heropent.
+- **De status volgt uit keuze en toetsen** (`status_van`): `open`, `gekozen`, of `getoetst` als ook elke toets is
+  afgevinkt. De client zet hem nooit. Verdwijnt de gekozen lezing uit de lezingen, dan vervalt de keuze.
+- **Revisies en audit** zoals bij een regel: `verwachte_revisie` → 412, een kopie per revisie in `open_punt_revisies`
+  (met het werkgebied, zodat wissen haar meeneemt) en de acties `open-punt-*` in de audit. Het besluitenlog van het
+  rapport noemt `open-punt-besloten` en `open-punt-heropend`.
+- **Lex leest mee, schrijft niet**: `GET /v1/werkgebieden/{id}` draagt `open_punten` (`samenvatting`: een telling per
+  status en hoogstens `MAX_SAMENVATTING` punten in het kort, de open eerst). `agent/werkgebied_context.py` zet ze in
+  het dossier van het gesprek. Zonder open punten is die tekst byte-gelijk.
+- **Het rapport** heeft hoofdstuk 7, *Open punten* (`werkgebied_rapport.open_punten_regels`, model `OpenPunt`).
+- Nog niet: het onderzoekspunt van de bronselectie (`bronselectie.py`) is nog geen open punt. De koppeling op de
+  regelkaart (R3) en de keuzekaart in het gesprek komen apart.
+
 ## Bronnen vinden met Lex
 
 `bronnen_runs.py`, `bronnen_run_store.py`, `bronnen_run_contracts.py`; het ontwerp staat in PLAN

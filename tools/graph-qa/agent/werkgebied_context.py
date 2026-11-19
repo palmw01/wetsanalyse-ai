@@ -20,9 +20,28 @@ VELDEN = (("aanleiding", "Aanleiding"), ("context", "Context"), ("doel", "Doel")
           ("afbakening", "Afbakening"), ("gebeurtenis", "Gebeurtenis (de term van de wet)"))
 MAX_TEKENS = 6000
 MAX_BRONNEN = 30
+#: Zoveel open punten gaan in de context; de api geeft er hoogstens 40, de open eerst.
+MAX_OPEN_PUNTEN = 15
 
 
-def context_tekst(werkgebied: dict[str, Any], *, deelvragen: bool = True, bronnen: bool = True) -> str:
+def _open_punt(p: dict[str, Any]) -> str:
+    """'- interpretatiekeuze (gekozen: B, wetshistorisch): <vraag> → <lezing>; nog te toetsen: jurisprudentie'."""
+    kop = p.get("soort_naam") or p.get("soort") or "open punt"
+    stand = p.get("status") or "open"
+    if p.get("gekozen"):
+        stand = f"gekozen: {p['gekozen']}" + (f", {p['methode']}" if p.get("methode") else "")
+    elif stand == "gekozen":
+        stand = "besloten"
+    regel = f"- {kop} ({stand}): {(p.get('vraag') or '').strip()}"
+    if p.get("gekozen_lezing"):
+        regel += f" → {p['gekozen_lezing'].strip()}"
+    if p.get("nog_te_toetsen"):
+        regel += "; nog te toetsen: " + ", ".join(p["nog_te_toetsen"])
+    return regel
+
+
+def context_tekst(werkgebied: dict[str, Any], *, deelvragen: bool = True, bronnen: bool = True,
+                  open_punten: bool = True) -> str:
     """Het dossier als platte tekst; alleen wat gevuld is. Leeg als er niets ligt."""
     regels = [f"Werkgebied: {naam}"] if (naam := (werkgebied.get("naam") or "").strip()) else []
     for veld, kop in VELDEN:
@@ -51,6 +70,13 @@ def context_tekst(werkgebied: dict[str, Any], *, deelvragen: bool = True, bronne
             if labels:
                 meer = f" (en {len(labels) - MAX_BRONNEN} meer)" if len(labels) > MAX_BRONNEN else ""
                 regels.append(f"{kop}: {'; '.join(labels[:MAX_BRONNEN])}{meer}")
+    # De open punten (L-X-1): welke lezing de jurist koos en wat nog open staat, zodat een volgend gesprek daarop
+    # voortbouwt in plaats van opnieuw te kiezen. Lex kiest niet: een open punt legt hij voor.
+    if open_punten and (punten := (werkgebied.get("open_punten") or {}).get("punten") or []):
+        meer = len(punten) - MAX_OPEN_PUNTEN + ((werkgebied.get("open_punten") or {}).get("afgekapt") or 0)
+        regels.append("Open punten (de jurist kiest; leg voor, kies niet zelf):\n"
+                      + "\n".join(_open_punt(p) for p in punten[:MAX_OPEN_PUNTEN])
+                      + (f"\n(en {meer} meer)" if meer > 0 else ""))
     return "\n".join(regels)[:MAX_TEKENS]
 
 

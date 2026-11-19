@@ -1227,6 +1227,136 @@
       "title": "OpenGroep",
       "type": "object"
     },
+    "OpenPunt": {
+      "additionalProperties": false,
+      "description": "Een open punt (L-X-1): wat de analyse niet stil beslist, met de lezingen, de keuze en wat nog te toetsen is.\nDe soort staat er met haar naam uit de skill (\"interpretatiekeuze\"); de code staat in de api.",
+      "properties": {
+        "soort_naam": {
+          "title": "Soort Naam",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "vraag": {
+          "title": "Vraag",
+          "type": "string"
+        },
+        "hangt_aan": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Hangt Aan",
+          "type": "array"
+        },
+        "lezingen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OpenPuntLezing"
+          },
+          "title": "Lezingen",
+          "type": "array"
+        },
+        "gekozen": {
+          "default": "",
+          "title": "Gekozen",
+          "type": "string"
+        },
+        "motivering": {
+          "default": "",
+          "title": "Motivering",
+          "type": "string"
+        },
+        "methode": {
+          "default": "",
+          "title": "Methode",
+          "type": "string"
+        },
+        "door": {
+          "default": "",
+          "title": "Door",
+          "type": "string"
+        },
+        "te_toetsen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OpenPuntToets"
+          },
+          "title": "Te Toetsen",
+          "type": "array"
+        },
+        "toelichting": {
+          "default": "",
+          "title": "Toelichting",
+          "type": "string"
+        }
+      },
+      "required": [
+        "soort_naam",
+        "status",
+        "vraag"
+      ],
+      "title": "OpenPunt",
+      "type": "object"
+    },
+    "OpenPuntLezing": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "omschrijving": {
+          "title": "Omschrijving",
+          "type": "string"
+        },
+        "grondslag": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Grondslag",
+          "type": "array"
+        }
+      },
+      "required": [
+        "label",
+        "omschrijving"
+      ],
+      "title": "OpenPuntLezing",
+      "type": "object"
+    },
+    "OpenPuntToets": {
+      "additionalProperties": false,
+      "properties": {
+        "bronsoort": {
+          "title": "Bronsoort",
+          "type": "string"
+        },
+        "omschrijving": {
+          "default": "",
+          "title": "Omschrijving",
+          "type": "string"
+        },
+        "getoetst": {
+          "default": false,
+          "title": "Getoetst",
+          "type": "boolean"
+        },
+        "uitkomst": {
+          "default": "",
+          "title": "Uitkomst",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bronsoort"
+      ],
+      "title": "OpenPuntToets",
+      "type": "object"
+    },
     "OpenRelatie": {
       "additionalProperties": false,
       "properties": {
@@ -2312,6 +2442,14 @@
     },
     "begrippen": {
       "$ref": "#/$defs/Begrippen"
+    },
+    "open_punten": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/OpenPunt"
+      },
+      "title": "Open Punten",
+      "type": "array"
     },
     "verantwoording": {
       "$ref": "#/$defs/Verantwoording"

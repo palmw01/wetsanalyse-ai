@@ -106,7 +106,10 @@ async def get_export_schema(actor: str = Depends(actieve_userid)):
 
 @router.get("/{werkgebied_id}")
 async def get_werkgebied(werkgebied_id: str, actor: str = Depends(actieve_userid)):
-    return await store.haal(werkgebied_id)
+    """Het werkgebied met bronnen en deelvragen, en de open punten in het kort (L-X-1): zo leest Lex in een gesprek
+    binnen het werkgebied welke lezing gekozen is en wat nog open staat (`agent/werkgebied_context.py`)."""
+    from . import open_punt_store
+    return {**await store.haal(werkgebied_id), "open_punten": await open_punt_store.samenvatting(werkgebied_id)}
 
 
 @router.get("/{werkgebied_id}/thema-voorstel")

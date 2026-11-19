@@ -96,7 +96,7 @@ async def test_de_delen_staan_op_volgorde_met_elke_bepaling_een_keer(client):
     regels = export.regels(await _data(wg), V)
     koppen = [t for s, t in regels if s == "Heading1"]
     assert koppen == ["1. Samenvatting", "2. Leeswijzer", "3. Werkgebied", "4. Deelvragen en bronnen", "5. Analyse per bepaling",
-                      "6. Begrippen", "Bijlage A. Begripskaarten", "Bijlage B. Begrippendiagrammen", "Bijlage C. Bronnenregister",
+                      "6. Begrippen", "7. Open punten", "Bijlage A. Begripskaarten", "Bijlage B. Begrippendiagrammen", "Bijlage C. Bronnenregister",
                       "Bijlage D. Contextbepalingen", "Bijlage E. Samenhang", "Bijlage F. Niet meegenomen", "Bijlage G. Verantwoording"]
     assert [i for i, (s, _t) in enumerate(regels) if s == pdf_opmaak.INHOUD]
     # Lid 1 heeft een emoji vooraan: de offsets tellen codepoints, en de tekst staat letterlijk en één keer.

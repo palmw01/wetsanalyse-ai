@@ -444,6 +444,35 @@ class Verantwoording(_Deel):
     bronnen: list[Selectie] = []
 
 
+class OpenPuntLezing(_Deel):
+    label: str
+    omschrijving: str
+    grondslag: list[str] = []
+
+
+class OpenPuntToets(_Deel):
+    bronsoort: str
+    omschrijving: str = ""
+    getoetst: bool = False
+    uitkomst: str = ""
+
+
+class OpenPunt(_Deel):
+    """Een open punt (L-X-1): wat de analyse niet stil beslist, met de lezingen, de keuze en wat nog te toetsen is.
+    De soort staat er met haar naam uit de skill ("interpretatiekeuze"); de code staat in de api."""
+    soort_naam: str
+    status: str
+    vraag: str
+    hangt_aan: list[str] = []
+    lezingen: list[OpenPuntLezing] = []
+    gekozen: str = ""
+    motivering: str = ""
+    methode: str = ""
+    door: str = ""
+    te_toetsen: list[OpenPuntToets] = []
+    toelichting: str = ""
+
+
 class Rapport(_Deel):
     schema_naam: Literal["werkgebied-rapport-v2"] = SCHEMA
     versie: int = VERSIE
@@ -455,6 +484,7 @@ class Rapport(_Deel):
     deelvragen: Deelvragen
     wettekst: Wettekst
     begrippen: Begrippen
+    open_punten: list[OpenPunt] = []
     verantwoording: Verantwoording
 
 
@@ -523,7 +553,8 @@ _BESLUIT = {"status-gewijzigd": "status van het werkgebied gewijzigd",
             "relatie-vastgelegd": "relatie vastgelegd", "relatie-bevestigd": "relatie bevestigd", "relatie-afgewezen": "relatie afgewezen",
             "koppeling-bevestigd": "passage bij een begrip bevestigd",
             "voorstel-overgenomen": "voorstel van Lex overgenomen", "voorstel-afgewezen": "voorstel van Lex afgewezen",
-            "groep-overgenomen": "betekenisgroep overgenomen", "groep-akkoord": "betekenisgroep akkoord bevonden"}
+            "groep-overgenomen": "betekenisgroep overgenomen", "groep-akkoord": "betekenisgroep akkoord bevonden",
+            "open-punt-besloten": "keuze bij een open punt gemaakt", "open-punt-heropend": "keuze bij een open punt ingetrokken"}
 BESLUITEN = frozenset(_BESLUIT)
 """De audit-acties die een besluit zijn: die staan met datum en naam in het besluitenlog, de rest alleen geteld."""
 _LEEG = "Niet ingevuld."
@@ -638,8 +669,8 @@ def leeswijzer_regels() -> list[Regel]:
                                      "bevestigde. Voorstel en concept zijn nog niet bevestigd. Afgewezen en uitgesloten zijn bewust "
                                      "niet meegenomen; ze staan in een bijlage, zodat niets stil verdwijnt."),
                         ("Heading4", "Opbouw"),
-                        ("BodyText", "Hoofdstuk 3 tot en met 6 dragen de analyse: het werkgebied, de deelvragen met hun bronnen, de "
-                                     "analyse per bepaling en de begrippen. De bijlagen zijn naslag: de volledige begripskaarten, de "
+                        ("BodyText", "Hoofdstuk 3 tot en met 7 dragen de analyse: het werkgebied, de deelvragen met hun bronnen, de "
+                                     "analyse per bepaling, de begrippen en de open punten. De bijlagen zijn naslag: de volledige begripskaarten, de "
                                      "diagrammen met begrippen, het bronnenregister, de contextbepalingen, de samenhang (verwijzingen), wat niet is meegenomen "
                                      "en de verantwoording."),
                         ("Heading4", "Diagrammen"),
@@ -1190,6 +1221,42 @@ def open_begrippen_regels(d: Begrippen) -> list[Regel]:
     return uit
 
 
+_OPEN_PUNT_STATUS = {"open": "open, nog geen keuze", "gekozen": "gekozen", "getoetst": "gekozen en getoetst"}
+_BRONSOORT = {"wettekst": "de wettekst", "wetsgeschiedenis": "de wetsgeschiedenis (memorie van toelichting)",
+              "jurisprudentie": "de jurisprudentie", "beleid": "het beleid", "kennisgroepstandpunt": "een kennisgroepstandpunt",
+              "uitvoeringspraktijk": "de uitvoeringspraktijk", "literatuur": "de literatuur"}
+
+
+def open_punten_regels(punten: list[OpenPunt]) -> list[Regel]:
+    """Hoofdstuk 7: wat de analyse niet stil beslist (L-X-1). Per punt de lezingen met hun grondslag, de keuze met wie
+    die maakte en de methode, en wat nog getoetst moet worden. Lijsten, geen tabellen."""
+    uit: list[Regel] = [(PAGINA, ""), ("Heading1", "7. Open punten"),
+                        ("Meta", "Interpretatiekeuzes, ontbrekend uitvoeringsbeleid, onderzoekspunten en gaten in de "
+                                 "annotatie. Lex signaleert en legt lezingen voor; de jurist kiest.")]
+    if not punten:
+        uit.append(("Meta", "Er zijn geen open punten vastgelegd."))
+    for p in punten:
+        uit += [*BLOK, ("Heading4", p.vraag),
+                ("Meta", f"Soort: {p.soort_naam} · stand: {_OPEN_PUNT_STATUS.get(p.status, p.status)}"
+                         + (f" · hangt aan: {'; '.join(p.hangt_aan)}" if p.hangt_aan else ""))]
+        for x in p.lezingen:
+            gekozen = " (gekozen)" if x.label == p.gekozen else ""
+            uit.append(("BodyText", f"Lezing {x.label}{gekozen}: {x.omschrijving}"))
+            uit += [("Meta", f"Grondslag: {g}") for g in x.grondslag]
+        if p.gekozen or p.motivering:
+            uit.append(("BodyText", "Keuze" + (f": lezing {p.gekozen}" if p.gekozen else "")
+                        + (f", {p.methode} uitgelegd" if p.methode else "") + (f", door {p.door}" if p.door else "") + "."))
+            if p.motivering:
+                uit.append(("BodyText", f"Motivering: {p.motivering}"))
+        for t in p.te_toetsen:
+            wat = _BRONSOORT.get(t.bronsoort, t.bronsoort) + (f" ({t.omschrijving})" if t.omschrijving else "")
+            uit.append(("Meta", f"Getoetst aan {wat}: {t.uitkomst}" if t.getoetst else f"Nog niet getoetst aan {wat}."))
+        if p.toelichting:
+            uit.append(("Meta", p.toelichting))
+        uit += BLOK_UIT
+    return uit
+
+
 def register_regels(v: Voorblad, ver: Verantwoording) -> list[Regel]:
     """Bijlage: elke regeling met haar toestand, en elke bronselectie met haar volledige bronreferentie."""
     uit: list[Regel] = [("Heading2", "Regelingen")]
@@ -1284,7 +1351,7 @@ def rapport_regels(r: Rapport) -> list[Regel]:
     uit = [*titelblad_regels(r.document, r.voorblad, r.stand), *colofon_regels(r.document, r.voorblad, r.stand, r.verantwoording),
            (PAGINA, ""), ("Heading4", "Inhoud"), (INHOUD, ""), *samenvatting_regels(r.samenvatting, r.voorblad, r.deelvragen),
            *leeswijzer_regels(), *dossier_regels(r.dossier), *deelvragen_regels(r.deelvragen), *wettekst_regels(r.wettekst),
-           *begrippenlijst_regels(r.begrippen)]
+           *begrippenlijst_regels(r.begrippen), *open_punten_regels(r.open_punten)]
     for letter, naam in zip("ABCDEFGH", BIJLAGEN):
         uit += [(PAGINA, ""), ("Heading1", f"Bijlage {letter}. {naam}"), *bijlagen[naam]]
     return uit
