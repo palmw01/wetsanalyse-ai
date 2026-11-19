@@ -76,8 +76,10 @@ Een regel hoort bij één werkgebied, net als een begrip.
   afgeleid uit de dragende markeringen), `aangemaakt_door` en tijden.
 - **De naam is een begrip.** Het regelbegrip ("bepalen van het termijnbedrag") is een gewoon begrip in het
   begrippenkader, op de aanduidende passage van de afleidingsregel. Daarmee geldt *een begrip rust altijd op een
-  annotatie* vanzelf, en een regel zonder gemarkeerde afleidingsregel kan niet bestaan. Zo deed het team het ook
-  (R1 tot en met R7 hebben elk een regelbegrip).
+  annotatie* vanzelf. De grondslag van een regel (skill `references/afleidingsregels.md`, PR #1766): de
+  Afleidingsregel-markering als die er is, en anders de formulering van het afgeleide begrip. Een beslisregel over een
+  recht of bevoegdheid rust op de formulering van dat recht, een Rechtsbetrekking, en hoeft niet als Afleidingsregel
+  gemarkeerd te zijn. Een regel zonder enige grondslag kan niet bestaan (#1760).
 - **De soort**: `rekenregel`, `beslisregel` of `specialisatie` (de methode, plan-afleidingsregels §2.3).
 - **De uitvoer**: precies één begrip. Twee regels met dezelfde uitvoer zijn alleen toegestaan als hun gevallen elkaar
   uitsluiten (R2 en R4, via R1); de api meldt het anders als signaal, niet als fout.
@@ -350,13 +352,14 @@ de annotatie) en verwijst naar de regel. De keuze is aan de gebruiker.
    geval?
 3. **De poort bij accorderen**: beoordeelde begrippen voor uitvoer en invoer verplicht, het skelet als signaal (voorstel);
    of ook een volledig beoordeeld skelet?
-4. **Operatoren**: een generieke catalogus in code zonder begrip (voorstel), of generieke operatorbegrippen in het
-   generieke kader (ADR-006), ook zonder gemarkeerde formulering?
+4. **Operatoren**: *beslist door de methode* (PR #1766). Een operatorbegrip ontstaat bij de eerste gemarkeerde
+   formulering en is daarna generiek; de lijst in de skill is alleen een voorstel voor de naam. "Zes weken na" is een
+   Tijdsaanduiding, geen operator.
 5. **Interpretatiekeuzes als eigen object op werkgebiedniveau** (voorstel), of als open punt per regel?
 6. **Beleidsregels** (R3, R6): in dezelfde lijst met het brontype zichtbaar (voorstel), of apart?
-7. **R8** (art. 24 lid 2): volgens de methode een beslisregel met uitvoer *bevoegdheid tot verrekening vóór het
-   verstrijken van de betalingstermijn* (voorstel, M-3b-0), of afgewezen zoals het team besloot? Een afgewezen regel
-   blijft in elk geval bewaard met de reden.
+7. **R8** (art. 24 lid 2): *beslist door de methode* (PR #1766, M-3b-0). Het is een beslisregel met uitvoer
+   *bevoegdheid tot verrekening vóór het verstrijken van de betalingstermijn*, en hij rust op de Rechtsbetrekking. Een
+   regel die later toch wordt afgewezen, blijft bewaard met de reden.
 8. **De soort van een begrip** (D5, bedrag, aantal, datum, ja/nee): nu meenemen voor de eenduidigheidstoets, of later?
 9. **De import van R1–R8** uit het logboek van het team als eerste bestand in Termijnen: ja of nee?
 10. **Scope** (M1 uit het onderzoek): de skill, `CLAUDE.md` en PLAN zeggen nu "het begin van activiteit 3"; met dit plan
@@ -530,7 +533,10 @@ gebouwd wordt. Werkwijze zoals altijd:
 ### 13.1 Wat er eerst moet liggen
 
 Uit `plan-lessen-e2e-termijnen.md`, en niet opnieuw in dit plan:
-- **#1760** (geen begrip zonder grondslag, rol `afgeleid` voor een tussenresultaat) is gemerged;
+- **#1760** (geen begrip zonder grondslag; een tussenresultaat krijgt een begrip dat op de afleidingsregel rust, met
+  de koppelrol `afgeleid`): besloten door de gebruiker;
+- **#1766** (lessenbundel 1): de skill volgt de methode bij 3b, met `references/afleidingsregels.md` en de
+  operatorbegrippen. R0 neemt die reference over en schrijft hem niet opnieuw;
 - **lessenbundel 2**: de leesvorm `weergave?vorm=skelet` (L-3b-2), met het skelet uit `werkgebied_rapport.regelskelet_regels`. De
   regels-agent en het paneel lezen het skelet daaruit;
 - **lessenbundel 3**: de keten legt het skelet goed (L-2-1, L-2-2: geen rechtsobject als invoer, invoer op volgorde,
@@ -545,17 +551,11 @@ Bundel R0 hieronder gaat samen met lessenbundel 1 in één docs-PR.
 **R0. Besluit en methode** (docs, skill; geen code)
 - ADR-017 *Afleidingsregels*: het datamodel van §3 met de bijstellingen van 19 nov 2026, de regelkaart in de keten,
   de grens met RegelSpraak, en de open punten van M-3b-2 met het veld `methode`.
-- De skill krijgt `references/afleidingsregels.md`, buiten de methodemarkers:
-  - de taalpatronen;
-  - één regel per uitvoer, met gevallen;
-  - de grondslag van een regel (M-3b-0);
-  - tussenresultaten en operatorbegrippen;
-  - interpretatie en voorbeelden.
-
-  Daarnaast `operatoren.json` als namenlijst, met generator en drift-test.
-- Scope: *Grenzen* in `SKILL.md`, de projectroot-`CLAUDE.md` en `docs/PLAN.md` worden "activiteit 1 tot en met 3b"; PLAN
-  krijgt een spoor voor 3b.
-- Vraagt de besluiten van §10 punt 2 tot en met 9; de voorstellen staan erbij.
+- De skill (`references/afleidingsregels.md`, werkstroom F en de grens "activiteit 1 tot en met 3b") ligt er met #1766.
+  R0 voegt alleen toe wat de bouw nodig heeft: de taalpatronen als vaste lijst voor `regeltekst.py`, en de namenlijst
+  van operatoren als bestand met generator en drift-test, voor zover #1766 die niet al levert.
+- PLAN heeft spoor V.
+- Vraagt de besluiten van §10 punt 2, 3, 5, 6, 8 en 9; punt 4 en 7 zijn door de methode beslist.
 - Klaar als: de ADR is aangenomen en `genereer_jas_klassen.py --check` groen is.
 
 **R1. De regel als object** (api; lessen L-3b-1)
