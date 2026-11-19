@@ -9,7 +9,8 @@ opnieuw getokeniseerd en niets aan de brontekst veranderd.
   "belastingschuldige" heet bij spaCy een bijvoeglijk naamwoord).
 - **Term**: de kern met haar vaste modificeerders (bijvoeglijk naamwoord, samenstelling), zonder
   lidwoord of aanwijzend woord, in kleine letters, met de kern als lemma. "Een voorlopige
-  aanslag" → "voorlopige aanslag".
+  aanslag" → "voorlopige aanslag". Een telwoord of rangwoord hoort er niet bij: "zoveel gelijke termijnen" en "de
+  eerste termijn" → "termijn".
 - **Beperkt**: de span draagt een bijzin of voorzetselgroep aan de kern ("een belastingaanslag
   die een uit te betalen bedrag behelst"). Dat wijst op een soort, niet op een synoniem. Een
   nevenschikking ("beschikking of uitspraak"), een verwijzing ("bedoeld in onderdeel c") en een
@@ -41,10 +42,15 @@ from ..jas_pipeline.taal.model import LinguisticAnalysis
 from ..jas_pipeline.taal.provider import TaalProvider
 from .model import Formulering, Manifest, Taalanalyse
 
-VERSIE = "3"
+VERSIE = "4"   # 4: geen telwoord of rangwoord in de term
 _NAAMWOORD = ("NOUN", "PROPN")
 _AANWIJZEND = {"die", "deze", "dat", "dit"}
 _LIDWOORD = {"de", "het", "een", "'t"}
+#: Woorden die zeggen hoeveel of welke in een reeks, niet wat: "zoveel gelijke termijnen", "de eerste termijn", "de
+#: volgende termijnen" en "andere belastingen" gaan over het begrip termijn of belasting (Termijnen, 19 nov 2026: de
+#: term werd "zoveel gelijke termijn"). Een telwoord (`NUM`, `nummod`) valt er altijd buiten.
+_HOEVEELHEID = {"zoveel", "elk", "elke", "ieder", "iedere", "alle", "enkele", "sommige", "beide", "overige", "andere",
+                "gelijke", "eerste", "tweede", "derde", "volgende", "laatste", "vorige"}
 _MIN_KOP = 4          # een kop van minder tekens is eerder een achtervoegsel dan een woord
 
 
@@ -120,6 +126,8 @@ def _term(a: LinguisticAnalysis, kern: int, binnen: list[int]) -> str:
     for i in sorted(vast):
         t = a.tokens[i]
         if t.upos in ("DET", "ADP") or t.tekst.lower() in _LIDWOORD | _AANWIJZEND:
+            continue
+        if i != kern and (t.upos == "NUM" or t.deprel == "nummod" or t.tekst.lower() in _HOEVEELHEID):
             continue
         woorden.append((t.lemma or t.tekst) if i == kern else t.tekst)
     return " ".join(woorden).lower()

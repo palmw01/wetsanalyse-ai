@@ -109,6 +109,18 @@ async def test_een_klassewissel_herziet_de_verouderde_toelichting():
     assert uit["beslissingen"][-1]["voor"]["toelichting"] == "Een rechtssubject is iemand."
 
 
+async def test_een_nieuwe_grens_zet_het_nieuwe_fragment_in_de_toelichting():
+    """Termijnen, 19 nov 2026: na een grenscorrectie citeerde de toelichting nog het oude fragment."""
+    snap = snapshot(ONE)
+    laag, [el] = await voorstel(snap, element(snap, toelichting='Hier: "Alfa" – Beperkende bijzin.'))
+    nieuw = element(snap, start=2, end=11)
+    uit = (await store.beslis(el["id"], besluit(snap, laag, "edit", wijziging={"tekst": nieuw["tekst"],
+                                                                               "ankers": nieuw["ankers"]}),
+                              snap, "jurist"))["element"]
+    assert uit["toelichting"] == 'Hier: "Alfa Alfa" – Beperkende bijzin.'
+    assert uit["beslissingen"][-1]["voor"]["tekst"] == "Alfa"
+
+
 @pytest.mark.parametrize("wijziging, verwacht", [
     ({"klasse": "Rechtsfeit", "toelichting": "Eigen tekst"}, "Eigen tekst"),      # de jurist schrijft haar zelf
     ({"toelichting": "Scherper"}, "Scherper"),                                     # geen klassewissel

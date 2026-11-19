@@ -216,6 +216,24 @@ def _te_lezen(state: State, vraag: str) -> list[dict[str, Any]]:
 
 #: Een verzoek om te annoteren of te markeren: dat leest de code niet vooraf, de annotatieworker zegt wat er kan.
 _ANNOTEER_RE = re.compile(r"\b(?:annote(?:er|ren)|markeer|markeren|classificeer)\b", re.IGNORECASE)
+#: Wat een annoteeropdracht over het werkgebied maakt in plaats van over één bepaling: de deelvragen, het werkgebied, of
+#: "de bronnen"/"de bepalingen" zonder artikel.
+_WG_DEELVRAGEN_RE = re.compile(r"\bdeelvra(?:ag|gen)\b", re.IGNORECASE)
+_WG_GEHEEL_RE = re.compile(r"\b(?:werkgebied|bronnen|bepalingen|bronselectie)\b", re.IGNORECASE)
+_WG_ARTIKEL_RE = re.compile(r"\b(?:artikel|art\.)\s*\d", re.IGNORECASE)
+
+
+def werkgebied_annoteeropdracht(vraag: str) -> str:
+    """De taak van de annotatie-agent bij een getypte opdracht om het werkgebied te annoteren: `deelvragen` (alles onder
+    de deelvragen, of onder de genoemde deelvraag), `werkgebied`, of leeg als het geen opdracht is of over één artikel
+    gaat. "Welke bronnen zijn al geannoteerd?" is geen opdracht: "geannoteerd" is geen gebiedende wijs."""
+    if not _ANNOTEER_RE.search(vraag) or _WG_ARTIKEL_RE.search(vraag):
+        return ""
+    if _WG_DEELVRAGEN_RE.search(vraag):
+        return "deelvragen"
+    return "werkgebied" if _WG_GEHEEL_RE.search(vraag) else ""
+
+
 #: Een verzoek om een bepaling op te nemen of toe te voegen (aan de bronselectie, het werkgebied): dat kan alleen met een
 #: bronnode in de graaf.
 _OPNEEM_RE = re.compile(r"\b(?:neem\b.*\bop\b|opnemen|voeg\b.*\btoe\b|toevoegen)", re.IGNORECASE)
@@ -547,6 +565,11 @@ def _kies(b: Bouw, state: State) -> dict[str, Any]:
                 "annotaties_lezen": False}
     if modus == "auto" and state.get("werkgebied_id") and (melding := geen_deelvraag(state)):
         return melding
+    if modus == "auto" and state.get("werkgebied_id") and (taak := werkgebied_annoteeropdracht(state.get("question", ""))):
+        # "Annoteer de bronnen onder deelvraag 3 die nog niet geannoteerd zijn" (Termijnen, 19 nov 2026): de centrale
+        # agent las het als vraag naar bestaande annotaties en annoteerde niets. Een opdracht om het werkgebied of de
+        # bronnen onder de deelvragen te annoteren is de annotatie-agent, met zijn bevestiging, zonder model.
+        return _agent(writer, state, "annotatie", taak, "")
     if modus == "auto" and state.get("werkgebied_id") and is_bronselectievraag(state.get("question", "")):
         return _bronselectie(writer, "bepaalt met je de bronnen per deelvraag")
     if modus == "auto" and is_werkgebiedvraag(state.get("question", "")):
