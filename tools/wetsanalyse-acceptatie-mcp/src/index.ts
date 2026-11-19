@@ -247,9 +247,15 @@ const TOOLS: ToolDef[] = [
     description:
       "De annotatie van één bepaling (artikel, lid of onderdeel) als lijst: per element id, klasse, tekst, ankers, " +
       "lifecycle, herkomst en aandacht, plus de lagen met hun revisie en de relaties. Hiermee beoordeel je de annotatie " +
-      "bepaling voor bepaling; annotatie_lezen geeft één element met alles erbij.",
-    input: S({ bron_iri: z.string(), als: Als }),
-    run: (a) => client(a.als).bff("GET", `/api/annotatie/v2/weergave?bron_iri=${encodeURIComponent(String(a.bron_iri))}&vorm=lijst`),
+      "bepaling voor bepaling; annotatie_lezen geeft één element met alles erbij. Met `vorm: \"skelet\"` alleen per " +
+      "afleidingsregel haar skelet (uitvoer, invoer op volgorde, operatoren, voorwaarden, parameters, tijd, uitzonderingen) " +
+      "en wat het mist, zonder de afgewezen relaties: zo stel je een regel op zonder de hele laag te lezen.",
+    input: S({ bron_iri: z.string(), vorm: z.enum(["lijst", "skelet"]).optional(), als: Als }),
+    run: (a) =>
+      client(a.als).bff(
+        "GET",
+        `/api/annotatie/v2/weergave?bron_iri=${encodeURIComponent(String(a.bron_iri))}&vorm=${a.vorm === "skelet" ? "skelet" : "lijst"}`,
+      ),
   },
   {
     name: "annotatie_lezen",

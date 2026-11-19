@@ -126,7 +126,8 @@ Hieronder wat je moet weten om de code te wijzigen.
   `annotatie_v2_state` (id 1) en serialiseert zo alle kleine schrijfacties, ook over processen en
   replica's heen. Geen process-local locks.
 - **Revisies en snapshots.** Elke laag draagt een revisie; schrijfacties sturen
-  `verwachte_revisies` mee en krijgen **412** bij een tussentijdse wijziging. Elke schrijfactie legt
+  `verwachte_revisies` mee en krijgen **412** bij een tussentijdse wijziging. De sleutel is de bron-IRI of het
+  laag-id (`verwacht_per_bron`; twee sleutels voor één laag met een ander getal: 422 `dubbele_sleutel`). Elke schrijfactie legt
   de snapshot van de bronboom vast; een beslissing of export tegen een andere bronstand geeft
   **409**.
 - **Revisiehistorie.** `schrijftransactie` houdt bij welke lagen `_raak` raakte en welke
@@ -164,6 +165,9 @@ Hieronder wat je moet weten om de code te wijzigen.
   - Een relatie hoort bij de laag van de drager: leggen, beoordelen en wissen lopen door het schrijfslot met
     revisie, 412 en audit.
   - De typen en klassenparen komen uit de gegenereerde `jas_relaties.py`; bewerk die niet.
+  - **Een volgordeplek** (invoer, operand) is uniek per type en eindpunt, en alleen een geldende relatie bezet haar
+    (`plek_bezet`, voor de jurist, de keten en heropenen): een afgewezen of vervangen relatie is historie. Een afgewezen
+    relatie heropenen op een intussen bezette plek is 409 `volgorde_bezet`.
   - Een gewist element of een verwijderde bepaling neemt haar relaties mee (`wis_bij`).
   - Een impliciete partij (`annotatie_v2_impliciet`) is geen markering. Een nieuwe lezer van de elemententabel
     hoeft haar dus niet te kennen.
@@ -200,6 +204,10 @@ Hieronder wat je moet weten om de code te wijzigen.
 - **`GET weergave?vorm=lijst`** (B-1, `lijst_weergave`): per element alleen wat de jurist beoordeelt (`LIJST_ELEMENT`),
   plus de lagen met hun revisie en de relaties zonder bewijs. Er zijn geen segmenten: de brontekst haal je los op. Dit is
   voor agents en de acceptatie-MCP; de werkplek leest de gewone vorm.
+- **`GET weergave?vorm=skelet`** (`regelskelet.weergave`): per afleidingsregel van de bepaling haar skelet (de relaties van
+  ADR-011, zonder afgewezen en vervangen) en `gaten` in woorden (geen of meer uitvoeren, geen invoer, invoer zonder volgorde,
+  alleen een rechtsobject als invoer). `regelskelet.opbouw` is de ene berekening van het skelet: het rapport
+  (`werkgebied_export._regelskelet`) gebruikt haar ook. Wie een skelet nodig heeft, rekent het hier, niet opnieuw.
 - **Antwoorden op een besluit zijn klein** (`compact_element`): zonder `trace` en `geproduceerd_door`. De werkplek laadt
   de weergave daarna toch opnieuw. Elk element droeg de hele meting van zijn ronde; **`GET weergave` draagt elke meting nu
   één keer** (`compacte_weergave`, `runs` op `run_sleutel`) en `GET elementen/{id}` geen. De opslag, de export en
@@ -827,8 +835,8 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   transactie: het begrip wordt `vervangen`, een nieuw concept krijgt de inhoud en alle niet-afgewezen
   koppelingen (met hun bewaarde bewijs, opnieuw `open`), plus een relatie `opvolging` met de vorige status
   in het bewijs. **Combineren** (`POST …/begrippen/{b}/combineren {verwachte_revisie, ander_begrip_id,
-  ander_revisie, reden}`): de ander wordt vervangen, `b` krijgt diens passages (open) en naam als
-  alternatieve term. Beide begrippen dragen hun revisie (412).
+  ander_revisie, reden, naam_als_alternatieve_term}`): de ander wordt vervangen, `b` krijgt diens passages (open) en,
+  standaard, naam als alternatieve term; zet dat uit als het geen synoniem is (een smaller begrip in een ruimer). Beide begrippen dragen hun revisie (412).
 - **Een vervangen begrip** houdt geen primaire duiding vast (`_toets_primair`, `primaire_duidingen`),
   telt niet in de dekking en de herbeoordeling, en staat niet bij `lijkt_op`. `GET` van een begrip geeft
   `vervangen_door` en `vervangt`. **De opvolger verwijderen** zet het vervangen begrip terug op zijn vorige
