@@ -424,6 +424,15 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
   // Het kruimelpad blijft bereikbaar.
   assert.ok(await page.getByRole("navigation", { name: "Kruimelpad" }).isVisible());
+  // Beoordeling en menu van een passage staan ook op een telefoon rechts naast het citaat, rechts uitgelijnd
+  // (onder het citaat lijnden ze links uit en bleef rechts een lege strook).
+  const rij = await page.locator("li[data-passage]").first().evaluate((li) => {
+    const r = li.getBoundingClientRect();
+    const citaat = li.querySelector("blockquote").getBoundingClientRect();
+    const menu = li.querySelector("button[aria-label^='Acties']").getBoundingClientRect();
+    return { rechts: r.right - menu.right, naast: menu.left >= citaat.right, boven: Math.abs(menu.top - citaat.top) };
+  });
+  assert.ok(rij.naast && rij.rechts < 2 && rij.boven < 24, `menu rechts naast het citaat: ${JSON.stringify(rij)}`);
   await page.waitForTimeout(300);
   await foto("begrip-mobiel");
   assert.deepEqual(errors, []);
