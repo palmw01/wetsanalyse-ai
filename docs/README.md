@@ -74,7 +74,7 @@ HTML-bestanden zelf zijn lokaal.
 | Wat biedt INT-terminologie voor activiteit 2 en 3? | [Volledig onderzoek als HTML-pagina](wetsanalyse/onderzoek-int-terminologie-2026-10-08/index.html) · [dossier van 8 oktober 2026](wetsanalyse/onderzoek-int-terminologie-2026-10-08/README.md), met alle hulpmiddelen en relevante concepten | onderzoek |
 | Hoe vindt een werkgebied zijn bronnen, en welke taalpatronen helpen bij begrippen? | [`architectuur/onderzoek-werkgebied-en-begrippen-2026-10.md`](architectuur/onderzoek-werkgebied-en-begrippen-2026-10.md) | onderzoek |
 | Waarom miste de bronselectie bij een breed werkgebied (Termijnen) de kernbepalingen? | [`architectuur/onderzoek-bronselectie-termijnen-2026-11.md`](architectuur/onderzoek-bronselectie-termijnen-2026-11.md) | onderzoek |
-| Waarom is het zo ontworpen? | [ADR-001](architectuur/adr-001-hybride-jas-pijplijn.md), [ADR-002](architectuur/adr-002-taalprovider.md), [ADR-003](architectuur/adr-003-nl-sbb-begrippencontract.md), [ADR-004](architectuur/adr-004-begrippenketen.md), [ADR-005](architectuur/adr-005-vraag-lex-en-agents.md), [ADR-006](architectuur/adr-006-generieke-begrippen.md), [ADR-007](architectuur/adr-007-llm-pad-en-verwerker.md) (concept), [ADR-008](architectuur/adr-008-antwoordsjablonen.md), [ADR-009](architectuur/adr-009-werkgebiedrapport.md), [ADR-010](architectuur/adr-010-agentarchitectuur.md), [ADR-011](architectuur/adr-011-relaties-tussen-markeringen.md), [ADR-012](architectuur/adr-012-multi-agent-regie.md), [ADR-014](architectuur/adr-014-catalogus.md) (concept), [ADR-016](architectuur/adr-016-centrale-agent-en-werkplaats.md) (concept) | besluit |
+| Waarom is het zo ontworpen? | [ADR-001](architectuur/adr-001-hybride-jas-pijplijn.md), [ADR-002](architectuur/adr-002-taalprovider.md), [ADR-003](architectuur/adr-003-nl-sbb-begrippencontract.md), [ADR-004](architectuur/adr-004-begrippenketen.md), [ADR-005](architectuur/adr-005-vraag-lex-en-agents.md), [ADR-006](architectuur/adr-006-generieke-begrippen.md), [ADR-007](architectuur/adr-007-llm-pad-en-verwerker.md) (concept), [ADR-008](architectuur/adr-008-antwoordsjablonen.md), [ADR-009](architectuur/adr-009-werkgebiedrapport.md), [ADR-010](architectuur/adr-010-agentarchitectuur.md), [ADR-011](architectuur/adr-011-relaties-tussen-markeringen.md), [ADR-012](architectuur/adr-012-multi-agent-regie.md), [ADR-014](architectuur/adr-014-catalogus.md) (concept), [ADR-016](architectuur/adr-016-centrale-agent-en-werkplaats.md) (concept), [ADR-018](architectuur/adr-018-afleidingsregels.md) | besluit |
 | Hoe praat Lex? | [`schrijfrichtlijn-lex.md`](schrijfrichtlijn-lex.md) | specificatie |
 | Hoe test een agent-team de hele keten op acceptatie? | [`acceptatie/briefing-team.md`](acceptatie/briefing-team.md) + [`acceptatie/wetsanalyse-e2e.md`](acceptatie/wetsanalyse-e2e.md) | runbook |
 
@@ -96,7 +96,15 @@ Toelichting bij enkele documenten:
   klasse en de keten erachter (19 nov 2026; fase 1 in uitvoering).
   Ook los: [`architectuur/plan-afleidingsregels.md`](architectuur/plan-afleidingsregels.md), het onderzoek
   en plan voor activiteit 3b: van annotaties en begrippen naar afleidingsregels, met een proef op Termijnen (18 nov 2026;
-  concept, nog niets gebouwd).
+  concept, nog niets gebouwd); de uitwerking staat in `architectuur/proef-afleidingsregels-termijnen.md` (op papier) en
+  `architectuur/afleidingsregels-termijnen-team.md` (door het team van agents, 19 nov 2026).
+  Het vervolg is [`architectuur/plan-afleidingsregels-in-lex.md`](architectuur/plan-afleidingsregels-in-lex.md): hoe de
+  regels in Lex landen (datamodel, agent, artefact, rapport, projectie), de validatie van vier ontwerprichtingen, de
+  gekozen richting (de regelkaart in de keten) als mock-up in `architectuur/media/afleidingsregels-*`, en het bouwplan
+  R0–R7 (19 nov 2026; richting gekozen, nog niets gebouwd).
+  Ook los: [`architectuur/plan-lessen-e2e-termijnen.md`](architectuur/plan-lessen-e2e-termijnen.md), de lessen uit de
+  end-to-end proef op Termijnen (activiteit 1 tot en met 3b): bevindingen met oorzaak in de code, generieke
+  oplossingen en een gebundelde PR-volgorde (19 nov 2026; concept, nog niets gebouwd).
 - **`architectuur/verbeterplan-jas-pipeline-2026-10-08.md`** is *onderzoek*: het ontwerp voor de
   kandidaten na V7 uit spoor A (bewijs per hypothese, frames, relaties), met eigen meet- en
   acceptatiecriteria. Het start na V7.

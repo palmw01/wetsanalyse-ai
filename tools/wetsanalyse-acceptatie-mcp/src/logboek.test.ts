@@ -83,3 +83,13 @@ test("een analist en een reviewer van Lex Bench schrijven in hun eigen logboek",
     assert.match(await readFile(join(map, "lb-03-proef-a", "logboek.md"), "utf8"), /\[analist\] · stand/);
     assert.match(await readFile(join(map, "lb-03-proef-r", "logboek.md"), "utf8"), /\[reviewer\] · bevinding/);
   }));
+
+test("een onenigheid tussen de regelspecialist en de jurist", () =>
+  metMap(async (map) => {
+    const regel = { ...basis, rol: "regelspecialist", soort: "onenigheid" } as const;
+    await assert.rejects(aanvullen(map, { ...regel, argumenten: { regelspecialist: "niet uitvoerbaar" } }), /beide argumenten/);
+    await aanvullen(map, { ...regel, argumenten: { regelspecialist: "invoer ontbreekt", jurist: "volgt uit lid 1" } });
+    const { tekst } = await lezen(map, "proef-1");
+    assert.match(tekst, /\[regelspecialist\] · onenigheid/);
+    assert.match(tekst, /- jurist: volgt uit lid 1\n- regelspecialist: invoer ontbreekt/);
+  }));

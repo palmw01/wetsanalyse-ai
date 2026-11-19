@@ -117,6 +117,7 @@ Kort en alleen als wegwijzer; de inhoud staat in de genoemde documenten.
 | U | De centrale agent met subagents (ADR-016) | Af: A1–A7 gebouwd en gemeten (A6: slotmeting #1562), de supervisor en de vlag `CENTRALE_AGENT` zijn weg, en sinds `v1.14.0` (15 nov 2026) draait de centrale agent op productie. De bevindingen uit de E2E Rekeningafspraken (B-1, B-3, B-6, het denkproces D-1–D-15) staan op acceptatie (16 nov 2026). Open: zie *Centrale agent na A6*, en B-2 (vraagt een meting) |
 | Q | Lex Bench: een onafhankelijke kwaliteitslaag, eerst op de bronselectie | Plan goedgekeurd (16 nov 2026, besluiten in §22), bouw begint met stap 1 van §20.5: twintig casussen (vijf blind), een blind agententeam naast Lex, recall, precisie en overlap, geen automatische goedkeuring; deel B: één testset per meetas, opruimplan en de kwaliteit van de componenttests. [`architectuur/plan-lex-bench.md`](architectuur/plan-lex-bench.md) |
 | T | De context van een beurt zichtbaar: contextmeter en `/context` (ADR-015) | Plan goedgekeurd en na review herzien (12 nov 2026), niets gebouwd: context én verbruik per beurt, geen extra telaanroepen, de boom via de api, niets wacht op ADR-016. [`architectuur/plan-contextweergave.md`](architectuur/plan-contextweergave.md) |
+| V | Activiteit 3b: afleidingsregels in Lex | Richting gekozen (19 nov 2026): de regelkaart in de keten; bouwplan R0–R7, niets gebouwd. Sluit aan op de lessen van Termijnen (PR #1764). [`architectuur/plan-afleidingsregels-in-lex.md`](architectuur/plan-afleidingsregels-in-lex.md) §12–§13 |
 
 ---
 
@@ -1311,8 +1312,9 @@ antwoord van de BFF, de opslag via de api, de graaf en de logs. De autorisatie l
 wordt ingewisseld voor een gewone sessie, dus dezelfde controles gelden als voor een gebruiker. De vlag
 `API_TOKEN_LOGIN` staat alleen op acceptatie aan. Het eerste scenario is `docs/acceptatie/wetsanalyse-e2e.md`.
 
-Een team van agents voert dat scenario uit: de agent-jurist en de agent-gegevensspecialist (`.claude/agents/`), naar
-de disciplines uit de leidraad. Ze nemen echte beslissingen; op acceptatie is dat geen vervuiling, maar de bedoeling. Uit zijn beoordeling volgen verbeteringen, die de volgende
+Een team van agents voert dat scenario uit: de agent-jurist, de agent-gegevensspecialist en de agent-regelspecialist
+(`.claude/agents/`), naar de disciplines uit de leidraad; de regelspecialist zet na de annotatie de stap naar
+afleidingsregels (3b), buiten Lex zolang er geen regel als eigen object is (`docs/architectuur/plan-afleidingsregels.md`). Ze nemen echte beslissingen; op acceptatie is dat geen vervuiling, maar de bedoeling. Uit zijn beoordeling volgen verbeteringen, die de volgende
 iteratie meet. Die lus stopt bij acceptatie: productie krijgt alleen wat een mens tagt.
 
 Open: de events van een echte run bewaren als fixtures voor de Playwright-mocks, zodat die niet stil van de
