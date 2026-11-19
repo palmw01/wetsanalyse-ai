@@ -22,6 +22,7 @@ import { BegripBlok, type BegripWeergaveVorm } from "@/components/werkgebieden/B
 import { BegripOpvolging } from "@/components/werkgebieden/BegripOpvolging";
 import { BegripPassages } from "@/components/werkgebieden/BegripPassages";
 import { BegripRelaties } from "@/components/werkgebieden/BegripRelaties";
+import { BegripRegels } from "@/components/werkgebieden/BegripRegels";
 import { DefinitieOnderbouwing } from "@/components/werkgebieden/DefinitieOnderbouwing";
 import { KaartVoorstelKaart } from "@/components/werkgebieden/KaartVoorstel";
 import { OordeelKeuze, VoorbeeldRijen } from "@/components/werkgebieden/Voorbeelden";
@@ -116,13 +117,14 @@ export function BegripInhoud({ stand, weergave, onOnbewaard, onNaarBegrip, onGew
       onGewijzigd={() => { void stand.laad(); onGewijzigd?.(); }} onNaarBegrip={onNaarBegrip} weergave={weergave} />
   );
   const historie = <Historie stand={stand} begrip={begrip} />;
+  const regels = stand.id ? <BegripRegels werkgebiedId={stand.id} begripId={begrip.id} revisie={begrip.revisie} /> : null;
   const veranderd = <GeneriekVeranderdBlok stand={stand} begrip={begrip} onNaarBegrip={onNaarBegrip} />;
 
   if (weergave === "pagina") {
     return (
       <div data-begrip-paneel={begrip.id} data-status={begrip.status} data-weergave="pagina" className="space-y-4">
         {melding}
-        <SplitDetail hoofd={<>{veranderd}{betekenis}{voorbeelden}{passages}</>} zij={<>{beoordeling}{relaties}{historie}</>} />
+        <SplitDetail hoofd={<>{veranderd}{betekenis}{voorbeelden}{passages}</>} zij={<>{beoordeling}{relaties}{regels}{historie}</>} />
       </div>
     );
   }
@@ -135,6 +137,7 @@ export function BegripInhoud({ stand, weergave, onOnbewaard, onNaarBegrip, onGew
       {beoordeling}
       {passages}
       {relaties}
+      {regels}
       {historie}
     </div>
   );

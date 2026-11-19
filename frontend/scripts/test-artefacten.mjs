@@ -8,7 +8,7 @@
  *    in het artefactpaneel (kolom naast de chat), met de link naar het werkgebied en zonder Lex-knoppen;
  *  - een annotatie-artefact in de nieuwe vorm (alleen `artefact`, geen `annotatie_doel`) opent de
  *    annotatie, en het sluit het begrippenpaneel – er staat er één open;
- *  - afleidingsregels zijn gereserveerd: de kaart staat er, maar is geen knop;
+ *  - afleidingsregels (R2, ADR-018): de chip opent de keten in het paneel, met *Open volledige pagina*;
  *  - de balk boven de chat brengt het laatste artefact terug, ook als dat begrippen zijn;
  *  - een live beurt waarvan het `opgeslagen`-event een begrippenartefact draagt, opent dat paneel;
  *  - één begrip (F3d): de chip heet *Begrip*, het paneel is de leesweergave zonder Lex-knoppen, een open
@@ -64,9 +64,9 @@ const gesprekken = {
     { rol: "user", tekst: "Annoteer artikel 9 lid 1", ...leeg },
     { rol: "assistant", tekst: "", ...leeg, run_id: "a1",
       artefact: { soort: "annotatie", ref: doel, titel: "Invorderingswet – artikel 9 lid 1" } },
+    { rol: "assistant", tekst: "", ...leeg, run_id: "c1", artefact: { soort: "regels", ref: { werkgebied_id: "wg1" }, titel: "Regels bij invordering" } },
     { rol: "user", tekst: "Stel begrippen voor", ...leeg },
     { rol: "assistant", tekst: "Ik stel 1 begrip voor.", ...leeg, run_id: "b1", artefact: begrippenArtefact },
-    { rol: "assistant", tekst: "", ...leeg, run_id: "c1", artefact: { soort: "regels", ref: {}, titel: "Regels bij invordering" } },
   ],
   // Een werkgebied dat Lex samenstelde (activiteit 1): verwijderen kan in het paneel.
   g5: [
@@ -192,6 +192,9 @@ await page.route("**/api/**", async (route) => {
     wg1.verwijderd = true;
     return route.fulfill({ json: { verwijderd: "wg1" } });
   }
+  if (p === "/api/werkgebieden/wg1/regels") return route.fulfill({ json: { regels: [] } });
+  if (p === "/api/werkgebieden/wg1/regels/hierarchie")
+    return route.fulfill({ json: { regels: [], volgorde: [], pijlen: [], basisgegevens: [], signalen: [] } });
   if (p === "/api/werkgebieden/wg1") return wg1.verwijderd ? weg("werkgebied") : route.fulfill({ json: wg1 });
   if (p === "/api/werkgebieden/wg1/begrippen/b9" && m === "DELETE") {
     assert.equal(url.searchParams.get("verwachte_revisie"), String(termijn.revisie));
@@ -287,8 +290,14 @@ try {
   assert.doesNotMatch(await begrippenChip().first().innerText(), /Invordering/, "de chip noemt het werkgebied niet");
   const regels = page.locator('[data-artefact-soort="regels"]');
   assert.equal(await regels.count(), 1, "de kaart van de afleidingsregels hoort er te staan");
-  assert.equal(await regels.evaluate((el) => el.tagName), "DIV", "afleidingsregels zijn nog niet te openen: geen knop");
-  assert.match(await regels.innerText(), /Afleidingsregels[\s\S]*nog niet te openen/i);
+  assert.equal(await regels.evaluate((el) => el.tagName), "BUTTON", "afleidingsregels openen naast het gesprek (R2)");
+  await regels.click();
+  const regelsPaneel = page.getByRole("region", { name: "Afleidingsregels", exact: true });
+  await regelsPaneel.locator("[data-regel-keten-lijst]").getByText("Nog geen afleidingsregels", { exact: false }).waitFor();
+  assert.equal(await regelsPaneel.getByRole("link", { name: "Open volledige pagina" }).getAttribute("href"),
+    "/werkgebieden/wg1/artefacten/regels");
+  await regelsPaneel.getByRole("button", { name: "Sluiten" }).click();
+  await regelsPaneel.waitFor({ state: "detached" });
 
   // --- Begrippen openen: de voorstellen van Lex in het paneel ---
   await begrippenChip().click();
@@ -576,7 +585,7 @@ try {
   assert.equal(await wp.getByText("kon niet worden geladen", { exact: false }).count(), 0);
 
   assert.deepEqual(errors, []);
-  console.log("Browser OK: begrippenartefact na herladen en live, één artefact tegelijk, laatste-artefactbalk, regels gereserveerd, begrip- en deelvraagpaneel, suggesties, werkgebiedcontext in de werkplek, verwijderen in het begrip- en werkgebiedpaneel, Markdown uit de paneelkop, de versiekiezer.");
+  console.log("Browser OK: begrippenartefact na herladen en live, één artefact tegelijk, laatste-artefactbalk, het regelpaneel, begrip- en deelvraagpaneel, suggesties, werkgebiedcontext in de werkplek, verwijderen in het begrip- en werkgebiedpaneel, Markdown uit de paneelkop, de versiekiezer.");
 } finally {
   await browser.close();
 }
