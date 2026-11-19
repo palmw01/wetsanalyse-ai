@@ -107,17 +107,21 @@ voor een losse regel en een beslistabel.
   (§3.5).
 - **Operatoren** (bijgesteld 19 nov 2026, na `plan-lessen-e2e-termijnen.md` §0 en M-3a-1): volgens de methode is een
   operator een **operatorbegrip op een gemarkeerde formulering**, dat elke formulering met dezelfde bewerking
-  hergebruikt ("na", "gelijke", "telkens een maand later" staan wél in de tekst van Termijnen). Een vaste lijst met
+  hergebruikt ("gelijke" in "gelijke termijnen" staat wél in de tekst van Termijnen). Een duur bij een tijdstip
+  ("zes weken na", "telkens een maand later") is een Tijdsaanduiding en geen operator; de regel noemt die bewerking in
+  het taalpatroon (skill, PR #1766). Een vaste lijst met
   namen (`operatoren.json` in de skill, gegenereerd naar api en frontend zoals de relatiecatalogus) dient alleen als
   voorstel voor de naam. Wat in het taalpatroon zelf staat ("moet berekend worden als", "indien aan alle volgende
   voorwaarden is voldaan"), is regelvorm en geen begrip. Ontbreekt de formulering echt, dan is dat een open punt
   (*skeletgat*), geen begrip zonder grondslag. Open keuze 4 is daarmee beslist, tenzij de gebruiker anders kiest.
 - **Tussenresultaten**: een tussenresultaat van een berekening krijgt een eigen regel met een eigen uitvoerbegrip (rol
-  `afgeleid`, PR #1760), dat rust op de afleidingsregel-markering waaruit het volgt. Zo kan het *termijnregime* uit de
-  proef op papier terugkomen.
+  `afgeleid`, PR #1760), dat rust op de afleidingsregel-markering waaruit het volgt. Zo kunnen het *termijnregime* en het
+  *maandnummer van de dagtekening* uit de proef op papier begrippen zijn.
 - **Parameterwaarden per tijdvak**: R2 (zes weken) en R6 (€ 49) hebben een waarde die per tijdvak kan verschillen.
-  **`parameter_waarden`**: `begrip_id`, `waarde`, `eenheid`, `geldig_vanaf`, `geldig_tot` (leeg = onbekend), en het
-  element waarop de waarde rust. De regel noemt het begrip, niet het getal (de methode, §2.4 van het onderzoek).
+  De parameterwaarde is een eigen formulering met een **eigen begrip**, gerelateerd aan het parameterbegrip (M01 h.6;
+  skill, PR #1766). **`parameter_waarden`** legt per parameterwaardebegrip vast: het parameterbegrip, `waarde`,
+  `eenheid`, `geldig_vanaf`, `geldig_tot` (leeg is onbekend) en het element waarop de waarde rust. De regel gebruikt het
+  parameterbegrip, niet de waarde; een waarde staat nooit in de definitie van het parameterbegrip.
 
 ### 3.4 Herleiding naar markeringen en relaties
 
@@ -155,11 +159,12 @@ toelichting"* staat als keuze bij R1, zichtbaar in het artefact, het werkgebied 
 ### 3.7 Status, beoordeling en herbeoordeling
 
 - **Status**: `concept` (Lex stelde voor), `in_beoordeling`, `geaccordeerd`, `geaccordeerd_als_beleidsregel` (R3, R6),
-  `afgewezen` (met reden). R8 (art. 24 lid 2) wees het team af als "een bevoegdheid, geen afleiding"; volgens de
+  `afgewezen` (met reden), `vervangen` (door een opvolger).
+- **R8** (art. 24 lid 2): het team wees hem af als "een bevoegdheid, geen afleiding"; volgens de
   methode is een regel die bepaalt of een recht of bevoegdheid bestaat juist een **beslisregel** (M-3b-0 in
-  `plan-lessen-e2e-termijnen.md`). De grondslag van een regel is de afleidingsregel-markering als die er is, en anders
-  de formulering van het afgeleide begrip, ook een rechtsbetrekking, `vervangen` (door een
-  opvolger).
+  `plan-lessen-e2e-termijnen.md`), met als uitvoer het bestaande begrip *bevoegdheid tot verrekening vóór het verstrijken
+  van de betalingstermijn* (fb9f3866). De grondslag van een regel is de afleidingsregel-markering als die er is, en anders
+  de formulering van het afgeleide begrip, ook een rechtsbetrekking.
 - **Accorderen** volgt de poort uit open keuze 3: de begrippen van uitvoer en invoer zijn beoordeeld; het skelet is een
   signaal.
 - **Herbeoordeling**: hetzelfde mechanisme als bij begrippen (`begrip_onderhoud`). Een dragende passage verandert, een laag
@@ -372,7 +377,7 @@ de annotatie) en verwijst naar de regel. De keuze is aan de gebruiker.
 Elke PR levert iets bruikbaars op; na elke fase kan het stoppen. Fase 1 van het onderzoek (A1, het skelet betrouwbaar)
 gaat ervóór of loopt ernaast.
 
-1. **ADR-017 Afleidingsregels** (docs): het datamodel van §3, de grens met RegelSpraak, de gekozen richting; de scope in
+1. **ADR-018 Afleidingsregels** (docs): het datamodel van §3, de grens met RegelSpraak, de gekozen richting; de scope in
    skill, `CLAUDE.md` en PLAN; de reference `afleidingsregels.md` en `operatoren.json` in de skill (met de generator).
 2. **Api: de regel als object** — tabellen `regels`, `regel_gevallen`, `regel_invoer`, `regel_dragers`,
    `parameter_waarden`, met contracten, revisies, audit, de afgeleide regeltekst en de hiërarchie; geen UI.
@@ -548,8 +553,8 @@ Bundel R0 hieronder gaat samen met lessenbundel 1 in één docs-PR.
 
 ### 13.2 De bundels
 
-**R0. Besluit en methode** (docs, skill; geen code)
-- ADR-017 *Afleidingsregels*: het datamodel van §3 met de bijstellingen van 19 nov 2026, de regelkaart in de keten,
+**R0. Besluit en methode** (docs, skill; geen code) — *in uitvoering: [ADR-018](adr-018-afleidingsregels.md)*
+- [ADR-018](adr-018-afleidingsregels.md) *Afleidingsregels* (R0, in uitvoering): het datamodel van §3 met de bijstellingen van 19 nov 2026, de regelkaart in de keten,
   de grens met RegelSpraak, en de open punten van M-3b-2 met het veld `methode`.
 - De skill (`references/afleidingsregels.md`, werkstroom F en de grens "activiteit 1 tot en met 3b") ligt er met #1766.
   R0 voegt alleen toe wat de bouw nodig heeft: de taalpatronen als vaste lijst voor `regeltekst.py`, en de namenlijst
