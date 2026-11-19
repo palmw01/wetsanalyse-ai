@@ -85,3 +85,83 @@ def test_de_logregel_noemt_de_soort_bewering_zonder_de_tekst():
     assert bewering_soorten(["toelichting zonder steun in wat gelezen is: “Derdenbeslag is …”",
                              "toelichting zonder steun in wat gelezen is: “Een bank …”", "samenvatting van kst-1-2 (x)"]) == {
         "toelichting zonder steun in wat gelezen is": 2, "samenvatting van kst-1-2": 1}
+
+
+# --- meting 2 na #1756: bij een begrip met een definitie of een bepaling is de steuntoets een signaal ---------------
+
+INLENER_LID_1 = (
+    "Ingeval een werknemer met instandhouding van de dienstbetrekking tot zijn inhoudingsplichtige, de uitlener, door deze "
+    "ter beschikking is gesteld aan een derde, de inlener, om onder diens toezicht of leiding werkzaam te zijn, is de "
+    "inlener hoofdelijk aansprakelijk voor de loonbelasting welke de uitlener verschuldigd is in verband met het verrichten "
+    "van die werkzaamheden door die werknemer alsmede voor de omzetbelasting welke de uitlener, dan wel – in geval "
+    "doorlening plaatsvindt – de in het tweede lid bedoelde doorlener verschuldigd is in verband met dat ter beschikking "
+    "stellen.")
+INLENER_LID_2 = (
+    "Onder inlener wordt mede verstaan: de doorlener, zijnde degene aan wie een werknemer ter beschikking is gesteld en die "
+    "deze werknemer vervolgens ter beschikking stelt aan een derde om onder diens toezicht of leiding werkzaam te zijn; de "
+    "in onderdeel a bedoelde derde, aan wie door een doorlener een werknemer ter beschikking is gesteld om onder toezicht "
+    "of leiding van die derde werkzaam te zijn.")
+INLENER_ZIN = ("In lid 2 worden de doorlener en de uiteindelijke opdrachtgever bij doorlening ook als inlener aangemerkt, "
+               "zodat de hoofdelijke aansprakelijkheid in de hele inleenketen geldt.")
+VERHAAL_DEFINITIE = ("verhaalsconstructie: handeling of samenstel van handelingen die, onderscheidenlijk dat, in "
+                     "overwegende mate is verricht met als doel om de ontvanger te benadelen in zijn verhaalsmogelijkheden.")
+VERHAAL_TOELICHTING = ("De definitie staat in artikel 33a, lid 3, onderdeel g, van de Invorderingswet 1990. Het gaat niet "
+                       "om elke transactie die dat effect heeft, maar om een transactie waarvoor dat doel de voornaamste "
+                       "beweegreden was.")
+
+
+def test_verbindingswoorden_zijn_geen_eigen_woorden():
+    """Inlener: "zodat" en "hele" telden mee, en een inhoudelijk juiste zin viel af op 4 van 10."""
+    assert toelichting_zonder_steun(INLENER_ZIN, INLENER_LID_1 + INLENER_LID_2, "wat betekent het begrip inlener") == []
+
+
+def test_de_melding_toont_de_zin_zoals_lex_hem_schreef():
+    zin = ("Volgens artikel 34, lid 2, is het een vorm van executoriaal beslag bij een werkgever die loon uitbetaalt "
+           "aan een werknemer, of bij een bank.")
+    uit = toelichting_zonder_steun(zin, gelezen_tekst(TRACE), VRAAG)
+    assert uit == [f"toelichting zonder steun in wat gelezen is: “{zin[:90].rsplit(' ', 1)[0]} …”"]
+    assert "artikel 34, lid 2" in uit[0]
+
+
+def _verify(monkeypatch, antwoord: dict, trace: list, vraag: str) -> dict:
+    from types import SimpleNamespace
+
+    from agent.nodes import antwoord as antwoordnodes
+    from fakes import FakeGraph, FakeLLM, make_settings
+
+    monkeypatch.setattr(antwoordnodes, "get_stream_writer", lambda: (lambda _e: None))
+    b = SimpleNamespace(llm=FakeLLM([]), settings=make_settings(grounding_correct=True), graph=FakeGraph(result=""))
+    tekst = next(x["tekst"] for x in antwoord["blokken"] if x["soort"] == "toelichting")
+    return antwoordnodes.verify_node(b, {"answer": tekst, "antwoord": antwoord, "question": vraag, "messages": [],
+                                         "source_trace": trace, "run_id": "r", "specialist": "centraal"})
+
+
+def _toelichting(tekst: str) -> dict:
+    return {"soort": "toelichting", "door": "lex", "kop": "Toelichting van Lex", "tekst": tekst}
+
+
+def test_bij_een_wettelijke_definitie_geen_correctieronde_maar_een_signaal(monkeypatch):
+    """Verhaalsconstructie: een juiste parafrase van "in overwegende mate verricht met als doel" kreeg een correctieronde."""
+    node = "urn:bwb:BWBR0004770:artikel:33a:lid:3:o:g"
+    vp = {"iri": node, "label": "Artikel 33a, lid 3, onderdeel g", "jci": "", "regeling": "Invorderingswet 1990"}
+    trace = [("zoek_definitie", json.dumps({"status": "ok", "volledig": True, "aantal": 1, "term": "verhaalsconstructie",
+                                            "resultaten": [{"node": node, "begrip": "verhaalsconstructie", "tekst": VERHAAL_DEFINITIE,
+                                                           "citeertitel": "Invorderingswet 1990"}]}))]
+    antwoord = {"sjabloon": "begrip", "versie": 1, "doelen": [vp], "blokken": [
+        {"soort": "definities", "door": "bron", "items": [{"term": "verhaalsconstructie", "tekst": VERHAAL_DEFINITIE, "vindplaats": vp}]},
+        _toelichting(VERHAAL_TOELICHTING)]}
+    uit = _verify(monkeypatch, antwoord, trace, "wat betekent het begrip verhaalsconstructie")
+    assert uit["grounded"] is True, "geen correctieronde"
+    assert any(x.startswith("toelichting zonder steun") for x in uit["onbevestigd"]), "wel zichtbaar als signaal"
+
+
+def test_bij_een_begrip_zonder_definitie_blijft_de_correctieronde(monkeypatch):
+    """Derdenbeslag: het bronblok `wettekst` toont een bepaling die de term gebruikt, geen definitie."""
+    vp = {"iri": "urn:bwb:BWBR0024096:id:y", "label": "artikel 14.4.1", "jci": "", "regeling": "Leidraad Invordering 2008"}
+    antwoord = {"sjabloon": "begrip", "versie": 1, "doelen": [], "blokken": [
+        {"soort": "leemte", "door": "bron", "tekst": "Geen wettelijke definitie in de graaf bij de term “derdenbeslag”."},
+        {"soort": "wettekst", "door": "bron", "items": [{"tekst": LEIDRAAD, "vindplaats": vp}]},
+        _toelichting(UIT_EIGEN_KENNIS)]}
+    uit = _verify(monkeypatch, antwoord, TRACE, VRAAG)
+    assert uit["grounded"] is False and any(x.startswith("toelichting zonder steun") for x in uit["beweringen"])
+
