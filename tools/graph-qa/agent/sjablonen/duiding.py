@@ -127,6 +127,9 @@ def _citaat(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace
                           f"niet in 'onderbouwing' aan maar in 'extern', met het id ({', '.join(live)}) en de "
                           "alineanummers. Lees haar niet opnieuw")
             return None
+        if naast := _stuk_naast_de_wet(str(stuk.get("bepaling") or ""), trace):
+            fouten.append(naast)
+            return None
         fouten.append(f"{iri or 'een passage zonder bepaling'}: de tekst is niet (helemaal) opgehaald. Gebruik een iri uit een "
                       "toolresultaat, en haal de bepaling op met get_artikel, get_lid of get_bepaling")
         return None
@@ -183,6 +186,31 @@ def _live_van(bepaling: str, trace: Trace) -> list[str]:
     if not bwb:
         return []
     return sorted(i for i in live_stukken(trace) if bwb.group(0) in i)[:6]
+
+
+def _stuk_naast_de_wet(bepaling: str, trace: Trace) -> str:
+    """De weigering voor een stuk naast de wet in 'onderbouwing' (een Kamerstuk, een publicatie, een uitspraak, een
+    standpunt, wettekst van overheid.nl), of leeg als `bepaling` geen stuk naast de wet is. 'onderbouwing' kent alleen
+    wettekst uit de kennisgraaf; zo'n stuk hoort in 'extern'. De oude weigering zei "haal de bepaling op met get_artikel",
+    wat bij zo'n stuk niet kan: het model las opnieuw of gaf het op (meting 19 nov 2026, acceptatie: een op de drie
+    weigeringen "niet opgehaald" was een link naar een Kamerstuk of Staatsblad of een ongelezen artikel van overheid.nl).
+    De leestool komt uit de beschrijving van de connector, dus een nieuwe connector valt er vanzelf onder."""
+    from bronmodel.connectors import CONNECTORS
+    from bronmodel.extern import externe_verwijzingen
+
+    from ..gelezen import gelezen_en_gevonden
+
+    vps = externe_verwijzingen(bepaling)
+    if len(vps) != 1:
+        return ""
+    vp = vps[0]
+    if vp.id in {i for i, _ in gelezen_en_gevonden(trace)[0]} | live_stukken(trace):
+        return (f"{bepaling} is een stuk naast de wet, en je hebt het gelezen: wijs het niet in 'onderbouwing' aan maar in "
+                f"'extern', met het id ({vp.id}) en de alineanummers. Lees het niet opnieuw")
+    leestool = next((c.leestool for c in CONNECTORS.values() if c.brontype == vp.brontype), "")
+    return (f"{bepaling} is een stuk naast de wet dat je niet gelezen hebt"
+            + (f": lees het met {leestool} en wijs het daarna aan in 'extern'" if leestool else "")
+            + ", of laat het weg. 'onderbouwing' is alleen voor wettekst uit de kennisgraaf")
 
 
 def _kort(tekst: str) -> str:

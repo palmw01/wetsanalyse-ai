@@ -126,6 +126,27 @@ def _gebruik(resp: Any) -> dict[str, int]:
             "cache_schrijf": int(getattr(u, "cache_creation_input_tokens", 0) or 0)}
 
 
+def _uitvoer(resp: Any) -> dict[str, Any]:
+    """Wat het model schreef, zonder inhoud: de tekens tekst en per aangeroepen tool de tekens van de invoer. De duur van
+    een aanroep volgt de uitvoer (~22 ms per token, meting 19 nov 2026); hieraan is te zien welk sjabloon of welke tool
+    de lange uitvoer schrijft, en wat een weigering kostte."""
+    import json
+
+    tekst, tools = 0, {}
+    for blok in getattr(resp, "content", None) or []:
+        soort = getattr(blok, "type", "")
+        if soort == "text":
+            tekst += len(str(getattr(blok, "text", "") or ""))
+        elif soort == "tool_use":
+            naam = str(getattr(blok, "name", "") or "?")
+            try:
+                omvang = len(json.dumps(getattr(blok, "input", None) or {}, ensure_ascii=False))
+            except (TypeError, ValueError):
+                omvang = 0
+            tools[naam] = tools.get(naam, 0) + omvang
+    return {"uitvoer_tekst_tekens": tekst, "uitvoer_tools": tools}
+
+
 def _kader(rol: Rol, verzoek: dict[str, Any], kader: dict[str, Any] | None) -> Aanroepkader:
     """Het kader van één aanroep: de rol en de opbouw van het verzoek, één keer berekend. De logregel en (via de
     adapter) de meter lezen hetzelfde. `beurt_start` en `opdracht` uit `kader` sturen alleen de indeling."""
@@ -176,7 +197,7 @@ def _log(rol: Rol, model: str, resp: Any, begin: float, opbouw: dict[str, Any],
     stop = Stopreden.van(resp)
     methode = methoderol or rol.methoderol
     logger.info("model_aanroep", extra={"categorie": "technisch", "rol": rol.naam, "model": model,
-                                        "stopreden": str(stop), "duur_ms": duur, **_gebruik(resp),
+                                        "stopreden": str(stop), "duur_ms": duur, **_gebruik(resp), **_uitvoer(resp),
                                         **opbouw,
                                         "methode_sha": vingerafdruk(methode) if methode else ""})
     return Antwoord(resp, stop, duur)

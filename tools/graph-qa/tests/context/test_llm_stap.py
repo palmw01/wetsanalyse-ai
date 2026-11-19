@@ -52,6 +52,8 @@ def test_de_logregel_draagt_rol_stopreden_en_gebruik_maar_geen_inhoud(caplog):
     [r] = [r for r in caplog.records if r.getMessage() == "model_aanroep"]
     assert (r.rol, r.model, r.stopreden) == ("kaartactie", "m", "tool_use")
     assert (r.invoer, r.uitvoer, r.cache_lees, r.cache_schrijf) == (10, 5, 3, 2)
+    # Wat het model schreef, zonder inhoud: per tool de omvang van de invoer (meting 19 nov 2026).
+    assert r.uitvoer_tools == {TOOL: len('{"a": "geheim antwoord"}')} and r.uitvoer_tekst_tekens == 0
     velden = {k: v for k, v in vars(r).items() if k not in logging.LogRecord("", 0, "", 0, "", (), None).__dict__}
     assert not any("token" in k for k in velden), "geen veldnaam met 'token' (redactie in observability)"
     assert "geheim" not in repr(velden)

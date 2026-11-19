@@ -623,7 +623,7 @@ bruikbaar is.
   Zo leest een vervolgbeurt de historie uit de cache in plaats van haar opnieuw te schrijven. Een meetvlag op het verzoek (`ChatRequest.beurtcontext_plek="systeem"`) zet de vorm van vóór ADR-015 terug, alleen om beide vormen op dezelfde code te vergelijken; de werkplek stuurt hem niet. Een test die wil
   weten wat het model te horen kreeg, leest `FakeLLM.prompts` (systeem plus beurtcontext, per aanroep); `calls` blijft de kwargs van de aanroeper.
 - **`llm_stap.py`** – de gedeelde modelstap (H5). `aanroep(llm, rol, **verzoek)` geeft de kwargs ongewijzigd door,
-  geeft een `Stopreden` terug, logt één `model_aanroep` (rol, model, stopreden, duur, gebruik en de opbouw van het verzoek uit
+  geeft een `Stopreden` terug, logt één `model_aanroep` (rol, model, stopreden, duur, gebruik, wat het model schreef zonder inhoud – `uitvoer_tekst_tekens` en per tool `uitvoer_tools` – en de opbouw van het verzoek uit
   `agent/verzoekopbouw.py`: tekens van tools, systeemdelen, historie en lopende beurt, plus `tools_hash`/`system_hash`,
   en `methode_sha` = `methode.vingerafdruk(rol)` uit de sectie-sha's van `PAKKET`, dezelfde bron als de catalogus van
   ADR-014; geen inhoud) en eist dat
