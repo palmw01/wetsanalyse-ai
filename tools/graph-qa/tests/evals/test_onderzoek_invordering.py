@@ -118,7 +118,11 @@ def test_historische_replay_alleen_volledig_beschikbaar_voor_lid1(pakket, detect
     assert not historie["IW-9-5"]["beslissingen"] and not historie["LI-9.5"]["beslissingen"]
     c = pakket["casussen"][0]
     oud = historie[c["id"]]
-    uit, _ = speel(c, {b["label"]: b["klasse"] or "Geen annotatie" for b in oud["beslissingen"]})
+    # De besliskaart van toen hangt aan de span, niet aan het label: een kandidaat die de detectoren sinds die run
+    # aanreiken, schuift de labels op (bundel 3: 'invorderbaar zes weken na …' als afleidingsregel kreeg C003, en de
+    # keuze Tijdsaanduiding van toen viel op hem). Elke keuze gaat naar de kandidaat van nu met dezelfde span.
+    label_nu = {(k.span.start, k.span.eind): k.label for k in detecties[c["id"]].kandidaten}
+    uit, _ = speel(c, {label_nu[(b["start"], b["eind"])]: b["klasse"] or "Geen annotatie" for b in oud["beslissingen"]})
     # De run van toen wees de centrale norm af nadat de reviewer dat bevestigde; nu beslist de jurist (R-CENTRAAL-KEEP).
     toen = oud["run"]["instellingen"]["meting"]["per_status"]
     # Kandidaten die de detectoren sinds die run extra aanreiken (de operator 'na' in 'zes weken na …') kent de
