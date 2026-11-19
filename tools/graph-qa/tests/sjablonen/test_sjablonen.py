@@ -455,9 +455,13 @@ def test_een_jci_als_bepaling_wordt_de_iri_van_de_rij():
         assert a.blokken[1].items[0].vindplaats.iri == A["onderdeel"], opgegeven
 
 
-def test_een_passage_over_twee_rijen_is_onvulbaar():
-    with pytest.raises(Onvulbaar, match="één lid of onderdeel"):
-        vul("antwoord_duiding", duiding(van="De ontvanger kan", tot="nieuwe aanslag ontvangt.", bepaling=TIEN), [tien()])
+def test_een_passage_over_twee_rijen_wordt_twee_citaten():
+    """Meting 19 nov 2026: een passage over twee leden was onvulbaar, en het model schreef het hele sjabloon opnieuw. Nu
+    toont de code twee citaten, elk letterlijk uit zijn eigen lid en met zijn eigen vindplaats; geen citaat spant over
+    twee leden."""
+    a = vul("antwoord_duiding", duiding(van="De ontvanger kan", tot="nieuwe aanslag ontvangt.", bepaling=TIEN), [tien()])
+    items = a.blokken[1].items
+    assert [(c.tekst, c.vindplaats.iri) for c in items] == [(ZIN_1, TIEN_1), (ZIN_2, TIEN_2)]
 
 
 def test_een_voorproef_is_geen_bron_voor_een_citaat():
@@ -1239,3 +1243,18 @@ def test_een_generiek_begrip_draagt_dat_kenmerk_in_blok_en_tekst():
     assert "(geaccordeerd, generiek)" in antwoord_tekst(a)
     assert vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""},
                [definitie(), begrip()]).blokken[1].items[0].generiek is False
+
+
+def test_een_einde_uit_een_ander_lid_maakt_de_code_af_tot_het_einde_van_de_zin():
+    """Meting 19 nov 2026 (acceptatie): 103 van de 124 weigeringen "staat niet in" hadden het begin in de aangewezen
+    bepaling en het einde uit een ander lid. Een weigering liet het model het hele sjabloon opnieuw schrijven (~10 s). Nu
+    maakt de code de passage af tot het einde van de zin van het begin, letterlijk uit dat lid. Een einde dat nergens in de
+    bron staat, of vóór het begin in hetzelfde lid, blijft een weigering (zie de test hierboven)."""
+    a = vul("antwoord_duiding", duiding(van="De ontvanger kan uitstel", tot="een nieuwe aanslag ontvangt."), [tien()])
+    c = a.blokken[1].items[0]
+    assert c.tekst == ZIN_1 and c.vindplaats.iri == TIEN_1
+    # Het begin moet eenduidig zijn: staat het in meer rijen, dan beslist de code niet.
+    with pytest.raises(Onvulbaar, match="staat niet in"):
+        vul("antwoord_duiding", duiding(van="uitstel", tot="ergens anders.", bepaling=TIEN),
+            [tien(tekst="Het uitstel geldt. Het uitstel eindigt."), ("get_lid", json.dumps({"status": "ok", "volledig": True,
+             "lid": {"iri": f"{TIEN}:lid:9", "tekst": "Dit staat ergens anders."}, "resultaten": []}))])
