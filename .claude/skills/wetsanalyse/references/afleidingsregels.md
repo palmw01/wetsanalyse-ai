@@ -84,3 +84,31 @@ Leg elk open punt vast met:
 Interpretaties die nog niet in uitvoeringsbeleid staan, signaleer je (M01 stap 5). Denk aan de afronding van een
 bedrag, een vervaldag die op een dag valt die in de volgende maand niet bestaat, of het tijdvak waarin een drempel
 geldt. Kies niet stil.
+
+## Wat een regel mist
+
+Toets elke regel op deze gaten, zonder het accorderen ervan af te laten hangen (een gat is een signaal). De codes staan
+in `regelgaten.json`; het platform rekent ze uit en toont ze op de regelkaart en in het skelet.
+
+In het skelet van de Afleidingsregel-markering:
+- `uitvoer_ontbreekt`: er is geen uitvoer.
+- `meer_uitvoeren`: de formulering heeft meer uitvoeren; ze draagt dan meer regels.
+- `invoer_ontbreekt`: er is geen invoer.
+- `invoer_zonder_volgorde`: bij meer invoeren heeft een invoer geen volgorde.
+- `rechtsobject_als_invoer`: de enige invoer is een rechtsobject, geen waarde.
+- `voorwaarde_bij_andere_drager`: een voorwaarde in de bepaling hangt aan een andere drager, niet aan de regel.
+- `afwijking_zonder_uitzondering`: "in afwijking van" zonder relatie `uitzondering_op`.
+
+Bij het regelobject:
+- `uitvoer_zonder_begrip`: de uitvoerformulering draagt geen begrip.
+- `regelbegrip_zonder_bepalen`: het regelbegrip heet niet "bepalen <uitvoer>".
+- `parameter_zonder_tijdvak`: een parameter heeft geen waarde met een tijdvak.
+- `parameterwaarde_in_definitie`: de definitie van een parameter noemt een waarde.
+- `rust_op_contextbron`: de regel rust op een bron met de rol context; misschien wordt het een bron om te analyseren.
+- `operator_zonder_begrip`: een operatorformulering in de regel draagt geen operatorbegrip.
+- `impliciete_invoer`: een invoer rust op geen formulering en geen regel leidt haar af; signaleer ontbrekend
+  uitvoeringsbeleid.
+
+In de keten van het werkgebied:
+- `zelfde_uitvoer`: meer regels leiden hetzelfde begrip af; hun gevallen moeten elkaar uitsluiten.
+- `regelbegrip_meer_uitvoeren`: één regelbegrip hoort bij regels met verschillende uitvoeren.

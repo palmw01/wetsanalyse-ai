@@ -527,6 +527,22 @@ MET_ONTLEDING = (R.REL_VOORWAARDE_AANHECHTING, R.REL_ROL_ONDERWERP, R.REL_ROL_VO
 SOORTEN = ("positief", "negatief", "rand", "overlap")
 
 
+def test_een_datumregel_heeft_het_tijdstip_als_invoer_en_geen_uitvoer():
+    """Meting bundel 3 (IW art. 52 lid 1): de datumregel kreeg geen invoer. De invoer is wat binnen het tijdstip ligt
+    (de dagtekening), niet de tijdsaanduiding met de duur die het omvat; een uitvoer is er niet."""
+    tekst = "Het bedrag is invorderbaar zes weken na de dagtekening van de beschikking."
+    regel = "invorderbaar zes weken na de dagtekening van de beschikking"
+    z = Zin(tekst)
+    tijdstip = z.span("de dagtekening van de beschikking")
+    detail = json.dumps({"toestand": "invorderbaar", "moment": "zes weken na de dagtekening van de beschikking",
+                         "invoer": {"start": tijdstip.start, "eind": tijdstip.eind, "tekst": tijdstip.tekst}})
+    z.markeer(regel, AR, code="DATE_ASSIGNMENT", detail=detail)
+    z.markeer("zes weken na de dagtekening van de beschikking", TIJD, "verbijzondert parameter")
+    z.markeer("de dagtekening van de beschikking", TIJD)
+    assert {r for r in kort(z.voorstel()) if r[0] in ("invoer", "uitvoer")} == {
+        ("invoer", "de dagtekening van de beschikking", regel, 1)}
+
+
 def test_een_ontkenning_heeft_een_operand_en_breekt_de_reeks_niet():
     """Termijnen (art. 9 lid 5 IW): 'niet' kreeg twee operanden, en 'meer dan' miste zijn eerste."""
     tekst = "Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn, vindt het eerste lid toepassing."
