@@ -94,7 +94,10 @@ def _tekst(iri: str, stukken: dict[str, _Stuk]) -> str:
 def _vindplaats(iri: str, stukken: dict[str, _Stuk], staarten: dict[str, str]) -> Vindplaats:
     """De vindplaats met de jci uit de rij, aangevuld met de toestand die de tools lazen: de link opent die versie."""
     s = stukken.get(iri)
-    return vindplaats_van(iri, jci=met_toestand(s.jci if s else "", staarten))
+    # Een bepaling die `bronmodel` niet kent (een divisie van een beleidsregel: Leidraad 14.4.1) kreeg haar IRI als label
+    # (meting na #1755, 19 nov 2026); het nummer uit de rij is de terugval, zoals het denkproces het noemt.
+    return vindplaats_van(iri, jci=met_toestand(s.jci if s else "", staarten),
+                          label=f"artikel {s.nummer}" if s and s.nummer else "")
 
 
 def _bepalingen(iri: str, stukken: dict[str, _Stuk], ontbreekt: list[str], staarten: dict[str, str],

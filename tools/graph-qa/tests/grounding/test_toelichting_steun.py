@@ -77,3 +77,11 @@ def test_alleen_de_toelichting_van_lex_in_een_sjabloon_van_de_graaf():
     assert _toelichting_van_lex({"antwoord": {"sjabloon": "duiding", "blokken": blokken}}) is None
     assert _toelichting_van_lex({"antwoord": {"sjabloon": "begrip", "blokken": blokken[:1]}}) is None
     assert _toelichting_van_lex({"answer": "vrije tekst"}) is None
+
+
+def test_de_logregel_noemt_de_soort_bewering_zonder_de_tekst():
+    from agent.nodes.antwoord import bewering_soorten
+
+    assert bewering_soorten(["toelichting zonder steun in wat gelezen is: “Derdenbeslag is …”",
+                             "toelichting zonder steun in wat gelezen is: “Een bank …”", "samenvatting van kst-1-2 (x)"]) == {
+        "toelichting zonder steun in wat gelezen is": 2, "samenvatting van kst-1-2": 1}
