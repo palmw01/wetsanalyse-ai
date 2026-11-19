@@ -87,6 +87,16 @@ def test_de_datumregel_stopt_voor_de_nevenschikking(parser):
     assert not any("naheffingsaanslag" in s for s in spans)
 
 
+def test_de_datumregel_stopt_bij_het_moment(parser):
+    """IW art. 63b lid 5 (meting 20 nov 2026): de parser hangt de nabepaling onder de tijdsbepaling; de regel eindigt
+    bij het moment, niet bij het eind van de zin."""
+    tekst = ("Een door de ontvanger opgelegde bestuurlijke boete is invorderbaar zes weken na de dagtekening van de "
+             "beschikking waarbij deze is opgelegd, met overeenkomstige toepassing van de regels die gelden voor de "
+             "invordering van de belastingaanslag in verband waarmee deze is opgelegd.")
+    k, = _met(GevolgDetector(), tekst, parser, "DATE_ASSIGNMENT")
+    assert k.span.tekst == "invorderbaar zes weken na de dagtekening van de beschikking waarbij deze is opgelegd"
+
+
 @pytest.mark.parametrize("tekst", [
     "Een belastingaanslag die een bedrag behelst is niet invorderbaar zolang het adres ontbreekt.",
     "Het invorderbare bedrag wordt binnen zes weken na de dagtekening betaald.",
