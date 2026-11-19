@@ -17,14 +17,21 @@ from . import BronTekst, resultaat
 _AANHEF = re.compile(r"\bwordt\s+(?:in\s+[^:]{0,80}\s+)?verstaan\s+onder\s*:", re.IGNORECASE)
 # Eén zin: 'Onder X wordt verstaan: Y.' / 'Onder X wordt verstaan Y.'
 _ZIN = re.compile(r"\b[Oo]nder\s+[^.;:]{1,120}?\s+wordt\s+verstaan\s*:?\s*[^.;]+[.;]?")
+# De benoemende formule ('Een voorlopige aanslag tot een negatief bedrag … wordt aangeduid als voorlopige teruggaaf.',
+# AWR art. 13 lid 2; L-2-6): de hele zin, vanaf het begin, tot de term. Alleen 'wordt'/'worden' zonder modaal werkwoord ervoor: 'kan
+# worden aangeduid als gevaarlijk' kwalificeert, en benoemt geen begrip. Zwak bewijs: het model bevestigt.
+_AANGEDUID = re.compile(r"(?:^|(?<=[.;:]\s)|(?<=\n))(?P<zin>[^.;:\n]{1,300}?(?<!kan )(?<!kunnen )(?<!mag )(?<!mogen )(?<!zal )(?<!zullen )\b(?:wordt|worden)\s+"
+                        r"(?:in\s+[^.;:\n]{0,80}?\s+)?(?:hierna\s+)?aangeduid\s+als\s+[^.;\n]+[.;]?)")
 
 
 class DefinitieDetector:
     naam = "definitie"
-    versie = "2"
+    # 3: de benoemende formule 'wordt aangeduid als' (L-2-6)
+    versie = "3"
     REGEL_ONDERDEEL = "jas.definitie.onderdeel_term_dubbelepunt"
     REGEL_ZIN = "jas.definitie.verstaan_onder"
-    REGELS = (REGEL_ONDERDEEL, REGEL_ZIN)
+    REGEL_AANGEDUID = "jas.definitie.aangeduid_als"
+    REGELS = (REGEL_ONDERDEEL, REGEL_ZIN, REGEL_AANGEDUID)
     BEWIJS = {"DEFINITION_ITEM": ("sterk", "Brondefinitie"), "DEFINITION_SENTENCE": ("sterk", "Brondefinitie")}
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
@@ -42,6 +49,14 @@ class DefinitieDetector:
             kandidaten.append(Candidate.maak(
                 bron.span(*m.span()), ["Brondefinitie"],
                 [Evidence(detector=self.naam, code="DEFINITION_SENTENCE", regel=self.REGEL_ZIN)]))
+        for m in _AANGEDUID.finditer(tekst):
+            s, e = m.span("zin")
+            while s < e and tekst[s].isspace():
+                s += 1
+            if s < e:
+                kandidaten.append(Candidate.maak(
+                    bron.span(s, e), ["Brondefinitie"],
+                    [Evidence(detector=self.naam, code="DEFINITION_DESIGNATION", regel=self.REGEL_AANGEDUID)]))
         return resultaat(self, bron, kandidaten)
 
 

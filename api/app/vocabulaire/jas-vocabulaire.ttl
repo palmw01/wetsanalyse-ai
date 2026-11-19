@@ -182,8 +182,8 @@
     jas:codeWaarde "CALCULATION_CALENDAR_POSITION" .
 
 <urn:jas-ns:code:CALCULATION_QUANTITY> a jas:Detectiecode ;
-    skos:definition "Zoveel onderdelen als er overblijven: invoer en uitkomst van een mogelijke berekening."@nl ;
-    skos:prefLabel "Aantal uit een restant"@nl ;
+    skos:definition "Zoveel onderdelen als er van iets anders zijn of overblijven: invoer en uitkomst van een mogelijke berekening."@nl ;
+    skos:prefLabel "Aantal uit een telling"@nl ;
     jas:codeWaarde "CALCULATION_QUANTITY" .
 
 <urn:jas-ns:code:CLAUSE_COORDINATION> a jas:Detectiecode ;
@@ -200,6 +200,11 @@
     skos:definition "Een rechtsgevolg legt een moment vast ('vervalt één maand na de dagtekening', 'vervalt op 15 april'): ook een afleiding van een datum. Met een voorwaarde ervoor is de hele als-dan-zin een eigen kandidaat."@nl ;
     skos:prefLabel "Datum uit een rechtsgevolg"@nl ;
     jas:codeWaarde "DATE_ASSIGNMENT" .
+
+<urn:jas-ns:code:DEFINITION_DESIGNATION> a jas:Detectiecode ;
+    skos:definition "'… wordt aangeduid als X': de zin geeft iets een eigen naam, en daarmee een begrip."@nl ;
+    skos:prefLabel "Benoeming"@nl ;
+    jas:codeWaarde "DEFINITION_DESIGNATION" .
 
 <urn:jas-ns:code:DEFINITION_ITEM> a jas:Detectiecode ;
     skos:definition "Een onderdeel van een begripsbepalingenartikel: 'a. X: …'."@nl ;
@@ -311,6 +316,11 @@
     skos:prefLabel "Kern van dezelfde tijdsfunctie"@nl ;
     jas:codeWaarde "TEMPORAL_KERNEL" .
 
+<urn:jas-ns:code:TEMPORAL_VALUE> a jas:Detectiecode ;
+    skos:definition "Een datum of tijdstip van iets ('de dagtekening van het aanslagbiljet'): een gegeven dat een regel gebruikt, geen handeling."@nl ;
+    skos:prefLabel "Tijdstip als waarde"@nl ;
+    jas:codeWaarde "TEMPORAL_VALUE" .
+
 <urn:jas-ns:code:THING_NP> a jas:Detectiecode ;
     skos:definition "De kern is een zaak ('het aanslagbiljet', 'een belastingaanslag'): geen drager van een recht of plicht, dus geen rechtssubject – ook niet als onderwerp."@nl ;
     skos:prefLabel "Document of rechtshandeling als ding"@nl ;
@@ -351,6 +361,13 @@
     dcterms:source "H2:71" ;
     skos:prefLabel "Gelijkstelling"@nl ;
     jas:code <urn:jas-ns:code:LEGAL_EQUATION> ;
+    jas:regelVersie 1 ;
+    jas:wijstAan <urn:jas-ns:klasse:Afleidingsregel> .
+
+<urn:jas-ns:regel:jas.afleiding.verdeling> a jas:Detectorregel ;
+    dcterms:source "H2:71" ;
+    skos:prefLabel "Verdeling in gelijke delen"@nl ;
+    jas:code <urn:jas-ns:code:CALCULATION_DIVISION> ;
     jas:regelVersie 1 ;
     jas:wijstAan <urn:jas-ns:klasse:Afleidingsregel> .
 
@@ -976,12 +993,17 @@
     jas:vanKlasse <urn:jas-ns:klasse:Rechtsfeit> .
 
 <urn:jas-ns:relatieregel:REL_INVOER_FUNCTIE> a jas:Relatieregel ;
-    skos:definition "De afleidingsregel noemt waaruit ze rekent ('… als er maanden overblijven'); de markeringen op die plek binnen de regel zijn haar invoer, zonder volgorde."@nl ;
+    skos:definition "De afleidingsregel noemt waaruit ze rekent ('… als er maanden overblijven'); de waarden op die plek binnen de regel zijn haar invoer, in de volgorde van de tekst. Een rechtsobject binnen een waarde is geen invoer."@nl ;
     skos:prefLabel "Invoer van de berekening"@nl ;
     jas:codeWaarde "REL_INVOER_FUNCTIE" .
 
+<urn:jas-ns:relatieregel:REL_KENMERK_INVOER> a jas:Relatieregel ;
+    skos:definition "Binnen de invoer van een regel staat een variabele met een rechtsobject erin ('de dagtekening van het aanslagbiljet'): de variabele is een kenmerk van dat object."@nl ;
+    skos:prefLabel "Kenmerk binnen de invoer"@nl ;
+    jas:codeWaarde "REL_KENMERK_INVOER" .
+
 <urn:jas-ns:relatieregel:REL_OPERAND_WOORDVOLGORDE> a jas:Relatieregel ;
-    skos:definition "De markering direct links (plek 1) of rechts (plek 2) van de operator, binnen dezelfde voorwaarde of regel, is een operand. De woordvolgorde geeft de plek; een andere operator ertussen breekt de reeks."@nl ;
+    skos:definition "De markering direct links (plek 1) of rechts (plek 2) van de operator, binnen dezelfde voorwaarde of regel, is een operand. De woordvolgorde geeft de plek; een andere operator ertussen breekt de reeks. Een ontkenning ('niet', 'geen') heeft één operand, rechts."@nl ;
     skos:prefLabel "Operand naast de operator"@nl ;
     jas:codeWaarde "REL_OPERAND_WOORDVOLGORDE" .
 
@@ -1006,7 +1028,7 @@
     jas:codeWaarde "REL_UITVOER_FUNCTIE" .
 
 <urn:jas-ns:relatieregel:REL_VOORWAARDE_AANHECHTING> a jas:Relatieregel ;
-    skos:definition "Een voorwaardelijke bijzin ('indien', 'als', 'tenzij' …) hangt in de zinsontleding aan het hoofdpredicaat; de enige rechtsbetrekking of afleidingsregel die dat predicaat draagt, geldt onder die voorwaarde."@nl ;
+    skos:definition "Een voorwaardelijke bijzin ('indien', 'als', 'tenzij' …) hangt in de zinsontleding aan het hoofdpredicaat; de rechtsbetrekking of afleidingsregel die dat predicaat draagt, geldt onder die voorwaarde. Dragen een rechtsbetrekking en een afleidingsregel het samen, dan allebei."@nl ;
     skos:prefLabel "Voorwaarde bij het hoofdpredicaat"@nl ;
     jas:codeWaarde "REL_VOORWAARDE_AANHECHTING" .
 
@@ -1173,6 +1195,11 @@
     skos:definition "Een zin waarin iets een bedrag of waarde 'bedraagt' – de vorm van een afleidingsregel."@nl ;
     skos:prefLabel "Berekening met 'bedraagt'"@nl ;
     jas:codeWaarde "CALCULATION_COPULA" .
+
+<urn:jas-ns:code:CALCULATION_DIVISION> a jas:Detectiecode ;
+    skos:definition "'In zoveel gelijke termijnen', 'voor gelijke delen': een geheel wordt door een aantal gedeeld."@nl ;
+    skos:prefLabel "Verdeling in gelijke delen"@nl ;
+    jas:codeWaarde "CALCULATION_DIVISION" .
 
 <urn:jas-ns:code:CALCULATION_PASSIVE> a jas:Detectiecode ;
     skos:definition "'Wordt gesteld op', 'wordt berekend', 'wordt in aanmerking genomen': een waarde wordt vastgesteld."@nl ;
@@ -1479,19 +1506,6 @@
     jas:uitdrukkingswijze "Te herkennen aan een of meer werkwoorden, langs twee herkenningsroutes: hoofdwerkwoord met hulpwerkwoord — bij een recht: ‘kan verzoeken’, ‘mag wijzigen’; bij een plicht: ‘stelt vast’, ‘mag niet inhalen’, ‘is verplicht informatie te verstrekken’, ‘moet informeren’, ‘dient te voldoen’. samengesteld werkwoord — bij een recht: ‘heeft recht op’, ‘heeft aanspraak op’; bij een plicht: ‘heeft de plicht om’, ‘draagt de last om’."@nl ;
     jas:volgorde 2 .
 
-<urn:jas-ns:klasse:Afleidingsregel> a skos:Concept,
-        jas:Klasse ;
-    dcterms:source "omschrijving H2:71",
-        "uitdrukkingswijze H2:73",
-        "vraag H2:72" ;
-    skos:definition "Een afleidingsregel is een regel die nieuwe feiten of waarden creëert met behulp van bestaande feiten of waarden. Te denken valt aan regels die bepalen of een recht bestaat (een beslisregel), of die de hoogte en duur van een recht bepalen (een rekenregel). De variabele die vastgesteld wordt door de afleidingsregels, noemen we uitvoervariabele. Bij een rekenregel is dit de uitkomst van de rekensom; bij een beslisregel een conclusie als ja/nee of waar/onwaar. De variabelen die gebruikt worden voor de vaststelling, noemen we invoervariabelen. Als sprake is van vaste getallen of waarden in een afleidingsregel die over een periode gelijk zijn voor alle rechtssubjecten en rechtsobjecten, noemen we deze parameters. Afleidingsregels worden ook gebruikt om te bepalen of een rechtssubject of rechtsobject tot een bepaalde doelgroep behoort; het gaat dan om het afleiden van specialisaties van rechtssubjecten en rechtsobjecten op basis van bepaalde kenmerken."@nl ;
-    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
-    skos:prefLabel "Afleidingsregel"@nl ;
-    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
-    jas:herkenningsvraag "Hoe wordt een variabele berekend of afgeleid? Hoe wordt een specifiek rechtssubject of rechtsobject bepaald?"@nl ;
-    jas:uitdrukkingswijze "Te herkennen aan woorden die duiden op een berekening of afleiding, zoals ‘is (…) verminderd met’, ‘bedraagt (…) vermeerderd met’, ‘wordt gesteld op’ of ‘is het gezamenlijke bedrag van’, maar ook eenvoudigweg ‘en’."@nl ;
-    jas:volgorde 5 .
-
 <urn:jas-ns:klasse:ParameterEnParameterwaarde> a skos:Concept,
         jas:Klasse ;
     dcterms:source "omschrijving H2:89",
@@ -1518,9 +1532,22 @@
     jas:uitdrukkingswijze "Te herkennen aan een concrete datum (bijvoorbeeld 1 september 2009), of aan een omschrijving die een datum beschrijft (de eerste maandag van de maand). Tijdvakken zijn vaak te herkennen aan woorden die een periode duiden, zoals jaar, maand, week en dag, of specialisaties daarvan zoals kalenderjaar."@nl ;
     jas:volgorde 9 .
 
+<urn:jas-ns:klasse:Afleidingsregel> a skos:Concept,
+        jas:Klasse ;
+    dcterms:source "omschrijving H2:71",
+        "uitdrukkingswijze H2:73",
+        "vraag H2:72" ;
+    skos:definition "Een afleidingsregel is een regel die nieuwe feiten of waarden creëert met behulp van bestaande feiten of waarden. Te denken valt aan regels die bepalen of een recht bestaat (een beslisregel), of die de hoogte en duur van een recht bepalen (een rekenregel). De variabele die vastgesteld wordt door de afleidingsregels, noemen we uitvoervariabele. Bij een rekenregel is dit de uitkomst van de rekensom; bij een beslisregel een conclusie als ja/nee of waar/onwaar. De variabelen die gebruikt worden voor de vaststelling, noemen we invoervariabelen. Als sprake is van vaste getallen of waarden in een afleidingsregel die over een periode gelijk zijn voor alle rechtssubjecten en rechtsobjecten, noemen we deze parameters. Afleidingsregels worden ook gebruikt om te bepalen of een rechtssubject of rechtsobject tot een bepaalde doelgroep behoort; het gaat dan om het afleiden van specialisaties van rechtssubjecten en rechtsobjecten op basis van bepaalde kenmerken."@nl ;
+    skos:inScheme <urn:jas-ns:schema:jas-1.0.10> ;
+    skos:prefLabel "Afleidingsregel"@nl ;
+    skos:topConceptOf <urn:jas-ns:schema:jas-1.0.10> ;
+    jas:herkenningsvraag "Hoe wordt een variabele berekend of afgeleid? Hoe wordt een specifiek rechtssubject of rechtsobject bepaald?"@nl ;
+    jas:uitdrukkingswijze "Te herkennen aan woorden die duiden op een berekening of afleiding, zoals ‘is (…) verminderd met’, ‘bedraagt (…) vermeerderd met’, ‘wordt gesteld op’ of ‘is het gezamenlijke bedrag van’, maar ook eenvoudigweg ‘en’."@nl ;
+    jas:volgorde 5 .
+
 <urn:jas-ns:schema:jas-1.0.10> a skos:ConceptScheme ;
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "60c4604966e7" .
+    jas:vocabulaireVersie "0242bc003a01" .
 

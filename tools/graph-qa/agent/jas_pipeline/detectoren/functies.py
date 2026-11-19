@@ -22,8 +22,11 @@ from . import resultaat
 from .ontleding import bereik, in_verwijzing, parse_of_reden, zonder_randfunctie
 from .regels import woordenlijsten
 
-AR, T, VW = "Afleidingsregel", "Tijdsaanduiding", "Voorwaarde"
-_AANTAL = re.compile(r"\bzoveel\s+(?P<uitkomst>[\s\S]+?)\s+als\s+(?P<invoer>[\s\S]*\b(?:overblijven|resteren)\b)", re.I)
+AR, T, VW, VAR = "Afleidingsregel", "Tijdsaanduiding", "Voorwaarde", "Variabele en variabelewaarde"
+# 'zoveel <telbare uitkomst> als (er) <telbare invoer> <werkwoord>': de uitkomst tot 'als'; de invoer is de bijzin die
+# 'als' inleidt, tot het eind van zijn werkwoord (de parse beslist, `_aantal`). 'overblijven' of 'resteren' is geen eis:
+# 'als er maanden van het jaar zijn' telt net zo goed (art. 9 lid 7 IW, Termijnen 19 nov 2026).
+_AANTAL = re.compile(r"\bzoveel\s+(?P<uitkomst>[^.;:]+?)\s+als\s+", re.I)
 # Voegwoorden van een voorwaardelijke bijzin; gedeeld met de nominalisatiedetector.
 VOORWAARDE_VOEGWOORDEN = frozenset({"indien", "als", "wanneer", "zodra"})
 _ONTKENNING = {"geen", "niet"}
@@ -41,6 +44,36 @@ def _elliptisch() -> re.Pattern:
 
 def _lem(a, i) -> str:
     return (a.tokens[i].lemma or a.tokens[i].tekst).lower()
+
+
+def _telbaar(a, start: int, eind: int) -> bool:
+    """Draagt het bereik een telbare grootheid: een zelfstandig naamwoord in het meervoud ('termijnen', 'maanden')."""
+    return any(t.upos == "NOUN" and t.feat("Number") == "Plur" and start <= t.start and t.eind <= eind
+               for t in a.tokens)
+
+
+def _aantal(a, tekst: str, s: int, e: int):
+    """'zoveel X als … <werkwoord>' in segment [s, e): (uitkomst, invoer) als bereiken, of None.
+
+    De invoer is de bijzin van 'als': van na 'als' tot en met het eerste werkwoord dat niet in een betrekkelijke bijzin
+    staat ('… na de maand, die in de dagtekening is vermeld, nog maanden van het jaar overblijven'). Niet de subboom van
+    'als': de parser hangt 'als' in zo'n zin soms aan een naamwoord (art. 9 lid 5 IW). Uitkomst en invoer moeten allebei
+    een telbare grootheid dragen; 'zoveel mogelijk' of 'zoveel als nodig' telt niet, want dat is geen aantal dat de
+    regel afleidt."""
+    m = _AANTAL.search(tekst, s, e)
+    if not m:
+        return None
+    begin = m.end()
+    na = [t for t in a.tokens if begin <= t.start and t.eind <= e]
+    bijzin = {j for t in na if t.deprel == "acl:relcl" for j in a.subboom(t.i)}
+    werkwoord = next((t for t in na if t.upos in {"VERB", "AUX"} and t.i not in bijzin), None)
+    if werkwoord is None:
+        return None
+    invoer = (begin, werkwoord.eind)
+    uitkomst = (m.start("uitkomst"), m.end("uitkomst"))
+    if invoer[0] >= invoer[1] or not (_telbaar(a, *uitkomst) and _telbaar(a, *invoer)):
+        return None
+    return m.start(), uitkomst, invoer
 
 
 def toepassingskeuze(a, i: int) -> dict | None:
@@ -71,12 +104,13 @@ def toepassingskeuze(a, i: int) -> dict | None:
 class FunctieDetector:
     naam = "functie"
     # 3: afleiding en toepassingskeuze op hun eigen span, het segment als optie
-    versie = f"3+grenzen.{GRENS_VERSIE}+verwijzing.{VERWIJZING_VERSIE}"
+    # 4: 'zoveel … als' met elke telbare bijzin (de parse), en een tijdstip als waarde (L-2-1, L-2-5)
+    versie = f"4+grenzen.{GRENS_VERSIE}+verwijzing.{VERWIJZING_VERSIE}"
     CODES = ("CALCULATION_ASSIGNMENT", "CALCULATION_QUANTITY", "CALCULATION_CALENDAR_POSITION",
-             "TEMPORAL_DESCRIPTION", "CONDITIONAL_ELLIPSIS", "CALCULATION_APPLICABILITY")
-    REGELS = ("jas.afleiding.passieve_toewijzing", "jas.afleiding.aantal_uit_restant",
+             "TEMPORAL_DESCRIPTION", "CONDITIONAL_ELLIPSIS", "CALCULATION_APPLICABILITY", "TEMPORAL_VALUE")
+    REGELS = ("jas.afleiding.passieve_toewijzing", "jas.afleiding.aantal_zoveel_als",
               "jas.afleiding.kalenderpositie", "jas.tijd.datumomschrijving",
-              "jas.voorwaarde.elliptisch", "jas.afleiding.toepassingskeuze")
+              "jas.voorwaarde.elliptisch", "jas.afleiding.toepassingskeuze", "jas.variabele.tijdstip_als_waarde")
 
     def detecteer(self, bron):
         a, reden = parse_of_reden(bron)
@@ -92,7 +126,8 @@ class FunctieDetector:
             gezien.add((s, e, code))
             opties = [SpanOption(soort="segment", span=BronSpan.van(bron.span(*segment)))] \
                 if segment and segment != (s, e) else []
-            ks.append(Candidate.maak(bron.span(s, e), [klasse], [Evidence(
+            klassen = list(klasse) if isinstance(klasse, tuple) else [klasse]
+            ks.append(Candidate.maak(bron.span(s, e), klassen, [Evidence(
                 detector=self.naam, code=code, regel=regel,
                 detail=json.dumps(bewijs, ensure_ascii=False, sort_keys=True))], opties))
 
@@ -133,10 +168,11 @@ class FunctieDetector:
         for segment in segmenten:
             s, e = segment.start, segment.eind
             tekst = bron.tekst[s:e]
-            if m := _AANTAL.search(tekst):
-                voeg(s + m.start(), s + m.end("invoer"), AR, "CALCULATION_QUANTITY", self.REGELS[1], segment=(s, e),
-                     **{naam: {"start": s + m.start(naam), "eind": s + m.end(naam), "tekst": m[naam]}
-                        for naam in ("uitkomst", "invoer")})
+            if gevonden := _aantal(a, bron.tekst, s, e):
+                begin, uitkomst, invoer = gevonden
+                voeg(begin, invoer[1], AR, "CALCULATION_QUANTITY", self.REGELS[1], segment=(s, e),
+                     **{naam: {"start": g[0], "eind": g[1], "tekst": bron.tekst[g[0]:g[1]]}
+                        for naam, g in (("uitkomst", uitkomst), ("invoer", invoer))})
             # Een ordinaliteitsvergelijking bij het bepalen van een vervaldatum, geen losse 'als'.
             if (re.search(r"\bvervalt\b", tekst, re.I)
                     and re.search(r"\bdag\s+die\s+hetzelfde\s+nummer\s+heeft\s+als\b", tekst, re.I)):
@@ -144,6 +180,22 @@ class FunctieDetector:
                      bewerking="gelijke kalenderpositie", uitkomst="vervaldag")
 
         for t in a.tokens:
+            # Een tijdstip als waarde: '<lidwoord> dagtekening van <iets>', zonder eigen werkwoord en zonder bijzin
+            # (die is TEMPORAL_DESCRIPTION). Een gegeven dat een regel leest of afleidt, geen handeling (L-2-5).
+            van = [n for n in kind(t.i, "nmod") if any(lemma(c) == "van" for c in kind(n, "case"))]
+            if (_lijst("TIJDSTIP").match(lemma(t.i)) and t.feat("Number") != "Plur" and not kind(t.i, "acl:relcl")
+                    and van):
+                # Het tijdstip met lidwoord en bijvoeglijk naamwoord en zijn van-bepaling; niet de duur ervoor
+                # ('zes weken na …') en niet het voorzetsel van de zin.
+                ids = {t.i, *kind(t.i, "det"), *(k for k in kind(t.i, "amod") if a.tokens[k].upos == "ADJ"),
+                       *(i for n in van for i in a.subboom(n))}
+                # Een nevenschikking hoort er niet bij ('… van het aanslagbiljet en een naheffingsaanslag').
+                ids -= {j for i in list(ids) if a.tokens[i].deprel in {"conj", "cc"} and a.tokens[i].head in ids
+                        for j in a.subboom(i)}
+                g = bereik(a, ids)
+                if (g and not in_verwijzing(bron, *g)
+                        and not any(a.tokens[i].upos in {"VERB", "AUX"} for i in ids)):
+                    voeg(*g, (VAR, T), "TEMPORAL_VALUE", self.REGELS[6], hoofd=t.tekst)
             if lemma(t.i) in {"dag", "datum", "tijdstip", "vervaldag"}:
                 if kind(t.i, "acl:relcl"):
                     ids = set(a.subboom(t.i))
