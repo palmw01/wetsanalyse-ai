@@ -299,7 +299,11 @@ def plaats(d: Diagram, breedte: float = 480.0, vorm: Literal["formuleringen", "b
             y += h + BAND
         return y
 
-    y = rijen(per_zone["boven"], 0.0)
+    # Boven en onder krijgt elke stap een eigen rij, de tweede stap verder van het midden: anders loopt een lijn van de
+    # tweede stap naar de eerste door een buur in dezelfde rij.
+    y = 0.0
+    for d in sorted({k.diepte for k in per_zone["boven"]}, reverse=True):
+        y = rijen([k for k in per_zone["boven"] if k.diepte == d], y)
     # De middelste band: partijen links en het voorwerp rechts gestapeld, de centrale formulering verticaal in het midden.
     midden_x = {"links": 0.0, "midden": (breedte - b) / 2, "rechts": breedte - b}
     stapel = {z: sum(hoogte(k) for k in per_zone[z]) + TUSSEN_Y * max(0, len(per_zone[z]) - 1) for z in midden_x}
@@ -309,5 +313,6 @@ def plaats(d: Diagram, breedte: float = 480.0, vorm: Literal["formuleringen", "b
         for k in per_zone[z]:
             yz += zet(k, x, yz) + TUSSEN_Y
     y += band + BAND
-    y = rijen(per_zone["onder"], y)
+    for d in sorted({k.diepte for k in per_zone["onder"]}):
+        y = rijen([k for k in per_zone["onder"] if k.diepte == d], y)
     return Plaatsing(breedte=breedte, hoogte=round(y - BAND, 2), knopen=geplaatst)
