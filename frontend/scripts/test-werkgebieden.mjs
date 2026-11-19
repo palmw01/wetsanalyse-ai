@@ -265,13 +265,14 @@ try {
   assert.equal(await menu9.getByRole("menuitemradio", { name: "Contextbron" }).getAttribute("aria-checked"), "true");
   await page.keyboard.press("Escape");
 
-  // Artefacten: vier zelfstandige producten, elk met een eigen pagina; de filter laat er één zien.
-  await tab("Artefacten (4)").click();
+  // Artefacten: vijf zelfstandige producten (sinds R2 ook de afleidingsregels), elk met een eigen pagina; de filter laat
+  // er één zien.
+  await tab("Artefacten (5)").click();
   await page.waitForURL("**/werkgebieden/wg1/artefacten");
-  assert.equal(await page.locator("[data-artefact-kaart]").count(), 4);
+  assert.equal(await page.locator("[data-artefact-kaart]").count(), 5);
   // Kort, en zonder de naam van het werkgebied (7 nov 2026).
   assert.deepEqual(await page.locator("[data-artefact-kaart] .font-display").allInnerTexts(),
-    ["Analysedossier", "Bronselectie", "JAS-annotaties", "Begrippenkader"]);
+    ["Analysedossier", "Bronselectie", "JAS-annotaties", "Begrippenkader", "Afleidingsregels"]);
   await page.getByRole("button", { name: "Begrippenkader", exact: true }).click();
   assert.equal(await page.locator("[data-artefact-kaart]").count(), 1);
   await page.getByRole("button", { name: "Alles", exact: true }).click();

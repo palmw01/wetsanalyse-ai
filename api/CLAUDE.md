@@ -1007,6 +1007,9 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   afleidt naar de regel die het gebruikt, de volgorde van onder naar boven, basisgegevens (invoer zonder regel) en
   signalen (`zelfde_uitvoer`, `kring`). Een afgewezen of vervangen regel doet niet mee.
 - **Afwijzen bewaart** (`POST …/afwijzen`, reden verplicht); **verwijderen is echt wissen**, met een auditregel.
+- **Het overzicht over werkgebieden heen** (`GET /v1/regels`, `regels.overzicht_router`, `regel_store.overzicht`): de
+  zijbalk van de webapp, in de vorm van `GET /v1/begrippen`. Zoeken in naam, uitvoer en regeltekst (zonder hoofdletters of
+  diakrieten), filteren op status en werkgebied, `mijn` (een revisie van jou), en `per_status` zonder het statusfilter.
 - Artefactsoorten: `regel` (ref `werkgebied_id`, `regel_id`) en `regels` (ref `werkgebied_id`), allebei met versies.
 - Tests: `tests/test_regels.py` en `tests/test_regels_termijnen.py` (de ontwikkelset: R1–R8 van Termijnen passen zonder
   vrije tekst).

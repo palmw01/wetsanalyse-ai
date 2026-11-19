@@ -17,6 +17,7 @@ import { ElementenTab } from "@/components/werkgebieden/ElementenTab";
 import { HistorieTab } from "@/components/werkgebieden/HistorieTab";
 import { GegevensFormulier, ProjectKop, datum } from "@/components/werkgebieden/ProjectKop";
 import { SamenhangTab } from "@/components/werkgebieden/SamenhangTab";
+import { RegelKeten } from "@/components/werkgebieden/RegelKeten";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
 import { VraagLexKnop } from "@/components/werkplek/VraagLexKnop";
 import { wijzigWerkgebied } from "@/lib/api";
@@ -46,7 +47,7 @@ export function ArtefactPagina({ soort, deel }: {
 }) {
   const { wg, stand, zetBreed } = useWerkgebied();
   const kaart = artefactKaarten(wg, stand).find((k) => k.soort === soort)!;
-  const breed = soort === "begrippen" || soort === "annotaties";
+  const breed = soort === "begrippen" || soort === "annotaties" || soort === "regels";
   useEffect(() => {
     zetBreed(breed);
     return () => zetBreed(false);
@@ -70,13 +71,14 @@ export function ArtefactPagina({ soort, deel }: {
       {soort === "dossier" && <Dossier />}
       {soort === "annotaties" && <Annotaties />}
       {soort === "begrippen" && <Begrippenkader deel={deel} />}
+      {soort === "regels" && <RegelKeten werkgebiedId={wg.id} naam={wg.naam} />}
     </div>
   );
 }
 
 function Relaties({ soort }: { soort: ArtefactSoort }) {
   const { wg } = useWerkgebied();
-  const andere = (["dossier", "bronselectie", "annotaties", "begrippen"] as const).filter((s) => s !== soort);
+  const andere = (["dossier", "bronselectie", "annotaties", "begrippen", "regels"] as const).filter((s) => s !== soort);
   return (
     <Kaart titel="Samenhang">
       <ul className="space-y-1">

@@ -50,15 +50,24 @@ describe("selectieStand", () => {
 });
 
 describe("artefactKaarten", () => {
-  it("vier kaarten uit wat er ligt; zonder data geen status", () => {
+  it("vijf kaarten uit wat er ligt; zonder data geen status", () => {
     const k = artefactKaarten(wg());
-    expect(k.map((x) => x.soort)).toEqual(["dossier", "bronselectie", "annotaties", "begrippen"]);
+    expect(k.map((x) => x.soort)).toEqual(["dossier", "bronselectie", "annotaties", "begrippen", "regels"]);
     // Kort, en zonder de naam van het werkgebied: die staat al in de kop van het project (7 nov 2026).
-    expect(k.map((x) => x.titel)).toEqual(["Analysedossier", "Bronselectie", "JAS-annotaties", "Begrippenkader"]);
+    expect(k.map((x) => x.titel)).toEqual(["Analysedossier", "Bronselectie", "JAS-annotaties", "Begrippenkader", "Afleidingsregels"]);
     for (const x of k) expect(x.titel).not.toContain(wg().naam);
     expect(k[0].status?.tekst).toBe("1 van 6 velden · 0 deelvragen");
     expect(k[2].status).toBeNull();
     expect(k[3].status).toBeNull();
+    expect(k[4].status).toBeNull();
+  });
+
+  it("telt de afleidingsregels zonder afgewezen en vervangen; een beleidsregel telt als geaccordeerd", () => {
+    const k = artefactKaarten(wg(), {
+      regels: [{ status: "geaccordeerd" }, { status: "geaccordeerd_als_beleidsregel" }, { status: "concept" },
+        { status: "afgewezen" }, { status: "vervangen" }] as never,
+    });
+    expect(k[4]).toMatchObject({ versie: "3 regels", status: { tekst: "2 van 3 geaccordeerd", toon: "geel" } });
   });
 
   it("telt begrippen zonder de vervangen, en de open voorstellen van Lex", () => {

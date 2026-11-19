@@ -3,6 +3,8 @@ Gedeeld zoals de begrippen; elke route vraagt een actieve gebruiker, die als act
 Stijl C: de store gooit de fouten, de router is dun."""
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, Query
 
 from . import regel_store as store, werkgebied_store
@@ -15,6 +17,17 @@ from .werkgebieden import resolve_bron
 
 router = APIRouter(prefix="/werkgebieden/{werkgebied_id}", tags=["afleidingsregels"],
                    dependencies=[Depends(require_client)])
+#: De regels over werkgebieden heen, alleen lezen: het overzicht in de zijbalk (zoals `GET /v1/begrippen`).
+overzicht_router = APIRouter(prefix="/regels", tags=["afleidingsregels"], dependencies=[Depends(require_client)])
+
+RegelStatusFilter = Literal["concept", "geaccordeerd", "geaccordeerd_als_beleidsregel", "afgewezen", "vervangen"]
+
+
+@overzicht_router.get("")
+async def get_overzicht(q: str = Query("", max_length=200), status: list[RegelStatusFilter] = Query(default=[]),
+                        werkgebied_id: str | None = Query(None, max_length=64), mijn: bool = False,
+                        actor: str = Depends(actieve_userid)):
+    return await store.overzicht(q, list(status), werkgebied_id, actor if mijn else None)
 
 
 class Afwijzing(Revisie):

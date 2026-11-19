@@ -51,6 +51,17 @@ interface Props {
   verbruik?: Verbruiksstand | null;
 }
 
+
+/** De overzichten in de zijbalk, in de volgorde waarin je werkt (besluit gebruiker 21 okt 2026): het werkgebied, de
+ *  annotaties, de begrippen (activiteit 3a) en de afleidingsregels (3b, ADR-018). Een leesingang: het werk gebeurt op de
+ *  pagina van het object. */
+const NAVIGATIE: { href: string; label: string; icoon: React.ReactNode }[] = [
+  { href: "/werkgebieden", label: "Werkgebieden", icoon: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M9 9v11" /></> },
+  { href: "/annotaties", label: "Annotaties", icoon: <><path d="M4 5h16M4 12h10M4 19h7" /><circle cx="18" cy="17" r="3" /></> },
+  { href: "/begrippen", label: "Begrippen", icoon: <><path d="M4 6a2 2 0 0 1 2-2h9l5 5v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" /><path d="M8 11h8M8 15h5" /></> },
+  { href: "/afleidingsregels", label: "Afleidingsregels", icoon: <><path d="M5 4v4a3 3 0 0 0 3 3h8" /><path d="M5 20v-4a3 3 0 0 1 3-3h8" /><path d="m13 8 3 3-3 3" /><circle cx="19" cy="11" r="1.5" /></> },
+];
+
 /** De linker-sidebar van de werkplek: bovenin het logo van Lex, daaronder de chatgeschiedenis,
  *  onderin het instellingen-/gebruikersblok. Vult de volle hoogte; alleen de gesprekslijst scrollt. */
 export function GesprekSidebar({
@@ -72,9 +83,6 @@ export function GesprekSidebar({
 }: Props) {
   const { data: session } = useSession();
   const pad = usePathname();
-  const annotatiesActief = pad?.startsWith("/annotaties") ?? false;
-  const werkgebiedenActief = pad?.startsWith("/werkgebieden") ?? false;
-  const begrippenActief = pad?.startsWith("/begrippen") ?? false;
   const [menuOpen, setMenuOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -128,56 +136,25 @@ export function GesprekSidebar({
         </button>
       </div>
 
-      {/* Navigatie, bewust lichter dan de knop erboven: dat is een actie, dit is een plek. De
-          annotaties leven los van de gesprekken – een annotatie overleeft het gesprek waarin hij
-          gemaakt is, en moet dus ook zonder dat gesprek te vinden zijn. */}
-      <div className="px-3 pb-1">
-        {/* Een werkgebied brengt bepalingen samen rond één analysevraag; net als de annotaties
-            bestaat het los van de gesprekken. */}
-        <Link
-          href="/werkgebieden"
-          onClick={onSluit}
-          aria-current={werkgebiedenActief ? "page" : undefined}
-          className={`focus-ring flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
-            werkgebiedenActief ? "bg-lint/10 font-medium text-lint" : "text-ink hover:bg-paper"
-          }`}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <rect x="3" y="4" width="18" height="16" rx="2" />
-            <path d="M3 9h18M9 9v11" />
-          </svg>
-          Werkgebieden
-        </Link>
-        <Link
-          href="/annotaties"
-          onClick={onSluit}
-          aria-current={annotatiesActief ? "page" : undefined}
-          className={`focus-ring mt-0.5 flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
-            annotatiesActief ? "bg-lint/10 font-medium text-lint" : "text-ink hover:bg-paper"
-          }`}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M4 5h16M4 12h10M4 19h7" />
-            <circle cx="18" cy="17" r="3" />
-          </svg>
-          Annotaties
-        </Link>
-        {/* De begrippen over alle werkgebieden heen: een leesingang, het werk gebeurt op de kaart. */}
-        <Link
-          href="/begrippen"
-          onClick={onSluit}
-          aria-current={begrippenActief ? "page" : undefined}
-          className={`focus-ring mt-0.5 flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
-            begrippenActief ? "bg-lint/10 font-medium text-lint" : "text-ink hover:bg-paper"
-          }`}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M4 6a2 2 0 0 1 2-2h9l5 5v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
-            <path d="M8 11h8M8 15h5" />
-          </svg>
-          Begrippen
-        </Link>
-      </div>
+      {/* Navigatie, bewust lichter dan de knop erboven: dat is een actie, dit is een plek. Elk item is een overzicht over
+          de werkgebieden heen, dat los van de gesprekken bestaat (een annotatie overleeft het gesprek waarin hij gemaakt
+          is). Eén lijst, één vorm (`NAVIGATIE`). */}
+      <nav aria-label="Overzichten" className="px-3 pb-1">
+        {NAVIGATIE.map((n, i) => {
+          const actief = pad?.startsWith(n.href) ?? false;
+          return (
+            <Link key={n.href} href={n.href} onClick={onSluit} aria-current={actief ? "page" : undefined}
+              className={`focus-ring ${i ? "mt-0.5 " : ""}flex min-h-[36px] items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors coarse:min-h-[44px] ${
+                actief ? "bg-lint/10 font-medium text-lint" : "text-ink hover:bg-paper"
+              }`}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                {n.icoon}
+              </svg>
+              {n.label}
+            </Link>
+          );
+        })}
+      </nav>
 
       {/* Zoeken in de eigen gesprekken: titel en berichttekst, ook in het archief. Het veld scrolt niet mee. */}
       {stand?.zoek && (

@@ -6,7 +6,7 @@ opslag, de [wetsanalyse-API](../api). De app **is de werkplek**: `/workbench` (d
 leidt daarheen door.
 
 > **Scope: chat-werkruimte.** De app bestaat uit de werkplek, het annotatie-overzicht, de
-> werkgebieden, het begrippenoverzicht, Instellingen › Aanpassingen (methodes en agents uit de catalogus, ADR-014), de login-flow en het instellingenvenster (account, verbruik, berichten, en voor beheerders
+> werkgebieden, het begrippenoverzicht, het overzicht van de afleidingsregels, Instellingen › Aanpassingen (methodes en agents uit de catalogus, ADR-014), de login-flow en het instellingenvenster (account, verbruik, berichten, en voor beheerders
 > modelprofielen, gebruikers, aanvragen, API-tokens, berichtenbeheer en feedback).
 
 Lees ook de projectroot-`CLAUDE.md` en `../api/CLAUDE.md` – de API is de bron van waarheid voor de
@@ -474,7 +474,10 @@ te wissen. Geen Escape: het is geen laag. Het gebruikersmenu draagt de voorwaard
     met de voortgang van hun bronselectie (`useBronselectieStand`: `GET …/bronselectie` per revisie, faalt stil) en de
     bronnen met rol *analyseren*. Komt het binnen via `opgeslagen`, dan opent het
     paneel én gaat de werkplek verder in dat werkgebied (`onKiesWerkgebied`; het gesprek wordt eraan gekoppeld, de chatkop noemt het).
-  - **regels** – gereserveerd voor de afleidingsregels: de kaart staat er, maar is geen knop.
+  - **regel** en **regels** (ADR-018, R2) – één afleidingsregel (ref `{werkgebied_id, regel_id}`) of de keten van het
+    werkgebied (ref `{werkgebied_id}`). Het paneel is `RegelInhoud` (`RegelPaneel`, dezelfde regelkaart als op de pagina)
+    of `RegelKeten` (een rij opent de regel in hetzelfde paneel). Een oud bericht `regels` zonder werkgebied is geen
+    artefact meer (`parseArtefact`). Zie §*Afleidingsregels*.
   - **De delegatie** (ADR-016 §A5, en de regie van ADR-012) is geen artefact maar een blok op de beurt: `DelegatieBlok`,
     rekenkern `lib/delegatie.ts`. De events `regie` en `regie_taak` worden in de stroomstand (`StroomStand.delegaties`) het
     plan met per subagent de stand (loopt, wacht op antwoord, klaar, afgesloten, niet gelukt, gestopt, mislukt), het
@@ -1056,7 +1059,7 @@ begrip, werkgebied), met per soort een module in `MODULES` (`chip`, `suggesties`
   wat er gebeurde.
 - **Het laatste artefact blijft bereikbaar** via een balk boven de chat (titel · *Openen*) zodra het
   paneel dicht is, over de soorten heen (stelde Lex na een annotatie begrippen voor, dan zijn dát het
-  laatste werk); afleidingsregels slaat die balk over.
+  laatste werk), ook afleidingsregels.
 - **Een knop die een call doet, toont dat.** `BevestigKnop` await't `onBevestig`, staat zolang op
   `Bezig…` en is uitgeschakeld; `AppSidebar`/`AnnotatiesClient` halen een rij meteen weg en zetten hem
   bij een fout terug. Anders is een trage call (de BFF belt bij het verwijderen van een gesprek
@@ -1578,6 +1581,36 @@ bestaat los van de gesprekken.
   lijn als inset-schaduw en geen negatieve marge; `test-werkgebieden.mjs` toetst het op 390 px.
 - Browserregressie: `scripts/test-werkgebieden.mjs` en `scripts/test-begrippen.mjs` (mocks die revisies,
   de poort en de primaire duiding bijhouden zoals de api; de tweede loopt de acceptatie van levering 2).
+
+## Afleidingsregels (ADR-018, R2)
+
+De regel als object staat in de api (`../api/CLAUDE.md` §*Afleidingsregels*); hier de regelkaart en de keten. Lex stelt nog
+geen regels op (R5/R6 wachten op het akkoord over de agentische laag): je leest, beoordeelt en accordeert.
+
+- **De rekenkern** is `lib/regels.ts`: de vorm uit de api, de namen (`REGEL_STATUS_LABEL`, `DRAGER_ROL_LABEL`, …, met een
+  drifttest op de enums van `regel_contracts.py`), `regelsBijBegrip`, `inKetenVolgorde`, `buren` en de export
+  (`regelAlsMarkdown`, `regelsAlsMarkdown`: kopjes en lijsten, geen tabel). **De regeltekst typt de frontend nooit na**: die
+  komt van de api (`regeltekst.markdown`, begrippen cursief, operatorbegrippen vet).
+- **`useRegel`** (`lib/useRegel.ts`) laadt één regel en draagt `muteer`, in de vorm van `useBegrip`: de revisie in beeld,
+  een 412 laadt opnieuw en zegt het. `useRegelKeten` laadt de lijst en `regels/hierarchie`.
+- **De regelkaart** (`components/werkgebieden/RegelInhoud.tsx`) is gebouwd als de begripskaart: op de pagina
+  (`RegelPagina`, `/werkgebieden/[id]/regels/[regel]`) in `SplitDetail`, naast het gesprek onder elkaar. Links de regel
+  (tekst, uitvoer, invoer, parameters), de gevallen met hun voorbeelden en het oordeel "juridisch juist?", en de grondslag
+  en dragende passages (akkoord of afwijzen per drager); rechts de beoordeling (de poort van de api letterlijk, de signalen,
+  accorderen met een verplichte reden, afwijzen met reden, heropenen), *In de keten* (volgt op, leidt tot) en de historie.
+  Geen Lex-knoppen.
+- **De keten** (`RegelKeten`) is het artefact *Afleidingsregels* van het werkgebied (`ARTEFACT_SOORTEN`, pagina
+  `artefacten/regels`): de regels van onder naar boven, de basisgegevens, de signalen, en de afgewezen of vervangen regels
+  apart; een rij is `ObjectRij` (naast het gesprek met `onKies`, zodat hij in hetzelfde paneel opent).
+- **Op de begripskaart** (U4) staat *Afleidingsregels* met *Afgeleid door* en *Gebruikt in* (`BegripRegels`, faalt stil).
+- **Het overzicht in de zijbalk** (`/afleidingsregels`, `RegelsOverzichtClient` met `RegelOverzichtKaart`, verzoek
+  gebruiker 19 nov 2026): de vorm van *Begrippen* (`OverzichtBalk`, `OverzichtKaart`, filters in de URL via
+  `lib/regelsOverzicht.ts`), over de BFF `app/api/regels` naar `GET /v1/regels`. De zijbalk is één lijst (`NAVIGATIE` in
+  `GesprekSidebar`): Werkgebieden, Annotaties, Begrippen, Afleidingsregels.
+- De allowlist (`isWerkgebiedRoute`) laat `regels`, `regels/hierarchie`, `regels/{id}` met `accorderen|heropenen|afwijzen|
+  revisies|dragers`, `regels/{id}/dragers/{d}` en `parameterwaarden[/{id}]` door.
+- Browserregressie: `scripts/test-regels.mjs`. Het lezen van de regels van een werkgebied staat in `SCHIL` (`nepApi.mjs`):
+  de artefactkaart en de begripskaart vragen het op elke werkgebiedpagina.
 
 ## Instellingen › Aanpassingen (plan `docs/architectuur/plan-instellingen-aanpassingen.md`)
 
