@@ -79,7 +79,8 @@ class BegripInhoud(BaseModel):
 
 
 class BegripInvoer(BaseModel):
-    """Een nieuw begrip, eventueel meteen met de elementen waaruit het ontstaat."""
+    """Een nieuw begrip, met de elementen waaruit het ontstaat. Zonder elementen weigert de store (422 `geen_passage`):
+    een begrip rust altijd op minstens één annotatie. Geen `min_length` hier, zodat de fout een melding draagt."""
 
     inhoud: BegripInhoud
     element_ids: list[str] = Field(default_factory=list, max_length=200)

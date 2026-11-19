@@ -374,14 +374,11 @@ try {
   await page.getByRole("group", { name: "Status" }).getByRole("button", { name: "Geaccordeerd" }).click();
   await page.waitForFunction(() => document.querySelectorAll("[data-begrip-rij]").length === 1);
   await page.getByRole("group", { name: "Status" }).getByRole("button", { name: "Alle" }).click();
-  // *Nieuw begrip*: de naam ter plekke, daarna de pagina.
-  await page.getByRole("button", { name: "Nieuw begrip" }).click();
-  await page.getByRole("textbox", { name: "Naam van het nieuwe begrip" }).fill("Termijn");
-  await page.getByRole("button", { name: "Aanmaken" }).click();
-  await page.waitForURL(/\/werkgebieden\/wg1\/begrippen\/b\d+$/);
-  await page.getByRole("heading", { name: "Termijn", level: 1 }).waitFor();
-  await page.goto(`${base}/werkgebieden/wg1/artefacten/begrippen`);
-  await page.locator("[data-begrip-rij]").first().waitFor();
+  // Geen begrip zonder annotatie (19 nov 2026): het kader heeft geen *Nieuw begrip* met alleen een naam, maar wijst naar
+  // de passages bij de JAS-annotaties.
+  assert.equal(await page.getByRole("button", { name: "Nieuw begrip", exact: true }).count(), 0);
+  const uitleg = page.locator("[data-nieuw-begrip-uitleg]");
+  assert.equal(await uitleg.getByRole("link", { name: "JAS-annotaties" }).getAttribute("href"), "/werkgebieden/wg1/artefacten/annotaties");
   await page.getByRole("button", { name: "Exporteren" }).click();
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: /^CSV/ }).click()]);
   assert.equal(download.suggestedFilename(), "begrippen.csv");

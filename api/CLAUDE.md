@@ -545,6 +545,14 @@ spoor D (*Werkgebied als node*).
   `definitie_door` – een ongewijzigde definitie houdt ze, een nieuwe of andere tekst is `geformuleerd`
   door de `analist`, geen definitie heeft geen herkomst. Letterlijk wordt een definitie alleen door een
   overgenomen brondefinitie (kaartvoorstel of het akkoord op een groep).
+- **Geen begrip zonder annotatie** (harde regel, besluit gebruiker 19 nov 2026). Een begrip rust altijd op minstens één
+  koppeling met een annotatie-element. `maak` weigert een nieuw begrip zonder `element_ids` (422 `geen_passage`, met
+  `melding`), en `toets_passage` draait in de transactie van elke mutatie die een koppeling weghaalt of overzet
+  (`ontkoppel`, `nieuwe-betekenis`): blijft er geen actieve koppeling over (over alle werkgebieden), dan 409
+  `laatste_passage` en gebeurt er niets. Een vervangen begrip is historie en telt niet mee. Twee bekende uitzonderingen,
+  beide in het generieke kader (ADR-006): de opvolger van een generiek begrip (`maak_generiek_in`, zonder passages tot een
+  werkgebied hem overneemt) en `stop_gebruik` door het laatste werkgebied dat het gebruikt; zo'n begrip staat in geen enkele
+  analyse en is niet te accorderen. Een nieuwe schrijver die koppelingen weghaalt, roept `toets_passage` aan.
 - **Eén kader per werkgebied, impliciet.** Een begrip hangt aan een werkgebied, of is generiek (§*Generieke begrippen*);
   het kader heeft geen tabel, alleen een afgeleide IRI (`urn:wa:kader:<werkgebied>`). Begrippen zijn analyse-uitkomsten,
   nooit wettelijke definities; de export zegt dat ook.

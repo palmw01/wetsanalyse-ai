@@ -15,6 +15,9 @@ Een begrip hoort bij één werkgebied, met een impliciet begrippenkader (`urn:wa
   koppeling cascadeert daar niet in mee, maar wordt bij het lezen `verdwenen`. De actualiteit komt
   uit Postgres, zonder graaf: `actueel`, `gewijzigd` (tekst, klasse of ankers anders, of het element
   verouderd of door een nieuwe ronde van Lex vervangen), `verworpen` of `verdwenen`.
+- **Geen begrip zonder annotatie** (harde regel, 19 nov 2026): een begrip ontstaat alleen uit gemarkeerde passages
+  (`maak`: 422 `geen_passage`), en de laatste passage gaat er niet af (`toets_passage`: 409 `laatste_passage`). De
+  uitzonderingen staan in `api/CLAUDE.md` §*Begrippen*.
 - **De poort** (`poort`) rekent de server; de werkplek toont dezelfde zinnen.
 - **Een generiek begrip** wijzig je alleen met `werkgebied_id=None` (`/v1/begrippen/{id}`), niet vanuit een werkgebied
   (409 `generiek`), zodat niemand ongemerkt andere analyses wijzigt. Een passage in een werkgebied heropent het niet:
@@ -609,8 +612,31 @@ def met_afgeleid(oud: dict | None, nieuw: dict, bronteksten: Iterable[str] = ())
     return {**nieuw, "definitie_herkomst": herkomst, "definitie_door": door}
 
 
+GEEN_PASSAGE = ("Een begrip rust altijd op minstens één gemarkeerde passage. Kies de annotatie-elementen waaruit het "
+                "begrip ontstaat, en maak het daaruit.")
+LAATSTE_PASSAGE = ("Dit is de laatste passage van het begrip, en een begrip rust altijd op minstens één gemarkeerde "
+                   "passage. Koppel eerst een andere passage, of verwijder het begrip.")
+
+
+async def aantal_passages(conn, begrip_id: str) -> int:
+    """Hoeveel actieve koppelingen het begrip heeft, over alle werkgebieden (een generiek begrip heeft ze per werkgebied)."""
+    k = db.begrip_koppelingen
+    return (await conn.execute(select(func.count()).select_from(k).where(
+        k.c.begrip_id == begrip_id, k.c.verwijderd.is_(None)))).scalar_one()
+
+
+async def toets_passage(conn, begrip_id: str) -> None:
+    """De harde regel: een begrip rust op minstens één annotatie-element. Na een mutatie, in de transactie van de
+    aanroeper, zodat een overtreding alles terugdraait. Een vervangen begrip is historie en telt niet mee."""
+    status = (await conn.execute(select(db.begrippen.c.status).where(db.begrippen.c.id == begrip_id))).scalar()
+    if status not in (None, "vervangen") and not await aantal_passages(conn, begrip_id):
+        raise HTTPException(409, {"fout": "laatste_passage", "melding": LAATSTE_PASSAGE})
+
+
 async def maak(werkgebied: dict, invoer: BegripInvoer, actor: str, resolve: Resolver) -> dict:
-    bewijs = await bewijzen(werkgebied, invoer.element_ids, resolve) if invoer.element_ids else {}
+    if not invoer.element_ids:
+        raise HTTPException(422, {"fout": "geen_passage", "melding": GEEN_PASSAGE})
+    bewijs = await bewijzen(werkgebied, invoer.element_ids, resolve)
     async with db.get_engine().begin() as conn:
         bid = await maak_in(conn, werkgebied["id"], met_afgeleid(None, invoer.inhoud.model_dump(mode="json"),
                                                                  [b.get("tekst", "") for b in bewijs.values()]), bewijs,
@@ -862,6 +888,7 @@ async def ontkoppel(werkgebied_id: str, begrip_id: str, koppeling_id: str, verwa
         if row is None:
             raise HTTPException(404, "Koppeling bestaat niet.")
         await conn.execute(update(k).where(k.c.id == koppeling_id).values(verwijderd=db.utcnow()))
+        await toets_passage(conn, begrip_id)
     return koppelstand(await haal(werkgebied_id, begrip_id))
 
 

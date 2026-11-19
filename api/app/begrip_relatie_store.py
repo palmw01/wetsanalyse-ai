@@ -325,6 +325,7 @@ async def nieuwe_betekenis(werkgebied_id: str, begrip_id: str, nb: NieuweBeteken
         nieuw_id = await begrip_store.maak_in(conn, werkgebied_id, {**oud.inhoud, "definitie_door": oud.inhoud.get(
             "definitie_door", "")}, {}, "duiding", actor)
         gekopieerd = await _kopieer_koppelingen(conn, werkgebied_id, begrip_id, nieuw_id, actor)
+        await begrip_store.toets_passage(conn, nieuw_id)
         await _opvolging(conn, werkgebied_id, oud, nieuw_id, nb.reden, "nieuwe_betekenis", actor)
         await werkgebied_audit(conn, werkgebied_id, actor, "begrip-opgevolgd",
                                {"begrip_id": nieuw_id, "vervangt": begrip_id, "element_ids": gekopieerd, "reden": nb.reden})
