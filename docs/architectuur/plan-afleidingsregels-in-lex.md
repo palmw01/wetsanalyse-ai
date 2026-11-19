@@ -1,6 +1,6 @@
 # Plan: de afleidingsregels in Lex (activiteit 3b)
 
-Status: **concept; richting voorgesteld in §12 (combinatie), wacht op akkoord van de gebruiker; nog niets gebouwd** · Datum: 2026-11-19 ·
+Status: **richting gekozen (gebruiker, 19 nov 2026: de regelkaart in de keten, §12.3); bouwplan in §13; nog niets gebouwd** · Datum: 2026-11-19 ·
 Hoort bij: [plan-afleidingsregels.md](plan-afleidingsregels.md) (het onderzoek, de gaten D1–D6, A1–A5, U1–U4, R1–R3, M1–M2),
 de regels van het team voor Termijnen (`afleidingsregels-termijnen-team.md`, PR #1762), [ADR-011](adr-011-relaties-tussen-markeringen.md)
 (het regelskelet), [ADR-005](adr-005-vraag-lex-en-agents.md), [ADR-008](adr-008-antwoordsjablonen.md),
@@ -103,11 +103,16 @@ voor een losse regel en een beslistabel.
 - **`regel_invoer`**: `regel_id`, `begrip_id`, `volgorde`, `rol` (`invoer` of `parameter`), en waar de invoer vandaan
   komt (de `invoer`-relatie in het skelet). Een invoerbegrip dat de uitvoer van een andere regel is, maakt de hiërarchie
   (§3.5).
-- **Operatoren**: het team vond geen gemarkeerde formulering voor *tellen van maanden*, *tijdsduur na tijdstip* en
-  *gedeeld door*. Een operator wordt daarom **geen begrip zonder formulering**: de bewerking komt uit een vaste,
-  generieke catalogus in code (`operatoren.json` in de skill, gegenereerd naar api en frontend zoals de
-  relatiecatalogus). Waar wél een gemarkeerde operator is (*ten hoogste*, R6), wijst de regel naar dat element.
-  Open keuze 4.
+- **Operatoren** (bijgesteld 19 nov 2026, na `plan-lessen-e2e-termijnen.md` §0 en M-3a-1): volgens de methode is een
+  operator een **operatorbegrip op een gemarkeerde formulering**, dat elke formulering met dezelfde bewerking
+  hergebruikt ("na", "gelijke", "telkens een maand later" staan wél in de tekst van Termijnen). Een vaste lijst met
+  namen (`operatoren.json` in de skill, gegenereerd naar api en frontend zoals de relatiecatalogus) dient alleen als
+  voorstel voor de naam. Wat in het taalpatroon zelf staat ("moet berekend worden als", "indien aan alle volgende
+  voorwaarden is voldaan"), is regelvorm en geen begrip. Ontbreekt de formulering echt, dan is dat een open punt
+  (*skeletgat*), geen begrip zonder grondslag. Open keuze 4 is daarmee beslist, tenzij de gebruiker anders kiest.
+- **Tussenresultaten**: een tussenresultaat van een berekening krijgt een eigen regel met een eigen uitvoerbegrip (rol
+  `afgeleid`, PR #1760), dat rust op de afleidingsregel-markering waaruit het volgt. Zo kan het *termijnregime* uit de
+  proef op papier terugkomen.
 - **Parameterwaarden per tijdvak**: R2 (zes weken) en R6 (€ 49) hebben een waarde die per tijdvak kan verschillen.
   **`parameter_waarden`**: `begrip_id`, `waarde`, `eenheid`, `geldig_vanaf`, `geldig_tot` (leeg = onbekend), en het
   element waarop de waarde rust. De regel noemt het begrip, niet het getal (de methode, §2.4 van het onderzoek).
@@ -148,7 +153,10 @@ toelichting"* staat als keuze bij R1, zichtbaar in het artefact, het werkgebied 
 ### 3.7 Status, beoordeling en herbeoordeling
 
 - **Status**: `concept` (Lex stelde voor), `in_beoordeling`, `geaccordeerd`, `geaccordeerd_als_beleidsregel` (R3, R6),
-  `afgewezen` (met reden; R8: "geen afleidingsregel, een rechtsbetrekking met voorwaarden"), `vervangen` (door een
+  `afgewezen` (met reden). R8 (art. 24 lid 2) wees het team af als "een bevoegdheid, geen afleiding"; volgens de
+  methode is een regel die bepaalt of een recht of bevoegdheid bestaat juist een **beslisregel** (M-3b-0 in
+  `plan-lessen-e2e-termijnen.md`). De grondslag van een regel is de afleidingsregel-markering als die er is, en anders
+  de formulering van het afgeleide begrip, ook een rechtsbetrekking, `vervangen` (door een
   opvolger).
 - **Accorderen** volgt de poort uit open keuze 3: de begrippen van uitvoer en invoer zijn beoordeeld; het skelet is een
   signaal.
@@ -263,8 +271,10 @@ van de richting (§9). In alle richtingen:
 
 - **R1–R8** worden het eerste bestand: na fase 3 kan een import van het logboek ze als regels in Termijnen zetten
   (herkomst `import`, status zoals het team besloot), zodat de eerste meting een referentie heeft.
-- **De afwijkingen van de proef** worden regels in de agent: geen tussenbegrip zonder formulering, één beslistabel per
-  uitvoer, een bevoegdheid (art. 24 lid 2) is geen afleidingsregel, een niet geannoteerde bron draagt geen regel.
+- **De afwijkingen van de proef**: één beslistabel per uitvoer en "een niet geannoteerde bron draagt geen regel" worden
+  regels in de agent. Drie werkregels van het team waren strenger dan de methode en worden dat niet: een tussenresultaat
+  krijgt wel een begrip, een operator met een formulering wel een operatorbegrip, en een bevoegdheid onder voorwaarden
+  (R8) is een beslisregel (M-3b-0).
 - **De bevindingen bij de keten** (een rechtsobject als invoer, de volgordeplek van een afgewezen relatie, een
   `uitzondering_op` naar een contextbron) horen bij fase 1 van het onderzoek (A1) en gaan vóór dit plan.
 
@@ -344,14 +354,17 @@ de annotatie) en verwijst naar de regel. De keuze is aan de gebruiker.
    generieke kader (ADR-006), ook zonder gemarkeerde formulering?
 5. **Interpretatiekeuzes als eigen object op werkgebiedniveau** (voorstel), of als open punt per regel?
 6. **Beleidsregels** (R3, R6): in dezelfde lijst met het brontype zichtbaar (voorstel), of apart?
-7. **Een afgewezen regel** (R8): bewaren met de reden en de verwijzing naar de rechtsbetrekking (voorstel), of niet
-   opslaan?
+7. **R8** (art. 24 lid 2): volgens de methode een beslisregel met uitvoer *bevoegdheid tot verrekening vóór het
+   verstrijken van de betalingstermijn* (voorstel, M-3b-0), of afgewezen zoals het team besloot? Een afgewezen regel
+   blijft in elk geval bewaard met de reden.
 8. **De soort van een begrip** (D5, bedrag, aantal, datum, ja/nee): nu meenemen voor de eenduidigheidstoets, of later?
 9. **De import van R1–R8** uit het logboek van het team als eerste bestand in Termijnen: ja of nee?
 10. **Scope** (M1 uit het onderzoek): de skill, `CLAUDE.md` en PLAN zeggen nu "het begin van activiteit 3"; met dit plan
     wordt het "activiteit 1 tot en met 3b".
 
 ## 11. De PR-volgorde
+
+*Vervangen door het bouwplan van §13 (19 nov 2026); hieronder de eerste versie.*
 
 Elke PR levert iets bruikbaars op; na elke fase kan het stoppen. Fase 1 van het onderzoek (A1, het skelet betrouwbaar)
 gaat ervóór of loopt ernaast.
@@ -490,8 +503,8 @@ Wat dit betekent voor §3 tot en met §11:
 - het datamodel blijft;
 - §3.6 krijgt bij een interpretatiekeuze het veld `methode` (teleologisch, wetshistorisch, systematisch, grammaticaal);
 - de voorbeelden (D3) schuiven naar voren, naar PR 4 en 6, omdat ze bij het beoordelen horen;
-- de operatoren volgen de methode: een generiek operatorbegrip waar een formulering is, en de catalogus waar die er niet
-  is (keuze 4 blijft open).
+- de operatoren volgen de methode: een operatorbegrip op een gemarkeerde formulering, met de namenlijst als voorstel
+  (§3.3, bijgesteld na `plan-lessen-e2e-termijnen.md`).
 
 ### 12.4 Hoe de mock-up de drie maten laat zien
 
@@ -504,3 +517,154 @@ gesprekskop, dock, paneel met tabs, begripskaartopbouw), gebouwd met de klassen 
   op de kaart, voorstellen in geel;
 - *gebruik*: de vraagkaart beantwoorden werkt de regel, het voorbeeld en de beoordeling bij; daarna kan *Accorderen*.
   De tab *Afleidingsregels* toont de keten met R4 erin.
+
+## 13. Bouwplan
+
+**Besluit (gebruiker, 19 nov 2026):** akkoord met de regelkaart in de keten (§12.3). Dit bouwplan vervangt de
+PR-volgorde van §11 en sluit aan op de bundels van `plan-lessen-e2e-termijnen.md` (PR #1764, §9), zodat niets twee keer
+gebouwd wordt. Werkwijze zoals altijd:
+- elke stap begint met een eigen korte toets of dit de beste verbetering is;
+- PR's worden per bundel verzameld, één keer getest en één keer uitgerold; de hoofdsessie voert de regie;
+- gedrag van Lex wordt licht gemeten: één run, een gerichte set.
+
+### 13.1 Wat er eerst moet liggen
+
+Uit `plan-lessen-e2e-termijnen.md`, en niet opnieuw in dit plan:
+- **#1760** (geen begrip zonder grondslag, rol `afgeleid` voor een tussenresultaat) is gemerged;
+- **lessenbundel 2**: de leesvorm `weergave?vorm=skelet` (L-3b-2), met het skelet uit `werkgebied_rapport.regelskelet_regels`. De
+  regels-agent en het paneel lezen het skelet daaruit;
+- **lessenbundel 3**: de keten legt het skelet goed (L-2-1, L-2-2: geen rechtsobject als invoer, invoer op volgorde,
+  `uitzondering_op` en `toepassing`). Zonder betrouwbaar skelet is een conceptregel van Lex niet beter dan het skelet;
+- **lessenbundel 4**: de open punten (L-X-1). Dat is hetzelfde object als de interpretatiekeuzes en open punten van §3.6:
+  één bouw, niet twee.
+
+Bundel R0 hieronder gaat samen met lessenbundel 1 in één docs-PR.
+
+### 13.2 De bundels
+
+**R0. Besluit en methode** (docs, skill; geen code)
+- ADR-017 *Afleidingsregels*: het datamodel van §3 met de bijstellingen van 19 nov 2026, de regelkaart in de keten,
+  de grens met RegelSpraak, en de open punten van M-3b-2 met het veld `methode`.
+- De skill krijgt `references/afleidingsregels.md`, buiten de methodemarkers:
+  - de taalpatronen;
+  - één regel per uitvoer, met gevallen;
+  - de grondslag van een regel (M-3b-0);
+  - tussenresultaten en operatorbegrippen;
+  - interpretatie en voorbeelden.
+
+  Daarnaast `operatoren.json` als namenlijst, met generator en drift-test.
+- Scope: *Grenzen* in `SKILL.md`, de projectroot-`CLAUDE.md` en `docs/PLAN.md` worden "activiteit 1 tot en met 3b"; PLAN
+  krijgt een spoor voor 3b.
+- Vraagt de besluiten van §10 punt 2 tot en met 9; de voorstellen staan erbij.
+- Klaar als: de ADR is aangenomen en `genereer_jas_klassen.py --check` groen is.
+
+**R1. De regel als object** (api; lessen L-3b-1)
+- Tabellen in `api/app/db.py`, idempotent zoals de rest (`create_all` plus `reconcile_schema`):
+  - `regels`, `regel_gevallen`, `regel_invoer`, `regel_dragers` en `parameter_waarden`;
+  - revisies zoals `begrip_revisies`, en de audit in `werkgebied_audit`.
+- Nieuwe modules, met de begrippen als voorbeeld:
+  - `regel_contracts.py` en `regel_store.py`;
+  - router `regels.py` onder `/v1/werkgebieden/{id}/regels`, met de hiërarchie op `/regels/hierarchie`;
+  - `regeltekst.py`: de afgeleide regeltekst in het taalpatroon, deterministisch, met tests per soort en per vorm van
+    voorwaarden (alle, één van, genest);
+  - `regel_poort.py`: wat er openstaat voor accorderen (begrippen beoordeeld, keuzes genomen, voorbeelden beoordeeld),
+    als lijst die het paneel toont.
+- `artefact_versies.SOORTEN` krijgt `regel` en `regels`; `gesprek_contracts.Artefact` de soort `regel`.
+- De poort van de api: een regel zonder grondslag (geen dragende markering) wordt geweigerd, zoals een begrip sinds #1760.
+- Tests: Termijnen R1–R8 als vaste set. Alles moet in het object passen, zonder vrije tekst voor skelet of parameters;
+  dat is de maat van L-3b-1. Plus het routecontract in `tests/poort/`.
+- Klaar als: de set past, de poort-tests en `scripts/kruistests.sh` groen zijn.
+
+**R2. Het artefact en de kaart** (frontend, BFF; na R1)
+- `lib/artefact.ts`: de soorten `regel` (verplicht `werkgebied_id` en `regel_id`) en `regels` (verplicht
+  `werkgebied_id`), met labels.
+- BFF-routes onder `app/api/werkgebieden/[id]/regels/**`, met `metTrace()` en alle query-parameters doorgestuurd.
+- De kaart en de keten:
+  - `components/werkgebieden/RegelPagina.tsx` bouwt de kaart uit dezelfde delen als `BegripPagina`: sectiekaart,
+    `StatusLabel`, `Lijst`, `KaartVoorstelKaart` voor voorstellen per veld, `VersieKiezer` en `ExportKnop`;
+  - `RegelKeten.tsx` is de tab *Afleidingsregels*: de lijst in de volgorde van de keten, met het diagram uit
+    `components/graaf` in een eigen modus en geen tweede graafweergave.
+- `WerkgebiedArtefactPaneel` opent beide; ze staan als tabs naast elkaar, zoals nu.
+- Werkgebied:
+  - `ARTEFACT_SOORTEN` krijgt `regels`, met de pagina's `/werkgebieden/[id]/artefacten/regels` en
+    `/regels/[regelId]`;
+  - *Vraag Lex* per rij, en geen Lex-knoppen op de kaart.
+- Op de begripskaart (U4): *Afgeleid door* en *Gebruikt in*. In het regelskelet van de annotatie: "rust op regel R4".
+- Export: *Kopieer als Markdown* (lijsten, geen tabellen) en JSON.
+- Tests:
+  - vitest voor de regeltekst en de poortweergave;
+  - Playwright met de mock-up als referentie (`docs/architectuur/media/afleidingsregels-voorstel.html`);
+  - `knoppen.test.ts` en de bestaande generieke-componententests blijven groen.
+- Klaar als: R4 uit de set ziet eruit als de mock-up, op desktop en op 390 px.
+
+**R3. Interpretatiekeuzes en open punten op de regel** (api en frontend; bouwt op lessenbundel 4)
+- De open punten van L-X-1 krijgen de koppeling naar regel en geval en het veld `methode`.
+- De kaart toont ze onder *Interpretatiekeuzes* en *Open punten*.
+- De vraagkaart in het gesprek (`VragenKaart`) schrijft de gekozen lezing via de api. Het is dezelfde weg als de
+  vraagkaarten van het werkgebied, geen nieuwe.
+- Klaar als: de zeven keuzes en zes beleidspunten van Termijnen er zonder vrije tekst in passen.
+
+**R4. Termijnen als eerste bestand** (script; op acceptatie, na akkoord)
+- `api/scripts/importeer_regels_termijnen.py` zet R1–R8 met hun keuzes en open punten in Termijnen, met herkomst
+  `import`.
+- R8 volgt het besluit van §10 punt 7.
+- Dit is de referentie voor de meting van R5.
+
+**R5. Lex stelt regels voor, deterministisch** (graph-qa; lessen L-3b-3, A3)
+- `agent/agents/regels.py` in de vorm van ADR-005, geregistreerd in `agents/register.py`. Het profiel staat in
+  `.claude/lex-agents/regels.md` en gaat via de generators.
+- Taken:
+  - `inventariseren`: van de analysevraag terug naar de regels, en de keten;
+  - `volledigheidstoets`: de gaten die de regelspecialist aanwees;
+  - `opstellen`: een conceptregel uit het skelet en de begrippen;
+  - `uitsluiting_toetsen`.
+
+  Alle vier gebeuren in code.
+- Een klik op een suggestie (`actie`) kiest de taak zonder model.
+- De stand per regel staat bij de api (`regel_voortgang`, zoals `bronselectie_voortgang`), en de code kiest de volgende
+  regel.
+- Wat een beurt oplevert, opent als chip (`PaneelChip`) met `regel` of `regels`.
+- Elke nieuwe aanroep naar de api krijgt een plek in `agent_toegang.TOEGESTAAN`, met de begrenzing erbij.
+- Meten op Termijnen, tegen de set van R4:
+  - recall en precisie van de velden;
+  - de gaten van de volledigheidstoets tegen die van de regelspecialist.
+
+  Daarna WA TRM H1, en blind op een werkgebied met een reken- en een beslisregel.
+
+**R6. Waar het model meedoet** (graph-qa; na een meting)
+- Een strikte modelstap, telkens met de fragmenten waarop het voorstel rust, voor:
+  - de soort bij twijfel;
+  - het label van een geval;
+  - een regelbegrip dat nog niet bestaat (via de begrippen-agent, op een passage);
+  - het signaleren van een interpretatiekeuze met lezingen.
+- Voorbeelden voorstellen:
+  - de gevallen deterministisch uit de regel: normaal, elke voorwaarde niet vervuld, de grens van elke vergelijking,
+    nul, negatief en onbekend;
+  - daarnaast het praktijkvoorbeeld van het werkgebied.
+
+  De uitkomst blijft een voorstel; het oordeel is van de jurist.
+- Meten: licht, één run, met de keuzes van Termijnen als set.
+
+**R7. Rapport, graaf, lezen en onderhoud** (api en graph-qa)
+- Het rapport (ADR-009) krijgt het hoofdstuk *Afleidingsregels*, met daarin interpretatiekeuzes en te signaleren beleid;
+  de schema-versie gaat omhoog.
+- `regel_projectie.py` naast `begrip_projectie.py`: de regels in de named graph van het werkgebied, met het kleine
+  vocabulaire van §7.
+- De leesroute (A5): `search_regels` in graph-qa, bevestigd door de api.
+- Herbeoordeling: `begrip_onderhoud` ziet ook regels. Een veranderde drager, een heropende laag, een opvolger van een
+  invoerbegrip of een gewijzigde keuze zet de regel op *herbeoordelen*.
+
+**Later, buiten dit plan:** de volledige voorbeeldreeks van activiteit 4b, de soort van een begrip (P15/D5), het feitmodel
+en RegelSpraak.
+
+### 13.3 Volgorde en wat parallel kan
+
+- R0 gaat eerst, samen met lessenbundel 1, omdat beide over hetzelfde besluit gaan.
+- R1 kan beginnen zodra de ADR er ligt. De tabellen hangen niet af van lessenbundel 3, de conceptregels van Lex wel.
+- R2 volgt op R1. R3 volgt op R1 en lessenbundel 4.
+- R4 komt na R1 en R3, en vraagt een akkoord voor de wijziging op acceptatie.
+- R5 komt na lessenbundel 3 en R4. R6 komt na de meting van R5.
+- R7 kan na R2, in delen. Het rapport en de projectie zijn onafhankelijk van de agent.
+
+Parallel kunnen R2 en R3 (andere bestanden), en R7 rapport en R7 projectie. Een sessie per bundel, in een eigen worktree;
+twee schrijvers raken nooit dezelfde bestanden.
