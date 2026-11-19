@@ -1,7 +1,7 @@
 # ADR-018, bijlage A: de agentische laag voor afleidingsregels
 
-- **Status**: voorstel, ter goedkeuring. De eerste versie is van 19 nov 2026. Deze versie is herschreven na de review van
-  de hoofdsessie (19 nov 2026), op verzoek van de gebruiker.
+- **Status**: aangenomen (19 nov 2026). De gebruiker nam alle dertien keuzes van §10 over ("Alle dertien akkoord"); ze
+  staan als besluiten in ADR-018. Deze versie is herschreven na de review van de hoofdsessie (19 nov 2026).
 - **Hoort bij**: [ADR-018](adr-018-afleidingsregels.md) en het bouwplan in
   [plan-afleidingsregels-in-lex.md](plan-afleidingsregels-in-lex.md) §13, stappen R5 en R6.
 - **Wat er al is**:
@@ -14,7 +14,7 @@
   - passend bij de centrale agent met subagents en zo min mogelijk vaste routes (ADR-016);
   - passend bij de inrichting van *Aanpassingen* (Methodes, Agents, Connectors en Modellen) en bij de werkplek;
   - steeds getoetst aan de methode (`references/afleidingsregels.md`).
-- **Hold**: tot het akkoord wordt er niets van R3 en verder gebouwd, en niets van R5 of R6.
+- **Bouwen**: R3 en verder beginnen pas als de gebruiker daar apart voor kiest. Tot dan wordt er niets gebouwd.
 
 ## 1. Uitgangspunten
 
@@ -458,7 +458,7 @@ Licht meten: één run, een gerichte set en de geraakte vorm. Drie runs alleen b
 
 ## 10. Keuzes voor de gebruiker
 
-Elke keuze heeft een voorstel. Na het akkoord gaan ze als besluiten in ADR-018.
+Elke keuze had een voorstel. De gebruiker nam ze alle dertien over (19 nov 2026); ze staan als besluiten in ADR-018.
 
 1. **Hoe landt een regel van Lex?**
    - Voorstel: als conceptregel met `herkomst: "lex"`, als `Voorstel` op de kaart. Er is één object en één kaart, de poort
