@@ -88,6 +88,10 @@ class GroundingReport:
     # Feiten in de tekst (een datum, een nummer, een telling, een instantie) die het opgehaalde en de vraag niet noemen
     # (`beweringen`). Hier een signaal zoals `onbevestigd`; `verify_node` vraagt er eerst een correctieronde voor.
     beweringen: list[str] = field(default_factory=list)
+    # De artikelen die het antwoord in gewone taal noemt ("artikel 475 Rv") en die in het opgehaalde terug te vinden zijn.
+    # Geen vindplaats die hard te toetsen is, maar wel nagelopen: de controle zei "geen vindplaats of citaat genoemd –
+    # niets te controleren" bij een antwoord dat artikel 475 Rv noemde (acceptatie 19 nov 2026).
+    vermeld: list[str] = field(default_factory=list)
     # "gegrond" | "onbepaald" | "ongegrond" – fijner dan de bool, die voor het bestaande
     # event-contract blijft bestaan.
     niveau: str = "gegrond"
@@ -142,6 +146,16 @@ def _bekende_artikelen(source_trace: list[tuple[str, str]]) -> set[str]:
         bekend |= {v.removeprefix("artikel ").casefold() for v in vermeldingen(waarden(tekst or ""))
                    if v.startswith("artikel ")}
     return bekend
+
+
+def _teruggevonden(answer_text: str, source_trace: list[tuple[str, str]]) -> list[str]:
+    """De artikelen in gewone taal die het antwoord noemt en die in het opgehaalde voorkomen: de tegenhanger van de
+    artikelen in `_onbevestigd`."""
+    from .overzicht import vermeldingen
+
+    bekend = _bekende_artikelen(source_trace)
+    return [v for v in vermeldingen(answer_text)
+            if v.startswith("artikel ") and v.removeprefix("artikel ").casefold() in bekend]
 
 
 def _onbevestigd(answer_text: str, source_trace: list[tuple[str, str]], trace_text: str) -> list[str]:
@@ -327,6 +341,7 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
         niet_letterlijk=niet_letterlijk,
         onbevestigd=onbevestigd,
         beweringen=feiten,
+        vermeld=[] if overzicht else _teruggevonden(answer_text, source_trace),
         niveau=niveau,
     )
 

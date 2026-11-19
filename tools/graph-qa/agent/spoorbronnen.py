@@ -178,7 +178,33 @@ def toolregel(call: dict[str, Any]) -> str:
     regel = (bron.werkwoord(naam, waarden) or "raadpleegt de kennisgraaf").strip()
     if bron.connector is not None:
         regel += _filters_erbij(bron.connector, inp, regel)
+    elif naam in bron.zoektools:
+        regel += _afbakening_erbij(inp, regel)
     return regel
+
+
+#: De afbakening van een zoekactie in de graaf (`search_wetgeving`: `veld`, `soort`, `bwb_id`), in de woorden van een
+#: jurist. Twee zoekacties op "derdenbeslag", één in de definities en één in alle tekst, heetten anders allebei "zoekt
+#: “derdenbeslag”", met twee verschillende uitkomsten eronder (acceptatie 19 nov 2026). De regel van `_filters_erbij`.
+_VELDEN = {
+    "tekst": "in de tekst", "titel": "in de titels", "citeertitel": "op de naam van een regeling",
+    "opschrift": "in de opschriften", "aanhef": "in de aanhef", "considerans": "in de considerans",
+    "voetnoot": "in de voetnoten", "definieertBegrip": "in de definities", "label": "op het nummer",
+}
+
+
+def _afbakening_erbij(invoer: dict[str, Any], regel: str) -> str:
+    delen: list[str] = []
+    veld = str((invoer or {}).get("veld") or "").strip()
+    if veld:
+        delen.append(_VELDEN.get(veld, f"in het veld {veld}"))
+    soort = str((invoer or {}).get("soort") or "").strip()
+    if soort:
+        delen.append(f"alleen {soort.casefold()}")
+    bwb_id = str((invoer or {}).get("bwb_id") or "").strip()
+    if bwb_id and (regeling := _regeling(bwb_id)) not in regel:
+        delen.append(f"in {regeling}")
+    return f" ({', '.join(delen)})" if delen else ""
 
 
 #: Argumenten die geen afbakening zijn maar de vorm van het antwoord: die horen niet in de regel.

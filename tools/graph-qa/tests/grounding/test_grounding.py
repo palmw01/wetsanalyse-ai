@@ -206,6 +206,26 @@ def test_melding_zwijgt_niet_als_er_niets_te_controleren_viel():
     assert "niets te controleren" in _grounding_melding(report)
 
 
+def test_melding_zegt_dat_een_artikel_in_gewone_taal_is_nagelopen():
+    """Het antwoord noemde artikel 475 Rv, dat in de gelezen Leidraad-passage staat, en de controle zei "geen vindplaats
+    of citaat genoemd – niets te controleren" (acceptatie 19 nov 2026)."""
+    from agent.orchestrator import _grounding_melding
+
+    bron = ("urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie14.4.1 In artikel 475 Rv en volgende is de "
+            "mogelijkheid gegeven ten laste van de belastingschuldige beslag te leggen onder een derde.")
+    report = check_grounding("De grondslag staat in artikel 475 van het Wetboek van Burgerlijke Rechtsvordering.",
+                             _trace(bron))
+    assert report.niveau == "onbepaald" and report.onbevestigd == [] and report.vermeld == ["artikel 475"]
+    melding = _grounding_melding(report)
+    assert "niets te controleren" not in melding and "1 vermelding teruggevonden" in melding
+
+    # Staat het artikel niet in het opgehaalde, dan blijft het een signaal, geen nagelopen vermelding.
+    report = check_grounding("De grondslag staat in artikel 476 van het Wetboek van Burgerlijke Rechtsvordering.",
+                             _trace(bron))
+    assert report.vermeld == [] and report.onbevestigd == ["artikel 476"]
+    assert "niet teruggevonden" in _grounding_melding(report)
+
+
 def test_melding_noemt_beide_soorten_als_ze_er_allebei_zijn():
     from agent.orchestrator import _grounding_melding
 
