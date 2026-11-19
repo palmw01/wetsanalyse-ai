@@ -13,6 +13,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
+from .definities import geldt_voor
+
 VERSIE = 1
 
 Sjabloon = Literal["begrip", "bepaling", "duiding", "annotaties", "extern", "rapport"]
@@ -31,8 +33,15 @@ class Definitie(BaseModel):
     term: str
     tekst: str
     vindplaats: Vindplaats
-    #: Waar de definitie geldt ("Deze wet", "Dit artikel"), als de aanhef dat zegt.
+    #: Waar de definitie geldt ("Deze wet", "Dit artikel"), als de aanhef dat zegt: de formule zelf.
     bereik: str = ""
+    #: Dezelfde formule als soort (`definities.Geldigheid`): "regeling", "artikel", "artikel_n", "lid" of "structuur",
+    #: met het artikelnummer of het woord als `bereik_waarde`. Daarmee zegt het antwoord het in woorden (`geldt_voor`).
+    bereik_soort: str = ""
+    bereik_waarde: str = ""
+    #: De begrippen die deze definitie zelf gebruikt en die in dezelfde bepaling gedefinieerd zijn ("belastingaanslag" in
+    #: de definitie van "belastingschuldige"): de jurist leest de definitie pas goed met die erbij.
+    gebruikt: list["Definitie"] = Field(default_factory=list)
 
 
 class VastgelegdBegrip(BaseModel):
@@ -312,11 +321,25 @@ def _vindplaats_regel(v: Vindplaats) -> str:
     return f"{v.label}, {v.regeling}" if v.regeling else v.label
 
 
+def _bereik_tekst(d: Definitie) -> str:
+    """Waar de definitie geldt, in woorden; een ouder antwoord droeg alleen de formule."""
+    if d.bereik_soort:
+        return f" ({geldt_voor(d.bereik_soort, d.bereik_waarde, d.vindplaats.regeling)})"
+    return f" (geldt voor: {d.bereik})" if d.bereik else ""
+
+
+def _definitie_tekst(d: Definitie) -> str:
+    tekst = f'> "{d.tekst}"\n\n**Vindplaats:** {_vindplaats_regel(d.vindplaats)}' + _bereik_tekst(d)
+    if d.gebruikt:
+        tekst += "\n\n**Gebruikt begrip:**\n\n" + "\n\n".join(
+            f'> "{g.tekst}"\n\n**Vindplaats:** {_vindplaats_regel(g.vindplaats)}' for g in d.gebruikt)
+    return tekst
+
+
 def _blok_tekst(b: BaseModel) -> str:
     if isinstance(b, Definities):
         return "\n\n".join(
-            f'> "{d.tekst}"\n\n**Vindplaats:** {_vindplaats_regel(d.vindplaats)}' + (f" (geldt voor: {d.bereik})" if d.bereik else "")
-            for d in b.items)
+            _definitie_tekst(d) for d in b.items)
     if isinstance(b, Begrippen):
         return "\n".join(
             f"- **{x.naam}** ({x.status}{', generiek' if x.generiek else ', ' + x.werkgebied if x.werkgebied else ''})" + (f": {x.definitie}" if x.definitie else "")

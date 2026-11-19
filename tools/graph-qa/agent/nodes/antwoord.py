@@ -25,7 +25,7 @@ from ..berichten import (CORRECTIE, _parse_final, _schoon_messages, _trim_messag
                          eerste_deel_ingekort, hervatting_van, met_beurtcontext, toolresultaten, venster_telling)
 from ..bronregister import bij, controletrace
 from ..focus import genoemd_in_antwoord, na_antwoord
-from ..gelezen import STEUN_MELDING
+from ..gelezen import STEUN_MELDING, getoonde_tekst
 from ..grounding import alleen_gelezen_extern, alleen_gelezen_wettekst, check_grounding, curate_sources, herstel_citaten, live_niet_letterlijk
 from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk, zonder_aanloop
 from ..spoorbronnen import weigerregel
@@ -937,7 +937,7 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     report = check_grounding(tekst, controletrace(state), overzicht=state.get("overzicht") or None, bekend=_bekend(state),
                              regelingen=namen, steun=rapport_steun(state), vraag=_vraag(state),
                              periode=_periode(state), duiding_tekst=_zonder_gedaan(state),
-                             toelichting=_toelichting_van_lex(state))
+                             toelichting=_toelichting_van_lex(state), toelichting_steun=getoonde_tekst(state.get("antwoord")))
     # Een omgedraaide bewering in de woorden van de passage zien de toetsen op woorden niet: de controle per stuk leest de
     # duidingen tegen de passages die het rapport citeerde (`stukcontrole.py`). Alleen in het antwoord van de centrale
     # agent, en alleen als de goedkopere toetsen niets vonden: vonden zij iets, dan volgt de correctie toch, en daarna
@@ -1038,6 +1038,7 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
         "unsupported": report.unsupported,
         "niet_letterlijk": report.niet_letterlijk,
         "onbevestigd": report.onbevestigd,
+        "interpretatie": report.interpretatie,
         "vermeld": report.vermeld,
         "beweringen": report.beweringen if not report.grounded else [],
         "grounding_niveau": report.niveau,
@@ -1502,6 +1503,8 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
         "niveau": state.get("grounding_niveau", "gegrond"),
         **({"afgekapt": True} if state.get("afgekapt") else {}),
         **({"onbevestigd": state["onbevestigd"]} if state.get("onbevestigd") else {}),
+        # De zinnen van de toelichting die op niets rusten dat het antwoord toont: de werkplek markeert ze als interpretatie.
+        **({"interpretatie": state["interpretatie"]} if state.get("interpretatie") else {}),
         **({"vermeld": state["vermeld"]} if state.get("vermeld") else {}),
     })
     # entiteit-tier: alleen nieuwe IRI's toevoegen (append-reducer + dedup).

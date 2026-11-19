@@ -336,7 +336,9 @@ Hieronder wat je moet weten om de code te wijzigen.
   revisies die **in de graaf** staan met Postgres, zodat ook een lege GraphDB na een herstart wordt
   opgemerkt en opnieuw gevuld, ruimt verweesde projecties op (na een hercontrole onder het
   schrijfslot) en zet de vocabulaire neer als die ontbreekt. Elke tiende ronde logt hij de lichte
-  graafcontrole (`annotatie_graaf_afwijking`, voor Grafana).
+  graafcontrole (`annotatie_graaf_afwijking`, voor Grafana). Dezelfde controle meldt uit Postgres de begrippen
+  zonder dragende passage (`begrippen_zonder_passage`, logregel met die naam): een wees van vóór de regel "geen begrip
+  zonder annotatie", diagnostisch en buiten `in_orde`. Lex toont zo'n begrip niet als vastgelegd begrip.
 - **Rekenwerk met rdflib gaat via `asyncio.to_thread`** – bouwen, serialiseren, parsen, isomorfie, SHACL.
   Het is pure Python, en de lus deelt de event loop met elk verzoek: synchroon hield één ronde van de
   lichte graafcontrole ruim een halve minuut de hele api vast (acceptatie, 28 okt 2026: 504's op elk

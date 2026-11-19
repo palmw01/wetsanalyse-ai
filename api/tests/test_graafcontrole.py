@@ -293,3 +293,28 @@ def test_relatie_diagnose_noemt_hangende_eindpunten_en_een_regel_zonder_uitvoer(
     assert uit["hangend"] == [{"relatie": "R2", "kant": "van", "soort": "element", "id": "weg"}]
     assert uit["kardinaliteit"] == [{"element_id": "ar", "klasse": "Afleidingsregel",
                                      "telling": {"uitvoer": 0, "invoer": 2}, "buiten_grens": ["uitvoer"]}]
+
+
+async def test_een_begrip_zonder_dragende_passage_wordt_gemeld(omgeving):
+    """Een begrip rust altijd op een annotatie. Een wees (een generiek begrip waarvan het werkgebied met de passages is
+    gewist, acceptatie 19 nov 2026) staat in `begrippen_zonder_passage`; een afgewezen of verwijderde koppeling draagt
+    niet, een vervangen begrip is historie."""
+    from sqlalchemy import insert
+
+    nu = db.utcnow()
+    rij = {"revisie": 1, "aangemaakt_door": "a", "aangemaakt": nu, "gewijzigd": nu}
+    koppeling = {"werkgebied_id": "w1", "element_id": "e1", "bewijs": {}, "toegevoegd_door": "a", "toegevoegd": nu,
+                 "verwijderd": None}
+    async with db.get_engine().begin() as conn:
+        await conn.execute(insert(db.begrippen), [
+            {"id": "wees", "werkgebied_id": None, "status": "concept", "inhoud": {"naam": "belastingschuldige"}, **rij},
+            {"id": "gedragen", "werkgebied_id": "w1", "status": "geaccordeerd", "inhoud": {"naam": "ontvanger"}, **rij},
+            {"id": "afgewezen", "werkgebied_id": "w1", "status": "concept", "inhoud": {"naam": "aanslag"}, **rij},
+            {"id": "historie", "werkgebied_id": None, "status": "vervangen", "inhoud": {"naam": "oud"}, **rij}])
+        await conn.execute(insert(db.begrip_koppelingen), [
+            {"id": "k1", "begrip_id": "gedragen", "rol": "duiding", "beoordeling": "open", **koppeling},
+            {"id": "k2", "begrip_id": "afgewezen", "rol": "duiding", "beoordeling": "afgewezen", **koppeling},
+            {"id": "k3", "begrip_id": "wees", "rol": "duiding", "beoordeling": "akkoord", **{**koppeling, "verwijderd": nu}}])
+    uit = await controleer(shacl=False)
+    assert [(w["begrip_id"], w["kader"]) for w in uit["begrippen_zonder_passage"]] == [("afgewezen", "werkgebied"),
+                                                                                       ("wees", "generiek")]
