@@ -286,26 +286,42 @@ def plaats(d: Diagram, breedte: float = 480.0, vorm: Literal["formuleringen", "b
         geplaatst.append(Geplaatst(knoop=k, x=round(x, 2), y=round(y, 2), b=round(b, 2), h=round(h, 2), kop=kop, regels=regels))
         return h
 
-    per_rij = max(1, int((breedte + TUSSEN_X) // (b + TUSSEN_X)))
+    # Elke stap boven en onder krijgt één rij, de tweede stap verder van het midden. Een rij breekt nooit af: dan liep een
+    # lijn naar de verste rij door een knoop van de dichtste. Past een rij niet, dan wordt de tekening breder en schaalt de
+    # tekenaar haar terug naar de pagina.
+    boven = [[k for k in per_zone["boven"] if k.diepte == d] for d in sorted({k.diepte for k in per_zone["boven"]}, reverse=True)]
+    onder = [[k for k in per_zone["onder"] if k.diepte == d] for d in sorted({k.diepte for k in per_zone["onder"]})]
+    rijbreedte = lambda rij: len(rij) * b + (len(rij) - 1) * TUSSEN_X
+    # Een verdere stap staat in de volgorde van de knopen waar hij aan hangt, zodat de lijnen elkaar zo min mogelijk kruisen.
+    buren: dict[str, list[str]] = {}
+    for lijn in d.lijnen:
+        buren.setdefault(lijn.van, []).append(lijn.naar)
+        buren.setdefault(lijn.naar, []).append(lijn.van)
 
-    def rijen(knopen: list[Knoop], y: float) -> float:
-        for i in range(0, len(knopen), per_rij):
-            rij = knopen[i:i + per_rij]
-            totaal = len(rij) * b + (len(rij) - 1) * TUSSEN_X
-            x0 = (breedte - totaal) / 2
-            h = max(hoogte(k) for k in rij)
-            for j, k in enumerate(rij):
-                zet(k, x0 + j * (b + TUSSEN_X), y)
-            y += h + BAND
-        return y
+    def naar_ouders(rijen: list[list[Knoop]]) -> None:
+        for i in range(1, len(rijen)):
+            plek = {k.id: j for j, k in enumerate(rijen[i - 1])}
+            def sleutel(k: Knoop, plek=plek) -> float:
+                p_ = [plek[n] for n in buren.get(k.id, []) if n in plek]
+                return sum(p_) / len(p_) if p_ else len(plek)
+            rijen[i].sort(key=sleutel)
 
-    # Boven en onder krijgt elke stap een eigen rij, de tweede stap verder van het midden: anders loopt een lijn van de
-    # tweede stap naar de eerste door een buur in dezelfde rij.
+    naar_ouders(boven[::-1])
+    naar_ouders(onder)
+    totaal = max([breedte] + [rijbreedte(r) for r in boven + onder])
+    verschuif = (totaal - breedte) / 2
+
+    def rij(knopen: list[Knoop], y: float) -> float:
+        x0 = (totaal - rijbreedte(knopen)) / 2
+        for j, k in enumerate(knopen):
+            zet(k, x0 + j * (b + TUSSEN_X), y)
+        return y + max(hoogte(k) for k in knopen) + BAND
+
     y = 0.0
-    for d in sorted({k.diepte for k in per_zone["boven"]}, reverse=True):
-        y = rijen([k for k in per_zone["boven"] if k.diepte == d], y)
+    for r in boven:
+        y = rij(r, y)
     # De middelste band: partijen links en het voorwerp rechts gestapeld, de centrale formulering verticaal in het midden.
-    midden_x = {"links": 0.0, "midden": (breedte - b) / 2, "rechts": breedte - b}
+    midden_x = {"links": verschuif, "midden": verschuif + (breedte - b) / 2, "rechts": verschuif + breedte - b}
     stapel = {z: sum(hoogte(k) for k in per_zone[z]) + TUSSEN_Y * max(0, len(per_zone[z]) - 1) for z in midden_x}
     band = max(stapel.values())
     for z, x in midden_x.items():
@@ -313,6 +329,6 @@ def plaats(d: Diagram, breedte: float = 480.0, vorm: Literal["formuleringen", "b
         for k in per_zone[z]:
             yz += zet(k, x, yz) + TUSSEN_Y
     y += band + BAND
-    for d in sorted({k.diepte for k in per_zone["onder"]}):
-        y = rijen([k for k in per_zone["onder"] if k.diepte == d], y)
-    return Plaatsing(breedte=breedte, hoogte=round(y - BAND, 2), knopen=geplaatst)
+    for r in onder:
+        y = rij(r, y)
+    return Plaatsing(breedte=round(totaal, 2), hoogte=round(y - BAND, 2), knopen=geplaatst)

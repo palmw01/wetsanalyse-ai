@@ -140,3 +140,34 @@ def test_boven_en_onder_krijgt_elke_stap_een_eigen_rij_verder_van_het_midden():
                           _r(ander, tweede, "operand")])
     pos = {g.knoop.id: g for g in diagram.plaats(d).knopen}
     assert pos["op"].y < pos["vw"].y < pos["ar"].y < pos["in"].y < pos["op2"].y
+
+
+def test_een_brede_rij_breekt_niet_af_en_lijnen_en_labels_raken_geen_knoop():
+    """Vijf voorwaarden met operatoren (art. 9-achtig): elke stap één rij, de tekening schaalt naar de pagina, geen lijn
+    door een andere knoop en geen label op een knoop of op een ander label."""
+    from app import diagram_teken
+    rb = _m("rb", "Rechtsbetrekking", 1)
+    vws = [_m(f"v{i}", "Voorwaarde", i + 2, ) for i in range(5)]
+    op, op2 = _m("op", "Operator", 11), _m("op2", "Operator", 12)
+    relaties = ([_r(rb, v, "voorwaarde") for v in vws] + [_r(op, vws[3], "operator_in"), _r(op, vws[0], "operator_in"),
+                _r(op2, vws[1], "operator_in"), _r(_m("s", "Rechtssubject", 20), rb, "plichthebbende")])
+    d = diagram.bouw(rb, relaties)
+    p = diagram.plaats(d, 480)
+    pos = {g.knoop.id: g for g in p.knopen}
+    assert len({pos[v["id"]].y for v in vws}) == 1 and p.breedte > 480                 # één rij, breder dan de pagina
+    assert pos["op2"].x < pos["op"].x                                                     # boven zijn eigen voorwaarde
+    stukken = diagram_teken.lijnstukken(d, p)
+    labels = [(lx - w / 2, ly - h / 2, w, h) for _l, _s, (lx, ly, w, h) in stukken]
+    vakken = [(g.x, g.y, g.b, g.h) for g in p.knopen]
+    for i, lab in enumerate(labels):
+        assert not any(diagram_teken._raakt(lab, v) for v in vakken)
+        assert not any(diagram_teken._raakt(lab, ander) for ander in labels[i + 1:])
+    for lijn, (x1, y1, x2, y2), _ in stukken:
+        for g in p.knopen:
+            if g.knoop.id in (lijn.van, lijn.naar):
+                continue
+            for t in range(1, 100):
+                x, y = x1 + (x2 - x1) * t / 100, y1 + (y2 - y1) * t / 100
+                assert not (g.x < x < g.x + g.b and g.y < y < g.y + g.h), (lijn.van, lijn.naar, g.knoop.id)
+    tekening = diagram_teken.als_drawing(d, 480)
+    assert tekening.width == 480
