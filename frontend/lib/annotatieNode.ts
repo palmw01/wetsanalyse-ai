@@ -1,5 +1,5 @@
 import { downloadAntwoord, parseError, type ExportFormaat } from "./api";
-import { RELATIETYPEN } from "./jasRelaties";
+import { CENTRALE_KLASSEN, RELATIETYPEN } from "./jasRelaties";
 import { pathSegment } from "./url";
 
 /** Canonieke bronnodeweergave. Posities zijn Unicode-codepunten, niet UTF-16. */
@@ -169,6 +169,17 @@ export interface ElementDetail {
   snapshot_id: string;
   actuele_snapshot_id?: string;
   bronnen: NodeSegment[];
+}
+/** Het 2c-diagram rond een markering van een centrale klasse (api `GET /v1/annotatie/diagram`): hetzelfde plaatje als
+ *  in het werkgebiedrapport. `versie` (de revisies van de lagen in beeld) laat de browser een nieuw plaatje halen na een
+ *  besluit. `null` als de klasse geen diagram heeft. */
+export function diagramUrl(elementId: string, klasse: string, versie: string | number): string | null {
+  if (!CENTRALE_KLASSEN.includes(klasse)) return null;
+  return `/api/annotatie/v2/diagram?element_id=${encodeURIComponent(elementId)}&vorm=svg&v=${encodeURIComponent(String(versie))}`;
+}
+/** Een versie van wat in beeld is: verandert zodra een laag een nieuwe revisie krijgt. */
+export function weergaveVersie(view: NodeWeergave): string {
+  return view.lagen.map((l) => `${l.id}:${l.revisie}`).sort().join(",");
 }
 export function haalElementDetail(id: string): Promise<ElementDetail> {
   return nodeRequest(`elementen/${pathSegment(id)}`);

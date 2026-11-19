@@ -331,6 +331,127 @@ def voorwaarde_overlap(parser):
     assert not [r for r in z.voorstel() if r["type"] == "voorwaarde"]
 
 
+# --- 5–7. rollen en voorwerp -----------------------------------------------------------------------------------------
+
+def _rb(parser, tekst: str, klasse: str = RB) -> Zin:
+    z = Zin(tekst, parser.analyseer(tekst))
+    z.markeer(tekst.rstrip("."), klasse)
+    return z
+
+
+def _rollen(z: Zin, *types: str) -> set[tuple]:
+    return {r for r in kort(z.voorstel()) if r[0] in types}
+
+
+ROLLEN = ("rechthebbende", "plichthebbende", "verricht")
+
+
+def rol_onderwerp_positief(parser):
+    z = _rb(parser, "De ontvanger kan de aanslag verminderen.")
+    z.markeer("De ontvanger", RS)
+    assert _rollen(z, *ROLLEN) == {("rechthebbende", "De ontvanger", "De ontvanger kan de aanslag verminderen", None)}
+    z = _rb(parser, "De ontvanger moet de aanslag verminderen.")
+    z.markeer("De ontvanger", RS)
+    assert {r[0] for r in _rollen(z, *ROLLEN)} == {"plichthebbende"}
+
+
+def rol_onderwerp_negatief(parser):
+    # Geen bevoegdheid en geen plicht in de zin: welke rol het onderwerp heeft, zegt de tekst niet. Ook zonder ontleding niets.
+    z = _rb(parser, "De ontvanger vermindert de aanslag.")
+    z.markeer("De ontvanger", RS)
+    assert not _rollen(z, *ROLLEN)
+    tekst = "De ontvanger kan de aanslag verminderen."
+    z = Zin(tekst, NullProvider().analyseer(tekst))
+    z.markeer(tekst.rstrip("."), RB)
+    z.markeer("De ontvanger", RS)
+    assert not z.voorstel()
+
+
+def rol_onderwerp_rand(parser):
+    # Een rechtsfeit: het onderwerp verricht het.
+    z = _rb(parser, "De belastingschuldige betaalt de aanslag.", RF)
+    z.markeer("De belastingschuldige", RS)
+    assert _rollen(z, *ROLLEN) == {("verricht", "De belastingschuldige", "De belastingschuldige betaalt de aanslag", None)}
+
+
+def rol_onderwerp_overlap(parser):
+    # Het onderwerp van een voorwaarde binnen de betrekking is niet het onderwerp van de betrekking.
+    tekst = "Indien de inspecteur dat vraagt, moet de belastingschuldige de aangifte doen."
+    z = _rb(parser, tekst)
+    z.markeer("Indien de inspecteur dat vraagt", VW)
+    z.markeer("de inspecteur", RS)
+    z.markeer("de belastingschuldige", RS)
+    assert _rollen(z, *ROLLEN) == {("plichthebbende", "de belastingschuldige", tekst.rstrip("."), None)}
+
+
+def rol_voorzetsel_positief(parser):
+    tekst = "De belastingschuldige moet de aanslag betalen aan de ontvanger."
+    z = _rb(parser, tekst)
+    z.markeer("De belastingschuldige", RS)
+    z.markeer("de ontvanger", RS)
+    assert ("rechthebbende", "de ontvanger", tekst.rstrip("."), None) in _rollen(z, *ROLLEN)
+
+
+def rol_voorzetsel_negatief(parser):
+    # Zonder modaliteit is "aan" geen tegenpartij van een recht of plicht.
+    z = _rb(parser, "De belastingschuldige betaalt de aanslag aan de ontvanger.")
+    z.markeer("de ontvanger", RS)
+    assert not _rollen(z, *ROLLEN)
+
+
+def rol_voorzetsel_rand(parser):
+    # Op verzoek van iemand een plicht: die iemand kan haar inroepen, en is rechthebbende.
+    tekst = "Op verzoek van de belastingschuldige is de ontvanger verplicht te verrekenen."
+    z = _rb(parser, tekst)
+    z.markeer("de belastingschuldige", RS)
+    z.markeer("de ontvanger", RS)
+    assert _rollen(z, *ROLLEN) == {("rechthebbende", "de belastingschuldige", tekst.rstrip("."), None),
+                                   ("plichthebbende", "de ontvanger", tekst.rstrip("."), None)}
+
+
+def rol_voorzetsel_overlap(parser):
+    # Bij een heffing noemt "van" de plichtige; bij een gewone zin zonder heffing niet.
+    tekst = "Het winstaandeel wordt geheven van de houder."
+    z = _rb(parser, tekst)
+    z.markeer("de houder", RS)
+    assert _rollen(z, *ROLLEN) == {("plichthebbende", "de houder", tekst.rstrip("."), None)}
+    z = _rb(parser, "Het bericht wordt verstuurd van de houder.")
+    z.markeer("de houder", RS)
+    assert not _rollen(z, *ROLLEN)
+
+
+def voorwerp_zinsdeel_positief(parser):
+    tekst = "De ontvanger kan de aanslag verminderen."
+    z = _rb(parser, tekst)
+    z.markeer("de aanslag", RO)
+    assert _rollen(z, "voorwerp") == {("voorwerp", tekst.rstrip("."), "de aanslag", None)}
+
+
+def voorwerp_zinsdeel_negatief(parser):
+    # Een rechtsobject in een voorzetselgroep is geen voorwerp.
+    z = _rb(parser, "De ontvanger kan bij de aanslag een korting verlenen.")
+    z.markeer("de aanslag", RO)
+    assert not _rollen(z, "voorwerp")
+
+
+def voorwerp_zinsdeel_rand(parser):
+    # Een lijdende zin: het onderwerp is het voorwerp; de voorzetselgroep niet.
+    tekst = "De belasting wordt geheven bij wege van aanslag."
+    z = _rb(parser, tekst)
+    z.markeer("De belasting", RO)
+    z.markeer("aanslag", RO)
+    assert _rollen(z, "voorwerp") == {("voorwerp", tekst.rstrip("."), "De belasting", None)}
+
+
+def voorwerp_zinsdeel_overlap(parser):
+    # Twee geneste rechtsobjecten: het kleinste dat het lijdend voorwerp draagt, niet de naamwoordgroep erin.
+    tekst = "De ontvanger kan het bedrag van de aanslag verminderen."
+    z = _rb(parser, tekst)
+    z.markeer("het bedrag van de aanslag", RO)
+    z.markeer("de aanslag", RO)
+    assert _rollen(z, "voorwerp") == {("voorwerp", tekst.rstrip("."), "het bedrag van de aanslag", None)}
+
+
 GEVALLEN = {
     R.REL_UITVOER_FUNCTIE: (uitvoer_positief, uitvoer_negatief, uitvoer_rand, uitvoer_overlap),
     R.REL_INVOER_FUNCTIE: (invoer_positief, invoer_negatief, invoer_rand, invoer_overlap),
@@ -338,7 +459,13 @@ GEVALLEN = {
     R.REL_OPERATOR_IN_NESTING: (operator_in_positief, operator_in_negatief, operator_in_rand, operator_in_overlap),
     R.REL_OPERAND_WOORDVOLGORDE: (operand_positief, operand_negatief, operand_rand, operand_overlap),
     R.REL_VOORWAARDE_AANHECHTING: (voorwaarde_positief, voorwaarde_negatief, voorwaarde_rand, voorwaarde_overlap),
+    R.REL_ROL_ONDERWERP: (rol_onderwerp_positief, rol_onderwerp_negatief, rol_onderwerp_rand, rol_onderwerp_overlap),
+    R.REL_ROL_VOORZETSEL: (rol_voorzetsel_positief, rol_voorzetsel_negatief, rol_voorzetsel_rand, rol_voorzetsel_overlap),
+    R.REL_VOORWERP_ZINSDEEL: (voorwerp_zinsdeel_positief, voorwerp_zinsdeel_negatief, voorwerp_zinsdeel_rand,
+                              voorwerp_zinsdeel_overlap),
 }
+#: De regels die de zinsontleding lezen; de rest draait zonder model.
+MET_ONTLEDING = (R.REL_VOORWAARDE_AANHECHTING, R.REL_ROL_ONDERWERP, R.REL_ROL_VOORZETSEL, R.REL_VOORWERP_ZINSDEEL)
 SOORTEN = ("positief", "negatief", "rand", "overlap")
 
 
@@ -348,13 +475,13 @@ def test_elke_regel_heeft_vier_testsoorten():
         assert [g.__name__.rsplit("_", 1)[1] for g in gevallen] == list(SOORTEN), code
 
 
-@pytest.mark.parametrize("geval", [g for code in R.CODES if code != R.REL_VOORWAARDE_AANHECHTING
+@pytest.mark.parametrize("geval", [g for code in R.CODES if code not in MET_ONTLEDING
                                    for g in GEVALLEN[code]], ids=lambda g: g.__name__)
 def test_regel_zonder_zinsontleding(geval):
     geval()
 
 
-@pytest.mark.parametrize("geval", GEVALLEN[R.REL_VOORWAARDE_AANHECHTING], ids=lambda g: g.__name__)
+@pytest.mark.parametrize("geval", [g for code in MET_ONTLEDING for g in GEVALLEN[code]], ids=lambda g: g.__name__)
 def test_regel_met_zinsontleding(geval, parser):
     geval(parser)
 

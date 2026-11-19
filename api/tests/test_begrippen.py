@@ -321,3 +321,37 @@ def test_de_vindplaatsregel_is_geen_toelichting():
     assert not eigen_toelichting("Komt voor in Lid 1. Wettelijke definitie in Lid 3.")
     assert eigen_toelichting("Geldt alleen voor de rijksbelastingen.")
     assert eigen_toelichting("Komt voor in Lid 1. Geldt alleen voor de rijksbelastingen.")
+
+
+def test_een_definitie_die_woord_voor_woord_in_een_passage_staat_is_letterlijk():
+    """Bevinding Termijnen (19 nov 2026): een wetsdefinitie die de analist overnam, kreeg herkomst `geformuleerd`."""
+    from app.begrip_store import herkomst_van, met_afgeleid
+    passage = "Een voorlopige aanslag tot een negatief bedrag die voor of in de loop van het tijdvak wordt vastgesteld"
+    assert herkomst_van("een voorlopige aanslag tot een  negatief bedrag.", [passage]) == "letterlijk"
+    assert herkomst_van("een voorlopige aanslag", [passage]) == "geformuleerd"            # te kort om iets te zeggen
+    assert herkomst_van("een voorlopige aanslag met een negatief bedrag", [passage]) == "geformuleerd"
+    assert met_afgeleid(None, {"definitie": passage}, [passage])["definitie_herkomst"] == "letterlijk"
+    oud = {"definitie": passage, "definitie_herkomst": "letterlijk", "definitie_door": "lex"}
+    assert met_afgeleid(oud, {"definitie": passage}, [])["definitie_door"] == "lex"          # ongewijzigd: blijft
+
+
+async def test_koppelen_met_akkoord_houdt_een_geaccordeerd_begrip_geaccordeerd(client):
+    """Bevinding Termijnen: koppelen, beoordelen en opnieuw accorderen waren drie aanroepen. Met `akkoord` is het er één;
+    zonder blijft het zoals het was (een concept met een open passage)."""
+    ids = await _annoteer()
+    await _keur_alles_goed(ids)
+    wg = await _werkgebied(client)
+    b = await _begrip(client, wg, [ids["lid1"]])
+    b = (await client.patch(_url(wg, b), json={"verwachte_revisie": b["revisie"], "inhoud": {"naam": "Belastingschuldige", **DEFINITIE}})).json()
+    b = (await client.patch(_url(wg, b, "koppelingen", b["koppelingen"][0]["id"]),
+                            json={"verwachte_revisie": b["revisie"], "beoordeling": "akkoord"})).json()
+    b = (await client.post(_url(wg, b, "accorderen"), json={"reden": "Getoetst", "verwachte_revisie": b["revisie"]})).json()
+    assert b["status"] == "geaccordeerd"
+    r = await client.post(_url(wg, b, "koppelingen"), json={"verwachte_revisie": b["revisie"], "element_ids": [ids["lid2"]],
+                                                            "akkoord": True})
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "geaccordeerd"
+    assert {k["beoordeling"] for k in r.json()["koppelingen"]} == {"akkoord"}
+    zonder = await client.post(_url(wg, r.json(), "koppelingen"), json={"verwachte_revisie": r.json()["revisie"],
+                                                                         "element_ids": [ids["awr"]], "rol": "context"})
+    assert zonder.json()["status"] == "concept"

@@ -160,6 +160,26 @@ lijst ankers van een voorstel; de api zet die in de batch om naar het element-id
 `opnieuw` vervangt oude voorstellen zonder oordeel, zoals bij elementen. Kenmerk, tijd en rollen (stappen 5 tot en met
 7) volgen nog; een meting op een referentie ook.
 
+**Gebouwd (19 nov 2026): stap 7, de rollen en het voorwerp**, in dezelfde module en achter dezelfde vlag, zonder model.
+Drie regels met elk vier testsoorten:
+
+- `REL_ROL_ONDERWERP`: binnen een rechtsbetrekking geeft de modaliteit de rol van het onderwerp (`nsubj`). Een
+  bevoegdheid ("kan", "mag", "bevoegd") maakt het rechthebbende, een plicht ("moet", "verplicht") plichthebbende. Bij een
+  rechtsfeit verricht het onderwerp het. Een zin met beide soorten woorden, of zonder, geeft geen voorstel.
+- `REL_ROL_VOORZETSEL`: na "aan", "ten aanzien van", "jegens" of "tegenover" heeft een rechtssubject de andere rol. Na "op
+  verzoek van" is het rechthebbende van een plicht, en na "van" bij een heffing plichthebbende.
+- `REL_VOORWERP_ZINSDEEL`: het lijdend voorwerp, of in een lijdende of naamwoordelijke zin het onderwerp.
+
+Wat in een voorwaarde binnen de betrekking staat, telt niet mee. Proef op zeven bepalingen van het werkgebied Termijnen,
+met de markeringen van acceptatie en de rol-relaties die een jurist daar legde: 12 van de 16 relaties gevonden, geen
+onjuiste. Gemist zijn:
+
+- twee voorwerpen in de onderdelen van art. 24 lid 1 IW, buiten de zin van de betrekking;
+- een voorwerp in een voorzetselgroep (LI 24.3);
+- het tweede lid van een nevenschikking die de ontleding verkeerd hangt (art. 9 lid 5 IW).
+
+Kenmerk en tijd (stappen 5 en 6) volgen nog.
+
 ## Gevolgen
 
 - De werkplek krijgt een blok *Relaties* per element in het annotatiepaneel. De graaf krijgt een lijnsoort
@@ -167,7 +187,10 @@ lijst ankers van een voorstel; de api zet die in de batch om naar het element-id
   de graaf in plaats van uit een plaatje. Exports dragen de relaties: JSON v4, TriG, en een relatielijst plus regelskelet
   in Markdown en PDF.
 - Afronden van een laag hangt voorlopig niet van relaties af; de werkplek telt wel de open relaties. Of afronden
-  beoordeelde relaties moet vragen, is een latere keuze.
+  beoordeelde relaties moet vragen, is een latere keuze. *Aanvulling 19 nov 2026 (Termijnen):* het antwoord op afronden
+  noemt `open_relaties`, het aantal voorstellen van de keten dat nog open staat, zodat het niet stil gebeurt. Beoordelen
+  gaat ook per laag in één keer (`POST /v1/annotatie/lagen/{laag}/relatiebesluiten`, alles of niets, één revisie),
+  zoals voor markeringen.
 - Lex leest relaties via de leesroute ("wat is de invoer van de regel in lid 5?"), op wat vastgelegd is.
 - Een relatie geeft een tweede reden om een laag opnieuw te projecteren, en de graaf groeit. Daarom tonen de
   graafweergave en de focus relaties alleen op verzoek.

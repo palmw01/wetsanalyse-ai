@@ -184,6 +184,11 @@ Hieronder wat je moet weten om de code te wijzigen.
     (`relaties_vervangen`, `relatie-vervangen`); een relatie van de jurist nooit. Een vervangen relatie staat niet in de
     weergave en niet in de projectie; komt ze terug, dan leeft ze op (`relatie-hersteld`). Zonder relaties is de
     vingerafdruk van de batch dezelfde als voor het veld bestond.
+  - **Beoordelen per laag** (`POST lagen/{laag_id}/relatiebesluiten`, `annotatie_v2_relaties.beslis_laag`): hoogstens
+    500 besluiten over relaties van één laag in één transactie en één revisie, alles of niets (409/422
+    `besluit_geweigerd` met de relatie), met dezelfde regels als los (`_beslis_in`). Een los besluit geeft de relatie
+    zonder `geproduceerd_door` en `spoor` terug (`compact`). Afronden noemt `open_relaties`: de voorstellen van de keten
+    die nog open staan; het blokkeert niet.
   - Zie de specificatie §*Relaties tussen markeringen*.
 - **Een oordeel vergrendelt.** Een element in `VERGRENDELD` dat van de agent komt of een oordeel draagt
   (`heeft_oordeel`), accepteert alleen `comment` en `heropen` (`annotatie_v2_store._beslis_in`). Afronden (`zet_status`
@@ -564,6 +569,12 @@ spoor D (*Werkgebied als node*).
   herkoppelen en bevestigen antwoorden met status, revisie, poort en per koppeling de rol en beoordeling, zonder inhoud en
   bewijs. Anders wordt een reeks besluiten kwadratisch in het aantal passages. De werkplek legt de stand over de kaart die
   ze heeft (`metKoppelstand`) en haalt hem alleen opnieuw op bij een nieuwe passage of bewijsstand.
+- **Koppelen met akkoord** (`KoppelInvoer.akkoord`, `reden`): de nieuwe koppelingen zijn meteen beoordeeld en een
+  geaccordeerd begrip wordt in dezelfde transactie opnieuw geaccordeerd als de poort het toelaat, zoals koppelen vanuit
+  een groep. Zonder `akkoord` verandert er niets.
+- **Letterlijk is een feit, geen keuze** (`begrip_store.herkomst_van`): een nieuwe of andere definitie die woord voor
+  woord (minstens `MIN_WOORDEN_LETTERLIJK` woorden, witruimte en slotpunt tellen niet) in een passage van het begrip staat,
+  is `letterlijk`; anders `geformuleerd`. Bij aanmaken, wijzigen en het akkoord op een groep.
 - **Bulk op koppelingen**: `POST …/koppelingen/beoordelen` en `…/koppelingen/bevestigen` (hoogstens 500), in één revisie
   en één auditregel met `koppelingen`, alles of niets. Wat er al zo staat telt niet mee; niets te doen is geen revisie.
 - **Per begrip één koppeling per element en rol.** Bij koppelen idempotent; een rol ombuigen naar een

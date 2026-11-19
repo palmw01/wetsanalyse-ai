@@ -22,7 +22,7 @@ from . import graaf as graaf_mod
 from . import knoopinfo as knoopinfo_mod
 from . import samenhang as samenhang_mod
 from . import samenhang_antwoord
-from .annotatie_v2_contracts import (Batch, Beslissing, Doel, Element, ImplicietInvoer, Laagbesluiten,
+from .annotatie_v2_contracts import (Batch, Beslissing, Doel, Element, ImplicietInvoer, Laagbesluiten, Relatiebesluiten,
                                      RelatieBeslissing, RelatieInvoer, Zoekvraag)
 from .auth import require_client
 from .bron_resolver import bwb_van, haal_bronrijen, snapshot_uit
@@ -318,6 +318,13 @@ async def post_relatie(req: RelatieInvoer, actor: str = Depends(actieve_userid))
 @router.post("/relaties/{relatie_id}/beslissing")
 async def post_relatie_beslissing(relatie_id: str, req: RelatieBeslissing, actor: str = Depends(actieve_userid)):
     return await relaties.beslis(relatie_id, req, actor)
+
+
+@router.post("/lagen/{laag_id}/relatiebesluiten")
+async def post_relatiebesluiten(laag_id: str, req: Relatiebesluiten, actor: str = Depends(actieve_userid)):
+    """Besluiten over de relaties van één laag in één transactie en één revisie: alles of niets. Zoals
+    `lagen/{laag_id}/beslissingen` voor markeringen; het antwoord is klein."""
+    return await relaties.beslis_laag(laag_id, req, actor)
 
 
 @router.post("/relaties/{relatie_id}/wis")
