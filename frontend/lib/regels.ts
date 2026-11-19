@@ -58,6 +58,9 @@ export interface Regel {
   dragers: RegelDrager[];
   accorderen: { mag: boolean; redenen: string[] };
   signalen: string[];
+  /** Hoeveel open punten aan de regel of een geval hangen, en hoeveel daarvan nog open zijn (R3). Een oudere api stuurt
+   *  het niet. */
+  open_punten?: { open: number; totaal: number };
   aangemaakt_door: string;
   aangemaakt: string | null;
   gewijzigd: string | null;

@@ -1602,6 +1602,13 @@ geen regels op (R5/R6 wachten op het akkoord over de agentische laag): je leest,
 - **De keten** (`RegelKeten`) is het artefact *Afleidingsregels* van het werkgebied (`ARTEFACT_SOORTEN`, pagina
   `artefacten/regels`): de regels van onder naar boven, de basisgegevens, de signalen, en de afgewezen of vervangen regels
   apart; een rij is `ObjectRij` (naast het gesprek met `onKies`, zodat hij in hetzelfde paneel opent).
+- **Open punten op de regel** (R3, ADR-018 besluit 7.13; `components/werkgebieden/OpenPunten.tsx`, rekenkern
+  `lib/openPunten.ts` met een drifttest op `open_punt_contracts.py`): per punt de soort, het geval, de vraag, de lezingen
+  met hun grondslag (opklapbaar, de vorm van `DefinitieOnderbouwing`), wat nog getoetst moet worden en de keuze. Een
+  punt van Lex dat nog open is, staat als `Voorstel`. **Het besluit valt op de kaart**: een lezing, de methode en een
+  motivering, via de ene route van het open punt (`besluitOpenPunt`; het agent-token mag die niet). De keuzekaart die Lex
+  later in het gesprek legt (R6), schrijft naar dezelfde route; er is geen eigen vraagkaartmodus. Na een besluit laadt de
+  regel opnieuw, want de poort telt de genomen keuzes. De open punten gaan mee in de Markdown-export van een regel.
 - **Op de begripskaart** (U4) staat *Afleidingsregels* met *Afgeleid door* en *Gebruikt in* (`BegripRegels`, faalt stil).
 - **Het overzicht in de zijbalk** (`/afleidingsregels`, `RegelsOverzichtClient` met `RegelOverzichtKaart`, verzoek
   gebruiker 19 nov 2026): de vorm van *Begrippen* (`OverzichtBalk`, `OverzichtKaart`, filters in de URL via

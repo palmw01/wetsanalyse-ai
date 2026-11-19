@@ -998,8 +998,12 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   revisie +1, revisiekopie en audit (`regel-*`, `drager-*`). Elke mutatie behalve accorderen maakt een geaccordeerde regel
   weer een concept; een vervangen regel is alleen-lezen (409).
 - **De poort** (`accorderen: {mag, redenen}`, besluit gebruiker 19 nov 2026): elk genoemd begrip geaccordeerd, een
-  grondslag die akkoord en actueel is, en een beoordeeld voorbeeld per geval; plus een reden. De interpretatiekeuzes komen
-  erbij met de open punten (R3). Wat niet blokkeert, staat in `signalen`. Een regel met `brontype: beleid` wordt
+  grondslag die akkoord en actueel is, een beoordeeld voorbeeld per geval, en geen open keuze; plus een reden. Wat niet
+  blokkeert, staat in `signalen`.
+- **Open punten op de regel** (R3, ADR-018 besluit 7.13): het object en zijn besluitroute zijn van `open_punt_store`
+  (lessenbundel 4, §*Open punten*). `regel_store._open_punten_van` leest alleen: de punten die aan de regel of een geval
+  ervan hangen. Een open punt van een soort in `KEUZE_SOORTEN` (interpretatiekeuze, ontbrekend uitvoeringsbeleid) houdt
+  het accorderen tegen; een onderzoekspunt of gat is een signaal. Een regel draagt `open_punten: {open, totaal}`. Een regel met `brontype: beleid` wordt
   `geaccordeerd_als_beleidsregel`.
 - **De regeltekst rekent de server** (`regeltekst.regeltekst`, puur): `{tekst, markdown, gevallen}` in de taalpatronen
   van ADR-018 §5. De Markdown geeft lijsten, nooit een tabel.
