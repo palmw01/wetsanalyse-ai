@@ -261,37 +261,61 @@ async def _opvolging(conn, werkgebied_id: str | None, oud, nieuw_id: str, reden:
 
 
 async def nieuwe_betekenis_generiek(begrip_id: str, nb: NieuweBetekenis, actor: str) -> dict:
-    """Een generiek begrip krijgt een nieuwe betekenis: de opvolger is een concept zonder passages, en elk werkgebied
-    beslist zelf of het hem overneemt (ADR-006). Tot die tijd staat het oude begrip bij zijn herbeoordeling."""
+    """Een generiek begrip krijgt een nieuwe betekenis in één werkgebied dat het gebruikt (`nb.werkgebied_id`): de
+    opvolger krijgt de passages van dat werkgebied (opnieuw ter beoordeling) en dat werkgebied gaat erop over. Elk
+    ander werkgebied beslist zelf of het hem overneemt (ADR-006); tot die tijd staat het oude begrip bij zijn
+    herbeoordeling. Zonder werkgebied, of een werkgebied zonder passages bij dit begrip, kan het niet: een begrip rust
+    altijd op een annotatie."""
+    if not nb.werkgebied_id:
+        raise HTTPException(422, {"fout": "werkgebied_nodig", "melding": "Een nieuwe betekenis ontstaat in een "
+                                  "werkgebied dat het begrip gebruikt: daar komen de passages van de opvolger vandaan."})
     async with db.get_engine().begin() as conn:
+        # Eerst het werkgebied, dan het begrip: de vaste volgorde van de sloten.
+        await werkgebied_rij(conn, nb.werkgebied_id, slot=True)
         async with begrip_store._gewijzigd_in(conn, None, begrip_id, nb.verwachte_revisie, actor, "begrip-vervangen",
                                               {"reden": nb.reden}) as (_, oud, stand_):
             stand_["status"] = "vervangen"
-        nieuw_id = await begrip_store.maak_generiek_in(conn, dict(oud.inhoud), oud.ontstaan_in, actor)
+        nieuw_id = await begrip_store.maak_generiek_in(conn, dict(oud.inhoud), nb.werkgebied_id, actor)
         await _opvolging(conn, None, oud, nieuw_id, nb.reden, "nieuwe_betekenis", actor)
+        gekopieerd = await _neem_opvolger_over_in(conn, nb.werkgebied_id, begrip_id, nieuw_id, actor)
+        if not gekopieerd:
+            raise HTTPException(409, {"fout": "laatste_passage", "melding": "Dit werkgebied heeft geen passages bij dit "
+                                      "begrip. Een begrip rust altijd op een annotatie: kies een werkgebied met passages."})
+        await begrip_store.toets_passage(conn, nieuw_id)
     return await begrip_store.haal_generiek(nieuw_id)
+
+
+async def _neem_opvolger_over_in(conn, werkgebied_id: str, begrip_id: str, opv: str, actor: str) -> list[str]:
+    """Het werkgebied gaat over op de opvolger, binnen de transactie van de aanroeper (die het werkgebiedslot heeft):
+    het gebruik en de passages (opnieuw ter beoordeling) gaan mee. 409 `geen_opvolger` als het werkgebied het oude
+    begrip niet gebruikt."""
+    g, k = db.werkgebied_begrippen, db.begrip_koppelingen
+    rij = (await conn.execute(select(g.c.id).where(g.c.werkgebied_id == werkgebied_id, g.c.begrip_id == begrip_id,
+                                                   g.c.verwijderd.is_(None)))).first()
+    if rij is None:
+        raise HTTPException(409, {"fout": "geen_opvolger", "melding": "Dit werkgebied gebruikt dit begrip niet."})
+    await begrip_store.gebruik_in(conn, werkgebied_id, opv, actor)
+    gekopieerd = await _kopieer_koppelingen(conn, werkgebied_id, begrip_id, opv, actor)
+    nu = db.utcnow()
+    await conn.execute(update(g).where(g.c.id == rij.id).values(verwijderd=nu))
+    await conn.execute(update(k).where(k.c.begrip_id == begrip_id, k.c.werkgebied_id == werkgebied_id,
+                                       k.c.verwijderd.is_(None)).values(verwijderd=nu))
+    await werkgebied_audit(conn, werkgebied_id, actor, "begrip-opvolger-overgenomen",
+                           {"begrip_id": opv, "vervangt": begrip_id, "element_ids": gekopieerd})
+    return gekopieerd
 
 
 async def opvolger_overnemen(werkgebied_id: str, begrip_id: str, actor: str) -> dict:
     """Dit werkgebied gaat over op de opvolger: het gebruik en de passages (opnieuw ter beoordeling) gaan mee."""
-    r, g, k = db.begrip_relaties, db.werkgebied_begrippen, db.begrip_koppelingen
+    r = db.begrip_relaties
     async with db.get_engine().begin() as conn:
         await werkgebied_rij(conn, werkgebied_id, slot=True)
-        rij = (await conn.execute(select(g.c.id).where(g.c.werkgebied_id == werkgebied_id, g.c.begrip_id == begrip_id,
-                                                       g.c.verwijderd.is_(None)))).first()
         opv = (await conn.execute(select(r.c.naar_begrip).where(
             r.c.van_begrip == begrip_id, r.c.type == "opvolging", r.c.verwijderd.is_(None),
             r.c.werkgebied_id.is_(None)))).scalar()
-        if rij is None or opv is None:
+        if opv is None:
             raise HTTPException(409, {"fout": "geen_opvolger", "melding": "Dit begrip heeft geen opvolger om over te nemen."})
-        await begrip_store.gebruik_in(conn, werkgebied_id, opv, actor)
-        gekopieerd = await _kopieer_koppelingen(conn, werkgebied_id, begrip_id, opv, actor)
-        nu = db.utcnow()
-        await conn.execute(update(g).where(g.c.id == rij.id).values(verwijderd=nu))
-        await conn.execute(update(k).where(k.c.begrip_id == begrip_id, k.c.werkgebied_id == werkgebied_id,
-                                           k.c.verwijderd.is_(None)).values(verwijderd=nu))
-        await werkgebied_audit(conn, werkgebied_id, actor, "begrip-opvolger-overgenomen",
-                               {"begrip_id": opv, "vervangt": begrip_id, "element_ids": gekopieerd})
+        await _neem_opvolger_over_in(conn, werkgebied_id, begrip_id, opv, actor)
     return await begrip_store.haal(werkgebied_id, opv)
 
 
@@ -325,6 +349,7 @@ async def nieuwe_betekenis(werkgebied_id: str, begrip_id: str, nb: NieuweBeteken
         nieuw_id = await begrip_store.maak_in(conn, werkgebied_id, {**oud.inhoud, "definitie_door": oud.inhoud.get(
             "definitie_door", "")}, {}, "duiding", actor)
         gekopieerd = await _kopieer_koppelingen(conn, werkgebied_id, begrip_id, nieuw_id, actor)
+        await begrip_store.toets_passage(conn, nieuw_id)
         await _opvolging(conn, werkgebied_id, oud, nieuw_id, nb.reden, "nieuwe_betekenis", actor)
         await werkgebied_audit(conn, werkgebied_id, actor, "begrip-opgevolgd",
                                {"begrip_id": nieuw_id, "vervangt": begrip_id, "element_ids": gekopieerd, "reden": nb.reden})
@@ -332,8 +357,8 @@ async def nieuwe_betekenis(werkgebied_id: str, begrip_id: str, nb: NieuweBeteken
 
 
 async def combineer(werkgebied_id: str, begrip_id: str, c: Combineren, actor: str) -> dict:
-    """Eén transactie: `ander_begrip_id` wordt vervangen door `begrip_id`, dat zijn passages (open) en zijn
-    naam als alternatieve term meekrijgt."""
+    """Eén transactie: `ander_begrip_id` wordt vervangen door `begrip_id`, dat zijn passages (open) en, als
+    `naam_als_alternatieve_term`, zijn naam en alternatieve termen meekrijgt."""
     if c.ander_begrip_id == begrip_id:
         raise HTTPException(422, {"fout": "zelfde_begrip", "melding": "Kies een ander begrip om mee te combineren."})
     detail_ander: dict = {"reden": c.reden, "opvolger": begrip_id}
@@ -347,7 +372,7 @@ async def combineer(werkgebied_id: str, begrip_id: str, c: Combineren, actor: st
             inhoud = dict(row.inhoud)
             naam = ander.inhoud.get("naam", "")
             termen = list(inhoud.get("alternatieve_termen", []))
-            for t in [naam, *ander.inhoud.get("alternatieve_termen", [])]:
+            for t in [naam, *ander.inhoud.get("alternatieve_termen", [])] if c.naam_als_alternatieve_term else []:
                 if t and t != inhoud.get("naam") and t not in termen:
                     termen.append(t)
             inhoud["alternatieve_termen"] = termen

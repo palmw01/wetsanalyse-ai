@@ -1713,7 +1713,8 @@ export async function geefNieuweBetekenis(id: string, begripId: string, body: { 
 
 /** `begripId` blijft; `ander_begrip_id` wordt vervangen. */
 export async function combineerBegrippen(id: string, begripId: string,
-  body: { verwachte_revisie: number; ander_begrip_id: string; ander_revisie: number; reden: string }): Promise<Begrip> {
+  body: { verwachte_revisie: number; ander_begrip_id: string; ander_revisie: number; reden: string;
+    naam_als_alternatieve_term?: boolean }): Promise<Begrip> {
   return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "combineren"), jsonInit("POST", body)));
 }
 
@@ -1801,7 +1802,9 @@ export async function haalGeneriekConformiteit(): Promise<Conformiteit | null> {
   return isConformiteit(c) ? c : null;
 }
 
-export async function geefGeneriekNieuweBetekenis(begripId: string, body: { verwachte_revisie: number; reden: string }): Promise<Begrip> {
+/** Een nieuwe betekenis van een generiek begrip ontstaat in een werkgebied dat het gebruikt (`werkgebied_id`): daar komen
+ *  de passages van de opvolger vandaan, want een begrip rust altijd op een annotatie (api 422 `werkgebied_nodig`). */
+export async function geefGeneriekNieuweBetekenis(begripId: string, body: { verwachte_revisie: number; reden: string; werkgebied_id: string }): Promise<Begrip> {
   return json<Begrip>(await fetch(generiek(begripId, "nieuwe-betekenis"), jsonInit("POST", body)));
 }
 

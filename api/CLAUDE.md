@@ -129,7 +129,8 @@ Hieronder wat je moet weten om de code te wijzigen.
   `annotatie_v2_state` (id 1) en serialiseert zo alle kleine schrijfacties, ook over processen en
   replica's heen. Geen process-local locks.
 - **Revisies en snapshots.** Elke laag draagt een revisie; schrijfacties sturen
-  `verwachte_revisies` mee en krijgen **412** bij een tussentijdse wijziging. Elke schrijfactie legt
+  `verwachte_revisies` mee en krijgen **412** bij een tussentijdse wijziging. De sleutel is de bron-IRI of het
+  laag-id (`verwacht_per_bron`; twee sleutels voor één laag met een ander getal: 422 `dubbele_sleutel`). Elke schrijfactie legt
   de snapshot van de bronboom vast; een beslissing of export tegen een andere bronstand geeft
   **409**.
 - **Revisiehistorie.** `schrijftransactie` houdt bij welke lagen `_raak` raakte en welke
@@ -167,6 +168,9 @@ Hieronder wat je moet weten om de code te wijzigen.
   - Een relatie hoort bij de laag van de drager: leggen, beoordelen en wissen lopen door het schrijfslot met
     revisie, 412 en audit.
   - De typen en klassenparen komen uit de gegenereerde `jas_relaties.py`; bewerk die niet.
+  - **Een volgordeplek** (invoer, operand) is uniek per type en eindpunt, en alleen een geldende relatie bezet haar
+    (`plek_bezet`, voor de jurist, de keten en heropenen): een afgewezen of vervangen relatie is historie. Een afgewezen
+    relatie heropenen op een intussen bezette plek is 409 `volgorde_bezet`.
   - Een gewist element of een verwijderde bepaling neemt haar relaties mee (`wis_bij`).
   - Een impliciete partij (`annotatie_v2_impliciet`) is geen markering. Een nieuwe lezer van de elemententabel
     hoeft haar dus niet te kennen.
@@ -203,6 +207,10 @@ Hieronder wat je moet weten om de code te wijzigen.
 - **`GET weergave?vorm=lijst`** (B-1, `lijst_weergave`): per element alleen wat de jurist beoordeelt (`LIJST_ELEMENT`),
   plus de lagen met hun revisie en de relaties zonder bewijs. Er zijn geen segmenten: de brontekst haal je los op. Dit is
   voor agents en de acceptatie-MCP; de werkplek leest de gewone vorm.
+- **`GET weergave?vorm=skelet`** (`regelskelet.weergave`): per afleidingsregel van de bepaling haar skelet (de relaties van
+  ADR-011, zonder afgewezen en vervangen) en `gaten` in woorden (geen of meer uitvoeren, geen invoer, invoer zonder volgorde,
+  alleen een rechtsobject als invoer). `regelskelet.opbouw` is de ene berekening van het skelet: het rapport
+  (`werkgebied_export._regelskelet`) gebruikt haar ook. Wie een skelet nodig heeft, rekent het hier, niet opnieuw.
 - **Antwoorden op een besluit zijn klein** (`compact_element`): zonder `trace` en `geproduceerd_door`. De werkplek laadt
   de weergave daarna toch opnieuw. Elk element droeg de hele meting van zijn ronde; **`GET weergave` draagt elke meting nu
   één keer** (`compacte_weergave`, `runs` op `run_sleutel`) en `GET elementen/{id}` geen. De opslag, de export en
@@ -331,7 +339,9 @@ Hieronder wat je moet weten om de code te wijzigen.
   revisies die **in de graaf** staan met Postgres, zodat ook een lege GraphDB na een herstart wordt
   opgemerkt en opnieuw gevuld, ruimt verweesde projecties op (na een hercontrole onder het
   schrijfslot) en zet de vocabulaire neer als die ontbreekt. Elke tiende ronde logt hij de lichte
-  graafcontrole (`annotatie_graaf_afwijking`, voor Grafana).
+  graafcontrole (`annotatie_graaf_afwijking`, voor Grafana). Dezelfde controle meldt uit Postgres de begrippen
+  zonder dragende passage (`begrippen_zonder_passage`, logregel met die naam): een wees van vóór de regel "geen begrip
+  zonder annotatie", diagnostisch en buiten `in_orde`. Lex toont zo'n begrip niet als vastgelegd begrip.
 - **Rekenwerk met rdflib gaat via `asyncio.to_thread`** – bouwen, serialiseren, parsen, isomorfie, SHACL.
   Het is pure Python, en de lus deelt de event loop met elk verzoek: synchroon hield één ronde van de
   lichte graafcontrole ruim een halve minuut de hele api vast (acceptatie, 28 okt 2026: 504's op elk
@@ -548,6 +558,18 @@ spoor D (*Werkgebied als node*).
   `definitie_door` – een ongewijzigde definitie houdt ze, een nieuwe of andere tekst is `geformuleerd`
   door de `analist`, geen definitie heeft geen herkomst. Letterlijk wordt een definitie alleen door een
   overgenomen brondefinitie (kaartvoorstel of het akkoord op een groep).
+- **Geen begrip zonder annotatie** (harde regel, besluit gebruiker 19 nov 2026). Een begrip rust altijd op minstens één
+  koppeling met een annotatie-element. `maak` weigert een nieuw begrip zonder `element_ids` (422 `geen_passage`, met
+  `melding`), en `toets_passage` draait in de transactie van elke mutatie die een koppeling weghaalt of overzet
+  (`ontkoppel`, `nieuwe-betekenis`): blijft er geen actieve koppeling over (over alle werkgebieden), dan 409
+  `laatste_passage` en gebeurt er niets. Een vervangen begrip is historie en telt niet mee. Een tussenresultaat zonder
+  eigen formulering is wél een begrip (de methode, M01 §2.2.2): het rust op de markering van de afleidingsregel die het
+  afleidt, met de koppelrol `afgeleid` (dragend, telt voor de poort als aanduidend). Die rol mag alleen op een element
+  van de klasse Afleidingsregel (422 `geen_afleidingsregel`, ook bij het wijzigen van een rol). In het generieke kader
+  (ADR-006, aanvulling 19 nov 2026): een nieuwe betekenis ontstaat in een werkgebied met passages (`werkgebied_id`, 422
+  `werkgebied_nodig`), `stop_gebruik` door het werkgebied met de laatste passages geeft 409 `laatste_passage`, en een
+  werkgebied wissen neemt een generiek begrip mee als het daar zijn laatste passages had (`werkgebied_store.wis`). Een
+  nieuwe schrijver die koppelingen weghaalt, roept `toets_passage` aan.
 - **Eén kader per werkgebied, impliciet.** Een begrip hangt aan een werkgebied, of is generiek (§*Generieke begrippen*);
   het kader heeft geen tabel, alleen een afgeleide IRI (`urn:wa:kader:<werkgebied>`). Begrippen zijn analyse-uitkomsten,
   nooit wettelijke definities; de export zegt dat ook.
@@ -830,8 +852,8 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   transactie: het begrip wordt `vervangen`, een nieuw concept krijgt de inhoud en alle niet-afgewezen
   koppelingen (met hun bewaarde bewijs, opnieuw `open`), plus een relatie `opvolging` met de vorige status
   in het bewijs. **Combineren** (`POST …/begrippen/{b}/combineren {verwachte_revisie, ander_begrip_id,
-  ander_revisie, reden}`): de ander wordt vervangen, `b` krijgt diens passages (open) en naam als
-  alternatieve term. Beide begrippen dragen hun revisie (412).
+  ander_revisie, reden, naam_als_alternatieve_term}`): de ander wordt vervangen, `b` krijgt diens passages (open) en,
+  standaard, naam als alternatieve term; zet dat uit als het geen synoniem is (een smaller begrip in een ruimer). Beide begrippen dragen hun revisie (412).
 - **Een vervangen begrip** houdt geen primaire duiding vast (`_toets_primair`, `primaire_duidingen`),
   telt niet in de dekking en de herbeoordeling, en staat niet bij `lijkt_op`. `GET` van een begrip geeft
   `vervangen_door` en `vervangt`. **De opvolger verwijderen** zet het vervangen begrip terug op zijn vorige
@@ -913,11 +935,14 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   werkgebied (`begrip_voorstel_store` met `werkgebied_id=None`). De auditregel van een besluit gaat naar het werkgebied waar
   het voorstel ontstond.
 - **Gebruik**: `POST …/begrippen/gebruik {begrip_id}` (idempotent), `DELETE …/gebruik/{b}` (de passages hier gaan los).
-  Een werkgebied wissen laat het begrip staan. Verwijderen kan niet zolang het gebruikt wordt (409 `in_gebruik`).
+  Het werkgebied met de laatste passages kan niet stoppen (409 `laatste_passage`). Een werkgebied wissen laat het begrip
+  staan, behalve als het daar zijn laatste passages had: dan gaat het mee. Verwijderen kan niet zolang twee of meer
+  werkgebieden het gebruiken (409 `in_gebruik`); bij één gaat dat gebruik mee.
 - **Doorwerking**: `GET …/herbeoordelingen` draagt `generiek`: wat veranderde sinds `gezien_revisie`, met toen en nu uit
   `begrip_revisies` (`generiek_veranderd`). Een nieuwe revisie door een passage elders telt niet. `POST …/gebruik/{b}/bevestigen`.
-- **Opvolging**: `POST /v1/begrippen/{id}/nieuwe-betekenis` geeft een concept zonder passages (relatie zonder werkgebied);
-  elk werkgebied neemt hem zelf over met `POST …/gebruik/{b}/opvolger`, met zijn passages opnieuw open.
+- **Opvolging**: `POST /v1/begrippen/{id}/nieuwe-betekenis {…, werkgebied_id}` geeft een concept met de passages van dat
+  werkgebied (opnieuw open), en dat werkgebied gaat erop over; zonder werkgebied of zonder passages daar 422/409. Elk ander
+  werkgebied neemt hem zelf over met `POST …/gebruik/{b}/opvolger`, met zijn passages opnieuw open.
 - **Combineren**: `POST …/begrippen/{b}/combineren-generiek {verwachte_revisie, generiek_id, reden}`: het lokale begrip wordt
   vervangen, de passages gaan mee, de inhoud van het generieke begrip verandert niet.
 - **De graaf**: de id `generiek` is één extra graph (`urn:wa:graph:werkgebied:generiek`) met de passages uit alle

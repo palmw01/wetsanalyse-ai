@@ -158,7 +158,8 @@ export const ThreadRij = memo(function ThreadRij({
           <DelegatieBlok weergave={item.delegatie} gesprekId={gesprekId} loopt={streamt} onOpenGesprek={acties.openGesprek} />
         )}
         {item.antwoord ? (
-          <Antwoord antwoord={item.antwoord} bronnen={item.bronnen} nietLetterlijk={item.grounding?.niet_letterlijk} />
+          <Antwoord antwoord={item.antwoord} bronnen={item.bronnen} nietLetterlijk={item.grounding?.niet_letterlijk}
+            interpretatie={item.grounding?.interpretatie} />
         ) : item.tekst ? (
           streamt ? (
             <StreamendeTekst tekst={item.tekst} />

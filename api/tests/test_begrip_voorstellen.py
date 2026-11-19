@@ -264,7 +264,8 @@ async def test_de_uitleg_in_b1_rust_op_een_definitie_en_wordt_toegevoegd(client)
 async def test_betekenisverschil_met_een_ander_begrip(client):
     wg = await _werkgebied(client)
     b = await _begrip(client, wg)
-    beta = (await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen", json={"inhoud": {"naam": "Beta"}})).json()
+    beta = (await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen", json={
+        "inhoud": {"naam": "Beta"}, "element_ids": [(await _annoteer())["beta"]]})).json()
     assert (await client.post(f"{_pad(wg, b)}/kaart-runs", json={"actie": "betekenisverschil"})).status_code == 422
     assert (await client.post(f"{_pad(wg, b)}/kaart-runs", json={
         "actie": "betekenisverschil", "ander_begrip_id": b["id"]})).status_code == 422

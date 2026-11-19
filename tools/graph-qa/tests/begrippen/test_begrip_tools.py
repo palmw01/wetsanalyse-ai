@@ -537,3 +537,28 @@ def test_begrippen_over_iets_is_een_leesvraag_met_een_zoekterm(vraag):
 def test_de_zoekwoorden_zoeken_niet_op_vulling_en_meervoud():
     assert _woorden("begrippen over een bankrekeningen") == ["bankrekening"]
     assert _woorden("de rente") == ["rente"]
+
+
+def test_de_telling_splitst_met_deze_naam_en_waarin_de_term_voorkomt():
+    """Acceptatie 19 nov 2026: "Begrippen 9 gevonden", en het antwoord toonde er 2. De zoekvraag vindt de term ook in
+    definities; het denkproces zegt nu wat er telt."""
+    from agent.spoorbronnen import uitkomstregel
+
+    rijen = [rij("b1", "belastingschuldige"), rij("b2", "Belastingschuldigen", wg=WG2),
+             rij("b3", "aanslagbiljet", definitie="Het geschrift waarmee een aanslag aan de belastingschuldige wordt bekendgemaakt."),
+             rij("b4", "verrekening", alternatieve_termen=["belastingschuldige verrekening"])]
+    port = Port(rijen, hashes={WG: "h", WG2: "h"})
+    data = json.loads(dispatch_begrip("search_begrippen", {"zoekterm": "belastingschuldige"},
+                                      graaf([(r["id"], r["werkgebied_id"]) for r in rijen], {WG: "h", WG2: "h"}), port))
+    assert data["uitsplitsing"] == [[2, "met deze naam"], [2, "waarin de term voorkomt"]]
+    regel = uitkomstregel("search_begrippen", {"zoekterm": "belastingschuldige"}, {"status": "ok", "aantal": 4}, data)
+    assert regel == "2 met deze naam, 2 waarin de term voorkomt"
+    alleen = json.loads(dispatch_begrip("search_begrippen", {"zoekterm": "belastingschuldige"},
+                                        graaf([("b1", WG)], {WG: "h", WG2: "h"}), Port(rijen[:1], hashes={WG: "h", WG2: "h"})))
+    assert "uitsplitsing" not in alleen, "alle treffers dragen de naam: dan is het totaal de telling"
+
+
+def test_een_rij_zonder_telling_van_de_api_krijgt_geen_verzonnen_nul():
+    port = Port([{**rij("b1", "termijn"), "aantal_dragend": None}], hashes={WG: "h"})
+    data = json.loads(dispatch_begrip("search_begrippen", {"zoekterm": "termijn"}, graaf([("b1", WG)], {WG: "h"}), port))
+    assert "aantal_dragend" not in data["resultaten"][0]

@@ -1351,7 +1351,7 @@ bestaat los van de gesprekken.
   en opnemen is idempotent.
 - **Begrippen** (levering 2; api in `../api/CLAUDE.md` §*Begrippen*). `BegrippenKader` is de pagina van het kader, in de
   vorm van de tab Bronnen: *Te doen* (de termen die Lex voorstelt en de begrippen om te herbeoordelen), dan zoeken, de
-  status, export, *Nieuw begrip* (de naam ter plekke) en de begrippen als `GroepRij`. Een rij opent de pagina van het
+  status, export en de begrippen als `GroepRij`. Een nieuw begrip ontstaat alleen uit passages (*Nieuw begrip uit selectie* in `ElementenTab`): een begrip zonder annotatie bestaat niet (19 nov 2026, de api weigert het met 422 `geen_passage`), dus het kader heeft geen *Nieuw begrip* met alleen een naam, maar een zin die naar de JAS-annotaties wijst. Een rij opent de pagina van het
   begrip. **Eén begrip is één inhoud** (spoor N, ADR-006): `useBegrip`
   (`lib/useBegrip.ts`) laadt het en draagt `muteer` – dezelfde vorm als bij het werkgebied: revisie in beeld, 412 laadt
   opnieuw en zegt het, een fout met een `melding` van de api (`al_primair`, `poort`, `element_buiten_werkgebied`)

@@ -162,6 +162,22 @@ async def test_volgorde_is_uniek_per_operator(lagen):
     assert r["volgorde"] == 2
 
 
+async def test_een_afgewezen_relatie_geeft_haar_plek_vrij(lagen):
+    """Een hersteld skelet legt de juiste operand op de plek van een afgewezen: die is historie, geen bezetting. Komt
+    de afgewezen relatie daarna terug (heropen), dan botst ze wel met de nieuwe."""
+    s1, _ = lagen
+    await store.batch(batch(s1, [element(s1, ONE, 13, 18, "stelt", "Operator")], "lex-op", 1), s1, "lex")
+    fout = (await rel.leg(leg("ontvanger", "stelt", "operand", {ONE: await _revisie(s1)}, volgorde=1), "jurist"))["relatie"]
+    await rel.beslis(fout["id"], RelatieBeslissing(type="reject", comment="verkeerde operand",
+                                                   verwachte_revisies={ONE: await _revisie(s1)}), "jurist")
+    goed = (await rel.leg(leg("aanslag", "stelt", "operand", {ONE: await _revisie(s1)}, volgorde=1), "jurist"))["relatie"]
+    assert goed["volgorde"] == 1
+    with pytest.raises(HTTPException) as exc:
+        await rel.beslis(fout["id"], RelatieBeslissing(type="heropen", verwachte_revisies={ONE: await _revisie(s1)}),
+                         "jurist")
+    assert exc.value.status_code == 409 and exc.value.detail["fout"] == "volgorde_bezet"
+
+
 async def test_een_gewist_element_neemt_zijn_relaties_mee(lagen):
     s1, s2 = lagen
     r = (await rel.leg(leg("zin", "termijn", "voorwaarde", {ONE: 1}), "jurist"))["relatie"]
@@ -314,3 +330,15 @@ async def test_afronden_noemt_de_open_voorstellen_van_de_keten(lagen):
     laag = (await store.weergave(s1))["lagen"][0]
     klaar = await store.zet_status(laag["id"], "geaccordeerd", laag["revisie"], "jurist", s1)
     assert klaar["status"] == "geaccordeerd" and klaar["open_relaties"] == 1
+
+
+async def test_verwachte_revisies_ook_met_het_laag_id(lagen):
+    """De routes per laag spreken in laag-id's; een client die dat overneemt, krijgt geen 412 meer."""
+    s1, _ = lagen
+    laag = (await store.weergave(s1))["lagen"][0]
+    r = (await rel.leg(leg("zin", "aanslag", "voorwerp", {laag["id"]: laag["revisie"]}), "jurist"))["relatie"]
+    assert r["type"] == "voorwerp"
+    rev = await _revisie(s1)
+    with pytest.raises(HTTPException) as exc:
+        await rel.leg(leg("zin", "termijn", "voorwaarde", {laag["id"]: rev, ONE: rev - 1}), "jurist")
+    assert exc.value.status_code == 422 and exc.value.detail["fout"] == "dubbele_sleutel"

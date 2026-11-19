@@ -9,12 +9,12 @@
 import { relatieZin } from "./begripRelaties";
 import type { GraafBron } from "./graaf/model";
 import type { SamenhangKnoop, SamenhangRelatie } from "./samenhang";
-import type { BegripRelatie } from "./types";
+import type { BegripRelatie, KoppelRol } from "./types";
 
 /** `GET …/begrippen/samenhang` (api/app/begrippen.py). */
 export interface BegripSamenhang {
   begrippen: { id: string; iri: string; naam: string; status: string; definitie: string }[];
-  koppelingen: { begrip_id: string; element_id: string; rol: "duiding" | "definitie" | "context"; beoordeling: string;
+  koppelingen: { begrip_id: string; element_id: string; rol: KoppelRol; beoordeling: string;
     actualiteit: string }[];
   relaties: BegripRelatie[];
   voorstellen: BegripRelatie[];
@@ -31,7 +31,7 @@ export const begripKnoopId = (id: string) => `begrip:${id}`;
 export const begripIdVan = (knoopId: string) => (knoopId.startsWith("begrip:") ? knoopId.slice(7) : undefined);
 
 const ROL_ZIN: Record<BegripSamenhang["koppelingen"][number]["rol"], string> = {
-  duiding: "duidt het begrip aan", definitie: "ondersteunt de definitie", context: "geeft context",
+  duiding: "duidt het begrip aan", afgeleid: "leidt het begrip af", definitie: "ondersteunt de definitie", context: "geeft context",
 };
 
 function knoop(b: BegripSamenhang["begrippen"][number]): SamenhangKnoop {

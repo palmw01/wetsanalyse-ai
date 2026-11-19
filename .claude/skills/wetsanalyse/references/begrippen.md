@@ -11,7 +11,7 @@ Broncodes verwijzen naar [bronnen en beslisregister](bronnen.md).
 
 Grondslag: M01, M04, P15.
 
-Een begrip is een analyse-uitkomst, geen wettelijke definitie: het brengt de formuleringen samen die in het werkgebied hetzelfde aanduiden, met de passages waarop het rust. Het volgt NL-SBB en draagt alleen een term (naam en alternatieve termen), een definitie, een uitleg, een toelichting (de grenzen of het gebruik) en voorbeelden; een begripstype of JAS-duiding stel je niet voor. Een gelijk woord bewijst geen gelijke betekenis; sterk bewijs is wat de wet zelf vastlegt – een begripsbepaling binnen haar bereik, of een verwijzing. Houd de wettelijke definitie en het vastgelegde begrip uit elkaar.
+Een begrip is een analyse-uitkomst, geen wettelijke definitie: het brengt de formuleringen samen die in het werkgebied hetzelfde aanduiden, met de passages waarop het rust. **Een begrip zonder grondslag in een annotatie bestaat niet.** Het ontstaat uit minstens één gemarkeerde passage en houdt er altijd minstens één: de laatste passage gaat er niet af, en wie het begrip niet meer nodig heeft, verwijdert het. Een tussenresultaat van een berekening of beslissing krijgt wél een begrip, ook als de tekst het niet met een eigen formulering noemt: de uitvoering moet elke stap kunnen uitvoeren en uitleggen, en het oude tussenresultaat blijft bewaard (M01 §2.2.2 en h.6; M02 §1.2). Zo'n begrip rust op de markering van de afleidingsregel die het afleidt, met de rol `afgeleid`; daarna kijk je opnieuw in de tekst of er toch een formulering is die het aanduidt. Een element dat een regel nodig heeft maar dat de tekst open laat, krijgt ook een begrip op de formulering waarvoor het nodig is, en de interpretatie signaleer je als ontbrekend uitvoeringsbeleid (M01 h.7). Het platform dwingt de grondslag af (`api/app/begrip_store.py`: 422 `geen_passage`, 409 `laatste_passage`, 422 `geen_afleidingsregel`). Het volgt NL-SBB en draagt alleen een term (naam en alternatieve termen), een definitie, een uitleg, een toelichting (de grenzen of het gebruik) en voorbeelden; een begripstype of JAS-duiding stel je niet voor. Een gelijk woord bewijst geen gelijke betekenis; sterk bewijs is wat de wet zelf vastlegt – een begripsbepaling binnen haar bereik, of een verwijzing. Houd de wettelijke definitie en het vastgelegde begrip uit elkaar.
 Een definitie noemt het soortbegrip en het onderscheidende kenmerk, dekt wat de passages aanduiden en niet meer, gebruikt de naam van het begrip niet als eigen soortbegrip en is geen rekenregel. De herkomst telt: letterlijk uit de bron gaat voor samengesteld uit bronfragmenten, en dat gaat voor zelf geformuleerd. Een geformuleerde definitie is altijd een voorstel om te beoordelen, met de fragmenten waarop ze rust.
 Lees een begrip in zijn context: de andere leden van het artikel, een definitie of kwalificatie elders, een bepaling waarnaar verwezen wordt. Beginnen bepalingen gelijk en verschillen ze daarna (zoals "bij herziening van … met een positief bedrag tot …"), kies dan een algemene definitie die voor alle varianten geldt, of een specifiek begrip met een eigen naam; een toepassingsgeval is niet de definitie van het algemene begrip. Een definitie geeft de wezenlijke kenmerken en, waar de tekst het zegt, het doel – geen rechtsgevolg, geen voorwaarde uit één lid en geen afleiding: wat de wet met een term berekent of verrekent, is een eigen begrip ("bepalen …"), en een woord dat in één bepaling door een berekening verandert, kan daar twee begrippen dragen. Een kwalificatie van een samenstelling ("geldt als het te betalen bedrag aan belasting") definieert de kale term niet. Is er onvoldoende bewijs, zeg dan wat er ontbreekt in plaats van een definitie te raden, en noem open vragen.
 Voorbeelden toetsen een definitie. Ze rusten op een overgenomen definitie, of – bij een begrip dat in één keer wordt uitgewerkt – op de voorgestelde definitie, en vervallen als die niet of anders wordt overgenomen; een grensgeval of tegenvoorbeeld hoort erbij. Elk voorbeeld toetst één kenmerk van de definitie en zegt of het het begrip toetst of iets anders (een scenario, een voorwaarde, een rechtsgevolg); twee voorbeelden die alleen in getallen of namen verschillen, toetsen hetzelfde. Een betekenisverschil leg je uit met de context van beide begrippen, niet met het woord alleen; waar de grens ligt, hoort in de toelichting.
@@ -38,6 +38,8 @@ verwacht. Per klasse:
 - **Voorwaarde**: geen begrip. Ze krijgt een omschrijving die met "indien" begint, bij de rechtsbetrekking, het rechtsfeit
   of de afleidingsregel waar ze bij hoort; soms verwerk je haar in het begrip zelf.
 - **Afleidingsregel**: eerst een begrip voor de regel ("bepalen …"), dan de regel met de begrippen als in- en uitvoer.
+  Ook een tussenresultaat van de regel krijgt een begrip, als de tekst het niet noemt. Hoe je de regel opschrijft, staat
+  in [afleidingsregels](afleidingsregels.md).
 - **Variabele en variabelewaarde**: een begrip voor de variabele.
 - **Parameter en parameterwaarde**: een begrip voor de parameter, en ook voor de waarde in haar tijdvak. Een vaste waarde
   die nooit verandert (zoals nihil) krijgt geen begrip.
@@ -92,6 +94,14 @@ en dat begrip gebruik je opnieuw voor elke formulering met dezelfde betekenis. D
 - Gebruik de naam van het begrip niet in zijn eigen omschrijving. Gebruik wel begrippen die al zijn vastgelegd: dan
   werkt een wijziging daarvan vanzelf door.
 - Geen berekening of redenering in de omschrijving. Die hoort bij de afleidingsregel.
+- Geen parameterwaarde in de omschrijving van een parameter ("zes weken", "€ 49"). De waarde is een eigen begrip in
+  haar tijdvak, gerelateerd aan de parameter: wijzigt de wetgever de waarde, dan blijft de parameter hetzelfde
+  (M01 h.6; M04 H2 *Parameter*).
+- Geeft een omschrijving per geval een andere uitkomst ("bij A telt de maand mee, bij B niet"), dan zijn het twee
+  begrippen, of één begrip met een kenmerk dat het geval aanwijst. Een begrip dat zijn waarde laat afhangen van iets
+  wat het niet noemt, is niet eenduidig.
+- Schrijf de omschrijving uit alle passages met deze term in het werkgebied, niet uit de eerste. Anders is het begrip
+  te smal voor een passage die erbij hoort, en volgt er later een opvolger.
 
 Twee van deze regels toetst Lex in code (een kringdefinitie, een rekenregel in de definitie); de andere zijn
 aandachtspunten voor wie het begrip beoordeelt.

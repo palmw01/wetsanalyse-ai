@@ -128,6 +128,7 @@ class State(TypedDict, total=False):
     unsupported: list[str]
     niet_letterlijk: list[str]   # als citaat gepresenteerd, maar niet letterlijk in de trace
     grounding_niveau: str        # gegrond | onbepaald | ongegrond
+    interpretatie: list[str]     # zinnen van de toelichting zonder steun in wat het antwoord toont (`gelezen.zinnen_zonder_steun`)
     onbevestigd: list[str]       # genoemd maar niet teruggevonden in het opgehaalde; een signaal, geen afkeuring
     vermeld: list[str]           # artikelen in gewone taal die wél in het opgehaalde staan (`GroundingReport.vermeld`)
     beweringen: list[str]        # feiten zonder bron die de correctieronde moet herstellen (`agent/beweringen.py`)

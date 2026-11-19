@@ -424,6 +424,9 @@ class Source(BaseModel):
     # vindplaats.
     brontype: str | None = None
     link: str | None = None
+    # Alleen het begin van de tekst kwam mee (een subdivisie in het overzicht van `get_bepaling`): gevonden, niet
+    # gelezen (`resultaat.VOORPROEF`). Additief; leeg als de bron gelezen is.
+    voorproef: bool | None = None
 
 
 # --- Annotatie (JAS) ---------------------------------------------------------

@@ -4,8 +4,16 @@
 
 export interface AntwoordVindplaats { iri: string; label: string; jci: string; regeling: string }
 
+/** Een wettelijke definitie (`bronmodel.antwoord.Definitie`). `bereik` is de geldingsformule zelf ("Deze wet");
+ *  `bereik_soort` en `bereik_waarde` zeggen het in woorden (`lib/geldigheid.ts`), en `gebruikt` zijn de begrippen uit
+ *  dezelfde bepaling die de definitie zelf gebruikt. Een ouder bericht heeft alleen `bereik`. */
+export interface AntwoordDefinitie {
+  term: string; tekst: string; vindplaats: AntwoordVindplaats; bereik: string;
+  bereik_soort?: string; bereik_waarde?: string; gebruikt?: AntwoordDefinitie[];
+}
+
 export type AntwoordBlok =
-  | { soort: "definities"; door: "bron"; items: { term: string; tekst: string; vindplaats: AntwoordVindplaats; bereik: string }[] }
+  | { soort: "definities"; door: "bron"; items: AntwoordDefinitie[] }
   | { soort: "begrippen"; door: "bron"; items: { id: string; naam: string; status: string; definitie: string; werkgebied: string; werkgebied_id: string; herbeoordelen: boolean; generiek?: boolean }[] }
   | { soort: "wettekst"; door: "bron"; items: { tekst: string; vindplaats: AntwoordVindplaats; nog_niet_in_werking?: boolean }[] }
   | { soort: "citaten"; door: "bron"; items: { tekst: string; vindplaats: AntwoordVindplaats; waarom: string }[] }

@@ -75,3 +75,24 @@ blijven naar de wettekst.
   wijziging zichtbaar zonder dat.
 - **Direct generiek aanmaken, zonder werkgebied.** Afgewezen: een begrip zonder passages is niet herleidbaar en kan
   niet door de poort.
+
+## Aanvulling 19 nov 2026: geen begrip zonder annotatie
+
+Besluit van de gebruiker: een begrip rust altijd op minstens één annotatie-element. Voor een lokaal begrip dwingt de api dat
+af bij het aanmaken en bij het weghalen van de laatste passage. Voor het generieke kader waren er drie gaten: de opvolger
+had geen passages, het laatste werkgebied kon het begrip loslaten, en een gewist werkgebied liet een begrip zonder passages
+achter. Die zijn als volgt dicht:
+
+- **Een nieuwe betekenis ontstaat in een werkgebied.** `nieuwe-betekenis` op een generiek begrip vraagt `werkgebied_id`: een
+  werkgebied dat het begrip gebruikt en er passages bij heeft. Die passages gaan mee naar de opvolger (opnieuw ter
+  beoordeling), en dat werkgebied gaat meteen op de opvolger over. **Elk ander werkgebied neemt hem nog steeds zelf over**
+  (*Opvolger overnemen*), zoals hierboven besloten. `ontstaan_in` van de opvolger is dat werkgebied.
+- **Het laatste werkgebied met passages kan het begrip niet loslaten** (`stop_gebruik`, 409 `laatste_passage`). Wie het niet
+  meer nodig heeft, verwijdert het.
+- **Verwijderen mag zolang hoogstens één werkgebied het gebruikt**; dat gebruik gaat mee, net als bij een lokaal begrip.
+  Gebruiken twee of meer werkgebieden het, dan blijft 409 `in_gebruik`: dat raakt andere analyses.
+- **Een werkgebied wissen** laat een generiek begrip staan, behalve als dat werkgebied zijn laatste passages had: dan gaat
+  het begrip mee. De audit blijft.
+
+De werkplek vraagt bij *Nieuwe betekenis* op de pagina van het generieke begrip in welk werkgebied die ontstaat, uit de
+werkgebieden met passages.

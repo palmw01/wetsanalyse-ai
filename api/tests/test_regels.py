@@ -34,9 +34,9 @@ async def _keur_goed(eid: str):
                        snap, "jurist-a")
 
 
-async def _begrip(client, wg, naam, eid=None) -> dict:
+async def _begrip(client, wg, naam, eid=None, rol="duiding") -> dict:
     r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen",
-                          json={"inhoud": {"naam": naam, **DEF}, "element_ids": [eid] if eid else [], "rol": "duiding"})
+                          json={"inhoud": {"naam": naam, **DEF}, "element_ids": [eid] if eid else [], "rol": rol})
     assert r.status_code == 201, r.text
     return r.json()
 
@@ -166,8 +166,10 @@ async def test_de_laatste_grondslag_blijft(client):
 
 async def test_hierarchie_en_afwijzen(client):
     wg, ids, b = await _opzet(client)
-    regel_b = await _begrip(client, wg, "bepalen van het aantal termijnen")
-    jaar = await _begrip(client, wg, "jaar")
+    # Een begrip rust altijd op een passage (#1760). De aanduiding van deze elementen is al van een ander begrip, dus
+    # dragen ze deze twee als definitie.
+    regel_b = await _begrip(client, wg, "bepalen van het aantal termijnen", ids["ar"], rol="definitie")
+    jaar = await _begrip(client, wg, "jaar", ids["var"], rol="definitie")
     eerst = (await client.post(_url(wg), json={"inhoud": {
         "soort": "rekenregel", "regelbegrip_id": regel_b["id"], "uitvoer_begrip_id": b["in"]["id"],
         "invoer": [{"begrip_id": jaar["id"]}], "gevallen": [{"uitkomst": [{"soort": "begrip", "begrip_id": jaar["id"]}]}]},
@@ -208,6 +210,22 @@ async def test_het_overzicht_over_werkgebieden_heen(client):
     assert (await client.get("/v1/regels", params={"werkgebied_id": "onbekend"})).json()["totaal"] == 0
     assert regel["id"] in [x["id"] for x in (await client.get("/v1/regels", params={"mijn": "true"})).json()["resultaten"]]
     assert (await client.get("/v1/regels", params={"status": "onzin"})).status_code == 422
+
+async def test_een_tussenresultaat_rust_op_dezelfde_afleidingsregel_als_zijn_regel(client):
+    """#1760 en R1 wijzen naar hetzelfde: een tussenresultaat (koppelrol `afgeleid`) rust op de Afleidingsregel-markering,
+    en de regel die het afleidt heeft die markering als grondslag. Het begrip rust op de annotatie, niet op het
+    regelobject; de regel en het begrip ontmoeten elkaar in het element."""
+    wg, ids, b = await _opzet(client)
+    tussen = await _begrip(client, wg, "termijnbedrag vóór afronding", ids["ar"], rol="afgeleid")
+    assert [k["rol"] for k in tussen["koppelingen"]] == ["afgeleid"]
+    r = await client.post(_url(wg), json={"inhoud": {**_inhoud(b), "uitvoer_begrip_id": tussen["id"]},
+                                          "dragers": [{"element_id": ids["ar"], "rol": "grondslag"}]})
+    assert r.status_code == 201, r.text
+    assert r.json()["dragers"][0]["element_id"] == tussen["koppelingen"][0]["element_id"]
+    # Op een passage die geen afleidingsregel is, weigert #1760 de rol `afgeleid`; de regel volgt dan de grondslagtoets.
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen",
+                          json={"inhoud": {"naam": "x", **DEF}, "element_ids": [ids["rs"]], "rol": "afgeleid"})
+    assert r.status_code == 422 and r.json()["detail"]["fout"] == "geen_afleidingsregel"
 
 
 async def test_parameterwaarden_per_tijdvak(client):

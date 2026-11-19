@@ -26,7 +26,7 @@ from urllib.parse import unquote
 
 from .annotatie import _normaliseer, komt_letterlijk_voor
 from .beweringen import beweringen as feiten_buiten, tellingen_uit
-from .gelezen import (buiten_periode, gelezen_en_gevonden, gelezen_tekst, ongelezen_samengevat, toelichting_zonder_steun,
+from .gelezen import (buiten_periode, gelezen_en_gevonden, gelezen_tekst, ongelezen_samengevat, steun_meldingen, zinnen_zonder_steun,
                       volledig_geclaimd, vraag_niet_in_stuk, zonder_citaten,
                       verwijzing_als_duiding, vreemd_schrift, zonder_steun)
 from .hoeveelheden import uit_tabellen
@@ -92,6 +92,9 @@ class GroundingReport:
     # Geen vindplaats die hard te toetsen is, maar wel nagelopen: de controle zei "geen vindplaats of citaat genoemd –
     # niets te controleren" bij een antwoord dat artikel 475 Rv noemde (acceptatie 19 nov 2026).
     vermeld: list[str] = field(default_factory=list)
+    # De zinnen van de toelichting die niet rusten op wat het antwoord toont (`gelezen.zinnen_zonder_steun`), zoals Lex ze
+    # schreef: de werkplek wijst ze in de tekst aan als interpretatie van Lex.
+    interpretatie: list[str] = field(default_factory=list)
     # "gegrond" | "onbepaald" | "ongegrond" – fijner dan de bool, die voor het bestaande
     # event-contract blijft bestaan.
     niveau: str = "gegrond"
@@ -223,11 +226,15 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
                     overzicht: dict | None = None, *, bekend: str = "",
                     regelingen: set[str] | None = None, steun: dict[str, str] | None = None,
                     vraag: str | None = None, periode: tuple[int, int] | None = None,
-                    duiding_tekst: str | None = None, toelichting: str | None = None) -> GroundingReport:
+                    duiding_tekst: str | None = None, toelichting: str | None = None,
+                    toelichting_steun: str | None = None) -> GroundingReport:
     """Markeer wat in het antwoord niet uit de trace te herleiden is: verwijzingen én citaten.
 
     Met een `overzicht` (de overzichtsroute) telt ook elk genoemd artikel dat niet in het overzicht
-    staat als onderbouwd-noch-opgehaald (`overzicht.vermeldingen_buiten`)."""
+    staat als onderbouwd-noch-opgehaald (`overzicht.vermeldingen_buiten`).
+
+    `toelichting_steun` is de tekst die het sjabloon zelf toont (`gelezen.getoonde_tekst`): daarop rust de `toelichting`.
+    Zonder die tekst het hele bronspoor (`gelezen.gelezen_tekst`)."""
     # De waarden van een contractresultaat, niet zijn JSON-tekst: anders staat een newline in de
     # brontekst er als `\n` en valt een letterlijk citaat over die grens af (`resultaat.waarden`).
     trace_text = "\n".join(waarden(t) for name, t in source_trace if t and name not in AFGELEIDE_TOOL_NAMEN)
@@ -302,10 +309,12 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
         # Op de hele tekst van Lex: zo'n zin staat juist in 'Gedaan' van een rapport.
         feiten += [f for f in volledig_geclaimd(eigen, source_trace) if f not in feiten]
     # De toelichting van een sjabloon van de graaf rust op wat gelezen is, met de vraag en het dossier als bekend
-    # (`gelezen.toelichting_zonder_steun`; acceptatie 19 nov 2026, "derdenbeslag").
+    # (`gelezen.zinnen_zonder_steun`; acceptatie 19 nov 2026, "derdenbeslag"), en dan op wat het antwoord toont.
+    interpretatie: list[str] = []
     if toelichting and not overzicht:
-        feiten += [f for f in toelichting_zonder_steun(toelichting, gelezen_tekst(source_trace), f"{bekend}\n{vraag or ''}")
-                   if f not in feiten]
+        steuntekst = toelichting_steun if toelichting_steun is not None else gelezen_tekst(source_trace)
+        interpretatie = zinnen_zonder_steun(toelichting, steuntekst, f"{bekend}\n{vraag or ''}")
+        feiten += [f for f in steun_meldingen(interpretatie) if f not in feiten]
     # Na een rapport van een subagent (`steun`: per stuk de passages die het rapport en het antwoord eruit tonen): een
     # duiding van een stuk rust op die passages, niet op "het stond in de trace" (meting bundel 117, D01).
     if steun is not None and not overzicht:
@@ -347,6 +356,7 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
         onbevestigd=onbevestigd,
         beweringen=feiten,
         vermeld=[] if overzicht else _teruggevonden(answer_text, source_trace),
+        interpretatie=interpretatie,
         niveau=niveau,
     )
 
@@ -509,7 +519,7 @@ def alleen_gelezen_wettekst(sources: list[Source], answer_text: str, aangehaald:
         return s.brontype in (None, "wettekst") and s.soort != "regeling" and bool(s.bwb_id)
 
     def gevonden(s: Source) -> bool:
-        return wet(s) and s.origin_tool in zoek
+        return wet(s) and (s.origin_tool in zoek or bool(s.voorproef))
 
     if not any(wet(s) and not gevonden(s) for s in sources):
         return sources

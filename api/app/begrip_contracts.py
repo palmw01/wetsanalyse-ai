@@ -28,6 +28,8 @@ class Oordeel(str, Enum):
 class KoppelRol(str, Enum):
     duiding = "duiding"                # het element duidt dit begrip aan (primair: één per element)
     definitie = "definitie"            # het element ondersteunt de definitie (bv. een brondefinitie)
+    afgeleid = "afgeleid"              # het element is de afleidingsregel die dit begrip afleidt: een tussenresultaat
+    #                                    zonder eigen formulering (M01 §2.2.2 en h.6; M02 §1.2)
     context = "context"                # het element geeft context, draagt het begrip niet
 
 
@@ -79,7 +81,8 @@ class BegripInhoud(BaseModel):
 
 
 class BegripInvoer(BaseModel):
-    """Een nieuw begrip, eventueel meteen met de elementen waaruit het ontstaat."""
+    """Een nieuw begrip, met de elementen waaruit het ontstaat. Zonder elementen weigert de store (422 `geen_passage`):
+    een begrip rust altijd op minstens één annotatie. Geen `min_length` hier, zodat de fout een melding draagt."""
 
     inhoud: BegripInhoud
     element_ids: list[str] = Field(default_factory=list, max_length=200)
