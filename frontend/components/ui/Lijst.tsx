@@ -86,7 +86,7 @@ export function LijstRij({ voor, titel, meta, status, acties, actief = false, ch
   voor?: React.ReactNode;
   titel: React.ReactNode;
   meta?: React.ReactNode;
-  /** Rechts van de titel, bovenaan uitgelijnd: een `StatusLabel`. */
+  /** Rechts van de titel, bovenaan uitgelijnd, op elke breedte: een `StatusLabel` of een paar kleine knoppen. */
   status?: React.ReactNode;
   /** Onder de titel, mobiel gestapeld. */
   acties?: React.ReactNode;
@@ -103,12 +103,15 @@ export function LijstRij({ voor, titel, meta, status, acties, actief = false, ch
       <div className="flex items-start gap-3">
         {voor !== undefined && <span className="shrink-0 pt-px text-sm tabular-nums text-muted">{voor}</span>}
         <div className="min-w-0 flex-1">
-          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+          {/* De status staat ook op een telefoon rechts naast de titel, zoals bij de elementkaartjes: onder de titel
+              gestapeld lijnde hij links uit en bleef rechts een lege strook over. Hij krijgt hoogstens de helft van de
+              rij en loopt dan door naar een volgende regel, rechts uitgelijnd. */}
+          <div className="flex items-start justify-between gap-3">
             {/* `overflow-wrap: anywhere` en niet `break-words`: een bron-IRI is één lang woord, en alleen
                 `anywhere` telt mee in de minimale breedte – anders duwt hij de rij uit beeld (Safari). `flex-1`: een
                 titel die ter plekke een invoerveld wordt, neemt de breedte van de rij en niet die van de tekst. */}
             <div className="min-w-0 flex-1 text-sm text-ink [overflow-wrap:anywhere]">{titel}</div>
-            {status && <div className="flex shrink-0 flex-wrap gap-1.5">{status}</div>}
+            {status && <div className="flex max-w-[50%] shrink-0 flex-wrap items-center justify-end gap-1.5">{status}</div>}
           </div>
           {meta && <div className="mt-0.5 text-xs text-muted [overflow-wrap:anywhere]">{meta}</div>}
           {acties && <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap">{acties}</div>}
