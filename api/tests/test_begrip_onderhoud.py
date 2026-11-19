@@ -374,6 +374,24 @@ async def test_een_voorwaarde_bij_haar_drager_is_verwerkt_en_een_los_element_mis
     assert per[ids["vw"]]["stand"] == "bij_drager" and d["totalen"]["bij_drager"] == 1
     assert next(k for k in d["per_klasse"] if k["klasse"] == "Voorwaarde")["totalen"]["bij_drager"] == 1
 
+    # Ook als context aan een geaccordeerd begrip blijft ze bij haar drager: alleen een concept is een voorstel.
+    await _beslis(ids["rb"], "approve", snapshot())
+    b = await _begrip(client, wg, [ids["rb"]], naam="Verplichting")
+    b = (await client.post(_url(wg, b, "koppelingen"), json={"verwachte_revisie": b["revisie"],
+                                                            "element_ids": [ids["vw"]], "rol": "context"})).json()
+    d = (await client.get(url)).json()
+    assert {e["element_id"]: e["stand"] for e in d["elementen"]}[ids["vw"]] == "voorstel"
+    b = (await client.patch(_url(wg, b), json={"verwachte_revisie": b["revisie"],
+                                               "inhoud": {"naam": "Verplichting", **DEFINITIE}})).json()
+    for k in b["koppelingen"]:
+        b = (await client.patch(_url(wg, b, "koppelingen", k["id"]),
+                                json={"verwachte_revisie": b["revisie"], "beoordeling": "akkoord"})).json()
+    akkoord = await client.post(_url(wg, b, "accorderen"), json={"reden": "Getoetst", "verwachte_revisie": b["revisie"]})
+    assert akkoord.status_code == 200, akkoord.text
+    d = (await client.get(url)).json()
+    per = {e["element_id"]: e["stand"] for e in d["elementen"]}
+    assert (per[ids["rb"]], per[ids["vw"]]) == ("gekoppeld", "bij_drager")
+
     # Afgewezen: niet meer vastgelegd, dus weer te verwerken.
     revs = {l["bron_iri"]: l["revisie"] for l in (await store.weergave(snapshot()))["lagen"]}
     await rel.beslis(r["id"], RelatieBeslissing(type="reject", verwachte_revisies={ONE: revs[ONE]}), "jurist")
