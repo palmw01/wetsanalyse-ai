@@ -230,7 +230,7 @@ class Eindpunt(BaseModel):
 
 
 class RelatieInvoer(BaseModel):
-    """Een relatie die de jurist legt. `verwachte_revisies` gaat over de laag van de drager (per bron-IRI, zoals bij
+    """Een relatie die de jurist legt. `verwachte_revisies` gaat over de laag van de drager (per bron-IRI of laag-id, zoals bij
     elementen); het type en de klassen toetst de api tegen de catalogus (`jas_relaties`)."""
     van: Eindpunt
     naar: Eindpunt

@@ -61,3 +61,6 @@ class Combineren(Reden):
     verwachte_revisie: int = Field(ge=1)
     ander_begrip_id: str = Field(min_length=1, max_length=64)
     ander_revisie: int = Field(ge=1)
+    #: De naam van het vervangen begrip als alternatieve term. Bij synoniemen klopt dat (de standaard); gaat een smaller
+    #: begrip op in een ruimer, of twee regels in één regelbegrip, dan is die naam geen synoniem en zet je dit uit.
+    naam_als_alternatieve_term: bool = True

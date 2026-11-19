@@ -160,3 +160,13 @@ async def test_combineren_houdt_een_identiteit(client):
     r = await client.post(_url(wg2, a2, "combineren"), json={
         "verwachte_revisie": a2["revisie"], "ander_begrip_id": a2["id"], "ander_revisie": a2["revisie"], "reden": "x"})
     assert r.status_code == 422
+
+
+async def test_combineren_zonder_de_naam_als_alternatieve_term(client):
+    """Gaat een smaller begrip op in een ruimer, dan is zijn naam geen synoniem: de jurist zet dat uit."""
+    _, wg, a, b = await _twee(client)
+    r = await client.post(_url(wg, a, "combineren"), json={
+        "verwachte_revisie": a["revisie"], "ander_begrip_id": b["id"], "ander_revisie": b["revisie"],
+        "reden": "Smallere regel gaat op in de ruimere.", "naam_als_alternatieve_term": False})
+    assert r.status_code == 200, r.text
+    assert r.json()["inhoud"]["alternatieve_termen"] == a["inhoud"].get("alternatieve_termen", [])
