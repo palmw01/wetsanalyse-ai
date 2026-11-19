@@ -1711,7 +1711,8 @@ export async function geefNieuweBetekenis(id: string, begripId: string, body: { 
 
 /** `begripId` blijft; `ander_begrip_id` wordt vervangen. */
 export async function combineerBegrippen(id: string, begripId: string,
-  body: { verwachte_revisie: number; ander_begrip_id: string; ander_revisie: number; reden: string }): Promise<Begrip> {
+  body: { verwachte_revisie: number; ander_begrip_id: string; ander_revisie: number; reden: string;
+    naam_als_alternatieve_term?: boolean }): Promise<Begrip> {
   return json<Begrip>(await fetch(wg(id, "begrippen", begripId, "combineren"), jsonInit("POST", body)));
 }
 

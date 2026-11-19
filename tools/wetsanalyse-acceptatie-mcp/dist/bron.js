@@ -40,8 +40,9 @@ export function kiesToestand(toestanden, peildatum) {
     return gekozen;
 }
 /** Het einde van het element dat op `begin` opent. Diepte telt mee: `lid` en `lidnr` zijn verschillend. */
+const regex = (naam) => naam.replace(/[.]/g, "\\.");
 function eindeVan(xml, begin, naam) {
-    const tag = new RegExp(`<(/?)${naam}(?=[\\s/>])[^>]*?(/?)>`, "g");
+    const tag = new RegExp(`<(/?)${regex(naam)}(?=[\\s/>])[^>]*?(/?)>`, "g");
     tag.lastIndex = begin;
     let diepte = 0;
     for (let m = tag.exec(xml); m; m = tag.exec(xml)) {
@@ -56,7 +57,7 @@ function eindeVan(xml, begin, naam) {
 }
 /** De elementen `naam` op het hoogste niveau: een artikel dat in een ander artikel is geciteerd telt niet mee. */
 function elementen(xml, naam) {
-    const open = new RegExp(`<${naam}(?=[\\s/>])`, "g");
+    const open = new RegExp(`<${regex(naam)}(?=[\\s/>])`, "g");
     const uit = [];
     for (let m = open.exec(xml); m; m = open.exec(xml)) {
         const einde = eindeVan(xml, m.index, naam);
@@ -97,12 +98,33 @@ function treffer(xml, lid) {
         afgekapt: xml.length > MAX_TEKENS,
     };
 }
-/** Zoek één artikel (en eventueel één lid) in een toestand. Een nummer kan vaker voorkomen, bijvoorbeeld in een bijlage. */
+/** De structuurelementen zonder artikelen: een beleidsregel als de Leidraad Invordering deelt in `circulaire.divisie`
+ * (genest: 9 › 9.5), andere regelingen in `divisie`. */
+const DIVISIES = ["divisie", "circulaire.divisie"];
+/** Alle divisies met dit nummer, op elke diepte: het nummer staat in hun eigen `kop`, het eerste `nr`. */
+function zoekDivisie(toestand, gevraagd) {
+    const uit = [];
+    for (const naam of DIVISIES) {
+        const open = new RegExp(`<${regex(naam)}(?=[\\s/>])`, "g");
+        for (let m = open.exec(toestand); m; m = open.exec(toestand)) {
+            const deel = toestand.slice(m.index, eindeVan(toestand, m.index, naam));
+            if (eerste(deel, "nr") === gevraagd)
+                uit.push(deel);
+        }
+    }
+    return uit;
+}
+/** Zoek één artikel (en eventueel één lid) in een toestand. Een nummer kan vaker voorkomen, bijvoorbeeld in een bijlage.
+ * Heeft de regeling geen artikel met dat nummer, dan een divisie (een onderdeel van een beleidsregel, zoals 9.5). */
 export function zoekArtikel(toestand, artikel, lid) {
     const gevraagd = nummer(artikel);
     const artikelen = elementen(toestand, "artikel").filter((a) => eerste(a, "nr") === gevraagd);
-    if (artikelen.length === 0)
-        throw new Error(`Artikel ${artikel} staat niet in deze toestand.`);
+    if (artikelen.length === 0) {
+        const divisies = lid ? [] : zoekDivisie(toestand, gevraagd);
+        if (divisies.length)
+            return divisies.map((d) => treffer(d));
+        throw new Error(`Artikel of divisie ${artikel} staat niet in deze toestand.`);
+    }
     if (!lid)
         return artikelen.map((a) => treffer(a));
     const uit = artikelen.flatMap((a) => elementen(a, "lid")

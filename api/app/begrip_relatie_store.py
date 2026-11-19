@@ -332,8 +332,8 @@ async def nieuwe_betekenis(werkgebied_id: str, begrip_id: str, nb: NieuweBeteken
 
 
 async def combineer(werkgebied_id: str, begrip_id: str, c: Combineren, actor: str) -> dict:
-    """Eén transactie: `ander_begrip_id` wordt vervangen door `begrip_id`, dat zijn passages (open) en zijn
-    naam als alternatieve term meekrijgt."""
+    """Eén transactie: `ander_begrip_id` wordt vervangen door `begrip_id`, dat zijn passages (open) en, als
+    `naam_als_alternatieve_term`, zijn naam en alternatieve termen meekrijgt."""
     if c.ander_begrip_id == begrip_id:
         raise HTTPException(422, {"fout": "zelfde_begrip", "melding": "Kies een ander begrip om mee te combineren."})
     detail_ander: dict = {"reden": c.reden, "opvolger": begrip_id}
@@ -347,7 +347,7 @@ async def combineer(werkgebied_id: str, begrip_id: str, c: Combineren, actor: st
             inhoud = dict(row.inhoud)
             naam = ander.inhoud.get("naam", "")
             termen = list(inhoud.get("alternatieve_termen", []))
-            for t in [naam, *ander.inhoud.get("alternatieve_termen", [])]:
+            for t in [naam, *ander.inhoud.get("alternatieve_termen", [])] if c.naam_als_alternatieve_term else []:
                 if t and t != inhoud.get("naam") and t not in termen:
                     termen.append(t)
             inhoud["alternatieve_termen"] = termen

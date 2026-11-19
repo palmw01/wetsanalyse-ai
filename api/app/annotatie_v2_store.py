@@ -273,11 +273,28 @@ def _heropen_eerst(melding: str) -> HTTPException:
     return HTTPException(409, {"fout": "heropen_nodig", "melding": melding})
 
 
+def verwacht_per_bron(expected: dict, layers: dict) -> dict:
+    """`verwachte_revisies` per bron-IRI. Een client mag een laag ook met haar id noemen: de routes per laag
+    (`/lagen/{laag}/…`) spreken in laag-id's, en een agent die dat overnam kreeg een 412 zonder uitleg. Twee sleutels voor
+    dezelfde laag met een ander getal zijn een fout (422 `dubbele_sleutel`)."""
+    per_id = {layer["id"]: iri for iri, layer in layers.items()}
+    uit: dict = {}
+    for sleutel, revisie in expected.items():
+        iri = per_id.get(sleutel, sleutel)
+        if iri in uit and uit[iri] != revisie:
+            raise HTTPException(422, {"fout": "dubbele_sleutel", "bron_iri": iri,
+                                      "melding": "Deze laag staat twee keer in verwachte_revisies, met een ander getal."})
+        uit[iri] = revisie
+    return uit
+
+
 async def _laag(conn, layers: dict, iri: str, snapshot_id: str, expected: dict) -> dict:
     layer = layers.get(iri)
     revision = layer["revisie"] if layer else 0
-    if expected.get(iri, 0) != revision:
-        raise HTTPException(412, {"fout": "revisie_conflict", "bron_iri": iri, "revisie": revision})
+    if verwacht_per_bron(expected, layers).get(iri, 0) != revision:
+        raise HTTPException(412, {"fout": "revisie_conflict", "bron_iri": iri, "revisie": revision,
+                                  "melding": f"De laag van {iri} staat op revisie {revision}. Geef die mee in "
+                                             "verwachte_revisies, met de bron-IRI of het laag-id als sleutel."})
     if layer and layer["status"] != "in_review":
         raise _heropen_eerst("Heropen de laag voordat je haar wijzigt.")
     if layer is None:
@@ -333,7 +350,7 @@ async def batch(req: Batch, snapshot: dict, actor: str, *, mens: bool = False) -
         for iri in changed_owners:
             layer = layers.get(iri)
             if layer and layer["status"] != "in_review":
-                if req.verwachte_revisies.get(iri, 0) != layer["revisie"]:
+                if verwacht_per_bron(req.verwachte_revisies, layers).get(iri, 0) != layer["revisie"]:
                     raise HTTPException(412, "Laag is intussen gewijzigd.")
                 layer["status"] = "in_review"
                 await _audit(conn, actor, "laag-bron-gewijzigd", {"laag_id": layer["id"], "snapshot_id": req.snapshot_id},
@@ -883,8 +900,9 @@ async def verwijder_weergave(snapshot: dict, verwachte_revisies: dict[str, int],
         doelen = {iri: layer for iri, layer in layers.items() if iri in scope}
         if not doelen:
             raise HTTPException(404, "Er is hier geen annotatie om te verwijderen.")
+        verwacht = verwacht_per_bron(verwachte_revisies, layers)
         for iri, layer in doelen.items():
-            if verwachte_revisies.get(iri) != layer["revisie"]:
+            if verwacht.get(iri) != layer["revisie"]:
                 raise HTTPException(412, {"fout": "revisie_conflict", "bron_iri": iri, "revisie": layer["revisie"]})
         ids = [layer["id"] for layer in doelen.values()]
         rows = (await conn.execute(select(db.annotatie_v2_elementen.c.id, db.annotatie_v2_elementen.c.laag_id)

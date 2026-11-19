@@ -197,13 +197,17 @@ const TOOLS = [
     {
         name: "werkgebied_lezen",
         description: "Het werkgebied: dossier met deelvragen, dekking, en een overzicht van de geannoteerde elementen (tellingen per " +
-            "bepaling, klasse en lifecycle) met de laatste auditregels. Met `bron_iri` de elementen van die bepaling in korte " +
-            "vorm; beoordelen doe je met weergave_lezen. `volledig: true` geeft alles zoals de api het levert (groot: na een " +
+            "bepaling, klasse en lifecycle) met de laatste auditregels. Met `bron_iri` alleen de elementen van die bepaling in " +
+            "korte vorm, zonder het dossier opnieuw; beoordelen doe je met weergave_lezen. `volledig: true` geeft alles zoals de api het levert (groot: na een " +
             "annotatie honderdduizenden tekens).",
         input: S({ werkgebied_id: z.string(), bron_iri: z.string().optional(), volledig: z.boolean().optional(), als: Als }),
         run: async (a) => {
             const wg = `/api/werkgebieden/${seg(a.werkgebied_id)}`;
-            const routes = { werkgebied: wg, dekking: `${wg}/deelvragen/dekking`, elementen: `${wg}/elementen`, audit: `${wg}/audit` };
+            // Met een bepaling vraagt de agent naar díé elementen: het dossier, de dekking en de audit kent hij al, en ze
+            // maakten elk antwoord tienduizenden tekens groter.
+            const routes = a.bron_iri && !a.volledig
+                ? { elementen: `${wg}/elementen` }
+                : { werkgebied: wg, dekking: `${wg}/deelvragen/dekking`, elementen: `${wg}/elementen`, audit: `${wg}/audit` };
             const uit = await samen(client(a.als), routes);
             if (a.volledig)
                 return uit;
@@ -211,7 +215,7 @@ const TOOLS = [
             return {
                 ...uit,
                 elementen: inv && Array.isArray(inv.elementen) ? inventarisOverzicht(inv, a.bron_iri) : inv,
-                audit: auditStaart(uit.audit),
+                ...(uit.audit === undefined ? {} : { audit: auditStaart(uit.audit) }),
             };
         },
     },
@@ -272,7 +276,8 @@ const TOOLS = [
     },
     {
         name: "bron_lezen",
-        description: "De officiële tekst van één artikel of lid uit de BWB-repository: de letterlijke XML, de tekst in dezelfde " +
+        description: "De officiële tekst van één artikel of lid uit de BWB-repository, of van een divisie van een beleidsregel zonder " +
+            "artikelen (Leidraad 9.5: `artikel: \"9.5\"`): de letterlijke XML, de tekst in dezelfde " +
             "volgorde, en de toestand met url. Hierop rust elke bevinding over brontekst, niet op een samenvatting. " +
             "Zonder peildatum de nieuwste toestand, dezelfde die de importer in de graaf zet.",
         input: S({
