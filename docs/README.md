@@ -97,6 +97,9 @@ Toelichting bij enkele documenten:
   Ook los: [`architectuur/plan-afleidingsregels.md`](architectuur/plan-afleidingsregels.md), het onderzoek
   en plan voor activiteit 3b: van annotaties en begrippen naar afleidingsregels, met een proef op Termijnen (18 nov 2026;
   concept, nog niets gebouwd).
+  Ook los: [`architectuur/plan-lessen-e2e-termijnen.md`](architectuur/plan-lessen-e2e-termijnen.md), de lessen uit de
+  end-to-end proef op Termijnen (activiteit 1 tot en met 3b): bevindingen met oorzaak in de code, generieke
+  oplossingen en een gebundelde PR-volgorde (19 nov 2026; concept, nog niets gebouwd).
 - **`architectuur/verbeterplan-jas-pipeline-2026-10-08.md`** is *onderzoek*: het ontwerp voor de
   kandidaten na V7 uit spoor A (bewijs per hypothese, frames, relaties), met eigen meet- en
   acceptatiecriteria. Het start na V7.
