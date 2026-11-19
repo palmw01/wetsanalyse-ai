@@ -863,6 +863,17 @@ sterk varieert.
    Na bundel 1 en 4.
 7. **Bundel 7, activiteit 1** (graph-qa en de vraagkaart): L-1-1 (schakelbepalingen op regelingniveau), en L-1-2
    (contextbron als eindpunt, na M-1-1). Staat los van 2–6 en kan parallel.
+
+   **Stand (20 nov 2026)**: L-1-1 is gebouwd in `agent/schakelbepalingen.py`. De stap is deterministisch.
+   - **De regel:** een bepaling buiten het zoekbereik die naar een regeling als geheel verwijst, in een zin over
+     "(overeenkomstige) toepassing" zonder ontkenning, maakt haar regeling tot het voorstel "regeling erbij?".
+   - **Waar:** in de vraagkaart van het zoekbereik, als optie die niet voorgeselecteerd is. In de bronselectie staat
+     een zin met de bepaling erbij.
+   - **Op de gegevens van acceptatie** (zoekbereik IW, AWR en de Leidraad): de Mijnbouwwet staat als eerste voorstel
+     (art. 72, twee doelen). Daarna komt de Awir, een echte schakel naar de AWR die voor Termijnen niet nodig is.
+   - **L-1-2:** wat kan zonder M-1-1, zit in bundel 5 (het gat `rust_op_contextbron`). Het signaal bij de dekking voor
+     een contextbron waarnaar een relatie wijst, vraagt een relatie met een bron als eindpunt. Dat blijft open tot het
+     besluit over M-1-1.
 8. **Daarna**: A3 en A5 (Lex stelt regels voor en leest ze), en B8 met de soort, na een besluit over P15.
 
 **Waarom deze volgorde**
