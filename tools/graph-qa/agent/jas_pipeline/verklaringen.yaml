@@ -10,7 +10,8 @@
 detectie:
   CALCULATION_APPLICABILITY: {naam: "Keuze van toepasselijke regel", uitleg: "Een voorwaardelijke uitspraak bepaalt welke aangewezen regel toepassing vindt. De verwijzing en de voorwaarde blijven bij elkaar."}
   CALCULATION_ASSIGNMENT: {naam: "Toewijzing van een waarde", uitleg: "Een benoemde grootheid of vervaldatum wordt op een uitkomst gesteld; de volledige uitspraak is een afleidingshypothese."}
-  CALCULATION_QUANTITY: {naam: "Aantal uit een restant", uitleg: "Zoveel onderdelen als er overblijven: invoer en uitkomst van een mogelijke berekening."}
+  CALCULATION_QUANTITY: {naam: "Aantal uit een telling", uitleg: "Zoveel onderdelen als er van iets anders zijn of overblijven: invoer en uitkomst van een mogelijke berekening."}
+  TEMPORAL_VALUE: {naam: "Tijdstip als waarde", uitleg: "Een datum of tijdstip van iets ('de dagtekening van het aanslagbiljet'): een gegeven dat een regel gebruikt, geen handeling."}
   CALCULATION_CALENDAR_POSITION: {naam: "Gelijke kalenderpositie", uitleg: "De vervaldag wordt beschreven aan de hand van hetzelfde dagnummer als een andere datum."}
   TEMPORAL_DESCRIPTION: {naam: "Beschreven datum", uitleg: "Een dag of tijdstip met een beperkende omschrijving; de omschrijving hoort bij het fragment."}
   CONDITIONAL_ELLIPSIS: {naam: "Verkorte voorwaarde", uitleg: "Een nominale bepaling zoals bij afwijkende omstandigheden begrenst de bijbehorende uitspraak."}
@@ -19,6 +20,7 @@ detectie:
   TEMPORAL_MONTH: {naam: "Benoemde maand", uitleg: "Een maand in een temporele bepaling, zonder een ontbrekend jaar aan te vullen."}
   TEMPORAL_RECURRENCE: {naam: "Relatieve of herhaalde termijn", uitleg: "Een duur eerder of later, eventueel telkens herhaald; het referentiepunt blijft te beoordelen."}
   # vaste patronen (detectoren/regels/*.yaml)
+  CALCULATION_DIVISION: {naam: "Verdeling in gelijke delen", uitleg: "'In zoveel gelijke termijnen', 'voor gelijke delen': een geheel wordt door een aantal gedeeld."}
   CALCULATION_COPULA: {naam: "Berekening met 'bedraagt'", uitleg: "Een zin waarin iets een bedrag of waarde 'bedraagt' – de vorm van een afleidingsregel."}
   CALCULATION_PASSIVE: {naam: "Berekening in de lijdende vorm", uitleg: "'Wordt gesteld op', 'wordt berekend', 'wordt in aanmerking genomen': een waarde wordt vastgesteld."}
   LEGAL_FICTION: {naam: "Wettelijk vermoeden of fictie", uitleg: "'Wordt vermoed dat', 'wordt geacht': de wet leidt een feit af."}
@@ -58,6 +60,7 @@ detectie:
   # structuur (detectoren/structuur.py)
   DEFINITION_ITEM: {naam: "Begripsbepaling (onderdeel)", uitleg: "Een onderdeel van een begripsbepalingenartikel: 'a. X: …'."}
   DEFINITION_SENTENCE: {naam: "Begripsbepaling (zin)", uitleg: "'In deze wet wordt verstaan onder X: …'."}
+  DEFINITION_DESIGNATION: {naam: "Benoeming", uitleg: "'… wordt aangeduid als X': de zin geeft iets een eigen naam, en daarmee een begrip."}
   MEANING_TERM: {naam: "Begrip met betekenis", uitleg: "Het begrip dat in een begripsbepaling een betekenis krijgt."}
   # zinsontleding (detectoren/syntactisch.py)
   CLAUSE_COORDINATION: {naam: "Logische verbinding tussen zinnen", uitleg: "'En' of 'of' tussen twee (bij)zinnen of gezegden, elk met een eigen werkwoord: alle voorwaarden of normen gelden (EN), of één ervan (OF)."}
@@ -133,11 +136,12 @@ classifier:
 # spoor van de relatie; geen model.
 relatie:
   REL_UITVOER_FUNCTIE: {naam: "Uitkomst van de berekening", uitleg: "De afleidingsregel noemt wat er uitkomt ('zoveel termijnen als …'); de enige markering op die plek binnen de regel is haar uitvoer."}
-  REL_INVOER_FUNCTIE: {naam: "Invoer van de berekening", uitleg: "De afleidingsregel noemt waaruit ze rekent ('… als er maanden overblijven'); de markeringen op die plek binnen de regel zijn haar invoer, zonder volgorde."}
+  REL_INVOER_FUNCTIE: {naam: "Invoer van de berekening", uitleg: "De afleidingsregel noemt waaruit ze rekent ('… als er maanden overblijven'); de waarden op die plek binnen de regel zijn haar invoer, in de volgorde van de tekst. Een rechtsobject binnen een waarde is geen invoer."}
+  REL_KENMERK_INVOER: {naam: "Kenmerk binnen de invoer", uitleg: "Binnen de invoer van een regel staat een variabele met een rechtsobject erin ('de dagtekening van het aanslagbiljet'): de variabele is een kenmerk van dat object."}
   REL_WAARDE_NESTING: {naam: "Waarde binnen de grootheid", uitleg: "Een parameter- of variabelewaarde staat binnen een parameter, een variabele of een termijn die een parameter verbijzondert; de binnenste is de grootheid waarvan ze de waarde is."}
   REL_OPERATOR_IN_NESTING: {naam: "Operator in de voorwaarde of regel", uitleg: "De operator staat binnen een voorwaarde of afleidingsregel; de binnenste daarvan gebruikt hem."}
-  REL_OPERAND_WOORDVOLGORDE: {naam: "Operand naast de operator", uitleg: "De markering direct links (plek 1) of rechts (plek 2) van de operator, binnen dezelfde voorwaarde of regel, is een operand. De woordvolgorde geeft de plek; een andere operator ertussen breekt de reeks."}
-  REL_VOORWAARDE_AANHECHTING: {naam: "Voorwaarde bij het hoofdpredicaat", uitleg: "Een voorwaardelijke bijzin ('indien', 'als', 'tenzij' …) hangt in de zinsontleding aan het hoofdpredicaat; de enige rechtsbetrekking of afleidingsregel die dat predicaat draagt, geldt onder die voorwaarde."}
+  REL_OPERAND_WOORDVOLGORDE: {naam: "Operand naast de operator", uitleg: "De markering direct links (plek 1) of rechts (plek 2) van de operator, binnen dezelfde voorwaarde of regel, is een operand. De woordvolgorde geeft de plek; een andere operator ertussen breekt de reeks. Een ontkenning ('niet', 'geen') heeft één operand, rechts."}
+  REL_VOORWAARDE_AANHECHTING: {naam: "Voorwaarde bij het hoofdpredicaat", uitleg: "Een voorwaardelijke bijzin ('indien', 'als', 'tenzij' …) hangt in de zinsontleding aan het hoofdpredicaat; de rechtsbetrekking of afleidingsregel die dat predicaat draagt, geldt onder die voorwaarde. Dragen een rechtsbetrekking en een afleidingsregel het samen, dan allebei."}
   REL_ROL_ONDERWERP: {naam: "Rol van het onderwerp", uitleg: "Binnen een rechtsbetrekking zegt de modaliteit de rol van het onderwerp: rechthebbende bij een bevoegdheid ('kan', 'mag', 'is bevoegd'), plichthebbende bij een plicht ('moet', 'is verplicht'). Bij een rechtsfeit verricht het onderwerp het. Staan beide soorten woorden in de zin, of geen van beide, dan is er geen voorstel."}
   REL_ROL_VOORZETSEL: {naam: "Tegenpartij via het voorzetsel", uitleg: "Een rechtssubject na 'aan', 'ten aanzien van', 'jegens' of 'tegenover' heeft de andere rol dan het onderwerp; na 'op verzoek van' is het rechthebbende van een plicht; na 'van' bij een heffing of invordering ('wordt geheven van') plichthebbende."}
   REL_VOORWERP_ZINSDEEL: {naam: "Voorwerp uit het zinsdeel", uitleg: "Het rechtsobject dat het lijdend voorwerp draagt, of in een lijdende of naamwoordelijke zin het onderwerp ('Winstaandeel wordt geheven', 'is een aanslag invorderbaar'), is het voorwerp van de rechtsbetrekking of het rechtsfeit."}

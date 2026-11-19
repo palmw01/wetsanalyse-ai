@@ -238,7 +238,8 @@ def meet(pakket, concepten, historisch):
                                 for b in keuzes if (b["start"], b["eind"]) not in now or
                                 set(b["mogelijke_klassen"]) != set(now[(b["start"], b["eind"])].possible_classes)]})
             if old["beslissingen"] and not history["grens_of_klasse_gewijzigd"]:
-                uitvoer, fake = speel(c, {b["label"]: b["klasse"] or GEEN_ANNOTATIE for b in keuzes})
+                # Op de span, niet op het label: een nieuwe kandidaat schuift de labels op.
+                uitvoer, fake = speel(c, {now[(b["start"], b["eind"])].label: b["klasse"] or GEEN_ANNOTATIE for b in keuzes})
                 history["replay"] = {"soort": "vastgelegde_keuzes_geen_nieuwe_modelmeting", "per_status": uitvoer.meting["per_status"],
                                      "twijfels": uitvoer.meting["twijfels"], "review_calls": uitvoer.meting.get("review_calls", 0),
                                      "voorstellen": [{"tekst": v["tekst"], "klasse": v["klasse"], "ankers": v["ankers"]} for v in uitvoer.voorstellen]}
