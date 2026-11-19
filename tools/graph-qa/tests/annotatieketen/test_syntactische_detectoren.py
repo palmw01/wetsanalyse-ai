@@ -84,6 +84,28 @@ def test_beperkende_relatieve_bijzin(parser):
     assert "een partner die geen verzekerde is" in _grenzen(ks)
 
 
+ART_9_LID_7 = ("In afwijking van het eerste lid is een voorlopige aanslag waarvan het aanslagbiljet een dagtekening heeft "
+               "die ligt voor het jaar waarover deze is vastgesteld, invorderbaar in zoveel gelijke termijnen als er "
+               "maanden van het jaar zijn.")
+
+
+def test_een_naamwoordelijk_gezegde_neemt_koppelwerkwoord_en_bepaling_niet_mee(parser):
+    """Termijnen, 19 nov 2026 (art. 9 lid 7 IW): 'aanslag' is de kern van de zin, met 'In afwijking van het eerste lid'
+    en 'is' als kinderen. De Voorwaarde begon bij 'afwijking'; de groep begint bij 'een voorlopige aanslag'."""
+    ks = BijzinDetector().detecteer(_bron(ART_9_LID_7, parser)).kandidaten
+    grenzen = _grenzen(ks)
+    assert not any(g.startswith(("afwijking", "In afwijking")) for g in grenzen), grenzen
+    assert any(g.startswith("een voorlopige aanslag waarvan") for g in grenzen), grenzen
+    ks = NaamwoordgroepDetector().detecteer(_bron(ART_9_LID_7, parser)).kandidaten
+    assert not any("afwijking van het eerste lid is" in g for g in _grenzen(ks))
+
+
+def test_een_naamwoordelijk_gezegde_zonder_koppelwerkwoord_houdt_zijn_groep(parser):
+    """Rand: zonder 'cop' hangt er geen zinsdeel aan het naamwoord, en de groep blijft zoals ze was."""
+    ks = BijzinDetector().detecteer(_bron("Voor een partner die geen verzekerde is, geldt dit niet.", parser)).kandidaten
+    assert "een partner die geen verzekerde is" in _grenzen(ks)
+
+
 def test_nominalisatie_is_kandidaat_rechtsfeit(parser):
     ks = NominalisatieDetector().detecteer(_bron("Na het indienen van een bezwaarschrift beslist de inspecteur.", parser)).kandidaten
     assert any("indienen van een bezwaarschrift" in k.span.tekst and k.possible_classes[0] == "Rechtsfeit" for k in ks)

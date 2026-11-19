@@ -30,6 +30,18 @@ def bereik(a: LinguisticAnalysis, tokens) -> tuple[int, int] | None:
 
 _RANDFUNCTIE = {"case", "cc", "mark", "punct"}
 
+#: De zinsdelen van een naamwoordelijk gezegde: is een zelfstandig naamwoord de kern van een zin ('In afwijking van het
+#: eerste lid is een voorlopige aanslag waarvan …'), dan hangen het koppelwerkwoord, het onderwerp en de bepalingen aan
+#: dat naamwoord. Ze horen niet bij de groep (Termijnen, 19 nov 2026: art. 9 lid 7 IW).
+ZINSFUNCTIE = frozenset({"cop", "aux", "aux:pass", "nsubj", "nsubj:pass", "csubj", "obl", "obl:agent", "advcl", "expl"})
+
+
+def zinsdelen(a: LinguisticAnalysis, kop: int) -> set[int]:
+    """De tokens van de zinsdelen die aan naamwoord `kop` hangen omdat het een naamwoordelijk gezegde is."""
+    if not any(a.tokens[k].deprel == "cop" for k in a.kinderen(kop)):
+        return set()
+    return {i for k in a.kinderen(kop) if a.tokens[k].deprel in ZINSFUNCTIE for i in a.subboom(k)}
+
 
 def zonder_randfunctie(a: LinguisticAnalysis, tokens, kop: int) -> list[int]:
     """Een voorzetsel, voegwoord of leesteken vóór de groep hoort er niet bij ('Voor een partner')."""

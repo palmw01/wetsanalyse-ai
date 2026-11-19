@@ -77,3 +77,18 @@ def test_zonder_parser_gedegradeerd_maar_bruikbaar(manifest):
     assert taal["f12"].term == "belastingaanslag"
     assert taal["f24"].aanwijzend and taal["f24"].antecedent_start is None
     assert all(t.kop == "" and not t.beperkt for t in taal.values())
+
+
+@pytest.mark.parametrize("tekst, term", [
+    ("zoveel gelijke termijnen", "termijn"),   # Termijnen, 19 nov 2026: "zoveel gelijke termijn"
+    ("De eerste termijn", "termijn"),
+    ("de volgende termijnen", "termijn"),
+    ("andere belastingen", "belasting"),
+    ("een voorlopige aanslag", "voorlopige aanslag"),   # een vast bijvoeglijk naamwoord blijft (rand)
+    ("drie termijnen", "termijn"),                    # een telwoord valt er altijd buiten
+])
+def test_een_telwoord_of_rangwoord_hoort_niet_bij_de_term(spacy_md, tekst, term):
+    from agent.begrippen_pipeline.taal import _kern, _term
+    a = spacy_md.analyseer(tekst)
+    binnen = list(range(len(a.tokens)))
+    assert _term(a, _kern(a, binnen), binnen) == term

@@ -945,6 +945,16 @@ def test_het_juiste_aantal_in_de_toelichting_blijft():
     assert vul("antwoord_annotaties", {"toelichting": tekst}, [zoek(M1, M2)]).blokken[1].tekst == tekst
 
 
+def test_een_afkorting_in_een_vindplaats_is_geen_zinsgrens_en_regels_blijven():
+    """Termijnen, 19 nov 2026: "IW 1990, art. 24 lid 8: 4 annotaties …" werd na "art." doorgeknipt, het stuk met het
+    aantal viel weg, en alle lijstregels kwamen op één regel ("IW 1990, art. De kern is …")."""
+    tekst = ("Per bron opgezocht.\n\n- IW 1990, art. 24 lid 8: de kern is de verrekening.\n"
+             "- IW 1990, art. 9 lid 7: 5 annotaties. Nog niet geannoteerd.")
+    a = vul("antwoord_annotaties", {"toelichting": tekst}, [zoek(M1, M2)])
+    assert a.blokken[1].tekst == ("Per bron opgezocht.\n\n- IW 1990, art. 24 lid 8: de kern is de verrekening.\n"
+                                  "- Nog niet geannoteerd.")
+
+
 def test_een_toelichting_met_alleen_een_ander_aantal_vervalt():
     a = vul("antwoord_annotaties", {"toelichting": "Er zijn 7 treffers."}, [zoek(M1, M2)])
     assert [b.soort for b in a.blokken] == ["annotaties"]

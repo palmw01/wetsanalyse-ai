@@ -99,15 +99,27 @@ def _filterregel(filters: dict[str, Any]) -> str:
 
 
 _AANTAL = re.compile(r"\b(\d+)\s+(?:\w+\s+)?(?:annotaties|markeringen|treffers|resultaten|elementen)\b", re.I)
-_ZIN = re.compile(r"(?<=[.!?])\s+")
+#: Een zinsgrens: een punt, uitroep- of vraagteken met witruimte erna, maar niet na een afkorting uit een vindplaats
+#: ("art. 24", "nr. 3", "jo. art. 9"): daar knipte de toelichting een zin doormidden (Termijnen, 19 nov 2026).
+_ZIN = re.compile(r"(?<![Aa]rt\.)(?<![Nn]r\.)(?<![Jj]o\.)(?<!\bo\.a\.)(?<!\bbijv\.)(?<!\bresp\.)(?<=[.!?])[ \t]+")
+
+
+_LIJSTTEKEN = re.compile(r"\s*(?:[-*•]|\d+[.)])\s+")
 
 
 def _zonder_ander_aantal(tekst: str, totaal: int) -> str:
     """De toelichting zonder zinnen die een ander aantal treffers noemen dan de lijst toont.
 
     Het model neemt het getal over van zijn eigen zoekopdracht ("50 annotaties" bij `limit: 50`), ook als de code
-    daarna 54 rijen ophaalde. De werkplek toont het aantal zelf, dus een zin die iets anders zegt valt weg."""
-    return " ".join(z for z in _ZIN.split(tekst) if all(int(n) == totaal for n in _AANTAL.findall(z))).strip()
+    daarna 54 rijen ophaalde. De werkplek toont het aantal zelf, dus een zin die iets anders zegt valt weg. Regels en
+    lijsten blijven regels: per regel gaan alleen de zinnen weg, en een regel die leeg raakt ook."""
+    regels = []
+    for regel in tekst.split("\n"):
+        teken = m.group(0) if (m := _LIJSTTEKEN.match(regel)) else ""
+        zinnen = [z for z in _ZIN.split(regel[len(teken):]) if all(int(n) == totaal for n in _AANTAL.findall(z))]
+        if zinnen or not regel.strip():
+            regels.append(teken + " ".join(zinnen))
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(regels)).strip()
 
 
 _IRI_IN_TEKST = re.compile(r"`?(" + vindplaats_patroon() + r")`?")

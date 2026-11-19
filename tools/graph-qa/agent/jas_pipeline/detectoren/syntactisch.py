@@ -28,7 +28,7 @@ from ..taal.afgeleid import _BIJZIN, _KERN, clausebereik, predicaten
 from ..taal.grenzen import analyseer_grenzen
 from ..taal.verwijzingen import VERSIE as VERWIJZING_VERSIE
 from . import BronTekst, resultaat
-from .ontleding import bereik, in_verwijzing, parse_of_reden, zonder_randfunctie
+from .ontleding import bereik, in_verwijzing, parse_of_reden, zinsdelen, zonder_randfunctie
 from .regels import maskers, woordenlijsten
 
 SUBJ, OBJ, BETR, FEIT, VW, VAR, PAR, OP, AR = (
@@ -249,7 +249,8 @@ class NaamwoordgroepDetector:
     # 6: geen kale kern van een nominalisatie, niets binnen een vaste uitdrukking
     # 7: een aantalsgrens valt buiten de groep
     # 8: een grootheid ('de betalingstermijn') is een eigenschap; een duur ('zes weken') geen subject of object
-    versie = f"8+verwijzing.{VERWIJZING_VERSIE}"
+    # 9: de groep van een naamwoordelijk gezegde zonder koppelwerkwoord, onderwerp en bepalingen
+    versie = f"9+verwijzing.{VERWIJZING_VERSIE}"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
@@ -272,12 +273,13 @@ class NaamwoordgroepDetector:
             if _in_vaste_uitdrukking(t, uitgesloten) or (_nominalisatie(a, t, uitgesloten) and _heeft_voorwerp(a, t)):
                 continue
             kern = {t.i} | {i for k in a.kinderen(t.i) if a.tokens[k].deprel in _KERN for i in a.subboom(k)}
-            zonder_bijzin = set(a.subboom(t.i)) - {i for k in a.kinderen(t.i)
-                                                    if a.tokens[k].deprel in {*_BIJZIN, "conj", "parataxis", "punct", "cc"}
-                                                    for i in a.subboom(k)}
-            geheel = set(a.subboom(t.i)) - {i for k in a.kinderen(t.i)
-                                            if a.tokens[k].deprel in {"conj", "parataxis", "cc", "punct"}
-                                            for i in a.subboom(k)}
+            gezegde = zinsdelen(a, t.i)
+            zonder_bijzin = set(a.subboom(t.i)) - gezegde - {i for k in a.kinderen(t.i)
+                                                             if a.tokens[k].deprel in {*_BIJZIN, "conj", "parataxis", "punct", "cc"}
+                                                             for i in a.subboom(k)}
+            geheel = set(a.subboom(t.i)) - gezegde - {i for k in a.kinderen(t.i)
+                                                      if a.tokens[k].deprel in {"conj", "parataxis", "cc", "punct"}
+                                                      for i in a.subboom(k)}
             grenzen = [(g, soort) for g, soort in (
                 (_bereik(a, _zonder_randfunctie(a, kern - aantal, t.i)), "np_kern"),
                 (_bereik(a, _zonder_randfunctie(a, zonder_bijzin - aantal, t.i)), "np"),
@@ -376,7 +378,8 @@ class BijzinDetector:
     naam = "bijzin"
     # 3: een beperkende bijzin bij een zaak of handeling biedt geen Rechtssubject aan
     # 4: elk voorwaardelijk voegwoord, en de bijzin zelf als spanoptie
-    versie = f"4+verwijzing.{VERWIJZING_VERSIE}"
+    # 5: de groep van een naamwoordelijk gezegde zonder koppelwerkwoord, onderwerp en bepalingen
+    versie = f"5+verwijzing.{VERWIJZING_VERSIE}"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         a, reden = _parse_of_reden(bron)
@@ -399,8 +402,8 @@ class BijzinDetector:
                         relatie=t.deprel, detail=als.tekst.lower())]))
             # 'een partner die geen verzekerde is': de bijzin stelt een eis aan de referent.
             if _nominaal(a, t) and any(a.tokens[k].deprel == "acl:relcl" for k in kinderen):
-                geheel = set(a.subboom(t.i)) - {i for k in kinderen if a.tokens[k].deprel in {"conj", "parataxis"}
-                                                for i in a.subboom(k)}
+                geheel = set(a.subboom(t.i)) - zinsdelen(a, t.i) - {
+                    i for k in kinderen if a.tokens[k].deprel in {"conj", "parataxis"} for i in a.subboom(k)}
                 g = _bereik(a, _zonder_randfunctie(a, geheel, t.i))
                 if g:
                     persoonloos = referent(a, t, uitgesloten) in {ZAAK, HANDELING}

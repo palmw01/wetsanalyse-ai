@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { AcceptatieClient, controleerPad, controleerUrl, leesFrames } from "./client.js";
+import { AcceptatieClient, controleerPad, controleerUrl, leesFrames, metToken } from "./client.js";
 
 test("een productie-URL wordt geweigerd", () => {
   assert.throws(() => controleerUrl("https://wetsanalyse-prd-frontend.example.org"));
@@ -66,4 +66,11 @@ test("runEvents voegt tekst samen, laat status en reason weg en onthoudt seq", a
   assert.equal(uit.tekst, "Hallo");
   assert.equal(uit.vanaf, 4);
   assert.deepEqual(uit.events, [{ type: "vraagkaart", seq: 4 }]);
+});
+
+test("tussen de berichten van een reeks en de samenvatting komt een witregel", () => {
+  let t = metToken("", undefined, { content: "Klaar.", onderdeel: "urn:a" });
+  t = metToken(t.tekst, t.bericht, { content: " Meer.", onderdeel: "urn:a" });
+  t = metToken(t.tekst, t.bericht, { content: "1 bepaling geannoteerd." });
+  assert.equal(t.tekst, "Klaar. Meer.\n\n1 bepaling geannoteerd.");
 });

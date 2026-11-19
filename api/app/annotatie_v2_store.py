@@ -677,13 +677,22 @@ def _grens_wijziging(element: dict, wijziging: dict, nodes: dict) -> dict:
 
 def _herzien_toelichting(oud: dict, wijziging: dict) -> dict:
     """Een klassewissel zonder nieuwe toelichting: de oude ging over de vorige klasse ("Een rechtsobject is…" bij een
-    Rechtsfeit). Ze wijkt voor een zin die zegt wat er gebeurde; de beslissing bewaart haar in `voor`."""
+    Rechtsfeit). Ze wijkt voor een zin die zegt wat er gebeurde; de beslissing bewaart haar in `voor`. Een nieuwe grens
+    zet het nieuwe fragment in het citaat van de toelichting."""
     klasse, vorige = wijziging.get("klasse"), oud.get("klasse", "")
-    eigen = wijziging.get("toelichting", oud.get("toelichting", "")) != oud.get("toelichting", "")
-    if not klasse or klasse == vorige or eigen or not oud.get("toelichting"):
+    toelichting = oud.get("toelichting", "")
+    eigen = wijziging.get("toelichting", toelichting) != toelichting
+    if eigen or not toelichting:
         return {}
-    was = f"Klasse gewijzigd van {vorige} naar {klasse}" if vorige else f"Klasse {klasse} gekozen"
-    return {"toelichting": f"{was} door de jurist; de eerdere toelichting ging niet over deze klasse."}
+    if klasse and klasse != vorige:
+        was = f"Klasse gewijzigd van {vorige} naar {klasse}" if vorige else f"Klasse {klasse} gekozen"
+        return {"toelichting": f"{was} door de jurist; de eerdere toelichting ging niet over deze klasse."}
+    # Een nieuwe grens: de toelichting citeert het fragment, en dat moet het fragment zijn dat er nu staat (Termijnen,
+    # 19 nov 2026: na een correctie citeerde ze nog "afwijking van het eerste lid is …").
+    tekst, vorig_fragment = wijziging.get("tekst"), oud.get("tekst", "")
+    if tekst and vorig_fragment and tekst != vorig_fragment and f"\"{vorig_fragment}\"" in toelichting:
+        return {"toelichting": toelichting.replace(f"\"{vorig_fragment}\"", f"\"{tekst}\"")}
+    return {}
 
 
 async def _beslis_in(conn, element_id: str, req, verwacht: dict[str, int], snapshot: dict, actor: str,

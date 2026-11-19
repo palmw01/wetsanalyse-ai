@@ -23,7 +23,7 @@
 {"id": "dekking-minst-uitgewerkt", "vraag": "Welke deelvraag is nog het minst uitgewerkt?", "context": {"werkgebied_id": "w1"}, "verwacht": {"route": "agent_taak", "model": false}}
 {"id": "dekking-gedekt", "vraag": "Is deelvraag 2 al gedekt?", "context": {"werkgebied_id": "w1"}, "verwacht": {"route": "agent_taak", "model": false}}
 {"id": "dekking-ontbreekt", "vraag": "Welke bepalingen ontbreken nog bij dit werkgebied?", "context": {"werkgebied_id": "w1"}, "verwacht": {"route": "agent_taak", "model": false}}
-{"id": "dekking-geen-handeling", "vraag": "Annoteer deelvraag 2.", "context": {"werkgebied_id": "w1"}, "verwacht": {"model": true}}
+{"id": "dekking-geen-handeling", "vraag": "Annoteer deelvraag 2.", "context": {"werkgebied_id": "w1"}, "verwacht": {"route": "agent_taak", "model": false}}
 {"id": "dekking-buiten-werkgebied", "vraag": "Welke deelvraag is het minst uitgewerkt?", "verwacht": {"model": true}}
 {"id": "bron-uit-wat-kun-je-vinden", "vraag": "wat kun je nog vinden in de kamerstukken?", "context": {"bronstand": {"kamerstukken": {"naam": "kamerstukken", "label": "Kamerstukken", "aan": false, "reden": "gesprek"}}}, "verwacht": {"route": "afwijzen", "model": false}}
 {"id": "bron-uit-mvt-kamerstuk", "vraag": "Wat staat er in de memorie van toelichting bij Kamerstuk 33755, nummer 3?", "context": {"bronstand": {"kamerstukken": {"naam": "kamerstukken", "label": "Kamerstukken", "aan": false, "reden": "gesprek"}}}, "verwacht": {"route": "afwijzen", "model": false}}
@@ -53,3 +53,5 @@
 {"id": "methode-jrm-scenario-aktes", "vraag": "Werk dit uit als scenario met aktes", "verwacht": {"route": "afwijzen", "model": false}}
 {"id": "methode-jrm-met-doel", "vraag": "Annoteer dit artikel volgens JRM", "context": {"doel": {"bwbId": "BWBR0004770", "artikel": "9"}}, "verwacht": {"route": "afwijzen", "model": false}}
 {"id": "methode-vraag-over-jrm", "vraag": "Wat zegt het JRM over een rechtsfeit?", "verwacht": {"model": true}}
+{"id": "werkgebied-annoteer-deelvraag", "vraag": "Annoteer de bronnen onder deelvraag 3 die nog niet geannoteerd zijn.", "context": {"werkgebied_id": "w1"}, "verwacht": {"route": "agent_taak", "model": false}}
+{"id": "werkgebied-annoteer-geheel", "vraag": "Annoteer de bronnen van het werkgebied", "context": {"werkgebied_id": "w1"}, "verwacht": {"route": "agent_taak", "model": false}}
