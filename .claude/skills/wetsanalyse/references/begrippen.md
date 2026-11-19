@@ -38,6 +38,8 @@ verwacht. Per klasse:
 - **Voorwaarde**: geen begrip. Ze krijgt een omschrijving die met "indien" begint, bij de rechtsbetrekking, het rechtsfeit
   of de afleidingsregel waar ze bij hoort; soms verwerk je haar in het begrip zelf.
 - **Afleidingsregel**: eerst een begrip voor de regel ("bepalen …"), dan de regel met de begrippen als in- en uitvoer.
+  Ook een tussenresultaat van de regel krijgt een begrip, als de tekst het niet noemt. Hoe je de regel opschrijft, staat
+  in [afleidingsregels](afleidingsregels.md).
 - **Variabele en variabelewaarde**: een begrip voor de variabele.
 - **Parameter en parameterwaarde**: een begrip voor de parameter, en ook voor de waarde in haar tijdvak. Een vaste waarde
   die nooit verandert (zoals nihil) krijgt geen begrip.
@@ -92,6 +94,14 @@ en dat begrip gebruik je opnieuw voor elke formulering met dezelfde betekenis. D
 - Gebruik de naam van het begrip niet in zijn eigen omschrijving. Gebruik wel begrippen die al zijn vastgelegd: dan
   werkt een wijziging daarvan vanzelf door.
 - Geen berekening of redenering in de omschrijving. Die hoort bij de afleidingsregel.
+- Geen parameterwaarde in de omschrijving van een parameter ("zes weken", "€ 49"). De waarde is een eigen begrip in
+  haar tijdvak, gerelateerd aan de parameter: wijzigt de wetgever de waarde, dan blijft de parameter hetzelfde
+  (M01 h.6; M04 H2 *Parameter*).
+- Geeft een omschrijving per geval een andere uitkomst ("bij A telt de maand mee, bij B niet"), dan zijn het twee
+  begrippen, of één begrip met een kenmerk dat het geval aanwijst. Een begrip dat zijn waarde laat afhangen van iets
+  wat het niet noemt, is niet eenduidig.
+- Schrijf de omschrijving uit alle passages met deze term in het werkgebied, niet uit de eerste. Anders is het begrip
+  te smal voor een passage die erbij hoort, en volgt er later een opvolger.
 
 Twee van deze regels toetst Lex in code (een kringdefinitie, een rekenregel in de definitie); de andere zijn
 aandachtspunten voor wie het begrip beoordeelt.
