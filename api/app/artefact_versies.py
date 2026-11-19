@@ -30,8 +30,8 @@ from .routers.auth import actieve_userid
 logger = logging.getLogger("wetsanalyse.artefact_versies")
 POGINGEN = 3  # de eerste lezing en hoogstens twee keer opnieuw
 
-#: De soorten met een momentopname; `regels` is gereserveerd, `bronnen` bestaat niet meer (een bronselectie).
-SOORTEN = ("werkgebied", "deelvraag", "bronselectie", "begrip", "begrippen", "annotatie")
+#: De soorten met een momentopname; `bronnen` bestaat niet meer (een bronselectie).
+SOORTEN = ("werkgebied", "deelvraag", "bronselectie", "begrip", "begrippen", "annotatie", "regel", "regels")
 
 
 def sleutel_van(soort: str, ref: dict[str, Any]) -> str | None:
@@ -43,12 +43,14 @@ def sleutel_van(soort: str, ref: dict[str, Any]) -> str | None:
         return None
     return {"werkgebied": f"werkgebied:{wid}", "bronselectie": f"bronselectie:{wid}", "begrippen": f"begrippen:{wid}",
             "deelvraag": f"deelvraag:{wid}:{ref.get('deelvraag_id', '')}" if ref.get("deelvraag_id") else None,
-            "begrip": f"begrip:{wid}:{ref.get('begrip_id', '')}" if ref.get("begrip_id") else None}.get(soort)
+            "begrip": f"begrip:{wid}:{ref.get('begrip_id', '')}" if ref.get("begrip_id") else None,
+            "regel": f"regel:{wid}:{ref.get('regel_id', '')}" if ref.get("regel_id") else None,
+            "regels": f"regels:{wid}"}.get(soort)
 
 
 async def _inhoud(soort: str, ref: dict[str, Any]) -> dict[str, Any]:
     """De stand van nu, met dezelfde leesfuncties als de routes die het paneel gebruikt."""
-    from . import begrip_relatie_store, begrip_store, begrippen_run_store, bronselectie, werkgebied_store
+    from . import begrip_relatie_store, begrip_store, begrippen_run_store, bronselectie, regel_store, werkgebied_store
 
     wid = str(ref.get("werkgebied_id") or "")
     if soort == "werkgebied":
@@ -64,6 +66,10 @@ async def _inhoud(soort: str, ref: dict[str, Any]) -> dict[str, Any]:
         return {"begrip": await begrip_store.haal(wid, bid), "relaties": await begrip_relatie_store.lijst(wid, bid)}
     if soort == "begrippen":
         return {"groepen": await begrippen_run_store.groepen(wid)}
+    if soort == "regel":
+        return {"regel": await regel_store.haal(wid, str(ref["regel_id"]))}
+    if soort == "regels":
+        return {"regels": await regel_store.lijst(wid), "hierarchie": await regel_store.hierarchie(wid)}
     if soort == "annotatie":
         from .annotatie_v2 import resolve_bron
         from . import annotatie_v2_store
@@ -79,6 +85,8 @@ async def _revisie(soort: str, ref: dict[str, Any]) -> int | None:
         t, sleutel = db.werkgebieden, ref.get("werkgebied_id")
     elif soort == "begrip":
         t, sleutel = db.begrippen, ref.get("begrip_id")
+    elif soort == "regel":
+        t, sleutel = db.regels, ref.get("regel_id")
     else:
         return None
     async with db.get_engine().connect() as conn:

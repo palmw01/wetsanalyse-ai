@@ -104,10 +104,18 @@ async def test_geen_versie_zonder_beurt_van_lex(client):
     assert "versie" not in b["artefact"]["ref"]
     b = await _beurt(client, gid, "run-u", "werkgebied", {"werkgebied_id": wg["id"]}, rol="user")
     assert "versie" not in b["artefact"]["ref"]
-    # `regels` is gereserveerd en heeft geen inhoud om vast te leggen.
-    b = await _beurt(client, gid, "run-r", "regels", {"werkgebied_id": wg["id"]})
-    assert "versie" not in b["artefact"]["ref"]
     assert await _aantal() == 0
+
+
+async def test_de_keten_van_afleidingsregels_krijgt_een_versie(client):
+    """ADR-018: `regels` (de keten) is geen gereserveerde soort meer; ook zonder regels is er een stand."""
+    wg = await _nieuw(client)
+    gid = await _gesprek(client)
+    b = await _beurt(client, gid, "run-r", "regels", {"werkgebied_id": wg["id"]})
+    vid = b["artefact"]["ref"]["versie"]
+    v = (await client.get(f"/v1/artefact-versies/{vid}")).json()
+    assert v["sleutel"] == f"regels:{wg['id']}" and v["inhoud"]["regels"] == []
+    assert v["inhoud"]["hierarchie"]["volgorde"] == []
 
 
 async def test_een_storing_laat_het_bericht_landen_zonder_versie(client, monkeypatch):

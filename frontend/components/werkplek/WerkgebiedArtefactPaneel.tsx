@@ -35,7 +35,12 @@ import type { ArtefactVersie, Begrip, Deelvraag, GroepenAntwoord, RelatiesAntwoo
 import type { BronselectieOverzicht } from "@/lib/bronselectie";
 import { STATUS_LABEL, WERKGEBIED_EXPORT_FORMATEN } from "@/lib/werkgebied";
 import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
-import { artefactPad, begripPad, deelvraagPad, projectPad } from "@/lib/werkgebiedPaden";
+import { artefactPad, begripPad, deelvraagPad, projectPad, regelPad } from "@/lib/werkgebiedPaden";
+import { RegelInhoud, RegelStatus } from "@/components/werkgebieden/RegelInhoud";
+import { RegelKeten } from "@/components/werkgebieden/RegelKeten";
+import { haalRegel, haalRegelKeten, lijstRegels } from "@/lib/api";
+import { regelAlsMarkdown, regelsAlsMarkdown, type Regel, type RegelKeten as RegelKetenVorm } from "@/lib/regels";
+import { useRegel } from "@/lib/useRegel";
 
 /** Kopiëren en exporteren per soort (4 nov 2026): altijd Markdown, bij het werkgebied de PDF en bij de begrippen de
  *  bestaande exports van het begrippenkader. De inhoud wordt bij de klik opgehaald – de kop kent de gegevens van de
@@ -53,6 +58,8 @@ function exportVan(doel: WerkgebiedArtefact, opname?: Opname | null): Pick<React
         return d ? deelvraagAlsMarkdown(d) : `# ${o.deelvraag?.vraag ?? doel.titel}\n`;
       } };
       case "begrip": return { formaten: [], markdown: () => begripAlsMarkdown(o.begrip!) };
+      case "regel": return { formaten: [], markdown: () => regelAlsMarkdown(o.regel!) };
+      case "regels": return { formaten: [], markdown: () => regelsAlsMarkdown(o.regels ?? [], o.hierarchie ?? null, o.werkgebied?.naam) };
       // De PDF en de exports van het begrippenkader gaan over de stand van nu: niet bij een oude versie.
       default: return { formaten: [], markdown: () => voorstellenAlsMarkdown(
         o.werkgebied?.naam ? `Begripsvoorstellen – ${o.werkgebied.naam}` : "Begripsvoorstellen", termenVan(o.groepen ?? null)) };
@@ -71,6 +78,13 @@ function exportVan(doel: WerkgebiedArtefact, opname?: Opname | null): Pick<React
       } };
     case "begrip":
       return { formaten: [], markdown: async () => begripAlsMarkdown(await haalBegrip(id, doel.begrip_id ?? "")) };
+    case "regel":
+      return { formaten: [], markdown: async () => regelAlsMarkdown(await haalRegel(id, doel.regel_id ?? "")) };
+    case "regels":
+      return { formaten: [], markdown: async () => {
+        const [wg, regels, keten] = await Promise.all([haalWerkgebied(id), lijstRegels(id), haalRegelKeten(id).catch(() => null)]);
+        return regelsAlsMarkdown(regels, keten, wg.naam);
+      } };
     default:
       return { formaten: EXPORT_FORMATEN, onDownload: (f) => exporteerBegrippen(id, f as "json" | "csv" | "ttl" | "ttl-alle"),
         markdown: async () => {
@@ -83,7 +97,8 @@ function exportVan(doel: WerkgebiedArtefact, opname?: Opname | null): Pick<React
 /** Een versie van het artefact (api `artefact_versies`), met de inhoud die de panelen van deze soort kennen. */
 type Opname = Omit<ArtefactVersie, "inhoud"> & {
   inhoud: { werkgebied?: Werkgebied; deelvraag?: Deelvraag | null; bronselectie?: BronselectieOverzicht;
-    begrip?: Begrip; relaties?: RelatiesAntwoord | null; groepen?: GroepenAntwoord };
+    begrip?: Begrip; relaties?: RelatiesAntwoord | null; groepen?: GroepenAntwoord;
+    regel?: Regel; regels?: Regel[]; hierarchie?: RegelKetenVorm };
 };
 
 /** Waar *Open volledige pagina* heen gaat: de pagina van wat het paneel toont (spoor G2). */
@@ -94,6 +109,8 @@ function paginaVan(doel: WerkgebiedArtefact): string {
     case "begrip": return doel.begrip_id ? begripPad(id, doel.begrip_id) : artefactPad(id, "begrippen");
     case "deelvraag": return doel.deelvraag_id ? deelvraagPad(id, doel.deelvraag_id) : projectPad(id);
     case "bronselectie": return artefactPad(id, "bronselectie");
+    case "regels": return artefactPad(id, "regels");
+    case "regel": return doel.regel_id ? regelPad(id, doel.regel_id) : artefactPad(id, "regels");
     default: return projectPad(id);
   }
 }
@@ -198,6 +215,14 @@ export function WerkgebiedArtefactPaneel({ doel, variant = "side", bewaker, onOn
             <DeelvraagPaneel werkgebiedId={doel.werkgebied_id} deelvraagId={doel.deelvraag_id} opname={opname?.inhoud}
               onKies={onWissel ? (d) => onWissel({ soort: "deelvraag", werkgebied_id: doel.werkgebied_id, run_id: "",
                 deelvraag_id: d.id, titel: d.vraag }) : undefined} />
+          ) : doel.soort === "regel" && doel.regel_id ? (
+            <RegelPaneel key={opname?.id ?? "nu"} werkgebiedId={doel.werkgebied_id} regelId={doel.regel_id}
+              opname={opname?.inhoud.regel} />
+          ) : doel.soort === "regels" ? (
+            <RegelKeten werkgebiedId={doel.werkgebied_id} naam="" zonderExport
+              opname={opname ? { regels: opname.inhoud.regels ?? [], keten: opname.inhoud.hierarchie ?? null } : undefined}
+              onOpen={onWissel ? (r) => onWissel({ soort: "regel", werkgebied_id: doel.werkgebied_id, run_id: "",
+                regel_id: r.id, titel: r.naam }) : undefined} />
           ) : doel.soort === "bronselectie" ? (
             <BronnenBijDeelvraag werkgebiedId={doel.werkgebied_id} huidig={doel.deelvraag_id} inGesprek
               opname={opname?.inhoud.bronselectie} onKlaar={onKlaar} klaarVoor={klaarVoor} />
@@ -303,4 +328,12 @@ function WerkgebiedLive({ id, naarWerkgebied, onVerwijderd }: {
       </Link>
     </div>
   );
+}
+
+/** Eén afleidingsregel naast het gesprek: dezelfde regelkaart als op zijn pagina, onder elkaar, met de stand in de kop. */
+function RegelPaneel({ werkgebiedId, regelId, opname }: { werkgebiedId: string; regelId: string; opname?: Regel }) {
+  const stand = useRegel({ werkgebiedId, regelId, opname });
+  const r = stand.regel;
+  usePaneelKopVulling({ status: r && <RegelStatus regel={r} /> }, r ? `${r.status}|${r.revisie}` : "");
+  return <RegelInhoud stand={stand} weergave="paneel" />;
 }

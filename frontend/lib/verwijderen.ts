@@ -8,19 +8,20 @@
 import { datumKort } from "./datum";
 import type { ApiError } from "./types";
 
-export type VerwijderSoort = "annotatie" | "werkgebied" | "begrip" | "gesprekken";
+export type VerwijderSoort = "annotatie" | "werkgebied" | "begrip" | "regel" | "gesprekken";
 
 /** Wat de knop als tooltip draagt: wat er weggaat en wat blijft. */
 export const VERWIJDER_UITLEG: Record<VerwijderSoort, string> = {
   annotatie: "Verwijdert alle markeringen en beoordelingen van deze bepaling, ook uit de kennisgraaf",
   werkgebied: "Verwijdert het werkgebied met zijn bronselecties, deelvragen en begrippen, ook uit de kennisgraaf. De annotaties blijven staan.",
   begrip: "Verwijdert het begrip met zijn koppelingen en relaties, ook uit de kennisgraaf. De annotaties blijven staan.",
+  regel: "Verwijdert de afleidingsregel met zijn revisies en dragers. De begrippen en annotaties blijven staan.",
   // Een groep gesprekken in één keer (instellingen → Gesprekken).
   gesprekken: "Verwijdert de gesprekken en het geheugen van Lex erover. Annotaties, begrippen en werkgebieden blijven bestaan.",
 };
 
 const NAAM: Record<VerwijderSoort, string> = {
-  annotatie: "Annotatie", werkgebied: "Werkgebied", begrip: "Begrip", gesprekken: "Gesprekken",
+  annotatie: "Annotatie", werkgebied: "Werkgebied", begrip: "Begrip", regel: "Afleidingsregel", gesprekken: "Gesprekken",
 };
 
 /** De toegankelijke naam van de knop: "Werkgebied verwijderen". */

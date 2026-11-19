@@ -39,11 +39,13 @@ export function stroomInDelen(events, { breek, ping = false }) {
   return { handler, aangehaakt };
 }
 
-/** De aanroepen van de schil om elke pagina heen (account, verbruik, berichten, de bronnen boven het invoerveld). Een
+/** De aanroepen van de schil om elke pagina heen (account, verbruik, berichten, de bronnen boven het invoerveld), en de
+ *  afleidingsregels die elke werkgebiedpagina en begripskaart leest (de artefactkaart, *Afgeleid door*; ADR-018). Een
  *  script dat die niet toetst, zegt dat met `stil: SCHIL`; ze krijgen dan een leeg antwoord, zoals vroeger. */
 export const SCHIL = [
   /^GET \/api\/account\/me$/, /^GET \/api\/account\/verbruik$/, /^GET \/api\/berichten\/ongelezen-aantal$/,
   /^GET \/api\/connectors$/, /^GET \/api\/gesprekken$/, /^GET \/api\/annotatie\/run$/, /^POST \/api\/ui-spoor$/,
+  /^GET \/api\/werkgebieden\/[^/]+\/regels$/,
 ];
 
 /** Beantwoord een pad dat de nep-api niet kent met 501 en onthoud het, tenzij het onder `stil` valt (een lijst van
