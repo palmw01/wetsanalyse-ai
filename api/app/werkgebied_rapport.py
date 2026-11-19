@@ -1247,6 +1247,7 @@ def begrippendiagram_regels(w: Wettekst) -> list[Regel]:
                                  "formuleringen. Het nummer verwijst naar de markering, zodat elk begrip herleidbaar blijft.")]
     open_: list[str] = []
     for r in w.regelingen:
+        kop = False
         for a in r.artikelen:
             for b in a.bepalingen:
                 for d in b.diagrammen:
@@ -1256,6 +1257,10 @@ def begrippendiagram_regels(w: Wettekst) -> list[Regel]:
                         open_.append(f"{naam}: nog geen begrip bij " + ", ".join(
                             f"{k.nr} · {k.klasse}" if k.nr else k.klasse for k in zonder) + ".")
                         continue
+                    # Per regeling een kop van niveau 2, zoals in hoofdstuk 5: zo staat de bijlage in de inhoudsopgave.
+                    if not kop:
+                        uit.append(("Heading2", r.titel))
+                        kop = True
                     uit += [*BLOK, ("Heading3", naam), (DIAGRAM_BEGRIPPEN, d.model_dump_json()), *BLOK_UIT]
     if len(uit) == 1:
         uit.append(("BodyText", "Nog geen diagram heeft bij elke formulering een geaccordeerd begrip."))

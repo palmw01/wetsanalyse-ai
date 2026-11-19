@@ -1307,6 +1307,10 @@ async def test_de_bijlage_toont_een_diagram_met_begrippen_pas_als_elke_formuleri
     begin = regels.index(("Heading1", "Bijlage B. Begrippendiagrammen"))
     diagrammen = [t for s, t in regels[begin:] if s == pdf_opmaak.DIAGRAM_BEGRIPPEN]
     assert len(diagrammen) == 1 and "begrip 0" in diagrammen[0]
+    # Per regeling een kop van niveau 2, zoals in hoofdstuk 5: zo staat de bijlage in de inhoudsopgave (niveau 3 niet).
+    bijlage = regels[begin:regels.index(("Heading1", "Bijlage C. Bronnenregister"))]
+    assert ("Heading2", rapport.wettekst.regelingen[0].titel) in bijlage
+    assert ("Heading3", "Lid 1 – rond afleidingsregel 1") in bijlage
     md = markdown_opmaak.markdown(regels)
     assert md.count("```mermaid") == 2 and "begrip 0" in md
 
