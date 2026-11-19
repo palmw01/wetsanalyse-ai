@@ -248,3 +248,7 @@ Al beslist door de methode (#1760, #1766): operatoren, tussenresultaten, de gron
 ## Fasering
 
 Het bouwplan R0–R7 staat in [plan-afleidingsregels-in-lex.md](plan-afleidingsregels-in-lex.md) §13. Dit ADR is R0.
+
+De agentische laag (de regels-agent, zijn tools, de skills, de route, de meting en de keuzes, R5 en R6) staat in
+[bijlage A](adr-018-bijlage-agentische-laag.md). Die is een voorstel ter goedkeuring; tot het akkoord wordt er niets van
+R3 en verder gebouwd.
