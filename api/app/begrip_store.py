@@ -28,6 +28,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import re
 import uuid
 from collections.abc import Iterable
 from contextlib import asynccontextmanager
@@ -199,6 +200,33 @@ def _aandacht(status: str, p: dict, koppelingen: list[dict]) -> list[str]:
     return p["redenen"]
 
 
+#: Een waarde in een definitie: een getal, een bedrag of een percentage (L-3a-2; M04 H2 *Parameter*).
+_WAARDE = re.compile(r"\d|€|%|\bprocent\b", re.IGNORECASE)
+_PARAMETER = "Parameter en parameterwaarde"
+
+
+def eenduidigheid(inhoud: dict, koppelingen: list[dict], andere_namen: dict[str, str]) -> list[str]:
+    """Aandachtspunten die het hele werkgebied vragen (L-3a-2): een alternatieve term die de naam van een ander begrip is
+    (een homoniem), en een waarde in de definitie van een begrip dat op een parameter rust (de waarde is een eigen
+    begrip). Een signaal, geen poort. `andere_namen` is naam (zonder hoofdletters) → naam van de andere begrippen."""
+    uit = []
+    for term in inhoud.get("alternatieve_termen") or []:
+        if (naam := andere_namen.get(term.strip().casefold())):
+            uit.append(f"De alternatieve term \"{term}\" is ook de naam van het begrip \"{naam}\" in dit werkgebied: "
+                       "een homoniem?")
+    dragend = [k for k in koppelingen if k["rol"] in DRAGEND and k["beoordeling"] != "afgewezen"]
+    if (any(((k.get("bewijs") or {}).get("klasse")) == _PARAMETER for k in dragend)
+            and _WAARDE.search(inhoud.get("definitie") or "")):
+        uit.append("De definitie noemt een waarde; bij een parameter is de waarde een eigen begrip in een tijdvak.")
+    return uit
+
+
+def _namen(rows) -> dict[str, dict[str, str]]:
+    """Per begrip de namen van de andere begrippen in beeld (zonder vervangen), voor `eenduidigheid`."""
+    alle = {r.id: (r.inhoud or {}).get("naam", "") for r in rows if r.status != "vervangen"}
+    return {i: {n.strip().casefold(): n for j, n in alle.items() if j != i and n} for i in alle}
+
+
 def _begrip(row, koppelingen: list[dict], opvolging: dict | None = None) -> dict:
     p = poort(row.inhoud, koppelingen)
     o = (opvolging or {}).get(row.id, {})
@@ -318,8 +346,13 @@ async def haal(werkgebied_id: str | None, begrip_id: str) -> dict:
         row = (await conn.execute(select(b).where(b.c.id == begrip_id, in_werkgebied(werkgebied_id)))).first()
         if row is None:
             raise await niet_gevonden(werkgebied_id, begrip_id)
-        uit = _begrip(row, await _koppelingen_van(conn, werkgebied_id, begrip_id), await _opvolging(conn, werkgebied_id))
+        ks = await _koppelingen_van(conn, werkgebied_id, begrip_id)
+        uit = _begrip(row, ks, await _opvolging(conn, werkgebied_id))
         uit["definitie_onderbouwing"] = await definitie_onderbouwing(conn, begrip_id, row.inhoud)
+        if row.status != "vervangen":
+            rows = (await conn.execute(select(b.c.id, b.c.status, b.c.inhoud).where(in_werkgebied(werkgebied_id)))).all()
+            uit["aandachtspunten"] = [*uit["aandachtspunten"],
+                                      *eenduidigheid(row.inhoud, ks, _namen(rows).get(begrip_id, {}))]
         return uit
 
 
@@ -370,9 +403,13 @@ async def lijst(werkgebied_id: str) -> list[dict]:
         alle = await _koppelingen_van(conn, werkgebied_id)
         opvolging = await _opvolging(conn, werkgebied_id)
     uit = []
+    namen = _namen(rows)
     for row in rows:
         ks = [k for k in alle if k["begrip_id"] == row.id]
         volledig = _begrip(row, ks, opvolging)
+        if row.status != "vervangen":
+            volledig["aandachtspunten"] = [*volledig["aandachtspunten"],
+                                           *eenduidigheid(row.inhoud, ks, namen.get(row.id, {}))]
         uit.append({**{k: v for k, v in volledig.items() if k != "koppelingen"},
                     "aantal_koppelingen": len(ks),
                     "element_ids": sorted({k["element_id"] for k in ks})})

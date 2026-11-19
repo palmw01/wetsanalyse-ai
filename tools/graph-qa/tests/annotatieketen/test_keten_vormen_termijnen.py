@@ -78,6 +78,8 @@ def test_invorderbaar_na_een_duur_is_ook_een_afleidingsregel(parser):
     k, = _met(GevolgDetector(), LID_1, parser, "DATE_ASSIGNMENT")
     assert k.span.tekst == "invorderbaar zes weken na de dagtekening van het aanslagbiljet"
     assert k.possible_classes == ("Afleidingsregel",)
+    # Het tijdstip is de invoer, zonder het voorzetsel (meting bundel 3: de regel kreeg geen invoer).
+    assert json.loads(k.evidence[0].detail)["invoer"]["tekst"] == "de dagtekening van het aanslagbiljet"
 
 
 def test_de_datumregel_stopt_voor_de_nevenschikking(parser):

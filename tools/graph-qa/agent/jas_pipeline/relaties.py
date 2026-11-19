@@ -14,7 +14,9 @@ Vier regels, in de volgorde van ADR-011, elk met een eigen code (verklaard in `v
    draagt de invoerspan een variabele, parameter of tijdsaanduiding, dan is de grootste daarvan de invoer, en een
    rechtsobject erbinnen niet ('de dagtekening van het aanslagbiljet': de dagtekening). Dat rechtsobject krijgt een
    `kenmerk` van de variabele (`REL_KENMERK_INVOER`). Zonder waarde blijft het binnenste voorstel de invoer. De invoer
-   krijgt de woordvolgorde als `volgorde` (1 = de eerste).
+   krijgt de woordvolgorde als `volgorde` (1 = de eerste). Een datumregel (`DATE_ASSIGNMENT`, "invorderbaar zes weken
+   na de dagtekening van …") noemt alleen een invoer, het tijdstip: de invoer is wat daarbinnen ligt, en een uitvoer is er
+   niet, want de datum heeft geen eigen formulering (meting bundel 3, 20 nov 2026).
 2. **`waarde` uit de nesting** (`REL_WAARDE_NESTING`): een parameterwaarde binnen een tijdsaanduiding die een parameter
    verbijzondert, of een parameter- of variabelewaarde binnen een parameter of variabele. De binnenste ouder telt.
 3. **`operator_in` en `operand`** (`REL_OPERATOR_IN_NESTING`, `REL_OPERAND_WOORDVOLGORDE`): een operator in een
@@ -62,7 +64,7 @@ from .fusie import Fusie
 from .kandidaten import Candidate
 from .taal import LinguisticAnalysis
 
-VERSIE = "3"
+VERSIE = "4"
 
 REL_UITVOER_FUNCTIE = "REL_UITVOER_FUNCTIE"
 REL_INVOER_FUNCTIE = "REL_INVOER_FUNCTIE"
@@ -83,7 +85,10 @@ AR, VW, OP, RB, RF = "Afleidingsregel", "Voorwaarde", "Operator", "Rechtsbetrekk
 RS, RO = "Rechtssubject", "Rechtsobject"
 VAR, PAR, TIJD = "Variabele en variabelewaarde", "Parameter en parameterwaarde", "Tijdsaanduiding"
 #: De bewijscodes van de functiedetector die een uitkomst- en een invoerspan noemen (`detectoren/functies.py`).
-_FUNCTIE_SPANS = frozenset({"CALCULATION_QUANTITY"})
+_FUNCTIE_SPANS = frozenset({"CALCULATION_QUANTITY", "DATE_ASSIGNMENT"})
+#: Bewijs dat alleen een invoer noemt: de datumregel ('invorderbaar zes weken na de dagtekening van …'). De datum zelf
+#: heeft geen formulering, dus geen uitvoer; de invoer is wat binnen het tijdstip ligt, niet de duur eromheen.
+_ALLEEN_INVOER = frozenset({"DATE_ASSIGNMENT"})
 #: Klassen die een waarde dragen: daarmee rekent een regel (de invoer), een rechtsobject niet.
 WAARDEN = (VAR, PAR, TIJD)
 #: Operatoren met één operand: de ontkenning (M04 H2 *Operator*). Op de tekst van de markering, zonder hoofdletters.
@@ -162,7 +167,11 @@ def _past(type_: str, van: _El, naar: _El) -> bool:
 
 # --- 1. uitvoer en invoer uit de functiedetector -------------------------------------------------------------------
 
-def _functiespans(k: Candidate) -> list[tuple[dict, dict]]:
+def _span(x) -> bool:
+    return isinstance(x, dict) and isinstance(x.get("start"), int) and isinstance(x.get("eind"), int)
+
+
+def _functiespans(k: Candidate) -> list[tuple[dict | None, dict]]:
     uit = []
     for e in k.evidence:
         if e.code not in _FUNCTIE_SPANS:
@@ -172,8 +181,9 @@ def _functiespans(k: Candidate) -> list[tuple[dict, dict]]:
         except ValueError:
             continue
         u, i = d.get("uitkomst"), d.get("invoer")
-        if all(isinstance(x, dict) and isinstance(x.get("start"), int) and isinstance(x.get("eind"), int)
-               for x in (u, i)):
+        if e.code in _ALLEEN_INVOER and _span(i):
+            uit.append((None, i))
+        elif _span(u) and _span(i):
             uit.append((u, i))
     return uit
 
@@ -183,11 +193,16 @@ def _functie(els: list[_El]) -> list[dict[str, Any]]:
     for regel in (e for e in els if e.klasse == AR and e.kandidaat is not None):
         for u, i in _functiespans(regel.kandidaat):
             binnen = [x for x in els if regel.bevat(x)]
-            uitkomst = _minimaal([x for x in binnen if x.overlapt(u["start"], u["eind"])
-                                  and not x.overlapt(i["start"], i["eind"]) and _past("uitvoer", regel, x)])
-            if (x := _enige(uitkomst)) is not None:
-                uit.append(_voorstel("uitvoer", regel, x, REL_UITVOER_FUNCTIE, span=u.get("tekst", "")))
-            kandidaten = [x for x in binnen if x.overlapt(i["start"], i["eind"]) and not x.overlapt(u["start"], u["eind"])]
+            if u is None:
+                # Alleen invoer: wat binnen het tijdstip ligt, niet de duur die het omvat.
+                kandidaten = [x for x in binnen if i["start"] <= x.start and x.eind <= i["eind"]]
+            else:
+                uitkomst = _minimaal([x for x in binnen if x.overlapt(u["start"], u["eind"])
+                                      and not x.overlapt(i["start"], i["eind"]) and _past("uitvoer", regel, x)])
+                if (x := _enige(uitkomst)) is not None:
+                    uit.append(_voorstel("uitvoer", regel, x, REL_UITVOER_FUNCTIE, span=u.get("tekst", "")))
+                kandidaten = [x for x in binnen if x.overlapt(i["start"], i["eind"])
+                              and not x.overlapt(u["start"], u["eind"])]
             invoer, kenmerken = _invoer(kandidaten, regel)
             for volgorde, x in enumerate(sorted(invoer, key=lambda e: (e.start, e.eind)), start=1):
                 uit.append(_voorstel("invoer", x, regel, REL_INVOER_FUNCTIE, volgorde, span=i.get("tekst", "")))

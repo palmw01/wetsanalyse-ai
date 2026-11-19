@@ -13,9 +13,14 @@ Het patroon is dat van de begrippen (`begrip_store`), met dezelfde bouwstenen in
 - **De poort** (`poort`) staat bij elke GET: beoordeelde begrippen, een beoordeelde actuele grondslag en een beoordeeld
   voorbeeld per geval (besluit gebruiker 19 nov 2026). Wat open blijft maar niet blokkeert, staat in `signalen`.
 - **De hiërarchie wordt afgeleid**, niet opgeslagen: een regel volgt op een andere als zijn invoer de uitvoer daarvan is.
+- **De volledigheidstoets** (ADR-018 besluit 7.6): elke regel draagt `gaten`, met de code, plek en melding uit de skill
+  (`regelgaten.json`, gegenereerd in `jas_regelgaten`). Het skelet rekent `regelskelet.gaten`; hier de gaten van het
+  regelobject (`regel_gaten`, uit gegevens die `_gatgegevens` in één keer leest), en in de keten die van de regels samen.
+  Een gat is een signaal, geen poort.
 """
 from __future__ import annotations
 
+import re
 import uuid
 from contextlib import asynccontextmanager
 from typing import Any
@@ -28,6 +33,7 @@ from .begrip_store import Resolver
 from .regel_contracts import (
     DragerInvoer, DragersToevoegen, DragerWijziging, ParameterWaardeInvoer, RegelAanmaak, RegelWijziging,
 )
+from .jas_regelgaten import gat
 from .regeltekst import genoemde_begrippen, regeltekst
 from .werkgebied_store import _audit as werkgebied_audit, toets_revisie, werkgebied_rij
 
@@ -74,7 +80,8 @@ async def _begrippen(conn, werkgebied_id: str, ids: set[str]) -> dict[str, dict]
     b = db.begrippen
     rows = (await conn.execute(select(b.c.id, b.c.status, b.c.inhoud).where(
         b.c.id.in_(sorted(ids)), begrip_store.in_werkgebied(werkgebied_id)))).all()
-    return {r.id: {"id": r.id, "naam": (r.inhoud or {}).get("naam", ""), "status": r.status} for r in rows}
+    return {r.id: {"id": r.id, "naam": (r.inhoud or {}).get("naam", ""), "status": r.status,
+                   "definitie": (r.inhoud or {}).get("definitie", "")} for r in rows}
 
 
 #: De soorten open punt die een keuze vragen vóór de regel geaccordeerd wordt (ADR-018 besluit 2 en 7.13): een
@@ -136,7 +143,94 @@ def signalen(inhoud: dict, dragers: list[dict], open_punten: list[dict] | None =
     return uit
 
 
-def _regel(row, dragers: list[dict], begrippen: dict[str, dict], open_punten: list[dict] | None = None) -> dict:
+#: Een waarde in een definitie: een getal, een bedrag of een percentage (M04 H2 *Parameter*: de waarde is een eigen begrip).
+_WAARDE = re.compile(r"\d|€|%|\bprocent\b", re.IGNORECASE)
+#: Het regelbegrip heet "bepalen <uitvoer>" (M01 h.3 stap 3b; skill, *Eén regel per uitvoer*).
+_BEPALEN = re.compile(r"^\s*(?:het\s+)?bepalen\b", re.IGNORECASE)
+#: De rollen waarmee een begrip op een formulering rust (niet `afgeleid` en niet `context`).
+_OP_FORMULERING = ("duiding", "definitie")
+
+
+def regel_gaten(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], g: dict) -> list[dict]:
+    """De gaten van het regelobject (plek `regel` in de skill). `g` komt uit `_gatgegevens`: welke elementen een begrip
+    dragen, met welke rol de begrippen rusten, de parameterwaarden, de contextbronnen, de operatoren in de grondslag en
+    de uitvoeren van de andere regels. Alleen lezen; geen oordeel over de inhoud."""
+    uit: list[dict] = []
+    actief = [d for d in dragers if d["beoordeling"] != "afgewezen"]
+    if any(d["rol"] == "uitvoer" and d["element_id"] not in g["met_begrip"] for d in actief):
+        uit.append(gat("uitvoer_zonder_begrip"))
+    naam = begrippen.get(inhoud["regelbegrip_id"], {}).get("naam", "")
+    if naam and not _BEPALEN.match(naam):
+        uit.append(gat("regelbegrip_zonder_bepalen"))
+    for i in inhoud.get("invoer", []):
+        b = begrippen.get(i["begrip_id"], {})
+        if i.get("rol") == "parameter":
+            if not any(w.get("geldig_vanaf") for w in g["waarden"].get(i["begrip_id"], [])):
+                uit.append(gat("parameter_zonder_tijdvak", naam=b.get("naam") or i["begrip_id"]))
+            if _WAARDE.search(b.get("definitie") or ""):
+                uit.append(gat("parameterwaarde_in_definitie", naam=b.get("naam") or i["begrip_id"]))
+        elif (i["begrip_id"] not in g["uitvoeren"]
+              and not g["rollen"].get(i["begrip_id"], set()) & set(_OP_FORMULERING)):
+            uit.append(gat("impliciete_invoer", naam=b.get("naam") or i["begrip_id"]))
+    context = sorted({c for d in actief for c in g["context"]
+                      if (d.get("bewijs") or {}).get("eigenaar_iri", "").startswith(c)})
+    if context:
+        uit.append(gat("rust_op_contextbron", bron=", ".join(g["labels"].get(c, c) for c in context)))
+    grondslag = {d["element_id"] for d in actief if d["rol"] == "grondslag"}
+    for op in g["operatoren"]:
+        if op["binnen"] & grondslag and op["id"] not in g["met_begrip"]:
+            uit.append(gat("operator_zonder_begrip", tekst=op["tekst"]))
+    return uit
+
+
+def _binnen(ankers: list[dict], om: list[dict]) -> bool:
+    return any(a.get("bron_iri") == o.get("bron_iri") and o.get("start", 0) <= a.get("start", -1)
+               and a.get("eind", 0) <= o.get("eind", -1) for a in ankers for o in om)
+
+
+async def _gatgegevens(conn, werkgebied_id: str, rows, dragers: dict[str, list[dict]]) -> dict:
+    """Alles wat `regel_gaten` leest, in een paar queries voor alle regels samen."""
+    alle_dragers = [d for ds in dragers.values() for d in ds]
+    # De operatoren in de laag van een grondslag, binnen haar span (alleen de lagen die geraakt zijn: geïndexeerd).
+    grond = [d for d in alle_dragers if d["rol"] == "grondslag"]
+    lagen = {(d.get("bewijs") or {}).get("laag_id") for d in grond} - {None, ""}
+    operatoren = []
+    if lagen:
+        e = db.annotatie_v2_elementen
+        for r in (await conn.execute(select(e.c.id, e.c.inhoud).where(e.c.laag_id.in_(sorted(lagen))))).all():
+            el = r.inhoud or {}
+            if el.get("klasse") != "Operator" or el.get("lifecycle") in ("rejected", "vervangen"):
+                continue
+            binnen = {d["element_id"] for d in grond if _binnen(el.get("ankers") or [], (d.get("bewijs") or {}).get("ankers") or [])}
+            if binnen:
+                operatoren.append({"id": r.id, "tekst": el.get("tekst", ""), "binnen": binnen})
+    elementen = {d["element_id"] for d in alle_dragers} | {o["id"] for o in operatoren}
+    invoer = {i["begrip_id"] for r in rows for i in r.inhoud.get("invoer", [])}
+    k = db.begrip_koppelingen
+    koppel = (await conn.execute(select(k.c.element_id, k.c.begrip_id, k.c.rol).where(
+        k.c.werkgebied_id == werkgebied_id, k.c.verwijderd.is_(None),
+        (k.c.element_id.in_(sorted(elementen)) | k.c.begrip_id.in_(sorted(invoer)))))).all() if elementen or invoer else []
+    rollen: dict[str, set[str]] = {}
+    for x in koppel:
+        rollen.setdefault(x.begrip_id, set()).add(x.rol)
+    w = db.parameter_waarden
+    waarden: dict[str, list[dict]] = {}
+    for x in (await conn.execute(select(w.c.parameter_begrip_id, w.c.geldig_vanaf).where(
+            w.c.werkgebied_id == werkgebied_id, w.c.verwijderd.is_(None)))).all():
+        waarden.setdefault(x.parameter_begrip_id, []).append({"geldig_vanaf": x.geldig_vanaf})
+    s = db.werkgebied_bronselecties
+    ctx = (await conn.execute(select(s.c.bron_iri, s.c.label).where(
+        s.c.werkgebied_id == werkgebied_id, s.c.rol == "context"))).all()
+    r = db.regels
+    uitvoeren = {x.inhoud["uitvoer_begrip_id"] for x in (await conn.execute(select(r.c.inhoud, r.c.status).where(
+        r.c.werkgebied_id == werkgebied_id))).all() if x.status not in ("vervangen", "afgewezen")}
+    return {"met_begrip": {x.element_id for x in koppel}, "rollen": rollen, "waarden": waarden,
+            "context": [c.bron_iri for c in ctx], "labels": {c.bron_iri: c.label or c.bron_iri for c in ctx},
+            "operatoren": operatoren, "uitvoeren": uitvoeren}
+
+
+def _regel(row, dragers: list[dict], begrippen: dict[str, dict], open_punten: list[dict] | None = None,
+           gaten: list[dict] | None = None) -> dict:
     namen = {i: b["naam"] for i, b in begrippen.items()}
     inhoud = row.inhoud
     return {"id": row.id, "werkgebied_id": row.werkgebied_id, "status": row.status, "revisie": row.revisie,
@@ -145,7 +239,7 @@ def _regel(row, dragers: list[dict], begrippen: dict[str, dict], open_punten: li
             "regeltekst": regeltekst(inhoud, namen),
             "begrippen": {i: begrippen[i] for i in genoemde_begrippen(inhoud) if i in begrippen},
             "dragers": dragers, "accorderen": poort(inhoud, dragers, begrippen, open_punten),
-            "signalen": signalen(inhoud, dragers, open_punten),
+            "signalen": signalen(inhoud, dragers, open_punten), "gaten": gaten or [],
             "open_punten": {"open": sum(p["status"] == "open" for p in open_punten or []), "totaal": len(open_punten or [])},
             "aangemaakt_door": row.aangemaakt_door, "aangemaakt": _iso(row.aangemaakt), "gewijzigd": _iso(row.gewijzigd),
             "geaccordeerd_door": row.geaccordeerd_door, "geaccordeerd_op": _iso(row.geaccordeerd_op),
@@ -174,7 +268,9 @@ async def _lees(conn, werkgebied_id: str, rows) -> list[dict]:
     ids = {i for r in rows for i in genoemde_begrippen(r.inhoud)}
     begrippen = await _begrippen(conn, werkgebied_id, ids)
     punten = await _open_punten_van(conn, werkgebied_id, [r.id for r in rows])
-    return [_regel(r, dragers.get(r.id, []), begrippen, punten.get(r.id, [])) for r in rows]
+    g = await _gatgegevens(conn, werkgebied_id, rows, dragers)
+    return [_regel(r, dragers.get(r.id, []), begrippen, punten.get(r.id, []),
+                   regel_gaten(r.inhoud, dragers.get(r.id, []), begrippen, g)) for r in rows]
 
 
 def _niet_gevonden() -> HTTPException:
@@ -257,8 +353,20 @@ def keten(regels: list[dict]) -> dict:
                 basis.setdefault(i["begrip_id"], x["begrippen"].get(i["begrip_id"], {}).get("naam", ""))
     for uitvoer, ids in door.items():
         if len(ids) > 1:
-            sig.append({"soort": "zelfde_uitvoer", "regel_ids": ids, "begrip_id": uitvoer,
-                        "melding": "Meer regels leiden hetzelfde begrip af: hun gevallen moeten elkaar uitsluiten."})
+            g = gat("zelfde_uitvoer")
+            sig.append({"soort": "zelfde_uitvoer", "code": g["code"], "regel_ids": ids, "begrip_id": uitvoer,
+                        "melding": g["tekst"]})
+    # L-3a-1: één regelbegrip voor regels met verschillende uitvoeren. Het omgekeerde (twee regelbegrippen voor één
+    # uitvoer) is `zelfde_uitvoer` hierboven: dan zijn het twee regels.
+    per_begrip: dict[str, set[str]] = {}
+    for x in actief:
+        per_begrip.setdefault(x["inhoud"]["regelbegrip_id"], set()).add(x["inhoud"]["uitvoer_begrip_id"])
+    for begrip, uitvoeren in per_begrip.items():
+        if len(uitvoeren) > 1:
+            g = gat("regelbegrip_meer_uitvoeren")
+            sig.append({"soort": "regelbegrip_meer_uitvoeren", "code": g["code"], "begrip_id": begrip,
+                        "regel_ids": [x["id"] for x in actief if x["inhoud"]["regelbegrip_id"] == begrip],
+                        "melding": g["tekst"]})
     # Van onder naar boven: een regel komt na alles waar hij op volgt (Kahn); wat overblijft zit in een kring.
     na = {x["id"]: {p["van"] for p in pijlen if p["naar"] == x["id"] and p["van"] != x["id"]} for x in actief}
     volgorde: list[str] = []
