@@ -299,7 +299,7 @@ const TOOLS = [
     {
         name: "logboek_aanvullen",
         description: "Voeg één regel toe aan het gedeelde logboek van een run. Bestaande regels veranderen niet. Noteer beslissingen, " +
-            "id's, overleg, bevindingen en omwegen, kort; geen tokens. Bij soort `onenigheid` is `argumenten` verplicht.",
+            "id's, overleg, bevindingen en omwegen, kort; geen tokens. Bij soort `onenigheid` is `argumenten` verplicht: het argument van elke kant, minstens twee rollen.",
         input: S({
             run: z.string(),
             rol: z.enum(ROLLEN),
@@ -307,7 +307,11 @@ const TOOLS = [
             stap: z.number().int().min(0).max(9).optional(),
             tekst: z.string().min(1).max(4000),
             ids: z.array(z.string()).max(50).optional(),
-            argumenten: S({ jurist: z.string(), gegevensspecialist: z.string() }).optional(),
+            argumenten: S({
+                jurist: z.string().optional(),
+                gegevensspecialist: z.string().optional(),
+                regelspecialist: z.string().optional(),
+            }).optional(),
         }),
         run: (a) => aanvullen(LOGBOEK_MAP, a),
     },

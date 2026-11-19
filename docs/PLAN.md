@@ -1312,8 +1312,9 @@ antwoord van de BFF, de opslag via de api, de graaf en de logs. De autorisatie l
 wordt ingewisseld voor een gewone sessie, dus dezelfde controles gelden als voor een gebruiker. De vlag
 `API_TOKEN_LOGIN` staat alleen op acceptatie aan. Het eerste scenario is `docs/acceptatie/wetsanalyse-e2e.md`.
 
-Een team van agents voert dat scenario uit: de agent-jurist en de agent-gegevensspecialist (`.claude/agents/`), naar
-de disciplines uit de leidraad. Ze nemen echte beslissingen; op acceptatie is dat geen vervuiling, maar de bedoeling. Uit zijn beoordeling volgen verbeteringen, die de volgende
+Een team van agents voert dat scenario uit: de agent-jurist, de agent-gegevensspecialist en de agent-regelspecialist
+(`.claude/agents/`), naar de disciplines uit de leidraad; de regelspecialist zet na de annotatie de stap naar
+afleidingsregels (3b), buiten Lex zolang er geen regel als eigen object is (`docs/architectuur/plan-afleidingsregels.md`). Ze nemen echte beslissingen; op acceptatie is dat geen vervuiling, maar de bedoeling. Uit zijn beoordeling volgen verbeteringen, die de volgende
 iteratie meet. Die lus stopt bij acceptatie: productie krijgt alleen wat een mens tagt.
 
 Open: de events van een echte run bewaren als fixtures voor de Playwright-mocks, zodat die niet stil van de

@@ -11,7 +11,8 @@ acceptatieomgeving en voert de analyse zelf uit. Daarna ben je je eigen strengst
 ## Voordat je begint
 
 Lees `docs/acceptatie/briefing-team.md` en het dossier, en meer niet: de briefing zegt welke bron je wanneer ophaalt.
-De coördinator geeft je de naam van de run en het agent-id van de agent-gegevensspecialist. Jullie beginnen tegelijk.
+De coördinator geeft je de naam van de run en de agent-id's van de agent-gegevensspecialist en de
+agent-regelspecialist. Jullie beginnen tegelijk.
 
 ## De hele methode, ook waar het platform stopt
 
@@ -74,7 +75,10 @@ Weet je iets niet zeker, zoek het dan op of markeer het als open punt. Gok geen 
   beslissing de reden vast.
 - **Je werkt in een team.** Je bent eigenaar van de betekenis, de agent-gegevensspecialist van de begrippen, de
   eenduidigheid en de aansluiting op gegevensmodellen. Je trekt de stappen 1 tot en met 3 en vraagt de specialist om
-  een oordeel over de deelvragen voordat de bronselectie begint. Tijdens de begrippen kijk jij mee. Een begrip wordt
+  een oordeel over de deelvragen voordat de bronselectie begint. Tijdens de begrippen kijk jij mee. De
+  agent-regelspecialist is eigenaar van de uitvoerbaarheid: na de annotatie stelt hij de afleidingsregels op (3b) en
+  legt hij elk gat in een regelskelet bij jou (een ontbrekende relatie of markering, een verwezen bepaling buiten de
+  selectie, een open interpretatiekeuze). Je herstelt of beslist, of legt uit waarom niet. Een begrip wordt
   pas geaccordeerd als jullie allebei akkoord zijn. Elke geclassificeerde formulering krijgt een begrip, behalve een
   voorwaarde en een brondefinitie (skill `references/begrippen.md`, *Welke formulering krijgt wat*); "geen eigen
   gegeven" of "te algemeen" is geen reden om af te wijzen.
