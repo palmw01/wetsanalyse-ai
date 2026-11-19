@@ -1,7 +1,7 @@
 # Briefing voor het team
 
-De ene ingang voor de agent-jurist en de agent-gegevensspecialist. Lees bij de start alleen dit en het dossier;
-de rest haal je op als een stap erom vraagt (zie *Bronnen op aanvraag*). De vorige run las per agent meer dan
+De ene ingang voor de agent-jurist, de agent-gegevensspecialist en de agent-regelspecialist. Lees bij de start alleen
+dit en het dossier; de rest haal je op als een stap erom vraagt (zie *Bronnen op aanvraag*). De vorige run las per agent meer dan
 600.000 tokens context in, en het meeste daarvan is nooit gebruikt.
 
 ## De opdracht in het kort
@@ -10,8 +10,35 @@ Jullie voeren samen op acceptatie een wetsanalyse uit met Lex, nemen de beslissi
 resultaat en de werkplek. De stappen, wie trekt en waar jullie moeten overleggen staan in
 `docs/acceptatie/wetsanalyse-e2e.md`: lees daar de tabel *Wie doet wat* en de stap die aan de beurt is.
 
-Lex dekt activiteit 1, activiteit 2 en het begin van activiteit 3. De methode vraagt meer: valideren en
-uitvoeringsbeleid signaleren doe je zelf in je rapport. Dat de werkplek daar niets voor heeft, is een bevinding.
+Lex dekt activiteit 1, activiteit 2 en het begin van activiteit 3. De methode vraagt meer: afleidingsregels opstellen
+(deelactiviteit 3b), valideren en uitvoeringsbeleid signaleren doen jullie zelf in het rapport. Dat de werkplek daar
+niets voor heeft, is een bevinding.
+
+## Wie is wie
+
+- **De agent-jurist** is eigenaar van de betekenis: het werkgebied, de bronselectie, de markeringen en de relaties
+  ertussen. Hij trekt stap 1 tot en met 3.
+- **De agent-gegevensspecialist** is eigenaar van de eenduidigheid en de aansluiting op gegevensmodellen. Hij trekt
+  de begrippen (stap 4).
+- **De agent-regelspecialist** is eigenaar van de uitvoerbaarheid. Hij zet na de annotatie de stap naar
+  afleidingsregels (3b): per regel een regelskelet, de toets of de relaties volledig genoeg zijn om de regel uit te
+  voeren, de regel in gestructureerde natuurlijke taal of als beslistabel, en voorbeeldreeksen die hem doorrekenen.
+  Een gat in het skelet legt hij bij de jurist, een ontbrekend begrip bij de gegevensspecialist. RegelSpraak hoort
+  niet bij het platform en ook niet bij deze test.
+
+Voor de afleidingsregels volgen jullie alle drie de skill (werkstroom F, `references/afleidingsregels.md`). De regels
+waar het team het vaakst over valt, kort (bij verschil gaat de reference voor):
+- **Geen begrip zonder grondslag.** Elk begrip rust op een passage; de api weigert een begrip zonder. Een
+  tussenresultaat zonder eigen formulering krijgt wél een begrip, op de markering van de afleidingsregel die het
+  afleidt, met de koppelrol `afgeleid`.
+- **Eén regel per uitvoer.** Verschilt de afleiding per geval, dan is het één beslistabel met rijen die elkaar
+  uitsluiten. Een formulering die twee waarden oplevert, draagt twee regels en twee markeringen als Afleidingsregel.
+- **Waarop een regel rust.** Een beslisregel over een recht rust op de Rechtsbetrekking en hoeft niet als
+  Afleidingsregel gemarkeerd te zijn. Op een contextbron rust geen regel.
+- **Operatoren en tijd.** Een operatorbegrip ontstaat bij een gemarkeerde formulering en wordt daarna generiek
+  hergebruikt; er zijn geen operatorbegrippen vooraf. "Zes weken na" is een Tijdsaanduiding, geen operator.
+- **Parameters.** De regel gebruikt de parameter; de parameterwaarde is een eigen begrip in haar tijdvak en staat niet
+  in de definitie van de parameter.
 
 ## Alleen de methode wetsanalyse
 
@@ -60,22 +87,22 @@ Wat er sinds de vorige run veranderde, en wat je in de werkplek tegenkomt:
 
 ## Samenwerken
 
-- **Tegelijk, niet na elkaar.** Jullie werken vanaf stap 1 samen. Praat rechtstreeks met `SendMessage`, met het
-  agent-id dat de coördinator je geeft. Heb je niets te doen tot de ander reageert, stuur dan je vraag en beëindig je
-  beurt: het antwoord wekt je weer. Vraag niet via de coördinator wat je aan elkaar kunt vragen.
+- **Tegelijk, niet na elkaar.** Jullie werken vanaf stap 1 samen; de regelspecialist leest tot de annotatie mee.
+  Praat rechtstreeks met `SendMessage`, met de agent-id's die de coördinator je geeft. Heb je niets te doen tot de
+  ander reageert, stuur dan je vraag en beëindig je beurt: het antwoord wekt je weer. Vraag niet via de coördinator wat je aan elkaar kunt vragen.
 - **Het logboek is het gedeelde geheugen.** Alles wat de ander moet kunnen terugvinden gaat met `logboek_aanvullen`
   in het logboek: beslissingen met reden, id's (`run_id`, `trace_id`, werkgebied, element, begrip), overleg,
   bevindingen en omwegen. Lees bij het begin van een stap met `logboek_lezen`, en geef de teruggekregen `vanaf`
   mee om alleen het nieuwe te lezen. Een bericht verdwijnt; het logboek blijft. Het kan alleen aanvullen: een
   vergissing herstel je met een nieuwe regel.
 - **Oneens is geen probleem.** De jurist is eigenaar van de betekenis, de gegevensspecialist van de eenduidigheid en
-  de aansluiting. Geef niet toe om sneller klaar te zijn: leg het vast met soort `onenigheid`, dat beide argumenten
-  vraagt. Lukt het niet, dan beslist de eigenaar en blijft de onenigheid staan voor het rapport.
+  de aansluiting, de regelspecialist van de uitvoerbaarheid. Geef niet toe om sneller klaar te zijn: leg het vast met
+  soort `onenigheid`, dat het argument van elke kant vraagt (`argumenten`, per rol, minstens twee). Lukt het niet, dan beslist de eigenaar en blijft de onenigheid staan voor het rapport.
 - **Elk een eigen gesprek.** Een run hoort bij een gesprek en een 409 betekent dat er nog een loopt. Wie een stap trekt
   gebruikt het gesprek van die stap; de ander opent een eigen gesprek voor eigen vragen. De stand van de bronselectie
   staat bij de api, dus dat breekt niets.
-- **Jullie delen misschien een account.** Begin daarom de reden van elke beslissing met `[jurist]` of
-  `[gegevensspecialist]`, zodat de audit laat zien wie wat besloot.
+- **Jullie delen misschien een account.** Begin daarom de reden van elke beslissing met `[jurist]`,
+  `[gegevensspecialist]` of `[regelspecialist]`, zodat de audit laat zien wie wat besloot.
 
 ## Lex bedienen
 
@@ -160,6 +187,7 @@ Haal op wat de stap nodig heeft, niet alles vooraf. Laad de skill `wetsanalyse` 
 | twijfelen aan een klasse | `docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md`, `H3-Kader.md` |
 | begrippen uitwerken | `references/begrippen.md`, `references/nl-sbb-en-b1.md`, `docs/architectuur/adr-003-nl-sbb-begrippencontract.md` |
 | betekenisgroepen of generieke begrippen beoordelen | `docs/architectuur/adr-004-begrippenketen.md`, `adr-006-generieke-begrippen.md` |
+| afleidingsregels opstellen en doorrekenen | `references/afleidingsregels.md`, `references/relaties.md` (*Het regelskelet*), `references/jas-klassen-referentie.md` §6–§9, `references/analyseprotocol.md` §5, `docs/architectuur/plan-afleidingsregels.md` (§2 de methode, §4 de proef Termijnen; waar die van de skill verschilt, gaat de skill voor) |
 | de kwaliteit beoordelen en rapporteren | `references/kwaliteit.md` |
 | de methode zelf nazoeken | `docs/wetsanalyse/methode-onderzoek.md`; lokaal ook `wetsanalyse-boek.md`, `handleiding.pages.md`, `leidraad.pages.md` |
 | weten wat Lex kan | `tools/graph-qa/CLAUDE.md`, en `ACTIE_TAAK` in `tools/graph-qa/agent/models.py` voor de vaste acties |
