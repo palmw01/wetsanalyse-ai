@@ -71,6 +71,7 @@ async def test_gearchiveerd_en_verwijderd_bestaan_hier_niet(client):
     weg = await _begrip(client, andere, naam="Termijn")
     r = await client.delete(_url(andere, weg), params={"verwachte_revisie": weg["revisie"]})
     assert r.status_code == 200, r.text
+    wg = (await client.get(f"/v1/werkgebieden/{wg['id']}")).json()      # de helper nam een bron op voor de passage
     r = await client.delete(f"/v1/werkgebieden/{wg['id']}", params={"verwachte_revisie": wg["revisie"]})
     assert r.status_code == 200, r.text
     assert (await _zoek(client))["resultaten"] == []

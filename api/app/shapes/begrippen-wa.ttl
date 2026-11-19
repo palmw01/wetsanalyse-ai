@@ -38,12 +38,12 @@ wav:BegripShape a sh:NodeShape ;
     sh:message "Een begrip met een dragende passage heeft geen bron (dct:source)." ;
     sh:select """SELECT $this WHERE { $this <urn:wa-ns:koppeling> ?k .
                  ?k <urn:wa-ns:rol> ?rol ; <urn:wa-ns:beoordeling> ?b ; <urn:wa-ns:bron> ?bron .
-                 FILTER(?rol IN ("duiding", "definitie") && ?b != "afgewezen")
+                 FILTER(?rol IN ("duiding", "definitie", "afgeleid") && ?b != "afgewezen")
                  FILTER NOT EXISTS { $this <http://purl.org/dc/terms/source> ?doc } }""" ] .
 
 wav:KoppelingShape a sh:NodeShape ;
   sh:targetClass wa:Koppeling ;
-  sh:property [ sh:path wa:rol ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "duiding" "definitie" "context" ) ] ;
+  sh:property [ sh:path wa:rol ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "duiding" "afgeleid" "definitie" "context" ) ] ;
   sh:property [ sh:path wa:beoordeling ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "open" "akkoord" "afgewezen" ) ] ;
   sh:property [ sh:path wa:element ; sh:nodeKind sh:IRI ; sh:minCount 1 ; sh:maxCount 1 ; sh:pattern "^urn:jas:element:" ;
                 sh:message "Een koppeling wijst naar precies één annotatie-element." ] ;

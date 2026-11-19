@@ -283,8 +283,18 @@ async def verwijder(werkgebied_id: str, verwacht: int, actor: str) -> dict:
 
 async def wis(conn, werkgebied_id: str) -> None:
     """Alles van één werkgebied uit de database, behalve de audit. Twee tabellen dragen geen
-    `werkgebied_id` en gaan via hun ouder: de begriprevisies en de koppelingen van de deelvragen."""
+    `werkgebied_id` en gaan via hun ouder: de begriprevisies en de koppelingen van de deelvragen.
+
+    Een generiek begrip blijft staan, behalve als dit werkgebied zijn laatste passages droeg: een begrip rust altijd
+    op een annotatie, dus dan gaat het mee (de audit blijft)."""
+    from . import begrip_store
+
     t = db.metadata.tables
+    k = db.begrip_koppelingen
+    generiek = (await conn.execute(select(k.c.begrip_id).distinct().join_from(
+        k, db.begrippen, k.c.begrip_id == db.begrippen.c.id).where(
+        k.c.werkgebied_id == werkgebied_id, k.c.verwijderd.is_(None), db.begrippen.c.werkgebied_id.is_(None),
+        db.begrippen.c.status != "vervangen"))).scalars().all()
     begrippen = (await conn.execute(select(db.begrippen.c.id).where(db.begrippen.c.werkgebied_id == werkgebied_id))).scalars().all()
     deelvragen = (await conn.execute(select(db.werkgebied_deelvragen.c.id)
                                      .where(db.werkgebied_deelvragen.c.werkgebied_id == werkgebied_id))).scalars().all()
@@ -299,6 +309,8 @@ async def wis(conn, werkgebied_id: str) -> None:
     await conn.execute(update(db.gesprekken).where(db.gesprekken.c.werkgebied_id == werkgebied_id)
                        .values(werkgebied_id="", ouder_id="", delegatie_id=""))
     await conn.execute(delete(db.werkgebieden).where(db.werkgebieden.c.id == werkgebied_id))
+    if wees := [bid for bid in generiek if not await begrip_store.aantal_passages(conn, bid)]:
+        await begrip_store.wis_begrippen(conn, wees)
 
 
 async def voeg_bron_toe(werkgebied_id: str, invoer: BronselectieInvoer, bron: dict, actor: str,

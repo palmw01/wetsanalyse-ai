@@ -49,8 +49,16 @@ async def _werkgebied(client) -> dict:
 
 
 async def _begrip(client, wg, element_ids=(), rol="duiding", naam="Belastingschuldige") -> dict:
+    """Een begrip in `wg`. Een begrip rust altijd op een annotatie (422 `geen_passage`); zonder `element_ids` krijgt het
+    daarom de AWR-passage als context, die geen primaire duiding bezet en de poort niets geeft."""
+    if not element_ids:
+        element_ids, rol = [(await _annoteer())["awr"]], "context"
     r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen",
                           json={"inhoud": {"naam": naam}, "element_ids": list(element_ids), "rol": rol})
+    if r.status_code == 422 and "element_buiten_werkgebied" in r.text:
+        await _bron(client, (await client.get(f"/v1/werkgebieden/{wg['id']}")).json(), bron_iri=ART2)
+        r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen",
+                              json={"inhoud": {"naam": naam}, "element_ids": list(element_ids), "rol": rol})
     assert r.status_code == 201, r.text
     return r.json()
 
@@ -163,7 +171,7 @@ async def test_een_element_duidt_hooguit_een_begrip_aan(client):
     assert r.status_code == 200
     b = r.json()
     # En die definitie-koppeling ombuigen naar duiding mag niet zolang A haar draagt.
-    k = b["koppelingen"][0]
+    k = next(x for x in b["koppelingen"] if x["element_id"] == ids["lid1"])
     r = await client.patch(_url(wg, b, "koppelingen", k["id"]), json={"verwachte_revisie": b["revisie"], "rol": "duiding"})
     assert r.status_code == 409
     # A weg: de duiding is vrij.
@@ -294,7 +302,8 @@ async def test_een_revisieconflict_draagt_een_leesbare_melding(client):
 async def test_het_model_is_slank_en_de_herkomst_rekent_de_api(client):
     """Spoor I1: JAS-duiding, begripstype, onderbouwing e.d. vallen weg; de herkomst kiest niemand."""
     wg = await _werkgebied(client)
-    r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen", json={"inhoud": {
+    awr = (await _annoteer())["awr"]
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen", json={"element_ids": [awr], "rol": "context", "inhoud": {
         "naam": "X", "jas_klasse": "Variabele en variabelewaarde", "begripstype": "actor", "onderbouwing": "o",
         "open_vragen": ["v?"], "eigenschappen": {"a": "b"}, "geldigheid": "g",
         "definitie": "Iets.", "definitie_herkomst": "letterlijk",
@@ -378,3 +387,68 @@ async def test_wijzigen_met_akkoord_houdt_een_geaccordeerd_begrip_geaccordeerd(c
     zonder = await client.patch(_url(wg, r.json()) + "?vorm=kort",
                                 json={"verwachte_revisie": r.json()["revisie"], "inhoud": {**inhoud, "uitleg": "Anders."}})
     assert zonder.json()["status"] == "concept"
+
+
+# --- geen begrip zonder annotatie (harde regel, 19 nov 2026) --------------------------------------
+
+async def test_een_begrip_zonder_passage_bestaat_niet(client):
+    wg = await _werkgebied(client)
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen", json={"inhoud": {"naam": "Termijnregime"}})
+    assert r.status_code == 422
+    assert r.json()["detail"]["fout"] == "geen_passage" and "minstens één" in r.json()["detail"]["melding"]
+    assert (await client.get(f"/v1/werkgebieden/{wg['id']}/begrippen")).json()["begrippen"] == []
+
+
+async def test_de_laatste_passage_gaat_er_niet_af(client):
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    b = await _begrip(client, wg, [ids["lid1"], ids["lid2"]])
+    eerste, tweede = b["koppelingen"]
+    r = await client.delete(_url(wg, b, "koppelingen", eerste["id"]), params={"verwachte_revisie": b["revisie"]})
+    assert r.status_code == 200, r.text
+    b = (await client.get(_url(wg, b))).json()
+    r = await client.delete(_url(wg, b, "koppelingen", tweede["id"]), params={"verwachte_revisie": b["revisie"]})
+    assert r.status_code == 409 and r.json()["detail"]["fout"] == "laatste_passage"
+    na = (await client.get(_url(wg, b))).json()
+    assert [k["id"] for k in na["koppelingen"]] == [tweede["id"]] and na["revisie"] == b["revisie"]
+    # Wie het begrip niet meer nodig heeft, verwijdert het.
+    r = await client.delete(_url(wg, b), params={"verwachte_revisie": b["revisie"]})
+    assert r.status_code == 200, r.text
+
+
+async def _afleidingsregel() -> str:
+    """Een element van de klasse Afleidingsregel in lid 1 van artikel 9."""
+    snap = snapshot()
+    regel = {**element(snap, ONE), "klasse": "Afleidingsregel"}
+    uit = await store.batch(request(snap, [regel], batch_id="regel"), snap, "lex")
+    return uit["elementen"][0]["id"]
+
+
+async def test_een_tussenresultaat_rust_op_de_afleidingsregel_die_het_afleidt(client):
+    """De methode geeft een tussenresultaat zonder eigen formulering een begrip (M01 §2.2.2, h.6). De grondslag is de
+    markering van de afleidingsregel: rol `afgeleid`, die dragend is en voor de poort als aanduidend telt."""
+    regel = await _afleidingsregel()
+    wg = await _werkgebied(client)
+    b = await _begrip(client, wg, [regel], rol="afgeleid", naam="Termijnregime")
+    assert [k["rol"] for k in b["koppelingen"]] == ["afgeleid"]
+    b = (await client.patch(_url(wg, b), json={"verwachte_revisie": b["revisie"],
+                                               "inhoud": {"naam": "Termijnregime", **DEFINITIE}})).json()
+    await _beslis(regel, "approve", snapshot())
+    b = (await client.patch(_url(wg, b, "koppelingen", b["koppelingen"][0]["id"]),
+                            json={"verwachte_revisie": b["revisie"], "beoordeling": "akkoord"})).json()
+    assert b["accorderen"] == {"mag": True, "redenen": []}
+    # Dezelfde afleidingsregel kan daarnaast het regelbegrip ("bepalen …") aanduiden: een andere rol, geen botsing.
+    await _begrip(client, wg, [regel], rol="duiding", naam="bepalen termijnregime")
+
+
+async def test_afgeleid_alleen_op_een_afleidingsregel(client):
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    r = await client.post(f"/v1/werkgebieden/{wg['id']}/begrippen",
+                          json={"inhoud": {"naam": "Termijnregime"}, "element_ids": [ids["lid1"]], "rol": "afgeleid"})
+    assert r.status_code == 422 and r.json()["detail"]["fout"] == "geen_afleidingsregel"
+    # Ook een rol ombuigen naar `afgeleid` toetst de klasse.
+    b = await _begrip(client, wg, [ids["lid1"]])
+    r = await client.patch(_url(wg, b, "koppelingen", b["koppelingen"][0]["id"]),
+                           json={"verwachte_revisie": b["revisie"], "rol": "afgeleid"})
+    assert r.status_code == 422 and r.json()["detail"]["fout"] == "geen_afleidingsregel"
