@@ -50,7 +50,7 @@ class Artefact(BaseModel):
     gebruik (gereserveerd)."""
 
     soort: Literal["annotatie", "begrippen", "bronnen", "werkgebied", "deelvraag", "begrip", "bronselectie", "regie",
-                   "regels"]
+                   "regels", "regel"]
     ref: dict
     titel: str = Field(default="", max_length=300)
 
@@ -60,7 +60,8 @@ class Artefact(BaseModel):
                  "bronnen": ("werkgebied_id", "run_id"), "werkgebied": ("werkgebied_id",),
                  "deelvraag": ("werkgebied_id", "deelvraag_id"), "begrip": ("werkgebied_id", "begrip_id"),
                  "bronselectie": ("werkgebied_id",), "regie": ("werkgebied_id", "regie_id"),
-                 "regels": ()}[self.soort]
+                 # Afleidingsregels (ADR-018): de keten van een werkgebied, of één regel.
+                 "regels": ("werkgebied_id",), "regel": ("werkgebied_id", "regel_id")}[self.soort]
         if self.soort == "begrippen" and self.ref.get("begrip_id"):
             nodig = ("werkgebied_id", "begrip_id")
         ontbreekt = [k for k in nodig if not isinstance(self.ref.get(k), str) or not self.ref.get(k)]

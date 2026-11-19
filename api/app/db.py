@@ -638,6 +638,65 @@ begrip_voorstellen = Table("begrip_voorstellen", metadata,
     Column("begrip_revisie", Integer, nullable=True),     # de revisie die het overnemen opleverde
     Column("gemaakt", _DT, nullable=False))
 
+# --- Afleidingsregels (activiteit 3b, ADR-018) --------------------------------
+# Een regel hoort bij één werkgebied en volgt het patroon van een begrip: de inhoud als JSON (soort, regelbegrip,
+# uitvoer, invoer, gevallen, voorbeelden), een volledige kopie per revisie in `regel_revisies`, en dragers met hun
+# bewijsstand zoals `begrip_koppelingen`: zonder foreign key naar het element, want elementen worden hard verwijderd.
+regels = Table("regels", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("status", String(32), nullable=False, default="concept"),
+    Column("revisie", Integer, nullable=False, default=1),
+    Column("inhoud", _JSON, nullable=False),
+    Column("herkomst", String(16), nullable=False, default="jurist"),      # lex | jurist | import
+    Column("opvolger_van", String(64), nullable=True),
+    Column("aangemaakt_door", String(64), nullable=False),
+    Column("aangemaakt", _DT, nullable=False),
+    Column("gewijzigd", _DT, nullable=False),
+    Column("geaccordeerd_door", String(64), nullable=True),
+    Column("geaccordeerd_op", _DT, nullable=True),
+    Column("geaccordeerd_revisie", Integer, nullable=True))
+regel_revisies = Table("regel_revisies", metadata,
+    Column("regel_id", String(64), primary_key=True),
+    Column("revisie", Integer, primary_key=True),
+    Column("actie", String(40), nullable=False),
+    Column("detail", _JSON, nullable=False),
+    Column("status", String(32), nullable=False),
+    Column("inhoud", _JSON, nullable=False),
+    Column("actor", String(64), nullable=False),
+    Column("tijdstip", _DT, nullable=False))
+regel_dragers = Table("regel_dragers", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("regel_id", String(64), nullable=False, index=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("element_id", String(64), nullable=False, index=True),
+    Column("rol", String(16), nullable=False),                  # grondslag | voorwaarde | invoer | uitvoer | tijd | context
+    Column("geval", String(80), nullable=False, default=""),     # het label van het geval; leeg = de hele regel
+    Column("bewijs", _JSON, nullable=False),
+    Column("beoordeling", String(16), nullable=False, default="open"),
+    Column("beoordeeld_door", String(64), nullable=True),
+    Column("beoordeeld_op", _DT, nullable=True),
+    Column("toegevoegd_door", String(64), nullable=False),
+    Column("toegevoegd", _DT, nullable=False),
+    Column("verwijderd", _DT, nullable=True))
+# De waarde van een parameter in een tijdvak (ADR-018 §4): een eigen begrip (`waarde_begrip_id`) bij het
+# parameterbegrip. De regel noemt de parameter, nooit de waarde. De kolommen heten bewust niet `begrip_id`: het zijn
+# verwijzingen, geen begripsgegevens, en ze verdwijnen met het werkgebied.
+parameter_waarden = Table("parameter_waarden", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("parameter_begrip_id", String(64), nullable=False, index=True),
+    Column("waarde_begrip_id", String(64), nullable=True),
+    Column("waarde", String(200), nullable=False),
+    Column("eenheid", String(40), nullable=False, default=""),
+    Column("geldig_vanaf", String(10), nullable=True),          # JJJJ-MM-DD; leeg = onbekend
+    Column("geldig_tot", String(10), nullable=True),
+    Column("element_id", String(64), nullable=True),
+    Column("getoetst", Text, nullable=False, default=""),         # welke toestand is gelezen, of "niet getoetst"
+    Column("door", String(64), nullable=False),
+    Column("op", _DT, nullable=False),
+    Column("verwijderd", _DT, nullable=True))
+
 # --- Tokenbudget --------------------------------------------------------------
 # Verbruik is een JOURNAAL, geen teller. Eén rij per LLM-call; de stand van nu is een som over het
 # huidige venster. Dat heeft drie eigenschappen die een teller niet heeft:
