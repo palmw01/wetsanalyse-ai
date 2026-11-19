@@ -30,11 +30,11 @@ async def get_lijst(werkgebied_id: str, actor: str = Depends(actieve_userid)):
 
 #: `?vorm=stand` (B-1): een wijziging geeft alleen de stand en de inhoud terug (`begrip_store.begripstand`). De standaard
 #: blijft de kaart: de werkplek leest die.
-Vorm = Literal["kaart", "stand"]
+Vorm = Literal["kaart", "stand", "kort"]
 
 
 def _in_vorm(begrip: dict, vorm: str) -> dict:
-    return store.begripstand(begrip) if vorm == "stand" else begrip
+    return {"stand": store.begripstand, "kort": store.begripkort}.get(vorm, lambda b: b)(begrip)
 
 
 @router.post("", status_code=201)

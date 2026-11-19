@@ -89,6 +89,10 @@ class BegripInvoer(BaseModel):
 class BegripWijziging(BaseModel):
     verwachte_revisie: int = Field(ge=1)
     inhoud: BegripInhoud
+    #: De jurist is akkoord met de nieuwe inhoud: een geaccordeerd begrip wordt in dezelfde transactie opnieuw
+    #: geaccordeerd als de poort het toelaat (zoals `KoppelInvoer.akkoord`). Eén aanroep in plaats van twee.
+    akkoord: bool = False
+    reden: str = Field(default="", max_length=2000)
 
 
 class KoppelInvoer(BaseModel):

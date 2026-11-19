@@ -355,3 +355,26 @@ async def test_koppelen_met_akkoord_houdt_een_geaccordeerd_begrip_geaccordeerd(c
     zonder = await client.post(_url(wg, r.json(), "koppelingen"), json={"verwachte_revisie": r.json()["revisie"],
                                                                          "element_ids": [ids["awr"]], "rol": "context"})
     assert zonder.json()["status"] == "concept"
+
+
+async def test_wijzigen_met_akkoord_houdt_een_geaccordeerd_begrip_geaccordeerd(client):
+    """Bevinding Termijnen: uitleg en voorbeelden toevoegen aan een geaccordeerd begrip waren twee aanroepen (wijzigen,
+    opnieuw accorderen), met de hele inhoud tweemaal terug. Met `akkoord` is het er één, en `vorm=kort` antwoordt kort."""
+    ids = await _annoteer()
+    await _keur_alles_goed(ids)
+    wg = await _werkgebied(client)
+    b = await _begrip(client, wg, [ids["lid1"]])
+    b = (await client.patch(_url(wg, b), json={"verwachte_revisie": b["revisie"], "inhoud": {"naam": "Belastingschuldige", **DEFINITIE}})).json()
+    b = (await client.patch(_url(wg, b, "koppelingen", b["koppelingen"][0]["id"]),
+                            json={"verwachte_revisie": b["revisie"], "beoordeling": "akkoord"})).json()
+    b = (await client.post(_url(wg, b, "accorderen"), json={"reden": "Getoetst", "verwachte_revisie": b["revisie"]})).json()
+    inhoud = {"naam": "Belastingschuldige", **DEFINITIE, "uitleg": "Wie de aanslag op zijn naam heeft, betaalt.",
+              "voorbeelden": [{"tekst": "Energie BV", "oordeel": "wel"}]}
+    r = await client.patch(_url(wg, b) + "?vorm=kort", json={"verwachte_revisie": b["revisie"], "inhoud": inhoud,
+                                                              "akkoord": True, "reden": "Uitleg toegevoegd."})
+    assert r.status_code == 200, r.text
+    assert set(r.json()) == {"id", "status", "revisie", "geaccordeerd_revisie", "accorderen"}
+    assert r.json()["status"] == "geaccordeerd" and r.json()["revisie"] == b["revisie"] + 2
+    zonder = await client.patch(_url(wg, r.json()) + "?vorm=kort",
+                                json={"verwachte_revisie": r.json()["revisie"], "inhoud": {**inhoud, "uitleg": "Anders."}})
+    assert zonder.json()["status"] == "concept"

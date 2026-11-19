@@ -224,6 +224,12 @@ def koppelstand(begrip: dict) -> dict:
         {k: x[k] for k in _KOPPELSTAND} | {"bevestigingen": len(x.get("bevestigingen") or [])} for x in begrip["koppelingen"]]}
 
 
+def begripkort(begrip: dict) -> dict:
+    """Het antwoord met `?vorm=kort`: alleen of het lukte – id, status, revisies en de poort. Voor wie veel begrippen na
+    elkaar wijzigt (een MCP-client) en de inhoud die hij net stuurde niet terug hoeft te lezen."""
+    return {k: begrip[k] for k in ("id", "status", "revisie", "geaccordeerd_revisie", "accorderen") if k in begrip}
+
+
 def begripstand(begrip: dict) -> dict:
     """Het antwoord op een wijziging met `?vorm=stand` (B-1): de stand en de inhoud, zonder koppelingen en bewijs. De
     kaart is rond 10k tokens, met de koppelingen er dubbel in; een agent of MCP-client liep daarop vast. De werkplek
@@ -636,21 +642,36 @@ async def wijzig(werkgebied_id: str | None, begrip_id: str, w: BegripWijziging, 
     nieuw = w.inhoud.model_dump(mode="json")
     # `_gewijzigd` leest `detail` pas na het blok: de velden zijn pas onder het slot bekend.
     detail: dict = {}
-    async with _gewijzigd(werkgebied_id, begrip_id, w.verwachte_revisie, actor, "begrip-gewijzigd",
-                          detail) as (conn, row, stand):
-        oud = slank(row.inhoud)
-        passages = [k.get("bewijs", {}).get("tekst", "") for k in await _koppelingen_van(conn, None, begrip_id)]
-        nieuw = met_afgeleid(oud, nieuw, passages)
-        # Een generiek begrip heet één keer zo, ook na een nieuwe naam (`generiek_maken` toetst hetzelfde).
-        if werkgebied_id is None and _term(nieuw.get("naam", "")) != _term(oud.get("naam", "")):
-            await _toets_term(conn, nieuw.get("naam", ""), begrip_id)
-        # Herkomst en `definitie_door` volgen uit de definitie en zijn dus geen eigen wijziging (een
-        # begrip van vóór fase E mist het veld; opslaan zonder wijziging mag daar geen revisie van maken).
-        detail["velden"] = sorted(k for k in nieuw if k not in ("definitie_door", "definitie_herkomst")
-                                  and nieuw.get(k) != oud.get(k))
-        stand["inhoud"] = nieuw
-        stand["geen_wijziging"] = not detail["velden"]
+    b = db.begrippen
+    async with db.get_engine().begin() as conn:
+        voor = (await conn.execute(select(b.c.status).where(b.c.id == begrip_id))).scalar()
+        async with _gewijzigd_in(conn, werkgebied_id, begrip_id, w.verwachte_revisie, actor, "begrip-gewijzigd",
+                                 detail) as (_, row, stand):
+            await _wijzig_inhoud(conn, werkgebied_id, begrip_id, row, stand, detail, nieuw)
+        if w.akkoord and voor == "geaccordeerd":
+            # Het begrip was geaccordeerd en de jurist is akkoord met de nieuwe inhoud: opnieuw accorderen als de poort
+            # het toelaat. Mag het niet, dan blijft het een concept en noemt de poort wat er openstaat.
+            nu = (await conn.execute(select(b.c.revisie, b.c.status).where(b.c.id == begrip_id))).first()
+            if nu.status == "concept":
+                await accordeer_in(conn, werkgebied_id, begrip_id, nu.revisie,
+                                   w.reden or "Opnieuw geaccordeerd na een wijziging van de inhoud.", actor)
     return await haal(werkgebied_id, begrip_id)
+
+
+async def _wijzig_inhoud(conn, werkgebied_id: str | None, begrip_id: str, row, stand: dict, detail: dict,
+                         nieuw: dict) -> None:
+    oud = slank(row.inhoud)
+    passages = [k.get("bewijs", {}).get("tekst", "") for k in await _koppelingen_van(conn, None, begrip_id)]
+    nieuw = met_afgeleid(oud, nieuw, passages)
+    # Een generiek begrip heet één keer zo, ook na een nieuwe naam (`generiek_maken` toetst hetzelfde).
+    if werkgebied_id is None and _term(nieuw.get("naam", "")) != _term(oud.get("naam", "")):
+        await _toets_term(conn, nieuw.get("naam", ""), begrip_id)
+    # Herkomst en `definitie_door` volgen uit de definitie en zijn dus geen eigen wijziging (een
+    # begrip van vóór fase E mist het veld; opslaan zonder wijziging mag daar geen revisie van maken).
+    detail["velden"] = sorted(k for k in nieuw if k not in ("definitie_door", "definitie_herkomst")
+                              and nieuw.get(k) != oud.get(k))
+    stand["inhoud"] = nieuw
+    stand["geen_wijziging"] = not detail["velden"]
 
 
 async def verwijder(werkgebied_id: str, begrip_id: str, verwacht: int, actor: str) -> dict:
