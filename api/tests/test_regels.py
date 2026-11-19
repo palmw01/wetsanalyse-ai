@@ -187,6 +187,29 @@ async def test_hierarchie_en_afwijzen(client):
     assert [x["id"] for x in (await client.get(_url(wg, "hierarchie"))).json()["regels"]] == [daarna["id"]]
 
 
+async def test_het_overzicht_over_werkgebieden_heen(client):
+    """`GET /v1/regels`, het overzicht in de zijbalk: zoeken in naam, uitvoer en regeltekst, filteren op status en
+    werkgebied, *Door mij bewerkt*, en de tellers per status zonder het statusfilter."""
+    wg, ids, b = await _opzet(client)
+    regel = (await client.post(_url(wg), json={"inhoud": _inhoud(b),
+                                              "dragers": [{"element_id": ids["ar"], "rol": "grondslag"}]})).json()
+    alles = (await client.get("/v1/regels")).json()
+    rij = next(x for x in alles["resultaten"] if x["id"] == regel["id"])
+    assert rij["naam"] == "bepalen van het termijnbedrag" and rij["uitvoer"] == "termijnbedrag"
+    assert rij["werkgebied_id"] == wg["id"] and rij["werkgebied_naam"] == wg["naam"]
+    assert rij["regeltekst"].startswith("Het termijnbedrag moet berekend worden als")
+    assert alles["per_status"].get("concept", 0) >= 1
+    # Zoeken in de regeltekst, met diakrieten en hoofdletters gelijk.
+    assert [x["id"] for x in (await client.get("/v1/regels", params={"q": "GEDEELD aantal"})).json()["resultaten"]] == [regel["id"]]
+    assert (await client.get("/v1/regels", params={"q": "bestaat-niet"})).json()["totaal"] == 0
+    # Het statusfilter laat de tellers staan.
+    geen = (await client.get("/v1/regels", params={"status": "geaccordeerd", "werkgebied_id": wg["id"]})).json()
+    assert geen["totaal"] == 0 and geen["per_status"] == {"concept": 1}
+    assert (await client.get("/v1/regels", params={"werkgebied_id": "onbekend"})).json()["totaal"] == 0
+    assert regel["id"] in [x["id"] for x in (await client.get("/v1/regels", params={"mijn": "true"})).json()["resultaten"]]
+    assert (await client.get("/v1/regels", params={"status": "onzin"})).status_code == 422
+
+
 async def test_parameterwaarden_per_tijdvak(client):
     wg, _, b = await _opzet(client)
     url = f"/v1/werkgebieden/{wg['id']}/parameterwaarden"

@@ -116,6 +116,8 @@ import { parseCatalogus, parseOnderdeel, type Catalogus, type OnderdeelDetail } 
 import { isRelatiesAntwoord } from "./begripRelaties";
 import { isDekking, isHerbeoordelingen } from "./herbeoordeling";
 import { pathSegment } from "./url";
+import type { DragerBeoordeling, Regel, RegelKeten, RegelRevisie } from "./regels";
+import type { RegelsOverzicht } from "./regelsOverzicht";
 import { parseBevestiging } from "./werkgebiedAnnoteren";
 import { parseVervolg } from "./vraagLex";
 import { parseVraagkaart } from "./vraagkaart";
@@ -1937,3 +1939,59 @@ export async function haalKandidaten(id: string): Promise<KandidatenAntwoord> {
 }
 
 
+
+// --- Afleidingsregels (activiteit 3b, ADR-018) -----------------------------------------------------
+// Een regel maakt Lex of de import (R5/R6); de werkplek leest, beoordeelt de dragers en accordeert.
+
+export async function lijstRegels(id: string): Promise<Regel[]> {
+  const { regels } = await json<{ regels?: Regel[] }>(await fetch(wg(id, "regels"), { cache: "no-store" }));
+  if (!Array.isArray(regels)) throw new Error("De afleidingsregels hebben een onbekende vorm.");
+  return regels;
+}
+
+export async function haalRegelKeten(id: string): Promise<RegelKeten> {
+  return json<RegelKeten>(await fetch(wg(id, "regels", "hierarchie"), { cache: "no-store" }));
+}
+
+export async function haalRegel(id: string, regelId: string): Promise<Regel> {
+  return json<Regel>(await fetch(wg(id, "regels", regelId), { cache: "no-store" }));
+}
+
+export async function haalRegelRevisies(id: string, regelId: string): Promise<RegelRevisie[]> {
+  const res = await fetch(wg(id, "regels", regelId, "revisies"), { cache: "no-store" });
+  return (await json<{ revisies: RegelRevisie[] }>(res)).revisies;
+}
+
+export async function beoordeelRegelDrager(id: string, regelId: string, dragerId: string, verwachteRevisie: number,
+  beoordeling: DragerBeoordeling): Promise<Regel> {
+  return json<Regel>(await fetch(wg(id, "regels", regelId, "dragers", dragerId),
+    jsonInit("PATCH", { verwachte_revisie: verwachteRevisie, beoordeling })));
+}
+
+export async function accordeerRegel(id: string, regelId: string, verwachteRevisie: number, reden = ""): Promise<Regel> {
+  return json<Regel>(await fetch(wg(id, "regels", regelId, "accorderen"),
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie, reden })));
+}
+
+export async function heropenRegel(id: string, regelId: string, verwachteRevisie: number): Promise<Regel> {
+  return json<Regel>(await fetch(wg(id, "regels", regelId, "heropenen"),
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie })));
+}
+
+export async function wijsRegelAf(id: string, regelId: string, verwachteRevisie: number, reden: string): Promise<Regel> {
+  return json<Regel>(await fetch(wg(id, "regels", regelId, "afwijzen"),
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie, reden })));
+}
+
+export async function verwijderRegel(id: string, regelId: string, verwachteRevisie: number): Promise<void> {
+  const qs = new URLSearchParams({ verwachte_revisie: String(verwachteRevisie) });
+  await json<unknown>(await fetch(`${wg(id, "regels", regelId)}?${qs}`, { method: "DELETE" }));
+}
+
+/** De afleidingsregels over werkgebieden heen (de zijbalk, `GET /v1/regels`). */
+export async function zoekRegels(params: URLSearchParams): Promise<RegelsOverzicht> {
+  const qs = params.toString();
+  const uit = await json<RegelsOverzicht>(await fetch(`/api/regels${qs ? `?${qs}` : ""}`, { cache: "no-store" }));
+  if (!Array.isArray(uit?.resultaten)) throw new Error("Onverwacht antwoord van de afleidingsregels.");
+  return uit;
+}
