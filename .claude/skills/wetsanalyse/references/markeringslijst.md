@@ -57,6 +57,11 @@ extern onderzoek en je maakt geen volledigheidsclaim over de regeling. Wil ieman
 - **Een los gezegde draagt geen rekenregel.** "Bedraagt" alleen is geen afleidingsregel; neem invoer, bewerking en
   uitkomst mee voor zover de tekst ze noemt.
 - **Een termijn is één Tijdsaanduiding.** Geef hem niet ook een Parameter omdat de duur voor iedereen gelijk is.
+- **Een recht met voorwaarden blijft een Rechtsbetrekking.** Draagt dezelfde zin daarnaast een afleiding (een aantal,
+  een bedrag of een keuze, zoals "zoveel … als …" of "in gelijke termijnen"), dan markeer je die ook, als
+  Afleidingsregel. Levert één stuk tekst twee waarden op, dan zijn het twee afleidingsregels, die mogen overlappen. Of
+  een recht in een geval bestaat, of welk tijdstip uit een tijdsaanduiding volgt, beslis je in activiteit 3b met een
+  regel op die formulering. Daarvoor is geen extra markering nodig (zie [afleidingsregels](afleidingsregels.md)).
 - **Lees een opsomming met haar aanhef.** Onderscheid cumulatie, alternatief, minimum en exclusiviteit. *En*, *of*,
   *kan* en *ten minste* bepalen op zichzelf geen klasse.
 - **Overlap mag bij een andere functie.** Er is geen regel "de diepste klasse wint"; alleen tijd en plaats gaan voor

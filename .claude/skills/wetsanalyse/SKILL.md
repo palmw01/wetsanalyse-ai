@@ -44,6 +44,7 @@ jurist beoordeelt en beslist. Methodeversie 3.0, Wetsanalyse met het JAS.
 | Hoe hangen de elementen samen, wie heeft welk recht, wat is het rekenschema | **C. Samenhang** (activiteit 2c) | [relaties](references/relaties.md) |
 | Een begrip of definitie vastleggen, een uitleg in B1 | **D. Begrippen** (activiteit 3a) | [begrippen](references/begrippen.md), [NL-SBB en B1](references/nl-sbb-en-b1.md) |
 | Een volledig analysedossier over een bepaling of regeling | **E. Volledig dossier** (A t/m D samen) | [analyseprotocol](references/analyseprotocol.md), [sjabloon](assets/analysedossier.md), [kwaliteit](references/kwaliteit.md) |
+| Een berekening of beslissing uitschrijven, "bepalen …", een beslistabel | **F. Afleidingsregels** (activiteit 3b) | [afleidingsregels](references/afleidingsregels.md), [relaties](references/relaties.md) |
 | "Wat betekent deze bepaling", interpretatie, wetsdoel | **B + C, als antwoord** zonder volledig dossier | [analyseprotocol §3](references/analyseprotocol.md), [verwijzingen volgen](references/verwijzingen-volgen.md) |
 
 Niet duidelijk welke? Kies de kleinste werkstroom die de vraag beantwoordt, en zeg wat je níét hebt gedaan. Een
@@ -123,6 +124,15 @@ ontleding als een praktijkvoorbeeld een tegenspraak blootlegt. Volg alleen de ve
 ([verwijzingen volgen](references/verwijzingen-volgen.md)); een bron die je niet kon lezen is een open punt, geen
 bewijs dat er niets staat.
 
+## F. Afleidingsregels
+
+Een afleidingsregel leidt één begrip af (de uitvoer) uit andere begrippen (de invoer). Het kan een rekenregel zijn, een
+beslisregel (ook over de vraag of een recht bestaat) of een specialisatie. Hij rust op de formuleringen die zijn uitvoer
+en voorwaarden dragen. Per uitvoer is er één regel; verschilt het per geval, dan is het een beslistabel met rijen die
+elkaar uitsluiten. Een tussenresultaat krijgt een begrip. Een parameter gebruik je in de regel, zijn waarde staat in een
+eigen begrip. Een interpretatie die nog niet in beleid staat, signaleer je als open punt. Zie
+[afleidingsregels](references/afleidingsregels.md).
+
 ## De dertien JAS-klassen
 
 Dit zijn de enige klassen; verzin er geen bij. Bij twijfel tussen twee klassen of een grensgeval: lees de
@@ -162,8 +172,8 @@ parameter*; een getal in cijfers daarin is een eigen, geneste parameterwaarde.
 
 ## Grenzen
 
-Deze skill dekt activiteit 1 tot en met het begin van activiteit 3 (begrippen). Regels in RegelSpraak opstellen,
-gegevensmodellen en uitvoeringsbesluiten vallen erbuiten. Juridische scenario's met aktes, rechtsgevolgen als eigen
+Deze skill dekt activiteit 1 tot en met 3b (begrippen en afleidingsregels in natuurlijke taal). Regels in RegelSpraak
+opstellen, gegevensmodellen en uitvoeringsbesluiten vallen erbuiten. Juridische scenario's met aktes, rechtsgevolgen als eigen
 element en juridisch relevante feiten horen bij de skill wetsuitvoering (JRM), niet hier. Een antwoord van deze skill is nooit juridisch advies.
 
 Herkomst van de methode, licenties en projectkeuzes: [bronnen en beslisregister](references/bronnen.md). Het boek en
