@@ -166,6 +166,8 @@ app.include_router(begrip_onderhoud.router, prefix="/v1")
 app.include_router(begrip_relaties.router, prefix="/v1")
 app.include_router(regels.router, prefix="/v1")
 app.include_router(regels.overzicht_router, prefix="/v1")
+from . import open_punten  # noqa: E402 – L-X-1: de open punten van een werkgebied
+app.include_router(open_punten.router, prefix="/v1")
 app.include_router(bronnen_runs.router, prefix="/v1")
 app.include_router(delegaties.router, prefix="/v1")
 app.include_router(berichten.router, prefix="/v1")

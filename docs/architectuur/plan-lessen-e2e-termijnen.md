@@ -840,6 +840,23 @@ sterk varieert.
        na de uitrol, met een eigen akkoord.
 4. **Bundel 4, open punten** (api, werkplek en rapport): L-X-1, L-DV-2, en L-1-2 voor zover het het signaal bij de
    dekking is. Na bundel 1.
+
+   **Stand (19 nov 2026)**: L-X-1 is gebouwd in de api, de context van Lex en het rapport. Na toetsing gelden deze
+   keuzes:
+   - **De vorm**:
+     - de soorten komen uit de skill (*Wat open blijft*), met een drift-test op de tekst;
+     - een punt hangt aan een of meer regels, gevallen, markeringen, begrippen of deelvragen;
+     - de lezingen dragen hun grondslag;
+     - `te_toetsen` heeft een bronsoort;
+     - de methode komt uit ADR-018 §6.
+   - **Het besluit** loopt via één route van de jurist (`…/besluit`), vanaf elke plek. Het agent-token kan haar niet
+     aanroepen. Gesprek-UI en kaart-UI komen niet in deze bundel.
+   - **L-DV-2** is opgelost doordat één punt aan een deelvraag én een regel of markering kan hangen.
+   - **Uitgesteld**:
+     - Het onderzoekspunt van de bronselectie zet ik nog niet over. Dat punt zit in de poort van de bronselectie, en
+       het overzetten is een eigen stap.
+     - Het signaal van L-1-2 hangt aan een relatie naar een contextbron. Die bestaat pas na M-1-1, dus het signaal
+       schuift naar bundel 7.
 5. **Bundel 5, begrippen naast regels** (api): L-3a-1 en L-3a-2. Daarna de volledigheidstoets van L-3b-3 als signaal op
    de afleidingsregel. Na bundel 3, want de signalen rusten op een betrouwbaar skelet.
 6. **Bundel 6, de regel als object** (fase 3 uit het plan afleidingsregels): L-3b-1, met de beslistabel als basisvorm.

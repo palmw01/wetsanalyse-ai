@@ -697,6 +697,34 @@ parameter_waarden = Table("parameter_waarden", metadata,
     Column("op", _DT, nullable=False),
     Column("verwijderd", _DT, nullable=True))
 
+# --- Open punten (L-X-1, ADR-018 §6) -----------------------------------------
+# Wat een analyse niet stil mag beslissen: een interpretatiekeuze, ontbrekend uitvoeringsbeleid, een onderzoekspunt
+# of een gat in de annotatie. Eén object per punt in een werkgebied; de inhoud (soort, vraag, waar het aan hangt,
+# lezingen, wat te toetsen is) als JSON, de keuze van de jurist apart, en een volledige kopie per revisie. De
+# revisietabel draagt het werkgebied, zodat het wissen van een werkgebied haar meeneemt (`WERKGEBIED_TABELLEN`).
+open_punten = Table("open_punten", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("status", String(16), nullable=False, default="open"),          # open | gekozen | getoetst
+    Column("revisie", Integer, nullable=False, default=1),
+    Column("inhoud", _JSON, nullable=False),
+    Column("keuze", _JSON, nullable=True),                                 # {gekozen, motivering, methode, door, op}
+    Column("herkomst", String(16), nullable=False, default="jurist"),      # lex | jurist | import
+    Column("aangemaakt_door", String(64), nullable=False),
+    Column("aangemaakt", _DT, nullable=False),
+    Column("gewijzigd", _DT, nullable=False))
+open_punt_revisies = Table("open_punt_revisies", metadata,
+    Column("open_punt_id", String(64), primary_key=True),
+    Column("revisie", Integer, primary_key=True),
+    Column("werkgebied_id", String(64), nullable=False, index=True),
+    Column("actie", String(40), nullable=False),
+    Column("detail", _JSON, nullable=False),
+    Column("status", String(16), nullable=False),
+    Column("inhoud", _JSON, nullable=False),
+    Column("keuze", _JSON, nullable=True),
+    Column("actor", String(64), nullable=False),
+    Column("tijdstip", _DT, nullable=False))
+
 # --- Tokenbudget --------------------------------------------------------------
 # Verbruik is een JOURNAAL, geen teller. Eén rij per LLM-call; de stand van nu is een som over het
 # huidige venster. Dat heeft drie eigenschappen die een teller niet heeft:

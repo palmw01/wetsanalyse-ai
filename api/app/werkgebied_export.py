@@ -23,7 +23,7 @@ from bronmodel.vindplaats import vindplaats as bron_vindplaats
 from fastapi import HTTPException
 
 from . import (annotatie_v2_relaties, regelskelet, diagram, annotatie_v2_store, begrip_relatie_store, jas_relaties, begrip_store, begrippen_run_store, bronselectie, db, markdown_opmaak,
-               pdf_opmaak, werkgebied_store)
+               open_punt_store, pdf_opmaak, werkgebied_store)
 from .annotatie_export import herkomst_regels
 from .annotatie_v2_contracts import BEOORDEELD
 from .bestandsnaam import met_tijd
@@ -32,7 +32,7 @@ from .werkgebied_inventaris import Resolver, bwb_van, inventaris_met_bronbomen
 from .werkgebied_rapport import (DOSSIERVELDEN, Afwijking, Artikel, Begrip, Begrippen, Bepaling, Bronvoorstel, Deelvraag,
                                  DeelvraagBron, Deelvragen, Document, Dossier, DossierVeld, Fragment, Besluit, Handeling, Herkomst, Kerncijfers, KlasseTelling, Markering,
                                  Markeringsrelatie, Regelskelet, RelatieEind, SkeletOperator, SkeletParameter, Skeletdeel,
-                                 Onbereikbaar, OpenGroep, OpenRelatie, Passage, Rapport, Regel, Regeling, RegelingInfo, Span, Structuurdeel, Verwijzing, Relatie, Selectie, Signaal,
+                                 Onbereikbaar, OpenGroep, OpenPunt, OpenPuntLezing, OpenPuntToets, OpenRelatie, Passage, Rapport, Regel, Regeling, RegelingInfo, Span, Structuurdeel, Verwijzing, Relatie, Selectie, Signaal,
                                  Stand, Telling, UitgeslotenBron, Verantwoording, Voorbeeld, Voorblad, Wettekst, Zoekdekking, Zoekregeling,
                                  BESLUITEN, datum, inhoud_hash, kort, rapport_regels)
 
@@ -93,6 +93,7 @@ async def verzamel(werkgebied_id: str, actor: str, resolve: Resolver,
             "relaties": await begrip_relatie_store.lijst(werkgebied_id),
             "groepen": await begrippen_run_store.groepen(werkgebied_id),
             "audit": await werkgebied_store.audit(werkgebied_id, None),
+            "open_punten": await open_punt_store.lijst(werkgebied_id),
             "export": {"actor": actor, "op": db.utcnow().isoformat(), "inhoud": inhoud}}
 
 
@@ -582,6 +583,10 @@ def _onderwerp(detail: dict, data: dict, nodes: dict[str, dict]) -> str:
         delen.append(f"deelvraag {deelvragen[detail['deelvraag']]}")
     if detail.get("veld"):
         delen.append(f"veld {detail['veld']}")
+    if detail.get("open_punt_id"):
+        vraag = next((p["inhoud"]["vraag"] for p in data.get("open_punten") or [] if p["id"] == detail["open_punt_id"]),
+                     "een open punt dat niet meer bestaat")
+        delen.append(f"open punt “{vraag}”" + (f", lezing {detail['gekozen']}" if detail.get("gekozen") else ""))
     return " · ".join(delen)
 
 
@@ -608,13 +613,49 @@ def _verantwoording(data: dict, nodes: dict[str, dict]) -> Verantwoording:
                           toegevoegd=s.get("toegevoegd")) for s in wg["bronnen"]])
 
 
+def _aanhaking(a: dict, data: dict, nodes: dict[str, dict]) -> str:
+    """Waar een open punt aan hangt, leesbaar: de vraag, de naam, de markering met haar vindplaats."""
+    soort, id_ = a["soort"], a["id"]
+    if soort == "deelvraag":
+        d = next((d for d in data["werkgebied"].get("deelvragen") or [] if d["id"] == id_), None)
+        return f"deelvraag “{d['vraag']}”" if d else f"deelvraag {id_} (verwijderd)"
+    if soort == "begrip":
+        b = next((b for b in data["begrippen"] if b["id"] == id_), None)
+        return f"begrip “{b['inhoud']['naam']}”" if b else f"begrip {id_}"
+    if soort == "markering":
+        e = next((e for e in [*data["inventaris"]["elementen"], *data["inventaris"]["afgewezen"]] if e["id"] == id_), None)
+        if e:
+            return f"markering “{e.get('tekst', '')}” ({e.get('klasse', '')}, {_vindplaats(e.get('bron_iri', ''), nodes)})"
+        return f"markering {id_}" + ("" if a.get("bestaat", True) else " (bestaat niet meer)")
+    return (f"geval “{a['geval']}” van " if soort == "geval" else "") + f"regel {id_}" + (
+        "" if a.get("bestaat", True) else " (bestaat niet meer)")
+
+
+def _open_punten(data: dict, nodes: dict[str, dict]) -> list[OpenPunt]:
+    uit = []
+    for p in data.get("open_punten") or []:
+        i, k = p["inhoud"], p.get("keuze") or {}
+        uit.append(OpenPunt(
+            soort_naam=p["soort_naam"], status=p["status"], vraag=i["vraag"],
+            hangt_aan=[_aanhaking(a, data, nodes) for a in i["hangt_aan"]],
+            lezingen=[OpenPuntLezing(label=x["label"], omschrijving=x["omschrijving"],
+                                     grondslag=[g.get("label") or (_vindplaats(g["id"], nodes) if g["soort"] == "bron" else g["id"])
+                                                for g in x.get("grondslag") or []]) for x in i.get("lezingen") or []],
+            gekozen=k.get("gekozen", ""), motivering=k.get("motivering", ""), methode=k.get("methode", ""),
+            door=k.get("door", ""), toelichting=i.get("toelichting", ""),
+            te_toetsen=[OpenPuntToets(**{f: t.get(f) for f in ("bronsoort", "omschrijving", "getoetst", "uitkomst")
+                                         if t.get(f) is not None}) for t in i.get("te_toetsen") or []]))
+    return uit
+
+
 def bouw_rapport(data: dict, verklaringen: dict) -> Rapport:
     """Het gestructureerde rapport: alles wat een uitvoervorm mag tonen, en niets anders."""
     nodes = _nodes(data)
     r = Rapport(stand=Stand(op=data["export"]["op"], door=data["export"]["actor"]), document=_document(data),
                 voorblad=_voorblad(data, nodes), samenvatting=_kerncijfers(data),
                 dossier=_dossier(data), deelvragen=_deelvragen(data, nodes), wettekst=_wettekst(data, nodes, verklaringen),
-                begrippen=_begrippen(data, nodes), verantwoording=_verantwoording(data, nodes))
+                begrippen=_begrippen(data, nodes), open_punten=_open_punten(data, nodes),
+                verantwoording=_verantwoording(data, nodes))
     return r.model_copy(update={"document": r.document.model_copy(update={"inhoud_hash": inhoud_hash(r)})})
 
 

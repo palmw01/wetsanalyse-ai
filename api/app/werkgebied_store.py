@@ -85,7 +85,7 @@ WERKGEBIED_TABELLEN = ("werkgebied_bronselecties", "werkgebied_element_besluiten
                        "begrip_kaartruns", "bronnen_runs", "bron_kandidaten", "begrippen_runs",
                        "betekenisgroepen", "begrippen_batches", "bronselectie_voortgang",
                        "bron_kandidaat_deelvragen", "artefact_versies", "werkgebied_begrippen", "delegaties",
-                       "regels", "regel_dragers", "parameter_waarden")
+                       "regels", "regel_dragers", "parameter_waarden", "open_punten", "open_punt_revisies")
 #: Wat bij een verwijderd object in de audit staat (oude stand: archiveren, een soft verwijderd begrip).
 VERWIJDERD_ACTIES = ("werkgebied-verwijderd", "gearchiveerd")
 

@@ -28,6 +28,8 @@ BESLISSINGEN = {
     ("POST", "/v1/werkgebieden/{}/bronselectie/{}/kandidaten/{}"),
     ("POST", "/v1/werkgebieden/{}/groepen/akkoord"),
     ("POST", "/v1/werkgebieden/{}/relaties/{}/bevestigen"),
+    # De keuze bij een open punt (L-X-1): van de jurist, vanaf elke plek (regelkaart, begripskaart, gesprek).
+    ("POST", "/v1/werkgebieden/{}/open-punten/{}/besluit"),
 }
 
 
