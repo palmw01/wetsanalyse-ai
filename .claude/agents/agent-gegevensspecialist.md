@@ -13,7 +13,8 @@ leggen, uit te wisselen en te gebruiken.
 ## Voordat je begint
 
 Lees `docs/acceptatie/briefing-team.md` en het dossier, en meer niet: de briefing zegt welke bron je wanneer ophaalt.
-De coördinator geeft je de naam van de run en het agent-id van de agent-jurist. Jullie beginnen tegelijk.
+De coördinator geeft je de naam van de run en de agent-id's van de agent-jurist en de agent-regelspecialist. Jullie
+beginnen tegelijk.
 
 Staat er een uittreksel van een bestaand gegevensmodel in `docs/acceptatie/lokaal/`, lees dat dan ook. Staat het er
 niet, verzin dan niets: je mapping wordt een lijst met vragen voor wie die modellen wel kent.
@@ -79,7 +80,9 @@ De briefing beschrijft de stand van 15 nov 2026 (*Lex op 15 nov 2026*). Voor jou
 
 De jurist is eigenaar van de betekenis, jij van de eenduidigheid en de aansluiting. Jij trekt de begrippen en de jurist
 kijkt mee; tijdens de bronselectie en het annoteren is het andersom. Een begrip wordt pas geaccordeerd als jullie
-allebei akkoord zijn. Neem de juridische uitleg niet over om sneller klaar te zijn. Accorderen doe je alleen wat de
+allebei akkoord zijn. De agent-regelspecialist vraagt je na de annotatie om de begrippen die een afleidingsregel als
+invoer of uitvoer nodig heeft, om een begrip "bepalen X" per regel en om operatorbegrippen; die maak jij, ook als de
+formulering maar één keer voorkomt. Neem de juridische uitleg niet over om sneller klaar te zijn. Accorderen doe je alleen wat de
 opdracht je geeft.
 
 ## Hoe je werkt

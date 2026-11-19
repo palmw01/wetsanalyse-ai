@@ -2,9 +2,11 @@
 
 Een multidisciplinair team van agents doorloopt met `tools/wetsanalyse-acceptatie-mcp` een echte wetsanalyse op
 acceptatie, neemt alle beslissingen zelf en beoordeelt daarna wat eruit komt: de agent-jurist
-(`.claude/agents/agent-jurist.md`) en de agent-gegevensspecialist (`.claude/agents/agent-gegevensspecialist.md`).
-Ze werken vanaf stap 1 samen en overleggen rechtstreeks. De sessie die hen start coördineert: zij start het team,
-beantwoordt vragen over omwegen en voegt de rapporten samen. Ze is geen doorgeefluik.
+(`.claude/agents/agent-jurist.md`), de agent-gegevensspecialist (`.claude/agents/agent-gegevensspecialist.md`) en de
+agent-regelspecialist (`.claude/agents/agent-regelspecialist.md`). Ze werken vanaf stap 1 samen en overleggen
+rechtstreeks; de regelspecialist leest mee tot de annotatie en trekt daarna de afleidingsregels (stap 5). De sessie die
+hen start coördineert: zij start het team, beantwoordt vragen over omwegen en voegt de rapporten samen. Ze is geen
+doorgeefluik.
 
 Het dossier komt uit `docs/acceptatie/lokaal/` (gitignored): zulke dossiers noemen interne teams en systemen, en deze
 repo is publiek. Staat het bestand er niet, vraag het dan aan de gebruiker. Die map staat alleen in de hoofdcheckout;
@@ -23,7 +25,7 @@ ook niet uit een kluis: ontbreekt er iets, dan vraagt de coördinator het de geb
    rechten van een analist niet getoetst: dat hoort als beperking in het rapport. Een apart analistaccount maakt alleen
    de gebruiker aan.
 2. Noteer het tokenverbruik: `bff` GET `/api/account/verbruik`.
-3. Probeer de tools die stap 7 en 8 dragen: `logs_zoek` zonder argumenten, `graaf_lezen` met een `ASK`, en `bron_lezen`
+3. Probeer de tools die stap 8 en 9 dragen: `logs_zoek` zonder argumenten, `graaf_lezen` met een `ASK`, en `bron_lezen`
    op een bepaling uit het dossier. Weigert `logs_zoek` of `graaf_lezen` omdat de toegang ontbreekt, leg dat dan voor
    aan de gebruiker voordat de run begint: de `WETSANALYSE_ACC_GRAFANA_*`- en `WETSANALYSE_ACC_GRAAF_*`-variabelen staan
    in de README van de MCP. Gaat de run zonder door, dan is die controle niet gedaan en staat dat in het rapport.
@@ -32,8 +34,8 @@ ook niet uit een kluis: ontbreekt er iets, dan vraagt de coördinator het de geb
 
 ## Het team starten
 
-Start beide agents in één bericht, zodat ze tegelijk beginnen, en geef elk de naam van de run en het dossier. Elke start
-geeft een agent-id terug: stuur die daarna met `SendMessage` naar de ander. Vanaf dan praten ze rechtstreeks. Komt
+Start de drie agents in één bericht, zodat ze tegelijk beginnen, en geef elk de naam van de run en het dossier. Elke
+start geeft een agent-id terug: stuur die daarna met `SendMessage` naar de andere twee. Vanaf dan praten ze rechtstreeks. Komt
 een bericht niet aan, dan loopt het overleg via het logboek en is dat een bevinding over de opzet.
 
 ## Wie doet wat
@@ -46,14 +48,16 @@ een eigen gesprek voor vragen aan Lex. Een stap is pas af als het overleg in het
 | 1 werkgebied | jurist | leest deelvragen en voorbeelden op objecten, feiten en gebeurtenissen | **vóór stap 2:** de specialist beoordeelt elke deelvraag op gegevens; de jurist past aan of legt uit waarom niet |
 | 2 bronselectie | jurist | zoekt per deelvraag welke bepalingen de gegevens dragen | vóór het afronden van een deelvraag: ontbreekt er een bron voor een gegeven? |
 | 3 annoteren | jurist | leest de gegevensdragende klassen, noteert basisformuleringen, homoniemen en synoniemen | vóór stap 4: welke termen worden begrippen, en waar zit dezelfde term met een andere betekenis? |
-| 4 begrippen | gegevensspecialist | leest elke definitie tegen de passages en het recht | **tijdens de stap:** per begrip een juridisch akkoord van de jurist vóór accorderen |
-| 5 beslissen | jurist de annotaties, specialist de begrippen | steekproef in het werk van de ander | bij elke afwijking in de steekproef |
-| 6 valideren | jurist de uitkomst, specialist de feiten | de andere helft van hetzelfde voorbeeld | per praktijkvoorbeeld één gezamenlijke conclusie |
-| 7 beoordelen | beide apart | leest daarna het oordeel van de ander | verschillen in oordeel als onenigheid vastleggen |
-| 8 logs | gegevensspecialist | levert de `trace_id`'s en `run_id`'s uit het logboek | geen |
+| 4 begrippen | gegevensspecialist | jurist: leest elke definitie tegen de passages en het recht; regelspecialist: noemt de begrippen die invoer of uitvoer van een regel zijn | **tijdens de stap:** per begrip een juridisch akkoord van de jurist vóór accorderen |
+| 5 afleidingsregels | regelspecialist | jurist: herstelt markeringen en relaties en beslist de open interpretatiekeuzes; specialist: maakt de ontbrekende begrippen | **per regel:** elk gat in het skelet ligt bij de jurist of de specialist, en hun antwoord staat in het logboek vóór de regel uitvoerbaar heet |
+| 6 beslissen | jurist de annotaties en relaties, specialist de begrippen | steekproef in het werk van de ander; de regelspecialist toetst of de beslissingen zijn regels niet breken | bij elke afwijking in de steekproef |
+| 7 valideren | jurist de uitkomst, specialist de feiten, regelspecialist de doorrekening | de andere delen van hetzelfde voorbeeld | per praktijkvoorbeeld één gezamenlijke conclusie |
+| 8 beoordelen | alle drie apart | leest daarna het oordeel van de anderen | verschillen in oordeel als onenigheid vastleggen |
+| 9 logs | gegevensspecialist | levert de `trace_id`'s en `run_id`'s uit het logboek | geen |
 
-Onenigheid staat in het logboek met beide argumenten (soort `onenigheid`). Komen jullie er niet uit, dan beslist de
-eigenaar: de jurist over de betekenis, de specialist over eenduidigheid en aansluiting.
+Onenigheid staat in het logboek met het argument van elke kant (soort `onenigheid`). Komen jullie er niet uit, dan
+beslist de eigenaar: de jurist over de betekenis, de gegevensspecialist over eenduidigheid en aansluiting, de
+regelspecialist over de uitvoerbaarheid van een regel.
 
 ## Stappen
 
@@ -80,29 +84,48 @@ noemt, en stuur dat aantal mee (`bevestigd`).
 Bewijs: de elementen staan in de inventaris, en `annotatie_lezen` toont ze ook in de graaf.
 
 **4. Begrippen.** Laat Lex begrippen voorstellen, werk ze uit en leg de relaties. Een begrip wordt pas geaccordeerd
-als beide agents akkoord zijn.
+als de jurist en de gegevensspecialist allebei akkoord zijn.
 
 Bewijs: `begrip_lezen` toont de kaart met koppelingen naar passages, de revisies, de conformiteit en de samenhang.
 De Turtle-export (`bff` GET `.../begrippen/export?formaat=ttl`) stemt overeen met de graaf.
 
-**5. Beslissen.** Beoordeel de annotaties en begrippen: goedkeuren, aanpassen, afwijzen of zelf markeren,
+**5. Afleidingsregels (deelactiviteit 3b).** De regelspecialist maakt de inventaris van de afleidingsregels in de
+geannoteerde bepalingen en zet per regel het regelskelet op een rij: uitvoer, invoer op volgorde, bewerking,
+voorwaarden, parameters met hun waarde per tijdvak, tijd en uitzonderingen. Hij toetst of de regel daarmee uit te
+voeren is (ontbrekende invoer of uitvoer, een relatie die alleen voorgesteld is, een eindpunt zonder begrip, een
+onbepaalde term, een open interpretatiekeuze, een verwezen bepaling buiten de selectie) en legt elk gat terug: bij
+de jurist wat over markeringen, relaties, bronnen en betekenis gaat, bij de gegevensspecialist een ontbrekend begrip.
+Daarna schrijft hij de regel in gestructureerde natuurlijke taal of als beslistabel, met de begrippen, en rekent hem
+door met een voorbeeldreeks: het normale geval, een voorwaarde die niet vervuld is, de uitzondering, de precieze
+grens, nul, negatief en onbekend.
+
+Lex kent nog geen regel als eigen object (`docs/architectuur/plan-afleidingsregels.md`): de regels staan in het
+logboek en het rapport, en dat de werkplek er niets voor heeft is een bevinding. Geen RegelSpraak: die hoort niet bij
+het platform.
+
+Bewijs: per regel een logregel met de vindplaats en het oordeel uitvoerbaar, deels of niet; elk gat met het antwoord
+van de eigenaar; de relaties die de jurist naar aanleiding daarvan legde of beoordeelde, in `weergave_lezen` en de
+audit.
+
+**6. Beslissen.** Beoordeel de annotaties en begrippen: goedkeuren, aanpassen, afwijzen of zelf markeren,
 en accordeer de begrippen die af zijn. Dit zijn echte beslissingen, met een reden.
 
 Bewijs: de beslissing staat in de audit en komt terug in de laag en de graaf.
 
-**6. Valideren en aansluiten.** Toets elk praktijkvoorbeeld als toetsgeval (geen JRM-scenario: de methode
+**7. Valideren en aansluiten.** Toets elk praktijkvoorbeeld als toetsgeval (geen JRM-scenario: de methode
 wetsuitvoering valt buiten deze test, zie de briefing): volgt de uitkomst uit de bronnen,
-en is elk feit in de begrippen vast te leggen? De gegevensspecialist maakt een eerste mapping naar het gegevensmodel,
+en is elk feit in de begrippen vast te leggen? De regelspecialist rekent het voorbeeld door met de regels uit stap 5,
+met bij elke stap de regel en de vindplaats; een uitkomst die niet bepaalbaar is, is een gat. De gegevensspecialist maakt een eerste mapping naar het gegevensmodel,
 als dat in `docs/acceptatie/lokaal/` staat; anders een lijst met vragen.
 
-**7. Uitlezen en beoordelen.** Zie hieronder.
+**8. Uitlezen en beoordelen.** Zie hieronder.
 
-**8. Bewijzen in de logs.** `logs_zoek` op een `trace_id` en een `run_id` uit het logboek. Telemetrie loopt
+**9. Bewijzen in de logs.** `logs_zoek` op een `trace_id` en een `run_id` uit het logboek. Telemetrie loopt
 enkele minuten achter. Controleer ook of de foutenlijst niets nieuws toont. Deze stap vereist Grafana-toegang: die
 zet de gebruiker klaar (zie *Vooraf*). Zonder die toegang is de stap niet uitgevoerd. De `trace_id`'s en `run_id`'s
 blijven in het logboek staan, zodat hij achteraf kan.
 
-**9. Laten staan.** Het werkgebied blijft staan: het is bewijs, en de volgende iteratie vergelijkt ermee. Een
+**10. Laten staan.** Het werkgebied blijft staan: het is bewijs, en de volgende iteratie vergelijkt ermee. Een
 nieuwe iteratie krijgt een eigen werkgebied met een eigen datum en een eigen logboek.
 
 ## Beoordelen
@@ -119,7 +142,7 @@ nieuwe iteratie krijgt een eigen werkgebied met een eigen datum en een eigen log
 - Elke route zonder scherm staat als `omweg` in het logboek, ook als er daarna toestemming voor kwam.
 
 **Inhoudelijk oordeel.** Beoordeel een steekproef tegen de `wetsanalyse`-skill: klasse en fragmentgrenzen, en
-of een definitie op haar passages rust. Geef per bevinding het artikel, het citaat, het argument en je
+of een definitie op haar passages rust, en of een afleidingsregel met haar skelet uit te voeren is. Geef per bevinding het artikel, het citaat, het argument en je
 zekerheid. Beoordeel niet alleen de uitkomst maar ook de weg: waar moest je omlopen, wat ontbrak, wat kostte
 onnodig veel beurten of tokens, en wat zou een jurist niet begrijpen.
 
@@ -230,9 +253,11 @@ details, dus het rapport verwijst ernaar in plaats van het te herhalen.
 - per stap het bewijs, met `trace_id` en `run_id`;
 - wat er zelf is aangevuld;
 - de beslissingen die zijn genomen, met reden;
-- waar de agents het oneens waren, met beide argumenten;
+- waar de agents het oneens waren, met de argumenten van elke kant;
 - de omwegen: wat vastliep, en wat er daarna mocht;
 - per praktijkvoorbeeld de uitkomst en de gaten in de begrippen, en de aansluiting op het gegevensmodel;
+- de afleidingsregels met hun skelet, het oordeel over hun uitvoerbaarheid, de voorbeeldreeksen en het ontbrekende
+  uitvoeringsbeleid;
 - de bevindingen, gesplitst in vastliggende controles en inhoudelijk oordeel, elk met soort en zwaarte;
 - wat er is verbeterd sinds de vorige iteratie, en wat niet;
 - het tokenverbruik;

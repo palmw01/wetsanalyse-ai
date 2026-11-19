@@ -11,7 +11,11 @@ import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 /** De rollen van het E2E-team, en die van Lex Bench (analist en reviewer, plan-lex-bench §4.2 en §5). */
-export const ROLLEN = ["jurist", "gegevensspecialist", "coördinator", "analist", "reviewer"] as const;
+export const ROLLEN = ["jurist", "gegevensspecialist", "regelspecialist", "coördinator", "analist", "reviewer"] as const;
+
+/** Wie in een onenigheid een argument kan geven: de drie leden van het E2E-team. */
+export const TEAM = ["jurist", "gegevensspecialist", "regelspecialist"] as const;
+export type Argumenten = Partial<Record<(typeof TEAM)[number], string>>;
 export const SOORTEN = ["beslissing", "onenigheid", "overleg", "id", "bevinding", "omweg", "stand"] as const;
 
 export interface LogRegel {
@@ -21,8 +25,8 @@ export interface LogRegel {
   stap?: number;
   tekst: string;
   ids?: string[];
-  /** Verplicht bij een onenigheid: beide argumenten, zodat niemand stil toegeeft. */
-  argumenten?: { jurist: string; gegevensspecialist: string };
+  /** Verplicht bij een onenigheid: het argument van elke kant (minstens twee), zodat niemand stil toegeeft. */
+  argumenten?: Argumenten;
 }
 
 const GEHEIM = /wa_pat_|wa_admin_|Bearer\s+\S|admin:[0-9a-f]{16}/;
@@ -40,17 +44,24 @@ function pad(map: string, run: string): string {
 export function alsTekst(r: LogRegel, nu: Date): string {
   const kop = [nu.toISOString().slice(0, 19) + "Z", `[${r.rol}]`, r.soort, ...(r.stap === undefined ? [] : [`stap ${r.stap}`])];
   const delen = [`### ${kop.join(" · ")}`, r.tekst.trim()];
-  if (r.argumenten) {
-    delen.push(`- jurist: ${r.argumenten.jurist.trim()}\n- gegevensspecialist: ${r.argumenten.gegevensspecialist.trim()}`);
-  }
+  const argumenten = gevuld(r.argumenten);
+  if (argumenten.length) delen.push(argumenten.map(([rol, a]) => `- ${rol}: ${a}`).join("\n"));
   if (r.ids?.length) delen.push(`ids: ${r.ids.join(", ")}`);
   return delen.join("\n\n") + "\n\n";
 }
 
+/** De argumenten die er echt staan, in de vaste volgorde van het team. */
+function gevuld(argumenten: Argumenten | undefined): [string, string][] {
+  return TEAM.flatMap((rol) => {
+    const a = argumenten?.[rol]?.trim();
+    return a ? [[rol, a] as [string, string]] : [];
+  });
+}
+
 export async function aanvullen(map: string, r: LogRegel, nu = new Date()): Promise<{ pad: string }> {
   const bestand = pad(map, r.run);
-  if (r.soort === "onenigheid" && !(r.argumenten?.jurist.trim() && r.argumenten.gegevensspecialist.trim())) {
-    throw new Error("Een onenigheid legt beide argumenten vast.");
+  if (r.soort === "onenigheid" && gevuld(r.argumenten).length < 2) {
+    throw new Error("Een onenigheid legt beide argumenten vast: van elke kant één, minstens twee.");
   }
   const tekst = alsTekst(r, nu);
   if (GEHEIM.test(tekst)) throw new Error("Dit lijkt een token of wachtwoord: dat hoort niet in het logboek.");
