@@ -1,6 +1,6 @@
 # ADR-018 — Afleidingsregels in Lex (deelactiviteit 3b)
 
-Status: **concept; richting gekozen door de gebruiker (19 nov 2026), zes keuzes open (§Open keuzes); nog niets gebouwd**
+Status: **aangenomen (gebruiker, 19 nov 2026: de richting en de voorstellen bij alle open keuzes); nog niets gebouwd**
 · Datum: 2026-11-19 · Hoort bij: [plan-afleidingsregels-in-lex.md](plan-afleidingsregels-in-lex.md) (§12 de gekozen
 richting, §13 het bouwplan, R0), [ADR-011](adr-011-relaties-tussen-markeringen.md) (het regelskelet),
 [ADR-003](adr-003-nl-sbb-begrippencontract.md), [ADR-005](adr-005-vraag-lex-en-agents.md),
@@ -121,7 +121,7 @@ jurist. De volledige voorbeeldreeks van activiteit 4b valt buiten dit besluit.
   - `vervangen`, door een opvolger;
   - `herbeoordelen`.
 - De api geeft per regel een lijst van wat er nog openstaat voor accorderen, en de kaart toont die. Wat er in de poort
-  zit, is open keuze 2.
+  zit, staat in besluit 2 hieronder.
 - Herbeoordeling volgt het mechanisme van de begrippen:
   - een dragende passage verandert;
   - een laag gaat weer open;
@@ -224,21 +224,24 @@ ander is.
   (#1766).
 - **R8 afwijzen omdat het een bevoegdheid is**: volgens de methode is het een beslisregel (M-3b-0).
 
-## Open keuzes
+## Besluiten van de gebruiker (19 nov 2026)
 
-Elke keuze staat met een voorstel; de gebruiker beslist.
+De gebruiker nam de richting en de voorstellen bij alle open keuzes over:
 
-1. **De richting**: beslist (19 nov 2026), de regelkaart in de keten.
-2. **De poort bij accorderen**: voorstel: verplicht zijn beoordeelde begrippen voor uitvoer en invoer, genomen
-   interpretatiekeuzes op de regel en minstens één beoordeeld voorbeeld per geval. Het skelet is een signaal.
-3. **Interpretatiekeuzes op werkgebiedniveau**, gekoppeld aan regels: voorstel ja. Het alternatief is een open punt per
-   regel.
-4. **Beleidsregels** in dezelfde lijst, met het brontype zichtbaar en de status `geaccordeerd_als_beleidsregel`:
-   voorstel ja. Het alternatief is een aparte lijst.
-5. **De soort van een begrip** (bedrag, aantal, datum, ja of nee), voor de eenduidigheidstoets: voorstel later, na een
-   besluit over P15.
-6. **Termijnen als eerste bestand**: R1–R8 importeren op acceptatie, met R8 als beslisregel en het termijnregime als
-   tussenregel als de jurist dat wil. Voorstel: ja, na R1 en R3 van het bouwplan, met akkoord voor de wijziging.
+1. **De richting**: de regelkaart in de keten.
+2. **De poort bij accorderen** vraagt:
+   - beoordeelde begrippen voor uitvoer en invoer;
+   - genomen interpretatiekeuzes op de regel;
+   - minstens één beoordeeld voorbeeld per geval.
+
+   Het skelet is een signaal en blokkeert niet.
+3. **Interpretatiekeuzes** horen bij het werkgebied en worden gekoppeld aan regels, gevallen, markeringen en begrippen.
+4. **Beleidsregels** staan in dezelfde lijst, met het brontype zichtbaar en de status `geaccordeerd_als_beleidsregel`.
+5. **De soort van een begrip** (bedrag, aantal, datum, ja of nee) komt later, na een besluit over P15. De
+   eenduidigheidstoets wacht daarop.
+6. **Termijnen als eerste bestand**: R1–R8 worden op acceptatie geïmporteerd na R1 en R3 van het bouwplan, met R8 als
+   beslisregel en het termijnregime als tussenregel als de jurist dat wil. De wijziging op acceptatie zelf vraagt
+   op het moment van uitvoeren nog een akkoord.
 
 Al beslist door de methode (#1760, #1766): operatoren, tussenresultaten, de grondslag en R8.
 
