@@ -43,6 +43,16 @@ def _impliciet_stand(i: dict) -> str:
     return hashlib.sha256(json.dumps([i["klasse"], i["label"]], ensure_ascii=False).encode()).hexdigest()[:32]
 
 
+def plek_bezet(relaties, type_: str, naar: dict, volgorde: int | None, behalve: str | None = None) -> bool:
+    """Of een andere, nog geldende relatie al op deze plek staat (zelfde type, zelfde eindpunt, zelfde volgorde). Een
+    afgewezen of vervangen relatie is historie en houdt haar plek niet bezet: anders kan een hersteld skelet zijn invoer
+    of operand niet meer op die plek leggen. Eén regel voor de jurist, de keten en heropenen."""
+    if volgorde is None:
+        return False
+    return any(x["id"] != behalve and x["type"] == type_ and x["naar"] == naar and x.get("volgorde") == volgorde
+               and x.get("lifecycle") not in (*NIET_ACTUEEL, Lifecycle.rejected.value) for x in relaties)
+
+
 async def _alle(conn, tabel) -> dict[str, dict]:
     return {r["id"]: dict(r["inhoud"]) for r in (await conn.execute(select(tabel))).mappings().all()}
 
@@ -107,12 +117,10 @@ async def leg(req: RelatieInvoer, actor: str) -> dict:
         rid = relatie_id(van, naar, req.type, req.volgorde)
         if (await conn.execute(select(db.annotatie_v2_relaties.c.id).where(db.annotatie_v2_relaties.c.id == rid))).first():
             raise HTTPException(409, {"fout": "al_vastgelegd", "melding": "Deze relatie staat er al.", "id": rid})
-        if req.volgorde is not None:
-            # Uniek per regel of operator: twee operanden op plek 1 zeggen niets over de volgorde.
-            for r in (await _alle(conn, db.annotatie_v2_relaties)).values():
-                if r["type"] == req.type and r["naar"] == naar and r.get("volgorde") == req.volgorde:
-                    raise HTTPException(409, {"fout": "volgorde_bezet",
-                                              "melding": f"Plek {req.volgorde} is bij dit eindpunt al bezet."})
+        # Uniek per regel of operator: twee operanden op plek 1 zeggen niets over de volgorde.
+        if plek_bezet((await _alle(conn, db.annotatie_v2_relaties)).values(), req.type, naar, req.volgorde):
+            raise HTTPException(409, {"fout": "volgorde_bezet",
+                                      "melding": f"Plek {req.volgorde} is bij dit eindpunt al bezet."})
         layers = await _lagen(conn)
         drager = info_van if jas_relaties.drager_kant(req.type) == "van" else info_naar
         layer = await _dragerlaag(conn, layers, drager["laag_id"], req.verwachte_revisies)
@@ -242,10 +250,7 @@ async def leg_voorstellen(conn, req, saved: list[dict], layers: dict, touched: d
         if oud is not None and oud.get("lifecycle") not in NIET_ACTUEEL:
             gelegd.append(rid)                     # gelijk voorstel blijft gelijk; een oordeel erover ook
             continue
-        if relatie["volgorde"] is not None and any(
-                x["id"] != rid and x["type"] == relatie["type"] and x["naar"] == relatie["naar"]
-                and x.get("volgorde") == relatie["volgorde"]
-                and x.get("lifecycle") not in (*NIET_ACTUEEL, Lifecycle.rejected.value) for x in bestaand.values()):
+        if plek_bezet(bestaand.values(), relatie["type"], relatie["naar"], relatie["volgorde"], behalve=rid):
             overgeslagen.append({"index": req.relaties.index(r), "type": r.type, "reden": "volgorde_bezet"})
             continue
         await raak(relatie["laag_id"])
@@ -275,13 +280,19 @@ def compact(beschreven: dict) -> dict:
     return {k: v for k, v in beschreven.items() if k not in ZWAAR}
 
 
-def _beslis_in(relatie: dict, type_: str, comment: str, elementen: dict, impliciet: dict, actor: str) -> dict:
-    """Eén besluit over een relatie, zonder transactie: de regels die los en in bulk gelden."""
+def _beslis_in(relatie: dict, type_: str, comment: str, elementen: dict, impliciet: dict, actor: str,
+               relaties=()) -> dict:
+    """Eén besluit over een relatie, zonder transactie: de regels die los en in bulk gelden. `relaties` zijn de andere
+    relaties, voor heropenen: een afgewezen relatie komt niet terug op een plek die intussen opnieuw bezet is."""
     afgewezen = relatie["lifecycle"] == Lifecycle.rejected.value
     if afgewezen and type_ not in ("heropen", "comment"):
         raise HTTPException(409, {"fout": "heropen_nodig", "melding": "Heropen de relatie voordat je erover beslist."})
     if type_ == "heropen" and relatie["lifecycle"] not in AFGEHANDELD:
         raise HTTPException(409, {"fout": "niet_afgehandeld", "melding": "Er is niets te heropenen."})
+    if (type_ == "heropen" and afgewezen
+            and plek_bezet(relaties, relatie["type"], relatie["naar"], relatie.get("volgorde"), behalve=relatie["id"])):
+        raise HTTPException(409, {"fout": "volgorde_bezet", "melding": f"Plek {relatie.get('volgorde')} is bij dit "
+                                  "eindpunt intussen door een andere relatie bezet. Wijs die eerst af."})
     if type_ == "approve":
         info_van, info_naar = _info(relatie["van"], elementen, impliciet), _info(relatie["naar"], elementen, impliciet)
         if not (info_van and info_naar and info_van["actueel"] and info_naar["actueel"]):
@@ -313,7 +324,8 @@ async def beslis(relatie_id_: str, req: RelatieBeslissing, actor: str) -> dict:
         layer = await _dragerlaag(conn, layers, row["laag_id"], req.verwachte_revisies)
         elementen = await _alle(conn, db.annotatie_v2_elementen)
         impliciet = await _alle(conn, db.annotatie_v2_impliciet)
-        relatie = _beslis_in(relatie, req.type, req.comment, elementen, impliciet, actor)
+        relatie = _beslis_in(relatie, req.type, req.comment, elementen, impliciet, actor,
+                             (await _alle(conn, db.annotatie_v2_relaties)).values())
         await conn.execute(update(db.annotatie_v2_relaties).where(
             db.annotatie_v2_relaties.c.id == relatie_id_).values(inhoud=relatie))
         await _raak(conn, layer, layer["snapshot_id"])
@@ -339,13 +351,15 @@ async def beslis_laag(laag_id: str, req: Relatiebesluiten, actor: str) -> dict:
         elementen = await _alle(conn, db.annotatie_v2_elementen)
         impliciet = await _alle(conn, db.annotatie_v2_impliciet)
         uit = []
+        alle = await _alle(conn, t)               # bijgewerkt per besluit: een heropen ziet de plekken van nu
         for b in req.besluiten:
             try:
-                relatie = _beslis_in(rows[b.relatie_id], b.type, b.comment, elementen, impliciet, actor)
+                relatie = _beslis_in(rows[b.relatie_id], b.type, b.comment, elementen, impliciet, actor, alle.values())
             except HTTPException as exc:
                 reden = exc.detail.get("melding") if isinstance(exc.detail, dict) else exc.detail
                 raise HTTPException(exc.status_code, {"fout": "besluit_geweigerd", "relatie_id": b.relatie_id,
                                                       "melding": f"Er is niets vastgelegd. {reden}"}) from exc
+            alle[b.relatie_id] = relatie
             await conn.execute(update(t).where(t.c.id == b.relatie_id).values(inhoud=relatie))
             uit.append({"id": b.relatie_id, "type": relatie["type"], "lifecycle": relatie["lifecycle"]})
         await _raak(conn, layer, layer["snapshot_id"])

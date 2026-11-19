@@ -68,8 +68,10 @@ export function kiesToestand(toestanden: Toestand[], peildatum?: string): Toesta
 }
 
 /** Het einde van het element dat op `begin` opent. Diepte telt mee: `lid` en `lidnr` zijn verschillend. */
+const regex = (naam: string): string => naam.replace(/[.]/g, "\\.");
+
 function eindeVan(xml: string, begin: number, naam: string): number {
-  const tag = new RegExp(`<(/?)${naam}(?=[\\s/>])[^>]*?(/?)>`, "g");
+  const tag = new RegExp(`<(/?)${regex(naam)}(?=[\\s/>])[^>]*?(/?)>`, "g");
   tag.lastIndex = begin;
   let diepte = 0;
   for (let m = tag.exec(xml); m; m = tag.exec(xml)) {
@@ -82,7 +84,7 @@ function eindeVan(xml: string, begin: number, naam: string): number {
 
 /** De elementen `naam` op het hoogste niveau: een artikel dat in een ander artikel is geciteerd telt niet mee. */
 function elementen(xml: string, naam: string): string[] {
-  const open = new RegExp(`<${naam}(?=[\\s/>])`, "g");
+  const open = new RegExp(`<${regex(naam)}(?=[\\s/>])`, "g");
   const uit: string[] = [];
   for (let m = open.exec(xml); m; m = open.exec(xml)) {
     const einde = eindeVan(xml, m.index, naam);
@@ -130,11 +132,33 @@ function treffer(xml: string, lid?: string): BronTreffer {
   };
 }
 
-/** Zoek één artikel (en eventueel één lid) in een toestand. Een nummer kan vaker voorkomen, bijvoorbeeld in een bijlage. */
+/** De structuurelementen zonder artikelen: een beleidsregel als de Leidraad Invordering deelt in `circulaire.divisie`
+ * (genest: 9 › 9.5), andere regelingen in `divisie`. */
+const DIVISIES = ["divisie", "circulaire.divisie"];
+
+/** Alle divisies met dit nummer, op elke diepte: het nummer staat in hun eigen `kop`, het eerste `nr`. */
+function zoekDivisie(toestand: string, gevraagd: string): string[] {
+  const uit: string[] = [];
+  for (const naam of DIVISIES) {
+    const open = new RegExp(`<${regex(naam)}(?=[\\s/>])`, "g");
+    for (let m = open.exec(toestand); m; m = open.exec(toestand)) {
+      const deel = toestand.slice(m.index, eindeVan(toestand, m.index, naam));
+      if (eerste(deel, "nr") === gevraagd) uit.push(deel);
+    }
+  }
+  return uit;
+}
+
+/** Zoek één artikel (en eventueel één lid) in een toestand. Een nummer kan vaker voorkomen, bijvoorbeeld in een bijlage.
+ * Heeft de regeling geen artikel met dat nummer, dan een divisie (een onderdeel van een beleidsregel, zoals 9.5). */
 export function zoekArtikel(toestand: string, artikel: string, lid?: string): BronTreffer[] {
   const gevraagd = nummer(artikel);
   const artikelen = elementen(toestand, "artikel").filter((a) => eerste(a, "nr") === gevraagd);
-  if (artikelen.length === 0) throw new Error(`Artikel ${artikel} staat niet in deze toestand.`);
+  if (artikelen.length === 0) {
+    const divisies = lid ? [] : zoekDivisie(toestand, gevraagd);
+    if (divisies.length) return divisies.map((d) => treffer(d));
+    throw new Error(`Artikel of divisie ${artikel} staat niet in deze toestand.`);
+  }
   if (!lid) return artikelen.map((a) => treffer(a));
   const uit = artikelen.flatMap((a) =>
     elementen(a, "lid")

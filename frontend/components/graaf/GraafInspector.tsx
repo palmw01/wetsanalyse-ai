@@ -20,6 +20,7 @@ import { WettekstBlok } from "@/components/wettekst/WettekstBlok";
 import type { DetailStand } from "./useKnoopDetail";
 import { knopKlasse } from "@/components/ui/Button";
 import { StatusLabel } from "@/components/ui/Lijst";
+import { geldtVoor, waardeUitFormule } from "@/lib/geldigheid";
 
 const ICOON = "focus-ring flex h-8 w-8 items-center justify-center rounded-knop text-muted hover:bg-surface hover:text-ink coarse:h-11 coarse:w-11";
 const TEKSTKNOP = "focus-ring rounded px-1 py-1 text-xs text-lint underline-offset-2 hover:underline coarse:min-h-11";
@@ -33,10 +34,6 @@ const ZICHTBAAR_PER_GROEP = 5;
  *
  *  Smal (zijpaneel) staat de kaart onder de graaf, met een eigen scroll, en is hij in te klappen. De
  *  aanroeper geeft hem per keuze een `key`: een nieuwe keuze begint open en bovenaan. */
-const GELDT: Record<string, string> = {
-  regeling: "geldt voor de regeling", artikel: "geldt voor dat artikel", artikel_n: "geldt voor dat artikel", lid: "geldt voor dat lid",
-  structuur: "geldt voor dat deel",
-};
 
 export function GraafInspector({ model, id, detail, info, element, ongedekt, hoofdactie, laadt, groepen, telling, doelen, smal,
   onCentreer, onSluit, onHoofdactie, vraag, onKies, doelenKop = "Dit antwoord", extra }: {
@@ -136,7 +133,8 @@ export function GraafInspector({ model, id, detail, info, element, ongedekt, hoo
           <blockquote className="mt-0.5 border-l-2 border-line pl-2 text-ink">{d.tekst}</blockquote>
           <p className="mt-0.5 text-2xs text-faint">
             <button type="button" onClick={() => onKies(d.bron_iri)} className="focus-ring rounded text-lint underline">{d.vindplaats || d.bron_iri}</button>
-            {" · "}{GELDT[d.bereik] ?? "geldt voor de regeling"}{d.formule ? ` (“${d.formule}”)` : ""}
+            {/* Dezelfde woorden als in het antwoord van Lex (`lib/geldigheid.ts`); de formule zelf als titel. */}
+            {" · "}<span title={d.formule ? `“${d.formule}”` : undefined}>{geldtVoor(d.bereik, { waarde: waardeUitFormule(d.bereik, d.formule) }) || geldtVoor("regeling")}</span>
           </p>
         </div>)}
       </div>}

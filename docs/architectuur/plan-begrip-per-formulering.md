@@ -91,16 +91,29 @@ voorstelt en wordt per stap gemeten. Fase 3 (B7–B8) vraagt een besluit of een 
 - Meting op Termijnen: per klasse het aandeel elementen met een voorstel, en de precisie van "koppel aan …"
   (jurist-oordeel). Daarna één blinde run op een tweede werkgebied.
 
-**B5 · Generieke operatorbegrippen** (skill, api, keten).
+**B5 · Operatorbegrippen bij een formulering, generiek hergebruikt** (skill, api, keten). *Bijgesteld 19 nov 2026
+naar de methode, zie `plan-lessen-e2e-termijnen.md` §0 en M-3a-1. De eerste versie zette de operatoren vooraf als
+geaccordeerde begrippen in het generieke kader, zonder passage. Dat doet de methode niet.*
 
-- Een vaste set in de skill (`operatoren.json`): en, of, niet, plus, min, maal, gedeeld door, groter dan, kleiner dan,
-  gelijk aan, ten minste, ten hoogste. Elk met een omschrijving in eigen woorden en de uitdrukkingswijzen uit M04 H2
-  *Operator* (W3C-licentie) en M01 h.4 punt 11.
-- De api zet ze idempotent in het generieke kader (ADR-006), als geaccordeerde begrippen met herkomst "methode".
-- De keten koppelt elke gemarkeerde operator via een vaste uitdrukkingstabel aan zo'n begrip; bij twijfel geel. Het
-  filter dat operatoren niet op woordgelijkheid groepeert, blijft.
-- Datumrekenen ("na", "telkens een maand later") komt hierbij als het plan afleidingsregels dat vraagt (A2). Het blijft
-  één set.
+- Een operatorbegrip ontstaat bij een **gemarkeerde operatorformulering**, net als elk ander begrip. Daarna wordt het
+  hergebruikt voor elke formulering met dezelfde betekenis. Zo maakt het boek *plus* bij "het gezamenlijke bedrag van"
+  en hergebruikt het bij "vermeerderd met" (M01 h.3 stap 3b, h.6).
+- In de skill komt een vaste lijst (`operatoren.json`): en, of, niet, plus, min, maal, gedeeld door, groter dan, kleiner
+  dan, gelijk aan, ten minste, ten hoogste. Elke operator krijgt een omschrijving in eigen woorden en de
+  uitdrukkingswijzen uit M04 H2 *Operator* (W3C-licentie) en M01 h.4 punt 11.
+  - De lijst is een **voorstel**: de naam en omschrijving die de keten voorstelt bij een formulering. Het zijn geen
+    begrippen vooraf.
+- Bij de eerste formulering in een werkgebied maakt de jurist (of Lex als voorstel) het begrip, met die passage. Het
+  begrip wordt generiek (ADR-006). Elk volgend werkgebied koppelt zijn eigen passage aan hetzelfde generieke begrip.
+  Zo houdt ook een operator zich aan "geen begrip zonder grondslag" (#1760).
+- De keten koppelt een gemarkeerde operator via de uitdrukkingstabel aan het generieke begrip als dat er al is, of
+  stelt het nieuwe begrip voor met de naam uit de lijst. Bij twijfel geel. Het filter dat operatoren niet op
+  woordgelijkheid groepeert, blijft.
+- **Datumrekenen** ("zes weken na", "telkens een maand later") is volgens de methode geen operator maar een
+  Tijdsaanduiding (M04 H2, de meest specifieke klasse gaat voor). Die krijgt een eigen begrip. Hoe de afleidingsregel
+  de bewerking opschrijft, hoort bij het ontwerp van de regel (`plan-afleidingsregels-in-lex.md`), niet bij B5.
+- Het taalpatroon van een regel ("moet berekend worden als", "is", "indien aan alle volgende voorwaarden is voldaan") is
+  geen begrip (M02 §3.5.2b).
 
 **B6 · Beperkte termen en specialisaties** (keten).
 

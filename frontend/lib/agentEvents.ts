@@ -155,6 +155,7 @@ export const parseGrounding = (v: unknown): AgentGrounding | undefined => {
   return { niveau, grounded: v.grounded !== false, cited: typeof v.cited === "number" ? v.cited : 0,
     unsupported: lijst(v.unsupported), niet_letterlijk: lijst(v.niet_letterlijk), ...(v.afgekapt === true ? { afgekapt: true } : {}),
     ...(lijst(v.onbevestigd).length ? { onbevestigd: lijst(v.onbevestigd) } : {}),
+    ...(lijst(v.interpretatie).length ? { interpretatie: lijst(v.interpretatie) } : {}),
     ...(lijst(v.vermeld).length ? { vermeld: lijst(v.vermeld) } : {}) };
 };
 

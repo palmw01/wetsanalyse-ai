@@ -100,3 +100,24 @@ test("ongeldige invoer komt niet in een url", async () => {
   await assert.rejects(new BronClient(nep).lees({ bwb_id: "x&query=y", artikel: "2" }), /bwb_id/);
   await assert.rejects(new BronClient(nep).lees({ bwb_id: "BWBR0000001", artikel: "2", peildatum: "gisteren" }), /peildatum/);
 });
+
+// De vorm van een beleidsregel zonder artikelen: geneste `circulaire.divisie` met het nummer in de eigen kop.
+const BELEIDSREGEL = `<?xml version="1.0"?><toestand><wetgeving soort="beleidsregel">
+<circulaire.divisie bwb-ng-variabel-deel="/Circulaire.divisie9"><kop><nr status="officieel">9</nr><titel>Termijnen</titel></kop>
+  <circulaire.divisie bwb-ng-variabel-deel="/Circulaire.divisie9/Circulaire.divisie9.5"><kop><nr status="officieel">9.5</nr>
+    <titel>Begrippen</titel></kop><tekst><al>Een betalingstermijn vervalt op de dag met hetzelfde nummer.</al></tekst>
+  </circulaire.divisie>
+</circulaire.divisie>
+<divisie bwb-ng-variabel-deel="/Divisie2"><kop><nr>2</nr></kop><al>Een gewone divisie.</al></divisie>
+</wetgeving></toestand>`;
+
+test("een beleidsregel zonder artikelen: de divisie met dat nummer, ook genest", () => {
+  const [d] = zoekArtikel(BELEIDSREGEL, "9.5");
+  assert.equal(d.plaats, "/Circulaire.divisie9/Circulaire.divisie9.5");
+  assert.match(d.tekst, /hetzelfde nummer/);
+  assert.doesNotMatch(d.tekst, /^Termijnen/);
+  assert.match(zoekArtikel(BELEIDSREGEL, "2")[0].tekst, /gewone divisie/);
+  // Een artikel met dat nummer gaat voor, en een lid bestaat in een divisie niet.
+  assert.match(zoekArtikel(TOESTAND, "2")[0].xml, /Artikel2/);
+  assert.throws(() => zoekArtikel(BELEIDSREGEL, "9.5", "1"), /niet in deze toestand/);
+});

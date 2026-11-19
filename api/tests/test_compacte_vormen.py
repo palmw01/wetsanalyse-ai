@@ -96,6 +96,9 @@ async def test_de_weergave_route_kent_de_lijstvorm(client, monkeypatch):
     assert r.json()["vorm"] == "lijst" and r.json()["elementen"]
     vol = (await client.get("/v1/annotatie/weergave", params={"bron_iri": ART})).json()
     assert "segmenten" in vol and "vorm" not in vol                             # de standaard verandert niet
+    skelet = (await client.get("/v1/annotatie/weergave", params={"bron_iri": ART, "vorm": "skelet"})).json()
+    assert skelet["vorm"] == "skelet" and skelet["regels"] == []                # geen afleidingsregel, geen skelet
+    assert "segmenten" not in skelet and "elementen" not in skelet
 
 
 async def test_een_wijziging_aan_een_begrip_met_vorm_stand_geeft_de_stand_zonder_koppelingen(client):

@@ -311,12 +311,13 @@ def _h_inhoudsopgave(g: GraphPort, a: dict[str, Any]) -> str:
 def _h_zoek_definitie(g: GraphPort, a: dict[str, Any]) -> str:
     limit, offset = _geheel(a.get("limit"), 25, 1, 100), _geheel(a.get("offset"), 0, 0, 100_000)
     rijen = parse_select(g.sparql(queries.zoek_definitie(
-        a["term"], a.get("bwb_id") or None, limit, offset=offset, meer=True)))
+        a["term"], a.get("bwb_id") or None, limit, offset=offset, meer=True, binnen=a.get("binnen") or None)))
     # `term` en `bwb_id` terug in het resultaat: het sjabloon zegt alleen "geen wettelijke definitie" over wat er
     # echt is gezocht, ook als een eerdere beurt op een andere term zocht (`sjablonen/begrip.py`).
     return pagina([_met_voorproef(r, _VOORPROEF_DEFINITIE) for r in rijen], tool="zoek_definitie",
                   args={**a, "limit": limit}, limit=limit, offset=offset,
-                  extra={"term": a["term"], **({"bwb_id": a["bwb_id"]} if a.get("bwb_id") else {})})
+                  extra={"term": a["term"], **({"bwb_id": a["bwb_id"]} if a.get("bwb_id") else {}),
+                         **({"binnen": a["binnen"]} if a.get("binnen") else {})})
 
 
 def _h_grondslagen(g: GraphPort, a: dict[str, Any]) -> str:
@@ -833,6 +834,8 @@ TOOLS: list[dict[str, Any]] = [
             {
                 "term": {"type": "string", "description": "Het begrip, bijv. 'bestuurder'."},
                 "bwb_id": {"type": "string", "description": "Optioneel: beperk tot één regeling."},
+                "binnen": {"type": "string", "description": "Optioneel: alleen de definities in deze bepaling (de "
+                           "node-IRI van een definitielid uit een eerdere rij), met een lege term alle begrippen ervan."},
                 "limit": {"type": "integer", "description": "Max. aantal treffers (1-100, default 25)."},
                 "offset": _OFFSET,
             },

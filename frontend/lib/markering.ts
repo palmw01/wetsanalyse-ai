@@ -73,7 +73,19 @@ export interface HastKnoop {
  *  tekens die de gebruiker meekopieert) en blijft de opmaak precies zoals het model hem bedoelde.
  *  Code-blokken slaan we over – daar is een treffer per definitie toeval.
  */
-export function markeerPassages(passages: readonly string[]) {
+/** Wat een markering zegt: een citaat dat niet letterlijk in de opgehaalde tekst staat, of een zin van de toelichting die
+ *  op niets rust dat het antwoord toont (graph-qa `grounding.interpretatie`): een interpretatie van Lex. */
+export type MarkeerSoort = "citaat" | "interpretatie";
+
+export const MARKEER_UITLEG: Record<MarkeerSoort, { titel: string; voorlezen: string }> = {
+  citaat: { titel: "Dit citaat staat niet letterlijk in de opgehaalde tekst.", voorlezen: "staat niet letterlijk in de opgehaalde tekst" },
+  interpretatie: {
+    titel: "Interpretatie van Lex: deze zin rust niet op de tekst die het antwoord toont.",
+    voorlezen: "interpretatie van Lex, rust niet op de getoonde tekst",
+  },
+};
+
+export function markeerPassages(passages: readonly string[], soort: MarkeerSoort = "citaat") {
   return () => (boom: HastKnoop) => {
     const loop = (knoop: HastKnoop): void => {
       if (!knoop.children?.length) return;
@@ -96,7 +108,7 @@ export function markeerPassages(passages: readonly string[]) {
               ? {
                   type: "element",
                   tagName: "mark",
-                  properties: { title: "Dit citaat staat niet letterlijk in de opgehaalde tekst." },
+                  properties: { title: MARKEER_UITLEG[soort].titel, dataSoort: soort },
                   children: [{ type: "text", value: deel.tekst }],
                 }
               : { type: "text", value: deel.tekst },

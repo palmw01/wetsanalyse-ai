@@ -967,7 +967,7 @@ AANHEF_TEKENS = 200
 
 
 def zoek_definitie(term: str, bwb_id: str | None = None, limit: int = 25,
-                   offset: int = 0, meer: bool = False) -> str:
+                   offset: int = 0, meer: bool = False, binnen: str | None = None) -> str:
     """Waar DEFINIEERT de wet dit begrip? – via `bwb:definieertBegrip`.
 
     De parser haalt per lid en per onderdeel op welke begrippen daar worden gedefinieerd
@@ -985,9 +985,14 @@ def zoek_definitie(term: str, bwb_id: str | None = None, limit: int = 25,
 
     `?aanhef` is de tekst boven een onderdeel ("Deze wet verstaat onder:"): daar staat voor wie de definitie
     geldt, en de rij is hier compleet genoeg dat het model het lid vaak niet meer ophaalt.
+
+    `binnen` beperkt tot de definities in één bepaling (die IRI en wat eronder hangt): de andere begrippen van
+    hetzelfde definitieartikel, die een definitie zelf kan gebruiken (`sjablonen/begrip.vooraf`).
     """
     lim = max(1, min(int(limit), 100))
     scope = f'\n  FILTER(STRSTARTS(STR(?node), "{NS}{_bwb(bwb_id)}"))' if bwb_id else ""
+    if binnen:
+        scope += f"\n  FILTER(STR(?node) = {_lit(binnen)} || STRSTARTS(STR(?node), {_lit(binnen + ':')}))"
     return PREFIXES + f"""SELECT ?node ?begrip ?tekst ?aanhef ?jci ?bwbId ?citeertitel ?nummer ?inLabel WHERE {{
   ?node bwb:definieertBegrip ?begrip .
   FILTER(CONTAINS(LCASE(STR(?begrip)), LCASE({_lit(term)}))){scope}

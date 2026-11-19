@@ -18,6 +18,7 @@ from . import bepaling_detail as bepaling_detail_mod
 from . import annotatie_v2_store as store
 from . import annotatie_v2_relaties as relaties
 from . import bestandsnaam
+from . import regelskelet
 from . import graaf as graaf_mod
 from . import knoopinfo as knoopinfo_mod
 from . import samenhang as samenhang_mod
@@ -71,11 +72,14 @@ async def capabilities(actor: str = Depends(actieve_userid)):
 
 
 @router.get("/weergave")
-async def get_weergave(doel: dict = Depends(doel_query), vorm: Literal["volledig", "lijst"] = "volledig",
+async def get_weergave(doel: dict = Depends(doel_query), vorm: Literal["volledig", "lijst", "skelet"] = "volledig",
                        actor: str = Depends(actieve_userid)):
-    """De weergave van een bepaling; `?vorm=lijst` (B-1) geeft per element alleen wat je beoordeelt, voor een agent of
-    de acceptatie-MCP. De werkplek leest de volledige vorm."""
+    """De weergave van een bepaling; `?vorm=lijst` (B-1) geeft per element alleen wat je beoordeelt, `?vorm=skelet` per
+    afleidingsregel haar skelet en wat het mist (`regelskelet.weergave`), voor een agent of de acceptatie-MCP. De
+    werkplek leest de volledige vorm."""
     view = await store.weergave(await resolve_bron(doel))
+    if vorm == "skelet":
+        return regelskelet.weergave(view)
     return store.lijst_weergave(view) if vorm == "lijst" else store.compacte_weergave(view)
 
 

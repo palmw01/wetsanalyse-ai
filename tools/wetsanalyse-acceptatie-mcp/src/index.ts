@@ -221,20 +221,24 @@ const TOOLS: ToolDef[] = [
     name: "werkgebied_lezen",
     description:
       "Het werkgebied: dossier met deelvragen, dekking, en een overzicht van de geannoteerde elementen (tellingen per " +
-      "bepaling, klasse en lifecycle) met de laatste auditregels. Met `bron_iri` de elementen van die bepaling in korte " +
-      "vorm; beoordelen doe je met weergave_lezen. `volledig: true` geeft alles zoals de api het levert (groot: na een " +
+      "bepaling, klasse en lifecycle) met de laatste auditregels. Met `bron_iri` alleen de elementen van die bepaling in " +
+      "korte vorm, zonder het dossier opnieuw; beoordelen doe je met weergave_lezen. `volledig: true` geeft alles zoals de api het levert (groot: na een " +
       "annotatie honderdduizenden tekens).",
     input: S({ werkgebied_id: z.string(), bron_iri: z.string().optional(), volledig: z.boolean().optional(), als: Als }),
     run: async (a) => {
       const wg = `/api/werkgebieden/${seg(a.werkgebied_id)}`;
-      const routes = { werkgebied: wg, dekking: `${wg}/deelvragen/dekking`, elementen: `${wg}/elementen`, audit: `${wg}/audit` };
+      // Met een bepaling vraagt de agent naar díé elementen: het dossier, de dekking en de audit kent hij al, en ze
+      // maakten elk antwoord tienduizenden tekens groter.
+      const routes: Record<string, string> = a.bron_iri && !a.volledig
+        ? { elementen: `${wg}/elementen` }
+        : { werkgebied: wg, dekking: `${wg}/deelvragen/dekking`, elementen: `${wg}/elementen`, audit: `${wg}/audit` };
       const uit = await samen(client(a.als), routes);
       if (a.volledig) return uit;
       const inv = uit.elementen as Record<string, unknown> | undefined;
       return {
         ...uit,
         elementen: inv && Array.isArray(inv.elementen) ? inventarisOverzicht(inv, a.bron_iri as string | undefined) : inv,
-        audit: auditStaart(uit.audit),
+        ...(uit.audit === undefined ? {} : { audit: auditStaart(uit.audit) }),
       };
     },
   },
@@ -243,9 +247,15 @@ const TOOLS: ToolDef[] = [
     description:
       "De annotatie van één bepaling (artikel, lid of onderdeel) als lijst: per element id, klasse, tekst, ankers, " +
       "lifecycle, herkomst en aandacht, plus de lagen met hun revisie en de relaties. Hiermee beoordeel je de annotatie " +
-      "bepaling voor bepaling; annotatie_lezen geeft één element met alles erbij.",
-    input: S({ bron_iri: z.string(), als: Als }),
-    run: (a) => client(a.als).bff("GET", `/api/annotatie/v2/weergave?bron_iri=${encodeURIComponent(String(a.bron_iri))}&vorm=lijst`),
+      "bepaling voor bepaling; annotatie_lezen geeft één element met alles erbij. Met `vorm: \"skelet\"` alleen per " +
+      "afleidingsregel haar skelet (uitvoer, invoer op volgorde, operatoren, voorwaarden, parameters, tijd, uitzonderingen) " +
+      "en wat het mist, zonder de afgewezen relaties: zo stel je een regel op zonder de hele laag te lezen.",
+    input: S({ bron_iri: z.string(), vorm: z.enum(["lijst", "skelet"]).optional(), als: Als }),
+    run: (a) =>
+      client(a.als).bff(
+        "GET",
+        `/api/annotatie/v2/weergave?bron_iri=${encodeURIComponent(String(a.bron_iri))}&vorm=${a.vorm === "skelet" ? "skelet" : "lijst"}`,
+      ),
   },
   {
     name: "annotatie_lezen",
@@ -301,7 +311,8 @@ const TOOLS: ToolDef[] = [
   {
     name: "bron_lezen",
     description:
-      "De officiële tekst van één artikel of lid uit de BWB-repository: de letterlijke XML, de tekst in dezelfde " +
+      "De officiële tekst van één artikel of lid uit de BWB-repository, of van een divisie van een beleidsregel zonder " +
+      "artikelen (Leidraad 9.5: `artikel: \"9.5\"`): de letterlijke XML, de tekst in dezelfde " +
       "volgorde, en de toestand met url. Hierop rust elke bevinding over brontekst, niet op een samenvatting. " +
       "Zonder peildatum de nieuwste toestand, dezelfde die de importer in de graaf zet.",
     input: S({

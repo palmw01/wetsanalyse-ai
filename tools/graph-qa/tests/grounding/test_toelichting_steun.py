@@ -165,3 +165,66 @@ def test_bij_een_begrip_zonder_definitie_blijft_de_correctieronde(monkeypatch):
     uit = _verify(monkeypatch, antwoord, TRACE, VRAAG)
     assert uit["grounded"] is False and any(x.startswith("toelichting zonder steun") for x in uit["beweringen"])
 
+
+
+# Acceptatie 19 nov 2026, "belastingschuldige": search_begrippen vond 9 begrippen en het antwoord toonde er 2. De woorden
+# uit de definities van de andere 7 ("betalen", "aanslagbiljet") droegen een zin die nergens stond: "…, niet wie de
+# belasting feitelijk verschuldigd is of moet betalen." De toelichting rust op wat het antwoord toont.
+
+BS_NODE = "urn:bwb:BWBR0004770:artikel:2:lid:1:o:k"
+BS_DEFINITIE = "belastingschuldige: degene te wiens naam de belastingaanslag is gesteld;"
+BS_TOELICHTING = ("Het begrip is gedefinieerd in de Invorderingswet 1990. Het gaat om de persoon op wiens naam de "
+                  "belastingaanslag is gesteld: de tenaamstelling op de aanslag bepaalt dus wie belastingschuldige is, niet wie "
+                  "de belasting feitelijk verschuldigd is of moet betalen.")
+ANDERE_BEGRIPPEN = [
+    ("aanslagbiljet", "Het geschrift waarmee een belastingaanslag aan de belastingschuldige wordt bekendgemaakt."),
+    ("bedrag van de belastingaanslag", "Het bedrag waarop een belastingaanslag is vastgesteld: positief als de "
+     "belastingschuldige het moet betalen, negatief (een uit te betalen bedrag) als het aan hem wordt uitbetaald."),
+    ("verrekening", "Het door de ontvanger tegen elkaar wegstrepen van aan de belastingschuldige uit te betalen en van hem "
+     "te innen bedragen ter zake van rijksbelastingen."),
+]
+
+
+def _bs_antwoord() -> dict:
+    vp = {"iri": BS_NODE, "label": "Artikel 2, lid 1, onderdeel k", "jci": "", "regeling": "Invorderingswet 1990"}
+    return {"sjabloon": "begrip", "versie": 1, "doelen": [vp], "blokken": [
+        {"soort": "definities", "door": "bron", "items": [{"term": "belastingschuldige", "tekst": BS_DEFINITIE, "vindplaats": vp}]},
+        {"soort": "begrippen", "door": "bron", "items": [{"id": "b1", "naam": "belastingschuldige", "status": "geaccordeerd",
+                                                          "definitie": "degene te wiens naam de belastingaanslag is gesteld"}]},
+        _toelichting(BS_TOELICHTING)]}
+
+
+def _bs_trace() -> list:
+    rijen = [{"id": "b1", "naam": "belastingschuldige", "definitie": "degene te wiens naam de belastingaanslag is gesteld"},
+             *({"id": f"x{i}", "naam": n, "definitie": d} for i, (n, d) in enumerate(ANDERE_BEGRIPPEN))]
+    return [("zoek_definitie", json.dumps({"status": "ok", "volledig": True, "aantal": 1, "term": "belastingschuldige",
+                                           "resultaten": [{"node": BS_NODE, "begrip": "belastingschuldige", "tekst": BS_DEFINITIE,
+                                                          "citeertitel": "Invorderingswet 1990"}]})),
+            ("search_begrippen", json.dumps({"status": "ok", "volledig": True, "aantal": len(rijen), "resultaten": rijen}))]
+
+
+def test_de_steun_is_wat_het_antwoord_toont():
+    from agent.gelezen import getoonde_tekst, zinnen_zonder_steun
+
+    vraag = "Wat betekent het begrip 'belastingschuldige'?"
+    assert zinnen_zonder_steun(BS_TOELICHTING, gelezen_tekst(_bs_trace()), vraag) == [], \
+        "met de niet-getoonde begrippen erbij viel de zin erdoor"
+    steun = getoonde_tekst(_bs_antwoord())
+    assert "aanslagbiljet" not in steun and BS_DEFINITIE in steun
+    [zin] = zinnen_zonder_steun(BS_TOELICHTING, steun, vraag)
+    assert zin.endswith("of moet betalen."), "de hele zin, zoals Lex hem schreef"
+
+
+def test_een_leemte_is_geen_steun():
+    from agent.gelezen import getoonde_tekst
+
+    assert getoonde_tekst({"blokken": [{"soort": "leemte", "door": "bron", "tekst": "Geen wettelijke definitie."},
+                                       _toelichting("x")]}) == ""
+    assert getoonde_tekst(None) is None
+
+
+def test_de_zin_komt_als_interpretatie_in_het_oordeel(monkeypatch):
+    uit = _verify(monkeypatch, _bs_antwoord(), _bs_trace(), "Wat betekent het begrip 'belastingschuldige'?")
+    assert uit["grounded"] is True, "bij een definitie een signaal, geen correctieronde"
+    [zin] = uit["interpretatie"]
+    assert zin in BS_TOELICHTING and "feitelijk verschuldigd" in zin

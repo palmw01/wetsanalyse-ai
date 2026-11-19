@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { markeerPassages, splitsOpPassages, type HastKnoop } from "./markering";
+import { MARKEER_UITLEG, markeerPassages, splitsOpPassages, type HastKnoop } from "./markering";
 
 const zin = "De ontvanger zegt: “Hoofdelijk aansprakelijk is de bestuurder.” Zo staat het.";
 
@@ -103,5 +103,16 @@ describe("markeerPassages", () => {
     const boom = el("root", el("p", tekst("“wordt "), el("strong", tekst("vermoed")), tekst(" dat”")));
     markeerPassages(["wordt "])()(boom);
     expect(alleTekst(boom)).toBe("“wordt vermoed dat”");
+  });
+
+  it("draagt de soort: een interpretatie van Lex is iets anders dan een afgekeurd citaat", () => {
+    const zin = "Degene op wiens naam de aanslag staat, is de belastingschuldige, ongeacht wie er economisch belang bij heeft.";
+    const boom = el("root", el("p", tekst(`De wet koppelt het begrip aan de tenaamstelling. ${zin}`)));
+    markeerPassages([zin], "interpretatie")()(boom);
+    const [mark] = (boom.children?.[0].children ?? []).filter((k) => k.tagName === "mark");
+    expect(mark.properties).toEqual({ title: MARKEER_UITLEG.interpretatie.titel, dataSoort: "interpretatie" });
+    const citaat = el("root", el("p", tekst("“x y”")));
+    markeerPassages(["x y"])()(citaat);
+    expect(citaat.children?.[0].children?.[1].properties?.dataSoort).toBe("citaat");
   });
 });

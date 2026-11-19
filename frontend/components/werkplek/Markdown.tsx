@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CitatieChip } from "@/components/werkplek/CitatieChip";
 import { markeerCitaties } from "@/lib/citaties";
-import { markeerPassages } from "@/lib/markering";
+import { MARKEER_UITLEG, markeerPassages, type MarkeerSoort } from "@/lib/markering";
 import type { Bron } from "@/lib/types";
 import { bronHref } from "@/lib/url";
 import { zonderEmoji } from "@/lib/zonderEmoji";
@@ -48,6 +48,7 @@ function lijstnummer(tekst: string, begin: number | undefined): number | undefin
 export const Markdown = memo(function Markdown({
   tekst,
   nietLetterlijk,
+  interpretatie,
   bronnen,
   links = "bron",
 }: {
@@ -55,13 +56,17 @@ export const Markdown = memo(function Markdown({
   tekst: string;
   /** Passages die de brongetrouwheidscontrole afkeurde (`grounding.niet_letterlijk`). */
   nietLetterlijk?: readonly string[];
+  /** Zinnen die op niets rusten dat het antwoord toont (`grounding.interpretatie`): gemarkeerd als interpretatie van Lex. */
+  interpretatie?: readonly string[];
   /** De bronnen van de beurt: een vindplaats die er éénduidig bij hoort wordt een citatie-chip. */
   bronnen?: readonly Bron[];
   links?: "bron" | "vrij";
 }) {
   const weergave = links === "bron" ? zonderEmoji(tekst) : tekst;
   const teMarkeren = nietLetterlijk?.length ? nietLetterlijk : null;
-  const plugins = [...(teMarkeren ? [markeerPassages(teMarkeren)] : []), ...(bronnen?.length ? [markeerCitaties(bronnen)] : [])];
+  const plugins = [...(teMarkeren ? [markeerPassages(teMarkeren)] : []),
+    ...(interpretatie?.length ? [markeerPassages(interpretatie, "interpretatie")] : []),
+    ...(bronnen?.length ? [markeerCitaties(bronnen)] : [])];
   return (
     <div className={`space-y-3 ${TEKST_CLASS}`}>
       <ReactMarkdown
@@ -94,15 +99,20 @@ export const Markdown = memo(function Markdown({
           // de aandacht-tint uit de huisstijl – dezelfde betekenis als op een reviewkaart: kijk hier
           // even naar. De stippellijn draagt het signaal óók zonder kleur, en de sr-only tekst zegt
           // het voor wie het niet ziet; kleur alleen zou het voor een deel van de lezers wegvallen.
-          mark: ({ children, title }) => (
-            <mark
-              title={typeof title === "string" ? title : undefined}
-              className="rounded-sm bg-aandacht-geel-bg px-0.5 text-aandacht-geel-tekst underline decoration-aandacht-geel-rand decoration-dotted underline-offset-2"
-            >
-              {children}
-              <span className="sr-only"> (staat niet letterlijk in de opgehaalde tekst)</span>
-            </mark>
-          ),
+          // Ook gezet voor een zin van de toelichting zonder steun in wat het antwoord toont: een interpretatie van Lex.
+          mark: ({ children, title, ...props }) => {
+            const soort: MarkeerSoort = (props as Record<string, unknown>)["data-soort"] === "interpretatie" ? "interpretatie" : "citaat";
+            return (
+              <mark
+                title={typeof title === "string" ? title : MARKEER_UITLEG[soort].titel}
+                data-soort={soort}
+                className="rounded-sm bg-aandacht-geel-bg px-0.5 text-aandacht-geel-tekst underline decoration-aandacht-geel-rand decoration-dotted underline-offset-2"
+              >
+                {children}
+                <span className="sr-only"> ({MARKEER_UITLEG[soort].voorlezen})</span>
+              </mark>
+            );
+          },
           // Alleen gezet door `markeerCitaties`: een vindplaats die bij een bron van de beurt hoort.
           cite: ({ children, ...props }) => {
             const data = props as Record<string, unknown>;

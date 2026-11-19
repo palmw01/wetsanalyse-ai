@@ -22,7 +22,7 @@ from bronmodel.antwoord import Vindplaats
 from bronmodel.vindplaats import vindplaats as bron_vindplaats
 from fastapi import HTTPException
 
-from . import (annotatie_v2_relaties, diagram, annotatie_v2_store, begrip_relatie_store, jas_relaties, begrip_store, begrippen_run_store, bronselectie, db, markdown_opmaak,
+from . import (annotatie_v2_relaties, regelskelet, diagram, annotatie_v2_store, begrip_relatie_store, jas_relaties, begrip_store, begrippen_run_store, bronselectie, db, markdown_opmaak,
                pdf_opmaak, werkgebied_store)
 from .annotatie_export import herkomst_regels
 from .annotatie_v2_contracts import BEOORDEELD
@@ -302,41 +302,16 @@ def _per_bepaling(relaties: list[dict], plek: Plek, nodes: dict[str, dict]) -> d
 
 
 def _regelskelet(regel_id: str, eigen_iri: str, relaties: list[dict], plek: Plek, nodes: dict[str, dict]) -> Regelskelet:
-    """De opbouw van één afleidingsregel uit haar relaties: uitvoer, invoer op volgorde, operatoren met hun operanden,
-    voorwaarden, parameters met hun waarde, tijd, uitzonderingen en toepassing."""
+    """De opbouw van één afleidingsregel uit haar relaties (`regelskelet.opbouw`, gedeeld met de weergave), met elk
+    eindpunt zoals het rapport het toont."""
     def deel(r: dict, kant: str, inkomend: bool = False) -> Skeletdeel:
         return Skeletdeel(eind=_relatie_eind(r[kant], eigen_iri, plek, nodes), volgorde=r.get("volgorde"), inkomend=inkomend,
                           lifecycle=r["lifecycle"], veranderd=bool(r.get("veranderd")))
-
-    def is_(ep: dict, id_: str) -> bool:
-        return ep["soort"] == "element" and ep["id"] == id_
-
-    def op_volgorde(lijst: list[dict]) -> list[dict]:
-        return sorted(lijst, key=lambda r: (r.get("volgorde") is None, r.get("volgorde") or 0, r["id"]))
-
-    def van_type(code: str) -> list[dict]:
-        return [r for r in relaties if r["type"] == code]
-    invoer = op_volgorde([r for r in van_type("invoer") if is_(r["naar"], regel_id)])
-    operatoren = [r for r in van_type("operator_in") if is_(r["naar"], regel_id) and r["van"]["soort"] == "element"]
-    operanden = {o["van"]["id"]: op_volgorde([r for r in van_type("operand") if is_(r["naar"], o["van"]["id"])]) for o in operatoren}
-    parameters: dict[str, dict] = {}
-    for r in [*invoer, *(x for o in operatoren for x in operanden[o["van"]["id"]])]:
-        if r["van"]["soort"] == "element" and r["van"].get("klasse") == "Parameter en parameterwaarde":
-            parameters.setdefault(r["van"]["id"], r)
-
-    def beide(code: str) -> list[Skeletdeel]:
-        return [deel(r, "naar") if is_(r["van"], regel_id) else deel(r, "van", inkomend=True)
-                for r in van_type(code) if is_(r["van"], regel_id) or is_(r["naar"], regel_id)]
+    k = regelskelet.opbouw(regel_id, relaties, deel)
     return Regelskelet(
-        uitvoer=[deel(r, "naar") for r in van_type("uitvoer") if is_(r["van"], regel_id)],
-        invoer=[deel(r, "van") for r in invoer],
-        operatoren=[SkeletOperator(operator=deel(o, "van"), operanden=[deel(r, "van") for r in operanden[o["van"]["id"]]]) for o in operatoren],
-        voorwaarden=[deel(r, "naar") for r in van_type("voorwaarde") if is_(r["van"], regel_id)],
-        parameters=[SkeletParameter(parameter=deel(r, "van"),
-                                    waarden=[deel(w, "van") for w in van_type("waarde") if is_(w["naar"], pid)])
-                    for pid, r in parameters.items()],
-        tijd=[deel(r, "naar") for r in van_type("tijd") if is_(r["van"], regel_id)],
-        uitzonderingen=beide("uitzondering_op"), toepassing=beide("toepassing"))
+        **{veld: k[veld] for veld in ("uitvoer", "invoer", "voorwaarden", "tijd", "uitzonderingen", "toepassing")},
+        operatoren=[SkeletOperator(**o) for o in k["operatoren"]],
+        parameters=[SkeletParameter(**p) for p in k["parameters"]])
 
 
 def _graaf(data: dict) -> dict:
@@ -535,7 +510,7 @@ def _passage(k: dict, elementen: dict[str, dict], nodes: dict[str, dict]) -> Pas
 def _begrip(b: dict, data: dict, elementen: dict[str, dict], nodes: dict[str, dict], redenen: dict[str, str]) -> Begrip:
     i = b["inhoud"]
     o = b.get("definitie_onderbouwing") or {}
-    volgorde = ("duiding", "definitie", "context")
+    volgorde = ("duiding", "afgeleid", "definitie", "context")
     koppelingen = sorted(b["koppelingen"], key=lambda k: volgorde.index(k["rol"]) if k["rol"] in volgorde else 9)
     return Begrip(
         id=b["id"], naam=i["naam"], status=b["status"], generiek=b.get("kader") == "generiek", alternatieve_termen=i.get("alternatieve_termen") or [],
