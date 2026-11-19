@@ -25,6 +25,7 @@ from ..berichten import (CORRECTIE, _parse_final, _schoon_messages, _trim_messag
                          eerste_deel_ingekort, hervatting_van, met_beurtcontext, toolresultaten, venster_telling)
 from ..bronregister import bij, controletrace
 from ..focus import genoemd_in_antwoord, na_antwoord
+from ..gelezen import STEUN_MELDING
 from ..grounding import alleen_gelezen_extern, alleen_gelezen_wettekst, check_grounding, curate_sources, herstel_citaten, live_niet_letterlijk
 from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk, zonder_aanloop
 from ..spoorbronnen import weigerregel
@@ -1000,6 +1001,17 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     # Een subagent die geen ronde meer heeft, krijgt geen correctieronde: die kan er niet komen, en de code sloot hem dan af
     # en gooide zijn rapport weg (meting bundel 118, D01: een rapport `klaar`, een correctie, en een leeg rapport naar de
     # centrale agent). Wat de controle vond, gaat met het rapport mee (`onbevestigd`, `subagent.rapport_tekst`).
+    # Toont de werkplek de wettekst al naast de toelichting (een wettelijke definitie, een bepaling), dan is een zin zonder
+    # steun een signaal en geen reden voor een correctieronde: daar is de toelichting een parafrase van die tekst, en in
+    # meting 2 na #1756 waren beide correcties daar vals alarm (inlener, verhaalsconstructie: +1 à 2 rondes, +5–8 s). Bij
+    # een begrip zonder definitie blijft de correctieronde (derdenbeslag: uitleg uit eigen kennis).
+    if report.beweringen and _steun_alleen_signaal(state):
+        signaal = [x for x in report.beweringen if x.startswith(STEUN_MELDING)]
+        if signaal:
+            report = replace(report, beweringen=[x for x in report.beweringen if x not in signaal],
+                             onbevestigd=[*report.onbevestigd, *(x for x in signaal if x not in report.onbevestigd)])
+            logger.info("grounding: steuntoets als signaal", extra={"categorie": "functioneel",
+                                                                     "run_id": state.get("run_id", ""), "aantal": len(signaal)})
     if (report.beweringen and not state.get("corrected") and b.settings.grounding_correct and not state.get("overzicht")
             and not voorbij_laatste(b, state)):
         report = replace(report, grounded=False, niveau="ongegrond")
@@ -1084,6 +1096,16 @@ def bewering_soorten(beweringen: list[str]) -> dict[str, int]:
         soort = re.split(r"[:“\"(]", b, maxsplit=1)[0].strip()[:60] or "?"
         uit[soort] = uit.get(soort, 0) + 1
     return uit
+
+
+def _steun_alleen_signaal(state: State) -> bool:
+    """Toont het sjabloon de wettekst waarop de toelichting rust al zelf: een bepaling, of een begrip met een wettelijke
+    definitie. Het bronblok `wettekst` bij een begrip zonder definitie telt niet: die bepaling gebruikt de term alleen."""
+    antwoord = state.get("antwoord") or {}
+    if antwoord.get("sjabloon") == "bepaling":
+        return True
+    return antwoord.get("sjabloon") == "begrip" and any(
+        b.get("soort") == "definities" and b.get("items") for b in antwoord.get("blokken") or [])
 
 
 def _toelichting_van_lex(state: State) -> str | None:
