@@ -356,7 +356,7 @@ async function wachtGereed(page) {
   await page.screenshot({ path: `${shots}/0a-ketting.png` });
   await zoekEnKies(page, "aanslag", "term:BWBR0004770:aanslag");
   const wet = page.getByTestId("graaf-wetbegrip");
-  assert.match(await wet.innerText(), /Wettelijk begrip[\s\S]*In deze wet wordt verstaan onder:[\s\S]*aanslag: de aanslag;[\s\S]*Artikel 2, lid 1, onderdeel m[\s\S]*geldt voor de regeling/);
+  assert.match(await wet.innerText(), /Wettelijk begrip[\s\S]*In deze wet wordt verstaan onder:[\s\S]*aanslag: de aanslag;[\s\S]*Artikel 2, lid 1, onderdeel m[\s\S]*geldt in de hele regeling/);
   await page.screenshot({ path: `${shots}/0b-begrip.png` });
   await wet.getByRole("button", { name: "Artikel 2, lid 1, onderdeel m" }).click();
   assert.equal(await gekozen(page), DEF, "de vindplaats kiest de definitiebepaling");
