@@ -277,7 +277,8 @@ def uitkomstregel(tool: str, invoer: dict[str, Any], eind: dict[str, Any], data:
     D-3: van 22 leesacties hadden er 17 een regel, en een gelezen stuk zonder iets bijzonders zweeg).
 
     - een fout: in woorden (`resultaat.REDEN_ZIN`), nooit de code;
-    - een zoekaanroep: "niets gevonden", "16 gevonden", "10 van 1.218 gevonden";
+    - een zoekaanroep: "niets gevonden", "16 gevonden", "10 van 1.218 gevonden"; met een `uitsplitsing` van de tool die
+      delen ("2 met deze naam, 7 waarin de term voorkomt");
     - zoeken binnen één stuk (`zoekt_binnen`): "kst-34002-3: 6 gevonden", "kst-34002-G: niets gevonden";
     - een gelezen stuk: "kst-33755-3 gelezen", "artikel 9, lid 1 (Invorderingswet 1990) gelezen";
     - niet alles opgehaald: "er is meer dan dit", bij een leestool "kst-33755-3 deels gelezen, er is meer dan dit";
@@ -305,6 +306,11 @@ def uitkomstregel(tool: str, invoer: dict[str, Any], eind: dict[str, Any], data:
             telling, meer = f"{_getal(aantal)} van {_getal(totaal)} gevonden", False
         else:
             telling = f"{_getal(aantal)} gevonden"
+        # Een tool die zijn treffers zelf uitsplitst (`search_begrippen`: met deze naam, en waarin de term voorkomt):
+        # de jurist leest wat er telt, niet alleen een totaal dat groter is dan wat het antwoord toont.
+        if (delen := [(n, w) for n, w in (data.get("uitsplitsing") or []) if isinstance(n, int) and n >= 0 and w]
+                ) and sum(n for n, _ in delen) == aantal:
+            telling = ", ".join(f"{_getal(n)} {w}" for n, w in delen)
         return (f"{stuk}: " if binnen and stuk else "") + telling + (", er is meer dan dit" if meer else "")
     if not leest:
         return "opgehaald" + (", er is meer dan dit" if meer else "")

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import pytest
+from bronmodel.antwoord import Antwoord
 from httpx import ASGITransport, AsyncClient
 
 BASIS = "/v1/gesprekken"
@@ -181,7 +182,10 @@ async def test_het_sjabloon_overleeft_het_opslaan(client):
         {"soort": "toelichting", "door": "lex", "kop": "Toelichting van Lex", "tekst": "Uitleg."},
     ]}
     await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "x", "antwoord": antwoord}, headers=A)
-    assert (await client.get(f"{BASIS}/{gid}", headers=A)).json()["berichten"][0]["antwoord"] == antwoord
+    # De api geeft het antwoord in de vorm van het contract terug: een veld dat de agent niet meestuurde, komt met zijn
+    # default mee. Vergelijk daarom met het model, zodat een nieuw optioneel veld in bronmodel deze test niet breekt.
+    verwacht = Antwoord.model_validate(antwoord).model_dump(mode="json")
+    assert (await client.get(f"{BASIS}/{gid}", headers=A)).json()["berichten"][0]["antwoord"] == verwacht
     fout = await client.post(f"{BASIS}/{gid}/berichten", json={"rol": "assistant", "tekst": "x", "antwoord": {"sjabloon": "begrip", "blokken": [{"soort": "tabel"}]}}, headers=A)
     assert fout.status_code == 422
 
