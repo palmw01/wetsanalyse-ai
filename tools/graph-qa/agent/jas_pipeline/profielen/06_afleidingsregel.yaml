@@ -17,7 +17,8 @@ candidate_rules:
   - {id: jas.afleiding.verhouding, status: geïmplementeerd}
   - {id: jas.afleiding.toepassingskeuze, status: geïmplementeerd}
   - {id: jas.afleiding.passieve_toewijzing, status: geïmplementeerd}
-  - {id: jas.afleiding.aantal_uit_restant, status: geïmplementeerd}
+  - {id: jas.afleiding.aantal_zoveel_als, status: geïmplementeerd}
+  - {id: jas.afleiding.verdeling, status: geïmplementeerd}
   - {id: jas.afleiding.kalenderpositie, status: geïmplementeerd}
   - {id: jas.afleiding.bedraagt, status: geïmplementeerd}
   - {id: jas.afleiding.wordt_gesteld_op, status: geïmplementeerd}
