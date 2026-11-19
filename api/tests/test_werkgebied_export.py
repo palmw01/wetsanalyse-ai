@@ -96,8 +96,8 @@ async def test_de_delen_staan_op_volgorde_met_elke_bepaling_een_keer(client):
     regels = export.regels(await _data(wg), V)
     koppen = [t for s, t in regels if s == "Heading1"]
     assert koppen == ["1. Samenvatting", "2. Leeswijzer", "3. Werkgebied", "4. Deelvragen en bronnen", "5. Analyse per bepaling",
-                      "6. Begrippen", "Bijlage A. Begripskaarten", "Bijlage B. Bronnenregister", "Bijlage C. Contextbepalingen",
-                      "Bijlage D. Samenhang", "Bijlage E. Niet meegenomen", "Bijlage F. Verantwoording"]
+                      "6. Begrippen", "Bijlage A. Begripskaarten", "Bijlage B. Begrippendiagrammen", "Bijlage C. Bronnenregister",
+                      "Bijlage D. Contextbepalingen", "Bijlage E. Samenhang", "Bijlage F. Niet meegenomen", "Bijlage G. Verantwoording"]
     assert [i for i, (s, _t) in enumerate(regels) if s == pdf_opmaak.INHOUD]
     # Lid 1 heeft een emoji vooraan: de offsets tellen codepoints, en de tekst staat letterlijk en één keer.
     assert sum(s == "Citaat" and t == "😀 Alfa Alfa" for s, t in regels) == 1
@@ -404,7 +404,7 @@ async def test_de_begrippagina_heeft_altijd_dezelfde_kopjes(client):
     wg, _ids = await _gevuld(client)
     regels = export.regels(await _data(wg), V)
     begin = [i for i, (s, _t) in enumerate(regels) if s == pdf_opmaak.BEGRIP]
-    einde = regels.index(("Heading1", "Bijlage B. Bronnenregister"))
+    einde = regels.index(("Heading1", "Bijlage B. Begrippendiagrammen"))
     kopjes = ["Definitie", "Uitleg", "Toelichting", "Voorbeelden", "Waarop de definitie rust", "Passages", "Relaties", "Nog open", "Beoordeling"]
     assert len(begin) == 2
     for van, tot in zip(begin, [*begin[1:], einde]):
@@ -619,7 +619,7 @@ async def test_markdown_en_pdf_hebben_dezelfde_inhoud(client):
     data = await _data(wg)
     tekst = _zonder_escape(export.markdown_export(data, V).decode())
     for stijl, regel in export.regels(data, V):
-        if stijl == pdf_opmaak.SPANS:                                  # geen tekst: de markeringen in het citaat erna
+        if stijl in (pdf_opmaak.SPANS, pdf_opmaak.DIAGRAM):          # geen tekst: markeringen in het citaat, een tekening
             continue
         if stijl == "Citaat" and "⁽" in tekst:                          # een gemarkeerd citaat: zonder **, haken en nummers letterlijk
             assert regel in re.sub(r"⁽[⁰¹²³⁴⁵⁶⁷⁸⁹]+⁾|[⸢⸣]", "", tekst.replace("**", "")), regel
@@ -752,7 +752,7 @@ async def test_de_leeswijzer_toont_elke_klasse_met_naam_en_de_bijlagen_hebben_le
     begin, eind = regels.index(("Heading1", "2. Leeswijzer")), regels.index(("Heading1", "3. Werkgebied"))
     assert [t for s, t in regels[begin:eind] if s.startswith(pdf_opmaak.MARKERING)] == list(JAS_KLASSEN_VOLGORDE)
     bijlagen = [t for s, t in regels if s == "Heading1" and t.startswith("Bijlage")]
-    assert bijlagen == [f"Bijlage {letter}. {naam}" for letter, naam in zip("ABCDEF", BIJLAGEN, strict=True)]
+    assert bijlagen == [f"Bijlage {letter}. {naam}" for letter, naam in zip("ABCDEFG", BIJLAGEN, strict=True)]
     assert regels.index(("Heading1", "6. Begrippen")) < regels.index(("Heading1", bijlagen[0]))
 
 
@@ -827,8 +827,8 @@ async def test_verwijzingen_staan_bij_de_bepaling_en_in_de_samenhang_met_de_anke
     assert buiten.naar.label == "Algemene wet bestuursrecht – Artikel 4:89" and buiten.naar.jci == ""
     regels = rapport_regels(rapport)
     assert ("Meta", "Verwijst naar Invorderingswet 1990 – Artikel 9, lid 2 (“het tweede lid”) · in dit dossier") in regels
-    begin = regels.index(("Heading1", "Bijlage D. Samenhang"))
-    eind = regels.index(("Heading1", "Bijlage E. Niet meegenomen"))
+    begin = regels.index(("Heading1", "Bijlage E. Samenhang"))
+    eind = regels.index(("Heading1", "Bijlage F. Niet meegenomen"))
     deel = regels[begin:eind]
     assert ("Heading2", "Binnen het dossier (1)") in deel and ("Heading2", "Naar buiten het dossier (1)") in deel
     assert ("Citaat", "“artikel 4:89 van de Awb”") in deel and ("Meta", "urn:bwb:BWBR0005537:artikel:4%3A89") in deel
@@ -894,7 +894,7 @@ async def test_een_onvolledige_samenhang_zegt_dat_bij_de_lijst_en_op_het_voorbla
     rapport = export.bouw_rapport(await _data(wg), V)
     assert not rapport.wettekst.verwijzingen_volledig and "graaf_onvolledig" in [s.soort for s in rapport.voorblad.signalen]
     regels = rapport_regels(rapport)
-    deel = regels[regels.index(("Heading1", "Bijlage D. Samenhang")):regels.index(("Heading1", "Bijlage E. Niet meegenomen"))]
+    deel = regels[regels.index(("Heading1", "Bijlage E. Samenhang")):regels.index(("Heading1", "Bijlage F. Niet meegenomen"))]
     assert ("Heading2", "Binnen het dossier (minstens 1)") in deel and any(s == "Waarschuwing" and "onvolledig" in t for s, t in deel)
 
 
@@ -1249,3 +1249,72 @@ async def test_de_route_kiest_standaard_alleen_beoordeeld(client):
     met = (await client.get(f"/v1/werkgebieden/{wg['id']}/export?formaat=json&inhoud=alles")).json()
     assert (standaard["document"]["inhoud"], met["document"]["inhoud"]) == ("beoordeeld", "alles")
     assert (await client.get(f"/v1/werkgebieden/{wg['id']}/export?inhoud=soms")).status_code == 422
+
+
+async def test_een_bepaling_draagt_het_diagram_rond_haar_centrale_markering(client):
+    """Deelactiviteit 2c (Handleiding §3.4c): onder de bepaling met de afleidingsregel één diagram, met de voorwaarde en het
+    rechtsfeit uit lid 2 erin en daar dus geen eigen diagram. In de PDF een tekening, in Markdown een Mermaid-blok."""
+    wg, ids = await _regel_met_relaties(client)
+    data = await _data(wg)
+    lid1, lid2 = export.bouw_rapport(data, V).wettekst.regelingen[0].artikelen[0].bepalingen
+    [d] = lid1.diagrammen
+    assert (d.centraal, d.klasse, d.nr, d.ontbreekt) == (ids[(AR, "😀 Alfa Alfa")], AR, 1, [])
+    knopen = {k.id: k for k in d.knopen}
+    assert knopen[ids[(VW, "Beta")]].elders == "Lid 2" and knopen[ids[(VW, "Beta")]].nr == 0
+    assert ids[(RF, "eta")] in knopen and lid2.diagrammen == []
+    assert all(l.code != "uitvoer" or l.naar != ids[(TA, "a")] for l in d.lijnen)            # de afgewezen uitvoer niet
+    regels = export.regels(data, V)
+    assert ("Heading4", "Diagram rond afleidingsregel 1") in regels
+    assert sum(s == pdf_opmaak.DIAGRAM for s, _t in regels) == 1
+    md = export.markdown_export(data, V).decode()
+    assert "```mermaid\nflowchart TB" in md and "levert op" in md
+    assert export.pdf_export(data, V).startswith(b"%PDF")
+
+
+async def test_de_route_geeft_hetzelfde_diagram_als_json_en_als_svg(client):
+    """Hergebruik buiten het rapport: dezelfde buurt en hetzelfde plaatje, rond één centrale markering."""
+    _wg, ids = await _regel_met_relaties(client)
+    regel = ids[(AR, "😀 Alfa Alfa")]
+    r = await client.get("/v1/annotatie/diagram", params={"element_id": regel})
+    assert r.status_code == 200, r.text
+    d = r.json()["diagram"]
+    assert d["centraal"] == regel and d["ontbreekt"] == []
+    assert {k["id"] for k in d["knopen"]} >= {ids[(VW, "Beta")], ids[(OP, "Be")], ids[(VAR, "Alfa")]}
+    assert len(r.json()["plaatsing"]["knopen"]) == len(d["knopen"])
+    svg = await client.get("/v1/annotatie/diagram", params={"element_id": regel, "vorm": "svg"})
+    assert svg.headers["content-type"].startswith("image/svg+xml") and "levert op" in svg.text
+    geen = await client.get("/v1/annotatie/diagram", params={"element_id": ids[(VAR, "Alfa")]})
+    assert geen.status_code == 422 and geen.json()["detail"]["fout"] == "geen_centrale_klasse"
+
+
+
+async def test_de_bijlage_toont_een_diagram_met_begrippen_pas_als_elke_formulering_er_een_heeft(client):
+    """Handleiding §3.4c: zodra elke formulering van een diagram haar begrip heeft, mag hetzelfde diagram met begrippen. Een
+    voorwaarde houdt haar tekst (zij krijgt een omschrijving bij haar drager)."""
+    wg, ids = await _regel_met_relaties(client)
+    data = await _data(wg)
+    regels = export.regels(data, V)
+    begin = regels.index(("Heading1", "Bijlage B. Begrippendiagrammen"))
+    bijlage = regels[begin:regels.index(("Heading1", "Bijlage C. Bronnenregister"))]
+    assert not any(s == pdf_opmaak.DIAGRAM_BEGRIPPEN for s, _t in bijlage)
+    assert any(t.startswith("Lid 1 – rond afleidingsregel 1: nog geen begrip bij 1 · Afleidingsregel") for _s, t in bijlage)
+    # Geef elke formulering in het diagram een geaccordeerd begrip: dan staat het er wel, met de namen in de knopen.
+    rapport = export.bouw_rapport(data, V)
+    [d] = rapport.wettekst.regelingen[0].artikelen[0].bepalingen[0].diagrammen
+    for i, k in enumerate(d.knopen):
+        k.begrip = f"begrip {i}"
+    regels = rapport_regels(rapport)
+    begin = regels.index(("Heading1", "Bijlage B. Begrippendiagrammen"))
+    diagrammen = [t for s, t in regels[begin:] if s == pdf_opmaak.DIAGRAM_BEGRIPPEN]
+    assert len(diagrammen) == 1 and "begrip 0" in diagrammen[0]
+    md = markdown_opmaak.markdown(regels)
+    assert md.count("```mermaid") == 2 and "begrip 0" in md
+
+
+async def test_het_begrip_van_een_markering_komt_uit_een_dragende_koppeling_aan_een_geaccordeerd_begrip():
+    data = {"begrippen": [
+        {"status": "geaccordeerd", "inhoud": {"naam": "termijn"}, "koppelingen": [
+            {"element_id": "a", "rol": "duiding", "beoordeling": "akkoord"}, {"element_id": "b", "rol": "context", "beoordeling": "akkoord"},
+            {"element_id": "c", "rol": "duiding", "beoordeling": "afgewezen"}]},
+        {"status": "concept", "inhoud": {"naam": "concept"}, "koppelingen": [{"element_id": "d", "rol": "duiding", "beoordeling": "open"}]}]}
+    assert export._begrip_per_element(data) == {"a": "termijn"}

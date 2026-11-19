@@ -267,6 +267,37 @@ async def post_element(req: MensInvoer, actor: str = Depends(actieve_userid)):
     return {"element": store.compact_element(result["elementen"][0]), "lagen": result["lagen"]}
 
 
+@router.get("/diagram")
+async def get_diagram(element_id: str, vorm: Literal["json", "svg"] = "json",
+                      weergave: Literal["formuleringen", "begrippen"] = "formuleringen", actor: str = Depends(actieve_userid)):
+    """Het 2c-diagram rond één centrale markering (Handleiding §3.4c): hetzelfde model en dezelfde tekening als in het
+    werkgebiedrapport (`diagram`, `diagram_teken`), voor de werkplek of elke andere plek die het wil tonen. Alleen wat
+    is vastgelegd; met `vorm=json` ook de plaatsen, met `vorm=svg` het plaatje."""
+    from bronmodel.vindplaats import vindplaats as bron_vindplaats
+
+    from . import diagram as diagram_mod
+    from .diagram_teken import als_svg
+    from .jas_relaties import CENTRALE_KLASSEN
+    e = (await store.detail(element_id))["element"]
+    if e.get("klasse") not in CENTRALE_KLASSEN:
+        raise HTTPException(422, {"fout": "geen_centrale_klasse",
+                                  "melding": "Een diagram staat rond een rechtsbetrekking, rechtsfeit, afleidingsregel of voorwaarde."})
+    # Tot de diepte van het diagram: eerst de relaties van de markering, dan die van haar buren.
+    rel = await relaties.bij_elementen({element_id})
+    buren = {k["id"] for r in rel for k in (r["van"], r["naar"]) if k["soort"] == "element"} | {element_id}
+    rel = await relaties.bij_elementen(buren)
+
+    def info(kant: dict) -> dict:
+        iri = kant.get("eigenaar_iri") or (e["eigenaar_iri"] if kant["id"] == element_id else "")
+        vp = bron_vindplaats(iri) if iri else None
+        return {"waar": iri, "waar_label": vp.label if vp else iri}
+    d = diagram_mod.bouw({"id": element_id, "klasse": e["klasse"], "tekst": e.get("tekst") or "",
+                          "lifecycle": e.get("lifecycle") or ""}, rel, info)
+    if vorm == "svg":
+        return Response(als_svg(d, vorm=weergave), media_type="image/svg+xml")
+    return {"diagram": d.model_dump(), "plaatsing": diagram_mod.plaats(d, vorm=weergave).model_dump()}
+
+
 @router.delete("/elementen/{element_id}")
 async def delete_element(element_id: str, verwachte_revisie: int = Query(ge=0),
                          actor: str = Depends(actieve_userid)):

@@ -22,7 +22,7 @@ from bronmodel.antwoord import Vindplaats
 from bronmodel.vindplaats import vindplaats as bron_vindplaats
 from fastapi import HTTPException
 
-from . import (annotatie_v2_relaties, annotatie_v2_store, begrip_relatie_store, jas_relaties, begrip_store, begrippen_run_store, bronselectie, db, markdown_opmaak,
+from . import (annotatie_v2_relaties, diagram, annotatie_v2_store, begrip_relatie_store, jas_relaties, begrip_store, begrippen_run_store, bronselectie, db, markdown_opmaak,
                pdf_opmaak, werkgebied_store)
 from .annotatie_export import herkomst_regels
 from .annotatie_v2_contracts import BEOORDEELD
@@ -397,6 +397,38 @@ def _kop_van(iri: str, nodes: dict[str, dict]) -> str:
     return ""
 
 
+def _begrip_per_element(data: dict) -> dict[str, str]:
+    """Per markering de naam van het geaccordeerde begrip dat haar aanduidt (een dragende koppeling, niet afgewezen)."""
+    uit: dict[str, str] = {}
+    for b in data.get("begrippen") or []:
+        if b.get("status") != "geaccordeerd":
+            continue
+        for k in b.get("koppelingen") or []:
+            if k.get("rol") in ("duiding", "definitie") and k.get("beoordeling") != "afgewezen":
+                uit.setdefault(k["element_id"], b["inhoud"]["naam"])
+    return uit
+
+
+def _met_diagrammen(regelingen: list[Regeling], relaties: list[dict], plek: Plek, nodes: dict[str, dict],
+                    begrippen: dict[str, str] | None = None) -> None:
+    """Per bepaling de 2c-diagrammen rond haar centrale markeringen (`diagram.diagrammen`). Over het hele rapport, zodat
+    een voorwaarde in een onderdeel bij de rechtsbetrekking in haar lid hoort en niet nog een eigen diagram krijgt."""
+    bepalingen = [b for r in regelingen for a in r.artikelen for b in a.bepalingen]
+    markeringen = [{"id": m.id, "klasse": m.klasse, "tekst": m.tekst, "nr": m.nr, "lifecycle": m.lifecycle}
+                   for b in bepalingen for m in b.markeringen]
+
+    def info(kant: dict) -> dict:
+        iri, nr = plek.get(kant["id"], (kant.get("eigenaar_iri") or "", 0))
+        return {"nr": nr, "waar": iri, "waar_label": _plaatsnaam(iri, nodes) if iri else "",
+                "begrip": (begrippen or {}).get(kant["id"], "")}
+
+    per: dict[str, list[diagram.Diagram]] = {}
+    for d in diagram.diagrammen(markeringen, relaties, info):
+        per.setdefault(plek[d.centraal][0], []).append(d)
+    for b in bepalingen:
+        b.diagrammen = per.get(b.vindplaats.iri, [])
+
+
 def _regeling_titel(bwb: str, data: dict) -> str:
     for r in data["toestanden"]["regelingen"]:
         if r["bwb_id"] == bwb and r["citeertitel"] != bwb:
@@ -475,6 +507,7 @@ def _wettekst(data: dict, nodes: dict[str, dict], verklaringen: dict) -> Wetteks
             if rest:
                 context.append(a.model_copy(update={"bepalingen": rest}))
         regelingen.append(Regeling(bwb_id=bwb, titel=_regeling_titel(bwb, data), artikelen=analyse, context=context))
+    _met_diagrammen(regelingen, relaties, plek, nodes, _begrip_per_element(data))
     return Wettekst(
         markeringen=len(inv["elementen"]), beoordeeld=sum(e["lifecycle"] in BEOORDEELD for e in inv["elementen"]),
         per_klasse=[KlasseTelling(klasse="" if k == "Nog geen klasse" else k, aantal=per_klasse[k]) for k in sorted(per_klasse, key=jas_sorteersleutel)],
