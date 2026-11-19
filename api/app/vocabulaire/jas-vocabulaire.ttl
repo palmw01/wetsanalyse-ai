@@ -990,6 +990,16 @@
     skos:prefLabel "Operator in de voorwaarde of regel"@nl ;
     jas:codeWaarde "REL_OPERATOR_IN_NESTING" .
 
+<urn:jas-ns:relatieregel:REL_ROL_ONDERWERP> a jas:Relatieregel ;
+    skos:definition "Binnen een rechtsbetrekking zegt de modaliteit de rol van het onderwerp: rechthebbende bij een bevoegdheid ('kan', 'mag', 'is bevoegd'), plichthebbende bij een plicht ('moet', 'is verplicht'). Bij een rechtsfeit verricht het onderwerp het. Staan beide soorten woorden in de zin, of geen van beide, dan is er geen voorstel."@nl ;
+    skos:prefLabel "Rol van het onderwerp"@nl ;
+    jas:codeWaarde "REL_ROL_ONDERWERP" .
+
+<urn:jas-ns:relatieregel:REL_ROL_VOORZETSEL> a jas:Relatieregel ;
+    skos:definition "Een rechtssubject na 'aan', 'ten aanzien van', 'jegens' of 'tegenover' heeft de andere rol dan het onderwerp; na 'op verzoek van' is het rechthebbende van een plicht; na 'van' bij een heffing of invordering ('wordt geheven van') plichthebbende."@nl ;
+    skos:prefLabel "Tegenpartij via het voorzetsel"@nl ;
+    jas:codeWaarde "REL_ROL_VOORZETSEL" .
+
 <urn:jas-ns:relatieregel:REL_UITVOER_FUNCTIE> a jas:Relatieregel ;
     skos:definition "De afleidingsregel noemt wat er uitkomt ('zoveel termijnen als …'); de enige markering op die plek binnen de regel is haar uitvoer."@nl ;
     skos:prefLabel "Uitkomst van de berekening"@nl ;
@@ -999,6 +1009,11 @@
     skos:definition "Een voorwaardelijke bijzin ('indien', 'als', 'tenzij' …) hangt in de zinsontleding aan het hoofdpredicaat; de enige rechtsbetrekking of afleidingsregel die dat predicaat draagt, geldt onder die voorwaarde."@nl ;
     skos:prefLabel "Voorwaarde bij het hoofdpredicaat"@nl ;
     jas:codeWaarde "REL_VOORWAARDE_AANHECHTING" .
+
+<urn:jas-ns:relatieregel:REL_VOORWERP_ZINSDEEL> a jas:Relatieregel ;
+    skos:definition "Het rechtsobject dat het lijdend voorwerp draagt, of in een lijdende of naamwoordelijke zin het onderwerp ('Winstaandeel wordt geheven', 'is een aanslag invorderbaar'), is het voorwerp van de rechtsbetrekking of het rechtsfeit."@nl ;
+    skos:prefLabel "Voorwerp uit het zinsdeel"@nl ;
+    jas:codeWaarde "REL_VOORWERP_ZINSDEEL" .
 
 <urn:jas-ns:relatieregel:REL_WAARDE_NESTING> a jas:Relatieregel ;
     skos:definition "Een parameter- of variabelewaarde staat binnen een parameter, een variabele of een termijn die een parameter verbijzondert; de binnenste is de grootheid waarvan ze de waarde is."@nl ;
@@ -1507,5 +1522,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "348417810de3" .
+    jas:vocabulaireVersie "60c4604966e7" .
 

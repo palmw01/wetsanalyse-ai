@@ -20,9 +20,23 @@ Vier regels, in de volgorde van ADR-011, elk met een eigen code (verklaard in `v
    voorwaardelijk `mark`) aan het hoofdpredicaat (`root`) hangt aan de enige rechtsbetrekking of afleidingsregel die dat
    predicaat draagt.
 
+5. **Rollen via onderwerp en modaliteit** (`REL_ROL_ONDERWERP`, ADR-011 stap 7): binnen een rechtsbetrekking zegt de
+   modaliteit wie het onderwerp is – rechthebbende bij een bevoegdheid ("kan", "mag", "is bevoegd"), plichthebbende
+   bij een plicht ("moet", "is verplicht"). Het onderwerp is het rechtssubject dat het `nsubj`-token draagt. Een
+   rechtsfeit: wie het onderwerp is, verricht het. Een zin met beide soorten woorden is twijfel.
+6. **De tegenpartij via het voorzetsel** (`REL_ROL_VOORZETSEL`): een rechtssubject na "aan", "ten aanzien van",
+   "jegens" of "tegenover" heeft de andere rol dan het onderwerp; na "op verzoek van" is het rechthebbende van een
+   plicht; na "van" bij een heffing of invordering ("wordt geheven van") plichthebbende.
+7. **Het voorwerp** (`REL_VOORWERP_ZINSDEEL`): het rechtsobject dat het lijdend voorwerp (`obj`) draagt, of in een
+   lijdende of naamwoordelijke zin het onderwerp ("Winstaandeel wordt geheven", "is een aanslag invorderbaar"),
+   met wat daarmee is nevengeschikt.
+
+Wat in een voorwaarde binnen de rechtsbetrekking staat, telt voor de regels 5 tot en met 7 niet mee: dat is het
+onderwerp van de voorwaarde, niet van de betrekking.
+
 Overal geldt: **bij twijfel geen voorstel.** Twee even goede kandidaten voor één plek, een gedegradeerde parse, een
 eindpunt zonder klasse: dan komt er niets. En elk voorstel moet door de catalogus (`jas_relaties.toegestaan`: klassen,
-richting, subtype), dezelfde regels die de api daarna nog eens toetst. Kenmerk, tijd en rollen doet deze module niet.
+richting, subtype), dezelfde regels die de api daarna nog eens toetst. Kenmerk en tijd doet deze module niet.
 
 Deterministisch: dezelfde invoer geeft dezelfde lijst, in dezelfde volgorde.
 """
@@ -39,7 +53,7 @@ from .fusie import Fusie
 from .kandidaten import Candidate
 from .taal import LinguisticAnalysis
 
-VERSIE = "1"
+VERSIE = "2"
 
 REL_UITVOER_FUNCTIE = "REL_UITVOER_FUNCTIE"
 REL_INVOER_FUNCTIE = "REL_INVOER_FUNCTIE"
@@ -47,11 +61,16 @@ REL_WAARDE_NESTING = "REL_WAARDE_NESTING"
 REL_OPERATOR_IN_NESTING = "REL_OPERATOR_IN_NESTING"
 REL_OPERAND_WOORDVOLGORDE = "REL_OPERAND_WOORDVOLGORDE"
 REL_VOORWAARDE_AANHECHTING = "REL_VOORWAARDE_AANHECHTING"
+REL_ROL_ONDERWERP = "REL_ROL_ONDERWERP"
+REL_ROL_VOORZETSEL = "REL_ROL_VOORZETSEL"
+REL_VOORWERP_ZINSDEEL = "REL_VOORWERP_ZINSDEEL"
 #: Alle codes die deze module kan uitgeven; `tests/test_verklaringen.py` eist voor elk een verklaring.
 CODES = (REL_UITVOER_FUNCTIE, REL_INVOER_FUNCTIE, REL_WAARDE_NESTING, REL_OPERATOR_IN_NESTING,
-         REL_OPERAND_WOORDVOLGORDE, REL_VOORWAARDE_AANHECHTING)
+         REL_OPERAND_WOORDVOLGORDE, REL_VOORWAARDE_AANHECHTING, REL_ROL_ONDERWERP, REL_ROL_VOORZETSEL,
+         REL_VOORWERP_ZINSDEEL)
 
-AR, VW, OP, RB = "Afleidingsregel", "Voorwaarde", "Operator", "Rechtsbetrekking"
+AR, VW, OP, RB, RF = "Afleidingsregel", "Voorwaarde", "Operator", "Rechtsbetrekking", "Rechtsfeit"
+RS, RO = "Rechtssubject", "Rechtsobject"
 VAR, PAR, TIJD = "Variabele en variabelewaarde", "Parameter en parameterwaarde", "Tijdsaanduiding"
 #: De bewijscodes van de functiedetector die een uitkomst- en een invoerspan noemen (`detectoren/functies.py`).
 _FUNCTIE_SPANS = frozenset({"CALCULATION_QUANTITY"})
@@ -266,12 +285,106 @@ def _voorwaarde(els: list[_El], analyses: Mapping[str, LinguisticAnalysis | None
     return uit
 
 
+# --- 5–7. rollen en voorwerp (ADR-011 stap 7: een lexicon van predicaten) ------------------------------------------
+
+#: Lemma's die een bevoegdheid of recht maken van de betrekking: het onderwerp is rechthebbende.
+RECHT = frozenset({"kunnen", "mogen", "bevoegd", "gerechtigd", "aanspraak", "recht"})
+#: Lemma's die een plicht maken van de betrekking: het onderwerp is plichthebbende.
+PLICHT = frozenset({"moeten", "verplichten", "verplicht", "gehouden", "dienen", "verschuldigd"})
+#: Woorden vlak voor een rechtssubject die de tegenpartij aanwijzen: de andere rol dan het onderwerp.
+TEGENPARTIJ = ("ten aanzien van", "tegenover", "jegens", "aan")
+#: Werkwoorden (deelwoord) waarbij "van X" de plichtige noemt: "wordt geheven van de houder".
+HEFFEN = ("geheven", "ingevorderd", "geïnd", "gevorderd")
+
+
+def _woorden(tekst: str) -> str:
+    return " ".join(tekst.lower().split())
+
+
+def _modaliteit(drager: _El, a: LinguisticAnalysis, uitgezonderd: list[_El]) -> str | None:
+    """`recht`, `plicht` of None (geen van beide, of beide: twijfel), uit de lemma's binnen de drager buiten de voorwaarden."""
+    lemmas = {t.lemma.lower() for t in a.tokens if drager.start <= t.start and t.eind <= drager.eind
+              and not any(u.start <= t.start and t.eind <= u.eind for u in uitgezonderd)}
+    recht, plicht = bool(lemmas & RECHT), bool(lemmas & PLICHT)
+    return "recht" if recht and not plicht else "plicht" if plicht and not recht else None
+
+
+def _drager_van(token, kandidaten: list[_El]) -> _El | None:
+    """De kleinste markering die het token draagt; twee even kleine is twijfel."""
+    return _binnenste([k for k in kandidaten if k.start <= token.start and token.eind <= k.eind])
+
+
+def _voor(tekst: str, el: _El, drager: _El, woorden: tuple[str, ...]) -> str | None:
+    """Welk van `woorden` vlak vóór de markering staat, binnen de drager (op woordgrens)."""
+    voor = _woorden(tekst[drager.start:el.start])
+    return next((w for w in woorden if voor == w or voor.endswith(" " + w)), None)
+
+
+def _rollen(els: list[_El], analyses: Mapping[str, LinguisticAnalysis | None]) -> list[dict[str, Any]]:
+    uit = []
+    for drager in (e for e in els if e.klasse in (RB, RF)):
+        a = analyses.get(drager.bron_iri)
+        if a is None or a.gedegradeerd:
+            continue
+        binnen = [x for x in els if drager.bevat(x) and x.bron_iri == drager.bron_iri]
+        voorwaarden = [x for x in binnen if x.klasse == VW]
+        binnen = [x for x in binnen if not any(v.bevat(x) or v.id == x.id for v in voorwaarden)]
+        subjecten = [x for x in binnen if x.klasse == RS]
+        objecten = [x for x in binnen if x.klasse == RO]
+        tokens = [t for t in a.tokens if drager.start <= t.start and t.eind <= drager.eind
+                  and not any(v.start <= t.start and t.eind <= v.eind for v in voorwaarden)]
+        modaliteit = _modaliteit(drager, a, voorwaarden) if drager.klasse == RB else None
+        tekst = a.tekst
+        # 5. Het onderwerp.
+        onderwerp = _enige(list({d.id: d for t in tokens if t.deprel == "nsubj"
+                                 and (d := _drager_van(t, subjecten)) is not None}.values()))
+        rol_onderwerp = ("verricht" if drager.klasse == RF else
+                         "rechthebbende" if modaliteit == "recht" else "plichthebbende" if modaliteit == "plicht" else None)
+        if onderwerp is not None and rol_onderwerp and _past(rol_onderwerp, onderwerp, drager):
+            uit.append(_voorstel(rol_onderwerp, onderwerp, drager, REL_ROL_ONDERWERP, modaliteit=modaliteit or "feit"))
+        # 6. De tegenpartij en de plichtige van een heffing.
+        if drager.klasse == RB:
+            heffing = any(w in _woorden(tekst[drager.start:drager.eind]).split() for w in HEFFEN)
+            for s in subjecten:
+                if onderwerp is not None and s.id == onderwerp.id:
+                    continue
+                rol = None
+                if _voor(tekst, s, drager, ("op verzoek van",)) and modaliteit == "plicht":
+                    rol = "rechthebbende"
+                elif _voor(tekst, s, drager, TEGENPARTIJ) and modaliteit:
+                    rol = "plichthebbende" if modaliteit == "recht" else "rechthebbende"
+                elif heffing and _voor(tekst, s, drager, ("van",)):
+                    rol = "plichthebbende"
+                if rol and _past(rol, s, drager):
+                    uit.append(_voorstel(rol, s, drager, REL_ROL_VOORZETSEL,
+                                         voorzetsel=_voor(tekst, s, drager, ("op verzoek van", *TEGENPARTIJ, "van")) or ""))
+        # 7. Het voorwerp: het lijdend voorwerp, of het onderwerp van een lijdende of naamwoordelijke zin.
+        lijdend = {t.i for t in tokens if t.deprel == "obj"}
+        lijdend |= {t.i for t in tokens if t.deprel == "nsubj:pass"}
+        if drager.klasse == RB and not subjecten:
+            # Een naamwoordelijke zin: het onderwerp van het koppelwerkwoord, of – als de ontleding het zelfstandig
+            # naamwoord tot kern maakt ("is een aanslag … invorderbaar") – die kern zelf.
+            lijdend |= {t.i for t in tokens if t.deprel == "nsubj" and t.head >= 0
+                        and any(a.tokens[k].deprel == "cop" for k in a.kinderen(t.head))}
+            lijdend |= {t.i for t in tokens if t.deprel == "root" and t.upos in ("NOUN", "PROPN")
+                        and any(a.tokens[k].deprel == "cop" for k in a.kinderen(t.i))}
+        lijdend |= {t.i for t in tokens if t.deprel == "conj" and t.head in lijdend}
+        gezien: set[str] = set()
+        for i in sorted(lijdend):
+            o = _drager_van(a.tokens[i], objecten)
+            if o is not None and o.id not in gezien and _past("voorwerp", drager, o):
+                gezien.add(o.id)
+                uit.append(_voorstel("voorwerp", drager, o, REL_VOORWERP_ZINSDEEL, zinsdeel=a.tokens[i].deprel))
+    return uit
+
+
 def stel_voor(voorstellen: list[dict[str, Any]], fusie: Fusie,
               analyses: Mapping[str, LinguisticAnalysis | None] | None = None) -> list[dict[str, Any]]:
     """De relatievoorstellen tussen `voorstellen` (de uitkomst van `keten.analyseer`), ontdubbeld en geordend."""
     els = _elementen(voorstellen, fusie)
     genest = _genest(fusie)
-    alle = [*_functie(els), *_waarde(els, genest), *_operator(els, genest), *_voorwaarde(els, analyses or {})]
+    alle = [*_functie(els), *_waarde(els, genest), *_operator(els, genest), *_voorwaarde(els, analyses or {}),
+            *_rollen(els, analyses or {})]
     uniek: dict[tuple, dict[str, Any]] = {}
     for r in alle:
         sleutel = (r["spoor"]["van_element"], r["spoor"]["naar_element"], r["type"], r["volgorde"])

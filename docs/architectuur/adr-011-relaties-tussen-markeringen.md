@@ -160,6 +160,26 @@ lijst ankers van een voorstel; de api zet die in de batch om naar het element-id
 `opnieuw` vervangt oude voorstellen zonder oordeel, zoals bij elementen. Kenmerk, tijd en rollen (stappen 5 tot en met
 7) volgen nog; een meting op een referentie ook.
 
+**Gebouwd (19 nov 2026): stap 7, de rollen en het voorwerp**, in dezelfde module en achter dezelfde vlag, zonder model.
+Drie regels met elk vier testsoorten:
+
+- `REL_ROL_ONDERWERP`: binnen een rechtsbetrekking geeft de modaliteit de rol van het onderwerp (`nsubj`). Een
+  bevoegdheid ("kan", "mag", "bevoegd") maakt het rechthebbende, een plicht ("moet", "verplicht") plichthebbende. Bij een
+  rechtsfeit verricht het onderwerp het. Een zin met beide soorten woorden, of zonder, geeft geen voorstel.
+- `REL_ROL_VOORZETSEL`: na "aan", "ten aanzien van", "jegens" of "tegenover" heeft een rechtssubject de andere rol. Na "op
+  verzoek van" is het rechthebbende van een plicht, en na "van" bij een heffing plichthebbende.
+- `REL_VOORWERP_ZINSDEEL`: het lijdend voorwerp, of in een lijdende of naamwoordelijke zin het onderwerp.
+
+Wat in een voorwaarde binnen de betrekking staat, telt niet mee. Proef op zeven bepalingen van het werkgebied Termijnen,
+met de markeringen van acceptatie en de rol-relaties die een jurist daar legde: 12 van de 16 relaties gevonden, geen
+onjuiste. Gemist zijn:
+
+- twee voorwerpen in de onderdelen van art. 24 lid 1 IW, buiten de zin van de betrekking;
+- een voorwerp in een voorzetselgroep (LI 24.3);
+- het tweede lid van een nevenschikking die de ontleding verkeerd hangt (art. 9 lid 5 IW).
+
+Kenmerk en tijd (stappen 5 en 6) volgen nog.
+
 ## Gevolgen
 
 - De werkplek krijgt een blok *Relaties* per element in het annotatiepaneel. De graaf krijgt een lijnsoort
