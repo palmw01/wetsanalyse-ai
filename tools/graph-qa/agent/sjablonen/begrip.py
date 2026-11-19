@@ -12,7 +12,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from bronmodel.antwoord import Antwoord, Begrippen, Definitie, Definities, Leemte, Toelichting, VastgelegdBegrip
+import re
+
+from bronmodel.antwoord import (Antwoord, Begrippen, Bepaling, Definitie, Definities, Leemte, Toelichting, VastgelegdBegrip,
+                                Wettekst)
 from bronmodel.definities import geldigheid_uit, losse_termen, term_vindplaats
 
 from ..tools.begrip_tools import BEGRIPPEN_NIET_GEZOCHT, BEGRIPPEN_ONVOLLEDIG, begrippen_stand, normaal
@@ -26,8 +29,9 @@ SCHEMA: dict[str, Any] = {
         "de wettelijke definities met hun vindplaats en de vastgelegde begrippen zelf, uit wat de tools teruggaven: herhaal die "
         "niet. Jij levert het begrip en een korte toelichting in eigen woorden, zonder citaten en zonder vindplaatsen die je "
         "niet hebt opgehaald. Vond je geen definitie, schrijf dan nooit dat er geen definitie bestaat: dat de graaf niets vond "
-        "zegt de werkplek zelf, in die woorden. Noem dan alleen wat je wel opgehaald hebt, met de bepaling erbij, of laat de "
-        "toelichting leeg. Gaat de vraag alleen over wat er is vastgelegd, laat begrip dan leeg: de werkplek toont dan wat "
+        "zegt de werkplek zelf, in die woorden, en een gelezen bepaling die de term gebruikt toont ze zelf, met de vindplaats. "
+        "Zeg dan in de toelichting alleen wat die bepaling of het vastgelegde begrip zegt, of laat haar leeg; uitleg uit "
+        "eigen kennis hoort er niet in. Gaat de vraag alleen over wat er is vastgelegd, laat begrip dan leeg: de werkplek toont dan wat "
         "search_begrippen vond en zegt niets over de wet."),
     "strict": True,
     "input_schema": {
@@ -92,6 +96,37 @@ def _vastgelegd(begrip: str, trace: Trace) -> list[VastgelegdBegrip]:
     return list(uit.values())
 
 
+#: Zoveel gelezen bepalingen die de term gebruiken, toont een begripsantwoord zonder definitie hoogstens.
+MAX_GEBRUIK = 3
+
+
+def _gebruik(begrip: str, trace: Trace) -> list[Bepaling]:
+    """De bepalingen die deze beurt las (`get_artikel`, `get_lid`, `get_bepaling`) en die de term in hun tekst gebruiken.
+
+    Zonder wettelijke definitie zei het antwoord alleen "Geen wettelijke definitie in de graaf", en de toelichting van
+    het model deed de rest: een gelezen bepaling die de term wél gebruikte (Leidraad 14.4.1 bij "derdenbeslag") stond er
+    niet in, en wat het model erbij zei kwam deels uit eigen kennis (acceptatie 19 nov 2026). Nu toont de code die tekst
+    zelf, met de vindplaats, zoals bij een definitie. Alleen een bepaling die compleet gelezen is (`bepaling._bepalingen`
+    zonder melding); een deel onder een andere gevonden bepaling niet nog eens."""
+    from .bepaling import _bepalingen, _stukken, _tekst
+    from .vullen import toestanden
+
+    term = re.compile(rf"(?<!\w){re.escape(begrip.strip())}", re.IGNORECASE)
+    stukken, staarten = _stukken(trace), toestanden(trace)
+    gevonden = [iri for iri in stukken if term.search(_tekst(iri, stukken))]
+    boven = [iri for iri in gevonden if not any(iri != o and iri.startswith(o + ":") for o in gevonden)]
+    uit: dict[str, Bepaling] = {}
+    for iri in boven:
+        ontbreekt: list[str] = []
+        items = _bepalingen(iri, stukken, ontbreekt, staarten)
+        if ontbreekt:
+            continue
+        for b in items:
+            if term.search(b.tekst):
+                uit.setdefault(b.vindplaats.iri, b)
+    return list(uit.values())[:MAX_GEBRUIK]
+
+
 def _gezocht(begrip: str, trace: Trace) -> list[dict[str, Any]]:
     """De zoekacties die deze term dekken. `zoek_definitie` zoekt op een deel van het woord, dus "aanslag" dekt ook
     "belastingaanslag", maar niet andersom."""
@@ -145,8 +180,13 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
     if onvolledig and not definities:
         raise Onvulbaar(f"Er zijn nog meer treffers voor “{begrip}”, dus de definitie kan er nog tussen zitten. Volg `vervolg` in het toolresultaat.")
     plek = "in de graaf" if any(not d.get("bwb_id") for d in gezocht) else "in de gezochte regeling"
-    blokken: list[Any] = [Definities(items=definities) if definities
-                          else Leemte(tekst=f"Geen wettelijke definitie {plek} bij de term “{begrip}”.")]
+    gebruik = [] if definities else _gebruik(begrip, trace)
+    leemte = f"Geen wettelijke definitie {plek} bij de term “{begrip}”."
+    if gebruik:
+        leemte += (" De gelezen bepaling hieronder gebruikt de term wel." if len(gebruik) == 1
+                   else " De gelezen bepalingen hieronder gebruiken de term wel.")
+    blokken: list[Any] = [Definities(items=definities) if definities else Leemte(tekst=leemte),
+                          *([Wettekst(items=gebruik)] if gebruik else [])]
     if onvolledig:
         blokken.append(Leemte(tekst="Er kunnen meer wettelijke definities zijn: de zoekuitkomst is onvolledig."))
     if vastgelegd := _vastgelegd(begrip, trace):

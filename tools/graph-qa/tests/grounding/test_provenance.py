@@ -295,3 +295,25 @@ def test_een_bepaling_die_een_connector_alleen_noemt_is_geen_bron():
     gelezen = Source(uri="urn:bwb:BWBR0004770:artikel:9", label="Artikel 9", origin_tool="get_artikel")
     trace = [("get_standpunt", _json.dumps({"status": "ok", "stuk": {"id": "kg:013:2026:4"}, "resultaten": []}))]
     assert alleen_gelezen_extern([standpunt, genoemd, gelezen], trace, "KG:013:2026:4 zegt …") == [standpunt, gelezen]
+
+
+def test_een_zoektreffer_is_geen_bron_naast_wat_gelezen_is():
+    """Acceptatie 19 nov 2026, "derdenbeslag": "Klaar · 10 bronnen" bij één gelezen bepaling en negen zoektreffers."""
+    from agent.grounding import alleen_gelezen_wettekst
+    from agent.models import Source
+
+    def bron(n: str, tool: str) -> Source:
+        uri = f"urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie14.4.{n}"
+        return Source(label=n, uri=uri, iri=uri, bron_iri=uri, bwb_id="BWBR0024096", soort="node", origin_tool=tool)
+
+    gelezen, treffer, genoemd = bron("1", "get_bepaling"), bron("12", "search_wetgeving"), bron("14", "search_wetgeving")
+    regeling = Source(label="Leidraad", uri="urn:bwb:BWBR0024096", bwb_id="BWBR0024096", soort="regeling", origin_tool="search_wetgeving")
+    definitie = bron("2", "zoek_definitie")
+    extern = Source(label="kst", uri="kst-1-2", brontype="kamerstuk", origin_tool="zoek_kamerstukken")
+    alles = [gelezen, treffer, genoemd, regeling, definitie, extern]
+    uit = alleen_gelezen_wettekst(alles, f"Zie {genoemd.uri}.")
+    assert uit == [gelezen, genoemd, regeling, definitie, extern]
+    # Een doel van het sjabloon blijft, ook als het alleen gevonden is.
+    assert treffer in alleen_gelezen_wettekst(alles, "", frozenset({treffer.uri}))
+    # Niets gelezen: dan rust het antwoord op de treffers, en blijven ze staan.
+    assert alleen_gelezen_wettekst([treffer, regeling], "") == [treffer, regeling]

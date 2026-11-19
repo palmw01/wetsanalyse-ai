@@ -435,6 +435,9 @@ compileren, SSE-events leveren, en per beurt de beurtvelden resetten.
   een blok niet af van of het model of zijn profiel de tool kent. `antwoord_begrip` zoekt zo de vastgelegde begrippen bij de
   term (ook generieke, ADR-006) als er in de trace nog niet op die term gezocht is (`search_begrippen` draagt `zoekterm`);
   het profiel `centraal` heeft `search_begrippen` niet, en het blok bleef eerst weg (16 nov 2026).
+  Zonder wettelijke definitie toont `antwoord_begrip` de gelezen bepalingen die de term in hun tekst gebruiken, compleet
+  gelezen, als blok `wettekst` met vindplaats (`begrip._gebruik`, hoogstens `MAX_GEBRUIK`; acceptatie 19 nov 2026:
+  Leidraad 14.4.1 bij "derdenbeslag" stond er niet, de toelichting van het model deed de rest). Geen doel van het antwoord.
   **Na een vondst van een bronconnector is het één schrijfronde** (iteratie wetgeving_live ronde 4: de rol zei "antwoord
   in tekst", de code vroeg daarna alsnog om het sjabloon, ~20–25k tokens per vraag bij alle connectors):
   - met een connector aan staat `AFRONDEN_EXTERN` in het variabele promptdeel: rond af met het sjabloon, ook bij uitleg, telling of
@@ -532,6 +535,14 @@ met een vergaderjaar in één zin moet samen in één toolresultaat staan (`bron
 20588, 1988-1989" was een juist nummer met een fout jaar). Een getal vóór een komma telt (alleen ",\d" is een decimaal),
 "20 588" is één getal, en een citeervorm van een connector ("Stb. 2009, 610") heeft de toets van een id. Terugmeting zonder model: `docs/architectuur/metingen/rechtspraak-iteratie-2026-11-11/beweringen-terugmeting.md`.
   `tests/grounding/test_beweringen.py`.
+  **Een toelichting zonder steun** (acceptatie 19 nov 2026, "derdenbeslag": een bank, een werkgever en executoriaal beslag
+  uit eigen kennis) is ook een bewering, in de sjablonen van de graaf waarvan de werkplek de bron ernaast toont
+  (`gelezen.STEUNTOETS_SJABLONEN`: `begrip`, `bepaling`). Per zin van de toelichting van Lex (`antwoord._toelichting_van_lex`)
+  de eigen woorden: geen functiewoord, geen naam met een hoofdletter midden in de zin, geen woord uit de vraag of het
+  dossier, niet in een citaat of vindplaats. Meer dan `MAX_EIGEN_WOORDEN`, dan staat ten minste `MIN_STEUN` op hun stam in
+  wat **gelezen** is (`gelezen.gelezen_tekst`: de leestools, de definities en de vastgelegde begrippen; een zoektreffer niet).
+  `gelezen.toelichting_zonder_steun`, `tests/grounding/test_toelichting_steun.py`. Een duiding, rapport of stuk naast de wet
+  heeft eigen toetsen per stuk; vrije tekst valt erbuiten.
 - **`finalize_node`** – de enige plek in de antwoordketen die `token` uitstuurt (ook voor het overzicht; `tests/sjablonen/test_uitgifte_na_controle.py` bewaakt het). Een controle die volgt op publicatie
   houdt niets tegen, dus de jurist ziet een antwoord pas ná `verify` en afgekeurde tekst nooit, ook niet in
   het denkproces (besluit 6 nov 2026). Blijft de tekst na de correctieronde afgekeurd, dan gaat hij mee met
@@ -1162,6 +1173,10 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
   aanhalingsteken. Alles daarbuiten (een ander woord, een weglating, eigen woorden) blijft voor
   `check_grounding` en de correctieronde. Een citaat wordt hier alleen letterlijker, nooit losser;
   annotaties zijn geen bron.
+- `alleen_gelezen_wettekst` (na `alleen_gelezen_extern`): wettekst die alleen een zoektool vond, valt weg zodra er iets
+  gelezen is, tenzij het antwoord haar aanhaalt (vindplaats in de tekst of een doel van het sjabloon); is er niets gelezen,
+  dan blijven de treffers staan, want dan rust het antwoord op hun tekst. Een definitie uit `zoek_definitie` telt als gelezen.
+  Acceptatie 19 nov 2026: "10 bronnen" bij één gelezen bepaling.
 - `curate_sources` snoeit tot aangehaalde regelingen (bij BWB-id, naam of afkorting: de namen staan er vóór het cureren al op, `met_regelingnamen`; ADR-016 ronde 4, K13), en binnen een regeling met een precieze
   vindplaats tot bronnen op het pad daarvan. Omhulsels (`hoofdstuk`, `afdeling`) en datums tellen niet
   mee in het pad: een jci draagt ze vaak, de graaf-IRI niet.

@@ -26,8 +26,8 @@ from urllib.parse import unquote
 
 from .annotatie import _normaliseer, komt_letterlijk_voor
 from .beweringen import beweringen as feiten_buiten, tellingen_uit
-from .gelezen import (buiten_periode, gelezen_en_gevonden, ongelezen_samengevat, volledig_geclaimd, vraag_niet_in_stuk,
-                      zonder_citaten,
+from .gelezen import (buiten_periode, gelezen_en_gevonden, gelezen_tekst, ongelezen_samengevat, toelichting_zonder_steun,
+                      volledig_geclaimd, vraag_niet_in_stuk, zonder_citaten,
                       verwijzing_als_duiding, vreemd_schrift, zonder_steun)
 from .hoeveelheden import uit_tabellen
 from .models import Source
@@ -223,7 +223,7 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
                     overzicht: dict | None = None, *, bekend: str = "",
                     regelingen: set[str] | None = None, steun: dict[str, str] | None = None,
                     vraag: str | None = None, periode: tuple[int, int] | None = None,
-                    duiding_tekst: str | None = None) -> GroundingReport:
+                    duiding_tekst: str | None = None, toelichting: str | None = None) -> GroundingReport:
     """Markeer wat in het antwoord niet uit de trace te herleiden is: verwijzingen én citaten.
 
     Met een `overzicht` (de overzichtsroute) telt ook elk genoemd artikel dat niet in het overzicht
@@ -301,6 +301,11 @@ def check_grounding(answer_text: str, source_trace: list[tuple[str, str]],
         # "Las ze volledig door" terwijl een gelezen stuk maar deels gelezen is (E2E Rekeningafspraken 16 nov 2026, D-4).
         # Op de hele tekst van Lex: zo'n zin staat juist in 'Gedaan' van een rapport.
         feiten += [f for f in volledig_geclaimd(eigen, source_trace) if f not in feiten]
+    # De toelichting van een sjabloon van de graaf rust op wat gelezen is, met de vraag en het dossier als bekend
+    # (`gelezen.toelichting_zonder_steun`; acceptatie 19 nov 2026, "derdenbeslag").
+    if toelichting and not overzicht:
+        feiten += [f for f in toelichting_zonder_steun(toelichting, gelezen_tekst(source_trace), f"{bekend}\n{vraag or ''}")
+                   if f not in feiten]
     # Na een rapport van een subagent (`steun`: per stuk de passages die het rapport en het antwoord eruit tonen): een
     # duiding van een stuk rust op die passages, niet op "het stond in de trace" (meting bundel 117, D01).
     if steun is not None and not overzicht:
@@ -481,6 +486,42 @@ def alleen_gelezen_extern(sources: list[Source], trace: list[tuple[str, str]], a
             # Wettekst van overheid.nl (`wettekst_live`) is wettekst, geen stuk naast de wet: gelezen is genoeg. Haar id
             # (`bwbt:…`) staat nooit in lopende tekst, dus de jurist zag "Klaar · 0 bronnen" (meting 11 nov 2026, W07/W12/W15).
             or (s.brontype == "wettekst_live" and s.uri in stukken)]
+
+
+#: Een zoektool waarvan het resultaat de tekst zelf is, met vindplaats: een wettelijke definitie.
+_ZOEKEN_IS_LEZEN = frozenset({"zoek_definitie"})
+
+
+def alleen_gelezen_wettekst(sources: list[Source], answer_text: str, aangehaald: frozenset[str] = frozenset()) -> list[Source]:
+    """Wettekst die alleen een zoektool vond, is gevonden en niet gelezen. Zo'n treffer is geen bron naast wat er wél
+    gelezen is (acceptatie 19 nov 2026, "derdenbeslag": "Klaar · 10 bronnen", met één gelezen bepaling en negen treffers
+    die het antwoord niet gebruikte). Dezelfde regel als voor een stuk naast de wet (`alleen_gelezen_extern`), met één
+    verschil: is er niets gelezen, dan blijven de treffers staan. Een antwoord dat alleen op zoekresultaten rust, steunt
+    op hun tekst, en zonder die bronnen is het niet na te lopen.
+
+    Altijd blijft wat het antwoord aanhaalt: een vindplaats in de tekst (IRI of jci) of een doel van het sjabloon
+    (`aangehaald`). Een regeling is geen treffer: die volgt `alleen_genoemde_regelingen`."""
+    from .provenance import _zoektools
+
+    zoek = _zoektools() - _ZOEKEN_IS_LEZEN
+
+    def wet(s: Source) -> bool:
+        return s.brontype in (None, "wettekst") and s.soort != "regeling" and bool(s.bwb_id)
+
+    def gevonden(s: Source) -> bool:
+        return wet(s) and s.origin_tool in zoek
+
+    if not any(wet(s) and not gevonden(s) for s in sources):
+        return sources
+    genoemd = set(citations_in(answer_text)) | set(aangehaald)
+    plekken = {loc for c in genoemd if (loc := _locatie(c))}
+
+    def aangehaald_(s: Source) -> bool:
+        if {s.uri, s.iri, s.jci, s.bron_iri} & genoemd:
+            return True
+        return any((loc := _locatie(x)) is not None and loc in plekken for x in (s.uri, s.iri, s.jci) if x)
+
+    return [s for s in sources if not gevonden(s) or aangehaald_(s)]
 
 
 def live_niet_letterlijk(antwoord: dict[str, Any] | None, trace: list[tuple[str, str]]) -> tuple[bool, list[str]]:
