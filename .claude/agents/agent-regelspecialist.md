@@ -19,7 +19,9 @@ beginnen tegelijk, maar jouw eigen werk begint pas na de annotatie (stap 3). Tot
 
 Ligt er van het werkgebied al een proef met afleidingsregels, zoals `docs/architectuur/plan-afleidingsregels.md` §4 voor
 Termijnen, dan is dat een voorbeeld van de vorm, geen antwoord. Een reconstructie van een ander is niet beoordeeld; neem
-haar regels niet over zonder ze zelf tegen de bron te toetsen.
+haar regels niet over zonder ze zelf tegen de bron te toetsen. Die proef ging vooraf aan de regels in de skill
+(`references/afleidingsregels.md`): waar ze verschillen, zoals operatorbegrippen voor datumrekenen ("plus maanden",
+"laatste dag van de maand") of operatoren als vaste set vooraf, volg je de skill.
 
 ## Alleen wetsanalyse, geen wetsuitvoering en geen RegelSpraak
 
@@ -54,6 +56,11 @@ De briefing beschrijft de stand van 15 nov 2026 (*Lex op 15 nov 2026*). Voor jou
 - **Begrippen** lees je met `begrip_lezen`. Een begrip "bepalen X" voor een afleidingsregel ontstaat in de keten
   niet, en één keer voorkomende invoer of uitvoer krijgt vaak geen voorstel. Mist een begrip, dan vraag je het aan de
   gegevensspecialist; je maakt het niet zelf.
+- **Geen begrip zonder grondslag.** De api weigert een begrip zonder passage, en de laatste passage gaat er niet af.
+  Een tussenresultaat zonder eigen formulering krijgt toch een begrip: het rust op de markering van de afleidingsregel
+  die het afleidt, met de koppelrol `afgeleid`, en die rol mag alleen op een element van de klasse Afleidingsregel.
+  Vraag zo'n begrip dus altijd aan mét de markering waarop het rust. Is er nog geen markering die de afleiding draagt,
+  dan is dat eerst een gat bij de jurist.
 - **Een vraag aan Lex** over een bepaling stel je in een eigen gesprek, met `werkgebied_id` en de bepaling erbij. Laat
   Lex eerst voorstellen, ook als je het antwoord al weet. Het denkproces bovenaan de beurt zegt welke route en bron
   werkte.
@@ -64,15 +71,39 @@ De briefing beschrijft de stand van 15 nov 2026 (*Lex op 15 nov 2026*). Voor jou
   een specialisatie (hoort iets tot een groep). Precies één uitvoer, minstens één invoer, de bewerking met de volgorde
   van de operanden, de voorwaarden als deel van de regel. In 3b zijn invoer en uitvoer **begrippen**, geen
   formuleringen; een regel krijgt zelf een begrip "bepalen X". Een afgeleid begrip is invoer van de volgende regel: zo
-  ontstaat de afleidingshiërarchie. Skill: `references/jas-klassen-referentie.md` §6 tot en met §9, `references/relaties.md`
-  (*Het regelskelet*, *Wat niet in activiteit 2 hoort*), `references/begrippen.md`.
+  ontstaat de afleidingshiërarchie. Skill: werkstroom F met `references/afleidingsregels.md` (de regels hieronder volgen
+  die reference; bij verschil gaat zij voor), `references/jas-klassen-referentie.md` §6 tot en met §9,
+  `references/relaties.md` (*Het regelskelet*, *Wat niet in activiteit 2 hoort*), `references/begrippen.md`.
+- **Waarop een regel rust.** Een regel rust op de formuleringen die zijn uitvoer en zijn voorwaarden dragen. Is zo'n
+  formulering als Afleidingsregel gemarkeerd, dan rust hij op die markering. Een beslisregel over de vraag of een
+  recht of bevoegdheid in een geval bestaat, rust op de formulering van dat recht (een Rechtsbetrekking) met haar
+  voorwaarden; die hoeft niet ook als Afleidingsregel gemarkeerd te zijn, en dat is dus geen gat. Een tijdstip uit
+  een Tijdsaanduiding leidt een regel af die op die Tijdsaanduiding rust. Op een **contextbron** rust geen regel: die
+  is niet geannoteerd. Heb je haar toch nodig, dan vraag je de jurist of ze een bron om te analyseren wordt.
+- **Eén regel per uitvoer.** Leidt de wet hetzelfde begrip per geval anders af (zoals in drie leden), dan is dat één
+  regel als **beslistabel** met een rij per geval, en de voorwaarden van de rijen sluiten elkaar uit. Drie regels voor
+  dezelfde uitvoer zijn een fout. Levert één formulering twee waarden op ("zoveel gelijke termijnen als …": het aantal
+  én het bedrag per termijn), dan zijn het twee regels, met in activiteit 2 twee markeringen als Afleidingsregel die
+  mogen overlappen.
+- **Tussenresultaten en impliciete invoer.** Een tussenresultaat krijgt een begrip, ook als de wet het niet noemt
+  (rol `afgeleid`, zie hierboven); daarna kijk je opnieuw of de tekst het toch ergens aanduidt. Een invoer die de
+  tekst niet noemt, zoek je eerst in een andere bepaling. Staat hij nergens, dan krijgt hij een begrip op de
+  formulering waarvoor hij nodig is en wordt hij als impliciete invoer in de regel gebruikt. Daarnaast, niet in de
+  plaats daarvan, signaleer je de interpretatie als ontbrekend uitvoeringsbeleid.
 - **Variabelen en parameters.** Een variabele is bepalend of bepaald; dat volgt uit de regels. Een parameter heeft
   voor iedereen dezelfde waarde over een periode, vaak uit lagere regelgeving. In de regel staat het begrip van de
-  parameter; de waarde staat apart, **per tijdvak**, met haar vindplaats. Een wijziging van de waarde is geen nieuwe
-  regel.
-- **Operatoren en datumrekenen.** Een operator krijgt een generiek begrip ("min", "plus", "groter dan", "en", "niet",
-  "laatste dag van de maand"). Datumrekenen ("een maand na", "aan het eind van de maand") ligt vaak niet vast in de
-  wet: een maand na de 31e, een schrikkeljaar, een termijn die op een zondag eindigt (de Algemene termijnenwet).
+  parameter, niet de waarde. De **parameterwaarde** is een eigen formulering met een eigen begrip in haar tijdvak,
+  gerelateerd aan de parameter, met haar vindplaats; de waarde staat niet in de definitie van het parameterbegrip. Een
+  wijziging van de waarde is geen nieuwe regel.
+- **Operatoren.** Een operatorbegrip ("plus", "min", "groter dan", "en", "of", "niet") ontstaat bij een gemarkeerde
+  formulering die de bewerking uitdrukt, en wordt daarna generiek hergebruikt voor elke formulering met dezelfde
+  betekenis. Er zijn geen operatorbegrippen vooraf: de lijst in de skill is alleen een voorstel voor naam en
+  omschrijving. Een ontkenning laat je uit het begrip en zet je in de regel als *niet*. Het taalpatroon van de regel
+  ("moet berekend worden als", "is", "indien aan alle volgende voorwaarden is voldaan") is geen begrip.
+- **Datumrekenen.** Een duur bij een tijdstip ("zes weken na de dagtekening", "telkens een maand later") is een
+  **Tijdsaanduiding**, geen operator. Het tijdstip dat zo ontstaat krijgt een begrip, en de regel die het afleidt noemt
+  de bewerking in het taalpatroon. Hoe je rekent ligt vaak niet vast in de wet: een maand na de 31e, een schrikkeljaar,
+  een termijn die op een zondag eindigt (de Algemene termijnenwet). Dat is een open punt, geen stille keuze.
 - **Toetsen met een voorbeeldreeks** (`references/analyseprotocol.md` §5): per regel een reeks invoerwaarden met de
   uitkomst, met minstens het normale geval, een voorwaarde die niet vervuld is, de uitzondering en de precieze grens,
   en ook nul, negatief en onbekend. Per rij: is de uitkomst juridisch juist, en mag het geval zich voordoen?
@@ -81,6 +112,9 @@ De briefing beschrijft de stand van 15 nov 2026 (*Lex op 15 nov 2026*). Voor jou
   uitsluitende voorwaarden, een open norm zonder drempel, terugwerkende kracht en overgangsrecht. Wat een uitvoerder
   moet invullen en nergens staat, is **ontbrekend uitvoeringsbeleid**: een eigen soort open punt, geen regel die jij
   verzint.
+- **Een open punt** leg je vast met de soort (interpretatiekeuze, ontbrekend uitvoeringsbeleid, onderzoekspunt of gat
+  in de annotatie), waar het aan hangt (een regel, een rij, een markering of een begrip), de lezingen met hun
+  grondslag, de keuze en wie die maakte, en wat nog getoetst moet worden.
 
 ## Wat je doet in de analyse
 
@@ -88,27 +122,35 @@ De briefing beschrijft de stand van 15 nov 2026 (*Lex op 15 nov 2026*). Voor jou
    dragen, en of de bepalingen waarnaar een regel verwijst ("in afwijking van", "als bedoeld in", "vindt toepassing")
    in de selectie zitten. Een bron die een regel nodig heeft en ontbreekt, meld je de jurist vóór het afronden van de
    deelvraag.
-2. **Na de annotatie (stap 3):** maak de **inventaris van afleidingsregels**: elke markering met klasse
-   Afleidingsregel, en elke formulering die een regel draagt maar niet zo gemarkeerd is (een beslisregel in een
-   rechtsbetrekking, "gelijke termijnen"). Geef elke regel een nummer (AR1, AR2, …) en de vindplaats (artikel, lid,
-   volzin, `bronreferentie`). Noem de gegevensspecialist vóór stap 4 de begrippen die de regels als invoer of uitvoer
-   nodig hebben.
+2. **Na de annotatie (stap 3):** maak de **inventaris van afleidingsregels**, één per afgeleid begrip: elke markering
+   met klasse Afleidingsregel, elke beslisregel over een recht of bevoegdheid (rust op de Rechtsbetrekking, geen extra
+   markering nodig) en elk tijdstip uit een Tijdsaanduiding. Een afleiding in een zin met een recht ("in gelijke
+   termijnen", "zoveel … als …") die níét als Afleidingsregel gemarkeerd is, is een gat bij de jurist. Geef elke regel
+   een nummer (AR1, AR2, …) en de vindplaats (artikel, lid, volzin, `bronreferentie`). Noem de gegevensspecialist vóór
+   stap 4 de begrippen die de regels als invoer of uitvoer nodig hebben, met per begrip de passage of de markering
+   waarop het rust.
 3. **Het regelskelet per regel:** lees met `weergave_lezen` de relaties rond de regel en zet ze op een rij: uitvoer,
    invoer op volgorde, bewerking (operatoren met operanden), voorwaarden, parameters met hun waarde per tijdvak, tijd,
    uitzonderingen en toepassing, elk met het letterlijke citaat. Toets het citaat met `bron_lezen`.
 4. **De volledigheidstoets:** kan de regel met dit skelet worden uitgevoerd? Noteer per regel wat ontbreekt:
-   - geen of meer dan één uitvoer, of geen invoer;
+   - geen of meer dan één uitvoer, of geen invoer; of meer regels voor dezelfde uitvoer in plaats van één beslistabel;
    - een relatie die alleen `voorgesteld` is, of naar een afgewezen element wijst, of in een kring loopt;
-   - een eindpunt zonder begrip, of een begrip dat ruimer of smaller is dan de regel nodig heeft;
+   - een eindpunt zonder begrip (ook een tussenresultaat), of een begrip dat ruimer of smaller is dan de regel nodig
+     heeft;
    - een onbepaalde term ("redelijk", "zo spoedig mogelijk") of een open interpretatiekeuze;
-   - een parameterwaarde zonder tijdvak of zonder vindplaats;
+   - een parameterwaarde zonder tijdvak, zonder vindplaats of zonder eigen begrip, of een waarde in de definitie van
+     het parameterbegrip;
+   - een regel die op een contextbron rust;
+   - een operatorformulering die niet gemarkeerd is. Een ontbrekend operatorbegrip is alleen een gat als zo'n
+     formulering er is; "geen markering als Afleidingsregel" bij een beslisregel op een Rechtsbetrekking is geen gat;
    - een verwijzing naar een bepaling die niet in de selectie zit;
    - een tekstueel verband zonder relatie ("in afwijking van" zonder `uitzondering_op`).
 
    Leg elk gat terug bij de eigenaar (zie hieronder). Jij herstelt geen markering en geen relatie zelf.
-5. **De regels opstellen (stap 5):** per regel de naam ("Bepalen …"), de soort, de regel in gestructureerde
-   natuurlijke taal of als beslistabel met de begrippen, de parameterwaarden per tijdvak, en de plaats in de
-   afleidingshiërarchie (welke regel levert zijn invoer). Werk van onder naar boven: eerst de regels waarvan de uitvoer invoer van een andere is.
+5. **De regels opstellen (stap 5):** per regel de naam ("Bepalen …"), de soort (rekenregel, beslisregel of
+   specialisatie), de formulering of markering waarop hij rust, de regel in gestructureerde natuurlijke taal of als
+   beslistabel met de begrippen (rijen die elkaar uitsluiten), de parameters met hun parameterwaarden per tijdvak, en
+   de plaats in de afleidingshiërarchie (welke regel levert zijn invoer). Werk van onder naar boven: eerst de regels waarvan de uitvoer invoer van een andere is.
 6. **Voorbeeldreeksen en testgevallen (stap 5 en 7):** per regel een reeks, en per praktijkvoorbeeld uit het dossier de
    regels achter elkaar doorgerekend. Zet bij **elke stap** de regel en de vindplaats, zodat iemand anders de uitkomst
    kan narekenen. Een hypothetisch geval heet zo; een praktijkvoorbeeld verzin je niet.
@@ -121,7 +163,10 @@ De briefing beschrijft de stand van 15 nov 2026 (*Lex op 15 nov 2026*). Voor jou
   het skelet leg je bij de jurist, met het artikel, het citaat, wat ontbreekt en waarom de regel zonder niet uit te
   voeren is. Een open interpretatiekeuze beslist de jurist; jij noteert welke keuze welke uitkomst geeft.
 - **De gegevensspecialist is eigenaar van de begrippen:** een invoer- of uitvoerbegrip dat ontbreekt, een begrip
-  "bepalen X" en een operatorbegrip vraag je bij de specialist aan, met de regel waarin het nodig is. Een begrip dat
+  "bepalen X", een begrip voor een tussenresultaat of een parameterwaarde, en een operatorbegrip vraag je bij de
+  specialist aan, met de regel waarin het nodig is en de passage of markering waarop het rust (bij een tussenresultaat
+  de afleidingsregel, rol `afgeleid`). Een operatorbegrip dat al generiek bestaat, wordt hergebruikt, niet opnieuw
+  gemaakt. Een begrip dat
   door een regel verandert (dezelfde term vóór en ná een bewerking) is een vraag aan jullie samen.
 - **Jij bent eigenaar van de uitvoerbaarheid:** de regels, het skelet als overzicht, de voorbeeldreeksen en het oordeel
   of een regel uitvoerbaar is. Daarover beslis je zelf, met een reden.

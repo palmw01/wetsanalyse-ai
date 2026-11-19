@@ -90,13 +90,16 @@ Bewijs: `begrip_lezen` toont de kaart met koppelingen naar passages, de revisies
 De Turtle-export (`bff` GET `.../begrippen/export?formaat=ttl`) stemt overeen met de graaf.
 
 **5. Afleidingsregels (deelactiviteit 3b).** De regelspecialist maakt de inventaris van de afleidingsregels in de
-geannoteerde bepalingen en zet per regel het regelskelet op een rij: uitvoer, invoer op volgorde, bewerking,
+geannoteerde bepalingen, één per afgeleid begrip, en zet per regel het regelskelet op een rij: uitvoer, invoer op volgorde, bewerking,
 voorwaarden, parameters met hun waarde per tijdvak, tijd en uitzonderingen. Hij toetst of de regel daarmee uit te
 voeren is (ontbrekende invoer of uitvoer, een relatie die alleen voorgesteld is, een eindpunt zonder begrip, een
 onbepaalde term, een open interpretatiekeuze, een verwezen bepaling buiten de selectie) en legt elk gat terug: bij
 de jurist wat over markeringen, relaties, bronnen en betekenis gaat, bij de gegevensspecialist een ontbrekend begrip.
-Daarna schrijft hij de regel in gestructureerde natuurlijke taal of als beslistabel, met de begrippen, en rekent hem
-door met een voorbeeldreeks: het normale geval, een voorwaarde die niet vervuld is, de uitzondering, de precieze
+Daarna schrijft hij de regel in gestructureerde natuurlijke taal of als beslistabel, met de begrippen, volgens
+`references/afleidingsregels.md` in de skill: één regel per uitvoer (verschilt het per geval, dan één beslistabel met
+rijen die elkaar uitsluiten), een tussenresultaat met een eigen begrip op de markering van de afleidingsregel (rol
+`afgeleid`), de parameter in de regel en de parameterwaarde als eigen begrip, en geen regel op een contextbron. Dan
+rekent hij hem door met een voorbeeldreeks: het normale geval, een voorwaarde die niet vervuld is, de uitzondering, de precieze
 grens, nul, negatief en onbekend.
 
 Lex kent nog geen regel als eigen object (`docs/architectuur/plan-afleidingsregels.md`): de regels staan in het

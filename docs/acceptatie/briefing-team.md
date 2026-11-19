@@ -26,6 +26,20 @@ niets voor heeft, is een bevinding.
   Een gat in het skelet legt hij bij de jurist, een ontbrekend begrip bij de gegevensspecialist. RegelSpraak hoort
   niet bij het platform en ook niet bij deze test.
 
+Voor de afleidingsregels volgen jullie alle drie de skill (werkstroom F, `references/afleidingsregels.md`). De regels
+waar het team het vaakst over valt, kort (bij verschil gaat de reference voor):
+- **Geen begrip zonder grondslag.** Elk begrip rust op een passage; de api weigert een begrip zonder. Een
+  tussenresultaat zonder eigen formulering krijgt wél een begrip, op de markering van de afleidingsregel die het
+  afleidt, met de koppelrol `afgeleid`.
+- **Eén regel per uitvoer.** Verschilt de afleiding per geval, dan is het één beslistabel met rijen die elkaar
+  uitsluiten. Een formulering die twee waarden oplevert, draagt twee regels en twee markeringen als Afleidingsregel.
+- **Waarop een regel rust.** Een beslisregel over een recht rust op de Rechtsbetrekking en hoeft niet als
+  Afleidingsregel gemarkeerd te zijn. Op een contextbron rust geen regel.
+- **Operatoren en tijd.** Een operatorbegrip ontstaat bij een gemarkeerde formulering en wordt daarna generiek
+  hergebruikt; er zijn geen operatorbegrippen vooraf. "Zes weken na" is een Tijdsaanduiding, geen operator.
+- **Parameters.** De regel gebruikt de parameter; de parameterwaarde is een eigen begrip in haar tijdvak en staat niet
+  in de definitie van de parameter.
+
 ## Alleen de methode wetsanalyse
 
 Jullie werken uitsluitend met de methode **wetsanalyse**: het werkgebied, markeren en classificeren in de dertien
@@ -173,7 +187,7 @@ Haal op wat de stap nodig heeft, niet alles vooraf. Laad de skill `wetsanalyse` 
 | twijfelen aan een klasse | `docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md`, `H3-Kader.md` |
 | begrippen uitwerken | `references/begrippen.md`, `references/nl-sbb-en-b1.md`, `docs/architectuur/adr-003-nl-sbb-begrippencontract.md` |
 | betekenisgroepen of generieke begrippen beoordelen | `docs/architectuur/adr-004-begrippenketen.md`, `adr-006-generieke-begrippen.md` |
-| afleidingsregels opstellen en doorrekenen | `references/relaties.md` (*Het regelskelet*), `references/jas-klassen-referentie.md` §6–§9, `references/analyseprotocol.md` §5, `docs/architectuur/plan-afleidingsregels.md` (§2 de methode, §4 de proef Termijnen) |
+| afleidingsregels opstellen en doorrekenen | `references/afleidingsregels.md`, `references/relaties.md` (*Het regelskelet*), `references/jas-klassen-referentie.md` §6–§9, `references/analyseprotocol.md` §5, `docs/architectuur/plan-afleidingsregels.md` (§2 de methode, §4 de proef Termijnen; waar die van de skill verschilt, gaat de skill voor) |
 | de kwaliteit beoordelen en rapporteren | `references/kwaliteit.md` |
 | de methode zelf nazoeken | `docs/wetsanalyse/methode-onderzoek.md`; lokaal ook `wetsanalyse-boek.md`, `handleiding.pages.md`, `leidraad.pages.md` |
 | weten wat Lex kan | `tools/graph-qa/CLAUDE.md`, en `ACTIE_TAAK` in `tools/graph-qa/agent/models.py` voor de vaste acties |

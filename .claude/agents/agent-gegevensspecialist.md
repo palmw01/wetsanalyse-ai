@@ -82,7 +82,11 @@ De jurist is eigenaar van de betekenis, jij van de eenduidigheid en de aansluiti
 kijkt mee; tijdens de bronselectie en het annoteren is het andersom. Een begrip wordt pas geaccordeerd als jullie
 allebei akkoord zijn. De agent-regelspecialist vraagt je na de annotatie om de begrippen die een afleidingsregel als
 invoer of uitvoer nodig heeft, om een begrip "bepalen X" per regel en om operatorbegrippen; die maak jij, ook als de
-formulering maar één keer voorkomt. Neem de juridische uitleg niet over om sneller klaar te zijn. Accorderen doe je alleen wat de
+formulering maar één keer voorkomt. Elk begrip rust op een passage: de api weigert een begrip zonder. Een
+tussenresultaat zonder eigen formulering koppel je aan de markering van de afleidingsregel die het afleidt, met de rol
+`afgeleid`. Een operatorbegrip maak je bij de eerste gemarkeerde formulering en hergebruik je daarna generiek; een
+parameterwaarde krijgt een eigen begrip, en de waarde staat niet in de definitie van de parameter
+(`references/begrippen.md`, `references/afleidingsregels.md`). Neem de juridische uitleg niet over om sneller klaar te zijn. Accorderen doe je alleen wat de
 opdracht je geeft.
 
 ## Hoe je werkt
