@@ -859,6 +859,18 @@ sterk varieert.
        schuift naar bundel 7.
 5. **Bundel 5, begrippen naast regels** (api): L-3a-1 en L-3a-2. Daarna de volledigheidstoets van L-3b-3 als signaal op
    de afleidingsregel. Na bundel 3, want de signalen rusten op een betrouwbaar skelet.
+
+   **Stand (20 nov 2026)**: gebouwd volgens ADR-018 besluit 7.6 en bijlage A §4.2.
+   - **De volledigheidstoets**: zestien gaten uit de skill (`regelgaten.json`, gegenereerd, met een drifttest).
+     - De gaten van de regelspecialist zijn er alle. Daarbij komen de zes van de methode, behalve "twee
+       operatorbegrippen met dezelfde betekenis": die vraagt een oordeel over betekenis, geen vorm.
+     - De toets zit op drie plekken: skelet, regel en keten.
+   - **L-3a-1**: dit zit in de keten van de regels (`zelfde_uitvoer`, `regelbegrip_meer_uitvoeren`), en niet als
+     heuristiek op de begrippen. Sinds R1 zijn regels objecten, dus daar is de uitvoer zeker.
+   - **L-3a-2**: een homoniem in de alternatieve termen en een waarde in de definitie van een parameter worden
+     aandachtspunten op het begrip.
+   - **De datumregel uit de meting van bundel 3**: het tijdstip is de invoer (`DATE_ASSIGNMENT` noemt het,
+     `relaties.py` legt het). Een uitvoer is er niet, want de datum heeft geen formulering.
 6. **Bundel 6, de regel als object** (fase 3 uit het plan afleidingsregels): L-3b-1, met de beslistabel als basisvorm.
    Na bundel 1 en 4.
 7. **Bundel 7, activiteit 1** (graph-qa en de vraagkaart): L-1-1 (schakelbepalingen op regelingniveau), en L-1-2

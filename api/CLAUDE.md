@@ -1010,6 +1010,21 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
 - **De hiërarchie wordt afgeleid** (`GET …/regels/hierarchie`, `regel_store.keten`): pijlen van de regel die een begrip
   afleidt naar de regel die het gebruikt, de volgorde van onder naar boven, basisgegevens (invoer zonder regel) en
   signalen (`zelfde_uitvoer`, `kring`). Een afgewezen of vervangen regel doet niet mee.
+- **De volledigheidstoets** (ADR-018 besluit 7.6, lessenbundel 5): de gaten van een regel komen uit de skill
+  (`.claude/skills/wetsanalyse/regelgaten.json`, *Wat een regel mist* in `references/afleidingsregels.md`), gegenereerd in
+  `jas_regelgaten.py` (`tools/graph-qa/scripts/genereer_regelgaten.py`, `tests/poort/test_regelgaten.py`). Elk gat is
+  `{code, plek, tekst}` (`jas_regelgaten.gat`). Eén toets op drie plekken, geen tweede berekening:
+  - **skelet**: `regelskelet.gaten` in `GET weergave?vorm=skelet` (uitvoer, invoer, volgorde, rechtsobject, een voorwaarde
+    die alleen aan de rechtsbetrekking hangt, "in afwijking van" zonder `uitzondering_op`);
+  - **regel**: `regel_store.regel_gaten`, als `gaten` op elke regel. Het gaat om de uitvoerformulering zonder begrip, een
+    regelbegrip zonder "bepalen", een parameter zonder tijdvak of met een waarde in de definitie, een contextbron, een
+    operator in de grondslag zonder begrip, en een impliciete invoer. De gegevens leest `_gatgegevens` in een paar
+    queries voor alle regels samen; de operatoren alleen uit de laag van de grondslag;
+  - **keten**: `regel_store.keten` geeft `zelfde_uitvoer` en `regelbegrip_meer_uitvoeren` (L-3a-1), met `code`.
+  Een gat is een signaal: `accorderen` en `signalen` veranderen er niet door.
+- **De eenduidigheid van een begrip** (L-3a-2, `begrip_store.eenduidigheid`): de lijst en de kaart van een begrip noemen
+  in `aandachtspunten` een alternatieve term die de naam van een ander begrip in het werkgebied is (een homoniem), en een
+  waarde in de definitie van een begrip dat op een parameter rust. Een signaal, geen poort.
 - **Afwijzen bewaart** (`POST …/afwijzen`, reden verplicht); **verwijderen is echt wissen**, met een auditregel.
 - **Het overzicht over werkgebieden heen** (`GET /v1/regels`, `regels.overzicht_router`, `regel_store.overzicht`): de
   zijbalk van de webapp, in de vorm van `GET /v1/begrippen`. Zoeken in naam, uitvoer en regeltekst (zonder hoofdletters of

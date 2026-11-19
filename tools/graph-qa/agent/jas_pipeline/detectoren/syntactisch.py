@@ -601,7 +601,8 @@ class GevolgDetector:
     #    eigen kandidaat
     # 3: een rechtsgevolg als toestand met een moment ('is invorderbaar zes weken na …') ook (L-2-1)
     # 4: die regel eindigt nooit voorbij het moment (meting bundel 3, IW art. 63b lid 5)
-    versie = "4"
+    # 5: en noemt het tijdstip als invoer in zijn bewijs (`invoer`), voor de relatievoorstellen
+    versie = "5"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         from .functies import toepassingskeuze
@@ -704,20 +705,32 @@ class GevolgDetector:
                          key=lambda k: (not any(a.tokens[c].deprel == "case" and _lijst("TIJDVOORZETSEL").match(
                              a.tokens[c].tekst) for c in a.kinderen(k)), a.tokens[k].start))
             eind = min(moment[1], tot)
+            invoer = None
             if obl:
                 eigen_obl = set(a.subboom(obl[0])) - {j for i in a.subboom(obl[0]) if a.tokens[i].deprel in {"conj", "cc"}
                                                       and i != obl[0] for j in a.subboom(i)}
                 # Nooit verder dan het moment: de parser hangt een nabepaling ('…, met overeenkomstige toepassing van
                 # …') soms onder de tijdsbepaling (IW art. 63b lid 5, meting 20 nov 2026).
                 eind = min(eind, max(a.tokens[j].eind for j in eigen_obl if a.tokens[j].upos != "PUNCT"))
+                # Het tijdstip is de invoer van de regel ('de dagtekening van de beschikking'), zonder het voorzetsel
+                # ervoor (L-2-1: het tijdstip is de invoer, de duur een parameter, de datum de uitvoer).
+                # De parser hangt de duur soms onder het tijdstip ('zes weken' als amod van 'dagtekening'): het
+                # tijdstip begint na zijn voorzetsel.
+                voorzetsel = [a.tokens[k].eind for k in a.kinderen(obl[0]) if a.tokens[k].deprel == "case"]
+                na = max(voorzetsel) if voorzetsel else -1
+                woorden = [a.tokens[j] for j in eigen_obl if a.tokens[j].upos != "PUNCT" and a.tokens[j].eind <= eind
+                           and a.tokens[j].start >= na]
+                if woorden:
+                    i0, i1 = min(w.start for w in woorden), max(w.eind for w in woorden)
+                    invoer = {"start": i0, "eind": i1, "tekst": bron.tekst[i0:i1]}
             span = (t.start, eind)
             if span in gezien or _in_verwijzing(bron, *span):
                 continue
             gezien.add(span)
             uit.append(_kandidaat(bron, [(span, "predicaat")], [AR], [Evidence(
                 detector=self.naam, code=self.CODES[2], regel=self.REGELS[2], relatie=t.deprel,
-                detail=json.dumps({"toestand": t.tekst, "moment": bron.tekst[t.eind:eind].strip()},
-                                  ensure_ascii=False, sort_keys=True))]))
+                detail=json.dumps({"toestand": t.tekst, "moment": bron.tekst[t.eind:eind].strip(),
+                                   **({"invoer": invoer} if invoer else {})}, ensure_ascii=False, sort_keys=True))]))
         return uit
 
 

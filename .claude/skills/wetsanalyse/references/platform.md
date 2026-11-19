@@ -23,6 +23,7 @@ verandert: een paar onderdelen gaan letterlijk als prompt of als data naar de dr
 | De tabel met de dertien klassen in `SKILL.md` | Een derde drager van dezelfde namen | `test_methode_drift` eist elke klasse vet in die tabel |
 | `relaties.json` | De relatiecatalogus voor api, graph-qa en werkplek | `scripts/genereer_jas_relaties.py`; `tests/poort/test_relatiecatalogus.py` |
 | `begripverwachting.json` | Wat de methode per klasse verwacht in activiteit 3a (begrip, omschrijving, definitie), voor de dekking in api en werkplek | `scripts/genereer_begripverwachting.py`; `tests/poort/test_begripverwachting.py` |
+| `regelgaten.json` | De gaten van een afleidingsregel (activiteit 3b), voor de volledigheidstoets in de api (`regelskelet.gaten`, `regel_store`) | `scripts/genereer_regelgaten.py`; `tests/poort/test_regelgaten.py` |
 | `references/bronnen.md` | Het register van broncodes (M/P) | De generator weigert een sectie met een onbekende code |
 | `regels/` (alleen in deze skill: de annotatieketen en de begrippenketen zijn van wetsanalyse; een andere methode mag er geen regels voor meebrengen) | Detector- en begrippenregels, achter de proefvlag `SKILL_REGELS` | `agent/skill_regels.py`; `test_skill_zonder_code` |
 
