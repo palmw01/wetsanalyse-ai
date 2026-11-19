@@ -9,7 +9,9 @@
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 /** De rollen van het E2E-team, en die van Lex Bench (analist en reviewer, plan-lex-bench §4.2 en §5). */
-export const ROLLEN = ["jurist", "gegevensspecialist", "coördinator", "analist", "reviewer"];
+export const ROLLEN = ["jurist", "gegevensspecialist", "regelspecialist", "coördinator", "analist", "reviewer"];
+/** Wie in een onenigheid een argument kan geven: de drie leden van het E2E-team. */
+export const TEAM = ["jurist", "gegevensspecialist", "regelspecialist"];
 export const SOORTEN = ["beslissing", "onenigheid", "overleg", "id", "bevinding", "omweg", "stand"];
 const GEHEIM = /wa_pat_|wa_admin_|Bearer\s+\S|admin:[0-9a-f]{16}/;
 /** Het logboek hoort bij de checkout met het dossier, ook als de sessie in een worktree draait. */
@@ -24,17 +26,24 @@ function pad(map, run) {
 export function alsTekst(r, nu) {
     const kop = [nu.toISOString().slice(0, 19) + "Z", `[${r.rol}]`, r.soort, ...(r.stap === undefined ? [] : [`stap ${r.stap}`])];
     const delen = [`### ${kop.join(" · ")}`, r.tekst.trim()];
-    if (r.argumenten) {
-        delen.push(`- jurist: ${r.argumenten.jurist.trim()}\n- gegevensspecialist: ${r.argumenten.gegevensspecialist.trim()}`);
-    }
+    const argumenten = gevuld(r.argumenten);
+    if (argumenten.length)
+        delen.push(argumenten.map(([rol, a]) => `- ${rol}: ${a}`).join("\n"));
     if (r.ids?.length)
         delen.push(`ids: ${r.ids.join(", ")}`);
     return delen.join("\n\n") + "\n\n";
 }
+/** De argumenten die er echt staan, in de vaste volgorde van het team. */
+function gevuld(argumenten) {
+    return TEAM.flatMap((rol) => {
+        const a = argumenten?.[rol]?.trim();
+        return a ? [[rol, a]] : [];
+    });
+}
 export async function aanvullen(map, r, nu = new Date()) {
     const bestand = pad(map, r.run);
-    if (r.soort === "onenigheid" && !(r.argumenten?.jurist.trim() && r.argumenten.gegevensspecialist.trim())) {
-        throw new Error("Een onenigheid legt beide argumenten vast.");
+    if (r.soort === "onenigheid" && gevuld(r.argumenten).length < 2) {
+        throw new Error("Een onenigheid legt beide argumenten vast: van elke kant één, minstens twee.");
     }
     const tekst = alsTekst(r, nu);
     if (GEHEIM.test(tekst))
