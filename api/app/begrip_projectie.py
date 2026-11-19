@@ -24,9 +24,9 @@ de koppelingen met hun bewijsstand en de begripsrelaties met hun juridische type
   behandelen hem als een werkgebied. Hij draagt de generieke begrippen met al hun passages; een begrip staat in precies
   één `skos:inScheme`, en de graph van een werkgebied noemt met `wa:gebruiktBegrip` wat het gebruikt.
 - **Relaties houden hun type** (ADR-003): `wa:kwalificeert`, `wa:omvat`, `wa:omvatNiet`, `wa:heeftSoort`,
-  `wa:verwantMet`, plus een `wa:Begripsrelatie` met herkomst en toelichting. Alleen een hiërarchie heeft
-  daarnaast een SKOS-tegenhanger (`isothes:broaderGeneric`, precies genus–soort); opvolging is
-  `dct:isReplacedBy`/`dct:replaces`.
+  `wa:verwantMet`, plus een `wa:Begripsrelatie` met herkomst en toelichting. Een hiërarchie heeft daarnaast een
+  SKOS-tegenhanger (`isothes:broaderGeneric`, precies genus–soort, en `skos:broader`, want NL-SBB valideert zonder
+  afleiding), een verwante relatie `skos:related`; opvolging is `dct:isReplacedBy`/`dct:replaces`.
 """
 from __future__ import annotations
 
@@ -231,8 +231,14 @@ def bouw_graaf(inv: dict, paginas: dict[str, str] | None = None, uitgevers: dict
             g.add((naar, DCT.replaces, van))
         else:
             g.add((van, RELATIE_PREDICAAT[r["type"]], naar))
+            # De SKOS-tegenhangers: NL-SBB valideert zonder afleiding, dus een subproperty alleen (broaderGeneric)
+            # of een eigen predicaat (verwantMet) laat het begrip er als wees uitzien (skosapnl:OrphanConcept).
             if r["type"] == "hierarchie":
                 g.add((naar, ISOTHES.broaderGeneric, van))
+                g.add((naar, SKOS.broader, van))
+            elif r["type"] == "verwant":
+                g.add((van, SKOS.related, naar))
+                g.add((naar, SKOS.related, van))
         n = URIRef("urn:wa:relatie:" + r["id"])
         g.add((n, RDF.type, WA.Begripsrelatie))
         g.add((n, WA.van, van))
