@@ -73,7 +73,7 @@ TOELICHTING = "Begrippen zijn analyse-uitkomsten van dit werkgebied, geen wettel
 # bredere term en `naar` de soort ("naar is een soort van").
 RELATIE_PREDICAAT = {"kwalificatie": WA.kwalificeert, "inclusie": WA.omvat, "uitsluiting": WA.omvatNiet,
                      "hierarchie": WA.heeftSoort, "verwant": WA.verwantMet}
-DRAGEND = {"duiding", "definitie"}
+DRAGEND = {"duiding", "definitie", "afgeleid"}  # gelijk aan begrip_store.DRAGEND
 _ID = re.compile(r"[A-Za-z0-9_-]{1,64}")
 
 _actief = False

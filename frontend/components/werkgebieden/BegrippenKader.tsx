@@ -1,13 +1,11 @@
 "use client";
 
 import { aantal } from "@/lib/aantal";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { BewerkVoet, useBewerken } from "@/components/ui/Bewerkbaar";
 import { Button } from "@/components/ui/Button";
 import { FilterChip, KeuzeRij } from "@/components/ui/FilterChip";
-import { Input } from "@/components/ui/Field";
 import { StatusLabel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { Groep, GroepRij } from "@/components/ui/Pagina";
@@ -16,12 +14,12 @@ import { BEGRIP_STATUS_TOON } from "@/components/werkgebieden/BegripInhoud";
 import { BegripVoorstellen } from "@/components/werkgebieden/BegripVoorstellen";
 import { GeneriekGebruiken } from "@/components/werkgebieden/GeneriekGebruiken";
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
-import { exporteerBegrippen, foutTekst, haalHerbeoordelingen, lijstBegrippen, maakBegrip } from "@/lib/api";
+import { exporteerBegrippen, foutTekst, haalHerbeoordelingen, lijstBegrippen } from "@/lib/api";
 import { EXPORT_FORMATEN, filterBegrippen, type BegripStatusFilter } from "@/lib/begrippen";
 import { BEGRIP_STATUS_LABEL, BEGRIP_STATUSSEN, kort } from "@/lib/begrippenOverzicht";
 import { geraakteBegrippen, herbeoordelingZin, strookKop } from "@/lib/herbeoordeling";
 import type { BegripSamenvatting, BegrippenLijst, Herbeoordelingen } from "@/lib/types";
-import { begripPad } from "@/lib/werkgebiedPaden";
+import { ARTEFACT_LABEL, artefactPad, begripPad } from "@/lib/werkgebiedPaden";
 
 /** Hoe lang het kader wacht op *Te doen* voordat de begrippen er toch staan: een haperende bron mag de lijst niet
  *  verbergen. Alleen wat daarna nog binnenkomt, schuift de lijst omlaag. */
@@ -34,7 +32,6 @@ const GEDULD_MS = 2500;
  *  *Te doen* staat boven de lijst en is pas bekend als de bronnen vergeleken zijn. Daarom verschijnt het kader in één
  *  keer; losse rijen die later binnenkomen duwen de lijst omlaag. */
 export function BegrippenKader({ id }: { id: string }) {
-  const router = useRouter();
   const [lijst, setLijst] = useState<BegrippenLijst | null>(null);
   // Herbeoordelen (fase F1) vraagt de bronboom en is dus trager dan de lijst; faalt stil, de lijst staat er gewoon.
   const [herbeoordeling, setHerbeoordeling] = useState<Herbeoordelingen | null>(null);
@@ -62,14 +59,6 @@ export function BegrippenKader({ id }: { id: string }) {
     return () => clearTimeout(klok);
   }, [laad]);
   const voorstellenGeladen = useCallback(() => setVoorstellenKlaar(true), []);
-
-  const nieuw = useBewerken({
-    begin: "",
-    opslaan: async (naam) => {
-      const b = await maakBegrip(id, { inhoud: { naam: naam.trim() } });
-      router.push(begripPad(id, b.id));
-    },
-  });
 
   const geraakt = geraakteBegrippen(herbeoordeling);
   const begrippen = useMemo(() => lijst?.begrippen ?? [], [lijst]);
@@ -118,18 +107,15 @@ export function BegrippenKader({ id }: { id: string }) {
               onDownload={(f) => exporteerBegrippen(id, f as (typeof EXPORT_FORMATEN)[number]["formaat"])} />
           )}
           <Button size="sm" variant="ghost" className="w-full sm:w-auto" onClick={() => setGebruiken(true)}>Generiek begrip gebruiken</Button>
-          {!nieuw.open && <Button size="sm" variant="secondary" className="w-full sm:w-auto" onClick={nieuw.start}>Nieuw begrip</Button>}
         </div>
       </div>
 
-      {nieuw.open && (
-        <div role="group" aria-label="Nieuw begrip">
-          <Input autoFocus value={nieuw.concept} onChange={(e) => nieuw.zet(e.target.value)} onKeyDown={nieuw.toetsen(true)}
-            placeholder="Naam van het nieuwe begrip" aria-label="Naam van het nieuwe begrip" maxLength={200} />
-          <BewerkVoet onAnnuleer={nieuw.annuleer} onOpslaan={() => void nieuw.slaOp()} bezig={nieuw.bezig}
-            gewijzigd={!!nieuw.concept.trim()} opslaanTekst="Aanmaken" fout={nieuw.fout} />
-        </div>
-      )}
+      {/* Geen begrip zonder annotatie (19 nov 2026): een nieuw begrip ontstaat alleen uit passages, op de tab Elementen. */}
+      <p className="text-sm text-ink-soft" data-nieuw-begrip-uitleg>
+        Een begrip rust altijd op gemarkeerde passages. Een nieuw begrip maak je bij de{" "}
+        <Link href={artefactPad(id, "annotaties")} className="underline">{ARTEFACT_LABEL.annotaties}</Link>: kies de
+        passages en daarna <em>Nieuw begrip uit selectie</em>.
+      </p>
 
       {lijst === null ? (
         !fout && <div className="space-y-2"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
@@ -137,7 +123,7 @@ export function BegrippenKader({ id }: { id: string }) {
         <Groep kop="Begrippen" telling={getoond.length} label="Begrippen in dit werkgebied"
           leeg={begrippen.length
             ? "Geen begrippen bij deze keuze."
-            : "Nog geen begrippen. Maak er hier een, of kies in de annotaties de passages waaruit een begrip ontstaat."}>
+            : `Nog geen begrippen. Kies bij de ${ARTEFACT_LABEL.annotaties} de passages waaruit een begrip ontstaat.`}>
           {getoond.map((b) => <BegripRij key={b.id} id={id} begrip={b}
             aandacht={geraakt.has(b.id)
               ? `Herbeoordelen: ${herbeoordelingZin(geraakt.get(b.id)!.passages, geraakt.get(b.id)!.relaties)}`

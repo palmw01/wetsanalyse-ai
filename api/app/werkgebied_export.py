@@ -535,7 +535,7 @@ def _passage(k: dict, elementen: dict[str, dict], nodes: dict[str, dict]) -> Pas
 def _begrip(b: dict, data: dict, elementen: dict[str, dict], nodes: dict[str, dict], redenen: dict[str, str]) -> Begrip:
     i = b["inhoud"]
     o = b.get("definitie_onderbouwing") or {}
-    volgorde = ("duiding", "definitie", "context")
+    volgorde = ("duiding", "afgeleid", "definitie", "context")
     koppelingen = sorted(b["koppelingen"], key=lambda k: volgorde.index(k["rol"]) if k["rol"] in volgorde else 9)
     return Begrip(
         id=b["id"], naam=i["naam"], status=b["status"], generiek=b.get("kader") == "generiek", alternatieve_termen=i.get("alternatieve_termen") or [],

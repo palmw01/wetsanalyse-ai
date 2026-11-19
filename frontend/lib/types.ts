@@ -1040,7 +1040,7 @@ export interface WerkgebiedAuditRegel {
 
 export type DefinitieHerkomst = "letterlijk" | "samengesteld" | "geformuleerd";
 export type VoorbeeldOordeel = "wel" | "niet" | "onzeker";
-export type KoppelRol = "duiding" | "definitie" | "context";
+export type KoppelRol = "duiding" | "afgeleid" | "definitie" | "context";
 export type KoppelBeoordeling = "open" | "akkoord" | "afgewezen";
 export type Actualiteit = "actueel" | "gewijzigd" | "verworpen" | "verdwenen";
 /** `vervangen` (fase F2): alleen-lezen, opgevolgd door een ander begrip (nieuwe betekenis, combineren). */

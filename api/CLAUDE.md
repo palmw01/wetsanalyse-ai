@@ -547,6 +547,18 @@ spoor D (*Werkgebied als node*).
   `definitie_door` – een ongewijzigde definitie houdt ze, een nieuwe of andere tekst is `geformuleerd`
   door de `analist`, geen definitie heeft geen herkomst. Letterlijk wordt een definitie alleen door een
   overgenomen brondefinitie (kaartvoorstel of het akkoord op een groep).
+- **Geen begrip zonder annotatie** (harde regel, besluit gebruiker 19 nov 2026). Een begrip rust altijd op minstens één
+  koppeling met een annotatie-element. `maak` weigert een nieuw begrip zonder `element_ids` (422 `geen_passage`, met
+  `melding`), en `toets_passage` draait in de transactie van elke mutatie die een koppeling weghaalt of overzet
+  (`ontkoppel`, `nieuwe-betekenis`): blijft er geen actieve koppeling over (over alle werkgebieden), dan 409
+  `laatste_passage` en gebeurt er niets. Een vervangen begrip is historie en telt niet mee. Een tussenresultaat zonder
+  eigen formulering is wél een begrip (de methode, M01 §2.2.2): het rust op de markering van de afleidingsregel die het
+  afleidt, met de koppelrol `afgeleid` (dragend, telt voor de poort als aanduidend). Die rol mag alleen op een element
+  van de klasse Afleidingsregel (422 `geen_afleidingsregel`, ook bij het wijzigen van een rol). In het generieke kader
+  (ADR-006, aanvulling 19 nov 2026): een nieuwe betekenis ontstaat in een werkgebied met passages (`werkgebied_id`, 422
+  `werkgebied_nodig`), `stop_gebruik` door het werkgebied met de laatste passages geeft 409 `laatste_passage`, en een
+  werkgebied wissen neemt een generiek begrip mee als het daar zijn laatste passages had (`werkgebied_store.wis`). Een
+  nieuwe schrijver die koppelingen weghaalt, roept `toets_passage` aan.
 - **Eén kader per werkgebied, impliciet.** Een begrip hangt aan een werkgebied, of is generiek (§*Generieke begrippen*);
   het kader heeft geen tabel, alleen een afgeleide IRI (`urn:wa:kader:<werkgebied>`). Begrippen zijn analyse-uitkomsten,
   nooit wettelijke definities; de export zegt dat ook.
@@ -912,11 +924,14 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
   werkgebied (`begrip_voorstel_store` met `werkgebied_id=None`). De auditregel van een besluit gaat naar het werkgebied waar
   het voorstel ontstond.
 - **Gebruik**: `POST …/begrippen/gebruik {begrip_id}` (idempotent), `DELETE …/gebruik/{b}` (de passages hier gaan los).
-  Een werkgebied wissen laat het begrip staan. Verwijderen kan niet zolang het gebruikt wordt (409 `in_gebruik`).
+  Het werkgebied met de laatste passages kan niet stoppen (409 `laatste_passage`). Een werkgebied wissen laat het begrip
+  staan, behalve als het daar zijn laatste passages had: dan gaat het mee. Verwijderen kan niet zolang twee of meer
+  werkgebieden het gebruiken (409 `in_gebruik`); bij één gaat dat gebruik mee.
 - **Doorwerking**: `GET …/herbeoordelingen` draagt `generiek`: wat veranderde sinds `gezien_revisie`, met toen en nu uit
   `begrip_revisies` (`generiek_veranderd`). Een nieuwe revisie door een passage elders telt niet. `POST …/gebruik/{b}/bevestigen`.
-- **Opvolging**: `POST /v1/begrippen/{id}/nieuwe-betekenis` geeft een concept zonder passages (relatie zonder werkgebied);
-  elk werkgebied neemt hem zelf over met `POST …/gebruik/{b}/opvolger`, met zijn passages opnieuw open.
+- **Opvolging**: `POST /v1/begrippen/{id}/nieuwe-betekenis {…, werkgebied_id}` geeft een concept met de passages van dat
+  werkgebied (opnieuw open), en dat werkgebied gaat erop over; zonder werkgebied of zonder passages daar 422/409. Elk ander
+  werkgebied neemt hem zelf over met `POST …/gebruik/{b}/opvolger`, met zijn passages opnieuw open.
 - **Combineren**: `POST …/begrippen/{b}/combineren-generiek {verwachte_revisie, generiek_id, reden}`: het lokale begrip wordt
   vervangen, de passages gaan mee, de inhoud van het generieke begrip verandert niet.
 - **De graaf**: de id `generiek` is één extra graph (`urn:wa:graph:werkgebied:generiek`) met de passages uit alle
