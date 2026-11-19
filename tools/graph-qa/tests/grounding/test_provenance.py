@@ -317,3 +317,63 @@ def test_een_zoektreffer_is_geen_bron_naast_wat_gelezen_is():
     assert treffer in alleen_gelezen_wettekst(alles, "", frozenset({treffer.uri}))
     # Niets gelezen: dan rust het antwoord op de treffers, en blijven ze staan.
     assert alleen_gelezen_wettekst([treffer, regeling], "") == [treffer, regeling]
+
+
+# --- get_bepaling: de bepaling is gelezen, haar subdivisies alleen gevonden (acceptatie 19 nov 2026, meting 3) --------
+
+_L144 = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie14%2FCirculaire.divisie14.4"
+
+
+def _sub(n: str) -> str:
+    return f"{_L144}%2FCirculaire.divisie14.4.{n}"
+
+
+def _get_bepaling(iri: str, nummer: str, tekst: str, subs: list[tuple[str, str, str]]) -> tuple[str, str]:
+    """De vorm van `get_bepaling`: de bepaling bovenaan, haar subdivisies als rijen met alleen hun begin."""
+    import json
+    return "get_bepaling", json.dumps({
+        "status": "ok", "volledig": True, "aantal": len(subs),
+        "bepaling": {"iri": iri, "nummer": nummer, "label": nummer, "tekst": tekst, "subdivisies": len(subs)},
+        "resultaten": [{"sub": _sub(n), "nummer": f"14.4.{n}", **({"label": lab} if lab else {}), "begin": begin}
+                       for n, lab, begin in subs]})
+
+
+LEIDRAAD_14_4 = _get_bepaling(_L144, "14.4", "", [
+    ("1", "", "In artikel 475 Rv en volgende is de mogelijkheid gegeven ten laste van de belastingschuldige beslag te leggen"),
+    ("5", "Beslagvrije voet", "Bij derdenbeslag op periodieke inkomsten houdt de ontvanger rekening met de beslagvrije voet"),
+    ("12", "Onverschuldigde betaling en derdenbeslag", "Als een bank een bedrag op het banktegoed onverschuldigd betaalt"),
+])
+
+
+def test_de_subdivisies_uit_get_bepaling_zijn_gevonden_niet_gelezen():
+    """Derdenbeslag: `get_bepaling 14.4` gaf het begin van 19 subdivisies, en "Klaar · 20 bronnen"."""
+    from agent.gelezen import gelezen_en_gevonden
+    from agent.grounding import alleen_gelezen_wettekst
+
+    bronnen = collect_sources([LEIDRAAD_14_4])
+    assert [(s.uri, bool(s.voorproef)) for s in bronnen] == [(_L144, False), (_sub("1"), True), (_sub("5"), True), (_sub("12"), True)]
+    assert [s.uri for s in alleen_gelezen_wettekst(bronnen, "")] == [_L144]
+    gelezen, gevonden = gelezen_en_gevonden([LEIDRAAD_14_4])
+    assert [i for i, _ in gelezen] == [_L144] and {i for i, _ in gevonden} == {_sub("1"), _sub("5"), _sub("12")}
+
+
+def test_een_subdivisie_die_daarna_zelf_gelezen_is_is_een_bron():
+    from agent.grounding import alleen_gelezen_wettekst
+
+    zelf = _get_bepaling(_sub("1"), "14.4.1", "In artikel 475 Rv en volgende is de mogelijkheid gegeven …", [])
+    bronnen = alleen_gelezen_wettekst(collect_sources([LEIDRAAD_14_4, zelf]), "")
+    assert [s.uri for s in bronnen] == [_L144, _sub("1")] and not bronnen[1].voorproef
+
+
+def test_het_begin_van_een_subdivisie_is_geen_steun():
+    from agent.gelezen import gelezen_tekst
+
+    tekst = gelezen_tekst([LEIDRAAD_14_4]).casefold()
+    assert "banktegoed" not in tekst and "beslagvrije voet" not in tekst
+
+
+def test_geen_kale_iri_in_de_bronnenlijst():
+    """Het label uit de rij, en anders het nummer, zoals het denkproces ("artikel 14.4.1")."""
+    labels = {s.uri: s.label for s in collect_sources([LEIDRAAD_14_4])}
+    assert labels == {_L144: "artikel 14.4", _sub("1"): "artikel 14.4.1", _sub("5"): "Beslagvrije voet",
+                      _sub("12"): "Onverschuldigde betaling en derdenbeslag"}

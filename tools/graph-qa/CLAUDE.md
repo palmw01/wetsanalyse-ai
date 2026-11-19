@@ -1180,7 +1180,11 @@ hier vandaan maar uit `bronmodel.resolve` (zie §*De annotatieketen*).
 - `alleen_gelezen_wettekst` (na `alleen_gelezen_extern`): wettekst die alleen een zoektool vond, valt weg zodra er iets
   gelezen is, tenzij het antwoord haar aanhaalt (vindplaats in de tekst of een doel van het sjabloon); is er niets gelezen,
   dan blijven de treffers staan, want dan rust het antwoord op hun tekst. Een definitie uit `zoek_definitie` telt als gelezen.
-  Acceptatie 19 nov 2026: "10 bronnen" bij één gelezen bepaling.
+  Acceptatie 19 nov 2026: "10 bronnen" bij één gelezen bepaling. Een rij met alleen het begin van haar tekst
+  (`resultaat.VOORPROEF`, de subdivisies van `get_bepaling`) is ook gevonden: `Source.voorproef`, niet in `gelezen_en_gevonden`
+  als gelezen en geen steun voor de steuntoets (`resultaat.zonder_voorproef`); leest Lex de subdivisie daarna zelf, dan
+  is ze gelezen. Zonder label krijgt een bron het nummer uit de rij ("artikel 14.4.5", `provenance._labels`), nooit haar
+  kale IRI (meting 3: "Klaar · 20 bronnen" met IRI's bij `get_bepaling 14.4`).
 - `curate_sources` snoeit tot aangehaalde regelingen (bij BWB-id, naam of afkorting: de namen staan er vóór het cureren al op, `met_regelingnamen`; ADR-016 ronde 4, K13), en binnen een regeling met een precieze
   vindplaats tot bronnen op het pad daarvan. Omhulsels (`hoofdstuk`, `afdeling`) en datums tellen niet
   mee in het pad: een jci draagt ze vaak, de graaf-IRI niet.

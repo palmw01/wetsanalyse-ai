@@ -346,3 +346,30 @@ def is_foutresultaat(tekst: str) -> dict[str, Any] | None:
     except (TypeError, ValueError):
         return None
     return data if isinstance(data, dict) and data.get("status") == "error" and "reden" in data else None
+
+
+#: Het veld waarin een rij alleen het begin van een tekst draagt (`get_bepaling`: de subdivisies met hun begin): een
+#: voorproef. Zo'n rij is gevonden, niet gelezen (acceptatie 19 nov 2026, derdenbeslag: `get_bepaling 14.4` gaf het begin
+#: van 19 subdivisies, en die stonden alle 19 als gelezen bron in de lijst en droegen de toelichting).
+VOORPROEF = "begin"
+#: De velden waarin een rij haar vindplaats draagt.
+_IRI_VELDEN = ("node", "iri", "id", "sub")
+
+
+def voorproef_iris(tekst: str) -> set[str]:
+    """De vindplaatsen van de rijen die alleen een voorproef dragen (`VOORPROEF`)."""
+    data = is_contract(tekst)
+    uit: set[str] = set()
+    for rij in (data or {}).get("resultaten") or []:
+        if isinstance(rij, dict) and rij.get(VOORPROEF):
+            uit |= {rij[v] for v in _IRI_VELDEN if isinstance(rij.get(v), str) and rij[v]}
+    return uit
+
+
+def zonder_voorproef(tekst: str) -> str:
+    """Het resultaat zonder de voorproeven: wat er werkelijk gelezen is."""
+    data = is_contract(tekst)
+    if data is None or not voorproef_iris(tekst):
+        return tekst
+    rijen = [r for r in data.get("resultaten") or [] if not (isinstance(r, dict) and r.get(VOORPROEF))]
+    return json.dumps({**data, "resultaten": rijen}, ensure_ascii=False)
