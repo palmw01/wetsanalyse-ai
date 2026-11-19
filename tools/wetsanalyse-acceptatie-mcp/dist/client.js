@@ -158,6 +158,7 @@ export class AcceptatieClient {
             }
             const decoder = new TextDecoder();
             let buffer = "";
+            let bericht;
             for await (const stuk of gestart.res.body) {
                 const gelezen = leesFrames(buffer + decoder.decode(stuk, { stream: true }));
                 buffer = gelezen.rest;
@@ -165,7 +166,7 @@ export class AcceptatieClient {
                     if (typeof ev.seq === "number")
                         uit.vanaf = ev.seq;
                     if (ev.type === "token")
-                        uit.tekst += String(ev.content ?? "");
+                        ({ tekst: uit.tekst, bericht } = metToken(uit.tekst, bericht, ev));
                     else if (ev.type !== "reason" && ev.type !== "status")
                         uit.events.push(ev);
                 }
@@ -181,4 +182,12 @@ export class AcceptatieClient {
         }
         return { ...uit, trace_id, status };
     }
+}
+/** Een token achter de tekst. Elk onderdeel van een reeks (`onderdeel`) is in de werkplek een eigen bericht, net als
+ *  de samenvatting erna: tussen twee berichten komt een witregel, anders leest "… koos het model.1 bepaling …" als
+ *  één zin (Termijnen, 19 nov 2026). */
+export function metToken(tekst, bericht, ev) {
+    const dit = String(ev.onderdeel ?? "");
+    const scheiding = bericht !== undefined && bericht !== dit && tekst && !/\s$/.test(tekst) ? "\n\n" : "";
+    return { tekst: tekst + scheiding + String(ev.content ?? ""), bericht: dit };
 }
