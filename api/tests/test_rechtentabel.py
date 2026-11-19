@@ -74,6 +74,7 @@ TABEL: dict[str, tuple[str, ...]] = {
     "GET /v1/admin/users": ('require_admin',),
     "GET /v1/admin/verbruik": ('require_admin',),
     "GET /v1/annotatie/bepaling": ('require_client', 'actieve_userid'),
+    "GET /v1/annotatie/diagram": ('require_client', 'actieve_userid'),
     "GET /v1/annotatie/capabilities": ('require_client', 'actieve_userid'),
     "GET /v1/annotatie/dekking": ('require_client', 'actieve_userid'),
     "GET /v1/annotatie/elementen/{element_id}": ('require_client', 'actieve_userid'),
