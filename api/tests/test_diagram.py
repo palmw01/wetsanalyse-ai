@@ -130,3 +130,13 @@ def test_de_tekenaars_maken_pdf_svg_en_mermaid_uit_hetzelfde_model():
     assert md.startswith("```mermaid\nflowchart TB") and md.endswith("```")
     assert "#lt;tekens#gt;" in md and "#91;1#93;" in md and "<tekens>" not in md
     assert md.count("classDef") == len({k.klasse for k in d.knopen})
+
+
+def test_boven_en_onder_krijgt_elke_stap_een_eigen_rij_verder_van_het_midden():
+    ar = _m("ar", "Afleidingsregel", 1)
+    vw, op, ander = _m("vw", "Voorwaarde", 2), _m("op", "Operator", 3), _m("in", "Variabele en variabelewaarde", 4)
+    tweede = _m("op2", "Operator", 5)
+    d = diagram.bouw(ar, [_r(ar, vw, "voorwaarde"), _r(op, vw, "operator_in"), _r(ander, ar, "invoer"),
+                          _r(ander, tweede, "operand")])
+    pos = {g.knoop.id: g for g in diagram.plaats(d).knopen}
+    assert pos["op"].y < pos["vw"].y < pos["ar"].y < pos["in"].y < pos["op2"].y
