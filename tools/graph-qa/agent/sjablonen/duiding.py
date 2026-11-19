@@ -14,6 +14,7 @@ gaat terug naar het model.
 """
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
 
@@ -68,6 +69,8 @@ def _lex(tekst: Any, trace: Trace) -> str:
     return herstel_citaten(str(tekst or "").strip(), trace)[0]
 
 
+logger = logging.getLogger("graph_qa.orchestrator")
+
 #: Zo lang mag een passage zonder `van` en `tot` zijn: een heel lid of onderdeel. Daarboven wijst het model een stuk aan.
 MAX_HELE_TEKST = 600
 
@@ -103,11 +106,26 @@ def _passage(van: str, tot: str, tekst: str) -> str:
     return ""
 
 
+def _tot_zinseinde(van: str, tekst: str) -> str:
+    """De passage van de eerste plek van `van` tot het einde van die zin (een punt, puntkomma of dubbele punt gevolgd door
+    witruimte, of het einde van de tekst), zoals ze in deze tekst staat; leeg als `van` er niet of meer dan eens staat.
+    Hoogstens `MAX_HELE_TEKST` tekens: een langere zin kiest de code niet."""
+    tekst = _normaliseer(tekst)
+    plekken = _ankers(van, tekst)
+    if len(plekken) != 1:
+        return ""
+    begin, eind = plekken[0]
+    m = re.search(r"[.;:](?=\s|$)", tekst[eind:])
+    stuk = tekst[begin:eind + m.end()] if m else tekst[begin:]
+    return stuk if len(stuk) <= MAX_HELE_TEKST else ""
+
+
 def _binnen(node: str, iri: str) -> bool:
     return bool(node) and (node == iri or node.startswith(iri + ":"))
 
 
-def _citaat(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace, fouten: list[str]) -> Citaat | None:
+def _citaat(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace,
+            fouten: list[str]) -> Citaat | list[Citaat] | None:
     iri = str(stuk.get("bepaling") or "").strip()
     if iri.startswith("jci"):
         # Eerst de rij die deze jci draagt; draagt geen rij hem (de leden van `get_artikel` hebben vaak geen eigen jci,
@@ -134,6 +152,10 @@ def _citaat(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace
                       "toolresultaat, en haal de bepaling op met get_artikel, get_lid of get_bepaling")
         return None
     treffers = {k: (plek, t) for k, (plek, r) in onder.items() if (t := _passage(van, tot, r["tekst"]))}
+    if not treffers and van and tot and (afgemaakt := _afgemaakt(van, tot, onder, rijen)):
+        logger.info("passage afgemaakt", extra={"categorie": "functioneel", "sjabloon": "antwoord_duiding",
+                                                "delen": len(afgemaakt)})
+        return [_maak_citaat(plek, t, stuk, rijen, trace) for plek, t in afgemaakt]
     if not treffers:
         if not van and not tot:
             fouten.append(f"{vindplaats_van(iri).label} is te lang om heel te tonen. Wijs met `van` en `tot` de passage aan "
@@ -149,10 +171,51 @@ def _citaat(stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace
     diepste = [p for p in plekken if not any(a.startswith(p + ":") for a in plekken)]
     plek = diepste[0] if len(diepste) == 1 else iri
     tekst = next(t for p, t in treffers.values() if p in diepste)
+    return _maak_citaat(plek, tekst, stuk, rijen, trace)
+
+
+def _maak_citaat(plek: str, tekst: str, stuk: dict[str, Any], rijen: dict[str, dict[str, Any]], trace: Trace) -> Citaat:
     rij = rijen.get(plek, {})
     return Citaat(tekst=tekst, waarom=_lex(stuk.get("waarom"), trace),
                   vindplaats=vindplaats_van(plek, jci=met_toestand(rij.get("jci", ""), toestanden(trace)), regeling=rij.get("citeertitel", ""),
                                             label=rij.get("inLabel") or rij.get("label", "")))
+
+
+def _afgemaakt(van: str, tot: str, onder: dict[str, tuple[str, dict[str, Any]]],
+               rijen: dict[str, dict[str, Any]]) -> list[tuple[str, str]]:
+    """Het begin staat in de aangewezen bepaling, het einde niet ná het begin in dezelfde rij: het model nam het einde uit
+    een andere rij. Een weigering liet het model het hele sjabloon opnieuw schrijven (~2.900 tekens, ~10 s; meting 19 nov
+    2026: 103 van de 124 weigeringen "staat niet in" hadden het begin wel). De code maakt de passage zelf af, letterlijk:
+
+    - staat het einde in de rij direct na die van het begin, binnen de aangewezen bepaling, dan twee citaten: van het
+      begin tot het eind van die rij, en van het begin van de volgende rij tot het einde (elk met zijn eigen vindplaats);
+    - staat het einde elders in de opgehaalde tekst, buiten de aangewezen bepaling, dan van het begin tot het einde van de
+      zin.
+
+    Alleen als begin en einde letterlijk in de bron staan en elk in precies één rij: een einde dat nergens staat ("zes
+    weken" waar "zes maanden" staat) kan op een misverstand wijzen, en een einde vóór het begin in dezelfde rij ook. Die
+    blijven een weigering. Geeft `[(plek, tekst), …]`, of leeg."""
+    def rijen_met(anker: str, bron: dict[str, tuple[str, dict[str, Any]]]) -> list[str]:
+        return [k for k, (_, r) in bron.items() if _ankers(anker, _normaliseer(str(r.get("tekst") or "")))]
+
+    met_van = rijen_met(van, onder)
+    if len(met_van) != 1 or len(_ankers(van, _normaliseer(onder[met_van[0]][1]["tekst"]))) != 1:
+        return []
+    a = met_van[0]
+    plek_a, rij_a = onder[a]
+    if _ankers(tot, _normaliseer(rij_a["tekst"])):
+        return []                                             # einde vóór het begin, in dezelfde rij
+    met_tot = rijen_met(tot, onder)
+    volgorde = list(onder)
+    if len(met_tot) == 1 and volgorde.index(met_tot[0]) == volgorde.index(a) + 1:
+        plek_b, rij_b = onder[met_tot[0]]
+        deel_a, deel_b = _passage(van, "", rij_a["tekst"]), _passage("", tot, rij_b["tekst"])
+        if deel_a and deel_b and len(deel_a) <= MAX_HELE_TEKST and len(deel_b) <= MAX_HELE_TEKST:
+            return [(plek_a, deel_a), (plek_b, deel_b)]
+        return []
+    if met_tot or not any(_ankers(tot, _normaliseer(str(r.get("tekst") or ""))) for r in rijen.values()):
+        return []                                             # einde verderop in de bepaling, of nergens
+    return [(plek_a, t)] if (t := _tot_zinseinde(van, rij_a["tekst"])) else []
 
 
 def _waar_wel(van: str, tot: str, onder: dict[str, tuple[str, dict[str, Any]]], rijen: dict[str, dict[str, Any]]) -> str:
@@ -460,7 +523,7 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
     citaten, weg = [], []
     for stuk in stukken:
         if c := _citaat(stuk, rijen, trace, (eigen := [])):
-            citaten.append(c)
+            citaten.extend(c if isinstance(c, list) else [c])
         elif eigen:
             fouten += eigen
             weg.append(stuk)

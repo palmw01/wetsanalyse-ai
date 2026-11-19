@@ -172,8 +172,8 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
     # een gegeven voor de centrale agent, en wat die de gebruiker zegt, toetst `verify` tegen dezelfde trace. Alleen als
     # er niets te tonen is, weigert de code: dan kan de subagent herstellen.
     rijen, fouten = bron_rijen(trace), []
-    citaten = [c for stuk in invoer.get("onderbouwing") or [] if isinstance(stuk, dict)
-               and (c := duiding._citaat(stuk, rijen, trace, fouten))]
+    citaten = [x for stuk in invoer.get("onderbouwing") or [] if isinstance(stuk, dict)
+               and (c := duiding._citaat(stuk, rijen, trace, fouten)) for x in (c if isinstance(c, list) else [c])]
     niet_getoond = [*fouten, *(str(x) for x in invoer.get(NIET_GETOOND) or [])]
     if status == "klaar" and not citaten and not int(invoer.get(EXTERN_GETOOND) or 0):
         if niet_getoond:
