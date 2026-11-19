@@ -1,0 +1,286 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+
+import { AutoTextarea } from "@/components/ui/AutoTextarea";
+import { Button } from "@/components/ui/Button";
+import { ButtonRow } from "@/components/ui/ButtonRow";
+import { LaadRegel, LaadStand } from "@/components/ui/LaadStand";
+import { Leeg } from "@/components/ui/Leeg";
+import { Lijst, LijstRij, Regel as RegelVeld, Regels, Sectie, StatusLabel } from "@/components/ui/Lijst";
+import { Melding } from "@/components/ui/Melding";
+import { Kaart, SplitDetail } from "@/components/ui/Pagina";
+import { Uitklap } from "@/components/ui/Uitklap";
+import { Markdown } from "@/components/werkplek/Markdown";
+import { accordeerRegel, beoordeelRegelDrager, haalRegelRevisies, heropenRegel, wijsRegelAf } from "@/lib/api";
+import { datumTijd } from "@/lib/datum";
+import {
+  DRAGER_BEOORDELING_LABEL, DRAGER_ROL_LABEL, HERKOMST_LABEL, REGEL_SOORT_LABEL, REGEL_STATUS_LABEL, REGEL_STATUS_TOON,
+  VOORBEELD_OORDEEL_LABEL, begripNaam, buren, isGeaccordeerd, isOpen, voorbeeldenBij,
+  type Regel, type RegelDrager, type RegelKeten, type RegelRevisie, type VoorbeeldOordeel,
+} from "@/lib/regels";
+import type { RegelStand } from "@/lib/useRegel";
+import { begripPad, elementPad, regelPad } from "@/lib/werkgebiedPaden";
+
+const OORDEEL_TOON: Record<VoorbeeldOordeel, "groen" | "rood" | "geel" | "neutraal"> = {
+  juist: "groen", onjuist: "rood", kan_niet: "neutraal", open: "geel",
+};
+
+/** De stand van een regel in een kop: status, soort, beleid en revisie. */
+export function RegelStatus({ regel }: { regel: Regel }) {
+  return <>
+    <StatusLabel toon={REGEL_STATUS_TOON[regel.status]}>{REGEL_STATUS_LABEL[regel.status]}</StatusLabel>
+    <span className="text-xs text-muted">{REGEL_SOORT_LABEL[regel.inhoud.soort]}{regel.inhoud.brontype === "beleid" ? " · beleidsregel" : ""} · revisie {regel.revisie}</span>
+  </>;
+}
+
+/** Eén afleidingsregel: de regelkaart (ADR-018 §6), gebouwd zoals de begripskaart. Op de pagina in twee kolommen (links
+ *  de regel, de gevallen en de grondslag, rechts de beoordeling, de keten en de historie), naast het gesprek onder elkaar.
+ *  De regeltekst komt van de api. Geen Lex-knoppen: dat vraag je in het gesprek. */
+export function RegelInhoud({ stand, weergave, keten }: {
+  stand: RegelStand;
+  weergave: "pagina" | "paneel";
+  /** De keten van het werkgebied, voor *Volgt op* en *Leidt tot*; ontbreekt hij, dan staat dat blok er niet. */
+  keten?: RegelKeten | null;
+}) {
+  const { regel } = stand;
+  if (!regel) return <LaadStand wat="De afleidingsregel" fout={stand.fout} onOpnieuw={stand.laad} />;
+
+  const melding = stand.melding && <Melding type={stand.melding.type} className="mb-4" data-regel-melding>{stand.melding.tekst}</Melding>;
+  const hoofd = <>
+    <RegelTekst regel={regel} />
+    <Gevallen regel={regel} />
+    <Dragers stand={stand} regel={regel} />
+    {regel.inhoud.toelichting.trim() && (
+      <Kaart titel="Toelichting"><p className="whitespace-pre-line text-sm text-ink">{regel.inhoud.toelichting}</p></Kaart>
+    )}
+  </>;
+  const zij = <>
+    <Beoordeling stand={stand} regel={regel} />
+    {keten && <InDeKeten regel={regel} keten={keten} />}
+    {!stand.alleenLezen && <Historie regel={regel} />}
+  </>;
+  return (
+    <div data-regel-inhoud={regel.id} data-regel-status={regel.status}>
+      {melding}
+      {weergave === "pagina" ? <SplitDetail hoofd={hoofd} zij={zij} /> : <div className="space-y-4">{hoofd}{zij}</div>}
+    </div>
+  );
+}
+
+function BegripLink({ regel, id }: { regel: Regel; id: string }) {
+  return (
+    <Link href={begripPad(regel.werkgebied_id, id)} className="focus-ring rounded text-lint hover:underline" data-regel-begrip={id}>
+      {begripNaam(regel, id)}
+    </Link>
+  );
+}
+
+/** De regel in het taalpatroon, met de begrippen die hij noemt. */
+function RegelTekst({ regel }: { regel: Regel }) {
+  const { inhoud } = regel;
+  const invoer = inhoud.invoer.filter((i) => i.rol !== "parameter");
+  const parameters = inhoud.invoer.filter((i) => i.rol === "parameter");
+  return (
+    <Kaart titel="Regel" toelichting="Afgeleid uit de delen hieronder, in het taalpatroon van de methode." data-regel-tekst>
+      <div className="text-lees text-ink [&_ul]:mt-1"><Markdown tekst={regel.regeltekst.markdown} links="vrij" /></div>
+      <Regels className="mt-3 border-t border-line">
+        <RegelVeld naam="Uitvoer"><BegripLink regel={regel} id={inhoud.uitvoer_begrip_id} /></RegelVeld>
+        {inhoud.onderwerp_begrip_id && <RegelVeld naam="Over"><BegripLink regel={regel} id={inhoud.onderwerp_begrip_id} /></RegelVeld>}
+        <RegelVeld naam="Invoer">
+          {invoer.length
+            ? <span className="flex flex-wrap gap-x-3 gap-y-1">{invoer.map((i) => <BegripLink key={i.begrip_id} regel={regel} id={i.begrip_id} />)}</span>
+            : <span className="text-muted">Geen</span>}
+        </RegelVeld>
+        {parameters.length > 0 && (
+          <RegelVeld naam="Parameters">
+            <span className="flex flex-wrap gap-x-3 gap-y-1">{parameters.map((i) => <BegripLink key={i.begrip_id} regel={regel} id={i.begrip_id} />)}</span>
+          </RegelVeld>
+        )}
+        <RegelVeld naam="Regelbegrip"><BegripLink regel={regel} id={inhoud.regelbegrip_id} /></RegelVeld>
+      </Regels>
+    </Kaart>
+  );
+}
+
+/** De gevallen met hun voorbeelden: één rij per geval, de voorbeelden met het oordeel "juridisch juist?". */
+function Gevallen({ regel }: { regel: Regel }) {
+  const enkel = regel.inhoud.gevallen.length === 1;
+  return (
+    <Kaart titel={enkel ? "Voorbeelden" : "Gevallen"} telling={enkel ? regel.inhoud.voorbeelden.length : regel.inhoud.gevallen.length}
+      toelichting={enkel ? "Is de uitkomst juridisch juist?" : "Per geval de voorwaarden, de uitkomst en de voorbeelden."}>
+      <Lijst label={enkel ? "Voorbeelden" : "Gevallen"}>
+        {regel.inhoud.gevallen.map((g, i) => {
+          const voorbeelden = voorbeeldenBij(regel, g.label);
+          const tekst = regel.regeltekst.gevallen[i]?.tekst;
+          return (
+            <LijstRij key={g.label || i} data-regel-geval={g.label}
+              titel={enkel ? undefined : <span className="font-medium">Geval {g.label}{g.voorrang ? " (gaat voor)" : ""}</span>}
+              meta={!enkel && tekst}>
+              {voorbeelden.length ? (
+                <ul className="mt-2 space-y-1.5">
+                  {voorbeelden.map((v, j) => (
+                    <li key={j} className="flex items-start justify-between gap-3 text-sm" data-regel-voorbeeld={v.oordeel}>
+                      <span className="min-w-0 text-ink">{v.invoer} <span className="text-muted">→</span> {v.uitkomst}</span>
+                      <StatusLabel klein toon={OORDEEL_TOON[v.oordeel]}>{VOORBEELD_OORDEEL_LABEL[v.oordeel]}</StatusLabel>
+                    </li>
+                  ))}
+                </ul>
+              ) : <Leeg klein className="mt-2">Nog geen voorbeeld bij dit geval.</Leeg>}
+            </LijstRij>
+          );
+        })}
+      </Lijst>
+    </Kaart>
+  );
+}
+
+/** De markeringen waarop de regel rust: eerst de grondslag, dan de rest. Per drager akkoord of afwijzen. */
+function Dragers({ stand, regel }: { stand: RegelStand; regel: Regel }) {
+  const volgorde = [...regel.dragers].sort((a, b) => Number(b.rol === "grondslag") - Number(a.rol === "grondslag"));
+  const beoordeel = (d: RegelDrager, beoordeling: "akkoord" | "afgewezen") =>
+    stand.muteer((r) => beoordeelRegelDrager(regel.werkgebied_id, regel.id, d.id, r, beoordeling));
+  const kan = !stand.alleenLezen && isOpen(regel);
+  return (
+    <Kaart titel="Grondslag en dragende passages" telling={regel.dragers.length}
+      toelichting="De markeringen waarop de regel rust. Zonder grondslag in de tekst bestaat een regel niet.">
+      <Lijst label="Dragende passages">
+        {volgorde.map((d) => (
+          <LijstRij key={d.id} data-regel-drager={d.rol}
+            titel={<Link href={elementPad(d.element_id)} className="focus-ring rounded text-lint hover:underline">{DRAGER_ROL_LABEL[d.rol]}{d.geval ? ` · geval ${d.geval}` : ""}</Link>}
+            meta={<>{d.element_id}{d.actualiteit && d.actualiteit !== "actueel" ? ` · passage ${d.actualiteit}` : ""}</>}
+            status={<StatusLabel toon={d.beoordeling === "akkoord" ? "groen" : d.beoordeling === "afgewezen" ? "rood" : "geel"}>
+              {DRAGER_BEOORDELING_LABEL[d.beoordeling]}</StatusLabel>}
+            acties={kan && d.beoordeling === "open" && <>
+              <Button size="xs" variant="secondary" disabled={stand.bezig} onClick={() => void beoordeel(d, "akkoord")}
+                aria-label={`Akkoord met ${DRAGER_ROL_LABEL[d.rol].toLowerCase()} ${d.element_id}`}>Akkoord</Button>
+              <Button size="xs" variant="ghost" disabled={stand.bezig} onClick={() => void beoordeel(d, "afgewezen")}
+                aria-label={`${DRAGER_ROL_LABEL[d.rol]} ${d.element_id} afwijzen`}>Afwijzen</Button>
+            </>} />
+        ))}
+      </Lijst>
+    </Kaart>
+  );
+}
+
+/** De beoordeling: wat er openstaat (de poort van de api, letterlijk), de signalen, en accorderen, heropenen of afwijzen. */
+function Beoordeling({ stand, regel }: { stand: RegelStand; regel: Regel }) {
+  const [reden, setReden] = useState("");
+  const [afwijzen, setAfwijzen] = useState(false);
+  const kan = !stand.alleenLezen;
+  const accordeer = async () => {
+    if (await stand.muteer((r) => accordeerRegel(regel.werkgebied_id, regel.id, r, reden.trim()), "De regel is geaccordeerd.")) setReden("");
+  };
+  const wijsAf = async () => {
+    if (await stand.muteer((r) => wijsRegelAf(regel.werkgebied_id, regel.id, r, reden.trim()), "De regel is afgewezen.")) {
+      setReden("");
+      setAfwijzen(false);
+    }
+  };
+  return (
+    <Kaart titel="Beoordeling" data-regel-beoordeling>
+      <Regels>
+        <RegelVeld naam="Status"><StatusLabel toon={REGEL_STATUS_TOON[regel.status]}>{REGEL_STATUS_LABEL[regel.status]}</StatusLabel></RegelVeld>
+        <RegelVeld naam="Herkomst">{HERKOMST_LABEL[regel.herkomst]}</RegelVeld>
+        {isGeaccordeerd(regel) && regel.geaccordeerd_door && (
+          <RegelVeld naam="Geaccordeerd">{regel.geaccordeerd_door}, {datumTijd(regel.geaccordeerd_op)}</RegelVeld>
+        )}
+      </Regels>
+      {isOpen(regel) && (regel.accorderen.mag
+        ? <Melding type="bevestiging" compact className="mt-3">Alles is beoordeeld: de regel kan worden geaccordeerd.</Melding>
+        : (
+          <Sectie titel="Nog open voor accorderen" niveau={3} className="mt-3" data-regel-poort>
+            <ul className="list-disc space-y-1 pl-5 text-sm text-ink">{regel.accorderen.redenen.map((r) => <li key={r}>{r}</li>)}</ul>
+          </Sectie>
+        ))}
+      {regel.signalen.length > 0 && (
+        <Sectie titel="Signalen" niveau={3} className="mt-3" toelichting="Vragen aandacht, maar blokkeren het accorderen niet." data-regel-signalen>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-ink">{regel.signalen.map((s) => <li key={s}>{s}</li>)}</ul>
+        </Sectie>
+      )}
+      {kan && isOpen(regel) && (
+        <div className="mt-4 space-y-2">
+          <label className="block text-sm text-muted" htmlFor={`reden-${regel.id}`}>
+            {afwijzen ? "Waarom wijs je de regel af?" : "Waarom accordeer je de regel?"}
+          </label>
+          <AutoTextarea id={`reden-${regel.id}`} value={reden} onChange={(e) => setReden(e.target.value)} rows={2}
+            className="w-full" data-regel-reden />
+          <ButtonRow>
+            {afwijzen ? <>
+              <Button size="sm" variant="danger" disabled={stand.bezig || !reden.trim()} onClick={() => void wijsAf()}>Afwijzen</Button>
+              <Button size="sm" variant="ghost" onClick={() => setAfwijzen(false)}>Annuleren</Button>
+            </> : <>
+              <Button size="sm" disabled={stand.bezig || !regel.accorderen.mag || !reden.trim()} onClick={() => void accordeer()}
+                data-regel-accorderen>Accorderen</Button>
+              <Button size="sm" variant="secondary" onClick={() => setAfwijzen(true)}>Afwijzen…</Button>
+            </>}
+          </ButtonRow>
+        </div>
+      )}
+      {kan && isGeaccordeerd(regel) && (
+        <ButtonRow className="mt-4">
+          <Button size="sm" variant="secondary" disabled={stand.bezig}
+            onClick={() => void stand.muteer((r) => heropenRegel(regel.werkgebied_id, regel.id, r), "De regel staat weer open.")}>
+            Heropenen
+          </Button>
+        </ButtonRow>
+      )}
+    </Kaart>
+  );
+}
+
+/** Waar de regel in de keten staat: de regels waarvan hij een uitkomst gebruikt, en de regels die de zijne gebruiken. */
+function InDeKeten({ regel, keten }: { regel: Regel; keten: RegelKeten }) {
+  const { volgtOp, leidtTot } = buren(keten, regel.id);
+  const naam = (id: string) => keten.regels.find((r) => r.id === id)?.naam || id;
+  const rij = (ids: string[]) => ids.length
+    ? <ul className="space-y-1">{ids.map((id) => (
+      <li key={id}><Link href={regelPad(regel.werkgebied_id, id)} className="focus-ring rounded text-sm text-lint hover:underline">{naam(id)}</Link></li>
+    ))}</ul>
+    : <span className="text-sm text-muted">Geen</span>;
+  const signalen = keten.signalen.filter((s) => s.regel_ids.includes(regel.id));
+  return (
+    <Kaart titel="In de keten" data-regel-keten>
+      <Regels>
+        <RegelVeld naam="Volgt op">{rij(volgtOp)}</RegelVeld>
+        <RegelVeld naam="Leidt tot">{rij(leidtTot)}</RegelVeld>
+      </Regels>
+      {signalen.map((s) => <Melding key={s.soort} type="waarschuwing" compact className="mt-3">{s.melding}</Melding>)}
+    </Kaart>
+  );
+}
+
+const ACTIE_ZIN: Record<string, string> = {
+  "regel-aangemaakt": "Aangemaakt", "regel-gewijzigd": "Gewijzigd", "drager-beoordeeld": "Passage beoordeeld",
+  "drager-toegevoegd": "Passages toegevoegd", "drager-verwijderd": "Passage verwijderd",
+  "regel-geaccordeerd": "Geaccordeerd", "regel-heropend": "Heropend", "regel-afgewezen": "Afgewezen",
+};
+
+/** De revisies, pas geladen bij openklappen en opnieuw bij een nieuwe revisie. */
+function Historie({ regel }: { regel: Regel }) {
+  const [revisies, setRevisies] = useState<RegelRevisie[] | null>(null);
+  const [fout, setFout] = useState<string | null>(null);
+  const [geladen, setGeladen] = useState(0);
+  const laad = () => {
+    if (geladen === regel.revisie) return;
+    setGeladen(regel.revisie);
+    haalRegelRevisies(regel.werkgebied_id, regel.id).then(setRevisies).catch(() => setFout("De historie kon niet worden geladen."));
+  };
+  return (
+    <Uitklap vorm="kader" samenvatting="Historie" onToggle={(e) => (e.currentTarget as HTMLDetailsElement).open && laad()} data-regel-historie>
+      <div className="mt-2">
+        {fout ? <Melding type="waarschuwing" compact>{fout}</Melding>
+          : !revisies ? <LaadRegel klein />
+          : (
+            <Lijst label="Revisies">
+              {revisies.map((r) => (
+                <LijstRij key={r.revisie} voor={r.revisie} titel={ACTIE_ZIN[r.actie] ?? r.actie}
+                  meta={`${r.actor} · ${datumTijd(r.tijdstip)}`} />
+              ))}
+            </Lijst>
+          )}
+      </div>
+    </Uitklap>
+  );
+}

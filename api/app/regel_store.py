@@ -168,6 +168,46 @@ async def lijst(werkgebied_id: str) -> list[dict]:
         return await _lees(conn, werkgebied_id, rows)
 
 
+STATUS_VOLGORDE = {"concept": 0, "geaccordeerd": 1, "geaccordeerd_als_beleidsregel": 1, "afgewezen": 2, "vervangen": 3}
+
+
+async def overzicht(q: str = "", status: list[str] | None = None, werkgebied_id: str | None = None,
+                    door: str | None = None) -> dict:
+    """De regels van alle werkgebieden als lichte rij, voor het overzicht in de zijbalk (zoals `GET /v1/begrippen`).
+    Zoeken op de naam, de uitvoer en de regeltekst; `door` beperkt tot regels waarvan deze gebruiker een revisie maakte
+    (*Door mij bewerkt*). De tellers per status gelden voor dezelfde filters zonder het statusfilter."""
+    from .begrippen_overzicht import normaal
+    r, w, b, rev = db.regels, db.werkgebieden, db.begrippen, db.regel_revisies
+    sel = select(r, w.c.naam.label("wg_naam")).join_from(r, w, r.c.werkgebied_id == w.c.id)
+    if werkgebied_id:
+        sel = sel.where(r.c.werkgebied_id == werkgebied_id)
+    if door:
+        sel = sel.where(r.c.id.in_(select(rev.c.regel_id).where(rev.c.actor == door)))
+    async with db.get_engine().connect() as conn:
+        rows = (await conn.execute(sel.order_by(r.c.gewijzigd.desc(), r.c.id))).all()
+        ids = {i for x in rows for i in genoemde_begrippen(x.inhoud)}
+        namen = {x.id: (x.inhoud or {}).get("naam", "") for x in (await conn.execute(
+            select(b.c.id, b.c.inhoud).where(b.c.id.in_(sorted(ids))))).all()} if ids else {}
+    rijen = []
+    for x in rows:
+        tekst = regeltekst(x.inhoud, namen)["tekst"]
+        rijen.append({"id": x.id, "werkgebied_id": x.werkgebied_id, "werkgebied_naam": x.wg_naam or "",
+                      "naam": namen.get(x.inhoud["regelbegrip_id"], ""), "uitvoer": namen.get(x.inhoud["uitvoer_begrip_id"], ""),
+                      "status": x.status, "revisie": x.revisie, "soort": x.inhoud["soort"],
+                      "brontype": x.inhoud.get("brontype", "wet"), "gevallen": len(x.inhoud["gevallen"]),
+                      "regeltekst": tekst, "herkomst": x.herkomst, "gewijzigd": _iso(x.gewijzigd)})
+    vraag = normaal(q)
+    gevonden = [x for x in rijen if not vraag or all(
+        woord in normaal(" ".join([x["naam"], x["uitvoer"], x["regeltekst"]])) for woord in vraag.split())]
+    per_status: dict[str, int] = {}
+    for x in gevonden:
+        per_status[x["status"]] = per_status.get(x["status"], 0) + 1
+    if status:
+        gevonden = [x for x in gevonden if x["status"] in status]
+    gevonden.sort(key=lambda x: (STATUS_VOLGORDE.get(x["status"], 9), normaal(x["naam"]), x["id"]))
+    return {"resultaten": gevonden, "totaal": len(gevonden), "per_status": per_status}
+
+
 def keten(regels: list[dict]) -> dict:
     """De afleidingshiërarchie (ADR-018 §3, D2), afgeleid. Pijlen van de regel die een begrip afleidt naar de regel die
     het gebruikt; de volgorde van onder naar boven; basisgegevens (invoer zonder regel) en signalen."""

@@ -3,6 +3,7 @@
 
 import { aantal } from "./aantal";
 import type { BegripSamenvatting, BronKandidaat, Werkgebied } from "./types";
+import { isGeaccordeerd, type Regel } from "./regels";
 import { isOpen } from "./bronKandidaten";
 
 /** Dezelfde tonen als `StatusLabel` (`components/ui/Lijst`); `lib/` importeert geen componenten. */
@@ -19,14 +20,15 @@ export const PROJECT_TABS = [
 export type ProjectTab = (typeof PROJECT_TABS)[number]["key"];
 
 /** De artefacten van een werkgebied: bestaande zelfstandige objecten, als projectproduct getoond (besluit
- *  26 okt 2026, geen eigen tabel). *Specificaties* (afleidingsregels) blijft gereserveerd. */
-export const ARTEFACT_SOORTEN = ["dossier", "bronselectie", "annotaties", "begrippen"] as const;
+ *  26 okt 2026, geen eigen tabel). Sinds R2 (ADR-018) ook de afleidingsregels, als keten. */
+export const ARTEFACT_SOORTEN = ["dossier", "bronselectie", "annotaties", "begrippen", "regels"] as const;
 export type ArtefactSoort = (typeof ARTEFACT_SOORTEN)[number];
 /** De naam van elk artefact van een werkgebied, overal gelijk: kaart, kop van de pagina, kruimelpad en filter. Een
  *  artefact van het werkgebied is een verzameling, dus de naam is de titel, en het werkgebied staat er niet in: dat
  *  noemen de kop van het project en het kruimelpad al (besluit gebruiker 7 nov 2026, `artefactKop` in `lib/artefact.ts`). */
 export const ARTEFACT_LABEL: Record<ArtefactSoort, string> = {
   dossier: "Analysedossier", bronselectie: "Bronselectie", annotaties: "JAS-annotaties", begrippen: "Begrippenkader",
+  regels: "Afleidingsregels",
 };
 
 export function isArtefactSoort(s: string | undefined): s is ArtefactSoort {
@@ -45,6 +47,11 @@ export function historiePad(id: string): string {
 
 export function voorstellenPad(id: string): string {
   return `${basis(id)}/bronnen/voorstellen`;
+}
+
+/** Eén afleidingsregel op een eigen pagina binnen zijn werkgebied (ADR-018), zoals een begrip. */
+export function regelPad(id: string, regelId: string): string {
+  return `${basis(id)}/regels/${encodeURIComponent(regelId)}`;
 }
 
 export function deelvraagPad(id: string, deelvraagId: string): string {
@@ -138,12 +145,13 @@ export interface ArtefactKaart {
   status: { tekst: string; toon: StatusToon } | null;
 }
 
-/** De vier kaarten van de tab Artefacten, uit wat er al ligt. Een bron die (nog) niet geladen is, geeft
+/** De vijf kaarten van de tab Artefacten, uit wat er al ligt. Een bron die (nog) niet geladen is, geeft
  *  een kaart zonder status in plaats van een verzonnen getal. */
 export function artefactKaarten(wg: Werkgebied, extra: {
   begrippen?: BegripSamenvatting[] | null;
   werkvoorraad?: Werkvoorraad | null;
   kandidaten?: BronKandidaat[] | null;
+  regels?: Regel[] | null;
 } = {}): ArtefactKaart[] {
   const velden = ["aanleiding", "context", "doel", "analysevraag", "praktijkvoorbeeld", "afbakening"] as const;
   const gevuld = velden.filter((v) => (wg[v] ?? "").trim()).length;
@@ -158,6 +166,9 @@ export function artefactKaarten(wg: Werkgebied, extra: {
   const b = extra.begrippen;
   const geaccordeerd = b?.filter((x) => x.status === "geaccordeerd").length ?? 0;
   const actief = b?.filter((x) => x.status !== "vervangen").length ?? 0;
+
+  const rg = extra.regels?.filter((x) => x.status !== "vervangen" && x.status !== "afgewezen");
+  const rgKlaar = rg?.filter(isGeaccordeerd).length ?? 0;
 
   return [
     {
@@ -189,6 +200,14 @@ export function artefactKaarten(wg: Werkgebied, extra: {
       status: !b || !actief ? null
         : geaccordeerd === actief ? { tekst: "Geaccordeerd", toon: "groen" }
         : { tekst: `${geaccordeerd} van ${actief} geaccordeerd`, toon: geaccordeerd ? "geel" : "neutraal" },
+    },
+    {
+      soort: "regels", titel: ARTEFACT_LABEL.regels,
+      omschrijving: "Hoe de uitkomsten uit de begrippen volgen: regels in de volgorde van de keten, met grondslag en voorbeelden.",
+      versie: rg ? aantal(rg.length, "regel", "regels") : "",
+      status: !rg || !rg.length ? null
+        : rgKlaar === rg.length ? { tekst: "Geaccordeerd", toon: "groen" }
+        : { tekst: `${rgKlaar} van ${rg.length} geaccordeerd`, toon: rgKlaar ? "geel" : "neutraal" },
     },
   ];
 }

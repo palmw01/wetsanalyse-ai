@@ -12,7 +12,11 @@ describe("parseArtefact", () => {
     expect(parseArtefact({ soort: "annotatie", ref: { bron_iri: IRI }, titel: "Art. 9" }))
       .toEqual({ soort: "annotatie", ref: { bron_iri: IRI }, titel: "Art. 9" });
     expect(parseArtefact({ soort: "begrippen", ref: { werkgebied_id: "w", run_id: "r" } })?.titel).toBe("");
-    expect(parseArtefact({ soort: "regels", ref: {} })?.soort).toBe("regels");
+    expect(parseArtefact({ soort: "regels", ref: { werkgebied_id: "w" } })?.soort).toBe("regels");
+    expect(parseArtefact({ soort: "regel", ref: { werkgebied_id: "w", regel_id: "r1" } })?.soort).toBe("regel");
+    // De oude reservering zonder werkgebied wijst niets aan: geen chip.
+    expect(parseArtefact({ soort: "regels", ref: {} })).toBeUndefined();
+    expect(parseArtefact({ soort: "regel", ref: { werkgebied_id: "w" } })).toBeUndefined();
   });
 
   it("weigert een onbekende soort of een ref zonder de verplichte sleutels", () => {
@@ -58,8 +62,12 @@ describe("annotatieDoelVan en werkgebiedArtefactVan", () => {
   });
 });
 
-it("afleidingsregels zijn gereserveerd en nog niet te openen", () => {
+it("afleidingsregels openen naast het gesprek (R2, ADR-018)", () => {
   expect(isTeOpenen({ soort: "regels", ref: {}, titel: "" })).toBe(false);
+  expect(isTeOpenen({ soort: "regels", ref: { werkgebied_id: "w" }, titel: "" })).toBe(true);
+  const regel = { soort: "regel" as const, ref: { werkgebied_id: "w", regel_id: "r4" }, titel: "bepalen termijnbedrag" };
+  expect(isTeOpenen(regel)).toBe(true);
+  expect(werkgebiedArtefactVan(regel)).toMatchObject({ soort: "regel", werkgebied_id: "w", regel_id: "r4" });
   expect(isTeOpenen({ soort: "begrippen", ref: { werkgebied_id: "w", run_id: "r" }, titel: "" })).toBe(true);
 });
 

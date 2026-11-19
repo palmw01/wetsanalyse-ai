@@ -150,9 +150,15 @@ describe("isWerkgebiedRoute", async () => {
     // De bronselectie per deelvraag (spoor J).
     [["w", "bronselectie"]], [["w", "bronselectie", "d", "kandidaten", "K1"]],
     [["w1", "export"]],
+    // Afleidingsregels (ADR-018).
+    [["w", "regels"]], [["w", "regels", "hierarchie"]], [["w", "regels", "r4"]], [["w", "regels", "r4", "accorderen"]],
+    [["w", "regels", "r4", "heropenen"]], [["w", "regels", "r4", "afwijzen"]], [["w", "regels", "r4", "revisies"]],
+    [["w", "regels", "r4", "dragers"]], [["w", "regels", "r4", "dragers", "d1"]],
+    [["w", "parameterwaarden"]], [["w", "parameterwaarden", "p1"]],
   ])("laat %j door", (pad) => expect(isWerkgebiedRoute(pad)).toBe(true));
   it.each([
-    [[]], [["w", "onbekend"]], [["w", "elementen", "x"]], [["w", "bronnen", "s", "x"]],
+    [[]], [["w", "onbekend"]], [["w", "regels", "r4", "iets"]], [["w", "regels", "r4", "dragers", "d1", "x"]],
+    [["w", "parameterwaarden", "p1", "x"]], [["w", "elementen", "x"]], [["w", "bronnen", "s", "x"]],
     [["w", "begrippen", "export", "x"]], [["w", "begrippen", "b", "iets"]],
     [["w", "begrippen", "b", "accorderen", "x"]], [["w", "begrippen", "b", "koppelingen", "k", "x"]],
     // Alleen graph-qa maakt de run en schrijft de uitkomst (de begrippen-agent).

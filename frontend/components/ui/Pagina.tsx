@@ -163,25 +163,31 @@ export function ObjectRijen({ label, children, leeg }: { label: string; children
   return <ul aria-label={label} className="space-y-2">{kinderen}</ul>;
 }
 
-export function ObjectRij({ href, titel, sub, status, voor, ...rest }: {
+/** Een rij naar een object: een link naar zijn pagina, of naast het gesprek (`onKies`) een knop die het in hetzelfde
+ *  paneel opent. Eén vorm voor beide (generieke componenten). */
+export function ObjectRij({ href, onKies, titel, sub, status, voor, ...rest }: {
   href: string;
+  onKies?: () => void;
   titel: React.ReactNode;
   sub?: React.ReactNode;
   status?: React.ReactNode;
   voor?: React.ReactNode;
 } & Omit<React.LiHTMLAttributes<HTMLLIElement>, "title">) {
+  const klasse = "focus-ring group flex min-h-[48px] w-full items-center gap-3 rounded-lg border border-line bg-paper px-3.5 py-3 text-left transition hover:border-lint/40 hover:shadow-zacht";
+  const inhoud = <>
+    {voor !== undefined && <span className="shrink-0 text-sm tabular-nums text-muted">{voor}</span>}
+    <span className="min-w-0 flex-1">
+      <span className="block text-sm font-medium text-ink [overflow-wrap:anywhere] group-hover:text-lint">{titel}</span>
+      {sub && <span className="mt-0.5 block text-xs text-muted [overflow-wrap:anywhere]">{sub}</span>}
+    </span>
+    {status && <span className="flex shrink-0 flex-wrap justify-end gap-1.5">{status}</span>}
+    <ChevronOmlaag className="shrink-0 -rotate-90 text-faint group-hover:text-lint" />
+  </>;
   return (
     <li {...rest}>
-      <Link href={href}
-        className="focus-ring group flex min-h-[48px] items-center gap-3 rounded-lg border border-line bg-paper px-3.5 py-3 transition hover:border-lint/40 hover:shadow-zacht">
-        {voor !== undefined && <span className="shrink-0 text-sm tabular-nums text-muted">{voor}</span>}
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-medium text-ink [overflow-wrap:anywhere] group-hover:text-lint">{titel}</span>
-          {sub && <span className="mt-0.5 block text-xs text-muted [overflow-wrap:anywhere]">{sub}</span>}
-        </span>
-        {status && <span className="flex shrink-0 flex-wrap justify-end gap-1.5">{status}</span>}
-        <ChevronOmlaag className="shrink-0 -rotate-90 text-faint group-hover:text-lint" />
-      </Link>
+      {onKies
+        ? <button type="button" onClick={onKies} className={klasse}>{inhoud}</button>
+        : <Link href={href} className={klasse}>{inhoud}</Link>}
     </li>
   );
 }

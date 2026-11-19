@@ -122,6 +122,14 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
   }
   // De bronverkenner leest alleen (spoor J): kiezen gaat per deelvraag, via `bronselectie`.
   if (deel === "kandidaten") return pad.length === 2;
+  // Afleidingsregels (ADR-018, R2): de lijst, de keten (`hierarchie`), één regel, zijn revisies en besluiten, en zijn
+  // dragers. Een regel maken doen Lex en de import; de api toetst de grondslag.
+  if (deel === "regels") {
+    if (pad.length <= 3) return true;
+    if (pad.length === 4) return ["accorderen", "heropenen", "afwijzen", "revisies", "dragers"].includes(b);
+    return pad.length === 5 && b === "dragers" && !!c;
+  }
+  if (deel === "parameterwaarden") return pad.length <= 3;
   if (deel === "groepen") {
     if (pad.length === 2) return true;
     if (pad.length === 3) return a === "akkoord";
