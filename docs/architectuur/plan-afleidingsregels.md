@@ -382,6 +382,16 @@ omdat de doorwerking op de vervaldagen rust.
 - **Geen regel, wel een open punt: het bedrag dat per vervaldag wordt verrekend.** Geen gelezen bepaling formuleert het.
   Leg het vast als ontbrekend uitvoeringsbeleid (onderzoekspunt 1 van het rapport), niet als afleidingsregel.
 
+**Uitgewerkt (19 nov 2026)**: [proef-afleidingsregels-termijnen.md](proef-afleidingsregels-termijnen.md) stelt de regels op
+met de bepalingen die hier nog "niet gelezen" heten (art. 9 lid 1, Leidraad 9.1, 9.3, 9.5 en 24.3, Awb 4:93 lid 3 en 4,
+art. 24 lid 8). Daar komt een regel bij die het termijnregime kiest, en art. 72 Mbw blijft over als ongelezen bron voor het
+praktijkvoorbeeld.
+
+**Opgesteld door het team (19 nov 2026)**: [afleidingsregels-termijnen-team.md](afleidingsregels-termijnen-team.md) stelt de
+regels van Termijnen op met de agent-regelspecialist, de agent-jurist en de agent-gegevensspecialist, strikt binnen 3b en
+alsof de regel in Lex landt: zeven geaccordeerde regels (vier als beslistabel), de hiërarchie, de herstelde markeringen en
+relaties in Lex, en wat dat van Lex vraagt.
+
 **Volgorde voor de gewone sessie** (de hiërarchie, van onder naar boven): AR1 en AR5a, dan AR2, AR3 en AR5b, dan AR4 en AR6,
 dan AR7, dan AR8. Gebruik per regel het taalpatroon uit §2.3 en toets meteen met de voorbeeldreeks uit §4.2.
 
