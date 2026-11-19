@@ -77,10 +77,14 @@ async def _begrippen(conn, werkgebied_id: str, ids: set[str]) -> dict[str, dict]
     return {r.id: {"id": r.id, "naam": (r.inhoud or {}).get("naam", ""), "status": r.status} for r in rows}
 
 
-def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict]) -> dict:
-    """Mag deze regel geaccordeerd worden (besluit gebruiker 19 nov 2026, ADR-018 besluit 2), en wat er nog openstaat.
+#: De soorten open punt die een keuze vragen vóór de regel geaccordeerd wordt (ADR-018 besluit 2 en 7.13): een
+#: interpretatiekeuze en ontbrekend uitvoeringsbeleid. Een onderzoekspunt of een gat in de annotatie is een signaal.
+KEUZE_SOORTEN = ("interpretatiekeuze", "ontbrekend_uitvoeringsbeleid")
 
-    De interpretatiekeuzes op de regel komen met de open punten (R3); tot dan staan ze hier niet."""
+
+def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], open_punten: list[dict] | None = None) -> dict:
+    """Mag deze regel geaccordeerd worden (besluit gebruiker 19 nov 2026, ADR-018 besluit 2), en wat er nog openstaat.
+    `open_punten`: de punten die aan de regel of een van zijn gevallen hangen (lessenbundel 4, R3)."""
     redenen: list[str] = []
     ontbreekt = [i for i in genoemde_begrippen(inhoud) if i not in begrippen]
     if ontbreekt:
@@ -95,6 +99,10 @@ def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict]) -> dict
         redenen.append("Er is geen grondslag meer: geen dragende formulering die niet is afgewezen.")
     elif not any(d["beoordeling"] == "akkoord" and d["actualiteit"] == "actueel" for d in grondslag):
         redenen.append("De grondslag is nog niet beoordeeld, of de passage is gewijzigd, verworpen of verdwenen.")
+    keuzes = [p for p in open_punten or [] if p["status"] == "open" and p["soort"] in KEUZE_SOORTEN]
+    if keuzes:
+        redenen.append(_meervoud(len(keuzes), "1 keuze is nog niet genomen: ", "{n} keuzes zijn nog niet genomen: ")
+                       + "; ".join(p["vraag"].rstrip(".?") for p in keuzes) + ".")
     beoordeeld = {(v.get("geval") or "") for v in inhoud.get("voorbeelden", []) if v.get("oordeel", "open") != "open"}
     if len(inhoud["gevallen"]) == 1:
         if not beoordeeld:
@@ -106,9 +114,13 @@ def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict]) -> dict
     return {"mag": not redenen, "redenen": redenen}
 
 
-def signalen(inhoud: dict, dragers: list[dict]) -> list[str]:
+def signalen(inhoud: dict, dragers: list[dict], open_punten: list[dict] | None = None) -> list[str]:
     """Wat aandacht vraagt zonder accorderen te blokkeren (het skelet is een signaal, besluit 2)."""
     uit: list[str] = []
+    rest = [p for p in open_punten or [] if p["status"] == "open" and p["soort"] not in KEUZE_SOORTEN]
+    if rest:
+        uit.append(_meervoud(len(rest), "1 onderzoekspunt of gat in de annotatie staat nog open.",
+                             "{n} onderzoekspunten of gaten in de annotatie staan nog open."))
     open_ = sum(d["beoordeling"] == "open" and d["rol"] != "grondslag" for d in dragers)
     if open_:
         uit.append(_meervoud(open_, "1 andere dragende formulering is nog niet beoordeeld.",
@@ -124,7 +136,7 @@ def signalen(inhoud: dict, dragers: list[dict]) -> list[str]:
     return uit
 
 
-def _regel(row, dragers: list[dict], begrippen: dict[str, dict]) -> dict:
+def _regel(row, dragers: list[dict], begrippen: dict[str, dict], open_punten: list[dict] | None = None) -> dict:
     namen = {i: b["naam"] for i, b in begrippen.items()}
     inhoud = row.inhoud
     return {"id": row.id, "werkgebied_id": row.werkgebied_id, "status": row.status, "revisie": row.revisie,
@@ -132,17 +144,37 @@ def _regel(row, dragers: list[dict], begrippen: dict[str, dict]) -> dict:
             "naam": namen.get(inhoud["regelbegrip_id"], ""), "uitvoer": namen.get(inhoud["uitvoer_begrip_id"], ""),
             "regeltekst": regeltekst(inhoud, namen),
             "begrippen": {i: begrippen[i] for i in genoemde_begrippen(inhoud) if i in begrippen},
-            "dragers": dragers, "accorderen": poort(inhoud, dragers, begrippen), "signalen": signalen(inhoud, dragers),
+            "dragers": dragers, "accorderen": poort(inhoud, dragers, begrippen, open_punten),
+            "signalen": signalen(inhoud, dragers, open_punten),
+            "open_punten": {"open": sum(p["status"] == "open" for p in open_punten or []), "totaal": len(open_punten or [])},
             "aangemaakt_door": row.aangemaakt_door, "aangemaakt": _iso(row.aangemaakt), "gewijzigd": _iso(row.gewijzigd),
             "geaccordeerd_door": row.geaccordeerd_door, "geaccordeerd_op": _iso(row.geaccordeerd_op),
             "geaccordeerd_revisie": row.geaccordeerd_revisie}
+
+
+async def _open_punten_van(conn, werkgebied_id: str, regel_ids: list[str]) -> dict[str, list[dict]]:
+    """Per regel de open punten die eraan of aan een van zijn gevallen hangen (het object van lessenbundel 4), licht:
+    soort, status en vraag. Alleen lezen; het object en zijn besluitroute zijn van `open_punt_store`."""
+    if not regel_ids:
+        return {}
+    t = db.open_punten
+    rows = (await conn.execute(select(t.c.id, t.c.status, t.c.inhoud).where(t.c.werkgebied_id == werkgebied_id)
+                               .order_by(t.c.aangemaakt, t.c.id))).all()
+    uit: dict[str, list[dict]] = {}
+    for x in rows:
+        regels = {a["id"] for a in x.inhoud.get("hangt_aan", []) if a.get("soort") in ("regel", "geval")}
+        for rid in regels & set(regel_ids):
+            uit.setdefault(rid, []).append({"id": x.id, "status": x.status, "soort": x.inhoud["soort"],
+                                            "vraag": x.inhoud.get("vraag", "")})
+    return uit
 
 
 async def _lees(conn, werkgebied_id: str, rows) -> list[dict]:
     dragers = await _dragers_van(conn, werkgebied_id, [r.id for r in rows])
     ids = {i for r in rows for i in genoemde_begrippen(r.inhoud)}
     begrippen = await _begrippen(conn, werkgebied_id, ids)
-    return [_regel(r, dragers.get(r.id, []), begrippen) for r in rows]
+    punten = await _open_punten_van(conn, werkgebied_id, [r.id for r in rows])
+    return [_regel(r, dragers.get(r.id, []), begrippen, punten.get(r.id, [])) for r in rows]
 
 
 def _niet_gevonden() -> HTTPException:
@@ -468,7 +500,9 @@ async def accordeer(werkgebied_id: str, regel_id: str, verwacht: int, reden: str
         async with _gewijzigd_in(conn, werkgebied_id, regel_id, verwacht, actor, "regel-geaccordeerd",
                                  detail) as (row, stand):
             dragers = await _huidige_dragers(conn, werkgebied_id, regel_id)
-            p = poort(row.inhoud, dragers, await _begrippen(conn, werkgebied_id, set(genoemde_begrippen(row.inhoud))))
+            punten = (await _open_punten_van(conn, werkgebied_id, [regel_id])).get(regel_id, [])
+            p = poort(row.inhoud, dragers, await _begrippen(conn, werkgebied_id, set(genoemde_begrippen(row.inhoud))),
+                      punten)
             if not reden:
                 p = {"mag": False, "redenen": [*p["redenen"], "De reden van het accorderen ontbreekt."]}
             if not p["mag"]:

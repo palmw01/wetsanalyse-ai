@@ -14,6 +14,8 @@
  *  - de regelkaart van R4: de regeltekst van de api, de gevallen met hun voorbeelden, de grondslag, de poort letterlijk,
  *    *Volgt op* uit de keten;
  *  - een drager akkoord geven, accorderen met een reden en heropenen, elk tegen de revisie in beeld;
+ *  - een open interpretatiekeuze op een geval (R3, lessenbundel 4) houdt de poort tegen; de jurist besluit op de kaart
+ *    (lezing, methode, motivering) via de ene besluitroute, en dan opent de poort;
  *  - een 412 laadt de nieuwste stand en zegt dat;
  *  - op 390 px schuift de pagina niet zijwaarts.
  */
@@ -58,8 +60,23 @@ function poort(r) {
     const zonder = r.inhoud.gevallen.map((g) => g.label).filter((l) => !beoordeeld.has(l));
     if (zonder.length) redenen.push(`Nog geen beoordeeld voorbeeld bij geval ${zonder.join(", ")}.`);
   }
+  const keuzes = openPunten.filter((p) => p.status === "open" && p.inhoud.hangt_aan.some((a) => a.id === r.id)
+    && ["interpretatiekeuze", "ontbrekend_uitvoeringsbeleid"].includes(p.soort));
+  if (keuzes.length) redenen.push(`${keuzes.length} keuze is nog niet genomen: ${keuzes.map((p) => p.inhoud.vraag.replace(/[.?]$/, "")).join("; ")}.`);
   return { mag: !redenen.length, redenen };
 }
+
+/** Het object van lessenbundel 4, zoals `open_punt_store._punt` het geeft. */
+const openPunten = [{
+  id: "op1", werkgebied_id: "wg1", status: "open", revisie: 1, soort: "interpretatiekeuze", soort_naam: "interpretatiekeuze",
+  herkomst: "lex", keuze: null,
+  inhoud: { soort: "interpretatiekeuze", vraag: "Telt een gedeeltelijke betaling als termijn?", toelichting: "",
+    hangt_aan: [{ soort: "geval", id: "r4", geval: "1", bestaat: true }],
+    lezingen: [
+      { label: "A", omschrijving: "Ja, elke betaling telt.", grondslag: [{ soort: "markering", id: "el-r4", label: "art. 9 lid 1" }] },
+      { label: "B", omschrijving: "Nee, alleen het volle termijnbedrag.", grondslag: [] }],
+    te_toetsen: [{ bronsoort: "wetsgeschiedenis", omschrijving: "de MvT bij art. 9", getoetst: false, uitkomst: "" }] },
+}];
 
 const regel = (id, regelbegrip, uitvoer, invoer, gevallen, voorbeelden, markdown) => ({
   id, werkgebied_id: "wg1", status: "concept", revisie: 1, herkomst: "import", opvolger_van: null,
@@ -115,6 +132,21 @@ await page.route("**/api/**", async (route) => {
   }
   if (p === "/api/werkgebieden" && m === "GET") return route.fulfill({ json: { werkgebieden: [wg] } });
   if (p === "/api/werkgebieden/wg1") return route.fulfill({ json: wg });
+  if (p === "/api/werkgebieden/wg1/open-punten" && m === "GET") {
+    assert.equal(url.searchParams.get("aan"), "regel");
+    const id = url.searchParams.get("aan_id");
+    return route.fulfill({ json: { open_punten: openPunten.filter((x) => x.inhoud.hangt_aan.some((a) => a.id === id)) } });
+  }
+  const besluit = p.match(/^\/api\/werkgebieden\/wg1\/open-punten\/(\w+)\/besluit$/);
+  if (besluit && m === "POST") {
+    const body = req.postDataJSON();
+    mutaties.push({ m, rest: `open-punten/${besluit[1]}/besluit`, body });
+    const punt = openPunten.find((x) => x.id === besluit[1]);
+    punt.keuze = body.gekozen || body.motivering ? { ...body, door: "browser-test", op: nu } : null;
+    punt.status = punt.keuze ? "gekozen" : "open";
+    punt.revisie += 1;
+    return route.fulfill({ json: punt });
+  }
   if (p === "/api/werkgebieden/wg1/regels" && m === "GET") return route.fulfill({ json: { regels: Object.values(regels).map(uit) } });
   if (p === "/api/werkgebieden/wg1/regels/hierarchie") return route.fulfill({ json: keten() });
   const een = p.match(/^\/api\/werkgebieden\/wg1\/regels\/(r\d)(?:\/(.+))?$/);
@@ -209,10 +241,31 @@ try {
   assert.equal(await r4.locator("[data-regel-keten] a").count(), 2, "volgt op R2 en R3");
   assert.equal(await r4.locator("[data-regel-accorderen]").isDisabled(), true, "de poort is dicht");
 
-  // Een drager akkoord geven opent de poort; accorderen vraagt een reden.
+  // Een drager akkoord geven: de grondslag staat, maar de open keuze houdt de poort nog dicht (R3).
   await r4.getByRole("button", { name: "Akkoord met grondslag el-r4" }).click();
-  await r4.locator("[data-regel-poort]").waitFor({ state: "detached" });
+  await r4.locator("[data-regel-poort]").getByText("keuze is nog niet genomen", { exact: false }).waitFor();
   assert.deepEqual(mutaties.at(-1), { m: "PATCH", rest: "dragers/r4-d1", body: { verwachte_revisie: 1, beoordeling: "akkoord" } });
+
+  // Het open punt staat op de kaart als voorstel van Lex, met de lezingen, de grondslag en wat nog getoetst moet worden.
+  const punt = r4.locator("[data-open-punt=op1]");
+  await punt.getByText("Voorstel van Lex").waitFor();
+  await punt.getByText("geval 1").waitFor();
+  await punt.getByText("Nog te toetsen: wetsgeschiedenis (de MvT bij art. 9)").waitFor();
+  await punt.getByText("Waarop lezing A rust (1)").click();
+  assert.equal(await punt.getByRole("link", { name: "art. 9 lid 1" }).getAttribute("href"), "/annotaties/element/el-r4");
+  // Besluiten vraagt een lezing, de methode en een motivering; het besluit gaat via de route van het open punt.
+  await punt.locator("[data-besluit-vastleggen]").click();
+  await punt.getByText("Kies een lezing.").waitFor();
+  await punt.getByRole("radio", { name: "Lezing B" }).check();
+  assert.equal(await punt.getByText("Kies een lezing.").count(), 0, "de melding gaat weg na het kiezen");
+  await punt.getByRole("combobox", { name: "Methode van de interpretatie" }).selectOption("grammaticaal");
+  await punt.getByRole("textbox", { name: "Waarom deze lezing" }).fill("Lid 1 spreekt van het termijnbedrag.");
+  if (process.env.REGELS_SCREENSHOT) await page.screenshot({ path: `${process.env.REGELS_SCREENSHOT}/open-punt.png`, fullPage: true });
+  await punt.locator("[data-besluit-vastleggen]").click();
+  await r4.locator('[data-open-punt=op1][data-status="gekozen"]').getByText("Lezing B (grammaticaal): Lid 1 spreekt van het termijnbedrag.").waitFor();
+  assert.deepEqual(mutaties.at(-1), { m: "POST", rest: "open-punten/op1/besluit", body: { verwachte_revisie: 1, gekozen: "B",
+    motivering: "Lid 1 spreekt van het termijnbedrag.", methode: "grammaticaal" } });
+  await r4.locator("[data-regel-poort]").waitFor({ state: "detached" });
   assert.equal(await r4.locator("[data-regel-accorderen]").isDisabled(), true, "zonder reden niet");
   await r4.locator("[data-regel-reden]").fill("Volgt letterlijk uit art. 9 lid 1.");
   if (process.env.REGELS_SCREENSHOT) await page.screenshot({ path: `${process.env.REGELS_SCREENSHOT}/regelkaart.png`, fullPage: true });
@@ -223,22 +276,23 @@ try {
   // Een 412 laadt de nieuwste stand en zegt het; de handeling gaat niet stil opnieuw.
   botsing = true;
   const voor = mutaties.length;
-  await r4.getByRole("button", { name: "Heropenen" }).click();
+  await r4.getByRole("button", { name: "Heropenen", exact: true }).click();
   await page.locator("[data-regel-melding]").getByText("Iemand anders wijzigde deze regel net", { exact: false }).waitFor();
   assert.equal(mutaties.length, voor + 1);
-  await r4.getByRole("button", { name: "Heropenen" }).click();
+  await r4.getByRole("button", { name: "Heropenen", exact: true }).click();
   await page.locator('[data-regel-inhoud=r4][data-regel-status="concept"]').waitFor();
 
   // Smal scherm.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await page.locator("[data-regel-inhoud=r4]").waitFor();
+  await page.locator("[data-regel-inhoud=r4] [data-open-punt=op1]").waitFor();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "geen zijwaartse scroll");
   if (process.env.REGELS_SCREENSHOT) await page.screenshot({ path: `${process.env.REGELS_SCREENSHOT}/regelkaart-390.png`, fullPage: true });
 
   assert.deepEqual(errors, []);
   controleerOnbekend();
-  console.log("Browser OK: Afleidingsregels in de zijbalk en het overzicht met tellers, filter in de URL en doorklikken; kaart Afleidingsregels, de keten van onder naar boven met basisgegevens en signaal, de regelkaart met regeltekst, voorbeelden, grondslag, poort en keten; drager akkoord, accorderen met reden, 412 en heropenen; smal scherm.");
+  console.log("Browser OK: open punt op een geval houdt de poort tegen, besluit op de kaart via de ene route; Afleidingsregels in de zijbalk en het overzicht met tellers, filter in de URL en doorklikken; kaart Afleidingsregels, de keten van onder naar boven met basisgegevens en signaal, de regelkaart met regeltekst, voorbeelden, grondslag, poort en keten; drager akkoord, accorderen met reden, 412 en heropenen; smal scherm.");
 } finally {
   await browser.close();
 }

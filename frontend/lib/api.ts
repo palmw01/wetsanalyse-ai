@@ -118,6 +118,7 @@ import { isDekking, isHerbeoordelingen } from "./herbeoordeling";
 import { pathSegment } from "./url";
 import type { DragerBeoordeling, Regel, RegelKeten, RegelRevisie } from "./regels";
 import type { RegelsOverzicht } from "./regelsOverzicht";
+import type { BesluitInvoer, OpenPunt } from "./openPunten";
 import { parseBevestiging } from "./werkgebiedAnnoteren";
 import { parseVervolg } from "./vraagLex";
 import { parseVraagkaart } from "./vraagkaart";
@@ -1997,4 +1998,21 @@ export async function zoekRegels(params: URLSearchParams): Promise<RegelsOverzic
   const uit = await json<RegelsOverzicht>(await fetch(`/api/regels${qs ? `?${qs}` : ""}`, { cache: "no-store" }));
   if (!Array.isArray(uit?.resultaten)) throw new Error("Onverwacht antwoord van de afleidingsregels.");
   return uit;
+}
+
+// --- Open punten (L-X-1, lessenbundel 4) -----------------------------------------------------------
+// Lex legt een punt voor; de jurist besluit via één route, met de revisie in beeld.
+
+/** De open punten van het werkgebied; met `aan` alleen die op een regel (ook op een geval ervan) of ander object. */
+export async function lijstOpenPunten(id: string, aan?: { soort: "regel" | "begrip" | "markering" | "deelvraag"; id: string }): Promise<OpenPunt[]> {
+  const qs = aan ? `?${new URLSearchParams({ aan: aan.soort, aan_id: aan.id })}` : "";
+  const uit = await json<{ open_punten?: OpenPunt[] }>(await fetch(`${wg(id, "open-punten")}${qs}`, { cache: "no-store" }));
+  if (!Array.isArray(uit.open_punten)) throw new Error("De open punten hebben een onbekende vorm.");
+  return uit.open_punten;
+}
+
+/** Het besluit van de jurist over één open punt: de gekozen lezing (of hoe het verder gaat), de motivering en de methode. */
+export async function besluitOpenPunt(id: string, puntId: string, verwachteRevisie: number, besluit: BesluitInvoer): Promise<OpenPunt> {
+  return json<OpenPunt>(await fetch(wg(id, "open-punten", puntId, "besluit"),
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie, ...besluit })));
 }

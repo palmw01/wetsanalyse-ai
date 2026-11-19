@@ -12,6 +12,7 @@ import { Lijst, LijstRij, Regel as RegelVeld, Regels, Sectie, StatusLabel } from
 import { Melding } from "@/components/ui/Melding";
 import { Kaart, SplitDetail } from "@/components/ui/Pagina";
 import { Uitklap } from "@/components/ui/Uitklap";
+import { OpenPunten } from "@/components/werkgebieden/OpenPunten";
 import { Markdown } from "@/components/werkplek/Markdown";
 import { accordeerRegel, beoordeelRegelDrager, haalRegelRevisies, heropenRegel, wijsRegelAf } from "@/lib/api";
 import { datumTijd } from "@/lib/datum";
@@ -51,6 +52,8 @@ export function RegelInhoud({ stand, weergave, keten }: {
   const hoofd = <>
     <RegelTekst regel={regel} />
     <Gevallen regel={regel} />
+    <OpenPunten werkgebiedId={regel.werkgebied_id} regelId={regel.id} revisie={regel.revisie}
+      alleenLezen={stand.alleenLezen} onBesluit={stand.laad} />
     <Dragers stand={stand} regel={regel} />
     {regel.inhoud.toelichting.trim() && (
       <Kaart titel="Toelichting"><p className="whitespace-pre-line text-sm text-ink">{regel.inhoud.toelichting}</p></Kaart>
