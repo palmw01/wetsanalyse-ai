@@ -389,3 +389,66 @@ Aanvullend op plan §4.4, die hiermee voor de bronnen achterhaald is:
 - **Voor het platform**: R5 en R8 laten zien dat een regel kan steunen op meer bepalingen en op beleid. Het regelskelet van
   één markering (ADR-011) draagt dat niet. Een regel die over bepalingen heen gaat, hoort bij het werkgebied, niet bij één
   laag. Zie het gat D1 in plan §5.1.
+
+## 7. Wat er in Termijnen is aangevuld (19 nov 2026)
+
+Op acceptatie, in een eigen gesprek binnen het werkgebied, als analist. Er is niets verwijderd. Voor dit werk had iemand
+het werkgebied vandaag al uitgebreid: art. 9 lid 7, Leidraad 9.1 en 9.2 bij deelvraag 3, en 70 geaccordeerde begrippen,
+waaronder de operatoren en zes begrippen "bepalen van …" en "toepassen van …".
+
+**Bronnen**
+
+- Bij deelvraag 3: art. 9 lid 1 IW 1990 en Leidraad 9.5, met de rol *analyseren* en genoemd via *Noem een bepaling*.
+  Art. 72 Mbw is gekoppeld aan deelvraag 2 en 3; het hing alleen onder deelvraag 1.
+- Bij deelvraag 2: Awb 4:93 lid 3, met de rol *context*.
+
+**Annotaties**
+
+- Art. 9 lid 1 is beoordeeld en afgerond:
+  - het hele lid is Rechtsbetrekking, net als de eerste volzin van lid 7;
+  - "na" als Operator is afgewezen, net als in lid 5;
+  - zelf gemarkeerd: "zes weken" als Parameter en "de dagtekening van het aanslagbiljet" als Variabele.
+- Leidraad 9.5 is geannoteerd door Lex (67 voorstellen), beoordeeld en afgerond:
+  - 16 elementen van de algemene regel zijn goedgekeurd en 1 is aangepast;
+  - 42 elementen uit de rekenvoorbeelden zijn afgewezen, met 6 dubbele en 2 operatoren "is gesteld op";
+  - het skelet van de regel is gelegd: uitvoer (de vervaldag), invoer 1 (de dagtekening), invoer 2 (de betalingstermijn),
+    de voorwaarde, en de vergelijking met haar twee operanden.
+
+**Begrippen**
+
+- Nieuw en geaccordeerd:
+  - *wettelijke betalingstermijn* (R7, lid 1);
+  - *bepalen van de vervaldag een maand na de dagtekening* (Leidraad 9.5);
+  - *ongelijk aan*;
+  - *laatste dag van de kalendermaand*.
+- Nieuw en concept:
+  - *aantal termijnen* (zie hieronder);
+  - *termijnregime* (R5). Er is geen formulering die dit begrip aanduidt, dus de poort laat accorderen niet toe.
+
+**Wat ik zag, voor de jurist**
+
+- *Aantal termijnen* blijft concept. De formulering "zoveel gelijke termijnen" in lid 5, 6 en 7 duidt nu primair het
+  begrip *termijn* aan, terwijl zij voor de regels het aantal is. Omzetten raakt een geaccordeerd begrip. Daarom staan de
+  passages nu als context bij *aantal termijnen*, en dat is een keuze voor de jurist.
+- *De dagtekening van het aanslagbiljet* heeft niet overal dezelfde klasse. Het is Rechtsfeit in lid 5 en 6, en Variabele
+  in lid 7, lid 1 en Leidraad 9.5. Het begrip definieert haar als een datum, en dat past bij Variabele.
+- Het begrip *jaar* is gedefinieerd als "het kalenderjaar". Voor het winstaandeel en de vennootschapsbelasting kan het
+  een boekjaar zijn: Leidraad 9.1 spreekt van afwijkende boekjaren, en art. 70 lid 2 Mbw van de aangifte "over een
+  boekjaar". Zie R1 en voorbeeld 14.
+- Het begrip *belasting* zegt "in deze analyse het winstaandeel". Dat is lezing C bij R0. Is lezing A juist, dan klopt die
+  zin niet voor art. 24 lid 2.
+- Leidraad 9.1 staat als *context* en is dus niet geannoteerd, terwijl R8 erop rust. Overweeg de rol *analyseren*.
+
+**Bevindingen voor het platform** (generiek, niet per werkgebied)
+
+- Een getypt verzoek om een bepaling bij een deelvraag op te nemen ("neem bij de derde deelvraag ook art. 9 lid 1 op")
+  gaf een uitleg van het lid, geen kaartje *Noem een bepaling*. De vaste actie `bepaling_toevoegen` werkt wel.
+- Na het opnemen van een lid verschijnt bij de deelvraag een kandidaat voor de hele regeling (`urn:bwb:BWBR0004770`).
+  Die staat op *opgenomen*, met de leden als `opgenomen_delen` en de reden van het laatst opgenomen lid.
+- Een afgewezen relatievoorstel houdt zijn plek in de volgorde bezet. De juiste eerste operand kon daardoor niet op plek
+  1 (409 `volgorde_bezet`), en staat nu zonder plek.
+- Afronden kon met 8 open relatievoorstellen, die allemaal naar afgewezen elementen wijzen. Dat bevestigt het gat uit
+  ADR-011 (*Gevolgen*) en plan §4.3.
+- Leidraad 9.5 is voor het grootste deel rekenvoorbeeld. De keten markeerde de voorbeelden als normelementen (42 van de
+  67) en de regel voor de laatste dag van de maand staat alleen in een voorbeeld. Het onderscheid tussen voorbeeld en regel
+  kent de annotatieketen niet.
