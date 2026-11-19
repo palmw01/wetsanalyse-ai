@@ -59,6 +59,8 @@ async def test_de_graph_volgt_nl_sbb_met_eigen_predicaten(client):
     assert g.value(ca, WA.geaccordeerdOp) is not None
     # De relatie houdt haar type; alleen de hiërarchie heeft ook een ISO 25964-tegenhanger.
     assert (ca, WA.heeftSoort, cb) in g and (cb, ISOTHES.broaderGeneric, ca) in g
+    # En skos:broader: de NL-SBB-shapes valideren zonder afleiding, anders is elk begrip een wees (OrphanConcept).
+    assert (cb, SKOS.broader, ca) in g
     assert (ca, SKOS.related, cb) not in g
     # De bron: een brondocument met de bronnode als object, nooit als subject.
     [doc] = g.objects(ca, DCT.source)
@@ -77,6 +79,8 @@ async def test_conformiteit_per_begrip(client):
     assert c["beschikbaar"] and c["nl_sbb_versie"] == "1.0.0"
     ca, cb = c["begrippen"][str(begrip_iri(a["id"]))], c["begrippen"][str(begrip_iri(b["id"]))]
     assert ca["conform"] is True and not [m for m in ca["meldingen"] if m["ernst"] == "fout"]
+    # Met een hiërarchische relatie is het begrip geen wees (skosapnl:OrphanConcept, via skos:broader).
+    assert not [m for m in ca["meldingen"] if "geen topbegrip" in m["melding"]]
     # Het concept zonder definitie is niet NL-SBB-conform; de melding noemt skos:definition.
     assert cb["conform"] is False
     assert any(m["laag"] == "nl_sbb" and m["ernst"] == "fout" and m["pad"].endswith("#definition")
