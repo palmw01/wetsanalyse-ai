@@ -1003,6 +1003,11 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     if (report.beweringen and not state.get("corrected") and b.settings.grounding_correct and not state.get("overzicht")
             and not voorbij_laatste(b, state)):
         report = replace(report, grounded=False, niveau="ongegrond")
+        # Welke toetsen de correctieronde vragen, zonder de tekst: zo is vals alarm per toets te meten (meting na #1755,
+        # 19 nov 2026: twee van drie begripsvragen kregen een correctieronde, en de logs zeiden niet waardoor).
+        logger.info("grounding: correctieronde om beweringen", extra={"categorie": "functioneel",
+                                                                       "run_id": state.get("run_id", ""),
+                                                                       "soorten": bewering_soorten(report.beweringen)})
     elif report.beweringen:
         report = replace(report, onbevestigd=[*report.onbevestigd, *(x for x in report.beweringen
                                                                        if not x.startswith(RAPPORT_ONTBREEKT))])
@@ -1067,6 +1072,18 @@ def _zonder_gedaan(state: State) -> str | None:
     blokken = [b for b in antwoord["blokken"] if b.get("door") == "lex"
                and not (b.get("soort") == "toelichting" and b.get("kop") in _GEEN_DUIDING)]
     return antwoord_tekst(Antwoord.model_validate({**antwoord, "blokken": blokken}), zonder=NIET_GETOETST)
+
+
+def bewering_soorten(beweringen: list[str]) -> dict[str, int]:
+    """Per soort bewering het aantal: de tekst tot de eerste dubbele punt of het eerste aanhalingsteken ("toelichting
+    zonder steun in wat gelezen is", "samenvatting van …"), zonder de inhoud."""
+    import re
+
+    uit: dict[str, int] = {}
+    for b in beweringen:
+        soort = re.split(r"[:“\"(]", b, maxsplit=1)[0].strip()[:60] or "?"
+        uit[soort] = uit.get(soort, 0) + 1
+    return uit
 
 
 def _toelichting_van_lex(state: State) -> str | None:
