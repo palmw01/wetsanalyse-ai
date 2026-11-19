@@ -118,7 +118,8 @@ zijn van derden en staan hier in eigen woorden, zonder citaten.
 - **Het team ging in Termijnen op drie plekken strenger te werk dan de methode** (§6, M-3b-0):
   - geen tussenbegrip (*termijnregime*, *maandnummer van de dagtekening*);
   - "een regel rust op een AR-markering" als eis, waardoor R5, R6 en R8 eerst werden afgewezen;
-  - "operator ontbreekt, want geen formulering", terwijl "na", "gelijke" en "telkens een maand later" in de tekst staan.
+  - "het termijnbedrag rust op geen afleidingsregel", terwijl "gelijke termijnen" de deling draagt; de jurist markeerde
+    het later alsnog (M-2-2).
 
 ## 1. Top 5
 
@@ -556,8 +557,9 @@ De proef leverde hier weinig nieuws op dat al niet in een plan staat. Twee punte
 - **Wat**:
   - Het team miste drie operatoren ("tellen van maanden", "tijdsduur na tijdstip", "gedeeld door"). Ze kregen geen
     begrip, want "er is geen gemarkeerde formulering die ze aanduidt" (teamrapport §4).
-  - Toch staan de formuleringen in de tekst. "na" (in "zes weken na" en "na de maand") wees de jurist af als invoer
-    (19:00:30, 19:04:14). "gelijke" en "telkens een maand later" zijn gemarkeerd, maar niet als operator.
+  - Dat volgt de methode. "zes weken na de dagtekening" en "telkens een maand later" zijn Tijdsaanduidingen: bij twijfel
+    gaat de tijdsaanduiding als meest specifieke klasse voor (M04 H2 *Tijdsaanduiding*; SKILL.md, *Samenloop*). De
+    uitdrukkingswijzen van een operator (M04 H2 *Operator*) noemen geen datumrekenen.
   - B5 in `plan-begrip-per-formulering.md` wil daarnaast een vaste set operatoren "als geaccordeerde begrippen met
     herkomst 'methode'" in het generieke kader, zonder passage.
 - **Wat de methode zegt** (§0 punt 2): je maakt een operatorbegrip bij een formulering die een bewerking uitdrukt, en
@@ -570,16 +572,14 @@ De proef leverde hier weinig nieuws op dat al niet in een plan staat. Twee punte
     - Het operatorbegrip ontstaat bij de eerste gemarkeerde formulering, met die passage. Daarna is het generiek
       (ADR-006): elk volgend werkgebied hergebruikt het met een eigen passage.
     - Zo blijft "geen begrip zonder grondslag" ook voor operatoren gelden, zonder uitzondering.
-  - **De skill noemt de datumbewerkingen** als uitdrukkingswijze van een rekenkundige operator:
-    - "<duur> na <tijdstip>" en "telkens een maand later" (tijdsduur na tijdstip);
-    - "gelijke <eenheden>" (verdelen);
-    - "zoveel … als … overblijven" (tellen).
-
-    `references/markeringslijst.md` en M04 H2 *Operator* noemen nu alleen de klassieke vormen. Welke vormen er precies
-    in staan, ga ik na bij de bouw.
-  - **De keten** stelt bij die vormen een Operator voor (L-2-1 en L-2-2 nemen het mee).
-- **Waarom generiek**: dit is de werkwijze van het boek, en de datumbewerkingen komen in elke termijn- of
-  vervaldagregeling voor.
+  - **Datumrekenen zonder operatorformulering.** De methode zegt niet hoe een regel een tijdsduur bij een tijdstip
+    optelt als de tekst daar geen operator voor heeft. De tijdsaanduiding krijgt een begrip, en de afleidingsregel die
+    het tijdstip afleidt, noemt de bewerking in haar taalpatroon. Of daar een vaste woordenlijst voor nodig is, is een
+    projectkeuze. Die hoort bij het ontwerp van de regel (D1, `plan-afleidingsregels-in-lex.md`), niet bij de
+    begrippen. Ik maak er geen operatorbegrip van.
+  - **De keten**: L-2-1 en L-2-2 stellen bij zulke vormen een Afleidingsregel met een Tijdsaanduiding als invoer of
+    uitvoer voor, geen Operator.
+- **Waarom generiek**: dit is de werkwijze van het boek.
 - **Prioriteit en omvang**: P1 als bijstelling van B5 (het bepaalt D1 en B5), S (docs en skill). De keten valt in
   bundel 3.
 
