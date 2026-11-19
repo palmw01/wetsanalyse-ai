@@ -2,6 +2,8 @@
 weghalen; een begrip een nieuwe betekenis geven of twee begrippen combineren."""
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, Query
 
 from . import begrip_relatie_store as store
@@ -12,6 +14,19 @@ from .routers.auth import actieve_userid
 router = APIRouter(prefix="/werkgebieden/{werkgebied_id}", tags=["begrippen"],
                    dependencies=[Depends(require_client)])
 
+Vorm = Literal["lijst", "kort"]
+
+
+def _in_vorm(lijst: dict, vorm: str) -> dict:
+    """`?vorm=kort`: alleen de tellingen in plaats van alle relaties en voorstellen met hun bewijs. Wie veel besluiten na
+    elkaar neemt (een MCP-client) leest anders bij elk besluit de hele lijst terug."""
+    if vorm != "kort":
+        return lijst
+    rel = lijst.get("relaties") or []
+    return {"relaties": sum(r.get("beoordeling") != "afgewezen" for r in rel),
+            "afgewezen": sum(r.get("beoordeling") == "afgewezen" for r in rel),
+            "voorstellen": len(lijst.get("voorstellen") or [])}
+
 
 @router.get("/relaties")
 async def get_relaties(werkgebied_id: str, begrip_id: str | None = Query(None, max_length=64),
@@ -20,13 +35,15 @@ async def get_relaties(werkgebied_id: str, begrip_id: str | None = Query(None, m
 
 
 @router.post("/relaties", status_code=201)
-async def post_relatie(werkgebied_id: str, req: RelatieInvoer, actor: str = Depends(actieve_userid)):
-    return await store.maak(werkgebied_id, req, actor)
+async def post_relatie(werkgebied_id: str, req: RelatieInvoer, vorm: Vorm = "lijst",
+                       actor: str = Depends(actieve_userid)):
+    return _in_vorm(await store.maak(werkgebied_id, req, actor), vorm)
 
 
 @router.post("/relaties/voorstellen/{voorstel_id}/afwijzen")
-async def post_afwijzen(werkgebied_id: str, voorstel_id: str, req: Reden, actor: str = Depends(actieve_userid)):
-    return await store.wijs_af(werkgebied_id, voorstel_id, req.reden, actor)
+async def post_afwijzen(werkgebied_id: str, voorstel_id: str, req: Reden, vorm: Vorm = "lijst",
+                        actor: str = Depends(actieve_userid)):
+    return _in_vorm(await store.wijs_af(werkgebied_id, voorstel_id, req.reden, actor), vorm)
 
 
 @router.post("/relaties/{relatie_id}/bevestigen")

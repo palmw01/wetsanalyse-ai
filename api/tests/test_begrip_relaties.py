@@ -82,6 +82,10 @@ async def test_zelf_vastleggen_met_regels(client):
     [x] = r.json()["relaties"]
     assert x["herkomst"] == "analist"
     assert (await client.delete(_rel(wg, x["id"]))).json()["relaties"] == []
+    # `vorm=kort`: alleen de tellingen, niet de hele lijst met bewijs (bevinding Termijnen).
+    kort = await client.post(_rel(wg) + "?vorm=kort", json={"van_begrip": b["id"], "naar_begrip": a["id"],
+                                                             "type": "hierarchie", "toelichting": "Soort aanslag."})
+    assert kort.status_code == 201 and kort.json() == {"relaties": 1, "afgewezen": 0, "voorstellen": 0}
     acties = [a_["actie"] for a_ in (await client.get(f"/v1/werkgebieden/{wg['id']}/audit")).json()["audit"]]
     assert "relatie-vastgelegd" in acties and "relatie-verwijderd" in acties
 
