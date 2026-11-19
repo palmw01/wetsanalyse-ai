@@ -29,6 +29,20 @@ Vier dingen veranderen ten opzichte van de proef in het plan:
   dag van de volgende maand; elke andere dag op "de dag die hetzelfde nummer heeft". Voor de 29e, 30e of 31e januari bij
   een maand zonder die dag zegt de Leidraad niets. Dat is **ontbrekend beleid** (activiteit 5), geen gat in de bron.
 
+En voor het praktijkvoorbeeld (art. 69, 70 en 72 Mijnbouwwet, gelezen in de toestand van juni 2026):
+
+- **Art. 72 Mbw is de enige brug, en die is ruim.** "Onverminderd het overigens bij of krachtens deze paragraaf bepaalde
+  geschieden de heffing en de invordering van oppervlakterecht, cijns en winstaandeel met overeenkomstige toepassing van de
+  Algemene wet inzake rijksbelastingen, de Invorderingswet 1990 en de Kostenwet invordering rijksbelastingen en de op die
+  wetten berustende bepalingen." Het artikel zegt niet onder welke belasting van art. 9 lid 5 het winstaandeel valt. De
+  graaf van acceptatie heeft buiten de Mijnbouwwet geen bepaling die het winstaandeel noemt, ook niet in de Leidraad.
+- **Het winstaandeel volgt het boekjaar van de vennootschapsbelasting.** Art. 70 lid 2 laat de houder de stukken indienen
+  "gelijktijdig met de aangifte voor de vennootschapsbelasting over een boekjaar"; art. 69 rekent "over een boekjaar". Dat
+  maakt de tweede volzin van Leidraad 9.1 (afwijkende boekjaren) en de lezing bij R1 relevant voor de casus.
+- **Homoniem: het verrekenbare bedrag.** Art. 69 lid 2 en 3 Mbw kent een "verrekenbare bedrag" dat het winstaandeel
+  vermindert, berekend met het tarief van de vennootschapsbelasting. Dat is heffing, geen verrekening in de zin van art. 24
+  IW 1990. In 3a horen dat twee begrippen te zijn; met dezelfde naam liggen ze in één groep.
+
 Twee kleinere vondsten:
 
 - Art. 24 lid 8 wijkt af van Awb 4:93 **lid 4** (verrekening is niet bevoegd voor zover beslag nietig zou zijn), niet van
@@ -47,7 +61,13 @@ begrippen van Termijnen; *nieuw* is een voorstel voor een naam. De formulering w
 - *voorlopige aanslag* — bestaand. Rechtsobject.
 - *belasting waarin de aanslag is opgelegd* — nieuw. Kenmerk met de waarden inkomstenbelasting, vennootschapsbelasting,
   conserverende inkomstenbelasting en overige. Rust op "een voorlopige aanslag in de inkomstenbelasting of in de
-  vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting" (art. 9 lid 5).
+  vennootschapsbelasting en een voorlopige conserverende aanslag in de inkomstenbelasting" (art. 9 lid 5). Het winstaandeel
+  krijgt een waarde via R0.
+- *voorlopige aanslag winstaandeel* — nieuw. Rechtsobject; een voorlopige aanslag die het winstaandeel van art. 70 Mbw
+  heft (art. 70 lid 1: "Winstaandeel wordt geheven bij wege van aanslag", met art. 72 voor de voorlopige aanslag uit de
+  AWR).
+- *verrekenbaar bedrag (Mijnbouwwet)* — nieuw, en uitdrukkelijk **niet** *verrekening*. Variabele van de heffing
+  (art. 69 lid 2 en 3 Mbw). Buiten de regels van dit document; het staat hier om het homoniem.
 - *aanslag met een uit te betalen bedrag* — bestaand als *negatieve voorlopige aanslag*. Kenmerk ja/nee. Rust op "die een
   uit te betalen bedrag behelst" (lid 6) en "voorlopige aanslag tot een negatief bedrag" (art. 24 lid 8). Of beide
   formuleringen hetzelfde begrip dragen, is een keuze in 3a.
@@ -91,6 +111,22 @@ dag van de maand*.
 
 In het patroon van de methode: een rekenregel "X moet berekend worden als …", een beslisregel "X is waar indien aan alle
 volgende voorwaarden is voldaan". Elke regel heeft precies één uitvoer.
+
+### R0 — Bepalen belasting voor de invordering van een voorlopige aanslag winstaandeel (specialisatie; nieuw)
+
+- Bron: art. 72 Mbw (§1), met art. 69 lid 3 onderdeel c en art. 70 lid 2 Mbw als steun voor de keuze.
+- Regel: Voor de toepassing van de Invorderingswet 1990 geldt een *voorlopige aanslag winstaandeel* als een voorlopige
+  aanslag waarvan de *belasting waarin de aanslag is opgelegd* de **vennootschapsbelasting** is.
+- **Dit is een lezing (A), en de belangrijkste van het document.** Art. 72 zegt "overeenkomstige toepassing" van de hele
+  Invorderingswet, niet dat het winstaandeel als vennootschapsbelasting geldt. Er zijn twee andere lezingen:
+  - (B) lid 5 noemt het winstaandeel niet, en bij overeenkomstige toepassing van art. 9 vallen alleen de leden zonder
+    belasting erin: lid 1 en lid 7 (R5 dan zonder deze regel);
+  - (C) "overeenkomstig" leest de opsomming in lid 5 als "de belasting waarop de aanslag rust", en dan valt het winstaandeel
+    onder lid 5 en 6 zonder dat het vennootschapsbelasting heet.
+  A en C geven dezelfde termijnen; ze verschillen alleen bij R12, waar "dezelfde belasting" bij C winstaandeel met
+  winstaandeel is in plaats van met de vennootschapsbelasting. B geeft het praktijkvoorbeeld geen termijnen.
+- Soort: een specialisatie (plan §2.3): het rechtsobject wordt ingedeeld bij een groep, met als gevolg de regels van die
+  groep. Relatie: `toepassing` van art. 72 Mbw naar de Invorderingswet 1990.
 
 ### R1 — Bepalen maandnummer van de dagtekening (rekenregel)
 
@@ -253,6 +289,7 @@ volgende voorwaarden is voldaan". Elke regel heeft precies één uitvoer.
 
 Van onder naar boven; elke pijl is "is invoer van".
 
+- R0 → R5, R12 (alleen voor het winstaandeel).
 - R1 → R2, R3.
 - R2 → R5 (voorwaarde 3.4).
 - R2, R3, R4, R5 → R6.
@@ -298,15 +335,29 @@ toets, geen oordeel van de jurist.
     toe, maar verrekent de ontvanger volgens Leidraad 24.3 alleen de termijnen die al verstreken zijn. Klopt.
 11. **Bedrag van de aanslag onbekend.**
     R9 is onbekend, niet nul; R10 is dan niet te bepalen. Klopt.
-12. **Winstaandeel volgens de Mijnbouwwet**, het praktijkvoorbeeld van Termijnen.
-    R5 geeft lid 1, want lid 5 noemt het winstaandeel niet. De termijnen ontstaan alleen via de overeenkomstige toepassing in
-    art. 72 Mbw, en die bepaling is in deze proef niet gelezen. **Hier ligt het eerste open punt**: zonder die bepaling kan
-    geen van de regels het praktijkvoorbeeld bereiken.
+12. **Voorlopige aanslag winstaandeel, positief, dagtekening 15 februari 2025, boekjaar gelijk aan het kalenderjaar**, het
+    praktijkvoorbeeld van Termijnen.
+    R0 = vennootschapsbelasting; R5 = lid 5; verder als voorbeeld 1. Met lezing B bij R0: R5 = lid 1, één
+    betaling zes weken na 15 februari, op 29 maart 2025, en geen termijnen. Klopt alleen met lezing A of C; welke geldt, beslist
+    de jurist.
+13. **Hetzelfde, negatief, dagtekening 20 juni 2025, verrekend met een positieve voorlopige aanslag vennootschapsbelasting
+    2025 waarvan de termijnen nog niet zijn verstreken.**
+    R0 en R5 = lid 6, termijnen als voorbeeld 2; R11 = elke vervaldag. R12 = waar met lezing A (dezelfde belasting, hetzelfde
+    tijdvak), onwaar met lezing C (winstaandeel is niet de vennootschapsbelasting). Leidraad 24.3 beperkt het
+    hoe dan ook tot de verstreken termijnen. **Dit is de vraag van Termijnen, en het antwoord hangt aan R0.**
+14. **Voorlopige aanslag winstaandeel met een afwijkend boekjaar van 1 juli 2024 tot en met 30 juni 2025, dagtekening
+    15 augustus 2024, positief.**
+    R1 = 2 (augustus is de tweede maand van het boekjaar, volgens de lezing bij R1); R2 = 10; R7: 15 september 2024 tot en met
+    15 juni 2025; R8: de laatste termijn op 30 juni 2025 (laatste dag van de maand). Klopt met beide lezingen bij R1 en R8;
+    zonder die lezing telt R1 augustus als maand 8 en geeft R2 4 termijnen die midden in het boekjaar eindigen.
 
 ## 5. Wat open blijft
 
 **Vragen voor de jurist** (de *lezingen* hierboven):
 
+0. Hoe werkt art. 72 Mbw door in art. 9 lid 5 en art. 24 lid 2: als vennootschapsbelasting, als eigen belasting, of niet
+   (R0, voorbeelden 12–14)? Van alle vragen bepaalt deze het antwoord op de analysevraag. Als er een bron is die het beslist
+   (memorie van toelichting, rechtspraak, beleid), zit die niet in de graaf van acceptatie.
 1. Valt een negatieve aanslag die in de laatste maand is gedagtekend onder lid 6 met één termijn, of terug op lid 1 (R5)?
 2. Geldt Leidraad 9.1 ook als lid 5 terugvalt op lid 1 (R8, voorbeeld 3)?
 3. Bedoelt art. 24 lid 2 met "vijfde … lid" ook de aanslag van lid 6 (R12)?
@@ -320,16 +371,19 @@ toets, geen oordeel van de jurist.
 - de afronding van het termijnbedrag en waar het restant landt (R9);
 - het bedrag dat op elke vervaldag wordt verrekend (plan §4.1, slot).
 
-**Een bepaling die nog gelezen moet worden**: art. 72 Mijnbouwwet, voor het winstaandeel (voorbeeld 12).
+**Wat nog gezocht moet worden**: een bron buiten de wet die vraag 0 beslist. De Kamerstukken-connector en de
+rechtspraakconnector van Lex zijn de weg daarheen; dat is werk voor Lex, niet voor dit document.
 
 ## 6. Wat dit vraagt van Termijnen in Lex
 
 Aanvullend op plan §4.4, die hiermee voor de bronnen achterhaald is:
 
 - **Opnemen bij de nieuwe deelvraag** (hoe de termijnen ontstaan): art. 9 lid 1 en lid 7, Leidraad 9.1, 9.3 en 9.5. Bij DV2:
-  art. 24 lid 8. Als context: Awb 4:93 lid 3 en lid 4, Leidraad 24.3. Om te lezen: art. 72 Mbw.
+  art. 24 lid 8. Bij beide: art. 72 Mbw, met rol *analyseren*, want R0 rust erop. Als context: Awb 4:93 lid 3 en lid 4,
+  Leidraad 24.3, art. 69 en 70 Mbw.
 - **Begrippen**: de lijst in §2. Nieuw ten opzichte van §4.4 zijn *termijnregime*, *belasting waarin de aanslag is
-  opgelegd*, *wettelijke betalingstermijn* en *tijdvak waarop de aanslag betrekking heeft*.
+  opgelegd*, *wettelijke betalingstermijn*, *tijdvak waarop de aanslag betrekking heeft*, *voorlopige aanslag winstaandeel*
+  en, om het homoniem te scheiden, *verrekenbaar bedrag (Mijnbouwwet)*.
 - **Relaties** (ADR-011): de `uitzondering_op` per regel, in R5, R8, R11 en R12. Twee wijzen naar Awb 4:93: lid 3 vanuit
   art. 24 lid 1 volzin 6, lid 4 vanuit art. 24 lid 8.
 - **Voor het platform**: R5 en R8 laten zien dat een regel kan steunen op meer bepalingen en op beleid. Het regelskelet van
