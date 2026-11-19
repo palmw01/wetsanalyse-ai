@@ -548,6 +548,9 @@ export interface AgentGrounding {
   afgekapt?: boolean;
   /** Genoemd maar niet teruggevonden in het opgehaalde: een signaal, geen afkeuring. */
   onbevestigd?: string[];
+  /** Zinnen van de toelichting die op niets rusten dat het antwoord toont, zoals Lex ze schreef (graph-qa
+   *  `GroundingReport.interpretatie`): de werkplek markeert ze in de tekst als interpretatie van Lex. */
+  interpretatie?: string[];
   /** Artikelen die het antwoord in gewone taal noemt en die in het opgehaalde terug te vinden zijn: nagelopen, maar
    *  geen vindplaats om hard te toetsen (graph-qa `GroundingReport.vermeld`). */
   vermeld?: string[];

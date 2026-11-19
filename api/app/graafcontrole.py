@@ -12,6 +12,9 @@ vragen, elk apart gerapporteerd:
 4. **Invarianten** – de wettekst blijft schoon: geen subject onder `urn:bwb:`, geen `urn:bwb-ns:`-
    predicaat en geen schema-axioma's (domain/range/subClassOf/sameAs) in een `urn:jas:graph:*`.
 
+Daarnaast, uit Postgres en diagnostisch: de relaties tussen markeringen (`relaties`) en de begrippen die op geen
+annotatie rusten (`begrippen_zonder_passage`).
+
 Een laag die nog niet geprojecteerd is (`geprojecteerd_revisie < revisie`) heet **achterstand**,
 geen afwijking: de directe projectie en de reconcile-lus halen die in. Pas als de graaf iets anders
 zegt dan Postgres terwijl hij bij is, is het een afwijking.
@@ -243,6 +246,25 @@ def relatie_diagnose(invoer: dict[str, tuple[list[dict], dict, dict]]) -> dict[s
     return {"relaties": len(relaties), "impliciet": len(impliciet), "hangend": hangend, "kardinaliteit": kardinaliteit}
 
 
+async def begrippen_zonder_passage() -> list[dict[str, Any]]:
+    """De begrippen die op geen annotatie rusten: geen dragende koppeling (`begrip_store.DRAGEND`, niet afgewezen, niet
+    verwijderd). Een begrip rust altijd op een annotatie; een vervangen begrip is historie en telt niet. Zo'n wees ontstond
+    vóór die regel ook in het generieke kader: een werkgebied wissen liet het begrip staan en nam zijn passages mee
+    (acceptatie 19 nov 2026, "belastingschuldige"). Uit Postgres en zonder graaf; diagnostisch, net als `relaties`."""
+    from .begrip_store import DRAGEND
+
+    b, k = db.begrippen, db.begrip_koppelingen
+    dragend = select(k.c.begrip_id).where(k.c.verwijderd.is_(None), k.c.rol.in_(sorted(DRAGEND)),
+                                          k.c.beoordeling != "afgewezen")
+    async with db.get_engine().connect() as conn:
+        rows = (await conn.execute(select(b.c.id, b.c.werkgebied_id, b.c.status, b.c.inhoud)
+                                   .where(b.c.status != "vervangen", b.c.id.not_in(dragend))
+                                   .order_by(b.c.id))).all()
+    return [{"begrip_id": r.id, "naam": (r.inhoud or {}).get("naam", ""), "status": r.status,
+             "kader": "generiek" if r.werkgebied_id is None else "werkgebied", "werkgebied_id": r.werkgebied_id}
+            for r in rows]
+
+
 async def controleer(*, shacl: bool = True) -> dict[str, Any]:
     """Volledige controle. `shacl=False` voor de lichte variant in de reconcile-lus."""
     uit: dict[str, Any] = {"graaf_beschikbaar": False, "in_orde": None, "lagen": 0, "achterstand": [],
@@ -251,6 +273,7 @@ async def controleer(*, shacl: bool = True) -> dict[str, Any]:
     lagen, elementen = await _postgres()
     uit["lagen"] = len(lagen)
     uit["relaties"] = relatie_diagnose(elementen)
+    uit["begrippen_zonder_passage"] = await begrippen_zonder_passage()
     if not get_settings().graphdb_url:
         uit["reden"] = "graafprojectie_uit"
         return uit
@@ -311,4 +334,7 @@ async def log_stand() -> dict[str, Any]:
                   + (not uit["begrippen"]["invariant_schoon"]))
         (logger.warning if aantal else logger.info)("annotatie_graafcontrole", extra={
             "annotatie_graaf_afwijking": aantal, "lagen": uit["lagen"], "achterstand": len(uit["achterstand"])})
+    if wezen := uit.get("begrippen_zonder_passage"):
+        logger.warning("begrippen_zonder_passage", extra={"aantal": len(wezen),
+                                                          "begrip_ids": [w["begrip_id"] for w in wezen][:20]})
     return uit

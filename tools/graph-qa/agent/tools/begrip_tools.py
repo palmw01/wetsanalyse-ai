@@ -18,6 +18,8 @@ import re
 import unicodedata
 from typing import Any
 
+from bronmodel.definities import term_vindplaats
+
 from ..graph.queries import _lit
 from ..graph.results import parse_select
 from .annotatie_tools import ANNOTATIE_TOOL_NAMEN, _d, schema, uitkomsten, vindplaats_label
@@ -158,6 +160,18 @@ def treffer(zoekterm: str, rij: dict[str, Any]) -> int:
     return 4
 
 
+def zelfde_term(a: str, b: str) -> bool:
+    """Dezelfde term, ook in het meervoud. Op woordgrens: "aanslag" is niet "belastingaanslag"."""
+    a, b = a.strip(), b.strip()
+    return any(g.casefold() == y.casefold() for x, y in ((a, b), (b, a)) if (g := term_vindplaats(x, y)))
+
+
+def met_deze_naam(zoekterm: str, rij: dict[str, Any]) -> bool:
+    """Draagt het begrip de gezochte term als naam of alternatieve term? Een begrip dat hem alleen in zijn definitie
+    of als deel van een langere naam noemt ("bedrag van de belastingaanslag"), niet."""
+    return any(zelfde_term(zoekterm, t) for t in [rij.get("naam", ""), *(rij.get("alternatieve_termen") or [])] if t)
+
+
 def _kort(tekst: str, n: int = 400) -> str:
     tekst = " ".join((tekst or "").split())
     return tekst if len(tekst) <= n else tekst[:n] + "…"
@@ -174,7 +188,10 @@ def _rij(r: dict[str, Any]) -> dict[str, Any]:
         uit["definitie_herkomst"] = r.get("definitie_herkomst") or ""
     if r.get("alternatieve_termen"):
         uit["alternatieve_termen"] = r["alternatieve_termen"]
-    uit["aantal_dragend"] = r.get("aantal_dragend", 0)
+    # Hoeveel passages het begrip dragen, zoals de api telt; geen getal verzinnen als de rij het niet draagt (een
+    # sjabloon laat een begrip met 0 weg: `sjablonen/begrip._vastgelegd`).
+    if isinstance(r.get("aantal_dragend"), int):
+        uit["aantal_dragend"] = r["aantal_dragend"]
     # Geaccordeerd, maar een dragende passage veranderde sindsdien: Lex zegt het (prompt, TOOLKEUZE 7).
     if r.get("herbeoordelen"):
         uit["herbeoordelen"] = r["herbeoordelen"]
@@ -229,6 +246,12 @@ def zoek(args: dict[str, Any], graph, port) -> dict[str, Any]:
     if zoekterm:
         # De gezochte term, zodat een sjabloon ziet waarop gezocht is (`sjablonen/begrip.vooraf`).
         uit["zoekterm"] = zoekterm
+        # De zoekvraag vindt de term ook in definities, dus het aantal is niet het aantal begrippen met deze naam
+        # (acceptatie 19 nov 2026: "Begrippen 9 gevonden", en het antwoord toonde er 2). Het denkproces zegt beide
+        # (`spoorbronnen.uitkomstregel`); het begripsantwoord toont alleen die met deze naam.
+        op_naam = sum(met_deze_naam(zoekterm, r) for r in rijen[:limit])
+        if op_naam != uit["aantal"]:
+            uit["uitsplitsing"] = [[op_naam, "met deze naam"], [uit["aantal"] - op_naam, "waarin de term voorkomt"]]
     if eerst:
         uit["werkgebied_gesprek"] = eerst
     if not rijen and not achter:

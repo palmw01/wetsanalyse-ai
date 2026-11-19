@@ -13,7 +13,8 @@ import { StatusLabel } from "@/components/ui/Lijst";
 import { StukVindplaats, Vindplaats } from "./Vindplaats";
 import { ConnectorTekst } from "@/components/wettekst/ConnectorTekst";
 import { Markdown } from "@/components/werkplek/Markdown";
-import { gezamenlijkTekst, groepeerWettekst, tellingTekst, type Antwoord as AntwoordData, type AntwoordBlok, type BlokSoort } from "@/lib/antwoord";
+import { gezamenlijkTekst, groepeerWettekst, tellingTekst, type Antwoord as AntwoordData, type AntwoordBlok, type AntwoordDefinitie, type BlokSoort } from "@/lib/antwoord";
+import { geldtVoor } from "@/lib/geldigheid";
 import { bronHref } from "@/lib/url";
 
 /** "19.523", zoals de statusregel van Lex en de Markdown van het antwoord (`bronmodel.antwoord.getal`). */
@@ -23,12 +24,22 @@ import { begripPad, generiekPad } from "@/lib/werkgebiedPaden";
 import { datumTekst } from "@/lib/datum";
 import type { Bron } from "@/lib/types";
 
+/** Waar de definitie geldt, in woorden met de regeling (`lib/geldigheid.ts`); de formule zelf als titel. Een ouder
+ *  bericht draagt alleen de formule. */
+function Bereik({ definitie: d }: { definitie: AntwoordDefinitie }) {
+  const woorden = geldtVoor(d.bereik_soort, { waarde: d.bereik_waarde, regeling: d.vindplaats.regeling });
+  if (woorden) return <span title={d.bereik ? `“${d.bereik}”` : undefined} data-bereik={d.bereik_soort}> · {woorden}</span>;
+  return d.bereik ? <> · geldt voor “{d.bereik}”</> : null;
+}
+
 function Sectie({ kop, children }: { kop: string; children: React.ReactNode }) {
   return <section className="space-y-1.5"><h3 className="text-sm font-semibold text-lint">{kop}</h3>{children}</section>;
 }
 
 type Blok<S extends BlokSoort> = Extract<AntwoordBlok, { soort: S }>;
-type Props<S extends BlokSoort> = { blok: Blok<S>; bronnen?: readonly Bron[]; nietLetterlijk?: readonly string[] };
+type Props<S extends BlokSoort> = { blok: Blok<S>; bronnen?: readonly Bron[]; nietLetterlijk?: readonly string[];
+  /** Zinnen van de toelichting zonder steun in wat het antwoord toont (`grounding.interpretatie`). */
+  interpretatie?: readonly string[] };
 
 const STATUS_TOON: Record<string, "groen" | "neutraal"> = { geaccordeerd: "groen" };
 
@@ -39,7 +50,19 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
         {blok.items.map((d) => (
           <div key={d.vindplaats.iri} className="space-y-1">
             <Citaat>{d.tekst}</Citaat>
-            <p className="text-xs text-muted"><Vindplaats vindplaats={d.vindplaats} />{d.bereik && <> · geldt voor “{d.bereik}”</>}</p>
+            <p className="text-xs text-muted"><Vindplaats vindplaats={d.vindplaats} /><Bereik definitie={d} /></p>
+            {/* De begrippen uit dezelfde bepaling die deze definitie zelf gebruikt: zonder die lees je haar niet goed. */}
+            {!!d.gebruikt?.length && (
+              <div className="space-y-2 border-l-2 border-line pl-3" data-gebruikt-begrip>
+                <p className="text-xs font-medium text-muted">{d.gebruikt.length === 1 ? "Gebruikt begrip" : "Gebruikte begrippen"}</p>
+                {d.gebruikt.map((g) => (
+                  <div key={g.vindplaats.iri} className="space-y-1">
+                    <Citaat>{g.tekst}</Citaat>
+                    <p className="text-xs text-muted"><Vindplaats vindplaats={g.vindplaats} /></p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -118,8 +141,10 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
       {!blok.volledig && <p className="text-xs text-muted">Dit zijn niet alle markeringen.</p>}
     </Sectie>
   ),
-  toelichting: ({ blok, bronnen, nietLetterlijk }) => (
-    <Sectie kop={blok.kop}><Markdown tekst={blok.tekst} bronnen={bronnen} nietLetterlijk={nietLetterlijk} /></Sectie>
+  // Een zin die op niets rust dat het antwoord toont, staat gemarkeerd als interpretatie van Lex: de jurist ziet waar Lex
+  // verder gaat dan de tekst erboven (acceptatie 19 nov 2026, "belastingschuldige").
+  toelichting: ({ blok, bronnen, nietLetterlijk, interpretatie }) => (
+    <Sectie kop={blok.kop}><Markdown tekst={blok.tekst} bronnen={bronnen} nietLetterlijk={nietLetterlijk} interpretatie={interpretatie} /></Sectie>
   ),
   twijfel: ({ blok, bronnen, nietLetterlijk }) => (
     <Sectie kop="Twijfel en aannames">
@@ -206,15 +231,17 @@ const BLOKKEN: { [S in BlokSoort]: (p: Props<S>) => React.ReactNode } = {
 };
 
 
-function BlokWeergave({ blok, ...rest }: { blok: AntwoordBlok; bronnen?: readonly Bron[]; nietLetterlijk?: readonly string[] }) {
+function BlokWeergave({ blok, ...rest }: { blok: AntwoordBlok; bronnen?: readonly Bron[]; nietLetterlijk?: readonly string[];
+  interpretatie?: readonly string[] }) {
   const Teken = BLOKKEN[blok.soort] as (p: Props<BlokSoort>) => React.ReactNode;
   return <>{Teken({ blok, ...rest })}</>;
 }
 
-export function Antwoord({ antwoord, bronnen, nietLetterlijk }: { antwoord: AntwoordData; bronnen?: readonly Bron[]; nietLetterlijk?: readonly string[] }) {
+export function Antwoord({ antwoord, bronnen, nietLetterlijk, interpretatie }: { antwoord: AntwoordData; bronnen?: readonly Bron[];
+  nietLetterlijk?: readonly string[]; interpretatie?: readonly string[] }) {
   return (
     <div data-testid="antwoord-sjabloon" data-sjabloon={antwoord.sjabloon} className="space-y-4 text-sm leading-relaxed text-ink">
-      {antwoord.blokken.map((b, i) => <BlokWeergave key={`${b.soort}-${i}`} blok={b} bronnen={bronnen} nietLetterlijk={nietLetterlijk} />)}
+      {antwoord.blokken.map((b, i) => <BlokWeergave key={`${b.soort}-${i}`} blok={b} bronnen={bronnen} nietLetterlijk={nietLetterlijk} interpretatie={interpretatie} />)}
     </div>
   );
 }

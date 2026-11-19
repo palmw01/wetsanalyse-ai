@@ -563,7 +563,32 @@ def gelezen_tekst(trace: Iterable[Any]) -> str:
 STEUN_MELDING = "toelichting zonder steun in wat gelezen is"
 
 
-def toelichting_zonder_steun(tekst: str, steun: str, bekend: str = "") -> list[str]:
+def getoonde_tekst(antwoord: dict[str, Any] | None) -> str | None:
+    """De tekst die het sjabloon zelf uit de bron toont (de blokken `door: "bron"`, zonder een leemte: die tekst is van
+    de code), of None zonder sjabloon. Daarop hoort de toelichting van een sjabloon te rusten: de jurist leest haar naast
+    die tekst. Het hele bronspoor was te ruim (acceptatie 19 nov 2026, "belastingschuldige": de zoektool vond 9
+    begrippen, het antwoord toonde er 2, en woorden uit de definities van de andere 7 droegen een zin die nergens stond)."""
+    if not antwoord:
+        return None
+    uit: list[str] = []
+
+    def loop(v: Any) -> None:
+        if isinstance(v, str):
+            uit.append(v)
+        elif isinstance(v, dict):
+            for w in v.values():
+                loop(w)
+        elif isinstance(v, list):
+            for w in v:
+                loop(w)
+
+    for blok in antwoord.get("blokken") or []:
+        if blok.get("door") == "bron" and blok.get("soort") != "leemte":
+            loop(blok.get("items") or [])
+    return "\n".join(uit)
+
+
+def zinnen_zonder_steun(tekst: str, steun: str, bekend: str = "") -> list[str]:
     """De zinnen van een toelichting die niet rusten op wat er gelezen is (acceptatie 19 nov 2026, "derdenbeslag": een
     bank, een werkgever die loon uitbetaalt en executoriaal beslag, terwijl de gelezen Leidraad-passage en het vastgelegde
     begrip daar niets over zeggen; de controle zag het niet, want ze toetste alleen getallen, namen en citaten).
@@ -571,7 +596,8 @@ def toelichting_zonder_steun(tekst: str, steun: str, bekend: str = "") -> list[s
     Per zin of lijstregel de eigen woorden: geen functiewoord, geen naam, geen woord uit de vraag of het dossier
     (`bekend`), en niet in een citaat of vindplaats. Zijn het er meer dan `MAX_EIGEN_WOORDEN`, dan staat ten minste
     `MIN_STEUN` daarvan (op hun stam) in `steun`: de tekst die gelezen is, niet wat een zoektool alleen vond. Anders is de
-    zin een bewering. Dezelfde maat als `zonder_steun` na een rapport."""
+    zin een bewering. Dezelfde maat als `zonder_steun` na een rapport. Elke zin zoals Lex hem schreef: de werkplek wijst
+    hem daarmee in de tekst aan."""
     from .beweringen import _zonder_citaten
 
     stammen = _stammen(_WOORD.findall((steun or "").casefold()))
@@ -590,6 +616,15 @@ def toelichting_zonder_steun(tekst: str, steun: str, bekend: str = "") -> list[s
             continue
         gedragen = sum(w[:_STAM] in stammen for w in eigen)
         if gedragen < MIN_STEUN * len(eigen):
-            kort = zin if len(zin) <= 90 else zin[:90].rsplit(" ", 1)[0] + " …"
-            uit.append(f"{STEUN_MELDING}: “{kort}”")
+            uit.append(zin)
     return uit
+
+
+def steun_meldingen(zinnen: list[str]) -> list[str]:
+    """De bewering van de steuntoets per zin, kort genoeg voor het denkproces en de correctieronde."""
+    return [f"{STEUN_MELDING}: “{zin if len(zin) <= 90 else zin[:90].rsplit(' ', 1)[0] + ' …'}”" for zin in zinnen]
+
+
+def toelichting_zonder_steun(tekst: str, steun: str, bekend: str = "") -> list[str]:
+    """`zinnen_zonder_steun` als beweringen (`steun_meldingen`)."""
+    return steun_meldingen(zinnen_zonder_steun(tekst, steun, bekend))
