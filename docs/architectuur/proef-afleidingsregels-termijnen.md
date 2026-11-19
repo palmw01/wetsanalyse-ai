@@ -269,15 +269,15 @@ volgende voorwaarden is voldaan". Elke regel heeft precies één uitvoer.
   alleen mogelijk is met belastingaanslagen die op dezelfde belasting en hetzelfde tijdvak betrekking hebben."
 - Regel: *Verrekening mogelijk vóór het verstrijken van de termijn* is waar voor een aanslag waarvan de termijn nog niet is
   verstreken, indien aan één van de volgende voorwaarden is voldaan:
-  - het *termijnregime* is **niet** lid 5 en **niet** lid 7;
+  - het *termijnregime* is **niet** lid 5, **niet** lid 6 en **niet** lid 7 (besluit 2 in §8);
   - de andere aanslag heeft **dezelfde** *belasting waarin de aanslag is opgelegd* **en hetzelfde** *tijdvak waarop de
     aanslag betrekking heeft*.
 - Art. 24 lid 8 is geen voorwaarde maar een verruiming: "In afwijking van artikel 4:93, vierde lid, van de Algemene wet
   bestuursrecht is verrekening ook mogelijk van een voorlopige aanslag tot een negatief bedrag als bedoeld in artikel 13,
   tweede lid, van de Algemene wet inzake rijksbelastingen." Relatie `uitzondering_op` naar Awb 4:93 lid 4.
 - *Lezing*: een aanslag met termijnregime lid 6 is "een belastingaanslag als bedoeld in het vijfde lid" (lid 6, eerste
-  volzin). Of lid 2 met "artikel 9, vijfde … lid" ook lid 6 bedoelt, beslist de tekst niet. In de regel hierboven valt lid 6
-  erbuiten; dat is een keuze voor de jurist.
+  volzin). Of lid 2 met "artikel 9, vijfde … lid" ook lid 6 bedoelt, beslist de tekst niet. Besloten (§8): lid 6 valt
+  eronder.
 - Beleid (Leidraad 24.3): "Bij een voorlopige belastingaanslag in de inkomstenbelasting en de vennootschapsbelasting die is
   gedagtekend in het jaar waarover deze is vastgesteld, kan de ontvanger alleen verrekenen voor zover de betalingstermijnen
   zijn verstreken." De uitzondering daarop, de situaties van art. 10 lid 1 onderdeel b–d, valt buiten de afbakening van
@@ -422,8 +422,8 @@ waaronder de operatoren en zes begrippen "bepalen van …" en "toepassen van …
   - *ongelijk aan*;
   - *laatste dag van de kalendermaand*.
 - Nieuw en concept:
-  - *aantal termijnen* (zie hieronder);
-  - *termijnregime* (R5). Er is geen formulering die dit begrip aanduidt, dus de poort laat accorderen niet toe.
+  - *aantal termijnen*: later geaccordeerd (§8, besluit 1);
+  - *termijnregime* (R5): ten onrechte aangemaakt zonder formulering; het hoort weg (§8, besluit 7).
 
 **Wat ik zag, voor de jurist**
 
@@ -452,3 +452,43 @@ waaronder de operatoren en zes begrippen "bepalen van …" en "toepassen van …
 - Leidraad 9.5 is voor het grootste deel rekenvoorbeeld. De keten markeerde de voorbeelden als normelementen (42 van de
   67) en de regel voor de laatste dag van de maand staat alleen in een voorbeeld. Het onderscheid tussen voorbeeld en regel
   kent de annotatieketen niet.
+
+## 8. Besluiten (19 nov 2026)
+
+Op verzoek van de gebruiker heb ik de open keuzes zelf genomen, als jurist op acceptatie. Wat op acceptatie is
+uitgevoerd, staat erbij.
+
+1. **"Zoveel gelijke termijnen" duidt het *aantal termijnen* aan.** Bij *termijn* zijn de drie passages (art. 9 lid 5, 6 en
+   7) context geworden, en *termijn* is opnieuw geaccordeerd met dezelfde inhoud. *Aantal termijnen* heeft ze als duiding
+   en is geaccordeerd.
+2. **Art. 24 lid 2 geldt ook voor een aanslag van lid 6.** Lid 6 spreekt van "een belastingaanslag als bedoeld in het
+   vijfde lid"; zo'n aanslag is een aanslag van lid 5 met een uit te betalen bedrag. R12 is aangepast.
+3. **De dagtekening van het aanslagbiljet is overal een Variabele.** Het begrip is een datum, en in de regels is zij invoer.
+   Lid 5 en 6 zijn heropend, aangepast en weer afgerond. De relaties "heeft als voorwerp" vanuit de dagtekening zijn
+   afgewezen: de catalogus staat ze alleen toe vanuit een rechtsfeit of rechtsbetrekking. Wissen weigerde de vangrail van de
+   acceptatie-MCP. In de plaats daarvan is de dagtekening als `invoer` gelegd op de regels van lid 5 en 6.
+4. **Het *jaar* is het kalenderjaar, of bij een afwijkend boekjaar het boekjaar.** De definitie is aangepast en het begrip is
+   weer geaccordeerd. Grond: Leidraad 9.1 (afwijkende boekjaren) en art. 69 en 70 lid 2 Mbw ("over een boekjaar"). Het blijft
+   een ander begrip dan *tijdvak*, dat algemener is (het heffingstijdvak). Voor een voorlopige aanslag vallen ze samen,
+   maar dat maakt ze niet hetzelfde begrip (vraag 5 in §5).
+5. **R0: lezing C.** "Overeenkomstige toepassing" leest de belastingen in lid 5 als de belasting waarop de aanslag rust. Het
+   winstaandeel valt dus onder lid 5 en 6 als eigen belasting. "Dezelfde belasting" in art. 24 lid 2 is dan winstaandeel
+   met winstaandeel. Dat is ook de vraag van Termijnen, en het sluit aan bij het begrip *belasting* zoals het er al lag.
+   Voorbeeld 13: R12 is waar met een positieve voorlopige aanslag winstaandeel over hetzelfde jaar, en onwaar met de
+   vennootschapsbelasting.
+6. **De andere lezingen** (vraag 1, 2, 4 en 6 in §5):
+   - Een negatieve aanslag die in de laatste maand is gedagtekend, krijgt één termijn aan het eind van die maand. Lid 6 kent
+     geen terugval.
+   - Leidraad 9.1 geldt ook voor de enige betaling na zes weken ("enige of laatste").
+   - Lid 7 geldt voor elke voorlopige aanslag, zoals de tekst zegt.
+   - Wordt een teruggaaf in één keer uitbetaald (R10), dan is er geen termijn. Het tijdstip van verrekening is dan de
+     dagtekening (volzin 6).
+7. **Een begrip zonder annotatie bestaat niet** (aanwijzing van de gebruiker). Een begrip rust op formuleringen. *Termijnregime*
+   had er geen en hoort weg. Verwijderen via de acceptatie-MCP weigert de vangrail, dus dat gebeurt in de werkplek. In de
+   proef blijft het termijnregime een **tussenresultaat** van R5: de uitvoer van een regel, zonder eigen begrip, tot er een
+   formulering is die het aanduidt.
+   - Voor het platform: de api laat een begrip aanmaken zonder koppeling (alleen accorderen wordt geweigerd). Volgens deze
+     regel moet al het aanmaken zonder een aanduidende passage worden geweigerd. Dat is een generieke wijziging in
+     `begrip_store` en de skill, nog niet gebouwd.
+   - Voor de methode: een uitvoer zonder formulering is in 3b mogelijk. Wat de afleidingsregels als uitvoer noemen, hoeft
+     dus niet altijd een begrip uit 3a te zijn (plan §2.4 en gat D1).
