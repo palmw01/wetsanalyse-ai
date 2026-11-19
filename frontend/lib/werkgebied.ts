@@ -130,6 +130,8 @@ export function isWerkgebiedRoute(pad: readonly string[]): boolean {
     return pad.length === 5 && b === "dragers" && !!c;
   }
   if (deel === "parameterwaarden") return pad.length <= 3;
+  // Open punten (lessenbundel 4): lezen, en het besluit van de jurist. Een punt maken of wijzigen doen Lex en de import.
+  if (deel === "open-punten") return pad.length <= 3 || (pad.length === 4 && (b === "besluit" || b === "revisies"));
   if (deel === "groepen") {
     if (pad.length === 2) return true;
     if (pad.length === 3) return a === "akkoord";

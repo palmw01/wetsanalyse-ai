@@ -6,7 +6,8 @@ import { Stip, PaginaKop } from "@/components/ui/Pagina";
 import { RegelInhoud, RegelStatus } from "@/components/werkgebieden/RegelInhoud";
 import { useWerkgebied } from "@/components/werkgebieden/WerkgebiedProject";
 import { ExportKnop } from "@/components/werkplek/ExportKnop";
-import { downloadTekst } from "@/lib/api";
+import { downloadTekst, lijstOpenPunten } from "@/lib/api";
+import { puntenAlsMarkdown } from "@/lib/openPunten";
 import { bestandsnaam } from "@/lib/artefactMarkdown";
 import { regelAlsMarkdown } from "@/lib/regels";
 import { useRegel, useRegelKeten } from "@/lib/useRegel";
@@ -39,7 +40,8 @@ export function RegelPagina({ regelId }: { regelId: string }) {
         acties={regel && (
           <ExportKnop titel={naam} onFout={() => undefined}
             formaten={[{ formaat: "json", label: "JSON", uitleg: "de regel, machineleesbaar" }]}
-            markdown={() => regelAlsMarkdown(regel)}
+            markdown={async () => regelAlsMarkdown(regel)
+              + puntenAlsMarkdown(await lijstOpenPunten(wg.id, { soort: "regel", id: regel.id }).catch(() => []))}
             onDownload={async () => downloadTekst(JSON.stringify(regel, null, 2), bestandsnaam(naam, "json"), "application/json")} />
         )}
       />

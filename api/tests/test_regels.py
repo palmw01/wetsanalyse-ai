@@ -151,6 +151,61 @@ async def test_van_aanmaken_tot_accorderen(client):
     assert {"regel-aangemaakt", "drager-beoordeeld", "regel-gewijzigd", "regel-geaccordeerd"} <= set(acties)
 
 
+async def _klaar_voor_accorderen(client, wg, ids, b) -> dict:
+    """Een regel waarvan alles beoordeeld is: begrippen geaccordeerd, grondslag akkoord, een beoordeeld voorbeeld."""
+    regel = (await client.post(_url(wg), json={"inhoud": _inhoud(b),
+                                              "dragers": [{"element_id": ids["ar"], "rol": "grondslag"}]})).json()
+    for eid in ids.values():
+        await _keur_goed(eid)
+    for x in b.values():
+        await _accordeer_begrip(client, wg, (await client.get(f"/v1/werkgebieden/{wg['id']}/begrippen/{x['id']}")).json())
+    grond = regel["dragers"][0]
+    regel = (await client.patch(_url(wg, regel["id"], "dragers", grond["id"]),
+                                json={"verwachte_revisie": regel["revisie"], "beoordeling": "akkoord"})).json()
+    met_vb = _inhoud(b, voorbeelden=[{"invoer": "1200 en 12", "uitkomst": "100", "oordeel": "juist"}])
+    regel = (await client.patch(_url(wg, regel["id"]), json={"verwachte_revisie": regel["revisie"],
+                                                             "inhoud": met_vb})).json()
+    assert regel["accorderen"]["mag"], regel["accorderen"]
+    return regel
+
+
+async def test_de_poort_telt_de_genomen_keuzes(client):
+    """R3 (ADR-018 besluit 2 en 7.13): een open interpretatiekeuze of ontbrekend beleid op de regel of een van zijn
+    gevallen houdt het accorderen tegen; een onderzoekspunt of gat is een signaal. Het besluit valt via de ene route van
+    het open punt (lessenbundel 4), en dan mag het weer."""
+    wg, ids, b = await _opzet(client)
+    regel = await _klaar_voor_accorderen(client, wg, ids, b)
+    punten = f"/v1/werkgebieden/{wg['id']}/open-punten"
+    keuze = (await client.post(punten, json={"inhoud": {
+        "soort": "interpretatiekeuze", "vraag": "Telt een gedeeltelijke betaling als termijn?",
+        "hangt_aan": [{"soort": "geval", "id": regel["id"], "geval": "1"}],
+        "lezingen": [{"label": "A", "omschrijving": "Ja"}, {"label": "B", "omschrijving": "Nee"}]}})).json()
+    onderzoek = (await client.post(punten, json={"inhoud": {
+        "soort": "onderzoekspunt", "vraag": "Wat zegt de Leidraad?", "hangt_aan": [{"soort": "regel", "id": regel["id"]}],
+        "te_toetsen": [{"bronsoort": "beleid", "omschrijving": "Leidraad Invordering"}]}})).json()
+
+    regel = (await client.get(_url(wg, regel["id"]))).json()
+    assert regel["accorderen"] == {"mag": False,
+                                   "redenen": ["1 keuze is nog niet genomen: Telt een gedeeltelijke betaling als termijn."]}
+    assert "1 onderzoekspunt of gat in de annotatie staat nog open." in regel["signalen"]
+    assert regel["open_punten"] == {"open": 2, "totaal": 2}
+    r = await client.post(_url(wg, regel["id"], "accorderen"), json={"verwachte_revisie": regel["revisie"], "reden": "x"})
+    assert r.status_code == 409 and "keuze is nog niet genomen" in r.json()["detail"]["melding"]
+    # De punten op deze regel, ook die op een geval ervan.
+    lijst = (await client.get(punten, params={"aan": "regel", "aan_id": regel["id"]})).json()
+    assert {p["id"] for p in (lijst["open_punten"] if isinstance(lijst, dict) else lijst)} == {keuze["id"], onderzoek["id"]}
+
+    # De jurist kiest; het onderzoekspunt blijft een signaal en houdt niets tegen.
+    r = await client.post(f"{punten}/{keuze['id']}/besluit", json={"verwachte_revisie": keuze["revisie"], "gekozen": "B",
+                                                                   "motivering": "Volgt uit lid 2.", "methode": "grammaticaal"})
+    assert r.status_code == 200, r.text
+    regel = (await client.get(_url(wg, regel["id"]))).json()
+    assert regel["accorderen"] == {"mag": True, "redenen": []}
+    assert regel["open_punten"] == {"open": 1, "totaal": 2}
+    r = await client.post(_url(wg, regel["id"], "accorderen"), json={"verwachte_revisie": regel["revisie"], "reden": "Getoetst"})
+    assert r.status_code == 200 and r.json()["status"] == "geaccordeerd"
+
+
 async def test_de_laatste_grondslag_blijft(client):
     wg, ids, b = await _opzet(client)
     regel = (await client.post(_url(wg), json={"inhoud": _inhoud(b),

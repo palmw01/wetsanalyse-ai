@@ -38,7 +38,8 @@ import { useOnbewaardBewaker } from "@/lib/useOnbewaardBewaker";
 import { artefactPad, begripPad, deelvraagPad, projectPad, regelPad } from "@/lib/werkgebiedPaden";
 import { RegelInhoud, RegelStatus } from "@/components/werkgebieden/RegelInhoud";
 import { RegelKeten } from "@/components/werkgebieden/RegelKeten";
-import { haalRegel, haalRegelKeten, lijstRegels } from "@/lib/api";
+import { haalRegel, haalRegelKeten, lijstOpenPunten, lijstRegels } from "@/lib/api";
+import { puntenAlsMarkdown } from "@/lib/openPunten";
 import { regelAlsMarkdown, regelsAlsMarkdown, type Regel, type RegelKeten as RegelKetenVorm } from "@/lib/regels";
 import { useRegel } from "@/lib/useRegel";
 
@@ -79,7 +80,8 @@ function exportVan(doel: WerkgebiedArtefact, opname?: Opname | null): Pick<React
     case "begrip":
       return { formaten: [], markdown: async () => begripAlsMarkdown(await haalBegrip(id, doel.begrip_id ?? "")) };
     case "regel":
-      return { formaten: [], markdown: async () => regelAlsMarkdown(await haalRegel(id, doel.regel_id ?? "")) };
+      return { formaten: [], markdown: async () => regelAlsMarkdown(await haalRegel(id, doel.regel_id ?? ""))
+        + puntenAlsMarkdown(await lijstOpenPunten(id, { soort: "regel", id: doel.regel_id ?? "" }).catch(() => [])) };
     case "regels":
       return { formaten: [], markdown: async () => {
         const [wg, regels, keten] = await Promise.all([haalWerkgebied(id), lijstRegels(id), haalRegelKeten(id).catch(() => null)]);
