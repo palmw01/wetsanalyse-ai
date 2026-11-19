@@ -62,6 +62,8 @@ ombouwen zonder reden.
 
 21. **De werkplaats** (`/v1/werkplaats/*`, `/v1/admin/werkplaats/*`, ADR-016 deel B): wat een gebruiker zelf maakt
    (een skill, een agentprofiel) als concept met versies – zie §*De werkplaats*.
+22. **Afleidingsregels** (`/v1/werkgebieden/{id}/regels/*`, `…/parameterwaarden`, ADR-018, activiteit 3b): regels per
+   werkgebied met dragers, de afgeleide regeltekst, de poort, de hiërarchie en parameterwaarden – zie §*Afleidingsregels*.
 
 > **De wettekst komt uit de graaf.** De API leest uit GraphDB de **bronboom** (`bron_resolver.py`):
 > daarmee toetst hij ankers, legt hij snapshots vast en levert hij de segmenten van de weergave.
@@ -102,6 +104,7 @@ ombouwen zonder reden.
 | `begrip_relaties.py` (router), `begrip_relatie_store.py`, `begrip_relatie_contracts.py` | Begripsrelaties (voorstellen uit de keten, vastleggen, afwijzen, doorwerking) en opvolging: nieuwe betekenis, combineren. |
 | `begrip_projectie.py`, `shapes/nl-sbb-1.0.0.ttl`, `shapes/begrippen-wa.ttl` | Begrippen naar de kennisgraaf (NL-SBB), conformiteit per begrip en de Turtle-export. |
 | `begrippen_overzicht.py` (router) | Begrippen over werkgebieden heen: zoeken, verifiëren voor Lex, één begrip. |
+| `regels.py` (router), `regel_store.py`, `regel_contracts.py`, `regeltekst.py` | Afleidingsregels (ADR-018): regels met gevallen, dragers met bewijsstand, de poort, de afgeleide regeltekst, de hiërarchie en parameterwaarden. |
 | `delegaties.py` (router), `delegatie_store.py`, `delegatie_contracts.py` | Delegaties (ADR-016 §A5): één lopende per gebruiker en één regie per werkgebied, hartslag en afronden. |
 | `werkplaats.py` (router), `werkplaats_store.py` + `bronmodel.werkplaats` | De werkplaats: onderdelen met een eigenaar, versies die alleen aangroeien, poort 1 bij elke opslag, audit en beleid. |
 | `artefact_versies.py` | Versies van artefacten: de momentopname bij een beurt van Lex, en de routes om ze te lezen. |
@@ -973,6 +976,41 @@ werkgebieden. Een verwijderd begrip of werkgebied is gewist en bestaat hier dus 
   dat de vrager het werkgebied hoeft te kennen (`get_begrip` van Lex, de werkplek).
 - Tests: `tests/test_begrippen_overzicht.py`.
 
+## Afleidingsregels
+
+`regels.py`, `regel_store.py`, `regel_contracts.py`, `regeltekst.py`; het ontwerp is ADR-018 en
+`docs/architectuur/plan-afleidingsregels-in-lex.md` (bouwplan R1). Stijl C. Het patroon is dat van de begrippen, met
+dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `werkgebied_store.toets_revisie`).
+
+- **Tabellen**: `regels` (inhoud als JSON: soort, regelbegrip, uitvoer, lidwoord, invoer, gevallen, voorbeelden,
+  toelichting, brontype), `regel_revisies` (volledige kopie per revisie), `regel_dragers` (element, rol, geval, bewijs,
+  beoordeling; zonder foreign key, zoals `begrip_koppelingen`) en `parameter_waarden` (de waarde van een parameter in een
+  tijdvak; de kolommen heten bewust niet `begrip_id`). Alles staat in `WERKGEBIED_TABELLEN`; de revisies gaan via hun ouder.
+- **Een regel heeft altijd één of meer gevallen**; bij meer heeft elk een uniek label. De uitkomst van een geval is een
+  reeks termen: een begrip, een operatorbegrip of vaste tekst (het taalpatroon, een tijdsaanduiding). Voorwaarden zijn
+  een boom van `alle` en `een_van`, met per blad een omschrijving en de markeringen.
+- **Elk genoemd begrip bestaat in het werkgebied** (422 `begrip_onbekend`), en een vervangen begrip noemt een regel niet
+  (409). De uitvoer is geen invoer van dezelfde regel (422).
+- **De grondslag is verplicht** (ADR-018 §2): een drager met rol `grondslag` op een Afleidingsregel, Rechtsbetrekking of
+  Tijdsaanduiding, of op een passage die het uitvoerbegrip aanduidt (een niet-afgewezen `duiding`). Anders 422
+  `geen_grondslag`. De laatste grondslag weghalen is 409 `laatste_grondslag`.
+- **Eén schrijfpad** (`regel_store._gewijzigd_in`): werkgebiedslot, dan het regelslot, `verwachte_revisie` → 412,
+  revisie +1, revisiekopie en audit (`regel-*`, `drager-*`). Elke mutatie behalve accorderen maakt een geaccordeerde regel
+  weer een concept; een vervangen regel is alleen-lezen (409).
+- **De poort** (`accorderen: {mag, redenen}`, besluit gebruiker 19 nov 2026): elk genoemd begrip geaccordeerd, een
+  grondslag die akkoord en actueel is, en een beoordeeld voorbeeld per geval; plus een reden. De interpretatiekeuzes komen
+  erbij met de open punten (R3). Wat niet blokkeert, staat in `signalen`. Een regel met `brontype: beleid` wordt
+  `geaccordeerd_als_beleidsregel`.
+- **De regeltekst rekent de server** (`regeltekst.regeltekst`, puur): `{tekst, markdown, gevallen}` in de taalpatronen
+  van ADR-018 §5. De Markdown geeft lijsten, nooit een tabel.
+- **De hiërarchie wordt afgeleid** (`GET …/regels/hierarchie`, `regel_store.keten`): pijlen van de regel die een begrip
+  afleidt naar de regel die het gebruikt, de volgorde van onder naar boven, basisgegevens (invoer zonder regel) en
+  signalen (`zelfde_uitvoer`, `kring`). Een afgewezen of vervangen regel doet niet mee.
+- **Afwijzen bewaart** (`POST …/afwijzen`, reden verplicht); **verwijderen is echt wissen**, met een auditregel.
+- Artefactsoorten: `regel` (ref `werkgebied_id`, `regel_id`) en `regels` (ref `werkgebied_id`), allebei met versies.
+- Tests: `tests/test_regels.py` en `tests/test_regels_termijnen.py` (de ontwikkelset: R1–R8 van Termijnen passen zonder
+  vrije tekst).
+
 ## Bronnen vinden met Lex
 
 `bronnen_runs.py`, `bronnen_run_store.py`, `bronnen_run_contracts.py`; het ontwerp staat in PLAN
@@ -1238,15 +1276,16 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   - `bronselectie`: het overzicht;
   - `begrip`: het begrip met zijn relaties;
   - `begrippen`: de groepen;
-  - `annotatie`: de v2-weergave van de bronnode.
+  - `annotatie`: de v2-weergave van de bronnode;
+  - `regel`: de regel; `regels`: de regels en de hiërarchie van het werkgebied.
 
-  Het id komt in `artefact.ref.versie` van het bericht. `regels` en een user-bericht krijgen er geen. Een
+  Het id komt in `artefact.ref.versie` van het bericht. Een user-bericht krijgt er geen. Een
   bericht is daarna onveranderlijk, dus de versie hoort voorgoed bij die beurt.
 - **Een versie is de stand direct na een beurt van Lex** (besluit gebruiker). Een handmatige wijziging ertussen is
   geen eigen versie; die zie je in *Nu*.
 - **Per object tellen, over gesprekken heen.** Daarvoor dient de `sleutel`: `werkgebied:<wid>`,
-  `deelvraag:<wid>:<did>`, `bronselectie:<wid>`, `begrip:<wid>:<bid>`, `begrippen:<wid>` of
-  `annotatie:<bron_iri>`. De objecten zijn gedeeld, dus hun versies ook.
+  `deelvraag:<wid>:<did>`, `bronselectie:<wid>`, `begrip:<wid>:<bid>`, `begrippen:<wid>`, `regel:<wid>:<rid>`,
+  `regels:<wid>` of `annotatie:<bron_iri>`. De objecten zijn gedeeld, dus hun versies ook.
 - **Idempotent op (`run_id`, `sleutel`)** (unieke index `ux_artefact_versies_run_sleutel`): dezelfde beurt nog eens
   geeft dezelfde versie.
 - **Een mislukte opname laat het bericht landen**, zonder `versie`. Denk aan een object dat niet meer bestaat, een
@@ -1286,7 +1325,8 @@ de stand van die beurt zien, dan heb je een momentopname nodig. Alleen een begri
   `begrip` (ref `{werkgebied_id, begrip_id, kaart_run_id?, actie?}`: één begrip, F3d), `deelvraag` (ref
   `{werkgebied_id, deelvraag_id}`: één deelvraag, F3d), `bronnen` (ref `{werkgebied_id, run_id}`, fase A),
   `werkgebied` (ref `{werkgebied_id}`: een werkgebied dat Lex in het gesprek samenstelde, activiteit 1)
-  of `regels` (gereserveerd, nog niet in gebruik). `Artefact` toetst de
+  `regels` (ref `{werkgebied_id}`: de afleidingsregels van het werkgebied) of `regel` (ref `{werkgebied_id, regel_id}`,
+  ADR-018). `Artefact` toetst de
   verplichte ref-sleutels per soort (422). Bij een beurt van Lex zet de api zelf `ref.versie` (§*Versies van
   artefacten*). Oudere berichten verwijzen via `annotatie_doel`; graph-qa
   schrijft beide voor een annotatie. Het bericht draagt ook het uitvoeringsspoor van de beurt

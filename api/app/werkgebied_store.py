@@ -84,7 +84,8 @@ WERKGEBIED_TABELLEN = ("werkgebied_bronselecties", "werkgebied_element_besluiten
                        "begrippen", "begrip_koppelingen", "begrip_relaties", "begrip_voorstellen",
                        "begrip_kaartruns", "bronnen_runs", "bron_kandidaten", "begrippen_runs",
                        "betekenisgroepen", "begrippen_batches", "bronselectie_voortgang",
-                       "bron_kandidaat_deelvragen", "artefact_versies", "werkgebied_begrippen", "delegaties")
+                       "bron_kandidaat_deelvragen", "artefact_versies", "werkgebied_begrippen", "delegaties",
+                       "regels", "regel_dragers", "parameter_waarden")
 #: Wat bij een verwijderd object in de audit staat (oude stand: archiveren, een soft verwijderd begrip).
 VERWIJDERD_ACTIES = ("werkgebied-verwijderd", "gearchiveerd")
 
@@ -282,8 +283,8 @@ async def verwijder(werkgebied_id: str, verwacht: int, actor: str) -> dict:
 
 
 async def wis(conn, werkgebied_id: str) -> None:
-    """Alles van één werkgebied uit de database, behalve de audit. Twee tabellen dragen geen
-    `werkgebied_id` en gaan via hun ouder: de begriprevisies en de koppelingen van de deelvragen.
+    """Alles van één werkgebied uit de database, behalve de audit. Drie tabellen dragen geen
+    `werkgebied_id` en gaan via hun ouder: de begriprevisies, de regelrevisies en de koppelingen van de deelvragen.
 
     Een generiek begrip blijft staan, behalve als dit werkgebied zijn laatste passages droeg: een begrip rust altijd
     op een annotatie, dus dan gaat het mee (de audit blijft)."""
@@ -300,6 +301,9 @@ async def wis(conn, werkgebied_id: str) -> None:
                                      .where(db.werkgebied_deelvragen.c.werkgebied_id == werkgebied_id))).scalars().all()
     if begrippen:
         await conn.execute(delete(db.begrip_revisies).where(db.begrip_revisies.c.begrip_id.in_(begrippen)))
+    regels = (await conn.execute(select(db.regels.c.id).where(db.regels.c.werkgebied_id == werkgebied_id))).scalars().all()
+    if regels:
+        await conn.execute(delete(db.regel_revisies).where(db.regel_revisies.c.regel_id.in_(regels)))
     if deelvragen:
         k = db.werkgebied_deelvraag_koppelingen
         await conn.execute(delete(k).where(k.c.deelvraag_id.in_(deelvragen)))

@@ -1,0 +1,539 @@
+"""Afleidingsregels: opslag, dragers met bewijsstand, de poort, de hiërarchie en parameterwaarden (ADR-018, R1).
+
+Het patroon is dat van de begrippen (`begrip_store`), met dezelfde bouwstenen in plaats van een tweede set:
+
+- **Eén schrijfpad** (`_gewijzigd_in`): eerst het rij-slot op het werkgebied, dan op de regel. `verwachte_revisie` → 412,
+  daarna revisie +1, een volledige kopie in `regel_revisies` en een regel in `werkgebied_audit` (acties `regel-*`).
+- **Een geaccordeerde regel die verandert, is weer een concept.** Alleen accorderen zet de status hoger.
+- **De grondslag is verplicht** (ADR-018 §2): een drager met rol `grondslag` op een Afleidingsregel, een
+  Rechtsbetrekking of een Tijdsaanduiding, of op een passage die het uitvoerbegrip aanduidt. Zonder: 422.
+- **Een drager draagt zijn bewijsstand** (`begrip_store.bewijzen`); de actualiteit komt bij het lezen uit Postgres
+  (`begrip_store.actualiteit`), zoals bij een begripskoppeling.
+- **De regeltekst rekent de server** (`regeltekst.py`); de client typt hem niet.
+- **De poort** (`poort`) staat bij elke GET: beoordeelde begrippen, een beoordeelde actuele grondslag en een beoordeeld
+  voorbeeld per geval (besluit gebruiker 19 nov 2026). Wat open blijft maar niet blokkeert, staat in `signalen`.
+- **De hiërarchie wordt afgeleid**, niet opgeslagen: een regel volgt op een andere als zijn invoer de uitvoer daarvan is.
+"""
+from __future__ import annotations
+
+import uuid
+from contextlib import asynccontextmanager
+from typing import Any
+
+from fastapi import HTTPException
+from sqlalchemy import delete, insert, select, update
+
+from . import begrip_store, db
+from .begrip_store import Resolver
+from .regel_contracts import (
+    DragerInvoer, DragersToevoegen, DragerWijziging, ParameterWaardeInvoer, RegelAanmaak, RegelWijziging,
+)
+from .regeltekst import genoemde_begrippen, regeltekst
+from .werkgebied_store import _audit as werkgebied_audit, toets_revisie, werkgebied_rij
+
+#: De klassen die zelf een grondslag zijn (ADR-018 §2). Een andere klasse mag alleen als de passage het uitvoerbegrip
+#: aanduidt: dan is het de formulering van het afgeleide begrip.
+GRONDSLAG_KLASSEN = ("Afleidingsregel", "Rechtsbetrekking", "Tijdsaanduiding")
+GEACCORDEERD = ("geaccordeerd", "geaccordeerd_als_beleidsregel")
+
+
+def _meervoud(n: int, een: str, meer: str) -> str:
+    return een if n == 1 else meer.format(n=n)
+
+
+def _iso(t) -> str | None:
+    return db.aware(t).isoformat() if t else None
+
+
+# --- lezen -------------------------------------------------------------------------------------------
+
+def _drager(row) -> dict:
+    return {"id": row.id, "element_id": row.element_id, "rol": row.rol, "geval": row.geval, "bewijs": row.bewijs,
+            "beoordeling": row.beoordeling, "beoordeeld_door": row.beoordeeld_door,
+            "beoordeeld_op": _iso(row.beoordeeld_op), "toegevoegd_door": row.toegevoegd_door,
+            "toegevoegd": _iso(row.toegevoegd), "bevestigingen": []}
+
+
+async def _dragers_van(conn, werkgebied_id: str, regel_ids: list[str]) -> dict[str, list[dict]]:
+    if not regel_ids:
+        return {}
+    d = db.regel_dragers
+    rows = (await conn.execute(select(d).where(d.c.werkgebied_id == werkgebied_id, d.c.regel_id.in_(regel_ids),
+                                               d.c.verwijderd.is_(None)).order_by(d.c.toegevoegd, d.c.id))).all()
+    huidig = await begrip_store._huidige_elementen(conn, {r.element_id for r in rows})
+    uit: dict[str, list[dict]] = {}
+    for r in rows:
+        uit.setdefault(r.regel_id, []).append(begrip_store.actualiteit(_drager(r), huidig.get(r.element_id)))
+    return uit
+
+
+async def _begrippen(conn, werkgebied_id: str, ids: set[str]) -> dict[str, dict]:
+    """Naam en status van de begrippen die regels noemen, zoals dit werkgebied ze ziet (ook gebruikte generieke)."""
+    if not ids:
+        return {}
+    b = db.begrippen
+    rows = (await conn.execute(select(b.c.id, b.c.status, b.c.inhoud).where(
+        b.c.id.in_(sorted(ids)), begrip_store.in_werkgebied(werkgebied_id)))).all()
+    return {r.id: {"id": r.id, "naam": (r.inhoud or {}).get("naam", ""), "status": r.status} for r in rows}
+
+
+def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict]) -> dict:
+    """Mag deze regel geaccordeerd worden (besluit gebruiker 19 nov 2026, ADR-018 besluit 2), en wat er nog openstaat.
+
+    De interpretatiekeuzes op de regel komen met de open punten (R3); tot dan staan ze hier niet."""
+    redenen: list[str] = []
+    ontbreekt = [i for i in genoemde_begrippen(inhoud) if i not in begrippen]
+    if ontbreekt:
+        redenen.append(_meervoud(len(ontbreekt), "1 genoemd begrip bestaat niet (meer) in dit werkgebied.",
+                                 "{n} genoemde begrippen bestaan niet (meer) in dit werkgebied."))
+    niet_geacc = [begrippen[i]["naam"] or i for i in genoemde_begrippen(inhoud)
+                  if i in begrippen and begrippen[i]["status"] != "geaccordeerd"]
+    if niet_geacc:
+        redenen.append("Nog niet geaccordeerd: " + ", ".join(niet_geacc) + ".")
+    grondslag = [d for d in dragers if d["rol"] == "grondslag" and d["beoordeling"] != "afgewezen"]
+    if not grondslag:
+        redenen.append("Er is geen grondslag meer: geen dragende formulering die niet is afgewezen.")
+    elif not any(d["beoordeling"] == "akkoord" and d["actualiteit"] == "actueel" for d in grondslag):
+        redenen.append("De grondslag is nog niet beoordeeld, of de passage is gewijzigd, verworpen of verdwenen.")
+    beoordeeld = {(v.get("geval") or "") for v in inhoud.get("voorbeelden", []) if v.get("oordeel", "open") != "open"}
+    if len(inhoud["gevallen"]) == 1:
+        if not beoordeeld:
+            redenen.append("Er is nog geen beoordeeld voorbeeld.")
+    else:
+        zonder = [g["label"] for g in inhoud["gevallen"] if g["label"] not in beoordeeld]
+        if zonder:
+            redenen.append("Nog geen beoordeeld voorbeeld bij geval " + ", ".join(zonder) + ".")
+    return {"mag": not redenen, "redenen": redenen}
+
+
+def signalen(inhoud: dict, dragers: list[dict]) -> list[str]:
+    """Wat aandacht vraagt zonder accorderen te blokkeren (het skelet is een signaal, besluit 2)."""
+    uit: list[str] = []
+    open_ = sum(d["beoordeling"] == "open" and d["rol"] != "grondslag" for d in dragers)
+    if open_:
+        uit.append(_meervoud(open_, "1 andere dragende formulering is nog niet beoordeeld.",
+                             "{n} andere dragende formuleringen zijn nog niet beoordeeld."))
+    weg = sum(d["actualiteit"] != "actueel" and d["beoordeling"] != "afgewezen" for d in dragers)
+    if weg:
+        uit.append(_meervoud(weg, "1 dragende passage is gewijzigd, verworpen of verdwenen.",
+                             "{n} dragende passages zijn gewijzigd, verworpen of verdwenen."))
+    onjuist = sum(v.get("oordeel") in ("onjuist",) for v in inhoud.get("voorbeelden", []))
+    if onjuist:
+        uit.append(_meervoud(onjuist, "1 voorbeeld geeft een onjuiste uitkomst.",
+                             "{n} voorbeelden geven een onjuiste uitkomst."))
+    return uit
+
+
+def _regel(row, dragers: list[dict], begrippen: dict[str, dict]) -> dict:
+    namen = {i: b["naam"] for i, b in begrippen.items()}
+    inhoud = row.inhoud
+    return {"id": row.id, "werkgebied_id": row.werkgebied_id, "status": row.status, "revisie": row.revisie,
+            "herkomst": row.herkomst, "opvolger_van": row.opvolger_van, "inhoud": inhoud,
+            "naam": namen.get(inhoud["regelbegrip_id"], ""), "uitvoer": namen.get(inhoud["uitvoer_begrip_id"], ""),
+            "regeltekst": regeltekst(inhoud, namen),
+            "begrippen": {i: begrippen[i] for i in genoemde_begrippen(inhoud) if i in begrippen},
+            "dragers": dragers, "accorderen": poort(inhoud, dragers, begrippen), "signalen": signalen(inhoud, dragers),
+            "aangemaakt_door": row.aangemaakt_door, "aangemaakt": _iso(row.aangemaakt), "gewijzigd": _iso(row.gewijzigd),
+            "geaccordeerd_door": row.geaccordeerd_door, "geaccordeerd_op": _iso(row.geaccordeerd_op),
+            "geaccordeerd_revisie": row.geaccordeerd_revisie}
+
+
+async def _lees(conn, werkgebied_id: str, rows) -> list[dict]:
+    dragers = await _dragers_van(conn, werkgebied_id, [r.id for r in rows])
+    ids = {i for r in rows for i in genoemde_begrippen(r.inhoud)}
+    begrippen = await _begrippen(conn, werkgebied_id, ids)
+    return [_regel(r, dragers.get(r.id, []), begrippen) for r in rows]
+
+
+def _niet_gevonden() -> HTTPException:
+    return HTTPException(404, {"fout": "niet_gevonden", "melding": "Deze afleidingsregel bestaat niet (meer)."})
+
+
+async def haal(werkgebied_id: str, regel_id: str) -> dict:
+    r = db.regels
+    async with db.get_engine().connect() as conn:
+        await werkgebied_rij(conn, werkgebied_id)
+        row = (await conn.execute(select(r).where(r.c.id == regel_id, r.c.werkgebied_id == werkgebied_id))).first()
+        if row is None:
+            raise _niet_gevonden()
+        return (await _lees(conn, werkgebied_id, [row]))[0]
+
+
+async def lijst(werkgebied_id: str) -> list[dict]:
+    r = db.regels
+    async with db.get_engine().connect() as conn:
+        await werkgebied_rij(conn, werkgebied_id)
+        rows = (await conn.execute(select(r).where(r.c.werkgebied_id == werkgebied_id)
+                                   .order_by(r.c.aangemaakt, r.c.id))).all()
+        return await _lees(conn, werkgebied_id, rows)
+
+
+def keten(regels: list[dict]) -> dict:
+    """De afleidingshiërarchie (ADR-018 §3, D2), afgeleid. Pijlen van de regel die een begrip afleidt naar de regel die
+    het gebruikt; de volgorde van onder naar boven; basisgegevens (invoer zonder regel) en signalen."""
+    actief = [x for x in regels if x["status"] not in ("vervangen", "afgewezen")]
+    door: dict[str, list[str]] = {}
+    for x in actief:
+        door.setdefault(x["inhoud"]["uitvoer_begrip_id"], []).append(x["id"])
+    pijlen, basis, sig = [], {}, []
+    for x in actief:
+        for i in x["inhoud"].get("invoer", []):
+            bronnen = door.get(i["begrip_id"], [])
+            for van in bronnen:
+                pijlen.append({"van": van, "naar": x["id"], "begrip_id": i["begrip_id"]})
+            if not bronnen and i.get("rol", "invoer") == "invoer":
+                basis.setdefault(i["begrip_id"], x["begrippen"].get(i["begrip_id"], {}).get("naam", ""))
+    for uitvoer, ids in door.items():
+        if len(ids) > 1:
+            sig.append({"soort": "zelfde_uitvoer", "regel_ids": ids, "begrip_id": uitvoer,
+                        "melding": "Meer regels leiden hetzelfde begrip af: hun gevallen moeten elkaar uitsluiten."})
+    # Van onder naar boven: een regel komt na alles waar hij op volgt (Kahn); wat overblijft zit in een kring.
+    na = {x["id"]: {p["van"] for p in pijlen if p["naar"] == x["id"] and p["van"] != x["id"]} for x in actief}
+    volgorde: list[str] = []
+    rest = dict(na)
+    while rest:
+        klaar = sorted((i for i, v in rest.items() if not (v - set(volgorde))),
+                       key=lambda i: next(n for n, x in enumerate(actief) if x["id"] == i))
+        if not klaar:
+            sig.append({"soort": "kring", "regel_ids": sorted(rest),
+                        "melding": "Deze regels leiden elkaars invoer af: een kring."})
+            volgorde += sorted(rest)
+            break
+        volgorde += klaar
+        for i in klaar:
+            rest.pop(i)
+    return {"regels": [{"id": x["id"], "naam": x["naam"], "uitvoer": x["uitvoer"], "status": x["status"],
+                        "soort": x["inhoud"]["soort"], "gevallen": len(x["inhoud"]["gevallen"]),
+                        "brontype": x["inhoud"].get("brontype", "wet")} for x in actief],
+            "volgorde": volgorde, "pijlen": pijlen,
+            "basisgegevens": [{"begrip_id": k, "naam": v} for k, v in basis.items()], "signalen": sig}
+
+
+async def hierarchie(werkgebied_id: str) -> dict:
+    return keten(await lijst(werkgebied_id))
+
+
+async def revisies(werkgebied_id: str, regel_id: str, limit: int = 100) -> list[dict]:
+    await haal(werkgebied_id, regel_id)
+    t = db.regel_revisies
+    async with db.get_engine().connect() as conn:
+        rows = (await conn.execute(select(t).where(t.c.regel_id == regel_id).order_by(t.c.revisie.desc())
+                                   .limit(limit))).all()
+    return [{"revisie": r.revisie, "actie": r.actie, "detail": r.detail, "status": r.status, "inhoud": r.inhoud,
+             "actor": r.actor, "tijdstip": _iso(r.tijdstip)} for r in rows]
+
+
+# --- toetsen -----------------------------------------------------------------------------------------
+
+async def _toets_begrippen(conn, werkgebied_id: str, inhoud: dict) -> None:
+    ids = set(genoemde_begrippen(inhoud))
+    gevonden = await _begrippen(conn, werkgebied_id, ids)
+    onbekend = sorted(ids - set(gevonden))
+    if onbekend:
+        raise HTTPException(422, {"fout": "begrip_onbekend", "begrip_ids": onbekend,
+                                  "melding": "Niet elk genoemd begrip bestaat in dit werkgebied."})
+    vervangen = [gevonden[i]["naam"] for i in sorted(ids) if gevonden[i]["status"] == "vervangen"]
+    if vervangen:
+        raise HTTPException(409, {"fout": "vervangen", "melding": "Een regel noemt geen vervangen begrip: "
+                                  + ", ".join(vervangen) + ". Gebruik de opvolger."})
+
+
+async def _toets_grondslag(conn, werkgebied_id: str, inhoud: dict, dragers: list[DragerInvoer],
+                           bewijs: dict[str, dict], al: list[dict] | None = None) -> None:
+    """Minstens één grondslag (nieuw of al aanwezig), en elke nieuwe grondslag is er een (ADR-018 §2)."""
+    nieuw = [d for d in dragers if d.rol.value == "grondslag"]
+    bestaand = [d for d in (al or []) if d["rol"] == "grondslag" and d["beoordeling"] != "afgewezen"]
+    if not nieuw and not bestaand:
+        raise HTTPException(422, {"fout": "geen_grondslag", "melding": "Een regel rust op een formulering in de tekst: "
+                                  "geef minstens één drager met de rol grondslag."})
+    k = db.begrip_koppelingen
+    duidend = set((await conn.execute(select(k.c.element_id).where(
+        k.c.werkgebied_id == werkgebied_id, k.c.begrip_id == inhoud["uitvoer_begrip_id"], k.c.rol == "duiding",
+        k.c.verwijderd.is_(None), k.c.beoordeling != "afgewezen"))).scalars().all())
+    fout = [d.element_id for d in nieuw
+            if bewijs[d.element_id].get("klasse") not in GRONDSLAG_KLASSEN and d.element_id not in duidend]
+    if fout:
+        raise HTTPException(422, {"fout": "geen_grondslag", "element_ids": fout,
+                                  "melding": "Een grondslag is een Afleidingsregel, een Rechtsbetrekking of een "
+                                             "Tijdsaanduiding, of een passage die het afgeleide begrip aanduidt."})
+
+
+def _toets_gevallen(inhoud: dict, dragers: list[DragerInvoer]) -> None:
+    labels = {g["label"] for g in inhoud["gevallen"]}
+    fout = sorted({d.geval for d in dragers if d.geval and d.geval not in labels}
+                  | {v["geval"] for v in inhoud.get("voorbeelden", []) if v.get("geval") and v["geval"] not in labels})
+    if fout:
+        raise HTTPException(422, {"fout": "geval_onbekend", "gevallen": fout,
+                                  "melding": "Een drager of voorbeeld noemt een geval dat de regel niet heeft."})
+
+
+# --- schrijven ---------------------------------------------------------------------------------------
+
+async def _revisieregel(conn, regel_id, revisie, actie, detail, status, inhoud, actor, tijdstip):
+    await conn.execute(insert(db.regel_revisies).values(
+        regel_id=regel_id, revisie=revisie, actie=actie, detail=detail, status=status, inhoud=inhoud, actor=actor,
+        tijdstip=tijdstip))
+
+
+async def _voeg_dragers_toe(conn, werkgebied_id: str, regel_id: str, dragers: list[DragerInvoer],
+                            bewijs: dict[str, dict], actor: str) -> list[str]:
+    """Voegt de dragers toe die er nog niet zijn (element, rol, geval); geeft hun element-id's."""
+    d = db.regel_dragers
+    al = {(r.element_id, r.rol, r.geval) for r in (await conn.execute(select(d).where(
+        d.c.regel_id == regel_id, d.c.verwijderd.is_(None)))).all()}
+    nieuw, nu = [], db.utcnow()
+    for x in dragers:
+        sleutel = (x.element_id, x.rol.value, x.geval)
+        if sleutel in al:
+            continue
+        al.add(sleutel)
+        await conn.execute(insert(d).values(
+            id=str(uuid.uuid4()), regel_id=regel_id, werkgebied_id=werkgebied_id, element_id=x.element_id,
+            rol=x.rol.value, geval=x.geval, bewijs=bewijs[x.element_id], beoordeling="open", toegevoegd_door=actor,
+            toegevoegd=nu))
+        nieuw.append(x.element_id)
+    return nieuw
+
+
+async def maak(werkgebied: dict, invoer: RegelAanmaak, actor: str, resolve: Resolver) -> dict:
+    inhoud = invoer.inhoud.model_dump(mode="json")
+    _toets_gevallen(inhoud, invoer.dragers)
+    bewijs = await begrip_store.bewijzen(werkgebied, [d.element_id for d in invoer.dragers], resolve)
+    wid, rid, nu = werkgebied["id"], str(uuid.uuid4()), db.utcnow()
+    async with db.get_engine().begin() as conn:
+        await werkgebied_rij(conn, wid, slot=True)
+        await _toets_begrippen(conn, wid, inhoud)
+        await _toets_grondslag(conn, wid, inhoud, invoer.dragers, bewijs)
+        await conn.execute(insert(db.regels).values(
+            id=rid, werkgebied_id=wid, status="concept", revisie=1, inhoud=inhoud, herkomst=invoer.herkomst,
+            aangemaakt_door=actor, aangemaakt=nu, gewijzigd=nu))
+        nieuw = await _voeg_dragers_toe(conn, wid, rid, invoer.dragers, bewijs, actor)
+        detail = {"regelbegrip_id": inhoud["regelbegrip_id"], "uitvoer_begrip_id": inhoud["uitvoer_begrip_id"],
+                  "element_ids": nieuw, "herkomst": invoer.herkomst}
+        await _revisieregel(conn, rid, 1, "regel-aangemaakt", detail, "concept", inhoud, actor, nu)
+        await werkgebied_audit(conn, wid, actor, "regel-aangemaakt", {**detail, "regel_id": rid, "regel_revisie": 1})
+    return await haal(wid, rid)
+
+
+@asynccontextmanager
+async def _gewijzigd_in(conn, werkgebied_id: str, regel_id: str, verwacht: int, actor: str, actie: str, detail: dict):
+    """Werkgebiedslot, regelslot, revisietoets; daarna revisie +1, revisiekopie en audit. De aanroeper muteert via
+    `stand` (`inhoud`, `status`, `waarden`, `geen_wijziging`); `detail` wordt pas ná het blok gelezen."""
+    r = db.regels
+    await werkgebied_rij(conn, werkgebied_id, slot=True)
+    row = (await conn.execute(select(r).where(r.c.id == regel_id, r.c.werkgebied_id == werkgebied_id)
+                              .with_for_update())).first()
+    if row is None:
+        raise _niet_gevonden()
+    if row.status == "vervangen":
+        raise HTTPException(409, {"fout": "vervangen", "melding": "Deze regel is vervangen en alleen nog te lezen."})
+    toets_revisie(row.revisie, verwacht, "deze regel")
+    stand = {"inhoud": row.inhoud, "status": None, "waarden": {}, "geen_wijziging": False}
+    yield row, stand
+    if stand["geen_wijziging"]:
+        return
+    status = stand["status"] or ("concept" if row.status in GEACCORDEERD else row.status)
+    nieuw, nu = row.revisie + 1, db.utcnow()
+    await conn.execute(update(r).where(r.c.id == regel_id).values(
+        revisie=nieuw, gewijzigd=nu, status=status, inhoud=stand["inhoud"], **stand["waarden"]))
+    await _revisieregel(conn, regel_id, nieuw, actie, detail, status, stand["inhoud"], actor, nu)
+    await werkgebied_audit(conn, werkgebied_id, actor, actie, {**detail, "regel_id": regel_id, "regel_revisie": nieuw})
+
+
+async def _huidige_dragers(conn, werkgebied_id: str, regel_id: str) -> list[dict]:
+    return (await _dragers_van(conn, werkgebied_id, [regel_id])).get(regel_id, [])
+
+
+async def wijzig(werkgebied_id: str, regel_id: str, w: RegelWijziging, actor: str) -> dict:
+    nieuw = w.inhoud.model_dump(mode="json")
+    detail: dict = {}
+    async with db.get_engine().begin() as conn:
+        async with _gewijzigd_in(conn, werkgebied_id, regel_id, w.verwachte_revisie, actor, "regel-gewijzigd",
+                                 detail) as (row, stand):
+            if nieuw == row.inhoud:
+                stand["geen_wijziging"] = True
+            else:
+                await _toets_begrippen(conn, werkgebied_id, nieuw)
+                dragers = await _huidige_dragers(conn, werkgebied_id, regel_id)
+                labels = {g["label"] for g in nieuw["gevallen"]}
+                if any(d["geval"] and d["geval"] not in labels for d in dragers):
+                    raise HTTPException(422, {"fout": "geval_onbekend", "melding": "Een drager hoort bij een geval dat "
+                                              "niet meer bestaat. Haal die drager eerst weg."})
+                _toets_gevallen(nieuw, [])
+                detail["velden"] = sorted(k for k in nieuw if nieuw.get(k) != row.inhoud.get(k))
+                stand["inhoud"] = nieuw
+    return await haal(werkgebied_id, regel_id)
+
+
+async def voeg_dragers_toe(werkgebied: dict, regel_id: str, w: DragersToevoegen, actor: str, resolve: Resolver) -> dict:
+    bewijs = await begrip_store.bewijzen(werkgebied, [d.element_id for d in w.dragers], resolve)
+    wid = werkgebied["id"]
+    detail: dict = {}
+    async with db.get_engine().begin() as conn:
+        async with _gewijzigd_in(conn, wid, regel_id, w.verwachte_revisie, actor, "drager-toegevoegd",
+                                 detail) as (row, stand):
+            _toets_gevallen(row.inhoud, w.dragers)
+            if any(d.rol.value == "grondslag" for d in w.dragers):
+                await _toets_grondslag(conn, wid, row.inhoud, [d for d in w.dragers if d.rol.value == "grondslag"],
+                                       bewijs, await _huidige_dragers(conn, wid, regel_id))
+            nieuw = await _voeg_dragers_toe(conn, wid, regel_id, w.dragers, bewijs, actor)
+            if not nieuw:
+                stand["geen_wijziging"] = True
+            detail["element_ids"] = nieuw
+    return await haal(wid, regel_id)
+
+
+async def wijzig_drager(werkgebied_id: str, regel_id: str, drager_id: str, w: DragerWijziging, actor: str) -> dict:
+    d = db.regel_dragers
+    detail: dict = {"drager_id": drager_id, "beoordeling": w.beoordeling.value}
+    async with db.get_engine().begin() as conn:
+        async with _gewijzigd_in(conn, werkgebied_id, regel_id, w.verwachte_revisie, actor, "drager-beoordeeld",
+                                 detail) as (_, stand):
+            rij = (await conn.execute(select(d).where(d.c.id == drager_id, d.c.regel_id == regel_id,
+                                                      d.c.verwijderd.is_(None)))).first()
+            if rij is None:
+                raise HTTPException(404, {"fout": "niet_gevonden", "melding": "Deze drager bestaat niet (meer)."})
+            if rij.beoordeling == w.beoordeling.value:
+                stand["geen_wijziging"] = True
+            else:
+                await conn.execute(update(d).where(d.c.id == drager_id).values(
+                    beoordeling=w.beoordeling.value, beoordeeld_door=actor, beoordeeld_op=db.utcnow()))
+    return await haal(werkgebied_id, regel_id)
+
+
+async def verwijder_drager(werkgebied_id: str, regel_id: str, drager_id: str, verwacht: int, actor: str) -> dict:
+    d = db.regel_dragers
+    detail: dict = {"drager_id": drager_id}
+    async with db.get_engine().begin() as conn:
+        async with _gewijzigd_in(conn, werkgebied_id, regel_id, verwacht, actor, "drager-verwijderd", detail) as (_, __):
+            rij = (await conn.execute(select(d).where(d.c.id == drager_id, d.c.regel_id == regel_id,
+                                                      d.c.verwijderd.is_(None)))).first()
+            if rij is None:
+                raise HTTPException(404, {"fout": "niet_gevonden", "melding": "Deze drager bestaat niet (meer)."})
+            rest = [x for x in await _huidige_dragers(conn, werkgebied_id, regel_id)
+                    if x["id"] != drager_id and x["rol"] == "grondslag" and x["beoordeling"] != "afgewezen"]
+            if rij.rol == "grondslag" and not rest:
+                raise HTTPException(409, {"fout": "laatste_grondslag", "melding": "Dit is de laatste grondslag van de "
+                                          "regel. Voeg eerst een andere toe."})
+            await conn.execute(update(d).where(d.c.id == drager_id).values(verwijderd=db.utcnow()))
+            detail["element_id"] = rij.element_id
+    return await haal(werkgebied_id, regel_id)
+
+
+async def accordeer(werkgebied_id: str, regel_id: str, verwacht: int, reden: str, actor: str) -> dict:
+    reden = reden.strip()
+    detail = {"reden": reden}
+    p: dict = {}
+    async with db.get_engine().begin() as conn:
+        async with _gewijzigd_in(conn, werkgebied_id, regel_id, verwacht, actor, "regel-geaccordeerd",
+                                 detail) as (row, stand):
+            dragers = await _huidige_dragers(conn, werkgebied_id, regel_id)
+            p = poort(row.inhoud, dragers, await _begrippen(conn, werkgebied_id, set(genoemde_begrippen(row.inhoud))))
+            if not reden:
+                p = {"mag": False, "redenen": [*p["redenen"], "De reden van het accorderen ontbreekt."]}
+            if not p["mag"]:
+                stand["geen_wijziging"] = True
+            else:
+                beleid = row.inhoud.get("brontype") == "beleid"
+                stand["status"] = "geaccordeerd_als_beleidsregel" if beleid else "geaccordeerd"
+                stand["waarden"] = {"geaccordeerd_door": actor, "geaccordeerd_op": db.utcnow(),
+                                    "geaccordeerd_revisie": row.revisie + 1}
+    if not p["mag"]:
+        raise HTTPException(409, {"fout": "poort", "redenen": p["redenen"],
+                                  "melding": "Nog niet te accorderen: " + " ".join(p["redenen"])})
+    return await haal(werkgebied_id, regel_id)
+
+
+async def heropen(werkgebied_id: str, regel_id: str, verwacht: int, actor: str) -> dict:
+    async with db.get_engine().begin() as conn:
+        async with _gewijzigd_in(conn, werkgebied_id, regel_id, verwacht, actor, "regel-heropend", {}) as (row, stand):
+            if row.status not in GEACCORDEERD:
+                raise HTTPException(409, {"fout": "niet_geaccordeerd", "melding": "De regel is niet geaccordeerd."})
+            stand["status"] = "concept"
+    return await haal(werkgebied_id, regel_id)
+
+
+async def wijs_af(werkgebied_id: str, regel_id: str, verwacht: int, reden: str, actor: str) -> dict:
+    """Een regel afwijzen bewaart hem met de reden (ADR-018 §8); hij doet niet meer mee in de keten."""
+    if not reden.strip():
+        raise HTTPException(422, {"fout": "reden", "melding": "Geef de reden van het afwijzen."})
+    async with db.get_engine().begin() as conn:
+        async with _gewijzigd_in(conn, werkgebied_id, regel_id, verwacht, actor, "regel-afgewezen",
+                                 {"reden": reden.strip()}) as (row, stand):
+            if row.status == "afgewezen":
+                stand["geen_wijziging"] = True
+            stand["status"] = "afgewezen"
+    return await haal(werkgebied_id, regel_id)
+
+
+async def verwijder(werkgebied_id: str, regel_id: str, verwacht: int, actor: str) -> dict:
+    """Echt wissen, zoals een begrip: de regel, zijn revisies en dragers. De audit blijft."""
+    r = db.regels
+    async with db.get_engine().begin() as conn:
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
+        row = (await conn.execute(select(r).where(r.c.id == regel_id, r.c.werkgebied_id == werkgebied_id)
+                                  .with_for_update())).first()
+        if row is None:
+            raise _niet_gevonden()
+        toets_revisie(row.revisie, verwacht, "deze regel")
+        await conn.execute(delete(db.regel_dragers).where(db.regel_dragers.c.regel_id == regel_id))
+        await conn.execute(delete(db.regel_revisies).where(db.regel_revisies.c.regel_id == regel_id))
+        await conn.execute(delete(r).where(r.c.id == regel_id))
+        await werkgebied_audit(conn, werkgebied_id, actor, "regel-verwijderd",
+                               {"regel_id": regel_id, "regelbegrip_id": row.inhoud.get("regelbegrip_id", "")})
+    return {"verwijderd": regel_id}
+
+
+# --- parameterwaarden --------------------------------------------------------------------------------
+
+def _waarde(row) -> dict:
+    return {"id": row.id, "parameter_begrip_id": row.parameter_begrip_id, "waarde_begrip_id": row.waarde_begrip_id or "",
+            "waarde": row.waarde, "eenheid": row.eenheid, "geldig_vanaf": row.geldig_vanaf or "",
+            "geldig_tot": row.geldig_tot or "", "element_id": row.element_id or "", "getoetst": row.getoetst,
+            "door": row.door, "op": _iso(row.op)}
+
+
+async def parameterwaarden(werkgebied_id: str) -> list[dict]:
+    t = db.parameter_waarden
+    async with db.get_engine().connect() as conn:
+        await werkgebied_rij(conn, werkgebied_id)
+        rows = (await conn.execute(select(t).where(t.c.werkgebied_id == werkgebied_id, t.c.verwijderd.is_(None))
+                                   .order_by(t.c.parameter_begrip_id, t.c.geldig_vanaf, t.c.id))).all()
+    return [_waarde(r) for r in rows]
+
+
+async def voeg_parameterwaarde_toe(werkgebied_id: str, w: ParameterWaardeInvoer, actor: str) -> dict:
+    """De waarde van een parameter in een tijdvak. Het parameterbegrip (en een waardebegrip) bestaan in het werkgebied."""
+    if w.geldig_vanaf and w.geldig_tot and w.geldig_tot < w.geldig_vanaf:
+        raise HTTPException(422, {"fout": "tijdvak", "melding": "Het tijdvak eindigt vóór het begint."})
+    t, wid, nu = db.parameter_waarden, str(uuid.uuid4()), db.utcnow()
+    async with db.get_engine().begin() as conn:
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
+        ids = {w.parameter_begrip_id} | ({w.waarde_begrip_id} if w.waarde_begrip_id else set())
+        onbekend = sorted(ids - set(await _begrippen(conn, werkgebied_id, ids)))
+        if onbekend:
+            raise HTTPException(422, {"fout": "begrip_onbekend", "begrip_ids": onbekend,
+                                      "melding": "Niet elk genoemd begrip bestaat in dit werkgebied."})
+        await conn.execute(insert(t).values(
+            id=wid, werkgebied_id=werkgebied_id, parameter_begrip_id=w.parameter_begrip_id,
+            waarde_begrip_id=w.waarde_begrip_id or None, waarde=w.waarde, eenheid=w.eenheid,
+            geldig_vanaf=w.geldig_vanaf or None, geldig_tot=w.geldig_tot or None, element_id=w.element_id or None,
+            getoetst=w.getoetst, door=actor, op=nu))
+        await werkgebied_audit(conn, werkgebied_id, actor, "parameterwaarde-toegevoegd",
+                               {"parameterwaarde_id": wid, "parameter_begrip_id": w.parameter_begrip_id})
+        row = (await conn.execute(select(t).where(t.c.id == wid))).first()
+    return _waarde(row)
+
+
+async def verwijder_parameterwaarde(werkgebied_id: str, waarde_id: str, actor: str) -> dict:
+    t = db.parameter_waarden
+    async with db.get_engine().begin() as conn:
+        await werkgebied_rij(conn, werkgebied_id, slot=True)
+        row = (await conn.execute(select(t).where(t.c.id == waarde_id, t.c.werkgebied_id == werkgebied_id,
+                                                  t.c.verwijderd.is_(None)))).first()
+        if row is None:
+            raise HTTPException(404, {"fout": "niet_gevonden", "melding": "Deze parameterwaarde bestaat niet (meer)."})
+        await conn.execute(update(t).where(t.c.id == waarde_id).values(verwijderd=db.utcnow()))
+        await werkgebied_audit(conn, werkgebied_id, actor, "parameterwaarde-verwijderd",
+                               {"parameterwaarde_id": waarde_id, "parameter_begrip_id": row.parameter_begrip_id})
+    return {"verwijderd": waarde_id}
