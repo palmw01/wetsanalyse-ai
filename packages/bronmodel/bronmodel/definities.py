@@ -38,6 +38,25 @@ def geldigheid_uit(tekst: str) -> Geldigheid:
     return Geldigheid("")
 
 
+#: Waar een definitie geldt, in woorden, per soort van `Geldigheid`. `{regeling}` is de naam van de regeling ("regeling"
+#: als die onbekend is), `{waarde}` het artikelnummer of het woord ("hoofdstuk"). Eén tabel voor de werkplek
+#: (`frontend/lib/geldigheid.ts`, met een drifttest) en de tekst van het antwoord: "geldt voor “Deze wet”" zei een
+#: jurist weinig (acceptatie 19 nov 2026).
+GELDT_VOOR = {
+    "regeling": "geldt in de hele {regeling}",
+    "artikel": "geldt alleen in dit artikel",
+    "artikel_n": "geldt voor artikel {waarde}",
+    "lid": "geldt alleen in dit lid",
+    "structuur": "geldt alleen in dit deel ({waarde})",
+}
+
+
+def geldt_voor(soort: str, waarde: str = "", regeling: str = "") -> str:
+    """Waar een definitie geldt, in woorden (`GELDT_VOOR`). Leeg zonder soort: dan noemde de aanhef geen formule."""
+    sjabloon = GELDT_VOOR.get(soort)
+    return sjabloon.format(waarde=waarde, regeling=regeling or "regeling") if sjabloon else ""
+
+
 def losse_termen(ruw: str) -> list[str]:
     """De termen in een opsomming, zoals de graaf ze als één begrip draagt: "directeur, inspecteur of ontvanger"
     → drie termen, met gewone spaties en hun eigen hoofdletters."""

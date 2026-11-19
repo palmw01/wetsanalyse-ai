@@ -16,9 +16,10 @@ import re
 
 from bronmodel.antwoord import (Antwoord, Begrippen, Bepaling, Definitie, Definities, Leemte, Toelichting, VastgelegdBegrip,
                                 Wettekst)
-from bronmodel.definities import geldigheid_uit, losse_termen, term_vindplaats
+from bronmodel.definities import Geldigheid, geldigheid_uit, losse_termen, term_vindplaats
 
-from ..tools.begrip_tools import BEGRIPPEN_NIET_GEZOCHT, BEGRIPPEN_ONVOLLEDIG, begrippen_stand, normaal
+from ..tools.begrip_tools import (BEGRIPPEN_NIET_GEZOCHT, BEGRIPPEN_ONVOLLEDIG, begrippen_stand, met_deze_naam, normaal,
+                                  zelfde_term)
 from .vullen import Onvulbaar, Trace, resultaten, rijen, vindplaats_van, volledige_tekst
 
 SCHEMA: dict[str, Any] = {
@@ -31,14 +32,15 @@ SCHEMA: dict[str, Any] = {
         "niet hebt opgehaald. Vond je geen definitie, schrijf dan nooit dat er geen definitie bestaat: dat de graaf niets vond "
         "zegt de werkplek zelf, in die woorden, en een gelezen bepaling die de term gebruikt toont ze zelf, met de vindplaats. "
         "Zeg dan in de toelichting alleen wat die bepaling of het vastgelegde begrip zegt, of laat haar leeg; uitleg uit "
-        "eigen kennis hoort er niet in. Gaat de vraag alleen over wat er is vastgelegd, laat begrip dan leeg: de werkplek toont dan wat "
+        "eigen kennis hoort er niet in. Zet er geen tegenstelling of uitzondering in ('niet wie …', 'ongeacht …', 'behalve "
+        "…') die de getoonde tekst niet zelf maakt: dat is een interpretatie, en de werkplek markeert zo'n zin. Gaat de vraag alleen over wat er is vastgelegd, laat begrip dan leeg: de werkplek toont dan wat "
         "search_begrippen vond en zegt niets over de wet."),
     "strict": True,
     "input_schema": {
         "type": "object",
         "properties": {
             "begrip": {"type": "string", "description": "De term waarnaar gevraagd is, zoals de wet hem schrijft. Leeg als de vraag alleen gaat over wat er is vastgelegd."},
-            "toelichting": {"type": "string", "description": "Twee of drie zinnen: wat de definitie betekent, of wat opvalt aan de vastgelegde begrippen (zoals de opvolger van een vervangen begrip). Leeg als er niets te zeggen valt."},
+            "toelichting": {"type": "string", "description": "Twee of drie zinnen over wat de getoonde wettekst zegt, in eigen woorden. Over vastgelegde begrippen alleen wat je zelf met search_begrippen las (zoals de opvolger van een vervangen begrip): wat de code erbij zoekt, zie jij niet. Leeg als er niets te zeggen valt."},
         },
         "required": ["begrip", "toelichting"],
         "additionalProperties": False,
@@ -47,20 +49,61 @@ SCHEMA: dict[str, Any] = {
 
 
 def _zelfde_term(a: str, b: str) -> bool:
-    """Dezelfde term, ook in het meervoud. `zoek_definitie` zoekt op een deel van het woord, dus "aanslag" levert
-    ook "belastingaanslag": die hoort hier niet."""
-    a, b = a.strip(), b.strip()
-    return any(g.casefold() == o.casefold() for x, y in ((a, b), (b, a)) if (g := term_vindplaats(x, y)) for o in (y,))
+    """Dezelfde term, ook in het meervoud (`begrip_tools.zelfde_term`, dezelfde maat als de telling van de zoektool).
+    `zoek_definitie` zoekt op een deel van het woord, dus "aanslag" levert ook "belastingaanslag": die hoort hier niet."""
+    return zelfde_term(a, b)
 
 
-def _bereik(rij: dict[str, Any], tekst: str, trace: Trace) -> str:
+def _bereik(rij: dict[str, Any], tekst: str, trace: Trace) -> Geldigheid:
     """De geldingsformule. De aanhef eerst, zoals de api (`samenhang_antwoord._aanhef_en_geldigheid`): daar staat ze, en
     in de definitie zelf kan "deze wet" over iets anders gaan. Naast de rij uit de tool ook wat er verder is opgehaald."""
     houders, plek = [rij.get("aanhef", "")], rij.get("node", "")
     while ":o:" in plek:
         plek = plek.rsplit(":o:", 1)[0]
         houders.append(volledige_tekst(plek, trace))
-    return next((g.formule for t in (*houders, tekst) if (g := geldigheid_uit(t)).formule), "")
+    return next((g for t in (*houders, tekst) if (g := geldigheid_uit(t)).formule), Geldigheid(""))
+
+
+def _houder(node: str) -> str:
+    """De bepaling waarin een definitie staat: het lid boven een onderdeel, het artikel boven een lid. Leeg bij een
+    definitie die een heel artikel is (daarboven staat geen definitieartikel)."""
+    for scheiding in (":o:", ":lid:"):
+        if scheiding in node:
+            return node.rsplit(scheiding, 1)[0]
+    return ""
+
+
+#: Zoveel begrippen uit hetzelfde definitieartikel toont een definitie hoogstens bij zich.
+MAX_GEBRUIKT = 5
+
+
+def _rij_tekst(rij: dict[str, Any], trace: Trace) -> str:
+    return rij.get("tekst", "") if rij.get("tekst_volledig") is not False else volledige_tekst(rij.get("node", ""), trace)
+
+
+def _gebruikt(node: str, tekst: str, term: str, trace: Trace) -> list[Definitie]:
+    """De begrippen die deze definitie zelf gebruikt en die in dezelfde bepaling gedefinieerd zijn (`zoek_definitie`
+    met `binnen`, gezocht door `vooraf`): "belastingschuldige: degene te wiens naam de belastingaanslag is gesteld" rust op
+    "belastingaanslag" (IW 1990 art. 2 lid 1 onder m), en die definitie zegt welke aanslagen dat zijn (acceptatie
+    19 nov 2026). Op woordgrens, zonder de term zelf; een gebruikt begrip zonder volledige tekst valt weg."""
+    houder = _houder(node)
+    if not houder:
+        return []
+    romp = tekst.split(":", 1)[1] if ":" in tekst else tekst
+    eigen = {t.casefold() for t in losse_termen(term)}
+    uit: dict[str, Definitie] = {}
+    for data in resultaten(trace, ["zoek_definitie"]):
+        if data.get("binnen") != houder:
+            continue
+        for rij in data.get("resultaten") or []:
+            andere, ruw = rij.get("node", ""), rij.get("begrip", "")
+            termen = [t for t in losse_termen(ruw) if t.casefold() not in eigen]
+            if not andere or andere == node or andere in uit or not any(term_vindplaats(t, romp) for t in termen):
+                continue
+            if (gebruikte := _rij_tekst(rij, trace)):
+                uit[andere] = Definitie(term=ruw, tekst=gebruikte, vindplaats=vindplaats_van(
+                    andere, jci=rij.get("jci", ""), regeling=rij.get("citeertitel", ""), label=rij.get("inLabel", "")))
+    return list(uit.values())[:MAX_GEBRUIKT]
 
 
 def _definities(begrip: str, trace: Trace) -> list[Definitie]:
@@ -69,10 +112,12 @@ def _definities(begrip: str, trace: Trace) -> list[Definitie]:
         node, ruw = rij.get("node", ""), rij.get("begrip", "")
         if not node or node in uit or not any(_zelfde_term(begrip, t) for t in losse_termen(ruw)):
             continue
-        tekst = rij.get("tekst", "") if rij.get("tekst_volledig") is not False else volledige_tekst(node, trace)
+        tekst = _rij_tekst(rij, trace)
         if not tekst:
             raise Onvulbaar(f"De tekst van {node} is niet volledig opgehaald. Haal de bepaling op met get_lid en rond dan af.")
-        uit[node] = Definitie(term=ruw, tekst=tekst, bereik=_bereik(rij, tekst, trace),
+        g = _bereik(rij, tekst, trace)
+        uit[node] = Definitie(term=ruw, tekst=tekst, bereik=g.formule, bereik_soort=g.soort, bereik_waarde=g.waarde,
+                              gebruikt=_gebruikt(node, tekst, ruw, trace),
                               vindplaats=vindplaats_van(node, jci=rij.get("jci", ""), regeling=rij.get("citeertitel", ""), label=rij.get("inLabel", "")))
     return list(uit.values())
 
@@ -84,7 +129,12 @@ def _vastgelegd(begrip: str, trace: Trace) -> list[VastgelegdBegrip]:
     laatste = list(resultaten(trace, ["search_begrippen"]))[-1:]
     gevonden = rijen(trace, ["search_begrippen"]) if begrip else [r for d in laatste for r in d.get("resultaten") or []]
     for rij in gevonden:
-        if rij.get("id") and (not begrip or any(_zelfde_term(begrip, t) for t in [rij.get("naam", ""), *(rij.get("alternatieve_termen") or [])])):
+        # Een begrip rust altijd op een annotatie: zonder dragende passage is het geen vastgelegd begrip (een wees van
+        # een gewist werkgebied, acceptatie 19 nov 2026; de graafcontrole van de api meldt het). Een vervangen begrip is
+        # historie en heeft zijn passages aan zijn opvolger gegeven.
+        if rij.get("status") != "vervangen" and rij.get("aantal_dragend") == 0:
+            continue
+        if rij.get("id") and (not begrip or met_deze_naam(begrip, rij)):
             uit[rij["id"]] = VastgelegdBegrip(
                 id=rij["id"], naam=rij.get("naam", ""), status=rij.get("status", ""), definitie=rij.get("definitie", ""),
                 werkgebied=rij.get("werkgebied", ""), werkgebied_id=rij.get("werkgebied_id", ""), herbeoordelen=bool(rij.get("herbeoordelen")),
@@ -131,7 +181,7 @@ def _gezocht(begrip: str, trace: Trace) -> list[dict[str, Any]]:
     """De zoekacties die deze term dekken. `zoek_definitie` zoekt op een deel van het woord, dus "aanslag" dekt ook
     "belastingaanslag", maar niet andersom."""
     return [d for d in resultaten(trace, ["zoek_definitie"])
-            if (t := str(d.get("term") or "")) and (normaal(t) in normaal(begrip) or _zelfde_term(begrip, t))]
+            if not d.get("binnen") and (t := str(d.get("term") or "")) and (normaal(t) in normaal(begrip) or _zelfde_term(begrip, t))]
 
 
 def _toelichting(invoer: dict[str, Any]) -> list[Toelichting]:
@@ -156,15 +206,25 @@ def _alleen_vastgelegd(invoer: dict[str, Any], trace: Trace) -> Antwoord:
 
 
 def vooraf(invoer: dict[str, Any], trace: Trace) -> list[dict[str, Any]]:
-    """Wat de code zelf opzoekt vóór het vullen (`Sjabloon.vooraf`). Een begripsantwoord toont naast de wet altijd wat
-    juristen als begrip vastlegden, ook een generiek begrip (ADR-006). Dat hangt niet af van of het model, of zijn profiel,
-    `search_begrippen` kent: is er in de trace niet op deze term gezocht, dan zoekt de code het zelf."""
+    """Wat de code zelf opzoekt vóór het vullen (`Sjabloon.vooraf`).
+
+    - Wat juristen als begrip vastlegden, ook een generiek begrip (ADR-006). Dat hangt niet af van of het model, of zijn
+      profiel, `search_begrippen` kent: is er in de trace niet op deze term gezocht, dan zoekt de code het zelf.
+    - De andere definities in de bepaling van een gevonden definitie (`zoek_definitie` met `binnen`): een definitie die
+      zelf een gedefinieerd begrip gebruikt, toont dat erbij (`_gebruikt`)."""
     begrip = str(invoer.get("begrip") or "").strip()
-    if not begrip or _vastgelegd(begrip, trace):
+    if not begrip:
         return []
-    if any(_zelfde_term(begrip, str(d.get("zoekterm") or "")) for d in resultaten(trace, ["search_begrippen"])):
-        return []
-    return [{"name": "search_begrippen", "input": {"zoekterm": begrip}}]
+    aanroepen: list[dict[str, Any]] = []
+    if not _vastgelegd(begrip, trace) and not any(_zelfde_term(begrip, str(d.get("zoekterm") or ""))
+                                                  for d in resultaten(trace, ["search_begrippen"])):
+        aanroepen.append({"name": "search_begrippen", "input": {"zoekterm": begrip}})
+    al = {str(d.get("binnen")) for d in resultaten(trace, ["zoek_definitie"]) if d.get("binnen")}
+    houders = {h for rij in rijen(trace, ["zoek_definitie"])
+               if any(_zelfde_term(begrip, t) for t in losse_termen(rij.get("begrip", "")))
+               and (h := _houder(rij.get("node", ""))) and h not in al}
+    aanroepen += [{"name": "zoek_definitie", "input": {"term": "", "binnen": h, "limit": 100}} for h in sorted(houders)]
+    return aanroepen
 
 
 def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
@@ -197,4 +257,4 @@ def vul(invoer: dict[str, Any], trace: Trace) -> Antwoord:
         blokken.append(Leemte(tekst=melding))
     elif begrippen_onvolledig:
         blokken.append(Leemte(tekst=BEGRIPPEN_ONVOLLEDIG))
-    return Antwoord(sjabloon="begrip", blokken=[*blokken, *_toelichting(invoer)], doelen=[d.vindplaats for d in definities])
+    return Antwoord(sjabloon="begrip", blokken=[*blokken, *_toelichting(invoer)], doelen=[v for d in definities for v in (d.vindplaats, *(g.vindplaats for g in d.gebruikt))])

@@ -1191,12 +1191,14 @@ def test_met_die_passage_aangewezen_mag_het_artikel_genoemd_worden():
 def test_vooraf_zoekt_de_vastgelegde_begrippen_als_dat_nog_niet_gebeurde():
     from agent.sjablonen import vooraf
     invoer = {"begrip": "belastingschuldige", "toelichting": ""}
+    lid = {"name": "zoek_definitie", "input": {"term": "", "binnen": K.rsplit(":o:", 1)[0], "limit": 100}}
     assert vooraf("antwoord_begrip", invoer, [definitie()]) == [
-        {"name": "search_begrippen", "input": {"zoekterm": "belastingschuldige"}}]
-    assert vooraf("antwoord_begrip", invoer, [definitie(), begrip()]) == [], "al gevonden"
+        {"name": "search_begrippen", "input": {"zoekterm": "belastingschuldige"}}, lid]
+    assert vooraf("antwoord_begrip", invoer, [definitie(), begrip()]) == [lid], "al gevonden"
+    assert vooraf("antwoord_begrip", invoer, [definitie(), begrip(), _lid()]) == [], "het lid is al gelezen"
     leeg = ("search_begrippen", json.dumps({"status": "ok", "volledig": True, "aantal": 0, "resultaten": [],
                                             "zoekterm": "belastingschuldigen"}))
-    assert vooraf("antwoord_begrip", invoer, [definitie(), leeg]) == [], "op deze term gezocht, niets gevonden"
+    assert vooraf("antwoord_begrip", invoer, [definitie(), leeg]) == [lid], "op deze term gezocht, niets gevonden"
     anders = ("search_begrippen", json.dumps({"status": "ok", "volledig": True, "aantal": 0, "resultaten": [],
                                               "zoekterm": "termijn"}))
     assert vooraf("antwoord_begrip", invoer, [definitie(), anders]), "een andere term telt niet"
@@ -1290,3 +1292,55 @@ def test_een_bepaling_die_de_term_niet_draagt_of_niet_compleet_is_komt_er_niet_b
                                          "bepaling": {"iri": "urn:bwb:BWBR0024096:y", "nummer": "14.4", "tekst": "Derdenbeslag", "subdivisies": 2}}))
     a = vul("antwoord_begrip", {"begrip": "derdenbeslag", "toelichting": ""}, [leeg, zonder, deels])
     assert [b.soort for b in a.blokken] == ["leemte"] and a.blokken[0].tekst.endswith("“derdenbeslag”.")
+
+
+# Acceptatie 19 nov 2026, "belastingschuldige": de definitie rust op "belastingaanslag" (art. 2 lid 1 onder m), en die
+# definitie zegt welke aanslagen dat zijn; "geldt voor “Deze wet”" zei een jurist weinig.
+
+M = "urn:bwb:BWBR0004770:artikel:2:lid:1:o:m"
+AANSLAG = ("belastingaanslag: de voorlopige aanslag, de aanslag, de uitnodiging tot betaling, de navorderingsaanslag en de "
+           "naheffingsaanslag;")
+
+
+def _lid(*rijen_) -> tuple[str, str]:
+    standaard = [
+        {"node": K, "begrip": "belastingschuldige", "tekst": "belastingschuldige: degene te wiens naam de belastingaanslag is gesteld;"},
+        {"node": M, "begrip": "belastingaanslag", "tekst": AANSLAG, "citeertitel": "Invorderingswet 1990"},
+        {"node": "urn:bwb:BWBR0004770:artikel:2:lid:1:o:a", "begrip": "aanslag", "tekst": "aanslag: de aanslag, bedoeld in de AWR;"},
+    ]
+    return "zoek_definitie", json.dumps({"status": "ok", "volledig": True, "aantal": 3, "term": "",
+                                         "binnen": K.rsplit(":o:", 1)[0], "resultaten": list(rijen_) or standaard})
+
+
+def test_een_definitie_toont_het_begrip_uit_hetzelfde_artikel_dat_ze_gebruikt():
+    a = vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""},
+            [definitie(aanhef="Deze wet verstaat onder:"), _lid()])
+    [d] = a.blokken[0].items
+    assert [g.term for g in d.gebruikt] == ["belastingaanslag"], "op woordgrens: 'aanslag' zit niet in 'belastingaanslag'"
+    assert d.gebruikt[0].tekst == AANSLAG and d.gebruikt[0].vindplaats.iri == M
+    assert [v.iri for v in a.doelen] == [K, M], "de getoonde wettekst is een bron van het antwoord"
+    tekst = antwoord_tekst(a)
+    assert "**Gebruikt begrip:**" in tekst and "de uitnodiging tot betaling" in tekst
+
+
+def test_het_bereik_staat_er_in_woorden_met_de_regeling():
+    from bronmodel.definities import geldt_voor
+
+    [d] = vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""},
+              [definitie(aanhef="Deze wet verstaat onder:")]).blokken[0].items
+    assert (d.bereik, d.bereik_soort) == ("Deze wet", "regeling")
+    assert geldt_voor(d.bereik_soort, d.bereik_waarde, d.vindplaats.regeling) == "geldt in de hele Invorderingswet 1990"
+    assert geldt_voor("artikel_n", "7") == "geldt voor artikel 7" and geldt_voor("") == ""
+
+
+def test_de_afgebakende_zoekactie_is_geen_zoekactie_naar_de_term():
+    with pytest.raises(Onvulbaar, match="zoek_definitie"):
+        vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""}, [_lid()])
+
+
+def test_een_begrip_zonder_dragende_passage_is_geen_vastgelegd_begrip():
+    """Een generiek begrip waarvan het werkgebied met de passages gewist is (acceptatie 19 nov 2026): een wees."""
+    soorten = lambda *t: [b.soort for b in vul("antwoord_begrip", {"begrip": "belastingschuldige", "toelichting": ""}, list(t)).blokken]
+    assert soorten(definitie(), begrip(aantal_dragend=0)) == ["definities"]
+    assert soorten(definitie(), begrip(aantal_dragend=2)) == ["definities", "begrippen"]
+    assert soorten(definitie(), begrip(status="vervangen", aantal_dragend=0)) == ["definities", "begrippen"], "historie"

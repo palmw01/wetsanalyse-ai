@@ -291,6 +291,10 @@
      "input_schema": {
       "additionalProperties": false,
       "properties": {
+       "binnen": {
+        "description": "Optioneel: alleen de definities in deze bepaling (de node-IRI van een definitielid uit een eerdere rij), met een lege term alle begrippen ervan.",
+        "type": "string"
+       },
        "bwb_id": {
         "description": "Optioneel: beperk tot één regeling.",
         "type": "string"
@@ -682,7 +686,7 @@
      "strict": true
     },
     {
-     "description": "Rond een vraag naar de betekenis van een begrip, of naar wat juristen als begrip vastlegden, af. Roep deze tool aan nadat je zoek_definitie hebt gebruikt, en schrijf geen antwoord ernaast. De vastgelegde begrippen bij de term zoekt de code zelf. De werkplek toont de wettelijke definities met hun vindplaats en de vastgelegde begrippen zelf, uit wat de tools teruggaven: herhaal die niet. Jij levert het begrip en een korte toelichting in eigen woorden, zonder citaten en zonder vindplaatsen die je niet hebt opgehaald. Vond je geen definitie, schrijf dan nooit dat er geen definitie bestaat: dat de graaf niets vond zegt de werkplek zelf, in die woorden, en een gelezen bepaling die de term gebruikt toont ze zelf, met de vindplaats. Zeg dan in de toelichting alleen wat die bepaling of het vastgelegde begrip zegt, of laat haar leeg; uitleg uit eigen kennis hoort er niet in. Gaat de vraag alleen over wat er is vastgelegd, laat begrip dan leeg: de werkplek toont dan wat search_begrippen vond en zegt niets over de wet.",
+     "description": "Rond een vraag naar de betekenis van een begrip, of naar wat juristen als begrip vastlegden, af. Roep deze tool aan nadat je zoek_definitie hebt gebruikt, en schrijf geen antwoord ernaast. De vastgelegde begrippen bij de term zoekt de code zelf. De werkplek toont de wettelijke definities met hun vindplaats en de vastgelegde begrippen zelf, uit wat de tools teruggaven: herhaal die niet. Jij levert het begrip en een korte toelichting in eigen woorden, zonder citaten en zonder vindplaatsen die je niet hebt opgehaald. Vond je geen definitie, schrijf dan nooit dat er geen definitie bestaat: dat de graaf niets vond zegt de werkplek zelf, in die woorden, en een gelezen bepaling die de term gebruikt toont ze zelf, met de vindplaats. Zeg dan in de toelichting alleen wat die bepaling of het vastgelegde begrip zegt, of laat haar leeg; uitleg uit eigen kennis hoort er niet in. Zet er geen tegenstelling of uitzondering in ('niet wie …', 'ongeacht …', 'behalve …') die de getoonde tekst niet zelf maakt: dat is een interpretatie, en de werkplek markeert zo'n zin. Gaat de vraag alleen over wat er is vastgelegd, laat begrip dan leeg: de werkplek toont dan wat search_begrippen vond en zegt niets over de wet.",
      "input_schema": {
       "additionalProperties": false,
       "properties": {
@@ -691,7 +695,7 @@
         "type": "string"
        },
        "toelichting": {
-        "description": "Twee of drie zinnen: wat de definitie betekent, of wat opvalt aan de vastgelegde begrippen (zoals de opvolger van een vervangen begrip). Leeg als er niets te zeggen valt.",
+        "description": "Twee of drie zinnen over wat de getoonde wettekst zegt, in eigen woorden. Over vastgelegde begrippen alleen wat je zelf met search_begrippen las (zoals de opvolger van een vervangen begrip): wat de code erbij zoekt, zie jij niet. Leeg als er niets te zeggen valt.",
         "type": "string"
        }
       },
@@ -1086,6 +1090,10 @@
      "input_schema": {
       "additionalProperties": false,
       "properties": {
+       "binnen": {
+        "description": "Optioneel: alleen de definities in deze bepaling (de node-IRI van een definitielid uit een eerdere rij), met een lege term alle begrippen ervan.",
+        "type": "string"
+       },
        "bwb_id": {
         "description": "Optioneel: beperk tot één regeling.",
         "type": "string"
@@ -1477,7 +1485,7 @@
      "strict": true
     },
     {
-     "description": "Rond een vraag naar de betekenis van een begrip, of naar wat juristen als begrip vastlegden, af. Roep deze tool aan nadat je zoek_definitie hebt gebruikt, en schrijf geen antwoord ernaast. De vastgelegde begrippen bij de term zoekt de code zelf. De werkplek toont de wettelijke definities met hun vindplaats en de vastgelegde begrippen zelf, uit wat de tools teruggaven: herhaal die niet. Jij levert het begrip en een korte toelichting in eigen woorden, zonder citaten en zonder vindplaatsen die je niet hebt opgehaald. Vond je geen definitie, schrijf dan nooit dat er geen definitie bestaat: dat de graaf niets vond zegt de werkplek zelf, in die woorden, en een gelezen bepaling die de term gebruikt toont ze zelf, met de vindplaats. Zeg dan in de toelichting alleen wat die bepaling of het vastgelegde begrip zegt, of laat haar leeg; uitleg uit eigen kennis hoort er niet in. Gaat de vraag alleen over wat er is vastgelegd, laat begrip dan leeg: de werkplek toont dan wat search_begrippen vond en zegt niets over de wet.",
+     "description": "Rond een vraag naar de betekenis van een begrip, of naar wat juristen als begrip vastlegden, af. Roep deze tool aan nadat je zoek_definitie hebt gebruikt, en schrijf geen antwoord ernaast. De vastgelegde begrippen bij de term zoekt de code zelf. De werkplek toont de wettelijke definities met hun vindplaats en de vastgelegde begrippen zelf, uit wat de tools teruggaven: herhaal die niet. Jij levert het begrip en een korte toelichting in eigen woorden, zonder citaten en zonder vindplaatsen die je niet hebt opgehaald. Vond je geen definitie, schrijf dan nooit dat er geen definitie bestaat: dat de graaf niets vond zegt de werkplek zelf, in die woorden, en een gelezen bepaling die de term gebruikt toont ze zelf, met de vindplaats. Zeg dan in de toelichting alleen wat die bepaling of het vastgelegde begrip zegt, of laat haar leeg; uitleg uit eigen kennis hoort er niet in. Zet er geen tegenstelling of uitzondering in ('niet wie …', 'ongeacht …', 'behalve …') die de getoonde tekst niet zelf maakt: dat is een interpretatie, en de werkplek markeert zo'n zin. Gaat de vraag alleen over wat er is vastgelegd, laat begrip dan leeg: de werkplek toont dan wat search_begrippen vond en zegt niets over de wet.",
      "input_schema": {
       "additionalProperties": false,
       "properties": {
@@ -1486,7 +1494,7 @@
         "type": "string"
        },
        "toelichting": {
-        "description": "Twee of drie zinnen: wat de definitie betekent, of wat opvalt aan de vastgelegde begrippen (zoals de opvolger van een vervangen begrip). Leeg als er niets te zeggen valt.",
+        "description": "Twee of drie zinnen over wat de getoonde wettekst zegt, in eigen woorden. Over vastgelegde begrippen alleen wat je zelf met search_begrippen las (zoals de opvolger van een vervangen begrip): wat de code erbij zoekt, zie jij niet. Leeg als er niets te zeggen valt.",
         "type": "string"
        }
       },
