@@ -167,7 +167,10 @@ lijst ankers van een voorstel; de api zet die in de batch om naar het element-id
   de graaf in plaats van uit een plaatje. Exports dragen de relaties: JSON v4, TriG, en een relatielijst plus regelskelet
   in Markdown en PDF.
 - Afronden van een laag hangt voorlopig niet van relaties af; de werkplek telt wel de open relaties. Of afronden
-  beoordeelde relaties moet vragen, is een latere keuze.
+  beoordeelde relaties moet vragen, is een latere keuze. *Aanvulling 19 nov 2026 (Termijnen):* het antwoord op afronden
+  noemt `open_relaties`, het aantal voorstellen van de keten dat nog open staat, zodat het niet stil gebeurt. Beoordelen
+  gaat ook per laag in één keer (`POST /v1/annotatie/lagen/{laag}/relatiebesluiten`, alles of niets, één revisie),
+  zoals voor markeringen.
 - Lex leest relaties via de leesroute ("wat is de invoer van de regel in lid 5?"), op wat vastgelegd is.
 - Een relatie geeft een tweede reden om een laag opnieuw te projecteren, en de graaf groeit. Daarom tonen de
   graafweergave en de focus relaties alleen op verzoek.

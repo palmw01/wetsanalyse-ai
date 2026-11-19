@@ -26,6 +26,7 @@ import csv
 import io
 import json
 import uuid
+from collections.abc import Iterable
 from contextlib import asynccontextmanager
 from typing import Awaitable, Callable
 
@@ -568,25 +569,45 @@ def slank(inhoud: dict) -> dict:
     return uit
 
 
-def met_afgeleid(oud: dict | None, nieuw: dict) -> dict:
+MIN_WOORDEN_LETTERLIJK = 6
+"""Zoveel woorden moet een definitie minstens hebben om als letterlijk uit een passage te tellen: een paar woorden (een term)
+staan overal en maken nog geen definitie."""
+
+
+def _norm(tekst: str) -> str:
+    return " ".join(tekst.split()).rstrip(" .;:").casefold()
+
+
+def herkomst_van(tekst: str, bronteksten: Iterable[str] = ()) -> str:
+    """`letterlijk` als de definitie woord voor woord in een passage van het begrip staat (witruimte, hoofdletters en een
+    slotpunt tellen niet), anders `geformuleerd`. Zo krijgt een wetsdefinitie die de analist overtypt of plakt dezelfde
+    herkomst als een overgenomen brondefinitie."""
+    t = _norm(tekst)
+    if len(t.split()) >= MIN_WOORDEN_LETTERLIJK and any(t in _norm(b) for b in bronteksten if b):
+        return "letterlijk"
+    return "geformuleerd"
+
+
+def met_afgeleid(oud: dict | None, nieuw: dict, bronteksten: Iterable[str] = ()) -> dict:
     """Herkomst en `definitie_door` rekent de api, nooit de client (spoor I1: geen keuzerondjes meer).
     Een ongewijzigde definitie houdt haar herkomst en wie ze voorstelde; een nieuwe of andere tekst is
-    door de analist geformuleerd; geen definitie = geen herkomst. Letterlijk wordt een definitie alleen
-    door een overgenomen brondefinitie (`begrip_voorstel_store`, het akkoord in `begrippen_run_store`)."""
+    van de analist: letterlijk als ze woord voor woord in een passage van het begrip staat (`herkomst_van`),
+    anders geformuleerd; geen definitie = geen herkomst."""
     tekst = (nieuw.get("definitie") or "").strip()
     if not tekst:
         herkomst, door = None, ""
     elif oud is not None and (oud.get("definitie") or "").strip() == tekst and oud.get("definitie_herkomst"):
         herkomst, door = oud["definitie_herkomst"], oud.get("definitie_door") or ""
     else:
-        herkomst, door = "geformuleerd", "analist"
+        herkomst, door = herkomst_van(tekst, bronteksten), "analist"
     return {**nieuw, "definitie_herkomst": herkomst, "definitie_door": door}
 
 
 async def maak(werkgebied: dict, invoer: BegripInvoer, actor: str, resolve: Resolver) -> dict:
     bewijs = await bewijzen(werkgebied, invoer.element_ids, resolve) if invoer.element_ids else {}
     async with db.get_engine().begin() as conn:
-        bid = await maak_in(conn, werkgebied["id"], met_afgeleid(None, invoer.inhoud.model_dump(mode="json")), bewijs,
+        bid = await maak_in(conn, werkgebied["id"], met_afgeleid(None, invoer.inhoud.model_dump(mode="json"),
+                                                                 [b.get("tekst", "") for b in bewijs.values()]), bewijs,
                             invoer.rol.value, actor)
     return await haal(werkgebied["id"], bid)
 
@@ -618,7 +639,8 @@ async def wijzig(werkgebied_id: str | None, begrip_id: str, w: BegripWijziging, 
     async with _gewijzigd(werkgebied_id, begrip_id, w.verwachte_revisie, actor, "begrip-gewijzigd",
                           detail) as (conn, row, stand):
         oud = slank(row.inhoud)
-        nieuw = met_afgeleid(oud, nieuw)
+        passages = [k.get("bewijs", {}).get("tekst", "") for k in await _koppelingen_van(conn, None, begrip_id)]
+        nieuw = met_afgeleid(oud, nieuw, passages)
         # Een generiek begrip heet één keer zo, ook na een nieuwe naam (`generiek_maken` toetst hetzelfde).
         if werkgebied_id is None and _term(nieuw.get("naam", "")) != _term(oud.get("naam", "")):
             await _toets_term(conn, nieuw.get("naam", ""), begrip_id)
@@ -707,9 +729,18 @@ async def _herstel_voorgangers(conn, werkgebied_id: str | None, begrip_id: str, 
 
 async def koppel(werkgebied: dict, begrip_id: str, invoer: KoppelInvoer, actor: str, resolve: Resolver) -> dict:
     bewijs = await bewijzen(werkgebied, invoer.element_ids, resolve)
+    b = db.begrippen
     async with db.get_engine().begin() as conn:
+        voor = (await conn.execute(select(b.c.status).where(b.c.id == begrip_id))).scalar()
         await koppel_in(conn, werkgebied["id"], begrip_id, invoer.verwachte_revisie, bewijs, invoer.rol.value,
-                        invoer.motivatie, actor)
+                        invoer.motivatie, actor, "akkoord" if invoer.akkoord else "open")
+        if invoer.akkoord and voor == "geaccordeerd":
+            # Het begrip was geaccordeerd en de jurist keurde de nieuwe passages goed: opnieuw accorderen als de poort
+            # het toelaat. Mag het niet, dan blijft het een concept en noemt de poort wat er openstaat.
+            nu = (await conn.execute(select(b.c.revisie, b.c.werkgebied_id).where(b.c.id == begrip_id))).first()
+            if nu.werkgebied_id is not None:
+                await accordeer_in(conn, werkgebied["id"], begrip_id, nu.revisie,
+                                   invoer.reden or "Opnieuw geaccordeerd: passages gekoppeld en beoordeeld.", actor)
     return koppelstand(await haal(werkgebied["id"], begrip_id))
 
 

@@ -256,3 +256,61 @@ async def test_het_detail_van_een_element_draagt_zijn_vastgelegde_relaties(lagen
     detail = await annotatie_v2.get_element("ontvanger", "jurist")
     assert [x["id"] for x in detail["relaties"]] == [plicht["id"]]
     assert (await annotatie_v2.get_element("aanslag", "jurist"))["relaties"] == []
+
+
+async def test_besluiten_over_de_relaties_van_een_laag_in_een_keer(lagen):
+    """Zoals voor markeringen: alles of niets, één revisie, en een klein antwoord zonder de meting van de ronde."""
+    from app.annotatie_v2_contracts import Relatiebesluiten
+    a = (await rel.leg(leg("zin", "aanslag", "voorwerp", {ONE: 1}), "jurist"))["relatie"]
+    b = (await rel.leg(leg("ontvanger", "zin", "rechthebbende", {ONE: 2}), "jurist"))["relatie"]
+    laag = a["laag_id"]
+    # Eén besluit dat niet kan (heropenen van iets dat niet is afgehandeld is wel afgehandeld; een onbekende relatie niet):
+    with pytest.raises(HTTPException) as exc:
+        await rel.beslis_laag(laag, Relatiebesluiten.model_validate(
+            {"verwachte_revisie": 3, "besluiten": [{"relatie_id": a["id"], "type": "reject"}, {"relatie_id": "Rvreemd", "type": "approve"}]}),
+            "jurist")
+    assert exc.value.status_code == 422 and exc.value.detail["relatie_ids"] == ["Rvreemd"]
+    uit = await rel.beslis_laag(laag, Relatiebesluiten.model_validate(
+        {"verwachte_revisie": 3, "besluiten": [{"relatie_id": a["id"], "type": "reject", "comment": "te ruim"},
+                                               {"relatie_id": b["id"], "type": "comment", "comment": "goed"}]}), "jurist")
+    assert uit["laag"]["revisie"] == 4 and [r["lifecycle"] for r in uit["relaties"]] == ["rejected", "human_approved"]
+    # Alles of niets: goedkeuren van een afgewezen relatie weigert, en dan blijft ook het commentaar ernaast weg.
+    with pytest.raises(HTTPException) as exc:
+        await rel.beslis_laag(laag, Relatiebesluiten.model_validate(
+            {"verwachte_revisie": 4, "besluiten": [{"relatie_id": b["id"], "type": "comment", "comment": "nog eens"},
+                                                   {"relatie_id": a["id"], "type": "approve"}]}), "jurist")
+    assert exc.value.status_code == 409 and exc.value.detail["relatie_id"] == a["id"]
+    [nu] = [r for r in (await store.weergave(snapshot(ONE)))["relaties"] if r["id"] == b["id"]]
+    assert [x["comment"] for x in nu["beslissingen"] if x["type"] == "comment"] == ["goed"]
+    # Een verkeerde revisie is een 412, een dubbele relatie een invoerfout.
+    with pytest.raises(HTTPException) as exc:
+        await rel.beslis_laag(laag, Relatiebesluiten.model_validate(
+            {"verwachte_revisie": 2, "besluiten": [{"relatie_id": b["id"], "type": "comment"}]}), "jurist")
+    assert exc.value.status_code == 412
+    with pytest.raises(ValidationError):
+        Relatiebesluiten.model_validate({"verwachte_revisie": 4, "besluiten": [{"relatie_id": "x", "type": "approve"}] * 2})
+
+
+async def test_een_los_besluit_geeft_de_meting_van_de_ronde_niet_terug(lagen):
+    r = (await rel.leg(leg("zin", "aanslag", "voorwerp", {ONE: 1}), "jurist"))["relatie"]
+    uit = (await rel.beslis(r["id"], RelatieBeslissing(type="comment", comment="x", verwachte_revisies={ONE: 2}), "jurist"))["relatie"]
+    assert "geproduceerd_door" not in uit and "spoor" not in uit and uit["beslissingen"][-1]["comment"] == "x"
+
+
+async def test_afronden_noemt_de_open_voorstellen_van_de_keten(lagen):
+    """ADR-011: afronden hangt niet af van relaties, maar zegt hoeveel voorstellen er nog open staan."""
+    from app import db as _db
+    from sqlalchemy import update as _update
+    s1, _ = lagen
+    r = (await rel.leg(leg("zin", "aanslag", "voorwerp", {ONE: 1}), "jurist"))["relatie"]
+    async with _db.get_engine().begin() as conn:
+        rij = (await conn.execute(select(_db.annotatie_v2_relaties).where(_db.annotatie_v2_relaties.c.id == r["id"]))).mappings().first()
+        await conn.execute(_update(_db.annotatie_v2_relaties).where(_db.annotatie_v2_relaties.c.id == r["id"]).values(
+            inhoud={**rij["inhoud"], "lifecycle": "voorgesteld", "herkomst": "agent"}))
+    laag = (await store.weergave(s1))["lagen"][0]
+    for eid in ("zin", "ontvanger", "aanslag"):
+        await store.beslis(eid, Beslissing(type="approve", snapshot_id=s1["snapshot_id"],
+                                           verwachte_revisies={ONE: (await store.weergave(s1))["lagen"][0]["revisie"]}), s1, "jurist")
+    laag = (await store.weergave(s1))["lagen"][0]
+    klaar = await store.zet_status(laag["id"], "geaccordeerd", laag["revisie"], "jurist", s1)
+    assert klaar["status"] == "geaccordeerd" and klaar["open_relaties"] == 1

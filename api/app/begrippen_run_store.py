@@ -391,7 +391,7 @@ def _inhoud(rows, o: Overname, manifest: dict | None, leden: list[str]) -> dict:
     return inhoud
 
 
-def _pas_aan(inhoud: dict, a: Aanpassing | None) -> tuple[dict, list[str]]:
+def _pas_aan(inhoud: dict, a: Aanpassing | None, bronteksten: list[str] | None = None) -> tuple[dict, list[str]]:
     """De aanpassing van de jurist over het voorstel heen; geeft ook de gewijzigde velden.
 
     Een andere definitietekst is niet meer letterlijk of samengesteld, dus `geformuleerd` (spoor I1: de
@@ -410,7 +410,7 @@ def _pas_aan(inhoud: dict, a: Aanpassing | None) -> tuple[dict, list[str]]:
             for veld in ("definitie", "definitie_herkomst"):
                 uit.pop(veld, None)
         elif nieuw != oud or not inhoud.get("definitie_herkomst"):
-            uit.update(definitie=nieuw, definitie_herkomst="geformuleerd")
+            uit.update(definitie=nieuw, definitie_herkomst=begrip_store.herkomst_van(nieuw, bronteksten or []))
     velden = sorted(k for k in set(uit) | set(inhoud) if uit.get(k) != inhoud.get(k))
     return uit, velden
 
@@ -446,7 +446,8 @@ async def akkoord(werkgebied: dict, a: Akkoord, actor: str, resolve: Resolver) -
     _niet_al_besloten(rows)
     leden = _kies_leden(rows, a.element_ids, run)
     manifest = run.manifest if run else None
-    inhoud, velden = _pas_aan(_inhoud(rows, a, manifest, leden), a.aanpassing)
+    teksten = [f.get("tekst", "") for f in (manifest or {}).get("formuleringen", []) if f.get("element_id") in set(leden)]
+    inhoud, velden = _pas_aan(_inhoud(rows, a, manifest, leden), a.aanpassing, teksten)
     if a.kandidaat_id and (run is None or a.kandidaat_id not in {v["kandidaat_id"] for v in run.uitkomst.get("vragen", [])}):
         raise HTTPException(404, "Deze vraag staat niet in de voorstellen.")
     if a.kandidaat_ids:

@@ -240,6 +240,26 @@ class RelatieInvoer(BaseModel):
     verwachte_revisies: dict[str, int] = Field(default_factory=dict)
 
 
+class Relatiebesluit(BaseModel):
+    relatie_id: str = Field(min_length=1, max_length=64)
+    type: Literal["approve", "reject", "heropen", "comment"]
+    comment: str = Field(default="", max_length=2000)
+
+
+class Relatiebesluiten(BaseModel):
+    """Besluiten over de relaties van één laag (de laag van de drager), in één transactie en één revisie: alles of niets."""
+
+    verwachte_revisie: int = Field(ge=0)
+    besluiten: list[Relatiebesluit] = Field(min_length=1, max_length=500)
+
+    @model_validator(mode="after")
+    def _uniek(self):
+        ids = [b.relatie_id for b in self.besluiten]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Elke relatie hoogstens één keer per bulk.")
+        return self
+
+
 class RelatieBeslissing(BaseModel):
     """Een oordeel over een relatie. `approve` legt ook de stand van beide eindpunten opnieuw vast: wie een veranderde
     relatie goedkeurt, zag hoe ze nu is."""

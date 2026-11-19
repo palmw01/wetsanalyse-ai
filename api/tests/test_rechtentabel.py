@@ -184,6 +184,7 @@ TABEL: dict[str, tuple[str, ...]] = {
     "POST /v1/annotatie/plaatsen": ('require_client', 'actieve_userid'),
     "POST /v1/annotatie/relaties": ('require_client', 'actieve_userid'),
     "POST /v1/annotatie/relaties/{relatie_id}/beslissing": ('require_client', 'actieve_userid'),
+    "POST /v1/annotatie/lagen/{laag_id}/relatiebesluiten": ('require_client', 'actieve_userid'),
     "POST /v1/annotatie/relaties/{relatie_id}/wis": ('require_client', 'actieve_userid'),
     "POST /v1/annotatie/weergave/export": ('require_client', 'actieve_userid'),
     "POST /v1/annotatie/weergave/verwijder": ('require_client', 'actieve_userid'),

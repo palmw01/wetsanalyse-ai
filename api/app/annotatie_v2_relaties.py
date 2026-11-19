@@ -27,6 +27,7 @@ from sqlalchemy import delete, insert, select, update
 from . import db
 from . import jas_relaties
 from .annotatie_v2_contracts import (AFGEHANDELD, NIET_ACTUEEL, Eindpunt, ImplicietInvoer, Lifecycle, RelatieBeslissing,
+                                     Relatiebesluiten,
                                       RelatieInvoer, RelatieVoorstel, is_vervangen)
 from .annotatie_v2_store import _audit, _laag, _lagen, _raak, leestransactie, publiek_laag, schrijftransactie, zonder_meting
 from .begrip_store import element_hash
@@ -265,6 +266,40 @@ async def leg_voorstellen(conn, req, saved: list[dict], layers: dict, touched: d
     return {"relaties": gelegd, "overgeslagen": sorted(overgeslagen, key=lambda x: x["index"]), "vervangen": vervangen}
 
 
+ZWAAR = ("geproduceerd_door", "spoor")
+"""Velden die een besluit niet terug hoeft te geven: de meting van de ronde en het spoor van de keten (ze staan in de
+weergave). Elk antwoord droeg anders de hele meting mee, ook bij veertig besluiten achter elkaar."""
+
+
+def compact(beschreven: dict) -> dict:
+    return {k: v for k, v in beschreven.items() if k not in ZWAAR}
+
+
+def _beslis_in(relatie: dict, type_: str, comment: str, elementen: dict, impliciet: dict, actor: str) -> dict:
+    """Eén besluit over een relatie, zonder transactie: de regels die los en in bulk gelden."""
+    afgewezen = relatie["lifecycle"] == Lifecycle.rejected.value
+    if afgewezen and type_ not in ("heropen", "comment"):
+        raise HTTPException(409, {"fout": "heropen_nodig", "melding": "Heropen de relatie voordat je erover beslist."})
+    if type_ == "heropen" and relatie["lifecycle"] not in AFGEHANDELD:
+        raise HTTPException(409, {"fout": "niet_afgehandeld", "melding": "Er is niets te heropenen."})
+    if type_ == "approve":
+        info_van, info_naar = _info(relatie["van"], elementen, impliciet), _info(relatie["naar"], elementen, impliciet)
+        if not (info_van and info_naar and info_van["actueel"] and info_naar["actueel"]):
+            raise HTTPException(422, {"fout": "eindpunt_niet_actueel",
+                                      "melding": "Een eindpunt is verworpen, verouderd of weg; goedkeuren kan niet."})
+        if not jas_relaties.toegestaan(relatie["type"], info_van["klasse"], info_naar["klasse"],
+                                       info_van["subtype"], info_naar["subtype"]):
+            raise HTTPException(422, {"fout": "klassen_passen_niet", "melding":
+                                      "Een eindpunt wisselde van klasse; deze relatie past daar niet meer bij."})
+        relatie.update(lifecycle=Lifecycle.human_approved.value, stand_van=info_van["stand"], stand_naar=info_naar["stand"])
+    elif type_ == "reject":
+        relatie["lifecycle"] = Lifecycle.rejected.value
+    elif type_ == "heropen":
+        relatie["lifecycle"] = Lifecycle.voorgesteld.value
+    relatie["beslissingen"] = [*relatie.get("beslissingen", []), _beslissing(type_, actor, comment)]
+    return relatie
+
+
 async def beslis(relatie_id_: str, req: RelatieBeslissing, actor: str) -> dict:
     async with schrijftransactie() as conn:
         row = (await conn.execute(select(db.annotatie_v2_relaties).where(
@@ -272,35 +307,53 @@ async def beslis(relatie_id_: str, req: RelatieBeslissing, actor: str) -> dict:
         if row is None:
             raise HTTPException(404, "Relatie niet gevonden.")
         relatie = dict(row["inhoud"])
-        afgewezen = relatie["lifecycle"] == Lifecycle.rejected.value
-        if afgewezen and req.type not in ("heropen", "comment"):
+        if relatie["lifecycle"] == Lifecycle.rejected.value and req.type not in ("heropen", "comment"):
             raise HTTPException(409, {"fout": "heropen_nodig", "melding": "Heropen de relatie voordat je erover beslist."})
-        if req.type == "heropen" and relatie["lifecycle"] not in AFGEHANDELD:
-            raise HTTPException(409, {"fout": "niet_afgehandeld", "melding": "Er is niets te heropenen."})
         layers = await _lagen(conn)
         layer = await _dragerlaag(conn, layers, row["laag_id"], req.verwachte_revisies)
         elementen = await _alle(conn, db.annotatie_v2_elementen)
         impliciet = await _alle(conn, db.annotatie_v2_impliciet)
-        if req.type == "approve":
-            info_van, info_naar = _info(relatie["van"], elementen, impliciet), _info(relatie["naar"], elementen, impliciet)
-            if not (info_van and info_naar and info_van["actueel"] and info_naar["actueel"]):
-                raise HTTPException(422, {"fout": "eindpunt_niet_actueel",
-                                          "melding": "Een eindpunt is verworpen, verouderd of weg; goedkeuren kan niet."})
-            if not jas_relaties.toegestaan(relatie["type"], info_van["klasse"], info_naar["klasse"],
-                                           info_van["subtype"], info_naar["subtype"]):
-                raise HTTPException(422, {"fout": "klassen_passen_niet", "melding":
-                                          "Een eindpunt wisselde van klasse; deze relatie past daar niet meer bij."})
-            relatie.update(lifecycle=Lifecycle.human_approved.value, stand_van=info_van["stand"], stand_naar=info_naar["stand"])
-        elif req.type == "reject":
-            relatie["lifecycle"] = Lifecycle.rejected.value
-        elif req.type == "heropen":
-            relatie["lifecycle"] = Lifecycle.voorgesteld.value
-        relatie["beslissingen"] = [*relatie.get("beslissingen", []), _beslissing(req.type, actor, req.comment)]
+        relatie = _beslis_in(relatie, req.type, req.comment, elementen, impliciet, actor)
         await conn.execute(update(db.annotatie_v2_relaties).where(
             db.annotatie_v2_relaties.c.id == relatie_id_).values(inhoud=relatie))
         await _raak(conn, layer, layer["snapshot_id"])
         await _audit(conn, actor, "relatie-beoordeeld", {"type": req.type, "comment": req.comment}, None, layer["id"])
-        return {"relatie": beschrijf(relatie, elementen, impliciet), "laag": publiek_laag(layer)}
+        return {"relatie": compact(beschrijf(relatie, elementen, impliciet)), "laag": publiek_laag(layer)}
+
+
+async def beslis_laag(laag_id: str, req: Relatiebesluiten, actor: str) -> dict:
+    """Besluiten over de relaties van één laag in één transactie en één revisie: alles of niets, met dezelfde regels als
+    los. Het antwoord is klein: per relatie haar stand, en hoeveel voorstellen van de keten er nog open staan."""
+    async with schrijftransactie() as conn:
+        layers = await _lagen(conn)
+        layer = _layers_per_id(layers).get(laag_id)
+        if layer is None:
+            raise HTTPException(404, "Laag niet gevonden.")
+        layer = await _laag(conn, layers, layer["bron_iri"], layer["snapshot_id"], {layer["bron_iri"]: req.verwachte_revisie})
+        t = db.annotatie_v2_relaties
+        ids = [b.relatie_id for b in req.besluiten]
+        rows = {r.id: dict(r.inhoud) for r in (await conn.execute(select(t).where(t.c.laag_id == laag_id, t.c.id.in_(ids)))).all()}
+        if vreemd := [i for i in ids if i not in rows]:
+            raise HTTPException(422, {"fout": "relatie_buiten_laag", "relatie_ids": vreemd,
+                                      "melding": f"{len(vreemd)} relatie(s) horen niet bij deze laag."})
+        elementen = await _alle(conn, db.annotatie_v2_elementen)
+        impliciet = await _alle(conn, db.annotatie_v2_impliciet)
+        uit = []
+        for b in req.besluiten:
+            try:
+                relatie = _beslis_in(rows[b.relatie_id], b.type, b.comment, elementen, impliciet, actor)
+            except HTTPException as exc:
+                reden = exc.detail.get("melding") if isinstance(exc.detail, dict) else exc.detail
+                raise HTTPException(exc.status_code, {"fout": "besluit_geweigerd", "relatie_id": b.relatie_id,
+                                                      "melding": f"Er is niets vastgelegd. {reden}"}) from exc
+            await conn.execute(update(t).where(t.c.id == b.relatie_id).values(inhoud=relatie))
+            uit.append({"id": b.relatie_id, "type": relatie["type"], "lifecycle": relatie["lifecycle"]})
+        await _raak(conn, layer, layer["snapshot_id"])
+        await _audit(conn, actor, "relaties-beoordeeld", {"besluiten": [{"relatie": b.relatie_id, "type": b.type} for b in req.besluiten]},
+                     None, layer["id"])
+        rest = (await conn.execute(select(t.c.inhoud).where(t.c.laag_id == laag_id))).scalars().all()
+        return {"laag": publiek_laag(layer), "relaties": uit,
+                "open": sum(r.get("lifecycle") == Lifecycle.voorgesteld.value for r in rest)}
 
 
 async def wis(relatie_id_: str, verwachte_revisies: dict, actor: str) -> dict:

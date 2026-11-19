@@ -96,6 +96,10 @@ class KoppelInvoer(BaseModel):
     element_ids: list[str] = Field(min_length=1, max_length=200)
     rol: KoppelRol = KoppelRol.duiding
     motivatie: str = Field(default="", max_length=4000)
+    #: De jurist zag de passages en is akkoord: de koppelingen zijn meteen beoordeeld, en een geaccordeerd begrip wordt
+    #: opnieuw geaccordeerd als de poort het toelaat (zoals koppelen vanuit een groep). Eén aanroep in plaats van drie.
+    akkoord: bool = False
+    reden: str = Field(default="", max_length=2000)
 
 
 class KoppelWijziging(BaseModel):

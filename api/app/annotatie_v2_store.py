@@ -836,7 +836,12 @@ async def zet_status(laag_id: str, status: str, expected: int, actor: str, snaps
         layer["status"] = status
         await _raak(conn, layer, layer["snapshot_id"])
         await _audit(conn, actor, "laag-status", {"laag_id": laag_id, "status": status}, laag_id=laag_id)
-        return publiek_laag(layer)
+        # Afronden hangt niet af van relaties (ADR-011), maar zegt wel hoeveel voorstellen van de keten er nog open staan:
+        # na afronden beslist niemand er nog over zonder heropenen.
+        r = db.annotatie_v2_relaties
+        open_ = sum(x.get("lifecycle") == "voorgesteld" for x in (await conn.execute(
+            select(r.c.inhoud).where(r.c.laag_id == laag_id))).scalars().all())
+        return {**publiek_laag(layer), "open_relaties": open_}
 
 
 async def verwijder(element_id: str, expected: int, actor: str) -> dict:
