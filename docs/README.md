@@ -96,7 +96,8 @@ Toelichting bij enkele documenten:
   klasse en de keten erachter (19 nov 2026; fase 1 in uitvoering).
   Ook los: [`architectuur/plan-afleidingsregels.md`](architectuur/plan-afleidingsregels.md), het onderzoek
   en plan voor activiteit 3b: van annotaties en begrippen naar afleidingsregels, met een proef op Termijnen (18 nov 2026;
-  concept, nog niets gebouwd).
+  concept, nog niets gebouwd); de uitwerking staat in `architectuur/proef-afleidingsregels-termijnen.md` (op papier) en
+  `architectuur/afleidingsregels-termijnen-team.md` (door het team van agents, 19 nov 2026).
   Ook los: [`architectuur/plan-lessen-e2e-termijnen.md`](architectuur/plan-lessen-e2e-termijnen.md), de lessen uit de
   end-to-end proef op Termijnen (activiteit 1 tot en met 3b): bevindingen met oorzaak in de code, generieke
   oplossingen en een gebundelde PR-volgorde (19 nov 2026; concept, nog niets gebouwd).
