@@ -58,8 +58,14 @@ def gelezen_en_gevonden(trace: Iterable[Any]) -> tuple[list[tuple[str, str]], li
             if (stuk := _stuk(tekst)) is not None:
                 gelezen.setdefault(*stuk)
             continue
+        from .resultaat import voorproef_iris
+
+        begin = voorproef_iris(tekst)
+        if begin:
+            zoeken.append((tool, tekst))  # de rijen met alleen hun begin: gevonden (`resultaat.VOORPROEF`)
         for ident, label in _bronnen([(tool, tekst)]):
-            gelezen.setdefault(ident, label)
+            if ident not in begin:
+                gelezen.setdefault(ident, label)
     gevonden = {i: lab for i, lab in _bronnen(zoeken) if i not in gelezen}
     return list(gelezen.items()), list(gevonden.items())
 
@@ -548,14 +554,15 @@ _OOK_GELEZEN = frozenset({"zoek_definitie", "search_begrippen", "get_begrip"})
 def gelezen_tekst(trace: Iterable[Any]) -> str:
     """De tekst van wat gelezen is: de resultaten van een leestool van elke bron, plus `_OOK_GELEZEN`. Een zoektreffer
     niet: die is gevonden (`gelezen_en_gevonden`)."""
-    from .resultaat import waarden
+    from .resultaat import waarden, zonder_voorproef
 
     delen = []
     for item in trace:
         tool, tekst = str(item[0]), str(item[1] or "")
         bron = bron_van(tool)
         if tool in _OOK_GELEZEN or (bron is not None and tool in bron.leestools):
-            delen.append(waarden(tekst))
+            # Het begin van een subdivisie is geen steun: het is alleen gevonden (`resultaat.VOORPROEF`).
+            delen.append(waarden(zonder_voorproef(tekst)))
     return "\n".join(delen)
 
 

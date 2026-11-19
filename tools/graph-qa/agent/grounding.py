@@ -519,7 +519,7 @@ def alleen_gelezen_wettekst(sources: list[Source], answer_text: str, aangehaald:
         return s.brontype in (None, "wettekst") and s.soort != "regeling" and bool(s.bwb_id)
 
     def gevonden(s: Source) -> bool:
-        return wet(s) and s.origin_tool in zoek
+        return wet(s) and (s.origin_tool in zoek or bool(s.voorproef))
 
     if not any(wet(s) and not gevonden(s) for s in sources):
         return sources
