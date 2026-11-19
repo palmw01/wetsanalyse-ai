@@ -42,10 +42,16 @@ async def _opzet() -> tuple[dict, str]:
     return await werkgebied_store.haal(wg["id"]), uit["elementen"][0]["id"]
 
 
+def _invoer(naam: str, eid: str) -> BegripInvoer:
+    """Een begrip rust altijd op een annotatie (422 `geen_passage`): hier het element als context, dat de primaire
+    duiding vrij laat."""
+    return BegripInvoer(inhoud=BegripInhoud(naam=naam), element_ids=[eid], rol="context")
+
+
 async def test_gelijktijdig_dezelfde_duiding_aan_twee_begrippen_levert_er_een():
     wg, eid = await _opzet()
-    a = await store.maak(wg, BegripInvoer(inhoud=BegripInhoud(naam="A")), "a", resolve)
-    b = await store.maak(wg, BegripInvoer(inhoud=BegripInhoud(naam="B")), "b", resolve)
+    a = await store.maak(wg, _invoer("A", eid), "a", resolve)
+    b = await store.maak(wg, _invoer("B", eid), "b", resolve)
     results = await asyncio.gather(
         store.koppel(wg, a["id"], KoppelInvoer(verwachte_revisie=1, element_ids=[eid]), "a", resolve),
         store.koppel(wg, b["id"], KoppelInvoer(verwachte_revisie=1, element_ids=[eid]), "b", resolve),
@@ -59,8 +65,8 @@ async def test_gelijktijdig_dezelfde_duiding_aan_twee_begrippen_levert_er_een():
 
 
 async def test_twee_gelijktijdige_wijzigingen_van_een_begrip_precies_een_412():
-    wg, _ = await _opzet()
-    b = await store.maak(wg, BegripInvoer(inhoud=BegripInhoud(naam="A")), "a", resolve)
+    wg, eid = await _opzet()
+    b = await store.maak(wg, _invoer("A", eid), "a", resolve)
     results = await asyncio.gather(
         store.wijzig(wg["id"], b["id"], BegripWijziging(verwachte_revisie=1, inhoud=BegripInhoud(naam="B")), "a"),
         store.wijzig(wg["id"], b["id"], BegripWijziging(verwachte_revisie=1, inhoud=BegripInhoud(naam="C")), "b"),
@@ -117,8 +123,8 @@ async def test_projectie_wacht_op_een_lopende_schrijftransactie(monkeypatch):
     from graafdb_fake import installeer
 
     nep = installeer(monkeypatch)
-    wg, _eid = await _opzet()
-    b = await store.maak(wg, BegripInvoer(inhoud=BegripInhoud(naam="Oud")), "a", resolve)
+    wg, eid = await _opzet()
+    b = await store.maak(wg, _invoer("Oud", eid), "a", resolve)
     async with store._gewijzigd(wg["id"], b["id"], b["revisie"], "a", "begrip-gewijzigd", {}) as (_c, _r, stand):
         stand["inhoud"] = {**stand["inhoud"], "naam": "Nieuw"}
         taak = asyncio.create_task(bp.projecteer(wg["id"]))
@@ -137,8 +143,8 @@ async def test_projectie_direct_na_de_commit(monkeypatch):
     from graafdb_fake import installeer
 
     nep = installeer(monkeypatch)
-    wg, _eid = await _opzet()
-    b = await store.maak(wg, BegripInvoer(inhoud=BegripInhoud(naam="Oud")), "a", resolve)
+    wg, eid = await _opzet()
+    b = await store.maak(wg, _invoer("Oud", eid), "a", resolve)
     bp._geschreven.clear()
     bp.activeer(True)
     try:

@@ -74,6 +74,7 @@ export const OORDEEL_TOON: Record<VoorbeeldOordeel, "groen" | "rood" | "geel"> =
 
 export const KOPPELROL_LABEL: Record<KoppelRol, string> = {
   duiding: "Duidt dit begrip aan",
+  afgeleid: "Afleidingsregel die dit begrip afleidt",
   definitie: "Ondersteunt de definitie",
   context: "Context",
 };
@@ -92,7 +93,7 @@ export const ACTUALITEIT_LABEL: Record<Actualiteit, string> = {
   verdwenen: "annotatie bestaat niet meer",
 };
 
-const ROL_VOLGORDE: Record<KoppelRol, number> = { duiding: 0, definitie: 1, context: 2 };
+const ROL_VOLGORDE: Record<KoppelRol, number> = { duiding: 0, afgeleid: 1, definitie: 2, context: 3 };
 
 /** Passages: eerst wat het begrip aanduidt, dan wat de definitie draagt, dan context; daarbinnen op
  *  vindplaats (natuurlijk: lid 2 vóór lid 10) en tekst. */
