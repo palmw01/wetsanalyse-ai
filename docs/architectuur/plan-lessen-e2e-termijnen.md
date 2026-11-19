@@ -546,8 +546,10 @@ De proef leverde hier weinig nieuws op dat al niet in een plan staat. Twee punte
 - **Meten**: geen gedragsmeting. Het is een regel in de api en tekst buiten de methodemarkers; dat ga ik na. De toets
   is dat de tussenbegrippen uit de proef op papier (*termijnregime*, *maandnummer van de dagtekening*) met de rol
   `afgeleid` te maken zijn, en een begrip zonder enige koppeling niet.
-- **Prioriteit en omvang**: P1, S. Het moet vóór de merge van #1760, anders ligt er een harde regel in de api die
-  de methode tegenspreekt.
+- **Prioriteit en omvang**: P1, S.
+- **Stand**: gebouwd in #1760 (19 nov 2026), op verzoek van de gebruiker. Daarin zitten de koppelrol `afgeleid` (alleen
+  op een Afleidingsregel, 422 `geen_afleidingsregel`), de poort, de projectie, de SHACL-vorm, het rapport en de
+  frontendtypen, en de tekst in de skill en in `api/CLAUDE.md`. Het impliciete element (open punt) volgt met L-X-1.
 
 **M-3a-1 — Een operatorbegrip ontstaat bij een formulering, niet in een lijst vooraf**
 
@@ -788,8 +790,7 @@ Elke bundel wordt samen getest en samen uitgerold (de werkwijze van `alles-samen
 verandert, wordt licht gemeten (één run, gerichte set). Drie runs alleen bij de annotatieketen, omdat het geel per run
 sterk varieert.
 
-0. **Eerst, vóór de merge van #1760**: M-3a-0. #1760 wordt bijgesteld naar "geen begrip zonder grondslag", met de rol
-   `afgeleid` voor een tussenresultaat. Anders ligt er een harde regel in de api die de methode tegenspreekt.
+0. **Gedaan**: M-3a-0 zit in #1760 ("geen begrip zonder grondslag", met de rol `afgeleid` voor een tussenresultaat).
 1. **Bundel 1, de methode volgen** (alleen docs, skill en het agentprofiel):
    - M-3a-1 (B5 bijstellen), M-3b-0 (de werkregels van het team), M-1-1 (bron als eindpunt), M-2-1, M-2-2, M-2-3,
      M-3a-2, M-3b-1 en M-3b-2;
