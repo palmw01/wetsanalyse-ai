@@ -28,6 +28,8 @@ class Oordeel(str, Enum):
 class KoppelRol(str, Enum):
     duiding = "duiding"                # het element duidt dit begrip aan (primair: één per element)
     definitie = "definitie"            # het element ondersteunt de definitie (bv. een brondefinitie)
+    afgeleid = "afgeleid"              # het element is de afleidingsregel die dit begrip afleidt: een tussenresultaat
+    #                                    zonder eigen formulering (M01 §2.2.2 en h.6; M02 §1.2)
     context = "context"                # het element geeft context, draagt het begrip niet
 
 

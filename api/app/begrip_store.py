@@ -48,7 +48,10 @@ from .werkgebied_store import _audit as werkgebied_audit, niet_gevonden, toets_r
 
 Resolver = Callable[[dict], Awaitable[dict]]
 
-DRAGEND = {"duiding", "definitie"}
+DRAGEND = {"duiding", "definitie", "afgeleid"}
+#: De rollen die zeggen wát het begrip is: een passage die het aanduidt, of de afleidingsregel die het afleidt.
+AANDUIDEND = {"duiding", "afgeleid"}
+AFLEIDINGSREGEL = "Afleidingsregel"
 
 
 GENERIEK = "generiek"
@@ -135,8 +138,8 @@ def poort(inhoud: dict, koppelingen: list[dict]) -> dict:
     if not eigen_toelichting(inhoud.get("context", "")):
         redenen.append("De toelichting ontbreekt.")
     dragend = [k for k in koppelingen if k["rol"] in DRAGEND and k["beoordeling"] != "afgewezen"]
-    if not any(k["rol"] == "duiding" for k in dragend):
-        redenen.append("Er is nog geen passage die dit begrip aanduidt.")
+    if not any(k["rol"] in AANDUIDEND for k in dragend):
+        redenen.append("Er is nog geen passage die dit begrip aanduidt, en geen afleidingsregel die het afleidt.")
     open_ = sum(k["beoordeling"] == "open" for k in dragend)
     if open_:
         redenen.append(_meervoud(open_, "1 dragende koppeling is nog niet beoordeeld.",
@@ -553,6 +556,8 @@ async def _koppel(conn, werkgebied_id: str, begrip_id: str, bewijs: dict[str, di
     bestaand = set((await conn.execute(select(k.c.element_id).where(
         k.c.begrip_id == begrip_id, k.c.rol == rol, k.c.verwijderd.is_(None)))).scalars().all())
     nieuw = [eid for eid in bewijs if eid not in bestaand]
+    if rol == "afgeleid":
+        toets_afgeleid([bewijs[eid] for eid in nieuw])
     if rol == "duiding" and nieuw:
         await _toets_primair(conn, werkgebied_id, begrip_id, nieuw)
     nu = db.utcnow()
@@ -616,6 +621,17 @@ GEEN_PASSAGE = ("Een begrip rust altijd op minstens één gemarkeerde passage. K
                 "begrip ontstaat, en maak het daaruit.")
 LAATSTE_PASSAGE = ("Dit is de laatste passage van het begrip, en een begrip rust altijd op minstens één gemarkeerde "
                    "passage. Koppel eerst een andere passage, of verwijder het begrip.")
+
+
+AFGELEID_GEEN_REGEL = ("De rol 'afgeleid' hoort bij de afleidingsregel die het begrip afleidt. Deze passage is geen "
+                       "afleidingsregel: kies een andere rol, of de markering van de regel.")
+
+
+def toets_afgeleid(bewijzen: Iterable[dict]) -> None:
+    """Een tussenresultaat rust op de afleidingsregel die het afleidt (M01 §2.2.2): de rol `afgeleid` alleen op een
+    element van die klasse, anders 422 `geen_afleidingsregel`."""
+    if any((b or {}).get("klasse") != AFLEIDINGSREGEL for b in bewijzen):
+        raise HTTPException(422, {"fout": "geen_afleidingsregel", "melding": AFGELEID_GEEN_REGEL})
 
 
 async def aantal_passages(conn, begrip_id: str) -> int:
@@ -821,8 +837,10 @@ async def wijzig_koppeling(werkgebied_id: str, begrip_id: str, koppeling_id: str
         if "beoordeling" in velden:
             detail["beoordeling"] = velden["beoordeling"]
         if "rol" in velden:
-            # Dezelfde regels als bij koppelen: per begrip één koppeling per element en rol, en
-            # hooguit één primaire duiding per element.
+            # Dezelfde regels als bij koppelen: per begrip één koppeling per element en rol, `afgeleid` alleen op
+            # een afleidingsregel, en hooguit één primaire duiding per element.
+            if velden["rol"] == "afgeleid":
+                toets_afgeleid([row.bewijs])
             dubbel = (await conn.execute(select(k.c.id).where(
                 k.c.begrip_id == begrip_id, k.c.element_id == row.element_id, k.c.rol == velden["rol"],
                 k.c.verwijderd.is_(None)))).first()

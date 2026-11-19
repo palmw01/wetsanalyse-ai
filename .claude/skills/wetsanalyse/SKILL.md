@@ -109,9 +109,9 @@ dat niet vast.
 ## D. Begrippen
 
 Een begrip is een analyse-uitkomst, geen wettelijke definitie. Het brengt de formuleringen samen die in het
-werkgebied hetzelfde aanduiden, met de passages waarop het rust. **Er bestaat geen begrip zonder annotatie**: elk begrip
-rust op minstens één gemarkeerde passage, en een tussenresultaat van een afleidingsregel zonder formulering in de tekst
-is geen begrip. De herkomst van een definitie telt: letterlijk uit
+werkgebied hetzelfde aanduiden, met de passages waarop het rust. **Er bestaat geen begrip zonder grondslag in een
+annotatie**: elk begrip rust op minstens één gemarkeerde passage. Een tussenresultaat van een afleidingsregel zonder eigen
+formulering krijgt wél een begrip; het rust op de markering van de afleidingsregel die het afleidt (rol `afgeleid`). De herkomst van een definitie telt: letterlijk uit
 de bron gaat voor samengesteld uit bronfragmenten, en dat gaat voor zelf geformuleerd. Een uitleg schrijf je op
 taalniveau B1. Zie [begrippen](references/begrippen.md) en [NL-SBB en B1](references/nl-sbb-en-b1.md).
 

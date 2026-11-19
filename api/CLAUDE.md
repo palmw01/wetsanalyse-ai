@@ -549,7 +549,10 @@ spoor D (*Werkgebied als node*).
   koppeling met een annotatie-element. `maak` weigert een nieuw begrip zonder `element_ids` (422 `geen_passage`, met
   `melding`), en `toets_passage` draait in de transactie van elke mutatie die een koppeling weghaalt of overzet
   (`ontkoppel`, `nieuwe-betekenis`): blijft er geen actieve koppeling over (over alle werkgebieden), dan 409
-  `laatste_passage` en gebeurt er niets. Een vervangen begrip is historie en telt niet mee. In het generieke kader
+  `laatste_passage` en gebeurt er niets. Een vervangen begrip is historie en telt niet mee. Een tussenresultaat zonder
+  eigen formulering is wél een begrip (de methode, M01 §2.2.2): het rust op de markering van de afleidingsregel die het
+  afleidt, met de koppelrol `afgeleid` (dragend, telt voor de poort als aanduidend). Die rol mag alleen op een element
+  van de klasse Afleidingsregel (422 `geen_afleidingsregel`, ook bij het wijzigen van een rol). In het generieke kader
   (ADR-006, aanvulling 19 nov 2026): een nieuwe betekenis ontstaat in een werkgebied met passages (`werkgebied_id`, 422
   `werkgebied_nodig`), `stop_gebruik` door het werkgebied met de laatste passages geeft 409 `laatste_passage`, en een
   werkgebied wissen neemt een generiek begrip mee als het daar zijn laatste passages had (`werkgebied_store.wis`). Een
