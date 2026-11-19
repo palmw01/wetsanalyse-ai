@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Afleidingsregels in Lex</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&family=Fira+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: een kop met de keuze A–D, daaronder per richting een uitleg en één werkplekvenster (gesprek links, artefact rechts). */
+:root {
+  --paper: #ffffff;
+  --surface: #f5f6f8;
+  --surface-2: #eceff3;
+  --ink: #1a1a1a;
+  --lint: #154273;
+  --muted: #4a5a6e;
+  --faint: #5f6a78;
+  --line: #d1d6dd;
+  --accent: #154273;
+  --accent-ink: #ffffff;
+  --link: #01689b;
+  --groen-bg: #e9f3e1; --groen-rand: #bcd9a8; --groen-tekst: #2c6608;
+  --geel-bg: #fbefe2;  --geel-rand: #e7c9a8;  --geel-tekst: #8e4600;
+  --rood-bg: #fbe7e5;  --rood-rand: #f0c0bc;  --rood-tekst: #b0261a;
+  --merk-markering: #ffd84d;
+  --schaduw: 0 4px 14px rgb(21 66 115 / 0.08), 0 1px 3px rgb(21 66 115 / 0.06);
+  --jas-ink: #1a1a1a;
+  --sans: "Fira Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "Fira Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121820; --surface: #1a222c; --surface-2: #222c38; --ink: #e8edf3; --lint: #9cc3ea; --muted: #a9b6c6;
+    --faint: #93a1b2; --line: #33404f; --accent: #7fb2e5; --accent-ink: #0c1a2a; --link: #8cc4ef;
+    --groen-bg: #1d2e17; --groen-rand: #3d6a2a; --groen-tekst: #a6d98a;
+    --geel-bg: #33261a; --geel-rand: #7a5a35; --geel-tekst: #f0bb7c;
+    --rood-bg: #3a1f1d; --rood-rand: #7a3a33; --rood-tekst: #f2a69d;
+    --schaduw: 0 4px 14px rgb(0 0 0 / 0.35); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121820; --surface: #1a222c; --surface-2: #222c38; --ink: #e8edf3; --lint: #9cc3ea; --muted: #a9b6c6;
+  --faint: #93a1b2; --line: #33404f; --accent: #7fb2e5; --accent-ink: #0c1a2a; --link: #8cc4ef;
+  --groen-bg: #1d2e17; --groen-rand: #3d6a2a; --groen-tekst: #a6d98a;
+  --geel-bg: #33261a; --geel-rand: #7a5a35; --geel-tekst: #f0bb7c;
+  --rood-bg: #3a1f1d; --rood-rand: #7a3a33; --rood-tekst: #f2a69d;
+  --schaduw: 0 4px 14px rgb(0 0 0 / 0.35); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px; }
+h1, h2, h3, h4 { text-wrap: balance; margin: 0; color: var(--lint); }
+h1 { font-size: 1.75rem; font-weight: 600; }
+h2 { font-size: 1.35rem; font-weight: 600; }
+h3 { font-size: 1rem; font-weight: 600; }
+p { margin: 0; }
+.intro { max-width: 68ch; color: var(--muted); margin-top: 6px; }
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--faint); font-weight: 600; }
+button { font: inherit; cursor: pointer; }
+button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--link); outline-offset: 2px; }
+
+/* De keuze */
+.keuze { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 22px; }
+.keuze button { text-align: left; border: 1px solid var(--line); background: var(--paper); color: var(--ink); border-radius: 8px; padding: 12px 14px; display: grid; gap: 2px; min-height: 64px; }
+.keuze button .l { font-family: var(--mono); font-size: 12px; color: var(--faint); }
+.keuze button .n { font-weight: 600; color: var(--lint); }
+.keuze button .k { font-size: 13px; color: var(--muted); }
+.keuze button[aria-selected="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--surface); }
+@media (max-width: 760px) { .keuze { grid-template-columns: repeat(2, minmax(0, 1fr)); } .keuze .k { display: none; } }
+
+/* Uitleg per richting */
+.richting { margin-top: 28px; }
+.uitleg { display: grid; grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, 1fr)); gap: 18px; margin-bottom: 18px; }
+.uitleg > div { min-width: 0; }
+.uitleg ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+.uitleg .kern { font-size: 15px; margin-top: 6px; }
+@media (max-width: 980px) { .uitleg { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (max-width: 560px) { .uitleg { grid-template-columns: minmax(0, 1fr); } }
+
+/* Het werkplekvenster */
+.venster { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: var(--schaduw); background: var(--paper); }
+.vkop { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--surface); flex-wrap: wrap; }
+.merk { width: 22px; height: 22px; border-radius: 5px; background: #154273; display: grid; align-content: center; gap: 3px; padding: 0 4px; flex: none; }
+.merk i { display: block; height: 2px; background: #fff; border-radius: 1px; }
+.merk i.m { height: 4px; background: linear-gradient(90deg, #fff 0 25%, #ffd84d 25% 80%, #fff 80%); }
+.vkop .naam { font-weight: 600; color: var(--lint); }
+.vkop .wg { font-size: 13px; color: var(--muted); }
+.vkop .wg b { color: var(--ink); font-weight: 500; }
+.kolommen { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); min-height: 560px; }
+@media (max-width: 860px) { .kolommen { grid-template-columns: minmax(0, 1fr); } .gesprek { border-right: 0 !important; border-bottom: 1px solid var(--line); } }
+.gesprek { border-right: 1px solid var(--line); padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; background: var(--paper); }
+.artefact { min-width: 0; background: var(--paper); display: flex; flex-direction: column; }
+
+.vraag { align-self: flex-end; max-width: 85%; background: var(--surface-2); border-radius: 14px 14px 4px 14px; padding: 9px 13px; font-size: 14.5px; }
+.lex { display: grid; gap: 8px; font-size: 14.5px; }
+.lex .wie { display: flex; gap: 7px; align-items: center; font-size: 12px; color: var(--faint); font-weight: 600; }
+.lex .wie .merk { width: 16px; height: 16px; border-radius: 4px; gap: 2px; padding: 0 3px; }
+.lex .wie .merk i { height: 1.5px; }
+.chip { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; background: var(--paper); text-align: left; color: var(--ink); width: 100%; }
+.chip .ic { width: 30px; height: 30px; border-radius: 6px; background: var(--surface); display: grid; place-items: center; flex: none; color: var(--lint); font-family: var(--mono); font-size: 12px; }
+.chip .t { display: grid; min-width: 0; }
+.chip .t span:first-child { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: .06em; }
+.chip .t span:last-child { font-weight: 500; overflow-wrap: anywhere; }
+.chip.actief { border-color: var(--accent); }
+.kaart { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--surface); display: grid; gap: 8px; font-size: 14px; }
+.kaart h4 { font-size: 14px; color: var(--ink); }
+.vraagkaart { border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; background: var(--paper); display: grid; gap: 10px; box-shadow: var(--schaduw); }
+.vraagkaart .vr { font-weight: 500; }
+.lezing { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; background: var(--paper); text-align: left; color: var(--ink); width: 100%; }
+.lezing .r { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--faint); margin-top: 2px; }
+.lezing[aria-checked="true"] { border-color: var(--accent); background: var(--surface); }
+.lezing[aria-checked="true"] .r { border-color: var(--accent); background: radial-gradient(var(--accent) 0 40%, transparent 45%); }
+.lezing small { display: block; color: var(--muted); font-size: 12.5px; }
+.stand { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13.5px; }
+.stand li { display: flex; gap: 8px; align-items: baseline; }
+.stand .s { font-family: var(--mono); font-size: 11px; min-width: 84px; }
+.invoer { margin-top: auto; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; color: var(--faint); font-size: 14px; display: flex; justify-content: space-between; gap: 8px; }
+.sugg { display: flex; flex-wrap: wrap; gap: 6px; }
+.sugg span { border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 12.5px; color: var(--lint); background: var(--paper); }
+
+/* Paneelkop */
+.pkop { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.pkop .titel { display: grid; gap: 2px; min-width: 0; }
+.pkop h3 { font-size: 17px; overflow-wrap: anywhere; }
+.pkop .acties { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+.versie { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; white-space: nowrap; }
+.kopknop { border: 1px solid var(--line); background: var(--paper); color: var(--ink); border-radius: 6px; padding: 3px 9px; font-size: 12.5px; }
+.pinhoud { padding: 14px 16px 18px; display: grid; gap: 14px; overflow-x: hidden; }
+.veld { display: grid; gap: 4px; }
+.veld > .eyebrow { margin-bottom: 1px; }
+.regeltekst { font-size: 15px; background: var(--surface); border-radius: 8px; padding: 10px 12px; }
+.regeltekst b { color: var(--lint); font-weight: 600; }
+.lijst { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; }
+.id { font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; border-radius: 999px; padding: 2px 9px; border: 1px solid; white-space: nowrap; font-weight: 500; }
+.pill.concept { color: var(--geel-tekst); background: var(--geel-bg); border-color: var(--geel-rand); }
+.pill.ok { color: var(--groen-tekst); background: var(--groen-bg); border-color: var(--groen-rand); }
+.pill.neutraal { color: var(--muted); background: var(--surface); border-color: var(--line); }
+.pill.rood { color: var(--rood-tekst); background: var(--rood-bg); border-color: var(--rood-rand); }
+.jas { display: inline-block; font-size: 11.5px; color: var(--jas-ink); border: 1px solid; border-radius: 4px; padding: 0 5px; white-space: nowrap; font-weight: 500; }
+.jas.afl { background: #d47479; border-color: #a55a5e; }
+.jas.vw { background: #b7d8cd; border-color: #8ea89f; }
+.jas.var { background: #f5dc5e; border-color: #bfab49; }
+.jas.par { background: #e6b8bb; border-color: #b38f91; }
+.jas.op { background: #d7e8e2; border-color: #a7b4b0; }
+.jas.tijd { background: #cbb8d6; border-color: #9e8fa6; }
+.jas.ro { background: #b2c3e3; border-color: #8a98b1; }
+.rust { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; color: var(--muted); }
+.voorstel { border: 1px solid var(--geel-rand); border-left-width: 4px; background: color-mix(in srgb, var(--geel-bg) 55%, var(--paper)); border-radius: 8px; padding: 10px 12px; display: grid; gap: 8px; font-size: 14px; }
+.voorstel.groen { border-color: var(--groen-rand); background: color-mix(in srgb, var(--groen-bg) 55%, var(--paper)); }
+.voorstel .kop { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--geel-tekst); font-weight: 600; }
+.voorstel.groen .kop { color: var(--groen-tekst); }
+.knoppen { display: flex; gap: 8px; flex-wrap: wrap; }
+.knop { min-height: 36px; padding: 0 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 500; font-size: 14px; }
+.knop.sec { background: var(--paper); color: var(--accent); }
+.knop[disabled] { opacity: .45; cursor: not-allowed; }
+.open { border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13.5px; display: grid; gap: 3px; }
+.open .s { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--geel-tekst); font-weight: 600; }
+.voet { margin-top: auto; border-top: 1px solid var(--line); padding: 12px 16px; display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+
+/* Beslistabel (B) */
+.tabelhouder { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; min-width: 540px; font-size: 13.5px; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+th { background: var(--surface); font-weight: 600; color: var(--lint); font-size: 12.5px; }
+tr:last-child td { border-bottom: 0; }
+td .jas { margin-top: 4px; }
+tr.nieuw td { background: color-mix(in srgb, var(--groen-bg) 60%, var(--paper)); }
+.zelfde { display: grid; gap: 4px; border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font-size: 13.5px; background: var(--surface); }
+
+/* Keten (C) */
+.keten { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); overflow-x: auto; }
+.keten svg { display: block; width: 100%; min-width: 520px; height: auto; }
+.keten text { font-family: var(--sans); }
+.kn rect { fill: var(--paper); stroke: var(--line); stroke-width: 1.2; }
+.kn.ok rect { fill: var(--groen-bg); stroke: var(--groen-rand); }
+.kn.bezig rect { fill: var(--geel-bg); stroke: var(--geel-tekst); stroke-width: 2; }
+.kn.af rect { fill: var(--surface-2); stroke: var(--line); stroke-dasharray: 4 3; }
+.kn .t1 { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.kn .t2 { fill: var(--muted); font-size: 11px; }
+.pijl { stroke: var(--faint); stroke-width: 1.3; fill: none; }
+.pijl.gat { stroke: var(--rood-tekst); stroke-dasharray: 4 3; }
+.pijlpunt { fill: var(--faint); }
+.legenda { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted); }
+
+/* Skelet (D) */
+.wettekst { font-family: var(--sans); font-size: 15px; line-height: 1.85; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.mk { border-radius: 3px; padding: 1px 2px; color: var(--jas-ink); box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.mk.afl { background: #d47479; } .mk.vw { background: #b7d8cd; } .mk.var { background: #f5dc5e; } .mk.tijd { background: #cbb8d6; } .mk.ro { background: #b2c3e3; }
+.mk.kand { background: transparent; outline: 2px dashed var(--geel-tekst); color: var(--ink); }
+.skelet { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 12px; font-size: 13.5px; align-items: baseline; }
+.skelet dt { color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.skelet dd { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.gat { color: var(--rood-tekst); font-weight: 500; }
+.ruststap { font-size: 13px; color: var(--muted); }
+
+.noot { margin-top: 14px; font-size: 13px; color: var(--faint); max-width: 80ch; }
+@media (prefers-reduced-motion: no-preference) { .flits { animation: flits .9s ease-out; } @keyframes flits { from { background: var(--groen-bg); } } }
+</style>
+
+<div class="wrap">
+  <p class="eyebrow">Activiteit 3b · werkgebied Termijnen · concept 19 nov 2026</p>
+  <h1>Afleidingsregels in Lex</h1>
+  <p class="intro">Vier richtingen voor hoe de afleidingsregels in de werkplek landen. Alle vier gebruiken hetzelfde datamodel en dezelfde regels-agent, met de regels die het team voor Termijnen opstelde (R1–R8). Ze verschillen in wat het artefact naast het gesprek is en waar de jurist besluit. Klik in elk venster de beslisstap door.</p>
+
+  <div class="keuze" role="tablist" aria-label="Richting">
+    <button role="tab" id="tab-a" aria-controls="r-a" aria-selected="true" data-r="a"><span class="l">A</span><span class="n">Regelkaart</span><span class="k">Een regel is een object, zoals een begrip</span></button>
+    <button role="tab" id="tab-b" aria-controls="r-b" aria-selected="false" data-r="b"><span class="l">B</span><span class="n">Beslistabel</span><span class="k">De gevallen per uitvoer als rijen</span></button>
+    <button role="tab" id="tab-c" aria-controls="r-c" aria-selected="false" data-r="c"><span class="l">C</span><span class="n">Regelketen</span><span class="k">De hiërarchie is het artefact</span></button>
+    <button role="tab" id="tab-d" aria-controls="r-d" aria-selected="false" data-r="d"><span class="l">D</span><span class="n">Skelet naar regel</span><span class="k">De regel ontstaat in de bepaling</span></button>
+  </div>
+
+  <!-- ===================== A ===================== -->
+  <section class="richting" id="r-a" role="tabpanel" aria-labelledby="tab-a">
+    <div class="uitleg">
+      <div><p class="eyebrow">Richting A</p><h2>Regelkaart</h2><p class="kern">Een regel is een levend object zoals een begrip: één kaart per regel, met voorstellen per veld, status, historie en herbeoordeling. Het artefact <i>Afleidingsregel</i> opent naast het gesprek; de verzameling staat op de werkgebiedpagina.</p></div>
+      <div><h3>Voor</h3><ul><li>Dezelfde componenten en knoppen als de begripskaart.</li><li>Het kleinste nieuwe vlak in de UI.</li><li>Eén adres, één historie en één herbeoordeling per regel.</li></ul></div>
+      <div><h3>Tegen</h3><ul><li>De samenhang tussen de regels zie je pas op de werkgebiedpagina.</li><li>Een beslistabel met drie gevallen is krap op een kaart.</li></ul></div>
+      <div><h3>Past bij de uitgangspunten</h3><ul><li>Volledig: voorstel per veld, besluiten op het artefact, geen Lex-knop erop.</li><li>Hergebruikt <code>KaartVoorstelKaart</code>, <code>PaneelKop</code> en de herbeoordeling.</li></ul></div>
+    </div>
+    <div class="venster">
+      <div class="vkop"><span class="merk" aria-hidden="true"><i></i><i class="m"></i><i></i></span><span class="naam">Lex</span><span class="wg">Werkgebied <b>Termijnen</b> · gesprek <b>Afleidingsregels</b></span></div>
+      <div class="kolommen">
+        <div class="gesprek">
+          <div class="vraag">Stel de regel voor het termijnbedrag op.</div>
+          <div class="lex">
+            <div class="wie"><span class="merk" aria-hidden="true"><i></i><i class="m"></i><i></i></span>Lex</div>
+            <p>Ik heb de drie afleidingsregels op "gelijke termijnen" in art. 9 lid 5, 6 en 7 IW 1990 samengevoegd tot één regel met drie gevallen. De uitvoer is <i>termijnbedrag</i>, de invoer het bedrag van de belastingaanslag en het aantal termijnen uit R1.</p>
+            <p>Eén veld vraagt je oordeel: het teken van de uitvoer. Mijn voorstel staat bij <i>Uitvoer</i>.</p>
+            <button class="chip actief" type="button"><span class="ic">R5</span><span class="t"><span>Afleidingsregel</span><span>Bepalen termijnbedrag</span></span></button>
+          </div>
+          <div class="lex" id="a-na" hidden>
+            <div class="wie"><span class="merk" aria-hidden="true"><i></i><i class="m"></i><i></i></span>Lex</div>
+            <p>R5 is geaccordeerd. De volgende regel in de keten is R6 <i>Bepalen wijze van uitbetaling</i>: die gebruikt het termijnbedrag.</p>
+            <div class="sugg"><span>Stel R6 op</span><span>Toon de open punten</span></div>
+          </div>
+          <div class="invoer"><span>Vraag Lex iets…</span><span>↵</span></div>
+        </div>
+        <div class="artefact">
+          <div class="pkop">
+            <div class="titel"><span class="eyebrow">Afleidingsregel · rekenregel</span><h3>Bepalen termijnbedrag</h3></div>
+            <div class="acties"><span class="pill concept" id="a-status">concept</span><span class="versie">‹ versie 2 van 2 · Nu ›</span><button class="kopknop" type="button">Exporteer</button></div>
+          </div>
+          <div class="pinhoud">
+            <div class="veld"><span class="eyebrow">Regeltekst (afgeleid uit de delen)</span>
+              <p class="regeltekst" id="a-tekst">Het <b>termijnbedrag</b> moet berekend worden als het <b>bedrag van de belastingaanslag</b> gedeeld door het <b>aantal termijnen</b>.</p></div>
+            <div class="veld"><span class="eyebrow">Regelbegrip</span><p>bepalen van het termijnbedrag <span class="id">27426263</span></p>
+              <div class="rust">rust op <span class="jas afl">Afleidingsregel</span> art. 9 lid 5 <span class="id">52525d2b22c8</span> · lid 6 <span class="id">264c4001bc2d</span> · lid 7 <span class="id">d963056fc488</span></div></div>
+            <div class="veld"><span class="eyebrow">Uitvoer</span><p id="a-uitvoer">termijnbedrag <span class="id">cbc694db · revisie 5</span></p>
+              <div class="rust">rust op <span class="jas var">Variabele</span> Leidraad Invordering 2008, 9.3 <span class="id">70ca61bc3d45</span> · de wet noemt het bedrag per termijn niet</div>
+              <div class="voorstel" id="a-voorstel">
+                <div class="kop"><span>Voorstel van Lex · uitvoer zonder teken</span><span>geel · vraagt oordeel</span></div>
+                <p>Met teken wordt het termijnbedrag van een teruggaaf negatief. R6 vergelijkt het met "ten hoogste € 49", en een negatief bedrag voldoet daar altijd aan, zodat elke teruggaaf in één keer zou worden uitbetaald. Zonder teken geldt de drempel voor beide; of het om betalen of uitbetalen gaat, volgt uit de rij van R1.</p>
+                <div class="knoppen"><button class="knop" type="button" id="a-overnemen">Overnemen</button><button class="knop sec" type="button">Aanpassen</button><button class="knop sec" type="button">Afwijzen</button></div>
+              </div></div>
+            <div class="veld"><span class="eyebrow">Invoer, op volgorde</span>
+              <ol class="lijst"><li>bedrag van de belastingaanslag <span class="id">c25b97af</span> <span id="a-teken">(met teken)</span></li><li>aantal termijnen <span class="id">de1bae54</span> · uitvoer van R1 <i>Bepalen aantal termijnen</i></li></ol></div>
+            <div class="veld"><span class="eyebrow">Bewerking</span><p>gedeeld door <span class="id">uit de operatorcatalogus · geen gemarkeerde formulering</span></p></div>
+            <div class="veld"><span class="eyebrow">Gevallen</span>
+              <ul class="lijst"><li><b>lid 5</b> · een positief bedrag <span class="jas var">Variabele</span> art. 13 lid 1 AWR <span class="id">dc43143ba8c4</span></li><li><b>lid 6</b> · een uit te betalen bedrag <span class="jas var">Variabele</span> <span class="id">6eec78b767f3</span></li><li><b>lid 7</b> · <span class="gat">skeletgat:</span> de tekst heeft geen formulering voor het bedrag</li></ul></div>
+            <div class="open"><span class="s">Open punt · beleid (activiteit 5)</span>De afronding van het termijnbedrag en waar het restant landt.</div>
+          </div>
+          <div class="voet"><span id="a-voet">Accorderen kan als het voorstel bij Uitvoer besloten is.</span><button class="knop" type="button" id="a-accorderen" disabled>Accorderen</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== B ===================== -->
+  <section class="richting" id="r-b" role="tabpanel" aria-labelledby="tab-b" hidden>
+    <div class="uitleg">
+      <div><p class="eyebrow">Richting B</p><h2>Beslistabel</h2><p class="kern">De vorm van een regel is de beslistabel: één uitvoer, met de gevallen als rijen die elkaar uitsluiten. Elke cel toont de markering waarop ze rust. Regels met dezelfde uitvoer staan naast elkaar, zodat je ziet hoe ze elkaar uitsluiten.</p></div>
+      <div><h3>Voor</h3><ul><li>Uitsluiting en ontbrekende gevallen zijn direct zichtbaar.</li><li>Dicht bij hoe een jurist en een uitvoerder rekenen.</li><li>De kortste weg naar de voorbeeldreeks (activiteit 4).</li></ul></div>
+      <div><h3>Tegen</h3><ul><li>In gesprek, kopieertekst en rapport moet de tabel als lijst.</li><li>Op een telefoon vraagt de tabel een eigen weergave.</li><li>Een regel met één geval voelt zwaar.</li></ul></div>
+      <div><h3>Past bij de uitgangspunten</h3><ul><li>Goed: de keuze loopt via een vraagkaart in het gesprek, het besluit landt op de rijen.</li><li>Vraagt één nieuw, generiek tabelcomponent voor elke regel.</li></ul></div>
+    </div>
+    <div class="venster">
+      <div class="vkop"><span class="merk" aria-hidden="true"><i></i><i class="m"></i><i></i></span><span class="naam">Lex</span><span class="wg">Werkgebied <b>Termijnen</b> · gesprek <b>Vervaldagen</b></span></div>
+      <div class="kolommen">
+        <div class="gesprek">
+          <div class="lex">
+            <div class="wie"><span class="merk" aria-hidden="true"><i></i><i class="m"></i><i></i></span>Lex</div>
+            <p>R2 en R4 leveren allebei een <i>vervaldag</i>. Ze sluiten elkaar uit via het aantal termijnen uit R1, op één geval na dat de tekst niet beslist. Dat is een interpretatiekeuze; ik kies hem niet voor je.</p>
+            <button class="chip actief" type="button"><span class="ic">R4</span><span class="t"><span>Afleidingsregel · beslistabel</span><span>Bepalen vervaldagen van de termijnen</span></span></button>
+          </div>
+          <div class="vraagkaart" role="radiogroup" aria-labelledby="b-vr">
+            <span class="eyebrow">Interpretatiekeuze 6 van 7</span>
+            <p class="vr" id="b-vr">Een aanslag als bedoeld in art. 9 lid 6 IW 1990 die tot één termijn leidt: valt die terug op de betaling ineens van lid 1?</p>
+            <button class="lezing" type="button" role="radio" aria-checked="false" data-l="ja"><span class="r"></span><span>Ja, terug naar lid 1<small>Lid 5 volzin 3 geldt ook hier: bij niet meer dan één termijn geldt de wettelijke betalingstermijn (R2).</small></span></button>
+            <button class="lezing" type="button" role="radio" aria-checked="false" data-l="nee"><span class="r"></span><span>Nee, lid 6 blijft gelden<small>Lid 6 wijkt af van het eerste én het vijfde lid; de ene termijn vervalt aan het eind van de maand van de dagtekening (R4, rij lid 6).</small></span></button>
+            <p class="ruststap">Rust op <span class="jas afl">Afleidingsregel</span> art. 9 lid 5 volzin 3 <span class="id">1d46b64dc6aa</span> en lid 6 <span class="id">c8429eaa55cb</span> · getoetst: niet</p>
+            <div class="knoppen"><button class="knop" type="button" id="b-kies" disabled>Kies deze lezing</button></div>
+          </div>
+          <div class="lex" id="b-na" hidden>
+            <div class="wie"><span class="merk" aria-hidden="true"><i></i><i class="m"></i><i></i></span>Lex</div>
+            <p id="b-natekst"></p>
+          </div>
+          <div class="invoer"><span>Vraag Lex iets…</span><span>↵</span></div>
+        </div>
+        <div class="artefact">
+          <div class="pkop">
+            <div class="titel"><span class="eyebrow">Afleidingsregel · rekenregel · beslistabel</span><h3>Bepalen vervaldagen van de termijnen</h3></div>
+            <div class="acties"><span class="pill concept" id="b-status">1 keuze open</span><span class="versie">‹ versie 3 van 3 · Nu ›</span><button class="kopknop" type="button">Exporteer</button></div>
+          </div>
+          <div class="pinhoud">
+            <div class="zelfde"><span class="eyebrow">Zelfde uitvoer: vervaldag <span class="id">08ffc11c</span></span>
+              <span><b>R2</b> Bepalen vervaldag bij betaling ineens · geldt <span id="b-r2">als de aanslag niet onder R1 valt, of R1 niet meer dan één termijn oplevert</span></span>
+              <span><b>R4</b> (deze regel) · geldt als R1 meer dan één termijn oplevert<span id="b-r4extra"></span></span></div>
+            <div class="tabelhouder">
+              <table>
+                <thead><tr><th>Geval</th><th>Eerste vervaldag</th><th>Volgende vervaldagen</th></tr></thead>
+                <tbody>
+                  <tr><td><b>lid 5</b><br><span class="jas afl">Afleidingsregel</span> <span class="id">e9f2f0428ec5</span></td><td>volgens R3: een maand na de dagtekening<br><span class="jas par">Parameter</span> Leidraad 9.5</td><td>telkens een maand later<br><span class="jas tijd">Tijdsaanduiding</span></td></tr>
+                  <tr id="b-rij6"><td><b>lid 6</b><span id="b-rij6x"></span><br><span class="jas afl">Afleidingsregel</span> <span class="id">c8429eaa55cb</span></td><td>de laatste dag van de maand van de dagtekening<br><span class="jas tijd">Tijdsaanduiding</span> "eind van de maand"</td><td>telkens een maand later</td></tr>
+                  <tr><td><b>lid 7</b><br><span class="jas afl">Afleidingsregel</span> <span class="id">8cfe37e92e8d</span></td><td>de laatste dag van de eerste maand van het jaar</td><td>telkens een maand later</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p style="font-size:13.5px">De reeks loopt door tot er evenveel vervaldagen zijn als het <b>aantal termijnen</b> (uitvoer van R1). Een termijn heeft in de wet geen volgnummer; de regel gebruikt er ook geen.</p>
+            <div class="veld"><span class="eyebrow">Interpretatiekeuzes bij deze regel</span>
+              <ul class="lijst"><li>"Eind van de maand" is de laatste dag van de kalendermaand, ook bij "telkens een maand later" · <span class="pill ok">gekozen</span> · beleid moet het bevestigen</li><li id="b-keuze">Lid 6 met één termijn en lid 1 · <span class="pill concept">open</span></li></ul></div>
+            <div class="open"><span class="s">Open punt · beleid (activiteit 5)</span>Vervaldagen bij een dagtekening op de 29e tot en met de 31e (R3, R4).</div>
+          </div>
+          <div class="voet"><span>De rijen sluiten elkaar uit · elke cel rust op een markering</span><button class="knop" type="button" id="b-accorderen" disabled>Accorderen</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== C ===================== -->
+  <section class="richting" id="r-c" role="tabpanel" aria-labelledby="tab-c" hidden>
+    <div class="uitleg">
+      <div><p class="eyebrow">Richting C</p><h2>Regelketen</h2><p class="kern">Het artefact <i>Afleidingsregels</i> is de hiërarchie van het werkgebied: regels en hun uitvoer van onder naar boven. Lex loopt er regel voor regel doorheen, zoals de bronselectie per deelvraag; de stand staat bij de api. Een knoop opent de regel in hetzelfde paneel.</p></div>
+      <div><h3>Voor</h3><ul><li>Samenhang en voortgang in één beeld.</li><li>Een invoer zonder regel, of een gat tussen twee regels, valt op.</li><li>Laat zien welke regel welk deel van de analysevraag draagt.</li></ul></div>
+      <div><h3>Tegen</h3><ul><li>Het diagram vraagt de meeste bouw.</li><li>Bij twintig regels wordt het druk.</li><li>Eén regel beoordelen zit één klik dieper.</li></ul></div>
+      <div><h3>Past bij de uitgangspunten</h3><ul><li>Goed: de code kiest de volgende regel, de jurist besluit per regel.</li><li>Moet het bestaande graafcomponent hergebruiken, geen tweede graafweergave.</li></ul></div>
+    </div>
+    <div class="venster">
+      <div class="vkop"><span class="merk" aria-hidden="true"><i></i><i class="m"></i><i></i></span><span class="naam">Lex</span><span class="wg">Werkgebied <b>Termijnen</b> · gesprek <b>Afleidingsregels opstellen</b></span></div>
+      <div class="kolommen">
+        <div class="gesprek">
+          <div class="vraag">Help mij de afleidingsregels van dit werkgebied op te stellen.</div>
+          <div class="kaart">
+            <h4>Stand per regel, van onder naar boven</h4>
+            <ul class="stand" id="c-stand">
+              <li><span class="s pill ok">beoordeeld</span>R1 Bepalen aantal termijnen</li>
+              <li><span class="s pill ok">beoordeeld</span>R3 Vervaldag een maand na de dagtekening</li>
+              <li><span class="s pill ok">beoordeeld</span>R2 Vervaldag bij betaling ineens</li>
+              <li><span class="s pill ok">beoordeeld</span>R4 Vervaldagen van de termijnen</li>
+              <li><span class="s pill ok">beoordeeld</span>R5 Bepalen termijnbedrag</li>
+              <li id="c-st6"><span class="s pill concept">in behandeling</span>R6 Bepalen wijze van uitbetaling</li>
+              <li id="c-st7"><span class="s pill neutraal">niet gestart</span>R7 Bepalen tijdstip van verrekening</li>
+            </ul>
+          </div>
+          <div class="lex">
+            <div class="wie"><span class="merk" aria-hidden="true"><i></i><i class="m"></i><i></i></span>Lex</div>
+            <p>R6 bouwt op het termijnbedrag uit R5. De regel rust op Leidraad Invordering 2008, 9.3: beleid, geen wet. Ik heb hem daarom voorgesteld als beleidsregel. De drempel van € 49 heeft nog geen vastgesteld tijdvak.</p>
+            <button class="chip actief" type="button"><span class="ic">⇅</span><span class="t"><span>Afleidingsregels</span><span>Termijnen · 7 regels, 1 afgewezen</span></span></button>
+          </div>
+          <div class="lex" id="c-na" hidden>
+            <div class="wie"><span class="merk" aria-hidden="true"><i></i><i class="m"></i><i></i></span>Lex</div>
+            <p>R6 staat als beleidsregel. Volgende in de keten: R7 <i>Bepalen tijdstip van verrekening</i>. Die gebruikt de vervaldag uit R4. Het tijdstip bij uitbetaling in één keer staat in geen van beide regels; dat zet ik bij de open punten.</p>
+            <div class="sugg"><span>Ga door met R7</span><span>Eerst de open punten</span></div>
+          </div>
+          <div class="invoer"><span>Vraag Lex iets…</span><span>↵</span></div>
+        </div>
+        <div class="artefact">
+          <div class="pkop">
+            <div class="titel"><span class="eyebrow">Afleidingsregels · werkgebied Termijnen</span><h3>Afleidingshiërarchie</h3></div>
+            <div class="acties"><span class="pill neutraal" id="c-teller">5 van 7 beoordeeld</span><span class="versie">‹ versie 6 van 6 · Nu ›</span><button class="kopknop" type="button">Exporteer</button></div>
+          </div>
+          <div class="pinhoud">
+            <div class="keten" role="img" aria-label="Afleidingshiërarchie van Termijnen: R1 en R3 onderaan, daarop R2, R4 en R5, daarop R6 en R7.">
+              <svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg">
+                <defs><marker id="pp" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 z" class="pijlpunt"/></marker></defs>
+                <!-- pijlen: van invoer (onder) naar regel (boven) -->
+                <path class="pijl" d="M110 232 C110 200 100 190 100 168" marker-end="url(#pp)"/>
+                <path class="pijl" d="M130 232 C200 200 300 190 320 168" marker-end="url(#pp)"/>
+                <path class="pijl" d="M150 232 C300 205 500 195 540 168" marker-end="url(#pp)"/>
+                <path class="pijl" d="M380 232 C360 200 330 190 320 168" marker-end="url(#pp)"/>
+                <path class="pijl" d="M320 122 C320 100 330 90 340 66" marker-end="url(#pp)"/>
+                <path class="pijl" d="M540 122 C540 100 545 90 548 66" marker-end="url(#pp)"/>
+                <line class="pijl gat" x1="474" y1="43" x2="420" y2="43"/>
+                <text x="404" y="100" font-size="10" style="fill:var(--rood-tekst)">gat: tijdstip bij één keer</text>
+                <!-- R2 sluit R4 uit -->
+                <line x1="170" y1="150" x2="250" y2="150" class="pijl" stroke-dasharray="2 3"/>
+                <text x="182" y="142" font-size="9.5" style="fill:var(--faint)">sluiten uit</text>
+                <!-- knopen -->
+                <g class="kn ok"><rect x="30" y="232" width="200" height="46" rx="8"/><text class="t1" x="44" y="252">R1 Bepalen aantal termijnen</text><text class="t2" x="44" y="268">→ aantal termijnen · 3 gevallen</text></g>
+                <g class="kn ok"><rect x="300" y="232" width="190" height="46" rx="8"/><text class="t1" x="314" y="252">R3 Vervaldag 9.5</text><text class="t2" x="314" y="268">→ vervaldag · beleidsregel</text></g>
+                <g class="kn ok"><rect x="20" y="122" width="150" height="46" rx="8"/><text class="t1" x="34" y="142">R2 Betaling ineens</text><text class="t2" x="34" y="158">→ vervaldag</text></g>
+                <g class="kn ok"><rect x="250" y="122" width="150" height="46" rx="8"/><text class="t1" x="264" y="142">R4 Vervaldagen</text><text class="t2" x="264" y="158">→ vervaldag · 3 gevallen</text></g>
+                <g class="kn ok"><rect x="470" y="122" width="150" height="46" rx="8"/><text class="t1" x="484" y="142">R5 Termijnbedrag</text><text class="t2" x="484" y="158">→ termijnbedrag</text></g>
+                <g class="kn" id="c-k7"><rect x="270" y="20" width="150" height="46" rx="8"/><text class="t1" x="284" y="40">R7 Tijdstip verrekening</text><text class="t2" x="284" y="56">→ tijdstip · 2 gevallen</text></g>
+                <g class="kn bezig" id="c-k6"><rect x="474" y="20" width="150" height="46" rx="8"/><text class="t1" x="488" y="40">R6 Wijze uitbetaling</text><text class="t2" x="488" y="56">→ wijze · beleid</text></g>
+                <g class="kn af"><rect x="30" y="20" width="200" height="46" rx="8"/><text class="t1" x="44" y="40">R8 art. 24 lid 2 IW 1990</text><text class="t2" x="44" y="56">afgewezen: rechtsbetrekking</text></g>
+              </svg>
+            </div>
+            <div class="legenda"><span class="pill ok">beoordeeld</span><span class="pill concept">in behandeling</span><span class="pill neutraal">niet gestart</span><span class="pill rood">gat in de keten</span></div>
+            <div class="veld" style="border-top:1px solid var(--line);padding-top:12px">
+              <span class="eyebrow">Geopend: R6 · beslisregel · beleid</span>
+              <h3 style="color:var(--ink)">Bepalen wijze van uitbetaling</h3>
+              <p class="regeltekst">De <b>wijze van uitbetaling</b> is <i>in één keer</i> indien aan alle volgende voorwaarden is voldaan: het gaat om een voorlopige teruggaaf; het <b>termijnbedrag</b> is <b>ten hoogste</b> de <b>drempel voor uitbetaling in één keer</b>; er ligt geen <b>derdenbeslag</b>. Anders is de wijze van uitbetaling <i>in maandelijkse termijnen</i>.</p>
+              <div class="rust">rust op <span class="jas afl">Afleidingsregel</span> Leidraad 9.3 <span class="id">0fb9888eeb85</span> <span class="jas op">Operator</span> ten hoogste <span class="id">ca0b687b</span> <span class="jas vw">Voorwaarde</span> <span class="id">d7d4d9913a3d</span></div>
+              <ul class="lijst"><li><b>Parameter</b> drempel voor uitbetaling in één keer <span class="id">82165e28</span> = € 49 per maand · tijdvak niet vastgesteld</li><li><b>Invoer</b> termijnbedrag · uitvoer van R5 <span class="pill ok">beoordeeld</span></li></ul>
+            </div>
+          </div>
+          <div class="voet"><span id="c-voet">Brontype: beleid. Accorderen zet de regel als beleidsregel.</span><button class="knop" type="button" id="c-accorderen">Accorderen als beleidsregel</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== D ===================== -->
+  <section class="richting" id="r-d" role="tabpanel" aria-labelledby="tab-d" hidden>
+    <div class="uitleg">
+      <div><p class="eyebrow">Richting D</p><h2>Skelet naar regel</h2><p class="kern">De regel ontstaat in de bepaling. Het artefact is de annotatie van het lid, met het regelskelet eronder; de jurist dicht de gaten, en het geval van de regel verschijnt als afgeleide tekst. Pas als alle leden met dezelfde uitvoer een compleet skelet hebben, voegt Lex ze samen tot één regel.</p></div>
+      <div><h3>Voor</h3><ul><li>De sterkste herleiding: de regel staat naast de wettekst.</li><li>Dwingt een goed skelet af (activiteit 2c).</li><li>Geen nieuw artefact om te leren.</li></ul></div>
+      <div><h3>Tegen</h3><ul><li>Een beslistabel over drie leden past niet in de weergave van één lid.</li><li>De regel als geheel heeft geen eigen plek om te beoordelen.</li><li>De annotatie-UI groeit met werk van activiteit 3.</li></ul></div>
+      <div><h3>Past bij de uitgangspunten</h3><ul><li>Deels: brongetrouw en herleidbaar, maar de grens tussen activiteit 2 en 3 vervaagt in de UI.</li></ul></div>
+    </div>
+    <div class="venster">
+      <div class="vkop"><span class="merk" aria-hidden="true"><i></i><i class="m"></i><i></i></span><span class="naam">Lex</span><span class="wg">Werkgebied <b>Termijnen</b> · gesprek <b>Art. 9 lid 6</b></span></div>
+      <div class="kolommen">
+        <div class="gesprek">
+          <div class="vraag">Is het skelet van art. 9 lid 6 klaar voor een regel?</div>
+          <div class="lex">
+            <div class="wie"><span class="merk" aria-hidden="true"><i></i><i class="m"></i><i></i></span>Lex</div>
+            <p>Bijna. Uitvoer en invoer staan, maar twee dingen ontbreken voor het geval lid 6 van R1 <i>Bepalen aantal termijnen</i>:</p>
+            <ul class="lijst"><li>"die een uit te betalen bedrag behelst" is niet gemarkeerd. Ik stel het voor als Voorwaarde; je ziet het gestippeld in de tekst.</li><li>Lid 6 verwijst naar een aanslag "als bedoeld in het vijfde lid". Of een voorlopige aanslag winstaandeel daaronder valt, hangt af van hoe je art. 72 Mbw leest.</li></ul>
+            <button class="chip actief" type="button"><span class="ic">JAS</span><span class="t"><span>JAS-annotatie</span><span>Invorderingswet 1990, art. 9 lid 6</span></span></button>
+          </div>
+          <div class="vraagkaart" role="radiogroup" aria-labelledby="d-vr">
+            <span class="eyebrow">Interpretatiekeuze 1 van 7</span>
+            <p class="vr" id="d-vr">Art. 72 Mbw verklaart de Invorderingswet 1990 van overeenkomstige toepassing. Hoe werkt dat door in lid 5 en 6?</p>
+            <button class="lezing" type="button" role="radio" aria-checked="false" data-l="A"><span class="r"></span><span>Lezing A<small>Het winstaandeel geldt als vennootschapsbelasting.</small></span></button>
+            <button class="lezing" type="button" role="radio" aria-checked="false" data-l="B"><span class="r"></span><span>Lezing B<small>Lid 5 en 6 gelden niet voor het winstaandeel.</small></span></button>
+            <button class="lezing" type="button" role="radio" aria-checked="false" data-l="C"><span class="r"></span><span>Lezing C<small>Het winstaandeel is de belasting waarop de aanslag rust; een voorlopige aanslag winstaandeel valt onder lid 5 en 6.</small></span></button>
+            <p class="ruststap">Getoetst: niet aan de memorie van toelichting of rechtspraak. Dat staat bij de keuze.</p>
+            <div class="knoppen"><button class="knop" type="button" id="d-kies" disabled>Kies deze lezing</button></div>
+          </div>
+          <div class="lex" id="d-na" hidden>
+            <div class="wie"><span class="merk" aria-hidden="true"><i></i><i class="m"></i><i></i></span>Lex</div>
+            <p id="d-natekst"></p>
+          </div>
+          <div class="invoer"><span>Vraag Lex iets…</span><span>↵</span></div>
+        </div>
+        <div class="artefact">
+          <div class="pkop">
+            <div class="titel"><span class="eyebrow">JAS-annotatie · Invorderingswet 1990</span><h3>Art. 9 lid 6</h3></div>
+            <div class="acties"><span class="pill concept" id="d-status">laag heropend</span><span class="versie">‹ versie 4 van 4 · Nu ›</span><button class="kopknop" type="button">Exporteer</button></div>
+          </div>
+          <div class="pinhoud">
+            <p class="wettekst">In afwijking van het eerste en het vijfde lid is <span class="mk ro">een belastingaanslag als bedoeld in het vijfde lid</span>, <span class="mk kand" id="d-kand">die een uit te betalen bedrag behelst</span>, <span class="mk afl">invorderbaar in zoveel gelijke termijnen als er met inbegrip van de maand die in de dagtekening van het aanslagbiljet is vermeld, nog maanden van het jaar overblijven</span>. De eerste termijn vervalt <span class="mk tijd">aan het eind van de maand van de dagtekening van het aanslagbiljet</span> en elk van de volgende termijnen <span class="mk tijd">telkens een maand later</span>.</p>
+            <p class="id">Toestand 1 okt 2026 · jci1.3:c:BWBR0004770&amp;hoofdstuk=II&amp;artikel=9&amp;lid=6</p>
+            <div class="voorstel" id="d-voorstel">
+              <div class="kop"><span>Voorstel van Lex · nieuwe markering</span><span>geel</span></div>
+              <p>"die een uit te betalen bedrag behelst" als <span class="jas vw">Voorwaarde</span>, met de relatie <code>voorwaarde</code> naar de afleidingsregel van dit lid.</p>
+              <div class="knoppen"><button class="knop" type="button" id="d-overnemen">Overnemen</button><button class="knop sec" type="button">Aanpassen</button><button class="knop sec" type="button">Afwijzen</button></div>
+            </div>
+            <div class="veld"><span class="eyebrow">Regelskelet van de afleidingsregel</span>
+              <dl class="skelet">
+                <dt>uitvoer</dt><dd>aantal termijnen <span class="id">de1bae54</span></dd>
+                <dt>invoer</dt><dd>1. jaar <span class="id">0337495b</span> 2. dagtekening van het aanslagbiljet <span class="id">11c714db</span></dd>
+                <dt>voorwaarde</dt><dd id="d-vw"><span class="gat">ontbreekt</span></dd>
+                <dt>uitzondering</dt><dd><code>uitzondering_op</code> lid 1, lid 5</dd>
+                <dt>lezing</dt><dd id="d-lez"><span class="gat">art. 72 Mbw niet gekozen</span></dd>
+              </dl></div>
+            <div class="veld"><span class="eyebrow">Geval lid 6 van R1, afgeleid</span>
+              <p class="regeltekst" id="d-geval" style="color:var(--faint)">Nog niet af te leiden: het skelet heeft een gat.</p></div>
+          </div>
+          <div class="voet"><span id="d-voet">Lid 5 compleet · lid 6 open · lid 7 compleet</span><span class="pill neutraal" id="d-samen">samenvoegen tot R1 kan nog niet</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="noot">Mock-up, geen werkende app. De regels, ids, keuzes en open punten komen uit het werk van het team in werkgebied Termijnen op acceptatie (19 nov 2026); de wettekst van art. 9 lid 6 IW 1990 is letterlijk de toestand van 1 okt 2026. Het plan staat in <code>docs/architectuur/plan-afleidingsregels-in-lex.md</code>.</p>
+</div>
+
+<script>
+(function () {
+  const ids = ["a", "b", "c", "d"];
+  const tabs = document.querySelectorAll('.keuze [role="tab"]');
+  function toon(r) {
+    if (!ids.includes(r)) r = "a";
+    tabs.forEach(t => t.setAttribute("aria-selected", String(t.dataset.r === r)));
+    ids.forEach(i => { document.getElementById("r-" + i).hidden = i !== r; });
+  }
+  tabs.forEach(t => t.addEventListener("click", () => { toon(t.dataset.r); try { history.replaceState(null, "", "#" + t.dataset.r); } catch (e) {} }));
+  window.addEventListener("hashchange", () => toon(location.hash.slice(1)));
+  toon(location.hash.slice(1));
+
+  const $ = id => document.getElementById(id);
+  const flits = el => { el.classList.remove("flits"); void el.offsetWidth; el.classList.add("flits"); };
+
+  // A: voorstel overnemen, dan accorderen
+  $("a-overnemen").addEventListener("click", () => {
+    const v = $("a-voorstel");
+    v.classList.add("groen");
+    v.innerHTML = '<div class="kop"><span>Overgenomen · uitvoer zonder teken</span><span>revisie 6</span></div><p>Het termijnbedrag heeft nu geen teken. De regeltekst is opnieuw afgeleid.</p>';
+    $("a-uitvoer").innerHTML = 'termijnbedrag <span class="id">cbc694db · revisie 6 · zonder teken</span>';
+    $("a-teken").textContent = "(zonder teken)";
+    $("a-tekst").innerHTML = 'Het <b>termijnbedrag</b> moet berekend worden als het <b>bedrag van de belastingaanslag</b> zonder teken <b>gedeeld door</b> het <b>aantal termijnen</b>.';
+    flits($("a-tekst"));
+    $("a-accorderen").disabled = false;
+    $("a-voet").textContent = "Uitvoer en invoer hebben beoordeelde begrippen. Het skeletgat bij lid 7 blijft een signaal.";
+  });
+  $("a-accorderen").addEventListener("click", () => {
+    const s = $("a-status"); s.className = "pill ok"; s.textContent = "geaccordeerd";
+    $("a-accorderen").disabled = true; $("a-accorderen").textContent = "Geaccordeerd";
+    $("a-na").hidden = false;
+  });
+
+  // B en D: lezing kiezen in een vraagkaart
+  function vraagkaart(sectie, knop, kies) {
+    const lez = document.querySelectorAll("#" + sectie + " .lezing");
+    let gekozen = null;
+    lez.forEach(l => l.addEventListener("click", () => {
+      lez.forEach(x => x.setAttribute("aria-checked", String(x === l)));
+      gekozen = l.dataset.l; $(knop).disabled = false;
+    }));
+    $(knop).addEventListener("click", () => { if (gekozen) { kies(gekozen); $(knop).disabled = true; $(knop).textContent = "Gekozen"; lez.forEach(x => x.disabled = true); } });
+  }
+  vraagkaart("r-b", "b-kies", l => {
+    $("b-na").hidden = false;
+    if (l === "nee") {
+      $("b-natekst").innerHTML = "Vastgelegd als keuze bij R2 en R4: lid 6 met één termijn valt níét terug op lid 1. R2 sluit lid 6 nu uit, en R4 rij lid 6 geldt ook bij één termijn. De keuze staat als niet getoetst.";
+      $("b-r2").textContent = "als de aanslag niet onder R1 valt, of R1 niet meer dan één termijn oplevert, behalve bij een aanslag van lid 6";
+      $("b-r4extra").textContent = ", en bij lid 6 ook bij één termijn";
+      $("b-rij6x").innerHTML = ' <span class="pill ok">ook bij één termijn</span>';
+    } else {
+      $("b-natekst").innerHTML = "Vastgelegd als keuze bij R2 en R4: lid 6 met één termijn valt terug op lid 1. R2 dekt nu ook dat geval; R4 rij lid 6 geldt alleen bij meer dan één termijn. De keuze staat als niet getoetst.";
+      $("b-r4extra").textContent = " (ook bij lid 6)";
+      $("b-rij6x").innerHTML = ' <span class="pill neutraal">meer dan één termijn</span>';
+    }
+    $("b-rij6").classList.add("nieuw");
+    $("b-keuze").innerHTML = 'Lid 6 met één termijn en lid 1 · <span class="pill ok">gekozen</span> · niet getoetst';
+    const s = $("b-status"); s.className = "pill neutraal"; s.textContent = "concept";
+    $("b-accorderen").disabled = false;
+  });
+  $("b-accorderen").addEventListener("click", () => { const s = $("b-status"); s.className = "pill ok"; s.textContent = "geaccordeerd"; $("b-accorderen").disabled = true; $("b-accorderen").textContent = "Geaccordeerd"; });
+
+  // C: R6 accorderen als beleidsregel
+  $("c-accorderen").addEventListener("click", () => {
+    $("c-k6").setAttribute("class", "kn ok");
+    $("c-k7").setAttribute("class", "kn bezig");
+    $("c-st6").innerHTML = '<span class="s pill ok">beoordeeld</span>R6 Bepalen wijze van uitbetaling · beleidsregel';
+    $("c-st7").innerHTML = '<span class="s pill concept">in behandeling</span>R7 Bepalen tijdstip van verrekening';
+    $("c-teller").textContent = "6 van 7 beoordeeld";
+    $("c-voet").textContent = "R6 geaccordeerd als beleidsregel. De code kiest R7 als volgende.";
+    $("c-accorderen").disabled = true; $("c-accorderen").textContent = "Geaccordeerd";
+    $("c-na").hidden = false;
+  });
+
+  // D: markering overnemen en lezing kiezen; samen maken ze het geval af
+  let dVw = false, dLez = null;
+  function dBijwerken() {
+    if (dVw && dLez) {
+      const g = $("d-geval"); g.style.color = "";
+      g.innerHTML = 'Het <b>aantal termijnen</b> is het aantal maanden van het <b>jaar</b> dat overblijft, <b>met inbegrip van</b> de maand van de <b>dagtekening van het aanslagbiljet</b>, indien de aanslag een aanslag als bedoeld in lid 5 is die een uit te betalen bedrag behelst' + (dLez === "C" ? ', ook een voorlopige aanslag winstaandeel (lezing C)' : dLez === "B" ? ', niet een voorlopige aanslag winstaandeel (lezing B)' : ', met het winstaandeel als vennootschapsbelasting (lezing A)') + ', en de dagtekening in het jaar ligt.';
+      flits(g);
+      $("d-voet").textContent = "Lid 5 compleet · lid 6 compleet · lid 7 compleet";
+      const s = $("d-samen"); s.className = "pill ok"; s.textContent = "klaar om samen te voegen tot R1";
+      const st = $("d-status"); st.className = "pill ok"; st.textContent = "skelet compleet";
+    }
+  }
+  $("d-overnemen").addEventListener("click", () => {
+    const k = $("d-kand"); k.className = "mk vw";
+    const v = $("d-voorstel"); v.classList.add("groen");
+    v.innerHTML = '<div class="kop"><span>Overgenomen · nieuwe Voorwaarde</span><span>element 02c651028863</span></div><p>De relatie <code>voorwaarde</code> hangt aan de afleidingsregel van dit lid.</p>';
+    $("d-vw").innerHTML = '"die een uit te betalen bedrag behelst" <span class="id">02c651028863</span>';
+    dVw = true; dBijwerken();
+  });
+  vraagkaart("r-d", "d-kies", l => {
+    dLez = l;
+    $("d-na").hidden = false;
+    $("d-natekst").innerHTML = "Lezing " + l + " staat als keuze bij het werkgebied, gekoppeld aan R1 en R8, als niet getoetst." + (dVw ? " Het geval lid 6 is nu af te leiden; zie het artefact." : " Neem nog de voorgestelde Voorwaarde over, dan is het geval lid 6 af te leiden.");
+    $("d-lez").innerHTML = "lezing " + l + ' · <span class="pill neutraal">niet getoetst</span>';
+    dBijwerken();
+  });
+})();
+</script>
+
+</html>
