@@ -1015,12 +1015,21 @@ async def stop_gebruik(werkgebied_id: str, begrip_id: str, actor: str) -> dict:
         await conn.execute(update(g).where(g.c.id == rij.id).values(verwijderd=nu))
         await conn.execute(update(k).where(k.c.begrip_id == begrip_id, k.c.werkgebied_id == werkgebied_id,
                                            k.c.verwijderd.is_(None)).values(verwijderd=nu))
+        # Draagt dit werkgebied de laatste passages, dan kan het niet los: verwijder dan het begrip (dat mag, zolang
+        # alleen dit werkgebied het gebruikt).
+        status = (await conn.execute(select(db.begrippen.c.status).where(db.begrippen.c.id == begrip_id))).scalar()
+        if status != "vervangen" and not await aantal_passages(conn, begrip_id):
+            raise HTTPException(409, {"fout": "laatste_passage", "melding": "Dit werkgebied draagt de laatste passages "
+                                      "van dit generieke begrip, en een begrip rust altijd op een annotatie. Laat het "
+                                      "eerst in een ander werkgebied passages krijgen, of verwijder het begrip."})
         await werkgebied_audit(conn, werkgebied_id, actor, "begrip-niet-meer-gebruikt", {"begrip_id": begrip_id})
     return {"gestopt": begrip_id}
 
 
 async def verwijder_generiek(begrip_id: str, verwacht: int, actor: str) -> dict:
-    """Echt wissen, maar niet zolang een werkgebied het begrip gebruikt: dat raakt die analyses (409 `in_gebruik`)."""
+    """Echt wissen, maar niet zolang twee of meer werkgebieden het begrip gebruiken: dat raakt andere analyses (409
+    `in_gebruik`). Gebruikt één werkgebied het, dan gaat het gebruik mee, net als bij een lokaal begrip: dat werkgebied
+    kan het niet eerst loslaten, want het draagt dan de laatste passages (`stop_gebruik`)."""
     b = db.begrippen
     async with db.get_engine().begin() as conn:
         row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id.is_(None))
@@ -1030,12 +1039,16 @@ async def verwijder_generiek(begrip_id: str, verwacht: int, actor: str) -> dict:
         if row.status == "vervangen":
             raise HTTPException(409, {"fout": "vervangen", "melding": "Dit begrip is vervangen door een opvolger."})
         toets_revisie(row.revisie, verwacht, "dit begrip")
-        if gebruikers := await _gebruikers(conn, begrip_id):
-            plek = "1 werkgebied" if len(gebruikers) == 1 else f"{len(gebruikers)} werkgebieden"
+        gebruikers = await _gebruikers(conn, begrip_id)
+        if len(gebruikers) > 1:
             raise HTTPException(409, {"fout": "in_gebruik", "werkgebieden": gebruikers,
-                                      "melding": f"Dit begrip wordt nog in {plek} gebruikt."})
+                                      "melding": f"Dit begrip wordt nog in {len(gebruikers)} werkgebieden gebruikt."})
         hersteld = await _herstel_voorgangers(conn, None, begrip_id, actor, db.utcnow())
         await wis_begrippen(conn, [begrip_id])
+        for wid in set(gebruikers) - {row.ontstaan_in, ""}:
+            await werkgebied_audit(conn, wid, actor, "begrip-verwijderd",
+                                   {"begrip_id": begrip_id, "naam": (row.inhoud or {}).get("naam", ""),
+                                    "begrip_revisie": row.revisie, "hersteld": hersteld})
         if row.ontstaan_in:
             await werkgebied_audit(conn, row.ontstaan_in, actor, "begrip-verwijderd",
                                    {"begrip_id": begrip_id, "naam": (row.inhoud or {}).get("naam", ""),
