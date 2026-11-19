@@ -1,6 +1,6 @@
 # Plan: lessen uit de end-to-end proef op Termijnen (activiteit 1 tot en met 3b)
 
-Status: **concept**, 19 nov 2026. Er is nog niets gebouwd. Bouwen begint pas na akkoord van de gebruiker, en elke stap
+Status: **concept**, 19 nov 2026, bijgewerkt na een lezing van de methode (§0). Er is nog niets gebouwd. Bouwen begint pas na akkoord van de gebruiker, en elke stap
 krijgt dan eerst een eigen toets of dit de beste verbetering is.
 
 ## Waar dit over gaat
@@ -52,6 +52,74 @@ elke bevinding staat waarom de oplossing ook elders standhoudt.
   (hinder).
 - Omvang: **S** (een dag, één onderdeel), **M** (enkele dagen, twee onderdelen), **L** (een spoor, meer PR's).
 
+## 0. Wat de methode zegt over begrippen zonder eigen formulering, operatoren en regels
+
+Gelezen op 19 nov 2026, op verzoek van de gebruiker: de methode is leidend. De bronnen zijn het boek (M01), de
+Handleiding (M02), de Leidraad (M03) en de Rijksspecificatie (M04), met de codes van `references/bronnen.md`. M01–M03
+zijn van derden en staan hier in eigen woorden, zonder citaten.
+
+**1. Een begrip ontstaat bij een formulering, maar niet elk begrip heeft er een eigen.**
+- De hoofdregel: elke geclassificeerde formulering krijgt een begrip, dat je hergebruikt voor elke formulering met
+  dezelfde betekenis (M01 h.3 stap 3a; M02 §3.5.2a; M03 hoofdactiviteit 3a).
+- Een **tussenresultaat** van een berekening krijgt wél een begrip, ook als de wet het niet noemt. De uitvoering moet
+  elke rekenstap kunnen uitvoeren, uitleggen en controleren, en dus moet elk tussenresultaat een naam hebben.
+  - M01 §2.2.2 laat het zien aan de tabel van art. 5.2 Wet IB 2001: vier nieuwe begrippen voor één tussenstap.
+  - In h.6 komt het terug bij art. 43 Zvw: het loon na de eerste rekenstap in lid 2 onder a, en het bijdrage-inkomen na
+    de nihilstelling en na de maximumstelling in lid 3. Het oude tussenresultaat blijft daarbij bewaard, zodat de
+    berekening uitlegbaar blijft.
+  - M02 §1.2 (*impliciete algoritmes*) zegt hetzelfde: een regel die één berekening lijkt, vraagt vaak extra tussenregels
+    die de tussenresultaten en hun voorwaarden expliciet afleiden.
+- Een **impliciet element** dat een regel nodig heeft, krijgt een begrip, en de interpretatie wordt gesignaleerd.
+  - M01 h.7 geeft drie voorbeelden. Een tijdstip dat logisch volgt maar niet in de tekst staat (de eerste verzending
+    naast de tweede), gesignaleerd als ontbrekend uitvoeringsbeleid (stap 5). Een rechtssubject dat in het ene lid geen
+    formulering heeft en in het andere wel. Voorwaarden en variabelen die alleen nodig zijn om de regels op elkaar aan
+    te laten sluiten.
+  - Bij dat laatste zegt het boek ook: je gaat daarna terug naar de wettekst om ze alsnog te duiden.
+- De **grondslag** blijft altijd de bron. Elk begrip en elke afleidingsregel moet via de gemarkeerde formuleringen
+  rechtstreeks op wetgeving of beleidsregels terug te voeren zijn, niet op een memo of code (M03, analyseresultaat 17).
+  Een begrip zonder eigen formulering hangt dus aan de formulering van de regel die het afleidt, of aan de interpretatie
+  die het nodig maakte.
+
+**2. Een operatorbegrip ontstaat bij een formulering en wordt daarna hergebruikt.**
+- Het boek maakt een operatorbegrip voor een formulering die op een bewerking wijst: *plus* bij "het gezamenlijke bedrag
+  van". Daarna hergebruikt het dat begrip bij andere formuleringen met dezelfde betekenis: *plus* bij "vermeerderd met",
+  *min* bij "verminderd met", "met uitzondering van" en "wordt niet in aanmerking genomen" (M01 h.3 stap 3b met
+  art. 3.110 Wet IB 2001; h.6 bij art. 43 lid 2 Zvw en de bepalingen waarnaar het verwijst).
+- Het boek maakt nergens een operatorbegrip zonder formulering. Wat in de regeltekst zelf staat ("moet berekend worden
+  als", "is", "indien aan alle volgende voorwaarden is voldaan"), is het **taalpatroon** van de regel, geen begrip
+  (M02 §3.5.2b; M03 deelactiviteit 3b).
+- Een ontkenning laat je uit het begrip en zet je in de regel als operator *niet* (M01 h.3 stap 3a, h.7 art. 2:11 Awb).
+
+**3. Een afleidingsregel leidt een begrip af, en dat kan ook een beslissing over een recht zijn.**
+- M04 H2 (*Afleidingsregel*) noemt een regel die bepaalt of een recht bestaat een beslisregel, met ja of nee als uitvoer.
+  Ook het bepalen van een specialisatie van een rechtssubject of rechtsobject is een afleidingsregel. M02 §3.5.2b en
+  M03 deelactiviteit 3b noemen berekeningen, beslissingen, specialisaties en voorwaarden.
+- Het voorbeeld in M02 bij de zorgtoeslag: *bepalen recht op zorgtoeslag* leidt het recht op zorgtoeslag af uit
+  voorwaarden.
+- M03 hoofdactiviteit 3 zegt het per formulering: het krijgt een begrip, en waar dat aan de orde is een of meer
+  afleidingsregels die dat begrip afleiden. Een rechtsbetrekking met voorwaarden kan dus een begrip hebben met een
+  beslisregel erbij.
+- Per afgeleid begrip is er één regel met een naam "bepalen …" (de tabellen in M02 §3.5.2b).
+
+**4. Een parameterwaarde is een eigen formulering met een eigen begrip.**
+- De parameter is de omschrijving van de waarde, de parameterwaarde de concrete waarde in een periode (M04 H2).
+- Het boek classificeert de waarde apart, maakt er een begrip voor ("… in tijdvak") en relateert dat aan de parameter.
+  De regel gebruikt de parameter, niet de waarde (M01 h.6, art. 43 lid 3 en art. 45 Zvw met de Regeling zorgverzekering).
+
+**Wat dit betekent voor wat er nu ligt**
+- **#1760** (open) maakt "geen begrip zonder annotatie" een harde regel, en zegt daarbij dat een tussenresultaat zonder
+  formulering geen begrip is.
+  - Het eerste deel klopt met de methode, als de annotatie de grondslag is: de formulering waaraan het begrip hangt.
+  - Het tweede deel is in strijd met M01 §2.2.2 en h.6, en met M02 §1.2.
+  - Zie M-3a-0.
+- **B5** in `plan-begrip-per-formulering.md` zet operatoren als geaccordeerde begrippen in het generieke kader, zonder
+  passage. Ook dat volgt de methode niet: een operatorbegrip ontstaat bij een formulering (punt 2). Een vaste lijst met
+  namen mag wel, als voorstel. Zie M-3a-1.
+- **Het team ging in Termijnen op drie plekken strenger te werk dan de methode** (§6, M-3b-0):
+  - geen tussenbegrip (*termijnregime*, *maandnummer van de dagtekening*);
+  - "een regel rust op een AR-markering" als eis, waardoor R5, R6 en R8 eerst werden afgewezen;
+  - "operator ontbreekt, want geen formulering", terwijl "na", "gelijke" en "telkens een maand later" in de tekst staan.
+
 ## 1. Top 5
 
 1. **De afleidingsregel heeft geen plek in Lex, en de interpretatiekeuzes en het ontbrekende beleid evenmin**
@@ -72,10 +140,13 @@ elke bevinding staat waarom de oplossing ook elders standhoudt.
    voor één uitvoer. Een parameterwaarde stond in een definitie. Het woord "betalingstermijn" duidde twee begrippen aan.
    Een opvolger en een samenvoeging vroegen extra handwerk. Lex zag geen van deze punten. P2, M.
 
-Daarnaast is er een **besluit nodig over de methode** dat de volgorde raakt (§5, M-3a-1). De operatorbegrippen van
-B5 zouden geaccordeerd in het generieke kader komen, zonder passage. Dat botst met de harde regel van #1760: geen
-begrip zonder annotatie. De bewerkingen die het team miste ("tellen van maanden", "tijdsduur na tijdstip", "gedeeld
-door") hebben in de wettekst ook geen eigen formulering.
+Daarnaast moeten **twee regels de methode weer volgen** voordat er verder gebouwd wordt (§0, M-3a-0 en M-3a-1):
+- #1760 zegt dat een tussenresultaat geen begrip is. De methode zegt het omgekeerde: een tussenresultaat krijgt een
+  begrip, dat rust op de afleidingsregel die het afleidt.
+- B5 zet operatorbegrippen zonder passage in het generieke kader. De methode maakt een operatorbegrip bij een
+  formulering en hergebruikt het daarna.
+
+Beide punten bepalen hoe D1 en B5 eruitzien.
 
 ## 2. Activiteit 1 en de bronselectie
 
@@ -310,15 +381,18 @@ door") hebben in de wettekst ook geen eigen formulering.
 - **Wat**: art. 9 lid 1 ("Een belastingaanslag is invorderbaar zes weken na de dagtekening") stond alleen als
   Rechtsbetrekking: "de rekenregel staat in een Rechtsbetrekking" (logboek 19:04:14). Bij art. 24 lid 2 ging het
   omgekeerd. De regelspecialist stelde er een afleidingsregel voor, en de jurist wees die af: "een bevoegdheid … onder
-  voorwaarden, geen afleiding van een waarde" (19:13:17). Beide keren was het een oordeel van de jurist zonder
-  houvast in de skill.
-- **Oplossing**:
-  - In `references/markeringslijst.md` en de nieuwe reference `afleidingsregels.md` (M2 uit het plan) een toets in
-    eigen woorden: *levert de formulering een waarde op (een aantal, een bedrag, een datum, een keuze uit een
-    waardelijst)?* Dan is het een afleidingsregel, ook als dezelfde zin een rechtsbetrekking draagt.
-  - *Geeft ze een recht, plicht of bevoegdheid onder voorwaarden?* Dan is het een rechtsbetrekking met voorwaarden.
-  - Beide kan, met twee markeringen die overlappen. Dat kan sinds de banen van #1741.
-- **Waarom generiek**: een definitie van de klassen, geen casus.
+  voorwaarden, geen afleiding van een waarde" (19:13:17). Beide keren was het een oordeel zonder houvast in de skill.
+  Volgens de methode was de afwijzing van art. 24 lid 2 niet juist (§0 punt 3, M-3b-0).
+- **Oplossing**: in `references/markeringslijst.md` en de nieuwe reference `afleidingsregels.md` (M2 uit het plan),
+  in eigen woorden naar M04 H2 en M02 §3.5.2b:
+  - In **activiteit 2** markeer je wat de tekst doet. Een recht, plicht of bevoegdheid is een Rechtsbetrekking met haar
+    voorwaarden. Een formulering die een waarde berekent of afleidt is een Afleidingsregel. Het gaat dan om een aantal,
+    een bedrag, een datum of een keuze, bijvoorbeeld "zes weken na de dagtekening" of "zoveel … als". Draagt één zin
+    allebei, dan markeer je ze allebei, met overlap (de banen van #1741).
+  - In **activiteit 3b** maak je een afleidingsregel voor elk begrip dat afgeleid moet worden. Dat geldt ook voor een
+    beslissing of een recht bestaat (een beslisregel met ja of nee als uitvoer), en voor een specialisatie. Ook als de
+    formulering in activiteit 2 een Rechtsbetrekking is en geen Afleidingsregel.
+- **Waarom generiek**: het volgt de definitie van de klassen in de bron, niet de casus.
 - **Prioriteit en omvang**: P2, S. Valt de tekst tussen de methodemarkers, dan is een meting nodig (ADR-010, P19).
 
 **M-2-2 — Eén formulering, twee uitvoeren: hoe fijn markeer je?**
@@ -337,12 +411,16 @@ door") hebben in de wettekst ook geen eigen formulering.
 - **Wat**: rij lid 7 van R5 heeft geen invoer voor het bedrag. "Lid 7 markeer ik niet: … bevat geen formulering voor
   het bedrag, en een markering zonder formulering kan niet" (19:23:01). Bij lid 5 kwam de invoer uit een andere bepaling
   (AWR 13 lid 1), en dat is aanvaard.
-- **Oplossing**:
-  - In de skill: een invoer die de wet niet noemt maar die de regel nodig heeft, is een **impliciete invoer**. Je legt
-    hem vast als open punt van de regel (L-X-1), niet als markering. Kan de invoer uit een andere bepaling komen, dan
-    heeft dat de voorkeur, zoals `relaties.md` al toestaat ("Een eindpunt mag in een andere bepaling liggen").
+- **Oplossing**, volgens §0 punt 1:
+  - Kan de invoer uit een andere bepaling komen, dan heeft dat de voorkeur. `relaties.md` staat dat al toe ("Een
+    eindpunt mag in een andere bepaling liggen").
+  - Anders volgt de skill het boek. Het element dat de regel nodig heeft, krijgt een begrip (hier het bestaande
+    *bedrag van de belastingaanslag*). Het is invoer van de regel als **impliciete invoer**, en de interpretatie wordt
+    een open punt van de soort ontbrekend uitvoeringsbeleid (L-X-1). Daarna kijk je opnieuw in de wettekst of er toch
+    een formulering is.
   - ADR-011 kent al impliciete partijen (`impliciet_toegestaan`). Of een impliciete invoer daar ook onder valt, is een
-    besluit. Het voorstel is van niet: een waarde is geen partij, en een open punt is eerlijker.
+    besluit. Het voorstel is ja, met de verplichting een open punt te maken: de methode doet het zo, en de jurist ziet
+    dat er een interpretatie ligt.
 - **Prioriteit en omvang**: P3, S (skill en ADR-011).
 
 ## 4. Deelvragen
@@ -395,9 +473,10 @@ De proef leverde hier weinig nieuws op dat al niet in een plan staat. Twee punte
   naast de klasse van de dragers, en de alternatieve termen niet naast het hele kader.
 - **Oplossing**: twee aandachtspunten.
   - **Waarde in de definitie**: een begrip met een dragende passage van klasse Parameter, waarvan de definitie de tekst
-    van een gekoppelde of geneste parameterwaarde bevat (een getal, een duur of een bedrag uit die waarde). Het
-    aandachtspunt zegt dat de waarde bij de regel hoort, niet bij het begrip. Drempel 82165e28 laat zien dat het goed
-    kan.
+    van een gekoppelde of geneste parameterwaarde bevat (een getal, een duur of een bedrag uit die waarde). Volgens de
+    methode (§0 punt 4) krijgt de waarde een eigen begrip op haar eigen markering ("… in tijdvak"), met een relatie
+    `waarde` naar de parameter. De regel gebruikt de parameter. Het aandachtspunt stelt dat voor. In Termijnen is "zes
+    weken" in lid 1 de parameterwaarde (379bc7e1…, invoer van R2).
   - **Homoniem**: een alternatieve term die gelijk is aan de naam of een alternatieve term van een ander actief begrip
     in hetzelfde kader of het generieke kader, of die als kop in de naam van een ander begrip staat.
 - **Waarom generiek**: beide toetsen gebruiken alleen de klasse, de koppeling en de tekst. Geen term staat vast.
@@ -442,23 +521,65 @@ De proef leverde hier weinig nieuws op dat al niet in een plan staat. Twee punte
 
 ### Fouten in de methode of de skill
 
-**M-3a-1 — Operatorbegrippen zonder passage botsen met "geen begrip zonder annotatie"**
+**M-3a-0 — Een tussenresultaat krijgt een begrip; #1760 zegt het omgekeerde**
 
-- **Wat**: het team miste drie operatoren ("tellen van maanden", "tijdsduur na tijdstip", "gedeeld door"). Ze kregen
-  geen begrip, want "er is geen gemarkeerde formulering die ze aanduidt" (teamrapport §4). B5 in
-  `plan-begrip-per-formulering.md` wil een vaste set operatoren "als geaccordeerde begrippen met herkomst 'methode'" in
-  het generieke kader. #1760 maakt "geen begrip zonder annotatie" een harde regel in de api (`maak` weigert zonder
-  `element_ids`).
-- **Oplossing**: een besluit van de gebruiker, met twee opties.
-  - **(a)** Methodebegrippen zijn een eigen soort (`kader: "methode"`). Ze zijn vrijgesteld van de passage-eis, worden
-    nooit door een werkgebied gemaakt of gewijzigd, en zijn alleen door een regel of operatorkoppeling te gebruiken.
-  - **(b)** Een operator zonder formulering is geen begrip maar een **bewerking in de regel** (een veld van D1, uit een
-    vaste lijst in de skill). Een operator mét formulering krijgt een gewoon begrip op die passage.
+- **Wat**:
+  - #1760 (open) voegt aan de skill (`references/begrippen.md`, SKILL.md §D) toe dat een tussenresultaat van een
+    afleidingsregel zonder formulering geen begrip is, "tot er een formulering is die het aanduidt".
+  - Het team volgde die lijn in Termijnen: "Geen beslisregel *termijnregime*, en geen tussenbegrip *maandnummer van de
+    dagtekening* … Een tussenresultaat zonder eigen formulering wordt geen begrip" (teamrapport §6).
+  - De methode zegt het tegendeel. Een tussenresultaat krijgt een begrip, zodat de berekening uitvoerbaar en uitlegbaar
+    is, en het oude tussenresultaat blijft bewaard (M01 §2.2.2 en h.6 bij art. 43 Zvw; M02 §1.2; §0 punt 1 hierboven).
+  - Wat de methode wél eist, is een grondslag in de bron (M03, analyseresultaat 17). Dat deel van #1760 klopt.
+- **Oplossing**: #1760 bijstellen vóór de merge.
+  - De regel wordt: **geen begrip zonder grondslag in een gemarkeerde formulering.** Het begrip hangt aan een passage
+    die het aanduidt (de gewone koppeling), óf aan de afleidingsregel die het afleidt.
+  - Voor dat tweede geval komt er een koppelrol `afgeleid`, op de markering van de afleidingsregel. Het begrip is dan
+    de uitvoer van die regel.
+  - Een impliciet element (§0 punt 1) hangt aan de formulering waarvoor het nodig is, met een open punt van de soort
+    interpretatie of ontbrekend uitvoeringsbeleid (L-X-1).
+  - De api-guard blijft: `maak` weigert zonder koppeling, en de laatste koppeling gaat er niet af. Ze telt `afgeleid`
+    mee.
+  - De zin over het tussenresultaat in de skill wordt vervangen door de regel van het boek, in eigen woorden.
+- **Waarom generiek**: het is de regel van de methode zelf. Elk werkgebied met een berekening in meer stappen heeft
+  tussenresultaten (het boek laat het zien aan de Wet IB 2001, de Zvw en de Awb).
+- **Meten**: geen gedragsmeting. Het is een regel in de api en tekst buiten de methodemarkers; dat ga ik na. De toets
+  is dat de tussenbegrippen uit de proef op papier (*termijnregime*, *maandnummer van de dagtekening*) met de rol
+  `afgeleid` te maken zijn, en een begrip zonder enige koppeling niet.
+- **Prioriteit en omvang**: P1, S. Het moet vóór de merge van #1760, anders ligt er een harde regel in de api die
+  de methode tegenspreekt.
 
-  Voorstel: **(b)**. Het houdt #1760 zonder uitzondering, en de methode zegt dat een operatorbegrip formuleringen deelt
-  ("gezamenlijk bedrag", "vermeerderd met"). Zonder formulering is er niets te delen. B5 wordt dan: de vaste lijst
-  bewerkingen in de skill, en een operatorbegrip alleen op een gemarkeerde operator.
-- **Prioriteit en omvang**: P1 als besluit (het bepaalt D1 en B5), S (docs).
+**M-3a-1 — Een operatorbegrip ontstaat bij een formulering, niet in een lijst vooraf**
+
+- **Wat**:
+  - Het team miste drie operatoren ("tellen van maanden", "tijdsduur na tijdstip", "gedeeld door"). Ze kregen geen
+    begrip, want "er is geen gemarkeerde formulering die ze aanduidt" (teamrapport §4).
+  - Toch staan de formuleringen in de tekst. "na" (in "zes weken na" en "na de maand") wees de jurist af als invoer
+    (19:00:30, 19:04:14). "gelijke" en "telkens een maand later" zijn gemarkeerd, maar niet als operator.
+  - B5 in `plan-begrip-per-formulering.md` wil daarnaast een vaste set operatoren "als geaccordeerde begrippen met
+    herkomst 'methode'" in het generieke kader, zonder passage.
+- **Wat de methode zegt** (§0 punt 2): je maakt een operatorbegrip bij een formulering die een bewerking uitdrukt, en
+  hergebruikt het daarna voor elke formulering met dezelfde betekenis. Het taalpatroon van de regel ("moet berekend
+  worden als", "is") is geen begrip.
+- **Oplossing**:
+  - **B5 bijstellen.**
+    - De vaste lijst in de skill (`operatoren.json`) wordt een **lijst met namen en uitdrukkingswijzen**: het voorstel
+      dat de keten doet als ze een operatorformulering ziet. Het zijn geen begrippen vooraf.
+    - Het operatorbegrip ontstaat bij de eerste gemarkeerde formulering, met die passage. Daarna is het generiek
+      (ADR-006): elk volgend werkgebied hergebruikt het met een eigen passage.
+    - Zo blijft "geen begrip zonder grondslag" ook voor operatoren gelden, zonder uitzondering.
+  - **De skill noemt de datumbewerkingen** als uitdrukkingswijze van een rekenkundige operator:
+    - "<duur> na <tijdstip>" en "telkens een maand later" (tijdsduur na tijdstip);
+    - "gelijke <eenheden>" (verdelen);
+    - "zoveel … als … overblijven" (tellen).
+
+    `references/markeringslijst.md` en M04 H2 *Operator* noemen nu alleen de klassieke vormen. Welke vormen er precies
+    in staan, ga ik na bij de bouw.
+  - **De keten** stelt bij die vormen een Operator voor (L-2-1 en L-2-2 nemen het mee).
+- **Waarom generiek**: dit is de werkwijze van het boek, en de datumbewerkingen komen in elke termijn- of
+  vervaldagregeling voor.
+- **Prioriteit en omvang**: P1 als bijstelling van B5 (het bepaalt D1 en B5), S (docs en skill). De keten valt in
+  bundel 3.
 
 **M-3a-2 — Een begrip met twee tellingen, en een begrip dat te smal is**
 
@@ -503,9 +624,12 @@ De proef leverde hier weinig nieuws op dat al niet in een plan staat. Twee punte
     beslistabellen van Termijnen (R1, R4, R5 en R7) passen in die vorm.
   - **Een regelbegrip per uitvoer**: het regelbegrip ("bepalen <uitvoer>") hoort bij de regel, niet bij een rij
     (L-3a-1).
-  - **Een parameter is een waarde per tijdvak**: waarde, geldig van/tot, vindplaats en de getoetste toestand. Het
-    begrip draagt de waarde niet (L-3a-2).
-  - **De bewerking komt uit een vaste lijst** (M-3a-1b), of uit een gekoppeld operatorbegrip.
+  - **De regel gebruikt de parameter, niet de waarde.** De waarde is een parameterwaarde met een eigen begrip, een
+    tijdvak (geldig van/tot), een vindplaats en de getoetste toestand (§0 punt 4, L-3a-2).
+  - **De bewerking is een operatorbegrip** op een gemarkeerde formulering (M-3a-1). Het taalpatroon ("moet berekend
+    worden als", "indien aan alle volgende voorwaarden is voldaan") hoort bij de regelvorm, en is geen begrip.
+  - **Een tussenresultaat is een eigen regel met een eigen uitvoerbegrip** (rol `afgeleid`, M-3a-0). Zo krijgt het
+    termijnregime uit de proef op papier weer een plek.
   - **Bewijsstand per dragende markering**, net als bij een begripskoppeling. Een heropende of gewijzigde laag zet de
     regel op "herbeoordelen", zichtbaar op de regel.
   - **De regeltekst wordt afgeleid**, zoals in het plan. De taalpatronen van de methode komen in de skill.
@@ -563,6 +687,30 @@ De proef leverde hier weinig nieuws op dat al niet in een plan staat. Twee punte
 - **Prioriteit en omvang**: de volledigheidstoets P2, M. A3 en A5 P2, L, na D1.
 
 ### Fouten in de methode of de skill
+
+**M-3b-0 — In Termijnen is de methode strenger toegepast dan zij is**
+
+- **Wat**: drie werkregels van het team staan niet in de methode, en ze hadden gevolgen.
+  - **"Een regel rust op een AR-markering."** R5 en R6 werden daarom eerst afgewezen ("geen dragende AR-markering",
+    19:13:17), en pas aanvaard toen de jurist nieuwe markeringen had gelegd. R8 (art. 24 lid 2) bleef afgewezen: "een
+    bevoegdheid … onder voorwaarden, geen afleiding van een waarde".
+    - Volgens M04 H2 en M02 §3.5.2b is een regel die bepaalt of een recht bestaat juist een beslisregel. De uitvoer
+      bestond al: het begrip *bevoegdheid tot verrekening vóór het verstrijken van de betalingstermijn* (fb9f3866),
+      zoals de gegevensspecialist zelf voorstelde (19:09:22).
+    - Volgens M03 hoofdactiviteit 3 kan elk begrip een afleidingsregel hebben die het afleidt. De grondslag is de
+      formulering die het begrip draagt, met haar voorwaarden.
+  - **"Een tussenresultaat is geen begrip."** Dat is M-3a-0.
+  - **"Een operator zonder formulering wordt geen begrip."** De formuleringen waren er wel (M-3a-1).
+- **Oplossing**:
+  - De reference `afleidingsregels.md` (M2) legt de grondslag van een regel vast zoals de methode die geeft. Een regel
+    rust op de formuleringen die zijn uitvoer en zijn voorwaarden dragen: de Afleidingsregel-markering als die er is,
+    en anders de formulering van het afgeleide begrip (ook een Rechtsbetrekking bij een beslisregel).
+  - De regelspecialist (`.claude/agents/agent-regelspecialist.md`) en de briefing van het team volgen. Dat is
+    testgereedschap, geen deel van Lex, maar het bepaalt wat de volgende proef meet.
+  - Het teamrapport van Termijnen krijgt een naschrift: R8 is volgens de methode een beslisregel, en het termijnregime
+    een tussenbegrip. Herstel op acceptatie alleen met akkoord, want Termijnen blijft in dit plan ongewijzigd.
+- **Waarom generiek**: het gaat om de werkregels van elk team en van Lex zelf (D1 en A3 nemen dezelfde regel over).
+- **Prioriteit en omvang**: P1, S (skill, docs en agentprofiel).
 
 **M-3b-1 — Eén beslistabel per uitvoer**
 
@@ -640,8 +788,11 @@ Elke bundel wordt samen getest en samen uitgerold (de werkwijze van `alles-samen
 verandert, wordt licht gemeten (één run, gerichte set). Drie runs alleen bij de annotatieketen, omdat het geel per run
 sterk varieert.
 
-1. **Bundel 1, besluiten en methode** (alleen docs en skill):
-   - M-3a-1 (operatoren: voorstel b), M-1-1 (bron als eindpunt), M-2-1, M-2-2, M-2-3, M-3a-2, M-3b-1 en M-3b-2;
+0. **Eerst, vóór de merge van #1760**: M-3a-0. #1760 wordt bijgesteld naar "geen begrip zonder grondslag", met de rol
+   `afgeleid` voor een tussenresultaat. Anders ligt er een harde regel in de api die de methode tegenspreekt.
+1. **Bundel 1, de methode volgen** (alleen docs, skill en het agentprofiel):
+   - M-3a-1 (B5 bijstellen), M-3b-0 (de werkregels van het team), M-1-1 (bron als eindpunt), M-2-1, M-2-2, M-2-3,
+     M-3a-2, M-3b-1 en M-3b-2;
    - een ADR voor het regelartefact en de open punten (Fase 0 uit het plan afleidingsregels, met L-X-1 erin);
    - `plan-afleidingsregels.md` §4 en `plan-begrip-per-formulering.md` B5 bijgewerkt.
 
