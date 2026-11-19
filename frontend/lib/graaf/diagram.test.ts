@@ -31,3 +31,13 @@ describe("de buurt van een diagram (vectoren)", () => {
     });
   }
 });
+
+describe("het diagram in de werkplek", () => {
+  it("alleen rond een centrale klasse, en een nieuwe url na een besluit", async () => {
+    const { diagramUrl, weergaveVersie } = await import("@/lib/annotatieNode");
+    expect(diagramUrl("e1", "Rechtssubject", "1")).toBeNull();
+    expect(diagramUrl("e 1", "Rechtsbetrekking", "a:3")).toBe("/api/annotatie/v2/diagram?element_id=e%201&vorm=svg&v=a%3A3");
+    const view = { lagen: [{ id: "b", bron_iri: "x", revisie: 2, status: "" }, { id: "a", bron_iri: "y", revisie: 5, status: "" }] };
+    expect(weergaveVersie(view as never)).toBe("a:5,b:2");
+  });
+});

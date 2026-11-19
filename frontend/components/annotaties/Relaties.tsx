@@ -9,8 +9,9 @@ import { Input, Select, Textarea } from "@/components/ui/Field";
 import { IcoonBevestig } from "@/components/ui/IcoonBevestig";
 import { Waarschuwing } from "@/components/ui/Icoon";
 import { KlasseLabel, Lijst, LijstRij, Sectie, StatusLabel } from "@/components/ui/Lijst";
+import { Uitklap } from "@/components/ui/Uitklap";
 import { foutTekst } from "@/lib/api";
-import type { NodeEindpunt, NodeImpliciet, NodeRelatie, NodeWeergave, RelatieInvoer } from "@/lib/annotatieNode";
+import { diagramUrl, weergaveVersie, type NodeEindpunt, type NodeImpliciet, type NodeRelatie, type NodeWeergave, type RelatieInvoer } from "@/lib/annotatieNode";
 import {
   eigenRelatie, relatieAfgehandeld, relatiesBijElement, relatieStatus, typeKeuzes, verbindbaar, type RelatieRegel,
   type TypeKeuze, type Verbindbaar,
@@ -73,11 +74,33 @@ export function RelatieBlok({ view, elementId, gebruiker, bediening }: {
           ))}
         </Lijst>
       ) : !verbinden && <Leeg klein>Nog geen relaties met andere markeringen.</Leeg>}
+      {regels.length > 0 && <DiagramBlok view={view} elementId={elementId} />}
       {verbinden && bediening && dit && (
         <Verbind dit={dit} anderen={anderen} onSluit={() => setVerbinden(false)}
           onLeg={async (invoer) => (await doe(() => bediening.leg(invoer))) && setVerbinden(false)} />
       )}
     </Sectie>
+  );
+}
+
+/** Het diagram van deelactiviteit 2c rond deze markering, ingeklapt onder haar relaties: hetzelfde plaatje als in het
+ *  werkgebiedrapport (api `diagram`, `diagram_teken`). Het plaatje laadt pas bij openklappen, en opnieuw na een besluit.
+ *  De lijst erboven blijft leidend; het diagram vat haar samen. */
+function DiagramBlok({ view, elementId }: { view: NodeWeergave; elementId: string }) {
+  const [open, setOpen] = useState(false);
+  const [fout, setFout] = useState(false);
+  const klasse = view.elementen.find((e) => e.id === elementId)?.klasse ?? "";
+  const url = diagramUrl(elementId, klasse, weergaveVersie(view));
+  if (!url) return null;
+  return (
+    <Uitklap samenvatting="Diagram" className="mt-1" data-diagram={elementId}
+      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
+      {open && (fout
+        ? <p role="alert" className="mt-1 text-xs text-fout">Het diagram kon niet worden geladen.</p>
+        // eslint-disable-next-line @next/next/no-img-element -- een SVG van de eigen api, geen te optimaliseren beeld
+        : <img src={url} onError={() => setFout(true)} className="mt-1 w-full rounded-knop border border-line bg-paper"
+            alt={`Diagram rond deze ${klasse.toLowerCase()} met haar relaties; de lijst hierboven noemt ze allemaal.`} />)}
+    </Uitklap>
   );
 }
 
