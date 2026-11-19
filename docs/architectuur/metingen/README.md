@@ -1,6 +1,6 @@
 # Meetlogboek
 
-Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 17 november 2026
+Soort: *meting* (zie [`../../README.md`](../../README.md)) · Bijgewerkt: 20 november 2026
 
 Hier staat per datum wat er gemeten is, op welke code, wat eruit kwam en waar de gegevens staan.
 Nieuwste bovenaan. De meetbestanden zelf zijn bewijs: **wijzig ze niet achteraf**. Een correctie
@@ -17,6 +17,7 @@ of herhaling krijgt een eigen map of rij. Hoe de keten nu werkt, staat in
 
 | Datum | Meting | Code | Uitkomst in één regel | Gegevens |
 |---|---|---|---|---|
+| 20 nov | **Bundel 3 – de keten met het model**, één run per bepaling, blind en buiten Termijnen (IW 52 lid 1, Awir 22 lid 2, IW 63b lid 5), live op acceptatie | `7c1c1b8c` (#1772) | Het model kiest de nieuwe datumregel en de telling; de dagtekening komt als Tijdsaanduiding binnen, niet als Rechtsfeit; de invoer van de telling staat op volgorde, zonder rechtsobject. De datumregel was in 63b lid 5 te lang (hersteld, deterministisch getoetst) en krijgt nog geen invoer. 40.457 tokens | [`bundel3-keten-2026-11-20/`](bundel3-keten-2026-11-20/README.md) |
 | 18 nov | **Bronselectie – de grens over de hele keten, tweede ronde** (dezelfde opzet), gepaard, live op acceptatie, 10 sets. Concept-verwachtingen | `9865733e` | Van 172: na de keuze 109 → 113, na de keten 134 → 138; samen met ronde 1 na de keten 267 → 276, verkeerde deelvraag niet hoger. De grens gaat naar 120 | [`bronselectie-2026-11-18-keten-grens-2/`](bronselectie-2026-11-18-keten-grens-2/README.md) |
 | 18 nov | **Bronselectie – de grens van 80 of 120 kandidaten over de hele keten** (`--varianten kandidaten_120 --keten standaard`), één modelronde elk, gepaard (dezelfde wetstermen), live op acceptatie, 10 sets. Concept-verwachtingen | `d572fa9c` (#1733) | Van 172: na de keuze 113 → 117, na de keten 133 → 138 (+30 kandidaten); beter op LB-08 en verrekening, op geen slechter. Binnen de spreiding tussen runs (keten bij 80 eerder 138). De grens blijft 80 | [`bronselectie-2026-11-18-keten-grens/`](bronselectie-2026-11-18-keten-grens/README.md) |
 | 18 nov | **Bronselectie – een verhouding tussen de woordenroute en de pool** (menging `woorden_2`, `woorden_3`), de kandidatenlijst zonder keuze door het model, gepaard (dezelfde wetstermen), live op acceptatie, 10 sets. Concept-verwachtingen | `74463710` | Op de lijst (van 172): 126 met `afwisselend`, 123 met `woorden_2`, 121 met `woorden_3`; termijnen zakt het sterkst. Blijft `afwisselend` | [`bronselectie-2026-11-18-menging/`](bronselectie-2026-11-18-menging/README.md) |

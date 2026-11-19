@@ -600,7 +600,8 @@ class GevolgDetector:
     # 2: een rechtsgevolg dat een moment vastlegt is ook een afleiding (H2:71), met het ALS→DAN-segment als
     #    eigen kandidaat
     # 3: een rechtsgevolg als toestand met een moment ('is invorderbaar zes weken na …') ook (L-2-1)
-    versie = "3"
+    # 4: die regel eindigt nooit voorbij het moment (meting bundel 3, IW art. 63b lid 5)
+    versie = "4"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         from .functies import toepassingskeuze
@@ -706,7 +707,9 @@ class GevolgDetector:
             if obl:
                 eigen_obl = set(a.subboom(obl[0])) - {j for i in a.subboom(obl[0]) if a.tokens[i].deprel in {"conj", "cc"}
                                                       and i != obl[0] for j in a.subboom(i)}
-                eind = max(a.tokens[j].eind for j in eigen_obl if a.tokens[j].upos != "PUNCT")
+                # Nooit verder dan het moment: de parser hangt een nabepaling ('…, met overeenkomstige toepassing van
+                # …') soms onder de tijdsbepaling (IW art. 63b lid 5, meting 20 nov 2026).
+                eind = min(eind, max(a.tokens[j].eind for j in eigen_obl if a.tokens[j].upos != "PUNCT"))
             span = (t.start, eind)
             if span in gezien or _in_verwijzing(bron, *span):
                 continue
