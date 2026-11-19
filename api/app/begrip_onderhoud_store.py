@@ -444,7 +444,9 @@ async def dekking(werkgebied: dict, resolve: Resolver) -> dict:
             stand = "gekoppeld"
         elif e["id"] in besluiten:
             stand = "buiten_behandeling"
-        elif ks or e["id"] in in_groep:
+        elif any(status[k["begrip_id"]][0] != "geaccordeerd" for k in ks) or e["id"] in in_groep:
+            # Alleen een concept-begrip of een open groep is een voorstel. Een koppeling als context aan een
+            # geaccordeerd begrip zegt niet dat het element zelf verwerkt wordt (een voorwaarde bij haar drager).
             stand = "voorstel"
         elif verwacht == "omschrijving" and e["id"] in aan_drager:
             stand = "bij_drager"
