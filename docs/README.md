@@ -98,6 +98,10 @@ Toelichting bij enkele documenten:
   en plan voor activiteit 3b: van annotaties en begrippen naar afleidingsregels, met een proef op Termijnen (18 nov 2026;
   concept, nog niets gebouwd); de uitwerking staat in `architectuur/proef-afleidingsregels-termijnen.md` (op papier) en
   `architectuur/afleidingsregels-termijnen-team.md` (door het team van agents, 19 nov 2026).
+  Het vervolg is [`architectuur/plan-afleidingsregels-in-lex.md`](architectuur/plan-afleidingsregels-in-lex.md): hoe de
+  regels in Lex landen (datamodel, agent, artefact, rapport, projectie), de validatie van vier ontwerprichtingen, de
+  gekozen richting (de regelkaart in de keten) als mock-up in `architectuur/media/afleidingsregels-*`, en het bouwplan
+  R0–R7 (19 nov 2026; richting gekozen, nog niets gebouwd).
   Ook los: [`architectuur/plan-lessen-e2e-termijnen.md`](architectuur/plan-lessen-e2e-termijnen.md), de lessen uit de
   end-to-end proef op Termijnen (activiteit 1 tot en met 3b): bevindingen met oorzaak in de code, generieke
   oplossingen en een gebundelde PR-volgorde (19 nov 2026; concept, nog niets gebouwd).

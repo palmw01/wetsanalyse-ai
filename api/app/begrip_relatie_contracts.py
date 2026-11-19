@@ -43,6 +43,9 @@ class Reden(BaseModel):
 
 class NieuweBetekenis(Reden):
     verwachte_revisie: int = Field(ge=1)
+    # Alleen bij een generiek begrip: het werkgebied waar de nieuwe betekenis ontstaat. Zijn passages gaan mee naar de
+    # opvolger, want een begrip rust altijd op een annotatie; elk ander werkgebied neemt de opvolger zelf over (ADR-006).
+    werkgebied_id: str = Field(default="", max_length=64)
 
 
 class CombinerenGeneriek(Reden):

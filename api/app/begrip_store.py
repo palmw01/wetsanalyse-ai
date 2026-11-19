@@ -15,6 +15,9 @@ Een begrip hoort bij één werkgebied, met een impliciet begrippenkader (`urn:wa
   koppeling cascadeert daar niet in mee, maar wordt bij het lezen `verdwenen`. De actualiteit komt
   uit Postgres, zonder graaf: `actueel`, `gewijzigd` (tekst, klasse of ankers anders, of het element
   verouderd of door een nieuwe ronde van Lex vervangen), `verworpen` of `verdwenen`.
+- **Geen begrip zonder annotatie** (harde regel, 19 nov 2026): een begrip ontstaat alleen uit gemarkeerde passages
+  (`maak`: 422 `geen_passage`), en de laatste passage gaat er niet af (`toets_passage`: 409 `laatste_passage`). De
+  uitzonderingen staan in `api/CLAUDE.md` §*Begrippen*.
 - **De poort** (`poort`) rekent de server; de werkplek toont dezelfde zinnen.
 - **Een generiek begrip** wijzig je alleen met `werkgebied_id=None` (`/v1/begrippen/{id}`), niet vanuit een werkgebied
   (409 `generiek`), zodat niemand ongemerkt andere analyses wijzigt. Een passage in een werkgebied heropent het niet:
@@ -45,7 +48,10 @@ from .werkgebied_store import _audit as werkgebied_audit, niet_gevonden, toets_r
 
 Resolver = Callable[[dict], Awaitable[dict]]
 
-DRAGEND = {"duiding", "definitie"}
+DRAGEND = {"duiding", "definitie", "afgeleid"}
+#: De rollen die zeggen wát het begrip is: een passage die het aanduidt, of de afleidingsregel die het afleidt.
+AANDUIDEND = {"duiding", "afgeleid"}
+AFLEIDINGSREGEL = "Afleidingsregel"
 
 
 GENERIEK = "generiek"
@@ -132,8 +138,8 @@ def poort(inhoud: dict, koppelingen: list[dict]) -> dict:
     if not eigen_toelichting(inhoud.get("context", "")):
         redenen.append("De toelichting ontbreekt.")
     dragend = [k for k in koppelingen if k["rol"] in DRAGEND and k["beoordeling"] != "afgewezen"]
-    if not any(k["rol"] == "duiding" for k in dragend):
-        redenen.append("Er is nog geen passage die dit begrip aanduidt.")
+    if not any(k["rol"] in AANDUIDEND for k in dragend):
+        redenen.append("Er is nog geen passage die dit begrip aanduidt, en geen afleidingsregel die het afleidt.")
     open_ = sum(k["beoordeling"] == "open" for k in dragend)
     if open_:
         redenen.append(_meervoud(open_, "1 dragende koppeling is nog niet beoordeeld.",
@@ -550,6 +556,8 @@ async def _koppel(conn, werkgebied_id: str, begrip_id: str, bewijs: dict[str, di
     bestaand = set((await conn.execute(select(k.c.element_id).where(
         k.c.begrip_id == begrip_id, k.c.rol == rol, k.c.verwijderd.is_(None)))).scalars().all())
     nieuw = [eid for eid in bewijs if eid not in bestaand]
+    if rol == "afgeleid":
+        toets_afgeleid([bewijs[eid] for eid in nieuw])
     if rol == "duiding" and nieuw:
         await _toets_primair(conn, werkgebied_id, begrip_id, nieuw)
     nu = db.utcnow()
@@ -609,8 +617,42 @@ def met_afgeleid(oud: dict | None, nieuw: dict, bronteksten: Iterable[str] = ())
     return {**nieuw, "definitie_herkomst": herkomst, "definitie_door": door}
 
 
+GEEN_PASSAGE = ("Een begrip rust altijd op minstens één gemarkeerde passage. Kies de annotatie-elementen waaruit het "
+                "begrip ontstaat, en maak het daaruit.")
+LAATSTE_PASSAGE = ("Dit is de laatste passage van het begrip, en een begrip rust altijd op minstens één gemarkeerde "
+                   "passage. Koppel eerst een andere passage, of verwijder het begrip.")
+
+
+AFGELEID_GEEN_REGEL = ("De rol 'afgeleid' hoort bij de afleidingsregel die het begrip afleidt. Deze passage is geen "
+                       "afleidingsregel: kies een andere rol, of de markering van de regel.")
+
+
+def toets_afgeleid(bewijzen: Iterable[dict]) -> None:
+    """Een tussenresultaat rust op de afleidingsregel die het afleidt (M01 §2.2.2): de rol `afgeleid` alleen op een
+    element van die klasse, anders 422 `geen_afleidingsregel`."""
+    if any((b or {}).get("klasse") != AFLEIDINGSREGEL for b in bewijzen):
+        raise HTTPException(422, {"fout": "geen_afleidingsregel", "melding": AFGELEID_GEEN_REGEL})
+
+
+async def aantal_passages(conn, begrip_id: str) -> int:
+    """Hoeveel actieve koppelingen het begrip heeft, over alle werkgebieden (een generiek begrip heeft ze per werkgebied)."""
+    k = db.begrip_koppelingen
+    return (await conn.execute(select(func.count()).select_from(k).where(
+        k.c.begrip_id == begrip_id, k.c.verwijderd.is_(None)))).scalar_one()
+
+
+async def toets_passage(conn, begrip_id: str) -> None:
+    """De harde regel: een begrip rust op minstens één annotatie-element. Na een mutatie, in de transactie van de
+    aanroeper, zodat een overtreding alles terugdraait. Een vervangen begrip is historie en telt niet mee."""
+    status = (await conn.execute(select(db.begrippen.c.status).where(db.begrippen.c.id == begrip_id))).scalar()
+    if status not in (None, "vervangen") and not await aantal_passages(conn, begrip_id):
+        raise HTTPException(409, {"fout": "laatste_passage", "melding": LAATSTE_PASSAGE})
+
+
 async def maak(werkgebied: dict, invoer: BegripInvoer, actor: str, resolve: Resolver) -> dict:
-    bewijs = await bewijzen(werkgebied, invoer.element_ids, resolve) if invoer.element_ids else {}
+    if not invoer.element_ids:
+        raise HTTPException(422, {"fout": "geen_passage", "melding": GEEN_PASSAGE})
+    bewijs = await bewijzen(werkgebied, invoer.element_ids, resolve)
     async with db.get_engine().begin() as conn:
         bid = await maak_in(conn, werkgebied["id"], met_afgeleid(None, invoer.inhoud.model_dump(mode="json"),
                                                                  [b.get("tekst", "") for b in bewijs.values()]), bewijs,
@@ -795,8 +837,10 @@ async def wijzig_koppeling(werkgebied_id: str, begrip_id: str, koppeling_id: str
         if "beoordeling" in velden:
             detail["beoordeling"] = velden["beoordeling"]
         if "rol" in velden:
-            # Dezelfde regels als bij koppelen: per begrip één koppeling per element en rol, en
-            # hooguit één primaire duiding per element.
+            # Dezelfde regels als bij koppelen: per begrip één koppeling per element en rol, `afgeleid` alleen op
+            # een afleidingsregel, en hooguit één primaire duiding per element.
+            if velden["rol"] == "afgeleid":
+                toets_afgeleid([row.bewijs])
             dubbel = (await conn.execute(select(k.c.id).where(
                 k.c.begrip_id == begrip_id, k.c.element_id == row.element_id, k.c.rol == velden["rol"],
                 k.c.verwijderd.is_(None)))).first()
@@ -862,6 +906,7 @@ async def ontkoppel(werkgebied_id: str, begrip_id: str, koppeling_id: str, verwa
         if row is None:
             raise HTTPException(404, "Koppeling bestaat niet.")
         await conn.execute(update(k).where(k.c.id == koppeling_id).values(verwijderd=db.utcnow()))
+        await toets_passage(conn, begrip_id)
     return koppelstand(await haal(werkgebied_id, begrip_id))
 
 
@@ -988,12 +1033,21 @@ async def stop_gebruik(werkgebied_id: str, begrip_id: str, actor: str) -> dict:
         await conn.execute(update(g).where(g.c.id == rij.id).values(verwijderd=nu))
         await conn.execute(update(k).where(k.c.begrip_id == begrip_id, k.c.werkgebied_id == werkgebied_id,
                                            k.c.verwijderd.is_(None)).values(verwijderd=nu))
+        # Draagt dit werkgebied de laatste passages, dan kan het niet los: verwijder dan het begrip (dat mag, zolang
+        # alleen dit werkgebied het gebruikt).
+        status = (await conn.execute(select(db.begrippen.c.status).where(db.begrippen.c.id == begrip_id))).scalar()
+        if status != "vervangen" and not await aantal_passages(conn, begrip_id):
+            raise HTTPException(409, {"fout": "laatste_passage", "melding": "Dit werkgebied draagt de laatste passages "
+                                      "van dit generieke begrip, en een begrip rust altijd op een annotatie. Laat het "
+                                      "eerst in een ander werkgebied passages krijgen, of verwijder het begrip."})
         await werkgebied_audit(conn, werkgebied_id, actor, "begrip-niet-meer-gebruikt", {"begrip_id": begrip_id})
     return {"gestopt": begrip_id}
 
 
 async def verwijder_generiek(begrip_id: str, verwacht: int, actor: str) -> dict:
-    """Echt wissen, maar niet zolang een werkgebied het begrip gebruikt: dat raakt die analyses (409 `in_gebruik`)."""
+    """Echt wissen, maar niet zolang twee of meer werkgebieden het begrip gebruiken: dat raakt andere analyses (409
+    `in_gebruik`). Gebruikt één werkgebied het, dan gaat het gebruik mee, net als bij een lokaal begrip: dat werkgebied
+    kan het niet eerst loslaten, want het draagt dan de laatste passages (`stop_gebruik`)."""
     b = db.begrippen
     async with db.get_engine().begin() as conn:
         row = (await conn.execute(select(b).where(b.c.id == begrip_id, b.c.werkgebied_id.is_(None))
@@ -1003,12 +1057,16 @@ async def verwijder_generiek(begrip_id: str, verwacht: int, actor: str) -> dict:
         if row.status == "vervangen":
             raise HTTPException(409, {"fout": "vervangen", "melding": "Dit begrip is vervangen door een opvolger."})
         toets_revisie(row.revisie, verwacht, "dit begrip")
-        if gebruikers := await _gebruikers(conn, begrip_id):
-            plek = "1 werkgebied" if len(gebruikers) == 1 else f"{len(gebruikers)} werkgebieden"
+        gebruikers = await _gebruikers(conn, begrip_id)
+        if len(gebruikers) > 1:
             raise HTTPException(409, {"fout": "in_gebruik", "werkgebieden": gebruikers,
-                                      "melding": f"Dit begrip wordt nog in {plek} gebruikt."})
+                                      "melding": f"Dit begrip wordt nog in {len(gebruikers)} werkgebieden gebruikt."})
         hersteld = await _herstel_voorgangers(conn, None, begrip_id, actor, db.utcnow())
         await wis_begrippen(conn, [begrip_id])
+        for wid in set(gebruikers) - {row.ontstaan_in, ""}:
+            await werkgebied_audit(conn, wid, actor, "begrip-verwijderd",
+                                   {"begrip_id": begrip_id, "naam": (row.inhoud or {}).get("naam", ""),
+                                    "begrip_revisie": row.revisie, "hersteld": hersteld})
         if row.ontstaan_in:
             await werkgebied_audit(conn, row.ontstaan_in, actor, "begrip-verwijderd",
                                    {"begrip_id": begrip_id, "naam": (row.inhoud or {}).get("naam", ""),

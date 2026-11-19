@@ -27,7 +27,7 @@ from bronmodel.extern import ExterneVindplaats, externe_verwijzingen, externe_vi
 from bronmodel.vindplaats import vindplaats
 
 from .models import Source
-from .resultaat import is_contract, is_fout, is_foutresultaat, waarden
+from .resultaat import is_contract, is_fout, is_foutresultaat, voorproef_iris, waarden
 from .namespace import BASIS, vindplaats_patroon
 from .tools.begrip_tools import AFGELEIDE_TOOL_NAMEN
 
@@ -126,11 +126,21 @@ def _labels(text: str) -> dict[str, str]:
     stuk = (data or {}).get("stuk")
     if isinstance(stuk, dict) and isinstance(stuk.get("id"), str) and isinstance(stuk.get("label"), str) and stuk["label"]:
         uit[stuk["id"]] = stuk["label"]
-    for rij in (data or {}).get("resultaten", []):
-        if isinstance(rij, dict) and isinstance(rij.get("label"), str) and rij["label"]:
-            for veld in ("node", "iri", "id"):
+    # De rijen, en de bepaling zelf bovenaan een leesresultaat (`get_bepaling`: `bepaling`, `get_artikel`: `artikel`).
+    # Zonder label telt het nummer, zoals het denkproces de bepaling noemt ("artikel 14.4.5"): een subdivisie van de
+    # Leidraad stond anders met haar kale IRI in de bronnenlijst (acceptatie 19 nov 2026, derdenbeslag).
+    kop = [v for k, v in (data or {}).items() if k in ("bepaling", "artikel", "lid") and isinstance(v, dict)]
+    for rij in [*kop, *((data or {}).get("resultaten") or [])]:
+        if not isinstance(rij, dict):
+            continue
+        label = rij.get("label") if isinstance(rij.get("label"), str) and rij["label"] else ""
+        nummer = rij.get("nummer").strip() if isinstance(rij.get("nummer"), str) else ""
+        if nummer and (not label or label.strip() == nummer):  # een divisie heet in de graaf vaak alleen "14.4.1"
+            label = f"artikel {nummer}"
+        if label:
+            for veld in ("node", "iri", "id", "sub"):
                 if isinstance(rij.get(veld), str):
-                    uit.setdefault(rij[veld], rij["label"])
+                    uit.setdefault(rij[veld], label)
     return uit
 
 
@@ -227,6 +237,8 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
         if not text or tool in AFGELEIDE_TOOL_NAMEN or (is_fout(text) and '"stuk"' not in text):
             continue
         labels = _labels(text)
+        # De rijen met alleen het begin van hun tekst: gevonden, niet gelezen (`resultaat.VOORPROEF`).
+        voorproef = voorproef_iris(text)
         if tool in LIVE_WETTEKST_TOOLS:
             if (ext := _gelezen_live(text)) is not None and ext.id not in per_node:
                 bron = Source(label=labels.get(ext.id) or ext.label, uri=ext.id, origin_tool=tool,
@@ -256,6 +268,10 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
                 # Later ook gelezen of opgesomd: dan is dat de herkomst, niet meer het zoekresultaat.
                 if bestaand.origin_tool in _zoektools() and tool not in _zoektools():
                     bestaand.origin_tool = tool
+                # Eerst alleen het begin, nu de bepaling zelf: dan is ze gelezen.
+                if bestaand.voorproef and uri not in voorproef and sleutel not in voorproef:
+                    bestaand.voorproef = None
+                    bestaand.origin_tool = tool
                 continue
             if vp is None:
                 bron = Source(label=uri, uri=uri, iri=iri, jci=jci, origin_tool=tool)
@@ -267,7 +283,8 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
                                      else labels.get(vp.bron_iri) or labels.get(uri) or vp.bron_iri)
                 label = _met_titel(label, labels.get(vp.bron_iri) or labels.get(uri) or "")
                 bron = Source(label=label, uri=vp.bron_iri, iri=iri, jci=jci,
-                              origin_tool=tool, bron_iri=vp.bron_iri, bwb_id=vp.bwb_id, soort=vp.soort)
+                              origin_tool=tool, bron_iri=vp.bron_iri, bwb_id=vp.bwb_id, soort=vp.soort,
+                              voorproef=True if (uri in voorproef or vp.bron_iri in voorproef) else None)
             per_node[sleutel] = bron
             sources.append(bron)
 

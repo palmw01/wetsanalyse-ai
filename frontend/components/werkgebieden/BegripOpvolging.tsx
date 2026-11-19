@@ -27,6 +27,9 @@ export function BegripOpvolging({ soort, id, begrip, kandidaten, onSluit, onKlaa
   const [fout, setFout] = useState<string | null>(null);
   const [reden, setReden] = useState("");
   const [ander, setAnder] = useState("");
+  // Een generiek begrip krijgt zijn nieuwe betekenis in een werkgebied met passages: die gaan mee naar de opvolger.
+  const bronnen = (begrip.gebruik ?? []).filter((g) => g.passages > 0);
+  const [herkomstWg, setHerkomstWg] = useState(bronnen.length === 1 ? bronnen[0].werkgebied_id : "");
   const [blijft, setBlijft] = useState<"dit" | "ander">("dit");
   const [bezig, setBezig] = useState(false);
   const a = kandidaten.find((b) => b.id === ander);
@@ -66,15 +69,31 @@ export function BegripOpvolging({ soort, id, begrip, kandidaten, onSluit, onKlaa
             <form aria-label="Nieuwe betekenis" className="space-y-2" onSubmit={(e) => {
               e.preventDefault();
               const body = { verwachte_revisie: begrip.revisie, reden: reden.trim() };
-              if (reden.trim()) void voer(() => id ? geefNieuweBetekenis(id, begrip.id, body) : geefGeneriekNieuweBetekenis(begrip.id, body));
+              if (!reden.trim() || (!id && !herkomstWg)) return;
+              void voer(() => id ? geefNieuweBetekenis(id, begrip.id, body)
+                : geefGeneriekNieuweBetekenis(begrip.id, { ...body, werkgebied_id: herkomstWg }));
             }}>
               <p className="text-xs text-muted">
                 Een andere betekenis is een nieuw begrip. De opvolger krijgt deze inhoud en de passages (opnieuw ter
                 beoordeling); dit begrip wordt vervangen en blijft te lezen. Een tekstuele verbetering doe je gewoon met Bewerken.
               </p>
+              {!id && (bronnen.length ? (
+                <Select value={herkomstWg} onChange={(e) => setHerkomstWg(e.target.value)} aria-label="Werkgebied van de nieuwe betekenis">
+                  <option value="">In welk werkgebied ontstaat de nieuwe betekenis?</option>
+                  {bronnen.map((g) => <option key={g.werkgebied_id} value={g.werkgebied_id}>{g.naam}</option>)}
+                </Select>
+              ) : (
+                <Melding type="uitleg" compact>
+                  Geen werkgebied heeft passages bij dit begrip. Een begrip rust altijd op een annotatie, dus een nieuwe
+                  betekenis kan pas als een werkgebied passages koppelt.
+                </Melding>
+              ))}
+              {!id && bronnen.length > 0 && (
+                <p className="text-xs text-muted">De passages van dat werkgebied gaan mee; elk ander werkgebied neemt de opvolger zelf over.</p>
+              )}
               <Input autoFocus value={reden} onChange={(e) => setReden(e.target.value)} placeholder="Waarom de betekenis verandert"
                 aria-label="Reden voor de nieuwe betekenis" maxLength={2000} />
-              <BewerkVoet submit onAnnuleer={onSluit} bezig={bezig} gewijzigd={!!reden.trim()} opslaanTekst="Maak opvolger" />
+              <BewerkVoet submit onAnnuleer={onSluit} bezig={bezig} gewijzigd={!!reden.trim() && (!!id || !!herkomstWg)} opslaanTekst="Maak opvolger" />
             </form>
           ) : soort === "generiek" ? (
             <form aria-label="Combineren met generiek begrip" className="space-y-2" onSubmit={(e) => {
