@@ -12,8 +12,8 @@ dunne laag met de tools. `src/runruimte.ts` is de vangrail voor verwijderen en h
 de workflow `acceptatie-keten` draait (`dist/keten-cli.js`). `src/bron.ts`, `src/graaf.ts`, `src/logs.ts` (via Grafana) en `src/logboek.ts` staan
 buiten de BFF: ze dienen de beoordeling en de samenwerking, en doen niets wat een scherm hoort te doen.
 
-De agent-jurist en de agent-gegevensspecialist (`.claude/agents/`) gebruiken deze MCP om op acceptatie samen een
-wetsanalyse uit te voeren, inclusief echte beslissingen; het scenario staat in
+De agent-jurist, de agent-gegevensspecialist en de agent-regelspecialist (`.claude/agents/`) gebruiken deze MCP om op
+acceptatie samen een wetsanalyse uit te voeren, inclusief echte beslissingen; het scenario staat in
 [`docs/acceptatie/wetsanalyse-e2e.md`](../../docs/acceptatie/wetsanalyse-e2e.md), de briefing in
 [`docs/acceptatie/briefing-team.md`](../../docs/acceptatie/briefing-team.md).
 
@@ -62,7 +62,8 @@ vergissing tegen en is geen slot: de proxy is dat wel, met zijn token.
 geen `Write`, `Edit` of `Bash`, en dat blijft zo. Een shell zou elk bestand kunnen overschrijven en maakt omwegen om de
 BFF makkelijk; de MCP legt het pad vast, opent in append-modus, en houdt de run-naam binnen de map. Het schrijft in de
 hoofdcheckout, ook als de sessie in een worktree draait, omdat een worktree wordt opgeruimd en het dossier daar niet
-staat. Een onenigheid vraagt beide argumenten, en iets wat op een token lijkt wordt geweigerd.
+staat. Een onenigheid vraagt het argument van elke kant (per rol in `argumenten`: `jurist`, `gegevensspecialist`,
+`regelspecialist`, minstens twee), en iets wat op een token lijkt wordt geweigerd.
 
 **Lex Bench** (`src/bench.ts`) gebruikt dezelfde runmap. De coördinator legt er de opdracht van een agent in
 (`eval.lex_bench_team … --naar-run`); de agent leest haar met `bench_opdracht_lezen` en levert in met
