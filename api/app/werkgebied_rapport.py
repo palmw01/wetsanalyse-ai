@@ -20,8 +20,10 @@ from bronmodel.antwoord import Vindplaats
 from pydantic import BaseModel, ConfigDict
 
 from .bepaling_graaf_contract import RegelingInfo, Structuurdeel, Verwijzing
+from .jas_begripverwachting import verwacht
 from .jas_klassen import JAS_KLASSEN_VOLGORDE
-from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA, PLAATS, SPANS, TITELBLAD, TOELICHTING
+from .diagram import Diagram
+from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, DIAGRAM, DIAGRAM_BEGRIPPEN, INHOUD, MARKERING, PAGINA, PLAATS, SPANS, TITELBLAD, TOELICHTING
 
 VERSIE = 2
 SCHEMA = "werkgebied-rapport-v2"
@@ -291,6 +293,7 @@ class Bepaling(_Deel):
     spans: list[Span] = []                           # alleen ankers die nog op hun offsets staan; een afwijking staat bij de markering
     verwijzingen: list[Verwijzing] = []
     relaties: list[Markeringsrelatie] = []           # de relaties waarvan de drager hier staat (ADR-011)
+    diagrammen: list[Diagram] = []                   # per centrale markering hier het 2c-diagram (Handleiding §3.4c)
     door: Door = "bron"
 
 
@@ -636,9 +639,16 @@ def leeswijzer_regels() -> list[Regel]:
                                      "niet meegenomen; ze staan in een bijlage, zodat niets stil verdwijnt."),
                         ("Heading4", "Opbouw"),
                         ("BodyText", "Hoofdstuk 3 tot en met 6 dragen de analyse: het werkgebied, de deelvragen met hun bronnen, de "
-                                     "analyse per bepaling en de begrippen. De bijlagen zijn naslag: de volledige begripskaarten, het "
-                                     "bronnenregister, de contextbepalingen, de samenhang (verwijzingen), wat niet is meegenomen "
+                                     "analyse per bepaling en de begrippen. De bijlagen zijn naslag: de volledige begripskaarten, de "
+                                     "diagrammen met begrippen, het bronnenregister, de contextbepalingen, de samenhang (verwijzingen), wat niet is meegenomen "
                                      "en de verantwoording."),
+                        ("Heading4", "Diagrammen"),
+                        ("BodyText", "Onder een bepaling met een rechtsbetrekking, rechtsfeit, afleidingsregel of voorwaarde staat "
+                                     "het diagram van de methode (deelactiviteit 2c): die formulering in het midden, de partijen "
+                                     "links, het voorwerp rechts, de voorwaarden erboven en de rest eronder, met op elke lijn de "
+                                     "relatie. Een gestippelde lijn is een voorstel. Het diagram vat de lijst Relaties erboven samen; "
+                                     "die lijst blijft leidend. Wat de methode verwacht en niet als relatie is vastgelegd, staat "
+                                     "eronder."),
                         ("Heading4", "De klassen van het Juridisch Analyseschema"),
                         ("Meta", "Een markering draagt de kleur van haar klasse, en altijd ook de naam: de kleur is nooit de enige drager."),
                         ("Meta", "In de wettekst heeft een markering die geen andere omvat een vlak in haar kleur. Een markering die "
@@ -914,6 +924,18 @@ def relaties_regels(relaties: list[Markeringsrelatie]) -> list[Regel]:
     return uit
 
 
+def diagram_regels(d: Diagram) -> list[Regel]:
+    """Het diagram rond een centrale markering (deelactiviteit 2c), met wat de methode verwacht en niet is vastgelegd.
+    Het model gaat als JSON mee: de PDF tekent het, Markdown maakt er een Mermaid-blok van. De relatielijst erboven blijft
+    leidend."""
+    nr = f" {d.nr}" if d.nr else ""
+    uit: list[Regel] = [*BLOK, ("Heading4", f"Diagram rond {d.klasse.lower()}{nr}"),
+                        (DIAGRAM, d.model_dump_json())]
+    if d.ontbreekt:
+        uit.append(("Meta", "Niet als relatie vastgelegd: " + ", ".join(d.ontbreekt) + "."))
+    return [*uit, *BLOK_UIT]
+
+
 def wettekst_regels(w: Wettekst) -> list[Regel]:
     """Per regeling, in de volgorde van de bronboom, elke bronnode één keer met haar markeringen eronder."""
     uit: list[Regel] = [(PAGINA, ""), ("Heading1", "5. Analyse per bepaling"),
@@ -986,6 +1008,8 @@ def _bepaling(b: Bepaling) -> list[Regel]:
     for m in b.markeringen:
         uit += _markering(m, b.vindplaats.iri, m.nr in in_tekst)
     uit += relaties_regels(b.relaties)
+    for d in b.diagrammen:
+        uit += diagram_regels(d)
     uit += [("Meta", _verwijst(v)) for v in b.verwijzingen]
     return uit
 
@@ -1214,12 +1238,39 @@ def verantwoording_regels(v: Verantwoording) -> list[Regel]:
     return uit
 
 
-BIJLAGEN = ("Begripskaarten", "Bronnenregister", "Contextbepalingen", "Samenhang", "Niet meegenomen", "Verantwoording")
+def begrippendiagram_regels(w: Wettekst) -> list[Regel]:
+    """Bijlage: de 2c-diagrammen met de begrippen in de knopen (Handleiding §3.4c: zodra elke formulering van een diagram
+    haar begrip heeft, mag hetzelfde diagram met begrippen). Alleen een diagram waarin elke formulering die volgens de
+    methode een begrip krijgt, een geaccordeerd begrip heeft; een voorwaarde houdt haar tekst. De andere staan eronder
+    met wat ontbreekt."""
+    uit: list[Regel] = [("Meta", "Dezelfde samenhang als de diagrammen in hoofdstuk 5, met de begrippen in plaats van de "
+                                 "formuleringen. Het nummer verwijst naar de markering, zodat elk begrip herleidbaar blijft.")]
+    open_: list[str] = []
+    for r in w.regelingen:
+        for a in r.artikelen:
+            for b in a.bepalingen:
+                for d in b.diagrammen:
+                    naam = f"{b.vindplaats.label} – rond {d.klasse.lower()}" + (f" {d.nr}" if d.nr else "")
+                    zonder = [k for k in d.knopen if k.soort == "element" and verwacht(k.klasse) != "omschrijving" and not k.begrip]
+                    if zonder:
+                        open_.append(f"{naam}: nog geen begrip bij " + ", ".join(
+                            f"{k.nr} · {k.klasse}" if k.nr else k.klasse for k in zonder) + ".")
+                        continue
+                    uit += [*BLOK, ("Heading3", naam), (DIAGRAM_BEGRIPPEN, d.model_dump_json()), *BLOK_UIT]
+    if len(uit) == 1:
+        uit.append(("BodyText", "Nog geen diagram heeft bij elke formulering een geaccordeerd begrip."))
+    if open_:
+        uit += [("Heading2", "Nog niet met begrippen"), *[("Meta", t) for t in open_]]
+    return uit
+
+
+BIJLAGEN = ("Begripskaarten", "Begrippendiagrammen", "Bronnenregister", "Contextbepalingen", "Samenhang", "Niet meegenomen", "Verantwoording")
 
 
 def rapport_regels(r: Rapport) -> list[Regel]:
     """Het hele rapport als (stijl, tekst), de vorm die elke uitvoer leest. Vooraan de analyse, achteraan de naslag."""
     bijlagen = {"Begripskaarten": begrippen_regels(r.begrippen),
+                "Begrippendiagrammen": begrippendiagram_regels(r.wettekst),
                 "Bronnenregister": register_regels(r.voorblad, r.verantwoording),
                 "Contextbepalingen": context_regels(r.wettekst),
                 "Samenhang": samenhang_regels(r.wettekst),

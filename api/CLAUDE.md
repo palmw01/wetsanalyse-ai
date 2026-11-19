@@ -464,8 +464,15 @@ spoor D (*Werkgebied als node*).
   bronstand en waarschuwingen, inhoudsopgave en bladwijzers, dossier, deelvragen en bronnen, wettekst met markeringen,
   begrippen, korte verantwoording. De indeling (v2): titelblad, colofon, inhoud, 1 Samenvatting, 2 Leeswijzer (met de JAS-legenda),
   3 Werkgebied, 4 Deelvragen en bronnen, 5 Analyse per bepaling, 6 Begrippen (lijst), dan de bijlagen (`BIJLAGEN`, letters op volgorde):
-  Begripskaarten, Bronnenregister, Contextbepalingen (rol context zonder markering, `Regeling.context`), Samenhang, Niet meegenomen,
+  Begripskaarten, Begrippendiagrammen, Bronnenregister, Contextbepalingen (rol context zonder markering, `Regeling.context`), Samenhang, Niet meegenomen,
   Verantwoording.
+  - **Diagrammen (2c)** (ADR-009, aanvulling diagrammen; Handleiding §3.4c): `Bepaling.diagrammen` is per centrale markering
+    het diagram (`app/diagram.py`: model, keuze van de wortels, vaste layout; `app/diagram_teken.py`: reportlab-tekening,
+    SVG, Mermaid). Eén diagram per wortel over het hele rapport (`_met_diagrammen`): een voorwaarde hoort bij haar drager.
+    De buurt is die van `diagramBuurt` in de werkplek (`frontend/lib/graaf/diagram.vectoren.json`). In de regels is het de
+    stijl `DIAGRAM` met het model als JSON (de PDF tekent, Markdown maakt een Mermaid-blok); bijlage *Begrippendiagrammen*
+    (`DIAGRAM_BEGRIPPEN`) toont hetzelfde met de begrippen, alleen als elke formulering die een begrip verwacht er een heeft.
+    `GET /v1/annotatie/diagram?element_id=&vorm=json|svg` levert hetzelfde voor elke andere plek.
   - **Relaties en regelskelet** (ADR-009, aanvulling relaties; ADR-011): `Bepaling.relaties` (elke relatie één keer, bij de bepaling
     van de drager) en per Afleidingsregel `Markering.regelskelet` (uitvoer, invoer op volgorde, operatoren met operanden, voorwaarden,
     parameters met waarde, tijd, uitzonderingen, toepassing), uit `annotatie_v2_relaties.bij_elementen`. Een afgewezen relatie staat er

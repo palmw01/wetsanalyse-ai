@@ -1,0 +1,34 @@
+{
+  "toelichting": "De buurt van een 2c-diagram: wat vanaf een centrale markering over relaties bereikbaar is, in beide richtingen, tot de diepte. Gedeeld door diagramBuurt (frontend/lib/graaf/weergave.ts) en diagram.buurt (api/app/diagram.py). Een relatie is [van, naar, type, lifecycle]; een knoop heet element:<id> of impliciet:<id>.",
+  "diepte": 2,
+  "gevallen": [
+    {
+      "naam": "rechtsbetrekking met partijen, voorwerp en een voorwaarde met haar operator; de derde stap valt weg",
+      "klassen": {"rb": "Rechtsbetrekking", "ontvanger": "Rechtssubject", "aanslag": "Rechtsobject", "vw": "Voorwaarde",
+                  "op": "Operator", "termijn": "Variabele en variabelewaarde", "ver": "Tijdsaanduiding"},
+      "relaties": [["element:ontvanger", "element:rb", "plichthebbende", "human_approved"],
+                   ["element:rb", "element:aanslag", "voorwerp", "human_approved"],
+                   ["element:rb", "element:vw", "voorwaarde", "human_approved"],
+                   ["element:op", "element:vw", "operator_in", "voorgesteld"],
+                   ["element:termijn", "element:op", "operand", "human_approved"],
+                   ["impliciet:I1", "element:rb", "rechthebbende", "human_approved"]],
+      "centraal": "rb",
+      "buurt": ["element:aanslag", "element:ontvanger", "element:op", "element:rb", "element:vw", "impliciet:I1"]
+    },
+    {
+      "naam": "een afgewezen relatie telt niet",
+      "klassen": {"ar": "Afleidingsregel", "uit": "Variabele en variabelewaarde", "in": "Tijdsaanduiding"},
+      "relaties": [["element:ar", "element:uit", "uitvoer", "human_approved"],
+                   ["element:in", "element:ar", "invoer", "rejected"]],
+      "centraal": "ar",
+      "buurt": ["element:ar", "element:uit"]
+    },
+    {
+      "naam": "zonder relaties alleen de centrale markering",
+      "klassen": {"rf": "Rechtsfeit"},
+      "relaties": [],
+      "centraal": "rf",
+      "buurt": ["element:rf"]
+    }
+  ]
+}

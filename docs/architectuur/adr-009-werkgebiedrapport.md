@@ -71,3 +71,30 @@ keuze, `inhoud`:
 
 `Document.inhoud` legt de keuze vast, zodat de JSON zegt wat hij weglaat; het telt mee in `inhoud_hash`. De werkplek toont
 het als vinkje *Met de voorstellen van Lex* in het exportmenu.
+
+
+## Aanvulling: diagrammen van deelactiviteit 2c (19 nov 2026)
+
+**Status:** aangenomen, 19 nov 2026 (plan goedgekeurd door de gebruiker). Bron: Handleiding §3.4 deelactiviteit c (de figuur
+bij de zorgtoeslag) en Leidraad, analyseresultaat 10.
+
+- **Eén model, drie tekenaars.** `api/app/diagram.py` bouwt het diagram rond één centrale markering (rechtsbetrekking,
+  rechtsfeit, afleidingsregel, voorwaarde) uit de relaties van ADR-011, kiest de wortels en rekent een vaste layout uit:
+  de centrale formulering in het midden, partijen links, het voorwerp rechts, voorwaarden erboven, de rest eronder. Geen
+  layoutmotor: dezelfde stand geeft hetzelfde plaatje. `api/app/diagram_teken.py` maakt er een reportlab-tekening (PDF),
+  SVG en Mermaid (Markdown) van.
+- **In het contract.** `Bepaling.diagrammen` (een lijst, standaard leeg): het schema blijft `werkgebied-rapport-v2`, net als
+  bij de relaties. Eén diagram per wortel over het hele rapport, bij de bepaling van de centrale markering: een voorwaarde
+  of operator hoort in het diagram van haar drager en krijgt geen eigen. `ontbreekt` noemt wat de methode bij de klasse
+  verwacht en niet als relatie is vastgelegd (rechthebbende, plichthebbende, voorwerp; wie het rechtsfeit verricht en wat
+  het creëert, wijzigt of beëindigt; uitvoer en invoer).
+- **De buurt is die van de werkplek**: twee relaties ver, in beide richtingen, afgewezen telt niet (`diagramBuurt`); gedeelde
+  vectoren in `frontend/lib/graaf/diagram.vectoren.json`.
+- **Brongetrouw.** Een knoop toont het letterlijke fragment, bij een lang fragment begin en eind met een weglatingsteken,
+  nooit een parafrase. Een knoop in een andere bepaling draagt die vindplaats in plaats van een nummer.
+- **Met begrippen** (Handleiding: het diagram mag met de begrippen zodra elke formulering er een heeft): bijlage
+  *Begrippendiagrammen* toont hetzelfde diagram met de namen van de geaccordeerde begrippen, alleen als elke formulering
+  die een begrip verwacht er een heeft; de rest staat eronder met wat ontbreekt. Een voorwaarde houdt haar tekst.
+- **De lijst blijft leidend.** Het diagram is aanvullend (skill `relaties.md`); de lijst *Relaties* staat erboven.
+- **Hergebruik.** `GET /v1/annotatie/diagram?element_id=&vorm=json|svg` levert hetzelfde diagram voor de werkplek, een
+  artefact of Lex. Markdown krijgt een Mermaid-blok, geen SVG-bestand: het rapport blijft één `.md`.

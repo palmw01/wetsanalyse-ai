@@ -317,6 +317,14 @@
           "title": "Relaties",
           "type": "array"
         },
+        "diagrammen": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Diagram"
+          },
+          "title": "Diagrammen",
+          "type": "array"
+        },
         "door": {
           "default": "bron",
           "enum": [
@@ -559,6 +567,55 @@
         "modus"
       ],
       "title": "Deelvragen",
+      "type": "object"
+    },
+    "Diagram": {
+      "additionalProperties": false,
+      "description": "Het diagram rond één centrale markering. Structuur, geen plaatsen: die rekent `plaats` uit.",
+      "properties": {
+        "centraal": {
+          "title": "Centraal",
+          "type": "string"
+        },
+        "klasse": {
+          "title": "Klasse",
+          "type": "string"
+        },
+        "nr": {
+          "default": 0,
+          "title": "Nr",
+          "type": "integer"
+        },
+        "knopen": {
+          "items": {
+            "$ref": "#/$defs/Knoop"
+          },
+          "title": "Knopen",
+          "type": "array"
+        },
+        "lijnen": {
+          "items": {
+            "$ref": "#/$defs/Lijn"
+          },
+          "title": "Lijnen",
+          "type": "array"
+        },
+        "ontbreekt": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Ontbreekt",
+          "type": "array"
+        }
+      },
+      "required": [
+        "centraal",
+        "klasse",
+        "knopen",
+        "lijnen"
+      ],
+      "title": "Diagram",
       "type": "object"
     },
     "Document": {
@@ -813,6 +870,122 @@
         "aantal"
       ],
       "title": "KlasseTelling",
+      "type": "object"
+    },
+    "Knoop": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "soort": {
+          "default": "element",
+          "enum": [
+            "element",
+            "impliciet"
+          ],
+          "title": "Soort",
+          "type": "string"
+        },
+        "nr": {
+          "default": 0,
+          "title": "Nr",
+          "type": "integer"
+        },
+        "klasse": {
+          "default": "",
+          "title": "Klasse",
+          "type": "string"
+        },
+        "tekst": {
+          "default": "",
+          "title": "Tekst",
+          "type": "string"
+        },
+        "elders": {
+          "default": "",
+          "title": "Elders",
+          "type": "string"
+        },
+        "lifecycle": {
+          "default": "",
+          "title": "Lifecycle",
+          "type": "string"
+        },
+        "begrip": {
+          "default": "",
+          "title": "Begrip",
+          "type": "string"
+        },
+        "zone": {
+          "default": "onder",
+          "enum": [
+            "boven",
+            "links",
+            "midden",
+            "rechts",
+            "onder"
+          ],
+          "title": "Zone",
+          "type": "string"
+        },
+        "diepte": {
+          "default": 0,
+          "title": "Diepte",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "Knoop",
+      "type": "object"
+    },
+    "Lijn": {
+      "additionalProperties": false,
+      "properties": {
+        "van": {
+          "title": "Van",
+          "type": "string"
+        },
+        "naar": {
+          "title": "Naar",
+          "type": "string"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "leesvorm": {
+          "title": "Leesvorm",
+          "type": "string"
+        },
+        "volgorde": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Volgorde"
+        },
+        "lifecycle": {
+          "default": "",
+          "title": "Lifecycle",
+          "type": "string"
+        }
+      },
+      "required": [
+        "van",
+        "naar",
+        "code",
+        "leesvorm"
+      ],
+      "title": "Lijn",
       "type": "object"
     },
     "Markering": {

@@ -44,6 +44,10 @@ BLOK_BEGIN, BLOK_EIND = "BlokBegin", "BlokEind"
 PLAATS = "Plaats"
 """De plaats in de opbouw ("Hoofdstuk 2 – … › § 3 – …") boven een artikel. Ook de kopregel toont hem, tot het volgende hoofdstuk."""
 SPANS = "Spans"
+DIAGRAM = "Diagram"
+DIAGRAM_BEGRIPPEN = "Diagram:begrippen"
+"""Hetzelfde diagram met de begrippen in de knopen in plaats van de formuleringen (Handleiding §3.4c)."""
+"""Een 2c-diagram (`diagram.Diagram` als JSON): in de PDF een tekening, in Markdown een Mermaid-blok."""
 """De markeringen in het citaat dat erop volgt: JSON `[[start, eind, nr, klasse], …]`, offsets in codepoints. Geen eigen alinea."""
 TOELICHTING = "Toelichting"
 """De toelichting bij een markering: kleiner en ingesprongen, onder haar kop."""
@@ -418,6 +422,13 @@ def render(regels: list[tuple[str, str]], titel: str = "", voet: str = "", spoor
                 spans = [tuple(x) for x in json.loads(tekst)]
                 continue
             doel = verhaal if blok is None else blok
+            if stijl in (DIAGRAM, DIAGRAM_BEGRIPPEN):
+                from .diagram import Diagram
+                from .diagram_teken import als_drawing
+                doel.append(als_drawing(Diagram.model_validate_json(tekst), breedte=A4[0] - links - rechts,
+                                        vorm="begrippen" if stijl == DIAGRAM_BEGRIPPEN else "formuleringen",
+                                        max_hoogte=0.6 * (A4[1] - boven - onder)))
+                continue
             if stijl == BLOK_BEGIN:
                 blok = []
             elif stijl == BLOK_EIND:

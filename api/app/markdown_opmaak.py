@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import re
 
-from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, INHOUD, MARKERING, PAGINA, PLAATS, SPANS, TITELBLAD, citaatbanen
+from .pdf_opmaak import BEGRIP, BLOK_BEGIN, BLOK_EIND, DIAGRAM, DIAGRAM_BEGRIPPEN, INHOUD, MARKERING, PAGINA, PLAATS, SPANS, TITELBLAD, citaatbanen
 
 _KOP = {"Title": "#", "Heading1": "##", "Heading2": "###", "Heading3": "####", BEGRIP: "####"}
 _TEKENS = re.compile(r"([\\`*_\[\]<>])")
@@ -70,6 +70,12 @@ def markdown(regels: list[tuple[str, str]]) -> str:
             spans = [tuple(x) for x in json.loads(tekst)]
             continue
         if stijl in (BLOK_BEGIN, BLOK_EIND):
+            continue
+        if stijl in (DIAGRAM, DIAGRAM_BEGRIPPEN):
+            from .diagram import Diagram
+            from .diagram_teken import als_mermaid
+            uit.append(als_mermaid(Diagram.model_validate_json(tekst),
+                                   "begrippen" if stijl == DIAGRAM_BEGRIPPEN else "formuleringen"))
             continue
         if stijl.startswith(TITELBLAD):
             veld = stijl.removeprefix(TITELBLAD)
