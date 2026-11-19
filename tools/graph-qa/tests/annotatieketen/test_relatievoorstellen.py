@@ -130,7 +130,7 @@ def uitvoer_overlap():
 def invoer_positief():
     z = _aantal()
     z.markeer("volle maanden", VAR)
-    assert kort(z.voorstel()) == {("invoer", "volle maanden", AR_SPAN, None)}
+    assert kort(z.voorstel()) == {("invoer", "volle maanden", AR_SPAN, 1)}
 
 
 def invoer_negatief():
@@ -151,12 +151,12 @@ def invoer_rand():
 
 
 def invoer_overlap():
-    # Twee markeringen naast elkaar op de invoer zijn twee invoeren, zonder volgorde.
+    # Twee markeringen naast elkaar op de invoer zijn twee invoeren, in de volgorde van de tekst (L-2-2).
     z = _aantal()
     z.markeer("er", VAR, nde=2)
     z.markeer("volle maanden", VAR)
     gevonden = {r for r in kort(z.voorstel()) if r[0] == "invoer"}
-    assert gevonden == {("invoer", "er", AR_SPAN, None), ("invoer", "volle maanden", AR_SPAN, None)}
+    assert gevonden == {("invoer", "er", AR_SPAN, 1), ("invoer", "volle maanden", AR_SPAN, 2)}
 
 
 # --- 2. waarde -----------------------------------------------------------------------------------------------------
@@ -323,10 +323,18 @@ def voorwaarde_rand(parser):
 
 
 def voorwaarde_overlap(parser):
-    # Twee dragers om hetzelfde predicaat (de norm en de hele zin als afleidingsregel): twijfel, geen voorstel.
+    # Een rechtsbetrekking en een afleidingsregel om hetzelfde predicaat: de bepaling draagt beide (M-2-1, L-2-2), en
+    # de voorwaarde geldt voor allebei. Twee rechtsbetrekkingen erom blijven twijfel: geen voorstel.
     z = Zin(VERGUNNING, parser.analyseer(VERGUNNING))
     z.markeer("De gemeente verleent een vergunning", RB)
     z.markeer(VERGUNNING.rstrip("."), AR)
+    z.markeer("indien de aanvrager een verklaring overlegt", VW)
+    rs = [r for r in z.voorstel() if r["type"] == "voorwaarde"]
+    assert {r["van_ankers"][0]["tekst"] for r in rs} == {"De gemeente verleent een vergunning", VERGUNNING.rstrip(".")}
+    assert all(r["spoor"]["detail"]["twee_dragers"] for r in rs)
+    z = Zin(VERGUNNING, parser.analyseer(VERGUNNING))
+    z.markeer("De gemeente verleent een vergunning", RB)
+    z.markeer(VERGUNNING.rstrip("."), RB)
     z.markeer("indien de aanvrager een verklaring overlegt", VW)
     assert not [r for r in z.voorstel() if r["type"] == "voorwaarde"]
 
@@ -452,9 +460,59 @@ def voorwerp_zinsdeel_overlap(parser):
     assert _rollen(z, "voorwerp") == {("voorwerp", tekst.rstrip("."), "het bedrag van de aanslag", None)}
 
 
+# --- 1b. kenmerk binnen de invoer (L-2-2) ------------------------------------------------------------------------------
+
+DAGTEKENING = "De termijn vervalt in zoveel delen als er dagen na de dagtekening van het aanslagbiljet zijn."
+DT_SPAN = "zoveel delen als er dagen na de dagtekening van het aanslagbiljet zijn"
+DT_INVOER = "er dagen na de dagtekening van het aanslagbiljet zijn"
+
+
+def _dagtekening() -> Zin:
+    z = Zin(DAGTEKENING)
+    z.markeer(DT_SPAN, AR, code="CALCULATION_QUANTITY", detail=z.aantal(DT_SPAN, "delen", DT_INVOER))
+    return z
+
+
+def kenmerk_positief():
+    # De variabele is de invoer, het rechtsobject erin niet: dat krijgt een kenmerk ("geen waarde, weg").
+    z = _dagtekening()
+    z.markeer("de dagtekening van het aanslagbiljet", VAR)
+    z.markeer("het aanslagbiljet", RO)
+    assert {r for r in kort(z.voorstel()) if r[0] in ("invoer", "kenmerk")} == {
+        ("invoer", "de dagtekening van het aanslagbiljet", DT_SPAN, 1),
+        ("kenmerk", "de dagtekening van het aanslagbiljet", "het aanslagbiljet", None)}
+
+
+def kenmerk_negatief():
+    # Een rechtsobject dat alleen staat, blijft invoer: er is geen waarde om het kenmerk van te zijn.
+    z = _dagtekening()
+    z.markeer("het aanslagbiljet", RO)
+    assert kort(z.voorstel()) == {("invoer", "het aanslagbiljet", DT_SPAN, 1)}
+
+
+def kenmerk_rand():
+    # Een tijdsaanduiding is ook een waarde en dus de invoer, maar de catalogus kent alleen een variabele als kenmerk.
+    z = _dagtekening()
+    z.markeer("de dagtekening van het aanslagbiljet", TIJD)
+    z.markeer("het aanslagbiljet", RO)
+    assert kort(z.voorstel()) == {("invoer", "de dagtekening van het aanslagbiljet", DT_SPAN, 1)}
+
+
+def kenmerk_overlap():
+    # Twee waarden naast elkaar zijn twee invoeren op volgorde; het object hoort bij de variabele waar het in staat.
+    z = _dagtekening()
+    z.markeer("dagen", VAR)
+    z.markeer("de dagtekening van het aanslagbiljet", VAR)
+    z.markeer("het aanslagbiljet", RO)
+    assert {r for r in kort(z.voorstel()) if r[0] in ("invoer", "kenmerk")} == {
+        ("invoer", "dagen", DT_SPAN, 1), ("invoer", "de dagtekening van het aanslagbiljet", DT_SPAN, 2),
+        ("kenmerk", "de dagtekening van het aanslagbiljet", "het aanslagbiljet", None)}
+
+
 GEVALLEN = {
     R.REL_UITVOER_FUNCTIE: (uitvoer_positief, uitvoer_negatief, uitvoer_rand, uitvoer_overlap),
     R.REL_INVOER_FUNCTIE: (invoer_positief, invoer_negatief, invoer_rand, invoer_overlap),
+    R.REL_KENMERK_INVOER: (kenmerk_positief, kenmerk_negatief, kenmerk_rand, kenmerk_overlap),
     R.REL_WAARDE_NESTING: (waarde_positief, waarde_negatief, waarde_rand, waarde_overlap),
     R.REL_OPERATOR_IN_NESTING: (operator_in_positief, operator_in_negatief, operator_in_rand, operator_in_overlap),
     R.REL_OPERAND_WOORDVOLGORDE: (operand_positief, operand_negatief, operand_rand, operand_overlap),
@@ -467,6 +525,20 @@ GEVALLEN = {
 #: De regels die de zinsontleding lezen; de rest draait zonder model.
 MET_ONTLEDING = (R.REL_VOORWAARDE_AANHECHTING, R.REL_ROL_ONDERWERP, R.REL_ROL_VOORZETSEL, R.REL_VOORWERP_ZINSDEEL)
 SOORTEN = ("positief", "negatief", "rand", "overlap")
+
+
+def test_een_ontkenning_heeft_een_operand_en_breekt_de_reeks_niet():
+    """Termijnen (art. 9 lid 5 IW): 'niet' kreeg twee operanden, en 'meer dan' miste zijn eerste."""
+    tekst = "Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn, vindt het eerste lid toepassing."
+    vw = "Indien de toepassing van de eerste volzin niet leidt tot meer dan één termijn"
+    z = Zin(tekst)
+    z.markeer(vw, VW)
+    for fragment, klasse in (("niet", OP), ("meer dan", OP), ("de toepassing van de eerste volzin", VAR),
+                             ("één termijn", PAR)):
+        z.markeer(fragment, klasse)
+    assert {r for r in kort(z.voorstel()) if r[0] == "operand"} == {
+        ("operand", "meer dan", "niet", 1),
+        ("operand", "de toepassing van de eerste volzin", "meer dan", 1), ("operand", "één termijn", "meer dan", 2)}
 
 
 def test_elke_regel_heeft_vier_testsoorten():

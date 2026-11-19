@@ -76,3 +76,20 @@
     negatief: [{tekst: "De kosten worden gedragen door de huurder.", span: "gedragen door de huurder"}]
     rand: [{tekst: "De bijdrage is evenredig aan de oppervlakte;", span: "De bijdrage is evenredig aan de oppervlakte;"}]
     overlap: [{tekst: "Het bedrag staat in dezelfde verhouding tot de rest; de uitkomst is de som van beide.", spans: ["Het bedrag staat in dezelfde verhouding tot de rest;", "de uitkomst is de som van beide."]}]
+# Een verdeling: een bedrag of verplichting 'in (zoveel) gelijke termijnen' of 'voor gelijke delen' (L-2-1, Termijnen
+# 19 nov 2026: de jurist markeerde 'gelijke termijnen' in art. 9 lid 5, 6 en 7 IW als afleidingsregel). De regel deelt
+# het geheel door het aantal; het aantal zelf komt vaak uit 'zoveel … als' (functies.py). Zwak: het model beslist.
+- id: jas.afleiding.verdeling
+  klassen: [Afleidingsregel]
+  code: CALCULATION_DIVISION
+  bewijs: zwak
+  bron: "H2:71"
+  versie: 1
+  niet_binnen: [verwijzing]
+  patroon: '\bgelijke\s+(?:termijnen|delen|gedeelten)\b'
+  links: '\b(?:in|voor|bij)\s+(?:(?:zoveel|{TELWOORD}|\d+)\s+)?'
+  tests:
+    positief: [{tekst: "De aanslag is invorderbaar in zoveel gelijke termijnen als er maanden zijn.", span: "in zoveel gelijke termijnen"}]
+    negatief: [{tekst: "De termijnen zijn niet gelijk aan de maanden.", span: "termijnen zijn niet gelijk"}]
+    rand: [{tekst: "De nalatenschap wordt voor gelijke delen verdeeld.", span: "voor gelijke delen"}]
+    overlap: [{tekst: "Betaling in twee gelijke termijnen; de rest in drie gelijke delen.", spans: ["in twee gelijke termijnen", "in drie gelijke delen"]}]

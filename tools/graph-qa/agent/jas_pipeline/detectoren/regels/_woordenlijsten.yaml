@@ -262,6 +262,24 @@ GEVOLGPREDICAAT:
   - eindigen
   - overgaan
   - in werking treden
+# Een tijdstip als waarde ('de dagtekening van het aanslagbiljet', 'de datum van ingang'): een gegeven dat een regel
+# leest of afleidt, geen handeling (L-2-5, functiedetector `jas.variabele.tijdstip_als_waarde`). 'dag' staat er niet in:
+# 'veertien dagen' is een duur.
+TIJDSTIP:
+  - dagtekening
+  - datum
+  - tijdstip
+  - vervaldag
+  - vervaldatum
+  - ingangsdatum
+  - einddatum
+# Een rechtsgevolg als toestand, met een koppelwerkwoord ('is invorderbaar zes weken na …'): met een moment erbij
+# leidt de bepaling een datum af (L-2-1, gevolgdetector `jas.afleiding.datumtoewijzing`). De parser ziet het woord
+# soms als zelfstandig naamwoord, dus de detector toetst het koppelwerkwoord, niet de woordsoort.
+GEVOLGTOESTAND:
+  - invorderbaar
+  - verschuldigd
+  - opeisbaar
 RECHTSGEVOLG:
   - ontstaat
   - ontstaan

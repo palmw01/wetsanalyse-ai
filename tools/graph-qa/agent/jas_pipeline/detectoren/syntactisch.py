@@ -599,7 +599,8 @@ class GevolgDetector:
     naam = "gevolg"
     # 2: een rechtsgevolg dat een moment vastlegt is ook een afleiding (H2:71), met het ALS→DAN-segment als
     #    eigen kandidaat
-    versie = "2"
+    # 3: een rechtsgevolg als toestand met een moment ('is invorderbaar zes weken na …') ook (L-2-1)
+    versie = "3"
 
     def detecteer(self, bron: BronTekst) -> DetectorResult:
         from .functies import toepassingskeuze
@@ -654,7 +655,67 @@ class GevolgDetector:
                         detector=self.naam, code=self.CODES[2], regel=self.REGELS[2], relatie=t.deprel,
                         detail=json.dumps({"predicaat": vorm, "voorwaarde": True}, ensure_ascii=False,
                                           sort_keys=True))]))
+        kandidaten += self._toestand_met_moment(bron, a, momenten, gezien)
         return resultaat(self, bron, kandidaten)
+
+    def _toestand_met_moment(self, bron: BronTekst, a: LinguisticAnalysis, momenten, gezien) -> list[Candidate]:
+        """'is invorderbaar zes weken na de dagtekening …': een rechtsgevolg als toestand met een moment leidt een datum
+        af (H2:71; Termijnen 19 nov 2026, art. 9 lid 1 IW). Naast de rechtsbetrekking die de NormDetector op de zin
+        legt, een eigen kandidaat-Afleidingsregel van de toestand tot het eind van het moment: de methode laat toe dat
+        één bepaling beide draagt (M-2-1), het model en de jurist beslissen.
+
+        De toestand heeft een koppelwerkwoord, of is nevengeschikt in de hoofdzin ('… en een naheffingsaanslag
+        invorderbaar veertien dagen na …'); de parser ziet het woord soms als zelfstandig naamwoord en hangt het
+        koppelwerkwoord dan aan het onderwerp. Ontkend ('niet
+        invorderbaar') of in een bijzin telt niet. Het moment moet in de eigen zinsdelen staan, niet in die van een
+        nevenschikking."""
+        uit = []
+
+        def toestand(i: int) -> bool:
+            return bool(_lijst("GEVOLGTOESTAND").match((a.tokens[i].lemma or a.tokens[i].tekst).lower()))
+
+        def met_cop(i: int) -> bool:
+            return any(a.tokens[k].deprel == "cop" for k in a.kinderen(i))
+        for t in a.tokens:
+            if not toestand(t.i) or not (met_cop(t.i) or t.deprel in {"conj", "parataxis"}):
+                continue
+            if not _in_hoofdzin(a, t.i) or any((a.tokens[k].lemma or "").lower() in {"niet", "geen"}
+                                               for k in a.kinderen(t.i)):
+                continue
+            ids = set(a.subboom(t.i)) - {j for k in a.kinderen(t.i) if a.tokens[k].deprel in {"conj", "cc", "nsubj"}
+                                         for j in a.subboom(k)}
+            ids -= {j for k in a.kinderen(t.i) if a.tokens[k].deprel == "parataxis" for j in a.subboom(k)}
+            # Ook dieper: '… van het aanslagbiljet en een naheffingsaanslag' is een nevenschikking, geen moment.
+            ids -= {j for i in list(ids) if a.tokens[i].deprel in {"conj", "cc"} and a.tokens[i].head in ids
+                    for j in a.subboom(i)}
+            eigen = [a.tokens[j] for j in ids if a.tokens[j].start >= t.start and a.tokens[j].upos != "PUNCT"]
+            if not eigen:
+                continue
+            tot = max(x.eind for x in eigen)
+            moment = next(((ms, me) for ms, me in momenten if t.eind <= ms < tot), None)
+            if not moment:
+                continue
+            # Het eind is de tijdsbepaling bij de toestand zelf ('na de dagtekening van het aanslagbiljet'), zonder
+            # nevenschikking: een tijdregel kan twee termijnen samen pakken ('één maand na … en … veertien dagen na …').
+            obl = sorted((k for k in a.kinderen(t.i) if a.tokens[k].deprel == "obl" and k in ids
+                          and moment[0] <= a.tokens[k].start < moment[1]),
+                         # eerst die met een tijdvoorzetsel ('na de dagtekening'), niet de duur ('één maand')
+                         key=lambda k: (not any(a.tokens[c].deprel == "case" and _lijst("TIJDVOORZETSEL").match(
+                             a.tokens[c].tekst) for c in a.kinderen(k)), a.tokens[k].start))
+            eind = min(moment[1], tot)
+            if obl:
+                eigen_obl = set(a.subboom(obl[0])) - {j for i in a.subboom(obl[0]) if a.tokens[i].deprel in {"conj", "cc"}
+                                                      and i != obl[0] for j in a.subboom(i)}
+                eind = max(a.tokens[j].eind for j in eigen_obl if a.tokens[j].upos != "PUNCT")
+            span = (t.start, eind)
+            if span in gezien or _in_verwijzing(bron, *span):
+                continue
+            gezien.add(span)
+            uit.append(_kandidaat(bron, [(span, "predicaat")], [AR], [Evidence(
+                detector=self.naam, code=self.CODES[2], regel=self.REGELS[2], relatie=t.deprel,
+                detail=json.dumps({"toestand": t.tekst, "moment": bron.tekst[t.eind:eind].strip()},
+                                  ensure_ascii=False, sort_keys=True))]))
+        return uit
 
 
 # Tijdtreffers die een moment aanwijzen, niet alleen een tijdsduur: een datum, een maand, een tijdstip, een

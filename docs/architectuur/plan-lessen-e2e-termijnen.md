@@ -810,6 +810,34 @@ sterk varieert.
    - L-2-2 (het skelet). L-2-2 kan pas na M-1-1, voor de eindpunten van `uitzondering_op`.
 
    Meten op Termijnen en WA TRM H1, daarna blind.
+
+   **Stand (19 nov 2026)**: gebouwd, met de toetsing per stap:
+   - **L-2-1**:
+     - *aantal*: elke telbare bijzin, op de parse;
+     - *datum uit een duur*: een rechtsgevolg als toestand met een moment wordt een eigen AR-kandidaat;
+     - *verdeling*: `jas.afleiding.verdeling`.
+     - *Gevolg van een vergelijking* ("In dat geval …") is afgevallen. Het signaal wijst even vaak op een
+       rechtsbetrekking, en de classifier ziet de voorwaarde al.
+   - **L-2-5**: `TEMPORAL_VALUE` (V/T).
+   - **L-2-6**: "wordt aangeduid als".
+     - Bij het Leidraad-onderdeel is de oorzaak nu gelezen: 1.1.2 is een lijst "– term: omschrijving" onder de kop
+       "Definities", zonder aanhef. Die kop bereikt de detector niet; `BronTekst.context` draagt alleen de tekst van
+       de ouder.
+     - Dat vraagt de kop in de snapshot en in de keten, en is een eigen stap.
+   - **L-2-2**:
+     - de invoer is de grootste waarde, met een `kenmerk` voor het rechtsobject erin;
+     - de invoer staat op volgorde;
+     - een ontkenning heeft één operand;
+     - een voorwaarde gaat naar rechtsbetrekking én afleidingsregel samen.
+     - De ariteit staat in de keten (`relaties.EEN_OPERAND`) en niet in `relaties.json`: het is een eigenschap van de
+       operatorformulering, niet van een relatietype, en de api en de werkplek lezen haar niet.
+     - `uitzondering_op`, `toepassing` en `tijd` wachten op M-1-1 (een bron als eindpunt).
+   - **Gemeten**:
+     - deterministisch met `eval.kandidaat_eval`, vóór en na, op v1 en concept. De recall is gelijk (0,90 en 0,69),
+       er komen één à twee kandidaten bij, en de precisie gaat van 0,277 naar 0,274 en van 0,230 naar 0,229.
+     - De sets bevatten deze vormen niet. De vormen zelf toetst `tests/annotatieketen/test_keten_vormen_termijnen.py`.
+     - De meting van de keten met het model (drie runs, en de relatievoorstellen achter `relatieVoorstellen`) volgt
+       na de uitrol, met een eigen akkoord.
 4. **Bundel 4, open punten** (api, werkplek en rapport): L-X-1, L-DV-2, en L-1-2 voor zover het het signaal bij de
    dekking is. Na bundel 1.
 

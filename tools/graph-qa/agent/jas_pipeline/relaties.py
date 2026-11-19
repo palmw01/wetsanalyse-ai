@@ -9,16 +9,23 @@ Vier regels, in de volgorde van ADR-011, elk met een eigen code (verklaard in `v
 
 1. **`uitvoer`/`invoer` uit de functiedetector** (`REL_UITVOER_FUNCTIE`, `REL_INVOER_FUNCTIE`). Een afleidingsregel
    met bewijs `CALCULATION_QUANTITY` noemt in `Evidence.detail` de spans `uitkomst` en `invoer`. Een voorstel binnen de
-   regel dat zo'n span overlapt (en de andere niet), hoort erbij; van geneste voorstellen telt het binnenste.
-   `uitvoer` alleen als het er dan precies één is.
+   regel dat zo'n span overlapt (en de andere niet), hoort erbij; bij de uitvoer telt van geneste voorstellen het
+   binnenste, `uitvoer` alleen als het er dan precies één is. **De invoer is een waarde** (L-2-2, Termijnen 19 nov 2026):
+   draagt de invoerspan een variabele, parameter of tijdsaanduiding, dan is de grootste daarvan de invoer, en een
+   rechtsobject erbinnen niet ('de dagtekening van het aanslagbiljet': de dagtekening). Dat rechtsobject krijgt een
+   `kenmerk` van de variabele (`REL_KENMERK_INVOER`). Zonder waarde blijft het binnenste voorstel de invoer. De invoer
+   krijgt de woordvolgorde als `volgorde` (1 = de eerste).
 2. **`waarde` uit de nesting** (`REL_WAARDE_NESTING`): een parameterwaarde binnen een tijdsaanduiding die een parameter
    verbijzondert, of een parameter- of variabelewaarde binnen een parameter of variabele. De binnenste ouder telt.
 3. **`operator_in` en `operand`** (`REL_OPERATOR_IN_NESTING`, `REL_OPERAND_WOORDVOLGORDE`): een operator in een
    voorwaarde of afleidingsregel; de naaste voorstellen links en rechts binnen die ouder zijn de operanden, met de
-   woordvolgorde als `volgorde` (1 = links). Een andere operator ertussen breekt de reeks.
+   woordvolgorde als `volgorde` (1 = links). Een andere operator ertussen breekt de reeks. Een ontkenning ('niet',
+   'geen'; `EEN_OPERAND`) heeft één operand, de naaste rechts, op plek 1; ze breekt de reeks van een andere operator
+   niet en is zelf nooit diens linkeroperand (M04 H2 *Operator*; Termijnen: "'niet' heeft één operand").
 4. **`voorwaarde` uit de aanhechting** (`REL_VOORWAARDE_AANHECHTING`): een voorwaardelijke bijzin (`advcl` met een
    voorwaardelijk `mark`) aan het hoofdpredicaat (`root`) hangt aan de enige rechtsbetrekking of afleidingsregel die dat
-   predicaat draagt.
+   predicaat draagt. Dragen precies één rechtsbetrekking en één afleidingsregel het predicaat samen (een bepaling met
+   een recht én een rekenregel, M-2-1), dan gaat het voorstel naar beide, met `twee_dragers` in het spoor.
 
 5. **Rollen via onderwerp en modaliteit** (`REL_ROL_ONDERWERP`, ADR-011 stap 7): binnen een rechtsbetrekking zegt de
    modaliteit wie het onderwerp is – rechthebbende bij een bevoegdheid ("kan", "mag", "is bevoegd"), plichthebbende
@@ -36,7 +43,9 @@ onderwerp van de voorwaarde, niet van de betrekking.
 
 Overal geldt: **bij twijfel geen voorstel.** Twee even goede kandidaten voor één plek, een gedegradeerde parse, een
 eindpunt zonder klasse: dan komt er niets. En elk voorstel moet door de catalogus (`jas_relaties.toegestaan`: klassen,
-richting, subtype), dezelfde regels die de api daarna nog eens toetst. Kenmerk en tijd doet deze module niet.
+richting, subtype), dezelfde regels die de api daarna nog eens toetst. Een kenmerk alleen binnen de invoer van een
+regel (regel 1); tijd, `uitzondering_op` en `toepassing` doet deze module nog niet (die laatste twee wachten op een
+bron als eindpunt, M-1-1).
 
 Deterministisch: dezelfde invoer geeft dezelfde lijst, in dezelfde volgorde.
 """
@@ -53,7 +62,7 @@ from .fusie import Fusie
 from .kandidaten import Candidate
 from .taal import LinguisticAnalysis
 
-VERSIE = "2"
+VERSIE = "3"
 
 REL_UITVOER_FUNCTIE = "REL_UITVOER_FUNCTIE"
 REL_INVOER_FUNCTIE = "REL_INVOER_FUNCTIE"
@@ -64,16 +73,21 @@ REL_VOORWAARDE_AANHECHTING = "REL_VOORWAARDE_AANHECHTING"
 REL_ROL_ONDERWERP = "REL_ROL_ONDERWERP"
 REL_ROL_VOORZETSEL = "REL_ROL_VOORZETSEL"
 REL_VOORWERP_ZINSDEEL = "REL_VOORWERP_ZINSDEEL"
+REL_KENMERK_INVOER = "REL_KENMERK_INVOER"
 #: Alle codes die deze module kan uitgeven; `tests/test_verklaringen.py` eist voor elk een verklaring.
 CODES = (REL_UITVOER_FUNCTIE, REL_INVOER_FUNCTIE, REL_WAARDE_NESTING, REL_OPERATOR_IN_NESTING,
          REL_OPERAND_WOORDVOLGORDE, REL_VOORWAARDE_AANHECHTING, REL_ROL_ONDERWERP, REL_ROL_VOORZETSEL,
-         REL_VOORWERP_ZINSDEEL)
+         REL_VOORWERP_ZINSDEEL, REL_KENMERK_INVOER)
 
 AR, VW, OP, RB, RF = "Afleidingsregel", "Voorwaarde", "Operator", "Rechtsbetrekking", "Rechtsfeit"
 RS, RO = "Rechtssubject", "Rechtsobject"
 VAR, PAR, TIJD = "Variabele en variabelewaarde", "Parameter en parameterwaarde", "Tijdsaanduiding"
 #: De bewijscodes van de functiedetector die een uitkomst- en een invoerspan noemen (`detectoren/functies.py`).
 _FUNCTIE_SPANS = frozenset({"CALCULATION_QUANTITY"})
+#: Klassen die een waarde dragen: daarmee rekent een regel (de invoer), een rechtsobject niet.
+WAARDEN = (VAR, PAR, TIJD)
+#: Operatoren met één operand: de ontkenning (M04 H2 *Operator*). Op de tekst van de markering, zonder hoofdletters.
+EEN_OPERAND = frozenset({"niet", "geen"})
 
 
 @dataclass(frozen=True)
@@ -173,10 +187,29 @@ def _functie(els: list[_El]) -> list[dict[str, Any]]:
                                   and not x.overlapt(i["start"], i["eind"]) and _past("uitvoer", regel, x)])
             if (x := _enige(uitkomst)) is not None:
                 uit.append(_voorstel("uitvoer", regel, x, REL_UITVOER_FUNCTIE, span=u.get("tekst", "")))
-            for x in _minimaal([x for x in binnen if x.overlapt(i["start"], i["eind"])
-                                and not x.overlapt(u["start"], u["eind"]) and _past("invoer", x, regel)]):
-                uit.append(_voorstel("invoer", x, regel, REL_INVOER_FUNCTIE, span=i.get("tekst", "")))
+            kandidaten = [x for x in binnen if x.overlapt(i["start"], i["eind"]) and not x.overlapt(u["start"], u["eind"])]
+            invoer, kenmerken = _invoer(kandidaten, regel)
+            for volgorde, x in enumerate(sorted(invoer, key=lambda e: (e.start, e.eind)), start=1):
+                uit.append(_voorstel("invoer", x, regel, REL_INVOER_FUNCTIE, volgorde, span=i.get("tekst", "")))
+            for var, obj in kenmerken:
+                uit.append(_voorstel("kenmerk", var, obj, REL_KENMERK_INVOER))
     return uit
+
+
+def _invoer(kandidaten: list[_El], regel: _El) -> tuple[list[_El], list[tuple[_El, _El]]]:
+    """De invoer binnen de invoerspan, en de kenmerken die een waarde aan haar rechtsobject geven.
+
+    Een waarde is de invoer, de grootste als ze genest zijn ('de dagtekening van het aanslagbiljet', niet ook 'het
+    aanslagbiljet'); wat erbinnen ligt, is geen invoer meer. Een rechtsobject binnen een variabele is daarvan het
+    kenmerk. Buiten de waarden blijft het binnenste voorstel, zoals altijd."""
+    waarden = [x for x in kandidaten if x.klasse in WAARDEN and _past("invoer", x, regel)]
+    groot = [w for w in waarden if not any(o.bevat(w) for o in waarden)]
+    binnen_waarde = [x for x in kandidaten if any(w.bevat(x) for w in groot)]
+    # Wat een waarde omvat ('als er volle maanden overblijven' om 'volle maanden') is evenmin invoer.
+    rest = _minimaal([x for x in kandidaten if x not in groot and x not in binnen_waarde
+                      and not any(x.bevat(w) for w in groot) and _past("invoer", x, regel)])
+    kenmerken = [(_binnenste([w for w in groot if w.bevat(x)]), x) for x in binnen_waarde if x.klasse == RO]
+    return [*groot, *rest], [(w, x) for w, x in kenmerken if w is not None and _past("kenmerk", w, x)]
 
 
 # --- nesting uit de fusie ------------------------------------------------------------------------------------------
@@ -214,11 +247,19 @@ def _waarde(els: list[_El], genest: set[tuple[str, str]]) -> list[dict[str, Any]
 
 # --- 3. operator en operanden --------------------------------------------------------------------------------------
 
-def _operand(op: _El, ouder: _El, els: list[_El], links: bool) -> _El | None:
-    andere_ops = [o for o in els if o.klasse == OP and o.id != op.id and o.bron_iri == op.bron_iri]
+def _een_operand(op: _El) -> bool:
+    return op.klasse == OP and str(op.ankers[0].get("tekst", "")).strip().lower() in EEN_OPERAND
+
+
+def _operand(op: _El, ouder: _El, els: list[_El], links: bool, unair: set[str] = frozenset()) -> _El | None:
+    # Een ontkenning breekt de reeks niet: 'de toepassing … niet leidt tot meer dan één termijn' heeft links van
+    # 'meer dan' de toepassing, niet de ontkenning.
+    andere_ops = [o for o in els if o.klasse == OP and o.id != op.id and o.bron_iri == op.bron_iri and o.id not in unair]
     kandidaten = []
     for x in els:
         if x.id in (op.id, ouder.id) or not ouder.bevat(x) or x.overlapt(op.start, op.eind):
+            continue
+        if links and x.id in unair:
             continue
         if links and x.eind > op.start or not links and x.start < op.eind:
             continue
@@ -238,13 +279,15 @@ def _operand(op: _El, ouder: _El, els: list[_El], links: bool) -> _El | None:
 
 def _operator(els: list[_El], genest: set[tuple[str, str]]) -> list[dict[str, Any]]:
     uit = []
+    unair = {e.id for e in els if _een_operand(e)}
     for op in (e for e in els if e.klasse == OP):
         ouder = _binnenste([o for o in els if o.klasse in (VW, AR) and _in(o, op, genest)])
         if ouder is None or not _past("operator_in", op, ouder):
             continue
         uit.append(_voorstel("operator_in", op, ouder, REL_OPERATOR_IN_NESTING))
-        for volgorde, links in ((1, True), (2, False)):
-            x = _operand(op, ouder, els, links)
+        plekken = ((1, False),) if op.id in unair else ((1, True), (2, False))
+        for volgorde, links in plekken:
+            x = _operand(op, ouder, els, links, unair)
             if x is not None:
                 uit.append(_voorstel("operand", x, op, REL_OPERAND_WOORDVOLGORDE, volgorde))
     return uit
@@ -277,11 +320,13 @@ def _voorwaarde(els: list[_El], analyses: Mapping[str, LinguisticAnalysis | None
         if hoofd is None:
             continue
         t = a.tokens[hoofd]
-        drager = _enige([d for d in els if d.klasse in (RB, AR) and d.id != v.id and d.bron_iri == v.bron_iri
-                         and d.start <= t.start and t.eind <= d.eind])
-        if drager is not None and _past("voorwaarde", drager, v):
-            uit.append(_voorstel("voorwaarde", drager, v, REL_VOORWAARDE_AANHECHTING, ud_pad="advcl+mark→root",
-                                 predicaat=t.tekst))
+        dragers = [d for d in els if d.klasse in (RB, AR) and d.id != v.id and d.bron_iri == v.bron_iri
+                   and d.start <= t.start and t.eind <= d.eind]
+        twee = len(dragers) == 2 and {d.klasse for d in dragers} == {RB, AR}
+        for drager in (dragers if twee else [d for d in [_enige(dragers)] if d is not None]):
+            if _past("voorwaarde", drager, v):
+                uit.append(_voorstel("voorwaarde", drager, v, REL_VOORWAARDE_AANHECHTING, ud_pad="advcl+mark→root",
+                                     predicaat=t.tekst, **({"twee_dragers": True} if twee else {})))
     return uit
 
 
