@@ -529,7 +529,10 @@ _UITLEGWOORDEN = frozenset(
     "zeer meer minder alleen steeds altijd nooit soms vaak verder bijvoorbeeld namelijk eigenlijk vooral echter "
     "toch juist wordt worden kunnen moeten mogen zullen willen gaan doen doet gedaan staan staat stond komen komt "
     "geldt gelden houdt betekent betekenis begrip term definitie wettelijke wettelijk wet regeling bepaling "
-    "artikel artikelen lid leden onderdeel hierin daarin hiervoor daarvoor hierbij daarbij".split())
+    "artikel artikelen lid leden onderdeel hierin daarin hiervoor daarvoor hierbij daarbij "
+    # Verbindingswoorden: "zodat de hoofdelijke aansprakelijkheid in de hele inleenketen geldt" telde "zodat" en "hele"
+    # als woorden die de bron moest dragen (meting 2 na #1756, inlener).
+    "zodat hele gehele waardoor daardoor".split())
 
 #: Een woord met een hoofdletter midden in een zin: een naam (een regeling, een instantie). Namen hebben een eigen toets
 #: (`beweringen.regelingen_genoemd`, de organen); hier zouden ze een correcte zin over "het Wetboek van Burgerlijke
@@ -556,6 +559,10 @@ def gelezen_tekst(trace: Iterable[Any]) -> str:
     return "\n".join(delen)
 
 
+#: Het begin van de bewering van de steuntoets; `antwoord.verify_node` herkent er de soort aan.
+STEUN_MELDING = "toelichting zonder steun in wat gelezen is"
+
+
 def toelichting_zonder_steun(tekst: str, steun: str, bekend: str = "") -> list[str]:
     """De zinnen van een toelichting die niet rusten op wat er gelezen is (acceptatie 19 nov 2026, "derdenbeslag": een
     bank, een werkgever die loon uitbetaalt en executoriaal beslag, terwijl de gelezen Leidraad-passage en het vastgelegde
@@ -570,16 +577,19 @@ def toelichting_zonder_steun(tekst: str, steun: str, bekend: str = "") -> list[s
     stammen = _stammen(_WOORD.findall((steun or "").casefold()))
     gekend = _stammen(_WOORD.findall((bekend or "").casefold()))
     uit: list[str] = []
-    for segment in _SEGMENT.split(_zonder_citaten(zonder_citaten(tekst or ""))):
+    # Per zin van de tekst zelf, zodat de melding de zin toont zoals Lex hem schreef: met de vindplaats erin (meting 2 na
+    # #1756: "In   worden de doorlener …", en het model las dat terug als "in worden …"). Citaten en vindplaatsen gaan
+    # er pas voor de woordtelling uit; een blokcitaat telt niet.
+    for segment in _SEGMENT.split(tekst or ""):
         zin = segment.strip().lstrip("-*• ").strip()
-        if not zin:
+        if not zin or zin.startswith(">"):
             continue
-        woorden = _WOORD.findall(_NAAM.sub(" ", zin).casefold())
+        woorden = _WOORD.findall(_NAAM.sub(" ", _zonder_citaten(zin)).casefold())
         eigen = [w for w in woorden if w not in _FUNCTIEWOORDEN and w not in _UITLEGWOORDEN and w[:_STAM] not in gekend]
         if len(eigen) <= MAX_EIGEN_WOORDEN:
             continue
         gedragen = sum(w[:_STAM] in stammen for w in eigen)
         if gedragen < MIN_STEUN * len(eigen):
             kort = zin if len(zin) <= 90 else zin[:90].rsplit(" ", 1)[0] + " …"
-            uit.append(f"toelichting zonder steun in wat gelezen is: “{kort}”")
+            uit.append(f"{STEUN_MELDING}: “{kort}”")
     return uit

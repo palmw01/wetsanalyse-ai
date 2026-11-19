@@ -542,7 +542,11 @@ met een vergaderjaar in één zin moet samen in één toolresultaat staan (`bron
   dossier, niet in een citaat of vindplaats. Meer dan `MAX_EIGEN_WOORDEN`, dan staat ten minste `MIN_STEUN` op hun stam in
   wat **gelezen** is (`gelezen.gelezen_tekst`: de leestools, de definities en de vastgelegde begrippen; een zoektreffer niet).
   `gelezen.toelichting_zonder_steun`, `tests/grounding/test_toelichting_steun.py`. Een duiding, rapport of stuk naast de wet
-  heeft eigen toetsen per stuk; vrije tekst valt erbuiten.
+  heeft eigen toetsen per stuk; vrije tekst valt erbuiten. **Alleen bij een begrip zonder wettelijke definitie start de
+  steuntoets een correctieronde**; bij een begrip met een definitie of een bepaling (`antwoord._steun_alleen_signaal`)
+  gaat de melding naar `onbevestigd`. Daar toont de werkplek de wettekst al, en een parafrase ervan is het werk van de
+  toelichting (meting 2 na #1756: beide correcties daar waren vals alarm, +1 à 2 rondes en +5–8 s per geval).
+  Verbindingswoorden ("zodat", "hele") tellen niet als eigen woorden, en de melding toont de zin zoals Lex hem schreef.
 - **`finalize_node`** – de enige plek in de antwoordketen die `token` uitstuurt (ook voor het overzicht; `tests/sjablonen/test_uitgifte_na_controle.py` bewaakt het). Een controle die volgt op publicatie
   houdt niets tegen, dus de jurist ziet een antwoord pas ná `verify` en afgekeurde tekst nooit, ook niet in
   het denkproces (besluit 6 nov 2026). Blijft de tekst na de correctieronde afgekeurd, dan gaat hij mee met
