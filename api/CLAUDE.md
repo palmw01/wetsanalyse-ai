@@ -565,6 +565,9 @@ spoor D (*Werkgebied als node*).
   voor de werkgebieden.
 - **`?vorm=stand`** (B-1) op PATCH, `accorderen`, `heropenen` en `voorstellen/{id}/overnemen`
   (`begrip_store.begripstand`): de stand en de inhoud, zonder koppelingen en bewijs. De standaard blijft de kaart.
+  **`?vorm=kort`** (`begripkort`) geeft alleen id, status, revisies en de poort, voor wie veel begrippen na elkaar wijzigt.
+- **Wijzigen met `akkoord: true`** (en een `reden`) houdt een geaccordeerd begrip geaccordeerd: wijzigen en opnieuw
+  accorderen in één transactie, als de poort het toelaat (zoals koppelen met `akkoord`). Zonder blijft het een concept.
 - **Een besluit over koppelingen geeft de stand, niet de kaart** (`begrip_store.koppelstand`): koppelen, wijzigen, losmaken,
   herkoppelen en bevestigen antwoorden met status, revisie, poort en per koppeling de rol en beoordeling, zonder inhoud en
   bewijs. Anders wordt een reeks besluiten kwadratisch in het aantal passages. De werkplek legt de stand over de kaart die
