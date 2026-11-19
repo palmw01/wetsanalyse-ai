@@ -274,7 +274,7 @@ kennen.
 
 **Opbouw (skillversie 4.0, volgens de eisen voor Claude-skills).** `SKILL.md` is de router: drie dingen die altijd
 gelden, een tabel *Wat ga je doen?* per activiteit (A werkgebied, B markeren, C samenhang, D begrippen, E volledig
-dossier), werkstromen met checklists, de dertien klassen en de veelgemaakte fouten. De `references/` zijn de
+dossier, F afleidingsregels), werkstromen met checklists, de dertien klassen en de veelgemaakte fouten. De `references/` zijn de
 uitwerking, één niveau diep:
 
 - `references/jas-klassen-referentie.md` – de dertien JAS-klassen, volledig uit
@@ -284,7 +284,8 @@ uitwerking, één niveau diep:
   `verwijzingen-volgen.md` – een werkgebied afbakenen en bronnen kiezen.
 - `references/markeringslijst.md`, `markeren-fragmentgrenzen.md` en `relaties.md` – markeren, classificeren en samenhang. Afgeleid uit het boek en de BRM-readers, in eigen
   woorden – dat materiaal is van derden en mag niet letterlijk in deze publieke repo.
-- `references/begrippen.md` en `nl-sbb-en-b1.md` – begrippen (activiteit 3a).
+- `references/begrippen.md` en `nl-sbb-en-b1.md` – begrippen (activiteit 3a); `references/afleidingsregels.md` –
+  afleidingsregels (activiteit 3b, in natuurlijke taal), met de lessen uit de proef op Termijnen.
 - `references/analyseprotocol.md`, `kwaliteit.md` en `assets/analysedossier.md` – het volledige dossier.
 - `references/voorbeelden.md` – uitgewerkte bepalingen (Invorderingswet 1990, art. 9); een illustratie, geen
   referentieset.
