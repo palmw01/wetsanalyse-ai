@@ -1,6 +1,6 @@
 // Het artefact van een beurt: wat Lex in het gesprek oplevert om te beoordelen – een annotatie, de
 // begripsvoorstellen of de bronselectie van een werkgebied, het werkgebied, één deelvraag of één
-// begrip, of (later) afleidingsregels. Het bericht verwijst ernaar
+// begrip, één afleidingsregel of de afleidingsregels van een werkgebied (ADR-018). Het bericht verwijst ernaar
 // (`Bericht.artefact`, api `gesprek_contracts.Artefact`); de inhoud leeft in de api.
 //
 // Eén vorm voor alle soorten, zodat chip, paneel en de laatste-artefactbalk niet per soort een
@@ -14,7 +14,7 @@ import type { Vraagkaart } from "./vraagkaart";
 /** Sinds 4 nov 2026 geen `bronnen` (gevonden bepalingen) meer: een oud bericht met die soort opent de bronselectie
  *  van het werkgebied (`parseArtefact`); de bronverkenner blijft als pagina. */
 export type ArtefactSoort = "annotatie" | "begrippen" | "werkgebied" | "deelvraag" | "begrip" | "bronselectie"
-  | "regie" | "regels";
+  | "regie" | "regel" | "regels";
 
 export interface Artefact {
   soort: ArtefactSoort;
@@ -26,10 +26,12 @@ export interface Artefact {
  *  bronselectie; het werkgebied zelf, dat Lex in het gesprek samenstelde (activiteit 1); één
  *  deelvraag (`deelvraag_id`, F3d) of één begrip (`begrip_id`, F3d). */
 export interface WerkgebiedArtefact {
-  soort: "begrippen" | "werkgebied" | "deelvraag" | "begrip" | "bronselectie";
+  soort: "begrippen" | "werkgebied" | "deelvraag" | "begrip" | "bronselectie" | "regel" | "regels";
   werkgebied_id: string;
   run_id: string;
   begrip_id?: string;
+  /** Eén afleidingsregel (ADR-018). */
+  regel_id?: string;
   deelvraag_id?: string;
   titel: string;
   /** De stand van het artefact direct na de beurt die deze chip maakte (`artefact.ref.versie`, api
@@ -46,6 +48,7 @@ export const ARTEFACT_SOORT_LABEL: Record<ArtefactSoort, string> = {
   begrip: "Begrip",
   bronselectie: "Bronselectie",
   regie: "Regie",
+  regel: "Afleidingsregel",
   regels: "Afleidingsregels",
 };
 
@@ -59,7 +62,9 @@ const VERPLICHT: Record<ArtefactSoort, string[]> = {
   bronselectie: ["werkgebied_id"],
   // Een regie over deelgesprekken (ADR-012). Ze opent het werkgebied: daar staat wat de deelgesprekken opleverden.
   regie: ["werkgebied_id", "regie_id"],
-  regels: [],
+  // Afleidingsregels (ADR-018): één regel, of de keten van het werkgebied.
+  regel: ["werkgebied_id", "regel_id"],
+  regels: ["werkgebied_id"],
 };
 
 const SOORTEN = Object.keys(VERPLICHT) as ArtefactSoort[];
@@ -105,9 +110,9 @@ export function annotatieDoelVan(a: Artefact | undefined): NodeDoel | undefined 
   };
 }
 
-/** Wat het werkgebiedpaneel opent: alles behalve een annotatie en de (gereserveerde) regels. */
+/** Wat het werkgebiedpaneel opent: alles behalve een annotatie. */
 export function werkgebiedArtefactVan(a: Artefact | undefined): WerkgebiedArtefact | undefined {
-  if (!a || a.soort === "annotatie" || a.soort === "regels") return undefined;
+  if (!a || a.soort === "annotatie") return undefined;
   const p = parseArtefact(a);
   if (!p) return undefined;
   const r = p.ref;
@@ -115,6 +120,7 @@ export function werkgebiedArtefactVan(a: Artefact | undefined): WerkgebiedArtefa
     soort: (p.soort === "regie" ? "werkgebied" : p.soort) as WerkgebiedArtefact["soort"],
     werkgebied_id: tekst(r.werkgebied_id), run_id: tekst(r.run_id),
     ...(p.soort === "begrip" ? { begrip_id: tekst(r.begrip_id) } : {}),
+    ...(p.soort === "regel" ? { regel_id: tekst(r.regel_id) } : {}),
     ...(p.soort === "deelvraag" || (p.soort === "bronselectie" && tekst(r.deelvraag_id))
       ? { deelvraag_id: tekst(r.deelvraag_id) } : {}),
     titel: p.titel,
@@ -146,12 +152,13 @@ export function artefactKop(a: Pick<Artefact, "soort" | "titel">): { soort?: str
 
 /** Een sleutel die per artefact verschilt (React `key`). */
 export function artefactSleutel(a: WerkgebiedArtefact): string {
-  return `${a.soort}:${a.werkgebied_id}:${a.run_id}:${a.begrip_id ?? ""}:${a.deelvraag_id ?? ""}:${a.versie ?? ""}`;
+  return `${a.soort}:${a.werkgebied_id}:${a.run_id}:${a.begrip_id ?? ""}:${a.deelvraag_id ?? ""}:${a.regel_id ?? ""}:${a.versie ?? ""}`;
 }
 
-/** Kan de werkplek dit artefact openen? Afleidingsregels zijn gereserveerd, nog niet gebouwd. */
+/** Kan de werkplek dit artefact openen? Sinds R2 (ADR-018) elke soort; een bericht van vóór R2 met `regels` zonder
+ *  werkgebied haalt `parseArtefact` al weg. */
 export function isTeOpenen(a: Artefact): boolean {
-  return a.soort !== "regels";
+  return a.soort === "annotatie" || !!werkgebiedArtefactVan(a);
 }
 
 /** Het paneel bij een kaartje van de bronselectie (spoor J): het werkgebied uit de `intake_id` (`bs-<id>`), de

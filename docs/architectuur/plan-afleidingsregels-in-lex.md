@@ -184,8 +184,8 @@ toelichting"* staat als keuze bij R1, zichtbaar in het artefact, het werkgebied 
 
 ### 4.1 Een regels-agent
 
-Een taakagent in de vorm van ADR-005 en ADR-016: `tools/graph-qa/agent/agents/regels.py`, met een profiel in
-`.claude/lex-agents/regels.md` (instructie, tools, sjablonen) en een methodesectie `regels` in de skill. Eén taak per beurt;
+Een taakagent in de vorm van ADR-005 en ADR-016: `tools/graph-qa/agent/agents/regels.py`, met een methodesectie
+`regels` in de skill. Herzien op 19 nov 2026: zonder profiel in `.claude/lex-agents/` ([ADR-018, bijlage A](adr-018-bijlage-agentische-laag.md)). Eén taak per beurt;
 een klik op een suggestie (`actie`) kiest de taak zonder model.
 
 ### 4.2 De taken, en wat in code en wat met een model
@@ -602,74 +602,91 @@ Bundel R0 hieronder gaat samen met lessenbundel 1 in één docs-PR.
   - `knoppen.test.ts` en de bestaande generieke-componententests blijven groen.
 - Klaar als: R4 uit de set ziet eruit als de mock-up, op desktop en op 390 px.
 
-**R3. Interpretatiekeuzes en open punten op de regel** (api en frontend; bouwt op lessenbundel 4)
-- De open punten van L-X-1 krijgen de koppeling naar regel en geval en het veld `methode`.
-- De kaart toont ze onder *Interpretatiekeuzes* en *Open punten*.
-- De vraagkaart in het gesprek (`VragenKaart`) schrijft de gekozen lezing via de api. Het is dezelfde weg als de
-  vraagkaarten van het werkgebied, geen nieuwe.
-- Klaar als: de zeven keuzes en zes beleidspunten van Termijnen er zonder vrije tekst in passen.
+De agentische laag is uitgewerkt en aangenomen in [ADR-018, bijlage A](adr-018-bijlage-agentische-laag.md) (19 nov 2026,
+alle dertien keuzes). R3 tot en met R7 hieronder volgen die bijlage. R1 is #1768 en R2 is #1770. R3 en verder beginnen
+pas als de gebruiker daar apart voor kiest.
+
+**R3. Open punten op de regel** (frontend en api; na lessenbundel 4)
+- Het open-puntobject bouwt lessenbundel 4, niet deze bundel. Het heeft:
+  - de vier soorten uit de skill;
+  - `hangt_aan` met regel en geval;
+  - lezingen, gekozen lezing, methode en `te_toetsen`;
+  - één besluitroute van de jurist.
+
+  R3 wijzigt dat object niet.
+- De regelkaart toont de open punten bij hun regel en geval. De jurist kiest daar een lezing, met methode en reden
+  (besluit 7.13).
+- In het gesprek staat de keuzekaart van ADR-016 §A4, die naar dezelfde besluitroute schrijft. Er komt geen nieuwe modus
+  van de vraagkaart.
+- De poort van een regel neemt de genomen keuzes mee (ADR-018 besluit 2).
+- Klaar als: de keuzes en beleidspunten van Termijnen er zonder vrije tekst in passen.
 
 **R4. Termijnen als eerste bestand** (script; op acceptatie, na akkoord)
 - `api/scripts/importeer_regels_termijnen.py` zet R1–R8 met hun keuzes en open punten in Termijnen, met herkomst
   `import`.
 - R8 volgt het besluit van §10 punt 7.
-- Dit is de referentie voor de meting van R5.
+- Dit is de referentie voor de meting van R5. De wijziging op acceptatie vraagt een akkoord op het moment van uitvoeren.
 
-**R5. Lex stelt regels voor, deterministisch** (graph-qa; lessen L-3b-3, A3)
-- `agent/agents/regels.py` in de vorm van ADR-005, geregistreerd in `agents/register.py`. Het profiel staat in
-  `.claude/lex-agents/regels.md` en gaat via de generators.
-- Taken:
-  - `inventariseren`: van de analysevraag terug naar de regels, en de keten;
-  - `volledigheidstoets`: de gaten die de regelspecialist aanwees;
-  - `opstellen`: een conceptregel uit het skelet en de begrippen;
-  - `uitsluiting_toetsen`.
-
-  Alle vier gebeuren in code.
-- Een klik op een suggestie (`actie`) kiest de taak zonder model.
-- De stand per regel staat bij de api (`regel_voortgang`, zoals `bronselectie_voortgang`), en de code kiest de volgende
-  regel.
-- Wat een beurt oplevert, opent als chip (`PaneelChip`) met `regel` of `regels`.
+**R5. Lex stelt regels voor, zonder model** (graph-qa en api; lessen L-3b-3)
+- De regels-agent is een taakagent zonder profiel (besluit 7.3). Hij staat in `agents/regels.py`, `agents/register.py`
+  en `overdracht.TAAKAGENTS`.
+- Taken in code (bijlage A §2.2): `inventariseren`, `volledigheidstoets`, `opstellen`, `uitsluiting_toetsen` en
+  `voorbeelden`.
+  - De inventaris volgt alle drie de soorten dragers van de methode.
+  - `opstellen` volgt relaties over bepalingen heen.
+- De gaten komen uit de skill, als uitbreiding van `regelskelet.gaten`: gegenereerd, met een drifttest.
+- **`werkvoortgang`**: één generieke stand per werkgebied, met soort, onderwerp, stand en wie (besluit 7.12). Regels is
+  de eerste gebruiker. De bronselectie verhuist later in een eigen PR (PLAN.md, spoor V).
+- 3b is een fase van "werk dit werkgebied uit". De fase start met de knop voor de volgende fase, en een getypte opdracht
+  gaat via `taakagent`. De poort naar de fase is ADR-018 besluit 2.
+- Ook in deze bundel:
+  - de catalogus (de agent en de workflow);
+  - de `/`-commando's;
+  - de routeringsset en de golden set van de centrale agent;
+  - een compact blok regels in `werkgebied_context` (ADR-015).
 - Elke nieuwe aanroep naar de api krijgt een plek in `agent_toegang.TOEGESTAAN`, met de begrenzing erbij.
-- Meten op Termijnen, tegen de set van R4:
-  - recall en precisie van de velden;
-  - de gaten van de volledigheidstoets tegen die van de regelspecialist.
+- Meten volgens bijlage A §7: op Termijnen tegen R4, de gaten tegen die van de regelspecialist, en daarna blind.
 
-  Daarna WA TRM H1, en blind op een werkgebied met een reken- en een beslisregel.
-
-**R6. Waar het model meedoet** (graph-qa; na een meting)
-- Een strikte modelstap, telkens met de fragmenten waarop het voorstel rust, voor:
-  - de soort bij twijfel;
-  - het label van een geval;
-  - een regelbegrip dat nog niet bestaat (via de begrippen-agent, op een passage);
-  - het signaleren van een interpretatiekeuze met lezingen.
-- Voorbeelden voorstellen:
-  - de gevallen deterministisch uit de regel: normaal, elke voorwaarde niet vervuld, de grens van elke vergelijking,
-    nul, negatief en onbekend;
-  - daarnaast het praktijkvoorbeeld van het werkgebied.
-
-  De uitkomst blijft een voorstel; het oordeel is van de jurist.
+**R6. De eerste modelstappen** (graph-qa; na de meting van R5)
+- Elke modelstap is een `llm_stap.Rol` met de methoderol `regels` (besluit 7.5), te kiezen onder
+  *Aanpassingen › Agents*.
+- Eerst `keuzes_signaleren` (`Rol.REGEL_KEUZES`): een open punt met lezingen, fragmenten en `te_toetsen`. De stap kiest
+  niet.
+- Daarna de soort bij twijfel (`REGEL_SOORT`) en het praktijkvoorbeeld bij de voorbeelden (`REGEL_VOORBEELD`).
 - Meten: licht, één run, met de keuzes van Termijnen als set.
+
+**R6b. Subagents onderbouwen de lezingen** (graph-qa; na de meting van R6)
+- Het plan komt uit `te_toetsen` van het open punt, in code. Elke bronsoort wijst een kiesbaar profiel aan:
+  `wetsgeschiedenis_lezen`, `rechtspraak_lezen`, of `algemeen` met een connector.
+- Het is een delegatie met een plan uit code, met een bevestigingskaart en hoogstens drie subagents per open punt
+  (besluit 7.11).
+- Het rapport staat per lezing bij het open punt, in de vorm van `DefinitieOnderbouwing`. Lex kiest niets.
+- Meten: zijn de lezingen terecht en onderbouwd, en wat kost het (als delta van het verbruik).
 
 **R7. Rapport, graaf, lezen en onderhoud** (api en graph-qa)
 - Het rapport (ADR-009) krijgt het hoofdstuk *Afleidingsregels*, met daarin interpretatiekeuzes en te signaleren beleid;
-  de schema-versie gaat omhoog.
+  de schema-versie gaat omhoog. Stem dit af met het hoofdstuk over open punten van lessenbundel 4.
 - `regel_projectie.py` naast `begrip_projectie.py`: de regels in de named graph van het werkgebied, met het kleine
   vocabulaire van §7.
-- De leesroute (A5): `search_regels` in graph-qa, bevestigd door de api.
+- De leesroute `lees_regels` met het profiel `regels_lezen` (niet kiesbaar), onder VASTE ROUTES in `centraal.md`.
 - Herbeoordeling: `begrip_onderhoud` ziet ook regels. Een veranderde drager, een heropende laag, een opvolger van een
-  invoerbegrip of een gewijzigde keuze zet de regel op *herbeoordelen*.
+  invoerbegrip of een gewijzigde keuze zet de regel op *opnieuw bekijken* in de `werkvoortgang`.
 
 **Later, buiten dit plan:** de volledige voorbeeldreeks van activiteit 4b, de soort van een begrip (P15/D5), het feitmodel
 en RegelSpraak.
 
 ### 13.3 Volgorde en wat parallel kan
 
-- R0 gaat eerst, samen met lessenbundel 1, omdat beide over hetzelfde besluit gaan.
-- R1 kan beginnen zodra de ADR er ligt. De tabellen hangen niet af van lessenbundel 3, de conceptregels van Lex wel.
-- R2 volgt op R1. R3 volgt op R1 en lessenbundel 4.
+- R0, R1 (#1768) en R2 (#1770) liggen er.
+- R3 volgt op lessenbundel 4. Die bundel bouwt het open-puntobject; R3 toont het op de regel. De twee raken
+  verschillende bestanden, en dat is afgestemd met de sessie van de lessen.
 - R4 komt na R1 en R3, en vraagt een akkoord voor de wijziging op acceptatie.
-- R5 komt na lessenbundel 3 en R4. R6 komt na de meting van R5.
+- R5 komt na lessenbundel 3 (een betrouwbaar skelet) en R4.
+- R6 komt na de meting van R5, en R6b na de meting van R6.
 - R7 kan na R2, in delen. Het rapport en de projectie zijn onafhankelijk van de agent.
+- Wat zonder de agent al waarde heeft, kan eerder: de gaten uit de skill en de uitsluitingstoets, als signaal op de
+  regelkaart.
+- R3 en verder beginnen pas als de gebruiker daar apart voor kiest.
 
-Parallel kunnen R2 en R3 (andere bestanden), en R7 rapport en R7 projectie. Een sessie per bundel, in een eigen worktree;
+Parallel kunnen R3 en R7 rapport, en R7 rapport en R7 projectie. Een sessie per bundel, in een eigen worktree;
 twee schrijvers raken nooit dezelfde bestanden.

@@ -4,7 +4,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { useBijTerugkomst } from "@/lib/useBijTerugkomst";
-import { haalKandidaten, haalWerkvoorraad, lijstBegrippen, lijstGesprekken } from "@/lib/api";
+import { haalKandidaten, haalWerkvoorraad, lijstBegrippen, lijstGesprekken, lijstRegels } from "@/lib/api";
+import type { Regel } from "@/lib/regels";
 import type { BegripSamenvatting, BronKandidaat, GesprekSamenvatting, Werkgebied } from "@/lib/types";
 import { isWerkvoorraad, type Werkvoorraad } from "@/lib/werkgebiedPaden";
 
@@ -13,6 +14,8 @@ export interface WerkgebiedStand {
   gesprekken: GesprekSamenvatting[] | null;
   begrippen: BegripSamenvatting[] | null;
   kandidaten: BronKandidaat[] | null;
+  /** De afleidingsregels (ADR-018): voor de artefactkaart en *Afgeleid door* op de begripskaart. */
+  regels: Regel[] | null;
   /** Vraagt de graaf; komt later binnen, en kan ontbreken. */
   werkvoorraad: Werkvoorraad | null;
 }
@@ -27,6 +30,7 @@ export function useWerkgebiedStand(wg: Werkgebied, delen: { werkvoorraad?: boole
   const [gesprekken, setGesprekken] = useState<GesprekSamenvatting[] | null>(null);
   const [begrippen, setBegrippen] = useState<BegripSamenvatting[] | null>(null);
   const [kandidaten, setKandidaten] = useState<BronKandidaat[] | null>(null);
+  const [regels, setRegels] = useState<Regel[] | null>(null);
   const [werkvoorraad, setWerkvoorraad] = useState<Werkvoorraad | null>(null);
   const bronnen = wg.bronnen.map((b) => `${b.id}:${b.rol}`).join("|");
   const pad = usePathname();
@@ -39,6 +43,7 @@ export function useWerkgebiedStand(wg: Werkgebied, delen: { werkvoorraad?: boole
       .then((g) => levend && setGesprekken(g)).catch(() => levend && setGesprekken(null));
     lijstBegrippen(wg.id).then((b) => levend && setBegrippen(b.begrippen)).catch(() => levend && setBegrippen(null));
     haalKandidaten(wg.id).then((k) => levend && setKandidaten(k.kandidaten)).catch(() => levend && setKandidaten(null));
+    lijstRegels(wg.id).then((r) => levend && setRegels(r)).catch(() => levend && setRegels(null));
     return () => { levend = false; };
   }, [wg.id, wg.revisie, pad, terugkomst]);
 
@@ -52,5 +57,5 @@ export function useWerkgebiedStand(wg: Werkgebied, delen: { werkvoorraad?: boole
     return () => { levend = false; };
   }, [wg.id, bronnen, metWerkvoorraad, terugkomst]);
 
-  return { gesprekken, begrippen, kandidaten, werkvoorraad: bronnen ? werkvoorraad : null };
+  return { gesprekken, begrippen, kandidaten, regels, werkvoorraad: bronnen ? werkvoorraad : null };
 }

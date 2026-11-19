@@ -148,7 +148,8 @@ jurist. De volledige voorbeeldreeks van activiteit 4b valt buiten dit besluit.
 
 ### 10. Lex
 
-- Een taakagent `regels` (ADR-005, ADR-016), met een profiel in `.claude/lex-agents/`.
+- Een taakagent `regels` (ADR-005, ADR-016), zonder profiel; zie besluit 7.3 van de gebruiker en
+  [bijlage A](adr-018-bijlage-agentische-laag.md).
 - In code: inventariseren (van de analysevraag terug naar de regels en de keten), de volledigheidstoets op het skelet,
   een conceptregel opstellen uit skelet en begrippen, en uitsluiting toetsen.
 - Een strikte modelstap alleen waar de code niet kan beslissen, en pas na een meting:
@@ -159,7 +160,8 @@ jurist. De volledige voorbeeldreeks van activiteit 4b valt buiten dit besluit.
   - voorbeelden voorstellen.
 - De route: Lex begint bij de analysevraag, zoekt terug welke regels nodig zijn en stelt ze dan van onder naar boven
   op, één per beurt. De stand per regel staat bij de api en de code kiest de volgende, zoals bij de bronselectie per
-  deelvraag. Een interpretatiekeuze komt als vraagkaart in het gesprek.
+  deelvraag. Een interpretatiekeuze is een open punt op de regelkaart, met de keuzekaart van ADR-016 §A4 in het gesprek
+  (besluit 7.13).
 
 ### 11. Projectie en rapport
 
@@ -245,6 +247,38 @@ De gebruiker nam de richting en de voorstellen bij alle open keuzes over:
 
 Al beslist door de methode (#1760, #1766): operatoren, tussenresultaten, de grondslag en R8.
 
+### De agentische laag (19 nov 2026)
+
+7. **De dertien keuzes van [bijlage A](adr-018-bijlage-agentische-laag.md) §10.** De gebruiker nam ze alle over:
+   1. Een regel van Lex is een conceptregel met `herkomst: "lex"`, als `Voorstel` op de kaart. Accorderen blijft bij de
+      jurist.
+   2. Lex wijzigt alleen een eigen concept dat niemand anders wijzigde. Bij elke andere regel stelt Lex per veld voor
+      (`KaartVoorstelKaart`), na R5.
+   3. De regels-agent is een taakagent zonder profiel (`register.AGENTS`, `overdracht.TAAKAGENTS`, de tool
+      `taakagent`). Een leesprofiel `regels_lezen` (niet kiesbaar) komt met R7, met `lees_regels` onder VASTE ROUTES.
+   4. 3b is één fase van "werk dit werkgebied uit", regel voor regel. Opstellen doet geen subagent.
+   5. Er komt een methoderol `regels`. Elke modelstap van 3b is een `llm_stap.Rol` met die methoderol, te kiezen onder
+      *Aanpassingen › Agents*, en gemeten zodra een model hem krijgt.
+   6. De volledigheidstoets staat in de api, als uitbreiding van `regelskelet.gaten`. De gaten komen uit de skill
+      (gegenereerd, met een drifttest).
+   7. De eerste modelstap is het signaleren van interpretatiekeuzes.
+   8. Voorbeelden van Lex: de invoer per geval altijd, de uitkomst alleen bij een rekenregel met bekende waarden, en het
+      oordeel altijd `open`.
+   9. Een ontbrekend begrip (een regelbegrip "bepalen <uitvoer>" of een tussenresultaat met `afgeleid`) vraagt de
+      regels-agent aan de begrippen-agent, op de passage. De regel wacht in de poort.
+   10. "Goed genoeg" zijn de drempels van bijlage A §7.4: eerst de ontwikkelset, dan blind. Een stap die ze niet haalt,
+       blijft uit.
+   11. Subagents onderbouwen de lezingen van een open punt (R6b, na de meting van R6). Het plan komt uit `te_toetsen`,
+       in code. Er is een bevestigingskaart en een plafond van hoogstens drie per open punt. Lex kiest niets.
+   12. De stand is één generieke `werkvoortgang`, met regels als eerste gebruiker. De bronselectie verhuist later.
+   13. De jurist besluit op het artefact (het open punt op de regelkaart). In het gesprek staat de keuzekaart van
+       ADR-016 §A4. Beide schrijven naar de ene besluitroute van het open-puntobject; er komt geen nieuwe modus van de
+       vraagkaart.
+
 ## Fasering
 
 Het bouwplan R0–R7 staat in [plan-afleidingsregels-in-lex.md](plan-afleidingsregels-in-lex.md) §13. Dit ADR is R0.
+
+De agentische laag (de regels-agent, zijn tools, de skills, de route, de meting en de keuzes, R5, R6 en R6b) staat in
+[bijlage A](adr-018-bijlage-agentische-laag.md), aangenomen op 19 nov 2026. R3 en verder beginnen pas als de gebruiker
+daar apart voor kiest.

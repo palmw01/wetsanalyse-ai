@@ -94,12 +94,15 @@ def _plek(pad: Path, regel: int | None = None) -> str:
 
 def _fastapi(py: Path, *, voorvoegsel: str = "/v1") -> list[Route]:
     boom = ast.parse(py.read_text(encoding="utf-8"))
-    prefix = ""
+    # Elke router in het bestand met zijn eigen prefix: een bestand kan er meer hebben (`regels.py`: per werkgebied en
+    # het overzicht over werkgebieden heen).
+    prefixen: dict[str, str] = {}
     for n in ast.walk(boom):
         if isinstance(n, ast.Assign) and isinstance(n.value, ast.Call) and getattr(n.value.func, "id", "") == "APIRouter":
-            for k in n.value.keywords:
-                if k.arg == "prefix":
-                    prefix = k.value.value
+            prefix = next((k.value.value for k in n.value.keywords if k.arg == "prefix"), "")
+            for doel in n.targets:
+                if isinstance(doel, ast.Name):
+                    prefixen[doel.id] = prefix
     routes = []
     for n in ast.walk(boom):
         if not isinstance(n, ast.AsyncFunctionDef | ast.FunctionDef):
@@ -109,8 +112,9 @@ def _fastapi(py: Path, *, voorvoegsel: str = "/v1") -> list[Route]:
                     and d.func.attr.upper() in METHODEN and d.args and isinstance(d.args[0], ast.Constant)):
                 continue
             eigenaar = getattr(d.func.value, "id", "")
-            if eigenaar == "router":
-                routes.append(Route(d.func.attr.upper(), normaal(voorvoegsel + prefix + d.args[0].value), _plek(py, n.lineno)))
+            if eigenaar in prefixen:
+                routes.append(Route(d.func.attr.upper(), normaal(voorvoegsel + prefixen[eigenaar] + d.args[0].value),
+                                    _plek(py, n.lineno)))
             elif eigenaar == "app":
                 routes.append(Route(d.func.attr.upper(), normaal(d.args[0].value), _plek(py, n.lineno)))
     return routes

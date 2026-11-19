@@ -27,7 +27,8 @@ BEWAKERS = ("require_client", "require_admin", "actieve_userid", "huidige_beheer
 PUBLIEK = {"GET /health", "GET /ready"}
 
 #: Domeinen met gegevens van gebruikers: elke route vraagt een actieve gebruiker (`actieve_userid`), of is van het beheer.
-GESCOPET = ("annotatie", "artefact-versies", "begrippen", "berichten", "delegaties", "feedback", "gesprekken", "werkgebieden")
+GESCOPET = ("annotatie", "artefact-versies", "begrippen", "berichten", "delegaties", "feedback", "gesprekken", "regels",
+            "werkgebieden")
 
 #: Routes buiten die domeinen zonder actieve gebruiker, met de reden. Een nieuwe staat hier bewust bij.
 ZONDER_GEBRUIKER = {
@@ -114,6 +115,7 @@ TABEL: dict[str, tuple[str, ...]] = {
     "GET /v1/gesprekken/{gesprek_id}": ('require_client', 'actieve_userid'),
     "GET /v1/gesprekken/{gesprek_id}/contextopbouw": ('require_client', 'actieve_userid'),
     "GET /v1/modelkeuzes": ('require_client',),
+    "GET /v1/regels": ('require_client', 'actieve_userid'),
     "GET /v1/verbruik": ('require_client', 'actieve_userid'),
     "GET /v1/verbruik/controle": ('require_client',),
     "GET /v1/werkgebieden": ('require_client', 'actieve_userid'),
