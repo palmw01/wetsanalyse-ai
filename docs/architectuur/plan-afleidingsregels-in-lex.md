@@ -1,6 +1,6 @@
 # Plan: de afleidingsregels in Lex (activiteit 3b)
 
-Status: **concept, wacht op de keuze van een richting door de gebruiker; nog niets gebouwd** · Datum: 2026-11-19 ·
+Status: **concept; richting voorgesteld in §12 (combinatie), wacht op akkoord van de gebruiker; nog niets gebouwd** · Datum: 2026-11-19 ·
 Hoort bij: [plan-afleidingsregels.md](plan-afleidingsregels.md) (het onderzoek, de gaten D1–D6, A1–A5, U1–U4, R1–R3, M1–M2),
 de regels van het team voor Termijnen (`afleidingsregels-termijnen-team.md`, PR #1762), [ADR-011](adr-011-relaties-tussen-markeringen.md)
 (het regelskelet), [ADR-005](adr-005-vraag-lex-en-agents.md), [ADR-008](adr-008-antwoordsjablonen.md),
@@ -328,14 +328,14 @@ besluit. De mock-ups tonen het gesprek, het artefact ernaast en één beslisstap
 
 ### Advies
 
-**A met de hiërarchie van C op de artefactpagina.** De regelkaart past het best op wat er is (de begripskaart), en de
+(Uitgewerkt en gevalideerd in §12; de gekozen combinatie staat in §12.3.) **A met de hiërarchie van C op de artefactpagina.** De regelkaart past het best op wat er is (de begripskaart), en de
 keten hoort op de pagina *Afleidingsregels* van het werkgebied, waar je raadpleegt. De beslistabel van B is dan de
 weergave van de gevallen op de kaart, als lijst op een smal scherm. D's diagram per lid blijft wat het is (het skelet in
 de annotatie) en verwijst naar de regel. De keuze is aan de gebruiker.
 
 ## 10. Keuzes voor de gebruiker
 
-1. **De richting**: A, B, C, D, of een combinatie (advies: A met de keten van C).
+1. **De richting**: A, B, C, D, of een combinatie. Voorstel na de validatie: *de regelkaart in de keten* (§12.3).
 2. **Een regel is altijd een beslistabel** (één of meer gevallen): akkoord, of toch een aparte vorm voor een regel met één
    geval?
 3. **De poort bij accorderen**: beoordeelde begrippen voor uitvoer en invoer verplicht, het skelet als signaal (voorstel);
@@ -376,3 +376,131 @@ gaat ervóór of loopt ernaast.
 
 **Meten**: Termijnen (R1–R8) en WA TRM H1 zijn ontwikkelsets. Een blinde set vraagt een werkgebied met een rekenregel en
 een beslisregel dat een jurist zelf uitwerkt; licht meten (één run, gerichte set).
+
+## 12. Validatie van de vier richtingen, en de gekozen combinatie
+
+Op verzoek van de gebruiker (19 nov 2026) zijn de vier richtingen langs drie maten gelegd: de methode (hoe je volgens
+de bronnen een afleidingsregel opstelt), de uitgangspunten van Lex en het gebruik. Daarna zijn ze gecombineerd tot één
+richting, met een eigen mock-up die zo dicht mogelijk bij de werkplek van nu ligt:
+[`media/afleidingsregels-voorstel.html`](media/afleidingsregels-voorstel.html), met schermafbeeldingen
+`media/afleidingsregels-voorstel-regel.png`, `-keten.png` en `-geaccordeerd.png` (na de beslisstap).
+
+### 12.1 Wat de methode vraagt
+
+In eigen woorden, met vindplaats (M01 het boek, M02 de Handleiding, M03 de Leidraad; zie `references/bronnen.md`):
+
+1. **Eerst een begrip voor de regel, dan de regel met begrippen.** Voor een geclassificeerde afleidingsregel maak je een
+   begrip dat de aard en functie noemt ("bepalen …"), en daarna stel je de regel op met de begrippen die er al zijn
+   (M01 h.3 stap 3b; M02 §3.5.2b).
+2. **De opbouw van een regel**: de uitvoer; de wijze van afleiden met de invoer en de bewerking; de voorwaarden, met wat
+   vergeleken wordt en hoe (M01 h.3 stap 6, de onderdelen van een afleidingsregel). Een operator krijgt een begrip
+   ("min", "plus") dat elke formulering met dezelfde bewerking deelt (M01 h.6, het voorbeeld van de Zvw).
+3. **Een vast taalpatroon**: "… moet berekend worden als …" en "… is … indien aan alle (of één) van de volgende
+   voorwaarden is voldaan", met de voorwaarden als lijst, ook genest (M02 §3.5.5, het praktijkvoorbeeld van de
+   zorgtoeslag). In de schrijfwijze van het boek zijn begrippen herkenbaar en operatoren vet (M01, de kleurconventie).
+4. **Een overzicht met het afgeleide begrip**: naam van de regel, de regel, en het begrip dat hij afleidt; het afgeleide
+   begrip wordt in de volgende regel hergebruikt. Zo ontstaat de afleidingshiërarchie (M02 §3.5.5; M01 h.4 §6).
+5. **Werkrichting**: bij een berekening begin je bij de bepaling die de uiteindelijk benodigde waarde geeft, en zoek je
+   van daaruit de bepalingen die de invoer afleiden (M01 h.6, de aanpak van de Zvw).
+6. **Per formulering, in één adem**: rond een centrale klasse krijgt elke formulering in het diagram een begrip en waar
+   het speelt een afleidingsregel, en direct daarna volgen valideren en het signaleren van beleid (M02 §3.4; M03, de
+   iteraties).
+7. **Interpretatie expliciet**: classificeren, begrippen en regels vragen interpretatie (teleologisch, wetshistorisch,
+   systematisch, grammaticaal), en elke interpretatie wordt vastgelegd voor de beleidsverantwoordelijken (M01 h.3 stap
+   3c; M02 §3.5.3; M03, activiteit 5).
+8. **Valideren met concrete voorbeelden**: per regel invoerwaarden, de uitkomst en de vraag of die juridisch juist is,
+   inclusief nul, negatief en onbekend; dat toetst ook of de regels volledig zijn (M01 h.3 stap 4a; M02 activiteit 4b).
+9. **Herleidbaar**: elk begrip en elke regel rust rechtstreeks op wet- en regelgeving of beleidsregels, via de
+   gemarkeerde formuleringen (M03 nr. 17; M02 §3.5.2d).
+10. **Multidisciplinaire review**: jurist, uitvoeringsdeskundige, informatieanalist en ontwikkelaar lopen de resultaten
+    na (M01 h.3 stap 4). Het team op acceptatie deed dat met jurist, gegevensspecialist en regelspecialist; de
+    gegevensspecialist vond het teken van het termijnbedrag (R5).
+
+### 12.2 De vier richtingen langs de drie maten
+
+**A. Regelkaart**
+- *Methode*: dekt 1, 2, 3, 9 goed (de kaart heeft regelbegrip, uitvoer, invoer, bewerking, dragers). Mist 4 en 5:
+  de hiërarchie staat elders. Voorbeelden (8) passen vanzelf, want de begripskaart heeft ze al.
+- *Uitgangspunten*: het best. Dezelfde paneelschil en componenten als het begrip; voorstel per veld; geen Lex-knop.
+- *Gebruik*: vertrouwd, want een jurist die begrippen beoordeelde, kent de kaart al. Het nadeel is dat je zonder de
+  keten niet ziet waar een invoer vandaan komt, en dat een beslistabel van drie gevallen krap is.
+
+**B. Beslistabel**
+- *Methode*: sterk op 2 en 8 (gevallen, voorwaarden, en de stap naar voorbeeldreeksen). Wijkt af van 3: de methode
+  schrijft een regel als zin met een lijst voorwaarden, niet als tabel. De beslistabel is RegelSpraak (activiteit 6).
+- *Uitgangspunten*: vraagt een nieuw tabelcomponent, en kopieertekst en rapport moeten toch lijsten zijn.
+- *Gebruik*: overzichtelijk op een groot scherm, slecht op een telefoon; zwaar voor een regel met één geval.
+- *Wat blijft*: het idee **gevallen per uitvoer die elkaar uitsluiten**, getoond als lijst van gevallen in het
+  taalpatroon.
+
+**C. Regelketen**
+- *Methode*: het sterkst op 4 en 5: het overzicht met afgeleid begrip, hergebruik in de volgende regel, en werken vanaf
+  de uiteindelijke waarde.
+- *Uitgangspunten*: past bij de bronselectie per deelvraag (stand bij de api, de code kiest de volgende). Het diagram
+  moet het bestaande graafcomponent hergebruiken.
+- *Gebruik*: goed voor overzicht en voortgang. Als enige artefact te ver van de regel zelf: beoordelen zit een klik
+  dieper.
+- *Wat blijft*: **de keten als overzicht** (een eigen tab in het paneel en de pagina van het werkgebied), en **op elke
+  regel de buren**: waar de invoer vandaan komt en wie de uitvoer gebruikt.
+
+**D. Skelet naar regel**
+- *Methode*: het sterkst op 6 en 9: de regel ontstaat bij de formulering, en het skelet dwingt herleidbaarheid af.
+  Botst met 4 en met het besluit van het team: één regel per uitvoer, over drie leden heen.
+- *Uitgangspunten*: vervaagt de grens tussen activiteit 2 (annotatie) en 3 (regel) in de UI.
+- *Gebruik*: prettig om een gat te dichten met de wettekst ernaast; je kunt er een regel niet als geheel beoordelen.
+- *Wat blijft*: **het skeletgat wordt een open punt op de regel met een link naar de bepaling**, en het herstel gebeurt
+  in de annotatie, die er al is. De annotatie toont welke regel op de afleidingsregel rust.
+
+**Wat geen enkele richting goed deed**
+- *Interpretatie* (7): alleen B en D lieten een keuze zien, en geen van beide legde de interpretatiemethode en de toets
+  vast.
+- *Voorbeelden* (8): stonden alleen als later werk. De methode noemt ze juist het middel om een regel te valideren, en
+  in Termijnen laat één voorbeeld het open punt van Leidraad 9.1 zien (de laatste termijn op 31 december).
+- *Werkrichting* (5): het team werkte van onder naar boven. De methode zoekt van boven naar beneden. Beide zijn nodig.
+
+### 12.3 De gekozen richting: de regelkaart in de keten
+
+Eén zin: **een afleidingsregel is een kaart zoals een begrip, die opent naast het gesprek en altijd laat zien waar hij in
+de keten staat. De gevallen staan als lijst in het taalpatroon, de interpretatiekeuzes en de voorbeelden staan op de
+kaart, en Lex leidt het gesprek van de analysevraag naar de regels en dan regel voor regel.**
+
+- **Het gesprek**:
+  - Lex begint bij de analysevraag en zoekt van boven naar beneden welke waarden ervoor nodig zijn (methode 5). Het
+    resultaat is de keten.
+  - Daarna stelt Lex de regels van onder naar boven op, één per beurt, zoals bij de bronselectie per deelvraag. De
+    stand per regel staat bij de api.
+  - Een interpretatiekeuze komt als vraagkaart in de dock, de bestaande `VragenKaart`. Lex legt de lezingen voor, met
+    de passages en de interpretatiemethode; de jurist kiest.
+- **Het paneel**: twee soorten artefacten in dezelfde paneelschil, als tabs naast elkaar zoals nu.
+  - `regels`: de keten van het werkgebied (uit C), als lijst in de volgorde van de keten met status, plus een compact
+    diagram;
+  - `regel`: één regel, met dezelfde opbouw als de begripskaart (uit A). Daarop staan:
+    - *Regel*: de afgeleide regeltekst in het taalpatroon, met de gevallen als lijst (uit B);
+    - *Invoer en uitvoer*: de begrippen met hun status, en per invoer de regel die hem levert;
+    - *Formuleringen*: de dragende markeringen met hun JAS-klasse en beoordeling, en een skeletgat als open punt dat de
+      bepaling opent (uit D);
+    - *Voorbeelden*: invoer, uitkomst en het oordeel "juridisch juist?" (methode 8), met de voorstellen van Lex per
+      voorbeeld zoals bij een begrip;
+    - in de rechterkolom *Beoordeling* (met wat er nog openstaat voor accorderen), *In de keten* (volgt op, gebruikt
+      door), *Interpretatiekeuzes* (lezing, methode, getoetst), *Open punten* en *Historie*.
+- **De werkgebiedpagina**: het artefact *Afleidingsregels* toont de keten, met *Vraag Lex* per regel. Lex start er niet.
+- **De annotatie**: blijft zoals hij is. Het regelskelet in de annotatie krijgt één regel extra: "rust op regel R4".
+
+Wat dit betekent voor §3 tot en met §11:
+- het datamodel blijft;
+- §3.6 krijgt bij een interpretatiekeuze het veld `methode` (teleologisch, wetshistorisch, systematisch, grammaticaal);
+- de voorbeelden (D3) schuiven naar voren, naar PR 4 en 6, omdat ze bij het beoordelen horen;
+- de operatoren volgen de methode: een generiek operatorbegrip waar een formulering is, en de catalogus waar die er niet
+  is (keuze 4 blijft open).
+
+### 12.4 Hoe de mock-up de drie maten laat zien
+
+De mock-up toont R4 *Bepalen vervaldagen van de termijnen* uit Termijnen, in de werkplek zoals die nu is (zijbalk,
+gesprekskop, dock, paneel met tabs, begripskaartopbouw), gebouwd met de klassen van de huidige frontend:
+- *methode*: regelbegrip, uitvoer, invoer met herkomst, gevallen als lijst in het taalpatroon, de keten, de dragende
+  formuleringen, een interpretatiekeuze met methode, en een voorbeeld dat de keuze zichtbaar maakt (31 januari, dan
+  28 februari, dan 31 maart of 28 maart);
+- *uitgangspunten*: het artefact naast het gesprek, besluiten op het artefact, de keuze via het gesprek, geen Lex-knop
+  op de kaart, voorstellen in geel;
+- *gebruik*: de vraagkaart beantwoorden werkt de regel, het voorbeeld en de beoordeling bij; daarna kan *Accorderen*.
+  De tab *Afleidingsregels* toont de keten met R4 erin.
