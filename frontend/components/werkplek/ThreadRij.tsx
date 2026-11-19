@@ -541,7 +541,9 @@ function Brongetrouwheid({ grounding }: { grounding: AgentGrounding }) {
       <span className="mt-0.5">{onbepaald ? <Cirkel /> : <Waarschuwing />}</span>
       <span className="min-w-0">
         {onbepaald ? (
-          "Dit antwoord noemt geen vindplaats of letterlijk citaat, dus er valt niets te controleren tegen de graaf."
+          grounding.vermeld?.length
+            ? `Dit antwoord noemt ${grounding.vermeld.join(", ")} in gewone taal. Dat staat in wat Lex ophaalde, maar zonder vindplaats of letterlijk citaat valt het niet hard te controleren tegen de graaf.`
+            : "Dit antwoord noemt geen vindplaats of letterlijk citaat, dus er valt niets te controleren tegen de graaf."
         ) : (
           <>
             {grounding.afgekapt && (

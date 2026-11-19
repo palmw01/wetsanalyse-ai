@@ -513,3 +513,73 @@ def vreemd_schrift(tekst: str) -> list[str]:
         if "LATIN" in schriften and len(schriften) > 1:
             uit[f"spelling: '{w}' bevat een letter uit een ander schrift"] = None
     return list(uit)
+
+
+# --- de toelichting rust op wat gelezen is -------------------------------------------------------------------------
+
+#: De sjablonen van de graaf waarvan de toelichting op gelezen wettekst hoort te rusten: de werkplek toont die tekst
+#: ernaast (de definitie, het vastgelegde begrip, de bepaling). Een duiding, rapport of stuk naast de wet heeft eigen
+#: toetsen per stuk (`zonder_steun`, `stukcontrole`).
+STEUNTOETS_SJABLONEN = frozenset({"begrip", "bepaling"})
+
+#: Woorden die in lopende uitleg staan zonder iets over de bron te zeggen: naast `_FUNCTIEWOORDEN`.
+_UITLEGWOORDEN = frozenset(
+    "zich hem hun haar zijn ons iets niets alles zelf elk elke ieder iedere andere ander anders eerst daarna vervolgens "
+    "dus omdat want doordat terwijl wanneer indien mits tenzij waarbij waardoor waarmee waarvan waarop hoe heel "
+    "zeer meer minder alleen steeds altijd nooit soms vaak verder bijvoorbeeld namelijk eigenlijk vooral echter "
+    "toch juist wordt worden kunnen moeten mogen zullen willen gaan doen doet gedaan staan staat stond komen komt "
+    "geldt gelden houdt betekent betekenis begrip term definitie wettelijke wettelijk wet regeling bepaling "
+    "artikel artikelen lid leden onderdeel hierin daarin hiervoor daarvoor hierbij daarbij".split())
+
+#: Een woord met een hoofdletter midden in een zin: een naam (een regeling, een instantie). Namen hebben een eigen toets
+#: (`beweringen.regelingen_genoemd`, de organen); hier zouden ze een correcte zin over "het Wetboek van Burgerlijke
+#: Rechtsvordering" afkeuren omdat de bron "Rv" schrijft.
+_NAAM = re.compile(r"(?<=[\w,;:)\]] )[A-ZÀ-Ý][\wà-ÿ-]*")
+
+
+#: Tools waarvan het resultaat ook als gelezen telt voor een toelichting: de wettelijke definities (een definitie is de
+#: tekst zelf, met vindplaats) en de vastgelegde begrippen (de toelichting duidt ze).
+_OOK_GELEZEN = frozenset({"zoek_definitie", "search_begrippen", "get_begrip"})
+
+
+def gelezen_tekst(trace: Iterable[Any]) -> str:
+    """De tekst van wat gelezen is: de resultaten van een leestool van elke bron, plus `_OOK_GELEZEN`. Een zoektreffer
+    niet: die is gevonden (`gelezen_en_gevonden`)."""
+    from .resultaat import waarden
+
+    delen = []
+    for item in trace:
+        tool, tekst = str(item[0]), str(item[1] or "")
+        bron = bron_van(tool)
+        if tool in _OOK_GELEZEN or (bron is not None and tool in bron.leestools):
+            delen.append(waarden(tekst))
+    return "\n".join(delen)
+
+
+def toelichting_zonder_steun(tekst: str, steun: str, bekend: str = "") -> list[str]:
+    """De zinnen van een toelichting die niet rusten op wat er gelezen is (acceptatie 19 nov 2026, "derdenbeslag": een
+    bank, een werkgever die loon uitbetaalt en executoriaal beslag, terwijl de gelezen Leidraad-passage en het vastgelegde
+    begrip daar niets over zeggen; de controle zag het niet, want ze toetste alleen getallen, namen en citaten).
+
+    Per zin of lijstregel de eigen woorden: geen functiewoord, geen naam, geen woord uit de vraag of het dossier
+    (`bekend`), en niet in een citaat of vindplaats. Zijn het er meer dan `MAX_EIGEN_WOORDEN`, dan staat ten minste
+    `MIN_STEUN` daarvan (op hun stam) in `steun`: de tekst die gelezen is, niet wat een zoektool alleen vond. Anders is de
+    zin een bewering. Dezelfde maat als `zonder_steun` na een rapport."""
+    from .beweringen import _zonder_citaten
+
+    stammen = _stammen(_WOORD.findall((steun or "").casefold()))
+    gekend = _stammen(_WOORD.findall((bekend or "").casefold()))
+    uit: list[str] = []
+    for segment in _SEGMENT.split(_zonder_citaten(zonder_citaten(tekst or ""))):
+        zin = segment.strip().lstrip("-*• ").strip()
+        if not zin:
+            continue
+        woorden = _WOORD.findall(_NAAM.sub(" ", zin).casefold())
+        eigen = [w for w in woorden if w not in _FUNCTIEWOORDEN and w not in _UITLEGWOORDEN and w[:_STAM] not in gekend]
+        if len(eigen) <= MAX_EIGEN_WOORDEN:
+            continue
+        gedragen = sum(w[:_STAM] in stammen for w in eigen)
+        if gedragen < MIN_STEUN * len(eigen):
+            kort = zin if len(zin) <= 90 else zin[:90].rsplit(" ", 1)[0] + " …"
+            uit.append(f"toelichting zonder steun in wat gelezen is: “{kort}”")
+    return uit

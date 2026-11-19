@@ -739,6 +739,8 @@ per connector aan of uit (`MenuKeuze`), en in een werkgebied *Maak dit de standa
   te controleren). Onbepaald is geen goedkeuring; toon het niet groen. Het oordeel staat op het bericht
   (`Bericht.grounding`, `parseGrounding`), dus blok en aanwijzing in de tekst blijven na herladen staan. Het blok
   spreekt ook bij `afgekapt`, zelfs als het niveau `gegrond` is: wat er staat klopt dan, maar het is niet af.
+  Noemt een onbepaald antwoord artikelen in gewone taal die wél in het opgehaalde staan (`vermeld`, acceptatie 19 nov
+  2026: art. 475 Rv bij "derdenbeslag"), dan zegt het blok dat, in plaats van "noemt geen vindplaats".
   `onbevestigd` noemt wat Lex noemde maar niet is teruggevonden (een artikel in gewone taal, een blokcitaat): een
   signaal bij niveau `onbepaald`, geen afkeuring.
 - **Een afgekeurd citaat wordt in de tekst zelf aangewezen.** `Markdown` neemt `nietLetterlijk` aan

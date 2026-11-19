@@ -25,7 +25,7 @@ from ..berichten import (CORRECTIE, _parse_final, _schoon_messages, _trim_messag
                          eerste_deel_ingekort, hervatting_van, met_beurtcontext, toolresultaten, venster_telling)
 from ..bronregister import bij, controletrace
 from ..focus import genoemd_in_antwoord, na_antwoord
-from ..grounding import alleen_gelezen_extern, check_grounding, curate_sources, herstel_citaten, live_niet_letterlijk
+from ..grounding import alleen_gelezen_extern, alleen_gelezen_wettekst, check_grounding, curate_sources, herstel_citaten, live_niet_letterlijk
 from ..narratie import _grounding_melding, _stap, _toolregel, ronde_in_denk, zonder_aanloop
 from ..spoorbronnen import weigerregel
 from ..overzicht import bronrijen as overzicht_bronrijen
@@ -935,7 +935,8 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
     namen = (_graafnamen(b.graph) or None) if regelingen_genoemd(tekst) else None
     report = check_grounding(tekst, controletrace(state), overzicht=state.get("overzicht") or None, bekend=_bekend(state),
                              regelingen=namen, steun=rapport_steun(state), vraag=_vraag(state),
-                             periode=_periode(state), duiding_tekst=_zonder_gedaan(state))
+                             periode=_periode(state), duiding_tekst=_zonder_gedaan(state),
+                             toelichting=_toelichting_van_lex(state))
     # Een omgedraaide bewering in de woorden van de passage zien de toetsen op woorden niet: de controle per stuk leest de
     # duidingen tegen de passages die het rapport citeerde (`stukcontrole.py`). Alleen in het antwoord van de centrale
     # agent, en alleen als de goedkopere toetsen niets vonden: vonden zij iets, dan volgt de correctie toch, en daarna
@@ -1020,6 +1021,7 @@ def verify_node(b: Bouw, state: State) -> dict[str, Any]:
         "unsupported": report.unsupported,
         "niet_letterlijk": report.niet_letterlijk,
         "onbevestigd": report.onbevestigd,
+        "vermeld": report.vermeld,
         "beweringen": report.beweringen if not report.grounded else [],
         "grounding_niveau": report.niveau,
     }
@@ -1065,6 +1067,19 @@ def _zonder_gedaan(state: State) -> str | None:
     blokken = [b for b in antwoord["blokken"] if b.get("door") == "lex"
                and not (b.get("soort") == "toelichting" and b.get("kop") in _GEEN_DUIDING)]
     return antwoord_tekst(Antwoord.model_validate({**antwoord, "blokken": blokken}), zonder=NIET_GETOETST)
+
+
+def _toelichting_van_lex(state: State) -> str | None:
+    """De toelichting die Lex schreef in een sjabloon van de graaf (`gelezen.STEUNTOETS_SJABLONEN`), voor de steuntoets;
+    None bij een ander sjabloon of vrije tekst."""
+    from ..gelezen import STEUNTOETS_SJABLONEN
+
+    antwoord = state.get("antwoord") or {}
+    if antwoord.get("sjabloon") not in STEUNTOETS_SJABLONEN:
+        return None
+    tekst = "\n\n".join(str(b.get("tekst") or "") for b in antwoord.get("blokken") or []
+                         if b.get("soort") == "toelichting" and b.get("door") == "lex")
+    return tekst or None
 
 
 def _periode(state: State) -> tuple[int, int] | None:
@@ -1428,6 +1443,9 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
                               if b.get("soort") == "extern" and b.get("id"))
         sources = alleen_gelezen_extern(sources, controletrace(state), state.get("answer", ""),
                                         state.get("question", ""), geciteerd)
+        # Wettekst die alleen gevonden is, naast wat er wél gelezen is, ook (acceptatie 19 nov 2026, "derdenbeslag").
+        doelen_iri = frozenset(d["iri"] for d in (state.get("antwoord") or {}).get("doelen") or [] if d.get("iri"))
+        sources = alleen_gelezen_wettekst(sources, state.get("answer", ""), doelen_iri)
     # De namen van de regelingen in de lijst (één query per beurt; na het cureren al uit de cache).
     sources = met_regelingnamen(b.graph, sources)
     if not state.get("overzicht"):
@@ -1445,6 +1463,7 @@ def finalize_node(b: Bouw, state: State) -> dict[str, Any]:
         "niveau": state.get("grounding_niveau", "gegrond"),
         **({"afgekapt": True} if state.get("afgekapt") else {}),
         **({"onbevestigd": state["onbevestigd"]} if state.get("onbevestigd") else {}),
+        **({"vermeld": state["vermeld"]} if state.get("vermeld") else {}),
     })
     # entiteit-tier: alleen nieuwe IRI's toevoegen (append-reducer + dedup).
     existing = set(state.get("entities_seen") or [])

@@ -1258,3 +1258,34 @@ def test_een_einde_uit_een_ander_lid_maakt_de_code_af_tot_het_einde_van_de_zin()
         vul("antwoord_duiding", duiding(van="uitstel", tot="ergens anders.", bepaling=TIEN),
             [tien(tekst="Het uitstel geldt. Het uitstel eindigt."), ("get_lid", json.dumps({"status": "ok", "volledig": True,
              "lid": {"iri": f"{TIEN}:lid:9", "tekst": "Dit staat ergens anders."}, "resultaten": []}))])
+
+
+_LEIDRAAD_1441 = "urn:bwb:BWBR0024096:id:BWBR0024096%2FCirculaire.divisie14%2FCirculaire.divisie14.4%2FCirculaire.divisie14.4.1"
+
+
+def _gelezen(iri: str, tekst: str, nummer: str = "14.4.1"):
+    return "get_bepaling", json.dumps({"status": "ok", "volledig": True, "aantal": 0, "resultaten": [],
+                                       "bepaling": {"iri": iri, "nummer": nummer, "tekst": tekst, "subdivisies": 0}})
+
+
+def test_zonder_definitie_toont_de_code_de_gelezen_bepaling_die_de_term_gebruikt():
+    """Acceptatie 19 nov 2026: "Geen wettelijke definitie" bij "derdenbeslag", en Leidraad 14.4.1 (gelezen, met de term)
+    stond niet in het antwoord; de toelichting van het model deed de rest."""
+    leeg = ("zoek_definitie", json.dumps({"status": "ok", "volledig": True, "aantal": 0, "term": "derdenbeslag", "resultaten": []}))
+    tekst = "Een belastingaanslag kan ook worden verhaald door het leggen van derdenbeslag op een vordering."
+    andere = _gelezen("urn:bwb:BWBR0024096:id:x", "Over de beslagvrije voet.", "14.4.2")
+    a = vul("antwoord_begrip", {"begrip": "derdenbeslag", "toelichting": ""}, [leeg, _gelezen(_LEIDRAAD_1441, tekst), andere])
+    assert [b.soort for b in a.blokken] == ["leemte", "wettekst"]
+    assert a.blokken[0].tekst.endswith("De gelezen bepaling hieronder gebruikt de term wel.")
+    assert [(b.tekst, b.vindplaats.iri) for b in a.blokken[1].items] == [(tekst, _LEIDRAAD_1441)]
+    assert a.doelen == [], "de bepaling gebruikt de term; ze is niet waar het antwoord naar wijst"
+
+
+def test_een_bepaling_die_de_term_niet_draagt_of_niet_compleet_is_komt_er_niet_bij():
+    leeg = ("zoek_definitie", json.dumps({"status": "ok", "volledig": True, "aantal": 0, "term": "derdenbeslag", "resultaten": []}))
+    # "beslag onder een derde" is niet de term; een bepaling met nog niet gelezen subdivisies is niet compleet.
+    zonder = _gelezen(_LEIDRAAD_1441, "Beslag onder een derde.")
+    deels = ("get_bepaling", json.dumps({"status": "ok", "volledig": True, "aantal": 2, "resultaten": [],
+                                         "bepaling": {"iri": "urn:bwb:BWBR0024096:y", "nummer": "14.4", "tekst": "Derdenbeslag", "subdivisies": 2}}))
+    a = vul("antwoord_begrip", {"begrip": "derdenbeslag", "toelichting": ""}, [leeg, zonder, deels])
+    assert [b.soort for b in a.blokken] == ["leemte"] and a.blokken[0].tekst.endswith("“derdenbeslag”.")
