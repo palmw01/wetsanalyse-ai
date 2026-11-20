@@ -916,7 +916,8 @@ export interface Deelvraag {
   volgorde: number;
   /** `afgewezen` en `vervangen` staan niet in de lijst van het werkgebied, wel in `GET …/deelvragen/{id}`. */
   status: "actief" | "voorgesteld" | "afgewezen" | "vervangen";
-  herkomst: "analist" | "lex";
+  /** `lex_aangepast`: voorgesteld door Lex, de tekst daarna door de analist gewijzigd. */
+  herkomst: "analist" | "lex" | "lex_aangepast";
   reden: string;
   /** Een voorstel van Lex dat deze actieve deelvraag verbetert (F3d): overnemen vervangt haar. Oudere api: weg. */
   vervangt?: string;

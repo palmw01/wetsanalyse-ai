@@ -118,7 +118,7 @@ async def post_bronselectie_besluit(werkgebied_id: str, deelvraag_id: str, kandi
         wg = await werkgebied_store.haal(werkgebied_id)
         kandidaat = await store.bron_iri_van(werkgebied_id, kandidaat_id)
         iri = req.bron_iri or kandidaat
-        if kandidaat and not bronselectie.onder(iri, kandidaat):
+        if kandidaat and not bronselectie.onder(iri, kandidaat, await bronselectie.voorouders_van([(iri, kandidaat)])):
             raise HTTPException(422, {"fout": "niet_onder_kandidaat",
                                       "melding": "Kies de bepaling zelf, of een lid of onderdeel ervan."})
         if iri and iri not in {b["bron_iri"] for b in wg["bronnen"]}:
