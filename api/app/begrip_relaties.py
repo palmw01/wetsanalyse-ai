@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from . import begrip_relatie_store as store
 from .auth import require_client
 from .begrip_relatie_contracts import Combineren, CombinerenGeneriek, NieuweBetekenis, Reden, RelatieInvoer
+from .begrippen import Vorm as BegripVorm, _in_vorm as _begrip_in_vorm
 from .routers.auth import actieve_userid
 
 router = APIRouter(prefix="/werkgebieden/{werkgebied_id}", tags=["begrippen"],
@@ -54,19 +55,21 @@ async def post_relatie_afwijzen(werkgebied_id: str, relatie_id: str, req: Reden,
 
 
 @router.post("/relaties/{relatie_id}/bevestigen")
-async def post_bevestigen(werkgebied_id: str, relatie_id: str, actor: str = Depends(actieve_userid)):
-    return await store.bevestig(werkgebied_id, relatie_id, actor)
+async def post_bevestigen(werkgebied_id: str, relatie_id: str, vorm: Vorm = "lijst",
+                          actor: str = Depends(actieve_userid)):
+    return _in_vorm(await store.bevestig(werkgebied_id, relatie_id, actor), vorm)
 
 
 @router.delete("/relaties/{relatie_id}")
-async def delete_relatie(werkgebied_id: str, relatie_id: str, actor: str = Depends(actieve_userid)):
-    return await store.verwijder(werkgebied_id, relatie_id, actor)
+async def delete_relatie(werkgebied_id: str, relatie_id: str, vorm: Vorm = "lijst",
+                         actor: str = Depends(actieve_userid)):
+    return _in_vorm(await store.verwijder(werkgebied_id, relatie_id, actor), vorm)
 
 
 @router.post("/begrippen/{begrip_id}/nieuwe-betekenis", status_code=201)
-async def post_nieuwe_betekenis(werkgebied_id: str, begrip_id: str, req: NieuweBetekenis,
+async def post_nieuwe_betekenis(werkgebied_id: str, begrip_id: str, req: NieuweBetekenis, vorm: BegripVorm = "kaart",
                                 actor: str = Depends(actieve_userid)):
-    return await store.nieuwe_betekenis(werkgebied_id, begrip_id, req, actor)
+    return _begrip_in_vorm(await store.nieuwe_betekenis(werkgebied_id, begrip_id, req, actor), vorm)
 
 
 @router.post("/begrippen/{begrip_id}/combineren-generiek")
@@ -83,5 +86,6 @@ async def post_opvolger_overnemen(werkgebied_id: str, begrip_id: str, actor: str
 
 
 @router.post("/begrippen/{begrip_id}/combineren")
-async def post_combineren(werkgebied_id: str, begrip_id: str, req: Combineren, actor: str = Depends(actieve_userid)):
-    return await store.combineer(werkgebied_id, begrip_id, req, actor)
+async def post_combineren(werkgebied_id: str, begrip_id: str, req: Combineren, vorm: BegripVorm = "kaart",
+                          actor: str = Depends(actieve_userid)):
+    return _begrip_in_vorm(await store.combineer(werkgebied_id, begrip_id, req, actor), vorm)

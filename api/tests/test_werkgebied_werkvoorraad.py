@@ -164,6 +164,21 @@ async def test_een_deelvraag(client):
     assert leeg["te_annoteren"] == [] and leeg["eenheden"] == [] and leeg["buiten_bereik"] == 2
 
 
+async def test_analyseren_bij_een_deelvraag_maakt_een_contextselectie_een_analysebron(client):
+    """Termijnen e2e (20 nov 2026): LI 9.1 kreeg bij DV4 de rol analyseren, maar de selectie bleef context en de
+    werkvoorraad telde haar als contextbron. De rol per deelvraag telt."""
+    wg, a, b, c = await _met_deelvragen(client)
+    sel = {s["bron_iri"]: s["id"] for s in wg["bronnen"]}
+    k = db.werkgebied_deelvraag_koppelingen
+    async with db.get_engine().begin() as conn:
+        await conn.execute(k.update().where(k.c.deelvraag_id == b, k.c.doel_id == sel[ART2]).values(rol="analyseren"))
+    for query in ({}, {"bereik": "deelvragen"}, {"bereik": "deelvragen", "deelvraag_id": b}):
+        v = await _voorraad_met(client, wg, **query)
+        assert ART2 in v["te_annoteren"] and v["context_niet_meegenomen"] == 0, query
+    v = await _voorraad_met(client, wg, bereik="deelvragen", deelvraag_id=a)
+    assert ART2 not in v["te_annoteren"] and v["buiten_bereik"] == 2         # TWO en ART2 vallen erbuiten
+
+
 async def test_bereik_fouten(client):
     kaal = (await _bron(client, await _nieuw(client), bron_iri=ART))["werkgebied"]
     r = await _voorraad_met(client, kaal, status=409, bereik="deelvragen")

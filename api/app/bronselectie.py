@@ -160,9 +160,10 @@ async def _lees(werkgebied: dict) -> dict:
         voorgangers = await werkgebied_deelvragen.voorgangers_in(conn, wid)
         basis = await bronnen_run_store.basis_run_id(conn, wid)
         punten = await _onderzoekspunten(conn, wid)
+    voorouders = await voorouders_van((x.bron_iri, kd.bron_iri) for x in selecties.values() for kd in kandidaten)
     return {"vragen": vragen, "rijen": rijen, "besluiten": besluiten, "kandidaten": kandidaten,
             "selecties": selecties, "koppelingen": koppelingen, "voorgangers": voorgangers, "basis": basis,
-            "punten": punten}
+            "punten": punten, "voorouders": voorouders}
 
 
 async def _onderzoekspunten(conn, werkgebied_id: str) -> dict[str, list[dict]]:
@@ -182,10 +183,58 @@ async def _onderzoekspunten(conn, werkgebied_id: str) -> dict[str, list[dict]]:
     return uit
 
 
-def onder(iri: str, ouder: str) -> bool:
+def onder(iri: str, ouder: str, voorouders: dict[str, set[str]] | None = None) -> bool:
     """`iri` is `ouder` zelf, of een lid of onderdeel eronder (het pad van de IRI, zoals `werkgebied_store.omvat`).
-    Een `id:`-bepaling (Leidraad, slottekst) draagt haar pad URL-gecodeerd: `…divisie1.1.2%2FTekst%2FOnderdeel._10`."""
-    return werkgebied_store.onder_pad(iri, ouder)
+    Een `id:`-bepaling (Leidraad, slottekst) draagt haar pad URL-gecodeerd: `…divisie1.1.2%2FTekst%2FOnderdeel._10`.
+
+    Het pad ziet niet alles: de Leidraad draagt een citeerbare topdivisie als artikel (`…:artikel:9`, de refKey van de
+    BWB) en haar onderdelen als `id:` (`…:id:…Circulaire.divisie9%2FCirculaire.divisie9.5`). Dan beslist de bronboom:
+    `voorouders` (uit `voorouders_van`) noemt per IRI de knopen erboven (Termijnen e2e, 20 nov 2026)."""
+    return werkgebied_store.onder_pad(iri, ouder) or ouder in (voorouders or {}).get(iri, ())
+
+
+def _regeling_en_vorm(iri: str) -> tuple[str, str]:
+    """(`BWBR…`, `artikel`/`id`/…) van een bronnode-IRI `urn:bwb:<bwb>:<vorm>:…`; leeg als het er geen is."""
+    delen = iri.split(":")
+    return (delen[2], delen[3]) if len(delen) > 3 and delen[0] == "urn" and delen[1] == "bwb" else ("", "")
+
+
+def vraagt_bronboom(iri: str, ouder: str) -> bool:
+    """Of alleen de bronboom kan zeggen of `iri` onder `ouder` valt: zelfde regeling, een andere IRI-vorm, en het pad
+    zegt nee. Alleen dan wordt de graaf gevraagd; een artikel en zijn leden beslist het pad zelf."""
+    r1, v1 = _regeling_en_vorm(iri)
+    r2, v2 = _regeling_en_vorm(ouder)
+    return bool(r1) and r1 == r2 and v1 != v2 and not werkgebied_store.onder_pad(iri, ouder)
+
+
+async def voorouders_van(paren, lees=None) -> dict[str, set[str]]:
+    """Per IRI de knopen erboven volgens de bronboom, alleen voor de paren (iri, ouder) waar het pad tekortschiet
+    (`vraagt_bronboom`). Eén gecachete bronboom per regeling (`graaf.lees_bron`). Kan de graaf het niet zeggen, dan
+    ontbreekt de IRI: liever een gemiste dan een verkeerde."""
+    nodig: dict[str, set[str]] = {}
+    for iri, ouder in paren:
+        if vraagt_bronboom(iri, ouder):
+            nodig.setdefault(_regeling_en_vorm(iri)[0], set()).add(iri)
+    if not nodig:
+        return {}
+    if lees is None:
+        from .graaf import lees_bron as lees
+    from .annotatie_v2_store import nodes_van
+    uit: dict[str, set[str]] = {}
+    for bwb, iris in nodig.items():
+        try:
+            nodes = nodes_van(await lees({"bwb_id": bwb}))
+        except Exception:                                          # graaf weg of regeling onbekend: het pad beslist
+            continue
+        for iri in iris:
+            boven: set[str] = set()
+            knoop = (nodes.get(iri) or {}).get("parent_iri") or ""
+            while knoop and knoop in nodes and knoop not in boven:
+                boven.add(knoop)
+                knoop = nodes[knoop].get("parent_iri") or ""
+            if boven:
+                uit[iri] = boven
+    return uit
 
 
 def _hoort_bij(kandidaat, did: str, eigen: set[str], kern_iris: set[str]) -> bool:
@@ -280,8 +329,9 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
                 continue
             rij = besluit.get((kd.id, did))
             # Opgenomen kan het geheel zijn, of een lid of onderdeel ervan (per lid opnemen).
-            delen_hier = sorted(i for i in iris_hier if onder(i, kd.bron_iri))
-            elders = any(onder(i, kd.bron_iri) for i in sel_per_iri) and not delen_hier
+            vo = lees.get("voorouders")
+            delen_hier = sorted(i for i in iris_hier if onder(i, kd.bron_iri, vo))
+            elders = any(onder(i, kd.bron_iri, vo) for i in sel_per_iri) and not delen_hier
             if delen_hier:
                 stand, overal = "opgenomen", False
             elif kd.status == "uitgesloten":
@@ -510,7 +560,7 @@ async def zet_status(werkgebied_id: str, deelvraag_id: str, req: StatusActie, ac
 # --- besluiten per deelvraag -----------------------------------------------------------------
 
 async def _opgenomen_hier(conn, werkgebied_id: str, deelvraag_id: str, kandidaat_iri: str, gekozen_iri: str | None,
-                          doel: str) -> bool:
+                          doel: str, voorouders: dict[str, set[str]] | None = None) -> bool:
     """Of deze kandidaat (of het gekozen lid ervan) nu bij deze deelvraag is opgenomen: dezelfde regel als `kiezen` in
     `besluit`, maar gelezen binnen de transactie die het werkgebiedslot heeft."""
     s, kp = db.werkgebied_bronselecties, db.werkgebied_deelvraag_koppelingen
@@ -518,7 +568,7 @@ async def _opgenomen_hier(conn, werkgebied_id: str, deelvraag_id: str, kandidaat
                                                                kp.c.soort == "bron"))).scalars())
     sels = (await conn.execute(select(s.c.id, s.c.bron_iri).where(s.c.werkgebied_id == werkgebied_id,
                                                                   s.c.verwijderd.is_(None)))).all()
-    return any(x.id in hier and onder(x.bron_iri, kandidaat_iri) and (not gekozen_iri or x.bron_iri == doel)
+    return any(x.id in hier and onder(x.bron_iri, kandidaat_iri, voorouders) and (not gekozen_iri or x.bron_iri == doel)
                for x in sels)
 
 
@@ -531,13 +581,20 @@ async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req:
     alleen = deelvraag_id == ANALYSEVRAAG
     k, b, kp, s = db.bron_kandidaten, db.bron_kandidaat_deelvragen, db.werkgebied_deelvraag_koppelingen, \
         db.werkgebied_bronselecties
+    # De bronboom vóór de verbinding: alleen nodig als een IRI-vorm het pad breekt (Leidraad: artikel 9 › 9.5).
+    kandidaat_iri = await bronnen_run_store.bron_iri_van(werkgebied_id, kandidaat_id)
+    gekozen = req.bron_iri or kandidaat_iri
+    voorouders = await voorouders_van([(gekozen, kandidaat_iri)]
+                                      + [p for x in wg["bronnen"] for p in ((x["bron_iri"], kandidaat_iri),
+                                                                             (gekozen, x["bron_iri"]))]
+                                      ) if kandidaat_iri else {}
     async with db.get_engine().connect() as conn:
         kd = (await conn.execute(select(k).where(k.c.werkgebied_id == werkgebied_id, k.c.id == kandidaat_id))).first()
         if kd is None:
             raise HTTPException(404, "Kandidaat bestaat niet.")
         # Per lid opnemen (WA TRM H1, 8 nov 2026): `bron_iri` kiest de kandidaat zelf of een lid of onderdeel eronder.
         doel = req.bron_iri or kd.bron_iri
-        if not onder(doel, kd.bron_iri):
+        if not onder(doel, kd.bron_iri, voorouders):
             raise HTTPException(422, {"fout": "niet_onder_kandidaat",
                                       "melding": "Kies de bepaling zelf, of een lid of onderdeel ervan."})
         sels = (await conn.execute(select(s).where(s.c.werkgebied_id == werkgebied_id, s.c.verwijderd.is_(None)))).all()
@@ -549,7 +606,8 @@ async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req:
             kiezen = [sid] if sid else []
         else:
             # Loskoppelen en uitsluiten gaan over wat van deze kandidaat hier staat: het geheel, of de leden ervan.
-            kiezen = [x.id for x in hier if onder(x.bron_iri, kd.bron_iri) and (not req.bron_iri or x.bron_iri == doel)]
+            kiezen = [x.id for x in hier if onder(x.bron_iri, kd.bron_iri, voorouders)
+                      and (not req.bron_iri or x.bron_iri == doel)]
             sid = kiezen[0] if kiezen else None
         koppeling = None if alleen or not sid or sid not in hier_ids else (await conn.execute(select(kp).where(
             kp.c.deelvraag_id == deelvraag_id, kp.c.soort == "bron", kp.c.doel_id == sid))).first()
@@ -565,7 +623,8 @@ async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req:
         if kd.status == "uitgesloten":
             raise HTTPException(409, {"fout": "status", "status": "uitgesloten",
                                       "melding": "Deze bepaling is voor het hele werkgebied uitgesloten; heropen haar eerst."})
-        ruimer = next((x for x in hier if x.bereik == "onderliggend" and doel != x.bron_iri and werkgebied_store.onder_pad(doel, x.bron_iri)), None)
+        ruimer = next((x for x in hier if x.bereik == "onderliggend" and doel != x.bron_iri
+                       and onder(doel, x.bron_iri, voorouders)), None)
         if ruimer is not None:
             # Een lid onder een artikel dat hier al staat: dubbelop, en twee rollen voor één tekst.
             raise HTTPException(409, {"fout": "valt_onder", "selectie_id": ruimer.id,
@@ -600,7 +659,8 @@ async def besluit(werkgebied_id: str, deelvraag_id: str, kandidaat_id: str, req:
             await _slot(conn, werkgebied_id)
             # Opnieuw onder het slot: de toets hierboven las buiten het slot, en een gelijktijdig `opnemen` kon intussen
             # winnen. Zonder deze toets was de kandidaat daarna opgenomen én uitgesloten (testplan api V4).
-            if not alleen and await _opgenomen_hier(conn, werkgebied_id, deelvraag_id, kd.bron_iri, req.bron_iri, doel):
+            if not alleen and await _opgenomen_hier(conn, werkgebied_id, deelvraag_id, kd.bron_iri, req.bron_iri, doel,
+                                                    voorouders):
                 raise HTTPException(409, {"fout": "status", "status": "opgenomen",
                                           "melding": "Deze bepaling is bij deze deelvraag net opgenomen; koppel haar eerst los."})
             if alleen or (req.overal and naar == "uitgesloten"):

@@ -37,11 +37,13 @@ from .werkgebied_store import _audit, _gewijzigd, werkgebied_rij
 STANDEN = ("geen_bron", "met_bron")
 
 
-def _deelvraag(row, bronnen: list[str], begrippen: list[str]) -> dict:
+def _deelvraag(row, bronnen: list[str], begrippen: list[str], bron_rollen: dict[str, str] | None = None) -> dict:
+    """`bron_rollen`: de rol van een bron bij díé deelvraag, als die er een eigen heeft (leeg = de rol van de selectie)."""
     return {"id": row.id, "vraag": row.vraag, "volgorde": row.volgorde, "status": row.status,
             "herkomst": row.herkomst, "reden": row.reden, "vervangt": row.vervangt or "",
             "aangemaakt_door": row.aangemaakt_door,
-            "aangemaakt": db.aware(row.aangemaakt).isoformat(), "bronnen": bronnen, "begrippen": begrippen}
+            "aangemaakt": db.aware(row.aangemaakt).isoformat(), "bronnen": bronnen, "begrippen": begrippen,
+            "bron_rollen": bron_rollen or {}}
 
 
 async def _actieve_doelen(conn, werkgebied_id: str) -> tuple[set[str], dict[str, dict]]:
@@ -68,11 +70,14 @@ async def lijst_in(conn, werkgebied_id: str) -> list[dict]:
     kopp = (await conn.execute(select(k).where(k.c.deelvraag_id.in_([r.id for r in rows]))
                                .order_by(k.c.gekoppeld, k.c.doel_id))).all()
     per: dict[str, dict[str, list[str]]] = {r.id: {"bron": [], "begrip": []} for r in rows}
+    rollen: dict[str, dict[str, str]] = {r.id: {} for r in rows}
     for x in kopp:
         geldig = x.doel_id in selecties if x.soort == "bron" else x.doel_id in begrippen
         if geldig:
             per[x.deelvraag_id][x.soort].append(x.doel_id)
-    return [_deelvraag(r, per[r.id]["bron"], per[r.id]["begrip"]) for r in rows]
+            if x.soort == "bron" and x.rol:
+                rollen[x.deelvraag_id][x.doel_id] = x.rol
+    return [_deelvraag(r, per[r.id]["bron"], per[r.id]["begrip"], rollen[r.id]) for r in rows]
 
 
 async def lijst(werkgebied_id: str) -> list[dict]:
@@ -149,6 +154,9 @@ async def wijzig(werkgebied_id: str, deelvraag_id: str, w: DeelvraagWijziging, a
     if w.status is not None:
         velden["status"] = w.status.value
         velden["reden"] = w.reden.strip() if w.status == DeelvraagStatus.afgewezen else ""
+    if w.reden.strip() and w.status != DeelvraagStatus.afgewezen:
+        # Waarom de analist een voorstel aanpaste of overnam: staat er, in plaats van leeg (Termijnen e2e, 20 nov 2026).
+        velden["reden"] = w.reden.strip()
     actie = {"actief": "deelvraag-overgenomen", "afgewezen": "deelvraag-afgewezen"}.get(
         velden.get("status", ""), "deelvraag-gewijzigd")
     async with _gewijzigd(werkgebied_id, w.verwachte_revisie, actor, actie,
@@ -166,6 +174,9 @@ async def _wijzig_in(conn, werkgebied_id: str, deelvraag_id: str, w: DeelvraagWi
     if (w.status == DeelvraagStatus.actief and row.status == DeelvraagStatus.voorgesteld.value
             and row.vervangt):
         velden.update(await _vervang(conn, werkgebied_id, row, actor))
+    if row.herkomst == "lex" and "vraag" in velden and normaliseer(velden["vraag"]) != normaliseer(row.vraag):
+        # De tekst is niet meer die van Lex: de herkomst zegt dat, anders liegt ze over wie hem schreef.
+        velden["herkomst"] = "lex_aangepast"
     if velden:
         await conn.execute(update(db.werkgebied_deelvragen).where(db.werkgebied_deelvragen.c.id == deelvraag_id)
                            .values(**velden, gewijzigd=db.utcnow()))

@@ -145,7 +145,10 @@ class Batch(BaseModel):
 
 class Beslissing(BaseModel):
     # `grens`: kies een van de grensopties die de keten voorstelde (`wijziging: {"optie": i}`); de
-    # server rekent het anker zelf uit de bron.
+    # server rekent het anker zelf uit de bron. Een onbekend veld is een fout, geen stille 200 (Termijnen e2e, 20 nov
+    # 2026: `klasse` naast `wijziging` wijzigde niets).
+    model_config = ConfigDict(extra="forbid")
+
     type: Literal["approve", "reject", "heropen", "comment", "edit", "grens"]
     verwachte_revisies: dict[str, int]
     snapshot_id: str
@@ -157,6 +160,8 @@ class Beslissing(BaseModel):
 class Laagbesluit(BaseModel):
     """Eén besluit in een bulk. Een bewerking blijft hier binnen de laag: ankers en tekst wijzigen kan de eigenaar
     verplaatsen, en dat hoort bij de losse route met de revisies van beide lagen."""
+
+    model_config = ConfigDict(extra="forbid")
 
     element_id: str = Field(min_length=1, max_length=64)
     type: Literal["approve", "reject", "heropen", "comment", "edit"]
