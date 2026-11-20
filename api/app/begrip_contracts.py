@@ -106,6 +106,12 @@ class BegripInhoudDeel(BegripInhoud):
 class BegripWijziging(BaseModel):
     verwachte_revisie: int = Field(ge=1)
     inhoud: BegripInhoudDeel
+
+    @field_validator("inhoud", mode="before")
+    @classmethod
+    def _deel(cls, v):
+        """Een volledige `BegripInhoud` (code die de hele inhoud meegeeft) telt als de velden die erin gezet zijn."""
+        return v.model_dump(exclude_unset=True) if isinstance(v, BaseModel) else v
     #: De jurist is akkoord met de nieuwe inhoud: een geaccordeerd begrip wordt in dezelfde transactie opnieuw
     #: geaccordeerd als de poort het toelaat (zoals `KoppelInvoer.akkoord`). Eén aanroep in plaats van twee.
     akkoord: bool = False
