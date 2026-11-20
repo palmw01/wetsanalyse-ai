@@ -90,6 +90,29 @@ async def test_zelf_vastleggen_met_regels(client):
     assert "relatie-vastgelegd" in acties and "relatie-verwijderd" in acties
 
 
+async def test_een_vastgelegde_relatie_afwijzen_houdt_haar_historie(client):
+    """Termijnen e2e (20 nov 2026): een verkeerde relatie kon alleen weg; in een gedeeld werkgebied hoort te blijven
+    staan dat ze er was, wie haar afwees en waarom."""
+    _, wg, a, b = await _twee(client)
+    [x] = (await client.post(_rel(wg), json={"van_begrip": b["id"], "naar_begrip": a["id"], "type": "hierarchie",
+                                             "toelichting": "Soort."})).json()["relaties"]
+    assert (await client.post(_rel(wg, x["id"], "afwijzen"), json={"reden": " "})).status_code == 422
+    r = await client.post(_rel(wg, x["id"], "afwijzen"), json={"reden": "De richting is omgekeerd."})
+    assert r.status_code == 200, r.text
+    [y] = r.json()["relaties"]
+    assert (y["id"], y["beoordeling"], y["toelichting"]) == (x["id"], "afgewezen", "Soort.")
+    assert y["bewijs"]["afwijzing"]["reden"] == "De richting is omgekeerd."
+    assert (await client.post(_rel(wg, x["id"], "afwijzen"), json={"reden": "nog eens"})).status_code == 409
+    acties = [a_["actie"] for a_ in (await client.get(f"/v1/werkgebieden/{wg['id']}/audit")).json()["audit"]]
+    assert "relatie-afgewezen" in acties
+    # De goede richting vastleggen vervangt de afgewezen relatie tussen hetzelfde paar niet stil: ze is een ander type
+    # of een andere richting, en de afgewezen blijft staan.
+    r = await client.post(_rel(wg), json={"van_begrip": a["id"], "naar_begrip": b["id"], "type": "hierarchie",
+                                          "toelichting": "Navorderingsaanslag is een soort aanslag."})
+    assert r.status_code == 201
+    assert {z["beoordeling"] for z in r.json()["relaties"]} == {"akkoord", "afgewezen"}
+
+
 async def test_een_veranderde_kant_staat_bij_het_andere_begrip_in_de_herbeoordeling(client):
     ids, wg, a, b = await _twee(client)
     await client.post(_rel(wg), json={"van_begrip": a["id"], "naar_begrip": b["id"], "type": "inclusie"})

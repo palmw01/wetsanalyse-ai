@@ -46,6 +46,13 @@ async def post_afwijzen(werkgebied_id: str, voorstel_id: str, req: Reden, vorm: 
     return _in_vorm(await store.wijs_af(werkgebied_id, voorstel_id, req.reden, actor), vorm)
 
 
+@router.post("/relaties/{relatie_id}/afwijzen")
+async def post_relatie_afwijzen(werkgebied_id: str, relatie_id: str, req: Reden, vorm: Vorm = "lijst",
+                                actor: str = Depends(actieve_userid)):
+    """Een vastgelegde relatie afwijzen met een reden; ze blijft in de historie staan (`store.wijs_vastgelegd_af`)."""
+    return _in_vorm(await store.wijs_vastgelegd_af(werkgebied_id, relatie_id, req.reden, actor), vorm)
+
+
 @router.post("/relaties/{relatie_id}/bevestigen")
 async def post_bevestigen(werkgebied_id: str, relatie_id: str, actor: str = Depends(actieve_userid)):
     return await store.bevestig(werkgebied_id, relatie_id, actor)

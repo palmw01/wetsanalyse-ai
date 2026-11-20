@@ -156,6 +156,18 @@ async def test_een_akkoord_op_de_annotatie_is_geen_wijziging(client):
 
 # --- primaire duiding, idempotentie, scope ----------------------------------------------------------
 
+async def test_open_contextkoppelingen_zijn_een_signaal_en_geen_poort(client):
+    """Termijnen e2e (20 nov 2026): een begrip werd geaccordeerd met drie open contextkoppelingen, zonder signaal."""
+    ids = await _annoteer()
+    wg = await _werkgebied(client)
+    b = await _begrip(client, wg, [ids["lid1"]])
+    b = (await client.post(_url(wg, b, "koppelingen"), json={"verwachte_revisie": b["revisie"],
+                                                             "element_ids": [ids["awr"]], "rol": "context"})).json()
+    kaart = (await client.get(_url(wg, b))).json()
+    assert any("contextkoppeling is nog niet beoordeeld" in a for a in kaart["aandachtspunten"])
+    assert not any("context" in r for r in kaart["accorderen"]["redenen"])
+
+
 async def test_een_element_duidt_hooguit_een_begrip_aan(client):
     ids = await _annoteer()
     wg = await _werkgebied(client)

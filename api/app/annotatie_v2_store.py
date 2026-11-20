@@ -660,6 +660,30 @@ async def details(element_ids: list[str]) -> dict[str, dict]:
     return uit
 
 
+#: Het kortste voorvoegsel waarmee een element te vinden is (`volledig_element_id`): korter raakt al snel meer elementen.
+MIN_VOORVOEGSEL = 6
+
+
+async def volledig_element_id(element_id: str) -> str:
+    """Het id zelf, of het enige element waarvan het id met dit voorvoegsel begint (Termijnen e2e, 20 nov 2026: een
+    agent noemde elementen met hun eerste 8 tekens, zoals in de logboeken, en kreeg 404). Twee of meer: 409 met de
+    kandidaten, nooit een gok. Alleen letters en cijfers, minstens `MIN_VOORVOEGSEL` tekens."""
+    e = db.annotatie_v2_elementen
+    async with db.get_engine().connect() as conn:
+        if (await conn.execute(select(e.c.id).where(e.c.id == element_id))).first() is not None:
+            return element_id
+        if len(element_id) < MIN_VOORVOEGSEL or not element_id.isalnum():
+            raise HTTPException(404, "Element niet gevonden.")
+        ids = list((await conn.execute(select(e.c.id).where(e.c.id.startswith(element_id, autoescape=True))
+                                       .order_by(e.c.id).limit(11))).scalars())
+    if not ids:
+        raise HTTPException(404, "Element niet gevonden.")
+    if len(ids) > 1:
+        raise HTTPException(409, {"fout": "voorvoegsel_niet_uniek", "kandidaten": ids[:10],
+                                  "melding": f"Meer elementen beginnen met {element_id}; geef meer tekens."})
+    return ids[0]
+
+
 async def detail(element_id: str) -> dict:
     return (await details([element_id]))[element_id]
 

@@ -224,6 +224,13 @@ export function NodeAnnotatiePaneel({ doel, extraDoelen, graaf, onWisselDoel, on
         await muteer(() => opslag.wisRelatie!(r.id, { verwachte_revisies: dragerRevisies(view, r) }));
         setMelding("Relatie gewist.");
       },
+      async bevestig(r: NodeRelatie) {
+        const verwachte_revisies = dragerRevisies(view, r);
+        await muteer(() => opslag.bevestigRelatie
+          ? opslag.bevestigRelatie(r.id, { verwachte_revisies })
+          : opslag.beslisRelatie!(r.id, { type: "approve", comment: "", verwachte_revisies }));
+        setMelding("Relatie klopt nog.");
+      },
     } : undefined;
 
   async function maakImpliciet(invoer: { label: string; toelichting: string }) {

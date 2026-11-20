@@ -983,6 +983,19 @@ werkgebieden. Een verwijderd begrip of werkgebied is gewist en bestaat hier dus 
   dat de vrager het werkgebied hoeft te kennen (`get_begrip` van Lex, de werkplek).
 - Tests: `tests/test_begrippen_overzicht.py`.
 
+## Termijnen e2e, vervolg (20 nov 2026)
+
+- **Een relatie tussen markeringen bevestigen** (`POST /v1/annotatie/relaties/{id}/bevestig`, `{verwachte_revisies}`,
+  ADR-011 §*Bevestigen*): een vastgestelde relatie die `veranderd` is (een verlengd anker), krijgt de stand van nu als
+  basis. De toetsen zijn die van goedkeuren, maar de laag hoeft niet heropend te worden en het oordeel blijft. Er komt
+  een beslissing `bevestig` en een auditregel `relatie-bevestigd`. In de werkplek is dit *Klopt nog*.
+- **Een vastgelegde begriprelatie afwijzen** (`POST …/relaties/{id}/afwijzen`, `{reden}`): `beoordeling: afgewezen`
+  met `bewijs.afwijzing` (reden, door, op, wie haar vastlegde). Ze blijft staan in plaats van te verdwijnen, en ze gaat
+  uit de projectie. Een opvolging wijs je niet af.
+- **Open contextkoppelingen zijn een signaal** in `aandachtspunten` (`_context_open`), geen reden van de poort.
+- **Een element met een uniek voorvoegsel** van zijn id (minstens 6 tekens; `GET /v1/annotatie/elementen/{id}` en
+  `…/graaf`, `store.volledig_element_id`): meer kandidaten is 409 `voorvoegsel_niet_uniek`, nooit een gok.
+
 ## Afleidingsregels
 
 `regels.py`, `regel_store.py`, `regel_contracts.py`, `regeltekst.py`; het ontwerp is ADR-018 en

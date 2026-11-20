@@ -137,6 +137,44 @@ async def test_een_veranderd_eindpunt_vraagt_een_nieuw_oordeel(lagen):
     assert (await store.weergave(s1))["relaties"][0]["veranderd"] is False
 
 
+async def test_een_relatie_bevestigen_na_een_verlengd_anker_raakt_de_geaccordeerde_laag_niet(lagen):
+    """Termijnen e2e (20 nov 2026): na een verlengd anker stond een relatie op `veranderd`, en de stand verversen kostte
+    vier mutaties op een geaccordeerde laag. Bevestigen ververst haar stand met een notitie, en de laag blijft af."""
+    s1, _ = lagen
+    r = (await rel.leg(leg("zin", "aanslag", "voorwerp", {ONE: 1}), "jurist"))["relatie"]
+    n = store.nodes_van(s1)[ONE]
+    langer = [dict(bron_iri=ONE, start=19, eind=34, tekst=TEKST_1[19:34], bron_hash=n["bron_hash"])]
+    await store.beslis("aanslag", Beslissing(type="edit", wijziging={"ankers": langer, "tekst": TEKST_1[19:34]},
+                                             snapshot_id=s1["snapshot_id"], verwachte_revisies={ONE: 2}), s1, "jurist")
+    for i, eid in enumerate(("zin", "ontvanger")):
+        await store.beslis(eid, Beslissing(type="approve", snapshot_id=s1["snapshot_id"],
+                                           verwachte_revisies={ONE: 3 + i}), s1, "jurist")
+    laag = (await store.weergave(s1))["lagen"][0]
+    await store.zet_status(laag["id"], "geaccordeerd", laag["revisie"], "jurist", s1)
+    [r2] = (await store.weergave(s1))["relaties"]
+    assert r2["veranderd"] is True
+    rev = await _revisie(s1)
+    with pytest.raises(HTTPException) as exc:
+        await rel.bevestig(r["id"], {ONE: rev - 1}, "jurist")
+    assert exc.value.status_code == 412
+    uit = await rel.bevestig(r["id"], {ONE: rev}, "jurist")
+    assert uit["relatie"]["veranderd"] is False and uit["relatie"]["lifecycle"] == "human_approved"
+    assert uit["relatie"]["beslissingen"][-1]["type"] == "bevestig"
+    assert uit["laag"]["status"] == "geaccordeerd" and uit["laag"]["revisie"] == rev + 1
+    assert await _audit("relatie-bevestigd")
+    # Niets veranderd: niets te doen, geen nieuwe revisie.
+    assert (await rel.bevestig(r["id"], {ONE: rev + 1}, "jurist"))["laag"]["revisie"] == rev + 1
+
+
+async def test_een_voorstel_bevestig_je_niet(lagen):
+    s1, _ = lagen
+    r = (await rel.leg(leg("zin", "aanslag", "voorwerp", {ONE: 1}), "jurist"))["relatie"]
+    await rel.beslis(r["id"], RelatieBeslissing(type="reject", verwachte_revisies={ONE: 2}), "jurist")
+    with pytest.raises(HTTPException) as exc:
+        await rel.bevestig(r["id"], {ONE: 3}, "jurist")
+    assert exc.value.detail["fout"] == "niet_te_bevestigen"
+
+
 async def test_afwijzen_heropenen_en_goedkeuren(lagen):
     r = (await rel.leg(leg("zin", "aanslag", "voorwerp", {ONE: 1}), "jurist"))["relatie"]
     afgewezen = (await rel.beslis(r["id"], RelatieBeslissing(type="reject", comment="te ruim",

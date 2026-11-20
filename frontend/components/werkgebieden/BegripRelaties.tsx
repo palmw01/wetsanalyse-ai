@@ -12,7 +12,7 @@ import { Lijst, LijstRij, Voorstel } from "@/components/ui/Lijst";
 import { Melding } from "@/components/ui/Melding";
 import { BegripBlok, type BegripWeergaveVorm } from "@/components/werkgebieden/BegripBlok";
 import {
-  bevestigRelatie, foutTekst, haalRelaties, legRelatieVast, verwijderRelatie, wijsRelatieAf,
+  bevestigRelatie, foutTekst, haalRelaties, legRelatieVast, verwijderRelatie, wijsRelatieAf, wijsVastgelegdeRelatieAf,
 } from "@/lib/api";
 import {
   HERKOMST_LABEL, KEUZES, TYPE_LABEL, magVastleggen, ordenRelaties, relatieInvoer, relatieZin,
@@ -102,15 +102,21 @@ export function BegripRelaties({ id, begrip, andere, onGewijzigd, onNaarBegrip, 
           {vastgelegd.map((r) => (
             <RelatieRij key={r.id} relatie={r} vervangen={vervangen}
               onBevestig={() => doe(() => bevestigRelatie(id, r.id), "Relatie bevestigd.")}
+              onAfwijzen={(reden) => doe(() => wijsVastgelegdeRelatieAf(id, r.id, reden),
+                "Relatie afgewezen; ze blijft in de historie staan.")}
               onWeg={() => doe(() => verwijderRelatie(id, r.id), "Relatie verwijderd.")} />
           ))}
         </Lijst>
       ) : !voorstellen.length && <Leeg>Nog geen relaties met andere begrippen.</Leeg>}
       {afgewezen.length > 0 && (
-        <Uitklap samenvatting={<>Afgewezen voorstellen ({afgewezen.length})</>}>
+        <Uitklap samenvatting={<>Afgewezen ({afgewezen.length})</>}>
           <ul className="mt-1 space-y-0.5">
             {afgewezen.map((r) => (
-              <li key={r.id}>{relatieZin(r.type, r.van_naam, r.naar_naam).join(" ")} – {r.toelichting}</li>
+              <li key={r.id}>
+                {relatieZin(r.type, r.van_naam, r.naar_naam).join(" ")} – {r.bewijs.afwijzing?.reden ?? r.toelichting}
+                {r.bewijs.afwijzing && ` (afgewezen door ${r.bewijs.afwijzing.door}`
+                  + `${r.bewijs.afwijzing.was_door ? `, eerder vastgelegd door ${r.bewijs.afwijzing.was_door}` : ""})`}
+              </li>
             ))}
           </ul>
         </Uitklap>
@@ -171,13 +177,18 @@ function VoorstelRij({ voorstel: v, onAkkoord, onAfwijzen }: {
   );
 }
 
-function RelatieRij({ relatie: r, vervangen, onBevestig, onWeg }: {
+function RelatieRij({ relatie: r, vervangen, onBevestig, onAfwijzen, onWeg }: {
   relatie: BegripRelatie;
   vervangen: boolean;
   onBevestig: () => Promise<boolean>;
+  onAfwijzen: (reden: string) => Promise<boolean>;
   onWeg: () => Promise<boolean>;
 }) {
   const naam = relatieZin(r.type, r.van_naam, r.naar_naam).join(" ");
+  const [afwijzen, setAfwijzen] = useState(false);
+  const [reden, setReden] = useState("");
+  // Een opvolging wijs je niet af: die volgt uit het vervangen begrip.
+  const kanAfwijzen = !vervangen && r.type !== "opvolging";
   return (
     <LijstRij titel={<Zin r={r} />}
       status={!vervangen && <IcoonBevestig soort="verwijderen" label={`Verwijder: ${naam}`} onBevestig={async () => { await onWeg(); }} />}
@@ -187,9 +198,25 @@ function RelatieRij({ relatie: r, vervangen, onBevestig, onWeg }: {
           <span className="block text-aandacht-geel-tekst">Een van beide begrippen veranderde sinds het vastleggen; klopt de relatie nog?</span>
         )}
       </>}
-      acties={r.veranderd && !vervangen && (
-        <Button size="xs" variant="secondary" aria-label={`Klopt nog: ${naam}`} onClick={() => void onBevestig()}>Klopt nog</Button>
-      )} />
+      acties={!afwijzen && (r.veranderd || kanAfwijzen) && !vervangen && <>
+        {r.veranderd && (
+          <Button size="xs" variant="secondary" aria-label={`Klopt nog: ${naam}`} onClick={() => void onBevestig()}>Klopt nog</Button>
+        )}
+        {kanAfwijzen && (
+          <Button size="xs" variant="ghost" aria-label={`Wijs af: ${naam}`} onClick={() => setAfwijzen(true)}>Afwijzen</Button>
+        )}
+      </>}>
+      {afwijzen && (
+        <form className="mt-2 space-y-2" onSubmit={async (e) => {
+          e.preventDefault();
+          if (reden.trim() && await onAfwijzen(reden.trim())) { setAfwijzen(false); setReden(""); }
+        }}>
+          <Input autoFocus value={reden} onChange={(e) => setReden(e.target.value)} placeholder="Waarom klopt ze niet"
+            aria-label={`Reden om “${naam}” af te wijzen`} maxLength={2000} />
+          <Button type="submit" size="sm" variant="secondary" disabled={!reden.trim()} className="w-full sm:w-auto">Afwijzen</Button>
+        </form>
+      )}
+    </LijstRij>
   );
 }
 

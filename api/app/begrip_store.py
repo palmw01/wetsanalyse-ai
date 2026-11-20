@@ -184,8 +184,22 @@ async def _koppelingen_van(conn, werkgebied_id: str | None, begrip_id: str | Non
     return [actualiteit(r, huidig.get(r["element_id"])) for r in rows]
 
 
+def _context_open(koppelingen: list[dict]) -> list[str]:
+    """Een signaal, geen poort: contextkoppelingen die nog niemand beoordeelde. Ze dragen het begrip niet, dus het
+    accorderen gaat door, maar de analist ziet dat ze er liggen (Termijnen e2e, 20 nov 2026: een begrip werd
+    geaccordeerd met drie open contextkoppelingen, zonder dat iets het noemde)."""
+    n = sum(k["rol"] == "context" and k["beoordeling"] == "open" for k in koppelingen)
+    return [_meervoud(n, "1 contextkoppeling is nog niet beoordeeld (dat houdt het accorderen niet tegen).",
+                      "{n} contextkoppelingen zijn nog niet beoordeeld (dat houdt het accorderen niet tegen).")] if n else []
+
+
 def _aandacht(status: str, p: dict, koppelingen: list[dict]) -> list[str]:
-    """Wat de lijst bij een begrip noemt. Bij een geaccordeerd begrip: alleen wat sindsdien veranderde."""
+    """Wat de lijst bij een begrip noemt. Bij een geaccordeerd begrip: alleen wat sindsdien veranderde, en of er nog
+    contextkoppelingen open staan."""
+    return [*_aandacht_poort(status, p, koppelingen), *_context_open(koppelingen)]
+
+
+def _aandacht_poort(status: str, p: dict, koppelingen: list[dict]) -> list[str]:
     if status == "geaccordeerd":
         dragend = [k for k in koppelingen if k["rol"] in DRAGEND and k["beoordeling"] != "afgewezen"]
         weg = [k for k in dragend if k["actualiteit"] != "actueel"]
