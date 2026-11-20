@@ -568,6 +568,7 @@ _NODE_ONDERDEEL: dict[str, tuple[str, ...]] = {
     "overzicht_bouwen": ("workflow/overzicht",),
     "annotaties_zoeken": ("agentprofiel/annotaties_lezen",),
     "begrippen_zoeken": ("agentprofiel/begrippen_lezen",),
+    "regels_zoeken": ("agentprofiel/regels_lezen",),
     "bron_lijst": ("workflow/bron_lijst",),
     "subagent_plan": ("workflow/subagent",),
     "werkgebied_intake": ("workflow/werkgebied_intake",),

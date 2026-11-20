@@ -19,6 +19,7 @@ class State(TypedDict, total=False):
     annotaties_lezen: bool
     # De leesroute voor begrippen (fase F4): de supervisor herkende een vraag naar vastgelegde begrippen.
     begrippen_lezen: bool
+    regels_lezen: bool
     # Het werkgebied van waaruit de werkplek het gesprek opende (of leeg). Zijn begrippen staan vooraan
     # bij `search_begrippen`; het is context, geen filter. Komt elke beurt opnieuw van het verzoek.
     werkgebied_id: str

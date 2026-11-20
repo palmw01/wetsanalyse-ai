@@ -113,14 +113,20 @@ def iri_van_jci(trace: Trace) -> dict[str, str]:
     return uit
 
 
-def artikel_in_trace(nummer: str, trace: Trace) -> str:
+def artikel_in_trace(nummer: str, trace: Trace, *, ook_afgeleid: bool = False) -> str:
     """De iri van artikel `nummer` als de opgehaalde resultaten het aanwijzen, en in precies één regeling; anders leeg.
 
     Een artikel staat vaak in een resultaat zonder zijn tekst: `get_context` noemt de bepalingen die naar het gevraagde
     artikel verwijzen (Iw 28 verwijst naar 25 en 9; eval 7 nov 2026). Dan weet het model dát het erbij hoort, maar heeft
-    het niets gelezen. In twee regelingen is niet te zeggen welk artikel het antwoord bedoelt: dan haalt de code niets."""
+    het niets gelezen. In twee regelingen is niet te zeggen welk artikel het antwoord bedoelt: dan haalt de code niets.
+
+    `ook_afgeleid`: ook de resultaten van een afgeleide tool wijzen het artikel aan (de bronnode van een drager van een
+    afleidingsregel, een passage van een begrip). Alleen om het op te halen: een afgeleid resultaat is nooit de bron zelf
+    (lichte meting #1792, run 62dd3895: "artikel 9" uit de dragers van een regel werd twee keer geweigerd met
+    `genoemd_onbekend`, en het antwoord viel terug op tekst)."""
     patroon = re.compile(rf"urn:bwb:(BWB[RV]\d+):artikel:{re.escape(nummer)}(?![0-9A-Za-z.])")
-    regelingen = {m.group(1) for naam, tekst in trace if naam not in AFGELEIDE_TOOL_NAMEN for m in patroon.finditer(tekst or "")}
+    regelingen = {m.group(1) for naam, tekst in trace if ook_afgeleid or naam not in AFGELEIDE_TOOL_NAMEN
+                  for m in patroon.finditer(tekst or "")}
     return f"urn:bwb:{regelingen.pop()}:artikel:{nummer}" if len(regelingen) == 1 else ""
 
 

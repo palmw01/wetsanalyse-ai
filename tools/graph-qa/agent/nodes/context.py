@@ -40,6 +40,8 @@ class Bouw:
     advies_context: Callable[[State], str]
     annotaties: object | None = None
     begrippen: object | None = None
+    # De leespoort voor afleidingsregels (`tool_execution.regel_port`); None = de api uit de settings.
+    regels: object | None = None
     # De event loop van de beurt: de agents (`nodes/agent_taak.py`) draaien daarop, omdat hun api-client
     # erbij hoort. None buiten een lopende loop (een synchrone aanroep): dan een eigen loop.
     loop: Any = None

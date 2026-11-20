@@ -244,6 +244,7 @@ async def answer_stream(
     run_id: str = "",
     annotaties=None,
     begrippen=None,
+    regels=None,
     werkgebied_id: str = "",
     intake_actie: Any = None,
     onderwerp: Any = None,
@@ -309,7 +310,7 @@ async def answer_stream(
 
     # `kinderen` start en stopt een subagent langs de ene ingang (`api.main.start_beurt`, ADR-016 §A3); `resultaat`
     # krijgt na afloop wat een subagent opleverde, voor de ouder op deze replica.
-    builder = build_graph(settings, llm, graph, stop_check=stop_check, annotaties=annotaties, begrippen=begrippen,
+    builder = build_graph(settings, llm, graph, stop_check=stop_check, annotaties=annotaties, begrippen=begrippen, regels=regels,
                           agent_api=agent_api, kinderen=kinderen)
     thread_id = conversation_id or uuid.uuid4().hex
     onderwerp_dict = onderwerp.model_dump() if hasattr(onderwerp, "model_dump") else dict(onderwerp or {})
@@ -330,6 +331,7 @@ async def answer_stream(
         "annotaties_lezen": is_leesvraag(question, modus) and not opdracht_dict,
         "specialist": profiel if opdracht_dict else "annotaties_lezen" if is_leesvraag(question, modus) else "",
         "begrippen_lezen": False,
+        "regels_lezen": False,
         "werkgebied_id": werkgebied_id or "",
         # De bronnen van deze beurt (ADR-013): toollaag en dispatch filteren erop; de stand zegt per connector waarom.
         "bronnen": beurtbronnen,

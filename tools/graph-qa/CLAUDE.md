@@ -54,6 +54,7 @@ ingang ─────┬─ antwoordketen:    agent ⇄ tools → verify → (c
             ├─ genoemd stuk:     bron_lezen → agent ⇄ tools → verify → finalize   (een id als kst-35496-F, ADR-013)
             ├─ lijstvraag:       bron_lijst → verify → finalize   (zoektool in code, geen model; een fout van de bron is een vaste melding, een andere fout → agent)
             ├─ begrippen lezen:  begrippen_zoeken → agent ⇄ tools → verify → finalize
+            ├─ regels lezen:     regels_zoeken → agent ⇄ tools → verify → finalize   (search_regels + get_regel in code)
             ├─ overzichtsroute:  overzicht_bouwen → verify → finalize   (geen model; bij een bouwfout → agent)
             ├─ bepalingsroute:   bepaling_lezen → verify → finalize     (tekst uit code, één aanroep voor de toelichting; anders → agent)
             ├─ werkgebied-worker: werkgebied_intake → einde              (één stap van het samenstellen)
@@ -699,8 +700,15 @@ bruikbaar is.
 - **De afleidingsregels** (`tools/regel_tools.py`, leesclient `agent/regel_read.py`; regels herleidbaar, 20 nov 2026):
   `search_regels` en `get_regel` lezen alleen bij de api (Postgres is de waarheid; de poort, de gaten en de toets van de
   voorbeelden rekent de api), met de actor en het werkgebied van de begrippenpoort. Afgeleide duiding
-  (`AFGELEIDE_TOOL_NAMEN`): nooit een bron, nooit grounding; per drager de vindplaats met jci of anker. Alleen in
-  `centraal_breed` (achter `meer_tools`). Het dossier (`werkgebied_context`) noemt de regels van het werkgebied; zonder
+  (`AFGELEIDE_TOOL_NAMEN`): nooit een bron, nooit grounding; per drager de vindplaats met jci of anker. **Een vraag over
+  de vastgelegde regels routeert de code** (`regel_tools.is_regel_leesvraag`, ADR-010; lichte meting #1792: de centrale
+  agent gebruikte de tools achter `meer_tools` niet en antwoordde uit de wettekst): de node `regels_zoeken`
+  (`nodes/regels_lezen.py`) zoekt met het onderwerp uit de vraag, zonder term als die niets vindt, en leest bij
+  hoogstens `MAX_LEZEN` treffers elke regel; daarna formuleert het kleine profiel `regels_lezen` (regeltools plus
+  `get_artikel`/`get_lid`/`get_bepaling`, sjabloon `antwoord_duiding`). Een klein eigen voorvoegsel, geen wissel naar
+  het brede profiel. "Afleidingsregel" is ook een JAS-klasse: een vraag naar markeringen blijft bij de annotaties. Verder
+  in `centraal_breed` (achter `meer_tools`). Een artikel dat alleen een afgeleid resultaat aanwijst (een drager), haalt
+  het duidingssjabloon op in plaats van het onbekend te noemen (`vullen.artikel_in_trace(ook_afgeleid=True)`). Het dossier (`werkgebied_context`) noemt de regels van het werkgebied; zonder
   regels is het byte-gelijk.
 - **`tools/__init__.py`** – `TOOLS` (33 declaraties: 21 graaftools, de vier annotatieleestools uit
   `tools/annotatie_tools.py`, de twee begrippenleestools uit `tools/begrip_tools.py`, de twee Kamerstuktools uit

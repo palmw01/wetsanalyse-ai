@@ -49,6 +49,8 @@ NIEUW = {"centraal", "centraal_breed"}
 #: De taakprofielen voor een subagent (plan docs/architectuur/plan-agentprofielen.md): alleen de centrale agent kiest ze.
 TAAK = {"rechtspraak_lezen", "wetsgeschiedenis_lezen", "bepalingen_duiden"}
 NIEUW |= TAAK
+#: De leesroute voor afleidingsregels (ADR-010; lichte meting #1792, 20 nov 2026).
+NIEUW |= {"regels_lezen"}
 
 
 # --- bitgelijk ---------------------------------------------------------------------------------------------------

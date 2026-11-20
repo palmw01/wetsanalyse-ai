@@ -454,7 +454,9 @@ def _genoemd_is_gelezen(los: list[str], rijen: dict[str, dict[str, Any]], trace:
     live_ids = live_artikelen(trace)
     for vermelding in los:
         nummer = vermelding.removeprefix("artikel ")
-        iri = artikel_in_trace(nummer, trace)
+        # Een artikel dat alleen een afgeleid resultaat aanwijst (een drager van een regel), haalt de code op: dan wijst
+        # het model er een passage uit aan, zoals bij een verwijzing in `get_context`.
+        iri = artikel_in_trace(nummer, trace) or artikel_in_trace(nummer, trace, ook_afgeleid=True)
         if nummer.casefold() in live_ids:
             live.append((vermelding, live_ids[nummer.casefold()]))
         elif iri and any(_binnen(k, iri) for k in rijen):
