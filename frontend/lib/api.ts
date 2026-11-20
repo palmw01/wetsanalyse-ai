@@ -1982,6 +1982,13 @@ export async function heropenRegel(id: string, regelId: string, verwachteRevisie
     jsonInit("POST", { verwachte_revisie: verwachteRevisie })));
 }
 
+/** Een drager op de stand van nu: de markering veranderde, en de drager droeg het bewijs van toen. */
+export async function verversRegelDrager(id: string, regelId: string, dragerId: string, verwachteRevisie: number,
+  beoordeling: "open" | "akkoord" = "open"): Promise<Regel> {
+  return json<Regel>(await fetch(wg(id, "regels", regelId, "dragers", dragerId, "verversen"),
+    jsonInit("POST", { verwachte_revisie: verwachteRevisie, beoordeling })));
+}
+
 /** Afwijzen; met `opvolgerId` is de regel vervangen door die regel (status `vervangen`, e2e-run 20 nov 2026). */
 export async function wijsRegelAf(id: string, regelId: string, verwachteRevisie: number, reden: string,
   opvolgerId = ""): Promise<Regel> {

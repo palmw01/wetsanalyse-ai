@@ -33,6 +33,7 @@ BESLISSINGEN = {
     # Waar een open punt aan hangt, en het oordeel over een voorbeeld van een regel (e2e-run 20 nov 2026, A2 en B4).
     ("POST", "/v1/werkgebieden/{}/open-punten/{}/omhangen"),
     ("POST", "/v1/werkgebieden/{}/regels/{}/voorbeelden/{}/oordeel"),
+    ("POST", "/v1/werkgebieden/{}/regels/{}/dragers/{}/verversen"),
 }
 
 

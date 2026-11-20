@@ -281,6 +281,7 @@ TABEL: dict[str, tuple[str, ...]] = {
     "POST /v1/werkgebieden/{werkgebied_id}/regels/{regel_id}/voorbeelden/{nr}/oordeel": ('require_client', 'actieve_userid'),
     "GET /v1/werkgebieden/{werkgebied_id}/regels/{regel_id}/dragers": ('require_client', 'actieve_userid'),
     "GET /v1/werkgebieden/{werkgebied_id}/regels/{regel_id}/poort": ('require_client', 'actieve_userid'),
+    "POST /v1/werkgebieden/{werkgebied_id}/regels/{regel_id}/dragers/{drager_id}/verversen": ('require_client', 'actieve_userid'),
     "POST /v1/werkgebieden/{werkgebied_id}/relaties": ('require_client', 'actieve_userid'),
     "POST /v1/werkgebieden/{werkgebied_id}/relaties/voorstellen/{voorstel_id}/afwijzen": ('require_client', 'actieve_userid'),
     "POST /v1/werkgebieden/{werkgebied_id}/relaties/{relatie_id}/bevestigen": ('require_client', 'actieve_userid'),

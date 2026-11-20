@@ -54,14 +54,29 @@ class VoorbeeldOordeel(str, Enum):
     kan_niet = "kan_niet"              # deze invoer mag zich niet voordoen
 
 
+#: Zoveel tekens mag één tekstdeel van een uitkomst hebben. Een langer deel is meestal een voorwaarde of een tweede
+#: geval dat in de uitkomst terechtkwam; de melding zegt dat (e2e-run 20 nov 2026: een kale 422 zei het niet).
+MAX_TEKSTDEEL = 500
+
+
 class Term(BaseModel):
     """Eén stuk van een uitkomst. `begrip` en `operator` verwijzen naar een begrip (een operatorbegrip ontstaat op een
-    gemarkeerde formulering, #1766); `tekst` is vaste taal van het patroon of een tijdsaanduiding ("een maand na")."""
+    gemarkeerde formulering, #1766); `tekst` is vaste taal van het patroon of een tijdsaanduiding ("een maand na"),
+    hoogstens `MAX_TEKSTDEEL` tekens."""
     model_config = ConfigDict(extra="ignore")
 
     soort: Literal["begrip", "operator", "tekst"]
     begrip_id: str = Field(default="", max_length=64)
-    tekst: str = Field(default="", max_length=500)
+    tekst: str = Field(default="", json_schema_extra={"maxLength": MAX_TEKSTDEEL},
+                       description=f"Vaste taal van het taalpatroon, hoogstens {MAX_TEKSTDEEL} tekens.")
+
+    @field_validator("tekst")
+    @classmethod
+    def _lengte(cls, v: str) -> str:
+        if len(v) > MAX_TEKSTDEEL:
+            raise ValueError(f"een tekstdeel van een uitkomst is hoogstens {MAX_TEKSTDEEL} tekens (dit deel heeft er "
+                             f"{len(v)}): splits het in meer delen, of zet een voorwaarde bij de voorwaarden van het geval")
+        return v
 
     @model_validator(mode="after")
     def _vorm(self) -> "Term":
@@ -195,6 +210,14 @@ class DragersToevoegen(Revisie):
 class DragerWijziging(Revisie):
     beoordeling: Beoordeling
     # De grond van het oordeel ("letterlijk op de plek van het anker, getoetst aan de toestand van 1 okt 2026").
+    motivering: str = Field(default="", max_length=2000)
+
+
+class DragerVerversing(Revisie):
+    """Een drager op de stand van nu zetten (de markering is gewijzigd, bijvoorbeeld verlengd): het bewijs wordt de
+    markering van nu, en het oordeel wordt opnieuw gegeven. `akkoord` met een motivering als de beoordelaar de nieuwe
+    stand gezien heeft; anders staat hij weer open."""
+    beoordeling: Literal["open", "akkoord"] = "open"
     motivering: str = Field(default="", max_length=2000)
 
 

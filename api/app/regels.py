@@ -10,7 +10,8 @@ from fastapi import APIRouter, Depends, Query
 from . import regel_store as store, werkgebied_store
 from .auth import require_client
 from .regel_contracts import (
-    Accordering, Afwijzing, DragersToevoegen, DragerWijziging, ParameterWaardeInvoer, RegelAanmaak, RegelWijziging,
+    Accordering, Afwijzing, DragersToevoegen, DragerVerversing, DragerWijziging, ParameterWaardeInvoer, RegelAanmaak,
+    RegelWijziging,
     Revisie, VoorbeeldBeoordeling,
 )
 from .routers.auth import actieve_userid
@@ -22,13 +23,13 @@ router = APIRouter(prefix="/werkgebieden/{werkgebied_id}", tags=["afleidingsrege
 overzicht_router = APIRouter(prefix="/regels", tags=["afleidingsregels"], dependencies=[Depends(require_client)])
 
 RegelStatusFilter = Literal["concept", "geaccordeerd", "geaccordeerd_als_beleidsregel", "afgewezen", "vervangen"]
-#: `kort`: alleen de stand (revisie, status, poort, signalen; bij een drager ook die drager), B1. De standaard blijft de
-#: kaart, want de werkplek leest die.
-Vorm = Literal["volledig", "kort"]
+#: `kort` (of `stand`, de naam bij de begrippen): alleen de stand (revisie, status, poort, signalen; bij een drager ook
+#: die drager), B1. De standaard blijft de kaart, want de werkplek leest die.
+Vorm = Literal["volledig", "kort", "stand"]
 
 
 def _vorm(regel: dict, vorm: str, drager_id: str | None = None) -> dict:
-    return store.kort(regel, drager_id) if vorm == "kort" else regel
+    return store.kort(regel, drager_id) if vorm in ("kort", "stand") else regel
 
 
 @overzicht_router.get("")
@@ -107,6 +108,14 @@ async def post_dragers(werkgebied_id: str, regel_id: str, req: DragersToevoegen,
 async def patch_drager(werkgebied_id: str, regel_id: str, drager_id: str, req: DragerWijziging, vorm: Vorm = "volledig",
                        actor: str = Depends(actieve_userid)):
     return _vorm(await store.wijzig_drager(werkgebied_id, regel_id, drager_id, req, actor), vorm, drager_id)
+
+
+@router.post("/regels/{regel_id}/dragers/{drager_id}/verversen")
+async def post_ververs_drager(werkgebied_id: str, regel_id: str, drager_id: str, req: DragerVerversing,
+                              vorm: Vorm = "volledig", actor: str = Depends(actieve_userid)):
+    """Een drager op de stand van nu: de markering is gewijzigd, de drager draagt het bewijs van toen."""
+    return _vorm(await store.ververs_drager(await werkgebied_store.haal(werkgebied_id), regel_id, drager_id, req, actor,
+                                            resolve_bron), vorm, drager_id)
 
 
 @router.delete("/regels/{regel_id}/dragers/{drager_id}")

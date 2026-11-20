@@ -508,3 +508,55 @@ def test_afgeleid_mag_op_elke_grondslagklasse():
     with pytest.raises(HTTPException) as e:
         toets_afgeleid([{"klasse": "Rechtssubject"}])
     assert e.value.detail["fout"] == "geen_afleidingsregel"
+
+
+async def test_een_gewijzigde_drager_houdt_tegen_en_ververs_je(client):
+    """Vervolgronde 20 nov 2026: de poort stond open terwijl een drager op "gewijzigd" stond, en een drager verversen
+    kon alleen door hem weg te halen en opnieuw toe te voegen. Nu houdt een gewijzigde dragende passage het accorderen
+    tegen, en `…/verversen` zet het bewijs op de markering van nu."""
+    wg, ids, b = await _opzet(client)
+    regel = await _klaar_voor_accorderen(client, wg, ids, b)
+    [d] = regel["dragers"]
+    # De markering verandert (een andere klasse): de drager draagt het bewijs van toen.
+    snap = snapshot()
+    for soort, extra in (("heropen", {}), ("edit", {"wijziging": {"klasse": "Rechtsbetrekking"}})):
+        view = await store.weergave(snap)
+        revs = {l["bron_iri"]: l["revisie"] for l in view["lagen"]}
+        await store.beslis(ids["ar"], Beslissing(type=soort, snapshot_id=snap["snapshot_id"], verwachte_revisies=revs,
+                                                 **extra), snap, "jurist-a")
+    regel = (await client.get(_url(wg, regel["id"]), params={"vorm": "stand"})).json()
+    assert "dragers" not in regel, "vorm=stand is de compacte vorm"
+    assert regel["accorderen"]["mag"] is False
+    assert any("gewijzigd, verworpen of verdwenen: ververs" in x for x in regel["accorderen"]["redenen"])
+    r = await client.post(_url(wg, regel["id"], "dragers", d["id"], "verversen"), params={"vorm": "kort"},
+                          json={"verwachte_revisie": regel["revisie"], "beoordeling": "akkoord",
+                                "motivering": "Nieuwe klasse gezien; draagt de regel nog."})
+    assert r.status_code == 200, r.text
+    kort = r.json()
+    assert (kort["drager"]["actualiteit"], kort["drager"]["beoordeling"], kort["drager"]["klasse"]) == \
+        ("actueel", "akkoord", "Rechtsbetrekking")
+    assert kort["accorderen"]["mag"] is True, kort["accorderen"]
+    # Nog eens hetzelfde verandert niets.
+    r = await client.post(_url(wg, regel["id"], "dragers", d["id"], "verversen"),
+                          json={"verwachte_revisie": kort["revisie"], "beoordeling": "akkoord"})
+    assert r.json()["revisie"] == kort["revisie"]
+
+
+async def test_open_punten_per_regel_en_een_te_lang_tekstdeel(client):
+    wg, ids, b = await _opzet(client)
+    regel = (await client.post(_url(wg), json={"inhoud": _inhoud(b),
+                                              "dragers": [{"element_id": ids["ar"], "rol": "grondslag"}]})).json()
+    punten = f"/v1/werkgebieden/{wg['id']}/open-punten"
+    await client.post(punten, json={"inhoud": {"soort": "onderzoekspunt", "vraag": "Elders?",
+                                               "hangt_aan": [{"soort": "markering", "id": ids["rs"]}]}})
+    hier = (await client.post(punten, json={"inhoud": {"soort": "onderzoekspunt", "vraag": "Hier?",
+                                                       "hangt_aan": [{"soort": "regel", "id": regel["id"]}]}})).json()
+    lijst = (await client.get(punten, params={"regel_id": regel["id"]})).json()["open_punten"]
+    assert [p["id"] for p in lijst] == [hier["id"]]
+    # De grens van een tekstdeel staat in het schema en in de melding.
+    lang = _inhoud(b)
+    lang["gevallen"][0]["uitkomst"][0]["tekst"] = "x" * 501
+    r = await client.patch(_url(wg, regel["id"]), json={"verwachte_revisie": regel["revisie"], "inhoud": lang})
+    assert r.status_code == 422 and "hoogstens 500 tekens (dit deel heeft er 501)" in r.text
+    from app.regel_contracts import Term
+    assert Term.model_json_schema()["properties"]["tekst"]["maxLength"] == 500

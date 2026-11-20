@@ -26,7 +26,13 @@ Aanhaking = Literal["regel", "geval", "markering", "begrip", "deelvraag", "werkg
 @router.get("/open-punten")
 async def get_lijst(werkgebied_id: str, status: Status | None = None, soort: Soort | None = None,
                     aan: Aanhaking | None = Query(None, description="waar het aan hangt: soort, met `aan_id`"),
-                    aan_id: str | None = None, actor: str = Depends(actieve_userid)):
+                    aan_id: str | None = None,
+                    regel_id: str | None = Query(None, description="kort voor `aan=regel&aan_id=…`"),
+                    actor: str = Depends(actieve_userid)):
+    if regel_id:
+        if aan and (aan, aan_id) != ("regel", regel_id):
+            raise HTTPException(422, {"fout": "aanhaking", "melding": "Geef `regel_id`, of `aan` met `aan_id`."})
+        aan, aan_id = "regel", regel_id
     if bool(aan) != bool(aan_id):
         raise HTTPException(422, {"fout": "aanhaking", "melding": "Geef `aan` en `aan_id` samen."})
     hangt_aan = ("regel" if aan == "geval" else aan, aan_id) if aan and aan_id else None

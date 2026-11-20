@@ -15,7 +15,9 @@ import { Kaart, SplitDetail } from "@/components/ui/Pagina";
 import { Uitklap } from "@/components/ui/Uitklap";
 import { OpenPunten } from "@/components/werkgebieden/OpenPunten";
 import { Markdown } from "@/components/werkplek/Markdown";
-import { accordeerRegel, beoordeelRegelDrager, beoordeelVoorbeeld, haalRegelRevisies, heropenRegel, wijsRegelAf } from "@/lib/api";
+import {
+  accordeerRegel, beoordeelRegelDrager, beoordeelVoorbeeld, haalRegelRevisies, heropenRegel, verversRegelDrager, wijsRegelAf,
+} from "@/lib/api";
 import { datumTijd } from "@/lib/datum";
 import {
   DRAGER_BEOORDELING_LABEL, DRAGER_ROL_LABEL, HERKOMST_LABEL, REGEL_SOORT_LABEL, REGEL_STATUS_LABEL, REGEL_STATUS_TOON,
@@ -185,7 +187,13 @@ function Dragers({ stand, regel }: { stand: RegelStand; regel: Regel }) {
             meta={<>{d.element_id}{d.actualiteit && d.actualiteit !== "actueel" ? ` · passage ${d.actualiteit}` : ""}</>}
             status={<StatusLabel toon={d.beoordeling === "akkoord" ? "groen" : d.beoordeling === "afgewezen" ? "rood" : "geel"}>
               {DRAGER_BEOORDELING_LABEL[d.beoordeling]}</StatusLabel>}
-            acties={kan && d.beoordeling === "open" && <>
+            acties={kan && d.beoordeling !== "afgewezen" && d.actualiteit && d.actualiteit !== "actueel" ? (
+              // De markering veranderde: de drager draagt het bewijs van toen. Verversen zet hem op de stand van nu, en
+              // dan beoordeel je hem opnieuw (de poort houdt een gewijzigde drager tegen).
+              <Button size="xs" variant="secondary" disabled={stand.bezig}
+                onClick={() => void stand.muteer((r) => verversRegelDrager(regel.werkgebied_id, regel.id, d.id, r))}
+                aria-label={`${DRAGER_ROL_LABEL[d.rol]} ${d.element_id} verversen op de stand van nu`}>Verversen</Button>
+            ) : kan && d.beoordeling === "open" && <>
               <Button size="xs" variant="secondary" disabled={stand.bezig} onClick={() => void beoordeel(d, "akkoord")}
                 aria-label={`Akkoord met ${DRAGER_ROL_LABEL[d.rol].toLowerCase()} ${d.element_id}`}>Akkoord</Button>
               <Button size="xs" variant="ghost" disabled={stand.bezig} onClick={() => void beoordeel(d, "afgewezen")}
@@ -314,7 +322,7 @@ const ACTIE_ZIN: Record<string, string> = {
   "regel-aangemaakt": "Aangemaakt", "regel-gewijzigd": "Gewijzigd", "drager-beoordeeld": "Passage beoordeeld",
   "drager-toegevoegd": "Passages toegevoegd", "drager-verwijderd": "Passage verwijderd",
   "regel-geaccordeerd": "Geaccordeerd", "regel-heropend": "Heropend", "regel-afgewezen": "Afgewezen",
-  "regel-vervangen": "Vervangen", "voorbeeld-beoordeeld": "Voorbeeld beoordeeld",
+  "regel-vervangen": "Vervangen", "voorbeeld-beoordeeld": "Voorbeeld beoordeeld", "drager-ververst": "Passage ververst",
 };
 
 /** De revisies, pas geladen bij openklappen en opnieuw bij een nieuwe revisie. */

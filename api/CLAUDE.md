@@ -1020,7 +1020,14 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   een signaal, geen weigering: op acceptatie werkt het team onder één account.
 - **Een drager beoordelen met een grond**: `DragerWijziging.motivering` (kolom `regel_dragers.motivering`, in het
   revisiedetail en de audit).
-- **Compact lezen en schrijven** (B1, het patroon van `begrip_store.begripkort`): `?vorm=kort` op elke schrijfroute, op
+- **Een drager verversen** (`POST …/regels/{id}/dragers/{d}/verversen {verwachte_revisie, beoordeling: open|akkoord,
+  motivering}`, `ververs_drager`): veranderde de markering (verlengd, een andere klasse), dan wordt het bewijs de
+  markering van nu (`begrip_store.bewijzen`, dus 422 als ze verworpen of verdwenen is) en het oordeel opnieuw gegeven.
+  Opnieuw toevoegen kon niet: element, rol en geval zijn gelijk. Een dragende passage die niet actueel is, houdt de poort
+  tegen; een contextpassage is een signaal.
+- **Een tekstdeel van een uitkomst is hoogstens `MAX_TEKSTDEEL` (500) tekens**: in het schema (`maxLength`) en in een
+  melding die zegt hoe lang het deel is en wat je doet.
+- **Compact lezen en schrijven** (B1, het patroon van `begrip_store.begripkort`): `?vorm=kort` (of `stand`) op elke schrijfroute, op
   `GET …/regels/{id}` en op de lijst geeft `regel_store.kort` (id, revisie, status, `vervangen_door`, poort, signalen,
   de telling van de open punten; bij een drager ook die drager smal). `GET …/regels/{id}/dragers` geeft de dragers
   smal (`smalle_drager`, zonder ankers) en `GET …/regels/{id}/poort` de stand met de gaten. De standaard blijft de kaart.
@@ -1095,6 +1102,7 @@ komt uit de skill (`references/afleidingsregels.md`, *Wat open blijft*):
 - **De status volgt uit keuze en toetsen** (`status_van`): `open`, `gesignaleerd`, `gekozen`, of `getoetst` als ook elke
   toets is afgevinkt. De client zet hem nooit. Verdwijnt de gekozen lezing uit de lezingen, dan vervalt de keuze. Alleen
   `open` houdt een regel tegen; een gesignaleerd punt staat in de signalen van de regel.
+- **`GET …/open-punten?regel_id=`** is kort voor `aan=regel&aan_id=…` (ook de punten op een geval van die regel).
 - **Omhangen** (`POST …/{punt}/omhangen {verwachte_revisie, hangt_aan}`, A2): alleen waar het punt aan hangt, met een
   revisie en de auditregel `open-punt-omgehangen` (`toen`, `nu`). De rest van de inhoud en de keuze blijven staan. Een
   geval moet een label van zijn regel zijn (422 `geval_onbekend`). Het is een besluit van de jurist, niet van Lex.

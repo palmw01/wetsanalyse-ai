@@ -31,8 +31,8 @@ from sqlalchemy import delete, insert, select, update
 from . import begrip_store, db
 from .begrip_store import Resolver
 from .regel_contracts import (  # noqa: F401  (GRONDSLAG_KLASSEN: ook hier te lezen)
-    GRONDSLAG_KLASSEN, Afwijzing, DragerInvoer, DragerRol, DragersToevoegen, DragerWijziging, ParameterWaardeInvoer, RegelAanmaak,
-    RegelWijziging, VoorbeeldBeoordeling,
+    GRONDSLAG_KLASSEN, Afwijzing, DragerInvoer, DragerRol, DragersToevoegen, DragerVerversing, DragerWijziging,
+    ParameterWaardeInvoer, RegelAanmaak, RegelWijziging, VoorbeeldBeoordeling,
 )
 from .jas_regelgaten import gat
 from .regeltekst import genoemde_begrippen, regeltekst
@@ -150,6 +150,11 @@ def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], open_pu
         if zonder:
             redenen.append(f"Geval {zonder[0]} heeft nog geen beoordeelde, actuele grondslag." if len(zonder) == 1
                            else f"De gevallen {', '.join(zonder)} hebben nog geen beoordeelde, actuele grondslag.")
+    weg = [d for d in actief if d["rol"] in DRAGEND and d.get("actualiteit", "actueel") != "actueel"]
+    if weg:
+        redenen.append(_meervoud(len(weg), "1 dragende passage is gewijzigd, verworpen of verdwenen: ververs de drager "
+                                 "op de stand van nu, of haal hem weg.", "{n} dragende passages zijn gewijzigd, verworpen "
+                                 "of verdwenen: ververs de dragers op de stand van nu, of haal ze weg."))
     open_ = sum(d["beoordeling"] == "open" and d["rol"] in DRAGEND for d in actief)
     if open_:
         redenen.append(_meervoud(open_, "1 dragende formulering is nog niet beoordeeld.",
@@ -203,10 +208,11 @@ def signalen(inhoud: dict, dragers: list[dict], open_punten: list[dict] | None =
         uit.append(_meervoud(gesignaleerd, "1 punt van ontbrekend uitvoeringsbeleid is gesignaleerd: het beleid "
                              "ontbreekt.", "{n} punten van ontbrekend uitvoeringsbeleid zijn gesignaleerd: het beleid "
                              "ontbreekt."))
-    weg = sum(d["actualiteit"] != "actueel" and d["beoordeling"] != "afgewezen" for d in dragers)
+    weg = sum(d["actualiteit"] != "actueel" and d["beoordeling"] != "afgewezen" and d["rol"] not in DRAGEND
+              for d in dragers)
     if weg:
-        uit.append(_meervoud(weg, "1 dragende passage is gewijzigd, verworpen of verdwenen.",
-                             "{n} dragende passages zijn gewijzigd, verworpen of verdwenen."))
+        uit.append(_meervoud(weg, "1 contextpassage is gewijzigd, verworpen of verdwenen.",
+                             "{n} contextpassages zijn gewijzigd, verworpen of verdwenen."))
     labels = [g.get("label", "") for g in inhoud["gevallen"]]
     grond = [d for d in dragers if d["rol"] == "grondslag" and d["beoordeling"] != "afgewezen"]
     if len(labels) > 1 and grond:
@@ -801,6 +807,38 @@ async def wijzig_drager(werkgebied_id: str, regel_id: str, drager_id: str, w: Dr
                 await conn.execute(update(d).where(d.c.id == drager_id).values(
                     beoordeling=w.beoordeling.value, beoordeeld_door=actor, beoordeeld_op=db.utcnow(),
                     motivering=motivering))
+    return await haal(werkgebied_id, regel_id)
+
+
+async def ververs_drager(werkgebied: dict, regel_id: str, drager_id: str, w: DragerVerversing, actor: str,
+                         resolve: Resolver) -> dict:
+    """Een drager op de stand van nu (e2e-run 20 nov 2026): de markering veranderde (verlengd, andere klasse), en
+    opnieuw toevoegen werd overgeslagen omdat element, rol en geval gelijk zijn. Het bewijs wordt de markering van nu,
+    dus de actualiteit is weer `actueel`, en het oordeel volgt de verversing (`open`, of `akkoord` met motivering). Een
+    markering die verworpen of verdwenen is, ververs je niet: 422 van `bewijzen`."""
+    werkgebied_id, d = werkgebied["id"], db.regel_dragers
+    async with db.get_engine().connect() as conn:
+        rij = (await conn.execute(select(d).where(d.c.id == drager_id, d.c.regel_id == regel_id,
+                                                  d.c.werkgebied_id == werkgebied_id, d.c.verwijderd.is_(None)))).first()
+    if rij is None:
+        raise HTTPException(404, {"fout": "niet_gevonden", "melding": "Deze drager bestaat niet (meer)."})
+    bewijs = (await begrip_store.bewijzen(werkgebied, [rij.element_id], resolve))[rij.element_id]
+    motivering = w.motivering.strip()
+    detail: dict = {"drager_id": drager_id, "element_id": rij.element_id, "beoordeling": w.beoordeling,
+                    **({"motivering": motivering} if motivering else {})}
+    async with db.get_engine().begin() as conn:
+        async with _gewijzigd_in(conn, werkgebied_id, regel_id, w.verwachte_revisie, actor, "drager-ververst",
+                                 detail) as (_, stand):
+            nu = (await conn.execute(select(d).where(d.c.id == drager_id, d.c.verwijderd.is_(None)))).first()
+            if nu is None:
+                raise HTTPException(404, {"fout": "niet_gevonden", "melding": "Deze drager bestaat niet (meer)."})
+            if nu.bewijs == bewijs and nu.beoordeling == w.beoordeling:
+                stand["geen_wijziging"] = True
+            else:
+                beoordeeld = w.beoordeling == "akkoord"
+                await conn.execute(update(d).where(d.c.id == drager_id).values(
+                    bewijs=bewijs, beoordeling=w.beoordeling, motivering=motivering,
+                    beoordeeld_door=actor if beoordeeld else None, beoordeeld_op=db.utcnow() if beoordeeld else None))
     return await haal(werkgebied_id, regel_id)
 
 
