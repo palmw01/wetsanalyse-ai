@@ -227,6 +227,8 @@ def impliciet_knoop_id(partij_id: str) -> str:
 
 
 def _eindpunt(ep: dict) -> str:
+    if ep["soort"] == "bron":                    # een hele bepaling (M-1-1): haar knoop is de bepaling zelf
+        return ep["id"]
     return f"element:{ep['id']}" if ep["soort"] == "element" else impliciet_knoop_id(ep["id"])
 
 

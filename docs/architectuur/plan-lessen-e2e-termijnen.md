@@ -208,6 +208,11 @@ Beide punten bepalen hoe D1 en B5 eruitzien.
 
 **M-1-1 — Mag een relatie naar een bepaling wijzen die je niet annoteert?**
 
+- **Stand (20 nov 2026)**: besloten en gebouwd (ADR-011, *Een hele bepaling als eindpunt*).
+  - Een eindpunt `bron` mag bij `eindpunt_bron` in `relaties.json`, dus bij `uitzondering_op` en `toepassing`.
+  - De keten legt die twee naar het doel van de verwijzing uit de graaf, en legt `tijd` uit de nesting.
+  - De dekking noemt een contextbron waarnaar een beoordeelde relatie wijst (L-1-2).
+
 - **Wat**: zie L-1-2. ADR-011 kent alleen element-eindpunten en impliciete partijen.
 - **Oplossing**: een besluit in ADR-011. Een relatie `uitzondering_op` of `toepassing` mag een bron als eindpunt hebben.
   In `relaties.json` wordt dat een veld per type (`eindpunt_bron: true`). De skill zegt in `relaties.md` wanneer:

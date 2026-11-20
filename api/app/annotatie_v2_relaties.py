@@ -22,6 +22,7 @@ import json
 import uuid
 
 from fastapi import HTTPException
+from bronmodel.vindplaats import vindplaats
 from sqlalchemy import delete, insert, select, update
 
 from . import db
@@ -57,8 +58,19 @@ async def _alle(conn, tabel) -> dict[str, dict]:
     return {r["id"]: dict(r["inhoud"]) for r in (await conn.execute(select(tabel))).mappings().all()}
 
 
+def _bron_label(iri: str) -> str:
+    """"Artikel 4:93, lid 3" uit de bron-IRI (`bronmodel.vindplaats`), of de IRI zelf als de vorm er geen label geeft."""
+    v = vindplaats(iri)
+    return (v.label if v and v.label else "") or iri
+
+
 def _info(ep: dict, elementen: dict, impliciet: dict) -> dict | None:
-    """Wat een eindpunt nu is: klasse, subtype, laag, een korte tekst en de stand. None als het niet (meer) bestaat."""
+    """Wat een eindpunt nu is: klasse, subtype, laag, een korte tekst en de stand. None als het niet (meer) bestaat.
+    Een bron (M-1-1) is altijd actueel en heeft geen laag en geen eigen stand: haar tekst hoort bij de graaf, niet bij
+    een annotatie, en de pseudoklasse `jas_relaties.BRON` laat de catalogus beslissen welke typen haar mogen."""
+    if ep["soort"] == "bron":
+        return {"klasse": jas_relaties.BRON, "subtype": "", "laag_id": "", "tekst": _bron_label(ep["id"]),
+                "actueel": True, "bron": True, "stand": ""}
     if ep["soort"] == "element":
         e = elementen.get(ep["id"])
         if e is None:
@@ -123,6 +135,9 @@ async def leg(req: RelatieInvoer, actor: str) -> dict:
                                       "melding": f"Plek {req.volgorde} is bij dit eindpunt al bezet."})
         layers = await _lagen(conn)
         drager = info_van if jas_relaties.drager_kant(req.type) == "van" else info_naar
+        if drager.get("bron"):
+            raise HTTPException(422, {"fout": "bron_draagt_niet", "melding": "Een hele bepaling draagt geen relatie: "
+                                      "de drager is een markering."})
         layer = await _dragerlaag(conn, layers, drager["laag_id"], req.verwachte_revisies)
         relatie = {"id": rid, "type": req.type, "van": van, "naar": naar, "volgorde": req.volgorde,
                    "toelichting": req.toelichting, "herkomst": "mens", "aangemaakt_door": actor,
@@ -151,14 +166,16 @@ def _los_op(r: RelatieVoorstel, per_anker: dict[tuple, list[dict]], elementen: d
         return "geen_volgorde"
     kanten = []
     for kant, ankers in (("van", r.van_ankers), ("naar", r.naar_ankers)):
+        if kant == "naar" and r.naar_bron:
+            kanten.append([{"soort": "bron", "id": r.naar_bron}])
+            continue
         kandidaten = per_anker.get(_ankersleutel([a.model_dump() for a in ankers]), [])
         if not kandidaten:
             return f"eindpunt_onbekend:{kant}"
-        kanten.append(kandidaten)
+        kanten.append([{"soort": "element", "id": k["id"]} for k in kandidaten])
     paren = []
-    for a in kanten[0]:
-        for b in kanten[1]:
-            van, naar = {"soort": "element", "id": a["id"]}, {"soort": "element", "id": b["id"]}
+    for van in kanten[0]:
+        for naar in kanten[1]:
             info_van, info_naar = _info(van, elementen, impliciet), _info(naar, elementen, impliciet)
             if van != naar and info_van and info_naar and jas_relaties.toegestaan(
                     r.type, info_van["klasse"], info_naar["klasse"], info_van["subtype"], info_naar["subtype"]):

@@ -205,7 +205,7 @@ class Span(_Deel):
 class RelatieEind(_Deel):
     """Eén kant van een relatie tussen markeringen (ADR-011), zoals het eindpunt nu is."""
 
-    soort: Literal["element", "impliciet"] = "element"
+    soort: Literal["element", "impliciet", "bron"] = "element"
     nr: int = 0                                      # het nummer van de markering in dezelfde bepaling; 0 als ze elders staat
     klasse: str = ""
     tekst: str = ""                                  # de tekst van de markering, of het label van een impliciete partij
@@ -882,6 +882,8 @@ def _eind(e: RelatieEind) -> str:
     """Een kant van een relatie: het nummer in deze bepaling, de tekst letterlijk, de klasse en waar ze staat als dat elders is."""
     if not e.bestaat:
         return "een markering die niet meer bestaat"
+    if e.soort == "bron":
+        return f"{e.tekst} (een hele bepaling" + (f", {e.elders}" if e.elders else "") + ")"
     nummer = f"{e.nr} · " if e.nr else ""
     soort = ", impliciete partij" if e.soort == "impliciet" else ""
     waar = f", in {e.elders}" if e.elders else ""

@@ -224,6 +224,8 @@ def relatie_diagnose(invoer: dict[str, tuple[list[dict], dict, dict]]) -> dict[s
     for r in relaties:
         for kant in ("van", "naar"):
             ep = r[kant]
+            if ep["soort"] == "bron":            # een hele bepaling (M-1-1): hangt aan de graaf, niet aan een laag
+                continue
             if ep["id"] not in (elementen if ep["soort"] == "element" else impliciet):
                 hangend.append({"relatie": r["id"], "kant": kant, **ep})
     kardinaliteit = []

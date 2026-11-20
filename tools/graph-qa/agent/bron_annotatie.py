@@ -157,12 +157,17 @@ def lokale_relaties(relaties: list[dict[str, Any]], elementen: list[dict[str, An
     uit = []
     for r in relaties:
         van, naar = list(r.get("van_ankers") or []), list(r.get("naar_ankers") or [])
-        if not van or not naar or _ankersleutel(van) not in uitgestuurd or _ankersleutel(naar) not in uitgestuurd:
+        bron = r.get("naar_bron") or None
+        if not van or _ankersleutel(van) not in uitgestuurd:
+            continue
+        if bron is None and (not naar or _ankersleutel(naar) not in uitgestuurd):
             continue
         valideer_ankers(snapshot, van)
-        valideer_ankers(snapshot, naar)
-        uit.append({"van_ankers": van, "naar_ankers": naar, "type": r["type"], "volgorde": r.get("volgorde"),
-                    "spoor": dict(r.get("spoor") or {})})
+        if naar:
+            valideer_ankers(snapshot, naar)
+        # Een hele bepaling als eindpunt (M-1-1): geen ankers, wel de bron-IRI die de verwijzing aanwijst.
+        uit.append({"van_ankers": van, "naar_ankers": [] if bron else naar, "naar_bron": bron, "type": r["type"],
+                    "volgorde": r.get("volgorde"), "spoor": dict(r.get("spoor") or {})})
     return uit
 
 

@@ -105,6 +105,22 @@ en beoordeeld zoals markeringen, en de graaf maakt er het 2c-diagram van. Geen l
 - **Hergebruik boven kopie.** Binnen een werkgebied is één impliciete partij genoeg, ook als ze in elk diagram
   terugkomt. In activiteit 3 kan ze een begrip worden.
 
+### Een hele bepaling als eindpunt (M-1-1, 20 nov 2026)
+
+- **Een eindpunt van de soort `bron`** is een bron-IRI uit de graaf (`urn:bwb:BWBR…`), aan de kant naar. Het mag alleen
+  bij een type met `eindpunt_bron` in de catalogus: `uitzondering_op` en `toepassing`. Daar verwijst de wet zelf naar
+  een hele bepaling ("In afwijking van artikel 4:93 Awb"), en die hoeft niet geannoteerd te zijn. De lessen van
+  Termijnen (L-1-2) lieten zien dat zo'n doel anders geen eindpunt kon zijn: het stond als context en had geen elementen.
+- **De catalogus beslist**, met een pseudoklasse `Bron` in `toegestaan` (api en werkplek, gegenereerd). Een bron is
+  nooit de drager, en heeft geen laag en geen eigen stand: haar tekst hoort bij de graaf, en een relatie die naar haar
+  wijst, verandert niet doordat een annotatie verandert.
+- **De keten stelt ze voor** (`jas_pipeline/relaties.py`, proefvlag `relatieVoorstellen`): "in afwijking van
+  <verwijzing>" en de toepassingskeuze, met het doel uit de graaf (`bwb:heeftVerwijzing`, het anker en `bwb:naar`).
+  Daarbij legt de keten de `tijd` van een uitspraak uit de nesting.
+- **De projectie** zet de bronnode zelf als object van de n-aire relatie.
+- **De dekking** van een werkgebied noemt een contextbron waarnaar een beoordeelde relatie wijst
+  (`contextsignalen`): misschien wordt het een bron om te analyseren.
+
 ### Projectie (RDF)
 
 - **Een n-aire knoop `jas:Relatie`** in de graph van de dragerlaag, met `jas:van`, `jas:naar`, `jas:relatietype`,

@@ -226,7 +226,8 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
               llm: Any, model: str, settings: Any, lid: str = "", vindplaats: str = "",
               hergebruikte_nodes: set[str] | frozenset[str] = frozenset(),
               context: BronContext | None = None,
-              melding: Callable[[str, str, int], None] | None = None) -> Uitkomst:
+              melding: Callable[[str, str, int], None] | None = None,
+              verwijzingen: dict[str, list[dict[str, str]]] | None = None) -> Uitkomst:
     """De hele keten. `melding(fase, samenvatting, ms)` wordt per afgeronde fase aangeroepen, zodat de
     beurt zich per stap meldt in plaats van één regel na afloop."""
     fasen = _Fasen(melding)
@@ -353,7 +354,8 @@ def analyseer(*, snapshot: dict[str, Any], corpus_segmenten: list[dict[str, Any]
     relaties: list[dict[str, Any]] = []
     if getattr(settings, "relatie_voorstellen", False):
         # Proefvlag (ADR-011): zonder vlag blijft de uitkomst bitgelijk – geen veld, geen fase, geen meting.
-        relaties = relatieregels.stel_voor(voorstellen, fusie, {t.bron_iri: t.analyse for t in teksten})
+        relaties = relatieregels.stel_voor(voorstellen, fusie, {t.bron_iri: t.analyse for t in teksten},
+                                           verwijzingen=verwijzingen, teksten={t.bron_iri: t.tekst for t in teksten})
         meting["relaties"] = relatieregels.telling(relaties)
         fasen.klaar("Relaties", f"{len(relaties)} relatie(s) voorgesteld")
     meting["fasen"] = fasen.lijst

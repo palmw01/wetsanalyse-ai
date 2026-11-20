@@ -135,6 +135,8 @@ RELP = Namespace("urn:jas-ns:rel:")
 
 
 def _eindpunt_iri(ep: dict) -> URIRef:
+    if ep["soort"] == "bron":                    # een hele bepaling (M-1-1): de bronnode van de graaf zelf, als object
+        return URIRef(ep["id"])
     return element_iri(ep["id"]) if ep["soort"] == "element" else impliciet_iri(ep["id"])
 
 

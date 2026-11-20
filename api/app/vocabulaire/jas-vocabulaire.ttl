@@ -1022,10 +1022,25 @@
     skos:prefLabel "Tegenpartij via het voorzetsel"@nl ;
     jas:codeWaarde "REL_ROL_VOORZETSEL" .
 
+<urn:jas-ns:relatieregel:REL_TIJD_NESTING> a jas:Relatieregel ;
+    skos:definition "De buitenste tijdsaanduiding binnen een rechtsbetrekking, rechtsfeit of afleidingsregel is daarvan de tijd, tenzij ze er al invoer of operand is."@nl ;
+    skos:prefLabel "Tijdsaanduiding bij de uitspraak"@nl ;
+    jas:codeWaarde "REL_TIJD_NESTING" .
+
+<urn:jas-ns:relatieregel:REL_TOEPASSING_VERWIJZING> a jas:Relatieregel ;
+    skos:definition "'Vindt … toepassing' met een verwijzing: de afleidingsregel kiest de bepaling waarnaar verwezen wordt, ook als die zelf niet geannoteerd is."@nl ;
+    skos:prefLabel "Toepassing van een bepaling"@nl ;
+    jas:codeWaarde "REL_TOEPASSING_VERWIJZING" .
+
 <urn:jas-ns:relatieregel:REL_UITVOER_FUNCTIE> a jas:Relatieregel ;
     skos:definition "De afleidingsregel noemt wat er uitkomt ('zoveel termijnen als …'); de enige markering op die plek binnen de regel is haar uitvoer."@nl ;
     skos:prefLabel "Uitkomst van de berekening"@nl ;
     jas:codeWaarde "REL_UITVOER_FUNCTIE" .
+
+<urn:jas-ns:relatieregel:REL_UITZONDERING_VERWIJZING> a jas:Relatieregel ;
+    skos:definition "'In afwijking van' gevolgd door een verwijzing: de afleidingsregel, rechtsbetrekking of voorwaarde om die woorden maakt een uitzondering op de bepaling waarnaar verwezen wordt, ook als die zelf niet geannoteerd is."@nl ;
+    skos:prefLabel "Uitzondering op een bepaling"@nl ;
+    jas:codeWaarde "REL_UITZONDERING_VERWIJZING" .
 
 <urn:jas-ns:relatieregel:REL_VOORWAARDE_AANHECHTING> a jas:Relatieregel ;
     skos:definition "Een voorwaardelijke bijzin ('indien', 'als', 'tenzij' …) hangt in de zinsontleding aan het hoofdpredicaat; de rechtsbetrekking of afleidingsregel die dat predicaat draagt, geldt onder die voorwaarde. Dragen een rechtsbetrekking en een afleidingsregel het samen, dan allebei."@nl ;
@@ -1549,5 +1564,5 @@
     dcterms:source "docs/wetsanalyse/wetsanalyse-rijk/H2-JAS.md" ;
     skos:prefLabel "Juridisch Analyseschema"@nl ;
     jas:jasVersie "1.0.10" ;
-    jas:vocabulaireVersie "0242bc003a01" .
+    jas:vocabulaireVersie "b92ecd1bd6c1" .
 

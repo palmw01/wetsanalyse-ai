@@ -43,6 +43,11 @@ centrale klassen: de rechtsbetrekking, het rechtsfeit, de afleidingsregel en de 
 6. **Tekstuele relaties alleen waar de tekst ze uitdrukt.** `uitzondering_op` ("in afwijking van", "met
    uitzondering van") en `toepassing` ("is van toepassing", "vindt toepassing") leg je alleen als die
    woorden er staan. Ze zijn geen regelstructuur.
+7. **Een hele bepaling als eindpunt, alleen waar de wet naar de hele bepaling verwijst.** Bij `uitzondering_op` en
+   `toepassing` mag de kant naar een bepaling zijn in plaats van een markering ("In afwijking van artikel 4:93 Awb",
+   "vindt het eerste lid toepassing"): de verwijzing wijst de bepaling aan, ook als die niet geannoteerd is of als
+   context in het werkgebied staat. Een andere relatie wijst altijd een markering aan; een bepaling draagt geen relatie.
+   Staat zo'n bepaling als context, dan is ze een kandidaat om te analyseren: de jurist beslist.
 
 ## De partij die de tekst niet noemt
 
