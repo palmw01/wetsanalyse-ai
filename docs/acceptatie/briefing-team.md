@@ -151,6 +151,13 @@ antwoorden van de api waren te groot (zie het verslag, B-1). Daarvoor bestaan nu
   `vanaf`.
 - **Selecteer de leden die je nodig hebt.** Een artikel in de selectie annoteert al zijn leden.
 
+## Routes
+
+De `bff`-routes die het team het meest gebruikt, met voorbeeldbody's, staan in
+[`tools/wetsanalyse-acceptatie-mcp/README.md`](../../tools/wetsanalyse-acceptatie-mcp/README.md) §*Routes voor `bff`*.
+Lees die tabel vóór je een pad raadt. Schrijfroutes kennen `?vorm=stand` of `kort`: vraag die vorm, anders komt de hele
+lijst terug. Een onbekend pad geeft een 404 als JSON.
+
 ## Omwegen
 
 Je gebruikt wat een gebruiker kan: een vraagkaart, een suggestie, een bevestiging, of een `bff`-route die een scherm ook

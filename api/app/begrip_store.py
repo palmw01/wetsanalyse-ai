@@ -69,6 +69,28 @@ def in_werkgebied(werkgebied_id: str):
                b.c.id.in_(select(g.c.begrip_id).where(g.c.werkgebied_id == werkgebied_id, g.c.verwijderd.is_(None))))
 
 
+async def volledig_begrip_id(werkgebied_id: str, begrip_id: str) -> str:
+    """Het id zelf, of het enige begrip in beeld bij dit werkgebied waarvan het id met dit voorvoegsel begint – dezelfde
+    regel als bij elementen (`annotatie_v2_store.volledig_element_id`; Termijnen e2e, 20 nov 2026: een agent noemde
+    begrippen met hun eerste 8 tekens). Minstens `MIN_VOORVOEGSEL` tekens uit een id (hex en streepjes); twee of meer:
+    409 met de kandidaten, nooit een gok. Geen treffer: het gewone 404 van `haal`."""
+    from .annotatie_v2_store import MIN_VOORVOEGSEL
+
+    b = db.begrippen
+    if len(begrip_id) < MIN_VOORVOEGSEL or not re.fullmatch(r"[0-9a-fA-F-]+", begrip_id):
+        return begrip_id
+    async with db.get_engine().connect() as conn:
+        ids = list((await conn.execute(select(b.c.id).where(in_werkgebied(werkgebied_id),
+                                                            b.c.id.startswith(begrip_id, autoescape=True))
+                                       .order_by(b.c.id).limit(11))).scalars())
+    if begrip_id in ids or len(ids) == 0:
+        return begrip_id
+    if len(ids) > 1:
+        raise HTTPException(409, {"fout": "voorvoegsel_niet_uniek", "kandidaten": ids[:10],
+                                  "melding": f"Meer begrippen beginnen met {begrip_id}; geef meer tekens."})
+    return ids[0]
+
+
 def begrip_iri(begrip_id: str) -> str:
     return f"urn:wa:begrip:{begrip_id}"
 
