@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from . import open_punt_store as store
 from .auth import require_client
-from .open_punt_contracts import Besluit, OpenPuntAanmaak, OpenPuntWijziging, Soort, Status
+from .open_punt_contracts import Besluit, Omhangen, OpenPuntAanmaak, OpenPuntWijziging, Soort, Status
 from .routers.auth import actieve_userid
 
 router = APIRouter(prefix="/werkgebieden/{werkgebied_id}", tags=["open punten"],
@@ -52,6 +52,12 @@ async def patch_punt(werkgebied_id: str, punt_id: str, req: OpenPuntWijziging, a
 @router.post("/open-punten/{punt_id}/besluit")
 async def post_besluit(werkgebied_id: str, punt_id: str, req: Besluit, actor: str = Depends(actieve_userid)):
     return await store.besluit(werkgebied_id, punt_id, req, actor)
+
+
+@router.post("/open-punten/{punt_id}/omhangen")
+async def post_omhangen(werkgebied_id: str, punt_id: str, req: Omhangen, actor: str = Depends(actieve_userid)):
+    """Alleen waar het punt aan hangt (A2): na een vervanging naar de opvolger, zonder de rest van de inhoud."""
+    return await store.omhang(werkgebied_id, punt_id, req, actor)
 
 
 @router.delete("/open-punten/{punt_id}")

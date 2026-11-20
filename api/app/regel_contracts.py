@@ -14,6 +14,12 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 _ID = r"^[A-Za-z0-9._:-]{1,64}$"
 
+#: De klassen die zelf een grondslag van een regel zijn (ADR-018 §2). Een andere klasse mag alleen als de passage het
+#: uitvoerbegrip aanduidt. Een begrip dat een regel afleidt zonder eigen formulering (een tussenresultaat, of het
+#: regelbegrip van een beslisregel op een Rechtsbetrekking) rust met de rol `afgeleid` op een markering van deze klassen
+#: (`begrip_store.toets_afgeleid`, A3 van de e2e-run van 20 nov 2026).
+GRONDSLAG_KLASSEN = ("Afleidingsregel", "Rechtsbetrekking", "Tijdsaanduiding")
+
 
 class RegelSoort(str, Enum):
     rekenregel = "rekenregel"          # een hoogte, aantal, duur of datum
@@ -100,6 +106,9 @@ class Invoer(BaseModel):
 
 
 class RegelVoorbeeld(BaseModel):
+    """Een voorbeeld met invoer en uitkomst (methode 8). Het oordeel, wie het voorbeeld maakte en wie het beoordeelde,
+    zet de server (`regel_store.voorbeelden_na`): een nieuw of gewijzigd voorbeeld is altijd `open`, en een oordeel komt
+    alleen via `…/voorbeelden/{nr}/oordeel` (B4: maken en beoordelen zijn twee handelingen)."""
     model_config = ConfigDict(extra="ignore")
 
     geval: str = Field(default="", max_length=80)         # het label; leeg bij een regel met één geval
@@ -107,6 +116,9 @@ class RegelVoorbeeld(BaseModel):
     uitkomst: str = Field(min_length=1, max_length=2000)
     oordeel: VoorbeeldOordeel = VoorbeeldOordeel.open
     toelichting: str = Field(default="", max_length=2000)
+    door: str = Field(default="", max_length=64)
+    beoordeeld_door: str = Field(default="", max_length=64)
+    beoordeeld_op: str = Field(default="", max_length=40)
 
 
 class RegelInhoud(BaseModel):
@@ -149,14 +161,26 @@ class DragerInvoer(BaseModel):
     geval: str = Field(default="", max_length=80)
 
 
+#: Wie een regel of open punt maakte: Lex, de import, of de discipline van de mens die het vastlegde (methode 10: de
+#: multidisciplinaire review). `jurist` blijft de standaard; een regelspecialist heette anders ook "jurist". De kolom
+#: is 16 tekens: een langere naam past er op Postgres niet in.
+Herkomst = Literal["lex", "import", "jurist", "regelspecialist"]
+
+
 class RegelAanmaak(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     inhoud: RegelInhoud
     # De grondslag is verplicht: een regel zonder grondslag in de tekst bestaat niet (ADR-018 §2, #1760).
     dragers: list[DragerInvoer] = Field(min_length=1, max_length=60)
-    herkomst: Literal["lex", "jurist", "import"] = "jurist"
+    herkomst: Herkomst = "jurist"
 
 
 class Revisie(BaseModel):
+    """De basis van elke schrijfroute op een regel. Een onbekend veld is een 422: een besluit dat stil niets doet,
+    bestaat niet (B5)."""
+    model_config = ConfigDict(extra="forbid")
+
     verwachte_revisie: int = Field(ge=1)
 
 
@@ -170,6 +194,21 @@ class DragersToevoegen(Revisie):
 
 class DragerWijziging(Revisie):
     beoordeling: Beoordeling
+    # De grond van het oordeel ("letterlijk op de plek van het anker, getoetst aan de toestand van 1 okt 2026").
+    motivering: str = Field(default="", max_length=2000)
+
+
+class VoorbeeldBeoordeling(Revisie):
+    """Het oordeel over één voorbeeld. `open` zet het oordeel terug."""
+    oordeel: VoorbeeldOordeel
+    toelichting: str | None = Field(default=None, max_length=2000)
+
+
+class Afwijzing(Revisie):
+    reden: str = Field(default="", max_length=2000)
+    # De regel die deze vervangt (bijvoorbeeld drie regels samengevoegd tot één beslistabel): de status wordt dan
+    # `vervangen`, met `vervangen_door`, en de opvolger draagt `opvolger_van` (A2).
+    opvolger_id: str = Field(default="", max_length=64)
 
 
 class Accordering(Revisie):
