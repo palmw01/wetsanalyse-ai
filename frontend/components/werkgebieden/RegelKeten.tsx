@@ -41,7 +41,9 @@ export function RegelKeten({ werkgebiedId, naam, onOpen, opname, zonderExport = 
     const b = keten ? buren(keten, r.id) : null;
     const sub = [REGEL_SOORT_LABEL[r.inhoud.soort], aantal(r.inhoud.gevallen.length, "geval", "gevallen"),
       b?.volgtOp.length ? `volgt op ${aantal(b.volgtOp.length, "regel", "regels")}` : "",
-      r.inhoud.brontype === "beleid" ? "beleidsregel" : ""].filter(Boolean).join(" · ");
+      r.inhoud.brontype === "beleid" ? "beleidsregel" : "",
+      r.vervangen_door ? `vervangen door ${regels.find((x) => x.id === r.vervangen_door)?.naam || r.vervangen_door}` : "",
+    ].filter(Boolean).join(" · ");
     const status = <StatusLabel toon={REGEL_STATUS_TOON[r.status]}>{REGEL_STATUS_LABEL[r.status]}</StatusLabel>;
     return (
       <ObjectRij key={r.id} data-regel-rij={r.id} href={regelPad(werkgebiedId, r.id)} onKies={onOpen && (() => onOpen(r))}

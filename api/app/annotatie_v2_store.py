@@ -33,6 +33,40 @@ def nodes_van(snapshot: dict) -> dict[str, dict]:
     return nodes if isinstance(nodes, dict) else {n["bron_iri"]: n for n in nodes}
 
 
+#: De velden van een bronnode die een lezer nodig heeft om naar de wettekst terug te gaan (de bronreferentie).
+BRONVELDEN = ("bron_iri", "jci", "url", "bron_url", "vindplaats", "label", "bwb_id")
+#: Een snapshot-id is de hash van zijn inhoud, dus wat erin staat verandert nooit: de bronreferenties per snapshot
+#: mogen in het proces blijven. Alleen de kleine velden van `BRONVELDEN`, niet de tekst.
+_BRONREFERENTIES: dict[str, dict[str, dict]] = {}
+_MAX_SNAPSHOTS = 64
+
+
+def bronreferentie(node: dict | None) -> dict:
+    """De weg van een bronnode naar de wettekst: de jci waar de BWB er een toekent, anders de werkende vindplaats
+    (`bron_url`, het anker op de toestandspagina). Een jci verzinnen doen we niet: een afgeleide jci ziet er geldig uit
+    en wijst soms naar de verkeerde tekst (`tools/bwb-import/app/rdf_vocab.py`, `bron_url`). `soort` zegt welke weg er
+    is: `jci`, `anker` of `geen`."""
+    n = node or {}
+    uit = {k: n.get(k, "") or "" for k in BRONVELDEN}
+    uit["soort"] = "jci" if uit["jci"] else ("anker" if uit["bron_url"] or uit["url"] else "geen")
+    return uit
+
+
+async def bronreferenties(conn, paren: set[tuple[str, str]]) -> dict[tuple[str, str], dict]:
+    """De bronreferentie per (snapshot-id, bron-IRI), uit de vastgelegde snapshots in Postgres (niet de graaf): zo
+    noemt een drager de bron zoals die gold toen hij werd vastgelegd. Een paar zonder snapshot geeft soort `geen`."""
+    nodig = {s for s, _ in paren if s and s not in _BRONREFERENTIES}
+    if nodig:
+        s = db.annotatie_v2_snapshots
+        for r in (await conn.execute(select(s).where(s.c.id.in_(sorted(nodig))))).all():
+            if len(_BRONREFERENTIES) >= _MAX_SNAPSHOTS:
+                _BRONREFERENTIES.pop(next(iter(_BRONREFERENTIES)))
+            _BRONREFERENTIES[r.id] = {iri: {k: n.get(k, "") for k in BRONVELDEN}
+                                      for iri, n in nodes_van(r.inhoud).items()}
+    return {(s, iri): bronreferentie((_BRONREFERENTIES.get(s) or {}).get(iri) or {"bron_iri": iri})
+            for s, iri in paren}
+
+
 def keten(nodes: dict, iri: str) -> list[str]:
     chain: list[str] = []
     while iri:

@@ -1024,6 +1024,15 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   een signaal, geen weigering: op acceptatie werkt het team onder één account.
 - **Een drager beoordelen met een grond**: `DragerWijziging.motivering` (kolom `regel_dragers.motivering`, in het
   revisiedetail en de audit).
+- **Een drager noemt zijn bron** (`bron`, ook in `smalle_drager`): de bronnode van de markering met de weg naar de
+  wettekst, uit de vastgelegde snapshot in Postgres (`annotatie_v2_store.bronreferenties`, per snapshot-id in het proces
+  bewaard: een snapshot verandert nooit). `soort` is `jci` (de BWB kent er een toe), `anker` (alleen een vindplaats,
+  zoals een Leidraad-divisie) of `geen`. Een jci wordt nooit afgeleid (`bronreferentie`, zie `bwb-import` `bron_url`).
+- **Een voorwaarde kan naar een geval van een andere regel verwijzen** (`Voorwaarde.geval_van: {regel_id, geval}`):
+  een geldende regel in het werkgebied met dat geval (422 `verwijzing_onbekend`; bij meer gevallen is het geval
+  verplicht). De keten maakt er een pijl van (`via: "voorwaarde"`, of het geval bij de pijl via de invoer, in
+  `gevallen`). Een voorwaarde zonder verwijzing bewaart geen `geval_van: null` (`inhoud_van`), zodat een gelijke PATCH
+  van een oudere regel geen revisie geeft.
 - **Een drager verversen** (`POST …/regels/{id}/dragers/{d}/verversen {verwachte_revisie, beoordeling: open|akkoord,
   motivering}`, `ververs_drager`): veranderde de markering (verlengd, een andere klasse), dan wordt het bewijs de
   markering van nu (`begrip_store.bewijzen`, dus 422 als ze verworpen of verdwenen is) en het oordeel opnieuw gegeven.
@@ -1059,7 +1068,9 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
     die alleen aan de rechtsbetrekking hangt, "in afwijking van" zonder `uitzondering_op`);
   - **regel**: `regel_store.regel_gaten`, als `gaten` op elke regel. Het gaat om de uitvoerformulering zonder begrip, een
     regelbegrip zonder "bepalen", een parameter zonder tijdvak of met een waarde in de definitie, een contextbron, een
-    operator in de grondslag zonder begrip, en een impliciete invoer. De gegevens leest `_gatgegevens` in een paar
+    operator in de grondslag zonder begrip, een impliciete invoer, en wat op niets rust (`dragen_gaten`): een voorwaarde
+    zonder markering en zonder verwijzing, een verwijzing die niet meer geldt of waarvan de uitvoer geen invoer is, en
+    een begrip in een uitkomst dat geen invoer is. De gegevens leest `_gatgegevens` in een paar
     queries voor alle regels samen; de operatoren alleen uit de laag van de grondslag;
   - **keten**: `regel_store.keten` geeft `zelfde_uitvoer` en `regelbegrip_meer_uitvoeren` (L-3a-1), met `code`.
   Een gat is een signaal: `accorderen` en `signalen` veranderen er niet door.

@@ -1,0 +1,102 @@
+"""Van een afleidingsregel terug naar de wettekst (rapport *regels-herleidbaarheid*, 20 nov 2026): de bronreferentie
+per drager, een voorwaarde die naar een geval van een andere regel verwijst, en de gaten voor wat op niets rust."""
+from __future__ import annotations
+
+from app import annotatie_v2_store as store, regel_store
+from test_regels import _begrip, _inhoud, _opzet, _url
+from gedeelde_bron import ONE, client, database, graaf  # noqa: F401
+
+
+def test_de_bronreferentie_verzint_geen_jci():
+    assert store.bronreferentie({"bron_iri": "x", "jci": "jci1.3:c:B&artikel=9"})["soort"] == "jci"
+    # Een Leidraad-divisie zonder jci heeft een werkend anker, geen afgeleide jci.
+    ref = store.bronreferentie({"bron_iri": "x", "bron_url": "https://example.test/B/2026-07-01#d9_d9.1"})
+    assert (ref["soort"], ref["jci"]) == ("anker", "")
+    assert store.bronreferentie(None)["soort"] == "geen"
+
+
+async def _regel(client, wg, b, ids, inhoud=None, dragers=None):
+    r = await client.post(_url(wg), json={"inhoud": inhoud or _inhoud(b),
+                                          "dragers": dragers or [{"element_id": ids["ar"], "rol": "grondslag"}]})
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+async def test_een_drager_noemt_zijn_bronnode(client):
+    wg, ids, b = await _opzet(client)
+    regel = await _regel(client, wg, b, ids)
+    d = regel["dragers"][0]
+    assert d["bron"]["bron_iri"] == ONE == d["bewijs"]["eigenaar_iri"]
+    assert d["bron"]["label"] == "Lid 1" and d["bron"]["soort"] in ("jci", "anker", "geen")
+    smal = (await client.get(_url(wg, regel["id"], "dragers"))).json()["dragers"][0]
+    assert smal["bron"] == d["bron"]
+
+
+async def test_een_voorwaarde_verwijst_naar_een_geval_van_een_andere_regel(client):
+    wg, ids, b = await _opzet(client)
+    onder = await _regel(client, wg, b, ids)          # leidt `termijnbedrag` af
+    boven_uit = await _begrip(client, wg, "uitbetaling", ids["ar"], rol="afgeleid")
+    boven_regel = await _begrip(client, wg, "bepalen van de uitbetaling", ids["ar"], rol="afgeleid")
+
+    def boven(geval_van, invoer=True):
+        return {"soort": "beslisregel", "regelbegrip_id": boven_regel["id"], "uitvoer_begrip_id": boven_uit["id"],
+                "invoer": [{"begrip_id": b["uit"]["id"]}] if invoer else [],
+                "gevallen": [{"voorwaarden": {"delen": [{"tekst": "het termijnbedrag is bepaald", "geval_van": geval_van}]},
+                              "uitkomst": [{"soort": "tekst", "tekst": "in één keer"}]}]}
+
+    dragers = [{"element_id": ids["ar"], "rol": "grondslag"}]
+    # Een onbekende regel, een geval dat de regel niet heeft: 422.
+    r = await client.post(_url(wg), json={"inhoud": boven({"regel_id": "bestaat-niet"}), "dragers": dragers})
+    assert r.status_code == 422 and r.json()["detail"]["fout"] == "verwijzing_onbekend"
+    r = await client.post(_url(wg), json={"inhoud": boven({"regel_id": onder["id"], "geval": "lid 9"}), "dragers": dragers})
+    assert r.status_code == 422 and r.json()["detail"]["fout"] == "verwijzing_onbekend"
+
+    # Zonder de uitvoer als invoer is het een gat; de keten krijgt de pijl wel, met het geval.
+    regel = await _regel(client, wg, b, ids, boven({"regel_id": onder["id"]}, invoer=False), dragers)
+    assert "verwijzing_zonder_invoer" in {g["code"] for g in regel["gaten"]}
+    assert "voorwaarde_zonder_markering" not in {g["code"] for g in regel["gaten"]}
+    keten = (await client.get(_url(wg, "hierarchie"))).json()
+    pijl = next(p for p in keten["pijlen"] if p["naar"] == regel["id"])
+    assert (pijl["van"], pijl["via"], pijl["gevallen"]) == (onder["id"], "voorwaarde", [{"van_geval": "", "in_geval": ""}])
+    assert keten["volgorde"].index(onder["id"]) < keten["volgorde"].index(regel["id"])
+
+    # Met de uitvoer als invoer: één pijl via de invoer, met het geval erbij, en geen gat.
+    regel = (await client.patch(_url(wg, regel["id"]), json={"verwachte_revisie": regel["revisie"],
+                                                             "inhoud": boven({"regel_id": onder["id"]})})).json()
+    assert "verwijzing_zonder_invoer" not in {g["code"] for g in regel["gaten"]}
+    pijlen = [p for p in (await client.get(_url(wg, "hierarchie"))).json()["pijlen"] if p["naar"] == regel["id"]]
+    assert len(pijlen) == 1 and pijlen[0]["via"] == "invoer" and pijlen[0]["gevallen"]
+
+    # Wordt de onderliggende regel afgewezen, dan is de verwijzing een gat, geen fout.
+    await client.post(_url(wg, onder["id"], "afwijzen"), json={"verwachte_revisie": onder["revisie"], "reden": "Fout"})
+    regel = (await client.get(_url(wg, regel["id"]))).json()
+    assert "verwijzing_niet_geldig" in {g["code"] for g in regel["gaten"]}
+
+
+async def test_wat_op_niets_rust_is_een_gat(client):
+    wg, ids, b = await _opzet(client)
+    inhoud = _inhoud(b)
+    inhoud["gevallen"][0]["voorwaarden"] = {"delen": [{"tekst": "het bedrag is positief"}]}
+    inhoud["gevallen"][0]["uitkomst"].append({"soort": "begrip", "begrip_id": b["regel"]["id"]})
+    regel = await _regel(client, wg, b, ids, inhoud)
+    codes = [g["code"] for g in regel["gaten"]]
+    assert "voorwaarde_zonder_markering" in codes and "uitkomstbegrip_geen_invoer" in codes
+    # Een gat blokkeert niet, en een voorwaarde zonder verwijzing draagt geen `geval_van: null`.
+    assert "geval_van" not in regel["inhoud"]["gevallen"][0]["voorwaarden"]["delen"][0]
+
+
+async def test_een_gelijke_patch_van_een_oude_regel_geeft_geen_revisie(client):
+    wg, ids, b = await _opzet(client)
+    inhoud = _inhoud(b)
+    inhoud["gevallen"][0]["voorwaarden"] = {"delen": [{"tekst": "het bedrag is positief", "element_ids": [ids["var"]]}]}
+    regel = await _regel(client, wg, b, ids, inhoud)
+    r = await client.patch(_url(wg, regel["id"]), json={"verwachte_revisie": regel["revisie"], "inhoud": regel["inhoud"]})
+    assert r.status_code == 200 and r.json()["revisie"] == regel["revisie"]
+
+
+def test_dragen_gaten_is_puur():
+    inhoud = {"uitvoer_begrip_id": "u", "invoer": [{"begrip_id": "i"}],
+              "gevallen": [{"label": "", "uitkomst": [{"soort": "begrip", "begrip_id": "i"}],
+                            "voorwaarden": {"delen": [{"tekst": "t", "geval_van": {"regel_id": "r", "geval": ""}}]}}]}
+    regels = {"r": {"status": "concept", "labels": [""], "uitvoer": "i", "naam": "bepalen van i"}}
+    assert regel_store.dragen_gaten(inhoud, {}, regels) == []

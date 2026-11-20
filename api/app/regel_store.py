@@ -29,7 +29,7 @@ from typing import Any
 from fastapi import HTTPException
 from sqlalchemy import delete, insert, select, update
 
-from . import begrip_store, db
+from . import annotatie_v2_store as annotaties, begrip_store, db
 from .begrip_store import Resolver
 from .regel_contracts import (  # noqa: F401  (GRONDSLAG_KLASSEN: ook hier te lezen)
     GRONDSLAG_KLASSEN, Afwijzing, DragerInvoer, DragerRol, DragersToevoegen, DragerVerversing, DragerWijziging,
@@ -66,10 +66,19 @@ async def _dragers_van(conn, werkgebied_id: str, regel_ids: list[str]) -> dict[s
     rows = (await conn.execute(select(d).where(d.c.werkgebied_id == werkgebied_id, d.c.regel_id.in_(regel_ids),
                                                d.c.verwijderd.is_(None)).order_by(d.c.toegevoegd, d.c.id))).all()
     huidig = await begrip_store._huidige_elementen(conn, {r.element_id for r in rows})
+    paren = {_bronpaar(r.bewijs) for r in rows}
+    bron = await annotaties.bronreferenties(conn, paren)
     uit: dict[str, list[dict]] = {}
     for r in rows:
-        uit.setdefault(r.regel_id, []).append(begrip_store.actualiteit(_drager(r), huidig.get(r.element_id)))
+        d = {**_drager(r), "bron": bron[_bronpaar(r.bewijs)]}
+        uit.setdefault(r.regel_id, []).append(begrip_store.actualiteit(d, huidig.get(r.element_id)))
     return uit
+
+
+def _bronpaar(bewijs: dict | None) -> tuple[str, str]:
+    """De bronnode van een drager: de eigenaar van de markering in de snapshot van het bewijs."""
+    b = bewijs or {}
+    return b.get("snapshot_id", ""), b.get("eigenaar_iri", "")
 
 
 async def _begrippen(conn, werkgebied_id: str, ids: set[str]) -> dict[str, dict]:
@@ -327,6 +336,42 @@ def regel_gaten(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], g
     for op in g["operatoren"]:
         if op["binnen"] & grondslag and op["id"] not in g["met_begrip"]:
             uit.append(gat("operator_zonder_begrip", tekst=op["tekst"]))
+    uit += dragen_gaten(inhoud, begrippen, g.get("regels", {}))
+    return uit
+
+
+def _kort(tekst: str, n: int = 80) -> str:
+    tekst = " ".join(tekst.split())
+    return tekst if len(tekst) <= n else tekst[: n - 1].rstrip() + "…"
+
+
+def dragen_gaten(inhoud: dict, begrippen: dict[str, dict], regels: dict[str, dict]) -> list[dict]:
+    """Wat van een regel op niets rust (herleidbaarheid, rapport van 20 nov 2026): een voorwaarde zonder markering en
+    zonder verwijzing, een verwijzing naar een geval dat niet (meer) geldt of waarvan de uitvoer geen invoer is, en een
+    begrip in een uitkomst dat geen invoer is. `regels`: per regel-id van dit werkgebied `{status, labels, uitvoer,
+    naam}`. Een signaal, geen poort."""
+    uit: list[dict] = []
+    invoer = {i["begrip_id"] for i in inhoud.get("invoer", [])}
+    naam = lambda b: begrippen.get(b, {}).get("naam") or b  # noqa: E731
+    for label, blad in voorwaarde_bladen(inhoud):
+        v = blad.get("geval_van")
+        if not v:
+            if not blad.get("element_ids"):
+                uit.append(gat("voorwaarde_zonder_markering", tekst=_kort(blad.get("tekst", "")),
+                               geval=label or "de regel"))
+            continue
+        doel = regels.get(v["regel_id"])
+        if doel is None or doel["status"] in ("afgewezen", "vervangen") or (
+                v.get("geval") and v["geval"] not in doel["labels"]):
+            uit.append(gat("verwijzing_niet_geldig", tekst=_kort(blad.get("tekst", "")), geval=label or "de regel"))
+        elif doel["uitvoer"] not in invoer:
+            uit.append(gat("verwijzing_zonder_invoer", regel=doel["naam"] or v["regel_id"],
+                           uitvoer=naam(doel["uitvoer"])))
+    vrij = invoer | {inhoud["uitvoer_begrip_id"], inhoud.get("onderwerp_begrip_id") or ""}
+    los = list(dict.fromkeys(t["begrip_id"] for geval in inhoud.get("gevallen", []) for t in geval.get("uitkomst", [])
+                             if t.get("soort") == "begrip" and t.get("begrip_id") not in vrij))
+    for b in los:
+        uit.append(gat("uitkomstbegrip_geen_invoer", naam=naam(b)))
     return uit
 
 
@@ -370,9 +415,16 @@ async def _gatgegevens(conn, werkgebied_id: str, rows, dragers: dict[str, list[d
     ctx = (await conn.execute(select(s.c.bron_iri, s.c.label).where(
         s.c.werkgebied_id == werkgebied_id, s.c.rol == "context"))).all()
     r = db.regels
-    uitvoeren = {x.inhoud["uitvoer_begrip_id"] for x in (await conn.execute(select(r.c.inhoud, r.c.status).where(
-        r.c.werkgebied_id == werkgebied_id))).all() if x.status not in ("vervangen", "afgewezen")}
-    return {"met_begrip": {x.element_id for x in koppel}, "rollen": rollen, "waarden": waarden,
+    alle = (await conn.execute(select(r.c.id, r.c.inhoud, r.c.status).where(r.c.werkgebied_id == werkgebied_id))).all()
+    uitvoeren = {x.inhoud["uitvoer_begrip_id"] for x in alle if x.status not in ("vervangen", "afgewezen")}
+    b = db.begrippen
+    ids = sorted({x.inhoud["regelbegrip_id"] for x in alle})
+    namen = {x.id: (x.inhoud or {}).get("naam", "") for x in (await conn.execute(
+        select(b.c.id, b.c.inhoud).where(b.c.id.in_(ids))))} if ids else {}
+    regels = {x.id: {"status": x.status, "uitvoer": x.inhoud["uitvoer_begrip_id"],
+                     "labels": [gv.get("label", "") for gv in x.inhoud.get("gevallen", [])],
+                     "naam": namen.get(x.inhoud["regelbegrip_id"], "")} for x in alle}
+    return {"regels": regels, "met_begrip": {x.element_id for x in koppel}, "rollen": rollen, "waarden": waarden,
             "context": [c.bron_iri for c in ctx], "labels": {c.bron_iri: c.label or c.bron_iri for c in ctx},
             "operatoren": operatoren, "uitvoeren": uitvoeren}
 
@@ -450,7 +502,7 @@ def smalle_drager(d: dict) -> dict:
     return {"id": d["id"], "element_id": d["element_id"], "rol": d["rol"], "geval": d["geval"],
             "beoordeling": d["beoordeling"], "motivering": d.get("motivering", ""), "actualiteit": d.get("actualiteit"),
             "beoordeeld_door": d.get("beoordeeld_door"), "klasse": b.get("klasse", ""), "tekst": b.get("tekst", ""),
-            "vindplaats": b.get("vindplaats", "")}
+            "vindplaats": b.get("vindplaats", ""), "bron": d.get("bron")}
 
 
 def stand(regel: dict) -> dict:
@@ -544,9 +596,26 @@ def keten(regels: list[dict]) -> dict:
         for i in x["inhoud"].get("invoer", []):
             bronnen = door.get(i["begrip_id"], [])
             for van in bronnen:
-                pijlen.append({"van": van, "naar": x["id"], "begrip_id": i["begrip_id"]})
+                pijlen.append({"van": van, "naar": x["id"], "begrip_id": i["begrip_id"], "via": "invoer"})
             if not bronnen and i.get("rol", "invoer") == "invoer":
                 basis.setdefault(i["begrip_id"], x["begrippen"].get(i["begrip_id"], {}).get("naam", ""))
+    # Een voorwaarde over een geval van een andere regel (`geval_van`) is ook een pijl, met dat geval erbij: zo sluit de
+    # keten op het niveau van een geval. Een pijl die er via de invoer al is, krijgt het geval erbij in plaats van een
+    # tweede pijl.
+    per_id = {x["id"]: x for x in actief}
+    for x in actief:
+        for label, blad in voorwaarde_bladen(x["inhoud"]):
+            v = blad.get("geval_van")
+            if not v or v["regel_id"] not in per_id or v["regel_id"] == x["id"]:
+                continue
+            uitvoer = per_id[v["regel_id"]]["inhoud"]["uitvoer_begrip_id"]
+            pijl = next((p for p in pijlen if p["van"] == v["regel_id"] and p["naar"] == x["id"]), None)
+            if pijl is None:
+                pijl = {"van": v["regel_id"], "naar": x["id"], "begrip_id": uitvoer, "via": "voorwaarde"}
+                pijlen.append(pijl)
+            plek = {"van_geval": v.get("geval", ""), "in_geval": label}
+            if plek not in pijl.setdefault("gevallen", []):
+                pijl["gevallen"].append(plek)
     for uitvoer, ids in door.items():
         if len(ids) > 1:
             g = gat("zelfde_uitvoer")
@@ -634,6 +703,33 @@ async def _toets_grondslag(conn, werkgebied_id: str, inhoud: dict, dragers: list
                                              "Tijdsaanduiding, of een passage die het afgeleide begrip aanduidt."})
 
 
+async def _toets_verwijzingen(conn, werkgebied_id: str, inhoud: dict, regel_id: str | None) -> None:
+    """Een voorwaarde die naar een geval van een andere regel verwijst (`geval_van`), verwijst naar een geldende regel in
+    dit werkgebied en naar een geval dat die regel heeft (422 `verwijzing_onbekend`). Bij een regel met meer gevallen
+    is het geval verplicht. Wordt de andere regel later afgewezen of vervangen, dan is dat een gat, geen fout."""
+    verwijzingen = [blad["geval_van"] for _, blad in voorwaarde_bladen(inhoud) if blad.get("geval_van")]
+    if not verwijzingen:
+        return
+    r = db.regels
+    ids = sorted({v["regel_id"] for v in verwijzingen})
+    rijen = {x.id: x for x in (await conn.execute(select(r.c.id, r.c.status, r.c.inhoud).where(
+        r.c.werkgebied_id == werkgebied_id, r.c.id.in_(ids)))).all()}
+    for v in verwijzingen:
+        x = rijen.get(v["regel_id"])
+        labels = [g.get("label", "") for g in (x.inhoud.get("gevallen", []) if x else [])]
+        if v["regel_id"] == regel_id:
+            melding = "Een voorwaarde verwijst niet naar een geval van haar eigen regel."
+        elif x is None or x.status in ("afgewezen", "vervangen"):
+            melding = "Een voorwaarde verwijst naar een regel die in dit werkgebied niet (meer) geldt."
+        elif v.get("geval") and v["geval"] not in labels:
+            melding = f"De regel waarnaar een voorwaarde verwijst, heeft geen geval {v['geval']}."
+        elif not v.get("geval") and len(labels) > 1:
+            melding = "De regel waarnaar een voorwaarde verwijst, heeft meer gevallen: noem het geval."
+        else:
+            continue
+        raise HTTPException(422, {"fout": "verwijzing_onbekend", "verwijzing": v, "melding": melding})
+
+
 def _toets_gevallen(inhoud: dict, dragers: list[DragerInvoer]) -> None:
     labels = {g["label"] for g in inhoud["gevallen"]}
     fout = sorted({d.geval for d in dragers if d.geval and d.geval not in labels}
@@ -644,6 +740,15 @@ def _toets_gevallen(inhoud: dict, dragers: list[DragerInvoer]) -> None:
 
 
 # --- schrijven ---------------------------------------------------------------------------------------
+
+def inhoud_van(model) -> dict:
+    """De inhoud zoals ze wordt bewaard. Een voorwaarde zonder verwijzing draagt geen `geval_van: null`: anders zou een
+    regel van vóór dat veld bij elke gelijke PATCH een nieuwe revisie krijgen."""
+    inhoud = model.model_dump(mode="json")
+    for _, blad in voorwaarde_bladen(inhoud):
+        if blad.get("geval_van") is None:
+            blad.pop("geval_van", None)
+    return inhoud
 
 async def _revisieregel(conn, regel_id, revisie, actie, detail, status, inhoud, actor, tijdstip):
     await conn.execute(insert(db.regel_revisies).values(
@@ -707,7 +812,7 @@ def voorbeelden_na(oud: list[dict], nieuw: list[dict], actor: str) -> list[dict]
 
 
 async def maak(werkgebied: dict, invoer: RegelAanmaak, actor: str, resolve: Resolver) -> dict:
-    inhoud = invoer.inhoud.model_dump(mode="json")
+    inhoud = inhoud_van(invoer.inhoud)
     inhoud["voorbeelden"] = voorbeelden_na([], inhoud.get("voorbeelden", []), actor)
     dragers = [*invoer.dragers, *voorwaarde_dragers(inhoud, {d.element_id for d in invoer.dragers})]
     _toets_gevallen(inhoud, dragers)
@@ -716,6 +821,7 @@ async def maak(werkgebied: dict, invoer: RegelAanmaak, actor: str, resolve: Reso
     async with db.get_engine().begin() as conn:
         await werkgebied_rij(conn, wid, slot=True)
         await _toets_begrippen(conn, wid, inhoud)
+        await _toets_verwijzingen(conn, wid, inhoud, None)
         await _toets_grondslag(conn, wid, inhoud, dragers, bewijs)
         await conn.execute(insert(db.regels).values(
             id=rid, werkgebied_id=wid, status="concept", revisie=1, inhoud=inhoud, herkomst=invoer.herkomst,
@@ -766,7 +872,7 @@ async def _element_ids_van(werkgebied_id: str, regel_id: str) -> set[str]:
 
 async def wijzig(werkgebied: dict, regel_id: str, w: RegelWijziging, actor: str, resolve: Resolver) -> dict:
     werkgebied_id = werkgebied["id"]
-    nieuw = w.inhoud.model_dump(mode="json")
+    nieuw = inhoud_van(w.inhoud)
     # Een nieuwe markering in een voorwaarde wordt een drager (B3). Het bewijs vraagt de graaf, dus vóór de transactie;
     # in de transactie telt alleen wat er dan nog geen drager is.
     extra = voorwaarde_dragers(nieuw, await _element_ids_van(werkgebied_id, regel_id))
@@ -780,6 +886,7 @@ async def wijzig(werkgebied: dict, regel_id: str, w: RegelWijziging, actor: str,
                 stand["geen_wijziging"] = True
             else:
                 await _toets_begrippen(conn, werkgebied_id, nieuw)
+                await _toets_verwijzingen(conn, werkgebied_id, nieuw, regel_id)
                 dragers = await _huidige_dragers(conn, werkgebied_id, regel_id)
                 labels = {g["label"] for g in nieuw["gevallen"]}
                 if any(d["geval"] and d["geval"] not in labels for d in dragers):

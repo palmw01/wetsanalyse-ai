@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  DRAGER_ROL_LABEL, REGEL_SOORT_LABEL, VOORBEELD_OORDEEL_LABEL, buren, inKetenVolgorde, invoerVan, regelAlsMarkdown,
+  DRAGER_ROL_LABEL, REGEL_SOORT_LABEL, VOORBEELD_OORDEEL_LABEL, bronLink, buren, dragerTekst, inKetenVolgorde, invoerVan, regelAlsMarkdown,
   regelsAlsMarkdown, regelsBijBegrip, voorbeeldenBij, type Regel, type RegelKeten,
 } from "./regels";
 
@@ -108,5 +108,25 @@ describe("hulpjes van de kaart", () => {
     const r6 = r4({ id: "r6", inhoud: { ...r4().inhoud, uitvoer_begrip_id: "ander", invoer: [{ begrip_id: "tb", rol: "invoer" }] } });
     expect(regelsBijBegrip([r4(), r6, afgewezen], "tb")).toEqual({ afgeleidDoor: [r4()], gebruiktIn: [r6] });
     expect(regelsBijBegrip([r4()], "bedrag").gebruiktIn.map((r) => r.id)).toEqual(["r4"]);
+  });
+});
+
+
+describe("de weg van een drager naar de wettekst", () => {
+  const bron = { bron_iri: "urn:bwb:BWBR0004770:artikel:9:lid:1", jci: "", url: "", bron_url: "", vindplaats: "",
+    label: "Lid 1", bwb_id: "BWBR0004770", soort: "geen" as const };
+  it("linkt de jci met de toestand, anders het anker, en verzint niets", () => {
+    expect(bronLink({ ...bron, soort: "jci", jci: "jci1.3:c:BWBR0004770&artikel=9&lid=1&g=2026-10-01" }))
+      .toBe("https://wetten.overheid.nl/jci1.3:c:BWBR0004770&artikel=9&lid=1&z=2026-10-01&g=2026-10-01");
+    expect(bronLink({ ...bron, soort: "anker", bron_url: "https://wetten.overheid.nl/BWBR0024096/2026-07-01#d9_d9.1" }))
+      .toBe("https://wetten.overheid.nl/BWBR0024096/2026-07-01#d9_d9.1");
+    expect(bronLink({ ...bron, bron_url: "https://elders.example/x" })).toBe("");
+    expect(bronLink(bron)).toBe("");
+    expect(bronLink(undefined)).toBe("");
+  });
+  it("haalt tekst en vindplaats uit het bewijs, met de bron als terugval", () => {
+    const d = { id: "d", element_id: "e", rol: "grondslag" as const, geval: "", beoordeling: "open" as const,
+      beoordeeld_door: null, bewijs: { tekst: "invorderbaar zes weken" }, bron };
+    expect(dragerTekst(d)).toEqual({ tekst: "invorderbaar zes weken", vindplaats: "Lid 1" });
   });
 });
