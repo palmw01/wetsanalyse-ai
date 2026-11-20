@@ -113,9 +113,9 @@ export function BegripRelaties({ id, begrip, andere, onGewijzigd, onNaarBegrip, 
           <ul className="mt-1 space-y-0.5">
             {afgewezen.map((r) => (
               <li key={r.id}>
-                {relatieZin(r.type, r.van_naam, r.naar_naam).join(" ")} – {r.bewijs.afwijzing?.reden ?? r.toelichting}
-                {r.bewijs.afwijzing && ` (afgewezen door ${r.bewijs.afwijzing.door}`
-                  + `${r.bewijs.afwijzing.was_door ? `, eerder vastgelegd door ${r.bewijs.afwijzing.was_door}` : ""})`}
+                {relatieZin(r.type, r.van_naam, r.naar_naam).join(" ")} – {r.bewijs?.afwijzing?.reden ?? r.toelichting}
+                {r.bewijs?.afwijzing && ` (afgewezen door ${r.bewijs?.afwijzing.door}`
+                  + `${r.bewijs?.afwijzing.was_door ? `, eerder vastgelegd door ${r.bewijs?.afwijzing.was_door}` : ""})`}
               </li>
             ))}
           </ul>

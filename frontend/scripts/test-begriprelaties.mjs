@@ -163,7 +163,7 @@ try {
   await page.keyboard.press("Enter");
   await zie("Voorstel afgewezen");
   assert.equal(await voorgesteld.count(), 0);
-  await sectie().getByText("Afgewezen voorstellen (1)").waitFor();
+  await sectie().getByText("Afgewezen (1)", { exact: true }).waitFor();
 
   // 3. Zelf: "is een soort" zet het andere begrip links (van); verwant alleen met toelichting.
   await sectie().getByRole("button", { name: "Relatie toevoegen" }).click();
