@@ -89,6 +89,7 @@ class RegelVerwijzing(BaseModel):
 
 class RegelDrager(BaseModel):
     """Waarop een regel rust: de rol, het geval, de passage van de markering en de bronnode met de weg naar de wettekst."""
+    element_id: str = ""
     rol: str
     geval: str = ""
     beoordeling: str = ""
@@ -386,8 +387,13 @@ def _regel_tekst(r: VastgelegdeRegel) -> str:
         regels.append("  - vervangt " + ", ".join(v.naam or v.id for v in r.vervangt))
     if r.open_punten:
         regels.append(f"  - {r.open_punten} open punt{'en' if r.open_punten != 1 else ''}")
-    regels += [f"  - {g.get('label') + ': ' if g.get('label') else ''}{g.get('tekst', '')}" for g in r.gevallen]
-    regels += [f"  - {d.rol}{' (' + d.geval + ')' if d.geval else ''}: {d.vindplaats}" for d in r.dragers if d.vindplaats]
+    for g in r.gevallen:
+        # De tekst van een geval kan een lijst voorwaarden dragen, regel voor regel: die springt in onder het geval.
+        eerste, *rest = (g.get("tekst", "") or "").split("\n")
+        regels.append(f"  - {g.get('label') + ': ' if g.get('label') else ''}{eerste}")
+        regels += [f"    {x.strip()}" for x in rest if x.strip()]
+        regels += [f"    - {d.rol}: {d.vindplaats}" for d in r.dragers if d.vindplaats and d.geval == g.get("label")]
+    regels += [f"  - {d.rol}: {d.vindplaats}" for d in r.dragers if d.vindplaats and not d.geval]
     return "\n".join(regels)
 
 

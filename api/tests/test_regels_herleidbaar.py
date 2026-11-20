@@ -178,3 +178,31 @@ async def test_de_opvolging_met_namen_de_korte_vorm_en_korte_revisies(client):
     volledig = (await client.get(_url(wg, oud["id"], "revisies"))).json()["revisies"]
     smal = (await client.get(_url(wg, oud["id"], "revisies") + "?vorm=kort")).json()["revisies"]
     assert "inhoud" in volledig[0] and "inhoud" not in smal[0] and smal[0]["actie"] == "regel-vervangen"
+
+
+def test_de_tekst_per_geval_draagt_zijn_voorwaarden():
+    """Slotmeting na #1798: "indien aan alle volgende voorwaarden is voldaan:, dan" zonder de voorwaarden."""
+    from app.regeltekst import regeltekst
+    blad = lambda t, niet=False: {"tekst": t, "niet": niet}  # noqa: E731
+    inhoud = {"soort": "rekenregel", "regelbegrip_id": "rb", "uitvoer_begrip_id": "u", "lidwoord": "de",
+              "gevallen": [
+                  {"label": "lid 1", "uitkomst": [{"soort": "tekst", "tekst": "zes weken"}],
+                   "voorwaarden": {"verband": "alle", "delen": [blad("a", niet=True), {"verband": "een_van", "delen": [blad("b"), blad("c")]}]}},
+                  {"label": "lid 7", "uitkomst": [{"soort": "tekst", "tekst": "x"}],
+                   "voorwaarden": {"delen": [blad("enkel")]}}]}
+    lid1, lid7 = regeltekst(inhoud, {"u": "vervaldag"})["gevallen"]
+    assert lid1["tekst"].split("\n") == ["indien aan alle volgende voorwaarden is voldaan:", "• niet: a",
+                                         "• het voldoet aan ten minste één van de volgende voorwaarden:", "  • b", "  • c",
+                                         "dan: zes weken."]
+    assert lid7["tekst"] == "indien enkel, dan x."
+
+
+async def test_het_overzicht_draagt_dezelfde_opvolging_als_de_kaart(client):
+    wg, ids, b = await _opzet(client)
+    oud, nieuw = await _regel(client, wg, b, ids), await _regel(client, wg, b, ids)
+    await client.post(_url(wg, oud["id"], "afwijzen"),
+                      json={"verwachte_revisie": oud["revisie"], "reden": "Samengevoegd", "opvolger_id": nieuw["id"]})
+    rijen = {r["id"]: r for r in (await client.get(f"/v1/regels?werkgebied_id={wg['id']}")).json()["resultaten"]}
+    kaart = (await client.get(_url(wg, oud["id"]))).json()
+    assert rijen[oud["id"]]["opvolging"] == kaart["opvolging"]
+    assert rijen[nieuw["id"]]["opvolging"]["vervangt"] == [{"id": oud["id"], "naam": "bepalen van het termijnbedrag"}]

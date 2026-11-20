@@ -67,7 +67,7 @@ def regels_in_trace(trace: Trace) -> dict[str, VastgelegdeRegel]:
                     uit[r["id"]] = VastgelegdeRegel(
                         id=r["id"], werkgebied_id=r.get("werkgebied_id", ""), werkgebied=r.get("werkgebied", ""),
                         naam=r.get("naam", ""), uitvoer=r.get("uitvoer", ""), status=r.get("regel_status", ""),
-                        soort=r.get("soort", ""))
+                        soort=r.get("soort", ""), **_opvolging_van(r))
         elif naam == "get_regel" and (r := _data(tekst)).get("id"):
             vorig = uit.get(r["id"])
             tekst_ = r.get("regeltekst")
@@ -77,22 +77,38 @@ def regels_in_trace(trace: Trace) -> dict[str, VastgelegdeRegel]:
                 status=r.get("regel_status", ""), soort=r.get("soort", ""),
                 gevallen=[{"label": g.get("geval", ""), "tekst": g.get("tekst", "")} for g in tekst_]
                 if isinstance(tekst_, list) else ([{"label": "", "tekst": tekst_}] if tekst_ else []),
-                dragers=[RegelDrager(rol=d.get("rol", ""), geval=d.get("geval", ""), beoordeling=d.get("beoordeling", ""),
-                                     passage=d.get("passage", ""), vindplaats=d.get("vindplaats", ""),
-                                     bron_iri=d.get("bron_iri", ""), jci=d.get("jci", ""))
-                         for d in r.get("dragers") or []],
-                open_punten=int((r.get("open_punten") or {}).get("open") or 0),
-                vervangen_door=RegelVerwijzing(**r["vervangen_door"]) if isinstance(r.get("vervangen_door"), dict) else None,
-                vervangt=[RegelVerwijzing(**v) for v in r.get("vervangt") or [] if isinstance(v, dict)], gelezen=True)
+                dragers=_ontdubbeld(r.get("dragers") or []),
+                open_punten=int((r.get("open_punten") or {}).get("open") or 0), gelezen=True, **_opvolging_van(r))
+    return uit
+
+
+def _opvolging_van(r: dict[str, Any]) -> dict[str, Any]:
+    """`vervangen_door` en `vervangt` uit een zoekrij of een gelezen regel: dezelfde velden (`regel_tools._opvolging`)."""
+    return {"vervangen_door": RegelVerwijzing(**r["vervangen_door"]) if isinstance(r.get("vervangen_door"), dict) else None,
+            "vervangt": [RegelVerwijzing(**v) for v in r.get("vervangt") or [] if isinstance(v, dict)]}
+
+
+def _ontdubbeld(dragers: list[dict[str, Any]]) -> list[RegelDrager]:
+    """De dragers, per geval één keer per element en rol (slotmeting na #1798: een dubbele drager in lid 5)."""
+    gezien, uit = set(), []
+    for d in dragers:
+        sleutel = (d.get("geval", ""), d.get("element_id") or d.get("passage", ""), d.get("rol", ""))
+        if sleutel in gezien:
+            continue
+        gezien.add(sleutel)
+        uit.append(RegelDrager(element_id=d.get("element_id", ""), rol=d.get("rol", ""), geval=d.get("geval", ""),
+                               beoordeling=d.get("beoordeling", ""), passage=d.get("passage", ""),
+                               vindplaats=d.get("vindplaats", ""), bron_iri=d.get("bron_iri", ""), jci=d.get("jci", "")))
     return uit
 
 
 def _doelen(regels: list[VastgelegdeRegel]) -> list[Vindplaats]:
-    """De bronnodes van de grondslag van de getoonde regels: daar rust het antwoord op."""
+    """De bronnodes van elke drager die niet is afgewezen, ook context: daar rust het antwoord op (slotmeting na #1798:
+    LI 9.5 is een contextdrager bij lid 5, en viel met alleen de grondslag uit de bronnen)."""
     uit: dict[str, Vindplaats] = {}
     for r in regels:
         for d in r.dragers:
-            if d.rol == "grondslag" and d.bron_iri and d.beoordeling != "afgewezen" and d.bron_iri not in uit:
+            if d.bron_iri and d.beoordeling != "afgewezen" and d.bron_iri not in uit:
                 uit[d.bron_iri] = Vindplaats(iri=d.bron_iri, label=d.vindplaats or d.bron_iri, jci=d.jci)
     return list(uit.values())
 

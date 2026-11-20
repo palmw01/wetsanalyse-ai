@@ -132,7 +132,7 @@ function Gevallen({ stand, regel }: { stand: RegelStand; regel: Regel }) {
           return (
             <LijstRij key={g.label || i} data-regel-geval={g.label}
               titel={enkel ? undefined : <span className="font-medium">Geval {g.label}{g.voorrang ? " (gaat voor)" : ""}</span>}
-              meta={!enkel && tekst}>
+              meta={!enkel && tekst && <span className="whitespace-pre-line">{tekst}</span>}>
               {voorbeelden.length ? (
                 <ul className="mt-2 space-y-1.5">
                   {voorbeelden.map((v, j) => {

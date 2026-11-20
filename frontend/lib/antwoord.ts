@@ -16,7 +16,7 @@ export interface AntwoordDefinitie {
 export interface AntwoordRegel {
   id: string; werkgebied_id: string; werkgebied: string; naam: string; uitvoer: string; status: string; soort: string;
   gevallen: { label: string; tekst: string }[];
-  dragers: { rol: string; geval: string; beoordeling: string; passage: string; vindplaats: string; bron_iri: string; jci: string }[];
+  dragers: { element_id?: string; rol: string; geval: string; beoordeling: string; passage: string; vindplaats: string; bron_iri: string; jci: string }[];
   open_punten: number; vervangen_door: { id: string; naam: string } | null; vervangt: { id: string; naam: string }[]; gelezen: boolean;
 }
 

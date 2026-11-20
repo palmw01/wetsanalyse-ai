@@ -100,7 +100,9 @@ def regeltekst(inhoud: dict[str, Any], namen: dict[str, str]) -> dict[str, Any]:
             zin, lijst = _indien(g.get("voorwaarden"), md)
             doel.append(_hoofdzin(inhoud, uitdrukking(g["uitkomst"], namen, md), namen, md) + zin + ("" if lijst else "."))
             doel += lijst
-        per_geval.append({"label": g.get("label", ""), "tekst": " ".join(regels_tekst)})
+        # De tekst per geval draagt de voorwaarden als lijst, regel voor regel (slotmeting na #1798: "indien aan alle
+        # volgende voorwaarden is voldaan:, dan" zonder voorwaarden).
+        per_geval.append({"label": g.get("label", ""), "tekst": "\n".join(regels_tekst)})
     else:
         for md, doel in ((False, regels_tekst), (True, regels_md)):
             doel.append(f"{_uitvoer(inhoud, namen, md)} moet bepaald worden volgens het geval dat geldt:")
@@ -118,8 +120,8 @@ def regeltekst(inhoud: dict[str, Any], namen: dict[str, str]) -> dict[str, Any]:
                     regel = f"{kop}:{zin}, dan {uitkomst}." if zin else f"{kop}: {uitkomst}."
                     doel.append(f"- {regel}" if md else regel)
                 if not md:
-                    per_geval.append({"label": g["label"],
-                                      "tekst": f"{zin.strip()}, dan {uitkomst}." if zin else f"{uitkomst}."})
+                    per_geval.append({"label": g["label"], "tekst": "\n".join([zin.strip(), *lijst, f"dan: {uitkomst}."])
+                                      if lijst else (f"{zin.strip()}, dan {uitkomst}." if zin else f"{uitkomst}.")})
     return {"tekst": "\n".join(regels_tekst), "markdown": "\n".join(regels_md), "gevallen": per_geval}
 
 
