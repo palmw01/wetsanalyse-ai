@@ -304,7 +304,8 @@ Hieronder wat je moet weten om de code te wijzigen.
   Een bronknoop draagt `vindplaats` uit de importer (`bwb:vindplaats`, "Artikel 9.2, onderdeel d") en zijn
   `artikel`/`lid` komen uit de boom (`plaats_in`), niet uit de IRI: die liegt bij de Leidraad. `bron_query` leest
   `vindplaats`, `inBepaling` en het opschrift (`bwb:titel`, als `titel`) op de node, maar `snapshot_id` hasht ze niet
-  (`bronmodel.PLEK`): een veld dat later bij de node komt, verandert de snapshot van bestaande lagen niet.
+  (`bronmodel.PLEK`): een veld dat later bij de node komt, verandert de snapshot van bestaande lagen niet. Zo ook
+  `bron_url` (`bwb:bronUrl`, het anker op de toestandspagina): de enige weg naar de wettekst van een node zonder jci.
   Het label van een deel krijgt zijn nummer (`_label`: de bronboom draagt "Hoofdstuk" en "II" apart);
   bewust hier en niet in `bronmodel`, waar het de snapshot-identiteit van bestaande lagen zou raken.
   **`POST /plaatsen`** (`graaf.plaatsen`, hoogstens 500 `bron_iris`) geeft per bepaling de regeling en het pad
@@ -940,6 +941,17 @@ Acceptatie: *een gewijzigde dragende passage verschijnt bij de geraakte begrippe
 - **Graafcontrole** (`graafcontrole.controleer` → `begrippen`): achterstand (hash wijkt af), afwijkingen
   (graph ontbreekt, inhoud niet isomorf), verweesde graphs, de invariant en – met SHACL – het aantal
   niet-conforme begrippen (telt niet mee voor `in_orde`: een concept zonder definitie is gewoon nog niet af).
+- **De afleidingsregels staan in dezelfde graph** (`regel_projectie.py`, schema 3, 20 nov 2026): één named graph per
+  werkgebied en één PUT, dus `invoer` neemt `regels` mee (alleen als er regels zijn) en `bouw_graaf` roept
+  `regel_projectie.bouw` aan. **Alle regels met `wa:status`** (ook concept, afgewezen en vervangen); de export alleen de
+  geaccordeerde. De weg naar de wettekst: `wa:Afleidingsregel` → `wa:drager` (`wa:Regeldrager`: rol, geval, beoordeling,
+  `wa:element`, `wa:elementHash`, `wa:bron`) → de JAS-annotatie (`oa:hasTarget/oa:hasSource`) → de bronnode met
+  `bwb:jci` of `bwb:bronUrl` en `bwb:tekst`; plus `wa:rustOp` (dragende markeringen) en `prov:wasDerivedFrom` (de
+  bronnodes van de grondslag) op de regel. Gevallen (`urn:wa:regel:<id>:geval:<n>`), invoer met volgorde, de
+  voorwaardenboom (`wa:Voorwaardengroep`/`wa:Voorwaarde` met `wa:rustOp` en `wa:gevalVan`) en `dct:isReplacedBy`.
+  Conformiteit per regel (`regel_projectie.conformiteit`, `shapes/regels-wa.ttl`) en de rooktest
+  `regel_projectie.NIET_HERLEIDBAAR` staan in de graafcontrole als `regels_niet_conform` en `regels_niet_herleidbaar`,
+  diagnostisch en buiten `in_orde`.
 - **Een nieuwe NL-SBB-versie** is een bewuste overstap: nieuw shapesbestand, nieuwe hash in de test,
   `NL_SBB_VERSIE` en `NL_SBB` mee.
 - Tests: `tests/test_begrip_projectie.py` en het slot in `tests/test_begrippen_postgres.py`.
@@ -1061,6 +1073,16 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
   een signaal, geen weigering: op acceptatie werkt het team onder één account.
 - **Een drager beoordelen met een grond**: `DragerWijziging.motivering` (kolom `regel_dragers.motivering`, in het
   revisiedetail en de audit).
+- **De regels in de kennisgraaf**: zie §*Begrippen naar de kennisgraaf* (`regel_projectie.py`).
+- **Een drager noemt zijn bron** (`bron`, ook in `smalle_drager`): de bronnode van de markering met de weg naar de
+  wettekst, uit de vastgelegde snapshot in Postgres (`annotatie_v2_store.bronreferenties`, per snapshot-id in het proces
+  bewaard: een snapshot verandert nooit). `soort` is `jci` (de BWB kent er een toe), `anker` (alleen een vindplaats,
+  zoals een Leidraad-divisie) of `geen`. Een jci wordt nooit afgeleid (`bronreferentie`, zie `bwb-import` `bron_url`).
+- **Een voorwaarde kan naar een geval van een andere regel verwijzen** (`Voorwaarde.geval_van: {regel_id, geval}`):
+  een geldende regel in het werkgebied met dat geval (422 `verwijzing_onbekend`; bij meer gevallen is het geval
+  verplicht). De keten maakt er een pijl van (`via: "voorwaarde"`, of het geval bij de pijl via de invoer, in
+  `gevallen`). Een voorwaarde zonder verwijzing bewaart geen `geval_van: null` (`inhoud_van`), zodat een gelijke PATCH
+  van een oudere regel geen revisie geeft.
 - **Een drager verversen** (`POST …/regels/{id}/dragers/{d}/verversen {verwachte_revisie, beoordeling: open|akkoord,
   motivering}`, `ververs_drager`): veranderde de markering (verlengd, een andere klasse), dan wordt het bewijs de
   markering van nu (`begrip_store.bewijzen`, dus 422 als ze verworpen of verdwenen is) en het oordeel opnieuw gegeven.
@@ -1096,7 +1118,9 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
     die alleen aan de rechtsbetrekking hangt, "in afwijking van" zonder `uitzondering_op`);
   - **regel**: `regel_store.regel_gaten`, als `gaten` op elke regel. Het gaat om de uitvoerformulering zonder begrip, een
     regelbegrip zonder "bepalen", een parameter zonder tijdvak of met een waarde in de definitie, een contextbron, een
-    operator in de grondslag zonder begrip, en een impliciete invoer. De gegevens leest `_gatgegevens` in een paar
+    operator in de grondslag zonder begrip, een impliciete invoer, en wat op niets rust (`dragen_gaten`): een voorwaarde
+    zonder markering en zonder verwijzing, een verwijzing die niet meer geldt of waarvan de uitvoer geen invoer is, en
+    een begrip in een uitkomst dat geen invoer is. De gegevens leest `_gatgegevens` in een paar
     queries voor alle regels samen; de operatoren alleen uit de laag van de grondslag;
   - **keten**: `regel_store.keten` geeft `zelfde_uitvoer` en `regelbegrip_meer_uitvoeren` (L-3a-1), met `code`.
   Een gat is een signaal: `accorderen` en `signalen` veranderen er niet door.

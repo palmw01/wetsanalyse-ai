@@ -21,7 +21,7 @@ import {
 import { datumTijd } from "@/lib/datum";
 import {
   DRAGER_BEOORDELING_LABEL, DRAGER_ROL_LABEL, HERKOMST_LABEL, REGEL_SOORT_LABEL, REGEL_STATUS_LABEL, REGEL_STATUS_TOON,
-  VOORBEELD_OORDEEL_LABEL, begripNaam, buren, gevalLabels, isGeaccordeerd, isOpen, voorbeeldNr, voorbeeldenBij,
+  VOORBEELD_OORDEEL_LABEL, begripNaam, bronLink, buren, dragerTekst, gevalLabels, isGeaccordeerd, isOpen, voorbeeldNr, voorbeeldenBij,
   type Regel, type RegelDrager, type RegelKeten, type RegelRevisie, type VoorbeeldOordeel,
 } from "@/lib/regels";
 import type { RegelStand } from "@/lib/useRegel";
@@ -184,7 +184,7 @@ function Dragers({ stand, regel }: { stand: RegelStand; regel: Regel }) {
         {volgorde.map((d) => (
           <LijstRij key={d.id} data-regel-drager={d.rol}
             titel={<Link href={elementPad(d.element_id)} className="focus-ring rounded text-lint hover:underline">{DRAGER_ROL_LABEL[d.rol]}{d.geval ? ` · geval ${d.geval}` : ""}</Link>}
-            meta={<>{d.element_id}{d.actualiteit && d.actualiteit !== "actueel" ? ` · passage ${d.actualiteit}` : ""}</>}
+            meta={<DragerBron d={d} />}
             status={<StatusLabel toon={d.beoordeling === "akkoord" ? "groen" : d.beoordeling === "afgewezen" ? "rood" : "geel"}>
               {DRAGER_BEOORDELING_LABEL[d.beoordeling]}</StatusLabel>}
             acties={kan && d.beoordeling !== "afgewezen" && d.actualiteit && d.actualiteit !== "actueel" ? (
@@ -202,6 +202,25 @@ function Dragers({ stand, regel }: { stand: RegelStand; regel: Regel }) {
         ))}
       </Lijst>
     </Kaart>
+  );
+}
+
+/** Waarop een drager rust: de letterlijke passage, de vindplaats en de weg naar de wettekst (de jci, anders het anker).
+ *  Zonder jci zegt de rij dat, in plaats van een link te verzinnen. */
+function DragerBron({ d }: { d: RegelDrager }) {
+  const { tekst, vindplaats } = dragerTekst(d);
+  const link = bronLink(d.bron);
+  return (
+    <span className="block space-y-0.5" data-drager-bron={d.bron?.soort ?? "onbekend"}>
+      {tekst && <q className="block text-ink">{tekst}</q>}
+      <span className="block">
+        {link
+          ? <a href={link} target="_blank" rel="noreferrer" className="focus-ring rounded text-lint hover:underline">{vindplaats || "Wettekst"}</a>
+          : vindplaats || d.element_id}
+        {d.bron?.soort === "anker" ? " · geen jci, link naar de vindplaats" : d.bron?.soort === "geen" ? " · geen bronreferentie" : ""}
+        {d.actualiteit && d.actualiteit !== "actueel" ? ` · passage ${d.actualiteit}` : ""}
+      </span>
+    </span>
   );
 }
 

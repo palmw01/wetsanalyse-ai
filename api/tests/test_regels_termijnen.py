@@ -157,7 +157,7 @@ def test_de_keten_van_termijnen_loopt_van_onder_naar_boven():
     v = k["volgorde"]
     assert v.index("R1") < v.index("R4") < v.index("R7")
     assert v.index("R5") < v.index("R6")
-    assert {"van": "R1", "naar": "R5", "begrip_id": "de1bae54"} in k["pijlen"]
+    assert {"van": "R1", "naar": "R5", "begrip_id": "de1bae54", "via": "invoer"} in k["pijlen"]
     # R2, R3 en R4 leiden alle drie de vervaldag af: hun gevallen moeten elkaar uitsluiten.
     [zelfde] = [s for s in k["signalen"] if s["soort"] == "zelfde_uitvoer"]
     assert set(zelfde["regel_ids"]) == {"R2", "R3", "R4"} and zelfde["begrip_id"] == "08ffc11c"

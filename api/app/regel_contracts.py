@@ -87,13 +87,25 @@ class Term(BaseModel):
         return self
 
 
+class GevalVerwijzing(BaseModel):
+    """Een voorwaarde over welk geval van een andere regel geldt ("het aantal termijnen is bepaald volgens geval lid 5
+    van de regel aantal termijnen"). Als verwijzing, niet als tekst: zo sluit de keten ook op het niveau van een geval,
+    en ziet de toets dat de uitvoer van die regel dan invoer van deze is."""
+    model_config = ConfigDict(extra="forbid")
+
+    regel_id: str = Field(pattern=_ID)
+    geval: str = Field(default="", max_length=80)        # leeg: de regel als geheel (bij één geval)
+
+
 class Voorwaarde(BaseModel):
-    """Een blad: de omschrijving "indien …" in eigen woorden, met de markeringen waarop ze rust."""
+    """Een blad: de omschrijving "indien …" in eigen woorden, met de markeringen waarop ze rust, en zo nodig het geval
+    van een andere regel waarover ze gaat (`geval_van`)."""
     model_config = ConfigDict(extra="ignore")
 
     tekst: str = Field(min_length=1, max_length=1000)
     element_ids: list[str] = Field(default_factory=list, max_length=20)
     niet: bool = False
+    geval_van: GevalVerwijzing | None = None
 
 
 class Voorwaarden(BaseModel):

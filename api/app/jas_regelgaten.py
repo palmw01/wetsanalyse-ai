@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 #: De eerste twaalf tekens van de sha256 van de bron.
-REGELGATEN_VERSIE = 'e3ffe980777f'
+REGELGATEN_VERSIE = 'c8425ba72d91'
 
 #: Waar een gat zit: het skelet, het regelobject of de keten.
 PLEKKEN = ('skelet', 'regel', 'keten')
@@ -59,6 +59,23 @@ GATEN = {'uitvoer_ontbreekt': {'plek': 'skelet',
                        'herkomst': 'methode',
                        'melding': 'De invoer {naam} rust op geen formulering en geen regel leidt haar af. '
                                   'Een impliciete invoer: ontbrekend uitvoeringsbeleid?'},
+ 'voorwaarde_zonder_markering': {'plek': 'regel',
+                                 'herkomst': 'methode',
+                                 'melding': 'De voorwaarde "{tekst}" ({geval}) rust op geen markering en '
+                                            'verwijst naar geen geval van een andere regel: waarop staat ze '
+                                            'in de tekst?'},
+ 'verwijzing_niet_geldig': {'plek': 'regel',
+                            'herkomst': 'methode',
+                            'melding': 'De voorwaarde "{tekst}" ({geval}) verwijst naar een regel of geval '
+                                       'dat niet meer geldt.'},
+ 'verwijzing_zonder_invoer': {'plek': 'regel',
+                              'herkomst': 'methode',
+                              'melding': 'Een voorwaarde verwijst naar de regel {regel}, maar haar uitvoer '
+                                         '{uitvoer} is geen invoer van deze regel.'},
+ 'uitkomstbegrip_geen_invoer': {'plek': 'regel',
+                                'herkomst': 'methode',
+                                'melding': 'De uitkomst noemt het begrip {naam}, maar dat is geen invoer van '
+                                           'de regel: de keten ziet het niet.'},
  'zelfde_uitvoer': {'plek': 'keten',
                     'herkomst': 'regelspecialist',
                     'melding': 'Meer regels leiden hetzelfde begrip af: hun gevallen moeten elkaar '
