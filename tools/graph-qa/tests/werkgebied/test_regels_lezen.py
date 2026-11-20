@@ -137,3 +137,66 @@ def test_een_aankondiging_zonder_scheidingslijn_is_een_aanloop():
     assert antwoord == "De regel …" and aanloop.startswith("Hieronder volgt")
     for tekst in ("Hier is de regeling die geldt: artikel 9.\n\nMeer.", "Hieronder staat per regel de stand.\n\n- a"):
         assert zonder_aanloop(tekst) == (tekst, "")
+
+
+# --- het regelantwoord (laatste meting na #1797) -----------------------------------------------------------------------
+
+def _trace_regels():
+    import json
+    zoek = json.dumps({"status": "ok", "resultaten": [
+        {"id": "r1", "naam": "bepalen van de vervaldag", "uitvoer": "vervaldag", "regel_status": "concept",
+         "werkgebied_id": "w1", "werkgebied": "Termijnen"},
+        {"id": "r2", "naam": "bepalen van de vervaldag bij betaling ineens", "regel_status": "vervangen",
+         "werkgebied_id": "w1", "werkgebied": "Termijnen"}]})
+    from agent.tools.regel_tools import compact_regel
+    lees = json.dumps({"bewijssoort": "regel", **compact_regel({**REGEL, "opvolging": {
+        "vervangen_door": None, "vervangt": [{"id": "r2", "naam": "bepalen van de vervaldag bij betaling ineens"}]}})})
+    return [("search_regels", zoek), ("get_regel", lees)]
+
+
+def test_het_sjabloon_vult_de_feiten_uit_de_api():
+    from agent.sjablonen import vul
+    a = vul("antwoord_regels", {"kort_antwoord": "Eén regel bepaalt de vervaldag.", "regels": ["r1", "r2"], "twijfel": []},
+            _trace_regels())
+    blok = next(b for b in a.blokken if b.soort == "regels")
+    r1, r2 = blok.items
+    assert (r1.naam, r1.status, r1.gelezen, r1.open_punten) == ("bepalen van de vervaldag", "concept", True, 0)
+    assert r1.vervangt[0].naam == "bepalen van de vervaldag bij betaling ineens" and r1.dragers[0].jci
+    assert r1.gevallen == [{"label": "lid 1", "tekst": "zes weken na …"}]
+    assert (r2.status, r2.gelezen) == ("vervangen", False)
+    # De doelen zijn de bronnodes van de grondslag: daar rust het antwoord op.
+    assert [d.iri for d in a.doelen] == ["urn:bwb:BWBR0004770:artikel:9:lid:1"]
+
+
+def test_een_onbekende_regel_weigert_het_sjabloon():
+    from agent.sjablonen import Onvulbaar, vul
+    with pytest.raises(Onvulbaar) as fout:
+        vul("antwoord_regels", {"kort_antwoord": "x", "regels": ["verzonnen"], "twijfel": []}, _trace_regels())
+    assert fout.value.code == "regel_onbekend"
+    with pytest.raises(Onvulbaar):
+        vul("antwoord_regels", {"kort_antwoord": "x", "regels": [], "twijfel": []}, [])
+
+
+def test_een_tekstantwoord_in_de_route_wordt_het_regelsjabloon():
+    llm = FakeLLM([response([text_block("Hieronder volgt het antwoord.\n\nDe regel bepalen van de vervaldag is een "
+                                        "concept en rust op artikel 9, lid 1.")], "end_turn")])
+    port = _Port([{"id": "r1", "naam": "bepalen van de vervaldag", "status": "concept", "werkgebied_id": "w1"}])
+    events = run(answer_stream(VRAAG, llm=llm, graph=FakeGraph(), regels=port, werkgebied_id="w1",
+                               settings=make_settings(), run_id="r1"))
+    assert not [e for e in events if e["type"] == "error"], events
+    antwoord = next(e["antwoord"] for e in events if e["type"] == "antwoord")
+    assert antwoord["sjabloon"] == "regels" and [b["soort"] for b in antwoord["blokken"]] == ["toelichting", "regels"]
+    assert not antwoord["blokken"][0]["tekst"].startswith("Hieronder")
+    assert len(llm.calls) == 1                                      # geen extra modelronde
+    bronnen = next(e["sources"] for e in events if e["type"] == "sources")
+    assert any(b.get("brontype") == "regel" and b["link"] == "/werkgebieden/w1/regels/r1" for b in bronnen)
+    assert any(b["uri"] == "urn:bwb:BWBR0004770:artikel:9:lid:1" for b in bronnen)
+
+
+def test_een_regelnaam_tussen_aanhalingstekens_is_geen_wetcitaat():
+    from agent.grounding import check_grounding
+    trace = _trace_regels() + [("get_lid", '{"tekst": "Een belastingaanslag is invorderbaar zes weken na de dagtekening."}')]
+    goed = check_grounding('De regel "bepalen van de vervaldag bij betaling ineens" is vervangen.', trace)
+    assert goed.niet_letterlijk == []
+    fout = check_grounding('De wet zegt "een aanslag is altijd na vier weken invorderbaar".', trace)
+    assert fout.niet_letterlijk

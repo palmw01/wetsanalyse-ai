@@ -140,3 +140,22 @@ describe("een voorbeeld met waarden per invoerbegrip", () => {
     expect(voorbeeldWaarden(r, v)).toEqual(["bedrag van de belastingaanslag: 1200", "onbekend: 3"]);
   });
 });
+
+describe("een regelantwoord (laatste meting na #1797)", () => {
+  it("leest het blok regels en kent het als afgeleide duiding", async () => {
+    const { parseAntwoord, alleenNietGetoetst } = await import("./antwoord");
+    const regel = { id: "r1", werkgebied_id: "w1", werkgebied: "Termijnen", naam: "bepalen van de vervaldag", uitvoer: "vervaldag",
+      status: "concept", soort: "rekenregel", gevallen: [{ label: "lid 1", tekst: "zes weken na …" }], dragers: [],
+      open_punten: 1, vervangen_door: null, vervangt: [{ id: "r2", naam: "oud" }], gelezen: true };
+    const a = parseAntwoord({ sjabloon: "regels", versie: 1, doelen: [], blokken: [{ soort: "regels", door: "bron", items: [regel] }] });
+    expect(a?.blokken[0].soort).toBe("regels");
+    expect(alleenNietGetoetst(a)).toBe(true);
+    expect(parseAntwoord({ sjabloon: "regels", versie: 1, doelen: [], blokken: [{ soort: "regels", door: "bron", items: [{ id: "r1" }] }] })).toBeUndefined();
+  });
+  it("linkt een regel als bron alleen naar haar eigen regelkaart", async () => {
+    const { bronLinkVan } = await import("./bronnen");
+    expect(bronLinkVan({ brontype: "regel", link: "/werkgebieden/w1/regels/r1" })).toBe("/werkgebieden/w1/regels/r1");
+    expect(bronLinkVan({ brontype: "regel", link: "https://elders.example/x" })).toBeUndefined();
+    expect(bronLinkVan({ brontype: "regel", link: "//elders.example/werkgebieden/w/regels/r" })).toBeUndefined();
+  });
+});

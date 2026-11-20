@@ -17,7 +17,7 @@ from .definities import geldt_voor
 
 VERSIE = 1
 
-Sjabloon = Literal["begrip", "bepaling", "duiding", "annotaties", "extern", "rapport"]
+Sjabloon = Literal["begrip", "bepaling", "duiding", "annotaties", "extern", "rapport", "regels"]
 
 
 class Vindplaats(BaseModel):
@@ -82,6 +82,40 @@ class Markering(BaseModel):
     bron_iri: str = ""
 
 
+class RegelVerwijzing(BaseModel):
+    id: str
+    naam: str = ""
+
+
+class RegelDrager(BaseModel):
+    """Waarop een regel rust: de rol, het geval, de passage van de markering en de bronnode met de weg naar de wettekst."""
+    rol: str
+    geval: str = ""
+    beoordeling: str = ""
+    passage: str = ""
+    vindplaats: str = ""
+    bron_iri: str = ""
+    jci: str = ""
+
+
+class VastgelegdeRegel(BaseModel):
+    """Een afleidingsregel (ADR-018), uit de api: een analyse-uitkomst met een status, geen wettekst. `gelezen`: de regel
+    zelf is gelezen (`get_regel`), dus de gevallen en dragers staan erbij; anders alleen de rij uit de zoektool."""
+    id: str
+    werkgebied_id: str = ""
+    werkgebied: str = ""
+    naam: str
+    uitvoer: str = ""
+    status: str
+    soort: str = ""
+    gevallen: list[dict[str, str]] = Field(default_factory=list)       # [{label, tekst}], de afgeleide regeltekst
+    dragers: list[RegelDrager] = Field(default_factory=list)
+    open_punten: int = 0
+    vervangen_door: RegelVerwijzing | None = None
+    vervangt: list[RegelVerwijzing] = Field(default_factory=list)
+    gelezen: bool = False
+
+
 class Definities(BaseModel):
     soort: Literal["definities"] = "definities"
     door: Literal["bron"] = "bron"
@@ -92,6 +126,12 @@ class Begrippen(BaseModel):
     soort: Literal["begrippen"] = "begrippen"
     door: Literal["bron"] = "bron"
     items: list[VastgelegdBegrip]
+
+
+class Regels(BaseModel):
+    soort: Literal["regels"] = "regels"
+    door: Literal["bron"] = "bron"
+    items: list[VastgelegdeRegel]
 
 
 class Wettekst(BaseModel):
@@ -293,8 +333,8 @@ class Leemte(BaseModel):
 
 
 Blok = Annotated[
-    Definities | Begrippen | Wettekst | Citaten | Verwijzingen | Annotaties | Toelichting | Twijfel | Extern | Stukken
-    | Leemte,
+    Definities | Begrippen | Regels | Wettekst | Citaten | Verwijzingen | Annotaties | Toelichting | Twijfel | Extern
+    | Stukken | Leemte,
     Field(discriminator="soort"),
 ]
 
@@ -314,7 +354,7 @@ NIET_ALLES = "Dit zijn niet alle markeringen; ontbrekende treffers zijn niet uit
 #: Wat de brongetrouwheidscontrole niet leest. Annotaties en begrippen zijn afgeleide duiding die niet als bron telt, en
 #: een leemte is tekst van de code: alle drie komen niet van het model, en hun BWB-id's of citaten staan niet in de bron.
 #: Een lijst stukken komt helemaal uit de zoekrijen; haar ids zijn gevonden, niet gelezen, en dat is geen signaal.
-NIET_GETOETST = frozenset({"annotaties", "begrippen", "leemte", "stukken"})
+NIET_GETOETST = frozenset({"annotaties", "begrippen", "regels", "leemte", "stukken"})
 
 
 def _vindplaats_regel(v: Vindplaats) -> str:
@@ -336,6 +376,21 @@ def _definitie_tekst(d: Definitie) -> str:
     return tekst
 
 
+def _regel_tekst(r: VastgelegdeRegel) -> str:
+    """Een regel als lijst, nooit als tabel: naam en status, de opvolging, de gevallen en waarop ze rust."""
+    kop = f"- **{r.naam or r.uitvoer or r.id}** ({r.status}" + (f", werkgebied {r.werkgebied}" if r.werkgebied else "") + ")"
+    regels = [kop]
+    if r.vervangen_door:
+        regels.append(f"  - vervangen door {r.vervangen_door.naam or r.vervangen_door.id}")
+    if r.vervangt:
+        regels.append("  - vervangt " + ", ".join(v.naam or v.id for v in r.vervangt))
+    if r.open_punten:
+        regels.append(f"  - {r.open_punten} open punt{'en' if r.open_punten != 1 else ''}")
+    regels += [f"  - {g.get('label') + ': ' if g.get('label') else ''}{g.get('tekst', '')}" for g in r.gevallen]
+    regels += [f"  - {d.rol}{' (' + d.geval + ')' if d.geval else ''}: {d.vindplaats}" for d in r.dragers if d.vindplaats]
+    return "\n".join(regels)
+
+
 def _blok_tekst(b: BaseModel) -> str:
     if isinstance(b, Definities):
         return "\n\n".join(
@@ -344,6 +399,8 @@ def _blok_tekst(b: BaseModel) -> str:
         return "\n".join(
             f"- **{x.naam}** ({x.status}{', generiek' if x.generiek else ', ' + x.werkgebied if x.werkgebied else ''})" + (f": {x.definitie}" if x.definitie else "")
             for x in b.items)
+    if isinstance(b, Regels):
+        return "\n\n".join(_regel_tekst(x) for x in b.items)
     if isinstance(b, Wettekst):
         return "\n\n".join(f"**{_vindplaats_regel(x.vindplaats)}**{NOG_NIET_TEKST if x.nog_niet_in_werking else ''}\n\n{x.tekst}"
                            for x in b.items)
