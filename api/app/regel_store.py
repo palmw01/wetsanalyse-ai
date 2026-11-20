@@ -514,11 +514,14 @@ async def _gatgegevens(conn, werkgebied_id: str, rows, dragers: dict[str, list[d
 
 
 def _regel(row, dragers: list[dict], begrippen: dict[str, dict], open_punten: list[dict] | None = None,
-           gaten: list[dict] | None = None, geerfd: list[dict] | None = None) -> dict:
+           gaten: list[dict] | None = None, geerfd: list[dict] | None = None, opvolging: dict | None = None) -> dict:
     namen = {i: b["naam"] for i, b in begrippen.items()}
     inhoud = row.inhoud
     return {"id": row.id, "werkgebied_id": row.werkgebied_id, "status": row.status, "revisie": row.revisie,
             "herkomst": row.herkomst, "opvolger_van": row.opvolger_van, "vervangen_door": row.vervangen_door,
+            # De opvolging met de namen erbij (herhaalmeting na #1796): wie deze regel verving en welke regels hij
+            # verving, zodat een lezer (Lex) de namen uit het resultaat heeft en niet alleen de id's.
+            "opvolging": opvolging or {"vervangen_door": None, "vervangt": []},
             "inhoud": inhoud,
             "naam": namen.get(inhoud["regelbegrip_id"], ""), "uitvoer": namen.get(inhoud["uitvoer_begrip_id"], ""),
             "regeltekst": regeltekst(inhoud, namen),
@@ -575,9 +578,17 @@ async def _lees(conn, werkgebied_id: str, rows) -> list[dict]:
     voor = await _voorgangers(conn, werkgebied_id, [r.id for r in rows])
     punten = await _open_punten_van(conn, werkgebied_id, [r.id for r in rows] + [v for vs in voor.values() for v in vs])
     g = await _gatgegevens(conn, werkgebied_id, rows, dragers)
+    # De namen van de regels in de opvolging, uit `_gatgegevens` (dat leest alle regels van het werkgebied al).
+    naam = {rid: x["naam"] for rid, x in g["regels"].items()}
+    kort_ = lambda rid: {"id": rid, "naam": naam.get(rid, "")}  # noqa: E731
+
+    def opvolging(r) -> dict:
+        vervangt = list(dict.fromkeys([*([r.opvolger_van] if r.opvolger_van else []), *voor.get(r.id, [])]))
+        return {"vervangen_door": kort_(r.vervangen_door) if r.vervangen_door else None,
+                "vervangt": [kort_(v) for v in vervangt]}
     return [_regel(r, dragers.get(r.id, []), begrippen, punten.get(r.id, []),
                    regel_gaten(r.inhoud, dragers.get(r.id, []), begrippen, g),
-                   [p for v in voor.get(r.id, []) for p in punten.get(v, [])]) for r in rows]
+                   [p for v in voor.get(r.id, []) for p in punten.get(v, [])], opvolging(r)) for r in rows]
 
 
 def smalle_drager(d: dict) -> dict:
@@ -594,7 +605,8 @@ def stand(regel: dict) -> dict:
     een drager-PATCH gaf de hele regel terug (13k–53k tekens), en wie veel dragers na elkaar beoordeelt, liep daarop
     vast. Het patroon is dat van `begrip_store.begripkort`."""
     return {"id": regel["id"], "revisie": regel["revisie"], "status": regel["status"],
-            "vervangen_door": regel.get("vervangen_door"), "accorderen": regel["accorderen"],
+            "vervangen_door": regel.get("vervangen_door"), "opvolger_van": regel.get("opvolger_van"),
+            "opvolging": regel.get("opvolging"), "accorderen": regel["accorderen"],
             "signalen": regel["signalen"], "open_punten": regel["open_punten"]}
 
 
@@ -760,14 +772,15 @@ async def hierarchie(werkgebied_id: str) -> dict:
     return keten(await lijst(werkgebied_id))
 
 
-async def revisies(werkgebied_id: str, regel_id: str, limit: int = 100) -> list[dict]:
+async def revisies(werkgebied_id: str, regel_id: str, limit: int = 100, kort: bool = False) -> list[dict]:
+    """De revisies, nieuwste eerst. `kort`: zonder de inhoud per revisie (die kopie is het grootste deel)."""
     await haal(werkgebied_id, regel_id)
     t = db.regel_revisies
     async with db.get_engine().connect() as conn:
         rows = (await conn.execute(select(t).where(t.c.regel_id == regel_id).order_by(t.c.revisie.desc())
                                    .limit(limit))).all()
-    return [{"revisie": r.revisie, "actie": r.actie, "detail": r.detail, "status": r.status, "inhoud": r.inhoud,
-             "actor": r.actor, "tijdstip": _iso(r.tijdstip)} for r in rows]
+    return [{"revisie": r.revisie, "actie": r.actie, "detail": r.detail, "status": r.status,
+             **({} if kort else {"inhoud": r.inhoud}), "actor": r.actor, "tijdstip": _iso(r.tijdstip)} for r in rows]
 
 
 # --- toetsen -----------------------------------------------------------------------------------------

@@ -158,3 +158,23 @@ async def test_het_werkgebied_draagt_zijn_regels_in_het_kort(client):
     assert kort["telling"] == {"concept": 1}
     assert kort["regels"] == [{"id": regel["id"], "naam": "bepalen van het termijnbedrag", "uitvoer": "termijnbedrag",
                                "status": "concept", "soort": "rekenregel", "brontype": "wet", "gevallen": 1}]
+
+
+async def test_de_opvolging_met_namen_de_korte_vorm_en_korte_revisies(client):
+    """Herhaalmeting na #1796: de namen van voorganger en opvolger staan bij de regel, de korte vorm noemt `opvolger_van`,
+    en `…/revisies?vorm=kort` laat de inhoud per revisie weg."""
+    wg, ids, b = await _opzet(client)
+    oud = await _regel(client, wg, b, ids)
+    nieuw = await _regel(client, wg, b, ids)
+    r = await client.post(_url(wg, oud["id"], "afwijzen"),
+                          json={"verwachte_revisie": oud["revisie"], "reden": "Samengevoegd", "opvolger_id": nieuw["id"]})
+    assert r.status_code == 200, r.text
+    oud, nieuw = r.json(), (await client.get(_url(wg, nieuw["id"]))).json()
+    naam = "bepalen van het termijnbedrag"
+    assert oud["opvolging"] == {"vervangen_door": {"id": nieuw["id"], "naam": naam}, "vervangt": []}
+    assert nieuw["opvolging"] == {"vervangen_door": None, "vervangt": [{"id": oud["id"], "naam": naam}]}
+    kort = (await client.get(_url(wg, nieuw["id"]) + "?vorm=kort")).json()
+    assert kort["opvolger_van"] == oud["id"] and kort["opvolging"]["vervangt"][0]["naam"] == naam
+    volledig = (await client.get(_url(wg, oud["id"], "revisies"))).json()["revisies"]
+    smal = (await client.get(_url(wg, oud["id"], "revisies") + "?vorm=kort")).json()["revisies"]
+    assert "inhoud" in volledig[0] and "inhoud" not in smal[0] and smal[0]["actie"] == "regel-vervangen"

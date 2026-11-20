@@ -708,7 +708,11 @@ bruikbaar is.
   `get_artikel`/`get_lid`/`get_bepaling`, sjabloon `antwoord_duiding`). Een klein eigen voorvoegsel, geen wissel naar
   het brede profiel. "Afleidingsregel" is ook een JAS-klasse: een vraag naar markeringen blijft bij de annotaties. Verder
   in `centraal_breed` (achter `meer_tools`). Een artikel dat alleen een afgeleid resultaat aanwijst (een drager), haalt
-  het duidingssjabloon op in plaats van het onbekend te noemen (`vullen.artikel_in_trace(ook_afgeleid=True)`). Het dossier (`werkgebied_context`) noemt de regels van het werkgebied; zonder
+  het duidingssjabloon op in plaats van het onbekend te noemen (`vullen.artikel_in_trace(ook_afgeleid=True)`). De
+  herkenning neemt ook een vraag naar de stand of opvolging van regels ("welke regels zijn vervangen?"), zonder artikel,
+  wet of regeling erin. De bronnodes van de dragers van een gelezen regel (`get_regel`) staan in de bronnenlijst met hun
+  vindplaats, ook zonder jci (`provenance._regeldragers`); het resultaat blijft afgeleide duiding, nooit grounding. Een
+  eerste alinea die alleen het antwoord aankondigt ("Hieronder volgt …"), is een aanloop (`narratie._AANKONDIGING_RE`). Het dossier (`werkgebied_context`) noemt de regels van het werkgebied; zonder
   regels is het byte-gelijk.
 - **`tools/__init__.py`** – `TOOLS` (33 declaraties: 21 graaftools, de vier annotatieleestools uit
   `tools/annotatie_tools.py`, de twee begrippenleestools uit `tools/begrip_tools.py`, de twee Kamerstuktools uit

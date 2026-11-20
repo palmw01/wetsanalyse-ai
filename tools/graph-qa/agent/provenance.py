@@ -18,6 +18,7 @@ dat zijn predicaten, geen vindplaatsen.
 """
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 from collections.abc import Iterable, Iterator
@@ -220,6 +221,23 @@ def _zoektools() -> frozenset[str]:
     return frozenset(t for b in bronnen() for t in b.zoektools) - REGELINGTOOLS
 
 
+#: De tool die per drager van een afleidingsregel de bronnode noemt (`regel_tools.compact_regel`).
+REGEL_LEESTOOL = "get_regel"
+
+
+def _regeldragers(text: str) -> list[dict[str, Any]]:
+    """De dragers van een gelezen regel met een bronnode: wat de regel draagt, staat letterlijk in die bepaling (de ankers
+    van de markering zijn getoetst). Ze komen in de bronnenlijst met hun vindplaats, ook een Leidraad-divisie zonder jci
+    (herhaalmeting na #1796: LI 9.1 en 9.5 geciteerd, niet in de bronnen). Het resultaat van de regel zelf blijft afgeleide
+    duiding: het is nooit grounding."""
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return []
+    return [d for d in (data.get("dragers") or []) if isinstance(d, dict) and d.get("bron_iri")] \
+        if isinstance(data, dict) else []
+
+
 def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
     """Bouw een ontdubbelde bronnenlijst uit (tool_naam, resultaat_tekst)-paren.
 
@@ -234,6 +252,19 @@ def collect_sources(entries: Iterable[tuple[str, str]]) -> list[Source]:
     for tool, text in entries:
         # Een foutresultaat zonder stuk is geen bron: zijn voorbeeld ({"bwb_id": "BWBR0004770", …}) zette de Invorderingswet in de
         # bronnenlijst bij een ECLI die niet bestaat (meting Rechtspraak R14, 11 nov 2026).
+        if tool == REGEL_LEESTOOL and text and not is_fout(text):
+            for d in _regeldragers(text):
+                vp = vindplaats(d["bron_iri"])
+                sleutel = vp.bron_iri if vp else d["bron_iri"]
+                if sleutel in per_node:
+                    continue
+                jci = d.get("jci") or None
+                bron = Source(label=d.get("vindplaats") or (vp.label if vp else "") or sleutel, uri=sleutel, jci=jci,
+                              origin_tool=tool, bron_iri=vp.bron_iri if vp else None, bwb_id=vp.bwb_id if vp else None,
+                              soort=vp.soort if vp else None)
+                per_node[sleutel] = bron
+                sources.append(bron)
+            continue
         if not text or tool in AFGELEIDE_TOOL_NAMEN or (is_fout(text) and '"stuk"' not in text):
             continue
         labels = _labels(text)
