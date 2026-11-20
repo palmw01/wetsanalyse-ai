@@ -1149,7 +1149,8 @@ dezelfde bouwstenen (`begrip_store.bewijzen`, `actualiteit`, `in_werkgebied`, `w
 - **Een oordeel slaat op een versie van de regel** (`heropen_oordelen`): verandert een geval (voorwaarden, uitkomst,
   voorrang) of de regel zelf (soort, regelbegrip, uitvoer, onderwerp, invoer), dan gaan de oordelen over de voorbeelden
   van dat geval terug op `open` (revisiedetail `voorbeelden_heropend`). Per geval telt alleen een voorbeeld op `juist`
-  (besluit gebruiker 20 nov 2026); `kan_niet` telt niet mee.
+  (besluit gebruiker 20 nov 2026); `kan_niet` telt niet mee. Een voorbeeld op `kan_niet` beschrijft een invoer die zich
+  niet voordoet: de tegenspraak met zijn geval (`TEGENSPRAAK`) en het signaal "niet na te rekenen" slaan het over.
 - **Accorderen leest onder een leesslot** (`_leesslot`, `FOR SHARE`): de begrippen die de regel noemt en de markeringen
   van zijn dragers, want een generiek begrip en een annotatie schrijven buiten het werkgebiedslot.
 - **De opvolger wissen herstelt de voorganger** (`_herstel_voorgangers`, zoals bij een begrip): de status van vóór de

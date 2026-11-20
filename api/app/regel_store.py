@@ -206,8 +206,10 @@ def poort(inhoud: dict, dragers: list[dict], begrippen: dict[str, dict], open_pu
         redenen.append(_meervoud(len(onjuist), "Voorbeeld <nrs> geeft een onjuiste uitkomst: pas de regel of het "
                                  "voorbeeld aan.", "De voorbeelden <nrs> geven een onjuiste uitkomst: pas de regel of de "
                                  "voorbeelden aan.").replace("<nrs>", _nrs(onjuist)))
-    tegen = [n for n, v in enumerate(voorbeelden, start=1)
-             if any(b["code"] in TEGENSPRAAK for b in toets_voorbeeld(inhoud, v))]
+    # Een voorbeeld op `kan_niet` beschrijft een invoer die zich niet voordoet: het hoeft niet bij zijn geval te passen,
+    # en telt per geval ook niet mee (besluit gebruiker 20 nov 2026, review regelstapel bevinding 13).
+    tegen = [n for n, v in enumerate(voorbeelden, start=1) if v.get("oordeel") != "kan_niet"
+             and any(b["code"] in TEGENSPRAAK for b in toets_voorbeeld(inhoud, v))]
     if tegen:
         redenen.append(_meervoud(len(tegen), "Voorbeeld <nrs> past niet bij zijn geval: pas het geval of de gevallen "
                                  "eronder aan.", "De voorbeelden <nrs> passen niet bij hun geval: pas het geval of de "
@@ -349,8 +351,8 @@ def signalen(inhoud: dict, dragers: list[dict], open_punten: list[dict] | None =
             uit.append("Geval " + ", ".join(alleen_regel) + " rust alleen op een grondslag voor de hele regel: toets "
                        "of die grondslag dit geval ook draagt.")
     voorbeelden = inhoud.get("voorbeelden", [])
-    los = [n for n, v in enumerate(voorbeelden, start=1)
-           if any(b["code"] in ("invoer_ontbreekt", "niet_narekenbaar") for b in toets_voorbeeld(inhoud, v))]
+    los = [n for n, v in enumerate(voorbeelden, start=1) if v.get("oordeel") != "kan_niet"
+           and any(b["code"] in ("invoer_ontbreekt", "niet_narekenbaar") for b in toets_voorbeeld(inhoud, v))]
     if los:
         uit.append(_meervoud(len(los), "Voorbeeld <nrs> is niet na te rekenen: het noemt de invoer niet per invoerbegrip.",
                              "De voorbeelden <nrs> zijn niet na te rekenen: ze noemen de invoer niet per "

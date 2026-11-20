@@ -276,3 +276,25 @@ async def test_11_de_rooktest_zegt_dat_hij_afkapt(client, monkeypatch):
 
 def test_12_dragend_staat_op_één_plek():
     assert regel_store.DRAGEND is regel_contracts.DRAGEND is regel_projectie.DRAGEND
+
+
+# --- 13 (laag, #1792), besluit gebruiker: alleen `juist` telt ----------------------------------------
+
+def test_13_een_kan_niet_voorbeeld_dat_niet_bij_zijn_geval_past_houdt_niet_tegen():
+    """Een voorbeeld op `kan_niet` beschrijft een invoer die zich niet voordoet; dat het niet bij zijn geval past, is
+    dan geen tegenspraak. Een `juist` of `onjuist` voorbeeld dat niet past, houdt wel tegen."""
+    inhoud = {"regelbegrip_id": "r", "uitvoer_begrip_id": "u", "invoer": [{"begrip_id": "a", "rol": "invoer"}],
+              "gevallen": [{"label": "lid 5", "voorrang": 0, "uitkomst": [{"soort": "begrip", "begrip_id": "a"}],
+                            "voorwaarden": {"delen": [{"tekst": "volgens lid 5",
+                                                       "geval_van": {"regel_id": "R1", "geval": "lid 5"}}]}}]}
+    past_niet = {"geval": "lid 5", "invoer": "x", "uitkomst": "y", "waarden": [{"begrip_id": "a", "waarde": "3"}],
+                 "van_geval": [{"regel_id": "R1", "geval": "lid 6"}]}
+    assert [b["code"] for b in regel_store.toets_voorbeeld(inhoud, past_niet)] == ["geval_past_niet"]
+    juist = {**past_niet, "van_geval": [{"regel_id": "R1", "geval": "lid 5"}], "oordeel": "juist"}
+
+    def redenen(*vbn):
+        return regel_store.poort({**inhoud, "voorbeelden": list(vbn)}, [], {})["redenen"]
+    assert not any("past niet bij zijn geval" in r for r in redenen(juist, {**past_niet, "oordeel": "kan_niet"}))
+    assert any("Voorbeeld 2 past niet bij zijn geval" in r for r in redenen(juist, {**past_niet, "oordeel": "juist"}))
+    # En `kan_niet` telt niet als het juiste voorbeeld van het geval (bevinding 7).
+    assert "Er is nog geen voorbeeld met een juridisch juiste uitkomst." in redenen({**past_niet, "oordeel": "kan_niet"})
