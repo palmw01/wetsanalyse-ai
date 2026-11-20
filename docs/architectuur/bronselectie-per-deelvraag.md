@@ -11,7 +11,8 @@ analist besluit.
 
 | wat | waar | levensduur |
 |---|---|---|
-| de stand van het werk per deelvraag (voortgang, fase, onderzoekspunten) | api, `bronselectie_voortgang` | duurzaam, gedeeld |
+| de stand van het werk per deelvraag (voortgang, fase) | api, `bronselectie_voortgang` | duurzaam, gedeeld |
+| de onderzoekspunten bij een deelvraag | api, `open_punten` (soort onderzoekspunt, lessenbundel 4) | duurzaam, gedeeld |
 | de besluiten: een bron opgenomen bij een deelvraag (met rol), of *uitgesloten* bij een deelvraag | api, `werkgebied_deelvraag_koppelingen.rol` en `bron_kandidaat_deelvragen`; werkgebiedbreed `bron_kandidaten` | duurzaam, gedeeld, geaudit |
 | het gesprek: welke kaartjes er zijn gesteld en beantwoord | api, `gesprek_berichten` (`vraagkaart`, `intake_antwoord`) | per gebruiker, een verslag |
 

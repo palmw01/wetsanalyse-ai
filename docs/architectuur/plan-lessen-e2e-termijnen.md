@@ -853,8 +853,8 @@ sterk varieert.
      aanroepen. Gesprek-UI en kaart-UI komen niet in deze bundel.
    - **L-DV-2** is opgelost doordat één punt aan een deelvraag én een regel of markering kan hangen.
    - **Uitgesteld**:
-     - Het onderzoekspunt van de bronselectie zet ik nog niet over. Dat punt zit in de poort van de bronselectie, en
-       het overzetten is een eigen stap.
+     - Het onderzoekspunt van de bronselectie is sinds 20 nov 2026 een open punt (soort onderzoekspunt, aan de
+       deelvraag). De poort leest het daar, en de oude plek in de voortgang wordt niet meer gebruikt.
      - Het signaal van L-1-2 hangt aan een relatie naar een contextbron. Die bestaat pas na M-1-1, dus het signaal
        schuift naar bundel 7.
 5. **Bundel 5, begrippen naast regels** (api): L-3a-1 en L-3a-2. Daarna de volledigheidstoets van L-3b-3 als signaal op

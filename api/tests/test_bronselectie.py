@@ -180,19 +180,32 @@ async def test_beoordeeld_alleen_door_de_poort_en_een_dubbele_klik_is_geen_confl
     ov = await _overzicht(client, wg)
     ov = await _besluit(client, wg, ids[0], _kid(_dq(ov, ids[0]), ART)["id"], "opnemen", verwachte_revisie=ov["revisie"])
     rev = _dq(ov, ids[0])["revisie"]
+    # Een onderzoekspunt is een open punt (lessenbundel 4) aan de deelvraag; de statusroute kent het oude veld niet meer.
+    await _status(client, wg, ids[0], "afronden", verwacht=422, verwachte_revisie=rev,
+                  open_punten=[{"tekst": "oud"}])
+    punt = await client.post(f"/v1/werkgebieden/{wg['id']}/open-punten", json={"inhoud": {
+        "soort": "onderzoekspunt", "vraag": "Bijzondere invorderbaarheid nog niet onderzocht.",
+        "hangt_aan": [{"soort": "deelvraag", "id": ids[0]}]}})
+    assert punt.status_code == 201, punt.text
+    punt = punt.json()
     # Voorlopig afronden mag met open punten; een tweede klik met de oude revisie is geen 412.
-    punten = [{"tekst": "Bijzondere invorderbaarheid nog niet onderzocht."}]
-    ov = await _status(client, wg, ids[0], "afronden", verwachte_revisie=rev, open_punten=punten)
-    assert _dq(ov, ids[0])["status"] == "voorlopig_afgerond" and _dq(ov, ids[0])["open_punten"] == punten
-    ov = await _status(client, wg, ids[0], "afronden", verwachte_revisie=rev, open_punten=punten)
+    ov = await _status(client, wg, ids[0], "afronden", verwachte_revisie=rev)
+    assert _dq(ov, ids[0])["status"] == "voorlopig_afgerond"
+    assert _dq(ov, ids[0])["open_punten"] == [{"id": punt["id"], "tekst": "Bijzondere invorderbaarheid nog niet onderzocht.",
+                                               "status": "open"}]
+    ov = await _status(client, wg, ids[0], "afronden", verwachte_revisie=rev)
     rev = _dq(ov, ids[0])["revisie"]
     # Een opgenomen bron en geen onderzoekspunt: dan pas beoordeeld.
     assert _kid(_dq(ov, ids[0]), ART)["stand"] == "opgenomen"
     await _besluit(client, wg, ids[0], _kid(_dq(ov, ids[0]), ART)["id"], "later", verwacht=422)    # bestaat niet meer
     r = await _status(client, wg, ids[0], "beoordelen", verwacht=409, verwachte_revisie=rev)
     assert r["detail"]["redenen"] == ["Er staan nog onderzoekspunten open."]
-    ov = await _status(client, wg, ids[0], "beoordelen", verwachte_revisie=rev, open_punten=[])
-    assert _dq(ov, ids[0])["status"] == "beoordeeld"
+    # Het punt oplossen (de keuze van de jurist, met de motivering hoe het verder gaat) haalt het uit de poort.
+    b = await client.post(f"/v1/werkgebieden/{wg['id']}/open-punten/{punt['id']}/besluit",
+                          json={"verwachte_revisie": 1, "motivering": "Valt buiten deze deelvraag."})
+    assert b.status_code == 200, b.text
+    ov = await _status(client, wg, ids[0], "beoordelen", verwachte_revisie=rev)
+    assert _dq(ov, ids[0])["status"] == "beoordeeld" and _dq(ov, ids[0])["open_punten"] == []
     # Een collega met een oude stand krijgt 412.
     r = await _status(client, wg, ids[0], "heropenen", verwacht=412, verwachte_revisie=rev)
     assert r["detail"]["fout"] == "revisie_conflict"

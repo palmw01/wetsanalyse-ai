@@ -27,10 +27,6 @@ class Fase(str, Enum):
     afronden = "afronden"                  # D: wat er ligt en wat openstaat
 
 
-class OpenPunt(BaseModel):
-    tekst: str = Field(min_length=1, max_length=1000)
-
-
 class StatusActie(BaseModel):
     """`openen` maakt de deelvraag de actieve (en start haar als dat nog niet gebeurd was) en draagt geen
     revisie: het is navigeren. De andere acties wijzigen de stand en dragen de revisie van de voortgang
@@ -40,10 +36,14 @@ class StatusActie(BaseModel):
     actie: Literal["openen", "fase", "afronden", "beoordelen", "heropenen"]
     verwachte_revisie: int | None = Field(default=None, ge=0)
     fase: Fase | None = None
-    open_punten: list[OpenPunt] | None = Field(default=None, max_length=50)
+    # Vroeger de onderzoekspunten van de deelvraag. Die zijn een open punt (soort onderzoekspunt, `…/open-punten`); wie
+    # ze hier nog meestuurt, krijgt een 422 in plaats van dat ze stil wegvallen.
+    open_punten: list | None = None
 
     @model_validator(mode="after")
     def _velden(self):
+        if self.open_punten is not None:
+            raise ValueError("onderzoekspunten zijn open punten: leg ze vast met POST …/open-punten (soort onderzoekspunt)")
         if self.actie == "fase" and self.fase is None:
             raise ValueError("fase hoort bij actie fase")
         if self.actie != "openen" and self.verwachte_revisie is None:

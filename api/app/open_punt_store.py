@@ -64,6 +64,8 @@ async def _bestaande(conn, werkgebied_id: str, aanhakingen: list[dict]) -> set[t
     if per.get("markering"):
         e = db.annotatie_v2_elementen
         uit |= {("markering", i) for i in await ids(e, e.c.id.in_(per["markering"]))}
+    if werkgebied_id in per.get("werkgebied", set()):
+        uit.add(("werkgebied", werkgebied_id))
     return uit
 
 

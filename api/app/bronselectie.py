@@ -6,7 +6,8 @@ collega.
 
 - **Voortgang per deelvraag** (`bronselectie_voortgang`): `niet_gestart` (geen rij) → `in_behandeling` →
   `voorlopig_afgerond` (de analist sluit af, open punten mogen blijven) → `beoordeeld` (alleen door de
-  poort: de vragen zijn doorlopen en er staat geen onderzoekspunt open). Een werkgebied zonder deelvragen heeft één rij onder
+  poort: de vragen zijn doorlopen en er staat geen onderzoekspunt open; een onderzoekspunt is een open punt van
+  `open_punt_store`, soort onderzoekspunt, aan de deelvraag of aan het werkgebied). Een werkgebied zonder deelvragen heeft één rij onder
   `ANALYSEVRAAG`. Elke rij draagt een eigen revisie (412); `openen` is navigeren en draagt er geen.
 - **Wat is afgerond, staat op een scope.** `scope_stand` is de hash van analysevraag, afbakening en de
   tekst van de deelvraag, bij het afronden. Wijkt die nu af, of staat er een nieuw voorstel dat voor deze deelvraag
@@ -138,7 +139,7 @@ def _toets_deelvraag(werkgebied: dict, deelvraag_id: str) -> dict:
 
 
 def _rij(row) -> dict:
-    return {"status": row.status, "fase": row.fase, "open_punten": row.open_punten or [], "revisie": row.revisie,
+    return {"status": row.status, "fase": row.fase, "revisie": row.revisie,
             "scope_stand": row.scope_stand, "gewijzigd_door": row.gewijzigd_door,
             "gewijzigd": db.aware(row.gewijzigd).isoformat(), "geopend": db.aware(row.geopend).isoformat()}
 
@@ -158,8 +159,27 @@ async def _lees(werkgebied: dict) -> dict:
         koppelingen = (await conn.execute(select(kp).where(kp.c.deelvraag_id.in_(ids), kp.c.soort == "bron"))).all()
         voorgangers = await werkgebied_deelvragen.voorgangers_in(conn, wid)
         basis = await bronnen_run_store.basis_run_id(conn, wid)
+        punten = await _onderzoekspunten(conn, wid)
     return {"vragen": vragen, "rijen": rijen, "besluiten": besluiten, "kandidaten": kandidaten,
-            "selecties": selecties, "koppelingen": koppelingen, "voorgangers": voorgangers, "basis": basis}
+            "selecties": selecties, "koppelingen": koppelingen, "voorgangers": voorgangers, "basis": basis,
+            "punten": punten}
+
+
+async def _onderzoekspunten(conn, werkgebied_id: str) -> dict[str, list[dict]]:
+    """De onderzoekspunten die nog open staan, per deelvraag: de open punten van soort onderzoekspunt die aan de
+    deelvraag hangen, of aan het werkgebied (dan horen ze bij de analysevraag). Eén plek voor alle open punten
+    (`open_punt_store`, lessenbundel 4); de bronselectie leest ze, en schrijft ze niet zelf."""
+    t = db.open_punten
+    uit: dict[str, list[dict]] = {}
+    for r in (await conn.execute(select(t.c.id, t.c.status, t.c.inhoud).where(
+            t.c.werkgebied_id == werkgebied_id, t.c.status == "open").order_by(t.c.aangemaakt, t.c.id))).all():
+        if (r.inhoud or {}).get("soort") != "onderzoekspunt":
+            continue
+        for a in r.inhoud.get("hangt_aan") or []:
+            sleutel = a["id"] if a.get("soort") == "deelvraag" else ANALYSEVRAAG if a.get("soort") == "werkgebied" else None
+            if sleutel:
+                uit.setdefault(sleutel, []).append({"id": r.id, "tekst": r.inhoud.get("vraag", ""), "status": r.status})
+    return uit
 
 
 def onder(iri: str, ouder: str) -> bool:
@@ -245,8 +265,9 @@ def _per_vraag(werkgebied: dict, lees: dict) -> list[dict]:
         eigen = {did} | lees["voorgangers"].get(did, set())
         r = lees["rijen"].get(did)
         voortgang = _rij(r) if r is not None else {
-            "status": Voortgang.niet_gestart.value, "fase": Fase.kern.value, "open_punten": [], "revisie": 0,
+            "status": Voortgang.niet_gestart.value, "fase": Fase.kern.value, "revisie": 0,
             "scope_stand": "", "gewijzigd_door": None, "gewijzigd": None, "geopend": None}
+        voortgang["open_punten"] = lees["punten"].get(did, [])
         # Het kaartje beantwoorden is het besluit: wat er toen niet aangevinkt werd, is niet gekozen. Dat volgt
         # uit de fase (de kernbepalingen zijn gehad zodra de deelvraag voorbij `kern` is, de rest bij `afronden`)
         # en uit wat er toen openstond (`gezien`); de vragen opnieuw doorlopen maakt er weer een keuze van.
@@ -419,7 +440,7 @@ async def _start_in(conn, werkgebied_id: str, deelvraag_id: str, actor: str):
     nu = db.utcnow()
     await conn.execute(insert(v).values(werkgebied_id=werkgebied_id, deelvraag_id=deelvraag_id,
                                         status=Voortgang.in_behandeling.value, fase=Fase.kern.value,
-                                        open_punten=[], scope_stand="", revisie=1, gewijzigd_door=actor,
+                                        scope_stand="", revisie=1, gewijzigd_door=actor,
                                         gewijzigd=nu, geopend=nu, gezien={}))
     await _audit(conn, werkgebied_id, actor, "bronselectie-gestart", {"deelvraag": deelvraag_id})
     return (await conn.execute(q)).first(), True
@@ -444,11 +465,9 @@ async def zet_status(werkgebied_id: str, deelvraag_id: str, req: StatusActie, ac
         status = row.status if row is not None else Voortgang.niet_gestart.value
         doel = {"afronden": Voortgang.voorlopig_afgerond.value, "beoordelen": Voortgang.beoordeeld.value,
                 "heropenen": Voortgang.in_behandeling.value, "fase": status}[req.actie]
-        punten = [p.model_dump() for p in req.open_punten] if req.open_punten is not None else None
         stand = huidig["_scope_nu"]
         # Al waar de actie heen wil: niets te doen, ook geen revisietoets (een dubbele klik is geen conflict).
         if row is not None and status == doel and (req.actie != "fase" or row.fase == req.fase.value) \
-                and (punten is None or punten == (row.open_punten or [])) \
                 and (req.actie not in ("afronden", "beoordelen") or row.scope_stand == stand):
             return
         if row is None:
@@ -466,9 +485,6 @@ async def zet_status(werkgebied_id: str, deelvraag_id: str, req: StatusActie, ac
             raise HTTPException(409, {"fout": "status", "status": status, "melding": melding})
         if req.actie == "beoordelen":
             redenen = list(huidig["beoordelen"]["redenen"])
-            if punten is not None:
-                redenen = [r for r in redenen if "onderzoekspunten" not in r] + (
-                    ["Er staan nog onderzoekspunten open."] if punten else [])
             if redenen:
                 raise HTTPException(409, {"fout": "poort", "redenen": redenen,
                                           "melding": " ".join(redenen) + " Rond de deelvraag voorlopig af, of "
@@ -480,8 +496,6 @@ async def zet_status(werkgebied_id: str, deelvraag_id: str, req: StatusActie, ac
         if req.actie in ("afronden", "beoordelen"):
             waarden["scope_stand"] = stand
             waarden["fase"] = Fase.afronden.value
-        if punten is not None:
-            waarden["open_punten"] = punten
         gezien = getattr(row, "gezien", None)
         if gezien is not None:
             waarden["gezien"] = gezien_bij(huidig, gezien, _gehad(status, row.fase),
@@ -490,8 +504,7 @@ async def zet_status(werkgebied_id: str, deelvraag_id: str, req: StatusActie, ac
                            .values(**waarden))
         await _audit(conn, werkgebied_id, actor, f"bronselectie-{req.actie}",
                      {"deelvraag": deelvraag_id, "status": doel, "revisie": row.revisie + 1,
-                      **({"fase": req.fase.value} if req.fase else {}),
-                      **({"open_punten": len(punten)} if punten is not None else {})})
+                      **({"fase": req.fase.value} if req.fase else {})})
 
 
 # --- besluiten per deelvraag -----------------------------------------------------------------
